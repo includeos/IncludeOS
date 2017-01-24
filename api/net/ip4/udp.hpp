@@ -37,7 +37,7 @@ namespace net {
     using port_t = uint16_t;
 
     using Packet_ptr = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
-    using Stack  = Inet<LinkLayer, IP4>;
+    using Stack  = IP4::Stack;
 
     typedef delegate<void()> sendto_handler;
 
@@ -159,7 +159,7 @@ namespace net {
     downstream  network_layer_out_;
     Stack&      stack_;
     std::map<port_t, UDPSocket> ports_;
-    port_t      current_port_ {1024};
+    port_t      current_port_;
 
     // the async send queue
     std::deque<WriteBuffer> sendq;

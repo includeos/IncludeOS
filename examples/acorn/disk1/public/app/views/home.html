@@ -1,0 +1,80 @@
+<style type="text/css">
+.stylish-panel {
+  padding: 20px 0;
+  text-align: center;
+}
+.stylish-panel > div > div{
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: 0.2s;
+}
+.stylish-panel > div:hover > div{
+  margin-top: -10px;
+  border: 1px solid rgb(200, 200, 200);
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 5px 5px 2px;
+  background: rgba(200, 200, 200, 0.1);
+  transition: 0.5s;
+}
+
+.stylish-panel > div:hover img {
+  border-radius: 50%;
+  -webkit-transform: rotate(360deg);
+  -moz-transform: rotate(360deg);
+  -o-transform: rotate(360deg);
+  -ms-transform: rotate(360deg);
+  transform: rotate(360deg);
+}
+</style>
+
+<div class="container">
+  <div class="page-header">
+    <h1 class="text-center">Acorn Web Appliance</h1>
+  </div>
+  <p class="lead text-center">Check out what we've been working on!</p>
+  <div class="container">
+    <div class="row stylish-panel">
+
+      <div class="col-md-4">
+        <div>
+          <a href="app/squirrels" title="See more">
+          <img src="../img/squirrel.jpg" alt="Squirrel has escaped!" class="img-circle img-thumbnail">
+          </a>
+          <h2>Rest API</h2>
+          <p>
+            Here you can find our collections of Squirrels - exposed as JSON from Acorn.
+          </p>
+          <a href="app/squirrels" class="btn btn-primary" title="See more">Look, a squirrel! »</a>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div>
+          <a href="/static/books" target="_self" title="See more">
+          <img src="../img/books.jpg" alt="A stack of books" class="img-circle img-thumbnail">
+          </a>
+          <h2>Filesystem</h2>
+          <p>
+            Check out the content inside our memdisk. Here we're displaying a directory with books from our filesystem.
+          </p>
+          <a href="/static/books" target="_self" class="btn btn-primary" title="See more">Read a book »</a>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div>
+          <a href="app/dashboard" title="See more">
+          <img src="../img/engine.png" alt="A engine" class="img-circle img-thumbnail">
+          </a>
+          <h2>Dashboard</h2>
+          <p>
+            Wroom wroom
+          </p>
+          <a href="app/dashboard" class="btn btn-primary" title="See more"><i class="fa fa-tachometer" aria-hidden="true"></i> »</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- /container -->

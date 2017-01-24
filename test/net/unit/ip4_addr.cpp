@@ -15,8 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define GSL_THROW_ON_CONTRACT_VIOLATION 1
-
 #include <common.cxx>
 #include <net/ip4/addr.hpp>
 
@@ -50,9 +48,14 @@ CASE("Create IP4 addresses from strings")
   EXPECT( valid_addr == addr );
   EXPECT( valid_addr.to_string() == valid_addr_str );
 
+  std::string extra_whitespace_addr_str {"\r 10.0.0.42 \n\r"};
+  Addr ipv4_address {extra_whitespace_addr_str};
+  EXPECT(ipv4_address.str() == "10.0.0.42");
+
   EXPECT_THROWS(Addr{"LUL"});
   EXPECT_THROWS(Addr{"12310298310298301283"});
   EXPECT_THROWS(const Addr invalid{"256.256.256.256"});
+  EXPECT_THROWS(const Addr also_invalid{"-6.-2.-5.1"});
 }
 
 CASE("IP4 addresses can be compared to each other")
@@ -82,5 +85,4 @@ CASE("IP4 addresses can be compared to each other")
   Addr result = netmask & not_terrorist;
   const Addr expected_result { 192,168,1,0 };
   EXPECT( result == expected_result );
-
 }

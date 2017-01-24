@@ -21,13 +21,13 @@
 #include <delegate>
 #include <list>
 
-#include "disk.hpp"
+#include "block_device.hpp"
 #include "pci_device.hpp"
 
 namespace hw {
 
   /** IDE device driver  */
-  class IDE : public Drive {
+  class IDE : public Block_device {
   public:
     enum selector_t
       {
@@ -43,7 +43,7 @@ namespace hw {
     explicit IDE(hw::PCI_Device& pcidev, selector_t);
 
     /** Human-readable name of this disk controller  */
-    virtual const char* name() const noexcept override
+    virtual const char* driver_name() const noexcept override
     { return "IDE Controller"; }
 
     /** Returns the optimal block size for this device.  */

@@ -1,6 +1,6 @@
 {
   "image" : "virtioblk.img",
-  "drives" : [{"file" : "image.img",
+  "drives" : [{"file" : "../image.img",
                "type" : "virtio",
                "format": "raw",
                "media": "disk" }]

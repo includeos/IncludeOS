@@ -53,6 +53,21 @@ class Vmbuild_error : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
+string get_bootloader_path(int argc, char** argv) {
+
+  if (argc == 2) {
+    // Determine IncludeOS install location from environment, or set to default
+    std::string includeos_install;
+    if (auto env_install = getenv("INCLUDEOS_INSTALL")) {
+      includeos_install = env_install;
+    } else {
+      includeos_install = std::string{getenv("HOME")} + "/IncludeOS_install";
+    }
+    return includeos_install + "/bootloader";
+  } else {
+    return argv[2];
+  }
+}
 
 int main(int argc, char** argv) {
 
@@ -62,15 +77,8 @@ int main(int argc, char** argv) {
     exit(EXIT_FAILURE);
   }
 
-  std::string includeos_install = std::string{getenv("HOME")} + "/IncludeOS_install";
+  const string bootloader_path = get_bootloader_path(argc, argv);
 
-  // Determine IncludeOS install location from environment, or set to default
-  if (auto env_install = getenv("INCLUDEOS_INSTALL"))
-    includeos_install = env_install;
-
-  INFO(">>> IncludeOS install location: %s", includeos_install.c_str());
-
-  const string bootloader_path = includeos_install + "/bootloader";
   INFO(">>> Using bootloader %s" , bootloader_path.c_str());
 
   if (argc > 2)
@@ -100,11 +108,11 @@ int main(int argc, char** argv) {
   }
 
   if (stat_boot.st_size != SECT_SIZE) {
-    INFO("Boot sector not exactly one sector in size (%lld bytes, expected %i)",
+    INFO("Boot sector not exactly one sector in size (%ld bytes, expected %i)",
          stat_boot.st_size, SECT_SIZE);
     return SECT_SIZE_ERR;
   }
-  INFO("Size of bootloader: %lld\t" , stat_boot.st_size);
+  INFO("Size of bootloader: %ld\t" , stat_boot.st_size);
 
   // Validate service binary location
   if (stat(elf_binary_path.c_str(), &stat_binary) == -1) {
@@ -115,9 +123,9 @@ int main(int argc, char** argv) {
   intmax_t binary_sectors = stat_binary.st_size / SECT_SIZE;
   if (stat_binary.st_size & (SECT_SIZE-1)) binary_sectors += 1;
 
-  INFO("Size of service: \t%lld bytes" , stat_binary.st_size);
+  INFO("Size of service: \t%ld bytes" , stat_binary.st_size);
 
-  const decltype(binary_sectors) img_size_sect  {1 + binary_sectors+1};
+  const decltype(binary_sectors) img_size_sect  {1 + binary_sectors};
   const decltype(binary_sectors) img_size_bytes {img_size_sect * SECT_SIZE};
   Expects((img_size_bytes & (SECT_SIZE-1)) == 0);
 
@@ -183,7 +191,7 @@ int main(int argc, char** argv) {
   INFO("Entry: 0x%x" , multiboot.entry_addr);
 
   // Write binary size and entry point to the bootloader
-  *(reinterpret_cast<int*>(disk_head + bootvar_binary_size)) = binary_sectors;
+  *(reinterpret_cast<int*>(disk_head + bootvar_binary_size))     = binary_sectors;
   *(reinterpret_cast<int*>(disk_head + bootvar_binary_location)) = binary.entry();
 
   if (test) {

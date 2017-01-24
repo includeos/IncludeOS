@@ -91,10 +91,11 @@ namespace hw
      * with the PBA Offset / PBA BIR register.
     **/
     auto bar = dev.read_dword(offset);
+    
     auto capbar_off = bar & ~MSIX_BIR_MASK;
     bar &= MSIX_BIR_MASK;
     
-    auto baroff = dev.get_membar(bar);
+    auto baroff = dev.get_bar(bar);
     assert(baroff != 0);
     
     return capbar_off + baroff;
@@ -124,10 +125,10 @@ namespace hw
     // get number of vectors we can get notifications from
     this->vector_cnt = (func & MSIX_TBL_SIZE) + 1;
     
-    if (vector_cnt > 16) {
+    if (vector_cnt > 32) {
       printf("table addr: %#x  pba addr: %#x  vectors: %u\n",
               table_addr, pba_addr, vectors());
-      assert(vectors() <= 16 && "Unreasonably many MSI-X vectors");
+      assert(vectors() <= 32 && "Unreasonably many MSI-X vectors");
     }
     
     // reset all entries

@@ -20,6 +20,7 @@
 #define NET_TCP_RTTM_HPP
 
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <debug>
 
@@ -103,7 +104,7 @@ struct RTTM {
     debug2("<TCP::Connection::RTO> RTO updated: %ums\n",
       (uint32_t)(RTO * 1000));
   }
-} __attribute__((packed)); // < struct RTTM
+}; // < struct RTTM
 
 } // < namespace tcp
 } // < namespace net

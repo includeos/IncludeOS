@@ -34,17 +34,17 @@ void null_deleter(uint8_t*) {};
 #include <statman>
 
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
-  : Virtio(d), hw::Drive(), req(queue_size(0), 0, iobase()), inflight(0)
+  : Virtio(d), hw::Block_device(), req(queue_size(0), 0, iobase()), inflight(0)
 {
-  INFO("VirtioBlk", "Driver initializing");
+  INFO("VirtioBlk", "Block_devicer initializing");
   {
     auto& reqs = Statman::get().create(
-      Stat::UINT32, blkname() + ".requests");
+      Stat::UINT32, device_name() + ".requests");
     this->requests = &reqs.get_uint32();
     *this->requests = 0;
 
     auto& err = Statman::get().create(
-      Stat::UINT32, blkname() + ".errors");
+      Stat::UINT32, device_name() + ".errors");
     this->errors = &err.get_uint32();
     *this->errors = 0;
   }
@@ -240,32 +240,35 @@ void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
   for (size_t i = 0; i < cnt; i++)
   {
     // create a special request where we collect all the data
-    auto* vbr = new request_t(blk + i,
-    [this, i, func, results, bigbuf] (buffer_t buffer) {
-      // if the job was already completed, return early
-      if (*results == 0) {
-        printf("Job cancelled? results == 0,  blk=%u\n", i);
-        return;
-      }
-      // validate partial result
-      if (buffer) {
-        *results -= 1;
-        // copy partial block
-        memcpy(bigbuf.get() + i * block_size(), buffer.get(), block_size());
-        // check if we have all blocks
+    auto* vbr = new request_t(
+      blk + i,
+      on_read_func::make_packed(
+      [this, i, func, results, bigbuf] (buffer_t buffer) {
+        // if the job was already completed, return early
         if (*results == 0) {
-          // finally, call user-provided callback
-          func(bigbuf);
+          printf("Job cancelled? results == 0,  blk=%u\n", i);
+          return;
         }
-      }
-      else {
-        (*this->errors)++;
-        // if the partial result failed, cancel all
-        *results = 0;
-        // callback with no data
-        func(buffer_t());
-      }
-    });
+        // validate partial result
+        if (buffer) {
+          *results -= 1;
+          // copy partial block
+          memcpy(bigbuf.get() + i * block_size(), buffer.get(), block_size());
+          // check if we have all blocks
+          if (*results == 0) {
+            // finally, call user-provided callback
+            func(bigbuf);
+          }
+        }
+        else {
+          (*this->errors)++;
+          // if the partial result failed, cancel all
+          *results = 0;
+          // callback with no data
+          func(buffer_t());
+        }
+      })
+    );
     //printf("virtioblk: Enqueue blk %llu\n", blk + i);
     //
     if (free_space()) {
@@ -288,11 +291,21 @@ VirtioBlk::request_t::request_t(uint64_t blk, on_read_func cb)
   resp.handler = cb;
 }
 
+void VirtioBlk::deactivate()
+{
+  /// disable interrupts on virtio queues
+  req.disable_interrupts();
+
+  /// mask off MSI-X vectors
+  if (is_msix())
+      deactivate_msix();
+}
+
 #include <kernel/pci_manager.hpp>
 
 /** Global constructor - register VirtioBlk's driver factory at the PCI_manager */
 struct Autoreg_virtioblk {
   Autoreg_virtioblk() {
-    PCI_manager::register_driver<hw::Drive>(hw::PCI_Device::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
+    PCI_manager::register_driver<hw::Block_device>(hw::PCI_Device::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
   }
 } autoreg_virtioblk;

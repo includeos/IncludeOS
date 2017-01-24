@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "title" : "Virtual Machine Image",
+  "type" : "object",
+  "properties" : {
+
+    "image" : {
+      "description" : "A bootable virtual machine image",
+      "type" : "string",
+      "default" : "service.img"
+    },
+    "bios" : {
+      "description" : "64k BIOS image",
+      "type" : "string"
+    },
+
+    "drives" : {
+
+      "description" : "Additional virtual hard drives",
+      "type" : "array",
+      "items" : {
+        "type" : "object",
+        "properties" : {
+          "file" : { "type" : "string" },
+          "type" : { "enum" : ["ide", "virtio"] },
+          "format" : { "enum" : ["raw", "qcow2", "vdi"] },
+          "media" : { "enum" : ["disk"] },
+          "name" : { "type" : "string" }
+        },
+
+        "required" : ["file", "type", "format", "media"]
+      }
+    },
+
+    "net" : {
+
+      "description" : "Network devices",
+      "type" : "array",
+      "items" : {
+        "type" : "object",
+        "properties" : {
+          "device" : { "enum" : ["virtio", "vmxnet", "vmxnet3"] },
+          "name" : { "type" : "string" },
+          "backend" : { "enum" : ["tap", "user"], "default" : "tap" }
+        },
+
+        "required" : ["device"]
+      }
+    },
+
+
+    "mem" : {
+      "description" : "Amount of memory in megabytes",
+      "type" : "number",
+      "default" : 128
+    },
+
+    "cpu" : {
+      "description" : "The virtual CPU",
+      "enum" : ["host", "pentium", "qemu64", "kvm64"]
+    },
+
+    "smp" : {
+      "description" : "Number of virtual CPU's",
+      "type" : "number"
+    },
+
+    "vga" : {
+      "description" : "Enable VGA screen",
+      "enum" : ["std", "cirrus", "vmware", "qxl", "xenfb", "tcx", "cg3", "virtio", "none"]
+    }
+  }
+
+}

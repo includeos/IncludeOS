@@ -45,15 +45,13 @@ namespace hw {
     msix_t(PCI_Device&);
     
     // initialize msi-x tables for device
-    void init(PCI_Device&);
     void mask_entry(size_t);
     void unmask_entry(size_t);
     void zero_entry(size_t);
     // enable one (cpu, vector) entry for this device
     uint16_t setup_vector(uint8_t cpu, uint8_t vector);
     
-    uint16_t vectors() const noexcept
-    {
+    uint16_t vectors() const noexcept {
       return vector_cnt;
     }
     
@@ -76,12 +74,7 @@ namespace hw {
     // get physical address of BAR
     uintptr_t get_bar_paddr(size_t offset);
   };
-  
-  class MSI
-  {
-    
-  };
-  
+
 }
 
 #endif

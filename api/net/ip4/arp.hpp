@@ -31,6 +31,7 @@ namespace net {
 
   /** ARP manager, including an ARP-Cache. */
   class Arp {
+    using Stack   = IP4::Stack;
   private:
     /** ARP cache expires after cache_exp_t_ seconds */
     static constexpr uint16_t cache_exp_t_ {60 * 60 * 12};
@@ -70,7 +71,7 @@ namespace net {
     static constexpr uint16_t H_hlen_plen {0x0406};
 
     /** Constructor */
-    explicit Arp(Inet<Ethernet, IP4>&) noexcept;
+    explicit Arp(Stack&) noexcept;
 
     struct __attribute__((packed)) header {
       Ethernet::header ethhdr;    // Ethernet header
@@ -119,7 +120,7 @@ namespace net {
     uint32_t& replies_rx_;
     uint32_t& replies_tx_;
 
-    Inet<Ethernet, IP4>& inet_;
+    Stack& inet_;
 
     /** Needs to know which mac address to put in header->swhaddr */
     Ethernet::addr mac_;

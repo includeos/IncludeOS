@@ -30,7 +30,7 @@
 // vol 3a  10-10
 #define DIVIDE_BY_16     0x3
 
-#define CALIBRATION_MS   250
+#define CALIBRATION_MS   125
 
 using namespace std::chrono;
 
@@ -42,11 +42,16 @@ namespace hw
 
   void APIC_Timer::init(const handler_t& handler)
   {
-    // decrement only every 16 ticks
-    lapic.regs->divider_config.reg = DIVIDE_BY_16;
+    // decrement every other tick
+    lapic.regs->divider_config.reg = 0x1;
     // start in one-shot mode and set the interrupt vector
     // but also disable interrupts
     lapic.regs->timer.reg = TIMER_ONESHOT | (LAPIC_IRQ_TIMER+32) | INTR_MASK;
+
+    if (ticks_per_micro != 0) {
+      hw::PIT::instance().on_timeout_ms(milliseconds(1), handler);
+      return;
+    }
 
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
@@ -55,10 +60,11 @@ namespace hw
     // 0xFFFFFFFF --> ~68 seconds
     // 0xFFFFFF   --> ~46 milliseconds
 
+    /// use PIT to measure <time> in one-shot ///
+    
     // ready handler
     intr_handler = handler;
 
-    /// use PIT to measure <time> in one-shot ///
     hw::PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
     [] {
       // measure difference
@@ -104,5 +110,15 @@ namespace hw
   {
     lapic.regs->timer.reg |= INTR_MASK;
     intr_enabled = false;
+  }
+
+  // used by soft-reset
+  uint32_t apic_timer_get_ticks()
+  {
+    return ticks_per_micro;
+  }
+  void     apic_timer_set_ticks(uint32_t tpm)
+  {
+    ticks_per_micro = tpm;
   }
 }

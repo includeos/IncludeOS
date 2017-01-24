@@ -29,6 +29,8 @@ SECTIONS
 
   .multiboot (_ELF_START_ + SIZEOF_HEADERS): {
       PROVIDE(_MULTIBOOT_START_ = .);
+      *multiboot.cpp.obj(.rodata);
+      *multiboot.cpp.o(.rodata);
       *multiboot.o(.rodata);
    }
   PROVIDE ( _TEXT_START_ = . );
@@ -38,6 +40,7 @@ SECTIONS
     *(.text.*)
     *(.gnu.linkonce.t*)
   }
+  PROVIDE ( _TEXT_END_ = . );
 
   .init ALIGN(0x10) : {
     _INIT_START_ = .;

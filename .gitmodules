@@ -1,13 +1,16 @@
 
-[submodule "mod/rapidjson"]
-	path = mod/rapidjson
-	url = https://github.com/fwsGonzo/rapidjson.git
 [submodule "mod/GSL"]
 	path = mod/GSL
 	url = https://github.com/Microsoft/GSL.git
 [submodule "test/lest"]
 	path = test/lest
 	url = https://github.com/martinmoene/lest.git
-[submodule "mod/fiber"]
-	path = mod/fiber
-	url = https://github.com/boostorg/fiber.git
+[submodule "mod/http-parser"]
+	path = mod/http-parser
+	url = https://github.com/nodejs/http-parser.git
+[submodule "mod/uzlib"]
+	path = mod/uzlib
+	url = https://github.com/AnnikaH/uzlib.git
+[submodule "mod/rapidjson"]
+	path = mod/rapidjson
+	url = https://github.com/miloyip/rapidjson.git

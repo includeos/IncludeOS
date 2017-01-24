@@ -24,7 +24,7 @@
 
 namespace net {
 
-  ICMPv4::ICMPv4(Inet<LinkLayer,IP4>& inet) :
+  ICMPv4::ICMPv4(Stack& inet) :
     inet_{inet}
 {}
 
@@ -71,7 +71,7 @@ namespace net {
     ip4_pckt->set_src(full_hdr->ip_hdr.daddr);
     ip4_pckt->set_dst(full_hdr->ip_hdr.saddr);
     ip4_pckt->set_protocol(IP4::IP4_ICMP);
-    ip4_pckt->set_ip_data_length(size);
+    ip4_pckt->set_ip_data_length(sizeof(icmp_header) + size - sizeof(full_header));
 
     // Copy payload from old to new packet
     uint8_t* payload = reinterpret_cast<uint8_t*>(hdr) + sizeof(icmp_header);

@@ -22,7 +22,11 @@
 #include <virtio/virtio.hpp>
 #include <kernel/syscalls.hpp>
 #include <hw/pci.hpp>
+#if !defined(__MACH__)
 #include <malloc.h>
+#else
+extern void *memalign(size_t, size_t);
+#endif
 #include <cstring>
 #include <cassert>
 

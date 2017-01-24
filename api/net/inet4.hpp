@@ -30,21 +30,24 @@
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include <vector>
+#include "super_stack.hpp"
 
 namespace net {
 
   class DHClient;
 
   /** A complete IP4 network stack */
-  class Inet4 : public Inet<Ethernet, IP4>{
+  class Inet4 : public Inet<IP4>{
   public:
-    using dhcp_timeout_func = delegate<void(bool timed_out)>;
 
     virtual std::string ifname() const override
-    { return nic_.ifname(); }
+    { return nic_.device_name(); }
 
-    Ethernet::addr link_addr() override
-    { return eth_.mac(); }
+    hw::MAC_addr link_addr() override
+    { return nic_.mac(); }
+
+    hw::Nic& nic() override
+    { return nic_; }
 
     IP4::addr ip_addr() override
     { return ip4_addr_; }
@@ -52,11 +55,8 @@ namespace net {
     IP4::addr netmask() override
     { return netmask_; }
 
-    IP4::addr router() override
-    { return router_; }
-
-    Ethernet& link() override
-    { return eth_; }
+    IP4::addr gateway() override
+    { return gateway_; }
 
     IP4& ip_obj() override
     { return ip4_; }
@@ -69,6 +69,17 @@ namespace net {
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
+
+    /**
+     * Set the forwarding delegate used by this stack.
+     * If set it will get all incoming packets not intended for this stack.
+     */
+    void set_forward_delg(Forward_delg fwd) override { forward_packet_ = fwd; }
+
+    /**
+     * Get the forwarding delegate used by this stack.
+     */
+    Forward_delg forward_delg() override { return forward_packet_; }
 
     /** Create a Packet, with a preallocated buffer.
         @param size : the "size" reported by the allocated packet.
@@ -96,9 +107,9 @@ namespace net {
       dns.resolve(this->dns_server, hostname, func);
     }
 
-    virtual void set_router(IP4::addr gateway) override
+    virtual void set_gateway(IP4::addr gateway) override
     {
-      this->router_ = gateway;
+      this->gateway_ = gateway;
     }
 
     virtual void set_dns_server(IP4::addr server) override
@@ -114,7 +125,7 @@ namespace net {
      * @param timeout number of seconds before request should timeout
      * @param dhcp_timeout_func DHCP timeout handler
      */
-    void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
+    void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) override;
 
     // handler called after the network successfully, or
     // unsuccessfully negotiated with DHCP-server
@@ -128,16 +139,16 @@ namespace net {
     Inet4 operator=(Inet4&&) = delete;
 
     virtual void
-    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr router, IP4::addr dns = IP4::INADDR_ANY) override
+    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr gateway, IP4::addr dns = IP4::ADDR_ANY) override
     {
       this->ip4_addr_  = addr;
       this->netmask_   = nmask;
-      this->router_    = router;
-      this->dns_server = (dns == IP4::INADDR_ANY) ? router : dns;
+      this->gateway_    = gateway;
+      this->dns_server = (dns == IP4::ADDR_ANY) ? gateway : dns;
       INFO("Inet4", "Network configured");
       INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
       INFO2("Netmask: \t%s", netmask_.str().c_str());
-      INFO2("Gateway: \t%s", router_.str().c_str());
+      INFO2("Gateway: \t%s", gateway_.str().c_str());
       INFO2("DNS Server: \t%s", dns_server.str().c_str());
     }
 
@@ -159,8 +170,8 @@ namespace net {
     template <int N = 0>
     static auto&& stack()
     {
-      static Inet4 inet{hw::Devices::nic(N)};
-      return inet;
+      //static Inet4 inet{hw::Devices::nic(N)};
+      return Super_stack::get<IP4>(N);
     }
 
     /** Static IP config */
@@ -168,10 +179,10 @@ namespace net {
     static auto&& ifconfig(
       IP4::addr addr,
       IP4::addr nmask,
-      IP4::addr router,
-      IP4::addr dns = IP4::INADDR_ANY)
+      IP4::addr gateway,
+      IP4::addr dns = IP4::ADDR_ANY)
     {
-      stack<N>().network_config(addr, nmask, router, dns);
+      stack<N>().network_config(addr, nmask, gateway, dns);
       return stack<N>();
     }
 
@@ -183,7 +194,13 @@ namespace net {
       return stack<N>();
     }
 
+
+    /** A super stack */
+    friend class Super_stack;
+
+
   private:
+
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
 
@@ -193,17 +210,17 @@ namespace net {
 
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
-    IP4::addr router_;
+    IP4::addr gateway_;
     IP4::addr dns_server;
 
     // This is the actual stack
     hw::Nic& nic_;
-    Ethernet eth_;
     Arp arp_;
     IP4  ip4_;
     ICMPv4 icmp_;
     UDP  udp_;
     TCP tcp_;
+    Forward_delg forward_packet_;
     // we need this to store the cache per-stack
     DNSClient dns;
 

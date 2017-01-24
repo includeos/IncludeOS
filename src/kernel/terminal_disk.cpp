@@ -21,7 +21,7 @@
 
 using namespace fs;
 
-int target_directory(Disk_ptr disk, const Path& path)
+int target_directory(Terminal::Disk_ptr disk, const Path& path)
 {
   // avoid stat on root directory
   if (path.empty()) return 0;
@@ -39,7 +39,7 @@ int target_directory(Disk_ptr disk, const Path& path)
     return 0;
 }
 
-void Terminal::add_disk_commands(Disk_ptr disk)
+void Terminal::add_disk_commands(Terminal::Disk_ptr disk)
 {
   auto curdir = std::make_shared<std::string> ("/");
 
@@ -89,7 +89,7 @@ void Terminal::add_disk_commands(Disk_ptr disk)
       for (auto& ent : *list.entries)
       {
         this->write("%s \t%llu \t%s \t%llu\r\n",
-          ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block);
+           ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block());
       }
       this->write("Total %u\r\n", list.entries->size());
       return 0;
@@ -113,7 +113,7 @@ void Terminal::add_disk_commands(Disk_ptr disk)
         this->write("%s \t%s \t%s \t%s\r\n",
                     "Name", "Size", "Type", "Sector");
         this->write("%s \t%llu \t%s \t%llu\r\n",
-                    ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block);
+                    ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block());
         return 0;
       }
       else

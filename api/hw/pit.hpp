@@ -35,7 +35,7 @@ namespace hw {
   public:
 
     using timeout_handler = delegate<void()>;
-    using repeat_condition = std::function<bool()>;
+    using repeat_condition = delegate<bool()>;
 
     /** A timer is a handler and an expiration time (interval).
         @todo The timer also keeps a pre-computed rdtsc-value, which is currently unused.*/
@@ -136,17 +136,13 @@ namespace hw {
     static inline MHz current_frequency(){ return frequency() / current_freq_divider_; }
 
     /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc.
-        @Note This is an asynchronous function. Once finished the result can be
-        fetched by CPUFrequency() (below)  */
-    static void estimate_CPU_frequency();
-
-    /** Get the last estimated CPU frequency.  May trigger frequency sampling */
-    static MHz CPU_frequency();
+        @Note This is an asynchronous function.  */
+    static double estimate_CPU_frequency(int samples);
 
 
   private:
     // Default repeat-condition
-    static std::function<bool()> forever;
+    static delegate<bool()> forever;
 
     enum Mode { ONE_SHOT = 0,
                 HW_ONESHOT = 1 << 1,
@@ -166,8 +162,8 @@ namespace hw {
     void irq_handler();
 
     // Private constructor / destructor. It's a singleton.
-    PIT();
-    ~PIT();
+    PIT() {}
+    ~PIT() {}
 
 
     // State-keeping

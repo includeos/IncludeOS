@@ -19,6 +19,7 @@
 #include <common>
 #include <cassert>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <unistd.h>
 #include <info>
@@ -40,9 +41,9 @@ __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
 template <typename N>
 static std::string to_hex_string(N n)
 {
-  std::string buffer; buffer.reserve(64);
-  snprintf((char*) buffer.data(), buffer.capacity(), "%#x", n);
-  return buffer;
+  char buffer[16];
+  int len = snprintf(buffer, sizeof(buffer), "%#x", n);
+  return std::string(buffer, len);
 }
 
 static Elf32_Ehdr& elf_header() {
@@ -99,14 +100,14 @@ public:
     if (addr < 0x7e00) return {boot_stringz, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     auto* sym = getaddr(addr);
-    if (sym) {
+    if (LIKELY(sym)) {
       auto base   = sym->st_value;
       auto offset = addr - base;
       // return string name for symbol
       return {demangle_safe( sym_name(sym), buffer, length ), base, offset};
     }
     // function or space not found
-    snprintf(buffer, length, "%#x", addr);
+    snprintf(buffer, length, "0x%08x", addr);
     return {buffer, addr, 0};
   }
 
@@ -354,25 +355,36 @@ int _get_elf_section_size(const void* location)
   return sizeof(relocate_header) + hdr.symtab.entries * sizeof(Elf32_Sym) + hdr.strtab.size;
 }
 
+#include <kprint>
 extern "C"
 void _move_elf_symbols(void* old_location, void* new_location)
 {
   int size = _get_elf_section_size(old_location);
+  // validate locations
+  if ((char*) new_location >= (char*) old_location &&
+      (char*) new_location + size < (char*) old_location)
+  {
+    kprintf("ELF symbol sections are inside each other!\n");
+    kprintf("Moving %d from %p -> %p (%p)\n",
+        size, old_location, new_location, (char*) new_location + size);
+    assert(0);
+  }
+  // copy over
   memcpy(new_location, old_location, size);
-  // update symbol info table
+  // update header
   auto* newhdr = (relocate_header*) new_location;
   const char* base = ((char*) newhdr) + sizeof(relocate_header);
   newhdr->symtab.base = (Elf32_Sym*) base;
   newhdr->strtab.base = &base[newhdr->symtab.entries * sizeof(Elf32_Sym)];
 }
-
+#if !defined(__MACH__)
 #include <malloc.h>
+#endif
 extern "C"
 void* _relocate_to_heap(void* old_location)
 {
   int total = _get_elf_section_size(old_location);
   void* heap_location = malloc(total);
-
   _move_elf_symbols(old_location, heap_location);
   return heap_location;
 }

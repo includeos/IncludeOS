@@ -25,10 +25,10 @@
 
 namespace net {
 
-  const IP4::addr IP4::INADDR_ANY(0);
-  const IP4::addr IP4::INADDR_BCAST(0xff,0xff,0xff,0xff);
+  const IP4::addr IP4::ADDR_ANY(0);
+  const IP4::addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
 
-  IP4::IP4(Inet<LinkLayer, IP4>& inet) noexcept:
+  IP4::IP4(Stack& inet) noexcept:
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
@@ -40,7 +40,6 @@ namespace net {
 }
 
   void IP4::bottom(Packet_ptr pckt) {
-    debug2("<IP4 handler> got the data.\n");
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
@@ -49,15 +48,24 @@ namespace net {
 
     ip_header* hdr = &packet->ip_header();
 
+    debug2("\t Source IP: %s Dest.IP: %s Type: 0x%x\n",
+           hdr->saddr.str().c_str(), hdr->daddr.str().c_str(), hdr->protocol);
+
     // Drop if my ip address doesn't match destination ip address or broadcast
-    if(UNLIKELY(hdr->daddr != local_ip() and
-                (hdr->daddr | stack_.netmask()) != INADDR_BCAST)) {
-      packets_dropped_++;
+    if(UNLIKELY(hdr->daddr != local_ip()
+                and (hdr->daddr | stack_.netmask()) != ADDR_BCAST
+                and local_ip() != ADDR_ANY)) {
+
+      if (forward_packet_) {
+        forward_packet_(stack_, static_unique_ptr_cast<IP_packet>(std::move(pckt)));
+        debug("Packet forwarded \n");
+      } else {
+        debug("Packet dropped \n");
+        packets_dropped_++;
+      }
+
       return;
     }
-
-    debug2("\t Source IP: %s Dest.IP: %s\n",
-           hdr->saddr.str().c_str(), hdr->daddr.str().c_str());
 
     switch(hdr->protocol){
     case IP4_ICMP:
@@ -94,21 +102,21 @@ namespace net {
     addr local  = stack_.ip_addr() & stack_.netmask();
 
     // Compare subnets to know where to send packet
-    ip4_pckt->next_hop(target == local ? hdr.daddr : stack_.router());
+    ip4_pckt->next_hop(target == local ? hdr.daddr : stack_.gateway());
 
     debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
           hdr.daddr.str().c_str(),
           stack_.netmask().str().c_str(),
           stack_.ip_addr().str().c_str(),
-          stack_.router().str().c_str(),
+          stack_.gateway().str().c_str(),
           target == local ? "DIRECT" : "GATEWAY");
 
-    debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
+    /*debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
           stack_.ip_addr().str().c_str(),
           pckt->next_hop().str().c_str(),
           pckt->size(),
           ip4_pckt->ip_segment_size()
-          );
+          );*/
 
     // Stat increment packets transmitted
     packets_tx_++;

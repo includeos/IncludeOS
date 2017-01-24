@@ -27,17 +27,17 @@
 #include "socket.hpp"
 
 namespace net {
+  class TCP;
 namespace tcp {
 
 class Listener {
 public:
   using AcceptCallback       = delegate<bool(Socket)>;
   using ConnectCallback      = Connection::ConnectCallback;
+  using CloseCallback        = delegate<void(Listener&)>;
   using CleanupCallback      = Connection::CleanupCallback;
 
   using SynQueue = std::deque<Connection_ptr>;
-
-  friend class net::TCP;
 
 public:
 
@@ -75,6 +75,10 @@ public:
   const SynQueue& syn_queue() const
   { return syn_queue_; }
 
+  std::string to_string() const;
+
+  void close();
+
   /** Delete copy and move constructors.*/
   Listener(Listener&) = delete;
   Listener(Listener&&) = delete;
@@ -84,6 +88,7 @@ public:
   Listener operator=(Listener&&) = delete;
 
 private:
+  friend class net::TCP;
   TCP& host_;
   const port_t port_;
   SynQueue syn_queue_;
@@ -94,6 +99,8 @@ private:
   /** */
   ConnectCallback on_connect_;
 
+  CloseCallback _on_close_;
+
   bool default_on_accept(Socket);
 
   void default_on_connect(Connection_ptr);
@@ -103,8 +110,6 @@ private:
   void remove(Connection_ptr);
 
   void connected(Connection_ptr);
-
-  std::string to_string() const;
 
 };
 

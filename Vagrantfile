@@ -5,8 +5,7 @@ VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.define "IncludeOS" do |config|
-    config.vm.box = "ubuntu/trusty64"
-    config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
+    config.vm.box = "ubuntu/xenial64"
     config.vm.provider :virtualbox do |vb|
       vb.name = "IncludeOS"
     end
@@ -15,7 +14,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     config.vm.synced_folder ".", "/IncludeOS", create: true
     config.vm.provision "shell",
-                        inline: "echo cd /IncludeOS >> /home/vagrant/.bashrc"
+                        inline: "echo cd /IncludeOS >> /home/ubuntu/.bashrc"
 
     config.vm.synced_folder "~/IncludeOS_install",
                             "/home/vagrant/IncludeOS_install", create: true

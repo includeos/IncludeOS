@@ -19,40 +19,10 @@
 #ifndef FS_DISK_HPP
 #define FS_DISK_HPP
 
-/**
- * /// Create basic FAT disk ///
- *
- * // create disk from a given disk-device
- * auto disk = std::make_shared<Disk> (device);
- * // mount filesystem on auto-detected volume
- * disk->mount(
- * [disk] (fs::error_t err) {
- *   if (err) {
- *     printf("Bad!\n");
- *     return;
- *   }
- *   // reference to filesystem
- *   auto& fs = disk->fs();
- *   // synchronous stat:
- *   auto dirent = fs.stat("/file");
- * });
- *
- * /// Construct custom filesystem ///
- *
- * // constructing on MBR means mount on sector 0
- * disk->mount<MyFileSystem>(filesystem_args..., Disk::MBR,
- * [disk] {
- *   printf("Disk mounted!\n");
- *   auto& fs = disk->fs();
- *
- *   auto dirent = fs.stat("/file");
- * });
- *
-**/
-
 #include "common.hpp"
-#include "filesystem.hpp"
-#include <hw/drive.hpp>
+#include <fs/filesystem.hpp>
+#include <fs/dirent.hpp>
+#include <hw/block_device.hpp>
 
 #include <deque>
 #include <vector>
@@ -60,11 +30,19 @@
 
 namespace fs {
 
+  /**
+   * Class to initialize file systems on block devices / partitions
+   **/
   class Disk {
   public:
+
+    class Err_not_mounted : public std::runtime_error {
+      using runtime_error::runtime_error;
+    };
+
     struct Partition;
-    using on_parts_func = std::function<void(error_t, std::vector<Partition>&)>;
-    using on_mount_func = std::function<void(error_t)>;
+    using on_parts_func = delegate<void(fs::error_t, std::vector<Partition>&)>;
+    using on_init_func = delegate<void(fs::error_t)>;
     using lba_t = uint32_t;
 
     enum partition_t {
@@ -104,52 +82,60 @@ namespace fs {
 
     //************** disk functions **************//
 
-    // construct a disk with a given disk-device
-    explicit Disk(hw::Drive&);
+    // construct a disk with a given block-device
+    explicit Disk(hw::Block_device&);
 
     // returns the device the disk is using
-    hw::Drive& dev() noexcept
+    hw::Block_device& dev() noexcept
     { return device; }
 
     // Returns true if the disk has no sectors
     bool empty() const noexcept
     { return device.size() == 0; }
 
-    // Mounts the first partition detected (MBR -> VBR1-4 -> ext)
+    // Initializes file system on the first partition detected (MBR -> VBR1-4 -> ext)
     // NOTE: Always detects and instantiates a FAT filesystem
-    void mount(on_mount_func func);
+    void init_fs(on_init_func func);
 
-    // Mounts specified partition
+    // Initialize file system on specified partition
     // NOTE: Always detects and instantiates a FAT filesystem
-    void mount(partition_t part, on_mount_func func);
+    void init_fs(partition_t part, on_init_func func);
 
     // mount custom filesystem on MBR or VBRn
     template <class T, class... Args>
-    void mount(Args&&... args, partition_t part, on_mount_func func)
+    void init_fs(Args&&... args, partition_t part, on_init_func func)
     {
       // construct custom filesystem
       filesys.reset(new T(args...));
-      internal_mount(part, func);
+      internal_init(part, func);
+    }
+
+    std::string name() {
+      return device.device_name();
+    }
+
+    auto device_id() {
+      return device.id();
     }
 
     // Creates a vector of the partitions on disk (see: on_parts_func)
-    // Note: The disk does not need to be mounted beforehand
+    // Note: No file system needs to be initialized beforehand
     void partitions(on_parts_func func);
 
-    // returns true if a filesystem is mounted
-    bool fs_mounted() const noexcept
+    // returns true if a filesystem is initialized
+    bool fs_ready() const noexcept
     { return (bool) filesys; }
 
     // Returns a reference to a mounted filesystem
     // If no filesystem is mounted, the results are undefined
-    FileSystem& fs() noexcept
+    File_system& fs() noexcept
     { return *filesys; }
 
   private:
-    void internal_mount(partition_t part, on_mount_func func);
+    void internal_init(partition_t part, on_init_func func);
 
-    hw::Drive& device;
-    std::unique_ptr<FileSystem> filesys;
+    hw::Block_device& device;
+    std::unique_ptr<File_system> filesys;
   }; //< class Disk
 
   using Disk_ptr = std::shared_ptr<Disk>;

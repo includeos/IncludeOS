@@ -22,13 +22,13 @@
 #include <stdio.h>
 #include <sys/reent.h>
 #include <string.h>
+#include <kprint>
 
 #define HEAP_ALIGNMENT   16
 caddr_t heap_begin;
 caddr_t heap_end;
 
 /// IMPLEMENTATION OF Newlib I/O:
-struct _reent newlib_reent;
 #undef stdin
 #undef stdout
 #undef stderr
@@ -38,24 +38,22 @@ __FILE* stdout;
 __FILE* stderr;
 
 // stack-protector guard
-#ifndef _STACK_GUARD_VALUE_
-#define _STACK_GUARD_VALUE_ 0xe2dee396
-#endif
 const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 
-#define RANDOMIZE_HEAP_BASE
-
 void _init_c_runtime()
 {
+  extern char _ELF_SYM_START_;
+  extern char _end;
+
   /// init backtrace functionality
   extern void _move_elf_symbols(void*, void*);
   extern void _apply_parser_data(void*);
-  // there is a 640k conventional memory hole at the beginning of memory
-  // put symbols at 40k
-  void* SYM_LOCATION = (void*) 0xA000;
-  // move pruned symbols to unused memory
-  extern char _ELF_SYM_START_;
+  extern int  _get_elf_section_size(const void*);
+  // first measure the size of symbols
+  int symsize = _get_elf_section_size(&_ELF_SYM_START_);
+  // estimate somewhere in heap its safe to move them
+  char* SYM_LOCATION = &_end + 2 * (4096 + symsize);
   _move_elf_symbols(&_ELF_SYM_START_, SYM_LOCATION);
 
   // Initialize .bss section
@@ -63,40 +61,31 @@ void _init_c_runtime()
   streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 
   // Initialize the heap before exceptions
-  extern char _end;
   heap_begin = &_end + 0xfff;
   // page-align heap, because its not aligned
-  heap_begin = (char*) ((uintptr_t)heap_begin & 0xfffff000);
-#ifdef RANDOMIZE_HEAP_BASE
-  // randomize heap start location
-  int64_t tsc;
-  asm volatile ("rdtsc" : "=A"(tsc));
-  // 512kb randomization in pages
-  heap_begin += (tsc & 0x7f) << 12;
-#endif
+  heap_begin = (char*) ((uintptr_t)heap_begin & ~(uintptr_t) 0xfff);
   // heap end tracking, used with sbrk
   heap_end   = heap_begin;
   // validate that heap is page aligned
-  int validate_heap_alignment = ((uintptr_t)heap_begin & 0xfff) == 0;
+  int validate_heap_alignment =
+      ((uintptr_t)heap_begin & (uintptr_t) 0xfff) == 0;
 
   /// initialize newlib I/O
-  newlib_reent = (struct _reent) _REENT_INIT(newlib_reent);
-  // set newlibs internal structure to ours
-  _REENT = &newlib_reent;
+  _REENT_INIT_PTR(_REENT);
   // Unix standard streams
   stdin  = _REENT->_stdin;  // stdin  == 1
   stdout = _REENT->_stdout; // stdout == 2
   stderr = _REENT->_stderr; // stderr == 3
 
+  // move symbols (again) to heap, before calling global constructors
+  extern void* _relocate_to_heap(void*);
+  void* symheap = _relocate_to_heap(SYM_LOCATION);
+
   /// initialize exceptions before we can run constructors
-  extern void* __eh_frame_start;
+  extern char __eh_frame_start[];
   // Tell the stack unwinder where exception frames are located
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);
-
-  // move symbols (again) to heap
-  extern void* _relocate_to_heap(void*);
-  void* symheap = _relocate_to_heap(SYM_LOCATION);
 
   /// call global constructors emitted by compiler
   extern void _init();
@@ -156,30 +145,14 @@ int access(const char *pathname, int mode)
 
   return 0;
 }
-char* getcwd(char *buf, size_t size)
-{
-  (void) buf;
-  (void) size;
-	return 0;
-}
+
 int fcntl(int fd, int cmd, ...)
 {
   (void) fd;
   (void) cmd;
 	return 0;
 }
-int fchmod(int fd, mode_t mode)
-{
-  (void) fd;
-  (void) mode;
-	return 0;
-}
-int mkdir(const char *pathname, mode_t mode)
-{
-  (void) pathname;
-  (void) mode;
-	return 0;
-}
+
 int rmdir(const char *pathname)
 {
   (void) pathname;

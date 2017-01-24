@@ -16,13 +16,16 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
+#include <boot/multiboot.h>
 
-extern "C" void _start() __attribute__((visibility("hidden"))) __attribute__ ((noreturn));
+#define MULTIBOOT_CMDLINE_LOC 0x3000
+
+extern "C" void __init_sanity_checks();
 extern "C" void _init_c_runtime();
 extern "C" void _init_syscalls();
 
 // enables Streaming SIMD Extensions
-static void enableSSE(void)
+static void enableSSE(void) noexcept
 {
   asm ("mov %cr0, %eax");
   asm ("and $0xFFFB,%ax");
@@ -34,18 +37,29 @@ static void enableSSE(void)
   asm ("mov %eax, %cr4");
 }
 
-
-extern "C" void kernel_start(uintptr_t magic, uintptr_t addr)  {
+extern "C"
+void kernel_start(uintptr_t magic, uintptr_t addr)  {
 
   // enable SSE extensions bitmask in CR4 register
   enableSSE();
 
+  // generate checksums of read-only areas etc.
+  __init_sanity_checks();
+
   // Initialize system calls
   _init_syscalls();
+
+  // Save multiboot string before symbols overwrite area after binary
+  char* cmdline = reinterpret_cast<char*>(reinterpret_cast<multiboot_info_t*>(addr)->cmdline);
+  strcpy(reinterpret_cast<char*>(MULTIBOOT_CMDLINE_LOC), cmdline);
+  ((multiboot_info_t*) addr)->cmdline = MULTIBOOT_CMDLINE_LOC;
 
   // Initialize stack-unwinder, call global constructors etc.
   _init_c_runtime();
 
   // Initialize OS including devices
   OS::start(magic, addr);
+  
+  // Starting event loop from here allows us to profile OS::start
+  OS::event_loop();
 }

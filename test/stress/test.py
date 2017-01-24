@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 import sys
 import socket
 import time
@@ -7,10 +7,10 @@ import os
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src + "/test")
+sys.path.insert(0,includeos_src)
 
-import vmrunner
-from vmrunner import color
+from vmrunner import vmrunner
+from vmrunner.prettify import color
 
 test_name="Stresstest"
 name_tag = "<" + test_name + ">"
@@ -115,8 +115,8 @@ def httperf(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 
 # Fire a single burst of ARP requests
 def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
-  # Note: Arping requires sudo, and we expect the bridge 'include0' to be present
-  command = ["sudo", "arping", "-q","-w", str(100), "-I", "include0", "-c", str(burst_size * 10),  HOST]
+  # Note: Arping requires sudo, and we expect the bridge 'bridge43' to be present
+  command = ["sudo", "arping", "-q","-w", str(100), "-I", "bridge43", "-c", str(burst_size * 10),  HOST]
   print color.DATA(" ".join(command))
   time.sleep(0.5)
   res = subprocess.check_call(command);
@@ -124,7 +124,7 @@ def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   return get_mem()
 
 
-def crash_test():
+def crash_test(string):
   print color.INFO("Opening persistent TCP connection for diagnostics")
   sock_mem.connect((HOST, PORT_MEM))
   get_mem_start()
@@ -185,19 +185,19 @@ def fire_bursts(func, sub_test_name, lead_out = 3):
 
 
 # Trigger several UDP bursts
-def ARP():
+def ARP(string):
   return fire_bursts(ARP_burst, "ARP bombardment")
 
 # Trigger several UDP bursts
-def UDP():
+def UDP(string):
   return fire_bursts(UDP_burst, "UDP bombardment")
 
 # Trigger several ICMP bursts
-def ICMP():
+def ICMP(string):
   return fire_bursts(ICMP_flood, "Ping-flooding");
 
 # Trigger several HTTP-brusts
-def TCP():
+def TCP(string):
   return fire_bursts(httperf, "HTTP bombardment")
 
 
@@ -205,7 +205,7 @@ def TCP():
 vm = vmrunner.vms[0]
 
 # Check for vital signs after all the bombardment is done
-def check_vitals():
+def check_vitals(string):
   print color.INFO("Checking vital signs")
   mem = get_mem()
   diff = mem - memuse_at_start
@@ -257,4 +257,4 @@ if len(sys.argv) > 3:
 print color.HEADER(test_name + " initializing")
 print color.INFO(name_tag),"Doing", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
 
-vm.make().boot(timeout)
+vm.cmake().boot(timeout).clean()

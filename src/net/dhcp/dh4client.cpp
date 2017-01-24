@@ -158,36 +158,41 @@ namespace net
   DHClient::DHClient(Stack& inet)
     : stack(inet), xid(0), console_spam(true), in_progress(false)
   {
-    on_config([this] (bool timeout) {
-        if (console_spam)
-          {
-            if (timeout)
-              INFO("DHCPv4","Negotiation timed out");
-            else
-              INFO("DHCPv4","Config complete");
-          }
-      });
+    this->on_config(
+    [this] (bool timeout)
+    {
+      if (console_spam) {
+        if (timeout)
+          INFO("DHCPv4", "Negotiation timed out");
+        else
+          INFO("DHCPv4", "Config complete");
+      }
+    });
+  }
+
+  void DHClient::on_config(config_func handler)
+  {
+    assert(handler);
+    config_handlers_.push_back(handler);
   }
 
   void DHClient::negotiate(uint32_t timeout_secs)
   {
     // Allow multiple calls to negotiate without restarting the process
-    if (in_progress)
-      return;
-
+    if (in_progress) return;
     in_progress = true;
 
     // set timeout handler
     using namespace std::chrono;
     this->timeout = Timers::oneshot(seconds(timeout_secs),
-    [this] (uint32_t) {
+    [this] (int) {
       // reset session ID
       this->xid = 0;
       this->in_progress = false;
 
       // call on_config with timeout = true
       for(auto handler : this->config_handlers_)
-        handler(true);
+          handler(true);
     });
 
     // create a random session ID
@@ -207,10 +212,10 @@ namespace net
     dhcp->xid   = htonl(this->xid);
     dhcp->secs  = 0;
     dhcp->flags = htons(BOOTP_BROADCAST);
-    dhcp->ciaddr = IP4::INADDR_ANY;
-    dhcp->yiaddr = IP4::INADDR_ANY;
-    dhcp->siaddr = IP4::INADDR_ANY;
-    dhcp->giaddr = IP4::INADDR_ANY;
+    dhcp->ciaddr = IP4::ADDR_ANY;
+    dhcp->yiaddr = IP4::ADDR_ANY;
+    dhcp->siaddr = IP4::ADDR_ANY;
+    dhcp->giaddr = IP4::ADDR_ANY;
 
     Ethernet::addr link_addr = stack.link_addr();
 
@@ -251,7 +256,7 @@ namespace net
     ////////////////////////////////////////////////////////
     auto& socket = stack.udp().bind(DHCP_SOURCE_PORT);
     /// broadcast our DHCP plea as 0.0.0.0:67
-    socket.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    socket.bcast(IP4::ADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
 
     socket.on_read(
     [this, &socket] (IP4::addr, UDP::port_t port,
@@ -288,6 +293,7 @@ namespace net
 
     // check if the BOOTP message is a DHCP OFFER
     const dhcp_option_t* opt;
+    const dhcp_option_t* server_id {nullptr};
     opt = get_option(dhcp->options, DHO_DHCP_MESSAGE_TYPE);
 
     if (opt->code == DHO_DHCP_MESSAGE_TYPE)
@@ -323,6 +329,13 @@ namespace net
         MYINFO("LEASE TIME: \t%u mins", this->lease_time / 60);
     }
 
+    // Preserve DHCP server address
+    opt = get_option(dhcp->options, DHO_DHCP_SERVER_IDENTIFIER);
+    if (opt->code == DHO_DHCP_SERVER_IDENTIFIER)
+      {
+        server_id = opt;
+      }
+
     // now validate the offer, checking for minimum information
     opt = get_option(dhcp->options, DHO_ROUTERS);
     if (opt->code == DHO_ROUTERS)
@@ -334,10 +347,9 @@ namespace net
     // assume that the server we received the request from is the gateway
     else
     {
-      opt = get_option(dhcp->options, DHO_DHCP_SERVER_IDENTIFIER);
-      if (opt->code == DHO_DHCP_SERVER_IDENTIFIER)
+      if (server_id)
       {
-        memcpy(&this->router, opt->val, sizeof(IP4::addr));
+        memcpy(&this->router, server_id->val, sizeof(IP4::addr));
         if (console_spam)
           MYINFO("GATEWAY: \t%s", this->router.str().c_str());
       }
@@ -358,10 +370,10 @@ namespace net
       MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
 
     // we can accept the offer now by requesting the IP!
-    this->request(sock);
+    this->request(sock, server_id);
   }
 
-  void DHClient::request(UDPSocket& sock)
+  void DHClient::request(UDPSocket& sock, const dhcp_option_t* server_id)
   {
     // form a response
     const size_t packetlen = sizeof(dhcp_packet_t);
@@ -376,10 +388,10 @@ namespace net
     resp->secs  = 0;
     resp->flags = htons(BOOTP_BROADCAST);
 
-    resp->ciaddr = IP4::INADDR_ANY;
-    resp->yiaddr = IP4::INADDR_ANY;
-    resp->siaddr = IP4::INADDR_ANY;
-    resp->giaddr = IP4::INADDR_ANY;
+    resp->ciaddr = IP4::ADDR_ANY;
+    resp->yiaddr = IP4::ADDR_ANY;
+    resp->siaddr = IP4::ADDR_ANY;
+    resp->giaddr = IP4::ADDR_ANY;
 
     Ethernet::addr link_addr = stack.link_addr();
 
@@ -409,7 +421,13 @@ namespace net
     opt = conv_option(resp->options + 12);
     opt->code   = DHO_DHCP_SERVER_IDENTIFIER;
     opt->length = 4;
-    memcpy(&opt->val[0], &this->router, sizeof(IP4::addr));
+    if (server_id) {
+      memcpy(&opt->val[0], &server_id->val[0], sizeof(IP4::addr));
+      MYINFO("Server IP set to %s", ((IP4::addr*)&opt->val[0])->to_string().c_str());
+    } else {
+      memcpy(&opt->val[0], &this->router, sizeof(IP4::addr));
+      MYINFO("Server IP set to gateway (%s)", ((IP4::addr*)&opt->val[0])->to_string().c_str());
+    }
     // DHCP Requested Address
     opt = conv_option(resp->options + 18);
     opt->code   = DHO_DHCP_REQUESTED_ADDRESS;
@@ -442,7 +460,7 @@ namespace net
     });
 
     // send our DHCP Request
-    sock.bcast(IP4::INADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    sock.bcast(IP4::ADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
   }
 
   void DHClient::acknowledge(const char* data, size_t)

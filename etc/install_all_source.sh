@@ -28,6 +28,7 @@ export binutils_version=2.26
 [ ! -v do_newlib ] && do_newlib=1
 [ ! -v do_includeos ] &&  do_includeos=1
 [ ! -v do_llvm ] &&  do_llvm=1
+[ ! -v do_bridge ] &&  do_bridge=1
 # TODO: These should be determined by inspecting if local llvm repo is up-to-date
 
 [ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
@@ -100,12 +101,16 @@ if [ ! -z $do_includeos ]; then
     echo -e   "        Packages: $DEPS_RUN \n"
     sudo apt-get install -y $DEPS_RUN
 
-    # Set up the IncludeOS network bridge
-    echo -e "\n\n >>> Create IncludeOS network bridge  *Requires sudo* \n"
-    sudo $INCLUDEOS_SRC/etc/create_bridge.sh
+    if [ ! -z $do_bridge]; then
+        # Set up the IncludeOS network bridge
+        echo -e "\n\n >>> Create IncludeOS network bridge  *Requires sudo* \n"
+        sudo $INCLUDEOS_SRC/etc/create_bridge.sh
+    fi
 
     # Copy qemu-ifup til install loc.
-    $INCLUDEOS_SRC/etc/copy_scripts.sh
+    pushd $INCLUDEOS_SRC/etc
+    ./copy_scripts.sh
+    popd
 fi
 
 echo -e "\n >>> Done. Test the installation by running ./test.sh \n"

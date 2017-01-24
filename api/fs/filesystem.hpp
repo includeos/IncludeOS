@@ -15,196 +15,97 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
 #ifndef FS_FILESYSTEM_HPP
 #define FS_FILESYSTEM_HPP
 
 #include "common.hpp"
-
 #include <string>
-#include <vector>
 #include <cstdint>
-#include <delegate>
-
-#ifndef likely
-#define likely(x)       __builtin_expect(!!(x), 1)
-#endif
-#ifndef unlikely
-#define unlikely(x)     __builtin_expect(!!(x), 0)
-#endif
 
 namespace fs {
 
-  class FileSystem {
-  public:
-    struct Dirent; //< Generic structure for directory entries
+  struct Dirent;
 
-    using dirvector = std::vector<Dirent>;
-    using dirvec_t  = std::shared_ptr<dirvector>;
-    using buffer_t  = std::shared_ptr<uint8_t>;
+  struct File_system {
 
-    using on_mount_func = delegate<void(error_t)>;
-    using on_ls_func    = delegate<void(error_t, dirvec_t)>;
-    using on_read_func  = delegate<void(error_t, buffer_t, uint64_t)>;
-    using on_stat_func  = delegate<void(error_t, const Dirent&)>;
+    /** Initialize this filesystem with LBA at @base_sector */
+    virtual void init(uint64_t lba, uint64_t size, on_init_func on_init) = 0;
 
-    enum Enttype {
-      FILE,
-      DIR,
-      /** FAT puts disk labels in the root directory, hence: */
-      VOLUME_ID,
-      SYM_LINK,
+    /** Get unique (per device type) device id for underlying device.*/
+    virtual Device_id device_id() = 0;
 
-      INVALID_ENTITY
-    }; //< enum Enttype
+    /** Print subtree from given path */
+    error_t print_subtree(const std::string& path);
 
-    /** Generic structure for directory entries */
-    struct Dirent {
-      /** Default constructor */
-      explicit Dirent(const Enttype t = INVALID_ENTITY, const std::string& n = "",
-                      const uint64_t blk   = 0, const uint64_t pr    = 0,
-                      const uint64_t sz    = 0, const uint32_t attr  = 0,
-                      const uint32_t modt = 0)
-      : ftype    {t},
-        fname    {n},
-        block    {blk},
-        parent   {pr},
-        size_    {sz},
-        attrib   {attr},
-        modif    {modt}
-      {}
-
-      Enttype type() const noexcept
-      { return ftype; }
-
-      // true if this dirent is valid
-      // if not, it means don't read any values from the Dirent as they are not
-      bool is_valid() const
-      { return ftype != INVALID_ENTITY; }
-
-      // most common types
-      bool is_file() const noexcept
-      { return ftype == FILE; }
-      bool is_dir() const noexcept
-      { return ftype == DIR; }
-
-      // the entrys name
-      const std::string& name() const noexcept
-      { return fname; }
-
-      // type converted to human-readable string
-      std::string type_string() const {
-        switch (ftype) {
-        case FILE:
-          return "File";
-        case DIR:
-          return "Directory";
-        case VOLUME_ID:
-          return "Volume ID";
-
-        case INVALID_ENTITY:
-          return "Invalid entity";
-        default:
-          return "Unknown type";
-        } //< switch (type)
-      }
-
-      // good luck
-      uint64_t modified() const
-      {
-        /*
-        uint32_t oldshit = modif;
-        uint32_t day   = (oldshit & 0x1f);
-        uint32_t month = (oldshit >> 5) & 0x0f;
-        uint32_t year  = (oldshit >> 9) & 0x7f;
-        oldshit >>= 16;
-        uint32_t secs = (oldshit & 0x1f) * 2;
-        uint32_t mins = (oldshit >> 5) & 0x3f;
-        uint32_t hrs  = (oldshit >> 11) & 0x1f;
-        // invalid timestamp?
-        if (hrs > 23 or mins > 59 or secs > 59)
-          return 0;
-        */
-        return modif;
-      }
-
-      uint64_t size() const noexcept {
-        return size_;
-      }
-
-      Enttype     ftype;
-      std::string fname;
-      uint64_t    block;
-      uint64_t    parent; //< Parent's block#
-      uint64_t    size_;
-      uint32_t    attrib;
-      uint32_t    modif;
-    }; //< struct Dirent
-
-    struct List {
-      error_t  error;
-      dirvec_t entries;
-    };
-
-    /** Mount this filesystem with LBA at @base_sector */
-    virtual void mount(uint64_t lba, uint64_t size, on_mount_func on_mount) = 0;
-
-    /** @param path: Path in the mounted filesystem */
+    /** @param path: Path in the initialized filesystem */
     virtual void  ls(const std::string& path, on_ls_func) = 0;
     virtual void  ls(const Dirent& entry,     on_ls_func) = 0;
     virtual List  ls(const std::string& path) = 0;
     virtual List  ls(const Dirent&) = 0;
 
-    /** Read an entire file into a buffer, then call on_read */
-    inline void read_file(const std::string& path, on_read_func on_read) {
-      stat(path, [this, on_read, path](error_t err, const Dirent& ent) {
-        if(unlikely(err))
-          return on_read(err, nullptr, 0);
+    /** Read an entire file into a buffer, async, then call on_read */
+    void read_file(const std::string& path, on_read_func on_read);
 
-        if(unlikely(!ent.is_file()))
-          return on_read({error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0);
+    /** Read an entire file sync **/
+    Buffer read_file(const std::string& path);
 
-        read(ent, 0, ent.size(), on_read);
-      });
-    }
-
-    inline Buffer read_file(const std::string& path) {
-      auto ent = stat(path);
-
-      if(unlikely(!ent.is_valid()))
-        return {{error_t::E_NOENT, path + " not found"}, nullptr, 0};
-
-      if(unlikely(!ent.is_file()))
-        return {{error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0};
-
-      return read(ent, 0, ent.size());
-    }
-
-    /** Read @n bytes from direntry from position @pos */
+    /** Read @n bytes from direntry from position @pos  - async */
     virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) = 0;
+
+    /** Read - sync */
     virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) = 0;
 
-    /** Return information about a file or directory */
-    virtual void   stat(const std::string& ent, on_stat_func) = 0;
-    virtual Dirent stat(const std::string& ent) = 0;
+    /** Return information about a file or directory - async */
+    virtual void stat(Path_ptr, on_stat_func fn, const Dirent* const = nullptr) = 0;
+
+    /** Stat async - for various types of path initializations **/
+    template <typename P = Path>
+    inline void stat(P pathstr, on_stat_func fn, const Dirent* const = nullptr);
+
+    /** Return information about a file or directory relative to dirent - sync*/
+    virtual Dirent stat(Path, const Dirent* const = nullptr) = 0;
+
+    /** Return information about a file or directory relative to dirent - sync*/
+    template <typename P = Path>
+    inline Dirent stat(P, const Dirent* const = nullptr);
+
 
     /** Cached async stat */
-    virtual void   cstat(const std::string&, on_stat_func) = 0;
+    virtual void cstat(const std::string& pathstr, on_stat_func) = 0;
 
     /** Returns the name of this filesystem */
     virtual std::string name() const = 0;
 
     /** Default destructor */
-    virtual ~FileSystem() noexcept = default;
-  }; //< class FileSystem
+    virtual ~File_system() noexcept = default;
+  }; //< class File_system
 
   // simplify initializing shared vector
-  inline FileSystem::dirvec_t new_shared_vector()
+  inline dirvec_t new_shared_vector()
   {
-    return std::make_shared<FileSystem::dirvector> ();
+    return std::make_shared<dirvector> ();
   }
 
-  using Dirent = FileSystem::Dirent;
+
+} //< namespace fs
+
+  /** Inline implementations **/
+
+#include <fs/dirent.hpp>
+
+namespace fs {
+
+  template <typename P>
+  void File_system::stat(P path, on_stat_func fn, const Dirent* const dir) {
+    auto path_ptr = std::make_shared<Path> (path);
+    stat(path_ptr, fn, dir);
+  }
+
+  template <typename P>
+  Dirent File_system::stat(P pathstr, const Dirent* const dir) {
+    return stat(Path{pathstr}, dir);
+  }
+
 
 } //< namespace fs
 

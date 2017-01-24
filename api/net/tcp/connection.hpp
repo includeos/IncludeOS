@@ -20,6 +20,7 @@
 #define NET_TCP_CONNECTION_HPP
 
 #include "common.hpp"
+#include "packet.hpp"
 #include "read_request.hpp"
 #include "rttm.hpp"
 #include "socket.hpp"
@@ -100,10 +101,6 @@ public:
   using RtxTimeoutCallback      = delegate<void(size_t no_attempts, double rto)>;
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
-
-  /** Supplied together with write - called when a write request is done. void(size_t) */
-  using WriteCallback           = delegate<void(size_t)>;
-
   inline void write(const void* buf, size_t n);
   inline void write(const void* buf, size_t n, WriteCallback callback);
 
@@ -177,12 +174,6 @@ public:
   const Connection::State& prev_state() const
   { return *prev_state_; }
 
-  uint64_t bytes_received() const
-  { return bytes_rx_; }
-
-  uint64_t bytes_transmitted() const
-  { return bytes_tx_; }
-
   /**
    * @brief Total number of bytes in read buffer
    *
@@ -208,6 +199,11 @@ public:
   { return writeq.bytes_remaining(); }
 
   /*
+    Is the usable window large enough, and is there data to send.
+  */
+  bool can_send();
+
+  /*
     Return the id (TUPLE) of the connection.
   */
   Connection::Tuple tuple() const
@@ -231,6 +227,12 @@ public:
 
   bool is_closed() const
   { return state_->is_closed(); };
+
+  /*
+    Returns if the TCP has the Connection in write queue
+  */
+  bool is_queued() const
+  { return queued_; }
 
   /*
     Helper function for state checks.
@@ -432,6 +434,13 @@ public:
   void set_remote(Socket remote)
   { remote_ = remote; }
 
+  // ???
+  void deserialize_from(void*);
+  int  serialize_to(void*);
+
+  /** Unset all callbacks TODO: rename me **/
+  void setup_default_callbacks();
+
   /*
     Destroy the Connection.
     Clean up.
@@ -471,13 +480,6 @@ private:
   RtxTimeoutCallback      on_rtx_timeout_;
   CloseCallback           on_close_;
 
-  /** Recv/Sent */
-  uint64_t bytes_rx_;
-  uint64_t bytes_tx_;
-
-  /** State if connection is in TCP write queue or not. */
-  bool queued_;
-
   /** Retransmission timer */
   Timer rtx_timer;
 
@@ -490,6 +492,9 @@ private:
   /** number of retransmitted SYN packets. */
   int8_t syn_rtx_ = 0;
 
+  /** State if connection is in TCP write queue or not. */
+  bool queued_;
+
   /** Congestion control */
   // is fast recovery state
   bool fast_recovery = false;
@@ -498,12 +503,10 @@ private:
   /** limited transmit [RFC 3042] active */
   bool limited_tx_ = true;
   // Number of current duplicate ACKs. Is reset for every new ACK.
-  size_t dup_acks_ = 0;
+  uint8_t dup_acks_ = 0;
 
   seq_t highest_ack_ = 0;
   seq_t prev_highest_ack_ = 0;
-  // number of non duplicate acks received
-  size_t acks_rcvd_ = 0;
 
 
   /// --- CALLBACKS --- ///
@@ -518,8 +521,6 @@ private:
   using CleanupCallback   = delegate<void(Connection_ptr self)>;
   CleanupCallback         _on_cleanup_;
   inline Connection&      _on_cleanup(CleanupCallback cb);
-
-  void setup_default_callbacks();
 
   void default_on_connect(Connection_ptr);
   void default_on_disconnect(Connection_ptr, Disconnect);
@@ -590,7 +591,7 @@ private:
   void write(const void* buf, size_t n, WriteCallback callback, bool PUSH) {
     auto buffer = new_shared_buffer(n);
     memcpy(buffer.get(), buf, n);
-    write(buffer, n, callback, PUSH);
+    write(std::move(buffer), n, callback, PUSH);
   }
 
   /*
@@ -598,14 +599,14 @@ private:
     but with the exception of avoiding copying the data to an internal buffer.
   */
   void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH)
-  { write({buffer, n, PUSH}, callback); }
+  { write({std::move(buffer), n, PUSH}, callback); }
 
 
 
   /*
     Write a WriteBuffer asynchronous to a remote and calls the WriteCallback when done (or aborted).
   */
-  void write(WriteBuffer request, WriteCallback callback);
+  void write(WriteBuffer&& request, WriteCallback callback);
 
   /*
     Active try to send a buffer by asking the TCP.
@@ -648,12 +649,6 @@ private:
     Reset queue on disconnect. Clears the queue and notice every requests callback.
   */
   void writeq_reset();
-
-  /*
-    Returns if the TCP has the Connection in write queue
-  */
-  bool is_queued() const
-  { return queued_; }
 
   /*
     Mark wether the Connection is in TCP write queue or not.
@@ -749,11 +744,6 @@ private:
     Is it possible to send ONE segment.
   */
   bool can_send_one();
-
-  /*
-    Is the usable window large enough, and is there data to send.
-  */
-  bool can_send();
 
   /*
     Send as much as possible from write queue.

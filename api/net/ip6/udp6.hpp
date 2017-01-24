@@ -30,7 +30,7 @@ namespace net
   public:
     typedef uint16_t port_t;
     //typedef int (*listener_t)(std::shared_ptr<PacketUDP6>& pckt);
-    typedef std::function<int(std::shared_ptr<PacketUDP6>& pckt)> listener_t;
+    typedef delegate<int(std::shared_ptr<PacketUDP6>& pckt)> listener_t;
 
     struct header
     {

@@ -17,33 +17,28 @@
 
 #include <kernel/context.hpp>
 #include <cstdint>
+#include <memory>
 
-extern "C" void __context_switch(uintptr_t stack);
+extern "C" void __fastcall __context_switch(uintptr_t stack, Context::context_func& func);
+extern "C" void* get_cpu_esp();
 
-static Context::context_func destination;
 extern "C"
-void __context_switch_delegate()
+void __context_switch_delegate(uintptr_t, Context::context_func& func)
 {
-  destination();
+  func();
 }
 
 void Context::jump(void* location, context_func func)
 {
-  // store so we can call it later
-  destination = func;
   // switch to stack from @location
-  __context_switch((uintptr_t) location);
+  __context_switch((uintptr_t) location, func);
 }
 
 void Context::create(unsigned stack_size, context_func func)
 {
-  // store so we can call it later
-  destination = func;
-  // create and switch to new stack
-  char* stack_mem = new char[stack_size];
-  assert(stack_mem);
-  // aligned to 16 byte boundary
-  uintptr_t start = (uintptr_t) (stack_mem+stack_size) & ~0xF;
-  __context_switch(start);
-  delete[] stack_mem;
+  // create stack, and jump to end (because it grows down)
+  auto stack_mem = 
+      std::unique_ptr<char[]>(new char[16+stack_size], 
+                              std::default_delete<char[]> ());
+  jump(&(stack_mem.get()[stack_size]), func);
 }

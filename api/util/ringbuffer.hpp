@@ -15,119 +15,115 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef IOS_RINGBUFFER_HPP
-#define IOS_RINGBUFFER_HPP
+#ifndef UTIL_RINGBUFFER_HPP
+#define UTIL_RINGBUFFER_HPP
 
-/// loosely based on:
-/// http://c.learncodethehardway.org/book/ex44.html
+#include <cstring>
+#include <cassert>
 
-
-namespace includeOS
-{
-  class RingBuffer
+class RingBuffer {
+public:
+  RingBuffer(int size)
+    : cap(size), start(0), end(0), used(0)
   {
-    enum error_t
-      {
-        E_OK = 0,
-        E_NO_SPACE = -1;
-        E_WRITE_FAILED = -2;
-      };
-                
-                
-    RingBuffer(int size)
-    {
-      this->size   = size + 1;
-      this->start  = 0;
-      this->end    = 0;
-      this->buffer = new char[this->size];
-    }
-    ~RingBuffer()
-    {
-      if (this->buffer)
-        delete[] this->buffer;
-    }
-                
-    int write(char* data, int length)
-    {
-      if (available_data() == 0)
-        {
-          this->start = this->end = 0;
-        }
-                        
-      if (length > available_space())
-        {
-          return E_NO_SPACE;
-        }
-                        
-      void* result = memcpy(ends_at(), data, length);
-      if (result == nullptr)
-        {
-          return E_WRITE_FAILED;
-        }
-                        
-      // commit write
-      this->end = (this->end + length) % this->size;
-      // return length written
-      return length;
-    }
-                
-    int read(char* dest, int length)
-    {
-      check_debug(amount <= RingBuffer_available_data(buffer),
-                  "Not enough in the buffer: has %d, needs %d",
-                  RingBuffer_available_data(buffer), amount);
+    assert(size > 0);
+    this->buffer = new char[capacity()];
+  }
+  ~RingBuffer()
+  {
+    delete[] this->buffer;
+  }
 
-      void *result = memcpy(target, RingBuffer_starts_at(buffer), amount);
-      check(result != NULL, "Failed to write buffer into data.");
-                        
-      // commit read
-      this->start = (this->start + length) % this->size;
-                        
-      if (this->end == this->start)
-        {
-          this->start = this->end = 0;
-        }
-                        
-      return length;
+  int write(const void* buffer, int length) noexcept
+  {
+    const char* data = (const char*) buffer;
+    if (length > free_space()) {
+      length = free_space();
+      if (length == 0) return 0;
     }
-                
-#define RingBuffer_available_data(B) (((B)->end + 1) % (B)->length - (B)->start - 1)
-#define RingBuffer_available_space(B) ((B)->length - (B)->end - 1)
-                
-    int available_data() const
-    {
-      return (this->end + 1) % this->size - this->start - 1;
+
+    // check if we are going around the buffer ...
+    int wrap = (end + length) - this->cap;
+    
+    if (wrap > 0) {
+      memcpy(at_end() ,    data, wrap);
+      memcpy(this->buffer, data + wrap, length - wrap);
     }
-    int available_space() const
-    {
-      return this->
-        }
-                
-    const char* starts_at() const
-    {
-      return this->buffer + this->end;
+    else {
+      memcpy(at_end(), data, length);
     }
-    const char* ends_at() const
-    {
-      return this->buffer + this->end;
+    this->used += length;
+    // make sure it wraps properly around
+    this->end = (this->end + length) % capacity();
+    return length;
+  }
+
+  int read(char* dest, int length) noexcept
+  {
+    if (length > used_space()) {
+      length = used_space();
+      if (length == 0) return 0;
     }
-                
-    bool full() const
-    {
-      return available_data() - this->size == 0;
+
+    // check if we are going around the buffer ...
+    int wrap = (start + length) - this->cap;
+    
+    if (wrap > 0) {
+      memcpy(dest,        at_start(),   wrap);
+      memcpy(dest + wrap, this->buffer, length - wrap);
+    } else {
+      memcpy(dest, at_start(), length);
     }
-    bool empty() const
-    {
-      return available_data() == 0;
-    }
-                
-                
-  private:
-    int size;
-    int start;
-    int end;
-    char* buffer;
-  };
-}
+    this->used -= length;
+    // make sure it wraps properly around
+    this->start = (this->start + length) % capacity();
+    return length;
+  }
+
+  int discard(int length) noexcept
+  {
+    // do nothing if not enough used space to discard anyway
+    if (length > used_space()) return 0;
+    // commit no-op write and return length
+    this->used -= length;
+    this->start = (this->start + length) % capacity();
+    return length;
+  }
+
+  int capacity() const noexcept {
+    return this->cap;
+  }
+  int size() const noexcept {
+    return used_space();
+  }
+  
+  int used_space() const noexcept {
+    return this->used;
+  }
+  int free_space() const noexcept {
+    return capacity() - used_space();
+  }
+
+  bool full() const noexcept {
+    return used_space() == capacity();
+  }
+  bool empty() const noexcept {
+    return used_space() == 0;
+  }
+
+private:
+  const char* at_start() const noexcept {
+    return &this->buffer[this->start];
+  }
+  char* at_end() const noexcept {
+    return &this->buffer[this->end];
+  }
+
+  char* buffer;
+  int  cap;
+  int  start;
+  int  end;
+  int  used;
+};
 
 #endif

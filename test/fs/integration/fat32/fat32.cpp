@@ -37,7 +37,7 @@ void is_done() {
 
 void test2() {
   INFO("FAT32", "Remounting disk.");
-  disk->mount(disk->MBR,
+  disk->init_fs(disk->MBR,
   [] (fs::error_t err)
   {
     CHECKSERT(not err, "Filesystem mounted on VBR1");
@@ -111,10 +111,10 @@ void Service::start(const std::string&)
   CHECKSERT(disk->dev().size() == SIZE / 512, "Disk size is %llu sectors", SIZE / 512);
 
   // auto-mount filesystem
-  disk->mount(
+  disk->init_fs(
   [] (fs::error_t err)
   {
-    CHECKSERT(!err, "Filesystem auto-mounted");
+    CHECKSERT(!err, "Filesystem auto-initializedd");
 
     auto& fs = disk->fs();
     std::string fat32_str{"FAT32"};
@@ -131,6 +131,6 @@ void Service::start(const std::string&)
       test2();
     });
   });
-  // re-mount on VBR1
+
   /**/
 }

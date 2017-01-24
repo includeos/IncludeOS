@@ -38,12 +38,12 @@ void Service::start(const std::string&)
   // list extended partitions
   list_partitions(disk);
 
-  // mount first valid partition (auto-detect and mount)
-  disk->mount(
+  // Initialize first valid partition (auto-detect and init)
+  disk->init_fs(
   [] (fs::error_t err) {
     if (err) {
       printf("Could not mount filesystem\n");
-      panic("mount() failed");
+      panic("init_fs() failed");
     }
     CHECKSERT (not err, "Was able to mount filesystem");
 
@@ -58,23 +58,29 @@ void Service::start(const std::string&)
       // go through directory entries
       for (auto& e : *ents) {
         printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
-               e.type_string().c_str(), e.name().c_str(), e.size(), e.block);
+               e.type_string().c_str(), e.name().c_str(), e.size(), e.block());
 
         if (e.is_file()) {
           printf("*** Read %s\n", e.name().c_str());
-          disk->fs().read(e, 0, e.size(),
-          [e] (fs::error_t err, fs::buffer_t buffer, size_t len) {
-            if (err) {
-              printf("Failed to read %s!\n", e.name().c_str());
-              panic("read() failed");
-            }
+          disk->fs().read(
+            e,
+            0,
+            e.size(),
+            [e_name = e.name()]
+            (fs::error_t err, fs::buffer_t buffer, size_t len)
+            {
+              if (err) {
+                printf("Failed to read %s!\n", e_name.c_str());
+                panic("read() failed");
+              }
 
-            std::string contents((const char*) buffer.get(), len);
-            printf("[%s contents]:\n%s\nEOF\n\n",
-                   e.name().c_str(), contents.c_str());
-            // ---
-            INFO("Virtioblk Test", "SUCCESS");
-          });
+              std::string contents((const char*) buffer.get(), len);
+              printf("[%s contents]:\n%s\nEOF\n\n",
+                     e_name.c_str(), contents.c_str());
+              // ---
+              INFO("Virtioblk Test", "SUCCESS");
+            }
+          );
 
         } // is_file
 

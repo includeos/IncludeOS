@@ -7,11 +7,11 @@
 using namespace net;
 
 Inet4::Inet4(hw::Nic& nic)
-  : ip4_addr_(IP4::INADDR_ANY),
-    netmask_(IP4::INADDR_ANY),
-    router_(IP4::INADDR_ANY),
-    dns_server(IP4::INADDR_ANY),
-    nic_(nic), eth_(nic), arp_(*this), ip4_(*this),
+  : ip4_addr_(IP4::ADDR_ANY),
+    netmask_(IP4::ADDR_ANY),
+    gateway_(IP4::ADDR_ANY),
+    dns_server(IP4::ADDR_ANY),
+    nic_(nic), arp_(*this), ip4_(*this),
     icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
     bufstore_(nic.bufstore()), MTU_(nic.MTU())
 {
@@ -19,7 +19,6 @@ Inet4::Inet4(hw::Nic& nic)
   Ensures(sizeof(IP4::addr) == 4);
 
   /** Upstream delegates */
-  auto eth_bottom(upstream{eth_, &Ethernet::bottom});
   auto arp_bottom(upstream{arp_, &Arp::bottom});
   auto ip4_bottom(upstream{ip4_, &IP4::bottom});
   auto icmp4_bottom(upstream{icmp_, &ICMPv4::bottom});
@@ -30,14 +29,11 @@ Inet4::Inet4(hw::Nic& nic)
   // Packets available
   nic.on_transmit_queue_available({this, &Inet4::process_sendq});
 
-  // Phys -> Eth (Later, this will be passed through router)
-  nic.set_linklayer_out(eth_bottom);
+  // Link -> Arp
+  nic_.set_arp_upstream(arp_bottom);
 
-  // Eth -> Arp
-  eth_.set_arp_handler(arp_bottom);
-
-  // Eth -> IP4
-  eth_.set_ip4_handler(ip4_bottom);
+  // Link -> IP4
+  nic_.set_ip4_upstream(ip4_bottom);
 
   // IP4 -> ICMP
   ip4_.set_icmp_handler(icmp4_bottom);
@@ -49,10 +45,7 @@ Inet4::Inet4(hw::Nic& nic)
   ip4_.set_tcp_handler(tcp_bottom);
 
   /** Downstream delegates */
-  // retreive drivers delegate virtually, instead of setting it to a virtual call
-  auto phys_top(nic.get_physical_out());
-  //auto phys_top(downstream{nic, &hw::Nic::transmit});
-  auto eth_top(downstream{eth_, &Ethernet::transmit});
+  auto link_top(nic_.create_link_downstream());
   auto arp_top(downstream{arp_, &Arp::transmit});
   auto ip4_top(downstream{ip4_, &IP4::transmit});
 
@@ -70,30 +63,26 @@ Inet4::Inet4(hw::Nic& nic)
   // IP4 -> Arp
   ip4_.set_linklayer_out(arp_top);
 
-  // Arp -> Eth
-  arp_.set_linklayer_out(eth_top);
-
-  // Eth -> Phys
-  assert(phys_top);
-  eth_.set_physical_out(phys_top);
+  // Arp -> Link
+  assert(link_top);
+  arp_.set_linklayer_out(link_top);
 }
 
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
   INFO("Inet4", "Negotiating DHCP...");
-  if(!dhcp_)
-    dhcp_ = std::make_shared<DHClient>(*this);
+  if (!dhcp_)
+      dhcp_ = std::make_shared<DHClient>(*this);
   // @timeout for DHCP-server negotation
   dhcp_->negotiate(timeout);
   // add timeout_handler if supplied
-  if(handler)
-    dhcp_->on_config(handler);
+  if (handler)
+      dhcp_->on_config(handler);
 }
 
-void Inet4::on_config(dhcp_timeout_func handler) {
-  // setup DHCP if not intialized
+void Inet4::on_config(dhcp_timeout_func handler)
+{
   if(!dhcp_)
-    negotiate_dhcp();
-
+      throw std::runtime_error("DHCP is not yet initialized");
   dhcp_->on_config(handler);
 }
 

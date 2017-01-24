@@ -4,7 +4,7 @@ import socket
 import sys
 
 # Usage: python test.py $GUEST_IP $HOST_IP
-GUEST = '10.0.0.42' if (len(sys.argv) < 2) else sys.argv[1]
+GUEST = '10.0.0.44' if (len(sys.argv) < 2) else sys.argv[1]
 HOST = '10.0.0.1' if (len(sys.argv) < 3) else sys.argv[2]
 
 def connect(port):
