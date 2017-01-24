@@ -36,7 +36,10 @@ namespace spec
 namespace detail
 {
 	constexpr size_t default_capacity = sizeof(size_t) * 4;
-	constexpr size_t default_alignment = sizeof(size_t);
+
+	template<typename T> using default_alignment = std::alignment_of<
+		std::function<T>
+	>;
 }
 
 
@@ -44,7 +47,7 @@ template<
 	typename T,
 	template<size_t, size_t, typename, typename...> class Spec = spec::inplace,
 	size_t size = detail::default_capacity,
-	size_t align = detail::default_alignment
+	size_t align = detail::default_alignment<T>::value
 >
 class delegate; // unspecified
 
