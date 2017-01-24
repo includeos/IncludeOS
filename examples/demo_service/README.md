@@ -1,6 +1,6 @@
 
 # Demo Service
----
+
 ### What
 Serves a static webpage at address `10.0.0.42` on port 80
 
