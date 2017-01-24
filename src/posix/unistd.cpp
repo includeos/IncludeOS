@@ -404,3 +404,14 @@ long fpathconf(int fd, int name) {
     return -1;
   }
 }
+
+long pathconf(const char *path, int name) {
+  int fd = open(path, O_RDONLY);
+  if (fd == -1) {
+    errno = ENOENT;
+    return -1;
+  }
+  long res = fpathconf(fd, name);
+  close(fd);
+  return res;
+}
