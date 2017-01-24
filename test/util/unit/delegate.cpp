@@ -115,12 +115,7 @@ CASE("A delegate can be compared to nullptr")
 CASE("A delegate can be copy assigned with a different closure type")
 {
 	using func_t = std::function<int(void)>;
-	using del_t = delegate<
-		int(void),
-		spec::inplace,
-		sizeof(func_t),
-		alignof(func_t)
-	>;
+	using del_t = delegate<int(void), spec::inplace, sizeof(func_t)>;
 
 	struct copy_closure
 	{
