@@ -28,10 +28,9 @@
 
 namespace spec
 {
-	template<size_t size, typename R, typename... Args> class pure;
-	template<size_t size, typename R, typename... Args> class inplace_triv;
-	template<size_t size, typename R, typename... Args> class inplace;
-	template<size_t size, typename R, typename... Args> class dynamic;
+	template<size_t, size_t, typename, typename...> class pure;
+	template<size_t, size_t, typename, typename...> class inplace_triv;
+	template<size_t, size_t, typename, typename...> class inplace;
 }
 
 namespace detail
@@ -43,17 +42,19 @@ namespace detail
 
 template<
 	typename T,
-	template<size_t, typename, typename...> class Spec = spec::inplace,
-	size_t size = detail::default_capacity
+	template<size_t, size_t, typename, typename...> class Spec = spec::inplace,
+	size_t size = detail::default_capacity,
+	size_t align = detail::default_alignment
 >
 class delegate; // unspecified
 
 template<
 	typename R, typename... Args,
-	template<size_t, typename, typename...> class Spec,
-	size_t size
+	template<size_t, size_t, typename, typename...> class Spec,
+	size_t size,
+	size_t align
 >
-class delegate<R(Args...), Spec, size>;
+class delegate<R(Args...), Spec, size, align>;
 
 
 // ----- IMPLEMENTATION -----
@@ -98,7 +99,7 @@ namespace spec
 {
 
 // --- pure ---
-template<size_t size, typename R, typename... Args> class pure
+template<size_t, size_t, typename R, typename... Args> class pure
 {
 public:
 	using invoke_ptr_t = R(*)(Args...);
@@ -143,10 +144,15 @@ private:
 };
 
 // --- inplace_triv ---
-template<size_t size, typename R, typename... Args> class inplace_triv
+template<
+	size_t size,
+	size_t align,
+	typename R,
+	typename... Args
+> class inplace_triv
 {
 public:
-	using storage_t = std::aligned_storage_t<size, detail::default_alignment>;
+	using storage_t = std::aligned_storage_t<size, align>;
 	using invoke_ptr_t = R(*)(storage_t&, Args&&...);
 
 	explicit inplace_triv() noexcept :
@@ -167,7 +173,7 @@ public:
 		static_assert(sizeof(C) <= size,
 			"inplace_triv delegate closure too large!");
 
-		static_assert(std::alignment_of<C>::value <= detail::default_alignment,
+		static_assert(std::alignment_of<C>::value <= align,
 			"inplace_triv delegate closure alignment too large");
 
 		static_assert(std::is_trivially_copyable<C>::value,
@@ -208,10 +214,15 @@ private:
 };
 
 // --- inplace ---
-template<size_t size, typename R, typename... Args> class inplace
+template<
+	size_t size,
+	size_t align,
+	typename R,
+	typename... Args
+> class inplace
 {
 public:
-	using storage_t = std::aligned_storage_t<size, detail::default_alignment>;
+	using storage_t = std::aligned_storage_t<size, align>;
 
 	using invoke_ptr_t = R(*)(storage_t&, Args&&...);
 	using copy_ptr_t = void(*)(storage_t&, storage_t&);
@@ -242,7 +253,7 @@ public:
 		static_assert(sizeof(C) <= size,
 			"inplace delegate closure too large");
 
-		static_assert(std::alignment_of<C>::value <= detail::default_alignment,
+		static_assert(std::alignment_of<C>::value <= align,
 			"inplace delegate closure alignment too large");
 
 		new(&storage_)C{ std::forward<T>(closure) };
@@ -256,7 +267,7 @@ public:
 		copy_ptr_(storage_, other.storage_);
 	}
 
-	inplace(inplace&& other) :
+	inplace(inplace&& other)  :
 		storage_ { std::move(other.storage_) },
 		invoke_ptr_{ other.invoke_ptr_ },
 		copy_ptr_{ other.copy_ptr_ },
@@ -352,15 +363,16 @@ private:
 
 template<
 	typename R, typename... Args,
-	template<size_t, typename, typename...> class Spec,
-	size_t size
+	template<size_t, size_t, typename, typename...> class Spec,
+	size_t size,
+	size_t align
 >
-class delegate<R(Args...), Spec, size>
+class delegate<R(Args...), Spec, size, align>
 {
 public:
 	using result_type = R;
 
-	using storage_t = Spec<size, R, Args...>;
+	using storage_t = Spec<size, align, R, Args...>;
 
 	explicit delegate() noexcept :
 		storage_{}
@@ -370,6 +382,10 @@ public:
 		typename T,
 		typename = std::enable_if_t<
         !std::is_same<std::decay_t<T>, delegate>::value>
+		/*&& std::is_same<
+			decltype(std::declval<T&>()(std::declval<Args>()...)),
+			R
+		>::value>*/
 	>
 	delegate(T&& val) :
 		storage_{ std::forward<T>(val) }
@@ -538,7 +554,8 @@ public:
 
 	void reset()
 	{
-		storage_ = storage_t{};
+		storage_t empty;
+		storage_ = empty;
 	}
 
 	template<typename T> T* target() const noexcept
