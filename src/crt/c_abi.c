@@ -114,6 +114,17 @@ int* __errno_location(void)
   return &errno;
 }
 
+#include <setjmp.h>
+int _setjmp(jmp_buf env)
+{
+  return setjmp(env);
+}
+// linux strchr variant (NOTE: not completely the same!)
+void *__rawmemchr (const void *s, int c)
+{
+  return strchr((const char*) s, c);
+}
+
 /// assert() interface of ISO POSIX (2003)
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function)
 {

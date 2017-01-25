@@ -70,3 +70,9 @@ int munmap(void* addr, size_t length)
   errno = EINVAL;
   return -1;
 }
+
+int mprotect(void *addr, size_t len, int prot)
+{
+  printf("mprotect %p:%u with flags %#x\n", addr, len, prot);
+  return 0;
+}
