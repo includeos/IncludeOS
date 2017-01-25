@@ -43,8 +43,8 @@ parser.add_argument("--create-bridge", dest="bridge", action="store_true",
 parser.add_argument("-g", "--grub", dest="grub", action="store_true",
                     help="Create image with GRUB bootloader that will boot provided binary")
 
-parser.add_argument("-j", "--config", dest="config", type = str,
-                    help="Location of VM JSON config")
+parser.add_argument("-j", "--config", dest="config", type = str, metavar = "PATH",
+                    help="Location of VM config file - JSON validated against a schema")
 
 parser.add_argument('vm_location', action="store", type = str,
                     help="Location of the IncludeOS service binary, image or source")
