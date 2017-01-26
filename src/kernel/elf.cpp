@@ -74,10 +74,10 @@ public:
   func_offset getsym(Elf32_Addr addr)
   {
     // probably just a null pointer with ofs=addr
-    if (UNLIKELY(addr < 0x7c00))
+    if (UNLIKELY(addr < 0x1000))
         return {null_stringz, 0, addr};
     // definitely in the bootloader
-    if (UNLIKELY(addr < 0x7e00))
+    if (UNLIKELY(addr >= 0x7c00 && addr < 0x7e00))
         return {boot_stringz, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     auto* sym = getaddr(addr);
@@ -87,7 +87,11 @@ public:
       auto base   = sym->st_value;
       auto offset = addr - base;
       // return string name for symbol
-      return {demangle( sym_name(sym) ), base, offset};
+      const char* name = sym_name(sym);
+      if (name)
+          return {demangle(name), base, offset};
+      else
+          return {to_hex_string(base), base, offset};
     }
     // function or space not found
     return {to_hex_string(addr), addr, 0};
@@ -95,9 +99,11 @@ public:
   safe_func_offset getsym_safe(Elf32_Addr addr, char* buffer, size_t length)
   {
     // probably just a null pointer with ofs=addr
-    if (addr < 0x7c00) return {null_stringz, 0, addr};
+    if (UNLIKELY(addr < 0x1000))
+        return {null_stringz, 0, addr};
     // definitely in the bootloader
-    if (addr < 0x7e00) return {boot_stringz, 0x7c00, addr - 0x7c00};
+    if (UNLIKELY(addr >= 0x7c00 && addr < 0x7e00))
+        return {boot_stringz, 0x7c00, addr - 0x7c00};
     // resolve manually from symtab
     auto* sym = getaddr(addr);
     if (LIKELY(sym)) {
@@ -153,17 +159,13 @@ private:
   }
   std::string demangle(const char* name) const
   {
-    if (name[0] == '_') {
-      int status;
-      // internally, demangle just returns buf when status is ok
-      auto* res = __cxa_demangle(name, nullptr, 0, &status);
-      if (status == 0) {
-        std::string result(res);
-        std::free(res);
-        return result;
-      }
-    }
-    return std::string(name);
+    char buffer[2048];
+    const char* res = demangle_safe(name, buffer, sizeof(buffer));
+    assert(strlen(res));
+    if (res)
+        return std::string(res);
+    else
+        return std::string(name);
   }
   const char* demangle_safe(const char* name, char* buffer, size_t buflen) const
   {
@@ -256,8 +258,8 @@ std::vector<func_offset> Elf::get_functions()
 
 void print_backtrace()
 {
-  char _symbol_buffer[512];
-  char _btrace_buffer[512];
+  char _symbol_buffer[1024];
+  char _btrace_buffer[1024];
 
   if (Elf::get_strtab() == NULL) {
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),
@@ -343,59 +345,67 @@ void _validate_elf_symbols()
   }
 }
 
-struct relocate_header {
-  SymTab symtab;
-  StrTab strtab;
-};
+static struct relocated_header {
+  uint32_t   entries = 0xFFFF;
+  uint32_t   strsize = 0xFFFF;
+  Elf32_Sym* syms = nullptr;
 
-extern "C"
-int _get_elf_section_size(const void* location)
-{
-  auto& hdr = *(relocate_header*) location;
-  return sizeof(relocate_header) + hdr.symtab.entries * sizeof(Elf32_Sym) + hdr.strtab.size;
-}
+  const char* strings() const {
+    return (char*) &syms[entries];
+  }
+} relocs;
+struct elfsyms_header {
+  uint32_t  symtab_entries;
+  uint32_t  strtab_size;
+  Elf32_Sym syms[0];
+};
 
 #include <kprint>
 extern "C"
-void _move_elf_symbols(void* old_location, void* new_location)
+int _get_elf_section_datasize(const void* location)
 {
-  int size = _get_elf_section_size(old_location);
-  // validate locations
-  if ((char*) new_location >= (char*) old_location &&
-      (char*) new_location + size < (char*) old_location)
-  {
-    kprintf("ELF symbol sections are inside each other!\n");
-    kprintf("Moving %d from %p -> %p (%p)\n",
-        size, old_location, new_location, (char*) new_location + size);
-    assert(0);
-  }
-  // copy over
-  memcpy(new_location, old_location, size);
-  // update header
-  auto* newhdr = (relocate_header*) new_location;
-  const char* base = ((char*) newhdr) + sizeof(relocate_header);
-  newhdr->symtab.base = (Elf32_Sym*) base;
-  newhdr->strtab.base = &base[newhdr->symtab.entries * sizeof(Elf32_Sym)];
-}
-#if !defined(__MACH__)
-#include <malloc.h>
-#endif
-extern "C"
-void* _relocate_to_heap(void* old_location)
-{
-  int total = _get_elf_section_size(old_location);
-  void* heap_location = malloc(total);
-  _move_elf_symbols(old_location, heap_location);
-  return heap_location;
+  auto& hdr = *(elfsyms_header*) location;
+  // special case for missing call to elf_syms
+  if (hdr.symtab_entries == 0) return 0;
+  return hdr.symtab_entries * sizeof(Elf32_Sym) + hdr.strtab_size;
 }
 
 extern "C"
-void _apply_parser_data(char* location)
+void _move_elf_syms_location(const void* location, void* new_location)
 {
-  if (location) {
-    auto& hdr = *(relocate_header*) location;
+  int size = _get_elf_section_datasize(location);
+  // stripped variant
+  if (size == 0) {
+    relocs.entries = 0;
+    relocs.strsize = 0;
+    return;
+  }
+  // old header
+  auto* hdr = (elfsyms_header*) location;
+  // update header
+  relocs.entries = hdr->symtab_entries;
+  relocs.strsize = hdr->strtab_size;
+  relocs.syms    = (Elf32_Sym*) new_location;
+  // copy symbol and string data
+  memcpy(relocs.syms, hdr->syms, size);
+}
+extern "C"
+void _elf_relocate_to_heap()
+{
+  int size = relocs.entries * sizeof(Elf32_Sym) + relocs.strsize;
+  char* newloc = new char[size];
+  // copy syms & update location
+  memcpy(newloc, relocs.syms, size);
+  relocs.syms = (Elf32_Sym*) newloc;
+}
+
+#include <service>
+extern "C"
+void _init_elf_parser()
+{
+  if (relocs.entries) {
     // apply changes to the symbol parser from custom location
-    parser.set(hdr.symtab.base, hdr.symtab.entries, hdr.strtab.base);
+    parser.set(relocs.syms, relocs.entries, relocs.strings());
   }
   else {
     // symbols and strings are stripped out

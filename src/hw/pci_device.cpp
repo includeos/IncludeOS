@@ -38,6 +38,10 @@
 #define PCI_HEADER_REG		0x0e
 #define PCI_BIST_REG		0x0f
 
+#define PCI_COMMAND_IO			0x01
+#define PCI_COMMAND_MEM			0x02
+#define PCI_COMMAND_MASTER	0x04
+
 namespace hw {
 
   static const char* classcodes[] {
@@ -150,6 +154,11 @@ namespace hw {
   PCI_Device::PCI_Device(const uint16_t pci_addr, const uint32_t device_id)
       : pci_addr_{pci_addr}, device_id_{device_id}
   {
+    // set master, mem and io flags
+    uint32_t cmd = read_dword(PCI_CMD_REG);
+    cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
+    write_dword(PCI_CMD_REG, cmd);
+
     //We have device, so probe for details
     devtype_.reg = read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
 
