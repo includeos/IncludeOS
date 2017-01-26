@@ -42,8 +42,6 @@ def load_schema(filename = default_schema):
   vm_schema = json.loads(open(filename).read());
 
 
-#def load_from_json(
-
 def validate_vm_spec(filename):
     vm_spec = None
 
@@ -83,24 +81,8 @@ def load_config(path):
     return valid_vms
 
 
-def validate_path(path, verb = False):
-  global verbose
-  verbose = verb
-  current_dir = os.getcwd()
-  if not vm_schema:
-    load_schema(package_path + "/vm.schema.json")
-  os.chdir(path)
-  try:
-    load_config(path)
-    if verbose:
-      print "<validate_test> \tPASS: ",os.getcwd()
-    return True
-  except Exception as err:
-    if verbose:
-      print "<validate_test> \tFAIL: unmet requirements in " + path, ": " , err.message
-  finally:
-    os.chdir(current_dir)
-
 if __name__ == "__main__":
-  path = sys.argv[1] if len(sys.argv) > 1 else "."
-  validate_path(path)
+    path = sys.argv[1] if len(sys.argv) > 1 else "."
+    if not load_config(path):
+        print "No valid config found"
+        exit(-1)
