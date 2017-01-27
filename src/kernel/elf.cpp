@@ -161,7 +161,6 @@ private:
   {
     char buffer[2048];
     const char* res = demangle_safe(name, buffer, sizeof(buffer));
-    assert(strlen(res));
     if (res)
         return std::string(res);
     else
@@ -316,6 +315,7 @@ void Elf::print_info()
 
 }
 
+#include <kprint>
 extern "C"
 void _print_elf_symbols()
 {
@@ -324,9 +324,9 @@ void _print_elf_symbols()
 
   for (size_t i = 0; i < symtab.entries; i++)
   {
-    printf("%8x: %s\n", symtab.base[i].st_value, &strtab[symtab.base[i].st_name]);
+    kprintf("%8x: %s\n", symtab.base[i].st_value, &strtab[symtab.base[i].st_name]);
   }
-  printf("*** %u entries\n", symtab.entries);
+  kprintf("*** %u entries\n", symtab.entries);
 }
 extern "C"
 void _validate_elf_symbols()
@@ -360,7 +360,6 @@ struct elfsyms_header {
   Elf32_Sym syms[0];
 };
 
-#include <kprint>
 extern "C"
 int _get_elf_section_datasize(const void* location)
 {
@@ -386,20 +385,12 @@ void _move_elf_syms_location(const void* location, void* new_location)
   relocs.entries = hdr->symtab_entries;
   relocs.strsize = hdr->strtab_size;
   relocs.syms    = (Elf32_Sym*) new_location;
-  // copy symbol and string data
-  memcpy(relocs.syms, hdr->syms, size);
-}
-extern "C"
-void _elf_relocate_to_heap()
-{
-  int size = relocs.entries * sizeof(Elf32_Sym) + relocs.strsize;
-  char* newloc = new char[size];
-  // copy syms & update location
-  memcpy(newloc, relocs.syms, size);
-  relocs.syms = (Elf32_Sym*) newloc;
+  // copy symbol and string data in reverse
+  for (int i = size-1; i >= 0; i--) {
+    ((char*) relocs.syms)[i] = ((char*) hdr->syms)[i];
+  }
 }
 
-#include <service>
 extern "C"
 void _init_elf_parser()
 {
