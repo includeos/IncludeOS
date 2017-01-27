@@ -34,7 +34,7 @@ namespace http {
     using buffer_t      = net::tcp::buffer_t;
 
   public:
-    explicit Connection(TCP_conn tcpconn, bool keep_alive = true);
+    inline explicit Connection(TCP_conn tcpconn, bool keep_alive = true);
 
     template <typename TCP>
     explicit Connection(TCP&, Peer);
@@ -56,7 +56,7 @@ namespace http {
 
   }; // < class Connection
 
-  Connection::Connection(TCP_conn tcpconn, bool keep_alive)
+  inline Connection::Connection(TCP_conn tcpconn, bool keep_alive)
     : tcpconn_{std::move(tcpconn)},
       req_{nullptr},
       res_{nullptr},
