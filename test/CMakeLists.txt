@@ -58,6 +58,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
+  ${TEST}/util/unit/base64.cpp
   ${TEST}/util/unit/chunk_test.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
