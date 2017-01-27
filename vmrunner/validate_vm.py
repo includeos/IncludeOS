@@ -35,69 +35,54 @@ verbose = False
 validator = extend_with_default(Draft4Validator)
 
 package_path = os.path.dirname(os.path.realpath(__file__))
+default_schema = package_path + "/vm.schema.json"
 
-
-def load_schema(filename):
+def load_schema(filename = default_schema):
   global vm_schema
   vm_schema = json.loads(open(filename).read());
 
+
 def validate_vm_spec(filename):
+    vm_spec = None
 
-  global valid_vms
-  vm_spec = None
+    # Load and parse as JSON
+    try:
+        vm_spec = json.loads(open(filename).read())
+    except:
+        raise Exception("JSON load / parse Error for " + filename)
 
-  # Load and parse as JSON
-  try:
-    vm_spec = json.loads(open(filename).read())
-  except:
-    raise Exception("JSON load / parse Error for " + filename)
+    if (not vm_schema): load_schema()
 
-  # Validate JSON according to schema
-  try:
+    # Validate JSON according to schema
     validator(vm_schema).validate(vm_spec)
-  except Exception as err:
-    raise Exception("JSON schema validation failed: " + err.message)
 
-  valid_vms.append(vm_spec)
+    return vm_spec, filename
 
 
-def has_required_stuff(path):
+def load_config(path):
+    global valid_vms
+    global jsons
 
-  global jsons
+    if (os.path.isfile(path)):
+        jsons = [path]
 
-  # Certain files are mandatory
-  required_files = [ "CMakeLists.txt"]
-  for file in required_files:
-      if not glob.glob(file):
-          raise Exception("missing " + file)
+    if (os.path.isdir(path)):
+        jsons = glob.glob(path + "/*.json")
+        jsons.sort()
 
-  # JSON-files must conform to VM-schema
-  jsons = glob.glob("*.json")
-  jsons.sort()
-  for json in jsons:
-      try:
-          validate_vm_spec(json)
-      except Exception as e:
-          pass
+    # JSON-files must conform to VM-schema
+    for json in jsons:
+        spec = validate_vm_spec(json)
+        try:
+            spec = validate_vm_spec(json)
+            valid_vms.append(spec)
+        except Exception as e:
+            pass
+    return valid_vms
 
-def validate_path(path, verb = False):
-  global verbose
-  verbose = verb
-  current_dir = os.getcwd()
-  if not vm_schema:
-    load_schema(package_path + "/vm.schema.json")
-  os.chdir(path)
-  try:
-    has_required_stuff(path)
-    if verbose:
-      print "<validate_test> \tPASS: ",os.getcwd()
-    return True
-  except Exception as err:
-    if verbose:
-      print "<validate_test> \tFAIL: unmet requirements in " + path, ": " , err.message
-  finally:
-    os.chdir(current_dir)
 
 if __name__ == "__main__":
-  path = sys.argv[1] if len(sys.argv) > 1 else "."
-  validate_path(path)
+    path = sys.argv[1] if len(sys.argv) > 1 else "."
+    if not load_config(path):
+        print "No valid config found"
+        exit(-1)
