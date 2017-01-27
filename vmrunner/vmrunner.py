@@ -109,36 +109,39 @@ def abstract():
 # (It seems to be recommended for "new style classes" to inherit object)
 class hypervisor(object):
 
-  def __init__(self, config):
-    self._config = config;
+    def __init__(self, config):
+        self._config = config;
 
-  # Boot a VM, returning a hypervisor handle for reuse
-  def boot(self):
-    abstract()
+    # Boot a VM, returning a hypervisor handle for reuse
+    def boot(self):
+        abstract()
 
-  # Stop the VM booted by boot
-  def stop(self):
-    abstract()
+    # Stop the VM booted by boot
+    def stop(self):
+        abstract()
 
-  # Read a line of output from vm
-  def readline(self):
-    abstract()
+    # Read a line of output from vm
+    def readline(self):
+        abstract()
 
-  # Verify that the hypervisor is available
-  def available(self, config_data = None):
-    abstract()
+    # Verify that the hypervisor is available
+    def available(self, config_data = None):
+        abstract()
 
-  # Wait for this VM to exit
-  def wait(self):
-    abstract()
+    # Wait for this VM to exit
+    def wait(self):
+        abstract()
 
-  # Wait for this VM to exit
-  def poll(self):
-    abstract()
+    # Wait for this VM to exit
+    def poll(self):
+        abstract()
 
-  # A descriptive name
-  def name(self):
-    abstract()
+    # A descriptive name
+    def name(self):
+        abstract()
+
+    def image_name(self):
+        abstract()
 
 
 # Qemu Hypervisor interface
@@ -149,12 +152,16 @@ class qemu(hypervisor):
         self._proc = None
         self._stopped = False
         self._sudo = False
+        self._image_name = self._config if "image" in self._config else self.name() + " vm"
 
         # Pretty printing
         self.info = Logger(color.INFO("<" + type(self).__name__ + ">"))
 
     def name(self):
         return "Qemu"
+
+    def image_name(serlf):
+        return self._image_name
 
     def drive_arg(self, filename, drive_type = "virtio", drive_format = "raw", media_type = "disk"):
         return ["-drive","file=" + filename
@@ -218,6 +225,8 @@ class qemu(hypervisor):
         # Use provided image name if set, otherwise try to find it in json-config
         if not image_name:
             image_name = self._config["image"]
+
+        self._image_name = image_name
 
         # multiboot - e.g. boot with '-kernel' and no bootloader
         if multiboot:
@@ -294,7 +303,7 @@ class qemu(hypervisor):
                 parent = psutil.Process(self._proc.pid)
                 children = parent.children()
 
-                info ("Stopping", self._config["image"], "PID",self._proc.pid, "with", signal)
+                info ("Stopping", self._image_name, "PID",self._proc.pid, "with", signal)
 
                 for child in children:
                     info (" + child process ", child.pid)
@@ -421,8 +430,10 @@ class vm:
     def on_output(self, output, callback):
         self._on_output[ output ] = callback
 
-    def on_success(self, callback):
-        self._on_output["SUCCESS"] = lambda(line) : [callback(line), self._on_success(line)]
+    def on_success(self, callback, do_exit = True):
+        if do_exit:
+            self._on_output["SUCCESS"] = lambda(line) : [callback(line), self._on_success(line)]
+        else: self._on_output["SUCCESS"] = callback
 
     def on_panic(self, callback):
         self._on_output["PANIC"] = lambda(line) : [callback(line), self._on_panic(line)]

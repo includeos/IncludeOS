@@ -111,6 +111,9 @@ for vm_ in vmrunner.vms:
     if vm_._config.has_key("image") and vm_._config["image"].startswith(image_name):
         vm = vm_
 
+# Don't listen to events needed by testrunner
+vm.on_success(lambda: None, do_exit = False)
+
 if (args.clean):
     print INFO, "Cleaning build"
     vm.clean()
