@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,73 +19,58 @@
 #ifndef HTTP_CONNECTION_HPP
 #define HTTP_CONNECTION_HPP
 
-#include "common.hpp"
+// http
 #include "request.hpp"
 #include "response.hpp"
-#include "error.hpp"
+
 #include <net/tcp/connection.hpp>
-#include <map>
-#include <vector>
-#include <delegate>
-#include <util/timer.hpp>
 
 namespace http {
 
   class Connection {
   public:
-    using TCP_conn_ptr      = net::tcp::Connection_ptr;
-    using Peer              = net::tcp::Socket;
-    using buffer_t          = net::tcp::buffer_t;
-    using Close_handler     = delegate<void(Connection&)>;
-    using timeout_duration  = std::chrono::milliseconds;
+    using TCP_conn      = net::tcp::Connection_ptr;
+    using Peer          = net::tcp::Socket;
+    using buffer_t      = net::tcp::buffer_t;
 
   public:
-
-    explicit Connection(TCP_conn_ptr, Close_handler);
+    explicit Connection(TCP_conn tcpconn, bool keep_alive = true);
 
     template <typename TCP>
-    explicit Connection(TCP&, Peer, Close_handler);
+    explicit Connection(TCP&, Peer);
 
-    bool available() const
-    { return on_response_ == nullptr && keep_alive_; }
-
-    bool occupied() const
-    { return !available(); }
-
-    void send(Request_ptr, Response_handler, const size_t bufsize, timeout_duration = timeout_duration::zero());
-
-    net::tcp::port_t local_port() const
+    net::tcp::port_t local_port() const noexcept
     { return (tcpconn_) ? tcpconn_->local_port() : 0; }
 
-    Peer peer() const
+    Peer peer() const noexcept
     { return (tcpconn_) ? tcpconn_->remote() : Peer(); }
-    //bool operator==(const Connection& other)
-    //{ return this == &other; }
-    //{ return tcpconn_->local_port() == other.tcpconn_->local_port(); }
 
-  private:
-    TCP_conn_ptr      tcpconn_;
+    void timeout()
+    { tcpconn_->is_closing() ? tcpconn_->abort() : tcpconn_->close(); }
+
+  protected:
+    TCP_conn          tcpconn_;
     Request_ptr       req_;
     Response_ptr      res_;
-    Close_handler     on_close_;
-    Response_handler  on_response_;
-    Timer             timer_;
-
-    timeout_duration  timeout_dur_;
-    bool keep_alive_;
-
-    void send_request(const size_t bufsize);
-
-    void recv_response(buffer_t buf, size_t len);
-
-    void end_response(Error err = Error::NONE);
-
-    void timeout_request()
-    { end_response(Error::TIMEOUT); }
-
-    void close();
+    bool              keep_alive_;
 
   }; // < class Connection
+
+  Connection::Connection(TCP_conn tcpconn, bool keep_alive)
+    : tcpconn_{std::move(tcpconn)},
+      req_{nullptr},
+      res_{nullptr},
+      keep_alive_{keep_alive}
+  {
+    Ensures(tcpconn_ != nullptr);
+    debug("<http::Connection> Created %u -> %s %p\n", local_port(), peer().to_string().c_str(), this);
+  }
+
+  template <typename TCP>
+  Connection::Connection(TCP& tcp, Peer addr)
+    : Connection(tcp.connect(addr))
+  {
+  }
 
 } // < namespace http
 
