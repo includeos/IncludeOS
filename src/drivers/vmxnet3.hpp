@@ -65,11 +65,6 @@ public:
     return tx_tokens_free();
   }
 
-  /** Number of incoming packets waiting in the RX-queue */
-  size_t receive_queue_waiting() override {
-    return 0;
-  }
-
   void deactivate() override;
 
 private:

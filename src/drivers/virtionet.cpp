@@ -162,9 +162,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   }
   else
   {
-    // legacy PCI interrupt
-    auto del(delegate<void()>{this, &VirtioNet::irq_handler});
-    IRQ_manager::get().subscribe(irq(),del);
+    assert(0 && "Legacy IRQs not supported");
   }
 
 #ifndef NO_DEFERRED_KICK
@@ -251,31 +249,6 @@ void VirtioNet::msix_xmit_handler()
   }
 }
 
-void VirtioNet::irq_handler() {
-  // Virtio Std. § 4.1.5.5, steps 1-3
-
-  // Step 1. read ISR
-  unsigned char isr = hw::inp(iobase() + VIRTIO_PCI_ISR);
-
-  // Step 2. A) - one of the queues have changed
-  if (isr & 1) {
-    // This now means service RX & TX interchangeably
-    // We need a zipper-solution; we can't receive n packets before sending
-    // anything - that's unfair.
-    service_queues();
-  }
-
-  // Step 2. B)
-  if (isr & 2) {
-    debug("\t <VirtioNet> Configuration change:\n");
-
-    // Getting the MAC + status
-    debug("\t             Old status: 0x%x\n",_conf.status);
-    get_config();
-    debug("\t             New status: 0x%x \n",_conf.status);
-  }
-}
-
 void VirtioNet::add_receive_buffer(){
 
   auto* pkt = bufstore().get_buffer();
@@ -301,79 +274,6 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
   new (ptr) Packet(bufsize(), size - sizeof(virtio_net_hdr), &bufstore());
 
   return std::unique_ptr<Packet> (ptr);
-}
-
-void VirtioNet::service_queues(){
-  debug2("<RX Queue> %i new packets \n",
-         rx_q.new_incoming());
-
-  /** For RX, we dequeue, add new buffers and let receiver is responsible for
-      memory management (they know when they're done with the packet.) */
-  uint16_t dequeued_rx = 0;
-  uint16_t dequeued_tx = 0;
-
-  rx_q.disable_interrupts();
-  tx_q.disable_interrupts();
-  // A zipper, alternating between sending and receiving
-  while (rx_q.new_incoming() or tx_q.new_incoming()) {
-
-    // Do one RX-packet
-    while (rx_q.new_incoming()) {
-      auto res = rx_q.dequeue();
-      auto pckt_ptr = recv_packet(res.data(), res.size());
-      Link::receive(std::move(pckt_ptr));
-
-      // Requeue a new buffer
-      add_receive_buffer();
-
-      dequeued_rx++;
-    }
-
-    // Do one TX-packet
-    while (tx_q.new_incoming()) {
-      // FIXME Unfortunately dequeue is not working here
-      // I am guessing that Linux is eating the buffers
-      tx_q.dequeue();
-
-      // release the buffer back into bufferstore
-      auto data = tx_ringq.front();
-      tx_ringq.pop_front();
-      bufstore().release(data);
-
-      dequeued_tx++;
-    }
-
-  }
-  rx_q.enable_interrupts();
-  tx_q.enable_interrupts();
-
-  // Let virtio know we have increased receive capacity
-  if (dequeued_rx)
-    rx_q.kick();
-
-  debug2("<VirtioNet> Service loop about to kick RX if %i \n",
-         dequeued_rx);
-  // If we have a transmit queue, eat from it, otherwise let the stack know we
-  // have increased transmit capacity
-  if (dequeued_tx) {
-    debug("<VirtioNet>%i dequeued, transmitting backlog\n", dequeued_tx);
-
-    // transmit as much as possible from the buffer
-    if (transmit_queue_){
-      transmit(std::move(transmit_queue_));
-    } else {
-      debug("<VirtioNet> Transmit queue is empty \n");
-    }
-
-    // If we now emptied the buffer, offer packets to stack
-    if (!transmit_queue_ && tx_q.num_free() > 1)
-      transmit_queue_available_event_(tx_q.num_free() / 2);
-    else
-      debug("<VirtioNet> No event: !transmit q %i, num_avail %i \n",
-            !transmit_queue_, tx_q.num_free());
-  }
-
-  debug("<VirtioNet> Done servicing queues\n");
 }
 
 void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
