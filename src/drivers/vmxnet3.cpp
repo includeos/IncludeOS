@@ -312,7 +312,9 @@ void vmxnet3::disable_intr(uint8_t idx) noexcept
 
 void vmxnet3::refill_rx(int q)
 {
-  while (rx[q].prod_count < VMXNET3_NUM_RX_DESC)
+  bool added_buffers = false;
+  while (rx[q].prod_count < VMXNET3_NUM_RX_DESC
+      && bufstore().available() != 0)
   {
     size_t i = rx[q].producers % VMXNET3_NUM_RX_DESC;
     const uint32_t generation = 
@@ -328,10 +330,14 @@ void vmxnet3::refill_rx(int q)
     desc.flags   = MTU() | generation;
     rx[q].prod_count++;
     rx[q].producers++;
+    
+    added_buffers = true;
   }
-  // send count to NIC
-  mmio_write32(this->ptbase + VMXNET3_PT_RXPROD1 + 0x200 * q, 
-               rx[q].producers % VMXNET3_NUM_RX_DESC);
+  if (added_buffers) {
+    // send count to NIC
+    mmio_write32(this->ptbase + VMXNET3_PT_RXPROD1 + 0x200 * q, 
+                 rx[q].producers % VMXNET3_NUM_RX_DESC);
+  }
 }
 
 net::Packet_ptr
@@ -368,10 +374,13 @@ void vmxnet3::msix_xmit_handler()
     bufstore().release(txq_buffers[desc] - sizeof(net::Packet));
     txq_buffers[desc] = nullptr;
   }
-  while (this->can_transmit() && !this->sendq.empty())
-  {
-    this->transmit(std::move(this->sendq.front()));
-    this->sendq.pop_front();
+  // try to send sendq first
+  if (this->can_transmit() && sendq != nullptr) {
+    this->transmit(std::move(sendq));
+  }
+  // if we can still send more, message network stack
+  if (this->can_transmit()) {
+    transmit_queue_available_event_(tx_tokens_free());
   }
 }
 void vmxnet3::msix_recv_handler()
@@ -399,45 +408,54 @@ void vmxnet3::msix_recv_handler()
     Link::receive(std::move(packet));
     
     // emergency refill when really empty
-    if (rx[0].prod_count < VMXNET3_NUM_RX_DESC / 2)
+    if (rx[0].prod_count < VMXNET3_NUM_RX_DESC / 4)
         refill_rx(0);
   }
   refill_rx(0);
 }
-void vmxnet3::unused_handler()
-{
-  printf("vmxnet3: intr2+ Unused interrupt handler called\n");
-}
 
+void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
+{
+  if (sendq == nullptr)
+      sendq = std::move(pckt_ptr);
+  else
+      sendq->chain(std::move(pckt_ptr));
+  // send as much as possible from sendq
+  while (sendq != nullptr && can_transmit())
+  {
+    auto next = sendq->detach_tail();
+    // transmit released buffer
+    auto* packet = sendq.release();
+    transmit_data(packet->buffer(), packet->size());
+    // next is the new sendq
+    sendq = std::move(next);
+  }
+}
+int  vmxnet3::tx_tokens_free() const noexcept
+{
+  return VMXNET3_TX_FILL - (tx.producers - tx.consumers);
+}
 bool vmxnet3::can_transmit() const noexcept
 {
   return tx.producers - tx.consumers < VMXNET3_TX_FILL;
 }
-
-void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
+void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
 {
 #define VMXNET3_TXF_EOP 0x000001000UL
 #define VMXNET3_TXF_CQ  0x000002000UL  
-  if (can_transmit() == false) {
-    sendq.push_back(std::move(pckt_ptr));
-    return;
-  }
-  
   auto idx = tx.producers % VMXNET3_NUM_TX_DESC;
   auto gen = (tx.producers & VMXNET3_NUM_TX_DESC) ? 0 : VMXNET3_TXF_GEN;
   tx.producers++;
+
   assert(txq_buffers[idx] == nullptr);
-  
-  // release packet and enqueue (buffer, size)
-  auto* packet = pckt_ptr.release();
-  txq_buffers[idx] = packet->buffer();
-  
+  txq_buffers[idx] = data;
+
   auto& desc = dma->tx_desc[idx];
   desc.address  = (uintptr_t) txq_buffers[idx];
-  desc.flags[0] = gen | packet->size();
+  desc.flags[0] = gen | data_length;
   desc.flags[1] = VMXNET3_TXF_CQ | VMXNET3_TXF_EOP;
   
-  // dma kick
+  // TODO: delay dma kick
   mmio_write32(this->ptbase + VMXNET3_PT_TXPROD,
                tx.producers % VMXNET3_NUM_TX_DESC);
 }

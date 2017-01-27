@@ -18,7 +18,6 @@
 #include <hw/pci_device.hpp>
 #include <net/link_layer.hpp>
 #include <net/ethernet/ethernet.hpp>
-#include <deque>
 #include <vector>
 
 #define ETH_FRAME_LEN       1514
@@ -63,7 +62,7 @@ public:
 
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override {
-    return bufstore().available();
+    return tx_tokens_free();
   }
 
   /** Number of incoming packets waiting in the RX-queue */
@@ -77,13 +76,13 @@ private:
   void msix_evt_handler();
   void msix_xmit_handler();
   void msix_recv_handler();
-  void unused_handler();
   void refill_rx(int q);
   void enable_intr(uint8_t idx) noexcept;
   void disable_intr(uint8_t idx) noexcept;
 
+  int  tx_tokens_free() const noexcept;
   bool can_transmit() const noexcept;
-
+  void transmit_data(uint8_t* data, uint16_t);
   net::Packet_ptr recv_packet(uint8_t* data, uint16_t);
 
   bool     check_version();
@@ -110,5 +109,5 @@ private:
   uint8_t* rxq_buffers[VMXNET3_NUM_RX_DESC];
   uint8_t* txq_buffers[VMXNET3_NUM_TX_DESC];
 
-  std::deque<net::Packet_ptr> sendq;
+  net::Packet_ptr sendq = nullptr;
 };
