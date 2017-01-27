@@ -249,7 +249,7 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
     len,
     [&written] (bool) { written = true; }
   );
-  
+
   // sometimes we can just write and forget
   if (written) return len;
   while (!written) {
@@ -305,14 +305,14 @@ int TCP_FD_Conn::shutdown(int mode)
     return -1;
   }
   switch (mode) {
-  case SHUT_RDRW:
+  case SHUT_RDWR:
     conn->close();
     return 0;
   case SHUT_RD:
     printf("Ignoring shutdown(SHUT_RD)\n");
     return 0;
-  case SHUT_RW:
-    printf("Ignoring shutdown(SHUT_RW)\n");
+  case SHUT_WR:
+    printf("Ignoring shutdown(SHUT_WR)\n");
     return 0;
   default:
     errno = EINVAL;
