@@ -22,6 +22,7 @@
 #include <kernel/irq_manager.hpp>
 #include <info>
 #include <cassert>
+static std::vector<vmxnet3*> deferred_devs;
 
 #define VMXNET3_REV1_MAGIC 0xbabefee1
 #define VMXNET3_MAX_BUFFER_LEN 0x4000
@@ -142,7 +143,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   assert(check_version());
   
   // reset device
-  reset();
+  assert(reset());
   
   // get mac address
   retrieve_hwaddr();
@@ -229,6 +230,10 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
     refill_rx(q);
   }
   
+  // deferred transmit
+  this->deferred_irq = IRQ_manager::get().get_next_msix_irq();
+  IRQ_manager::get().subscribe(deferred_irq, handle_deferred);
+  
   // enable interrupts
   enable_intr(0);
   enable_intr(1);
@@ -262,10 +267,10 @@ uint16_t vmxnet3::check_link()
   else
       return 0;
 }
-void vmxnet3::reset()
+bool vmxnet3::reset()
 {
   auto res = command(VMXNET3_CMD_RESET_DEV);
-  assert(res == 0);
+  return res == 0;
 }
 
 void vmxnet3::retrieve_hwaddr()
@@ -383,8 +388,10 @@ void vmxnet3::msix_xmit_handler()
     transmit_queue_available_event_(tx_tokens_free());
   }
 }
+#include <deque>
 void vmxnet3::msix_recv_handler()
 {
+  std::deque<net::Packet_ptr> test;
   while (true)
   {
     uint32_t idx = rx[0].consumers % VMXNET3_NUM_RX_COMP;
@@ -405,13 +412,17 @@ void vmxnet3::msix_recv_handler()
     this->rxq_buffers[desc] = nullptr;
     
     // handle_magic()
-    Link::receive(std::move(packet));
+    test.push_back(std::move(packet));
     
     // emergency refill when really empty
     if (rx[0].prod_count < VMXNET3_NUM_RX_DESC / 4)
         refill_rx(0);
   }
   refill_rx(0);
+  while (!test.empty()) {
+    Link::receive(std::move(test.front()));
+    test.pop_front();
+  }
 }
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
@@ -455,9 +466,23 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
   desc.flags[0] = gen | data_length;
   desc.flags[1] = VMXNET3_TXF_CQ | VMXNET3_TXF_EOP;
   
-  // TODO: delay dma kick
-  mmio_write32(this->ptbase + VMXNET3_PT_TXPROD,
-               tx.producers % VMXNET3_NUM_TX_DESC);
+  // delay dma message until we have written as much as possible
+  if (!deferred_kick)
+  {
+    deferred_kick = true;
+    deferred_devs.push_back(this);
+    IRQ_manager::get().register_irq(deferred_irq);
+  }
+}
+void vmxnet3::handle_deferred()
+{
+  for (auto* dev : deferred_devs)
+  {
+    mmio_write32(dev->ptbase + VMXNET3_PT_TXPROD,
+                 dev->tx.producers % VMXNET3_NUM_TX_DESC);
+    dev->deferred_kick = false;
+  }
+  deferred_devs.clear();
 }
 
 void vmxnet3::deactivate()

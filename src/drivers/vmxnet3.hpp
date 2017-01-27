@@ -87,7 +87,7 @@ private:
 
   bool     check_version();
   uint16_t check_link();
-  void     reset();
+  bool     reset();
   uint32_t command(uint32_t cmd);
   void     retrieve_hwaddr();
   void     set_hwaddr(hw::MAC_addr&);
@@ -108,6 +108,10 @@ private:
   ring_stuff rx[NUM_RX_QUEUES];
   uint8_t* rxq_buffers[VMXNET3_NUM_RX_DESC];
   uint8_t* txq_buffers[VMXNET3_NUM_TX_DESC];
-
+  // deferred transmit dma
+  uint8_t  deferred_irq  = 0;
+  bool     deferred_kick = false;
+  static void handle_deferred();
+  // sendq as packet chain
   net::Packet_ptr sendq = nullptr;
 };
