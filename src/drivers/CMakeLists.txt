@@ -10,6 +10,9 @@ add_dependencies(virtioblk PrecompiledLibraries)
 add_library(virtionet STATIC virtionet.cpp)
 add_dependencies(virtionet PrecompiledLibraries)
 
+add_library(vmxnet3 STATIC vmxnet3.cpp)
+add_dependencies(vmxnet3 PrecompiledLibraries)
+
 add_library(heap_debugging STATIC heap_debugging.cpp)
 add_dependencies(heap_debugging PrecompiledLibraries)
 
@@ -17,4 +20,4 @@ add_library(silent_start STATIC silent.cpp)
 add_dependencies(silent_start PrecompiledLibraries)
 
 
-install(TARGETS virtionet virtioblk heap_debugging silent_start DESTINATION includeos/drivers)
+install(TARGETS virtionet virtioblk vmxnet3 heap_debugging silent_start DESTINATION includeos/drivers)
