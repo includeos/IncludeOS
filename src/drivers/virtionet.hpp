@@ -204,11 +204,6 @@ private:
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
 
-
-  /** Service the RX/TX Queues.
-      Push incoming data up to linklayer, dequeue any used RX- and TX buffers.*/
-  void service_queues();
-
   /** Add packet to buffer chain */
   void add_to_tx_buffer(net::Packet_ptr pckt);
 
@@ -220,14 +215,11 @@ private:
   void msix_recv_handler();
   void msix_xmit_handler();
   void msix_conf_handler();
-  void irq_handler();
 
   /** Allocate and queue buffer from bufstore_ in RX queue. */
   void add_receive_buffer();
 
-  void drop(net::Packet_ptr);
-
-
+  static void drop(net::Packet_ptr);
 
   std::unique_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
   std::deque<uint8_t*> tx_ringq;
