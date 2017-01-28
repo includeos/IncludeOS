@@ -385,10 +385,8 @@ void _move_elf_syms_location(const void* location, void* new_location)
   relocs.entries = hdr->symtab_entries;
   relocs.strsize = hdr->strtab_size;
   relocs.syms    = (Elf32_Sym*) new_location;
-  // copy symbol and string data in reverse
-  for (int i = size-1; i >= 0; i--) {
-    ((char*) relocs.syms)[i] = ((char*) hdr->syms)[i];
-  }
+  // copy **overlapping** symbol and string data
+  memmove((char*) relocs.syms, (char*) hdr->syms, size);
 }
 
 extern "C"
