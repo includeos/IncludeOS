@@ -82,7 +82,7 @@ namespace hw {
     set_freq_divider(_cpu_sampling_freq_divider_);
 
     // BLOCKING call to external measurment.
-    extern double calculate_cpu_frequency(int);
+    extern double calculate_cpu_frequency(size_t);
     double freq = calculate_cpu_frequency(samples);
 
     debug("<CPU frequency> Result: %f hz\n", freq);
