@@ -137,7 +137,7 @@ struct msix_t;
      *
      *  @see pci_addr() for more about the address  
      */
-    explicit PCI_Device(const uint16_t pci_addr, const uint32_t device_id);
+    explicit PCI_Device(const uint16_t pci_addr, const uint32_t, const uint32_t);
   
     //! @brief Read from device with implicit pci_address (e.g. used by Nic)
     uint32_t read_dword(const uint8_t reg) noexcept;
@@ -162,21 +162,24 @@ struct msix_t;
      *
      *  @return: The address of the device
      */
-    inline uint16_t pci_addr() const noexcept
+    uint16_t pci_addr() const noexcept
     { return pci_addr_; };
     
     /** Get the pci class code. */
-    inline PCI::classcode_t classcode() const noexcept
+    PCI::classcode_t classcode() const noexcept
     { return static_cast<PCI::classcode_t>(devtype_.classcode); }
-  
-    inline uint16_t rev_id() const noexcept
+
+    uint8_t subclass() const noexcept
+    { return devtype_.subclass; }
+
+    uint16_t rev_id() const noexcept
     { return devtype_.rev_id; }
 
     /** Get the pci vendor and product id */
-    inline uint16_t vendor_id() const noexcept
+    uint16_t vendor_id() const noexcept
     { return device_id_.vendor; }
 
-    inline uint16_t product_id() const noexcept
+    uint16_t product_id() const noexcept
     { return device_id_.product; }
   
     /**
@@ -213,19 +216,7 @@ struct msix_t;
       return this->msix != nullptr;
     }
     
-    // getters for resources
-    uintptr_t get_membar(uint8_t id) const noexcept
-    {
-      // FIXME: use idx to get correct membar
-      auto* res = resources;
-      while (res && id >= 0) {
-        if (id == 0 && res->type == PCI::RES_MEM)
-            return res->start;
-        if (res->type == PCI::RES_MEM) id--;
-        res = res->next;
-      }
-      assert(0 && "No such mem BAR");
-    }
+    // resource handling
     uintptr_t get_bar(uint8_t id) const noexcept
     {
       // FIXME: use idx to get correct membar
@@ -237,15 +228,6 @@ struct msix_t;
       assert(0 && "No such BAR");
     }
     
-  private:
-    // @brief The 3-part PCI address
-    uint16_t pci_addr_;
-  
-    //@brief The three address parts derived (if needed)      
-    uint8_t busno_  {0};
-    uint8_t devno_  {0};
-    uint8_t funcno_ {0};
-  
     // @brief The 2-part ID retrieved from the device
     union vendor_product {
       uint32_t __value;
@@ -253,8 +235,7 @@ struct msix_t;
         uint16_t vendor;
         uint16_t product;
       };
-    } device_id_;
-
+    };
     // @brief The class code (device type)
     union class_revision {
       uint32_t reg;
@@ -269,8 +250,20 @@ struct msix_t;
         uint8_t __prog_if; //Overlaps the above
         uint8_t revision;        
       };
-    } devtype_;
+    };
 
+  private:
+    // @brief The 3-part PCI address
+    uint16_t pci_addr_;
+  
+    //@brief The three address parts derived (if needed)      
+    uint8_t busno_  {0};
+    uint8_t devno_  {0};
+    uint8_t funcno_ {0};
+
+    vendor_product device_id_;
+    class_revision devtype_;
+  
     // @brief Printable names
     const char* classname_;
     const char* vendorname_;
