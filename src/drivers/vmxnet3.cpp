@@ -26,12 +26,12 @@ static std::vector<vmxnet3*> deferred_devs;
 
 #define VMXNET3_REV1_MAGIC 0xbabefee1
 #define VMXNET3_MAX_BUFFER_LEN 0x4000
-#define VMXNET3_RING_ALIGN 512
 #define VMXNET3_DMA_ALIGN  512
 
-#define VMXNET3_NUM_TX_COMP  VMXNET3_NUM_TX_DESC
-#define VMXNET3_NUM_RX_COMP  VMXNET3_NUM_RX_DESC
-#define VMXNET3_TX_FILL (VMXNET3_NUM_TX_DESC-1)
+#define VMXNET3_NUM_TX_COMP  vmxnet3::NUM_TX_DESC
+#define VMXNET3_NUM_RX_COMP  vmxnet3::NUM_RX_DESC
+static const int VMXNET3_TX_FILL = vmxnet3::NUM_TX_DESC-1;
+static const int VMXNET3_RX_FILL = vmxnet3::NUM_RX_DESC;
 
 /**
  * DMA areas
@@ -41,11 +41,11 @@ static std::vector<vmxnet3*> deferred_devs;
  */
 struct vmxnet3_dma {
   /** TX descriptor ring */
-  struct vmxnet3_tx_desc tx_desc[VMXNET3_NUM_TX_DESC];
+  struct vmxnet3_tx_desc tx_desc[vmxnet3::NUM_TX_DESC];
   /** TX completion ring */
   struct vmxnet3_tx_comp tx_comp[VMXNET3_NUM_TX_COMP];
   /** RX descriptor ring */
-  struct vmxnet3_rx_desc rx_desc[VMXNET3_NUM_RX_DESC];
+  struct vmxnet3_rx_desc rx_desc[vmxnet3::NUM_RX_DESC];
   /** RX completion ring */
   struct vmxnet3_rx_comp rx_comp[VMXNET3_NUM_RX_COMP];
   /** Queue descriptors */
@@ -57,9 +57,9 @@ struct vmxnet3_dma {
 #define PRODUCT_ID    0x7b0
 #define REVISION_ID   0x1
 
-#define PT_BAR_IDX    0
-#define VD_BAR_IDX    1
-#define MSIX_BAR_IDX  2
+#define PCI_BAR_PT     0
+#define PCI_BAR_VD     1
+#define PCI_BAR_MSIX   2
 
 #define VMXNET3_VD_CMD    0x20
 #define VMXNET3_VD_MAC_LO 0x28
@@ -120,23 +120,29 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   if (msix_vectors)
   {
     INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
+    assert(msix_vectors >= 3);
+    if (msix_vectors > 3) msix_vectors = 3;
+    std::vector<uint8_t> irqs;
     
-    for (int i = 1; i < msix_vectors; i++)
+    for (int i = 0; i < 3; i++)
     {
       auto irq = IRQ_manager::get().get_next_msix_irq();
       d.setup_msix_vector(0x0, IRQ_BASE + irq);
       irqs.push_back(irq);
     }
+    
+    IRQ_manager::get().subscribe(irqs[0], {this, &vmxnet3::msix_evt_handler});
+    IRQ_manager::get().subscribe(irqs[1], {this, &vmxnet3::msix_xmit_handler});
+    IRQ_manager::get().subscribe(irqs[2], {this, &vmxnet3::msix_recv_handler});
+  }
+  else {
+    assert(0 && "This driver does not support legacy IRQs");
   }
   
-  IRQ_manager::get().subscribe(irqs[0], {this, &vmxnet3::msix_evt_handler});
-  IRQ_manager::get().subscribe(irqs[1], {this, &vmxnet3::msix_xmit_handler});
-  IRQ_manager::get().subscribe(irqs[2], {this, &vmxnet3::msix_recv_handler});
-  
   // dma areas
-  this->iobase = d.get_bar(VD_BAR_IDX);
+  this->iobase = d.get_bar(PCI_BAR_VD);
   assert(this->iobase);
-  this->ptbase = d.get_bar(PT_BAR_IDX);
+  this->ptbase = d.get_bar(PCI_BAR_PT);
   assert(this->ptbase);
   
   // verify and select version
@@ -162,15 +168,15 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   set_hwaddr(this->hw_addr);
   
   // initialize DMA areas
-  this->dma = (vmxnet3_dma*)
-      aligned_alloc(VMXNET3_DMA_ALIGN, sizeof(vmxnet3_dma));
-  memset(dma, 0, sizeof(vmxnet3_dma));
+  this->dma = new vmxnet3_dma;
+      //aligned_alloc(VMXNET3_DMA_ALIGN, sizeof(vmxnet3_dma));
+  memset(this->dma, 0, sizeof(vmxnet3_dma));
   
   auto& queues = dma->queues;
   // setup tx queues
   queues.tx.cfg.desc_address = (uintptr_t) &dma->tx_desc;
   queues.tx.cfg.comp_address = (uintptr_t) &dma->tx_comp;
-  queues.tx.cfg.num_desc     = VMXNET3_NUM_TX_DESC;
+  queues.tx.cfg.num_desc     = vmxnet3::NUM_TX_DESC;
   queues.tx.cfg.num_comp     = VMXNET3_NUM_TX_COMP;
   queues.tx.cfg.intr_index   = 1;
 
@@ -180,7 +186,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
     auto& queue = queues.rx[q];
     queue.cfg.desc_address[0] = (uintptr_t) &dma->rx_desc[q];
     queue.cfg.comp_address    = (uintptr_t) &dma->rx_comp[q];
-    queue.cfg.num_desc[0]  = VMXNET3_NUM_RX_DESC;
+    queue.cfg.num_desc[0]  = vmxnet3::NUM_RX_DESC;
     queue.cfg.num_comp     = VMXNET3_NUM_RX_COMP;
     queue.cfg.intr_index   = 2 + q;
   }
@@ -232,7 +238,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   
   // deferred transmit
   this->deferred_irq = IRQ_manager::get().get_next_msix_irq();
-  IRQ_manager::get().subscribe(deferred_irq, handle_deferred);
+  IRQ_manager::get().subscribe(this->deferred_irq, handle_deferred);
   
   // enable interrupts
   enable_intr(0);
@@ -318,12 +324,14 @@ void vmxnet3::disable_intr(uint8_t idx) noexcept
 void vmxnet3::refill_rx(int q)
 {
   bool added_buffers = false;
-  while (rx[q].prod_count < VMXNET3_NUM_RX_DESC
+  int  old_value = rx[q].producers;
+
+  while (rx[q].prod_count < VMXNET3_RX_FILL
       && bufstore().available() != 0)
   {
-    size_t i = rx[q].producers % VMXNET3_NUM_RX_DESC;
+    size_t i = rx[q].producers % vmxnet3::NUM_RX_DESC;
     const uint32_t generation = 
-        (rx[q].producers & VMXNET3_NUM_RX_DESC) ? 0 : VMXNET3_RXF_GEN;
+        (rx[q].producers & vmxnet3::NUM_RX_DESC) ? 0 : VMXNET3_RXF_GEN;
     
     // get a pointer to packet data
     auto* pkt_data = bufstore().get_buffer();
@@ -338,10 +346,10 @@ void vmxnet3::refill_rx(int q)
     
     added_buffers = true;
   }
-  if (added_buffers) {
+  if (added_buffers && old_value != rx[q].producers) {
     // send count to NIC
     mmio_write32(this->ptbase + VMXNET3_PT_RXPROD1 + 0x200 * q, 
-                 rx[q].producers % VMXNET3_NUM_RX_DESC);
+                 rx[q].producers % vmxnet3::NUM_RX_DESC);
   }
 }
 
@@ -371,7 +379,7 @@ void vmxnet3::msix_xmit_handler()
     
     tx.consumers++;
     
-    int desc = comp.index % VMXNET3_NUM_TX_DESC;
+    int desc = comp.index % vmxnet3::NUM_TX_DESC;
     if (txq_buffers[desc] == nullptr) {
       printf("empty buffer? comp=%d, desc=%d\n", idx, desc);
       continue;
@@ -388,10 +396,8 @@ void vmxnet3::msix_xmit_handler()
     transmit_queue_available_event_(tx_tokens_free());
   }
 }
-#include <deque>
 void vmxnet3::msix_recv_handler()
 {
-  std::deque<net::Packet_ptr> test;
   while (true)
   {
     uint32_t idx = rx[0].consumers % VMXNET3_NUM_RX_COMP;
@@ -403,7 +409,7 @@ void vmxnet3::msix_recv_handler()
     rx[0].consumers++;
     rx[0].prod_count--;
     
-    int desc = comp.index % VMXNET3_NUM_RX_DESC;
+    int desc = comp.index % vmxnet3::NUM_RX_DESC;
     // mask out length
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
     // get buffer and construct packet
@@ -412,17 +418,13 @@ void vmxnet3::msix_recv_handler()
     this->rxq_buffers[desc] = nullptr;
     
     // handle_magic()
-    test.push_back(std::move(packet));
+    Link::receive(std::move(packet));
     
     // emergency refill when really empty
-    if (rx[0].prod_count < VMXNET3_NUM_RX_DESC / 4)
+    if (rx[0].prod_count < VMXNET3_RX_FILL / 2)
         refill_rx(0);
   }
   refill_rx(0);
-  while (!test.empty()) {
-    Link::receive(std::move(test.front()));
-    test.pop_front();
-  }
 }
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
@@ -454,8 +456,8 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
 {
 #define VMXNET3_TXF_EOP 0x000001000UL
 #define VMXNET3_TXF_CQ  0x000002000UL  
-  auto idx = tx.producers % VMXNET3_NUM_TX_DESC;
-  auto gen = (tx.producers & VMXNET3_NUM_TX_DESC) ? 0 : VMXNET3_TXF_GEN;
+  auto idx = tx.producers % vmxnet3::NUM_TX_DESC;
+  auto gen = (tx.producers & vmxnet3::NUM_TX_DESC) ? 0 : VMXNET3_TXF_GEN;
   tx.producers++;
 
   assert(txq_buffers[idx] == nullptr);
@@ -465,7 +467,7 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
   desc.address  = (uintptr_t) txq_buffers[idx];
   desc.flags[0] = gen | data_length;
   desc.flags[1] = VMXNET3_TXF_CQ | VMXNET3_TXF_EOP;
-  
+
   // delay dma message until we have written as much as possible
   if (!deferred_kick)
   {
@@ -479,7 +481,7 @@ void vmxnet3::handle_deferred()
   for (auto* dev : deferred_devs)
   {
     mmio_write32(dev->ptbase + VMXNET3_PT_TXPROD,
-                 dev->tx.producers % VMXNET3_NUM_TX_DESC);
+                 dev->tx.producers % vmxnet3::NUM_TX_DESC);
     dev->deferred_kick = false;
   }
   deferred_devs.clear();

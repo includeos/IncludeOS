@@ -19,10 +19,6 @@
 #include <net/link_layer.hpp>
 #include <net/ethernet/ethernet.hpp>
 #include <vector>
-
-#define ETH_FRAME_LEN       1514
-#define VMXNET3_NUM_TX_DESC  128
-#define VMXNET3_NUM_RX_DESC  128
 struct vmxnet3_dma;
 
 class vmxnet3 : public net::Link_layer<net::Ethernet>
@@ -30,7 +26,10 @@ class vmxnet3 : public net::Link_layer<net::Ethernet>
 public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
+  static const int ETH_FRAME_LEN = 1514;
   static const int NUM_RX_QUEUES = 1;
+  static const int NUM_TX_DESC   = 128;
+  static const int NUM_RX_DESC   = 128;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
   { return std::make_unique<vmxnet3>(d); }
@@ -91,7 +90,6 @@ private:
   uintptr_t       ptbase;
   hw::MAC_addr    hw_addr;
   vmxnet3_dma*    dma;
-  std::vector<uint8_t> irqs;
 
   // ring counters
   struct ring_stuff {
@@ -101,8 +99,8 @@ private:
   };
   ring_stuff tx;
   ring_stuff rx[NUM_RX_QUEUES];
-  uint8_t* rxq_buffers[VMXNET3_NUM_RX_DESC];
-  uint8_t* txq_buffers[VMXNET3_NUM_TX_DESC];
+  uint8_t* txq_buffers[NUM_TX_DESC];
+  uint8_t* rxq_buffers[NUM_RX_DESC];
   // deferred transmit dma
   uint8_t  deferred_irq  = 0;
   bool     deferred_kick = false;
