@@ -198,9 +198,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
-  static const int CPUFREQ_SAMPLES = 18;
   INFO2("|");
-  INFO2("+--(%d samples, %f sec. interval)", CPUFREQ_SAMPLES,
+  INFO2("+--(%d samples, %f sec. interval)", 18,
         (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
@@ -209,7 +208,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 #endif
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
   if (OS::cpu_mhz_.count() < 0.0) {
-    OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(CPUFREQ_SAMPLES));
+    OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency());
   }
   INFO2("+--> %f MHz", cpu_freq().count());
 
