@@ -172,12 +172,15 @@ namespace hw {
         INFO2("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
       } 
     } //< switch (devtype_.classcode)
-    
+
+    // bridges are different from other PCI devices
+    if (classcode() == PCI::BRIDGE) return;
+
     // find and store capabilities
     this->parse_capabilities();
     // find BARs
     this->probe_resources();
-    
+
     // enable MSI-x if its supported
     if (this->msix_cap()) {
       assert(this->init_msix());
