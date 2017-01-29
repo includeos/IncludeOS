@@ -22,24 +22,14 @@
 #include <cstdint>
 #include <delegate>
 
-namespace hw {
+namespace hw
+{
+class IApic;
 
   class APIC {
   public:
-    typedef delegate<void()>  smp_task_func;
-    typedef delegate<void()>  smp_done_func;
-
-    static void add_task(smp_task_func, smp_done_func);
-    static void work_signal();
-
-    typedef delegate<void()>   timer_func;
-
-    static void init();
-    static void setup_subs();
-
-    static void send_ipi(uint8_t cpu, uint8_t vector);
-    static void send_bsp_intr();
-    static void bcast_ipi(uint8_t vector);
+    static void   init();
+    static IApic& get();
 
     // enable and disable legacy IRQs
     static void enable_irq(uint8_t irq);
@@ -48,11 +38,40 @@ namespace hw {
     static uint8_t get_isr();
     static uint8_t get_irr();
     static void eoi();
-
-  private:
-    static void init_smp();
   };
 
+  class IApic {
+  public:
+    ~IApic() = default;
+    
+    virtual uint32_t read (uint32_t reg) noexcept = 0;
+    virtual void     write(uint32_t reg, uint32_t value) noexcept = 0;
+
+    virtual const char* name() const noexcept = 0;
+    virtual uint32_t get_id()  noexcept = 0;
+    virtual uint32_t version() noexcept = 0;
+
+    virtual void
+    interrupt_control(uint32_t bits, uint8_t spurious) noexcept = 0;
+
+    virtual void enable() noexcept = 0;
+
+    virtual void    eoi() noexcept = 0;
+    virtual uint8_t get_isr() noexcept = 0;
+    virtual uint8_t get_irr() noexcept = 0;
+
+    virtual void ap_init (int id) noexcept = 0;
+    virtual void ap_start(int id, uint32_t vec) noexcept = 0;
+
+    virtual void send_ipi(int id, uint8_t vector) noexcept = 0;
+    virtual void send_bsp_intr() noexcept = 0;
+    virtual void bcast_ipi(uint8_t vector) noexcept = 0;
+
+    virtual void     timer_init() = 0;
+    virtual void     timer_begin(uint32_t) noexcept = 0;
+    virtual uint32_t timer_diff() noexcept = 0;
+    virtual void     timer_interrupt(bool) noexcept = 0;
+  };
 }
 
 #endif

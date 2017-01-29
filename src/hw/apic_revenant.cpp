@@ -8,10 +8,6 @@
 smp_stuff smp;
 idt_loc   smp_lapic_idt;
 
-namespace hw {
-  extern void _lapic_enable();
-}
-
 // expensive, but correctly returns the current CPU id
 extern "C" int       get_cpu_id();
 extern "C" uintptr_t get_cpu_esp();
@@ -23,7 +19,7 @@ void revenant_main(int cpu)
   // load IDT
   asm volatile("lidt %0" : : "m"(smp_lapic_idt));
   // enable Local APIC
-  hw::_lapic_enable();
+  hw::APIC::get().enable();
   
   // we can use shared memory here because the
   // bootstrap CPU is waiting on revenants to start
@@ -64,14 +60,16 @@ void revenant_main(int cpu)
     // execute actual task
     task.func();
     
-    // add the done function to completed list
-    lock(smp.flock);
-    smp.completed.push_back(task.done);
-    unlock(smp.flock);
-    
+    // add done function to completed list (only if its callable)
+    if (task.done)
+    {
+      lock(smp.flock);
+      smp.completed.push_back(task.done);
+      unlock(smp.flock);
+    }
     // at least one thread will empty the task list
     if (empty)
-      hw::APIC::send_bsp_intr();
+      hw::APIC::get().send_bsp_intr();
   }
 }
 
