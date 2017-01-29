@@ -207,6 +207,9 @@ class qemu(hypervisor):
         if "bios" in self._config:
             kernel_args.extend(["-bios", self._config["bios"]])
 
+        if "smp" in self._config:
+            kernel_args.extend(["-smp", str(self._config["smp"])])
+
         if "drives" in self._config:
             for disk in self._config["drives"]:
                 disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
