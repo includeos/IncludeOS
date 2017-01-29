@@ -148,8 +148,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
   // Hook up interrupts
-  if (is_msix())
+  if (has_msix())
   {
+    assert(get_msix_vectors() >= 3);
     // for now use service queues, otherwise stress test fails
     auto recv_del(delegate<void()>{this, &VirtioNet::msix_recv_handler});
     auto xmit_del(delegate<void()>{this, &VirtioNet::msix_xmit_handler});
@@ -387,7 +388,7 @@ void VirtioNet::deactivate()
   ctrl_q.disable_interrupts();
 
   /// mask off MSI-X vectors
-  if (is_msix())
+  if (has_msix())
       deactivate_msix();
 }
 

@@ -92,31 +92,24 @@ namespace hw {
 
   uint32_t PCI_Device::iobase() const noexcept {
     
-    auto* res = resources;
-    while (res) {
-      if (res->type == PCI::RES_IO) return res->start;
-      res = res->next;
+    for (auto& res : resources) {
+      if (res.type == PCI::RES_IO) return res.start;
     }
     assert(0 && "No I/O resource present on device");
-  };
+  }
 
   void PCI_Device::probe_resources() noexcept {
     //Find resources on this PCI device (scan the BAR's)
-    uint32_t value {PCI::WTF};
-  
-    uint32_t reg {0};
-    uint32_t len {0};
-
-    for(int bar {0}; bar < 6; ++bar) {
+    for (int bar = 0; bar < 6; ++bar) {
       //Read the current BAR register 
-      reg = PCI::CONFIG_BASE_ADDR_0 + (bar << 2);
-      value = read_dword(reg);
+      uint32_t reg = PCI::CONFIG_BASE_ADDR_0 + (bar << 2);
+      uint32_t value = read_dword(reg);
 
       if (!value) continue;
 
       //Write all 1's to the register, to get the length value (osdev)
       write_dword(reg, 0xFFFFFFFF);
-      len = read_dword(reg);
+      uint32_t len = read_dword(reg);
     
       //Put the value back
       write_dword(reg, value);
@@ -124,25 +117,21 @@ namespace hw {
       uint32_t unmasked_val  {0};
       uint32_t pci__size     {0};
 
-      if (value & 1) {  // Resource type IO
-
+      if (value & 1) {
+        // Resource type IO
         unmasked_val = value & PCI::BASE_ADDRESS_IO_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_IO_MASK & 0xFFFF);
       
-        // Add it to resource list
-        add_resource(new Resource(PCI::RES_IO, unmasked_val, pci__size));
+        resources.emplace_back(PCI::RES_IO, unmasked_val, pci__size);
       
-      } else { //Resource type Mem
-
+      } else {
+        // Resource type Mem
         unmasked_val = value & PCI::BASE_ADDRESS_MEM_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_MEM_MASK);
 
-        //Add it to resource list
-        add_resource(new Resource(PCI::RES_MEM, unmasked_val, pci__size));
+        resources.emplace_back(PCI::RES_MEM, unmasked_val, pci__size);
       }
-      assert(resources != nullptr);        
 
-      INFO2("");
       INFO2("[ Resource @ BAR %i ]", bar);
       INFO2("  Address:  0x%x Size: 0x%x", unmasked_val, pci__size);
       INFO2("  Type: %s", value & 1 ? "IO Resource" : "Memory Resource");   
@@ -183,6 +172,16 @@ namespace hw {
         INFO2("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
       } 
     } //< switch (devtype_.classcode)
+    
+    // find and store capabilities
+    this->parse_capabilities();
+    // find BARs
+    this->probe_resources();
+    
+    // enable MSI-x if its supported
+    if (this->msix_cap()) {
+      assert(this->init_msix());
+    }
   }
 
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {

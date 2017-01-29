@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <common>
+#include <vector>
 
 #define  PCI_CAP_ID_AF        0x13	/* PCI Advanced Features */
 #define  PCI_CAP_ID_MAX       PCI_CAP_ID_AF
@@ -199,33 +200,22 @@ struct msix_t;
     
     void deactivate();
     
-    // MSI and MSI-X capabilities for this device
-    // the cap offsets and can also be used as boolean to determine
-    // device MSI/MSIX support
-    int msi_cap();
-    int msix_cap();
-    // setup msix with irq starting at irq_base, returns the number of vectors assigned
-    uint8_t init_msix();
+    // return max number of possible MSI-x vectors for this device
+    // or, zero if MSI-x support is not enabled
+    uint8_t get_msix_vectors();
     // setup one msix vector directed to @cpu on @irq
     void setup_msix_vector(uint8_t cpu, uint8_t irq);
-    // deactivate msix (mask off vectors)
-    void deactivate_msix();
     // true if msix is enabled
-    bool is_msix() const noexcept
-    {
+    bool has_msix() const noexcept {
       return this->msix != nullptr;
     }
+    // deactivate msix (mask off vectors)
+    void deactivate_msix();
     
     // resource handling
     uintptr_t get_bar(uint8_t id) const noexcept
     {
-      // FIXME: use idx to get correct membar
-      auto* res = resources;
-      while (res && id--)
-          res = res->next;
-      if (res && res->type == PCI::RES_MEM)
-          return res->start;
-      assert(0 && "No such BAR");
+      return resources.at(id).start;
     }
     
     // @brief The 2-part ID retrieved from the device
@@ -256,45 +246,26 @@ struct msix_t;
     // @brief The 3-part PCI address
     uint16_t pci_addr_;
   
-    //@brief The three address parts derived (if needed)      
-    uint8_t busno_  {0};
-    uint8_t devno_  {0};
-    uint8_t funcno_ {0};
-
     vendor_product device_id_;
     class_revision devtype_;
   
-    // @brief Printable names
-    const char* classname_;
-    const char* vendorname_;
-    const char* productname_;
-  
     // Device Resources
-
-    /** A device resource - possibly a list */
     typedef PCI::Resource Resource;
-    
-    //! @brief Resource lists. Members added by add_resource();
-    Resource* resources {nullptr};
-    
-    /**
-     *  Add a resource to resources.
-    **/
-    void add_resource(Resource* res) noexcept {
-      if (resources) {
-        auto* q = resources;
-        while (q->next) q = q->next;
-        q->next = res;
-      } else {
-        resources = res;
-      }
-    }
+    //! @brief List of PCI BARs
+    std::vector<Resource> resources;
     
     pcicap_t caps[PCI_CAP_ID_MAX+1];
     
     // has msix support if not null
     msix_t*  msix = nullptr;
     
+    // MSI and MSI-X capabilities for this device
+    // the cap offsets and can also be used as boolean to determine
+    // device MSI/MSIX support
+    int msi_cap();
+    int msix_cap();
+    // enable msix with intx disabled
+    uint8_t init_msix();
   }; //< class PCI_Device
 
 } //< namespace hw
