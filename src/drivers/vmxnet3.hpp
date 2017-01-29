@@ -20,6 +20,8 @@
 #include <net/ethernet/ethernet.hpp>
 #include <vector>
 struct vmxnet3_dma;
+struct vmxnet3_rx_desc;
+struct vmxnet3_rx_comp;
 
 class vmxnet3 : public net::Link_layer<net::Ethernet>
 {
@@ -70,7 +72,6 @@ private:
   void msix_evt_handler();
   void msix_xmit_handler();
   void msix_recv_handler();
-  void refill_rx(int q);
   void enable_intr(uint8_t idx) noexcept;
   void disable_intr(uint8_t idx) noexcept;
 
@@ -78,6 +79,25 @@ private:
   bool can_transmit() const noexcept;
   void transmit_data(uint8_t* data, uint16_t);
   net::Packet_ptr recv_packet(uint8_t* data, uint16_t);
+
+  // tx/rx ring state
+  struct ring_stuff {
+    uint8_t* buffers[NUM_TX_DESC];
+    int producers  = 0;
+    int prod_count = 0;
+    int consumers  = 0;
+  };
+  struct rxring_state {
+    uint8_t* buffers[NUM_RX_DESC];
+    vmxnet3_rx_desc* desc0 = nullptr;
+    vmxnet3_rx_desc* desc1 = nullptr;
+    vmxnet3_rx_comp* comp  = nullptr;
+    int index = 0;
+    int producers  = 0;
+    int prod_count = 0;
+    int consumers  = 0;
+  };
+  void refill(rxring_state&);
 
   bool     check_version();
   uint16_t check_link();
@@ -91,16 +111,8 @@ private:
   hw::MAC_addr    hw_addr;
   vmxnet3_dma*    dma;
 
-  // ring counters
-  struct ring_stuff {
-    int producers  = 0;
-    int prod_count = 0;
-    int consumers  = 0;
-  };
   ring_stuff tx;
-  ring_stuff rx[NUM_RX_QUEUES];
-  uint8_t* txq_buffers[NUM_TX_DESC];
-  uint8_t* rxq_buffers[NUM_RX_DESC];
+  rxring_state rx[NUM_RX_QUEUES];
   // deferred transmit dma
   uint8_t  deferred_irq  = 0;
   bool     deferred_kick = false;
