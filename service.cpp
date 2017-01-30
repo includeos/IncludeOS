@@ -249,6 +249,8 @@ void restore_term(liu::Restore& thing)
 }
 
 #include <timers>
+extern "C"
+void _print_elf_symbols();
 void on_update_area(liu::Restore& thing)
 {
   auto updloc = thing.as_buffer().deep_copy();

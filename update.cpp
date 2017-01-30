@@ -86,14 +86,12 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
 
   // validate ELF header
   const char* binary  = &update_area[0];
-  int         bin_len = blob.length;
   const auto* hdr = (const Elf32_Ehdr*) binary;
 
   if (!validate_elf_header(hdr))
   {
     /// try again with 1 sector offset (skip bootloader)
     binary   = &update_area[SECT_SIZE];
-    bin_len  = blob.length - SECT_SIZE;
     hdr      = (const Elf32_Ehdr*) binary;
     
     if (!validate_elf_header(hdr))
@@ -131,11 +129,14 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   void* sr_data = __os_store_soft_reset();
   //void* sr_data = nullptr;
 
-  // try to guess base address for the new service based on entry point
-  /// FIXME
-  char* phys_base = (char*) 0x100000;
+  // get offsets for the new service from program header
+  Elf32_Phdr* phdr = (Elf32_Phdr*) &binary[hdr->e_phoff];
+  const char* bin_data  = &binary[phdr->p_offset];
+  const int   bin_len   = phdr->p_filesz;
+  char*       phys_base = (char*) phdr->p_paddr;
+  
   //char* phys_base = (char*) (start_offset & 0xffff0000);
-  printf("* Estimate physical base to be %p...\n", phys_base);
+  printf("* Physical base address is %p...\n", phys_base);
 
   /// prepare for the end
   // 1. turn off interrupts
@@ -151,7 +152,7 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
 
   /// the end
-  ((decltype(&hotswap)) HOTSWAP_AREA)(binary, bin_len, phys_base, start_offset, sr_data);
+  ((decltype(&hotswap)) HOTSWAP_AREA)(bin_data, bin_len, phys_base, start_offset, sr_data);
 }
 size_t LiveUpdate::store(void* location, storage_func func)
 {
