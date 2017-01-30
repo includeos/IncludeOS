@@ -19,7 +19,7 @@ void revenant_main(int cpu)
   // load IDT
   asm volatile("lidt %0" : : "m"(smp_lapic_idt));
   // enable Local APIC
-  hw::APIC::get().enable();
+  hw::APIC::get().smp_enable();
   
   // we can use shared memory here because the
   // bootstrap CPU is waiting on revenants to start
@@ -61,12 +61,10 @@ void revenant_main(int cpu)
     task.func();
     
     // add done function to completed list (only if its callable)
-    if (task.done)
-    {
-      lock(smp.flock);
-      smp.completed.push_back(task.done);
-      unlock(smp.flock);
-    }
+    lock(smp.flock);
+    smp.completed.push_back(task.done);
+    unlock(smp.flock);
+    
     // at least one thread will empty the task list
     if (empty)
       hw::APIC::get().send_bsp_intr();

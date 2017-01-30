@@ -125,6 +125,9 @@ namespace hw {
       // enable APIC by resetting task priority
       write(xAPIC_TPR, 0);
     }
+    void smp_enable() noexcept override {
+      enable();
+    }
 
     void eoi() noexcept override
     {
@@ -179,7 +182,6 @@ namespace hw {
     void bcast_ipi(uint8_t vector) noexcept override
     {
       debug("bcast_ipi  vector %u\n", vector);
-      //lapic.regs->intr_hi.reg = id << 24;
       write(xAPIC_ICRL, ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector);
     }
 

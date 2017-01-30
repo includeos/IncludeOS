@@ -55,6 +55,7 @@ class IApic;
     interrupt_control(uint32_t bits, uint8_t spurious) noexcept = 0;
 
     virtual void enable() noexcept = 0;
+    virtual void smp_enable() noexcept = 0;
 
     virtual void    eoi() noexcept = 0;
     virtual uint8_t get_isr() noexcept = 0;

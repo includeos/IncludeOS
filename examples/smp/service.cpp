@@ -19,8 +19,10 @@
 #include <cassert>
 #include <smp>
 
-int main(int argc, const char** args)
+void Service::start()
 {
+  OS::add_stdout_default_serial();
+
   static int completed = 0;
   static uint32_t job = 0;
   static const int TASKS = 8 * sizeof(job);
@@ -43,8 +45,7 @@ int main(int argc, const char** args)
     }
   });
   // start working on tasks
-  SMP::start();
+  SMP::signal();
   
-  printf("*** %s started *** \n", args[0]);
-  return 0;
+  printf("*** %s started *** \n", SERVICE_NAME);
 }

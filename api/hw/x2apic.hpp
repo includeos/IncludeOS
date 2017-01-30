@@ -126,6 +126,14 @@ namespace hw {
       // enable APIC by resetting task priority
       write(x2APIC_TPR, 0);
     }
+    void smp_enable() noexcept override {
+      // enable x2apic
+      auto base_msr = CPU::read_msr(IA32_APIC_BASE_MSR);
+      base_msr = (base_msr & 0xfffff100) | MSR_ENABLE_X2APIC;
+      CPU::write_msr(IA32_APIC_BASE_MSR, base_msr, 0);
+      // configure it
+      enable();
+    }
 
     void eoi() noexcept override
     {
@@ -150,23 +158,22 @@ namespace hw {
     
     void ap_init(int id) noexcept override
     {
-      writel(x2APIC_ICR, (id & 0xff) << ICR_DEST_BITS,
+      writel(x2APIC_ICR, id,
           ICR_INIT | ICR_PHYSICAL | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND);
-      while (read(x2APIC_ICR) & ICR_SEND_PENDING);
+      while (readl(x2APIC_ICR) & ICR_SEND_PENDING);
     }
     void ap_start(int id, uint32_t vector) noexcept override
     {
-      writel(x2APIC_ICR, (id & 0xff) << ICR_DEST_BITS,
+      writel(x2APIC_ICR, id,
           vector | ICR_STARTUP | ICR_PHYSICAL | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND);
-      while (read(x2APIC_ICR) & ICR_SEND_PENDING);
+      while (readl(x2APIC_ICR) & ICR_SEND_PENDING);
     }
 
     void send_ipi(int id, uint8_t vector) noexcept override
     {
       debug("send_ipi  id %u  vector %u\n", id, vector);
       // select APIC ID
-      uint32_t value = (readl(x2APIC_ICR) >> 32) & 0x00ffffff;
-      writel(x2APIC_ICR, value | ((id & 0xff) << 24),
+      writel(x2APIC_ICR, id,
                          ICR_ASSERT | ICR_FIXED | vector);
     }
     void send_bsp_intr() noexcept override
@@ -177,8 +184,8 @@ namespace hw {
     void bcast_ipi(uint8_t vector) noexcept override
     {
       debug("bcast_ipi  vector %u\n", vector);
-      //lapic.regs->intr_hi.reg = id << 24;
-      writel(x2APIC_ICR, ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector, 0);
+      writel(x2APIC_ICR, 0, 
+                         ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector);
     }
 
     void timer_init() noexcept override
