@@ -27,6 +27,7 @@
 
 extern "C" void test_sysconf();
 extern "C" void test_pathconf();
+extern "C" void test_pwd();
 
 fs::Disk_ptr& memdisk() {
   static auto disk = fs::new_shared_memdisk();
@@ -73,6 +74,9 @@ int main(int argc, char *argv[]) {
   res = setenv("INCLUDEOS_CORE_DUMP", "core.dump", 1);
   value = getenv("INCLUDEOS_CORE_DUMP");
   printf("INCLUDEOS_CORE_DUMP: %s\n", value);
+
+  // test pwd-related functions
+  test_pwd();
 
   INFO("Conf", "SUCCESS");
 }
