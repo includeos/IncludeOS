@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,12 +19,10 @@
 #ifndef HTTP_CLIENT_HPP
 #define HTTP_CLIENT_HPP
 
-#include "common.hpp"
-#include "request.hpp"
-#include "response.hpp"
+// http
+#include "client_connection.hpp"
+
 #include <net/tcp/tcp.hpp>
-#include "connection.hpp"
-#include "error.hpp"
 #include <vector>
 #include <map>
 
@@ -32,13 +30,13 @@ namespace http {
 
   class Client {
   public:
-    using TCP               = net::TCP;
-    using Host              = net::tcp::Socket;
+    using TCP                 = net::TCP;
+    using Host                = net::tcp::Socket;
 
-    using Connection_set     = std::vector<std::unique_ptr<Connection>>;
-    using Connection_mapset  = std::map<Host, Connection_set>;
+    using Connection_set      = std::vector<std::unique_ptr<Client_connection>>;
+    using Connection_mapset   = std::map<Host, Connection_set>;
 
-    using timeout_duration  = Connection::timeout_duration;
+    using timeout_duration    = Client_connection::timeout_duration;
 
     const static timeout_duration     DEFAULT_TIMEOUT; // client.cpp, 5s
     constexpr static size_t           DEFAULT_BUFSIZE = 2048;
@@ -153,10 +151,11 @@ namespace http {
     inline void post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options = {});
 
   private:
-    TCP& tcp_;
-    Connection_mapset conns_;
+    friend class Client_connection;
 
-    bool keep_alive_ = false;
+    TCP&              tcp_;
+    Connection_mapset conns_;
+    bool              keep_alive_ = false;
 
     void resolve(const std::string& host, ResolveCallback);
 
@@ -172,9 +171,9 @@ namespace http {
     /** Add data and content length */
     void add_data(Request&, const std::string& data);
 
-    Connection& get_connection(const Host host);
+    Client_connection& get_connection(const Host host);
 
-    void close(Connection&);
+    void close(Client_connection&);
 
   }; // < class Client
 

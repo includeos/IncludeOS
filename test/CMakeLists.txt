@@ -119,7 +119,7 @@ set(OS_SOURCES
   ${SRC}/net/dns/dns.cpp
   ${SRC}/net/ethernet/ethernet.cpp
   ${SRC}/net/http/client.cpp
-  ${SRC}/net/http/connection.cpp
+  ${SRC}/net/http/client_connection.cpp
   ${SRC}/net/http/cookie.cpp
   ${SRC}/net/http/header.cpp
   ${SRC}/net/http/header_fields.cpp
