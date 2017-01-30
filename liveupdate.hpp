@@ -41,8 +41,8 @@ struct LiveUpdate
 {
   // The buffer_len parameter is the update blob (the new kernel) and can be null.
   // If the parameter is null, you can assume that it's currently not a live update.
-  typedef delegate<void(Storage, buffer_len)> storage_func;
-  typedef delegate<void(Restore)> resume_func;
+  typedef delegate<void(Storage&, buffer_len)> storage_func;
+  typedef delegate<void(Restore&)> resume_func;
 
   // Start a live update process, storing all user-defined data
   // at @location, which can then be resumed by the future service after update

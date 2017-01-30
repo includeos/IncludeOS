@@ -1,20 +1,8 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
-//
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ * 
+**/
 #include <service>
 #include <net/inet4>
 #include <profile>
@@ -61,13 +49,13 @@ void setup_terminal(T& inet)
     // write a string to change the state
     char BUFFER_CHAR = 'A';
     static uint32_t crc = CRC32_BEGIN();
-    const int LEN = 4096;
+    static const int LEN = 4096;
     auto buf = net::tcp::buffer_t(new uint8_t[LEN], std::default_delete<uint8_t[]>());
     
     for (int i = 0; i < 1000; i++) {
       memset(buf.get(), BUFFER_CHAR, LEN);
       conn->write(buf, LEN,
-      [conn, buf, LEN] (int) {
+      [conn, buf] (int) {
         
         crc = crc32(crc, (char*) buf.get(), LEN);
         printf("[%p] CRC32: %08x   %s\n", buf.get(), CRC32_VALUE(crc), conn->to_string().c_str());
@@ -82,19 +70,11 @@ void setup_terminal(T& inet)
 template <typename T>
 void setup_liveupdate_server(T& inet);
 
-#include <hw/serial.hpp>
-#include <vga>
-ConsoleVGA vga;
-void default_stdout_handlers() {
-  OS::add_stdout(vga.get_print_handler());
-  // add own serial out after service start
-  auto& com1 = hw::Serial::port<1>();
-  OS::add_stdout(com1.get_print_handler());
-}
-
+#include <stdexcept>
 void Service::start()
 {
   volatile HW_timer timer("Service::start()");
+  OS::add_stdout_default_serial();
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
 
@@ -104,15 +84,14 @@ void Service::start()
         { 10,0,0,1 },      // Gateway
         { 10,0,0,1 });     // DNS
 
-
   /// attempt to resume (if there is anything to resume)
   using namespace liu;
-  void strings_and_buffers(Restore);
-  void the_timing(Restore);
-  void restore_term(Restore);
-  void saved_message(Restore);
-  void on_update_area(Restore);
-  void on_missing(Restore);
+  void strings_and_buffers(Restore&);
+  void the_timing(Restore&);
+  void restore_term(Restore&);
+  void saved_message(Restore&);
+  void on_update_area(Restore&);
+  void on_missing(Restore&);
 
   LiveUpdate::on_resume(0,   strings_and_buffers);
   LiveUpdate::on_resume(100, the_timing);
@@ -138,7 +117,7 @@ void Service::ready()
 static std::vector<double> timestamps;
 
 #include <hw/cpu.hpp>
-void save_stuff(liu::Storage storage, liu::buffer_len final_blob)
+void save_stuff(liu::Storage& storage, liu::buffer_len final_blob)
 {
   storage.add_int(0, 1234);
   storage.add_int(0, 5678);
@@ -175,7 +154,7 @@ void save_stuff(liu::Storage storage, liu::buffer_len final_blob)
       storage.add_connection(666, conn);
 }
 
-void strings_and_buffers(liu::Restore thing)
+void strings_and_buffers(liu::Restore& thing)
 {
   int v1 = thing.as_int();      thing.go_next();
   printf("[int] has value [%d]\n", v1);
@@ -208,7 +187,7 @@ void strings_and_buffers(liu::Restore thing)
   assert(vec[0] == "|String 1|");
   assert(vec[1] == "|String 2 is slightly longer|");
 }
-void saved_message(liu::Restore thing)
+void saved_message(liu::Restore& thing)
 {
   auto vec = thing.as_vector<std::string> ();
   for (auto& str : vec)
@@ -219,12 +198,12 @@ void saved_message(liu::Restore thing)
     //savemsg.push_back(str);
   }
 }
-void on_missing(liu::Restore thing)
+void on_missing(liu::Restore& thing)
 {
   printf("Missing resume function for %u\n", thing.get_id());
 }
 
-void the_timing(liu::Restore thing)
+void the_timing(liu::Restore& thing)
 {
   auto t1 = thing.as_type<int64_t>();
   auto t2 = hw::CPU::rdtsc();
@@ -256,7 +235,7 @@ void the_timing(liu::Restore thing)
       timestamps.size(), average);
   
 }
-void restore_term(liu::Restore thing)
+void restore_term(liu::Restore& thing)
 {
   auto& stack = net::Inet4::stack<0> ();
   // restore connection to terminal
@@ -270,7 +249,7 @@ void restore_term(liu::Restore thing)
 }
 
 #include <timers>
-void on_update_area(liu::Restore thing)
+void on_update_area(liu::Restore& thing)
 {
   auto updloc = thing.as_buffer().deep_copy();
   printf("Reloading from %p:%d\n", updloc.buffer, updloc.length);
@@ -285,7 +264,7 @@ void on_update_area(liu::Restore thing)
   });
 }
 
-
+#include <stdexcept>
 template <typename T>
 void setup_liveupdate_server(T& inet)
 {
@@ -316,9 +295,13 @@ void setup_liveupdate_server(T& inet)
         // run live update process
         liu::LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_stuff);
       }
-      catch (std::runtime_error err)
+      catch (std::exception& err)
       {
         printf("Live update failed:\n%s\n", err.what());
+      }
+      catch (...)
+      {
+        printf("Live update failed: Unspecified exception\n");
       }
     });
   });

@@ -14,10 +14,13 @@ set(SOURCES
   )
 set(LOCAL_INCLUDES ".")
 
-#set(LIBRARIES ${CMAKE_SOURCE_DIR}/nada.a)
+set(LIBRARIES ${CMAKE_BINARY_DIR}/libliveupdate.a)
 
 set(DRIVERS
     virtionet
+    #vmxnet3
+    silent_start
+    #heap_debugging
   )
 
 # include service build script

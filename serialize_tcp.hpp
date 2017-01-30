@@ -1,3 +1,8 @@
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ * 
+**/
 #pragma once
 #include <net/tcp/connection.hpp>
 

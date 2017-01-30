@@ -1,3 +1,8 @@
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ * 
+**/
 #include "liveupdate.hpp"
 
 #include <cstdio>
@@ -17,20 +22,22 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
   for (auto* ptr = storage.begin(); ptr->type != TYPE_END;)
   {
     auto* oldptr = ptr;
+    // resume wrapper
+    Restore wrapper {ptr};
     // use registered functions when we can, otherwise, use normal
     auto it = resume_funcs.find(ptr->id);
     if (it != resume_funcs.end())
     {
-      it->second(ptr);
+      it->second(wrapper);
     } else {
-      func(ptr);
+      func(wrapper);
     }
     // if we are already at the end due calls to go_next, break early
     if (ptr->type == TYPE_END) break;
     // call next manually only when no one called go_next
     if (oldptr == ptr) ptr = storage.next(ptr);
   }
-  /// zero out all the values for security reasons
+  /// zero out all the state for security reasons
   storage.zero();
   
   return true;

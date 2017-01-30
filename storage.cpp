@@ -1,3 +1,8 @@
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ * 
+**/
 #include "storage.hpp"
 
 #include <kernel/os.hpp>

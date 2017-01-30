@@ -1,3 +1,8 @@
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ * 
+**/
 #include <net/inet4>
 #include <net/tcp/connection_states.hpp>
 #include "serialize_tcp.hpp"

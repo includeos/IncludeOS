@@ -1,3 +1,8 @@
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ * 
+**/
 #include "liveupdate.hpp"
 
 #include <cassert>
@@ -15,6 +20,8 @@ static void* HOTSWAP_AREA = (void*) 0x8000;
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
 extern "C" void* __os_store_soft_reset();
+extern char _ELF_START_;
+extern char* heap_begin;
 extern char* heap_end;
 
 using namespace liu;
@@ -65,8 +72,16 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   char* storage_area = (char*) location;
   
   // validate not overwriting heap
+  if (storage_area < (char*) 0x100) {
+    throw std::runtime_error("The storage area is probably a null pointer");
+  }
+  if (storage_area >= &_ELF_START_ && storage_area < heap_begin) {
+    throw std::runtime_error("The storage area is inside kernel area");
+  }
   if (heap_end >= storage_area) {
-    throw std::runtime_error("*** The heap is currently inside the storage area\n");
+    printf("HEAP: %p\n", heap_end);
+    printf("AREA: %p\n", storage_area);
+    throw std::runtime_error("The heap is currently inside the storage area");
   }
 
   // validate ELF header
@@ -79,13 +94,13 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
     /// try again with 1 sector offset (skip bootloader)
     binary   = &update_area[SECT_SIZE];
     bin_len  = blob.length - SECT_SIZE;
-    hdr      = (Elf32_Ehdr*) binary;
+    hdr      = (const Elf32_Ehdr*) binary;
     
     if (!validate_elf_header(hdr))
     {
       /// failed to find elf header at sector 0 and 1
       /// simply return
-      throw std::runtime_error("*** Failed to find any ELF header in blob\n");
+      throw std::runtime_error("Could not find any ELF header in blob");
     }
   }
   printf("* Found ELF header\n");
@@ -150,7 +165,8 @@ size_t update_store_data(void* location, LiveUpdate::storage_func func, buffer_l
   auto* storage = (storage_header*) location;
   
   /// callback for storing stuff
-  func({*storage}, blob);
+  Storage wrapper {*storage};
+  func(wrapper, blob);
   
   /// finalize
   storage->finalize();
