@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-#include <boot/multiboot.h>
+#include "../api/boot/multiboot.h"
 #include <gsl/gsl>
 #include "elf.h"
 #include "elf_binary.hpp"

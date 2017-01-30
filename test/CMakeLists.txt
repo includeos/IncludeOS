@@ -14,7 +14,6 @@ set(TEST ${INCLUDEOS_ROOT}/test)
 
 include_directories(
   ${INCLUDEOS_ROOT}/api
-  ${INCLUDEOS_ROOT}/api/posix
   ${INCLUDEOS_ROOT}/src/
   ${INCLUDEOS_ROOT}/src/include
   ${INCLUDEOS_ROOT}/mod/
@@ -119,7 +118,7 @@ set(OS_SOURCES
   ${SRC}/net/dns/dns.cpp
   ${SRC}/net/ethernet/ethernet.cpp
   ${SRC}/net/http/client.cpp
-  ${SRC}/net/http/connection.cpp
+  ${SRC}/net/http/client_connection.cpp
   ${SRC}/net/http/cookie.cpp
   ${SRC}/net/http/header.cpp
   ${SRC}/net/http/header_fields.cpp

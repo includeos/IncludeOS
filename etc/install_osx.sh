@@ -67,6 +67,19 @@ function install_binutils {
   source ./etc/install_binutils.sh
 }
 
+## python packages (pip) ##
+PIP_INSTALLED=false
+PIP_MODS=(jsonschema psutil)
+echo -e "\n python pip\t - for installing necessary python modules used when booting services: ${PIP_MODS[*]}"
+
+## Check if pip is installed ##
+if command -v pip >/dev/null 2>&1; then
+  PIP_INSTALLED=true
+  echo -e " > Found"
+else
+  echo -e " > Not found"
+fi
+
 ## WARN ABOUT XCODE CLT ##
 
 echo -e "\n NOTE: Cannot tell if Xcode Command Line Tools is installed - installation MAY fail if not installed."
@@ -84,6 +97,15 @@ then
     if (! $DEPENDENCY_BINUTILS); then
         install_binutils
     fi
+
+    if (! $PIP_INSTALLED); then
+      echo -e "\n>> Installing pip (with sudo)"
+      curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+      sudo python get-pip.py
+      rm get-pip.py
+    fi
+
+    pip install ${PIP_MODS[*]}
 
     echo -e "\n>>> Done installing dependencies."
 fi

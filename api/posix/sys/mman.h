@@ -24,13 +24,29 @@ extern "C" {
 #endif
 
 #include <string.h>
+#include <sys/types.h>
 typedef _off_t off_t;
 
-void *mmap(void* addr, size_t length,
-            int prot,  int flags,
-            int fd,    off_t offset);
-int munmap(void* addr, size_t length);
+struct posix_typed_mem_info
+{
+  size_t  posix_tmi_length;
+};
 
+int    mlock(const void *, size_t);
+int    mlockall(int);
+void  *mmap(void *, size_t, int, int, int, off_t);
+int    mprotect(void *, size_t, int);
+int    msync(void *, size_t, int);
+int    munlock(const void *, size_t);
+int    munlockall(void);
+int    munmap(void *, size_t);
+int    posix_madvise(void *, size_t, int);
+int    posix_mem_offset(const void *__restrict__, size_t, off_t *__restrict__,
+           size_t *__restrict__, int *__restrict__);
+int    posix_typed_mem_get_info(int, struct posix_typed_mem_info *);
+int    posix_typed_mem_open(const char *, int, int);
+int    shm_open(const char *, int, mode_t);
+int    shm_unlink(const char *);
 
 // Page can be executed.
 #define PROT_EXEC     0x1

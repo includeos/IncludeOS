@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -197,7 +197,7 @@ namespace http {
     stack.resolve(host, cb);
   }
 
-  Connection& Client::get_connection(const Host host)
+  Client_connection& Client::get_connection(const Host host)
   {
     // return/create a set for the given host
     auto& cset = conns_[host];
@@ -210,17 +210,17 @@ namespace http {
     }
 
     // no non-occupied connections, emplace a new one
-    cset.push_back(std::make_unique<Connection>(tcp_.connect(host), Connection::Close_handler{this, &Client::close}));
+    cset.push_back(std::make_unique<Client_connection>(*this, tcp_.connect(host)));
     return *cset.back();
   }
 
-  void Client::close(Connection& c)
+  void Client::close(Client_connection& c)
   {
     debug("<http::Client> Closing %u:%s %p\n", c.local_port(), c.peer().to_string().c_str(), &c);
     auto& cset = conns_.at(c.peer());
 
     cset.erase(std::remove_if(cset.begin(), cset.end(),
-    [port = c.local_port()] (const std::unique_ptr<Connection>& conn)->bool
+    [port = c.local_port()] (const std::unique_ptr<Client_connection>& conn)->bool
     {
       return conn->local_port() == port;
     }));

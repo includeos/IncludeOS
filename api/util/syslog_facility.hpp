@@ -21,6 +21,8 @@
 #ifndef UTIL_SYSLOG_FACILITY_HPP
 #define UTIL_SYSLOG_FACILITY_HPP
 
+#define LOG_INTERNAL  5   /* Messages generated internally by syslogd */
+
 #include <cstdio>
 #include <iostream>
 #include <string>
