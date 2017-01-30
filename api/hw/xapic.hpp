@@ -19,7 +19,7 @@
 #ifndef HW_XAPIC_HPP
 #define HW_XAPIC_HPP
 
-#include "apic.hpp"
+#include "apic_iface.hpp"
 #include "apic_regs.hpp"
 #include <kernel/irq_manager.hpp>
 #include <debug>

@@ -21,57 +21,34 @@
 
 #include <cstdint>
 #include <delegate>
+#include "xapic.hpp"
+#include "x2apic.hpp"
 
 namespace hw
 {
-class IApic;
-
   class APIC {
   public:
-    static void   init();
-    static IApic& get();
+    static IApic& get() {
+        // choose thyne APIC version
+        return x2apic::get();
+        //return xapic::get();
+    }
 
     // enable and disable legacy IRQs
-    static void enable_irq(uint8_t irq);
+    static void enable_irq (uint8_t irq);
     static void disable_irq(uint8_t irq);
 
-    static uint8_t get_isr();
-    static uint8_t get_irr();
-    static void eoi();
-  };
+    static uint8_t get_isr() {
+      return get().get_isr();
+    }
+    static uint8_t get_irr() {
+      return get().get_irr();
+    }
+    static void eoi() {
+      return get().eoi();
+    }
 
-  class IApic {
-  public:
-    ~IApic() = default;
-    
-    virtual uint32_t read (uint32_t reg) noexcept = 0;
-    virtual void     write(uint32_t reg, uint32_t value) noexcept = 0;
-
-    virtual const char* name() const noexcept = 0;
-    virtual uint32_t get_id()  noexcept = 0;
-    virtual uint32_t version() noexcept = 0;
-
-    virtual void
-    interrupt_control(uint32_t bits, uint8_t spurious) noexcept = 0;
-
-    virtual void enable() noexcept = 0;
-    virtual void smp_enable() noexcept = 0;
-
-    virtual void    eoi() noexcept = 0;
-    virtual uint8_t get_isr() noexcept = 0;
-    virtual uint8_t get_irr() noexcept = 0;
-
-    virtual void ap_init (int id) noexcept = 0;
-    virtual void ap_start(int id, uint32_t vec) noexcept = 0;
-
-    virtual void send_ipi(int id, uint8_t vector) noexcept = 0;
-    virtual void send_bsp_intr() noexcept = 0;
-    virtual void bcast_ipi(uint8_t vector) noexcept = 0;
-
-    virtual void     timer_init() = 0;
-    virtual void     timer_begin(uint32_t) noexcept = 0;
-    virtual uint32_t timer_diff() noexcept = 0;
-    virtual void     timer_interrupt(bool) noexcept = 0;
+    static void init();
   };
 }
 

@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <hw/apic_timer.hpp>
-#include <hw/xapic.hpp>
+#include <hw/apic.hpp>
 #include <hw/pit.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/os.hpp>

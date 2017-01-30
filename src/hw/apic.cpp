@@ -78,24 +78,6 @@ namespace hw
     //if (CPUID::kvm_feature(KVM_FEATURE_PV_EOI))
     //    kvm_pv_eoi_init();
   }
-  IApic& APIC::get()
-  {
-    return x2apic::get();
-    //return xapic::get();
-  }
-
-  void    APIC::eoi()
-  {
-    return get().eoi();
-  }
-  uint8_t APIC::get_isr()
-  {
-    return get().get_isr();
-  }
-  uint8_t APIC::get_irr()
-  {
-    return get().get_irr();
-  }
 
   void APIC::enable_irq(uint8_t irq)
   {
