@@ -48,7 +48,6 @@ extern "C" {
 #define LOG_MAIL			2 	/* Mail system */
 #define LOG_DAEMON		3 	/* System daemons */
 #define LOG_AUTH			4 	/* Security/authorization messages */
-#define LOG_INTERNAL	5		/* Messages generated internally by syslogd */
 #define LOG_LPR				6 	/* Line printer subsystem */
 #define LOG_NEWS			7 	/* Network news subsystem */
 #define LOG_UUCP			8 	/* UUCP subsystem */

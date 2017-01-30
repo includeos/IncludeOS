@@ -15,9 +15,8 @@ static const char* elf_offset(int o) noexcept {
   return (char*)elf_header_location + o;
 }
 
-static void prune_elf_symbols();
-static char* pruned_location;
-static int   pruned_size = 0;
+static int prune_elf_symbols();
+static char* pruned_location = nullptr;
 
 int main(int argc, const char** args)
 {
@@ -38,7 +37,7 @@ int main(int argc, const char** args)
 
   // validate symbols
   elf_header_location = (decltype(elf_header_location)) fdata;
-  prune_elf_symbols();
+  int pruned_size = prune_elf_symbols();
 
   // write symbols to binary file
   f = fopen("_elf_symbols.bin", "w");
@@ -58,16 +57,11 @@ struct StrTab {
 
   StrTab(char* base, uint32_t size) : base(base), size(size) {}
 };
-struct relocate_header {
-  SymTab symtab;
-  StrTab strtab;
-};
 
 struct relocate_header32 {
-  uint32_t symtab_base;
-  uint32_t symtab_entries;
-  uint32_t strtab_base;
-  uint32_t strtab_size;
+  uint32_t  symtab_entries;
+  uint32_t  strtab_size;
+  Elf32_Sym syms[0];
 };
 
 static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& strtab)
@@ -75,7 +69,7 @@ static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& 
   auto& hdr = *(relocate_header32*) new_location;
 
   // first prune symbols
-  auto*  symloc = (Elf32_Sym*) (new_location + sizeof(relocate_header32));
+  auto*  symloc = hdr.syms;
   size_t symidx = 0;
   for (size_t i = 0; i < symtab.entries; i++)
   {
@@ -110,7 +104,7 @@ static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& 
          hdr.strtab_size * sizeof(char);
 }
 
-static void prune_elf_symbols()
+static int prune_elf_symbols()
 {
   SymTab symtab { nullptr, 0 };
   std::vector<StrTab> strtabs;
@@ -144,10 +138,9 @@ static void prune_elf_symbols()
     // allocate worst case, guaranteeing we have enough space
     pruned_location =
         new char[sizeof(relocate_header32) + symtab.entries * sizeof(Elf32_Sym) + strtab.size];
-    pruned_size = relocate_pruned_sections(pruned_location, symtab, strtab);
-    return;
+    return relocate_pruned_sections(pruned_location, symtab, strtab);
   }
   // stripped variant
   pruned_location = new char[sizeof(relocate_header32)];
-  pruned_size = sizeof(relocate_header32);
+  return sizeof(relocate_header32);
 }

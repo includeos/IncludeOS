@@ -18,6 +18,9 @@
 #ifndef SYS_MATH_H
 #define SYS_MATH_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Long double math stubs
 long double cosl(long double);
@@ -85,7 +88,10 @@ long double tgammal(long double);
 long double truncl(long double);
 long double nanl(const char*);
 
-
+#ifdef __cplusplus
+}
 #endif
 
 #include_next <math.h>
+
+#endif

@@ -48,8 +48,8 @@ if (debug)
 endif()
 
 # these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -c -m32")
+set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32")
 
 # executable
 set(SERVICE_STUB "$ENV{INCLUDEOS_PREFIX}/includeos/src/service_name.cpp")
@@ -145,10 +145,9 @@ endforeach()
 
 # includes
 include_directories(${LOCAL_INCLUDES})
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/libcxx)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/sys)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/posix)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/libcxx)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)

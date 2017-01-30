@@ -47,7 +47,7 @@ class color:
 
     @staticmethod
     def WARNING(string):
-        return color.C_WARNING + "[ WARNING ] " + string.rstrip() + color.C_ENDC + "\n"
+        return color.C_WARNING + "[ WARNING ] " + string.rstrip() + color.C_ENDC
 
     @staticmethod
     def FAIL(string):

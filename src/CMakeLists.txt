@@ -1,7 +1,6 @@
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-include_directories(${INCLUDEOS_ROOT}/api/sys)
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
 include_directories(${NEWLIB_INCLUDE_DIR})
@@ -47,14 +46,14 @@ set(OS_OBJECTS
   net/super_stack.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
-  net/http/mime_types.cpp net/http/client.cpp net/http/connection.cpp net/http/cookie.cpp
+  net/http/mime_types.cpp net/http/client.cpp net/http/client_connection.cpp net/http/cookie.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
-  posix/sys/stat.cpp posix/ftw.cpp
-  posix/file_fd.cpp
+  posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
+  posix/pwd.cpp
 )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)

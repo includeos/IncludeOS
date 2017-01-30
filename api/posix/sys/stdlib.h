@@ -15,38 +15,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef POSIX_SYS_UTSNAME_H
-#define POSIX_SYS_UTSNAME_H
+// Our patches / additions to newlibs partial implementation
+#ifndef SYS_STDLIB_H
+#define SYS_STDLIB_H
+
+#include_next <stdlib.h>
+
+// More C11 requirements here
+#include <quick_exit>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-static const int LENGTH = 256;
+  //New stuff in C11, required by libunwind, compiler-rt etc. in llvm
 
-struct utsname {
-  /* Name of this implementation of the operating system */
-  char sysname[LENGTH];
-
-  /* Name of this node within the communications network to
-  which this node is attached, if any */
-  char nodename[LENGTH];
-
-  /* Current release level of this implementation */
-  char release[LENGTH];
-
-  /* Current version level of this release */
-  char version[LENGTH];
-
-  /* Name of the hardware type on which the system is running */
-  char machine[LENGTH];
-};
-
-int uname(struct utsname *name);
+void *aligned_alloc( size_t alignment, size_t size );
 
 #ifdef __cplusplus
 }
 #endif
+#endif //SYS_STDLIB_H
 
-#endif
+
