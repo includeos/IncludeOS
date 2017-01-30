@@ -1,7 +1,6 @@
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-include_directories(${INCLUDEOS_ROOT}/api/sys)
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
 include_directories(${NEWLIB_INCLUDE_DIR})
