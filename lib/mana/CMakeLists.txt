@@ -4,7 +4,6 @@ set(LIB_MANA ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${LIB_MANA}/include)
 include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 
-include_directories(${INCLUDEOS_ROOT}/api/sys)
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
 include_directories(${NEWLIB_INCLUDE_DIR})

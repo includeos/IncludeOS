@@ -19,6 +19,8 @@
 #ifndef SYS_SIGNAL_H
 #define SYS_SIGNAL_H
 
+#include_next <signal.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,7 +38,5 @@ struct siginfo_t
 #ifdef __cplusplus
 }
 #endif
-
-#include_next <signal.h>
 
 #endif
