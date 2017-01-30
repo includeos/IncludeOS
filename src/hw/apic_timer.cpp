@@ -30,7 +30,7 @@
 // vol 3a  10-10
 #define DIVIDE_BY_16     0x3
 
-#define CALIBRATION_MS   125
+#define CALIBRATION_MS   62  /* up to 1.5% error */
 
 using namespace std::chrono;
 
@@ -52,25 +52,28 @@ namespace hw
 
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
-    lapic.timer_begin(0xFFFFFFFF);
+    intr_handler = handler;
     
     // See: Vol3a 10.5.4.1 TSC-Deadline Mode
     // 0xFFFFFFFF --> ~68 seconds
     // 0xFFFFFF   --> ~46 milliseconds
-
-    // ready handler
-    intr_handler = handler;
+    lapic.timer_begin(0xFFFFFFFF);
+    uint32_t overhead;
+    [&overhead] {
+        overhead = hw::APIC::get().timer_diff();
+    }();
+    // restart counter
+    lapic.timer_begin(0xFFFFFFFF);
 
     /// use PIT to measure <time> in one-shot ///
     hw::PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
-    [] {
-      uint32_t diff = hw::APIC::get().timer_diff();
+    [overhead] {
+      uint32_t diff = hw::APIC::get().timer_diff() - overhead;
       // measure difference
       ticks_per_micro = diff / CALIBRATION_MS / 1000;
 
       //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n",
       //       CALIBRATION_MS, diff, ticks_per_micro);
-
       // signal ready to go
       intr_handler();
     });
