@@ -4,11 +4,17 @@
   "type" : "object",
   "properties" : {
 
+    "description" : {
+      "description" : "A human-readable description of this config",
+      "type" : "string"
+    },
+
     "image" : {
       "description" : "A bootable virtual machine image",
       "type" : "string",
       "default" : "service.img"
     },
+
     "bios" : {
       "description" : "64k BIOS image",
       "type" : "string"

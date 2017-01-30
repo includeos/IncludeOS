@@ -14,7 +14,7 @@ sys.path.insert(0, "..")
 
 from vmrunner.prettify import color as pretty
 from vmrunner import validate_vm
-import validate_all
+import validate_tests
 
 startdir = os.getcwd()
 
@@ -54,10 +54,7 @@ def print_skipped(tests):
     for test in tests:
         if test.skip_:
             print pretty.WARNING("* Skipping " + test.name_)
-            if "validate_vm" in test.skip_reason_:
-                validate_vm.validate_path(test.path_, verb = True)
-            else:
-                print "  Reason: {0:40}".format(test.skip_reason_)
+            print "Reason: {0:40}".format(test.skip_reason_)
 
 
 class Test:
@@ -179,9 +176,10 @@ class Test:
         self: Class function
         """
         # Test 1
-        if not validate_vm.validate_path(self.path_, verb = False):
+        valid, err = validate_tests.validate_test(self.path_, verb = False)
+        if not valid:
             self.skip_ = True
-            self.skip_reason_ = 'Failed validate_vm, missing files'
+            self.skip_reason_ = err
             return
 
         # Test 2
@@ -212,7 +210,7 @@ def stress_test():
         print pretty.WARNING("Stress test skipped")
         return 0
 
-    if (not validate_vm.validate_path("stress")):
+    if (not validate_tests.validate_test("stress")):
         raise Exception("Stress test failed validation")
 
     print pretty.HEADER("Starting stress test")
@@ -383,7 +381,7 @@ def filter_tests(all_tests, arguments):
                         or x.name_ in add_args ]
 
     # 2) Remove tests defined by the skip argument
-    print pretty.INFO("Tests to skip"), ", ".join(skip_args)
+    print pretty.INFO("Tests marked skip on command line"), ", ".join(skip_args)
     skipped_tests = [ x for x in tests_added
                   if x.type_ in skip_args
                   or x.category_ in skip_args
