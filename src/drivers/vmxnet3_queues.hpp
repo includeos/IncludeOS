@@ -77,7 +77,7 @@ struct vmxnet3_rx_filter_config {
   uint8_t vlan_filter[512];
 } __attribute__ (( packed ));
 
-/** Receive filter mode */
+/** Rx filter configuration */
 enum vmxnet3_rx_filter_mode {
   VMXNET3_RXM_UCAST = 0x01,  /**< Unicast only */
   VMXNET3_RXM_MCAST = 0x02,  /**< Multicast passing the filters */
@@ -234,8 +234,8 @@ struct vmxnet3_rx_queue_config {
   uint64_t comp_address;
   /** Driver-private data address */
   uint64_t driver_data_address;
-  /** Reserved */
-  uint64_t reserved0;
+  /** Data ring base address */
+  uint64_t data_ring_address;
   /** Number of descriptors */
   uint32_t num_desc[2];
   /** Number of completion descriptors */
@@ -244,8 +244,11 @@ struct vmxnet3_rx_queue_config {
   uint32_t driver_data_len;
   /** Interrupt index */
   uint8_t intr_index;
+  uint8_t pad1;
+  /** Rx data ring buffer size */
+  uint16_t data_ring_size;
   /** Reserved */
-  uint8_t reserved[7];
+  uint8_t reserved[4];
 } __attribute__ ((packed));
 
 /** Receive queue statistics */
@@ -257,7 +260,7 @@ struct vmxnet3_rx_stats {
 /** Queue status */
 struct vmxnet3_queue_status {
   uint8_t stopped;
-  uint8_t reserved0[3];
+  uint8_t padding[3];
   uint32_t error;
 } __attribute__ ((packed));
 

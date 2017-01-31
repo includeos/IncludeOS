@@ -76,6 +76,7 @@ namespace hw {
 
     virtual void deactivate() = 0;
 
+    virtual ~Nic() {}
   protected:
     /**
      *  Constructor
@@ -97,7 +98,6 @@ namespace hw {
   private:
     net::BufferStore bufstore_;
     int N;
-
   };
 
 } //< namespace hw

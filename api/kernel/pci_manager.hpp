@@ -106,6 +106,8 @@ private:
    */
   static void init();
 
+  static void scan_bus(int bus);
+
   friend class OS;
 }; //< class PCI_manager
 
