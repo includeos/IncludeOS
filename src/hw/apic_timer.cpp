@@ -30,7 +30,7 @@
 // vol 3a  10-10
 #define DIVIDE_BY_16     0x3
 
-#define CALIBRATION_MS   93  /* up to 1.5% error */
+#define CALIBRATION_MS   125
 
 using namespace std::chrono;
 
