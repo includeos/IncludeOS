@@ -48,18 +48,17 @@ namespace http {
     void timeout()
     { tcpconn_->is_closing() ? tcpconn_->abort() : tcpconn_->close(); }
 
+    auto&& tcp() const
+    { return tcpconn_; }
+
   protected:
     TCP_conn          tcpconn_;
-    Request_ptr       req_;
-    Response_ptr      res_;
     bool              keep_alive_;
 
   }; // < class Connection
 
   inline Connection::Connection(TCP_conn tcpconn, bool keep_alive)
     : tcpconn_{std::move(tcpconn)},
-      req_{nullptr},
-      res_{nullptr},
       keep_alive_{keep_alive}
   {
     Ensures(tcpconn_ != nullptr);
