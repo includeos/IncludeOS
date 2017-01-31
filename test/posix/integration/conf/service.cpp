@@ -44,7 +44,7 @@ fs::Disk_ptr& memdisk() {
   return disk;
 }
 
-int main(int argc, char *argv[]) {
+int main(int, char **) {
 
   struct utsname name;
 
@@ -64,12 +64,12 @@ int main(int argc, char *argv[]) {
 
   // test environment variables
   char* value = getenv("HOME");
-  printf("HOME: %s\n", value);
+  if (value) printf("HOME: %s\n", value);
 
-  char* new_env = "CPPHOME=/usr/home/cpp";
+  char* new_env = const_cast<char*>("CPPHOME=/usr/home/cpp");
   res = putenv(new_env);
   value = getenv("CPPHOME");
-  printf("CPPHOME: %s\n", value);
+  if (value) printf("CPPHOME: %s\n", value);
 
   res = setenv("INCLUDEOS_CORE_DUMP", "core.dump", 1);
   value = getenv("INCLUDEOS_CORE_DUMP");
