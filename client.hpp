@@ -132,9 +132,9 @@ namespace mender {
 
     http::URI parse_update_uri(http::Response& res);
 
-    void store_state(liu::Storage, liu::buffer_len);
+    void store_state(liu::Storage&, liu::buffer_len);
 
-    void load_state(liu::Restore);
+    void load_state(liu::Restore&);
 
     void run_state();
 

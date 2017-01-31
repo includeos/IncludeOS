@@ -264,9 +264,9 @@ namespace mender {
     liu::LiveUpdate::begin(device_.update_loc(), {(const char*) e.content(), e.size()}, {this, &Client::store_state});
   }
 
-  void Client::store_state(liu::Storage store, liu::buffer_len)
+  void Client::store_state(liu::Storage& store, liu::buffer_len)
   {
-    decltype(store)::uid id = 0;
+    liu::Storage::uid id = 0;
 
     // SEQNO
     store.add_int(id++, am_.seqno());
@@ -280,7 +280,7 @@ namespace mender {
     printf("<Client> State stored.\n");
   }
 
-  void Client::load_state(liu::Restore store)
+  void Client::load_state(liu::Restore& store)
   {
     // SEQNO
     am_.set_seqno(store.as_int()); store.go_next();
