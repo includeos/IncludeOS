@@ -46,21 +46,24 @@ void _init_c_runtime()
   extern char _ELF_SYM_START_;
   extern char _end;
 
-  /// init backtrace functionality
+  /// read out size of symbols **before** moving them
   extern int  _get_elf_section_datasize(const void*);
-  extern void _move_elf_syms_location(const void*, void*);
-  // store symbols temporarily in a safe location
-  char* sym_temp = &_end + 
-        2*4096 + _get_elf_section_datasize(&_ELF_SYM_START_);
-  _move_elf_syms_location(&_ELF_SYM_START_, sym_temp);
+  int elfsym_size = _get_elf_section_datasize(&_ELF_SYM_START_);
+  elfsym_size = (elfsym_size < HEAP_ALIGNMENT) ? HEAP_ALIGNMENT : elfsym_size;
 
-  // Initialize .bss section
+  /// move ELF symbols to safe area
+  extern void _move_elf_syms_location(const void*, void*);
+  _move_elf_syms_location(&_ELF_SYM_START_, &_end);
+
+  /// Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
   streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 
-  // Initialize the heap before exceptions
+  /// Initialize the heap before exceptions
+  // set heap start at end of ELF symbols
+  heap_begin = &_end + elfsym_size;
   // cache-align heap, because its not aligned
-  heap_begin = &_end + 64 + HEAP_ALIGNMENT;
+  heap_begin += HEAP_ALIGNMENT;
   heap_begin = (char*) ((uintptr_t)heap_begin & ~(uintptr_t) HEAP_ALIGNMENT);
   // heap end tracking, used with sbrk
   heap_end   = heap_begin;
@@ -75,19 +78,15 @@ void _init_c_runtime()
   stdout = _REENT->_stdout; // stdout == 2
   stderr = _REENT->_stderr; // stderr == 3
 
-  /// init ELF / backtrace functionality
-  extern void _elf_relocate_to_heap();
-  extern void _init_elf_parser();
-  // move ELF symbols into heap
-  _elf_relocate_to_heap();
-  // enable ELF symbols here (before global constructors)
-  _init_elf_parser();
-
   /// initialize exceptions before we can run constructors
   extern char __eh_frame_start[];
   // Tell the stack unwinder where exception frames are located
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);
+
+  /// init ELF / backtrace functionality
+  extern void _init_elf_parser();
+  _init_elf_parser();
 
   /// call global constructors emitted by compiler
   extern void _init();

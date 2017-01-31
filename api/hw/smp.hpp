@@ -16,36 +16,30 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_APIC_HPP
-#define HW_APIC_HPP
+#ifndef HW_SMP_HPP
+#define HW_SMP_HPP
 
 #include <cstdint>
 #include <delegate>
-#include "xapic.hpp"
-#include "x2apic.hpp"
+#include <vector>
 
-namespace hw
-{
-  class APIC {
+namespace hw {
+
+  class SMP {
   public:
-    static IApic& get() noexcept;
+    typedef delegate<void()>  smp_task_func;
+    typedef delegate<void()>  smp_done_func;
 
-    // enable and disable legacy IRQs
-    static void enable_irq (uint8_t irq);
-    static void disable_irq(uint8_t irq);
-
-    static uint8_t get_isr() noexcept {
-      return get().get_isr();
-    }
-    static uint8_t get_irr() noexcept {
-      return get().get_irr();
-    }
-    static void eoi() noexcept {
-      return get().eoi();
-    }
+    // add tasks that will not necessarily start immediately
+    // use work_signal() to guarantee work starts
+    static void add_task(smp_task_func, smp_done_func);
+    // call this to signal that work is queued up
+    static void work_signal();
+    static std::vector<smp_done_func> get_completed();
 
     static void init();
   };
+
 }
 
 #endif

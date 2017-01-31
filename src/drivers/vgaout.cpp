@@ -15,37 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef HW_APIC_HPP
-#define HW_APIC_HPP
+// use VGA as default output instead of serial
+#include <vga>
+static ConsoleVGA vga;
 
-#include <cstdint>
-#include <delegate>
-#include "xapic.hpp"
-#include "x2apic.hpp"
-
-namespace hw
+void default_stdout_handlers()
 {
-  class APIC {
-  public:
-    static IApic& get() noexcept;
-
-    // enable and disable legacy IRQs
-    static void enable_irq (uint8_t irq);
-    static void disable_irq(uint8_t irq);
-
-    static uint8_t get_isr() noexcept {
-      return get().get_isr();
-    }
-    static uint8_t get_irr() noexcept {
-      return get().get_irr();
-    }
-    static void eoi() noexcept {
-      return get().eoi();
-    }
-
-    static void init();
-  };
+  OS::add_stdout(vga.get_print_handler());
 }
-
-#endif

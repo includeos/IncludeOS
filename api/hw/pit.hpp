@@ -137,7 +137,7 @@ namespace hw {
 
     /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc.
         @Note This is an asynchronous function.  */
-    static double estimate_CPU_frequency(int samples);
+    static double estimate_CPU_frequency();
 
 
   private:

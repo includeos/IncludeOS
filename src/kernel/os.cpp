@@ -45,6 +45,7 @@ extern "C" void kernel_sanity_checks();
 #endif
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
+extern "C" uintptr_t get_cpu_esp();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -79,7 +80,6 @@ static std::string os_cmdline = Service::binary_name();
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
-extern "C" uintptr_t get_cpu_esp();
 
 const std::string& OS::cmdline_args() noexcept
 {
@@ -199,7 +199,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
-  INFO2("+--(2 samples, %f sec. interval)",
+  INFO2("+--(%d samples, %f sec. interval)", 18,
         (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
@@ -207,8 +207,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   ScopedProfiler sp7("OS::start CPU frequency");
 #endif
   // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  if (OS::cpu_mhz_.count() < 0) {
-    OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
+  if (OS::cpu_mhz_.count() < 0.0) {
+    OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency());
   }
   INFO2("+--> %f MHz", cpu_freq().count());
 
@@ -428,8 +428,7 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
 
   if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE) {
     INFO2("* Booted with parameters @ %p: %s",(void*)bootinfo->cmdline, (char*)bootinfo->cmdline);
-    os_cmdline = (char*) bootinfo->cmdline;
-
+    os_cmdline = std::string((char*) bootinfo->cmdline);
   }
 
   if (bootinfo->flags & MULTIBOOT_INFO_MEM_MAP) {
