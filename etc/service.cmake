@@ -244,17 +244,19 @@ if(TARFILE)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 
   if(CREATE_TAR)
+    get_filename_component(TAR_BASE_NAME "${CREATE_TAR}" NAME)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar cf ${TAR_RELPATH} ${CREATE_TAR}
+      COMMAND tar cf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   elseif(CREATE_TAR_GZ)
+    get_filename_component(TAR_BASE_NAME "${CREATE_TAR_GZ}" NAME)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar czf ${TAR_RELPATH} ${CREATE_TAR_GZ}
+      COMMAND tar czf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
