@@ -38,7 +38,9 @@ exit_codes = {"SUCCESS" : 0,
               "CALLBACK_FAILED" : 68,
               "BUILD_FAIL" : 69,
               "ABORT" : 70,
-              "VM_EOT" : 71 }
+              "VM_EOT" : 71,
+              "BOOT_FAILED": 72
+}
 
 def get_exit_code_name (exit_code):
     for name, code in exit_codes.iteritems():
@@ -124,15 +126,25 @@ class qemu(hypervisor):
     def name(self):
         return "Qemu"
 
-    def drive_arg(self, filename, drive_type="virtio", drive_format="raw", media_type="disk"):
-        return ["-drive","file="+filename+",format="+drive_format+",if="+drive_type+",media="+media_type]
+    def drive_arg(self, filename, drive_type = "virtio", drive_format = "raw", media_type = "disk"):
+        return ["-drive","file=" + filename
+                + ",format=" + drive_format
+                + ",if=" + drive_type
+                + ",media=" + media_type]
 
-    def net_arg(self, backend, device, if_name = "net0", mac="c0:01:0a:00:00:2a"):
-        qemu_ifup = INCLUDEOS_HOME+"/includeos/scripts/qemu-ifup"
-        # FIXME: this needs to get removed
+    def net_arg(self, backend, device, if_name = "net0", mac = None):
+        qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
+
+        # FIXME: this needs to get removed, e.g. fetched from the schema
         names = {"virtio" : "virtio-net", "vmxnet" : "vmxnet3", "vmxnet3" : "vmxnet3"}
-        return ["-device", names[device]+",netdev="+if_name+",mac="+mac,
-                "-netdev", backend+",id="+if_name+",script="+qemu_ifup]
+
+        device = names[device] + ",netdev=" + if_name
+
+        # Add mac-address if specified
+        if mac: device += ",mac=" + mac
+
+        return ["-device", device,
+                "-netdev", backend + ",id=" + if_name + ",script=" + qemu_ifup]
 
     def kvm_present(self):
         command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
@@ -195,6 +207,9 @@ class qemu(hypervisor):
         if "bios" in self._config:
             kernel_args.extend(["-bios", self._config["bios"]])
 
+        if "smp" in self._config:
+            kernel_args.extend(["-smp", str(self._config["smp"])])
+
         if "drives" in self._config:
             for disk in self._config["drives"]:
                 disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
@@ -203,7 +218,8 @@ class qemu(hypervisor):
         i = 0
         if "net" in self._config:
             for net in self._config["net"]:
-                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), net["mac"])
+                mac = net["mac"] if "mac" in net else None
+                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), mac)
                 i+=1
 
         mem_arg = []
@@ -213,7 +229,7 @@ class qemu(hypervisor):
         vga_arg = ["-nographic" ]
         if "vga" in self._config:
             vga_arg = ["-vga", str(self._config["vga"])]
-        
+
         # TODO: sudo is only required for tap networking and kvm. Check for those.
         command = ["sudo", "qemu-system-x86_64"]
         if self.kvm_present(): command.append("--enable-kvm")
@@ -459,9 +475,10 @@ class vm:
         try:
             self._hyper.boot(multiboot, kernel_args, image_name)
         except Exception as err:
-            print color.WARNING("Exception raised while booting ")
+            print color.WARNING("Exception raised while booting: ")
+            print_exception()
             if (timeout): self._timer.cancel()
-            self.exit(exit_codes["CALLBACK_FAILED"], str(err))
+            self.exit(exit_codes["BOOT_FAILED"], str(err))
 
         # Start analyzing output
         while self._hyper.poll() == None and not self._exit_status:
@@ -526,7 +543,8 @@ print color.INFO(nametag), "Validating JSON according to schema ",schema_path
 validate_vm.load_schema(schema_path)
 validate_vm.has_required_stuff(".")
 
-default_spec = {"image" : "service.img"}
+default_spec = {"image" : "service.img",
+                "net" : [{"device" : "virtio", "backend" : "tap" }] }
 
 # Provide a list of VM's with validated specs
 vms = []

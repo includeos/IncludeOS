@@ -1,7 +1,6 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,27 +15,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef API_SMP_HEADER
-#define API_SMP_HEADER
+#include <dlfcn.h>
+#include <cstdio>
 
-#include "hw/smp.hpp"
-
-class SMP {
-public:
-  using task_func = hw::SMP::smp_task_func;
-  using done_func = hw::SMP::smp_done_func;
-  
-  static void
-  add_task(task_func func, done_func done)
-  {
-    hw::SMP::add_task(func, done);
-  }
-  
-  static void signal()
-  {
-    hw::SMP::work_signal();
-  }
-};
-
-#endif
+void* dlopen(const char *filename, int flag)
+{
+  printf("dlopen called for %s with flag %#x\n", filename, flag);
+  return nullptr;
+}
+char* dlerror(void)
+{
+  printf("dlerror\n");
+  return nullptr;
+}
+void* dlsym(void*, const char* symbol)
+{
+  printf("dlsym on %s\n", symbol);
+  return nullptr;
+}
+int   dlclose(void*)
+{
+  printf("dlclose\n");
+  return 0;
+}

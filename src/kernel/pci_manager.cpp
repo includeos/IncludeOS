@@ -23,49 +23,62 @@
 #include <hw/devices.hpp>
 #include <stdexcept>
 
-#define NUM_BUSES 2
-
 PCI_manager::Device_registry PCI_manager::devices_;
 
-void PCI_manager::init() {
-  INFO("PCI Manager", "Probing PCI bus");
+void PCI_manager::scan_bus(int bus)
+{
+  for (uint16_t device = 0; device < 255; ++device)
+  {
+    uint16_t pci_addr = bus * 256 + device;
+    uint32_t id = 
+        hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_VENDOR);
 
-  /*
-   * Probe the PCI bus
-   * - Assuming bus number is 0, there are 255 possible addresses
-   */
-  uint32_t id {PCI::WTF};
+    if (id != PCI::WTF)
+    {
+      // needed for classcode
+      hw::PCI_Device::class_revision devclass;
+      devclass.reg = 
+          hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
+      // convert to annoying enum :-)
+      auto classcode = (PCI::classcode_t) devclass.classcode;
 
-  for (uint16_t pci_addr {0}; pci_addr < 255; ++pci_addr) {
-    id = hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_VENDOR);
-
-    if (id != PCI::WTF) {
-      hw::PCI_Device dev {pci_addr, id};
-
-      // store device
-      devices_[dev.classcode()].emplace_back(dev);
+      // store device directly into map
+      devices_[classcode].emplace_back(pci_addr, id, devclass.reg);
+      auto& dev = devices_[classcode].back();
 
       bool registered = false;
       // translate classcode to device and register
-      switch(dev.classcode())
-      {
-        case PCI::STORAGE:
+      switch (dev.classcode()) {
+      case PCI::STORAGE:
           registered = register_device<hw::Block_device>(dev);
           break;
-
-        case PCI::NIC:
+      case PCI::NIC:
           registered = register_device<hw::Nic>(dev);
           break;
-
-        default:
-        {
-
-        }
-
+      case PCI::BRIDGE:
+          // scan secondary bus for PCI-to-PCI bridges
+          if (dev.subclass() == 0x4) {
+            uint16_t buses = dev.read16(0x18);
+            scan_bus(buses >> 8); // secondary is bits 8-15
+          }
+          break;
+      default:
+          break;
       }
-      debug("Device %s", registered ? "registed":"not registered");
+      debug("Device %s", registered ? "registed" : "not registered");
     }
   }
+}
+
+void PCI_manager::init()
+{
+  INFO("PCI Manager", "Probing PCI bus");
+
+  /**
+   * Probe the PCI buses
+   * Starting with the first bus
+  **/
+  scan_bus(0);
 
   // Pretty printing, end of device tree
   // @todo should probably be moved, or optionally non-printed

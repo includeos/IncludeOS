@@ -40,6 +40,15 @@ namespace hw
     {
       asm volatile("wrmsr" : : "a" (eax),"d"(edx), "c" (addr));
     }
+    static void
+    write_msr(uint32_t addr, uint64_t value)
+    {
+      union {
+        uint64_t value;
+        uint32_t reg[2];
+      } msr {value};
+      asm volatile("wrmsr" : : "a" (msr.reg[0]),"d"(msr.reg[1]), "c" (addr));
+    }
     
     static uint64_t rdtsc()
     {

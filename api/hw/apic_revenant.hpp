@@ -19,11 +19,11 @@
 #ifndef HW_APIC_REVENANT_HPP
 #define HW_APIC_REVENANT_HPP
 
-#define BSP_LAPIC_IPI_IRQ  126
 #define REV_STACK_SIZE     8192
 
 #include <cstdint>
 #include <hw/apic.hpp>
+#include <hw/smp.hpp>
 #include <deque>
 
 extern "C"
@@ -72,24 +72,22 @@ private:
 struct smp_stuff
 {
   struct task {
-    task(hw::APIC::smp_task_func a,
-         hw::APIC::smp_done_func b)
+    task(hw::SMP::smp_task_func a,
+         hw::SMP::smp_done_func b)
       : func(a), done(b) {}
     
-    hw::APIC::smp_task_func func;
-    hw::APIC::smp_done_func done;
+    hw::SMP::smp_task_func func;
+    hw::SMP::smp_done_func done;
   };
   
   spinlock_t glock;
   minimal_barrier_t boot_barrier;
   
-  hw::APIC::smp_done_func done_func;
-  
   spinlock_t tlock;
   std::deque<task> tasks;
   
   spinlock_t flock;
-  std::deque<hw::APIC::smp_done_func> completed;
+  std::deque<hw::SMP::smp_done_func> completed;
 };
 extern smp_stuff smp;
 

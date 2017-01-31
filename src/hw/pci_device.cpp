@@ -38,6 +38,10 @@
 #define PCI_HEADER_REG		0x0e
 #define PCI_BIST_REG		0x0f
 
+#define PCI_COMMAND_IO			0x01
+#define PCI_COMMAND_MEM			0x02
+#define PCI_COMMAND_MASTER	0x04
+
 namespace hw {
 
   static const char* classcodes[] {
@@ -88,31 +92,24 @@ namespace hw {
 
   uint32_t PCI_Device::iobase() const noexcept {
     
-    auto* res = resources;
-    while (res) {
-      if (res->type == PCI::RES_IO) return res->start;
-      res = res->next;
+    for (auto& res : resources) {
+      if (res.type == PCI::RES_IO) return res.start;
     }
     assert(0 && "No I/O resource present on device");
-  };
+  }
 
   void PCI_Device::probe_resources() noexcept {
     //Find resources on this PCI device (scan the BAR's)
-    uint32_t value {PCI::WTF};
-  
-    uint32_t reg {0};
-    uint32_t len {0};
-
-    for(int bar {0}; bar < 6; ++bar) {
+    for (int bar = 0; bar < 6; ++bar) {
       //Read the current BAR register 
-      reg = PCI::CONFIG_BASE_ADDR_0 + (bar << 2);
-      value = read_dword(reg);
+      uint32_t reg = PCI::CONFIG_BASE_ADDR_0 + (bar << 2);
+      uint32_t value = read_dword(reg);
 
       if (!value) continue;
 
       //Write all 1's to the register, to get the length value (osdev)
       write_dword(reg, 0xFFFFFFFF);
-      len = read_dword(reg);
+      uint32_t len = read_dword(reg);
     
       //Put the value back
       write_dword(reg, value);
@@ -120,25 +117,21 @@ namespace hw {
       uint32_t unmasked_val  {0};
       uint32_t pci__size     {0};
 
-      if (value & 1) {  // Resource type IO
-
+      if (value & 1) {
+        // Resource type IO
         unmasked_val = value & PCI::BASE_ADDRESS_IO_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_IO_MASK & 0xFFFF);
       
-        // Add it to resource list
-        add_resource(new Resource(PCI::RES_IO, unmasked_val, pci__size));
+        resources.emplace_back(PCI::RES_IO, unmasked_val, pci__size);
       
-      } else { //Resource type Mem
-
+      } else {
+        // Resource type Mem
         unmasked_val = value & PCI::BASE_ADDRESS_MEM_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_MEM_MASK);
 
-        //Add it to resource list
-        add_resource(new Resource(PCI::RES_MEM, unmasked_val, pci__size));
+        resources.emplace_back(PCI::RES_MEM, unmasked_val, pci__size);
       }
-      assert(resources != nullptr);        
 
-      INFO2("");
       INFO2("[ Resource @ BAR %i ]", bar);
       INFO2("  Address:  0x%x Size: 0x%x", unmasked_val, pci__size);
       INFO2("  Type: %s", value & 1 ? "IO Resource" : "Memory Resource");   
@@ -147,33 +140,31 @@ namespace hw {
     INFO2("");
   }
 
-  PCI_Device::PCI_Device(const uint16_t pci_addr, const uint32_t device_id)
+  PCI_Device::PCI_Device(const uint16_t pci_addr, 
+                         const uint32_t device_id,
+                         const uint32_t devclass)
       : pci_addr_{pci_addr}, device_id_{device_id}
   {
-    //We have device, so probe for details
-    devtype_.reg = read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
+    // set master, mem and io flags
+    uint32_t cmd = read_dword(PCI_CMD_REG);
+    cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
+    write_dword(PCI_CMD_REG, cmd);
 
-    // zero out capabilities
-    memset(caps, 0, sizeof(caps));
+    // device class info is coming from pci manager to save a PCI read
+    this->devtype_.reg = devclass;
 
-    //printf("\t[*] New PCI Device: Vendor: 0x%x Prod: 0x%x Class: 0x%x\n", 
-    //device_id.vendor,device_id.product,classcode);
-    
     INFO2("|");  
-    
     switch (devtype_.classcode) {
     case PCI::BRIDGE:
       INFO2("+--+ %s %s (0x%x)",
             bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
             classcodes[devtype_.classcode],devtype_.subclass);
       break;
-
     case PCI::NIC:
       INFO2("+--+ %s %s (0x%x)",
             nic_subclasses[devtype_.subclass < SS_NIC ? devtype_.subclass : SS_NIC-1],
             classcodes[devtype_.classcode],devtype_.subclass);
       break;
-
     default:
       if (devtype_.classcode < NUM_CLASSCODES) {
         INFO2("+--+ %s ",classcodes[devtype_.classcode]);
@@ -181,7 +172,19 @@ namespace hw {
         INFO2("\t +--+ Other (Classcode 0x%x) \n",devtype_.classcode);
       } 
     } //< switch (devtype_.classcode)
-    
+
+    // bridges are different from other PCI devices
+    if (classcode() == PCI::BRIDGE) return;
+
+    // find and store capabilities
+    this->parse_capabilities();
+    // find BARs
+    this->probe_resources();
+
+    // enable MSI-x if its supported
+    if (this->msix_cap()) {
+      assert(this->init_msix());
+    }
   }
 
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {
@@ -254,14 +257,12 @@ namespace hw {
     
     // the capability list is only available if bit 4
     // in the status register is set
-    auto status = read_dword(PCI_STATUS_REG) & 0x10;
-    if (!status) return;
-    
-    /// TODO REWRITE THIS COMPLETELY ///
-    intptr_t offset = 0x34;
-    
+    uint16_t status = read16(PCI_STATUS_REG);
+    if ((status & 0x10) == 0) return;
+    // this offset works for non-cardbus bridges
+    uint32_t offset = 0x34;
     // read first capability
-    offset = read_dword(offset) & 0xff;
+    offset = read16(offset) & 0xff;
     offset &= ~0x3; // lower 2 bits reserved
     
     while (offset) {
@@ -273,7 +274,6 @@ namespace hw {
       // go to next cap
       offset = cap.next;
     }
-    
   }
   
 } //< namespace hw

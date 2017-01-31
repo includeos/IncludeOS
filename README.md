@@ -97,13 +97,13 @@ More information is [available on the wiki](https://github.com/hioa-cs/IncludeOS
 
 ### Writing your first service
 
-1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. Then, just start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.
-2. Update the [CMakeLists.txt](./seed/CMakeLists.txt) to specify the name of your project, enable any needed drivers or plugins, etc.
+1. Copy the [./seed/service](./seed/service) directory to a convenient location like `~/your_service`. Then, just start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.
+2. Update the [CMakeLists.txt](./seed/service/CMakeLists.txt) to specify the name of your project, enable any needed drivers or plugins, etc.
 
 **Example:**
 
 ```
-    $ cp -r seed ~/my_service
+    $ cp -r seed/service ~/my_service
     $ cd ~/my_service
     $ emacs service.cpp
     ... add your code
