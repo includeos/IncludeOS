@@ -25,6 +25,8 @@ namespace http {
   Client_connection::Client_connection(Client& client, TCP_conn tcpconn)
     : Connection{std::move(tcpconn)},
       client_(client),
+      req_(nullptr),
+      res_(nullptr),
       on_response_{nullptr},
       timer_({this, &Client_connection::timeout_request}),
       timeout_dur_{timeout_duration::zero()}
