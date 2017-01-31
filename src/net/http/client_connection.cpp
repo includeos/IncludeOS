@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,33 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/http/connection.hpp>
-#include <gsl/gsl_assert>
+#include <net/http/client_connection.hpp>
+#include <net/http/client.hpp>
+
 #include <debug>
 
 namespace http {
 
-  Connection::Connection(TCP_conn_ptr tcpconn, Close_handler on_close)
-    : tcpconn_{std::move(tcpconn)},
-      req_{nullptr},
-      res_{nullptr},
-      on_close_{std::move(on_close)},
+  Client_connection::Client_connection(Client& client, TCP_conn tcpconn)
+    : Connection{std::move(tcpconn)},
+      client_(client),
       on_response_{nullptr},
-      timer_({this, &Connection::timeout_request}),
-      timeout_dur_{timeout_duration::zero()},
-      keep_alive_{true}
+      timer_({this, &Client_connection::timeout_request}),
+      timeout_dur_{timeout_duration::zero()}
   {
-    debug("<http::Connection> Created %u -> %s %p\n", local_port(), peer().to_string().c_str(), this);
     // setup close event
-    tcpconn_->on_close({this, &Connection::close});
-  }
-  template <typename TCP>
-  Connection::Connection(TCP& tcp, Peer addr, Close_handler on_close)
-    : Connection(tcp.connect(addr), std::move(on_close))
-  {
+    tcpconn_->on_close({this, &Client_connection::close});
   }
 
-  void Connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize, timeout_duration timeout)
+  void Client_connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize, timeout_duration timeout)
   {
     Expects(available());
     req_ = std::move(req);
@@ -56,16 +48,16 @@ namespace http {
     send_request(bufsize);
   }
 
-  void Connection::send_request(const size_t bufsize)
+  void Client_connection::send_request(const size_t bufsize)
   {
     keep_alive_ = (req_->header().value(header::Connection) != "close");
 
-    tcpconn_->on_read(bufsize, {this, &Connection::recv_response});
+    tcpconn_->on_read(bufsize, {this, &Client_connection::recv_response});
 
     tcpconn_->write(req_->to_string());
   }
 
-  void Connection::recv_response(buffer_t buf, size_t len)
+  void Client_connection::recv_response(buffer_t buf, size_t len)
   {
     if(len == 0) {
       end_response({Error::NO_REPLY});
@@ -138,7 +130,7 @@ namespace http {
     }
   }
 
-  void Connection::end_response(Error err)
+  void Client_connection::end_response(Error err)
   {
     // move response to a copy in case of callback result in new request
     Ensures(on_response_);
@@ -158,7 +150,7 @@ namespace http {
       tcpconn_->close();
   }
 
-  void Connection::close()
+  void Client_connection::close()
   {
     // if the user already
     if(on_response_ != nullptr)
@@ -169,7 +161,7 @@ namespace http {
       callback(Error::CLOSING, std::move(res_));
     }
 
-    on_close_(*this);
+    client_.close(*this);
   }
 
 }

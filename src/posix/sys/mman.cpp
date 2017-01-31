@@ -1,5 +1,6 @@
 #include <sys/mman.h>
 
+#include <cstdio>
 #include <cstdint>
 #include <cstdlib>
 #include <cassert>
@@ -30,7 +31,7 @@ void* mmap(void* addr, size_t length,
     return MAP_FAILED;
   }
 
-  // TODO: 
+  // TODO:
   // validate fd is open file
 
   // associate some VA space with open file @fd
@@ -48,7 +49,7 @@ void* mmap(void* addr, size_t length,
   // TODO:
   // read entire file into entry space
   // deallocate entry space on failure
-  
+
   // create the mapping
   _mmap_entries[addr] = entry;
   return entry.addr;

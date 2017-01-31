@@ -24,6 +24,7 @@ set(SOURCES
   service.cpp
   test_sysconf.c
   test_pathconf.c
+  test_pwd.c
   )
 
 # DRIVERS / PLUGINS:
