@@ -60,14 +60,14 @@ void Service::start(const std::string&)
     printf("%s - element\n", name.c_str());
 
   // Get a specific file in the tarball
-  const std::string path1 = "home/annikaha/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/README.md";
+  const std::string path1 = "tar_example/l1_f1/l2/README.md";
   auto& element = read_tarfile.element(path1);
   print_header(element, "README.md");
   print_content(element, "README.md");
 
   // Get a specific folder in the tarball
   // NB: No path match on folders if no trailing /
-  const std::string path2 = "home/annikaha/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/";
+  const std::string path2 = "tar_example/l1_f1/l2/";
   auto& element2 = read_tarfile.element(path2);
   print_header(element2, "l2");
   print_content(element2, "l2");
