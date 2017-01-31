@@ -15,37 +15,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <cassert>
-#include <smp>
+#pragma once
+#ifndef HW_SMP_HPP
+#define HW_SMP_HPP
 
-void Service::start()
-{
-  OS::add_stdout_default_serial();
+#include <cstdint>
+#include <delegate>
+#include <vector>
 
-  static int completed = 0;
-  static uint32_t job = 0;
-  static const int TASKS = 8 * sizeof(job);
-  
-  // schedule tasks
-  for (int i = 0; i < TASKS; i++)
-  SMP::add_task(
-  [i] {
-    // the job
-    __sync_fetch_and_or(&job, 1 << i);
-  }, 
-  [i] {
-    // job completion
-    completed++;
-    
-    if (completed == TASKS) {
-      printf("All jobs are done now, compl = %d\n", completed);
-      printf("bits = %#x\n", job);
-      assert(job = 0xffffffff && "All 32 bits must be set");
-    }
-  });
-  // start working on tasks
-  SMP::signal();
-  
-  printf("*** %s started *** \n", SERVICE_NAME);
+namespace hw {
+
+  class SMP {
+  public:
+    typedef delegate<void()>  smp_task_func;
+    typedef delegate<void()>  smp_done_func;
+
+    // add tasks that will not necessarily start immediately
+    // use work_signal() to guarantee work starts
+    static void add_task(smp_task_func, smp_done_func);
+    // call this to signal that work is queued up
+    static void work_signal();
+    static std::vector<smp_done_func> get_completed();
+
+    static void init();
+  };
+
 }
+
+#endif

@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <hw/apic_timer.hpp>
-#include <hw/apic_regs.hpp>
+#include <hw/apic.hpp>
 #include <hw/pit.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/os.hpp>
@@ -30,7 +30,7 @@
 // vol 3a  10-10
 #define DIVIDE_BY_16     0x3
 
-#define CALIBRATION_MS   125
+#define CALIBRATION_MS   93  /* up to 1.5% error */
 
 using namespace std::chrono;
 
@@ -42,11 +42,8 @@ namespace hw
 
   void APIC_Timer::init(const handler_t& handler)
   {
-    // decrement every other tick
-    lapic.regs->divider_config.reg = 0x1;
-    // start in one-shot mode and set the interrupt vector
-    // but also disable interrupts
-    lapic.regs->timer.reg = TIMER_ONESHOT | (LAPIC_IRQ_TIMER+32) | INTR_MASK;
+    auto& lapic = hw::APIC::get();
+    lapic.timer_init();
 
     if (ticks_per_micro != 0) {
       hw::PIT::instance().on_timeout_ms(milliseconds(1), handler);
@@ -55,25 +52,28 @@ namespace hw
 
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
-    lapic.regs->init_count.reg = 0xFFFFFFFF;
+    intr_handler = handler;
+    
     // See: Vol3a 10.5.4.1 TSC-Deadline Mode
     // 0xFFFFFFFF --> ~68 seconds
     // 0xFFFFFF   --> ~46 milliseconds
+    lapic.timer_begin(0xFFFFFFFF);
+    uint32_t overhead;
+    [&overhead] {
+        overhead = hw::APIC::get().timer_diff();
+    }();
+    // restart counter
+    lapic.timer_begin(0xFFFFFFFF);
 
     /// use PIT to measure <time> in one-shot ///
-    
-    // ready handler
-    intr_handler = handler;
-
     hw::PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
-    [] {
+    [overhead] {
+      uint32_t diff = hw::APIC::get().timer_diff() - overhead;
       // measure difference
-      uint32_t diff = lapic.regs->init_count.reg - lapic.regs->cur_count.reg;
       ticks_per_micro = diff / CALIBRATION_MS / 1000;
 
       //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n",
       //       CALIBRATION_MS, diff, ticks_per_micro);
-
       // signal ready to go
       intr_handler();
     });
@@ -99,16 +99,17 @@ namespace hw
     if (ticks > 0xFFFFFFFF) ticks = 0xFFFFFFFF;
 
     // set initial counter
-    lapic.regs->init_count.reg = ticks;
+    auto& lapic = hw::APIC::get();
+    lapic.timer_begin(ticks);
     // re-enable interrupts if disabled
     if (intr_enabled == false) {
       intr_enabled = true;
-      lapic.regs->timer.reg &= ~INTR_MASK;
+      lapic.timer_interrupt(true);
     }
   }
   void APIC_Timer::stop()
   {
-    lapic.regs->timer.reg |= INTR_MASK;
+    hw::APIC::get().timer_interrupt(false);
     intr_enabled = false;
   }
 

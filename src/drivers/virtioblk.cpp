@@ -91,8 +91,9 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
   // Hook up IRQ handler (inherited from Virtio)
-  if (is_msix())
+  if (has_msix())
   {
+    assert(get_msix_vectors() >= 2);
     // update IRQ subscriptions
     IRQ_manager::get().subscribe(irq() + 0, {this, &VirtioBlk::service_RX});
     IRQ_manager::get().subscribe(irq() + 1, {this, &VirtioBlk::msix_conf_handler});
@@ -297,7 +298,7 @@ void VirtioBlk::deactivate()
   req.disable_interrupts();
 
   /// mask off MSI-X vectors
-  if (is_msix())
+  if (has_msix())
       deactivate_msix();
 }
 

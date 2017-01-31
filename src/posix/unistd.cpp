@@ -373,6 +373,7 @@ gid_t getgid() {
 long fpathconf(int fd, int name) {
   try {
     auto& fildes = FD_map::_get(fd);
+    (void) fildes;
     switch (name) {
     case _PC_FILESIZEBITS:
       return 64;

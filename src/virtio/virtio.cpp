@@ -62,8 +62,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
   assert(rev_id_ok); // We'll try to continue if it's newer than supported.
 
-  // Probe PCI resources and fetch I/O-base for device
-  _pcidev.probe_resources();
+  // fetch I/O-base for device
   _iobase = _pcidev.iobase();
 
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
@@ -93,23 +92,20 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // Where the standard isn't clear, we'll do our best to separate work
   // between this class and subclasses.
 
-  // read caps
-  _pcidev.parse_capabilities();
-
   // initialize MSI-X if available
-  if (_pcidev.msix_cap())
+  if (_pcidev.has_msix())
   {
-    this->_msix_vectors = _pcidev.init_msix();
-    if (is_msix())
+    uint8_t msix_vectors = _pcidev.get_msix_vectors();
+    if (msix_vectors)
     {
-      INFO2("[x] Device has %u MSI-X vectors", get_msix_vectors());
+      INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
 
       // remember the base IRQ
       this->_irq = IRQ_manager::get().get_next_msix_irq();
       _pcidev.setup_msix_vector(0x0, IRQ_BASE + this->_irq);
 
       // setup all the other vectors
-      for (int i = 1; i < get_msix_vectors(); i++)
+      for (int i = 1; i < msix_vectors; i++)
       {
         auto irq = IRQ_manager::get().get_next_msix_irq();
         _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
@@ -118,12 +114,11 @@ Virtio::Virtio(hw::PCI_Device& dev)
     else
       INFO2("[ ] No MSI-X vectors");
   } else {
-    this->_msix_vectors = 0;
     INFO2("[ ] No MSI-X vectors");
   }
 
   // use legacy if msix was not enabled
-  if (is_msix() == false)
+  if (has_msix() == false)
   {
     // Fetch IRQ from PCI resource
     set_irq();
@@ -146,7 +141,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
 void Virtio::get_config(void* buf, int len){
   // io addr is different when MSI-X is enabled
   uint32_t ioaddr = _iobase;
-  ioaddr += (is_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
+  ioaddr += (has_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
 
   uint8_t* ptr = (uint8_t*) buf;
   for (int i = 0; i < len; i++)
@@ -176,7 +171,7 @@ bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
   hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::page_nr_from_addr(queue_desc));
 
-  if (_pcidev.is_msix())
+  if (_pcidev.has_msix())
   {
     // also update virtio MSI-X queue vector
     hw::outpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR, index);

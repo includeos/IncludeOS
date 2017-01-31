@@ -16,10 +16,13 @@
 // limitations under the License.
 
 #pragma once
-#include <hertz>
-#include <hw/pit.hpp>
 
-namespace hw {
+namespace hw
+{
+  static const int CPU_FREQUENCY_SAMPLES = 18;
+
+  extern void   reset_cpufreq_sampling();
+  extern double calculate_cpu_frequency();
 
   /** Proper IRQ-handler for CPU frequency sampling - implemented in interrupts.s
       @Note 

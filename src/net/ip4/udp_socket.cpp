@@ -16,10 +16,8 @@
 // limitations under the License.
 
 #include <net/ip4/udp_socket.hpp>
+#include <common>
 #include <memory>
-
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
 
 namespace net
 {
@@ -57,7 +55,7 @@ namespace net
      size_t len,
      sendto_handler cb)
   {
-    if (unlikely(len == 0)) return;
+    if (UNLIKELY(len == 0)) return;
     udp_.sendq.emplace_back(
        (const uint8_t*) buffer, len, cb, this->udp_,
        local_addr(), this->l_port, destIP, port);
@@ -72,7 +70,7 @@ namespace net
       size_t len,
       sendto_handler cb)
   {
-    if (unlikely(len == 0)) return;
+    if (UNLIKELY(len == 0)) return;
     udp_.sendq.emplace_back(
          (const uint8_t*) buffer, len, cb, this->udp_,
          srcIP, this->l_port, IP4::ADDR_BCAST, port);
