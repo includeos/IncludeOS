@@ -98,6 +98,7 @@ set(OS_SOURCES
   ${SRC}/hw/pit.cpp
   ${SRC}/hw/ps2.cpp
   ${SRC}/hw/serial.cpp
+  ${SRC}/hw/smp.cpp
   ${SRC}/kernel/block.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
