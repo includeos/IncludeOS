@@ -21,38 +21,35 @@
 
 #include <cstdint>
 #include <delegate>
+#include "xapic.hpp"
+#include "x2apic.hpp"
 
-namespace hw {
-
+namespace hw
+{
   class APIC {
   public:
-    typedef delegate<void()>  smp_task_func;
-    typedef delegate<void()>  smp_done_func;
-
-    static void add_task(smp_task_func, smp_done_func);
-    static void work_signal();
-
-    typedef delegate<void()>   timer_func;
-
-    static void init();
-    static void setup_subs();
-
-    static void send_ipi(uint8_t cpu, uint8_t vector);
-    static void send_bsp_intr();
-    static void bcast_ipi(uint8_t vector);
+    static IApic& get() {
+        // choose thyne APIC version
+        return x2apic::get();
+        //return xapic::get();
+    }
 
     // enable and disable legacy IRQs
-    static void enable_irq(uint8_t irq);
+    static void enable_irq (uint8_t irq);
     static void disable_irq(uint8_t irq);
 
-    static uint8_t get_isr();
-    static uint8_t get_irr();
-    static void eoi();
+    static uint8_t get_isr() {
+      return get().get_isr();
+    }
+    static uint8_t get_irr() {
+      return get().get_irr();
+    }
+    static void eoi() {
+      return get().eoi();
+    }
 
-  private:
-    static void init_smp();
+    static void init();
   };
-
 }
 
 #endif

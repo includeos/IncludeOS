@@ -42,7 +42,7 @@ namespace hw {
   
   struct msix_t
   {
-    msix_t(PCI_Device&);
+    msix_t(PCI_Device&, uint32_t capoff);
     
     // initialize msi-x tables for device
     void mask_entry(size_t);

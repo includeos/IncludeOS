@@ -15,37 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <cassert>
-#include <smp>
+// use VGA as default output instead of serial
+#include <vga>
+static ConsoleVGA vga;
 
-void Service::start()
+void default_stdout_handlers()
 {
-  OS::add_stdout_default_serial();
-
-  static int completed = 0;
-  static uint32_t job = 0;
-  static const int TASKS = 8 * sizeof(job);
-  
-  // schedule tasks
-  for (int i = 0; i < TASKS; i++)
-  SMP::add_task(
-  [i] {
-    // the job
-    __sync_fetch_and_or(&job, 1 << i);
-  }, 
-  [i] {
-    // job completion
-    completed++;
-    
-    if (completed == TASKS) {
-      printf("All jobs are done now, compl = %d\n", completed);
-      printf("bits = %#x\n", job);
-      assert(job = 0xffffffff && "All 32 bits must be set");
-    }
-  });
-  // start working on tasks
-  SMP::signal();
-  
-  printf("*** %s started *** \n", SERVICE_NAME);
+  OS::add_stdout(vga.get_print_handler());
 }

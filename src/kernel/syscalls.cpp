@@ -159,6 +159,7 @@ static void default_panic_handler()
   if (SHUTDOWN_ON_PANIC)
       hw::ACPI::shutdown();
 }
+__attribute__((weak))
 OS::on_panic_func panic_handler = default_panic_handler;
 
 /**

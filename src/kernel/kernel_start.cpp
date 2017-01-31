@@ -17,8 +17,9 @@
 
 #include <kernel/os.hpp>
 #include <boot/multiboot.h>
+#include <kprint>
 
-#define MULTIBOOT_CMDLINE_LOC 0x3000
+#define MULTIBOOT_CMDLINE_LOC 0x7000
 
 extern "C" void __init_sanity_checks();
 extern "C" void _init_c_runtime();
@@ -50,9 +51,11 @@ void kernel_start(uintptr_t magic, uintptr_t addr)  {
   _init_syscalls();
 
   // Save multiboot string before symbols overwrite area after binary
-  char* cmdline = reinterpret_cast<char*>(reinterpret_cast<multiboot_info_t*>(addr)->cmdline);
-  strcpy(reinterpret_cast<char*>(MULTIBOOT_CMDLINE_LOC), cmdline);
-  ((multiboot_info_t*) addr)->cmdline = MULTIBOOT_CMDLINE_LOC;
+  if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
+    char* cmdline = reinterpret_cast<char*>(reinterpret_cast<multiboot_info_t*>(addr)->cmdline);
+    strcpy(reinterpret_cast<char*>(MULTIBOOT_CMDLINE_LOC), cmdline);
+    ((multiboot_info_t*) addr)->cmdline = MULTIBOOT_CMDLINE_LOC;
+  }
 
   // Initialize stack-unwinder, call global constructors etc.
   _init_c_runtime();

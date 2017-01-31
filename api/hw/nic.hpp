@@ -74,10 +74,9 @@ namespace hw {
 
     virtual size_t transmit_queue_available() = 0;
 
-    virtual size_t receive_queue_waiting() = 0;
-
     virtual void deactivate() = 0;
 
+    virtual ~Nic() {}
   protected:
     /**
      *  Constructor
@@ -99,7 +98,6 @@ namespace hw {
   private:
     net::BufferStore bufstore_;
     int N;
-
   };
 
 } //< namespace hw

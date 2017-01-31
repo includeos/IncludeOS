@@ -158,20 +158,20 @@ UDP::WriteBuffer::WriteBuffer(const uint8_t* data, size_t length, sendto_handler
 
 void UDP::WriteBuffer::write()
 {
-
-  // the bytes remaining to be written
-  UDP::Packet_ptr chain_head{};
-
+  UDP::Packet_ptr chain_head = nullptr;
   debug("<UDP> %i bytes to write, need %i packets \n",
          remaining(), remaining() / udp.max_datagram_size() + (remaining() % udp.max_datagram_size() ? 1 : 0));
 
   while (remaining())
   {
+    // the max bytes we can write in one operation
     size_t total = remaining();
     total = (total > udp.max_datagram_size()) ? udp.max_datagram_size() : total;
 
     // create some packet p (and convert it to PacketUDP)
     auto p = udp.stack().create_packet(0);
+    if (!p) break;
+    
     // fill buffer (at payload position)
     memcpy(p->buffer() + PacketUDP::HEADERS_SIZE,
            buf.get() + this->offset, total);
