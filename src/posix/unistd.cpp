@@ -370,9 +370,8 @@ gid_t getgid() {
   return 0;
 }
 
-long fpathconf(int fd, int name) {
+long fpathconf(int, int name) {
   try {
-    auto& fildes = FD_map::_get(fd);
     switch (name) {
     case _PC_FILESIZEBITS:
       return 64;
