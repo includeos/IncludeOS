@@ -120,8 +120,7 @@ namespace hw {
       interrupt_control(0x100, SPURIOUS_INTR);
 
       // acknowledge any outstanding interrupts
-      current_eoi_mechanism = x2apic_send_eoi;
-      (*current_eoi_mechanism)();
+      this->eoi();
 
       // enable APIC by resetting task priority
       write(x2APIC_TPR, 0);

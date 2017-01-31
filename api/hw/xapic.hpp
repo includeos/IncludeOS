@@ -63,7 +63,6 @@ namespace hw {
     static const uint8_t  SPURIOUS_INTR = IRQ_manager::INTR_LINES-1;
 
     xapic() {
-      INFO2("xAPIC id: %x  ver: %x\n", get_id(), version());
       // read xAPIC base address from masked out MSR
       this->base_msr = CPU::read_msr(IA32_APIC_BASE_MSR);
       this->regbase = this->base_msr & 0xFFFFF000;
@@ -75,6 +74,7 @@ namespace hw {
       // verify that xAPIC is online
       uint64_t verify = CPU::read_msr(IA32_APIC_BASE_MSR);
       assert(verify & MSR_ENABLE_XAPIC);
+      INFO2("xAPIC id: %x  ver: %x\n", get_id(), version());
     }
 
     uint32_t read(uint32_t reg) noexcept override
@@ -119,8 +119,7 @@ namespace hw {
       interrupt_control(0x100, SPURIOUS_INTR);
 
       // acknowledge any outstanding interrupts
-      current_eoi_mechanism = lapic_send_eoi;
-      (*current_eoi_mechanism)();
+      lapic_send_eoi();
 
       // enable APIC by resetting task priority
       write(xAPIC_TPR, 0);
