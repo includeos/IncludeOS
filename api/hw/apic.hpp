@@ -28,23 +28,19 @@ namespace hw
 {
   class APIC {
   public:
-    static IApic& get() {
-        // choose thyne APIC version
-        return x2apic::get();
-        //return xapic::get();
-    }
+    static IApic& get() noexcept;
 
     // enable and disable legacy IRQs
     static void enable_irq (uint8_t irq);
     static void disable_irq(uint8_t irq);
 
-    static uint8_t get_isr() {
+    static uint8_t get_isr() noexcept {
       return get().get_isr();
     }
-    static uint8_t get_irr() {
+    static uint8_t get_irr() noexcept {
       return get().get_irr();
     }
-    static void eoi() {
+    static void eoi() noexcept {
       return get().eoi();
     }
 
