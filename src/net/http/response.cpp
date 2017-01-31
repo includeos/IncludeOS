@@ -102,6 +102,16 @@ Response& Response::set_version(const Version version) noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+std::string Response::status_line() const noexcept {
+  std::ostringstream status_line;
+  //-----------------------------------
+  status_line << version_ << " " << code_ << " "
+              << code_description(code_);
+  //-----------------------------------
+  return status_line.str();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 Response& Response::reset() noexcept {
   response_.clear();
   return soft_reset();
