@@ -58,7 +58,7 @@ def validate_vm_spec(filename):
     return vm_spec
 
 
-def load_config(path):
+def load_config(path, verbose = verbose):
     global valid_vms
 
     # Single JSON-file  must conform to VM-schema
@@ -73,12 +73,13 @@ def load_config(path):
 
     # For several JSON-files, return the ones conforming to VM-schema
     for json in jsons:
-        if verbose: print("Validating JSON: " + json)
+        if verbose: print"\t*Validating ", json, ": ",
         try:
             spec = validate_vm_spec(json)
             valid_vms.append(spec)
+            if verbose: print "OK"
         except Exception as e:
-            if verbose: print("Invalid JSON: " + json + " error: " + str(e))
+            if verbose: print "FAIL " + str(e)
     return valid_vms
 
 

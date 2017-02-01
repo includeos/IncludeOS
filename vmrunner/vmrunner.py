@@ -547,7 +547,7 @@ class vm:
                     break
                 if line.startswith("     [ Kernel ] service exited with status"):
                     self._exit_status = int(line.split(" ")[-1].rstrip())
-                    self._exit_msg = "Service exited"
+                    self._exit_msg = "Service exited with status " + str(self._exit_status)
                     break
                 else:
                     print color.VM(line.rstrip())
@@ -596,17 +596,30 @@ def load_single_config(path = default_json):
     # If path is explicitly "None", try current dir
     if not path: path = default_json
 
+    info("Trying to load config from", path)
+
     if os.path.isfile(path):
-        info("Loading config from", path)
+
         try:
             # Try loading the first valid config
             config = validate_vm.load_config(path)
-            info ("vm config loaded from", path, ":", config)
+            info ("Successfully loaded vm config")
 
         except Exception as e:
             print_exception()
-            info("Could not parse VM config file(s): " + " ".join(json))
+            info("Could not parse VM config file(s): " + path)
             program_exit(73, str(e))
+
+    elif os.path.isdir(path):
+        try:
+            configs = validate_vm.load_config(path, VERB)
+            info ("Found ", len(configs), "config files")
+            config = configs[0]
+            info ("Trying the first valid config ")
+        except Exception as e:
+            info("No valid config found: ", e)
+            program_exit(73, "No valid config files in " + path)
+
     else:
         info("Falling back to default config")
 
@@ -624,40 +637,12 @@ def program_exit(status, msg):
     global vms
     for vm in vms:
         vm.stop().wait()
-    info("Exit called with status", status, "(",get_exit_code_name(exit_status),")")
+    info("Exit called with status", status, "(",get_exit_code_name(status),")")
     # Print fail message and exit with appropriate code
     print color.EXIT_ERROR(get_exit_code_name(status), msg)
     sys.exit(status)
 
 
-def load_configs(config_path = "."):
-    global vms
-
-    # Clear out the default unconfigured vm
-    if (not vms[0]._config):
-        vms = []
-
-    print color.HEADER("IncludeOS vmrunner loading VM configs")
-
-    schema_path = package_path + "/vm.schema.json"
-
-    print INFO, "Validating JSON according to schema ",schema_path
-
-    validate_vm.load_schema(schema_path)
-    validate_vm.load_configs(config_path)
-
-    if validate_vm.valid_vms:
-        print INFO, "Loaded VM specification(s) from JSON"
-        for spec in validate_vm.valid_vms:
-            print INFO, "Found VM spec: "
-            print color.DATA(spec.__str__())
-            vms.append(vm(spec))
-
-    else:
-        print color.WARNING(nametag), "No VM specification JSON found, trying default config"
-        vms.append(vm(default_config))
-
-    return vms
 
 # Handler for SIGINT
 def handler(signum, frame):
