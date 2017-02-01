@@ -32,14 +32,20 @@ public:
     static const size_t BLOCK_BYTES = BLOCK_INTS * 4;
 
     SHA1();
-
+    // update with new data
     void update(const std::string&);
     void update(const char*, size_t);
-    std::string final();
+    // finalize values
+    std::string as_raw();  // 20 bytes
+    std::string as_hex();  // 40 bytes
 
-    static std::string oneshot(const std::string&);
+    // 20 byte SHA1 sum of string
+    static std::string oneshot_raw(const std::string&);
+    // 40 byte hex string of SHA1 sum
+    static std::string oneshot_hex(const std::string&);
 
 private:
+    void finalize();
     uint64_t transforms;
     uint32_t digest[5];
     uint32_t buffer_len = 0;

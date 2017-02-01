@@ -251,10 +251,10 @@ void SHA1::update(const char* inbuffer, size_t inlen)
 
 
 /*
- * Add padding and return the message digest.
+ * Add padding.
  */
 
-std::string SHA1::final()
+void SHA1::finalize()
 {
     /* Total number of hashed bits */
     uint64_t total_bits = (transforms*BLOCK_BYTES + buffer_len) * 8;
@@ -283,6 +283,30 @@ std::string SHA1::final()
     block[BLOCK_INTS - 1] = total_bits;
     block[BLOCK_INTS - 2] = (total_bits >> 32);
     transform(digest, block, transforms);
+}
+
+std::string SHA1::as_raw()
+{
+    finalize();
+
+    /* Result as hex string */
+    std::string result;  result.resize(20);
+    for (int i = 0; i < 5; i++) {
+      result[i * 4 + 0] = digest[i] >> 24;
+      result[i * 4 + 1] = digest[i] >> 16;
+      result[i * 4 + 2] = digest[i] >> 8;
+      result[i * 4 + 3] = digest[i];
+    }
+
+    /* Reset for next run */
+    reset(digest, transforms);
+    buffer_len = 0;
+    
+    return result;
+}
+std::string SHA1::as_hex()
+{
+    finalize();
 
     /* Result as hex string */
     std::string result;  result.resize(40);
@@ -296,9 +320,15 @@ std::string SHA1::final()
     return result;
 }
 
-std::string SHA1::oneshot(const std::string& buffer)
+std::string SHA1::oneshot_raw(const std::string& buffer)
 {
   SHA1 object;
   object.update(buffer.c_str(), buffer.size());
-  return object.final();
+  return object.as_raw();
+}
+std::string SHA1::oneshot_hex(const std::string& buffer)
+{
+  SHA1 object;
+  object.update(buffer.c_str(), buffer.size());
+  return object.as_hex();
 }

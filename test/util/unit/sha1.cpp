@@ -17,14 +17,15 @@
 
 #include <common.cxx>
 #include <util/sha1.hpp>
+#include <util/base64.hpp>
 
 CASE("Rolling checksum verification") {
   SHA1 checksum;
   checksum.update("abc");
-  EXPECT(checksum.final() == "a9993e364706816aba3e25717850c26c9cd0d89d");
+  EXPECT(checksum.as_hex() == "a9993e364706816aba3e25717850c26c9cd0d89d");
 
   checksum.update("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq");
-  EXPECT(checksum.final() == "84983e441c3bd26ebaae4aa1f95129e5e54670f1");
+  EXPECT(checksum.as_hex() == "84983e441c3bd26ebaae4aa1f95129e5e54670f1");
 
   for (int i = 0; i < 1000000/200; ++i)
   {
@@ -34,5 +35,17 @@ CASE("Rolling checksum verification") {
                       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                      );
   }
-  EXPECT(checksum.final() == "34aa973cd4c4daa4f61eeb2bdbad27316534016f");
+  EXPECT(checksum.as_hex() == "34aa973cd4c4daa4f61eeb2bdbad27316534016f");
+}
+
+inline std::string encode_hash(const std::string& key)
+{
+  static const std::string GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+  std::string hash  = SHA1::oneshot_raw(key + GUID);
+  return base64::encode(hash);
+}
+
+CASE("WebSocket Handshake") {
+  EXPECT(encode_hash("dGhlIHNhbXBsZSBub25jZQ==")
+                 == "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=");
 }
