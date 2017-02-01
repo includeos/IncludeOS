@@ -45,14 +45,30 @@ extern "C" {
 
 namespace hw
 {
+  static IApic* current_apic;
+  IApic& APIC::get() noexcept {
+    return *current_apic;
+  }
+  
   void APIC::init()
   {
     // disable the legacy 8259 PIC
     // by masking off all interrupts
     hw::PIC::set_intr_mask(0xFFFF);
 
+    // a PC without APIC is insane
+    assert(CPUID::has_feature(CPUID::Feature::APIC) && "If this fails, the machine is insane");
+
+    if (CPUID::has_feature(CPUID::Feature::X2APIC)) {
+        current_apic = new x2apic();
+        current_eoi_mechanism = x2apic_send_eoi;
+    } else {
+        current_apic = new xapic();
+        current_eoi_mechanism = lapic_send_eoi;
+    }
+
     // enable xAPIC/x2APIC on this cpu
-    get().enable();
+    current_apic->enable();
 
     // initialize I/O APICs
     IOAPIC::init(ACPI::get_ioapics());

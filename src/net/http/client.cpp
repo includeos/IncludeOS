@@ -21,8 +21,10 @@ namespace http {
 
   const Client::timeout_duration Client::DEFAULT_TIMEOUT{std::chrono::seconds(5)};
 
-  Client::Client(TCP& tcp)
-    : tcp_(tcp), conns_{}
+  Client::Client(TCP& tcp, Request_handler on_send)
+    : tcp_(tcp),
+      on_send_{std::move(on_send)},
+      conns_{}
   {
   }
 
@@ -50,6 +52,9 @@ namespace http {
       header.set_field(header::Host, host.to_string());
 
     debug("<http::Client> Sending Request:\n%s\n", req->to_string().c_str());
+
+    if(on_send_)
+      on_send_(*req, options, host);
 
     conn.send(move(req), move(cb), options.bufsize, options.timeout);
   }

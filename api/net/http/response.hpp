@@ -135,6 +135,13 @@ public:
   ///
   Response& set_version(const Version version) noexcept;
 
+  /**
+   * @brief      Return the status line of the response message (Version Code CodeStr)
+   *
+   * @return     A string reprenentation of the status line
+   */
+  std::string status_line() const noexcept;
+
   ///
   /// Reset the response message as if it was now
   /// default constructed
