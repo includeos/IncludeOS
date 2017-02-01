@@ -46,15 +46,13 @@ void Service::ready()
 
   server_ = std::make_unique<Server>(inet.tcp());
 
-  server_->on_request([] (Request_ptr req, Response_writer writer)
+  server_->on_request([] (Request_ptr req, Response_writer_ptr writer)
   {
-    printf("Receiving request:\n%s\n", req->to_string().c_str());
-    auto& res = writer.res();
-    res.add_body("Hello");
-    auto& header = writer.header();
-    header.set_field(header::Content_Type, "text/plain");
-    header.set_field(header::Content_Length, std::to_string(res.body().size()));
-    writer.send();
+    printf("Received request:\n%s\n", req->to_string().c_str());
+    // set content type
+    writer->header().set_field(header::Content_Type, "text/plain");
+    // write body
+    writer->write("Hello");
   });
 
   server_->listen(8080);
