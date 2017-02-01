@@ -28,7 +28,6 @@ import os
 import glob
 
 vm_schema = None
-jsons = []
 valid_vms = []
 verbose = False
 
@@ -48,36 +47,39 @@ def validate_vm_spec(filename):
     # Load and parse as JSON
     try:
         vm_spec = json.loads(open(filename).read())
-    except:
-        raise Exception("JSON load / parse Error for " + filename)
+    except Exception as e:
+        raise Exception("JSON load / parse Error for " + filename + ": " + str(e))
 
     if (not vm_schema): load_schema()
 
     # Validate JSON according to schema
     validator(vm_schema).validate(vm_spec)
 
-    return vm_spec, filename
+    return vm_spec
 
 
-def load_config(path):
+def load_config(path, verbose = verbose):
     global valid_vms
-    global jsons
 
+    # Single JSON-file  must conform to VM-schema
     if (os.path.isfile(path)):
-        jsons = [path]
+        return validate_vm_spec(path)
+
+    jsons = []
 
     if (os.path.isdir(path)):
         jsons = glob.glob(path + "/*.json")
         jsons.sort()
 
-    # JSON-files must conform to VM-schema
+    # For several JSON-files, return the ones conforming to VM-schema
     for json in jsons:
-        spec = validate_vm_spec(json)
+        if verbose: print"\t*Validating ", json, ": ",
         try:
             spec = validate_vm_spec(json)
             valid_vms.append(spec)
+            if verbose: print "OK"
         except Exception as e:
-            pass
+            if verbose: print "FAIL " + str(e)
     return valid_vms
 
 

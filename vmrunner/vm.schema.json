@@ -45,7 +45,7 @@
       "items" : {
         "type" : "object",
         "properties" : {
-          "device" : { "enum" : ["virtio", "vmxnet", "vmxnet3"] },
+          "device" : { "type" : "string" },
           "name" : { "type" : "string" },
           "backend" : { "enum" : ["tap", "user"], "default" : "tap" }
         },
