@@ -28,6 +28,11 @@ package_path = os.path.dirname(os.path.realpath(__file__))
 default_config = {"description" : "Single virtio nic, otherwise hypervisor defaults",
                   "net" : [{"device" : "virtio", "backend" : "tap" }] }
 
+default_json = "./vm.json"
+
+# Provide a list of VM's with validated specs
+# (One default vm added at the end)
+vms = []
 
 nametag = "<VMRunner>"
 INFO = color.INFO(nametag)
@@ -71,7 +76,8 @@ exit_codes = {"SUCCESS" : 0,
               "BUILD_FAIL" : 69,
               "ABORT" : 70,
               "VM_EOT" : 71,
-              "BOOT_FAILED": 72
+              "BOOT_FAILED": 72,
+              "PARSE_ERROR": 73
 }
 
 def get_exit_code_name (exit_code):
@@ -175,7 +181,10 @@ class qemu(hypervisor):
         # FIXME: this needs to get removed, e.g. fetched from the schema
         names = {"virtio" : "virtio-net", "vmxnet" : "vmxnet3", "vmxnet3" : "vmxnet3"}
 
-        device = names[device] + ",netdev=" + if_name
+        if device in names:
+            device = names[device]
+
+        device += ",netdev=" + if_name
 
         # Add mac-address if specified
         if mac: device += ",mac=" + mac
@@ -412,7 +421,6 @@ class vm:
         if VERB: print color.INFO("<timeout>"), "VM timed out"
 
         # Note: we have to stop the VM since the main thread is blocking on vm.readline
-        #self.exit(exit_codes["TIMEOUT"], nametag + " Test timed out")
         self._exit_status = exit_codes["TIMEOUT"]
         self._exit_msg = "vmrunner timed out after " + str(self._timeout_after) + " seconds"
         self._hyper.stop().wait()
@@ -578,22 +586,29 @@ class vm:
         # If everything went well we can return
         return self
 
+
 # Load a single vm config. Fallback to default
-def load_single_config(path = "."):
+def load_single_config(path = default_json):
 
     config = default_config
     description = None
 
     # If path is explicitly "None", try current dir
-    if not path: path = "."
+    if not path: path = default_json
 
-    info("Loading config from", path)
-    try:
-        # Try loading the first valid config
-        config, path = validate_vm.load_config(path)[0]
-        info ("vm config loaded from", path, ":",)
-    except Exception as e:
-        info ("No JSON config found - using default:",)
+    if os.path.isfile(path):
+        info("Loading config from", path)
+        try:
+            # Try loading the first valid config
+            config = validate_vm.load_config(path)
+            info ("vm config loaded from", path, ":", config)
+
+        except Exception as e:
+            print_exception()
+            info("Could not parse VM config file(s): " + " ".join(json))
+            program_exit(73, str(e))
+    else:
+        info("Falling back to default config")
 
     if config.has_key("description"):
         description = config["description"]
@@ -605,9 +620,15 @@ def load_single_config(path = "."):
     return config
 
 
-# Provide a list of VM's with validated specs
-# One unconfigured vm is created by default, which will try to load a config if booted
-vms = [vm()]
+def program_exit(status, msg):
+    global vms
+    for vm in vms:
+        vm.stop().wait()
+    info("Exit called with status", status, "(",get_exit_code_name(exit_status),")")
+    # Print fail message and exit with appropriate code
+    print color.EXIT_ERROR(get_exit_code_name(status), msg)
+    sys.exit(status)
+
 
 def load_configs(config_path = "."):
     global vms
@@ -649,5 +670,8 @@ def handler(signum, frame):
             print color.WARNING("Forced shutdown caused exception: "), e
             raise e
 
+
+# One unconfigured vm is created by default, which will try to load a config if booted
+vms.append(vm())
 
 signal.signal(signal.SIGINT, handler)
