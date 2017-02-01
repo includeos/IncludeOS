@@ -30,14 +30,15 @@
 
 namespace http {
 
-  using Request_handler   = delegate<void(Request_ptr, Response_writer)>;
+  // Used in HTTP server - invoked when a Request is received
+  using Request_handler   = delegate<void(Request_ptr, Response_writer_ptr)>;
 
   class Server {
   public:
     using TCP             = net::TCP;
     using TCP_conn        = net::tcp::Connection_ptr;
 
-    using idle_duration = std::chrono::seconds;
+    using idle_duration   = std::chrono::seconds;
 
     static constexpr size_t     DEFAULT_BUFSIZE = 2048;
     static const idle_duration  DEFAULT_IDLE_TIMEOUT; // server.cpp, 60s
@@ -47,16 +48,45 @@ namespace http {
     using Index_set       = std::vector<size_t>;
 
   public:
+    /**
+     * @brief      Creates a HTTP Server on a given TCP instance
+     *
+     * @param      tcp      The tcp instance (interface)
+     * @param[in]  handler  The handler to be invoked when a request is received (optional in constructor)
+     * @param[in]  timeout  The duration for how long a connection can be idle (0 = no timeout)
+     */
     explicit Server(TCP& tcp, Request_handler handler = nullptr, idle_duration timeout = DEFAULT_IDLE_TIMEOUT);
 
+    /**
+     * @brief      Start listening to a port. Expects a Request_handler to be set (on_request)
+     *
+     * @param[in]  port  The port to listen on
+     */
     void listen(uint16_t port);
 
-    void on_request(Request_handler cb)
-    { on_request_ = std::move(cb); }
+    /**
+     * @brief      Setup handler for when a Request is received
+     *
+     * @param[in]  handler    A Request_handler
+     */
+    void on_request(Request_handler handler)
+    { on_request_ = std::move(handler); }
 
-    size_t active_clients() const noexcept
+    /**
+     * @brief      Returns number of connected clients
+     *
+     * @return     Number of connected clients
+     */
+    size_t connected_clients() const noexcept
     { return connections_.size() - free_idx_.size(); }
 
+    /**
+     * @brief      Creates a response with some predefined values
+     *
+     * @param[in]  code  The HTTP status code
+     *
+     * @return     A Response_ptr with predefined values
+     */
     Response_ptr create_response(status_t code = http::OK) const;
 
     ~Server();
