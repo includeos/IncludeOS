@@ -112,7 +112,7 @@ for vm_ in vmrunner.vms:
         vm = vm_
 
 # Don't listen to events needed by testrunner
-vm.on_success(lambda: None, do_exit = False)
+vm.on_success(lambda(x): None, do_exit = False)
 
 if (args.clean):
     print INFO, "Cleaning build"
