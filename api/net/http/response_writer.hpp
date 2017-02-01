@@ -21,10 +21,24 @@
 
 // http
 #include "response.hpp"
+
 #include <net/tcp/connection.hpp>
+#include <stdexcept>
 
 namespace http {
 
+  class Response_writer_error : public std::runtime_error {
+    using base = std::runtime_error;
+  public:
+    using base::base;
+  };
+
+  class Response_writer;
+  using Response_writer_ptr = std::unique_ptr<Response_writer>;
+
+  /**
+   * @brief      Helper for writing a HTTP Response on a connection.
+   */
   class Response_writer {
   public:
     using TCP_conn  = net::tcp::Connection_ptr;
@@ -39,24 +53,61 @@ namespace http {
     const auto& header() const
     { return response_->header(); }
 
-    void send_header(status_t code = http::OK);
+    /**
+     * @brief      Write the response payload to the underlying connection.
+     *             Writes header if not already written by write_header.
+     *
+     * @throws     Response_writer_error if somethings goes wrong/not allowed
+     *
+     * @param[in]  data  The data
+     */
+    void write(std::string data);
 
-    void send();
+    /**
+     * @brief      Same as write(std::string data) except data does not get copied into TCP buffer.
+     *
+     * @param[in]  buf   The buffer
+     * @param[in]  len   The length
+     */
+    void write(buffer_t buf, size_t len);
 
-    void send_body(std::string data);
+    /**
+     * @brief      Writes the status line + header to the underlying connection
+     *
+     * @throws     Response_writer_error when trying to do it more than once
+     *
+     * @param[in]  code  The code
+     */
+    void write_header(status_t code);
 
-    void send(buffer_t buf, size_t len);
-
-    auto& res()
+    Response& response()
     { return *response_; }
 
-    auto& conn()
+    Response_ptr& response_ptr()
+    { return response_; }
+
+    TCP_conn& connection()
     { return connection_; }
+
+    /**
+     * @brief      Close the underlying connection
+     */
+    void close()
+    { if(!connection_->is_closing()) connection_->close(); }
 
   private:
     Response_ptr  response_;
     TCP_conn      connection_;
     bool          header_sent_{false};
+
+    /**
+     * @brief      Preprocessing of a write
+     *
+     * @throws     Response_writer_error if something goes wrong/not allowed
+     *
+     * @param[in]  len   The length of the data to be written
+     */
+    void pre_write(size_t len);
 
   }; // < class Response_writer
 
