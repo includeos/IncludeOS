@@ -43,16 +43,6 @@ namespace http {
     auto idle_since() const noexcept
     { return idle_since_; }
 
-    /* Delete copy constructor */
-    Server_connection(const Server_connection&)             = delete;
-
-    Server_connection(Server_connection&&)                  = default;
-
-    /* Delete copy assignment */
-    Server_connection& operator=(const Server_connection&)  = delete;
-
-    Server_connection& operator=(Server_connection&&)       = default;
-
   private:
     Server&           server_;
     Request_ptr       req_;

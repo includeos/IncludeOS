@@ -96,6 +96,9 @@ namespace http {
   void Server_connection::end_request(const status_t code)
   {
     server_.receive(std::move(req_), code, *this);
+
+    if(released())
+      close();
   }
 
   void Server_connection::close()
