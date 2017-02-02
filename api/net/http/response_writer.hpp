@@ -21,8 +21,8 @@
 
 // http
 #include "response.hpp"
+#include "connection.hpp"
 
-#include <net/tcp/connection.hpp>
 #include <stdexcept>
 
 namespace http {
@@ -45,7 +45,7 @@ namespace http {
     using buffer_t  = net::tcp::buffer_t;
 
   public:
-    Response_writer(Response_ptr res, TCP_conn);
+    Response_writer(Response_ptr res, Connection&);
 
     auto& header()
     { return response_->header(); }
@@ -86,18 +86,12 @@ namespace http {
     Response_ptr& response_ptr()
     { return response_; }
 
-    TCP_conn& connection()
+    Connection& connection()
     { return connection_; }
-
-    /**
-     * @brief      Close the underlying connection
-     */
-    void close()
-    { if(!connection_->is_closing()) connection_->close(); }
 
   private:
     Response_ptr  response_;
-    TCP_conn      connection_;
+    Connection&   connection_;
     bool          header_sent_{false};
 
     /**

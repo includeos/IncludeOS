@@ -93,7 +93,7 @@ namespace http {
   {
     if(code == OK)
     {
-      on_request_(std::move(req), std::make_unique<Response_writer>( create_response(code), conn.tcp() ));
+      on_request_(std::move(req), std::make_unique<Response_writer>( create_response(code), conn ));
     }
     else
     {
