@@ -141,7 +141,7 @@ namespace http {
     // stop timeout timer
     timer_.stop();
 
-    callback(err, std::move(res_));
+    callback(err, std::move(res_), *this);
 
     if(!released())
     {
@@ -165,7 +165,7 @@ namespace http {
       auto callback = std::move(on_response_);
       on_response_.reset();
       timer_.stop();
-      callback(Error::CLOSING, std::move(res_));
+      callback(Error::CLOSING, std::move(res_), *this);
     }
 
     client_.close(*this);

@@ -80,6 +80,20 @@ namespace http {
      */
     void write_header(status_t code);
 
+    /**
+     * @brief      Writes the full response or just the body dependent if headers are sent or not.
+     */
+    void write();
+
+    /**
+     * @brief      Sets the response
+     *
+     * @param[in]  res   The response
+     */
+    void set_response(Response_ptr res)
+    { Expects(not header_sent_); response_ = std::move(res); }
+
+
     Response& response()
     { return *response_; }
 

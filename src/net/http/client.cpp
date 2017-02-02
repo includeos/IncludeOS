@@ -93,7 +93,7 @@ namespace http {
         }
         else
         {
-          cb({Error::RESOLVE_HOST}, nullptr);
+          cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
         }
       })
     );
@@ -148,7 +148,7 @@ namespace http {
         }
         else
         {
-          cb({Error::RESOLVE_HOST}, nullptr);
+          cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
         }
       })
     );
