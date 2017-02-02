@@ -39,6 +39,8 @@ namespace http {
     template <typename TCP>
     explicit Connection(TCP&, Peer);
 
+    inline constexpr explicit Connection() noexcept;
+
     net::tcp::port_t local_port() const noexcept
     { return (tcpconn_) ? tcpconn_->local_port() : 0; }
 
@@ -72,6 +74,12 @@ namespace http {
     bool released() const
     { return tcpconn_ == nullptr; }
 
+    static Connection& empty() noexcept
+    {
+      static Connection c;
+      return c;
+    }
+
     /* Delete copy constructor */
     Connection(const Connection&)             = delete;
 
@@ -101,6 +109,12 @@ namespace http {
   template <typename TCP>
   Connection::Connection(TCP& tcp, Peer addr)
     : Connection(tcp.connect(addr))
+  {
+  }
+
+  inline constexpr Connection::Connection() noexcept
+    : tcpconn_(nullptr),
+      keep_alive_(false)
   {
   }
 

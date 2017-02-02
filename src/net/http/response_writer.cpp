@@ -87,4 +87,12 @@ namespace http {
       throw Response_writer_error{"Headers already sent."};
   }
 
+  void Response_writer::write()
+  {
+    if(!response_->body().empty())
+      write(response_->body().to_string());
+    else
+      write_header(response_->status_code());
+  }
+
 }
