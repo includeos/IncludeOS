@@ -12,9 +12,10 @@ from vmrunner import vmrunner
 
 def test2():
   print "Booting VM 2 - lots of memory"
-  vmrunner.vms[1].boot(20)
+  vm = vmrunner.vm(config = "vm2.json")
+  vm.boot(20, image_name = "build/test_memmap")
 
-vm = vmrunner.vms[0];
-#vm.on_exit_success(test2)
+vm = vmrunner.vm(config = "vm1.json")
+vm.on_exit_success(test2)
 print "Booting VM 1 - default amount of memory"
 vm.cmake().boot(20).clean()
