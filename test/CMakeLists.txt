@@ -58,6 +58,7 @@ set(TEST_SOURCES
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/util/unit/base64.cpp
+  ${TEST}/util/unit/sha1.cpp
   ${TEST}/util/unit/chunk_test.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
@@ -153,6 +154,7 @@ set(OS_SOURCES
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp
   ${SRC}/util/percent_encoding.cpp
+  ${SRC}/util/sha1.cpp
   ${SRC}/util/statman.cpp
   ${SRC}/util/syslog_facility.cpp
   ${SRC}/util/syslogd.cpp

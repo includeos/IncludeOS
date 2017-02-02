@@ -51,6 +51,39 @@ namespace http {
     auto&& tcp() const
     { return tcpconn_; }
 
+    /**
+     * @brief      Shutdown the underlying TCP connection
+     */
+    inline void shutdown();
+
+    /**
+     * @brief      Release the underlying TCP connection,
+     *             making this connection useless.
+     *
+     * @return     The underlying TCP connection
+     */
+    inline TCP_conn release();
+
+    /**
+     * @brief      Wether the underlying TCP connection has been released or not
+     *
+     * @return     true if the underlying TCP connection is released
+     */
+    bool released() const
+    { return tcpconn_ == nullptr; }
+
+    /* Delete copy constructor */
+    Connection(const Connection&)             = delete;
+
+    Connection(Connection&&)                  = default;
+
+    /* Delete copy assignment */
+    Connection& operator=(const Connection&)  = delete;
+
+    Connection& operator=(Connection&&)       = default;
+
+    virtual ~Connection() {}
+
   protected:
     TCP_conn          tcpconn_;
     bool              keep_alive_;
@@ -69,6 +102,25 @@ namespace http {
   Connection::Connection(TCP& tcp, Peer addr)
     : Connection(tcp.connect(addr))
   {
+  }
+
+  inline void Connection::shutdown()
+  {
+    if(tcpconn_->is_closing())
+      tcpconn_->close();
+  }
+
+  inline Connection::TCP_conn Connection::release()
+  {
+    auto copy = tcpconn_;
+
+    // this is expensive and may be unecessary,
+    // but just to be safe for now
+    copy->setup_default_callbacks();
+
+    tcpconn_ = nullptr;
+
+    return copy;
   }
 
 } // < namespace http

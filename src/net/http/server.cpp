@@ -37,7 +37,9 @@ namespace http {
     INFO("HTTP Server", "Listening on port %u", port);
 
     using namespace std::chrono;
-    timer_id_ = Timers::periodic(30s, 1min, {this, &Server::timeout_clients});
+
+    if(idle_timeout_ != idle_duration::zero())
+      timer_id_ = Timers::periodic(30s, 1min, {this, &Server::timeout_clients});
   }
 
   Response_ptr Server::create_response(status_t code) const
@@ -91,7 +93,7 @@ namespace http {
   {
     if(code == OK)
     {
-      on_request_(std::move(req), {create_response(code), conn.tcp()});
+      on_request_(std::move(req), std::make_unique<Response_writer>( create_response(code), conn ));
     }
     else
     {

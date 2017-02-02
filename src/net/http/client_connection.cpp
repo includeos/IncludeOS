@@ -39,7 +39,6 @@ namespace http {
   {
     Expects(available());
     req_ = std::move(req);
-    Expects(on_res != nullptr);
     on_response_ = std::move(on_res);
     Expects(on_response_ != nullptr);
     timeout_dur_ = timeout;
@@ -144,17 +143,23 @@ namespace http {
 
     callback(err, std::move(res_));
 
-    // avoid trying to parse any more responses
-    tcpconn_->on_read(0, nullptr);
+    if(!released())
+    {
+      // avoid trying to parse any more responses
+      tcpconn_->on_read(0, nullptr);
 
-    // user callback may override this
-    if(!keep_alive_)
-      tcpconn_->close();
+      if(!keep_alive_) // user callback may override this
+        shutdown();
+    }
+    else
+    {
+      close();
+    }
   }
 
   void Client_connection::close()
   {
-    // if the user already
+    // if the user havent received a response yet
     if(on_response_ != nullptr)
     {
       auto callback = std::move(on_response_);

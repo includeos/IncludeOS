@@ -21,13 +21,58 @@
 
 namespace http {
 
-  Response_writer::Response_writer(Response_ptr res, TCP_conn conn)
+  Response_writer::Response_writer(Response_ptr res, Connection& conn)
     : response_(std::move(res)),
-      connection_(std::move(conn))
+      connection_(conn)
   {
+    Ensures(not connection_.released());
   }
 
-  void Response_writer::send_header(status_t code)
+  void Response_writer::write(std::string data)
+  {
+    pre_write(data.size());
+
+    connection_.tcp()->write(std::move(data));
+  }
+
+  void Response_writer::write(buffer_t buf, size_t len)
+  {
+    pre_write(len);
+
+    connection_.tcp()->write(buf, len);
+  }
+
+  void Response_writer::pre_write(size_t len)
+  {
+    // send headers if not already sent
+    if(not header_sent_)
+    {
+      // lets help out with setting the content-length if none is set
+      if(not header().has_field(header::Content_Length))
+      {
+        response_->set_content_length(len);
+      }
+      // content-length is already set
+      else
+      {
+        const auto cl = response_->content_length();
+        // don't allow writing more than content-length in header allows
+        if(cl < len)
+          throw Response_writer_error{"Trying to write more than Content-Length allows: " + std::to_string(cl)};
+      }
+      // write headers
+      write_header(http::OK);
+    }
+    else
+    {
+      const auto cl = response_->content_length();
+      // don't allow writing more than content-length in header allows
+      if(cl < len)
+        throw Response_writer_error{"Trying to write more than Content-Length allows: " + std::to_string(cl)};
+    }
+  }
+
+  void Response_writer::write_header(status_t code)
   {
     if(LIKELY(not header_sent_))
     {
@@ -36,21 +81,10 @@ namespace http {
       std::ostringstream header;
       header << response_->status_line() << "\r\n" << response_->header();
 
-      connection_->write(header.str());
+      connection_.tcp()->write(header.str());
     }
-  }
-
-  void Response_writer::send()
-  {
-    connection_->write(response_->to_string());
-  }
-
-  void Response_writer::send_body(std::string data)
-  {
-    if(not header_sent_)
-      send_header();
-
-    connection_->write(std::move(data));
+    else
+      throw Response_writer_error{"Headers already sent."};
   }
 
 }
