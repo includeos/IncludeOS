@@ -128,3 +128,9 @@ void Inet4::process_sendq(size_t packets) {
     if (give[i]) tqa[i](give[i]);
   */
 }
+
+void Inet4::force_start_send_queues()
+{
+  size_t packets = transmit_queue_available();
+  if (packets) process_sendq(packets);
+}
