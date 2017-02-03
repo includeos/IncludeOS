@@ -84,6 +84,7 @@ class URI {
   /// Whether to perform parsing on the the data specified in {uri}
   ///
   explicit URI(const std::experimental::string_view uri, const bool parse = true);
+  URI(const char*, const bool parse = true);
 
   ///////////////////////////////////////////////
   //----------RFC-specified URI parts----------//
@@ -115,6 +116,13 @@ class URI {
   /// @return The host's information
   ///
   std::experimental::string_view host() const noexcept;
+
+  ///
+  /// Check if host portion is an IPv4 address.
+  ///
+  /// @return True, maybe.
+  ///
+  bool host_is_ip4() const noexcept;
 
   ///
   /// Get the raw port number in decimal character representation.
