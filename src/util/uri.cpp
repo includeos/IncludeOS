@@ -68,6 +68,11 @@ URI::URI(const std::experimental::string_view uri, const bool parse)
 {
   if (parse) this->parse();
 }
+URI::URI(const char* uri, const bool parse)
+  : uri_str_{decode(uri)}
+{
+  if (parse) this->parse();
+}
 
 URI::URI(const URI& u)
   : uri_str_{u.uri_str_},
@@ -157,6 +162,10 @@ std::experimental::string_view URI::userinfo() const noexcept {
 ///////////////////////////////////////////////////////////////////////////////
 std::experimental::string_view URI::host() const noexcept {
   return host_;
+}
+
+bool URI::host_is_ip4() const noexcept {
+  return std::isdigit(host_.back());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

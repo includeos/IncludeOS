@@ -70,7 +70,7 @@ void Service::ready()
 
   req->set_uri(uri::URI{"/testing"});
   client_->send(std::move(req), {inet.gateway(), 9011},
-  [] (Error err, Response_ptr res)
+  [] (Error err, Response_ptr res, Connection&)
   {
     if (err)
       printf("Error: %s \n", err.to_string().c_str());
@@ -88,7 +88,7 @@ void Service::ready()
   const std::string acorn_url{"http://acorn2.unofficial.includeos.io/"};
 
   client_->get(acorn_url, {},
-  [] (Error err, Response_ptr res)
+  [] (Error err, Response_ptr res, Connection&)
   {
     CHECK(!err, "Error: %s", err.to_string().c_str());
     CHECK(res != nullptr, "Received response");
@@ -98,7 +98,7 @@ void Service::ready()
 
   using namespace std::chrono;
   client_->get(acorn_url + "api/dashboard/status", {},
-  [] (Error err, Response_ptr res)
+  [] (Error err, Response_ptr res, Connection&)
   {
     CHECK(!err, "Error: %s", err.to_string().c_str());
     CHECK(res != nullptr, "Received response");
