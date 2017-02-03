@@ -51,8 +51,9 @@ inline static uint16_t bind_port(const std::experimental::string_view scheme,
   return (it not_eq port_table.cend()) ? it->second : 0xFFFFU;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 // copy helper
-inline static std::experimental::string_view updated_copy(
+static inline std::experimental::string_view updated_copy(
   const std::string& to_copy,
   const std::experimental::string_view& view,
   const std::string& from_copy)
@@ -68,12 +69,8 @@ URI::URI(const std::experimental::string_view uri, const bool parse)
 {
   if (parse) this->parse();
 }
-URI::URI(const char* uri, const bool parse)
-  : uri_str_{decode(uri)}
-{
-  if (parse) this->parse();
-}
 
+///////////////////////////////////////////////////////////////////////////////
 URI::URI(const URI& u)
   : uri_str_{u.uri_str_},
     port_{u.port_},
@@ -95,6 +92,7 @@ URI::URI(const URI& u)
   }
 }
 
+///////////////////////////////////////////////////////////////////////////////
 URI::URI(URI&& u)
   : uri_str_(std::move(u.uri_str_)),
     port_(u.port_),
@@ -109,6 +107,7 @@ URI::URI(URI&& u)
 {
 }
 
+///////////////////////////////////////////////////////////////////////////////
 URI& URI::operator=(const URI& u)
 {
   uri_str_  = u.uri_str_;
@@ -134,6 +133,7 @@ URI& URI::operator=(const URI& u)
   return *this;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 URI& URI::operator=(URI&& u)
 {
   uri_str_  = std::move(u.uri_str_);
@@ -164,8 +164,18 @@ std::experimental::string_view URI::host() const noexcept {
   return host_;
 }
 
+///////////////////////////////////////////////////////////////////////////////
 bool URI::host_is_ip4() const noexcept {
   return std::isdigit(host_.back());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+std::experimental::string_view URI::host_and_port() const noexcept {
+  if (not port_str_.empty()) {
+    return std::experimental::string_view{host_.data(), host_.length() + port_str_.length() + 1};
+  } else {
+    return host_;
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -263,6 +273,12 @@ URI& URI::parse() {
 
   port_ = bind_port(scheme_, u.port);
 
+  return *this;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+URI& URI::reset() {
+  new (this) URI{};
   return *this;
 }
 
