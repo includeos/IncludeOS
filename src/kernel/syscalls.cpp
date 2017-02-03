@@ -183,21 +183,21 @@ void panic(const char* why) {
   // heap and backtrace info
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
-  
+
   fprintf(stderr, "\tHeap is at: %#x / %#x  (diff=%#x)\n",
          heap_end, OS::heap_max(), OS::heap_max() - heap_end);
   fprintf(stderr, "\tHeap usage: %u / %u Kb (%.2f%%)\n",
-         (uintptr_t) (heap_end - heap_begin) / 1024, 
+         (uintptr_t) (heap_end - heap_begin) / 1024,
          heap_total / 1024,
          total * 100.0);
   print_backtrace();
 
   // Signal End-Of-Transmission
   fprintf(stderr, "\x04"); fflush(stderr);
-  
+
   // call on_panic handler
   panic_handler();
-  
+
   // .. if we return from the panic handler, go to permanent sleep
   while (1) asm("cli; hlt");
   __builtin_unreachable();
@@ -215,6 +215,14 @@ void abort_ex(const char* why) {
   __builtin_unreachable();
 }
 
+#if defined(__MACH__)
+#if !defined(__MAC_10_12)
+typedef int clockid_t;
+#endif
+#if !defined(CLOCK_REALTIME)
+#define CLOCK_REALTIME 0
+#endif
+#endif
 // Basic second-resolution implementation - using CMOS directly for now.
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   if (clk_id == CLOCK_REALTIME) {
