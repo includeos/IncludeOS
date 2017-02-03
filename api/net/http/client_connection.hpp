@@ -32,6 +32,7 @@ namespace http {
 
   class Client_connection : public Connection {
   public:
+    using Response_handler  = delegate<void(Error, Response_ptr, Connection&)>;
     using timeout_duration  = std::chrono::milliseconds;
 
   public:
@@ -47,6 +48,8 @@ namespace http {
 
   private:
     Client&           client_;
+    Request_ptr       req_;
+    Response_ptr      res_;
     Response_handler  on_response_;
     Timer             timer_;
     timeout_duration  timeout_dur_;

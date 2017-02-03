@@ -21,8 +21,10 @@ namespace http {
 
   const Client::timeout_duration Client::DEFAULT_TIMEOUT{std::chrono::seconds(5)};
 
-  Client::Client(TCP& tcp)
-    : tcp_(tcp), conns_{}
+  Client::Client(TCP& tcp, Request_handler on_send)
+    : tcp_(tcp),
+      on_send_{std::move(on_send)},
+      conns_{}
   {
   }
 
@@ -51,6 +53,9 @@ namespace http {
 
     debug("<http::Client> Sending Request:\n%s\n", req->to_string().c_str());
 
+    if(on_send_)
+      on_send_(*req, options, host);
+
     conn.send(move(req), move(cb), options.bufsize, options.timeout);
   }
 
@@ -58,8 +63,26 @@ namespace http {
   {
     Expects(cb != nullptr);
     using namespace std;
-    tcp_.stack().resolve(
-      url.host().to_string(),
+    
+    if (url.host_is_ip4())
+    {
+      std::string host = url.host().to_string();
+      auto ip = net::ip4::Addr(host);
+      // setup request with method and headers
+      auto req = create_request(method);
+      *req << hfields;
+
+      // Set Host and URI path
+      populate_from_url(*req, url);
+
+      // Default to port 80 if non given
+      const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
+
+      send(move(req), {ip, port}, move(cb), move(options));
+    }
+    else
+    {
+      tcp_.stack().resolve(url.host().to_string(), 
       ResolveCallback::make_packed(
       [
         this,
@@ -68,11 +91,11 @@ namespace http {
         hfields{move(hfields)},
         cb{move(cb)},
         opt{move(options)}
-      ] (auto ip)
+      ]
+        (net::ip4::Addr ip)
       {
-        Expects(cb != nullptr);
         // Host resolved
-        if(ip != 0)
+        if (ip != 0)
         {
           // setup request with method and headers
           auto req = create_request(method);
@@ -88,10 +111,10 @@ namespace http {
         }
         else
         {
-          cb({Error::RESOLVE_HOST}, nullptr);
+          cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
         }
-      })
-    );
+      }));
+    }
   }
 
   void Client::request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb, Options options)
@@ -143,7 +166,7 @@ namespace http {
         }
         else
         {
-          cb({Error::RESOLVE_HOST}, nullptr);
+          cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
         }
       })
     );

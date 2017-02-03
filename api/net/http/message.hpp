@@ -85,6 +85,24 @@ public:
   ///
   const Header& header() const noexcept;
 
+  /**
+   * @brief      Returns the Content-Length value in header as an integer
+   *
+   * @note       Return value 0 can mean its either unset or zero.
+   *
+   * @return     The content length as integer
+   */
+  inline size_t content_length() const;
+
+  /**
+   * @brief      Sets the Content-Length value in the header
+   *
+   * @param[in]  len   The length of the content
+   *
+   * @return     Outcome of wether the field got updated or not
+   */
+  inline bool set_content_length(size_t len);
+
   ///
   /// Add an entity to the message
   ///
@@ -177,6 +195,16 @@ private:
 Message& operator << (Message& res, const Header_set& headers);
 
 /**--^----------- Helper Functions -----------^--**/
+
+/**--v-------- Inline Implementations --------v--**/
+inline size_t Message::content_length() const {
+  return header_fields_.content_length();
+}
+
+inline bool Message::set_content_length(size_t len) {
+  return header_fields_.set_content_length(len);
+}
+/**--^-------- Inline Implementations --------^--**/
 
 } //< namespace http
 

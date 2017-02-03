@@ -1,25 +1,42 @@
+// -*-C++-*-
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#pragma once
 #ifndef API_SMP_HEADER
 #define API_SMP_HEADER
 
-#include "hw/apic.hpp"
+#include "hw/smp.hpp"
 
 class SMP {
 public:
-  using task_func = hw::APIC::smp_task_func;
-  using done_func = hw::APIC::smp_done_func;
+  using task_func = hw::SMP::smp_task_func;
+  using done_func = hw::SMP::smp_done_func;
   
-  inline static void
+  static void
   add_task(task_func func, done_func done)
   {
-    hw::APIC::add_task(func, done);
+    hw::SMP::add_task(func, done);
   }
   
-  inline static void
-  start()
+  static void signal()
   {
-    hw::APIC::work_signal();
+    hw::SMP::work_signal();
   }
-  
 };
 
 #endif

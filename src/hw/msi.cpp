@@ -101,11 +101,10 @@ namespace hw
     return capbar_off + baroff;
   }
   
-  msix_t::msix_t(PCI_Device& device)
+  msix_t::msix_t(PCI_Device& device, uint32_t cap)
     : dev(device)
   {
-    // get capability structure
-    auto cap = dev.msix_cap();
+    // validate capability structure
     assert(cap >= 0x40);
     // read message control bits
     uint16_t func = dev.read16(cap + 2);

@@ -7,6 +7,7 @@ import argparse
 import json
 import time
 import multiprocessing  # To figure out number of cpus
+import junit_xml as jx
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
 sys.path.insert(0, ".")
@@ -46,6 +47,9 @@ parser.add_argument("-t", "--tests", nargs="*", dest="tests", default=[],
 parser.add_argument("-f", "--fail-early", dest="fail", action="store_true",
                     help="Exit on first failed test")
 
+parser.add_argument("-j", "--junit-xml", dest="junit", action="store_true",
+                    help="Produce junit xml results")
+
 args = parser.parse_args()
 
 test_count = 0
@@ -68,12 +72,13 @@ class Test:
         # Extract category and type from the path variable
         # Category is linked to the top level folder e.g. net, fs, hw
         # Type is linked to the type of test e.g. integration, unit, stress
-        if self.path_ == 'stress':
+        if self.path_.split("/")[1] == 'stress':
             self.category_ = 'stress'
             self.type_ = 'stress'
-        elif self.path_.split("/")[0] == 'misc':
+        elif self.path_.split("/")[1] == 'misc':
             self.category_ = 'misc'
             self.type_ = 'misc'
+            self.command_ = ['./test.sh']
         elif self.path_ == 'mod/gsl':
             self.category_ = 'mod'
             self.type_ = 'mod'
@@ -175,6 +180,12 @@ class Test:
         Arguments:
         self: Class function
         """
+        # If test is misc test, it does not need validation
+        if self.type_ == "misc":
+            self.skip_ = False
+            self.skip_reason_ = None
+            return
+
         # Test 1
         valid, err = validate_tests.validate_test(self.path_, verb = False)
         if not valid:
@@ -202,10 +213,13 @@ class Test:
         return
 
 
-def stress_test():
+def stress_test(stress_tests):
     """Perform stresstest"""
     global test_count
-    test_count += 1
+    test_count += len(stress_tests)
+    if len(stress_tests) == 0:
+        return 0
+
     if ("stress" in args.skip):
         print pretty.WARNING("Stress test skipped")
         return 0
@@ -214,33 +228,30 @@ def stress_test():
         raise Exception("Stress test failed validation")
 
     print pretty.HEADER("Starting stress test")
-    stress = Test("stress", clean = args.clean).start()
+    for test in stress_tests:
+        test.start()
 
-    if (stress and args.fail):
-        print pretty.FAIL("Stress test failed")
-        sys.exit(stress)
-
-    return 1 if stress.wait_status() else 0
+    for test in stress_tests:
+        return 1 if test.wait_status() else 0
 
 
-def misc_working():
+def misc_working(misc_tests):
     global test_count
+    test_count += len(misc_tests)
+    if len(misc_tests) == 0:
+        return 0
+
     if ("misc" in args.skip):
         print pretty.WARNING("Misc test skipped")
         return 0
 
-    misc_dir = 'misc'
-    dirs = os.walk(misc_dir).next()[1]
-    dirs.sort()
-    print pretty.HEADER("Building " + str(len(dirs)) + " misc")
-    test_count += len(dirs)
+    print pretty.HEADER("Building " + str(len(misc_tests)) + " misc")
     fail_count = 0
-    for directory in dirs:
-        misc = misc_dir + "/" + directory
-        print "Building misc ", misc
-        build = Test(misc, command = ['./test.sh'], name = directory).start().wait_status()
-        run = 0 #TODO: Make a 'test' folder for each miscellanous test, containing test.py, vm.json etc.
-        fail_count += 1 if build or run else 0
+
+    for test in misc_tests:
+        build = test.start().wait_status()
+        fail_count += 1 if build else 0
+
     return fail_count
 
 
@@ -254,6 +265,9 @@ def integration_tests(tests):
     Returns:
         integer: Number of tests that failed
     """
+    if len(tests) == 0:
+        return 0
+
     time_sensitive_tests = [ x for x in tests if x.time_sensitive_ ]
     tests = [ x for x in tests if x not in time_sensitive_tests ]
 
@@ -327,7 +341,16 @@ def find_test_folders():
         path = [root, directory]
 
         # Only look in folders listed as a test category
-        if directory not in test_categories:
+        if directory in test_types:
+            if directory == 'misc':
+                # For each subfolder in misc, register test
+                for subdir in os.listdir("/".join(path)):
+                    path.append(subdir)
+                    leaf_nodes.append("/".join(path))
+                    path.pop()
+            elif directory == 'stress':
+                leaf_nodes.append("./stress")
+        elif directory not in test_categories:
             continue
 
         # Only look into subfolders named "integration"
@@ -359,7 +382,7 @@ def filter_tests(all_tests, arguments):
         arguments (argument object): Contains arguments from argparse
 
     returns:
-        list: All Test objects that are to be run
+        tuple: (All Test objects that are to be run, skipped_tests)
     """
     print pretty.HEADER("Filtering tests")
 
@@ -394,7 +417,41 @@ def filter_tests(all_tests, arguments):
     fin_tests = [ x for x in tests_added if x not in skipped_tests ]
     print pretty.INFO("Accepted tests"), ", ".join([x.name_ for x in fin_tests])
 
-    return fin_tests
+    return (fin_tests, skipped_tests)
+
+def create_junit_output(tests):
+    """ Creates an output file for generating a junit test report
+
+    args:
+        tests: All tests completed + skipped
+
+    returns:
+        boolean: False if file generation failed - NOT YET
+    """
+
+    # Populate junit objects for all performed tests
+    junit_tests = []
+
+    # Integration tests
+    for test in tests:
+        junit_object = jx.TestCase(test.name_, classname="IncludeOS.{}.{}".format(test.type_, test.category_))
+
+        # If test is skipped add skipped info
+        if test.skip_:
+            junit_object.add_skipped_info(message = test.skip_reason_, output = test.skip_reason_)
+        elif test.proc_.returncode is not 0:
+            junit_object.add_failure_info(output = test.output_[0])
+        else:
+            junit_object.stdout = test.output_[0]
+            junit_object.stderr = test.output_[1]
+
+        # Add to list of all test objects
+        junit_tests.append(junit_object)
+
+    # Stress and misc tests
+    ts = jx.TestSuite("IncludeOS tests", junit_tests)
+    with open('output.xml', 'w') as f:
+            jx.TestSuite.to_file(f, [ts], prettyprint=False)
 
 
 def main():
@@ -411,22 +468,24 @@ def main():
         sys.exit(0)
 
     # get a list of all the tests that are to be run
-    filtered_tests = filter_tests(all_tests, args)
+    filtered_tests, skipped_tests = filter_tests(all_tests, args)
 
     # Run the tests
-    integration = integration_tests(filtered_tests)
-    if args.tests:
-        types_to_run = args.tests
-    else:
-        types_to_run = test_types
-    stress = stress_test() if "stress" in types_to_run else 0
-    misc = misc_working() if "misc" in types_to_run else 0
-    status = max(integration, stress, misc)
+    integration_result = integration_tests([x for x in filtered_tests if x.type_ == "integration"])
+    stress_result = stress_test([x for x in filtered_tests if x.type_ == "stress"])
+    misc_result = misc_working([x for x in filtered_tests if x.type_ == "misc"])
+
+    # Print status from test run
+    status = max(integration_result, stress_result, misc_result)
     if (status == 0):
         print pretty.SUCCESS(str(test_count - status) + " / " + str(test_count)
                             +  " tests passed, exiting with code 0")
     else:
         print pretty.FAIL(str(status) + " / " + str(test_count) + " tests failed ")
+
+    # Create Junit output
+    if args.junit:
+        create_junit_output(filtered_tests + skipped_tests)
 
     sys.exit(status)
 

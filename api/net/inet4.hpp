@@ -190,17 +190,12 @@ namespace net {
     template <int N = 0>
     static auto& ifconfig(double timeout = 10.0, dhcp_timeout_func on_timeout = nullptr)
     {
-      stack<N>().negotiate_dhcp(timeout, on_timeout);
+      if (timeout > 0.0)
+          stack<N>().negotiate_dhcp(timeout, on_timeout);
       return stack<N>();
     }
 
-
-    /** A super stack */
-    friend class Super_stack;
-
-
   private:
-
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
 
@@ -215,11 +210,11 @@ namespace net {
 
     // This is the actual stack
     hw::Nic& nic_;
-    Arp arp_;
-    IP4  ip4_;
+    Arp    arp_;
+    IP4    ip4_;
     ICMPv4 icmp_;
-    UDP  udp_;
-    TCP tcp_;
+    UDP    udp_;
+    TCP    tcp_;
     Forward_delg forward_packet_;
     // we need this to store the cache per-stack
     DNSClient dns;
@@ -228,6 +223,8 @@ namespace net {
     BufferStore& bufstore_;
 
     const uint16_t MTU_;
+
+    friend class Super_stack;
   };
 }
 

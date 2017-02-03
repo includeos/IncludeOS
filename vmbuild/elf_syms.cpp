@@ -4,9 +4,11 @@
 #include <cstring>
 #include <cassert>
 #include <vector>
-#include "elf.h"
+#include "elf_binary.hpp"
+#include <unistd.h>
 
 static Elf32_Ehdr* elf_header_location;
+bool verb = false;
 
 static const Elf32_Ehdr& elf_header() noexcept {
   return *elf_header_location;
@@ -17,6 +19,8 @@ static const char* elf_offset(int o) noexcept {
 
 static int prune_elf_symbols();
 static char* pruned_location = nullptr;
+static const char* syms_file = "_elf_symbols.bin";
+static const char* syms_section_name = ".elf_symbols";
 
 int main(int argc, const char** args)
 {
@@ -35,12 +39,23 @@ int main(int argc, const char** args)
   assert(res == size);
   fclose(f);
 
+  // Verify that the symbols aren't allready moved
+  Elf_binary binary ({fdata, size});
+  auto& sh_elf_syms = binary.section_header(syms_section_name);
+  auto syms_file_exists = access(syms_file, F_OK ) == 0;
+  auto sym_sectionsize_ok = sh_elf_syms.sh_size > 4;
+  if (sym_sectionsize_ok and syms_file_exists) {
+    fprintf(stderr, "%s: Elf symbols seems to be ok. Nothing to do.\n", args[0]);
+    return 0;
+  }
+
+  fprintf(stderr, "%s: Pruning ELF symbols \n", args[0]);
   // validate symbols
   elf_header_location = (decltype(elf_header_location)) fdata;
   int pruned_size = prune_elf_symbols();
 
   // write symbols to binary file
-  f = fopen("_elf_symbols.bin", "w");
+  f = fopen(syms_file, "w");
   assert(f);
   fwrite(pruned_location, sizeof(char), pruned_size, f);
   fclose(f);
