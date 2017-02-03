@@ -37,6 +37,8 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
     // call next manually only when no one called go_next
     if (oldptr == ptr) ptr = storage.next(ptr);
   }
+  /// wake all the slumbering IP stacks
+  serialized_tcp::wakeup_ip_networks();
   /// zero out all the state for security reasons
   storage.zero();
   

@@ -23,16 +23,24 @@ struct serialized_tcp
   int8_t  rtx_att;
   int8_t  syn_rtx;
   
-  uint8_t dup_acks;
-  
   bool    queued;
+
+
+  bool fast_recovery;
+  bool reno_fpack_seen;
+  bool limited_tx;
+  uint8_t dup_acks;
+
+  net::tcp::seq_t highest_ack;
+  net::tcp::seq_t prev_highest_ack;
   
   /// vla for write buffers
   char   vla[0];
   
   /// helper functions
-  Connection::State* to_state(int8_t st);
-  int8_t to_state(Connection::State* state);
+  Connection::State* to_state(int8_t st) const;
+  int8_t to_state(Connection::State* state) const;
+  static void wakeup_ip_networks();
 };
 
 extern std::shared_ptr<::net::tcp::Connection> deserialize_connection(void* addr, net::TCP& tcp);

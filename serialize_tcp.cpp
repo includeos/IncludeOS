@@ -7,12 +7,14 @@
 #include <net/tcp/connection_states.hpp>
 #include "serialize_tcp.hpp"
 #include <cstring>
+#include <unordered_set>
 
 using namespace net::tcp;
+static std::unordered_set<net::Inet<net::IP4>*> slumbering_ip4;
 
-Connection::State* serialized_tcp::to_state(int8_t st)
+Connection::State* serialized_tcp::to_state(int8_t state) const
 {
-  switch (st) {
+  switch (state) {
   case 0:  return &Connection::Closed::instance();
   case 1:  return &Connection::Listen::instance();
   case 2:  return &Connection::SynSent::instance();
@@ -24,10 +26,10 @@ Connection::State* serialized_tcp::to_state(int8_t st)
   case 8:  return &Connection::Closing::instance();
   case 9:  return &Connection::LastAck::instance();
   case 10: return &Connection::TimeWait::instance();
-  default: assert(0);
   }
+  throw std::runtime_error("to_state: Unknown TCP state");
 }
-int8_t serialized_tcp::to_state(Connection::State* state)
+int8_t serialized_tcp::to_state(Connection::State* state) const
 {
   if (state == &Connection::Closed::instance()) return 0;
   if (state == &Connection::Listen::instance()) return 1;
@@ -40,8 +42,23 @@ int8_t serialized_tcp::to_state(Connection::State* state)
   if (state == &Connection::Closing::instance()) return 8;
   if (state == &Connection::LastAck::instance()) return 9;
   if (state == &Connection::TimeWait::instance()) return 10;
-  assert(0);
+  throw std::runtime_error("to_state: Unknown TCP state");
 }
+
+struct read_buffer
+{
+  size_t remaining;
+  size_t offset;
+  
+  size_t size() const noexcept {
+    return offset;
+  }
+  size_t cap() const noexcept {
+    return remaining + offset;
+  }
+
+  char vla[0];
+};
 
 struct write_buffer
 {
@@ -64,7 +81,7 @@ struct serialized_writeq
 };
 
 
-void WriteQueue::deserialize_from(void* addr)
+int WriteQueue::deserialize_from(void* addr)
 {
   auto* writeq = (serialized_writeq*) addr;
   this->current_ = writeq->current;
@@ -92,9 +109,10 @@ void WriteQueue::deserialize_from(void* addr)
         std::forward_as_tuple([] (int) {})); // no-op write callback
     
     this->q.back().first.acknowledged = current->acknowledged;
-    assert(this->q.back().first.length() == current->length());
     bytes += current->length();
   }
+  
+  return sizeof(serialized_writeq) + len;
 }
 void Connection::deserialize_from(void* addr)
 {
@@ -109,12 +127,34 @@ void Connection::deserialize_from(void* addr)
   this->rttm         = area->rttm;
   this->rtx_attempt_ = area->rtx_att;
   this->syn_rtx_     = area->syn_rtx;
-  this->dup_acks_    = area->dup_acks;
   this->queued_      = area->queued;
+  this->fast_recovery = area->fast_recovery;
+  this->reno_fpack_seen = area->reno_fpack_seen;
+  this->limited_tx_  = area->limited_tx;
+  this->dup_acks_    = area->dup_acks;
+  this->highest_ack_ = area->highest_ack;
+  this->prev_highest_ack_ = area->prev_highest_ack;
+
   /// restore writeq from VLA
-  this->writeq.deserialize_from(area->vla);
-  /// we have to retransmit because of magic
-  //this->retransmit();
+  int writeq_len = this->writeq.deserialize_from(area->vla);
+  if (sendq_size() > 0)
+  {
+    /// we have to retransmit because of magic
+    slumbering_ip4.insert(&this->host_.stack());
+    // retransmit immediately if we haven't gotten an ACK
+    if (writeq.bytes_unacknowledged() > 0)
+        this->retransmit();
+  }
+
+  /// restore read queue
+  auto* readq = (read_buffer*) &area->vla[writeq_len];
+  read_request = ReadRequest(readq->cap());
+  //read_request.buffer.remaining = readq->remaining;
+  read_request.buffer.offset = readq->offset;
+  memcpy(read_request.buffer.buffer.get(), readq->vla, readq->size());
+
+  //printf("READ: %u  SEND: %u  REMAIN: %u  STATE: %s\n", 
+  //    readq_size(), sendq_size(), sendq_remaining(), cb.to_string().c_str());
 }
 Connection_ptr deserialize_connection(void* addr, net::TCP& tcp)
 {
@@ -127,7 +167,7 @@ Connection_ptr deserialize_connection(void* addr, net::TCP& tcp)
   return conn;
 }
 
-int  WriteQueue::serialize_to(void* addr)
+int  WriteQueue::serialize_to(void* addr) const
 {
   auto* writeq = (serialized_writeq*) addr;
   writeq->current = this->current_;
@@ -154,7 +194,7 @@ int  WriteQueue::serialize_to(void* addr)
   return sizeof(serialized_writeq) + len;
 }
 
-int Connection::serialize_to(void* addr)
+int Connection::serialize_to(void* addr) const
 {
   auto* area = (serialized_tcp*) addr;
   
@@ -169,9 +209,30 @@ int Connection::serialize_to(void* addr)
   area->syn_rtx    = this->syn_rtx_;
   area->dup_acks   = this->dup_acks_;
   area->queued     = this->queued_;
+  area->fast_recovery    = this->fast_recovery;
+  area->reno_fpack_seen  = this->reno_fpack_seen;
+  area->limited_tx = this->limited_tx_;
+  area->dup_acks   = this->dup_acks_;
+  area->highest_ack      = this->highest_ack_;
+  area->prev_highest_ack = this->prev_highest_ack_;
   
   /// serialize write queue
   int writeq_len = this->writeq.serialize_to(area->vla);
   
-  return sizeof(serialized_tcp) + writeq_len;
+  /// serialize read queue
+  auto* readq = (read_buffer*) &area->vla[writeq_len];
+  readq->remaining = read_request.buffer.remaining;
+  readq->offset    = read_request.buffer.offset;
+  memcpy(readq->vla, read_request.buffer.buffer.get(), readq->size());
+  int readq_len = sizeof(read_buffer) + readq->size();
+  
+  return sizeof(serialized_tcp) + writeq_len + readq_len;
+}
+
+void serialized_tcp::wakeup_ip_networks()
+{
+  // start all the send queues for the slumbering IP stacks
+  for (auto& stack : slumbering_ip4) {
+    stack->force_start_send_queues();
+  }
 }

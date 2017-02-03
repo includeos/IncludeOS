@@ -70,10 +70,12 @@ void setup_terminal(T& inet)
 template <typename T>
 void setup_liveupdate_server(T& inet);
 
-#include <stdexcept>
 void Service::start()
 {
-  volatile HW_timer timer("Service::start()");
+}
+void Service::ready()
+{
+  volatile HW_timer timer("Service::ready()");
   OS::add_stdout_default_serial();
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
@@ -107,9 +109,6 @@ void Service::start()
   
   // listen for telnet clients
   setup_terminal(inet);
-}
-void Service::ready()
-{
   // show profile stats for boot
   printf("%s\n", ScopedProfiler::get_statistics().c_str());
 }
@@ -258,7 +257,7 @@ void on_update_area(liu::Restore& thing)
   
   // we are perpetually updating ourselves
   using namespace std::chrono;
-  Timers::oneshot(milliseconds(100),
+  Timers::oneshot(milliseconds(500),
   [updloc] (auto) {
     extern uintptr_t heap_end;
     printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);
