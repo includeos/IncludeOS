@@ -89,16 +89,22 @@ set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -
 option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
+#
+# Subprojects
+#
 add_subdirectory(mod)
-
 add_subdirectory(src)
 
+#
+# External projects
+#
 option(vmbuild "Build and install vmbuild and elf_syms" ON)
 if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
     PREFIX vmbuild # Build where
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
+    BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
     )
@@ -145,6 +151,10 @@ if(rapidjson)
   install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 endif(rapidjson)
 
+
+#
+# Installation
+#
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
 install(DIRECTORY vmrunner DESTINATION includeos/)
