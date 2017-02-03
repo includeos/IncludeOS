@@ -436,7 +436,7 @@ public:
 
   // ???
   void deserialize_from(void*);
-  int  serialize_to(void*);
+  int  serialize_to(void*) const;
 
   /** Unset all callbacks TODO: rename me **/
   void setup_default_callbacks();

@@ -167,8 +167,8 @@ public:
   }
 
   // ???
-  void deserialize_from(void*);
-  int  serialize_to(void*);
+  int deserialize_from(void*);
+  int serialize_to(void*) const;
 
 private:
   std::deque<WriteRequest> q;

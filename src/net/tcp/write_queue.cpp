@@ -3,6 +3,6 @@
 using namespace net::tcp;
 
 __attribute__((weak))
-void WriteQueue::deserialize_from(void*) {}
+int WriteQueue::deserialize_from(void*) { return 0; }
 __attribute__((weak))
-int  WriteQueue::serialize_to(void*) { return 0; }
+int WriteQueue::serialize_to(void*) const { return 0; }
