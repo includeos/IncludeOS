@@ -74,6 +74,17 @@ class URI {
   URI& operator=(URI&&);
 
   ///
+  /// Construct using a C-String representing a uri
+  ///
+  /// @param uri
+  /// A C-String representing a uri
+  ///
+  /// @param parse
+  /// Whether to perform parsing on the the data specified in {uri}
+  ///
+  URI(const char* uri, const bool parse = true);
+
+  ///
   /// Construct using a view of a string representing a uri
   ///
   /// @param uri
@@ -82,7 +93,7 @@ class URI {
   /// @param parse
   /// Whether to perform parsing on the the data specified in {uri}
   ///
-  URI(const std::experimental::string_view uri, const bool parse = true);
+  explicit URI(const std::experimental::string_view uri, const bool parse = true);
 
   ///////////////////////////////////////////////
   //----------RFC-specified URI parts----------//
