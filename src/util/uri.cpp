@@ -62,6 +62,12 @@ static inline std::experimental::string_view updated_copy(
   return {to_copy.data() + offs, view.size()};
 }
 
+///////////////////////////////////////////////////////////////////////////////
+URI::URI(const char* uri, const bool parse)
+  : uri_str_{decode(uri)}
+{
+  if (parse) this->parse();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 URI::URI(const std::experimental::string_view uri, const bool parse)
