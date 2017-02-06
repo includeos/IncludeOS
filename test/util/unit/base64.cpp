@@ -80,3 +80,8 @@ CASE("Decode 'Zm9vYmE='") {
 CASE("Decode 'Zm9vYmFy'") {
   EXPECT("foobar" == base64::decode<std::string>("Zm9vYmFy"s));
 }
+
+CASE("Decode 'Zm8' (without padding) throws exception") {
+  EXPECT_THROWS(base64::decode<std::string>("Zm8"s));
+  EXPECT_THROWS_AS(base64::decode<std::string>("Zm8"s),  base64::Decode_error);
+}
