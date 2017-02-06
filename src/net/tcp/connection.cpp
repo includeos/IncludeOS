@@ -55,17 +55,17 @@ Connection::Connection(TCP& host, port_t local_port, Socket remote) :
 Connection::Connection(TCP& host, port_t local_port)
   : Connection(host, local_port, Socket())
 {
-
 }
 
-void Connection::setup_default_callbacks() {
-  on_connect_           = {this, &Connection::default_on_connect};
-  on_disconnect_        = {this, &Connection::default_on_disconnect};
-  on_error_             = {this, &Connection::default_on_error};
-  on_packet_dropped_    = {this, &Connection::default_on_packet_dropped};
-  on_rtx_timeout_       = {this, &Connection::default_on_rtx_timeout};
-  on_close_             = {this, &Connection::default_on_close};
-  _on_cleanup_          = {this, &Connection::default_on_cleanup};
+void Connection::reset_callbacks()
+{
+  on_disconnect_ = {this, &Connection::default_on_disconnect};
+  on_connect_.reset();
+  on_error_.reset();
+  on_packet_dropped_.reset();
+  on_rtx_timeout_.reset();
+  on_close_.reset();
+  read_request.clean_up();
 }
 
 uint16_t Connection::MSDS() const {
@@ -106,7 +106,8 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
       Expects(buf.full());
       // signal the user
       debug2("<Connection::receive> Buffer full - signal user\n");
-      read_request.callback(buf.buffer, buf.size());
+      if(LIKELY(read_request.callback != nullptr))
+        read_request.callback(buf.buffer, buf.size());
       // renew the buffer, releasing the old one
       buf.clear();
     }
@@ -119,7 +120,8 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
   // end of data, signal the user
   if(PUSH) {
     debug2("<Connection::receive> PUSH present - signal user\n");
-    read_request.callback(buf.buffer, buf.size());
+    if(LIKELY(read_request.callback != nullptr))
+      read_request.callback(buf.buffer, buf.size());
     // free buffer
     buf.clear();
   }
@@ -211,23 +213,6 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
   return bytes_written;
 }
 
-/*
-void Connection::set_window(Packet_ptr packet) {
-  packet->set_win(cb.RCV.WND);
-}
-
-void Connection::make_flight_ready(Packet_ptr packet) {
-  set_window(packet);
-
-  // Set Source (local == the current connection)
-  packet->set_source(local());
-  // Set Destination (remote)
-  packet->set_destination(remote_);
-
-  // set correct sequence numbers
-  packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
-}*/
-
 void Connection::writeq_push() {
   while(writeq.remaining_requests() and not queued_) {
     debug("<Connection::writeq_push> Processing writeq, rem=%u queued=%u\n",
@@ -293,16 +278,17 @@ void Connection::close() {
     state_->close(*this);
     if(is_state(Closed::instance()))
       signal_close();
-  } catch(const TCPException& err) {
-    // might not be set
-    if (on_error_) signal_error(err);
+  }
+  catch(const TCPException& err) {
+    signal_error(err);
   }
 }
 
 void Connection::receive_disconnect() {
   assert(!read_request.buffer.empty());
   auto& buf = read_request.buffer;
-  read_request.callback(buf.buffer, buf.size());
+  if(LIKELY(read_request.callback != nullptr))
+    read_request.callback(buf.buffer, buf.size());
 }
 
 /*
@@ -811,7 +797,7 @@ void Connection::clean_up() {
   if(_on_cleanup_) _on_cleanup_(shared);
 
   on_connect_.reset();
-  on_disconnect_.reset(),
+  on_disconnect_.reset();
   on_error_.reset();
   on_packet_dropped_.reset();
   on_rtx_timeout_.reset();

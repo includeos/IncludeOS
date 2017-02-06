@@ -438,8 +438,8 @@ public:
   void deserialize_from(void*);
   int  serialize_to(void*);
 
-  /** Unset all callbacks TODO: rename me **/
-  void setup_default_callbacks();
+  /** Reset all callbacks back to default **/
+  void reset_callbacks();
 
   /*
     Destroy the Connection.

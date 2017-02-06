@@ -133,7 +133,7 @@ namespace http {
 
     // this is expensive and may be unecessary,
     // but just to be safe for now
-    copy->setup_default_callbacks();
+    copy->reset_callbacks();
 
     tcpconn_ = nullptr;
 
