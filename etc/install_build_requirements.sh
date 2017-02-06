@@ -43,7 +43,7 @@ case $SYSTEM in
                 exit 0;
                 ;;
             "arch")
-                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq python-jsonschema python-psutil cmake"
+                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq python-jsonschema python-psutil cmake python2 python2-jsonschema python2-psutil"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo pacman -Syyu
