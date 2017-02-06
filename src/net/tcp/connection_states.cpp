@@ -678,19 +678,26 @@ void Connection::SynReceived::close(Connection& tcp) {
     then form a FIN segment and send it, and enter FIN-WAIT-1 state;
     otherwise queue for processing after entering ESTABLISHED state.
   */
-  // Dont know how to queue for close for processing...
-  auto& tcb = tcp.tcb();
-  auto packet = tcp.outgoing_packet();
-  packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
-  tcp.transmit(std::move(packet));
+  if(tcp.writeq.empty())
+  {
+    auto& tcb = tcp.tcb();
+    auto packet = tcp.outgoing_packet();
+    packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
+    tcp.transmit(std::move(packet));
+  }
+
   tcp.set_state(Connection::FinWait1::instance());
 }
 
 void Connection::Established::close(Connection& tcp) {
-  auto& tcb = tcp.tcb();
-  auto packet = tcp.outgoing_packet();
-  packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
-  tcp.transmit(std::move(packet));
+  if(tcp.writeq.empty())
+  {
+    auto& tcb = tcp.tcb();
+    auto packet = tcp.outgoing_packet();
+    packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
+    tcp.transmit(std::move(packet));
+  }
+
   tcp.set_state(Connection::FinWait1::instance());
 }
 
@@ -717,12 +724,14 @@ void Connection::CloseWait::close(Connection& tcp) {
     Queue this request until all preceding SENDs have been
     segmentized; then send a FIN segment, enter CLOSING state.
   */
-  auto& tcb = tcp.tcb();
-  auto packet = tcp.outgoing_packet();
-  packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
-  tcp.transmit(std::move(packet));
-  // Correction: [RFC 1122 p. 93]
-  tcp.set_state(Connection::LastAck::instance());
+  if(tcp.writeq.empty()) {
+    auto& tcb = tcp.tcb();
+    auto packet = tcp.outgoing_packet();
+    packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);
+    tcp.transmit(std::move(packet));
+    // Correction: [RFC 1122 p. 93]
+    tcp.set_state(Connection::LastAck::instance());
+  }
 }
 
 /////////////////////////////////////////////////////////////////////

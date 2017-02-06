@@ -173,6 +173,9 @@ void Connection::offer(size_t& packets) {
     debug2("<Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
            written, buf.remaining, packets, usable_window());
 
+    if(UNLIKELY(writeq.empty() and is_closing()))
+      packet->set_flag(FIN);
+
     transmit(std::move(packet));
   }
 
@@ -203,6 +206,9 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
 
     if(!remaining or usable_window() < SMSS() or !packets_avail)
       packet->set_flag(PSH);
+
+    if(UNLIKELY(writeq.empty() and is_closing()))
+      packet->set_flag(FIN);
 
     transmit(std::move(packet));
   }
@@ -251,6 +257,9 @@ void Connection::limited_tx() {
 
   writeq.advance(written);
 
+  if(UNLIKELY(writeq.empty() and is_closing()))
+    packet->set_flag(FIN);
+
   transmit(std::move(packet));
 }
 
@@ -287,6 +296,7 @@ void Connection::close() {
 void Connection::receive_disconnect() {
   assert(!read_request.buffer.empty());
   auto& buf = read_request.buffer;
+
   if(LIKELY(read_request.callback != nullptr))
     read_request.callback(buf.buffer, buf.size());
 }
@@ -606,7 +616,7 @@ void Connection::rtx_ack(const seq_t ack) {
 /*
   Assumption
   Retransmission will only occur when one of the following are true:
-  * There is data to be sent  (!SYN-SENT || !SYN-RCV) <- currently not supports
+  * There is data to be sent  (!SYN-SENT || !SYN-RCV)
   * Last packet had SYN       (SYN-SENT || SYN-RCV)
   * Last packet had FIN       (FIN-WAIT-1 || LAST-ACK)
 
