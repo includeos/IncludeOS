@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef URI_HPP
-#define URI_HPP
+#ifndef UTIL_URI_HPP
+#define UTIL_URI_HPP
 
 #include <experimental/string_view>
 #include <unordered_map>
@@ -28,13 +28,12 @@ namespace uri {
 #include <stdexcept>
 
 ///
-/// This class is used to represent an error that occurred
+/// This type is used to represent an error that occurred
 /// from within the operations of class URI
 ///
-class URI_error : public std::runtime_error {
-public:
+struct URI_error : public std::runtime_error {
   using runtime_error::runtime_error;
-}; //< class URI_error
+}; //< struct URI_error
 
 #endif //< URI_THROW_ON_ERROR
 
@@ -75,6 +74,17 @@ class URI {
   URI& operator=(URI&&);
 
   ///
+  /// Construct using a C-String representing a uri
+  ///
+  /// @param uri
+  /// A C-String representing a uri
+  ///
+  /// @param parse
+  /// Whether to perform parsing on the the data specified in {uri}
+  ///
+  URI(const char* uri, const bool parse = true);
+
+  ///
   /// Construct using a view of a string representing a uri
   ///
   /// @param uri
@@ -84,7 +94,6 @@ class URI {
   /// Whether to perform parsing on the the data specified in {uri}
   ///
   explicit URI(const std::experimental::string_view uri, const bool parse = true);
-  URI(const char*, const bool parse = true);
 
   ///////////////////////////////////////////////
   //----------RFC-specified URI parts----------//
@@ -123,6 +132,15 @@ class URI {
   /// @return True, maybe.
   ///
   bool host_is_ip4() const noexcept;
+
+  ///
+  /// Get host and port as a view
+  ///
+  /// Format <host>:<port>
+  ///
+  /// @return host and port as a view
+  ///
+  std::experimental::string_view host_and_port() const noexcept;
 
   ///
   /// Get the raw port number in decimal character representation.
@@ -202,11 +220,11 @@ class URI {
   ///
   std::experimental::string_view to_string() const noexcept;
 
-  /**
-   * @brief      Get the actual string the URI is built on
-   *
-   * @return     The string source of this class
-   */
+  ///
+  /// Get the actual string the URI is built on
+  ///
+  /// @return The string source of this class
+  ///
   const std::string& str() const noexcept;
 
   ///
@@ -229,6 +247,13 @@ class URI {
   /// @return The object that invoked this method
   ///
   URI& parse();
+
+  ///
+  /// Reset the object as if default constructed
+  ///
+  /// @return The object that invoked this method
+  ///
+  URI& reset();
 private:
   ///
   /// A copy of the data representing a uri
@@ -295,4 +320,4 @@ std::ostream& operator<< (std::ostream& output_device, const URI& uri);
 
 } //< namespace uri
 
-#endif //< URI_HPP
+#endif //< UTIL_URI_HPP

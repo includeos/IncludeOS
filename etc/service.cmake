@@ -306,7 +306,6 @@ add_custom_target(
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
-  COMMAND rm _elf_symbols.bin
   DEPENDS service
 )
 
