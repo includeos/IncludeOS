@@ -76,7 +76,7 @@ elif "VERBOSE" in os.environ:
 from vmrunner import vmrunner
 
 
-# We can boot either a binary without bootloader, or an image with bootloader allready attached
+# We can boot either a binary without bootloader, or an image with bootloader already attached
 has_bootloader = False
 
 # File extensions we assume to be bootable images, not just a kernel
@@ -129,7 +129,7 @@ if os.path.isdir(image_name):
     image_name = open("binary.txt", 'r').read()
 
 elif file_extension in image_extensions:
-    if VERB: print INFO, "File extension regognized as bootable image"
+    if VERB: print INFO, "File extension recognized as bootable image"
     has_bootloader = True
 
 elif not file_extension:
@@ -139,10 +139,10 @@ else:
     if VERB: print INFO, "Unrecognized file extension. Trying to boot as kernel"
 
 if (args.grub):
-  print INFO, "Creating GRUB image from ", args.vm_location
-  subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + image_name, shell=True)
-  image_name = image_name + ".grub.img"
-  has_bootloader = True
+    print INFO, "Creating GRUB image from ", args.vm_location
+    subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + image_name, shell=True)
+    image_name = image_name + ".grub.img"
+    has_bootloader = True
 
 # Skip starting a VM if we are only building
 if (args.build): exit(0);
