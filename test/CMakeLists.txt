@@ -166,6 +166,11 @@ set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
 )
 
+if(TRAVIS)
+  message(STATUS "Travis")
+  list(REMOVE_ITEM TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
+endif()
+
 # Only build selected sources with SINGLE
 if(NOT SINGLE)
   set(SOURCES ${MOD_OBJECTS} ${OS_SOURCES} ${TEST_SOURCES} ${LEST_UTIL})
