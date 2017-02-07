@@ -30,7 +30,8 @@ bool LiveUpdate::is_resumable(void* location)
 {
   /// memory sanity check
   if (heap_end >= (char*) location) {
-    printf("LiveUpdate storage area overwritten by heap (margin: %d)\n",
+    fprintf(stderr, 
+        "WARNING: LiveUpdate storage area inside heap (margin: %d)\n",
 		heap_end - (char*) location);
     return false;
   }
@@ -48,8 +49,6 @@ bool LiveUpdate::resume(void* location, resume_func func)
 }
 
 static size_t update_store_data(void* location, LiveUpdate::storage_func, buffer_len);
-
-#include <hw/devices.hpp>
 
 inline bool validate_elf_header(const Elf32_Ehdr* hdr)
 {
@@ -79,8 +78,6 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
     throw std::runtime_error("The storage area is inside kernel area");
   }
   if (heap_end >= storage_area) {
-    printf("HEAP: %p\n", heap_end);
-    printf("AREA: %p\n", storage_area);
     throw std::runtime_error("The heap is currently inside the storage area");
   }
 

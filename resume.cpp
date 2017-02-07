@@ -17,8 +17,12 @@ static std::map<uint16_t, LiveUpdate::resume_func> resume_funcs;
 bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
 {
   /// restore each entry one by one, calling registered handlers
-  printf("* Resuming %d stored entries\n", storage.get_entries());
-  
+  auto num_ents = storage.get_entries();
+  if (num_ents > 1)
+      printf("* Resuming %d stored entries\n", num_ents-1);
+  else
+      printf("* No stored entries to resume\n");
+
   for (auto* ptr = storage.begin(); ptr->type != TYPE_END;)
   {
     auto* oldptr = ptr;
