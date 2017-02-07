@@ -35,9 +35,9 @@ namespace mender {
     authd.id_data       = this->id_data_;
     authd.pubkey        = this->keystore_->public_PEM();
     authd.tenant_token  = this->tenant_token_;
-    authd.seq_no        = this->seq_++;
+    //authd.seq_no        = this->seq_++;
 
-    printf("<Auth_manager> Next seqno=%lli\n", seq_);
+    //printf("<Auth_manager> Next seqno=%lli\n", seq_);
     // Get serialized bytes
     const auto reqdata = authd.serialized_bytes();
 

@@ -58,8 +58,8 @@ namespace mender {
     writer.StartObject();
     writer.Key("tenant_token");
     writer.String(std::string{tenant_token.begin(), tenant_token.end()});
-    writer.Key("seq_no");
-    writer.Int64(seq_no);
+    //writer.Key("seq_no");
+    //writer.Int64(seq_no);
     writer.Key("id_data");
     writer.String(id_data);
     writer.Key("pubkey");

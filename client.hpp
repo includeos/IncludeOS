@@ -31,7 +31,7 @@
 
 namespace mender {
 
-  static const std::string API_PREFIX = "/api/devices/0.1";
+  static const std::string API_PREFIX = "/api/devices/v1";
 
 	class Client {
   public:
@@ -122,7 +122,7 @@ namespace mender {
 
     http::Header_set create_auth_headers(const byte_seq& signature) const;
 
-    void response_handler(http::Error err, http::Response_ptr res);
+    void response_handler(http::Error err, http::Response_ptr res, http::Connection&);
 
     bool is_valid_response(const http::Response& res) const;
 

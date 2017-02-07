@@ -112,7 +112,7 @@ namespace mender {
     };
   }
 
-  void Client::response_handler(http::Error err, http::Response_ptr res)
+  void Client::response_handler(http::Error err, http::Response_ptr res, http::Connection&)
   {
     if(err) {
       printf("<Client> Error: %s\n", err.to_string().c_str());
@@ -172,12 +172,10 @@ namespace mender {
     std::string path{API_PREFIX + "/deployments/device/deployments/next"};
 
     auto artifact_name = device_.inventory().value("artifact_name");
-    if(! artifact_name.empty())
-      path.append("?artifact_name=").append(std::move(artifact_name)).append("&");
+    path.append("?artifact_name=").append(std::move(artifact_name)).append("&");
 
     auto device_type = device_.inventory().value("device_type");
-    if(! device_type.empty())
-      path.append("?device_type=").append(std::move(device_type));
+    path.append("device_type=").append(std::move(device_type));
 
     httpclient_->get(cached_,
       std::move(path),
@@ -190,7 +188,7 @@ namespace mender {
       res = std::move(context_.response);
 
     auto uri = parse_update_uri(*res);
-    printf("<Client> Fetching update from: %s\n", uri.to_string().to_string().c_str());
+    printf("<Client> Fetching update from: %s\n", uri.str().c_str());
 
     using namespace http;
 
