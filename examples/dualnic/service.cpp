@@ -49,9 +49,7 @@ void create_server(net::tcp::Listener& server)
         // create response
         std::string response = HTML_RESPONSE();
         // write the data from the string with the strings size
-        conn->write(response.data(), response.size(), [](size_t n) {
-            printf("<Service> @write: %u bytes written\n", n);
-          });
+        conn->write(response);
       });
     conn->on_disconnect(
     [] (auto conn, auto reason) {
