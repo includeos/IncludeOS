@@ -169,7 +169,6 @@ set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
 )
 
-
 if(COVERAGE)
   message(STATUS "Coverage")
   list(REMOVE_ITEM TEST_SOURCES ${TEST}/util/unit/path_to_regex_no_options.cpp)
@@ -178,6 +177,11 @@ if(COVERAGE)
   set_property(SOURCE ${MOD_OBJECTS} PROPERTY COMPILE_FLAGS --coverage)
   set_property(SOURCE ${LEST_UTIL} PROPERTY COMPILE_FLAGS --coverage)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+endif()
+
+if(TRAVIS)
+  message(STATUS "Travis")
+  list(REMOVE_ITEM TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
 endif()
 
 # Only build selected sources with SINGLE
