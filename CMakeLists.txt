@@ -8,7 +8,7 @@ endif()
 
 set(SERVICE_NAME "Live Update")
 set(BINARY       "LiveUpdate")
-set(MAX_MEM 20)
+set(MAX_MEM 24)
 set(SOURCES
     service.cpp
   )
@@ -18,7 +18,6 @@ set(LIBRARIES ${CMAKE_BINARY_DIR}/libliveupdate.a)
 
 set(DRIVERS
     virtionet
-    #vmxnet3
     silent_start
     #heap_debugging
   )

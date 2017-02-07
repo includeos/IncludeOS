@@ -11,7 +11,23 @@
 #include "liveupdate.hpp"
 #include "hw_timer.hpp"
 
-static void* LIVEUPD_LOCATION   = (void*) 0xE00000; // at 14mb
+#include <kernel/os.hpp>
+extern uintptr_t heap_begin;
+extern uintptr_t heap_end;
+void show_heap_stats()
+{
+  uintptr_t heap_total = OS::heap_max() - heap_begin;
+  double total = (heap_end - heap_begin) / (double) heap_total;
+  
+  fprintf(stderr, "\tHeap is at: %#x / %#x  (diff=%#x)\n",
+         heap_end, OS::heap_max(), OS::heap_max() - heap_end);
+  fprintf(stderr, "\tHeap usage: %u / %u Kb (%.2f%%)\n",
+         (heap_end - heap_begin) / 1024, 
+         heap_total / 1024,
+         total * 100.0);
+}
+
+static void* LIVEUPD_LOCATION   = (void*) 0x1100000; // at 20mb
 static const uint16_t TERM_PORT = 6667;
 
 typedef net::tcp::Connection_ptr Connection_ptr;
@@ -72,11 +88,15 @@ void setup_liveupdate_server(T& inet);
 
 void Service::start()
 {
+  OS::add_stdout_default_serial();
+  printf("Heap stats for Service::start():\n");
+  show_heap_stats();
 }
 void Service::ready()
 {
+  printf("Heap stats for Service::ready():\n");
+  show_heap_stats();
   volatile HW_timer timer("Service::ready()");
-  OS::add_stdout_default_serial();
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
 
@@ -104,13 +124,16 @@ void Service::ready()
   if (LiveUpdate::resume(LIVEUPD_LOCATION, on_missing) == false) {
     printf("* Not restoring data, because no update has happened\n");
     // .. logic for when there is nothing to resume yet
-    setup_liveupdate_server(inet);
   }
+  setup_liveupdate_server(inet);
   
   // listen for telnet clients
   setup_terminal(inet);
   // show profile stats for boot
   printf("%s\n", ScopedProfiler::get_statistics().c_str());
+
+  printf("Heap starts for END OF START:\n");
+  show_heap_stats();
 }
 
 static std::vector<double> timestamps;
@@ -257,7 +280,7 @@ void on_update_area(liu::Restore& thing)
   
   // we are perpetually updating ourselves
   using namespace std::chrono;
-  Timers::oneshot(milliseconds(500),
+  Timers::oneshot(milliseconds(2500),
   [updloc] (auto) {
     extern uintptr_t heap_end;
     printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);
@@ -274,6 +297,9 @@ void setup_liveupdate_server(T& inet)
   server.on_connect(
   [] (auto conn)
   {
+    printf("Receiving liveupdate blob\n");
+    show_heap_stats();
+
     static const int UPDATE_MAX = 1024*1024 * 2; // 2mb files supported
     char* update_blob = new char[UPDATE_MAX];
     int*  update_size = new int(0);
@@ -282,8 +308,8 @@ void setup_liveupdate_server(T& inet)
     conn->on_read(9000,
     [conn, update_blob, update_size] (net::tcp::buffer_t buf, size_t n)
     {
+      if (*update_size + n > UPDATE_MAX) return;
       memcpy(update_blob + *update_size, buf.get(), n);
-      assert(*update_size + n <= UPDATE_MAX);
       *update_size += (int) n;
 
     }).on_close(
@@ -298,12 +324,12 @@ void setup_liveupdate_server(T& inet)
       }
       catch (std::exception& err)
       {
+        printf("Live Update location: %p\n", LIVEUPD_LOCATION);
+        show_heap_stats();
         printf("Live update failed:\n%s\n", err.what());
       }
-      catch (...)
-      {
-        printf("Live update failed: Unspecified exception\n");
-      }
+      
+      delete[] update_blob;
     });
   });
 }
