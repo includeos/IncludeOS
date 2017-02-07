@@ -100,19 +100,22 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 */
 void OUTGOING_TEST(tcp::Socket outgoing) {
   INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
-  Inet4::stack<0>().tcp().connect(outgoing)
-    ->on_connect([](auto conn) {
-        conn->write(small.data(), small.size());
-        conn->on_read(small.size(), [](tcp::buffer_t buffer, size_t n) {
-            CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
-          });
-      })
-    .on_disconnect([](auto conn, tcp::Connection::Disconnect) {
-        CHECK(true, "Connection closed by server");
-        CHECKSERT(conn->is_state({"CLOSE-WAIT"}), "State: CLOSE-WAIT");
-        conn->close();
-      })
+  Inet4::stack<0>().tcp().connect(outgoing, [](tcp::Connection_ptr conn)
+  {
+    conn->on_read(small.size(), [](tcp::buffer_t buffer, size_t n)
+    {
+      CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
+    });
+
+    conn->write(small);
+
+    conn->on_disconnect([](auto conn, tcp::Connection::Disconnect) {
+      CHECK(true, "Connection closed by server");
+      CHECKSERT(conn->is_state({"CLOSE-WAIT"}), "State: CLOSE-WAIT");
+      conn->close();
+    })
     .on_close([]{ OUTGOING_TEST_INTERNET(TEST_ADDR_TIME); });
+  });
 }
 
 // Used to send big data
@@ -231,12 +234,11 @@ void Service::start(const std::string&)
           }
         });
       auto half = huge.size() / 2;
-      conn->write(huge.data(), half, [half, conn](size_t n) {
-        CHECKSERT(n == half, "Wrote one half HUGE (%u bytes)", n);
+      conn->on_write([half](size_t n) {
+        CHECKSERT(n == half, "Wrote half HUGE (%u bytes)", n);
       });
-      conn->write(huge.data()+half, half, [half](size_t n) {
-        CHECKSERT(n == half, "Wrote the other half of HUGE (%u bytes)", n);
-      });
+      conn->write(huge.data(), half);
+      conn->write(huge.data()+half, half);
     });
 
   /*

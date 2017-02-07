@@ -61,6 +61,7 @@ void Connection::reset_callbacks()
 {
   on_disconnect_ = {this, &Connection::default_on_disconnect};
   on_connect_.reset();
+  writeq.on_write(nullptr);
   on_error_.reset();
   on_packet_dropped_.reset();
   on_rtx_timeout_.reset();
@@ -130,21 +131,23 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 }
 
 
-void Connection::write(WriteBuffer&& buffer, WriteCallback callback) {
+void Connection::write(Chunk buffer)
+{
+  // TODO: Clean up this exception mess
+  // The state is just checking if its possible to write
   try {
     // try to write
     auto written = state_->send(*this, buffer);
-    debug("<Connection::write> off=%u rem=%u  written=%u\n",
-      buffer.offset, buffer.remaining, written);
+    debug("<Connection::write> size=%u  written=%u\n",
+      buffer.length(), written);
     // put request in line
-    writeq.push_back({std::move(buffer), callback});
+    writeq.push_back(std::move(buffer));
     // if data was written, advance
-    if(written) {
+    if(written)
       writeq.advance(written);
-    }
   }
   catch(const TCPException&) {
-    callback(0);
+
   }
 }
 
@@ -161,10 +164,8 @@ void Connection::offer(size_t& packets) {
     auto packet = create_outgoing_packet();
     packets--;
 
-    // get next request in writeq
-    auto& buf = writeq.nxt();
     // fill the packet with data
-    auto written = fill_packet(*packet, (char*)buf.pos(), buf.remaining, cb.SND.NXT);
+    auto written = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem(), cb.SND.NXT);
     cb.SND.NXT += packet->tcp_data_length();
 
     // advance the write q
@@ -184,10 +185,10 @@ void Connection::offer(size_t& packets) {
 }
 
 size_t Connection::send(WriteBuffer& buffer) {
-  return host_.send(shared_from_this(), (char*)buffer.pos(), buffer.remaining);
+  return host_.send(shared_from_this(), buffer.data(), buffer.length());
 }
 
-size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_avail) {
+size_t Connection::send(const uint8_t* buffer, size_t remaining, size_t& packets_avail) {
 
   size_t bytes_written = 0;
   debug("<Connection::send> Trying to send %u bytes. Starting with uw=%u packets=%u\n",
@@ -198,7 +199,7 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
     auto packet = create_outgoing_packet();
     packets_avail--;
 
-    auto written = fill_packet(*packet, buffer+bytes_written, remaining, cb.SND.NXT);
+    auto written = fill_packet(*packet, buffer + bytes_written, remaining, cb.SND.NXT);
     cb.SND.NXT += packet->tcp_data_length();
 
     bytes_written += written;
@@ -220,19 +221,19 @@ size_t Connection::send(const char* buffer, size_t remaining, size_t& packets_av
 }
 
 void Connection::writeq_push() {
-  while(writeq.remaining_requests() and not queued_) {
+  while(writeq.has_remaining_requests() and not queued_) {
     debug("<Connection::writeq_push> Processing writeq, rem=%u queued=%u\n",
       writeq.remaining_requests(), queued_);
-    auto& buf = writeq.nxt();
-    auto written = host_.send(shared_from_this(), (char*)buf.pos(), buf.remaining);
+    const auto rem = writeq.nxt_rem();
+    auto written = host_.send(shared_from_this(), writeq.nxt_data(), rem);
     if(written)
       writeq.advance(written);
-    if(buf.remaining)
+    if(written < rem)
       return;
   }
 }
 
-size_t Connection::fill_packet(Packet& packet, const char* buffer, size_t n, seq_t seq) {
+size_t Connection::fill_packet(Packet& packet, const uint8_t* buffer, size_t n, seq_t seq) {
   Expects(!packet.has_tcp_data());
 
   auto written = packet.fill(buffer, std::min(n, (size_t)SMSS()));
@@ -250,9 +251,7 @@ void Connection::limited_tx() {
 
   debug("<Connection::limited_tx> UW: %u CW: %u, FS: %u\n", usable_window(), cb.cwnd, flight_size());
 
-  auto& buf = writeq.nxt();
-
-  auto written = fill_packet(*packet, (char*)buf.pos(), buf.remaining, cb.SND.NXT);
+  auto written = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem(), cb.SND.NXT);
   cb.SND.NXT += packet->tcp_data_length();
 
   writeq.advance(written);
@@ -392,11 +391,11 @@ void Connection::transmit(Packet_ptr packet) {
 }
 
 bool Connection::can_send_one() {
-  return send_window() >= SMSS() and writeq.remaining_requests();
+  return send_window() >= SMSS() and writeq.has_remaining_requests();
 }
 
 bool Connection::can_send() {
-  return (usable_window() >= SMSS()) and writeq.remaining_requests();
+  return (usable_window() >= SMSS()) and writeq.has_remaining_requests();
 }
 
 void Connection::send_much() {
@@ -549,7 +548,7 @@ void Connection::on_dup_ack() {
 
     if(limited_tx_) {
       // try to send one segment
-      if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and writeq.remaining_requests()) {
+      if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and writeq.has_remaining_requests()) {
         limited_tx();
       }
     }
@@ -638,7 +637,7 @@ void Connection::retransmit() {
     auto& buf = writeq.una();
     debug2("<Connection::retransmit> With data (wq.sz=%u) buf.unacked=%u\n",
       writeq.size(), buf.length() - buf.acknowledged);
-    fill_packet(*packet, (char*)buf.begin() + buf.acknowledged, buf.length() - buf.acknowledged, cb.SND.UNA);
+    fill_packet(*packet, buf.data() + writeq.acked(), buf.length() - writeq.acked(), cb.SND.UNA);
   }
   // if no data
   else {

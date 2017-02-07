@@ -238,7 +238,7 @@ namespace net {
     /*
 
     */
-    size_t send(tcp::Connection_ptr, const char* buffer, size_t n);
+    size_t send(tcp::Connection_ptr, const uint8_t* buffer, size_t n);
 
     /*
       Force the TCP to process the it's queue with the current amount of available packets.

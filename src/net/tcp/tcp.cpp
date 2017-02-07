@@ -251,7 +251,7 @@ void TCP::process_writeq(size_t packets) {
   }
 }
 
-size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
+size_t TCP::send(Connection_ptr conn, const uint8_t* buffer, size_t n) {
   size_t written{0};
   auto packets = inet_.transmit_queue_available();
 
