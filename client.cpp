@@ -196,7 +196,8 @@ namespace mender {
     // Setup headers
     const Header_set headers{
       { header::Accept, "application/json;application/vnd.mender-artifact" },
-      { header::Authorization, "Bearer " + std::string{token.begin(), token.end()}}
+      { header::Authorization, "Bearer " + std::string{token.begin(), token.end()}},
+      { header::Host, uri.host_and_port().to_string() }
     };
 
     httpclient_->get({cached_.address(), uri.port()},
