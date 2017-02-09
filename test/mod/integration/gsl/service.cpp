@@ -24,9 +24,11 @@
 #include <cstdlib>
 
 #define GSL_THROW_ON_CONTRACT_VIOLATION
+#undef OS_TERMINATE_ON_CONTRACT_VIOLATION
+
 #include <common>
 #include <os>
-#include <lest.hpp>
+#include <lest/lest.hpp>
 #include <regex>
 
 
@@ -45,10 +47,10 @@ const lest::test test_basic_gsl[] = {
         public:
           static int div (int x, int y) {
 
-            printf("Dividing %i by %i ", x, y);
+            MYINFO("Dividing %i by %i ", x, y);
             Expects( y > 0 );
 
-            printf("Dividing %i by %i ", x, y);
+            MYINFO("Dividing %i by %i ", x, y);
 
             int prevcount_ = divcount_;
 
@@ -201,14 +203,7 @@ const lest::test test_basic_gsl[] = {
     printf("\n");
 
     std::regex re_get("GET .*\n");
-    printf("Match: %i \n", std::regex_match(my_string, re_get));
-
-    /**
-     * WARNING: HORRIBLE HACK
-     * Unfortunately gsl::span is still not compatible with std::regex
-     * See: https://github.com/Microsoft/GSL/issues/271
-     **/
-    EXPECT( std::regex_match(my_span.data(), my_span.data() + my_span.size(), re_get) );
+    EXPECT( std::regex_match(my_span.begin(), my_span.end(), re_get) );
 
     }
   },
