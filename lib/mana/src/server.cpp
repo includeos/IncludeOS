@@ -72,8 +72,6 @@ void Server::listen(Port port) {
 }
 
 void Server::connect(net::tcp::Connection_ptr conn) {
-  SET_CRASH_CONTEXT("Server::connect: %s, free_idx=%u",
-    conn->to_string().c_str(), free_idx_.size());
   #ifdef VERBOSE_WEBSERVER
   printf("<Server> New Connection [ %s ]\n", conn->remote().to_string().c_str());
   #endif

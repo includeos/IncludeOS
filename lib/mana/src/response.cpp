@@ -27,6 +27,7 @@ Response::Response(Connection_ptr conn)
 {
   header().set_field(http::header::Server, "IncludeOS/Acorn"s);
   header().set_field(http::header::Connection, keep_alive ? "keep-alive"s : "close"s);
+  conn_->on_write([this](size_t n) { on_sent_(n); });
 }
 
 void Response::send(bool close) {
@@ -46,13 +47,10 @@ void Response::send(bool close) {
 void Response::write_to_conn(bool close_on_written) {
   auto res = to_string();
   auto conn = conn_;
-  conn_->write(res.data(), res.size(),
-  [conn, close_on_written](size_t n)
-  {
-    on_sent_(n);
-    if(close_on_written)
-      conn->close();
-  });
+  conn_->write(res.data(), res.size());
+
+  if(close_on_written)
+    conn_->close();
 }
 
 void Response::send_code(const Code code, bool close) {

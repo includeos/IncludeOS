@@ -124,14 +124,15 @@ void Service::start(const std::string&)
         printf("<Service> Responding with %u %s.\n",
           res.status_code(), http::code_description(res.status_code()).to_string().c_str());
 
-        conn->write(res, [](size_t written) {
-          printf("<Service> @on_write: %u bytes written.\n", written);
-        });
+        conn->write(res);
       }
       catch(...)
       {
         printf("<Service> Unable to parse request.\n");
       }
+    });
+    conn->on_write([](size_t written) {
+      printf("<Service> @on_write: %u bytes written.\n", written);
     });
   });
 
