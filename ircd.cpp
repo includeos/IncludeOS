@@ -23,8 +23,7 @@ IrcServer::IrcServer(
   
   // timeout for clients and servers
   using namespace std::chrono;
-  Timers::periodic(10s, 5s, 
-      delegate<void(uint32_t)>::from<IrcServer, &IrcServer::timeout_handler>(this));
+  Timers::periodic(10s, 5s, {this, &IrcServer::timeout_handler});
   
   auto& tcp = inet.tcp();
   // client listener (although IRC servers usually have many ports open)
@@ -230,8 +229,8 @@ void IrcServer::sbcast_butone(sindex_t origin, const std::string& msg)
 
 void IrcServer::begin_netburst(Server& target)
 {
-  broadcast(
-  this->netburst = true;
+  //broadcast(
+  //this->netburst = true;
   /// send my servers
   for (size_t id = 0; id < servers.size(); id++)
   {

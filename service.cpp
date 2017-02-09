@@ -20,6 +20,7 @@
 #include <timers>
 #include "liveupdate"
 #define USE_STACK_SAMPLING
+#define PERIOD_SECS    4
 
 static uint16_t    server_id  = 0;
 static std::string servername = "irc.includeos.org";
@@ -126,16 +127,17 @@ void print_heap_info()
 {
   static intptr_t last = 0;
   // show information on heap status, to discover leaks etc.
-  extern uintptr_t heap_begin;
-  extern uintptr_t heap_end;
+  auto heap_begin = OS::heap_begin();
+  auto heap_end   = OS::heap_end();
+  auto heap_usage = OS::heap_usage();
   intptr_t heap_size = heap_end - heap_begin;
   last = heap_size - last;
   printf("Heap begin  %#x  size %u Kb\n",     heap_begin, heap_size / 1024);
   printf("Heap end    %#x  diff %u (%d Kb)\n", heap_end,  last, last / 1024);
+  printf("Heap usage  %u kB\n", 
+          heap_usage / 1024);
   last = (int32_t) heap_size;
 }
-
-#define PERIOD_SECS    30
 
 void print_stats(int)
 {

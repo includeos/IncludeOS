@@ -216,7 +216,7 @@ public:
 
 private:
   size_t to_current = 0;
-  void   timeout_handler(uint32_t);
+  void   timeout_handler(int);
   
   Network&    inet;
   std::string server_name;

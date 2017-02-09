@@ -39,12 +39,18 @@ struct buffer_len {
 **/
 struct LiveUpdate
 {
-  typedef delegate<void(Storage, buffer_len)> storage_func;
-  typedef delegate<void(Restore)> resume_func;
+  // The buffer_len parameter is the update blob (the new kernel) and can be null.
+  // If the parameter is null, you can assume that it's currently not a live update.
+  typedef delegate<void(Storage&, buffer_len)> storage_func;
+  typedef delegate<void(Restore&)> resume_func;
 
   // Start a live update process, storing all user-defined data
   // at @location, which can then be resumed by the future service after update
   static void begin(void* location, buffer_len blob, storage_func);
+  
+  // Only store user data, as if there was a live update process
+  // Throws exception if process or sanity checks fail
+  static size_t store(void* location, storage_func);
   
   // Returns true if there is stored data from before at @location.
   // It performs an extensive validation process to make sure the data is
@@ -63,6 +69,7 @@ struct LiveUpdate
   // The call to resume can fail even if is_resumable validates everything correctly.
   // this is because when the user restores all the saved data, it could grow into
   // the storage area used by liveupdate, if enough data is stored, and corrupt it.
+  // All failures are of type std::runtime_error.
 };
 
 /**

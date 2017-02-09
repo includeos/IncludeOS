@@ -3,7 +3,7 @@
 // do timeout checks for N clients at a time
 static const int MAX_CLIENTS = 200;
 
-void IrcServer::timeout_handler(uint32_t)
+void IrcServer::timeout_handler(int)
 {
   /// occasionally auto-connect to missing servers
   call_remote_servers();
