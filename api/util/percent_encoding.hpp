@@ -49,7 +49,7 @@ namespace uri {
 std::string encode(const std::experimental::string_view input);
 
 ///
-/// Decode (percent-encode) a view of data representing a uri
+/// Decode (percent-decode) a view of data representing a uri
 ///
 std::string decode(const std::experimental::string_view input);
 
@@ -57,18 +57,15 @@ std::string decode(const std::experimental::string_view input);
 #ifdef URI_THROW_ON_ERROR
 #include <stdexcept>
 
-class Decode_error : public std::runtime_error {
-public:
+struct Decode_error : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
-class Encode_error : public std::runtime_error {
-public:
+struct Encode_error : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
-class Hex_error : public Decode_error {
-public:
+struct Hex_error : public Decode_error {
   using Decode_error::Decode_error;
 };
 
