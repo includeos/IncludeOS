@@ -181,7 +181,7 @@ std::experimental::string_view URI::host() const noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 bool URI::host_is_ip4() const noexcept {
-  return std::isdigit(host_.back());
+  return host_.empty() ? false : std::isdigit(host_.back());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
