@@ -44,7 +44,6 @@ TCP::TCP(IPStack& inet) :
 {
   inet.on_transmit_queue_available({this, &TCP::process_writeq});
   // TODO: RFC 6056
-
 }
 
 /*
