@@ -14,7 +14,7 @@ Both these are prebuilt and supplied in [deps](./deps).
 ### Script
 
 ```
-export $INCLUDEOS_PREFIX=<my-installation> # defaults to /usr/local
+export INCLUDEOS_PREFIX=<my-installation> # defaults to /usr/local
 ./install.sh
 ```
 
