@@ -80,3 +80,30 @@ CASE("fragment() returns fragment part") {
   uri::URI uri {"https://github.com/includeos/acorn#take-it-for-a-spin"};
   EXPECT(uri.fragment() == "take-it-for-a-spin");
 }
+
+CASE("host_is_ip4() returns whether uri's host is an IP4 address")
+{
+  uri::URI uri {"http://www.vg.no?fname=patrick&lname=bateman"};
+  EXPECT(uri.host_is_ip4() == false);
+  uri::URI ip_uri  {"http://172.217.16.164/"};
+  EXPECT(ip_uri.host_is_ip4() == true);
+}
+
+CASE("port_str() returns uri's port as string")
+{
+  uri::URI uri {"http://www.vg.no:8080"};
+  EXPECT(uri.port_str() == "8080");
+}
+
+CASE("URI construction, assignment")
+{
+  uri::URI uri1 {"http://www.vg.no:8080"};
+  uri::URI uri2{uri1};
+  EXPECT(uri1 == uri2);
+  uri::URI uri3 = uri2;
+  EXPECT(uri3 == uri1);
+  uri::URI uri {"http://includeos.org/"};
+  EXPECT_NOT(uri == uri1);
+  EXPECT_NOT(uri == uri2);
+  EXPECT_NOT(uri == uri3);
+}

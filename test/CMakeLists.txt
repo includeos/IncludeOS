@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 2.8.9)
 project(unittests C CXX)
 
+option(COVERAGE "Build with coverage generation" OFF)
+
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_C_FLAGS "-m32 -std=c11 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR -DNO_INFO=1 -DNO_DEBUG=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-m32 -g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR -DNO_INFO=1 -DNO_DEBUG=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -42,6 +44,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/rdrand_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/net/unit/cookie_test.cpp
+  ${TEST}/net/unit/dns_test.cpp
   ${TEST}/net/unit/http_header_test.cpp
   ${TEST}/net/unit/http_status_codes_test.cpp
   ${TEST}/net/unit/http_method_test.cpp
@@ -82,7 +85,6 @@ set(OS_SOURCES
   ${SRC}/fs/fat_async.cpp
   ${SRC}/fs/fat_sync.cpp
   ${SRC}/fs/filesystem.cpp
-  ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
@@ -166,6 +168,16 @@ set(OS_SOURCES
 set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
 )
+
+if(COVERAGE)
+  message(STATUS "Coverage")
+  list(REMOVE_ITEM TEST_SOURCES ${TEST}/util/unit/path_to_regex_no_options.cpp)
+  set_property(SOURCE ${OS_SOURCES} PROPERTY COMPILE_FLAGS --coverage)
+  set_property(SOURCE ${TEST_SOURCES} PROPERTY COMPILE_FLAGS --coverage)
+  set_property(SOURCE ${MOD_OBJECTS} PROPERTY COMPILE_FLAGS --coverage)
+  set_property(SOURCE ${LEST_UTIL} PROPERTY COMPILE_FLAGS --coverage)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+endif()
 
 if(TRAVIS)
   message(STATUS "Travis")
