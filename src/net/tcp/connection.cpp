@@ -351,9 +351,9 @@ bool Connection::is_listening() const {
 }
 
 __attribute__((weak))
-void Connection::deserialize_from(void*) {}
+void Connection::deserialize_from(void*) { }
 __attribute__((weak))
-int  Connection::serialize_to(void*) {  return 0;  }
+int  Connection::serialize_to(void*) const {  return 0;  }
 
 Connection::~Connection() {
   // Do all necessary clean up.

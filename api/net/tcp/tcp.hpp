@@ -158,7 +158,9 @@ namespace net {
     tcp::Address address()
     { return inet_.ip_addr(); }
 
-    IPStack& stack() const
+    const IPStack& stack() const
+    { return inet_; }
+    IPStack& stack()
     { return inet_; }
 
   private:

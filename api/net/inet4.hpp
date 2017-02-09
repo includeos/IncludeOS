@@ -195,6 +195,8 @@ namespace net {
       return stack<N>();
     }
 
+    void force_start_send_queues() override;
+
   private:
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
