@@ -22,7 +22,7 @@ set(OS_OBJECTS
   kernel/start.asm kernel/kernel_start.cpp kernel/sanity_checks.cpp
   kernel/syscalls.cpp kernel/interrupts.asm kernel/os.cpp kernel/cpuid.cpp
   kernel/memmap.cpp kernel/irq_manager.cpp kernel/pci_manager.cpp
-  kernel/service_stub.cpp kernel/main_call.cpp
+  kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
   kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp

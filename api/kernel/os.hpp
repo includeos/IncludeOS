@@ -136,24 +136,23 @@ public:
     return x << PAGE_SHIFT;
   }
 
+  /** Total used dynamic memory, in bytes */
+  static uintptr_t heap_usage() noexcept;
+
+  /** Attempt to trim the heap end, reducing the size */
+  static void heap_trim() noexcept;
+
   /** First address of the heap **/
   static uintptr_t heap_begin() noexcept;
 
   /** Last used address of the heap **/
   static uintptr_t heap_end() noexcept;
 
-  /** The maximum last address of the dynamic memory area (heap) */
-  static uintptr_t heap_max() noexcept{
-    return heap_max_;
-  };
-
-  /** Currently used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept {
-    return heap_end() - heap_begin();
-  };
-
   /** Resize the heap if possible. Return (potentially) new size. **/
   static uintptr_t resize_heap(size_t size);
+
+  /** The maximum last address of the dynamic memory area (heap) */
+  static uintptr_t heap_max() noexcept;
 
   /** The end of usable memory **/
   static inline uintptr_t memory_end(){
