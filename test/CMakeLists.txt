@@ -110,6 +110,7 @@ set(OS_SOURCES
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
+  ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
   ${SRC}/kernel/rdrand.cpp
   ${SRC}/kernel/rng.cpp
