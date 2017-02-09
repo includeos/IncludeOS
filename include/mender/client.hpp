@@ -61,6 +61,9 @@ namespace mender {
     Device& device()
     { return device_; }
 
+    std::string artifact_name()
+    { return device_.inventory().value("artifact_name"); }
+
     /**
      * @brief      Start the client
      */
