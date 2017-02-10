@@ -354,12 +354,18 @@ static struct relocated_header {
     return (char*) &syms[entries];
   }
 } relocs;
+
+static const char* SANITY_STRING = "Hello world!";
 struct elfsyms_header {
   uint32_t  symtab_entries;
   uint32_t  strtab_size;
+  uint32_t  sanity_check;
+  uint32_t  checksum_syms;
+  uint32_t  checksum_strs;
   Elf32_Sym syms[0];
-};
+} __attribute__((packed));
 
+#include <util/crc32.hpp>
 extern "C"
 int _get_elf_section_datasize(const void* location)
 {
@@ -379,8 +385,38 @@ void _move_elf_syms_location(const void* location, void* new_location)
     relocs.strsize = 0;
     return;
   }
-  // old header
+  // incoming header
   auto* hdr = (elfsyms_header*) location;
+  // verify CRC sanity check
+  const uint32_t our_sanity = crc32(SANITY_STRING, strlen(SANITY_STRING));
+  if (hdr->sanity_check != our_sanity)
+  {
+    kprintf("CRC sanity check failed! "
+            "(%08x vs %08x)\n", hdr->sanity_check, our_sanity);
+    relocs.entries = 0;
+    relocs.strsize = 0;
+    return;
+  }
+
+  // verify separate checksums of symbols and strings
+  uint32_t symbsize = hdr->symtab_entries * sizeof(Elf32_Sym);
+  uint32_t csum_syms = crc32((char*) hdr->syms, symbsize);
+  uint32_t csum_strs = crc32((char*) &hdr->syms[hdr->symtab_entries], hdr->strtab_size);
+  if (csum_syms != hdr->checksum_syms || csum_strs != hdr->checksum_strs)
+  {
+    if (csum_syms != hdr->checksum_syms)
+      kprintf("ELF symbol tables checksum failed! "
+              "(%08x vs %08x)\n", csum_syms, hdr->checksum_syms);
+    if (csum_strs != hdr->checksum_strs)
+      kprintf("ELF string tables checksum failed! "
+              "(%08x vs %08x)\n", csum_strs, hdr->checksum_strs);
+    uint32_t all = crc32(hdr, sizeof(elfsyms_header) + size);
+    kprintf("Checksum ELF section: %08x\n", all);
+
+    relocs.entries = 0;
+    relocs.strsize = 0;
+    return;
+  }
   // update header
   relocs.entries = hdr->symtab_entries;
   relocs.strsize = hdr->strtab_size;
