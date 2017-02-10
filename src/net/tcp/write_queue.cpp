@@ -114,6 +114,6 @@ uint32_t Write_queue::bytes_unacknowledged() const
 }
 
 __attribute__((weak))
-void Write_queue::deserialize_from(void*) {}
+int Write_queue::deserialize_from(void*) { return 0; }
 __attribute__((weak))
-int  Write_queue::serialize_to(void*) { return 0; }
+int  Write_queue::serialize_to(void*) const { return 0; }

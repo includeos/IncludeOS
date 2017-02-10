@@ -469,7 +469,7 @@ public:
 
   // ???
   void deserialize_from(void*);
-  int  serialize_to(void*);
+  int  serialize_to(void*) const;
 
   /** Reset all callbacks back to default **/
   void reset_callbacks();
