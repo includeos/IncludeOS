@@ -67,18 +67,16 @@ void setup_terminal(T& inet)
     static uint32_t crc = CRC32_BEGIN();
     static const int LEN = 4096;
     auto buf = net::tcp::buffer_t(new uint8_t[LEN], std::default_delete<uint8_t[]>());
+    memset(buf.get(), BUFFER_CHAR, LEN);
+
+    conn->on_write(
+    [conn, buf] (size_t) {
+      crc = crc32(crc, (char*) buf.get(), LEN);
+      printf("[%p] CRC32: %08x   %s\n", buf.get(), CRC32_VALUE(crc), conn->to_string().c_str());
+    });
     
     for (int i = 0; i < 1000; i++) {
-      memset(buf.get(), BUFFER_CHAR, LEN);
-      conn->write(buf, LEN,
-      [conn, buf] (int) {
-        
-        crc = crc32(crc, (char*) buf.get(), LEN);
-        printf("[%p] CRC32: %08x   %s\n", buf.get(), CRC32_VALUE(crc), conn->to_string().c_str());
-      });
-      
-      //BUFFER_CHAR++;
-      if (BUFFER_CHAR > 'Z') BUFFER_CHAR = 'A';
+      conn->write(buf, LEN);
     }
   });
 }
@@ -280,7 +278,7 @@ void on_update_area(liu::Restore& thing)
   
   // we are perpetually updating ourselves
   using namespace std::chrono;
-  Timers::oneshot(milliseconds(2500),
+  Timers::oneshot(milliseconds(250),
   [updloc] (auto) {
     extern uintptr_t heap_end;
     printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);
@@ -332,4 +330,5 @@ void setup_liveupdate_server(T& inet)
       delete[] update_blob;
     });
   });
+  printf("LiveUpdate server listening on port 666\n");
 }

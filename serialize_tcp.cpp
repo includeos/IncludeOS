@@ -62,56 +62,46 @@ struct read_buffer
 
 struct write_buffer
 {
-  size_t   remaining;
-  size_t   offset;
-  size_t   acknowledged;
-  bool     push;
-  
-  size_t   length() const noexcept { return remaining + offset; }
-  
+  size_t   length;
   char     vla[0];
 };
 
 struct serialized_writeq
 {
   uint32_t current;
+  uint32_t offset;
+  uint32_t acked;
   size_t   buffers;
   
   char     vla[0];
 };
 
 
-int WriteQueue::deserialize_from(void* addr)
+int Write_queue::deserialize_from(void* addr)
 {
   auto* writeq = (serialized_writeq*) addr;
   this->current_ = writeq->current;
+  this->offset_  = writeq->offset;
+  this->acked_   = writeq->acked;
   
   /// restore write buffers
   int len = 0;
-  int bytes = 0;
   int total = writeq->buffers;
   
-  while (total--) {
-    
+  while (total--)
+  {
     auto* current = (write_buffer*) &writeq->vla[len];
     // header
     len += sizeof(write_buffer);
-    
-    buffer_t wq_buffer { new uint8_t[current->length()], std::default_delete<uint8_t[]> () };
-    // copy data
-    memcpy(wq_buffer.get(), &writeq->vla[len], current->length());
-    len += current->length();
-    
+
     /// insert into write queue
-    this->q.emplace_back(
-        std::piecewise_construct,
-        std::forward_as_tuple(wq_buffer, current->length(), current->push, current->offset),
-        std::forward_as_tuple([] (int) {})); // no-op write callback
-    
-    this->q.back().first.acknowledged = current->acknowledged;
-    bytes += current->length();
+    this->q.emplace_back(current->length);
+
+    // copy data
+    auto& chunk = this->q.back();
+    memcpy(chunk.data(), &writeq->vla[len], current->length);
+    len += current->length;
   }
-  
   return sizeof(serialized_writeq) + len;
 }
 void Connection::deserialize_from(void* addr)
@@ -167,30 +157,27 @@ Connection_ptr deserialize_connection(void* addr, net::TCP& tcp)
   return conn;
 }
 
-int  WriteQueue::serialize_to(void* addr) const
+int  Write_queue::serialize_to(void* addr) const
 {
   auto* writeq = (serialized_writeq*) addr;
   writeq->current = this->current_;
+  writeq->offset  = this->offset_;
+  writeq->acked   = this->acked_;
   writeq->buffers = this->q.size();
-  
+
   int len = 0;
-  for (auto& wq : this->q) {
-    
+  for (auto& chunk : this->q)
+  {
     auto* current = (write_buffer*) &writeq->vla[len];
-    auto& buf = wq.first;
     
     // header
-    current->remaining = buf.remaining;
-    current->offset    = buf.offset;
-    current->acknowledged = buf.acknowledged;
-    current->push      = buf.push;
+    current->length = chunk.size();
     len += sizeof(write_buffer);
     
     // data
-    memcpy(&writeq->vla[len], buf.buffer.get(), current->length());
-    len += current->length();
+    memcpy(&writeq->vla[len], chunk.data(), current->length);
+    len += current->length;
   }
-  
   return sizeof(serialized_writeq) + len;
 }
 
