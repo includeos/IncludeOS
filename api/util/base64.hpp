@@ -20,7 +20,7 @@
 #define UTIL_BASE64_HPP
 
 #include <algorithm>
-#include <experimental/string_view>
+#include <cstring>
 #include <gsl/gsl>
 #include <stdexcept>
 #include <vector>
@@ -150,6 +150,28 @@ inline R encode(const D& data, const url_alphabet url_alphabet_switch = url_alph
 }
 
 ///
+/// Encode a C-String into Base64 format
+///
+/// @param data
+///   The C-String to encode into Base64 format
+///
+/// @param url_alphabet_switch
+///   Whether to use the Base64URL alphabet
+///
+/// @return Base64 encoded data
+///
+template<typename R = std::string>
+inline R encode(const char* data, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
+  const auto length = std::strlen(data);
+
+  if (length == 0) {
+    return R{};
+  }
+
+  return encode<R>(data, length, url_alphabet_switch);
+}
+
+///
 /// Decode the specified Base64 encoded data
 ///
 /// @param data
@@ -185,8 +207,7 @@ R decode(gsl::not_null<const char*> data, size_t length, const url_alphabet url_
   buffer.reserve((length * 3) / 4);
 
   bool has_padding {false};
-  std::experimental::string_view padding_detector {data, length};
-  if (padding_detector.rfind('=') not_eq std::experimental::string_view::npos) {
+  if (data[length - 1] == '=') {
     has_padding = true;
     length -= 4;
   }
@@ -228,6 +249,28 @@ R decode(gsl::not_null<const char*> data, size_t length, const url_alphabet url_
 template<typename R = std::vector<char>, typename D = std::string>
 inline R decode(const D& data, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
   return decode<R>(data.data(), data.size(), url_alphabet_switch);
+}
+
+///
+/// Decode a C-String from Base64 format
+///
+/// @param data
+///   The C-String to decode from Base64 format
+///
+/// @param url_alphabet_switch
+///   Whether to use the Base64URL alphabet
+///
+/// @return The decoded data
+///
+template<typename R = std::vector<char>>
+inline R decode(const char* data, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
+  const auto length = std::strlen(data);
+
+  if (length == 0) {
+    return R{};
+  }
+
+  return decode<R>(data, length, url_alphabet_switch);
 }
 
 } //< namespace base64
