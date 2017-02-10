@@ -38,11 +38,8 @@ void Async::upload_file(
           size_t       length,
           next_func    next)
   {
-    // write chunk to TCP connection
-    conn->write(
-      buffer,
-      length,
-      net::tcp::WriteCallback::make_packed(
+    // temp
+    conn->on_write(net::tcp::Connection::WriteCallback::make_packed(
       [length, next] (size_t n) {
 
         // if all data written, go to next chunk
@@ -51,6 +48,9 @@ void Async::upload_file(
 
       })
     );
+
+    // write chunk to TCP connection
+    conn->write(buffer, length);
 
   }, callback, CHUNK_SIZE);
 }

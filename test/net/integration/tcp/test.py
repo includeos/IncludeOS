@@ -96,10 +96,6 @@ def test5(trigger):
     print INFO, trigger.rstrip(),  "triggered by VM"
     listen(TEST5)
 
-
-#listen(8085)
-
-
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
@@ -108,6 +104,7 @@ vm.on_output("TEST1", test1)
 vm.on_output("TEST2", test2)
 vm.on_output("TEST3", test3)
 vm.on_output("TEST4", test4)
+vm.on_output("TEST5", test5)
 
 
 # Boot the VM, taking a timeout as parameter

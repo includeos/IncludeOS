@@ -56,7 +56,7 @@ class URI {
   ///
   /// Move constructor
   ///
-  URI(URI&&);
+  URI(URI&&) noexcept;
 
   ///
   /// Default destructor
@@ -71,7 +71,7 @@ class URI {
   ///
   /// Default move assignment operator
   ///
-  URI& operator=(URI&&);
+  URI& operator=(URI&&) noexcept;
 
   ///
   /// Construct using a C-String representing a uri
@@ -139,6 +139,9 @@ class URI {
   /// Format <host>:<port>
   ///
   /// @return host and port as a view
+  ///
+  /// @note IIf the uri don't contain port information this
+  /// method is same as calling URI::host
   ///
   std::experimental::string_view host_and_port() const noexcept;
 
@@ -218,14 +221,7 @@ class URI {
   ///
   /// @return A string representation of this class
   ///
-  std::experimental::string_view to_string() const noexcept;
-
-  ///
-  /// Get the actual string the URI is built on
-  ///
-  /// @return The string source of this class
-  ///
-  const std::string& str() const noexcept;
+  const std::string& to_string() const noexcept;
 
   ///
   /// Operator to transform this class into string form
@@ -260,7 +256,7 @@ private:
   ///
   std::string uri_str_;
 
-  mutable uint16_t port_ {0xFFFF};
+  uint16_t port_ {0xFFFF};
 
   std::experimental::string_view scheme_;
   std::experimental::string_view userinfo_;
@@ -301,6 +297,8 @@ bool operator < (const URI& lhs, const URI& rhs) noexcept;
 /// {URI} object to compare
 ///
 /// @return true if equal, false otherwise
+///
+/// @todo IPv6 authority comparison
 ///
 bool operator == (const URI& lhs, const URI& rhs) noexcept;
 

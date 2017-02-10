@@ -56,7 +56,6 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
-  ${TEST}/net/unit/tcp_write_buffer.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp

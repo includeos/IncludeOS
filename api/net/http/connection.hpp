@@ -39,13 +39,13 @@ namespace http {
     template <typename TCP>
     explicit Connection(TCP&, Peer);
 
-    inline constexpr explicit Connection() noexcept;
+    inline explicit Connection() noexcept;
 
     net::tcp::port_t local_port() const noexcept
     { return (tcpconn_) ? tcpconn_->local_port() : 0; }
 
     Peer peer() const noexcept
-    { return (tcpconn_) ? tcpconn_->remote() : Peer(); }
+    { return peer_; }
 
     void timeout()
     { tcpconn_->is_closing() ? tcpconn_->abort() : tcpconn_->close(); }
@@ -95,12 +95,14 @@ namespace http {
   protected:
     TCP_conn          tcpconn_;
     bool              keep_alive_;
+    Peer              peer_;
 
   }; // < class Connection
 
   inline Connection::Connection(TCP_conn tcpconn, bool keep_alive)
     : tcpconn_{std::move(tcpconn)},
-      keep_alive_{keep_alive}
+      keep_alive_{keep_alive},
+      peer_{tcpconn_->remote()}
   {
     Ensures(tcpconn_ != nullptr);
     debug("<http::Connection> Created %u -> %s %p\n", local_port(), peer().to_string().c_str(), this);
@@ -112,9 +114,10 @@ namespace http {
   {
   }
 
-  inline constexpr Connection::Connection() noexcept
+  inline Connection::Connection() noexcept
     : tcpconn_(nullptr),
-      keep_alive_(false)
+      keep_alive_(false),
+      peer_{}
   {
   }
 
@@ -130,7 +133,7 @@ namespace http {
 
     // this is expensive and may be unecessary,
     // but just to be safe for now
-    copy->setup_default_callbacks();
+    copy->reset_callbacks();
 
     tcpconn_ = nullptr;
 
