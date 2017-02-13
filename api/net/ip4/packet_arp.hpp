@@ -71,7 +71,7 @@ namespace net
     }
 
     Ethernet::addr source_mac() const {
-      return header().ethhdr.src;
+      return header().shwaddr;
     };
 
     Ethernet::addr dest_mac() const {
