@@ -65,4 +65,5 @@ struct Elf
   // debugging purposes only
   static const char* get_strtab();
   static void        print_info();
+  static bool        verify_symbols();
 };
