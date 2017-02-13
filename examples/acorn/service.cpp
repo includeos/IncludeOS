@@ -52,6 +52,8 @@ const std::string timestamp() {
     return buf;
 }
 
+#include <net/inet4>
+
 void Service::start(const std::string&) {
 
   /** SETUP LOGGER */
