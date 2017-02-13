@@ -16,13 +16,13 @@
 // limitations under the License.
 
 #include <kernel/elf.hpp>
+#include <util/crc32.hpp>
 #include <common>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
-#include <info>
 #include <vector>
 #include "../../vmbuild/elf.h"
 
@@ -64,11 +64,17 @@ class ElfTables
 public:
   ElfTables() {}
 
-  void set(void* syms, uint32_t entries, const char* string_table)
+  void set(Elf32_Sym* syms, 
+           uint32_t   entries, 
+           const char* string_table,
+           uint32_t    strsize,
+           uint32_t csum_syms,
+           uint32_t csum_strs)
   {
-    symtab.base    = (Elf32_Sym*) syms;
-    symtab.entries = entries;
-    strtab         = string_table;
+    symtab    = {(Elf32_Sym*) syms, entries};
+    strtab    = {string_table, strsize};
+    checksum_syms = csum_syms;
+    checksum_strs = csum_strs;
   }
 
   func_offset getsym(Elf32_Addr addr)
@@ -150,12 +156,29 @@ public:
   }
 
   const auto* get_strtab() const {
-    return strtab;
+    return strtab.base;
+  }
+
+  bool verify_symbols() const {
+    uint32_t csum = 
+        crc32(symtab.base, symtab.entries * sizeof(Elf32_Sym));
+    if (csum != checksum_syms) {
+      printf("ELF symbol tables checksum failed! "
+              "(%08x vs %08x)\n", csum, checksum_syms);
+      return false;
+    }
+    csum = crc32(strtab.base, strtab.size);
+    if (csum != checksum_strs) {
+      printf("ELF string tables checksum failed! "
+              "(%08x vs %08x)\n", csum, checksum_strs);
+      return false;
+    }
+    return true;
   }
 
 private:
   const char* sym_name(Elf32_Sym* sym) const {
-    return &strtab[sym->st_name];
+    return &strtab.base[sym->st_name];
   }
   std::string demangle(const char* name) const
   {
@@ -175,8 +198,10 @@ private:
     return res;
   }
 
-  SymTab      symtab;
-  const char* strtab;
+  SymTab    symtab;
+  StrTab    strtab;
+  uint32_t  checksum_syms;
+  uint32_t  checksum_strs;
 };
 static ElfTables parser;
 
@@ -253,6 +278,11 @@ std::vector<func_offset> Elf::get_functions()
                     ADD_TRACE(8, ra);
   }}}}}}}}}
   return vec;
+}
+
+bool Elf::verify_symbols()
+{
+  return get_parser().verify_symbols();
 }
 
 void print_backtrace()
@@ -346,9 +376,11 @@ void _validate_elf_symbols()
 }
 
 static struct relocated_header {
+  Elf32_Sym* syms = nullptr;
   uint32_t   entries = 0xFFFF;
   uint32_t   strsize = 0xFFFF;
-  Elf32_Sym* syms = nullptr;
+  uint32_t   check_syms = 0xFFFF;
+  uint32_t   check_strs = 0xFFFF;
 
   const char* strings() const {
     return (char*) &syms[entries];
@@ -365,7 +397,6 @@ struct elfsyms_header {
   Elf32_Sym syms[0];
 } __attribute__((packed));
 
-#include <util/crc32.hpp>
 extern "C"
 int _get_elf_section_datasize(const void* location)
 {
@@ -418,9 +449,11 @@ void _move_elf_syms_location(const void* location, void* new_location)
     return;
   }
   // update header
+  relocs.syms    = (Elf32_Sym*) new_location;
   relocs.entries = hdr->symtab_entries;
   relocs.strsize = hdr->strtab_size;
-  relocs.syms    = (Elf32_Sym*) new_location;
+  relocs.check_syms = hdr->checksum_syms;
+  relocs.check_strs = hdr->checksum_strs;
   // copy **overlapping** symbol and string data
   memmove((char*) relocs.syms, (char*) hdr->syms, size);
 }
@@ -430,10 +463,12 @@ void _init_elf_parser()
 {
   if (relocs.entries) {
     // apply changes to the symbol parser from custom location
-    parser.set(relocs.syms, relocs.entries, relocs.strings());
+    parser.set(relocs.syms,      relocs.entries, 
+               relocs.strings(), relocs.strsize,
+               relocs.check_syms, relocs.check_strs);
   }
   else {
     // symbols and strings are stripped out
-    parser.set(nullptr, 0, nullptr);
+    parser.set(nullptr, 0, nullptr, 0,  0, 0);
   }
 }
