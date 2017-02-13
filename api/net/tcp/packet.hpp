@@ -64,7 +64,7 @@ public:
     set_payload(buffer() + tcp_full_header_length());
 
     debug2("<TCP::Packet::init> size()=%u ip_header_size()=%u full_header_size()=%u\n",
-      size(), ip_header_size(), tcp_full_header_length());
+      size(), ip_header_length(), tcp_full_header_length());
   }
 
   // GETTERS

@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #define PRINT_INFO
-#define DEBUG // Allow debuging
-#define DEBUG2
+// #define DEBUG // Allow debuging
+// #define DEBUG2
 
 #include "virtionet.hpp"
 #include <net/packet.hpp>

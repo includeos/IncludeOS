@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG // Allow debug
+//#define DEBUG // Allow debug
 //#define DEBUG2
 
 #include <os>
