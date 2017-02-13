@@ -220,8 +220,10 @@ void VirtioNet::msix_xmit_handler()
   while (tx_q.new_incoming())
   {
     auto res = tx_q.dequeue();
-    // release the data back to pool
-    bufstore().release(res.data() - sizeof(net::Packet));
+    assert(res.data());
+    // get packet offset, and call destructor
+    auto* packet = (net::Packet*) (res.data() - sizeof(net::Packet));
+    packet->~Packet(); // call destructor on Packet to release it
 
     dequeued_tx = true;
   }
