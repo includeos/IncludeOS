@@ -53,7 +53,7 @@ namespace http {
 
     void end_request(status_t code = http::OK);
 
-    void close();
+    void close() override;
 
     void update_idle()
     { idle_since_ = RTC::now(); }
