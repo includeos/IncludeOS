@@ -121,7 +121,9 @@ public:
   { return std::make_unique<VirtioNet>(d); }
 
   /** Human readable name. */
-  const char* driver_name() const override;
+  const char* driver_name() const override {
+    return "VirtioNet";
+  }
 
   /** Mac address. */
   const hw::MAC_addr& mac() const noexcept override
@@ -132,6 +134,8 @@ public:
 
   net::downstream create_physical_downstream()
   { return {this, &VirtioNet::transmit}; }
+
+  net::Packet_ptr create_packet(uint16_t) override;
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);
@@ -222,7 +226,6 @@ private:
   static void drop(net::Packet_ptr);
 
   std::unique_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
-  std::deque<uint8_t*> tx_ringq;
 
   void begin_deferred_kick();
   bool deferred_kick = false;

@@ -13,7 +13,7 @@ Inet4::Inet4(hw::Nic& nic)
     dns_server(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ip4_(*this),
     icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
-    bufstore_(nic.bufstore()), MTU_(nic.MTU())
+    MTU_(nic.MTU())
 {
   INFO("Inet4","Bringing up a IPv4 stack");
   Ensures(sizeof(IP4::addr) == 4);
@@ -127,4 +127,10 @@ void Inet4::process_sendq(size_t packets) {
     for (size_t i = 0; i < tqa.size(); i++)
     if (give[i]) tqa[i](give[i]);
   */
+}
+
+void Inet4::force_start_send_queues()
+{
+  size_t packets = transmit_queue_available();
+  if (packets) process_sendq(packets);
 }

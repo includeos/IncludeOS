@@ -96,7 +96,7 @@ namespace net {
 
   private:
     const ip4::Header& ip_header() const noexcept
-    { return (reinterpret_cast<IP4::full_header*>(buffer()))->ip_hdr; }
+    { return ((const IP4::full_header*) buffer())->ip_hdr; }
 
     ip4::Header& ip_header() noexcept
     { return (reinterpret_cast<IP4::full_header*>(buffer()))->ip_hdr; }

@@ -32,7 +32,7 @@ auto create_packet(BufferStore& bufstore) {
   // get buffer (as packet + data)
   auto* ptr = (Packet*) bufstore.get_buffer();
   // place packet at front of buffer
-  new (ptr) Packet(MTU, 0, &bufstore);
+  new (ptr) Packet(MTU, 0, 0, &bufstore);
   // regular shared_ptr that calls delete on Packet
   return std::unique_ptr<Packet>(ptr);
 }

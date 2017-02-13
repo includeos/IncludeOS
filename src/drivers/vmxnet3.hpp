@@ -55,6 +55,8 @@ public:
   net::downstream create_physical_downstream()
   { return {this, &vmxnet3::transmit}; }
 
+  net::Packet_ptr create_packet(uint16_t) override;
+
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);
 

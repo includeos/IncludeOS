@@ -39,8 +39,7 @@ namespace net {
   /** A complete IP4 network stack */
   class Inet4 : public Inet<IP4>{
   public:
-
-    virtual std::string ifname() const override
+    std::string ifname() const override
     { return nic_.device_name(); }
 
     hw::MAC_addr link_addr() override
@@ -84,35 +83,30 @@ namespace net {
     /** Create a Packet, with a preallocated buffer.
         @param size : the "size" reported by the allocated packet.
     */
-    virtual Packet_ptr create_packet(size_t size) override {
-      // get buffer (as packet + data)
-      auto* ptr = (Packet*) bufstore_.get_buffer();
-      // place packet at front of buffer
-      new (ptr) Packet(nic_.bufsize(), size, &bufstore_);
-      // regular shared_ptr that calls delete on Packet
-      return Packet_ptr(ptr);
+    Packet_ptr create_packet(size_t size) override {
+      return nic_.create_packet(size);
     }
 
     /** MTU retreived from Nic on construction */
-    virtual uint16_t MTU() const override
+    uint16_t MTU() const override
     { return MTU_; }
 
     /**
      * @func  a delegate that provides a hostname and its address, which is 0 if the
      * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
      **/
-    virtual void resolve(const std::string& hostname,
-                         resolve_func<IP4>  func) override
+    void resolve(const std::string& hostname,
+                 resolve_func<IP4>  func) override
     {
       dns.resolve(this->dns_server, hostname, func);
     }
 
-    virtual void set_gateway(IP4::addr gateway) override
+    void set_gateway(IP4::addr gateway) override
     {
       this->gateway_ = gateway;
     }
 
-    virtual void set_dns_server(IP4::addr server) override
+    void set_dns_server(IP4::addr server) override
     {
       this->dns_server = server;
     }
@@ -158,13 +152,15 @@ namespace net {
       tqa.push_back(del);
     }
 
-    virtual size_t transmit_queue_available() override {
+    size_t transmit_queue_available() override {
       return nic_.transmit_queue_available();
     }
 
-    virtual size_t buffers_available() override {
+    size_t buffers_available() override {
       return nic_.buffers_available();
     }
+
+    void force_start_send_queues() override;
 
     /** Return the stack on the given Nic */
     template <int N = 0>
@@ -220,7 +216,6 @@ namespace net {
     DNSClient dns;
 
     std::shared_ptr<net::DHClient> dhcp_{};
-    BufferStore& bufstore_;
 
     const uint16_t MTU_;
 
