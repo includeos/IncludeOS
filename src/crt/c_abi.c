@@ -88,10 +88,6 @@ void _init_c_runtime()
   extern void _init_elf_parser();
   _init_elf_parser();
 
-  /// call global constructors emitted by compiler
-  extern void _init();
-  _init();
-
   // sanity checks
   assert(heap_begin >= &_end);
   assert(heap_end >= heap_begin);

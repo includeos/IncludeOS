@@ -63,7 +63,7 @@ namespace http {
     void timeout_request()
     { end_response(Error::TIMEOUT); }
 
-    void close();
+    void close() override;
 
   }; // < class Client_connection
 

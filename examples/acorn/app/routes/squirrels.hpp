@@ -70,7 +70,7 @@ public:
           using namespace std;
           res->header().set_field(http::header::Location, req->uri().path().to_string()); // return back end loc i guess?
           // status code 201 Created
-          res->set_status_code(http::Created);
+          res->source().set_status_code(http::Created);
           // send the created entity as response
           res->send_json(s.json());
         }

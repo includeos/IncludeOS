@@ -142,8 +142,8 @@ namespace http {
     timer_.stop();
 
     callback(err, std::move(res_), *this);
-
-    if(!released())
+    end();
+    /*if(!released())
     {
       // avoid trying to parse any more responses
       tcpconn_->on_read(0, nullptr);
@@ -154,7 +154,7 @@ namespace http {
     else
     {
       close();
-    }
+    }*/
   }
 
   void Client_connection::close()

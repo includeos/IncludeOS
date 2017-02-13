@@ -39,13 +39,13 @@ namespace http {
     template <typename TCP>
     explicit Connection(TCP&, Peer);
 
-    inline constexpr explicit Connection() noexcept;
+    inline explicit Connection() noexcept;
 
     net::tcp::port_t local_port() const noexcept
     { return (tcpconn_) ? tcpconn_->local_port() : 0; }
 
     Peer peer() const noexcept
-    { return (tcpconn_) ? tcpconn_->remote() : Peer(); }
+    { return peer_; }
 
     void timeout()
     { tcpconn_->is_closing() ? tcpconn_->abort() : tcpconn_->close(); }
@@ -80,6 +80,14 @@ namespace http {
       return c;
     }
 
+    bool keep_alive() const
+    { return keep_alive_; }
+
+    void keep_alive(bool keep_alive)
+    { keep_alive_ = keep_alive; }
+
+    void end();
+
     /* Delete copy constructor */
     Connection(const Connection&)             = delete;
 
@@ -95,12 +103,16 @@ namespace http {
   protected:
     TCP_conn          tcpconn_;
     bool              keep_alive_;
+    Peer              peer_;
+
+    virtual void close() {}
 
   }; // < class Connection
 
   inline Connection::Connection(TCP_conn tcpconn, bool keep_alive)
     : tcpconn_{std::move(tcpconn)},
-      keep_alive_{keep_alive}
+      keep_alive_{keep_alive},
+      peer_{tcpconn_->remote()}
   {
     Ensures(tcpconn_ != nullptr);
     debug("<http::Connection> Created %u -> %s %p\n", local_port(), peer().to_string().c_str(), this);
@@ -112,15 +124,16 @@ namespace http {
   {
   }
 
-  inline constexpr Connection::Connection() noexcept
+  inline Connection::Connection() noexcept
     : tcpconn_(nullptr),
-      keep_alive_(false)
+      keep_alive_(false),
+      peer_{}
   {
   }
 
   inline void Connection::shutdown()
   {
-    if(tcpconn_->is_closing())
+    if(not released() and not tcpconn_->is_closing())
       tcpconn_->close();
   }
 
@@ -130,11 +143,19 @@ namespace http {
 
     // this is expensive and may be unecessary,
     // but just to be safe for now
-    copy->setup_default_callbacks();
+    copy->reset_callbacks();
 
     tcpconn_ = nullptr;
 
     return copy;
+  }
+
+  inline void Connection::end()
+  {
+    if(released())
+      close();
+    else if(!keep_alive_)
+      shutdown();
   }
 
 } // < namespace http

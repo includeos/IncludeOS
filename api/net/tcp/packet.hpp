@@ -228,7 +228,7 @@ public:
   //! assuming the packet has been properly initialized,
   //! this will fill bytes from @buffer into this packets buffer,
   //! then return the number of bytes written. buffer is unmodified
-  size_t fill(const char* buffer, size_t length) {
+  size_t fill(const uint8_t* buffer, size_t length) {
     size_t rem = capacity() - size();
     size_t total = (length < rem) ? length : rem;
     // copy from buffer to packet buffer

@@ -88,6 +88,7 @@ namespace net {
     /** Number of buffers available in the bufstore */
     virtual size_t buffers_available() = 0;
 
+    virtual void force_start_send_queues() = 0;
 
   }; //< class Inet<LINKLAYER, IPV>
 } //< namespace net

@@ -49,6 +49,19 @@ namespace http {
     return res;
   }
 
+  std::vector<Server::TCP_conn> Server::active_tcp_connections() const
+  {
+    std::vector<TCP_conn> conns;
+    conns.reserve(connections_.size() - free_idx_.size());
+
+    for (auto& conn : connections_) {
+      if (conn != nullptr)
+        conns.push_back(conn->tcp());
+    }
+
+   return conns;
+  }
+
   Server::~Server()
   {
     if(timer_id_ != Timers::UNUSED_ID)
@@ -77,6 +90,10 @@ namespace http {
   {
     const auto idx = conn.idx();
     connections_[idx] = nullptr;
+    if (free_idx_.capacity() < connections_.size())
+    {
+      free_idx_.reserve(connections_.size());
+    }
     free_idx_.push_back(idx);
   }
 

@@ -56,7 +56,6 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
-  ${TEST}/net/unit/tcp_write_buffer.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
@@ -111,6 +110,7 @@ set(OS_SOURCES
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
+  ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
   ${SRC}/kernel/rdrand.cpp
   ${SRC}/kernel/rng.cpp
@@ -152,7 +152,6 @@ set(OS_SOURCES
   ${SRC}/posix/sys/select.cpp
   ${SRC}/posix/arpa/inet.cpp
   ${SRC}/util/async.cpp
-  ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp
   ${SRC}/util/percent_encoding.cpp

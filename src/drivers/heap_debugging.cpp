@@ -129,7 +129,7 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
 
   if (UNLIKELY(!data)) {
       print_backtrace();
-      DPRINTF("malloc(%u bytes): FAILED\n", len, data);
+      DPRINTF("malloc(%u bytes): FAILED\n", len);
       throw std::bad_alloc();
   }
 

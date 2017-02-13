@@ -53,6 +53,8 @@ public:
   /** Disconnect event */
   struct Disconnect;
 
+  using WriteBuffer = Write_queue::WriteBuffer;
+
 public:
 
   /*
@@ -81,6 +83,12 @@ public:
   using CloseCallback           = delegate<void()>;
   inline Connection&            on_close(CloseCallback);
 
+  /**
+   * Emitted every time the connection finishes writing a chunk (job)
+   */
+  using WriteCallback           = delegate<void(size_t)>;
+  inline Connection&            on_write(WriteCallback);
+
   /*
     On error - When any of the users request fails.
   */
@@ -101,15 +109,40 @@ public:
   using RtxTimeoutCallback      = delegate<void(size_t no_attempts, double rto)>;
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
-  inline void write(const void* buf, size_t n);
-  inline void write(const void* buf, size_t n, WriteCallback callback);
 
+  /**
+   * @brief      Async write of a shared buffer with a length.
+   *             Avoids any copy of the data into the internal buffer.
+   *             Calls write(Chunk c).
+   *
+   * @param[in]  buffer  shared buffer
+   * @param[in]  n       length
+   */
   inline void write(buffer_t buffer, size_t n);
-  inline void write(buffer_t buffer, size_t n, WriteCallback callback);
 
+  /**
+   * @brief      Async write of a chunk.
+   *
+   * @param[in]  c     A chunk
+   */
+  void write(Chunk c);
+
+  /**
+   * @brief      Asyn write of a data with a length.
+   *             Copies data into an internal (shared) buffer.
+   *
+   * @param[in]  buf   data
+   * @param[in]  n     length
+   */
+  inline void write(const void* buf, size_t n);
+
+  /**
+   * @brief      Async write of a string.
+   *             Calls write(const void* buf, size_t n)
+   *
+   * @param[in]  str   The string
+   */
   inline void write(const std::string& str);
-  inline void write(const std::string& str, WriteCallback callback);
-
 
   /*
     Close connection.
@@ -436,10 +469,10 @@ public:
 
   // ???
   void deserialize_from(void*);
-  int  serialize_to(void*);
+  int  serialize_to(void*) const;
 
-  /** Unset all callbacks TODO: rename me **/
-  void setup_default_callbacks();
+  /** Reset all callbacks back to default **/
+  void reset_callbacks();
 
   /*
     Destroy the Connection.
@@ -467,7 +500,7 @@ private:
   ReadRequest read_request;
 
   /** Queue for write requests to process */
-  WriteQueue writeq;
+  Write_queue writeq;
 
   /** Round Trip Time Measurer */
   RTTM rttm;
@@ -584,31 +617,6 @@ private:
   /// --- WRITING --- ///
 
   /*
-    Write asynchronous to a remote.
-    Copies the data from the buffer into an internal buffer. Callback is called when a a write is either done or aborted.
-    Immediately tries to write the data to the connection. If not possible, queues the write for processing when possible (FIFO).
-  */
-  void write(const void* buf, size_t n, WriteCallback callback, bool PUSH) {
-    auto buffer = new_shared_buffer(n);
-    memcpy(buffer.get(), buf, n);
-    write(std::move(buffer), n, callback, PUSH);
-  }
-
-  /*
-    Works as write(const void*, size_t, WriteCallback, bool),
-    but with the exception of avoiding copying the data to an internal buffer.
-  */
-  void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH)
-  { write({std::move(buffer), n, PUSH}, callback); }
-
-
-
-  /*
-    Write a WriteBuffer asynchronous to a remote and calls the WriteCallback when done (or aborted).
-  */
-  void write(WriteBuffer&& request, WriteCallback callback);
-
-  /*
     Active try to send a buffer by asking the TCP.
   */
   size_t send(WriteBuffer& buffer);
@@ -617,10 +625,10 @@ private:
     Segmentize buffer into packets until either everything has been written,
     or all packets are used up.
   */
-  size_t send(const char* buffer, size_t remaining, size_t& packets);
+  size_t send(const uint8_t* buffer, size_t remaining, size_t& packets);
 
-  size_t send(WriteBuffer& buffer, size_t& packets, size_t n)
-  { return send((char*)buffer.pos(), n, packets); }
+  size_t send(WriteBuffer& buffer, size_t& packets)
+  { return send(buffer.data(), buffer.length(), packets); }
 
   /*
     Process the write queue with the given amount of packets.
@@ -632,7 +640,7 @@ private:
     Returns if the connection has a doable write job.
   */
   bool has_doable_job() const
-  { return writeq.remaining_requests() and usable_window() >= SMSS(); }
+  { return writeq.has_remaining_requests() and usable_window() >= SMSS(); }
 
   /*
     Try to process the current write queue.
@@ -753,7 +761,7 @@ private:
   /*
     Fill a packet with data and give it a SEQ number.
   */
-  size_t fill_packet(Packet&, const char*, size_t, seq_t);
+  size_t fill_packet(Packet&, const uint8_t*, size_t, seq_t);
 
   /*
     Transmit the send buffer.

@@ -362,8 +362,15 @@ net::Packet_ptr
 vmxnet3::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (net::Packet*) (data - sizeof(net::Packet));
-  new (ptr) net::Packet(bufsize(), size, &bufstore());
+  new (ptr) net::Packet(bufsize(), size, 0, &bufstore());
 
+  return net::Packet_ptr(ptr);
+}
+net::Packet_ptr
+vmxnet3::create_packet(uint16_t size)
+{
+  auto* ptr = (net::Packet*) bufstore().get_buffer();
+  new (ptr) net::Packet(MTU(), size, 0, &bufstore());
   return net::Packet_ptr(ptr);
 }
 
@@ -393,7 +400,8 @@ void vmxnet3::msix_xmit_handler()
       printf("empty buffer? comp=%d, desc=%d\n", idx, desc);
       continue;
     }
-    bufstore().release(tx.buffers[desc] - sizeof(net::Packet));
+    auto* packet = (net::Packet*) (tx.buffers[desc] - sizeof(net::Packet));
+    packet->~Packet(); // call destructor on Packet to release it
     tx.buffers[desc] = nullptr;
   }
   // try to send sendq first

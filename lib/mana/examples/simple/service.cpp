@@ -38,11 +38,11 @@ void Service::start(const std::string&)
   Router router;
   // Setup a route on GET /
   router.on_get("/", [](auto, auto res) {
-    res->add_body("<html><body><h1>Simple example</h1></body></html>"s);
+    res->source().add_body("<html><body><h1>Simple example</h1></body></html>"s);
     res->send();
   });
 
   // Create and setup the server
-  server = std::make_unique<Server>(stack);
+  server = std::make_unique<Server>(stack.tcp());
   server->set_routes(router).listen(80);
 }
