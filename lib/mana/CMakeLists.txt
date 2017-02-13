@@ -13,7 +13,6 @@ include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 include_directories(${INCLUDEOS_ROOT}/mod)
 
 set(MANA_OBJ
-  src/connection.cpp
   src/request.cpp
   src/response.cpp
   src/server.cpp

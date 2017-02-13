@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,59 +16,44 @@
 // limitations under the License.
 
 #include <mana/response.hpp>
+#include <util/async.hpp>
 
 using namespace mana;
 using namespace std::string_literals;
 
-Response::OnSent Response::on_sent_ = [](size_t){};
-
-Response::Response(Connection_ptr conn)
-  : http::Response(), conn_(conn)
+Response::Response(http::Response_writer_ptr res)
+  : reswriter_(std::move(res))
 {
-  header().set_field(http::header::Server, "IncludeOS/Acorn"s);
-  header().set_field(http::header::Connection, keep_alive ? "keep-alive"s : "close"s);
-  conn_->on_write([this](size_t n) { on_sent_(n); });
 }
 
-void Response::send(bool close) {
+void Response::send(bool force_close)
+{
+  if(force_close)
+    header().set_field(http::header::Connection, "close");
 
-  if(close)
-    header().set_field(http::header::Connection, "close"s);
-
-  // Set Content-Length if content
-  const auto conlen = body().size();
-  if(conlen > 0)
-    header().set_field(http::header::Content_Length, std::to_string(conlen));
-
-  write_to_conn(close);
-  end();
+  reswriter_->write();
 }
 
-void Response::write_to_conn(bool close_on_written) {
-  auto res = to_string();
-  auto conn = conn_;
-  conn_->write(res.data(), res.size());
+void Response::send_code(const Code code, bool force_close)
+{
+  if(force_close)
+    header().set_field(http::header::Connection, "close");
 
-  if(close_on_written)
-    conn_->close();
+  reswriter_->write_header(code);
 }
 
-void Response::send_code(const Code code, bool close) {
-  set_status_code(code);
-  send(close);
-}
-
-void Response::send_file(const File& file) {
+void Response::send_file(const File& file)
+{
   auto& entry = file.entry;
 
   /* Content Length */
-  header().set_field(http::header::Content_Length, std::to_string(entry.size()));
+  header().set_content_length(entry.size());
 
   /* Send header */
-  conn_->write(to_string());
+  reswriter_->write_header(http::OK);
 
   /* Send file over connection */
-  auto conn = conn_;
+  auto conn = reswriter_->connection().tcp();
   #ifdef VERBOSE_WEBSERVER
   printf("<Response> Sending file: %s (%llu B).\n",
     entry.name().c_str(), entry.size());
@@ -79,41 +64,43 @@ void Response::send_file(const File& file) {
     file.entry,
     conn,
     Async::on_after_func::make_packed(
-    [conn, entry](fs::error_t err, bool good)
+    [
+      conn,
+      req{shared_from_this()}, // keep the response (and conn) alive until done
+      entry
+    ] (fs::error_t err, bool good)
     {
-        if(good) {
-          #ifdef VERBOSE_WEBSERVER
-          printf("<Response> Success sending %s => %s\n",
-            entry.name().c_str(), conn->remote().to_string().c_str());
-          #endif
-
-          on_sent_(entry.size());
-        }
-        else {
-          printf("<Response> Error sending %s => %s [%s]\n",
-            entry.name().c_str(), conn->remote().to_string().c_str(),
-            conn->is_closing() ? "Connection closing" : err.to_string().c_str());
-        }
+      if(good) {
+        #ifdef VERBOSE_WEBSERVER
+        printf("<Response> Success sending %s => %s\n",
+          entry.name().c_str(), conn->remote().to_string().c_str());
+        #endif
+      }
+      else {
+        printf("<Response> Error sending %s => %s [%s]\n",
+          entry.name().c_str(), conn->remote().to_string().c_str(),
+          conn->is_closing() ? "Connection closing" : err.to_string().c_str());
+      }
+      // remove on_write triggering for other
+      // writes on the same connection
+      conn->on_write(nullptr);
     })
   );
-
-  end();
 }
 
-void Response::send_json(const std::string& json) {
-  add_body(json);
-  header().set_field(http::header::Content_Type, "application/json"s);
-  send(!keep_alive);
+void Response::send_json(const std::string& json)
+{
+  header().set_field(http::header::Content_Type, "application/json");
+  header().set_content_length(json.size());
+  // be simple for now
+  source().add_body(json);
+  send();
 }
 
 void Response::error(Error&& err) {
   // NOTE: only cares about JSON (for now)
-  set_status_code(err.code);
+  source().set_status_code(err.code);
   send_json(err.json());
-}
-
-void Response::end() const {
-  // Response ended, signal server?
 }
 
 Response::~Response() {
