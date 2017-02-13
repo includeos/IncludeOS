@@ -166,6 +166,7 @@ std::vector<Sample> StackSampler::results(int N)
   });
 
   std::vector<Sample> res;
+  char buffer[8192];
 
   N = (N > (int)vec.size()) ? vec.size() : N;
   if (N <= 0) return res;
@@ -173,12 +174,34 @@ std::vector<Sample> StackSampler::results(int N)
   for (auto& sa : vec)
   {
     // resolve the addr
-    auto func = Elf::resolve_symbol(sa.first);
-    res.push_back(Sample {sa.second, (void*) func.addr, func.name});
+    auto func = Elf::safe_resolve_symbol((void*) sa.first, buffer, sizeof(buffer));
+    if (func.name) {
+      res.push_back(Sample {sa.second, (void*) func.addr, func.name});
+    }
+    else {
+      int len = snprintf(buffer, sizeof(buffer), "0x%08x", sa.first);
+      res.push_back(Sample {sa.second, (void*) func.addr, std::string(buffer, len)});
+    }
 
     if (--N == 0) break;
   }
   return res;
+}
+
+void StackSampler::print(const int N)
+{
+  auto samp = results(N);
+  int total = samples_total();
+
+  printf("Stack sampling - %d results (%u samples)\n",
+         samp.size(), total);
+  for (auto& sa : samp)
+  {
+    // percentage of total samples
+    float perc = sa.samp / (float)total * 100.0f;
+    printf("%5.2f%%  %*u: %.*s\n",
+           perc, 8, sa.samp, sa.name.size(), sa.name.c_str());
+  }
 }
 
 void StackSampler::set_mask(bool mask)

@@ -77,31 +77,6 @@ public:
     checksum_strs = csum_strs;
   }
 
-  func_offset getsym(Elf32_Addr addr)
-  {
-    // probably just a null pointer with ofs=addr
-    if (UNLIKELY(addr < 0x1000))
-        return {null_stringz, 0, addr};
-    // definitely in the bootloader
-    if (UNLIKELY(addr >= 0x7c00 && addr < 0x7e00))
-        return {boot_stringz, 0x7c00, addr - 0x7c00};
-    // resolve manually from symtab
-    auto* sym = getaddr(addr);
-    // validate symbol address
-    //assert(sym >= symtab.base && sym < symtab.base + symtab.entries);
-    if (LIKELY(sym)) {
-      auto base   = sym->st_value;
-      auto offset = addr - base;
-      // return string name for symbol
-      const char* name = sym_name(sym);
-      if (name)
-          return {demangle(name), base, offset};
-      else
-          return {to_hex_string(base), base, offset};
-    }
-    // function or space not found
-    return {to_hex_string(addr), addr, 0};
-  }
   safe_func_offset getsym_safe(Elf32_Addr addr, char* buffer, size_t length)
   {
     // probably just a null pointer with ofs=addr
@@ -123,17 +98,6 @@ public:
     return {buffer, addr, 0};
   }
 
-  Elf32_Addr getaddr(const std::string& name)
-  {
-    for (size_t i = 0; i < symtab.entries; i++)
-    {
-      auto& sym = symtab.base[i];
-      //if (ELF32_ST_TYPE(sym.st_info) == STT_FUNC)
-      if (demangle( sym_name(&sym) ) == name)
-          return sym.st_value;
-    }
-    return 0;
-  }
   Elf32_Sym* getaddr(Elf32_Addr addr)
   {
     for (size_t i = 0; i < symtab.entries; i++) {
@@ -180,15 +144,6 @@ private:
   const char* sym_name(Elf32_Sym* sym) const {
     return &strtab.base[sym->st_name];
   }
-  std::string demangle(const char* name) const
-  {
-    char buffer[2048];
-    const char* res = demangle_safe(name, buffer, sizeof(buffer));
-    if (res)
-        return std::string(res);
-    else
-        return std::string(name);
-  }
   const char* demangle_safe(const char* name, char* buffer, size_t buflen) const
   {
     int status;
@@ -216,15 +171,6 @@ const char* Elf::get_strtab() {
   return get_parser().get_strtab();
 }
 
-func_offset Elf::resolve_symbol(uintptr_t addr)
-{
-  return get_parser().getsym(addr);
-}
-func_offset Elf::resolve_symbol(void* addr)
-{
-  return get_parser().getsym((uintptr_t) addr);
-}
-
 uintptr_t Elf::resolve_addr(uintptr_t addr)
 {
   auto* sym = get_parser().getaddr(addr);
@@ -242,43 +188,6 @@ safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t lengt
 {
   return get_parser().getsym_safe((Elf32_Addr) addr, buffer, length);
 }
-uintptr_t Elf::resolve_name(const std::string& name)
-{
-  return get_parser().getaddr(name);
-}
-
-func_offset Elf::get_current_function()
-{
-  return resolve_symbol(__builtin_return_address(0));
-}
-std::vector<func_offset> Elf::get_functions()
-{
-  std::vector<func_offset> vec;
-  #define ADD_TRACE(N, ra)                      \
-      vec.push_back(Elf::resolve_symbol(ra));
-
-  void* ra;
-  if (frp(0, ra)) {
-    ADD_TRACE(0, ra);
-    if (frp(1, ra)) {
-      ADD_TRACE(1, ra);
-      if (frp(2, ra)) {
-        ADD_TRACE(2, ra);
-        if (frp(3, ra)) {
-          ADD_TRACE(3, ra);
-          if (frp(4, ra)) {
-            ADD_TRACE(4, ra);
-            if (frp(5, ra)) {
-              ADD_TRACE(5, ra);
-              if (frp(6, ra)) {
-                ADD_TRACE(6, ra);
-                if (frp(7, ra)) {
-                  ADD_TRACE(7, ra);
-                  if (frp(8, ra)) {
-                    ADD_TRACE(8, ra);
-  }}}}}}}}}
-  return vec;
-}
 
 bool Elf::verify_symbols()
 {
@@ -287,8 +196,8 @@ bool Elf::verify_symbols()
 
 void print_backtrace()
 {
-  char _symbol_buffer[1024];
-  char _btrace_buffer[1024];
+  char _symbol_buffer[4096];
+  char _btrace_buffer[4096];
 
   if (Elf::get_strtab() == NULL) {
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),
