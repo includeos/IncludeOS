@@ -400,7 +400,8 @@ void vmxnet3::msix_xmit_handler()
       printf("empty buffer? comp=%d, desc=%d\n", idx, desc);
       continue;
     }
-    bufstore().release(tx.buffers[desc] - sizeof(net::Packet));
+    auto* packet = (net::Packet*) (tx.buffers[desc] - sizeof(net::Packet));
+    packet->~Packet(); // call destructor on Packet to release it
     tx.buffers[desc] = nullptr;
   }
   // try to send sendq first
