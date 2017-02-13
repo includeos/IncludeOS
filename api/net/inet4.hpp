@@ -84,12 +84,7 @@ namespace net {
         @param size : the "size" reported by the allocated packet.
     */
     Packet_ptr create_packet(size_t size) override {
-      // get buffer (as packet + data)
-      auto* ptr = (Packet*) bufstore_.get_buffer();
-      // place packet at front of buffer
-      new (ptr) Packet(nic_.bufsize(), size, &bufstore_);
-      // regular shared_ptr that calls delete on Packet
-      return Packet_ptr(ptr);
+      return nic_.create_packet(size);
     }
 
     /** MTU retreived from Nic on construction */
@@ -221,7 +216,6 @@ namespace net {
     DNSClient dns;
 
     std::shared_ptr<net::DHClient> dhcp_{};
-    BufferStore& bufstore_;
 
     const uint16_t MTU_;
 

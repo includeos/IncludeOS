@@ -13,7 +13,7 @@ Inet4::Inet4(hw::Nic& nic)
     dns_server(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ip4_(*this),
     icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
-    bufstore_(nic.bufstore()), MTU_(nic.MTU())
+    MTU_(nic.MTU())
 {
   INFO("Inet4","Bringing up a IPv4 stack");
   Ensures(sizeof(IP4::addr) == 4);

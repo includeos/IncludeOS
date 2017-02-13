@@ -24,7 +24,7 @@
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
 #include <hw/pci.hpp>
-#include <stdio.h>
+#include <cstdlib>
 #include <malloc.h>
 #include <string.h>
 //#define NO_DEFERRED_KICK
@@ -34,9 +34,6 @@ static uint8_t deferred_intr;
 #endif
 
 using namespace net;
-constexpr VirtioNet::virtio_net_hdr VirtioNet::empty_header;
-
-const char* VirtioNet::driver_name() const { return "VirtioNet"; }
 
 void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
@@ -48,7 +45,8 @@ void VirtioNet::drop(Packet_ptr){
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
-    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, std::max(2048u, queue_size(0) * 2), sizeof(net::Packet) + MTU()),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, 
+        std::max(2048u, queue_size(0) * 2), sizeof(net::Packet) + sizeof(virtio_net_hdr) + MTU()),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()},
     /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
@@ -219,16 +217,11 @@ void VirtioNet::msix_xmit_handler()
   bool dequeued_tx = false;
   tx_q.disable_interrupts();
   // Do one TX-packet
-  while (tx_q.new_incoming()) {
-    // FIXME Unfortunately dequeue is not working here
-    // I am guessing that Linux is eating the buffers?
-    //auto res =
-    tx_q.dequeue();
-
+  while (tx_q.new_incoming())
+  {
+    auto res = tx_q.dequeue();
     // release the data back to pool
-    auto data = tx_ringq.front();
-    tx_ringq.pop_front();
-    bufstore().release(data);
+    bufstore().release(res.data() - sizeof(net::Packet));
 
     dequeued_tx = true;
   }
@@ -253,8 +246,8 @@ void VirtioNet::msix_xmit_handler()
 void VirtioNet::add_receive_buffer(){
 
   auto* pkt = bufstore().get_buffer();
-  // get a pointer to a virtionet header
-  auto* vnet = pkt + sizeof(Packet) - sizeof(virtio_net_hdr);
+  // offset pointer to virtionet header
+  auto* vnet = pkt + sizeof(Packet);
 
   Token token1 {
     {vnet, sizeof(virtio_net_hdr)},
@@ -268,13 +261,19 @@ void VirtioNet::add_receive_buffer(){
   rx_q.enqueue(tokens);
 }
 
-std::unique_ptr<Packet>
+net::Packet_ptr
 VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
-  auto* ptr = (Packet*) (data + sizeof(VirtioNet::virtio_net_hdr) - sizeof(Packet));
-  new (ptr) Packet(bufsize(), size - sizeof(virtio_net_hdr), &bufstore());
-
-  return std::unique_ptr<Packet> (ptr);
+  auto* ptr = (net::Packet*) (data - sizeof(net::Packet));
+  new (ptr) net::Packet(MTU(), size - sizeof(virtio_net_hdr), sizeof(virtio_net_hdr), &bufstore());
+  return net::Packet_ptr(ptr);
+}
+net::Packet_ptr
+VirtioNet::create_packet(uint16_t size)
+{
+  auto* ptr = (net::Packet*) bufstore().get_buffer();
+  new (ptr) net::Packet(MTU(), size, sizeof(virtio_net_hdr), &bufstore());
+  return net::Packet_ptr(ptr);
 }
 
 void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
@@ -294,7 +293,7 @@ void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
 
   debug("Buffering, %i packets chained \n", chain_length);
 }
-#include <cstdlib>
+
 void VirtioNet::transmit(net::Packet_ptr pckt) {
   /** @note We have to send a virtio header first, then the packet.
 
@@ -338,22 +337,17 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
   }
 }
 
-void VirtioNet::enqueue(net::Packet* pckt) {
-
-  // This setup requires all tokens to be pre-chained like in SanOS
-  Token token1 {{(uint8_t*) &empty_header, sizeof(virtio_net_hdr)},
-      Token::OUT };
-
-  Token token2{ { pckt->buffer(), pckt->size() }, Token::OUT };
+void VirtioNet::enqueue(net::Packet* pckt)
+{
+  auto* hdr = pckt->buffer() - sizeof(virtio_net_hdr);
+  
+  Token token1 {{ hdr, sizeof(virtio_net_hdr)}, Token::OUT };
+  Token token2 {{ pckt->buffer(), pckt->size()}, Token::OUT };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
 
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
   tx_q.enqueue(tokens);
-
-  // have to release the packet data because virtio owns it now
-  // but to do that the packet has to be unique here
-  tx_ringq.push_back((uint8_t*) pckt);
 }
 
 void VirtioNet::begin_deferred_kick()
@@ -395,7 +389,7 @@ void VirtioNet::deactivate()
 #include <kernel/pci_manager.hpp>
 
 /** Register VirtioNet's driver factory at the PCI_manager */
-struct Autoreg_virtionet {
+static struct Autoreg_virtionet {
   Autoreg_virtionet() {
     PCI_manager::register_driver<hw::Nic>(hw::PCI_Device::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
   }

@@ -68,6 +68,8 @@ namespace hw {
     uint16_t bufsize() const
     { return bufstore_.bufsize(); }
 
+    virtual net::Packet_ptr create_packet(uint16_t) = 0;
+
     /** Subscribe to event for when there is more room in the tx queue */
     void on_transmit_queue_available(net::transmit_avail_delg del)
     { transmit_queue_available_event_ = del; }
