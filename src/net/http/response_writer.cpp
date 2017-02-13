@@ -35,11 +35,11 @@ namespace http {
     connection_.tcp()->write(std::move(data));
   }
 
-  void Response_writer::write(buffer_t buf, size_t len)
+  void Response_writer::write(Chunk chunk)
   {
-    pre_write(len);
+    pre_write(chunk.length());
 
-    connection_.tcp()->write(buf, len);
+    connection_.tcp()->write(std::move(chunk));
   }
 
   void Response_writer::pre_write(size_t len)
@@ -82,6 +82,10 @@ namespace http {
       header << response_->status_line() << "\r\n" << response_->header();
 
       connection_.tcp()->write(header.str());
+
+      // disable keep alive if "Connection: close" is present
+      if(response_->header().value(http::header::Connection) == "close")
+        connection_.keep_alive(false);
     }
     else
       throw Response_writer_error{"Headers already sent."};
@@ -93,6 +97,16 @@ namespace http {
       write(response_->body().to_string());
     else
       write_header(response_->status_code());
+  }
+
+  void Response_writer::end()
+  {
+    connection_.end();
+  }
+
+  Response_writer::~Response_writer()
+  {
+    end();
   }
 
 }

@@ -80,6 +80,14 @@ namespace http {
       return c;
     }
 
+    bool keep_alive() const
+    { return keep_alive_; }
+
+    void keep_alive(bool keep_alive)
+    { keep_alive_ = keep_alive; }
+
+    void end();
+
     /* Delete copy constructor */
     Connection(const Connection&)             = delete;
 
@@ -96,6 +104,8 @@ namespace http {
     TCP_conn          tcpconn_;
     bool              keep_alive_;
     Peer              peer_;
+
+    virtual void close() {}
 
   }; // < class Connection
 
@@ -123,7 +133,7 @@ namespace http {
 
   inline void Connection::shutdown()
   {
-    if(tcpconn_->is_closing())
+    if(not released() and not tcpconn_->is_closing())
       tcpconn_->close();
   }
 
@@ -138,6 +148,14 @@ namespace http {
     tcpconn_ = nullptr;
 
     return copy;
+  }
+
+  inline void Connection::end()
+  {
+    if(released())
+      close();
+    else if(!keep_alive_)
+      shutdown();
   }
 
 } // < namespace http

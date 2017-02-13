@@ -66,10 +66,13 @@ namespace http {
     /**
      * @brief      Same as write(std::string data) except data does not get copied into TCP buffer.
      *
-     * @param[in]  buf   The buffer
-     * @param[in]  len   The length
+     * @param[in]  chunk  a chunk of shared data
      */
-    void write(buffer_t buf, size_t len);
+    void write(Chunk chunk);
+
+    // overload for chunk
+    void write(buffer_t buf, size_t len)
+    { write(Chunk{buf, len}); }
 
     /**
      * @brief      Writes the status line + header to the underlying connection
@@ -93,8 +96,10 @@ namespace http {
     void set_response(Response_ptr res)
     { Expects(not header_sent_); response_ = std::move(res); }
 
-
     Response& response()
+    { return *response_; }
+
+    const Response& response() const
     { return *response_; }
 
     Response_ptr& response_ptr()
@@ -102,6 +107,10 @@ namespace http {
 
     Connection& connection()
     { return connection_; }
+
+    void end();
+
+    ~Response_writer();
 
   private:
     Response_ptr  response_;

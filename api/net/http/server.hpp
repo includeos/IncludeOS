@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,6 +88,21 @@ namespace http {
      * @return     A Response_ptr with predefined values
      */
     Response_ptr create_response(status_t code = http::OK) const;
+
+    /**
+     * @brief      Returns a vector of all TCP connections currently connected to the server
+     *
+     * @return     A vector of TCP connections
+     */
+    std::vector<TCP_conn> active_tcp_connections() const;
+
+    /**
+     * @brief      Reconnects a TCP connection by creating a Server connection
+     *
+     * @param[in]  conn  The TCP connection
+     */
+    void reconnect(TCP_conn conn)
+    { if (conn != nullptr) connect(conn); }
 
     ~Server();
 
