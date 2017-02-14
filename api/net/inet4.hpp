@@ -18,9 +18,6 @@
 #ifndef NET_INET4_HPP
 #define NET_INET4_HPP
 
-#include <kernel/syscalls.hpp> // panic()
-#include <hw/devices.hpp> // 107: auto& eth0 = Dev::eth(0);
-#include <hw/nic.hpp>
 #include "inet.hpp"
 #include "ethernet/ethernet.hpp"
 #include "ip4/arp.hpp"
