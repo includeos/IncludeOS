@@ -26,7 +26,6 @@
 #include <vector>
 #include "../../vmbuild/elf.h"
 
-static const char* null_stringz = "(null)";
 static const char* boot_stringz = "Bootloader area";
 extern "C" char _ELF_START_;
 static const uintptr_t ELF_START = reinterpret_cast<uintptr_t>(&_ELF_START_);
@@ -79,19 +78,24 @@ public:
 
   safe_func_offset getsym_safe(Elf32_Addr addr, char* buffer, size_t length)
   {
-    // probably just a null pointer with ofs=addr
-    if (UNLIKELY(addr < 0x1000))
-        return {null_stringz, 0, addr};
-    // definitely in the bootloader
+    // inside bootloader area
     if (UNLIKELY(addr >= 0x7c00 && addr < 0x7e00))
         return {boot_stringz, 0x7c00, addr - 0x7c00};
-    // resolve manually from symtab
-    auto* sym = getaddr(addr);
-    if (LIKELY(sym)) {
-      auto base   = sym->st_value;
-      auto offset = addr - base;
-      // return string name for symbol
-      return {demangle_safe( sym_name(sym), buffer, length ), base, offset};
+    // find symbol name for all addresses above first page
+    // which are treated as possible null pointers
+    if (LIKELY(addr > 0x1000))
+    {
+      // resolve manually from symtab
+      auto* sym = getaddr(addr);
+      if (LIKELY(sym)) {
+        auto base   = sym->st_value;
+        auto offset = addr - base;
+        // return string name for symbol
+        return {demangle_safe( sym_name(sym), buffer, length ), base, offset};
+      }
+    }
+    else if (addr == 0x0) {
+      return {"0x0 (null)", addr, 0};
     }
     // function or space not found
     snprintf(buffer, length, "0x%08x", addr);
