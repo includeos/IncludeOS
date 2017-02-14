@@ -172,7 +172,7 @@ void Connection::offer(size_t& packets) {
     writeq.advance(written);
 
     debug2("<Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
-           written, buf.remaining, packets, usable_window());
+           written, writeq.bytes_remaining(), packets, usable_window());
 
     if(UNLIKELY(writeq.empty() and is_closing()))
       packet->set_flag(FIN);
@@ -223,7 +223,7 @@ size_t Connection::send(const uint8_t* buffer, size_t remaining, size_t& packets
 void Connection::writeq_push() {
   while(writeq.has_remaining_requests() and not queued_) {
     debug("<Connection::writeq_push> Processing writeq, rem=%u queued=%u\n",
-      writeq.remaining_requests(), queued_);
+      writeq.bytes_remaining(), queued_);
     const auto rem = writeq.nxt_rem();
     auto written = host_.send(shared_from_this(), writeq.nxt_data(), rem);
     if(written)
@@ -636,7 +636,7 @@ void Connection::retransmit() {
   else if(writeq.size()) {
     auto& buf = writeq.una();
     debug2("<Connection::retransmit> With data (wq.sz=%u) buf.unacked=%u\n",
-      writeq.size(), buf.length() - buf.acknowledged);
+      writeq.size(), buf.length() - writeq.acked());
     fill_packet(*packet, buf.data() + writeq.acked(), buf.length() - writeq.acked(), cb.SND.UNA);
   }
   // if no data
@@ -764,12 +764,12 @@ void Connection::set_state(State& state) {
 void Connection::timewait_start() {
   const auto timeout = 2 * host().MSL(); // 60 seconds
   timewait_timer.start(timeout);
-  debug2("<Connection::timewait_start> TimeWait timer [%u] started.\n", timewait_timer.id);
+  debug2("<Connection> TimeWait timer started.\n");
 }
 
 void Connection::timewait_stop() {
   timewait_timer.stop();
-  debug2("<Connection::timewait_stop> TimeWait timer [%u] stopped.\n", timewait_timer.id);
+  debug2("<Connection> TimeWait timer stopped.\n");
 }
 
 void Connection::timewait_restart() {
@@ -909,7 +909,7 @@ void Connection::default_on_disconnect(Connection_ptr conn, Disconnect) {
 void Connection::default_on_close() { }
 
 void Connection::default_on_error(TCPException error) {
-  (void)error
+  (void)error;
   debug("<Connection::@Error> TCPException: %s \n", error.what());
 }
 
