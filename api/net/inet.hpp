@@ -37,8 +37,8 @@ namespace net {
   template <typename IPV >
   struct Inet {
     using Stack = Inet<IPV>;
-
     using Forward_delg = delegate<void(Stack& source, typename IPV::IP_packet_ptr)>;
+    using Route_checker = delegate<bool(typename IPV::addr)>;
 
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
@@ -55,6 +55,9 @@ namespace net {
     virtual UDP&       udp()    = 0;
 
     virtual void set_forward_delg(Forward_delg) = 0;
+    virtual void set_route_checker(Route_checker) = 0;
+    virtual void cache_link_ip(typename IPV::addr, hw::MAC_addr) = 0;
+    virtual void flush_link_ip_cache() = 0;
     virtual Forward_delg forward_delg() = 0;
 
     virtual constexpr uint16_t MTU() const = 0;
