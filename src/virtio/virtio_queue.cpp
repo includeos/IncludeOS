@@ -131,10 +131,8 @@ int Virtio::Queue::enqueue(gsl::span<Token> buffers){
 
 void Virtio::Queue::release(uint32_t head)
 {
-
   // Mark queue element "head" as free (the whole token chain)
   uint32_t i = head;
-
   _desc_in_flight --;
 
   while (_queue.desc[i].flags & VIRTQ_DESC_F_NEXT)
@@ -148,7 +146,6 @@ void Virtio::Queue::release(uint32_t head)
   _free_head = head;
 
   debug("Descriptors in flight: %i \n", _desc_in_flight);
-
 }
 
 Virtio::Token Virtio::Queue::dequeue()

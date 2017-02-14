@@ -150,8 +150,13 @@ public:
 
   void deactivate() override;
 
-  struct virtio_net_hdr
-  {
+private:
+
+  /** Stats */
+  uint64_t& packets_rx_;
+  uint64_t& packets_tx_;
+
+  struct virtio_net_hdr {
     uint8_t flags;
     uint8_t gso_type;
     uint16_t hdr_len;          // Ethernet + IP + TCP/UDP headers
@@ -160,16 +165,9 @@ public:
     uint16_t csum_offset;      // Offset after that to place checksum
   }__attribute__((packed));
 
-private:
-
-  /** Stats */
-  uint64_t& packets_rx_;
-  uint64_t& packets_tx_;
-
   /** Virtio std. § 5.1.6.1:
       "The legacy driver only presented num_buffers in the struct virtio_net_hdr when VIRTIO_NET_F_MRG_RXBUF was not negotiated; without that feature the structure was 2 bytes shorter." */
-  struct virtio_net_hdr_nomerge
-  {
+  struct virtio_net_hdr_nomerge {
     uint8_t flags;
     uint8_t gso_type;
     uint16_t hdr_len;          // Ethernet + IP + TCP/UDP headers
@@ -179,19 +177,19 @@ private:
     uint16_t num_buffers;
   }__attribute__((packed));
 
-
-  /** An empty header.
-      It's ok to use as long as we don't need checksum offloading
-      or other 'fancier' virtio features. */
-  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0};
+  struct virtio_net_rxhdr {
+    uint8_t   flags;
+    uint8_t   gso_type;
+    uint16_t  hdr_len;
+    uint16_t  gso_size;
+    uint16_t  csum_start;
+    uint16_t  csum_offset;
+    uint16_t  bufs;
+  }__attribute__((packed));
 
   Virtio::Queue rx_q;
   Virtio::Queue tx_q;
   Virtio::Queue ctrl_q;
-
-  // Moved to Nic
-  // Ethernet eth;
-  // Arp arp;
 
   // From Virtio 1.01, 5.1.4
   struct config{
