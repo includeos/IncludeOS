@@ -46,8 +46,8 @@ namespace net {
     Stack_ptr interface()
     { return iface_; };
 
-    Route(Addr dest_net, Netmask mask, Addr gateway, Stack_ptr iface, int cost)
-      : dest_net_{dest_net}, netmask_{mask}, gateway_{gateway}, iface_{iface}, cost_{cost}
+    Route(Addr dest_net, Netmask mask, Addr gateway, Stack& iface, int cost)
+      : dest_net_{dest_net}, netmask_{mask}, gateway_{gateway}, iface_{&iface}, cost_{cost}
     {}
 
   private:
@@ -66,7 +66,7 @@ namespace net {
     using Stack_ptr = typename Route<IPV>::Stack_ptr;
     using Forward_delg = typename Inet<IPV>::Forward_delg;
     using Addr    = typename IPV::addr;
-    using Interfaces = std::vector<Stack_ptr>;
+    using Interfaces = std::vector<std::unique_ptr<Stack>>;
     using Routing_table = std::vector<Route<IPV>>;
 
     /**
@@ -94,17 +94,27 @@ namespace net {
 
     };
 
+    bool route_check(typename IPV::addr dest){
+      return get_interface(dest);
+    }
+
+
+
     /** Construct a router over a set of interfaces **/
-    Router(Interfaces&& ifaces, Routing_table&& tbl = {})
-      : networks_{std::move(ifaces)}, routing_table_{tbl}
-    {}
+    Router(Interfaces& ifaces, Routing_table&& tbl = {})
+      : networks_{ifaces}, routing_table_{tbl}
+    {  }
 
     void set_routing_table(Routing_table&& tbl) {
       routing_table_ = std::forward(tbl);
     };
 
+    void set_routing_table(Routing_table tbl) {
+      routing_table_ = tbl;
+    };
+
   private:
-    Interfaces networks_;
+    Interfaces& networks_;
     Routing_table routing_table_;
 
   };
