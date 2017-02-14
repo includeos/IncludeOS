@@ -175,7 +175,7 @@ class qemu(hypervisor):
                 + ",if=" + drive_type
                 + ",media=" + media_type]
 
-    def net_arg(self, backend, device, if_name = "net0", mac = None):
+    def net_arg(self, backend, device, if_name = "net0", mac = None, bridge = None):
         qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
 
         # FIXME: this needs to get removed, e.g. fetched from the schema
@@ -184,13 +184,20 @@ class qemu(hypervisor):
         if device in names:
             device = names[device]
 
+        # Network device - e.g. host side of nic
+        netdev = backend + ",id=" + if_name + ",vhost=on,script=" + qemu_ifup
+
+        if bridge:
+            netdev = "bridge,id=" + if_name + ",br=" + bridge
+
+        # Device - e.g. guest side of nic
         device += ",netdev=" + if_name
 
         # Add mac-address if specified
         if mac: device += ",mac=" + mac
 
         return ["-device", device,
-                "-netdev", backend + ",id=" + if_name + ",script=" + qemu_ifup]
+                "-netdev", netdev]
 
     def kvm_present(self):
         command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
@@ -267,7 +274,8 @@ class qemu(hypervisor):
         if "net" in self._config:
             for net in self._config["net"]:
                 mac = net["mac"] if "mac" in net else None
-                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), mac)
+                bridge = net["bridge"] if "bridge" in net else None
+                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), mac, bridge)
                 i+=1
 
         mem_arg = []

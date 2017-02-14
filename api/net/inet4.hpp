@@ -57,6 +57,12 @@ namespace net {
     IP4& ip_obj() override
     { return ip4_; }
 
+    void cache_link_ip(IP4::addr ip, hw::MAC_addr mac) override
+    { arp_.cache(ip, mac); }
+
+    void flush_link_ip_cache() override
+    { arp_.flush_cache(); }
+
     /** Get the TCP-object belonging to this stack */
     TCP& tcp() override { return tcp_; }
 
@@ -71,6 +77,12 @@ namespace net {
      * If set it will get all incoming packets not intended for this stack.
      */
     void set_forward_delg(Forward_delg fwd) override { forward_packet_ = fwd; }
+
+    /**
+     * Assign a delegate that checks if we have a route to a given IP
+     */
+    void set_route_checker(Route_checker delg) override
+    { arp_.set_route_checker(delg); }
 
     /**
      * Get the forwarding delegate used by this stack.

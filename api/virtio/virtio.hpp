@@ -113,11 +113,8 @@ public:
     };
 
   /** Virtio Queue class. */
-  class Queue
-  {
-
+  class Queue {
   private:
-
     /** @note Using typedefs in order to keep the standard notation. */
     using le64 =  uint64_t;
     using le32 = uint32_t;
@@ -230,6 +227,7 @@ public:
     void kick();
 
     /** Constructor. @param size shuld be fetched from PCI device. */
+    Queue() {}
     Queue(uint16_t size, uint16_t q_index, uint16_t iobase);
 
     /** Get the queue descriptor. To be written to the Virtio device. */

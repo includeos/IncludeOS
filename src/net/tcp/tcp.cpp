@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG
-#define DEBUG2
+// #define DEBUG
+// #define DEBUG2
 
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/packet.hpp>
