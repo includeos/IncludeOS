@@ -67,6 +67,7 @@ namespace http {
       // note: need to validate that the method is allowed, etc.
       // add chunks of body data
       req_->add_chunk(std::move(data));
+      update_idle();
     }
 
     const auto& header = req_->header();
