@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #define PRINT_INFO
-#define DEBUG // Allow debuging
-#define DEBUG2
+//#define DEBUG
+//#define DEBUG2
 
 #include "virtionet.hpp"
 #include <net/packet.hpp>
@@ -119,7 +119,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
-  INFO("VirtioNet", "Adding %i receive buffers of size %i",
+  INFO("VirtioNet", "Adding %u receive buffers of size %u",
        rx_q.size(), bufsize());
 
   for (int i = 0; i < rx_q.size(); i++) add_receive_buffer();
@@ -261,6 +261,10 @@ net::Packet_ptr
 VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (net::Packet*) (data - sizeof(net::Packet));
+#ifdef DEBUG
+  assert(bufstore().is_from_pool((uint8_t*) ptr));
+  assert(bufstore().is_buffer((uint8_t*) ptr));
+#endif
   new (ptr) net::Packet(MTU(), size - sizeof(virtio_net_hdr), sizeof(virtio_net_hdr), &bufstore());
   return net::Packet_ptr(ptr);
 }
