@@ -16,13 +16,13 @@
 // limitations under the License.
 
 #include <kernel/elf.hpp>
+#include <util/crc32.hpp>
 #include <common>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <unistd.h>
-#include <info>
 #include <vector>
 #include "../../vmbuild/elf.h"
 
@@ -64,38 +64,19 @@ class ElfTables
 public:
   ElfTables() {}
 
-  void set(void* syms, uint32_t entries, const char* string_table)
+  void set(Elf32_Sym* syms, 
+           uint32_t   entries, 
+           const char* string_table,
+           uint32_t    strsize,
+           uint32_t csum_syms,
+           uint32_t csum_strs)
   {
-    symtab.base    = (Elf32_Sym*) syms;
-    symtab.entries = entries;
-    strtab         = string_table;
+    symtab    = {(Elf32_Sym*) syms, entries};
+    strtab    = {string_table, strsize};
+    checksum_syms = csum_syms;
+    checksum_strs = csum_strs;
   }
 
-  func_offset getsym(Elf32_Addr addr)
-  {
-    // probably just a null pointer with ofs=addr
-    if (UNLIKELY(addr < 0x1000))
-        return {null_stringz, 0, addr};
-    // definitely in the bootloader
-    if (UNLIKELY(addr >= 0x7c00 && addr < 0x7e00))
-        return {boot_stringz, 0x7c00, addr - 0x7c00};
-    // resolve manually from symtab
-    auto* sym = getaddr(addr);
-    // validate symbol address
-    //assert(sym >= symtab.base && sym < symtab.base + symtab.entries);
-    if (LIKELY(sym)) {
-      auto base   = sym->st_value;
-      auto offset = addr - base;
-      // return string name for symbol
-      const char* name = sym_name(sym);
-      if (name)
-          return {demangle(name), base, offset};
-      else
-          return {to_hex_string(base), base, offset};
-    }
-    // function or space not found
-    return {to_hex_string(addr), addr, 0};
-  }
   safe_func_offset getsym_safe(Elf32_Addr addr, char* buffer, size_t length)
   {
     // probably just a null pointer with ofs=addr
@@ -117,17 +98,6 @@ public:
     return {buffer, addr, 0};
   }
 
-  Elf32_Addr getaddr(const std::string& name)
-  {
-    for (size_t i = 0; i < symtab.entries; i++)
-    {
-      auto& sym = symtab.base[i];
-      //if (ELF32_ST_TYPE(sym.st_info) == STT_FUNC)
-      if (demangle( sym_name(&sym) ) == name)
-          return sym.st_value;
-    }
-    return 0;
-  }
   Elf32_Sym* getaddr(Elf32_Addr addr)
   {
     for (size_t i = 0; i < symtab.entries; i++) {
@@ -150,21 +120,29 @@ public:
   }
 
   const auto* get_strtab() const {
-    return strtab;
+    return strtab.base;
+  }
+
+  bool verify_symbols() const {
+    uint32_t csum = 
+        crc32(symtab.base, symtab.entries * sizeof(Elf32_Sym));
+    if (csum != checksum_syms) {
+      printf("ELF symbol tables checksum failed! "
+              "(%08x vs %08x)\n", csum, checksum_syms);
+      return false;
+    }
+    csum = crc32(strtab.base, strtab.size);
+    if (csum != checksum_strs) {
+      printf("ELF string tables checksum failed! "
+              "(%08x vs %08x)\n", csum, checksum_strs);
+      return false;
+    }
+    return true;
   }
 
 private:
   const char* sym_name(Elf32_Sym* sym) const {
-    return &strtab[sym->st_name];
-  }
-  std::string demangle(const char* name) const
-  {
-    char buffer[2048];
-    const char* res = demangle_safe(name, buffer, sizeof(buffer));
-    if (res)
-        return std::string(res);
-    else
-        return std::string(name);
+    return &strtab.base[sym->st_name];
   }
   const char* demangle_safe(const char* name, char* buffer, size_t buflen) const
   {
@@ -175,8 +153,10 @@ private:
     return res;
   }
 
-  SymTab      symtab;
-  const char* strtab;
+  SymTab    symtab;
+  StrTab    strtab;
+  uint32_t  checksum_syms;
+  uint32_t  checksum_strs;
 };
 static ElfTables parser;
 
@@ -189,15 +169,6 @@ size_t Elf::end_of_file() {
 }
 const char* Elf::get_strtab() {
   return get_parser().get_strtab();
-}
-
-func_offset Elf::resolve_symbol(uintptr_t addr)
-{
-  return get_parser().getsym(addr);
-}
-func_offset Elf::resolve_symbol(void* addr)
-{
-  return get_parser().getsym((uintptr_t) addr);
 }
 
 uintptr_t Elf::resolve_addr(uintptr_t addr)
@@ -217,48 +188,16 @@ safe_func_offset Elf::safe_resolve_symbol(void* addr, char* buffer, size_t lengt
 {
   return get_parser().getsym_safe((Elf32_Addr) addr, buffer, length);
 }
-uintptr_t Elf::resolve_name(const std::string& name)
-{
-  return get_parser().getaddr(name);
-}
 
-func_offset Elf::get_current_function()
+bool Elf::verify_symbols()
 {
-  return resolve_symbol(__builtin_return_address(0));
-}
-std::vector<func_offset> Elf::get_functions()
-{
-  std::vector<func_offset> vec;
-  #define ADD_TRACE(N, ra)                      \
-      vec.push_back(Elf::resolve_symbol(ra));
-
-  void* ra;
-  if (frp(0, ra)) {
-    ADD_TRACE(0, ra);
-    if (frp(1, ra)) {
-      ADD_TRACE(1, ra);
-      if (frp(2, ra)) {
-        ADD_TRACE(2, ra);
-        if (frp(3, ra)) {
-          ADD_TRACE(3, ra);
-          if (frp(4, ra)) {
-            ADD_TRACE(4, ra);
-            if (frp(5, ra)) {
-              ADD_TRACE(5, ra);
-              if (frp(6, ra)) {
-                ADD_TRACE(6, ra);
-                if (frp(7, ra)) {
-                  ADD_TRACE(7, ra);
-                  if (frp(8, ra)) {
-                    ADD_TRACE(8, ra);
-  }}}}}}}}}
-  return vec;
+  return get_parser().verify_symbols();
 }
 
 void print_backtrace()
 {
-  char _symbol_buffer[1024];
-  char _btrace_buffer[1024];
+  char _symbol_buffer[4096];
+  char _btrace_buffer[4096];
 
   if (Elf::get_strtab() == NULL) {
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),
@@ -346,9 +285,11 @@ void _validate_elf_symbols()
 }
 
 static struct relocated_header {
+  Elf32_Sym* syms = nullptr;
   uint32_t   entries = 0xFFFF;
   uint32_t   strsize = 0xFFFF;
-  Elf32_Sym* syms = nullptr;
+  uint32_t   check_syms = 0xFFFF;
+  uint32_t   check_strs = 0xFFFF;
 
   const char* strings() const {
     return (char*) &syms[entries];
@@ -365,7 +306,6 @@ struct elfsyms_header {
   Elf32_Sym syms[0];
 } __attribute__((packed));
 
-#include <util/crc32.hpp>
 extern "C"
 int _get_elf_section_datasize(const void* location)
 {
@@ -418,9 +358,11 @@ void _move_elf_syms_location(const void* location, void* new_location)
     return;
   }
   // update header
+  relocs.syms    = (Elf32_Sym*) new_location;
   relocs.entries = hdr->symtab_entries;
   relocs.strsize = hdr->strtab_size;
-  relocs.syms    = (Elf32_Sym*) new_location;
+  relocs.check_syms = hdr->checksum_syms;
+  relocs.check_strs = hdr->checksum_strs;
   // copy **overlapping** symbol and string data
   memmove((char*) relocs.syms, (char*) hdr->syms, size);
 }
@@ -430,10 +372,12 @@ void _init_elf_parser()
 {
   if (relocs.entries) {
     // apply changes to the symbol parser from custom location
-    parser.set(relocs.syms, relocs.entries, relocs.strings());
+    parser.set(relocs.syms,      relocs.entries, 
+               relocs.strings(), relocs.strsize,
+               relocs.check_syms, relocs.check_strs);
   }
   else {
     // symbols and strings are stripped out
-    parser.set(nullptr, 0, nullptr);
+    parser.set(nullptr, 0, nullptr, 0,  0, 0);
   }
 }

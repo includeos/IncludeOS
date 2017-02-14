@@ -15,9 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../../api/net/ip4/icmpv4.hpp"
-
-#include <os>
+#include <net/ip4/icmpv4.hpp>
 #include <net/inet_common.hpp>
 #include <net/ip4/packet_ip4.hpp>
 #include <net/util.hpp>
