@@ -21,6 +21,7 @@
 #include <util/memstream.h>
 #include <stdio.h>
 #include <sys/reent.h>
+#include <malloc.h>
 #include <string.h>
 #include <kprint>
 
@@ -140,6 +141,10 @@ int sched_yield(void)
   return -1;
 }
 
+void *aligned_alloc(size_t alignment, size_t size)
+{
+  return memalign(alignment, size);
+}
 
 int access(const char *pathname, int mode)
 {
