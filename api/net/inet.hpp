@@ -74,7 +74,7 @@ namespace net {
 
 
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
-    virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
+    virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) = 0;
 
     /** Event triggered when there are available buffers in the transmit queue */
     virtual void on_transmit_queue_available(transmit_avail_delg del) = 0;
