@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <malloc.h>
 #include <string.h>
+
 //#define NO_DEFERRED_KICK
 #ifndef NO_DEFERRED_KICK
 static std::vector<VirtioNet*> deferred_devices;
@@ -37,10 +38,6 @@ using namespace net;
 
 void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
-}
-
-void VirtioNet::drop(Packet_ptr){
-  debug("<VirtioNet->link-layer> No delegate. DROP!\n");
 }
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)

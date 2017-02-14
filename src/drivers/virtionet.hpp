@@ -221,8 +221,6 @@ private:
   /** Allocate and queue buffer from bufstore_ in RX queue. */
   void add_receive_buffer();
 
-  static void drop(net::Packet_ptr);
-
   std::unique_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
 
   void begin_deferred_kick();
