@@ -116,6 +116,7 @@ private:
   ring_stuff tx;
   rxring_state rx[NUM_RX_QUEUES];
   // deferred transmit dma
+  int      transmit_idx = -1;
   uint8_t  deferred_irq  = 0;
   bool     deferred_kick = false;
   static void handle_deferred();
