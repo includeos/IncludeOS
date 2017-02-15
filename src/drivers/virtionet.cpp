@@ -117,9 +117,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
   INFO("VirtioNet", "Adding %u receive buffers of size %u",
-       rx_q.size(), bufsize());
+       rx_q.size() / 2, bufsize());
 
-  for (int i = 0; i < rx_q.size(); i++) add_receive_buffer();
+  for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
 
   // Step 4 - If there are many queues, we should negotiate the number.
   // Set config length, based on whether there are multiple queues
@@ -248,9 +248,10 @@ void VirtioNet::add_receive_buffer()
   // offset pointer to virtionet header
   auto* vnet = pkt + sizeof(Packet);
 
-  Token token2 { {vnet, sizeof(virtio_net_hdr) + MTU()}, Token::IN };
+  Token token1 {{vnet, sizeof(virtio_net_hdr)}, Token::IN };
+  Token token2 {{vnet + sizeof(virtio_net_hdr), MTU()}, Token::IN };
 
-  std::array<Token, 1> tokens {{ token2 }};
+  std::array<Token, 2> tokens {{ token1, token2 }};
   rx_q.enqueue(tokens);
 }
 

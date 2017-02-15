@@ -20,6 +20,7 @@
 
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/packet.hpp>
+#include <net/inet_common.hpp>
 #include <statman>
 
 using namespace std;
@@ -155,39 +156,19 @@ bool TCP::port_in_use(const port_t port) const {
 
 uint16_t TCP::checksum(const tcp::Packet& packet)
 {
-  short tcp_length = packet.tcp_length();
-
-  Pseudo_header pseudo_hdr;
-  pseudo_hdr.saddr.whole = packet.src().whole;
-  pseudo_hdr.daddr.whole = packet.dst().whole;
-  pseudo_hdr.zero = 0;
-  pseudo_hdr.proto = IP4::IP4_TCP;
-  pseudo_hdr.tcp_length = htons(tcp_length);
-
-  union Sum{
-    uint32_t whole;
-    uint16_t part[2];
-  } sum;
-
-  sum.whole = 0;
-
-  // Compute sum of pseudo header
-  for (uint16_t* it = (uint16_t*)&pseudo_hdr; it < (uint16_t*)&pseudo_hdr + sizeof(pseudo_hdr)/2; it++)
-    sum.whole += *it;
+  short length = packet.tcp_length();
+  // Compute sum of pseudo-header
+  uint32_t sum = 
+        (packet.src().whole >> 16)
+      + (packet.src().whole & 0xffff)
+      + (packet.dst().whole >> 16)
+      + (packet.dst().whole & 0xffff)
+      + (IP4::IP4_TCP << 8)
+      + htons(length);
 
   // Compute sum of header and data
-  Header* tcp_hdr = &packet.tcp_header();
-  for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length/2; it++)
-    sum.whole+= *it;
-
-  // The odd-numbered case
-  bool odd = (tcp_length & 1);
-  sum.whole += (odd) ? ((uint8_t*)tcp_hdr)[tcp_length - 1] << 16 : 0;
-
-  sum.whole = (uint32_t)sum.part[0] + sum.part[1];
-  sum.part[0] += sum.part[1];
-
-  return ~sum.whole;
+  const char* buffer = (char*) &packet.tcp_header();
+  return net::checksum(sum, buffer, length);
 }
 
 void TCP::bottom(net::Packet_ptr packet_ptr) {
