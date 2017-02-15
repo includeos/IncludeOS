@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <service>
+#include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
 #include <net/tcp/tcp.hpp>
