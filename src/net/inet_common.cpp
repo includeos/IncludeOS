@@ -19,12 +19,9 @@
 
 namespace net {
 
-// Should be pretty much like the example in RFC 1071,
-// but using a uinon for readability
-uint16_t checksum(void* data, size_t length) noexcept
+uint16_t checksum(uint32_t sum, const void* data, size_t length) noexcept
 {
-  const char* buffer = (char*) data;
-  uint32_t sum = 0;
+  const char* buffer = (const char*) data;
   
   while (length >= 4)
   {

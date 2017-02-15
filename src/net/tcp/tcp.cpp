@@ -20,6 +20,7 @@
 
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/packet.hpp>
+#include <net/inet_common.hpp>
 #include <statman>
 
 using namespace std;
@@ -155,10 +156,10 @@ bool TCP::port_in_use(const port_t port) const {
 
 uint16_t TCP::checksum(const tcp::Packet& packet)
 {
-  uint32_t sum;
   short length = packet.tcp_length();
   // Compute sum of pseudo-header
-  sum = (packet.src().whole >> 16)
+  uint32_t sum = 
+        (packet.src().whole >> 16)
       + (packet.src().whole & 0xffff)
       + (packet.dst().whole >> 16)
       + (packet.dst().whole & 0xffff)
@@ -167,33 +168,7 @@ uint16_t TCP::checksum(const tcp::Packet& packet)
 
   // Compute sum of header and data
   const char* buffer = (char*) &packet.tcp_header();
-  
-  while (length >= 4)
-  {
-    auto v = *(uint32_t*) buffer;
-    sum += v;
-    if (sum < v) sum++;
-    length -= 4; buffer += 4;
-  }
-  if (length & 2)
-  {
-    auto v = *(uint16_t*) buffer;
-    sum += v;
-    if (sum < v) sum++;
-    buffer += 2;
-  }
-  if (length & 1)
-  {
-    auto v = *(uint8_t*) buffer;
-    sum += v;
-    if (sum < v) sum++;
-  }
-  // Fold to 16-bit
-  uint16_t a = sum & 0xffff;
-  uint16_t b = sum >> 16;
-  a += b;
-  if (a < b) a++;
-  return ~a;
+  return net::checksum(sum, buffer, length);
 }
 
 void TCP::bottom(net::Packet_ptr packet_ptr) {
