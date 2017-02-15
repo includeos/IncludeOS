@@ -20,7 +20,6 @@
 
 #include <vector>
 
-#include <os>
 #include <net/inet4.hpp>
 #include <net/ip4/arp.hpp>
 #include <net/ip4/packet_arp.hpp>
@@ -129,11 +128,11 @@ namespace net {
       debug("<Arp> Cached entry, mac: %s time: %llu Expiry: %llu\n",
             entry->second.mac_.str().c_str(),
             entry->second.timestamp_, entry->second.timestamp_ + cache_exp_t_);
-      debug2("<Arp> Time now: %llu\n", static_cast<uint64_t>(OS::uptime()));
+      debug2("<Arp> Time now: %llu\n", static_cast<uint64_t>(RTC::time_since_boot()));
     }
 
     return entry != cache_.end()
-      and (entry->second.timestamp_ + cache_exp_t_ > static_cast<uint64_t>(OS::uptime()));
+      and (entry->second.timestamp_ + cache_exp_t_ > static_cast<uint64_t>(RTC::time_since_boot()));
   }
 
   extern "C" {

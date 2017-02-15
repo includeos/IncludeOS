@@ -32,6 +32,18 @@ public:
 
   /// start an auto-calibration process
   static void init();
+
+  /// returns a 64-bit unix timestamp for when the OS was booted
+  static timestamp_t boot_timestamp()
+  { return booted_at_; }
+
+  /// returns a 64-bit unix timestamp of the elapsed time since boot
+  static timestamp_t time_since_boot()
+  { return now() - booted_at_; }
+
+private:
+  static timestamp_t booted_at_;
+
 };
 
 #endif
