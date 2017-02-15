@@ -19,7 +19,7 @@
 #ifndef NET_IP4_ARP_HPP
 #define NET_IP4_ARP_HPP
 
-#include <os>
+#include <rtc>
 #include <map>
 
 #include <delegate>
@@ -46,12 +46,12 @@ namespace net {
       cache_entry() noexcept = default;
 
       cache_entry(Ethernet::addr mac) noexcept
-      : mac_(mac), timestamp_(OS::uptime()) {}
+      : mac_(mac), timestamp_(RTC::time_since_boot()) {}
 
       cache_entry(const cache_entry& cpy) noexcept
       : mac_(cpy.mac_), timestamp_(cpy.timestamp_) {}
 
-      void update() noexcept { timestamp_ = OS::uptime(); }
+      void update() noexcept { timestamp_ = RTC::time_since_boot(); }
     }; //< struct cache_entry
 
     using Cache       = std::map<IP4::addr, cache_entry>;

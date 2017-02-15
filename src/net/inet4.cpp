@@ -1,6 +1,5 @@
 //-*- C++ -*-
 #define DEBUG
-#include <os>
 #include <net/inet4.hpp>
 #include <net/dhcp/dh4client.hpp>
 

@@ -17,7 +17,6 @@
 
 #include <stdlib.h>
 
-#include <os>
 #include <net/util.hpp>
 #include <net/inet_common.hpp>
 
