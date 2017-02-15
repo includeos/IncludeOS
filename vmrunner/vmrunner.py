@@ -185,7 +185,10 @@ class qemu(hypervisor):
             device = names[device]
 
         # Network device - e.g. host side of nic
-        netdev = backend + ",id=" + if_name + ",vhost=on,script=" + qemu_ifup
+        netdev = backend + ",id=" + if_name
+
+        if backend == "tap":
+            netdev += ",vhost=on,script=" + qemu_ifup
 
         if bridge:
             netdev = "bridge,id=" + if_name + ",br=" + bridge
@@ -244,6 +247,8 @@ class qemu(hypervisor):
 
         self._image_name = image_name
 
+        disk_args = []
+
         # multiboot - e.g. boot with '-kernel' and no bootloader
         if multiboot:
 
@@ -252,22 +257,31 @@ class qemu(hypervisor):
                 image_name = image_name.split(".")[0]
 
             kernel_args = ["-kernel", image_name, "-append", kernel_args]
-            disk_args = []
             info ( "Booting", image_name, "directly without bootloader (multiboot / -kernel args)")
         else:
             kernel_args = []
-            disk_args = self.drive_arg(image_name, "ide")
+            image_in_config = False
+            # If the provided image name is also defined in vm.json, use vm.json
+            if "drives" in self._config:
+                for disk in self._config["drives"]:
+                    if disk["file"] == image_name:
+                        image_in_config = True
+                if not image_in_config:
+                    info ("Provided image", image_name, "not found in config. Appending.")
+                    self._config["drives"].insert(0, {"file" : image_name, "type":"ide", "format":"raw", "media":"disk"})
+
             info ("Booting", image_name, "with a bootable disk image")
+
+        if "drives" in self._config:
+            for disk in self._config["drives"]:
+                disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
+
 
         if "bios" in self._config:
             kernel_args.extend(["-bios", self._config["bios"]])
 
         if "smp" in self._config:
             kernel_args.extend(["-smp", str(self._config["smp"])])
-
-        if "drives" in self._config:
-            for disk in self._config["drives"]:
-                disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
 
         net_args = []
         i = 0
