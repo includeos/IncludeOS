@@ -85,7 +85,9 @@ namespace net {
     }
 
   protected:
-    char* ip_data() const
+    char* ip_data() noexcept __attribute__((assume_aligned(4)))
+    { return (char*) (buffer() + ip_full_header_length()); }
+    const char* ip_data() const noexcept __attribute__((assume_aligned(4)))
     { return (char*) (buffer() + ip_full_header_length()); }
 
     /**

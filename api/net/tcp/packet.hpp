@@ -51,19 +51,20 @@ public:
   void init()
   {
     PacketIP4::init(IP4::IP4_TCP);
+    char* ipdata = ip_data();
+    assert(((uintptr_t) ipdata & 3) == 0);
 
     // clear TCP header
-    __builtin_memset(ip_data(), 0, sizeof(Header));
+    __builtin_memset(ipdata, 0, sizeof(Header));
+
+    auto& hdr = *(Header*) ipdata;
     // set some default values
-    set_win(tcp::default_window_size);
-    set_offset(5);
+    hdr.window_size = htons(tcp::default_window_size);
+    hdr.offset_flags.offset_reserved = (5 << 4);
+
+    /// TODO: optimize:
     set_length();
-
-    // set TCP payload location (!?)
     set_payload(buffer() + tcp_full_header_length());
-
-    debug2("<TCP::Packet::init> size()=%u ip_header_size()=%u full_header_size()=%u\n",
-      size(), ip_header_length(), tcp_full_header_length());
   }
 
   // GETTERS
