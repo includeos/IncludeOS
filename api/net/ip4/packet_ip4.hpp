@@ -73,12 +73,14 @@ namespace net {
       set_ip4_checksum();
     }
 
-    void init() noexcept {
-      ip_header().version_ihl    = 0x45;
-      ip_header().tos            = 0;
-      ip_header().id             = 0;
-      ip_header().frag_off_flags = 0;
-      ip_header().ttl            = DEFAULT_TTL;
+    void init(uint8_t proto = 0) noexcept {
+      auto& hdr = ip_header();
+      hdr.version_ihl    = 0x45;
+      hdr.tos            = 0;
+      hdr.id             = 0;
+      hdr.frag_off_flags = 0;
+      hdr.ttl            = DEFAULT_TTL;
+      hdr.protocol       = proto;
       set_size(ip_full_header_length());
     }
 

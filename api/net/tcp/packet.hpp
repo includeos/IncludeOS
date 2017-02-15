@@ -50,12 +50,11 @@ public:
   //! a valid MTU-sized buffer
   void init()
   {
-    PacketIP4::init();
+    PacketIP4::init(IP4::IP4_TCP);
 
-    // clear TCP headers
-    memset(ip_data(), 0, sizeof(Header));
-
-    set_protocol(IP4::IP4_TCP);
+    // clear TCP header
+    __builtin_memset(ip_data(), 0, sizeof(Header));
+    // set some default values
     set_win(tcp::default_window_size);
     set_offset(5);
     set_length();
