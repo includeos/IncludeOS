@@ -22,6 +22,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <algorithm>
 #include <debug>
 
 namespace net {

@@ -179,7 +179,7 @@ std::vector<Sample> StackSampler::results(int N)
       res.push_back(Sample {sa.second, (void*) func.addr, func.name});
     }
     else {
-      int len = snprintf(buffer, sizeof(buffer), "0x%08x", sa.first);
+      int len = snprintf(buffer, sizeof(buffer), "0x%08x", func.addr);
       res.push_back(Sample {sa.second, (void*) func.addr, std::string(buffer, len)});
     }
 

@@ -22,6 +22,7 @@
 #include <kernel/irq_manager.hpp>
 #include <info>
 #include <cassert>
+#include <malloc.h>
 static std::vector<vmxnet3*> deferred_devs;
 
 #define VMXNET3_REV1_MAGIC 0xbabefee1
@@ -31,7 +32,7 @@ static std::vector<vmxnet3*> deferred_devs;
 #define VMXNET3_NUM_TX_COMP  vmxnet3::NUM_TX_DESC
 #define VMXNET3_NUM_RX_COMP  vmxnet3::NUM_RX_DESC
 static const int VMXNET3_TX_FILL = vmxnet3::NUM_TX_DESC-1;
-static const int VMXNET3_RX_FILL = vmxnet3::NUM_RX_DESC / 2;
+static const int VMXNET3_RX_FILL = vmxnet3::NUM_RX_DESC;
 
 /**
  * DMA areas
@@ -163,8 +164,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   set_hwaddr(this->hw_addr);
   
   // initialize DMA areas
-  this->dma = (vmxnet3_dma*)
-      aligned_alloc(VMXNET3_DMA_ALIGN, sizeof(vmxnet3_dma));
+  this->dma = (vmxnet3_dma*) memalign(VMXNET3_DMA_ALIGN, sizeof(vmxnet3_dma));
   memset(this->dma, 0, sizeof(vmxnet3_dma));
   
   auto& queues = dma->queues;
@@ -347,9 +347,7 @@ void vmxnet3::refill(rxring_state& rxq)
     rxq.prod_count++;
     rxq.producers++;
     
-    //added_buffers = true;
-    mmio_write32(this->ptbase + VMXNET3_PT_RXPROD1 + 0x200 * rxq.index, 
-                 rxq.producers % vmxnet3::NUM_RX_DESC);
+    added_buffers = true;
   }
   if (added_buffers && old_value != rxq.producers) {
     // send count to NIC
@@ -363,7 +361,6 @@ vmxnet3::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (net::Packet*) (data - sizeof(net::Packet));
   new (ptr) net::Packet(bufsize(), size, 0, &bufstore());
-
   return net::Packet_ptr(ptr);
 }
 net::Packet_ptr
@@ -469,6 +466,7 @@ bool vmxnet3::can_transmit() const noexcept
 {
   return tx.producers - tx.consumers < VMXNET3_TX_FILL;
 }
+
 void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
 {
 #define VMXNET3_TXF_EOP 0x000001000UL
@@ -488,6 +486,7 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
   // delay dma message until we have written as much as possible
   if (!deferred_kick)
   {
+    transmit_idx  = idx;
     deferred_kick = true;
     deferred_devs.push_back(this);
     IRQ_manager::get().register_irq(deferred_irq);
@@ -497,8 +496,15 @@ void vmxnet3::handle_deferred()
 {
   for (auto* dev : deferred_devs)
   {
-    mmio_write32(dev->ptbase + VMXNET3_PT_TXPROD,
-                 dev->tx.producers % vmxnet3::NUM_TX_DESC);
+    auto idx = dev->tx.producers % vmxnet3::NUM_TX_DESC;
+    if (idx != dev->transmit_idx)
+    {
+      //printf("idx: %d   t.idx: %d\n", idx, dev->transmit_idx);
+      mmio_write32(dev->ptbase + VMXNET3_PT_TXPROD, idx);
+    }
+    else {
+      printf("Avoided mmio write\n");
+    }
     dev->deferred_kick = false;
   }
   deferred_devs.clear();

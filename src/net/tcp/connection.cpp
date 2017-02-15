@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG
-#define DEBUG2
+// #define DEBUG
+// #define DEBUG2
 
 #include <gsl/gsl_assert> // Ensures/Expects
 #include <net/tcp/connection.hpp>
@@ -730,12 +730,10 @@ void Connection::set_state(State& state) {
 void Connection::timewait_start() {
   const auto timeout = 2 * host().MSL(); // 60 seconds
   timewait_timer.start(timeout);
-  debug2("<Connection::timewait_start> TimeWait timer [%u] started.\n", timewait_timer.id);
 }
 
 void Connection::timewait_stop() {
   timewait_timer.stop();
-  debug2("<Connection::timewait_stop> TimeWait timer [%u] stopped.\n", timewait_timer.id);
 }
 
 void Connection::timewait_restart() {
