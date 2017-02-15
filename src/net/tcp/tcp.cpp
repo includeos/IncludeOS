@@ -250,25 +250,23 @@ void TCP::process_writeq(size_t packets) {
   }
 }
 
-size_t TCP::send(Connection_ptr conn, const uint8_t* buffer, size_t n) {
-  size_t written{0};
+void TCP::request_offer(Connection& conn) {
   auto packets = inet_.transmit_queue_available();
 
-  debug2("<TCP::send> Send request for %u bytes\n", n);
+  debug2("<TCP::request_offer> %s requestin offer: uw=%u rem=%u\n",
+    conn.to_string().c_str(), conn.usable_window(), conn.sendq_remaining());
 
-  if(packets > 0) {
-    written += conn->send(buffer, n, packets);
-  }
+  conn.offer(packets);
+}
 
-  // requeue remaining if not already queued
-  if(written == 0 || conn->can_send()) {
-    if (conn->is_queued() == false) {
-      debug("<TCP::send> %s queued\n", conn->to_string().c_str());
-      writeq.push_back(conn);
-      conn->set_queued(true);
-    }
+void TCP::queue_offer(Connection_ptr conn)
+{
+  if(not conn->is_queued() and conn->can_send())
+  {
+    debug("<TCP::queue_offer> %s queued\n", conn->to_string().c_str());
+    writeq.push_back(conn);
+    conn->set_queued(true);
   }
-  return written;
 }
 
 /*
