@@ -23,6 +23,9 @@
 Stat::Stat(const stat_type type, const int index_into_span, const std::string& name)
   : type_{type}, index_into_span_{index_into_span}
 {
+  if(name.size() > MAX_NAME_LEN)
+    throw Stats_exception{"Creating stat: Name cannot be longer than " + std::to_string(MAX_NAME_LEN)};
+
   switch (type) {
     case UINT32:  ui32 = 0; break;
     case UINT64:  ui64 = 0; break;

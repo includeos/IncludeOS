@@ -133,28 +133,16 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 
 void Connection::write(Chunk buffer)
 {
-  // TODO: Clean up this exception mess
-  // The state is just checking if its possible to write
-  try {
-    // try to write
-    auto written = state_->send(*this, buffer);
-    debug("<Connection::write> size=%u  written=%u\n",
-      buffer.length(), written);
-    // put request in line
-    writeq.push_back(std::move(buffer));
-    // if data was written, advance
-    if(written)
-      writeq.advance(written);
-  }
-  catch(const TCPException&) {
-
+  writeq.push_back(std::move(buffer));
+  if(state_->is_writable())
+  {
+    host_.request_offer(*this);
   }
 }
 
-void Connection::offer(size_t& packets) {
-  Expects(packets);
-
-  debug("<Connection::offer> %s got offered [%u] packets. Usable window is %u.\n",
+void Connection::offer(size_t& packets)
+{
+  debug2("<Connection::offer> %s got offered [%u] packets. Usable window is %u.\n",
         to_string().c_str(), packets, usable_window());
 
   // write until we either cant send more (window closes or no more in queue),
@@ -174,63 +162,33 @@ void Connection::offer(size_t& packets) {
     debug2("<Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
            written, buf.remaining, packets, usable_window());
 
-    if(UNLIKELY(writeq.empty() and is_closing()))
-      packet->set_flag(FIN);
-
-    transmit(std::move(packet));
-  }
-
-  debug("<Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
-        packets, writeq.size(), usable_window());
-}
-
-size_t Connection::send(WriteBuffer& buffer) {
-  return host_.send(shared_from_this(), buffer.data(), buffer.length());
-}
-
-size_t Connection::send(const uint8_t* buffer, size_t remaining, size_t& packets_avail) {
-
-  size_t bytes_written = 0;
-  debug("<Connection::send> Trying to send %u bytes. Starting with uw=%u packets=%u\n",
-    remaining, usable_window(), packets_avail);
-
-  while(remaining and usable_window() >= SMSS() and packets_avail)
-  {
-    auto packet = create_outgoing_packet();
-    packets_avail--;
-
-    auto written = fill_packet(*packet, buffer + bytes_written, remaining, cb.SND.NXT);
-    cb.SND.NXT += packet->tcp_data_length();
-
-    bytes_written += written;
-    remaining -= written;
-
-    if(!remaining or usable_window() < SMSS() or !packets_avail)
+    if(!can_send() or !packets or !writeq.nxt_rem())
       packet->set_flag(PSH);
 
-    if(UNLIKELY(writeq.empty() and is_closing()))
+    if(UNLIKELY(not writeq.has_remaining_requests() and is_closing()))
+    {
+      debug("<Connection::offer> Setting FIN\n");
       packet->set_flag(FIN);
+      cb.SND.NXT++;
+    }
 
     transmit(std::move(packet));
   }
 
-  debug("<Connection::send> Sent %u bytes. Finished with uw=%u packets=%u\n",
-    bytes_written, usable_window(), packets_avail);
+  debug2("<Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
+        packets, writeq.size(), usable_window());
 
-  return bytes_written;
+  if(can_send() and not queued_)
+  {
+    host_.queue_offer(shared_from_this());
+  }
 }
 
-void Connection::writeq_push() {
-  while(writeq.has_remaining_requests() and not queued_) {
-    debug("<Connection::writeq_push> Processing writeq, rem=%u queued=%u\n",
-      writeq.remaining_requests(), queued_);
-    const auto rem = writeq.nxt_rem();
-    auto written = host_.send(shared_from_this(), writeq.nxt_data(), rem);
-    if(written)
-      writeq.advance(written);
-    if(written < rem)
-      return;
-  }
+void Connection::writeq_push()
+{
+  debug2("<Connection::writeq_push> Processing writeq, queued=%u\n", queued_);
+  while(can_send() and not queued_)
+    host_.request_offer(*this);
 }
 
 size_t Connection::fill_packet(Packet& packet, const uint8_t* buffer, size_t n, seq_t seq) {
@@ -249,15 +207,19 @@ void Connection::limited_tx() {
 
   auto packet = create_outgoing_packet();
 
-  debug("<Connection::limited_tx> UW: %u CW: %u, FS: %u\n", usable_window(), cb.cwnd, flight_size());
+  debug2("<Connection::limited_tx> UW: %u CW: %u, FS: %u\n", usable_window(), cb.cwnd, flight_size());
 
   auto written = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem(), cb.SND.NXT);
   cb.SND.NXT += packet->tcp_data_length();
 
   writeq.advance(written);
 
-  if(UNLIKELY(writeq.empty() and is_closing()))
+  if(UNLIKELY(not writeq.has_remaining_requests() and is_closing()))
+  {
+    debug("<Connection::limited_tx> Setting FIN\n");
     packet->set_flag(FIN);
+    cb.SND.NXT++;
+  }
 
   transmit(std::move(packet));
 }
@@ -282,6 +244,10 @@ void Connection::open(bool active) {
 
 void Connection::close() {
   debug("<TCP::Connection::close> Active close on connection. \n");
+
+  if(is_closing())
+    return;
+
   try {
     state_->close(*this);
     if(is_state(Closed::instance()))
@@ -478,7 +444,7 @@ bool Connection::handle_ack(const Packet& in) {
 
       // try to write
       //if(can_send() and acks_rcvd_ % 2 == 1)
-      if(can_send()) {
+      if(can_send() and !in.has_tcp_data()) {
         debug2("<Connection::handle_ack> Can send UW: %u SMSS: %u\n", usable_window(), SMSS());
         send_much();
       }
@@ -499,7 +465,7 @@ bool Connection::handle_ack(const Packet& in) {
         //printf("<TCP::Connection::handle_ack> Recovery - Partial ACK\n");
         retransmit();
 
-        //dup_acks_ = 0;
+        dup_acks_ = 0;
 
         if(!reno_fpack_seen) {
           rtx_reset();

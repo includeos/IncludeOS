@@ -230,7 +230,6 @@ void Service::start(const std::string&)
             bool OK = (temp->str() == huge);
             CHECKSERT(OK, "Received HUGE");
             INFO("Test 3", "Succeeded, TEST4");
-            conn->close();
           }
         });
       auto half = huge.size() / 2;
@@ -239,6 +238,7 @@ void Service::start(const std::string&)
       });
       conn->write(huge.data(), half);
       conn->write(huge.data()+half, half);
+      conn->close();
     });
 
   /*

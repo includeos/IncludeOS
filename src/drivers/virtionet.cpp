@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #define PRINT_INFO
-// #define DEBUG // Allow debuging
-// #define DEBUG2
+//#define DEBUG
+//#define DEBUG2
 
 #include "virtionet.hpp"
 #include <net/packet.hpp>
@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <malloc.h>
 #include <string.h>
+
 //#define NO_DEFERRED_KICK
 #ifndef NO_DEFERRED_KICK
 static std::vector<VirtioNet*> deferred_devices;
@@ -39,19 +40,12 @@ void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
 }
 
-void VirtioNet::drop(Packet_ptr){
-  debug("<VirtioNet->link-layer> No delegate. DROP!\n");
-}
-
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
     Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, 
         std::max(2048u, queue_size(0) * 2), sizeof(net::Packet) + sizeof(virtio_net_hdr) + MTU()),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
-    packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()},
-    /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
-    rx_q(queue_size(0),0,iobase()), tx_q(queue_size(1),1,iobase()),
-    ctrl_q(queue_size(2),2,iobase())
+    packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {
   INFO("VirtioNet", "Driver initializing");
   // this must be true, otherwise packets will be created incorrectly
@@ -59,8 +53,8 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)
-    | (1 << VIRTIO_NET_F_STATUS);
-  //| (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
+    | (1 << VIRTIO_NET_F_STATUS)
+    ;//| (1 << VIRTIO_NET_F_MRG_RXBUF); //Merge RX Buffers (Everything i 1 buffer)
   uint32_t wanted_features = needed_features;
   negotiate_features(wanted_features);
 
@@ -99,25 +93,30 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
         "Merge RX buffers");
 
 
+  /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
+  new (&rx_q) Virtio::Queue(queue_size(0),0,iobase());
+  new (&tx_q) Virtio::Queue(queue_size(1),1,iobase());
+  new (&ctrl_q) Virtio::Queue(queue_size(2),2,iobase());
+
   // Step 1 - Initialize RX/TX queues
   auto success = assign_queue(0, (uint32_t)rx_q.queue_desc());
-  CHECK(success, "RX queue assigned (0x%x) to device",
-        (uint32_t)rx_q.queue_desc());
+  CHECK(success, "RX queue (%u) assigned (0x%x) to device",
+        rx_q.size(), (uint32_t)rx_q.queue_desc());
 
   success = assign_queue(1, (uint32_t)tx_q.queue_desc());
-  CHECK(success, "TX queue assigned (0x%x) to device",
-        (uint32_t)tx_q.queue_desc());
+  CHECK(success, "TX queue (%u) assigned (0x%x) to device",
+        tx_q.size(), (uint32_t)tx_q.queue_desc());
 
   // Step 2 - Initialize Ctrl-queue if it exists
   if (features() & (1 << VIRTIO_NET_F_CTRL_VQ)) {
     success = assign_queue(2, (uint32_t)tx_q.queue_desc());
-    CHECK(success, "CTRL queue assigned (0x%x) to device",
-          (uint32_t)ctrl_q.queue_desc());
+    CHECK(success, "CTRL queue (%u) assigned (0x%x) to device",
+          ctrl_q.size(), (uint32_t)ctrl_q.queue_desc());
   }
 
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
-  INFO("VirtioNet", "Adding %i receive buffers of size %i",
+  INFO("VirtioNet", "Adding %u receive buffers of size %u",
        rx_q.size() / 2, bufsize());
 
   for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
@@ -193,10 +192,9 @@ void VirtioNet::msix_recv_handler()
   bool dequeued_rx = false;
   rx_q.disable_interrupts();
   // handle incoming packets as long as bufstore has available buffers
-  while (rx_q.new_incoming() && bufstore().available() > 1) {
-
+  while (rx_q.new_incoming() && bufstore().available() > 1)
+  {
     auto res = rx_q.dequeue();
-
     auto pckt_ptr = recv_packet(res.data(), res.size());
     Link::receive(std::move(pckt_ptr));
 
@@ -227,7 +225,6 @@ void VirtioNet::msix_xmit_handler()
 
     dequeued_tx = true;
   }
-  tx_q.enable_interrupts();
 
   // If we have a transmit queue, eat from it, otherwise let the stack know we
   // have increased transmit capacity
@@ -245,19 +242,14 @@ void VirtioNet::msix_xmit_handler()
   }
 }
 
-void VirtioNet::add_receive_buffer(){
-
+void VirtioNet::add_receive_buffer()
+{
   auto* pkt = bufstore().get_buffer();
   // offset pointer to virtionet header
   auto* vnet = pkt + sizeof(Packet);
 
-  Token token1 {
-    {vnet, sizeof(virtio_net_hdr)},
-      Token::IN };
-
-  Token token2 {
-    {vnet + sizeof(virtio_net_hdr), bufsize()},
-      Token::IN };
+  Token token1 {{vnet, sizeof(virtio_net_hdr)}, Token::IN };
+  Token token2 {{vnet + sizeof(virtio_net_hdr), MTU()}, Token::IN };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
   rx_q.enqueue(tokens);
@@ -267,6 +259,10 @@ net::Packet_ptr
 VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (net::Packet*) (data - sizeof(net::Packet));
+#ifdef DEBUG
+  assert(bufstore().is_from_pool((uint8_t*) ptr));
+  assert(bufstore().is_buffer((uint8_t*) ptr));
+#endif
   new (ptr) net::Packet(MTU(), size - sizeof(virtio_net_hdr), sizeof(virtio_net_hdr), &bufstore());
   return net::Packet_ptr(ptr);
 }
@@ -355,6 +351,7 @@ void VirtioNet::enqueue(net::Packet* pckt)
 void VirtioNet::begin_deferred_kick()
 {
 #ifdef NO_DEFERRED_KICK
+  tx_q.enable_interrupts();
   tx_q.kick();
 #else
   if (!deferred_kick) {
@@ -370,6 +367,7 @@ void VirtioNet::handle_deferred_devices()
   for (auto* dev : deferred_devices) {
     // kick transmitq
     dev->deferred_kick = false;
+    dev->tx_q.enable_interrupts();
     dev->tx_q.kick();
   }
   deferred_devices.clear();

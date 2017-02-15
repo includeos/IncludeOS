@@ -321,7 +321,7 @@ void Connection::State::process_segment(Connection& tcp, Packet& in) {
   // Receive could result in a user callback. This is used to avoid sending empty ACK reply.
   debug("<Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
   tcb.RCV.NXT += length;
-  auto snd_nxt = tcb.SND.NXT;
+  const auto snd_nxt = tcb.SND.NXT;
   if(tcp.read_request.buffer.capacity()) {
     auto received = tcp.receive((uint8_t*)in.tcp_data(), in.tcp_data_length(), in.isset(PSH));
     Ensures(received == length);
@@ -331,18 +331,28 @@ void Connection::State::process_segment(Connection& tcp, Packet& in) {
   //tcb.SND.cwnd += std::min(length, tcp.SMSS());
   debug2("<Connection::State::process_segment> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, snd_nxt);
 
-  if(tcb.SND.NXT == snd_nxt) {
-    auto packet = tcp.outgoing_packet();
-    packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-    tcp.transmit(std::move(packet));
+  if(tcb.SND.NXT == snd_nxt)
+  {
+    // ACK by trying to send more
+    if(tcp.can_send())
+    {
+      tcp.writeq_push();
+      // nothing got sent
+      if(tcb.SND.NXT == snd_nxt)
+      {
+        auto packet = tcp.outgoing_packet();
+        packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
+        tcp.transmit(std::move(packet));
+      }
+    }
+    // else regular ACK
+    else
+    {
+      auto packet = tcp.outgoing_packet();
+      packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
+      tcp.transmit(std::move(packet));
+    }
   }
-  //if(tcp.can_send())
-  //  tcp.send_much();
-  /*if(tcp.has_doable_job() and !tcp.is_queued()) {
-    printf("<Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
-    tcp.writeq_push();
-  }*/
-
   /*
     WARNING/NOTE:
     Not sure how "dangerous" the following is, and how big of a bottleneck it is.
@@ -355,33 +365,6 @@ void Connection::State::process_segment(Connection& tcp, Packet& in) {
     apporopriate to the current buffer availability.  The total of
     RCV.NXT and RCV.WND should not be reduced.
   */
-  // no data has been sent during user callback
-  // TODO: A lot of cleanup / refactoring - this is messy.
-  /*if(snd_nxt == tcb.SND.NXT) {
-    // Piggyback ACK with outgoing data
-    if(tcp.has_doable_job() and !tcp.is_queued()) {
-      debug2("<Connection::State::process_segment> Usable window: %i\n", tcp.usable_window());
-      tcp.writeq_push();
-      // we tried to push data, but nothing was written, reply the sender immediately
-      if(tcp.usable_window() == tcb.SND.WND) {
-        auto packet = tcp.outgoing_packet();
-        packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-        tcp.transmit(std::move(packet));
-      }
-    }
-    // TODO: Selective ACK
-    // If no outgoing data right now - reply with ACK.
-    else {
-      debug2("<Connection::State::process_segment> ACK. Window: %i, Queue: %u, is_queued: %s\n",
-             tcp.usable_window(), tcp.writeq.size(), tcp.is_queued() ? "true" : "false");
-      auto packet = tcp.outgoing_packet();
-      packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-      tcp.transmit(std::move(packet));
-    }
-  }
-  else {
-    debug2("<Connection::State::process_segment> SND.NXT > snd_nxt, this packet has already been acknowledged. \n");
-  }*/
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -402,7 +385,7 @@ void Connection::State::process_segment(Connection& tcp, Packet& in) {
 /////////////////////////////////////////////////////////////////////
 
 void Connection::State::process_fin(Connection& tcp, const Packet& in) {
-  debug("<Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
+  debug2("<Connection::State::process_fin> Processing FIN bit in STATE: %s \n", tcp.state().to_string().c_str());
   assert(in.isset(FIN));
   auto& tcb = tcp.tcb();
   // Advance RCV.NXT over the FIN?
@@ -596,18 +579,12 @@ size_t Connection::SynReceived::send(Connection&, WriteBuffer&) {
   return 0; // nothing written, indicates queue
 }
 
-size_t Connection::Established::send(Connection& tcp, WriteBuffer& buffer) {
-  // if nothing in queue, try to write directly
-  if(!tcp.writeq.has_remaining_requests())
-    return tcp.send(buffer);
+size_t Connection::Established::send(Connection&, WriteBuffer&) {
 
   return 0;
 }
 
-size_t Connection::CloseWait::send(Connection& tcp, WriteBuffer& buffer) {
-  // if nothing in queue, try to write directly
-  if(!tcp.writeq.has_remaining_requests())
-    return tcp.send(buffer);
+size_t Connection::CloseWait::send(Connection&, WriteBuffer&) {
 
   return 0;
 }
@@ -678,7 +655,7 @@ void Connection::SynReceived::close(Connection& tcp) {
     then form a FIN segment and send it, and enter FIN-WAIT-1 state;
     otherwise queue for processing after entering ESTABLISHED state.
   */
-  if(tcp.writeq.empty())
+  if(not tcp.writeq.has_remaining_requests())
   {
     auto& tcb = tcp.tcb();
     auto packet = tcp.outgoing_packet();
@@ -690,7 +667,7 @@ void Connection::SynReceived::close(Connection& tcp) {
 }
 
 void Connection::Established::close(Connection& tcp) {
-  if(tcp.writeq.empty())
+  if(not tcp.writeq.has_remaining_requests())
   {
     auto& tcb = tcp.tcb();
     auto packet = tcp.outgoing_packet();
@@ -724,7 +701,7 @@ void Connection::CloseWait::close(Connection& tcp) {
     Queue this request until all preceding SENDs have been
     segmentized; then send a FIN segment, enter CLOSING state.
   */
-  if(tcp.writeq.empty()) {
+  if(not tcp.writeq.has_remaining_requests()) {
     auto& tcb = tcp.tcb();
     auto packet = tcp.outgoing_packet();
     packet->set_seq(tcb.SND.NXT++).set_ack(tcb.RCV.NXT).set_flags(ACK | FIN);

@@ -617,20 +617,6 @@ private:
   /// --- WRITING --- ///
 
   /*
-    Active try to send a buffer by asking the TCP.
-  */
-  size_t send(WriteBuffer& buffer);
-
-  /*
-    Segmentize buffer into packets until either everything has been written,
-    or all packets are used up.
-  */
-  size_t send(const uint8_t* buffer, size_t remaining, size_t& packets);
-
-  size_t send(WriteBuffer& buffer, size_t& packets)
-  { return send(buffer.data(), buffer.length(), packets); }
-
-  /*
     Process the write queue with the given amount of packets.
     Called by TCP.
   */

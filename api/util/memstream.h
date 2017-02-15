@@ -26,23 +26,6 @@
 #define SSE_VALIDATE(buffer) (((intptr_t) buffer & (SSE_SIZE-1)) == 0)
 
 /**
- * Allocate SSE-aligned memory
- * Allocates an aligned block of memory to be used with streaming
- * memory functions.
- * 
- * Returns an aligned pointer to allocated memory area.
-**/
-extern void* aligned_alloc(size_t n, size_t alignment);
-#define sse_alloc(n)  aligned_alloc(n, SSE_SIZE)
-
-/**
- * Free SSE-aligned memory
- * 
- * Frees memory allocated by aligned_alloc().
-**/
-extern void aligned_free(void* ptr);
-
-/**
  * Copy from aligned block of memory
  * Copies the values of n bytes from the SSE-aligned location pointed
  * by source directly to the memory block pointed by destination.

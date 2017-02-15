@@ -26,8 +26,13 @@ namespace http {
       on_request_(std::move(cb)),
       keep_alive_(true),
       timer_id_(Timers::UNUSED_ID),
-      idle_timeout_(timeout)
-  {}
+      idle_timeout_(timeout),
+      stat_conns_{Statman::get().create(Stat::UINT32, tcp.stack().ifname() + ".http_server.connections")},
+      stat_req_rx_{Statman::get().create(Stat::UINT64, tcp.stack().ifname() + ".http_server.requests_rx")},
+      stat_req_bad_{Statman::get().create(Stat::UINT32, tcp.stack().ifname() + ".http_server.requests_bad")},
+      stat_timeouts_{Statman::get().create(Stat::UINT32, tcp.stack().ifname() + ".http_server.timeouts")}
+  {
+  }
 
   void Server::listen(uint16_t port)
   {
@@ -84,6 +89,7 @@ namespace http {
     else {
       connections_.emplace_back(std::make_unique<Server_connection>(*this, conn, connections_.size()));
     }
+    ++stat_conns_;
   }
 
   void Server::close(Server_connection& conn)
@@ -102,18 +108,23 @@ namespace http {
     const auto count = idle_timeout_.count();
     for(auto& conn : connections_) {
       if(conn != nullptr and RTC::now() > (conn->idle_since() + count))
+      {
         conn->timeout();
+        ++stat_timeouts_;
+      }
     }
   }
 
   void Server::receive(Request_ptr req, status_t code, Server_connection& conn)
   {
+    ++stat_req_rx_;
     if(code == OK)
     {
       on_request_(std::move(req), std::make_unique<Response_writer>( create_response(code), conn ));
     }
     else
     {
+      ++stat_req_bad_;
       // an error occured when parsing
       // call user on_error or something
       conn.send(create_response(code));

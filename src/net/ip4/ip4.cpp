@@ -86,10 +86,6 @@ namespace net {
     }
   }
 
-  uint16_t IP4::checksum(ip4::Header* hdr) {
-    return net::checksum(reinterpret_cast<uint16_t*>(hdr), sizeof(ip4::Header));
-  }
-
   void IP4::transmit(Packet_ptr pckt) {
     assert(pckt->size() > sizeof(IP4::full_header));
 
@@ -110,13 +106,6 @@ namespace net {
           stack_.ip_addr().str().c_str(),
           stack_.gateway().str().c_str(),
           target == local ? "DIRECT" : "GATEWAY");
-
-    /*debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
-          stack_.ip_addr().str().c_str(),
-          pckt->next_hop().str().c_str(),
-          pckt->size(),
-          ip4_pckt->ip_segment_size()
-          );*/
 
     // Stat increment packets transmitted
     packets_tx_++;
