@@ -38,7 +38,8 @@ class Stats_exception : public std::runtime_error {
 };
 
 class Stat {
-
+private:
+  constexpr static int MAX_NAME_LEN = 48;
 public:
   enum stat_type
   {
@@ -73,7 +74,7 @@ private:
     uint32_t ui32;
     uint64_t ui64;
   };
-  char name_[48];
+  char name_[MAX_NAME_LEN];
 
   Stat(const Stat& other) = delete;
 

@@ -27,6 +27,7 @@
 #include <net/tcp/tcp.hpp>
 #include <timers>
 #include <vector>
+#include <statman>
 
 namespace http {
 
@@ -117,6 +118,11 @@ namespace http {
     Timers::id_t    timer_id_;
 
     const idle_duration idle_timeout_;
+
+    Stat& stat_conns_;
+    Stat& stat_req_rx_;
+    Stat& stat_req_bad_;
+    Stat& stat_timeouts_;
 
     void connect(TCP_conn conn);
 

@@ -166,7 +166,7 @@ class qemu(hypervisor):
     def name(self):
         return "Qemu"
 
-    def image_name(serlf):
+    def image_name(self):
         return self._image_name
 
     def drive_arg(self, filename, drive_type = "virtio", drive_format = "raw", media_type = "disk"):
@@ -185,7 +185,12 @@ class qemu(hypervisor):
             device = names[device]
 
         # Network device - e.g. host side of nic
-        netdev = backend + ",id=" + if_name + ",vhost=on,script=" + qemu_ifup
+        netdev = backend + ",id=" + if_name
+
+        if self._kvm_present:
+            netdev += ",vhost=on"
+
+        netdev += ",script=" + qemu_ifup
 
         if bridge:
             netdev = "bridge,id=" + if_name + ",br=" + bridge
@@ -238,6 +243,9 @@ class qemu(hypervisor):
     def boot(self, multiboot, kernel_args = "", image_name = None):
         self._stopped = False
 
+        # Resolve if kvm is present
+        self._kvm_present = self.kvm_present()
+
         # Use provided image name if set, otherwise try to find it in json-config
         if not image_name:
             image_name = self._config["image"]
@@ -288,7 +296,7 @@ class qemu(hypervisor):
 
         # TODO: sudo is only required for tap networking and kvm. Check for those.
         command = ["sudo", "qemu-system-x86_64"]
-        if self.kvm_present(): command.append("--enable-kvm")
+        if self._kvm_present: command.append("--enable-kvm")
 
         command += kernel_args
 
@@ -390,6 +398,7 @@ class vm:
         self._on_exit_success = lambda : None
         self._on_exit = lambda : None
         self._root = os.getcwd()
+        self._kvm_present = False
 
     def stop(self):
         self._hyper.stop().wait()
