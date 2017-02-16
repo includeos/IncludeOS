@@ -17,6 +17,7 @@
 
 #include <udp_fd.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/os.hpp> // OS::block()
 
 // return the "currently selected" networking stack
 static net::Inet<net::IP4>& net_stack() {

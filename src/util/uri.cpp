@@ -36,35 +36,37 @@ static inline bool icase_equal(const std::experimental::string_view lhs, const s
 static inline uint16_t bind_port(const std::experimental::string_view scheme,
                                  const uint16_t port_from_uri) noexcept
 {
-  static auto comparator = [](const std::experimental::string_view lhs, const std::experimental::string_view rhs) {
-    return icase_equal(lhs, rhs);
-  };
-
   static const std::initializer_list<std::pair<const std::experimental::string_view, uint16_t>> scheme_port_mapping
   {
-    {"ftp",    21U},
-    {"http",   80U},
-    {"https",  443U},
-    {"irc",    6667U},
-    {"ldap",   389U},
-    {"nntp",   119U},
-    {"rtsp",   554U},
-    {"sip",    5060U},
-    {"sips",   5061U},
-    {"smtp",   25U},
-    {"ssh",    22U},
-    {"telnet", 23U},
-    {"ws",     80U},
-    {"xmpp",   5222U}
+    {"ftp",    21U},  {"FTP",    21U},
+    {"http",   80U},  {"HTTP",   80U},
+    {"https",  443U}, {"HTTPS",  443U},
+    {"irc",    6667U},{"IRC",    6667U},
+    {"ldap",   389U}, {"LDAP",   389U},
+    {"nntp",   119U}, {"NNTP",   119U},
+    {"rtsp",   554U}, {"RTSP",   554U},
+    {"sip",    5060U},{"SIP",    5060U},
+    {"sips",   5061U},{"SIPS",   5061U},
+    {"smtp",   25U},  {"SMTP",   25U},
+    {"ssh",    22U},  {"SSH",    22U},
+    {"telnet", 23U},  {"TELNET", 23U},
+    {"ws",     80U},  {"WS",     80U},
+    {"xmpp",   5222U},{"XMPP",   5222U}
   };
-
-  static const std::map<std::experimental::string_view, uint16_t, decltype(comparator)> port_table
-  {scheme_port_mapping, comparator};
+  static const std::map<std::experimental::string_view, uint16_t> port_table
+  {scheme_port_mapping};
 
   if (port_from_uri not_eq 0) return port_from_uri;
 
   const auto it = port_table.find(scheme);
-
+  // Slow case insensitive compare
+  /*
+  const auto it = std::find_if(port_table.begin(), port_table.end(),
+    [scheme] (const std::pair<std::experimental::string_view, uint16_t>& pair)
+    {
+      return icase_equal(pair.first, scheme);
+    });
+  */
   return (it not_eq port_table.cend()) ? it->second : 0xFFFFU;
 }
 
