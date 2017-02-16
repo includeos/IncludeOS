@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -134,16 +134,13 @@ class URI {
   bool host_is_ip4() const noexcept;
 
   ///
-  /// Get host and port as a view
+  /// Get host and port information
   ///
   /// Format <host>:<port>
   ///
-  /// @return host and port as a view
+  /// @return host and port information
   ///
-  /// @note IIf the uri don't contain port information this
-  /// method is same as calling URI::host
-  ///
-  std::experimental::string_view host_and_port() const noexcept;
+  std::string host_and_port() const;
 
   ///
   /// Get the raw port number in decimal character representation.
