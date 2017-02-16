@@ -152,12 +152,17 @@ void Connection::offer(size_t& packets)
     auto packet = create_outgoing_packet();
     packets--;
 
+    size_t written{0};
+    size_t x{0};
+    const auto NXT = cb.SND.NXT;
     // fill the packet with data
-    auto written = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem(), cb.SND.NXT);
-    cb.SND.NXT += packet->tcp_data_length();
-
-    // advance the write q
-    writeq.advance(written);
+    while(writeq.has_remaining_requests() and
+      (x = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem(), NXT)))
+    {
+      written += x;
+      cb.SND.NXT += x;
+      writeq.advance(x);
+    }
 
     debug2("<Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
            written, buf.remaining, packets, usable_window());
@@ -192,8 +197,6 @@ void Connection::writeq_push()
 }
 
 size_t Connection::fill_packet(Packet& packet, const uint8_t* buffer, size_t n, seq_t seq) {
-  Expects(!packet.has_tcp_data());
-
   auto written = packet.fill(buffer, std::min(n, (size_t)SMSS()));
 
   packet.set_seq(seq).set_ack(cb.RCV.NXT).set_flag(ACK);
