@@ -52,6 +52,23 @@ CASE("port() returns the URI's port (no path)") {
   EXPECT(uri.port() == 80);
 }
 
+CASE("port() defaults according to the correct protocol") {
+  uri::URI http {"http://www.vg.no"};
+  EXPECT(http.port() == 80);
+
+  uri::URI ftp {"ftp://silkroad.com"};
+  EXPECT(ftp.port() == 21);
+
+  uri::URI irc {"irc://irc.includeos.org"};
+  EXPECT(irc.port() == 6667);
+
+  uri::URI random {"lul://does.not.work"};
+  EXPECT(random.port() == 65535);
+
+  uri::URI port_provided {"http://some.random.site.uk:8080"};
+  EXPECT(port_provided.port() == 8080);
+}
+
 CASE("out-of-range ports throws exception") {
   EXPECT_THROWS(uri::URI uri {"https://www.vg.no:65539"});
 }
