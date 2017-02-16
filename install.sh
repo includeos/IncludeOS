@@ -95,4 +95,11 @@ Could not create or configure bridge. \n"
     echo -e "\n\n>>> Done! Test your installation with ./test.sh"
 fi
 
+# Install the python vmrunner package
+if ! ./etc/install_vmrunner.sh; then
+	echo -e ">>> Sorry <<< \n\
+Could not install python vmrunner package. \n"
+	exit 1
+fi
+
 exit 0

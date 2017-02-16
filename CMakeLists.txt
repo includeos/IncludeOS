@@ -157,12 +157,8 @@ endif(rapidjson)
 #
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
-install(DIRECTORY vmrunner DESTINATION includeos/)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
 install(DIRECTORY seed/ DESTINATION includeos/seed)
-
-# Install boot util
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
 
 # Install scripts
 install(PROGRAMS

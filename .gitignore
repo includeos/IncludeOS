@@ -46,3 +46,4 @@ CMakeFiles*
 CMakeCache*
 cmake_install.cmake
 *egg-info
+vmrunner/dist
