@@ -1,13 +1,11 @@
 #! /usr/bin/env python
 import sys
 import os
+import socket
+from vmrunner import vmrunner
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-
-from vmrunner import vmrunner
-import socket
-
 
 def transmit_test(grgr):
   print "<Test.py> Performing transmit tests"

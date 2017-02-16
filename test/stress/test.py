@@ -4,12 +4,11 @@ import socket
 import time
 import subprocess
 import os
+from vmrunner import vmrunner
+from vmrunner.prettify import color
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-
-from vmrunner import vmrunner
-from vmrunner.prettify import color
 
 test_name="Stresstest"
 name_tag = "<" + test_name + ">"

@@ -1,17 +1,15 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
 import sys
 import os
 import time
 import subprocess
+import socket
+from vmrunner import vmrunner
+from vmrunner.prettify import color
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-
-from vmrunner import vmrunner
-import socket
-
-from vmrunner.prettify import color
 
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
