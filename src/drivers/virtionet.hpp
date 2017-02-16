@@ -132,6 +132,10 @@ public:
   uint16_t MTU() const noexcept override
   { return 1500; }
 
+  uint16_t packet_len() const noexcept {
+    return Link::Protocol::header_size() + MTU();
+  }
+
   net::downstream create_physical_downstream()
   { return {this, &VirtioNet::transmit}; }
 

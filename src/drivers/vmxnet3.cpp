@@ -107,7 +107,7 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, 
          2048, 
-         sizeof(net::Packet) + MTU())
+         sizeof(net::Packet) + packet_len())
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
@@ -211,7 +211,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   shared.misc.queue_desc_address  = (uintptr_t) &dma->queues;
   shared.misc.driver_data_len     = sizeof(vmxnet3_dma);
   shared.misc.queue_desc_len      = sizeof(vmxnet3_queues);
-  shared.misc.mtu = MTU(); // 60-9000
+  shared.misc.mtu = packet_len(); // 60-9000
   shared.misc.num_tx_queues  = 1;
   shared.misc.num_rx_queues  = NUM_RX_QUEUES;
   shared.interrupt.mask_mode = 0; // IMM_AUTO
@@ -343,7 +343,7 @@ void vmxnet3::refill(rxring_state& rxq)
     // assign rx descriptor
     auto& desc = rxq.desc0[i];
     desc.address = (uintptr_t) rxq.buffers[i];
-    desc.flags   = MTU() | generation;
+    desc.flags   = packet_len() | generation;
     rxq.prod_count++;
     rxq.producers++;
     
@@ -360,14 +360,14 @@ net::Packet_ptr
 vmxnet3::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (net::Packet*) (data - sizeof(net::Packet));
-  new (ptr) net::Packet(bufsize(), size, 0, &bufstore());
+  new (ptr) net::Packet(packet_len(), size, 0, &bufstore());
   return net::Packet_ptr(ptr);
 }
 net::Packet_ptr
 vmxnet3::create_packet(uint16_t size)
 {
   auto* ptr = (net::Packet*) bufstore().get_buffer();
-  new (ptr) net::Packet(MTU(), size, 0, &bufstore());
+  new (ptr) net::Packet(packet_len(), size, 0, &bufstore());
   return net::Packet_ptr(ptr);
 }
 

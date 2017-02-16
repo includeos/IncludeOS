@@ -65,9 +65,6 @@ namespace hw {
     size_t buffers_available()
     { return bufstore_.available(); }
 
-    uint16_t bufsize() const
-    { return bufstore_.bufsize(); }
-
     virtual net::Packet_ptr create_packet(uint16_t) = 0;
 
     /** Subscribe to event for when there is more room in the tx queue */

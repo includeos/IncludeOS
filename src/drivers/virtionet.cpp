@@ -43,7 +43,7 @@ void VirtioNet::get_config() {
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
     Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, 
-        std::max(2048u, queue_size(0) * 2), sizeof(net::Packet) + sizeof(virtio_net_hdr) + MTU()),
+        std::max(2048u, queue_size(0) * 2), sizeof(net::Packet) + sizeof(virtio_net_hdr) + packet_len()),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {
@@ -117,7 +117,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
   INFO("VirtioNet", "Adding %u receive buffers of size %u",
-       rx_q.size() / 2, bufsize());
+       rx_q.size() / 2, bufstore().bufsize());
 
   for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
 
@@ -249,7 +249,7 @@ void VirtioNet::add_receive_buffer()
   auto* vnet = pkt + sizeof(Packet);
 
   Token token1 {{vnet, sizeof(virtio_net_hdr)}, Token::IN };
-  Token token2 {{vnet + sizeof(virtio_net_hdr), MTU()}, Token::IN };
+  Token token2 {{vnet + sizeof(virtio_net_hdr), packet_len()}, Token::IN };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
   rx_q.enqueue(tokens);
@@ -263,14 +263,14 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
   assert(bufstore().is_from_pool((uint8_t*) ptr));
   assert(bufstore().is_buffer((uint8_t*) ptr));
 #endif
-  new (ptr) net::Packet(MTU(), size - sizeof(virtio_net_hdr), sizeof(virtio_net_hdr), &bufstore());
+  new (ptr) net::Packet(packet_len(), size - sizeof(virtio_net_hdr), sizeof(virtio_net_hdr), &bufstore());
   return net::Packet_ptr(ptr);
 }
 net::Packet_ptr
 VirtioNet::create_packet(uint16_t size)
 {
   auto* ptr = (net::Packet*) bufstore().get_buffer();
-  new (ptr) net::Packet(MTU(), size, sizeof(virtio_net_hdr), &bufstore());
+  new (ptr) net::Packet(packet_len(), size, sizeof(virtio_net_hdr), &bufstore());
   return net::Packet_ptr(ptr);
 }
 
