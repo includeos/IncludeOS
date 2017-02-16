@@ -21,6 +21,7 @@
 #include <info>
 #include <cassert>
 #include <errno.h>
+#include <unistd.h>
 #include <net/inet4>
 
 const uint16_t PORT = 1042;
