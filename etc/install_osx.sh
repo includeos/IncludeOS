@@ -69,7 +69,7 @@ function install_binutils {
 
 ## python packages (pip) ##
 PIP_INSTALLED=false
-PIP_MODS=(jsonschema psutil)
+PIP_MODS=(jsonschema psutil junit_xml setuptools)
 echo -e "\n python pip\t - for installing necessary python modules used when booting services: ${PIP_MODS[*]}"
 
 ## Check if pip is installed ##
