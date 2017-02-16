@@ -223,7 +223,7 @@ private:
   void msix_conf_handler();
 
   /** Allocate and queue buffer from bufstore_ in RX queue. */
-  void add_receive_buffer();
+  void add_receive_buffer(uint8_t*);
 
   std::unique_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
 
