@@ -32,6 +32,17 @@ public:
   hw::Nic::Proto proto() const override
   { return Protocol::proto(); }
 
+  /** Stats getters **/
+  uint64_t get_packets_rx() override
+  { return link_.get_packets_rx(); }
+
+  uint64_t get_packets_tx() override
+  { return link_.get_packets_tx(); }
+
+  uint64_t get_packets_dropped() override
+  { return link_.get_packets_dropped(); }
+
+
 protected:
   /** Called by the underlying physical driver inheriting the Link_layer */
   void receive(net::Packet_ptr pkt)

@@ -78,6 +78,11 @@ namespace hw {
 
     virtual void deactivate() = 0;
 
+    /** Stats getters **/
+    virtual uint64_t get_packets_rx() = 0;
+    virtual uint64_t get_packets_tx() = 0;
+    virtual uint64_t get_packets_dropped() = 0;
+
     virtual ~Nic() {}
   protected:
     /**

@@ -114,6 +114,16 @@ namespace net {
     /** Transmit data, with preallocated space for eth.header */
     void transmit(Packet_ptr);
 
+    /** Stats getters **/
+    uint64_t get_packets_rx()
+    { return packets_rx_; }
+
+    uint64_t get_packets_tx()
+    { return packets_tx_; }
+
+    uint64_t get_packets_dropped()
+    { return packets_dropped_; }
+
   private:
     const addr& mac_;
 
