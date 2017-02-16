@@ -3,7 +3,7 @@
 # Installs the vmrunner python package
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
-INCLUDEOS_VMRUNNER_INSTALL=${INCLUDEOS_VMRUNNER_INSTALL-LOCAL} 
+INCLUDEOS_VMRUNNER_INSTALL=${INCLUDEOS_VMRUNNER_INSTALL-GLOBAL} 
 
 # Install vmrunner globally if specified
 pushd $INCLUDEOS_SRC/vmrunner
