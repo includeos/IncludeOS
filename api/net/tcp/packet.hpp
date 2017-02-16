@@ -229,8 +229,9 @@ public:
   //! this will fill bytes from @buffer into this packets buffer,
   //! then return the number of bytes written. buffer is unmodified
   size_t fill(const uint8_t* buffer, size_t length) {
-    size_t rem = capacity() - size();
-    size_t total = (length < rem) ? length : rem;
+    size_t rem = ip_capacity() - tcp_length();
+    if(rem == 0) return 0;
+    size_t total = std::min(length, rem);
     // copy from buffer to packet buffer
     memcpy(tcp_data() + tcp_data_length(), buffer, total);
     // set new packet length
