@@ -41,8 +41,10 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/os_test.cpp
-  ${TEST}/kernel/unit/rdrand_test.cpp
+  # not all CPUs have rdrand
+  #${TEST}/kernel/unit/rdrand_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
+  ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/net/unit/dns_test.cpp
   ${TEST}/net/unit/http_header_test.cpp
