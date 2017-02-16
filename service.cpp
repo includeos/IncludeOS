@@ -87,13 +87,9 @@ void setup_liveupdate_server(T& inet);
 void Service::start()
 {
   OS::add_stdout_default_serial();
-  printf("Heap stats for Service::start():\n");
-  show_heap_stats();
 }
 void Service::ready()
 {
-  printf("Heap stats for Service::ready():\n");
-  show_heap_stats();
   volatile HW_timer timer("Service::ready()");
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
@@ -129,9 +125,6 @@ void Service::ready()
   setup_terminal(inet);
   // show profile stats for boot
   printf("%s\n", ScopedProfiler::get_statistics().c_str());
-
-  printf("Heap starts for END OF START:\n");
-  show_heap_stats();
 }
 
 static std::vector<double> timestamps;
