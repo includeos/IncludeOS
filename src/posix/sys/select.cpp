@@ -4,6 +4,7 @@
 #include <fd_map.hpp>
 #include <tcp_fd.hpp>
 #include <list>
+#include <kernel/os.hpp> // OS::block()
 
 static struct {
   typedef std::pair<int, TCP_FD&> listpair;

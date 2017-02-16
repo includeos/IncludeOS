@@ -34,7 +34,7 @@ void Service::ready()
 {
   auto& inet = net::Inet4::stack<0>(); // Inet4<VirtioNet>::stack<0>();
   inet.network_config(
-    {  10,  0,  0, 44 },  // IP
+    {  10,  0,  0, 46 },  // IP
     {  255,255,255, 0 },  // Netmask
     {  10,  0,  0,  1 },  // Gateway
     {  8,  8,  8,  8 }   // DNS
