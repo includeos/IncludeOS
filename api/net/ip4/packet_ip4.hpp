@@ -108,7 +108,7 @@ namespace net {
     void set_ip4_checksum() noexcept {
       auto& hdr = ip_header();
       hdr.check = 0;
-      hdr.check = net::checksum(&hdr, sizeof(IP4::ip_header));
+      hdr.check = net::checksum(&hdr, ip_header_length());
     }
 
     friend class IP4;

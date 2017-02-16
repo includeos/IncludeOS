@@ -47,7 +47,11 @@ public:
     return this->hw_addr;
   }
 
-  uint16_t MTU() const noexcept override
+  uint16_t MTU() const noexcept override {
+    return 1500;
+  }
+
+  uint16_t packet_len() const noexcept
   {        // ethernet + vlan + fcs
     return ETH_FRAME_LEN + 4 + 4;
   }
