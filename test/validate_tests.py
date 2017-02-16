@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 import sys
-sys.path.insert(0, ".")
-sys.path.insert(0, "..")
-
 import subprocess
 import os
 from vmrunner import validate_vm
@@ -31,7 +28,7 @@ def validate_test(path, verb = False):
     except Exception as err:
         if verb:
             print "<validate_test> \tFAIL: ", path, ": " , err.message
-        
+
         return False, err.message
 
 
