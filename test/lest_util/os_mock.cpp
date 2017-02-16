@@ -103,6 +103,10 @@ extern "C" {
     return;
   }
 
+  void _init() {
+    return;
+  }
+
   void modern_interrupt_handler() {
     return;
   }
@@ -136,6 +140,15 @@ extern "C" {
   }
 
   void reboot_os() {
+    return;
+  }
+
+  struct mallinfo { int x; };
+  struct mallinfo mallinfo() {
+    return {0};
+  }
+
+  void malloc_trim() {
     return;
   }
 }
