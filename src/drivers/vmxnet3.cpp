@@ -211,7 +211,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   shared.misc.queue_desc_address  = (uintptr_t) &dma->queues;
   shared.misc.driver_data_len     = sizeof(vmxnet3_dma);
   shared.misc.queue_desc_len      = sizeof(vmxnet3_queues);
-  shared.misc.mtu = MTU(); // 60-9000
+  shared.misc.mtu = packet_len(); // 60-9000
   shared.misc.num_tx_queues  = 1;
   shared.misc.num_rx_queues  = NUM_RX_QUEUES;
   shared.interrupt.mask_mode = 0; // IMM_AUTO
@@ -343,7 +343,7 @@ void vmxnet3::refill(rxring_state& rxq)
     // assign rx descriptor
     auto& desc = rxq.desc0[i];
     desc.address = (uintptr_t) rxq.buffers[i];
-    desc.flags   = MTU() | generation;
+    desc.flags   = packet_len() | generation;
     rxq.prod_count++;
     rxq.producers++;
     
