@@ -90,8 +90,14 @@ namespace net {
     assert(pckt->size() > sizeof(IP4::full_header));
 
     auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+
     ip4_pckt->make_flight_ready();
 
+    ship(std::move(ip4_pckt));
+  }
+
+  void IP4::ship(Packet_ptr pckt) {
+    auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
     IP4::ip_header& hdr = ip4_pckt->ip_header();
     // Create local and target subnets
     addr target = hdr.daddr        & stack_.netmask();
