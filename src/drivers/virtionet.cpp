@@ -119,7 +119,8 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   INFO("VirtioNet", "Adding %u receive buffers of size %u",
        rx_q.size() / 2, bufstore().bufsize());
 
-  for (int i = 0; i < rx_q.size() / 2; i++) add_receive_buffer();
+  for (int i = 0; i < rx_q.size() / 2; i++)
+      add_receive_buffer(bufstore().get_buffer());
 
   // Step 4 - If there are many queues, we should negotiate the number.
   // Set config length, based on whether there are multiple queues
@@ -192,14 +193,15 @@ void VirtioNet::msix_recv_handler()
   bool dequeued_rx = false;
   rx_q.disable_interrupts();
   // handle incoming packets as long as bufstore has available buffers
-  while (rx_q.new_incoming() && bufstore().available() > 1)
+  while (rx_q.new_incoming())
   {
     auto res = rx_q.dequeue();
     auto pckt_ptr = recv_packet(res.data(), res.size());
     Link::receive(std::move(pckt_ptr));
 
     // Requeue a new buffer
-    add_receive_buffer();
+    if (bufstore().available() > 0)
+        add_receive_buffer(bufstore().get_buffer());
 
     dequeued_rx = true;
 
@@ -213,26 +215,34 @@ void VirtioNet::msix_recv_handler()
 void VirtioNet::msix_xmit_handler()
 {
   bool dequeued_tx = false;
+  bool queued_rx   = false;
   tx_q.disable_interrupts();
   // Do one TX-packet
   while (tx_q.new_incoming())
   {
     auto res = tx_q.dequeue();
-    assert(res.data());
-    // get packet offset, and call destructor
-    auto* packet = (net::Packet*) (res.data() - sizeof(net::Packet));
-    packet->~Packet(); // call destructor on Packet to release it
 
-    dequeued_tx = true;
+    // refill rx if needed
+    if (rx_q.num_free() > 1) {
+      add_receive_buffer(res.data() - sizeof(net::Packet));
+      queued_rx = true;
+    }
+    else {
+      // get packet offset, and call destructor
+      auto* packet = (net::Packet*) (res.data() - sizeof(net::Packet));
+      packet->~Packet(); // call destructor on Packet to release it
+      dequeued_tx = true;
+    }
   }
 
   // If we have a transmit queue, eat from it, otherwise let the stack know we
   // have increased transmit capacity
-  if (dequeued_tx) {
+  if (dequeued_tx)
+  {
     debug("<VirtioNet>%i dequeued, transmitting backlog\n", dequeued_tx);
 
     // transmit as much as possible from the buffer
-    if (transmit_queue_){
+    if (transmit_queue_) {
       transmit(std::move(transmit_queue_));
     }
 
@@ -240,11 +250,13 @@ void VirtioNet::msix_xmit_handler()
     if (!transmit_queue_ && tx_q.num_free() > 1)
         transmit_queue_available_event_(tx_q.num_free() / 2);
   }
+  if (queued_rx) {
+    rx_q.kick();
+  }
 }
 
-void VirtioNet::add_receive_buffer()
+void VirtioNet::add_receive_buffer(uint8_t* pkt)
 {
-  auto* pkt = bufstore().get_buffer();
   // offset pointer to virtionet header
   auto* vnet = pkt + sizeof(Packet);
 
