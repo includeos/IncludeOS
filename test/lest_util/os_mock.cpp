@@ -103,9 +103,11 @@ extern "C" {
     return;
   }
 
+#ifdef __MACH__
   void _init() {
     return;
   }
+#endif
 
   void modern_interrupt_handler() {
     return;
