@@ -38,4 +38,7 @@ set(CMAKE_FIND_ROOT_PATH ${INCLUDEOS_BIN})
 #
 # This can be done with /etc/install_binutils.sh
 #set(_CMAKE_TOOLCHAIN_PREFIX ${target}-)
+
+# Set nasm compiler to the one symlinked in includeos/bin (to avoid running Mac one)
+set(CMAKE_ASM_NASM_COMPILER ${INCLUDEOS_BIN}/nasm)
 endif()

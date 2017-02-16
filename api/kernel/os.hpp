@@ -63,11 +63,11 @@ public:
 
   /** Timestamp for when OS was booted */
   static RTC::timestamp_t boot_timestamp()
-  { return booted_at_; }
+  { return RTC::boot_timestamp(); }
 
   /** Uptime in whole seconds. */
   static RTC::timestamp_t uptime() {
-    return RTC::now() - booted_at_;
+    return RTC::time_since_boot();
   }
 
   static MHz cpu_freq() noexcept
@@ -215,7 +215,6 @@ private:
 
   static MHz cpu_mhz_;
 
-  static RTC::timestamp_t booted_at_;
   static std::string version_field;
 
   struct Plugin_struct {

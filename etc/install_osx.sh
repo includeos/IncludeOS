@@ -129,6 +129,10 @@ then
   ln -sf $SRC_BINUTILS/i686-elf-* $INCLUDEOS_BIN/
   echo -e ">> $SRC_BINUTILS/i686-elf-* > $INCLUDEOS_BIN/"
 
+  SRC_NASM="/usr/local/bin/nasm"
+  ln -sf $SRC_NASM $INCLUDEOS_BIN/nasm
+  echo -e ">> $SRC_NASM > $INCLUDEOS_BIN/nasm"
+
   echo -e "\n>>> Done symlinking dependencies to $INCLUDEOS_BIN"
 fi
 
