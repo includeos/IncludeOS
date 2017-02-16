@@ -183,12 +183,12 @@ bool URI::host_is_ip4() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::host_and_port() const noexcept {
+std::string URI::host_and_port() const {
   if (not port_str_.empty()) {
-    return std::experimental::string_view{host_.data(), host_.length() + port_str_.length() + 1};
-  } else {
-    return host_;
+    return {host_.data(), host_.length() + port_str_.length() + 1};
   }
+
+  return std::string{host_.data(), host_.length()} + ':' + std::to_string(port_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
