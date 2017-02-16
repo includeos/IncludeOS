@@ -286,13 +286,9 @@ void Client::kill(bool warn, const std::string& reason)
 
   if (warn) {
     // close connection after write
-    conn->write(buff, len,
-    [this] (size_t) {
-        conn->close();
-    });
-  } else {
-    conn->close();
+    conn->write(buff, len);
   }
+  conn->close();
 }
 
 void Client::propagate_quit(const char* buff, int len)

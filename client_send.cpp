@@ -2,6 +2,7 @@
 #include "ircd.hpp"
 #include "tokens.hpp"
 #include "modes.hpp"
+#include <os>
 
 void Client::send_motd()
 {

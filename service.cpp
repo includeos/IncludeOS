@@ -104,25 +104,6 @@ std::string now()
   return std::string(buff, len);
 }
 
-#ifdef USE_STACK_SAMPLING
-// print N results to stdout
-void ssampler_print(int N)
-{
-  auto samp = StackSampler::results(N);
-  int total = StackSampler::samples_total();
-
-  printf("Stack sampling - %d results (%u samples)\n",
-         samp.size(), total);
-  for (auto& sa : samp)
-  {
-    // percentage of total samples
-    float perc = sa.samp / (float)total * 100.0f;
-    printf("%5.2f%%  %*u: %s\n",
-           perc, 8, sa.samp, sa.name.c_str());
-  }
-}
-#endif
-
 void print_heap_info()
 {
   static intptr_t last = 0;
@@ -139,6 +120,7 @@ void print_heap_info()
   last = (int32_t) heap_size;
 }
 
+#include <kernel/elf.hpp>
 void print_stats(int)
 {
 #ifdef USE_STACK_SAMPLING
@@ -173,7 +155,7 @@ void print_stats(int)
   printf("*** ---------------------- ***\n");
 #ifdef USE_STACK_SAMPLING
   // stack sampler results
-  ssampler_print(20);
+  StackSampler::print(20);
   printf("*** ---------------------- ***\n");
 #endif
   // heap statistics
@@ -190,6 +172,7 @@ void print_stats(int)
   */
   //printf("%s\n", inet.tcp().to_string().c_str());
   kernel_sanity_checks();
+  assert(Elf::verify_symbols());
 
 #ifdef USE_STACK_SAMPLING
   StackSampler::set_mask(false);
@@ -204,7 +187,7 @@ void Service::ready()
   ircd->call_remote_servers();
 #ifdef USE_STACK_SAMPLING
   StackSampler::begin();
-  StackSampler::set_mode(StackSampler::MODE_CALLER);
+  //StackSampler::set_mode(StackSampler::MODE_CALLER);
 #endif
 
   using namespace std::chrono;
