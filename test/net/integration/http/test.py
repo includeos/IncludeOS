@@ -39,7 +39,7 @@ thread.start_new_thread(Client_test, ())
 
 import urllib2
 def Server_test(triggerline):
-    res = urllib2.urlopen("http://10.0.0.44:8080").read()
+    res = urllib2.urlopen("http://10.0.0.46:8080").read()
     assert(res == "Hello")
 
 
