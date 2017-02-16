@@ -215,24 +215,16 @@ void VirtioNet::msix_recv_handler()
 void VirtioNet::msix_xmit_handler()
 {
   bool dequeued_tx = false;
-  bool queued_rx   = false;
   tx_q.disable_interrupts();
   // Do one TX-packet
   while (tx_q.new_incoming())
   {
     auto res = tx_q.dequeue();
 
-    // refill rx if needed
-    if (rx_q.num_free() > 1) {
-      add_receive_buffer(res.data() - sizeof(net::Packet));
-      queued_rx = true;
-    }
-    else {
-      // get packet offset, and call destructor
-      auto* packet = (net::Packet*) (res.data() - sizeof(net::Packet));
-      packet->~Packet(); // call destructor on Packet to release it
-      dequeued_tx = true;
-    }
+    // get packet offset, and call destructor
+    auto* packet = (net::Packet*) (res.data() - sizeof(net::Packet));
+    packet->~Packet(); // call destructor on Packet to release it
+    dequeued_tx = true;
   }
 
   // If we have a transmit queue, eat from it, otherwise let the stack know we
@@ -249,9 +241,6 @@ void VirtioNet::msix_xmit_handler()
     // If we now emptied the buffer, offer packets to stack
     if (!transmit_queue_ && tx_q.num_free() > 1)
         transmit_queue_available_event_(tx_q.num_free() / 2);
-  }
-  if (queued_rx) {
-    rx_q.kick();
   }
 }
 
