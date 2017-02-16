@@ -45,3 +45,4 @@ build
 CMakeFiles*
 CMakeCache*
 cmake_install.cmake
+*egg-info
