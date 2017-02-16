@@ -18,9 +18,6 @@ if not os.path.isdir(INCLUDEOS_PREFIX + "/includeos"):
     print "Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_loc + ") please set the environment variable INCLUDEOS_PREFIX to point to this location."
     sys.exit(0)
 
-# Location of vmrunner
-sys.path.append(INCLUDEOS_PREFIX + "/includeos")
-
 from vmrunner.prettify import color
 
 
