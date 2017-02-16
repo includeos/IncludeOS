@@ -10,6 +10,7 @@
 
 static int64_t  current_time  = 0;
 static uint64_t current_ticks = 0;
+RTC::timestamp_t RTC::booted_at_ = 0;
 
 using namespace std::chrono;
 
@@ -17,6 +18,9 @@ void RTC::init()
 {
   // Initialize CMOS
   cmos::init();
+
+  // set boot timestamp
+  booted_at_ = cmos::now().to_epoch();
 
   // set current timestamp and ticks
   current_time  = cmos::now().to_epoch();

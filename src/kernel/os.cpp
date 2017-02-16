@@ -58,7 +58,6 @@ extern uintptr_t _MAX_MEM_MIB_;
 
 bool  OS::power_   = true;
 MHz   OS::cpu_mhz_ {-1};
-RTC::timestamp_t OS::booted_at_ {0};
 uintptr_t OS::low_memory_size_  {0};
 uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::memory_end_ {0};
@@ -241,7 +240,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 #endif
   // Realtime/monotonic clock
   RTC::init();
-  booted_at_ = RTC::now();
 
 #ifdef ENABLE_PROFILERS
   ScopedProfiler sp10("OS::start Plugins init");

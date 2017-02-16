@@ -21,7 +21,7 @@
 
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
-#include <kernel/os.hpp> // OS::cycles_since_boot()
+#include <rtc> // RTC::time_since_boot()
 #include <debug>
 
 // BOOTP (rfc951) message types
@@ -196,7 +196,7 @@ namespace net
     });
 
     // create a random session ID
-    this->xid = OS::cycles_since_boot() & 0xFFFFFFFF;
+    this->xid = RTC::time_since_boot() & 0xFFFFFFFF;
     if (console_spam)
       MYINFO("Negotiating IP-address (xid=%u)", xid);
 

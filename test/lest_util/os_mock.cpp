@@ -40,8 +40,8 @@ Statman& Statman::get() {
   return statman_;
 }
 
-#include <os>
-#include <kernel/timers.hpp>
+#include <rtc>
+RTC::timestamp_t RTC::booted_at_ = 0;
 
 RTC::timestamp_t RTC::now() {
   return 0;
@@ -51,6 +51,7 @@ void RTC::init() {
   return;
 }
 
+#include <kernel/timers.hpp>
 void Timers::timers_handler() {
   return;
 }
@@ -71,6 +72,7 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
   return 0;
 }
 
+#include <os>
 void OS::resume_softreset(intptr_t) {
   return;
 }
