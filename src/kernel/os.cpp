@@ -214,20 +214,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Realtime/monotonic clock
   RTC::init();
 
-  PROFILE("Plugins init");
-  // Trying custom initialization functions
-  MYINFO("Initializing plugins");
-  for (auto plugin : plugins_) {
-    INFO2("* Initializing %s", plugin.name_);
-    try{
-      plugin.func_();
-    } catch(std::exception& e){
-      MYINFO("Exception thrown when initializing plugin: %s", e.what());
-    } catch(...){
-      MYINFO("Unknown exception when initializing plugin");
-    }
-  }
-
   PROFILE("RNG init");
   // initialize random seed based on cycles since start
   if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
@@ -252,6 +238,20 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
+
+  PROFILE("Plugins init");
+  // Trying custom initialization functions
+  MYINFO("Initializing plugins");
+  for (auto plugin : plugins_) {
+    INFO2("* Initializing %s", plugin.name_);
+    try{
+      plugin.func_();
+    } catch(std::exception& e){
+      MYINFO("Exception thrown when initializing plugin: %s", e.what());
+    } catch(...){
+      MYINFO("Unknown exception when initializing plugin");
+    }
+  }
 
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());
