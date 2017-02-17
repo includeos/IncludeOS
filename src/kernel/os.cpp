@@ -37,9 +37,7 @@
 #include <statman>
 #include <vector>
 
-extern "C" void kernel_sanity_checks();
 //#define ENABLE_PROFILERS
-
 #ifdef ENABLE_PROFILERS
 #include <profile>
 #endif
