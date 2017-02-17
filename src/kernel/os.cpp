@@ -101,9 +101,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
          boot_magic, boot_addr);
 
-  MYINFO("Max mem (from linker): %i MiB", reinterpret_cast<size_t>(&_MAX_MEM_MIB_));
-
-
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_magic, boot_addr);
@@ -190,9 +187,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
         (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
-  PROFILE("OS::start CPU frequency");
-  // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  if (OS::cpu_mhz_.count() < 0.0) {
+  PROFILE("CPU frequency");
+  if (OS::cpu_mhz_.count() <= 0.0) {
     OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency());
   }
   INFO2("+--> %f MHz", cpu_freq().count());
@@ -400,6 +396,7 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
 
 
 void OS::legacy_boot() {
+  MYINFO("Max mem (from linker): %u MiB", (size_t) &_MAX_MEM_MIB_);
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = cmos::meminfo();
   low_memory_size_ = mem.base.total * 1024;
