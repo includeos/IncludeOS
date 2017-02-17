@@ -317,7 +317,7 @@ std::string ScopedProfiler::get_statistics()
   std::ostringstream ss;
 
   // Add header
-  ss << " CPU Cycles (average) | Samples | Function Name \n";
+  ss << " CPU time (average) | Samples | Function Name \n";
   ss << "--------------------------------------------------------------------------------\n";
 
   // Calculate the number of used entries
@@ -345,9 +345,10 @@ std::string ScopedProfiler::get_statistics()
     for (auto i = 0u; i < num_entries; i++)
     {
       const auto& entry = entries[i];
+      double  div  = OS::cpu_freq().count() * 1000.0;
 
-      ss.width(21);
-      ss << entry.cycles_average << " | ";
+      ss.width(16);
+      ss << entry.cycles_average / div << " ms | ";
 
       ss.width(7);
       ss << entry.num_samples << " | ";

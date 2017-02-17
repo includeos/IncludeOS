@@ -101,6 +101,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
          boot_magic, boot_addr);
 
+  PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_magic, boot_addr);
@@ -111,14 +112,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
     OS::legacy_boot();
   }
-
   Expects(high_memory_size_);
 
+  PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
 
   OS::memory_end_ = high_memory_size_ + 0x100000;
-
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x4000, 0x5fff, "Statman", "Statistics"});
