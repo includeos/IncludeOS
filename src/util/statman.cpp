@@ -79,6 +79,14 @@ Statman::Statman(uintptr_t start, Size_type num_bytes)
   stats_ = Span(reinterpret_cast<Stat*>(start), num_stats_in_span);
 }
 
+Stat& Statman::get(const std::string& name) const {
+  for (auto& stat : stats_)
+    if (stat.name() == name)
+      return stat;
+
+  throw Stats_exception{"No stat with name " + name + " exists"};
+}
+
 Statman::Span_iterator Statman::last_used() {
   Expects(next_available_ <= stats_.size());
   auto it = stats_.begin();

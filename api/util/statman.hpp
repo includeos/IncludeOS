@@ -139,6 +139,8 @@ public:
    */
   bool full() const { return next_available_ == stats_.size(); }
 
+  Stat& get(const std::string& name) const;
+
   /**
    * Returns an iterator to the last used (or filled in) element
    * in the span stats_
