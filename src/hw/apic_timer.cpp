@@ -53,7 +53,11 @@ namespace hw
     lapic.timer_init();
 
     if (ticks_per_micro != 0) {
-      start_timers();
+      // make sure timers are delay-initalized
+      auto irq = IRQ_manager::get().get_next_msix_irq();
+      IRQ_manager::get().subscribe(irq, start_timers);
+      // soft-trigger IRQ
+      IRQ_manager::get().register_irq(irq);
       return;
     }
 
