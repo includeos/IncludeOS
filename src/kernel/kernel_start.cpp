@@ -22,6 +22,7 @@
 #define MULTIBOOT_CMDLINE_LOC 0x7000
 
 extern "C" void __init_sanity_checks();
+extern "C" void kernel_sanity_checks();
 extern "C" void _init_c_runtime();
 extern "C" void _init_syscalls();
 extern "C" void _init();
@@ -66,7 +67,10 @@ void kernel_start(uintptr_t magic, uintptr_t addr)  {
 
   // Initialize OS including devices
   OS::start(magic, addr);
-  
+
+  // verify certain read-only sections in memory
+  kernel_sanity_checks();
+
   // Starting event loop from here allows us to profile OS::start
   OS::event_loop();
 }

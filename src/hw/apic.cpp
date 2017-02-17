@@ -16,8 +16,6 @@
 // limitations under the License.
 
 #include <hw/apic.hpp>
-#include <hw/xapic.hpp>
-#include <hw/x2apic.hpp>
 #include <hw/ioapic.hpp>
 #include <hw/acpi.hpp> // ACPI
 #include <hw/cpu.hpp>
@@ -25,8 +23,7 @@
 #include <hw/smp.hpp>
 #include <kernel/cpuid.hpp>
 #include <kernel/irq_manager.hpp>
-#include <cstdio>
-#include <stdlib.h>
+#include <cstdlib>
 #include <debug>
 #include <kprint>
 #include <info>
@@ -36,12 +33,13 @@ extern "C" {
   void (*current_eoi_mechanism)();
   // KVM para PV-EOI feature
   void kvm_pv_eoi();
-  void kvm_pv_eoi_init();
   // easier deduction of type
   void x2apic_send_eoi() {
     hw::x2apic::get().eoi();
   }
 }
+
+void kvm_pv_eoi_init();
 
 namespace hw
 {
@@ -57,7 +55,8 @@ namespace hw
     hw::PIC::set_intr_mask(0xFFFF);
 
     // a PC without APIC is insane
-    assert(CPUID::has_feature(CPUID::Feature::APIC) && "If this fails, the machine is insane");
+    assert(CPUID::has_feature(CPUID::Feature::APIC) 
+        && "If this fails, the machine is insane");
 
     if (CPUID::has_feature(CPUID::Feature::X2APIC)) {
         current_apic = new x2apic();
@@ -139,49 +138,34 @@ namespace hw
 #define KVM_PV_EOI_ENABLED     KVM_PV_EOI_MASK
 #define KVM_PV_EOI_DISABLED    0x0
 
-#define _ADDR_ (*(volatile long *) addr)
-int __test_and_clear_bit(long nr, volatile unsigned long* addr)
-{
-  int oldbit;
-
-	asm volatile( "lock "
-		"btrl %2,%1\n\tsbbl %0,%0"
-		:"=r" (oldbit),"=m" (_ADDR_)
-		:"dIr" (nr) : "memory");
-	return oldbit;
-}
-
 __attribute__ ((aligned(4)))
-static volatile unsigned long kvm_apic_eoi = KVM_PV_EOI_DISABLED;
+static volatile unsigned long kvm_exitless_eoi = KVM_PV_EOI_DISABLED;
+
 void kvm_pv_eoi()
 {
-  kprintf("BEFOR: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
-  // fast EOI by KVM
-  if (__test_and_clear_bit(KVM_PV_EOI_BIT, &kvm_apic_eoi)) {
+  uint8_t reg;
+  asm("btr %2, %0; setc %1" : "+m"(kvm_exitless_eoi), "=rm"(reg) : "r"(0));
+  if (reg) {
       kprintf("avoided\n");
       return;
   }
-  // fallback to normal APIC EOI
-  lapic_send_eoi();
-  // check after
-  kprintf("AFTER: %#lx  intr %u  irr %u\n", kvm_apic_eoi, hw::APIC::get_isr(), hw::APIC::get_irr());
+  // fallback to normal x2APIC EOI
+  x2apic_send_eoi();
 }
 void kvm_pv_eoi_init()
 {
-  kprintf("* Enabling KVM paravirtual EOI\n");
-  // set new EOI handler
-  current_eoi_mechanism = kvm_pv_eoi;
-  kvm_apic_eoi = 0;
   union {
     uint32_t msr[2];
     uint64_t whole;
   } guest;
-  guest.whole = (uint64_t) &kvm_apic_eoi;
+  guest.whole = (uint64_t) &kvm_exitless_eoi;
   guest.whole |= KVM_MSR_ENABLED;
-  
-  kprintf("  MSR %#x  addr = %#llx\n", MSR_KVM_PV_EOI_EN, guest.whole);
   hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, guest.msr[0], guest.msr[1]);
   // verify that the feature was enabled
   uint64_t res = hw::CPU::read_msr(MSR_KVM_PV_EOI_EN);
-  assert(res == guest.whole);
+  if (res & 1) {
+    kprintf("* KVM paravirtual EOI enabled\n");
+    // set new EOI handler
+    current_eoi_mechanism = kvm_pv_eoi;
+  }
 }

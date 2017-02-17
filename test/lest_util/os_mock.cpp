@@ -139,9 +139,8 @@ extern "C" {
     return;
   }
 
-  void __init_sanity_checks() noexcept {
-    return;
-  }
+  void __init_sanity_checks() noexcept {}
+  void kernel_sanity_checks() {}
 
   void reboot_os() {
     return;
