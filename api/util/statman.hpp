@@ -155,6 +155,8 @@ public:
 
   Stat& create(const Stat::stat_type type, const std::string& name);
 
+  Stat& get(const std::string& name);
+
 private:
   Span stats_;
   int next_available_ = 0;

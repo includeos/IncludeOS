@@ -94,3 +94,11 @@ Stat& Statman::create(const Stat::stat_type type, const std::string& name) {
 
   return (*new (&stats_[next_available_++]) Stat{type, idx, name});
 }
+
+Stat& Statman::get(const std::string& name) {
+  for (auto& stat : stats_)
+    if (stat.name() == name)
+      return stat;
+
+  throw Stats_exception{"No stat with name " + name + " exists"};
+}
