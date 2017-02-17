@@ -20,6 +20,7 @@
 #include <common>
 #include <kprint>
 #include <util/crc32.hpp>
+#include <kernel/elf.hpp>
 
 // NOTE: crc_to MUST NOT be initialized to zero
 static uint32_t crc_ro = CRC32_BEGIN();
@@ -53,7 +54,7 @@ void kernel_sanity_checks()
   uint32_t new_ro = generate_ro_crc();
   if (crc_ro != new_ro) {
     kprintf("CRC mismatch %#x vs %#x\n", crc_ro, new_ro);
-    assert(0 && "CRC kernel check failed");
+    assert(0 && "CRC of kernel read-only area failed");
   }
   // verify that first page is zeroes only
   for (volatile int* lowmem = NULL; lowmem < LOW_CHECK_SIZE; lowmem++)
@@ -61,4 +62,6 @@ void kernel_sanity_checks()
     kprintf("Memory at %p was not zeroed: %#x\n", lowmem, *lowmem);
     assert(0 && "Low-memory zero test");
   }
+  // verify that Elf symbols were not overwritten
+  assert(Elf::verify_symbols() && "Check consistency of Elf symbols and string areas");
 }
