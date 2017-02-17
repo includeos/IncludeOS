@@ -207,17 +207,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
     hw::APIC_Timer::stop);
 
   // initialize BSP APIC timer
-  hw::APIC_Timer::init(
-  [] {
-    // set final interrupt handler
-    hw::APIC_Timer::set_handler(Timers::timers_handler);
-    // signal that kernel is done with everything
-    Service::ready();
-    // signal ready
-    // NOTE: this executes the first timers, so we
-    // don't want to run this before calling Service ready
-    Timers::ready();
-  });
+  // call Service::ready when calibrated
+  hw::APIC_Timer::init();
 
   PROFILE("RTC init");
   // Realtime/monotonic clock

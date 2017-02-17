@@ -1,14 +1,13 @@
 #include <os>
 #include <kprint>
-#include <hw/apic_timer.hpp>
 #include <util/crc32.hpp>
 
 #define SOFT_RESET_MAGIC    0xFEE1DEAD
 #define SOFT_RESET_LOCATION 0x7000
 
 namespace hw {
-  uint32_t apic_timer_get_ticks();
-  void     apic_timer_set_ticks(uint32_t);
+  extern uint32_t apic_timer_get_ticks() noexcept;
+  extern void     apic_timer_set_ticks(uint32_t) noexcept;
 }
 
 struct softreset_t

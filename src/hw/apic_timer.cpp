@@ -19,7 +19,7 @@
 #include <hw/apic.hpp>
 #include <hw/pit.hpp>
 #include <kernel/irq_manager.hpp>
-#include <kernel/os.hpp>
+#include <kernel/timers.hpp>
 #include <cstdio>
 #include <info>
 
@@ -36,28 +36,35 @@ using namespace std::chrono;
 
 namespace hw
 {
-  static APIC_Timer::handler_t intr_handler;
   static uint32_t ticks_per_micro = 0;
   static bool     intr_enabled    = false;
 
-  void APIC_Timer::init(const handler_t& handler)
+  static void start_timers()
+  {
+    // set interrupt handler
+    IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, Timers::timers_handler);
+    // start all timers
+    Timers::ready();
+  }
+
+  void APIC_Timer::init()
   {
     auto& lapic = hw::APIC::get();
     lapic.timer_init();
 
     if (ticks_per_micro != 0) {
-      hw::PIT::instance().on_timeout_ms(milliseconds(1), handler);
+      start_timers();
       return;
     }
 
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
-    intr_handler = handler;
     
     // See: Vol3a 10.5.4.1 TSC-Deadline Mode
     // 0xFFFFFFFF --> ~68 seconds
     // 0xFFFFFF   --> ~46 milliseconds
     lapic.timer_begin(0xFFFFFFFF);
+    // measure function call and tick read overhead
     uint32_t overhead;
     [&overhead] {
         overhead = hw::APIC::get().timer_diff();
@@ -74,25 +81,16 @@ namespace hw
 
       //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n",
       //       CALIBRATION_MS, diff, ticks_per_micro);
-      // signal ready to go
-      intr_handler();
+      start_timers();
     });
   }
 
-  bool APIC_Timer::ready()
+  bool APIC_Timer::ready() noexcept
   {
     return ticks_per_micro != 0;
   }
 
-  void APIC_Timer::set_handler(const handler_t& handler)
-  {
-    intr_handler = handler;
-    if (ready()) {
-      IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, handler);
-    }
-  }
-
-  void APIC_Timer::oneshot(std::chrono::microseconds micros)
+  void APIC_Timer::oneshot(std::chrono::microseconds micros) noexcept
   {
     // prevent overflow
     uint64_t ticks = micros.count() * ticks_per_micro;
@@ -107,18 +105,18 @@ namespace hw
       lapic.timer_interrupt(true);
     }
   }
-  void APIC_Timer::stop()
+  void APIC_Timer::stop() noexcept
   {
     hw::APIC::get().timer_interrupt(false);
     intr_enabled = false;
   }
 
   // used by soft-reset
-  uint32_t apic_timer_get_ticks()
+  uint32_t apic_timer_get_ticks() noexcept
   {
     return ticks_per_micro;
   }
-  void     apic_timer_set_ticks(uint32_t tpm)
+  void     apic_timer_set_ticks(uint32_t tpm) noexcept
   {
     ticks_per_micro = tpm;
   }
