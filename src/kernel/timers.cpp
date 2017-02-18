@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <kernel/os.hpp>
+#include <service>
 #include <statman>
 
 using namespace std::chrono;
@@ -77,6 +78,8 @@ void Timers::ready()
   if (is_running == false) {
     timers_handler();
   }
+  // call Service::ready(), because timer system is ready!
+  Service::ready();
 }
 
 id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
@@ -161,7 +164,7 @@ size_t Timers::active()
 
 /// time functions ///
 
-inline std::chrono::microseconds now() noexcept
+static inline std::chrono::microseconds now() noexcept
 {
   return microseconds(OS::micros_since_boot());
 }

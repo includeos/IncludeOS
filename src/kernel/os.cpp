@@ -40,6 +40,9 @@
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
 #include <profile>
+#define PROFILE(name)  ScopedProfiler __CONCAT(sp, __COUNTER__){name};
+#else
+#define PROFILE(name) /* name */
 #endif
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
@@ -83,12 +86,9 @@ const std::string& OS::cmdline_args() noexcept
   return os_cmdline;
 }
 
-void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp1{};
-#endif
-
+void OS::start(uint32_t boot_magic, uint32_t boot_addr)
+{
+  PROFILE("");
   default_stdout_handlers();
 
   // Print a fancy header
@@ -101,9 +101,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
          boot_magic, boot_addr);
 
-  MYINFO("Max mem (from linker): %i MiB", reinterpret_cast<size_t>(&_MAX_MEM_MIB_));
-
-
+  PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_magic, boot_addr);
@@ -114,14 +112,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
     OS::legacy_boot();
   }
-
   Expects(high_memory_size_);
 
+  PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
 
   OS::memory_end_ = high_memory_size_ + 0x100000;
-
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x4000, 0x5fff, "Statman", "Statistics"});
@@ -132,7 +129,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   Expects(::heap_begin and heap_max_);
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
-        "Pre-heap", "Heap randomization area (not for use))"});
+        "Pre-heap", "Heap randomization area"});
 
   // Give the rest of physical memory to heap
   heap_max_ = ((0x100000 + high_memory_size_)  & 0xffff0000) - 1;
@@ -149,21 +146,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   for (const auto &i : memmap)
     INFO2("* %s",i.second.to_string().c_str());
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp2("OS::start IRQ manager init");
-#endif
+  PROFILE("IRQ manager init");
   // Set up interrupt and exception handlers
   IRQ_manager::init();
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp3("OS::start ACPI init");
-#endif
+  PROFILE("ACPI init");
   // read ACPI tables
   hw::ACPI::init();
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp4("OS::start APIC init");
-#endif
+  PROFILE("APIC init");
   // setup APIC, APIC timer, SMP etc.
   hw::APIC::init();
 
@@ -171,15 +162,11 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   INFO("BSP", "Enabling interrupts");
   IRQ_manager::enable_interrupts();
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp5("OS::start PIT init");
-#endif
+  PROFILE("PIT init");
   // Initialize the Interval Timer
   hw::PIT::init();
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp6("OS::start PCI manager init");
-#endif
+  PROFILE("PCI manager init");
   // Initialize PCI devices
   PCI_manager::init();
 
@@ -200,18 +187,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
         (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp7("OS::start CPU frequency");
-#endif
-  // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  if (OS::cpu_mhz_.count() < 0.0) {
+  PROFILE("CPU frequency");
+  if (OS::cpu_mhz_.count() <= 0.0) {
     OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency());
   }
   INFO2("+--> %f MHz", cpu_freq().count());
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp8("OS::start Timers init");
-#endif
+  PROFILE("Timers init");
   // cpu_mhz must be known before we can start timer system
   /// initialize timers hooked up to APIC timer
   Timers::init(
@@ -221,43 +203,14 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
     hw::APIC_Timer::stop);
 
   // initialize BSP APIC timer
-  hw::APIC_Timer::init(
-  [] {
-    // set final interrupt handler
-    hw::APIC_Timer::set_handler(Timers::timers_handler);
-    // signal that kernel is done with everything
-    Service::ready();
-    // signal ready
-    // NOTE: this executes the first timers, so we
-    // don't want to run this before calling Service ready
-    Timers::ready();
-  });
+  // call Service::ready when calibrated
+  hw::APIC_Timer::init();
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp9("OS::start RTC init");
-#endif
+  PROFILE("RTC init");
   // Realtime/monotonic clock
   RTC::init();
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp10("OS::start Plugins init");
-#endif
-  // Trying custom initialization functions
-  MYINFO("Initializing plugins");
-  for (auto plugin : plugins_) {
-    INFO2("* Initializing %s", plugin.name_);
-    try{
-      plugin.func_();
-    } catch(std::exception& e){
-      MYINFO("Exception thrown when initializing plugin: %s", e.what());
-    } catch(...){
-      MYINFO("Unknown exception when initializing plugin");
-    }
-  }
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp11("OS::start RNG init");
-#endif
+  PROFILE("RNG init");
   // initialize random seed based on cycles since start
   if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
     uint32_t rdrand_output[32];
@@ -282,10 +235,25 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
+  PROFILE("Plugins init");
+  // Trying custom initialization functions
+  MYINFO("Initializing plugins");
+  for (auto plugin : plugins_) {
+    INFO2("* Initializing %s", plugin.name_);
+    try{
+      plugin.func_();
+    } catch(std::exception& e){
+      MYINFO("Exception thrown when initializing plugin: %s", e.what());
+    } catch(...){
+      MYINFO("Unknown exception when initializing plugin");
+    }
+  }
+
   // Everything is ready
   MYINFO("Starting %s", Service::name().c_str());
   FILLINE('=');
 
+  PROFILE("Service::start");
   // begin service start
   Service::start();
 }
@@ -428,6 +396,7 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
 
 
 void OS::legacy_boot() {
+  MYINFO("Max mem (from linker): %u MiB", (size_t) &_MAX_MEM_MIB_);
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = cmos::meminfo();
   low_memory_size_ = mem.base.total * 1024;

@@ -21,22 +21,18 @@
 #define HW_APIC_TIMER_HPP
 
 #include <chrono>
-#include <delegate>
 
 namespace hw {
+
+struct APIC_Timer
+{
+  static void init();
   
-  struct APIC_Timer
-  {
-    typedef delegate<void()> handler_t;
-    
-    static void init(const handler_t&);
-    
-    static void oneshot(std::chrono::microseconds);
-    static void stop();
-    static void set_handler(const handler_t&);
-    
-    static bool ready();
-  };
+  static void oneshot(std::chrono::microseconds) noexcept;
+  static void stop() noexcept;
+  
+  static bool ready() noexcept;
+};
 
 }
 

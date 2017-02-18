@@ -6,8 +6,6 @@
 #include <hw/cmos.hpp>
 #include <hertz>
 
-#define MYINFO(X,...) INFO("RTC", X, ##__VA_ARGS__)
-
 static int64_t  current_time  = 0;
 static uint64_t current_ticks = 0;
 RTC::timestamp_t RTC::booted_at_ = 0;
@@ -26,7 +24,7 @@ void RTC::init()
   current_time  = cmos::now().to_epoch();
   current_ticks = hw::CPU::rdtsc();
 
-  MYINFO("Enabling regular clock sync with CMOS");
+  INFO("RTC", "Enabling regular clock sync with CMOS");
   // every minute recalibrate
   Timers::periodic(seconds(60), seconds(60),
   [] (Timers::id_t) {
