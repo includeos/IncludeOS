@@ -37,7 +37,6 @@ void OS::resume_softreset(intptr_t addr)
   }
   data->checksum = csum_copy;
   
-  kprint("[!] Soft resetting OS\n");
   /// restore known values
   OS::cpu_mhz_ = data->cpu_freq;
   hw::apic_timer_set_ticks(data->apic_ticks);
