@@ -149,13 +149,11 @@ void save_stuff(liu::Storage& storage, liu::buffer_len final_blob)
   // store current timestamp using same ID = 100
   int64_t ts = hw::CPU::rdtsc();
   storage.add<int64_t>(100, ts);
-  printf("! CPU ticks before: %lld\n", ts);
 
   // store vector of timestamps
   storage.add_vector<double> (100, timestamps);
 
   // where the update was stored last
-  printf("Storing location %p:%d\n", final_blob.buffer, final_blob.length);
   storage.add_buffer(999, final_blob.buffer, final_blob.length);
   
   // messages received from terminals
@@ -240,12 +238,12 @@ void the_timing(liu::Restore& thing)
   timestamps = thing.as_vector<double> ();  thing.go_next();
   // add new update time
   timestamps.push_back(time);
-  // calculate average boot time over many updates
-  double average = 0.0;
-  for (double d : timestamps) average += d; average /= timestamps.size();
+  // median boot time over many updates
+  std::sort(timestamps.begin(), timestamps.end());
+  double median = timestamps[timestamps.size()/2];
 
-  printf("Restored %u timestamps, average TS: %.2f ms\n",
-      timestamps.size(), average);
+  printf("Restored %u timestamps, median TS: %.2f ms\n",
+      timestamps.size(), median);
   
 }
 void restore_term(liu::Restore& thing)
@@ -262,19 +260,17 @@ void restore_term(liu::Restore& thing)
 }
 
 #include <timers>
-extern "C"
-void _print_elf_symbols();
 void on_update_area(liu::Restore& thing)
 {
   auto updloc = thing.as_buffer().deep_copy();
-  printf("Reloading from %p:%d\n", updloc.buffer, updloc.length);
+  //printf("Reloading from %p:%d\n", updloc.buffer, updloc.length);
   
   // we are perpetually updating ourselves
   using namespace std::chrono;
-  Timers::oneshot(milliseconds(250),
+  Timers::oneshot(milliseconds(1),
   [updloc] (auto) {
     extern uintptr_t heap_end;
-    printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);
+    //printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);
     liu::LiveUpdate::begin(LIVEUPD_LOCATION, updloc, save_stuff);
   });
 }

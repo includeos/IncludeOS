@@ -13,6 +13,8 @@
 #include "elf.h"
 #include "storage.hpp"
 
+#define LPRINT(x, ...) /* x */
+
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
 
@@ -42,7 +44,7 @@ bool LiveUpdate::resume(void* location, resume_func func)
   // check if an update has occurred
   if (!is_resumable(location)) return false;
   
-  printf("* Restoring data...\n");
+  LPRINT("* Restoring data...\n");
   // restore connections etc.
   extern bool resume_begin(storage_header&, LiveUpdate::resume_func);
   return resume_begin(*(storage_header*) location, func);
@@ -98,29 +100,32 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
       throw std::runtime_error("Could not find any ELF header in blob");
     }
   }
-  printf("* Found ELF header\n");
-  
+  LPRINT("* Found ELF header\n");
+
   /// note: this assumes section headers are at the end
   int expected_total = 
       hdr->e_shnum * hdr->e_shentsize +
       hdr->e_shoff;
-  
+
   if (blob.length < expected_total || expected_total < ELF_MINIMUM)
   {
-    printf("*** There was a mismatch between blob length and expected ELF file size:\n");
-    printf("EXPECTED: %u byte\n",  expected_total);
-    printf("ACTUAL:   %u bytes\n", blob.length);
+    fprintf(stderr,
+        "*** There was a mismatch between blob length and expected ELF file size:\n");
+    fprintf(stderr,
+        "EXPECTED: %u byte\n",  expected_total);
+    fprintf(stderr,
+        "ACTUAL:   %u bytes\n", blob.length);
     throw std::runtime_error("ELF file was incomplete");
   }
-  printf("* Validated ELF header\n");
+  LPRINT("* Validated ELF header\n");
 
   // discover _start() entry point
   const uintptr_t start_offset = hdr->e_entry;
-  printf("* _start is located at %#x\n", start_offset);
+  LPRINT("* _start is located at %#x\n", start_offset);
 
   // save ourselves
   size_t storage_len = update_store_data(storage_area, func, blob);
-  printf("* Stored %u bytes of user data\n", storage_len);
+  LPRINT("* Stored %u bytes of user data\n", storage_len);
 
   // store soft-resetting stuff
   void* sr_data = __os_store_soft_reset();
@@ -133,7 +138,7 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   char*       phys_base = (char*) phdr->p_paddr;
   
   //char* phys_base = (char*) (start_offset & 0xffff0000);
-  printf("* Physical base address is %p...\n", phys_base);
+  LPRINT("* Physical base address is %p...\n", phys_base);
 
   /// prepare for the end
   // 1. turn off interrupts
@@ -143,7 +148,7 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   //hw::Devices::deactivate_all();
 
   // replace ourselves and reset by jumping to _start
-  printf("* Replacing self with %d bytes and jumping to %#x\n", bin_len, start_offset);
+  LPRINT("* Replacing self with %d bytes and jumping to %#x\n", bin_len, start_offset);
 
   // copy hotswapping function to sweet spot
   memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);

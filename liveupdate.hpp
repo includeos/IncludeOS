@@ -1,13 +1,11 @@
 /**
- * 
- * Live Update
- * 
- * Master Thesis by Alf-Andre Walla
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
  * 
 **/
 #pragma once
-#ifndef LIVEUPDATE_UPDATE_HPP
-#define LIVEUPDATE_UPDATE_HPP
+#ifndef LIVEUPDATE_HEADER_HPP
+#define LIVEUPDATE_HEADER_HPP
 
 #include <net/tcp/connection.hpp>
 #include <delegate>

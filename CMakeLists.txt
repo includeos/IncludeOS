@@ -17,7 +17,7 @@ set(LOCAL_INCLUDES ".")
 set(LIBRARIES ${CMAKE_BINARY_DIR}/libliveupdate.a)
 
 set(DRIVERS
-    vmxnet3
+    virtionet
     silent_start
     #heap_debugging
   )

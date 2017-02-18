@@ -1,27 +1,26 @@
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ * 
+**/
 #pragma once
 
-#include <hw/cpu.hpp>
+#include <kernel/os.hpp>
 #include <cstdint>
 #include <cstdio>
-#include <string>
 
 struct HW_timer
 {
-  HW_timer(const std::string& str) {
-    context = str;
-    printf("HW timer starting for %s\n", context.c_str());
-    time    = hw::CPU::rdtsc();
-  }
+  HW_timer(const char* ctx)
+    : context(ctx), time(OS::cycles_since_boot()) {}
   ~HW_timer() {
-    auto diff = hw::CPU::rdtsc() - time;
+    const auto   diff = OS::cycles_since_boot() - time;
+    const double div  = OS::cpu_freq().count() * 1000.0;
+    const double time = diff / div;
 
-    using namespace std::chrono;
-    double  div  = OS::cpu_freq().count() * 1000000.0;
-    int64_t time = diff / div * 1000;
-
-    printf("HW timer for %s: %lld (%lld ms)\n", context.c_str(), diff, time);
+    printf("HW timer for %s: %lld (%.2f ms)\n", context, diff, time);
   }
 private:
-  std::string context;
+  const char* context;
   int64_t     time;
 };
