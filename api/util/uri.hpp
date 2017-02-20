@@ -134,6 +134,13 @@ class URI {
   bool host_is_ip4() const noexcept;
 
   ///
+  /// Check if host portion is an IPv6 address.
+  ///
+  /// @return True, maybe.
+  ///
+  bool host_is_ip6() const noexcept;
+
+  ///
   /// Get host and port information
   ///
   /// Format <host>:<port>

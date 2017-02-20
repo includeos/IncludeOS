@@ -183,12 +183,13 @@ bool URI::host_is_ip4() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string URI::host_and_port() const {
-  if (not port_str_.empty()) {
-    return {host_.data(), host_.length() + port_str_.length() + 1};
-  }
+bool URI::host_is_ip6() const noexcept {
+  return host_.empty() ? false : (*(host_.data() + host_.length()) == ']');
+}
 
-  return std::string{host_.data(), host_.length()} + ':' + std::to_string(port_);
+///////////////////////////////////////////////////////////////////////////////
+std::string URI::host_and_port() const {
+  return host_.to_string() + ':' + std::to_string(port_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
