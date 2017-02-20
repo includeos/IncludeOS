@@ -1,0 +1,174 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#pragma once
+#ifndef NET_DHCP_DHCPD_HPP
+#define NET_DHCP_DHCPD_HPP
+
+#include <net/dhcp/dhcp4.hpp>
+#include <net/dhcp/record.hpp>  // Status and Record
+#include <net/ip4/udp.hpp>
+#include <map>
+
+namespace net {
+namespace dhcp {
+
+  class DHCP_exception : public std::runtime_error {
+    using runtime_error::runtime_error;
+  };
+
+  class DHCPD {
+    static const uint32_t DEFAULT_LEASE = 86400;      // seconds. 1 day = 86 400 seconds.
+    static const uint32_t DEFAULT_MAX_LEASE = 345600; // seconds. 4 days = 345 600 seconds.
+    static const uint8_t  DEFAULT_PENDING = 30;
+
+  public:
+    DHCPD(UDP& udp, IP4::addr pool_start, IP4::addr pool_end,
+      uint32_t lease = DEFAULT_LEASE, uint32_t max_lease = DEFAULT_MAX_LEASE, uint8_t pending = DEFAULT_PENDING);
+
+    // Getters
+
+    IP4::addr server_id() const
+    { return server_id_; }
+
+    // TODO
+    IP4::addr temp_siaddr() const
+    { return temp_siaddr_; }
+
+    IP4::addr netmask() const
+    { return netmask_; }
+
+    IP4::addr router() const
+    { return router_; }
+
+    IP4::addr dns() const
+    { return dns_; }
+
+    uint32_t lease() const
+    { return lease_; }
+
+    uint32_t max_lease() const
+    { return max_lease_; }
+
+    uint8_t pending() const
+    { return pending_; }
+
+    IP4::addr pool_start() const
+    { return pool_start_; }
+
+    IP4::addr pool_end() const
+    { return pool_end_; }
+
+    const std::map<IP4::addr, Status>& pool() const
+    { return pool_; }
+
+    const std::vector<Record>& records() const
+    { return records_; }
+
+    // Setters
+
+    void set_server_id(IP4::addr server_id)
+    { server_id_ = server_id; }
+
+    // TODO
+    void set_temp_siaddr(IP4::addr temp_siaddr)
+    { temp_siaddr_ = temp_siaddr; }
+
+    void set_netmask(IP4::addr netmask)
+    { netmask_ = netmask; }
+
+    void set_router(IP4::addr router)
+    { router_ = router; }
+
+    void set_dns(IP4::addr dns)
+    { dns_ = dns; }
+
+    void set_lease(uint32_t lease)
+    { lease_ = lease; }
+
+    void set_max_lease(uint32_t max_lease)
+    { max_lease_ = max_lease; }
+
+    void set_pending(uint8_t pending)
+    { pending_ = pending; }
+
+    void add_record(const Record& record)
+    { records_.push_back(record); }
+
+    bool record_exists(const Record::byte_seq& client_id) const;
+
+    int get_record_idx(const Record::byte_seq& client_id) const;
+
+    int get_record_idx_from_ip(IP4::addr ip) const;
+
+    IP4::addr broadcast_address() const noexcept
+    { return server_id_ | ( ~ netmask_); }
+
+    IP4::addr network_address(IP4::addr ip) const noexcept  // x.x.x.0
+    { return ip & netmask_; }
+
+  private:
+
+    /* A DHCP server can have many Scopes
+        Each with its own pool, name, subnet mask (determines the subnet for a specific IP address),
+        lease duration values, options for assignment to clients like DNS, Gateway (router IP address) +
+    */
+
+    UDP::Stack& stack_;
+    UDPSocket& socket_;
+    IP4::addr pool_start_, pool_end_;
+    std::map<IP4::addr, Status> pool_;
+
+    IP4::addr server_id_;
+    IP4::addr temp_siaddr_;         // TODO Remove? IP address of next bootstrap server
+    IP4::addr netmask_, router_, dns_;
+    uint32_t lease_;
+    uint32_t max_lease_;
+    uint8_t pending_;               // How long to consider an offered address in the pending state (seconds)
+    std::vector<Record> records_;   // Temp - Instead of persistent storage:
+
+    bool valid_pool(IP4::addr start, IP4::addr end) const;
+    void init_pool();
+    void update_pool(IP4::addr ip, Status new_status);
+
+    void listen();
+
+    void resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts);
+    void handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts);
+    void offer(const dhcp_packet_t* msg, const dhcp_option_t* opts);
+    void inform_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts);
+    void request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts, IP4::addr send_to = IP4::addr{0});
+    void nak(const dhcp_packet_t* msg/*, const dhcp_option_t* opts*/);
+
+    const dhcp_option_t* get_option(const dhcp_option_t* opts, int code) const;
+    Record::byte_seq get_client_id_in_opts(const dhcp_option_t* opts) const;
+    IP4::addr get_requested_ip_in_opts(const dhcp_option_t* opts) const;
+    IP4::addr get_remote_netmask(const dhcp_option_t* opts) const;
+    void add_server_id(dhcp_option_t* opts);
+    IP4::addr inc_addr(IP4::addr ip) const
+    { return IP4::addr{htonl(ntohl(ip.whole) + 1)}; }
+    bool on_correct_network(IP4::addr giaddr, const dhcp_option_t* opts) const;
+    IP4::addr get_send_to_address(const dhcp_packet_t* msg, const uint8_t reply_type) const;
+
+    // Remove
+    void print(const dhcp_packet_t* msg, const dhcp_option_t* opts);
+  };
+
+} // < namespace dhcp
+} // < namespace net
+
+#endif

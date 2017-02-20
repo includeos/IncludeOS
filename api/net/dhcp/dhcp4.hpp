@@ -34,17 +34,17 @@ namespace net {
     static const uint8_t SNAME_LEN  =  64;
     static const uint8_t FILE_LEN   = 128;
 
-    uint8_t  op;        // message opcode
-    uint8_t  htype;     // hardware addr type
-    uint8_t  hlen;      // hardware addr length
-    uint8_t  hops;      // relay agent hops from client
-    uint32_t xid;       // transaction ID
-    uint16_t secs;      // seconds since start
-    uint16_t flags;     // flag bits
-    IP4::addr ciaddr;    // client IP address
-    IP4::addr yiaddr;    // client IP address
-    IP4::addr siaddr;    // IP address of next server
-    IP4::addr giaddr;    // DHCP relay agent IP address
+    uint8_t  op;          // message opcode
+    uint8_t  htype;       // hardware addr type
+    uint8_t  hlen;        // hardware addr length
+    uint8_t  hops;        // relay agent hops from client
+    uint32_t xid;         // transaction ID
+    uint16_t secs;        // seconds since start
+    uint16_t flags;       // flag bits
+    IP4::addr ciaddr;     // client IP address
+    IP4::addr yiaddr;     // client IP address
+    IP4::addr siaddr;     // IP address of next server
+    IP4::addr giaddr;     // DHCP relay agent IP address
     uint8_t  chaddr[CHADDR_LEN];  // client hardware address
     uint8_t  sname[SNAME_LEN];    // server name
     uint8_t  file[FILE_LEN];      // BOOT filename
