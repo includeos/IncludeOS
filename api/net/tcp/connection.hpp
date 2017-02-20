@@ -542,7 +542,7 @@ private:
   seq_t prev_highest_ack_ = 0;
 
   /** Delayed ACK - number of seg received without ACKing */
-  bool  dack_{0};
+  uint8_t  dack_{0};
 
   /// --- CALLBACKS --- ///
 
