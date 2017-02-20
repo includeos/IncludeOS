@@ -1,16 +1,14 @@
 #! /usr/bin/env python
 import sys
 import os
+import socket
+from vmrunner import vmrunner
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
 print 'includeos_src: {0}'.format(includeos_src)
-sys.path.insert(0,includeos_src)
 
-from vmrunner import vmrunner
 vm = vmrunner.vms[0]
-
-import socket
 
 # Gateway IP is 10.0.0.1 - syslog sends its messages here on port 6514
 

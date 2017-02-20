@@ -3,17 +3,14 @@
 import sys
 import os
 import thread
+import BaseHTTPServer
+from vmrunner import vmrunner
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src)
-
-from vmrunner import vmrunner
 
 HOST = ''
 PORT = 9011
-
-import BaseHTTPServer
 
 DO_SERVE = True
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):

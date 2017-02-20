@@ -8,15 +8,11 @@ import json
 import time
 import multiprocessing  # To figure out number of cpus
 import junit_xml as jx
-
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
-sys.path.insert(0, ".")
-sys.path.insert(0, "..")
-
 from vmrunner.prettify import color as pretty
 from vmrunner import validate_vm
 import validate_tests
 
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
 startdir = os.getcwd()
 
 test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'plugin', 'posix', 'stl', 'util']

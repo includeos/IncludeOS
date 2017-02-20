@@ -3,13 +3,11 @@
 import socket
 import sys
 import os
+from vmrunner import vmrunner
+from vmrunner.prettify import color
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src)
-
-from vmrunner import vmrunner
-from vmrunner.prettify import color
 
 # Usage: python test.py $GUEST_IP $HOST_IP
 GUEST = '10.0.0.44' if (len(sys.argv) < 2) else sys.argv[1]

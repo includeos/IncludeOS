@@ -2,16 +2,13 @@
 
 import sys
 import os
+from vmrunner import vmrunner
+import socket
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-print 'includeos_src: {0}'.format(includeos_src)
-sys.path.insert(0,includeos_src)
 
-from vmrunner import vmrunner
 vm = vmrunner.vms[0]
-
-import socket
 
 S_HOST, S_PORT = '', 4242
 S_MESSAGE = "Only hipsters uses POSIX"

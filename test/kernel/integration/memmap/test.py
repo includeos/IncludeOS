@@ -2,13 +2,10 @@
 
 import sys
 import os
+from vmrunner import vmrunner
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
-sys.path.insert(0,includeos_src)
-
-from vmrunner import vmrunner
-
 
 def test2():
   print "Booting VM 2 - lots of memory"
