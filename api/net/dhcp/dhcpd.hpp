@@ -149,6 +149,7 @@ namespace dhcp {
 
     void resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts);
+    void verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void offer(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void inform_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts, IP4::addr send_to = IP4::addr{0});
