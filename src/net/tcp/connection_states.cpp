@@ -331,26 +331,37 @@ void Connection::State::process_segment(Connection& tcp, Packet& in) {
   //tcb.SND.cwnd += std::min(length, tcp.SMSS());
   debug2("<Connection::State::process_segment> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, snd_nxt);
 
-  if(tcb.SND.NXT == snd_nxt)
+  // user callback didnt result in transmitting an ACK
+  if (tcb.SND.NXT == snd_nxt)
   {
     // ACK by trying to send more
-    if(tcp.can_send())
+    if (tcp.can_send())
     {
       tcp.writeq_push();
       // nothing got sent
-      if(tcb.SND.NXT == snd_nxt)
+      if (tcb.SND.NXT == snd_nxt)
       {
-        auto packet = tcp.outgoing_packet();
-        packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-        tcp.transmit(std::move(packet));
+        tcp.send_ack();
+      }
+      // something got sent
+      else
+      {
+        tcp.dack_ = 0;
       }
     }
     // else regular ACK
     else
     {
-      auto packet = tcp.outgoing_packet();
-      packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-      tcp.transmit(std::move(packet));
+      if (tcp.use_dack() and tcp.dack_ == 0)
+      {
+        tcp.start_dack();
+        //tcp.dack_ = 1;
+      }
+      else
+      {
+        tcp.stop_dack();
+        tcp.send_ack();
+      }
     }
   }
   /*

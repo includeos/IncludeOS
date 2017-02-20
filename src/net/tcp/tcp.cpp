@@ -41,7 +41,8 @@ TCP::TCP(IPStack& inet) :
   connections_(),
   writeq(),
   current_ephemeral_{new_ephemeral_port()}, // TODO: RFC 6056
-  MAX_SEG_LIFETIME(30s)
+  max_seg_lifetime_{30s},
+  delayed_ack_timeout_{40ms}
 {
   inet.on_transmit_queue_available({this, &TCP::process_writeq});
   // TODO: RFC 6056
@@ -158,7 +159,7 @@ uint16_t TCP::checksum(const tcp::Packet& packet)
 {
   short length = packet.tcp_length();
   // Compute sum of pseudo-header
-  uint32_t sum = 
+  uint32_t sum =
         (packet.src().whole >> 16)
       + (packet.src().whole & 0xffff)
       + (packet.dst().whole >> 16)

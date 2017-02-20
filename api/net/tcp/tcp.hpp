@@ -126,16 +126,32 @@ namespace net {
     { return connections_.size(); }
 
     /*
-      Maximum Segment Lifetime
-    */
-    auto MSL() const
-    { return MAX_SEG_LIFETIME; }
-
-    /*
       Set Maximum Segment Lifetime
     */
     void set_MSL(const std::chrono::milliseconds msl)
-    { MAX_SEG_LIFETIME = msl; }
+    { max_seg_lifetime_ = msl; }
+
+    /*
+      Maximum Segment Lifetime
+    */
+    auto MSL() const
+    { return max_seg_lifetime_; }
+
+    /**
+     * @brief      Sets the dack. [RFC 1122] (p.96)
+     *
+     * @param[in]  dack_timeout  The dack timeout
+     */
+    void set_DACK(const std::chrono::milliseconds dack_timeout)
+    { delayed_ack_timeout_ = dack_timeout; }
+
+    /**
+     * @brief      Returns the delayed ACK timeout (ms)
+     *
+     * @return     time to wait before sending an ACK
+     */
+    auto DACK_timeout() const
+    { return delayed_ack_timeout_; }
 
     /*
       Maximum Segment Size
@@ -188,7 +204,10 @@ namespace net {
     */
     tcp::port_t current_ephemeral_;
 
-    std::chrono::milliseconds MAX_SEG_LIFETIME;
+    // Maximum segment lifetime (this affects TIME-WAIT period - a connection will be closed after 2*MSL)
+    std::chrono::milliseconds max_seg_lifetime_;
+    // Delayed ACK timeout - how long should we wait with sending an ACK
+    std::chrono::milliseconds delayed_ack_timeout_;
 
     /*
       Transmit packet to network layer (IP).

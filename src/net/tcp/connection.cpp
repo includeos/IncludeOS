@@ -42,8 +42,9 @@ Connection::Connection(TCP& host, port_t local_port, Socket remote) :
   writeq(),
   on_disconnect_({this, &Connection::default_on_disconnect}),
   rtx_timer({this, &Connection::rtx_timeout}),
-  timewait_timer({this, &Connection::timewait_timeout}),
-  queued_(false)
+  timewait_dack_timer({this, &Connection::dack_timeout}),
+  queued_(false),
+  dack_{0}
 {
   setup_congestion_control();
   debug("<Connection> %s created\n", to_string().c_str());
@@ -355,7 +356,6 @@ void Connection::transmit(Packet_ptr packet) {
   }
 
   debug2("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
-
   host_.transmit(std::move(packet));
 }
 
@@ -732,21 +732,35 @@ void Connection::set_state(State& state) {
 
 void Connection::timewait_start() {
   const auto timeout = 2 * host().MSL(); // 60 seconds
-  timewait_timer.start(timeout);
-}
-
-void Connection::timewait_stop() {
-  timewait_timer.stop();
+  timewait_dack_timer.restart(timeout, {this, &Connection::timewait_timeout});
 }
 
 void Connection::timewait_restart() {
   const auto timeout = 2 * host().MSL(); // 60 seconds
-  timewait_timer.restart(timeout);
+  timewait_dack_timer.restart(timeout);
 }
 
 void Connection::timewait_timeout() {
   debug("<Connection> TimeWait timed out, closing.\n");
   signal_close();
+}
+
+void Connection::send_ack() {
+  auto packet = outgoing_packet();
+  packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT).set_flag(ACK);
+  dack_ = 0;
+  transmit(std::move(packet));
+}
+
+bool Connection::use_dack() const {
+  return host_.DACK_timeout() > std::chrono::milliseconds::zero();
+}
+
+void Connection::start_dack()
+{
+  Ensures(use_dack());
+  dack_ = 1;
+  timewait_dack_timer.start(host_.DACK_timeout());
 }
 
 void Connection::signal_close() {
@@ -762,8 +776,8 @@ void Connection::signal_close() {
 void Connection::clean_up() {
   // clear timers if active
   rtx_clear();
-  if(timewait_timer.is_running())
-    timewait_stop();
+  if(timewait_dack_timer.is_running())
+    timewait_dack_timer.stop();
 
   // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called
   // avoids connection being destructed before function is done

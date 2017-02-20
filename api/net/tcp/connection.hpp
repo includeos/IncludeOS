@@ -516,8 +516,8 @@ private:
   /** Retransmission timer */
   Timer rtx_timer;
 
-  /** Time Wait timeout timer */
-  Timer timewait_timer;
+  /** Time Wait / DACK timeout timer */
+  Timer timewait_dack_timer;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
   int8_t rtx_attempt_ = 0;
@@ -541,6 +541,8 @@ private:
   seq_t highest_ack_ = 0;
   seq_t prev_highest_ack_ = 0;
 
+  /** Delayed ACK - number of seg received without ACKing */
+  bool  dack_{0};
 
   /// --- CALLBACKS --- ///
 
@@ -649,6 +651,11 @@ private:
   */
   void set_queued(bool queued)
   { queued_ = queued; }
+
+  /**
+   * @brief      Sends an acknowledgement.
+   */
+  void send_ack();
 
   /*
     Invoke/signal the diffrent TCP events.
@@ -866,14 +873,31 @@ private:
   /** Start the timewait timeout for 2*MSL */
   void timewait_start();
 
-  /** Stop the timewait timer */
-  void timewait_stop();
-
   /** Restart the timewait timer if active */
   void timewait_restart();
 
   /** When timewait timer times out */
   void timewait_timeout();
+
+  /** Wether to use Delayed ACK or not */
+  bool use_dack() const;
+
+  /**
+   * @brief      Called when the DACK timeout timesout.
+   */
+  void dack_timeout()
+  { send_ack(); }
+
+  /**
+   * @brief      Starts the DACK timer.
+   */
+  void start_dack();
+
+  /**
+   * @brief      Stops the DACK timer.
+   */
+  void stop_dack()
+  { timewait_dack_timer.stop(); }
 
   /*
     Tell the host (TCP) to delete this connection.
