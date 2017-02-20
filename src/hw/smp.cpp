@@ -29,7 +29,7 @@ extern void *aligned_alloc(size_t, size_t);
 extern "C" {
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
-  void lapic_exception_handler();
+  void lapic_except_entry();
   void lapic_irq_entry();
 }
 
@@ -77,7 +77,7 @@ void SMP::init()
 
   auto* idt = (IDTDescr*) smp_lapic_idt.base;
   for (size_t i = 0; i < 32; i++) {
-    addr_union addr(lapic_exception_handler);
+    addr_union addr(lapic_except_entry);
     idt[i].offset_1 = addr.part[0];
     idt[i].offset_2 = addr.part[1];
     idt[i].selector  = 0x8;

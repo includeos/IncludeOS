@@ -9,23 +9,49 @@ smp_stuff smp;
 idt_loc   smp_lapic_idt;
 
 // expensive, but correctly returns the current CPU id
+extern "C" void      initialize_cpu_id(int);
 extern "C" int       get_cpu_id();
 extern "C" uintptr_t get_cpu_esp();
 extern "C" void      lapic_exception_handler();
 #define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 
+struct per_cpu_test
+{
+  int value;
+};
+std::array<per_cpu_test, 16> testing;
+
+template <typename T, size_t N>
+inline T& per_cpu(std::array<T, N>& array)
+{
+  unsigned short cpuid;
+  asm volatile("movw %%fs, %0" : "=m" (cpuid));
+  assert(cpuid < array.size());
+  //printf("CPUID: %u   VALUE: %u\n", cpuid, array[cpuid].value);
+  return array[cpuid];
+}
+#define PER_CPU(x) (per_cpu<decltype(x)::value_type, x.size()>(x))
+
+__attribute__((constructor))
+static void init_test()
+{
+  for (size_t i = 0; i < testing.size(); i++)
+    testing[i].value = i;
+}
+
 void revenant_main(int cpu)
 {
   // load IDT
   asm volatile("lidt %0" : : "m"(smp_lapic_idt));
+  // initialize cpuid for this core
+  initialize_cpu_id(cpu);
   // enable Local APIC
   hw::APIC::get().smp_enable();
-  
   // we can use shared memory here because the
   // bootstrap CPU is waiting on revenants to start
   // we do, however, need to synchronize in between CPUs
   lock(smp.glock);
-  INFO("REV", "AP %d started at %#x", cpu, get_cpu_esp());
+  INFO("REV", "AP %d started at %#x", PER_CPU(testing).value, get_cpu_esp());
   unlock(smp.glock);
   
   // enable interrupts
@@ -69,14 +95,15 @@ void revenant_main(int cpu)
     if (empty)
       hw::APIC::get().send_bsp_intr();
   }
+  __builtin_unreachable();
 }
 
 extern void print_backtrace();
-void lapic_exception_handler()
+
+extern "C"
+void lapic_except_handler()
 {
   char buffer[1024];
-  
-  asm volatile("cli");
   lock(smp.glock);
   /// Oops!
   int len = snprintf(buffer, sizeof(buffer), 
@@ -85,5 +112,12 @@ void lapic_exception_handler()
   /// Backtrace
   print_backtrace();
   unlock(smp.glock);
-  asm volatile("iret");
+}
+extern "C" {
+  extern void (*current_eoi_mechanism)();
+  void lapic_irq_handler()
+  {
+    hw::APIC::get().eoi();
+    //(*current_eoi_mechanism)();
+  }
 }
