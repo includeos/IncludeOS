@@ -42,28 +42,28 @@ void Service::start(const std::string&)
 
   // Client 1
 
-  auto& inet1 = Inet4::ifconfig<1>(10.0, [&] (bool timeout) {
+  Inet4::ifconfig<1>(10.0, [] (bool timeout) {
     if (timeout)
       printf("Interface 1 timed out\n");
     else
-      printf("Interface 1 succeed\n");
+      printf("Interface 1 succeeded\n");
   });
 
   // Client 2
 
-  auto& inet2 = Inet4::ifconfig<2>(10.0, [&] (bool timeout) {
+  Inet4::ifconfig<2>(10.0, [] (bool timeout) {
     if (timeout)
       printf("Interface 2 timed out\n");
     else
-      printf("Interface 2 succeed\n");
+      printf("Interface 2 succeeded\n");
   });
 
   // Client 3
 
-  auto& inet3 = Inet4::ifconfig<3>(10.0, [&] (bool timeout) {
+  Inet4::ifconfig<3>(10.0, [] (bool timeout) {
     if (timeout)
       printf("Interface 3 timed out\n");
     else
-      printf("Interface 3 succeed\n");
+      printf("Interface 3 succeeded\n");
   });
 }
