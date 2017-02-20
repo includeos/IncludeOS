@@ -157,5 +157,4 @@ extern "C" {
   void malloc_trim() {
     return;
   }
->>>>>>> 9b926ba9f4a5e94b7df228df3213512462127014
 }
