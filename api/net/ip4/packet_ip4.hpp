@@ -61,6 +61,10 @@ namespace net {
     uint16_t ip_data_length() const noexcept
     { return ip_segment_length() - ip_header_length(); }
 
+    // TODO: Remove Ethernet dependency, some day...
+    uint16_t ip_capacity() const noexcept
+    { return capacity() - ip_full_header_length() - sizeof(LinkLayer::trailer); }
+
     void set_ip_data_length(uint16_t length) {
       set_size(ip_full_header_length() + length);
       set_segment_length();
@@ -73,17 +77,21 @@ namespace net {
       set_ip4_checksum();
     }
 
-    void init() noexcept {
-      ip_header().version_ihl    = 0x45;
-      ip_header().tos            = 0;
-      ip_header().id             = 0;
-      ip_header().frag_off_flags = 0;
-      ip_header().ttl            = DEFAULT_TTL;
+    void init(uint8_t proto = 0) noexcept {
+      auto& hdr = ip_header();
+      hdr.version_ihl    = 0x45;
+      hdr.tos            = 0;
+      hdr.id             = 0;
+      hdr.frag_off_flags = 0;
+      hdr.ttl            = DEFAULT_TTL;
+      hdr.protocol       = proto;
       set_size(ip_full_header_length());
     }
 
   protected:
-    char* ip_data() const
+    char* ip_data() noexcept __attribute__((assume_aligned(4)))
+    { return (char*) (buffer() + ip_full_header_length()); }
+    const char* ip_data() const noexcept __attribute__((assume_aligned(4)))
     { return (char*) (buffer() + ip_full_header_length()); }
 
     /**
@@ -96,7 +104,7 @@ namespace net {
 
   private:
     const ip4::Header& ip_header() const noexcept
-    { return (reinterpret_cast<IP4::full_header*>(buffer()))->ip_hdr; }
+    { return ((const IP4::full_header*) buffer())->ip_hdr; }
 
     ip4::Header& ip_header() noexcept
     { return (reinterpret_cast<IP4::full_header*>(buffer()))->ip_hdr; }
@@ -104,7 +112,7 @@ namespace net {
     void set_ip4_checksum() noexcept {
       auto& hdr = ip_header();
       hdr.check = 0;
-      hdr.check = net::checksum(&hdr, sizeof(IP4::ip_header));
+      hdr.check = net::checksum(&hdr, ip_header_length());
     }
 
     friend class IP4;

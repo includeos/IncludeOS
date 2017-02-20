@@ -100,12 +100,11 @@ namespace CPUID
     SSE4A,             // SSE4a
   };
 
-  bool is_amd_cpu();
-  bool is_intel_cpu();
+  bool is_amd_cpu()   noexcept;
+  bool is_intel_cpu() noexcept;
   bool has_feature(Feature f);
 
-  unsigned kvm_function();
-  bool kvm_feature(unsigned id);
+  bool kvm_feature(unsigned id) noexcept;
 } //< CPUID
 
 #define KVM_FEATURE_CLOCKSOURCE   0

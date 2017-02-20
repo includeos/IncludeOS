@@ -17,9 +17,10 @@
 
 #include <cassert>
 #include <cstdint>
-#include <cstdio>
-#include <util/crc32.hpp>
 #include <common>
+#include <kprint>
+#include <util/crc32.hpp>
+#include <kernel/elf.hpp>
 
 // NOTE: crc_to MUST NOT be initialized to zero
 static uint32_t crc_ro = CRC32_BEGIN();
@@ -50,11 +51,17 @@ extern "C"
 void kernel_sanity_checks()
 {
   // verify checksum of read-only portions of kernel
-  assert(crc_ro == generate_ro_crc());
+  uint32_t new_ro = generate_ro_crc();
+  if (crc_ro != new_ro) {
+    kprintf("CRC mismatch %#x vs %#x\n", crc_ro, new_ro);
+    assert(0 && "CRC of kernel read-only area failed");
+  }
   // verify that first page is zeroes only
   for (volatile int* lowmem = NULL; lowmem < LOW_CHECK_SIZE; lowmem++)
   if (UNLIKELY(*lowmem != 0)) {
-    printf("Memory at %p was not zeroed: %#x\n", lowmem, *lowmem);
+    kprintf("Memory at %p was not zeroed: %#x\n", lowmem, *lowmem);
     assert(0 && "Low-memory zero test");
   }
+  // verify that Elf symbols were not overwritten
+  assert(Elf::verify_symbols() && "Check consistency of Elf symbols and string areas");
 }

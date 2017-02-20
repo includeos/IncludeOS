@@ -32,7 +32,7 @@ public:
   using id_t = int;
 
   explicit FD(const int id)
-    : id_(id)
+    : id_(id), fflags(0)
   {}
 
   /** FILES **/
@@ -74,6 +74,10 @@ public:
 
   bool operator==(const FD& fd) const noexcept { return id_ == fd.id_; }
   bool operator!=(const FD& fd) const noexcept { return !(*this == fd); }
+
+  bool is_blocking() const noexcept {
+    return this->non_blocking == 0;
+  }
 
   virtual ~FD() {}
 

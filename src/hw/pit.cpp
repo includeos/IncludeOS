@@ -47,7 +47,7 @@ namespace hw {
   uint64_t PIT::millisec_counter = 0;
 
   // The default recurring timer condition
-  std::function<bool()> PIT::forever = []{ return true; };
+  delegate<bool()> PIT::forever = []{ return true; };
 
   // Timer ID's
   uint32_t PIT::Timer::timers_count_ = 0;
@@ -65,9 +65,11 @@ namespace hw {
       oneshot(1);
   }
 
-  double PIT::estimate_CPU_frequency(int samples) {
+  double PIT::estimate_CPU_frequency() {
 
-    debug("<CPU frequency> Saving state: curr_freq_div %i \n",current_freq_divider_);
+    debug("<CPU frequency> Saving state: curr_freq_div %i \n", current_freq_divider_);
+    reset_cpufreq_sampling();
+    
     // Save PIT-state
     temp_mode_ = current_mode_;
     temp_freq_divider_ = current_freq_divider_;
@@ -82,8 +84,7 @@ namespace hw {
     set_freq_divider(_cpu_sampling_freq_divider_);
 
     // BLOCKING call to external measurment.
-    extern double calculate_cpu_frequency(int);
-    double freq = calculate_cpu_frequency(samples);
+    double freq = calculate_cpu_frequency();
 
     debug("<CPU frequency> Result: %f hz\n", freq);
 
@@ -91,7 +92,6 @@ namespace hw {
     set_freq_divider(temp_freq_divider_);
 
     IRQ_manager::get().set_irq_handler(0, prev_irq_handler);
-    
     return freq;
   }
 

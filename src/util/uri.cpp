@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,18 +15,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../../mod/http-parser/http_parser.h"
+#include <algorithm>
+#include <cctype>
 #include <ostream>
-
 #include <uri>
+#include <utility>
+#include <vector>
+
+#include "../../mod/http-parser/http_parser.h"
 
 namespace uri {
 
 ///////////////////////////////////////////////////////////////////////////////
-inline static uint16_t bind_port(const std::experimental::string_view scheme,
+static inline bool icase_equal(const std::experimental::string_view lhs, const std::experimental::string_view rhs) noexcept {
+  return (lhs.size() == rhs.size())
+         and
+         std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), [](const char a, const char b) {
+          return std::tolower(a) == std::tolower(b);
+         });
+}
+
+///////////////////////////////////////////////////////////////////////////////
+static inline uint16_t bind_port(const std::experimental::string_view scheme,
                                  const uint16_t port_from_uri) noexcept
 {
-  const static std::unordered_map<std::experimental::string_view, uint16_t> port_table
+  static const std::vector<std::pair<const std::experimental::string_view, uint16_t>> port_table
   {
     {"ftp",    21U},
     {"http",   80U},
@@ -41,14 +54,33 @@ inline static uint16_t bind_port(const std::experimental::string_view scheme,
     {"ssh",    22U},
     {"telnet", 23U},
     {"ws",     80U},
-    {"xmpp",   5222U}
+    {"xmpp",   5222U},
   };
 
   if (port_from_uri not_eq 0) return port_from_uri;
 
-  const auto it = port_table.find(scheme);
+  const auto it = std::find_if(port_table.cbegin(), port_table.cend(), [scheme](const auto& _) {
+      return icase_equal(_.first, scheme);
+  });
 
   return (it not_eq port_table.cend()) ? it->second : 0xFFFFU;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// copy helper
+///////////////////////////////////////////////////////////////////////////////
+static inline std::experimental::string_view updated_copy(const std::string& to_copy,
+                                                          const std::experimental::string_view& view,
+                                                          const std::string& from_copy)
+{
+  return {to_copy.data() + (view.data() - from_copy.data()), view.size()};
+}
+
+///////////////////////////////////////////////////////////////////////////////
+URI::URI(const char* uri, const bool parse)
+  : uri_str_{decode(uri)}
+{
+  if (parse) this->parse();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,6 +88,78 @@ URI::URI(const std::experimental::string_view uri, const bool parse)
   : uri_str_{decode(uri)}
 {
   if (parse) this->parse();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+URI::URI(const URI& u)
+  : uri_str_  {u.uri_str_}
+  , port_     {u.port_}
+  , scheme_   {updated_copy(uri_str_, u.scheme_,   u.uri_str_)}
+  , userinfo_ {updated_copy(uri_str_, u.userinfo_, u.uri_str_)}
+  , host_     {updated_copy(uri_str_, u.host_,     u.uri_str_)}
+  , port_str_ {updated_copy(uri_str_, u.port_str_, u.uri_str_)}
+  , path_     {updated_copy(uri_str_, u.path_,     u.uri_str_)}
+  , query_    {updated_copy(uri_str_, u.query_,    u.uri_str_)}
+  , fragment_ {updated_copy(uri_str_, u.fragment_, u.uri_str_)}
+  , query_map_{}
+{
+  for(const auto& ent : u.query_map_)
+  {
+    query_map_.emplace(updated_copy(uri_str_, ent.first,  u.uri_str_),
+                       updated_copy(uri_str_, ent.second, u.uri_str_));
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+URI::URI(URI&& u) noexcept
+  : uri_str_{std::move(u.uri_str_)}
+  , port_     {u.port_}
+  , scheme_   {u.scheme_}
+  , userinfo_ {u.userinfo_}
+  , host_     {u.host_}
+  , port_str_ {u.port_str_}
+  , path_     {u.path_}
+  , query_    {u.query_}
+  , fragment_ {u.fragment_}
+  , query_map_{std::move(u.query_map_)}
+{}
+
+///////////////////////////////////////////////////////////////////////////////
+URI& URI::operator=(const URI& u) {
+  uri_str_  = u.uri_str_;
+  port_     = u.port_;
+  scheme_   = updated_copy(uri_str_, u.scheme_,   u.uri_str_);
+  userinfo_ = updated_copy(uri_str_, u.userinfo_, u.uri_str_);
+  host_     = updated_copy(uri_str_, u.host_,     u.uri_str_);
+  port_str_ = updated_copy(uri_str_, u.port_str_, u.uri_str_);
+  path_     = updated_copy(uri_str_, u.path_,     u.uri_str_);
+  query_    = updated_copy(uri_str_, u.query_,    u.uri_str_);
+  fragment_ = updated_copy(uri_str_, u.fragment_, u.uri_str_);
+
+  query_map_.clear();
+
+  for(const auto& ent : u.query_map_) {
+    query_map_.emplace(updated_copy(uri_str_, ent.first,  u.uri_str_),
+                       updated_copy(uri_str_, ent.second, u.uri_str_));
+  }
+
+  return *this;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+URI& URI::operator=(URI&& u) noexcept {
+  uri_str_   = std::move(u.uri_str_);
+  port_      = u.port_;
+  scheme_    = u.scheme_;
+  userinfo_  = u.userinfo_;
+  host_      = u.host_;
+  port_str_  = u.port_str_;
+  path_      = u.path_;
+  query_     = u.query_;
+  fragment_  = u.fragment_;
+  query_map_ = std::move(u.query_map_);
+
+  return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -71,6 +175,20 @@ std::experimental::string_view URI::userinfo() const noexcept {
 ///////////////////////////////////////////////////////////////////////////////
 std::experimental::string_view URI::host() const noexcept {
   return host_;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+bool URI::host_is_ip4() const noexcept {
+  return host_.empty() ? false : std::isdigit(host_.back());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+std::string URI::host_and_port() const {
+  if (not port_str_.empty()) {
+    return {host_.data(), host_.length() + port_str_.length() + 1};
+  }
+
+  return std::string{host_.data(), host_.length()} + ':' + std::to_string(port_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -120,7 +238,7 @@ URI::operator bool() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::to_string() const noexcept {
+const std::string& URI::to_string() const noexcept {
   return uri_str_;
 }
 
@@ -141,8 +259,7 @@ URI& URI::parse() {
   http_parser_url_init(&u);
 
   const auto p = uri_str_.data();
-
-  const int result = http_parser_parse_url(p, uri_str_.length(), 0, &u);
+  const auto result = http_parser_parse_url(p, uri_str_.length(), 0, &u);
 
 #ifdef URI_THROW_ON_ERROR
   if (result not_eq 0) {
@@ -167,7 +284,13 @@ URI& URI::parse() {
   return *this;
 }
 
-/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+URI& URI::reset() {
+  new (this) URI{};
+  return *this;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void URI::load_queries() {
   auto _ = query_;
 
@@ -175,8 +298,6 @@ void URI::load_queries() {
   std::experimental::string_view value {};
   std::experimental::string_view::size_type base {0U};
   std::experimental::string_view::size_type break_point {};
-
-  _.remove_prefix(_.find_first_not_of(' '));
 
   while (true) {
     if ((break_point = _.find('=')) not_eq std::experimental::string_view::npos) {
@@ -206,7 +327,13 @@ bool operator < (const URI& lhs, const URI& rhs) noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 bool operator == (const URI& lhs, const URI& rhs) noexcept {
-  return lhs.to_string() == rhs.to_string();
+  return icase_equal(lhs.scheme(), rhs.scheme())
+         and (lhs.userinfo() == rhs.userinfo())
+         and icase_equal(lhs.host(), rhs.host())
+         and lhs.port() == rhs.port()
+         and lhs.path() == rhs.path()
+         and lhs.query() == rhs.query()
+         and lhs.fragment() == rhs.fragment();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

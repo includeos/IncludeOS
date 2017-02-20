@@ -17,35 +17,48 @@
 
 #include <net/dns/client.hpp>
 
-#include <net/ip4/udp.hpp>
-#include <net/dns/dns.hpp>
-
 namespace net
 {
+  Timer::duration_t DNSClient::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(5)};
+
   void DNSClient::resolve(IP4::addr dns_server, const std::string& hostname, Stack::resolve_func<IP4> func)
   {
-    auto& sock = stack.udp().bind();
-
     // create DNS request
     DNS::Request request;
-    auto*  data = new char[256];
-    size_t len  = request.create(data, hostname);
+    std::array<char, 256> buf{};
+    size_t len  = request.create(buf.data(), hostname);
+
+    // store the request for later match
+    requests_.emplace(std::piecewise_construct,
+      std::forward_as_tuple(request.get_id()),
+      std::forward_as_tuple(std::move(request), std::move(func)));
 
     // send request to DNS server
-    sock.sendto(dns_server, DNS::DNS_SERVICE_PORT, data, len);
-    delete[] data;
+    socket_.sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len);
+  }
 
-    // wait for response
-    // FIXME: WE DO NOT CHECK TRANSACTION IDS HERE (yet), GOD HELP US ALL
-    sock.on_read(
-    [this, hostname, request, func]
-    (IP4::addr, UDP::port_t, const char* data, size_t) mutable
+  void DNSClient::receive_response(IP4::addr, UDP::port_t, const char* data, size_t)
+  {
+    const auto& reply = *(DNS::header*) data;
+    // match the transactions id on the reply with the ones in our map
+    auto it = requests_.find(ntohs(reply.id));
+    // if this is match
+    if(it != requests_.end())
     {
-      // original request ID = this->id;
-      request.parseResponse(data);
-      
+      // TODO: do some necessary validation ... (truncate etc?)
+
+      // parse request
+      it->second.request.parseResponse(data);
       // fire onResolve event
-      func(request.getFirstIP4());
-    });
+      it->second.finish();
+
+      // the request is finished, removed it from our map
+      requests_.erase(it);
+    }
+    else
+    {
+      debug("<DNSClient::receive_response> Cannot find matching DNS Request with transid=%u\n", ntohs(reply.id));
+    }
+
   }
 }

@@ -18,26 +18,6 @@
 #include <util/memstream.h>
 #include <x86intrin.h>
 
-void* aligned_alloc(size_t n, size_t ALIGNMENT)
-{
-  // allocate aligned address + space for pointer
-  void* mem = malloc(n + (ALIGNMENT-1) + sizeof(void*));
-  if (!mem) return mem;
-  
-  // calculate placement for aligned memory
-  intptr_t addr = ((intptr_t) mem + sizeof(void*) + (ALIGNMENT-1)) & ~(ALIGNMENT-1);
-  void* ptr = (void*) addr;
-  // remember the malloc() result
-  ((void**)ptr)[-1] = mem;
-  // return pointer to aligned memory
-  return ptr;
-}
-void aligned_free(void* ptr)
-{
-  // free all memory by freeing the malloc() result
-  if (ptr) free(((void**) ptr)[-1]);
-}
-
 void* streamcpy(void* dest, const void* srce, size_t n)
 {
   char* dst       = (char*) dest;

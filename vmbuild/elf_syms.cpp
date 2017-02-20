@@ -4,9 +4,12 @@
 #include <cstring>
 #include <cassert>
 #include <vector>
-#include "elf.h"
+#include "elf_binary.hpp"
+#include "../api/util/crc32.hpp"
+#include <unistd.h>
 
 static Elf32_Ehdr* elf_header_location;
+bool verb = false;
 
 static const Elf32_Ehdr& elf_header() noexcept {
   return *elf_header_location;
@@ -15,9 +18,11 @@ static const char* elf_offset(int o) noexcept {
   return (char*)elf_header_location + o;
 }
 
-static void prune_elf_symbols();
-static char* pruned_location;
-static int   pruned_size = 0;
+static int prune_elf_symbols();
+static char* pruned_location = nullptr;
+static const char* syms_file = "_elf_symbols.bin";
+static const char* syms_section_name = ".elf_symbols";
+static const char* SANITY_STRING = "Hello world!";
 
 int main(int argc, const char** args)
 {
@@ -36,12 +41,23 @@ int main(int argc, const char** args)
   assert(res == size);
   fclose(f);
 
+  // Verify that the symbols aren't allready moved
+  Elf_binary binary ({fdata, size});
+  auto& sh_elf_syms = binary.section_header(syms_section_name);
+  auto syms_file_exists = access(syms_file, F_OK ) == 0;
+  auto sym_sectionsize_ok = sh_elf_syms.sh_size > 4;
+  if (sym_sectionsize_ok and syms_file_exists) {
+    fprintf(stderr, "%s: Elf symbols seems to be ok. Nothing to do.\n", args[0]);
+    return 0;
+  }
+
+  fprintf(stderr, "%s: Pruning ELF symbols \n", args[0]);
   // validate symbols
   elf_header_location = (decltype(elf_header_location)) fdata;
-  prune_elf_symbols();
+  int pruned_size = prune_elf_symbols();
 
   // write symbols to binary file
-  f = fopen("_elf_symbols.bin", "w");
+  f = fopen(syms_file, "w");
   assert(f);
   fwrite(pruned_location, sizeof(char), pruned_size, f);
   fclose(f);
@@ -58,24 +74,22 @@ struct StrTab {
 
   StrTab(char* base, uint32_t size) : base(base), size(size) {}
 };
-struct relocate_header {
-  SymTab symtab;
-  StrTab strtab;
-};
 
 struct relocate_header32 {
-  uint32_t symtab_base;
-  uint32_t symtab_entries;
-  uint32_t strtab_base;
-  uint32_t strtab_size;
-};
+  uint32_t  symtab_entries;
+  uint32_t  strtab_size;
+  uint32_t  sanity_check;
+  uint32_t  checksum_syms;
+  uint32_t  checksum_strs;
+  Elf32_Sym syms[0];
+} __attribute__((packed));
 
 static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& strtab)
 {
   auto& hdr = *(relocate_header32*) new_location;
 
   // first prune symbols
-  auto*  symloc = (Elf32_Sym*) (new_location + sizeof(relocate_header32));
+  auto*  symloc = hdr.syms;
   size_t symidx = 0;
   for (size_t i = 0; i < symtab.entries; i++)
   {
@@ -104,13 +118,25 @@ static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& 
   }
   // new entry base and total length
   hdr.strtab_size = index;
-  // length of the whole thing
-  return sizeof(relocate_header32) +
+  // length of symbols & strings
+  const size_t size = 
          hdr.symtab_entries * sizeof(Elf32_Sym) +
          hdr.strtab_size * sizeof(char);
+  // sanity check
+  hdr.sanity_check = crc32(SANITY_STRING, strlen(SANITY_STRING));
+  // checksum of symbols & strings and the entire section
+  hdr.checksum_syms = crc32(symloc, hdr.symtab_entries * sizeof(Elf32_Sym));
+  hdr.checksum_strs = crc32(strloc, hdr.strtab_size);
+  uint32_t all = crc32(&hdr, sizeof(relocate_header32) + size);
+  fprintf(stderr, "ELF symbols: %08x  "
+                  "ELF strings: %08x  "
+                  "ELF section: %08x\n",
+                  hdr.checksum_syms, hdr.checksum_strs, all);
+  // return total length
+  return sizeof(relocate_header32) + size;
 }
 
-static void prune_elf_symbols()
+static int prune_elf_symbols()
 {
   SymTab symtab { nullptr, 0 };
   std::vector<StrTab> strtabs;
@@ -144,10 +170,9 @@ static void prune_elf_symbols()
     // allocate worst case, guaranteeing we have enough space
     pruned_location =
         new char[sizeof(relocate_header32) + symtab.entries * sizeof(Elf32_Sym) + strtab.size];
-    pruned_size = relocate_pruned_sections(pruned_location, symtab, strtab);
-    return;
+    return relocate_pruned_sections(pruned_location, symtab, strtab);
   }
   // stripped variant
   pruned_location = new char[sizeof(relocate_header32)];
-  pruned_size = sizeof(relocate_header32);
+  return sizeof(relocate_header32);
 }

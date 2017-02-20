@@ -15,13 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG
+//#define DEBUG
 #include <info>
 #define MYINFO(X,...) INFO("DHCPv4",X,##__VA_ARGS__)
 
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
-#include <kernel/os.hpp> // OS::cycles_since_boot()
+#include <rtc> // RTC::time_since_boot()
 #include <debug>
 
 // BOOTP (rfc951) message types
@@ -158,40 +158,45 @@ namespace net
   DHClient::DHClient(Stack& inet)
     : stack(inet), xid(0), console_spam(true), in_progress(false)
   {
-    on_config([this] (bool timeout) {
-        if (console_spam)
-          {
-            if (timeout)
-              INFO("DHCPv4","Negotiation timed out");
-            else
-              INFO("DHCPv4","Config complete");
-          }
-      });
+    this->on_config(
+    [this] (bool timeout)
+    {
+      if (console_spam) {
+        if (timeout)
+          INFO("DHCPv4", "Negotiation timed out");
+        else
+          INFO("DHCPv4", "Config complete");
+      }
+    });
+  }
+
+  void DHClient::on_config(config_func handler)
+  {
+    assert(handler);
+    config_handlers_.push_back(handler);
   }
 
   void DHClient::negotiate(uint32_t timeout_secs)
   {
     // Allow multiple calls to negotiate without restarting the process
-    if (in_progress)
-      return;
-
+    if (in_progress) return;
     in_progress = true;
 
     // set timeout handler
     using namespace std::chrono;
     this->timeout = Timers::oneshot(seconds(timeout_secs),
-    [this] (uint32_t) {
+    [this] (int) {
       // reset session ID
       this->xid = 0;
       this->in_progress = false;
 
       // call on_config with timeout = true
       for(auto handler : this->config_handlers_)
-        handler(true);
+          handler(true);
     });
 
     // create a random session ID
-    this->xid = OS::cycles_since_boot() & 0xFFFFFFFF;
+    this->xid = RTC::time_since_boot() & 0xFFFFFFFF;
     if (console_spam)
       MYINFO("Negotiating IP-address (xid=%u)", xid);
 

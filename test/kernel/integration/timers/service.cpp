@@ -26,15 +26,18 @@ static int one_shots = 0;
 static int repeat1 = 0;
 static int repeat2 = 0;
 
-void Service::start(const std::string&)
+void Service::start()
 {
-  INFO("Timers", "Testing one-shot timers");
-  
-  // test timer system
+}
+void Service::ready()
+{
+  INFO("Timers", "Testing APIC timers");
   extern void test_timers();
   test_timers();
   return;
-  
+
+  // test PIT timer system
+  INFO("Timers", "Testing one-shot timers");
   static auto& timer = hw::PIT::instance();
 
   // 30 sec. - Test End
@@ -70,7 +73,7 @@ void Service::start(const std::string&)
   // You can also use the std::function interface (which is great)
   std::vector<int> integers={1,2,3};
 
-  std::function<void()> in_a_second = [integers](){
+  delegate<void()> in_a_second = [integers](){
     for (auto i : integers)
       CHECKSERT(i == integers[i - 1], "%i == integers[%i - 1]", i, integers[i - 1]);
     one_shots++;

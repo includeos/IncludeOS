@@ -50,21 +50,21 @@ public:
   //! a valid MTU-sized buffer
   void init()
   {
-    PacketIP4::init();
+    PacketIP4::init(IP4::IP4_TCP);
+    char* ipdata = ip_data();
+    assert(((uintptr_t) ipdata & 3) == 0);
 
-    // clear TCP headers
-    memset(ip_data(), 0, sizeof(Header));
+    // clear TCP header
+    __builtin_memset(ipdata, 0, sizeof(Header));
 
-    set_protocol(IP4::IP4_TCP);
-    set_win(tcp::default_window_size);
-    set_offset(5);
+    auto& hdr = *(Header*) ipdata;
+    // set some default values
+    hdr.window_size = htons(tcp::default_window_size);
+    hdr.offset_flags.offset_reserved = (5 << 4);
+
+    /// TODO: optimize:
     set_length();
-
-    // set TCP payload location (!?)
     set_payload(buffer() + tcp_full_header_length());
-
-    debug2("<TCP::Packet::init> size()=%u ip_header_size()=%u full_header_size()=%u\n",
-      size(), ip_header_size(), tcp_full_header_length());
   }
 
   // GETTERS
@@ -228,9 +228,10 @@ public:
   //! assuming the packet has been properly initialized,
   //! this will fill bytes from @buffer into this packets buffer,
   //! then return the number of bytes written. buffer is unmodified
-  size_t fill(const char* buffer, size_t length) {
-    size_t rem = capacity() - size();
-    size_t total = (length < rem) ? length : rem;
+  size_t fill(const uint8_t* buffer, size_t length) {
+    size_t rem = ip_capacity() - tcp_length();
+    if(rem == 0) return 0;
+    size_t total = std::min(length, rem);
     // copy from buffer to packet buffer
     memcpy(tcp_data() + tcp_data_length(), buffer, total);
     // set new packet length

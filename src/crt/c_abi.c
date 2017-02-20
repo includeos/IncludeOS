@@ -21,10 +21,11 @@
 #include <util/memstream.h>
 #include <stdio.h>
 #include <sys/reent.h>
+#include <malloc.h>
 #include <string.h>
 #include <kprint>
 
-#define HEAP_ALIGNMENT   16
+#define HEAP_ALIGNMENT   63
 caddr_t heap_begin;
 caddr_t heap_end;
 
@@ -46,29 +47,30 @@ void _init_c_runtime()
   extern char _ELF_SYM_START_;
   extern char _end;
 
-  /// init backtrace functionality
-  extern void _move_elf_symbols(void*, void*);
-  extern void _apply_parser_data(void*);
-  extern int  _get_elf_section_size(const void*);
-  // first measure the size of symbols
-  int symsize = _get_elf_section_size(&_ELF_SYM_START_);
-  // estimate somewhere in heap its safe to move them
-  char* SYM_LOCATION = &_end + 2 * (4096 + symsize);
-  _move_elf_symbols(&_ELF_SYM_START_, SYM_LOCATION);
+  /// read out size of symbols **before** moving them
+  extern int  _get_elf_section_datasize(const void*);
+  int elfsym_size = _get_elf_section_datasize(&_ELF_SYM_START_);
+  elfsym_size = (elfsym_size < HEAP_ALIGNMENT) ? HEAP_ALIGNMENT : elfsym_size;
 
-  // Initialize .bss section
+  /// move ELF symbols to safe area
+  extern void _move_elf_syms_location(const void*, void*);
+  _move_elf_syms_location(&_ELF_SYM_START_, &_end);
+
+  /// Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
   streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 
-  // Initialize the heap before exceptions
-  heap_begin = &_end + 0xfff;
-  // page-align heap, because its not aligned
-  heap_begin = (char*) ((uintptr_t)heap_begin & ~(uintptr_t) 0xfff);
+  /// Initialize the heap before exceptions
+  // set heap start at end of ELF symbols
+  heap_begin = &_end + elfsym_size;
+  // cache-align heap, because its not aligned
+  heap_begin += HEAP_ALIGNMENT;
+  heap_begin = (char*) ((uintptr_t)heap_begin & ~(uintptr_t) HEAP_ALIGNMENT);
   // heap end tracking, used with sbrk
   heap_end   = heap_begin;
-  // validate that heap is page aligned
+  // validate that heap is aligned
   int validate_heap_alignment =
-      ((uintptr_t)heap_begin & (uintptr_t) 0xfff) == 0;
+      ((uintptr_t)heap_begin & (uintptr_t) HEAP_ALIGNMENT) == 0;
 
   /// initialize newlib I/O
   _REENT_INIT_PTR(_REENT);
@@ -77,22 +79,15 @@ void _init_c_runtime()
   stdout = _REENT->_stdout; // stdout == 2
   stderr = _REENT->_stderr; // stderr == 3
 
-  // move symbols (again) to heap, before calling global constructors
-  extern void* _relocate_to_heap(void*);
-  void* symheap = _relocate_to_heap(SYM_LOCATION);
-
   /// initialize exceptions before we can run constructors
   extern char __eh_frame_start[];
   // Tell the stack unwinder where exception frames are located
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);
 
-  /// call global constructors emitted by compiler
-  extern void _init();
-  _init();
-
-  // set ELF symbols location here (after initializing everything else)
-  _apply_parser_data(symheap);
+  /// init ELF / backtrace functionality
+  extern void _init_elf_parser();
+  _init_elf_parser();
 
   // sanity checks
   assert(heap_begin >= &_end);
@@ -100,14 +95,12 @@ void _init_c_runtime()
   assert(validate_heap_alignment);
 }
 
-// global/static objects should never be destructed here, so ignore this
-void* __dso_handle;
-
 // stack-protector
 __attribute__((noreturn))
 void __stack_chk_fail(void)
 {
   panic("Stack protector: Canary modified");
+  __builtin_unreachable();
 }
 
 // old function result system
@@ -115,6 +108,17 @@ int errno = 0;
 int* __errno_location(void)
 {
   return &errno;
+}
+
+#include <setjmp.h>
+int _setjmp(jmp_buf env)
+{
+  return setjmp(env);
+}
+// linux strchr variant (NOTE: not completely the same!)
+void *__rawmemchr (const void *s, int c)
+{
+  return strchr((const char*) s, c);
 }
 
 /// assert() interface of ISO POSIX (2003)
@@ -137,6 +141,10 @@ int sched_yield(void)
   return -1;
 }
 
+void *aligned_alloc(size_t alignment, size_t size)
+{
+  return memalign(alignment, size);
+}
 
 int access(const char *pathname, int mode)
 {

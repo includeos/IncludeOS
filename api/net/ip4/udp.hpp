@@ -159,7 +159,7 @@ namespace net {
     downstream  network_layer_out_;
     Stack&      stack_;
     std::map<port_t, UDPSocket> ports_;
-    port_t      current_port_ {1024};
+    port_t      current_port_;
 
     // the async send queue
     std::deque<WriteBuffer> sendq;

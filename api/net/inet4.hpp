@@ -18,9 +18,6 @@
 #ifndef NET_INET4_HPP
 #define NET_INET4_HPP
 
-#include <kernel/syscalls.hpp> // panic()
-#include <hw/devices.hpp> // 107: auto& eth0 = Dev::eth(0);
-#include <hw/nic.hpp>
 #include "inet.hpp"
 #include "ethernet/ethernet.hpp"
 #include "ip4/arp.hpp"
@@ -39,8 +36,7 @@ namespace net {
   /** A complete IP4 network stack */
   class Inet4 : public Inet<IP4>{
   public:
-
-    virtual std::string ifname() const override
+    std::string ifname() const override
     { return nic_.device_name(); }
 
     hw::MAC_addr link_addr() override
@@ -61,6 +57,12 @@ namespace net {
     IP4& ip_obj() override
     { return ip4_; }
 
+    void cache_link_ip(IP4::addr ip, hw::MAC_addr mac) override
+    { arp_.cache(ip, mac); }
+
+    void flush_link_ip_cache() override
+    { arp_.flush_cache(); }
+
     /** Get the TCP-object belonging to this stack */
     TCP& tcp() override { return tcp_; }
 
@@ -77,6 +79,12 @@ namespace net {
     void set_forward_delg(Forward_delg fwd) override { forward_packet_ = fwd; }
 
     /**
+     * Assign a delegate that checks if we have a route to a given IP
+     */
+    void set_route_checker(Route_checker delg) override
+    { arp_.set_route_checker(delg); }
+
+    /**
      * Get the forwarding delegate used by this stack.
      */
     Forward_delg forward_delg() override { return forward_packet_; }
@@ -84,35 +92,30 @@ namespace net {
     /** Create a Packet, with a preallocated buffer.
         @param size : the "size" reported by the allocated packet.
     */
-    virtual Packet_ptr create_packet(size_t size) override {
-      // get buffer (as packet + data)
-      auto* ptr = (Packet*) bufstore_.get_buffer();
-      // place packet at front of buffer
-      new (ptr) Packet(nic_.bufsize(), size, &bufstore_);
-      // regular shared_ptr that calls delete on Packet
-      return Packet_ptr(ptr);
+    Packet_ptr create_packet(size_t size) override {
+      return nic_.create_packet(size);
     }
 
     /** MTU retreived from Nic on construction */
-    virtual uint16_t MTU() const override
+    uint16_t MTU() const override
     { return MTU_; }
 
     /**
      * @func  a delegate that provides a hostname and its address, which is 0 if the
      * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
      **/
-    virtual void resolve(const std::string& hostname,
-                         resolve_func<IP4>  func) override
+    void resolve(const std::string& hostname,
+                 resolve_func<IP4>  func) override
     {
       dns.resolve(this->dns_server, hostname, func);
     }
 
-    virtual void set_gateway(IP4::addr gateway) override
+    void set_gateway(IP4::addr gateway) override
     {
       this->gateway_ = gateway;
     }
 
-    virtual void set_dns_server(IP4::addr server) override
+    void set_dns_server(IP4::addr server) override
     {
       this->dns_server = server;
     }
@@ -158,13 +161,15 @@ namespace net {
       tqa.push_back(del);
     }
 
-    virtual size_t transmit_queue_available() override {
+    size_t transmit_queue_available() override {
       return nic_.transmit_queue_available();
     }
 
-    virtual size_t buffers_available() override {
+    size_t buffers_available() override {
       return nic_.buffers_available();
     }
+
+    void force_start_send_queues() override;
 
     /** Return the stack on the given Nic */
     template <int N = 0>
@@ -190,17 +195,12 @@ namespace net {
     template <int N = 0>
     static auto& ifconfig(double timeout = 10.0, dhcp_timeout_func on_timeout = nullptr)
     {
-      stack<N>().negotiate_dhcp(timeout, on_timeout);
+      if (timeout > 0.0)
+          stack<N>().negotiate_dhcp(timeout, on_timeout);
       return stack<N>();
     }
 
-
-    /** A super stack */
-    friend class Super_stack;
-
-
   private:
-
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
 
@@ -215,19 +215,20 @@ namespace net {
 
     // This is the actual stack
     hw::Nic& nic_;
-    Arp arp_;
-    IP4  ip4_;
+    Arp    arp_;
+    IP4    ip4_;
     ICMPv4 icmp_;
-    UDP  udp_;
-    TCP tcp_;
+    UDP    udp_;
+    TCP    tcp_;
     Forward_delg forward_packet_;
     // we need this to store the cache per-stack
     DNSClient dns;
 
     std::shared_ptr<net::DHClient> dhcp_{};
-    BufferStore& bufstore_;
 
     const uint16_t MTU_;
+
+    friend class Super_stack;
   };
 }
 

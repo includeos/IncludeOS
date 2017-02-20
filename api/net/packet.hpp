@@ -42,9 +42,11 @@ namespace net
     Packet(
         uint16_t cap,
         uint16_t len,
+        uint16_t drv_hdr,
         BufferStore* bs) noexcept
     : capacity_ (cap),
       size_     (len),
+      drv_hdr_  (drv_hdr),
       bufstore  (bs)
     {}
 
@@ -57,8 +59,10 @@ namespace net
     }
 
     /** Get the buffer */
-    BufferStore::buffer_t buffer() const noexcept
-    { return (BufferStore::buffer_t) buf_; }
+    uint8_t* buffer() noexcept
+    { return &buf_[drv_hdr_]; }
+    const uint8_t* buffer() const noexcept
+    { return &buf_[drv_hdr_]; }
 
     /** Get the network packet length - i.e. the number of populated bytes  */
     uint16_t size() const noexcept
@@ -155,10 +159,11 @@ namespace net
 
     uint16_t              capacity_;
     uint16_t              size_;
+    uint16_t              drv_hdr_;
     BufferStore*          bufstore;
     ip4::Addr             next_hop4_;
     BufferStore::buffer_t payload_ {nullptr};
-    BufferStore::buffer_t buf_[0];
+    uint8_t buf_[0];
   }; //< class Packet
 
 } //< namespace net

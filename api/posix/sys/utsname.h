@@ -23,9 +23,9 @@
 extern "C" {
 #endif
 
-struct utsname {
-  static const int LENGTH = 256;
+static const int LENGTH = 256;
 
+struct utsname {
   /* Name of this implementation of the operating system */
   char sysname[LENGTH];
 

@@ -2,6 +2,7 @@
 
 import sys
 import os
+import thread
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
@@ -10,7 +11,7 @@ sys.path.insert(0,includeos_src)
 from vmrunner import vmrunner
 
 HOST = ''
-PORT = 9000
+PORT = 9011
 
 import BaseHTTPServer
 
@@ -23,7 +24,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         s.wfile.write("%s" % s.path)
 
 
-def Client_test(trigger_line):
+def Client_test():
     server_class = BaseHTTPServer.HTTPServer
     httpd = server_class((HOST, PORT), RequestHandler)
     global DO_SERVE
@@ -32,11 +33,21 @@ def Client_test(trigger_line):
         DO_SERVE = False
     httpd.server_close()
 
+# Start web server in a separate thread
+thread.start_new_thread(Client_test, ())
+
+
+import urllib2
+def Server_test(triggerline):
+    res = urllib2.urlopen("http://10.0.0.46:8080").read()
+    assert(res == "Hello")
+
+
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
-# Add custom event-handler
-vm.on_output("Testing against local server", Client_test)
+# Add custom event for testing server
+vm.on_output("Listening on port 8080", Server_test)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(20).clean()

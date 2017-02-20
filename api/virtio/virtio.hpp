@@ -113,11 +113,8 @@ public:
     };
 
   /** Virtio Queue class. */
-  class Queue
-  {
-
+  class Queue {
   private:
-
     /** @note Using typedefs in order to keep the standard notation. */
     using le64 =  uint64_t;
     using le32 = uint32_t;
@@ -230,6 +227,7 @@ public:
     void kick();
 
     /** Constructor. @param size shuld be fetched from PCI device. */
+    Queue() {}
     Queue(uint16_t size, uint16_t q_index, uint16_t iobase);
 
     /** Get the queue descriptor. To be written to the Virtio device. */
@@ -341,12 +339,13 @@ public:
   */
   static inline bool version_supported(uint16_t i) { return i <= 0; }
 
-  // returns true if MSI-X is enabled
-  bool is_msix() const noexcept {
-    return _pcidev.is_msix();
+  // returns true if MSI-X is supported
+  bool has_msix() const noexcept {
+    return _pcidev.has_msix();
   }
+  // returns non-zero if MSI-x is supported
   uint8_t get_msix_vectors() const noexcept {
-    return _msix_vectors;
+    return _pcidev.get_msix_vectors();
   }
   
   /** Virtio device constructor.
@@ -367,7 +366,6 @@ private:
   uint32_t _iobase = 0;
   uint32_t _features = 0;
   uint16_t _virtio_device_id = 0;
-  uint16_t _msix_vectors;
   uint8_t  _irq = 0;
 
   // Indicate if virtio device ID is legacy or standard

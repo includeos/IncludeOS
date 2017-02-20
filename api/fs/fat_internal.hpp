@@ -43,16 +43,15 @@ struct cl_dir
   uint16_t cluster_lo;
   uint32_t filesize;
 
-  bool is_longname() const
+  bool is_longname() const noexcept
   {
     return (attrib & 0x0F) == 0x0F;
   }
 
-  uint32_t dir_cluster(uint32_t root_cl) const
+  uint32_t dir_cluster(uint32_t root_cl) const noexcept
   {
     uint32_t cl = cluster_lo | (cluster_hi << 16);
     return (cl) ? cl : root_cl;
-
   }
 
   fs::Enttype type() const
@@ -65,9 +64,12 @@ struct cl_dir
       return fs::FILE;
   }
 
-  uint32_t size() const
+  uint32_t size() const noexcept
   {
     return filesize;
+  }
+  uint32_t get_modified() const noexcept {
+    return modified;
   }
 
 } __attribute__((packed));

@@ -65,8 +65,7 @@ namespace hw {
     size_t buffers_available()
     { return bufstore_.available(); }
 
-    uint16_t bufsize() const
-    { return bufstore_.bufsize(); }
+    virtual net::Packet_ptr create_packet(uint16_t) = 0;
 
     /** Subscribe to event for when there is more room in the tx queue */
     void on_transmit_queue_available(net::transmit_avail_delg del)
@@ -74,10 +73,9 @@ namespace hw {
 
     virtual size_t transmit_queue_available() = 0;
 
-    virtual size_t receive_queue_waiting() = 0;
-
     virtual void deactivate() = 0;
 
+    virtual ~Nic() {}
   protected:
     /**
      *  Constructor
@@ -99,7 +97,6 @@ namespace hw {
   private:
     net::BufferStore bufstore_;
     int N;
-
   };
 
 } //< namespace hw

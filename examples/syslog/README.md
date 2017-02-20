@@ -13,3 +13,13 @@ Run locally by calling
 * `$ ./syslog_linux`
 
 NOTE: The example will send various types of log messages, including `LOG_ALERT`, `LOG_EMERG` etc. Also note that the IncludeOS service will transmit UDP packets to a remote IP specified by the user. The user is in charge of pointing this IP to a valid syslog server.
+
+Build and run with IncludeOS:
+
+```
+mkdir build
+cd build
+cmake ..
+make
+../run.sh syslog_plugin_example
+```

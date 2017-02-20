@@ -16,10 +16,10 @@
 // limitations under the License.
 
 #include <hw/apic_timer.hpp>
-#include <hw/apic_regs.hpp>
+#include <hw/apic.hpp>
 #include <hw/pit.hpp>
 #include <kernel/irq_manager.hpp>
-#include <kernel/os.hpp>
+#include <kernel/timers.hpp>
 #include <cstdio>
 #include <info>
 
@@ -36,88 +36,91 @@ using namespace std::chrono;
 
 namespace hw
 {
-  static APIC_Timer::handler_t intr_handler;
   static uint32_t ticks_per_micro = 0;
   static bool     intr_enabled    = false;
 
-  void APIC_Timer::init(const handler_t& handler)
+  static void start_timers()
   {
-    // decrement every other tick
-    lapic.regs->divider_config.reg = 0x1;
-    // start in one-shot mode and set the interrupt vector
-    // but also disable interrupts
-    lapic.regs->timer.reg = TIMER_ONESHOT | (LAPIC_IRQ_TIMER+32) | INTR_MASK;
+    // set interrupt handler
+    IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, Timers::timers_handler);
+    // start all timers
+    Timers::ready();
+  }
+
+  void APIC_Timer::init()
+  {
+    auto& lapic = hw::APIC::get();
+    lapic.timer_init();
 
     if (ticks_per_micro != 0) {
-      hw::PIT::instance().on_timeout_ms(milliseconds(1), handler);
+      // make sure timers are delay-initalized
+      auto irq = IRQ_manager::get().get_next_msix_irq();
+      IRQ_manager::get().subscribe(irq, start_timers);
+      // soft-trigger IRQ
+      IRQ_manager::get().register_irq(irq);
       return;
     }
 
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
-    lapic.regs->init_count.reg = 0xFFFFFFFF;
+    
     // See: Vol3a 10.5.4.1 TSC-Deadline Mode
     // 0xFFFFFFFF --> ~68 seconds
     // 0xFFFFFF   --> ~46 milliseconds
+    lapic.timer_begin(0xFFFFFFFF);
+    // measure function call and tick read overhead
+    uint32_t overhead;
+    [&overhead] {
+        overhead = hw::APIC::get().timer_diff();
+    }();
+    // restart counter
+    lapic.timer_begin(0xFFFFFFFF);
 
     /// use PIT to measure <time> in one-shot ///
-    
-    // ready handler
-    intr_handler = handler;
-
     hw::PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
-    [] {
+    [overhead] {
+      uint32_t diff = hw::APIC::get().timer_diff() - overhead;
       // measure difference
-      uint32_t diff = lapic.regs->init_count.reg - lapic.regs->cur_count.reg;
       ticks_per_micro = diff / CALIBRATION_MS / 1000;
 
       //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n",
       //       CALIBRATION_MS, diff, ticks_per_micro);
-
-      // signal ready to go
-      intr_handler();
+      start_timers();
     });
   }
 
-  bool APIC_Timer::ready()
+  bool APIC_Timer::ready() noexcept
   {
     return ticks_per_micro != 0;
   }
 
-  void APIC_Timer::set_handler(const handler_t& handler)
-  {
-    intr_handler = handler;
-    if (ready()) {
-      IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, handler);
-    }
-  }
-
-  void APIC_Timer::oneshot(std::chrono::microseconds micros)
+  void APIC_Timer::oneshot(std::chrono::microseconds micros) noexcept
   {
     // prevent overflow
     uint64_t ticks = micros.count() * ticks_per_micro;
     if (ticks > 0xFFFFFFFF) ticks = 0xFFFFFFFF;
 
     // set initial counter
-    lapic.regs->init_count.reg = ticks;
+    auto& lapic = hw::APIC::get();
+    lapic.timer_begin(ticks);
     // re-enable interrupts if disabled
     if (intr_enabled == false) {
       intr_enabled = true;
-      lapic.regs->timer.reg &= ~INTR_MASK;
+      lapic.timer_interrupt(true);
     }
   }
-  void APIC_Timer::stop()
+  void APIC_Timer::stop() noexcept
   {
-    lapic.regs->timer.reg |= INTR_MASK;
+    hw::APIC::get().timer_interrupt(false);
     intr_enabled = false;
   }
 
   // used by soft-reset
-  uint32_t apic_timer_get_ticks()
+  uint32_t apic_timer_get_ticks() noexcept
   {
     return ticks_per_micro;
   }
-  void     apic_timer_set_ticks(uint32_t tpm)
+  void     apic_timer_set_ticks(uint32_t tpm) noexcept
   {
     ticks_per_micro = tpm;
   }

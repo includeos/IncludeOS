@@ -14,7 +14,7 @@ The build system will:
 
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
-[![Early Prototype](https://img.shields.io/badge/IncludeOS-v0.8.1-yellow.svg)](https://github.com/hioa-cs/IncludeOS/releases)
+[![Early Prototype](https://img.shields.io/badge/IncludeOS-v0.10.0-yellow.svg)](https://github.com/hioa-cs/IncludeOS/releases)
 [![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Join the chat at https://gitter.im/hioa-cs/IncludeOS](https://badges.gitter.im/hioa-cs/IncludeOS.svg)](https://gitter.im/hioa-cs/IncludeOS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -22,10 +22,10 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 ## Build status
 
-|        | Build from bundle                                                                                                                                             |
-|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Master | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_master_bundle)](https://jenkins.includeos.org/job/shield_master_bundle/) |
-| Dev    | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_dev_bundle)](https://jenkins.includeos.org/job/shield_dev_bundle/)      |
+|        | Build from bundle | Integration tests |
+|--------|-------------------|-------------------|
+| Master | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_master_bundle)](https://jenkins.includeos.org/job/shield_master_bundle/) |  Coming soon |
+| Dev    | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_dev_bundle)](https://jenkins.includeos.org/job/shield_dev_bundle/)      | [![Jenkins tests](https://img.shields.io/jenkins/t/https/jenkins.includeos.org/shield_dev_integration_tests.svg)](https://jenkins.includeos.org/job/shield_dev_integration_tests/) |
 
 ### Key features
 
@@ -43,6 +43,23 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 A longer list of features and limitations is on the [wiki feature list](https://github.com/hioa-cs/IncludeOS/wiki/Features)
 
 ## Getting started
+
+### Set custom location and compiler
+
+By default the project is installed to /usr/local/includeos.
+
+However, it is recommended to choose a custom location as well as select the compiler we want clang to find.
+
+To do this we can edit ~/.bashrc (in the home folder), adding these lines at the end of the file:
+
+```
+    export CC=/usr/bin/clang-3.8
+    export CXX=/usr/bin/clang++-3.8
+    export INCLUDEOS_PREFIX=<HOME FOLDER>/includeos
+    export PATH=$PATH:$INCLUDEOS_PREFIX/bin
+```
+
+This will also crucially make the boot program visible globally, so that you can simply run ```boot <myservice>``` inside any service folder.
 
 ### Install libraries
 
@@ -66,8 +83,6 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 Configuration of your IncludeOS installation can be done inside `build/` with `ccmake ..`.
 
-Detailed installation instructions for [Vagrant](https://github.com/hioa-cs/IncludeOS/wiki/Vagrant), [macOS](https://github.com/hioa-cs/IncludeOS/wiki/OS-X) and [Ubuntu](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu) are available in the Wiki, as well as instructions for [building everything from source](https://github.com/hioa-cs/IncludeOS/wiki/Ubuntu#b-completely-build-everything-from-source-slow).
-
 ### Testing the installation
 
 A successful setup enables you to build and run a virtual machine. Running:
@@ -82,20 +97,20 @@ More information is [available on the wiki](https://github.com/hioa-cs/IncludeOS
 
 ### Writing your first service
 
-1. Copy the [./seed](./seed) directory to a convenient location like `~/your_service`. Then, just start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.
-2. Update the [CMakeLists.txt](./seed/CMakeLists.txt) to specify the name of your project, enable any needed drivers or plugins, etc.
+1. Copy the [./seed/service](./seed/service) directory to a convenient location like `~/your_service`. Then, just start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.
+2. Update the [CMakeLists.txt](./seed/service/CMakeLists.txt) to specify the name of your project, enable any needed drivers or plugins, etc.
 
 **Example:**
 
 ```
-    $ cp -r seed ~/my_service
+    $ cp -r seed/service ~/my_service
     $ cd ~/my_service
     $ emacs service.cpp
     ... add your code
     $ mkdir build && cd build
     $ cmake ..
     $ make
-    $ ../run.sh my_service
+    $ boot my_service
 ```
 
 Take a look at the [examples](./examples) and the [tests](./test). These all started out as copies of the same seed.

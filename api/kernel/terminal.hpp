@@ -18,7 +18,6 @@
 #ifndef KERNEL_BTERM_HPP
 #define KERNEL_BTERM_HPP
 
-#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -35,7 +34,11 @@ namespace hw
 
 struct Command
 {
-  using main_func = std::function<int(const std::vector<std::string>&)>;
+  using main_func = delegate<
+    int(const std::vector<std::string>&),
+    spec::inplace,
+    detail::default_capacity * 2
+  >;
 
   Command(const std::string& descr, main_func func)
     : desc(descr), main(func) {}
@@ -61,7 +64,7 @@ public:
       CR   = 13
     };
 
-  using on_write_func = std::function<void(const char*, size_t)>;
+  using on_write_func = delegate<void(const char*, size_t)>;
 
   Terminal(Connection_ptr);
   Terminal(hw::Serial& serial);
@@ -84,7 +87,7 @@ public:
     on_write(buffer, bytes);
   }
 
-  std::function<void()> on_exit { [] {} };
+  delegate<void()> on_exit { [] {} };
 
   ///
   void add_disk_commands(Disk_ptr disk);

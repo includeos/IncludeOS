@@ -15,10 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CLASS_IP4_HPP
-#define CLASS_IP4_HPP
-
-#include <iostream>
+#ifndef NET_IP4_IP4_HPP
+#define NET_IP4_IP4_HPP
 
 #include "addr.hpp"
 #include "header.hpp"
@@ -46,7 +44,11 @@ namespace net {
     explicit IP4(Stack&) noexcept;
 
     /** Known transport layer protocols. */
-    enum proto { IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6 };
+    enum proto {
+      IP4_ICMP =  1,
+      IP4_TCP  =  6,
+      IP4_UDP  = 17,
+    };
 
     static const addr ADDR_ANY;
     static const addr ADDR_BCAST;
@@ -99,9 +101,6 @@ namespace net {
      */
     void transmit(Packet_ptr);
 
-    /** Compute the IP4 header checksum */
-    uint16_t checksum(ip4::Header*);
-
     /**
      * \brief
      *
@@ -111,8 +110,19 @@ namespace net {
       return stack_.ip_addr();
     }
 
-  private:
+    /**
+     * Stats getters
+     **/
+    uint64_t get_packets_rx()
+    { return packets_rx_; }
 
+    uint64_t get_packets_tx()
+    { return packets_tx_; }
+
+    uint64_t get_packets_dropped()
+    { return packets_dropped_; }
+
+  private:
     /** Stats */
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;

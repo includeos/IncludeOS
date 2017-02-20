@@ -28,7 +28,7 @@ case $SYSTEM in
                     clang_version="3.8"
                 fi
 
-                DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu jq cmake $DEPENDENCIES"
+                DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu jq python-jsonschema python-psutil cmake $DEPENDENCIES"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo apt-get update || exit 1
@@ -36,14 +36,14 @@ case $SYSTEM in
                 exit 0;
                 ;;
             "fedora")
-                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq python-jsonschema cmake"
+                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq python-jsonschema python-psutil cmake"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo dnf install $DEPENDENCIES || exit 1
                 exit 0;
                 ;;
             "arch")
-                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq cmake"
+                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq python-jsonschema python-psutil cmake python2 python2-jsonschema python2-psutil"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
                 sudo pacman -Syyu

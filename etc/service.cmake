@@ -48,8 +48,8 @@ if (debug)
 endif()
 
 # these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -c -m32")
+set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32")
 
 # executable
 set(SERVICE_STUB "$ENV{INCLUDEOS_PREFIX}/includeos/src/service_name.cpp")
@@ -145,11 +145,11 @@ endforeach()
 
 # includes
 include_directories(${LOCAL_INCLUDES})
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/libcxx)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/sys)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/posix)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/libcxx)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)
 
 
@@ -188,6 +188,10 @@ add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libos PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libos.a)
 
+add_library(libosdeps STATIC IMPORTED)
+set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libosdeps.a)
+
 add_library(libcxx STATIC IMPORTED)
 add_library(cxxabi STATIC IMPORTED)
 set_target_properties(libcxx PROPERTIES LINKER_LANGUAGE CXX)
@@ -223,17 +227,16 @@ function(add_memdisk DISK)
   target_link_libraries(service --whole-archive memdisk --no-whole-archive)
 endfunction()
 
-# automatically built memdisks
-function(diskbuilder FOLD DISK)
-  get_filename_component(REL_DISK "${DISK}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
+# automatically build memdisk from folder
+function(diskbuilder FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
-      OUTPUT  ${REL_DISK}
-      COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/diskbuilder -o ${REL_DISK} ${REL_PATH}
+      OUTPUT  memdisk.fat
+      COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/diskbuilder -o memdisk.fat ${REL_PATH}
     )
-  add_custom_target(diskbuilder ALL DEPENDS ${REL_DISK})
+  add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
-  add_memdisk(${REL_DISK})
+  add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
 endfunction()
 
 if(TARFILE)
@@ -241,17 +244,19 @@ if(TARFILE)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 
   if(CREATE_TAR)
+    get_filename_component(TAR_BASE_NAME "${CREATE_TAR}" NAME)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar cf ${TAR_RELPATH} ${CREATE_TAR}
+      COMMAND tar cf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   elseif(CREATE_TAR_GZ)
+    get_filename_component(TAR_BASE_NAME "${CREATE_TAR_GZ}" NAME)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar czf ${TAR_RELPATH} ${CREATE_TAR_GZ}
+      COMMAND tar czf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
@@ -277,6 +282,7 @@ set_target_properties(crtn PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/i
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
     libos
+    libosdeps
     libcxx
     cxxabi
     libos
@@ -287,8 +293,8 @@ target_link_libraries(service
     $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtend.o
     --whole-archive crtn --no-whole-archive
     )
-
-
+# write binary location to known file
+file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
 set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
 if (debug)
@@ -300,7 +306,6 @@ add_custom_target(
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
-  COMMAND rm _elf_symbols.bin
   DEPENDS service
 )
 

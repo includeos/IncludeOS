@@ -82,21 +82,29 @@ endif(silent)
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 # these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 
 # either download or cross-compile needed libraries
 option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
+#
+# Subprojects
+#
+add_subdirectory(mod)
 add_subdirectory(src)
 
+#
+# External projects
+#
 option(vmbuild "Build and install vmbuild and elf_syms" ON)
 if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
     PREFIX vmbuild # Build where
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
+    BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
     )
@@ -140,20 +148,27 @@ endif(libmana)
 option(rapidjson "Download and install rapidjson submodule" ON)
 if(rapidjson)
   init_submodule(mod/rapidjson)
-  install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION include)
+  install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 endif(rapidjson)
 
+
+#
+# Installation
+#
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
 install(DIRECTORY vmrunner DESTINATION includeos/)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION includeos/bin)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
 install(DIRECTORY seed/ DESTINATION includeos/seed)
+
+# Install boot util
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
 
 # Install scripts
 install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_bridge.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/create_memdisk.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/grubify.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh

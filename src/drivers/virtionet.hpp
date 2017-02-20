@@ -121,7 +121,9 @@ public:
   { return std::make_unique<VirtioNet>(d); }
 
   /** Human readable name. */
-  const char* driver_name() const override;
+  const char* driver_name() const override {
+    return "VirtioNet";
+  }
 
   /** Mac address. */
   const hw::MAC_addr& mac() const noexcept override
@@ -130,8 +132,14 @@ public:
   uint16_t MTU() const noexcept override
   { return 1500; }
 
+  uint16_t packet_len() const noexcept {
+    return Link::Protocol::header_size() + MTU();
+  }
+
   net::downstream create_physical_downstream()
   { return {this, &VirtioNet::transmit}; }
+
+  net::Packet_ptr create_packet(uint16_t) override;
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);
@@ -144,15 +152,15 @@ public:
     return tx_q.num_free() / 2;
   }
 
-  /** Number of incoming packets waiting in the RX-queue */
-  size_t receive_queue_waiting() override {
-    return rx_q.new_incoming() / 2;
-  }
-
   void deactivate() override;
 
-  struct virtio_net_hdr
-  {
+private:
+
+  /** Stats */
+  uint64_t& packets_rx_;
+  uint64_t& packets_tx_;
+
+  struct virtio_net_hdr {
     uint8_t flags;
     uint8_t gso_type;
     uint16_t hdr_len;          // Ethernet + IP + TCP/UDP headers
@@ -161,16 +169,9 @@ public:
     uint16_t csum_offset;      // Offset after that to place checksum
   }__attribute__((packed));
 
-private:
-
-  /** Stats */
-  uint64_t& packets_rx_;
-  uint64_t& packets_tx_;
-
   /** Virtio std. § 5.1.6.1:
       "The legacy driver only presented num_buffers in the struct virtio_net_hdr when VIRTIO_NET_F_MRG_RXBUF was not negotiated; without that feature the structure was 2 bytes shorter." */
-  struct virtio_net_hdr_nomerge
-  {
+  struct virtio_net_hdr_nomerge {
     uint8_t flags;
     uint8_t gso_type;
     uint16_t hdr_len;          // Ethernet + IP + TCP/UDP headers
@@ -180,19 +181,19 @@ private:
     uint16_t num_buffers;
   }__attribute__((packed));
 
-
-  /** An empty header.
-      It's ok to use as long as we don't need checksum offloading
-      or other 'fancier' virtio features. */
-  constexpr static virtio_net_hdr empty_header = {0,0,0,0,0,0};
+  struct virtio_net_rxhdr {
+    uint8_t   flags;
+    uint8_t   gso_type;
+    uint16_t  hdr_len;
+    uint16_t  gso_size;
+    uint16_t  csum_start;
+    uint16_t  csum_offset;
+    uint16_t  bufs;
+  }__attribute__((packed));
 
   Virtio::Queue rx_q;
   Virtio::Queue tx_q;
   Virtio::Queue ctrl_q;
-
-  // Moved to Nic
-  // Ethernet eth;
-  // Arp arp;
 
   // From Virtio 1.01, 5.1.4
   struct config{
@@ -209,11 +210,6 @@ private:
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
 
-
-  /** Service the RX/TX Queues.
-      Push incoming data up to linklayer, dequeue any used RX- and TX buffers.*/
-  void service_queues();
-
   /** Add packet to buffer chain */
   void add_to_tx_buffer(net::Packet_ptr pckt);
 
@@ -225,17 +221,11 @@ private:
   void msix_recv_handler();
   void msix_xmit_handler();
   void msix_conf_handler();
-  void irq_handler();
 
   /** Allocate and queue buffer from bufstore_ in RX queue. */
-  void add_receive_buffer();
-
-  void drop(net::Packet_ptr);
-
-
+  void add_receive_buffer(uint8_t*);
 
   std::unique_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
-  std::deque<uint8_t*> tx_ringq;
 
   void begin_deferred_kick();
   bool deferred_kick = false;

@@ -89,6 +89,27 @@ void Header::clear() noexcept {
   fields_.clear();
 }
 
+size_t Header::content_length() const
+{
+  try
+  {
+    const auto cl = value(header::Content_Length);
+
+    if(cl.empty()) return 0;
+
+    return std::stoul(cl.to_string());
+  }
+  catch(...)
+  {
+    return 0;
+  }
+}
+
+bool Header::set_content_length(size_t len)
+{
+  return set_field(header::Content_Length, std::to_string(len));
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 Header::Const_iterator Header::find(const std::experimental::string_view field) const noexcept {
   if (field.empty()) return fields_.cend();

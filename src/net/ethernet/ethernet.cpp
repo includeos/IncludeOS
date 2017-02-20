@@ -66,7 +66,7 @@ namespace net {
 
     // Add source address
     hdr->src = mac_;
-    debug2("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i\n",
+    debug("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: %i\n",
            pckt->size(), mac_.str().c_str(), hdr->dest.str().c_str(), hdr->type);
 
     // Stat increment packets transmitted

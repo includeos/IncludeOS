@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,6 @@
 // limitations under the License.
 
 #include "../include/mana/server.hpp"
-#include <utility>
-#include <timers>
 #include <statman>
 
 // #define DEBUG
@@ -25,74 +23,13 @@
 using namespace mana;
 using namespace std::chrono;
 
-Server::Server(IP_stack& stack)
-: inet_(stack)
+Server::Server(net::TCP& tcp, std::chrono::seconds timeout)
+  : server_{tcp, {this, &Server::handle_request}, timeout}
 {
-  setup_stats();
-}
-
-void Server::setup_stats() {
-  auto& statman = Statman::get();
-  auto& total_conn  = statman.create(Stat::UINT64, "http.connection_total");
-  auto& total_res   = statman.create(Stat::UINT64, "http.responses");
-  auto& bytes_sent  = statman.create(Stat::UINT64, "http.bytes_sent");
-  auto& total_req   = statman.create(Stat::UINT64, "http.requests");
-  auto& bytes_recv  = statman.create(Stat::UINT64, "http.bytes_recv");
-
-  Connection::on_connection(
-  [&total_conn] ()
-  {
-    ++total_conn;
-  });
-
-  Response::on_sent(
-  [&total_res, &bytes_sent] (size_t n)
-  {
-    ++total_res;
-    bytes_sent.get_uint64() += n;
-  });
-
-  Request::on_recv(
-  [&total_req, &bytes_recv] (size_t n)
-  {
-    ++total_req;
-    bytes_recv.get_uint64() += n;
-  });
 }
 
 Router& Server::router() noexcept {
   return router_;
-}
-
-void Server::listen(Port port) {
-  printf("<Server> Listening to port %i \n", port);
-
-  inet_.tcp().bind(port).on_connect({this, &Server::connect});
-  Timers::periodic(30s, 1min, {this, &Server::timeout_clients});
-}
-
-void Server::connect(net::tcp::Connection_ptr conn) {
-  SET_CRASH_CONTEXT("Server::connect: %s, free_idx=%u",
-    conn->to_string().c_str(), free_idx_.size());
-  #ifdef VERBOSE_WEBSERVER
-  printf("<Server> New Connection [ %s ]\n", conn->remote().to_string().c_str());
-  #endif
-  // if there is a free spot in connections
-  if(free_idx_.size() > 0) {
-    auto idx = free_idx_.back();
-    Ensures(connections_[idx] == nullptr);
-    connections_[idx] = std::make_unique<Connection>(*this, conn, idx);
-    free_idx_.pop_back();
-  }
-  // if not, add a new shared ptr
-  else {
-    connections_.emplace_back(std::make_unique<Connection>(*this, conn, connections_.size()));
-  }
-}
-
-void Server::close(size_t idx) {
-  connections_[idx] = nullptr;
-  free_idx_.push_back(idx);
 }
 
 void Server::process(Request_ptr req, Response_ptr res) {
@@ -100,7 +37,8 @@ void Server::process(Request_ptr req, Response_ptr res) {
   auto next = std::make_shared<next_t>();
   auto weak_next = std::weak_ptr<next_t>(next);
   // setup Next callback
-  *next = [this, it_ptr, weak_next, req, res]
+  *next = next_t::make_packed(
+  [this, it_ptr, weak_next, req, res]
   {
     // derefence the pointer to the iterator
     auto& it = *it_ptr;
@@ -123,7 +61,7 @@ void Server::process(Request_ptr req, Response_ptr res) {
     else {
       process_route(req, res);
     }
-  };
+  });
   // get the party started..
   (*next)();
 }
@@ -150,11 +88,9 @@ void Server::use(const Path& path, Callback callback) {
   middleware_.emplace_back(path, callback);
 }
 
-void Server::timeout_clients(int32_t) {
-
-  for(auto& conn : connections_)
-  {
-    if(conn != nullptr and RTC::now() > (conn->idle_since() + IDLE_TIMEOUT))
-      conn->timeout();
-  }
+void Server::handle_request(http::Request_ptr request, http::Response_writer_ptr hrw)
+{
+  auto req = std::make_shared<mana::Request>(std::move(request));
+  auto res = std::make_shared<mana::Response>(std::move(hrw));
+  process(std::move(req), std::move(res));
 }

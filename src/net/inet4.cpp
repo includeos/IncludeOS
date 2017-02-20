@@ -1,6 +1,5 @@
 //-*- C++ -*-
 #define DEBUG
-#include <os>
 #include <net/inet4.hpp>
 #include <net/dhcp/dh4client.hpp>
 
@@ -13,7 +12,7 @@ Inet4::Inet4(hw::Nic& nic)
     dns_server(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ip4_(*this),
     icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
-    bufstore_(nic.bufstore()), MTU_(nic.MTU())
+    MTU_(nic.MTU())
 {
   INFO("Inet4","Bringing up a IPv4 stack");
   Ensures(sizeof(IP4::addr) == 4);
@@ -70,20 +69,19 @@ Inet4::Inet4(hw::Nic& nic)
 
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
   INFO("Inet4", "Negotiating DHCP...");
-  if(!dhcp_)
-    dhcp_ = std::make_shared<DHClient>(*this);
+  if (!dhcp_)
+      dhcp_ = std::make_shared<DHClient>(*this);
   // @timeout for DHCP-server negotation
   dhcp_->negotiate(timeout);
   // add timeout_handler if supplied
-  if(handler)
-    dhcp_->on_config(handler);
+  if (handler)
+      dhcp_->on_config(handler);
 }
 
-void Inet4::on_config(dhcp_timeout_func handler) {
-  // setup DHCP if not intialized
+void Inet4::on_config(dhcp_timeout_func handler)
+{
   if(!dhcp_)
-    negotiate_dhcp();
-
+      throw std::runtime_error("DHCP is not yet initialized");
   dhcp_->on_config(handler);
 }
 
@@ -128,4 +126,10 @@ void Inet4::process_sendq(size_t packets) {
     for (size_t i = 0; i < tqa.size(); i++)
     if (give[i]) tqa[i](give[i]);
   */
+}
+
+void Inet4::force_start_send_queues()
+{
+  size_t packets = transmit_queue_available();
+  if (packets) process_sendq(packets);
 }

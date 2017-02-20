@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef URI_HPP
-#define URI_HPP
+#ifndef UTIL_URI_HPP
+#define UTIL_URI_HPP
 
 #include <experimental/string_view>
 #include <unordered_map>
@@ -28,13 +28,12 @@ namespace uri {
 #include <stdexcept>
 
 ///
-/// This class is used to represent an error that occurred
+/// This type is used to represent an error that occurred
 /// from within the operations of class URI
 ///
-class URI_error : public std::runtime_error {
-public:
+struct URI_error : public std::runtime_error {
   using runtime_error::runtime_error;
-}; //< class URI_error
+}; //< struct URI_error
 
 #endif //< URI_THROW_ON_ERROR
 
@@ -50,14 +49,14 @@ class URI {
   explicit URI() = default;
 
   ///
-  /// Default copy constructor
+  /// Copy constructor
   ///
-  URI(const URI&) = default;
+  URI(const URI&);
 
   ///
-  /// Default move constructor
+  /// Move constructor
   ///
-  URI(URI&&) = default;
+  URI(URI&&) noexcept;
 
   ///
   /// Default destructor
@@ -65,14 +64,25 @@ class URI {
   ~URI() = default;
 
   ///
-  /// Default assignment operator
+  /// Default copy assignment operator
   ///
-  URI& operator=(const URI&) = default;
+  URI& operator=(const URI&);
 
   ///
   /// Default move assignment operator
   ///
-  URI& operator=(URI&&) = default;
+  URI& operator=(URI&&) noexcept;
+
+  ///
+  /// Construct using a C-String representing a uri
+  ///
+  /// @param uri
+  /// A C-String representing a uri
+  ///
+  /// @param parse
+  /// Whether to perform parsing on the the data specified in {uri}
+  ///
+  URI(const char* uri, const bool parse = true);
 
   ///
   /// Construct using a view of a string representing a uri
@@ -115,6 +125,22 @@ class URI {
   /// @return The host's information
   ///
   std::experimental::string_view host() const noexcept;
+
+  ///
+  /// Check if host portion is an IPv4 address.
+  ///
+  /// @return True, maybe.
+  ///
+  bool host_is_ip4() const noexcept;
+
+  ///
+  /// Get host and port information
+  ///
+  /// Format <host>:<port>
+  ///
+  /// @return host and port information
+  ///
+  std::string host_and_port() const;
 
   ///
   /// Get the raw port number in decimal character representation.
@@ -192,7 +218,7 @@ class URI {
   ///
   /// @return A string representation of this class
   ///
-  std::experimental::string_view to_string() const noexcept;
+  const std::string& to_string() const noexcept;
 
   ///
   /// Operator to transform this class into string form
@@ -214,13 +240,20 @@ class URI {
   /// @return The object that invoked this method
   ///
   URI& parse();
+
+  ///
+  /// Reset the object as if default constructed
+  ///
+  /// @return The object that invoked this method
+  ///
+  URI& reset();
 private:
   ///
   /// A copy of the data representing a uri
   ///
   std::string uri_str_;
 
-  mutable uint16_t port_ {0xFFFF};
+  uint16_t port_ {0xFFFF};
 
   std::experimental::string_view scheme_;
   std::experimental::string_view userinfo_;
@@ -262,6 +295,8 @@ bool operator < (const URI& lhs, const URI& rhs) noexcept;
 ///
 /// @return true if equal, false otherwise
 ///
+/// @todo IPv6 authority comparison
+///
 bool operator == (const URI& lhs, const URI& rhs) noexcept;
 
 ///
@@ -280,4 +315,4 @@ std::ostream& operator<< (std::ostream& output_device, const URI& uri);
 
 } //< namespace uri
 
-#endif //< URI_HPP
+#endif //< UTIL_URI_HPP

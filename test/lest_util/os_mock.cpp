@@ -28,18 +28,134 @@ void* memalign(size_t alignment, size_t size) {
   Ensures(res == 0);
   return ptr;
 }
-#endif //< __MACH__
+void* aligned_alloc(size_t alignment, size_t size) {
+  return memalign(alignment, size);
+}
+#endif
 
-///
-/// Mocked commandline arguments
-///
-const std::string& OS::cmdline_args() noexcept {
-  static const std::string args {"binary.bin command line arguments passed here"};
-  return args;
+#include <util/statman.hpp>
+Statman& Statman::get() {
+  static uintptr_t start {0};
+  if (!start) {
+    start = (uintptr_t) malloc(65536);
+  }
+  static Statman statman_{start, 8192};
+  return statman_;
+}
+
+#include <rtc>
+RTC::timestamp_t RTC::booted_at_ = 0;
+
+RTC::timestamp_t RTC::now() {
+  return 0;
+}
+
+void RTC::init() {
+  return;
+}
+
+#include <kernel/timers.hpp>
+void Timers::timers_handler() {
+  return;
+}
+
+void Timers::ready() {
+  return;
+}
+
+void Timers::stop(int) {
+  return;
+}
+
+void Timers::init(const start_func_t&, const stop_func_t&) {
+  return;
+}
+
+Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
+  return 0;
+}
+
+#include <os>
+void OS::resume_softreset(intptr_t) {
+  return;
+}
+
+bool OS::is_softreset_magic(uint32_t) {
+  return true;
 }
 
 extern "C" {
-  void panic(const char* why) {
-    assert(0 && "Panic: " && why);
+
+  char _binary_apic_boot_bin_end;
+  char _binary_apic_boot_bin_start;
+  char _ELF_START_;
+  char _ELF_END_;
+  uintptr_t _MULTIBOOT_START_;
+  uintptr_t _LOAD_START_;
+  uintptr_t _LOAD_END_;
+  uintptr_t _BSS_END_;
+  uintptr_t _MAX_MEM_MIB_;
+#ifdef __MACH__
+  uintptr_t _start;
+#endif
+  uintptr_t _end;
+
+  uintptr_t get_cpu_esp() {
+    return 0xdeadbeef;
   }
+
+  void _init_c_runtime() {
+    return;
+  }
+
+#ifdef __MACH__
+  void _init() {
+    return;
+  }
+#endif
+
+  void modern_interrupt_handler() {
+    return;
+  }
+
+  void unused_interrupt_handler() {
+    return;
+  }
+
+  void spurious_intr() {
+    return;
+  }
+
+  void lapic_send_eoi() {
+    return;
+  }
+
+  void lapic_irq_entry() {
+    return;
+  }
+
+  void get_cpu_id() {
+    return;
+  }
+
+  void cpu_sampling_irq_entry() {
+    return;
+  }
+
+  void __init_sanity_checks() noexcept {}
+  void kernel_sanity_checks() {}
+
+  void reboot_os() {
+    return;
+  }
+
+  struct mallinfo { int x; };
+  struct mallinfo mallinfo() {
+    return {0};
+  }
+
+  void malloc_trim() {
+    return;
+  }
+>>>>>>> 9b926ba9f4a5e94b7df228df3213512462127014
 }

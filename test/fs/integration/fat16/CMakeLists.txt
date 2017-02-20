@@ -17,4 +17,4 @@ set(SOURCES
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
 
-diskbuilder(disk disk.fat)
+diskbuilder(disk)

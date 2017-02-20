@@ -27,7 +27,7 @@ CASE("IPv4 address manipulation - str to addr")
   in_addr_t addr;
 
   addr = inet_addr(TEST_ADDRSTR);
-  EXPECT(::ntohl(addr) == TEST_ADDR);
+  EXPECT(ntohl(addr) == TEST_ADDR);
 
   addr = inet_addr("Invalid.Address");
   EXPECT(addr == -1);
@@ -35,7 +35,7 @@ CASE("IPv4 address manipulation - str to addr")
 CASE("IPv4 address manipulation - addr to str")
 {
   struct in_addr addr;
-  addr.s_addr = ::htonl(TEST_ADDR);
+  addr.s_addr = htonl(TEST_ADDR);
 
   char* addrstr = inet_ntoa(addr);
   EXPECT(strcmp(addrstr, TEST_ADDRSTR) == 0);
@@ -43,7 +43,7 @@ CASE("IPv4 address manipulation - addr to str")
 CASE("IPv4 address manipulation - addr to pointer")
 {
   struct in_addr addr;
-  addr.s_addr = ::htonl(TEST_ADDR);
+  addr.s_addr = htonl(TEST_ADDR);
 
   char addrstr[INET_ADDRSTRLEN];
 

@@ -38,8 +38,13 @@ namespace fs
     return tok_str[token_];
   }
 
-  void File_system::read_file(const std::string& path, on_read_func on_read) {
-    stat(path, [this, on_read, path](error_t err, const Dirent& ent) {
+  void File_system::read_file(const std::string& path, on_read_func on_read)
+  {
+    stat(
+      path,
+      on_stat_func::make_packed(
+      [this, on_read, path](error_t err, const Dirent& ent)
+      {
         if(UNLIKELY(err))
           return on_read(err, nullptr, 0);
 
@@ -47,7 +52,8 @@ namespace fs
           return on_read({error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0);
 
         read(ent, 0, ent.size(), on_read);
-      });
+      })
+    );
   }
 
   Buffer File_system::read_file(const std::string& path) {
@@ -61,7 +67,7 @@ namespace fs
 
       return read(ent, 0, ent.size());
   }
-  
+
   static error_t print_subtree(dirvec_t entries, int depth)
   {
     int indent = depth * 3;

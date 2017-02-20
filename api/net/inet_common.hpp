@@ -40,8 +40,12 @@ namespace net {
   // Delegate for signalling available buffers in device transmit queue
   using transmit_avail_delg = delegate<void(size_t)>;
 
+  // Compute internet checksum with partial @sum provided
+  uint16_t checksum(uint32_t sum, const void* data, size_t len) noexcept;
   // Compute the internet checksum for the buffer / buffer part provided
-  uint16_t checksum(void* data, size_t len) noexcept;
+  inline uint16_t checksum(const void* data, size_t len) noexcept {
+    return checksum(0, data, len);
+  }
 
   // View a packet differently based on context
   template <typename T, typename Packet>
@@ -56,6 +60,20 @@ namespace net {
       auto* d = static_cast<Derived *>(p.release());
       return std::unique_ptr<Derived>(d);
   }
+
+  /* RFC 6335 - IANA */
+  namespace port_ranges
+  {
+    static constexpr uint16_t SYSTEM_START  {0};
+    static constexpr uint16_t SYSTEM_END    {1023};
+    static constexpr uint16_t USER_START    {1024};
+    static constexpr uint16_t USER_END      {49151};
+    static constexpr uint16_t DYNAMIC_START {49152};
+    static constexpr uint16_t DYNAMIC_END   {65534}; // 65535 never assigned
+  }
+
+  inline uint16_t new_ephemeral_port() noexcept
+  { return port_ranges::DYNAMIC_START + rand() % (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START); }
 
 } //< namespace net
 

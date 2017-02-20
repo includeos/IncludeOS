@@ -52,7 +52,6 @@
 #include <net/ip4/ip4.hpp> // IP4::addr
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace net
 {
@@ -125,7 +124,7 @@ namespace net
         OP_REFUSED   = 5, // for political reasons
       };
 
-    typedef std::function<std::vector<IP4::addr>* (const std::string&)> lookup_func;
+    typedef delegate<std::vector<IP4::addr>* (const std::string&)> lookup_func;
 
     static int createResponse(header& hdr, lookup_func func);
 
@@ -149,21 +148,29 @@ namespace net
     class Request
     {
     public:
+      using id_t = unsigned short;
       int  create(char* buffer, const std::string& hostname);
       bool parseResponse(const char* buffer);
-      void print(char* buffer);
+      void print(const char* buffer) const;
 
       const std::string& getHostname() const
       {
         return this->hostname;
       }
+
       IP4::addr getFirstIP4() const
       {
-        if (answers.size())
-          return answers[0].getIP4();
+        for(auto&& ans : answers)
+        {
+          if(ans.is_type(DNS_TYPE_A))
+            return ans.getIP4();
+        }
 
         return IP4::ADDR_ANY;
       }
+
+      id_t get_id() const
+      { return id; }
 
     private:
       struct rr_t // resource record
@@ -175,7 +182,10 @@ namespace net
         rr_data resource;
 
         IP4::addr getIP4() const;
-        void      print();
+        void      print()  const;
+
+        bool is_type(int type) const
+        { return ntohs(resource.type) == type; }
 
       private:
         // decompress names in 3www6google3com format

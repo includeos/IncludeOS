@@ -1,9 +1,10 @@
-DISK=${DISK-grub_disk.img}
+#! /bin/bash
 KERNEL=${1-build/test_grub}
+DISK=${DISK-$KERNEL.grub.img}
 MOUNTDIR=${MOUNTDIR-/mnt}
 MOUNT_OPTS="sync,rw"
 BLOCKCCOUNT=10000
-
+set -e
 
 function unmount {
 
@@ -11,7 +12,7 @@ function unmount {
   # Instead we use umount -d to have mount detach the loopback device
 
   echo -e ">>> Unmounting and detaching $LOOP"
-  sudo umount -vd $MOUNTDIR
+  sudo umount -vd $MOUNTDIR || :
 
 }
 
@@ -25,6 +26,13 @@ function create_disk {
   echo -e ">>> Creating FAT file system on $DISK with $BLOCKSIZE blocks"
   # NOTE: mkfs with the '-C' option creates the disk before creating FS
   # fallocate -l 10MiB $DISK
+
+  if [ -f $DISK ]
+  then
+    echo -e ">>> $DISK allready exists. Preserving existing image as $DISK.bak"
+    mv $DISK $DISK.bak
+  fi
+
 
   mkfs.fat -C $DISK $BLOCKCCOUNT
 }
@@ -117,10 +125,10 @@ echo -e ">>> Populating boot dir with grub config"
 sudo mkdir -p $MOUNTDIR/boot/grub
 sudo mv grub.cfg $MOUNTDIR/boot/grub/grub.cfg
 
-  copy_kernel
+copy_kernel
 
 echo -e ">>> Running grub install"
-sudo grub-install --force --boot-directory $MOUNTDIR/boot/ $LOOP
+sudo grub-install --target=i386-pc --force --boot-directory $MOUNTDIR/boot/ $LOOP
 
 unmount
 

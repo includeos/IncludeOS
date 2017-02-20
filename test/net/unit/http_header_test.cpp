@@ -88,5 +88,28 @@ CASE("Header::erase() removes specified field")
   EXPECT(header.size() == 3u);
   header.erase("Accept-Encoding");
   EXPECT(header.size() == 2u);
-  EXPECT(header.has_field("Accept-Encoding") == false);  
+  EXPECT(header.has_field("Accept-Encoding") == false);
+}
+
+CASE("Header::set_field() sets specified field ")
+{
+  http::Header header;
+  header.set_field("Connection", "keep-alive");
+  EXPECT(header.size() == 1);
+  EXPECT(header.has_field("Connection") == true);
+  auto val = header.value("Connection");
+  EXPECT(val == "keep-alive");
+  bool res = header.set_field("Connection", "close");
+  EXPECT(res == true);
+  val = header.value("Connection");
+  EXPECT(val == "close");
+}
+
+CASE("Headers can be streamed")
+{
+  http::Header header;
+  bool res = header.set_field("Connection", "close");
+  std::stringstream ss;
+  ss << header;
+  EXPECT(ss.str().size() > 15);
 }

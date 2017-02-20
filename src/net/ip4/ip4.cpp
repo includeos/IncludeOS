@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG // Allow debugging
-#define DEBUG2 // Allow debug lvl 2
+//#define DEBUG // Allow debugging
+//#define DEBUG2 // Allow debug lvl 2
 
 #include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
@@ -57,7 +57,7 @@ namespace net {
                 and local_ip() != ADDR_ANY)) {
 
       if (forward_packet_) {
-        forward_packet_(stack_, static_unique_ptr_cast<IP_packet>(std::move(pckt)));
+        forward_packet_(stack_, std::move(packet));
         debug("Packet forwarded \n");
       } else {
         debug("Packet dropped \n");
@@ -86,10 +86,6 @@ namespace net {
     }
   }
 
-  uint16_t IP4::checksum(ip4::Header* hdr) {
-    return net::checksum(reinterpret_cast<uint16_t*>(hdr), sizeof(ip4::Header));
-  }
-
   void IP4::transmit(Packet_ptr pckt) {
     assert(pckt->size() > sizeof(IP4::full_header));
 
@@ -110,13 +106,6 @@ namespace net {
           stack_.ip_addr().str().c_str(),
           stack_.gateway().str().c_str(),
           target == local ? "DIRECT" : "GATEWAY");
-
-    /*debug("<IP4 transmit> my ip: %s, Next hop: %s, Packet size: %i IP4-size: %i\n",
-          stack_.ip_addr().str().c_str(),
-          pckt->next_hop().str().c_str(),
-          pckt->size(),
-          ip4_pckt->ip_segment_size()
-          );*/
 
     // Stat increment packets transmitted
     packets_tx_++;

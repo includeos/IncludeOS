@@ -19,7 +19,7 @@
 #ifndef NET_IP4_ARP_HPP
 #define NET_IP4_ARP_HPP
 
-#include <os>
+#include <rtc>
 #include <map>
 
 #include <delegate>
@@ -32,6 +32,7 @@ namespace net {
   /** ARP manager, including an ARP-Cache. */
   class Arp {
     using Stack   = IP4::Stack;
+    using Route_checker = delegate<bool(IP4::addr)>;
   private:
     /** ARP cache expires after cache_exp_t_ seconds */
     static constexpr uint16_t cache_exp_t_ {60 * 60 * 12};
@@ -45,12 +46,12 @@ namespace net {
       cache_entry() noexcept = default;
 
       cache_entry(Ethernet::addr mac) noexcept
-      : mac_(mac), timestamp_(OS::uptime()) {}
+      : mac_(mac), timestamp_(RTC::time_since_boot()) {}
 
       cache_entry(const cache_entry& cpy) noexcept
       : mac_(cpy.mac_), timestamp_(cpy.timestamp_) {}
 
-      void update() noexcept { timestamp_ = OS::uptime(); }
+      void update() noexcept { timestamp_ = RTC::time_since_boot(); }
     }; //< struct cache_entry
 
     using Cache       = std::map<IP4::addr, cache_entry>;
@@ -105,12 +106,23 @@ namespace net {
       }
     }
 
+    /** Add a route checker */
+    void set_route_checker(Route_checker delg)
+    { route_checker_ = delg; }
+
     /** Delegate link-layer output. */
     void set_linklayer_out(downstream link)
     { linklayer_out_ = link; }
 
     /** Downstream transmission. */
     void transmit(Packet_ptr);
+
+    /** Cache IP resolution. */
+    void cache(IP4::addr, Ethernet::addr);
+
+    /** Flush the ARP cache */
+    void flush_cache()
+    { cache_.clear(); };
 
   private:
 
@@ -121,6 +133,7 @@ namespace net {
     uint32_t& replies_tx_;
 
     Stack& inet_;
+    Route_checker route_checker_ = nullptr;
 
     /** Needs to know which mac address to put in header->swhaddr */
     Ethernet::addr mac_;
@@ -131,16 +144,13 @@ namespace net {
     /** The ARP cache */
     Cache cache_;
 
-    /** Cache IP resolution. */
-    void cache(IP4::addr, Ethernet::addr);
-
     /** Check if an IP is cached and not expired */
     bool is_valid_cached(IP4::addr);
 
     /** ARP resolution. */
     Ethernet::addr resolve(IP4::addr);
 
-    void arp_respond(header* hdr_in);
+    void arp_respond(header* hdr_in, IP4::addr ack_ip);
 
     // two different ARP resolvers
     void arp_resolve(Packet_ptr);

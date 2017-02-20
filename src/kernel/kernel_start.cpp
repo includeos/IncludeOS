@@ -17,12 +17,15 @@
 
 #include <kernel/os.hpp>
 #include <boot/multiboot.h>
+#include <kprint>
 
-#define MULTIBOOT_CMDLINE_LOC 0x3000
+#define MULTIBOOT_CMDLINE_LOC 0x7000
 
 extern "C" void __init_sanity_checks();
+extern "C" void kernel_sanity_checks();
 extern "C" void _init_c_runtime();
 extern "C" void _init_syscalls();
+extern "C" void _init();
 
 // enables Streaming SIMD Extensions
 static void enableSSE(void) noexcept
@@ -46,20 +49,28 @@ void kernel_start(uintptr_t magic, uintptr_t addr)  {
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
-  // Initialize system calls
-  _init_syscalls();
-
   // Save multiboot string before symbols overwrite area after binary
-  char* cmdline = reinterpret_cast<char*>(reinterpret_cast<multiboot_info_t*>(addr)->cmdline);
-  strcpy(reinterpret_cast<char*>(MULTIBOOT_CMDLINE_LOC), cmdline);
-  ((multiboot_info_t*) addr)->cmdline = MULTIBOOT_CMDLINE_LOC;
+  if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
+    char* cmdline = reinterpret_cast<char*>(reinterpret_cast<multiboot_info_t*>(addr)->cmdline);
+    strcpy(reinterpret_cast<char*>(MULTIBOOT_CMDLINE_LOC), cmdline);
+    ((multiboot_info_t*) addr)->cmdline = MULTIBOOT_CMDLINE_LOC;
+  }
 
   // Initialize stack-unwinder, call global constructors etc.
   _init_c_runtime();
 
+  // Initialize system calls
+  _init_syscalls();
+
+  // call global constructors emitted by compiler
+  _init();
+
   // Initialize OS including devices
   OS::start(magic, addr);
-  
+
+  // verify certain read-only sections in memory
+  kernel_sanity_checks();
+
   // Starting event loop from here allows us to profile OS::start
   OS::event_loop();
 }

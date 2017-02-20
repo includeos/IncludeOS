@@ -4,12 +4,12 @@ project (vmbuilder)
 
 # TODO: make sure that CXX is exported before this script is called
 set(SOURCES vmbuild.cpp elf_binary.cpp)
-set(ELF_SYMS_SOURCES elf_syms.cpp)
+set(ELF_SYMS_SOURCES elf_syms.cpp elf_binary.cpp)
 
 set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -O3")
 
 # TODO: write scripts that automatically find include directories
-include_directories(. ./../api ./../mod/GSL/)
+include_directories(. ./../mod/GSL/)
 
 add_executable(vmbuild ${SOURCES})
 add_executable(elf_syms ${ELF_SYMS_SOURCES})

@@ -15,12 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG  // Allow debugging
-#define DEBUG2 // Allow debugging
+// #define DEBUG  // Allow debugging
+// #define DEBUG2 // Allow debugging
 
 #include <vector>
 
-#include <os>
 #include <net/inet4.hpp>
 #include <net/ip4/arp.hpp>
 #include <net/ip4/packet_arp.hpp>
@@ -48,7 +47,7 @@ namespace net {
 
     header* hdr = reinterpret_cast<header*>(pckt->buffer());
 
-    debug2("Have valid cache? %s\n", is_valid_cached(hdr->sipaddr) ? "YES" : "NO");
+    debug2("<Arp> Have valid cache? %s\n", is_valid_cached(hdr->sipaddr) ? "YES" : "NO");
     cache(hdr->sipaddr, hdr->shwaddr);
 
     switch(hdr->opcode) {
@@ -63,8 +62,18 @@ namespace net {
              hdr->dipaddr.str().c_str());
 
       if (hdr->dipaddr == inet_.ip_addr()) {
-        arp_respond(hdr);
+
+        // The packet is for us. Respond.
+        arp_respond(hdr, inet_.ip_addr());
+
+      } else if (route_checker_ and route_checker_(hdr->dipaddr)){
+
+        // The packet is for an IP to which we know a route
+        arp_respond(hdr, hdr->dipaddr);
+
       } else {
+
+        // Drop
         debug2("\t NO MATCH for My IP (%s). DROP!\n",
                inet_.ip_addr().str().c_str());
       }
@@ -81,7 +90,7 @@ namespace net {
       auto waiting = waiting_packets_.find(hdr->sipaddr);
 
       if (waiting != waiting_packets_.end()) {
-        debug("Had a packet waiting for this IP. Sending\n");
+        debug("<Arp> Had a packet waiting for this IP. Sending\n");
         transmit(std::move(waiting->second));
         waiting_packets_.erase(waiting);
       }
@@ -95,7 +104,7 @@ namespace net {
   }
 
   void Arp::cache(IP4::addr ip, Ethernet::addr mac) {
-    debug2("Caching IP %s for %s\n", ip.str().c_str(), mac.str().c_str());
+    debug("Caching IP %s for %s\n", ip.str().c_str(), mac.str().c_str());
 
     auto entry = cache_.find(ip);
 
@@ -111,25 +120,26 @@ namespace net {
     }
   }
 
+
   bool Arp::is_valid_cached(IP4::addr ip) {
     auto entry = cache_.find(ip);
 
     if (entry != cache_.end()) {
-      debug("Cached entry, mac: %s time: %llu Expiry: %llu\n",
+      debug("<Arp> Cached entry, mac: %s time: %llu Expiry: %llu\n",
             entry->second.mac_.str().c_str(),
             entry->second.timestamp_, entry->second.timestamp_ + cache_exp_t_);
-      debug("Time now: %llu\n", static_cast<uint64_t>(OS::uptime()));
+      debug2("<Arp> Time now: %llu\n", static_cast<uint64_t>(RTC::time_since_boot()));
     }
 
     return entry != cache_.end()
-      and (entry->second.timestamp_ + cache_exp_t_ > static_cast<uint64_t>(OS::uptime()));
+      and (entry->second.timestamp_ + cache_exp_t_ > static_cast<uint64_t>(RTC::time_since_boot()));
   }
 
   extern "C" {
     unsigned long ether_crc(int length, unsigned char *data);
   }
 
-  void Arp::arp_respond(header* hdr_in) {
+  void Arp::arp_respond(header* hdr_in, IP4::addr ack_ip) {
     debug2("\t IP Match. Constructing ARP Reply\n");
 
     // Stat increment replies sent
@@ -137,13 +147,13 @@ namespace net {
 
     // Populate ARP-header
     auto res = static_unique_ptr_cast<PacketArp>(inet_.create_packet(sizeof(header)));
-    res->init(mac_, inet_.ip_addr());
+    res->init(mac_, ack_ip);
 
     res->set_dest_mac(hdr_in->shwaddr);
     res->set_dest_ip(hdr_in->sipaddr);
     res->set_opcode(H_reply);
 
-    debug2("\t My IP: %s belongs to My Mac: %s\n",
+    debug("\t IP: %s is at My Mac: %s\n",
            res->source_ip().str().c_str(), res->source_mac().str().c_str());
 
     linklayer_out_(std::move(res));
@@ -177,19 +187,22 @@ namespace net {
 
     } else {
       if (sip != inet_.ip_addr()) {
-        debug2("<ARP -> physical> Not bound to source IP %s. My IP is %s. DROP!\n",
+        debug2("<ARP -> physical> Not bound to source IP %s. My IP is %s.\n",
                sip.str().c_str(), inet_.ip_addr().str().c_str());
-        return;
       }
 
       // If we don't have a cached IP, perform address resolution
       if (!is_valid_cached(dip)) {
+        debug("<ARP> No cache entry for IP %s.  Resolving. \n. ", dip.to_string().c_str());
         arp_resolver_(std::move(pckt));
         return;
       }
 
       // Get MAC from cache
       dest_mac = cache_[dip].mac_;
+
+      debug("<ARP> Found cache entry for IP %s -> %s \n. ",
+            dip.to_string().c_str(), dest_mac.to_string().c_str());
     }
 
     /** Attach next-hop mac and ethertype to ethernet header */

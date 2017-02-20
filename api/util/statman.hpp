@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,76 +15,116 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef UTILITY_STATMAN_HPP
-#define UTILITY_STATMAN_HPP
+#pragma once
+#ifndef UTIL_STATMAN_HPP
+#define UTIL_STATMAN_HPP
 
+#include <common>
 #include <cstddef>
 #include <string>
 
-// IncludeOS
-#include <common>
-
-/** Exception thrown when Statman's span is full */
-class Stats_out_of_memory : public std::out_of_range {
-public:
+///
+/// This type is thrown when Statman's span is full
+///
+struct Stats_out_of_memory : public std::out_of_range {
   explicit Stats_out_of_memory()
     : std::out_of_range(std::string{"Statman has no room for more statistics"})
     {}
-}; //< class Stats_out_of_memory
+}; //< struct Stats_out_of_memory
 
-/** Exception for Statman */
-class Stats_exception : public std::runtime_error {
+///
+/// This type is thrown from within the operations of class Statman
+///
+struct Stats_exception : public std::runtime_error {
   using runtime_error::runtime_error;
-};
+}; //< struct Stats_exception
 
+///
+///
+///
 class Stat {
-
+private:
+  constexpr static int MAX_NAME_LEN {48};
 public:
-  enum stat_type
+  ///
+  ///
+  ///
+  enum Stat_type
   {
     FLOAT,
     UINT32,
     UINT64
   };
 
-  Stat(const stat_type type, const int index_into_span, const std::string& name);
+  ///
+  ///
+  ///
+  Stat(const Stat_type type, const int index_into_span, const std::string& name);
 
+  ///
+  ///
+  ///
   ~Stat() = default;
 
+  ///
+  ///
+  ///
   void operator++();
 
-  stat_type type() const { return type_; }
+  ///
+  ///
+  ///
+  Stat_type type() const noexcept
+  { return type_; }
 
-  int index() const { return index_into_span_; }
+  ///
+  ///
+  ///
+  int index() const noexcept
+  { return index_into_span_; }
 
-  std::string name() const { return name_; }
+  ///
+  ///
+  ///
+  const char* name() const noexcept
+  { return name_; }
 
+  ///
+  ///
+  ///
   float& get_float();
 
+  ///
+  ///
+  ///
   uint32_t& get_uint32();
 
+  ///
+  ///
+  ///
   uint64_t& get_uint64();
 
 private:
-  stat_type type_;
-  int index_into_span_;
+  Stat_type type_;
+  int       index_into_span_;
+
   union {
-    float f;
+    float    f;
     uint32_t ui32;
     uint64_t ui64;
   };
-  char name_[48];
+
+  char name_[MAX_NAME_LEN];
 
   Stat(const Stat& other) = delete;
-
   Stat(const Stat&& other) = delete;
-
   Stat& operator=(const Stat& other) = delete;
-
   Stat& operator=(Stat&& other) = delete;
+}; //< class Stat
 
-};  // < class Stat
-
+///
+///
+///
 class Statman {
   /*
     @note
@@ -95,51 +135,66 @@ class Statman {
   */
 
   using Span = gsl::span<Stat>;
-
 public:
-  static Statman& get() {
-    static Statman statman_{0x8000, 8192};
-    return statman_;
-  }
+  using Size_type     = ptrdiff_t;
+  using Span_iterator = Span::iterator;
 
-  using Size_type = ptrdiff_t;
-  using Span_iterator = gsl::span<Stat>::iterator;
+  ///
+  ///
+  ///
+  static Statman& get();
 
-  Statman(uintptr_t start, Size_type num_bytes);
+  ///
+  ///
+  ///
+  Statman(const uintptr_t start, const Size_type num_bytes);
 
+  ///
+  ///
+  ///
   ~Statman() = default;
 
-  Stat& operator[](int i) { return stats_[i]; }
+  ///
+  ///
+  ///
+  Stat& operator[](const int i)
+  { return stats_[i]; }
 
   /**
    * Returns the number of elements the span stats_ can contain
    */
-  Size_type size() const { return stats_.size(); }
+  Size_type size() const noexcept
+  { return stats_.size(); }
 
   /**
    * Returns the number of bytes the span stats_ takes up
    */
-  Size_type num_bytes() const { return num_bytes_; }
+  Size_type num_bytes() const noexcept
+  { return num_bytes_; }
 
   /**
    * Returns the total number of bytes the Statman object takes up
    */
-  Size_type total_num_bytes() const { return num_bytes() + sizeof(int) + sizeof(Size_type); }
+  Size_type total_num_bytes() const noexcept
+  { return num_bytes() + sizeof(int) + sizeof(Size_type); }
 
   /**
    * Returns the number of Stat-objects the span stats_ actually contains
    */
-  int num_stats() const { return next_available_; }
+  int num_stats() const noexcept
+  { return next_available_; }
 
   /**
    * Is true if the span stats_ contains no Stat-objects
    */
-  bool empty() const { return next_available_ == 0; }
+  bool empty() const noexcept
+  { return next_available_ == 0; }
 
   /**
    * Is true if the span stats_ can not contain any more Stat-objects
    */
-  bool full() const { return next_available_ == stats_.size(); }
+  bool full() const noexcept
+  { return next_available_ == stats_.size(); }
 
   /**
    * Returns an iterator to the last used (or filled in) element
@@ -147,29 +202,48 @@ public:
    */
   Span_iterator last_used();
 
-  auto begin() { return stats_.begin(); }
+  ///
+  ///
+  ///
+  auto begin() noexcept
+  { return stats_.begin(); }
 
-  auto end() { return stats_.end(); }
+  ///
+  ///
+  ///
+  auto end() noexcept
+  { return stats_.end(); }
 
-  auto cbegin() const { return stats_.cbegin(); }
+  ///
+  ///
+  ///
+  auto cbegin() const noexcept
+  { return stats_.cbegin(); }
 
-  auto cend() const { return stats_.cend(); }
+  ///
+  ///
+  ///
+  auto cend() const noexcept
+  { return stats_.cend(); }
 
-  Stat& create(const Stat::stat_type type, const std::string& name);
+  ///
+  ///
+  ///
+  Stat& create(const Stat::Stat_type type, const std::string& name);
 
+  ///
+  ///
+  ///
+  Stat& get(const std::string& name);
 private:
-  Span stats_;
-  int next_available_ = 0;
+  Span      stats_;
+  int       next_available_ {0};
   Size_type num_bytes_;
 
   Statman(const Statman& other) = delete;
-
   Statman(const Statman&& other) = delete;
-
   Statman& operator=(const Statman& other) = delete;
-
   Statman& operator=(Statman&& other) = delete;
+}; //< class Statman
 
-};  // < class Statman
-
-#endif  // < UTILITY_STATMAN_HPP
+#endif //< UTIL_STATMAN_HPP

@@ -312,15 +312,33 @@ namespace fs {
     }
 
     /** Mount a path local to a disk, on a VFS path - async **/
-    static inline void mount(Path local, Disk_id disk, Path remote, std::string desc, on_mount_delg callback) {
+    static inline void mount(
+      Path local,
+      Disk_id disk,
+      Path remote,
+      std::string desc,
+      on_mount_delg callback
+    )
+    {
 
-      INFO("VFS", "Creating mountpoint for %s::%s on %s",
-           (std::string("blk") + std::to_string(disk)).c_str(), remote.to_string().c_str(), local.to_string().c_str());
+      INFO(
+        "VFS",
+        "Creating mountpoint for %s::%s on %s",
+        (std::string("blk") + std::to_string(disk)).c_str(),
+        remote.to_string().c_str(),
+        local.to_string().c_str()
+      );
 
-      VFS::insert_dirent(disk, remote, [local, callback, desc](error_t err, auto&& dirent_ref){
+      VFS::insert_dirent(
+        disk,
+        remote,
+        insert_dirent_delg::make_packed(
+        [local, callback, desc](error_t err, auto&& dirent_ref)
+        {
           VFS::mount<true>(local, dirent_ref, desc);
           callback(err);
-        });
+        })
+      );
     }
 
     template <typename P = Path>
@@ -395,8 +413,11 @@ namespace fs {
       auto& fs = disk_it->second->fs();
 
       // Get the dirent from the file system at path
-      fs.stat(path, [fn, disk_id, path](auto err, auto dir){
-
+      fs.stat(
+        path,
+        fs::on_stat_func::make_packed(
+        [fn, disk_id, path](auto err, auto dir)
+        {
           if (err)
             throw Err_not_found(std::string("Dirent ") + std::to_string(disk_id) + "::" + path.to_string());
 
@@ -409,7 +430,8 @@ namespace fs {
           } else {
             fn(err, invalid_dirent());
           }
-        });
+        })
+      );
     }
 
   private:

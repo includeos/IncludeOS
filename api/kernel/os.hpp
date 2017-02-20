@@ -63,11 +63,11 @@ public:
 
   /** Timestamp for when OS was booted */
   static RTC::timestamp_t boot_timestamp()
-  { return booted_at_; }
+  { return RTC::boot_timestamp(); }
 
   /** Uptime in whole seconds. */
   static RTC::timestamp_t uptime() {
-    return RTC::now() - booted_at_;
+    return RTC::time_since_boot();
   }
 
   static MHz cpu_freq() noexcept
@@ -101,6 +101,17 @@ public:
   }
 
   /**
+   * Sometimes the OS just has a bad day and crashes
+   * The on_panic handler will be called directly after a panic,
+   * or any condition which will deliberately cause the OS to become
+   * unresponsive. After the handler is called, the OS goes to sleep.
+   * This handler can thus be used to, for example, automatically 
+   * have the OS restart on any crash.
+  **/
+  typedef void (*on_panic_func) ();
+  static void on_panic(on_panic_func);
+
+  /**
    *  Write data to standard out callbacks
    */
   static size_t print(const char* ptr, const size_t len);
@@ -109,6 +120,10 @@ public:
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
+  /**
+   *  Add "default" serial port output
+  **/
+  static void add_stdout_default_serial();
 
   /** Memory page helpers */
   static constexpr uint32_t page_size() noexcept {
@@ -121,24 +136,23 @@ public:
     return x << PAGE_SHIFT;
   }
 
+  /** Total used dynamic memory, in bytes */
+  static uintptr_t heap_usage() noexcept;
+
+  /** Attempt to trim the heap end, reducing the size */
+  static void heap_trim() noexcept;
+
   /** First address of the heap **/
   static uintptr_t heap_begin() noexcept;
 
   /** Last used address of the heap **/
   static uintptr_t heap_end() noexcept;
 
-  /** The maximum last address of the dynamic memory area (heap) */
-  static uintptr_t heap_max() noexcept{
-    return heap_max_;
-  };
-
-  /** Currently used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept {
-    return heap_end() - heap_begin();
-  };
-
   /** Resize the heap if possible. Return (potentially) new size. **/
   static uintptr_t resize_heap(size_t size);
+
+  /** The maximum last address of the dynamic memory area (heap) */
+  static uintptr_t heap_max() noexcept;
 
   /** The end of usable memory **/
   static inline uintptr_t memory_end(){
@@ -201,7 +215,6 @@ private:
 
   static MHz cpu_mhz_;
 
-  static RTC::timestamp_t booted_at_;
   static std::string version_field;
 
   struct Plugin_struct {

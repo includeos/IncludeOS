@@ -28,7 +28,6 @@ set(SOURCES
 # To add your own include paths:
 set(LOCAL_INCLUDES
   "app/"
-  $ENV{INCLUDEOS_PREFIX}/includeos/include # Temp
   ${BUCKET_DIR}
   )
 
@@ -46,8 +45,7 @@ set(LIBRARIES
 include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
 
 # Build memdisk content
-diskbuilder(disk1 disk1.img)
+diskbuilder(disk1)
 
 # Make sure bucket is downloaded before service is built
 add_dependencies(service bucket)
-
