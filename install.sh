@@ -6,10 +6,8 @@
 
 # Location of the IncludeOS repo (assumes current folder if not defined)
 export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
-echo INCLUDEOS_SRC=$INCLUDEOS_SRC
 # Prefered install location (assumes /usr/local/ if not defined)
 export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
-echo INCLUDEOS_PREFIX=$INCLUDEOS_PREFIX
 
 ############################################################
 # SYSTEM PROPERTIES:
@@ -51,13 +49,6 @@ check_os_support() {
     return 1;
 }
 
-# check if sudo is available
-if ! command -v sudo > /dev/null 2>&1; then
-    echo -e ">>> Sorry <<< \n\
-The command sudo was not found. \n"
-    exit 1
-fi
-
 # check if system is supported at all
 if ! check_os_support $SYSTEM $RELEASE; then
     echo -e ">>> Sorry <<< \n\
@@ -69,6 +60,17 @@ a look at\n \
     exit 1
 fi
 
+############################################################
+# DEPENDENCIES:
+############################################################
+
+# check if sudo is available
+if ! command -v sudo > /dev/null 2>&1; then
+    echo -e ">>> Sorry <<< \n\
+The command sudo was not found. \n"
+    exit 1
+fi
+
 # now install build requirements (compiler, etc). This was moved into
 # a function of its own as it can easen the setup.
 if ! ./etc/install_build_requirements.sh $SYSTEM $RELEASE; then
@@ -76,6 +78,10 @@ if ! ./etc/install_build_requirements.sh $SYSTEM $RELEASE; then
 Could not install build requirements. \n"
     exit 1
 fi
+
+############################################################
+# INSTALL INCLUDEOS:
+############################################################
 
 # if the --all-source parameter was given, build it the hard way
 if [ "$1" = "--all-source" ]; then
