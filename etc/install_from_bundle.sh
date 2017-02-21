@@ -16,6 +16,10 @@ set -e
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 
+echo SRC: $INCLUDEOS_SRC
+echo PREFIX: $INCLUDEOS_PREFIX
+
+
 # Try to find suitable compiler
 cc_list="clang-3.9 clang-3.8 clang-3.7 clang-3.6 clang"
 cxx_list="clang++-3.9 clang++-3.8 clang++-3.7 clang++-3.6 clang++"

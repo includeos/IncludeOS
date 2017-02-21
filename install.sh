@@ -83,6 +83,12 @@ fi
 # INSTALL INCLUDEOS:
 ############################################################
 
+# Perform a check of required environment variables
+export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}	# IncludeOS src repo
+export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}	# Install location
+export CC=${CC-clang-3.8}
+export CXX=${CXX-clang++-3.8}
+
 # if the --all-source parameter was given, build it the hard way
 if [ "$1" = "--all-source" ]; then
     echo ">>> Installing everything from source"
