@@ -19,7 +19,6 @@
 #ifndef NET_TCP_HPP
 #define NET_TCP_HPP
 
-#include <chrono> // timer duration
 #include <map>
 #include <net/inet.hpp>
 #include <net/util.hpp> // net::Packet_ptr
