@@ -36,6 +36,7 @@ struct Option {
     END = 0x00, // End of option list
     NOP = 0x01, // No-Opeartion
     MSS = 0x02, // Maximum Segment Size [RFC 793] Rev: [879, 6691]
+    WS  = 0x03, // Window Scaling [RFC 7323] p. 8
   };
 
   static std::string kind_string(Kind kind) {
@@ -43,19 +44,36 @@ struct Option {
     case MSS:
       return {"MSS"};
 
+    case WS:
+      return {"WS"};
+
     default:
       return {"Unknown Option"};
     }
   }
 
   struct opt_mss {
-    uint8_t kind;
-    uint8_t length;
+    uint8_t kind    {MSS};
+    uint8_t length  {4};
     uint16_t mss;
 
     opt_mss(uint16_t mss)
-      : kind(MSS), length(4), mss(htons(mss)) {}
-  };
+      : mss(htons(mss)) {}
+
+  } __attribute__((packed));
+
+  /**
+   * @brief      Window Scaling option [RFC 7323] p. 8
+   */
+  struct opt_ws {
+    uint8_t kind    {WS};
+    uint8_t length  {3};
+    uint8_t shift_cnt;
+
+    opt_ws(uint8_t shift)
+      : shift_cnt{shift} {}
+
+  } __attribute__((packed));
 
   struct opt_timestamp {
     uint8_t kind;

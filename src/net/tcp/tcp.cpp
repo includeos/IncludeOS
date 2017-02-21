@@ -28,6 +28,16 @@ using namespace net;
 using namespace net::tcp;
 
 TCP::TCP(IPStack& inet) :
+  inet_{inet},
+  listeners_(),
+  connections_(),
+  writeq(),
+  current_ephemeral_{new_ephemeral_port()}, // TODO: Verify RFC 6056
+  max_seg_lifetime_{default_msl},       // 30s
+  win_size_{default_ws_window_size},    // 8096*1024
+  wscale_{default_window_scaling},      // 5
+  dack_timeout_{default_dack_timeout},  // 40ms
+  max_syn_backlog_{default_max_syn_backlog}, // 64
   bytes_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_rx").get_uint64()},
   bytes_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_tx").get_uint64()},
   packets_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_rx").get_uint64()},
@@ -35,17 +45,12 @@ TCP::TCP(IPStack& inet) :
   incoming_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.incoming_connections").get_uint64()},
   outgoing_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.outgoing_connections").get_uint64()},
   connection_attempts_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.connection_attempts").get_uint64()},
-  packets_dropped_{Statman::get().create(Stat::UINT32, inet.ifname() + ".tcp.packets_dropped").get_uint32()},
-  inet_(inet),
-  listeners_(),
-  connections_(),
-  writeq(),
-  current_ephemeral_{new_ephemeral_port()}, // TODO: RFC 6056
-  max_seg_lifetime_{30s},
-  delayed_ack_timeout_{40ms}
+  packets_dropped_{Statman::get().create(Stat::UINT32, inet.ifname() + ".tcp.packets_dropped").get_uint32()}
 {
+  Expects(wscale_ <= 14 && "WScale factor cannot exceed 14");
+  Expects(win_size_ <= 0x40000000 && "Invalid size");
+
   inet.on_transmit_queue_available({this, &TCP::process_writeq});
-  // TODO: RFC 6056
 }
 
 /*
@@ -59,25 +64,18 @@ TCP::TCP(IPStack& inet) :
   Current solution:
   Simple.
 */
-Listener& TCP::bind(const port_t port) {
-  // Already a listening socket.
+Listener& TCP::bind(const port_t port, ConnectCallback cb)
+{
   Listeners::const_iterator it = listeners_.find(port);
+  // Already a listening socket.
   if(it != listeners_.cend()) {
     throw TCPException{"Port is already taken."};
   }
   auto& listener = listeners_.emplace(port,
-    std::make_unique<tcp::Listener>(*this, port)
+    std::make_unique<tcp::Listener>(*this, port, std::move(cb))
     ).first->second;
   debug("<TCP::bind> Bound to port %i \n", port);
   return *listener;
-
-  /*auto& listener = (listeners_.emplace(std::piecewise_construct,
-    std::forward_as_tuple(port),
-    std::forward_as_tuple(*this, port))
-    ).first->second;
-  debug("<TCP::bind> Bound to port %i \n", port);
-
-  return listener;*/
 }
 
 bool TCP::unbind(const port_t port) {
@@ -91,12 +89,6 @@ bool TCP::unbind(const port_t port) {
   return false;
 }
 
-/*
-  Active open a new connection to the given remote.
-
-  @WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)),
-  and open() is called before callback is added.
-*/
 Connection_ptr TCP::connect(Socket remote) {
   auto port = next_free_port();
   auto connection = add_connection(port, remote);
@@ -104,13 +96,10 @@ Connection_ptr TCP::connect(Socket remote) {
   return connection;
 }
 
-/*
-  Active open a new connection to the given remote.
-*/
-void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
+void TCP::connect(Socket remote, ConnectCallback callback) {
   auto port = next_free_port();
-  auto connection = add_connection(port, remote);
-  connection->on_connect(callback).open(true);
+  auto connection = add_connection(port, remote, std::move(callback));
+  connection->open(true);
 }
 
 void TCP::insert_connection(Connection_ptr conn)
@@ -132,7 +121,9 @@ seq_t TCP::generate_iss() {
 */
 port_t TCP::next_free_port() {
 
-  current_ephemeral_ = (current_ephemeral_ == port_ranges::DYNAMIC_END) ? port_ranges::DYNAMIC_START : current_ephemeral_ + 1;
+  current_ephemeral_ = (current_ephemeral_ == port_ranges::DYNAMIC_END)
+    ? port_ranges::DYNAMIC_START
+    : current_ephemeral_ + 1;
 
   // Avoid giving a port that is bound to a service.
   while(listeners_.find(current_ephemeral_) != listeners_.end())
@@ -279,13 +270,15 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-Connection_ptr TCP::add_connection(port_t local_port, Socket remote) {
+Connection_ptr TCP::add_connection(port_t local_port, Socket remote, ConnectCallback cb)
+{
   // Stat increment number of outgoing connections
   outgoing_connections_++;
 
   auto& conn = (connections_.emplace(
       Connection::Tuple{ local_port, remote },
-      std::make_shared<Connection>(*this, local_port, remote))
+      std::make_shared<Connection>(*this, local_port, remote, std::move(cb))
+      )
     ).first->second;
   conn->_on_cleanup({this, &TCP::close_connection});
   return conn;

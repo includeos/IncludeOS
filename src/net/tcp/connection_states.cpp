@@ -505,6 +505,13 @@ void Connection::Closed::open(Connection& tcp, bool active) {
       */
       tcp.add_option(Option::MSS, *packet);
 
+      // Window scaling
+      if(tcp.uses_window_scaling())
+      {
+        tcp.add_option(Option::WS, *packet);
+        packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
+      }
+
       tcb.SND.UNA = tcb.ISS;
       tcb.SND.NXT = tcb.ISS+1;
       tcp.transmit(std::move(packet));
@@ -793,7 +800,7 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
   if(in->isset(SYN)) {
     auto& tcb = tcp.tcb();
     tcb.RCV.NXT   = in->seq()+1;
-    tcb.IRS     = in->seq();
+    tcb.IRS       = in->seq();
     tcb.init();
     tcb.SND.NXT   = tcb.ISS+1;
     tcb.SND.UNA   = tcb.ISS;
@@ -808,6 +815,13 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
       TODO: Send even if we havent received MSS option?
     */
     tcp.add_option(Option::MSS, *packet);
+
+    // This means WS was accepted in the SYN packet
+    if(tcb.SND.wind_shift > 0)
+    {
+      tcp.add_option(Option::WS, *packet);
+      packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
+    }
 
     tcp.transmit(std::move(packet));
     tcp.set_state(SynReceived::instance());

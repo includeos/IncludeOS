@@ -400,22 +400,26 @@ public:
     struct {
       seq_t UNA;    // send unacknowledged
       seq_t NXT;    // send next
-      uint16_t WND; // send window
+      uint32_t WND; // send window
       uint16_t UP;  // send urgent pointer
       seq_t WL1;    // segment sequence number used for last window update
       seq_t WL2;    // segment acknowledgment number used for last window update
 
       uint16_t MSS; // Maximum segment size for outgoing segments.
+
+      uint8_t  wind_shift;
     } SND; // <<
     seq_t ISS;      // initial send sequence number
 
     /* Receive Sequence Variables */
     struct {
       seq_t NXT;    // receive next
-      uint16_t WND; // receive window
+      uint32_t WND; // receive window
       uint16_t UP;  // receive urgent pointer
 
       uint16_t rwnd; // receivers advertised window [RFC 5681]
+
+      uint8_t  wind_shift;
     } RCV; // <<
     seq_t IRS;      // initial receive sequence number
 
@@ -423,15 +427,8 @@ public:
     uint32_t cwnd;     // Congestion window [RFC 5681]
     seq_t recover;     // New Reno [RFC 6582]
 
-    TCB() {
-      SND = { 0, 0, default_window_size, 0, 0, 0, default_mss };
-      ISS = (seq_t)4815162342;
-      RCV = { 0, default_window_size, 0, 0 };
-      IRS = 0;
-      ssthresh = default_window_size;
-      cwnd = 0;
-      recover = 0;
-    };
+    TCB(const uint32_t recvwin);
+    TCB();
 
     void init() {
       ISS = Connection::generate_iss();
@@ -445,16 +442,14 @@ public:
   }__attribute__((packed)); // < struct Connection::TCB
 
   /*
-    Creates a connection without a remote.
-  */
-  Connection(TCP& host, port_t local_port);
-
-  /*
     Creates a connection with a remote.
   */
-  Connection(TCP& host, port_t local_port, Socket remote);
+  Connection(TCP& host, port_t local_port, Socket remote, ConnectCallback callback = nullptr);
 
-  Connection(const Connection&) = default;
+  Connection(const Connection&)             = delete;
+  Connection(Connection&&)                  = delete;
+  Connection& operator=(const Connection&)  = delete;
+  Connection& operator=(Connection&&)       = delete;
 
   /*
     Open connection.
@@ -710,19 +705,16 @@ private:
     return (uint32_t) std::max(0ll, x);
   }
 
-  /*
-
-    Note:
-    Made a function due to future use when Window Scaling Option is added.
-  */
   uint32_t send_window() const {
-    return std::min((uint32_t)cb.SND.WND, cb.cwnd);
+    return std::min((cb.SND.WND << cb.SND.wind_shift), cb.cwnd);
   }
 
   int32_t congestion_window() const {
     auto win = (uint64_t)cb.SND.UNA + std::min((uint64_t)cb.cwnd, (uint64_t)send_window());
     return (int32_t)win;
   }
+
+  bool uses_window_scaling() const;
 
   /// --- INCOMING / TRANSMISSION --- ///
   /*

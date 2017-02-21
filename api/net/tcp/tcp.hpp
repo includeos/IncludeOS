@@ -45,6 +45,10 @@ namespace net {
     friend class tcp::Connection;
     friend class tcp::Listener;
 
+  private:
+    using Listeners       = std::map<tcp::port_t, std::unique_ptr<tcp::Listener>>;
+    using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
+
   public:
     /////// TCP Stuff - Relevant to the protocol /////
 
@@ -58,7 +62,7 @@ namespace net {
     /*
       Bind a new listener to a given Port.
     */
-    tcp::Listener& bind(const tcp::port_t port);
+    tcp::Listener& bind(const tcp::port_t port, ConnectCallback cb = nullptr);
 
     /**
      * @brief Unbind (and close) a Listener
@@ -73,18 +77,18 @@ namespace net {
     /*
       Active open a new connection to the given remote.
     */
-    tcp::Connection_ptr connect(tcp::Socket remote);
+    void connect(tcp::Socket remote, ConnectCallback);
+
+    void connect(tcp::Address address, tcp::port_t port, ConnectCallback callback)
+    { connect({address, port}, std::move(callback)); }
 
     /*
       Active open a new connection to the given remote.
     */
-    void connect(tcp::Socket remote, ConnectCallback);
+    tcp::Connection_ptr connect(tcp::Socket remote);
 
     auto connect(tcp::Address address, tcp::port_t port)
     { return connect({address, port}); }
-
-    void connect(tcp::Address address, tcp::port_t port, ConnectCallback callback)
-    { connect({address, port}, callback); }
 
     /*
      * Insert existing connection
@@ -138,12 +142,69 @@ namespace net {
     { return max_seg_lifetime_; }
 
     /**
+     * @brief      Sets the window size advertisted per Connection.
+     *
+     * @param[in]  wsize  The window size
+     */
+    void set_window_size(const uint32_t wsize)
+    { Expects(wsize <= 0x40000000); win_size_ = wsize; }
+
+    /**
+     * @brief      Sets the window size with a windowscale factor.
+     *             The wsize is left shifted with the factor supplied:
+     *             wsize << factor (wsize * 2^factor)
+     *
+     * @param[in]  wsize   The window size
+     * @param[in]  factor  The wscale factor
+     */
+    void set_window_size(const uint32_t wsize, const uint8_t factor)
+    {
+      set_wscale(factor);
+      set_window_size(wsize << factor);
+    }
+
+    /**
+     * @brief      Returns the window size set.
+     *
+     * @return     The window size
+     */
+    constexpr uint32_t window_size() const
+    { return win_size_; }
+
+    /**
+     * @brief      Sets the window scale factor [RFC 7323] p. 8
+     *             Setting factor to 0 means wscale is turned off.
+     *
+     * @param[in]  factor  The wscale factor
+     */
+    void set_wscale(const uint8_t factor)
+    { Expects(factor <= 14 && "WScale factor cannot exceed 14"); wscale_ = factor; }
+
+    /**
+     * @brief      Returns the current wscale factor set.
+     *
+     * @return     The wscale factor
+     */
+    constexpr uint8_t wscale() const
+    { return wscale_; }
+
+    /**
+     * @brief      Returns wether this TCP is using window scaling.
+     *             A wscale factor of 0 means off.
+     *
+     * @return     Wether wscale is being used
+     */
+    constexpr bool uses_wscale() const
+    { return wscale_ > 0; }
+
+
+    /**
      * @brief      Sets the dack. [RFC 1122] (p.96)
      *
      * @param[in]  dack_timeout  The dack timeout
      */
     void set_DACK(const std::chrono::milliseconds dack_timeout)
-    { delayed_ack_timeout_ = dack_timeout; }
+    { dack_timeout_ = dack_timeout; }
 
     /**
      * @brief      Returns the delayed ACK timeout (ms)
@@ -151,7 +212,14 @@ namespace net {
      * @return     time to wait before sending an ACK
      */
     auto DACK_timeout() const
-    { return delayed_ack_timeout_; }
+    { return dack_timeout_; }
+
+
+    void set_max_syn_backlog(const uint16_t limit)
+    { max_syn_backlog_ = limit; }
+
+    constexpr uint16_t max_syn_backlog() const
+    { return max_syn_backlog_; }
 
     /*
       Maximum Segment Size
@@ -178,6 +246,30 @@ namespace net {
     { return inet_; }
 
   private:
+    IPStack&    inet_;
+    Listeners   listeners_;
+    Connections connections_;
+
+    downstream  _network_layer_out;
+
+    /** Internal writeq - connections gets queued in the wait for packets and recvs offer */
+    std::deque<tcp::Connection_ptr> writeq;
+
+    /** Current outgoing port */
+    tcp::port_t current_ephemeral_;
+
+    /* Settings */
+
+    /** Maximum segment lifetime (this affects TIME-WAIT period - a connection will be closed after 2*MSL) */
+    std::chrono::milliseconds max_seg_lifetime_;
+    /** The window size of the packet */
+    uint32_t                  win_size_;
+    /** Window scale factor [RFC 7323] p. 8 */
+    uint8_t                   wscale_;
+    /** Delayed ACK timeout - how long should we wait with sending an ACK */
+    std::chrono::milliseconds dack_timeout_;
+    /** Maximum SYN queue backlog */
+    uint16_t                  max_syn_backlog_;
 
     /** Stats */
     uint64_t& bytes_rx_;
@@ -188,26 +280,6 @@ namespace net {
     uint64_t& outgoing_connections_;
     uint64_t& connection_attempts_;
     uint32_t& packets_dropped_;
-
-    IPStack& inet_;
-    using Listeners = std::map<tcp::port_t, std::unique_ptr<tcp::Listener>>;
-    using Connections = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
-    Listeners listeners_;
-    Connections connections_;
-
-    downstream _network_layer_out;
-
-    std::deque<tcp::Connection_ptr> writeq;
-
-    /*
-      Settings
-    */
-    tcp::port_t current_ephemeral_;
-
-    // Maximum segment lifetime (this affects TIME-WAIT period - a connection will be closed after 2*MSL)
-    std::chrono::milliseconds max_seg_lifetime_;
-    // Delayed ACK timeout - how long should we wait with sending an ACK
-    std::chrono::milliseconds delayed_ack_timeout_;
 
     /*
       Transmit packet to network layer (IP).
@@ -237,7 +309,9 @@ namespace net {
     /*
       Add a Connection.
     */
-    tcp::Connection_ptr add_connection(tcp::port_t local_port, tcp::Socket remote);
+    tcp::Connection_ptr add_connection(tcp::port_t local_port,
+                                       tcp::Socket remote,
+                                       ConnectCallback cb = nullptr);
 
     void add_connection(tcp::Connection_ptr);
 

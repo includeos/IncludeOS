@@ -31,20 +31,21 @@ using namespace std;
 /*
   This is most likely used in a ACTIVE open
 */
-Connection::Connection(TCP& host, port_t local_port, Socket remote) :
-  host_(host),
-  local_port_(local_port),
-  remote_(remote),
-  state_(&Connection::Closed::instance()),
-  prev_state_(state_),
-  cb(),
-  read_request(),
-  writeq(),
-  on_disconnect_({this, &Connection::default_on_disconnect}),
-  rtx_timer({this, &Connection::rtx_timeout}),
-  timewait_dack_timer({this, &Connection::dack_timeout}),
-  queued_(false),
-  dack_{0}
+Connection::Connection(TCP& host, port_t local_port, Socket remote, ConnectCallback callback)
+  : host_(host),
+    local_port_(local_port),
+    remote_(remote),
+    state_(&Connection::Closed::instance()),
+    prev_state_(state_),
+    cb{host_.window_size()},
+    read_request(),
+    writeq(),
+    on_connect_{std::move(callback)},
+    on_disconnect_({this, &Connection::default_on_disconnect}),
+    rtx_timer({this, &Connection::rtx_timeout}),
+    timewait_dack_timer({this, &Connection::dack_timeout}),
+    queued_(false),
+    dack_{0}
 {
   setup_congestion_control();
   debug("<Connection> %s created\n", to_string().c_str());
@@ -53,8 +54,24 @@ Connection::Connection(TCP& host, port_t local_port, Socket remote) :
 /*
   This is most likely used in a PASSIVE open
 */
-Connection::Connection(TCP& host, port_t local_port)
-  : Connection(host, local_port, Socket())
+/*Connection::Connection(TCP& host, port_t local_port, ConnectCallback cb)
+  : Connection(host, local_port, Socket(), std::move(cb))
+{
+}*/
+
+Connection::TCB::TCB(const uint32_t recvwin)
+  : SND{ 0, 0, default_window_size, 0, 0, 0, default_mss, 0 },
+    ISS{(seq_t)4815162342},
+    RCV{ 0, recvwin, 0, 0, 0 },
+    IRS{0},
+    ssthresh{recvwin},
+    cwnd{0},
+    recover{0}
+{
+}
+
+Connection::TCB::TCB()
+  : Connection::TCB(default_window_size)
 {
 }
 
@@ -337,7 +354,7 @@ Packet_ptr Connection::create_outgoing_packet() {
   // Set Destination (remote)
   packet->set_destination(remote_);
 
-  packet->set_win(cb.RCV.WND);
+  packet->set_win(std::min((cb.RCV.WND >> cb.RCV.wind_shift), (uint32_t)default_window_size));
 
   // Set SEQ and ACK - I think this is OK..
   packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
@@ -394,7 +411,7 @@ bool Connection::handle_ack(const Packet& in) {
 
     if( (cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() )) and cb.SND.WND != in.win() )
     {
-      cb.SND.WND = in.win();
+      cb.SND.WND = in.win() << cb.SND.wind_shift;
       cb.SND.WL1 = in.seq();
       cb.SND.WL2 = in.ack();
       //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
@@ -854,6 +871,21 @@ void Connection::parse_options(Packet& packet) {
       break;
     }
 
+    case Option::WS: {
+      if(!packet.isset(SYN))
+        throw TCPBadOptionException{Option::WS, "Non-SYN packet"};
+      if(host_.uses_wscale())
+      {
+        auto* opt_ws = (Option::opt_ws*)option;
+        cb.SND.wind_shift = opt_ws->shift_cnt = std::min(opt_ws->shift_cnt, (uint8_t)14);
+        cb.RCV.wind_shift = host_.wscale();
+        debug2("<Connection::parse_options@WS> WS: %u Calc: %u\n",
+          cb.SND.wind_shift, cb.SND.WND << cb.SND.wind_shift);
+      }
+      opt += option->length;
+      break;
+    }
+
     default:
       return;
     }
@@ -870,9 +902,19 @@ void Connection::add_option(Option::Kind kind, Packet& packet) {
            packet.to_string().c_str(), ntohs(*(uint16_t*)(packet.tcp_options()+2)));
     break;
   }
+
+  case Option::WS: {
+    packet.add_tcp_option<Option::opt_ws>(host_.wscale());
+    break;
+  }
   default:
     break;
   }
+}
+
+bool Connection::uses_window_scaling() const
+{
+  return host_.uses_wscale();
 }
 
 void Connection::drop(const Packet& packet, const std::string&) {
