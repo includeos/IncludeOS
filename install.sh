@@ -1,10 +1,19 @@
 #!/bin/sh
 
+############################################################
 # OPTIONS:
-#
-# Location of the IncludeOS repo (assumes current folder if not defined), e.g.:
-# $ export INCLUDEOS_SRC=your/github/cloned/IncludeOS
+############################################################
+
+# Location of the IncludeOS repo (assumes current folder if not defined)
 export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
+echo INCLUDEOS_SRC=$INCLUDEOS_SRC
+# Prefered install location (assumes /usr/local/ if not defined)
+export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
+echo INCLUDEOS_PREFIX=$INCLUDEOS_PREFIX
+
+############################################################
+# SYSTEM PROPERTIES:
+############################################################
 
 SYSTEM=`uname -s`
 
