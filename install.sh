@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 ############################################################
 # OPTIONS:
@@ -122,7 +122,7 @@ elif [ "Linux" = "$SYSTEM" ]; then
     fi
 
 	# Installing network bridge
-    printf "\n\n>>> Installing network bridge"
+    printf "\n\n>>> Installing network bridge\n"
     if ! ./etc/scripts/create_bridge.sh; then
         printf "%s\n" ">>> Sorry <<<"\
 			   "Could not create or configure bridge."
@@ -138,5 +138,12 @@ printf "%s\n" "To use IncludeOS set env variables for cmake to know your compile
 	   '    export CXX="clang++-3.8"'\
 	   ""\
 	   "Test your installation with ./test.sh"
+
+# Check if boot command is available
+if ! type boot > /dev/null 2>&1; then
+	printf "\nThe boot utility is not available, add IncludeOS to your path:\n"
+	printf "    export PATH=\$PATH:$INCLUDEOS_PREFIX/bin"
+fi
+
 
 exit 0
