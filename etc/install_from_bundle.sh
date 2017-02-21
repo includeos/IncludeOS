@@ -33,13 +33,13 @@ guess_compiler() {
 
 if [ -z "$CC" ]
 then
-	guess_compiler $cc_list
+	guess_compiler "$cc_list"
 	export CC=$compiler
 fi
 
 if [ -z "$CXX" ]
 then
-	guess_compiler $cxx_list
+	guess_compiler "$cxx_list"
 	export CXX=$compiler
 fi
 

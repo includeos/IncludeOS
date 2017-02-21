@@ -1,13 +1,15 @@
-#!/bin/sh
+#!/bin/bash
 
 ############################################################
 # OPTIONS:
 ############################################################
 
-# Location of the IncludeOS repo (assumes current folder if not defined)
-export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
-# Prefered install location (assumes /usr/local/ if not defined)
-export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
+# Location of the IncludeOS repo (default: current directory)
+INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
+# Prefered install location (default: /usr/local)
+INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
+# Enable compilation of tests in cmake (default: OFF)
+INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST-OFF}
 
 ############################################################
 # SYSTEM PROPERTIES:
@@ -51,12 +53,11 @@ check_os_support() {
 
 # check if system is supported at all
 if ! check_os_support $SYSTEM $RELEASE; then
-    echo -e ">>> Sorry <<< \n\
-Currently only Debian testing/jessie backports, Ubuntu, Fedora, Arch,\n\
-and OSX are actively supported for *building* IncludeOS. \n\
-On other Linux distros it shouldn't be that hard to get it to work - take\n\
-a look at\n \
-./etc/install_from_bundle.sh \n"
+    printf "%s\n" ">>> Sorry <<<"\
+		   "Currently only Debian testing/jessie backports, Ubuntu, Fedora, Arch,"\
+		   "and OSX are actively supported for *building* IncludeOS."\
+		   "On other Linux distros it shouldn't be that hard to get it to work - take"\
+		   "a look at ./etc/install_from_bundle.sh"
     exit 1
 fi
 
@@ -66,16 +67,16 @@ fi
 
 # check if sudo is available
 if ! command -v sudo > /dev/null 2>&1; then
-    echo -e ">>> Sorry <<< \n\
-The command sudo was not found. \n"
+    printf "%s\n" ">>> Sorry <<<"\
+		   "The command sudo was not found."
     exit 1
 fi
 
 # now install build requirements (compiler, etc). This was moved into
 # a function of its own as it can easen the setup.
 if ! ./etc/install_build_requirements.sh $SYSTEM $RELEASE; then
-    echo -e ">>> Sorry <<< \n\
-Could not install build requirements. \n"
+    printf "%s\n" ">>> Sorry <<<"\
+		   "Could not install build requirements."
     exit 1
 fi
 
@@ -84,14 +85,28 @@ fi
 ############################################################
 
 # Perform a check of required environment variables
-export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}	# IncludeOS src repo
-export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}	# Install location
-export CC=${CC-clang-3.8}
-export CXX=${CXX-clang++-3.8}
+printf "\n\n>>> IncludeOS will be installed with the following options:\n\n"
+printf "%-25s %-25s %s\n"\
+	   "Env variable" "Description" "Value"\
+	   "------------" "-----------" "-----"\
+	   "INCLUDEOS_SRC" "Source dir of IncludeOS" "$INCLUDEOS_SRC"\
+	   "INCLUDEOS_PREFIX" "Install location" "$INCLUDEOS_PREFIX"\
+	   "INCLUDEOS_ENABLE_TEST" "Enable test compilation" "$INCLUDEOS_ENABLE_TEST"
+
+if tty -s; then
+	read -p "Is this correct [Y|N]?" answer
+	case $answer in
+		[yY] | [yY][Ee][Ss] )
+			true;;
+		[nN] | [n|N][O|o] )
+			exit 1;;
+		*) echo "Invalid input";;
+	esac
+fi
 
 # if the --all-source parameter was given, build it the hard way
 if [ "$1" = "--all-source" ]; then
-    echo ">>> Installing everything from source"
+    printf "\n\n>>> Installing everything from source"
     ./etc/install_all_source.sh
 
 elif [ "Darwin" = "$SYSTEM" ]; then
@@ -99,21 +114,29 @@ elif [ "Darwin" = "$SYSTEM" ]; then
     ./etc/install_osx.sh
 
 elif [ "Linux" = "$SYSTEM" ]; then
-    echo -e "\n\n>>> Calling install_from_bundle.sh script"
+    printf "\n\n>>> Calling install_from_bundle.sh script"
     if ! ./etc/install_from_bundle.sh; then
-        echo -e ">>> Sorry <<< \n\
-Could not install from bundle. \n"
+        printf  "%s\n" ">>> Sorry <<<"\
+				"Could not install from bundle."
         exit 1
     fi
 
-    echo
+	# Installing network bridge
+    printf "\n\n>>> Installing network bridge"
     if ! ./etc/scripts/create_bridge.sh; then
-        echo -e ">>> Sorry <<< \n\
-Could not create or configure bridge. \n"
+        printf "%s\n" ">>> Sorry <<<"\
+			   "Could not create or configure bridge."
         exit 1
     fi
 
-    echo -e "\n\n>>> Done! Test your installation with ./test.sh"
+
 fi
+
+printf "\n\n>>> IncludeOS installation Done!\n" 
+printf "%s\n" "To use IncludeOS set env variables for cmake to know your compiler, e.g.:"\
+	   '    export CC="clang-3.8"'\
+	   '    export CXX="clang++-3.8"'\
+	   ""\
+	   "Test your installation with ./test.sh"
 
 exit 0
