@@ -130,19 +130,19 @@ namespace net
     opt->length = 0;
 
     ////////////////////////////////////////////////////////
-    auto& socket = stack.udp().bind(DHCP_SOURCE_PORT);
+    auto& socket = stack.udp().bind(DHCP_CLIENT_PORT);
     /// broadcast our DHCP plea as 0.0.0.0:67
-    socket.bcast(IP4::ADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    socket.bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, packet, packetlen);
 
     socket.on_read(
     [this, &socket] (IP4::addr, UDP::port_t port,
                      const char* data, size_t len)
     {
-      if (port == DHCP_DEST_PORT)
+      if (port == DHCP_SERVER_PORT)
       {
         // we have got a DHCP Offer
         debug("Received possible DHCP OFFER from %s:%d\n",
-              addr.str().c_str(), DHCP_DEST_PORT);
+              addr.str().c_str(), DHCP_SERVER_PORT);
         this->offer(socket, data, len);
       }
     });
@@ -326,17 +326,17 @@ namespace net
     [this] (IP4::addr, UDP::port_t port,
             const char* data, size_t len)
     {
-      if (port == DHCP_DEST_PORT)
+      if (port == DHCP_SERVER_PORT)
       {
         // we have hopefully got a DHCP Ack
         debug("\tReceived DHCP ACK from %s:%d\n",
-              addr.str().c_str(), DHCP_DEST_PORT);
+              addr.str().c_str(), DHCP_SERVER_PORT);
         this->acknowledge(data, len);
       }
     });
 
     // send our DHCP Request
-    sock.bcast(IP4::ADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
+    sock.bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, packet, packetlen);
   }
 
   void DHClient::acknowledge(const char* data, size_t)

@@ -180,9 +180,8 @@ namespace net {
   static const uint8_t FQDN_SUBOPTION_COUNT =   8;
 
   static const uint8_t ETH_ALEN =         6;  // octets in one ethernet header
-  static const uint8_t DHCP_DEST_PORT =   67;
-  static const uint8_t DHCP_SOURCE_PORT = 68;
-
+  static const uint8_t DHCP_SERVER_PORT = 67;
+  static const uint8_t DHCP_CLIENT_PORT = 68;
 } // < namespace net
 
 #endif
