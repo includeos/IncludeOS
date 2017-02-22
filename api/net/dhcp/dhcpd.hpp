@@ -129,7 +129,7 @@ namespace dhcp {
     IP4::addr netmask_, router_, dns_;
     uint32_t lease_, max_lease_;
     uint8_t pending_;               // How long to consider an offered address in the pending state (seconds)
-    std::vector<Record> records_;   // Temp - Instead of persistent storage:
+    std::vector<Record> records_;   // Temp - Instead of persistent storage
 
     bool valid_pool(IP4::addr start, IP4::addr end) const;
     void init_pool();

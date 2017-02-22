@@ -509,6 +509,10 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   std::memcpy(offer->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN); // uint8_t array - size 16, client hardware address
   std::memcpy(offer->sname, msg->sname, dhcp_packet_t::SNAME_LEN);  // Server host name or options - MAY
   std::memcpy(offer->file, msg->file, dhcp_packet_t::FILE_LEN);     // Client boot file name or options - MAY
+  offer->magic[0] =  99;
+  offer->magic[1] = 130;
+  offer->magic[2] =  83;
+  offer->magic[3] =  99;
 
   // OPTIONS
   dhcp_option_t* offer_opts = (dhcp_option_t*) (offer->options + 0);
@@ -794,6 +798,10 @@ void DHCPD::inform_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   std::memcpy(ack->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN);
   std::memcpy(ack->sname, msg->sname, dhcp_packet_t::SNAME_LEN);  // Server host name or options - MAY
   std::memcpy(ack->file, msg->file, dhcp_packet_t::FILE_LEN);     // Client boot file name or options - MAY
+  ack->magic[0] =  99;
+  ack->magic[1] = 130;
+  ack->magic[2] =  83;
+  ack->magic[3] =  99;
 
   // OPTIONS
   dhcp_option_t* ack_opts = (dhcp_option_t*) (ack->options + 0);
@@ -872,20 +880,12 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   ack->flags = msg->flags;
   ack->giaddr = msg->giaddr;
   std::memcpy(ack->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN);
-
-  printf("\n------------- OBS Memcopying chaddr in ack -------------\n");
-  printf("Msg->chaddr:\n");
-  for (int i = 0; i < dhcp_packet_t::CHADDR_LEN; i++)
-    printf("%u ", msg->chaddr[i]);
-  printf("\n");
-  printf("Ack->chaddr:\n");
-  for (int i = 0; i < dhcp_packet_t::CHADDR_LEN; i++)
-    printf("%u ", ack->chaddr[i]);
-  printf("\n");
-  printf("------------------------------------------------------\n");
-
   std::memcpy(ack->sname, msg->sname, dhcp_packet_t::SNAME_LEN);  // Server host name or options - MAY
   std::memcpy(ack->file, msg->file, dhcp_packet_t::FILE_LEN);     // Client boot file name or options - MAY
+  ack->magic[0] =  99;
+  ack->magic[1] = 130;
+  ack->magic[2] =  83;
+  ack->magic[3] =  99;
 
   // OPTIONS
   dhcp_option_t* ack_opts = (dhcp_option_t*) (ack->options + 0);
