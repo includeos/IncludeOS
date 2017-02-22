@@ -20,16 +20,14 @@
 #include <hw/apic.hpp>
 #include <hw/apic_revenant.hpp>
 #include <kernel/irq_manager.hpp>
+#include <malloc.h>
 #include <algorithm>
 #include <cstring>
-#if defined(__MACH__)
-extern void *aligned_alloc(size_t, size_t);
-#endif
 
 extern "C" {
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
-  void lapic_exception_handler();
+  void lapic_except_entry();
   void lapic_irq_entry();
 }
 
@@ -77,7 +75,7 @@ void SMP::init()
 
   auto* idt = (IDTDescr*) smp_lapic_idt.base;
   for (size_t i = 0; i < 32; i++) {
-    addr_union addr(lapic_exception_handler);
+    addr_union addr(lapic_except_entry);
     idt[i].offset_1 = addr.part[0];
     idt[i].offset_2 = addr.part[1];
     idt[i].selector  = 0x8;
@@ -95,7 +93,7 @@ void SMP::init()
 
   // assign stack and main func
   boot->worker_addr = (void*) &revenant_main;
-  boot->stack_base = aligned_alloc(CPUcount * REV_STACK_SIZE, 4096);
+  boot->stack_base = memalign(CPUcount * REV_STACK_SIZE, 4096);
   boot->stack_size = REV_STACK_SIZE;
   debug("APIC stack base: %p  size: %u   main size: %u\n",
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));

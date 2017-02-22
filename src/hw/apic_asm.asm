@@ -18,12 +18,17 @@ USE32
 global apic_enable
 global spurious_intr
 global lapic_send_eoi
+global initialize_cpu_id
 global get_cpu_id
 global get_cpu_eip
 global get_cpu_esp
 global reboot_os
 
 global lapic_irq_entry
+extern lapic_irq_handler
+
+global lapic_except_entry
+extern lapic_except_handler
 
 apic_enable:
     push ecx
@@ -36,11 +41,12 @@ apic_enable:
     pop ecx
     ret
 
+initialize_cpu_id:
+    pop gs
+    ret
+
 get_cpu_id:
-    mov eax, 1
-    cpuid
-    shr ebx, 24
-    mov eax, ebx
+    mov eax, [fs:0x0]
     ret
 
 get_cpu_esp:
@@ -71,6 +77,18 @@ reset_idtr:
     dw      400h - 1
     dd      0
 
+lapic_except_entry:
+    cli
+    pusha
+    call lapic_except_handler
+    popa
+    sti
+    iret
+
 lapic_irq_entry:
-    call lapic_send_eoi
+    cli
+    pusha
+    call lapic_irq_handler
+    popa
+    sti
     iret

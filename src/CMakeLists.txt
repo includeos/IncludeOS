@@ -56,6 +56,8 @@ set(OS_OBJECTS
   posix/ucontext.cpp posix/ucontext_asm.asm
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
   posix/pwd.cpp
+  
+  arch/x86/gdt.cpp arch/x86/gdt_asm.asm
 )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
