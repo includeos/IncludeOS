@@ -15,9 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/apic_timer.hpp>
-#include <hw/apic.hpp>
-#include <hw/pit.hpp>
+#include "apic_timer.hpp"
+#include "apic.hpp"
+#include "pit.hpp"
 #include <kernel/irq_manager.hpp>
 #include <kernel/timers.hpp>
 #include <cstdio>
@@ -34,7 +34,7 @@
 
 using namespace std::chrono;
 
-namespace hw
+namespace x86
 {
   static uint32_t ticks_per_micro = 0;
   static bool     intr_enabled    = false;
@@ -49,7 +49,13 @@ namespace hw
 
   void APIC_Timer::init()
   {
-    auto& lapic = hw::APIC::get();
+    // initialize timer system
+    Timers::init(
+        oneshot, // timer start function
+        stop);   // timer stop function
+
+    // initialize local APIC timer
+    auto& lapic = APIC::get();
     lapic.timer_init();
 
     if (ticks_per_micro != 0) {
@@ -71,15 +77,15 @@ namespace hw
     // measure function call and tick read overhead
     uint32_t overhead;
     [&overhead] {
-        overhead = hw::APIC::get().timer_diff();
+        overhead = APIC::get().timer_diff();
     }();
     // restart counter
     lapic.timer_begin(0xFFFFFFFF);
 
     /// use PIT to measure <time> in one-shot ///
-    hw::PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
+    PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
     [overhead] {
-      uint32_t diff = hw::APIC::get().timer_diff() - overhead;
+      uint32_t diff = APIC::get().timer_diff() - overhead;
       // measure difference
       ticks_per_micro = diff / CALIBRATION_MS / 1000;
 
@@ -101,7 +107,7 @@ namespace hw
     if (ticks > 0xFFFFFFFF) ticks = 0xFFFFFFFF;
 
     // set initial counter
-    auto& lapic = hw::APIC::get();
+    auto& lapic = APIC::get();
     lapic.timer_begin(ticks);
     // re-enable interrupts if disabled
     if (intr_enabled == false) {
@@ -111,7 +117,7 @@ namespace hw
   }
   void APIC_Timer::stop() noexcept
   {
-    hw::APIC::get().timer_interrupt(false);
+    APIC::get().timer_interrupt(false);
     intr_enabled = false;
   }
 

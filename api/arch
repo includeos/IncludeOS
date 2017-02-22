@@ -17,21 +17,24 @@
 // limitations under the License.
 
 #pragma once
-#ifndef API_SMP_HEADER
-#define API_SMP_HEADER
+#ifndef INCLUDEOS_ARCH_HEADER
+#define INCLUDEOS_ARCH_HEADER
 
-class SMP {
-public:
-  using task_func = delegate<void()>;
-  using done_func = delegate<void()>;
+#define ARCH_X86
+#include <cstdint>
 
-  // add tasks that will not necessarily start immediately
-  // use work_signal() to guarantee work starts
-  static void
-  add_task(task_func func, done_func done);
+extern void __arch_init();
+extern void __arch_poweroff();
+extern void __arch_reboot();
+extern void __arch_enable_legacy_irq(uint8_t);
+extern void __arch_disable_legacy_irq(uint8_t);
 
-  // call this to signal that more work is queued up
-  static void signal();
-};
+#ifdef ARCH_X86
+inline uint64_t __arch_cpu_cycles() noexcept {
+  uint64_t ret;
+  asm("rdtsc" : "=A" (ret));
+  return ret;
+}
+#endif
 
 #endif

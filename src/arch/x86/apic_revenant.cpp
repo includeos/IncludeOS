@@ -1,6 +1,5 @@
-#include <hw/apic_revenant.hpp>
+#include "apic_revenant.hpp"
 
-#include <hw/apic.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kprint>
 
@@ -43,7 +42,7 @@ void revenant_main(int cpu)
   // load IDT
   asm volatile("lidt %0" : : "m"(smp_lapic_idt));
   // enable Local APIC
-  hw::APIC::get().smp_enable();
+  x86::APIC::get().smp_enable();
   // initialize cpuid for this core
   initialize_cpu_id(cpu);
   lock(smp.glock);
@@ -95,7 +94,7 @@ void revenant_main(int cpu)
     
     // at least one thread will empty the task list
     if (empty)
-      hw::APIC::get().send_bsp_intr();
+      x86::APIC::get().send_bsp_intr();
   }
   __builtin_unreachable();
 }
@@ -106,7 +105,7 @@ extern "C" {
   extern void (*current_eoi_mechanism)();
   void lapic_irq_handler()
   {
-    hw::APIC::get().eoi();
+    x86::APIC::get().eoi();
     //(*current_eoi_mechanism)();
   }
   void lapic_except_handler()

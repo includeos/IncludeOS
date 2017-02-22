@@ -25,8 +25,6 @@
 #include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
 #include <kernel/rtc.hpp>
-
-#include <hw/acpi.hpp>
 #include <hw/serial.hpp>
 
 #include <statman>
@@ -157,7 +155,7 @@ static void default_panic_handler()
 {
   // shutdown the machine
   if (SHUTDOWN_ON_PANIC)
-      hw::ACPI::shutdown();
+      __arch_poweroff();
 }
 __attribute__((weak))
 OS::on_panic_func panic_handler = default_panic_handler;
@@ -205,7 +203,7 @@ void panic(const char* why) {
 
 // Shutdown the machine when one of the exit functions are called
 void default_exit() {
-  hw::ACPI::shutdown();
+  __arch_poweroff();
   __builtin_unreachable();
 }
 

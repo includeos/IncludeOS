@@ -16,132 +16,127 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_X2APIC_HPP
-#define HW_X2APIC_HPP
+#ifndef X86_XAPIC_HPP
+#define X86_XAPIC_HPP
 
 #include "apic_iface.hpp"
 #include "apic_regs.hpp"
+#include "cpu.hpp"
 #include <kernel/irq_manager.hpp>
 #include <debug>
 #include <info>
 
-/// x2APIC MSR offsets ///
-#define x2APIC_ID         0x02
-#define x2APIC_VER        0x03
-#define x2APIC_TPR        0x08
-#define x2APIC_EOI        0x0B
-#define x2APIC_LDR        0x0D
-#define x2APIC_DFR        0x0E
-#define x2APIC_SPURIOUS   0x0F
-#define x2APIC_ISR        0x10
-#define x2APIC_IRR        0x20
-#define x2APIC_ESR        0x28
-#define x2APIC_ICR        0x30
-#define x2APIC_LVT_TMR    0x32
-#define x2APIC_LVT_PERF   0x34
-#define x2APIC_LVT_LINT0  0x35
-#define x2APIC_LVT_LINT1  0x36
-#define x2APIC_LVT_ERR    0x37
-#define x2APIC_TMRINITCNT 0x38
-#define x2APIC_TMRCURRCNT 0x39
-#define x2APIC_TMRDIV     0x3E
+/// xAPIC MMIO offsets ///
+#define xAPIC_ID         0x20
+#define xAPIC_VER        0x30
+#define xAPIC_TPR        0x80
+#define xAPIC_EOI        0x0B0
+#define xAPIC_LDR        0x0D0
+#define xAPIC_DFR        0x0E0
+#define xAPIC_SPURIOUS   0x0F0
+#define xAPIC_ISR        0x100
+#define xAPIC_IRR        0x200
+#define xAPIC_ESR        0x280
+#define xAPIC_ICRL       0x300
+#define xAPIC_ICRH       0x310
+#define xAPIC_LVT_TMR    0x320
+#define xAPIC_LVT_PERF   0x340
+#define xAPIC_LVT_LINT0  0x350
+#define xAPIC_LVT_LINT1  0x360
+#define xAPIC_LVT_ERR    0x370
+#define xAPIC_TMRINITCNT 0x380
+#define xAPIC_TMRCURRCNT 0x390
+#define xAPIC_TMRDIV     0x3E0
+#define xAPIC_LAST       0x38F
 
 #define IA32_APIC_BASE_MSR  0x1B
 
 extern "C" {
   extern void (*current_eoi_mechanism)();
-  extern void x2apic_send_eoi();
+  extern void lapic_send_eoi();
 }
 
-namespace hw {
+namespace x86 {
 
-  struct x2apic : public IApic
+  struct xapic : public IApic
   {
-    static const uint32_t MSR_ENABLE_X2APIC = 0xC00;
+    static const uint32_t MSR_ENABLE_XAPIC   = 0x800;
     static const uint8_t  SPURIOUS_INTR = IRQ_manager::INTR_LINES-1;
 
-    x2apic() {
-      INFO("x2APIC", "Enabling x2APIC");
-      // add x2APIC enable bit to APIC BASE MSR
-      auto base_msr = CPU::read_msr(IA32_APIC_BASE_MSR);
-      base_msr = (base_msr & 0xfffff100) | MSR_ENABLE_X2APIC;
-      // turn the x2APIC on
-      CPU::write_msr(IA32_APIC_BASE_MSR, base_msr, 0);
-      // verify that x2APIC is online
+    xapic() {
+      // read xAPIC base address from masked out MSR
+      this->base_msr = CPU::read_msr(IA32_APIC_BASE_MSR);
+      this->regbase = this->base_msr & 0xFFFFF000;
+      // turn the xAPIC on
+      INFO("xAPIC", "Enabling xAPIC");
+      this->base_msr = 
+          (this->base_msr & 0xfffff100) | MSR_ENABLE_XAPIC;
+      CPU::write_msr(IA32_APIC_BASE_MSR, this->base_msr, 0);
+      // verify that xAPIC is online
       uint64_t verify = CPU::read_msr(IA32_APIC_BASE_MSR);
-      assert(verify & MSR_ENABLE_X2APIC);
-      INFO2("x2APIC id: %x  ver: %x\n", get_id(), version());
+      assert(verify & MSR_ENABLE_XAPIC);
+      INFO2("xAPIC id: %x  ver: %x\n", get_id(), version());
     }
 
     uint32_t read(uint32_t reg) noexcept override
     {
-      return CPU::read_msr(BASE_MSR + reg);
-    }
-    uint64_t readl(uint32_t reg) noexcept
-    {
-      return CPU::read_msr(BASE_MSR + reg);
+      return *(volatile uint32_t*) (regbase + reg);
     }
     void write(uint32_t reg, uint32_t value) noexcept override
     {
-      CPU::write_msr(BASE_MSR + reg, value);
-    }
-    void writel(uint32_t reg, uint32_t hi, uint32_t lo) noexcept
-    {
-      CPU::write_msr(BASE_MSR + reg, lo, hi);
+      *(volatile uint32_t*) (regbase + reg) = value;
     }
 
     const char* name() const noexcept override {
-      return "x2APIC";
+      return "xAPIC";
     }
     uint32_t get_id() noexcept override {
-      return read(x2APIC_ID);
+      return read(xAPIC_ID) >> 24;
     }
     uint32_t version() noexcept override {
-      return read(x2APIC_VER);
+      return read(xAPIC_VER);
     }
 
     void
     interrupt_control(uint32_t bits, uint8_t spurious) noexcept override
     {
-      write(x2APIC_SPURIOUS, bits | spurious);
+      write(xAPIC_SPURIOUS, bits | spurious);
     }
-
+    
     void enable() noexcept override
     {
-      write(x2APIC_TPR, 0xff);       // disable temp
+      /// enable interrupts ///
+      write(xAPIC_TPR, 0xff);       // disable temp
+      write(xAPIC_LDR, 0x01000000); // logical ID 1
+      write(xAPIC_DFR, 0xffffffff); // flat destination mode
 
       // program APIC local interrupts
-      write(x2APIC_LVT_LINT0, INTR_MASK | LAPIC_IRQ_LINT0);
-      write(x2APIC_LVT_LINT1, INTR_MASK | LAPIC_IRQ_LINT1);
-      write(x2APIC_LVT_ERR,   INTR_MASK | LAPIC_IRQ_ERROR);
+      write(xAPIC_LVT_LINT0, INTR_MASK | LAPIC_IRQ_LINT0);
+      write(xAPIC_LVT_LINT1, INTR_MASK | LAPIC_IRQ_LINT1);
+      write(xAPIC_LVT_ERR,   INTR_MASK | LAPIC_IRQ_ERROR);
 
       // start receiving interrupts (0x100), set spurious vector
       // note: spurious IRQ must have 4 last bits set (0x?F)
       interrupt_control(0x100, SPURIOUS_INTR);
 
       // acknowledge any outstanding interrupts
-      this->eoi();
+      lapic_send_eoi();
 
       // enable APIC by resetting task priority
-      write(x2APIC_TPR, 0);
+      write(xAPIC_TPR, 0);
     }
     void smp_enable() noexcept override {
-      // enable x2apic
-      auto base_msr = CPU::read_msr(IA32_APIC_BASE_MSR);
-      base_msr = (base_msr & 0xfffff100) | MSR_ENABLE_X2APIC;
-      CPU::write_msr(IA32_APIC_BASE_MSR, base_msr, 0);
-      // configure it
       enable();
     }
 
     void eoi() noexcept override
     {
-      write(x2APIC_EOI, 0);
+      write(xAPIC_EOI, 0);
     }
     uint8_t get_isr() noexcept override
     {
       for (int i = 8; i >= 0; i--) {
-        uint32_t reg = read(x2APIC_ISR + i);
+        uint32_t reg = read(xAPIC_ISR + 0x10 * i);
         if (reg) return 32 * i + __builtin_ffs(reg) - 1;
       }
       return 255;
@@ -149,7 +144,7 @@ namespace hw {
     uint8_t get_irr() noexcept override
     {
       for (int i = 8; i >= 0; i--) {
-        uint32_t reg = read(x2APIC_IRR + i);
+        uint32_t reg = read(xAPIC_IRR + 0x10 * i);
         if (reg) return 32 * i + __builtin_ffs(reg) - 1;
       }
       return 255;
@@ -157,23 +152,27 @@ namespace hw {
     
     void ap_init(int id) noexcept override
     {
-      writel(x2APIC_ICR, id,
-          ICR_INIT | ICR_PHYSICAL | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND);
-      while (readl(x2APIC_ICR) & ICR_SEND_PENDING);
+      write(xAPIC_ICRH, (id & 0xff) << ICR_DEST_BITS);
+      write(xAPIC_ICRL, ICR_INIT | ICR_PHYSICAL
+           | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND);
+      while (read(xAPIC_ICRL) & ICR_SEND_PENDING);
     }
     void ap_start(int id, uint32_t vector) noexcept override
     {
-      writel(x2APIC_ICR, id,
-          vector | ICR_STARTUP | ICR_PHYSICAL | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND);
-      while (readl(x2APIC_ICR) & ICR_SEND_PENDING);
+      write(xAPIC_ICRH, (id & 0xff) << ICR_DEST_BITS);
+      write(xAPIC_ICRL, vector | ICR_STARTUP
+        | ICR_PHYSICAL | ICR_ASSERT | ICR_EDGE | ICR_NO_SHORTHAND);
+      while (read(xAPIC_ICRL) & ICR_SEND_PENDING);
     }
 
     void send_ipi(int id, uint8_t vector) noexcept override
     {
       debug("send_ipi  id %u  vector %u\n", id, vector);
       // select APIC ID
-      writel(x2APIC_ICR, id,
-                         ICR_ASSERT | ICR_FIXED | vector);
+      uint32_t value = read(xAPIC_ICRH) & 0x00ffffff;
+      write(xAPIC_ICRH, value | ((id & 0xff) << 24));
+      // write vector and trigger/level/mode
+      write(xAPIC_ICRL, ICR_ASSERT | ICR_FIXED | vector);
     }
     void send_bsp_intr() noexcept override
     {
@@ -183,41 +182,41 @@ namespace hw {
     void bcast_ipi(uint8_t vector) noexcept override
     {
       debug("bcast_ipi  vector %u\n", vector);
-      writel(x2APIC_ICR, 0, 
-                         ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector);
+      write(xAPIC_ICRL, ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector);
     }
 
     void timer_init() noexcept override
     {
       static const uint32_t TIMER_ONESHOT = 0x0;
       // decrement every other tick
-      write(x2APIC_TMRDIV, 0x1);
+      write(xAPIC_TMRDIV, 0x1);
       // start in one-shot mode and set the interrupt vector
       // but also disable interrupts
-      write(x2APIC_LVT_TMR, TIMER_ONESHOT | (32+LAPIC_IRQ_TIMER) | INTR_MASK);
+      write(xAPIC_LVT_TMR, TIMER_ONESHOT | (32+LAPIC_IRQ_TIMER) | INTR_MASK);
     }
     void timer_begin(uint32_t value) noexcept override
     {
-      write(x2APIC_TMRINITCNT, value);
+      write(xAPIC_TMRINITCNT, value);
     }
     uint32_t timer_diff() noexcept override
     {
-      return read(x2APIC_TMRINITCNT) - read(x2APIC_TMRCURRCNT);
+      return read(xAPIC_TMRINITCNT) - read(xAPIC_TMRCURRCNT);
     }
     void timer_interrupt(bool enabled) noexcept override
     {
       if (enabled)
-          write(x2APIC_LVT_TMR, read(x2APIC_LVT_TMR) & ~INTR_MASK);
+          write(xAPIC_LVT_TMR, read(xAPIC_LVT_TMR) & ~INTR_MASK);
       else
-          write(x2APIC_LVT_TMR, read(x2APIC_LVT_TMR) | INTR_MASK);
+          write(xAPIC_LVT_TMR, read(xAPIC_LVT_TMR) | INTR_MASK);
     }
 
-    static x2apic& get() {
-      static x2apic instance;
+    static xapic& get() {
+      static xapic instance;
       return instance;
     }
   private:
-    static const uint32_t BASE_MSR = 0x800;
+    uint64_t  base_msr;
+    uintptr_t regbase;
   };
 }
 

@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/smp.hpp>
-#include <hw/acpi.hpp>
-#include <hw/apic.hpp>
-#include <hw/apic_revenant.hpp>
+#include "smp.hpp"
+#include "acpi.hpp"
+#include "apic.hpp"
+#include "apic_revenant.hpp"
 #include <kernel/irq_manager.hpp>
 #include <malloc.h>
 #include <algorithm>
@@ -52,7 +52,8 @@ union addr_union {
   }
 };
 
-using namespace hw;
+namespace x86
+{
 
 void SMP::init()
 {
@@ -101,7 +102,7 @@ void SMP::init()
   // reset barrier
   smp.boot_barrier.reset(1);
 
-  auto& apic = hw::APIC::get();
+  auto& apic = x86::APIC::get();
   // turn on CPUs
   INFO("APIC", "Initializing APs");
   for (auto& cpu : ACPI::get_cpus())
@@ -126,23 +127,26 @@ void SMP::init()
   INFO("APIC", "All APs are online now\n");
 }
 
-void SMP::add_task(smp_task_func task, smp_done_func done)
-{
-  lock(smp.tlock);
-  smp.tasks.emplace_back(task, done);
-  unlock(smp.tlock);
-}
-void SMP::work_signal()
-{
-  // broadcast that we have work to do
-  hw::APIC::get().bcast_ipi(0x20);
-}
-
-std::vector<SMP::smp_done_func> SMP::get_completed()
+std::vector<smp_done_func> SMP::get_completed()
 {
   std::vector<smp_done_func> done;
   lock(smp.flock);
   for (auto& func : smp.completed) done.push_back(func);
   unlock(smp.flock);
   return done;
+}
+
+} // x86
+
+/// implementation of the SMP interface ///
+void ::SMP::add_task(smp_task_func task, smp_done_func done)
+{
+  lock(smp.tlock);
+  smp.tasks.emplace_back(task, done);
+  unlock(smp.tlock);
+}
+void ::SMP::signal()
+{
+  // broadcast that we have work to do
+  x86::APIC::get().bcast_ipi(0x20);
 }

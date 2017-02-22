@@ -17,10 +17,11 @@
 
 #include <profile>
 #include <common>
-#include <hw/pit.hpp>
+#include "../arch/x86/pit.hpp"
+#include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/irq_manager.hpp>
-#include <kernel/cpuid.hpp>
+#include <kernel/os.hpp>
 #include <util/fixedvec.hpp>
 #include <unordered_map>
 #include <cassert>
@@ -64,7 +65,7 @@ struct Sampler
     using namespace std::chrono;
     static const milliseconds GATHER_PERIOD_MS = 150ms;
 
-    hw::PIT::instance().on_repeated_timeout(
+    x86::PIT::instance().on_repeated_timeout(
         GATHER_PERIOD_MS, gather_stack_sampling);
   }
   void add(void* current, void* ra)

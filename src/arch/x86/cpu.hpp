@@ -16,12 +16,12 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_CPU_HPP
-#define HW_CPU_HPP
+#ifndef x86_CPU_HPP
+#define x86_CPU_HPP
 
 #include <cstdint>
 
-namespace hw
+namespace x86
 {
   class CPU
   {

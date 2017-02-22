@@ -15,15 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "acpi.hpp"
 #include <kernel/syscalls.hpp>
-#include <hw/acpi.hpp>
 #include <hw/ioport.hpp>
 #include <debug>
 #include <info>
 
 extern "C" void reboot_os();
 
-namespace hw {
+namespace x86 {
   
   struct RSDPDescriptor {
     char Signature[8];

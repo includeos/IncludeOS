@@ -16,14 +16,14 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_APIC_REVENANT_HPP
-#define HW_APIC_REVENANT_HPP
+#ifndef X86_APIC_REVENANT_HPP
+#define X86_APIC_REVENANT_HPP
 
 #define REV_STACK_SIZE     65536
 
+#include "apic.hpp"
+#include "smp.hpp"
 #include <cstdint>
-#include <hw/apic.hpp>
-#include <hw/smp.hpp>
 #include <deque>
 
 extern "C"
@@ -72,12 +72,12 @@ private:
 struct smp_stuff
 {
   struct task {
-    task(hw::SMP::smp_task_func a,
-         hw::SMP::smp_done_func b)
+    task(SMP::task_func a,
+         SMP::done_func b)
       : func(a), done(b) {}
     
-    hw::SMP::smp_task_func func;
-    hw::SMP::smp_done_func done;
+    SMP::task_func func;
+    SMP::done_func done;
   };
   
   spinlock_t glock;
@@ -87,7 +87,7 @@ struct smp_stuff
   std::deque<task> tasks;
   
   spinlock_t flock;
-  std::deque<hw::SMP::smp_done_func> completed;
+  std::deque<SMP::done_func> completed;
 };
 extern smp_stuff smp;
 

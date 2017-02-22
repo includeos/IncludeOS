@@ -18,7 +18,7 @@
 #ifndef KERNEL_IRQ_MANAGER_HPP
 #define KERNEL_IRQ_MANAGER_HPP
 
-#include "os.hpp"
+#include <arch>
 #include <delegate>
 #include <membitmap>
 
@@ -158,14 +158,11 @@ private:
                    uint16_t segment_sel,
                    char attributes);
 
-  /** The OS will call the following : */
-  friend class OS;
-  friend void ::irq_default_handler();
-
   /** Initialize. Only the OS can initialize the IRQ manager */
   static void init();
 
   void bsp_init();
+  friend void __arch_init();
 
 }; //< IRQ_manager
 

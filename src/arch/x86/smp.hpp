@@ -1,4 +1,3 @@
-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -17,21 +16,23 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_APIC_TIMER_HPP
-#define HW_APIC_TIMER_HPP
+#ifndef X86_SMP_HPP
+#define X86_SMP_HPP
 
-#include <chrono>
+#include <cstdint>
+#include <delegate>
+#include <vector>
+#include <smp>
 
-namespace hw {
+typedef SMP::task_func smp_task_func;
+typedef SMP::done_func smp_done_func;
 
-struct APIC_Timer
-{
+namespace x86 {
+
+class SMP {
+public:
+  static std::vector<smp_done_func> get_completed();
   static void init();
-  
-  static void oneshot(std::chrono::microseconds) noexcept;
-  static void stop() noexcept;
-  
-  static bool ready() noexcept;
 };
 
 }

@@ -17,8 +17,8 @@
 
 #include <virtio/virtio.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
-#include <hw/apic.hpp>
 #include <hw/pci.hpp>
 #include <assert.h>
 
@@ -125,7 +125,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
     CHECK(_irq, "Unit has legacy IRQ %u", _irq);
 
     // create IO APIC entry for legacy interrupt
-    hw::APIC::enable_irq(_irq);
+    extern void __arch_enable_legacy_irq(uint8_t);
+    __arch_enable_legacy_irq(_irq);
   }
 
   INFO("Virtio", "Initialization complete");

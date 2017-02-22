@@ -15,14 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HW_PIC_HPP
-#define HW_PIC_HPP
+#ifndef X86_PIC_HPP
+#define X86_PIC_HPP
 
 #include "../kernel/os.hpp"
-#include "ioport.hpp"
+#include <hw/ioport.hpp>
 #include <cassert>
 
-namespace hw {
+namespace x86 {
 
   /**
      Programmable Interrupt Controller
@@ -157,6 +157,6 @@ namespace hw {
     }
   }; //< class PIC
 
-} //< namespace hw
+} //< namespace
 
-#endif //< HW_PIC_HPP
+#endif

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/ioapic.hpp>
+#include "ioapic.hpp"
 #include <hw/ioport.hpp>
 #include <cstdio>
 #include <cassert>
@@ -30,7 +30,7 @@
 
 #define IOAPIC_INTR  0x10
 
-namespace hw
+namespace x86
 {
   struct ioapic
   {

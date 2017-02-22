@@ -16,14 +16,16 @@
 // limitations under the License.
 
 #pragma once
+#ifndef X86_PIT_HPP
+#define X86_PIT_HPP
 #include <delegate>
 #include <chrono>
 #include <map>
 #include <hertz>
 #include <vector>
 
-namespace hw {
-
+namespace x86
+{
   /**
      Programmable Interval Timer class. A singleton.
 
@@ -212,3 +214,5 @@ namespace hw {
   };
 
 } //< namespace hw
+
+#endif

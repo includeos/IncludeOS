@@ -19,7 +19,7 @@
 //#define DEBUG2
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
-#include <hw/apic.hpp>
+#include "../arch/x86/apic.hpp"
 #include <cassert>
 #include <statman>
 #include <kprint>
@@ -43,7 +43,7 @@ extern "C" {
   extern void modern_interrupt_handler();
   void register_modern_interrupt()
   {
-    uint8_t vector = hw::APIC::get_isr();
+    uint8_t vector = x86::APIC::get_isr();
     IRQ_manager::get().register_irq(vector - IRQ_BASE);
   }
   void spurious_intr();
@@ -185,10 +185,10 @@ void IRQ_manager::set_irq_handler(uint8_t irq, intr_func func)
 
 void IRQ_manager::enable_irq(uint8_t irq) {
   // program IOAPIC to redirect this irq to BSP LAPIC
-  hw::APIC::enable_irq(irq);
+  x86::APIC::enable_irq(irq);
 }
 void IRQ_manager::disable_irq(uint8_t irq) {
-  hw::APIC::disable_irq(irq);
+  x86::APIC::disable_irq(irq);
 }
 
 void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {

@@ -22,13 +22,8 @@
 #include <os>
 #include <boot/multiboot.h>
 #include <kernel/elf.hpp>
-#include <hw/acpi.hpp>
-#include <hw/apic.hpp>
-#include <hw/apic_timer.hpp>
 #include <hw/cmos.hpp>
 #include <kernel/irq_manager.hpp>
-#include <kernel/pci_manager.hpp>
-#include <kernel/timers.hpp>
 #include <kernel/rtc.hpp>
 #include <kernel/rdrand.hpp>
 #include <kernel/rng.hpp>
@@ -45,7 +40,6 @@
 #define PROFILE(name) /* name */
 #endif
 
-extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern "C" uintptr_t get_cpu_esp();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
@@ -146,32 +140,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   for (const auto &i : memmap)
     INFO2("* %s",i.second.to_string().c_str());
 
-  PROFILE("IRQ manager init");
-  // Set up interrupt and exception handlers
-  IRQ_manager::init();
-
-  PROFILE("ACPI init");
-  // read ACPI tables
-  hw::ACPI::init();
-
-  PROFILE("APIC init");
-  // setup APIC, APIC timer, SMP etc.
-  hw::APIC::init();
-
-  // enable interrupts
-  INFO("BSP", "Enabling interrupts");
-  IRQ_manager::enable_interrupts();
-
-  PROFILE("PIT init");
-  // Initialize the Interval Timer
-  hw::PIT::init();
-
-  PROFILE("PCI manager init");
-  // Initialize PCI devices
-  PCI_manager::init();
-
-  // Print registered devices
-  hw::Devices::print_devices();
 
   // sleep statistics
   // NOTE: needs to be positioned before anything that calls OS::halt
@@ -180,31 +148,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   os_cycles_total = &Statman::get().create(
       Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
-  // Estimate CPU frequency
-  MYINFO("Estimating CPU-frequency");
-  INFO2("|");
-  INFO2("+--(%d samples, %f sec. interval)", 18,
-        (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
-  INFO2("|");
-
-  PROFILE("CPU frequency");
-  if (OS::cpu_mhz_.count() <= 0.0) {
-    OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency());
-  }
-  INFO2("+--> %f MHz", cpu_freq().count());
-
-  PROFILE("Timers init");
-  // cpu_mhz must be known before we can start timer system
-  /// initialize timers hooked up to APIC timer
-  Timers::init(
-    // timer start function
-    hw::APIC_Timer::oneshot,
-    // timer stop function
-    hw::APIC_Timer::stop);
-
-  // initialize BSP APIC timer
-  // call Service::ready when calibrated
-  hw::APIC_Timer::init();
+  PROFILE("Arch init");
+  extern void __arch_init();
+  __arch_init();
 
   PROFILE("RTC init");
   // Realtime/monotonic clock
@@ -300,13 +246,15 @@ void OS::event_loop() {
   // Cleanup
   Service::stop();
   /// TODO: move me to arch-specific module
-  hw::ACPI::shutdown();
+  extern void __arch_poweroff();
+  __arch_poweroff();
 }
 
 void OS::reboot()
 {
   /// TODO: move me to arch-specific module
-  hw::ACPI::reboot();
+  extern void __arch_reboot();
+  __arch_reboot();
 }
 void OS::shutdown()
 {

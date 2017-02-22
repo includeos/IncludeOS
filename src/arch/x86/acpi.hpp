@@ -16,14 +16,14 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_ACPI_HPP
-#define HW_ACPI_HPP
+#ifndef X86_ACPI_HPP
+#define X86_ACPI_HPP
 
 #include <cstdint>
 #include <cstddef>
 #include <vector>
 
-namespace hw {
+namespace x86 {
 
   class ACPI {
   public:
