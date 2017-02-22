@@ -163,7 +163,7 @@ void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
       // The server must mark the network address as not available and should notify the network admin
       // of a possible configuration problem - TODO
 
-      ridx = get_record_idx(get_client_id_in_opts(opts));
+      ridx = get_record_idx(get_client_id(msg->chaddr, opts));
 
       // TODO
       // Erase record if exists because client hasn't got a valid IP
@@ -221,7 +221,7 @@ void DHCPD::handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts) 
     if (sid not_eq server_id()) {
       printf("The client has not chosen this server\n");
 
-      int ridx = get_record_idx(get_client_id_in_opts(opts));
+      int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
       if (ridx != -1) {
         // Free up the IP address - the client has declined our offer
         update_pool(records_.at(ridx).ip(), Status::AVAILABLE);
@@ -233,7 +233,7 @@ void DHCPD::handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts) 
     // SERVER IDENTIFIER == THIS SERVER'S ID
     printf("SERVER IDENTIFIER matches this server\n");
 
-    int ridx = get_record_idx(get_client_id_in_opts(opts));
+    int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
 
     if (ridx not_eq -1) {   // if record exists
 
@@ -339,7 +339,7 @@ void DHCPD::handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts) 
 }
 
 void DHCPD::verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
-  int ridx = get_record_idx(get_client_id_in_opts(opts));
+  int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
 
   if (ridx == -1) {
     // If the server has no record of this client, then it MUST remain silent and MAY
@@ -456,7 +456,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   Record record;
 
   // Keep client identifier (index into database)
-  record.set_client_id(get_client_id_in_opts(opts));
+  record.set_client_id(get_client_id(msg->chaddr, opts));
 
   // OFFER
   dhcp_packet_t* offer = (dhcp_packet_t*) packet;
@@ -507,8 +507,8 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer->flags = msg->flags;
   offer->giaddr = msg->giaddr;
   std::memcpy(offer->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN); // uint8_t array - size 16, client hardware address
-  //offer->sname = ;  // Server host name or options - MAY
-  //offer->file = ;   // Client boot file name or options - MAY
+  std::memcpy(offer->sname, msg->sname, dhcp_packet_t::SNAME_LEN);  // Server host name or options - MAY
+  std::memcpy(offer->file, msg->file, dhcp_packet_t::FILE_LEN);     // Client boot file name or options - MAY
 
   // OPTIONS
   dhcp_option_t* offer_opts = (dhcp_option_t*) (offer->options + 0);
@@ -622,13 +622,13 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   printf("\n");
 
   // 4 DOMAIN_NAME - blank for now
-  offer_opts = (dhcp_option_t*) (offer->options + 45 + host_name_length);
+  offer_opts = (dhcp_option_t*) (offer->options + 44 + host_name_length);
   offer_opts->code = DHO_DOMAIN_NAME;
   offer_opts->length = 1;
   offer_opts->val[0] = 0;
 
   // 5 BROADCAST_ADDRESS -
-  offer_opts = (dhcp_option_t*) (offer->options + 48 + host_name_length);
+  offer_opts = (dhcp_option_t*) (offer->options + 47 + host_name_length);
   offer_opts->code = DHO_BROADCAST_ADDRESS;
   offer_opts->length = 4;
   auto broadcast = broadcast_address();
@@ -646,7 +646,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts->val[3] = 0;*/
 
   // END
-  offer_opts = (dhcp_option_t*) (offer->options + 54 + host_name_length);    // 30 bytes filled in prior
+  offer_opts = (dhcp_option_t*) (offer->options + 53 + host_name_length);    // 30 bytes filled in prior
   offer_opts->code   = DHO_END;
   offer_opts->length = 0;
 
@@ -792,8 +792,8 @@ void DHCPD::inform_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   ack->flags = msg->flags;
   ack->giaddr = msg->giaddr;
   std::memcpy(ack->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN);
-  //ack->sname = ;    // Server host name or options
-  //ack->file = ; // Client boot file name or options
+  std::memcpy(ack->sname, msg->sname, dhcp_packet_t::SNAME_LEN);  // Server host name or options - MAY
+  std::memcpy(ack->file, msg->file, dhcp_packet_t::FILE_LEN);     // Client boot file name or options - MAY
 
   // OPTIONS
   dhcp_option_t* ack_opts = (dhcp_option_t*) (ack->options + 0);
@@ -865,7 +865,7 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   ack->secs = 0;
   ack->ciaddr = msg->ciaddr;      // or 0
 
-  int ridx = get_record_idx(get_client_id_in_opts(opts));
+  int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
   ack->yiaddr = (ridx not_eq -1) ? records_.at(ridx).ip() : IP4::addr{0}; // TODO: else what?     // IP address assigned to client
 
   ack->siaddr = IP4::addr{0};     // TODO IP address of next bootstrap server
@@ -884,8 +884,8 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   printf("\n");
   printf("------------------------------------------------------\n");
 
-  //ack->sname = ;    // Server host name or options
-  //ack->file = ; // Client boot file name or options
+  std::memcpy(ack->sname, msg->sname, dhcp_packet_t::SNAME_LEN);  // Server host name or options - MAY
+  std::memcpy(ack->file, msg->file, dhcp_packet_t::FILE_LEN);     // Client boot file name or options - MAY
 
   // OPTIONS
   dhcp_option_t* ack_opts = (dhcp_option_t*) (ack->options + 0);
@@ -1029,30 +1029,19 @@ const dhcp_option_t* DHCPD::get_option(const dhcp_option_t* opts, int code) cons
   return opt;
 }
 
-Record::byte_seq DHCPD::get_client_id_in_opts(const dhcp_option_t* opts) const {
+Record::byte_seq DHCPD::get_client_id(const uint8_t* chaddr, const dhcp_option_t* opts) const {
   const dhcp_option_t* opt = get_option(opts, DHO_DHCP_CLIENT_IDENTIFIER);
   Record::byte_seq client_id;
 
   if (opt->code == DHO_DHCP_CLIENT_IDENTIFIER) {
-    printf("Client ID:\n");
-    for (int i = 0; i < opt->length; i++) {
+    for (int i = 0; i < opt->length; i++)
       client_id.push_back(opt->val[i]);
-      printf("%u", opt->val[i]);
-    }
-    printf("\n");
-  } else {
-
-    printf("\n- - - - - OBS Get client id in opts - - - - -\n");
-    printf("Client identifier was not found in options - returning an empty vector<uint8_t> for now");
-    printf("\n- - - - - - - - - -\n");
-
-    // TODO
-    // Use chaddr as identifier in database ?
-    // Or don't give an DHCPOFFER
-    // Check RFC if silent (return;) or send DHCPNAK f.ex.
-    // Check RFC updating RFC 2131
+    return client_id;
   }
 
+  for (int i = 0; i < dhcp_packet_t::CHADDR_LEN; i++)
+    client_id.push_back(chaddr[i]);
+  printf("\n- - - - - OBS Client identifier isn't given and client id is chaddr - - - - -\n");
   return client_id;
 }
 

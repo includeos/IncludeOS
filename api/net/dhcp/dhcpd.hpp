@@ -146,7 +146,7 @@ namespace dhcp {
     void nak(const dhcp_packet_t* msg/*, const dhcp_option_t* opts*/);
 
     const dhcp_option_t* get_option(const dhcp_option_t* opts, int code) const;
-    Record::byte_seq get_client_id_in_opts(const dhcp_option_t* opts) const;
+    Record::byte_seq get_client_id(const uint8_t* chaddr, const dhcp_option_t* opts) const;
     IP4::addr get_requested_ip_in_opts(const dhcp_option_t* opts) const;
     IP4::addr get_remote_netmask(const dhcp_option_t* opts) const;
     void add_server_id(dhcp_option_t* opts);
