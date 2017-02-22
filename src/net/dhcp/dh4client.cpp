@@ -259,7 +259,7 @@ namespace net
     socket.bcast(IP4::ADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
 
     socket.on_read(
-    [this, &socket] (IP4::addr, UDP::port_t port,
+    [this, &socket] (IP4::addr addr, UDP::port_t port,
                      const char* data, size_t len)
     {
       if (port == DHCP_DEST_PORT)
@@ -447,7 +447,7 @@ namespace net
 
     // set our onRead function to point to a hopeful DHCP ACK!
     sock.on_read(
-    [this] (IP4::addr, UDP::port_t port,
+    [this] (IP4::addr addr, UDP::port_t port,
             const char* data, size_t len)
     {
       if (port == DHCP_DEST_PORT)
