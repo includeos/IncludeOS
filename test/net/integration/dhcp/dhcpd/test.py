@@ -17,10 +17,13 @@ from vmrunner.prettify import color
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
+num_assigned_clients = 0
 ping_count = 3
 
 def DHCP_test(trigger_line):
-  print color.INFO("<Test.py>"),"Got IP"
+  global num_assigned_clients
+  num_assigned_clients += 1
+  print color.INFO("<Test.py>"),"Client got IP"
   ip_string = vm.readline()
   print color.INFO("<Test.py>"), "Assigned address: ", ip_string
   print color.INFO("<Test.py>"), "Trying to ping"
@@ -29,15 +32,18 @@ def DHCP_test(trigger_line):
     command = ["ping", ip_string.rstrip(), "-c", str(ping_count), "-i", "0.2"]
     print color.DATA(" ".join(command))
     print subprocess.check_output(command)
-    vm.exit(0,"<Test.py> Ping test passed. Process returned 0 exit status")
+    print color.INFO("<Test.py>"), "Number of ping tests passed: ", str(num_assigned_clients)
+    if num_assigned_clients == 3:
+      vm.exit(0,"<Test.py> Ping test for all 3 clients passed. Process returned 0 exit status")
   except Exception as e:
     print color.FAIL("<Test.py> Ping FAILED Process threw exception:")
     print e
     return False
 
-
 # Add custom event-handler
-vm.on_output("Got IP from DHCP", DHCP_test)
+vm.on_output("Client 1 got IP from IncludeOS DHCP server", DHCP_test)
+vm.on_output("Client 2 got IP from IncludeOS DHCP server", DHCP_test)
+vm.on_output("Client 3 got IP from IncludeOS DHCP server", DHCP_test)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(20).clean()
