@@ -45,10 +45,6 @@ namespace dhcp {
     IP4::addr server_id() const
     { return server_id_; }
 
-    // TODO
-    IP4::addr temp_siaddr() const
-    { return temp_siaddr_; }
-
     IP4::addr netmask() const
     { return netmask_; }
 
@@ -83,10 +79,6 @@ namespace dhcp {
 
     void set_server_id(IP4::addr server_id)
     { server_id_ = server_id; }
-
-    // TODO
-    void set_temp_siaddr(IP4::addr temp_siaddr)
-    { temp_siaddr_ = temp_siaddr; }
 
     void set_netmask(IP4::addr netmask)
     { netmask_ = netmask; }
@@ -134,10 +126,8 @@ namespace dhcp {
     std::map<IP4::addr, Status> pool_;
 
     IP4::addr server_id_;
-    IP4::addr temp_siaddr_;         // TODO Remove? IP address of next bootstrap server
     IP4::addr netmask_, router_, dns_;
-    uint32_t lease_;
-    uint32_t max_lease_;
+    uint32_t lease_, max_lease_;
     uint8_t pending_;               // How long to consider an offered address in the pending state (seconds)
     std::vector<Record> records_;   // Temp - Instead of persistent storage:
 
@@ -152,7 +142,7 @@ namespace dhcp {
     void verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void offer(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void inform_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts);
-    void request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts, IP4::addr send_to = IP4::addr{0});
+    void request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void nak(const dhcp_packet_t* msg/*, const dhcp_option_t* opts*/);
 
     const dhcp_option_t* get_option(const dhcp_option_t* opts, int code) const;
@@ -163,7 +153,6 @@ namespace dhcp {
     IP4::addr inc_addr(IP4::addr ip) const
     { return IP4::addr{htonl(ntohl(ip.whole) + 1)}; }
     bool on_correct_network(IP4::addr giaddr, const dhcp_option_t* opts) const;
-    IP4::addr get_send_to_address(const dhcp_packet_t* msg, const uint8_t reply_type) const;
 
     // Remove
     void print(const dhcp_packet_t* msg, const dhcp_option_t* opts);
