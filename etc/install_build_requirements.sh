@@ -31,8 +31,8 @@ case $SYSTEM in
                 DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu jq python-jsonschema python-psutil cmake $DEPENDENCIES"
                 echo ">>> Installing dependencies (requires sudo):"
                 echo "    Packages: $DEPENDENCIES"
-                sudo apt-get update || exit 1
-                sudo apt-get install -y $DEPENDENCIES || exit 1
+                sudo apt-get -qq update || exit 1
+                sudo apt-get -qqy install $DEPENDENCIES > /dev/null || exit 1
                 exit 0;
                 ;;
             "fedora")
