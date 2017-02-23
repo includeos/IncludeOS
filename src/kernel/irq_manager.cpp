@@ -185,10 +185,10 @@ void IRQ_manager::set_irq_handler(uint8_t irq, intr_func func)
 
 void IRQ_manager::enable_irq(uint8_t irq) {
   // program IOAPIC to redirect this irq to BSP LAPIC
-  x86::APIC::enable_irq(irq);
+  __arch_enable_legacy_irq(irq);
 }
 void IRQ_manager::disable_irq(uint8_t irq) {
-  x86::APIC::disable_irq(irq);
+  __arch_disable_legacy_irq(irq);
 }
 
 void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {

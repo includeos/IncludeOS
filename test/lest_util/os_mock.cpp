@@ -155,3 +155,18 @@ extern "C" {
     return;
   }
 }
+
+/// arch ///
+void __arch_init() {}
+void __arch_poweroff() {}
+void __arch_reboot() {}
+void __arch_enable_legacy_irq(uint8_t) {}
+void __arch_disable_legacy_irq(uint8_t) {}
+
+extern "C"
+void (*current_eoi_mechanism) () = nullptr;
+
+#include "../../src/arch/x86/apic.hpp"
+namespace x86 {
+  IApic& APIC::get() noexcept { return *(IApic*) 0; }
+}
