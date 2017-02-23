@@ -195,12 +195,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
     }
   }
 
-  // Everything is ready
-  MYINFO("Starting %s", Service::name().c_str());
-  FILLINE('=');
-
   PROFILE("Service::start");
   // begin service start
+  FILLINE('=');
+  printf(" IncludeOS %s\n", version().c_str());
+  printf(" +--> Running [ %s ]\n", Service::name().c_str());
+  FILLINE('~');
+
   Service::start();
 }
 
@@ -231,28 +232,21 @@ void OS::halt() {
   *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
 }
 
-void OS::event_loop() {
-  FILLINE('=');
-  printf(" IncludeOS %s\n", version().c_str());
-  printf(" +--> Running [ %s ]\n", Service::name().c_str());
-  FILLINE('~');
-
+void OS::event_loop()
+{
   while (power_) {
     IRQ_manager::get().process_interrupts();
-    debug2("OS going to sleep.\n");
     OS::halt();
   }
-
-  // Cleanup
+  // Allow service to perform cleanup
   Service::stop();
-  /// TODO: move me to arch-specific module
+  // poweroff, if supported by arch
   extern void __arch_poweroff();
   __arch_poweroff();
 }
 
 void OS::reboot()
 {
-  /// TODO: move me to arch-specific module
   extern void __arch_reboot();
   __arch_reboot();
 }
