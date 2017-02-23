@@ -73,10 +73,8 @@ namespace x86
     IOAPIC::init(ACPI::get_ioapics());
 
     /// initialize and start APs found in ACPI-tables ///
-    if (ACPI::get_cpus().size() > 1) {
-      INFO("APIC", "SMP Init");
-      // initialize and start registered APs found in ACPI-tables
-      x86::SMP::init();
+    if (ACPI::get_cpus().size() > 1)
+    {
       // IRQ handler for completed async jobs
       IRQ_manager::get().subscribe(BSP_LAPIC_IPI_IRQ,
       [] {

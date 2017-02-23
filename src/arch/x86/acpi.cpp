@@ -206,8 +206,8 @@ namespace x86 {
         {
           auto& lapic = *(LAPIC*) rec;
           lapics.push_back(lapic);
-          INFO2("-> CPU %u ID %u  (flags=0x%x)", 
-              lapic.cpu, lapic.id, lapic.flags);
+          //INFO2("-> CPU %u ID %u  (flags=0x%x)", 
+          //    lapic.cpu, lapic.id, lapic.flags);
         }
         break;
       case 1:
@@ -234,6 +234,7 @@ namespace x86 {
       // go to next entry
       ptr += rec->length;
     }
+    INFO("SMP", "Found %u APs", lapics.size());
   }
   
   void ACPI::walk_facp(const char* addr)

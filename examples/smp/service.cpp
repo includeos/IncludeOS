@@ -34,6 +34,7 @@ int        times = 0;
 void Service::start()
 {
   OS::add_stdout_default_serial();
+  printf("This CPU id: %d\n", SMP::cpu_id());
 
   for (size_t i = 0; i < testing.size(); i++) {
     testing[i].value = i;
@@ -51,7 +52,7 @@ void Service::start()
     __sync_fetch_and_or(&job, 1 << i);
     // lock the per-cpu test lock
     lock(writesync);
-    printf("this cpu: %d   total: %d\n", get_cpu_id(), ++times);
+    printf("this cpu: %d   total: %d\n", SMP::cpu_id(), ++times);
     unlock(writesync);
   }, 
   [i] {

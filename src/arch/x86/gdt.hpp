@@ -47,11 +47,11 @@ struct GDT
   
   static void reload_gdt(GDT& base) noexcept;
 
-  static inline void set_fs(int entry) noexcept {
-    asm volatile("movl %0, %%fs" : : "r"(entry * 0x8));
+  static inline void set_fs(uint16_t entry) noexcept {
+    asm volatile("movw %h0, %%fs" : : "r"(entry * 0x8));
   }
-  static inline void set_gs(int entry) noexcept {
-    asm volatile("movl %0, %%gs" : : "r"(entry * 0x8));
+  static inline void set_gs(uint16_t entry) noexcept {
+    asm volatile("movw %h0, %%gs" : : "r"(entry * 0x8));
   }
 
   GDT() {

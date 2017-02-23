@@ -34,6 +34,8 @@ public:
   static void init();
 };
 
+extern void initialize_gdt_for_cpu(int cpuid);
+
 }
 
 #endif

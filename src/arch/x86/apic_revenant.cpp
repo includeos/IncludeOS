@@ -13,39 +13,18 @@ using namespace x86;
 smp_stuff smp;
 idt_loc   smp_lapic_idt;
 
-struct segtable
-{
-  struct GDT gdt;
-} __attribute__((aligned(128)));
-segtable  gdtables[16];
-
-struct cpu_stuff
-{
-  int cpduid;
-  
-} __attribute__((aligned(128)));
-cpu_stuff cpudata[16];
-
 void revenant_main(int cpu)
 {
   // enable Local APIC
   x86::APIC::get().smp_enable();
 
-  // initialize GDT for this core
-  gdtables[cpu].gdt.initialize();
-  // create PER-CPU segment
-  int fs = gdtables[cpu].gdt.create_data(&cpudata[cpu], 1);
-  // load GDT and refresh segments
-  GDT::reload_gdt(gdtables[cpu].gdt);
-  // enable per-cpu for this core
-  cpudata[cpu].cpduid = cpu;
-  GDT::set_fs(fs);
+  initialize_gdt_for_cpu(cpu);
 
   // we can use shared memory here because the
   // bootstrap CPU is waiting on revenants to start
   // we do, however, need to synchronize in between CPUs
   lock(smp.glock);
-  INFO("REV", "AP %d started at %#x", get_cpu_id(), get_cpu_esp());
+  INFO2("AP %d started at %#x", get_cpu_id(), get_cpu_esp());
   unlock(smp.glock);
   
   // load IDT
@@ -75,8 +54,6 @@ void revenant_main(int cpu)
     auto task = smp.tasks.front();
     smp.tasks.pop_front();
     
-    bool empty = smp.tasks.empty();
-    
     unlock(smp.tlock);
     
     // execute actual task
@@ -88,8 +65,7 @@ void revenant_main(int cpu)
     unlock(smp.flock);
     
     // at least one thread will empty the task list
-    if (empty)
-      x86::APIC::get().send_bsp_intr();
+    x86::APIC::get().send_bsp_intr();
   }
   __builtin_unreachable();
 }

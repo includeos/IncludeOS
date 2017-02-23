@@ -18,7 +18,9 @@
 #include "acpi.hpp"
 #include "apic.hpp"
 #include "apic_timer.hpp"
+#include "gdt.hpp"
 #include "pit.hpp"
+#include "smp.hpp"
 #include <kernel/irq_manager.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/os.hpp>
@@ -29,6 +31,10 @@ extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 using namespace x86;
 
+namespace x86 {
+  static void initialize_cpu_shared();
+}
+
 void __arch_init()
 {
   // Set up interrupt and exception handlers
@@ -36,9 +42,17 @@ void __arch_init()
 
   // read ACPI tables
   ACPI::init();
+  // create CPU storage struct
+  initialize_cpu_shared();
 
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
+
+  // set fs/gs for local APIC
+  initialize_gdt_for_cpu(APIC::get().get_id());
+
+  // initialize and start registered APs found in ACPI-tables
+  x86::SMP::init();
 
   // enable interrupts
   MYINFO("Enabling interrupts");
@@ -90,3 +104,39 @@ void __arch_reboot()
   ACPI::reboot();
   __builtin_unreachable();
 }
+
+namespace x86
+{
+  struct cpu_shared
+  {
+    int cpduid;
+  } __attribute__((aligned(128)));
+  static cpu_shared cpudata[16]; // for alignment
+
+  static void initialize_cpu_shared()
+  {
+    for (size_t id = 0; id < 16; id++)
+    {
+      cpudata[id].cpduid = id;
+    }
+  }
+
+  struct segtable
+  {
+    struct GDT gdt;
+  } __attribute__((aligned(128)));
+  static segtable gdtables[16];
+
+  void initialize_gdt_for_cpu(int id)
+  {
+    // initialize GDT for this core
+    gdtables[id].gdt.initialize();
+    // create PER-CPU segment
+    int fs = gdtables[id].gdt.create_data(&cpudata[id], 1);
+    // load GDT and refresh segments
+    GDT::reload_gdt(gdtables[id].gdt);
+    // enable per-cpu for this core
+    cpudata[id].cpduid = id;
+    GDT::set_fs(fs);
+  }
+} // x86

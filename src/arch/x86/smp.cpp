@@ -104,7 +104,7 @@ void SMP::init()
 
   auto& apic = x86::APIC::get();
   // turn on CPUs
-  INFO("APIC", "Initializing APs");
+  INFO("SMP", "Initializing APs");
   for (auto& cpu : ACPI::get_cpus())
   {
     if (cpu.id == apic.get_id()) continue;
@@ -113,7 +113,7 @@ void SMP::init()
     apic.ap_init(cpu.id);
   }
   // start CPUs
-  INFO("APIC", "Starting APs");
+  INFO("SMP", "Starting APs");
   for (auto& cpu : ACPI::get_cpus())
   {
     if (cpu.id == apic.get_id()) continue;
@@ -124,7 +124,7 @@ void SMP::init()
 
   // wait for all APs to start
   smp.boot_barrier.spin_wait(CPUcount);
-  INFO("APIC", "All APs are online now\n");
+  INFO("SMP", "All %u APs are online now\n", CPUcount);
 }
 
 std::vector<smp_done_func> SMP::get_completed()
@@ -132,6 +132,7 @@ std::vector<smp_done_func> SMP::get_completed()
   std::vector<smp_done_func> done;
   lock(smp.flock);
   for (auto& func : smp.completed) done.push_back(func);
+  smp.completed.clear(); // MUI IMPORTANTE
   unlock(smp.flock);
   return done;
 }
@@ -139,6 +140,12 @@ std::vector<smp_done_func> SMP::get_completed()
 } // x86
 
 /// implementation of the SMP interface ///
+int ::SMP::cpu_id() noexcept
+{
+  int cpuid;
+  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
+  return cpuid;
+}
 int ::SMP::cpu_count() noexcept
 {
   return x86::ACPI::get_cpus().size();
