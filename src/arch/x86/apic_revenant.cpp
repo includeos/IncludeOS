@@ -1,13 +1,29 @@
 #include "apic_revenant.hpp"
 
+#include "gdt.hpp"
 #include <kernel/irq_manager.hpp>
 #include <kprint>
 
+using namespace x86;
 smp_stuff smp;
 idt_loc   smp_lapic_idt;
 
+struct cpu_stuff
+{
+  int cpduid;
+  
+} __attribute__((aligned(4096)));
+
+struct segtable
+{
+  struct gdt gdt;
+} __attribute__((aligned(64)));
+
+cpu_stuff cpudata[16];
+segtable  gdtables[16];
+
+
 // expensive, but correctly returns the current CPU id
-extern "C" void      initialize_cpu_id(int);
 extern "C" int       get_cpu_id();
 extern "C" uintptr_t get_cpu_esp();
 extern "C" void      lapic_exception_handler();
@@ -39,17 +55,18 @@ static void init_test()
 
 void revenant_main(int cpu)
 {
-  // load IDT
-  asm volatile("lidt %0" : : "m"(smp_lapic_idt));
-  // initialize cpuid for this core
-  initialize_cpu_id(cpu);
   // enable Local APIC
   x86::APIC::get().smp_enable();
-  // initialize cpuid for this core
-  initialize_cpu_id(cpu);
-  lock(smp.glock);
-  kprintf("AP %d started\n", cpu);
-  unlock(smp.glock);
+
+  // initialize GDT for this core
+  gdtables[cpu].gdt.initialize();
+  // create PER-CPU segment
+  int fs = gdtables[cpu].gdt.create_data(&cpudata[cpu], sizeof(cpu_stuff));
+  // load GDT and refresh segments
+  GDT::reload_gdt(&gdtables[cpu].gdt);
+  // enable per-cpu for this core
+  GDT::set_fs(fs);
+
   // we can use shared memory here because the
   // bootstrap CPU is waiting on revenants to start
   // we do, however, need to synchronize in between CPUs
@@ -57,6 +74,8 @@ void revenant_main(int cpu)
   INFO("REV", "AP %d started at %#x", get_cpu_id(), get_cpu_esp());
   unlock(smp.glock);
   
+  // load IDT
+  asm volatile("lidt %0" : : "m"(smp_lapic_idt));
   // enable interrupts
   asm volatile("sti");
   

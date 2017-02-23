@@ -29,9 +29,7 @@ struct gdt;
 
 struct GDT
 {
-  static void initialize (gdt* gdt_base) noexcept;
-  static int  create_data(gdt* gdt_base, uintptr_t base, uint16_t len) noexcept;
-  static void reload_gdt (gdt* gdt_base) noexcept;
+  static void reload_gdt(gdt* base) noexcept;
 
   static inline void set_fs(int entry) noexcept {
     asm("mov %%fs, %0" : : "r"(entry * 8) : "memory");
@@ -70,13 +68,16 @@ struct gdt
     desc.offset = (uint32_t) &entry[0];
   }
 
+  void initialize() noexcept;
+
   gdt_entry& create() {
     assert(count < ENTRIES);
     desc.size += sizeof(gdt_entry);
     return entry[count++];
   }
 
-  gdt_entry& create_data(uint32_t base, uint16_t size);
+  gdt_entry& create_data(uint32_t base, uint16_t size) noexcept;
+  int  create_data(void* base, uint16_t len) noexcept;
 };
 }
 

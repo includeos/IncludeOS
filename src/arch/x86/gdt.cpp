@@ -12,29 +12,23 @@
 
 namespace x86
 {
-gdt_entry& gdt::create_data(uint32_t base, uint16_t size) {
-  auto& ent = create();
-  ent.limit_lo = size;
-  ent.base_lo  = base & 0xffffff;
-  ent.access   = ACCESS_DATA3;
-  ent.limit_hi = 0x0;
-  ent.flags    = 0xC;
-  ent.base_hi  = (base >> 24) & 0xff;
-  return ent;
-}
-
 extern "C" void __load_gdt(void*);
 
-void GDT::initialize(gdt* table) noexcept
+void GDT::reload_gdt(gdt* table) noexcept
 {
-  new(table) struct gdt();
+  __load_gdt(&table->desc);
+}
+
+void gdt::initialize() noexcept
+{
+  new(this) struct gdt();
 
   // null entry
-  auto& nullent = table->create();
+  auto& nullent = this->create();
   __builtin_memset(&nullent, 0, sizeof(nullent));
 
   // code (ring0)
-  auto& code = table->create();
+  auto& code = this->create();
   code.limit_lo = 0xffff;
   code.base_lo  = 0;
   code.access   = ACCESS_CODE;
@@ -43,28 +37,33 @@ void GDT::initialize(gdt* table) noexcept
   code.base_hi  = 0;
 
   // data (ring0)
-  auto& data = table->create();
+  auto& data = this->create();
   data.limit_lo = 0xffff;
   data.base_lo  = 0;
   data.access   = ACCESS_DATA;
   data.limit_hi = 0xf;
   data.flags    = 0xC;
   data.base_hi  = 0;
-
-  // reload GDT & segment regs
-  reload_gdt(table);
 }
 
-int GDT::create_data(gdt* table, uintptr_t base, uint16_t len) noexcept
+int gdt::create_data(void* ptr, uint16_t len) noexcept
 {
-  assert((base & 0xfffff000) == 0);
-  table->create_data(base >> 12, len);
-  return table->count-1;
+  uintptr_t base = (uintptr_t) ptr;
+  assert((base & 0xfff) == 0);
+  this->create_data(base >> 12, len);
+  return this->count-1;
 }
 
-void GDT::reload_gdt(gdt* table) noexcept
+gdt_entry& gdt::create_data(uint32_t base, uint16_t size) noexcept
 {
-  __load_gdt(&table->desc);
+  auto& ent = create();
+  ent.limit_lo = size;
+  ent.base_lo  = base & 0xffffff;
+  ent.access   = ACCESS_DATA3;
+  ent.limit_hi = 0x0;
+  ent.flags    = 0xC;
+  ent.base_hi  = (base >> 24) & 0xff;
+  return ent;
 }
 
 } // x86

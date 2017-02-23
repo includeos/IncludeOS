@@ -18,7 +18,6 @@ USE32
 global apic_enable
 global spurious_intr
 global lapic_send_eoi
-global initialize_cpu_id
 global get_cpu_id
 global get_cpu_eip
 global get_cpu_esp
@@ -39,10 +38,6 @@ apic_enable:
     wrmsr
     pop eax
     pop ecx
-    ret
-
-initialize_cpu_id:
-    pop gs
     ret
 
 get_cpu_id:
