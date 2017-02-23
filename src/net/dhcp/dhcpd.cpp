@@ -433,16 +433,6 @@ void DHCPD::verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t
 
 void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
 
-  // Validate any values here?
-  /* Magic cookie: First four octets of the options field
-  int first = msg->magic[0];
-  int second = msg->magic[1];
-  int third = msg->magic[2];
-  int fourth = msg->magic[3];
-  printf("\nMagic cookie: %d %d %d %d\n", first, second, third, fourth);*/
-
-  // Create DHCPOFFER reply
-
   // 4.3.1 and Table 3 in RFC 2131
   // Choose a network address
   // Choose an expiration time for the lease
@@ -585,11 +575,15 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts->code = DHO_TIME_OFFSET;
   offer_opts->length = 4;
   auto l_start = record.lease_start();
+  offer_opts->val[0] = 0;
+  offer_opts->val[1] = 0;
+  offer_opts->val[2] = 0;
+  offer_opts->val[3] = 0;
   // TODO: CHANGED REVERSE ORDER:
-  offer_opts->val[0] = (l_start & 0xff000000) >> 24;
+  /*offer_opts->val[0] = (l_start & 0xff000000) >> 24;
   offer_opts->val[1] = (l_start & 0x00ff0000) >> 16;
   offer_opts->val[2] = (l_start & 0x0000ff00) >> 8;
-  offer_opts->val[3] = (l_start & 0x000000ff);
+  offer_opts->val[3] = (l_start & 0x000000ff);*/
   /*offer_opts->val[0] = (l_start & 0x000000ff);
   offer_opts->val[1] = (l_start & 0x0000ff00) >> 8;
   offer_opts->val[2] = (l_start & 0x00ff0000) >> 16;
@@ -899,10 +893,10 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   ack_opts = (dhcp_option_t*) (ack->options + 3);             // 3 bytes filled in prior
   ack_opts->code = DHO_DHCP_LEASE_TIME;
   ack_opts->length = 4;
-  ack_opts->val[0] = (lease_ & 0x000000ff);
-  ack_opts->val[1] = (lease_ & 0x0000ff00) >> 8;
-  ack_opts->val[2] = (lease_ & 0x00ff0000) >> 16;
-  ack_opts->val[3] = (lease_ & 0xff000000) >> 24;
+  ack_opts->val[0] = (lease_ & 0xff000000) >> 24;
+  ack_opts->val[1] = (lease_ & 0x00ff0000) >> 16;
+  ack_opts->val[2] = (lease_ & 0x0000ff00) >> 8;
+  ack_opts->val[3] = (lease_ & 0x000000ff);
 
   // SERVER_IDENTIFIER (the server's network address(es))
   ack_opts = (dhcp_option_t*) (ack->options + 9);             // 9 bytes filled in prior
