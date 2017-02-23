@@ -139,6 +139,11 @@ std::vector<smp_done_func> SMP::get_completed()
 } // x86
 
 /// implementation of the SMP interface ///
+int ::SMP::cpu_count() noexcept
+{
+  return x86::ACPI::get_cpus().size();
+}
+
 void ::SMP::add_task(smp_task_func task, smp_done_func done)
 {
   lock(smp.tlock);

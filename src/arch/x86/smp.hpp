@@ -20,7 +20,6 @@
 #define X86_SMP_HPP
 
 #include <cstdint>
-#include <delegate>
 #include <vector>
 #include <smp>
 

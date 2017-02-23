@@ -19,9 +19,25 @@
 #include <cassert>
 #include <smp>
 
+struct per_cpu_test
+{
+  int value;
+  // should not cause deadlock, since only this CPU has access
+  spinlock_t testlock = 0;
+  
+} __attribute__((aligned(64)));
+static std::array<per_cpu_test, 16> testing;
+
+spinlock_t writesync;
+int        times = 0;
+
 void Service::start()
 {
   OS::add_stdout_default_serial();
+
+  for (size_t i = 0; i < testing.size(); i++) {
+    testing[i].value = i;
+  }
 
   static int completed = 0;
   static uint32_t job = 0;
@@ -33,19 +49,24 @@ void Service::start()
   [i] {
     // the job
     __sync_fetch_and_or(&job, 1 << i);
+    // lock the per-cpu test lock
+    lock(writesync);
+    printf("this cpu: %d   total: %d\n", get_cpu_id(), ++times);
+    unlock(writesync);
   }, 
   [i] {
     // job completion
     completed++;
     
     if (completed == TASKS) {
+      lock(writesync);
       printf("All jobs are done now, compl = %d\n", completed);
       printf("bits = %#x\n", job);
+      unlock(writesync);
       assert(job = 0xffffffff && "All 32 bits must be set");
+      OS::shutdown();
     }
   });
   // start working on tasks
   SMP::signal();
-  
-  printf("*** %s started *** \n", SERVICE_NAME);
 }

@@ -21,6 +21,7 @@
 #define INCLUDEOS_ARCH_HEADER
 
 #define ARCH_X86
+#include <cstddef>
 #include <cstdint>
 
 extern void __arch_init();
@@ -35,6 +36,18 @@ inline uint64_t __arch_cpu_cycles() noexcept {
   asm("rdtsc" : "=A" (ret));
   return ret;
 }
+
+#include <array>
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  unsigned cpuid;
+  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
+  return array.at(cpuid);
+}
 #endif
+
+// access a std::array of per-cpu structs based on CPU id
+#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, x.size()>(x))
 
 #endif

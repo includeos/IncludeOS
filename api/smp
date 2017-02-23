@@ -20,10 +20,16 @@
 #ifndef API_SMP_HEADER
 #define API_SMP_HEADER
 
+#include "arch"
+#include <delegate>
+
 class SMP {
 public:
   using task_func = delegate<void()>;
   using done_func = delegate<void()>;
+
+  // return the number of active CPUs
+  static int cpu_count() noexcept;
 
   // add tasks that will not necessarily start immediately
   // use work_signal() to guarantee work starts
@@ -33,5 +39,51 @@ public:
   // call this to signal that more work is queued up
   static void signal();
 };
+
+// returns the ID of the current AP
+extern "C" int get_cpu_id();
+
+/// x86-related locking stuff ///
+#ifdef ARCH_X86
+// Intel 3a  8.10.6.7: 128-byte boundary
+typedef volatile int spinlock_t __attribute__((aligned(128)));
+
+extern "C"
+inline void lock(spinlock_t& lock) {
+  while (__sync_lock_test_and_set(&lock, 1)) {
+    while (lock) asm volatile("pause");
+  }
+}
+extern "C"
+inline void unlock(spinlock_t& lock) {
+  __sync_synchronize(); // barrier
+  lock = 0;
+}
+
+struct minimal_barrier_t
+{
+  void inc()
+  {
+    __sync_fetch_and_add(&val, 1);
+  }
+  
+  void spin_wait(int max)
+  {
+    asm("mfence");
+    while (this->val < max) {
+      asm volatile("pause; nop;");
+    }
+  }
+  
+  void reset(int val)
+  {
+    asm("mfence");
+    this->val = val;
+  }
+  
+private:
+  volatile int val = 0;
+};
+#endif
 
 #endif

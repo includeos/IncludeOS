@@ -40,7 +40,7 @@ set(SOURCES
 # DRIVERS / PLUGINS:
 
 set(DRIVERS
-  #silent_start
+  silent_start
   )
 
 set(PLUGINS

@@ -26,30 +26,6 @@ struct cpu_stuff
 } __attribute__((aligned(128)));
 cpu_stuff cpudata[16];
 
-struct per_cpu_test
-{
-  int value;
-  int padding[15];
-} __attribute__((aligned(64)));
-static std::array<per_cpu_test, 16> testing;
-
-template <typename T, size_t N>
-inline T& per_cpu(std::array<T, N>& array)
-{
-  unsigned cpuid;
-  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
-  return array.at(cpuid);
-}
-#define PER_CPU(x) (per_cpu<decltype(x)::value_type, x.size()>(x))
-
-__attribute__((constructor))
-static void init_test()
-{
-  for (size_t i = 0; i < testing.size(); i++)
-    testing[i].value = i;
-  
-}
-
 void revenant_main(int cpu)
 {
   // enable Local APIC
