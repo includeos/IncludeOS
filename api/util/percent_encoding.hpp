@@ -39,19 +39,19 @@
 #ifndef PERCENT_ENCODING_HPP
 #define PERCENT_ENCODING_HPP
 
-#include <experimental/string_view>
+#include "detail/string_view"
 
 namespace uri {
 
 ///
 /// Encode (percent-encode) a view of data representing a uri
 ///
-std::string encode(const std::experimental::string_view input);
+std::string encode(util::csview input);
 
 ///
 /// Decode (percent-decode) a view of data representing a uri
 ///
-std::string decode(const std::experimental::string_view input);
+std::string decode(util::csview input);
 
 
 #ifdef URI_THROW_ON_ERROR

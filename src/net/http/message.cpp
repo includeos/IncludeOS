@@ -60,7 +60,7 @@ bool Message::has_body() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view Message::body() const noexcept {
+util::sview Message::body() const noexcept {
   return message_body_;
 }
 
@@ -93,7 +93,7 @@ Message::operator std::string () const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::experimental::string_view Message::private_field() const noexcept {
+util::sview Message::private_field() const noexcept {
   return field_;
 }
 

@@ -1,6 +1,7 @@
+// -*- C++ -*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,22 +16,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HTTP_MIME_TYPES_HPP
-#define HTTP_MIME_TYPES_HPP
+#pragma once
+#ifndef UTIL_STRING_VIEW_HPP
+#define UTIL_STRING_VIEW_HPP
 
-#include "../../util/detail/string_view"
+#include <experimental/string_view>
 
-namespace http {
+namespace util {
+using sview  = std::experimental::string_view;
+using csview = const std::experimental::string_view;
+}
 
-///
-/// Get the mime type for the specified extension
-///
-/// @param extension The specified extension to get associated mime type
-///
-/// @return The associated mime type for the specified extension
-///
-util::sview ext_to_mime_type(util::csview extension) noexcept;
-
-} //< namespace http
-
-#endif //< HTTP_MIME_TYPES_HPP
+#endif //< UTIL_STRING_VIEW_HPP

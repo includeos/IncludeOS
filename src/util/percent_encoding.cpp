@@ -74,7 +74,7 @@ static inline bool is_unreserved (const char chr) noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string uri::encode(const std::experimental::string_view input) {
+std::string uri::encode(util::csview input) {
   static const std::array<char,16> hex
   {{ '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' }};
 
@@ -95,7 +95,7 @@ std::string uri::encode(const std::experimental::string_view input) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string uri::decode(const std::experimental::string_view input) {
+std::string uri::decode(util::csview input) {
   std::string res;
   res.reserve(input.size());
 
