@@ -23,9 +23,21 @@
 #include <cassert>
 #include <statman>
 #include <kprint>
+#include <smp>
 
 #define MSIX_IRQ_BASE     64
 #define LAPIC_IRQ_BASE   120
+
+IRQ_manager& IRQ_manager::get(int cpuid)
+{
+  static IRQ_manager managers[16];
+  assert(cpuid >= 0 && cpuid < 16);
+  return managers[cpuid];
+}
+IRQ_manager& IRQ_manager::get()
+{
+  return get(SMP::cpu_id());
+}
 
 uint8_t IRQ_manager::get_next_msix_irq()
 {
@@ -75,18 +87,16 @@ void cpu_exception(uint32_t eip, uint32_t error)
 }
 
 
-
 void IRQ_manager::enable_interrupts() {
   asm volatile("sti");
 }
 
-void IRQ_manager::init()
+void IRQ_manager::init(int cpuid)
 {
-  get().bsp_init();
+  get(cpuid).init_local();
 }
 
-
-void IRQ_manager::bsp_init()
+void IRQ_manager::init_local()
 {
   const auto WORDS_PER_BMP = IRQ_LINES / 32;
   auto* bmp = new MemBitmap::word[WORDS_PER_BMP * 3]();
@@ -94,12 +104,8 @@ void IRQ_manager::bsp_init()
   irq_pend.set_location(bmp + 1 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_todo.set_location(bmp + 2 * WORDS_PER_BMP, WORDS_PER_BMP);
 
-  //Create an idt entry for the 'lidt' instruction
-  idt_loc idt_reg;
-  idt_reg.limit = INTR_LINES * sizeof(IDTDescr) - 1;
-  idt_reg.base = (uint32_t)idt;
-
-  INFO("INTR", "Creating exception handlers");
+  if (SMP::cpu_id() == 0)
+      INFO("INTR", "Creating exception handlers");
   set_exception_handler(0, cpu_exception<0>);
   set_exception_handler(1, cpu_exception<1>);
   set_exception_handler(2, cpu_exception<2>);
@@ -123,14 +129,18 @@ void IRQ_manager::bsp_init()
   set_exception_handler(20, cpu_exception<20>);
   set_exception_handler(30, cpu_exception<30>);
 
-
-  INFO2("+ Default interrupt gates set for irq >= 32");
+  if (SMP::cpu_id() == 0)
+      INFO2("+ Default interrupt gates set for irq >= 32");
   for (size_t i = 32; i < INTR_LINES - 1; i++){
     set_handler(i, unused_interrupt_handler);
   }
-
+  // spurious interrupt handler
   set_handler(INTR_LINES - 1, spurious_intr);
+
   // Load IDT
+  idt_loc idt_reg;
+  idt_reg.limit = INTR_LINES * sizeof(IDTDescr) - 1;
+  idt_reg.base = (uint32_t) idt;
   asm volatile ("lidt %0": :"m"(idt_reg) );
 }
 

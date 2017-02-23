@@ -85,13 +85,21 @@ public:
   // return the number of active CPUs
   static int cpu_count() noexcept;
 
-  // add tasks that will not necessarily start immediately
-  // use work_signal() to guarantee work starts
-  static void
-  add_task(task_func func, done_func done);
+  // add tasks that will not immediately start
+  // call @done back on main CPU when tasks have returned
+  // use signal() to broadcast work should begin
+  static void add_task(task_func func, done_func done);
+
+  // create one task that puts a CPU in an event loop
+  // call task function just before entering loop
+  static void enter_event_loop(task_func func);
 
   // call this to signal that more work is queued up
   static void signal();
+
+  // a global spinlock to synchronize text output (and other things)
+  void global_lock()   noexcept;
+  void global_unlock() noexcept;
 };
 
 // access a std::array of structs indexed by current CPU id

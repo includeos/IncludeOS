@@ -119,16 +119,17 @@ public:
   /**
    * Get the IRQ manager instance
    */
-  static inline IRQ_manager& get() {
-    static IRQ_manager bsp;
-    return bsp;
-  }
+  static IRQ_manager& get();
+  static IRQ_manager& get(int cpu);
 
   uint8_t get_next_msix_irq();
   void register_irq(uint8_t vector);
 
   /** process all pending interrupts */
   void process_interrupts();
+
+  /** Initialize for a local APIC */
+  static void init(int cpuid);
 
 private:
   IRQ_manager() = default;
@@ -158,11 +159,7 @@ private:
                    uint16_t segment_sel,
                    char attributes);
 
-  /** Initialize. Only the OS can initialize the IRQ manager */
-  static void init();
-
-  void bsp_init();
-  friend void __arch_init();
+  void init_local();
 
 }; //< IRQ_manager
 

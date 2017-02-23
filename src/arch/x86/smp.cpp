@@ -19,6 +19,7 @@
 #include "acpi.hpp"
 #include "apic.hpp"
 #include "apic_revenant.hpp"
+#include <kernel/os.hpp>
 #include <kernel/irq_manager.hpp>
 #include <malloc.h>
 #include <algorithm>
@@ -27,11 +28,8 @@
 extern "C" {
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
-  void lapic_except_entry();
-  void lapic_irq_entry();
 }
 
-extern idt_loc smp_lapic_idt;
 static const uintptr_t BOOTLOADER_LOCATION = 0x80000;
 
 struct apic_boot {
@@ -43,23 +41,13 @@ struct apic_boot {
   size_t stack_size;
 };
 
-union addr_union {
-  uint32_t whole;
-  uint16_t part[2];
-
-  addr_union(void(*addr)()) {
-    whole = (uintptr_t) addr;
-  }
-};
-
 namespace x86
 {
 
 void SMP::init()
 {
-  // smp with only one CPU == :facepalm:
   size_t CPUcount = ACPI::get_cpus().size();
-  assert (CPUcount > 1);
+  if (CPUcount <= 1) return;
 
   // copy our bootloader to APIC init location
   const char* start = &_binary_apic_boot_bin_start;
@@ -70,27 +58,6 @@ void SMP::init()
 
   // modify bootloader to support our cause
   auto* boot = (apic_boot*) BOOTLOADER_LOCATION;
-  // populate IDT used with SMP LAPICs
-  smp_lapic_idt.limit = 256 * sizeof(IDTDescr) - 1;
-  smp_lapic_idt.base  = (uintptr_t) new IDTDescr[256];
-
-  auto* idt = (IDTDescr*) smp_lapic_idt.base;
-  for (size_t i = 0; i < 32; i++) {
-    addr_union addr(lapic_except_entry);
-    idt[i].offset_1 = addr.part[0];
-    idt[i].offset_2 = addr.part[1];
-    idt[i].selector  = 0x8;
-    idt[i].type_attr = 0x8e;
-    idt[i].zero      = 0;
-  }
-  for (size_t i = 32; i < 48; i++) {
-    addr_union addr(lapic_irq_entry);
-    idt[i].offset_1 = addr.part[0];
-    idt[i].offset_2 = addr.part[1];
-    idt[i].selector  = 0x8;
-    idt[i].type_attr = 0x8e;
-    idt[i].zero      = 0;
-  }
 
   // assign stack and main func
   boot->worker_addr = (void*) &revenant_main;
@@ -125,6 +92,18 @@ void SMP::init()
   // wait for all APs to start
   smp.boot_barrier.spin_wait(CPUcount);
   INFO("SMP", "All %u APs are online now\n", CPUcount);
+
+  // subscribe to IPIs
+  IRQ_manager::get().subscribe(BSP_LAPIC_IPI_IRQ,
+  [] {
+    printf("checking...\n");
+    // copy all the done functions out from queue to our local vector
+    auto done = SMP::get_completed();
+    // call all the done functions
+    for (auto& func : done) {
+      func();
+    }
+  });
 }
 
 std::vector<smp_done_func> SMP::get_completed()
@@ -157,8 +136,32 @@ void ::SMP::add_task(smp_task_func task, smp_done_func done)
   smp.tasks.emplace_back(task, done);
   unlock(smp.tlock);
 }
+void ::SMP::enter_event_loop(smp_task_func task)
+{
+  lock(smp.tlock);
+  smp.tasks.emplace_back(
+  smp_task_func::make_packed(
+  [task] {
+    task();
+    while (OS::is_running()) {
+      IRQ_manager::get().process_interrupts();
+      OS::halt();
+    }
+    }), nullptr);
+  unlock(smp.tlock);
+}
 void ::SMP::signal()
 {
   // broadcast that we have work to do
   x86::APIC::get().bcast_ipi(0x20);
+}
+
+static spinlock_t __global_lock = 0;
+void ::SMP::global_lock() noexcept
+{
+  lock(__global_lock);
+}
+void ::SMP::global_unlock() noexcept
+{
+  unlock(__global_lock);
 }

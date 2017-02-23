@@ -18,6 +18,7 @@
 #include <os>
 #include <cassert>
 #include <smp>
+#include <timers>
 
 struct per_cpu_test
 {
@@ -50,14 +51,13 @@ void Service::start()
   [i] {
     // the job
     __sync_fetch_and_or(&job, 1 << i);
-    // lock the per-cpu test lock
-    lock(writesync);
-    printf("this cpu: %d   total: %d\n", SMP::cpu_id(), ++times);
-    unlock(writesync);
   }, 
   [i] {
     // job completion
     completed++;
+      lock(writesync);
+      printf("compl = %d\n", completed);
+      unlock(writesync);
     
     if (completed == TASKS) {
       lock(writesync);
@@ -65,9 +65,34 @@ void Service::start()
       printf("bits = %#x\n", job);
       unlock(writesync);
       assert(job = 0xffffffff && "All 32 bits must be set");
-      OS::shutdown();
     }
   });
   // start working on tasks
   SMP::signal();
+
+  static int event_looped = 0;
+
+  // have one CPU enter an event loop
+  for (int i = 1; i < SMP::cpu_count(); i++)
+  SMP::enter_event_loop(
+  [] {
+    lock(writesync);
+    printf("AP %d entering event loop\n", SMP::cpu_id());
+    event_looped++;
+    if (event_looped == SMP::cpu_count()-1) {
+        printf("*** All APs have entered event loop\n");
+    }
+    unlock(writesync);
+  });
+  // start working on tasks
+  SMP::signal();
+
+  void late_fix(int);
+  Timers::oneshot(std::chrono::seconds(1), late_fix);
+}
+
+void late_fix(int)
+{
+  printf("interrupting...\n");
+  asm ("int $0x7e");
 }

@@ -72,21 +72,6 @@ namespace x86
     // initialize I/O APICs
     IOAPIC::init(ACPI::get_ioapics());
 
-    /// initialize and start APs found in ACPI-tables ///
-    if (ACPI::get_cpus().size() > 1)
-    {
-      // IRQ handler for completed async jobs
-      IRQ_manager::get().subscribe(BSP_LAPIC_IPI_IRQ,
-      [] {
-        // copy all the done functions out from queue to our local vector
-        auto done = SMP::get_completed();
-        // call all the done functions
-        for (auto& func : done) {
-          func();
-        }
-      });
-    }
-
     // use KVMs paravirt EOI if supported
     //if (CPUID::kvm_feature(KVM_FEATURE_PV_EOI))
     //    kvm_pv_eoi_init();

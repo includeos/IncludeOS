@@ -57,19 +57,3 @@ reboot_os:
 reset_idtr:
     dw      400h - 1
     dd      0
-
-lapic_except_entry:
-    cli
-    pusha
-    call lapic_except_handler
-    popa
-    sti
-    iret
-
-lapic_irq_entry:
-    cli
-    pusha
-    call lapic_irq_handler
-    popa
-    sti
-    iret

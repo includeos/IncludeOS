@@ -37,9 +37,6 @@ namespace x86 {
 
 void __arch_init()
 {
-  // Set up interrupt and exception handlers
-  IRQ_manager::init();
-
   // read ACPI tables
   ACPI::init();
   // create CPU storage struct
@@ -50,6 +47,9 @@ void __arch_init()
 
   // set fs/gs for local APIC
   initialize_gdt_for_cpu(APIC::get().get_id());
+
+  // IDT manager: Interrupt and exception handlers
+  IRQ_manager::init(APIC::get().get_id());
 
   // initialize and start registered APs found in ACPI-tables
   x86::SMP::init();

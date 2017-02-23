@@ -11,7 +11,6 @@ extern "C" void      lapic_exception_handler();
 
 using namespace x86;
 smp_stuff smp;
-idt_loc   smp_lapic_idt;
 
 void revenant_main(int cpu)
 {
@@ -26,12 +25,11 @@ void revenant_main(int cpu)
   lock(smp.glock);
   INFO2("AP %d started at %#x", get_cpu_id(), get_cpu_esp());
   unlock(smp.glock);
-  
-  // load IDT
-  asm volatile("lidt %0" : : "m"(smp_lapic_idt));
+
+  IRQ_manager::init(cpu);
   // enable interrupts
-  asm volatile("sti");
-  
+  IRQ_manager::enable_interrupts();
+
   // signal that the revenant has started
   smp.boot_barrier.inc();
   // sleep
@@ -56,36 +54,27 @@ void revenant_main(int cpu)
     
     unlock(smp.tlock);
     
-    // execute actual task
-    task.func();
-    
-    // add done function to completed list (only if its callable)
-    lock(smp.flock);
-    smp.completed.push_back(task.done);
-    unlock(smp.flock);
-    
-    // at least one thread will empty the task list
-    x86::APIC::get().send_bsp_intr();
+    /// normal task
+    if (task.done)
+    {
+      // execute actual task
+      task.func();
+      
+      // add done function to completed list (only if its callable)
+      lock(smp.flock);
+      smp.completed.push_back(task.done);
+      unlock(smp.flock);
+      
+      // at least one thread will empty the task list
+      x86::APIC::get().send_bsp_intr();
+    }
+    else if (task.func)
+    { /// task that doesn't immediately exit
+      // signal early
+      x86::APIC::get().send_bsp_intr();
+      // start long task
+      task.func();
+    }
   }
   __builtin_unreachable();
-}
-
-extern void print_backtrace();
-
-extern "C" {
-  extern void (*current_eoi_mechanism)();
-  void lapic_irq_handler()
-  {
-    x86::APIC::get().eoi();
-    //(*current_eoi_mechanism)();
-  }
-  void lapic_except_handler()
-  {
-    lock(smp.glock);
-    /// Oops!
-    kprintf(">>> LAPIC %d: Oops! CPU Exception!\n", get_cpu_id());
-    /// Backtrace
-    print_backtrace();
-    unlock(smp.glock);
-  }
 }
