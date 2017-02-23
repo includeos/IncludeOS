@@ -164,23 +164,23 @@ public:
   ///
   void clear() noexcept;
 
-  /**
-   * @brief      Returns the Content-Length value in header as an integer
-   *
-   * @note       Return value 0 can mean its either unset or zero.
-   *
-   * @return     The content length as integer
-   */
-  size_t content_length() const;
+  ///
+  /// Returns the Content-Length value in header as an integer
+  ///
+  /// @note Return value 0 can mean its either unset or zero.
+  ///
+  /// @return The content length as integer
+  ///
+  size_t content_length() const noexcept;
 
-  /**
-   * @brief      Sets the Content-Length value in the header
-   *
-   * @param[in]  len   The length of the content
-   *
-   * @return     Outcome of wether the field got updated or not
-   */
-  bool set_content_length(size_t len);
+  ///
+  /// Sets the Content-Length value in the header
+  ///
+  /// @param len The length of the content
+  ///
+  /// @return Outcome of whether the field got updated or not
+  ///
+  bool set_content_length(const size_t len);
 
 private:
   ///

@@ -15,18 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HTTP_STATUS_CODES_HPP
-#define HTTP_STATUS_CODES_HPP
-
 #include <unordered_map>
 
 #include <net/http/status_code_constants.hpp>
 
-#include "../../util/detail/string_view"
+#include "../../../api/util/detail/string_view"
 
 namespace http {
 
-const std::unordered_map<int, util::sview> status_code_table {
+const std::unordered_map<int, util::csview> status_code_table {
   //< 1xx: Informational - Request received, continuing process
   {100, "Continue"},
   {101, "Switching Protocols"},
@@ -102,5 +99,3 @@ util::sview code_description(const status_t status_code) noexcept {
 }
 
 } //< namespace http
-
-#endif //< HTTP_STATUS_CODES_HPP

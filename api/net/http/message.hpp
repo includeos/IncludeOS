@@ -172,7 +172,7 @@ public:
   ///
   /// @return A view of a buffer holding intermediate information
   ///
-  util::csview private_field() const noexcept;
+  util::sview private_field() const noexcept;
 
   ///
   /// Set the content of the buffer holding intermediate information

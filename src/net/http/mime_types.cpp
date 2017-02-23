@@ -15,18 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HTTP_MIME_TYPES_HPP
-#define HTTP_MIME_TYPES_HPP
-
 #include <unordered_map>
 
 #include <net/http/mime_types.hpp>
 
-#include "../../util/detail/string_view"
+#include "../../../api/util/detail/string_view"
 
 namespace http {
 
-const std::unordered_map<util::sview, util::sview> mime_type_table {
+const std::unordered_map<util::sview, util::csview> mime_type_table {
   //< Text mimes
   {"html", "text/html"},
   {"htm" , "text/html"},
@@ -104,5 +101,3 @@ util::sview ext_to_mime_type(util::csview extension) noexcept {
 }
 
 } //< namespace http
-
-#endif //< HTTP_MIME_TYPES_HPP

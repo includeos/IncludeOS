@@ -80,7 +80,6 @@ std::size_t Header::size() const noexcept {
 ///////////////////////////////////////////////////////////////////////////////
 void Header::erase(util::csview field) noexcept {
   Const_iterator target;
-  //-----------------------------------
   while ((target = find(field)) not_eq fields_.cend()) fields_.erase(target);
 }
 
@@ -89,24 +88,19 @@ void Header::clear() noexcept {
   fields_.clear();
 }
 
-size_t Header::content_length() const
-{
-  try
-  {
+///////////////////////////////////////////////////////////////////////////////
+size_t Header::content_length() const noexcept {
+  try {
     const auto cl = value(header::Content_Length);
-
     if(cl.empty()) return 0;
-
-    return std::stoul(cl.to_string());
-  }
-  catch(...)
-  {
+    return std::stoul(std::string{cl.data(), cl.length()});
+  } catch(...) {
     return 0;
   }
 }
 
-bool Header::set_content_length(size_t len)
-{
+///////////////////////////////////////////////////////////////////////////////
+bool Header::set_content_length(const size_t len) {
   return set_field(header::Content_Length, std::to_string(len));
 }
 
