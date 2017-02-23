@@ -200,7 +200,11 @@ namespace net
     opt = get_option(dhcp->options, DHO_DHCP_LEASE_TIME);
     if (opt->code == DHO_DHCP_LEASE_TIME)
     {
-      memcpy(&this->lease_time, opt->val, sizeof(this->lease_time));
+      this->lease_time = (((uint32_t) opt->val[0]) << 24 |
+        ((uint32_t) opt->val[1]) << 16 |
+        ((uint32_t) opt->val[2]) <<  8 |
+        ((uint32_t) opt->val[3]) <<  0);
+
       if (console_spam)
         MYINFO("LEASE TIME: \t%u mins", this->lease_time / 60);
     }
