@@ -96,7 +96,7 @@ struct empty_lambda : C
 };
 
 template<typename C, typename R, typename... Args> using is_empty_layout = std::conditional_t<
-	std::is_same<R, void>::value,
+	std::is_same<R, void>::value || std::is_empty<R>::value,
   	std::conditional_t<
       	!std::is_convertible<C, R(*)(Args...)>::value,
       	std::is_empty<std::decay_t<C>>,
