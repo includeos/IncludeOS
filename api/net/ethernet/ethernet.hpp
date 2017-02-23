@@ -20,8 +20,6 @@
 #define NET_ETHERNET_HPP
 
 #include <string>
-
-#include "frame.hpp"
 #include "header.hpp"
 #include <hw/mac_addr.hpp> // ethernet address
 #include <hw/nic.hpp> // protocol
@@ -58,8 +56,6 @@ namespace net {
       ETH_JUMBO = 0x7088,
       ETH_VLAN  = 0x81
     };
-
-    using Frame = ethernet::Frame;
 
     // MAC address
     using addr = hw::MAC_addr;
@@ -106,7 +102,7 @@ namespace net {
     { return physical_downstream_; }
 
     static constexpr uint16_t header_size() noexcept
-    { return sizeof(ethernet::Header) + sizeof(ethernet::trailer_t); }
+    { return sizeof(ethernet::Header); }
 
     static constexpr hw::Nic::Proto proto() noexcept
     { return hw::Nic::Proto::ETH; }
@@ -133,9 +129,9 @@ namespace net {
     uint32_t& packets_dropped_;
 
     /** Upstream OUTPUT connections */
-    upstream ip4_upstream_ = [](net::Packet_ptr){};
-    upstream ip6_upstream_ = [](net::Packet_ptr){};
-    upstream arp_upstream_ = [](net::Packet_ptr){};
+    upstream ip4_upstream_ = nullptr;
+    upstream ip6_upstream_ = nullptr;
+    upstream arp_upstream_ = nullptr;
 
     /** Downstream OUTPUT connection */
     downstream physical_downstream_ = [](Packet_ptr){};
