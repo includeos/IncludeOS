@@ -12,6 +12,33 @@ INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST-OFF}
 
 ############################################################
+# COMMAND LINE PROPERTIES:
+############################################################
+
+# Initialize variables:
+install_yes=0
+verbose=0
+source=0
+
+while getopts "h?yvs" opt; do
+    case "$opt" in
+    h|\?)
+        printf "%s\n" "Options:"\
+                "-y Yes: answer yes to install"\
+                "-v Verbose: extra output during installation"\
+                "-s Source: Install from source"
+        exit 0
+        ;;
+    y)  install_yes=1
+        ;;
+    v)  verbose=1
+        ;;
+    s)  source=1
+        ;;
+    esac
+done
+
+############################################################
 # SYSTEM PROPERTIES:
 ############################################################
 
@@ -114,7 +141,7 @@ done
 
 # Print currently set install options
 printf "\n\n>>> IncludeOS will be installed with the following options:\n\n"
-printf "%-25s %-25s %s\n"\
+printf "    %-25s %-25s %s\n"\
 	   "Env variable" "Description" "Value"\
 	   "------------" "-----------" "-----"\
 	   "INCLUDEOS_SRC" "Source dir of IncludeOS" "$INCLUDEOS_SRC"\
@@ -122,7 +149,7 @@ printf "%-25s %-25s %s\n"\
 	   "INCLUDEOS_ENABLE_TEST" "Enable test compilation" "$INCLUDEOS_ENABLE_TEST"
 
 # Give user option to evaluate install options
-if tty -s; then
+if tty -s && [ $install_yes -eq 0 ]; then
 	read -p "Is this correct [Y|N]?" answer
 	case $answer in
 		[yY] | [yY][Ee][Ss] )
@@ -135,12 +162,14 @@ fi
 
 # Trap that cleans the cmake output file in case of exit
 function clean {
-	rm /tmp/cmake_output.txt
+	if [ -f /tmp/cmake_output.txt ]; then
+		rm /tmp/cmake_output.txt
+	fi
 } 
 trap clean EXIT
 
 # if the --all-source parameter was given, build it the hard way
-if [ "$1" = "--all-source" ]; then
+if [ $source -eq 1 ]; then
     printf "\n\n>>> Installing everything from source"
     if ! ./etc/install_all_source.sh; then
         printf  "%s\n" ">>> Sorry <<<"\
@@ -148,12 +177,20 @@ if [ "$1" = "--all-source" ]; then
 	fi
 else
 	printf "\n\n>>> Running install_from_bundle.sh (expect up to 3 minutes)\n"
-    if ! ./etc/install_from_bundle.sh &> /tmp/cmake_output.txt; then
-		cat /tmp/cmake_output.txt	# Print output because it failed
-        printf  "%s\n" ">>> Sorry <<<"\
-				"Could not install from bundle."
-        exit 1
-    fi
+	if [ $verbose -eq 1 ]; then
+		if ! ./etc/install_from_bundle.sh; then
+			printf  "%s\n" ">>> Sorry <<<"\
+					"Could not install from bundle."
+			exit 1
+		fi
+	else
+		if ! ./etc/install_from_bundle.sh &> /tmp/cmake_output.txt; then
+			cat /tmp/cmake_output.txt	# Print output because it failed
+			printf  "%s\n" ">>> Sorry <<<"\
+					"Could not install from bundle."
+			exit 1
+		fi
+	fi
 fi
 
 # Install network bridge
@@ -171,7 +208,7 @@ fi
 ############################################################
 
 printf "\n\n>>> IncludeOS installation Done!\n" 
-printf "%s\n" "To use IncludeOS set env variables for cmake to know your compiler, e.g.:"\
+printf "    %s\n" "To use IncludeOS set env variables for cmake to know your compiler, e.g.:"\
 	   '    export CC="clang-3.8"'\
 	   '    export CXX="clang++-3.8"'\
 	   ""\
@@ -179,8 +216,8 @@ printf "%s\n" "To use IncludeOS set env variables for cmake to know your compile
 
 # Check if boot command is available
 if ! type boot > /dev/null 2>&1; then
-	printf "\nThe boot utility is not available, add IncludeOS to your path:\n"
-	printf "    export PATH=\$PATH:$INCLUDEOS_PREFIX/bin\n"
+	printf "\n    The boot utility is not available, add IncludeOS to your path:\n"
+	printf "        export PATH=\$PATH:$INCLUDEOS_PREFIX/bin\n"
 fi
 
 
