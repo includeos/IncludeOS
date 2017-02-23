@@ -22,9 +22,9 @@ cxx_list="clang++-3.9 clang++-3.8 clang++-3.7 clang++-3.6 clang++"
 
 compiler=""
 guess_compiler() {
-    for compiler in $1
+    for compiler in $*
     do
-	exists=`command -v $compiler`
+	exists=`command -v $compiler || true`
 	if [ "$exists" != "" ]
 	then
 	    compiler=$exists
