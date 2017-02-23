@@ -43,7 +43,7 @@ struct gdt_entry
 
 struct GDT
 {
-  static const int MAX_ENTRIES = 4;
+  static const int MAX_ENTRIES = 6;
   
   static void reload_gdt(GDT& base) noexcept;
 

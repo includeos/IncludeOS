@@ -51,7 +51,7 @@ void GDT::initialize() noexcept
 int GDT::create_data(void* ptr, uint16_t pages) noexcept
 {
   uintptr_t base = (uintptr_t) ptr;
-  assert((base & 0xfff) == 0);
+  assert((base & 0x7f) == 0); // at least 128-byte aligned
   this->create_data(base, pages);
   return this->count-1;
 }

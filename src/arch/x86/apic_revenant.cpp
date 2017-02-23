@@ -16,14 +16,14 @@ idt_loc   smp_lapic_idt;
 struct segtable
 {
   struct GDT gdt;
-} __attribute__((aligned(64)));
+} __attribute__((aligned(128)));
 segtable  gdtables[16];
 
 struct cpu_stuff
 {
   int cpduid;
   
-} __attribute__((aligned(4096)));
+} __attribute__((aligned(128)));
 cpu_stuff cpudata[16];
 
 struct per_cpu_test
