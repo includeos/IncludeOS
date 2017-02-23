@@ -153,6 +153,30 @@ CASE("A delegate can swap values with another delegate")
 	EXPECT(d3() == 53);
 }
 
+CASE("A delegate can be constructed with a generic lambda")
+{
+	using del_t = delegate<void(int&)>;
+
+	auto test = [&lest_env](del_t& del)
+	{
+		EXPECT(static_cast<bool>(del));
+
+		int start_val = 3;
+		int val = start_val;
+		del(val);
+
+		EXPECT(val == start_val + 1);
+	};
+
+	del_t del_a = [](auto& i) { ++i; };
+
+	del_t del_b;
+	del_b = del_a;
+
+	test(del_a);
+	test(del_b);
+}
+
 CASE("A delegate returns correct value (1)")
 {
 	std::vector<std::string> v = { "Something", "Something else" };

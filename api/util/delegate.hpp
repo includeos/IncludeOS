@@ -78,8 +78,35 @@ template<
 	return empty_pure<R, Args...>(std::forward<Args>(args)...);
 }
 
+template<typename T> struct direct_wrap
+{
+	using type = T;
+};
+
+template<typename C>
+struct empty_lambda : C
+{
+	const bool padding = true;
+
+	template<typename T> explicit empty_lambda(T&& val) noexcept :
+    C(std::forward<T>(val))
+  {}
+
+  using C::operator();
+};
+
+template<typename C, typename R, typename... Args> using is_empty_layout = std::conditional_t<
+	std::is_same<R, void>::value || std::is_empty<R>::value,
+  std::conditional_t<
+    !std::is_convertible<C, R(*)(Args...)>::value,
+    std::is_empty<std::decay_t<C>>,
+  	std::false_type
+  >,
+  std::false_type
+>;
+
 template<
-	typename T,
+  typename T,
 	typename R,
 	typename... Args
 > using closure_decay = std::conditional<
@@ -90,7 +117,7 @@ template<
 
 template<typename T = void, typename...> struct pack_first
 {
-	using type = std::remove_cv_t<T>;
+  using type = std::remove_cv_t<T>;
 };
 
 template<typename... Ts>
@@ -239,28 +266,34 @@ public:
 		new(&storage_)std::nullptr_t{ nullptr };
 	}
 
-	template<
-		typename T,
-		typename C = typename detail::closure_decay<T, R, Args...>::type
-	> explicit inplace(T&& closure) noexcept :
-		invoke_ptr_{ static_cast<invoke_ptr_t>(
-			[](storage_t& storage, Args&&... args) -> R
-			{ return reinterpret_cast<C&>(storage)(std::forward<Args>(args)...); }
-		) },
-		copy_ptr_{ copy_op<C, storage_t>() },
-		destructor_ptr_{ static_cast<destructor_ptr_t>(
-			[](storage_t& storage) noexcept -> void
-			{ reinterpret_cast<C&>(storage).~C(); }
-		) }
-	{
-		static_assert(sizeof(C) <= size,
-			"inplace delegate closure too large");
+	// proxy constructors
+  template<
+    typename T,
+  	typename std::enable_if_t<
+      !detail::is_empty_layout<T, R>::type::value, int
+    > = 0
+  > explicit inplace(T&& closure) noexcept :
+    inplace(
+			detail::direct_wrap<
+        typename detail::closure_decay<T, R, Args...>::type
+			>{},
+			std::forward<T>(closure)
+    )
+  {}
 
-		static_assert(std::alignment_of<C>::value <= align,
-			"inplace delegate closure alignment too large");
-
-		new(&storage_)C{ std::forward<T>(closure) };
-	}
+  template<
+  	typename T,
+  	typename std::enable_if_t<
+      detail::is_empty_layout<T, R>::type::value, int
+    > = 0
+  > explicit inplace(T&& closure) noexcept :
+    inplace(
+			detail::direct_wrap<
+        detail::empty_lambda<std::decay_t<T>>
+			>{},
+			std::forward<T>(closure)
+    )
+  {}
 
 	inplace(const inplace& other) :
 		invoke_ptr_{ other.invoke_ptr_ },
@@ -336,6 +369,29 @@ private:
 	copy_ptr_t copy_ptr_;
 	destructor_ptr_t destructor_ptr_;
 
+	template<typename T, typename C>
+  	explicit inplace(detail::direct_wrap<C> dw, T&& closure) noexcept :
+		invoke_ptr_{ static_cast<invoke_ptr_t>(
+			[](storage_t& storage, Args&&... args) -> R
+			{ return reinterpret_cast<C&>(storage)(std::forward<Args>(args)...); }
+		) },
+		copy_ptr_{ copy_op<C, storage_t>() },
+		destructor_ptr_{ static_cast<destructor_ptr_t>(
+			[](storage_t& storage) noexcept -> void
+			{ reinterpret_cast<C&>(storage).~C(); }
+		) }
+	{
+		static_assert(sizeof(C) <= size,
+			"inplace delegate closure too large");
+
+		static_assert(std::alignment_of<C>::value <= align,
+			"inplace delegate closure alignment too large");
+
+    static_cast<void>(dw);
+
+		new(&storage_)C{ std::forward<T>(closure) };
+	}
+
 	template<
 		typename T,
 		typename S,
@@ -385,10 +441,6 @@ public:
 		typename T,
 		typename = std::enable_if_t<
         !std::is_same<std::decay_t<T>, delegate>::value>
-		/*&& std::is_same<
-			decltype(std::declval<T&>()(std::declval<Args>()...)),
-			R
-		>::value>*/
 	>
 	delegate(T&& val) :
 		storage_{ std::forward<T>(val) }
