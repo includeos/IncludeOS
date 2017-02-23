@@ -41,6 +41,8 @@ void revenant_main(int cpu)
 {
   // load IDT
   asm volatile("lidt %0" : : "m"(smp_lapic_idt));
+  // initialize cpuid for this core
+  initialize_cpu_id(cpu);
   // enable Local APIC
   x86::APIC::get().smp_enable();
   // initialize cpuid for this core
