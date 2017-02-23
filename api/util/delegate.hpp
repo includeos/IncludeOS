@@ -89,24 +89,24 @@ struct empty_lambda : C
 	const bool padding = true;
 
 	template<typename T> explicit empty_lambda(T&& val) noexcept :
-    	C(std::forward<T>(val))
-    {}
+    C(std::forward<T>(val))
+  {}
 
-    using C::operator();
+  using C::operator();
 };
 
 template<typename C, typename R, typename... Args> using is_empty_layout = std::conditional_t<
 	std::is_same<R, void>::value || std::is_empty<R>::value,
-  	std::conditional_t<
-      	!std::is_convertible<C, R(*)(Args...)>::value,
-      	std::is_empty<std::decay_t<C>>,
-  		std::false_type
-    >,
+  std::conditional_t<
+    !std::is_convertible<C, R(*)(Args...)>::value,
+    std::is_empty<std::decay_t<C>>,
   	std::false_type
+  >,
+  std::false_type
 >;
 
 template<
-	typename T,
+  typename T,
 	typename R,
 	typename... Args
 > using closure_decay = std::conditional<
@@ -117,7 +117,7 @@ template<
 
 template<typename T = void, typename...> struct pack_first
 {
-	using type = std::remove_cv_t<T>;
+  using type = std::remove_cv_t<T>;
 };
 
 template<typename... Ts>
@@ -267,33 +267,33 @@ public:
 	}
 
 	// proxy constructors
-	template<
-  		typename T,
-  		typename std::enable_if_t<
-          !detail::is_empty_layout<T, R>::type::value, int
-    	> = 0
-  	> explicit inplace(T&& closure) noexcept :
-  		inplace(
+  template<
+    typename T,
+  	typename std::enable_if_t<
+      !detail::is_empty_layout<T, R>::type::value, int
+    > = 0
+  > explicit inplace(T&& closure) noexcept :
+    inplace(
 			detail::direct_wrap<
-          		typename detail::closure_decay<T, R, Args...>::type
+        typename detail::closure_decay<T, R, Args...>::type
 			>{},
 			std::forward<T>(closure)
-        )
-    {}
+    )
+  {}
 
-  	template<
-  		typename T,
-  		typename std::enable_if_t<
-          detail::is_empty_layout<T, R>::type::value, int
-    	> = 0
-  	> explicit inplace(T&& closure) noexcept :
-  		inplace(
+  template<
+  	typename T,
+  	typename std::enable_if_t<
+      detail::is_empty_layout<T, R>::type::value, int
+    > = 0
+  > explicit inplace(T&& closure) noexcept :
+    inplace(
 			detail::direct_wrap<
-          		detail::empty_lambda<std::decay_t<T>>
+        detail::empty_lambda<std::decay_t<T>>
 			>{},
 			std::forward<T>(closure)
-        )
-    {}
+    )
+  {}
 
 	inplace(const inplace& other) :
 		invoke_ptr_{ other.invoke_ptr_ },
@@ -386,6 +386,8 @@ private:
 
 		static_assert(std::alignment_of<C>::value <= align,
 			"inplace delegate closure alignment too large");
+
+    static_cast<void>(dw);
 
 		new(&storage_)C{ std::forward<T>(closure) };
 	}
