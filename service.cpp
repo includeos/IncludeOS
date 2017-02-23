@@ -32,7 +32,8 @@ uint64_t  packets_tx{0};
 uint64_t  received{0};
 uint32_t  winsize{8192};
 uint8_t   wscale{5};
-std::chrono::milliseconds dack_to{40};
+bool      timestamps{true};
+std::chrono::milliseconds dack{40};
 
 extern "C" void kernel_sanity_checks();
 
@@ -47,8 +48,8 @@ void start_measure() {
   received    = 0;
   packets_rx  = Statman::get().get("eth0.packets_rx").get_uint64();
   packets_tx  = Statman::get().get("eth0.packets_tx").get_uint64();
-  printf("<Settings> DACK: %lli ms WSIZE: %u WS: %u CALC: %u\n",
-    dack_to.count(), winsize, wscale, winsize << wscale);
+  printf("<Settings> DACK: %lli ms WSIZE: %u WS: %u CALC_WIN: %u TS: %s\n",
+    dack.count(), winsize, wscale, winsize << wscale, timestamps ? "ON" : "OFF");
   
   ts          = OS::micros_since_boot();
   printf("<START> %lld\n", ts);
@@ -89,10 +90,11 @@ void Service::ready()
 
   static auto& tcp = inet.tcp();
 
-  tcp.set_DACK(dack_to); // default
+  tcp.set_DACK(dack); // default
   tcp.set_MSL(std::chrono::seconds(3));
 
   tcp.set_window_size(winsize, wscale);
+  tcp.set_timestamps(timestamps);
 
   tcp.bind(1337).on_connect([](Connection_ptr conn)
   {
