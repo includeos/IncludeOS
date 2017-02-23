@@ -96,7 +96,6 @@ void SMP::init()
   // subscribe to IPIs
   IRQ_manager::get().subscribe(BSP_LAPIC_IPI_IRQ,
   [] {
-    printf("checking...\n");
     // copy all the done functions out from queue to our local vector
     auto done = SMP::get_completed();
     // call all the done functions
@@ -133,7 +132,7 @@ int ::SMP::cpu_count() noexcept
 void ::SMP::add_task(smp_task_func task, smp_done_func done)
 {
   lock(smp.tlock);
-  smp.tasks.emplace_back(task, done);
+  smp.tasks.emplace_back(std::move(task), std::move(done));
   unlock(smp.tlock);
 }
 void ::SMP::enter_event_loop(smp_task_func task)
@@ -147,7 +146,7 @@ void ::SMP::enter_event_loop(smp_task_func task)
       IRQ_manager::get().process_interrupts();
       OS::halt();
     }
-    }), nullptr);
+  }), nullptr);
   unlock(smp.tlock);
 }
 void ::SMP::signal()

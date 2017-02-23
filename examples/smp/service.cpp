@@ -29,13 +29,11 @@ struct per_cpu_test
 } __attribute__((aligned(64)));
 static std::array<per_cpu_test, 16> testing;
 
-spinlock_t writesync;
 int        times = 0;
 
 void Service::start()
 {
   OS::add_stdout_default_serial();
-  printf("This CPU id: %d\n", SMP::cpu_id());
 
   for (size_t i = 0; i < testing.size(); i++) {
     testing[i].value = i;
@@ -44,7 +42,7 @@ void Service::start()
   static int completed = 0;
   static uint32_t job = 0;
   static const int TASKS = 8 * sizeof(job);
-  
+
   // schedule tasks
   for (int i = 0; i < TASKS; i++)
   SMP::add_task(
@@ -55,16 +53,13 @@ void Service::start()
   [i] {
     // job completion
     completed++;
-      lock(writesync);
-      printf("compl = %d\n", completed);
-      unlock(writesync);
     
     if (completed == TASKS) {
-      lock(writesync);
+      SMP::global_lock();
       printf("All jobs are done now, compl = %d\n", completed);
       printf("bits = %#x\n", job);
-      unlock(writesync);
       assert(job = 0xffffffff && "All 32 bits must be set");
+      SMP::global_unlock();
     }
   });
   // start working on tasks
@@ -76,23 +71,14 @@ void Service::start()
   for (int i = 1; i < SMP::cpu_count(); i++)
   SMP::enter_event_loop(
   [] {
-    lock(writesync);
+    SMP::global_lock();
     printf("AP %d entering event loop\n", SMP::cpu_id());
     event_looped++;
     if (event_looped == SMP::cpu_count()-1) {
         printf("*** All APs have entered event loop\n");
     }
-    unlock(writesync);
+    SMP::global_unlock();
   });
   // start working on tasks
   SMP::signal();
-
-  void late_fix(int);
-  Timers::oneshot(std::chrono::seconds(1), late_fix);
-}
-
-void late_fix(int)
-{
-  printf("interrupting...\n");
-  asm ("int $0x7e");
 }

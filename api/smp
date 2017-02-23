@@ -98,8 +98,8 @@ public:
   static void signal();
 
   // a global spinlock to synchronize text output (and other things)
-  void global_lock()   noexcept;
-  void global_unlock() noexcept;
+  static void global_lock()   noexcept;
+  static void global_unlock() noexcept;
 };
 
 // access a std::array of structs indexed by current CPU id

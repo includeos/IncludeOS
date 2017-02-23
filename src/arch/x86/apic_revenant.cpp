@@ -54,27 +54,19 @@ void revenant_main(int cpu)
     
     unlock(smp.tlock);
     
-    /// normal task
-    if (task.done)
+    // execute actual task
+    task.func();
+    
+    // add done function to completed list (only if its callable)
+    if (true) //task.done)
     {
-      // execute actual task
-      task.func();
-      
-      // add done function to completed list (only if its callable)
       lock(smp.flock);
       smp.completed.push_back(task.done);
       unlock(smp.flock);
-      
-      // at least one thread will empty the task list
-      x86::APIC::get().send_bsp_intr();
     }
-    else if (task.func)
-    { /// task that doesn't immediately exit
-      // signal early
-      x86::APIC::get().send_bsp_intr();
-      // start long task
-      task.func();
-    }
+    
+    // at least one thread will empty the task list
+    x86::APIC::get().send_bsp_intr();
   }
   __builtin_unreachable();
 }

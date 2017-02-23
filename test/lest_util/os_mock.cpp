@@ -163,6 +163,11 @@ void __arch_reboot() {}
 void __arch_enable_legacy_irq(uint8_t) {}
 void __arch_disable_legacy_irq(uint8_t) {}
 
+#include <smp>
+int SMP::cpu_id() noexcept {
+  return 0;
+}
+
 extern "C"
 void (*current_eoi_mechanism) () = nullptr;
 
