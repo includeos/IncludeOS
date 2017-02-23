@@ -72,12 +72,18 @@ if ! command -v sudo > /dev/null 2>&1; then
     exit 1
 fi
 
-# now install build requirements (compiler, etc). This was moved into
-# a function of its own as it can easen the setup.
-if ! ./etc/install_build_requirements.sh $SYSTEM $RELEASE; then
-    printf "%s\n" ">>> Sorry <<<"\
-		   "Could not install build requirements."
-    exit 1
+# Install build requirements (compiler, etc) 
+if [ "Darwin" = "$SYSTEM" ]; then
+    if ! ./etc/install_osx.sh; then
+		printf "%s\n" ">>> Sorry <<<"\
+			   "Could not install osx dependencies"
+	fi
+else
+	if ! ./etc/install_build_requirements.sh $SYSTEM $RELEASE; then
+		printf "%s\n" ">>> Sorry <<<"\
+			   "Could not install build requirements."
+		exit 1
+	fi
 fi
 
 ############################################################
@@ -126,32 +132,21 @@ if tty -s; then
 	esac
 fi
 
-# if the --all-source parameter was given, build it the hard way
-if [ "$1" = "--all-source" ]; then
-    printf "\n\n>>> Installing everything from source"
-    ./etc/install_all_source.sh
+printf "\n\n>>> Calling install_from_bundle.sh script"
+if ! ./etc/install_from_bundle.sh; then
+	printf  "%s\n" ">>> Sorry <<<"\
+			"Could not install from bundle."
+	exit 1
+fi
 
-elif [ "Darwin" = "$SYSTEM" ]; then
-    # TODO: move build dependencies to the install build requirements step
-    ./etc/install_osx.sh
-
-elif [ "Linux" = "$SYSTEM" ]; then
-    printf "\n\n>>> Calling install_from_bundle.sh script"
-    if ! ./etc/install_from_bundle.sh; then
-        printf  "%s\n" ">>> Sorry <<<"\
-				"Could not install from bundle."
-        exit 1
-    fi
-
-	# Installing network bridge
+if [ "Linux" = "$SYSTEM" ]; then
+	# Install network bridge
     printf "\n\n>>> Installing network bridge\n"
     if ! ./etc/scripts/create_bridge.sh; then
         printf "%s\n" ">>> Sorry <<<"\
 			   "Could not create or configure bridge."
         exit 1
     fi
-
-
 fi
 
 ############################################################
