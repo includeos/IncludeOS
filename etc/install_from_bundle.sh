@@ -24,11 +24,8 @@ compiler=""
 guess_compiler() {
     for compiler in $1
     do
-	exists=`command -v $compiler`
-	if [ "$exists" != "" ]
-	then
-	    compiler=$exists
-	    break
+		if command -v $compiler; then
+			break
 	fi
     done
 }
@@ -36,14 +33,14 @@ guess_compiler() {
 
 if [ -z "$CC" ]
 then
-  guess_compiler $cc_list
-  export CC=$compiler
+	guess_compiler "$cc_list"
+	export CC=$compiler
 fi
 
 if [ -z "$CXX" ]
 then
-  guess_compiler $cxx_list
-  export CXX=$compiler
+	guess_compiler "$cxx_list"
+	export CXX=$compiler
 fi
 
 echo -e "\n\n>>> Best guess for compatible compilers: $CXX / $CC"

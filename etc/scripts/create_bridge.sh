@@ -1,11 +1,11 @@
 #!/bin/sh
 set -e
 
-echo ">>> Creating network bridge for IncludeOS "
+echo "    Creating network bridge for IncludeOS "
 
 if [ $# -eq 0 ]
 then
-  echo ">>> Using default settings "
+  echo "    Using default settings "
   BRIDGE=bridge43
   NETMASK=255.255.0.0
   GATEWAY=10.0.0.1
@@ -21,7 +21,7 @@ else
   exit 1
 fi
 
-echo ">>> Creating bridge $BRIDGE, netmask $NETMASK, gateway $GATEWAY "
+echo "    Creating bridge $BRIDGE, netmask $NETMASK, gateway $GATEWAY "
 
 # Håreks cool hack:
 # - First two bytes is fixed to "c001" because it's cool
@@ -35,10 +35,10 @@ DHCPRANGE=10.0.0.2,10.0.0.254
 # Check if bridge is created
 if uname -s | grep Darwin > /dev/null 2>&1; then  # Check if on Mac
   if ifconfig $BRIDGE 2>&1 | grep -q "does not exist"; then
-    echo ">>> Creating network bridge (requires sudo):"
+    echo "    Creating network bridge (requires sudo):"
     sudo ifconfig $BRIDGE create || exit 1
   else
-    echo ">>> Network bridge already created"
+    echo "    Network bridge already created"
   fi
 else
   BRSHOW="brctl show"
@@ -50,29 +50,29 @@ else
 
   # Check if bridge already is created
   if $BRSHOW $BRIDGE 2>&1 | grep -qE "No such device|bridge $BRIDGE does not exist"; then
-    echo ">>> Creating network bridge (requires sudo):"
+    echo "    Creating network bridge (requires sudo):"
     sudo brctl addbr $BRIDGE || exit 1
   else
-    echo ">>> Network bridge already created"
+    echo "    Network bridge already created"
   fi
 fi
 
 # Check if bridge is configured
 #if ip -o link show $BRIDGE | grep -q "$HWADDR"; then
 if ifconfig $BRIDGE | grep -q "$HWADDR"; then
-  echo ">>> Network bridge already configured"
+  echo "    Network bridge already configured"
 
   # Make sure that the bridge is activated
   #if ip -o link show $BRIDGE | grep -q "UP"; then
   if ifconfig $BRIDGE | grep -q "UP"; then
-    echo ">>> Network bridge already activated"
+    echo "    Network bridge already activated"
   else
-    echo ">>> Activating network bridge (requires sudo):"
+    echo "    Activating network bridge (requires sudo):"
     sudo ifconfig $BRIDGE up || exit 1
   fi
 else
   # Configure and activate bridge
-  echo ">>> Configuring network bridge (requires sudo):"
+  echo "    Configuring network bridge (requires sudo):"
 
   sudo ifconfig $BRIDGE $GATEWAY netmask $NETMASK up || exit 1
   if uname -s | grep Darwin > /dev/null 2>&1; then
