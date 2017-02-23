@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ############################################################
 # OPTIONS:
@@ -133,6 +133,12 @@ if tty -s; then
 	esac
 fi
 
+# Trap that cleans the cmake output file in case of exit
+function clean {
+	rm /tmp/cmake_output.txt
+} 
+trap clean EXIT
+
 # if the --all-source parameter was given, build it the hard way
 if [ "$1" = "--all-source" ]; then
     printf "\n\n>>> Installing everything from source"
@@ -141,8 +147,9 @@ if [ "$1" = "--all-source" ]; then
 				"Could not install from source."
 	fi
 else
-    printf "\n\n>>> Calling install_from_bundle.sh script"
-    if ! ./etc/install_from_bundle.sh; then
+	printf "\n\n>>> Running install_from_bundle.sh (expect up to 3 minutes)\n"
+    if ! ./etc/install_from_bundle.sh &> /tmp/cmake_output.txt; then
+		cat /tmp/cmake_output.txt	# Print output because it failed
         printf  "%s\n" ">>> Sorry <<<"\
 				"Could not install from bundle."
         exit 1
