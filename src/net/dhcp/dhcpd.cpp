@@ -552,15 +552,10 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts = (dhcp_option_t*) (offer->options + 21);            // 21 bytes filled in prior
   offer_opts->code = DHO_DHCP_LEASE_TIME;
   offer_opts->length = 4;
-  // TODO: CHANGED REVERSE ORDER:
   offer_opts->val[0] = (lease_ & 0xff000000) >> 24;
   offer_opts->val[1] = (lease_ & 0x00ff0000) >> 16;
   offer_opts->val[2] = (lease_ & 0x0000ff00) >> 8;
   offer_opts->val[3] = (lease_ & 0x000000ff);
-  /*offer_opts->val[0] = (lease_ & 0x000000ff);
-  offer_opts->val[1] = (lease_ & 0x0000ff00) >> 8;
-  offer_opts->val[2] = (lease_ & 0x00ff0000) >> 16;
-  offer_opts->val[3] = (lease_ & 0xff000000) >> 24;*/
 
   // MESSAGE (SHOULD)
   // No error message (only in DHCPNAK)
@@ -574,20 +569,10 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts = (dhcp_option_t*) (offer->options + 30);
   offer_opts->code = DHO_TIME_OFFSET;
   offer_opts->length = 4;
-  auto l_start = record.lease_start();
   offer_opts->val[0] = 0;
   offer_opts->val[1] = 0;
   offer_opts->val[2] = 0;
   offer_opts->val[3] = 0;
-  // TODO: CHANGED REVERSE ORDER:
-  /*offer_opts->val[0] = (l_start & 0xff000000) >> 24;
-  offer_opts->val[1] = (l_start & 0x00ff0000) >> 16;
-  offer_opts->val[2] = (l_start & 0x0000ff00) >> 8;
-  offer_opts->val[3] = (l_start & 0x000000ff);*/
-  /*offer_opts->val[0] = (l_start & 0x000000ff);
-  offer_opts->val[1] = (l_start & 0x0000ff00) >> 8;
-  offer_opts->val[2] = (l_start & 0x00ff0000) >> 16;
-  offer_opts->val[3] = (l_start & 0xff000000) >> 24;*/
 
   // 2 DOMAIN_NAME_SERVERS
   offer_opts = (dhcp_option_t*) (offer->options + 36);
@@ -602,22 +587,17 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts = (dhcp_option_t*) (offer->options + 42);
   offer_opts->code = DHO_HOST_NAME;
   auto host_name_length = 0;
-  printf("Host name from client:\n");
   const dhcp_option_t* host_name = get_option(opts, DHO_HOST_NAME);
   if (host_name->code == DHO_HOST_NAME) {
     host_name_length = host_name->length;
     offer_opts->length = host_name_length;
-    for (int i = 0; i < host_name->length; i++) {
-      printf("%u ", host_name->val[i]);
+    for (int i = 0; i < host_name->length; i++)
       offer_opts->val[i] = host_name->val[i];
-    }
   } else {
-    printf("Fant ikke DHO_HOST_NAME fra klient\n");
     host_name_length = 1;
     offer_opts->length = 1;
     offer_opts->val[0] = 0;
   }
-  printf("\n");
 
   // 4 DOMAIN_NAME - blank for now
   offer_opts = (dhcp_option_t*) (offer->options + 44 + host_name_length);
@@ -634,22 +614,11 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts->val[1] = broadcast.part(2);
   offer_opts->val[2] = broadcast.part(1);
   offer_opts->val[3] = broadcast.part(0);
-  /* 5 BROADCAST_ADDRESS
-  offer_opts = (dhcp_option_t*) (offer->options + 48 + host_name_length);
-  offer_opts->code = DHO_BROADCAST_ADDRESS;
-  offer_opts->length = 4;
-  offer_opts->val[0] = 0;
-  offer_opts->val[1] = 0;
-  offer_opts->val[2] = 0;
-  offer_opts->val[3] = 0;*/
 
   // END
   offer_opts = (dhcp_option_t*) (offer->options + 53 + host_name_length);    // 30 bytes filled in prior
   offer_opts->code   = DHO_END;
   offer_opts->length = 0;
-
-  printf("\n------------------- Offer from Server -------------------\n");
-  print(offer, offer_opts);
 
   // The client should include the maximum DHCP message size option to let the server know how large the server may
   // make its DHCP messages. The parameters returned to a client may still exceed the space allocated to options in a
@@ -701,6 +670,8 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
 
   // RECORD
   add_record(record);
+
+  printf("Sending DHCPOFFER\n");
 
   // If the giaddr field in a DHCP message from a client is non-zero, the server
   // sends any return messages to the DHCP server port on the BOOTP relay agent
