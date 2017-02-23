@@ -87,6 +87,9 @@ union MAC_addr {
                    PARTS_LEN) == 0;
   }
 
+  bool operator!=(const MAC_addr mac) const noexcept
+  { return not(*this == mac); }
+
 }  __attribute__((packed)); //< union addr
 }
 
