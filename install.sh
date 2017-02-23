@@ -84,7 +84,28 @@ fi
 # INSTALL INCLUDEOS:
 ############################################################
 
-# Perform a check of required environment variables
+# Check if script has write permission to PREFIX location
+start_dir=$INCLUDEOS_PREFIX
+while [ "$start_dir" != "/" ]
+do	
+	if [ -d $start_dir ]; then	# If dir exists
+		if [ ! -w $start_dir ]; then	# If dir is not writable
+			printf "\n\n>>> IncludeOS can't be installed with the current options\n"
+			printf "    INCLUDEOS_PREFIX is set to %s\n" "$INCLUDEOS_PREFIX"
+			printf "    which is not a directory where you have write permissions.\n"
+			printf "    Either call install.sh with sudo or set INCLUDEOS_PREFIX\n"
+			exit 1
+		else
+			# Directory exists and is writable, continue install script
+			break
+		fi
+	else
+		# If directory is not yet created, check if parent dir is writeable
+		start_dir="$(dirname "$start_dir")"
+	fi
+done
+
+# Print currently set install options
 printf "\n\n>>> IncludeOS will be installed with the following options:\n\n"
 printf "%-25s %-25s %s\n"\
 	   "Env variable" "Description" "Value"\
@@ -93,6 +114,7 @@ printf "%-25s %-25s %s\n"\
 	   "INCLUDEOS_PREFIX" "Install location" "$INCLUDEOS_PREFIX"\
 	   "INCLUDEOS_ENABLE_TEST" "Enable test compilation" "$INCLUDEOS_ENABLE_TEST"
 
+# Give user option to evaluate install options
 if tty -s; then
 	read -p "Is this correct [Y|N]?" answer
 	case $answer in
@@ -132,6 +154,10 @@ elif [ "Linux" = "$SYSTEM" ]; then
 
 fi
 
+############################################################
+# INSTALL FINISHED:
+############################################################
+
 printf "\n\n>>> IncludeOS installation Done!\n" 
 printf "%s\n" "To use IncludeOS set env variables for cmake to know your compiler, e.g.:"\
 	   '    export CC="clang-3.8"'\
@@ -142,7 +168,7 @@ printf "%s\n" "To use IncludeOS set env variables for cmake to know your compile
 # Check if boot command is available
 if ! type boot > /dev/null 2>&1; then
 	printf "\nThe boot utility is not available, add IncludeOS to your path:\n"
-	printf "    export PATH=\$PATH:$INCLUDEOS_PREFIX/bin"
+	printf "    export PATH=\$PATH:$INCLUDEOS_PREFIX/bin\n"
 fi
 
 
