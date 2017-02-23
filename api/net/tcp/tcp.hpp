@@ -196,6 +196,11 @@ namespace net {
     constexpr bool uses_wscale() const
     { return wscale_ > 0; }
 
+    void set_timestamps(bool active)
+    { timestamps_ = active; }
+
+    constexpr bool uses_timestamps() const
+    { return timestamps_; }
 
     /**
      * @brief      Sets the dack. [RFC 1122] (p.96)
@@ -265,6 +270,8 @@ namespace net {
     uint32_t                  win_size_;
     /** Window scale factor [RFC 7323] p. 8 */
     uint8_t                   wscale_;
+    /** Timestamp option active [RFC 7323] p. 11 */
+    bool                      timestamps_;
     /** Delayed ACK timeout - how long should we wait with sending an ACK */
     std::chrono::milliseconds dack_timeout_;
     /** Maximum SYN queue backlog */
@@ -299,6 +306,8 @@ namespace net {
       Check if the port is in use either among "listeners" or "connections"
     */
     bool port_in_use(const tcp::port_t) const;
+
+    uint32_t get_ts_value() const;
 
     /*
       Packet is dropped.

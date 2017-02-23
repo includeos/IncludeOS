@@ -32,6 +32,8 @@ namespace net {
     // window scaling + window size
     static constexpr uint8_t  default_window_scaling {5};
     static constexpr uint32_t default_ws_window_size {8192 << default_window_scaling};
+    // use of timestamps option
+    static constexpr bool     default_timestamps {true};
     // maximum size of a TCP segment - later set based on MTU or peer
     static constexpr uint16_t default_mss {536};
     // the maximum amount of half-open connections per port (listener)

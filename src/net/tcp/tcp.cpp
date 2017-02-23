@@ -22,6 +22,7 @@
 #include <net/tcp/packet.hpp>
 #include <net/inet_common.hpp>
 #include <statman>
+#include <os>
 
 using namespace std;
 using namespace net;
@@ -36,6 +37,7 @@ TCP::TCP(IPStack& inet) :
   max_seg_lifetime_{default_msl},       // 30s
   win_size_{default_ws_window_size},    // 8096*1024
   wscale_{default_window_scaling},      // 5
+  timestamps_{default_timestamps},      // true
   dack_timeout_{default_dack_timeout},  // 40ms
   max_syn_backlog_{default_max_syn_backlog}, // 64
   bytes_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_rx").get_uint64()},
@@ -144,6 +146,11 @@ bool TCP::port_in_use(const port_t port) const {
       return true;
   }
   return false;
+}
+
+uint32_t TCP::get_ts_value() const
+{
+  return static_cast<uint32_t>(OS::micros_since_boot());
 }
 
 uint16_t TCP::checksum(const tcp::Packet& packet)

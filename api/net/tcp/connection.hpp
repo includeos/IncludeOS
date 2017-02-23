@@ -192,8 +192,10 @@ public:
 
   /*
     Represent the Connection as a string (STATUS).
+    Local:Port Remote:Port (STATE)
   */
-  std::string to_string() const;
+  std::string to_string() const
+  { return {local().to_string() + " " + remote_.to_string() + " (" + state_->to_string() + ")"}; }
 
   /*
     Returns the current state of the connection.
@@ -234,7 +236,8 @@ public:
   /*
     Is the usable window large enough, and is there data to send.
   */
-  bool can_send();
+  constexpr bool can_send() const
+  { return (usable_window() >= SMSS()) and writeq.has_remaining_requests(); }
 
   /*
     Return the id (TUPLE) of the connection.
@@ -407,7 +410,8 @@ public:
 
       uint16_t MSS; // Maximum segment size for outgoing segments.
 
-      uint8_t  wind_shift;
+      uint8_t  wind_shift; // WS factor
+      bool     TS_OK;  // Use timestamp option
     } SND; // <<
     seq_t ISS;      // initial send sequence number
 
@@ -419,13 +423,15 @@ public:
 
       uint16_t rwnd; // receivers advertised window [RFC 5681]
 
-      uint8_t  wind_shift;
+      uint8_t  wind_shift; // WS factor
     } RCV; // <<
     seq_t IRS;      // initial receive sequence number
 
     uint32_t ssthresh; // slow start threshold [RFC 5681]
     uint32_t cwnd;     // Congestion window [RFC 5681]
     seq_t recover;     // New Reno [RFC 6582]
+
+    uint32_t TS_recent; // Recent timestamp received from user [RFC 7323]
 
     TCB(const uint32_t recvwin);
     TCB();
@@ -538,6 +544,7 @@ private:
 
   /** Delayed ACK - number of seg received without ACKing */
   uint8_t  dack_{0};
+  seq_t    last_ack_sent_;
 
   /// --- CALLBACKS --- ///
 
@@ -552,16 +559,7 @@ private:
   CleanupCallback         _on_cleanup_;
   inline Connection&      _on_cleanup(CleanupCallback cb);
 
-  void default_on_connect(Connection_ptr);
   void default_on_disconnect(Connection_ptr, Disconnect);
-  void default_on_error(TCPException);
-  void default_on_packet_dropped(const Packet&, const std::string&);
-  void default_on_rtx_timeout(size_t, double);
-  void default_on_close();
-  void default_on_cleanup(Connection_ptr);
-  void default_on_write(size_t);
-
-
 
   /// --- READING --- ///
 
@@ -701,20 +699,25 @@ private:
     SND.UNA + WINDOW - SND.NXT
   */
   uint32_t usable_window() const {
-    auto x = (int64_t)send_window() - (int64_t)flight_size();
+    const auto x = (int64_t)send_window() - (int64_t)flight_size();
     return (uint32_t) std::max(0ll, x);
   }
 
   uint32_t send_window() const {
-    return std::min((cb.SND.WND << cb.SND.wind_shift), cb.cwnd);
+    return std::min(cb.SND.WND, cb.cwnd);
   }
 
   int32_t congestion_window() const {
-    auto win = (uint64_t)cb.SND.UNA + std::min((uint64_t)cb.cwnd, (uint64_t)send_window());
+    const auto win = (uint64_t)cb.SND.UNA + (uint64_t)send_window();
     return (int32_t)win;
   }
 
+  uint32_t flight_size() const
+  { return (uint64_t)cb.SND.NXT - (uint64_t)cb.SND.UNA; }
+
   bool uses_window_scaling() const;
+
+  bool uses_timestamps() const;
 
   /// --- INCOMING / TRANSMISSION --- ///
   /*
@@ -736,22 +739,19 @@ private:
   /*
     Is it possible to send ONE segment.
   */
-  bool can_send_one();
+  constexpr bool can_send_one() const
+  { return send_window() >= SMSS() and writeq.has_remaining_requests(); }
 
   /*
     Send as much as possible from write queue.
   */
-  void send_much();
+  void send_much()
+  { writeq_push(); }
 
   /*
     Fill a packet with data and give it a SEQ number.
   */
-  size_t fill_packet(Packet&, const uint8_t*, size_t, seq_t);
-
-  /*
-    Transmit the send buffer.
-  */
-  void transmit();
+  size_t fill_packet(Packet&, const uint8_t*, size_t);
 
   /*
     Transmit the packet and hooks up retransmission.
@@ -775,28 +775,33 @@ private:
 
   /// --- Congestion Control [RFC 5681] --- ///
 
-  void setup_congestion_control();
+  void setup_congestion_control()
+  { reno_init(); }
 
   uint16_t SMSS() const;
 
   uint16_t RMSS() const
   { return cb.SND.MSS; }
 
-  uint32_t flight_size() const
-  { return (uint64_t)cb.SND.NXT - (uint64_t)cb.SND.UNA; }
-
   // Reno specifics //
 
-  void reno_init();
+  void reno_init()
+  {
+    reno_init_cwnd(3);
+    reno_init_sshtresh();
+  }
 
-  void reno_init_cwnd(size_t segments);
+  void reno_init_cwnd(const size_t segments)
+  { cb.cwnd = segments*SMSS(); }
 
   void reno_init_sshtresh()
   { cb.ssthresh = cb.SND.WND; }
 
-  void reno_increase_cwnd(uint16_t n);
+  void reno_increase_cwnd(const uint16_t n)
+  { cb.cwnd += std::min(n, SMSS()); }
 
-  void reno_deflate_cwnd(uint16_t n);
+  void reno_deflate_cwnd(const uint16_t n)
+  { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
 
   void reduce_ssthresh();
 
@@ -869,7 +874,8 @@ private:
   void timewait_restart();
 
   /** When timewait timer times out */
-  void timewait_timeout();
+  void timewait_timeout()
+  { signal_close(); }
 
   /** Wether to use Delayed ACK or not */
   bool use_dack() const;

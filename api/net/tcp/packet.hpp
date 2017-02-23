@@ -201,9 +201,21 @@ public:
     assert(!has_tcp_data());
     // option address
     auto* addr = tcp_options()+tcp_options_length();
-    new (addr) T(args...);
+    // emplace the option
+    const auto& opt = *(new (addr) T(args...));
+
+    // find number of NOP to pad with
+    const auto nops = opt.length % 4;
+    if(nops) {
+      struct NOP {
+        uint8_t kind{0x01};
+      };
+      new (addr + opt.length) NOP[nops];
+    }
+
     // update offset
-    set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
+    set_offset(offset() + round_up(opt.length, 4));
+
     set_length(); // update
   }
 
