@@ -25,24 +25,10 @@
 
 namespace x86
 {
-struct gdt;
-
-struct GDT
-{
-  static void reload_gdt(gdt* base) noexcept;
-
-  static inline void set_fs(int entry) noexcept {
-    asm("mov %%fs, %0" : : "r"(entry * 8) : "memory");
-  }
-  static inline void set_gs(int entry) noexcept {
-    asm("mov %%gs, %0" : : "r"(entry * 8) : "memory");
-  }
-};
-
 struct gdt_desc
 {
-  uint16_t size;
-  uint32_t offset;
+  uint16_t  size;
+  uintptr_t offset;
 } __attribute__((packed));
 
 struct gdt_entry
@@ -55,29 +41,42 @@ struct gdt_entry
   uint32_t base_hi   : 8;
 } __attribute__((packed));
 
-struct gdt
+struct GDT
 {
-  static const int ENTRIES = 4;
+  static const int MAX_ENTRIES = 4;
   
-  uint16_t  count = 0;
-  gdt_desc  desc;
-  gdt_entry entry[ENTRIES];
+  static void reload_gdt(GDT& base) noexcept;
 
-  gdt() {
+  static inline void set_fs(int entry) noexcept {
+    asm volatile("movl %0, %%fs" : : "r"(entry * 0x8));
+  }
+  static inline void set_gs(int entry) noexcept {
+    asm volatile("movl %0, %%gs" : : "r"(entry * 0x8));
+  }
+
+  GDT() {
     desc.size   = 0;
-    desc.offset = (uint32_t) &entry[0];
+    desc.offset = (uintptr_t) &entry[0];
   }
 
   void initialize() noexcept;
 
   gdt_entry& create() {
-    assert(count < ENTRIES);
-    desc.size += sizeof(gdt_entry);
-    return entry[count++];
+    assert(count < MAX_ENTRIES);
+    auto& newent = entry[count++];
+    desc.size = count * sizeof(gdt_entry) - 1;
+    return newent;
   }
 
+  // create new data entry and return index
+  int create_data(void* base, uint16_t pages) noexcept;
+
+private:
   gdt_entry& create_data(uint32_t base, uint16_t size) noexcept;
-  int  create_data(void* base, uint16_t len) noexcept;
+
+  uint16_t  count = 0;
+  gdt_desc  desc;
+  gdt_entry entry[MAX_ENTRIES];
 };
 }
 

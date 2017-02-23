@@ -4,30 +4,27 @@
 #include <kernel/irq_manager.hpp>
 #include <kprint>
 
+extern "C" int       get_cpu_id();
+extern "C" uintptr_t get_cpu_esp();
+extern "C" void      lapic_exception_handler();
+#define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
+
 using namespace x86;
 smp_stuff smp;
 idt_loc   smp_lapic_idt;
+
+struct segtable
+{
+  struct GDT gdt;
+} __attribute__((aligned(64)));
+segtable  gdtables[16];
 
 struct cpu_stuff
 {
   int cpduid;
   
 } __attribute__((aligned(4096)));
-
-struct segtable
-{
-  struct gdt gdt;
-} __attribute__((aligned(64)));
-
 cpu_stuff cpudata[16];
-segtable  gdtables[16];
-
-
-// expensive, but correctly returns the current CPU id
-extern "C" int       get_cpu_id();
-extern "C" uintptr_t get_cpu_esp();
-extern "C" void      lapic_exception_handler();
-#define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 
 struct per_cpu_test
 {
@@ -40,7 +37,7 @@ template <typename T, size_t N>
 inline T& per_cpu(std::array<T, N>& array)
 {
   unsigned cpuid;
-  asm volatile("movl %%gs, %0" : "=m" (cpuid));
+  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
   return array.at(cpuid);
 }
 #define PER_CPU(x) (per_cpu<decltype(x)::value_type, x.size()>(x))
@@ -61,10 +58,11 @@ void revenant_main(int cpu)
   // initialize GDT for this core
   gdtables[cpu].gdt.initialize();
   // create PER-CPU segment
-  int fs = gdtables[cpu].gdt.create_data(&cpudata[cpu], sizeof(cpu_stuff));
+  int fs = gdtables[cpu].gdt.create_data(&cpudata[cpu], 1);
   // load GDT and refresh segments
-  GDT::reload_gdt(&gdtables[cpu].gdt);
+  GDT::reload_gdt(gdtables[cpu].gdt);
   // enable per-cpu for this core
+  cpudata[cpu].cpduid = cpu;
   GDT::set_fs(fs);
 
   // we can use shared memory here because the

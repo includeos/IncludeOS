@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef x86_CPU_HPP
-#define x86_CPU_HPP
+#ifndef X86_CPU_HPP
+#define X86_CPU_HPP
 
 #include <cstdint>
 
@@ -38,22 +38,18 @@ namespace x86
     static void
     write_msr(uint32_t addr, uint32_t eax, uint32_t edx)
     {
-      asm volatile("wrmsr" : : "a" (eax),"d"(edx), "c" (addr));
+      asm volatile("wrmsr" : : "a" (eax), "d"(edx), "c" (addr));
     }
     static void
     write_msr(uint32_t addr, uint64_t value)
     {
-      union {
-        uint64_t value;
-        uint32_t reg[2];
-      } msr {value};
-      asm volatile("wrmsr" : : "a" (msr.reg[0]),"d"(msr.reg[1]), "c" (addr));
+      asm volatile("wrmsr" : : "A" (value), "c" (addr));
     }
     
     static uint64_t rdtsc()
     {
       uint64_t ret;
-      __asm__ volatile ("rdtsc":"=A"(ret));
+      asm volatile("rdtsc" : "=A"(ret));
       return ret;
     }
   };
