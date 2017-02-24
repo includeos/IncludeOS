@@ -86,7 +86,7 @@ template<typename T> struct direct_wrap
 template<typename C>
 struct empty_lambda : C
 {
-	const bool padding = true;
+	const size_t padding = 1;
 
 	template<typename T> explicit empty_lambda(T&& val) noexcept :
     C(std::forward<T>(val))
@@ -188,7 +188,7 @@ public:
 	explicit inplace_triv() noexcept :
 		invoke_ptr_{ detail::empty_inplace<R, storage_t, Args...> }
 	{
-		new(&storage_)std::nullptr_t{ nullptr };
+		new(&storage_)size_t{ 0 };
 	}
 
 	template<
@@ -230,7 +230,7 @@ public:
 
 	bool empty() const noexcept
 	{
-		return reinterpret_cast<std::nullptr_t&>(storage_) == nullptr;
+		return reinterpret_cast<size_t&>(storage_) == 0;
 	}
 
 	template<typename T> T* target() const noexcept
@@ -260,10 +260,10 @@ public:
 
 	explicit inplace() noexcept :
 		invoke_ptr_{ detail::empty_inplace<R, storage_t, Args...> },
-		copy_ptr_{ copy_op<std::nullptr_t, storage_t>() },
+		copy_ptr_{ copy_op<size_t, storage_t>() },
 		destructor_ptr_{ [](storage_t&) noexcept -> void {} }
 	{
-		new(&storage_)std::nullptr_t{ nullptr };
+		new(&storage_)size_t{ 0 };
 	}
 
 	// proxy constructors
@@ -354,7 +354,7 @@ public:
 
 	bool empty() const noexcept
 	{
-		return reinterpret_cast<std::nullptr_t&>(storage_) == nullptr;
+		return reinterpret_cast<size_t&>(storage_) == 0;
 	}
 
 	template<typename T> T* target() const noexcept
