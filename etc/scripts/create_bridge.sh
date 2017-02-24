@@ -57,14 +57,19 @@ else
   fi
 fi
 
+IFCONFIG="ifconfig"
+if ! command -v ifconfig > /dev/null 2>&1; then
+  IFCONFIG="sudo $IFCONFIG"
+fi
+
 # Check if bridge is configured
 #if ip -o link show $BRIDGE | grep -q "$HWADDR"; then
-if ifconfig $BRIDGE | grep -q "$HWADDR"; then
+if $IFCONFIG $BRIDGE | grep -q "$HWADDR"; then
   echo "    Network bridge already configured"
 
   # Make sure that the bridge is activated
   #if ip -o link show $BRIDGE | grep -q "UP"; then
-  if ifconfig $BRIDGE | grep -q "UP"; then
+  if $IFCONFIG $BRIDGE | grep -q "UP"; then
     echo "    Network bridge already activated"
   else
     echo "    Activating network bridge (requires sudo):"
