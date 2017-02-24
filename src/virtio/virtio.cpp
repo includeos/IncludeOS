@@ -20,6 +20,7 @@
 #include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
 #include <hw/pci.hpp>
+#include <smp>
 #include <assert.h>
 
 #define VIRTIO_MSI_CONFIG_VECTOR  20
@@ -99,12 +100,13 @@ Virtio::Virtio(hw::PCI_Device& dev)
     if (msix_vectors)
     {
       INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
+      this->current_cpu = SMP::cpu_id();
 
       // setup all the MSI-X vectors
       for (int i = 0; i < msix_vectors; i++)
       {
         auto irq = IRQ_manager::get().get_free_irq();
-        _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
+        _pcidev.setup_msix_vector(current_cpu, IRQ_BASE + irq);
         IRQ_manager::get().subscribe(irq, nullptr);
         // store IRQ for later
         this->irqs.push_back(irq);
@@ -211,5 +213,21 @@ void Virtio::setup_complete(bool ok){
 
 void Virtio::move_to_this_cpu()
 {
-  
+  if (has_msix())
+  {
+    // unsubscribe IRQs on old CPU
+    for (size_t i = 0; i < irqs.size(); i++)
+    {
+      auto& oldman = IRQ_manager::get(this->current_cpu);
+      oldman.unsubscribe(this->irqs[i]);
+    }
+    // resubscribe on the new CPU
+    this->current_cpu = SMP::cpu_id();
+    for (size_t i = 0; i < irqs.size(); i++)
+    {
+      this->irqs[i] = IRQ_manager::get().get_free_irq();
+      _pcidev.rebalance_msix_vector(i, current_cpu, IRQ_BASE + this->irqs[i]);
+      IRQ_manager::get().subscribe(this->irqs[i], nullptr);
+    }
+  }
 }

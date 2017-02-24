@@ -30,8 +30,13 @@
 
 //#define NO_DEFERRED_KICK
 #ifndef NO_DEFERRED_KICK
-static std::vector<VirtioNet*> deferred_devices;
-static uint8_t deferred_intr;
+#include <smp>
+struct smp_deferred_kick
+{
+  std::vector<VirtioNet*> devs;
+  uint8_t irq;
+};
+static std::array<smp_deferred_kick, 16> deferred_devs;
 #endif
 
 using namespace net;
@@ -149,16 +154,11 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   if (has_msix())
   {
     assert(get_msix_vectors() >= 3);
-    // for now use service queues, otherwise stress test fails
-    auto recv_del(delegate<void()>{this, &VirtioNet::msix_recv_handler});
-    auto xmit_del(delegate<void()>{this, &VirtioNet::msix_xmit_handler});
-    auto conf_del(delegate<void()>{this, &VirtioNet::msix_conf_handler});
-
     auto& irqs = this->get_irqs();
     // update BSP IDT
-    IRQ_manager::get().subscribe(irqs[0], recv_del);
-    IRQ_manager::get().subscribe(irqs[1], xmit_del);
-    IRQ_manager::get().subscribe(irqs[2], conf_del);
+    IRQ_manager::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
+    IRQ_manager::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
+    IRQ_manager::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
   }
   else
   {
@@ -169,8 +169,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   static bool init_deferred = false;
   if (!init_deferred) {
     init_deferred = true;
-    deferred_intr = IRQ_manager::get().get_free_irq();
-    IRQ_manager::get().subscribe(deferred_intr, handle_deferred_devices);
+    auto defirq = IRQ_manager::get().get_free_irq();
+    PER_CPU(deferred_devs).irq = defirq;
+    IRQ_manager::get().subscribe(defirq, handle_deferred_devices);
   }
 #endif
 
@@ -358,21 +359,21 @@ void VirtioNet::begin_deferred_kick()
 #else
   if (!deferred_kick) {
     deferred_kick = true;
-    deferred_devices.push_back(this);
-    IRQ_manager::get().register_irq(deferred_intr);
+    PER_CPU(deferred_devs).devs.push_back(this);
+    IRQ_manager::get().register_irq(PER_CPU(deferred_devs).irq);
   }
 #endif
 }
 void VirtioNet::handle_deferred_devices()
 {
 #ifndef NO_DEFERRED_KICK
-  for (auto* dev : deferred_devices) {
+  for (auto* dev : PER_CPU(deferred_devs).devs) {
     // kick transmitq
     dev->deferred_kick = false;
     dev->tx_q.enable_interrupts();
     dev->tx_q.kick();
   }
-  deferred_devices.clear();
+  PER_CPU(deferred_devs).devs.clear();
 #endif
 }
 
@@ -390,7 +391,19 @@ void VirtioNet::deactivate()
 
 void VirtioNet::move_to_this_cpu()
 {
+  printf("VirtioNet: Moving to CPU %d\n", SMP::cpu_id());
   this->Virtio::move_to_this_cpu();
+  // reset the IRQ handlers
+  auto& irqs = this->Virtio::get_irqs();
+  IRQ_manager::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
+  IRQ_manager::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
+  IRQ_manager::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
+
+#ifndef NO_DEFERRED_KICK
+  auto defirq = IRQ_manager::get().get_free_irq();
+  PER_CPU(deferred_devs).irq = defirq;
+  IRQ_manager::get().subscribe(defirq, handle_deferred_devices);
+#endif
 }
 
 #include <kernel/pci_manager.hpp>

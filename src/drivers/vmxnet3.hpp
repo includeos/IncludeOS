@@ -115,6 +115,7 @@ private:
   void     set_hwaddr(hw::MAC_addr&);
 
   hw::PCI_Device& pcidev;
+  std::vector<uint8_t> irqs;
   uintptr_t       iobase;
   uintptr_t       ptbase;
   hw::MAC_addr    hw_addr;

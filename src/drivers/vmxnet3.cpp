@@ -20,6 +20,7 @@
 #include "vmxnet3_queues.hpp"
 
 #include <kernel/irq_manager.hpp>
+#include <smp>
 #include <info>
 #include <cassert>
 #include <malloc.h>
@@ -105,9 +106,9 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 #define wmb() asm volatile("" : : : "memory")
 
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
-    pcidev(d),
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, 
-         2048, sizeof(net::Packet) + packet_len())
+         2048, sizeof(net::Packet) + packet_len()),
+    pcidev(d)
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
@@ -118,13 +119,12 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
     INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
     assert(msix_vectors >= 3);
     if (msix_vectors > 3) msix_vectors = 3;
-    std::vector<uint8_t> irqs;
     
     for (int i = 0; i < msix_vectors; i++)
     {
       auto irq = IRQ_manager::get().get_free_irq();
       d.setup_msix_vector(0x0, IRQ_BASE + irq);
-      irqs.push_back(irq);
+      this->irqs.push_back(irq);
       // dummpy subscription to make free_irq change
       IRQ_manager::get().subscribe(irq, nullptr);
     }
@@ -519,7 +519,15 @@ void vmxnet3::deactivate()
 
 void vmxnet3::move_to_this_cpu()
 {
-  
+  if (pcidev.has_msix())
+  {
+    for (size_t i = 0; i < irqs.size(); i++)
+    {
+      this->irqs[i] = IRQ_manager::get().get_free_irq();
+      pcidev.rebalance_msix_vector(i, SMP::cpu_id(), IRQ_BASE + this->irqs[i]);
+      IRQ_manager::get().subscribe(this->irqs[i], nullptr);
+    }
+  }
 }
 
 #include <kernel/pci_manager.hpp>

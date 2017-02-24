@@ -375,6 +375,7 @@ private:
 
   void default_irq_handler();
 
+  uint8_t current_cpu;
   std::vector<uint8_t> irqs;
 };
 
