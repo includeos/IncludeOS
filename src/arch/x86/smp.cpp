@@ -132,15 +132,23 @@ int ::SMP::cpu_count() noexcept
 
 void ::SMP::add_task(smp_task_func task, smp_done_func done)
 {
+#ifdef INCLUDEOS_SINGLE_THREADED
+  task(); done();
+#else
   lock(smp.tlock);
   smp.tasks.emplace_back(std::move(task), std::move(done));
   unlock(smp.tlock);
+#endif
 }
 void ::SMP::add_task(smp_task_func task)
 {
+#ifdef INCLUDEOS_SINGLE_THREADED
+  task();
+#else
   lock(smp.tlock);
   smp.tasks.emplace_back(std::move(task), [] {});
   unlock(smp.tlock);
+#endif
 }
 void ::SMP::signal()
 {
@@ -170,6 +178,7 @@ void ::SMP::memory_unlock() noexcept
 }
 
 /// SMP variants of malloc and free ///
+#ifndef INCLUDEOS_SINGLE_THREADED
 #include <malloc.h>
 void* malloc(size_t size)
 {
@@ -190,3 +199,4 @@ void free(void* ptr)
   _free_r(_REENT, ptr);
   unlock(__memory_lock);
 }
+#endif

@@ -52,7 +52,9 @@ void __arch_init()
   IRQ_manager::init(APIC::get().get_id());
 
   // initialize and start registered APs found in ACPI-tables
+#ifndef INCLUDEOS_SINGLE_THREADED
   x86::SMP::init();
+#endif
 
   // enable interrupts
   MYINFO("Enabling interrupts");

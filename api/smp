@@ -23,13 +23,23 @@
 #include "arch"
 #include <delegate>
 
+//#define INCLUDEOS_SINGLE_THREADED
+
+#ifdef INCLUDEOS_SINGLE_THREADED
+#define SMP_MAX_CORES   1
+#else
 #define SMP_MAX_CORES   16
+#endif
 
 /// x86-related locking stuff ///
 #ifdef ARCH_X86
 // Intel 3a  8.10.6.7: 128-byte boundary
 typedef volatile int spinlock_t __attribute__((aligned(128)));
 
+#ifdef INCLUDEOS_SINGLE_THREADED
+inline void lock(spinlock_t&) {}
+inline void unlock(spinlock_t&) {}
+#else
 inline void lock(spinlock_t& lock) {
   while (__sync_lock_test_and_set(&lock, 1)) {
     while (lock) asm volatile("pause");
@@ -39,6 +49,7 @@ inline void unlock(spinlock_t& lock) {
   __sync_synchronize(); // barrier
   lock = 0;
 }
+#endif
 
 struct minimal_barrier_t
 {
@@ -66,6 +77,13 @@ private:
 };
 
 #include <array>
+#ifdef INCLUDEOS_SINGLE_THREADED
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  return array[0];
+}
+#else
 template <typename T, size_t N>
 inline T& per_cpu_help(std::array<T, N>& array)
 {
@@ -73,6 +91,7 @@ inline T& per_cpu_help(std::array<T, N>& array)
   asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
   return array.at(cpuid);
 }
+#endif
 #endif
 
 
