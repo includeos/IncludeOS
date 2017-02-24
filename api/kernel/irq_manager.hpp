@@ -123,7 +123,7 @@ public:
   static IRQ_manager& get();
   static IRQ_manager& get(int cpu);
 
-  uint8_t get_next_msix_irq();
+  uint8_t get_free_irq();
   void register_irq(uint8_t irq);
 
   /** process all pending interrupts */

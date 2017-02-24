@@ -122,7 +122,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
     
     for (int i = 0; i < msix_vectors; i++)
     {
-      auto irq = IRQ_manager::get().get_next_msix_irq();
+      auto irq = IRQ_manager::get().get_free_irq();
       d.setup_msix_vector(0x0, IRQ_BASE + irq);
       irqs.push_back(irq);
     }
@@ -240,7 +240,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   }
   
   // deferred transmit
-  this->deferred_irq = IRQ_manager::get().get_next_msix_irq();
+  this->deferred_irq = IRQ_manager::get().get_free_irq();
   IRQ_manager::get().subscribe(this->deferred_irq, handle_deferred);
   
   // enable interrupts

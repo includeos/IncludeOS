@@ -40,10 +40,9 @@ IRQ_manager& IRQ_manager::get()
   return get(SMP::cpu_id());
 }
 
-uint8_t IRQ_manager::get_next_msix_irq()
+uint8_t IRQ_manager::get_free_irq()
 {
-  static uint8_t next_msix_irq = MSIX_IRQ_BASE;
-  return next_msix_irq++;
+  return irq_subs.first_free();
 }
 
 void IRQ_manager::register_irq(uint8_t irq)
@@ -104,6 +103,10 @@ void IRQ_manager::init_local()
   irq_subs.set_location(bmp + 0 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_pend.set_location(bmp + 1 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_todo.set_location(bmp + 2 * WORDS_PER_BMP, WORDS_PER_BMP);
+
+  // prevent get_free_irq from returning taken IDs
+  for (uint8_t irq = 0; irq < 32; irq++)
+      irq_subs.set(irq);
 
   if (SMP::cpu_id() == 0)
       INFO("INTR", "Creating exception handlers");

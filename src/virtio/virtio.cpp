@@ -101,13 +101,13 @@ Virtio::Virtio(hw::PCI_Device& dev)
       INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
 
       // remember the base IRQ
-      this->_irq = IRQ_manager::get().get_next_msix_irq();
+      this->_irq = IRQ_manager::get().get_free_irq();
       _pcidev.setup_msix_vector(0x0, IRQ_BASE + this->_irq);
 
       // setup all the other vectors
       for (int i = 1; i < msix_vectors; i++)
       {
-        auto irq = IRQ_manager::get().get_next_msix_irq();
+        auto irq = IRQ_manager::get().get_free_irq();
         _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
       }
     }

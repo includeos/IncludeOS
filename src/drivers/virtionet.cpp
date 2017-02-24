@@ -168,7 +168,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   static bool init_deferred = false;
   if (!init_deferred) {
     init_deferred = true;
-    deferred_intr = IRQ_manager::get().get_next_msix_irq();
+    deferred_intr = IRQ_manager::get().get_free_irq();
     IRQ_manager::get().subscribe(deferred_intr, handle_deferred_devices);
   }
 #endif
