@@ -22,10 +22,10 @@ cxx_list="clang++-3.9 clang++-3.8 clang++-3.7 clang++-3.6 clang++"
 
 compiler=""
 guess_compiler() {
-    for compiler in $1
+    for compiler in $*
     do
-		if command -v $compiler; then
-			break
+	if command -v $compiler; then
+		break
 	fi
     done
 }
