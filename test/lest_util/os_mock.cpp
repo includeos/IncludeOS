@@ -167,6 +167,8 @@ void __arch_disable_legacy_irq(uint8_t) {}
 int SMP::cpu_id() noexcept {
   return 0;
 }
+void SMP::global_lock() noexcept {}
+void SMP::global_unlock() noexcept {}
 
 extern "C"
 void (*current_eoi_mechanism) () = nullptr;

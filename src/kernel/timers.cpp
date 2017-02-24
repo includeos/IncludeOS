@@ -68,7 +68,7 @@ struct timer_system
 } __attribute__((aligned(128)));
 static timer_system systems[SMP_MAX_CORES];
 
-timer_system& get() {
+static timer_system& get() {
   return systems[SMP::cpu_id()];
 }
 

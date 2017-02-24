@@ -125,6 +125,8 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
       auto irq = IRQ_manager::get().get_free_irq();
       d.setup_msix_vector(0x0, IRQ_BASE + irq);
       irqs.push_back(irq);
+      // dummpy subscription to make free_irq change
+      IRQ_manager::get().subscribe(irq, nullptr);
     }
     
     IRQ_manager::get().subscribe(irqs[0], {this, &vmxnet3::msix_evt_handler});

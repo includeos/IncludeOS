@@ -33,7 +33,7 @@
 extern "C" {
   void parasite_interrupt_handler();
   void profiler_stack_sampler(void*);
-  void gather_stack_sampling();
+  static void gather_stack_sampling();
 }
 extern char _irq_cb_return_location;
 
@@ -87,7 +87,7 @@ struct Sampler
   }
 };
 
-Sampler& get() {
+static Sampler& get() {
   static Sampler sampler;
   return sampler;
 }
@@ -118,7 +118,7 @@ void profiler_stack_sampler(void* esp)
   get().add(current, __builtin_return_address(1));
 }
 
-void gather_stack_sampling()
+static void gather_stack_sampling()
 {
   // gather results on our turn only
   if (get().lockless == 1)

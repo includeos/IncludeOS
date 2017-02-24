@@ -103,12 +103,14 @@ Virtio::Virtio(hw::PCI_Device& dev)
       // remember the base IRQ
       this->_irq = IRQ_manager::get().get_free_irq();
       _pcidev.setup_msix_vector(0x0, IRQ_BASE + this->_irq);
+      IRQ_manager::get().subscribe(this->_irq, nullptr);
 
       // setup all the other vectors
       for (int i = 1; i < msix_vectors; i++)
       {
         auto irq = IRQ_manager::get().get_free_irq();
         _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
+        IRQ_manager::get().subscribe(irq, nullptr);
       }
     }
     else
