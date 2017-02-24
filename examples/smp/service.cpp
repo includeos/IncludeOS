@@ -41,7 +41,7 @@ static void random_irq_handler()
     SMP::global_lock();
     printf("Random IRQ handler called %d times\n", times);
     SMP::global_unlock();
-    OS::shutdown();
+    //OS::shutdown();
   }
 }
 
@@ -81,24 +81,22 @@ void Service::start()
   // start working on tasks
   SMP::signal();
 
-  static int event_looped = 0;
-
   // have one CPU enter an event loop
   for (int i = 1; i < SMP::cpu_count(); i++)
-  SMP::enter_event_loop(
+  SMP::add_task(
   [] {
-    SMP::global_lock();
-    event_looped++;
-    if (event_looped == SMP::cpu_count()-1) {
-        printf("*** All APs have entered event loop\n");
-    }
-    SMP::global_unlock();
-    
     const uint8_t IRQ = 110;
     IRQ_manager::get().subscribe(IRQ, random_irq_handler);
     // trigger interrupt
     IRQ_manager::get().register_irq(IRQ);
-  });
+    
+    Timers::oneshot(std::chrono::seconds(1),
+    [] (int) {
+      SMP::global_lock();
+      printf("This is timer from a CPU core\n");
+      SMP::global_unlock();
+    });
+  }, [] {});
   // start working on tasks
   SMP::signal();
 }

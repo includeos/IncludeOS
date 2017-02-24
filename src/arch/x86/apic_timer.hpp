@@ -27,11 +27,13 @@ namespace x86 {
 struct APIC_Timer
 {
   static void init();
-  
+  static void calibrate();
+  static void start_timers() noexcept;
+
+  static bool ready() noexcept;
+
   static void oneshot(std::chrono::microseconds) noexcept;
   static void stop() noexcept;
-  
-  static bool ready() noexcept;
 };
 
 }

@@ -146,7 +146,7 @@ void ::SMP::enter_event_loop(smp_task_func task)
       IRQ_manager::get().process_interrupts();
       OS::halt();
     }
-  }), nullptr);
+  }), [] {});
   unlock(smp.tlock);
 }
 void ::SMP::signal()

@@ -20,6 +20,7 @@
 #include "pit.hpp"
 #include <kernel/irq_manager.hpp>
 #include <kernel/timers.hpp>
+#include <smp>
 #include <cstdio>
 #include <info>
 
@@ -36,17 +37,18 @@ using namespace std::chrono;
 
 namespace x86
 {
+  // calculated once on BSP
   static uint32_t ticks_per_micro = 0;
-  static bool     intr_enabled    = false;
-
-  static void start_timers()
+  
+  struct timer_data
   {
-    // set interrupt handler
-    IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, Timers::timers_handler);
-    // start all timers
-    Timers::ready();
-  }
-
+    bool intr_enabled = false;
+    
+  } __attribute__((aligned(128)));
+  static timer_data timerdata[16];
+  
+  #define GET_TIMER() timerdata[SMP::cpu_id()]
+  
   void APIC_Timer::init()
   {
     // initialize timer system
@@ -57,12 +59,16 @@ namespace x86
     // initialize local APIC timer
     auto& lapic = APIC::get();
     lapic.timer_init();
+  }
+  void APIC_Timer::calibrate()
+  {
+    init();
 
     if (ticks_per_micro != 0) {
       // make sure timers are delay-initalized
-      auto irq = IRQ_manager::get().get_next_msix_irq();
+      auto irq = IRQ_manager::get().get_free_irq();
       IRQ_manager::get().subscribe(irq, start_timers);
-      // soft-trigger IRQ
+      // soft-trigger IRQ immediately
       IRQ_manager::get().register_irq(irq);
       return;
     }
@@ -70,6 +76,7 @@ namespace x86
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
     
+    auto& lapic = APIC::get();
     // See: Vol3a 10.5.4.1 TSC-Deadline Mode
     // 0xFFFFFFFF --> ~68 seconds
     // 0xFFFFFF   --> ~46 milliseconds
@@ -92,7 +99,21 @@ namespace x86
       //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n",
       //       CALIBRATION_MS, diff, ticks_per_micro);
       start_timers();
+
+      // with SMP, signal everyone else too (IRQ 1)
+      if (SMP::cpu_count() > 1) {
+        APIC::get().bcast_ipi(0x21);
+      }
     });
+  }
+
+  void APIC_Timer::start_timers() noexcept
+  {
+    assert(ready());
+    // set interrupt handler
+    IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, Timers::timers_handler);
+    // start all timers
+    Timers::ready();
   }
 
   bool APIC_Timer::ready() noexcept
@@ -110,15 +131,15 @@ namespace x86
     auto& lapic = APIC::get();
     lapic.timer_begin(ticks);
     // re-enable interrupts if disabled
-    if (intr_enabled == false) {
-      intr_enabled = true;
+    if (GET_TIMER().intr_enabled == false) {
+      GET_TIMER().intr_enabled = true;
       lapic.timer_interrupt(true);
     }
   }
   void APIC_Timer::stop() noexcept
   {
+    GET_TIMER().intr_enabled = false;
     APIC::get().timer_interrupt(false);
-    intr_enabled = false;
   }
 
   // used by soft-reset

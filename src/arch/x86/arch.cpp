@@ -82,7 +82,7 @@ void __arch_init()
   // Note: CPU freq must be known before we can start timer system
   // initialize BSP APIC timer
   // call Service::ready when calibrated
-  APIC_Timer::init();
+  APIC_Timer::calibrate();
 }
 
 void __arch_enable_legacy_irq(uint8_t irq)
