@@ -109,7 +109,7 @@ void Service::start(const std::string&)
     printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
   });
 */
-  server_mem.on_connect([] (auto conn) {
+  server_mem.on_connect([] (net::tcp::Connection_ptr conn) {
       conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
           TCP_BYTES_RECV += n;
           // create string from buffer
@@ -122,7 +122,7 @@ void Service::start(const std::string&)
           });
           conn->write(reply);
 
-          conn->on_disconnect([](auto c, auto){
+          conn->on_disconnect([](net::tcp::Connection_ptr c, auto){
               c->close();
             });
         });
@@ -131,7 +131,7 @@ void Service::start(const std::string&)
 
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.on_connect([] (auto conn) {
+  server.on_connect([] (net::tcp::Connection_ptr conn) {
         // read async with a buffer size of 1024 bytes
         // define what to do when data is read
         conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {

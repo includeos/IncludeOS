@@ -104,13 +104,13 @@ void Service::start(const std::string&)
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.on_connect(
-  [] (auto conn) {
+  [] (net::tcp::Connection_ptr conn) {
     printf("<Service> @on_connect: Connection %s successfully established.\n",
       conn->remote().to_string().c_str());
     // read async with a buffer size of 1024 bytes
     // define what to do when data is read
     conn->on_read(1024,
-    [conn] (auto buf, size_t n)
+    [conn] (net::tcp::buffer_t buf, size_t n)
     {
       printf("<Service> @on_read: %u bytes received.\n", n);
       try
