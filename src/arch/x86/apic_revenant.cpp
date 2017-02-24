@@ -34,7 +34,7 @@ static bool revenant_task_doer()
   task.func();
   
   // add done function to completed list (only if its callable)
-  if (task.done)
+  if (true) //task.done)
   {
     lock(smp.flock);
     smp.completed.push_back(task.done);
