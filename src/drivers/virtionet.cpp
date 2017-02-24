@@ -36,7 +36,7 @@ struct smp_deferred_kick
   std::vector<VirtioNet*> devs;
   uint8_t irq;
 };
-static std::array<smp_deferred_kick, 16> deferred_devs;
+static std::array<smp_deferred_kick, SMP_MAX_CORES> deferred_devs;
 #endif
 
 using namespace net;
@@ -53,8 +53,6 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {
   INFO("VirtioNet", "Driver initializing");
-  // this must be true, otherwise packets will be created incorrectly
-  assert(sizeof(virtio_net_hdr) <= sizeof(Packet));
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)

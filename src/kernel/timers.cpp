@@ -1,11 +1,11 @@
 #include <kernel/timers.hpp>
 
-#include <map>
-#include <vector>
 #include <kernel/os.hpp>
 #include <service>
 #include <smp>
 #include <statman>
+#include <map>
+#include <vector>
 
 using namespace std::chrono;
 typedef Timers::id_t       id_t;
@@ -68,7 +68,7 @@ struct timer_system
 } __attribute__((aligned(128)));
 static timer_system systems[SMP_MAX_CORES];
 
-static timer_system& get() {
+static inline timer_system& get() {
   return systems[SMP::cpu_id()];
 }
 

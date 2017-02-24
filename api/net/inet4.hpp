@@ -177,7 +177,6 @@ namespace net {
     template <int N = 0>
     static auto&& stack()
     {
-      //static Inet4 inet{hw::Devices::nic(N)};
       return Super_stack::get<IP4>(N);
     }
 

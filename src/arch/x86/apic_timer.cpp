@@ -45,7 +45,7 @@ namespace x86
     bool intr_enabled = false;
     
   } __attribute__((aligned(128)));
-  static timer_data timerdata[16];
+  static timer_data timerdata[SMP_MAX_CORES];
   
   #define GET_TIMER() timerdata[SMP::cpu_id()]
   

@@ -111,12 +111,11 @@ namespace x86
   {
     int cpduid;
   } __attribute__((aligned(128)));
-  static cpu_shared cpudata[16]; // for alignment
+  static cpu_shared cpudata[SMP_MAX_CORES]; // for alignment
 
   static void initialize_cpu_shared()
   {
-    for (size_t id = 0; id < 16; id++)
-    {
+    for (size_t id = 0; id < SMP_MAX_CORES; id++) {
       cpudata[id].cpduid = id;
     }
   }
@@ -125,7 +124,7 @@ namespace x86
   {
     struct GDT gdt;
   } __attribute__((aligned(128)));
-  static segtable gdtables[16];
+  static segtable gdtables[SMP_MAX_CORES];
 
   void initialize_gdt_for_cpu(int id)
   {

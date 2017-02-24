@@ -48,6 +48,7 @@ void SMP::init()
 {
   size_t CPUcount = ACPI::get_cpus().size();
   if (CPUcount <= 1) return;
+  assert(CPUcount <= SMP_MAX_CORES);
 
   // copy our bootloader to APIC init location
   const char* start = &_binary_apic_boot_bin_start;

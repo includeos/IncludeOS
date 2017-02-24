@@ -31,8 +31,8 @@
 
 IRQ_manager& IRQ_manager::get(int cpuid)
 {
-  static IRQ_manager managers[16];
-  assert(cpuid >= 0 && cpuid < 16);
+  static IRQ_manager managers[SMP_MAX_CORES];
+  assert(cpuid >= 0 && cpuid < SMP_MAX_CORES);
   return managers[cpuid];
 }
 IRQ_manager& IRQ_manager::get()
@@ -214,7 +214,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del, bool create_stat)
   set_irq_handler(irq, modern_interrupt_handler);
 
   // Mark IRQ as subscribed to
-  irq_subs.set(irq);
+  irq_subs.atomic_set(irq);
 
   if (create_stat)
   {
@@ -228,7 +228,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del, bool create_stat)
 }
 void IRQ_manager::unsubscribe(uint8_t irq)
 {
-  irq_subs.reset(irq);
+  irq_subs.atomic_reset(irq);
   irq_delegates_[irq] = nullptr;
 }
 
