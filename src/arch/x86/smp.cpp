@@ -146,7 +146,7 @@ void ::SMP::add_task(smp_task_func task)
   task();
 #else
   lock(smp.tlock);
-  smp.tasks.emplace_back(std::move(task), [] {});
+  smp.tasks.emplace_back(std::move(task), nullptr);
   unlock(smp.tlock);
 #endif
 }
