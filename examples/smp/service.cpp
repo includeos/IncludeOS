@@ -19,17 +19,31 @@
 #include <cassert>
 #include <smp>
 #include <timers>
+#include <kernel/irq_manager.hpp>
 
 struct per_cpu_test
 {
   int value;
-  // should not cause deadlock, since only this CPU has access
-  spinlock_t testlock = 0;
   
 } __attribute__((aligned(64)));
 static std::array<per_cpu_test, 16> testing;
 
-int        times = 0;
+static int times = 0;
+
+static void random_irq_handler()
+{
+  SMP::global_lock();
+  times++;
+  bool done = (times == SMP::cpu_count()-1);
+  SMP::global_unlock();
+
+  if (done) {
+    SMP::global_lock();
+    printf("Random IRQ handler called %d times\n", times);
+    SMP::global_unlock();
+    OS::shutdown();
+  }
+}
 
 void Service::start()
 {
@@ -47,8 +61,10 @@ void Service::start()
   for (int i = 0; i < TASKS; i++)
   SMP::add_task(
   [i] {
-    // the job
-    __sync_fetch_and_or(&job, 1 << i);
+    // the job is to set the bit if the per-cpu
+    // value matches the CPU id.. just as a test
+    if (PER_CPU(testing).value == SMP::cpu_id())
+        __sync_fetch_and_or(&job, 1 << i);
   }, 
   [i] {
     // job completion
@@ -72,12 +88,16 @@ void Service::start()
   SMP::enter_event_loop(
   [] {
     SMP::global_lock();
-    printf("AP %d entering event loop\n", SMP::cpu_id());
     event_looped++;
     if (event_looped == SMP::cpu_count()-1) {
         printf("*** All APs have entered event loop\n");
     }
     SMP::global_unlock();
+    
+    const uint8_t IRQ = 110;
+    IRQ_manager::get().subscribe(IRQ, random_irq_handler);
+    // trigger interrupt
+    IRQ_manager::get().register_irq(IRQ);
   });
   // start working on tasks
   SMP::signal();

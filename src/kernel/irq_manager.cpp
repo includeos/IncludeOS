@@ -27,6 +27,7 @@
 
 #define MSIX_IRQ_BASE     64
 #define LAPIC_IRQ_BASE   120
+#define RING0_CODE_SEG   0x8
 
 IRQ_manager& IRQ_manager::get(int cpuid)
 {
@@ -45,9 +46,9 @@ uint8_t IRQ_manager::get_next_msix_irq()
   return next_msix_irq++;
 }
 
-void IRQ_manager::register_irq(uint8_t vector)
+void IRQ_manager::register_irq(uint8_t irq)
 {
-  irq_pend.atomic_set(vector);
+  irq_pend.atomic_set(irq);
 }
 
 extern "C" {
@@ -181,11 +182,11 @@ IRQ_manager::intr_func IRQ_manager::get_irq_handler(uint8_t irq)
 }
 
 void IRQ_manager::set_handler(uint8_t vec, intr_func func) {
-  create_gate(&idt[vec], func, default_sel, default_attr);
+  create_gate(&idt[vec], func, RING0_CODE_SEG, 0x8e);
 }
 
 void IRQ_manager::set_exception_handler(uint8_t vec, exception_func func) {
-  create_gate(&idt[vec], (intr_func)func, default_sel, default_attr);
+  create_gate(&idt[vec], (intr_func) func, RING0_CODE_SEG, 0x8e);
 }
 
 void IRQ_manager::set_irq_handler(uint8_t irq, intr_func func)
@@ -201,12 +202,10 @@ void IRQ_manager::disable_irq(uint8_t irq) {
   __arch_disable_legacy_irq(irq);
 }
 
-void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
+void IRQ_manager::subscribe(uint8_t irq, irq_delegate del, bool create_stat)
+{
   if (irq >= IRQ_LINES)
-  {
-    std::string reason = "Vector number too high (" + std::to_string(irq) + ") in subscribe()\n";
-    panic(reason.c_str());
-  }
+    panic("IRQ value out of range (too high)!");
 
   // cheap way of changing from unused handler to event loop irq marker
   set_irq_handler(irq, modern_interrupt_handler);
@@ -214,15 +213,20 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
   // Mark IRQ as subscribed to
   irq_subs.set(irq);
 
-  // Stats
-  Stat& subscribed = Statman::get().create(Stat::UINT64, "irq." + std::to_string(irq));
-  counters[irq] = &subscribed.get_uint64();
+  if (create_stat)
+  {
+    Stat& subscribed = Statman::get().create(Stat::UINT64,
+        "cpu" + std::to_string(SMP::cpu_id()) + ".irq" + std::to_string(irq));
+    counters[irq] = &subscribed.get_uint64();
+  }
 
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
-
-  (*current_eoi_mechanism)();
-  //INFO("IRQ manager", "IRQ subscribed: %u", irq);
+}
+void IRQ_manager::unsubscribe(uint8_t irq)
+{
+  irq_subs.reset(irq);
+  irq_delegates_[irq] = nullptr;
 }
 
 void IRQ_manager::process_interrupts()
@@ -241,7 +245,9 @@ void IRQ_manager::process_interrupts()
       // sub and call handler
       irq_delegates_[intr]();
 
-      (*counters[intr])++;
+      // increase stat counter, if it exists
+      if (counters[intr])
+          (*counters[intr])++;
 
       irq_todo.reset(intr);
       intr = irq_todo.first_set();

@@ -111,7 +111,8 @@ public:
    *
    *  @todo Create a public member IRQ_manager::eoi for delegates to use
    */
-  void subscribe(uint8_t irq, irq_delegate del);
+  void subscribe(uint8_t irq, irq_delegate, bool create_stat = false);
+  void unsubscribe(uint8_t irq);
 
   // start accepting interrupts
   static void enable_interrupts();
@@ -123,7 +124,7 @@ public:
   static IRQ_manager& get(int cpu);
 
   uint8_t get_next_msix_irq();
-  void register_irq(uint8_t vector);
+  void register_irq(uint8_t irq);
 
   /** process all pending interrupts */
   void process_interrupts();
@@ -145,9 +146,6 @@ private:
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;
   MemBitmap  irq_todo;
-
-  static const char       default_attr {static_cast<char>(0x8e)};
-  static const uint16_t   default_sel  {0x8};
 
   /**
    *  Create an IDT-gate
