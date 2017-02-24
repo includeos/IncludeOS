@@ -15,15 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "acpi.hpp"
 #include <kernel/syscalls.hpp>
-#include <hw/acpi.hpp>
 #include <hw/ioport.hpp>
 #include <debug>
 #include <info>
 
 extern "C" void reboot_os();
 
-namespace hw {
+namespace x86 {
   
   struct RSDPDescriptor {
     char Signature[8];
@@ -206,8 +206,8 @@ namespace hw {
         {
           auto& lapic = *(LAPIC*) rec;
           lapics.push_back(lapic);
-          INFO2("-> CPU %u ID %u  (flags=0x%x)", 
-              lapic.cpu, lapic.id, lapic.flags);
+          //INFO2("-> CPU %u ID %u  (flags=0x%x)", 
+          //    lapic.cpu, lapic.id, lapic.flags);
         }
         break;
       case 1:
@@ -234,6 +234,7 @@ namespace hw {
       // go to next entry
       ptr += rec->length;
     }
+    INFO("SMP", "Found %u APs", lapics.size());
   }
   
   void ACPI::walk_facp(const char* addr)

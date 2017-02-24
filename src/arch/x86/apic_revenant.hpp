@@ -16,68 +16,28 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_APIC_REVENANT_HPP
-#define HW_APIC_REVENANT_HPP
+#ifndef X86_APIC_REVENANT_HPP
+#define X86_APIC_REVENANT_HPP
 
-#define REV_STACK_SIZE     8192
+#define REV_STACK_SIZE     65536
 
+#include "apic.hpp"
+#include "smp.hpp"
 #include <cstdint>
-#include <hw/apic.hpp>
-#include <hw/smp.hpp>
 #include <deque>
 
 extern "C"
 void revenant_main(int);
 
-// Intel 3a  8.10.6.7: 128-byte boundary
-typedef volatile int spinlock_t __attribute__((aligned(128)));
-
-extern "C"
-inline void lock(spinlock_t& lock) {
-  while (__sync_lock_test_and_set(&lock, 1)) {
-    while (lock) asm volatile("pause");
-  }
-}
-extern "C"
-inline void unlock(spinlock_t& lock) {
-  __sync_synchronize(); // barrier
-  lock = 0;
-}
-
-struct minimal_barrier_t
-{
-  void inc()
-  {
-    __sync_fetch_and_add(&val, 1);
-  }
-  
-  void spin_wait(int max)
-  {
-    asm("mfence");
-    while (this->val < max) {
-      asm volatile("pause; nop;");
-    }
-  }
-  
-  void reset(int val)
-  {
-    asm("mfence");
-    this->val = val;
-  }
-  
-private:
-  volatile int val = 0;
-};
-
 struct smp_stuff
 {
   struct task {
-    task(hw::SMP::smp_task_func a,
-         hw::SMP::smp_done_func b)
+    task(SMP::task_func a,
+         SMP::done_func b)
       : func(a), done(b) {}
     
-    hw::SMP::smp_task_func func;
-    hw::SMP::smp_done_func done;
+    SMP::task_func func;
+    SMP::done_func done;
   };
   
   spinlock_t glock;
@@ -87,7 +47,7 @@ struct smp_stuff
   std::deque<task> tasks;
   
   spinlock_t flock;
-  std::deque<hw::SMP::smp_done_func> completed;
+  std::deque<SMP::done_func> completed;
 };
 extern smp_stuff smp;
 

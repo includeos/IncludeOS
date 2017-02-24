@@ -15,7 +15,6 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 USE32
-global apic_enable
 global spurious_intr
 global lapic_send_eoi
 global get_cpu_id
@@ -24,23 +23,13 @@ global get_cpu_esp
 global reboot_os
 
 global lapic_irq_entry
+extern lapic_irq_handler
 
-apic_enable:
-    push ecx
-    push eax
-    mov			ecx, 1bh
-    rdmsr
-    bts			eax, 11
-    wrmsr
-    pop eax
-    pop ecx
-    ret
+global lapic_except_entry
+extern lapic_except_handler
 
 get_cpu_id:
-    mov eax, 1
-    cpuid
-    shr ebx, 24
-    mov eax, ebx
+    mov eax, [fs:0x0]
     ret
 
 get_cpu_esp:
@@ -55,10 +44,8 @@ spurious_intr:
     iret
 
 lapic_send_eoi:
-    push eax
     mov eax, 0xfee000B0
     mov DWORD [eax], 0
-    pop eax
     ret
 
 reboot_os:
@@ -70,7 +57,3 @@ reboot_os:
 reset_idtr:
     dw      400h - 1
     dd      0
-
-lapic_irq_entry:
-    call lapic_send_eoi
-    iret

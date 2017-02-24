@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -16,30 +17,25 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_SMP_HPP
-#define HW_SMP_HPP
+#ifndef INCLUDEOS_ARCH_HEADER
+#define INCLUDEOS_ARCH_HEADER
 
+#define ARCH_X86
+#include <cstddef>
 #include <cstdint>
-#include <delegate>
-#include <vector>
 
-namespace hw {
+extern void __arch_init();
+extern void __arch_poweroff();
+extern void __arch_reboot();
+extern void __arch_enable_legacy_irq(uint8_t);
+extern void __arch_disable_legacy_irq(uint8_t);
 
-  class SMP {
-  public:
-    typedef delegate<void()>  smp_task_func;
-    typedef delegate<void()>  smp_done_func;
-
-    // add tasks that will not necessarily start immediately
-    // use work_signal() to guarantee work starts
-    static void add_task(smp_task_func, smp_done_func);
-    // call this to signal that work is queued up
-    static void work_signal();
-    static std::vector<smp_done_func> get_completed();
-
-    static void init();
-  };
-
+#ifdef ARCH_X86
+inline uint64_t __arch_cpu_cycles() noexcept {
+  uint64_t ret;
+  asm("rdtsc" : "=A" (ret));
+  return ret;
 }
+#endif
 
 #endif

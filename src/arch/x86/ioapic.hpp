@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_IOAPIC_HPP
-#define HW_IOAPIC_HPP
+#ifndef X86_IOAPIC_HPP
+#define X86_IOAPIC_HPP
 
 #include <cstdint>
 #include "acpi.hpp" // ACPI
@@ -48,7 +48,7 @@
 // high 32 IRQ entry
 #define IOAPIC_HI_DESTINATION  (1 << 24)
 
-namespace hw {
+namespace x86 {
   
   class IOAPIC {
   public:

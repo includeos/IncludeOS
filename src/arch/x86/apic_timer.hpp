@@ -1,3 +1,4 @@
+
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -15,37 +16,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <cassert>
-#include <smp>
+#pragma once
+#ifndef X86_APIC_TIMER_HPP
+#define X86_APIC_TIMER_HPP
 
-void Service::start()
+#include <chrono>
+
+namespace x86 {
+
+struct APIC_Timer
 {
-  OS::add_stdout_default_serial();
+  static void init();
+  static void calibrate();
+  static void start_timers() noexcept;
 
-  static int completed = 0;
-  static uint32_t job = 0;
-  static const int TASKS = 8 * sizeof(job);
-  
-  // schedule tasks
-  for (int i = 0; i < TASKS; i++)
-  SMP::add_task(
-  [i] {
-    // the job
-    __sync_fetch_and_or(&job, 1 << i);
-  }, 
-  [i] {
-    // job completion
-    completed++;
-    
-    if (completed == TASKS) {
-      printf("All jobs are done now, compl = %d\n", completed);
-      printf("bits = %#x\n", job);
-      assert(job = 0xffffffff && "All 32 bits must be set");
-    }
-  });
-  // start working on tasks
-  SMP::signal();
-  
-  printf("*** %s started *** \n", SERVICE_NAME);
+  static bool ready() noexcept;
+
+  static void oneshot(std::chrono::microseconds) noexcept;
+  static void stop() noexcept;
+};
+
 }
+
+#endif

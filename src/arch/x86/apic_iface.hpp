@@ -16,10 +16,10 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_APIC_IFACE_HPP
-#define HW_APIC_IFACE_HPP
+#ifndef X86_APIC_IFACE_HPP
+#define X86_APIC_IFACE_HPP
 
-namespace hw {
+namespace x86 {
   
   class IApic {
   public:

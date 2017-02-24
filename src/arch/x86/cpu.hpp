@@ -1,4 +1,3 @@
-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -17,23 +16,43 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HW_APIC_TIMER_HPP
-#define HW_APIC_TIMER_HPP
+#ifndef X86_CPU_HPP
+#define X86_CPU_HPP
 
-#include <chrono>
+#include <cstdint>
 
-namespace hw {
-
-struct APIC_Timer
+namespace x86
 {
-  static void init();
-  
-  static void oneshot(std::chrono::microseconds) noexcept;
-  static void stop() noexcept;
-  
-  static bool ready() noexcept;
-};
-
+  class CPU
+  {
+  public:
+    // read the intel manual
+    static uint64_t
+    read_msr(uint32_t addr)
+    {
+      uint32_t EAX = 0, EDX = 0;
+      asm volatile("rdmsr": "=a" (EAX),"=d"(EDX) : "c" (addr));
+      return ((uint64_t)EDX << 32) | EAX;
+    }
+    
+    static void
+    write_msr(uint32_t addr, uint32_t eax, uint32_t edx)
+    {
+      asm volatile("wrmsr" : : "a" (eax), "d"(edx), "c" (addr));
+    }
+    static void
+    write_msr(uint32_t addr, uint64_t value)
+    {
+      asm volatile("wrmsr" : : "A" (value), "c" (addr));
+    }
+    
+    static uint64_t rdtsc()
+    {
+      uint64_t ret;
+      asm volatile("rdtsc" : "=A"(ret));
+      return ret;
+    }
+  };
 }
 
 #endif

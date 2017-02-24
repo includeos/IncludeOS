@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,13 +15,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <common.cxx>
+#pragma once
+#ifndef X86_SMP_HPP
+#define X86_SMP_HPP
 
-#include <arch>
+#include <cstdint>
+#include <vector>
+#include <smp>
 
-CASE("CPU cycle counter")
-{
-  uint64_t r1 = __arch_cpu_cycles();
-  uint64_t r2 = __arch_cpu_cycles();
-  EXPECT(r1 != r2);
+typedef SMP::task_func smp_task_func;
+typedef SMP::done_func smp_done_func;
+
+namespace x86 {
+
+class SMP {
+public:
+  static std::vector<smp_done_func> get_completed();
+  static void init();
+};
+
+extern void initialize_gdt_for_cpu(int cpuid);
+
 }
+
+#endif

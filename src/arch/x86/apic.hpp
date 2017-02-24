@@ -15,25 +15,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/ioport.hpp>
-#include <hw/pic.hpp>
+#pragma once
+#ifndef HW_APIC_HPP
+#define HW_APIC_HPP
 
-namespace hw {
+#include <cstdint>
+#include <delegate>
+#include "xapic.hpp"
+#include "x2apic.hpp"
 
-  uint16_t PIC::irq_mask_ {0xFFFF};
+namespace x86
+{
+  class APIC {
+  public:
+    static IApic& get() noexcept;
 
-  void PIC::init() noexcept {
+    // enable and disable legacy IRQs
+    static void enable_irq (uint8_t irq);
+    static void disable_irq(uint8_t irq);
 
-    hw::outb(master_ctrl, icw1 | icw1_icw4_needed);
-    hw::outb(slave_ctrl,  icw1 | icw1_icw4_needed);
-    hw::outb(master_mask, icw2_irq_base_master);
-    hw::outb(slave_mask,  icw2_irq_base_slave);
-    hw::outb(master_mask, icw3_slave_location);
-    hw::outb(slave_mask,  icw3_slave_id);
+    static uint8_t get_isr() noexcept {
+      return get().get_isr();
+    }
+    static uint8_t get_irr() noexcept {
+      return get().get_irr();
+    }
+    static void eoi() noexcept {
+      return get().eoi();
+    }
 
-    hw::outb(master_mask, icw4_8086_mode | icw4_auto_eoi);
-    hw::outb(slave_mask,  icw4_8086_mode);  // AEOI-mode only works for master
+    static void init();
+  };
+}
 
-    set_intr_mask(irq_mask_);
-  }
-} //< namespace hw
+#endif

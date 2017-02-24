@@ -15,19 +15,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "pit.hpp"
+#include "cpu_freq_sampling.hpp"
+#include <hw/ioport.hpp>
+#include <kernel/os.hpp>
+#include <kernel/irq_manager.hpp>
+#include <kernel/syscalls.hpp>
 //#define DEBUG
 //#define DEBUG2
-#include <hw/ioport.hpp>
-#include <hw/pit.hpp>
-#include <os>
-#include <hw/cpu_freq_sampling.hpp>
-#include <kernel/irq_manager.hpp>
 
 // Used for cpu frequency sampling
 extern const uint16_t _cpu_sampling_freq_divider_;
 
-namespace hw {
-
+namespace x86
+{
   constexpr MHz PIT::frequency_;
 
   // Bit 0-3: Mode 0 - "Interrupt on terminal count"

@@ -75,6 +75,8 @@ namespace hw {
 
     virtual void deactivate() = 0;
 
+    virtual void move_to_this_cpu() = 0;
+
     virtual ~Nic() {}
   protected:
     /**

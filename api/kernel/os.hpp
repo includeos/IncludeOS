@@ -18,14 +18,14 @@
 #ifndef KERNEL_OS_HPP
 #define KERNEL_OS_HPP
 
+#include <common>
+#include <arch>
+#include <kernel/memmap.hpp>
+#include <kernel/rtc.hpp>
+#include <hertz>
 #include <string>
 #include <sstream>
-#include <common>
-#include <kernel/memmap.hpp>
-#include <hw/cpu.hpp>
-#include <hertz>
 #include <vector>
-#include <kernel/rtc.hpp>
 
 /**
  *  The entrypoint for OS services
@@ -54,7 +54,7 @@ public:
 
   /** Clock cycles since boot. */
   static uint64_t cycles_since_boot() {
-    return hw::CPU::rdtsc();
+    return __arch_cpu_cycles();
   }
   /** micro seconds since boot */
   static int64_t micros_since_boot() {
@@ -243,6 +243,7 @@ private:
   // Prohibit construction
   OS() = delete;
 
+  friend void __arch_init();
 }; //< OS
 
 #endif //< KERNEL_OS_HPP

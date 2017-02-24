@@ -16,17 +16,17 @@
 // limitations under the License.
 
 //#define DEBUG
-#include <hw/cpu_freq_sampling.hpp>
-#include <hw/pit.hpp>
+#include "cpu_freq_sampling.hpp"
+#include "pit.hpp"
 #include <kernel/os.hpp>
 #include <algorithm>
 #include <hertz>
 #include <vector>
 
 extern "C"
-const uint16_t _cpu_sampling_freq_divider_ = KHz(hw::PIT::frequency()).count() * 10; // Run 1 KHz  Lowest: 0xffff
+const uint16_t _cpu_sampling_freq_divider_ = KHz(x86::PIT::frequency()).count() * 10; // Run 1 KHz  Lowest: 0xffff
 
-namespace hw {
+namespace x86 {
 
   static int64_t cpu_timestamps[CPU_FREQUENCY_SAMPLES];
   static size_t  sample_counter = 0;
@@ -73,7 +73,7 @@ void cpu_sampling_irq_handler()
 {
   volatile uint64_t ts = OS::cycles_since_boot();
   /// it's forbidden to use heap inside here
-  if (hw::sample_counter < hw::CPU_FREQUENCY_SAMPLES) {
-    hw::cpu_timestamps[hw::sample_counter++] = ts;
+  if (x86::sample_counter < x86::CPU_FREQUENCY_SAMPLES) {
+    x86::cpu_timestamps[x86::sample_counter++] = ts;
   }
 }

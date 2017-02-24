@@ -15,12 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/apic.hpp>
-#include <hw/ioapic.hpp>
-#include <hw/acpi.hpp> // ACPI
-#include <hw/cpu.hpp>
-#include <hw/pic.hpp>
-#include <hw/smp.hpp>
+#include "apic.hpp"
+#include "ioapic.hpp"
+#include "acpi.hpp"
+#include "cpu.hpp"
+#include "pic.hpp"
+#include "smp.hpp"
 #include <kernel/cpuid.hpp>
 #include <kernel/irq_manager.hpp>
 #include <cstdlib>
@@ -35,13 +35,13 @@ extern "C" {
   void kvm_pv_eoi();
   // easier deduction of type
   void x2apic_send_eoi() {
-    hw::x2apic::get().eoi();
+    x86::x2apic::get().eoi();
   }
 }
 
 void kvm_pv_eoi_init();
 
-namespace hw
+namespace x86
 {
   static IApic* current_apic;
   IApic& APIC::get() noexcept {
@@ -52,7 +52,7 @@ namespace hw
   {
     // disable the legacy 8259 PIC
     // by masking off all interrupts
-    hw::PIC::set_intr_mask(0xFFFF);
+    PIC::set_intr_mask(0xFFFF);
 
     // a PC without APIC is insane
     assert(CPUID::has_feature(CPUID::Feature::APIC) 
@@ -72,23 +72,6 @@ namespace hw
     // initialize I/O APICs
     IOAPIC::init(ACPI::get_ioapics());
 
-    /// initialize and start APs found in ACPI-tables ///
-    if (ACPI::get_cpus().size() > 1) {
-      INFO("APIC", "SMP Init");
-      // initialize and start registered APs found in ACPI-tables
-      SMP::init();
-      // IRQ handler for completed async jobs
-      IRQ_manager::get().subscribe(BSP_LAPIC_IPI_IRQ,
-      [] {
-        // copy all the done functions out from queue to our local vector
-        auto done = SMP::get_completed();
-        // call all the done functions
-        for (auto& func : done) {
-          func();
-        }
-      });
-    }
-
     // use KVMs paravirt EOI if supported
     //if (CPUID::kvm_feature(KVM_FEATURE_PV_EOI))
     //    kvm_pv_eoi_init();
@@ -96,7 +79,7 @@ namespace hw
 
   void APIC::enable_irq(uint8_t irq)
   {
-    auto& overrides = ACPI::get_overrides();
+    auto& overrides = x86::ACPI::get_overrides();
     for (auto& redir : overrides)
     {
       // NOTE: @bus_source is the IOAPIC number
@@ -113,7 +96,7 @@ namespace hw
   }
   void APIC::disable_irq(uint8_t irq)
   {
-    auto& overrides = ACPI::get_overrides();
+    auto& overrides = x86::ACPI::get_overrides();
     for (auto& redir : overrides)
     {
       // NOTE: @bus_source is the IOAPIC number
@@ -160,9 +143,9 @@ void kvm_pv_eoi_init()
   } guest;
   guest.whole = (uint64_t) &kvm_exitless_eoi;
   guest.whole |= KVM_MSR_ENABLED;
-  hw::CPU::write_msr(MSR_KVM_PV_EOI_EN, guest.msr[0], guest.msr[1]);
+  x86::CPU::write_msr(MSR_KVM_PV_EOI_EN, guest.msr[0], guest.msr[1]);
   // verify that the feature was enabled
-  uint64_t res = hw::CPU::read_msr(MSR_KVM_PV_EOI_EN);
+  uint64_t res = x86::CPU::read_msr(MSR_KVM_PV_EOI_EN);
   if (res & 1) {
     kprintf("* KVM paravirtual EOI enabled\n");
     // set new EOI handler
