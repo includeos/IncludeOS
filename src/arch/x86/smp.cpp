@@ -136,6 +136,12 @@ void ::SMP::add_task(smp_task_func task, smp_done_func done)
   smp.tasks.emplace_back(std::move(task), std::move(done));
   unlock(smp.tlock);
 }
+void ::SMP::add_task(smp_task_func task)
+{
+  lock(smp.tlock);
+  smp.tasks.emplace_back(std::move(task), [] {});
+  unlock(smp.tlock);
+}
 void ::SMP::signal()
 {
   // broadcast that we have work to do
