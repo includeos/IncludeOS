@@ -11,6 +11,8 @@
 #include <kernel/syscalls.hpp> // for panic()
 
 #include <info>
+#include <common>
+
 //#undef debug
 //#define debug(...) printf(__VA_ARGS__)
 
