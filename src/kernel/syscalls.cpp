@@ -30,6 +30,7 @@
 #include <statman>
 #include <kprint>
 #include <info>
+#include <smp>
 
 
 #if defined (UNITTESTS) && !defined(__MACH__)
@@ -170,7 +171,9 @@ OS::on_panic_func panic_handler = default_panic_handler;
  *    the kernel panics
  * If the handler returns, go to (permanent) sleep
 **/
-void panic(const char* why) {
+void panic(const char* why)
+{
+  SMP::global_lock();
   fprintf(stderr, "\n\t**** PANIC: ****\n %s\n", why);
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
@@ -192,6 +195,7 @@ void panic(const char* why) {
 
   // Signal End-Of-Transmission
   fprintf(stderr, "\x04"); fflush(stderr);
+  SMP::global_unlock();
 
   // call on_panic handler
   panic_handler();
