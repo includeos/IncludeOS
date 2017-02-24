@@ -78,8 +78,6 @@ void Service::start()
       SMP::global_unlock();
     }
   });
-  // start working on tasks
-  SMP::signal();
 
   // have one CPU enter an event loop
   for (int i = 1; i < SMP::cpu_count(); i++)
@@ -102,7 +100,7 @@ void Service::start()
       }
       SMP::global_unlock();
     });
-  }, [] {});
+  });
   // start working on tasks
   SMP::signal();
 }

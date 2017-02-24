@@ -10,10 +10,10 @@ set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cma
 project (smp)
 
 # Human-readable name of your service
-set(SERVICE_NAME "SMP Example Service")
+set(SERVICE_NAME "SMP Test")
 
 # Name of your service binary
-set(BINARY       "smp_example")
+set(BINARY       "smp")
 
 # Maximum memory can be hard-coded into the binary
 set(MAX_MEM 128)
