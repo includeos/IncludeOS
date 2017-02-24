@@ -19,9 +19,10 @@
 #define HTTP_METHODS_HPP
 
 #include <array>
-#include <experimental/string_view>
 #include <ostream>
 #include <unordered_map>
+
+#include "../../util/detail/string_view"
 
 namespace http {
 
@@ -44,9 +45,9 @@ namespace http {
     /// @return The string representation of the code
     ///
     template<typename = void>
-    std::experimental::string_view str(const Method m) noexcept {
+    util::sview str(const Method m) noexcept {
 
-      const static std::array<std::experimental::string_view, 10> views
+      const static std::array<util::sview, 10> views
       {
         {
          "GET", "POST", "PUT", "DELETE", "OPTIONS",
@@ -71,9 +72,9 @@ namespace http {
     /// @return The code mapped to the method string representation
     ///
     template<typename = void>
-    Method code(const std::experimental::string_view method) noexcept {
+    Method code(util::csview method) noexcept {
 
-      const static std::unordered_map<std::experimental::string_view, Method> code_map {
+      const static std::unordered_map<util::sview, Method> code_map {
         {"GET",     GET},
         {"POST",    POST},
         {"PUT",     PUT},

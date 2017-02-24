@@ -18,13 +18,12 @@
 #ifndef HTTP_STATUS_CODES_HPP
 #define HTTP_STATUS_CODES_HPP
 
-#include <experimental/string_view>
-
 #include "status_code_constants.hpp"
+#include "../../util/detail/string_view"
 
 namespace http {
 
-std::experimental::string_view code_description(const status_t status_code) noexcept;
+util::sview code_description(const status_t status_code) noexcept;
 
 template<typename = void>
 inline bool is_informational(const status_t status_code) noexcept {

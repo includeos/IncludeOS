@@ -171,11 +171,12 @@ namespace net {
 
     void force_start_send_queues() override;
 
+    void move_to_this_cpu() override;
+
     /** Return the stack on the given Nic */
     template <int N = 0>
     static auto&& stack()
     {
-      //static Inet4 inet{hw::Devices::nic(N)};
       return Super_stack::get<IP4>(N);
     }
 

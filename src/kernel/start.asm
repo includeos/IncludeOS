@@ -31,12 +31,14 @@ _start:
   lgdt [gdtr]
 
   ;; Reload all data segments to new GDT
-  mov ecx, _data_segment
-  mov ss, ecx
-  mov ds, ecx
-  mov es, ecx
-  mov fs, ecx
-  mov gs, ecx
+  jmp 0x8:reload_segs
+reload_segs:
+  mov cx, _data_segment
+  mov ss, cx
+  mov ds, cx
+  mov es, cx
+  mov fs, cx
+  mov gs, cx
 
   ;; Set up stack.
   mov esp, 0xA0000
@@ -76,4 +78,3 @@ gdt32:
 	dw 0xcf92		       ;Flags / Limit / Type [F,L,F,Type]
 	db 0x00			       ;Base 32:24
 gdt32_end:
-	db `32`

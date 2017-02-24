@@ -18,7 +18,7 @@
 #ifndef KERNEL_IRQ_MANAGER_HPP
 #define KERNEL_IRQ_MANAGER_HPP
 
-#include "os.hpp"
+#include <arch>
 #include <delegate>
 #include <membitmap>
 
@@ -111,7 +111,8 @@ public:
    *
    *  @todo Create a public member IRQ_manager::eoi for delegates to use
    */
-  void subscribe(uint8_t irq, irq_delegate del);
+  void subscribe(uint8_t irq, irq_delegate, bool create_stat = false);
+  void unsubscribe(uint8_t irq);
 
   // start accepting interrupts
   static void enable_interrupts();
@@ -119,16 +120,17 @@ public:
   /**
    * Get the IRQ manager instance
    */
-  static inline IRQ_manager& get() {
-    static IRQ_manager bsp;
-    return bsp;
-  }
+  static IRQ_manager& get();
+  static IRQ_manager& get(int cpu);
 
-  uint8_t get_next_msix_irq();
-  void register_irq(uint8_t vector);
+  uint8_t get_free_irq();
+  void register_irq(uint8_t irq);
 
   /** process all pending interrupts */
   void process_interrupts();
+
+  /** Initialize for a local APIC */
+  static void init(int cpuid);
 
 private:
   IRQ_manager() = default;
@@ -145,9 +147,6 @@ private:
   MemBitmap  irq_pend;
   MemBitmap  irq_todo;
 
-  static const char       default_attr {static_cast<char>(0x8e)};
-  static const uint16_t   default_sel  {0x8};
-
   /**
    *  Create an IDT-gate
    *
@@ -158,14 +157,7 @@ private:
                    uint16_t segment_sel,
                    char attributes);
 
-  /** The OS will call the following : */
-  friend class OS;
-  friend void ::irq_default_handler();
-
-  /** Initialize. Only the OS can initialize the IRQ manager */
-  static void init();
-
-  void bsp_init();
+  void init_local();
 
 }; //< IRQ_manager
 
