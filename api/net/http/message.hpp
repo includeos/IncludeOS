@@ -136,7 +136,7 @@ public:
   ///
   /// @return A view of the entity in this message
   ///
-  std::experimental::string_view body() const noexcept;
+  util::sview body() const noexcept;
 
   ///
   /// Remove the entity from the message
@@ -172,7 +172,7 @@ public:
   ///
   /// @return A view of a buffer holding intermediate information
   ///
-  const std::experimental::string_view private_field() const noexcept;
+  util::sview private_field() const noexcept;
 
   ///
   /// Set the content of the buffer holding intermediate information
@@ -182,9 +182,9 @@ private:
   ///
   /// Class data members
   ///
-  Header                         header_fields_;
-  Message_body                   message_body_;
-  std::experimental::string_view field_;
+  Header       header_fields_;
+  Message_body message_body_;
+  util::sview  field_;
 }; //< class Message
 
 /**--v----------- Helper Functions -----------v--**/
@@ -201,7 +201,7 @@ inline size_t Message::content_length() const {
   return header_fields_.content_length();
 }
 
-inline bool Message::set_content_length(size_t len) {
+inline bool Message::set_content_length(const size_t len) {
   return header_fields_.set_content_length(len);
 }
 /**--^-------- Inline Implementations --------^--**/
