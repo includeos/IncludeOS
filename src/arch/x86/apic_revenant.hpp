@@ -19,8 +19,6 @@
 #ifndef X86_APIC_REVENANT_HPP
 #define X86_APIC_REVENANT_HPP
 
-#define REV_STACK_SIZE     65536
-
 #include "apic.hpp"
 #include "smp.hpp"
 #include <cstdint>

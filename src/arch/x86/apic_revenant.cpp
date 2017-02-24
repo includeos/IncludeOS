@@ -34,13 +34,15 @@ static bool revenant_task_doer()
   task.func();
   
   // add done function to completed list (only if its callable)
-  if (true) //task.done)
+  if (task.done)
   {
     lock(smp.flock);
     smp.completed.push_back(task.done);
     unlock(smp.flock);
+    return true;
   }
-  return true;
+  // we did work, but we aren't going to signal back
+  return false;
 }
 static void revenant_task_handler()
 {
