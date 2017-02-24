@@ -19,7 +19,7 @@ add_custom_command(
 
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
-  kernel/start.asm kernel/kernel_start.cpp kernel/sanity_checks.cpp
+  kernel/kernel_start.cpp kernel/sanity_checks.cpp
   kernel/syscalls.cpp kernel/interrupts.asm kernel/os.cpp kernel/cpuid.cpp
   kernel/memmap.cpp kernel/irq_manager.cpp kernel/pci_manager.cpp
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
@@ -55,6 +55,7 @@ set(OS_OBJECTS
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
   posix/pwd.cpp
   ### x86 arch ###
+  arch/x86/start.asm
   arch/x86/arch.cpp arch/x86/gdt.cpp arch/x86/gdt_asm.asm arch/x86/acpi.cpp
   arch/x86/ioapic.cpp arch/x86/apic.cpp arch/x86/apic_timer.cpp
   arch/x86/apic_asm.asm arch/x86/apic_revenant.cpp arch/x86/smp.cpp
