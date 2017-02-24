@@ -22,8 +22,6 @@
 #include <functional>
 #include <memory>
 
-#include <common>
-
 // ----- SYNOPSIS -----
 
 namespace spec
