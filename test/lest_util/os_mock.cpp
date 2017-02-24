@@ -41,7 +41,7 @@ Statman& Statman::get() {
 }
 
 #include <rtc>
-RTC::timestamp_t RTC::booted_at_ = 0;
+RTC::timestamp_t RTC::booted_at = 0;
 
 RTC::timestamp_t RTC::now() {
   return 0;
