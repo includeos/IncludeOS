@@ -31,13 +31,14 @@ extern "C" {
 }
 
 static const uintptr_t BOOTLOADER_LOCATION = 0x80000;
+static const size_t    REV_STACK_SIZE = 1 << 18; // 256kb
 
 struct apic_boot {
   // the jump instruction at the start
   uint32_t   jump;
   // stuff we will need to modify
   void*  worker_addr;
-  void*  stack_base;
+  char*  stack_base;
   size_t stack_size;
 };
 
@@ -53,8 +54,6 @@ void SMP::init()
   // copy our bootloader to APIC init location
   const char* start = &_binary_apic_boot_bin_start;
   ptrdiff_t bootloader_size = &_binary_apic_boot_bin_end - start;
-  debug("Copying bootloader from %p to 0x%x (size=%d)\n",
-        start, BOOTLOADER_LOCATION, bootloader_size);
   memcpy((char*) BOOTLOADER_LOCATION, start, bootloader_size);
 
   // modify bootloader to support our cause
@@ -62,7 +61,8 @@ void SMP::init()
 
   // assign stack and main func
   boot->worker_addr = (void*) &revenant_main;
-  boot->stack_base = memalign(CPUcount * REV_STACK_SIZE, 4096);
+  boot->stack_base = (char*) memalign(CPUcount * REV_STACK_SIZE, 4096);
+  boot->stack_base += REV_STACK_SIZE; // make sure the stack starts at the top
   boot->stack_size = REV_STACK_SIZE;
   debug("APIC stack base: %p  size: %u   main size: %u\n",
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
@@ -146,7 +146,7 @@ void ::SMP::add_task(smp_task_func task)
   task();
 #else
   lock(smp.tlock);
-  smp.tasks.emplace_back(std::move(task), [] {});
+  smp.tasks.emplace_back(std::move(task), nullptr);
   unlock(smp.tlock);
 #endif
 }

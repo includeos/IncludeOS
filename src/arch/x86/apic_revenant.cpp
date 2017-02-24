@@ -25,7 +25,7 @@ static bool revenant_task_doer()
   }
   
   // get copy of shared task
-  auto task = smp.tasks.front();
+  auto task = std::move(smp.tasks.front());
   smp.tasks.pop_front();
   
   unlock(smp.tlock);
@@ -34,13 +34,15 @@ static bool revenant_task_doer()
   task.func();
   
   // add done function to completed list (only if its callable)
-  if (true) //task.done)
+  if (task.done)
   {
     lock(smp.flock);
-    smp.completed.push_back(task.done);
+    smp.completed.push_back(std::move(task.done));
     unlock(smp.flock);
+    return true;
   }
-  return true;
+  // we did work, but we aren't going to signal back
+  return false;
 }
 static void revenant_task_handler()
 {

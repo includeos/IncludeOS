@@ -48,7 +48,7 @@ void VirtioNet::get_config() {
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
     Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, 
-        std::max(2048u, queue_size(0) * 2), sizeof(net::Packet) + sizeof(virtio_net_hdr) + packet_len()),
+        std::max(2048u, queue_size(0) * 2), 2048 /* half-page buffers */),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {

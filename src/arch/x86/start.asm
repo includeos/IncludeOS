@@ -48,6 +48,9 @@ reload_segs:
   ;; NOTE: We can't call kernel directly since CS will be pushed to stack
   call _code_segment:_refresh_cs
 
+  ;; enable SSE before we enter C/C++ land
+  call enable_sse
+
   ;;  Place multiboot parameters on stack
   push ebx
   push eax
@@ -56,6 +59,17 @@ reload_segs:
 _refresh_cs:
   ret
 
+enable_sse:
+  push eax        ;preserve eax for multiboot
+  mov eax, cr0
+  and ax, 0xFFFB  ;clear coprocessor emulation CR0.EM
+  or ax, 0x2      ;set coprocessor monitoring  CR0.MP
+  mov cr0, eax
+  mov eax, cr4
+  or ax, 3 << 9   ;set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
+  mov cr4, eax
+  pop eax
+  ret
 
 ALIGN 32
 gdtr:

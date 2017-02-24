@@ -103,11 +103,10 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 {
   *(uint32_t volatile*) location = value;
 }
-#define wmb() asm volatile("" : : : "memory")
 
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, 
-         2048, sizeof(net::Packet) + packet_len()),
+         2048, 2048 /* half-page buffer size */),
     pcidev(d)
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
