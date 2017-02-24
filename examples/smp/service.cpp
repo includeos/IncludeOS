@@ -92,8 +92,14 @@ void Service::start()
     
     Timers::oneshot(std::chrono::seconds(1),
     [] (int) {
+      static int times = 0;
       SMP::global_lock();
       printf("This is timer from a CPU core\n");
+      times++;
+      
+      if (times == SMP::cpu_count()-1) {
+        printf("SUCCESS!\n");
+      }
       SMP::global_unlock();
     });
   }, [] {});

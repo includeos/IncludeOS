@@ -92,16 +92,15 @@ public:
   // use signal() to broadcast work should begin
   static void add_task(task_func func, done_func done);
 
-  // create one task that puts a CPU in an event loop
-  // call task function just before entering loop
-  static void enter_event_loop(task_func func);
-
   // call this to signal that more work is queued up
   static void signal();
 
   // a global spinlock to synchronize text output (and other things)
   static void global_lock()   noexcept;
   static void global_unlock() noexcept;
+
+  static void memory_lock()   noexcept;
+  static void memory_unlock() noexcept;
 };
 
 // access a std::array of structs indexed by current CPU id

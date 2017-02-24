@@ -135,20 +135,6 @@ void ::SMP::add_task(smp_task_func task, smp_done_func done)
   smp.tasks.emplace_back(std::move(task), std::move(done));
   unlock(smp.tlock);
 }
-void ::SMP::enter_event_loop(smp_task_func task)
-{
-  lock(smp.tlock);
-  smp.tasks.emplace_back(
-  smp_task_func::make_packed(
-  [task] {
-    task();
-    while (OS::is_running()) {
-      IRQ_manager::get().process_interrupts();
-      OS::halt();
-    }
-  }), [] {});
-  unlock(smp.tlock);
-}
 void ::SMP::signal()
 {
   // broadcast that we have work to do
@@ -156,6 +142,8 @@ void ::SMP::signal()
 }
 
 static spinlock_t __global_lock = 0;
+static spinlock_t __memory_lock = 0;
+
 void ::SMP::global_lock() noexcept
 {
   lock(__global_lock);
@@ -163,4 +151,35 @@ void ::SMP::global_lock() noexcept
 void ::SMP::global_unlock() noexcept
 {
   unlock(__global_lock);
+}
+
+void ::SMP::memory_lock() noexcept
+{
+  lock(__memory_lock);
+}
+void ::SMP::memory_unlock() noexcept
+{
+  unlock(__memory_lock);
+}
+
+/// SMP variants of malloc and free ///
+#include <malloc.h>
+void* malloc(size_t size)
+{
+  if (SMP::cpu_count() == 1) {
+    return _malloc_r(_REENT, size);
+  }
+  lock(__memory_lock);
+  void* value = _malloc_r(_REENT, size);
+  unlock(__memory_lock);
+  return value;
+}
+void free(void* ptr)
+{
+  if (SMP::cpu_count() == 1) {
+    return _free_r(_REENT, ptr);
+  }
+  lock(__memory_lock);
+  _free_r(_REENT, ptr);
+  unlock(__memory_lock);
 }
