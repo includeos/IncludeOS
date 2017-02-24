@@ -154,10 +154,11 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     auto xmit_del(delegate<void()>{this, &VirtioNet::msix_xmit_handler});
     auto conf_del(delegate<void()>{this, &VirtioNet::msix_conf_handler});
 
+    auto& irqs = this->get_irqs();
     // update BSP IDT
-    IRQ_manager::get().subscribe(irq() + 0, recv_del);
-    IRQ_manager::get().subscribe(irq() + 1, xmit_del);
-    IRQ_manager::get().subscribe(irq() + 2, conf_del);
+    IRQ_manager::get().subscribe(irqs[0], recv_del);
+    IRQ_manager::get().subscribe(irqs[1], xmit_del);
+    IRQ_manager::get().subscribe(irqs[2], conf_del);
   }
   else
   {
@@ -385,6 +386,11 @@ void VirtioNet::deactivate()
   /// mask off MSI-X vectors
   if (has_msix())
       deactivate_msix();
+}
+
+void VirtioNet::move_to_this_cpu()
+{
+  this->Virtio::move_to_this_cpu();
 }
 
 #include <kernel/pci_manager.hpp>

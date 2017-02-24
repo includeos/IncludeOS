@@ -105,9 +105,9 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 #define wmb() asm volatile("" : : : "memory")
 
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
+    pcidev(d),
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, 
-         2048, 
-         sizeof(net::Packet) + packet_len())
+         2048, sizeof(net::Packet) + packet_len())
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
@@ -515,6 +515,11 @@ void vmxnet3::handle_deferred()
 void vmxnet3::deactivate()
 {
   assert(0);
+}
+
+void vmxnet3::move_to_this_cpu()
+{
+  
 }
 
 #include <kernel/pci_manager.hpp>

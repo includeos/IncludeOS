@@ -154,6 +154,8 @@ public:
 
   void deactivate() override;
 
+  void move_to_this_cpu() override;
+
 private:
 
   /** Stats */

@@ -133,3 +133,8 @@ void Inet4::force_start_send_queues()
   size_t packets = transmit_queue_available();
   if (packets) process_sendq(packets);
 }
+
+void Inet4::move_to_this_cpu()
+{
+  nic_.move_to_this_cpu();
+}
