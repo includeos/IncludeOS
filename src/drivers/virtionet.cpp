@@ -36,8 +36,6 @@ static std::array<smp_deferred_kick, SMP_MAX_CORES> deferred_devs;
 #endif
 
 using namespace net;
-// make packets cache-aligned on the IP-layer
-static const int VIRTIO_HDR_OFFSET = 64 - sizeof(Packet) - sizeof(ethernet::Header);
 
 void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
