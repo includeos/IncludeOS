@@ -387,7 +387,7 @@ void VirtioNet::deactivate()
 
 void VirtioNet::move_to_this_cpu()
 {
-  printf("VirtioNet: Moving to CPU %d\n", SMP::cpu_id());
+  INFO("VirtioNet", "Moving to CPU %d", SMP::cpu_id());
   this->Virtio::move_to_this_cpu();
   // reset the IRQ handlers
   auto& irqs = this->Virtio::get_irqs();
