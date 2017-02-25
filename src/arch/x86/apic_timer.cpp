@@ -40,14 +40,14 @@ namespace x86
   // calculated once on BSP
   static uint32_t ticks_per_micro = 0;
   
-  struct timer_data
+  struct alignas(SMP_ALIGN) timer_data
   {
     bool intr_enabled = false;
     
-  } __attribute__((aligned(128)));
-  static timer_data timerdata[SMP_MAX_CORES];
+  };
+  static std::array<timer_data, SMP_MAX_CORES> timerdata;
   
-  #define GET_TIMER() timerdata[SMP::cpu_id()]
+  #define GET_TIMER() PER_CPU(timerdata)
   
   void APIC_Timer::init()
   {

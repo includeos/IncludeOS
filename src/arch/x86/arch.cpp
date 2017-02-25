@@ -109,31 +109,31 @@ void __arch_reboot()
 
 namespace x86
 {
-  struct cpu_shared
+  struct alignas(64) cpu_shared
   {
     int cpduid;
-  } __attribute__((aligned(128)));
-  static cpu_shared cpudata[SMP_MAX_CORES]; // for alignment
+  };
+  static std::array<cpu_shared, SMP_MAX_CORES> cpudata; // for alignment
 
   static void initialize_cpu_shared()
   {
-    for (size_t id = 0; id < SMP_MAX_CORES; id++) {
+    for (size_t id = 0; id < cpudata.size(); id++) {
       cpudata[id].cpduid = id;
     }
   }
 
-  struct segtable
+  struct alignas(64) segtable
   {
     struct GDT gdt;
-  } __attribute__((aligned(128)));
-  static segtable gdtables[SMP_MAX_CORES];
+  };
+  static std::array<segtable, SMP_MAX_CORES> gdtables;
 
   void initialize_gdt_for_cpu(int id)
   {
     // initialize GDT for this core
-    gdtables[id].gdt.initialize();
+    gdtables.at(id).gdt.initialize();
     // create PER-CPU segment
-    int fs = gdtables[id].gdt.create_data(&cpudata[id], 1);
+    int fs = gdtables[id].gdt.create_data(&cpudata.at(id), 1);
     // load GDT and refresh segments
     GDT::reload_gdt(gdtables[id].gdt);
     // enable per-cpu for this core

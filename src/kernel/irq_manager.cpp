@@ -25,19 +25,18 @@
 #include <kprint>
 #include <smp>
 
-#define MSIX_IRQ_BASE     64
 #define LAPIC_IRQ_BASE   120
 #define RING0_CODE_SEG   0x8
 
+static std::array<IRQ_manager, SMP_MAX_CORES> managers;
+
 IRQ_manager& IRQ_manager::get(int cpuid)
 {
-  static IRQ_manager managers[SMP_MAX_CORES];
-  assert(cpuid >= 0 && cpuid < SMP_MAX_CORES);
-  return managers[cpuid];
+  return managers.at(cpuid);
 }
 IRQ_manager& IRQ_manager::get()
 {
-  return get(SMP::cpu_id());
+  return PER_CPU(managers);
 }
 
 uint8_t IRQ_manager::get_free_irq()
@@ -58,8 +57,7 @@ extern "C" {
     uint8_t vector = x86::APIC::get_isr();
     IRQ_manager::get().register_irq(vector - IRQ_BASE);
   }
-  void spurious_intr();
-  void exception_handler() __attribute__((noreturn));
+  extern void spurious_intr();
   extern void (*current_eoi_mechanism)();
 }
 
