@@ -25,19 +25,19 @@
 #include <kprint>
 #include <smp>
 
-#define MSIX_IRQ_BASE     64
+//#define DEBUG_SMP
 #define LAPIC_IRQ_BASE   120
 #define RING0_CODE_SEG   0x8
 
+static std::array<IRQ_manager, SMP_MAX_CORES> managers;
+
 IRQ_manager& IRQ_manager::get(int cpuid)
 {
-  static IRQ_manager managers[SMP_MAX_CORES];
-  assert(cpuid >= 0 && cpuid < SMP_MAX_CORES);
-  return managers[cpuid];
+  return managers.at(cpuid);
 }
 IRQ_manager& IRQ_manager::get()
 {
-  return get(SMP::cpu_id());
+  return PER_CPU(managers);
 }
 
 uint8_t IRQ_manager::get_free_irq()
@@ -51,6 +51,7 @@ void IRQ_manager::register_irq(uint8_t irq)
 }
 
 extern "C" {
+  extern void* get_cpu_esp();
   extern void unused_interrupt_handler();
   extern void modern_interrupt_handler();
   void register_modern_interrupt()
@@ -58,8 +59,7 @@ extern "C" {
     uint8_t vector = x86::APIC::get_isr();
     IRQ_manager::get().register_irq(vector - IRQ_BASE);
   }
-  void spurious_intr();
-  void exception_handler() __attribute__((noreturn));
+  extern void spurious_intr();
   extern void (*current_eoi_mechanism)();
 }
 
@@ -78,12 +78,17 @@ print_error_code(uint32_t){}
 
 
 template <int NR>
-void cpu_exception(uint32_t eip, uint32_t error)
+void cpu_exception(void** eip, uint32_t error)
 {
-  kprint("\n\n>>>> !!! CPU EXCEPTION !!! <<<<\n");
-  kprintf("CPU Exception no. %i while EIP @ 0x%x (value 0x%x). ", NR, eip, *(uint32_t*)eip);
+  SMP::global_lock();
+  kprintf("\n>>>> !!! CPU %u EXCEPTION !!! <<<<\n", SMP::cpu_id());
+  kprintf("Exception %i   EIP  %p\n", NR, eip);
   print_error_code<NR>(error);
-  panic("CPU exception");
+  SMP::global_unlock();
+  // call panic, which will decide what to do next
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "CPU exception %d", NR);
+  panic(buffer);
 }
 
 
@@ -225,6 +230,12 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del, bool create_stat)
 
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
+#ifdef DEBUG_SMP
+  SMP::global_lock();
+  printf("Subscribed to intr=%u irq=%u on cpu %d\n",
+        IRQ_BASE + irq, irq, SMP::cpu_id());
+  SMP::global_unlock();
+#endif
 }
 void IRQ_manager::unsubscribe(uint8_t irq)
 {
@@ -246,6 +257,12 @@ void IRQ_manager::process_interrupts()
       // reset pending before running handler
       irq_pend.atomic_reset(intr);
       // sub and call handler
+#ifdef DEBUG_SMP
+      SMP::global_lock();
+      printf("[%p] Calling handler for intr=%u irq=%u cpu %d\n",
+             get_cpu_esp(), IRQ_BASE + intr, intr, SMP::cpu_id());
+      SMP::global_unlock();
+#endif
       irq_delegates_[intr]();
 
       // increase stat counter, if it exists

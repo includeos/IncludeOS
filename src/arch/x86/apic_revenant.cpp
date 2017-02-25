@@ -1,5 +1,6 @@
 #include "apic_revenant.hpp"
 
+#include "apic.hpp"
 #include "apic_timer.hpp"
 #include "gdt.hpp"
 #include <kernel/irq_manager.hpp>

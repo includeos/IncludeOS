@@ -21,6 +21,7 @@
 #include <arch>
 #include <delegate>
 #include <membitmap>
+#include <smp>
 
 // From osdev
 struct IDTDescr {
@@ -35,10 +36,6 @@ struct idt_loc {
   uint16_t limit;
   uint32_t base;
 }__attribute__((packed));
-
-extern "C" {
-  void irq_default_handler();
-}
 
 #define IRQ_BASE          32
 
@@ -58,10 +55,10 @@ extern "C" {
 
     @TODO: Remove all dependencies on old SanOS code. In particular, eoi is now in global scope
 */
-class IRQ_manager {
+class alignas(SMP_ALIGN) IRQ_manager {
 public:
   typedef void (*intr_func) ();
-  typedef void (*exception_func) (uint32_t, uint32_t);
+  typedef void (*exception_func) (void**, uint32_t);
   using irq_delegate = delegate<void()>;
 
   static constexpr size_t  IRQ_LINES = 128;
@@ -132,8 +129,8 @@ public:
   /** Initialize for a local APIC */
   static void init(int cpuid);
 
-private:
   IRQ_manager() = default;
+private:
   IRQ_manager(IRQ_manager&) = delete;
   IRQ_manager(IRQ_manager&&) = delete;
   IRQ_manager& operator=(IRQ_manager&&) = delete;

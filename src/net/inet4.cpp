@@ -1,7 +1,7 @@
 //-*- C++ -*-
-#define DEBUG
 #include <net/inet4.hpp>
 #include <net/dhcp/dh4client.hpp>
+#include <smp>
 
 using namespace net;
 
@@ -65,6 +65,14 @@ Inet4::Inet4(hw::Nic& nic)
   // Arp -> Link
   assert(link_top);
   arp_.set_linklayer_out(link_top);
+
+#ifndef INCLUDEOS_SINGLE_THREADED
+  // move this nework stack automatically
+  // to the current CPU if its not 0
+  if (SMP::cpu_id() != 0) {
+    this->move_to_this_cpu();
+  }
+#endif
 }
 
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {

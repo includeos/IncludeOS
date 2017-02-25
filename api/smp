@@ -31,6 +31,8 @@
 #define SMP_MAX_CORES   16
 #endif
 
+#define SMP_ALIGN       64
+
 /// x86-related locking stuff ///
 #ifdef ARCH_X86
 // Intel 3a  8.10.6.7: 128-byte boundary

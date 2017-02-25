@@ -20,18 +20,14 @@
 //#define DEBUG2
 
 #include "virtionet.hpp"
-#include <net/packet.hpp>
 #include <kernel/irq_manager.hpp>
-#include <kernel/syscalls.hpp>
-#include <hw/pci.hpp>
-#include <cstdlib>
 #include <malloc.h>
-#include <string.h>
+#include <cstring>
 
 //#define NO_DEFERRED_KICK
 #ifndef NO_DEFERRED_KICK
 #include <smp>
-struct smp_deferred_kick
+struct alignas(SMP_ALIGN) smp_deferred_kick
 {
   std::vector<VirtioNet*> devs;
   uint8_t irq;
@@ -53,6 +49,8 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {
   INFO("VirtioNet", "Driver initializing");
+  static_assert(VIRTIO_HDR_OFFSET >= sizeof(virtio_net_hdr),
+                "Must be at least larger than the driver header itself");
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)
@@ -250,7 +248,7 @@ void VirtioNet::add_receive_buffer(uint8_t* pkt)
   auto* vnet = pkt + sizeof(Packet);
 
   Token token1 {{vnet, sizeof(virtio_net_hdr)}, Token::IN };
-  Token token2 {{vnet + sizeof(virtio_net_hdr), packet_len()}, Token::IN };
+  Token token2 {{vnet + VIRTIO_HDR_OFFSET, packet_len()}, Token::IN };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
   rx_q.enqueue(tokens);
@@ -264,14 +262,14 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
   assert(bufstore().is_from_pool((uint8_t*) ptr));
   assert(bufstore().is_buffer((uint8_t*) ptr));
 #endif
-  new (ptr) net::Packet(packet_len(), size - sizeof(virtio_net_hdr), sizeof(virtio_net_hdr), &bufstore());
+  new (ptr) net::Packet(packet_len(), size - sizeof(virtio_net_hdr), VIRTIO_HDR_OFFSET, &bufstore());
   return net::Packet_ptr(ptr);
 }
 net::Packet_ptr
 VirtioNet::create_packet(uint16_t size)
 {
   auto* ptr = (net::Packet*) bufstore().get_buffer();
-  new (ptr) net::Packet(packet_len(), size, sizeof(virtio_net_hdr), &bufstore());
+  new (ptr) net::Packet(packet_len(), size, VIRTIO_HDR_OFFSET, &bufstore());
   return net::Packet_ptr(ptr);
 }
 
@@ -338,7 +336,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
 
 void VirtioNet::enqueue(net::Packet* pckt)
 {
-  auto* hdr = pckt->buffer() - sizeof(virtio_net_hdr);
+  auto* hdr = pckt->buffer() - VIRTIO_HDR_OFFSET;
   
   Token token1 {{ hdr, sizeof(virtio_net_hdr)}, Token::OUT };
   Token token2 {{ pckt->buffer(), pckt->size()}, Token::OUT };
@@ -389,7 +387,7 @@ void VirtioNet::deactivate()
 
 void VirtioNet::move_to_this_cpu()
 {
-  printf("VirtioNet: Moving to CPU %d\n", SMP::cpu_id());
+  INFO("VirtioNet", "Moving to CPU %d", SMP::cpu_id());
   this->Virtio::move_to_this_cpu();
   // reset the IRQ handlers
   auto& irqs = this->Virtio::get_irqs();

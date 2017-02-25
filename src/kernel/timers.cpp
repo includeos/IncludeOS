@@ -66,10 +66,11 @@ struct timer_system
   uint32_t* periodic_started;
   uint32_t* periodic_stopped;
 } __attribute__((aligned(128)));
-static timer_system systems[SMP_MAX_CORES];
+
+static std::array<timer_system, SMP_MAX_CORES> systems;
 
 static inline timer_system& get() {
-  return systems[SMP::cpu_id()];
+  return PER_CPU(systems);
 }
 
 void Timers::init(const start_func_t& start, const stop_func_t& stop)
