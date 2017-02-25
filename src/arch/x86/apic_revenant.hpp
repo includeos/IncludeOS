@@ -19,7 +19,6 @@
 #ifndef X86_APIC_REVENANT_HPP
 #define X86_APIC_REVENANT_HPP
 
-#include "apic.hpp"
 #include "smp.hpp"
 #include <cstdint>
 #include <deque>
