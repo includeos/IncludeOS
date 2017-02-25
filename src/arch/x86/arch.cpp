@@ -109,7 +109,7 @@ void __arch_reboot()
 
 namespace x86
 {
-  struct alignas(64) cpu_shared
+  struct alignas(SMP_ALIGN) cpu_shared
   {
     int cpduid;
   };
@@ -122,7 +122,7 @@ namespace x86
     }
   }
 
-  struct alignas(64) segtable
+  struct alignas(SMP_ALIGN) segtable
   {
     struct GDT gdt;
   };

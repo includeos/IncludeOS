@@ -21,12 +21,12 @@
 #include <timers>
 #include <kernel/irq_manager.hpp>
 
-struct per_cpu_test
+struct alignas(SMP_ALIGN) per_cpu_test
 {
   int value;
   
-} __attribute__((aligned(64)));
-static std::array<per_cpu_test, 16> testing;
+};
+static std::array<per_cpu_test, SMP_MAX_CORES> testing;
 
 static int times = 0;
 

@@ -58,7 +58,7 @@ struct idt_loc {
 class alignas(SMP_ALIGN) IRQ_manager {
 public:
   typedef void (*intr_func) ();
-  typedef void (*exception_func) (uint32_t, uint32_t);
+  typedef void (*exception_func) (void**, uint32_t);
   using irq_delegate = delegate<void()>;
 
   static constexpr size_t  IRQ_LINES = 128;

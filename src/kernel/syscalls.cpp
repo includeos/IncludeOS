@@ -174,7 +174,8 @@ OS::on_panic_func panic_handler = default_panic_handler;
 void panic(const char* why)
 {
   SMP::global_lock();
-  fprintf(stderr, "\n\t**** PANIC: ****\n %s\n", why);
+  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n", 
+          SMP::cpu_id(), why);
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
