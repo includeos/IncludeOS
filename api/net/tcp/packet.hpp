@@ -52,10 +52,10 @@ public:
   {
     PacketIP4::init(IP4::IP4_TCP);
     char* ipdata = ip_data();
-    assert(((uintptr_t) ipdata & 3) == 0);
 
     // clear TCP header
-    __builtin_memset(ipdata, 0, sizeof(Header));
+    ((uint32_t*) ipdata)[3] = 0;
+    ((uint32_t*) ipdata)[4] = 0;
 
     auto& hdr = *(Header*) ipdata;
     // set some default values

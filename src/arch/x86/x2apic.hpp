@@ -217,7 +217,7 @@ namespace x86 {
       static x2apic instance;
       return instance;
     }
-  private:
+
     static const uint32_t BASE_MSR = 0x800;
   };
 }

@@ -15,18 +15,12 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 USE32
-global spurious_intr
-global lapic_send_eoi
-global get_cpu_id
-global get_cpu_eip
-global get_cpu_esp
-global reboot_os
-
-global lapic_irq_entry
-extern lapic_irq_handler
-
-global lapic_except_entry
-extern lapic_except_handler
+global spurious_intr:function
+global lapic_send_eoi:function
+global get_cpu_id:function
+global get_cpu_eip:function
+global get_cpu_esp:function
+global reboot_os:function
 
 get_cpu_id:
     mov eax, [fs:0x0]

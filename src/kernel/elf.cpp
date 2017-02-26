@@ -104,14 +104,29 @@ public:
 
   Elf32_Sym* getaddr(Elf32_Addr addr)
   {
-    for (size_t i = 0; i < symtab.entries; i++) {
-
-      //if (ELF32_ST_TYPE(symtab.base[i].st_info) == STT_FUNC)
+    // find exact match
+    for (size_t i = 0; i < symtab.entries; i++)
+    {
       if (addr >= symtab.base[i].st_value
       && (addr <  symtab.base[i].st_value + symtab.base[i].st_size))
           return &symtab.base[i];
     }
-    return nullptr;
+    // try again, but use guesstimate size
+    Elf32_Sym* guess = nullptr;
+    size_t     gdiff = 1000;
+    for (size_t i = 0; i < symtab.entries; i++)
+    {
+      if (addr >= symtab.base[i].st_value
+      && (addr <  symtab.base[i].st_value + 512))
+      {
+        if (addr - symtab.base[i].st_value < gdiff)
+        {
+          guess = &symtab.base[i];
+          gdiff = addr - symtab.base[i].st_value;
+        }
+      }
+    }
+    return guess;
   }
 
   size_t end_of_file() const {
