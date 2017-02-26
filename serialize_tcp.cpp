@@ -124,6 +124,9 @@ void Connection::deserialize_from(void* addr)
   this->dup_acks_    = area->dup_acks;
   this->highest_ack_ = area->highest_ack;
   this->prev_highest_ack_ = area->prev_highest_ack;
+  // new:
+  this->dack_        = area->dack;
+  this->last_ack_sent_= area->last_ack_sent;
 
   /// restore writeq from VLA
   int writeq_len = this->writeq.deserialize_from(area->vla);
@@ -202,6 +205,8 @@ int Connection::serialize_to(void* addr) const
   area->dup_acks   = this->dup_acks_;
   area->highest_ack      = this->highest_ack_;
   area->prev_highest_ack = this->prev_highest_ack_;
+  area->dack       = this->dack_;
+  area->last_ack_sent= this->last_ack_sent_;
   
   /// serialize write queue
   int writeq_len = this->writeq.serialize_to(area->vla);

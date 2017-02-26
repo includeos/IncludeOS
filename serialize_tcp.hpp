@@ -14,26 +14,28 @@ struct serialized_tcp
   
   port_t local_port;
   Socket remote;
-  Connection::TCB tcb;
-  net::tcp::RTTM  rttm;
-  
+
   int8_t  state_now;
   int8_t  state_prev;
-  
+
+  Connection::TCB tcb;
+  net::tcp::RTTM  rttm;
+
   int8_t  rtx_att;
   int8_t  syn_rtx;
-  
+
   bool    queued;
 
-
-  bool fast_recovery;
-  bool reno_fpack_seen;
-  bool limited_tx;
+  bool    fast_recovery;
+  bool    reno_fpack_seen;
+  bool    limited_tx;
   uint8_t dup_acks;
+  uint8_t dack;
 
   net::tcp::seq_t highest_ack;
   net::tcp::seq_t prev_highest_ack;
-  
+  net::tcp::seq_t last_ack_sent;
+
   /// vla for write buffers
   char   vla[0];
   

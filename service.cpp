@@ -86,11 +86,11 @@ void setup_liveupdate_server(T& inet);
 
 void Service::start()
 {
-  OS::add_stdout_default_serial();
+  //OS::add_stdout_default_serial();
 }
 void Service::ready()
 {
-  volatile HW_timer timer("Service::ready()");
+  //volatile HW_timer timer("Service::ready()");
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
 
@@ -124,7 +124,7 @@ void Service::ready()
   // listen for telnet clients
   setup_terminal(inet);
   // show profile stats for boot
-  printf("%s\n", ScopedProfiler::get_statistics().c_str());
+  //printf("%s\n", ScopedProfiler::get_statistics().c_str());
 }
 
 static std::vector<double> timestamps;
@@ -168,33 +168,24 @@ void save_stuff(liu::Storage& storage, liu::buffer_len final_blob)
 void strings_and_buffers(liu::Restore& thing)
 {
   int v1 = thing.as_int();      thing.go_next();
-  printf("[int] has value [%d]\n", v1);
   assert(v1 == 1234);
 
   int v2 = thing.as_int();      thing.go_next();
-  printf("[int] has value [%d]\n", v2);
   assert(v2 == 5678);
 
   auto str = thing.as_string(); thing.go_next();
-  printf("[string] has value [%s]\n", str.c_str());
   assert(str == "Some string :(");
 
   str = thing.as_string();      thing.go_next();
-  printf("[string] has value [%s]\n", str.c_str());
   assert(str == "Some other string :(");
 
   auto buffer = thing.as_buffer(); thing.go_next();
-  printf("[buffer] is %d bytes long\n", thing.length());
-  printf("As text: %.*s\n", buffer.length, buffer.buffer);
   // there is an extra zero at the end of the buffer
   str = std::string(buffer.buffer, buffer.length-1);
   assert(str == "Just some random buffer");
 
   auto vec = thing.as_vector<std::string> (); thing.go_next();
-  printf("[strvec] Count: %u\n", vec.size());
-  for (auto& str : vec) {
-    printf("[strvec] len=%u str=%s\n", str.size(), str.c_str());
-  }
+  assert(vec.size() == 2);
   assert(vec[0] == "|String 1|");
   assert(vec[1] == "|String 2 is slightly longer|");
 }
@@ -204,7 +195,7 @@ void saved_message(liu::Restore& thing)
   for (auto& str : vec)
   {
     static int n = 0;
-    printf("[%d] %s", ++n, str.c_str());
+    printf("[%d] %.*s", ++n, str.size(), str.c_str());
     // re-save it
     //savemsg.push_back(str);
   }
@@ -218,7 +209,7 @@ void the_timing(liu::Restore& thing)
 {
   auto t1 = thing.as_type<int64_t>();
   auto t2 = hw::CPU::rdtsc();
-  printf("! CPU ticks after: %lld  (CPU freq: %f)\n", t2, OS::cpu_freq().count());
+  //printf("! CPU ticks after: %lld  (CPU freq: %f)\n", t2, OS::cpu_freq().count());
 
   using namespace std::chrono;
   double  div  = OS::cpu_freq().count() * 1000.0;
@@ -226,7 +217,7 @@ void the_timing(liu::Restore& thing)
 
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
-             "! Boot time in ticks: %lld (%.2f ms)\n", t2-t1, time);
+             "Boot time %.2f ms\n", time);
 
   savemsg.emplace_back(buffer, len);
   // verify that the next id is still same as current
@@ -242,7 +233,7 @@ void the_timing(liu::Restore& thing)
   std::sort(timestamps.begin(), timestamps.end());
   double median = timestamps[timestamps.size()/2];
 
-  printf("Restored %u timestamps, median TS: %.2f ms\n",
+  printf(">> %u timestamps, median TS: %.2f ms\n",
       timestamps.size(), median);
   
 }
@@ -267,7 +258,7 @@ void on_update_area(liu::Restore& thing)
   
   // we are perpetually updating ourselves
   using namespace std::chrono;
-  Timers::oneshot(milliseconds(1),
+  Timers::oneshot(milliseconds(250),
   [updloc] (auto) {
     extern uintptr_t heap_end;
     //printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);

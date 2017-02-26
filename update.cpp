@@ -13,7 +13,8 @@
 #include "elf.h"
 #include "storage.hpp"
 
-#define LPRINT(x, ...) /* x */
+//#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
+#define LPRINT(x, ...) /** x **/
 
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
@@ -125,7 +126,7 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
 
   // save ourselves
   size_t storage_len = update_store_data(storage_area, func, blob);
-  LPRINT("* Stored %u bytes of user data\n", storage_len);
+  (void) storage_len;
 
   // store soft-resetting stuff
   void* sr_data = __os_store_soft_reset();
