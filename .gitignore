@@ -2,3 +2,4 @@ LiveUpdate
 *.img
 *.o
 *.d
+build/
