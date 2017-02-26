@@ -113,7 +113,7 @@ public:
     }
     // try again, but use guesstimate size
     Elf32_Sym* guess = nullptr;
-    ptrdiff_t  gdiff = 1000;
+    size_t     gdiff = 1000;
     for (size_t i = 0; i < symtab.entries; i++)
     {
       if (addr >= symtab.base[i].st_value
