@@ -24,6 +24,8 @@
 #include <os> // OS::micros_since_boot()
 #include <debug>
 
+#include <random>
+
 namespace net
 {
   inline dhcp_option_t* conv_option(uint8_t* option)
@@ -72,7 +74,11 @@ namespace net
     });
 
     // create a random session ID
-    this->xid = OS::micros_since_boot() & 0xFFFFFFFF;
+    std::random_device rd;  // Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+    std::uniform_int_distribution<> dis(std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
+    this->xid = dis(gen);
+
     if (console_spam)
       MYINFO("Negotiating IP-address (xid=%u)", xid);
 
