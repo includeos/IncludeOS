@@ -33,9 +33,9 @@ extern "C" {
   void (*current_eoi_mechanism)();
   // KVM para PV-EOI feature
   void kvm_pv_eoi();
-  // easier deduction of type
+  // shortcut that avoids virtual call
   void x2apic_send_eoi() {
-    x86::x2apic::get().eoi();
+    x86::CPU::write_msr(x86::x2apic::BASE_MSR + x2APIC_EOI, 0);
   }
 }
 
@@ -54,14 +54,13 @@ namespace x86
     // by masking off all interrupts
     PIC::set_intr_mask(0xFFFF);
 
-    // a PC without APIC is insane
-    assert(CPUID::has_feature(CPUID::Feature::APIC) 
-        && "If this fails, the machine is insane");
-
     if (CPUID::has_feature(CPUID::Feature::X2APIC)) {
         current_apic = &x2apic::get();
         current_eoi_mechanism = x2apic_send_eoi;
     } else {
+        // an x86 PC without APIC is insane
+        assert(CPUID::has_feature(CPUID::Feature::APIC) 
+            && "If this fails, the machine is insane");
         current_apic = &xapic::get();
         current_eoi_mechanism = lapic_send_eoi;
     }
