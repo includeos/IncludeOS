@@ -22,13 +22,10 @@ cxx_list="clang++-3.9 clang++-3.8 clang++-3.7 clang++-3.6 clang++"
 
 compiler=""
 guess_compiler() {
-    for compiler in $1
+    for compiler in $*
     do
-	exists=`command -v $compiler`
-	if [ "$exists" != "" ]
-	then
-	    compiler=$exists
-	    break
+	if command -v $compiler; then
+		break
 	fi
     done
 }
@@ -36,14 +33,14 @@ guess_compiler() {
 
 if [ -z "$CC" ]
 then
-  guess_compiler $cc_list
-  export CC=$compiler
+	guess_compiler "$cc_list"
+	export CC=$compiler
 fi
 
 if [ -z "$CXX" ]
 then
-  guess_compiler $cxx_list
-  export CXX=$compiler
+	guess_compiler "$cxx_list"
+	export CXX=$compiler
 fi
 
 echo -e "\n\n>>> Best guess for compatible compilers: $CXX / $CC"

@@ -25,13 +25,12 @@
 #include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
 #include <kernel/rtc.hpp>
-
-#include <hw/acpi.hpp>
 #include <hw/serial.hpp>
 
 #include <statman>
 #include <kprint>
 #include <info>
+#include <smp>
 
 
 #if defined (UNITTESTS) && !defined(__MACH__)
@@ -157,7 +156,7 @@ static void default_panic_handler()
 {
   // shutdown the machine
   if (SHUTDOWN_ON_PANIC)
-      hw::ACPI::shutdown();
+      __arch_poweroff();
 }
 __attribute__((weak))
 OS::on_panic_func panic_handler = default_panic_handler;
@@ -172,8 +171,11 @@ OS::on_panic_func panic_handler = default_panic_handler;
  *    the kernel panics
  * If the handler returns, go to (permanent) sleep
 **/
-void panic(const char* why) {
-  fprintf(stderr, "\n\t**** PANIC: ****\n %s\n", why);
+void panic(const char* why)
+{
+  SMP::global_lock();
+  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n", 
+          SMP::cpu_id(), why);
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
@@ -194,6 +196,7 @@ void panic(const char* why) {
 
   // Signal End-Of-Transmission
   fprintf(stderr, "\x04"); fflush(stderr);
+  SMP::global_unlock();
 
   // call on_panic handler
   panic_handler();
@@ -205,7 +208,7 @@ void panic(const char* why) {
 
 // Shutdown the machine when one of the exit functions are called
 void default_exit() {
-  hw::ACPI::shutdown();
+  __arch_poweroff();
   __builtin_unreachable();
 }
 

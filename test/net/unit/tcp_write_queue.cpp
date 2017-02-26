@@ -200,7 +200,7 @@ CASE("Creating a WriteQueue and operate it")
                 {
                   wq.reset();
 
-                  THEN("The queue is empty and on write has returned correct values on the fully completed ones [1000, 1000]")
+                  THEN("The queue is empty and on write has returned correct values on the fully/half completed ones [1000, 1000, 500]")
                   {
                     EXPECT( wq.empty() );
                     EXPECT( wq.size() == 0u );
@@ -212,7 +212,7 @@ CASE("Creating a WriteQueue and operate it")
 
                     EXPECT( written[0] == 1000u );
                     EXPECT( written[1] == 1000u );
-                    EXPECT( written[2] == 0u );
+                    EXPECT( written[2] == 500u );
                     EXPECT( written[3] == 0u );
                     EXPECT( written[4] == 0u );
 

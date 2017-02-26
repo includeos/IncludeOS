@@ -30,8 +30,7 @@ namespace http {
 /// This class is used to represent an error that occurred
 /// from within the operations of class Response
 ///
-class Response_error : public std::runtime_error {
-public:
+struct Response_error : public std::runtime_error {
   using runtime_error::runtime_error;
 }; //< class Response_error
 

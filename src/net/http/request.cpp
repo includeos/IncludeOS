@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +35,7 @@ static http_parser_settings settings
 
   .on_url = [](http_parser* parser, const char* at, size_t length) {
     auto req = reinterpret_cast<Request*>(parser->data);
-    req->set_uri(URI{{at, length}});
+    req->set_uri(URI{std::string{at, length}});
     return 0;
   },
 

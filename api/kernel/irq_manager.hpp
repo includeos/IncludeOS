@@ -18,9 +18,10 @@
 #ifndef KERNEL_IRQ_MANAGER_HPP
 #define KERNEL_IRQ_MANAGER_HPP
 
-#include "os.hpp"
+#include <arch>
 #include <delegate>
 #include <membitmap>
+#include <smp>
 
 // From osdev
 struct IDTDescr {
@@ -35,10 +36,6 @@ struct idt_loc {
   uint16_t limit;
   uint32_t base;
 }__attribute__((packed));
-
-extern "C" {
-  void irq_default_handler();
-}
 
 #define IRQ_BASE          32
 
@@ -58,10 +55,10 @@ extern "C" {
 
     @TODO: Remove all dependencies on old SanOS code. In particular, eoi is now in global scope
 */
-class IRQ_manager {
+class alignas(SMP_ALIGN) IRQ_manager {
 public:
   typedef void (*intr_func) ();
-  typedef void (*exception_func) (uint32_t, uint32_t);
+  typedef void (*exception_func) (void**, uint32_t);
   using irq_delegate = delegate<void()>;
 
   static constexpr size_t  IRQ_LINES = 128;
@@ -111,7 +108,8 @@ public:
    *
    *  @todo Create a public member IRQ_manager::eoi for delegates to use
    */
-  void subscribe(uint8_t irq, irq_delegate del);
+  void subscribe(uint8_t irq, irq_delegate, bool create_stat = false);
+  void unsubscribe(uint8_t irq);
 
   // start accepting interrupts
   static void enable_interrupts();
@@ -119,19 +117,20 @@ public:
   /**
    * Get the IRQ manager instance
    */
-  static inline IRQ_manager& get() {
-    static IRQ_manager bsp;
-    return bsp;
-  }
+  static IRQ_manager& get();
+  static IRQ_manager& get(int cpu);
 
-  uint8_t get_next_msix_irq();
-  void register_irq(uint8_t vector);
+  uint8_t get_free_irq();
+  void register_irq(uint8_t irq);
 
   /** process all pending interrupts */
   void process_interrupts();
 
-private:
+  /** Initialize for a local APIC */
+  static void init(int cpuid);
+
   IRQ_manager() = default;
+private:
   IRQ_manager(IRQ_manager&) = delete;
   IRQ_manager(IRQ_manager&&) = delete;
   IRQ_manager& operator=(IRQ_manager&&) = delete;
@@ -145,9 +144,6 @@ private:
   MemBitmap  irq_pend;
   MemBitmap  irq_todo;
 
-  static const char       default_attr {static_cast<char>(0x8e)};
-  static const uint16_t   default_sel  {0x8};
-
   /**
    *  Create an IDT-gate
    *
@@ -158,14 +154,7 @@ private:
                    uint16_t segment_sel,
                    char attributes);
 
-  /** The OS will call the following : */
-  friend class OS;
-  friend void ::irq_default_handler();
-
-  /** Initialize. Only the OS can initialize the IRQ manager */
-  static void init();
-
-  void bsp_init();
+  void init_local();
 
 }; //< IRQ_manager
 

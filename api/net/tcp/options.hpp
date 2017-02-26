@@ -28,20 +28,29 @@ namespace tcp {
   TCP Header Option
 */
 struct Option {
-  uint8_t kind;
-  uint8_t length;
-  uint8_t data[0];
 
   enum Kind {
     END = 0x00, // End of option list
     NOP = 0x01, // No-Opeartion
     MSS = 0x02, // Maximum Segment Size [RFC 793] Rev: [879, 6691]
+    WS  = 0x03, // Window Scaling [RFC 7323] p. 8
+    TS  = 0x08, // Timestamp [RFC 7323] p. 11
   };
+
+  const uint8_t kind    {END};
+  const uint8_t length  {0};
+  uint8_t               data[0];
 
   static std::string kind_string(Kind kind) {
     switch(kind) {
     case MSS:
       return {"MSS"};
+
+    case WS:
+      return {"Window Scaling"};
+
+    case TS:
+      return {"Timestamp"};
 
     default:
       return {"Unknown Option"};
@@ -49,20 +58,40 @@ struct Option {
   }
 
   struct opt_mss {
-    uint8_t kind;
-    uint8_t length;
-    uint16_t mss;
+    const uint8_t   kind    {MSS};
+    const uint8_t   length  {4};
+    const uint16_t  mss;
 
-    opt_mss(uint16_t mss)
-      : kind(MSS), length(4), mss(htons(mss)) {}
-  };
+    opt_mss(const uint16_t mss)
+      : mss(htons(mss)) {}
 
-  struct opt_timestamp {
-    uint8_t kind;
-    uint8_t length;
-    uint32_t ts_val;
-    uint32_t ts_ecr;
-  };
+  } __attribute__((packed));
+
+  /**
+   * @brief      Window Scaling option [RFC 7323] p. 8
+   */
+  struct opt_ws {
+    const uint8_t kind    {WS};
+    const uint8_t length  {3};
+    const uint8_t shift_cnt;
+
+    opt_ws(const uint8_t shift)
+      : shift_cnt{shift} {}
+
+  } __attribute__((packed));
+
+  struct opt_ts {
+    const uint8_t   kind    {TS};
+    const uint8_t   length  {10};
+    const uint32_t  val;
+    const uint32_t  ecr;
+
+    opt_ts(const uint32_t val, const uint32_t echo)
+      : val{htonl(val)},
+        ecr{htonl(echo)}
+    {}
+
+  } __attribute__((packed));
 
 }; // < struct Option
 

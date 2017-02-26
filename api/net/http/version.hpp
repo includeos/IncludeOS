@@ -18,7 +18,6 @@
 #ifndef HTTP_VERSION_HPP
 #define HTTP_VERSION_HPP
 
-#include <string>
 #include <sstream>
 
 namespace http {

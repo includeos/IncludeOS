@@ -19,36 +19,53 @@
 
 namespace net {
 
-uint16_t checksum(uint32_t sum, const void* data, size_t length) noexcept
+uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
 {
   const char* buffer = (const char*) data;
-  
+  int64_t sum = tsum;
+  // unrolled 32 bytes at once
+  while (length >= 32)
+  {
+    auto* v = (uint32_t*) buffer;
+    sum += v[0];
+    sum += v[1];
+    sum += v[2];
+    sum += v[3];
+    sum += v[4];
+    sum += v[5];
+    sum += v[6];
+    sum += v[7];
+    length -= 32; buffer += 32;
+  }
   while (length >= 4)
   {
     auto v = *(uint32_t*) buffer;
     sum += v;
-    if (sum < v) sum++;
     length -= 4; buffer += 4;
   }
   if (length & 2)
   {
     auto v = *(uint16_t*) buffer;
     sum += v;
-    if (sum < v) sum++;
     buffer += 2;
   }
   if (length & 1)
   {
     auto v = *(uint8_t*) buffer;
     sum += v;
-    if (sum < v) sum++;
   }
-  // Fold to 16-bit
-  uint16_t a = sum & 0xffff;
-  uint16_t b = sum >> 16;
-  a += b;
-  if (a < b) a++;
-  return ~a;
+  // fold to 32-bit
+  uint32_t a32 = sum & 0xffffffff;
+  uint32_t b32 = sum >> 32;
+  a32 += b32;
+  if (a32 < b32) a32++;
+  // fold again to 16-bit
+  uint16_t a16 = a32 & 0xffff;
+  uint16_t b16 = a32 >> 16;
+  a16 += b16;
+  if (a16 < b16) a16++;
+  // return 2s complement
+  return ~a16;
 }
 
 } //< namespace net

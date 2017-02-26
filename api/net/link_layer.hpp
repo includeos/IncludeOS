@@ -43,7 +43,7 @@ private:
 
 template <class Protocol>
 Link_layer<Protocol>::Link_layer(Protocol&& protocol, uint32_t bufstore_packets, uint16_t bufsz)
-  : hw::Nic(bufstore_packets, bufsz + Protocol::header_size()),
+  : hw::Nic(bufstore_packets, bufsz),
     link_{std::forward<Protocol>(protocol)}
 {
 }

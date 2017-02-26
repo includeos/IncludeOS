@@ -84,6 +84,9 @@ void Write_queue::acknowledge(size_t bytes)
 
 void Write_queue::reset()
 {
+  if(offset_ > 0 and on_write_ != nullptr)
+    on_write_(offset_);
+
   q.clear();
   current_ = 0;
   debug("<WriteQueue::reset> Reset\n");

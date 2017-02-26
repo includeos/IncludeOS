@@ -155,7 +155,7 @@ public:
   /// an empty string otherwise
   ///
   template<typename = void>
-  std::experimental::string_view query_value(const std::experimental::string_view name) noexcept;
+  util::sview query_value(util::csview name) noexcept;
 
   ///
   /// Get the value associated with the name
@@ -168,7 +168,7 @@ public:
   /// an empty string otherwise
   ///
   template<typename = void>
-  std::experimental::string_view post_value(const std::experimental::string_view name) const noexcept;
+  util::sview post_value(util::csview name) const noexcept;
 
   ///
   /// Reset the request message as if it was now
@@ -226,20 +226,20 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 template<typename>
-inline std::experimental::string_view Request::query_value(const std::experimental::string_view name) noexcept {
+inline util::sview Request::query_value(util::csview name) noexcept {
   return uri_.query(name.to_string());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 template<typename>
-inline std::experimental::string_view Request::post_value(const std::experimental::string_view name) const noexcept {
+inline util::sview Request::post_value(util::csview name) const noexcept {
   if ((method() not_eq POST) or name.empty() or body().empty()) {
     return {};
   }
   //---------------------------------
   const auto target = body().find(name);
   //---------------------------------
-  if (target == std::experimental::string_view::npos) return {};
+  if (target == util::sview::npos) return {};
   //---------------------------------
   auto focal_point = body().substr(target);
   //---------------------------------
@@ -247,7 +247,7 @@ inline std::experimental::string_view Request::post_value(const std::experimenta
   //---------------------------------
   const auto lock_and_load = focal_point.find('=');
   //---------------------------------
-  if (lock_and_load == std::experimental::string_view::npos) return {};
+  if (lock_and_load == util::sview::npos) return {};
   //---------------------------------
   return focal_point.substr(lock_and_load + 1);
 }

@@ -205,6 +205,8 @@ struct msix_t;
     uint8_t get_msix_vectors();
     // setup one msix vector directed to @cpu on @irq
     void setup_msix_vector(uint8_t cpu, uint8_t irq);
+    // redirect MSI-X vector to another CPU
+    void rebalance_msix_vector(uint16_t index, uint8_t cpu, uint8_t irq);
     // true if msix is enabled
     bool has_msix() const noexcept {
       return this->msix != nullptr;
