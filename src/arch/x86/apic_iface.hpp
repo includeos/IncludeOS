@@ -23,8 +23,6 @@ namespace x86 {
   
   class IApic {
   public:
-    virtual ~IApic() = default;
-    
     virtual uint32_t read (uint32_t reg) noexcept = 0;
     virtual void     write(uint32_t reg, uint32_t value) noexcept = 0;
 
