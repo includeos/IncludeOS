@@ -94,7 +94,10 @@ static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& 
   for (size_t i = 0; i < symtab.entries; i++)
   {
     auto& cursym = symtab.base[i];
-    if (ELF32_ST_TYPE(cursym.st_info) == STT_FUNC) {
+    auto type = ELF32_ST_TYPE(cursym.st_info);
+    // we want both functions and untyped, because some 
+    // C functions are NOTYPE
+    if (type == STT_FUNC || type == STT_NOTYPE) {
       symloc[symidx++] = cursym;
     }
   }

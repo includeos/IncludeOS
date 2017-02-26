@@ -15,7 +15,7 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 USE32
-global __load_gdt
+global __load_gdt:function
 
 __load_gdt:
     mov  eax, [esp+4]
