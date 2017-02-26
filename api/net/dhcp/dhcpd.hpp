@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,37 +42,37 @@ namespace dhcp {
 
     // Getters
 
-    IP4::addr server_id() const
+    IP4::addr server_id() const noexcept
     { return server_id_; }
 
-    IP4::addr netmask() const
+    IP4::addr netmask() const noexcept
     { return netmask_; }
 
-    IP4::addr router() const
+    IP4::addr router() const noexcept
     { return router_; }
 
-    IP4::addr dns() const
+    IP4::addr dns() const noexcept
     { return dns_; }
 
-    uint32_t lease() const
+    uint32_t lease() const noexcept
     { return lease_; }
 
-    uint32_t max_lease() const
+    uint32_t max_lease() const noexcept
     { return max_lease_; }
 
-    uint8_t pending() const
+    uint8_t pending() const noexcept
     { return pending_; }
 
-    IP4::addr pool_start() const
+    IP4::addr pool_start() const noexcept
     { return pool_start_; }
 
-    IP4::addr pool_end() const
+    IP4::addr pool_end() const noexcept
     { return pool_end_; }
 
-    const std::map<IP4::addr, Status>& pool() const
+    const std::map<IP4::addr, Status>& pool() const noexcept
     { return pool_; }
 
-    const std::vector<Record>& records() const
+    const std::vector<Record>& records() const noexcept
     { return records_; }
 
     // Setters
@@ -101,11 +101,11 @@ namespace dhcp {
     void add_record(const Record& record)
     { records_.push_back(record); }
 
-    bool record_exists(const Record::byte_seq& client_id) const;
+    bool record_exists(const Record::byte_seq& client_id) const noexcept;
 
-    int get_record_idx(const Record::byte_seq& client_id) const;
+    int get_record_idx(const Record::byte_seq& client_id) const noexcept;
 
-    int get_record_idx_from_ip(IP4::addr ip) const;
+    int get_record_idx_from_ip(IP4::addr ip) const noexcept;
 
     IP4::addr broadcast_address() const noexcept
     { return server_id_ | ( ~ netmask_); }

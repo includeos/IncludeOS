@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,19 +43,19 @@ namespace dhcp {
 
     // Getters
 
-    const byte_seq& client_id() const
+    const byte_seq& client_id() const noexcept
     { return client_id_; }
 
-    const IP4::addr& ip() const
+    const IP4::addr& ip() const noexcept
     { return ip_; }
 
-    const Status& status() const
+    const Status& status() const noexcept
     { return status_; }
 
-    uint32_t lease_start() const
+    uint32_t lease_start() const noexcept
     { return lease_start_; }
 
-    uint32_t lease_duration() const
+    uint32_t lease_duration() const noexcept
     { return lease_duration_; }
 
     // Setters
@@ -63,7 +63,7 @@ namespace dhcp {
     void set_client_id(const byte_seq& client_id)
     { client_id_ = client_id; }
 
-    void set_ip(const IP4::addr ip)
+    void set_ip(IP4::addr ip)
     { ip_ = ip; }
 
     void set_status(Status status)

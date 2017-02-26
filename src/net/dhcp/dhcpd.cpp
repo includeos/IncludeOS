@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,7 +42,7 @@ DHCPD::DHCPD(UDP& udp, IP4::addr pool_start, IP4::addr pool_end,
   listen();
 }
 
-bool DHCPD::record_exists(const Record::byte_seq& client_id) const {
+bool DHCPD::record_exists(const Record::byte_seq& client_id) const noexcept {
   for (auto& rec : records_)
     if (rec.client_id() == client_id)
       return true;
@@ -50,7 +50,7 @@ bool DHCPD::record_exists(const Record::byte_seq& client_id) const {
   return false;
 }
 
-int DHCPD::get_record_idx(const Record::byte_seq& client_id) const {
+int DHCPD::get_record_idx(const Record::byte_seq& client_id) const noexcept {
   for (size_t i = 0; i < records_.size(); i++)
     if (records_.at(i).client_id() == client_id)
       return i;
@@ -58,7 +58,7 @@ int DHCPD::get_record_idx(const Record::byte_seq& client_id) const {
   return -1;
 }
 
-int DHCPD::get_record_idx_from_ip(IP4::addr ip) const {
+int DHCPD::get_record_idx_from_ip(IP4::addr ip) const noexcept {
   for (size_t i = 0; i < records_.size(); i++)
     if (records_.at(i).ip() == ip)
       return i;
