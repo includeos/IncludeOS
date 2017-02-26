@@ -49,11 +49,14 @@ public:
   typedef delegate<void(duration_t)> start_func_t;
   typedef delegate<void()> stop_func_t;
   static void init(const start_func_t&, const stop_func_t&);
-  /// signal from the underlying hardware that it is calibrated and ready to go
-  static void ready();
+
+  /// returns true when timers are enabled (globally)
+  static bool is_ready();
 
   /// handler that processes timer interrupts
   static void timers_handler();
+  /// signal from the underlying hardware that it is calibrated and ready to go
+  static void ready();
 };
 
 

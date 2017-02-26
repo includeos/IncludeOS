@@ -101,6 +101,14 @@ public:
   }
 
   /**
+   *  Returns true when the OS has passed the boot sequence, and
+   *  is at least processing plugins and about to call Service::start
+   */
+  static bool is_booted() {
+    return boot_sequence_passed_;
+  }
+
+  /**
    * Sometimes the OS just has a bad day and crashes
    * The on_panic handler will be called directly after a panic,
    * or any condition which will deliberately cause the OS to become
@@ -210,8 +218,8 @@ private:
 
   static constexpr int PAGE_SHIFT = 12;
 
-  /** Indicate if the OS is running. */
   static bool power_;
+  static bool boot_sequence_passed_;
 
   static MHz cpu_mhz_;
 
