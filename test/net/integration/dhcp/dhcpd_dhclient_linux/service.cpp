@@ -18,6 +18,7 @@
 #include <service>
 #include <net/inet4>
 #include <net/dhcp/dhcpd.hpp>
+#include <list>
 
 std::unique_ptr<net::dhcp::DHCPD> server;
 
@@ -36,5 +37,7 @@ void Service::start(const std::string&)
 
   IP4::addr pool_start{10,200,100,20};
   IP4::addr pool_end{10,200,100,30};
-  server = std::make_unique<DHCPD>(inet.udp(), pool_start, pool_end, 120);
+  server = std::make_unique<DHCPD>(inet.udp(), pool_start, pool_end);
+
+  INFO("<Service>", "Service started");
 }
