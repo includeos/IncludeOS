@@ -24,8 +24,8 @@ namespace dhcp {
 
   enum class Status {
     AVAILABLE,
-    OFFERED,    // IP has been offered to another client and is awaiting a DHCPREQUEST for updated status
-    RELEASED,   // Previously allocated IP to a client (reuse)
+    OFFERED,      // IP has been offered to another client and is awaiting a DHCPREQUEST for updated status
+    //RELEASED,   // Previously allocated IP to a client (reuse)
     IN_USE
   };
 
@@ -34,7 +34,6 @@ namespace dhcp {
   class Record {
 
   public:
-    // TODO Remove or use?
     using byte_seq = std::vector<uint8_t>;
 
     Record() {}
@@ -70,8 +69,6 @@ namespace dhcp {
     void set_status(Status status)
     { status_ = status; }
 
-    /*void set_lease_start(uint32_t lease_start)
-    { lease_start_ = lease_start; }*/
     void set_lease_start(int64_t lease_start)
     { lease_start_ = lease_start; }
 
@@ -81,14 +78,10 @@ namespace dhcp {
   private:
     byte_seq client_id_;
     IP4::addr ip_;
-
-    // Because of reuse (client gets its previous IP) ?
     Status status_;
 
-    //std::vector<Option> options_;
-
-
-    // TODO Save client's config parameters as well?
+    // TODO Save client's config parameters as well - if using Status::RELEASED
+    // std::vector<Option> options_;
 
     // TODO
     // T1 and T2
@@ -102,7 +95,6 @@ namespace dhcp {
     // A client MAY choose to renew or extend its lease prior to T1. The server MAY choose to extend the client's lease according to
     // policy set by the network administrator. The server SHOULD return T1 and T2, and their values SHOULD be adjusted from their
     // original values to take account of the time remaining on the lease
-    //uint32_t lease_start_;
     int64_t lease_start_;           // For now: RTC::now()
     uint32_t lease_duration_;
   };

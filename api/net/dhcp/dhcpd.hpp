@@ -153,9 +153,6 @@ namespace dhcp {
     IP4::addr inc_addr(IP4::addr ip) const
     { return IP4::addr{htonl(ntohl(ip.whole) + 1)}; }
     bool on_correct_network(IP4::addr giaddr, const dhcp_option_t* opts) const;
-
-    // Remove
-    void print(const dhcp_packet_t* msg, const dhcp_option_t* opts);
   };
 
 } // < namespace dhcp
