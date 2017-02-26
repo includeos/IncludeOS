@@ -71,7 +71,7 @@ namespace x86 {
       // verify that x2APIC is online
       uint64_t verify = CPU::read_msr(IA32_APIC_BASE_MSR);
       assert(verify & MSR_ENABLE_X2APIC);
-      INFO2("x2APIC id: %x  ver: %x\n", get_id(), version());
+      INFO2("APIC id: %x  ver: %x\n", get_id(), version());
     }
 
     uint32_t read(uint32_t reg) noexcept override

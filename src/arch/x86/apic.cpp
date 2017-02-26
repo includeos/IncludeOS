@@ -43,7 +43,7 @@ void kvm_pv_eoi_init();
 
 namespace x86
 {
-  static IApic* current_apic;
+  static IApic* current_apic = nullptr;
   IApic& APIC::get() noexcept {
     return *current_apic;
   }
@@ -59,10 +59,10 @@ namespace x86
         && "If this fails, the machine is insane");
 
     if (CPUID::has_feature(CPUID::Feature::X2APIC)) {
-        current_apic = new x2apic();
+        current_apic = &x2apic::get();
         current_eoi_mechanism = x2apic_send_eoi;
     } else {
-        current_apic = new xapic();
+        current_apic = &xapic::get();
         current_eoi_mechanism = lapic_send_eoi;
     }
 

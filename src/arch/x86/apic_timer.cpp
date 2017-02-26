@@ -66,7 +66,7 @@ namespace x86
 
     if (ticks_per_micro != 0) {
       // make sure timers are delay-initalized
-      auto irq = IRQ_manager::get().get_free_irq();
+      const auto irq = LAPIC_IRQ_TIMER;
       IRQ_manager::get().subscribe(irq, start_timers);
       // soft-trigger IRQ immediately
       IRQ_manager::get().register_irq(irq);

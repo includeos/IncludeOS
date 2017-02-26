@@ -87,6 +87,10 @@ void Timers::init(const start_func_t& start, const stop_func_t& stop)
   system.periodic_stopped = &Statman::get().create(Stat::UINT32, CPU + ".timers.periodic_stopped").get_uint32();
 }
 
+bool Timers::is_ready()
+{
+  return signal_ready;
+}
 void Timers::ready()
 {
   bool ready = signal_ready;

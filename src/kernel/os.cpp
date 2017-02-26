@@ -52,6 +52,7 @@ extern uintptr_t _ELF_END_;
 extern uintptr_t _MAX_MEM_MIB_;
 
 bool  OS::power_   = true;
+bool  OS::boot_sequence_passed_ = false;
 MHz   OS::cpu_mhz_ {-1};
 uintptr_t OS::low_memory_size_  {0};
 uintptr_t OS::high_memory_size_ {0};
@@ -181,9 +182,12 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
-  PROFILE("Plugins init");
-  // Trying custom initialization functions
+  // Custom initialization functions
   MYINFO("Initializing plugins");
+  // the boot sequence is over when we get to plugins/Service::start
+  OS::boot_sequence_passed_ = true;
+
+  PROFILE("Plugins init");
   for (auto plugin : plugins_) {
     INFO2("* Initializing %s", plugin.name_);
     try{
