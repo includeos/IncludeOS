@@ -95,7 +95,7 @@ void DHCPD::update_pool(IP4::addr ip, Status new_status) {
 
 void DHCPD::listen() {
   socket_.on_read([&] (IP4::addr, UDP::port_t port,
-    const char* data, size_t len) {
+    const char* data, size_t) {
 
     if (port == DHCP_CLIENT_PORT) {
       // Message
