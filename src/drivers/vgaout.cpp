@@ -17,9 +17,8 @@
 
 // use VGA as default output instead of serial
 #include <vga>
-static ConsoleVGA vga;
 
 void default_stdout_handlers()
 {
-  OS::add_stdout(vga.get_print_handler());
+  OS::add_stdout(TextmodeVGA::get().get_print_handler());
 }

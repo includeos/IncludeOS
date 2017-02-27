@@ -26,10 +26,10 @@ make_vgaentry(const char c, const uint8_t color) noexcept {
   uint16_t color16 = color;
   return c16 | color16 << 8;
 }
-const uint16_t ConsoleVGA::DEFAULT_ENTRY = 
+const uint16_t TextmodeVGA::DEFAULT_ENTRY = 
     make_vgaentry(32, make_color(COLOR_LIGHT_GREY, COLOR_BLACK));
 
-ConsoleVGA::ConsoleVGA() noexcept:
+TextmodeVGA::TextmodeVGA() noexcept:
 row{0}, column{0}
 {
   this->color  = make_color(COLOR_WHITE, COLOR_BLACK);
@@ -37,31 +37,31 @@ row{0}, column{0}
   clear();
 }
 
-uint16_t ConsoleVGA::get(uint8_t x, uint8_t y)
+uint16_t TextmodeVGA::get(uint8_t x, uint8_t y)
 {
   const size_t index = y * VGA_WIDTH + x;
   return this->buffer[index];
 }
 
-void ConsoleVGA::put(const char c, uint8_t color, uint8_t x, uint8_t y) noexcept {
+void TextmodeVGA::put(const char c, uint8_t color, uint8_t x, uint8_t y) noexcept {
   putent(make_vgaentry(c, color), x, y);
 }
 
-void ConsoleVGA::put(const char c, uint8_t x, uint8_t y) noexcept {
+void TextmodeVGA::put(const char c, uint8_t x, uint8_t y) noexcept {
   putent(make_vgaentry(c, this->color), x, y);
 }
 
-void ConsoleVGA::set_cursor(uint8_t x, uint8_t y) noexcept {
+void TextmodeVGA::set_cursor(uint8_t x, uint8_t y) noexcept {
   this->column = x;
   this->row = y; 
 }
 
-inline void ConsoleVGA::putent(uint16_t entry, uint8_t x, uint8_t y) noexcept {
+inline void TextmodeVGA::putent(uint16_t entry, uint8_t x, uint8_t y) noexcept {
   const size_t index = y * VGA_WIDTH + x;
   this->buffer[index] = entry;
 }
 
-void ConsoleVGA::increment(const int step) noexcept {
+void TextmodeVGA::increment(const int step) noexcept {
   this->column += step;
   if (this->column >= VGA_WIDTH) {
     newline();
@@ -69,7 +69,7 @@ void ConsoleVGA::increment(const int step) noexcept {
 }
 
 
-void ConsoleVGA::newline() noexcept {
+void TextmodeVGA::newline() noexcept {
   
   // Reset back to left side
   this->column = 0;
@@ -96,14 +96,14 @@ void ConsoleVGA::newline() noexcept {
   }
 }
 
-void ConsoleVGA::clear() noexcept {
+void TextmodeVGA::clear() noexcept {
   this->row    = 0;
   this->column = 0;
   
   streamset16(buffer, DEFAULT_ENTRY, VGA_WIDTH * VGA_HEIGHT * 2);
 }
 
-void ConsoleVGA::write(const char c) noexcept {
+void TextmodeVGA::write(const char c) noexcept {
   static const char CARRIAGE_RETURN = '\r';
   static const char LINE_FEED = '\n';
   
@@ -117,7 +117,7 @@ void ConsoleVGA::write(const char c) noexcept {
   }
 }
 
-void ConsoleVGA::write(const char* data, const size_t len) noexcept {
+void TextmodeVGA::write(const char* data, const size_t len) noexcept {
   for (size_t i = 0; i < len; ++i)
     write(data[i]);
 }
