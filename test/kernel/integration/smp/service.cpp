@@ -21,6 +21,8 @@
 #include <timers>
 #include <kernel/irq_manager.hpp>
 
+static int irq_times = 0;
+
 struct alignas(SMP_ALIGN) per_cpu_test
 {
   int value;
@@ -28,27 +30,9 @@ struct alignas(SMP_ALIGN) per_cpu_test
 };
 static std::array<per_cpu_test, SMP_MAX_CORES> testing;
 
-static int times = 0;
-
-static void random_irq_handler()
+#include <malloc.h>
+void smp_advanced_test()
 {
-  SMP::global_lock();
-  times++;
-  bool done = (times == SMP::cpu_count()-1);
-  SMP::global_unlock();
-
-  if (done) {
-    SMP::global_lock();
-    printf("Random IRQ handler called %d times\n", times);
-    SMP::global_unlock();
-    //OS::shutdown();
-  }
-}
-
-void Service::start()
-{
-  OS::add_stdout_default_serial();
-
   for (size_t i = 0; i < testing.size(); i++) {
     testing[i].value = i;
   }
@@ -74,20 +58,22 @@ void Service::start()
       SMP::global_lock();
       printf("All jobs are done now, compl = %d\n", completed);
       printf("bits = %#x\n", job);
-      assert(job = 0xffffffff && "All 32 bits must be set");
       SMP::global_unlock();
+      assert(job = 0xffffffff && "All 32 bits must be set");
     }
+    volatile void* test = calloc(4, 128u);
+    assert(test);
+    asm volatile("nop" : : : "memory");
+    test = realloc((void*) test, 128u);
+    assert(test);
+    asm volatile("nop" : : : "memory");
+    free((void*) test);
   });
 
   // have one CPU enter an event loop
   for (int i = 1; i < SMP::cpu_count(); i++)
   SMP::add_task(
   [] {
-    const uint8_t IRQ = 110;
-    IRQ_manager::get().subscribe(IRQ, random_irq_handler);
-    // trigger interrupt
-    IRQ_manager::get().register_irq(IRQ);
-    
     Timers::oneshot(std::chrono::seconds(1),
     [] (int) {
       static int times = 0;
@@ -95,7 +81,8 @@ void Service::start()
       printf("This is timer from a CPU core\n");
       times++;
       
-      if (times == SMP::cpu_count()-1) {
+      if (times     == SMP::cpu_count()-1
+       && irq_times == SMP::cpu_count()-1) {
         printf("SUCCESS!\n");
       }
       SMP::global_unlock();
@@ -103,4 +90,32 @@ void Service::start()
   });
   // start working on tasks
   SMP::signal();
+}
+
+static void random_irq_handler()
+{
+  SMP::global_lock();
+  irq_times++;
+  bool done = (irq_times == SMP::cpu_count()-1);
+  SMP::global_unlock();
+
+  if (done) {
+    SMP::global_lock();
+    printf("Random IRQ handler called %d times\n", irq_times);
+    SMP::global_unlock();
+  }
+}
+
+static const uint8_t IRQ = 110;
+void SMP::init_task()
+{
+  IRQ_manager::get().subscribe(IRQ, random_irq_handler);
+}
+
+void Service::start()
+{
+  // trigger interrupt
+  SMP::broadcast(IRQ_BASE + IRQ);
+  // the rest
+  smp_advanced_test();
 }

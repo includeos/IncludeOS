@@ -62,15 +62,13 @@ void revenant_main(int cpu)
 {
   // enable Local APIC
   x86::APIC::get().smp_enable();
-
+  // setup GDT & per-cpu feature
   initialize_gdt_for_cpu(cpu);
-
-  // we can use shared memory here because the
-  // bootstrap CPU is waiting on revenants to start
-  // we do, however, need to synchronize in between CPUs
-  lock(smp.glock);
+  // newlibs printf just does way too much static stuff to work in SMP
+  // it can work if REENTs are initalized per-cpu ... and other things
+  ::SMP::global_lock();
   INFO2("AP %d started at %#x", get_cpu_id(), get_cpu_esp());
-  unlock(smp.glock);
+  ::SMP::global_unlock();
 
   IRQ_manager::init(cpu);
   // enable interrupts
@@ -80,6 +78,9 @@ void revenant_main(int cpu)
 
   IRQ_manager::get().subscribe(0, revenant_task_handler);
   IRQ_manager::get().subscribe(1, APIC_Timer::start_timers);
+
+  // allow programmers to do stuff on each core at init
+  ::SMP::init_task();
 
   // signal that the revenant has started
   smp.boot_barrier.inc();

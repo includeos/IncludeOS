@@ -129,6 +129,12 @@ int ::SMP::cpu_count() noexcept
   return x86::ACPI::get_cpus().size();
 }
 
+__attribute__((weak))
+void ::SMP::init_task()
+{
+  /* do nothing */
+}
+
 void ::SMP::add_task(smp_task_func task, smp_done_func done)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
@@ -151,8 +157,13 @@ void ::SMP::add_task(smp_task_func task)
 }
 void ::SMP::signal()
 {
-  // broadcast that we have work to do
+  // broadcast that there is work to do
   x86::APIC::get().bcast_ipi(0x20);
+}
+
+void ::SMP::broadcast(uint8_t interrupt)
+{
+  x86::APIC::get().bcast_ipi(interrupt);
 }
 
 static spinlock_t __global_lock = 0;
@@ -167,15 +178,6 @@ void ::SMP::global_unlock() noexcept
   unlock(__global_lock);
 }
 
-void ::SMP::memory_lock() noexcept
-{
-  lock(__memory_lock);
-}
-void ::SMP::memory_unlock() noexcept
-{
-  unlock(__memory_lock);
-}
-
 /// SMP variants of malloc and free ///
 #ifndef INCLUDEOS_SINGLE_THREADED
 #include <malloc.h>
@@ -185,9 +187,23 @@ void* malloc(size_t size)
     return _malloc_r(_REENT, size);
   }
   lock(__memory_lock);
-  void* value = _malloc_r(_REENT, size);
+  void* addr = _malloc_r(_REENT, size);
   unlock(__memory_lock);
-  return value;
+  return addr;
+}
+void* calloc(size_t num, size_t size)
+{
+  lock(__memory_lock);
+  void* addr = _calloc_r(_REENT, num, size);
+  unlock(__memory_lock);
+  return addr;
+}
+void* realloc(void *ptr, size_t new_size)
+{
+  lock(__memory_lock);
+  void* addr = _realloc_r (_REENT, ptr, new_size);
+  unlock(__memory_lock);
+  return addr;
 }
 void free(void* ptr)
 {
