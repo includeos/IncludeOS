@@ -37,7 +37,6 @@ struct smp_stuff
     SMP::done_func done;
   };
   
-  spinlock_t glock;
   minimal_barrier_t boot_barrier;
   
   spinlock_t tlock;
