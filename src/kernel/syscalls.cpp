@@ -42,8 +42,6 @@
 // We can't use the usual "info", as printf isn't available after call to exit
 #define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
 
-#define SHUTDOWN_ON_PANIC 1
-
 char*   __env[1] {nullptr};
 char**  environ {__env};
 extern "C" {
@@ -152,21 +150,13 @@ char*  get_crash_context_buffer()
   return _crash_context_buffer;
 }
 
-static void default_panic_handler()
-{
-  // shutdown the machine
-  if (SHUTDOWN_ON_PANIC)
-      __arch_poweroff();
-}
-__attribute__((weak))
-OS::on_panic_func panic_handler = default_panic_handler;
-
 struct alignas(SMP_ALIGN) panic_struct
 {
   bool reenter = false;
 };
 static std::array<panic_struct, SMP_MAX_CORES> panic_stuff;
 
+OS::on_panic_func panic_handler = nullptr;
 /**
  * panic:
  * Display reason for kernel panic
@@ -204,10 +194,11 @@ void panic(const char* why)
          heap_total / 1024,
          total * 100.0);
   print_backtrace();
+  fflush(stderr);
   SMP::global_unlock();
 
-  // call on_panic handler
-  panic_handler();
+  // call custom on panic handler
+  if (panic_handler) panic_handler();
 
   if (SMP::cpu_id() == 1) {
     SMP::global_lock();
