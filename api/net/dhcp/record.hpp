@@ -29,8 +29,7 @@ namespace dhcp {
     IN_USE
   };
 
-  // Temp - Instead of database (persistent storage):
-
+  // Temp - Instead of database (persistent storage)
   class Record {
 
   public:
@@ -79,11 +78,13 @@ namespace dhcp {
     byte_seq client_id_;
     IP4::addr ip_;
     Status status_;
-
-    // TODO Save client's config parameters as well - if using Status::RELEASED
-    // std::vector<Option> options_;
+    int64_t lease_start_;           // For now: RTC::now()
+    uint32_t lease_duration_;
 
     // TODO
+    // Save client's config parameters as well - if using Status::RELEASED
+    // std::vector<Option> options_;
+
     // T1 and T2
     // Client T1: The time at which the client enters the RENEWING state and attempts to contact the server that originally issued the
     // client's network address.
@@ -95,8 +96,6 @@ namespace dhcp {
     // A client MAY choose to renew or extend its lease prior to T1. The server MAY choose to extend the client's lease according to
     // policy set by the network administrator. The server SHOULD return T1 and T2, and their values SHOULD be adjusted from their
     // original values to take account of the time remaining on the lease
-    int64_t lease_start_;           // For now: RTC::now()
-    uint32_t lease_duration_;
   };
 
 } // < namespace dhcp

@@ -21,8 +21,6 @@ num_messages = 0
 ping_passed = False
 ping_count = 3
 
-# create_bridge.sh has to be run prior
-
 def check_dhclient_output(output):
   global num_messages
 
@@ -65,7 +63,6 @@ def run_dhclient(trigger_line):
 
   print color.INFO("<Test.py>"), "Running dhclient"
 
-  #"--no-pid" ? (Protect against registering lease in /var/lib/dhcp/dhclient.leases?)
   try:
     dhclient = subprocess.Popen(
         ["dhclient", "bridge43", "-4", "-n", "-v"],
@@ -89,13 +86,6 @@ def run_dhclient(trigger_line):
 
   if ping_passed and num_messages == 4:
     vm.exit(0,"<Test.py> DHCP process and ping test completed successfully. Process returned 0 exit status")
-
-  # If run release, bridge43 is taken down and running the create_bridge.sh script again doesn't fix it
-  # release_output = subprocess.check_output(["dhclient", "bridge43", "-r", "-v"])
-  # print "Release output: ", release_output
-
-  # Kill dhclient - also removes bridge
-  # kill_output = subprocess.check_output(["dhclient", "bridge43", "-x", "-v"])
 
 # Add custom event-handler
 vm.on_output("Service started", run_dhclient)

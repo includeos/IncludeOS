@@ -21,7 +21,6 @@
 
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
-#include <os> // OS::micros_since_boot()
 #include <debug>
 
 #include <random>

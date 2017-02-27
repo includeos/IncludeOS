@@ -40,6 +40,21 @@ namespace dhcp {
     DHCPD(UDP& udp, IP4::addr pool_start, IP4::addr pool_end,
       uint32_t lease = DEFAULT_LEASE, uint32_t max_lease = DEFAULT_MAX_LEASE, uint8_t pending = DEFAULT_PENDING);
 
+    void add_record(const Record& record)
+    { records_.push_back(record); }
+
+    bool record_exists(const Record::byte_seq& client_id) const noexcept;
+
+    int get_record_idx(const Record::byte_seq& client_id) const noexcept;
+
+    int get_record_idx_from_ip(IP4::addr ip) const noexcept;
+
+    IP4::addr broadcast_address() const noexcept
+    { return server_id_ | ( ~ netmask_); }
+
+    IP4::addr network_address(IP4::addr ip) const noexcept  // x.x.x.0
+    { return ip & netmask_; }
+
     // Getters
 
     IP4::addr server_id() const noexcept
@@ -98,28 +113,7 @@ namespace dhcp {
     void set_pending(uint8_t pending)
     { pending_ = pending; }
 
-    void add_record(const Record& record)
-    { records_.push_back(record); }
-
-    bool record_exists(const Record::byte_seq& client_id) const noexcept;
-
-    int get_record_idx(const Record::byte_seq& client_id) const noexcept;
-
-    int get_record_idx_from_ip(IP4::addr ip) const noexcept;
-
-    IP4::addr broadcast_address() const noexcept
-    { return server_id_ | ( ~ netmask_); }
-
-    IP4::addr network_address(IP4::addr ip) const noexcept  // x.x.x.0
-    { return ip & netmask_; }
-
   private:
-
-    /* A DHCP server can have many Scopes
-        Each with its own pool, name, subnet mask (determines the subnet for a specific IP address),
-        lease duration values, options for assignment to clients like DNS, Gateway (router IP address) +
-    */
-
     UDP::Stack& stack_;
     UDPSocket& socket_;
     IP4::addr pool_start_, pool_end_;
@@ -141,9 +135,9 @@ namespace dhcp {
     void handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void offer(const dhcp_packet_t* msg, const dhcp_option_t* opts);
-    void inform_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts);
+    void inform_ack(const dhcp_packet_t* msg);
     void request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts);
-    void nak(const dhcp_packet_t* msg/*, const dhcp_option_t* opts*/);
+    void nak(const dhcp_packet_t* msg);
 
     const dhcp_option_t* get_option(const dhcp_option_t* opts, int code) const;
     Record::byte_seq get_client_id(const uint8_t* chaddr, const dhcp_option_t* opts) const;
@@ -153,6 +147,9 @@ namespace dhcp {
     IP4::addr inc_addr(IP4::addr ip) const
     { return IP4::addr{htonl(ntohl(ip.whole) + 1)}; }
     bool on_correct_network(IP4::addr giaddr, const dhcp_option_t* opts) const;
+
+    void clear_offered_ip(IP4::addr ip);
+    void clear_offered_ips();
   };
 
 } // < namespace dhcp
