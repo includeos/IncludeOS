@@ -161,9 +161,9 @@ void ::SMP::signal()
   x86::APIC::get().bcast_ipi(0x20);
 }
 
-void ::SMP::broadcast(uint8_t interrupt)
+void ::SMP::broadcast(uint8_t irq)
 {
-  x86::APIC::get().bcast_ipi(interrupt);
+  x86::APIC::get().bcast_ipi(IRQ_BASE + irq);
 }
 
 static spinlock_t __global_lock = 0;

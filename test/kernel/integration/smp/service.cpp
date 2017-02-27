@@ -115,7 +115,7 @@ void SMP::init_task()
 void Service::start()
 {
   // trigger interrupt
-  SMP::broadcast(IRQ_BASE + IRQ);
+  SMP::broadcast(IRQ);
   // the rest
   smp_advanced_test();
 }
