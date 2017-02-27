@@ -67,6 +67,9 @@ struct LiveUpdate
   static void set_rollback_blob(buffer_len) noexcept;
   // Returns true if a backup rollback blob has been set
   static bool has_rollback_blob() noexcept;
+  // Immediately start a rollback, not saving any state other than
+  // performing a soft-reset to reduce downtime to a minimum
+  static void rollback_now();
 };
 
 ////////////////////////////////////////////////////////////////////////////////

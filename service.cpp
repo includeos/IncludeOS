@@ -304,6 +304,7 @@ void setup_liveupdate_server(T& inet)
     liu::LiveUpdate::set_rollback_blob(rollback);
     // simulate crash
     //panic(":(");
+    liu::LiveUpdate::rollback_now();
   });
   
   printf("LiveUpdate server listening on port 666\n");
