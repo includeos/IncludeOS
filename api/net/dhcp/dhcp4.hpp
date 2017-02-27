@@ -65,12 +65,13 @@ namespace net {
 
   // Possible values for flags field
   static const uint32_t BOOTP_UNICAST =   0x0000;
-  static const uint32_t BOOTP_BROADCAST = 0x8000;
+  static const uint32_t BOOTP_BROADCAST = 0x0080;
 
   // Possible values for hardware type (htype) field
   static const uint8_t HTYPE_ETHER =    1;  // Ethernet 10Mbps
   static const uint8_t HTYPE_IEEE802 =  6;  // IEEE 802.2 Token Ring
   static const uint8_t HTYPE_FDDI =     8;  // FDDI
+  static const uint8_t HTYPE_HFI =      37; // HFI
 
   /* Magic cookie validating dhcp options field (and bootp vendor
      extensions field). */

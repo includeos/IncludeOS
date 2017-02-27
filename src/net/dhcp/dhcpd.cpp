@@ -109,6 +109,25 @@ void DHCPD::listen() {
 }
 
 void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
+  if (msg->op not_eq BOOTREQUEST)
+    return;
+
+  if (msg->htype == 0 or msg->htype > HTYPE_HFI)  // http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
+    return;
+
+  if (msg->hops not_eq 0)
+    return;
+
+  if (msg->yiaddr not_eq IP4::addr{0} or msg->siaddr not_eq IP4::addr{0} or msg->giaddr not_eq IP4::addr{0})
+    return;
+
+  const auto cid = get_client_id(msg->chaddr, opts);
+  if (cid.empty() or std::all_of(cid.begin(), cid.end(), [] (int i) { return i == 0; }))
+    return;
+
+  if (msg->magic[0] not_eq 99 or msg->magic[1] not_eq 130 or msg->magic[2] not_eq 83 or msg->magic[3] not_eq 99)
+    return;
+
   int ridx;
 
   switch (opts->val[0]) {
@@ -122,8 +141,7 @@ void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
       // A client has discovered that the suggested network address is already in use.
       // The server must mark the network address as not available and should notify the network admin
       // of a possible configuration problem - TODO
-
-      ridx = get_record_idx(get_client_id(msg->chaddr, opts));
+      ridx = get_record_idx(cid);
       // Erase record if exists because client hasn't got a valid IP
       if (ridx not_eq -1)
         records_.erase(records_.begin() + ridx);
@@ -455,8 +473,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   }
   // If giaddr is zero and ciaddr is zero, and the broadcast bit (leftmost bit in flags field) is set,
   // then the server broadcasts DHCPOFFER and DHCPACK messsages to 0xffffffff
-  std::bitset<8> bits(msg->flags);
-  if (bits[7] == 1) {
+  if (msg->flags & BOOTP_BROADCAST) {
     socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, packetlen);
     return;
   }

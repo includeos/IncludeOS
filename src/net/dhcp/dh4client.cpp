@@ -92,7 +92,7 @@ namespace net
     dhcp->hops  = 0;
     dhcp->xid   = htonl(this->xid);
     dhcp->secs  = 0;
-    dhcp->flags = htons(BOOTP_BROADCAST);
+    dhcp->flags = BOOTP_BROADCAST;
     dhcp->ciaddr = IP4::ADDR_ANY;
     dhcp->yiaddr = IP4::ADDR_ANY;
     dhcp->siaddr = IP4::ADDR_ANY;
@@ -271,7 +271,7 @@ namespace net
     resp->hops  = 0;
     resp->xid   = htonl(this->xid);
     resp->secs  = 0;
-    resp->flags = htons(BOOTP_BROADCAST);
+    resp->flags = BOOTP_BROADCAST;
 
     resp->ciaddr = IP4::ADDR_ANY;
     resp->yiaddr = IP4::ADDR_ANY;
