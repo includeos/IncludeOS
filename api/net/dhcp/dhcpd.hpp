@@ -40,6 +40,10 @@ namespace dhcp {
     DHCPD(UDP& udp, IP4::addr pool_start, IP4::addr pool_end,
       uint32_t lease = DEFAULT_LEASE, uint32_t max_lease = DEFAULT_MAX_LEASE, uint8_t pending = DEFAULT_PENDING);
 
+    ~DHCPD() {
+      socket_.udp().close(socket_.local_port());
+    }
+
     void add_record(const Record& record)
     { records_.push_back(record); }
 
