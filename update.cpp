@@ -22,7 +22,7 @@ static const int ELF_MINIMUM = 164;
 static void* HOTSWAP_AREA = (void*) 0x8000;
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
-extern "C" void* __os_store_soft_reset();
+extern "C" void* __os_store_soft_reset(const void*, size_t);
 extern char _ELF_START_;
 extern char* heap_begin;
 extern char* heap_end;
@@ -61,7 +61,9 @@ inline bool validate_elf_header(const Elf32_Ehdr* hdr)
            hdr->e_ident[3] == 'F';
 }
 
-void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
+void LiveUpdate::begin(void*        location, 
+                       buffer_len   blob, 
+                       storage_func storage_callback)
 {
   // use area provided to us directly, which we will assume
   // is far enough into heap to not get overwritten by hotswap.
@@ -73,15 +75,15 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   const char* update_area  = blob.buffer;
   char* storage_area = (char*) location;
   
-  // validate not overwriting heap
-  if (storage_area < (char*) 0x100) {
+  // validate not overwriting heap, kernel area and other things
+  if (storage_area < (char*) 0x200) {
     throw std::runtime_error("The storage area is probably a null pointer");
   }
   if (storage_area >= &_ELF_START_ && storage_area < heap_begin) {
     throw std::runtime_error("The storage area is inside kernel area");
   }
-  if (heap_end >= storage_area) {
-    throw std::runtime_error("The heap is currently inside the storage area");
+  if (storage_area >= heap_begin && storage_area < heap_end) {
+    throw std::runtime_error("The storage area is inside the heap area");
   }
 
   // validate ELF header
@@ -124,12 +126,18 @@ void LiveUpdate::begin(void* location, buffer_len blob, storage_func func)
   const uintptr_t start_offset = hdr->e_entry;
   LPRINT("* _start is located at %#x\n", start_offset);
 
-  // save ourselves
-  size_t storage_len = update_store_data(storage_area, func, blob);
-  (void) storage_len;
+  // save ourselves if function passed
+  if (storage_callback)
+  {
+      auto storage_len = 
+          update_store_data(storage_area, storage_callback, blob);
+      (void) storage_len;
+  }
 
   // store soft-resetting stuff
-  void* sr_data = __os_store_soft_reset();
+  extern buffer_len get_rollback_location();
+  auto  rollback = get_rollback_location();
+  void* sr_data  = __os_store_soft_reset(rollback.buffer, rollback.length);
   //void* sr_data = nullptr;
 
   // get offsets for the new service from program header

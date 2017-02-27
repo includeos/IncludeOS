@@ -44,7 +44,7 @@ struct LiveUpdate
 
   // Start a live update process, storing all user-defined data
   // at @location, which can then be resumed by the future service after update
-  static void begin(void* location, buffer_len blob, storage_func);
+  static void begin(void* location, buffer_len blob, storage_func = nullptr);
   
   // Only store user data, as if there was a live update process
   // Throws exception if process or sanity checks fail
@@ -63,12 +63,21 @@ struct LiveUpdate
   // to be sure that only failure can return false, use is_resumable first
   static bool resume(void* location, resume_func default_handler);
   
-  // NOTE:
-  // The call to resume can fail even if is_resumable validates everything correctly.
-  // this is because when the user restores all the saved data, it could grow into
-  // the storage area used by liveupdate, if enough data is stored, and corrupt it.
-  // All failures are of type std::runtime_error.
+  // Set location of known good blob to rollback to if something happens
+  static void set_rollback_blob(buffer_len) noexcept;
+  // Returns true if a backup rollback blob has been set
+  static bool has_rollback_blob() noexcept;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+
+// IMPORTANT:
+// Calls to resume can fail even if is_resumable validates everything correctly.
+// this is because when the user restores all the saved data, it could grow into
+// the storage area used by liveupdate, if enough data is stored, and corrupt it.
+// All failures are of type std::runtime_error. Make sure to give VM enough RAM!
+
+////////////////////////////////////////////////////////////////////////////////
 
 /**
  * The Storage object is passed to the user from the handler given to the

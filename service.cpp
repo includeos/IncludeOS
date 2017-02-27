@@ -27,7 +27,7 @@ void show_heap_stats()
          total * 100.0);
 }
 
-static void* LIVEUPD_LOCATION   = (void*) 0x1100000; // at 20mb
+static void* LIVEUPD_LOCATION   = (void*) 0x1400000; // at 20mb
 static const uint16_t TERM_PORT = 6667;
 
 typedef net::tcp::Connection_ptr Connection_ptr;
@@ -84,6 +84,7 @@ void setup_terminal(T& inet)
 template <typename T>
 void setup_liveupdate_server(T& inet);
 
+extern "C" void panic(const char*);
 void Service::start()
 {
   //OS::add_stdout_default_serial();
@@ -125,6 +126,9 @@ void Service::ready()
   setup_terminal(inet);
   // show profile stats for boot
   //printf("%s\n", ScopedProfiler::get_statistics().c_str());
+  //printf("This is the known good version :)\n");
+  //panic("Oh noes! :(\n");
+  //panic("Oh noes! :(\n");
 }
 
 static std::vector<double> timestamps;
@@ -266,49 +270,41 @@ void on_update_area(liu::Restore& thing)
   });
 }
 
-#include <stdexcept>
+static liu::buffer_len rollback;
+#include "server.hpp"
+
 template <typename T>
 void setup_liveupdate_server(T& inet)
 {
   // listen for live updates
-  auto& server = inet.tcp().bind(666);
-  server.on_connect(
-  [] (auto conn)
+  server(inet, 666,
+  [] (liu::buffer_len& buffer)
   {
-    printf("Receiving liveupdate blob\n");
-    show_heap_stats();
-
-    static const int UPDATE_MAX = 1024*1024 * 2; // 2mb files supported
-    char* update_blob = new char[UPDATE_MAX];
-    int*  update_size = new int(0);
-
-    // retrieve binary
-    conn->on_read(9000,
-    [conn, update_blob, update_size] (net::tcp::buffer_t buf, size_t n)
+    printf("* Live updating from %p (len=%u)\n", buffer.buffer, buffer.length);
+    try
     {
-      if (*update_size + n > UPDATE_MAX) return;
-      memcpy(update_blob + *update_size, buf.get(), n);
-      *update_size += (int) n;
-
-    }).on_close(
-    [update_blob, update_size] {
-      // we received a binary:
-      float frac = *update_size / (float) UPDATE_MAX * 100.f;
-      printf("* New update size: %u b  (%.2f%%) stored at %p\n", *update_size, frac, update_blob);
-      try
-      {
-        // run live update process
-        liu::LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_stuff);
-      }
-      catch (std::exception& err)
-      {
-        printf("Live Update location: %p\n", LIVEUPD_LOCATION);
-        show_heap_stats();
-        printf("Live update failed:\n%s\n", err.what());
-      }
-      
-      delete[] update_blob;
-    });
+      // run live update process
+      liu::LiveUpdate::begin(LIVEUPD_LOCATION, buffer, save_stuff);
+    }
+    catch (std::exception& err)
+    {
+      printf("Live Update location: %p\n", LIVEUPD_LOCATION);
+      show_heap_stats();
+      printf("Live update failed:\n%s\n", err.what());
+    }
   });
+  // listen for rollback blobs
+  server(inet, 665,
+  [] (liu::buffer_len& buffer)
+  {
+    char* location = (char*) LIVEUPD_LOCATION - buffer.length;
+    memcpy(location, buffer.buffer, buffer.length);
+    rollback = {location, buffer.length};
+    printf("* Rollback location: %p (len=%u)\n", rollback.buffer, rollback.length);
+    liu::LiveUpdate::set_rollback_blob(rollback);
+    // simulate crash
+    //panic(":(");
+  });
+  
   printf("LiveUpdate server listening on port 666\n");
 }

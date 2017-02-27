@@ -27,7 +27,7 @@ include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
 
 # LiveUpdate static library
 add_library(liveupdate STATIC
-    storage.cpp update.cpp resume.cpp hotswap.cpp serialize_tcp.cpp
+    storage.cpp update.cpp resume.cpp rollback.cpp hotswap.cpp serialize_tcp.cpp
   )
 target_link_libraries(service liveupdate)
 install(TARGETS liveupdate DESTINATION lib)
