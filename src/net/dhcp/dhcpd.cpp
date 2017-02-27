@@ -95,7 +95,7 @@ void DHCPD::update_pool(IP4::addr ip, Status new_status) {
 
 void DHCPD::listen() {
   socket_.on_read([&] (IP4::addr, UDP::port_t port,
-    const char* data, size_t) {
+    const char* data, size_t len) {
 
     if (port == DHCP_CLIENT_PORT) {
       // Message
@@ -109,16 +109,16 @@ void DHCPD::listen() {
 }
 
 void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
-  if (msg->op not_eq BOOTREQUEST)
+  if (msg->op not_eq BOOTREQUEST or msg->hops not_eq 0)
     return;
 
   if (msg->htype == 0 or msg->htype > HTYPE_HFI)  // http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
     return;
 
-  if (msg->hops not_eq 0)
+  if (msg->yiaddr not_eq IP4::addr{0} or msg->siaddr not_eq IP4::addr{0} or msg->giaddr not_eq IP4::addr{0})
     return;
 
-  if (msg->yiaddr not_eq IP4::addr{0} or msg->siaddr not_eq IP4::addr{0} or msg->giaddr not_eq IP4::addr{0})
+  if (not valid_options(opts))
     return;
 
   const auto cid = get_client_id(msg->chaddr, opts);
@@ -684,6 +684,26 @@ void DHCPD::nak(const dhcp_packet_t* msg) {
 
   // Send the DHCPNAK - Broadcast
   socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, packetlen);
+}
+
+bool DHCPD::valid_options(const dhcp_option_t* opts) const {
+  //int num_bytes = 0;
+  int num_options = 0;
+
+  const dhcp_option_t* opt = opts;
+  while (opt->code != DHO_END) {
+    //num_bytes += 2 + opt->length;
+    num_options++;
+
+    // F.ex. if DHO_END isn't included
+    if (/*num_bytes > DHCP_VEND_LEN or*/ num_options > MAX_NUM_OPTIONS)
+      return false;
+
+    // go to next option
+    opt = (const dhcp_option_t*) (((const uint8_t*) opt) + 2 + opt->length);
+  }
+
+  return true;
 }
 
 const dhcp_option_t* DHCPD::get_option(const dhcp_option_t* opts, int code) const {

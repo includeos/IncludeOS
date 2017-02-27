@@ -35,6 +35,7 @@ namespace dhcp {
     static const uint32_t DEFAULT_LEASE = 86400;      // seconds. 1 day = 86 400 seconds.
     static const uint32_t DEFAULT_MAX_LEASE = 345600; // seconds. 4 days = 345 600 seconds.
     static const uint8_t  DEFAULT_PENDING = 30;
+    static const uint8_t  MAX_NUM_OPTIONS = 30;       // max number of options in a message from a client
 
   public:
     DHCPD(UDP& udp, IP4::addr pool_start, IP4::addr pool_end,
@@ -143,6 +144,7 @@ namespace dhcp {
     void request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts);
     void nak(const dhcp_packet_t* msg);
 
+    bool valid_options(const dhcp_option_t* opts) const;
     const dhcp_option_t* get_option(const dhcp_option_t* opts, int code) const;
     Record::byte_seq get_client_id(const uint8_t* chaddr, const dhcp_option_t* opts) const;
     IP4::addr get_requested_ip_in_opts(const dhcp_option_t* opts) const;
