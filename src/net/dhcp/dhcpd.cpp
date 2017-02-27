@@ -68,35 +68,10 @@ bool DHCPD::valid_pool(IP4::addr start, IP4::addr end) const {
   if (start > end or start == end or inc_addr(start) == end)
       return false;
 
-  // Check if start and end are on the same subnet
+  // Check if start and end are on the same subnet and on the same subnet as the server
   if (network_address(start) != network_address(end)
     or network_address(start) != network_address(server_id_)
     or network_address(end) != network_address(server_id_))
-    return false;
-
-  // IP address part 0 is the rightmost uint8_t
-  // IP address part 3 is the leftmost uint8_t
-  const uint8_t start3 = start.part(3);
-  const uint8_t start2 = start.part(2);
-  const uint8_t start0 = start.part(0);
-  const uint8_t end3 = end.part(3);
-  const uint8_t end2 = end.part(2);
-  const uint8_t end0 = end.part(0);
-
-  // 10.x.x.x addresses not valid
-  // 172.16.0.0 - 172.31.255.255 not valid
-  // 192.168.x.x addresses not valid
-
-  // TODO: 10.x.x.x addresses should be invalid
-  if (/* start3 == 10 or */(start3 == 192 and start2 == 168) or start0 < 1 or start0 > 254)
-    return false;
-
-  // TODO: 10.x.x.x addresses should be invalid
-  if (/* end3 == 10 or */(end3 == 192 and end2 == 168) or end0 < 1 or end0 > 254)
-    return false;
-
-  if ( (start3 == 172 and (start2 > 15 or start2 < 32)) or
-    (end3 == 172 and (end2 > 15 or end2 < 32)) )
     return false;
 
   return true;
