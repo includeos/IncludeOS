@@ -288,6 +288,9 @@ class qemu(hypervisor):
         if "smp" in self._config:
             kernel_args.extend(["-smp", str(self._config["smp"])])
 
+        if "cpu" in self._config:
+            kernel_args.extend(["-cpu", self._config["cpu"]])
+
         net_args = []
         i = 0
         if "net" in self._config:
