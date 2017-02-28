@@ -110,22 +110,22 @@ namespace net {
     */
     static uint16_t checksum(const tcp::Packet&);
 
-    const auto& listeners()
+    const auto& listeners() const
     { return listeners_; }
 
-    const auto& connections()
+    const auto& connections() const
     { return connections_; }
 
     /*
       Number of open ports.
     */
-    size_t open_ports()
+    size_t open_ports() const
     { return listeners_.size(); }
 
     /*
       Number of active connections.
     */
-    size_t active_connections()
+    size_t active_connections() const
     { return connections_.size(); }
 
     /*

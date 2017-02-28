@@ -915,12 +915,14 @@ private:
   /*
     Parse and apply options.
   */
-  void parse_options(Packet&);
+  void parse_options(const Packet&);
 
   /*
     Add an option.
   */
   void add_option(Option::Kind, Packet&);
+
+  Option::opt_ts* parse_ts_option(const Packet&) const;
 
 
 }; // < class Connection

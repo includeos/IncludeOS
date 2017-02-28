@@ -31,7 +31,7 @@ struct Option {
 
   enum Kind {
     END = 0x00, // End of option list
-    NOP = 0x01, // No-Opeartion
+    NOP = 0x01, // No-Operation
     MSS = 0x02, // Maximum Segment Size [RFC 793] Rev: [879, 6691]
     WS  = 0x03, // Window Scaling [RFC 7323] p. 8
     TS  = 0x08, // Timestamp [RFC 7323] p. 11
@@ -40,6 +40,9 @@ struct Option {
   const uint8_t kind    {END};
   const uint8_t length  {0};
   uint8_t               data[0];
+
+  std::string kind_string() const
+  { return kind_string(static_cast<Kind>(kind)); }
 
   static std::string kind_string(Kind kind) {
     switch(kind) {
@@ -51,6 +54,12 @@ struct Option {
 
     case TS:
       return {"Timestamp"};
+
+    case NOP:
+      return {"No-Operation"};
+
+    case END:
+      return {"End of list"};
 
     default:
       return {"Unknown Option"};

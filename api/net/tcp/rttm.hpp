@@ -36,7 +36,7 @@ struct RTTM {
 
   // clock granularity
   //static constexpr duration_t CLOCK_G = hw::PIT::frequency().count() / 1000;
-  static constexpr duration_t CLOCK_G = 0.0011;
+  static constexpr duration_t CLOCK_G = 1.0;
 
   static constexpr double K = 4.0;
 

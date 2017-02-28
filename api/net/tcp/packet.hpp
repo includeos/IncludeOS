@@ -188,6 +188,9 @@ public:
   inline char* tcp_data()
   { return ip_data() + tcp_header_length(); }
 
+  inline const char* tcp_data() const
+  { return ip_data() + tcp_header_length(); }
+
   // Length of data in packet when header has been accounted for
   inline uint16_t tcp_data_length() const
   { return ip_data_length() - tcp_header_length(); }
@@ -229,6 +232,9 @@ public:
   // Options
   inline uint8_t* tcp_options()
   { return (uint8_t*) tcp_header().options; }
+
+  inline const uint8_t* tcp_options() const
+  { return (const uint8_t*) tcp_header().options; }
 
   inline uint8_t tcp_options_length() const
   { return tcp_header_length() - sizeof(Header); }

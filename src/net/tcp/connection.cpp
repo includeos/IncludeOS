@@ -288,18 +288,16 @@ void Connection::receive_disconnect() {
     read_request.callback(buf.buffer, buf.size());
 }
 
-void Connection::segment_arrived(Packet_ptr incoming) {
+void Connection::segment_arrived(Packet_ptr incoming)
+{
+  //const uint32_t FMASK = (~(0x0000000F | htons(0x08)));
+  //uint32_t FMASK = 0xFFFFF7F0;
+  //uint32_t FMASK = (((0xf000 | SYN|FIN|RST|URG|ACK) << 16) | 0xffff);
+  //printf("pred: %#010x %#010x %#010x %#010x\n",
+  //  (((uint32_t*)&incoming->tcp_header())[3]), FMASK, ((((uint32_t*)&incoming->tcp_header())[3]) & FMASK), pred_flags);
 
-  if(incoming->has_tcp_options()) {
-    try {
-      parse_options(*incoming);
-    }
-    catch(const TCPBadOptionException& err) {
-      debug("<TCP::Connection::receive> %s \n", err.what());
-      drop(*incoming, err.what());
-      return;
-    }
-  }
+  //if( ( (((uint32_t*)&incoming->tcp_header())[3]) & FMASK) == pred_flags)
+  //  printf("predicted\n");
 
   // Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
   switch(state_->handle(*this, std::move(incoming))) {
@@ -398,11 +396,12 @@ bool Connection::handle_ack(const Packet& in) {
     if( (cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() ))
       and cb.SND.WND != true_win )
     {
-      cb.SND.WND = in.win() << cb.SND.wind_shift;
+      cb.SND.WND = true_win;
       cb.SND.WL1 = in.seq();
       cb.SND.WL2 = in.ack();
       //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
     }
+    //pred_flags = htonl((in.tcp_header_length() << 26) | 0x10 | cb.SND.WND >> cb.SND.wind_shift);
 
     //printf("<Connection::handle_ack> New ACK: %u FS: %u UW: %u, %s\n",
     //  in.ack() - cb.ISS, flight_size(), usable_window(), fast_recovery ? "[RECOVERY]" : "");
@@ -818,7 +817,7 @@ std::string Connection::TCB::to_string() const {
   return os.str();
 }
 
-void Connection::parse_options(Packet& packet) {
+void Connection::parse_options(const Packet& packet) {
   assert(packet.has_tcp_options());
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
         packet.offset(), packet.tcp_options_length());
@@ -928,6 +927,16 @@ void Connection::add_option(Option::Kind kind, Packet& packet) {
   default:
     break;
   }
+}
+
+Option::opt_ts* Connection::parse_ts_option(const Packet& packet) const
+{
+  auto* opt = packet.tcp_options();
+
+  while(((Option*)opt)->kind == Option::NOP and opt < (uint8_t*)packet.tcp_data())
+    opt++;
+
+  return (((Option*)opt)->kind == Option::TS) ? (Option::opt_ts*)opt : nullptr;
 }
 
 bool Connection::uses_window_scaling() const
