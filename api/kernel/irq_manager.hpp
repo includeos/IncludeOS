@@ -130,6 +130,13 @@ public:
   /** process all pending interrupts */
   void process_interrupts();
 
+  std::array<uint64_t*,IRQ_LINES>& get_count_handled()
+  { return count_handled; }
+
+  std::array<uint64_t,IRQ_LINES>& get_count_received()
+  { return count_received; }
+
+
 private:
   IRQ_manager() = default;
   IRQ_manager(IRQ_manager&) = delete;
@@ -139,7 +146,8 @@ private:
 
   IDTDescr     idt[INTR_LINES];
   irq_delegate irq_delegates_[IRQ_LINES];
-  uint64_t*    counters[IRQ_LINES];
+  std::array<uint64_t*,IRQ_LINES> count_handled;
+  std::array<uint64_t, IRQ_LINES> count_received;
 
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;

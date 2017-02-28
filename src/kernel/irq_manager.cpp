@@ -36,6 +36,8 @@ uint8_t IRQ_manager::get_next_msix_irq()
 void IRQ_manager::register_irq(uint8_t vector)
 {
   irq_pend.atomic_set(vector);
+  assert(vector >= 0 and vector < INTR_LINES);
+  count_received[vector]++;
 }
 
 extern "C" {
@@ -206,7 +208,7 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del) {
 
   // Stats
   Stat& subscribed = Statman::get().create(Stat::UINT64, "irq." + std::to_string(irq));
-  counters[irq] = &subscribed.get_uint64();
+  count_handled[irq] = &subscribed.get_uint64();
 
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
@@ -231,7 +233,7 @@ void IRQ_manager::process_interrupts()
       // sub and call handler
       irq_delegates_[intr]();
 
-      (*counters[intr])++;
+      (*count_handled[intr])++;
 
       irq_todo.reset(intr);
       intr = irq_todo.first_set();
