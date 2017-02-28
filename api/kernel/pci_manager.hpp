@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <delegate>
 
+#include <arch>
 #include <hw/pci_device.hpp>
 #include <hw/devices.hpp>
 
@@ -108,7 +109,7 @@ private:
 
   static void scan_bus(int bus);
 
-  friend class OS;
+  friend void __arch_init();
 }; //< class PCI_manager
 
 template <typename Device_type>

@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../../mod/http-parser/http_parser.h"
+#include <algorithm>
 #include <cctype>
-#include <map>
 #include <ostream>
 #include <uri>
+#include <utility>
+#include <vector>
+
+#include "../../mod/http-parser/http_parser.h"
 
 namespace uri {
 
 ///////////////////////////////////////////////////////////////////////////////
-static inline bool icase_equal(const std::experimental::string_view lhs, const std::experimental::string_view rhs) noexcept {
+static inline bool icase_equal(util::csview lhs, util::csview rhs) noexcept {
   return (lhs.size() == rhs.size())
          and
          std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), [](const char a, const char b) {
@@ -33,49 +36,40 @@ static inline bool icase_equal(const std::experimental::string_view lhs, const s
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-static inline uint16_t bind_port(const std::experimental::string_view scheme,
-                                 const uint16_t port_from_uri) noexcept
-{
-  static const std::initializer_list<std::pair<const std::experimental::string_view, uint16_t>> scheme_port_mapping
+static inline uint16_t bind_port(util::csview scheme, const uint16_t port_from_uri) noexcept {
+  static const std::vector<std::pair<util::csview, uint16_t>> port_table
   {
-    {"ftp",    21U},  {"FTP",    21U},
-    {"http",   80U},  {"HTTP",   80U},
-    {"https",  443U}, {"HTTPS",  443U},
-    {"irc",    6667U},{"IRC",    6667U},
-    {"ldap",   389U}, {"LDAP",   389U},
-    {"nntp",   119U}, {"NNTP",   119U},
-    {"rtsp",   554U}, {"RTSP",   554U},
-    {"sip",    5060U},{"SIP",    5060U},
-    {"sips",   5061U},{"SIPS",   5061U},
-    {"smtp",   25U},  {"SMTP",   25U},
-    {"ssh",    22U},  {"SSH",    22U},
-    {"telnet", 23U},  {"TELNET", 23U},
-    {"ws",     80U},  {"WS",     80U},
-    {"xmpp",   5222U},{"XMPP",   5222U}
+    {"ftp",    21U},
+    {"http",   80U},
+    {"https",  443U},
+    {"irc",    6667U},
+    {"ldap",   389U},
+    {"nntp",   119U},
+    {"rtsp",   554U},
+    {"sip",    5060U},
+    {"sips",   5061U},
+    {"smtp",   25U},
+    {"ssh",    22U},
+    {"telnet", 23U},
+    {"ws",     80U},
+    {"xmpp",   5222U},
   };
-  static const std::map<std::experimental::string_view, uint16_t> port_table
-  {scheme_port_mapping};
 
   if (port_from_uri not_eq 0) return port_from_uri;
 
-  const auto it = port_table.find(scheme);
-  // Slow case insensitive compare
-  /*
-  const auto it = std::find_if(port_table.begin(), port_table.end(),
-    [scheme] (const std::pair<std::experimental::string_view, uint16_t>& pair)
-    {
-      return icase_equal(pair.first, scheme);
-    });
-  */
+  const auto it = std::find_if(port_table.cbegin(), port_table.cend(), [scheme](const auto& _) {
+      return icase_equal(_.first, scheme);
+  });
+
   return (it not_eq port_table.cend()) ? it->second : 0xFFFFU;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // copy helper
 ///////////////////////////////////////////////////////////////////////////////
-static inline std::experimental::string_view updated_copy(const std::string& to_copy,
-                                                          const std::experimental::string_view& view,
-                                                          const std::string& from_copy)
+static inline util::sview updated_copy(const std::string& to_copy,
+                                       util::csview view,
+                                       const std::string& from_copy)
 {
   return {to_copy.data() + (view.data() - from_copy.data()), view.size()};
 }
@@ -88,7 +82,21 @@ URI::URI(const char* uri, const bool parse)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-URI::URI(const std::experimental::string_view uri, const bool parse)
+URI::URI(const char* uri, const size_t count, const bool parse)
+  : uri_str_{decode(util::csview{uri, count})}
+{
+  if (parse) this->parse();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+URI::URI(const std::string& uri, const bool parse)
+  : uri_str_{decode(util::csview{uri.data(), uri.length()})}
+{
+  if (parse) this->parse();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+URI::URI(util::csview uri, const bool parse)
   : uri_str_{decode(uri)}
 {
   if (parse) this->parse();
@@ -167,17 +175,17 @@ URI& URI::operator=(URI&& u) noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::scheme() const noexcept {
+util::sview URI::scheme() const noexcept {
   return scheme_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::userinfo() const noexcept {
+util::sview URI::userinfo() const noexcept {
   return userinfo_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::host() const noexcept {
+util::sview URI::host() const noexcept {
   return host_;
 }
 
@@ -187,16 +195,17 @@ bool URI::host_is_ip4() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::host_and_port() const noexcept {
-  if (not port_str_.empty()) {
-    return std::experimental::string_view{host_.data(), host_.length() + port_str_.length() + 1};
-  } else {
-    return host_;
-  }
+bool URI::host_is_ip6() const noexcept {
+  return host_.empty() ? false : (*(host_.data() + host_.length()) == ']');
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::port_str() const noexcept {
+std::string URI::host_and_port() const {
+  return std::string{host_.data(), host_.length()} + ':' + std::to_string(port_);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+util::sview URI::port_str() const noexcept {
   return port_str_;
 }
 
@@ -206,29 +215,29 @@ uint16_t URI::port() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::path() const noexcept {
+util::sview URI::path() const noexcept {
   return path_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::query() const noexcept {
+util::sview URI::query() const noexcept {
   return query_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::fragment() const noexcept {
+util::sview URI::fragment() const noexcept {
   return fragment_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view URI::query(const std::experimental::string_view key) {
+util::sview URI::query(util::csview key) {
   if (query_map_.empty() and (not query_.empty())) {
     load_queries();
   }
 
   const auto target = query_map_.find(key);
 
-  return (target not_eq query_map_.cend()) ? target->second : std::experimental::string_view{};
+  return (target not_eq query_map_.cend()) ? target->second : util::sview{};
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -273,15 +282,13 @@ URI& URI::parse() {
 
   (void)result;
 
-  using sview = std::experimental::string_view;
-
-  scheme_   = (u.field_set & (1 << UF_SCHEMA))   ? sview{p + u.field_data[UF_SCHEMA].off,   u.field_data[UF_SCHEMA].len}   : sview{};
-  userinfo_ = (u.field_set & (1 << UF_USERINFO)) ? sview{p + u.field_data[UF_USERINFO].off, u.field_data[UF_USERINFO].len} : sview{};
-  host_     = (u.field_set & (1 << UF_HOST))     ? sview{p + u.field_data[UF_HOST].off,     u.field_data[UF_HOST].len}     : sview{};
-  port_str_ = (u.field_set & (1 << UF_PORT))     ? sview{p + u.field_data[UF_PORT].off,     u.field_data[UF_PORT].len}     : sview{};
-  path_     = (u.field_set & (1 << UF_PATH))     ? sview{p + u.field_data[UF_PATH].off,     u.field_data[UF_PATH].len}     : sview{};
-  query_    = (u.field_set & (1 << UF_QUERY))    ? sview{p + u.field_data[UF_QUERY].off,    u.field_data[UF_QUERY].len}    : sview{};
-  fragment_ = (u.field_set & (1 << UF_FRAGMENT)) ? sview{p + u.field_data[UF_FRAGMENT].off, u.field_data[UF_FRAGMENT].len} : sview{};
+  scheme_   = (u.field_set & (1 << UF_SCHEMA))   ? util::sview{p + u.field_data[UF_SCHEMA].off,   u.field_data[UF_SCHEMA].len}   : util::sview{};
+  userinfo_ = (u.field_set & (1 << UF_USERINFO)) ? util::sview{p + u.field_data[UF_USERINFO].off, u.field_data[UF_USERINFO].len} : util::sview{};
+  host_     = (u.field_set & (1 << UF_HOST))     ? util::sview{p + u.field_data[UF_HOST].off,     u.field_data[UF_HOST].len}     : util::sview{};
+  port_str_ = (u.field_set & (1 << UF_PORT))     ? util::sview{p + u.field_data[UF_PORT].off,     u.field_data[UF_PORT].len}     : util::sview{};
+  path_     = (u.field_set & (1 << UF_PATH))     ? util::sview{p + u.field_data[UF_PATH].off,     u.field_data[UF_PATH].len}     : util::sview{};
+  query_    = (u.field_set & (1 << UF_QUERY))    ? util::sview{p + u.field_data[UF_QUERY].off,    u.field_data[UF_QUERY].len}    : util::sview{};
+  fragment_ = (u.field_set & (1 << UF_FRAGMENT)) ? util::sview{p + u.field_data[UF_FRAGMENT].off, u.field_data[UF_FRAGMENT].len} : util::sview{};
 
   port_ = bind_port(scheme_, u.port);
 
@@ -298,13 +305,13 @@ URI& URI::reset() {
 void URI::load_queries() {
   auto _ = query_;
 
-  std::experimental::string_view name  {};
-  std::experimental::string_view value {};
-  std::experimental::string_view::size_type base {0U};
-  std::experimental::string_view::size_type break_point {};
+  util::sview name  {};
+  util::sview value {};
+  util::sview::size_type base {0U};
+  util::sview::size_type break_point {};
 
   while (true) {
-    if ((break_point = _.find('=')) not_eq std::experimental::string_view::npos) {
+    if ((break_point = _.find('=')) not_eq util::sview::npos) {
       name = _.substr(base, break_point);
       //-----------------------------------
       _.remove_prefix(name.length() + 1U);
@@ -313,7 +320,7 @@ void URI::load_queries() {
       break;
     }
 
-    if ((break_point = _.find('&')) not_eq std::experimental::string_view::npos) {
+    if ((break_point = _.find('&')) not_eq util::sview::npos) {
       value = _.substr(base, break_point);
       query_map_.emplace(name, value);
       _.remove_prefix(value.length() + 1U);

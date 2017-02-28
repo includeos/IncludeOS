@@ -19,11 +19,12 @@
 #define HTTP_COMMON_HPP
 
 #include <delegate>
-#include <experimental/string_view>
 #include <memory>
 #include <uri>
 #include <utility>
 #include <vector>
+
+#include "../../util/detail/string_view"
 
 namespace http {
 

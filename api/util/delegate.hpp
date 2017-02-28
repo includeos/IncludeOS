@@ -22,8 +22,6 @@
 #include <functional>
 #include <memory>
 
-#include <common>
-
 // ----- SYNOPSIS -----
 
 namespace spec
@@ -234,10 +232,8 @@ public:
 	explicit inplace() noexcept :
 		invoke_ptr_{ detail::empty_inplace<R, storage_t, Args...> },
 		copy_ptr_{ copy_op<std::nullptr_t, storage_t>() },
-		destructor_ptr_{ [](storage_t&) noexcept -> void {} }
-	{
-		new(&storage_)std::nullptr_t{ nullptr };
-	}
+		destructor_ptr_{ nullptr }
+	{}
 
 	template<
 		typename T,
@@ -286,7 +282,9 @@ public:
 			invoke_ptr_ = other.invoke_ptr_;
 			copy_ptr_ = other.copy_ptr_;
 
-			destructor_ptr_(storage_);
+			if (destructor_ptr_)
+				destructor_ptr_(storage_);
+
 			copy_ptr_(storage_, other.storage_);
 			destructor_ptr_ = other.destructor_ptr_;
 		}
@@ -297,7 +295,9 @@ public:
 	{
 		if (this != std::addressof(other))
 		{
-			destructor_ptr_(storage_);
+			if (destructor_ptr_)
+				destructor_ptr_(storage_);
+
 			storage_ = std::move(other.storage_);
 
 			invoke_ptr_ = other.invoke_ptr_;
@@ -311,7 +311,8 @@ public:
 
 	~inplace()
 	{
-		destructor_ptr_(storage_);
+		if (destructor_ptr_)
+			destructor_ptr_(storage_);
 	}
 
 	R operator() (Args&&... args) const
@@ -321,7 +322,7 @@ public:
 
 	bool empty() const noexcept
 	{
-		return reinterpret_cast<std::nullptr_t&>(storage_) == nullptr;
+		return destructor_ptr_ == nullptr;
 	}
 
 	template<typename T> T* target() const noexcept

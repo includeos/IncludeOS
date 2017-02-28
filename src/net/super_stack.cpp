@@ -33,14 +33,12 @@ net::Inet<net::IP4>& net::Super_stack::get<net::IP4>(int N) {
 
 net::Super_stack::Super_stack()
 {
-  INFO("Super stack", "Constructing stacks");
-
-  if(hw::Devices::devices<hw::Nic>().empty())
-    INFO2("No registered Nic devices found (nothing to construct)");
+  if (hw::Devices::devices<hw::Nic>().empty())
+    INFO("Network", "No registered network interfaces found");
 
   for(auto& nic : hw::Devices::devices<hw::Nic>())
   {
-    INFO("Super stack", "Creating stack for %s on %s", 
+    INFO("Network", "Creating stack for %s on %s", 
           nic->driver_name(), nic->device_name().c_str());
     switch(nic->proto()) {
 

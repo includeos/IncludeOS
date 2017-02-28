@@ -31,7 +31,7 @@ public:
 
   /** Number of bytes in a frame needed by the device itself **/
   virtual size_t frame_offset_device() override
-  { return 0; };
+  { return 0; }
 
   /** Number of bytes in a frame needed by the linklayer **/
   virtual size_t frame_offset_link() override
@@ -62,7 +62,7 @@ private:
 
 template <class Protocol>
 Link_layer<Protocol>::Link_layer(Protocol&& protocol, uint32_t bufstore_packets, uint16_t bufsz)
-  : hw::Nic(bufstore_packets, bufsz + Protocol::header_size()),
+  : hw::Nic(bufstore_packets, bufsz),
     link_{std::forward<Protocol>(protocol)}
 {
 }

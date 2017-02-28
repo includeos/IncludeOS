@@ -17,10 +17,11 @@
 
 #include <profile>
 #include <common>
-#include <hw/pit.hpp>
+#include "../arch/x86/pit.hpp"
+#include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/irq_manager.hpp>
-#include <kernel/cpuid.hpp>
+#include <kernel/os.hpp>
 #include <util/fixedvec.hpp>
 #include <unordered_map>
 #include <cassert>
@@ -32,7 +33,7 @@
 extern "C" {
   void parasite_interrupt_handler();
   void profiler_stack_sampler(void*);
-  void gather_stack_sampling();
+  static void gather_stack_sampling();
 }
 extern char _irq_cb_return_location;
 
@@ -64,7 +65,7 @@ struct Sampler
     using namespace std::chrono;
     static const milliseconds GATHER_PERIOD_MS = 150ms;
 
-    hw::PIT::instance().on_repeated_timeout(
+    x86::PIT::instance().on_repeated_timeout(
         GATHER_PERIOD_MS, gather_stack_sampling);
   }
   void add(void* current, void* ra)
@@ -86,7 +87,7 @@ struct Sampler
   }
 };
 
-Sampler& get() {
+static Sampler& get() {
   static Sampler sampler;
   return sampler;
 }
@@ -117,7 +118,7 @@ void profiler_stack_sampler(void* esp)
   get().add(current, __builtin_return_address(1));
 }
 
-void gather_stack_sampling()
+static void gather_stack_sampling()
 {
   // gather results on our turn only
   if (get().lockless == 1)
@@ -317,7 +318,7 @@ std::string ScopedProfiler::get_statistics()
   std::ostringstream ss;
 
   // Add header
-  ss << " CPU Cycles (average) | Samples | Function Name \n";
+  ss << " CPU time (average) | Samples | Function Name \n";
   ss << "--------------------------------------------------------------------------------\n";
 
   // Calculate the number of used entries
@@ -345,9 +346,10 @@ std::string ScopedProfiler::get_statistics()
     for (auto i = 0u; i < num_entries; i++)
     {
       const auto& entry = entries[i];
+      double  div  = OS::cpu_freq().count() * 1000.0;
 
-      ss.width(21);
-      ss << entry.cycles_average << " | ";
+      ss.width(16);
+      ss << entry.cycles_average / div << " ms | ";
 
       ss.width(7);
       ss << entry.num_samples << " | ";

@@ -158,6 +158,8 @@ public:
 
   void deactivate() override;
 
+  void move_to_this_cpu() override;
+
 private:
 
   /** Stats */
@@ -185,15 +187,8 @@ private:
     uint16_t num_buffers;
   }__attribute__((packed));
 
-  struct virtio_net_rxhdr {
-    uint8_t   flags;
-    uint8_t   gso_type;
-    uint16_t  hdr_len;
-    uint16_t  gso_size;
-    uint16_t  csum_start;
-    uint16_t  csum_offset;
-    uint16_t  bufs;
-  }__attribute__((packed));
+  // make packets cache-aligned on the IP-layer
+  static const int VIRTIO_HDR_OFFSET = sizeof(virtio_net_hdr);
 
   Virtio::Queue rx_q;
   Virtio::Queue tx_q;

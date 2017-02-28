@@ -89,6 +89,9 @@ namespace hw {
     virtual uint64_t get_packets_tx() = 0;
     virtual uint64_t get_packets_dropped() = 0;
 
+    /** Move this nic to current CPU **/
+    virtual void move_to_this_cpu() = 0;
+
     virtual ~Nic() {}
   protected:
     /**

@@ -17,9 +17,10 @@
 
 #include <virtio/virtio.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
-#include <hw/apic.hpp>
 #include <hw/pci.hpp>
+#include <smp>
 #include <assert.h>
 
 #define VIRTIO_MSI_CONFIG_VECTOR  20
@@ -99,16 +100,16 @@ Virtio::Virtio(hw::PCI_Device& dev)
     if (msix_vectors)
     {
       INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
+      this->current_cpu = SMP::cpu_id();
 
-      // remember the base IRQ
-      this->_irq = IRQ_manager::get().get_next_msix_irq();
-      _pcidev.setup_msix_vector(0x0, IRQ_BASE + this->_irq);
-
-      // setup all the other vectors
-      for (int i = 1; i < msix_vectors; i++)
+      // setup all the MSI-X vectors
+      for (int i = 0; i < msix_vectors; i++)
       {
-        auto irq = IRQ_manager::get().get_next_msix_irq();
-        _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
+        auto irq = IRQ_manager::get().get_free_irq();
+        _pcidev.setup_msix_vector(current_cpu, IRQ_BASE + irq);
+        IRQ_manager::get().subscribe(irq, nullptr);
+        // store IRQ for later
+        this->irqs.push_back(irq);
       }
     }
     else
@@ -121,11 +122,15 @@ Virtio::Virtio(hw::PCI_Device& dev)
   if (has_msix() == false)
   {
     // Fetch IRQ from PCI resource
-    set_irq();
-    CHECK(_irq, "Unit has legacy IRQ %u", _irq);
+    auto irq = get_legacy_irq();
+    CHECKSERT(irq, "Unit has legacy IRQ %u", irq);
 
-    // create IO APIC entry for legacy interrupt
-    hw::APIC::enable_irq(_irq);
+   // create IO APIC entry for legacy interrupt
+    extern void __arch_enable_legacy_irq(uint8_t);
+    __arch_enable_legacy_irq(irq);
+
+    // store for later
+    irqs.push_back(irq);
   }
 
   INFO("Virtio", "Initialization complete");
@@ -149,16 +154,18 @@ void Virtio::get_config(void* buf, int len){
 }
 
 
-void Virtio::reset(){
+void Virtio::reset() {
   hw::outp(_iobase + VIRTIO_PCI_STATUS, 0);
 }
 
-void Virtio::set_irq() {
+uint8_t Virtio::get_legacy_irq()
+{
   // Get legacy IRQ from PCI
   uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
   if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
-    this->_irq = value & 0xFF;
+    return value & 0xFF;
   }
+  return 0;
 }
 
 uint32_t Virtio::queue_size(uint16_t index){
@@ -204,19 +211,23 @@ void Virtio::setup_complete(bool ok){
   hw::outp(_iobase + VIRTIO_PCI_STATUS, hw::inp(_iobase + VIRTIO_PCI_STATUS) | status);
 }
 
-
-void Virtio::default_irq_handler(){
-  printf("*** PRIVATE virtio IRQ handler\n");
-  printf("Old Features : 0x%x \n",_features);
-  printf("New Features : 0x%x \n",probe_features());
-
-  unsigned char isr = hw::inp(_iobase + VIRTIO_PCI_ISR);
-  printf("Virtio ISR: 0x%i \n",isr);
-  printf("Virtio ISR: 0x%i \n",isr);
-}
-
-void Virtio::enable_irq_handler()
+void Virtio::move_to_this_cpu()
 {
-  auto del(delegate<void()>{this, &Virtio::default_irq_handler});
-  IRQ_manager::get().subscribe(_irq, del);
+  if (has_msix())
+  {
+    // unsubscribe IRQs on old CPU
+    for (size_t i = 0; i < irqs.size(); i++)
+    {
+      auto& oldman = IRQ_manager::get(this->current_cpu);
+      oldman.unsubscribe(this->irqs[i]);
+    }
+    // resubscribe on the new CPU
+    this->current_cpu = SMP::cpu_id();
+    for (size_t i = 0; i < irqs.size(); i++)
+    {
+      this->irqs[i] = IRQ_manager::get().get_free_irq();
+      _pcidev.rebalance_msix_vector(i, current_cpu, IRQ_BASE + this->irqs[i]);
+      IRQ_manager::get().subscribe(this->irqs[i], nullptr);
+    }
+  }
 }

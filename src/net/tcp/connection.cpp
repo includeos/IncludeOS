@@ -31,19 +31,22 @@ using namespace std;
 /*
   This is most likely used in a ACTIVE open
 */
-Connection::Connection(TCP& host, port_t local_port, Socket remote) :
-  host_(host),
-  local_port_(local_port),
-  remote_(remote),
-  state_(&Connection::Closed::instance()),
-  prev_state_(state_),
-  cb(),
-  read_request(),
-  writeq(),
-  on_disconnect_({this, &Connection::default_on_disconnect}),
-  rtx_timer({this, &Connection::rtx_timeout}),
-  timewait_timer({this, &Connection::timewait_timeout}),
-  queued_(false)
+Connection::Connection(TCP& host, port_t local_port, Socket remote, ConnectCallback callback)
+  : host_(host),
+    local_port_(local_port),
+    remote_(remote),
+    state_(&Connection::Closed::instance()),
+    prev_state_(state_),
+    cb{host_.window_size()},
+    read_request(),
+    writeq(),
+    on_connect_{std::move(callback)},
+    on_disconnect_({this, &Connection::default_on_disconnect}),
+    rtx_timer({this, &Connection::rtx_timeout}),
+    timewait_dack_timer({this, &Connection::dack_timeout}),
+    queued_(false),
+    dack_{0},
+    last_ack_sent_{cb.RCV.NXT}
 {
   setup_congestion_control();
   debug("<Connection> %s created\n", to_string().c_str());
@@ -52,8 +55,25 @@ Connection::Connection(TCP& host, port_t local_port, Socket remote) :
 /*
   This is most likely used in a PASSIVE open
 */
-Connection::Connection(TCP& host, port_t local_port)
-  : Connection(host, local_port, Socket())
+/*Connection::Connection(TCP& host, port_t local_port, ConnectCallback cb)
+  : Connection(host, local_port, Socket(), std::move(cb))
+{
+}*/
+
+Connection::TCB::TCB(const uint32_t recvwin)
+  : SND{ 0, 0, default_window_size, 0, 0, 0, default_mss, 0, false },
+    ISS{(seq_t)4815162342},
+    RCV{ 0, recvwin, 0, 0, 0 },
+    IRS{0},
+    ssthresh{recvwin},
+    cwnd{0},
+    recover{0},
+    TS_recent{0}
+{
+}
+
+Connection::TCB::TCB()
+  : Connection::TCB(default_window_size)
 {
 }
 
@@ -69,16 +89,16 @@ void Connection::reset_callbacks()
   read_request.clean_up();
 }
 
+Socket Connection::local() const {
+  return {host_.address(), local_port_};
+}
+
 uint16_t Connection::MSDS() const {
   return std::min(host_.MSS(), cb.SND.MSS) + sizeof(Header);
 }
 
 uint16_t Connection::SMSS() const {
   return host_.MSS();
-}
-
-Socket Connection::local() const {
-  return {host_.address(), local_port_};
 }
 
 void Connection::read(ReadBuffer&& buffer, ReadCallback callback) {
@@ -152,12 +172,16 @@ void Connection::offer(size_t& packets)
     auto packet = create_outgoing_packet();
     packets--;
 
+    size_t written{0};
+    size_t x{0};
     // fill the packet with data
-    auto written = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem(), cb.SND.NXT);
-    cb.SND.NXT += packet->tcp_data_length();
-
-    // advance the write q
-    writeq.advance(written);
+    while(can_send() and
+      (x = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem()) ))
+    {
+      written += x;
+      cb.SND.NXT += x;
+      writeq.advance(x);
+    }
 
     debug2("<Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
            written, buf.remaining, packets, usable_window());
@@ -187,16 +211,14 @@ void Connection::offer(size_t& packets)
 void Connection::writeq_push()
 {
   debug2("<Connection::writeq_push> Processing writeq, queued=%u\n", queued_);
-  while(can_send() and not queued_)
+  while(not queued_ and can_send())
     host_.request_offer(*this);
 }
 
-size_t Connection::fill_packet(Packet& packet, const uint8_t* buffer, size_t n, seq_t seq) {
-  Expects(!packet.has_tcp_data());
+size_t Connection::fill_packet(Packet& packet, const uint8_t* buffer, size_t n) {
+  const auto written = packet.fill(buffer, std::min(n, (size_t)SMSS()));
 
-  auto written = packet.fill(buffer, std::min(n, (size_t)SMSS()));
-
-  packet.set_seq(seq).set_ack(cb.RCV.NXT).set_flag(ACK);
+  packet.set_flag(ACK);
 
   Ensures(written <= n);
 
@@ -209,7 +231,7 @@ void Connection::limited_tx() {
 
   debug2("<Connection::limited_tx> UW: %u CW: %u, FS: %u\n", usable_window(), cb.cwnd, flight_size());
 
-  auto written = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem(), cb.SND.NXT);
+  const auto written = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem());
   cb.SND.NXT += packet->tcp_data_length();
 
   writeq.advance(written);
@@ -264,15 +286,6 @@ void Connection::receive_disconnect() {
 
   if(LIKELY(read_request.callback != nullptr))
     read_request.callback(buf.buffer, buf.size());
-}
-
-/*
-  Local:Port Remote:Port (STATE)
-*/
-string Connection::to_string() const {
-  ostringstream os;
-  os << local().to_string() << " " << remote_.to_string() << " (" << state_->to_string() << ")";
-  return os.str();
 }
 
 void Connection::segment_arrived(Packet_ptr incoming) {
@@ -333,8 +346,10 @@ Packet_ptr Connection::create_outgoing_packet() {
   // Set Destination (remote)
   packet->set_destination(remote_);
 
-  packet->set_win(cb.RCV.WND);
+  packet->set_win(std::min((cb.RCV.WND >> cb.RCV.wind_shift), (uint32_t)default_window_size));
 
+  if(cb.SND.TS_OK)
+    packet->add_tcp_option<Option::opt_ts>(host_.get_ts_value(), cb.TS_recent);
   // Set SEQ and ACK - I think this is OK..
   packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
   debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
@@ -350,22 +365,10 @@ void Connection::transmit(Packet_ptr packet) {
   if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
   }
-
+  if(packet->isset(ACK))
+    last_ack_sent_ = cb.RCV.NXT;
   debug2("<TCP::Connection::transmit> TX %s\n", packet->to_string().c_str());
-
   host_.transmit(std::move(packet));
-}
-
-bool Connection::can_send_one() {
-  return send_window() >= SMSS() and writeq.has_remaining_requests();
-}
-
-bool Connection::can_send() {
-  return (usable_window() >= SMSS()) and writeq.has_remaining_requests();
-}
-
-void Connection::send_much() {
-  writeq_push();
 }
 
 bool Connection::handle_ack(const Packet& in) {
@@ -377,9 +380,11 @@ bool Connection::handle_ack(const Packet& in) {
     3. packet is empty
     4. is not an wnd update
   */
-  if(in.ack() == cb.SND.UNA and flight_size()
-    and !in.has_tcp_data() and cb.SND.WND == in.win()
-    and !in.isset(SYN) and !in.isset(FIN))
+  const uint32_t true_win = in.win() << cb.SND.wind_shift;
+  if(UNLIKELY(in.ack() == cb.SND.UNA and flight_size()
+    and !in.has_tcp_data()
+    and cb.SND.WND == true_win
+    and !in.isset(SYN) and !in.isset(FIN)))
   {
     dup_acks_++;
     on_dup_ack();
@@ -387,18 +392,20 @@ bool Connection::handle_ack(const Packet& in) {
   } // < dup ack
 
   // new ack
-  else if(in.ack() >= cb.SND.UNA) {
+  else if(LIKELY(in.ack() >= cb.SND.UNA))
+  {
 
-    if( (cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() )) and cb.SND.WND != in.win() )
+    if( (cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() ))
+      and cb.SND.WND != true_win )
     {
-      cb.SND.WND = in.win();
+      cb.SND.WND = in.win() << cb.SND.wind_shift;
       cb.SND.WL1 = in.seq();
       cb.SND.WL2 = in.ack();
       //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
     }
 
-    debug2("<Connection::handle_ack> New ACK: %u FS: %u UW: %u, %s\n",
-      in.ack() - cb.ISS, flight_size(), usable_window(), fast_recovery ? "[RECOVERY]" : "");
+    //printf("<Connection::handle_ack> New ACK: %u FS: %u UW: %u, %s\n",
+    //  in.ack() - cb.ISS, flight_size(), usable_window(), fast_recovery ? "[RECOVERY]" : "");
 
     // [RFC 6582] p. 8
     prev_highest_ack_ = cb.SND.UNA;
@@ -415,6 +422,10 @@ bool Connection::handle_ack(const Packet& in) {
     // update cwnd when congestion avoidance?
     bool cong_avoid_rtt = false;
 
+    /*if(SND.TS_OK and bytes_acked > 0)
+    {
+
+    }*/
     // if measuring round trip time, stop
     if(rttm.active) {
       rttm.stop();
@@ -553,7 +564,7 @@ void Connection::on_dup_ack() {
          (for the current value of RTO).
 */
 void Connection::rtx_ack(const seq_t ack) {
-  auto acked = ack - prev_highest_ack_;
+  const auto acked = ack - prev_highest_ack_;
   // what if ack is from handshake / fin?
   writeq.acknowledge(acked);
   /*
@@ -593,7 +604,8 @@ void Connection::retransmit() {
     packet->set_flag(ACK);
   }
   // If retransmission from either SYN-SENT or SYN-RCV, add SYN
-  if(is_state(SynSent::instance()) or is_state(SynReceived::instance())) {
+  if(UNLIKELY(is_state(SynSent::instance()) or is_state(SynReceived::instance())))
+  {
     packet->set_flag(SYN);
     packet->set_seq(cb.SND.UNA);
     syn_rtx_++;
@@ -603,17 +615,16 @@ void Connection::retransmit() {
     auto& buf = writeq.una();
     debug2("<Connection::retransmit> With data (wq.sz=%u) buf.unacked=%u\n",
       writeq.size(), buf.length() - buf.acknowledged);
-    fill_packet(*packet, buf.data() + writeq.acked(), buf.length() - writeq.acked(), cb.SND.UNA);
-  }
-  // if no data
-  else {
-    packet->set_seq(cb.SND.UNA);
+    fill_packet(*packet, buf.data() + writeq.acked(), buf.length() - writeq.acked());
   }
 
+  packet->set_seq(cb.SND.UNA);
+
   // If retransmission of a FIN packet
-  if(is_state(FinWait1::instance()) or is_state(LastAck::instance())) {
-    packet->set_flag(FIN);
-  }
+  // TODO: find a solution to this
+  //if(is_state(FinWait1::instance()) or is_state(LastAck::instance())) {
+  //  packet->set_flag(FIN);
+  //}
 
   //printf("<TCP::Connection::retransmit> rseq=%u \n", packet->seq() - cb.ISS);
 
@@ -729,21 +740,29 @@ void Connection::set_state(State& state) {
 
 void Connection::timewait_start() {
   const auto timeout = 2 * host().MSL(); // 60 seconds
-  timewait_timer.start(timeout);
-}
-
-void Connection::timewait_stop() {
-  timewait_timer.stop();
+  timewait_dack_timer.restart(timeout, {this, &Connection::timewait_timeout});
 }
 
 void Connection::timewait_restart() {
   const auto timeout = 2 * host().MSL(); // 60 seconds
-  timewait_timer.restart(timeout);
+  timewait_dack_timer.restart(timeout);
 }
 
-void Connection::timewait_timeout() {
-  debug("<Connection> TimeWait timed out, closing.\n");
-  signal_close();
+void Connection::send_ack() {
+  auto packet = outgoing_packet();
+  packet->set_flag(ACK);
+  transmit(std::move(packet));
+}
+
+bool Connection::use_dack() const {
+  return host_.DACK_timeout() > std::chrono::milliseconds::zero();
+}
+
+void Connection::start_dack()
+{
+  Ensures(use_dack());
+  ++dack_;
+  timewait_dack_timer.start(host_.DACK_timeout());
 }
 
 void Connection::signal_close() {
@@ -759,8 +778,8 @@ void Connection::signal_close() {
 void Connection::clean_up() {
   // clear timers if active
   rtx_clear();
-  if(timewait_timer.is_running())
-    timewait_stop();
+  if(timewait_dack_timer.is_running())
+    timewait_dack_timer.stop();
 
   // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called
   // avoids connection being destructed before function is done
@@ -822,19 +841,61 @@ void Connection::parse_options(Packet& packet) {
     }
 
     case Option::MSS: {
-      // unlikely
-      if(option->length != 4)
+
+      if(UNLIKELY(option->length != sizeof(Option::opt_mss)))
         throw TCPBadOptionException{Option::MSS, "length != 4"};
-      // unlikely
-      if(!packet.isset(SYN))
+
+      if(UNLIKELY(!packet.isset(SYN)))
         throw TCPBadOptionException{Option::MSS, "Non-SYN packet"};
 
       auto* opt_mss = (Option::opt_mss*)option;
-      uint16_t mss = ntohs(opt_mss->mss);
-      cb.SND.MSS = mss;
-      debug2("<TCP::parse_options@Option:MSS> MSS: %u \n", mss);
+      cb.SND.MSS = ntohs(opt_mss->mss);
+
+      debug2("<TCP::parse_options@Option:MSS> MSS: %u \n", cb.SND.MSS);
+
       opt += option->length;
       break;
+    }
+
+    case Option::WS: {
+
+      if(UNLIKELY(option->length != sizeof(Option::opt_ws)))
+        throw TCPBadOptionException{Option::WS, "length != 3"};
+
+      if(UNLIKELY(!packet.isset(SYN)))
+        throw TCPBadOptionException{Option::WS, "Non-SYN packet"};
+
+      if(host_.uses_wscale())
+      {
+        const auto& opt_ws = (Option::opt_ws&)*option;
+        cb.SND.wind_shift = std::min(opt_ws.shift_cnt, (uint8_t)14);
+        cb.RCV.wind_shift = host_.wscale();
+
+        debug2("<Connection::parse_options@WS> WS: %u Calc: %u\n",
+          cb.SND.wind_shift, cb.SND.WND << cb.SND.wind_shift);
+      }
+
+      opt += option->length;
+      break;
+    }
+
+    case Option::TS: {
+
+      if(host_.uses_timestamps())
+      {
+        const auto& opt_ts = (Option::opt_ts&)*option;
+
+        if(UNLIKELY(packet.isset(SYN)))
+        {
+          cb.SND.TS_OK = true;
+          cb.TS_recent = ntohl(opt_ts.val);
+        }
+        else if(ntohl(opt_ts.val) >= cb.TS_recent and packet.seq() <= last_ack_sent_)
+        {
+          cb.TS_recent = ntohl(opt_ts.val);
+        }
+      }
+      opt += option->length;
     }
 
     default:
@@ -853,74 +914,46 @@ void Connection::add_option(Option::Kind kind, Packet& packet) {
            packet.to_string().c_str(), ntohs(*(uint16_t*)(packet.tcp_options()+2)));
     break;
   }
+
+  case Option::WS: {
+    packet.add_tcp_option<Option::opt_ws>(host_.wscale());
+    break;
+  }
+
+  case Option::TS: {
+    const uint32_t ts_ecr = (packet.isset(ACK)) ? cb.TS_recent : 0;
+    packet.add_tcp_option<Option::opt_ts>(host_.get_ts_value(), ts_ecr);
+    break;
+  }
   default:
     break;
   }
+}
+
+bool Connection::uses_window_scaling() const
+{
+  return host_.uses_wscale();
+}
+
+bool Connection::uses_timestamps() const
+{
+  return host_.uses_timestamps();
 }
 
 void Connection::drop(const Packet& packet, const std::string&) {
   host_.drop(packet);
 }
 
-
-void Connection::default_on_connect(Connection_ptr) { }
-
 void Connection::default_on_disconnect(Connection_ptr conn, Disconnect) {
   if(!conn->is_closing())
     conn->close();
-}
-
-void Connection::default_on_close() { }
-
-void Connection::default_on_error(TCPException error) {
-  (void)error
-  debug("<Connection::@Error> TCPException: %s \n", error.what());
-}
-
-void Connection::default_on_packet_dropped(const Packet& p , const std::string& reason) {
-  (void)p, (void)reason;
-  debug2("<Connection::@PacketDropped> %s - %s", p.to_string().c_str(), reason.c_str());
-}
-
-void Connection::default_on_rtx_timeout(size_t n, double rto) {
-  (void)n, (void)rto;
-  debug2("<Connection::@RtxTimeout> Attempt#: %u RTO: %f", n, rto);
-}
-
-
-
-void Connection::default_on_cleanup(Connection_ptr) { }
-
-void Connection::default_on_write(size_t) { }
-
-void Connection::setup_congestion_control() {
-  reno_init();
-}
-
-void Connection::reno_init() {
-  reno_init_cwnd(3);
-  reno_init_sshtresh();
-}
-
-void Connection::reno_init_cwnd(size_t segments) {
-  cb.cwnd = segments*SMSS();
-  debug2("<TCP::Connection::reno_init_cwnd> Cwnd initilized: %u\n", cb.cwnd);
-}
-
-
-void Connection::reno_increase_cwnd(uint16_t n) {
-  cb.cwnd += std::min(n, SMSS());
-}
-
-void Connection::reno_deflate_cwnd(uint16_t n) {
-  cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n;
 }
 
 void Connection::reduce_ssthresh() {
   auto fs = flight_size();
   debug2("<Connection::reduce_ssthresh> FlightSize: %u\n", fs);
 
-  auto two_seg = 2*(uint32_t)SMSS();
+  const auto two_seg = 2*(uint32_t)SMSS();
 
   if(limited_tx_)
     fs = (fs >= two_seg) ? fs - two_seg : 0;

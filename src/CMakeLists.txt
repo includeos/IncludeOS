@@ -12,14 +12,14 @@ include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 
 add_custom_command(
 	OUTPUT apic_boot.o
-	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/hw/apic_boot.asm
+	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/arch/x86/apic_boot.asm
 	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 apic_boot.bin apic_boot.o
-	DEPENDS hw/apic_boot.asm
+	DEPENDS arch/x86/apic_boot.asm
 )
 
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
-  kernel/start.asm kernel/kernel_start.cpp kernel/sanity_checks.cpp
+  kernel/kernel_start.cpp kernel/sanity_checks.cpp
   kernel/syscalls.cpp kernel/interrupts.asm kernel/os.cpp kernel/cpuid.cpp
   kernel/memmap.cpp kernel/irq_manager.cpp kernel/pci_manager.cpp
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
@@ -32,10 +32,8 @@ set(OS_OBJECTS
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
-  hw/ide.cpp hw/pit.cpp hw/pic.cpp hw/pci_device.cpp hw/cpu_freq_sampling.cpp
-  hw/ps2.cpp hw/serial.cpp hw/serial1.cpp hw/cmos.cpp hw/block_device.cpp
-  hw/acpi.cpp hw/apic.cpp hw/apic_timer.cpp hw/ioapic.cpp hw/apic_asm.asm
-  hw/apic_revenant.cpp hw/smp.cpp hw/msi.cpp hw/pci_msi.cpp
+  hw/ide.cpp hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp hw/serial1.cpp
+  hw/cmos.cpp hw/block_device.cpp hw/msi.cpp hw/pci_msi.cpp
   virtio/virtio.cpp virtio/virtio_queue.cpp
   net/ethernet/ethernet.cpp net/inet_common.cpp net/ip4/arp.cpp net/ip4/ip4.cpp
   net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
@@ -56,6 +54,12 @@ set(OS_OBJECTS
   posix/ucontext.cpp posix/ucontext_asm.asm
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
   posix/pwd.cpp
+  ### x86 arch ###
+  arch/x86/start.asm
+  arch/x86/arch.cpp arch/x86/gdt.cpp arch/x86/gdt_asm.asm arch/x86/acpi.cpp
+  arch/x86/ioapic.cpp arch/x86/apic.cpp arch/x86/apic_timer.cpp
+  arch/x86/apic_asm.asm arch/x86/apic_revenant.cpp arch/x86/smp.cpp
+  arch/x86/pit.cpp arch/x86/cpu_freq_sampling.cpp arch/x86/pic.cpp
 )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)

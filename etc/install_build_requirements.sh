@@ -2,49 +2,33 @@
 #
 # Install dependencies
 
-# TODO: add cmake as dependency
-
 SYSTEM=$1
 RELEASE=$2
+
+DEPENDENCIES="curl make clang cmake nasm bridge-utils qemu jq python-jsonschema python-psutil"
 
 case $SYSTEM in
     "Darwin")
         exit 0;
         ;;
     "Linux")
+		echo ">>> Installing dependencies (requires sudo):"
         case $RELEASE in
             "debian"|"ubuntu"|"linuxmint")
-                VERSION=`lsb_release -rs`
-                if [ $(awk 'BEGIN{ print "'$VERSION'"<"'16.04'" }') -eq 1 ]; then
-                    if [ $RELEASE == "ubuntu" ] ; then
-                        clang_version="3.6"
-                        DEPENDENCIES="gcc-5 g++-5"
-                        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test || exit 1
-                    else
-                        echo "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/includeOS-requirements.list
-                        clang_version="3.8"
-                    fi
-                else
-                    clang_version="3.8"
-                fi
-
-                DEPENDENCIES="curl make clang-$clang_version nasm bridge-utils qemu jq python-jsonschema python-psutil cmake $DEPENDENCIES"
-                echo ">>> Installing dependencies (requires sudo):"
+                DEPENDENCIES="$DEPENDENCIES"
                 echo "    Packages: $DEPENDENCIES"
-                sudo apt-get update || exit 1
-                sudo apt-get install -y $DEPENDENCIES || exit 1
+                sudo apt-get -qq update || exit 1
+                sudo apt-get -qqy install $DEPENDENCIES > /dev/null || exit 1
                 exit 0;
                 ;;
             "fedora")
-                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq python-jsonschema python-psutil cmake"
-                echo ">>> Installing dependencies (requires sudo):"
+                DEPENDENCIES="$DEPENDENCIES"
                 echo "    Packages: $DEPENDENCIES"
                 sudo dnf install $DEPENDENCIES || exit 1
                 exit 0;
                 ;;
             "arch")
-                DEPENDENCIES="curl make clang nasm bridge-utils qemu jq python-jsonschema python-psutil cmake python2 python2-jsonschema python2-psutil"
-                echo ">>> Installing dependencies (requires sudo):"
+                DEPENDENCIES="$DEPENDENCIES python2 python2-jsonschema python2-psutil"
                 echo "    Packages: $DEPENDENCIES"
                 sudo pacman -Syyu
                 sudo pacman -S --needed $DEPENDENCIES

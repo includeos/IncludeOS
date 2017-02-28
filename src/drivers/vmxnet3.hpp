@@ -74,6 +74,8 @@ public:
 
   void deactivate() override;
 
+  void move_to_this_cpu() override;
+
 private:
   void msix_evt_handler();
   void msix_xmit_handler();
@@ -112,6 +114,8 @@ private:
   void     retrieve_hwaddr();
   void     set_hwaddr(MAC::Addr&);
 
+  hw::PCI_Device& pcidev;
+  std::vector<uint8_t> irqs;
   uintptr_t       iobase;
   uintptr_t       ptbase;
   MAC::Addr    hw_addr;

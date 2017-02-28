@@ -57,6 +57,10 @@ namespace net {
     uint16_t ip_data_length() const noexcept
     { return ip_segment_length() - ip_header_length(); }
 
+    // TODO: Remove Ethernet dependency, some day...
+    uint16_t ip_capacity() const noexcept
+    { return capacity() - ip_full_header_length() - sizeof(LinkLayer::trailer); }
+
     void set_ip_data_length(uint16_t length) {
       Expects(data_end() >= layer_begin());
       Expects(sizeof(IP4::header) + length <= (size_t) capacity());

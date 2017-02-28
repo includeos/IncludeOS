@@ -20,23 +20,115 @@
 #ifndef API_SMP_HEADER
 #define API_SMP_HEADER
 
-#include "hw/smp.hpp"
+#include "arch"
+#include <delegate>
+
+//#define INCLUDEOS_SINGLE_THREADED
+
+#ifdef INCLUDEOS_SINGLE_THREADED
+#define SMP_MAX_CORES   1
+#else
+#define SMP_MAX_CORES   16
+#endif
+
+#define SMP_ALIGN       64
+
+/// x86-related locking stuff ///
+#ifdef ARCH_X86
+// Intel 3a  8.10.6.7: 128-byte boundary
+typedef volatile int spinlock_t __attribute__((aligned(128)));
+
+#ifdef INCLUDEOS_SINGLE_THREADED
+inline void lock(spinlock_t&) {}
+inline void unlock(spinlock_t&) {}
+#else
+inline void lock(spinlock_t& lock) {
+  while (__sync_lock_test_and_set(&lock, 1)) {
+    while (lock) asm("pause");
+  }
+}
+inline void unlock(spinlock_t& lock) {
+  __sync_synchronize(); // barrier
+  lock = 0;
+}
+#endif
+
+struct minimal_barrier_t
+{
+  void inc()
+  {
+    __sync_fetch_and_add(&val, 1);
+  }
+  
+  void spin_wait(int max)
+  {
+    asm("mfence");
+    while (this->val < max) {
+      asm("pause; nop;");
+    }
+  }
+  
+  void reset(int val)
+  {
+    asm volatile("mfence");
+    this->val = val;
+  }
+  
+private:
+  volatile int val = 0;
+};
+
+#include <array>
+#ifdef INCLUDEOS_SINGLE_THREADED
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  return array[0];
+}
+#else
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  unsigned cpuid;
+  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
+  return array.at(cpuid);
+}
+#endif
+#endif
+
 
 class SMP {
 public:
-  using task_func = hw::SMP::smp_task_func;
-  using done_func = hw::SMP::smp_done_func;
-  
-  static void
-  add_task(task_func func, done_func done)
-  {
-    hw::SMP::add_task(func, done);
-  }
-  
-  static void signal()
-  {
-    hw::SMP::work_signal();
-  }
+  using task_func = delegate<void()>;
+  using done_func = delegate<void()>;
+
+  // return the current CPU id
+  static int cpu_id() noexcept;
+
+  // return the number of active CPUs
+  static int cpu_count() noexcept;
+
+  // implement this function to execute something on all APs at init
+  static void init_task();
+
+  // execute @func on another CPU core
+  // call @done back on main CPU when task returns
+  // use signal() to broadcast work should begin
+  static void add_task(task_func func, done_func done);
+  static void add_task(task_func func);
+
+  // call this to signal that tasks are queued up
+  static void signal();
+
+  // broadcast-trigger interrupt on all waiting APs
+  static void broadcast(uint8_t intr);
+
+  // a global spinlock to synchronize text output (and other things)
+  static void global_lock()   noexcept;
+  static void global_unlock() noexcept;
 };
+
+// access a std::array of structs indexed by current CPU id
+#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, x.size()>(x))
 
 #endif

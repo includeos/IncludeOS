@@ -25,13 +25,12 @@
 #include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
 #include <kernel/rtc.hpp>
-
-#include <hw/acpi.hpp>
 #include <hw/serial.hpp>
 
 #include <statman>
 #include <kprint>
 #include <info>
+#include <smp>
 
 
 #if defined (UNITTESTS) && !defined(__MACH__)
@@ -42,8 +41,6 @@
 
 // We can't use the usual "info", as printf isn't available after call to exit
 #define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
-
-#define SHUTDOWN_ON_PANIC 1
 
 char*   __env[1] {nullptr};
 char**  environ {__env};
@@ -153,15 +150,13 @@ char*  get_crash_context_buffer()
   return _crash_context_buffer;
 }
 
-static void default_panic_handler()
+struct alignas(SMP_ALIGN) panic_struct
 {
-  // shutdown the machine
-  if (SHUTDOWN_ON_PANIC)
-      hw::ACPI::shutdown();
-}
-__attribute__((weak))
-OS::on_panic_func panic_handler = default_panic_handler;
+  bool reenter = false;
+};
+static std::array<panic_struct, SMP_MAX_CORES> panic_stuff;
 
+OS::on_panic_func panic_handler = nullptr;
 /**
  * panic:
  * Display reason for kernel panic
@@ -172,8 +167,16 @@ OS::on_panic_func panic_handler = default_panic_handler;
  *    the kernel panics
  * If the handler returns, go to (permanent) sleep
 **/
-void panic(const char* why) {
-  fprintf(stderr, "\n\t**** PANIC: ****\n %s\n", why);
+void panic(const char* why)
+{
+  /// prevent re-entering panic() more than once per CPU
+  if (PER_CPU(panic_stuff).reenter)
+      OS::reboot();
+  PER_CPU(panic_stuff).reenter = true;
+  /// display informacion ...
+  SMP::global_lock();
+  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n", 
+          SMP::cpu_id(), why);
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
@@ -191,12 +194,18 @@ void panic(const char* why) {
          heap_total / 1024,
          total * 100.0);
   print_backtrace();
+  fflush(stderr);
+  SMP::global_unlock();
 
-  // Signal End-Of-Transmission
-  fprintf(stderr, "\x04"); fflush(stderr);
+  // call custom on panic handler
+  if (panic_handler) panic_handler();
 
-  // call on_panic handler
-  panic_handler();
+  if (SMP::cpu_id() == 1) {
+    SMP::global_lock();
+    // Signal End-Of-Transmission
+    fprintf(stderr, "\x04"); fflush(stderr);
+    SMP::global_unlock();
+  }
 
   // .. if we return from the panic handler, go to permanent sleep
   while (1) asm("cli; hlt");
@@ -205,7 +214,7 @@ void panic(const char* why) {
 
 // Shutdown the machine when one of the exit functions are called
 void default_exit() {
-  hw::ACPI::shutdown();
+  __arch_poweroff();
   __builtin_unreachable();
 }
 

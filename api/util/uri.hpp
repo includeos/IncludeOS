@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,8 +19,10 @@
 #ifndef UTIL_URI_HPP
 #define UTIL_URI_HPP
 
-#include <experimental/string_view>
+#include <string>
 #include <unordered_map>
+
+#include "detail/string_view"
 
 namespace uri {
 
@@ -77,23 +79,48 @@ class URI {
   /// Construct using a C-String representing a uri
   ///
   /// @param uri
-  /// A C-String representing a uri
+  ///   A C-String representing a uri
   ///
   /// @param parse
-  /// Whether to perform parsing on the the data specified in {uri}
+  ///   Whether to perform parsing on the the data specified in {uri}
   ///
   URI(const char* uri, const bool parse = true);
+
+  ///
+  /// Construct using a C-String representing a uri
+  ///
+  /// @param uri
+  ///   A view of a string representing a uri
+  ///
+  /// @param count
+  ///   The number of char's from {uri} representing a uri
+  ///
+  /// @param parse
+  ///   Whether to perform parsing on the the data specified in {uri}
+  ///
+  explicit URI(const char* uri, const size_t count, const bool parse = true);
+
+  ///
+  /// Construct using a std::string representing a uri
+  ///
+  /// @param uri
+  ///   A std::string representing a uri
+  ///
+  /// @param parse
+  ///   Whether to perform parsing on the the data specified in {uri}
+  ///
+  explicit URI(const std::string& uri, const bool parse = true);
 
   ///
   /// Construct using a view of a string representing a uri
   ///
   /// @param uri
-  /// A view of a string representing a uri
+  ///   A view of a string representing a uri
   ///
   /// @param parse
-  /// Whether to perform parsing on the the data specified in {uri}
+  ///   Whether to perform parsing on the the data specified in {uri}
   ///
-  explicit URI(const std::experimental::string_view uri, const bool parse = true);
+  explicit URI(util::csview uri, const bool parse = true);
 
   ///////////////////////////////////////////////
   //----------RFC-specified URI parts----------//
@@ -106,7 +133,7 @@ class URI {
   ///
   /// @return The scheme
   ///
-  std::experimental::string_view scheme() const noexcept;
+  util::sview scheme() const noexcept;
 
   ///
   /// Get userinfo.
@@ -115,7 +142,7 @@ class URI {
   ///
   /// @return The user's information
   ///
-  std::experimental::string_view userinfo() const noexcept;
+  util::sview userinfo() const noexcept;
 
   ///
   /// Get host.
@@ -124,7 +151,7 @@ class URI {
   ///
   /// @return The host's information
   ///
-  std::experimental::string_view host() const noexcept;
+  util::sview host() const noexcept;
 
   ///
   /// Check if host portion is an IPv4 address.
@@ -134,23 +161,27 @@ class URI {
   bool host_is_ip4() const noexcept;
 
   ///
-  /// Get host and port as a view
+  /// Check if host portion is an IPv6 address.
+  ///
+  /// @return True, maybe.
+  ///
+  bool host_is_ip6() const noexcept;
+
+  ///
+  /// Get host and port information
   ///
   /// Format <host>:<port>
   ///
-  /// @return host and port as a view
+  /// @return host and port information
   ///
-  /// @note IIf the uri don't contain port information this
-  /// method is same as calling URI::host
-  ///
-  std::experimental::string_view host_and_port() const noexcept;
+  std::string host_and_port() const;
 
   ///
   /// Get the raw port number in decimal character representation.
   ///
   /// @return The raw port number in decimal character representation
   ///
-  std::experimental::string_view port_str() const noexcept;
+  util::sview port_str() const noexcept;
 
   ///
   /// Get numeric port number.
@@ -169,14 +200,14 @@ class URI {
   ///
   /// @return The path information
   ///
-  std::experimental::string_view path() const noexcept;
+  util::sview path() const noexcept;
 
   ///
   /// Get the complete unparsed query string.
   ///
   /// @return The complete unparsed query string
   ///
-  std::experimental::string_view query() const noexcept;
+  util::sview query() const noexcept;
 
   ///
   /// Get the fragment part.
@@ -185,7 +216,7 @@ class URI {
   ///
   /// @return the fragment part
   ///
-  std::experimental::string_view fragment() const noexcept;
+  util::sview fragment() const noexcept;
 
   ///
   /// Get the URI-decoded value of a query-string key.
@@ -198,7 +229,7 @@ class URI {
   /// @example For the query: "?name=Bjarne%20Stroustrup",
   /// query("name") returns "Bjarne Stroustrup"
   ///
-  std::experimental::string_view query(const std::experimental::string_view key);
+  util::sview query(util::csview key);
 
   ///
   /// Check to see if an object of this type is valid
@@ -258,15 +289,15 @@ private:
 
   uint16_t port_ {0xFFFF};
 
-  std::experimental::string_view scheme_;
-  std::experimental::string_view userinfo_;
-  std::experimental::string_view host_;
-  std::experimental::string_view port_str_;
-  std::experimental::string_view path_;
-  std::experimental::string_view query_;
-  std::experimental::string_view fragment_;
+  util::sview scheme_;
+  util::sview userinfo_;
+  util::sview host_;
+  util::sview port_str_;
+  util::sview path_;
+  util::sview query_;
+  util::sview fragment_;
 
-  std::unordered_map<std::experimental::string_view, std::experimental::string_view> query_map_;
+  std::unordered_map<util::sview, util::sview> query_map_;
 
   ///
   /// Load queries into the map

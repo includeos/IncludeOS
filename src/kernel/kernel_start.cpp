@@ -22,28 +22,13 @@
 #define MULTIBOOT_CMDLINE_LOC 0x7000
 
 extern "C" void __init_sanity_checks();
+extern "C" void kernel_sanity_checks();
 extern "C" void _init_c_runtime();
 extern "C" void _init_syscalls();
 extern "C" void _init();
 
-// enables Streaming SIMD Extensions
-static void enableSSE(void) noexcept
-{
-  asm ("mov %cr0, %eax");
-  asm ("and $0xFFFB,%ax");
-  asm ("or  $0x2,   %ax");
-  asm ("mov %eax, %cr0");
-
-  asm ("mov %cr4, %eax");
-  asm ("or  $0x600,%ax");
-  asm ("mov %eax, %cr4");
-}
-
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)  {
-
-  // enable SSE extensions bitmask in CR4 register
-  enableSSE();
 
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
@@ -66,7 +51,10 @@ void kernel_start(uintptr_t magic, uintptr_t addr)  {
 
   // Initialize OS including devices
   OS::start(magic, addr);
-  
+
+  // verify certain read-only sections in memory
+  kernel_sanity_checks();
+
   // Starting event loop from here allows us to profile OS::start
   OS::event_loop();
 }

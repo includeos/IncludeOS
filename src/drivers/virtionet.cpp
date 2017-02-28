@@ -20,18 +20,19 @@
 //#define DEBUG2
 
 #include "virtionet.hpp"
-#include <net/packet.hpp>
 #include <kernel/irq_manager.hpp>
-#include <kernel/syscalls.hpp>
-#include <hw/pci.hpp>
-#include <cstdlib>
 #include <malloc.h>
-#include <string.h>
+#include <cstring>
 
 //#define NO_DEFERRED_KICK
 #ifndef NO_DEFERRED_KICK
-static std::vector<VirtioNet*> deferred_devices;
-static uint8_t deferred_intr;
+#include <smp>
+struct alignas(SMP_ALIGN) smp_deferred_kick
+{
+  std::vector<VirtioNet*> devs;
+  uint8_t irq;
+};
+static std::array<smp_deferred_kick, SMP_MAX_CORES> deferred_devs;
 #endif
 
 using namespace net;
@@ -43,13 +44,13 @@ void VirtioNet::get_config() {
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
     Link(Link_protocol{{this, &VirtioNet::transmit}, mac()},
-        std::max(4096u, queue_size(0) * 2), sizeof(net::Packet) + sizeof(virtio_net_hdr) + packet_len()),
+        std::max(2048u, queue_size(0) * 2), 2048 /* half-page buffers */),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {
   INFO("VirtioNet", "Driver initializing");
-  // this must be true, otherwise packets will be created incorrectly
-  assert(sizeof(virtio_net_hdr) <= sizeof(Packet));
+  static_assert(VIRTIO_HDR_OFFSET >= sizeof(virtio_net_hdr),
+                "Must be at least larger than the driver header itself");
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)
@@ -149,15 +150,11 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   if (has_msix())
   {
     assert(get_msix_vectors() >= 3);
-    // for now use service queues, otherwise stress test fails
-    auto recv_del(delegate<void()>{this, &VirtioNet::msix_recv_handler});
-    auto xmit_del(delegate<void()>{this, &VirtioNet::msix_xmit_handler});
-    auto conf_del(delegate<void()>{this, &VirtioNet::msix_conf_handler});
-
+    auto& irqs = this->get_irqs();
     // update BSP IDT
-    IRQ_manager::get().subscribe(irq() + 0, recv_del);
-    IRQ_manager::get().subscribe(irq() + 1, xmit_del);
-    IRQ_manager::get().subscribe(irq() + 2, conf_del);
+    IRQ_manager::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
+    IRQ_manager::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
+    IRQ_manager::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
   }
   else
   {
@@ -168,8 +165,9 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   static bool init_deferred = false;
   if (!init_deferred) {
     init_deferred = true;
-    deferred_intr = IRQ_manager::get().get_next_msix_irq();
-    IRQ_manager::get().subscribe(deferred_intr, handle_deferred_devices);
+    auto defirq = IRQ_manager::get().get_free_irq();
+    PER_CPU(deferred_devs).irq = defirq;
+    IRQ_manager::get().subscribe(defirq, handle_deferred_devices);
   }
 #endif
 
@@ -250,7 +248,7 @@ void VirtioNet::add_receive_buffer(uint8_t* pkt)
   auto* vnet = pkt + sizeof(Packet);
 
   Token token1 {{vnet, sizeof(virtio_net_hdr)}, Token::IN };
-  Token token2 {{vnet + sizeof(virtio_net_hdr), packet_len()}, Token::IN };
+  Token token2 {{vnet + VIRTIO_HDR_OFFSET, packet_len()}, Token::IN };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
   rx_q.enqueue(tokens);
@@ -264,7 +262,9 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
   assert(bufstore().is_from_pool((uint8_t*) ptr));
   assert(bufstore().is_buffer((uint8_t*) ptr));
 #endif
+
   new (ptr) net::Packet(frame_offset_device(), size - frame_offset_device(), frame_offset_device() + packet_len(), &bufstore());
+
   return net::Packet_ptr(ptr);
 }
 
@@ -274,7 +274,9 @@ VirtioNet::create_packet(int link_offset)
  debug("<Virtionet> Creating packet, device offset %i (virtionet header size %i) link offset %i \n",
          frame_offset_device(), sizeof(virtio_net_hdr), link_offset);
   auto* ptr = (net::Packet*) bufstore().get_buffer();
+
   new (ptr) net::Packet(frame_offset_device() + link_offset, 0, frame_offset_device() + packet_len(), &bufstore());
+
   return net::Packet_ptr(ptr);
 }
 
@@ -361,21 +363,21 @@ void VirtioNet::begin_deferred_kick()
 #else
   if (!deferred_kick) {
     deferred_kick = true;
-    deferred_devices.push_back(this);
-    IRQ_manager::get().register_irq(deferred_intr);
+    PER_CPU(deferred_devs).devs.push_back(this);
+    IRQ_manager::get().register_irq(PER_CPU(deferred_devs).irq);
   }
 #endif
 }
 void VirtioNet::handle_deferred_devices()
 {
 #ifndef NO_DEFERRED_KICK
-  for (auto* dev : deferred_devices) {
+  for (auto* dev : PER_CPU(deferred_devs).devs) {
     // kick transmitq
     dev->deferred_kick = false;
     dev->tx_q.enable_interrupts();
     dev->tx_q.kick();
   }
-  deferred_devices.clear();
+  PER_CPU(deferred_devs).devs.clear();
 #endif
 }
 
@@ -389,6 +391,23 @@ void VirtioNet::deactivate()
   /// mask off MSI-X vectors
   if (has_msix())
       deactivate_msix();
+}
+
+void VirtioNet::move_to_this_cpu()
+{
+  INFO("VirtioNet", "Moving to CPU %d", SMP::cpu_id());
+  this->Virtio::move_to_this_cpu();
+  // reset the IRQ handlers
+  auto& irqs = this->Virtio::get_irqs();
+  IRQ_manager::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
+  IRQ_manager::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
+  IRQ_manager::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
+
+#ifndef NO_DEFERRED_KICK
+  auto defirq = IRQ_manager::get().get_free_irq();
+  PER_CPU(deferred_devs).irq = defirq;
+  IRQ_manager::get().subscribe(defirq, handle_deferred_devices);
+#endif
 }
 
 #include <kernel/pci_manager.hpp>

@@ -56,15 +56,15 @@ bool Header::set_field(std::string field, std::string value) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Header::has_field(const std::experimental::string_view field) const noexcept {
+bool Header::has_field(util::csview field) const noexcept {
   return find(field) not_eq fields_.cend();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view Header::value(const std::experimental::string_view field) const noexcept {
+util::sview Header::value(util::csview field) const noexcept {
   if (field.empty()) return field;
   const auto it = find(field);
-  return (it not_eq fields_.cend()) ? it->second : std::experimental::string_view{};
+  return (it not_eq fields_.cend()) ? it->second : util::sview{};
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -78,9 +78,8 @@ std::size_t Header::size() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void Header::erase(const std::experimental::string_view field) noexcept {
+void Header::erase(util::csview field) noexcept {
   Const_iterator target;
-  //-----------------------------------
   while ((target = find(field)) not_eq fields_.cend()) fields_.erase(target);
 }
 
@@ -89,29 +88,24 @@ void Header::clear() noexcept {
   fields_.clear();
 }
 
-size_t Header::content_length() const
-{
-  try
-  {
+///////////////////////////////////////////////////////////////////////////////
+size_t Header::content_length() const noexcept {
+  try {
     const auto cl = value(header::Content_Length);
-
     if(cl.empty()) return 0;
-
-    return std::stoul(cl.to_string());
-  }
-  catch(...)
-  {
+    return std::stoul(std::string{cl.data(), cl.length()});
+  } catch(...) {
     return 0;
   }
 }
 
-bool Header::set_content_length(size_t len)
-{
+///////////////////////////////////////////////////////////////////////////////
+bool Header::set_content_length(const size_t len) {
   return set_field(header::Content_Length, std::to_string(len));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Header::Const_iterator Header::find(const std::experimental::string_view field) const noexcept {
+Header::Const_iterator Header::find(util::csview field) const noexcept {
   if (field.empty()) return fields_.cend();
   //-----------------------------------
   return

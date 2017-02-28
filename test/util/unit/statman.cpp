@@ -15,12 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <common.cxx>
 #include <util/statman.hpp>
 
-// IncludeOS
-#include <common.cxx>
+const Statman::Size_type NUM_BYTES_GIVEN {1000};
 
-const Statman::Size_type NUM_BYTES_GIVEN = 1000;
+using namespace std;
 
 CASE( "Creating Statman objects" )
 {
@@ -134,7 +134,7 @@ CASE( "Creating and running through three Stats using Statman iterators begin an
 
                 if (i == 0)
                 {
-                  EXPECT(s.name() == "net.tcp.dropped");
+                  EXPECT(s.name() == "net.tcp.dropped"s);
                   EXPECT(s.get_uint32() == 2);
                   EXPECT_THROWS(s.get_uint64());
                   EXPECT_THROWS(s.get_float());
@@ -142,14 +142,14 @@ CASE( "Creating and running through three Stats using Statman iterators begin an
                 }
                 else if (i == 1)
                 {
-                  EXPECT(s.name() == "net.tcp.bytes_transmitted");
+                  EXPECT(s.name() == "net.tcp.bytes_transmitted"s);
                   EXPECT(s.get_uint64() == 0);
                   EXPECT_THROWS(s.get_float());
                   EXPECT(s.index() == 1);
                 }
                 else
                 {
-                  EXPECT(s.name() == "net.tcp.average");
+                  EXPECT(s.name() == "net.tcp.average"s);
                   EXPECT(s.get_float() == 2.0f);
                   EXPECT_THROWS(s.get_uint32());
                   EXPECT_THROWS(s.get_uint64());
