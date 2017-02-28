@@ -18,11 +18,11 @@ Inet4::Inet4(hw::Nic& nic)
   Ensures(sizeof(IP4::addr) == 4);
 
   /** Upstream delegates */
-  auto arp_bottom(upstream{arp_, &Arp::bottom});
-  auto ip4_bottom(upstream{ip4_, &IP4::bottom});
-  auto icmp4_bottom(upstream{icmp_, &ICMPv4::bottom});
-  auto udp4_bottom(upstream{udp_, &UDP::bottom});
-  auto tcp_bottom(upstream{tcp_, &TCP::bottom});
+  auto arp_bottom(upstream{arp_, &Arp::receive});
+  auto ip4_bottom(upstream{ip4_, &IP4::receive});
+  auto icmp4_bottom(upstream{icmp_, &ICMPv4::receive});
+  auto udp4_bottom(upstream{udp_, &UDP::receive});
+  auto tcp_bottom(upstream{tcp_, &TCP::receive});
 
   /** Upstream wiring  */
   // Packets available
@@ -45,7 +45,7 @@ Inet4::Inet4(hw::Nic& nic)
 
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());
-  auto arp_top(downstream{arp_, &Arp::transmit});
+  auto arp_top(IP4::downstream_arp{arp_, &Arp::transmit});
   auto ip4_top(downstream{ip4_, &IP4::transmit});
 
   /** Downstream wiring. */

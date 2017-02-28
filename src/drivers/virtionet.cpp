@@ -42,8 +42,8 @@ void VirtioNet::get_config() {
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
-    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, 
-        std::max(2048u, queue_size(0) * 2), sizeof(net::Packet) + sizeof(virtio_net_hdr) + packet_len()),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()},
+        std::max(4096u, queue_size(0) * 2), sizeof(net::Packet) + sizeof(virtio_net_hdr) + packet_len()),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {
@@ -264,14 +264,17 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
   assert(bufstore().is_from_pool((uint8_t*) ptr));
   assert(bufstore().is_buffer((uint8_t*) ptr));
 #endif
-  new (ptr) net::Packet(packet_len(), size - sizeof(virtio_net_hdr), sizeof(virtio_net_hdr), &bufstore());
+  new (ptr) net::Packet(frame_offset_device(), size - frame_offset_device(), frame_offset_device() + packet_len(), &bufstore());
   return net::Packet_ptr(ptr);
 }
+
 net::Packet_ptr
-VirtioNet::create_packet(uint16_t size)
+VirtioNet::create_packet(int link_offset)
 {
+ debug("<Virtionet> Creating packet, device offset %i (virtionet header size %i) link offset %i \n",
+         frame_offset_device(), sizeof(virtio_net_hdr), link_offset);
   auto* ptr = (net::Packet*) bufstore().get_buffer();
-  new (ptr) net::Packet(packet_len(), size, sizeof(virtio_net_hdr), &bufstore());
+  new (ptr) net::Packet(frame_offset_device() + link_offset, 0, frame_offset_device() + packet_len(), &bufstore());
   return net::Packet_ptr(ptr);
 }
 
@@ -333,15 +336,16 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
   if (UNLIKELY(tail)) {
     debug("Buffering remaining packets..\n");
     add_to_tx_buffer(std::move(tail));
-  }
+    }
 }
 
 void VirtioNet::enqueue(net::Packet* pckt)
 {
-  auto* hdr = pckt->buffer() - sizeof(virtio_net_hdr);
-  
+  Expects(pckt->layer_begin() == pckt->buf() + sizeof(virtio_net_hdr));
+  auto* hdr = pckt->buf();
+
   Token token1 {{ hdr, sizeof(virtio_net_hdr)}, Token::OUT };
-  Token token2 {{ pckt->buffer(), pckt->size()}, Token::OUT };
+  Token token2 {{ pckt->layer_begin(), pckt->size()}, Token::OUT };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
 

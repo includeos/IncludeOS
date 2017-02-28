@@ -21,6 +21,7 @@
 
 #include <string>
 #include "header.hpp"
+#include "ethertype.hpp"
 #include <hw/mac_addr.hpp> // ethernet address
 #include <hw/nic.hpp> // protocol
 #include <net/inet_common.hpp>
@@ -32,39 +33,8 @@ namespace net {
   public:
     static constexpr size_t MINIMUM_PAYLOAD = 46;
 
-    /**
-     *  Some big-endian ethernet types
-     *
-     *  From http://en.wikipedia.org/wiki/EtherType
-     */
-    enum ethertype_le {
-      _ETH_IP4   = 0x0800,
-      _ETH_ARP   = 0x0806,
-      _ETH_WOL   = 0x0842,
-      _ETH_IP6   = 0x86DD,
-      _ETH_FLOW  = 0x8808,
-      _ETH_JUMBO = 0x8870
-    };
-
-    /** Little-endian ethertypes. */
-    enum ethertype {
-      ETH_IP4   = 0x8,
-      ETH_ARP   = 0x608,
-      ETH_WOL   = 0x4208,
-      ETH_IP6   = 0xdd86,
-      ETH_FLOW  = 0x888,
-      ETH_JUMBO = 0x7088,
-      ETH_VLAN  = 0x81
-    };
-
     // MAC address
-    using addr = hw::MAC_addr;
-
-    static const addr MULTICAST_FRAME;
-    static const addr BROADCAST_FRAME;
-
-    static const addr IPv6mcast_01;
-    static const addr IPv6mcast_02;
+    using addr = MAC::Addr;
 
     /** Constructor */
     explicit Ethernet(downstream physical_downstream, const addr& mac) noexcept;
@@ -108,7 +78,7 @@ namespace net {
     { return hw::Nic::Proto::ETH; }
 
     /** Transmit data, with preallocated space for eth.header */
-    void transmit(Packet_ptr);
+    void transmit(Packet_ptr, addr dest, Ethertype);
 
     /** Stats getters **/
     uint64_t get_packets_rx()

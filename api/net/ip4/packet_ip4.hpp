@@ -19,10 +19,9 @@
 #define IP4_PACKET_IP4_HPP
 
 #include <cassert>
-
-#include <net/util.hpp>
 #include <net/packet.hpp>
-#include "ip4.hpp"
+#include <net/inet_common.hpp>
+#include <net/ip4/ip4.hpp>
 
 namespace net {
 
@@ -31,23 +30,23 @@ namespace net {
   public:
     static constexpr size_t DEFAULT_TTL {64};
 
-    const IP4::addr& src() const noexcept
+    const ip4::Addr& src() const noexcept
     { return ip_header().saddr; }
 
-    void set_src(const IP4::addr& addr) noexcept
+    void set_src(const ip4::Addr& addr) noexcept
     { ip_header().saddr = addr; }
 
-    const IP4::addr& dst() const noexcept
+    const ip4::Addr& dst() const noexcept
     { return ip_header().daddr; }
 
-    void set_dst(const IP4::addr& addr) noexcept
+    void set_dst(const ip4::Addr& addr) noexcept
     { ip_header().daddr = addr; }
 
-    void set_protocol(IP4::proto p) noexcept
-    { ip_header().protocol = p; }
+    void set_protocol(Protocol p) noexcept
+    { ip_header().protocol = static_cast<uint8_t>(p); }
 
-    uint8_t protocol() const noexcept
-    { return ip_header().protocol; }
+    Protocol protocol() const noexcept
+    { return static_cast<Protocol>(ip_header().protocol); }
 
     uint16_t ip_segment_length() const noexcept
     { return ntohs(ip_header().tot_len); }
@@ -55,14 +54,18 @@ namespace net {
     uint8_t ip_header_length() const noexcept
     { return (ip_header().version_ihl & 0xf) * 4; }
 
-    uint8_t ip_full_header_length() const noexcept
-    { return sizeof(IP4::full_header) - sizeof(IP4::ip_header) + ip_header_length(); }
-
     uint16_t ip_data_length() const noexcept
     { return ip_segment_length() - ip_header_length(); }
 
     void set_ip_data_length(uint16_t length) {
-      set_size(ip_full_header_length() + length);
+      Expects(data_end() >= layer_begin());
+      Expects(sizeof(IP4::header) + length <= (size_t) capacity());
+      set_data_end(sizeof(IP4::header) + length);
+      Expects(length <= size());
+      Ensures(data_end() >= layer_begin() + sizeof(IP4::header));
+      Ensures(size() >= length);
+      Ensures(size() < bufsize());
+
       set_segment_length();
     }
 
@@ -73,22 +76,17 @@ namespace net {
       set_ip4_checksum();
     }
 
-    void init(uint8_t proto = 0) noexcept {
+    void init(Protocol proto = Protocol::HOPOPT) noexcept {
+      Expects(size() == 0);
       auto& hdr = ip_header();
       hdr.version_ihl    = 0x45;
       hdr.tos            = 0;
       hdr.id             = 0;
       hdr.frag_off_flags = 0;
       hdr.ttl            = DEFAULT_TTL;
-      hdr.protocol       = proto;
-      set_size(ip_full_header_length());
+      hdr.protocol       = static_cast<uint8_t>(proto);
+      set_ip_data_length(0);
     }
-
-  protected:
-    char* ip_data() noexcept __attribute__((assume_aligned(4)))
-    { return (char*) (buffer() + ip_full_header_length()); }
-    const char* ip_data() const noexcept __attribute__((assume_aligned(4)))
-    { return (char*) (buffer() + ip_full_header_length()); }
 
     /**
      *  Set IP4 header length
@@ -96,14 +94,34 @@ namespace net {
      *  Inferred from packet size and linklayer header size
      */
     void set_segment_length() noexcept
-    { ip_header().tot_len = htons(size() - sizeof(LinkLayer::header)); }
+    { ip_header().tot_len = htons(size()); }
+
+
+  protected:
+
+
+    Byte* ip_data() noexcept __attribute__((assume_aligned(4)))
+    {
+      Expects((size_t)(data_end() - layer_begin()) >= sizeof(IP4::header));
+      return layer_begin() + ip_header_length();
+    }
+
+    const Byte* ip_data() const noexcept __attribute__((assume_aligned(4)))
+    {
+      Expects((size_t)(data_end() - layer_begin()) >= sizeof(IP4::header));
+      return layer_begin() + ip_header_length();
+    }
 
   private:
+
+    void set_header_length() noexcept
+    { }
+
     const ip4::Header& ip_header() const noexcept
-    { return ((const IP4::full_header*) buffer())->ip_hdr; }
+    { return *reinterpret_cast<const IP4::header*>(layer_begin()); }
 
     ip4::Header& ip_header() noexcept
-    { return (reinterpret_cast<IP4::full_header*>(buffer()))->ip_hdr; }
+    { return *reinterpret_cast<IP4::header*>(layer_begin()); }
 
     void set_ip4_checksum() noexcept {
       auto& hdr = ip_header();

@@ -126,7 +126,7 @@ public:
   }
 
   /** Mac address. */
-  const hw::MAC_addr& mac() const noexcept override
+  const MAC::Addr& mac() const noexcept override
   { return _conf.mac; }
 
   uint16_t MTU() const noexcept override
@@ -136,10 +136,14 @@ public:
     return Link::Protocol::header_size() + MTU();
   }
 
+  net::Packet_ptr create_packet(int) override;
+
+  size_t frame_offset_device() override
+  { return sizeof(virtio_net_hdr); };
+
   net::downstream create_physical_downstream()
   { return {this, &VirtioNet::transmit}; }
 
-  net::Packet_ptr create_packet(uint16_t) override;
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);
@@ -197,7 +201,7 @@ private:
 
   // From Virtio 1.01, 5.1.4
   struct config{
-    hw::MAC_addr mac;
+    MAC::Addr mac;
     uint16_t status;
 
     //Only valid if VIRTIO_NET_F_MQ

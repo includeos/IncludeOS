@@ -105,13 +105,13 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 #define wmb() asm volatile("" : : : "memory")
 
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
-    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, 
-         2048, 
+    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()},
+         2048,
          sizeof(net::Packet) + packet_len())
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
-  
+
   if (d.has_msix())
   {
     uint8_t msix_vectors = d.get_msix_vectors();
@@ -119,14 +119,14 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
     assert(msix_vectors >= 3);
     if (msix_vectors > 3) msix_vectors = 3;
     std::vector<uint8_t> irqs;
-    
+
     for (int i = 0; i < msix_vectors; i++)
     {
       auto irq = IRQ_manager::get().get_next_msix_irq();
       d.setup_msix_vector(0x0, IRQ_BASE + irq);
       irqs.push_back(irq);
     }
-    
+
     IRQ_manager::get().subscribe(irqs[0], {this, &vmxnet3::msix_evt_handler});
     IRQ_manager::get().subscribe(irqs[1], {this, &vmxnet3::msix_xmit_handler});
     IRQ_manager::get().subscribe(irqs[2], {this, &vmxnet3::msix_recv_handler});
@@ -134,22 +134,22 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   else {
     assert(0 && "This driver does not support legacy IRQs");
   }
-  
+
   // dma areas
   this->iobase = d.get_bar(PCI_BAR_VD);
   assert(this->iobase);
   this->ptbase = d.get_bar(PCI_BAR_PT);
   assert(this->ptbase);
-  
+
   // verify and select version
   assert(check_version());
-  
+
   // reset device
   assert(reset());
-  
+
   // get mac address
   retrieve_hwaddr();
-  
+
   // check link status
   auto link_spd = check_link();
   if (link_spd) {
@@ -159,14 +159,14 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
     INFO2("LINK DOWN! :(");
     return;
   }
-  
+
   // set MAC
   set_hwaddr(this->hw_addr);
-  
+
   // initialize DMA areas
   this->dma = (vmxnet3_dma*) memalign(VMXNET3_DMA_ALIGN, sizeof(vmxnet3_dma));
   memset(this->dma, 0, sizeof(vmxnet3_dma));
-  
+
   auto& queues = dma->queues;
   // setup tx queues
   queues.tx.cfg.desc_address = (uintptr_t) &dma->tx_desc;
@@ -185,7 +185,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
     rx[q].desc1 = &dma->rx1_desc[0];
     rx[q].comp  = &dma->rx_comp[0];
     rx[q].index = q;
-    
+
     auto& queue = queues.rx[q];
     queue.cfg.desc_address[0] = (uintptr_t) rx[q].desc0;
     queue.cfg.desc_address[1] = (uintptr_t) rx[q].desc1;
@@ -201,7 +201,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   auto& shared = dma->shared;
   // setup shared physical area
   shared.magic = VMXNET3_REV1_MAGIC;
-  shared.misc.guest_info.arch = 
+  shared.misc.guest_info.arch =
       (sizeof(void*) == 4) ? GOS_BITS_32_BITS : GOS_BITS_64_BITS;
   shared.misc.guest_info.type = GOS_TYPE_LINUX;
   shared.misc.version         = VMXNET3_VERSION_MAGIC;
@@ -219,30 +219,30 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   shared.interrupt.event_intr_index = 0;
   memset(shared.interrupt.moderation_level, 0, VMXNET3_MAX_INTRS);
   shared.interrupt.control   = 0x1; // disable all
-  shared.rx_filter.mode = 
+  shared.rx_filter.mode =
       VMXNET3_RXM_UCAST | VMXNET3_RXM_BCAST | VMXNET3_RXM_ALL_MULTI;
-  
+
   // location of shared area to device
   uintptr_t shabus = (uintptr_t) &shared;
   mmio_write32(this->iobase + 0x10, shabus); // shared low
   mmio_write32(this->iobase + 0x18, 0x0);    // shared high
-  
+
   // activate device
   int status = command(VMXNET3_CMD_ACTIVATE_DEV);
   if (status) {
     assert(0 && "Failed to activate device");
   }
-  
+
   // initialize and fill RX queue...
   for (int q = 0; q < NUM_RX_QUEUES; q++)
   {
     refill(rx[q]);
   }
-  
+
   // deferred transmit
   this->deferred_irq = IRQ_manager::get().get_next_msix_irq();
   IRQ_manager::get().subscribe(this->deferred_irq, handle_deferred);
-  
+
   // enable interrupts
   enable_intr(0);
   enable_intr(1);
@@ -261,7 +261,7 @@ bool vmxnet3::check_version()
   uint32_t maj_ver = mmio_read32(this->iobase + 0x0);
   uint32_t min_ver = mmio_read32(this->iobase + 0x8);
   INFO("vmxnet3", "Version %d.%d", maj_ver, min_ver);
-  
+
   // select version we support
   mmio_write32(this->iobase + 0x0, 0x1);
   mmio_write32(this->iobase + 0x8, 0x1);
@@ -294,7 +294,7 @@ void vmxnet3::retrieve_hwaddr()
   memcpy(&this->hw_addr, &mac, sizeof(hw_addr));
   INFO2("MAC address: %s", hw_addr.to_string().c_str());
 }
-void vmxnet3::set_hwaddr(hw::MAC_addr& addr)
+void vmxnet3::set_hwaddr(MAC::Addr& addr)
 {
   struct {
     uint32_t lo;
@@ -302,7 +302,7 @@ void vmxnet3::set_hwaddr(hw::MAC_addr& addr)
   } mac {0, 0};
   // ETH_ALEN = 6
   memcpy(&mac, &addr, sizeof(addr));
-  
+
   mmio_write32(this->iobase + VMXNET3_VD_MAC_LO, mac.lo);
   mmio_write32(this->iobase + VMXNET3_VD_MAC_HI, mac.hi);
 }
@@ -333,25 +333,25 @@ void vmxnet3::refill(rxring_state& rxq)
       && bufstore().available() != 0)
   {
     size_t i = rxq.producers % vmxnet3::NUM_RX_DESC;
-    const uint32_t generation = 
+    const uint32_t generation =
         (rxq.producers & vmxnet3::NUM_RX_DESC) ? 0 : VMXNET3_RXF_GEN;
-    
+
     // get a pointer to packet data
     auto* pkt_data = bufstore().get_buffer();
     rxq.buffers[i] = &pkt_data[sizeof(net::Packet)];
-    
+
     // assign rx descriptor
     auto& desc = rxq.desc0[i];
     desc.address = (uintptr_t) rxq.buffers[i];
     desc.flags   = packet_len() | generation;
     rxq.prod_count++;
     rxq.producers++;
-    
+
     added_buffers = true;
   }
   if (added_buffers && old_value != rxq.producers) {
     // send count to NIC
-    mmio_write32(this->ptbase + VMXNET3_PT_RXPROD1 + 0x200 * rxq.index, 
+    mmio_write32(this->ptbase + VMXNET3_PT_RXPROD1 + 0x200 * rxq.index,
                  rxq.producers % vmxnet3::NUM_RX_DESC);
   }
 }
@@ -360,14 +360,14 @@ net::Packet_ptr
 vmxnet3::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (net::Packet*) (data - sizeof(net::Packet));
-  new (ptr) net::Packet(packet_len(), size, 0, &bufstore());
+  new (ptr) net::Packet(frame_offset_device(), size - frame_offset_device(), frame_offset_device() + packet_len() , &bufstore());
   return net::Packet_ptr(ptr);
 }
 net::Packet_ptr
-vmxnet3::create_packet(uint16_t size)
+vmxnet3::create_packet(int link_offset)
 {
   auto* ptr = (net::Packet*) bufstore().get_buffer();
-  new (ptr) net::Packet(packet_len(), size, 0, &bufstore());
+  new (ptr) net::Packet(frame_offset_device() + link_offset, 0 , frame_offset_device() + packet_len(), &bufstore());
   return net::Packet_ptr(ptr);
 }
 
@@ -377,7 +377,7 @@ void vmxnet3::msix_evt_handler()
   if (evts == 0) return;
   // ack all events
   mmio_write32(this->iobase + VMXNET3_VD_ECR, evts);
-  
+
   printf("[vmxnet3] events: %#x\n", evts);
 }
 void vmxnet3::msix_xmit_handler()
@@ -386,12 +386,12 @@ void vmxnet3::msix_xmit_handler()
   {
     uint32_t idx = tx.consumers % VMXNET3_NUM_TX_COMP;
     uint32_t gen = (tx.consumers & VMXNET3_NUM_TX_COMP) ? 0 : VMXNET3_TXCF_GEN;
-    
+
     auto& comp = dma->tx_comp[idx];
     if (gen != (comp.flags & VMXNET3_TXCF_GEN)) break;
-    
+
     tx.consumers++;
-    
+
     int desc = comp.index % vmxnet3::NUM_TX_DESC;
     if (tx.buffers[desc] == nullptr) {
       printf("empty buffer? comp=%d, desc=%d\n", idx, desc);
@@ -416,13 +416,13 @@ void vmxnet3::msix_recv_handler()
   {
     uint32_t idx = rx[0].consumers % VMXNET3_NUM_RX_COMP;
     uint32_t gen = (rx[0].consumers & VMXNET3_NUM_RX_COMP) ? 0 : VMXNET3_RXCF_GEN;
-    
+
     auto& comp = dma->rx_comp[idx];
     // break when exiting this generation
     if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
     rx[0].consumers++;
     rx[0].prod_count--;
-    
+
     int desc = comp.index % vmxnet3::NUM_RX_DESC;
     // mask out length
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
@@ -430,10 +430,10 @@ void vmxnet3::msix_recv_handler()
     assert(rx[0].buffers[desc] != nullptr);
     auto packet = recv_packet(rx[0].buffers[desc], len);
     rx[0].buffers[desc] = nullptr;
-    
+
     // handle_magic()
     Link::receive(std::move(packet));
-    
+
     // emergency refill when really empty
     if (rx[0].prod_count < VMXNET3_RX_FILL / 2)
         refill(rx[0]);
@@ -453,7 +453,7 @@ void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
     auto next = sendq->detach_tail();
     // transmit released buffer
     auto* packet = sendq.release();
-    transmit_data(packet->buffer(), packet->size());
+    transmit_data(packet->buf(), packet->size());
     // next is the new sendq
     sendq = std::move(next);
   }
@@ -470,7 +470,7 @@ bool vmxnet3::can_transmit() const noexcept
 void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
 {
 #define VMXNET3_TXF_EOP 0x000001000UL
-#define VMXNET3_TXF_CQ  0x000002000UL  
+#define VMXNET3_TXF_CQ  0x000002000UL
   auto idx = tx.producers % vmxnet3::NUM_TX_DESC;
   auto gen = (tx.producers & vmxnet3::NUM_TX_DESC) ? 0 : VMXNET3_TXF_GEN;
   tx.producers++;

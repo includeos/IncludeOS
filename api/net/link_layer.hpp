@@ -13,11 +13,11 @@ class Link_layer : public hw::Nic {
 public:
   using Protocol    = T;
   using upstream    = hw::Nic::upstream;
-  using downstream  = hw::Nic::downstream;
+  using downstream_link  = hw::Nic::downstream;
 public:
   explicit Link_layer(Protocol&& protocol, uint32_t bufstore_sz, uint16_t bufsz);
 
-  downstream create_link_downstream() override
+  downstream_link create_link_downstream() override
   { return {link_, &Protocol::transmit}; }
 
   void set_ip4_upstream(upstream handler) override
@@ -28,6 +28,14 @@ public:
 
   void set_arp_upstream(upstream handler) override
   { link_.set_arp_upstream(handler); }
+
+  /** Number of bytes in a frame needed by the device itself **/
+  virtual size_t frame_offset_device() override
+  { return 0; };
+
+  /** Number of bytes in a frame needed by the linklayer **/
+  virtual size_t frame_offset_link() override
+  { return Protocol::header_size(); }
 
   hw::Nic::Proto proto() const override
   { return Protocol::proto(); }

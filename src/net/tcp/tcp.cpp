@@ -158,12 +158,12 @@ uint16_t TCP::checksum(const tcp::Packet& packet)
 {
   short length = packet.tcp_length();
   // Compute sum of pseudo-header
-  uint32_t sum = 
+  uint32_t sum =
         (packet.src().whole >> 16)
       + (packet.src().whole & 0xffff)
       + (packet.dst().whole >> 16)
       + (packet.dst().whole & 0xffff)
-      + (IP4::IP4_TCP << 8)
+      + (static_cast<uint8_t>(Protocol::TCP) << 8)
       + htons(length);
 
   // Compute sum of header and data
@@ -171,13 +171,13 @@ uint16_t TCP::checksum(const tcp::Packet& packet)
   return net::checksum(sum, buffer, length);
 }
 
-void TCP::bottom(net::Packet_ptr packet_ptr) {
+void TCP::receive(net::Packet_ptr packet_ptr) {
   // Stat increment packets received
   packets_rx_++;
 
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
-  debug2("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
+  debug2("<TCP::receive> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), packet->destination().to_string().c_str());
 
   // Stat increment bytes received
@@ -185,7 +185,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 
   // Validate checksum
   if (UNLIKELY(checksum(*packet) != 0)) {
-    debug("<TCP::bottom> TCP Packet Checksum != 0 \n");
+    debug("<TCP::receive> TCP Packet Checksum != 0 \n");
     drop(*packet);
     return;
   }
@@ -197,20 +197,20 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 
   // Connection found
   if (conn_it != connections_.end()) {
-    debug("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
+    debug("<TCP::receive> Connection found: %s \n", conn_it->second->to_string().c_str());
     conn_it->second->segment_arrived(std::move(packet));
     return;
   }
 
   // No open connection found, find listener on port
   Listeners::iterator listener_it = listeners_.find(packet->dst_port());
-  debug("<TCP::bottom> No connection found - looking for listener..\n");
+  debug("<TCP::receive> No connection found - looking for listener..\n");
   // Listener found => Create listening Connection
   if (LIKELY(listener_it != listeners_.end())) {
     auto& listener = listener_it->second;
-    debug("<TCP::bottom> Listener found: %s\n", listener->to_string().c_str());
+    debug("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
     listener->segment_arrived(std::move(packet));
-    debug2("<TCP::bottom> Listener done with packet\n");
+    debug2("<TCP::receive> Listener done with packet\n");
     return;
   }
 

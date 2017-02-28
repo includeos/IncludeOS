@@ -42,7 +42,7 @@ public:
   }
 
   /** Mac address. */
-  const hw::MAC_addr& mac() const noexcept override
+  const MAC::Addr& mac() const noexcept override
   {
     return this->hw_addr;
   }
@@ -59,7 +59,7 @@ public:
   net::downstream create_physical_downstream()
   { return {this, &vmxnet3::transmit}; }
 
-  net::Packet_ptr create_packet(uint16_t) override;
+  net::Packet_ptr create_packet(int) override;
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);
@@ -110,11 +110,11 @@ private:
   bool     reset();
   uint32_t command(uint32_t cmd);
   void     retrieve_hwaddr();
-  void     set_hwaddr(hw::MAC_addr&);
+  void     set_hwaddr(MAC::Addr&);
 
   uintptr_t       iobase;
   uintptr_t       ptbase;
-  hw::MAC_addr    hw_addr;
+  MAC::Addr    hw_addr;
   vmxnet3_dma*    dma;
 
   ring_stuff tx;

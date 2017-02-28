@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG // Allow debugging
-//#define DEBUG2 // Allow debug lvl 2
+// #define DEBUG // Allow debugging
+// #define DEBUG2 // Allow debug lvl 2
 
 #include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
@@ -28,25 +28,22 @@ namespace net {
   const IP4::addr IP4::ADDR_ANY(0);
   const IP4::addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
 
-  IP4::IP4(Stack& inet) noexcept:
+  IP4::IP4(Stack& inet) noexcept :
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
   stack_            {inet}
-{
-  // Default gateway is addr 1 in the subnet.
-  // const uint32_t DEFAULT_GATEWAY = htonl(1);
-  // gateway_.whole = (local_ip_.whole & netmask_.whole) | DEFAULT_GATEWAY;
-}
+ { }
 
-  void IP4::bottom(Packet_ptr pckt) {
+  void IP4::receive(Packet_ptr pckt) {
+
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
     // Stat increment packets received
     packets_rx_++;
 
-    ip_header* hdr = &packet->ip_header();
+    header* hdr = &packet->ip_header();
 
     debug2("\t Source IP: %s Dest.IP: %s Type: 0x%x\n",
            hdr->saddr.str().c_str(), hdr->daddr.str().c_str(), hdr->protocol);
@@ -67,16 +64,16 @@ namespace net {
       return;
     }
 
-    switch(hdr->protocol){
-    case IP4_ICMP:
+    switch(packet->protocol()){
+    case Protocol::ICMPv4:
       debug2("\t Type: ICMP\n");
       icmp_handler_(std::move(packet));
       break;
-    case IP4_UDP:
+    case Protocol::UDP:
       debug2("\t Type: UDP\n");
       udp_handler_(std::move(packet));
       break;
-    case IP4_TCP:
+    case Protocol::TCP:
       tcp_handler_(std::move(packet));
       debug2("\t Type: TCP\n");
       break;
@@ -87,7 +84,7 @@ namespace net {
   }
 
   void IP4::transmit(Packet_ptr pckt) {
-    assert(pckt->size() > sizeof(IP4::full_header));
+    assert((size_t)pckt->size() > sizeof(header));
 
     auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
@@ -98,13 +95,14 @@ namespace net {
 
   void IP4::ship(Packet_ptr pckt) {
     auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
-    IP4::ip_header& hdr = ip4_pckt->ip_header();
+    IP4::header& hdr = ip4_pckt->ip_header();
+
     // Create local and target subnets
     addr target = hdr.daddr        & stack_.netmask();
     addr local  = stack_.ip_addr() & stack_.netmask();
 
     // Compare subnets to know where to send packet
-    ip4_pckt->next_hop(target == local ? hdr.daddr : stack_.gateway());
+    addr next_hop {target == local ? hdr.daddr : stack_.gateway()};
 
     debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
           hdr.daddr.str().c_str(),
@@ -116,16 +114,10 @@ namespace net {
     // Stat increment packets transmitted
     packets_tx_++;
 
-    linklayer_out_(std::move(ip4_pckt));
+    debug("<IP4> Transmitting packet, layer begin: buf + %i\n", ip4_pckt->layer_begin() - ip4_pckt->buf());
+
+    linklayer_out_(std::move(ip4_pckt), next_hop);
   }
 
-  // Empty handler for delegates initialization
-  void ignore_ip4_up(Packet_ptr) {
-    debug("<IP4> Empty handler. Ignoring.\n");
-  }
-
-  void ignore_ip4_down(Packet_ptr) {
-    debug("<IP4->Link layer> No handler - DROP!\n");
-  }
 
 } //< namespace net

@@ -94,7 +94,7 @@ namespace net {
     /*
       Receive packet from network layer (IP).
     */
-    void bottom(net::Packet_ptr);
+    void receive(net::Packet_ptr);
 
     /*
       Delegate output to network layer

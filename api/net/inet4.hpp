@@ -19,7 +19,6 @@
 #define NET_INET4_HPP
 
 #include "inet.hpp"
-#include "ethernet/ethernet.hpp"
 #include "ip4/arp.hpp"
 #include "ip4/ip4.hpp"
 #include "ip4/udp.hpp"
@@ -39,7 +38,7 @@ namespace net {
     std::string ifname() const override
     { return nic_.device_name(); }
 
-    hw::MAC_addr link_addr() override
+    MAC::Addr link_addr() override
     { return nic_.mac(); }
 
     hw::Nic& nic() override
@@ -57,7 +56,7 @@ namespace net {
     IP4& ip_obj() override
     { return ip4_; }
 
-    void cache_link_ip(IP4::addr ip, hw::MAC_addr mac) override
+    void cache_link_ip(IP4::addr ip, MAC::Addr mac) override
     { arp_.cache(ip, mac); }
 
     void flush_link_ip_cache() override
@@ -87,14 +86,28 @@ namespace net {
     /**
      * Get the forwarding delegate used by this stack.
      */
-    Forward_delg forward_delg() override { return forward_packet_; }
+    Forward_delg forward_delg() override
+    { return forward_packet_; }
 
-    /** Create a Packet, with a preallocated buffer.
-        @param size : the "size" reported by the allocated packet.
-    */
-    Packet_ptr create_packet(size_t size) override {
-      return nic_.create_packet(size);
+
+    Packet_ptr create_packet() override {
+      return nic_.create_packet(nic_.frame_offset_link());
     }
+
+    /**
+     * Provision an IP packet
+     * @param proto : IANA protocol number.
+     */
+    IP4::IP_packet_ptr create_ip_packet(Protocol proto) override {
+      auto raw = nic_.create_packet(nic_.frame_offset_link());
+      auto ip_packet = static_unique_ptr_cast<IP4::IP_packet>(std::move(raw));
+      ip_packet->init(proto);
+      return ip_packet;
+    }
+
+
+    IP_packet_factory ip_packet_factory() override
+    { return IP_packet_factory{this, &Inet4::create_ip_packet}; }
 
     /** MTU retreived from Nic on construction */
     uint16_t MTU() const override

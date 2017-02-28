@@ -217,7 +217,7 @@ namespace net
     dhcp->siaddr = IP4::ADDR_ANY;
     dhcp->giaddr = IP4::ADDR_ANY;
 
-    Ethernet::addr link_addr = stack.link_addr();
+    MAC::Addr link_addr = stack.link_addr();
 
     // copy our hardware address to chaddr field
     memset(dhcp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
@@ -393,7 +393,7 @@ namespace net
     resp->siaddr = IP4::ADDR_ANY;
     resp->giaddr = IP4::ADDR_ANY;
 
-    Ethernet::addr link_addr = stack.link_addr();
+    MAC::Addr link_addr = stack.link_addr();
 
     // copy our hardware address to chaddr field
     memset(resp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
