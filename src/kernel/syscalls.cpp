@@ -42,8 +42,6 @@
 // We can't use the usual "info", as printf isn't available after call to exit
 #define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
 
-#define SHUTDOWN_ON_PANIC 1
-
 char*   __env[1] {nullptr};
 char**  environ {__env};
 extern "C" {
@@ -152,15 +150,13 @@ char*  get_crash_context_buffer()
   return _crash_context_buffer;
 }
 
-static void default_panic_handler()
+struct alignas(SMP_ALIGN) panic_struct
 {
-  // shutdown the machine
-  if (SHUTDOWN_ON_PANIC)
-      __arch_poweroff();
-}
-__attribute__((weak))
-OS::on_panic_func panic_handler = default_panic_handler;
+  bool reenter = false;
+};
+static std::array<panic_struct, SMP_MAX_CORES> panic_stuff;
 
+OS::on_panic_func panic_handler = nullptr;
 /**
  * panic:
  * Display reason for kernel panic
@@ -173,8 +169,13 @@ OS::on_panic_func panic_handler = default_panic_handler;
 **/
 void panic(const char* why)
 {
+  /// prevent re-entering panic() more than once per CPU
+  if (PER_CPU(panic_stuff).reenter)
+      OS::reboot();
+  PER_CPU(panic_stuff).reenter = true;
+  /// display informacion ...
   SMP::global_lock();
-  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n", 
+  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n",
           SMP::cpu_id(), why);
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
@@ -193,13 +194,18 @@ void panic(const char* why)
          heap_total / 1024,
          total * 100.0);
   print_backtrace();
-
-  // Signal End-Of-Transmission
-  fprintf(stderr, "\x04"); fflush(stderr);
+  fflush(stderr);
   SMP::global_unlock();
 
-  // call on_panic handler
-  panic_handler();
+  // call custom on panic handler
+  if (panic_handler) panic_handler();
+
+  if (SMP::cpu_id() == 0) {
+    SMP::global_lock();
+    // Signal End-Of-Transmission
+    fprintf(stderr, "\x04"); fflush(stderr);
+    SMP::global_unlock();
+  }
 
   // .. if we return from the panic handler, go to permanent sleep
   while (1) asm("cli; hlt");

@@ -150,4 +150,18 @@ struct Addr {
 } // < namespace net
 
 
+// Allow IP4 address to be used as key in e.g. std::unordered_map
+namespace std
+{
+  template<> struct hash<net::ip4::Addr>
+  {
+    using argument_type = net::ip4::Addr;
+    using result_type = uint32_t;
+    result_type operator()(argument_type const& addr) const
+    {
+      return std::hash<result_type>{}(addr.whole);
+    }
+  };
+}
+
 #endif // < NET_IP4_ADDR_HPP

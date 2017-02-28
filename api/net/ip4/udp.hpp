@@ -76,18 +76,12 @@ namespace net {
     };
 
     /** UDP header */
-    struct udp_header {
+    struct header {
       port_t   sport;
       port_t   dport;
       uint16_t length;
       uint16_t checksum;
     };
-
-    /** Full UDP Header with all sub-headers */
-    struct full_header {
-      IP4::full_header full_hdr;
-      udp_header       udp_hdr;
-    }__attribute__((packed));
 
     ////////////////////////////////////////////
 
@@ -95,7 +89,7 @@ namespace net {
     { return stack_.ip_addr(); }
 
     /** Input from network layer */
-    void bottom(net::Packet_ptr);
+    void receive(net::Packet_ptr);
 
     /** Delegate output to network layer */
     void set_network_out(downstream del)
@@ -135,7 +129,7 @@ namespace net {
     void process_sendq(size_t num);
 
     inline constexpr uint16_t max_datagram_size() noexcept {
-      return stack().ip_obj().MDDS() - sizeof(udp_header);
+      return stack().ip_obj().MDDS() - sizeof(header);
     }
 
     class Port_in_use_exception : public std::exception {
