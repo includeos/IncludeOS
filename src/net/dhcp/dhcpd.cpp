@@ -95,9 +95,12 @@ void DHCPD::update_pool(IP4::addr ip, Status new_status) {
 
 void DHCPD::listen() {
   socket_.on_read([&] (IP4::addr, UDP::port_t port,
-    const char* data, size_t) {
+    const char* data, size_t len) {
 
     if (port == DHCP_CLIENT_PORT) {
+      if (len < sizeof(dhcp_packet_t))
+        return;
+
       // Message
       const dhcp_packet_t* msg = (dhcp_packet_t*) data;
       // Options
@@ -304,8 +307,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   if (ridx not_eq -1)
     return;
 
-  const size_t packetlen = sizeof(dhcp_packet_t);
-  char packet[packetlen];
+  char packet[PACKET_SIZE];
 
   // If we want to offer this client an IP address: Create a RECORD
   Record record;
@@ -364,7 +366,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer->magic[3] =  99;
 
   // OPTIONS
-  dhcp_option_t* offer_opts = (dhcp_option_t*) (offer->options + 0);
+  dhcp_option_t* offer_opts = conv_option(offer->options, 0);
 
   // DHCPOFFER Options:
   // Requested IP address                                         MUST NOT
@@ -385,11 +387,11 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts->val[0] = DHCPOFFER;
 
   // SERVER_IDENTIFIER (the server's network address(es))
-  offer_opts = (dhcp_option_t*) (offer->options + 3);     // 3 bytes filled in prior
+  offer_opts = conv_option(offer->options, 3);     // 3 bytes filled in prior
   add_server_id(offer_opts);
 
   // SUBNET_MASK
-  offer_opts = (dhcp_option_t*) (offer->options + 9);     // 9 bytes filled in prior
+  offer_opts = conv_option(offer->options, 9);     // 9 bytes filled in prior
   offer_opts->code = DHO_SUBNET_MASK;
   offer_opts->length = 4;
   offer_opts->val[0] = netmask_.part(3);
@@ -398,7 +400,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts->val[3] = netmask_.part(0);
 
   // ROUTERS
-  offer_opts = (dhcp_option_t*) (offer->options + 15);      // 15 bytes filled in prior
+  offer_opts = conv_option(offer->options, 15);      // 15 bytes filled in prior
   offer_opts->code = DHO_ROUTERS;
   offer_opts->length = 4;
   offer_opts->val[0] = router_.part(3);
@@ -408,7 +410,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
 
   // LEASE_TIME
   // Time in units of seconds (32-bit unsigned integer / 4 uint8_t)
-  offer_opts = (dhcp_option_t*) (offer->options + 21);      // 21 bytes filled in prior
+  offer_opts = conv_option(offer->options, 21);      // 21 bytes filled in prior
   offer_opts->code = DHO_DHCP_LEASE_TIME;
   offer_opts->length = 4;
   offer_opts->val[0] = (lease_ & 0xff000000) >> 24;
@@ -418,13 +420,13 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
 
   // MESSAGE (SHOULD)
   // No error message (only in DHCPNAK)
-  offer_opts = (dhcp_option_t*) (offer->options + 27);      // 27 bytes filled in prior
+  offer_opts = conv_option(offer->options, 27);      // 27 bytes filled in prior
   offer_opts->code = DHO_DHCP_MESSAGE;
   offer_opts->length = 1;
   offer_opts->val[0] = 0;
 
   // TIME_OFFSET
-  offer_opts = (dhcp_option_t*) (offer->options + 30);
+  offer_opts = conv_option(offer->options, 30);
   offer_opts->code = DHO_TIME_OFFSET;
   offer_opts->length = 4;
   offer_opts->val[0] = 0;
@@ -433,7 +435,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts->val[3] = 0;
 
   // DOMAIN_NAME_SERVERS
-  offer_opts = (dhcp_option_t*) (offer->options + 36);
+  offer_opts = conv_option(offer->options, 36);
   offer_opts->code = DHO_DOMAIN_NAME_SERVERS;
   offer_opts->length = 4;
   offer_opts->val[0] = dns_.part(3);
@@ -442,7 +444,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts->val[3] = dns_.part(0);
 
   // BROADCAST_ADDRESS
-  offer_opts = (dhcp_option_t*) (offer->options + 42);
+  offer_opts = conv_option(offer->options, 42);
   offer_opts->code = DHO_BROADCAST_ADDRESS;
   offer_opts->length = 4;
   auto broadcast = broadcast_address();
@@ -452,7 +454,7 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   offer_opts->val[3] = broadcast.part(0);
 
   // END
-  offer_opts = (dhcp_option_t*) (offer->options + 48);
+  offer_opts = conv_option(offer->options, 48);
   offer_opts->code   = DHO_END;
   offer_opts->length = 0;
 
@@ -462,26 +464,26 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   // If the giaddr field in a DHCP message from a client is non-zero, the server sends any return
   // messages to the DHCP server port on the BOOTP relay agent whose address appears in giaddr
   if (msg->giaddr != IP4::addr{0}) {
-    socket_.sendto(msg->giaddr, DHCP_SERVER_PORT, packet, packetlen);
+    socket_.sendto(msg->giaddr, DHCP_SERVER_PORT, packet, PACKET_SIZE);
     return;
   }
   // If the giaddr field is zero and the ciaddr field is non-zero, then the server unicasts
   // DHCPOFFER and DHCPACK messages to the address in ciaddr
   if (msg->ciaddr != IP4::addr{0}) {
-    socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, packet, packetlen);
+    socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
     return;
   }
   // If giaddr is zero and ciaddr is zero, and the broadcast bit (leftmost bit in flags field) is set,
   // then the server broadcasts DHCPOFFER and DHCPACK messsages to 0xffffffff
   if (msg->flags & BOOTP_BROADCAST) {
-    socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, packetlen);
+    socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
     return;
   }
   // If the broadcast bit is not set and giaddr is zero and ciaddr is zero, then the server unicasts
   // DHCPOFFER and DHCPACK messages to the client's hardware address and yiaddr address
-  socket_.sendto(msg->yiaddr, DHCP_CLIENT_PORT, packet, packetlen);
+  socket_.sendto(msg->yiaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
   // TODO: Send the message to the client's hardware address:
-  // socket_.sendto(, DHCP_CLIENT_PORT, packet, packetlen);
+  // socket_.sendto(, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
 }
 
 void DHCPD::inform_ack(const dhcp_packet_t* msg) {
@@ -500,8 +502,7 @@ void DHCPD::inform_ack(const dhcp_packet_t* msg) {
   // check for an existing lease. The server forms a DHCPACK message containing the configuration parameters
   // for the requesting client and sends the DHCPACK message directly to the client.
 
-  const size_t packetlen = sizeof(dhcp_packet_t);
-  char packet[packetlen];
+  char packet[PACKET_SIZE];
 
   // ACK
   dhcp_packet_t* ack = (dhcp_packet_t*) packet;
@@ -525,7 +526,7 @@ void DHCPD::inform_ack(const dhcp_packet_t* msg) {
   ack->magic[3] =  99;
 
   // OPTIONS
-  dhcp_option_t* ack_opts = (dhcp_option_t*) (ack->options + 0);
+  dhcp_option_t* ack_opts = conv_option(ack->options, 0);
 
   // MESSAGE_TYPE
   ack_opts->code = DHO_DHCP_MESSAGE_TYPE;
@@ -535,7 +536,7 @@ void DHCPD::inform_ack(const dhcp_packet_t* msg) {
   // TODO Add options requested by the client
 
   // Send the DHCPACK - Unicast to DHCPINFORM message's ciaddr field
-  socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, packet, packetlen);
+  socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
 }
 
 void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
@@ -548,8 +549,7 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
 
   // Table 3 RFC 2131 DHCPACK
 
-  const size_t packetlen = sizeof(dhcp_packet_t);
-  char packet[packetlen];
+  char packet[PACKET_SIZE];
 
   // ACK
   dhcp_packet_t* ack = (dhcp_packet_t*) packet;
@@ -577,7 +577,7 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   ack->magic[3] =  99;
 
   // OPTIONS
-  dhcp_option_t* ack_opts = (dhcp_option_t*) (ack->options + 0);
+  dhcp_option_t* ack_opts = conv_option(ack->options, 0);
 
   // MESSAGE_TYPE
   ack_opts->code = DHO_DHCP_MESSAGE_TYPE;
@@ -585,7 +585,7 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   ack_opts->val[0] = DHCPACK;
 
   // LEASE_TIME (MUST)
-  ack_opts = (dhcp_option_t*) (ack->options + 3);     // 3 bytes filled in prior
+  ack_opts = conv_option(ack->options, 3);     // 3 bytes filled in prior
   ack_opts->code = DHO_DHCP_LEASE_TIME;
   ack_opts->length = 4;
   ack_opts->val[0] = (lease_ & 0xff000000) >> 24;
@@ -594,53 +594,52 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   ack_opts->val[3] = (lease_ & 0x000000ff);
 
   // SERVER_IDENTIFIER (the server's network address(es))
-  ack_opts = (dhcp_option_t*) (ack->options + 9);     // 9 bytes filled in prior
+  ack_opts = conv_option(ack->options, 9);     // 9 bytes filled in prior
   add_server_id(ack_opts);
 
   // MESSAGE (SHOULD)
   // No error message (only in DHCPNAK)
-  ack_opts = (dhcp_option_t*) (ack->options + 15);    // 15 bytes filled in prior
+  ack_opts = conv_option(ack->options, 15);    // 15 bytes filled in prior
   ack_opts->code = DHO_DHCP_MESSAGE;
   ack_opts->length = 1;
   ack_opts->val[0] = 0;
 
   // END
-  ack_opts = (dhcp_option_t*) (ack->options + 18);    // 18 bytes filled in prior
+  ack_opts = conv_option(ack->options, 18);    // 18 bytes filled in prior
   ack_opts->code   = DHO_END;
   ack_opts->length = 0;
 
   // If the giaddr field in a DHCP message from a client is non-zero, the server sends any return
   // messages to the DHCP server port on the BOOTP relay agent whose address appears in giaddr
   if (msg->giaddr != IP4::addr{0}) {
-    socket_.sendto(msg->giaddr, DHCP_SERVER_PORT, packet, packetlen);
+    socket_.sendto(msg->giaddr, DHCP_SERVER_PORT, packet, PACKET_SIZE);
     return;
   }
   // If the giaddr field is zero and the ciaddr field is non-zero, then the server unicasts
   // DHCPOFFER and DHCPACK messages to the address in ciaddr
   if (msg->ciaddr != IP4::addr{0}) {
-    socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, packet, packetlen);
+    socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
     return;
   }
   // If giaddr is zero and ciaddr is zero, and the broadcast bit (leftmost bit in flags field) is set,
   // then the server broadcasts DHCPOFFER and DHCPACK messsages to 0xffffffff
   std::bitset<8> bits(msg->flags);
   if (bits[7] == 1) {
-    socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, packetlen);
+    socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
     return;
   }
   // If the broadcast bit is not set and giaddr is zero and ciaddr is zero, then the server unicasts
   // DHCPOFFER and DHCPACK messages to the client's hardware address and yiaddr address
-  socket_.sendto(msg->yiaddr, DHCP_CLIENT_PORT, packet, packetlen);
+  socket_.sendto(msg->yiaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
   // TODO: Send the message to the client's hardware address:
-  // socket_.sendto(, DHCP_CLIENT_PORT, packet, packetlen);
+  // socket_.sendto(, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
 }
 
 void DHCPD::nak(const dhcp_packet_t* msg) {
   // DHCPNAK: Server to client indicating client’s notion of network address is incorrect (e.g., client
   // has moved to new subnet) or client’s lease has expired
 
-  const size_t packetlen = sizeof(dhcp_packet_t);
-  char packet[packetlen];
+  char packet[PACKET_SIZE];
 
   // NAK
   dhcp_packet_t* nak = (dhcp_packet_t*) packet;
@@ -659,7 +658,7 @@ void DHCPD::nak(const dhcp_packet_t* msg) {
   std::memcpy(nak->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN);
 
   // OPTIONS
-  dhcp_option_t* nak_opts = (dhcp_option_t*) (nak->options + 0);
+  dhcp_option_t* nak_opts = conv_option(nak->options, 0);
 
   // MESSAGE_TYPE
   nak_opts->code = DHO_DHCP_MESSAGE_TYPE;
@@ -667,36 +666,36 @@ void DHCPD::nak(const dhcp_packet_t* msg) {
   nak_opts->val[0] = DHCPNAK;
 
   // MESSAGE (SHOULD)
-  nak_opts = (dhcp_option_t*) (nak->options + 3);   // 3 bytes filled in prior
+  nak_opts = conv_option(nak->options, 3);   // 3 bytes filled in prior
   nak_opts->code = DHO_DHCP_MESSAGE;
   // TODO Fill in error message instead of 0
   nak_opts->length = 1;
   nak_opts->val[0] = 0;
 
   // SERVER_IDENTIFIER
-  nak_opts = (dhcp_option_t*) (nak->options + 6);   // 6 bytes filled in prior
+  nak_opts = conv_option(nak->options, 6);   // 6 bytes filled in prior
   add_server_id(nak_opts);
 
   // END
-  nak_opts = (dhcp_option_t*) (nak->options + 12);  // 12 bytes filled in prior
+  nak_opts = conv_option(nak->options, 12);  // 12 bytes filled in prior
   nak_opts->code = DHO_END;
   nak_opts->length = 0;
 
   // Send the DHCPNAK - Broadcast
-  socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, packetlen);
+  socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
 }
 
 bool DHCPD::valid_options(const dhcp_option_t* opts) const {
-  //int num_bytes = 0;
+  int num_bytes = 0;
   int num_options = 0;
 
   const dhcp_option_t* opt = opts;
   while (opt->code != DHO_END) {
-    //num_bytes += 2 + opt->length;
+    num_bytes += 2 + opt->length;
     num_options++;
 
     // F.ex. if DHO_END isn't included
-    if (/*num_bytes > DHCP_VEND_LEN or*/ num_options > MAX_NUM_OPTIONS)
+    if (num_bytes > DHCP_VEND_LEN or num_options > MAX_NUM_OPTIONS)
       return false;
 
     // go to next option
@@ -704,15 +703,6 @@ bool DHCPD::valid_options(const dhcp_option_t* opts) const {
   }
 
   return true;
-}
-
-const dhcp_option_t* DHCPD::get_option(const dhcp_option_t* opts, int code) const {
-  const dhcp_option_t* opt = opts;
-  while (opt->code != code && opt->code != DHO_END) {
-    // go to next option
-    opt = (const dhcp_option_t*) (((const uint8_t*) opt) + 2 + opt->length);
-  }
-  return opt;
 }
 
 Record::byte_seq DHCPD::get_client_id(const uint8_t* chaddr, const dhcp_option_t* opts) const {

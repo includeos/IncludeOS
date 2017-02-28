@@ -28,36 +28,38 @@ namespace net {
   // some clients silently ignore responses less than 300 bytes
   static const int DEFAULT_PACKET_SIZE =  300;
 
-  struct dhcp_packet_t
-  {
-    static const uint8_t CHADDR_LEN =  16;
-    static const uint8_t SNAME_LEN  =  64;
-    static const uint8_t FILE_LEN   = 128;
-
-    uint8_t  op;          // message opcode
-    uint8_t  htype;       // hardware addr type
-    uint8_t  hlen;        // hardware addr length
-    uint8_t  hops;        // relay agent hops from client
-    uint32_t xid;         // transaction ID
-    uint16_t secs;        // seconds since start
-    uint16_t flags;       // flag bits
-    IP4::addr ciaddr;     // client IP address
-    IP4::addr yiaddr;     // client IP address
-    IP4::addr siaddr;     // IP address of next server
-    IP4::addr giaddr;     // DHCP relay agent IP address
-    uint8_t  chaddr[CHADDR_LEN];  // client hardware address
-    uint8_t  sname[SNAME_LEN];    // server name
-    uint8_t  file[FILE_LEN];      // BOOT filename
-    uint8_t  magic[4];            // option_format aka magic
-    uint8_t  options[DHCP_VEND_LEN];
-  };
-
   struct dhcp_option_t
   {
     uint8_t code;
     uint8_t length;
     uint8_t val[0];
   };
+
+  struct dhcp_packet_t
+  {
+    static const uint8_t CHADDR_LEN =  16;
+    static const uint8_t SNAME_LEN  =  64;
+    static const uint8_t FILE_LEN   = 128;
+
+    uint8_t   op;           // message opcode
+    uint8_t   htype;        // hardware addr type
+    uint8_t   hlen;         // hardware addr length
+    uint8_t   hops;         // relay agent hops from client
+    uint32_t  xid;          // transaction ID
+    uint16_t  secs;         // seconds since start
+    uint16_t  flags;        // flag bits
+    IP4::addr ciaddr;       // client IP address
+    IP4::addr yiaddr;       // client IP address
+    IP4::addr siaddr;       // IP address of next server
+    IP4::addr giaddr;       // DHCP relay agent IP address
+    uint8_t   chaddr[CHADDR_LEN];  // client hardware address
+    uint8_t   sname[SNAME_LEN];    // server name
+    uint8_t   file[FILE_LEN];      // BOOT filename
+    uint8_t   magic[4];            // option_format aka magic
+    dhcp_option_t   options[0];
+  };
+
+  static const uint16_t PACKET_SIZE = sizeof(dhcp_packet_t) + DHCP_VEND_LEN;
 
   // BOOTP (rfc951) message types
   static const uint8_t BOOTREQUEST =  1;
@@ -183,6 +185,23 @@ namespace net {
   static const uint8_t ETH_ALEN =         6;  // octets in one ethernet header
   static const uint8_t DHCP_SERVER_PORT = 67;
   static const uint8_t DHCP_CLIENT_PORT = 68;
+
+  static inline dhcp_option_t* conv_option(dhcp_option_t* option, int offset)
+  {
+    return (dhcp_option_t*) ((char*) option + offset);
+  }
+
+  static inline const dhcp_option_t* get_option(const dhcp_option_t* opts, uint8_t code)
+  {
+    const dhcp_option_t* opt = opts;
+    while (opt->code != code && opt->code != DHO_END)
+    {
+      // go to next option
+      opt = (const dhcp_option_t*) (((const uint8_t*) opt) + 2 + opt->length);
+    }
+    return opt;
+  }
+
 } // < namespace net
 
 #endif

@@ -27,11 +27,6 @@
 
 namespace net
 {
-  inline dhcp_option_t* conv_option(uint8_t* option)
-  {
-    return (dhcp_option_t*) option;
-  }
-
   DHClient::DHClient(Stack& inet)
     : stack(inet), xid(0), console_spam(true), in_progress(false)
   {
@@ -82,8 +77,7 @@ namespace net
       MYINFO("Negotiating IP-address (xid=%u)", xid);
 
     // create DHCP discover packet
-    const size_t packetlen = sizeof(dhcp_packet_t);
-    char packet[packetlen];
+    char packet[PACKET_SIZE];
 
     dhcp_packet_t* dhcp = (dhcp_packet_t*) packet;
     dhcp->op    = BOOTREQUEST;
@@ -111,33 +105,33 @@ namespace net
     dhcp->magic[2] =  83;
     dhcp->magic[3] =  99;
 
-    dhcp_option_t* opt = conv_option(dhcp->options + 0);
+    dhcp_option_t* opt = conv_option(dhcp->options, 0);
     // DHCP discover
     opt->code   = DHO_DHCP_MESSAGE_TYPE;
     opt->length = 1;
     opt->val[0] = DHCPDISCOVER;
     // DHCP client identifier
-    opt = conv_option(dhcp->options + 3);
+    opt = conv_option(dhcp->options, 3);
     opt->code   = DHO_DHCP_CLIENT_IDENTIFIER;
     opt->length = 7;
     opt->val[0] = HTYPE_ETHER;
     memcpy(&opt->val[1], &link_addr, ETH_ALEN);
     // DHCP Parameter Request Field
-    opt = conv_option(dhcp->options + 12);
+    opt = conv_option(dhcp->options, 12);
     opt->code   = DHO_DHCP_PARAMETER_REQUEST_LIST;
     opt->length = 3;
     opt->val[0] = DHO_ROUTERS;
     opt->val[1] = DHO_SUBNET_MASK;
     opt->val[2] = DHO_DOMAIN_NAME_SERVERS;
     // END
-    opt = conv_option(dhcp->options + 17);
+    opt = conv_option(dhcp->options, 17);
     opt->code   = DHO_END;
     opt->length = 0;
 
     ////////////////////////////////////////////////////////
     auto& socket = stack.udp().bind(DHCP_CLIENT_PORT);
     /// broadcast our DHCP plea as 0.0.0.0:67
-    socket.bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, packet, packetlen);
+    socket.bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, packet, PACKET_SIZE);
 
     socket.on_read(
     [this, &socket] (IP4::addr, UDP::port_t port,
@@ -151,17 +145,6 @@ namespace net
         this->offer(socket, data, len);
       }
     });
-  }
-
-  const dhcp_option_t* get_option(const uint8_t* options, uint8_t code)
-  {
-    const dhcp_option_t* opt = (const dhcp_option_t*) options;
-    while (opt->code != code && opt->code != DHO_END)
-      {
-        // go to next option
-        opt = (const dhcp_option_t*) (((const uint8_t*) opt) + 2 + opt->length);
-      }
-    return opt;
   }
 
   void DHClient::offer(UDPSocket& sock, const char* data, size_t)
@@ -191,16 +174,10 @@ namespace net
 
     // the offered IP address:
     this->ipaddr = dhcp->yiaddr;
-    if (console_spam)
-      MYINFO("IP ADDRESS: \t%s", this->ipaddr.str().c_str());
 
     opt = get_option(dhcp->options, DHO_SUBNET_MASK);
     if (opt->code == DHO_SUBNET_MASK)
-    {
       memcpy(&this->netmask, opt->val, sizeof(IP4::addr));
-      if (console_spam)
-        MYINFO("SUBNET MASK: \t%s", this->netmask.str().c_str());
-    }
 
     opt = get_option(dhcp->options, DHO_DHCP_LEASE_TIME);
     if (opt->code == DHO_DHCP_LEASE_TIME)
@@ -209,9 +186,6 @@ namespace net
         ((uint32_t) opt->val[1]) << 16 |
         ((uint32_t) opt->val[2]) <<  8 |
         ((uint32_t) opt->val[3]) <<  0);
-
-      if (console_spam)
-        MYINFO("LEASE TIME: \t%u mins", this->lease_time / 60);
     }
 
     // Preserve DHCP server address
@@ -226,18 +200,12 @@ namespace net
     if (opt->code == DHO_ROUTERS)
     {
       memcpy(&this->router, opt->val, sizeof(IP4::addr));
-      if (console_spam)
-        MYINFO("GATEWAY: \t%s", this->router.str().c_str());
     }
     // assume that the server we received the request from is the gateway
     else
     {
       if (server_id)
-      {
         memcpy(&this->router, server_id->val, sizeof(IP4::addr));
-        if (console_spam)
-          MYINFO("GATEWAY: \t%s", this->router.str().c_str());
-      }
       // silently ignore when both ROUTER and SERVER_ID is missing
       else return;
     }
@@ -251,8 +219,6 @@ namespace net
     { // just try using ROUTER as DNS server
       this->dns_server = this->router;
     }
-    if (console_spam)
-      MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
 
     // we can accept the offer now by requesting the IP!
     this->request(sock, server_id);
@@ -261,8 +227,7 @@ namespace net
   void DHClient::request(UDPSocket& sock, const dhcp_option_t* server_id)
   {
     // form a response
-    const size_t packetlen = sizeof(dhcp_packet_t);
-    char packet[packetlen];
+    char packet[PACKET_SIZE];
 
     dhcp_packet_t* resp = (dhcp_packet_t*) packet;
     resp->op    = BOOTREQUEST;
@@ -291,19 +256,19 @@ namespace net
     resp->magic[2] =  83;
     resp->magic[3] =  99;
 
-    dhcp_option_t* opt = conv_option(resp->options + 0);
+    dhcp_option_t* opt = conv_option(resp->options, 0);
     // DHCP Request
     opt->code   = DHO_DHCP_MESSAGE_TYPE;
     opt->length = 1;
     opt->val[0] = DHCPREQUEST;
     // DHCP client identifier
-    opt = conv_option(resp->options + 3);
+    opt = conv_option(resp->options, 3);
     opt->code   = DHO_DHCP_CLIENT_IDENTIFIER;
     opt->length = 7;
     opt->val[0] = HTYPE_ETHER;
     memcpy(&opt->val[1], &link_addr, ETH_ALEN);
     // DHCP server identifier
-    opt = conv_option(resp->options + 12);
+    opt = conv_option(resp->options, 12);
     opt->code   = DHO_DHCP_SERVER_IDENTIFIER;
     opt->length = 4;
     if (server_id) {
@@ -314,19 +279,19 @@ namespace net
       MYINFO("Server IP set to gateway (%s)", ((IP4::addr*)&opt->val[0])->to_string().c_str());
     }
     // DHCP Requested Address
-    opt = conv_option(resp->options + 18);
+    opt = conv_option(resp->options, 18);
     opt->code   = DHO_DHCP_REQUESTED_ADDRESS;
     opt->length = 4;
     memcpy(&opt->val[0], &this->ipaddr, sizeof(IP4::addr));
     // DHCP Parameter Request Field
-    opt = conv_option(resp->options + 24);
+    opt = conv_option(resp->options, 24);
     opt->code   = DHO_DHCP_PARAMETER_REQUEST_LIST;
     opt->length = 3;
     opt->val[0] = DHO_ROUTERS;
     opt->val[1] = DHO_SUBNET_MASK;
     opt->val[2] = DHO_DOMAIN_NAME_SERVERS;
     // END
-    opt = conv_option(resp->options + 29);
+    opt = conv_option(resp->options, 29);
     opt->code   = DHO_END;
     opt->length = 0;
 
@@ -345,7 +310,7 @@ namespace net
     });
 
     // send our DHCP Request
-    sock.bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, packet, packetlen);
+    sock.bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, packet, PACKET_SIZE);
   }
 
   void DHClient::acknowledge(const char* data, size_t)
@@ -372,7 +337,14 @@ namespace net
     else return;
 
     if (console_spam)
+    {
       MYINFO("Server acknowledged our request!");
+      MYINFO("IP ADDRESS: \t%s", this->ipaddr.str().c_str());
+      MYINFO("SUBNET MASK: \t%s", this->netmask.str().c_str());
+      MYINFO("LEASE TIME: \t%u mins", this->lease_time / 60);
+      MYINFO("GATEWAY: \t%s", this->router.str().c_str());
+      MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
+    }
 
     // configure our network stack
     stack.network_config(this->ipaddr, this->netmask,
