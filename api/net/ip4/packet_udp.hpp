@@ -104,7 +104,7 @@ namespace net
       header().length = htons(sizeof(UDP::header) + newlen);
 
       // new total packet length
-      increment_data_end( sizeof(UDP::header) + newlen );
+      set_data_end(ip_header_length() + sizeof(UDP::header) + newlen );
     }
 
     // generates a new checksum and sets it for this UDP packet
