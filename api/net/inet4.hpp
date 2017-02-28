@@ -168,6 +168,14 @@ namespace net {
       INFO2("DNS Server: \t%s", dns_server.str().c_str());
     }
 
+    virtual void
+    reset_config() override
+    {
+      this->ip4_addr_ = IP4::ADDR_ANY;
+      this->gateway_ = IP4::ADDR_ANY;
+      this->netmask_ = IP4::ADDR_ANY;
+    }
+
     // register a callback for receiving signal on free packet-buffers
     virtual void
     on_transmit_queue_available(transmit_avail_delg del) override {

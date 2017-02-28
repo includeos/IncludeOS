@@ -83,7 +83,7 @@ namespace net {
                                 typename IPV::addr nmask,
                                 typename IPV::addr gateway,
                                 typename IPV::addr dnssrv = IPV::ADDR_ANY) = 0;
-
+    virtual void reset_config() = 0;
 
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
     virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) = 0;
