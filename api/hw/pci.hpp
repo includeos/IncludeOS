@@ -74,7 +74,7 @@ namespace hw {
 #ifdef ARCH_X86
     __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
 #else
-#warning "inpd() not implemented for selected arch"
+#warning "outp() not implemented for selected arch"
 #endif
   }
   static inline void outpw(port_t port, uint16_t data)
@@ -82,7 +82,7 @@ namespace hw {
 #ifdef ARCH_X86
     __asm__ volatile ("outw %%ax,%%dx"::"a" (data), "d"(port));
 #else
-#warning "inpd() not implemented for selected arch"
+#warning "outpw() not implemented for selected arch"
 #endif
   }
   static inline void outpd(port_t port, uint32_t data)
@@ -90,7 +90,7 @@ namespace hw {
 #ifdef ARCH_X86
     __asm__ volatile ("outl %%eax,%%dx"::"a" (data), "d"(port));
 #else
-#warning "inpd() not implemented for selected arch"
+#warning "outpd() not implemented for selected arch"
 #endif
   }
 
