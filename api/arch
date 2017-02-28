@@ -20,7 +20,6 @@
 #ifndef INCLUDEOS_ARCH_HEADER
 #define INCLUDEOS_ARCH_HEADER
 
-#define ARCH_X86
 #include <cstddef>
 #include <cstdint>
 
@@ -36,6 +35,11 @@ inline uint64_t __arch_cpu_cycles() noexcept {
   asm("rdtsc" : "=A" (ret));
   return ret;
 }
+#else
+inline uint64_t __arch_cpu_cycles() noexcept {
+  return 0;
+}
 #endif
 
 #endif
+

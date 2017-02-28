@@ -172,6 +172,7 @@ void Virtio::Queue::enable_interrupts() {
 
 void Virtio::Queue::kick()
 {
+#ifdef ARCH_X86
   update_avail_idx();
 
   // Std. §3.2.1 pt. 4
@@ -184,4 +185,8 @@ void Virtio::Queue::kick()
   }else{
     debug("<VirtioQueue>Virtio device says we can't kick!");
   }
+#else
+#warning "kick() not implemented for selected arch"
+#endif
 }
+

@@ -4,8 +4,8 @@ project(unittests C CXX)
 option(COVERAGE "Build with coverage generation" OFF)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "-m32 -g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR -DNO_INFO=1 -DNO_DEBUG=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_C_FLAGS "-mfpu=vfpv3-d16 -m32 -g -O0 -std=c11 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-mfpu=vfpv3-d16 -m32 -g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR -DNO_INFO=1 -DNO_DEBUG=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -35,7 +35,7 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/memdisk_test.cpp
   ${TEST}/fs/unit/path_test.cpp
   ${TEST}/fs/unit/vfs_test.cpp
-  ${TEST}/hw/unit/cpu_test.cpp
+  #${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
   ${TEST}/kernel/unit/kprint_test.cpp
@@ -93,23 +93,23 @@ set(OS_SOURCES
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp
-  ${SRC}/hw/ps2.cpp
-  ${SRC}/hw/serial.cpp
+  #${SRC}/hw/ps2.cpp
+  #${SRC}/hw/serial.cpp
   ${SRC}/kernel/block.cpp
-  ${SRC}/kernel/cpuid.cpp
+  #${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
-  ${SRC}/kernel/irq_manager.cpp
+  #${SRC}/kernel/irq_manager.cpp
   ${SRC}/kernel/kernel_start.cpp
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
   ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
-  ${SRC}/kernel/rdrand.cpp
+  #${SRC}/kernel/rdrand.cpp
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
-  ${SRC}/kernel/terminal.cpp
+  #${SRC}/kernel/terminal.cpp
   ${SRC}/kernel/terminal_disk.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/dns/client.cpp

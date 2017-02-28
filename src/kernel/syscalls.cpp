@@ -173,8 +173,9 @@ OS::on_panic_func panic_handler = default_panic_handler;
 **/
 void panic(const char* why)
 {
+#ifdef ARCH_X86
   SMP::global_lock();
-  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n", 
+  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n",
           SMP::cpu_id(), why);
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
@@ -204,6 +205,9 @@ void panic(const char* why)
   // .. if we return from the panic handler, go to permanent sleep
   while (1) asm("cli; hlt");
   __builtin_unreachable();
+#else
+#warning "panic() not implemented for selected arch"
+#endif
 }
 
 // Shutdown the machine when one of the exit functions are called
@@ -242,3 +246,4 @@ void _init_syscalls()
   // make sure that the buffers length is zero so it won't always show up in crashes
   _crash_context_buffer[0] = 0;
 }
+
