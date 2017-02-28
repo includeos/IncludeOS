@@ -266,6 +266,7 @@ class qemu(hypervisor):
         else:
             kernel_args = []
             image_in_config = False
+
             # If the provided image name is also defined in vm.json, use vm.json
             if "drives" in self._config:
                 for disk in self._config["drives"]:
@@ -274,6 +275,8 @@ class qemu(hypervisor):
                 if not image_in_config:
                     info ("Provided image", image_name, "not found in config. Appending.")
                     self._config["drives"].insert(0, {"file" : image_name, "type":"ide", "format":"raw", "media":"disk"})
+            else:
+                self._config["drives"] =[{"file" : image_name, "type":"ide", "format":"raw", "media":"disk"}]
 
             info ("Booting", image_name, "with a bootable disk image")
 
