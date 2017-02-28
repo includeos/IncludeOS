@@ -337,7 +337,7 @@ Connection::~Connection() {
 }
 
 Packet_ptr Connection::create_outgoing_packet() {
-  auto packet = static_unique_ptr_cast<net::tcp::Packet>((host_.inet_).create_packet(0));
+  auto packet = static_unique_ptr_cast<net::tcp::Packet>((host_.inet_).create_packet());
   //auto packet = std::static_pointer_cast<TCP::Packet>(create_packet());
 
   packet->init();
@@ -825,7 +825,7 @@ void Connection::parse_options(Packet& packet) {
 
   auto* opt = packet.tcp_options();
 
-  while((char*)opt < packet.tcp_data()) {
+  while((Byte*)opt < packet.tcp_data()) {
 
     auto* option = (Option*)opt;
 

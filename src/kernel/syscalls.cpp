@@ -175,7 +175,7 @@ void panic(const char* why)
   PER_CPU(panic_stuff).reenter = true;
   /// display informacion ...
   SMP::global_lock();
-  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n", 
+  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n",
           SMP::cpu_id(), why);
   // the crash context buffer can help determine cause of crash
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
@@ -200,7 +200,7 @@ void panic(const char* why)
   // call custom on panic handler
   if (panic_handler) panic_handler();
 
-  if (SMP::cpu_id() == 1) {
+  if (SMP::cpu_id() == 0) {
     SMP::global_lock();
     // Signal End-Of-Transmission
     fprintf(stderr, "\x04"); fflush(stderr);
