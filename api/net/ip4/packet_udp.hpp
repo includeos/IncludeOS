@@ -27,18 +27,31 @@ namespace net
   {
   public:
 
-    UDP::udp_header& header() const
+    UDP::header& header() noexcept
     {
-      return ((UDP::full_header*) buffer())->udp_hdr;
+      return *reinterpret_cast<UDP::header*>(ip_data());
     }
 
-    static const size_t HEADERS_SIZE = sizeof(UDP::full_header);
+    const UDP::header& header() const noexcept
+    {
+      return *reinterpret_cast<const UDP::header*>(ip_data());
+    }
 
     //! initializes to a default, empty UDP packet, given
     //! a valid MTU-sized buffer
     void init()
     {
-      PacketIP4::init();
+
+      // Promote to IP4 packet
+      // PacketIP4::init();
+      Expects(layer_begin() > buf());
+      Expects(data_end() == layer_begin() + ip_header_length());
+
+      // Promote to UDP packet
+      increment_data_end(sizeof(UDP::header));
+      Ensures(data_end() == layer_begin() + ip_header_length() + sizeof(UDP::header));
+
+      // Initialize UDP packet header
       // source and destination ports
       header().sport = 0;
       header().dport = 0;
@@ -46,15 +59,14 @@ namespace net
       set_length(0);
       // zero the optional checksum
       header().checksum = 0;
-      // set UDP payload location (!?)
-      set_payload(buffer() + sizeof(UDP::full_header));
-      set_protocol(IP4::IP4_UDP);
+      set_protocol(Protocol::UDP);
     }
 
     UDP::port_t src_port() const
     {
       return htons(header().sport);
     }
+
     UDP::port_t dst_port() const
     {
       return htons(header().dport);
@@ -64,23 +76,35 @@ namespace net
     {
       return ntohs(header().length);
     }
+
     uint16_t data_length() const
     {
-      return length() - sizeof(UDP::udp_header);
-    }
-    inline char* data()
-    {
-      return (char*) (buffer() + sizeof(UDP::full_header));
+      return length() - sizeof(UDP::header);
     }
 
-    // sets the correct length for all the protocols up to IP4
+    inline Byte* data()
+    {
+      return ip_data() + sizeof(UDP::header);
+    }
+
+    inline Byte* begin()
+    {
+      return data();
+    }
+
+    inline Byte* begin_free()
+    {
+      return begin() + length();
+    }
+
+    // Sets the correct length for UDP and the packet
     void set_length(uint16_t newlen)
     {
-      // new total UDPv6 payload length
-      header().length = htons(sizeof(UDP::udp_header) + newlen);
+      // new total UDP payload length
+      header().length = htons(sizeof(UDP::header) + newlen);
 
       // new total packet length
-      set_size( sizeof(UDP::full_header) + newlen );
+      set_data_end(ip_header_length() + sizeof(UDP::header) + newlen );
     }
 
     // generates a new checksum and sets it for this UDP packet

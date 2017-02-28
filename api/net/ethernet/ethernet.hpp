@@ -20,9 +20,8 @@
 #define NET_ETHERNET_HPP
 
 #include <string>
-
-#include "frame.hpp"
 #include "header.hpp"
+#include "ethertype.hpp"
 #include <hw/mac_addr.hpp> // ethernet address
 #include <hw/nic.hpp> // protocol
 #include <net/inet_common.hpp>
@@ -34,41 +33,8 @@ namespace net {
   public:
     static constexpr size_t MINIMUM_PAYLOAD = 46;
 
-    /**
-     *  Some big-endian ethernet types
-     *
-     *  From http://en.wikipedia.org/wiki/EtherType
-     */
-    enum ethertype_le {
-      _ETH_IP4   = 0x0800,
-      _ETH_ARP   = 0x0806,
-      _ETH_WOL   = 0x0842,
-      _ETH_IP6   = 0x86DD,
-      _ETH_FLOW  = 0x8808,
-      _ETH_JUMBO = 0x8870
-    };
-
-    /** Little-endian ethertypes. */
-    enum ethertype {
-      ETH_IP4   = 0x8,
-      ETH_ARP   = 0x608,
-      ETH_WOL   = 0x4208,
-      ETH_IP6   = 0xdd86,
-      ETH_FLOW  = 0x888,
-      ETH_JUMBO = 0x7088,
-      ETH_VLAN  = 0x81
-    };
-
-    using Frame = ethernet::Frame;
-
     // MAC address
-    using addr = hw::MAC_addr;
-
-    static const addr MULTICAST_FRAME;
-    static const addr BROADCAST_FRAME;
-
-    static const addr IPv6mcast_01;
-    static const addr IPv6mcast_02;
+    using addr = MAC::Addr;
 
     /** Constructor */
     explicit Ethernet(downstream physical_downstream, const addr& mac) noexcept;
@@ -106,13 +72,23 @@ namespace net {
     { return physical_downstream_; }
 
     static constexpr uint16_t header_size() noexcept
-    { return sizeof(ethernet::Header) + sizeof(ethernet::trailer_t); }
+    { return sizeof(ethernet::Header); }
 
     static constexpr hw::Nic::Proto proto() noexcept
     { return hw::Nic::Proto::ETH; }
 
     /** Transmit data, with preallocated space for eth.header */
-    void transmit(Packet_ptr);
+    void transmit(Packet_ptr, addr dest, Ethertype);
+
+    /** Stats getters **/
+    uint64_t get_packets_rx()
+    { return packets_rx_; }
+
+    uint64_t get_packets_tx()
+    { return packets_tx_; }
+
+    uint64_t get_packets_dropped()
+    { return packets_dropped_; }
 
   private:
     const addr& mac_;
@@ -123,9 +99,9 @@ namespace net {
     uint32_t& packets_dropped_;
 
     /** Upstream OUTPUT connections */
-    upstream ip4_upstream_ = [](net::Packet_ptr){};
-    upstream ip6_upstream_ = [](net::Packet_ptr){};
-    upstream arp_upstream_ = [](net::Packet_ptr){};
+    upstream ip4_upstream_ = nullptr;
+    upstream ip6_upstream_ = nullptr;
+    upstream arp_upstream_ = nullptr;
 
     /** Downstream OUTPUT connection */
     downstream physical_downstream_ = [](Packet_ptr){};

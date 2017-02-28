@@ -44,8 +44,7 @@ namespace net
 
   void UDPSocket::internal_read(UDP::Packet_ptr udp)
   {
-    on_read_handler(
-        udp->src(), udp->src_port(), udp->data(), udp->data_length());
+    on_read_handler(udp->src(), udp->src_port(), (const char*) udp->data(), udp->data_length());
   }
 
   void UDPSocket::sendto(

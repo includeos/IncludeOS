@@ -217,7 +217,7 @@ namespace net
     dhcp->siaddr = IP4::ADDR_ANY;
     dhcp->giaddr = IP4::ADDR_ANY;
 
-    Ethernet::addr link_addr = stack.link_addr();
+    MAC::Addr link_addr = stack.link_addr();
 
     // copy our hardware address to chaddr field
     memset(dhcp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
@@ -259,14 +259,14 @@ namespace net
     socket.bcast(IP4::ADDR_ANY, DHCP_DEST_PORT, packet, packetlen);
 
     socket.on_read(
-    [this, &socket] (IP4::addr, UDP::port_t port,
+    [this, &socket] (IP4::addr addr, UDP::port_t port,
                      const char* data, size_t len)
     {
       if (port == DHCP_DEST_PORT)
       {
         // we have got a DHCP Offer
-        debug("Received possible DHCP OFFER from %s:%d\n",
-              addr.str().c_str(), DHCP_DEST_PORT);
+        MYINFO("Received possible DHCP OFFER from %s",
+               addr.str().c_str());
         this->offer(socket, data, len);
       }
     });
@@ -369,6 +369,10 @@ namespace net
     if (console_spam)
       MYINFO("DNS SERVER: \t%s", this->dns_server.str().c_str());
 
+    // Remove any existing IP config to be able to receive on broadcast
+    stack.reset_config();
+
+
     // we can accept the offer now by requesting the IP!
     this->request(sock, server_id);
   }
@@ -393,7 +397,7 @@ namespace net
     resp->siaddr = IP4::ADDR_ANY;
     resp->giaddr = IP4::ADDR_ANY;
 
-    Ethernet::addr link_addr = stack.link_addr();
+    MAC::Addr link_addr = stack.link_addr();
 
     // copy our hardware address to chaddr field
     memset(resp->chaddr, 0, dhcp_packet_t::CHADDR_LEN);
