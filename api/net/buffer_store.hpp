@@ -21,6 +21,7 @@
 
 #include <stdexcept>
 #include <vector>
+#include <smp>
 
 namespace net
 {
@@ -61,6 +62,9 @@ namespace net
     inline size_t available() const noexcept
     { return available_.size(); }
 
+    /** move this bufferstore to the current CPU **/
+    void move_to_this_cpu() noexcept;
+
   private:
     buffer_t pool_begin() const noexcept {
       return pool_;
@@ -73,15 +77,19 @@ namespace net
     }
 
     size_t               poolsize_;
-    size_t         bufsize_;
+    size_t               bufsize_;
     buffer_t             pool_;
     std::vector<buffer_t> available_;
+    int                  cpu;
+    static bool          smp_enabled_;
+    // has strict alignment reqs, so put at end
+    spinlock_t           plock;
 
     BufferStore(BufferStore&)  = delete;
     BufferStore(BufferStore&&) = delete;
     BufferStore& operator=(BufferStore&)  = delete;
     BufferStore  operator=(BufferStore&&) = delete;
-  }; //< class BufferStore
-} //< namespace net
+  };
+} //< net
 
 #endif //< NET_BUFFER_STORE_HPP
