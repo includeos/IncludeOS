@@ -155,6 +155,56 @@ namespace dhcp {
 
     void clear_offered_ip(IP4::addr ip);
     void clear_offered_ips();
+
+    void print(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
+      debug("Printing:\n");
+
+      debug("OP: %u\n", msg->op);
+      debug("HTYPE: %u\n", msg->htype);
+      debug("HLEN: %u\n", msg->hlen);
+      debug("HOPS: %u\n", msg->hops);
+      debug("XID: %u\n", msg->xid);
+      debug("SECS: %u\n", msg->secs);
+      debug("FLAGS: %u\n", msg->flags);
+      debug("CIADDR (IP4::addr): %s\n", msg->ciaddr.to_string().c_str());
+      debug("YIADDR (IP4::addr): %s\n", msg->yiaddr.to_string().c_str());
+      debug("SIADDR (IP4::addr): %s\n", msg->siaddr.to_string().c_str());
+      debug("GIADDR (IP4::addr): %s\n", msg->giaddr.to_string().c_str());
+
+      debug("\nCHADDR:\n");
+      for (int i = 0; i < dhcp_packet_t::CHADDR_LEN; i++)
+        debug("%u ", msg->chaddr[i]);
+      debug("\n");
+
+      debug("\nSNAME:\n");
+      for (int i = 0; i < dhcp_packet_t::SNAME_LEN; i++)
+        debug("%u ", msg->sname[i]);
+      debug("\n");
+
+      debug("\nFILE:\n");
+      for (int i = 0; i < dhcp_packet_t::FILE_LEN; i++)
+        debug("%u ", msg->file[i]);
+      debug("\n");
+
+      debug("\nMAGIC:\n");
+      for (int i = 0; i < 4; i++)
+        debug("%u ", msg->magic[i]);
+      debug("\n");
+
+      // Opts
+
+      while(opts->code != DHO_END) {
+        debug("\nOptions->code: %d\n", opts->code);
+        debug("\nOptions->length: %d\n", opts->length);
+
+        debug("\nOptions->val: ");
+        for (size_t i = 0; i < opts->length; i++)
+          debug("%d ", opts->val[i]);
+        debug("\n");
+
+        opts = (const dhcp_option_t*) (((const uint8_t*) opts) + 2 + opts->length);
+      }
+    }
   };
 
 } // < namespace dhcp
