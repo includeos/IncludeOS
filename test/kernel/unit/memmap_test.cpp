@@ -71,7 +71,7 @@ CASE ("Using the fixed memory range class")
 CASE("Construct a range with illegal parameters")
 {
   EXPECT_THROWS((Fixed_memory_range{(uintptr_t)1000, (uintptr_t)10, "Negative", "A range going backwards"}));
-  EXPECT_THROWS((Fixed_memory_range{(uintptr_t)1, (uintptr_t)Fixed_memory_range::span_max() + 100, "Too big", "A range > max of ptrdiff_t"}));
+  EXPECT_THROWS((Fixed_memory_range{(uintptr_t)1, (uintptr_t)Fixed_memory_range::max_size() + 100, "Too big", "A range > max of ptrdiff_t"}));
 }
 
 CASE ("Using the kernel memory map") {
@@ -90,14 +90,14 @@ CASE ("Using the kernel memory map") {
       EXPECT(map.size() == 1);
       EXPECT(not map.empty());
       auto& range_init = map.at(init_key);
-      EXPECT(range_init.in_use() == range_init.size());
+      EXPECT(range_init.bytes_in_use() == range_init.size());
 
       THEN("A copy of that range is identical")
         {
           auto& range = map.at(init_key);
           Fixed_memory_range my_copy = range;
           EXPECT(range.size() == my_copy.size());
-          EXPECT(range.in_use() == my_copy.in_use());
+          EXPECT(range.bytes_in_use() == my_copy.bytes_in_use());
           EXPECT(range.addr_start() == my_copy.addr_start());
           EXPECT(range.addr_end() == my_copy.addr_end());
           EXPECT(range.to_string() == my_copy.to_string());
@@ -105,13 +105,18 @@ CASE ("Using the kernel memory map") {
 
       AND_THEN("The range object can be moved")
         {
-          auto& range = map.at(init_key);
-          Fixed_memory_range my_copy = std::move(range);
-          EXPECT(range.size() == my_copy.size());
-          EXPECT(range.in_use() == my_copy.in_use());
-          EXPECT(range.addr_start() == my_copy.addr_start());
-          EXPECT(range.addr_end() == my_copy.addr_end());
-          EXPECT(range.to_string() == my_copy.to_string());
+          auto range = map.at(init_key);
+          const auto range_size         = range.size();
+          const auto range_bytes_in_use = range.bytes_in_use();
+          const auto range_addr_start   = range.addr_start();
+          const auto range_addr_end     = range.addr_end();
+          const auto range_string       = range.to_string();
+          Fixed_memory_range thief      = std::move(range);
+          EXPECT(range_size == thief.size());
+          EXPECT(range_bytes_in_use == thief.bytes_in_use());
+          EXPECT(range_addr_start == thief.addr_start());
+          EXPECT(range_addr_end == thief.addr_end());
+          EXPECT(range_string == thief.to_string());
         }
 
       AND_THEN("You can fetch that range using start address as key")
@@ -140,13 +145,13 @@ CASE ("Using the kernel memory map") {
           EXPECT(map.resize(init_key, init_size + 100) == init_size + 100);
         }
 
-      AND_THEN("You can't downsize that range, since in_use is all of it by default")
+      AND_THEN("You can't downsize that range, since bytes_in_use is all of it by default")
         {
           EXPECT_THROWS(map.resize(init_key, init_size));
           EXPECT_THROWS(map.resize(init_key, 5));
         }
 
-      AND_WHEN("You provide a custom in_use delegate you can downsize")
+      AND_WHEN("You provide a custom bytes_in_use delegate you can downsize")
         {
 
           auto key = map.at(init_key).addr_end() + 1;

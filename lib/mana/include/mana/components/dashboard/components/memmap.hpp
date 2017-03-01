@@ -45,7 +45,7 @@ public:
 
   void serialize(Writer& writer) override {
     writer.StartArray();
-    for (auto i : OS::memory_map())
+    for (auto&& i : OS::memory_map())
     {
       auto& entry = i.second;
       writer.StartObject();
@@ -60,7 +60,7 @@ public:
       writer.Uint(entry.addr_end());
 
       writer.Key("in_use");
-      writer.Uint(entry.in_use());
+      writer.Uint(entry.bytes_in_use());
 
       writer.Key("description");
       writer.String(entry.description());
