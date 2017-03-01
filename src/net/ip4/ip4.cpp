@@ -108,7 +108,7 @@ namespace net {
       // Compare subnets to know where to send packet
       next_hop = target == local ? ip4_pckt->dst() : stack_.gateway();
 
-      printf("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+      debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
           ip4_pckt->dst().str().c_str(),
           stack_.netmask().str().c_str(),
           stack_.ip_addr().str().c_str(),
