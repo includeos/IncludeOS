@@ -94,7 +94,7 @@ def run_dhclient(trigger_line):
 
   try:
     dhclient = subprocess.Popen(
-        ["dhclient", "bridge43", "-4", "-n", "-v"],
+        ["sudo", "dhclient", "bridge43", "-4", "-n", "-v"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )
