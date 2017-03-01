@@ -61,13 +61,8 @@ namespace net {
     { return capacity() - ip_header_length(); }
 
     void set_ip_data_length(uint16_t length) {
-      Expects(data_end() >= layer_begin());
       Expects(sizeof(IP4::header) + length <= (size_t) capacity());
       set_data_end(sizeof(IP4::header) + length);
-      Expects(length <= size());
-      Ensures(data_end() >= layer_begin() + sizeof(IP4::header));
-      Ensures(size() >= length);
-      Ensures(size() < bufsize());
 
       set_segment_length();
     }
@@ -91,18 +86,7 @@ namespace net {
       set_ip_data_length(0);
     }
 
-    /**
-     *  Set IP4 header length
-     *
-     *  Inferred from packet size and linklayer header size
-     */
-    void set_segment_length() noexcept
-    { ip_header().tot_len = htons(size()); }
-
-
   protected:
-
-
     Byte* ip_data() noexcept __attribute__((assume_aligned(4)))
     {
       Expects((size_t)(data_end() - layer_begin()) >= sizeof(IP4::header));
@@ -114,6 +98,13 @@ namespace net {
       Expects((size_t)(data_end() - layer_begin()) >= sizeof(IP4::header));
       return layer_begin() + ip_header_length();
     }
+
+    /**
+     *  Set IP4 header length
+     *  Inferred from packet size
+     */
+    void set_segment_length() noexcept
+    { ip_header().tot_len = htons(size()); }
 
   private:
 
@@ -132,7 +123,6 @@ namespace net {
       hdr.check = net::checksum(&hdr, ip_header_length());
     }
 
-    friend class IP4;
   }; //< class PacketIP4
 } //< namespace net
 

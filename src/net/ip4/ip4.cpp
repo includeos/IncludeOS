@@ -35,23 +35,23 @@ namespace net {
   stack_            {inet}
  { }
 
-  void IP4::receive(Packet_ptr pckt) {
-
+  void IP4::receive(Packet_ptr pckt)
+  {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
     // Stat increment packets received
     packets_rx_++;
 
-    header* hdr = &packet->ip_header();
-
     debug2("\t Source IP: %s Dest.IP: %s Type: 0x%x\n",
-           hdr->saddr.str().c_str(), hdr->daddr.str().c_str(), hdr->protocol);
+           packet->src().str().c_str(), 
+           packet->dst().str().c_str(), 
+           packet->protocol());
 
     // Drop if my ip address doesn't match destination ip address or broadcast
-    if(UNLIKELY(hdr->daddr != local_ip()
-                and (hdr->daddr | stack_.netmask()) != ADDR_BCAST
-                and local_ip() != ADDR_ANY)) {
+    if (UNLIKELY(packet->dst() != local_ip()
+            and (packet->dst() | stack_.netmask()) != ADDR_BCAST
+            and local_ip() != ADDR_ANY)) {
 
       if (forward_packet_) {
         forward_packet_(stack_, std::move(packet));
@@ -93,19 +93,19 @@ namespace net {
     ship(std::move(ip4_pckt));
   }
 
-  void IP4::ship(Packet_ptr pckt) {
+  void IP4::ship(Packet_ptr pckt)
+  {
     auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
-    IP4::header& hdr = ip4_pckt->ip_header();
 
     // Create local and target subnets
-    addr target = hdr.daddr        & stack_.netmask();
+    addr target = ip4_pckt->dst()  & stack_.netmask();
     addr local  = stack_.ip_addr() & stack_.netmask();
 
     // Compare subnets to know where to send packet
-    addr next_hop {target == local ? hdr.daddr : stack_.gateway()};
+    addr next_hop {target == local ? ip4_pckt->dst() : stack_.gateway()};
 
     debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
-          hdr.daddr.str().c_str(),
+          ip4_pckt->dst().str().c_str(),
           stack_.netmask().str().c_str(),
           stack_.ip_addr().str().c_str(),
           stack_.gateway().str().c_str(),
