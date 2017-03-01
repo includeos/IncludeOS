@@ -113,25 +113,25 @@ namespace net {
   void UDP::process_sendq(size_t num)
   {
     while (!sendq.empty() && num != 0)
-      {
-        WriteBuffer& buffer = sendq.front();
+    {
+      WriteBuffer& buffer = sendq.front();
 
-        // create and transmit packet from writebuffer
-        buffer.write();
-        num--;
+      // create and transmit packet from writebuffer
+      buffer.write();
+      num--;
 
-        if (buffer.done()) {
-          auto copy = buffer.callback;
-          // remove buffer from queue
-          sendq.pop_front();
-          // call on_written callback
-          copy();
-          // reduce @num, just in case packets were sent in
-          // another stack frame
-          size_t avail = stack_.transmit_queue_available();
-          num = (num > avail) ? avail : num;
-        }
+      if (buffer.done()) {
+        auto copy = buffer.callback;
+        // remove buffer from queue
+        sendq.pop_front();
+        // call on_written callback
+        copy();
+        // reduce @num, just in case packets were sent in
+        // another stack frame
+        size_t avail = stack_.transmit_queue_available();
+        num = (num > avail) ? avail : num;
       }
+    }
   }
 
   size_t UDP::WriteBuffer::packets_needed() const
@@ -159,7 +159,6 @@ namespace net {
 
   void UDP::WriteBuffer::write()
   {
-
     UDP::Packet_ptr chain_head = nullptr;
 
     debug("<UDP> %i bytes to write, need %i packets \n",
@@ -175,14 +174,11 @@ namespace net {
       if (!p) break;
 
       auto p2 = static_unique_ptr_cast<PacketUDP>(std::move(p));
-
       // Initialize UDP packet
-      p2->init();
-      p2->header().sport = htons(l_port);
-      p2->header().dport = htons(d_port);
+      p2->init(l_port, d_port);
       p2->set_src(l_addr);
       p2->set_dst(d_addr);
-      p2->set_length(total);
+      p2->set_data_length(total);
 
       // fill buffer (at payload position)
       memcpy(p2->data(), buf.get() + this->offset, total);
