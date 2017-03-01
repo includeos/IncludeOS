@@ -114,8 +114,10 @@ namespace x86
     assert(ready());
     // set interrupt handler
     IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, Timers::timers_handler);
-    // start all timers
-    Timers::ready();
+    // delay-start all timers
+    auto irq = IRQ_manager::get().get_free_irq();
+    IRQ_manager::get().subscribe(irq, Timers::ready);
+    IRQ_manager::get().register_irq(irq);
   }
 
   bool APIC_Timer::ready() noexcept

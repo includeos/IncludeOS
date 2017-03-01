@@ -24,9 +24,6 @@
 #else
 extern void *memalign(size_t, size_t);
 #endif
-
-#include <cstdio>
-
 #include <net/buffer_store.hpp>
 #include <kernel/syscalls.hpp>
 #include <common>
@@ -54,9 +51,13 @@ namespace net {
     }
     assert(available() == num);
 
+#ifndef INCLUDEOS_SINGLE_THREADED
     // set CPU id this bufferstore was created for
     this->cpu = SMP::cpu_id();
     if (this->cpu != 0) smp_enabled_ = true;
+#else
+    this->cpu = 0;
+#endif
   }
 
   BufferStore::~BufferStore() {

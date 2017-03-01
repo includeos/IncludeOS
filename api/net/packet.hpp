@@ -60,7 +60,7 @@ namespace net
               data_end() <= buffer_end());
     }
 
-    virtual ~Packet()
+    ~Packet()
     {
       if (bufstore_)
           bufstore_->release(this);
@@ -91,18 +91,14 @@ namespace net
     int size() const noexcept
     { return data_end_ - layer_begin_; }
 
-    /** Get the total size of the buffer. This is >= size(), usually MTU-like */
+    /** Get the total size of data portion, >= size() and MTU-like */
     int capacity() const noexcept
     { return buffer_end_ - layer_begin_; }
 
     int bufsize() const noexcept
     { return buffer_end() - buf(); }
 
-
-    template<typename T>
-    Packet_ptr pop();
-
-    /** Increment / decrement layer_begin */
+    /** Increment / decrement layer_begin, resets data_end */
     void increment_layer_begin(int i)
     {
       set_layer_begin(layer_begin() + i);
@@ -111,13 +107,13 @@ namespace net
     /** Set data end / write-position relative to layer_begin */
     void set_data_end(int offset)
     {
-      Expects(layer_begin() + offset >= layer_begin_ and layer_begin() + offset <= buffer_end_);
+      Expects(offset >= 0 and layer_begin() + offset <= buffer_end_);
       data_end_ = layer_begin() + offset;
     }
 
     void increment_data_end(int i)
     {
-      Expects(i > 0);
+      Expects(i > 0 && data_end_ + i <= buffer_end_);
       data_end_ += i;
     }
 
@@ -147,15 +143,6 @@ namespace net
     { return std::move(chain_); }
 
 
-    /**
-     *  Upcast back to normal packet
-     *
-     *  Unfortunately, we can't upcast with std::static_pointer_cast
-     *  however, all classes derived from Packet should be good to use
-     */
-    //static Packet_ptr packet(Packet_ptr pckt) noexcept
-    //{ return *static_cast<Packet_ptr*>(&pckt); }
-
     // override delete to do nothing
     static void operator delete (void*) {}
 
@@ -168,6 +155,9 @@ namespace net
     {
       Expects(loc >= buf() and loc <= buffer_end_);
       layer_begin_ = loc;
+      // prevent data_end from being below layer_begin,
+      // but also make sure its not moved back when decrementing
+      data_end_    = std::max(loc, data_end_);
     }
 
 
