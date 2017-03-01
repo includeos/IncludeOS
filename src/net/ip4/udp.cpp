@@ -28,28 +28,33 @@ namespace net {
       stack_(inet),
       ports_{},
       current_port_{new_ephemeral_port()}
-{
-  inet.on_transmit_queue_available({this, &UDP::process_sendq});
-}
+  {
+    inet.on_transmit_queue_available({this, &UDP::process_sendq});
+  }
 
   void UDP::receive(net::Packet_ptr pckt)
   {
     auto udp = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
 
-    debug("\t Source port: %i, Dest. Port: %i Length: %i\n",
+    debug("<%s> UDP", stack_.ifname().c_str());
+    debug("\t Source port: %u, Dest. Port: %u Length: %u\n",
           udp->src_port(), udp->dst_port(), udp->length());
 
     auto it = ports_.find(udp->dst_port());
     if (LIKELY(it != ports_.end())) {
+      debug("<%s> UDP found listener on port %u\n", 
+              stack_.ifname().c_str(), udp->dst_port());
       it->second.internal_read(std::move(udp));
       return;
     }
 
-    debug("<UDP> Nobody's listening to this port. Drop!\n");
+    debug("<%s> UDP: nobody listening on %u. Drop!\n", 
+            stack_.ifname().c_str(), udp->dst_port());
   }
 
   UDPSocket& UDP::bind(UDP::port_t port)
   {
+    debug("<%s> UDP bind to port %d\n", stack_.ifname().c_str(), port);
     /// bind(0) == bind()
     if (port == 0) return bind();
     /// ... !!!
@@ -57,9 +62,9 @@ namespace net {
     if (LIKELY(it == ports_.end())) {
       // create new socket
       auto res = ports_.emplace(
-                                std::piecewise_construct,
-                                std::forward_as_tuple(port),
-                                std::forward_as_tuple(*this, port));
+            std::piecewise_construct,
+            std::forward_as_tuple(port),
+            std::forward_as_tuple(*this, port));
       it = res.first;
     }else {
       throw UDP::Port_in_use_exception(it->first);
@@ -76,7 +81,6 @@ namespace net {
       // prevent automatic ports under 1024
       if (current_port_  == port_ranges::DYNAMIC_END) current_port_ = port_ranges::DYNAMIC_START;
 
-    debug("UDP bind to port %d\n", current_port_);
     return bind(current_port_);
   }
 
@@ -87,14 +91,15 @@ namespace net {
 
   void UDP::close(UDP::port_t port)
   {
+    debug("Closed port %u\n", port);
     if (is_bound(port))
       ports_.erase(port);
   }
 
   void UDP::transmit(UDP::Packet_ptr udp)
   {
-    debug2("<UDP> Transmitting %i bytes (seg=%i) from %s to %s:%i\n",
-           udp->length(), udp->ip4_segment_size(),
+    debug("<UDP> Transmitting %u bytes (data=%u) from %s to %s:%i\n",
+           udp->length(), udp->data_length(),
            udp->src().str().c_str(),
            udp->dst().str().c_str(), udp->dst_port());
 
@@ -161,8 +166,10 @@ namespace net {
   {
     UDP::Packet_ptr chain_head = nullptr;
 
-    debug("<UDP> %i bytes to write, need %i packets \n",
-          remaining(), remaining() / udp.max_datagram_size() + (remaining() % udp.max_datagram_size() ? 1 : 0));
+    debug("<%s> UDP: %i bytes to write, need %i packets \n",
+          udp.stack().ifname().c_str(),
+          remaining(), 
+          remaining() / udp.max_datagram_size() + (remaining() % udp.max_datagram_size() ? 1 : 0));
 
     while (remaining()) {
       // the max bytes we can write in one operation

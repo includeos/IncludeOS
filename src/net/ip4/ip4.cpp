@@ -97,19 +97,27 @@ namespace net {
   {
     auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
-    // Create local and target subnets
-    addr target = ip4_pckt->dst()  & stack_.netmask();
-    addr local  = stack_.ip_addr() & stack_.netmask();
+    addr next_hop;
+    // Keep IP when broadcasting to all
+    if (ip4_pckt->dst() != IP4::ADDR_BCAST)
+    {
+      // Create local and target subnets
+      addr target = ip4_pckt->dst()  & stack_.netmask();
+      addr local  = stack_.ip_addr() & stack_.netmask();
 
-    // Compare subnets to know where to send packet
-    addr next_hop {target == local ? ip4_pckt->dst() : stack_.gateway()};
+      // Compare subnets to know where to send packet
+      next_hop = target == local ? ip4_pckt->dst() : stack_.gateway();
 
-    debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+      printf("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
           ip4_pckt->dst().str().c_str(),
           stack_.netmask().str().c_str(),
           stack_.ip_addr().str().c_str(),
           stack_.gateway().str().c_str(),
-          target == local ? "DIRECT" : "GATEWAY");
+          next_hop.str().c_str());
+    }
+    else {
+      next_hop = IP4::ADDR_BCAST;
+    }
 
     // Stat increment packets transmitted
     packets_tx_++;
