@@ -32,12 +32,10 @@ namespace net
       port_t port,
       uint16_t length)
   {
-    p->init();
-    p->header().sport = htons(this->l_port);
-    p->header().dport = htons(port);
+    p->init(this->l_port, port);
     p->set_src(srcIP);
     p->set_dst(destIP);
-    p->set_length(length);
+    p->set_data_length(length);
 
     assert(p->data_length() == length);
   }
