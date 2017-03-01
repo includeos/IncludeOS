@@ -98,6 +98,10 @@ CASE("Fill packet with data, increment layer")
 
   EXPECT(packet->size() == 24);
   EXPECT(packet->capacity() == PACKET_CAPA - 24 * 2);
+  
+  // decrement layer, make sure size remains
+  packet->increment_layer_begin(-24);
+  EXPECT(packet->size() == 24*2);
 }
 
 CASE("Moving packet works")
