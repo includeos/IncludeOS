@@ -396,14 +396,17 @@ void VirtioNet::deactivate()
 void VirtioNet::move_to_this_cpu()
 {
   INFO("VirtioNet", "Moving to CPU %d", SMP::cpu_id());
+  // update CPU id in bufferstore
+  bufstore().move_to_this_cpu();
+  // virtio IRQ balancing
   this->Virtio::move_to_this_cpu();
-  // reset the IRQ handlers
+  // reset the IRQ handlers on this CPU
   auto& irqs = this->Virtio::get_irqs();
   IRQ_manager::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
   IRQ_manager::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
   IRQ_manager::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
-
 #ifndef NO_DEFERRED_KICK
+  // update deferred kick IRQ
   auto defirq = IRQ_manager::get().get_free_irq();
   PER_CPU(deferred_devs).irq = defirq;
   IRQ_manager::get().subscribe(defirq, handle_deferred_devices);

@@ -519,6 +519,8 @@ void vmxnet3::deactivate()
 
 void vmxnet3::move_to_this_cpu()
 {
+  bufstore().move_to_this_cpu();
+
   if (pcidev.has_msix())
   {
     for (size_t i = 0; i < irqs.size(); i++)
