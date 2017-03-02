@@ -186,7 +186,7 @@ public:
   inline Byte* tcp_data()
   { return ip_data() + tcp_header_length(); }
 
-  inline const char* tcp_data() const
+  inline const Byte* tcp_data() const
   { return ip_data() + tcp_header_length(); }
 
   // Length of data in packet when header has been accounted for
