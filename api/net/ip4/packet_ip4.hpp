@@ -105,13 +105,11 @@ namespace net {
 
     Byte* ip_data() noexcept __attribute__((assume_aligned(4)))
     {
-      Expects((size_t)(data_end() - layer_begin()) >= sizeof(IP4::header));
       return layer_begin() + ip_header_length();
     }
 
     const Byte* ip_data() const noexcept __attribute__((assume_aligned(4)))
     {
-      Expects((size_t)(data_end() - layer_begin()) >= sizeof(IP4::header));
       return layer_begin() + ip_header_length();
     }
 
