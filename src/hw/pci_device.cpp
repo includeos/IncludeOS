@@ -183,7 +183,8 @@ namespace hw {
 
     // enable MSI-x if its supported
     if (this->msix_cap()) {
-      assert(this->init_msix());
+      int vectors = this->init_msix();
+      assert(vectors > 0);
     }
   }
 
