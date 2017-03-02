@@ -59,7 +59,7 @@ struct minimal_barrier_t
   {
     __sync_fetch_and_add(&val, 1);
   }
-  
+
   void spin_wait(int max)
   {
     asm("mfence");
@@ -67,13 +67,13 @@ struct minimal_barrier_t
       asm("pause; nop;");
     }
   }
-  
+
   void reset(int val)
   {
     asm volatile("mfence");
     this->val = val;
   }
-  
+
 private:
   volatile int val = 0;
 };
@@ -131,4 +131,11 @@ public:
 // access a std::array of structs indexed by current CPU id
 #define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, x.size()>(x))
 
+#ifndef ARCH_X86
+typedef int spinlock_t;
+inline void lock(spinlock_t&) {}
+inline void unlock(spinlock_t&) {}
 #endif
+
+#endif
+
