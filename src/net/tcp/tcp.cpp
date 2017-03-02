@@ -150,7 +150,7 @@ bool TCP::port_in_use(const port_t port) const {
 
 uint32_t TCP::get_ts_value() const
 {
-  return static_cast<uint32_t>(OS::micros_since_boot());
+  return ((OS::micros_since_boot() >> 10) & 0xffffffff);
 }
 
 uint16_t TCP::checksum(const tcp::Packet& packet)

@@ -224,6 +224,7 @@ uint64_t OS::get_cycles_total() noexcept {
 __attribute__((noinline))
 void OS::halt() {
   *os_cycles_total = cycles_since_boot();
+#ifdef ARCH_X86
   asm volatile("hlt");
 
   // add a global symbol here so we can quickly discard
@@ -231,7 +232,9 @@ void OS::halt() {
   asm volatile(
   ".global _irq_cb_return_location;\n"
   "_irq_cb_return_location:" );
-
+#else
+#warning "OS::halt() not implemented for selected arch"
+#endif
   // Count sleep cycles
   *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
 }
@@ -391,3 +394,4 @@ void OS::legacy_boot() {
     unavail_end += interval;
   }
 }
+

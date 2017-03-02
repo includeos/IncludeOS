@@ -94,26 +94,47 @@ using namespace std;
 /////////////////////////////////////////////////////////////////////
 
 // TODO: Optimize this one. It checks for the same things.
-bool Connection::State::check_seq(Connection& tcp, const Packet& in) {
+bool Connection::State::check_seq(Connection& tcp, const Packet& in)
+{
   auto& tcb = tcp.tcb();
-  bool acceptable = false;
+
+  // RFC 7323
+  Option::opt_ts* ts = nullptr;
+  static constexpr uint8_t HEADER_WITH_TS{sizeof(Header) + 12};
+  if(tcb.SND.TS_OK and in.tcp_header_length() == HEADER_WITH_TS)
+  {
+    ts = tcp.parse_ts_option(in);
+
+    // PAWS
+    if(UNLIKELY(ts != nullptr and (ntohl(ts->val) < tcb.TS_recent and !in.isset(RST))))
+    {
+      /*
+        If the connection has been idle more than 24 days,
+        save SEG.TSval in variable TS.Recent, else the segment
+        is not acceptable; follow the steps below for an
+        unacceptable segment.
+      */
+      goto unacceptable;
+    }
+  }
+
   debug2("<Connection::State::check_seq> TCB: %s \n",tcb.to_string().c_str());
   // #1
   if( in.seq() == tcb.RCV.NXT ) {
-    acceptable = true;
+    goto acceptable;
   }
   // #2
   else if( tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND ) {
-    acceptable = true;
+    goto acceptable;
   }
   // #3 (INVALID)
   else if( in.seq() + in.tcp_data_length()-1 > tcb.RCV.NXT+tcb.RCV.WND ) {
-    acceptable = false;
+    goto unacceptable;
   }
   // #4
   else if( (tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND)
            or ( tcb.RCV.NXT <= in.seq()+in.tcp_data_length()-1 and in.seq()+in.tcp_data_length()-1 < tcb.RCV.NXT+tcb.RCV.WND ) ) {
-    acceptable = true;
+    goto acceptable;
   }
   /*
     If an incoming segment is not acceptable, an acknowledgment
@@ -125,21 +146,19 @@ bool Connection::State::check_seq(Connection& tcp, const Packet& in) {
     After sending the acknowledgment, drop the unacceptable segment
     and return.
   */
-  if(UNLIKELY(not acceptable))
-  {
-    if(!in.isset(RST))
-    {
-      auto packet = tcp.outgoing_packet();
-      packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-      tcp.transmit(std::move(packet));
-    }
-    std::stringstream ss;
-    ss << "Unacceptable SEQ: "
-       << "[Packet: SEQ: " << in.seq() << " LEN: " << in.tcp_data_length() << "] "
-       << "[TCB: RCV.NXT: " << tcb.RCV.NXT << " RCV.WND: " << tcb.RCV.WND << "]";
 
-    tcp.drop(in, ss.str());
-    return false;
+unacceptable:
+  if(!in.isset(RST))
+    tcp.send_ack();
+
+  tcp.drop(in, "Unacceptable SEQ");
+  return false;
+
+acceptable:
+  if(ts != nullptr and
+    (ntohl(ts->val) >= tcb.TS_recent and in.seq() <= tcp.last_ack_sent_))
+  {
+    tcb.TS_recent = ntohl(ts->val);
   }
   debug2("<Connection::State::check_seq> Acceptable SEQ: %u \n", in.seq());
   // is acceptable.
@@ -513,6 +532,7 @@ void Connection::Closed::open(Connection& tcp, bool active) {
         tcp.add_option(Option::WS, *packet);
         packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
       }
+      // Add timestamps
       if(tcp.uses_timestamps())
       {
         tcp.add_option(Option::TS, *packet);
@@ -815,11 +835,12 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
     debug("<Connection::Listen::handle> Received SYN Packet: %s TCB Updated:\n %s \n",
           in->to_string().c_str(), tcp.tcb().to_string().c_str());
 
+    // Parse options
+    tcp.parse_options(*in);
+
     auto packet = tcp.outgoing_packet();
     packet->set_seq(tcb.ISS).set_ack(tcb.RCV.NXT).set_flags(SYN | ACK);
 
-    // temp
-    packet->clear_options();
     /*
       Add MSS option.
       TODO: Send even if we havent received MSS option?
@@ -831,10 +852,6 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
     {
       tcp.add_option(Option::WS, *packet);
       packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
-    }
-    if(tcb.SND.TS_OK)
-    {
-      tcp.add_option(Option::TS, *packet);
     }
 
     tcp.transmit(std::move(packet));
@@ -866,9 +883,6 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
         return OK;
       }
       // If SND.UNA =< SEG.ACK =< SND.NXT then the ACK is acceptable.
-    } else {
-      if(tcp.rttm.active)
-        tcp.rttm.stop(true);
     }
   }
 
@@ -931,23 +945,27 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
     if(tcp.rtx_timer.is_running())
       tcp.rtx_stop();
 
+    // Parse options
+    tcp.parse_options(*in);
+
+    tcp.take_rtt_measure(*in);
+
     // (our SYN has been ACKed)
-    if(tcb.SND.UNA > tcb.ISS) {
-      tcp.set_state(Connection::Established::instance());
+    if(tcb.SND.UNA > tcb.ISS)
+    {
       // Correction: [RFC 1122 p. 94]
       tcb.SND.WND = in->win();
       tcb.SND.WL1 = in->seq();
       tcb.SND.WL2 = in->ack();
       // end of correction
 
+      tcp.set_state(Connection::Established::instance());
       const seq_t snd_nxt = tcb.SND.NXT;
       tcp.signal_connect(); // NOTE: User callback
 
       if(tcb.SND.NXT == snd_nxt)
       {
-        auto packet = tcp.outgoing_packet();
-        packet->set_seq(tcb.SND.NXT).set_ack(tcb.RCV.NXT).set_flag(ACK);
-        tcp.transmit(std::move(packet));
+        tcp.send_ack();
       }
 
       if(tcp.has_doable_job())
@@ -1012,7 +1030,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
     */
     // Since we create a new connection when it starts listening, we don't wanna do this, but just delete it.
     // TODO: Remove string comparision
-    if(tcp.prev_state().to_string() == Connection::SynSent::instance().to_string()) {
+    if(&tcp.prev_state() == &Connection::SynSent::instance()) {
       tcp.signal_disconnect(Disconnect::REFUSED);
     }
 
@@ -1034,30 +1052,19 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
       If SND.UNA =< SEG.ACK =< SND.NXT then enter ESTABLISHED state
       and continue processing.
     */
-    if(tcb.SND.UNA <= in->ack() and in->ack() <= tcb.SND.NXT) {
-      debug("<Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
-      if(tcp.rttm.active)
-        tcp.rttm.stop(true);
+    if(tcb.SND.UNA <= in->ack() and in->ack() <= tcb.SND.NXT)
+    {
+      debug2("<Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
+
       tcp.set_state(Connection::Established::instance());
 
-      // Taken from acknowledge (without congestion control)
-      tcb.SND.UNA = in->ack();
-      if(tcp.rtx_timer.is_running())
-        tcp.rtx_stop();
+      tcp.handle_ack(*in);
 
       tcp.signal_connect(); // NOTE: User callback
 
       // 7. proccess the segment text
       if(UNLIKELY(in->has_tcp_data())) {
-        debug2("<Connection::SynReceived::handle> @warning: Packet has data? %s\n", in->to_string().c_str());
         process_segment(tcp, *in);
-      }
-
-      // 8. check FIN bit
-      if(UNLIKELY(in->isset(FIN))) {
-        tcp.set_state(Connection::CloseWait::instance());
-        process_fin(tcp, *in);
-        return OK;
       }
     }
     /*

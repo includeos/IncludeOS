@@ -26,58 +26,49 @@ namespace net
   class PacketUDP : public PacketIP4
   {
   public:
-
-    UDP::header& header() noexcept
+    void init(uint16_t l_port, uint16_t d_port)
     {
-      return *reinterpret_cast<UDP::header*>(ip_data());
-    }
-
-    const UDP::header& header() const noexcept
-    {
-      return *reinterpret_cast<const UDP::header*>(ip_data());
-    }
-
-    //! initializes to a default, empty UDP packet, given
-    //! a valid MTU-sized buffer
-    void init()
-    {
-
-      // Promote to IP4 packet
-      // PacketIP4::init();
-      Expects(layer_begin() > buf());
       Expects(data_end() == layer_begin() + ip_header_length());
-
-      // Promote to UDP packet
-      increment_data_end(sizeof(UDP::header));
-      Ensures(data_end() == layer_begin() + ip_header_length() + sizeof(UDP::header));
 
       // Initialize UDP packet header
       // source and destination ports
-      header().sport = 0;
-      header().dport = 0;
+      set_src_port(l_port);
+      set_dst_port(d_port);
       // set zero length
-      set_length(0);
+      set_length(sizeof(UDP::header));
       // zero the optional checksum
       header().checksum = 0;
       set_protocol(Protocol::UDP);
     }
 
-    UDP::port_t src_port() const
+    void set_src_port(uint16_t port) noexcept
+    {
+      header().sport = htons(port);
+    }
+    UDP::port_t src_port() const noexcept
     {
       return htons(header().sport);
     }
 
-    UDP::port_t dst_port() const
+    void set_dst_port(uint16_t port) noexcept
+    {
+      header().dport = htons(port);
+    }
+    UDP::port_t dst_port() const noexcept
     {
       return htons(header().dport);
     }
 
-    uint16_t length() const
+    uint16_t length() const noexcept
     {
       return ntohs(header().length);
     }
 
-    uint16_t data_length() const
+    void set_data_length(uint16_t len)
+    {
+      set_length(sizeof(UDP::header) + len);
+    }
+    uint16_t data_length() const noexcept
     {
       return length() - sizeof(UDP::header);
     }
@@ -97,31 +88,44 @@ namespace net
       return begin() + length();
     }
 
+    // generates IP checksum for this packet
+    // TODO: implement me
+    uint16_t generate_checksum() const noexcept;
+
+    //! assuming the packet has been properly initialized,
+    //! this will fill bytes from @buffer into this packets buffer,
+    //! then return the number of bytes written
+    uint32_t fill(const std::string& buffer)
+    {
+      uint32_t rem   = buffer_end() - data_end();
+      uint32_t total = (buffer.size() < rem) ? buffer.size() : rem;
+      // copy from buffer to packet buffer
+      memcpy(data_end(), buffer.data(), total);
+      // set new packet length
+      set_length(length() + total);
+      return total;
+    }
+
+  private:
     // Sets the correct length for UDP and the packet
     void set_length(uint16_t newlen)
     {
       // new total UDP payload length
-      header().length = htons(sizeof(UDP::header) + newlen);
+      header().length = htons(newlen);
 
       // new total packet length
-      set_data_end(ip_header_length() + sizeof(UDP::header) + newlen );
+      set_data_end(ip_header_length() + newlen);
     }
 
-    // generates a new checksum and sets it for this UDP packet
-    uint16_t gen_checksum();
-
-    //! assuming the packet has been properly initialized,
-    //! this will fill bytes from @buffer into this packets buffer,
-    //! then return the number of bytes written. buffer is unmodified
-    uint32_t fill(const std::string& buffer)
+    UDP::header& header() noexcept
     {
-      uint32_t rem = capacity();
-      uint32_t total = (buffer.size() < rem) ? buffer.size() : rem;
-      // copy from buffer to packet buffer
-      memcpy(data() + data_length(), buffer.data(), total);
-      // set new packet length
-      set_length(data_length() + total);
-      return total;
+      return *reinterpret_cast<UDP::header*>(ip_data());
     }
+
+    const UDP::header& header() const noexcept
+    {
+      return *reinterpret_cast<const UDP::header*>(ip_data());
+    }
+
   };
 }
