@@ -3,6 +3,12 @@ project(unittests C CXX)
 
 option(COVERAGE "Build with coverage generation" OFF)
 
+if ("${ARCH}" STREQUAL "")
+  set (ARCH "ARCH_X86")
+endif("${ARCH}" STREQUAL "")
+
+add_definitions(-D${ARCH})
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "-m32 -g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR -DNO_INFO=1 -DNO_DEBUG=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
@@ -56,6 +62,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/http_time_test.cpp
   ${TEST}/net/unit/http_version_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
+  ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
@@ -176,6 +183,16 @@ if(TRAVIS)
   list(REMOVE_ITEM TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
 endif()
 
+if ("${ARCH}" STREQUAL "ARCH_ARMv7")
+  list(REMOVE_ITEM TEST_SOURCES ${TEST}/hw/unit/cpu_test.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/ps2.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/serial.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/cpuid.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/irq_manager.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/rdrand.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/terminal.cpp)
+endif("${ARCH}" STREQUAL "ARCH_ARMv7")
+
 # Only build selected sources with SINGLE
 if(NOT SINGLE)
   set(SOURCES ${MOD_OBJECTS} ${OS_SOURCES} ${TEST_SOURCES} ${LEST_UTIL})
@@ -183,6 +200,11 @@ else()
   set(SOURCES ${SINGLE} ${LEST_UTIL})
 endif()
 
+if ("${ARCH}" STREQUAL "ARCH_ARMv7")
+  set_property(SOURCE ${SOURCES} PROPERTY COMPILE_FLAGS -mfpu=vfpv3-d16)
+endif("${ARCH}" STREQUAL "ARCH_ARMv7")
+
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+

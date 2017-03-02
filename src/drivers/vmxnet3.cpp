@@ -118,7 +118,6 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
     INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
     assert(msix_vectors >= 3);
     if (msix_vectors > 3) msix_vectors = 3;
-    std::vector<uint8_t> irqs;
 
     for (int i = 0; i < msix_vectors; i++)
     {
@@ -144,10 +143,12 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   assert(this->ptbase);
 
   // verify and select version
-  assert(check_version());
+  bool ok = check_version();
+  assert(ok);
 
   // reset device
-  assert(reset());
+  ok = reset();
+  assert(ok);
 
   // get mac address
   retrieve_hwaddr();
@@ -519,6 +520,8 @@ void vmxnet3::deactivate()
 
 void vmxnet3::move_to_this_cpu()
 {
+  bufstore().move_to_this_cpu();
+
   if (pcidev.has_msix())
   {
     for (size_t i = 0; i < irqs.size(); i++)

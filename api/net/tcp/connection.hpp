@@ -108,7 +108,7 @@ public:
    * Emitted on RTO - When the retransmission timer times out, before retransmitting.
    * Gives the current attempt and the current timeout in seconds.
    */
-  using RtxTimeoutCallback      = delegate<void(size_t no_attempts, double rto)>;
+  using RtxTimeoutCallback      = delegate<void(size_t no_attempts, std::chrono::milliseconds rto)>;
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
 
@@ -668,7 +668,7 @@ private:
   { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
 
   void signal_rtx_timeout()
-  { if(on_rtx_timeout_) on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
+  { if(on_rtx_timeout_) on_rtx_timeout_(rtx_attempt_+1, rttm.rto_ms()); }
 
   /*
     Drop a packet. Used for debug/callback.
@@ -830,6 +830,15 @@ private:
   */
   void retransmit();
 
+  /**
+   * @brief      Take an RTT measurment from an incoming packet.
+   *             Uses timestamp if timestamp options are in use,
+   *             else RTTM start/stop.
+   *
+   * @param[in]  <unnamed>  An incomming TCP packet
+   */
+  void take_rtt_measure(const Packet&);
+
   /*
     Start retransmission timer.
   */
@@ -917,13 +926,22 @@ private:
   /*
     Parse and apply options.
   */
-  void parse_options(Packet&);
+  void parse_options(const Packet&);
 
   /*
     Add an option.
   */
   void add_option(Option::Kind, Packet&);
 
+  /**
+   * @brief      Parses the timestamp option from a packet (if any).
+   *             Assumes the packet contains no other options.
+   *
+   * @param[in]  <unnamed>  A TCP packet
+   *
+   * @return     A pointer the the timestamp option (nullptr if none)
+   */
+  Option::opt_ts* parse_ts_option(const Packet&) const;
 
 }; // < class Connection
 

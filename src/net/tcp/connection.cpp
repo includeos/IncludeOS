@@ -288,18 +288,16 @@ void Connection::receive_disconnect() {
     read_request.callback(buf.buffer, buf.size());
 }
 
-void Connection::segment_arrived(Packet_ptr incoming) {
+void Connection::segment_arrived(Packet_ptr incoming)
+{
+  //const uint32_t FMASK = (~(0x0000000F | htons(0x08)));
+  //uint32_t FMASK = 0xFFFFF7F0;
+  //uint32_t FMASK = (((0xf000 | SYN|FIN|RST|URG|ACK) << 16) | 0xffff);
+  //printf("pred: %#010x %#010x %#010x %#010x\n",
+  //  (((uint32_t*)&incoming->tcp_header())[3]), FMASK, ((((uint32_t*)&incoming->tcp_header())[3]) & FMASK), pred_flags);
 
-  if(incoming->has_tcp_options()) {
-    try {
-      parse_options(*incoming);
-    }
-    catch(const TCPBadOptionException& err) {
-      debug("<TCP::Connection::receive> %s \n", err.what());
-      drop(*incoming, err.what());
-      return;
-    }
-  }
+  //if( ( (((uint32_t*)&incoming->tcp_header())[3]) & FMASK) == pred_flags)
+  //  printf("predicted\n");
 
   // Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
   switch(state_->handle(*this, std::move(incoming))) {
@@ -349,7 +347,7 @@ Packet_ptr Connection::create_outgoing_packet() {
   packet->set_win(std::min((cb.RCV.WND >> cb.RCV.wind_shift), (uint32_t)default_window_size));
 
   if(cb.SND.TS_OK)
-    packet->add_tcp_option<Option::opt_ts>(host_.get_ts_value(), cb.TS_recent);
+    packet->add_tcp_option_aligned<Option::opt_ts_align>(host_.get_ts_value(), cb.TS_recent);
   // Set SEQ and ACK - I think this is OK..
   packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
   debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
@@ -358,9 +356,12 @@ Packet_ptr Connection::create_outgoing_packet() {
 }
 
 void Connection::transmit(Packet_ptr packet) {
-  if(!rttm.active and packet->end() == cb.SND.NXT) {
+  if(!cb.SND.TS_OK
+    and !rttm.active()
+    and packet->end() == cb.SND.NXT)
+  {
     //printf("<TCP::Connection::transmit> Starting RTT measurement.\n");
-    rttm.start();
+    rttm.start(std::chrono::milliseconds{host_.get_ts_value()});
   }
   if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
@@ -394,15 +395,15 @@ bool Connection::handle_ack(const Packet& in) {
   // new ack
   else if(LIKELY(in.ack() >= cb.SND.UNA))
   {
-
     if( (cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() ))
       and cb.SND.WND != true_win )
     {
-      cb.SND.WND = in.win() << cb.SND.wind_shift;
+      cb.SND.WND = true_win;
       cb.SND.WL1 = in.seq();
       cb.SND.WL2 = in.ack();
       //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
     }
+    //pred_flags = htonl((in.tcp_header_length() << 26) | 0x10 | cb.SND.WND >> cb.SND.wind_shift);
 
     //printf("<Connection::handle_ack> New ACK: %u FS: %u UW: %u, %s\n",
     //  in.ack() - cb.ISS, flight_size(), usable_window(), fast_recovery ? "[RECOVERY]" : "");
@@ -419,18 +420,7 @@ bool Connection::handle_ack(const Packet& in) {
     //if(rtx_timer.is_running())
     rtx_ack(in.ack());
 
-    // update cwnd when congestion avoidance?
-    bool cong_avoid_rtt = false;
-
-    /*if(SND.TS_OK and bytes_acked > 0)
-    {
-
-    }*/
-    // if measuring round trip time, stop
-    if(rttm.active) {
-      rttm.stop();
-      cong_avoid_rtt = true;
-    }
+    take_rtt_measure(in);
 
     // no fast recovery
     if(!fast_recovery) {
@@ -589,6 +579,19 @@ void Connection::rtx_ack(const seq_t ack) {
   //  x-rtx_q.size(), rtx_q.size());
 }
 
+void Connection::take_rtt_measure(const Packet& packet)
+{
+  if(cb.SND.TS_OK)
+  {
+    auto* ts = parse_ts_option(packet);
+    rttm.rtt_measurement(RTTM::milliseconds{host_.get_ts_value() - ntohl(ts->ecr)});
+  }
+  else if(rttm.active())
+  {
+    rttm.stop(RTTM::milliseconds{host_.get_ts_value()});
+  }
+}
+
 /*
   Assumption
   Retransmission will only occur when one of the following are true:
@@ -688,7 +691,7 @@ void Connection::rtx_timeout() {
   }
   // we never queue SYN packets since they don't carry data..
   else {
-    rttm.RTO = 3.0;
+    rttm.RTO = std::chrono::seconds(3);
   }
   // timer need to be restarted
   if(!rtx_timer.is_running())
@@ -818,7 +821,7 @@ std::string Connection::TCB::to_string() const {
   return os.str();
 }
 
-void Connection::parse_options(Packet& packet) {
+void Connection::parse_options(const Packet& packet) {
   assert(packet.has_tcp_options());
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
         packet.offset(), packet.tcp_options_length());
@@ -928,6 +931,16 @@ void Connection::add_option(Option::Kind kind, Packet& packet) {
   default:
     break;
   }
+}
+
+Option::opt_ts* Connection::parse_ts_option(const Packet& packet) const
+{
+  auto* opt = packet.tcp_options();
+
+  while(((Option*)opt)->kind == Option::NOP and opt < (uint8_t*)packet.tcp_data())
+    opt++;
+
+  return (((Option*)opt)->kind == Option::TS) ? (Option::opt_ts*)opt : nullptr;
 }
 
 bool Connection::uses_window_scaling() const

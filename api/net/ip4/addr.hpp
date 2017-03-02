@@ -21,6 +21,7 @@
 #include <regex>
 #include <string>
 #include <net/util.hpp> // byte order
+#include <gsl/gsl_assert>
 
 namespace net {
 namespace ip4 {
@@ -115,6 +116,16 @@ struct Addr {
   Addr operator ~ () const noexcept
   { return Addr(~whole); }
 
+  uint8_t part(uint8_t i) const noexcept {
+    Expects(i < 4);
+
+    union addr {
+      uint8_t parts[4];
+      uint32_t whole;
+    };
+
+    return ((addr&) whole).parts[3 - i];
+  }
 
   /** x.x.x.x string representation */
   std::string str() const {

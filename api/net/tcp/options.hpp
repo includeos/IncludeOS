@@ -31,7 +31,7 @@ struct Option {
 
   enum Kind {
     END = 0x00, // End of option list
-    NOP = 0x01, // No-Opeartion
+    NOP = 0x01, // No-Operation
     MSS = 0x02, // Maximum Segment Size [RFC 793] Rev: [879, 6691]
     WS  = 0x03, // Window Scaling [RFC 7323] p. 8
     TS  = 0x08, // Timestamp [RFC 7323] p. 11
@@ -40,6 +40,9 @@ struct Option {
   const uint8_t kind    {END};
   const uint8_t length  {0};
   uint8_t               data[0];
+
+  std::string kind_string() const
+  { return kind_string(static_cast<Kind>(kind)); }
 
   static std::string kind_string(Kind kind) {
     switch(kind) {
@@ -52,11 +55,20 @@ struct Option {
     case TS:
       return {"Timestamp"};
 
+    case NOP:
+      return {"No-Operation"};
+
+    case END:
+      return {"End of list"};
+
     default:
       return {"Unknown Option"};
     }
   }
 
+  /**
+   * @brief      Maximum Segment Size option [RFC 793]
+   */
   struct opt_mss {
     const uint8_t   kind    {MSS};
     const uint8_t   length  {4};
@@ -80,6 +92,9 @@ struct Option {
 
   } __attribute__((packed));
 
+  /**
+   * @brief      Timestamp option [RFC 7323] p. 11
+   */
   struct opt_ts {
     const uint8_t   kind    {TS};
     const uint8_t   length  {10};
@@ -89,6 +104,32 @@ struct Option {
     opt_ts(const uint32_t val, const uint32_t echo)
       : val{htonl(val)},
         ecr{htonl(echo)}
+    {}
+
+  } __attribute__((packed));
+
+  /**
+   * @brief      An aligned version of a Timestamp option. Includes padding,
+   *             making the ts values on word boundaries.
+   *
+      The following layout is recommended for sending options on
+      non-<SYN> segments to achieve maximum feasible alignment of 32-bit
+      and 64-bit machines.
+
+                   +--------+--------+--------+--------+
+                   |   NOP  |  NOP   |  TSopt |   10   |
+                   +--------+--------+--------+--------+
+                   |          TSval timestamp          |
+                   +--------+--------+--------+--------+
+                   |          TSecr timestamp          |
+                   +--------+--------+--------+--------+
+   */
+  struct opt_ts_align {
+    const uint8_t padding[2] {NOP, NOP};
+    const opt_ts  ts;
+
+    opt_ts_align(const uint32_t val, const uint32_t echo)
+      : ts{val, echo}
     {}
 
   } __attribute__((packed));

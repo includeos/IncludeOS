@@ -57,8 +57,7 @@ namespace x86
         stop);   // timer stop function
 
     // initialize local APIC timer
-    auto& lapic = APIC::get();
-    lapic.timer_init();
+    APIC::get().timer_init();
   }
   void APIC_Timer::calibrate()
   {
@@ -93,8 +92,11 @@ namespace x86
     PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
     [overhead] {
       uint32_t diff = APIC::get().timer_diff() - overhead;
+      assert(ticks_per_micro == 0);
       // measure difference
       ticks_per_micro = diff / CALIBRATION_MS / 1000;
+      // stop APIC timer
+      APIC::get().timer_interrupt(false);
 
       //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n",
       //       CALIBRATION_MS, diff, ticks_per_micro);
@@ -112,8 +114,10 @@ namespace x86
     assert(ready());
     // set interrupt handler
     IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, Timers::timers_handler);
-    // start all timers
-    Timers::ready();
+    // delay-start all timers
+    auto irq = IRQ_manager::get().get_free_irq();
+    IRQ_manager::get().subscribe(irq, Timers::ready);
+    IRQ_manager::get().register_irq(irq);
   }
 
   bool APIC_Timer::ready() noexcept
