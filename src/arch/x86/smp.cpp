@@ -165,6 +165,10 @@ void ::SMP::broadcast(uint8_t irq)
 {
   x86::APIC::get().bcast_ipi(IRQ_BASE + irq);
 }
+void ::SMP::unicast(int cpu, uint8_t irq)
+{
+  x86::APIC::get().send_ipi(cpu, IRQ_BASE + irq);
+}
 
 static spinlock_t __global_lock = 0;
 static spinlock_t __memory_lock = 0;
