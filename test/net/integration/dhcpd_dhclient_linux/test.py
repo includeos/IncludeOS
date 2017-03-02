@@ -27,9 +27,9 @@ ping_count = 3
 def cleanup():
   # Remove leases-file
   print color.INFO("<Test.py>"), "Removing /var/lib/dhcp/dhclient.leases"
-  subprocess.call(["rm", "/var/lib/dhcp/dhclient.leases"])
+  subprocess.call(["sudo", "rm", "/var/lib/dhcp/dhclient.leases"])
   # Kill dhclient process:
-  subprocess.call(["dhclient", "bridge43", "-4", "-x", "-n", "-v"])
+  subprocess.call(["sudo", "dhclient", "bridge43", "-4", "-x", "-n", "-v"])
 
 def check_dhclient_output(output):
   global num_messages
@@ -87,14 +87,14 @@ def run_dhclient(trigger_line):
     time.sleep(1)
 
   if "10.200.0.0" not in route_output:
-    subprocess.call(["route", "add", "-net", "10.200.0.0", "netmask", "255.255.0.0", "dev", "bridge43"])
+    subprocess.call(["sudo", "route", "add", "-net", "10.200.0.0", "netmask", "255.255.0.0", "dev", "bridge43"])
     print color.INFO("<Test.py>"), "Route added to bridge43, 10.200.0.0"
 
   print color.INFO("<Test.py>"), "Running dhclient"
 
   try:
     dhclient = subprocess.Popen(
-        ["dhclient", "bridge43", "-4", "-n", "-v"],
+        ["sudo", "dhclient", "bridge43", "-4", "-n", "-v"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT
     )

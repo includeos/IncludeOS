@@ -112,35 +112,59 @@ void DHCPD::listen() {
 }
 
 void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
-  if (msg->op not_eq BOOTREQUEST or msg->hops not_eq 0)
+  if (msg->op not_eq BOOTREQUEST or msg->hops not_eq 0) {
+    debug("Invalid op\n");
     return;
+  }
 
-  if (msg->htype == 0 or msg->htype > HTYPE_HFI)  // http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
+  if (msg->htype == 0 or msg->htype > HTYPE_HFI) {  // http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
+    debug("Invalid htype\n");
     return;
+  }
 
-  if (msg->yiaddr not_eq IP4::addr{0} or msg->siaddr not_eq IP4::addr{0} or msg->giaddr not_eq IP4::addr{0})
+  if (msg->yiaddr not_eq IP4::addr{0} or msg->siaddr not_eq IP4::addr{0} or msg->giaddr not_eq IP4::addr{0}) {
+    debug("Invalid yiaddr, siaddr or giaddr\n");
     return;
+  }
 
-  if (not valid_options(opts))
+  if (not valid_options(opts)) {
+    debug("Invalid options\n");
     return;
+  }
 
   const auto cid = get_client_id(msg->chaddr, opts);
-  if (cid.empty() or std::all_of(cid.begin(), cid.end(), [] (int i) { return i == 0; }))
+  if (cid.empty() or std::all_of(cid.begin(), cid.end(), [] (int i) { return i == 0; })) {
+    debug("Invalid client id\n");
     return;
+  }
 
-  if (msg->magic[0] not_eq 99 or msg->magic[1] not_eq 130 or msg->magic[2] not_eq 83 or msg->magic[3] not_eq 99)
+  if (msg->magic[0] not_eq 99 or msg->magic[1] not_eq 130 or msg->magic[2] not_eq 83 or msg->magic[3] not_eq 99) {
+    debug("Invalid magic\n");
     return;
+  }
 
   int ridx;
 
   switch (opts->val[0]) {
     case DHCPDISCOVER:
+
+      debug("------------Discover------------\n");
+      print(msg, opts);
+
       offer(msg, opts);
       break;
     case DHCPREQUEST:
+
+      debug("-------------Request--------------\n");
+      print(msg, opts);
+
       handle_request(msg, opts);
       break;
     case DHCPDECLINE:
+
+      debug("-------------Decline--------------\n");
+      print(msg, opts);
+
       // A client has discovered that the suggested network address is already in use.
       // The server must mark the network address as not available and should notify the network admin
       // of a possible configuration problem - TODO
@@ -151,6 +175,10 @@ void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
       update_pool(get_requested_ip_in_opts(opts), Status::IN_USE);    // In use - possible config problem
       break;
     case DHCPRELEASE:
+
+      debug("--------------Release--------------\n");
+      print(msg, opts);
+
       // Mark the network address as not allocated anymore
       // Should retain a record of the client's initialization parameters for possible reuse
       // in response to subsequent requests from the client
@@ -168,6 +196,10 @@ void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
       // update_pool(msg->ciaddr, Status::RELEASED);
 
     case DHCPINFORM:
+
+      debug("---------------Inform---------------\n");
+      print(msg, opts);
+
       inform_ack(msg);
       break;
   }
@@ -186,8 +218,14 @@ void DHCPD::handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts) 
     IP4::addr sid{opt->val[0], opt->val[1], opt->val[2], opt->val[3]};
 
     if (sid not_eq server_id()) { // The client has not chosen this server
+
+      debug("Client hasn't chosen this server - returning\n");
+
       int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
       if (ridx != -1) {
+
+        debug("Freeing up record\n");
+
         // Free up the IP address - the client has declined our offer
         update_pool(records_.at(ridx).ip(), Status::AVAILABLE);
         records_.erase(records_.begin() + ridx);
@@ -196,6 +234,8 @@ void DHCPD::handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts) 
     }
 
     // Server identifier == this server's ID
+
+    debug("Client has chosen this server\n");
 
     int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
 
@@ -214,17 +254,23 @@ void DHCPD::handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts) 
         return;
       }
 
+      debug("ciaddr not zero or not correct requested ip - sending nak\n");
+
       // Else ciaddr is not zero or record's ip is not the same as the requested ip in the request
       // TODO: nak() or silent return?
       nak(msg);
       return;
     }
 
+    debug("No record of this client exists - sending nak\n");
+
     // Else a record with this client id doesn't exist
     // TODO: nak() or silent return?
     nak(msg);
     return;
   }
+
+  debug("Verifying or extending lease\n");
 
   // Else server identifier is not filled in and this is not a response to a DHCPOFFER message, but
   // a request to verify or extend an existing lease
@@ -244,6 +290,8 @@ void DHCPD::verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t
     // Then the client is seeking to verify a previously allocated, cached configuration
     // Client state: INIT-REBOOT
 
+    debug("Init-reboot\n");
+
     // 1. (Before or in the if statement) Check if on correct network
     // Server should send a DHCPNAK if the client is on the wrong network
     // If the server detects that the client is on the wrong net (i.e., the result of applying the local
@@ -251,6 +299,9 @@ void DHCPD::verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t
     // match reality), then the server should send a DHCPNAK message to the client.
     // 2. (After or in the if statement) If client is on correct network: Check if the client's notion of IP is correct
     if ((not on_correct_network(msg->giaddr, opts)) or (get_requested_ip_in_opts(opts) not_eq records_.at(ridx).ip())) {
+
+      debug("Client not on correct network\n");
+
       // Updating pool and erasing record
       update_pool(records_.at(ridx).ip(), Status::AVAILABLE);
       records_.erase(records_.begin() + ridx);
@@ -287,6 +338,8 @@ void DHCPD::verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t
     // before replying to the DHCPREQUEST
 
     // Table 4 page 33 in RFC 2131 - Fields in client message from client in different state
+
+    debug("Renewing or rebinding state\n");
 
     // Extend the lease or not - should send a DHCPACK regardless
     // Update record and pool
@@ -329,6 +382,9 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   bool ok = false;
   for (auto& entry : pool_) {
     if (entry.second == Status::AVAILABLE) {
+
+      debug("Found available IP: %s\n", entry.first.to_string().c_str());
+
       entry.second = Status::OFFERED;
       offer->yiaddr = entry.first;
       ok = true;
@@ -348,6 +404,9 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
     }
   }
   if (not ok) { // Then no IP is available - sending DHCPNAK
+
+    debug("No more available IPs - clearing offered ips and sending nak\n");
+
     // Clear offered ips that have not been confirmed - Maybe use pending value instead
     clear_offered_ips();
     nak(msg);   // Record has not been added to the records_ vector so OK
@@ -461,6 +520,8 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   // RECORD
   add_record(record);
 
+  debug("Sending offer\n");
+
   // If the giaddr field in a DHCP message from a client is non-zero, the server sends any return
   // messages to the DHCP server port on the BOOTP relay agent whose address appears in giaddr
   if (msg->giaddr != IP4::addr{0}) {
@@ -532,6 +593,8 @@ void DHCPD::inform_ack(const dhcp_packet_t* msg) {
   ack_opts->code = DHO_DHCP_MESSAGE_TYPE;
   ack_opts->length = 1;
   ack_opts->val[0] = DHCPACK;
+
+  debug("Sending inform ack\n");
 
   // TODO Add options requested by the client
 
@@ -609,6 +672,8 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   ack_opts->code   = DHO_END;
   ack_opts->length = 0;
 
+  debug("Sending request ack\n");
+
   // If the giaddr field in a DHCP message from a client is non-zero, the server sends any return
   // messages to the DHCP server port on the BOOTP relay agent whose address appears in giaddr
   if (msg->giaddr != IP4::addr{0}) {
@@ -680,6 +745,8 @@ void DHCPD::nak(const dhcp_packet_t* msg) {
   nak_opts = conv_option(nak->options, 12);  // 12 bytes filled in prior
   nak_opts->code = DHO_END;
   nak_opts->length = 0;
+
+  debug("Sending NAK\n");
 
   // Send the DHCPNAK - Broadcast
   socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
@@ -769,10 +836,17 @@ void DHCPD::clear_offered_ip(IP4::addr ip) {
 }
 
 void DHCPD::clear_offered_ips() {
+  // looping through pool
+  for (auto& entry : pool_) {
+    if (entry.second == Status::OFFERED)
+      entry.second = Status::AVAILABLE;
+  }
+
+  // and records
   for (size_t i = 0; i < records_.size(); i++) {
     if (records_.at(i).status() == Status::OFFERED) {
       // Update pool
-      update_pool(records_.at(i).ip(), Status::AVAILABLE);
+      // update_pool(records_.at(i).ip(), Status::AVAILABLE);
       // And erase record
       records_.erase(records_.begin() + i);
     }
