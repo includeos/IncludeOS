@@ -32,14 +32,14 @@ namespace tcp {
 // TODO: Appendix G.  RTO Calculation Modification https://tools.ietf.org/html/rfc7323#appendix-G
 struct RTTM {
   using milliseconds = std::chrono::milliseconds;
-  using seconds      = std::chrono::duration<double>; // seconds as double
+  using seconds      = std::chrono::duration<float>; // seconds as float
 
   // clock granularity
-  static constexpr double CLOCK_G {clock_granularity};
+  static constexpr float CLOCK_G {clock_granularity};
 
-  static constexpr double K = 4.0;
-  static constexpr double alpha = 1.0 / 8.0;
-  static constexpr double beta  = 1.0 / 4.0;
+  static constexpr float K = 4.0;
+  static constexpr float alpha = 1.0 / 8.0;
+  static constexpr float beta  = 1.0 / 4.0;
 
   seconds       SRTT;     // smoothed round-trip time
   seconds       RTTVAR;   // round-trip time variation
@@ -112,7 +112,7 @@ struct RTTM {
   // 1. A multiplier member could be added to be used for "backing off" the timer (return compute_rto() * multiplier).
   // 2. Dunno how to set RTO = 3s when timeout on ACK for SYN.
   seconds compute_rto() const
-  { return seconds{std::max(SRTT.count() + std::max(CLOCK_G, K * RTTVAR.count()), 1.0)}; }
+  { return seconds{std::max(SRTT.count() + std::max(CLOCK_G, K * RTTVAR.count()), 1.0f)}; }
 
   /**
    * @brief      Take a RTT (Round trip time) measurment

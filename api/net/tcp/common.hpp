@@ -39,7 +39,7 @@ namespace net {
     // the maximum amount of half-open connections per port (listener)
     static constexpr size_t   default_max_syn_backlog {64};
     // clock granularity of the timestamp value clock
-    static constexpr double   clock_granularity {0.0001};
+    static constexpr float   clock_granularity {0.0001};
 
     static const std::chrono::seconds       default_msl {30};
     static const std::chrono::milliseconds  default_dack_timeout {40};

@@ -19,10 +19,10 @@
 
 using namespace net::tcp;
 
-constexpr double RTTM::CLOCK_G;
-constexpr double RTTM::K;
-constexpr double RTTM::alpha;
-constexpr double RTTM::beta;
+constexpr float RTTM::CLOCK_G;
+constexpr float RTTM::K;
+constexpr float RTTM::alpha;
+constexpr float RTTM::beta;
 
 /*
   When the first RTT measurement R is made, the host MUST set
