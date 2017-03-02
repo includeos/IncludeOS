@@ -199,9 +199,10 @@ else()
 endif()
 
 if ("${ARCH}" STREQUAL "ARCH_ARMv7")
-  set_property(SOURCES PROPERTY COMPILE_FLAGS -mfpu=vfpv3-d16)
+  set_property(SOURCE ${SOURCES} PROPERTY COMPILE_FLAGS -mfpu=vfpv3-d16)
 endif("${ARCH}" STREQUAL "ARCH_ARMv7")
 
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
