@@ -14,8 +14,12 @@ Inet4::Inet4(hw::Nic& nic)
     icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
     MTU_(nic.MTU())
 {
-  INFO("Inet4","Bringing up a IPv4 stack");
-  Ensures(sizeof(IP4::addr) == 4);
+  static_assert(sizeof(IP4::addr) == 4, "IPv4 addresses must be 32-bits");
+
+  /** SMP related **/
+  this->cpu_id = SMP::cpu_id();
+  INFO("Inet4", "Bringing up %s on CPU %d", 
+        ifname().c_str(), this->get_cpu_id());
 
   /** Upstream delegates */
   auto arp_bottom(upstream{arp_, &Arp::receive});
@@ -144,5 +148,6 @@ void Inet4::force_start_send_queues()
 
 void Inet4::move_to_this_cpu()
 {
+  this->cpu_id = SMP::cpu_id();
   nic_.move_to_this_cpu();
 }
