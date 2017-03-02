@@ -162,11 +162,10 @@ class Test:
         # Start and wait for the process
         self.proc_.communicate()
 
-        os.chdir(startdir + "/" + self.path_)
-        with open('log_stdout.log', 'r') as log_stdout:
+        with open('{}/log_stdout.log'.format(self.path_), 'r') as log_stdout:
             self.output_.append(log_stdout.read())
 
-        with open('log_stderr.log', 'r') as log_stderr:
+        with open('{}/log_stderr.log'.format(self.path_), 'r') as log_stderr:
             self.output_.append(log_stderr.read())
 
 
