@@ -31,27 +31,41 @@ namespace net {
     using Addr = typename IPV::addr;
     using Netmask = typename IPV::addr;
 
-    Addr dest_net()
-    { return dest_net_; }
+    Addr net() const noexcept
+    { return net_; }
 
-    Netmask netmask()
+    Netmask netmask() const noexcept
     { return netmask_; }
 
-    Addr gateway()
+    Addr gateway() const noexcept
     { return gateway_; }
 
-    int cost()
+    int cost() const noexcept
     { return cost_; }
 
-    Stack_ptr interface()
+    Stack_ptr interface() const noexcept
     { return iface_; };
 
-    Route(Addr dest_net, Netmask mask, Addr gateway, Stack& iface, int cost)
-      : dest_net_{dest_net}, netmask_{mask}, gateway_{gateway}, iface_{&iface}, cost_{cost}
+    Stack_ptr match(typename IPV::addr dest) const noexcept
+    { return (dest & netmask_) == net_ ? iface_ : nullptr; }
+
+    bool operator<(const Route& b) const
+    { return cost() < b.cost(); }
+
+    bool operator==(const Route& b) const
+    {
+      return net_ == b.net() and
+        netmask_ == b.netmask() and
+        cost_ == b.cost() and
+        iface_ == b.interface();
+    }
+
+    Route(Addr net, Netmask mask, Addr gateway, Stack& iface, int cost)
+      : net_{net}, netmask_{mask}, gateway_{gateway}, iface_{&iface}, cost_{cost}
     {}
 
   private:
-    Addr dest_net_;
+    Addr net_;
     Netmask netmask_;
     Addr gateway_;
     Stack_ptr iface_;
@@ -82,32 +96,61 @@ namespace net {
     { return Forward_delg(*this, forward); }
 
 
-    /** Get the interface route for a certain IP **/
-    virtual Stack_ptr get_interface(typename IPV::addr dest) {
+    /** Get any interface route for a certain IP **/
+    Route<IPV>* get_first_route(typename IPV::addr dest) {
 
       for (auto&& route : routing_table_) {
-        if ((dest & route.netmask()) == route.dest_net())
-          return route.interface();
+        Stack_ptr match = route.match(dest);
+        if (match) return &route;
       }
 
       return nullptr;
-
     };
 
+    /** Get any interface route for a certain IP **/
+    Stack_ptr get_first_interface(typename IPV::addr dest) {
+      auto route = get_first_route(dest);
+      if (route) return route->interface();
+      return nullptr;
+    };
+
+    /** Check if there exists a route for a given IP **/
     bool route_check(typename IPV::addr dest){
-      return get_interface(dest);
+      return get_first_interface(dest) != nullptr;
     }
 
 
+    /**
+     * Get all routes for a certain IP
+     * @todo : Optimize!
+     **/
+    Routing_table get_all_routes(typename IPV::addr dest) {
+
+      Routing_table t;
+      std::copy_if(routing_table_.begin(),
+                   routing_table_.end(),
+                   std::back_inserter(t), [dest](const Route<IPV>& route) {
+                     return route.match(dest);
+                   });
+      return t;
+    }
+
+    /**
+     * Get cheapest route for a certain IP
+     * @todo : Optimize!
+     **/
+    Route<IPV>* get_cheapest_route(typename IPV::addr dest) {
+      Routing_table all = get_all_routes(dest);
+      std::sort(all.begin(), all.end());
+      if (not all.empty()) return &all.front();
+      return nullptr;
+    };
+
 
     /** Construct a router over a set of interfaces **/
-    Router(Interfaces& ifaces, Routing_table&& tbl = {})
+    Router(Interfaces& ifaces, Routing_table tbl = {})
       : networks_{ifaces}, routing_table_{tbl}
     {  }
-
-    void set_routing_table(Routing_table&& tbl) {
-      routing_table_ = std::forward(tbl);
-    };
 
     void set_routing_table(Routing_table tbl) {
       routing_table_ = tbl;
