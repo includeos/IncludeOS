@@ -67,7 +67,7 @@ class Test:
         self.command_ = command
         self.proc_ = None
         self.path_ = path
-        self.output_ = None
+        self.output_ = []
         self.clean = clean
         # Extract category and type from the path variable
         # Category is linked to the top level folder e.g. net, fs, hw
@@ -133,9 +133,11 @@ class Test:
         if self.clean:
             self.clean_test()
 
+        logfile_stdout = open('log_stdout.log', 'w')
+        logfile_stderr = open('log_stderr.log', 'w')
         self.proc_ = subprocess.Popen(self.command_, shell=False,
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
+                                      stdout=logfile_stdout,
+                                      stderr=logfile_stderr)
         os.chdir(startdir)
         return self
 
@@ -158,7 +160,15 @@ class Test:
         self.print_start()
 
         # Start and wait for the process
-        self.output_ = self.proc_.communicate()
+        self.proc_.communicate()
+
+        os.chdir(startdir + "/" + self.path_)
+        with open('log_stdout.log', 'r') as log_stdout:
+            self.output_.append(log_stdout.read())
+
+        with open('log_stderr.log', 'r') as log_stderr:
+            self.output_.append(log_stderr.read())
+
 
         if self.proc_.returncode == 0:
             print pretty.PASS_INLINE()
