@@ -15,29 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <vga>
-#include <hw/ps2.hpp>
+#pragma once
+#ifndef NET_ETHERTYPE_HPP
+#define NET_ETHERTYPE_HPP
 
-#include "snake.hpp"
 
-void begin_snake()
-{
-  static Snake snake {TextmodeVGA::get()};
+namespace net {
 
-  hw::KBM::init();
-  hw::KBM::set_virtualkey_handler(
-  [] (int key)
-  {
-    snake.user_update(Snake::Direction(key));
+  /** Little-endian ethertypes. More entries here:
+      http://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml */
+  enum class Ethertype : uint16_t {
+    IP4   = 0x8,
+    ARP   = 0x608,
+    WOL   = 0x4208,
+    IP6   = 0xdd86,
+    FLOW  = 0x888,
+    JUMBO = 0x7088,
+    VLAN  = 0x81
+  };
 
-    if (key == hw::KBM::VK_SPACE && snake.finished())
-      snake.reset();
-  });
 }
 
-void Service::start(const std::string&)
-{
-  // We have to start snake later to avoid some text output
-  begin_snake();
-}
+#endif

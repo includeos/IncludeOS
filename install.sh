@@ -20,18 +20,18 @@ install_yes=0
 verbose=0
 source=0
 
-while getopts "h?yvs" opt; do
+while getopts "h?yqs" opt; do
     case "$opt" in
     h|\?)
         printf "%s\n" "Options:"\
                 "-y Yes: answer yes to install"\
-                "-v Verbose: extra output during installation"\
+                "-q Quiet: Suppress output from cmake during install"\
                 "-s Source: Install from source"
         exit 0
         ;;
     y)  install_yes=1
         ;;
-    v)  verbose=1
+    q)  quiet=1
         ;;
     s)  source=1
         ;;
@@ -150,13 +150,15 @@ printf "    %-25s %-25s %s\n"\
 
 # Give user option to evaluate install options
 if tty -s && [ $install_yes -eq 0 ]; then
-	read -p "Is this correct [Y|N]?" answer
+	read -p "Is this correct [Y|n]?" answer
+	answer=${answer:-"Y"}	# Default value
 	case $answer in
 		[yY] | [yY][Ee][Ss] )
 			true;;
 		[nN] | [n|N][O|o] )
 			exit 1;;
-		*) echo "Invalid input";;
+		*) echo "Invalid input"
+		   exit 1;;
 	esac
 fi
 
@@ -177,15 +179,15 @@ if [ $source -eq 1 ]; then
 	fi
 else
 	printf "\n\n>>> Running install_from_bundle.sh (expect up to 3 minutes)\n"
-	if [ $verbose -eq 1 ]; then
-		if ! ./etc/install_from_bundle.sh; then
+	if [ $quiet -eq 1 ]; then
+		if ! ./etc/install_from_bundle.sh &> /tmp/cmake_output.txt; then
+			cat /tmp/cmake_output.txt	# Print output because it failed
 			printf  "%s\n" ">>> Sorry <<<"\
 					"Could not install from bundle."
 			exit 1
 		fi
 	else
-		if ! ./etc/install_from_bundle.sh &> /tmp/cmake_output.txt; then
-			cat /tmp/cmake_output.txt	# Print output because it failed
+		if ! ./etc/install_from_bundle.sh; then
 			printf  "%s\n" ">>> Sorry <<<"\
 					"Could not install from bundle."
 			exit 1

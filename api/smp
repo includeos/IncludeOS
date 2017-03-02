@@ -44,7 +44,7 @@ inline void unlock(spinlock_t&) {}
 #else
 inline void lock(spinlock_t& lock) {
   while (__sync_lock_test_and_set(&lock, 1)) {
-    while (lock) asm volatile("pause");
+    while (lock) asm("pause");
   }
 }
 inline void unlock(spinlock_t& lock) {
@@ -64,13 +64,13 @@ struct minimal_barrier_t
   {
     asm("mfence");
     while (this->val < max) {
-      asm volatile("pause; nop;");
+      asm("pause; nop;");
     }
   }
   
   void reset(int val)
   {
-    asm("mfence");
+    asm volatile("mfence");
     this->val = val;
   }
   
@@ -108,6 +108,9 @@ public:
   // return the number of active CPUs
   static int cpu_count() noexcept;
 
+  // implement this function to execute something on all APs at init
+  static void init_task();
+
   // execute @func on another CPU core
   // call @done back on main CPU when task returns
   // use signal() to broadcast work should begin
@@ -117,12 +120,12 @@ public:
   // call this to signal that tasks are queued up
   static void signal();
 
+  // broadcast-trigger interrupt on all waiting APs
+  static void broadcast(uint8_t intr);
+
   // a global spinlock to synchronize text output (and other things)
   static void global_lock()   noexcept;
   static void global_unlock() noexcept;
-
-  static void memory_lock()   noexcept;
-  static void memory_unlock() noexcept;
 };
 
 // access a std::array of structs indexed by current CPU id

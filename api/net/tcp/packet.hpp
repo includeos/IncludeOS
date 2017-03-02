@@ -50,8 +50,9 @@ public:
   //! a valid MTU-sized buffer
   void init()
   {
-    PacketIP4::init(IP4::IP4_TCP);
-    char* ipdata = ip_data();
+
+    PacketIP4::init(Protocol::TCP);
+    Byte* ipdata = ip_data();
 
     // clear TCP header
     ((uint32_t*) ipdata)[3] = 0;
@@ -64,7 +65,7 @@ public:
 
     /// TODO: optimize:
     set_length();
-    set_payload(buffer() + tcp_full_header_length());
+    //set_payload(buffer() + tcp_full_header_length());
   }
 
   // GETTERS
@@ -177,15 +178,12 @@ public:
   inline uint8_t tcp_header_length() const
   { return offset() * 4; }
 
-  inline uint8_t tcp_full_header_length() const
-  { return ip_full_header_length() + tcp_header_length(); }
-
   // The total length of the TCP segment (TCP header + data)
   uint16_t tcp_length() const
   { return tcp_header_length() + tcp_data_length(); }
 
   // Where data starts
-  inline char* tcp_data()
+  inline Byte* tcp_data()
   { return ip_data() + tcp_header_length(); }
 
   inline const char* tcp_data() const
@@ -316,8 +314,8 @@ private:
   // sets the correct length for all the protocols up to IP4
   void set_length(uint16_t newlen = 0) {
     // new total packet length
-    set_size( tcp_full_header_length() + newlen );
-    // update IP packet aswell - bad idea?
+    set_data_end( ip_header_length() + tcp_header_length() + newlen );
+    // update IP packet aswell - tcp data length relies on this field
     set_segment_length();
   }
 

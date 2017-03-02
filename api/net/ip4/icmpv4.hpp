@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,49 +18,31 @@
 #ifndef NET_IP4_ICMPv4_HPP
 #define NET_IP4_ICMPv4_HPP
 
-#include "../inet.hpp"
-#include "ip4.hpp"
+#include "packet_icmp4.hpp"
 
 namespace net {
 
-  void icmp_default_out(Packet_ptr);
+  struct ICMPv4 {
 
-  class ICMPv4 {
-  public:
     using Stack = IP4::Stack;
+
     // Initialize
     ICMPv4(Stack&);
 
-    // Known ICMP types
-    enum icmp_types { ICMP_ECHO_REPLY, ICMP_ECHO = 8 };
-
-    struct icmp_header {
-      uint8_t  type;
-      uint8_t  code;
-      uint16_t checksum;
-      uint16_t identifier;
-      uint16_t sequence;
-      uint8_t  payload[0];
-    }__attribute__((packed));
-
-    struct full_header {
-      LinkLayer::header link_hdr;
-      IP4::ip_header    ip_hdr;
-      icmp_header       icmp_hdr;
-    }__attribute__((packed));
-
     // Input from network layer
-    void bottom(Packet_ptr);
+    void receive(Packet_ptr);
 
     // Delegate output to network layer
     inline void set_network_out(downstream s)
     { network_layer_out_ = s;  };
 
   private:
-    Stack& inet_;
-    downstream            network_layer_out_ {icmp_default_out};
 
-    void ping_reply(full_header* full_hdr, uint16_t size);
+    Stack& inet_;
+    downstream network_layer_out_ = nullptr;
+
+    void ping_reply(icmp4::Packet&);
+
   }; //< class ICMPv4
 } //< namespace net
 
