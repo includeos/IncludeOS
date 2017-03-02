@@ -57,7 +57,7 @@ init_submodule(mod/uzlib)
 set(OPTIMIZE "-O2")
 
 if(debug OR debug-info OR debug-all)
-	set(CAPABS "${CAPABS} -O0")
+	set(OTPIMIZE "-O0")
 endif(debug OR debug-info OR debug-all)
 
 if(minimal)

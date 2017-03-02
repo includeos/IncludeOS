@@ -53,6 +53,8 @@ public:
   /** Disconnect event */
   struct Disconnect;
 
+  using Byte = uint8_t;
+
   using WriteBuffer = Write_queue::WriteBuffer;
 
 public:

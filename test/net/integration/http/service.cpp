@@ -75,6 +75,7 @@ void Service::ready()
     if (err)
       printf("Error: %s \n", err.to_string().c_str());
 
+    printf("Received body: %s\n", res->body());
     CHECKSERT(!err, "No error");
     CHECKSERT(res->body() == "/testing", "Received body: \"/testing\"");
 
@@ -94,7 +95,7 @@ void Service::ready()
     CHECK(res != nullptr, "Received response");
     if(!err)
       printf("Response:\n%s\n", res->to_string().c_str());
-  });
+      });
 
   using namespace std::chrono;
   client_->get(acorn_url + "api/dashboard/status", {},

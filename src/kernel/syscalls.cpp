@@ -201,7 +201,7 @@ void panic(const char* why)
   // call custom on panic handler
   if (panic_handler) panic_handler();
 
-  if (SMP::cpu_id() == 1) {
+  if (SMP::cpu_id() == 0) {
     SMP::global_lock();
     // Signal End-Of-Transmission
     fprintf(stderr, "\x04"); fflush(stderr);

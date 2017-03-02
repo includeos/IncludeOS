@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,29 +14,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#pragma once
 
-#ifndef NET_IP4_HEADER_HPP
-#define NET_IP4_HEADER_HPP
+#pragma once
+#ifndef NET_ETHERTYPE_HPP
+#define NET_ETHERTYPE_HPP
+
 
 namespace net {
-  namespace ip4 {
 
-    /** IP4 header representation */
-    struct Header {
-      uint8_t  version_ihl;
-      uint8_t  tos;
-      uint16_t tot_len;
-      uint16_t id;
-      uint16_t frag_off_flags;
-      uint8_t  ttl;
-      uint8_t  protocol;
-      uint16_t check;
-      Addr     saddr;
-      Addr     daddr;
-    };
+  /** Little-endian ethertypes. More entries here:
+      http://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml */
+  enum class Ethertype : uint16_t {
+    IP4   = 0x8,
+    ARP   = 0x608,
+    WOL   = 0x4208,
+    IP6   = 0xdd86,
+    FLOW  = 0x888,
+    JUMBO = 0x7088,
+    VLAN  = 0x81
+  };
 
-  }
 }
 
 #endif

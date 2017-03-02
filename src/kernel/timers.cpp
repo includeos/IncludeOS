@@ -50,7 +50,7 @@ struct Timer
 **/
 static bool signal_ready = false;
 
-struct timer_system
+struct alignas(SMP_ALIGN) timer_system
 {
   bool     is_running  = false;
   uint32_t dead_timers = 0;
@@ -65,7 +65,7 @@ struct timer_system
   int64_t*  oneshot_stopped;
   uint32_t* periodic_started;
   uint32_t* periodic_stopped;
-} __attribute__((aligned(128)));
+};
 
 static std::array<timer_system, SMP_MAX_CORES> systems;
 
