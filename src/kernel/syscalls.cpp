@@ -169,6 +169,7 @@ OS::on_panic_func panic_handler = nullptr;
 **/
 void panic(const char* why)
 {
+#ifdef ARCH_X86
   /// prevent re-entering panic() more than once per CPU
   if (PER_CPU(panic_stuff).reenter)
       OS::reboot();
@@ -210,6 +211,9 @@ void panic(const char* why)
   // .. if we return from the panic handler, go to permanent sleep
   while (1) asm("cli; hlt");
   __builtin_unreachable();
+#else
+#warning "panic() not implemented for selected arch"
+#endif
 }
 
 // Shutdown the machine when one of the exit functions are called
@@ -248,3 +252,4 @@ void _init_syscalls()
   // make sure that the buffers length is zero so it won't always show up in crashes
   _crash_context_buffer[0] = 0;
 }
+

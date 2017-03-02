@@ -215,10 +215,14 @@ public:
        Update the available index */
     inline void update_avail_idx ()
     {
+#ifdef ARCH_X86
       // Std. §3.2.1 pt. 4
       asm volatile("mfence" ::: "memory");
       _queue.avail->idx += _num_added;
       _num_added = 0;
+#else
+#warning "update_avail_idx() not implemented for selected arch"
+#endif
     }
 
     /** Kick hypervisor.
@@ -261,7 +265,7 @@ public:
     {
       return _desc_in_flight;
     }
-    
+
     /** Get number of free tokens in Queue */
     uint16_t num_free() const noexcept
     {
@@ -380,3 +384,4 @@ private:
 };
 
 #endif
+

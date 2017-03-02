@@ -173,7 +173,28 @@ void SMP::global_unlock() noexcept {}
 extern "C"
 void (*current_eoi_mechanism) () = nullptr;
 
+#ifdef ARCH_X86
 #include "../../src/arch/x86/apic.hpp"
 namespace x86 {
   IApic& APIC::get() noexcept { return *(IApic*) 0; }
 }
+#endif
+
+#ifndef ARCH_X86
+bool rdrand32(uint32_t* result) {
+  return true;
+}
+#include <kernel/cpuid.hpp>
+bool CPUID::has_feature(Feature f) {
+  return true;
+}
+#include <kernel/irq_manager.hpp>
+IRQ_manager& IRQ_manager::get() {
+  static IRQ_manager m;
+  return m;
+}
+void IRQ_manager::process_interrupts() {
+  return;
+}
+#endif
+
