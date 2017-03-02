@@ -186,6 +186,9 @@ public:
   inline Byte* tcp_data()
   { return ip_data() + tcp_header_length(); }
 
+  inline const Byte* tcp_data() const
+  { return ip_data() + tcp_header_length(); }
+
   // Length of data in packet when header has been accounted for
   inline uint16_t tcp_data_length() const
   { return ip_data_length() - tcp_header_length(); }
@@ -193,26 +196,63 @@ public:
   inline bool has_tcp_data() const
   { return tcp_data_length() > 0; }
 
-  template <typename T, typename... Args>
+  /**
+   * @brief      Adds a tcp option.
+   *
+   * @todo       It's probably a better idea to make the option include
+   *             the padding for it to be aligned, and avoid two mem operations
+   *
+   * @tparam     T          TCP Option
+   * @tparam     Padding    padding in bytes to be put infront of the option
+   * @tparam     Args       construction args to option T
+   */
+  template <typename T, int Padding = 0, typename... Args>
   inline void add_tcp_option(Args&&... args) {
     // to avoid headache, options need to be added BEFORE any data.
     assert(!has_tcp_data());
+    struct NOP {
+      uint8_t kind{0x01};
+    };
     // option address
     auto* addr = tcp_options()+tcp_options_length();
-    // emplace the option
-    const auto& opt = *(new (addr) T(args...));
+    // if to use pre padding
+    if(Padding)
+      new (addr) NOP[Padding];
+
+    // emplace the option after pre padding
+    const auto& opt = *(new (addr + Padding) T(args...));
 
     // find number of NOP to pad with
-    const auto nops = opt.length % 4;
+    const auto nops = (opt.length + Padding) % 4;
     if(nops) {
-      struct NOP {
-        uint8_t kind{0x01};
-      };
-      new (addr + opt.length) NOP[nops];
+      new (addr + Padding + opt.length) NOP[nops];
     }
 
     // update offset
-    set_offset(offset() + round_up(opt.length, 4));
+    set_offset(offset() + round_up(opt.length + Padding, 4));
+
+    set_length(); // update
+  }
+
+  /**
+   * @brief      Adds a tcp option aligned.
+   *             Assumes the user knows what he's doing.
+   *
+   * @tparam     T          An aligned TCP option
+   * @tparam     Args       construction args to option T
+   */
+  template <typename T, typename... Args>
+  inline void add_tcp_option_aligned(Args&&... args) {
+    // to avoid headache, options need to be added BEFORE any data.
+    Expects(!has_tcp_data() and sizeof(T) % 4 == 0);
+
+    // option address
+    auto* addr = tcp_options()+tcp_options_length();
+    // emplace the option
+    new (addr) T(args...);
+
+    // update offset
+    set_offset(offset() + (sizeof(T) / 4));
 
     set_length(); // update
   }
@@ -227,6 +267,9 @@ public:
   // Options
   inline uint8_t* tcp_options()
   { return (uint8_t*) tcp_header().options; }
+
+  inline const uint8_t* tcp_options() const
+  { return (const uint8_t*) tcp_header().options; }
 
   inline uint8_t tcp_options_length() const
   { return tcp_header_length() - sizeof(Header); }
