@@ -347,7 +347,7 @@ Packet_ptr Connection::create_outgoing_packet() {
   packet->set_win(std::min((cb.RCV.WND >> cb.RCV.wind_shift), (uint32_t)default_window_size));
 
   if(cb.SND.TS_OK)
-    packet->add_tcp_option<Option::opt_ts>(host_.get_ts_value(), cb.TS_recent);
+    packet->add_tcp_option_aligned<Option::opt_ts_align>(host_.get_ts_value(), cb.TS_recent);
   // Set SEQ and ACK - I think this is OK..
   packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
   debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
@@ -356,9 +356,12 @@ Packet_ptr Connection::create_outgoing_packet() {
 }
 
 void Connection::transmit(Packet_ptr packet) {
-  if(!rttm.active and packet->end() == cb.SND.NXT) {
+  if(!cb.SND.TS_OK
+    and !rttm.active()
+    and packet->end() == cb.SND.NXT)
+  {
     //printf("<TCP::Connection::transmit> Starting RTT measurement.\n");
-    rttm.start();
+    rttm.start(std::chrono::milliseconds{host_.get_ts_value()});
   }
   if(packet->should_rtx() and !rtx_timer.is_running()) {
     rtx_start();
@@ -392,7 +395,6 @@ bool Connection::handle_ack(const Packet& in) {
   // new ack
   else if(LIKELY(in.ack() >= cb.SND.UNA))
   {
-
     if( (cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() ))
       and cb.SND.WND != true_win )
     {
@@ -418,18 +420,7 @@ bool Connection::handle_ack(const Packet& in) {
     //if(rtx_timer.is_running())
     rtx_ack(in.ack());
 
-    // update cwnd when congestion avoidance?
-    bool cong_avoid_rtt = false;
-
-    /*if(SND.TS_OK and bytes_acked > 0)
-    {
-
-    }*/
-    // if measuring round trip time, stop
-    if(rttm.active) {
-      rttm.stop();
-      cong_avoid_rtt = true;
-    }
+    take_rtt_measure(in);
 
     // no fast recovery
     if(!fast_recovery) {
@@ -588,6 +579,19 @@ void Connection::rtx_ack(const seq_t ack) {
   //  x-rtx_q.size(), rtx_q.size());
 }
 
+void Connection::take_rtt_measure(const Packet& packet)
+{
+  if(cb.SND.TS_OK)
+  {
+    auto* ts = parse_ts_option(packet);
+    rttm.rtt_measurement(RTTM::milliseconds{host_.get_ts_value() - ntohl(ts->ecr)});
+  }
+  else if(rttm.active())
+  {
+    rttm.stop(RTTM::milliseconds{host_.get_ts_value()});
+  }
+}
+
 /*
   Assumption
   Retransmission will only occur when one of the following are true:
@@ -687,7 +691,7 @@ void Connection::rtx_timeout() {
   }
   // we never queue SYN packets since they don't carry data..
   else {
-    rttm.RTO = 3.0;
+    rttm.RTO = std::chrono::seconds(3);
   }
   // timer need to be restarted
   if(!rtx_timer.is_running())

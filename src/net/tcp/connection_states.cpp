@@ -883,9 +883,6 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
         return OK;
       }
       // If SND.UNA =< SEG.ACK =< SND.NXT then the ACK is acceptable.
-    } else {
-      if(tcp.rttm.active)
-        tcp.rttm.stop(true);
     }
   }
 
@@ -950,6 +947,8 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
 
     // Parse options
     tcp.parse_options(*in);
+
+    tcp.take_rtt_measure(*in);
 
     // (our SYN has been ACKed)
     if(tcb.SND.UNA > tcb.ISS)
@@ -1053,30 +1052,19 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
       If SND.UNA =< SEG.ACK =< SND.NXT then enter ESTABLISHED state
       and continue processing.
     */
-    if(tcb.SND.UNA <= in->ack() and in->ack() <= tcb.SND.NXT) {
-      debug("<Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
-      if(tcp.rttm.active)
-        tcp.rttm.stop(true);
+    if(tcb.SND.UNA <= in->ack() and in->ack() <= tcb.SND.NXT)
+    {
+      debug2("<Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
+
       tcp.set_state(Connection::Established::instance());
 
-      // Taken from acknowledge (without congestion control)
-      tcb.SND.UNA = in->ack();
-      if(tcp.rtx_timer.is_running())
-        tcp.rtx_stop();
+      tcp.handle_ack(*in);
 
       tcp.signal_connect(); // NOTE: User callback
 
       // 7. proccess the segment text
       if(UNLIKELY(in->has_tcp_data())) {
-        debug2("<Connection::SynReceived::handle> @warning: Packet has data? %s\n", in->to_string().c_str());
         process_segment(tcp, *in);
-      }
-
-      // 8. check FIN bit
-      if(UNLIKELY(in->isset(FIN))) {
-        tcp.set_state(Connection::CloseWait::instance());
-        process_fin(tcp, *in);
-        return OK;
       }
     }
     /*

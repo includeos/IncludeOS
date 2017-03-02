@@ -19,92 +19,114 @@
 #ifndef NET_TCP_RTTM_HPP
 #define NET_TCP_RTTM_HPP
 
-#include <cassert>
+#include <gsl/gsl_assert>
 #include <chrono>
 #include <cmath>
 #include <algorithm>
-#include <debug>
+#include "common.hpp"
 
 namespace net {
 namespace tcp {
 
-// [RFC 6298]
-// Round Trip Time Measurer
+/** Round Trip Time Measurer, based on Jacobson/ Karels Algorithm found in RFC 793 (rev RFC 6298) */
+// TODO: Appendix G.  RTO Calculation Modification https://tools.ietf.org/html/rfc7323#appendix-G
 struct RTTM {
-  using timestamp_t = double;
-  using duration_t = double;
+  using milliseconds = std::chrono::milliseconds;
+  using seconds      = std::chrono::duration<double>; // seconds as double
 
   // clock granularity
-  //static constexpr duration_t CLOCK_G = hw::PIT::frequency().count() / 1000;
-  static constexpr duration_t CLOCK_G = 1.0;
+  static constexpr double CLOCK_G {clock_granularity};
 
   static constexpr double K = 4.0;
+  static constexpr double alpha = 1.0 / 8.0;
+  static constexpr double beta  = 1.0 / 4.0;
 
-  static constexpr double alpha = 1.0/8;
-  static constexpr double beta = 1.0/4;
+  seconds       SRTT;     // smoothed round-trip time
+  seconds       RTTVAR;   // round-trip time variation
+  seconds       RTO;      // retransmission timeout
 
-  timestamp_t t; // tick when measure is started
+  milliseconds  time;     // tick when measure is started
+  uint32_t      samples;  // number of samples made
 
-  duration_t SRTT; // smoothed round-trip time
-  duration_t RTTVAR; // round-trip time variation
-  duration_t RTO; // retransmission timeout
-
-  bool active;
-
+  /**
+   * @brief      Construct a RTTM with default values
+   */
   RTTM()
-    : t(0), SRTT(1.0), RTTVAR(1.0), RTO(1.0), active(false)
+  : SRTT{1.0},
+    RTTVAR{1.0},
+    RTO{1.0},
+    time{0},
+    samples{0}
   {}
 
-  void start();
+  /**
+   * @brief      Returns wether the RTTM is currently "measuring" (time is set)
+   *
+   * @return     True if the RTTM is active (measuring)
+   */
+  bool active() const noexcept
+  { return time > milliseconds::zero(); }
 
-  void stop(bool first = false);
-
-  auto rto_ms() const
-  { return std::chrono::milliseconds{static_cast<unsigned long>(RTO * 1000)}; }
-
-  /*
-    When the first RTT measurement R is made, the host MUST set
-
-    SRTT <- R
-    RTTVAR <- R/2
-    RTO <- SRTT + max (G, K*RTTVAR)
-
-    where K = 4.
-  */
-  void first_rtt_measurement(duration_t R) {
-    SRTT = R;
-    RTTVAR = R/2;
-    update_rto();
+  /**
+   * @brief      Starts measuring from the current timestamp.
+   *             Can only be used if not already active.
+   *
+   * @param[in]  ts    A timestamp in milliseconds
+   */
+  void start(milliseconds ts)
+  {
+    Expects(not active());
+    time = ts;
   }
 
-  /*
-    When a subsequent RTT measurement R' is made, a host MUST set
-
-    RTTVAR <- (1 - beta) * RTTVAR + beta * |SRTT - R'|
-    SRTT <- (1 - alpha) * SRTT + alpha * R'
-
-    The value of SRTT used in the update to RTTVAR is its value
-    before updating SRTT itself using the second assignment.  That
-    is, updating RTTVAR and SRTT MUST be computed in the above
-    order.
-
-    The above SHOULD be computed using alpha=1/8 and beta=1/4 (as
-    suggested in [JK88]).
-
-    After the computation, a host MUST update
-    RTO <- SRTT + max (G, K*RTTVAR)
-  */
-  void sub_rtt_measurement(duration_t R) {
-    RTTVAR = (1 - beta) * RTTVAR + beta * std::abs(SRTT-R);
-    SRTT = (1 - alpha) * SRTT + alpha * R;
-    update_rto();
+  /**
+   * @brief      Stops the measuring, taking a RTT measurment.
+   *             Expects the RTTM to be active (a measurment is started).
+   *
+   * @param[in]  ts    A timestamp in milliseconds
+   */
+  void stop(milliseconds ts)
+  {
+    Expects(active());
+    rtt_measurement(time - ts);
+    time = milliseconds::zero();
   }
 
-  void update_rto() {
-    RTO = std::max(SRTT + std::max(CLOCK_G, K * RTTVAR), 1.0);
-    debug2("<TCP::Connection::RTO> RTO updated: %ums\n",
-      (uint32_t)(RTO * 1000));
-  }
+  /**
+   * @brief      Returns the current calculated RTO (Round trip timeout) in milliseconds
+   *
+   * @return     The current calculated RTO in milliseconds.
+   */
+  milliseconds rto_ms() const
+  { return std::chrono::duration_cast<milliseconds>(RTO); }
+
+  /**
+   * @brief      Calculates the RTO (Round trip time) in seconds.
+   *
+   * @return     The current RTO.
+   */
+  // TODO: It would be preferable to remove the RTO member and rather use this function than the getter.
+  // Then the RTO would only have to be calculated when a new rtx timer is started,
+  // instead of with every single measurement.
+  // Two thoughts (see Connection::rtx_timeout):
+  // 1. A multiplier member could be added to be used for "backing off" the timer (return compute_rto() * multiplier).
+  // 2. Dunno how to set RTO = 3s when timeout on ACK for SYN.
+  seconds compute_rto() const
+  { return seconds{std::max(SRTT.count() + std::max(CLOCK_G, K * RTTVAR.count()), 1.0)}; }
+
+  /**
+   * @brief      Take a RTT (Round trip time) measurment
+   *
+   * @param[in]  R     A RTT sample
+   */
+  void rtt_measurement(milliseconds R);
+
+  /**
+   * @brief      Updates the RTO (Round trip time)
+   */
+  void update_rto()
+  { RTO = compute_rto(); }
+
 }; // < struct RTTM
 
 } // < namespace tcp

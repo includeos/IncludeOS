@@ -66,6 +66,9 @@ struct Option {
     }
   }
 
+  /**
+   * @brief      Maximum Segment Size option [RFC 793]
+   */
   struct opt_mss {
     const uint8_t   kind    {MSS};
     const uint8_t   length  {4};
@@ -89,6 +92,9 @@ struct Option {
 
   } __attribute__((packed));
 
+  /**
+   * @brief      Timestamp option [RFC 7323] p. 11
+   */
   struct opt_ts {
     const uint8_t   kind    {TS};
     const uint8_t   length  {10};
@@ -98,6 +104,32 @@ struct Option {
     opt_ts(const uint32_t val, const uint32_t echo)
       : val{htonl(val)},
         ecr{htonl(echo)}
+    {}
+
+  } __attribute__((packed));
+
+  /**
+   * @brief      An aligned version of a Timestamp option. Includes padding,
+   *             making the ts values on word boundaries.
+   *
+      The following layout is recommended for sending options on
+      non-<SYN> segments to achieve maximum feasible alignment of 32-bit
+      and 64-bit machines.
+
+                   +--------+--------+--------+--------+
+                   |   NOP  |  NOP   |  TSopt |   10   |
+                   +--------+--------+--------+--------+
+                   |          TSval timestamp          |
+                   +--------+--------+--------+--------+
+                   |          TSecr timestamp          |
+                   +--------+--------+--------+--------+
+   */
+  struct opt_ts_align {
+    const uint8_t padding[2] {NOP, NOP};
+    const opt_ts  ts;
+
+    opt_ts_align(const uint32_t val, const uint32_t echo)
+      : ts{val, echo}
     {}
 
   } __attribute__((packed));
