@@ -93,16 +93,13 @@ bool Timers::is_ready()
 }
 void Timers::ready()
 {
-  bool ready = signal_ready;
   signal_ready = true;
   // begin processing timers if any are queued
   if (get().is_running == false) {
     timers_handler();
   }
-  if (ready == false) {
-    // call Service::ready(), because timer system is ready!
-    Service::ready();
-  }
+  // call Service::ready(), because timer system is ready!
+  Service::ready();
 }
 
 id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
