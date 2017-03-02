@@ -1,0 +1,23 @@
+---
+Language:        Cpp
+# BasedOnStyle:  Chromium
+AccessModifierOffset: -2
+AlignAfterOpenBracket: Align
+AlignEscapedNewlinesLeft: true
+BreakBeforeBraces: Stroustrup
+ColumnLimit: 80
+Cpp11BracedListStyle: true
+IndentWidth: 2
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
+PointerAlignment: Left
+ReflowComments: true
+SortIncludes: true
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+Standard: Cpp11
+TabWidth: 2
+UseTab: Never
