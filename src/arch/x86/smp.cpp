@@ -171,7 +171,6 @@ void ::SMP::unicast(int cpu, uint8_t irq)
 }
 
 static spinlock_t __global_lock = 0;
-static spinlock_t __memory_lock = 0;
 
 void ::SMP::global_lock() noexcept
 {
@@ -184,6 +183,8 @@ void ::SMP::global_unlock() noexcept
 
 /// SMP variants of malloc and free ///
 #ifndef INCLUDEOS_SINGLE_THREADED
+static spinlock_t __memory_lock = 0;
+
 #include <malloc.h>
 void* malloc(size_t size)
 {
