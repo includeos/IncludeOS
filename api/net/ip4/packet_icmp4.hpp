@@ -22,9 +22,43 @@
 namespace net {
 namespace icmp4 {
 
-  // Known ICMP types
-  enum class Type : uint8_t
-  { ECHO_REPLY, ECHO = 8 };
+  // ICMP types
+  enum class Type : uint8_t {
+    ECHO_REPLY,
+    DEST_UNREACHABLE =        3,
+    SRC_QUENCH =              4,
+    REDIRECT =                5,
+    ECHO =                    8,
+    TIME_EXCEEDED =           11,
+    PARAMETER_PROBLEM =       12,
+    TIMESTAMP =               13,
+    TIMESTAMP_REPLY =         14,
+    INFO_REQUEST =            15,
+    INFO_REPLY =              16
+  };
+
+  namespace code {
+    enum class Dest_unreachable : uint8_t {
+      NET,
+      HOST,
+      PROTOCOL,
+      PORT,
+      FRAGMENTATION,
+      SRC_ROUTE
+    };
+
+    enum class Redirect : uint8_t {
+      NET,
+      HOST,
+      TOS_NET,
+      TOS_HOST
+    };
+
+    enum class Time_exceeded : uint8_t {
+      TTL,
+      FRAGMENT_REASSEMBLY
+    };
+  } // < namespace code
 
   class Packet {
 
@@ -122,7 +156,6 @@ namespace icmp4 {
 
   private:
     IP4::IP_packet_ptr pckt_;
-
   };
 }
 }

@@ -36,12 +36,40 @@ namespace net {
     inline void set_network_out(downstream s)
     { network_layer_out_ = s;  };
 
+    void destination_unreachable(icmp4::Packet& req, icmp4::code::Dest_unreachable code);
+
+    void time_exceeded(icmp4::Packet& req, icmp4::code::Time_exceeded code);
+
+    void parameter_problem(icmp4::Packet& req);
+
+    void source_quench(icmp4::Packet& req);
+
+    void redirect(icmp4::Packet& req, icmp4::code::Redirect code);
+
+    void timestamp_request(IP4::addr ip);
+    void timestamp_reply(icmp4::Packet& req);
+
+    void information_request(IP4::addr ip);
+    void information_reply(icmp4::Packet& req);
+
+    void ping_request(IP4::addr ip);
+
   private:
 
     Stack& inet_;
-    downstream network_layer_out_ = nullptr;
+    downstream network_layer_out_ =   nullptr;
+    uint8_t includeos_payload_[48] =  {'I','N','C','L','U','D',
+                                      'E','O','S',1,2,3,4,5,
+                                      'A','B','C','D','E','F','G','H',
+                                      'I','J','K','L','M','N','O','P',
+                                      'Q','R','S','T','U','V','W','X',
+                                      'Y','Z',1,2,3,4,5,6,
+                                      7,8};
 
     void ping_reply(icmp4::Packet&);
+
+    void send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload);
+    void send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code);
 
   }; //< class ICMPv4
 } //< namespace net

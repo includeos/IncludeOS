@@ -22,7 +22,7 @@
 #include "ip4/arp.hpp"
 #include "ip4/ip4.hpp"
 #include "ip4/udp.hpp"
-#include "ip4/icmpv4.hpp"
+#include "ip4/icmp4.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include <vector>
@@ -193,6 +193,12 @@ namespace net {
     void force_start_send_queues() override;
 
     void move_to_this_cpu() override;
+
+    virtual void
+    ping(IP4::addr ip) override
+    {
+      icmp_.ping_request(ip);
+    }
 
     /** Return the stack on the given Nic */
     template <int N = 0>

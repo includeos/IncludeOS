@@ -101,6 +101,8 @@ namespace net {
 
     virtual void move_to_this_cpu() = 0;
 
+    virtual void ping(typename IPV::addr ip) = 0;
+
   }; //< class Inet<LINKLAYER, IPV>
 } //< namespace net
 
