@@ -37,13 +37,8 @@ extern void print_heap_allocations(delegate<bool(void*, size_t)>);
 extern "C"
 void kernel_sanity_checks();
 
-#include <hw/serial.hpp>
 void Service::start()
 {
-  // add own serial out after service start
-  auto& com1 = hw::Serial::port<1>();
-  OS::add_stdout(com1.get_print_handler());
-
   //  server_id  = 2;
   //  servername = "irc.other.org";
 
