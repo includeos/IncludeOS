@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,21 +19,22 @@
 #ifndef NET_TCP_HPP
 #define NET_TCP_HPP
 
-#include <map>
-#include <net/inet.hpp>
-#include <net/util.hpp> // net::Packet_ptr
-#include <sstream> // ostringstream
-#include <queue> // buffer
-
 #include "common.hpp"
 #include "connection.hpp"
 #include "headers.hpp"
 #include "listener.hpp"
 #include "socket.hpp"
+#include "packet.hpp"
 
+#include <map>  // connections, listeners
+#include <queue>  // writeq
+#include <net/inet.hpp>
 
 namespace net {
 
+  /**
+   * @brief      An access point for TCP, handling connections, config and such.
+   */
   class TCP {
   public:
     using IPStack         = IP4::Stack;
@@ -53,14 +54,22 @@ namespace net {
 
     /// USER INTERFACE - TCP ///
 
-    /*
-      Constructor
-    */
+    /**
+     * @brief      Construct a TCP instance for a given IPStack with default values.
+     *
+     * @param      <unnamed>  The IPStack used by TCP
+     */
     TCP(IPStack&);
 
-    /*
-      Bind a new listener to a given Port.
-    */
+    /**
+     * @brief      Bind to a port to start listening for new connections
+     *             Throws if port is already in use.
+     *
+     * @param[in]  port  The port
+     * @param[in]  cb    (optional) Connect callback to be invoked on new connections.
+     *
+     * @return     a TCP Listener
+     */
     tcp::Listener& bind(const tcp::port_t port, ConnectCallback cb = nullptr);
 
     /**
@@ -73,70 +82,120 @@ namespace net {
      */
     bool unbind(const tcp::port_t port);
 
-    /*
-      Active open a new connection to the given remote.
-    */
-    void connect(tcp::Socket remote, ConnectCallback);
+    /**
+     * @brief      Make an outgoing connection to a TCP remote (IP:port).
+     *
+     * @param[in]  remote     The remote
+     * @param[in]  cb         Connect callback to be invoked when the connection is established.
+     */
+    void connect(tcp::Socket remote, ConnectCallback cb);
 
+    /**
+     * @brief      Overload for the one above
+     *
+     * @param[in]  address   The address
+     * @param[in]  port      The port
+     * @param[in]  callback  The callback
+     */
     void connect(tcp::Address address, tcp::port_t port, ConnectCallback callback)
     { connect({address, port}, std::move(callback)); }
 
-    /*
-      Active open a new connection to the given remote.
-    */
+    /**
+     * @brief      Make an outgoing connecction to a TCP remote (IP:port).
+     *
+     * @param[in]  remote  The remote
+     *
+     * @return     A ptr to an unestablished TCP Connection
+     */
     tcp::Connection_ptr connect(tcp::Socket remote);
 
+    /**
+     * @brief      Overload for the one above
+     *
+     * @param[in]  address  The address
+     * @param[in]  port     The port
+     *
+     * @return     A ptr to an unestablished TCP Connection
+     */
     auto connect(tcp::Address address, tcp::port_t port)
     { return connect({address, port}); }
 
-    /*
-     * Insert existing connection
+    /**
+     * @brief      Insert a connection ptr into the TCP (used for restoring)
+     *
+     * @param[in]  <unnamed>  A ptr to an TCP Connection
      */
     void insert_connection(tcp::Connection_ptr);
 
-    /*
-      Receive packet from network layer (IP).
-    */
+    /**
+     * @brief      Receive a Packet from the network layer (IP)
+     *
+     * @param[in]  <unnamed>  A network packet
+     */
     void receive(net::Packet_ptr);
 
-    /*
-      Delegate output to network layer
-    */
+    /**
+     * @brief      Sets a delegate to the network output.
+     *
+     * @param[in]  del   A downstream delegate
+     */
     void set_network_out(downstream del)
     { _network_layer_out = del; }
 
-    /*
-      Compute the TCP checksum
-    */
+    /**
+     * @brief      Computes the TCP checksum of a segment
+     *
+     * @param[in]  <unnamed>  a TCP Segment
+     *
+     * @return     The checksum of the TCP segment
+     */
     static uint16_t checksum(const tcp::Packet&);
 
+    /**
+     * @brief      Returns a collection of the listeners for this instance.
+     *
+     * @return     A collection of Listeners
+     */
     const auto& listeners() const
     { return listeners_; }
 
+    /**
+     * @brief      Returns a collection of the connections for this instance.
+     *
+     * @return     A collection of Connections
+     */
     const auto& connections() const
     { return connections_; }
 
-    /*
-      Number of open ports.
-    */
+    /**
+     * @brief      Number of bound (listening) ports
+     *
+     * @return     Number of bound (listening) ports
+     */
     size_t open_ports() const
     { return listeners_.size(); }
 
-    /*
-      Number of active connections.
-    */
+    /**
+     * @brief      The total number of active connections
+     *
+     * @return     The total number of active connections
+     */
     size_t active_connections() const
     { return connections_.size(); }
 
-    /*
-      Set Maximum Segment Lifetime
-    */
+    /**
+     * @brief      Sets the MSL (Maximum Segment Lifetime)
+     *
+     * @param[in]  msl   The MSL in milliseconds
+     */
     void set_MSL(const std::chrono::milliseconds msl)
     { max_seg_lifetime_ = msl; }
 
-    /*
-      Maximum Segment Lifetime
-    */
+    /**
+     * @brief      The MSL (Maximum Segment Lifetime)
+     *
+     * @return     The MSL in milliseconds
+     */
     auto MSL() const
     { return max_seg_lifetime_; }
 
@@ -196,9 +255,19 @@ namespace net {
     constexpr bool uses_wscale() const
     { return wscale_ > 0; }
 
+    /**
+     * @brief      Sets if Timestamp Options is gonna be used.
+     *
+     * @param[in]  active  Whether Timestamp Options are in use.
+     */
     void set_timestamps(bool active)
     { timestamps_ = active; }
 
+    /**
+     * @brief      Whether the TCP instance is using Timestamp Options or not.
+     *
+     * @return     Whether the TCP instance is using Timestamp Options or not
+     */
     constexpr bool uses_timestamps() const
     { return timestamps_; }
 
@@ -218,34 +287,68 @@ namespace net {
     auto DACK_timeout() const
     { return dack_timeout_; }
 
-
+    /**
+     * @brief      Sets the maximum amount of allowed concurrent connection attempts.
+     *
+     * @param[in]  limit  The limit
+     */
     void set_max_syn_backlog(const uint16_t limit)
     { max_syn_backlog_ = limit; }
 
+    /**
+     * @brief      The maximum amount of allowed concurrent connection attempts.
+     *
+     * @return     The limit
+     */
     constexpr uint16_t max_syn_backlog() const
     { return max_syn_backlog_; }
 
-    /*
-      Maximum Segment Size
-      [RFC 793] [RFC 879] [RFC 6691]
-    */
+    /**
+     * @brief      The Maximum Segment Size to be used for this instance.
+     *             [RFC 793] [RFC 879] [RFC 6691]
+     *             This is the MTU - IP_hdr - TCP_hdr
+     *
+     * @return     The MSS
+     */
     constexpr uint16_t MSS() const
     { return network().MDDS() - sizeof(tcp::Header); }
 
-    /*
-      Show all connections for TCP as a string.
-    */
+    /**
+     * @brief      Returns a string representation of the listeners and connections.
+     *
+     * @return     String representation of this instance.
+     */
     std::string to_string() const;
 
+    /**
+     * @brief      Returns the status about the instance as a string.
+     *
+     * @return     An info string
+     */
     std::string status() const
     { return to_string(); }
 
+    /**
+     * @brief      Number of connections queued for writing.
+     *
+     * @return     Number of connections queued for writing
+     */
     size_t writeq_size() const
     { return writeq.size(); }
 
+    /**
+     * @brief      The IP address for which the TCP instance is "connected".
+     *
+     * @return     An IP4 address
+     */
     tcp::Address address()
     { return inet_.ip_addr(); }
 
+    /**
+     * @brief      The stack object for which the TCP instance is "bound to"
+     *
+     * @return     An IP Stack obj
+     */
     IPStack& stack() const
     { return inet_; }
 
@@ -287,70 +390,129 @@ namespace net {
     uint64_t& connection_attempts_;
     uint32_t& packets_dropped_;
 
-    /*
-      Transmit packet to network layer (IP).
-    */
+    /**
+     * @brief      Transmit an outgoing TCP segment to the network.
+     *             Makes sure the segment is okay, setting checksum and such.
+     *
+     * @param[in]  <unnamed>  A TCP Segment
+     */
     void transmit(tcp::Packet_ptr);
 
-    /*
-      Generate a unique initial sequence number (ISS).
-    */
+    /**
+     * @brief      Generate a unique initial sequence number (ISS).
+     *
+     * @return     A sequence number (SEQ)
+     */
     static tcp::seq_t generate_iss();
 
-    /*
-      Returns a free port for outgoing connections.
-    */
+    /**
+     * @brief      Returns the next free port to be used.
+     *
+     * @return     A port
+     */
     tcp::port_t next_free_port();
 
-    /*
-      Check if the port is in use either among "listeners" or "connections"
-    */
+    /**
+     * @brief      Check whether the port is in use or not
+     *
+     * @param[in]  <unnamed>  a port
+     *
+     * @return     Whether the port is in use or not
+     */
     bool port_in_use(const tcp::port_t) const;
 
+    /**
+     * @brief      Gets an incremental timestamp value.
+     *
+     * @return     The timestamp value.
+     */
     uint32_t get_ts_value() const;
 
-    /*
-      Packet is dropped.
-    */
-    void drop(const tcp::Packet&);
-
-    /*
-      Add a Connection.
-    */
-    tcp::Connection_ptr add_connection(tcp::port_t local_port,
-                                       tcp::Socket remote,
-                                       ConnectCallback cb = nullptr);
-
-    void add_connection(tcp::Connection_ptr);
-
-    /*
-      Close and delete the connection.
-    */
-    void close_connection(tcp::Connection_ptr);
-
-    void close_listener(tcp::Listener&);
-
-
-    /*
-      Process the write queue with the given amount of free packets.
-    */
-    void process_writeq(size_t packets);
-
-    /*
-
-    */
-    void request_offer(tcp::Connection&);
-
-    void queue_offer(tcp::Connection_ptr);
-
-    /*
-      Force the TCP to process the it's queue with the current amount of available packets.
-    */
-    void kick()
-    { process_writeq(inet_.transmit_queue_available()); }
-
+    /**
+     * @brief      The IP4 object bound to the IPStack
+     *
+     * @return     An IP4 object
+     */
     IP4& network() const
     { return inet_.ip_obj(); }
+
+    /**
+     * @brief      Drops the TCP segment
+     *
+     * @param[in]  <unnamed>  A TCP Segment
+     */
+    void drop(const tcp::Packet&);
+
+
+    // INTERNALS - Handling of collections
+
+    /**
+     * @brief      Adds a connection.
+     *
+     * @param[in]  <unnamed>  A ptr to the Connection
+     */
+    void add_connection(tcp::Connection_ptr);
+
+    /**
+     * @brief      Creates a connection.
+     *
+     * @param[in]  local_port  The local port
+     * @param[in]  remote      The remote
+     * @param[in]  cb          Connect callback
+     *
+     * @return     A ptr to the Connection whos created
+     */
+    tcp::Connection_ptr create_connection(tcp::port_t local_port,
+                                          tcp::Socket remote,
+                                          ConnectCallback cb = nullptr);
+
+    /**
+     * @brief      Closes and deletes a connection.
+     *
+     * @param[in]  conn  A ptr to a Connection
+     */
+    void close_connection(tcp::Connection_ptr conn)
+    { connections_.erase(conn->tuple()); }
+
+    /**
+     * @brief      Closes and deletes a listener.
+     *
+     * @param[in]  listener  A Listener
+     */
+    void close_listener(tcp::Listener& listener)
+    { listeners_.erase(listener.port()); }
+
+
+    // WRITEQ HANDLING
+
+    /**
+     * @brief      Process the write queue with the given amount of free packets.
+     *
+     * @param[in]  packets  Number of disposable packets
+     */
+    void process_writeq(size_t packets);
+
+    /**
+     * @brief      Request an offer of packets.
+     *             Used when a Connection wants to write
+     *
+     * @param      <unnamed>  A ptr to a Connection
+     */
+    void request_offer(tcp::Connection&);
+
+    /**
+     * @brief      Queue offer for when packets are available.
+     *             Used when a Connection wants an offer to write.
+     *
+     * @param[in]  <unnamed>  A ptr to a Connection
+     */
+    void queue_offer(tcp::Connection_ptr);
+
+    /**
+     * @brief      Force the TCP to process the it's queue with the current amount of available packets.
+     */
+    void kick()
+    { process_writeq(inet_.transmit_queue_available()); }
 
   }; // < class TCP
 
