@@ -84,5 +84,5 @@ def load_config(path):
 if __name__ == "__main__":
     path = sys.argv[1] if len(sys.argv) > 1 else "."
     if not load_config(path):
-        print "No valid config found"
+        print("No valid config found")
         exit(-1)

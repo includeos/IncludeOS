@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import sys
 import subprocess
@@ -17,7 +18,7 @@ INCLUDEOS_HOME = None
 
 if "INCLUDEOS_PREFIX" not in os.environ:
     def_home = "/usr/local"
-    print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_PREFIX is not set. Trying default", def_home
+    print(color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_PREFIX is not set. Trying default", def_home)
     if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_PREFIX")
     INCLUDEOS_HOME= def_home
 else:
@@ -45,10 +46,7 @@ class Logger:
         self.info(args)
 
     def info_verb(self, args):
-        print self.tag,
-        for arg in args:
-            print arg,
-        print
+        print(*args)
 
     def info_silent(self, args):
         pass
@@ -101,7 +99,7 @@ def have_sudo():
 def cmd(cmdlist):
     res = subprocess.check_output(cmdlist)
     for line in res.rstrip().split("\n"):
-        print color.SUBPROC(line)
+        print(color.SUBPROC(line))
 
 def abstract():
     raise Exception("Abstract class method called. Use a subclass")
@@ -201,7 +199,7 @@ class qemu(hypervisor):
     def start_process(self, cmdlist):
 
         if cmdlist[0] == "sudo": # and have_sudo():
-            print color.WARNING("Running with sudo")
+            print(color.WARNING("Running with sudo"))
             self._sudo = True
 
         # Start a subprocess
@@ -279,7 +277,7 @@ class qemu(hypervisor):
         try:
             self.start_process(command)
         except Exception as e:
-            print self.INFO,"Starting subprocess threw exception:", e
+            print(self.INFO,"Starting subprocess threw exception:", e)
             raise e
 
     def stop(self):
@@ -396,17 +394,17 @@ class vm:
         self._on_exit()
         if status == 0:
             # Print success message and return to caller
-            print color.SUCCESS(msg)
+            print(color.SUCCESS(msg))
             info("Calling on_exit_success")
             return self._on_exit_success()
 
         # Print fail message and exit with appropriate code
-        print color.EXIT_ERROR(get_exit_code_name(status), msg)
+        print(color.EXIT_ERROR(get_exit_code_name(status), msg))
         sys.exit(status)
 
     # Default timeout event
     def timeout(self):
-        if VERB: print color.INFO("<timeout>"), "VM timed out"
+        if VERB: print(color.INFO("<timeout>"), "VM timed out")
 
         # Note: we have to stop the VM since the main thread is blocking on vm.readline
         #self.exit(exit_codes["TIMEOUT"], nametag + " Test timed out")
@@ -418,10 +416,10 @@ class vm:
     def panic(self, panic_line):
         panic_reason = self._hyper.readline()
         info("VM signalled PANIC. Reading until EOT (", hex(ord(EOT)), ")")
-        print color.VM(panic_reason),
+        print(color.VM(panic_reason),)
         remaining_output = self._hyper.read_until_EOT()
         for line in remaining_output.split("\n"):
-            print color.VM(line)
+            print(color.VM(line))
 
         self.exit(exit_codes["VM_PANIC"], panic_reason)
 
@@ -457,7 +455,7 @@ class vm:
 
     # Make using GNU Make
     def make(self, params = []):
-        print INFO, "Building with 'make' (params=" + str(params) + ")"
+        print(INFO, "Building with 'make' (params=" + str(params) + ")")
         make = ["make"]
         make.extend(params)
         cmd(make)
@@ -465,7 +463,7 @@ class vm:
 
     # Call cmake
     def cmake(self, args = []):
-        print INFO, "Building with cmake (%s)" % args
+        print(INFO, "Building with cmake (%s)" % args)
         # install dir:
         INSTDIR = os.getcwd()
 
@@ -490,12 +488,12 @@ class vm:
             # if everything went well, build with make and install
             return self.make()
         except Exception as e:
-            print "Excetption while building: ", e
+            print("Excetption while building: ", e)
             self.exit(exit_codes["BUILD_FAIL"], "building with cmake failed")
 
     # Clean cmake build folder
     def clean(self):
-        print INFO, "Cleaning cmake build folder"
+        print(INFO, "Cleaning cmake build folder")
         subprocess.call(["rm","-rf","build"])
 
     # Boot the VM and start reading output. This is the main event loop.
@@ -515,7 +513,7 @@ class vm:
         try:
             self._hyper.boot(multiboot, kernel_args, image_name)
         except Exception as err:
-            print color.WARNING("Exception raised while booting: ")
+            print(color.WARNING("Exception raised while booting: "))
             print_exception()
             if (timeout): self._timer.cancel()
             self.exit(exit_codes["BOOT_FAILED"], str(err))
@@ -526,7 +524,7 @@ class vm:
             try:
                 line = self._hyper.readline()
             except Exception as e:
-                print color.WARNING("Exception thrown while waiting for vm output")
+                print(color.WARNING("Exception thrown while waiting for vm output"))
                 break
 
             if line:
@@ -539,7 +537,7 @@ class vm:
                     self._exit_msg = "Service exited"
                     break
                 else:
-                    print color.VM(line.rstrip())
+                    print(color.VM(line.rstrip()))
 
             else:
                 pass
@@ -550,7 +548,7 @@ class vm:
                     try:
                         res = func(line)
                     except Exception as err:
-                        print color.WARNING("Exception raised in event callback: ")
+                        print(color.WARNING("Exception raised in event callback: "))
                         print_exception()
                         res = False
                         self.stop()
@@ -613,24 +611,24 @@ def load_configs(config_path = "."):
     if (not vms[0]._config):
         vms = []
 
-    print color.HEADER("IncludeOS vmrunner loading VM configs")
+    print(color.HEADER("IncludeOS vmrunner loading VM configs"))
 
     schema_path = package_path + "/vm.schema.json"
 
-    print INFO, "Validating JSON according to schema ",schema_path
+    print(INFO, "Validating JSON according to schema ",schema_path)
 
     validate_vm.load_schema(schema_path)
     validate_vm.load_configs(config_path)
 
     if validate_vm.valid_vms:
-        print INFO, "Loaded VM specification(s) from JSON"
+        print(INFO, "Loaded VM specification(s) from JSON")
         for spec in validate_vm.valid_vms:
-            print INFO, "Found VM spec: "
-            print color.DATA(spec.__str__())
+            print(INFO, "Found VM spec: ")
+            print(color.DATA(spec.__str__()))
             vms.append(vm(spec))
 
     else:
-        print color.WARNING(nametag), "No VM specification JSON found, trying default config"
+        print(color.WARNING(nametag), "No VM specification JSON found, trying default config")
         vms.append(vm(default_config))
 
     return vms
@@ -638,12 +636,12 @@ def load_configs(config_path = "."):
 # Handler for SIGINT
 def handler(signum, frame):
     print
-    print color.WARNING("Process interrupted - stopping vms")
+    print(color.WARNING("Process interrupted - stopping vms"))
     for vm in vms:
         try:
             vm.exit(exit_codes["ABORT"], "Process terminated by user")
         except Exception as e:
-            print color.WARNING("Forced shutdown caused exception: "), e
+            print(color.WARNING("Forced shutdown caused exception: "), e)
             raise e
 
 
