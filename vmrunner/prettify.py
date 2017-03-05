@@ -102,4 +102,4 @@ class color:
     def color_test():
         for fg in range(0,8):
             for bg in range(0,8):
-                print color.code(fg = str(fg), bg = str(bg)), "Color " , str(fg), color.C_ENDC
+                print(color.code(fg = str(fg), bg = str(bg)), "Color " , str(fg), color.C_ENDC)
