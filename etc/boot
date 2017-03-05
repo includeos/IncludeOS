@@ -15,7 +15,7 @@ else:
     INCLUDEOS_PREFIX = os.environ['INCLUDEOS_PREFIX']
 
 if not os.path.isdir(INCLUDEOS_PREFIX + "/includeos"):
-    print "Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_loc + ") please set the environment variable INCLUDEOS_PREFIX to point to this location."
+    print("Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_prefix + ") please set the environment variable INCLUDEOS_PREFIX to point to this location.")
     sys.exit(0)
 
 # Location of vmrunner
@@ -66,7 +66,7 @@ VERB = False
 if (args.verbose):
     os.environ["VERBOSE"] = "1"
     VERB = True
-    print INFO, "VERBOSE mode set for environment"
+    print(INFO, "VERBOSE mode set for environment")
 # Avoid the verbose var to hang around next run
 elif "VERBOSE" in os.environ:
     del os.environ["VERBOSE"]
@@ -79,7 +79,7 @@ from vmrunner import vmrunner
 # We can boot either a binary without bootloader, or an image with bootloader allready attached
 has_bootloader = False
 
-if VERB: print INFO , "Args to pass to VM: ", args.vmargs
+if VERB: print(INFO , "Args to pass to VM: ", args.vmargs)
 # path w/name of VM image to run
 image_name = args.vm_location
 
@@ -87,22 +87,22 @@ image_name = args.vm_location
 # then initialize stuff ...
 if (os.path.isdir(args.vm_location)):
     image_name = os.path.abspath(args.vm_location)
-    if VERB: print INFO, "Changing directory to  " + image_name
+    if VERB: print(INFO, "Changing directory to  " + image_name)
     os.chdir(os.path.abspath(args.vm_location))
 
 
 if len(vmrunner.vms) < 1:
     # This should never happen - there should always be a default
-    print color.FAIL("No vm object found in vmrunner - nothing to boot")
+    print(color.FAIL("No vm object found in vmrunner - nothing to boot"))
     exit(-1)
 
 if VERB:
-    print INFO, len(vmrunner.vms), "VM initialized. Commencing build- and boot..."
+    print(INFO, len(vmrunner.vms), "VM initialized. Commencing build- and boot...")
 
 config = None
 if args.config:
     config = os.path.abspath(args.config)
-    if VERB: print INFO, "Using config file", config
+    if VERB: print(INFO, "Using config file", config)
 
 vm = vmrunner.vm(config = config)
 
@@ -115,11 +115,11 @@ for vm_ in vmrunner.vms:
 vm.on_success(lambda: None, do_exit = False)
 
 if (args.clean):
-    print INFO, "Cleaning build"
+    print(INFO, "Cleaning build")
     vm.clean()
 
 if (args.bridge):
-    print INFO, "Creating bridge"
+    print(INFO, "Creating bridge")
     subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/create_bridge.sh", shell=True)
 
 # If the binary name is a folder, such as ".", build the service
@@ -133,7 +133,7 @@ elif ("." in args.vm_location):
     has_bootloader = True
 
 if (args.grub):
-  print INFO, "Creating GRUB image from ", args.vm_location
+  print(INFO, "Creating GRUB image from ", args.vm_location)
   subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/grubify.sh " + image_name, shell=True)
   image_name = image_name + ".grub.img"
   has_bootloader = True
