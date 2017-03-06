@@ -297,9 +297,12 @@ CASE("stats names can only be MAX_NAME_LEN characters long")
   const size_t MAX_NAME_LEN {48};
   std::string statname2(MAX_NAME_LEN, 'x');
   Stat& stat2 = statman_.create(Stat::UINT32, statname2);
+  int num_stats_before = statman_.num_stats();
   // not ok
   std::string statname3(MAX_NAME_LEN + 1, 'y');
-  EXPECT_THROWS(Stat& stat3 = statman_.create(Stat::UINT32, statname3));
+  EXPECT_THROWS(Stat& stat3 = statman_.create(Stat::FLOAT, statname3));
+  int num_stats_after = statman_.num_stats();
+  EXPECT(num_stats_before == num_stats_after);
   free((void*)buffer);
 }
 
@@ -307,9 +310,6 @@ CASE("get(\"name\") returns reference to stat with name, throws if not present")
 {
   uintptr_t buffer = (uintptr_t)malloc(8192);
   Statman statman_ {buffer, 8192};
-  //Stat& res = statman_.get("");
-  //std::cout << "Name: " << res.name() << std::endl;
-  //std::cout << "Type: " << res.type() << std::endl;
   EXPECT_THROWS(Stat& res1 = statman_.get("some.important.stat"));
   EXPECT_THROWS(Stat& res2 = statman_.get("other.important.stat"));
   EXPECT_THROWS(Stat& res3 = statman_.get("very.important.stat"));
