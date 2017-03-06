@@ -102,14 +102,6 @@ void* sbrk(ptrdiff_t incr) {
   return (void*) prev_heap_end;
 }
 
-/*
-int stat(const char*, struct stat *st) {
-  debug("SYSCALL STAT Dummy");
-  st->st_mode = S_IFCHR;
-  return 0;
-}
-*/
-
 clock_t times(struct tms*) {
   panic("SYSCALL TIMES Dummy, returning -1");
   return -1;
@@ -252,4 +244,3 @@ void _init_syscalls()
   // make sure that the buffers length is zero so it won't always show up in crashes
   _crash_context_buffer[0] = 0;
 }
-
