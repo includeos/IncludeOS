@@ -89,7 +89,7 @@ public:
   /**
    * @brief If the timer is running (active)
    *
-   * @return Wether the timer is running or not
+   * @return whether the timer is running or not
    */
   bool is_running() const
   { return id_ != Timers::UNUSED_ID; }

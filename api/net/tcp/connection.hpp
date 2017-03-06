@@ -642,7 +642,7 @@ private:
   void writeq_reset();
 
   /*
-    Mark wether the Connection is in TCP write queue or not.
+    Mark whether the Connection is in TCP write queue or not.
   */
   void set_queued(bool queued)
   { queued_ = queued; }
@@ -888,7 +888,7 @@ private:
   void timewait_timeout()
   { signal_close(); }
 
-  /** Wether to use Delayed ACK or not */
+  /** Whether to use Delayed ACK or not */
   bool use_dack() const;
 
   /**

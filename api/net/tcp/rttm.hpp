@@ -60,7 +60,7 @@ struct RTTM {
   {}
 
   /**
-   * @brief      Returns wether the RTTM is currently "measuring" (time is set)
+   * @brief      Returns whether the RTTM is currently "measuring" (time is set)
    *
    * @return     True if the RTTM is active (measuring)
    */
