@@ -44,7 +44,14 @@ namespace icmp4 {
       PROTOCOL,
       PORT,
       FRAGMENTATION,
-      SRC_ROUTE
+      SRC_ROUTE,
+      NET_UNKNOWN,  // RFC 1122
+      HOST_UNKNOWN,
+      SRC_HOST_ISOLATED,
+      NET_PROHIBITED,
+      HOST_PROHIBITED,
+      NET_FOR_TOS,
+      HOST_FOR_TOS
     };
 
     enum class Redirect : uint8_t {
@@ -58,6 +65,12 @@ namespace icmp4 {
       TTL,
       FRAGMENT_REASSEMBLY
     };
+
+    enum class Parameter_problem : uint8_t {
+      POINTER_INDICATES_ERROR,
+      REQUIRED_OPT_MISSING      // RFC 1122
+    };
+
   } // < namespace code
 
   class Packet {
