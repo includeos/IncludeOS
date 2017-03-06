@@ -71,7 +71,7 @@ private:
    * @details Very bad but easy way to assume the path is a request for a file.
    *
    * @param path
-   * @return wether a path is a file request or not
+   * @return whether a path is a file request or not
    */
   inline bool is_file_request(const std::string& path) const
   { return !get_extension(path).empty(); }

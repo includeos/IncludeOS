@@ -99,7 +99,7 @@ public:
    *
    * @param[in]  len   The length of the content
    *
-   * @return     Outcome of wether the field got updated or not
+   * @return     Outcome of whether the field got updated or not
    */
   inline bool set_content_length(size_t len);
 

@@ -69,7 +69,7 @@ namespace net {
      * map of listeners
      *
      * @param port listening port
-     * @return wether the listener had a port
+     * @return whether the listener had a port
      */
     bool unbind(const tcp::port_t port);
 
@@ -188,10 +188,10 @@ namespace net {
     { return wscale_; }
 
     /**
-     * @brief      Returns wether this TCP is using window scaling.
+     * @brief      Returns whether this TCP is using window scaling.
      *             A wscale factor of 0 means off.
      *
-     * @return     Wether wscale is being used
+     * @return     Whether wscale is being used
      */
     constexpr bool uses_wscale() const
     { return wscale_ > 0; }

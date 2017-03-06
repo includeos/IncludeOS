@@ -67,7 +67,7 @@ namespace http {
     inline TCP_conn release();
 
     /**
-     * @brief      Wether the underlying TCP connection has been released or not
+     * @brief      Whether the underlying TCP connection has been released or not
      *
      * @return     true if the underlying TCP connection is released
      */
