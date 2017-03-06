@@ -136,8 +136,9 @@ class Statman {
 
   using Span = gsl::span<Stat>;
 public:
-  using Size_type     = ptrdiff_t;
-  using Span_iterator = Span::iterator;
+  using Size_type =       ptrdiff_t;
+  using Span_iterator =   Span::iterator;
+  using Span_citerator =  Span::const_iterator;
 
   ///
   ///
@@ -212,7 +213,7 @@ public:
   ///
   ///
   auto end() noexcept
-  { return stats_.end(); }
+  { return Span_iterator(&stats_, next_available_); }
 
   ///
   ///
@@ -224,7 +225,7 @@ public:
   ///
   ///
   auto cend() const noexcept
-  { return stats_.cend(); }
+  { return Span_citerator(&stats_, next_available_); }
 
   ///
   ///
