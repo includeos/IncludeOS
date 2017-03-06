@@ -45,21 +45,22 @@ Socket Listener::local() const {
 void Listener::segment_arrived(Packet_ptr packet) {
   debug2("<Listener::segment_arrived> Received packet: %s\n",
     packet->to_string().c_str());
+
+  auto it = std::find_if(syn_queue_.begin(), syn_queue_.end(),
+    [dest = packet->source()]
+    (Connection_ptr conn) {
+      return conn->remote() == dest;
+    });
+
   // if it's an reply to any of our half-open connections
-  if(!packet->isset(SYN))
+  if(it != syn_queue_.end())
   {
-    // if there is a connection waiting for the packet
-    for(auto conn : syn_queue_) // take a copy to avoid conn->segment_arrived to make a reference invalid
-    {
-      if(conn->remote() == packet->source())
-      {
-        debug("<Listener::segment_arrived> Found packet receiver: %s\n",
-          conn->to_string().c_str());
-        conn->segment_arrived(std::move(packet));
-        debug2("<Listener::segment_arrived> Connection done handling segment\n");
-        return;
-      }
-    }
+    auto conn = *it;
+    debug("<Listener::segment_arrived> Found packet receiver: %s\n",
+      conn->to_string().c_str());
+    conn->segment_arrived(std::move(packet));
+    debug2("<Listener::segment_arrived> Connection done handling segment\n");
+    return;
   }
   // if it's a new attempt (SYN)
   else
