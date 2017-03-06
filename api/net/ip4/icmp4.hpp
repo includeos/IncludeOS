@@ -38,19 +38,14 @@ namespace net {
 
     void destination_unreachable(icmp4::Packet& req, icmp4::code::Dest_unreachable code);
 
+    void redirect(icmp4::Packet& req, icmp4::code::Redirect code);
+
     void time_exceeded(icmp4::Packet& req, icmp4::code::Time_exceeded code);
 
     void parameter_problem(icmp4::Packet& req);
 
-    void source_quench(icmp4::Packet& req);
-
-    void redirect(icmp4::Packet& req, icmp4::code::Redirect code);
-
     void timestamp_request(IP4::addr ip);
     void timestamp_reply(icmp4::Packet& req);
-
-    void information_request(IP4::addr ip);
-    void information_reply(icmp4::Packet& req);
 
     void ping_request(IP4::addr ip);
 

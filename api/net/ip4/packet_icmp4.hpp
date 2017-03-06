@@ -26,15 +26,12 @@ namespace icmp4 {
   enum class Type : uint8_t {
     ECHO_REPLY,
     DEST_UNREACHABLE =        3,
-    SRC_QUENCH =              4,
     REDIRECT =                5,
     ECHO =                    8,
     TIME_EXCEEDED =           11,
     PARAMETER_PROBLEM =       12,
     TIMESTAMP =               13,
-    TIMESTAMP_REPLY =         14,
-    INFO_REQUEST =            15,
-    INFO_REPLY =              16
+    TIMESTAMP_REPLY =         14
   };
 
   namespace code {
@@ -45,7 +42,7 @@ namespace icmp4 {
       PORT,
       FRAGMENTATION,
       SRC_ROUTE,
-      NET_UNKNOWN,  // RFC 1122
+      NET_UNKNOWN,          // RFC 1122
       HOST_UNKNOWN,
       SRC_HOST_ISOLATED,
       NET_PROHIBITED,

@@ -195,8 +195,7 @@ namespace net {
     void move_to_this_cpu() override;
 
     virtual void
-    ping(IP4::addr ip) override
-    {
+    ping(IP4::addr ip) override {
       icmp_.ping_request(ip);
     }
 

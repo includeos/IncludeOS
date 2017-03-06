@@ -32,17 +32,19 @@ namespace net {
     auto req = icmp4::Packet(std::move(pckt_ip4));
 
     switch(req.type()) {
+    case (icmp4::Type::ECHO_REPLY):
+      debug("<ICMP> PING Reply from %s\n", req.ip().src().str().c_str());
+      // TODO
+      break;
     case (icmp4::Type::DEST_UNREACHABLE):
       debug("<ICMP> DESTINATION UNREACHABLE from %s\n", req.ip().src().str().c_str());
       // TODO
-      break;
-    case (icmp4::Type::SRC_QUENCH):
-      debug("<ICMP> SOURCE QUENCH from %s\n", req.ip().src().str().c_str());
-      // TODO
+      // Send to transport layer
       break;
     case (icmp4::Type::REDIRECT):
       debug("<ICMP> REDIRECT from %s\n", req.ip().src().str().c_str());
       // TODO
+      // Only sent by gateways. Update routing information based on the message
       break;
     case (icmp4::Type::ECHO):
       debug("<ICMP> PING from %s\n", req.ip().src().str().c_str());
@@ -51,10 +53,12 @@ namespace net {
     case (icmp4::Type::TIME_EXCEEDED):
       debug("<ICMP> TIME EXCEEDED from %s\n", req.ip().src().str().c_str());
       // TODO
+      // Send to transport layer
       break;
     case (icmp4::Type::PARAMETER_PROBLEM):
       debug("<ICMP> PARAMETER PROBLEM from %s\n", req.ip().src().str().c_str());
       // TODO
+      // Send to transport layer
       break;
     case (icmp4::Type::TIMESTAMP):
       debug("<ICMP> TIMESTAMP from %s\n", req.ip().src().str().c_str());
@@ -65,24 +69,15 @@ namespace net {
       debug("<ICMP> TIMESTAMP REPLY from %s\n", req.ip().src().str().c_str());
       // TODO
       break;
-    case (icmp4::Type::INFO_REQUEST):
-      debug("<ICMP> INFO REQUEST from %s\n", req.ip().src().str().c_str());
-      // TODO
-      information_reply(req);
-      break;
-    case (icmp4::Type::INFO_REPLY):
-      debug("<ICMP> INFO REPLY from %s\n", req.ip().src().str().c_str());
-      // TODO
-      break;
-    case (icmp4::Type::ECHO_REPLY):
-      debug("<ICMP> PING Reply from %s\n", req.ip().src().str().c_str());
-      // TODO
-      break;
     }
   }
 
   void ICMPv4::destination_unreachable(icmp4::Packet& req, icmp4::code::Dest_unreachable code) {
     send_response(req, icmp4::Type::DEST_UNREACHABLE, (uint8_t) code);
+  }
+
+  void ICMPv4::redirect(icmp4::Packet& req, icmp4::code::Redirect code) {
+    send_response(req, icmp4::Type::REDIRECT, (uint8_t) code);
   }
 
   void ICMPv4::time_exceeded(icmp4::Packet& req, icmp4::code::Time_exceeded code) {
@@ -93,14 +88,6 @@ namespace net {
     send_response(req, icmp4::Type::PARAMETER_PROBLEM, 0);
   }
 
-  void ICMPv4::source_quench(icmp4::Packet& req) {
-    send_response(req, icmp4::Type::SRC_QUENCH, 0);
-  }
-
-  void ICMPv4::redirect(icmp4::Packet& req, icmp4::code::Redirect code) {
-    send_response(req, icmp4::Type::REDIRECT, (uint8_t) code);
-  }
-
   void ICMPv4::timestamp_request(IP4::addr ip) {
     // TODO
     // send_request(ip, icmp4::Type::TIMESTAMP, 0, icmp4::Packet::Span(, ));
@@ -109,15 +96,6 @@ namespace net {
   void ICMPv4::timestamp_reply(icmp4::Packet& req) {
     // TODO
     // send_response(req, icmp4::Type::TIMESTAMP_REPLY, 0);
-  }
-
-  void ICMPv4::information_request(IP4::addr ip) {
-    // TODO
-    // send_request(ip, icmp4::Type::INFO_REQUEST, 0, icmp4::Packet::Span(, ));
-  }
-
-  void ICMPv4::information_reply(icmp4::Packet& req) {
-    send_response(req, icmp4::Type::INFO_REPLY, 0);
   }
 
   void ICMPv4::ping_request(IP4::addr ip) {
@@ -137,7 +115,7 @@ namespace net {
     req.ip().set_dst(dest_ip);
 
     // Populate request ICMP header
-    req.set_type(icmp4::Type::ECHO);
+    req.set_type(type);
     req.set_code(code);
     req.set_id(0);
     req.set_sequence(0);
