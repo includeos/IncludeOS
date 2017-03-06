@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,60 +25,125 @@ namespace net {
 namespace tcp {
 
 /**
-  An IP address and a Port.
-*/
+ * An IP address and port
+ */
 class Socket {
 public:
-  /** Intialize an empty socket. */
-  Socket() : address_(), port_(0)
-  { address_.whole = 0; }
-
-  /** Create a socket with a Address and Port. */
-  Socket(Address address, port_t port)
-    : address_(address), port_(port)
+  /**
+   * Constructor
+   *
+   * Intialize an empty socket <0.0.0.0:0>
+   */
+  Socket() noexcept
+    : address_{}
+    , port_{}
   {}
 
-  /** Returns the Socket's address. */
-  const Address address() const
+  /**
+   * Constructor
+   *
+   * Create a socket with an address and port
+   *
+   * @param address
+   *  The host's network address
+   *
+   * @param port
+   *  The port associated with the process
+   */
+  Socket(const Address address, const port_t port) noexcept
+    : address_{address}
+    , port_{port}
+  {}
+
+  /**
+   * Get the socket's network address
+   *
+   * @return The socket's network address
+   */
+  Address address() const noexcept
   { return address_; }
 
-  /** Returns the Socket's port. */
-  port_t port() const
+  /**
+   * Get the socket's port value
+   *
+   * @return The socket's port value
+   */
+  port_t port() const noexcept
   { return port_; }
 
-  /** Returns a string in the format "Address:Port". */
+  /**
+   * Get a string representation of this class
+   *
+   * @return A string representation of this class
+   */
   std::string to_string() const
   { return address_.str() + ":" + std::to_string(port_); }
 
-  bool is_empty() const
-  { return (address_ == 0 and port_ == 0); }
+  /**
+   * Check if this socket is empty <0.0.0.0:0>
+   *
+   * @return true if this socket is empty, false otherwise
+   */
+  bool is_empty() const noexcept
+  { return (address_ == 0) and (port_ == 0); }
 
-  /** Standard comparators */
-  bool operator ==(const Socket& s2) const
+  /**
+   * Operator to check for equality relationship
+   *
+   * @param other
+   *  The socket to check for equality relationship
+   *
+   * @return true if the specified socket is equal, false otherwise
+   */
+  bool operator==(const Socket& other) const noexcept
   {
-    return address() == s2.address()
-      and port() == s2.port();
+    return (address() == other.address())
+       and (port() == other.port());
   }
 
-  bool operator <(const Socket& s2) const
+  /**
+   * Operator to check for inequality relationship
+   *
+   * @param other
+   *  The socket to check for inequality relationship
+   *
+   * @return true if the specified socket is not equal, false otherwise
+   */
+  bool operator!=(const Socket& other) const noexcept
+  { return not (*this == other); }
+
+  /**
+   * Operator to check for less-than relationship
+   *
+   * @param other
+   *  The socket to check for less-than relationship
+   *
+   * @return true if this socket is less-than the specified socket,
+   * false otherwise
+   */
+  bool operator<(const Socket& other) const noexcept
   {
-    return address() < s2.address()
-           or (address() == s2.address() and port() < s2.port());
+    return (address() < other.address())
+        or ((address() == other.address()) and (port() < other.port()));
   }
 
-  bool operator !=(const Socket& s2) const
-  { return !(*this == s2); }
-
-  bool operator >(const Socket& s2) const
-  { return !(*this < s2); }
-
+  /**
+   * Operator to check for greater-than relationship
+   *
+   * @param other
+   *  The socket to check for greater-than relationship
+   *
+   * @return true if this socket is greater-than the specified socket,
+   * false otherwise
+   */
+  bool operator>(const Socket& other) const noexcept
+  { return not (*this < other); }
 private:
   Address address_;
-  port_t port_;
+  port_t  port_;
+}; //< class Socket
 
-}; // < class Socket
+} //< namespace tcp
+} //< namespace net
 
-} // < namespace tcp
-} // < namespace net
-
-#endif // < NET_TCP_SOCKET_HPP
+#endif //< NET_TCP_SOCKET_HPP
