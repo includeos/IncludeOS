@@ -15,17 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HTTP_STATUS_CODES_HPP
-#define HTTP_STATUS_CODES_HPP
-
-#include <experimental/string_view>
 #include <unordered_map>
 
 #include <net/http/status_code_constants.hpp>
 
+#include "../../../api/util/detail/string_view"
+
 namespace http {
 
-const std::unordered_map<int, std::experimental::string_view> status_code_table {
+const std::unordered_map<int, util::csview> status_code_table {
   //< 1xx: Informational - Request received, continuing process
   {100, "Continue"},
   {101, "Switching Protocols"},
@@ -95,11 +93,9 @@ const std::unordered_map<int, std::experimental::string_view> status_code_table 
   {511, "Network Authentication Required"}
 }; //< status_code_table
 
-std::experimental::string_view code_description(const status_t status_code) noexcept {
+util::sview code_description(const status_t status_code) noexcept {
   const auto iter = status_code_table.find(status_code);
   return (iter not_eq status_code_table.cend()) ? iter->second : "Internal Server Error";
 }
 
 } //< namespace http
-
-#endif //< HTTP_STATUS_CODES_HPP

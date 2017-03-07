@@ -15,18 +15,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG
-#define DEBUG2
+// #define DEBUG
+// #define DEBUG2
 
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/packet.hpp>
+#include <net/inet_common.hpp>
 #include <statman>
+#include <os>
 
 using namespace std;
 using namespace net;
 using namespace net::tcp;
 
 TCP::TCP(IPStack& inet) :
+  inet_{inet},
+  listeners_(),
+  connections_(),
+  writeq(),
+  current_ephemeral_{new_ephemeral_port()}, // TODO: Verify RFC 6056
+  max_seg_lifetime_{default_msl},       // 30s
+  win_size_{default_ws_window_size},    // 8096*1024
+  wscale_{default_window_scaling},      // 5
+  timestamps_{default_timestamps},      // true
+  dack_timeout_{default_dack_timeout},  // 40ms
+  max_syn_backlog_{default_max_syn_backlog}, // 64
   bytes_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_rx").get_uint64()},
   bytes_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_tx").get_uint64()},
   packets_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_rx").get_uint64()},
@@ -34,17 +47,12 @@ TCP::TCP(IPStack& inet) :
   incoming_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.incoming_connections").get_uint64()},
   outgoing_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.outgoing_connections").get_uint64()},
   connection_attempts_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.connection_attempts").get_uint64()},
-  packets_dropped_{Statman::get().create(Stat::UINT32, inet.ifname() + ".tcp.packets_dropped").get_uint32()},
-  inet_(inet),
-  listeners_(),
-  connections_(),
-  writeq(),
-  current_ephemeral_{new_ephemeral_port()}, // TODO: RFC 6056
-  MAX_SEG_LIFETIME(30s)
+  packets_dropped_{Statman::get().create(Stat::UINT32, inet.ifname() + ".tcp.packets_dropped").get_uint32()}
 {
-  inet.on_transmit_queue_available({this, &TCP::process_writeq});
-  // TODO: RFC 6056
+  Expects(wscale_ <= 14 && "WScale factor cannot exceed 14");
+  Expects(win_size_ <= 0x40000000 && "Invalid size");
 
+  inet.on_transmit_queue_available({this, &TCP::process_writeq});
 }
 
 /*
@@ -58,25 +66,18 @@ TCP::TCP(IPStack& inet) :
   Current solution:
   Simple.
 */
-Listener& TCP::bind(const port_t port) {
-  // Already a listening socket.
+Listener& TCP::bind(const port_t port, ConnectCallback cb)
+{
   Listeners::const_iterator it = listeners_.find(port);
+  // Already a listening socket.
   if(it != listeners_.cend()) {
     throw TCPException{"Port is already taken."};
   }
   auto& listener = listeners_.emplace(port,
-    std::make_unique<tcp::Listener>(*this, port)
+    std::make_unique<tcp::Listener>(*this, port, std::move(cb))
     ).first->second;
   debug("<TCP::bind> Bound to port %i \n", port);
   return *listener;
-
-  /*auto& listener = (listeners_.emplace(std::piecewise_construct,
-    std::forward_as_tuple(port),
-    std::forward_as_tuple(*this, port))
-    ).first->second;
-  debug("<TCP::bind> Bound to port %i \n", port);
-
-  return listener;*/
 }
 
 bool TCP::unbind(const port_t port) {
@@ -90,12 +91,6 @@ bool TCP::unbind(const port_t port) {
   return false;
 }
 
-/*
-  Active open a new connection to the given remote.
-
-  @WARNING: Callback is added when returned (TCP::connect(...).onSuccess(...)),
-  and open() is called before callback is added.
-*/
 Connection_ptr TCP::connect(Socket remote) {
   auto port = next_free_port();
   auto connection = add_connection(port, remote);
@@ -103,13 +98,10 @@ Connection_ptr TCP::connect(Socket remote) {
   return connection;
 }
 
-/*
-  Active open a new connection to the given remote.
-*/
-void TCP::connect(Socket remote, Connection::ConnectCallback callback) {
+void TCP::connect(Socket remote, ConnectCallback callback) {
   auto port = next_free_port();
-  auto connection = add_connection(port, remote);
-  connection->on_connect(callback).open(true);
+  auto connection = add_connection(port, remote, std::move(callback));
+  connection->open(true);
 }
 
 void TCP::insert_connection(Connection_ptr conn)
@@ -131,7 +123,9 @@ seq_t TCP::generate_iss() {
 */
 port_t TCP::next_free_port() {
 
-  current_ephemeral_ = (current_ephemeral_ == port_ranges::DYNAMIC_END) ? port_ranges::DYNAMIC_START : current_ephemeral_ + 1;
+  current_ephemeral_ = (current_ephemeral_ == port_ranges::DYNAMIC_END)
+    ? port_ranges::DYNAMIC_START
+    : current_ephemeral_ + 1;
 
   // Avoid giving a port that is bound to a service.
   while(listeners_.find(current_ephemeral_) != listeners_.end())
@@ -154,50 +148,35 @@ bool TCP::port_in_use(const port_t port) const {
   return false;
 }
 
-uint16_t TCP::checksum(const tcp::Packet& packet)
+uint32_t TCP::get_ts_value() const
 {
-  short tcp_length = packet.tcp_length();
-
-  Pseudo_header pseudo_hdr;
-  pseudo_hdr.saddr.whole = packet.src().whole;
-  pseudo_hdr.daddr.whole = packet.dst().whole;
-  pseudo_hdr.zero = 0;
-  pseudo_hdr.proto = IP4::IP4_TCP;
-  pseudo_hdr.tcp_length = htons(tcp_length);
-
-  union Sum{
-    uint32_t whole;
-    uint16_t part[2];
-  } sum;
-
-  sum.whole = 0;
-
-  // Compute sum of pseudo header
-  for (uint16_t* it = (uint16_t*)&pseudo_hdr; it < (uint16_t*)&pseudo_hdr + sizeof(pseudo_hdr)/2; it++)
-    sum.whole += *it;
-
-  // Compute sum of header and data
-  Header* tcp_hdr = &packet.tcp_header();
-  for (uint16_t* it = (uint16_t*)tcp_hdr; it < (uint16_t*)tcp_hdr + tcp_length/2; it++)
-    sum.whole+= *it;
-
-  // The odd-numbered case
-  bool odd = (tcp_length & 1);
-  sum.whole += (odd) ? ((uint8_t*)tcp_hdr)[tcp_length - 1] << 16 : 0;
-
-  sum.whole = (uint32_t)sum.part[0] + sum.part[1];
-  sum.part[0] += sum.part[1];
-
-  return ~sum.whole;
+  return ((OS::micros_since_boot() >> 10) & 0xffffffff);
 }
 
-void TCP::bottom(net::Packet_ptr packet_ptr) {
+uint16_t TCP::checksum(const tcp::Packet& packet)
+{
+  short length = packet.tcp_length();
+  // Compute sum of pseudo-header
+  uint32_t sum =
+        (packet.src().whole >> 16)
+      + (packet.src().whole & 0xffff)
+      + (packet.dst().whole >> 16)
+      + (packet.dst().whole & 0xffff)
+      + (static_cast<uint8_t>(Protocol::TCP) << 8)
+      + htons(length);
+
+  // Compute sum of header and data
+  const char* buffer = (char*) &packet.tcp_header();
+  return net::checksum(sum, buffer, length);
+}
+
+void TCP::receive(net::Packet_ptr packet_ptr) {
   // Stat increment packets received
   packets_rx_++;
 
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
-  debug2("<TCP::bottom> TCP Packet received - Source: %s, Destination: %s \n",
+  debug2("<TCP::receive> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), packet->destination().to_string().c_str());
 
   // Stat increment bytes received
@@ -205,7 +184,7 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 
   // Validate checksum
   if (UNLIKELY(checksum(*packet) != 0)) {
-    debug("<TCP::bottom> TCP Packet Checksum != 0 \n");
+    debug("<TCP::receive> TCP Packet Checksum != 0 \n");
     drop(*packet);
     return;
   }
@@ -217,20 +196,20 @@ void TCP::bottom(net::Packet_ptr packet_ptr) {
 
   // Connection found
   if (conn_it != connections_.end()) {
-    debug("<TCP::bottom> Connection found: %s \n", conn_it->second->to_string().c_str());
+    debug("<TCP::receive> Connection found: %s \n", conn_it->second->to_string().c_str());
     conn_it->second->segment_arrived(std::move(packet));
     return;
   }
 
   // No open connection found, find listener on port
   Listeners::iterator listener_it = listeners_.find(packet->dst_port());
-  debug("<TCP::bottom> No connection found - looking for listener..\n");
+  debug("<TCP::receive> No connection found - looking for listener..\n");
   // Listener found => Create listening Connection
   if (LIKELY(listener_it != listeners_.end())) {
     auto& listener = listener_it->second;
-    debug("<TCP::bottom> Listener found: %s\n", listener->to_string().c_str());
+    debug("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
     listener->segment_arrived(std::move(packet));
-    debug2("<TCP::bottom> Listener done with packet\n");
+    debug2("<TCP::receive> Listener done with packet\n");
     return;
   }
 
@@ -251,25 +230,23 @@ void TCP::process_writeq(size_t packets) {
   }
 }
 
-size_t TCP::send(Connection_ptr conn, const char* buffer, size_t n) {
-  size_t written{0};
+void TCP::request_offer(Connection& conn) {
   auto packets = inet_.transmit_queue_available();
 
-  debug2("<TCP::send> Send request for %u bytes\n", n);
+  debug2("<TCP::request_offer> %s requestin offer: uw=%u rem=%u\n",
+    conn.to_string().c_str(), conn.usable_window(), conn.sendq_remaining());
 
-  if(packets > 0) {
-    written += conn->send(buffer, n, packets);
-  }
+  conn.offer(packets);
+}
 
-  // requeue remaining if not already queued
-  if(written == 0 || conn->can_send()) {
-    if (conn->is_queued() == false) {
-      debug("<TCP::send> %s queued\n", conn->to_string().c_str());
-      writeq.push_back(conn);
-      conn->set_queued(true);
-    }
+void TCP::queue_offer(Connection_ptr conn)
+{
+  if(not conn->is_queued() and conn->can_send())
+  {
+    debug("<TCP::queue_offer> %s queued\n", conn->to_string().c_str());
+    writeq.push_back(conn);
+    conn->set_queued(true);
   }
-  return written;
 }
 
 /*
@@ -300,13 +277,15 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-Connection_ptr TCP::add_connection(port_t local_port, Socket remote) {
+Connection_ptr TCP::add_connection(port_t local_port, Socket remote, ConnectCallback cb)
+{
   // Stat increment number of outgoing connections
   outgoing_connections_++;
 
   auto& conn = (connections_.emplace(
       Connection::Tuple{ local_port, remote },
-      std::make_shared<Connection>(*this, local_port, remote))
+      std::make_shared<Connection>(*this, local_port, remote, std::move(cb))
+      )
     ).first->second;
   conn->_on_cleanup({this, &TCP::close_connection});
   return conn;

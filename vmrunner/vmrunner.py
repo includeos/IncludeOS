@@ -28,6 +28,11 @@ package_path = os.path.dirname(os.path.realpath(__file__))
 default_config = {"description" : "Single virtio nic, otherwise hypervisor defaults",
                   "net" : [{"device" : "virtio", "backend" : "tap" }] }
 
+default_json = "./vm.json"
+
+# Provide a list of VM's with validated specs
+# (One default vm added at the end)
+vms = []
 
 nametag = "<VMRunner>"
 INFO = color.INFO(nametag)
@@ -71,7 +76,8 @@ exit_codes = {"SUCCESS" : 0,
               "BUILD_FAIL" : 69,
               "ABORT" : 70,
               "VM_EOT" : 71,
-              "BOOT_FAILED": 72
+              "BOOT_FAILED": 72,
+              "PARSE_ERROR": 73
 }
 
 def get_exit_code_name (exit_code):
@@ -160,7 +166,7 @@ class qemu(hypervisor):
     def name(self):
         return "Qemu"
 
-    def image_name(serlf):
+    def image_name(self):
         return self._image_name
 
     def drive_arg(self, filename, drive_type = "virtio", drive_format = "raw", media_type = "disk"):
@@ -169,19 +175,34 @@ class qemu(hypervisor):
                 + ",if=" + drive_type
                 + ",media=" + media_type]
 
-    def net_arg(self, backend, device, if_name = "net0", mac = None):
+    def net_arg(self, backend, device, if_name = "net0", mac = None, bridge = None):
         qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
 
         # FIXME: this needs to get removed, e.g. fetched from the schema
         names = {"virtio" : "virtio-net", "vmxnet" : "vmxnet3", "vmxnet3" : "vmxnet3"}
 
-        device = names[device] + ",netdev=" + if_name
+        if device in names:
+            device = names[device]
+
+        # Network device - e.g. host side of nic
+        netdev = backend + ",id=" + if_name
+
+        if backend == "tap":
+            if self._kvm_present:
+                netdev += ",vhost=on"
+            netdev += ",script=" + qemu_ifup
+
+        if bridge:
+            netdev = "bridge,id=" + if_name + ",br=" + bridge
+
+        # Device - e.g. guest side of nic
+        device += ",netdev=" + if_name
 
         # Add mac-address if specified
         if mac: device += ",mac=" + mac
 
         return ["-device", device,
-                "-netdev", backend + ",id=" + if_name + ",script=" + qemu_ifup]
+                "-netdev", netdev]
 
     def kvm_present(self):
         command = "egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo"
@@ -222,11 +243,16 @@ class qemu(hypervisor):
     def boot(self, multiboot, kernel_args = "", image_name = None):
         self._stopped = False
 
+        # Resolve if kvm is present
+        self._kvm_present = self.kvm_present()
+
         # Use provided image name if set, otherwise try to find it in json-config
         if not image_name:
             image_name = self._config["image"]
 
         self._image_name = image_name
+
+        disk_args = []
 
         # multiboot - e.g. boot with '-kernel' and no bootloader
         if multiboot:
@@ -236,26 +262,45 @@ class qemu(hypervisor):
                 image_name = image_name.split(".")[0]
 
             kernel_args = ["-kernel", image_name, "-append", kernel_args]
-            disk_args = []
             info ( "Booting", image_name, "directly without bootloader (multiboot / -kernel args)")
         else:
             kernel_args = []
-            disk_args = self.drive_arg(image_name, "ide")
-            info ("Booting", image_name, "with a bootable disk image")
+            image_in_config = False
 
-        if "bios" in self._config:
-            kernel_args.extend(["-bios", self._config["bios"]])
+            # If the provided image name is also defined in vm.json, use vm.json
+            if "drives" in self._config:
+                for disk in self._config["drives"]:
+                    if disk["file"] == image_name:
+                        image_in_config = True
+                if not image_in_config:
+                    info ("Provided image", image_name, "not found in config. Appending.")
+                    self._config["drives"].insert(0, {"file" : image_name, "type":"ide", "format":"raw", "media":"disk"})
+            else:
+                self._config["drives"] =[{"file" : image_name, "type":"ide", "format":"raw", "media":"disk"}]
+
+            info ("Booting", image_name, "with a bootable disk image")
 
         if "drives" in self._config:
             for disk in self._config["drives"]:
                 disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
+
+
+        if "bios" in self._config:
+            kernel_args.extend(["-bios", self._config["bios"]])
+
+        if "smp" in self._config:
+            kernel_args.extend(["-smp", str(self._config["smp"])])
+
+        if "cpu" in self._config:
+            kernel_args.extend(["-cpu", self._config["cpu"]])
 
         net_args = []
         i = 0
         if "net" in self._config:
             for net in self._config["net"]:
                 mac = net["mac"] if "mac" in net else None
-                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), mac)
+                bridge = net["bridge"] if "bridge" in net else None
+                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), mac, bridge)
                 i+=1
 
         mem_arg = []
@@ -268,7 +313,7 @@ class qemu(hypervisor):
 
         # TODO: sudo is only required for tap networking and kvm. Check for those.
         command = ["sudo", "qemu-system-x86_64"]
-        if self.kvm_present(): command.append("--enable-kvm")
+        if self._kvm_present: command.append("--enable-kvm")
 
         command += kernel_args
 
@@ -370,6 +415,7 @@ class vm:
         self._on_exit_success = lambda : None
         self._on_exit = lambda : None
         self._root = os.getcwd()
+        self._kvm_present = False
 
     def stop(self):
         self._hyper.stop().wait()
@@ -409,7 +455,6 @@ class vm:
         if VERB: print color.INFO("<timeout>"), "VM timed out"
 
         # Note: we have to stop the VM since the main thread is blocking on vm.readline
-        #self.exit(exit_codes["TIMEOUT"], nametag + " Test timed out")
         self._exit_status = exit_codes["TIMEOUT"]
         self._exit_msg = "vmrunner timed out after " + str(self._timeout_after) + " seconds"
         self._hyper.stop().wait()
@@ -536,7 +581,7 @@ class vm:
                     break
                 if line.startswith("     [ Kernel ] service exited with status"):
                     self._exit_status = int(line.split(" ")[-1].rstrip())
-                    self._exit_msg = "Service exited"
+                    self._exit_msg = "Service exited with status " + str(self._exit_status)
                     break
                 else:
                     print color.VM(line.rstrip())
@@ -575,22 +620,42 @@ class vm:
         # If everything went well we can return
         return self
 
+
 # Load a single vm config. Fallback to default
-def load_single_config(path = "."):
+def load_single_config(path = default_json):
 
     config = default_config
     description = None
 
     # If path is explicitly "None", try current dir
-    if not path: path = "."
+    if not path: path = default_json
 
-    info("Loading config from", path)
-    try:
-        # Try loading the first valid config
-        config, path = validate_vm.load_config(path)[0]
-        info ("vm config loaded from", path, ":",)
-    except Exception as e:
-        info ("No JSON config found - using default:",)
+    info("Trying to load config from", path)
+
+    if os.path.isfile(path):
+
+        try:
+            # Try loading the first valid config
+            config = validate_vm.load_config(path)
+            info ("Successfully loaded vm config")
+
+        except Exception as e:
+            print_exception()
+            info("Could not parse VM config file(s): " + path)
+            program_exit(73, str(e))
+
+    elif os.path.isdir(path):
+        try:
+            configs = validate_vm.load_config(path, VERB)
+            info ("Found ", len(configs), "config files")
+            config = configs[0]
+            info ("Trying the first valid config ")
+        except Exception as e:
+            info("No valid config found: ", e)
+            program_exit(73, "No valid config files in " + path)
+
+    else:
+        info("Falling back to default config")
 
     if config.has_key("description"):
         description = config["description"]
@@ -602,38 +667,16 @@ def load_single_config(path = "."):
     return config
 
 
-# Provide a list of VM's with validated specs
-# One unconfigured vm is created by default, which will try to load a config if booted
-vms = [vm()]
-
-def load_configs(config_path = "."):
+def program_exit(status, msg):
     global vms
+    for vm in vms:
+        vm.stop().wait()
+    info("Exit called with status", status, "(",get_exit_code_name(status),")")
+    # Print fail message and exit with appropriate code
+    print color.EXIT_ERROR(get_exit_code_name(status), msg)
+    sys.exit(status)
 
-    # Clear out the default unconfigured vm
-    if (not vms[0]._config):
-        vms = []
 
-    print color.HEADER("IncludeOS vmrunner loading VM configs")
-
-    schema_path = package_path + "/vm.schema.json"
-
-    print INFO, "Validating JSON according to schema ",schema_path
-
-    validate_vm.load_schema(schema_path)
-    validate_vm.load_configs(config_path)
-
-    if validate_vm.valid_vms:
-        print INFO, "Loaded VM specification(s) from JSON"
-        for spec in validate_vm.valid_vms:
-            print INFO, "Found VM spec: "
-            print color.DATA(spec.__str__())
-            vms.append(vm(spec))
-
-    else:
-        print color.WARNING(nametag), "No VM specification JSON found, trying default config"
-        vms.append(vm(default_config))
-
-    return vms
 
 # Handler for SIGINT
 def handler(signum, frame):
@@ -646,5 +689,8 @@ def handler(signum, frame):
             print color.WARNING("Forced shutdown caused exception: "), e
             raise e
 
+
+# One unconfigured vm is created by default, which will try to load a config if booted
+vms.append(vm())
 
 signal.signal(signal.SIGINT, handler)

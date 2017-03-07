@@ -15,35 +15,57 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdlib.h>
-
-#include <os>
-#include <net/util.hpp>
 #include <net/inet_common.hpp>
 
 namespace net {
 
-  // Should be pretty much like the example in RFC 1071,
-  // but using a uinon for readability
-  uint16_t checksum(void* data, size_t len) noexcept {
-
-    uint16_t* buf = reinterpret_cast<uint16_t*>(data);
-
-    union sum {
-      uint32_t whole;    
-      uint16_t part[2];
-    } sum32 {0};
-  
-    // Iterate in short int steps.
-    for (uint16_t* i = buf; i < (buf + len / 2); ++i)
-      sum32.whole += *i;
-  
-    // odd-length case
-    if (len & 1) {  
-      sum32.whole += reinterpret_cast<uint8_t*>(buf)[len - 1];
-    }
-
-    return ~(sum32.part[0] + sum32.part[1]);
+uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
+{
+  const char* buffer = (const char*) data;
+  int64_t sum = tsum;
+  // unrolled 32 bytes at once
+  while (length >= 32)
+  {
+    auto* v = (uint32_t*) buffer;
+    sum += v[0];
+    sum += v[1];
+    sum += v[2];
+    sum += v[3];
+    sum += v[4];
+    sum += v[5];
+    sum += v[6];
+    sum += v[7];
+    length -= 32; buffer += 32;
   }
+  while (length >= 4)
+  {
+    auto v = *(uint32_t*) buffer;
+    sum += v;
+    length -= 4; buffer += 4;
+  }
+  if (length & 2)
+  {
+    auto v = *(uint16_t*) buffer;
+    sum += v;
+    buffer += 2;
+  }
+  if (length & 1)
+  {
+    auto v = *(uint8_t*) buffer;
+    sum += v;
+  }
+  // fold to 32-bit
+  uint32_t a32 = sum & 0xffffffff;
+  uint32_t b32 = sum >> 32;
+  a32 += b32;
+  if (a32 < b32) a32++;
+  // fold again to 16-bit
+  uint16_t a16 = a32 & 0xffff;
+  uint16_t b16 = a32 >> 16;
+  a16 += b16;
+  if (a16 < b16) a16++;
+  // return 2s complement
+  return ~a16;
+}
 
 } //< namespace net

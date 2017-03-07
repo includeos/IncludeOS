@@ -21,11 +21,6 @@
 #include <string>
 #include <vector>
 
-struct func_offset {
-  std::string name;
-  uint32_t    addr;
-  uint32_t    offset;
-};
 struct safe_func_offset {
   const char* name;
   uint32_t    addr;
@@ -34,21 +29,8 @@ struct safe_func_offset {
 
 struct Elf
 {
-  // returns the name of a symbol closest to @addr,
-  // or the hex representation of addr
-  static func_offset
-    resolve_symbol(uintptr_t addr);
-  static func_offset
-    resolve_symbol(void* addr);
-  
   static uintptr_t resolve_addr(uintptr_t addr);
   static uintptr_t resolve_addr(void* addr);
-  
-  // get and resolve the current function
-  static func_offset
-    get_current_function();
-  static std::vector<func_offset>
-    get_functions();
   
   // doesn't use heap
   static safe_func_offset
@@ -65,4 +47,5 @@ struct Elf
   // debugging purposes only
   static const char* get_strtab();
   static void        print_info();
+  static bool        verify_symbols();
 };

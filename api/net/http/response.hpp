@@ -30,8 +30,7 @@ namespace http {
 /// This class is used to represent an error that occurred
 /// from within the operations of class Response
 ///
-class Response_error : public std::runtime_error {
-public:
+struct Response_error : public std::runtime_error {
   using runtime_error::runtime_error;
 }; //< class Response_error
 
@@ -134,6 +133,13 @@ public:
   /// method
   ///
   Response& set_version(const Version version) noexcept;
+
+  /**
+   * @brief      Return the status line of the response message (Version Code CodeStr)
+   *
+   * @return     A string reprenentation of the status line
+   */
+  std::string status_line() const noexcept;
 
   ///
   /// Reset the response message as if it was now

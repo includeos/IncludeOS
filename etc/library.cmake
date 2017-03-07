@@ -42,10 +42,9 @@ set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -c -m32"
 
 # includes
 include_directories(${LOCAL_INCLUDES})
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/libcxx)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/sys)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/posix)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/libcxx)
+include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api)
 include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)

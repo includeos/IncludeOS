@@ -49,7 +49,7 @@ void Director::process(
         return (*next)();
       }
       else {
-        res->add_body(create_html(entries, path));
+        res->source().add_body(create_html(entries, path));
         res->send();
       }
     })

@@ -75,7 +75,7 @@ void Service::start(const std::string&)
   // Timer spam
   for (int i = 0; i < 1000; i++)
     Timers::oneshot(std::chrono::microseconds(i + 200), [](auto){});
-  
+
   static auto& inet = net::Inet4::stack<0>();
 
   // Static IP configuration, until we (possibly) get DHCP
@@ -109,7 +109,7 @@ void Service::start(const std::string&)
     printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
   });
 */
-  server_mem.on_connect([] (auto conn) {
+  server_mem.on_connect([] (net::tcp::Connection_ptr conn) {
       conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
           TCP_BYTES_RECV += n;
           // create string from buffer
@@ -117,11 +117,12 @@ void Service::start(const std::string&)
           auto reply = std::to_string(OS::heap_usage())+"\n";
           // Send the first packet, and then wait for ARP
           printf("TCP Mem: Reporting memory size as %s bytes\n", reply.c_str());
-          conn->write(reply.c_str(), reply.size(), [conn](size_t n) {
-              TCP_BYTES_SENT += n;
-            });
+          conn->on_write([](size_t n) {
+            TCP_BYTES_SENT += n;
+          });
+          conn->write(reply);
 
-          conn->on_disconnect([](auto c, auto){
+          conn->on_disconnect([](net::tcp::Connection_ptr c, auto){
               c->close();
             });
         });
@@ -130,7 +131,7 @@ void Service::start(const std::string&)
 
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.on_connect([] (auto conn) {
+  server.on_connect([] (net::tcp::Connection_ptr conn) {
         // read async with a buffer size of 1024 bytes
         // define what to do when data is read
         conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
@@ -143,14 +144,18 @@ void Service::start(const std::string&)
               auto htm = html();
               auto hdr = header(htm.size());
 
+
               // create response
-              conn->write(hdr.data(), hdr.size(), [](size_t n) { TCP_BYTES_SENT += n; });
-              conn->write(htm.data(), htm.size(), [](size_t n) { TCP_BYTES_SENT += n; });
+              conn->write(hdr);
+              conn->write(htm);
             }
             else {
-              conn->write(NOT_FOUND.data(), NOT_FOUND.size(), [](size_t n) { TCP_BYTES_SENT += n; });
+              conn->write(NOT_FOUND);
             }
           });
+        conn->on_write([](size_t n) {
+          TCP_BYTES_SENT += n;
+        });
 
       });
 

@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,14 +18,11 @@
 #ifndef MANA_SERVER_HPP
 #define MANA_SERVER_HPP
 
-#include <net/inet>
-#include <net/dhcp/dh4client.hpp>
-#include <rtc>
+#include <net/http/server.hpp>
 
 #include "middleware.hpp"
 #include "request.hpp"
 #include "response.hpp"
-#include "connection.hpp"
 #include "router.hpp"
 
 namespace mana {
@@ -48,7 +45,6 @@ private:
   // Internal class type aliases
   //-------------------------------
   using Port      = const unsigned;
-  using IP_stack  = net::Inet<net::IP4>;
   using Path      = std::string;
   struct MappedCallback {
     Path path;
@@ -59,15 +55,12 @@ private:
   //-------------------------------
 public:
 
-  Server(IP_stack&);
+  explicit Server(net::TCP&, std::chrono::seconds timeout = http::Server::DEFAULT_IDLE_TIMEOUT);
 
   //-------------------------------
   // Default destructor
   //-------------------------------
   ~Server() noexcept = default;
-
-  IP_stack& ip_stack() const
-  { return inet_; }
 
   //-------------------------------
   // Get the underlying router
@@ -93,11 +86,8 @@ public:
   // incoming connections on the
   // specified port
   //-------------------------------
-  void listen(Port port);
-
-  void close(size_t conn_idx);
-
-  void process(Request_ptr, Response_ptr);
+  void listen(Port port)
+  { server_.listen(port); }
 
   void use(const Path&, Middleware_ptr);
 
@@ -109,26 +99,23 @@ public:
   void use(Callback cb)
   { use("/", std::move(cb)); }
 
-  size_t active_clients() const
-  { return connections_.size() - free_idx_.size(); }
+  http::Server& http_server() noexcept
+  { return server_; }
 
-  std::vector<net::tcp::Connection_ptr> active_tcp_connections() const;
+  const http::Server& http_server() const noexcept
+  { return server_; }
 
-  void reconnect(net::tcp::Connection_ptr conn)
-  { if (conn != nullptr) connect(conn); }
+  size_t connected_clients() const noexcept
+  { return server_.connected_clients(); }
 
 private:
   //-------------------------------
   // Class data members
   //-------------------------------
-  IP_stack& inet_;
-  Router   router_;
-  std::vector<Connection_ptr> connections_;
-  std::vector<size_t> free_idx_;
-  MiddlewareStack middleware_;
+  http::Server                server_;
+  Router                      router_;
+  MiddlewareStack             middleware_;
   std::vector<Middleware_ptr> mw_storage_;
-
-  const RTC::timestamp_t IDLE_TIMEOUT = 5*60;
 
   //-----------------------------------
   // Deleted move and copy operations
@@ -142,13 +129,11 @@ private:
   Server& operator = (const Server&) = delete;
   Server& operator = (Server&&) = delete;
 
-  void connect(net::tcp::Connection_ptr);
+  void handle_request(http::Request_ptr, http::Response_writer_ptr);
+
+  void process(Request_ptr req, Response_ptr res);
 
   void process_route(Request_ptr, Response_ptr);
-
-  void timeout_clients(int32_t);
-
-  void setup_stats();
 
 }; //< class Server
 

@@ -1,9 +1,17 @@
 cmake_minimum_required(VERSION 2.8.9)
 project(unittests C CXX)
 
+option(COVERAGE "Build with coverage generation" OFF)
+
+if ("${ARCH}" STREQUAL "")
+  set (ARCH "ARCH_X86")
+endif("${ARCH}" STREQUAL "")
+
+add_definitions(-D${ARCH})
+
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_C_FLAGS "-m32 -std=c11 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "-m32 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR -DNO_INFO=1 -DNO_DEBUG=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-m32 -g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR -DNO_INFO=1 -DNO_DEBUG=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -39,9 +47,12 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/os_test.cpp
-  ${TEST}/kernel/unit/rdrand_test.cpp
+  # not all CPUs have rdrand
+  #${TEST}/kernel/unit/rdrand_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
+  ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cookie_test.cpp
+  ${TEST}/net/unit/dns_test.cpp
   ${TEST}/net/unit/http_header_test.cpp
   ${TEST}/net/unit/http_status_codes_test.cpp
   ${TEST}/net/unit/http_method_test.cpp
@@ -51,12 +62,15 @@ set(TEST_SOURCES
   ${TEST}/net/unit/http_time_test.cpp
   ${TEST}/net/unit/http_version_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
+  ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
-  ${TEST}/net/unit/tcp_write_buffer.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
+  ${TEST}/net/unit/router.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
+  ${TEST}/util/unit/base64.cpp
+  ${TEST}/util/unit/sha1.cpp
   ${TEST}/util/unit/chunk_test.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
@@ -80,22 +94,13 @@ set(OS_SOURCES
   ${SRC}/fs/fat_async.cpp
   ${SRC}/fs/fat_sync.cpp
   ${SRC}/fs/filesystem.cpp
-  ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
-  ${SRC}/hw/acpi.cpp
-  ${SRC}/hw/apic.cpp
-  ${SRC}/hw/apic_revenant.cpp
-  ${SRC}/hw/apic_timer.cpp
   ${SRC}/hw/block_device.cpp
-  ${SRC}/hw/cpu_freq_sampling.cpp
-  ${SRC}/hw/ioapic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp
-  ${SRC}/hw/pic.cpp
-  ${SRC}/hw/pit.cpp
   ${SRC}/hw/ps2.cpp
   ${SRC}/hw/serial.cpp
   ${SRC}/kernel/block.cpp
@@ -106,6 +111,7 @@ set(OS_SOURCES
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
+  ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
   ${SRC}/kernel/rdrand.cpp
   ${SRC}/kernel/rng.cpp
@@ -141,16 +147,15 @@ set(OS_SOURCES
   ${SRC}/net/tcp/rttm.cpp
   ${SRC}/net/tcp/tcp.cpp
   ${SRC}/net/tcp/write_queue.cpp
-  ${SRC}/net/util.cpp
   ${SRC}/posix/fcntl.cpp
   ${SRC}/posix/fd.cpp
   ${SRC}/posix/sys/select.cpp
   ${SRC}/posix/arpa/inet.cpp
   ${SRC}/util/async.cpp
-  ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp
   ${SRC}/util/percent_encoding.cpp
+  ${SRC}/util/sha1.cpp
   ${SRC}/util/statman.cpp
   ${SRC}/util/syslog_facility.cpp
   ${SRC}/util/syslogd.cpp
@@ -163,6 +168,31 @@ set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
 )
 
+if(COVERAGE)
+  message(STATUS "Coverage")
+  list(REMOVE_ITEM TEST_SOURCES ${TEST}/util/unit/path_to_regex_no_options.cpp)
+  set_property(SOURCE ${OS_SOURCES} PROPERTY COMPILE_FLAGS --coverage)
+  set_property(SOURCE ${TEST_SOURCES} PROPERTY COMPILE_FLAGS --coverage)
+  set_property(SOURCE ${MOD_OBJECTS} PROPERTY COMPILE_FLAGS --coverage)
+  set_property(SOURCE ${LEST_UTIL} PROPERTY COMPILE_FLAGS --coverage)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+endif()
+
+if(TRAVIS)
+  message(STATUS "Travis")
+  list(REMOVE_ITEM TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
+endif()
+
+if ("${ARCH}" STREQUAL "ARCH_ARMv7")
+  list(REMOVE_ITEM TEST_SOURCES ${TEST}/hw/unit/cpu_test.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/ps2.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/serial.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/cpuid.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/irq_manager.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/rdrand.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/terminal.cpp)
+endif("${ARCH}" STREQUAL "ARCH_ARMv7")
+
 # Only build selected sources with SINGLE
 if(NOT SINGLE)
   set(SOURCES ${MOD_OBJECTS} ${OS_SOURCES} ${TEST_SOURCES} ${LEST_UTIL})
@@ -170,6 +200,11 @@ else()
   set(SOURCES ${SINGLE} ${LEST_UTIL})
 endif()
 
+if ("${ARCH}" STREQUAL "ARCH_ARMv7")
+  set_property(SOURCE ${SOURCES} PROPERTY COMPILE_FLAGS -mfpu=vfpv3-d16)
+endif("${ARCH}" STREQUAL "ARCH_ARMv7")
+
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+

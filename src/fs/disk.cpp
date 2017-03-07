@@ -19,6 +19,7 @@
 #include <fs/mbr.hpp>
 #include <fs/fat.hpp>
 #include <cassert>
+#include <info>
 
 namespace fs {
 

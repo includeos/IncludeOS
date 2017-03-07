@@ -30,8 +30,23 @@ public:
   /// returns a 64-bit unix timestamp of the current time
   static timestamp_t now();
 
-  /// start an auto-calibration process
+  /// returns a 64-bit unix timestamp for when the OS was booted
+  static timestamp_t boot_timestamp() {
+    return booted_at;
+  }
+
+  /// returns system uptime in seconds
+  static timestamp_t time_since_boot() {
+    return now() - boot_timestamp();
+  }
+
+  /// start time auto-calibration process
   static void init();
+
+private:
+  static timestamp_t booted_at;
+  static timestamp_t current_time;
+  static uint64_t    current_ticks;
 };
 
 #endif

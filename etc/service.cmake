@@ -38,6 +38,12 @@ option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
+if ("${ARCH}" STREQUAL "")
+  set (ARCH "ARCH_X86")
+endif("${ARCH}" STREQUAL "")
+
+add_definitions(-D${ARCH})
+
 # Compiler optimization
 set(OPTIMIZE "-O2")
 if (minimal)
@@ -244,17 +250,19 @@ if(TARFILE)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 
   if(CREATE_TAR)
+    get_filename_component(TAR_BASE_NAME "${CREATE_TAR}" NAME)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar cf ${TAR_RELPATH} ${CREATE_TAR}
+      COMMAND tar cf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   elseif(CREATE_TAR_GZ)
+    get_filename_component(TAR_BASE_NAME "${CREATE_TAR_GZ}" NAME)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar czf ${TAR_RELPATH} ${CREATE_TAR_GZ}
+      COMMAND tar czf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
@@ -304,7 +312,6 @@ add_custom_target(
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
-  COMMAND rm _elf_symbols.bin
   DEPENDS service
 )
 

@@ -22,13 +22,8 @@
 #include <os>
 #include <boot/multiboot.h>
 #include <kernel/elf.hpp>
-#include <hw/acpi.hpp>
-#include <hw/apic.hpp>
-#include <hw/apic_timer.hpp>
 #include <hw/cmos.hpp>
 #include <kernel/irq_manager.hpp>
-#include <kernel/pci_manager.hpp>
-#include <kernel/timers.hpp>
 #include <kernel/rtc.hpp>
 #include <kernel/rdrand.hpp>
 #include <kernel/rng.hpp>
@@ -37,14 +32,15 @@
 #include <statman>
 #include <vector>
 
-extern "C" void kernel_sanity_checks();
 //#define ENABLE_PROFILERS
-
 #ifdef ENABLE_PROFILERS
 #include <profile>
+#define PROFILE(name)  ScopedProfiler __CONCAT(sp, __COUNTER__){name};
+#else
+#define PROFILE(name) /* name */
 #endif
 
-extern "C" uint16_t _cpu_sampling_freq_divider_;
+extern "C" uintptr_t get_cpu_esp();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -56,8 +52,8 @@ extern uintptr_t _ELF_END_;
 extern uintptr_t _MAX_MEM_MIB_;
 
 bool  OS::power_   = true;
+bool  OS::boot_sequence_passed_ = false;
 MHz   OS::cpu_mhz_ {-1};
-RTC::timestamp_t OS::booted_at_ {0};
 uintptr_t OS::low_memory_size_  {0};
 uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::memory_end_ {0};
@@ -79,19 +75,15 @@ static std::string os_cmdline = Service::binary_name();
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
-extern "C" uintptr_t get_cpu_esp();
 
 const std::string& OS::cmdline_args() noexcept
 {
   return os_cmdline;
 }
 
-void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp1{};
-#endif
-
+void OS::start(uint32_t boot_magic, uint32_t boot_addr)
+{
+  PROFILE("");
   default_stdout_handlers();
 
   // Print a fancy header
@@ -104,9 +96,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
          boot_magic, boot_addr);
 
-  MYINFO("Max mem (from linker): %i MiB", reinterpret_cast<size_t>(&_MAX_MEM_MIB_));
-
-
+  PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_magic, boot_addr);
@@ -117,14 +107,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
 
     OS::legacy_boot();
   }
-
   Expects(high_memory_size_);
 
+  PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
 
   OS::memory_end_ = high_memory_size_ + 0x100000;
-
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x4000, 0x5fff, "Statman", "Statistics"});
@@ -135,7 +124,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   Expects(::heap_begin and heap_max_);
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
-        "Pre-heap", "Heap randomization area (not for use))"});
+        "Pre-heap", "Heap randomization area"});
 
   // Give the rest of physical memory to heap
   heap_max_ = ((0x100000 + high_memory_size_)  & 0xffff0000) - 1;
@@ -152,42 +141,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   for (const auto &i : memmap)
     INFO2("* %s",i.second.to_string().c_str());
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp2("OS::start IRQ manager init");
-#endif
-  // Set up interrupt and exception handlers
-  IRQ_manager::init();
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp3("OS::start ACPI init");
-#endif
-  // read ACPI tables
-  hw::ACPI::init();
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp4("OS::start APIC init");
-#endif
-  // setup APIC, APIC timer, SMP etc.
-  hw::APIC::init();
-
-  // enable interrupts
-  INFO("BSP", "Enabling interrupts");
-  IRQ_manager::enable_interrupts();
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp5("OS::start PIT init");
-#endif
-  // Initialize the Interval Timer
-  hw::PIT::init();
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp6("OS::start PCI manager init");
-#endif
-  // Initialize PCI devices
-  PCI_manager::init();
-
-  // Print registered devices
-  hw::Devices::print_devices();
 
   // sleep statistics
   // NOTE: needs to be positioned before anything that calls OS::halt
@@ -196,72 +149,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   os_cycles_total = &Statman::get().create(
       Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
-  // Estimate CPU frequency
-  MYINFO("Estimating CPU-frequency");
-  INFO2("|");
-  INFO2("+--(2 samples, %f sec. interval)",
-        (hw::PIT::frequency() / _cpu_sampling_freq_divider_).count());
-  INFO2("|");
+  PROFILE("Arch init");
+  extern void __arch_init();
+  __arch_init();
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp7("OS::start CPU frequency");
-#endif
-  // TODO: Debug why actual measurments sometimes causes problems. Issue #246.
-  if (OS::cpu_mhz_.count() < 0) {
-    OS::cpu_mhz_ = MHz(hw::PIT::estimate_CPU_frequency(16));
-  }
-  INFO2("+--> %f MHz", cpu_freq().count());
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp8("OS::start Timers init");
-#endif
-  // cpu_mhz must be known before we can start timer system
-  /// initialize timers hooked up to APIC timer
-  Timers::init(
-    // timer start function
-    hw::APIC_Timer::oneshot,
-    // timer stop function
-    hw::APIC_Timer::stop);
-
-  // initialize BSP APIC timer
-  hw::APIC_Timer::init(
-  [] {
-    // set final interrupt handler
-    hw::APIC_Timer::set_handler(Timers::timers_handler);
-    // signal that kernel is done with everything
-    Service::ready();
-    // signal ready
-    // NOTE: this executes the first timers, so we
-    // don't want to run this before calling Service ready
-    Timers::ready();
-  });
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp9("OS::start RTC init");
-#endif
+  PROFILE("RTC init");
   // Realtime/monotonic clock
   RTC::init();
-  booted_at_ = RTC::now();
 
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp10("OS::start Plugins init");
-#endif
-  // Trying custom initialization functions
-  MYINFO("Initializing plugins");
-  for (auto plugin : plugins_) {
-    INFO2("* Initializing %s", plugin.name_);
-    try{
-      plugin.func_();
-    } catch(std::exception& e){
-      MYINFO("Exception thrown when initializing plugin: %s", e.what());
-    } catch(...){
-      MYINFO("Unknown exception when initializing plugin");
-    }
-  }
-
-#ifdef ENABLE_PROFILERS
-  ScopedProfiler sp11("OS::start RNG init");
-#endif
+  PROFILE("RNG init");
   // initialize random seed based on cycles since start
   if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
     uint32_t rdrand_output[32];
@@ -286,37 +182,36 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr) {
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
-  // Everything is ready
-  MYINFO("Starting %s", Service::name().c_str());
-  FILLINE('=');
+  // Custom initialization functions
+  MYINFO("Initializing plugins");
+  // the boot sequence is over when we get to plugins/Service::start
+  OS::boot_sequence_passed_ = true;
 
+  PROFILE("Plugins init");
+  for (auto plugin : plugins_) {
+    INFO2("* Initializing %s", plugin.name_);
+    try{
+      plugin.func_();
+    } catch(std::exception& e){
+      MYINFO("Exception thrown when initializing plugin: %s", e.what());
+    } catch(...){
+      MYINFO("Unknown exception when initializing plugin");
+    }
+  }
+
+  PROFILE("Service::start");
   // begin service start
+  FILLINE('=');
+  printf(" IncludeOS %s\n", version().c_str());
+  printf(" +--> Running [ %s ]\n", Service::name().c_str());
+  FILLINE('~');
+
   Service::start();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
   plugins_.emplace_back(delg, name);
-}
-
-uintptr_t OS::heap_begin() noexcept
-{
-  return ::heap_begin;
-}
-uintptr_t OS::heap_end() noexcept
-{
-  return ::heap_end;
-}
-
-uintptr_t OS::resize_heap(size_t size){
-
-  uintptr_t new_end = heap_begin() + size;
-  if (not size or size < heap_usage() or new_end > memory_end())
-    return heap_max() - heap_begin();
-
-  memory_map().resize(heap_begin(), size);
-  heap_max_ = heap_begin() + size;
-  return size;
 }
 
 uint64_t OS::get_cycles_halt() noexcept {
@@ -329,6 +224,7 @@ uint64_t OS::get_cycles_total() noexcept {
 __attribute__((noinline))
 void OS::halt() {
   *os_cycles_total = cycles_since_boot();
+#ifdef ARCH_X86
   asm volatile("hlt");
 
   // add a global symbol here so we can quickly discard
@@ -336,33 +232,30 @@ void OS::halt() {
   asm volatile(
   ".global _irq_cb_return_location;\n"
   "_irq_cb_return_location:" );
-
+#else
+#warning "OS::halt() not implemented for selected arch"
+#endif
   // Count sleep cycles
   *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
 }
 
-void OS::event_loop() {
-  FILLINE('=');
-  printf(" IncludeOS %s\n", version().c_str());
-  printf(" +--> Running [ %s ]\n", Service::name().c_str());
-  FILLINE('~');
-
+void OS::event_loop()
+{
   while (power_) {
     IRQ_manager::get().process_interrupts();
-    debug2("OS going to sleep.\n");
     OS::halt();
   }
-
-  // Cleanup
+  // Allow service to perform cleanup
   Service::stop();
-  /// TODO: move me to arch-specific module
-  hw::ACPI::shutdown();
+  // poweroff, if supported by arch
+  extern void __arch_poweroff();
+  __arch_poweroff();
 }
 
 void OS::reboot()
 {
-  /// TODO: move me to arch-specific module
-  hw::ACPI::reboot();
+  extern void __arch_reboot();
+  __arch_reboot();
 }
 void OS::shutdown()
 {
@@ -428,8 +321,7 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
 
   if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE) {
     INFO2("* Booted with parameters @ %p: %s",(void*)bootinfo->cmdline, (char*)bootinfo->cmdline);
-    os_cmdline = (char*) bootinfo->cmdline;
-
+    os_cmdline = std::string((char*) bootinfo->cmdline);
   }
 
   if (bootinfo->flags & MULTIBOOT_INFO_MEM_MAP) {
@@ -453,6 +345,7 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
 
 
 void OS::legacy_boot() {
+  MYINFO("Max mem (from linker): %u MiB", (size_t) &_MAX_MEM_MIB_);
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = cmos::meminfo();
   low_memory_size_ = mem.base.total * 1024;
@@ -501,3 +394,4 @@ void OS::legacy_boot() {
     unavail_end += interval;
   }
 }
+

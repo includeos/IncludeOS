@@ -41,7 +41,7 @@ public:
 
 public:
 
-  Listener(TCP& host, port_t port);
+  Listener(TCP& host, port_t port, ConnectCallback cb = nullptr);
 
   Listener& on_accept(AcceptCallback cb)
   {
@@ -55,8 +55,7 @@ public:
     return *this;
   }
 
-  bool syn_queue_full() const
-  { return syn_queue_.size() >= max_syn_backlog; }
+  bool syn_queue_full() const;
 
   /**
    * @brief Returns the local socket identified with this Listener
@@ -66,7 +65,7 @@ public:
    */
   Socket local() const;
 
-  port_t port() const
+  constexpr port_t port() const
   { return port_; }
 
   auto syn_queue_size() const
@@ -102,8 +101,6 @@ private:
   CloseCallback _on_close_;
 
   bool default_on_accept(Socket);
-
-  void default_on_connect(Connection_ptr);
 
   void segment_arrived(Packet_ptr);
 

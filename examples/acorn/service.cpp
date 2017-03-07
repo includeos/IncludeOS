@@ -52,6 +52,8 @@ const std::string timestamp() {
     return buf;
 }
 
+#include <net/inet4>
+
 void Service::start(const std::string&) {
 
   /** SETUP LOGGER */
@@ -173,7 +175,7 @@ void Service::start(const std::string&) {
       /** SERVER SETUP **/
 
       // initialize server
-      server_ = std::make_unique<Server>(static_cast<net::Inet4&>(stack));
+      server_ = std::make_unique<Server>(stack.tcp());
       // set routes and start listening
       server_->set_routes(router).listen(80);
 

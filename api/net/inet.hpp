@@ -37,8 +37,9 @@ namespace net {
   template <typename IPV >
   struct Inet {
     using Stack = Inet<IPV>;
-
     using Forward_delg = delegate<void(Stack& source, typename IPV::IP_packet_ptr)>;
+    using Route_checker = delegate<bool(typename IPV::addr)>;
+    using IP_packet_factory = delegate<typename IPV::IP_packet_ptr(Protocol)>;
 
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
@@ -47,7 +48,7 @@ namespace net {
     virtual typename IPV::addr netmask() = 0;
     virtual typename IPV::addr gateway()  = 0;
     virtual std::string        ifname() const = 0;
-    virtual hw::MAC_addr       link_addr() = 0;
+    virtual MAC::Addr       link_addr() = 0;
     virtual hw::Nic&           nic() = 0;
 
     virtual IPV&       ip_obj() = 0;
@@ -55,11 +56,22 @@ namespace net {
     virtual UDP&       udp()    = 0;
 
     virtual void set_forward_delg(Forward_delg) = 0;
+    virtual void set_route_checker(Route_checker) = 0;
+    virtual void cache_link_ip(typename IPV::addr, MAC::Addr) = 0;
+    virtual void flush_link_ip_cache() = 0;
     virtual Forward_delg forward_delg() = 0;
 
     virtual constexpr uint16_t MTU() const = 0;
 
-    virtual Packet_ptr create_packet(size_t size) = 0;
+
+    /** Provision empty anonymous packet **/
+    virtual Packet_ptr create_packet() = 0;
+
+    /** Delegate to provision initialized IP packet **/
+    virtual IP_packet_factory ip_packet_factory() = 0;
+
+    /** Provision empty IP packet **/
+    virtual typename IPV::IP_packet_ptr create_ip_packet(Protocol) = 0;
 
     virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
 
@@ -71,10 +83,10 @@ namespace net {
                                 typename IPV::addr nmask,
                                 typename IPV::addr gateway,
                                 typename IPV::addr dnssrv = IPV::ADDR_ANY) = 0;
-
+    virtual void reset_config() = 0;
 
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
-    virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
+    virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) = 0;
 
     /** Event triggered when there are available buffers in the transmit queue */
     virtual void on_transmit_queue_available(transmit_avail_delg del) = 0;
@@ -85,6 +97,9 @@ namespace net {
     /** Number of buffers available in the bufstore */
     virtual size_t buffers_available() = 0;
 
+    virtual void force_start_send_queues() = 0;
+
+    virtual void move_to_this_cpu() = 0;
 
   }; //< class Inet<LINKLAYER, IPV>
 } //< namespace net

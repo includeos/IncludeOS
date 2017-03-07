@@ -1,0 +1,131 @@
+#! /usr/bin/env python
+
+import sys
+import os
+import time
+import subprocess
+
+from threading import Timer
+
+includeos_src = os.environ.get('INCLUDEOS_SRC',
+                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
+sys.path.insert(0,includeos_src)
+
+from vmrunner import vmrunner
+import socket
+
+from vmrunner.prettify import color
+
+# Get an auto-created VM from the vmrunner
+vm = vmrunner.vms[0]
+
+assigned_ip = ""
+num_messages = 0
+ping_passed = False
+ping_count = 3
+
+def cleanup():
+  # Remove leases-file
+  print color.INFO("<Test.py>"), "Removing /var/lib/dhcp/dhclient.leases"
+  subprocess.call(["sudo", "rm", "/var/lib/dhcp/dhclient.leases"])
+  # Kill dhclient process:
+  subprocess.call(["sudo", "dhclient", "bridge43", "-4", "-x", "-n", "-v"])
+
+def check_dhclient_output(output):
+  global num_messages
+  global assigned_ip
+
+  ip_length = 13
+  ip_index = output.find("10.200.100.")
+
+  if ip_index != -1:
+    assigned_ip = output[ip_index : ip_index + ip_length]
+  else:
+    cleanup()
+    vm.exit(1, "<Test.py> IP not found in output from dhclient")
+
+  if "DHCPDISCOVER on bridge43 to 255.255.255.255 port 67" in output:
+    num_messages += 1
+
+  if "DHCPOFFER of " + assigned_ip + " from 10.200.0.1" in output:
+    num_messages += 1
+
+  if "DHCPREQUEST of " + assigned_ip + " on bridge43 to 255.255.255.255 port 67" in output:
+    num_messages += 1
+
+  if "DHCPACK of " + assigned_ip + " from 10.200.0.1" in output:
+    num_messages += 1
+
+  if num_messages != 4:
+    cleanup()
+    vm.exit(1, "<Test.py> DHCP process FAILED")
+
+def ping_test():
+  global ping_passed
+
+  print color.INFO("<Test.py>"), "Assigned address: ", assigned_ip
+  print color.INFO("<Test.py>"), "Trying to ping"
+  time.sleep(1)
+  try:
+    command = ["ping", assigned_ip, "-c", str(ping_count), "-i", "0.2"]
+    print color.DATA(" ".join(command))
+    print subprocess.check_output(command)
+    ping_passed = True
+  except Exception as e:
+    print color.FAIL("<Test.py> Ping FAILED Process threw exception:")
+    print e
+    cleanup()
+    vm.exit(1, "<Test.py> Ping test failed")
+  finally:
+    cleanup()
+
+def run_dhclient(trigger_line):
+  route_output = subprocess.check_output(["route"])
+
+  if "10.0.0.0" not in route_output:
+    subprocess.call(["sudo", "ifconfig", "bridge43", "10.0.0.1", "netmask", "255.255.0.0", "up"])
+    time.sleep(1)
+
+  if "10.200.0.0" not in route_output:
+    subprocess.call(["sudo", "route", "add", "-net", "10.200.0.0", "netmask", "255.255.0.0", "dev", "bridge43"])
+    print color.INFO("<Test.py>"), "Route added to bridge43, 10.200.0.0"
+
+  print color.INFO("<Test.py>"), "Running dhclient"
+
+  try:
+    dhclient = subprocess.Popen(
+        ["sudo", "dhclient", "bridge43", "-4", "-n", "-v"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+    # timeout on dhclient process
+    kill_proc = lambda p: p.kill()
+    timer = Timer(20, kill_proc, [dhclient])
+    timer.start()
+    process_output, _ = dhclient.communicate()
+
+    print color.INFO("<dhclient>")
+    print process_output
+
+    check_dhclient_output(process_output)
+  except (OSError, subprocess.CalledProcessError) as exception:
+    cleanup()
+    print color.FAIL("<Test.py> dhclient FAILED threw exception:")
+    print str(exception)
+    timer.cancel()
+    vm.exit(1, "<Test.py> dhclient test failed")
+  finally:
+    timer.cancel()
+
+  ping_test()
+
+  if ping_passed and num_messages == 4:
+    vm.exit(0, "<Test.py> DHCP process and ping test completed successfully. Process returned 0 exit status")
+  else:
+    vm.exit(1, "<Test.py> DHCP process or ping test failed")
+
+# Add custom event-handler
+vm.on_output("Service started", run_dhclient)
+
+# Boot the VM, taking a timeout as parameter
+vm.cmake().boot(20).clean()

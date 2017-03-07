@@ -56,6 +56,25 @@ public:
     return &ret;
   }
 
+  struct passwd* find(uid_t uid) {
+    char buf[16];
+    snprintf(buf, 16, "%d", uid);
+    if (!open_) {
+      read();
+    }
+    const auto it = std::find_if(begin(entries_), end(entries_), [buf](const auto& entry){
+      char* start = const_cast<char*>(entry.c_str());
+      size_t pw_pos = entry.find('\0') + 1;
+      size_t uid_pos = entry.find('\0', pw_pos) + 1;
+      return (strcmp(buf, start + uid_pos) == 0);
+    });
+    if (it == end(entries_)) {
+      return nullptr;
+    }
+    extract(*it);
+    return &ret;
+  }
+
   struct passwd* next() noexcept {
     if (!open_) {
       read();
@@ -105,6 +124,7 @@ private:
   Pwd() : open_ {false}, pos_ {0} {}
 
   void read() {
+    entries_.clear();
     std::ifstream is(pwd_path);
     std::string line;
     while (std::getline(is, line)) {
@@ -140,4 +160,9 @@ struct passwd *getpwnam(const char *name) {
   }
   Pwd& pwd = Pwd::instance();
   return pwd.find(name);
+}
+
+struct passwd *getpwuid(uid_t uid) {
+  Pwd& pwd = Pwd::instance();
+  return pwd.find(uid);
 }

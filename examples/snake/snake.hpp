@@ -19,10 +19,10 @@
 #define SNAKE_HPP
 
 #include <random>
-#include <kernel/timers.hpp>
+#include <timers>
 
 #define S_SIGN '@'
-#define S_COLOR ConsoleVGA::vga_color::COLOR_LIGHT_CYAN
+#define S_COLOR TextmodeVGA::vga_color::COLOR_LIGHT_CYAN
 #define S_SPAWN Point{{ 35, 12 }}
 
 #define GRID_X 80
@@ -70,7 +70,7 @@ public:
 	using Point = snake_util::Point;
 	using Direction = snake_util::Point;
 
-	explicit Snake(ConsoleVGA&);
+	explicit Snake(TextmodeVGA&);
 
 	Snake(const Snake&) = delete;
 	Snake(Snake&&) = delete;
@@ -89,7 +89,7 @@ private:
 	std::vector<snake_util::Part> _food;
 	std::vector<snake_util::Part> _obstacles;
 	Direction _head_dir;
-	ConsoleVGA& _vga;
+	TextmodeVGA& _vga;
 	bool _active;
 
 	void game_loop();
@@ -123,7 +123,7 @@ struct Part
 
 // --- Snake ---
 
-Snake::Snake(ConsoleVGA& vga) :
+Snake::Snake(TextmodeVGA& vga) :
 	_head_dir({ 1, 0 }), _vga(vga), _active(true)
 {
 	reset();
@@ -252,10 +252,10 @@ void Snake::spawn_items()
 		return Point{{ distribution_x(generator), distribution_y(generator) }};
 	};
 
-	_food.emplace_back('#', ConsoleVGA::vga_color::COLOR_LIGHT_GREEN, rand_point());
+	_food.emplace_back('#', TextmodeVGA::vga_color::COLOR_LIGHT_GREEN, rand_point());
 
-	_obstacles.emplace_back('X', ConsoleVGA::vga_color::COLOR_RED, rand_point());
-	_obstacles.emplace_back('X', ConsoleVGA::vga_color::COLOR_RED, rand_point());
+	_obstacles.emplace_back('X', TextmodeVGA::vga_color::COLOR_RED, rand_point());
+	_obstacles.emplace_back('X', TextmodeVGA::vga_color::COLOR_RED, rand_point());
 }
 
 void Snake::render()

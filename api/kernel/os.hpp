@@ -18,14 +18,14 @@
 #ifndef KERNEL_OS_HPP
 #define KERNEL_OS_HPP
 
+#include <common>
+#include <arch>
+#include <kernel/memmap.hpp>
+#include <kernel/rtc.hpp>
+#include <hertz>
 #include <string>
 #include <sstream>
-#include <common>
-#include <kernel/memmap.hpp>
-#include <hw/cpu.hpp>
-#include <hertz>
 #include <vector>
-#include <kernel/rtc.hpp>
 
 /**
  *  The entrypoint for OS services
@@ -54,7 +54,7 @@ public:
 
   /** Clock cycles since boot. */
   static uint64_t cycles_since_boot() {
-    return hw::CPU::rdtsc();
+    return __arch_cpu_cycles();
   }
   /** micro seconds since boot */
   static int64_t micros_since_boot() {
@@ -63,11 +63,11 @@ public:
 
   /** Timestamp for when OS was booted */
   static RTC::timestamp_t boot_timestamp()
-  { return booted_at_; }
+  { return RTC::boot_timestamp(); }
 
   /** Uptime in whole seconds. */
   static RTC::timestamp_t uptime() {
-    return RTC::now() - booted_at_;
+    return RTC::time_since_boot();
   }
 
   static MHz cpu_freq() noexcept
@@ -98,6 +98,14 @@ public:
    */
   static bool is_running() {
     return power_;
+  }
+
+  /**
+   *  Returns true when the OS has passed the boot sequence, and
+   *  is at least processing plugins and about to call Service::start
+   */
+  static bool is_booted() {
+    return boot_sequence_passed_;
   }
 
   /**
@@ -136,24 +144,23 @@ public:
     return x << PAGE_SHIFT;
   }
 
+  /** Total used dynamic memory, in bytes */
+  static uintptr_t heap_usage() noexcept;
+
+  /** Attempt to trim the heap end, reducing the size */
+  static void heap_trim() noexcept;
+
   /** First address of the heap **/
   static uintptr_t heap_begin() noexcept;
 
   /** Last used address of the heap **/
   static uintptr_t heap_end() noexcept;
 
-  /** The maximum last address of the dynamic memory area (heap) */
-  static uintptr_t heap_max() noexcept{
-    return heap_max_;
-  };
-
-  /** Currently used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept {
-    return heap_end() - heap_begin();
-  };
-
   /** Resize the heap if possible. Return (potentially) new size. **/
   static uintptr_t resize_heap(size_t size);
+
+  /** The maximum last address of the dynamic memory area (heap) */
+  static uintptr_t heap_max() noexcept;
 
   /** The end of usable memory **/
   static inline uintptr_t memory_end(){
@@ -211,12 +218,11 @@ private:
 
   static constexpr int PAGE_SHIFT = 12;
 
-  /** Indicate if the OS is running. */
   static bool power_;
+  static bool boot_sequence_passed_;
 
   static MHz cpu_mhz_;
 
-  static RTC::timestamp_t booted_at_;
   static std::string version_field;
 
   struct Plugin_struct {
@@ -245,6 +251,7 @@ private:
   // Prohibit construction
   OS() = delete;
 
+  friend void __arch_init();
 }; //< OS
 
 #endif //< KERNEL_OS_HPP

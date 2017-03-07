@@ -20,24 +20,23 @@
 #define NET_IP4_HEADER_HPP
 
 namespace net {
-namespace ip4 {
+  namespace ip4 {
 
-/** IP4 header representation */
-struct Header {
-  uint8_t  version_ihl;
-  uint8_t  tos;
-  uint16_t tot_len;
-  uint16_t id;
-  uint16_t frag_off_flags;
-  uint8_t  ttl;
-  uint8_t  protocol;
-  uint16_t check;
-  Addr     saddr;
-  Addr     daddr;
-};
+    /** IP4 header representation */
+    struct Header {
+      uint8_t  version_ihl;
+      uint8_t  tos;
+      uint16_t tot_len;
+      uint16_t id;
+      uint16_t frag_off_flags;
+      uint8_t  ttl;
+      uint8_t  protocol;
+      uint16_t check;
+      Addr     saddr;
+      Addr     daddr;
+    };
 
-}
+  }
 }
 
 #endif
-

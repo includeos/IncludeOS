@@ -4,12 +4,13 @@
 #include <fd_map.hpp>
 #include <tcp_fd.hpp>
 #include <list>
+#include <kernel/os.hpp> // OS::block()
 
 static struct {
   typedef std::pair<int, TCP_FD&> listpair;
   std::list<listpair>                 list;
   std::list<net::tcp::Connection_ptr> conn;
-  
+
   void clean() {
     // reset callbacks on all listeners
     for (auto& l : list) {
@@ -18,11 +19,11 @@ static struct {
     list.clear();
     // reset callbacks on all connections
     for (auto c : conn) {
-      c->setup_default_callbacks();
+      c->reset_callbacks();
     }
     conn.clear();
   }
-  
+
 } temp;
 
 static int process_fds(
@@ -41,7 +42,7 @@ static int process_fds(
       // process descriptor
       int ret = callback(fd);
       if (ret) return ret;
-      
+
       mask >>= lbits + 1;
       if (++fd >= max_fd) return 0;
     }
@@ -63,12 +64,12 @@ int  select(int max_fd,
   int timer    = -1;
   bool timeout = false;
   int ret = 0;
-  
+
   if (reads)
   {
     ret = process_fds(max_fd, reads->fds_bits,
     [] (int fd) -> int {
-        
+
         try {
           auto& desc = FD_map::_get(fd);
           if (desc.is_socket()) {
@@ -82,12 +83,12 @@ int  select(int max_fd,
             }
           }
           return 0;
-          
+
         } catch (const FD_not_found&) {
           errno = EBADF;
           return -1;
         }
-      
+
     });
     if (ret) return ret;
     // clear read fds
@@ -132,13 +133,13 @@ int  select(int max_fd,
         break;
       }
     }
-    
+
     OS::block();
-  } while (mon_read == -1 
-        && mon_send == -1 
-        && mon_err  == -1 
+  } while (mon_read == -1
+        && mon_send == -1
+        && mon_err  == -1
         && timeout  == false);
-  
+
   if (mon_read >= 0) FD_SET(mon_read, reads);
   if (mon_send >= 0) FD_SET(mon_send, writes);
   if (mon_err  >= 0) FD_SET(mon_err,  excepts);

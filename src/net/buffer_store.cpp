@@ -24,15 +24,15 @@
 #else
 extern void *memalign(size_t, size_t);
 #endif
-
-#include <cstdio>
-
 #include <net/buffer_store.hpp>
 #include <kernel/syscalls.hpp>
 #include <common>
+#include <smp>
 #define PAGE_SIZE     0x1000
 
 namespace net {
+
+  bool BufferStore::smp_enabled_ = false;
 
   BufferStore::BufferStore(size_t num, size_t bufsize) :
     poolsize_  {num * bufsize},
@@ -50,38 +50,79 @@ namespace net {
         available_.push_back(b);
     }
     assert(available() == num);
-    // verify that the "first" buffer is the start of the pool
-    assert(available_.back() == pool_);
+
+#ifndef INCLUDEOS_SINGLE_THREADED
+    // set CPU id this bufferstore was created for
+    this->cpu = SMP::cpu_id();
+    if (this->cpu != 0) smp_enabled_ = true;
+#else
+    this->cpu = 0;
+#endif
   }
 
   BufferStore::~BufferStore() {
     free(this->pool_);
   }
 
-  BufferStore::buffer_t BufferStore::get_buffer() {
+  BufferStore::buffer_t BufferStore::get_buffer()
+  {
+    bool is_locked = false;
+#ifndef INCLUDEOS_SINGLE_THREADED
+    if (smp_enabled_) {
+      lock(plock);
+      is_locked = true;
+    }
+#endif
+
     if (UNLIKELY(available_.empty())) {
+#ifndef INCLUDEOS_SINGLE_THREADED
+      if (is_locked) unlock(plock);
+#endif
       panic("<BufferStore> Storage pool full! Don't know how to increase pool size yet.\n");
     }
 
     auto addr = available_.back();
     available_.pop_back();
+
+#ifndef INCLUDEOS_SINGLE_THREADED
+    if (is_locked) unlock(plock);
+#endif
     return addr;
   }
 
   void BufferStore::release(void* addr)
   {
     buffer_t buff = (buffer_t) addr;
-    debug("Release %p...", buff);
+    debug("Release %p -> ", buff);
 
+#ifndef INCLUDEOS_SINGLE_THREADED
+    bool is_locked = false;
+    if (smp_enabled_) {
+      lock(plock);
+      is_locked = true;
+    }
+#endif
     // expensive: is_buffer(buff)
     if (LIKELY(is_from_pool(buff))) {
       available_.push_back(buff);
+#ifndef INCLUDEOS_SINGLE_THREADED
+      if (is_locked) unlock(plock);
+#endif
       debug("released\n");
       return;
     }
     // buffer not owned by bufferstore, so just delete it?
     debug("deleted\n");
     delete[] buff;
+#ifndef INCLUDEOS_SINGLE_THREADED
+    if (is_locked) unlock(plock);
+#endif
+  }
+
+  void BufferStore::move_to_this_cpu() noexcept
+  {
+    this->cpu = SMP::cpu_id();
+    if (this->cpu != 0) smp_enabled_ = true;
   }
 
 } //< namespace net

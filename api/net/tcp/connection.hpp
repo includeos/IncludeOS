@@ -53,6 +53,10 @@ public:
   /** Disconnect event */
   struct Disconnect;
 
+  using Byte = uint8_t;
+
+  using WriteBuffer = Write_queue::WriteBuffer;
+
 public:
 
   /*
@@ -81,6 +85,12 @@ public:
   using CloseCallback           = delegate<void()>;
   inline Connection&            on_close(CloseCallback);
 
+  /**
+   * Emitted every time the connection finishes writing a chunk (job)
+   */
+  using WriteCallback           = delegate<void(size_t)>;
+  inline Connection&            on_write(WriteCallback);
+
   /*
     On error - When any of the users request fails.
   */
@@ -98,18 +108,43 @@ public:
    * Emitted on RTO - When the retransmission timer times out, before retransmitting.
    * Gives the current attempt and the current timeout in seconds.
    */
-  using RtxTimeoutCallback      = delegate<void(size_t no_attempts, double rto)>;
+  using RtxTimeoutCallback      = delegate<void(size_t no_attempts, std::chrono::milliseconds rto)>;
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
-  inline void write(const void* buf, size_t n);
-  inline void write(const void* buf, size_t n, WriteCallback callback);
 
+  /**
+   * @brief      Async write of a shared buffer with a length.
+   *             Avoids any copy of the data into the internal buffer.
+   *             Calls write(Chunk c).
+   *
+   * @param[in]  buffer  shared buffer
+   * @param[in]  n       length
+   */
   inline void write(buffer_t buffer, size_t n);
-  inline void write(buffer_t buffer, size_t n, WriteCallback callback);
 
+  /**
+   * @brief      Async write of a chunk.
+   *
+   * @param[in]  c     A chunk
+   */
+  void write(Chunk c);
+
+  /**
+   * @brief      Asyn write of a data with a length.
+   *             Copies data into an internal (shared) buffer.
+   *
+   * @param[in]  buf   data
+   * @param[in]  n     length
+   */
+  inline void write(const void* buf, size_t n);
+
+  /**
+   * @brief      Async write of a string.
+   *             Calls write(const void* buf, size_t n)
+   *
+   * @param[in]  str   The string
+   */
   inline void write(const std::string& str);
-  inline void write(const std::string& str, WriteCallback callback);
-
 
   /*
     Close connection.
@@ -159,8 +194,10 @@ public:
 
   /*
     Represent the Connection as a string (STATUS).
+    Local:Port Remote:Port (STATE)
   */
-  std::string to_string() const;
+  std::string to_string() const
+  { return {local().to_string() + " " + remote_.to_string() + " (" + state_->to_string() + ")"}; }
 
   /*
     Returns the current state of the connection.
@@ -201,7 +238,8 @@ public:
   /*
     Is the usable window large enough, and is there data to send.
   */
-  bool can_send();
+  constexpr bool can_send() const
+  { return (usable_window() >= SMSS()) and writeq.has_remaining_requests(); }
 
   /*
     Return the id (TUPLE) of the connection.
@@ -367,22 +405,27 @@ public:
     struct {
       seq_t UNA;    // send unacknowledged
       seq_t NXT;    // send next
-      uint16_t WND; // send window
+      uint32_t WND; // send window
       uint16_t UP;  // send urgent pointer
       seq_t WL1;    // segment sequence number used for last window update
       seq_t WL2;    // segment acknowledgment number used for last window update
 
       uint16_t MSS; // Maximum segment size for outgoing segments.
+
+      uint8_t  wind_shift; // WS factor
+      bool     TS_OK;  // Use timestamp option
     } SND; // <<
     seq_t ISS;      // initial send sequence number
 
     /* Receive Sequence Variables */
     struct {
       seq_t NXT;    // receive next
-      uint16_t WND; // receive window
+      uint32_t WND; // receive window
       uint16_t UP;  // receive urgent pointer
 
       uint16_t rwnd; // receivers advertised window [RFC 5681]
+
+      uint8_t  wind_shift; // WS factor
     } RCV; // <<
     seq_t IRS;      // initial receive sequence number
 
@@ -390,15 +433,10 @@ public:
     uint32_t cwnd;     // Congestion window [RFC 5681]
     seq_t recover;     // New Reno [RFC 6582]
 
-    TCB() {
-      SND = { 0, 0, default_window_size, 0, 0, 0, default_mss };
-      ISS = (seq_t)4815162342;
-      RCV = { 0, default_window_size, 0, 0 };
-      IRS = 0;
-      ssthresh = default_window_size;
-      cwnd = 0;
-      recover = 0;
-    };
+    uint32_t TS_recent; // Recent timestamp received from user [RFC 7323]
+
+    TCB(const uint32_t recvwin);
+    TCB();
 
     void init() {
       ISS = Connection::generate_iss();
@@ -412,16 +450,14 @@ public:
   }__attribute__((packed)); // < struct Connection::TCB
 
   /*
-    Creates a connection without a remote.
-  */
-  Connection(TCP& host, port_t local_port);
-
-  /*
     Creates a connection with a remote.
   */
-  Connection(TCP& host, port_t local_port, Socket remote);
+  Connection(TCP& host, port_t local_port, Socket remote, ConnectCallback callback = nullptr);
 
-  Connection(const Connection&) = default;
+  Connection(const Connection&)             = delete;
+  Connection(Connection&&)                  = delete;
+  Connection& operator=(const Connection&)  = delete;
+  Connection& operator=(Connection&&)       = delete;
 
   /*
     Open connection.
@@ -436,10 +472,10 @@ public:
 
   // ???
   void deserialize_from(void*);
-  int  serialize_to(void*);
+  int  serialize_to(void*) const;
 
-  /** Unset all callbacks TODO: rename me **/
-  void setup_default_callbacks();
+  /** Reset all callbacks back to default **/
+  void reset_callbacks();
 
   /*
     Destroy the Connection.
@@ -467,7 +503,7 @@ private:
   ReadRequest read_request;
 
   /** Queue for write requests to process */
-  WriteQueue writeq;
+  Write_queue writeq;
 
   /** Round Trip Time Measurer */
   RTTM rttm;
@@ -483,8 +519,8 @@ private:
   /** Retransmission timer */
   Timer rtx_timer;
 
-  /** Time Wait timeout timer */
-  Timer timewait_timer;
+  /** Time Wait / DACK timeout timer */
+  Timer timewait_dack_timer;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
   int8_t rtx_attempt_ = 0;
@@ -508,6 +544,9 @@ private:
   seq_t highest_ack_ = 0;
   seq_t prev_highest_ack_ = 0;
 
+  /** Delayed ACK - number of seg received without ACKing */
+  uint8_t  dack_{0};
+  seq_t    last_ack_sent_;
 
   /// --- CALLBACKS --- ///
 
@@ -522,16 +561,7 @@ private:
   CleanupCallback         _on_cleanup_;
   inline Connection&      _on_cleanup(CleanupCallback cb);
 
-  void default_on_connect(Connection_ptr);
   void default_on_disconnect(Connection_ptr, Disconnect);
-  void default_on_error(TCPException);
-  void default_on_packet_dropped(const Packet&, const std::string&);
-  void default_on_rtx_timeout(size_t, double);
-  void default_on_close();
-  void default_on_cleanup(Connection_ptr);
-  void default_on_write(size_t);
-
-
 
   /// --- READING --- ///
 
@@ -584,45 +614,6 @@ private:
   /// --- WRITING --- ///
 
   /*
-    Write asynchronous to a remote.
-    Copies the data from the buffer into an internal buffer. Callback is called when a a write is either done or aborted.
-    Immediately tries to write the data to the connection. If not possible, queues the write for processing when possible (FIFO).
-  */
-  void write(const void* buf, size_t n, WriteCallback callback, bool PUSH) {
-    auto buffer = new_shared_buffer(n);
-    memcpy(buffer.get(), buf, n);
-    write(std::move(buffer), n, callback, PUSH);
-  }
-
-  /*
-    Works as write(const void*, size_t, WriteCallback, bool),
-    but with the exception of avoiding copying the data to an internal buffer.
-  */
-  void write(buffer_t buffer, size_t n, WriteCallback callback, bool PUSH)
-  { write({std::move(buffer), n, PUSH}, callback); }
-
-
-
-  /*
-    Write a WriteBuffer asynchronous to a remote and calls the WriteCallback when done (or aborted).
-  */
-  void write(WriteBuffer&& request, WriteCallback callback);
-
-  /*
-    Active try to send a buffer by asking the TCP.
-  */
-  size_t send(WriteBuffer& buffer);
-
-  /*
-    Segmentize buffer into packets until either everything has been written,
-    or all packets are used up.
-  */
-  size_t send(const char* buffer, size_t remaining, size_t& packets);
-
-  size_t send(WriteBuffer& buffer, size_t& packets, size_t n)
-  { return send((char*)buffer.pos(), n, packets); }
-
-  /*
     Process the write queue with the given amount of packets.
     Called by TCP.
   */
@@ -632,7 +623,7 @@ private:
     Returns if the connection has a doable write job.
   */
   bool has_doable_job() const
-  { return writeq.remaining_requests() and usable_window() >= SMSS(); }
+  { return writeq.has_remaining_requests() and usable_window() >= SMSS(); }
 
   /*
     Try to process the current write queue.
@@ -651,10 +642,15 @@ private:
   void writeq_reset();
 
   /*
-    Mark wether the Connection is in TCP write queue or not.
+    Mark whether the Connection is in TCP write queue or not.
   */
   void set_queued(bool queued)
   { queued_ = queued; }
+
+  /**
+   * @brief      Sends an acknowledgement.
+   */
+  void send_ack();
 
   /*
     Invoke/signal the diffrent TCP events.
@@ -672,7 +668,7 @@ private:
   { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
 
   void signal_rtx_timeout()
-  { if(on_rtx_timeout_) on_rtx_timeout_(rtx_attempt_+1, rttm.RTO); }
+  { if(on_rtx_timeout_) on_rtx_timeout_(rtx_attempt_+1, rttm.rto_ms()); }
 
   /*
     Drop a packet. Used for debug/callback.
@@ -705,23 +701,25 @@ private:
     SND.UNA + WINDOW - SND.NXT
   */
   uint32_t usable_window() const {
-    auto x = (int64_t)send_window() - (int64_t)flight_size();
+    const auto x = (int64_t)send_window() - (int64_t)flight_size();
     return (uint32_t) std::max(0ll, x);
   }
 
-  /*
-
-    Note:
-    Made a function due to future use when Window Scaling Option is added.
-  */
   uint32_t send_window() const {
-    return std::min((uint32_t)cb.SND.WND, cb.cwnd);
+    return std::min(cb.SND.WND, cb.cwnd);
   }
 
   int32_t congestion_window() const {
-    auto win = (uint64_t)cb.SND.UNA + std::min((uint64_t)cb.cwnd, (uint64_t)send_window());
+    const auto win = (uint64_t)cb.SND.UNA + (uint64_t)send_window();
     return (int32_t)win;
   }
+
+  uint32_t flight_size() const
+  { return (uint64_t)cb.SND.NXT - (uint64_t)cb.SND.UNA; }
+
+  bool uses_window_scaling() const;
+
+  bool uses_timestamps() const;
 
   /// --- INCOMING / TRANSMISSION --- ///
   /*
@@ -743,22 +741,19 @@ private:
   /*
     Is it possible to send ONE segment.
   */
-  bool can_send_one();
+  constexpr bool can_send_one() const
+  { return send_window() >= SMSS() and writeq.has_remaining_requests(); }
 
   /*
     Send as much as possible from write queue.
   */
-  void send_much();
+  void send_much()
+  { writeq_push(); }
 
   /*
     Fill a packet with data and give it a SEQ number.
   */
-  size_t fill_packet(Packet&, const char*, size_t, seq_t);
-
-  /*
-    Transmit the send buffer.
-  */
-  void transmit();
+  size_t fill_packet(Packet&, const uint8_t*, size_t);
 
   /*
     Transmit the packet and hooks up retransmission.
@@ -782,28 +777,33 @@ private:
 
   /// --- Congestion Control [RFC 5681] --- ///
 
-  void setup_congestion_control();
+  void setup_congestion_control()
+  { reno_init(); }
 
   uint16_t SMSS() const;
 
   uint16_t RMSS() const
   { return cb.SND.MSS; }
 
-  uint32_t flight_size() const
-  { return (uint64_t)cb.SND.NXT - (uint64_t)cb.SND.UNA; }
-
   // Reno specifics //
 
-  void reno_init();
+  void reno_init()
+  {
+    reno_init_cwnd(3);
+    reno_init_sshtresh();
+  }
 
-  void reno_init_cwnd(size_t segments);
+  void reno_init_cwnd(const size_t segments)
+  { cb.cwnd = segments*SMSS(); }
 
   void reno_init_sshtresh()
   { cb.ssthresh = cb.SND.WND; }
 
-  void reno_increase_cwnd(uint16_t n);
+  void reno_increase_cwnd(const uint16_t n)
+  { cb.cwnd += std::min(n, SMSS()); }
 
-  void reno_deflate_cwnd(uint16_t n);
+  void reno_deflate_cwnd(const uint16_t n)
+  { cb.cwnd -= (n >= SMSS()) ? n-SMSS() : n; }
 
   void reduce_ssthresh();
 
@@ -829,6 +829,15 @@ private:
     Retransmit the first packet in retransmission queue.
   */
   void retransmit();
+
+  /**
+   * @brief      Take an RTT measurment from an incoming packet.
+   *             Uses timestamp if timestamp options are in use,
+   *             else RTTM start/stop.
+   *
+   * @param[in]  <unnamed>  An incomming TCP packet
+   */
+  void take_rtt_measure(const Packet&);
 
   /*
     Start retransmission timer.
@@ -872,14 +881,32 @@ private:
   /** Start the timewait timeout for 2*MSL */
   void timewait_start();
 
-  /** Stop the timewait timer */
-  void timewait_stop();
-
   /** Restart the timewait timer if active */
   void timewait_restart();
 
   /** When timewait timer times out */
-  void timewait_timeout();
+  void timewait_timeout()
+  { signal_close(); }
+
+  /** Whether to use Delayed ACK or not */
+  bool use_dack() const;
+
+  /**
+   * @brief      Called when the DACK timeout timesout.
+   */
+  void dack_timeout()
+  { send_ack(); }
+
+  /**
+   * @brief      Starts the DACK timer.
+   */
+  void start_dack();
+
+  /**
+   * @brief      Stops the DACK timer.
+   */
+  void stop_dack()
+  { timewait_dack_timer.stop(); }
 
   /*
     Tell the host (TCP) to delete this connection.
@@ -899,13 +926,22 @@ private:
   /*
     Parse and apply options.
   */
-  void parse_options(Packet&);
+  void parse_options(const Packet&);
 
   /*
     Add an option.
   */
   void add_option(Option::Kind, Packet&);
 
+  /**
+   * @brief      Parses the timestamp option from a packet (if any).
+   *             Assumes the packet contains no other options.
+   *
+   * @param[in]  <unnamed>  A TCP packet
+   *
+   * @return     A pointer the the timestamp option (nullptr if none)
+   */
+  Option::opt_ts* parse_ts_option(const Packet&) const;
 
 }; // < class Connection
 

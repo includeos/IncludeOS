@@ -20,12 +20,6 @@
 
 #include <sys/unistd.h>
 #include <sys/types.h>
-#if defined(__MACH__)
-typedef int clockid_t;
-#if !defined(CLOCK_REALTIME)
-#define CLOCK_REALTIME 0
-#endif
-#endif
 
 extern "C" {
   int  kill(pid_t pid, int sig);

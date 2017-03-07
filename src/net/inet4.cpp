@@ -1,8 +1,7 @@
 //-*- C++ -*-
-#define DEBUG
-#include <os>
 #include <net/inet4.hpp>
 #include <net/dhcp/dh4client.hpp>
+#include <smp>
 
 using namespace net;
 
@@ -13,17 +12,17 @@ Inet4::Inet4(hw::Nic& nic)
     dns_server(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ip4_(*this),
     icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
-    bufstore_(nic.bufstore()), MTU_(nic.MTU())
+    MTU_(nic.MTU())
 {
   INFO("Inet4","Bringing up a IPv4 stack");
   Ensures(sizeof(IP4::addr) == 4);
 
   /** Upstream delegates */
-  auto arp_bottom(upstream{arp_, &Arp::bottom});
-  auto ip4_bottom(upstream{ip4_, &IP4::bottom});
-  auto icmp4_bottom(upstream{icmp_, &ICMPv4::bottom});
-  auto udp4_bottom(upstream{udp_, &UDP::bottom});
-  auto tcp_bottom(upstream{tcp_, &TCP::bottom});
+  auto arp_bottom(upstream{arp_, &Arp::receive});
+  auto ip4_bottom(upstream{ip4_, &IP4::receive});
+  auto icmp4_bottom(upstream{icmp_, &ICMPv4::receive});
+  auto udp4_bottom(upstream{udp_, &UDP::receive});
+  auto tcp_bottom(upstream{tcp_, &TCP::receive});
 
   /** Upstream wiring  */
   // Packets available
@@ -46,7 +45,7 @@ Inet4::Inet4(hw::Nic& nic)
 
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());
-  auto arp_top(downstream{arp_, &Arp::transmit});
+  auto arp_top(IP4::downstream_arp{arp_, &Arp::transmit});
   auto ip4_top(downstream{ip4_, &IP4::transmit});
 
   /** Downstream wiring. */
@@ -66,6 +65,14 @@ Inet4::Inet4(hw::Nic& nic)
   // Arp -> Link
   assert(link_top);
   arp_.set_linklayer_out(link_top);
+
+#ifndef INCLUDEOS_SINGLE_THREADED
+  // move this nework stack automatically
+  // to the current CPU if its not 0
+  if (SMP::cpu_id() != 0) {
+    this->move_to_this_cpu();
+  }
+#endif
 }
 
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
@@ -127,4 +134,15 @@ void Inet4::process_sendq(size_t packets) {
     for (size_t i = 0; i < tqa.size(); i++)
     if (give[i]) tqa[i](give[i]);
   */
+}
+
+void Inet4::force_start_send_queues()
+{
+  size_t packets = transmit_queue_available();
+  if (packets) process_sendq(packets);
+}
+
+void Inet4::move_to_this_cpu()
+{
+  nic_.move_to_this_cpu();
 }

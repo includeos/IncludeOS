@@ -101,11 +101,10 @@ namespace hw
     return capbar_off + baroff;
   }
   
-  msix_t::msix_t(PCI_Device& device)
+  msix_t::msix_t(PCI_Device& device, uint32_t cap)
     : dev(device)
   {
-    // get capability structure
-    auto cap = dev.msix_cap();
+    // validate capability structure
     assert(cap >= 0x40);
     // read message control bits
     uint16_t func = dev.read16(cap + 2);
@@ -154,22 +153,25 @@ namespace hw
       if ((mm_read(reg) & 0xff) == 0) break;
     }
     assert (vec != this->vectors());
-    
     // use free table entry
-    INFO2("MSI-X vector %u pointing to cpu %u intr %u",
-        vec, cpu, intr);
-    
-    // mask entry
-    mask_entry(vec);
-    
-    mm_write(get_entry(vec, ENT_MSG_ADDR), msix_addr_single_cpu(cpu));
-    mm_write(get_entry(vec, ENT_MSG_UPPER), 0x0);
-    mm_write(get_entry(vec, ENT_MSG_DATA), msix_data_single_vector(intr));
-    
-    // unmask entry
-    unmask_entry(vec);
+    redirect_vector(vec, cpu, intr);
     // return it
     return vec;
   }
   
+  void msix_t::redirect_vector(uint16_t idx, uint8_t cpu, uint8_t intr)
+  {
+    assert(idx < vectors());
+    INFO2("MSI-X vector %u pointing to cpu %u intr %u", idx, cpu, intr);
+    
+    // mask entry
+    mask_entry(idx);
+    
+    mm_write(get_entry(idx, ENT_MSG_ADDR), msix_addr_single_cpu(cpu));
+    mm_write(get_entry(idx, ENT_MSG_UPPER), 0x0);
+    mm_write(get_entry(idx, ENT_MSG_DATA), msix_data_single_vector(intr));
+    
+    // unmask entry
+    unmask_entry(idx);
+  }
 }

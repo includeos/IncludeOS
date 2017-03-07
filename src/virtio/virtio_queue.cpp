@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG // Allow debug
+//#define DEBUG // Allow debug
 //#define DEBUG2
 
 #include <os>
@@ -131,10 +131,8 @@ int Virtio::Queue::enqueue(gsl::span<Token> buffers){
 
 void Virtio::Queue::release(uint32_t head)
 {
-
   // Mark queue element "head" as free (the whole token chain)
   uint32_t i = head;
-
   _desc_in_flight --;
 
   while (_queue.desc[i].flags & VIRTQ_DESC_F_NEXT)
@@ -148,7 +146,6 @@ void Virtio::Queue::release(uint32_t head)
   _free_head = head;
 
   debug("Descriptors in flight: %i \n", _desc_in_flight);
-
 }
 
 Virtio::Token Virtio::Queue::dequeue()
@@ -175,6 +172,7 @@ void Virtio::Queue::enable_interrupts() {
 
 void Virtio::Queue::kick()
 {
+#ifdef ARCH_X86
   update_avail_idx();
 
   // Std. §3.2.1 pt. 4
@@ -187,4 +185,8 @@ void Virtio::Queue::kick()
   }else{
     debug("<VirtioQueue>Virtio device says we can't kick!");
   }
+#else
+#warning "kick() not implemented for selected arch"
+#endif
 }
+

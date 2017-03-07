@@ -46,6 +46,9 @@ struct StackSampler
   // retrieve N top results/hotspots
   static std::vector<Sample> results(int N);
 
+  // print N top results to stdout
+  static void print(int N);
+
   // enable or disable sample-taking
   // eg. disable sampling during stack sample result printout
   static void set_mask(bool);

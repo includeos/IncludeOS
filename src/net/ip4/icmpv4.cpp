@@ -15,12 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../../api/net/ip4/icmpv4.hpp"
-
-#include <os>
-#include <net/inet_common.hpp>
-#include <net/ip4/packet_ip4.hpp>
-#include <net/util.hpp>
+// #define DEBUG
+#include <net/ip4/icmpv4.hpp>
 
 namespace net {
 
@@ -28,65 +24,55 @@ namespace net {
     inet_{inet}
 {}
 
-  void ICMPv4::bottom(Packet_ptr pckt) {
-    if (pckt->size() < sizeof(full_header)) // Drop if not a full header
+  void ICMPv4::receive(Packet_ptr pckt) {
+
+    if ((size_t)pckt->size() < sizeof(IP4::header) + icmp4::Packet::header_size()) // Drop if not a full header
       return;
 
-    full_header* full_hdr = reinterpret_cast<full_header*>(pckt->buffer());
-    icmp_header* hdr = &full_hdr->icmp_hdr;
+    auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+    auto req = icmp4::Packet(std::move(pckt_ip4));
 
-#ifdef DEBUG
-    auto ip_address = full_hdr->ip_hdr.saddr.str().c_str();
-#endif
+    switch(req.type()) {
 
-    switch(hdr->type) {
-    case (ICMP_ECHO):
-      debug("<ICMP> PING from %s\n", ip_address);
-      ping_reply(full_hdr, pckt->size());
+    case (icmp4::Type::ECHO):
+      debug("<ICMP> PING from %s\n", req.ip().src().str().c_str());
+      ping_reply(req);
       break;
-    case (ICMP_ECHO_REPLY):
-      debug("<ICMP> PING Reply from %s\n", ip_address);
+
+    case (icmp4::Type::ECHO_REPLY):
+      debug("<ICMP> PING Reply from %s\n", req.ip().src().str().c_str());
       break;
     }
   }
 
-  void ICMPv4::ping_reply(full_header* full_hdr, uint16_t size) {
-    auto packet_ptr = inet_.create_packet(size);
-    auto buf = packet_ptr->buffer();
+  void ICMPv4::ping_reply(icmp4::Packet& req) {
 
-    icmp_header* hdr = &reinterpret_cast<full_header*>(buf)->icmp_hdr;
-    hdr->type = ICMP_ECHO_REPLY;
-    hdr->code = 0;
-    hdr->identifier = full_hdr->icmp_hdr.identifier;
-    hdr->sequence   = full_hdr->icmp_hdr.sequence;
-
-    debug("<ICMP> Rest of header IN: 0x%lx OUT: 0x%lx\n",
-          full_hdr->icmp_hdr.rest, hdr->rest);
-
-    debug("<ICMP> Transmitting answer\n");
+    // Provision new IP4-packet
+    icmp4::Packet res(inet_.ip_packet_factory());
 
     // Populate response IP header
-    auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(packet_ptr));
-    ip4_pckt->init();
-    ip4_pckt->set_src(full_hdr->ip_hdr.daddr);
-    ip4_pckt->set_dst(full_hdr->ip_hdr.saddr);
-    ip4_pckt->set_protocol(IP4::IP4_ICMP);
-    ip4_pckt->set_ip_data_length(sizeof(icmp_header) + size - sizeof(full_header));
+    res.ip().set_src(inet_.ip_addr());
+    res.ip().set_dst(req.ip().src());
+
+    // Populate response ICMP header
+    res.set_type(icmp4::Type::ECHO_REPLY);
+    res.set_code(0);
+    res.set_id(req.id());
+    res.set_sequence(req.sequence());
+
+    debug("<ICMP> Transmitting answer to %s\n", res.ip().dst().str().c_str());
 
     // Copy payload from old to new packet
-    uint8_t* payload = reinterpret_cast<uint8_t*>(hdr) + sizeof(icmp_header);
-    uint8_t* source  = reinterpret_cast<uint8_t*>(&full_hdr->icmp_hdr) + sizeof(icmp_header);
-    memcpy(payload, source, size - sizeof(full_header));
+    res.set_payload(req.payload());
 
-    hdr->checksum = 0;
-    hdr->checksum = net::checksum(reinterpret_cast<uint16_t*>(hdr),
-                                  size - sizeof(full_header) + sizeof(icmp_header));
+    // Add checksum
+    res.set_checksum();
 
-    network_layer_out_(std::move(ip4_pckt));
+    debug("<ICMP> Response size: %i payload size: %i, checksum: 0x%x\n",
+          res.ip().size(), res.payload().size(), res.compute_checksum());
+
+    network_layer_out_(res.release());
   }
 
-  void icmp_default_out(Packet_ptr) {
-    debug("<ICMP IGNORE> No handler. DROP!\n");
-  }
 
 } //< namespace net

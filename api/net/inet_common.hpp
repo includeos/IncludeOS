@@ -22,6 +22,8 @@
 
 #include <delegate>
 #include <net/packet.hpp>
+#include <hw/mac_addr.hpp>
+#include <net/ethernet/ethertype.hpp>
 
 namespace net {
   // Packet must be forward declared to avoid circular dependency
@@ -32,16 +34,23 @@ namespace net {
   using LinkLayer = Ethernet;
 
   using Packet_ptr = std::unique_ptr<Packet>;
+  using Frame_ptr = std::unique_ptr<Packet>;
 
   // Downstream / upstream delegates
   using downstream = delegate<void(Packet_ptr)>;
+  using downstream_link = delegate<void(Packet_ptr, MAC::Addr, Ethertype)>;
   using upstream = downstream;
 
   // Delegate for signalling available buffers in device transmit queue
   using transmit_avail_delg = delegate<void(size_t)>;
 
+  // Compute internet checksum with partial @sum provided
+  uint16_t checksum(uint32_t sum, const void* data, size_t len) noexcept;
+
   // Compute the internet checksum for the buffer / buffer part provided
-  uint16_t checksum(void* data, size_t len) noexcept;
+  inline uint16_t checksum(const void* data, size_t len) noexcept {
+    return checksum(0, data, len);
+  }
 
   // View a packet differently based on context
   template <typename T, typename Packet>
@@ -67,6 +76,23 @@ namespace net {
     static constexpr uint16_t DYNAMIC_START {49152};
     static constexpr uint16_t DYNAMIC_END   {65534}; // 65535 never assigned
   }
+
+  /**
+   * Known transport layer protocols. Shared between IPv4 and IPv6.
+   * Full list:
+   * http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+   */
+  enum class Protocol : uint8_t {
+    HOPOPT = 0,
+      ICMPv4  =  1,
+      IP4v4   =  4,  // IPv4 encapsulation
+      TCP     =  6,
+      UDP     = 17,
+      IPv6    = 41,  // IPv6 encapsulation
+      ICMPv6  = 58
+      };
+
+
 
   inline uint16_t new_ephemeral_port() noexcept
   { return port_ranges::DYNAMIC_START + rand() % (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START); }

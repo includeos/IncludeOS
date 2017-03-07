@@ -113,11 +113,8 @@ public:
     };
 
   /** Virtio Queue class. */
-  class Queue
-  {
-
+  class Queue {
   private:
-
     /** @note Using typedefs in order to keep the standard notation. */
     using le64 =  uint64_t;
     using le32 = uint32_t;
@@ -218,10 +215,14 @@ public:
        Update the available index */
     inline void update_avail_idx ()
     {
+#ifdef ARCH_X86
       // Std. §3.2.1 pt. 4
       asm volatile("mfence" ::: "memory");
       _queue.avail->idx += _num_added;
       _num_added = 0;
+#else
+#warning "update_avail_idx() not implemented for selected arch"
+#endif
     }
 
     /** Kick hypervisor.
@@ -230,6 +231,7 @@ public:
     void kick();
 
     /** Constructor. @param size shuld be fetched from PCI device. */
+    Queue() {}
     Queue(uint16_t size, uint16_t q_index, uint16_t iobase);
 
     /** Get the queue descriptor. To be written to the Virtio device. */
@@ -263,7 +265,7 @@ public:
     {
       return _desc_in_flight;
     }
-    
+
     /** Get number of free tokens in Queue */
     uint16_t num_free() const noexcept
     {
@@ -305,17 +307,17 @@ public:
       @note it varies how these are structured, hence a void* buf */
   void get_config(void* buf, int len);
 
-  /** Get the (saved) device IRQ */
-  inline uint8_t irq(){ return _irq; };
+  /** Get the list of subscribed IRQs */
+  auto& get_irqs() { return irqs; };
+
+  /** Get the legacy PCI IRQ */
+  uint8_t get_legacy_irq();
 
   /** Reset the virtio device */
   void reset();
 
   /** Negotiate supported features with host */
   void negotiate_features(uint32_t features);
-
-  /** Register interrupt handler & enable IRQ */
-  void enable_irq_handler();
 
   /** Probe PCI device for features */
   uint32_t probe_features();
@@ -341,14 +343,17 @@ public:
   */
   static inline bool version_supported(uint16_t i) { return i <= 0; }
 
-  // returns true if MSI-X is enabled
-  bool is_msix() const noexcept {
-    return _pcidev.is_msix();
+  // returns true if MSI-X is supported
+  bool has_msix() const noexcept {
+    return _pcidev.has_msix();
   }
+  // returns non-zero if MSI-x is supported
   uint8_t get_msix_vectors() const noexcept {
-    return _msix_vectors;
+    return _pcidev.get_msix_vectors();
   }
-  
+
+  void move_to_this_cpu();
+
   /** Virtio device constructor.
 
       Should conform to Virtio std. §3.1.1, steps 1-6
@@ -367,15 +372,16 @@ private:
   uint32_t _iobase = 0;
   uint32_t _features = 0;
   uint16_t _virtio_device_id = 0;
-  uint16_t _msix_vectors;
-  uint8_t  _irq = 0;
 
   // Indicate if virtio device ID is legacy or standard
   bool _LEGACY_ID = 0;
   bool _STD_ID = 0;
 
-  void set_irq();
   void default_irq_handler();
+
+  uint8_t current_cpu;
+  std::vector<uint8_t> irqs;
 };
 
 #endif
+

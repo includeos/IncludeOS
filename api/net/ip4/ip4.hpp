@@ -15,51 +15,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CLASS_IP4_HPP
-#define CLASS_IP4_HPP
-
-#include <iostream>
+#ifndef NET_IP4_IP4_HPP
+#define NET_IP4_IP4_HPP
 
 #include "addr.hpp"
 #include "header.hpp"
 #include <common>
-#include <net/ethernet/ethernet.hpp>
 #include <net/inet.hpp>
 
 namespace net {
 
-  // Default delegate assignments
-  void ignore_ip4_up(Packet_ptr);
-  void ignore_ip4_down(Packet_ptr);
   class PacketIP4;
 
   /** IP4 layer */
   class IP4 {
   public:
-    using Stack     = Inet<IP4>;
-    using addr      = ip4::Addr;
-    using ip_header = ip4::Header;
+    using Stack = Inet<IP4>;
+    using addr = ip4::Addr;
+    using header = ip4::Header;
     using IP_packet = PacketIP4;
     using IP_packet_ptr = std::unique_ptr<IP_packet>;
+    using downstream_arp = delegate<void(Packet_ptr, IP4::addr)>;
 
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Stack&) noexcept;
 
-    /** Known transport layer protocols. */
-    enum proto { IP4_ICMP=1, IP4_UDP=17, IP4_TCP=6 };
-
     static const addr ADDR_ANY;
     static const addr ADDR_BCAST;
-
-    /**
-     *  The full header including IP
-     *
-     *  @Note: This might be removed if we decide to isolate layers more
-     */
-    struct full_header {
-      uint8_t     link_hdr[sizeof(typename LinkLayer::header)];
-      ip4::Header ip_hdr;
-    };
 
     /*
       Maximum Datagram Data Size
@@ -68,7 +50,7 @@ namespace net {
     { return stack_.MTU() - sizeof(ip4::Header); }
 
     /** Upstream: Input from link layer */
-    void bottom(Packet_ptr);
+    void receive(Packet_ptr);
 
     /** Upstream: Outputs to transport layer */
     inline void set_icmp_handler(upstream s)
@@ -81,7 +63,7 @@ namespace net {
     { tcp_handler_ = s; }
 
     /** Downstream: Delegate linklayer out */
-    void set_linklayer_out(downstream s)
+    void set_linklayer_out(downstream_arp s)
     { linklayer_out_ = s; };
 
     void set_packet_forwarding(Stack::Forward_delg fwd)
@@ -98,9 +80,8 @@ namespace net {
      *  Source IP *can* be set - if it's not, IP4 will set it
      */
     void transmit(Packet_ptr);
+    void ship(Packet_ptr);
 
-    /** Compute the IP4 header checksum */
-    uint16_t checksum(ip4::Header*);
 
     /**
      * \brief
@@ -111,8 +92,19 @@ namespace net {
       return stack_.ip_addr();
     }
 
-  private:
+    /**
+     * Stats getters
+     **/
+    uint64_t get_packets_rx()
+    { return packets_rx_; }
 
+    uint64_t get_packets_tx()
+    { return packets_tx_; }
+
+    uint64_t get_packets_dropped()
+    { return packets_dropped_; }
+
+  private:
     /** Stats */
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;
@@ -121,17 +113,19 @@ namespace net {
     Stack& stack_;
 
     /** Downstream: Linklayer output delegate */
-    downstream linklayer_out_ {ignore_ip4_down};
+    downstream_arp linklayer_out_ = nullptr;
 
     /** Upstream delegates */
-    upstream icmp_handler_ {ignore_ip4_up};
-    upstream udp_handler_  {ignore_ip4_up};
-    upstream tcp_handler_  {ignore_ip4_up};
+    upstream icmp_handler_ = nullptr;
+    upstream udp_handler_  = nullptr;
+    upstream tcp_handler_  = nullptr;
 
     /** Packet forwarding  */
     Stack::Forward_delg forward_packet_;
 
   }; //< class IP4
+
+
 } //< namespace net
 
 #endif

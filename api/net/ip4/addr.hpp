@@ -19,9 +19,10 @@
 #ifndef NET_IP4_ADDR_HPP
 #define NET_IP4_ADDR_HPP
 
+#include <common>
 #include <regex>
 #include <string>
-#include <stdexcept>
+#include <net/util.hpp>
 
 namespace net {
 namespace ip4 {
@@ -45,7 +46,7 @@ struct Addr {
    * Create an IPv4 address object to represent the address <0.0.0.0>
    */
   Addr() noexcept
-    : whole_{}
+    : whole{}
   {}
 
   /**
@@ -57,7 +58,7 @@ struct Addr {
    *  The 32-bit number representing the IPv4 address
    */
   Addr(const uint32_t ipv4_addr) noexcept
-    : whole_{ipv4_addr}
+    : whole{ipv4_addr}
   {}
 
   /**
@@ -78,7 +79,7 @@ struct Addr {
    *  The fourth part of the IPv4 address
    */
   Addr(const uint8_t p1, const uint8_t p2, const uint8_t p3, const uint8_t p4) noexcept
-    : whole_(p1 | (p2 << 8) | (p3 << 16) | (p4 << 24))
+    : whole(p1 | (p2 << 8) | (p3 << 16) | (p4 << 24))
   {}
 
   /**
@@ -121,7 +122,7 @@ struct Addr {
     const auto p3 = static_cast<uint8_t>(std::stoi(ipv4_parts[3]));
     const auto p4 = static_cast<uint8_t>(std::stoi(ipv4_parts[4]));
 
-    whole_ = p1 | (p2 << 8) | (p3 << 16) | (p4 << 24);
+    whole = p1 | (p2 << 8) | (p3 << 16) | (p4 << 24);
   }
 
   /**
@@ -133,7 +134,7 @@ struct Addr {
    * @return The object that invoked this method
    */
   Addr& operator=(const Addr other) noexcept {
-    whole_ = other.whole_;
+    whole = other.whole;
     return *this;
   }
 
@@ -146,7 +147,7 @@ struct Addr {
    * @return true if this object is equal to other, false otherwise
    */
   bool operator==(const Addr other) const noexcept
-  { return whole_ == other.whole_; }
+  { return whole == other.whole; }
 
   /**
    * Operator to check for equality
@@ -157,7 +158,7 @@ struct Addr {
    * @return true if this object is equal to raw_addr, false otherwise
    */
   bool operator==(const uint32_t raw_addr) const noexcept
-  { return whole_ == raw_addr; }
+  { return whole == raw_addr; }
 
   /**
    * Operator to check for inequality
@@ -190,7 +191,7 @@ struct Addr {
    * @return true if this object is less-than other, false otherwise
    */
   bool operator<(const Addr other) const noexcept
-  { return whole_ < other.whole_; }
+  { return whole < other.whole; }
 
   /**
    * Operator to check for less-than relationship
@@ -201,7 +202,7 @@ struct Addr {
    * @return true if this object is less-than raw_addr, false otherwise
    */
   bool operator<(const uint32_t raw_addr) const noexcept
-  { return whole_ < raw_addr; }
+  { return whole < raw_addr; }
 
   /**
    * Operator to check for greater-than relationship
@@ -236,7 +237,7 @@ struct Addr {
    * operation
    */
   Addr operator&(const Addr other) const noexcept
-  { return Addr{whole_ & other.whole_}; }
+  { return Addr{whole & other.whole}; }
 
   /**
    * Operator to perform a bitwise-or operation on the given
@@ -249,7 +250,7 @@ struct Addr {
    * operation
    */
   Addr operator|(const Addr other) const noexcept
-  { return Addr{whole_ | other.whole_}; }
+  { return Addr{whole | other.whole}; }
 
   /**
    * Operator to perform a bitwise-not operation on the IPv4
@@ -259,7 +260,26 @@ struct Addr {
    * operation
    */
   Addr operator~() const noexcept
-  { return Addr{~whole_}; }
+  { return Addr{~whole}; }
+
+  /**
+   * Get a part from the IPv4 address
+   *
+   * @param n
+   *  The part number
+   *
+   * @return A part from the IPv4 address
+   */
+  uint8_t part(const uint8_t n) const {
+    Expects((n >= 0) and (n < 4));
+
+    const union addr_t {
+      uint32_t whole;
+      uint8_t  parts[4];
+    } cubicles {this->whole};
+
+    return cubicles.parts[3 - n];
+  }
 
   /**
    * Get a string representation of the IPv4 address
@@ -270,10 +290,10 @@ struct Addr {
     char ipv4_addr[16];
 
     snprintf(ipv4_addr, sizeof(ipv4_addr), "%1i.%1i.%1i.%1i",
-            (whole_ >>  0) & 0xFF,
-            (whole_ >>  8) & 0xFF,
-            (whole_ >> 16) & 0xFF,
-            (whole_ >> 24) & 0xFF);
+            (whole >>  0) & 0xFF,
+            (whole >>  8) & 0xFF,
+            (whole >> 16) & 0xFF,
+            (whole >> 24) & 0xFF);
 
     return ipv4_addr;
   }
@@ -287,10 +307,20 @@ struct Addr {
   { return str(); }
 
   /* Data member */
-  uint32_t whole_;
+  uint32_t whole;
 } __attribute__((packed)); //< struct Addr
 
 } //< namespace ip4
 } //< namespace net
+
+// Allow an IPv4 address to be used as key in e.g. std::unordered_map
+namespace std {
+  template<>
+  struct hash<net::ip4::Addr> {
+    size_t operator()(const net::ip4::Addr& addr) const {
+      return std::hash<uint32_t>{}(addr.whole);
+    }
+  };
+} //< namespace std
 
 #endif //< NET_IP4_ADDR_HPP

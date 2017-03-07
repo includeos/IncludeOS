@@ -205,4 +205,4 @@ namespace fs {
 
 } //< namespace fs
 
-#endif //< FS_ERROR_HPP
+#endif //< FS_COMMON_HPP
