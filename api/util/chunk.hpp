@@ -121,7 +121,7 @@ public:
   Chunk operator+(const Chunk& c);
 
   /**
-   * @brief Check wether the chunk is valid/not empty
+   * @brief Check whether the chunk is valid/not empty
    */
   operator bool() const noexcept
   { return static_cast<bool>(buffer_) and (length_ > 0); }

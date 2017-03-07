@@ -131,14 +131,14 @@ public:
    *             Mostly used for replying with an error.
    *
    * @param[in]  <unnamed>  { parameter_description }
-   * @param[in]  close      Wether to close the connection or not. Default = true
+   * @param[in]  close      Whether to close the connection or not. Default = true
    */
   void send_code(const Code, bool close = true);
 
   /**
    * @brief      Send the underlying Response as is.
    *
-   * @param[in]  force_close  Wether to forcefully close the connection. Default = false
+   * @param[in]  force_close  whether to forcefully close the connection. Default = false
    */
   void send(bool force_close = false);
 
