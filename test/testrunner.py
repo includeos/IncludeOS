@@ -69,6 +69,7 @@ class Test:
         self.path_ = path
         self.output_ = []
         self.clean = clean
+        self.properties_ = {"time_sensitive": False, "intrusive": False}
         # Extract category and type from the path variable
         # Category is linked to the top level folder e.g. net, fs, hw
         # Type is linked to the type of test e.g. integration, unit, stress
@@ -97,7 +98,7 @@ class Test:
         # Check if the test is valid or not
         self.check_valid()
 
-        # Check if the test is time sensitive
+        # Check for test properties in vm.json
         json_file = os.path.join(self.path_, "vm.json")
         json_file = os.path.abspath(json_file)
         try:
@@ -106,11 +107,10 @@ class Test:
         except IOError:
             json_output = []
 
-        if 'time_sensitive' in json_output:
-            self.time_sensitive_ = True
-        else:
-            self.time_sensitive_ = False
-
+        for test_property in self.properties_.keys():
+            if test_property in json_output:
+                if json_output[test_property]:
+                    self.properties_[test_property] = True
 
 
     def __str__(self):
@@ -125,7 +125,7 @@ class Test:
                 'type_: {x[type_]} \n'
                 'skip: {x[skip_]} \n'
                 'skip_reason: {x[skip_reason_]} \n'
-                'time_sensitive: {x[time_sensitive_]} \n'
+                'properties: {x[properties_]} \n'
         ).format(x=self.__dict__)
 
     def start(self):
@@ -277,7 +277,7 @@ def integration_tests(tests):
     if len(tests) == 0:
         return 0
 
-    time_sensitive_tests = [ x for x in tests if x.time_sensitive_ ]
+    time_sensitive_tests = [ x for x in tests if x.properties_["time_sensitive"] ]
     tests = [ x for x in tests if x not in time_sensitive_tests ]
 
     # Print info before starting to run
@@ -410,7 +410,17 @@ def filter_tests(all_tests, arguments):
         tests_added = [ x for x in all_tests
                         if x.type_ in add_args
                         or x.category_ in add_args
-                        or x.name_ in add_args ]
+                        or x.name_ in add_args]
+
+        # Deal with specific properties
+        if set(add_args).issubset(all_tests[0].properties_.keys()):
+            for test in all_tests:
+                for argument in add_args:
+                    if test.properties_[argument] and test not in tests_added:
+                        tests_added.append(test)
+
+
+
 
     # 2) Remove tests defined by the skip argument
     print pretty.INFO("Tests marked skip on command line"), ", ".join(skip_args)
@@ -419,6 +429,13 @@ def filter_tests(all_tests, arguments):
                   or x.category_ in skip_args
                   or x.name_ in skip_args
                   or x.skip_]
+
+    # Deal with specific properties
+    if set(skip_args).issubset(all_tests[0].properties_.keys()):
+        for test in tests_added:
+            for argument in skip_args:
+                if test.properties_[argument] and test not in skipped_tests:
+                    skipped_tests.append(test)
 
     # Print all the skipped tests
     print_skipped(skipped_tests)
