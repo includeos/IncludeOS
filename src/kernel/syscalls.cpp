@@ -32,7 +32,6 @@
 #include <info>
 #include <smp>
 
-
 #if defined (UNITTESTS) && !defined(__MACH__)
 #define THROW throw()
 #else
@@ -54,40 +53,6 @@ void _exit(int status) {
   kprint("\n");
   SYSINFO("service exited with status %i", status);
   default_exit();
-}
-
-int execve(const char*,
-           char* const*,
-           char* const*)
-{
-  panic("SYSCALL EXECVE NOT SUPPORTED");
-  return -1;
-}
-
-int fork() {
-  panic("SYSCALL FORK NOT SUPPORTED");
-  return -1;
-}
-
-int fstat(int, struct stat* st) {
-  debug("SYSCALL FSTAT Dummy, returning OK 0");
-  st->st_mode = S_IFCHR;
-  return 0;
-}
-
-int getpid() {
-  debug("SYSCALL GETPID Dummy, returning 1");
-  return 1;
-}
-
-int link(const char*, const char*) {
-  panic("SYSCALL LINK unsupported");
-  return -1;
-}
-
-int unlink(const char*) {
-  panic("SYSCALL UNLINK unsupported");
-  return -1;
 }
 
 void* sbrk(ptrdiff_t incr) {

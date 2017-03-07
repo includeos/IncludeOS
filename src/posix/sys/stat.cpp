@@ -219,3 +219,9 @@ mode_t umask(mode_t cmask)
   (void) cmask;
   return DEFAULT_UMASK;
 }
+
+int fstat(int, struct stat* st) {
+  debug("SYSCALL FSTAT Dummy, returning OK 0");
+  st->st_mode = S_IFCHR;
+  return 0;
+}
