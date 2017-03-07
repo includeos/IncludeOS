@@ -19,9 +19,10 @@
 #ifndef NET_IP4_ADDR_HPP
 #define NET_IP4_ADDR_HPP
 
-#include <common>
 #include <regex>
 #include <string>
+
+#include <common>
 #include <net/util.hpp>
 
 namespace net {
@@ -52,10 +53,12 @@ struct Addr {
   /**
    * Constructor
    *
-   * Create an IPv4 address using a 32-bit number
+   * Create an IPv4 address using a 32-bit value
    *
    * @param ipv4_addr
-   *  The 32-bit number representing the IPv4 address
+   *  The 32-bit value representing the IPv4 address
+   *
+   * @note The 32-bit value must be in network byte order
    */
   Addr(const uint32_t ipv4_addr) noexcept
     : whole{ipv4_addr}
@@ -97,7 +100,6 @@ struct Addr {
    */
   template<typename = void>
   Addr(const std::string& ipv4_addr)
-    : Addr{}
   {
     if (not (ipv4_addr.size() >= 7 && ipv4_addr.size() <= 15)) { //< [7, 15] minimum and maximum address length
       throw Invalid_address{ipv4_addr + " is not a valid IP"};
@@ -153,9 +155,11 @@ struct Addr {
    * Operator to check for equality
    *
    * @param raw_addr
-   *  The 32-bit number to check for equality
+   *  The 32-bit value to check for equality
    *
    * @return true if this object is equal to raw_addr, false otherwise
+   *
+   * @note The 32-bit value must be in network byte order
    */
   bool operator==(const uint32_t raw_addr) const noexcept
   { return whole == raw_addr; }
@@ -175,9 +179,11 @@ struct Addr {
    * Operator to check for inequality
    *
    * @param raw_addr
-   *  The 32-bit number to check for inequality
+   *  The 32-bit value to check for inequality
    *
    * @return true if this object is equal to not raw_addr, false otherwise
+   *
+   * @note The 32-bit value must be in network byte order
    */
   bool operator!=(const uint32_t raw_addr) const noexcept
   { return not (*this == raw_addr); }
@@ -191,18 +197,20 @@ struct Addr {
    * @return true if this object is less-than other, false otherwise
    */
   bool operator<(const Addr other) const noexcept
-  { return whole < other.whole; }
+  { return ntohl(whole) < ntohl(other.whole); }
 
   /**
    * Operator to check for less-than relationship
    *
    * @param raw_addr
-   *  The 32-bit number to check for less-than relationship
+   *  The 32-bit value to check for less-than relationship
    *
    * @return true if this object is less-than raw_addr, false otherwise
+   *
+   * @note The 32-bit value must be in network byte order
    */
   bool operator<(const uint32_t raw_addr) const noexcept
-  { return whole < raw_addr; }
+  { return ntohl(whole) < ntohl(raw_addr); }
 
   /**
    * Operator to check for greater-than relationship
@@ -219,9 +227,11 @@ struct Addr {
    * Operator to check for greater-than relationship
    *
    * @param raw_addr
-   *  The 32-bit number to check for greater-than relationship
+   *  The 32-bit value to check for greater-than relationship
    *
    * @return true if this object is greater-than raw_addr, false otherwise
+   *
+   * @note The 32-bit value must be in network byte order
    */
   bool operator>(const uint32_t raw_addr) const noexcept
   { return not (*this < raw_addr); }
@@ -271,7 +281,7 @@ struct Addr {
    * @return A part from the IPv4 address
    */
   uint8_t part(const uint8_t n) const {
-    Expects((n >= 0) and (n < 4));
+    Expects(n < 4);
 
     const union addr_t {
       uint32_t whole;
