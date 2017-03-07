@@ -413,11 +413,11 @@ def filter_tests(all_tests, arguments):
                         or x.name_ in add_args]
 
         # Deal with specific properties
-        if set(add_args).issubset(all_tests[0].properties_.keys()):
-            for test in all_tests:
-                for argument in add_args:
-                    if test.properties_[argument] and test not in tests_added:
-                        tests_added.append(test)
+        add_properties = list(set(add_args).intersection(all_tests[0].properties_.keys()))
+        for test in all_tests:
+            for argument in add_properties:
+                if test.properties_[argument] and test not in tests_added:
+                    tests_added.append(test)
 
 
 
@@ -431,11 +431,11 @@ def filter_tests(all_tests, arguments):
                   or x.skip_]
 
     # Deal with specific properties
-    if set(skip_args).issubset(all_tests[0].properties_.keys()):
-        for test in tests_added:
-            for argument in skip_args:
-                if test.properties_[argument] and test not in skipped_tests:
-                    skipped_tests.append(test)
+    skip_properties = list(set(skip_args).intersection(all_tests[0].properties_.keys()))
+    for test in tests_added:
+        for argument in skip_properties:
+            if test.properties_[argument] and test not in skipped_tests:
+                skipped_tests.append(test)
 
     # Print all the skipped tests
     print_skipped(skipped_tests)
