@@ -26,6 +26,46 @@
 #include <net/ethernet/ethertype.hpp>
 
 namespace net {
+
+  /** ICMP4 Codes so that UDP and IP4 can use these */
+  namespace icmp4 {
+  namespace code {
+    enum class Dest_unreachable : uint8_t {
+      NET,
+      HOST,
+      PROTOCOL,
+      PORT,
+      FRAGMENTATION,
+      SRC_ROUTE,
+      NET_UNKNOWN,          // RFC 1122
+      HOST_UNKNOWN,
+      SRC_HOST_ISOLATED,
+      NET_PROHIBITED,
+      HOST_PROHIBITED,
+      NET_FOR_TOS,
+      HOST_FOR_TOS
+    };
+
+    enum class Redirect : uint8_t {
+      NET,
+      HOST,
+      TOS_NET,
+      TOS_HOST
+    };
+
+    enum class Time_exceeded : uint8_t {
+      TTL,
+      FRAGMENT_REASSEMBLY
+    };
+
+    enum class Parameter_problem : uint8_t {
+      POINTER_INDICATES_ERROR,
+      REQUIRED_OPT_MISSING      // RFC 1122
+    };
+
+  } // < namespace code
+  } // < namespace icmp4
+
   // Packet must be forward declared to avoid circular dependency
   // i.e. IP uses Packet, and Packet uses IP headers
   class Packet;
