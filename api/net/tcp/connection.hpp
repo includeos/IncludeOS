@@ -539,10 +539,11 @@ private:
   /** limited transmit [RFC 3042] active */
   bool limited_tx_ = true;
   // Number of current duplicate ACKs. Is reset for every new ACK.
-  uint8_t dup_acks_ = 0;
+  uint16_t dup_acks_ = 0;
 
   seq_t highest_ack_ = 0;
   seq_t prev_highest_ack_ = 0;
+  uint32_t last_acked_ts_ = 0;
 
   /** Delayed ACK - number of seg received without ACKing */
   uint8_t  dack_{0};
@@ -709,13 +710,8 @@ private:
     return std::min(cb.SND.WND, cb.cwnd);
   }
 
-  int32_t congestion_window() const {
-    const auto win = (uint64_t)cb.SND.UNA + (uint64_t)send_window();
-    return (int32_t)win;
-  }
-
   uint32_t flight_size() const
-  { return (uint64_t)cb.SND.NXT - (uint64_t)cb.SND.UNA; }
+  { return cb.SND.NXT - cb.SND.UNA; }
 
   bool uses_window_scaling() const;
 
@@ -736,7 +732,7 @@ private:
   /*
     When a duplicate ACK is received.
   */
-  void on_dup_ack();
+  void on_dup_ack(const Packet&);
 
   /*
     Is it possible to send ONE segment.

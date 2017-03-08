@@ -150,7 +150,7 @@ bool Connection::State::check_seq(Connection& tcp, const Packet& in)
 unacceptable:
   if(!in.isset(RST))
     tcp.send_ack();
-
+  printf("Unacceptable SEQ\n");
   tcp.drop(in, "Unacceptable SEQ");
   return false;
 
@@ -237,6 +237,7 @@ bool Connection::State::check_ack(Connection& tcp, const Packet& in) {
     */
     // Correction: [RFC 1122 p. 94]
     // ACK is inside sequence space
+    //return tcp.handle_ack(in);
     if(in.ack() <= tcb.SND.NXT ) {
 
       return tcp.handle_ack(in);
@@ -288,7 +289,7 @@ bool Connection::State::check_ack(Connection& tcp, const Packet& in) {
       auto packet = tcp.outgoing_packet();
       packet->set_flag(ACK);
       tcp.transmit(std::move(packet));
-      tcp.drop(in, "ACK > SND.NXT");
+      tcp.drop(in, "ACK > SND.NXT " + std::to_string(in.ack()) + " > " + std::to_string(tcb.SND.NXT));
       return false;
     }
     return true;
