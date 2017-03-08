@@ -124,3 +124,13 @@ CASE("make_request makes requests")
   auto req_ptr = http::make_request("GET / HTTP/1.1");
   EXPECT(req_ptr->version().to_string() == "HTTP/1.1");
 }
+
+CASE("operator std::string converts request to string")
+{
+  http::Request r("GET /");
+  r.set_method(http::HEAD);
+  r.set_uri(uri::URI("/data/json/includeos_stats"));
+  r.set_version(http::Version(1, 1));
+  std::string s = r;
+  EXPECT(s.size() > 30);
+}

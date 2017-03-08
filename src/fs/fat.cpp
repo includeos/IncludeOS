@@ -137,13 +137,16 @@ namespace fs
       [this, on_init] (buffer_t data)
       {
         auto* mbr = (MBR::mbr*) data.get();
-        assert(mbr != nullptr);
+        if (mbr == nullptr) {
+          on_init({ error_t::E_IO, "Could not read MBR" }, *this);
+          return;
+        }
 
         // verify image signature
         debug("OEM name: \t%s\n", mbr->oem_name);
         debug("MBR signature: \t0x%x\n", mbr->magic);
         if (UNLIKELY(mbr->magic != 0xAA55)) {
-          on_init({ error_t::E_MNT, "Missing or invalid MBR signature" });
+          on_init({ error_t::E_MNT, "Missing or invalid MBR signature" }, *this);
           return;
         }
 
@@ -166,7 +169,7 @@ namespace fs
               this->lba_base, this->lba_size, this->lba_size * 512);
 
         // on_init callback
-        on_init(no_error);
+        on_init(no_error, *this);
       })
     );
   }

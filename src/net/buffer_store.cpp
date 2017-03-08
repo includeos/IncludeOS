@@ -66,8 +66,8 @@ namespace net {
 
   BufferStore::buffer_t BufferStore::get_buffer()
   {
-    bool is_locked = false;
 #ifndef INCLUDEOS_SINGLE_THREADED
+    bool is_locked = false;
     if (smp_enabled_) {
       lock(plock);
       is_locked = true;

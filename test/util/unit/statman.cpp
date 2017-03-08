@@ -281,3 +281,53 @@ CASE("A Stat is accessible through index operator")
     free(buffer);
   }
 }
+
+CASE("stats names can only be MAX_NAME_LEN characters long")
+{
+  uintptr_t buffer = (uintptr_t)malloc(8192);
+  Statman statman_{buffer, 8192};
+  // ok
+  std::string statname1 {"a.stat"};
+  Stat& stat1 = statman_.create(Stat::UINT32, statname1);
+  // also ok
+  const size_t MAX_NAME_LEN {48};
+  std::string statname2(MAX_NAME_LEN, 'x');
+  Stat& stat2 = statman_.create(Stat::UINT32, statname2);
+  int num_stats_before = statman_.num_stats();
+  // not ok
+  std::string statname3(MAX_NAME_LEN + 1, 'y');
+  EXPECT_THROWS(Stat& stat3 = statman_.create(Stat::FLOAT, statname3));
+  int num_stats_after = statman_.num_stats();
+  EXPECT(num_stats_before == num_stats_after);
+  free((void*)buffer);
+}
+
+CASE("get(\"name\") returns reference to stat with name, throws if not present")
+{
+  uintptr_t buffer = (uintptr_t)malloc(8192);
+  Statman statman_ {buffer, 8192};
+  EXPECT_THROWS(Stat& res1 = statman_.get("some.important.stat"));
+  EXPECT_THROWS(Stat& res2 = statman_.get("other.important.stat"));
+  EXPECT_THROWS(Stat& res3 = statman_.get("very.important.stat"));
+  Stat& stat1 = statman_.create(Stat::UINT32, "some.important.stat");
+  Stat& stat2 = statman_.create(Stat::UINT64, "other.important.stat");
+  Stat& stat3 = statman_.create(Stat::FLOAT, "very.important.stat");
+  ++stat1;
+  ++stat2;
+  ++stat3;
+  EXPECT_NO_THROW(Stat& res1 = statman_.get("some.important.stat"));
+  EXPECT_NO_THROW(Stat& res2 = statman_.get("other.important.stat"));
+  EXPECT_NO_THROW(Stat& res3 = statman_.get("very.important.stat"));
+  EXPECT_THROWS_AS(Stat& res5 = statman_.get("some.missing.stat"), Stats_exception);
+
+  free((void*)buffer);
+}
+
+CASE("total_num_bytes() returns total number of bytes the Statman object takes up")
+{
+  uintptr_t buffer = (uintptr_t)malloc(8192);
+  Statman statman_ {buffer, 8192};
+  Stat& stat1 = statman_.create(Stat::UINT32, "some.important.stat");
+  EXPECT(statman_.total_num_bytes() > 8192);
+  free((void*)buffer);
+}

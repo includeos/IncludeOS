@@ -131,4 +131,50 @@ CASE("URI construction, assignment")
   EXPECT_NOT(uri == uri1);
   EXPECT_NOT(uri == uri2);
   EXPECT_NOT(uri == uri3);
+  // test uri with query parameters
+  const uri::URI uri4 {"http://example.com/test/?param1=test&param2=foo&param3=bar"};
+  uri::URI uri5 {uri4};
+  EXPECT(uri4 == uri5);
+  EXPECT_NOT(uri == uri5);
+  uri::URI uri6 = uri5;
+  EXPECT(uri5 == uri6);
+}
+
+CASE("host_and_port() returns the URI's host and port")
+{
+  const uri::URI uri {"http://example.com:8080/?type=float"};
+  EXPECT(uri.host_and_port() == "example.com:8080");
+}
+
+CASE("is_valid returns whether the URI is \"valid\" (has host or path)")
+{
+  const uri::URI uri {"http://example.com"};
+  EXPECT(uri.is_valid());
+  const uri::URI uri2 {"/users/42#email"};
+  EXPECT(uri2.is_valid());
+}
+
+CASE("operator std::string() converts URI to string")
+{
+  const uri::URI uri {"http://example.com/test#p42"};
+  std::string s = uri;
+  EXPECT(s == "http://example.com/test#p42");
+}
+
+CASE("operator bool checks whether uri is valid")
+{
+  const uri::URI uri {"http://example.com/"};
+  bool valid = uri;
+  EXPECT(valid == true);
+}
+
+CASE("operator <")
+{
+  const uri::URI uri1 {"http://example.com/"};
+  const uri::URI uri2 {"http://www.google.com/?hl=en"};
+  bool res = (uri1 < uri2);
+  EXPECT(res == true);
+  const uri::URI uri3 = uri2;
+  res = (uri2 < uri3);
+  EXPECT(res == false);
 }

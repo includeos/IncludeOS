@@ -194,9 +194,8 @@ namespace net {
 
     void move_to_this_cpu() override;
 
-    virtual void
-    ping(IP4::addr ip) override {
-      icmp_.ping_request(ip);
+    int  get_cpu_id() const noexcept override {
+      return this->cpu_id;
     }
 
     /** Return the stack on the given Nic */
@@ -253,6 +252,7 @@ namespace net {
 
     std::shared_ptr<net::DHClient> dhcp_{};
 
+    int   cpu_id;
     const uint16_t MTU_;
 
     friend class Super_stack;
