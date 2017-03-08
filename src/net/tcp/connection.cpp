@@ -995,8 +995,9 @@ bool Connection::uses_timestamps() const
   return host_.uses_timestamps();
 }
 
-void Connection::drop(const Packet& packet, const std::string&) {
-  //printf("%s - %s\n", packet.to_string().c_str(), str.c_str());
+void Connection::drop(const Packet& packet, Drop_reason reason)
+{
+  signal_packet_dropped(packet, reason);
   host_.drop(packet);
 }
 

@@ -52,7 +52,8 @@ public:
   class State;
   /** Disconnect event */
   struct Disconnect;
-
+  /** Reason for packet being dropped */
+  enum class Drop_reason;
   using Byte = uint8_t;
 
   using WriteBuffer = Write_queue::WriteBuffer;
@@ -101,7 +102,7 @@ public:
     When a packet is dropped - Everytime an incoming packet is unallowed, it will be dropped.
     Can be used for debugging.
   */
-  using PacketDroppedCallback   = delegate<void(const Packet&, const std::string&)>;
+  using PacketDroppedCallback   = delegate<void(const Packet&, Drop_reason)>;
   inline Connection&            on_packet_dropped(PacketDroppedCallback);
 
   /**
@@ -191,6 +192,18 @@ public:
       }
     }
   }; // < struct Connection::Disconnect
+
+  /**
+   * Reason for packet being dropped.
+   */
+  enum class Drop_reason
+  {
+    NA, // N/A
+    SEQ_OUT_OF_ORDER,
+    ACK_NOT_SET,
+    ACK_OUT_OF_ORDER,
+    RST
+  }; // < Drop_reason
 
   /*
     Represent the Connection as a string (STATUS).
@@ -665,7 +678,7 @@ private:
   void signal_error(TCPException error)
   { if(on_error_) on_error_(std::forward<TCPException>(error)); }
 
-  void signal_packet_dropped(const Packet& packet, const std::string& reason)
+  void signal_packet_dropped(const Packet& packet, Drop_reason reason)
   { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
 
   void signal_rtx_timeout()
@@ -674,11 +687,7 @@ private:
   /*
     Drop a packet. Used for debug/callback.
   */
-  void drop(const Packet& packet, const std::string& reason);
-
-  void drop(const Packet& packet)
-  { drop(packet, "None given."); }
-
+  void drop(const Packet& packet, Drop_reason reason = Drop_reason::NA);
 
   // RFC 3042
   void limited_tx();
