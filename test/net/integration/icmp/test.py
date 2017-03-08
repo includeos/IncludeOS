@@ -17,5 +17,10 @@ from vmrunner.prettify import color
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
+def init(trigger_line):
+    vm.exit(0, "<Test.py> ICMP test succeeded. Process returned 0 exit status")
+
+vm.on_output("Service", init);
+
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(20).clean()
