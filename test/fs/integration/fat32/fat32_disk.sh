@@ -11,8 +11,8 @@ then
 
   # Remove disk if exists
   rm -f $DISK
-  # Preallocate space to a 2 GB file
-  fallocate -l 4000000000 $DISK
+  # Preallocate space to a 4GB file
+  truncate -s 4G $DISK
   # Create FAT32 filesystem on "my.disk"
   mkfs.fat $DISK
 
