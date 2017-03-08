@@ -20,6 +20,7 @@
 #include <net/ip4/udp.hpp>
 #include <net/util.hpp>
 #include <memory>
+#include <net/ip4/icmp4.hpp>
 
 namespace net {
 
@@ -34,22 +35,26 @@ namespace net {
 
   void UDP::receive(net::Packet_ptr pckt)
   {
-    auto udp = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
+    auto udp_packet = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
 
     debug("<%s> UDP", stack_.ifname().c_str());
     debug("\t Source port: %u, Dest. Port: %u Length: %u\n",
-          udp->src_port(), udp->dst_port(), udp->length());
+          udp_packet->src_port(), udp_packet->dst_port(), udp_packet->length());
 
-    auto it = ports_.find(udp->dst_port());
+    auto it = ports_.find(udp_packet->dst_port());
     if (LIKELY(it != ports_.end())) {
-      debug("<%s> UDP found listener on port %u\n", 
-              stack_.ifname().c_str(), udp->dst_port());
-      it->second.internal_read(std::move(udp));
+      debug("<%s> UDP found listener on port %u\n",
+              stack_.ifname().c_str(), udp_packet->dst_port());
+      it->second.internal_read(std::move(udp_packet));
       return;
     }
 
-    debug("<%s> UDP: nobody listening on %u. Drop!\n", 
-            stack_.ifname().c_str(), udp->dst_port());
+    debug("<%s> UDP: nobody listening on %u. Drop!\n",
+            stack_.ifname().c_str(), udp_packet->dst_port());
+
+    // Sending ICMP message of type Destination Unreachable and code PORT
+    auto ip4_packet = static_unique_ptr_cast<PacketIP4>(std::move(udp_packet));
+    stack_.icmp().destination_unreachable(std::move(ip4_packet), icmp4::code::Dest_unreachable::PORT);
   }
 
   UDPSocket& UDP::bind(UDP::port_t port)
@@ -168,7 +173,7 @@ namespace net {
 
     debug("<%s> UDP: %i bytes to write, need %i packets \n",
           udp.stack().ifname().c_str(),
-          remaining(), 
+          remaining(),
           remaining() / udp.max_datagram_size() + (remaining() % udp.max_datagram_size() ? 1 : 0));
 
     while (remaining()) {

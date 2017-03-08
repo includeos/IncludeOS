@@ -22,6 +22,7 @@
 #include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
 #include <statman>
+#include <net/ip4/icmp4.hpp>
 
 namespace net {
 
@@ -44,8 +45,8 @@ namespace net {
     packets_rx_++;
 
     debug2("\t Source IP: %s Dest.IP: %s Type: 0x%x\n",
-           packet->src().str().c_str(), 
-           packet->dst().str().c_str(), 
+           packet->src().str().c_str(),
+           packet->dst().str().c_str(),
            packet->protocol());
 
     // Drop if my ip address doesn't match destination ip address or broadcast
@@ -79,6 +80,8 @@ namespace net {
       break;
     default:
       debug("\t Type: UNKNOWN %i\n", hdr->protocol);
+      // Sending ICMP message of type Destination Unreachable and code PROTOCOL
+      stack_.icmp().destination_unreachable(std::move(packet), icmp4::code::Dest_unreachable::PROTOCOL);
       break;
     }
   }
