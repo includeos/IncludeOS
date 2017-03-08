@@ -29,7 +29,8 @@ def check_truncation(line):
 
   print "Received truncated string: ", line, "of size", len(line), "(format size * ", len(line)/format_string_size,")"
   assert(len(line) <= format_string_size * 2)
-  assert(line.strip().split(" ")[-1] != "END")
+  # truncated outputs are unacceptable :)
+  assert(line.strip().split(" ")[-1] == "END")
 
 vm.on_output("I can print hex", check_hex)
 vm.on_output("String", set_format_string_size)

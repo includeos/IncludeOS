@@ -168,8 +168,8 @@ private:
     int status;
     // internally, demangle just returns buf when status is ok
     auto* res = __cxa_demangle(name, (char*) buffer, &buflen, &status);
-    if (status) return name;
-    return res;
+    if (status == 0) return res;
+    return name;
   }
 
   SymTab    symtab;
@@ -215,8 +215,8 @@ bool Elf::verify_symbols()
 
 void print_backtrace()
 {
-  char _symbol_buffer[4096];
-  char _btrace_buffer[4096];
+  char _symbol_buffer[8192];
+  char _btrace_buffer[8192];
 
   if (Elf::get_strtab() == NULL) {
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),

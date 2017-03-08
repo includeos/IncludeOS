@@ -31,7 +31,7 @@ fs::Disk_ptr& memdisk() {
   static auto disk = fs::new_shared_memdisk();
 
   if (not disk->fs_ready()) {
-    disk->init_fs([](fs::error_t err) {
+    disk->init_fs([](fs::error_t err, auto&) {
         if (err) {
           printf("ERROR MOUNTING DISK\n");
           printf("%s\n", err.reason().c_str());
