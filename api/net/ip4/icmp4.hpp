@@ -36,7 +36,7 @@ namespace net {
     inline void set_network_out(downstream s)
     { network_layer_out_ = s;  };
 
-    void destination_unreachable(icmp4::Packet& req, icmp4::code::Dest_unreachable code);
+    void destination_unreachable(Packet_ptr pckt, icmp4::code::Dest_unreachable code);
 
     void redirect(icmp4::Packet& req, icmp4::code::Redirect code);
 
@@ -44,10 +44,11 @@ namespace net {
 
     void parameter_problem(icmp4::Packet& req);
 
+    // May
     void timestamp_request(IP4::addr ip);
     void timestamp_reply(icmp4::Packet& req);
 
-    void ping_request(IP4::addr ip);
+    void ping(IP4::addr ip);
 
   private:
 
@@ -60,11 +61,13 @@ namespace net {
                                       'Q','R','S','T','U','V','W','X',
                                       'Y','Z',1,2,3,4,5,6,
                                       7,8};
+    static int id_;
 
     void ping_reply(icmp4::Packet&);
 
-    void send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload);
-    void send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code);
+    void send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload,
+      uint16_t sequence = 0);
+    void send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload);
 
   }; //< class ICMPv4
 } //< namespace net

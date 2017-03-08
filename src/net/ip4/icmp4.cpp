@@ -20,6 +20,8 @@
 
 namespace net {
 
+  int ICMPv4::id_ = 0;
+
   ICMPv4::ICMPv4(Stack& inet) :
     inet_{inet}
   {}
@@ -44,7 +46,7 @@ namespace net {
     case (icmp4::Type::REDIRECT):
       debug("<ICMP> REDIRECT from %s\n", req.ip().src().str().c_str());
       // TODO
-      // Only sent by gateways. Update routing information based on the message
+      // Only sent by gateways. Incoming: Update routing information based on the message
       break;
     case (icmp4::Type::ECHO):
       debug("<ICMP> PING from %s\n", req.ip().src().str().c_str());
@@ -62,30 +64,38 @@ namespace net {
       break;
     case (icmp4::Type::TIMESTAMP):
       debug("<ICMP> TIMESTAMP from %s\n", req.ip().src().str().c_str());
-      // TODO
-      timestamp_reply(req);
+      // TODO May
+      // timestamp_reply(req);
       break;
     case (icmp4::Type::TIMESTAMP_REPLY):
       debug("<ICMP> TIMESTAMP REPLY from %s\n", req.ip().src().str().c_str());
-      // TODO
+      // TODO May
       break;
     }
   }
 
-  void ICMPv4::destination_unreachable(icmp4::Packet& req, icmp4::code::Dest_unreachable code) {
-    send_response(req, icmp4::Type::DEST_UNREACHABLE, (uint8_t) code);
+  /** UDP (Port Unreachable) and IP4 (Protocol Unreachable) sending Destination Unreachable message */
+  void ICMPv4::destination_unreachable(Packet_ptr pckt, icmp4::code::Dest_unreachable code) {
+    if ((size_t)pckt->size() < sizeof(IP4::header) + icmp4::Packet::header_size()) // Drop if not a full header
+      return;
+
+    auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+    auto pckt_icmp4 = icmp4::Packet(std::move(pckt_ip4));
+
+    // TODO
+    send_response(pckt_icmp4, icmp4::Type::DEST_UNREACHABLE, (uint8_t) code, pckt_icmp4.payload());
   }
 
   void ICMPv4::redirect(icmp4::Packet& req, icmp4::code::Redirect code) {
-    send_response(req, icmp4::Type::REDIRECT, (uint8_t) code);
+    //send_response(req, icmp4::Type::REDIRECT, (uint8_t) code, icmp4::Packet::Span(, ));
   }
 
   void ICMPv4::time_exceeded(icmp4::Packet& req, icmp4::code::Time_exceeded code) {
-    send_response(req, icmp4::Type::TIME_EXCEEDED, (uint8_t) code);
+    //send_response(req, icmp4::Type::TIME_EXCEEDED, (uint8_t) code, icmp4::Packet::Span(, ));
   }
 
   void ICMPv4::parameter_problem(icmp4::Packet& req) {
-    send_response(req, icmp4::Type::PARAMETER_PROBLEM, 0);
+    //send_response(req, icmp4::Type::PARAMETER_PROBLEM, 0, icmp4::Packet::Span(, ));
   }
 
   void ICMPv4::timestamp_request(IP4::addr ip) {
@@ -95,18 +105,19 @@ namespace net {
 
   void ICMPv4::timestamp_reply(icmp4::Packet& req) {
     // TODO
-    // send_response(req, icmp4::Type::TIMESTAMP_REPLY, 0);
+    // send_response(req, icmp4::Type::TIMESTAMP_REPLY, 0, icmp4::Packet::Span(, ));
   }
 
-  void ICMPv4::ping_request(IP4::addr ip) {
+  void ICMPv4::ping(IP4::addr ip) {
     send_request(ip, icmp4::Type::ECHO, 0, icmp4::Packet::Span(includeos_payload_, 48));
   }
 
   void ICMPv4::ping_reply(icmp4::Packet& req) {
-    send_response(req, icmp4::Type::ECHO_REPLY, 0);
+    send_response(req, icmp4::Type::ECHO_REPLY, 0, req.payload());
   }
 
-  void ICMPv4::send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload) {
+  void ICMPv4::send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload,
+    uint16_t sequence) {
     // Provision new IP4-packet
     icmp4::Packet req(inet_.ip_packet_factory());
 
@@ -117,8 +128,8 @@ namespace net {
     // Populate request ICMP header
     req.set_type(type);
     req.set_code(code);
-    req.set_id(0);
-    req.set_sequence(0);
+    req.set_id(id_++);
+    req.set_sequence(sequence);
 
     debug("<ICMP> Transmitting request to %s\n", dest_ip.to_string().c_str());
 
@@ -134,7 +145,7 @@ namespace net {
     network_layer_out_(req.release());
   }
 
-  void ICMPv4::send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code) {
+  void ICMPv4::send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload) {
     // Provision new IP4-packet
     icmp4::Packet res(inet_.ip_packet_factory());
 
@@ -151,7 +162,7 @@ namespace net {
     debug("<ICMP> Transmitting answer to %s\n", res.ip().dst().str().c_str());
 
     // Payload
-    res.set_payload(req.payload());
+    res.set_payload(payload);
 
     // Add checksum
     res.set_checksum();
