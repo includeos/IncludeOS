@@ -68,6 +68,9 @@ namespace net {
     /** Get the UDP-object belonging to this stack */
     UDP& udp() override { return udp_; }
 
+    /** Get the ICMP-object belonging to this stack */
+    ICMPv4& icmp() override { return icmp_; }
+
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
 

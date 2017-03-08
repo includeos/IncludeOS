@@ -24,17 +24,17 @@
 
 namespace net {
 
-
-  class TCP;
-  class UDP;
-  class DHClient;
+  class   TCP;
+  class   UDP;
+  class   DHClient;
+  struct  ICMPv4;
 
   /**
    * An abstract IP-stack interface.
    * Provides a common interface for IPv4 and (future) IPv6, simplified with
    *  no constructors etc.
    **/
-  template <typename IPV >
+  template <typename IPV>
   struct Inet {
     using Stack = Inet<IPV>;
     using Forward_delg = delegate<void(Stack& source, typename IPV::IP_packet_ptr)>;
@@ -44,16 +44,17 @@ namespace net {
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
 
-    virtual typename IPV::addr ip_addr() = 0;
-    virtual typename IPV::addr netmask() = 0;
-    virtual typename IPV::addr gateway()  = 0;
-    virtual std::string        ifname() const = 0;
-    virtual MAC::Addr       link_addr() = 0;
-    virtual hw::Nic&           nic() = 0;
+    virtual typename IPV::addr  ip_addr()       = 0;
+    virtual typename IPV::addr  netmask()       = 0;
+    virtual typename IPV::addr  gateway()       = 0;
+    virtual std::string         ifname() const  = 0;
+    virtual MAC::Addr           link_addr()     = 0;
+    virtual hw::Nic&            nic()           = 0;
 
-    virtual IPV&       ip_obj() = 0;
-    virtual TCP&       tcp()    = 0;
-    virtual UDP&       udp()    = 0;
+    virtual IPV&        ip_obj()  = 0;
+    virtual TCP&        tcp()     = 0;
+    virtual UDP&        udp()     = 0;
+    virtual ICMPv4&     icmp()    = 0;
 
     virtual void set_forward_delg(Forward_delg) = 0;
     virtual void set_route_checker(Route_checker) = 0;
