@@ -48,6 +48,9 @@ namespace net {
     Protocol protocol() const noexcept
     { return static_cast<Protocol>(ip_header().protocol); }
 
+    uint8_t ttl() const noexcept
+    { return ip_header().ttl; }
+
     uint16_t ip_segment_length() const noexcept
     { return ntohs(ip_header().tot_len); }
 
