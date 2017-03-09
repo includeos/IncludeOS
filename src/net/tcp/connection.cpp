@@ -89,15 +89,15 @@ void Connection::reset_callbacks()
   read_request.clean_up();
 }
 
-Socket Connection::local() const {
+Socket Connection::local() const noexcept {
   return {host_.address(), local_port_};
 }
 
-uint16_t Connection::MSDS() const {
+uint16_t Connection::MSDS() const noexcept {
   return std::min(host_.MSS(), cb.SND.MSS) + sizeof(Header);
 }
 
-uint16_t Connection::SMSS() const {
+uint16_t Connection::SMSS() const noexcept {
   return host_.MSS();
 }
 
@@ -183,6 +183,8 @@ void Connection::offer(size_t& packets)
       writeq.advance(x);
     }
 
+    packet->set_flag(ACK);
+
     debug2("<Connection::offer> Wrote %u bytes (%u remaining) with [%u] packets left and a usable window of %u.\n",
            written, buf.remaining, packets, usable_window());
 
@@ -215,16 +217,6 @@ void Connection::writeq_push()
     host_.request_offer(*this);
 }
 
-size_t Connection::fill_packet(Packet& packet, const uint8_t* buffer, size_t n) {
-  const auto written = packet.fill(buffer, std::min(n, (size_t)SMSS()));
-
-  packet.set_flag(ACK);
-
-  Ensures(written <= n);
-
-  return written;
-}
-
 void Connection::limited_tx() {
 
   auto packet = create_outgoing_packet();
@@ -233,6 +225,7 @@ void Connection::limited_tx() {
 
   const auto written = fill_packet(*packet, writeq.nxt_data(), writeq.nxt_rem());
   cb.SND.NXT += written;
+  packet->set_flag(ACK);
 
   writeq.advance(written);
 
@@ -300,25 +293,21 @@ void Connection::segment_arrived(Packet_ptr incoming)
   //  printf("predicted\n");
 
   // Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
-  switch(state_->handle(*this, std::move(incoming))) {
-  case State::OK:
-    // Do nothing.
-    break;
-  case State::CLOSED:
-    debug("<TCP::Connection::receive> (%s => %s) State handle finished with CLOSED. We're done, ask host() to delete the connection.\n",
-      prev_state_->to_string().c_str(), state_->to_string().c_str());
-    writeq_reset();
-    signal_close();
-    set_state(Closed::instance());
-    break;
-  case State::CLOSE:
-    debug("<TCP::Connection::receive> State handle finished with CLOSE. onDisconnect has been called, close the connection. \n");
-    state_->close(*this);
-    break;
+  switch(state_->handle(*this, std::move(incoming)))
+  {
+    case State::OK:
+      return; // // Do nothing.
+    case State::CLOSED:
+      debug("<TCP::Connection::receive> (%s => %s) State handle finished with CLOSED. We're done, ask host() to delete the connection.\n",
+        prev_state_->to_string().c_str(), state_->to_string().c_str());
+      writeq_reset();
+      signal_close();
+      set_state(Closed::instance());
+      break;
   }
 }
 
-bool Connection::is_listening() const {
+bool Connection::is_listening() const noexcept {
   return is_state(Listen::instance());
 }
 
@@ -799,7 +788,7 @@ void Connection::send_ack() {
   transmit(std::move(packet));
 }
 
-bool Connection::use_dack() const {
+bool Connection::use_dack() const noexcept {
   return host_.DACK_timeout() > std::chrono::milliseconds::zero();
 }
 
@@ -985,12 +974,12 @@ Option::opt_ts* Connection::parse_ts_option(const Packet& packet) const
   return (((Option*)opt)->kind == Option::TS) ? (Option::opt_ts*)opt : nullptr;
 }
 
-bool Connection::uses_window_scaling() const
+bool Connection::uses_window_scaling() const noexcept
 {
   return host_.uses_wscale();
 }
 
-bool Connection::uses_timestamps() const
+bool Connection::uses_timestamps() const noexcept
 {
   return host_.uses_timestamps();
 }
