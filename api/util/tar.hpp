@@ -28,6 +28,7 @@
 #include <vector>
 #include <stdexcept>
 #include <memory>
+#include <cstring>
 
 extern uint8_t _binary_input_bin_start;
 extern uintptr_t _binary_input_bin_size;
@@ -81,7 +82,7 @@ public:
   std::string prefix() const { return std::string{header_.prefix}; }
   std::string pad() const { return std::string{header_.pad}; }
 
-  bool is_ustar() const noexcept { return header_.magic == TMAGIC; }
+  bool is_ustar() const noexcept { return (strncmp(header_.magic, TMAGIC, TMAGLEN) == 0); }
   bool is_dir() const noexcept { return header_.typeflag == DIRTYPE; }
   bool typeflag_is_set() const noexcept { return header_.typeflag not_eq ' '; }
   bool is_empty() const noexcept { return size() == 0; }

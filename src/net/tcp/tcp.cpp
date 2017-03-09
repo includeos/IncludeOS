@@ -19,10 +19,9 @@
 // #define DEBUG2
 
 #include <net/tcp/tcp.hpp>
-#include <net/tcp/packet.hpp>
-#include <net/inet_common.hpp>
+#include <net/inet_common.hpp> // checksum
 #include <statman>
-#include <os>
+#include <os> // micros_since_boot (get_ts_value)
 
 using namespace std;
 using namespace net;
@@ -91,17 +90,17 @@ bool TCP::unbind(const port_t port) {
   return false;
 }
 
-Connection_ptr TCP::connect(Socket remote) {
-  auto port = next_free_port();
-  auto connection = add_connection(port, remote);
-  connection->open(true);
-  return connection;
-}
-
 void TCP::connect(Socket remote, ConnectCallback callback) {
   auto port = next_free_port();
-  auto connection = add_connection(port, remote, std::move(callback));
+  auto connection = create_connection(port, remote, std::move(callback));
   connection->open(true);
+}
+
+Connection_ptr TCP::connect(Socket remote) {
+  auto port = next_free_port();
+  auto connection = create_connection(port, remote);
+  connection->open(true);
+  return connection;
 }
 
 void TCP::insert_connection(Connection_ptr conn)
@@ -110,64 +109,6 @@ void TCP::insert_connection(Connection_ptr conn)
       std::piecewise_construct,
       std::forward_as_tuple(conn->local_port(), conn->remote()),
       std::forward_as_tuple(conn));
-}
-
-
-seq_t TCP::generate_iss() {
-  // Do something to get a iss.
-  return rand();
-}
-
-/*
-  TODO: Check if there is any ports free.
-*/
-port_t TCP::next_free_port() {
-
-  current_ephemeral_ = (current_ephemeral_ == port_ranges::DYNAMIC_END)
-    ? port_ranges::DYNAMIC_START
-    : current_ephemeral_ + 1;
-
-  // Avoid giving a port that is bound to a service.
-  while(listeners_.find(current_ephemeral_) != listeners_.end())
-    current_ephemeral_++;
-
-  return current_ephemeral_;
-}
-
-/*
-  Expensive look up if port is in use.
-*/
-bool TCP::port_in_use(const port_t port) const {
-  if(listeners_.find(port) != listeners_.end())
-    return true;
-
-  for(auto conn : connections_) {
-    if(conn.first.first == port)
-      return true;
-  }
-  return false;
-}
-
-uint32_t TCP::get_ts_value() const
-{
-  return ((OS::micros_since_boot() >> 10) & 0xffffffff);
-}
-
-uint16_t TCP::checksum(const tcp::Packet& packet)
-{
-  short length = packet.tcp_length();
-  // Compute sum of pseudo-header
-  uint32_t sum =
-        (packet.src().whole >> 16)
-      + (packet.src().whole & 0xffff)
-      + (packet.dst().whole >> 16)
-      + (packet.dst().whole & 0xffff)
-      + (static_cast<uint8_t>(Protocol::TCP) << 8)
-      + htons(length);
-
-  // Compute sum of header and data
-  const char* buffer = (char*) &packet.tcp_header();
-  return net::checksum(sum, buffer, length);
 }
 
 void TCP::receive(net::Packet_ptr packet_ptr) {
@@ -216,6 +157,124 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
   drop(*packet);
 }
 
+uint16_t TCP::checksum(const tcp::Packet& packet)
+{
+  short length = packet.tcp_length();
+  // Compute sum of pseudo-header
+  uint32_t sum =
+        (packet.src().whole >> 16)
+      + (packet.src().whole & 0xffff)
+      + (packet.dst().whole >> 16)
+      + (packet.dst().whole & 0xffff)
+      + (static_cast<uint8_t>(Protocol::TCP) << 8)
+      + htons(length);
+
+  // Compute sum of header and data
+  const char* buffer = (char*) &packet.tcp_header();
+  return net::checksum(sum, buffer, length);
+}
+
+// Show all connections for TCP as a string.
+// Format: [Protocol][Recv][Send][Local][Remote][State]
+string TCP::to_string() const {
+  // Write all connections in a cute list.
+  stringstream ss;
+  ss << "LISTENERS:\n" << "Port\t" << "Queued\n";
+  for(auto& listen_it : listeners_) {
+    auto& l = listen_it.second;
+    ss << l->port() << "\t" << l->syn_queue_size() << "\n";
+  }
+  ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
+  for(auto& con_it : connections_) {
+    auto& c = *(con_it.second);
+    ss << "tcp4\t"
+       << " " << "\t" << " " << "\t"
+       << " " << "\t" << " " << "\t"
+       << c.local().to_string() << "\t\t" << c.remote().to_string() << "\t\t"
+       << c.state().to_string() << "\n";
+  }
+  return ss.str();
+}
+
+void TCP::transmit(tcp::Packet_ptr packet) {
+  // Generate checksum.
+  packet->set_checksum(TCP::checksum(*packet));
+  debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
+
+  // Stat increment bytes transmitted and packets transmitted
+  bytes_tx_ += packet->tcp_data_length();
+  packets_tx_++;
+
+  _network_layer_out(std::move(packet));
+}
+
+seq_t TCP::generate_iss() {
+  // Do something to get a iss.
+  return rand();
+}
+
+// TODO: Check if there is any ports free.
+port_t TCP::next_free_port()
+{
+  current_ephemeral_ = (current_ephemeral_ == port_ranges::DYNAMIC_END)
+    ? port_ranges::DYNAMIC_START
+    : current_ephemeral_ + 1;
+
+  // Avoid giving a port that is bound to a service.
+  while(listeners_.find(current_ephemeral_) != listeners_.end())
+    current_ephemeral_++;
+
+  return current_ephemeral_;
+}
+
+/*
+  Expensive look up if port is in use.
+*/
+bool TCP::port_in_use(const port_t port) const {
+  if(listeners_.find(port) != listeners_.end())
+    return true;
+
+  for(auto conn : connections_) {
+    if(conn.first.first == port)
+      return true;
+  }
+  return false;
+}
+
+uint32_t TCP::get_ts_value() const
+{
+  return ((OS::micros_since_boot() >> 10) & 0xffffffff);
+}
+
+void TCP::drop(const tcp::Packet&) {
+  // Stat increment packets dropped
+  packets_dropped_++;
+  debug("<TCP::drop> Packet dropped\n");
+}
+
+void TCP::add_connection(tcp::Connection_ptr conn) {
+  // Stat increment number of incoming connections
+  incoming_connections_++;
+
+  debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
+  conn->_on_cleanup({this, &TCP::close_connection});
+  connections_.emplace(conn->tuple(), conn);
+}
+
+Connection_ptr TCP::create_connection(port_t local_port, Socket remote, ConnectCallback cb)
+{
+  // Stat increment number of outgoing connections
+  outgoing_connections_++;
+
+  auto& conn = (connections_.emplace(
+      Connection::Tuple{ local_port, remote },
+      std::make_shared<Connection>(*this, local_port, remote, std::move(cb))
+      )
+    ).first->second;
+  conn->_on_cleanup({this, &TCP::close_connection});
+  return conn;
+}
+
 void TCP::process_writeq(size_t packets) {
   debug2("<TCP::process_writeq> size=%u p=%u\n", writeq.size(), packets);
   // foreach connection who wants to write
@@ -247,84 +306,4 @@ void TCP::queue_offer(Connection_ptr conn)
     writeq.push_back(conn);
     conn->set_queued(true);
   }
-}
-
-/*
-  Show all connections for TCP as a string.
-
-  Format:
-  [Protocol][Recv][Send][Local][Remote][State]
-
-  TODO: Make sure Recv, Send, In, Out is correct and add them to output. Also, alignment?
-*/
-string TCP::to_string() const {
-  // Write all connections in a cute list.
-  stringstream ss;
-  ss << "LISTENERS:\n" << "Port\t" << "Queued\n";
-  for(auto& listen_it : listeners_) {
-    auto& l = listen_it.second;
-    ss << l->port() << "\t" << l->syn_queue_size() << "\n";
-  }
-  ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
-  for(auto& con_it : connections_) {
-    auto& c = *(con_it.second);
-    ss << "tcp4\t"
-       << " " << "\t" << " " << "\t"
-       << " " << "\t" << " " << "\t"
-       << c.local().to_string() << "\t\t" << c.remote().to_string() << "\t\t"
-       << c.state().to_string() << "\n";
-  }
-  return ss.str();
-}
-
-Connection_ptr TCP::add_connection(port_t local_port, Socket remote, ConnectCallback cb)
-{
-  // Stat increment number of outgoing connections
-  outgoing_connections_++;
-
-  auto& conn = (connections_.emplace(
-      Connection::Tuple{ local_port, remote },
-      std::make_shared<Connection>(*this, local_port, remote, std::move(cb))
-      )
-    ).first->second;
-  conn->_on_cleanup({this, &TCP::close_connection});
-  return conn;
-}
-
-void TCP::add_connection(tcp::Connection_ptr conn) {
-  // Stat increment number of incoming connections
-  incoming_connections_++;
-
-  debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
-  conn->_on_cleanup({this, &TCP::close_connection});
-  connections_.emplace(conn->tuple(), conn);
-}
-
-void TCP::close_connection(tcp::Connection_ptr conn) {
-  debug("<TCP::close_connection> Closing connection: %s \n", conn->to_string().c_str());
-  connections_.erase(conn->tuple());
-}
-
-void TCP::close_listener(Listener& listener) {
-  listeners_.erase(listener.port());
-}
-
-void TCP::drop(const tcp::Packet&) {
-  // Stat increment packets dropped
-  packets_dropped_++;
-
-  debug("<TCP::drop> Packet dropped\n");
-  //debug("<TCP::drop> Packet was dropped - no recipient: %s \n", packet->destination().to_string().c_str());
-}
-
-void TCP::transmit(tcp::Packet_ptr packet) {
-  // Generate checksum.
-  packet->set_checksum(TCP::checksum(*packet));
-  debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
-
-  // Stat increment bytes transmitted and packets transmitted
-  bytes_tx_ += packet->tcp_data_length();
-  packets_tx_++;
-
-  _network_layer_out(std::move(packet));
 }
