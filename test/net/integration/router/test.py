@@ -27,6 +27,7 @@ def move_tap1(o):
     print "Moving",if2, "to", br2
     subprocess.call(["sudo", "brctl", "delif", br1, if2])
     subprocess.call(["sudo", "brctl", "addif", br2, if2])
+    subprocess.call(["sudo", "ifconfig", if2, "up"])
 
 
 def clean():

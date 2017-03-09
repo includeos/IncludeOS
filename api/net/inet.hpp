@@ -100,6 +100,7 @@ namespace net {
     virtual void force_start_send_queues() = 0;
 
     virtual void move_to_this_cpu() = 0;
+    virtual int  get_cpu_id() const noexcept = 0;
 
   }; //< class Inet<LINKLAYER, IPV>
 } //< namespace net

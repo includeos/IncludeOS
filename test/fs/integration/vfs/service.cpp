@@ -60,10 +60,11 @@ fs::File_system& memdisk() {
   static auto disk = fs::new_shared_memdisk();
 
   if (not disk->fs_ready())
-    disk->init_fs([](fs::error_t err) {
+  {
+    disk->init_fs([](fs::error_t err, auto&) {
         if (err) panic("ERROR MOUNTING DISK\n");
       });
-
+  }
   return disk->fs();
 }
 
@@ -321,14 +322,15 @@ void Service::start(const std::string&)
   auto my_disk = disk1;
 
   // initializing a file system
-  my_disk->init_fs([my_disk](auto err){
-
+  my_disk->init_fs(
+  [my_disk](auto err, auto& fs)
+  {
       if (err) {
         INFO("VFS_test", "Error mounting disk: %s \n", err.to_string().c_str());
         return;
       }
 
-      my_disk->fs().ls("/", [my_disk](auto err, auto dirvec){
+      fs.ls("/", [my_disk](auto err, auto dirvec){
 
           if (err) {
             INFO("VFS_test", "ls on disk %s failed", my_disk->name().c_str());

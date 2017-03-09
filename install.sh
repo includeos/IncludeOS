@@ -17,7 +17,7 @@ export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST-OFF}
 
 # Initialize variables:
 install_yes=0
-verbose=0
+quiet=0
 source=0
 
 while getopts "h?yqs" opt; do
@@ -150,7 +150,7 @@ printf "    %-25s %-25s %s\n"\
 
 # Give user option to evaluate install options
 if tty -s && [ $install_yes -eq 0 ]; then
-	read -p "Is this correct [Y|n]?" answer
+	read -p "Is this correct [Y/n]?" answer
 	answer=${answer:-"Y"}	# Default value
 	case $answer in
 		[yY] | [yY][Ee][Ss] )

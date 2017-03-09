@@ -187,9 +187,6 @@ private:
     uint16_t num_buffers;
   }__attribute__((packed));
 
-  // make packets cache-aligned on the IP-layer
-  static const int VIRTIO_HDR_OFFSET = sizeof(virtio_net_hdr);
-
   Virtio::Queue rx_q;
   Virtio::Queue tx_q;
   Virtio::Queue ctrl_q;

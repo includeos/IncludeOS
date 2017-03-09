@@ -82,9 +82,10 @@ namespace net
     std::vector<buffer_t> available_;
     int                  cpu;
     static bool          smp_enabled_;
+#ifndef INCLUDEOS_SINGLE_THREADED
     // has strict alignment reqs, so put at end
     spinlock_t           plock;
-
+#endif
     BufferStore(BufferStore&)  = delete;
     BufferStore(BufferStore&&) = delete;
     BufferStore& operator=(BufferStore&)  = delete;
