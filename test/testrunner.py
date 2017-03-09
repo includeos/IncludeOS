@@ -435,6 +435,8 @@ def filter_tests(all_tests, arguments):
     for test in tests_added:
         for argument in skip_properties:
             if test.properties_[argument] and test not in skipped_tests:
+                test.skip_ = True
+                test.skip_reason_ = "Test marked skip on command line"
                 skipped_tests.append(test)
 
     # Print all the skipped tests
