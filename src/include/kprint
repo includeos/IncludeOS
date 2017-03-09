@@ -40,7 +40,7 @@ extern void __serial_print1(const char* cstr);
 __attribute__ ((format (printf, 1, 2)))
 inline void kprintf(const char* format, ...)
 {
-  char buf[256];
+  char buf[8192];
   va_list aptr;
   va_start(aptr, format);
   vsnprintf(buf, sizeof(buf), format, aptr);

@@ -28,9 +28,8 @@
 
 namespace fs {
 
-  // Generic structure for directory entries
   struct Dirent;
-
+  struct File_system;
 
   /**
    * @brief Type used as a building block to represent buffers
@@ -185,24 +184,23 @@ namespace fs {
   /** @var no_error: Always returns boolean false when used in expressions */
   extern error_t no_error;
 
-    /** Async function types **/
-  using on_init_func  = delegate<void(error_t)>;
+  /** Async function types **/
+  using on_init_func  = delegate<void(error_t, File_system&)>;
   using on_ls_func    = delegate<void(error_t, dirvec_t)>;
   using on_read_func  = delegate<void(error_t, buffer_t, uint64_t)>;
   using on_stat_func  = delegate<void(error_t, const Dirent&)>;
 
 
-  struct List {
+  struct List
+  {
     error_t  error;
     dirvec_t entries;
     auto begin() { return entries->begin(); }
     auto end() { return entries->end(); }
     auto cbegin() { return entries->cbegin(); }
     auto cend() { return entries->cend(); }
-
   };
 
+} //< fs
 
-} //< namespace fs
-
-#endif //< FS_ERROR_HPP
+#endif //< FS_COMMON_HPP
