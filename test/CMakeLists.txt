@@ -214,3 +214,20 @@ endif()
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
+add_custom_target(
+  cppcheck
+  COMMAND cppcheck
+  --enable=warning,style,performance,portability
+  --force
+  --platform=unix32
+  --std=c++11
+  --verbose
+  --quiet
+  -I ${INCLUDEOS_ROOT}/api
+  -I ${INCLUDEOS_ROOT}/src/include
+  -I ${INCLUDEOS_ROOT}/mod/
+  -I ${INCLUDEOS_ROOT}/mod/GSL
+  -I ${INCLUDEOS_ROOT}/mod/uzlib/src
+  ${OS_SOURCES}
+)
