@@ -33,7 +33,11 @@ static std::array<IRQ_manager, SMP_MAX_CORES> managers;
 
 IRQ_manager& IRQ_manager::get(int cpuid)
 {
+#ifndef INCLUDEOS_SINGLE_THREADED
   return managers.at(cpuid);
+#else
+  return managers[0];
+#endif
 }
 IRQ_manager& IRQ_manager::get()
 {

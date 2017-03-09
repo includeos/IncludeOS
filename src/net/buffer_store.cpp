@@ -47,11 +47,11 @@ namespace net {
     assert(bufsize != 0);
     const size_t DATA_SIZE  = poolsize_;
 
-    this->pool_ = (buffer_t) memalign(PAGE_SIZE, DATA_SIZE);
+    this->pool_ = (uint8_t*) memalign(PAGE_SIZE, DATA_SIZE);
     assert(this->pool_);
 
     available_.reserve(num);
-    for (buffer_t b = pool_end()-bufsize; b >= pool_begin(); b -= bufsize) {
+    for (uint8_t* b = pool_end()-bufsize; b >= pool_begin(); b -= bufsize) {
         available_.push_back(b);
     }
     assert(available() == num);
@@ -66,6 +66,7 @@ namespace net {
   }
 
   BufferStore::~BufferStore() {
+    delete this->next_;
     free(this->pool_);
   }
 
@@ -89,7 +90,7 @@ namespace net {
   {
     auto addr = available_.back();
     available_.pop_back();
-    return addr;
+    return { this, addr };
   }
 
   BufferStore::buffer_t BufferStore::get_buffer()
@@ -119,12 +120,12 @@ namespace net {
 #ifndef INCLUDEOS_SINGLE_THREADED
     if (is_locked) unlock(plock);
 #endif
-    return addr;
+    return { this, addr };
   }
 
   void BufferStore::release(void* addr)
   {
-    buffer_t buff = (buffer_t) addr;
+    auto* buff = (uint8_t*) addr;
     debug("Release %p -> ", buff);
 
 #ifndef INCLUDEOS_SINGLE_THREADED
@@ -163,7 +164,7 @@ namespace net {
 #endif
   }
 
-  void BufferStore::release_directly(buffer_t buffer)
+  void BufferStore::release_directly(uint8_t* buffer)
   {
     available_.push_back(buffer);
   }
