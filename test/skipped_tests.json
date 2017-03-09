@@ -3,8 +3,6 @@
     "reason": "Serial input from vmrunner to vm does not work yet"},
   {"name": "net/integration/transmit",
    "reason": "The test suffers from UDP packet loss which is expected."},
-  {"name": "net/integration/router",
-   "reason": "The test suffers uses too many buffers at present."},
   {"name": "posix/integration/ucontext",
    "reason": "The test shows that ucontext is unrealiable, as is."}
 ]
