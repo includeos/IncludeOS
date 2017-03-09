@@ -103,8 +103,9 @@ Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
   if(idx >= stats_.size()) {
     throw Stats_out_of_memory{};
   }
-
-  return (*new (&stats_[next_available_++]) Stat{type, idx, name});
+  auto& stat = *new (&stats_[next_available_]) Stat(type, idx, name);
+  next_available_++;
+  return stat;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

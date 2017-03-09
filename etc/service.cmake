@@ -293,6 +293,7 @@ target_link_libraries(service
     cxxabi
     libos
     libc
+    libos
     libm
     libg
     libgcc

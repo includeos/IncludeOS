@@ -416,3 +416,31 @@ long pathconf(const char *path, int name) {
   close(fd);
   return res;
 }
+
+int execve(const char*,
+           char* const*,
+           char* const*)
+{
+  panic("SYSCALL EXECVE NOT SUPPORTED");
+  return -1;
+}
+
+int fork() {
+  panic("SYSCALL FORK NOT SUPPORTED");
+  return -1;
+}
+
+int getpid() {
+  debug("SYSCALL GETPID Dummy, returning 1");
+  return 1;
+}
+
+int link(const char*, const char*) {
+  panic("SYSCALL LINK unsupported");
+  return -1;
+}
+
+int unlink(const char*) {
+  panic("SYSCALL UNLINK unsupported");
+  return -1;
+}

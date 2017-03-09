@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.9)
 project(unittests C CXX)
 
 option(COVERAGE "Build with coverage generation" OFF)
+option(SILENT_BUILD "Build with some warnings turned off" ON)
 
 if ("${ARCH}" STREQUAL "")
   set (ARCH "ARCH_X86")
@@ -204,7 +205,12 @@ if ("${ARCH}" STREQUAL "ARCH_ARMv7")
   set_property(SOURCE ${SOURCES} PROPERTY COMPILE_FLAGS -mfpu=vfpv3-d16)
 endif("${ARCH}" STREQUAL "ARCH_ARMv7")
 
+if(SILENT_BUILD)
+  message(STATUS "NOTE: Building with some warnings turned off")
+  set_property(SOURCE ${SOURCES} APPEND_STRING PROPERTY COMPILE_FLAGS
+  "-Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare -Wno-format")
+endif()
+
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
-

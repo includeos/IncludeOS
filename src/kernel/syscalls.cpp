@@ -32,7 +32,6 @@
 #include <info>
 #include <smp>
 
-
 #if defined (UNITTESTS) && !defined(__MACH__)
 #define THROW throw()
 #else
@@ -56,40 +55,6 @@ void _exit(int status) {
   default_exit();
 }
 
-int execve(const char*,
-           char* const*,
-           char* const*)
-{
-  panic("SYSCALL EXECVE NOT SUPPORTED");
-  return -1;
-}
-
-int fork() {
-  panic("SYSCALL FORK NOT SUPPORTED");
-  return -1;
-}
-
-int fstat(int, struct stat* st) {
-  debug("SYSCALL FSTAT Dummy, returning OK 0");
-  st->st_mode = S_IFCHR;
-  return 0;
-}
-
-int getpid() {
-  debug("SYSCALL GETPID Dummy, returning 1");
-  return 1;
-}
-
-int link(const char*, const char*) {
-  panic("SYSCALL LINK unsupported");
-  return -1;
-}
-
-int unlink(const char*) {
-  panic("SYSCALL UNLINK unsupported");
-  return -1;
-}
-
 void* sbrk(ptrdiff_t incr) {
   /// NOTE:
   /// sbrk gets called really early on, before everything else
@@ -101,14 +66,6 @@ void* sbrk(ptrdiff_t incr) {
   heap_end += incr;
   return (void*) prev_heap_end;
 }
-
-/*
-int stat(const char*, struct stat *st) {
-  debug("SYSCALL STAT Dummy");
-  st->st_mode = S_IFCHR;
-  return 0;
-}
-*/
 
 clock_t times(struct tms*) {
   panic("SYSCALL TIMES Dummy, returning -1");
@@ -252,4 +209,3 @@ void _init_syscalls()
   // make sure that the buffers length is zero so it won't always show up in crashes
   _crash_context_buffer[0] = 0;
 }
-
