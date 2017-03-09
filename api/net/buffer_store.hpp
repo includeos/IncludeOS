@@ -45,21 +45,21 @@ namespace net
     void release(void*);
 
     /** Get size of a buffer **/
-    inline size_t bufsize() const noexcept
+    size_t bufsize() const noexcept
     { return bufsize_; }
 
-    inline size_t poolsize() const noexcept
+    size_t poolsize() const noexcept
     { return poolsize_; }
 
     /** Check if a buffer belongs here */
-    inline bool is_from_pool(buffer_t addr) const noexcept
+    bool is_from_pool(buffer_t addr) const noexcept
     { return addr >= pool_begin() and addr < pool_end(); }
 
     /** Check if an address is the start of a buffer */
-    inline bool is_buffer(buffer_t addr) const noexcept
+    bool is_buffer(buffer_t addr) const noexcept
     { return (addr - pool_) % bufsize_ == 0; }
 
-    inline size_t available() const noexcept
+    size_t available() const noexcept
     { return available_.size(); }
 
     /** move this bufferstore to the current CPU **/
@@ -76,10 +76,15 @@ namespace net
       return (addr - pool_) / bufsize_;
     }
 
+    BufferStore* get_next_bufstore();
+    inline buffer_t get_buffer_directly() noexcept;
+    inline void     release_directly(buffer_t);
+
     size_t               poolsize_;
     size_t               bufsize_;
     buffer_t             pool_;
     std::vector<buffer_t> available_;
+    BufferStore*         next_;
     int                  cpu;
     static bool          smp_enabled_;
 #ifndef INCLUDEOS_SINGLE_THREADED
