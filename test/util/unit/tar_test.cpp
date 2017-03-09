@@ -51,6 +51,9 @@ CASE("Reading single entry tar file")
   EXPECT(name.find("CMakeLists.txt") != std::string::npos);
   EXPECT_NO_THROW(auto& only_element = tar.element("../CMakeLists.txt"));
   EXPECT_THROWS_AS(auto& missing_element = tar.element("not_there.txt"), tar::Tar_exception);
+
+  // try to decompress a non-tar.gz element
+  EXPECT_THROWS_AS(tar::Tar inner_tar = r.decompress(e), tar::Tar_exception);
   close(fd);
 }
 
