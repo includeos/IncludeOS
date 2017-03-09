@@ -1,7 +1,23 @@
-//-*- C++ -*-
-#define DEBUG
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <net/inet4.hpp>
 #include <net/dhcp/dh4client.hpp>
+#include <smp>
 
 using namespace net;
 
@@ -14,15 +30,19 @@ Inet4::Inet4(hw::Nic& nic)
     icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
     MTU_(nic.MTU())
 {
-  INFO("Inet4","Bringing up a IPv4 stack");
-  Ensures(sizeof(IP4::addr) == 4);
+  static_assert(sizeof(IP4::addr) == 4, "IPv4 addresses must be 32-bits");
+
+  /** SMP related **/
+  this->cpu_id = SMP::cpu_id();
+  INFO("Inet4", "Bringing up %s on CPU %d", 
+        ifname().c_str(), this->get_cpu_id());
 
   /** Upstream delegates */
-  auto arp_bottom(upstream{arp_, &Arp::bottom});
-  auto ip4_bottom(upstream{ip4_, &IP4::bottom});
-  auto icmp4_bottom(upstream{icmp_, &ICMPv4::bottom});
-  auto udp4_bottom(upstream{udp_, &UDP::bottom});
-  auto tcp_bottom(upstream{tcp_, &TCP::bottom});
+  auto arp_bottom(upstream{arp_, &Arp::receive});
+  auto ip4_bottom(upstream{ip4_, &IP4::receive});
+  auto icmp4_bottom(upstream{icmp_, &ICMPv4::receive});
+  auto udp4_bottom(upstream{udp_, &UDP::receive});
+  auto tcp_bottom(upstream{tcp_, &TCP::receive});
 
   /** Upstream wiring  */
   // Packets available
@@ -45,7 +65,7 @@ Inet4::Inet4(hw::Nic& nic)
 
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());
-  auto arp_top(downstream{arp_, &Arp::transmit});
+  auto arp_top(IP4::downstream_arp{arp_, &Arp::transmit});
   auto ip4_top(downstream{ip4_, &IP4::transmit});
 
   /** Downstream wiring. */
@@ -65,6 +85,14 @@ Inet4::Inet4(hw::Nic& nic)
   // Arp -> Link
   assert(link_top);
   arp_.set_linklayer_out(link_top);
+
+#ifndef INCLUDEOS_SINGLE_THREADED
+  // move this nework stack automatically
+  // to the current CPU if its not 0
+  if (SMP::cpu_id() != 0) {
+    this->move_to_this_cpu();
+  }
+#endif
 }
 
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
@@ -132,4 +160,10 @@ void Inet4::force_start_send_queues()
 {
   size_t packets = transmit_queue_available();
   if (packets) process_sendq(packets);
+}
+
+void Inet4::move_to_this_cpu()
+{
+  this->cpu_id = SMP::cpu_id();
+  nic_.move_to_this_cpu();
 }

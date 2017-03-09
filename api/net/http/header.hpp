@@ -24,8 +24,10 @@
 #include <ostream>
 #include <type_traits>
 
-#include "header_fields.hpp"
 #include "common.hpp"
+#include "header_fields.hpp"
+
+#include "../../util/detail/string_view"
 
 namespace http {
 
@@ -118,7 +120,7 @@ public:
   /// @return true if the field is a member,
   /// false otherwise
   ///
-  bool has_field(const std::experimental::string_view field) const noexcept;
+  bool has_field(util::csview field) const noexcept;
 
   ///
   /// Get the value associated with a field
@@ -129,7 +131,7 @@ public:
   /// view otherwise
   ///
   ///
-  std::experimental::string_view value(const std::experimental::string_view field) const noexcept;
+  util::sview value(util::csview field) const noexcept;
 
   ///
   /// Check to see if the set is empty
@@ -154,7 +156,7 @@ public:
   ///
   /// @param field The field name to remove
   ///
-  void erase(const std::experimental::string_view field) noexcept;
+  void erase(util::csview field) noexcept;
 
   ///
   /// Remove all fields from the set leaving it
@@ -162,23 +164,23 @@ public:
   ///
   void clear() noexcept;
 
-  /**
-   * @brief      Returns the Content-Length value in header as an integer
-   *
-   * @note       Return value 0 can mean its either unset or zero.
-   *
-   * @return     The content length as integer
-   */
-  size_t content_length() const;
+  ///
+  /// Returns the Content-Length value in header as an integer
+  ///
+  /// @note Return value 0 can mean its either unset or zero.
+  ///
+  /// @return The content length as integer
+  ///
+  size_t content_length() const noexcept;
 
-  /**
-   * @brief      Sets the Content-Length value in the header
-   *
-   * @param[in]  len   The length of the content
-   *
-   * @return     Outcome of wether the field got updated or not
-   */
-  bool set_content_length(size_t len);
+  ///
+  /// Sets the Content-Length value in the header
+  ///
+  /// @param len The length of the content
+  ///
+  /// @return Outcome of whether the field got updated or not
+  ///
+  bool set_content_length(const size_t len);
 
 private:
   ///
@@ -194,7 +196,7 @@ private:
   /// @return Iterator to the location of the field,
   /// else location to the end of the sequence
   ///
-  Const_iterator find(const std::experimental::string_view field) const noexcept;
+  Const_iterator find(util::csview field) const noexcept;
 
   ///
   /// Operator to stream the contents of the set

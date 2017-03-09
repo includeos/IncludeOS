@@ -40,7 +40,8 @@ void Service::start(const std::string&)
 
   // Initialize first valid partition (auto-detect and init)
   disk->init_fs(
-  [] (fs::error_t err) {
+  [] (fs::error_t err, auto& fs)
+  {
     if (err) {
       printf("Could not mount filesystem\n");
       panic("init_fs() failed");
@@ -48,7 +49,7 @@ void Service::start(const std::string&)
     CHECKSERT (not err, "Was able to mount filesystem");
 
     // async ls
-    disk->fs().ls("/",
+    fs.ls("/",
     [] (fs::error_t err, auto ents) {
       if (err) {
         printf("Could not list '/' directory\n");

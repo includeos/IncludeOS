@@ -52,6 +52,10 @@ namespace hw
   {
     msix->setup_vector(cpu, irq);
   }
+  void PCI_Device::rebalance_msix_vector(uint16_t idx, uint8_t cpu, uint8_t irq)
+  {
+    msix->redirect_vector(idx, cpu, irq);
+  }
   
   void PCI_Device::deactivate_msix()
   {

@@ -48,10 +48,10 @@ const lest::test specification[] =
             auto& heap = map.at(heap_begin);
             auto original_end = heap.addr_end();
 
-            EXPECT(heap.in_use() < heap.size());
+            EXPECT(heap.bytes_in_use() < heap.size());
 
             // Resize heap to have only 1 MB of free space
-            OS::resize_heap(heap.in_use() + 0x100000);
+            OS::resize_heap(heap.bytes_in_use() + 0x100000);
 
             EXPECT(heap.addr_end() < original_end);
 

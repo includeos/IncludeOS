@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,209 +15,497 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef KERNEL_MEMMAP_HPP
 #define KERNEL_MEMMAP_HPP
 
-#include <map>
 #include <cassert>
-#include <sstream>
-#include <delegate>
 #include <common>
+#include <delegate>
+#include <map>
+#include <string>
 
-
-/** Exception for Fixed_memory_range */
-class Memory_range_exception : public std::runtime_error {
+/**
+ * This type is used to represent an error that occurred
+ * from within the operations of class Fixed_memory_range
+ */
+struct Memory_range_exception : public std::runtime_error {
   using runtime_error::runtime_error;
-};
+}; //< struct Memory_range_exception
 
-
-/** A description of a fixed and occupied memory range.  */
+/**
+ * This class is used to represent a fixed and occupied
+ * memory range
+ */
 class Fixed_memory_range {
-
 public:
+  using size_type    = ptrdiff_t;
+  using In_use_delg  = delegate<size_type()>;
+  using Memory_range = gsl::span<uint8_t>;
 
-  /** An actual range of memory. */
-  using Span = gsl::span<uint8_t>;
-  static constexpr auto span_max() {
-    return std::numeric_limits<std::ptrdiff_t>::max();
-  }
+  /**
+   * Constructor
+   *
+   * @param begin
+   *   The beginning address of the memory range
+   *
+   * @param end
+   *   The end address of the memory range
+   *
+   * @param name
+   *   The name of the memory range
+   *
+   * @param description
+   *   The description of the memory range
+   *
+   * @param in_use_operation
+   *   The operation to perform when bytes_in_use is called
+   *
+   * @throws Memory_range_exception
+   *   IIf (begin > end) or ((end - begin + 1) > max_size())
+   */
+  Fixed_memory_range(const uintptr_t begin, const uintptr_t end, const char* name,
+                     const std::string& description, In_use_delg in_use_operation);
 
-  using size_type = ptrdiff_t;
-  using In_use_delg = delegate<size_type()>;
-
-  void set_in_use_delg(In_use_delg del) {
-    in_use_ = del;
-  };
-
-  /** Constructors **/
-  Fixed_memory_range(uintptr_t begin, uintptr_t end, const char* name,
-                     const std::string descr, In_use_delg in_use)
-    : name_{name}, description_{descr}, in_use_{in_use}
-  {
-    if (begin > end)
-      throw Memory_range_exception("Start is larger than end: " +
-          std::to_string(begin) + " > " + std::to_string(end));
-    if (end - begin + 1 > span_max())
-      throw Memory_range_exception("Maximum range size is " + std::to_string(span_max()));
-    range_ = Span((uint8_t*)begin, end - begin + 1);
-  }
-
-  Fixed_memory_range(uintptr_t begin, uintptr_t end, const char* name, std::string descr)
-    : Fixed_memory_range(begin, end, name, descr, nullptr)
+  /**
+   * Constructor
+   *
+   * @param begin
+   *   The beginning address of the memory range
+   *
+   * @param end
+   *   The end address of the memory range
+   *
+   * @param name
+   *   The name of the memory range
+   *
+   * @param description
+   *   The description of the memory range
+   *
+   * @throws Memory_range_exception
+   *   IIf (begin > end) or ((end - begin + 1) > max_size())
+   */
+  Fixed_memory_range(const uintptr_t begin, const uintptr_t end, const char* name,
+                     const std::string& description)
+    : Fixed_memory_range(begin, end, name, description, nullptr)
   {}
 
-  Fixed_memory_range(uintptr_t begin, uintptr_t end, const char* name)
+  /**
+   * Constructor
+   *
+   * @param begin
+   *   The beginning address of the memory range
+   *
+   * @param end
+   *   The end address of the memory range
+   *
+   * @param name
+   *   The name of the memory range
+   *
+   * @throws Memory_range_exception
+   *   IIf (begin > end) or ((end - begin + 1) > max_size())
+   */
+  Fixed_memory_range(const uintptr_t begin, const uintptr_t end, const char* name)
     : Fixed_memory_range(begin, end, name, "N/A")
   {}
 
-  Fixed_memory_range(Span&& range, const char* name, const std::string descr)
-    : range_{std::move(range)}, name_{name}, description_{descr}
-  {}
+  /**
+   * Constructor
+   *
+   * @param range
+   *   The memory range
+   *
+   * @param name
+   *   The name of the memory range
+   *
+   * @param description
+   *   The description of the memory range
+   *
+   * @throws Memory_range_exception
+   *   IIf (range.addr_start() > range.addr_end()) or
+   *       ((range.addr_end() - range.addr_start() + 1) > max_size())
+   */
+  Fixed_memory_range(Memory_range&& range, const char* name, const std::string& description);
 
-  Fixed_memory_range(Span&& range, const char* name)
-    : Fixed_memory_range(std::move(range), name, "N/A")
-  {}
+  /**
+   * Constructor
+   *
+   * @param range
+   *   The memory range
+   *
+   * @param name
+   *   The name of the memory range
+   *
+   * @throws Memory_range_exception
+   *   IIf (range.addr_start() > range.addr_end()) or
+   *       ((range.addr_end() - range.addr_start() + 1) > max_size())
+   */
+  Fixed_memory_range(Memory_range&& range, const char* name);
 
+  /**
+   * Deleted default constructor
+   */
   Fixed_memory_range() = delete;
 
-  /** Copy / Move / Delete **/
-  Fixed_memory_range(const Fixed_memory_range& cpy) = default;
-  Fixed_memory_range(Fixed_memory_range&& other) = default;
+  /**
+   * Default copy constructor
+   */
+  Fixed_memory_range(const Fixed_memory_range&) = default;
+
+  /**
+   * Default move constructor
+   */
+  Fixed_memory_range(Fixed_memory_range&&) = default;
+
+  /**
+   * Default copy assignment operator
+   */
   Fixed_memory_range& operator=(const Fixed_memory_range&) = default;
+
+  /**
+   * Default move assignment operator
+   */
   Fixed_memory_range& operator=(Fixed_memory_range&&) = default;
+
+  /**
+   * Default destructor
+   */
   ~Fixed_memory_range() = default;
 
-  /** Const getters */
-  ptrdiff_t size() const { return range_.size(); }
-  const Span cspan() const { return range_; }
-  const char* name() const { return name_; }
-  const std::string description() const { return description_; }
+  /**
+   * Check if the specified memory range is valid
+   *
+   * @param range
+   *   The memory range to check for validity
+   *
+   * @return true if the specified memory range is valid,
+   * false otherwise
+   */
+  static bool is_valid_range(const Memory_range& range) noexcept;
 
+  /**
+   * Check if the specified bounds are valid for describing a
+   * memory range
+   *
+   * @param begin
+   *   The beginning address of the memory range
+   *
+   * @param end
+   *   The end address of the memory range
+   *
+   * @return true if the specified bounds are valid for describing a
+   * memory range, false otherwise
+   */
+  static constexpr bool is_valid_range(const uintptr_t begin, const uintptr_t end) noexcept
+  { return (begin < end) or ((end - begin + 1) <= static_cast<uintptr_t>(max_size())); }
+
+  /**
+   * Get the maximum number of bytes a memory range is able to hold
+   *
+   * @return The maximum number of bytes a memory range is able to hold
+   */
+  static constexpr size_type max_size() noexcept
+  { return std::numeric_limits<size_type>::max(); }
+
+  /**
+   * Set an operation to perform when bytes_in_use is called
+   *
+   * @param in_use_operation
+   *   An operation to perform when bytes_in_use is called
+   */
+  void set_in_use_delg(In_use_delg in_use_operation)
+  { in_use_op_ = in_use_operation; }
+
+  /**
+   * Get the number of bytes in the memory range
+   *
+   * @return The number of bytes in the memory range
+   */
+  size_type size() const noexcept
+  { return range_.size(); }
+
+  /**
+   * Get the name of the memory range
+   *
+   * @return The name of the memory range
+   */
+  const char* name() const noexcept
+  { return name_; }
+
+  /**
+   * Get the description of the memory range
+   *
+   * @return The description of the memory range
+   */
+  const std::string& description() const noexcept
+  { return description_; }
+
+  /**
+   * The start address of the memory range
+   *
+   * @return The start address of the memory range
+   */
   uintptr_t addr_start() const noexcept {
     return reinterpret_cast<uintptr_t>(range_.data());
   }
 
-  uintptr_t addr_end() const noexcept {
-    return reinterpret_cast<uintptr_t>(range_.data() + range_.size() - 1);
-  }
+  /**
+   * The end address of the memory range
+   *
+   * @return The end address of the memory range
+   */
+  uintptr_t addr_end() const noexcept
+  { return reinterpret_cast<uintptr_t>(range_.data() + range_.size() - 1); }
 
-  bool in_range(uintptr_t addr) const {
-    return addr >= addr_start() and addr <= addr_end();
-  }
+  /**
+   * Check if the specified address is within the memory range
+   *
+   * @param addr
+   *   The specified address to check if it's within the memory range
+   *
+   * @return true if the specified address is within the memory range,
+   * false otherwise
+   */
+  bool in_range(const uintptr_t addr) const noexcept
+  { return (addr >= addr_start()) and (addr <= addr_end()); }
+
+  /**
+   * Check if the specified memory range overlaps
+   *
+   * @param other
+   *   The specified memory range to check if it overlaps
+   *
+   * @return true if the specified memory range overlaps, false otherwise
+   */
+  bool overlaps(const Fixed_memory_range& other) const noexcept;
 
   /**
    * Calls the (possibly) user provided delegate showing the number of bytes
-   * actually in use by this range. E.g. heap has a fixed range, but dynamic use
-   **/
-  auto in_use() const {
-    if(in_use_)
-      return in_use_();
-    else
-      return size();
-  }
+   * actually in use by this range
+   *
+   * E.g. heap has a fixed range, but dynamic use
+   *
+   * @return The number of bytes actually in use by this range
+   */
+  size_type bytes_in_use() const
+  { return in_use_op_ ? in_use_op_() : size(); }
 
-  bool overlaps(const Fixed_memory_range& other) const {
-    // Other range overlaps with my range
-    return in_range(other.addr_start()) or in_range(other.addr_end())
-      // Or my range is inside other range
-      or (other.in_range(addr_start()) and other.in_range(addr_end()));
-  }
+  /**
+   * Get a string representation of this class
+   *
+   * @return A string representation of this class
+   */
+  std::string to_string() const;
 
-  std::string to_string() const {
+  /**
+   * Operator to transform this class into string form
+   */
+  operator std::string () const;
 
-    std::stringstream out;
-    out << name_ << " " << std::hex << addr_start() << " - "
-        << addr_end() << " (" << description_
-        << ", " << std::dec
-        << in_use() << " / " << range_.size() <<  " bytes used) ";
-    return out.str();
-  }
+  /**
+   * Expand or shrink the memory range by the specified size
+   * in bytes
+   *
+   * @expects size > 0
+   *
+   * @param size
+   *   The specified size in bytes to expand or shrink the memory
+   *   range by
+   *
+   * @return The new size of the memory range in bytes
+   */
+  ptrdiff_t resize(const ptrdiff_t size);
 
-  ptrdiff_t resize(ptrdiff_t size){
-    Expects(size);
-    range_ = Span(range_.data(), size);
-    return size;
-  }
+  /**
+   * Get the raw representation of the memory range
+   *
+   * @return The raw representation of the memory range
+   */
+  const Memory_range& range() const noexcept
+  { return range_; }
 
-  /** Mutable getters */
-  Span span() { return range_; }
-  operator Span () { return range_; }
+  /**
+   * Operator to transform this class into its raw representation
+   */
+  operator Memory_range() const
+  { return range_; }
 
-  /** Iterators */
-  auto begin() { return range_.begin(); }
-  auto end() { return range_.end(); }
-  auto cbegin() { return range_.cbegin(); }
-  auto cend() { return range_.cend(); }
+  /**
+   * Get an iterator to the beginning of the memory range
+   *
+   * @return An iterator to the beginning of the memory range
+   */
+  auto begin() noexcept
+  { return range_.begin(); }
 
+  /**
+   * Get an iterator to the end of the memory range
+   *
+   * @return An iterator to the end of the memory range
+   */
+  auto end() noexcept
+  { return range_.end(); }
 
+  /**
+   * Get a const iterator to the beginning of the memory range
+   *
+   * @return A const iterator to the beginning of the memory range
+   */
+  auto cbegin() const noexcept
+  { return range_.cbegin(); }
+
+  /**
+   * Get a const iterator to the end of the memory range
+   *
+   * @return A const iterator to the end of the memory range
+   */
+  auto cend() const noexcept
+  { return range_.cend(); }
 private:
-  Span range_;
-  const char* name_;
-  const std::string description_;
-  In_use_delg in_use_;
+  Memory_range range_;
+  const char*  name_;
+  std::string  description_;
+  In_use_delg  in_use_op_;
+}; //< class Fixed_memory_range
 
-};
-
+/**
+ * This class is a representation of the operating system's
+ * memory map
+ */
 class Memory_map {
-
 public:
-
-  using Map = std::map<uintptr_t, Fixed_memory_range>;
-
-  /**
-   * Assign a fixed range of memory to a named purpose.
-   * @note : The requested range cannot overlap with an existing range.
-   * @note : The return value is the only way to access a mutable version of this range
-   **/
-  Fixed_memory_range& assign_range (Fixed_memory_range&& rng);
+  using Key = uintptr_t;
+  using Map = std::map<Key, Fixed_memory_range>;
 
   /**
-   * Assign a memory range of a certain size to a named purpose.
-   **/
-  Fixed_memory_range& assign_range (Fixed_memory_range::size_type size);
+   * Assign a fixed range of memory to a named purpose
+   *
+   * @note The requested range cannot overlap with an existing range
+   * @note The return value is the only way to access a mutable version of this range
+   */
+  Fixed_memory_range& assign_range(Fixed_memory_range&& rng);
 
   /**
-   * Check if an address is within a range in the map.
-   * @param addr : the address to chekc
-   * @return the key (e.g. start address) of the range or 0 if no match
-   **/
-  uintptr_t in_range(uintptr_t addr);
+   * Assign a memory range of a certain size to a named purpose
+   */
+  Fixed_memory_range& assign_range(const Fixed_memory_range::size_type size);
 
   /**
-   * Resize a range if possible (e.g. if the range.in_use() was less than it's size)
-   * @param size : the new size
-   * @return the new size. Throws if a resize wasn't possible.
-   **/
-  ptrdiff_t resize(uintptr_t key, ptrdiff_t size);
+   * Check if an address is within a range in the map
+   *
+   * @param addr
+   *   The address to check
+   *
+   * @return The key (e.g start address) of the range or 0 if no match
+   */
+  Key in_range(const Key addr);
 
+  /**
+   * Get a reference to the memory range associated with the specified
+   * key
+   *
+   * @param key
+   *   The key associated with the memory range
+   *
+   * @return A reference to the memory range associated with the
+   * specified key
+   *
+   * @throws Memory_range_exception IIf (key == 0)
+   * @throws std::out_of_range IIf (key < 0) or (key >= size())
+   */
+  Fixed_memory_range& at(const Key key);
 
+  /**
+   * Get a const reference to the memory range associated with the
+   * specified key
+   *
+   * @param key
+   *   The key associated with the memory range
+   *
+   * @return A const reference to the memory range associated with the
+   * specified key
+   *
+   * @throws Memory_range_exception IIf (key == 0)
+   * @throws std::out_of_range IIf (key < 0) or (key >= size())
+   */
+  const Fixed_memory_range& at(const Key key) const;
 
-  //
-  // Act as a map in safe ways
-  //
+  /**
+   * Resize a range if possible (e.g. if the range.bytes_in_use() was less than its size)
+   *
+   * @param size
+   *   The new size for the specified memory range
+   *
+   * @return The new size for the specified memory range
+   *
+   * @throws std::out_of_range IIf (key <= 0) or (key >= size())
+   * @throws Memory_range_exception IIf a resize wasn't possible
+   */
+  ptrdiff_t resize(const Key key, const ptrdiff_t size);
 
-  operator const Map&(){
-    return map_;
-  }
+  /**
+   * Get the number of memory ranges in the memory map
+   *
+   * @return The number of memory ranges in the memory map
+   */
+  auto size() const noexcept
+  { return map_.size(); }
 
-  const Map& map() {
-    return map_;
-  }
+  /**
+   * Check if the memory map is empty
+   *
+   * @return true if the memory map is empty, false otherwise
+   */
+  auto empty() const noexcept
+  { return map_.empty(); }
 
-  const Map::const_iterator begin() { return map_.cbegin(); };
-  const Map::const_iterator end() { return map_.cend(); };
-  const Fixed_memory_range& at(uintptr_t i) {
-    if (UNLIKELY(i == 0))
-      throw Memory_range_exception("No range starts at address 0");
-    return map_.at(i);
-  };
-  auto size() { return map_.size(); }
-  auto empty() { return map_.empty(); }
+  /**
+   * Get the raw representation of the memory map
+   *
+   * @return The raw representation of the memory map
+   */
+  const Map& map() const noexcept
+  { return map_; }
 
+  /**
+   * Operator to transform this class into its raw representation
+   */
+  operator const Map&() const noexcept
+  { return map_; }
+
+  /**
+   * Get an iterator to the beginning of the memory map
+   *
+   * @return An iterator to the beginning of the memory map
+   */
+  auto begin() noexcept
+  { return map_.begin(); }
+
+  /**
+   * Get an iterator to the end of the memory map
+   *
+   * @return An iterator to the end of the memory map
+   */
+  auto end() noexcept
+  { return map_.end(); }
+
+  /**
+   * Get a const iterator to the beginning of the memory map
+   *
+   * @return A const iterator to the beginning of the memory map
+   */
+  auto cbegin() const noexcept
+  { return map_.cbegin(); }
+
+  /**
+   * Get a const iterator to the end of the memory map
+   *
+   * @return A const iterator to the end of the memory map
+   */
+  auto cend() const noexcept
+  { return map_.cend(); }
 private:
   Map map_;
+}; //< class Memory_map
 
-};
-
-
-#endif
+#endif //< KERNEL_MEMMAP_HPP

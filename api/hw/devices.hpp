@@ -22,7 +22,6 @@
 #include <virtio/console.hpp>
 
 #include "nic.hpp"
-#include "pit.hpp"
 #include "block_device.hpp"
 
 class PCI_manager; // for friending

@@ -19,10 +19,10 @@
 #define HTTP_TIME_HPP
 
 #include <ctime>
-#include <experimental/string_view>
 #include <iomanip>
 #include <sstream>
-#include <string>
+
+#include "../../util/detail/string_view"
 
 namespace http {
 namespace time {
@@ -49,7 +49,7 @@ std::string from_time_t(const std::time_t time_);
 ///
 /// @note Returns a default initialized {time_t} object if an error occurred
 ///
-std::time_t to_time_t(const std::experimental::string_view time_);
+std::time_t to_time_t(util::csview time_);
 
 ///
 /// Get the current time in {Internet Standard Format}

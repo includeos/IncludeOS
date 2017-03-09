@@ -19,6 +19,13 @@ cmake_minimum_required(VERSION 2.8.9)
 project(unittests C CXX)
 
 option(COVERAGE "Build with coverage generation" OFF)
+option(SILENT_BUILD "Build with some warnings turned off" ON)
+
+if ("${ARCH}" STREQUAL "")
+  set (ARCH "ARCH_X86")
+endif("${ARCH}" STREQUAL "")
+
+add_definitions(-D${ARCH} -DINCLUDEOS_SINGLE_THREADED)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
@@ -73,9 +80,11 @@ set(TEST_SOURCES
   ${TEST}/net/unit/http_time_test.cpp
   ${TEST}/net/unit/http_version_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
+  ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
+  ${TEST}/net/unit/router.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/util/unit/base64.cpp
@@ -107,21 +116,12 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
-  ${SRC}/hw/acpi.cpp
-  ${SRC}/hw/apic.cpp
-  ${SRC}/hw/apic_revenant.cpp
-  ${SRC}/hw/apic_timer.cpp
   ${SRC}/hw/block_device.cpp
-  ${SRC}/hw/cpu_freq_sampling.cpp
-  ${SRC}/hw/ioapic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp
-  ${SRC}/hw/pic.cpp
-  ${SRC}/hw/pit.cpp
   ${SRC}/hw/ps2.cpp
   ${SRC}/hw/serial.cpp
-  ${SRC}/hw/smp.cpp
   ${SRC}/kernel/block.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
@@ -202,11 +202,31 @@ if(TRAVIS)
   list(REMOVE_ITEM TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
 endif()
 
+if ("${ARCH}" STREQUAL "ARCH_ARMv7")
+  list(REMOVE_ITEM TEST_SOURCES ${TEST}/hw/unit/cpu_test.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/ps2.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/hw/serial.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/cpuid.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/irq_manager.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/rdrand.cpp)
+  list(REMOVE_ITEM OS_SOURCES ${SRC}/kernel/terminal.cpp)
+endif("${ARCH}" STREQUAL "ARCH_ARMv7")
+
 # Only build selected sources with SINGLE
 if(NOT SINGLE)
   set(SOURCES ${MOD_OBJECTS} ${OS_SOURCES} ${TEST_SOURCES} ${LEST_UTIL})
 else()
   set(SOURCES ${SINGLE} ${LEST_UTIL})
+endif()
+
+if ("${ARCH}" STREQUAL "ARCH_ARMv7")
+  set_property(SOURCE ${SOURCES} PROPERTY COMPILE_FLAGS -mfpu=vfpv3-d16)
+endif("${ARCH}" STREQUAL "ARCH_ARMv7")
+
+if(SILENT_BUILD)
+  message(STATUS "NOTE: Building with some warnings turned off")
+  set_property(SOURCE ${SOURCES} APPEND_STRING PROPERTY COMPILE_FLAGS
+  "-Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare -Wno-format")
 endif()
 
 add_executable(unittests ${SOURCES})

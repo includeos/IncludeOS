@@ -37,20 +37,14 @@ const Header& Message::header() const noexcept {
 ///////////////////////////////////////////////////////////////////////////////
 Message& Message::add_body(const Message_body& message_body) {
   if (message_body.empty()) return *this;
-  //-----------------------------------
   message_body_ = message_body;
-  //-----------------------------------
-  //header().add_field(header::Content_Length, std::to_string(message_body_.size()));
   return *this;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 Message& Message::add_chunk(const std::string& chunk) {
   if (chunk.empty()) return *this;
-  //-----------------------------------
   message_body_.append(chunk);
-  //-----------------------------------
-  //header().set_field(header::Content_Length, std::to_string(message_body_.size()));
   return *this;
 }
 
@@ -60,14 +54,13 @@ bool Message::has_body() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::experimental::string_view Message::body() const noexcept {
+util::sview Message::body() const noexcept {
   return message_body_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 Message& Message::clear_body() noexcept {
   message_body_.clear();
-  //header().erase(header::Content_Length);
   return *this;
 }
 
@@ -93,7 +86,7 @@ Message::operator std::string () const {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::experimental::string_view Message::private_field() const noexcept {
+util::sview Message::private_field() const noexcept {
   return field_;
 }
 

@@ -50,12 +50,13 @@ public:
   //! a valid MTU-sized buffer
   void init()
   {
-    PacketIP4::init(IP4::IP4_TCP);
-    char* ipdata = ip_data();
-    assert(((uintptr_t) ipdata & 3) == 0);
+
+    PacketIP4::init(Protocol::TCP);
+    Byte* ipdata = ip_data();
 
     // clear TCP header
-    __builtin_memset(ipdata, 0, sizeof(Header));
+    ((uint32_t*) ipdata)[3] = 0;
+    ((uint32_t*) ipdata)[4] = 0;
 
     auto& hdr = *(Header*) ipdata;
     // set some default values
@@ -64,7 +65,7 @@ public:
 
     /// TODO: optimize:
     set_length();
-    set_payload(buffer() + tcp_full_header_length());
+    //set_payload(buffer() + tcp_full_header_length());
   }
 
   // GETTERS
@@ -177,15 +178,15 @@ public:
   inline uint8_t tcp_header_length() const
   { return offset() * 4; }
 
-  inline uint8_t tcp_full_header_length() const
-  { return ip_full_header_length() + tcp_header_length(); }
-
   // The total length of the TCP segment (TCP header + data)
   uint16_t tcp_length() const
   { return tcp_header_length() + tcp_data_length(); }
 
   // Where data starts
-  inline char* tcp_data()
+  inline Byte* tcp_data()
+  { return ip_data() + tcp_header_length(); }
+
+  inline const Byte* tcp_data() const
   { return ip_data() + tcp_header_length(); }
 
   // Length of data in packet when header has been accounted for
@@ -195,15 +196,64 @@ public:
   inline bool has_tcp_data() const
   { return tcp_data_length() > 0; }
 
-  template <typename T, typename... Args>
+  /**
+   * @brief      Adds a tcp option.
+   *
+   * @todo       It's probably a better idea to make the option include
+   *             the padding for it to be aligned, and avoid two mem operations
+   *
+   * @tparam     T          TCP Option
+   * @tparam     Padding    padding in bytes to be put infront of the option
+   * @tparam     Args       construction args to option T
+   */
+  template <typename T, int Padding = 0, typename... Args>
   inline void add_tcp_option(Args&&... args) {
     // to avoid headache, options need to be added BEFORE any data.
     assert(!has_tcp_data());
+    struct NOP {
+      uint8_t kind{0x01};
+    };
     // option address
     auto* addr = tcp_options()+tcp_options_length();
-    new (addr) T(args...);
+    // if to use pre padding
+    if(Padding)
+      new (addr) NOP[Padding];
+
+    // emplace the option after pre padding
+    const auto& opt = *(new (addr + Padding) T(args...));
+
+    // find number of NOP to pad with
+    const auto nops = (opt.length + Padding) % 4;
+    if(nops) {
+      new (addr + Padding + opt.length) NOP[nops];
+    }
+
     // update offset
-    set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
+    set_offset(offset() + round_up(opt.length + Padding, 4));
+
+    set_length(); // update
+  }
+
+  /**
+   * @brief      Adds a tcp option aligned.
+   *             Assumes the user knows what he's doing.
+   *
+   * @tparam     T          An aligned TCP option
+   * @tparam     Args       construction args to option T
+   */
+  template <typename T, typename... Args>
+  inline void add_tcp_option_aligned(Args&&... args) {
+    // to avoid headache, options need to be added BEFORE any data.
+    Expects(!has_tcp_data() and sizeof(T) % 4 == 0);
+
+    // option address
+    auto* addr = tcp_options()+tcp_options_length();
+    // emplace the option
+    new (addr) T(args...);
+
+    // update offset
+    set_offset(offset() + (sizeof(T) / 4));
+
     set_length(); // update
   }
 
@@ -217,6 +267,9 @@ public:
   // Options
   inline uint8_t* tcp_options()
   { return (uint8_t*) tcp_header().options; }
+
+  inline const uint8_t* tcp_options() const
+  { return (const uint8_t*) tcp_header().options; }
 
   inline uint8_t tcp_options_length() const
   { return tcp_header_length() - sizeof(Header); }
@@ -261,8 +314,8 @@ private:
   // sets the correct length for all the protocols up to IP4
   void set_length(uint16_t newlen = 0) {
     // new total packet length
-    set_size( tcp_full_header_length() + newlen );
-    // update IP packet aswell - bad idea?
+    set_data_end( ip_header_length() + tcp_header_length() + newlen );
+    // update IP packet aswell - tcp data length relies on this field
     set_segment_length();
   }
 

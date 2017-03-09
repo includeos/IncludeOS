@@ -15,14 +15,14 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 USE32
-global unused_interrupt_handler
+global unused_interrupt_handler:function
 extern current_eoi_mechanism
 
 extern register_modern_interrupt
-global modern_interrupt_handler
+global modern_interrupt_handler:function
 
 extern cpu_sampling_irq_handler
-global cpu_sampling_irq_entry
+global cpu_sampling_irq_entry:function
 
 unused_interrupt_handler:
   cli

@@ -44,7 +44,7 @@ Statman& Statman::get() {
 }
 
 #include <rtc>
-RTC::timestamp_t RTC::booted_at_ = 0;
+RTC::timestamp_t RTC::booted_at = 0;
 
 RTC::timestamp_t RTC::now() {
   return 0;
@@ -158,3 +158,46 @@ extern "C" {
     return;
   }
 }
+
+/// arch ///
+void __arch_init() {}
+void __arch_poweroff() {}
+void __arch_reboot() {}
+void __arch_enable_legacy_irq(uint8_t) {}
+void __arch_disable_legacy_irq(uint8_t) {}
+
+#include <smp>
+int SMP::cpu_id() noexcept {
+  return 0;
+}
+void SMP::global_lock() noexcept {}
+void SMP::global_unlock() noexcept {}
+
+extern "C"
+void (*current_eoi_mechanism) () = nullptr;
+
+#ifdef ARCH_X86
+#include "../../src/arch/x86/apic.hpp"
+namespace x86 {
+  IApic& APIC::get() noexcept { return *(IApic*) 0; }
+}
+#endif
+
+#ifndef ARCH_X86
+bool rdrand32(uint32_t* result) {
+  return true;
+}
+#include <kernel/cpuid.hpp>
+bool CPUID::has_feature(Feature f) {
+  return true;
+}
+#include <kernel/irq_manager.hpp>
+IRQ_manager& IRQ_manager::get() {
+  static IRQ_manager m;
+  return m;
+}
+void IRQ_manager::process_interrupts() {
+  return;
+}
+#endif
+
