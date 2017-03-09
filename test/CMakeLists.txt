@@ -85,6 +85,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/percent_encoding_test.cpp
   ${TEST}/util/unit/ringbuffer.cpp
   ${TEST}/util/unit/statman.cpp
+  ${TEST}/util/unit/tar_test.cpp
   ${TEST}/util/unit/uri_test.cpp
 )
 
@@ -208,12 +209,19 @@ endif("${ARCH}" STREQUAL "ARCH_ARMv7")
 if(SILENT_BUILD)
   message(STATUS "NOTE: Building with some warnings turned off")
   set_property(SOURCE ${SOURCES} APPEND_STRING PROPERTY COMPILE_FLAGS
-  "-Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare -Wno-format")
+  " -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare -Wno-format")
 endif()
 
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
+add_custom_command(
+  TARGET unittests PRE_BUILD
+  COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-single.tar ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+  COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-multiple.tar ${CMAKE_CURRENT_SOURCE_DIR}/*.py
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/test-invalid.tar
+)
 
 add_custom_target(
   cppcheck
