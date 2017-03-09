@@ -33,6 +33,7 @@ CASE("Reading single entry tar file")
   EXPECT_NOT(fd == -1);
   const uint8_t *mem = (const uint8_t *)mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
   tar::Tar tar = r.read_uncompressed(mem, size);
+  EXPECT(tar.num_elements() == 1);
   auto names = tar.element_names();
   EXPECT(names.size() == 1);
   const auto& elements = tar.elements();
@@ -40,6 +41,7 @@ CASE("Reading single entry tar file")
   const auto& e = elements.at(0);
   EXPECT_NOT(e.is_dir());
   EXPECT(e.typeflag_is_set());
+  EXPECT(e.typeflag() == REGTYPE); // regular file
   EXPECT_NOT(e.is_empty());
   EXPECT(e.is_ustar());
   EXPECT_NOT(e.is_tar_gz());
@@ -47,6 +49,7 @@ CASE("Reading single entry tar file")
   EXPECT(e.size() > 0);
   const auto& name = e.name();
   EXPECT(name.find("CMakeLists.txt") != std::string::npos);
+  EXPECT_NO_THROW(auto& only_element = tar.element("../CMakeLists.txt"));
   EXPECT_THROWS_AS(auto& missing_element = tar.element("not_there.txt"), tar::Tar_exception);
   close(fd);
 }
@@ -82,5 +85,27 @@ CASE("Reading invalid tar file")
   EXPECT_NOT(fd == -1);
   const uint8_t *mem = (const uint8_t *)mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
   EXPECT_THROWS_AS(tar::Tar tar = r.read_uncompressed(mem, size), tar::Tar_exception);
+  close(fd);
+}
+
+CASE("Reading tar.gz inside tar file")
+{
+  tar::Reader r;
+  struct stat st;
+  int res = stat("test-tar-gz-inside.tar", &st);
+  EXPECT(res != -1);
+  size_t size = st.st_size;
+  int fd = open("test-tar-gz-inside.tar", O_RDONLY);
+  EXPECT_NOT(fd == -1);
+  const uint8_t *mem = (const uint8_t *)mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+  tar::Tar tar = r.read_uncompressed(mem, size);
+  EXPECT(tar.num_elements() == 1);
+  const auto& e = tar.elements().at(0);
+  EXPECT(e.is_tar_gz());
+  EXPECT(e.name().find(".tar.gz") != std::string::npos);
+  tar::Tar inner_tar = r.decompress(e);
+  EXPECT(inner_tar.num_elements() == 1);
+  const auto& inner_e = inner_tar.elements().at(0);
+  EXPECT(inner_e.name().find(".tar.gz") == std::string::npos);
   close(fd);
 }

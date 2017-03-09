@@ -168,6 +168,10 @@ set(OS_SOURCES
 
 set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
+  ${INCLUDEOS_ROOT}/mod/uzlib/src/adler32.c
+  ${INCLUDEOS_ROOT}/mod/uzlib/src/crc32.c
+  ${INCLUDEOS_ROOT}/mod/uzlib/src/tinflate.c
+  ${INCLUDEOS_ROOT}/mod/uzlib/src/tinfgzip.c
 )
 
 if(COVERAGE)
@@ -221,6 +225,8 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-single.tar ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
   COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-multiple.tar ${CMAKE_CURRENT_SOURCE_DIR}/*.py
   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/test-invalid.tar
+  COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+  COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz
 )
 
 add_custom_target(
