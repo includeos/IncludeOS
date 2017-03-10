@@ -23,11 +23,24 @@ using namespace net;
 void Service::start(const std::string&)
 {
   auto& inet = Inet4::stack<0>();
-  inet.network_config({  10,  0,  0, 45 },   // IP
-                      { 255, 255, 0,  0 },   // Netmask
-                      {  10,  0,  0,  1 } ); // Gateway
+  inet.network_config({  10,  0,  0, 45 },    // IP
+                      { 255, 255, 0,  0 },    // Netmask
+                      {  10,  0,  0,  1 } );  // Gateway
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
-  inet.icmp().ping(IP4::addr{193,90,147,109});  // google.com
-  // inet.icmp().ping(IP4::addr{10,0,0,42});       // acorn
+  // ping google.com with callback
+  inet.icmp().ping(IP4::addr{193,90,147,109}, [](ICMP_packet pckt) {
+    printf("Received packet\n%s\n", pckt.to_string().c_str());
+  });
+
+  // Also possible
+  // inet.icmp().ping(IP4::addr{193,90,147,109});  // google.com
+
+  /* No reply-ping
+  inet.icmp().ping(IP4::addr{23,143,23,33}, [](ICMP_packet pckt) {
+    printf("Received packet\n%s\n", pckt.to_string().c_str());
+  });
+  inet.icmp().ping(IP4::addr{23,143,23,33}, [](ICMP_packet pckt) {
+    printf("Received packet\n%s\n", pckt.to_string().c_str());
+  });*/
 }
