@@ -3,5 +3,7 @@
   "cpu" : "host",
   "mem" : 320,
   "net" : [{"device" : "virtio"},
-           {"device" : "virtio"}]
+           {"device" : "virtio"}],
+  "intrusive": "True",
+  "time_sensitive" : "True"
 }
