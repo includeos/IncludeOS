@@ -31,7 +31,8 @@ namespace icmp4 {
     TIME_EXCEEDED =           11,
     PARAMETER_PROBLEM =       12,
     TIMESTAMP =               13,
-    TIMESTAMP_REPLY =         14
+    TIMESTAMP_REPLY =         14,
+    NO_REPLY =                100 // Custom
   };
 
   class Packet {

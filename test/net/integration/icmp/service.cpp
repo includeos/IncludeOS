@@ -30,17 +30,27 @@ void Service::start(const std::string&)
 
   // ping google.com with callback
   inet.icmp().ping(IP4::addr{193,90,147,109}, [](ICMP_packet pckt) {
-    printf("Received packet\n%s\n", pckt.to_string().c_str());
+    if (pckt.got_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+      printf("Received packet\n%s\n", pckt.to_string().c_str());
+    else
+      printf("No reply received from 193.90.147.109. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
   });
 
-  // Also possible
+  // No reply-ping
+  inet.icmp().ping(IP4::addr{23,143,23,33}, [](ICMP_packet pckt) {
+    if (pckt.got_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+      printf("Received packet\n%s\n", pckt.to_string().c_str());
+    else
+      printf("No reply received from 23.143.23.33. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
+  });
+
+  inet.icmp().ping(IP4::addr{23,143,23,33}, [](ICMP_packet pckt) {
+    if (pckt.got_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+      printf("Received packet\n%s\n", pckt.to_string().c_str());
+    else
+      printf("No reply received from 23.143.23.33. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
+  });
+
+  // Also possible without callback:
   // inet.icmp().ping(IP4::addr{193,90,147,109});  // google.com
-
-  /* No reply-ping
-  inet.icmp().ping(IP4::addr{23,143,23,33}, [](ICMP_packet pckt) {
-    printf("Received packet\n%s\n", pckt.to_string().c_str());
-  });
-  inet.icmp().ping(IP4::addr{23,143,23,33}, [](ICMP_packet pckt) {
-    printf("Received packet\n%s\n", pckt.to_string().c_str());
-  });*/
 }

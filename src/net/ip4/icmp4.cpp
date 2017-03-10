@@ -37,16 +37,7 @@ namespace net {
     switch(req.type()) {
     case (icmp4::Type::ECHO_REPLY):
       debug("<ICMP> PING Reply from %s\n", req.ip().src().str().c_str());
-      // Find callback matching the reply
-      it = ping_callbacks_.find(std::make_pair(req.id(), req.sequence()));
-      if (it != ping_callbacks_.end()) {
-        it->second.callback(ICMP_packet{req.id(), req.sequence(), req.ip().src(), req.ip().dst(), req.type(), req.code(),
-          req.checksum(), req.payload()});
-
-        // Timers::stop(it->second.timer_id);
-
-        ping_callbacks_.erase(it);
-      }
+      execute_ping_callback(req);
       break;
     case (icmp4::Type::DEST_UNREACHABLE):
       debug("<ICMP> DESTINATION UNREACHABLE from %s\n", req.ip().src().str().c_str());
@@ -81,6 +72,8 @@ namespace net {
       debug("<ICMP> TIMESTAMP REPLY from %s\n", req.ip().src().str().c_str());
       // TODO May
       break;
+    default:
+      return;
     }
   }
 
@@ -143,11 +136,9 @@ namespace net {
     req.set_sequence(sequence);
 
     if (callback) {
-      Tuple t = std::make_pair(temp_id, sequence); // Key into ping_callbacks_ map
-      ICMP_callback c;
-      c.tuple = t;
-      c.callback = callback;
-      ping_callbacks_.emplace(std::make_pair(t, c));
+      ping_callbacks_.emplace(std::piecewise_construct,
+                              std::forward_as_tuple(std::make_pair(temp_id, sequence)),
+                              std::forward_as_tuple(ICMP_callback{*this, std::make_pair(temp_id, sequence), callback}));
     }
 
     debug("<ICMP> Transmitting request to %s\n", dest_ip.to_string().c_str());

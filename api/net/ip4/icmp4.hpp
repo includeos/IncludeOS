@@ -24,7 +24,88 @@
 
 namespace net {
 
-  struct  ICMP_packet;
+  /**
+   *  User friendly ICMP packet used in callback (icmp_func)
+   */
+  struct ICMP_packet {
+    using Span = gsl::span<uint8_t>;
+
+    bool          got_reply_{false};
+    uint16_t      id_{0};
+    uint16_t      seq_{0};
+    IP4::addr     src_{0,0,0,0};
+    IP4::addr     dst_{0,0,0,0};
+    icmp4::Type   type_{icmp4::Type::NO_REPLY};
+    uint8_t       code_{0};
+    uint16_t      checksum_{0};
+    Span          payload_{nullptr, 0};
+
+  public:
+    ICMP_packet(uint16_t id, uint16_t seq)
+    : id_{id}, seq_{seq}
+    {}
+
+    ICMP_packet(uint16_t id, uint16_t seq, IP4::addr src, IP4::addr dst, icmp4::Type type, uint8_t code, uint16_t checksum, const Span& payload)
+    : got_reply_{true}, id_{id}, seq_{seq}, src_{src}, dst_{dst}, type_{type}, code_{code}, checksum_{checksum}, payload_{payload}
+    {}
+
+    bool got_reply() const noexcept
+    { return got_reply_; }
+
+    uint16_t id() const noexcept
+    { return id_; }
+
+    uint16_t seq() const noexcept
+    { return seq_; }
+
+    IP4::addr src() const noexcept
+    { return src_; }
+
+    IP4::addr dst() const noexcept
+    { return dst_; }
+
+    icmp4::Type type() const noexcept
+    { return type_; }
+
+    uint8_t code() const noexcept
+    { return code_; }
+
+    uint16_t checksum() const noexcept
+    { return checksum_; }
+
+    Span payload() const noexcept
+    { return payload_; }
+
+    std::string to_string() {
+      if (not got_reply())
+        return "No reply received";
+
+      const std::string t = [&]() {
+        switch (type_) {
+          using namespace icmp4;
+          case Type::ECHO_REPLY: return "ECHO REPLY";
+          case Type::DEST_UNREACHABLE: return "DESTINATION UNREACHABLE";
+          case Type::REDIRECT: return "REDIRECT";
+          case Type::ECHO: return "ECHO";
+          case Type::TIME_EXCEEDED: return "TIME EXCEEDED";
+          case Type::PARAMETER_PROBLEM: return "PARAMETER PROBLEM";
+          case Type::TIMESTAMP: return "TIMESTAMP";
+          case Type::TIMESTAMP_REPLY: return "TIMESTAMP REPLY";
+          case Type::NO_REPLY: return "NO REPLY";
+        }
+      }();
+
+      return "Identifier: " + std::to_string(id_) + "\n" +
+        "Sequence number: " + std::to_string(seq_) + "\n" +
+        "Source: " + src_.to_string() + "\n" +
+        "Destination: " + dst_.to_string() + "\n" +
+        "Type: " + t + "\n" +
+        "Code: " + std::to_string(code_) + "\n" +
+        "Checksum: " + std::to_string(checksum_) + "\n" +
+        "Data: " + std::string{payload_.begin(), payload_.end()};
+    }
+  }; // < class ICMP_packet
+
 
   struct ICMPv4 {
 
@@ -67,6 +148,7 @@ namespace net {
                                       'Q','R','S','T','U','V','W','X',
                                       'Y','Z',1,2,3,4,5,6,
                                       7,8};
+
     struct ICMP_callback {
       using icmp_func = ICMPv4::icmp_func;
       using Tuple = ICMPv4::Tuple;
@@ -75,18 +157,44 @@ namespace net {
       icmp_func callback;
       Timers::id_t timer_id;
 
-      ICMP_callback()
+      ICMP_callback(ICMPv4& icmp, Tuple t, icmp_func cb)
+      : tuple{t}, callback{cb}
       {
-        timer_id = Timers::oneshot(std::chrono::microseconds(1000000), [&](Timers::id_t) {
-          // TODO
-          // Should not be called if this has already been erased (found reply):
-          // callback(ICMP_packet{0, 0, IP4::addr{0,0,0,0}, IP4::addr{0,0,0,0}, icmp4::Type::ECHO_REPLY,
-          //   0, 0, ICMP_packet::Span(nullptr, 0)});
+        timer_id = Timers::oneshot(std::chrono::seconds(40), [&icmp, t](Timers::id_t) {
+          icmp.remove_ping_callback(t);
         });
       }
     };  // < struct ICMP_callback
 
     std::map<Tuple, ICMP_callback> ping_callbacks_;
+
+    /**
+     *  Find the ping-callback that this packet is a response to, execute it and erase the object
+     *  from the ping_callbacks_ map
+     */
+    inline void execute_ping_callback(icmp4::Packet& ping_response) {
+      // Find callback matching the reply
+      auto it = ping_callbacks_.find(std::make_pair(ping_response.id(), ping_response.sequence()));
+
+      if (it != ping_callbacks_.end()) {
+        it->second.callback(ICMP_packet{ping_response.id(), ping_response.sequence(), ping_response.ip().src(),
+          ping_response.ip().dst(), ping_response.type(), ping_response.code(), ping_response.checksum(), ping_response.payload()});
+        Timers::stop(it->second.timer_id);
+        ping_callbacks_.erase(it);
+      }
+    }
+
+    /** Remove ICMP_callback from ping_callbacks_ map when its timer timeouts */
+    inline void remove_ping_callback(Tuple key) {
+      auto it = ping_callbacks_.find(key);
+
+      if (it != ping_callbacks_.end()) {
+        // Data back to user if no response found
+        it->second.callback(ICMP_packet{key.first, key.second});
+        Timers::stop(it->second.timer_id);
+        ping_callbacks_.erase(it);
+      }
+    }
 
     /**
      *  Responding to a ping (echo) request
@@ -103,74 +211,6 @@ namespace net {
     void send_response_with_id(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload);
 
   }; //< class ICMPv4
-
-  /** User friendly ICMP packet used in callback (icmp_func) */
-  struct ICMP_packet {
-    using Span = gsl::span<uint8_t>;
-
-    uint16_t      id_;
-    uint16_t      seq_;
-    IP4::addr     src_;
-    IP4::addr     dst_;
-    icmp4::Type   type_;
-    uint8_t       code_;
-    uint16_t      checksum_;
-    Span          payload_;
-
-  public:
-    ICMP_packet(uint16_t id, uint16_t seq, IP4::addr src, IP4::addr dst, icmp4::Type type, uint8_t code, uint16_t checksum, const Span& payload)
-    : id_{id}, seq_{seq}, src_{src}, dst_{dst}, type_{type}, code_{code}, checksum_{checksum}, payload_{payload}
-    {}
-
-    uint16_t id() const noexcept
-    { return id_; }
-
-    uint16_t seq() const noexcept
-    { return seq_; }
-
-    IP4::addr src() const noexcept
-    { return src_; }
-
-    IP4::addr dst() const noexcept
-    { return dst_; }
-
-    icmp4::Type type() const noexcept
-    { return type_; }
-
-    uint8_t code() const noexcept
-    { return code_; }
-
-    uint16_t checksum() const noexcept
-    { return checksum_; }
-
-    Span payload() const noexcept
-    { return payload_; }
-
-    std::string to_string() {
-      const std::string t = [&]() {
-        switch (type_) {
-          using namespace icmp4;
-          case Type::ECHO_REPLY: return "ECHO REPLY";
-          case Type::DEST_UNREACHABLE: return "DESTINATION UNREACHABLE";
-          case Type::REDIRECT: return "REDIRECT";
-          case Type::ECHO: return "ECHO";
-          case Type::TIME_EXCEEDED: return "TIME EXCEEDED";
-          case Type::PARAMETER_PROBLEM: return "PARAMETER PROBLEM";
-          case Type::TIMESTAMP: return "TIMESTAMP";
-          case Type::TIMESTAMP_REPLY: return "TIMESTAMP REPLY";
-        }
-      }();
-
-      return "Identifier: " + std::to_string(id_) + "\n" +
-        "Sequence number: " + std::to_string(seq_) + "\n" +
-        "Source: " + src_.to_string() + "\n" +
-        "Destination: " + dst_.to_string() + "\n" +
-        "Type: " + t + "\n" +
-        "Code: " + std::to_string(code_) + "\n" +
-        "Checksum: " + std::to_string(checksum_) + "\n" +
-        "Data: " + std::string{payload_.begin(), payload_.end()};
-    }
-  }; // < class ICMP_packet
 
 } //< namespace net
 

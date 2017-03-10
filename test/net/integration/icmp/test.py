@@ -19,11 +19,11 @@ vm = vmrunner.vms[0]
 # 1. Check that a ping request is received from google.com (193.90.147.109)
 # 2. Check that sending a udp packet to 10.0.0.45 (the IncludeOS service's IP) and port 8080 returns
 # an ICMP message with Destination unreachable (type 3), port unreachable (code 3).
-# sudo hping 10.0.0.45 --udp -p 8080 -c 1
+# sudo hping3 10.0.0.45 --udp -p 8080 -c 1
 # (count = 1)
 # 3. Check that sending an ip packet to 10.0.0.45 (the IncludeOS service's IP) with protocol 16 f.ex.
 # returns an ICMP message with Destination unreachable (type 3), protocol unreachable (code 2).
-# sudo hping 10.0.0.45 -d 20 -0 --ipproto 16 -c 1
+# sudo hping3 10.0.0.45 -d 20 -0 --ipproto 16 -c 1
 # (count = 1)
 
 num_successes = 0
@@ -31,14 +31,17 @@ num_successes = 0
 def start_icmp_test(trigger_line):
   global num_successes
 
-  # Installing hping on linux
-  subprocess.call(["./setup.sh"])
+  # Installing hping3 on linux
+  subprocess.call(["sudo", "apt-get", "update"])
+  subprocess.call(["sudo", "apt-get", "install", "hping3"])
+  # Installing hping3 on macOS
+  # subprocess.call(["brew", "install", "hping"])
 
   # 1 Ping: Checking output from callback in service.cpp
   print color.INFO("<Test.py>"), "Performing ping test"
 
   output_data = ""
-  for x in range(0, 9):
+  for x in range(0, 11):
     output_data += vm.readline()
 
   print output_data
@@ -49,7 +52,9 @@ def start_icmp_test(trigger_line):
     "Source: 193.90.147.109" in output_data and \
     "Destination: 10.0.0.45" in output_data and \
     "Type: ECHO REPLY" in output_data and \
-    "Code: 0" in output_data:
+    "Code: 0" in output_data and \
+    "No reply received from 23.143.23.33. Identifier: 1. Sequence number: 0" in output_data and \
+    "No reply received from 23.143.23.33. Identifier: 2. Sequence number: 0" in output_data:
     num_successes += 1
     print color.INFO("<Test.py>"), "Ping test succeeded"
   else:
@@ -58,7 +63,7 @@ def start_icmp_test(trigger_line):
   # 2 Port unreachable
   print color.INFO("<Test.py>"), "Performing Destination Unreachable (port) test"
   # Sending 1 udp packet to 10.0.0.45 to port 8080
-  udp_port_output = subprocess.check_output(["sudo", "hping", "10.0.0.45", "--udp", "-p", "8080", "-c", "1"])
+  udp_port_output = subprocess.check_output(["sudo", "hping3", "10.0.0.45", "--udp", "-p", "8080", "-c", "1"])
   print udp_port_output
 
   # Validate content in udp_port_output:
@@ -71,7 +76,7 @@ def start_icmp_test(trigger_line):
   # 3 Protocol unreachable
   print color.INFO("<Test.py>"), "Performing Destination Unreachable (protocol) test"
   # Sending 1 raw ip packet to 10.0.0.45 with protocol 16
-  rawip_protocol_output = subprocess.check_output(["sudo", "hping", "10.0.0.45", "-d", "20", "-0", "--ipproto", "16", "-c", "1"])
+  rawip_protocol_output = subprocess.check_output(["sudo", "hping3", "10.0.0.45", "-d", "20", "-0", "--ipproto", "16", "-c", "1"])
   print rawip_protocol_output
 
   # Validate content in rawip_protocol_output:
@@ -92,4 +97,4 @@ def start_icmp_test(trigger_line):
 vm.on_output("Service IP address is 10.0.0.45", start_icmp_test);
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(20).clean()
+vm.cmake().boot(50).clean()
