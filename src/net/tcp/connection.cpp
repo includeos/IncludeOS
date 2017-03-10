@@ -363,23 +363,26 @@ void Connection::transmit(Packet_ptr packet) {
   host_.transmit(std::move(packet));
 }
 
-bool Connection::handle_ack(const Packet& in) {
+bool Connection::handle_ack(const Packet& in)
+{
   //printf("<Connection> RX ACK: %s\n", in.to_string().c_str());
-  // dup ack
-  /*
-    1. Same ACK as latest received
-    2. outstanding data
-    3. packet is empty
-    4. is not an wnd update
-  */
+
+  // Calculate true window due to WS option
   const uint32_t true_win = in.win() << cb.SND.wind_shift;
-  if(UNLIKELY(in.ack() == cb.SND.UNA and flight_size()
-    and !in.has_tcp_data()
-    and cb.SND.WND == true_win
-    and !in.isset(SYN) and !in.isset(FIN)))
+  /*
+    (a) the receiver of the ACK has outstanding data
+    (b) the incoming acknowledgment carries no data
+    (c) the SYN and FIN bits are both off
+    (d) the acknowledgment number is equal to the greatest acknowledgment
+    received on the given connection (TCP.UNA from [RFC793]) and
+    (e) the advertised window in the incoming acknowledgment equals the
+    advertised window in the last incoming acknowledgment.
+  */
+  // Duplicate ACK
+  // Needs to be checked before (SEG.ACK >= SND.UNA)
+  if(UNLIKELY(is_dup_ack(in, true_win)))
   {
     dup_acks_++;
-    //printf("DUP_ACK NXT=%u UNA=%u dups=%u\n", cb.SND.NXT, cb.SND.UNA, dup_acks_);
     on_dup_ack(in);
     return false;
   } // < dup ack
@@ -387,8 +390,7 @@ bool Connection::handle_ack(const Packet& in) {
   // new ack
   else if(LIKELY(in.ack() >= cb.SND.UNA))
   {
-    if( (cb.SND.WL1 < in.seq() or ( cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack() ))
-      and cb.SND.WND != true_win )
+    if(is_win_update(in, true_win))
     {
       cb.SND.WND = true_win;
       cb.SND.WL1 = in.seq();
@@ -400,110 +402,27 @@ bool Connection::handle_ack(const Packet& in) {
     // [RFC 6582] p. 8
     prev_highest_ack_ = cb.SND.UNA;
     highest_ack_ = in.ack();
+
     if(cb.SND.TS_OK)
     {
       auto* ts = parse_ts_option(in);
       last_acked_ts_ = ts->ecr;
     }
 
-    // used for cwnd calculation (Reno)
-    size_t bytes_acked = in.ack() - cb.SND.UNA;
     cb.SND.UNA = in.ack();
 
-    //printf("<Connection::handle_ack> bytes_acked: %u FS: %u UW: %u%s\n",
-    //  bytes_acked, flight_size(), usable_window(), fast_recovery ? ", [RECOVERY]" : "");
-
-    // ack everything in rtx queue
-    //if(rtx_timer.is_running())
     rtx_ack(in.ack());
 
     take_rtt_measure(in);
 
-    // no fast recovery
-    if(!fast_recovery) {
-      //printf("<Connection::handle_ack> Not in Recovery\n");
-      dup_acks_ = 0;
-      cb.recover = cb.SND.NXT;
+    // do either congctrl or fastrecov according to New Reno
+    (not fast_recovery_)
+      ? congestion_control(in) : fast_recovery(in);
 
-      // slow start
-      if(cb.slow_start()) {
-        reno_increase_cwnd(bytes_acked);
-        debug2("<Connection::handle_ack> Slow start. cwnd=%u uw=%u\n",
-          cb.cwnd, usable_window());
-      }
+    dup_acks_ = 0;
 
-      // congestion avoidance
-      else {
-        // increase cwnd once per RTT
-        cb.cwnd += std::max(SMSS()*SMSS()/cb.cwnd, (uint32_t)1);
-        debug2("<Connection::handle_ack> Congestion avoidance. cwnd=%u uw=%u\n",
-          cb.cwnd, usable_window());
-      } // < congestion avoidance
-
-      // try to write
-      //if(can_send() and acks_rcvd_ % 2 == 1)
-      if(can_send() and !in.has_tcp_data()) {
-        debug2("<Connection::handle_ack> Can send UW: %u SMSS: %u\n", usable_window(), SMSS());
-        send_much();
-      }
-
-      // if data, let state continue process
-      if(in.has_tcp_data() or in.isset(FIN))
-        return true;
-
-    } // < !fast recovery
-
-    // we're in fast recovery
-    else
-    {
-      // partial ack
-      /*
-        Partial acknowledgments:
-        If this ACK does *not* acknowledge all of the data up to and
-        including recover, then this is a partial ACK.
-      */
-      if(in.ack() < cb.recover) {
-        debug2("<Connection::handle_ack> Partial ACK - recover: %u NXT: %u ACK: %u\n", cb.recover, cb.SND.NXT, in.ack());
-        reno_deflate_cwnd(bytes_acked);
-        //printf("<TCP::Connection::handle_ack> Recovery - Partial ACK\n");
-        retransmit();
-
-        dup_acks_ = 0;
-
-        if(!reno_fpack_seen) {
-          rtx_reset();
-          reno_fpack_seen = true;
-        }
-
-        // send one segment if possible
-        if(can_send()) {
-          debug("<Connection::handle_ack> Sending one packet during recovery.\n");
-          limited_tx();
-        } else {
-          debug("<Connection::handle_ack> Can't send during recovery - usable window is closed.\n");
-        }
-
-        if(in.has_tcp_data() or in.isset(FIN))
-          return true;
-      } // < partial ack
-
-      // full ack
-      /*
-        Full acknowledgments:
-        If this ACK acknowledges all of the data up to and including
-        recover, then the ACK acknowledges all the intermediate segments
-        sent between the original transmission of the lost segment and
-        the receipt of the third duplicate ACK.
-      */
-      else {
-        debug2("<Connection::handle_ack> Full ACK.\n");
-        dup_acks_ = 0;
-        finish_fast_recovery();
-        writeq_push();
-        return true;
-      } // < full ack
-
-    } // < fast recovery
+    if(in.has_tcp_data() or in.isset(FIN))
+      return true;
 
   } // < new ack
 
@@ -514,6 +433,113 @@ bool Connection::handle_ack(const Packet& in) {
   return false;
 }
 
+void Connection::congestion_control(const Packet& in)
+{
+  const size_t bytes_acked = highest_ack_ - prev_highest_ack_;
+
+  // update recover
+  cb.recover = cb.SND.NXT;
+
+  // slow start
+  if(cb.slow_start())
+  {
+    reno_increase_cwnd(bytes_acked);
+    debug2("<Connection::handle_ack> Slow start. cwnd=%u uw=%u\n",
+      cb.cwnd, usable_window());
+  }
+  // congestion avoidance
+  else
+  {
+    // increase cwnd once per RTT
+    cb.cwnd += std::max(SMSS()*SMSS()/cb.cwnd, (uint32_t)1);
+    debug2("<Connection::handle_ack> Congestion avoidance. cwnd=%u uw=%u\n",
+      cb.cwnd, usable_window());
+  } // < congestion avoidance
+
+  // try to write
+  if(can_send() and !in.has_tcp_data())
+  {
+    debug2("<Connection::handle_ack> Can send UW: %u SMSS: %u\n", usable_window(), SMSS());
+    send_much();
+  }
+}
+
+void Connection::fast_recovery(const Packet& in)
+{
+  // partial ack
+  /*
+    Partial acknowledgments:
+    If this ACK does *not* acknowledge all of the data up to and
+    including recover, then this is a partial ACK.
+  */
+  if(in.ack() < cb.recover)
+  {
+    const size_t bytes_acked = highest_ack_ - prev_highest_ack_;
+    debug2("<Connection::handle_ack> Partial ACK - recover: %u NXT: %u ACK: %u\n", cb.recover, cb.SND.NXT, in.ack());
+    reno_deflate_cwnd(bytes_acked);
+    // RFC 4015
+    /*
+    If the value of the Timestamp Echo Reply field of the
+    acceptable ACK's Timestamps option is smaller than the
+    value of RetransmitTS, then proceed to step (5),
+
+    If the acceptable ACK carries a DSACK option [RFC2883],
+    then proceed to step (DONE),
+
+    else if during the lifetime of the TCP connection the TCP
+    sender has previously received an ACK with a DSACK option,
+    or the acceptable ACK does not acknowledge all outstanding
+    data, then proceed to step (6),
+    */
+    //if(cb.SND.TS_OK and ntohl(last_acked_ts_) < rtx_ts_)
+    //  spurious_recovery = (rtx_attempt_ > 0) ? SPUR_TO : LATE_SPUR_TO;
+    /*
+     (8) Resume the transmission with previously unsent data:
+        Set SND.NXT <- SND.MAX
+    */
+    //if(spurious_recovery == SPUR_TO)
+    //  limited_tx();
+    /*
+      Reverse the congestion control state:
+      If the acceptable ACK has the ECN-Echo flag [RFC3168] set,
+      then
+         proceed to step (DONE);
+      else set
+         cwnd <- FlightSize + min (bytes_acked, IW)
+         ssthresh <- pipe_prev
+     Proceed to step (DONE).
+    */
+    //else if(spurious_recovery == LATE_SPUR_TO)
+    //  cb.cwnd = flight_size() + std::min(bytes_acked, 3*(uint32_t)SMSS());
+
+    if(!reno_fpack_seen) {
+      rtx_reset();
+      reno_fpack_seen = true;
+    }
+
+    retransmit();
+
+    // send one segment if possible
+    if(can_send())
+      limited_tx();
+  } // < partial ack
+
+  // full ack
+  /*
+    Full acknowledgments:
+    If this ACK acknowledges all of the data up to and including
+    recover, then the ACK acknowledges all the intermediate segments
+    sent between the original transmission of the lost segment and
+    the receipt of the third duplicate ACK.
+  */
+  else
+  {
+    debug2("<Connection::handle_ack> Full ACK.\n");
+    finish_fast_recovery();
+    writeq_push();
+  } // < full ack
+}
+
 /*
   Reno [RFC 5681] p. 9
 
@@ -522,18 +548,26 @@ bool Connection::handle_ack(const Packet& in) {
 void Connection::on_dup_ack(const Packet& in)
 {
   // if less than 3 dup acks
-  if(dup_acks_ < 3) {
-
-    if(limited_tx_) {
-      // try to send one segment
-      if(cb.SND.WND >= SMSS() and (flight_size() <= cb.cwnd + 2*SMSS()) and writeq.has_remaining_requests()) {
-        limited_tx();
-      }
+  if(dup_acks_ < 3)
+  {
+    /*
+      TCP SHOULD send a segment of previously unsent data per [RFC3042]
+      provided that the receiver's advertised window allows, the total
+      FlightSize would remain less than or equal to cwnd plus 2*SMSS,
+      and that new data is available for transmission
+    */
+    if(limited_tx_
+      and cb.SND.WND >= SMSS()
+      and (flight_size() <= cb.cwnd + 2*SMSS())
+      and writeq.has_remaining_requests())
+    {
+      limited_tx(); // send one segment
     }
   }
 
   // 3 dup acks
-  else if(dup_acks_ == 3) {
+  else if(dup_acks_ == 3)
+  {
     debug("<TCP::Connection::on_dup_ack> Dup ACK == 3 - %u\n", cb.SND.UNA);
 
     if(cb.SND.UNA - 1 > cb.recover)
@@ -653,6 +687,22 @@ void Connection::retransmit() {
 
   packet->set_seq(cb.SND.UNA);
 
+  /*
+  Set a "RetransmitTS" variable to the value of the
+  Timestamp Value field of the Timestamps option included in
+  the retransmit sent when loss recovery is initiated.  A
+  TCP sender must ensure that RetransmitTS does not get
+  overwritten as loss recovery progresses, e.g., in case of
+  a second timeout and subsequent second retransmit of the
+  same octet.
+  */
+  /*if(cb.SND.TS_OK and !fast_recovery_)
+  {
+    auto* ts = parse_ts_option(*packet);
+    rtx_ts_ = ts->get_val();
+    spurious_recovery = 0;
+  }*/
+
   // If retransmission of a FIN packet
   // TODO: find a solution to this
   //if((is_state(FinWait1::instance()) or is_state(LastAck::instance()))
@@ -739,7 +789,20 @@ void Connection::rtx_timeout() {
       ssthresh = max (FlightSize / 2, 2*SMSS)
   */
   if(rtx_attempt_++ == 0)
+  {
+    // RFC 4015
+    /*
+      Before the variables cwnd and ssthresh get updated when
+      loss recovery is initiated:
+          pipe_prev <- max (FlightSize, ssthresh)
+          SRTT_prev <- SRTT + (2 * G)
+          RTTVAR_prev <- RTTVAR
+    */
+    //pipe_prev   = std::max(flight_size(), cb.ssthresh);
+    //SRTT_prev   = RTTM::seconds{rttm.SRTT.count() + (2 * RTTM::CLOCK_G)};
+    //RTTVAR_prev = rttm.RTTVAR;
     reduce_ssthresh();
+  }
 
   /*
     [RFC 6582] p. 6
@@ -751,7 +814,7 @@ void Connection::rtx_timeout() {
   // update recover
   cb.recover = cb.SND.NXT;
 
-  if(fast_recovery) // not sure if this is correct
+  if(fast_recovery_) // not sure if this is correct
     finish_fast_recovery();
 
   //cb.cwnd = SMSS();
@@ -1016,12 +1079,12 @@ void Connection::fast_retransmit() {
   retransmit();
   // inflate congestion window with the 3 packets we got dup ack on.
   cb.cwnd = cb.ssthresh + 3*SMSS();
-  fast_recovery = true;
+  fast_recovery_ = true;
 }
 
 void Connection::finish_fast_recovery() {
   reno_fpack_seen = false;
-  fast_recovery = false;
+  fast_recovery_ = false;
   //cb.cwnd = std::min(cb.ssthresh, std::max(flight_size(), (uint32_t)SMSS()) + SMSS());
   cb.cwnd = cb.ssthresh;
   debug("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);

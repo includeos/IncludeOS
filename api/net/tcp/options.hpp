@@ -106,6 +106,12 @@ struct Option {
         ecr{htonl(echo)}
     {}
 
+    uint32_t get_val() const noexcept
+    { return ntohl(val); }
+
+    uint32_t get_ecr() const noexcept
+    { return ntohl(ecr); }
+
   } __attribute__((packed));
 
   /**

@@ -676,7 +676,7 @@ private:
 
   /** Congestion control */
   // is fast recovery state
-  bool fast_recovery = false;
+  bool fast_recovery_ = false;
   // First partial ack seen
   bool reno_fpack_seen = false;
   /** limited transmit [RFC 3042] active */
@@ -691,6 +691,16 @@ private:
   /** Delayed ACK - number of seg received without ACKing */
   uint8_t  dack_{0};
   seq_t    last_ack_sent_;
+
+  /** RFC 3522 - The Eifel Detection Algorithm for TCP */
+  //int16_t spurious_recovery = 0;
+  //static constexpr int8_t SPUR_TO {1};
+  //uint32_t rtx_ts_ = 0;
+  /** RFC 4015 - The Eifel Response Algorithm for TCP */
+  //uint32_t pipe_prev = 0;
+  //static constexpr int8_t LATE_SPUR_TO {1};
+  //RTTM::seconds SRTT_prev{1.0f};
+  //RTTM::seconds RTTVAR_prev{1.0f};
 
   /// --- CALLBACKS --- ///
 
@@ -868,10 +878,56 @@ private:
   */
   bool handle_ack(const Packet&);
 
-  /*
-    When a duplicate ACK is received.
-  */
+  /**
+   * @brief      Determines if the incoming segment is a legit window update.
+   *
+   * @param[in]  in    TCP Segment
+   * @param[in]  win   The calculated window
+   *
+   * @return     True if window update, False otherwise.
+   */
+  bool is_win_update(const Packet& in, const uint32_t win) const
+  {
+    return cb.SND.WND != win and
+      (cb.SND.WL1 < in.seq() or (cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack()));
+  }
+
+  /**
+   * @brief      Determines if duplicate acknowledge, described in [RFC 5681] p.3
+   *
+   * @param[in]  in    TCP segment
+   *
+   * @return     True if duplicate acknowledge, False otherwise.
+   */
+  bool is_dup_ack(const Packet& in, const uint32_t win) const
+  {
+    return in.ack() == cb.SND.UNA
+      and flight_size() > 0
+      and !in.has_tcp_data()
+      and cb.SND.WND == win
+      and !in.isset(SYN) and !in.isset(FIN);
+  }
+
+  /**
+   * @brief      Handle duplicate ACK according to New Reno
+   *
+   * @param[in]  <unnamed>  Incoming TCP segment (duplicate ACK)
+   */
   void on_dup_ack(const Packet&);
+
+  /**
+   * @brief      Handle segment according to congestion control (New Reno)
+   *
+   * @param[in]  <unnamed>  Incoming TCP segment
+   */
+  void congestion_control(const Packet&);
+
+  /**
+   * @brief      Handle segment according to fast recovery (New Reno)
+   *
+   * @param[in]  <unnamed>  Incoming TCP segment
+   */
+  void fast_recovery(const Packet&);
 
   /**
    * @brief      Determines ability to send ONE segment, not caring about the usable window.
