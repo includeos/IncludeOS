@@ -33,7 +33,7 @@ def start_icmp_test(trigger_line):
 
   # Installing hping3 on linux
   subprocess.call(["sudo", "apt-get", "update"])
-  subprocess.call(["sudo", "apt-get", "install", "hping3"])
+  subprocess.call(["sudo", "apt-get", "-y", "install", "hping3"])
   # Installing hping3 on macOS
   # subprocess.call(["brew", "install", "hping"])
 
