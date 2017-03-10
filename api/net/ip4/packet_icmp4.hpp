@@ -74,9 +74,13 @@ namespace icmp4 {
     { return header().sequence; }
 
     Span payload()
-    {
-      return {&(header().payload[0]), pckt_->data_end() - &(header().payload[0]) };
-    }
+    { return {&(header().payload[0]), pckt_->data_end() - &(header().payload[0]) }; }
+
+    /** Several ICMP messages require the payload to be the header and 64 bits of the
+     *  data of the original datagram
+     */
+    Span header_and_data()
+    { return {pckt_->layer_begin(), pckt_->ip_header_length() + 8}; }
 
     void set_type(Type t) noexcept
     { header().type = t; }
