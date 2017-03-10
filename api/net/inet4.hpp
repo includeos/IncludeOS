@@ -75,7 +75,9 @@ namespace net {
      * Set the forwarding delegate used by this stack.
      * If set it will get all incoming packets not intended for this stack.
      */
-    void set_forward_delg(Forward_delg fwd) override { forward_packet_ = fwd; }
+    void set_forward_delg(Forward_delg fwd) override {
+      ip4_.set_packet_forwarding(fwd);
+    }
 
     /**
      * Assign a delegate that checks if we have a route to a given IP
@@ -87,7 +89,7 @@ namespace net {
      * Get the forwarding delegate used by this stack.
      */
     Forward_delg forward_delg() override
-    { return forward_packet_; }
+    { return ip4_.forward_delg(); }
 
 
     Packet_ptr create_packet() override {
@@ -242,7 +244,7 @@ namespace net {
     ICMPv4 icmp_;
     UDP    udp_;
     TCP    tcp_;
-    Forward_delg forward_packet_;
+
     // we need this to store the cache per-stack
     DNSClient dns;
 

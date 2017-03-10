@@ -69,6 +69,10 @@ namespace net {
     void set_packet_forwarding(Stack::Forward_delg fwd)
     { forward_packet_ = fwd; }
 
+    Stack::Forward_delg forward_delg()
+    { return forward_packet_; }
+
+
     /**
      *  Downstream: Receive data from above and transmit
      *
