@@ -19,12 +19,18 @@
 #define NET_IP4_ICMPv4_HPP
 
 #include "packet_icmp4.hpp"
+#include <map>
+#include <timers>
 
 namespace net {
+
+  struct  ICMP_packet;
 
   struct ICMPv4 {
 
     using Stack = IP4::Stack;
+    using Tuple = std::pair<uint16_t, uint16_t>;  // identifier and sequence number
+    using icmp_func = delegate<void(ICMP_packet)>;
 
     // Initialize
     ICMPv4(Stack&);
@@ -36,12 +42,11 @@ namespace net {
     inline void set_network_out(downstream s)
     { network_layer_out_ = s;  };
 
+    /** Destination Unreachable sent from host because of port (UDP) or protocol (IP4) unreachable */
     void destination_unreachable(Packet_ptr pckt, icmp4::code::Dest_unreachable code);
 
     void redirect(icmp4::Packet& req, icmp4::code::Redirect code);
-
     void time_exceeded(icmp4::Packet& req, icmp4::code::Time_exceeded code);
-
     void parameter_problem(icmp4::Packet& req);
 
     // May
@@ -49,9 +54,10 @@ namespace net {
     void timestamp_reply(icmp4::Packet& req);
 
     void ping(IP4::addr ip);
+    void ping(IP4::addr ip, icmp_func callback);
 
   private:
-
+    static int request_id_; // message identifier for messages originating from IncludeOS
     Stack& inet_;
     downstream network_layer_out_ =   nullptr;
     uint8_t includeos_payload_[48] =  {'I','N','C','L','U','D',
@@ -61,15 +67,111 @@ namespace net {
                                       'Q','R','S','T','U','V','W','X',
                                       'Y','Z',1,2,3,4,5,6,
                                       7,8};
-    static int id_;
+    struct ICMP_callback {
+      using icmp_func = ICMPv4::icmp_func;
+      using Tuple = ICMPv4::Tuple;
 
+      Tuple tuple;
+      icmp_func callback;
+      Timers::id_t timer_id;
+
+      ICMP_callback()
+      {
+        timer_id = Timers::oneshot(std::chrono::microseconds(1000000), [&](Timers::id_t) {
+          // TODO
+          // Should not be called if this has already been erased (found reply):
+          // callback(ICMP_packet{0, 0, IP4::addr{0,0,0,0}, IP4::addr{0,0,0,0}, icmp4::Type::ECHO_REPLY,
+          //   0, 0, ICMP_packet::Span(nullptr, 0)});
+        });
+      }
+    };  // < struct ICMP_callback
+
+    std::map<Tuple, ICMP_callback> ping_callbacks_;
+
+    /**
+     *  Responding to a ping (echo) request
+     *  Called from receive-method
+     */
     void ping_reply(icmp4::Packet&);
 
     void send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload,
-      uint16_t sequence = 0);
+      icmp_func callback = nullptr, uint16_t sequence = 0);
+
+    /** Send response without id and sequence number */
     void send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload);
+    /** Send response with id and sequence number */
+    void send_response_with_id(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload);
 
   }; //< class ICMPv4
+
+  /** User friendly ICMP packet used in callback (icmp_func) */
+  struct ICMP_packet {
+    using Span = gsl::span<uint8_t>;
+
+    uint16_t      id_;
+    uint16_t      seq_;
+    IP4::addr     src_;
+    IP4::addr     dst_;
+    icmp4::Type   type_;
+    uint8_t       code_;
+    uint16_t      checksum_;
+    Span          payload_;
+
+  public:
+    ICMP_packet(uint16_t id, uint16_t seq, IP4::addr src, IP4::addr dst, icmp4::Type type, uint8_t code, uint16_t checksum, const Span& payload)
+    : id_{id}, seq_{seq}, src_{src}, dst_{dst}, type_{type}, code_{code}, checksum_{checksum}, payload_{payload}
+    {}
+
+    uint16_t id() const noexcept
+    { return id_; }
+
+    uint16_t seq() const noexcept
+    { return seq_; }
+
+    IP4::addr src() const noexcept
+    { return src_; }
+
+    IP4::addr dst() const noexcept
+    { return dst_; }
+
+    icmp4::Type type() const noexcept
+    { return type_; }
+
+    uint8_t code() const noexcept
+    { return code_; }
+
+    uint16_t checksum() const noexcept
+    { return checksum_; }
+
+    Span payload() const noexcept
+    { return payload_; }
+
+    std::string to_string() {
+      const std::string t = [&]() {
+        switch (type_) {
+          using namespace icmp4;
+          case Type::ECHO_REPLY: return "ECHO REPLY";
+          case Type::DEST_UNREACHABLE: return "DESTINATION UNREACHABLE";
+          case Type::REDIRECT: return "REDIRECT";
+          case Type::ECHO: return "ECHO";
+          case Type::TIME_EXCEEDED: return "TIME EXCEEDED";
+          case Type::PARAMETER_PROBLEM: return "PARAMETER PROBLEM";
+          case Type::TIMESTAMP: return "TIMESTAMP";
+          case Type::TIMESTAMP_REPLY: return "TIMESTAMP REPLY";
+        }
+      }();
+
+      return "Identifier: " + std::to_string(id_) + "\n" +
+        "Sequence number: " + std::to_string(seq_) + "\n" +
+        "Source: " + src_.to_string() + "\n" +
+        "Destination: " + dst_.to_string() + "\n" +
+        "Type: " + t + "\n" +
+        "Code: " + std::to_string(code_) + "\n" +
+        "Checksum: " + std::to_string(checksum_) + "\n" +
+        "Data: " + std::string{payload_.begin(), payload_.end()};
+    }
+  }; // < class ICMP_packet
+
 } //< namespace net
 
 #endif //< NET_IP4_ICMPv4_HPP
