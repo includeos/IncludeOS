@@ -59,7 +59,7 @@ namespace net {
       // Only sent by gateways. Incoming: Update routing information based on the message
       break;
     case (icmp4::Type::ECHO):
-      debug("<ICMP> PING from %s\n", req.ip().src().str().c_str());
+      printf("<ICMP> PING from %s\n", req.ip().src().str().c_str());
       ping_reply(req);
       break;
     case (icmp4::Type::TIME_EXCEEDED):
@@ -122,7 +122,7 @@ namespace net {
   }
 
   void ICMPv4::ping_reply(icmp4::Packet& req) {
-    send_response(req, icmp4::Type::ECHO_REPLY, 0, req.payload());
+    send_response_with_id(req, icmp4::Type::ECHO_REPLY, 0, req.payload());
   }
 
   void ICMPv4::send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload,
