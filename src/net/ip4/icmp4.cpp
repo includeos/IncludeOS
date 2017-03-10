@@ -89,12 +89,20 @@ namespace net {
     // send_response(req, icmp4::Type::REDIRECT, (uint8_t) code, icmp4::Packet::Span(, ));
   }
 
-  void ICMPv4::time_exceeded(icmp4::Packet& /* req */, icmp4::code::Time_exceeded /* code */) {
-    // send_response(req, icmp4::Type::TIME_EXCEEDED, (uint8_t) code, icmp4::Packet::Span(, ));
+  void ICMPv4::time_exceeded(Packet_ptr pckt, icmp4::code::Time_exceeded code) {
+    if ((size_t)pckt->size() < sizeof(IP4::header) + icmp4::Packet::header_size()) // Drop if not a full header
+      return;
+    auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+    auto pckt_icmp4 = icmp4::Packet(std::move(pckt_ip4));
+    send_response(pckt_icmp4, icmp4::Type::TIME_EXCEEDED, (uint8_t) code, pckt_icmp4.header_and_data());
   }
 
-  void ICMPv4::parameter_problem(icmp4::Packet& /* req */) {
-    // send_response(req, icmp4::Type::PARAMETER_PROBLEM, 0, icmp4::Packet::Span(, ));
+  void ICMPv4::parameter_problem(Packet_ptr pckt, uint8_t error) {
+    if ((size_t)pckt->size() < sizeof(IP4::header) + icmp4::Packet::header_size()) // Drop if not a full header
+      return;
+    auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+    auto pckt_icmp4 = icmp4::Packet(std::move(pckt_ip4));
+    send_response(pckt_icmp4, icmp4::Type::PARAMETER_PROBLEM, 0, pckt_icmp4.header_and_data(), error);
   }
 
   void ICMPv4::timestamp_request(IP4::addr /* ip */) {
@@ -155,7 +163,7 @@ namespace net {
     network_layer_out_(req.release());
   }
 
-  void ICMPv4::send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload) {
+  void ICMPv4::send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload, uint8_t error) {
     // Provision new IP4-packet
     icmp4::Packet res(inet_.ip_packet_factory());
 
@@ -174,6 +182,9 @@ namespace net {
 
     // Add checksum
     res.set_checksum();
+
+    if (error != 255)
+      res.set_pointer(error);
 
     debug("<ICMP> Response size: %i payload size: %i, checksum: 0x%x\n",
           res.ip().size(), res.payload().size(), res.compute_checksum());

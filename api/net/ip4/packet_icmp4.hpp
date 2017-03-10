@@ -95,6 +95,12 @@ namespace icmp4 {
     void set_sequence(uint16_t s) noexcept
     { header().sequence = s; }
 
+    /**
+     * RFC 792 Parameter problem f.ex.: error (Pointer) is placed in the first byte after checksum
+     * (identifier and sequence is not used when pointer is used)
+     */
+    void set_pointer(uint8_t error)
+    { header().identifier = error; }
 
     uint16_t compute_checksum() const noexcept
     {

@@ -123,12 +123,31 @@ namespace net {
     inline void set_network_out(downstream s)
     { network_layer_out_ = s;  };
 
-    /** Destination Unreachable sent from host because of port (UDP) or protocol (IP4) unreachable */
+    /**
+     *  Destination Unreachable sent from host because of port (UDP) or protocol (IP4) unreachable
+     */
     void destination_unreachable(Packet_ptr pckt, icmp4::code::Dest_unreachable code);
 
+    /**
+     *
+     */
     void redirect(icmp4::Packet& req, icmp4::code::Redirect code);
-    void time_exceeded(icmp4::Packet& req, icmp4::code::Time_exceeded code);
-    void parameter_problem(icmp4::Packet& req);
+
+    /**
+     *  Sending a Time Exceeded message from a host when fragment reassembly time exceeded (code 1)
+     *  Sending a Time Exceeded message from a gateway when time to live exceeded in transit (code 0)
+     */
+    void time_exceeded(Packet_ptr pckt, icmp4::code::Time_exceeded code);
+
+    /**
+     *  Sending a Parameter Problem message if the gateway or host processing a datagram finds a problem with
+     *  the header parameters such that it cannot complete processing the datagram. The message is only sent if
+     *  the error caused the datagram to be discarded
+     *  Code 0 means Pointer (uint8_t after checksum) indicates the error/identifies the octet where an error was detected
+     *  in the IP header
+     *  Code 1 means that a required option is missing
+     */
+    void parameter_problem(Packet_ptr pckt, uint8_t error);
 
     // May
     void timestamp_request(IP4::addr ip);
@@ -206,7 +225,7 @@ namespace net {
       icmp_func callback = nullptr, uint16_t sequence = 0);
 
     /** Send response without id and sequence number */
-    void send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload);
+    void send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload, uint8_t error = 255);
     /** Send response with id and sequence number */
     void send_response_with_id(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload);
 
