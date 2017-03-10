@@ -31,6 +31,9 @@ num_successes = 0
 def start_icmp_test(trigger_line):
   global num_successes
 
+  # Installing hping on linux
+  subprocess.call(["./setup.sh"])
+
   # 1 Ping: Checking output from callback in service.cpp
   print color.INFO("<Test.py>"), "Performing ping test"
 
