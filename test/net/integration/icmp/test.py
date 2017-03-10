@@ -38,6 +38,8 @@ def start_icmp_test(trigger_line):
   for x in range(0, 9):
     output_data += vm.readline()
 
+  print output_data
+
   if "Received packet" in output_data and \
     "Identifier: 0" in output_data and \
     "Sequence number: 0" in output_data and \
