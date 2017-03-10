@@ -91,6 +91,20 @@ CASE("Reading invalid tar file")
   close(fd);
 }
 
+CASE("Reading corrupt tar.gz file")
+{
+  tar::Reader r;
+  struct stat st;
+  int res = stat("test-corrupt.gz", &st);
+  EXPECT(res != -1);
+  size_t size = st.st_size;
+  int fd = open("test-corrupt.gz", O_RDONLY);
+  EXPECT_NOT(fd == -1);
+  const uint8_t *mem = (const uint8_t *)mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+  EXPECT_THROWS_AS(tar::Tar tar = r.decompress(mem, size), tar::Tar_exception);
+  close(fd);
+}
+
 CASE("Reading tar.gz inside tar file")
 {
   tar::Reader r;
