@@ -111,7 +111,7 @@ Stat& Statman::get(const std::string& name) {
   if (name.empty())
     throw Stats_exception{"Stat name is empty"};
 
-  for (auto it = begin(); it != end(); ++it)
+  for (auto it = begin(); it != last_used(); ++it)
     if ((*it).name() == name)
       return (*it);
 

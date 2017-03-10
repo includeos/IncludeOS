@@ -213,7 +213,7 @@ public:
   ///
   ///
   auto end() noexcept
-  { return Span_iterator(&stats_, next_available_); }
+  { return stats_.end(); }
 
   ///
   ///
