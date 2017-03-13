@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.9)
 project(unittests C CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(COVERAGE "Build with coverage generation" OFF)
 option(SILENT_BUILD "Build with some warnings turned off" ON)
@@ -85,6 +86,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/percent_encoding_test.cpp
   ${TEST}/util/unit/ringbuffer.cpp
   ${TEST}/util/unit/statman.cpp
+  ${TEST}/util/unit/syslogd_test.cpp
   ${TEST}/util/unit/tar_test.cpp
   ${TEST}/util/unit/uri_test.cpp
 )
