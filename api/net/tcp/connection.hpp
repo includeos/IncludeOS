@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@
 
 #include <delegate>
 #include <util/timer.hpp>
+#include <net/stream.hpp>
 
 namespace net {
   // Forward declaration of the TCP object
@@ -221,7 +222,7 @@ public:
    * @brief      Exposes a TCP Connection as a Stream with only the most necessary features.
    *             May be overrided by extensions like TLS etc for additional functionality.
    */
-  class Stream {
+  class Stream : public net::Stream {
   public:
     /**
      * @brief      Construct a Stream for a Connection ptr
@@ -229,53 +230,45 @@ public:
      * @param[in]  conn  The connection
      */
     Stream(Connection_ptr conn)
-      : ptr{std::move(conn)}
+      : tcp{std::move(conn)}
     {}
 
-    /** Called when the stream is ready to use. */
-    using ConnectCallback = delegate<void(Stream& self)>;
     /**
      * @brief      Event when the stream is connected/established/ready to use.
      *
      * @param[in]  cb    The connect callback
      */
-    virtual void on_connect(ConnectCallback cb)
+    virtual void on_connect(ConnectCallback cb) override
     {
-      ptr->on_connect(Connection::ConnectCallback::make_packed(
+      tcp->on_connect(Connection::ConnectCallback::make_packed(
           [this, cb] (Connection_ptr)
           { cb(*this); }));
     }
 
-    /** Called with a shared buffer and the length of the data when received. */
-    using ReadCallback            = delegate<void(buffer_t, size_t)>;
     /**
      * @brief      Event when data is received.
      *
      * @param[in]  n     The size of the receive buffer
      * @param[in]  cb    The read callback
      */
-    virtual void on_read(size_t n, ReadCallback cb)
-    { ptr->on_read(n, cb); }
+    virtual void on_read(size_t n, ReadCallback cb) override
+    { tcp->on_read(n, cb); }
 
-    /** Called with nothing ¯\_(ツ)_/¯ */
-    using CloseCallback           = delegate<void()>;
     /**
      * @brief      Event for when the Stream is being closed.
      *
      * @param[in]  cb    The close callback
      */
-    virtual void on_close(CloseCallback cb)
-    { ptr->on_close(cb); }
+    virtual void on_close(CloseCallback cb) override
+    { tcp->on_close(cb); }
 
-    /** Called with the number of bytes written. */
-    using WriteCallback           = delegate<void(size_t)>;
     /**
      * @brief      Event for when data has been written.
      *
      * @param[in]  cb    The write callback
      */
-    virtual void on_write(WriteCallback cb)
-    { ptr->on_write(cb); }
+    virtual void on_write(WriteCallback cb) override
+    { tcp->on_write(cb); }
 
     /**
      * @brief      Async write of a data with a length.
@@ -283,16 +276,16 @@ public:
      * @param[in]  buf   data
      * @param[in]  n     length
      */
-    virtual void write(const void* buf, size_t n)
-    { ptr->write(buf, n); }
+    virtual void write(const void* buf, size_t n) override
+    { tcp->write(buf, n); }
 
     /**
      * @brief      Async write of a chunk.
      *
      * @param[in]  c     A chunk
      */
-    virtual void write(Chunk c)
-    { ptr->write(c); }
+    virtual void write(Chunk c) override
+    { tcp->write(c); }
 
     /**
      * @brief      Async write of a shared buffer with a length.
@@ -301,8 +294,8 @@ public:
      * @param[in]  buffer  shared buffer
      * @param[in]  n       length
      */
-    virtual void write(buffer_t buf, size_t n)
-    { ptr->write(buf, n); }
+    virtual void write(buffer_t buf, size_t n) override
+    { tcp->write(buf, n); }
 
     /**
      * @brief      Async write of a string.
@@ -310,110 +303,103 @@ public:
      *
      * @param[in]  str   The string
      */
-    void write(const std::string& str)
+    virtual void write(const std::string& str) override
     { write(str.data(), str.size()); }
 
     /**
      * @brief      Closes the stream.
      */
-    virtual void close()
-    { ptr->close(); }
+    virtual void close() override
+    { tcp->close(); }
 
     /**
      * @brief      Aborts (terminates) the stream.
      */
-    virtual void abort()
-    { ptr->abort(); }
+    virtual void abort() override
+    { tcp->abort(); }
 
     /**
      * @brief      Resets all callbacks.
      */
-    virtual void reset_callbacks()
-    { ptr->reset_callbacks(); }
+    virtual void reset_callbacks() override
+    { tcp->reset_callbacks(); }
 
     /**
      * @brief      Returns the streams local socket.
      *
      * @return     A TCP Socket
      */
-    tcp::Socket local() const
-    { return ptr->local(); }
+    tcp::Socket local() const override
+    { return tcp->local(); }
 
     /**
      * @brief      Returns the streams remote socket.
      *
      * @return     A TCP Socket
      */
-    tcp::Socket remote() const
-    { return ptr->remote(); }
+    tcp::Socket remote() const override
+    { return tcp->remote(); }
 
     /**
      * @brief      Returns the local port.
      *
      * @return     A TCP port
      */
-    uint16_t local_port() const
-    { return ptr->local_port(); }
+    uint16_t local_port() const override
+    { return tcp->local_port(); }
 
     /**
      * @brief      Returns a string representation of the stream.
      *
      * @return     String representation of the stream.
      */
-    virtual std::string to_string() const noexcept
-    { return ptr->to_string(); }
+    virtual std::string to_string() const override
+    { return tcp->to_string(); }
 
     /**
      * @brief      Determines if connected (established).
      *
      * @return     True if connected, False otherwise.
      */
-    virtual bool is_connected() const noexcept
-    { return ptr->is_connected(); }
+    virtual bool is_connected() const noexcept override
+    { return tcp->is_connected(); }
 
     /**
      * @brief      Determines if writable. (write is allowed)
      *
      * @return     True if writable, False otherwise.
      */
-    virtual bool is_writable() const noexcept
-    { return ptr->is_writable(); }
+    virtual bool is_writable() const noexcept override
+    { return tcp->is_writable(); }
 
     /**
      * @brief      Determines if readable. (data can be received)
      *
      * @return     True if readable, False otherwise.
      */
-    virtual bool is_readable() const noexcept
-    { return ptr->is_readable(); }
+    virtual bool is_readable() const noexcept override
+    { return tcp->is_readable(); }
 
     /**
      * @brief      Determines if closing.
      *
      * @return     True if closing, False otherwise.
      */
-    virtual bool is_closing() const noexcept
-    { return ptr->is_closing(); }
+    virtual bool is_closing() const noexcept override
+    { return tcp->is_closing(); }
 
     /**
      * @brief      Determines if closed.
      *
      * @return     True if closed, False otherwise.
      */
-    virtual bool is_closed() const noexcept
-    { return ptr->is_closed(); };
+    virtual bool is_closed() const noexcept override
+    { return tcp->is_closed(); };
+
+    virtual ~Stream() {}
 
   protected:
-    /**
-     * @brief      Returns the underlying TCP connection.
-     *
-     * @return     A TCP Connection ptr
-     */
-    Connection_ptr tcp()
-    { return ptr; };
-
-  private:
-    Connection_ptr ptr;
+    Connection_ptr tcp;
 
   }; // < class Connection::Stream
 
@@ -1361,8 +1347,10 @@ private:
 
 }; // < class Connection
 
-} // < namespace net
+using Stream = Connection::Stream;
+
 } // < namespace tcp
+} // < namespace net
 
 #include "connection.inc"
 
