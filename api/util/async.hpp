@@ -28,9 +28,9 @@ class Async
 public:
   static const size_t PAYLOAD_SIZE = 64000;
 
-  typedef net::tcp::Connection_ptr Connection;
-  using Disk = fs::Disk_ptr;
-  typedef fs::Dirent Dirent;
+  using Stream  = net::tcp::Connection::Stream;
+  using Disk    = fs::Disk_ptr;
+  using Dirent  = fs::Dirent;
 
   typedef delegate<void(bool)> next_func;
   typedef delegate<void(fs::error_t, bool)> on_after_func;
@@ -39,7 +39,7 @@ public:
   static void upload_file(
       Disk,
       const Dirent&,
-      Connection,
+      Stream&,
       on_after_func,
       size_t = PAYLOAD_SIZE);
 

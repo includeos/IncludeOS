@@ -63,7 +63,7 @@ namespace http {
   {
     Expects(cb != nullptr);
     using namespace std;
-    
+
     if (url.host_is_ip4())
     {
       std::string host = url.host().to_string();
@@ -82,7 +82,7 @@ namespace http {
     }
     else
     {
-      tcp_.stack().resolve(url.host().to_string(), 
+      tcp_.stack().resolve(url.host().to_string(),
       ResolveCallback::make_packed(
       [
         this,
@@ -233,7 +233,7 @@ namespace http {
     }
 
     // no non-occupied connections, emplace a new one
-    cset.push_back(std::make_unique<Client_connection>(*this, tcp_.connect(host)));
+    cset.push_back(std::make_unique<Client_connection>(*this, std::make_unique<Connection::Stream>(tcp_.connect(host))));
     return *cset.back();
   }
 

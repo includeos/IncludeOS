@@ -22,8 +22,8 @@
 
 namespace http {
 
-  Client_connection::Client_connection(Client& client, TCP_conn tcpconn)
-    : Connection{std::move(tcpconn)},
+  Client_connection::Client_connection(Client& client, Stream_ptr stream)
+    : Connection{std::move(stream)},
       client_(client),
       req_(nullptr),
       res_(nullptr),
@@ -32,7 +32,7 @@ namespace http {
       timeout_dur_{timeout_duration::zero()}
   {
     // setup close event
-    tcpconn_->on_close({this, &Client_connection::close});
+    stream_->on_close({this, &Client_connection::close});
   }
 
   void Client_connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize, timeout_duration timeout)
@@ -53,9 +53,9 @@ namespace http {
   {
     keep_alive_ = (req_->header().value(header::Connection) != "close");
 
-    tcpconn_->on_read(bufsize, {this, &Client_connection::recv_response});
+    stream_->on_read(bufsize, {this, &Client_connection::recv_response});
 
-    tcpconn_->write(req_->to_string());
+    stream_->write(req_->to_string());
   }
 
   void Client_connection::recv_response(buffer_t buf, size_t len)
