@@ -44,7 +44,7 @@ void VirtioNet::get_config() {
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
     Link(Link_protocol{{this, &VirtioNet::transmit}, mac()},
-        std::max(256u, queue_size(0) * 2), 2048 /* half-page buffers */),
+        256u, 2048 /* 256x half-page buffers */),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {
@@ -119,7 +119,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
        rx_q.size() / 2, bufstore().bufsize());
 
   for (int i = 0; i < rx_q.size() / 2; i++)
-      add_receive_buffer(bufstore().get_buffer());
+      add_receive_buffer(bufstore().get_buffer().addr);
 
   // Step 4 - If there are many queues, we should negotiate the number.
   // Set config length, based on whether there are multiple queues
@@ -196,7 +196,7 @@ void VirtioNet::msix_recv_handler()
 
     dequeued_rx++;
     // Requeue a new buffer
-    add_receive_buffer(bufstore().get_buffer());
+    add_receive_buffer(bufstore().get_buffer().addr);
 
     // Stat increase packets received
     packets_rx_++;
@@ -270,13 +270,14 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 net::Packet_ptr
 VirtioNet::create_packet(int link_offset)
 {
-  auto* ptr = (net::Packet*) bufstore().get_buffer();
+  auto buffer = bufstore().get_buffer();
+  auto* ptr = (net::Packet*) buffer.addr;
 
   new (ptr) net::Packet(
         sizeof(virtio_net_hdr) + link_offset, 
         0, 
         sizeof(virtio_net_hdr) + packet_len(), 
-        &bufstore());
+        buffer.bufstore);
 
   return net::Packet_ptr(ptr);
 }

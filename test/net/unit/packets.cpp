@@ -46,8 +46,9 @@ CASE("Create empty packet")
 
 Packet_ptr create_packet() noexcept
 {
-  auto* ptr = (net::Packet*) bufstore.get_buffer();
-  new (ptr) net::Packet(DRIVER_OFFSET, 0, DRIVER_OFFSET + PACKET_CAPA, &bufstore);
+  auto buffer = bufstore.get_buffer();
+  auto* ptr = (net::Packet*) buffer.addr;
+  new (ptr) net::Packet(DRIVER_OFFSET, 0, DRIVER_OFFSET + PACKET_CAPA, buffer.bufstore);
   return net::Packet_ptr(ptr);
 }
 

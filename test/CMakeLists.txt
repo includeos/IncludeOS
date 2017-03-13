@@ -8,7 +8,7 @@ if ("${ARCH}" STREQUAL "")
   set (ARCH "ARCH_X86")
 endif("${ARCH}" STREQUAL "")
 
-add_definitions(-D${ARCH})
+add_definitions(-D${ARCH} -DINCLUDEOS_SINGLE_THREADED)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
