@@ -87,6 +87,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/ringbuffer.cpp
   ${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/syslogd_test.cpp
+  ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/tar_test.cpp
   ${TEST}/util/unit/uri_test.cpp
 )
