@@ -29,12 +29,13 @@ namespace http {
 
   class Connection {
   public:
-    using TCP_conn      = net::tcp::Connection_ptr;
+    using Stream        = net::tcp::Connection::Stream;
+    using Stream_ptr    = std::unique_ptr<Stream>;
     using Peer          = net::tcp::Socket;
     using buffer_t      = net::tcp::buffer_t;
 
   public:
-    inline explicit Connection(TCP_conn tcpconn, bool keep_alive = true);
+    inline explicit Connection(Stream_ptr stream, bool keep_alive = true);
 
     template <typename TCP>
     explicit Connection(TCP&, Peer);
@@ -42,16 +43,16 @@ namespace http {
     inline explicit Connection() noexcept;
 
     net::tcp::port_t local_port() const noexcept
-    { return (tcpconn_) ? tcpconn_->local_port() : 0; }
+    { return (stream_) ? stream_->local_port() : 0; }
 
     Peer peer() const noexcept
     { return peer_; }
 
     void timeout()
-    { tcpconn_->is_closing() ? tcpconn_->abort() : tcpconn_->close(); }
+    { stream_->is_closing() ? stream_->abort() : stream_->close(); }
 
-    auto&& tcp() const
-    { return tcpconn_; }
+    auto& stream() const
+    { return stream_; }
 
     /**
      * @brief      Shutdown the underlying TCP connection
@@ -64,7 +65,7 @@ namespace http {
      *
      * @return     The underlying TCP connection
      */
-    inline TCP_conn release();
+    inline Stream_ptr release();
 
     /**
      * @brief      Whether the underlying TCP connection has been released or not
@@ -72,7 +73,7 @@ namespace http {
      * @return     true if the underlying TCP connection is released
      */
     bool released() const
-    { return tcpconn_ == nullptr; }
+    { return stream_ == nullptr; }
 
     static Connection& empty() noexcept
     {
@@ -101,7 +102,7 @@ namespace http {
     virtual ~Connection() {}
 
   protected:
-    TCP_conn          tcpconn_;
+    Stream_ptr        stream_;
     bool              keep_alive_;
     Peer              peer_;
 
@@ -109,23 +110,23 @@ namespace http {
 
   }; // < class Connection
 
-  inline Connection::Connection(TCP_conn tcpconn, bool keep_alive)
-    : tcpconn_{std::move(tcpconn)},
+  inline Connection::Connection(Stream_ptr stream, bool keep_alive)
+    : stream_{std::move(stream)},
       keep_alive_{keep_alive},
-      peer_{tcpconn_->remote()}
+      peer_{stream_->remote()}
   {
-    Ensures(tcpconn_ != nullptr);
+    Ensures(stream_ != nullptr);
     debug("<http::Connection> Created %u -> %s %p\n", local_port(), peer().to_string().c_str(), this);
   }
 
   template <typename TCP>
   Connection::Connection(TCP& tcp, Peer addr)
-    : Connection(tcp.connect(addr))
+    : Connection(std::make_unique<Stream>(tcp.connect(addr)))
   {
   }
 
   inline Connection::Connection() noexcept
-    : tcpconn_(nullptr),
+    : stream_(nullptr),
       keep_alive_(false),
       peer_{}
   {
@@ -133,19 +134,17 @@ namespace http {
 
   inline void Connection::shutdown()
   {
-    if(not released() and not tcpconn_->is_closing())
-      tcpconn_->close();
+    if(not released() and not stream_->is_closing())
+      stream_->close();
   }
 
-  inline Connection::TCP_conn Connection::release()
+  inline Connection::Stream_ptr Connection::release()
   {
-    auto copy = tcpconn_;
+    auto copy = std::move(stream_);
 
     // this is expensive and may be unecessary,
     // but just to be safe for now
     copy->reset_callbacks();
-
-    tcpconn_ = nullptr;
 
     return copy;
   }

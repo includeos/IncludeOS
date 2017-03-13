@@ -33,7 +33,7 @@ namespace http {
     static constexpr size_t DEFAULT_BUFSIZE = 1460;
 
   public:
-    explicit Server_connection(Server&, TCP_conn, size_t idx, const size_t bufsize = DEFAULT_BUFSIZE);
+    explicit Server_connection(Server&, Stream_ptr, size_t idx, const size_t bufsize = DEFAULT_BUFSIZE);
 
     void send(Response_ptr res);
 

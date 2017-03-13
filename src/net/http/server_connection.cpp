@@ -21,21 +21,21 @@
 
 namespace http {
 
- Server_connection::Server_connection(Server& server, TCP_conn conn, size_t idx, const size_t bufsize)
-    : Connection(std::move(conn)),
+ Server_connection::Server_connection(Server& server, Stream_ptr stream, size_t idx, const size_t bufsize)
+    : Connection(std::move(stream)),
       server_(server),
       req_(nullptr),
       idx_(idx),
       idle_since_{0}
   {
-    tcpconn_->on_read(bufsize, {this, &Server_connection::recv_request});
+    stream_->on_read(bufsize, {this, &Server_connection::recv_request});
     // setup close event
-    tcpconn_->on_close({this, &Server_connection::close});
+    stream_->on_close({this, &Server_connection::close});
   }
 
   void Server_connection::send(Response_ptr res)
   {
-    tcpconn_->write(res->to_string());
+    stream_->write(res->to_string());
   }
 
   void Server_connection::recv_request(buffer_t buf, size_t len)
