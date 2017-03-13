@@ -25,3 +25,27 @@ CASE("valid_priority() returns whether supplied priority is valid")
   EXPECT(Syslog::valid_priority(LOG_DEBUG) == true);
   EXPECT_NOT(Syslog::valid_priority(8192007) == true);
 }
+
+CASE("valid_logopt() returns whether supplied logopt is valid")
+{
+  EXPECT(Syslog::valid_logopt(LOG_PID || LOG_NOWAIT) == true);
+}
+
+CASE("valid_facility() returns whether supplied facility is valid")
+{
+  EXPECT(Syslog::valid_facility(LOG_USER) == true);
+}
+
+CASE("ip() returns destination IP address")
+{
+  auto s = Syslog::ip().to_string();
+  size_t dots = std::count(s.begin(), s.end(), '.');
+  EXPECT(dots == 3);
+}
+
+CASE("port() returns destination port")
+{
+  int port = Syslog::port();
+  EXPECT(port > -1);
+  EXPECT(port < 65536);
+}
