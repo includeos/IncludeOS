@@ -56,6 +56,9 @@ public:
   struct Disconnect;
   /** Reason for packet being dropped */
   enum class Drop_reason;
+  /** A Connection stream */
+  class Stream;
+
   using Byte = uint8_t;
 
   using WriteBuffer = Write_queue::WriteBuffer;
@@ -214,6 +217,205 @@ public:
    */
   inline void abort();
 
+  /**
+   * @brief      Exposes a TCP Connection as a Stream with only the most necessary features.
+   *             May be overrided by extensions like TLS etc for additional functionality.
+   */
+  class Stream {
+  public:
+    /**
+     * @brief      Construct a Stream for a Connection ptr
+     *
+     * @param[in]  conn  The connection
+     */
+    Stream(Connection_ptr conn)
+      : ptr{std::move(conn)}
+    {}
+
+    /** Called when the stream is ready to use. */
+    using ConnectCallback = delegate<void(Stream& self)>;
+    /**
+     * @brief      Event when the stream is connected/established/ready to use.
+     *
+     * @param[in]  cb    The connect callback
+     */
+    virtual void on_connect(ConnectCallback cb)
+    {
+      ptr->on_connect(Connection::ConnectCallback::make_packed(
+          [this, cb] (Connection_ptr)
+          { cb(*this); }));
+    }
+
+    /** Called with a shared buffer and the length of the data when received. */
+    using ReadCallback            = delegate<void(buffer_t, size_t)>;
+    /**
+     * @brief      Event when data is received.
+     *
+     * @param[in]  n     The size of the receive buffer
+     * @param[in]  cb    The read callback
+     */
+    virtual void on_read(size_t n, ReadCallback cb)
+    { ptr->on_read(n, cb); }
+
+    /** Called with nothing ¯\_(ツ)_/¯ */
+    using CloseCallback           = delegate<void()>;
+    /**
+     * @brief      Event for when the Stream is being closed.
+     *
+     * @param[in]  cb    The close callback
+     */
+    virtual void on_close(CloseCallback cb)
+    { ptr->on_close(cb); }
+
+    /** Called with the number of bytes written. */
+    using WriteCallback           = delegate<void(size_t)>;
+    /**
+     * @brief      Event for when data has been written.
+     *
+     * @param[in]  cb    The write callback
+     */
+    virtual void on_write(WriteCallback cb)
+    { ptr->on_write(cb); }
+
+    /**
+     * @brief      Async write of a data with a length.
+     *
+     * @param[in]  buf   data
+     * @param[in]  n     length
+     */
+    virtual void write(const void* buf, size_t n)
+    { ptr->write(buf, n); }
+
+    /**
+     * @brief      Async write of a chunk.
+     *
+     * @param[in]  c     A chunk
+     */
+    virtual void write(Chunk c)
+    { ptr->write(c); }
+
+    /**
+     * @brief      Async write of a shared buffer with a length.
+     *             Calls write(Chunk c).
+     *
+     * @param[in]  buffer  shared buffer
+     * @param[in]  n       length
+     */
+    virtual void write(buffer_t buf, size_t n)
+    { ptr->write(buf, n); }
+
+    /**
+     * @brief      Async write of a string.
+     *             Calls write(const void* buf, size_t n)
+     *
+     * @param[in]  str   The string
+     */
+    void write(const std::string& str)
+    { write(str.data(), str.size()); }
+
+    /**
+     * @brief      Closes the stream.
+     */
+    virtual void close()
+    { ptr->close(); }
+
+    /**
+     * @brief      Aborts (terminates) the stream.
+     */
+    virtual void abort()
+    { ptr->abort(); }
+
+    /**
+     * @brief      Resets all callbacks.
+     */
+    virtual void reset_callbacks()
+    { ptr->reset_callbacks(); }
+
+    /**
+     * @brief      Returns the streams local socket.
+     *
+     * @return     A TCP Socket
+     */
+    tcp::Socket local() const
+    { return ptr->local(); }
+
+    /**
+     * @brief      Returns the streams remote socket.
+     *
+     * @return     A TCP Socket
+     */
+    tcp::Socket remote() const
+    { return ptr->remote(); }
+
+    /**
+     * @brief      Returns the local port.
+     *
+     * @return     A TCP port
+     */
+    uint16_t local_port() const
+    { return ptr->local_port(); }
+
+    /**
+     * @brief      Returns a string representation of the stream.
+     *
+     * @return     String representation of the stream.
+     */
+    virtual std::string to_string() const noexcept
+    { return ptr->to_string(); }
+
+    /**
+     * @brief      Determines if connected (established).
+     *
+     * @return     True if connected, False otherwise.
+     */
+    virtual bool is_connected() const noexcept
+    { return ptr->is_connected(); }
+
+    /**
+     * @brief      Determines if writable. (write is allowed)
+     *
+     * @return     True if writable, False otherwise.
+     */
+    virtual bool is_writable() const noexcept
+    { return ptr->is_writable(); }
+
+    /**
+     * @brief      Determines if readable. (data can be received)
+     *
+     * @return     True if readable, False otherwise.
+     */
+    virtual bool is_readable() const noexcept
+    { return ptr->is_readable(); }
+
+    /**
+     * @brief      Determines if closing.
+     *
+     * @return     True if closing, False otherwise.
+     */
+    virtual bool is_closing() const noexcept
+    { return ptr->is_closing(); }
+
+    /**
+     * @brief      Determines if closed.
+     *
+     * @return     True if closed, False otherwise.
+     */
+    virtual bool is_closed() const noexcept
+    { return ptr->is_closed(); };
+
+  protected:
+    /**
+     * @brief      Returns the underlying TCP connection.
+     *
+     * @return     A TCP Connection ptr
+     */
+    Connection_ptr tcp()
+    { return ptr; };
+
+  private:
+    Connection_ptr ptr;
+
+  }; // < class Connection::Stream
 
   /**
    * @brief      Reason for disconnect event.

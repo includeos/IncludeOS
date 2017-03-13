@@ -54,19 +54,6 @@ namespace http {
     return res;
   }
 
-  std::vector<Server::TCP_conn> Server::active_tcp_connections() const
-  {
-    std::vector<TCP_conn> conns;
-    conns.reserve(connections_.size() - free_idx_.size());
-
-    for (auto& conn : connections_) {
-      if (conn != nullptr)
-        conns.push_back(conn->tcp());
-    }
-
-   return conns;
-  }
-
   Server::~Server()
   {
     if(timer_id_ != Timers::UNUSED_ID)
@@ -75,19 +62,19 @@ namespace http {
     }
   }
 
-  void Server::connect(TCP_conn conn)
+  void Server::connect(Connection::Stream_ptr stream)
   {
-    debug("Connection attempt from %s\n", conn->remote().to_string().c_str());
+    debug("Connection attempt from %s\n", stream->remote().to_string().c_str());
     // if there is a free spot in connections
     if(free_idx_.size() > 0) {
       auto idx = free_idx_.back();
       Ensures(connections_[idx] == nullptr);
-      connections_[idx] = std::make_unique<Server_connection>(*this, conn, idx);
+      connections_[idx] = std::make_unique<Server_connection>(*this, std::move(stream), idx);
       free_idx_.pop_back();
     }
     // if not, add a new shared ptr
     else {
-      connections_.emplace_back(std::make_unique<Server_connection>(*this, conn, connections_.size()));
+      connections_.emplace_back(std::make_unique<Server_connection>(*this, std::move(stream), connections_.size()));
     }
     ++stat_conns_;
   }
