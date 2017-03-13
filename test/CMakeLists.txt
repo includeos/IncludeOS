@@ -249,3 +249,11 @@ add_custom_target(
   -I ${INCLUDEOS_ROOT}/mod/uzlib/src
   ${OS_SOURCES}
 )
+
+add_custom_target(
+  clang-tidy
+  COMMAND clang-tidy-3.8
+  -checks=clang-analyzer-core.*,clang-analyzer-cplusplus.*,clang-analyzer-deadcode.*,clang-analyzer-nullability,cppcoreguidelines*,modernize*,performance*,misc*,-misc-virtual-near-miss
+  -p=compile_commands.json
+  ${OS_SOURCES}
+)
