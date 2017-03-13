@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/tcp/write_queue.hpp>
+#include <utility>
 
 using namespace net::tcp;
 
@@ -24,7 +25,7 @@ Write_queue::Write_queue(WriteCallback cb)
     current_(0),
     offset_(0),
     acked_(0),
-    on_write_(cb)
+    on_write_(std::move(cb))
 {
 }
 

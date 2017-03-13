@@ -17,13 +17,14 @@
 
 #include <sstream>
 #include <kernel/memmap.hpp>
+#include <utility>
 
 ///////////////////////////////////////////////////////////////////////////////
 Fixed_memory_range::Fixed_memory_range(const uintptr_t begin, const uintptr_t end, const char* name,
                                        const std::string& description, In_use_delg in_use_operation)
   : name_{name}
   , description_{description}
-  , in_use_op_{in_use_operation}
+  , in_use_op_{std::move(in_use_operation)}
 {
   if (begin > end) {
     throw Memory_range_exception{"Start is larger than end: " + std::to_string(begin) + " > " + std::to_string(end)};
