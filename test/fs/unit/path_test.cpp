@@ -42,6 +42,14 @@ CASE("Path can be constructed with initializer list")
   EXPECT(path.to_string() == "/Users/Bjarne/Documents/");
 }
 
+CASE("Path by default is constructed as \"/\"")
+{
+  fs::Path path;
+  EXPECT(path.to_string() == "/");
+  EXPECT(path.empty() == true);
+  EXPECT(path.size() == 0u);
+}
+
 CASE("Paths can be checked for equality")
 {
   fs::Path src_path {"/etc"};
