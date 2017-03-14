@@ -20,6 +20,39 @@
 
 namespace net {
 
+  // ---------------------------- ICMP_packet ----------------------------
+
+  std::string ICMP_packet::to_string() {
+    if (not is_reply())
+      return "No reply received";
+
+    const std::string t = [&]() {
+      switch (type_) {
+        using namespace icmp4;
+        case Type::ECHO_REPLY: return "ECHO REPLY";
+        case Type::DEST_UNREACHABLE: return "DESTINATION UNREACHABLE";
+        case Type::REDIRECT: return "REDIRECT";
+        case Type::ECHO: return "ECHO";
+        case Type::TIME_EXCEEDED: return "TIME EXCEEDED";
+        case Type::PARAMETER_PROBLEM: return "PARAMETER PROBLEM";
+        case Type::TIMESTAMP: return "TIMESTAMP";
+        case Type::TIMESTAMP_REPLY: return "TIMESTAMP REPLY";
+        case Type::NO_REPLY: return "NO REPLY";
+      }
+    }();
+
+    return "Identifier: " + std::to_string(id_) + "\n" +
+      "Sequence number: " + std::to_string(seq_) + "\n" +
+      "Source: " + src_.to_string() + "\n" +
+      "Destination: " + dst_.to_string() + "\n" +
+      "Type: " + t + "\n" +
+      "Code: " + std::to_string(code_) + "\n" +
+      "Checksum: " + std::to_string(checksum_) + "\n" +
+      "Data: " + std::string{payload_.begin(), payload_.end()};
+  }
+
+  // ------------------------------ ICMPv4 ------------------------------
+
   int ICMPv4::request_id_ = 0;
 
   ICMPv4::ICMPv4(Stack& inet) :
