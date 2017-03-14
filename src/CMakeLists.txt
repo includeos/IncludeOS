@@ -69,7 +69,7 @@ set(OS_OBJECTS
 )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
-add_dependencies(os PrecompiledLibraries)
+add_dependencies(os PrecompiledLibraries botan)
 
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)
 

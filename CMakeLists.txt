@@ -120,6 +120,9 @@ if(diskbuilder)
   )
 endif(diskbuilder)
 
+# Botan Crypto & TLS
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
+
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
 	add_subdirectory(examples)
