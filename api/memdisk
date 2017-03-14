@@ -34,7 +34,7 @@ namespace fs
   }
   // new_shared_memdisk() very likely contains FAT
   // Note: deprecated!
-  inline Disk_ptr new_shared_memdisk()
+  [[deprecated]] inline Disk_ptr new_shared_memdisk()
   {
     static MemDisk device;
     return std::make_shared<Disk> (device);
