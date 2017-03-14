@@ -33,8 +33,13 @@ public:
       fs::Dirent& ca_cert,
       fs::Dirent& server_key,
       TCP& tcp,
-      Request_handler cb
-    );
+      Request_handler cb);
+
+  Secure_server(
+      fs::Dirent& ca_key,
+      fs::Dirent& ca_cert,
+      fs::Dirent& server_key,
+      TCP& tcp);
 
   Secure_server(
       Botan::Credentials_Manager*   in_credman,
@@ -57,7 +62,6 @@ public:
       Server::connect(std::unique_ptr<net::tls::Server>(ptr));
     });
     ptr->on_close([ptr] {
-      printf("Secure_HTTP::on_close on %s\n", ptr->to_string().c_str());
       delete ptr;
     });
   }
