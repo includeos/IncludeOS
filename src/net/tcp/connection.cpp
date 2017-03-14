@@ -993,6 +993,7 @@ void Connection::parse_options(const Packet& packet) {
         }
       }
       opt += option->length;
+      break;
     }
 
     default:
