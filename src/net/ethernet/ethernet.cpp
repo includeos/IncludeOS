@@ -37,6 +37,7 @@ namespace net {
     packets_rx_{Statman::get().create(Stat::UINT64, ".ethernet.packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, ".ethernet.packets_tx").get_uint64()},
     packets_dropped_{Statman::get().create(Stat::UINT32, ".ethernet.packets_dropped").get_uint32()},
+    trailer_packets_dropped_{Statman::get().create(Stat::UINT32, ".ethernet.trailer_packets_dropped").get_uint32()},
     ip4_upstream_{ignore},
     ip6_upstream_{ignore},
     arp_upstream_{ignore},
@@ -123,12 +124,20 @@ namespace net {
       break;
 
     default:
+      // Trailer negotiation and encapsulation RFC 893 and 1122
+      if (eth->type() == Ethertype::TRAILER_NEGO or (eth->type() >= Ethertype::TRAILER_FIRST and eth->type() <= Ethertype::TRAILER_LAST)) {
+        dropped = true;
+        trailer_packets_dropped_++;
+        debug2("Trailer packet\n");
+        break;
+      }
+
       dropped = true;
       uint16_t length_field = net::ntohs(static_cast<uint16_t>(eth->type()));
       // This might be 802.3 LLC traffic
       if (length_field > 1500) {
         debug2("<Ethernet> UNKNOWN ethertype 0x%x\n", ntohs(eth->type()));
-      }else {
+      } else {
         debug2("IEEE802.3 Length field: 0x%x\n", ntohs(eth->type()));
       }
       break;
