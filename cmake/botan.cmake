@@ -5,7 +5,7 @@ include(ExternalProject)
 ExternalProject_Add(botan
         PREFIX botan
         URL https://github.com/includeos/botan/releases/download/inc-2.0/botan-includeos.tar.gz
-        URL_HASH MD5=142801a69fd87b65dae12d395ef2a995
+        URL_HASH MD5=952980834c93e61dc836bb7c400f4d57
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         UPDATE_COMMAND ""
