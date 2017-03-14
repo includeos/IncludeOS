@@ -20,6 +20,7 @@
 #if !defined(__MACH__)
 #include <malloc.h>
 #else
+#include <cstddef>
 extern void *memalign(size_t, size_t);
 #endif
 #include <net/buffer_store.hpp>
