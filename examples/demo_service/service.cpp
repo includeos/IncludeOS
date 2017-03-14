@@ -115,8 +115,9 @@ void Service::start(const std::string&)
       printf("<Service> @on_read: %u bytes received.\n", n);
       try
       {
+        std::string data{(const char*)buf.get(), n};
         // try to parse the request
-        http::Request req{(const char*)buf.get(), n};
+        http::Request req{data};
 
         // handle the request, getting a matching response
         auto res = handle_request(req);
@@ -128,9 +129,9 @@ void Service::start(const std::string&)
           printf("<Service> @on_write: %u bytes written.\n", written);
         });
       }
-      catch(...)
+      catch(const std::exception& e)
       {
-        printf("<Service> Unable to parse request.\n");
+        printf("<Service> Unable to parse request:\n%s\n", e.what());
       }
     });
   });
