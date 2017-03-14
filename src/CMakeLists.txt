@@ -15,6 +15,7 @@ include_directories(${INCLUDEOS_ROOT}/api)
 include_directories(${INCLUDEOS_ROOT}/mod/)
 include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
+include_directories(${BOTAN_DIR})
 
 add_custom_command(
 	OUTPUT apic_boot.o
@@ -50,7 +51,7 @@ set(OS_OBJECTS
   net/super_stack.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
-  net/http/mime_types.cpp net/http/cookie.cpp
+  net/http/mime_types.cpp net/http/cookie.cpp net/http/secure_server.cpp
   net/http/client_connection.cpp net/http/client.cpp
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
