@@ -90,7 +90,11 @@ namespace http {
      */
     Response_ptr create_response(status_t code = http::OK) const;
 
-    ~Server();
+    virtual ~Server();
+
+  protected:
+    delegate<void(TCP_conn)> on_connect;
+    void connect(Connection::Stream_ptr stream);
 
   private:
     friend class Server_connection;
@@ -109,10 +113,9 @@ namespace http {
     Stat& stat_req_bad_;
     Stat& stat_timeouts_;
 
-    void connect(TCP_conn conn)
-    { connect(std::make_unique<Connection::Stream>(conn)); }
-
-    void connect(Connection::Stream_ptr stream);
+    void connected(TCP_conn conn) {
+      connect(std::make_unique<Connection::Stream>(conn));
+    }
 
     void close(Server_connection&);
 

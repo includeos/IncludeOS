@@ -1,7 +1,7 @@
-// -*-C++-*-
+// -*- C++ -*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,28 +17,11 @@
 // limitations under the License.
 
 #pragma once
-#ifndef MEMDISK_HEADER
-#define MEMDISK_HEADER
+#ifndef API_HTTPS_HEADER
+#define API_HTTPS_HEADER
 
-#include "fs/disk.hpp"
-#include "fs/memdisk.hpp"
-
-namespace fs
-{
-  // new singleton interface for the memdisk
-  inline Disk& memdisk()
-  {
-    static MemDisk device;
-    static Disk    disk {device};
-    return disk;
-  }
-  // new_shared_memdisk() very likely contains FAT
-  // Note: deprecated!
-  inline Disk_ptr new_shared_memdisk()
-  {
-    static MemDisk device;
-    return std::make_shared<Disk> (device);
-  }
-}
+#include "net/http/response.hpp"
+#include "net/http/request.hpp"
+#include "net/http/secure_server.hpp"
 
 #endif
