@@ -59,4 +59,13 @@ namespace http
 
     this->credman.reset(credman);
   }
+
+  Secure_server::Secure_server(
+      fs::Dirent& file_ca_key,
+      fs::Dirent& file_ca_cert,
+      fs::Dirent& file_server_key,
+      TCP& tcp)
+    : Secure_server(file_ca_key, file_ca_cert, file_server_key, tcp, nullptr)
+  {}
+
 }
