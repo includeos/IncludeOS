@@ -28,27 +28,39 @@ void Service::start(const std::string&)
                       {  10,  0,  0,  1 } );  // Gateway
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
+  // ping gateway
+  inet.icmp().ping(inet.gateway(), [](ICMP_packet pckt) {
+    if (pckt.is_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+      printf("Received packet from gateway\n%s\n", pckt.to_string().c_str());
+    else
+      printf("No reply received from gateway. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
+  });
+
+  /* If IP forwarding on:
   // ping google.com with callback
   inet.icmp().ping(IP4::addr{193,90,147,109}, [](ICMP_packet pckt) {
-    if (pckt.got_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+    if (pckt.is_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
       printf("Received packet\n%s\n", pckt.to_string().c_str());
     else
       printf("No reply received from 193.90.147.109. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
   });
+  */
 
-  // No reply-ping
-  inet.icmp().ping(IP4::addr{23,143,23,33}, [](ICMP_packet pckt) {
-    if (pckt.got_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
-      printf("Received packet\n%s\n", pckt.to_string().c_str());
+  // No reply-pings
+  // Waiting 30 seconds for reply
+  inet.icmp().ping(IP4::addr{10,0,0,42}, [](ICMP_packet pckt) {
+    if (pckt.is_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+      printf("Received packet from 10.0.0.42\n%s\n", pckt.to_string().c_str());
     else
-      printf("No reply received from 23.143.23.33. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
+      printf("No reply received from 10.0.0.42. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
   });
 
-  inet.icmp().ping(IP4::addr{23,143,23,33}, [](ICMP_packet pckt) {
-    if (pckt.got_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
-      printf("Received packet\n%s\n", pckt.to_string().c_str());
+  // Waiting 30 seconds for reply
+  inet.icmp().ping(IP4::addr{10,0,0,43}, [](ICMP_packet pckt) {
+    if (pckt.is_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+      printf("Received packet from 10.0.0.43\n%s\n", pckt.to_string().c_str());
     else
-      printf("No reply received from 23.143.23.33. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
+      printf("No reply received from 10.0.0.43. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
   });
 
   // Also possible without callback:

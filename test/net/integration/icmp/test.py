@@ -20,11 +20,11 @@ vm = vmrunner.vms[0]
 # 2. Check that sending a udp packet to 10.0.0.45 (the IncludeOS service's IP) and port 8080 returns
 # an ICMP message with Destination unreachable (type 3), port unreachable (code 3).
 # sudo hping3 10.0.0.45 --udp -p 8080 -c 1
-# (count = 1)
 # 3. Check that sending an ip packet to 10.0.0.45 (the IncludeOS service's IP) with protocol 16 f.ex.
 # returns an ICMP message with Destination unreachable (type 3), protocol unreachable (code 2).
 # sudo hping3 10.0.0.45 -d 20 -0 --ipproto 16 -c 1
-# (count = 1)
+
+# ICMP waiting 30 seconds for ping reply
 
 num_successes = 0
 
@@ -46,15 +46,15 @@ def start_icmp_test(trigger_line):
 
   print output_data
 
-  if "Received packet" in output_data and \
+  if "Received packet from gateway" in output_data and \
     "Identifier: 0" in output_data and \
     "Sequence number: 0" in output_data and \
-    "Source: 193.90.147.109" in output_data and \
+    "Source: 10.0.0.1" in output_data and \
     "Destination: 10.0.0.45" in output_data and \
     "Type: ECHO REPLY" in output_data and \
     "Code: 0" in output_data and \
-    "No reply received from 23.143.23.33. Identifier: 1. Sequence number: 0" in output_data and \
-    "No reply received from 23.143.23.33. Identifier: 2. Sequence number: 0" in output_data:
+    "No reply received from 10.0.0.42. Identifier: 1. Sequence number: 0" in output_data and \
+    "No reply received from 10.0.0.43. Identifier: 2. Sequence number: 0" in output_data:
     num_successes += 1
     print color.INFO("<Test.py>"), "Ping test succeeded"
   else:

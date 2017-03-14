@@ -30,7 +30,7 @@ namespace net {
   struct ICMP_packet {
     using Span = gsl::span<uint8_t>;
 
-    bool          got_reply_{false};
+    bool          is_reply_{false};
     uint16_t      id_{0};
     uint16_t      seq_{0};
     IP4::addr     src_{0,0,0,0};
@@ -46,11 +46,11 @@ namespace net {
     {}
 
     ICMP_packet(uint16_t id, uint16_t seq, IP4::addr src, IP4::addr dst, icmp4::Type type, uint8_t code, uint16_t checksum, const Span& payload)
-    : got_reply_{true}, id_{id}, seq_{seq}, src_{src}, dst_{dst}, type_{type}, code_{code}, checksum_{checksum}, payload_{payload}
+    : is_reply_{true}, id_{id}, seq_{seq}, src_{src}, dst_{dst}, type_{type}, code_{code}, checksum_{checksum}, payload_{payload}
     {}
 
-    bool got_reply() const noexcept
-    { return got_reply_; }
+    bool is_reply() const noexcept
+    { return is_reply_; }
 
     uint16_t id() const noexcept
     { return id_; }
@@ -77,7 +77,7 @@ namespace net {
     { return payload_; }
 
     std::string to_string() {
-      if (not got_reply())
+      if (not is_reply())
         return "No reply received";
 
       const std::string t = [&]() {
