@@ -25,8 +25,16 @@
 
 namespace fs
 {
+  // new singleton interface for the memdisk
+  inline Disk& memdisk()
+  {
+    static MemDisk device;
+    static Disk    disk {device};
+    return disk;
+  }
   // new_shared_memdisk() very likely contains FAT
-  inline Disk_ptr new_shared_memdisk()
+  // Note: deprecated!
+  [[deprecated]] inline Disk_ptr new_shared_memdisk()
   {
     static MemDisk device;
     return std::make_shared<Disk> (device);

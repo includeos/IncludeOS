@@ -42,7 +42,7 @@ namespace fs {
 
     struct Partition;
     using on_parts_func = delegate<void(fs::error_t, std::vector<Partition>&)>;
-    using on_init_func = delegate<void(fs::error_t)>;
+    using on_init_func  = delegate<void(fs::error_t, File_system&)>;
     using lba_t = uint32_t;
 
     enum partition_t {

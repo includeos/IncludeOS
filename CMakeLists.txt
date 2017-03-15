@@ -89,6 +89,10 @@ set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -
 option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
+# Botan Crypto & TLS
+# Note: Include order matters!
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
+
 #
 # Subprojects
 #

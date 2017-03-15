@@ -29,7 +29,7 @@ fs::Disk_ptr& memdisk() {
 
   if (not disk->fs_ready()) {
     printf("%s\n", disk->name().c_str());
-    disk->init_fs([](fs::error_t err) {
+    disk->init_fs([](fs::error_t err, auto&) {
         if (err) {
           printf("ERROR MOUNTING DISK\n");
           exit(127);

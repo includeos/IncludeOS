@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 2.8.9)
 project(unittests C CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(COVERAGE "Build with coverage generation" OFF)
+option(SILENT_BUILD "Build with some warnings turned off" ON)
 
 if ("${ARCH}" STREQUAL "")
   set (ARCH "ARCH_X86")
 endif("${ARCH}" STREQUAL "")
 
-add_definitions(-D${ARCH})
+add_definitions(-D${ARCH} -DINCLUDEOS_SINGLE_THREADED)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
@@ -84,6 +86,9 @@ set(TEST_SOURCES
   ${TEST}/util/unit/percent_encoding_test.cpp
   ${TEST}/util/unit/ringbuffer.cpp
   ${TEST}/util/unit/statman.cpp
+  ${TEST}/util/unit/syslogd_test.cpp
+  ${TEST}/util/unit/syslog_facility_test.cpp
+  ${TEST}/util/unit/tar_test.cpp
   ${TEST}/util/unit/uri_test.cpp
 )
 
@@ -166,6 +171,10 @@ set(OS_SOURCES
 
 set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
+  ${INCLUDEOS_ROOT}/mod/uzlib/src/adler32.c
+  ${INCLUDEOS_ROOT}/mod/uzlib/src/crc32.c
+  ${INCLUDEOS_ROOT}/mod/uzlib/src/tinflate.c
+  ${INCLUDEOS_ROOT}/mod/uzlib/src/tinfgzip.c
 )
 
 if(COVERAGE)
@@ -204,7 +213,48 @@ if ("${ARCH}" STREQUAL "ARCH_ARMv7")
   set_property(SOURCE ${SOURCES} PROPERTY COMPILE_FLAGS -mfpu=vfpv3-d16)
 endif("${ARCH}" STREQUAL "ARCH_ARMv7")
 
+if(SILENT_BUILD)
+  message(STATUS "NOTE: Building with some warnings turned off")
+  set_property(SOURCE ${SOURCES} APPEND_STRING PROPERTY COMPILE_FLAGS
+  " -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare -Wno-format")
+endif()
+
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
+add_custom_command(
+  TARGET unittests PRE_BUILD
+  COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-single.tar ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+  COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-multiple.tar ${CMAKE_CURRENT_SOURCE_DIR}/*.py
+  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/test-invalid.tar
+  COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+  COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_CURRENT_BINARY_DIR}/test-corrupt.gz ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+  COMMAND bash ${TEST}/util/unit/corrupt-tar-gz.sh ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/test-corrupt.gz
+  COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz
+)
+
+add_custom_target(
+  cppcheck
+  COMMAND cppcheck
+  --enable=warning,style,performance,portability
+  --force
+  --platform=unix32
+  --std=c++11
+  --verbose
+  --quiet
+  -I ${INCLUDEOS_ROOT}/api
+  -I ${INCLUDEOS_ROOT}/src/include
+  -I ${INCLUDEOS_ROOT}/mod/
+  -I ${INCLUDEOS_ROOT}/mod/GSL
+  -I ${INCLUDEOS_ROOT}/mod/uzlib/src
+  ${OS_SOURCES}
+)
+
+add_custom_target(
+  clang-tidy
+  COMMAND clang-tidy-3.8
+  -checks=clang-analyzer-core.*,clang-analyzer-cplusplus.*,clang-analyzer-deadcode.*,clang-analyzer-nullability,cppcoreguidelines*,modernize*,performance*,misc*,-misc-virtual-near-miss
+  -p=compile_commands.json
+  ${OS_SOURCES}
+)

@@ -18,6 +18,8 @@
 #ifndef NET_INET_HPP
 #define NET_INET_HPP
 
+#include <chrono>
+
 #include <net/inet_common.hpp>
 #include <hw/mac_addr.hpp>
 #include <hw/nic.hpp>
@@ -173,6 +175,7 @@ namespace net {
 
     /** Move this interface to the CPU executing the call */
     virtual void move_to_this_cpu() = 0;
+    virtual int  get_cpu_id() const noexcept = 0;
 
   }; //< class Inet<LINKLAYER, IPV>
 } //< namespace net

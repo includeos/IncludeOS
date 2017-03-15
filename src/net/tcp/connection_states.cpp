@@ -151,7 +151,7 @@ unacceptable:
   if(!in.isset(RST))
     tcp.send_ack();
 
-  tcp.drop(in, "Unacceptable SEQ");
+  tcp.drop(in, Drop_reason::SEQ_OUT_OF_ORDER);
   return false;
 
 acceptable:
@@ -237,6 +237,7 @@ bool Connection::State::check_ack(Connection& tcp, const Packet& in) {
     */
     // Correction: [RFC 1122 p. 94]
     // ACK is inside sequence space
+    //return tcp.handle_ack(in);
     if(in.ack() <= tcb.SND.NXT ) {
 
       return tcp.handle_ack(in);
@@ -288,14 +289,14 @@ bool Connection::State::check_ack(Connection& tcp, const Packet& in) {
       auto packet = tcp.outgoing_packet();
       packet->set_flag(ACK);
       tcp.transmit(std::move(packet));
-      tcp.drop(in, "ACK > SND.NXT");
+      tcp.drop(in, Drop_reason::ACK_OUT_OF_ORDER);
       return false;
     }
     return true;
   }
   // ACK not set.
   else {
-    tcp.drop(in, "!ACK");
+    tcp.drop(in, Drop_reason::ACK_NOT_SET);
     return false;
   }
 }
@@ -879,7 +880,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
       }
       // (unless the RST bit is set, if so drop the segment and return)
       else {
-        tcp.drop(*in, "RST");
+        tcp.drop(*in, Drop_reason::RST);
         return OK;
       }
       // If SND.UNA =< SEG.ACK =< SND.NXT then the ACK is acceptable.
@@ -890,10 +891,10 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
   if(UNLIKELY(in->isset(RST))) {
     if(in->isset(ACK)) {
       tcp.signal_error(TCPException{"Connection reset."});
-      tcp.drop(*in, "RST with acceptable ACK");
+      tcp.drop(*in, Drop_reason::RST);
       return CLOSED;
     } else {
-      tcp.drop(*in, "RST");
+      tcp.drop(*in, Drop_reason::RST);
       return OK;
     }
     /*
@@ -1079,7 +1080,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
   }
   // ACK is missing
   else {
-    tcp.drop(*in, "SYN-RCV: !ACK");
+    tcp.drop(*in, Drop_reason::ACK_NOT_SET);
     return OK;
   }
 

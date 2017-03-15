@@ -120,6 +120,8 @@ public:
   // call this to signal that tasks are queued up
   static void signal();
 
+  // trigger interrupt on specified CPU
+  static void unicast(int cpu, uint8_t intr);
   // broadcast-trigger interrupt on all waiting APs
   static void broadcast(uint8_t intr);
 

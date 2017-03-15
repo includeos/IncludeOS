@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,10 +26,13 @@
 #include "socket.hpp"
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
+
 #include <delegate>
 #include <util/timer.hpp>
+#include <net/stream.hpp>
 
 namespace net {
+  // Forward declaration of the TCP object
   class TCP;
 }
 
@@ -52,63 +55,122 @@ public:
   class State;
   /** Disconnect event */
   struct Disconnect;
+  /** Reason for packet being dropped */
+  enum class Drop_reason;
+  /** A Connection stream */
+  class Stream;
 
   using Byte = uint8_t;
 
   using WriteBuffer = Write_queue::WriteBuffer;
 
 public:
-
-  /*
-    On connected - When both hosts exchanged sequence numbers (handshake is done).
-    Now in ESTABLISHED state - it's allowed to write and read to/from the remote.
-  */
+  /** Called with the connection itself when it's been established. */
   using ConnectCallback         = delegate<void(Connection_ptr self)>;
-  inline Connection&            on_connect(ConnectCallback);
+  /**
+   * @brief      Event when a connection has been established.
+   *             This event lets you know when to start using the connection,
+   *             and should always be assigned.
+   *
+   * @param[in]  callback  The callback
+   *
+   * @return     This connection
+   */
+  inline Connection&            on_connect(ConnectCallback callback);
 
-  /** Supplied on read - called when a buffer is either full or */
+  /** Called with a shared buffer and the length of the data when received. */
   using ReadCallback            = delegate<void(buffer_t, size_t)>;
-  inline Connection&            on_read(size_t recv_bufsz, ReadCallback);
+  /**
+   * @brief      Event when incoming data is received by the connection.
+   *             The recv_bufsz determines the size of the receive buffer.
+   *             The callback is called when either 1) PSH is seen, or 2) the buffer is full
+   *
+   * @param[in]  recv_bufsz  The size of the receive buffer
+   * @param[in]  callback    The callback
+   *
+   * @return     This connection
+   */
+  inline Connection&            on_read(size_t recv_bufsz, ReadCallback callback);
 
-  /*
-    On disconnect - When a remote told it wanna close the connection.
-    Connection has received a FIN, currently last thing that will happen before a connection is remoed.
-  */
-
-  // TODO: Remove reference to Connection, probably not needed..
+  /** Called with the connection itself and the reason wrapped in a Disconnect struct. */
   using DisconnectCallback      = delegate<void(Connection_ptr self, Disconnect)>;
-  inline Connection&            on_disconnect(DisconnectCallback);
-
   /**
-   * Emitted right before the connection gets cleaned up
+   * @brief      Event when a connection is being disconnected.
+   *             This is when either 1) The peer has sent a FIN, indicating it wants to close,
+   *             or 2) A RST is received telling the connection to reset
+   *
+   * @note       The default is to close the connection from our end as well.
+   *             Remember to ::close() the connection inside this event (if that's what you want to do)
+   *
+   * @param[in]  callback  The callback
+   *
+   * @return     This connection
    */
+  inline Connection&            on_disconnect(DisconnectCallback callback);
+
+  /** Called with nothing ¯\_(ツ)_/¯ */
   using CloseCallback           = delegate<void()>;
-  inline Connection&            on_close(CloseCallback);
-
   /**
-   * Emitted every time the connection finishes writing a chunk (job)
+   * @brief      Event when a connection is closing down.
+   *             After this event has been called, the connection is useless.
+   *             This is useful for cleaning up copies of the connection,
+   *             and is more important than disconnect.
+   *
+   * @param[in]  callback  The callback
+   *
+   * @return     This connection
    */
+  inline Connection&            on_close(CloseCallback callback);
+
+  /** Called with the number of bytes written. */
   using WriteCallback           = delegate<void(size_t)>;
-  inline Connection&            on_write(WriteCallback);
-
-  /*
-    On error - When any of the users request fails.
-  */
-  using ErrorCallback           = delegate<void(TCPException)>;
-  inline Connection&            on_error(ErrorCallback);
-
-  /*
-    When a packet is dropped - Everytime an incoming packet is unallowed, it will be dropped.
-    Can be used for debugging.
-  */
-  using PacketDroppedCallback   = delegate<void(const Packet&, const std::string&)>;
-  inline Connection&            on_packet_dropped(PacketDroppedCallback);
-
   /**
-   * Emitted on RTO - When the retransmission timer times out, before retransmitting.
-   * Gives the current attempt and the current timeout in seconds.
+   * @brief      Event when a connection has finished sending a write request (chunk).
+   *             This event does not tell if the data has been received by the peer,
+   *             only that it has been transmitted.
+   *             This can also be called with the amount written by the current request
+   *             if a connection is aborted/closed with a non-empty queue.
+   *
+   * @param[in]  callback  The callback
+   *
+   * @return     This connection
    */
+  inline Connection&            on_write(WriteCallback callback);
+
+  /** Called with the error encountered. */
+  using ErrorCallback           = delegate<void(const TCPException& err)>;
+  /**
+   * @brief      Event when a connection has experienced an error of any kind.
+   *             Pretty useless in it's current form, and only useful for printing.
+   *
+   * @param[in]  callback  The callback
+   *
+   * @return     This connection
+   */
+  inline Connection&            on_error(ErrorCallback callback);
+
+  /** Called with the packet that got dropped and the reason why. */
+  using PacketDroppedCallback   = delegate<void(const Packet&, Drop_reason)>;
+  /**
+   * @brief      Event when a connection has dropped a packet.
+   *             Useful for debugging/track counting.
+   *
+   * @param[in]  callback  The callback
+   *
+   * @return     This connection
+   */
+  inline Connection&            on_packet_dropped(PacketDroppedCallback callback);
+
+  /** Called with the number of simultaneous retransmit attempts and the current Round trip timeout in milliseconds. */
   using RtxTimeoutCallback      = delegate<void(size_t no_attempts, std::chrono::milliseconds rto)>;
+  /**
+   * @brief      Event when the connections retransmit timer has expired.
+   *             Useful for debugging/track counting.
+   *
+   * @param[in]  callback  The callback
+   *
+   * @return     This connection
+   */
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
 
@@ -130,7 +192,7 @@ public:
   void write(Chunk c);
 
   /**
-   * @brief      Asyn write of a data with a length.
+   * @brief      Async write of a data with a length.
    *             Copies data into an internal (shared) buffer.
    *
    * @param[in]  buf   data
@@ -146,20 +208,204 @@ public:
    */
   inline void write(const std::string& str);
 
-  /*
-    Close connection.
-  */
+  /**
+   * @brief      Async close of the connection, sending FIN.
+   */
   void close();
 
-  /*
-    Abort connection. (Same as Terminate)
-  */
+  /**
+   * @brief      Aborts the connection immediately, sending RST.
+   */
   inline void abort();
 
+  /**
+   * @brief      Exposes a TCP Connection as a Stream with only the most necessary features.
+   *             May be overrided by extensions like TLS etc for additional functionality.
+   */
+  class Stream : public net::Stream {
+  public:
+    /**
+     * @brief      Construct a Stream for a Connection ptr
+     *
+     * @param[in]  conn  The connection
+     */
+    Stream(Connection_ptr conn)
+      : tcp{std::move(conn)}
+    {}
 
-  /*
-    Reason for disconnect event.
-  */
+    /**
+     * @brief      Event when the stream is connected/established/ready to use.
+     *
+     * @param[in]  cb    The connect callback
+     */
+    virtual void on_connect(ConnectCallback cb) override
+    {
+      tcp->on_connect(Connection::ConnectCallback::make_packed(
+          [this, cb] (Connection_ptr)
+          { cb(*this); }));
+    }
+
+    /**
+     * @brief      Event when data is received.
+     *
+     * @param[in]  n     The size of the receive buffer
+     * @param[in]  cb    The read callback
+     */
+    virtual void on_read(size_t n, ReadCallback cb) override
+    { tcp->on_read(n, cb); }
+
+    /**
+     * @brief      Event for when the Stream is being closed.
+     *
+     * @param[in]  cb    The close callback
+     */
+    virtual void on_close(CloseCallback cb) override
+    { tcp->on_close(cb); }
+
+    /**
+     * @brief      Event for when data has been written.
+     *
+     * @param[in]  cb    The write callback
+     */
+    virtual void on_write(WriteCallback cb) override
+    { tcp->on_write(cb); }
+
+    /**
+     * @brief      Async write of a data with a length.
+     *
+     * @param[in]  buf   data
+     * @param[in]  n     length
+     */
+    virtual void write(const void* buf, size_t n) override
+    { tcp->write(buf, n); }
+
+    /**
+     * @brief      Async write of a chunk.
+     *
+     * @param[in]  c     A chunk
+     */
+    virtual void write(Chunk c) override
+    { tcp->write(c); }
+
+    /**
+     * @brief      Async write of a shared buffer with a length.
+     *             Calls write(Chunk c).
+     *
+     * @param[in]  buffer  shared buffer
+     * @param[in]  n       length
+     */
+    virtual void write(buffer_t buf, size_t n) override
+    { tcp->write(buf, n); }
+
+    /**
+     * @brief      Async write of a string.
+     *             Calls write(const void* buf, size_t n)
+     *
+     * @param[in]  str   The string
+     */
+    virtual void write(const std::string& str) override
+    { write(str.data(), str.size()); }
+
+    /**
+     * @brief      Closes the stream.
+     */
+    virtual void close() override
+    { tcp->close(); }
+
+    /**
+     * @brief      Aborts (terminates) the stream.
+     */
+    virtual void abort() override
+    { tcp->abort(); }
+
+    /**
+     * @brief      Resets all callbacks.
+     */
+    virtual void reset_callbacks() override
+    { tcp->reset_callbacks(); }
+
+    /**
+     * @brief      Returns the streams local socket.
+     *
+     * @return     A TCP Socket
+     */
+    tcp::Socket local() const override
+    { return tcp->local(); }
+
+    /**
+     * @brief      Returns the streams remote socket.
+     *
+     * @return     A TCP Socket
+     */
+    tcp::Socket remote() const override
+    { return tcp->remote(); }
+
+    /**
+     * @brief      Returns the local port.
+     *
+     * @return     A TCP port
+     */
+    uint16_t local_port() const override
+    { return tcp->local_port(); }
+
+    /**
+     * @brief      Returns a string representation of the stream.
+     *
+     * @return     String representation of the stream.
+     */
+    virtual std::string to_string() const override
+    { return tcp->to_string(); }
+
+    /**
+     * @brief      Determines if connected (established).
+     *
+     * @return     True if connected, False otherwise.
+     */
+    virtual bool is_connected() const noexcept override
+    { return tcp->is_connected(); }
+
+    /**
+     * @brief      Determines if writable. (write is allowed)
+     *
+     * @return     True if writable, False otherwise.
+     */
+    virtual bool is_writable() const noexcept override
+    { return tcp->is_writable(); }
+
+    /**
+     * @brief      Determines if readable. (data can be received)
+     *
+     * @return     True if readable, False otherwise.
+     */
+    virtual bool is_readable() const noexcept override
+    { return tcp->is_readable(); }
+
+    /**
+     * @brief      Determines if closing.
+     *
+     * @return     True if closing, False otherwise.
+     */
+    virtual bool is_closing() const noexcept override
+    { return tcp->is_closing(); }
+
+    /**
+     * @brief      Determines if closed.
+     *
+     * @return     True if closed, False otherwise.
+     */
+    virtual bool is_closed() const noexcept override
+    { return tcp->is_closed(); };
+
+    virtual ~Stream() {}
+
+  protected:
+    Connection_ptr tcp;
+
+  }; // < class Connection::Stream
+
+  /**
+   * @brief      Reason for disconnect event.
+   */
   struct Disconnect {
   public:
     enum Reason {
@@ -178,37 +424,56 @@ public:
 
     bool operator ==(const Disconnect& dc) const { return reason == dc.reason; }
 
-    std::string to_string() const {
-      switch(reason) {
-      case CLOSING:
-        return "Connection closing";
-      case REFUSED:
-        return "Connection refused";
-      case RESET:
-        return "Connection reset";
-      default:
-        return "Unknown reason";
-      }
+    std::string to_string() const noexcept {
+      switch(reason)
+      {
+        case CLOSING:
+          return "Connection closing";
+        case REFUSED:
+          return "Connection refused";
+        case RESET:
+          return "Connection reset";
+        default:
+          return "Unknown reason";
+      } // < switch(reason)
     }
   }; // < struct Connection::Disconnect
 
-  /*
-    Represent the Connection as a string (STATUS).
-    Local:Port Remote:Port (STATE)
-  */
-  std::string to_string() const
+  /**
+   * Reason for packet being dropped.
+   */
+  enum class Drop_reason
+  {
+    NA, // N/A
+    SEQ_OUT_OF_ORDER,
+    ACK_NOT_SET,
+    ACK_OUT_OF_ORDER,
+    RST
+  }; // < Drop_reason
+
+  /**
+   * @brief      Represent the Connection as a string (STATUS).
+   *             Local:Port Remote:Port (STATE)
+   *
+   * @return     String representation of the object.
+   */
+  std::string to_string() const noexcept
   { return {local().to_string() + " " + remote_.to_string() + " (" + state_->to_string() + ")"}; }
 
-  /*
-    Returns the current state of the connection.
-  */
-  const Connection::State& state() const
+  /**
+   * @brief      Returns the current state of the connection.
+   *
+   * @return     The current state
+   */
+  const Connection::State& state() const noexcept
   { return *state_; }
 
-  /*
-    Returns the previous state of the connection.
-  */
-  const Connection::State& prev_state() const
+  /**
+   * @brief      Returns the previous state of the connection.
+   *
+   * @return     The previous state
+   */
+  const Connection::State& prev_state() const noexcept
   { return *prev_state_; }
 
   /**
@@ -224,7 +489,7 @@ public:
    *
    * @return total bytes in send queue
    */
-  uint32_t sendq_size() const
+  uint32_t sendq_size() const noexcept
   { return writeq.bytes_total(); }
 
   /**
@@ -232,88 +497,146 @@ public:
    *
    * @return bytes not yet sent
    */
-  uint32_t sendq_remaining() const
+  uint32_t sendq_remaining() const noexcept
   { return writeq.bytes_remaining(); }
 
-  /*
-    Is the usable window large enough, and is there data to send.
-  */
-  constexpr bool can_send() const
+  /**
+   * @brief      Determines ability to send.
+   *             Is the usable window large enough, and is there data to send.
+   *
+   * @return     True if able to send, False otherwise.
+   */
+  constexpr bool can_send() const noexcept
   { return (usable_window() >= SMSS()) and writeq.has_remaining_requests(); }
 
-  /*
-    Return the id (TUPLE) of the connection.
-  */
-  Connection::Tuple tuple() const
+  /**
+   * @brief      Return the "tuple" (id) of the connection.
+   *             This is not a real tuple since the ip of the local socket
+   *             is decided by the network stack.
+   *
+   * @return     A "tuple" of [[local port], [remote ip, remote port]]
+   */
+  Connection::Tuple tuple() const noexcept
   { return {local_port_, remote_}; }
 
   /// --- State checks --- ///
 
-  bool is_listening() const;
+  /**
+   * @brief      Determines if listening.
+   *
+   * @return     True if listening, False otherwise.
+   */
+  bool is_listening() const noexcept;
 
-  bool is_connected() const
+  /**
+   * @brief      Determines if connected (established).
+   *
+   * @return     True if connected, False otherwise.
+   */
+  bool is_connected() const noexcept
   { return state_->is_connected(); }
 
-  bool is_writable() const
+  /**
+   * @brief      Determines if writable. (write is allowed)
+   *
+   * @return     True if writable, False otherwise.
+   */
+  bool is_writable() const noexcept
   { return state_->is_writable(); }
 
-  bool is_readable() const
+  /**
+   * @brief      Determines if readable. (data can be received)
+   *
+   * @return     True if readable, False otherwise.
+   */
+  bool is_readable() const noexcept
   { return state_->is_readable(); }
 
-  bool is_closing() const
+  /**
+   * @brief      Determines if closing.
+   *
+   * @return     True if closing, False otherwise.
+   */
+  bool is_closing() const noexcept
   { return state_->is_closing(); }
 
-  bool is_closed() const
+  /**
+   * @brief      Determines if closed.
+   *
+   * @return     True if closed, False otherwise.
+   */
+  bool is_closed() const noexcept
   { return state_->is_closed(); };
 
-  /*
-    Returns if the TCP has the Connection in write queue
-  */
-  bool is_queued() const
+  /**
+   * @brief      Determines if the TCP has the Connection in its write queue
+   *
+   * @return     True if queued, False otherwise.
+   */
+  bool is_queued() const noexcept
   { return queued_; }
 
-  /*
-    Helper function for state checks.
-  */
-  bool is_state(const State& state) const
+  /**
+   * @brief      Helper function for state checks.
+   *
+   * @param[in]  state  The state to be checked for
+   *
+   * @return     True if state, False otherwise.
+   */
+  bool is_state(const State& state) const noexcept
   { return state_ == &state; }
 
-  bool is_state(const std::string& state_str) const
+  /**
+   * @brief      Helper function for state checks.
+   *
+   * @param[in]  state_str  The state string to be checked for
+   *
+   * @return     True if state, False otherwise.
+   */
+  bool is_state(const std::string& state_str) const noexcept
   { return state_->to_string() == state_str; }
 
-  /*
-    The hosting TCP instance.
-  */
-  TCP& host() const
+  /**
+   * @brief      The "hosting" TCP instance. The TCP object that the Connection is handled by.
+   *
+   * @return     A TCP object
+   */
+  TCP& host() noexcept
   { return host_; }
 
-  /*
-    The local Port bound to this connection.
-  */
-  port_t local_port() const
+  /**
+   * @brief      The local port bound to this connection.
+   *
+   * @return     A 16 bit unsigned port number
+   */
+  port_t local_port() const noexcept
   { return local_port_; }
 
-  /*
-    The local Socket bound to this connection.
-  */
-  Socket local() const;
+  /**
+   * @brief      The local Socket bound to this connection.
+   *
+   * @return     A TCP Socket
+   */
+  Socket local() const noexcept;
 
-  /*
-    The remote Socket bound to this connection.
-  */
-  Socket remote() const
+  /**
+   * @brief      The remote Socket bound to this connection.
+   *
+   * @return     A TCP Socket
+   */
+  Socket remote() const noexcept
   { return remote_; }
 
 
-  /*
-    Interface for one of the many states a Connection can have.
-  */
+  /**
+   * @brief      Interface for one of the many states a Connection can have.
+   *             Based on RFC 793
+   */
   class State {
   public:
     enum Result {
-      CLOSED = -1, // This inditactes that a Connection is done and should be closed.
-      OK = 0, // Does nothing
-      CLOSE = 1 // This indicates that the CLIENT (peer) has/wants to close their end.
+      CLOSED = -1,  // This inditactes that a Connection is done and should be closed.
+      OK = 0,       // Keep on processing
     };
 
     /** Open a Connection [OPEN] */
@@ -336,7 +659,6 @@ public:
 
     /** The current state represented as a string [STATUS] */
     virtual std::string to_string() const = 0;
-
 
     virtual bool is_connected() const
     { return false; }
@@ -372,10 +694,8 @@ public:
 
   }; // < class Connection::State
 
-  /*
-    Forward declaration of concrete states.
-    Definition in "tcp_connection_states.hpp"
-  */
+  // Forward declaration of concrete states.
+  // Definition in "tcp_connection_states.hpp"
   class Closed;
   class Listen;
   class SynSent;
@@ -388,9 +708,9 @@ public:
   class LastAck;
   class TimeWait;
 
-  /*
-    Transmission Control Block.
-    Keep tracks of all the data for a connection.
+  /**
+   * @brief      Transmission Control Block.
+   *             Keep tracks of all the data for a connection.
 
     RFC 793: Page 19
     Among the variables stored in the
@@ -399,7 +719,7 @@ public:
     buffers, pointers to the retransmit queue and to the current segment.
     In addition several variables relating to the send and receive
     sequence numbers are stored in the TCB.
-  */
+   */
   struct TCB {
     /* Send Sequence Variables */
     struct {
@@ -443,15 +763,20 @@ public:
       recover = ISS; // [RFC 6582]
     }
 
-    bool slow_start()
+    bool slow_start() const noexcept
     { return cwnd < ssthresh; }
 
     std::string to_string() const;
   }__attribute__((packed)); // < struct Connection::TCB
 
-  /*
-    Creates a connection with a remote.
-  */
+  /**
+   * @brief      Creates a connection with a remote end point
+   *
+   * @param      host        The TCP host
+   * @param[in]  local_port  The local port
+   * @param[in]  remote      The remote socket
+   * @param[in]  callback    The connection callback
+   */
   Connection(TCP& host, port_t local_port, Socket remote, ConnectCallback callback = nullptr);
 
   Connection(const Connection&)             = delete;
@@ -459,14 +784,19 @@ public:
   Connection& operator=(const Connection&)  = delete;
   Connection& operator=(Connection&&)       = delete;
 
-  /*
-    Open connection.
-  */
+  /**
+   * @brief      Open the connection.
+   *             Active determines whether the connection is active or passive.
+   *
+   * @param[in]  active  Whether its an active (outgoing) or passive (listening)
+   */
   void open(bool active = false);
 
-  /*
-    Set remote Socket bound to this connection.
-  */
+  /**
+   * @brief      Set remote Socket bound to this connection.
+   *
+   * @param[in]  remote  The remote socket
+   */
   void set_remote(Socket remote)
   { remote_ = remote; }
 
@@ -474,13 +804,14 @@ public:
   void deserialize_from(void*);
   int  serialize_to(void*) const;
 
-  /** Reset all callbacks back to default **/
+  /**
+   * @brief      Reset all callbacks back to default
+   */
   void reset_callbacks();
 
-  /*
-    Destroy the Connection.
-    Clean up.
-  */
+  /**
+   * @brief      Destroys the object, releasing resources.
+   */
   ~Connection();
 
 private:
@@ -533,20 +864,31 @@ private:
 
   /** Congestion control */
   // is fast recovery state
-  bool fast_recovery = false;
+  bool fast_recovery_ = false;
   // First partial ack seen
   bool reno_fpack_seen = false;
   /** limited transmit [RFC 3042] active */
   bool limited_tx_ = true;
   // Number of current duplicate ACKs. Is reset for every new ACK.
-  uint8_t dup_acks_ = 0;
+  uint16_t dup_acks_ = 0;
 
   seq_t highest_ack_ = 0;
   seq_t prev_highest_ack_ = 0;
+  uint32_t last_acked_ts_ = 0;
 
   /** Delayed ACK - number of seg received without ACKing */
   uint8_t  dack_{0};
   seq_t    last_ack_sent_;
+
+  /** RFC 3522 - The Eifel Detection Algorithm for TCP */
+  //int16_t spurious_recovery = 0;
+  //static constexpr int8_t SPUR_TO {1};
+  //uint32_t rtx_ts_ = 0;
+  /** RFC 4015 - The Eifel Response Algorithm for TCP */
+  //uint32_t pipe_prev = 0;
+  //static constexpr int8_t LATE_SPUR_TO {1};
+  //RTTM::seconds SRTT_prev{1.0f};
+  //RTTM::seconds RTTVAR_prev{1.0f};
 
   /// --- CALLBACKS --- ///
 
@@ -664,7 +1006,7 @@ private:
   void signal_error(TCPException error)
   { if(on_error_) on_error_(std::forward<TCPException>(error)); }
 
-  void signal_packet_dropped(const Packet& packet, const std::string& reason)
+  void signal_packet_dropped(const Packet& packet, Drop_reason reason)
   { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
 
   void signal_rtx_timeout()
@@ -673,11 +1015,7 @@ private:
   /*
     Drop a packet. Used for debug/callback.
   */
-  void drop(const Packet& packet, const std::string& reason);
-
-  void drop(const Packet& packet)
-  { drop(packet, "None given."); }
-
+  void drop(const Packet& packet, Drop_reason reason = Drop_reason::NA);
 
   // RFC 3042
   void limited_tx();
@@ -700,26 +1038,21 @@ private:
     SND.UNA + SND.WND - SND.NXT
     SND.UNA + WINDOW - SND.NXT
   */
-  uint32_t usable_window() const {
+  uint32_t usable_window() const noexcept
+  {
     const auto x = (int64_t)send_window() - (int64_t)flight_size();
     return (uint32_t) std::max(0ll, x);
   }
 
-  uint32_t send_window() const {
-    return std::min(cb.SND.WND, cb.cwnd);
-  }
+  uint32_t send_window() const noexcept
+  { return std::min(cb.SND.WND, cb.cwnd); }
 
-  int32_t congestion_window() const {
-    const auto win = (uint64_t)cb.SND.UNA + (uint64_t)send_window();
-    return (int32_t)win;
-  }
+  uint32_t flight_size() const noexcept
+  { return cb.SND.NXT - cb.SND.UNA; }
 
-  uint32_t flight_size() const
-  { return (uint64_t)cb.SND.NXT - (uint64_t)cb.SND.UNA; }
+  bool uses_window_scaling() const noexcept;
 
-  bool uses_window_scaling() const;
-
-  bool uses_timestamps() const;
+  bool uses_timestamps() const noexcept;
 
   /// --- INCOMING / TRANSMISSION --- ///
   /*
@@ -733,27 +1066,82 @@ private:
   */
   bool handle_ack(const Packet&);
 
-  /*
-    When a duplicate ACK is received.
-  */
-  void on_dup_ack();
+  /**
+   * @brief      Determines if the incoming segment is a legit window update.
+   *
+   * @param[in]  in    TCP Segment
+   * @param[in]  win   The calculated window
+   *
+   * @return     True if window update, False otherwise.
+   */
+  bool is_win_update(const Packet& in, const uint32_t win) const
+  {
+    return cb.SND.WND != win and
+      (cb.SND.WL1 < in.seq() or (cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack()));
+  }
 
-  /*
-    Is it possible to send ONE segment.
-  */
+  /**
+   * @brief      Determines if duplicate acknowledge, described in [RFC 5681] p.3
+   *
+   * @param[in]  in    TCP segment
+   *
+   * @return     True if duplicate acknowledge, False otherwise.
+   */
+  bool is_dup_ack(const Packet& in, const uint32_t win) const
+  {
+    return in.ack() == cb.SND.UNA
+      and flight_size() > 0
+      and !in.has_tcp_data()
+      and cb.SND.WND == win
+      and !in.isset(SYN) and !in.isset(FIN);
+  }
+
+  /**
+   * @brief      Handle duplicate ACK according to New Reno
+   *
+   * @param[in]  <unnamed>  Incoming TCP segment (duplicate ACK)
+   */
+  void on_dup_ack(const Packet&);
+
+  /**
+   * @brief      Handle segment according to congestion control (New Reno)
+   *
+   * @param[in]  <unnamed>  Incoming TCP segment
+   */
+  void congestion_control(const Packet&);
+
+  /**
+   * @brief      Handle segment according to fast recovery (New Reno)
+   *
+   * @param[in]  <unnamed>  Incoming TCP segment
+   */
+  void fast_recovery(const Packet&);
+
+  /**
+   * @brief      Determines ability to send ONE segment, not caring about the usable window.
+   *
+   * @return     True if able to send one, False otherwise.
+   */
   constexpr bool can_send_one() const
   { return send_window() >= SMSS() and writeq.has_remaining_requests(); }
 
-  /*
-    Send as much as possible from write queue.
-  */
+  /**
+   * @brief      Send as much as possible from write queue.
+   */
   void send_much()
   { writeq_push(); }
 
-  /*
-    Fill a packet with data and give it a SEQ number.
-  */
-  size_t fill_packet(Packet&, const uint8_t*, size_t);
+  /**
+   * @brief      Fills the packet with data, limited to SMSS
+   *
+   * @param      packet  The packet
+   * @param[in]  data    The data
+   * @param[in]  n       The number of bytes to fill
+   *
+   * @return     The amount of data filled into the packet.
+   */
+  size_t fill_packet(Packet& packet, const uint8_t* data, size_t n)
+  { return packet.fill(data, std::min(n, (size_t)SMSS())); }
 
   /*
     Transmit the packet and hooks up retransmission.
@@ -768,11 +1156,13 @@ private:
   Packet_ptr outgoing_packet()
   { return create_outgoing_packet(); }
 
-  /*
-    Maximum Segment Data Size
-    (Limit the size for outgoing packets)
-  */
-  uint16_t MSDS() const;
+  /**
+   * @brief      Maximum Segment Data Size
+   *             Limits the size for outgoing packets
+   *
+   * @return     MSDS
+   */
+  uint16_t MSDS() const noexcept;
 
 
   /// --- Congestion Control [RFC 5681] --- ///
@@ -780,9 +1170,21 @@ private:
   void setup_congestion_control()
   { reno_init(); }
 
-  uint16_t SMSS() const;
+  /**
+   * @brief      Sender Maximum Segment Size
+   *             The size of the largest segment that the sender can transmit
+   *
+   * @return     SMSS
+   */
+  uint16_t SMSS() const noexcept;
 
-  uint16_t RMSS() const
+  /**
+   * @brief      Receiver Maximum Segment Size
+   *             The size of the largest segment the receiver is willing to accept
+   *
+   * @return     RMSS
+   */
+  uint16_t RMSS() const noexcept
   { return cb.SND.MSS; }
 
   // Reno specifics //
@@ -889,7 +1291,7 @@ private:
   { signal_close(); }
 
   /** Whether to use Delayed ACK or not */
-  bool use_dack() const;
+  bool use_dack() const noexcept;
 
   /**
    * @brief      Called when the DACK timeout timesout.
@@ -945,8 +1347,10 @@ private:
 
 }; // < class Connection
 
-} // < namespace net
+using Stream = Connection::Stream;
+
 } // < namespace tcp
+} // < namespace net
 
 #include "connection.inc"
 
