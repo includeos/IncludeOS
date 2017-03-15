@@ -46,32 +46,56 @@ namespace net {
     /*
       Maximum Datagram Data Size
     */
-    inline constexpr uint16_t MDDS() const
+    constexpr uint16_t MDDS() const
     { return stack_.MTU() - sizeof(ip4::Header); }
 
     /** Upstream: Input from link layer */
     void receive(Packet_ptr);
 
-    /** Upstream: Outputs to transport layer */
-    inline void set_icmp_handler(upstream s)
+
+    //
+    // Delegate setters
+    //
+
+    /** Set ICMP protocol handler (upstream)*/
+    void set_icmp_handler(upstream s)
     { icmp_handler_ = s; }
 
-    inline void set_udp_handler(upstream s)
+    /** Set UDP protocol handler (upstream)*/
+    void set_udp_handler(upstream s)
     { udp_handler_ = s; }
 
-    inline void set_tcp_handler(upstream s)
+    /** Set TCP protocol handler (upstream) */
+    void set_tcp_handler(upstream s)
     { tcp_handler_ = s; }
 
-    /** Downstream: Delegate linklayer out */
+    /** Set handler for packets not addressed to this interface (upstream) */
+    void set_packet_forwarding(Stack::Forward_delg fwd)
+    { forward_packet_ = fwd; }
+
+    /** Set linklayer out (downstream) */
     void set_linklayer_out(downstream_arp s)
     { linklayer_out_ = s; };
 
-    void set_packet_forwarding(Stack::Forward_delg fwd)
-    { forward_packet_ = fwd; }
+
+    //
+    // Delegate getters
+    //
+
+    upstream icmp_handler()
+    { return icmp_handler_; }
+
+    upstream udp_handler()
+    { return udp_handler_; }
+
+    upstream tcp_handler()
+    { return tcp_handler_; }
 
     Stack::Forward_delg forward_delg()
     { return forward_packet_; }
 
+    downstream_arp linklayer_out()
+    { return linklayer_out_; }
 
     /**
      *  Downstream: Receive data from above and transmit

@@ -158,10 +158,10 @@ uint16_t TCP::checksum(const tcp::Packet& packet)
   short length = packet.tcp_length();
   // Compute sum of pseudo-header
   uint32_t sum =
-        (packet.src().whole >> 16)
-      + (packet.src().whole & 0xffff)
-      + (packet.dst().whole >> 16)
-      + (packet.dst().whole & 0xffff)
+        (packet.ip_src().whole >> 16)
+      + (packet.ip_src().whole & 0xffff)
+      + (packet.ip_dst().whole >> 16)
+      + (packet.ip_dst().whole & 0xffff)
       + (static_cast<uint8_t>(Protocol::TCP) << 8)
       + htons(length);
 
