@@ -25,6 +25,8 @@
 #include <net/ip4/packet_arp.hpp>
 #include <statman>
 
+using namespace std::chrono;
+
 namespace net {
 
   // Initialize
@@ -60,7 +62,7 @@ namespace net {
         // The packet is for us. Respond.
         arp_respond(hdr, inet_.ip_addr());
 
-      } else if (route_checker_ and route_checker_(hdr->dipaddr)){
+      } else if (proxy_ and proxy_(hdr->dipaddr)){
 
         // The packet is for an IP to which we know a route
         arp_respond(hdr, hdr->dipaddr);
@@ -106,7 +108,6 @@ namespace net {
       debug2("Cached entry found: %s recorded @ %llu. Updating timestamp\n",
              entry->second.mac_.str().c_str(), entry->second.timestamp_);
 
-
       if (entry->second.mac() != mac) {
         cache_.erase(entry);
         cache_[ip] = mac;
@@ -116,6 +117,9 @@ namespace net {
 
     } else {
       cache_[ip] = mac; // Insert
+      if (UNLIKELY(not flush_timer_.is_running())) {
+        flush_timer_.start(flush_interval_);
+      }
     }
   }
 
@@ -160,7 +164,7 @@ namespace net {
       auto cache_entry = cache_.find(next_hop);
       if (UNLIKELY(cache_entry == cache_.end())) {
         debug("<ARP> No cache entry for IP %s.  Resolving. \n", next_hop.to_string().c_str());
-        arp_resolver_(std::move(pckt), next_hop);
+        await_resolution(std::move(pckt), next_hop);
         return;
       }
 
@@ -175,6 +179,27 @@ namespace net {
     linklayer_out_(std::move(pckt), dest_mac, Ethertype::IP4);
   }
 
+
+  void Arp::resolve_waiting()
+  {
+
+    debug("<Arp> resolve timer doing sweep\n");
+
+    if (waiting_packets_.empty()) {
+      debug("<Arp> Noting to do - stopping resolve timer\n");
+      resolve_timer_.stop();
+      return;
+    }
+
+    for (auto& packet_it : waiting_packets_) {
+      arp_resolver_(packet_it.first);
+    }
+
+    resolve_timer_.start(1s);
+
+  }
+
+
   void Arp::await_resolution(Packet_ptr pckt, IP4::addr next_hop) {
     auto queue =  waiting_packets_.find(next_hop);
     debug("<ARP await> Waiting for resolution of %s\n", next_hop.str().c_str());
@@ -184,12 +209,17 @@ namespace net {
     } else {
       debug("\t *This is the first packet going to that IP\n");
       waiting_packets_.emplace(std::make_pair(next_hop, std::move(pckt)));
+
+      // Try resolution immediately
+      arp_resolver_(next_hop);
+
+      // Retry later
+      resolve_timer_.start(1s);
     }
   }
 
-  void Arp::arp_resolve(Packet_ptr pckt, IP4::addr next_hop) {
+  void Arp::arp_resolve(IP4::addr next_hop) {
     debug("<ARP RESOLVE> %s\n", next_hop.str().c_str());
-    await_resolution(std::move(pckt), next_hop);
 
     auto req = static_unique_ptr_cast<PacketArp>(inet_.create_packet());
     req->init(mac_, inet_.ip_addr(), next_hop);
@@ -203,16 +233,5 @@ namespace net {
     linklayer_out_(std::move(req), MAC::BROADCAST, Ethertype::ARP);
   }
 
-  void Arp::hh_map(Packet_ptr pckt, IP4::addr next_hop) {
-    (void) pckt;
-    debug("ARP-resolution using the HH-hack");
-
-    // Fixed mac prefix
-    mac_.minor = 0x01c0; //Big-endian c001
-    // Destination IP
-    mac_.major = next_hop.whole;
-    debug("ARP cache missing. Guessing Mac %s from next-hop IP: %s \n",
-          mac_.str().c_str(), next_hop.str().c_str());
-  }
 
 } //< namespace net

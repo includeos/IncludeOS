@@ -44,25 +44,106 @@ namespace net {
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
 
-    virtual typename IPV::addr ip_addr() = 0;
-    virtual typename IPV::addr netmask() = 0;
-    virtual typename IPV::addr gateway()  = 0;
-    virtual std::string        ifname() const = 0;
-    virtual MAC::Addr       link_addr() = 0;
-    virtual hw::Nic&           nic() = 0;
 
+    ///
+    /// NETWORK CONFIGURATION
+    ///
+
+    /** Get IP address of this interface **/
+    virtual typename IPV::addr ip_addr() = 0;
+
+    /** Get netmask of this interface **/
+    virtual typename IPV::addr netmask() = 0;
+
+    /** Get default gateway for this interface **/
+    virtual typename IPV::addr gateway()  = 0;
+
+   /** Set default gateway for this interface */
+    virtual void set_gateway(typename IPV::addr server) = 0;
+
+    /** Set DNS server for this interface */
+    virtual void set_dns_server(typename IPV::addr server) = 0;
+
+    /** Configure network for this interface */
+    virtual void network_config(typename IPV::addr ip,
+                                typename IPV::addr nmask,
+                                typename IPV::addr gateway,
+                                typename IPV::addr dnssrv = IPV::ADDR_ANY) = 0;
+
+    /** Reset network configuration for this interface */
+    virtual void reset_config() = 0;
+
+    using dhcp_timeout_func = delegate<void(bool timed_out)>;
+
+    /** Use DHCP to configure this interface */
+    virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) = 0;
+
+
+    ///
+    /// PROTOCOL OBJECTS
+    ///
+
+    /** Get the IP protocol object for this interface */
     virtual IPV&       ip_obj() = 0;
+
+    /** Get the TCP protocol object for this interface */
     virtual TCP&       tcp()    = 0;
+
+    /** Get the UDP protocol object for this interface */
     virtual UDP&       udp()    = 0;
 
+
+    ///
+    /// DNS
+    ///
+
+    /** DNS resolution */
+    virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
+
+
+    ///
+    /// LINK LAYER
+    ///
+
+    /** Get the network interface device */
+    virtual hw::Nic&           nic() = 0;
+
+    /** Get interface name for this interface **/
+    virtual std::string        ifname() const = 0;
+
+    /** Get linklayer address for this interface **/
+    virtual MAC::Addr       link_addr() = 0;
+
+    /** Add cache entry to the link / IP address cache */
+    virtual void cache_link_addr(typename IPV::addr, MAC::Addr) = 0;
+
+    /** Flush  link / IP address cache */
+    virtual void flush_link_cache() = 0;
+
+    /** Set the regular interval for link address cache flushing */
+    virtual void set_link_cache_flush_interval(std::chrono::minutes);
+
+
+    ///
+    /// ROUTING
+    ///
+
+    /** Set an IP forwarding delegate. E.g. used to enable routing */
     virtual void set_forward_delg(Forward_delg) = 0;
+
+    /** Assign boolean function to determine if we have route to a given IP */
     virtual void set_route_checker(Route_checker) = 0;
-    virtual void cache_link_ip(typename IPV::addr, MAC::Addr) = 0;
-    virtual void flush_link_ip_cache() = 0;
+
+    /** Get the IP forwarding delegate */
     virtual Forward_delg forward_delg() = 0;
 
-    virtual constexpr uint16_t MTU() const = 0;
 
+    ///
+    /// PACKET MANAGEMENT
+    ///
+
+    /** Get Maximum Transmission Unit **/
+    virtual constexpr uint16_t MTU() const = 0;
 
     /** Provision empty anonymous packet **/
     virtual Packet_ptr create_packet() = 0;
@@ -73,21 +154,6 @@ namespace net {
     /** Provision empty IP packet **/
     virtual typename IPV::IP_packet_ptr create_ip_packet(Protocol) = 0;
 
-    virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
-
-    virtual void set_gateway(typename IPV::addr server) = 0;
-
-    virtual void set_dns_server(typename IPV::addr server) = 0;
-
-    virtual void network_config(typename IPV::addr ip,
-                                typename IPV::addr nmask,
-                                typename IPV::addr gateway,
-                                typename IPV::addr dnssrv = IPV::ADDR_ANY) = 0;
-    virtual void reset_config() = 0;
-
-    using dhcp_timeout_func = delegate<void(bool timed_out)>;
-    virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) = 0;
-
     /** Event triggered when there are available buffers in the transmit queue */
     virtual void on_transmit_queue_available(transmit_avail_delg del) = 0;
 
@@ -97,8 +163,15 @@ namespace net {
     /** Number of buffers available in the bufstore */
     virtual size_t buffers_available() = 0;
 
+    /** Start TCP (e.g. after system suspension). */
     virtual void force_start_send_queues() = 0;
 
+
+    ///
+    /// SMP
+    ///
+
+    /** Move this interface to the CPU executing the call */
     virtual void move_to_this_cpu() = 0;
 
   }; //< class Inet<LINKLAYER, IPV>
