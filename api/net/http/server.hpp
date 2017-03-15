@@ -63,7 +63,7 @@ namespace http {
      *
      * @param[in]  port  The port to listen on
      */
-    void listen(uint16_t port);
+    virtual void listen(uint16_t port);
 
     /**
      * @brief      Setup handler for when a Request is received
@@ -90,22 +90,11 @@ namespace http {
      */
     Response_ptr create_response(status_t code = http::OK) const;
 
-    /**
-     * @brief      Returns a vector of all TCP connections currently connected to the server
-     *
-     * @return     A vector of TCP connections
-     */
-    std::vector<TCP_conn> active_tcp_connections() const;
+    virtual ~Server();
 
-    /**
-     * @brief      Reconnects a TCP connection by creating a Server connection
-     *
-     * @param[in]  conn  The TCP connection
-     */
-    void reconnect(TCP_conn conn)
-    { if (conn != nullptr) connect(conn); }
-
-    ~Server();
+  protected:
+    delegate<void(TCP_conn)> on_connect;
+    void connect(Connection::Stream_ptr stream);
 
   private:
     friend class Server_connection;
@@ -124,7 +113,9 @@ namespace http {
     Stat& stat_req_bad_;
     Stat& stat_timeouts_;
 
-    void connect(TCP_conn conn);
+    void connected(TCP_conn conn) {
+      connect(std::make_unique<Connection::Stream>(conn));
+    }
 
     void close(Server_connection&);
 

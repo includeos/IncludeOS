@@ -194,6 +194,10 @@ add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libos PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libos.a)
 
+add_library(libbotan STATIC IMPORTED)
+set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libbotan-2.a)
+
 add_library(libosdeps STATIC IMPORTED)
 set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libosdeps.a)
@@ -288,6 +292,7 @@ set_target_properties(crtn PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/i
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
     libos
+    libbotan
     libosdeps
     libcxx
     cxxabi

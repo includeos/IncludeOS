@@ -22,7 +22,8 @@ namespace http {
   const Server::idle_duration Server::DEFAULT_IDLE_TIMEOUT{std::chrono::seconds(60)};
 
   Server::Server(TCP& tcp, Request_handler cb, idle_duration timeout)
-    : tcp_(tcp),
+    : on_connect{this, &Server::connected},
+      tcp_(tcp),
       on_request_(std::move(cb)),
       keep_alive_(true),
       timer_id_(Timers::UNUSED_ID),
@@ -38,7 +39,7 @@ namespace http {
   {
     Expects(on_request_ != nullptr);
 
-    tcp_.bind(port).on_connect({this, &Server::connect});
+    tcp_.bind(port).on_connect(this->on_connect);
     INFO("HTTP Server", "Listening on port %u", port);
 
     using namespace std::chrono;
@@ -54,19 +55,6 @@ namespace http {
     return res;
   }
 
-  std::vector<Server::TCP_conn> Server::active_tcp_connections() const
-  {
-    std::vector<TCP_conn> conns;
-    conns.reserve(connections_.size() - free_idx_.size());
-
-    for (auto& conn : connections_) {
-      if (conn != nullptr)
-        conns.push_back(conn->tcp());
-    }
-
-   return conns;
-  }
-
   Server::~Server()
   {
     if(timer_id_ != Timers::UNUSED_ID)
@@ -75,19 +63,19 @@ namespace http {
     }
   }
 
-  void Server::connect(TCP_conn conn)
+  void Server::connect(Connection::Stream_ptr stream)
   {
-    debug("Connection attempt from %s\n", conn->remote().to_string().c_str());
+    debug("Connection attempt from %s\n", stream->remote().to_string().c_str());
     // if there is a free spot in connections
     if(free_idx_.size() > 0) {
       auto idx = free_idx_.back();
       Ensures(connections_[idx] == nullptr);
-      connections_[idx] = std::make_unique<Server_connection>(*this, conn, idx);
+      connections_[idx] = std::make_unique<Server_connection>(*this, std::move(stream), idx);
       free_idx_.pop_back();
     }
     // if not, add a new shared ptr
     else {
-      connections_.emplace_back(std::make_unique<Server_connection>(*this, conn, connections_.size()));
+      connections_.emplace_back(std::make_unique<Server_connection>(*this, std::move(stream), connections_.size()));
     }
     ++stat_conns_;
   }

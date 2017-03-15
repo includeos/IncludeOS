@@ -36,7 +36,7 @@ namespace http {
     using timeout_duration  = std::chrono::milliseconds;
 
   public:
-    explicit Client_connection(Client&, TCP_conn);
+    explicit Client_connection(Client&, Stream_ptr);
 
     bool available() const
     { return on_response_ == nullptr && keep_alive_; }

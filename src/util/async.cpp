@@ -29,17 +29,17 @@ inline unsigned roundup(unsigned n, unsigned div) {
 void Async::upload_file(
     Disk          disk,
     const Dirent& ent,
-    Connection    conn,
+    Stream&       stream,
     on_after_func callback,
     const size_t  CHUNK_SIZE)
 {
   disk_transfer(disk, ent,
-  [conn] (fs::buffer_t buffer,
-          size_t       length,
-          next_func    next)
+  [stream] (fs::buffer_t buffer,
+            size_t       length,
+            next_func    next) mutable
   {
     // temp
-    conn->on_write(net::tcp::Connection::WriteCallback::make_packed(
+    stream.on_write(net::tcp::Connection::WriteCallback::make_packed(
       [length, next] (size_t n) {
 
         // if all data written, go to next chunk
@@ -50,7 +50,7 @@ void Async::upload_file(
     );
 
     // write chunk to TCP connection
-    conn->write(buffer, length);
+    stream.write(buffer, length);
 
   }, callback, CHUNK_SIZE);
 }

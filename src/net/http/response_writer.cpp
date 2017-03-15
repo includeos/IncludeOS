@@ -32,14 +32,14 @@ namespace http {
   {
     pre_write(data.size());
 
-    connection_.tcp()->write(std::move(data));
+    connection_.stream()->write(std::move(data));
   }
 
   void Response_writer::write(Chunk chunk)
   {
     pre_write(chunk.length());
 
-    connection_.tcp()->write(std::move(chunk));
+    connection_.stream()->write(std::move(chunk));
   }
 
   void Response_writer::pre_write(size_t len)
@@ -81,7 +81,7 @@ namespace http {
       std::ostringstream header;
       header << response_->status_line() << "\r\n" << response_->header();
 
-      connection_.tcp()->write(header.str());
+      connection_.stream()->write(header.str());
 
       // disable keep alive if "Connection: close" is present
       if(response_->header().value(http::header::Connection) == "close")

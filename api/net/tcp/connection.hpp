@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@
 
 #include <delegate>
 #include <util/timer.hpp>
+#include <net/stream.hpp>
 
 namespace net {
   // Forward declaration of the TCP object
@@ -56,6 +57,9 @@ public:
   struct Disconnect;
   /** Reason for packet being dropped */
   enum class Drop_reason;
+  /** A Connection stream */
+  class Stream;
+
   using Byte = uint8_t;
 
   using WriteBuffer = Write_queue::WriteBuffer;
@@ -214,6 +218,190 @@ public:
    */
   inline void abort();
 
+  /**
+   * @brief      Exposes a TCP Connection as a Stream with only the most necessary features.
+   *             May be overrided by extensions like TLS etc for additional functionality.
+   */
+  class Stream : public net::Stream {
+  public:
+    /**
+     * @brief      Construct a Stream for a Connection ptr
+     *
+     * @param[in]  conn  The connection
+     */
+    Stream(Connection_ptr conn)
+      : tcp{std::move(conn)}
+    {}
+
+    /**
+     * @brief      Event when the stream is connected/established/ready to use.
+     *
+     * @param[in]  cb    The connect callback
+     */
+    virtual void on_connect(ConnectCallback cb) override
+    {
+      tcp->on_connect(Connection::ConnectCallback::make_packed(
+          [this, cb] (Connection_ptr)
+          { cb(*this); }));
+    }
+
+    /**
+     * @brief      Event when data is received.
+     *
+     * @param[in]  n     The size of the receive buffer
+     * @param[in]  cb    The read callback
+     */
+    virtual void on_read(size_t n, ReadCallback cb) override
+    { tcp->on_read(n, cb); }
+
+    /**
+     * @brief      Event for when the Stream is being closed.
+     *
+     * @param[in]  cb    The close callback
+     */
+    virtual void on_close(CloseCallback cb) override
+    { tcp->on_close(cb); }
+
+    /**
+     * @brief      Event for when data has been written.
+     *
+     * @param[in]  cb    The write callback
+     */
+    virtual void on_write(WriteCallback cb) override
+    { tcp->on_write(cb); }
+
+    /**
+     * @brief      Async write of a data with a length.
+     *
+     * @param[in]  buf   data
+     * @param[in]  n     length
+     */
+    virtual void write(const void* buf, size_t n) override
+    { tcp->write(buf, n); }
+
+    /**
+     * @brief      Async write of a chunk.
+     *
+     * @param[in]  c     A chunk
+     */
+    virtual void write(Chunk c) override
+    { tcp->write(c); }
+
+    /**
+     * @brief      Async write of a shared buffer with a length.
+     *             Calls write(Chunk c).
+     *
+     * @param[in]  buffer  shared buffer
+     * @param[in]  n       length
+     */
+    virtual void write(buffer_t buf, size_t n) override
+    { tcp->write(buf, n); }
+
+    /**
+     * @brief      Async write of a string.
+     *             Calls write(const void* buf, size_t n)
+     *
+     * @param[in]  str   The string
+     */
+    virtual void write(const std::string& str) override
+    { write(str.data(), str.size()); }
+
+    /**
+     * @brief      Closes the stream.
+     */
+    virtual void close() override
+    { tcp->close(); }
+
+    /**
+     * @brief      Aborts (terminates) the stream.
+     */
+    virtual void abort() override
+    { tcp->abort(); }
+
+    /**
+     * @brief      Resets all callbacks.
+     */
+    virtual void reset_callbacks() override
+    { tcp->reset_callbacks(); }
+
+    /**
+     * @brief      Returns the streams local socket.
+     *
+     * @return     A TCP Socket
+     */
+    tcp::Socket local() const override
+    { return tcp->local(); }
+
+    /**
+     * @brief      Returns the streams remote socket.
+     *
+     * @return     A TCP Socket
+     */
+    tcp::Socket remote() const override
+    { return tcp->remote(); }
+
+    /**
+     * @brief      Returns the local port.
+     *
+     * @return     A TCP port
+     */
+    uint16_t local_port() const override
+    { return tcp->local_port(); }
+
+    /**
+     * @brief      Returns a string representation of the stream.
+     *
+     * @return     String representation of the stream.
+     */
+    virtual std::string to_string() const override
+    { return tcp->to_string(); }
+
+    /**
+     * @brief      Determines if connected (established).
+     *
+     * @return     True if connected, False otherwise.
+     */
+    virtual bool is_connected() const noexcept override
+    { return tcp->is_connected(); }
+
+    /**
+     * @brief      Determines if writable. (write is allowed)
+     *
+     * @return     True if writable, False otherwise.
+     */
+    virtual bool is_writable() const noexcept override
+    { return tcp->is_writable(); }
+
+    /**
+     * @brief      Determines if readable. (data can be received)
+     *
+     * @return     True if readable, False otherwise.
+     */
+    virtual bool is_readable() const noexcept override
+    { return tcp->is_readable(); }
+
+    /**
+     * @brief      Determines if closing.
+     *
+     * @return     True if closing, False otherwise.
+     */
+    virtual bool is_closing() const noexcept override
+    { return tcp->is_closing(); }
+
+    /**
+     * @brief      Determines if closed.
+     *
+     * @return     True if closed, False otherwise.
+     */
+    virtual bool is_closed() const noexcept override
+    { return tcp->is_closed(); };
+
+    virtual ~Stream() {}
+
+  protected:
+    Connection_ptr tcp;
+
+  }; // < class Connection::Stream
 
   /**
    * @brief      Reason for disconnect event.
@@ -676,7 +864,7 @@ private:
 
   /** Congestion control */
   // is fast recovery state
-  bool fast_recovery = false;
+  bool fast_recovery_ = false;
   // First partial ack seen
   bool reno_fpack_seen = false;
   /** limited transmit [RFC 3042] active */
@@ -691,6 +879,16 @@ private:
   /** Delayed ACK - number of seg received without ACKing */
   uint8_t  dack_{0};
   seq_t    last_ack_sent_;
+
+  /** RFC 3522 - The Eifel Detection Algorithm for TCP */
+  //int16_t spurious_recovery = 0;
+  //static constexpr int8_t SPUR_TO {1};
+  //uint32_t rtx_ts_ = 0;
+  /** RFC 4015 - The Eifel Response Algorithm for TCP */
+  //uint32_t pipe_prev = 0;
+  //static constexpr int8_t LATE_SPUR_TO {1};
+  //RTTM::seconds SRTT_prev{1.0f};
+  //RTTM::seconds RTTVAR_prev{1.0f};
 
   /// --- CALLBACKS --- ///
 
@@ -868,10 +1066,56 @@ private:
   */
   bool handle_ack(const Packet&);
 
-  /*
-    When a duplicate ACK is received.
-  */
+  /**
+   * @brief      Determines if the incoming segment is a legit window update.
+   *
+   * @param[in]  in    TCP Segment
+   * @param[in]  win   The calculated window
+   *
+   * @return     True if window update, False otherwise.
+   */
+  bool is_win_update(const Packet& in, const uint32_t win) const
+  {
+    return cb.SND.WND != win and
+      (cb.SND.WL1 < in.seq() or (cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack()));
+  }
+
+  /**
+   * @brief      Determines if duplicate acknowledge, described in [RFC 5681] p.3
+   *
+   * @param[in]  in    TCP segment
+   *
+   * @return     True if duplicate acknowledge, False otherwise.
+   */
+  bool is_dup_ack(const Packet& in, const uint32_t win) const
+  {
+    return in.ack() == cb.SND.UNA
+      and flight_size() > 0
+      and !in.has_tcp_data()
+      and cb.SND.WND == win
+      and !in.isset(SYN) and !in.isset(FIN);
+  }
+
+  /**
+   * @brief      Handle duplicate ACK according to New Reno
+   *
+   * @param[in]  <unnamed>  Incoming TCP segment (duplicate ACK)
+   */
   void on_dup_ack(const Packet&);
+
+  /**
+   * @brief      Handle segment according to congestion control (New Reno)
+   *
+   * @param[in]  <unnamed>  Incoming TCP segment
+   */
+  void congestion_control(const Packet&);
+
+  /**
+   * @brief      Handle segment according to fast recovery (New Reno)
+   *
+   * @param[in]  <unnamed>  Incoming TCP segment
+   */
+  void fast_recovery(const Packet&);
 
   /**
    * @brief      Determines ability to send ONE segment, not caring about the usable window.
@@ -1103,8 +1347,10 @@ private:
 
 }; // < class Connection
 
-} // < namespace net
+using Stream = Connection::Stream;
+
 } // < namespace tcp
+} // < namespace net
 
 #include "connection.inc"
 
