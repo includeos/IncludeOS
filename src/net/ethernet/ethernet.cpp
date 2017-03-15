@@ -47,6 +47,14 @@ namespace net {
 
   void Ethernet::transmit(net::Packet_ptr pckt, addr dest, Ethertype type)
   {
+    uint16_t t = net::ntohs(static_cast<uint16_t>(type));
+    // Trailer negotiation and encapsulation RFC 893 and 1122
+    if (UNLIKELY(t == net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_NEGO)) or
+      (t >= net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_FIRST)) and
+        t <= net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_LAST))))) {
+      debug("<Ethernet OUT> Ethernet type Trailer is not supported. Packet is not transmitted\n");
+      return;
+    }
 
     debug("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: 0x%x\n",
           pckt->size(), mac_.str().c_str(), dest.str().c_str(), type);
@@ -124,22 +132,23 @@ namespace net {
       break;
 
     default:
+      uint16_t type = net::ntohs(static_cast<uint16_t>(eth->type()));
+      dropped = true;
+
       // Trailer negotiation and encapsulation RFC 893 and 1122
-      if (eth->type() == Ethertype::TRAILER_NEGO or (eth->type() >= Ethertype::TRAILER_FIRST and eth->type() <= Ethertype::TRAILER_LAST)) {
-        dropped = true;
+      if (UNLIKELY(type == net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_NEGO)) or
+        (type >= net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_FIRST)) and
+          type <= net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_LAST))))) {
         trailer_packets_dropped_++;
         debug2("Trailer packet\n");
         break;
       }
 
-      dropped = true;
-      uint16_t length_field = net::ntohs(static_cast<uint16_t>(eth->type()));
       // This might be 802.3 LLC traffic
-      if (length_field > 1500) {
+      if (type > 1500)
         debug2("<Ethernet> UNKNOWN ethertype 0x%x\n", ntohs(eth->type()));
-      } else {
+      else
         debug2("IEEE802.3 Length field: 0x%x\n", ntohs(eth->type()));
-      }
       break;
     }
 
