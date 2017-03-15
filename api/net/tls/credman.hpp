@@ -24,7 +24,6 @@
 #include <botan/rng.h>
 #include <botan/x509cert.h>
 #include <botan/x509_ca.h>
-//#include <botan/x509path.h>
 #include <botan/x509self.h>
 #include <memory>
 
@@ -59,24 +58,22 @@ public:
 
   std::vector<Botan::X509_Certificate> cert_chain(
               const std::vector<std::string>& cert_key_types,
-              const std::string& type,
+              const std::string&,
               const std::string&) override
   {
     std::vector<Botan::X509_Certificate> chain;
 
-    if (type == "tls-server" || (type == "tls-client" && m_provides_client_certs))
-    {
-      bool have_match = false;
-      for (size_t i = 0; i != cert_key_types.size(); ++i)
-          if(cert_key_types[i] == m_server_key->algo_name())
-              have_match = true;
+    bool have_match = false;
+    for (size_t i = 0; i != cert_key_types.size(); ++i)
+        if(cert_key_types[i] == m_server_key->algo_name())
+            have_match = true;
 
-      if(have_match)
-      {
-        chain.push_back(m_server_cert);
-        chain.push_back(m_ca_cert);
-      }
+    if(have_match)
+    {
+      chain.push_back(m_server_cert);
+      chain.push_back(m_ca_cert);
     }
+
     return chain;
   }
 
@@ -87,17 +84,8 @@ public:
     return m_server_key.get();
   }
 
-  Botan::SymmetricKey psk(const std::string&,
-        const std::string&,
-        const std::string&) override
-  {
-    //if (type == "tls-server" && context == "session-ticket")
-    //  return Botan::SymmetricKey("AABBCCDDEEFF012345678012345678");
-
-    return Botan::SymmetricKey("20B602D1475F2DF888FCB60D2AE03AFD"); // PSK key
-  }
-
   static Credman* create(
+        const std::string& name,
         Botan::RandomNumberGenerator&  rng,
         std::unique_ptr<Botan::Private_Key> ca_key,
         Botan::X509_Certificate ca_cert,
@@ -118,6 +106,7 @@ public:
  * 
 **/
 inline Credman* Credman::create(
+        const std::string& server_name,
         Botan::RandomNumberGenerator&  rng,
         std::unique_ptr<Botan::Private_Key> ca_key,
         Botan::X509_Certificate ca_cert,
@@ -132,7 +121,7 @@ inline Credman* Credman::create(
 
   // create certificate request
   Botan::X509_Cert_Options server_opts;
-  server_opts.common_name = "server.example.com";
+  server_opts.common_name = server_name;
   server_opts.country = "VT";
 
   auto req = Botan::X509::create_cert_req(server_opts, *server_key, "SHA-256", rng);

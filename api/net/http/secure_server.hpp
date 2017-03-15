@@ -29,6 +29,7 @@ class Secure_server : public http::Server
 {
 public:
   Secure_server(
+      const std::string& name,
       fs::Dirent& ca_key,
       fs::Dirent& ca_cert,
       fs::Dirent& server_key,
@@ -36,6 +37,7 @@ public:
       Request_handler cb);
 
   Secure_server(
+      const std::string& name,
       fs::Dirent& ca_key,
       fs::Dirent& ca_cert,
       fs::Dirent& server_key,
@@ -48,6 +50,7 @@ public:
       Request_handler cb)
     : http::Server(tcp, cb), rng(in_rng), credman(in_credman)
   {
+    assert(credman != nullptr);
     on_connect = {this, &Secure_server::secure_connect};
   }
 

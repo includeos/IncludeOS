@@ -32,6 +32,7 @@ inline std::unique_ptr<Botan::Private_Key> read_pkey(fs::Dirent& key_file)
 namespace http
 {
   Secure_server::Secure_server(
+      const std::string& server_name,
       fs::Dirent& file_ca_key,
       fs::Dirent& file_ca_cert,
       fs::Dirent& file_server_key,
@@ -52,6 +53,7 @@ namespace http
     auto srv_key = read_pkey(file_server_key);
 
     auto* credman = net::Credman::create(
+            server_name,
             get_rng(),
             std::move(ca_key),
             Botan::X509_Certificate(vca_cert),
@@ -61,11 +63,15 @@ namespace http
   }
 
   Secure_server::Secure_server(
+      const std::string& server_name,
       fs::Dirent& file_ca_key,
       fs::Dirent& file_ca_cert,
       fs::Dirent& file_server_key,
       TCP& tcp)
-    : Secure_server(file_ca_key, file_ca_cert, file_server_key, tcp, nullptr)
+    : Secure_server(
+          server_name, 
+          file_ca_key, file_ca_cert, file_server_key, 
+          tcp, nullptr)
   {}
 
 }
