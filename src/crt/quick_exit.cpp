@@ -6,17 +6,17 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <quick_exit>
 #include <stdlib.h>
+#include <stdio.h>
 #include <malloc.h>
 
 extern "C" void panic(const char*) __attribute__((noreturn));
@@ -39,23 +39,17 @@ int at_quick_exit (void (*func)(void)){
 
 
 _Noreturn void quick_exit (int status){
-  
+
   // Call the exit-function(s) and then _Exit
   __quick_exit_func();
-  
-  
+
+
   printf("\n>>> EXIT_%s (%i) \n",status==0 ? "SUCCESS" : "FAILURE",status);
 
-  
-  // Well. 
+
+  // Well.
   panic("Quick exit called. ");
-  
+
   // ...we could actually return to the OS. Like, if we want to stay responsive, answer ping etc.
   // How to clean up the stack? Do we even need to?
 };
-
-
-// Defined in memstream.c
-// void *aligned_alloc( size_t alignment, size_t size ){
-//   return memalign(alignment, size);
-// }; 
