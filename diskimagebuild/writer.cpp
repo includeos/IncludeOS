@@ -163,15 +163,17 @@ void fill_unused(std::vector<cl_dir>& ents, int num)
   ent.cluster_hi = 0;
   ent.cluster_lo = 0;
   ent.filesize   = 0;
-  while (num--) ents.push_back(ent);
+  while (num-- > 0) ents.push_back(ent);
 }
 void mod16_test(std::vector<cl_dir>& ents, int& mod16, int long_entries)
 {
   // if longname is overshooting sector
-  if (mod16 + long_entries + 1 > ENTS_PER_SECT) {
+  int x = mod16 % ENTS_PER_SECT;
+  if (x + long_entries + 1 > ENTS_PER_SECT) {
     // fill remainder of sector with unused entries
-    fill_unused(ents, ENTS_PER_SECT - mod16);
-    mod16 = 0;
+    x = ENTS_PER_SECT - x;
+    fill_unused(ents, x);
+    mod16 += x;
   }
   mod16 += long_entries;
 }
@@ -266,7 +268,7 @@ long Dir::write(FileSys& fsys, FILE* file, long pos, long parent)
 
 long File::write(FileSys&, FILE* file, long pos) const
 {
-  printf("writing file to %ld with size %u\n", pos, this->size);
+  //printf("writing file to %ld with size %u\n", pos, this->size);
   fseek(file, pos, SEEK_SET);
   int count = fwrite(data.get(), this->size, 1, file);
   assert(count == 1);
