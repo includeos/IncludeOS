@@ -35,15 +35,13 @@ class Server : public Botan::TLS::Callbacks, public tcp::Stream
 public:
   using Connection_ptr = tcp::Connection_ptr;
 
-
   Server(Connection_ptr remote,
-             Botan::RandomNumberGenerator& rng,
-             Botan::Credentials_Manager& credman) :
-    tcp::Stream({remote}),
-    m_rng(rng),
+         Botan::RandomNumberGenerator& rng,
+         Botan::Credentials_Manager& credman) 
+  : tcp::Stream({remote}),
     m_creds(credman),
-    m_session_manager(m_rng),
-    m_tls(*this, m_session_manager, m_creds, m_policy, m_rng)
+    m_session_manager(rng),
+    m_tls(*this, m_session_manager, m_creds, m_policy, rng)
   {
     assert(tcp->is_connected());
     // default read callback
@@ -96,14 +94,9 @@ public:
 protected:
   void tls_read(buffer_t buf, const size_t n)
   {
-    this->tls_receive(buf.get(), n);
-  }
-
-  void tls_receive(const uint8_t* buf, const size_t n)
-  {
     try
     {
-      int rem = m_tls.received_data(buf, n);
+      int rem = m_tls.received_data(buf.get(), n);
       (void) rem;
       //printf("Finished processing (rem: %u)\n", rem);
     }
@@ -162,7 +155,6 @@ private:
   Stream::WriteCallback   o_write;
   Stream::ConnectCallback o_connect;
 
-  Botan::RandomNumberGenerator& m_rng;
   Botan::Credentials_Manager&   m_creds;
   Botan::TLS::Strict_Policy     m_policy;
   Botan::TLS::Session_Manager_In_Memory m_session_manager;
