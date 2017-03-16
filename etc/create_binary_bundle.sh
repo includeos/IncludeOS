@@ -7,7 +7,8 @@ export BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build}
 export TEMP_INSTALL_DIR=${TEMP_INSTALL_DIR:-$BUILD_DIR/IncludeOS_TEMP_install}
 
 export TARGET=i686-elf	# Configure target
-export PATH="$TEMP_INSTALL_DIR/bin:$PATH"
+export PREFIX=$TEMP_INSTALL_DIR
+export PATH="$PREFIX/bin:$PATH"
 
 # Build_llvm specific options
 export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
@@ -38,6 +39,7 @@ DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clan
 
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $DEPS_BUILD \n"
+sudo apt-get update
 sudo apt-get install -y $DEPS_BUILD
 
 mkdir -p $BUILD_DIR
