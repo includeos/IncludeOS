@@ -1,5 +1,6 @@
 # ex: set syntax=cmake:
 
+# If a local bundle location is set that is used, otherwise download from github
 if (BUNDLE_LOC)
 	include(ExternalProject)
 	ExternalProject_Add(PrecompiledLibraries
