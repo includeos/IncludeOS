@@ -44,7 +44,7 @@ class Packet : public PacketIP4 {
 public:
 
   inline Header& tcp_header() const
-  { return *(Header*) ip_data(); }
+  { return *(Header*) ip_data_ptr(); }
 
   //! initializes to a default, empty TCP packet, given
   //! a valid MTU-sized buffer
@@ -52,7 +52,7 @@ public:
   {
 
     PacketIP4::init(Protocol::TCP);
-    Byte* ipdata = ip_data();
+    Byte* ipdata = ip_data_ptr();
 
     // clear TCP header
     ((uint32_t*) ipdata)[3] = 0;
@@ -85,10 +85,10 @@ public:
   { return ntohs(tcp_header().window_size); }
 
   inline Socket source() const
-  { return Socket{src(), src_port()}; }
+  { return Socket{ip_src(), src_port()}; }
 
   inline Socket destination() const
-  { return Socket{dst(), dst_port()}; }
+  { return Socket{ip_dst(), dst_port()}; }
 
   inline seq_t end() const
   { return seq() + tcp_data_length(); }
@@ -125,13 +125,13 @@ public:
   }
 
   inline Packet& set_source(const Socket& src) {
-    set_src(src.address()); // PacketIP4::set_src
+    set_ip_src(src.address()); // PacketIP4::set_src
     set_src_port(src.port());
     return *this;
   }
 
   inline Packet& set_destination(const Socket& dest) {
-    set_dst(dest.address()); // PacketIP4::set_dst
+    set_ip_dst(dest.address()); // PacketIP4::set_dst
     set_dst_port(dest.port());
     return *this;
   }
@@ -184,10 +184,10 @@ public:
 
   // Where data starts
   inline Byte* tcp_data()
-  { return ip_data() + tcp_header_length(); }
+  { return ip_data_ptr() + tcp_header_length(); }
 
   inline const Byte* tcp_data() const
-  { return ip_data() + tcp_header_length(); }
+  { return ip_data_ptr() + tcp_header_length(); }
 
   // Length of data in packet when header has been accounted for
   inline uint16_t tcp_data_length() const
@@ -315,8 +315,7 @@ private:
   void set_length(uint16_t newlen = 0) {
     // new total packet length
     set_data_end( ip_header_length() + tcp_header_length() + newlen );
-    // update IP packet aswell - tcp data length relies on this field
-    set_segment_length();
+
   }
 
 }; // << class Packet

@@ -27,7 +27,7 @@ def increment(line):
 
 def check_num_outputs(line):
   assert(num_outputs == 1)
-  vmrunner.vms[0].exit(0, "SUCCESS")
+  vmrunner.vms[0].exit(0, "All tests passed")
   return True
 
 vm.on_output("All \d+ selected tests passed", increment)

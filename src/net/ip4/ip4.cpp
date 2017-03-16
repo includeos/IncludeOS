@@ -44,13 +44,13 @@ namespace net {
     packets_rx_++;
 
     debug2("\t Source IP: %s Dest.IP: %s Type: 0x%x\n",
-           packet->src().str().c_str(), 
-           packet->dst().str().c_str(), 
-           packet->protocol());
+           packet->ip_src().str().c_str(),
+           packet->ip_dst().str().c_str(),
+           packet->ip_protocol());
 
     // Drop if my ip address doesn't match destination ip address or broadcast
-    if (UNLIKELY(packet->dst() != local_ip()
-            and (packet->dst() | stack_.netmask()) != ADDR_BCAST
+    if (UNLIKELY(packet->ip_dst() != local_ip()
+            and (packet->ip_dst() | stack_.netmask()) != ADDR_BCAST
             and local_ip() != ADDR_ANY)) {
 
       if (forward_packet_) {
@@ -64,7 +64,7 @@ namespace net {
       return;
     }
 
-    switch(packet->protocol()){
+    switch(packet->ip_protocol()){
     case Protocol::ICMPv4:
       debug2("\t Type: ICMP\n");
       icmp_handler_(std::move(packet));
@@ -78,7 +78,7 @@ namespace net {
       debug2("\t Type: TCP\n");
       break;
     default:
-      debug("\t Type: UNKNOWN %i\n", hdr->protocol);
+      debug("\t Type: UNKNOWN %hhu\n", packet->ip_protocol());
       break;
     }
   }
@@ -99,17 +99,17 @@ namespace net {
 
     addr next_hop;
     // Keep IP when broadcasting to all
-    if (ip4_pckt->dst() != IP4::ADDR_BCAST)
+    if (ip4_pckt->ip_dst() != IP4::ADDR_BCAST)
     {
       // Create local and target subnets
-      addr target = ip4_pckt->dst()  & stack_.netmask();
+      addr target = ip4_pckt->ip_dst()  & stack_.netmask();
       addr local  = stack_.ip_addr() & stack_.netmask();
 
       // Compare subnets to know where to send packet
-      next_hop = target == local ? ip4_pckt->dst() : stack_.gateway();
+      next_hop = target == local ? ip4_pckt->ip_dst() : stack_.gateway();
 
       debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
-          ip4_pckt->dst().str().c_str(),
+          ip4_pckt->ip_dst().str().c_str(),
           stack_.netmask().str().c_str(),
           stack_.ip_addr().str().c_str(),
           stack_.gateway().str().c_str(),

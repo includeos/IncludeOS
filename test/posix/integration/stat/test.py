@@ -25,8 +25,8 @@ def increment(line):
   print "num_outputs after increment: ", num_outputs
 
 def check_num_outputs(line):
-  assert(num_outputs == 20)
-  vmrunner.vms[0].exit(0, "SUCCESS")
+  assert(num_outputs == 18)
+  vmrunner.vms[0].exit(0, "All tests passed", keep_running = True)
 
 vm.on_output("stat\(\) with nullptr buffer fails with EFAULT", increment)
 vm.on_output("stat\(\) of folder that exists is ok", increment)
