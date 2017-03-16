@@ -25,7 +25,7 @@
 #include <kprint>
 #include <smp>
 
-//#define DEBUG_SMP
+#define DEBUG_SMP
 #define LAPIC_IRQ_BASE   120
 #define RING0_CODE_SEG   0x8
 
@@ -62,6 +62,7 @@ extern "C" {
   void register_modern_interrupt()
   {
     uint8_t vector = x86::APIC::get_isr();
+    printf("INTERRUPT %u\n", vector);
     IRQ_manager::get().register_irq(vector - IRQ_BASE);
   }
   extern void spurious_intr();
@@ -264,6 +265,7 @@ void IRQ_manager::process_interrupts()
       // sub and call handler
 #ifdef DEBUG_SMP
       SMP::global_lock();
+      if (intr != 0)
       printf("[%p] Calling handler for intr=%u irq=%u cpu %d\n",
              get_cpu_esp(), IRQ_BASE + intr, intr, SMP::cpu_id());
       SMP::global_unlock();

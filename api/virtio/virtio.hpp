@@ -208,7 +208,7 @@ public:
     delegate<void(net::Packet_ptr p)> on_exit_to_physical_ {};
 
     /** Initialize the queue buffer */
-    void init_queue(int size, void* buf);
+    void init_queue(int size, char* buf);
 
   public:
     /**

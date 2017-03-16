@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #define DEBUG // Allow debugging
-// #define DEBUG2
+#undef NO_DEBUG
+#define DEBUG // Allow debugging
+#define DEBUG2
 
 #include <net/util.hpp>
 #include <net/ethernet/ethernet.hpp>
@@ -47,7 +48,7 @@ namespace net {
   void Ethernet::transmit(net::Packet_ptr pckt, addr dest, Ethertype type)
   {
 
-    debug("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: 0x%x\n",
+    debug("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: 0x%hx\n",
           pckt->size(), mac_.str().c_str(), dest.str().c_str(), type);
 
     Expects(dest.major or dest.minor);
@@ -67,7 +68,7 @@ namespace net {
       hdr.set_src(mac_);
       hdr.set_dest(dest);
       hdr.set_type(type);
-      debug(" \t <Eth unchain> Transmitting %i b, from %s -> %s. Type: 0x%x\n",
+      debug(" \t <Eth unchain> Transmitting %i b, from %s -> %s. Type: 0x%hx\n",
             next->size(), mac_.str().c_str(), hdr.dest().str().c_str(), hdr.type());
 
       // Stat increment packets transmitted
@@ -85,7 +86,7 @@ namespace net {
 
     header* eth = reinterpret_cast<header*>(pckt->layer_begin());
 
-    debug("<Ethernet IN> %s => %s , Eth.type: 0x%x ",
+    debug("<Ethernet IN> %s => %s , Eth.type: 0x%hx ",
           eth->src().str().c_str(), eth->dest().str().c_str(), eth->type());
 
     // Stat increment packets received
@@ -127,9 +128,9 @@ namespace net {
       uint16_t length_field = net::ntohs(static_cast<uint16_t>(eth->type()));
       // This might be 802.3 LLC traffic
       if (length_field > 1500) {
-        debug2("<Ethernet> UNKNOWN ethertype 0x%x\n", ntohs(eth->type()));
+        debug2("<Ethernet> UNKNOWN ethertype 0x%hx\n", eth->type());
       }else {
-        debug2("IEEE802.3 Length field: 0x%x\n", ntohs(eth->type()));
+        debug2("IEEE802.3 Length field: 0x%hx\n", eth->type());
       }
       break;
     }

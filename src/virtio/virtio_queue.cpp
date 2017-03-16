@@ -15,12 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG // Allow debug
-//#define DEBUG2
+#undef NO_DEBUG
+#define DEBUG // Allow debug
+#define DEBUG2
 
 #include <os>
 #include <virtio/virtio.hpp>
-#include <kernel/syscalls.hpp>
 #include <hw/pci.hpp>
 #if !defined(__MACH__)
 #include <malloc.h>
@@ -29,7 +29,6 @@ extern void *memalign(size_t, size_t);
 #endif
 #include <cstring>
 #include <cassert>
-
 
 /**
    Virtio Queue class, nested inside Virtio.
@@ -42,23 +41,19 @@ unsigned Virtio::Queue::virtq_size(unsigned int qsz)
 }
 
 
-void Virtio::Queue::init_queue(int size, void* buf){
-
+void Virtio::Queue::init_queue(int size, char* buf)
+{
   // The buffer starts with is an array of queue descriptors (i.e. tokens)
-  _queue.desc = (virtq_desc*)buf;
+  _queue.desc = (virtq_desc*) buf;
   debug("\t * Queue desc  @ 0x%lx \n ",(long)_queue.desc);
 
   // The available buffer starts right after the queue descriptors
-  _queue.avail = (virtq_avail*)((char*)buf + size*sizeof(virtq_desc));
+  _queue.avail = (virtq_avail*) &buf[size * sizeof(virtq_desc)];
   debug("\t * Queue avail @ 0x%lx \n ",(long)_queue.avail);
 
   // The used queue starts at the beginning of the next page
-  // (This is  a formula from sanos - don't know why it works, but it does
-  // align the used queue to the next page border)
-  _queue.used = (virtq_used*)(((uint32_t)&_queue.avail->ring[size] +
-                               sizeof(uint16_t)+OS::page_size()-1) & ~(OS::page_size() -1));
+  _queue.used = (virtq_used*) (((uint32_t) &_queue.avail->ring[size] + sizeof(uint16_t) + PAGE_SIZE-1) & ~(PAGE_SIZE-1));
   debug("\t * Queue used  @ 0x%lx \n ",(long)_queue.used);
-
 }
 
 /** Constructor */
@@ -70,9 +65,9 @@ Virtio::Queue::Queue(uint16_t size, uint16_t q_index, uint16_t iobase)
   void* buffer = memalign(PAGE_SIZE, _size_bytes);
   memset(buffer, 0, _size_bytes);
 
-  debug(">>> Virtio Queue of size %i (%li bytes) initializing \n",
-        _size,_size_bytes);
-  init_queue(size,buffer);
+  debug(">>> Virtio Queue of size %i (%u bytes) initializing \n",
+        _size, _size_bytes);
+  init_queue(size, (char*) buffer);
 
   // Chain buffers
   debug("\t * Chaining buffers \n");
