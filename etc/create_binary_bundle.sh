@@ -17,13 +17,13 @@ export llvm_build=build_llvm
 [ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
 [ ! -v download_llvm ] && export download_llvm=1
 
-export binutils_version=2.26		# https://ftp.gnu.org/gnu/binutils
-export newlib_version=2.4.0			# https://sourceware.org/pub/newlib
-export gcc_version=6.2.0			# https://ftp.nluug.nl/mirror/languages/gcc/releases/
-export clang_version=3.8			# http://releases.llvm.org/
-export LLVM_TAG=RELEASE_381/final	# http://llvm.org/svn/llvm-project/llvm/tags
+export binutils_version=${binutils_version:-2.26}		# ftp://ftp.gnu.org/gnu/binutils
+export newlib_versio=${newlib_version:-2.4.0}			# ftp://sourceware.org/pub/newlib
+export gcc_version=${gcc_version:-6.2.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
+export clang_version=${clang_version:-3.8}				# http://releases.llvm.org/
+export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-project/llvm/tags
 
-export libcpp_version=3.8.1			# Not in use anywhere???
+export libcpp_version=${libcpp_version:-3.8.1}			# Not in use anywhere???
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
