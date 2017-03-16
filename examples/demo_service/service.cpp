@@ -30,23 +30,19 @@ std::string HTML_RESPONSE()
 {
   const int color = rand();
 
-  /* HTML Fonts */
-  std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
-  std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
-  std::string ubuntu_light   = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
-
-  /* HTML */
+  // Generate some HTML                                                                                                                                                                                                      
   std::stringstream stream;
   stream << "<!DOCTYPE html><html><head>"
-         << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
-         << "</head><body>"
-         << "<h1 style='color: #" << std::hex << (color >> 8) << "'>"
-         << "<span style='"+ubuntu_medium+"'>Include</span><span style='"+ubuntu_light+"'>OS</span></h1>"
-         <<  "<h2>Now speaks TCP!</h2>"
-         // .... generate more dynamic content
-         << "<p>This is improvised http, but proper stuff is in the works.</p>"
-         << "<footer><hr/>&copy; 2016, IncludeOS AS @ 60&deg; north</footer>"
-         << "</body></html>";
+         << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300'"
+         << "rel='stylesheet' type='text/css'> </head><body>"
+         << "<h1 style='color: #" << std::hex << ((color >> 8) | 0x020202)
+         << "; font-family: \"Arial\", sans-serif'>"
+         << "Include<span style='font-weight: lighter'>OS</span></h1>"
+         <<  "<h2>The C++ Unikernel</h2>"
+         << "<p>You have successfully booted an IncludeOS TCP service with simple http. "
+         << "For a more sophisticated example, take a look at "
+         << "<a href='https://github.com/hioa-cs/IncludeOS/tree/master/examples/acorn'>Acorn</a>.</p>"
+         << "<footer><hr/>&copy; 2017 IncludeOS </footer></body></html>";
 
   return stream.str();
 }
@@ -137,5 +133,5 @@ void Service::start(const std::string&)
     });
   });
 
-  printf("*** TEST SERVICE STARTED ***\n");
+  printf("*** Basic demo service started ***\n");
 }
