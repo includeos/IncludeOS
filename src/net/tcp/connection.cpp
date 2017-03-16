@@ -153,10 +153,15 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 
 void Connection::write(Chunk buffer)
 {
-  writeq.push_back(std::move(buffer));
+  // Only write if allowed
   if(state_->is_writable())
   {
-    host_.request_offer(*this);
+    // add to queue
+    writeq.push_back(std::move(buffer));
+
+    // request packets if connected, else let ACK clock do the writing
+    if(state_->is_connected())
+      host_.request_offer(*this);
   }
 }
 
