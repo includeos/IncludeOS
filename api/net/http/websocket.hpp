@@ -41,19 +41,20 @@ public:
   /**
    * @brief      Upgrade a HTTP Request to a WebSocket connection.
    *
-   * @param      req     The request
-   * @param      writer  The response writer
+   * @param      req     The HTTP request
+   * @param      writer  The HTTP response writer
    *
    * @return     A WebSocket_ptr, or nullptr if upgrade fails.
    */
   static WebSocket_ptr upgrade(Request& req, Response_writer& writer);
 
   /**
-   * @brief      Upgrade a HTTP Response to a WebSocket connection
+   * @brief      Upgrade a HTTP Response to a WebSocket connection.
    *
-   * @param[in]  err   The error
-   * @param      res   The resource
-   * @param      conn  The connection
+   * @param[in]  err   The HTTP error
+   * @param      res   The HTTP response
+   * @param      conn  The HTTP connection
+   * @param      key   The WS key sent in the HTTP request
    *
    * @return     A WebSocket_ptr, or nullptr if upgrade fails.
    */
@@ -94,7 +95,7 @@ public:
    * @brief      Creates a response handler on heap.
    *
    * @param[in]  on_connect  On connect handler
-   * @param[in]  key         The WebSocket key sent in header
+   * @param[in]  key         The WebSocket key sent in outgoing HTTP header
    *
    * @return     A Response handler for a http::Client
    */
@@ -122,13 +123,13 @@ public:
   read_func    on_read  = nullptr;
 
   bool is_alive() const noexcept {
-    return this->conn != nullptr;
+    return this->stream != nullptr;
   }
   bool is_client() const noexcept {
     return this->clientside;
   }
   const auto& get_connection() const noexcept {
-    return this->conn;
+    return this->stream;
   }
 
   // string description for status codes
@@ -139,7 +140,7 @@ public:
   ~WebSocket();
 
 private:
-  net::Stream_ptr conn;
+  net::Stream_ptr stream;
   bool clientside;
 
   WebSocket(const WebSocket&) = delete;

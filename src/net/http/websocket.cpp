@@ -296,7 +296,7 @@ void WebSocket::connect(
 void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
 {
   // silently ignore data from reset connection
-  if (this->conn == nullptr) return;
+  if (this->stream == nullptr) return;
   /// parse header
   if (len < sizeof(ws_header)) {
     failure("read_data: Header was too short");
@@ -379,11 +379,11 @@ static size_t make_header(char* dest, size_t len, uint8_t code, bool client)
 
 void WebSocket::write(const char* buffer, size_t len, mode_t mode)
 {
-  if (UNLIKELY(this->conn == nullptr)) {
+  if (UNLIKELY(this->stream == nullptr)) {
     failure("write: Already closed");
     return;
   }
-  if (UNLIKELY(this->conn->is_writable() == false)) {
+  if (UNLIKELY(this->stream->is_writable() == false)) {
     failure("write: Connection not writable");
     return;
   }
@@ -404,15 +404,15 @@ void WebSocket::write(const char* buffer, size_t len, mode_t mode)
     hdr.masking_algorithm();
   }
   /// send everything as shared buffer
-  this->conn->write(buf, header_len + len);
+  this->stream->write(buf, header_len + len);
 }
 void WebSocket::write(net::tcp::buffer_t buffer, size_t len, mode_t mode)
 {
-  if (UNLIKELY(this->conn == nullptr)) {
+  if (UNLIKELY(this->stream == nullptr)) {
     failure("write: Already closed");
     return;
   }
-  if (UNLIKELY(this->conn->is_writable() == false)) {
+  if (UNLIKELY(this->stream->is_writable() == false)) {
     failure("write: Connection not writable");
     return;
   }
@@ -425,22 +425,22 @@ void WebSocket::write(net::tcp::buffer_t buffer, size_t len, mode_t mode)
   char header[HEADER_MAXLEN];
   int  header_len = make_header(header, len, opcode, false);
   assert(header_len < HEADER_MAXLEN);
-  this->conn->write(header, header_len);
+  this->stream->write(header, header_len);
   /// write shared buffer
-  this->conn->write(buffer, len);
+  this->stream->write(buffer, len);
 }
 bool WebSocket::write_opcode(uint8_t code, const char* buffer, size_t datalen)
 {
-  if (UNLIKELY(conn == nullptr || conn->is_writable() == false)) {
+  if (UNLIKELY(stream == nullptr || stream->is_writable() == false)) {
     return false;
   }
   /// write header
   char header[HEADER_MAXLEN];
   int  header_len = make_header(header, datalen, code, clientside);
-  this->conn->write(header, header_len);
+  this->stream->write(header, header_len);
   /// write buffer (if present)
   if (buffer != nullptr && datalen > 0)
-      this->conn->write(buffer, datalen);
+      this->stream->write(buffer, datalen);
   return true;
 }
 void WebSocket::tcp_closed()
@@ -450,11 +450,11 @@ void WebSocket::tcp_closed()
 }
 
 WebSocket::WebSocket(net::Stream_ptr stream_ptr, bool client)
-  : conn(std::move(stream_ptr)), clientside(client)
+  : stream(std::move(stream_ptr)), clientside(client)
 {
-  assert(conn != nullptr);
-  this->conn->on_read(16384, {this, &WebSocket::read_data});
-  this->conn->on_close({this, &WebSocket::tcp_closed});
+  assert(stream != nullptr);
+  this->stream->on_read(16384, {this, &WebSocket::read_data});
+  this->stream->on_close({this, &WebSocket::tcp_closed});
 }
 
 WebSocket::WebSocket(WebSocket&& other)
@@ -462,22 +462,22 @@ WebSocket::WebSocket(WebSocket&& other)
   other.on_close = std::move(on_close);
   other.on_error = std::move(on_error);
   other.on_read  = std::move(on_read);
-  other.conn     = std::move(conn);
+  other.stream   = std::move(stream);
   other.clientside = clientside;
 }
 WebSocket::~WebSocket()
 {
-  if (conn != nullptr && conn->is_connected())
+  if (stream != nullptr && stream->is_connected())
       this->close();
 }
 
 void WebSocket::close()
 {
   /// send CLOSE message
-  if (this->conn->is_writable())
+  if (this->stream->is_writable())
       this->write_opcode(OPCODE_CLOSE, nullptr, 0);
   /// close and unset socket
-  this->conn->close();
+  this->stream->close();
   this->reset();
 }
 
@@ -486,14 +486,14 @@ void WebSocket::reset()
   this->on_close = nullptr;
   this->on_error = nullptr;
   this->on_read  = nullptr;
-  conn->reset_callbacks();
-  conn->close();
-  conn = nullptr;
+  stream->reset_callbacks();
+  stream->close();
+  stream = nullptr;
 }
 
 void WebSocket::failure(const std::string& reason)
 {
-  if (conn != nullptr) conn->close();
+  if (stream != nullptr) stream->close();
   if (this->on_error) on_error(reason);
 }
 
