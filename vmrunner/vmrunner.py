@@ -399,6 +399,8 @@ class vm:
 
         self._exit_status = None
         self._exit_msg = ""
+        self._exit_complete = False
+
         self._config = load_single_config(config)
         self._on_success = lambda(line) : self.exit(exit_codes["SUCCESS"], nametag + " All tests passed")
         self._on_panic =  self.panic
@@ -432,23 +434,44 @@ class vm:
     def poll(self):
         return self._hyper.poll()
 
-    def exit(self, status, msg):
+    # Stop the VM with exit status / msg.
+    # set keep_running to indicate that the program should continue
+    def exit(self, status, msg, keep_running = False):
+
+        # Exit may have been called allready
+        if self._exit_complete:
+            return
+
         self._exit_status = status
+        self._exit_msg = msg
         self.stop()
-        info("Exit called with status", self._exit_status, "(",get_exit_code_name(self._exit_status),")")
-        info("Calling on_exit")
+
         # Change back to test source
         os.chdir(self._root)
-        self._on_exit()
-        if status == 0:
-            # Print success message and return to caller
-            print color.SUCCESS(msg)
-            info("Calling on_exit_success")
-            return self._on_exit_success()
 
-        # Print fail message and exit with appropriate code
-        print color.EXIT_ERROR(get_exit_code_name(status), msg)
-        sys.exit(status)
+
+        info("Exit called with status", self._exit_status, "(",get_exit_code_name(self._exit_status),")")
+        info("Message:", msg, "Keep running: ", keep_running)
+
+        if keep_running:
+            return
+
+        if self._on_exit:
+            info("Calling on_exit")
+            self._on_exit()
+
+
+        if status == 0:
+            if self._on_exit_success:
+                info("Calling on_exit_success")
+                self._on_exit_success()
+
+            print color.SUCCESS(msg)
+            self._exit_complete = True
+            return
+
+        self._exit_complete = True
+        program_exit(status, msg)
 
     # Default timeout event
     def timeout(self):
@@ -474,23 +497,29 @@ class vm:
     # Events - subscribable
     def on_output(self, output, callback):
         self._on_output[ output ] = callback
+        return self
 
     def on_success(self, callback, do_exit = True):
         if do_exit:
             self._on_output["SUCCESS"] = lambda(line) : [callback(line), self._on_success(line)]
         else: self._on_output["SUCCESS"] = callback
+        return self
 
     def on_panic(self, callback):
         self._on_output["PANIC"] = lambda(line) : [callback(line), self._on_panic(line)]
+        return self
 
     def on_timeout(self, callback):
         self._on_timeout = callback
+        return self
 
     def on_exit_success(self, callback):
         self._on_exit_success = callback
+        return self
 
     def on_exit(self, callback):
         self._on_exit = callback
+        return self
 
     # Read a line from the VM's standard out
     def readline(self):
@@ -542,18 +571,21 @@ class vm:
     def clean(self):
         print INFO, "Cleaning cmake build folder"
         subprocess.call(["rm","-rf","build"])
+        return self
 
     def find_exit_trigger(self, line):
 
-        # Special case for end-of-transmission, e.g. on panic
-        if line == EOT:
-            if not self._exit_status: self._exit_status = exit_codes["VM_EOT"]
-            return True
-
         # Kernel reports service exit status
-        if line.startswith("     [ Kernel ] service exited with status"):
+        if (line.startswith("     [ Kernel ] service exited with status") or
+            line.startswith("     [ main ] returned with status")):
+
             self._exit_status = int(line.split(" ")[-1].rstrip())
             self._exit_msg = "Service exited with status " + str(self._exit_status)
+            return True
+
+        # Special case for end-of-transmission, e.g. on panic
+        if line == EOT:
+            self._exit_status = exit_codes["VM_EOT"]
             return True
 
         return False
@@ -583,6 +615,7 @@ class vm:
 
         # This might be a reboot
         self._exit_status = None
+        self._exit_complete = False
         self._timeout_after = timeout
 
         # Start the timeout thread
@@ -628,18 +661,23 @@ class vm:
         # possibly normal vm shutdown
         if self.poll() != None:
 
-            info("No exit status, and no poll - getting final output")
-            data, err = self._hyper.get_final_output()
+            info("No poll - getting final output")
+            try:
+                data, err = self._hyper.get_final_output()
 
-            # Print stderr if exit status wasnt 0
-            if err and self.poll() != 0:
-                print color.WARNING("Stderr: \n" + err)
+                # Print stderr if exit status wasnt 0
+                if err and self.poll() != 0:
+                    print color.WARNING("Stderr: \n" + err)
 
-            # Parse the last output from vm
-            lines = data.split("\n")
-            for line in lines:
-                print color.VM(line)
-                self.find_exit_trigger(line)
+                # Parse the last output from vm
+                lines = data.split("\n")
+                for line in lines:
+                    print color.VM(line)
+                    self.find_exit_trigger(line)
+                    # Note: keep going. Might find panic after service exit
+
+            except Exception as e:
+                pass
 
         # We should now have an exit status, either from a callback or VM EOT / exit msg.
         if self._exit_status != None:
@@ -700,11 +738,19 @@ def load_single_config(path = default_json):
 
 def program_exit(status, msg):
     global vms
+
+    info("Program exit called with status", status, "(",get_exit_code_name(status),")")
+    info("Stopping all vms")
+
     for vm in vms:
         vm.stop().wait()
-    info("Exit called with status", status, "(",get_exit_code_name(status),")")
-    # Print fail message and exit with appropriate code
-    print color.EXIT_ERROR(get_exit_code_name(status), msg)
+
+    # Print status message and exit with appropriate code
+    if (status):
+        print color.EXIT_ERROR(get_exit_code_name(status), msg)
+    else:
+        print color.SUCCESS(msg)
+
     sys.exit(status)
 
 
