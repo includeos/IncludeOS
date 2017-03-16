@@ -154,14 +154,13 @@ void panic(const char* why)
   print_backtrace();
   fflush(stderr);
   SMP::global_unlock();
-
   // call custom on panic handler
   if (panic_handler) panic_handler();
 
   if (SMP::cpu_id() == 0) {
     SMP::global_lock();
     // Signal End-Of-Transmission
-    fprintf(stderr, "\x04"); fflush(stderr);
+    kprint("\x04");
     SMP::global_unlock();
   }
 
