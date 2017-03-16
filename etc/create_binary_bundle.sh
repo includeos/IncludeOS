@@ -18,12 +18,13 @@ export llvm_build=build_llvm
 [ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
 [ ! -v download_llvm ] && export download_llvm=1
 
-export newlib_version=2.4.0
-export clang_version=3.8
-export libcpp_version=3.8.1
-export gcc_version=6.2.0
-export binutils_version=2.26
-export LLVM_TAG=RELEASE_381/final
+export binutils_version=2.26		# https://ftp.gnu.org/gnu/binutils
+export newlib_version=2.4.0			# https://sourceware.org/pub/newlib
+export gcc_version=6.2.0			# https://ftp.nluug.nl/mirror/languages/gcc/releases/
+export clang_version=3.8			# http://releases.llvm.org/
+export LLVM_TAG=RELEASE_381/final	# http://llvm.org/svn/llvm-project/llvm/tags
+
+export libcpp_version=3.8.1			# Not in use anywhere???
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
