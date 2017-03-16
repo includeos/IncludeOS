@@ -36,6 +36,7 @@ namespace http {
 
   class Server {
   public:
+    using Request_handler = http::Request_handler;
     using TCP             = net::TCP;
     using TCP_conn        = net::tcp::Connection_ptr;
 

@@ -20,6 +20,7 @@
 #include <util/base64.hpp>
 #include <util/sha1.hpp>
 #include <cstdint>
+#include <net/http/ws_connector.hpp>
 
 #define OPCODE_CONTINUE    0
 #define OPCODE_TEXT        1
@@ -54,7 +55,7 @@ namespace http {
 struct ws_header
 {
   uint16_t bits;
-  
+
   bool is_final() const noexcept {
     return (bits >> 7) & 1;
   }
@@ -72,21 +73,21 @@ struct ws_header
     else if (len > 125)   pbits = 126;
     bits &= 0x80ff;
     bits |= (pbits & 0x7f) << 8;
-    
+
     if (is_ext())
         *(uint16_t*) vla = __builtin_bswap16(len);
     else if (is_ext2())
         *(uint64_t*) vla = __builtin_bswap64(len);
     assert(data_length() == len);
   }
-  
+
   bool is_ext() const noexcept {
     return payload() == 126;
   }
   bool is_ext2() const noexcept {
     return payload() == 127;
   }
-  
+
   bool is_masked() const noexcept {
     return bits & 0x8000;
   }
@@ -95,7 +96,7 @@ struct ws_header
     uint32_t mask = OS::cycles_since_boot() & 0xffffffff;
     memcpy(keymask(), &mask, sizeof(mask));
   }
-  
+
   uint8_t opcode() const noexcept {
     return bits & 0xf;
   }
@@ -104,18 +105,18 @@ struct ws_header
     bits |= code & 0xf;
     assert(opcode() == code);
   }
-  
+
   bool is_fail() const noexcept {
     return false;
   }
-  
+
   size_t mask_length() const noexcept {
     return is_masked() ? 4 : 0;
   }
   char* keymask() noexcept {
     return &vla[data_offset() - mask_length()];
   }
-  
+
   size_t data_offset() const noexcept {
     size_t len = mask_length();
     if (is_ext2()) return len + 8;
@@ -144,11 +145,11 @@ struct ws_header
       ptr[i] = ptr[i] xor mask[i & 3];
     }
   }
-  
+
   size_t reported_length() const noexcept {
     return sizeof(ws_header) + data_offset() + data_length();
   }
-  
+
   char vla[0];
 } __attribute__((packed));
 
@@ -161,47 +162,135 @@ encode_hash(const std::string& key)
   return base64::encode(sha.as_raw());
 }
 
-WebSocket::WebSocket(
-    http::Request_ptr req, 
-    http::Response_writer_ptr writer,
-    accept_func on_accept)
-  : conn(nullptr), clientside(false)
+
+WebSocket_ptr WebSocket::upgrade(Request& req, Response_writer& writer)
 {
   // validate handshake
-  auto view = req->header().value("Sec-WebSocket-Version");
+  auto view = req.header().value("Sec-WebSocket-Version");
   if (view == nullptr || view != "13") {
-    writer->write_header(http::Bad_Request);
-    return;
+    writer.write_header(http::Bad_Request);
+    return nullptr;
   }
 
-  auto key = req->header().value("Sec-WebSocket-Key");
+  auto key = req.header().value("Sec-WebSocket-Key");
   if (key == nullptr || key.size() < 16) {
-    writer->write_header(http::Bad_Request);
-    return;
-  }
-
-  // if on_accept is set, the server must verify the client
-  if (on_accept) {
-    bool accept = on_accept(writer->connection().peer(), 
-                            req->header().value("Origin").to_string());
-    if (accept == false)
-    {
-      writer->write_header(http::Unauthorized);
-      return;
-    }
+    writer.write_header(http::Bad_Request);
+    return nullptr;
   }
 
   // create handshake response
-  auto& header = writer->header();
+  auto& header = writer.header();
   header.set_field(http::header::Connection, "Upgrade");
   header.set_field(http::header::Upgrade,    "WebSocket");
   header.set_field("Sec-WebSocket-Accept", encode_hash(key.to_string()));
-  writer->write_header(http::Switching_Protocols);
-  
-  // we assume we are connected here
-  this->conn = writer->connection().release();
-  this->conn->on_read(16384, {this, &WebSocket::read_data});
-  this->conn->on_close({this, &WebSocket::tcp_closed});
+  writer.write_header(http::Switching_Protocols);
+
+  auto stream = writer.connection().release();
+  assert(stream->is_connected());
+  return std::make_unique<WebSocket>(std::move(stream), false);
+}
+
+WebSocket_ptr WebSocket::upgrade(Error err, Response& res, Connection& conn, const std::string& key)
+{
+  if (err or res.status_code() != http::Switching_Protocols)
+  {
+    return nullptr;
+  }
+  else
+  {
+    /// validate response
+    auto hash = res.header().value("Sec-WebSocket-Accept");
+    if (hash.empty() or hash != encode_hash(key))
+    {
+      return nullptr;
+    }
+    /// create open websocket
+    auto stream = conn.release();
+    assert(stream->is_connected());
+    // create client websocket and call callback
+    return std::make_unique<WebSocket>(std::move(stream), true);
+  }
+}
+
+static std::string generate16b()
+{
+  std::string hash; hash.resize(16);
+  uint16_t v;
+  for (size_t i = 0; i < hash.size(); i += sizeof(v))
+  {
+    v = rand() & 0xffff;
+    memcpy(&hash[i], &v, sizeof(v));
+  }
+  return hash;
+}
+
+std::string WebSocket::generate_key()
+{ return generate16b(); }
+
+Server::Request_handler WebSocket::create_request_handler(
+  Connect_handler on_connect, Accept_handler on_accept)
+{
+  auto handler = Server::Request_handler::make_packed(
+    [
+      on_connect{std::move(on_connect)},
+      on_accept{std::move(on_accept)}
+    ]
+    (Request_ptr req, Response_writer_ptr writer)
+    {
+      if (on_accept)
+      {
+        const bool accepted = on_accept(writer->connection().peer(),
+                                       req->header().value("Origin").to_string());
+        if (not accepted)
+        {
+          writer->write_header(http::Unauthorized);
+          on_connect(nullptr);
+          return;
+        }
+      }
+      auto ws = WebSocket::upgrade(*req, *writer);
+
+      on_connect(std::move(ws));
+    });
+
+  return handler;
+}
+
+Client::Response_handler WebSocket::create_response_handler(
+  Connect_handler on_connect, std::string key)
+{
+  auto handler = Client::Response_handler::make_packed(
+    [
+      on_connect{std::move(on_connect)},
+      key{std::move(key)}
+    ]
+    (Error err, Response_ptr res, Connection& conn)
+    {
+      auto ws = WebSocket::upgrade(err, *res, conn, key);
+
+      on_connect(std::move(ws));
+    });
+
+  return handler;
+}
+
+void WebSocket::connect(
+      http::Client&   client,
+      uri::URI        remote,
+      Connect_handler callback)
+{
+  // doesn't have to be extremely random, just random
+  std::string key  = base64::encode(generate16b());
+  http::Header_set ws_headers {
+      {"Host",       remote.to_string()},
+      {"Connection", "Upgrade"  },
+      {"Upgrade",    "WebSocket"},
+      {"Sec-WebSocket-Version", "13"},
+      {"Sec-WebSocket-Key",     key }
+  };
+  // send HTTP request
+  client.get(remote, ws_headers,
+    WS_client_connector::create_response_handler(std::move(callback), std::move(key)));
 }
 
 void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
@@ -215,10 +304,10 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
   }
   ws_header& hdr = *(ws_header*) buf.get();
   /*
-  printf("Code: %hhu  (%s) (final=%d)\n", 
+  printf("Code: %hhu  (%s) (final=%d)\n",
           hdr.opcode(), opcode_string(hdr.opcode()), hdr.is_final());
   printf("Mask: %d  len=%u\n", hdr.is_masked(), hdr.mask_length());
-  printf("Payload: len=%u dataofs=%u\n", 
+  printf("Payload: len=%u dataofs=%u\n",
           hdr.data_length(), hdr.data_offset());
   */
   /// validate payload length
@@ -239,7 +328,7 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
     failure("Read unmasked message from client");
     return;
   }
-  
+
   switch (hdr.opcode()) {
   case OPCODE_TEXT:
   case OPCODE_BINARY:
@@ -364,7 +453,10 @@ WebSocket::WebSocket(net::Stream_ptr stream_ptr, bool client)
   : conn(std::move(stream_ptr)), clientside(client)
 {
   assert(conn != nullptr);
+  this->conn->on_read(16384, {this, &WebSocket::read_data});
+  this->conn->on_close({this, &WebSocket::tcp_closed});
 }
+
 WebSocket::WebSocket(WebSocket&& other)
 {
   other.on_close = std::move(on_close);
@@ -437,61 +529,6 @@ const char* WebSocket::status_code(uint16_t code)
   default:
       return "Unknown status code";
   }
-}
-
-static std::string generate16b()
-{
-  std::string hash; hash.resize(16);
-  uint16_t v;
-  for (size_t i = 0; i < hash.size(); i += sizeof(v))
-  {
-    v = rand() & 0xffff;
-    memcpy(&hash[i], &v, sizeof(v));
-  }
-  return hash;
-}
-
-void WebSocket::connect(
-      http::Client& client, 
-      std::string   origin, 
-      uri::URI      remote, 
-      connect_func  callback)
-{
-  // doesn't have to be extremely random, just random
-  std::string key  = base64::encode(generate16b());
-  
-  http::Header_set ws_headers {
-      {"Origin",     origin  },
-      {"Host",       remote.to_string()},
-      {"Connection", "Upgrade"  },
-      {"Upgrade",    "WebSocket"},
-      {"Sec-WebSocket-Version", "13"},
-      {"Sec-WebSocket-Key",     key }
-  };
-  // send HTTP request
-  client.get(remote, ws_headers,
-  http::Client::Response_handler::make_packed(
-  [callback, key] (auto err, auto resp, auto& conn)
-  {
-    if (err || resp->status_code() != http::Switching_Protocols)
-    {
-      callback(nullptr);
-    }
-    else
-    {
-      /// validate response
-      auto hash = resp->header().value("Sec-WebSocket-Accept");
-      if (hash == nullptr || hash != encode_hash(key))
-      {
-        callback(nullptr); return;
-      }
-      /// create open websocket
-      auto stream = conn.release();
-      assert(stream->is_connected());
-      // create client websocket and call callback
-      callback(WebSocket_ptr(new WebSocket(std::move(stream), true)));
-    }
-  }));
 }
 
 } // http
