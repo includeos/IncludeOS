@@ -5,7 +5,7 @@
 ############################################################
 
 # Location of the IncludeOS repo (default: current directory)
-export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
+export INCLUDEOS_SRC=${INCLUDEOS_SRC:-`pwd`}
 # Prefered install location (default: /usr/local)
 export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 # Enable compilation of tests in cmake (default: OFF)

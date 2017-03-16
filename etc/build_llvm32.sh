@@ -1,5 +1,5 @@
 #! /bin/bash
-set -e # Exit immediately on error (we're trapping the exit signal)
+set -e # Exit immediately on error (were trapping the exit signal)
 trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 
@@ -20,7 +20,7 @@ trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
 libcxx_inc=$BUILD_DIR/$llvm_src/projects/libcxx/include
-LLVM_TAG=RELEASE_381/final
+#LLVM_TAG=RELEASE_381/final
 
 if [ ! -z $install_llvm_dependencies ]; then
     # Dependencies
