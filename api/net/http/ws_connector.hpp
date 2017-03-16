@@ -135,10 +135,11 @@ public:
   static Response_handler create_response_handler(ConnectCallback cb, std::string key)
   {
     // @todo Try replace with unique_ptr
-    // create a new instance of the
-    auto ptr = std::shared_ptr<WS_client_connector>{
-      new WS_client_connector(std::move(cb), std::move(key))
-    };
+    // create a new instance of a client connector
+    //auto ptr = std::unique_ptr<WS_client_connector>{
+    //  new WS_client_connector(std::move(cb), std::move(key))
+    //};
+    auto ptr = std::make_shared<WS_client_connector>(std::move(cb), std::move(key));
 
     return [ ptr{std::move(ptr)} ]
            (auto err, auto res, auto& conn)
@@ -178,14 +179,33 @@ public:
     on_connect_(std::move(ws));
   }
 
-private:
-  std::string key_;
-
+  // Either use the ones above, or these below.
+  /**
+   * @brief      Constructor to be used when constructing unique instances
+   *             of the client connector.
+   *
+   * @param[in]  on_connect  On connect callback
+   * @param[in]  key         The WS key
+   */
   WS_client_connector(ConnectCallback on_connect, std::string key)
     : WS_connector(std::move(on_connect)),
       key_(std::move(key))
   {
   }
+
+  /**
+   * @brief      Creates a response handler based on the key and connect callback
+   *             set in the unique instance of the client connector.
+   *
+   * @return     Returns a response handler pointing to this object.
+   */
+  Response_handler create_response_handler()
+  {
+    return {this, &WS_client_connector::on_response};
+  }
+
+private:
+  std::string key_;
 
 }; // < WS_client_connector
 
