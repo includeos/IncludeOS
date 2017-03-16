@@ -235,10 +235,8 @@ class qemu(hypervisor):
         return self._proc
 
 
-    def get_error_messages(self):
-        if self._proc.poll():
-            data, err = self._proc.communicate()
-            return err
+    def get_final_output(self):
+        return self._proc.communicate()
 
     def boot(self, multiboot, kernel_args = "", image_name = None):
         self._stopped = False
@@ -248,6 +246,8 @@ class qemu(hypervisor):
 
         # Use provided image name if set, otherwise try to find it in json-config
         if not image_name:
+            if not "image" in self._config:
+                raise Exception("No image name provided, neither as param or in config file")
             image_name = self._config["image"]
 
         self._image_name = image_name
@@ -397,7 +397,7 @@ class vm:
 
     def __init__(self, config = None, hyper = qemu):
 
-        self._exit_status = 0
+        self._exit_status = None
         self._exit_msg = ""
         self._config = load_single_config(config)
         self._on_success = lambda(line) : self.exit(exit_codes["SUCCESS"], nametag + " All tests passed")
@@ -543,6 +543,41 @@ class vm:
         print INFO, "Cleaning cmake build folder"
         subprocess.call(["rm","-rf","build"])
 
+    def find_exit_trigger(self, line):
+
+        # Special case for end-of-transmission, e.g. on panic
+        if line == EOT:
+            if not self._exit_status: self._exit_status = exit_codes["VM_EOT"]
+            return True
+
+        # Kernel reports service exit status
+        if line.startswith("     [ Kernel ] service exited with status"):
+            self._exit_status = int(line.split(" ")[-1].rstrip())
+            self._exit_msg = "Service exited with status " + str(self._exit_status)
+            return True
+
+        return False
+
+
+    def trigger_event(self, line):
+        # Find any callback triggered by this line
+        for pattern, func in self._on_output.iteritems():
+            if re.search(pattern, line):
+                try:
+                    # Call it
+                    res = func(line)
+                except Exception as err:
+                    print color.WARNING("Exception raised in event callback: ")
+                    print_exception()
+                    res = False
+                    self.stop()
+
+                # NOTE: Result can be 'None' without problem
+                if res == False:
+                    self._exit_status = exit_codes["CALLBACK_FAILED"]
+                    self.exit(self._exit_status, " Event-triggered test failed")
+
+
     # Boot the VM and start reading output. This is the main event loop.
     def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner", image_name = None):
 
@@ -566,7 +601,7 @@ class vm:
             self.exit(exit_codes["BOOT_FAILED"], str(err))
 
         # Start analyzing output
-        while self._hyper.poll() == None and not self._exit_status:
+        while self._exit_status == None and self.poll() == None:
 
             try:
                 line = self._hyper.readline()
@@ -574,48 +609,44 @@ class vm:
                 print color.WARNING("Exception thrown while waiting for vm output")
                 break
 
-            if line:
-                # Special case for end-of-transmission
-                if line == EOT:
-                    if not self._exit_status: self._exit_status = exit_codes["VM_EOT"]
-                    break
-                if line.startswith("     [ Kernel ] service exited with status"):
-                    self._exit_status = int(line.split(" ")[-1].rstrip())
-                    self._exit_msg = "Service exited with status " + str(self._exit_status)
-                    break
-                else:
+            if line and not self.find_exit_trigger(line):
                     print color.VM(line.rstrip())
+                    self.trigger_event(line)
 
-            else:
-                pass
-                # TODO: Add event-trigger for EOF?
+            # Empty line - should only happen if process exited
+            else: pass
 
-            for pattern, func in self._on_output.iteritems():
-                if re.search(pattern, line):
-                    try:
-                        res = func(line)
-                    except Exception as err:
-                        print color.WARNING("Exception raised in event callback: ")
-                        print_exception()
-                        res = False
-                        self.stop()
 
-                    # NOTE: It can be 'None' without problem
-                    if res == False:
-                        self._exit_status = exit_codes["CALLBACK_FAILED"]
-                        self.exit(self._exit_status, " Event-triggered test failed")
+        # VM Done
+        info("Event loop done. Exit status:", self._exit_status, "poll:", self.poll())
 
         # If the VM process didn't exit by now we need to stop it.
         if (self.poll() == None):
             self.stop()
 
-        # We might have an exit status, e.g. set by a callback noticing something wrong with VM output
-        if self._exit_status:
-            self.exit(self._exit_status, self._exit_msg)
+        # Process may have ended without EOT / exit message being read yet
+        # possibly normal vm shutdown
+        if self.poll() != None:
 
-        # Process might have ended prematurely
-        elif self.poll():
-            self.exit(self._hyper.poll(), self._hyper.get_error_messages())
+            info("No exit status, and no poll - getting final output")
+            data, err = self._hyper.get_final_output()
+
+            # Print stderr if exit status wasnt 0
+            if err and self.poll() != 0:
+                print color.WARNING("Stderr: \n" + err)
+
+            # Parse the last output from vm
+            lines = data.split("\n")
+            for line in lines:
+                print color.VM(line)
+                self.find_exit_trigger(line)
+
+        # We should now have an exit status, either from a callback or VM EOT / exit msg.
+        if self._exit_status != None:
+            info("VM has exit status. Exiting.")
+            self.exit(self._exit_status, self._exit_msg)
+        else:
+            self.exit(self._hyper.poll(), "process exited")
 
         # If everything went well we can return
         return self

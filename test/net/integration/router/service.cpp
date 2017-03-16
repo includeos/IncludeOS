@@ -54,10 +54,10 @@ void ip_forward (Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
   if (not pckt)
     return;
 
-  Inet<IP4>* route = router->get_first_interface(pckt->dst());
+  Inet<IP4>* route = router->get_first_interface(pckt->ip_dst());
 
   if (not route){
-    INFO("ip_fwd", "No route found for %s dropping\n", pckt->dst().to_string().c_str());
+    INFO("ip_fwd", "No route found for %s dropping\n", pckt->ip_dst().to_string().c_str());
     return;
   }
 
