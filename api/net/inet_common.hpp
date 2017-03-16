@@ -66,6 +66,39 @@ namespace net {
       return std::unique_ptr<Derived>(d);
   }
 
+  class Error {
+  public:
+    enum class Type : uint8_t {
+      no_error,
+      general_IO,
+      ifdown,
+      ICMP
+      // Add more as needed
+     };
+
+    virtual Type type()
+    { return t_;  }
+
+    virtual const char* what()
+    { return msg_; }
+
+    virtual ~Error() = default;
+
+    Error() = default;
+
+    Error(Type t, const char* msg)
+      : t_{t}, msg_{msg}
+    {};
+
+    operator bool()
+    { return t_ != Type::no_error; }
+
+  private:
+    Type t_ = Type::no_error;
+    const char* msg_ = "No error";
+  };
+
+
   /* RFC 6335 - IANA */
   namespace port_ranges
   {
