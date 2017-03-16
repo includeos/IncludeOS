@@ -1,16 +1,15 @@
 #! /bin/bash
+. ./set_traps.sh
 
-# Set env variables
+# Env variables
 export INCLUDEOS_SRC=${INCLUDEOS_SRC:-~/IncludeOS}
-export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-/usr/local}
 export BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build}
 export TEMP_INSTALL_DIR=${TEMP_INSTALL_DIR:-$BUILD_DIR/IncludeOS_TEMP_install}
 
-export PREFIX=$TEMP_INSTALL_DIR
-export TARGET=i686-elf
-export PATH="$PREFIX/bin:$PATH"
-export build_dir=$HOME/cross-dev
+export TARGET=i686-elf	# Configure target
+export PATH="$TEMP_INSTALL_DIR/bin:$PATH"
 
+# Build_llvm specific options
 export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
 export llvm_src=llvm
 export llvm_build=build_llvm
@@ -64,12 +63,6 @@ if [ ! -z $do_llvm ]; then
     echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
     $INCLUDEOS_SRC/etc/build_llvm32.sh
 fi
-
-
-
-
-
-
 
 #
 # Create the actual bundle
