@@ -164,6 +164,15 @@ namespace http {
     void on_send(Request_handler cb)
     { on_send_ = std::move(cb); }
 
+    /**
+     * @brief      Returns the Origin for the Client as a string.
+     *             Currently returns the IP address to the stack.
+     *
+     * @return     The origin as a string
+     */
+    std::string origin() const
+    { return tcp_.stack().ip_addr().to_string(); }
+
   private:
     friend class Client_connection;
 
