@@ -19,7 +19,7 @@ export llvm_build=build_llvm
 [ ! -v download_llvm ] && export download_llvm=1
 
 export binutils_version=${binutils_version:-2.26}		# ftp://ftp.gnu.org/gnu/binutils
-export newlib_versio=${newlib_version:-2.4.0}			# ftp://sourceware.org/pub/newlib
+export newlib_version=${newlib_version:-2.4.0}			# ftp://sourceware.org/pub/newlib
 export gcc_version=${gcc_version:-6.2.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
 export clang_version=${clang_version:-3.8}				# http://releases.llvm.org/
 export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-project/llvm/tags
