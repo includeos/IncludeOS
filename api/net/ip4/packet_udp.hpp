@@ -73,20 +73,26 @@ namespace net
       return length() - sizeof(UDP::header);
     }
 
-    inline Byte* data()
+    Byte* data()
     {
-      return ip_data() + sizeof(UDP::header);
+      return ip_data_ptr() + sizeof(UDP::header);
     }
 
-    inline Byte* begin()
+    Byte* begin()
     {
       return data();
     }
 
-    inline Byte* begin_free()
+    Byte* begin_free()
     {
       return begin() + length();
     }
+
+    uint16_t checksum()
+    { return header().checksum; }
+
+    void set_checksum(uint16_t check)
+    { header().checksum = check; }
 
     // generates IP checksum for this packet
     // TODO: implement me
@@ -119,12 +125,12 @@ namespace net
 
     UDP::header& header() noexcept
     {
-      return *reinterpret_cast<UDP::header*>(ip_data());
+      return *reinterpret_cast<UDP::header*>(ip_data_ptr());
     }
 
     const UDP::header& header() const noexcept
     {
-      return *reinterpret_cast<const UDP::header*>(ip_data());
+      return *reinterpret_cast<const UDP::header*>(ip_data_ptr());
     }
 
   };

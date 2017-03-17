@@ -15,15 +15,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "features.h"
-#include_next <sys/time.h>
-#include_next <time.h>
+// Our patches / additions to newlibs partial implementation
+#ifndef SYS_STDLIB_H
+#define SYS_STDLIB_H
 
-#ifndef SYS_TIME_H
-#define SYS_TIME_H
+#include_next <stdlib.h>
 
-// We might possibly need additions here.
-#define CLOCK_MONOTONIC 4
-
-
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+  //New stuff in C11, required by libunwind, compiler-rt etc. in llvm
+  void *aligned_alloc( size_t alignment, size_t size );
+  int at_quick_exit (void (*func)(void));
+  _Noreturn void quick_exit (int status);
+
+
+#ifdef __cplusplus
+}
+#endif
+#endif //SYS_STDLIB_H

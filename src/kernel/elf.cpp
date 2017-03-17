@@ -32,7 +32,7 @@ static const uintptr_t ELF_START = reinterpret_cast<uintptr_t>(&_ELF_START_);
 
 #define frp(N, ra)                                 \
   (__builtin_frame_address(N) != nullptr) &&       \
-    (ra = __builtin_return_address(N)) != nullptr
+  (ra = __builtin_return_address(N)) != nullptr && ra != (void*)-1 \
 
 extern "C" char *
 __cxa_demangle(const char *name, char *buf, size_t *n, int *status);
@@ -63,8 +63,8 @@ class ElfTables
 public:
   ElfTables() {}
 
-  void set(Elf32_Sym* syms, 
-           uint32_t   entries, 
+  void set(Elf32_Sym* syms,
+           uint32_t   entries,
            const char* string_table,
            uint32_t    strsize,
            uint32_t csum_syms,
@@ -143,7 +143,7 @@ public:
   }
 
   bool verify_symbols() const {
-    uint32_t csum = 
+    uint32_t csum =
         crc32(symtab.base, symtab.entries * sizeof(Elf32_Sym));
     if (csum != checksum_syms) {
       printf("ELF symbol tables checksum failed! "
@@ -391,7 +391,7 @@ void _init_elf_parser()
 {
   if (relocs.entries) {
     // apply changes to the symbol parser from custom location
-    parser.set(relocs.syms,      relocs.entries, 
+    parser.set(relocs.syms,      relocs.entries,
                relocs.strings(), relocs.strsize,
                relocs.check_syms, relocs.check_strs);
   }
