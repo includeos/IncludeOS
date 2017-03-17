@@ -83,7 +83,7 @@ namespace net {
       // Only sent by gateways. Incoming: Update routing information based on the message
       break;
     case (icmp4::Type::ECHO):
-      printf("<ICMP> PING from %s\n", req.ip().src().str().c_str());
+      debug("<ICMP> PING from %s\n", req.ip().src().str().c_str());
       ping_reply(req);
       break;
     case (icmp4::Type::TIME_EXCEEDED):
