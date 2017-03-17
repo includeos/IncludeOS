@@ -51,8 +51,8 @@ def start_icmp_test(trigger_line):
     "Sequence number: 0" in output_data and \
     "Source: 10.0.0.1" in output_data and \
     "Destination: 10.0.0.45" in output_data and \
-    "Type: ECHO REPLY" in output_data and \
-    "Code: 0" in output_data and \
+    "Type: ECHO REPLY (0)" in output_data and \
+    "Code: DEFAULT (0)" in output_data and \
     "No reply received from 10.0.0.42. Identifier: 1. Sequence number: 0" in output_data and \
     "No reply received from 10.0.0.43. Identifier: 2. Sequence number: 0" in output_data:
     num_successes += 1

@@ -88,11 +88,11 @@ namespace net
     recvfrom_handler on_read_handler =
       [] (addr_t, port_t, const char*, size_t) {};
     recvfromicmp_handler on_error_handler =
-      [](Error_type type, Error_code code,
-        addr_t src_addr, port_t src_port, addr_t dest_addr, port_t dest_port) {
+      [](Error_type /*type*/, Error_code /*code*/,
+        addr_t /*src_addr*/, port_t /*src_port*/, addr_t /*dest_addr*/, port_t /*dest_port*/) {
 
         // Default behavior: Report to application layer about ICMP error messages
-        printf("<UDPSocket> Error %s : %s occurred when sending data to %s port %u from %s port %u\n",
+        debug("<UDPSocket> Error %s : %s occurred when sending data to %s port %u from %s port %u\n",
           icmp4::get_type_string(type).c_str(), icmp4::get_code_string(type, code).c_str(),
           dest_addr.to_string().c_str(), dest_port, src_addr.to_string().c_str(), src_port);
     };
