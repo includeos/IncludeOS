@@ -28,6 +28,8 @@
 
 namespace http {
 
+  using Response_handler = Client_connection::Response_handler;
+
   class Client {
   public:
     using TCP                 = net::TCP;

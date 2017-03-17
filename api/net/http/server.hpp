@@ -34,6 +34,9 @@ namespace http {
   // Used in HTTP server - invoked when a Request is received
   using Request_handler   = delegate<void(Request_ptr, Response_writer_ptr)>;
 
+  /**
+   * @brief      A simple HTTP server.
+   */
   class Server {
   public:
     using Request_handler = http::Request_handler;
@@ -64,7 +67,7 @@ namespace http {
      *
      * @param[in]  port  The port to listen on
      */
-    virtual void listen(uint16_t port);
+    void listen(const uint16_t port);
 
     /**
      * @brief      Setup handler for when a Request is received
@@ -94,13 +97,34 @@ namespace http {
     virtual ~Server();
 
   protected:
-    delegate<void(TCP_conn)> on_connect;
+    TCP&            tcp_;
+
+    /**
+     * @brief      Binds to a TCP port and sets up a connect event.
+     *             This is called from listen()
+     *
+     * @param[in]  port  The port
+     */
+    virtual void bind(const uint16_t port);
+
+    /**
+     * @brief      Handle a newly connected TCP client.
+     *
+     * @param[in]  conn  The TCP connection
+     */
+    virtual void on_connect(TCP_conn conn)
+    { connect(std::make_unique<Connection::Stream>(std::move(conn))); }
+
+    /**
+     * @brief      Connect the stream to the server.
+     *
+     * @param[in]  stream  The stream
+     */
     void connect(Connection::Stream_ptr stream);
 
   private:
     friend class Server_connection;
 
-    TCP&            tcp_;
     Request_handler on_request_;
     Connection_set  connections_;
     Index_set       free_idx_;
@@ -114,14 +138,27 @@ namespace http {
     Stat& stat_req_bad_;
     Stat& stat_timeouts_;
 
-    void connected(TCP_conn conn) {
-      connect(std::make_unique<Connection::Stream>(conn));
-    }
-
+    /**
+     * @brief      Close the given Server_connection
+     *
+     * @param      <unnamed>  The server connection to be closed
+     */
     void close(Server_connection&);
 
+    /**
+     * @brief      Timeout (close) all clients that been idle for more than limit.
+     *
+     * @param[in]  <unnamed>  A timer id (unused)
+     */
     void timeout_clients(int32_t);
 
+    /**
+     * @brief      Receive a incoming HTTP request
+     *
+     * @param[in]  <unnamed>  The HTTP reuqest
+     * @param[in]  code       The HTTP status code
+     * @param      <unnamed>  The server connection which the req arrived from
+     */
     void receive(Request_ptr, status_t code, Server_connection&);
 
   }; // < class Server
