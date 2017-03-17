@@ -19,7 +19,7 @@
 #ifndef NET_IP4_HEADER_HPP
 #define NET_IP4_HEADER_HPP
 
-#include <cstdint>
+#include <net/ip4/addr.hpp>
 
 namespace net {
 namespace ip4 {
