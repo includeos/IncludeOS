@@ -41,6 +41,10 @@ namespace net {
     using Route_checker = delegate<bool(typename IPV::addr)>;
     using IP_packet_factory = delegate<typename IPV::IP_packet_ptr(Protocol)>;
 
+    using Span = gsl::span<uint8_t>;
+    using Error_type = icmp4::Type;
+    using Error_code = uint8_t;
+
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
 
@@ -55,6 +59,12 @@ namespace net {
     virtual TCP&        tcp()     = 0;
     virtual UDP&        udp()     = 0;
     virtual ICMPv4&     icmp()    = 0;
+
+    /**
+     *  Error report in accordance with RFC 1122
+     *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
+    */
+    virtual void error_report(Error_type type, Error_code code, Span icmp_payload) = 0;
 
     virtual void set_forward_delg(Forward_delg) = 0;
     virtual void set_route_checker(Route_checker) = 0;

@@ -22,19 +22,6 @@
 namespace net {
 namespace icmp4 {
 
-  // ICMP types
-  enum class Type : uint8_t {
-    ECHO_REPLY,
-    DEST_UNREACHABLE =        3,
-    REDIRECT =                5,
-    ECHO =                    8,
-    TIME_EXCEEDED =           11,
-    PARAMETER_PROBLEM =       12,
-    TIMESTAMP =               13,
-    TIMESTAMP_REPLY =         14,
-    NO_REPLY =                100 // Custom
-  };
-
   class Packet {
 
     struct Header {

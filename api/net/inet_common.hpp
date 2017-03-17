@@ -24,7 +24,7 @@
 #include <net/packet.hpp>
 #include <hw/mac_addr.hpp>
 #include <net/ethernet/ethertype.hpp>
-#include <net/ip4/icmp4_codes.hpp>
+#include <net/ip4/icmp4_common.hpp>
 
 namespace net {
   // Packet must be forward declared to avoid circular dependency
@@ -85,15 +85,13 @@ namespace net {
    */
   enum class Protocol : uint8_t {
     HOPOPT = 0,
-      ICMPv4  =  1,
-      IP4v4   =  4,  // IPv4 encapsulation
-      TCP     =  6,
-      UDP     = 17,
-      IPv6    = 41,  // IPv6 encapsulation
-      ICMPv6  = 58
-      };
-
-
+    ICMPv4  =  1,
+    IPv4    =  4,  // IPv4 encapsulation
+    TCP     =  6,
+    UDP     = 17,
+    IPv6    = 41,  // IPv6 encapsulation
+    ICMPv6  = 58
+  };
 
   inline uint16_t new_ephemeral_port() noexcept
   { return port_ranges::DYNAMIC_START + rand() % (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START); }

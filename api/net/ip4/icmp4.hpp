@@ -77,7 +77,7 @@ namespace net {
     { return payload_; }
 
     std::string to_string();
-  }; // < class ICMP_packet
+  }; // < struct ICMP_packet
 
 
   struct ICMPv4 {
@@ -94,7 +94,7 @@ namespace net {
 
     // Delegate output to network layer
     inline void set_network_out(downstream s)
-    { network_layer_out_ = s;  };
+    { network_layer_out_ = s; };
 
     /**
      *  Destination Unreachable sent from host because of port (UDP) or protocol (IP4) unreachable
@@ -159,6 +159,8 @@ namespace net {
     };  // < struct ICMP_callback
 
     std::map<Tuple, ICMP_callback> ping_callbacks_;
+
+    void forward_to_transport_layer(icmp4::Packet& req);
 
     /**
      *  Find the ping-callback that this packet is a response to, execute it and erase the object

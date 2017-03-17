@@ -57,6 +57,24 @@ namespace net {
     stack_.icmp().destination_unreachable(std::move(ip4_packet), icmp4::code::Dest_unreachable::PORT);
   }
 
+  void UDP::error_report(Error_type type, Error_code code,
+    IP4::addr src_addr, port_t src_port, IP4::addr dest_addr, port_t dest_port) {
+    // Report to application layer that got an ICMP error message of type and code (reason and subreason)
+    // Should be possible to enable and disable this error report
+
+    // Find UDPSocket
+    auto it = ports_.find(src_port);
+    if (LIKELY(it != ports_.end())) {
+      debug("<%s> UDP Error report: Found listener on port %u\n",
+              stack_.ifname().c_str(), src_port);
+      it->second.error_read(type, code, src_addr, src_port, dest_addr, dest_port);
+      return;
+    }
+
+    debug("<%s> UDP Error report: Nobody listening on %u. Drop!\n",
+            stack_.ifname().c_str(), src_port);
+  }
+
   UDPSocket& UDP::bind(UDP::port_t port)
   {
     debug("<%s> UDP bind to port %d\n", stack_.ifname().c_str(), port);

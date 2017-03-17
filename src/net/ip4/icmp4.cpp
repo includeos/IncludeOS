@@ -26,27 +26,12 @@ namespace net {
     if (not is_reply())
       return "No reply received";
 
-    const std::string t = [&]() {
-      switch (type_) {
-        using namespace icmp4;
-        case Type::ECHO_REPLY: return "ECHO REPLY";
-        case Type::DEST_UNREACHABLE: return "DESTINATION UNREACHABLE";
-        case Type::REDIRECT: return "REDIRECT";
-        case Type::ECHO: return "ECHO";
-        case Type::TIME_EXCEEDED: return "TIME EXCEEDED";
-        case Type::PARAMETER_PROBLEM: return "PARAMETER PROBLEM";
-        case Type::TIMESTAMP: return "TIMESTAMP";
-        case Type::TIMESTAMP_REPLY: return "TIMESTAMP REPLY";
-        case Type::NO_REPLY: return "NO REPLY";
-      }
-    }();
-
     return "Identifier: " + std::to_string(id_) + "\n" +
       "Sequence number: " + std::to_string(seq_) + "\n" +
       "Source: " + src_.to_string() + "\n" +
       "Destination: " + dst_.to_string() + "\n" +
-      "Type: " + t + "\n" +
-      "Code: " + std::to_string(code_) + "\n" +
+      "Type: " + icmp4::get_type_string(type_) + "\n" +
+      "Code: " + icmp4::get_code_string(type_, code_) + "\n" +
       "Checksum: " + std::to_string(checksum_) + "\n" +
       "Data: " + std::string{payload_.begin(), payload_.end()};
   }
@@ -65,36 +50,22 @@ namespace net {
 
     auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
     auto req = icmp4::Packet(std::move(pckt_ip4));
-    std::map<Tuple, ICMP_callback>::iterator it;
 
     switch(req.type()) {
+    case (icmp4::Type::ECHO):
+      debug("<ICMP> PING from %s\n", req.ip().src().str().c_str());
+      ping_reply(req);
+      break;
     case (icmp4::Type::ECHO_REPLY):
       debug("<ICMP> PING Reply from %s\n", req.ip().src().str().c_str());
       execute_ping_callback(req);
       break;
     case (icmp4::Type::DEST_UNREACHABLE):
-      debug("<ICMP> DESTINATION UNREACHABLE from %s\n", req.ip().src().str().c_str());
-      // TODO
-      // Send to transport layer
-      break;
     case (icmp4::Type::REDIRECT):
-      debug("<ICMP> REDIRECT from %s\n", req.ip().src().str().c_str());
-      // TODO
-      // Only sent by gateways. Incoming: Update routing information based on the message
-      break;
-    case (icmp4::Type::ECHO):
-      printf("<ICMP> PING from %s\n", req.ip().src().str().c_str());
-      ping_reply(req);
-      break;
     case (icmp4::Type::TIME_EXCEEDED):
-      debug("<ICMP> TIME EXCEEDED from %s\n", req.ip().src().str().c_str());
-      // TODO
-      // Send to transport layer
-      break;
     case (icmp4::Type::PARAMETER_PROBLEM):
-      debug("<ICMP> PARAMETER PROBLEM from %s\n", req.ip().src().str().c_str());
-      // TODO
-      // Send to transport layer
+      debug("<ICMP> ICMP error message from %s\n", req.ip().src().str().c_str());
+      forward_to_transport_layer(req);
       break;
     case (icmp4::Type::TIMESTAMP):
       debug("<ICMP> TIMESTAMP from %s\n", req.ip().src().str().c_str());
@@ -105,9 +76,14 @@ namespace net {
       debug("<ICMP> TIMESTAMP REPLY from %s\n", req.ip().src().str().c_str());
       // TODO May
       break;
-    default:
+    default:  // icmp4::NO_REPLY
       return;
     }
+  }
+
+  void ICMPv4::forward_to_transport_layer(icmp4::Packet& req) {
+    // inet forwards to transport layer (UDP or TCP)
+    inet_.error_report(req.type(), req.code(), req.payload());
   }
 
   void ICMPv4::destination_unreachable(Packet_ptr pckt, icmp4::code::Dest_unreachable code) {
@@ -151,6 +127,7 @@ namespace net {
   void ICMPv4::ping(IP4::addr ip) {
     send_request(ip, icmp4::Type::ECHO, 0, icmp4::Packet::Span(includeos_payload_, 48));
   }
+
   void ICMPv4::ping(IP4::addr ip, icmp_func callback) {
     send_request(ip, icmp4::Type::ECHO, 0, icmp4::Packet::Span(includeos_payload_, 48), callback);
   }
