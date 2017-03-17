@@ -42,13 +42,13 @@ namespace net {
 
     auto it = ports_.find(udp->dst_port());
     if (LIKELY(it != ports_.end())) {
-      debug("<%s> UDP found listener on port %u\n", 
+      debug("<%s> UDP found listener on port %u\n",
               stack_.ifname().c_str(), udp->dst_port());
       it->second.internal_read(std::move(udp));
       return;
     }
 
-    debug("<%s> UDP: nobody listening on %u. Drop!\n", 
+    debug("<%s> UDP: nobody listening on %u. Drop!\n",
             stack_.ifname().c_str(), udp->dst_port());
   }
 
@@ -100,11 +100,11 @@ namespace net {
   {
     debug("<UDP> Transmitting %u bytes (data=%u) from %s to %s:%i\n",
            udp->length(), udp->data_length(),
-           udp->src().str().c_str(),
-           udp->dst().str().c_str(), udp->dst_port());
+           udp->ip_src().str().c_str(),
+           udp->ip_dst().str().c_str(), udp->dst_port());
 
     Expects(udp->length() >= sizeof(header));
-    Expects(udp->protocol() == Protocol::UDP);
+    Expects(udp->ip_protocol() == Protocol::UDP);
 
     network_layer_out_(std::move(udp));
   }
@@ -168,7 +168,7 @@ namespace net {
 
     debug("<%s> UDP: %i bytes to write, need %i packets \n",
           udp.stack().ifname().c_str(),
-          remaining(), 
+          remaining(),
           remaining() / udp.max_datagram_size() + (remaining() % udp.max_datagram_size() ? 1 : 0));
 
     while (remaining()) {
@@ -183,8 +183,8 @@ namespace net {
       auto p2 = static_unique_ptr_cast<PacketUDP>(std::move(p));
       // Initialize UDP packet
       p2->init(l_port, d_port);
-      p2->set_src(l_addr);
-      p2->set_dst(d_addr);
+      p2->set_ip_src(l_addr);
+      p2->set_ip_dst(d_addr);
       p2->set_data_length(total);
 
       // fill buffer (at payload position)
@@ -200,7 +200,7 @@ namespace net {
       this->offset += total;
     }
 
-    Expects(chain_head->protocol() == Protocol::UDP);
+    Expects(chain_head->ip_protocol() == Protocol::UDP);
     // ship the packet
     udp.transmit(std::move(chain_head));
   }

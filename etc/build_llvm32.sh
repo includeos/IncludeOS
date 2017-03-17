@@ -18,7 +18,7 @@ trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 # $download_llvm: Clone llvm svn sources
 
 
-IncludeOS_sys=$INCLUDEOS_SRC/api/sys
+IncludeOS_posix=$INCLUDEOS_SRC/api/posix
 libcxx_inc=$BUILD_DIR/$llvm_src/projects/libcxx/include
 LLVM_TAG=RELEASE_381/final
 
@@ -108,20 +108,15 @@ OPTS+=-LIBCXXABI_USE_LLVM_UNWINDER=ON" "
 echo "LLVM CMake Build options:" $OPTS
 
 
-# CMAKE
-# Using Ninja (slightly faster, but not by much)
-#
+# CMAKE configure step
 #
 # NOTE: It seems impossible to pass in cxx-flags like this; I've tried \' \\" \\\" etc.
 #
-# OPTS+="-DCMAKE_CXX_FLAGS='-I/home/alfred/IncludeOS/stdlib/support -I/usr/local/IncludeOS/i686-elf/include -I/home/alfred/IncludeOS/stdlib/support/newlib -I/home/alfred/IncludeOS/src/include' "
-# OPTS+='-DCMAKE_CXX_FLAGS=-I/home/alfred/IncludeOS/stdlib/support -I/usr/local/IncludeOS/i686-elf/include  -I/home/alfred/IncludeOS/stdlib/support/newlib -I/home/alfred/IncludeOS/src/include '
-#
 # Include-path ordering:
-# 1. IncludeOS_sys has to come first, as it provides lots of C11 prototypes that libc++ relies on, but which newlib does not provide (see our math.h)
+# 1. IncludeOS_posix has to come first, as it provides lots of C11 prototypes that libc++ relies on, but which newlib does not provide (see our math.h)
 # 2. libcxx_inc must come before newlib, due to math.h function wrappers around C99 macros (signbit, nan etc)
 # 3. newlib_inc provodes standard C headers
-cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="-std=c++11 $llvm_src_verbose -I$IncludeOS_sys -I$libcxx_inc -I$newlib_inc" $BUILD_DIR/$llvm_src
+cmake -GNinja $OPTS  -DCMAKE_CXX_FLAGS="-std=c++14 -nostdlibinc  -I$IncludeOS_posix -I$libcxx_inc -I$newlib_inc" $BUILD_DIR/$llvm_src
 
 
 #

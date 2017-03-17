@@ -51,8 +51,8 @@ namespace net {
     icmp4::Packet res(inet_.ip_packet_factory());
 
     // Populate response IP header
-    res.ip().set_src(inet_.ip_addr());
-    res.ip().set_dst(req.ip().src());
+    res.ip().set_ip_src(inet_.ip_addr());
+    res.ip().set_ip_dst(req.ip().ip_src());
 
     // Populate response ICMP header
     res.set_type(icmp4::Type::ECHO_REPLY);

@@ -41,7 +41,7 @@ def check_num_outputs(line):
   assert(num_header1 == 17)
   assert(num_content == 5)
   assert(num_header2 == 17)
-  vmrunner.vms[0].exit(0, "SUCCESS")
+  vmrunner.vms[0].exit(0, "All tests passed")
 
 # All elements in tarball
 vm.on_output("tar_example/ - element", increment_element)

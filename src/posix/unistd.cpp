@@ -229,7 +229,9 @@ int chdir(const char *path)
 
 char *getcwd(char *buf, size_t size)
 {
-  assert(cwd.front() == '/');
+  Expects(cwd.front() == '/');
+  Expects(buf != nullptr);
+
   if (size == 0)
   {
     errno = EINVAL;

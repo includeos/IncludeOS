@@ -241,13 +241,17 @@ void OS::halt() {
 
 void OS::event_loop()
 {
-  while (power_) {
-    IRQ_manager::get().process_interrupts();
+
+  IRQ_manager::get().process_interrupts();
+  do {
     OS::halt();
-  }
-  // Allow service to perform cleanup
+    IRQ_manager::get().process_interrupts();
+  } while (power_);
+
+  MYINFO("Stopping service");
   Service::stop();
-  // poweroff, if supported by arch
+
+  MYINFO("Powering off");
   extern void __arch_poweroff();
   __arch_poweroff();
 }
@@ -259,6 +263,7 @@ void OS::reboot()
 }
 void OS::shutdown()
 {
+  MYINFO("Soft shutdown signalled");
   power_ = false;
 }
 void OS::on_panic(on_panic_func func)
@@ -394,4 +399,3 @@ void OS::legacy_boot() {
     unavail_end += interval;
   }
 }
-

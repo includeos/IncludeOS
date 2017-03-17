@@ -25,77 +25,215 @@
 
 namespace net {
 
-  class PacketIP4 : public Packet
-  {
+  /** IPv4 packet. */
+  class PacketIP4 : public Packet {
   public:
     static constexpr size_t DEFAULT_TTL {64};
 
-    const ip4::Addr& src() const noexcept
-    { return ip_header().saddr; }
+    using Span = gsl::span<Byte>;
+    using Cspan = gsl::span<const Byte>;
 
-    void set_src(const ip4::Addr& addr) noexcept
-    { ip_header().saddr = addr; }
+    //
+    // IP header getters
+    //
 
-    const ip4::Addr& dst() const noexcept
-    { return ip_header().daddr; }
+    /** Get IP protocol version field. Must be 4 (RFC 1122) */
+    uint8_t ip_version() const noexcept
+    { return ip_header().version_ihl & 0x0f; }
 
-    void set_dst(const ip4::Addr& addr) noexcept
-    { ip_header().daddr = addr; }
+    /** Get IP header length field as-is. */
+    uint8_t ip_ihl() const noexcept
+    { return (ip_header().version_ihl & 0xf); }
 
-    void set_protocol(Protocol p) noexcept
-    { ip_header().protocol = static_cast<uint8_t>(p); }
-
-    Protocol protocol() const noexcept
-    { return static_cast<Protocol>(ip_header().protocol); }
-
-    uint16_t ip_segment_length() const noexcept
-    { return ntohs(ip_header().tot_len); }
-
+    /** Get IP header length field in bytes. */
     uint8_t ip_header_length() const noexcept
     { return (ip_header().version_ihl & 0xf) * 4; }
 
-    uint16_t ip_data_length() const noexcept
-    { return ip_segment_length() - ip_header_length(); }
+    /** Get Differentiated Services Code Point (DSCP)*/
+    DSCP ip_dscp() const noexcept
+    { return static_cast<DSCP>(ip_header().ds_ecn >> 2); }
 
+    /** Get Explicit Congestion Notification (ECN) bits */
+    ECN ip_ecn() const noexcept
+    { return ECN(ip_header().ds_ecn & 0x3); }
+
+    /** Get total length header field */
+    uint16_t ip_total_length() const noexcept
+    { return ntohs(ip_header().tot_len); }
+
+    /** Get ID header field */
+    uint16_t ip_id() const noexcept
+    { return ntohs(ip_header().id); }
+
+    /** Get IP header flags */
+    ip4::Flags ip_flags() const noexcept
+    { return static_cast<ip4::Flags>(ntohs(ip_header().frag_off_flags) >> 13); }
+
+    /** Get Fragment offset field */
+    uint16_t ip_frag_offs() const noexcept
+    { return ntohs(ip_header().frag_off_flags) | 0xe; }
+
+    /** Get Time-To-Live field */
+    uint8_t ip_ttl() const noexcept
+    { return ip_header().ttl; }
+
+    /** Get protocol field value */
+    Protocol ip_protocol() const noexcept
+    { return static_cast<Protocol>(ip_header().protocol); }
+
+    /** Get the IP header checksum field as-is */
+    uint16_t ip_checksum() const noexcept
+    { return ntohs(ip_header().check); }
+
+    /** Get source address */
+    const ip4::Addr& ip_src() const noexcept
+    { return ip_header().saddr; }
+
+    /** Get destination address */
+    const ip4::Addr& ip_dst() const noexcept
+    { return ip_header().daddr; }
+
+    /** Get IP data length. */
+    uint16_t ip_data_length() const noexcept
+    {
+      Expects(size() and static_cast<size_t>(size()) >= sizeof(IP4::header));
+      return size() - ip_header_length();
+    }
+
+    /** Get total data capacity of IP packet in bytes  */
     uint16_t ip_capacity() const noexcept
     { return capacity() - ip_header_length(); }
 
-    void set_ip_data_length(uint16_t length) {
+
+
+    //
+    // IP header setters
+    //
+
+    /** Set IP version header field */
+    void set_ip_version(uint8_t ver) noexcept
+    {
+      Expects(ver < 0x10);
+      ip_header().version_ihl |= ver << 4;
+    }
+
+    /** Set IP header length field */
+    void set_ihl(uint8_t ihl) noexcept
+    {
+      Expects(ihl < 0x10);
+      ip_header().version_ihl |= ihl;
+    }
+
+    /** Set IP header lenght field, in bytes */
+    void set_ip_header_length(uint8_t bytes) noexcept
+    { set_ihl(bytes / 4); }
+
+    /** Set DSCP header bits */
+    void set_ip_dscp(DSCP dscp) noexcept
+    { ip_header().ds_ecn |= (static_cast<uint8_t>(dscp) << 2); }
+
+    /** Set ECN header bits */
+    void set_ip_ecn(ECN ecn) noexcept
+    { ip_header().ds_ecn |= (static_cast<uint8_t>(ecn) & 0x3); }
+
+    /** Set total length header field */
+    void set_ip_total_length(uint16_t len) noexcept
+    { ip_header().tot_len = htons(len); }
+
+    /** Set ID header field */
+    void set_ip_id(uint16_t i) noexcept
+    { ip_header().id = htons(i); }
+
+    /** Set flags field */
+    void set_ip_flags(ip4::Flags f)
+    { ip_header().frag_off_flags |= static_cast<uint16_t>(f) << 13; }
+
+    /** Set fragment offset header field */
+    void set_ip_frag_offs(uint16_t offs)
+    {
+      Expects(offs < 0x2000);
+      ip_header().frag_off_flags |= htons(offs) >> 3;
+    }
+
+    /** Set total length header field */
+    void set_ip_ttl(uint8_t ttl) noexcept
+    { ip_header().ttl = ttl; }
+
+    /** Set protocol header field */
+    void set_protocol(Protocol p) noexcept
+    { ip_header().protocol = static_cast<uint8_t>(p); }
+
+    /** Set IP header checksum field directly */
+    void set_ip_checksum(uint16_t sum) noexcept
+    { ip_header().check = ntohs(sum); }
+
+    /** Calculate and set IP header checksum field */
+    void set_ip_checksum() noexcept {
+      auto& hdr = ip_header();
+      hdr.check = 0;
+      hdr.check = net::checksum(&hdr, ip_header_length());
+    }
+
+    /** Set source address header field */
+    void set_ip_src(const ip4::Addr& addr) noexcept
+    { ip_header().saddr = addr; }
+
+    /** Set destination address header field */
+    void set_ip_dst(const ip4::Addr& addr) noexcept
+    { ip_header().daddr = addr; }
+
+    /**
+     * Set size of data contained in IP datagram.
+     * @note : does not modify IP header
+     **/
+    void set_ip_data_length(uint16_t length) noexcept
+    {
       Expects(sizeof(IP4::header) + length <= (size_t) capacity());
       set_data_end(sizeof(IP4::header) + length);
-
-      set_segment_length();
     }
 
     /** Last modifications before transmission */
     void make_flight_ready() noexcept {
       assert( ip_header().protocol );
       set_segment_length();
-      set_ip4_checksum();
+      set_ip_checksum();
     }
 
     void init(Protocol proto = Protocol::HOPOPT) noexcept {
       Expects(size() == 0);
       auto& hdr = ip_header();
       hdr.version_ihl    = 0x45;
-      hdr.tos            = 0;
+      hdr.ds_ecn         = 0;
       hdr.id             = 0;
       hdr.frag_off_flags = 0;
       hdr.ttl            = DEFAULT_TTL;
       hdr.protocol       = static_cast<uint8_t>(proto);
-      set_ip_data_length(0);
+      increment_data_end(sizeof(IP4::header));
     }
+
+    Span ip_data() {
+      return {ip_data_ptr(), ip_data_length()};
+    }
+
+    Cspan ip_data() const {
+      return {ip_data_ptr(), ip_data_length()};
+    }
+
 
   protected:
-    Byte* ip_data() noexcept __attribute__((assume_aligned(4)))
+
+    /** Get pointer to IP data */
+    Byte* ip_data_ptr() noexcept __attribute__((assume_aligned(4)))
     {
       return layer_begin() + ip_header_length();
     }
 
-    const Byte* ip_data() const noexcept __attribute__((assume_aligned(4)))
+    const Byte* ip_data_ptr() const noexcept __attribute__((assume_aligned(4)))
     {
       return layer_begin() + ip_header_length();
     }
+
+  private:
 
     /**
      *  Set IP4 header length
@@ -104,22 +242,11 @@ namespace net {
     void set_segment_length() noexcept
     { ip_header().tot_len = htons(size()); }
 
-  private:
-
-    void set_header_length() noexcept
-    { }
-
     const ip4::Header& ip_header() const noexcept
     { return *reinterpret_cast<const IP4::header*>(layer_begin()); }
 
     ip4::Header& ip_header() noexcept
     { return *reinterpret_cast<IP4::header*>(layer_begin()); }
-
-    void set_ip4_checksum() noexcept {
-      auto& hdr = ip_header();
-      hdr.check = 0;
-      hdr.check = net::checksum(&hdr, ip_header_length());
-    }
 
   }; //< class PacketIP4
 } //< namespace net
