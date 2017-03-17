@@ -22,10 +22,17 @@
 namespace net {
   namespace ip4 {
 
+    enum class Flags : uint8_t {
+      NONE,
+      MF = 0b001,
+      DF = 0b010,
+      MFDF = 0b011
+    };
+
     /** IP4 header representation */
     struct Header {
       uint8_t  version_ihl;
-      uint8_t  tos;
+      uint8_t  ds_ecn;
       uint16_t tot_len;
       uint16_t id;
       uint16_t frag_off_flags;

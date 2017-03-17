@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,26 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Our patches / additions to newlibs partial implementation
-#ifndef SYS_STDLIB_H
-#define SYS_STDLIB_H
+#ifndef TIME_H
+#define TIME_H
 
-#include_next <stdlib.h>
+// We need our features.h to be included before newlib time.h
+#include <features.h>
+#include_next <time.h>
 
-// More C11 requirements here
-#include <quick_exit>
-
-#ifdef __cplusplus
-extern "C" {
 #endif
-
-  //New stuff in C11, required by libunwind, compiler-rt etc. in llvm
-
-void *aligned_alloc( size_t alignment, size_t size );
-
-#ifdef __cplusplus
-}
-#endif
-#endif //SYS_STDLIB_H
-
-

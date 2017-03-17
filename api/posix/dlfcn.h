@@ -25,7 +25,15 @@ extern "C" {
 #define RTLD_LAZY   1   // Relocations are performed at an implementation-dependent time.
 #define RTLD_NOW    2   // Relocations are performed when the object is loaded.
 #define RTLD_GLOBAL 3   // All symbols are available for relocation processing of other modules.
-#define RTLD_LOCAL  4   // All symbols are not made available for relocation processing by other modules.
+#define RTLD_LOCAL  4   // All symbols are not made available for relocation processing by other modules
+
+// Extra linux-specific defines
+#define RTLD_NODELETE  6
+#define RTLD_NOLOAD    7
+#define RTLD_DEEPBIND  8
+
+#define RTLD_DEFAULT   1
+
 
 void  *dlopen(const char *, int);
 void  *dlsym(void *, const char *);

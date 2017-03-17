@@ -142,21 +142,33 @@ void stat_tests()
   }
   CHECKSERT(res == 0, "chdir to subfolder of cwd is ok");
 
+  /**
+     If buf is a null pointer, the behavior of getcwd() is unspecified.
+     http://pubs.opengroup.org/onlinepubs/9699919799/functions/getcwd.html
+
+     Changed behavior of getcwd to Expect buf isn't nullptr.
+
+     TODO: It's nice to have these test cases in there, but it will require
+     the test to throw on contract violation
+  **/
+
+  /**
   char* nullcwd = getcwd(nullbuf, 0);
   printf("getcwd result (nullptr, size 0): %s\n", nullcwd == nullptr ? "NULL" : nullcwd);
   if (nullcwd == nullptr)
-  {
-    printf("getcwd error: %s\n", strerror(errno));
-  }
+    {
+      printf("getcwd error: %s\n", strerror(errno));
+    }
   CHECKSERT(nullcwd == nullptr && errno == EINVAL, "getcwd() with 0-size buffer should fail with EINVAL");
 
   nullcwd = getcwd(nullptr, 1024);
   printf("getcwd result (nullptr): %s\n", nullcwd == nullptr ? "NULL" : nullcwd);
   if (nullcwd == nullptr)
-  {
-    printf("getcwd error: %s\n", strerror(errno));
-  }
+    {
+      printf("getcwd error: %s\n", strerror(errno));
+    }
   CHECKSERT(nullcwd == nullptr, "getcwd() with nullptr buffer should fail");
+  **/
 
   char* shortcwd = getcwd(shortbuf, 4);
   printf("getcwd result (small buffer): %s\n", shortcwd == nullptr ? "NULL" : shortcwd);

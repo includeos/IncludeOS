@@ -100,8 +100,6 @@ namespace net {
     // Stat increment packets received
     packets_rx_++;
 
-    bool dropped = false;
-
     switch(eth->type()) {
     case Ethertype::IP4:
       debug2("IPv4 packet\n");
@@ -122,18 +120,18 @@ namespace net {
       break;
 
     case Ethertype::WOL:
-      dropped = true;
+      packets_dropped_++;
       debug2("Wake-on-LAN packet\n");
       break;
 
     case Ethertype::VLAN:
-      dropped = true;
+      packets_dropped_++;
       debug("VLAN tagged frame (not yet supported)");
       break;
 
     default:
       uint16_t type = net::ntohs(static_cast<uint16_t>(eth->type()));
-      dropped = true;
+      packets_dropped_++;
 
       // Trailer negotiation and encapsulation RFC 893 and 1122
       if (UNLIKELY(type == net::ntohs(static_cast<uint16_t>(Ethertype::TRAILER_NEGO)) or
@@ -152,8 +150,6 @@ namespace net {
       break;
     }
 
-    if(dropped)
-      packets_dropped_++;
   }
 
 } // namespace net

@@ -171,8 +171,8 @@ namespace net {
       auto it = ping_callbacks_.find(std::make_pair(ping_response.id(), ping_response.sequence()));
 
       if (it != ping_callbacks_.end()) {
-        it->second.callback(ICMP_packet{ping_response.id(), ping_response.sequence(), ping_response.ip().src(),
-          ping_response.ip().dst(), ping_response.type(), ping_response.code(), ping_response.checksum(), ping_response.payload()});
+        it->second.callback(ICMP_packet{ping_response.id(), ping_response.sequence(), ping_response.ip().ip_src(),
+          ping_response.ip().ip_dst(), ping_response.type(), ping_response.code(), ping_response.checksum(), ping_response.payload()});
         Timers::stop(it->second.timer_id);
         ping_callbacks_.erase(it);
       }

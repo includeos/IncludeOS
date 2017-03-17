@@ -31,8 +31,11 @@ _start:
   lgdt [gdtr]
 
   ;; Reload all data segments to new GDT
-  jmp code_segment:reload_segs
-reload_segs:
+  jmp code_segment:rock_bottom
+
+;; Set up stack and load segment registers
+;; (e.g. this is the very bottom of the stack)
+rock_bottom:
   mov cx, data_segment
   mov ss, cx
   mov ds, cx

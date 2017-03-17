@@ -56,11 +56,14 @@ namespace net {
     IP4& ip_obj() override
     { return ip4_; }
 
-    void cache_link_ip(IP4::addr ip, MAC::Addr mac) override
+    void cache_link_addr(IP4::addr ip, MAC::Addr mac) override
     { arp_.cache(ip, mac); }
 
-    void flush_link_ip_cache() override
+    void flush_link_cache() override
     { arp_.flush_cache(); }
+
+    void set_link_cache_flush_interval(std::chrono::minutes min) override
+    { arp_.set_cache_flush_interval(min); }
 
     /** Get the TCP-object belonging to this stack */
     TCP& tcp() override { return tcp_; }
@@ -99,19 +102,21 @@ namespace net {
      * Set the forwarding delegate used by this stack.
      * If set it will get all incoming packets not intended for this stack.
      */
-    void set_forward_delg(Forward_delg fwd) override { forward_packet_ = fwd; }
+    void set_forward_delg(Forward_delg fwd) override {
+      ip4_.set_packet_forwarding(fwd);
+    }
 
     /**
      * Assign a delegate that checks if we have a route to a given IP
      */
     void set_route_checker(Route_checker delg) override
-    { arp_.set_route_checker(delg); }
+    { arp_.set_proxy_policy(delg); }
 
     /**
      * Get the forwarding delegate used by this stack.
      */
     Forward_delg forward_delg() override
-    { return forward_packet_; }
+    { return ip4_.forward_delg(); }
 
 
     Packet_ptr create_packet() override {
@@ -270,7 +275,7 @@ namespace net {
     ICMPv4 icmp_;
     UDP    udp_;
     TCP    tcp_;
-    Forward_delg forward_packet_;
+
     // we need this to store the cache per-stack
     DNSClient dns;
 

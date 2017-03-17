@@ -33,8 +33,8 @@ namespace net
       uint16_t length)
   {
     p->init(this->l_port, port);
-    p->set_src(srcIP);
-    p->set_dst(destIP);
+    p->set_ip_src(srcIP);
+    p->set_ip_dst(destIP);
     p->set_data_length(length);
 
     assert(p->data_length() == length);
@@ -42,7 +42,7 @@ namespace net
 
   void UDPSocket::internal_read(UDP::Packet_ptr udp)
   {
-    on_read_handler(udp->src(), udp->src_port(), (const char*) udp->data(), udp->data_length());
+    on_read_handler(udp->ip_src(), udp->src_port(), (const char*) udp->data(), udp->data_length());
   }
 
   void UDPSocket::error_read(Error_type type, Error_code code,

@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -143,8 +143,8 @@ namespace net {
     icmp4::Packet req(inet_.ip_packet_factory());
 
     // Populate request IP header
-    req.ip().set_src(inet_.ip_addr());
-    req.ip().set_dst(dest_ip);
+    req.ip().set_ip_src(inet_.ip_addr());
+    req.ip().set_ip_dst(dest_ip);
 
     uint16_t temp_id = request_id_;
     // Populate request ICMP header
@@ -178,8 +178,8 @@ namespace net {
     icmp4::Packet res(inet_.ip_packet_factory());
 
     // Populate response IP header
-    res.ip().set_src(inet_.ip_addr());
-    res.ip().set_dst(req.ip().src());
+    res.ip().set_ip_src(inet_.ip_addr());
+    res.ip().set_ip_dst(req.ip().ip_src());
 
     // Populate response ICMP header
     res.set_type(type);
@@ -207,8 +207,8 @@ namespace net {
     icmp4::Packet res(inet_.ip_packet_factory());
 
     // Populate response IP header
-    res.ip().set_src(inet_.ip_addr());
-    res.ip().set_dst(req.ip().src());
+    res.ip().set_ip_src(inet_.ip_addr());
+    res.ip().set_ip_dst(req.ip().ip_src());
 
     // Populate response ICMP header
     res.set_type(type);
