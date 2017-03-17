@@ -30,7 +30,7 @@ void Service::start(const std::string&)
          { 10,0,0,45 },     // IP
          { 255,255,255,0 }, // Netmask
          { 10,0,0,1 },      // Gateway
-         { 10,0,0,1 });     // DNS
+         { 8,8,8,8 });      // DNS
 
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 

@@ -27,14 +27,14 @@ Inet4::Inet4(hw::Nic& nic)
     gateway_(IP4::ADDR_ANY),
     dns_server(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ip4_(*this),
-    icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
+    icmp_(*this), udp_(*this), tcp_(*this), dns_(*this),
     MTU_(nic.MTU())
 {
   static_assert(sizeof(IP4::addr) == 4, "IPv4 addresses must be 32-bits");
 
   /** SMP related **/
   this->cpu_id = SMP::cpu_id();
-  INFO("Inet4", "Bringing up %s on CPU %d", 
+  INFO("Inet4", "Bringing up %s on CPU %d",
         ifname().c_str(), this->get_cpu_id());
 
   /** Upstream delegates */

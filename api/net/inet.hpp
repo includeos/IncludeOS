@@ -55,13 +55,16 @@ namespace net {
     ///
 
     /** Get IP address of this interface **/
-    virtual typename IPV::addr ip_addr() = 0;
+    virtual typename IPV::addr ip_addr()  = 0;
 
     /** Get netmask of this interface **/
-    virtual typename IPV::addr netmask() = 0;
+    virtual typename IPV::addr netmask()  = 0;
 
     /** Get default gateway for this interface **/
     virtual typename IPV::addr gateway()  = 0;
+
+    /** Get default dns for this interface **/
+    virtual typename IPV::addr dns()      = 0;
 
    /** Set default gateway for this interface */
     virtual void set_gateway(typename IPV::addr server) = 0;

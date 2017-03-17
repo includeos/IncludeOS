@@ -53,6 +53,9 @@ namespace net {
     IP4::addr gateway() override
     { return gateway_; }
 
+    IP4::addr dns() override
+    { return dns_server; }
+
     IP4& ip_obj() override
     { return ip4_; }
 
@@ -149,7 +152,7 @@ namespace net {
     void resolve(const std::string& hostname,
                  resolve_func<IP4>  func) override
     {
-      dns.resolve(this->dns_server, hostname, func);
+      dns_.resolve(this->dns_server, hostname, func);
     }
 
     void set_gateway(IP4::addr gateway) override
@@ -277,7 +280,7 @@ namespace net {
     TCP    tcp_;
 
     // we need this to store the cache per-stack
-    DNSClient dns;
+    DNSClient dns_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
 

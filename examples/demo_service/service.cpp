@@ -30,7 +30,7 @@ std::string HTML_RESPONSE()
 {
   const int color = rand();
 
-  // Generate some HTML                                                                                                                                                                                                      
+  // Generate some HTML
   std::stringstream stream;
   stream << "<!DOCTYPE html><html><head>"
          << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300'"
@@ -84,10 +84,10 @@ void Service::start(const std::string&)
   auto& inet = net::Inet4::ifconfig(10.0);
   // static IP in case DHCP fails
   net::Inet4::ifconfig(
-    { 10,0,0,42 },     // IP
-    { 255,255,255,0 }, // Netmask
-    { 10,0,0,1 },      // Gateway
-    { 10,0,0,1 });     // DNS
+    { 10,0,0,42 },      // IP
+    { 255,255,255,0 },  // Netmask
+    { 10,0,0,1 },       // Gateway
+    { 8,8,8,8 });       // DNS
 
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,
