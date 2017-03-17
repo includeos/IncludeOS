@@ -921,7 +921,6 @@ std::string Connection::TCB::to_string() const {
 }
 
 void Connection::parse_options(const Packet& packet) {
-  assert(packet.has_tcp_options());
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
         packet.offset(), packet.tcp_options_length());
 
