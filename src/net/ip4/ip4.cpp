@@ -65,7 +65,7 @@ namespace net {
       return;
     }
 
-    switch(packet->ip_protocol()){
+    switch (packet->ip_protocol()) {
     case Protocol::ICMPv4:
       debug2("\t Type: ICMP\n");
       icmp_handler_(std::move(packet));
@@ -80,8 +80,15 @@ namespace net {
       break;
     default:
       debug("\t Type: UNKNOWN %hhu\n", packet->ip_protocol());
-      // Sending ICMP message of type Destination Unreachable and code PROTOCOL
-      stack_.icmp().destination_unreachable(std::move(packet), icmp4::code::Dest_unreachable::PROTOCOL);
+
+      // Sending ICMP error message of type Destination Unreachable and code PROTOCOL
+      // But only if the destination IP address is not broadcast or multicast
+      if (packet->ip_dst() != IP4::ADDR_BCAST and (packet->ip_dst().part(3) <= 224 or
+        packet->ip_dst().part(3) >= 239))
+      {
+        stack_.icmp().destination_unreachable(std::move(packet), icmp4::code::Dest_unreachable::PROTOCOL);
+      }
+
       break;
     }
   }

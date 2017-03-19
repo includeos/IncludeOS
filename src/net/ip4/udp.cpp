@@ -52,9 +52,14 @@ namespace net {
     debug("<%s> UDP: nobody listening on %u. Drop!\n",
             stack_.ifname().c_str(), udp_packet->dst_port());
 
-    // Sending ICMP message of type Destination Unreachable and code PORT
+    // Sending ICMP error message of type Destination Unreachable and code PORT
+    // But only if the destination IP address is not broadcast or multicast
     auto ip4_packet = static_unique_ptr_cast<PacketIP4>(std::move(udp_packet));
-    stack_.icmp().destination_unreachable(std::move(ip4_packet), icmp4::code::Dest_unreachable::PORT);
+    if (ip4_packet->ip_dst() != IP4::ADDR_BCAST and (ip4_packet->ip_dst().part(3) <= 224 or
+      ip4_packet->ip_dst().part(3) >= 239))
+    {
+      stack_.icmp().destination_unreachable(std::move(ip4_packet), icmp4::code::Dest_unreachable::PORT);
+    }
   }
 
   void UDP::error_report(Error_type type, Error_code code,
