@@ -23,7 +23,7 @@ namespace net {
   // ---------------------------- ICMP_packet ----------------------------
 
   std::string ICMP_packet::to_string() {
-    if (not is_reply())
+    if (type_ == icmp4::Type::NO_REPLY)
       return "No reply received";
 
     return "Identifier: " + std::to_string(id_) + "\n" +

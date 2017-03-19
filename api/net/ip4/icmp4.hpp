@@ -30,7 +30,6 @@ namespace net {
   struct ICMP_packet {
     using Span = gsl::span<uint8_t>;
 
-    bool          is_reply_{false};
     uint16_t      id_{0};
     uint16_t      seq_{0};
     IP4::addr     src_{0,0,0,0};
@@ -41,16 +40,13 @@ namespace net {
     Span          payload_{nullptr, 0};
 
   public:
-    ICMP_packet(uint16_t id, uint16_t seq)
-    : id_{id}, seq_{seq}
-    {}
+    ICMP_packet() {}
 
-    ICMP_packet(uint16_t id, uint16_t seq, IP4::addr src, IP4::addr dst, icmp4::Type type, uint8_t code, uint16_t checksum, const Span& payload)
-    : is_reply_{true}, id_{id}, seq_{seq}, src_{src}, dst_{dst}, type_{type}, code_{code}, checksum_{checksum}, payload_{payload}
+    ICMP_packet(uint16_t id, uint16_t seq, IP4::addr src, IP4::addr dst, icmp4::Type type, uint8_t code,
+      uint16_t checksum, const Span& payload)
+    : id_{id}, seq_{seq}, src_{src}, dst_{dst}, type_{type}, code_{code},
+      checksum_{checksum}, payload_{payload}
     {}
-
-    bool is_reply() const noexcept
-    { return is_reply_; }
 
     uint16_t id() const noexcept
     { return id_; }
@@ -75,6 +71,9 @@ namespace net {
 
     Span payload() const noexcept
     { return payload_; }
+
+    operator bool() const noexcept
+    { return type_ != icmp4::Type::NO_REPLY; }
 
     std::string to_string();
   }; // < struct ICMP_packet
@@ -184,7 +183,7 @@ namespace net {
 
       if (it != ping_callbacks_.end()) {
         // Data back to user if no response found
-        it->second.callback(ICMP_packet{key.first, key.second});
+        it->second.callback(ICMP_packet{});
         Timers::stop(it->second.timer_id);
         ping_callbacks_.erase(it);
       }

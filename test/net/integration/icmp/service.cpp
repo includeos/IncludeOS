@@ -30,10 +30,10 @@ void Service::start(const std::string&)
 
   // ping gateway
   inet.icmp().ping(inet.gateway(), [](ICMP_packet pckt) {
-    if (pckt.is_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+    if (pckt)
       printf("Received packet from gateway\n%s\n", pckt.to_string().c_str());
     else
-      printf("No reply received from gateway. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
+      printf("No reply received from gateway\n");
   });
 
   /* If IP forwarding on:
@@ -49,18 +49,18 @@ void Service::start(const std::string&)
   // No reply-pings
   // Waiting 30 seconds for reply
   inet.icmp().ping(IP4::addr{10,0,0,42}, [](ICMP_packet pckt) {
-    if (pckt.is_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+    if (pckt)
       printf("Received packet from 10.0.0.42\n%s\n", pckt.to_string().c_str());
     else
-      printf("No reply received from 10.0.0.42. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
+      printf("No reply received from 10.0.0.42\n");
   });
 
   // Waiting 30 seconds for reply
   inet.icmp().ping(IP4::addr{10,0,0,43}, [](ICMP_packet pckt) {
-    if (pckt.is_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
+    if (pckt)
       printf("Received packet from 10.0.0.43\n%s\n", pckt.to_string().c_str());
     else
-      printf("No reply received from 10.0.0.43. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
+      printf("No reply received from 10.0.0.43\n");
   });
 
   // Also possible without callback:
