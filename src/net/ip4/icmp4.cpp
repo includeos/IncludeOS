@@ -82,8 +82,12 @@ namespace net {
   }
 
   void ICMPv4::forward_to_transport_layer(icmp4::Packet& req) {
+    int payload_idx = req.payload_index();
+    auto packet_ptr = req.release();
+    packet_ptr->increment_layer_begin(payload_idx);
+
     // inet forwards to transport layer (UDP or TCP)
-    inet_.error_report(req.type(), req.code(), req.payload());
+    inet_.error_report(req.type(), req.code(), std::move(packet_ptr));
   }
 
   void ICMPv4::destination_unreachable(Packet_ptr pckt, icmp4::code::Dest_unreachable code) {
@@ -91,11 +95,11 @@ namespace net {
       return;
     auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
     auto pckt_icmp4 = icmp4::Packet(std::move(pckt_ip4));
-    send_response(pckt_icmp4, icmp4::Type::DEST_UNREACHABLE, (uint8_t) code, pckt_icmp4.header_and_data());
+    send_response(pckt_icmp4, icmp4::Type::DEST_UNREACHABLE, (uint8_t) code);
   }
 
   void ICMPv4::redirect(icmp4::Packet& /* req */, icmp4::code::Redirect /* code */) {
-    // send_response(req, icmp4::Type::REDIRECT, (uint8_t) code, icmp4::Packet::Span(, ));
+    // send_response(req, icmp4::Type::REDIRECT, (uint8_t) code, ...);
   }
 
   void ICMPv4::time_exceeded(Packet_ptr pckt, icmp4::code::Time_exceeded code) {
@@ -103,7 +107,7 @@ namespace net {
       return;
     auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
     auto pckt_icmp4 = icmp4::Packet(std::move(pckt_ip4));
-    send_response(pckt_icmp4, icmp4::Type::TIME_EXCEEDED, (uint8_t) code, pckt_icmp4.header_and_data());
+    send_response(pckt_icmp4, icmp4::Type::TIME_EXCEEDED, (uint8_t) code);
   }
 
   void ICMPv4::parameter_problem(Packet_ptr pckt, uint8_t error) {
@@ -111,32 +115,26 @@ namespace net {
       return;
     auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
     auto pckt_icmp4 = icmp4::Packet(std::move(pckt_ip4));
-    send_response(pckt_icmp4, icmp4::Type::PARAMETER_PROBLEM, 0, pckt_icmp4.header_and_data(), error);
+    send_response(pckt_icmp4, icmp4::Type::PARAMETER_PROBLEM, 0, error);
   }
 
   void ICMPv4::timestamp_request(IP4::addr /* ip */) {
     // TODO
-    // send_request(ip, icmp4::Type::TIMESTAMP, 0, icmp4::Packet::Span(, ));
+    // send_request(ip, icmp4::Type::TIMESTAMP, 0, ...);
   }
 
   void ICMPv4::timestamp_reply(icmp4::Packet& /* req */) {
     // TODO
-    // send_response(req, icmp4::Type::TIMESTAMP_REPLY, 0, icmp4::Packet::Span(, ));
+    // send_response(req, icmp4::Type::TIMESTAMP_REPLY, 0, ...);
   }
 
-  void ICMPv4::ping(IP4::addr ip) {
-    send_request(ip, icmp4::Type::ECHO, 0, icmp4::Packet::Span(includeos_payload_, 48));
-  }
+  void ICMPv4::ping(IP4::addr ip)
+  { send_request(ip, icmp4::Type::ECHO, 0); }
 
-  void ICMPv4::ping(IP4::addr ip, icmp_func callback) {
-    send_request(ip, icmp4::Type::ECHO, 0, icmp4::Packet::Span(includeos_payload_, 48), callback);
-  }
+  void ICMPv4::ping(IP4::addr ip, icmp_func callback)
+  { send_request(ip, icmp4::Type::ECHO, 0, callback); }
 
-  void ICMPv4::ping_reply(icmp4::Packet& req) {
-    send_response_with_id(req, icmp4::Type::ECHO_REPLY, 0, req.payload());
-  }
-
-  void ICMPv4::send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload,
+  void ICMPv4::send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code,
     icmp_func callback, uint16_t sequence) {
 
     // Provision new IP4-packet
@@ -162,7 +160,8 @@ namespace net {
     debug("<ICMP> Transmitting request to %s\n", dest_ip.to_string().c_str());
 
     // Payload
-    req.set_payload(payload);
+    // Default: includeos_payload_
+    req.set_payload(icmp4::Packet::Span(includeos_payload_, 48));
 
     // Add checksum
     req.set_checksum();
@@ -173,7 +172,7 @@ namespace net {
     network_layer_out_(req.release());
   }
 
-  void ICMPv4::send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload, uint8_t error) {
+  void ICMPv4::send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, uint8_t error) {
     // Provision new IP4-packet
     icmp4::Packet res(inet_.ip_packet_factory());
 
@@ -188,12 +187,13 @@ namespace net {
     debug("<ICMP> Transmitting answer to %s\n", res.ip().dst().str().c_str());
 
     // Payload
-    res.set_payload(payload);
+    // Default: Header and 64 bits (8 bytes) of original payload
+    res.set_payload(req.header_and_data());
 
     // Add checksum
     res.set_checksum();
 
-    if (error != 255)
+    if (error != std::numeric_limits<uint8_t>::max())
       res.set_pointer(error);
 
     debug("<ICMP> Response size: %i payload size: %i, checksum: 0x%x\n",
@@ -202,7 +202,7 @@ namespace net {
     network_layer_out_(res.release());
   }
 
-  void ICMPv4::send_response_with_id(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload) {
+  void ICMPv4::ping_reply(icmp4::Packet& req) {
     // Provision new IP4-packet
     icmp4::Packet res(inet_.ip_packet_factory());
 
@@ -211,8 +211,8 @@ namespace net {
     res.ip().set_ip_dst(req.ip().ip_src());
 
     // Populate response ICMP header
-    res.set_type(type);
-    res.set_code(code);
+    res.set_type(icmp4::Type::ECHO_REPLY);
+    res.set_code(0);
     // Incl. id and sequence number
     res.set_id(req.id());
     res.set_sequence(req.sequence());
@@ -220,7 +220,7 @@ namespace net {
     debug("<ICMP> Transmitting answer to %s\n", res.ip().dst().str().c_str());
 
     // Payload
-    res.set_payload(payload);
+    res.set_payload(req.payload());
 
     // Add checksum
     res.set_checksum();

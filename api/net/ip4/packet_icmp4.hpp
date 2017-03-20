@@ -61,6 +61,9 @@ namespace icmp4 {
     uint16_t sequence() const noexcept
     { return header().sequence; }
 
+    int payload_index()
+    { return pckt_->data_end() - &(header().payload[0]); }
+
     Span payload()
     { return {&(header().payload[0]), pckt_->data_end() - &(header().payload[0]) }; }
 

@@ -189,19 +189,17 @@ namespace net {
       }
     }
 
+    void send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code,
+      icmp_func callback = nullptr, uint16_t sequence = 0);
+
+    /** Send response without id and sequence number */
+    void send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, uint8_t error = std::numeric_limits<uint8_t>::max());
+
     /**
      *  Responding to a ping (echo) request
      *  Called from receive-method
      */
     void ping_reply(icmp4::Packet&);
-
-    void send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload,
-      icmp_func callback = nullptr, uint16_t sequence = 0);
-
-    /** Send response without id and sequence number */
-    void send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload, uint8_t error = 255);
-    /** Send response with id and sequence number */
-    void send_response_with_id(icmp4::Packet& req, icmp4::Type type, uint8_t code, icmp4::Packet::Span payload);
 
   }; //< class ICMPv4
 

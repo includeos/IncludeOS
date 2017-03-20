@@ -84,22 +84,7 @@ namespace net {
      *  Error report in accordance with RFC 1122
      *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
     */
-    void error_report(Error_type type, Error_code code, Span icmp_payload) override {
-      // Payload contains info about the sent packet that failed to be delivered
-      IP4::header* header = (IP4::header*) icmp_payload.data();
-
-      if ((Protocol) header->protocol == Protocol::UDP) {
-        UDP::header* udp_header = (UDP::header*) (icmp_payload.data() + sizeof(IP4::header));
-        auto src_port = htons(udp_header->sport);
-        auto dest_port = htons(udp_header->dport);
-        udp_.error_report(type, code, header->saddr, src_port, header->daddr, dest_port);
-      } else if ((Protocol) header->protocol == Protocol::TCP) {
-        tcp::Header* tcp_header = (tcp::Header*) (icmp_payload.data() + sizeof(IP4::header));
-        auto src_port = htons(tcp_header->source_port);
-        auto dest_port = htons(tcp_header->destination_port);
-        tcp_.error_report(type, code, header->saddr, src_port, header->daddr, dest_port);
-      }
-    }
+    void error_report(Error_type type, Error_code code, Packet_ptr orig_pckt) override;
 
     /**
      * Set the forwarding delegate used by this stack.
