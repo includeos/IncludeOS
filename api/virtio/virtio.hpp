@@ -189,7 +189,6 @@ public:
     /** Virtque size calculation. Virtio std. §2.4.2 */
     static inline unsigned virtq_size(unsigned int qsz);
 
-
     /**
        Update the available index */
     inline void update_avail_idx ()

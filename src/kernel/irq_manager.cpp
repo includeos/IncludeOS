@@ -59,7 +59,6 @@ extern "C" {
   extern void unused_interrupt_handler();
   extern void modern_interrupt_handler();
   extern void spurious_intr();
-  extern void (*current_eoi_mechanism)();
 }
 
 // Only certain exceptions have error codes
