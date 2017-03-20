@@ -20,6 +20,7 @@
 #define POSIX_UCONTEXT_H
 
 #include <os>
+#include <signal.h>
 
 struct mcontext_t {
   size_t edi;

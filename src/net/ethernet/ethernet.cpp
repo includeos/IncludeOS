@@ -114,17 +114,17 @@ namespace net {
       break;
 
     case Ethertype::WOL:
-      dropped = true;
+      packets_dropped_++;
       debug2("Wake-on-LAN packet\n");
       break;
 
     case Ethertype::VLAN:
-      dropped = true;
+      packets_dropped_++;
       debug("VLAN tagged frame (not yet supported)");
       break;
 
     default:
-      dropped = true;
+      packets_dropped_++;
       uint16_t length_field = net::ntohs(static_cast<uint16_t>(eth->type()));
       // This might be 802.3 LLC traffic
       if (length_field > 1500) {
@@ -135,8 +135,6 @@ namespace net {
       break;
     }
 
-    if(dropped)
-      packets_dropped_++;
   }
 
 } // namespace net

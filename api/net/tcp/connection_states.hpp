@@ -121,6 +121,10 @@ public:
   inline virtual std::string to_string() const override {
     return "SYN-SENT";
   };
+
+  virtual bool is_writable() const override
+  { return true; }
+
 private:
   inline SynSent() {};
 };
