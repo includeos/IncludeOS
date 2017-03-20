@@ -31,11 +31,25 @@
 extern "C" {
   // current selected EOI method
   void (*current_eoi_mechanism)();
+  void (*current_intr_handler)();
   // KVM para PV-EOI feature
   void kvm_pv_eoi();
   // shortcut that avoids virtual call
   void x2apic_send_eoi() {
     x86::CPU::write_msr(x86::x2apic::BASE_MSR + x2APIC_EOI, 0);
+  }
+  // the various interrupt handler flavors
+  void xapic_intr_handler()
+  {
+    uint8_t vector = x86::APIC::get_isr();
+    IRQ_manager::get().register_irq(vector - IRQ_BASE);
+    lapic_send_eoi();
+  }
+  void x2apic_intr_handler()
+  {
+    uint8_t vector = x86::x2apic::static_get_isr();
+    IRQ_manager::get().register_irq(vector - IRQ_BASE);
+    x2apic_send_eoi();
   }
 }
 
@@ -57,12 +71,14 @@ namespace x86
     if (CPUID::has_feature(CPUID::Feature::X2APIC)) {
         current_apic = &x2apic::get();
         current_eoi_mechanism = x2apic_send_eoi;
+        current_intr_handler  = x2apic_intr_handler;
     } else {
         // an x86 PC without APIC is insane
         assert(CPUID::has_feature(CPUID::Feature::APIC) 
             && "If this fails, the machine is insane");
         current_apic = &xapic::get();
         current_eoi_mechanism = lapic_send_eoi;
+        current_intr_handler  = xapic_intr_handler;
     }
 
     // enable xAPIC/x2APIC on this cpu

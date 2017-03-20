@@ -19,7 +19,6 @@
 //#define DEBUG2
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
-#include "../arch/x86/apic.hpp"
 #include <cassert>
 #include <statman>
 #include <kprint>
@@ -59,11 +58,6 @@ extern "C" {
   extern void* get_cpu_esp();
   extern void unused_interrupt_handler();
   extern void modern_interrupt_handler();
-  void register_modern_interrupt()
-  {
-    uint8_t vector = x86::APIC::get_isr();
-    IRQ_manager::get().register_irq(vector - IRQ_BASE);
-  }
   extern void spurious_intr();
   extern void (*current_eoi_mechanism)();
 }
@@ -264,6 +258,7 @@ void IRQ_manager::process_interrupts()
       // sub and call handler
 #ifdef DEBUG_SMP
       SMP::global_lock();
+      if (intr != 0)
       printf("[%p] Calling handler for intr=%u irq=%u cpu %d\n",
              get_cpu_esp(), IRQ_BASE + intr, intr, SMP::cpu_id());
       SMP::global_unlock();

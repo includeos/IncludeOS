@@ -63,12 +63,6 @@ void __arch_init()
   // Initialize the Interval Timer
   PIT::init();
 
-  // Initialize PCI devices
-  PCI_manager::init();
-
-  // Print registered devices
-  hw::Devices::print_devices();
-
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
@@ -85,6 +79,12 @@ void __arch_init()
   // initialize BSP APIC timer
   // call Service::ready when calibrated
   APIC_Timer::calibrate();
+
+  // Initialize PCI devices
+  PCI_manager::init();
+
+  // Print registered devices
+  hw::Devices::print_devices();
 }
 
 void __arch_enable_legacy_irq(uint8_t irq)
