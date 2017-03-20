@@ -114,7 +114,7 @@ public:
 
   /** Virtio Queue class. */
   class Queue {
-  private:
+  public:
     /** @note Using typedefs in order to keep the standard notation. */
     using le64 =  uint64_t;
     using le32 = uint32_t;
@@ -189,28 +189,7 @@ public:
     /** Virtque size calculation. Virtio std. §2.4.2 */
     static inline unsigned virtq_size(unsigned int qsz);
 
-    // The size as read from the PCI device
-    uint16_t _size;
 
-    // Actual size in bytes - virtq_size(size)
-    uint32_t _size_bytes;
-
-    // The actual queue struct
-    virtq _queue;
-
-    uint16_t _iobase = 0; // Device PCI location
-    uint16_t _free_head = 0; // First available descriptor (_queue.desc[_free_head])
-    uint16_t _num_added = 0; // Entries to be added to _queue.avail->idx
-    uint16_t _desc_in_flight = 0; // Entries in _queue_desc currently in use
-    uint16_t _last_used_idx = 0; // Last known value of _queue.used->idx
-    uint16_t _pci_index = 0; // Queue nr.
-
-    delegate<void(net::Packet_ptr p)> on_exit_to_physical_ {};
-
-    /** Initialize the queue buffer */
-    void init_queue(int size, void* buf);
-
-  public:
     /**
        Update the available index */
     inline void update_avail_idx ()
@@ -232,7 +211,8 @@ public:
 
     /** Constructor. @param size shuld be fetched from PCI device. */
     Queue() {}
-    Queue(uint16_t size, uint16_t q_index, uint16_t iobase);
+    Queue(const std::string& name,
+          uint16_t size, uint16_t q_index, uint16_t iobase);
 
     /** Get the queue descriptor. To be written to the Virtio device. */
     virtq_desc* queue_desc() const { return _queue.desc; }
@@ -298,7 +278,26 @@ public:
     inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
     { on_exit_to_physical_ = dlg; };
 
+  private:
+    /** Initialize the queue buffer */
+    void init_queue(int size, char* buf);
 
+    std::string qname;
+
+    // The size as read from the PCI device
+    uint16_t _size;
+
+    // The actual queue struct
+    virtq _queue;
+
+    uint16_t _iobase = 0; // Device PCI location
+    uint16_t _free_head = 0; // First available descriptor (_queue.desc[_free_head])
+    uint16_t _num_added = 0; // Entries to be added to _queue.avail->idx
+    uint16_t _desc_in_flight = 0; // Entries in _queue_desc currently in use
+    uint16_t _last_used_idx = 0; // Last known value of _queue.used->idx
+    uint16_t _pci_index = 0; // Queue nr.
+
+    delegate<void(net::Packet_ptr p)> on_exit_to_physical_ {};
   };
 
 
@@ -332,7 +331,7 @@ public:
   uint32_t queue_size(uint16_t index);
 
   /** Assign a queue descriptor to a PCI queue index */
-  bool assign_queue(uint16_t index, uint32_t queue_desc);
+  bool assign_queue(uint16_t index, const void* queue_desc);
 
   /** Tell Virtio device if we're OK or not. Virtio Std. § 3.1.1,step 8*/
   void setup_complete(bool ok);

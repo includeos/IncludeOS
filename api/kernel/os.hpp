@@ -137,11 +137,11 @@ public:
   static constexpr uint32_t page_size() noexcept {
     return 4096;
   }
-  static constexpr uint32_t page_nr_from_addr(uint32_t x) noexcept {
-    return x >> PAGE_SHIFT;
+  static constexpr uint32_t addr_to_page(uintptr_t addr) noexcept {
+    return addr >> PAGE_SHIFT;
   }
-  static constexpr uint32_t base_from_page_nr(uint32_t x) noexcept {
-    return x << PAGE_SHIFT;
+  static constexpr uintptr_t page_to_addr(uint32_t page) noexcept {
+    return page << PAGE_SHIFT;
   }
 
   /** Total used dynamic memory, in bytes */
