@@ -30,15 +30,16 @@ std::string HTML_RESPONSE()
 {
   const int color = rand();
 
-  // Generate some HTML                                                                                                                                                                                                      
+  // Generate some HTML
   std::stringstream stream;
   stream << "<!DOCTYPE html><html><head>"
          << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300'"
-         << "rel='stylesheet' type='text/css'> </head><body>"
+         << " rel='stylesheet' type='text/css'>"
+         << "<title>IncludeOS Demo Service</title></head><body>"
          << "<h1 style='color: #" << std::hex << ((color >> 8) | 0x020202)
          << "; font-family: \"Arial\", sans-serif'>"
          << "Include<span style='font-weight: lighter'>OS</span></h1>"
-         <<  "<h2>The C++ Unikernel</h2>"
+         << "<h2>The C++ Unikernel</h2>"
          << "<p>You have successfully booted an IncludeOS TCP service with simple http. "
          << "For a more sophisticated example, take a look at "
          << "<a href='https://github.com/hioa-cs/IncludeOS/tree/master/examples/acorn'>Acorn</a>.</p>"
@@ -81,14 +82,16 @@ http::Response handle_request(const http::Request& req)
 void Service::start(const std::string&)
 {
   // DHCP on interface 0
-  auto& inet = net::Inet4::ifconfig(10.0);
-  // static IP in case DHCP fails
-  net::Inet4::ifconfig(
-    { 10,0,0,42 },     // IP
-    { 255,255,255,0 }, // Netmask
-    { 10,0,0,1 },      // Gateway
-    { 10,0,0,1 });     // DNS
-
+  auto& inet = net::Inet4::ifconfig(5.0, [](bool timeout) {
+    if (timeout) {
+      // static IP in case DHCP fails
+      net::Inet4::stack().network_config(
+        { 10,0,0,42 },     // IP
+        { 255,255,255,0 }, // Netmask
+        { 10,0,0,1 },      // Gateway
+        { 10,0,0,1 });     // DNS
+    }
+  });
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,
   [&inet] (uint32_t) {
