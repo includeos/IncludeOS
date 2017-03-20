@@ -39,6 +39,7 @@ Field If_None_Match       {"If-None-Match"};
 Field If_Range            {"If-Range"};
 Field If_Unmodified_Since {"If-Unmodified-Since"};
 Field Max_Forwards        {"Max-Forwards"};
+Field Origin              {"Origin"};
 Field Proxy_Authorization {"Proxy-Authorization"};
 Field Range               {"Range"};
 Field Referer             {"Referer"};
