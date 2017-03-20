@@ -42,6 +42,7 @@ extern Field If_None_Match;
 extern Field If_Range;
 extern Field If_Unmodified_Since;
 extern Field Max_Forwards;
+extern Field Origin;
 extern Field Proxy_Authorization;
 extern Field Range;
 extern Field Referer;
