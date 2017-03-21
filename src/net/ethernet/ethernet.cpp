@@ -22,6 +22,7 @@
 #include <net/util.hpp>
 #include <net/ethernet/ethernet.hpp>
 #include <statman>
+#include <utility>
 
 #ifdef ntohs
 #undef ntohs
@@ -41,7 +42,7 @@ namespace net {
     ip4_upstream_{ignore},
     ip6_upstream_{ignore},
     arp_upstream_{ignore},
-    physical_downstream_(physical_downstream)
+    physical_downstream_(std::move(physical_downstream))
 {
 }
 

@@ -20,6 +20,7 @@
 #include <net/ip4/udp.hpp>
 #include <net/util.hpp>
 #include <memory>
+#include <utility>
 
 namespace net {
 
@@ -151,7 +152,7 @@ namespace net {
 
   UDP::WriteBuffer::WriteBuffer(const uint8_t* data, size_t length, sendto_handler cb,
                                 UDP& stack, addr_t LA, port_t LP, addr_t DA, port_t DP)
-    : len(length), offset(0), callback(cb), udp(stack),
+    : len(length), offset(0), callback(std::move(cb)), udp(stack),
       l_addr(LA), l_port(LP), d_port(DP), d_addr(DA)
   {
     // create a copy of the data,
