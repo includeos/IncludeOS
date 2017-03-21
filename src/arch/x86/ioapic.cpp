@@ -34,15 +34,20 @@ namespace x86
 {
   struct ioapic
   {
-    uint32_t read(uint8_t reg) const noexcept {
-      auto volatile* addr = (uint32_t volatile*) this->base;
-      addr[0] = reg;
-      return addr[4];
+    struct io_regs {
+      volatile uint32_t reg;
+      uint32_t   pad1[3];
+      volatile uint32_t val;
+      uint32_t   pad2[3];
+    };
+    
+    uint32_t read(uint8_t reg) noexcept {
+      base->reg = reg;
+      return base->val;
     }
-    void write(uint8_t reg, uint32_t value) {
-      auto volatile* addr = (uint32_t volatile*) this->base;
-      addr[0] = reg;
-      addr[4] = value;
+    void write(uint8_t reg, uint32_t value) noexcept {
+      base->reg = reg;
+      base->val = value;
     }
     void set_entry(uint8_t index, uint32_t lo, uint32_t hi)
     {
@@ -50,7 +55,7 @@ namespace x86
       write(IOAPIC_INTR + index * 2 + 1, hi);
       write(IOAPIC_INTR + index * 2,     lo);
     }
-    void set_id(uint32_t id)
+    void set_id(uint32_t id) noexcept
     {
       write(IOAPIC_ID, id << 24);
     }
@@ -60,27 +65,25 @@ namespace x86
       return entries_;
     }
     
-    void init(uintptr_t base)
+    void init(uintptr_t base_addr)
     {
-      this->base = base;
+      INFO("IOAPIC", "Initializing");
+      this->base = (decltype(base)) base_addr;
       // required: set IOAPIC ID
       set_id(0);
       // number of redirection entries supported
-      entries_ = read(IOAPIC_VER) >> 16;
-      entries_ = 1 + (entries_ & 0xff);
+      auto reg = read(IOAPIC_VER) >> 16;
+      this->entries_ = 1 + (reg & 0xff);
       
-      INFO("IOAPIC", "Initializing");
-      INFO2("Base addr: 0x%x  Redirection entries: %u", base, entries());
+      INFO2("Base addr: %p  Redirection entries: %u", base, entries());
       
       // default: all entries disabled
       for (unsigned i = 0; i < entries(); i++)
         set_entry(i, IOAPIC_IRQ_DISABLE, 0);
-      
-      INFO("IOAPIC", "Done");
     }
     
-    uintptr_t  base;
-    uint32_t   entries_;
+    io_regs* base;
+    uint32_t entries_;
   };
   // there can be more than one IOAPIC
   static ioapic numbawan;
