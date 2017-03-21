@@ -22,7 +22,7 @@
 #include "ip4/arp.hpp"
 #include "ip4/ip4.hpp"
 #include "ip4/udp.hpp"
-#include "ip4/icmpv4.hpp"
+#include "ip4/icmp4.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include <vector>
@@ -53,6 +53,9 @@ namespace net {
     IP4::addr gateway() override
     { return gateway_; }
 
+    IP4::addr dns() override
+    { return dns_server; }
+
     IP4& ip_obj() override
     { return ip4_; }
 
@@ -71,8 +74,17 @@ namespace net {
     /** Get the UDP-object belonging to this stack */
     UDP& udp() override { return udp_; }
 
+    /** Get the ICMP-object belonging to this stack */
+    ICMPv4& icmp() override { return icmp_; }
+
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
+
+    /**
+     *  Error report in accordance with RFC 1122
+     *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
+    */
+    void error_report(Error_type type, Error_code code, Packet_ptr orig_pckt) override;
 
     /**
      * Set the forwarding delegate used by this stack.
@@ -125,7 +137,7 @@ namespace net {
     void resolve(const std::string& hostname,
                  resolve_func<IP4>  func) override
     {
-      dns.resolve(this->dns_server, hostname, func);
+      dns_.resolve(this->dns_server, hostname, func);
     }
 
     void set_gateway(IP4::addr gateway) override
@@ -253,7 +265,7 @@ namespace net {
     TCP    tcp_;
 
     // we need this to store the cache per-stack
-    DNSClient dns;
+    DNSClient dns_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
 

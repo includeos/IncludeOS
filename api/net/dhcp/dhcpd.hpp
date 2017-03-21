@@ -156,7 +156,7 @@ namespace dhcp {
     void clear_offered_ip(IP4::addr ip);
     void clear_offered_ips();
 
-    void print(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
+    void print(const dhcp_packet_t* /* msg */, const dhcp_option_t* opts) {
       debug("Printing:\n");
 
       debug("OP: %u\n", msg->op);

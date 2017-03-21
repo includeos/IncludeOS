@@ -142,7 +142,7 @@ set(OS_SOURCES
   ${SRC}/net/http/version.cpp
   ${SRC}/net/inet_common.cpp
   ${SRC}/net/ip4/arp.cpp
-  ${SRC}/net/ip4/icmpv4.cpp
+  ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
   ${SRC}/net/ip4/udp.cpp
   ${SRC}/net/ip4/udp_socket.cpp

@@ -24,6 +24,7 @@
 #include <net/packet.hpp>
 #include <hw/mac_addr.hpp>
 #include <net/ethernet/ethertype.hpp>
+#include <net/ip4/icmp4_common.hpp>
 
 namespace net {
   // Packet must be forward declared to avoid circular dependency
@@ -116,9 +117,9 @@ namespace net {
    * http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
    */
   enum class Protocol : uint8_t {
-    HOPOPT = 0,
+    HOPOPT  =  0,
     ICMPv4  =  1,
-    IP4v4   =  4,  // IPv4 encapsulation
+    IPv4    =  4,  // IPv4 encapsulation
     TCP     =  6,
     UDP     = 17,
     IPv6    = 41,  // IPv6 encapsulation

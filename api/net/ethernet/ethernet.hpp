@@ -90,6 +90,9 @@ namespace net {
     uint64_t get_packets_dropped()
     { return packets_dropped_; }
 
+    uint32_t get_trailer_packets_dropped()
+    { return trailer_packets_dropped_; }
+
   private:
     const addr& mac_;
 
@@ -97,6 +100,7 @@ namespace net {
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;
     uint32_t& packets_dropped_;
+    uint32_t& trailer_packets_dropped_;
 
     /** Upstream OUTPUT connections */
     upstream ip4_upstream_ = nullptr;

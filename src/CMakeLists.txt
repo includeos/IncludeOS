@@ -45,7 +45,7 @@ set(OS_OBJECTS
   net/ethernet/ethernet.cpp net/inet_common.cpp net/ip4/arp.cpp net/ip4/ip4.cpp
   net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
   net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp
-  net/ip4/icmpv4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
+  net/ip4/icmp4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet4.cpp
   net/super_stack.cpp
