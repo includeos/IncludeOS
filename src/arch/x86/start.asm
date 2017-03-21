@@ -49,6 +49,10 @@ rock_bottom:
 
   ;; enable SSE before we enter C/C++ land
   call enable_sse
+  ;; ... and XSAVE to get xsetbv/xgetbv working
+  call enable_xsave
+  ;; ... and finally, enable AVX
+  call enable_avx
 
   ;;  Place multiboot parameters on stack
   push ebx
@@ -60,11 +64,29 @@ enable_sse:
   push eax        ;preserve eax for multiboot
   mov eax, cr0
   and ax, 0xFFFB  ;clear coprocessor emulation CR0.EM
-  or ax, 0x2      ;set coprocessor monitoring  CR0.MP
+  or  ax, 0x2     ;set coprocessor monitoring  CR0.MP
   mov cr0, eax
   mov eax, cr4
   or ax, 3 << 9   ;set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
   mov cr4, eax
+  pop eax
+  ret
+
+enable_xsave:
+  push eax
+  ; enable XSAVE
+  mov eax, cr4
+  or  eax, 0x40000
+  mov cr4, eax
+  pop eax
+  ret
+
+enable_avx:
+  push eax
+  xor ecx, ecx
+  xgetbv
+  or eax, 0x7
+  xsetbv
   pop eax
   ret
 

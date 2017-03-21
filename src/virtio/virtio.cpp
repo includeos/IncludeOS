@@ -168,15 +168,16 @@ uint8_t Virtio::get_legacy_irq()
   return 0;
 }
 
-uint32_t Virtio::queue_size(uint16_t index){
+uint32_t Virtio::queue_size(uint16_t index) {
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
   return hw::inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
 }
 
 #define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)
-bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
+bool Virtio::assign_queue(uint16_t index, const void* queue_desc)
+{
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::page_nr_from_addr(queue_desc));
+  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::addr_to_page((uintptr_t) queue_desc));
 
   if (_pcidev.has_msix())
   {
@@ -187,14 +188,14 @@ bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
     assert(hw::inpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR) == index);
   }
 
-  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::page_nr_from_addr(queue_desc);
+  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::addr_to_page((uintptr_t) queue_desc);
 }
 
-uint32_t Virtio::probe_features(){
-  return hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
+uint32_t Virtio::probe_features() {
+  return hw::inpd(iobase() + VIRTIO_PCI_HOST_FEATURES);
 }
 
-void Virtio::negotiate_features(uint32_t features){
+void Virtio::negotiate_features(uint32_t features) {
   _features = hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
   //_features &= features; //SanOS just adds features
   _features = features;
@@ -205,7 +206,7 @@ void Virtio::negotiate_features(uint32_t features){
 
 }
 
-void Virtio::setup_complete(bool ok){
+void Virtio::setup_complete(bool ok) {
   uint8_t status = ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
   debug("<VIRTIO> status: %i ",status);
   hw::outp(_iobase + VIRTIO_PCI_STATUS, hw::inp(_iobase + VIRTIO_PCI_STATUS) | status);
