@@ -4,6 +4,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(COVERAGE "Build with coverage generation" OFF)
 option(SILENT_BUILD "Build with some warnings turned off" ON)
+option(EXTRA_TESTS "Build extra test" OFF)
 
 if ("${ARCH}" STREQUAL "")
   set (ARCH "ARCH_X86")
@@ -49,8 +50,6 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/os_test.cpp
-  # not all CPUs have rdrand
-  #${TEST}/kernel/unit/rdrand_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cookie_test.cpp
@@ -88,7 +87,6 @@ set(TEST_SOURCES
   ${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/syslogd_test.cpp
   ${TEST}/util/unit/syslog_facility_test.cpp
-  #${TEST}/util/unit/tar_test.cpp
   ${TEST}/util/unit/uri_test.cpp
 )
 
@@ -176,6 +174,12 @@ set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/mod/uzlib/src/tinflate.c
   ${INCLUDEOS_ROOT}/mod/uzlib/src/tinfgzip.c
 )
+
+if(EXTRA_TESTS)
+  message(STATUS "Adding some extra tests")
+  list(APPEND TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
+  list(APPEND TEST_SOURCES ${TEST}/util/unit/tar_test.cpp)
+endif()
 
 if(COVERAGE)
   message(STATUS "Coverage")
