@@ -20,8 +20,8 @@ if [ ! -d newlib-$newlib_version ]; then
 
 
     # PATCH newlib, to be compatible with clang.
-    echo -e "\n\n >>> Patching newlib, to build with clang \n"
-    patch -p0 < $INCLUDEOS_SRC/etc/newlib_clang.patch
+    # echo -e "\n\n >>> Patching newlib, to build with clang \n"
+    # patch -p0 < $INCLUDEOS_SRC/etc/newlib_clang.patch
 
 else
     echo -e "\n\n >>> SKIP:  Download / extract newlib. Found source folder "newlib-$newlib_version" \n"

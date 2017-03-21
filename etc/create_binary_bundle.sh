@@ -123,3 +123,5 @@ cp -r $include_libcxx $INSTALL_DIR/libcxx/include
 tar -czvf $OUTFILE --directory=$INSTALL_DIR/../ $DIR_NAME
 
 echo ">>> IncludeOS Installation Bundle created as $INSTALL_DIR and gzipped into $OUTFILE"
+
+trap - EXIT
