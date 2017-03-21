@@ -25,55 +25,117 @@
 
 namespace http {
 
+/**
+ * @brief      A secure HTTPS server.
+ */
 class Secure_server : public http::Server
 {
 public:
-  Secure_server(
+  /**
+   * @brief      Construct a HTTPS server with the necessary certificates and keys.
+   *
+   * @param[in]  name         The name
+   * @param      ca_key       The ca key
+   * @param      ca_cert      The ca cert
+   * @param      server_key   The server key
+   * @param      tcp          The tcp
+   * @param[in]  server_args  A list of args for constructing the underlying HTTP server
+   *
+   * @tparam     Server_args  Construct arguments to HTTP Server
+   */
+  template <typename... Server_args>
+  inline Secure_server(
       const std::string& name,
       fs::Dirent& ca_key,
       fs::Dirent& ca_cert,
       fs::Dirent& server_key,
-      TCP& tcp,
-      Request_handler cb);
+      net::TCP&   tcp,
+      Server_args&&... server_args);
 
-  Secure_server(
-      const std::string& name,
-      fs::Dirent& ca_key,
-      fs::Dirent& ca_cert,
-      fs::Dirent& server_key,
-      TCP& tcp);
-
-  Secure_server(
+  /**
+   * @brief      Construct a HTTPS server with a credential manager and rng.
+   *
+   * @param      in_credman   In credman
+   * @param      in_rng       In random number generator
+   * @param      tcp          The tcp
+   * @param[in]  server_args  A list of args for constructing the underlying HTTP server
+   *
+   * @tparam     Server_args  Server_args  Construct arguments to HTTP Server
+   */
+  template <typename... Server_args>
+  inline Secure_server(
       Botan::Credentials_Manager*   in_credman,
       Botan::RandomNumberGenerator& in_rng,
-      TCP& tcp,
-      Request_handler cb)
-    : http::Server(tcp, cb), rng(in_rng), credman(in_credman)
-  {
-    assert(credman != nullptr);
-    on_connect = {this, &Secure_server::secure_connect};
-  }
+      net::TCP& tcp,
+      Server_args&&... server_args);
 
-  void secure_connect(TCP_conn conn)
-  {
-    auto* ptr = new net::tls::Server(conn, rng, *credman);
-
-    ptr->on_connect(
-    [this, ptr] (net::Stream&)
-    {
-      // create and pass TLS socket
-      Server::connect(std::unique_ptr<net::tls::Server>(ptr));
-    });
-    ptr->on_close([ptr] {
-      delete ptr;
-    });
-  }
+  /**
+   * @brief      Loads credentials.
+   *
+   * @param[in]  name        The name
+   * @param      ca_key      The ca key
+   * @param      ca_cert     The ca cert
+   * @param      server_key  The server key
+   */
+  void load_credentials(
+      const std::string& name,
+      fs::Dirent& ca_key,
+      fs::Dirent& ca_cert,
+      fs::Dirent& server_key);
 
 private:
   Botan::RandomNumberGenerator& rng;
   std::unique_ptr<Botan::Credentials_Manager> credman;
-};
 
-} // http
+  /**
+   * @brief      Binds TCP to pass all new connections to this on_connect.
+   *
+   * @param[in]  port  The port
+   */
+  void bind(const uint16_t port) override;
+
+  /**
+   * @brief      Try to upgrade a newly established TCP connection to a TLS connection.
+   *
+   * @param[in]  conn  The TCP connection
+   */
+  void on_connect(TCP_conn conn) override;
+
+  /**
+   * @brief      Gets the random number generator.
+   *
+   * @return     The random number generator.
+   */
+  static Botan::RandomNumberGenerator& get_rng();
+
+}; // < class Secure_server
+
+template <typename... Server_args>
+inline Secure_server::Secure_server(
+    const std::string& name,
+    fs::Dirent& ca_key,
+    fs::Dirent& ca_cert,
+    fs::Dirent& server_key,
+    net::TCP&   tcp,
+    Server_args&&... server_args)
+  : Server{tcp, std::forward<Server>(server_args)...},
+    rng(get_rng())
+{
+  load_credentials(name, ca_key, ca_cert, server_key);
+}
+
+template <typename... Server_args>
+inline Secure_server::Secure_server(
+    Botan::Credentials_Manager*   in_credman,
+    Botan::RandomNumberGenerator& in_rng,
+    net::TCP& tcp,
+    Server_args&&... server_args)
+  : Server{tcp, std::forward(server_args)...},
+    rng(in_rng), credman(in_credman)
+{
+  assert(credman != nullptr);
+}
+
+} // < namespace http
 
 #endif

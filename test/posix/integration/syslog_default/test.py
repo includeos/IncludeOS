@@ -31,7 +31,7 @@ def increment(line):
 
 def check_num_outputs(line):
   assert(num_outputs == 53)
-  vmrunner.vms[0].exit(0, "SUCCESS")
+  vmrunner.vms[0].exit(0, "All tests passed")
 
 # ---------- POSIX wrapper syslog ----------
 
