@@ -23,12 +23,12 @@
 #include "connection.hpp"
 #include "headers.hpp"
 #include "listener.hpp"
-#include "socket.hpp"
 #include "packet.hpp"
 
 #include <map>  // connections, listeners
 #include <queue>  // writeq
 #include <net/inet.hpp>
+#include <net/socket.hpp> // Socket and Quadruple (struct with two Sockets, source and destination)
 
 namespace net {
 
@@ -48,9 +48,6 @@ namespace net {
   private:
     using Listeners       = std::map<tcp::port_t, std::unique_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
-
-    using Error_type      = Inet<IP4>::Error_type;
-    using Error_code      = Inet<IP4>::Error_code;
 
   public:
     /////// TCP Stuff - Relevant to the protocol /////
@@ -91,7 +88,7 @@ namespace net {
      * @param[in]  remote     The remote
      * @param[in]  cb         Connect callback to be invoked when the connection is established.
      */
-    void connect(tcp::Socket remote, ConnectCallback cb);
+    void connect(Socket remote, ConnectCallback cb);
 
     /**
      * @brief      Overload for the one above
@@ -110,7 +107,7 @@ namespace net {
      *
      * @return     A ptr to an unestablished TCP Connection
      */
-    tcp::Connection_ptr connect(tcp::Socket remote);
+    tcp::Connection_ptr connect(Socket remote);
 
     /**
      * @brief      Overload for the one above
@@ -355,8 +352,11 @@ namespace net {
     IPStack& stack() const
     { return inet_; }
 
-    void error_report(Error_type type, Error_code code,
-      tcp::Address src_addr, tcp::port_t src_port, tcp::Address dest_addr, tcp::port_t dest_port);
+    /** Is called when an Error has occurred in the OS */
+    void error_report(const Error&);
+
+    /** Is called when an ICMP error message has been received in response to a sent TCP packet */
+    void error_report(const ICMP_error& err, Quadruple quad);
 
   private:
     IPStack&    inet_;
@@ -469,7 +469,7 @@ namespace net {
      * @return     A ptr to the Connection whos created
      */
     tcp::Connection_ptr create_connection(tcp::port_t local_port,
-                                          tcp::Socket remote,
+                                          Socket remote,
                                           ConnectCallback cb = nullptr);
 
     /**

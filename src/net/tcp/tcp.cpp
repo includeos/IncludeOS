@@ -196,11 +196,16 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-void TCP::error_report(Error_type type, Error_code code,
-  tcp::Address src_addr, tcp::port_t src_port, tcp::Address dest_addr, tcp::port_t dest_port) {
+void TCP::error_report(const Error&) {
+  // TODO
+}
+
+void TCP::error_report(const ICMP_error& err, Quadruple quad) {
+  // TODO
   printf("<TCP::error_report> Error %s : %s occurred when sending data to %s port %u from %s port %u\n",
-    icmp4::get_type_string(type).c_str(), icmp4::get_code_string(type, code).c_str(),
-    dest_addr.to_string().c_str(), dest_port, src_addr.to_string().c_str(), src_port);
+    err.icmp_type_str().c_str(), err.icmp_code_str().c_str(),
+    quad.destination().address().to_string().c_str(), quad.destination().port(),
+    quad.source().address().to_string().c_str(), quad.source().port());
 }
 
 void TCP::transmit(tcp::Packet_ptr packet) {

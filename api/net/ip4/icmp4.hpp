@@ -25,25 +25,18 @@
 namespace net {
 
   /**
-   *  User friendly ICMP packet used in callback (icmp_func)
+   *  User friendly ICMP packet (view) used in ping callback (icmp_func)
    */
-  struct ICMP_packet {
-    using Span = gsl::span<uint8_t>;
+  class ICMP_packet {
 
-    uint16_t      id_{0};
-    uint16_t      seq_{0};
-    IP4::addr     src_{0,0,0,0};
-    IP4::addr     dst_{0,0,0,0};
-    icmp4::Type   type_{icmp4::Type::NO_REPLY};
-    uint8_t       code_{0};
-    uint16_t      checksum_{0};
-    Span          payload_{nullptr, 0};
+    using ICMP_type = ICMP_error::ICMP_type;
+    using ICMP_code = ICMP_error::ICMP_code;
 
   public:
     ICMP_packet() {}
 
-    ICMP_packet(uint16_t id, uint16_t seq, IP4::addr src, IP4::addr dst, icmp4::Type type, uint8_t code,
-      uint16_t checksum, const Span& payload)
+    ICMP_packet(uint16_t id, uint16_t seq, IP4::addr src, IP4::addr dst, ICMP_type type, ICMP_code code,
+      uint16_t checksum, const std::string& payload)
     : id_{id}, seq_{seq}, src_{src}, dst_{dst}, type_{type}, code_{code},
       checksum_{checksum}, payload_{payload}
     {}
@@ -60,27 +53,45 @@ namespace net {
     IP4::addr dst() const noexcept
     { return dst_; }
 
-    icmp4::Type type() const noexcept
+    ICMP_type type() const noexcept
     { return type_; }
 
-    uint8_t code() const noexcept
+    ICMP_code code() const noexcept
     { return code_; }
 
     uint16_t checksum() const noexcept
     { return checksum_; }
 
-    Span payload() const noexcept
+    std::string payload() const
     { return payload_; }
 
     operator bool() const noexcept
-    { return type_ != icmp4::Type::NO_REPLY; }
+    { return type_ != ICMP_type::NO_REPLY; }
 
-    std::string to_string();
-  }; // < struct ICMP_packet
+    std::string to_string() const;
+
+  private:
+    uint16_t      id_{0};
+    uint16_t      seq_{0};
+    IP4::addr     src_{0,0,0,0};
+    IP4::addr     dst_{0,0,0,0};
+    ICMP_type     type_{ICMP_type::NO_REPLY};
+    uint8_t       code_{0};
+    uint16_t      checksum_{0};
+    std::string   payload_{""};
+
+  }; // < class ICMP_packet
 
 
-  struct ICMPv4 {
+  /**
+   *  The main ICMPv4 class
+   */
+  class ICMPv4 {
 
+    using ICMP_type = ICMP_error::ICMP_type;
+    using ICMP_code = ICMP_error::ICMP_code;
+
+  public:
     using Stack = IP4::Stack;
     using Tuple = std::pair<uint16_t, uint16_t>;  // identifier and sequence number
     using icmp_func = delegate<void(ICMP_packet)>;
@@ -103,7 +114,7 @@ namespace net {
     /**
      *
      */
-    void redirect(icmp4::Packet& req, icmp4::code::Redirect code);
+    void redirect(Packet_ptr pckt, icmp4::code::Redirect code);
 
     /**
      *  Sending a Time Exceeded message from a host when fragment reassembly time exceeded (code 1)
@@ -119,7 +130,7 @@ namespace net {
      *  in the IP header
      *  Code 1 means that a required option is missing
      */
-    void parameter_problem(Packet_ptr pckt, uint8_t error);
+    void parameter_problem(Packet_ptr pckt, uint8_t error_pointer);
 
     // May
     void timestamp_request(IP4::addr ip);
@@ -139,6 +150,9 @@ namespace net {
                                       'Q','R','S','T','U','V','W','X',
                                       'Y','Z',1,2,3,4,5,6,
                                       7,8};
+
+    inline bool is_full_header(size_t pckt_size)
+    { return (pckt_size >= sizeof(IP4::header) + icmp4::Packet::header_size()); }
 
     struct ICMP_callback {
       using icmp_func = ICMPv4::icmp_func;
@@ -171,7 +185,8 @@ namespace net {
 
       if (it != ping_callbacks_.end()) {
         it->second.callback(ICMP_packet{ping_response.id(), ping_response.sequence(), ping_response.ip().ip_src(),
-          ping_response.ip().ip_dst(), ping_response.type(), ping_response.code(), ping_response.checksum(), ping_response.payload()});
+          ping_response.ip().ip_dst(), ping_response.type(), ping_response.code(), ping_response.checksum(),
+          std::string{ping_response.payload().begin(), ping_response.payload().end()}});
         Timers::stop(it->second.timer_id);
         ping_callbacks_.erase(it);
       }
@@ -189,11 +204,11 @@ namespace net {
       }
     }
 
-    void send_request(IP4::addr dest_ip, icmp4::Type type, uint8_t code,
+    void send_request(IP4::addr dest_ip, ICMP_type type, ICMP_code code,
       icmp_func callback = nullptr, uint16_t sequence = 0);
 
     /** Send response without id and sequence number */
-    void send_response(icmp4::Packet& req, icmp4::Type type, uint8_t code, uint8_t error = std::numeric_limits<uint8_t>::max());
+    void send_response(icmp4::Packet& req, ICMP_type type, ICMP_code code, uint8_t error_pointer = std::numeric_limits<uint8_t>::max());
 
     /**
      *  Responding to a ping (echo) request

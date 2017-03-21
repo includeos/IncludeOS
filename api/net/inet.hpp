@@ -29,7 +29,7 @@ namespace net {
   class   TCP;
   class   UDP;
   class   DHClient;
-  struct  ICMPv4;
+  class   ICMPv4;
 
   /**
    * An abstract IP-stack interface.
@@ -42,9 +42,6 @@ namespace net {
     using Forward_delg = delegate<void(Stack& source, typename IPV::IP_packet_ptr)>;
     using Route_checker = delegate<bool(typename IPV::addr)>;
     using IP_packet_factory = delegate<typename IPV::IP_packet_ptr(Protocol)>;
-
-    using Error_type = icmp4::Type;
-    using Error_code = uint8_t;
 
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
@@ -102,11 +99,14 @@ namespace net {
     /** Get the ICMP protocol object for this interface */
     virtual ICMPv4&     icmp()    = 0;
 
+    virtual void error_report(const Error&) = 0;
+
     /**
      *  Error report in accordance with RFC 1122
      *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
     */
-    virtual void error_report(Error_type type, Error_code code, Packet_ptr orig_pckt) = 0;
+    virtual void error_report(const ICMP_error& err, Packet_ptr orig_pckt) = 0;
+
 
 
     ///
