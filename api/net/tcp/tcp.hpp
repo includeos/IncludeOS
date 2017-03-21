@@ -46,7 +46,7 @@ namespace net {
     friend class tcp::Listener;
 
   private:
-    using Listeners       = std::map<tcp::port_t, std::unique_ptr<tcp::Listener>>;
+    using Listeners       = std::map<tcp::Socket, std::unique_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
 
   public:
@@ -70,7 +70,10 @@ namespace net {
      *
      * @return     a TCP Listener
      */
-    tcp::Listener& bind(const tcp::port_t port, ConnectCallback cb = nullptr);
+    tcp::Listener& bind(const tcp::port_t port, ConnectCallback cb = nullptr)
+    { return bind({0, port}, std::move(cb)); }
+
+    tcp::Listener& bind(tcp::Socket socket, ConnectCallback cb = nullptr);
 
     /**
      * @brief Unbind (and close) a Listener
@@ -80,7 +83,7 @@ namespace net {
      * @param port listening port
      * @return whether the listener had a port
      */
-    bool unbind(const tcp::port_t port);
+    bool unbind(tcp::Socket socket);
 
     /**
      * @brief      Make an outgoing connection to a TCP remote (IP:port).
@@ -341,7 +344,7 @@ namespace net {
      *
      * @return     An IP4 address
      */
-    tcp::Address address()
+    tcp::Address address() const noexcept
     { return inet_.ip_addr(); }
 
     /**
@@ -447,6 +450,38 @@ namespace net {
     // INTERNALS - Handling of collections
 
     /**
+     * @brief      Try to find the listener bound to socket.
+     *             If none is found directly, try any address (0).
+     *
+     * @param[in]  socket  The socket the listener is bound to
+     *
+     * @return     A listener iterator
+     */
+    Listeners::iterator find_listener(const tcp::Socket socket)
+    {
+      Listeners::iterator it = listeners_.find(socket);
+      if(it == listeners_.end())
+        it = listeners_.find({0, socket.port()});
+      return it;
+    }
+
+    /**
+     * @brief      Try to find the listener bound to socket.
+     *             If none is found directly, try any address (0).
+     *
+     * @param[in]  socket  The socket the listener is bound to
+     *
+     * @return     A listener const iterator
+     */
+    Listeners::const_iterator cfind_listener(const tcp::Socket socket)
+    {
+      Listeners::const_iterator it = listeners_.find(socket);
+      if(it == listeners_.cend())
+        it = listeners_.find({0, socket.port()});
+      return it;
+    }
+
+    /**
      * @brief      Adds a connection.
      *
      * @param[in]  <unnamed>  A ptr to the Connection
@@ -456,13 +491,13 @@ namespace net {
     /**
      * @brief      Creates a connection.
      *
-     * @param[in]  local_port  The local port
-     * @param[in]  remote      The remote
-     * @param[in]  cb          Connect callback
+     * @param[in]  local    The local socket
+     * @param[in]  remote   The remote socket
+     * @param[in]  cb       Connect callback
      *
      * @return     A ptr to the Connection whos created
      */
-    tcp::Connection_ptr create_connection(tcp::port_t local_port,
+    tcp::Connection_ptr create_connection(tcp::Socket local,
                                           tcp::Socket remote,
                                           ConnectCallback cb = nullptr);
 
@@ -480,7 +515,7 @@ namespace net {
      * @param[in]  listener  A Listener
      */
     void close_listener(tcp::Listener& listener)
-    { listeners_.erase(listener.port()); }
+    { listeners_.erase(listener.local()); }
 
 
     // WRITEQ HANDLING

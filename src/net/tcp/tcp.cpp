@@ -65,26 +65,27 @@ TCP::TCP(IPStack& inet) :
   Current solution:
   Simple.
 */
-Listener& TCP::bind(const port_t port, ConnectCallback cb)
+Listener& TCP::bind(tcp::Socket socket, ConnectCallback cb)
 {
-  Listeners::const_iterator it = listeners_.find(port);
+  Listeners::const_iterator it = cfind_listener(socket);
   // Already a listening socket.
   if(it != listeners_.cend()) {
     throw TCPException{"Port is already taken."};
   }
-  auto& listener = listeners_.emplace(port,
-    std::make_unique<tcp::Listener>(*this, port, std::move(cb))
+  auto& listener = listeners_.emplace(socket,
+    std::make_unique<tcp::Listener>(*this, socket, std::move(cb))
     ).first->second;
-  debug("<TCP::bind> Bound to port %i \n", port);
+  debug("<TCP::bind> Bound to port %s \n", socket.to_string());
   return *listener;
 }
 
-bool TCP::unbind(const port_t port) {
-  auto it = listeners_.find(port);
-  if(LIKELY(it != listeners_.end())) {
+bool TCP::unbind(tcp::Socket socket) {
+  auto it = listeners_.find(socket);
+  if(it != listeners_.end())
+  {
     auto listener = std::move(it->second);
     listener->close();
-    Ensures(listeners_.find(port) == listeners_.end());
+    Ensures(listeners_.find(socket) == listeners_.end());
     return true;
   }
   return false;
@@ -92,13 +93,13 @@ bool TCP::unbind(const port_t port) {
 
 void TCP::connect(Socket remote, ConnectCallback callback) {
   auto port = next_free_port();
-  auto connection = create_connection(port, remote, std::move(callback));
+  auto connection = create_connection({address(), port}, remote, std::move(callback));
   connection->open(true);
 }
 
 Connection_ptr TCP::connect(Socket remote) {
   auto port = next_free_port();
-  auto connection = create_connection(port, remote);
+  auto connection = create_connection({address(), port}, remote);
   connection->open(true);
   return connection;
 }
@@ -107,7 +108,7 @@ void TCP::insert_connection(Connection_ptr conn)
 {
   connections_.emplace(
       std::piecewise_construct,
-      std::forward_as_tuple(conn->local_port(), conn->remote()),
+      std::forward_as_tuple(conn->local(), conn->remote()),
       std::forward_as_tuple(conn));
 }
 
@@ -117,11 +118,9 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
 
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
+  const auto dest = packet->destination();
   debug2("<TCP::receive> TCP Packet received - Source: %s, Destination: %s \n",
-        packet->source().to_string().c_str(), packet->destination().to_string().c_str());
-
-  // Stat increment bytes received
-  bytes_rx_ += packet->tcp_data_length();
+        packet->source().to_string().c_str(), dest.to_string().c_str());
 
   // Validate checksum
   if (UNLIKELY(checksum(*packet) != 0)) {
@@ -130,7 +129,10 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
     return;
   }
 
-  Connection::Tuple tuple { packet->dst_port(), packet->source() };
+  // Stat increment bytes received
+  bytes_rx_ += packet->tcp_data_length();
+
+  const Connection::Tuple tuple { dest, packet->source() };
 
   // Try to find the receiver
   auto conn_it = connections_.find(tuple);
@@ -142,11 +144,12 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
     return;
   }
 
-  // No open connection found, find listener on port
-  Listeners::iterator listener_it = listeners_.find(packet->dst_port());
+  // No open connection found, find listener for destination
   debug("<TCP::receive> No connection found - looking for listener..\n");
-  // Listener found => Create listening Connection
-  if (LIKELY(listener_it != listeners_.end())) {
+  auto listener_it = find_listener(dest);
+
+  // Listener found => Create Listener
+  if (listener_it != listeners_.end()) {
     auto& listener = listener_it->second;
     debug("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
     listener->segment_arrived(std::move(packet));
@@ -179,10 +182,10 @@ uint16_t TCP::checksum(const tcp::Packet& packet)
 string TCP::to_string() const {
   // Write all connections in a cute list.
   stringstream ss;
-  ss << "LISTENERS:\n" << "Port\t" << "Queued\n";
+  ss << "LISTENERS:\n" << "Local\t" << "Queued\n";
   for(auto& listen_it : listeners_) {
     auto& l = listen_it.second;
-    ss << l->port() << "\t" << l->syn_queue_size() << "\n";
+    ss << l->local().to_string() << "\t" << l->syn_queue_size() << "\n";
   }
   ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
   for(auto& con_it : connections_) {
@@ -221,7 +224,7 @@ port_t TCP::next_free_port()
     : current_ephemeral_ + 1;
 
   // Avoid giving a port that is bound to a service.
-  while(listeners_.find(current_ephemeral_) != listeners_.end())
+  while(listeners_.find({address(), current_ephemeral_}) != listeners_.end())
     current_ephemeral_++;
 
   return current_ephemeral_;
@@ -231,11 +234,11 @@ port_t TCP::next_free_port()
   Expensive look up if port is in use.
 */
 bool TCP::port_in_use(const port_t port) const {
-  if(listeners_.find(port) != listeners_.end())
+  if(listeners_.find({address(), port}) != listeners_.end())
     return true;
 
   for(auto conn : connections_) {
-    if(conn.first.first == port)
+    if(conn.first.first == tcp::Socket{address(), port})
       return true;
   }
   return false;
@@ -261,14 +264,14 @@ void TCP::add_connection(tcp::Connection_ptr conn) {
   connections_.emplace(conn->tuple(), conn);
 }
 
-Connection_ptr TCP::create_connection(port_t local_port, Socket remote, ConnectCallback cb)
+Connection_ptr TCP::create_connection(Socket local, Socket remote, ConnectCallback cb)
 {
   // Stat increment number of outgoing connections
   outgoing_connections_++;
 
   auto& conn = (connections_.emplace(
-      Connection::Tuple{ local_port, remote },
-      std::make_shared<Connection>(*this, local_port, remote, std::move(cb))
+      Connection::Tuple{ local, remote },
+      std::make_shared<Connection>(*this, local, remote, std::move(cb))
       )
     ).first->second;
   conn->_on_cleanup({this, &TCP::close_connection});

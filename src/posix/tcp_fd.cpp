@@ -366,6 +366,6 @@ int TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__restr
 }
 int TCP_FD_Listen::close()
 {
-  net_stack().tcp().unbind(listener.local().port());
+  net_stack().tcp().unbind(listener.local());
   return 0;
 }
