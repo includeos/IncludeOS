@@ -186,8 +186,13 @@ WebSocket_ptr WebSocket::upgrade(Request& req, Response_writer& writer)
   writer.write_header(http::Switching_Protocols);
 
   auto stream = writer.connection().release();
-  assert(stream->is_connected());
-  return std::make_unique<WebSocket>(std::move(stream), false);
+
+  // discard streams which can be FIN-WAIT-1
+  if (stream->is_connected()) {
+    // for now, only accept fully connected streams
+    return std::make_unique<WebSocket>(std::move(stream), false);
+  }
+  return nullptr;
 }
 
 WebSocket_ptr WebSocket::upgrade(Error err, Response& res, Connection& conn, const std::string& key)
