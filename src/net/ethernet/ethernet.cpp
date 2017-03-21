@@ -144,7 +144,7 @@ namespace net {
       }
 
       // This might be 802.3 LLC traffic
-      if (length_field > 1500) {
+      if (type > 1500) {
         debug2("<Ethernet> UNKNOWN ethertype 0x%hx\n", eth->type());
       } else {
         debug2("IEEE802.3 Length field: 0x%hx\n", eth->type());
