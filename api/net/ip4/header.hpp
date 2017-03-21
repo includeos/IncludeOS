@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,36 +14,44 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#pragma once
 
+#pragma once
 #ifndef NET_IP4_HEADER_HPP
 #define NET_IP4_HEADER_HPP
 
+#include <net/ip4/addr.hpp>
+
 namespace net {
-  namespace ip4 {
+namespace ip4 {
 
-    enum class Flags : uint8_t {
-      NONE,
-      MF = 0b001,
-      DF = 0b010,
-      MFDF = 0b011
-    };
+/**
+ * This type contain the valid set of flags that can be set on an
+ * IPv4 datagram
+ */
+enum class Flags : uint8_t {
+  NONE = 0b000,
+  MF   = 0b001,
+  DF   = 0b010,
+  MFDF = 0b011
+}; //< enum class Flags
 
-    /** IP4 header representation */
-    struct Header {
-      uint8_t  version_ihl;
-      uint8_t  ds_ecn;
-      uint16_t tot_len;
-      uint16_t id;
-      uint16_t frag_off_flags;
-      uint8_t  ttl;
-      uint8_t  protocol;
-      uint16_t check;
-      Addr     saddr;
-      Addr     daddr;
-    };
+/**
+ * This type is used to represent the standard IPv4 header
+ */
+struct Header {
+  uint8_t  version_ihl;    //< IP version and header length
+  uint8_t  ds_ecn;         //< IP datagram differentiated services codepoint and explicit congestion notification
+  uint16_t tot_len;        //< IP datagram total length
+  uint16_t id;             //< IP datagram identification number
+  uint16_t frag_off_flags; //< IP datagram fragment offset and control flags
+  uint8_t  ttl;            //< IP datagram time to live value
+  uint8_t  protocol;       //< IP datagram protocol value
+  uint16_t check;          //< IP datagram checksum value
+  Addr     saddr;          //< IP datagram source address
+  Addr     daddr;          //< IP datagram destination address
+}; //< struct Header
 
-  }
-}
+} //< namespace ip4
+} //< namespace net
 
-#endif
+#endif //< NET_IP4_HEADER_HPP
