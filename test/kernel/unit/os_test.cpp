@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <common.cxx>
-
 #include <kernel/os.hpp>
 
 CASE("version() returns string representation of OS version")
@@ -37,5 +36,6 @@ CASE("page_size() returns page size")
 
 CASE("page_nr_from_addr() returns page number from address")
 {
-  EXPECT(OS::page_nr_from_addr(512) == 0u);
+  EXPECT(OS::addr_to_page(512) == 0u);
+  EXPECT(OS::page_to_addr(1) > 0u);
 }
