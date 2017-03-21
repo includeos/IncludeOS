@@ -29,8 +29,8 @@ extern "C" void _init_syscalls();
 extern "C" void _init();
 
 extern "C"
-void kernel_start(uintptr_t magic, uintptr_t addr)  {
-
+void kernel_start(uintptr_t magic, uintptr_t addr)
+{
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
@@ -49,11 +49,6 @@ void kernel_start(uintptr_t magic, uintptr_t addr)  {
 
   // call global constructors emitted by compiler
   _init();
-
-  assert(CPUID::has_feature(CPUID::Feature::XSAVE));
-  assert(CPUID::has_feature(CPUID::Feature::AVX));
-  assert(CPUID::has_feature(CPUID::Feature::AES));
-  //kprintf("CPUID: xsave=%d, avx=%d, aes=%d\n", xsave, avx, aes);
 
   // Initialize OS including devices
   OS::start(magic, addr);
