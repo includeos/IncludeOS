@@ -33,7 +33,7 @@ namespace http {
   class Client {
   public:
     using TCP                 = net::TCP;
-    using Host                = net::tcp::Socket;
+    using Host                = net::Socket;
 
     using Response_handler    = Client_connection::Response_handler;
     struct Options;

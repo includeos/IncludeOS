@@ -21,7 +21,8 @@
 #include <net/tcp/listener.hpp>
 #include <net/tcp/tcp.hpp>
 
-using namespace net::tcp;
+using namespace net;
+using namespace tcp;
 
 Listener::Listener(TCP& host, port_t port, ConnectCallback cb)
   : host_(host), port_(port), syn_queue_(),

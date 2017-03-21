@@ -16,27 +16,29 @@
 // limitations under the License.
 
 #pragma once
-#ifndef NET_TCP_SOCKET_HPP
-#define NET_TCP_SOCKET_HPP
+#ifndef NET_SOCKET_HPP
+#define NET_SOCKET_HPP
 
-#include "common.hpp"
+#include <net/ip4/addr.hpp>
 
 namespace net {
-namespace tcp {
 
 /**
  * An IP address and port
  */
 class Socket {
 public:
+
+  using Address = ip4::Addr;
+  using port_t = uint16_t;
+
   /**
    * Constructor
    *
    * Intialize an empty socket <0.0.0.0:0>
    */
   Socket() noexcept
-    : address_{}
-    , port_{}
+    : address_{}, port_{}
   {}
 
   /**
@@ -51,8 +53,7 @@ public:
    *  The port associated with the process
    */
   Socket(const Address address, const port_t port) noexcept
-    : address_{address}
-    , port_{port}
+    : address_{address}, port_{port}
   {}
 
   /**
@@ -138,12 +139,37 @@ public:
    */
   bool operator>(const Socket& other) const noexcept
   { return not (*this < other); }
+
 private:
   Address address_;
   port_t  port_;
+
 }; //< class Socket
 
-} //< namespace tcp
+class Quadruple {
+
+public:
+  Quadruple() noexcept
+    : source_{}, destination_{}
+  {}
+
+  Quadruple(const Socket::Address src_address, const Socket::port_t src_port,
+    const Socket::Address dst_address, const Socket::port_t dst_port) noexcept
+    : source_{src_address, src_port}, destination_{dst_address, dst_port}
+  {}
+
+  const Socket& source() const noexcept
+  { return source_; }
+
+  const Socket& destination() const noexcept
+  { return destination_; }
+
+private:
+  Socket source_;
+  Socket destination_;
+
+};  //< class Quadruple
+
 } //< namespace net
 
-#endif //< NET_TCP_SOCKET_HPP
+#endif //< NET_SOCKET_HPP

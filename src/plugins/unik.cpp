@@ -61,7 +61,7 @@ void unik::Client::register_instance(net::Inet<net::IP4>& inet, const net::UDP::
       INFO("Unik client","Prefix: %s , IP: '%s' \n", prefix.c_str(), ip_str.c_str());
 
       net::IP4::addr ip{ip_str};
-      net::tcp::Socket unik_instance_listener { ip , 3000};
+      net::Socket unik_instance_listener { ip , 3000};
 
       attempts_left --;
       INFO("Unik client", "Connecting to UniK instance listener %s:%i (attempt %i / %i) ",

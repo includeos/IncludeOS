@@ -24,7 +24,8 @@
 #include "common.hpp"
 #include "connection.hpp"
 #include "packet.hpp"
-#include "socket.hpp"
+
+#include <net/socket.hpp>
 
 namespace net {
   class TCP;
