@@ -66,6 +66,8 @@ CASE( "Creating Statman objects" )
         // Statman is both empty and full (no room for more Stat-objects)
         EXPECT(statman_.empty());
         EXPECT(statman_.full());
+
+        EXPECT_THROWS(Stat& stat = statman_.create(Stat::UINT32, "some.new.stat"));
       }
     }
 
@@ -319,6 +321,9 @@ CASE("get(\"name\") returns reference to stat with name, throws if not present")
   EXPECT_NO_THROW(Stat& res2 = statman_.get("other.important.stat"));
   EXPECT_NO_THROW(Stat& res3 = statman_.get("very.important.stat"));
   EXPECT_THROWS_AS(Stat& res5 = statman_.get("some.missing.stat"), Stats_exception);
+
+  // Can't create stats with empty name
+  EXPECT_THROWS_AS(Stat& stat6 = statman_.create(Stat::UINT32, ""), Stats_exception);
 
   free((void*)buffer);
 }
