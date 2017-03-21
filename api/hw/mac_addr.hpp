@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,101 +14,152 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#pragma once
 
+#pragma once
 #ifndef HW_MAC_ADDR_HPP
 #define HW_MAC_ADDR_HPP
 
-#include <stddef.h>   // size_t
-#include <stdint.h>   // uint
-#include <cstdio>     // snprintf
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <string>
-#include <cstring>    // strncmp
 
 namespace MAC {
 
-  // MAC address
-  union Addr {
-    // no. parts in a MAC address
-    static constexpr size_t PARTS_LEN = 6;
-    // The parts of the MAC address
-    uint8_t part[PARTS_LEN];
+/**
+ * MAC address representation
+ */
+union Addr {
+  /**
+   * Default constructor
+   */
+  constexpr Addr() noexcept : part{} {}
 
-    struct {
-      uint16_t minor;
-      uint32_t major;
-    } __attribute__((packed));
+  /**
+   * Constructor
+   *
+   * Create a MAC address by specifying each part of the address
+   *
+   * @param a
+   *  The first part of the MAC address
+   *
+   * @param b
+   *  The second part of the MAC address
+   *
+   * @param c
+   *  The third part of the MAC address
+   *
+   * @param d
+   *  The fourth part of the MAC address
+   *
+   * @param e
+   *  The fifth part of the MAC address
+   *
+   * @param f
+   *  The sixth part of the MAC address
+   */
+  constexpr Addr(const uint8_t a, const uint8_t b, const uint8_t c,
+                 const uint8_t d, const uint8_t e, const uint8_t f) noexcept
+    : part{a,b,c,d,e,f}
+  {}
 
-    Addr() noexcept : part{} {}
-
-    Addr(const uint8_t a, const uint8_t b, const uint8_t c,
-             const uint8_t d, const uint8_t e, const uint8_t f) noexcept
-      : part{a,b,c,d,e,f}
-    {}
-
-    Addr& operator=(const Addr cpy) noexcept {
-      minor = cpy.minor;
-      major = cpy.major;
-      return *this;
-    }
-
-
-    /**
-     * @brief Hex representation of a MAC address
-     *
-     * @return hex string representation
-     */
-    std::string hex_str() const {
-      char hex_addr[18];
-      snprintf(hex_addr, sizeof(hex_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
-               part[0], part[1], part[2],
-               part[3], part[4], part[5]);
-      return hex_addr;
-    }
-
-    /**
-     * @brief String representation of a MAC address
-     * @note default is hex
-     * @return string representation of the MAC address
-     */
-    std::string str() const
-    { return hex_str(); }
-
-    std::string to_string() const
-    { return str(); }
-
-    operator std::string () const
-    { return str(); }
-
-    /** Check for equality */
-    bool operator==(const Addr mac) const noexcept
-    {
-      return strncmp(
-                     reinterpret_cast<const char*>(part),
-                     reinterpret_cast<const char*>(mac.part),
-                     PARTS_LEN) == 0;
-    }
-
-    bool operator!=(const Addr mac) const noexcept
-    { return not(*this == mac); }
-
-  }  __attribute__((packed)); //< union addr
-
-  const Addr EMPTY {0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
-
-  // uint16_t(0xFFFF), uint32_t(0xFFFFFFFF)
-  const Addr BROADCAST {0xff,0xff,0xff,0xff,0xff,0xff};
-
-  // uint16_t(0x0000), uint32_t(0x01000000)
-  const Addr MULTICAST {0,0,0x01,0,0,0};
-
-  // uint16_t(0x3333), uint32_t(0x01000000)
-  const Addr IPv6mcast_01 {0x33,0x33,0x01,0,0,0};
-
-  // uint16_t(0x3333), uint32_t(0x02000000)
-  const Addr IPv6mcast_02 {0x33,0x33,0x02,0,0,0};
+  /**
+   * Assignment operator
+   *
+   * @param other
+   *  The MAC address object to assign from
+   *
+   * @return The object that invoked this method
+   */
+  constexpr Addr& operator=(const Addr other) noexcept {
+    minor = other.minor;
+    major = other.major;
+    return *this;
+  }
 
 
-}
+  /**
+   * Get a hex string representation of a MAC address
+   *
+   * @return A hex string representation of a MAC address
+   */
+  std::string hex_str() const {
+    char hex_addr[18];
 
-#endif
+    snprintf(hex_addr, sizeof(hex_addr), "%02x:%02x:%02x:%02x:%02x:%02x",
+             part[0], part[1], part[2], part[3], part[4], part[5]);
+
+    return hex_addr;
+  }
+
+  /**
+   * Get a string representation of this type
+   *
+   * @return A string representation of this type
+   *
+   * @note String representation format is in hex
+   */
+  std::string str() const
+  { return hex_str(); }
+
+  /**
+   * Get a string representation of this type
+   *
+   * @return A string representation of this type
+   *
+   * @note String representation format is in hex
+   */
+  std::string to_string() const
+  { return hex_str(); }
+
+  /**
+   * Operator to transform this type into string form
+   *
+   * @note String representation format is in hex
+   */
+  operator std::string () const
+  { return hex_str(); }
+
+  /**
+   * Operator to check for equality
+   *
+   * @param other
+   *  The MAC address object to check for equality
+   *
+   * @return true if this object is equal to other, false otherwise
+   */
+  constexpr bool operator==(const Addr other) const noexcept {
+    return (minor == other.minor)
+       and (major == other.major);
+  }
+
+  /**
+   * Operator to check for inequality
+   *
+   * @param other
+   *  The MAC address object to check for inequality
+   *
+   * @return true if this object is not equal to other, false otherwise
+   */
+  constexpr bool operator!=(const Addr other) const noexcept
+  { return not (*this == other); }
+
+
+  static constexpr const size_t PARTS_LEN {6}; //< Number of parts in a MAC address
+  uint8_t part[PARTS_LEN];                     //< The parts of the MAC address
+
+  struct {
+    uint16_t minor;
+    uint32_t major;
+  } __attribute__((packed));
+} __attribute__((packed)); //< union Addr
+
+constexpr const Addr EMPTY        {};
+constexpr const Addr BROADCAST    {0xff,0xff,0xff,0xff,0xff,0xff}; //< uint16_t(0xFFFF), uint32_t(0xFFFFFFFF)
+constexpr const Addr MULTICAST    {0x00,0x00,0x01,0x00,0x00,0x00}; //< uint16_t(0x0000), uint32_t(0x01000000)
+constexpr const Addr IPv6mcast_01 {0x33,0x33,0x01,0x00,0x00,0x00}; //< uint16_t(0x3333), uint32_t(0x01000000)
+constexpr const Addr IPv6mcast_02 {0x33,0x33,0x02,0x00,0x00,0x00}; //< uint16_t(0x3333), uint32_t(0x02000000)
+} //< namespace MAC
+
+#endif //< HW_MAC_ADDR_HPP
