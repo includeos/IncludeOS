@@ -20,9 +20,10 @@
 #define UTIL_BASE64_HPP
 
 #include <algorithm>
+#include <array>
 #include <cstring>
-#include <gsl/gsl>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 //
@@ -33,21 +34,20 @@
 //
 // NOTE: Currently the codec don't support MIME's
 //
-
 namespace base64 {
 
-///
-/// This type is thrown at the caller of decode
-/// upon encountering an error
-///
+/**
+ * This type is thrown at the caller of decode
+ * upon encountering an error
+ */
 struct Decode_error : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
-///
-/// This type is used as a switching mechanism to specify
-/// which alphabet to use on call
-///
+/**
+ * This type is used as a switching mechanism to specify
+ * which alphabet to use on call
+ */
 struct url_alphabet final {
   constexpr explicit url_alphabet(const bool choice)
     : use_url_alphabet_{choice}
@@ -59,11 +59,11 @@ struct url_alphabet final {
   const bool use_url_alphabet_;
 }; //< struct url_alphabet
 
-///
-/// Get the Base64 alphabet used within this module
-///
-/// @return The Base64 alphabet used within this module
-///
+/**
+ * Get the Base64 alphabet used within this module
+ *
+ * @return The Base64 alphabet used within this module
+ */
 inline auto base64_alphabet() noexcept {
   return
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -72,11 +72,11 @@ inline auto base64_alphabet() noexcept {
     "+/";
 }
 
-///
-/// Get the Base64URL alphabet used within this module
-///
-/// @return The Base64URL alphabet used within this module
-///
+/**
+ * Get the Base64URL alphabet used within this module
+ *
+ * @return The Base64URL alphabet used within this module
+ */
 inline auto base64url_alphabet() noexcept {
   return
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -85,22 +85,24 @@ inline auto base64url_alphabet() noexcept {
     "-_";
 }
 
-///
-/// Encode the specified data into Base64 format
-///
-/// @param data
-///   The data to encode into Base64 format
-///
-/// @param length
-///   The length of the data as number of char's
-///
-/// @param url_alphabet_switch
-///   Whether to use the Base64URL alphabet
-///
-/// @return Base64 encoded data
-///
+/**
+ * Encode the specified data into Base64 format
+ *
+ * @param data
+ *   The data to encode into Base64 format
+ *
+ * @param length
+ *   The length of the data as number of char's
+ *
+ * @param url_alphabet_switch
+ *   Whether to use the Base64URL alphabet
+ *
+ * @return Base64 encoded data
+ */
 template<typename R = std::string>
-R encode(gsl::not_null<const char*> data, const size_t length, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
+R encode(const char* data, const size_t length, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
+  if (data == nullptr) return R{};
+
   const char* const alphabet = url_alphabet_switch ? base64url_alphabet() : base64_alphabet();
   auto encode_unit = [alphabet](const int unit) noexcept -> char {
     return ((unit >= 0) and (unit < 64)) ? alphabet[unit] : unit;
@@ -133,33 +135,33 @@ R encode(gsl::not_null<const char*> data, const size_t length, const url_alphabe
   return buffer;
 }
 
-///
-/// Encode the specified data into Base64 format
-///
-/// @param data
-///   The data to encode into Base64 format
-///
-/// @param url_alphabet_switch
-///   Whether to use the Base64URL alphabet
-///
-/// @return Base64 encoded data
-///
+/**
+ * Encode the specified data into Base64 format
+ *
+ * @param data
+ *   The data to encode into Base64 format
+ *
+ * @param url_alphabet_switch
+ *   Whether to use the Base64URL alphabet
+ *
+ * @return Base64 encoded data
+ */
 template<typename R = std::string, typename D = std::vector<char>>
 inline R encode(const D& data, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
   return encode<R>(data.data(), data.size(), url_alphabet_switch);
 }
 
-///
-/// Encode a C-String into Base64 format
-///
-/// @param data
-///   The C-String to encode into Base64 format
-///
-/// @param url_alphabet_switch
-///   Whether to use the Base64URL alphabet
-///
-/// @return Base64 encoded data
-///
+/**
+ * Encode a C-String into Base64 format
+ *
+ * @param data
+ *   The C-String to encode into Base64 format
+ *
+ * @param url_alphabet_switch
+ *   Whether to use the Base64URL alphabet
+ *
+ * @return Base64 encoded data
+ */
 template<typename R = std::string>
 inline R encode(const char* data, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
   const auto length = std::strlen(data);
@@ -171,22 +173,24 @@ inline R encode(const char* data, const url_alphabet url_alphabet_switch = url_a
   return encode<R>(data, length, url_alphabet_switch);
 }
 
-///
-/// Decode the specified Base64 encoded data
-///
-/// @param data
-///  The data in Base64 format to decode
-///
-/// @param length
-///   The length of the data as number of char's
-///
-/// @param url_alphabet_switch
-///   Whether to use the Base64URL alphabet
-///
-/// @return The decoded data
-///
+/**
+ * Decode the specified Base64 encoded data
+ *
+ * @param data
+ *  The data in Base64 format to decode
+ *
+ * @param length
+ *   The length of the data as number of char's
+ *
+ * @param url_alphabet_switch
+ *   Whether to use the Base64URL alphabet
+ *
+ * @return The decoded data
+ */
 template<typename R = std::vector<char>>
-R decode(gsl::not_null<const char*> data, size_t length, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
+R decode(const char* data, size_t length, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
+  if (data == nullptr) return R{};
+
   if ((length % 4) not_eq 0) {
     throw Decode_error{"Invalid Base64 data"};
   }
@@ -235,33 +239,33 @@ R decode(gsl::not_null<const char*> data, size_t length, const url_alphabet url_
   return buffer;
 }
 
-///
-/// Decode the specified Base64 encoded data
-///
-/// @param data
-///  The data in Base64 format to decode
-///
-/// @param url_alphabet_switch
-///   Whether to use the Base64URL alphabet
-///
-/// @return The decoded data
-///
+/**
+ * Decode the specified Base64 encoded data
+ *
+ * @param data
+ *  The data in Base64 format to decode
+ *
+ * @param url_alphabet_switch
+ *   Whether to use the Base64URL alphabet
+ *
+ * @return The decoded data
+ */
 template<typename R = std::vector<char>, typename D = std::string>
 inline R decode(const D& data, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
   return decode<R>(data.data(), data.size(), url_alphabet_switch);
 }
 
-///
-/// Decode a C-String from Base64 format
-///
-/// @param data
-///   The C-String to decode from Base64 format
-///
-/// @param url_alphabet_switch
-///   Whether to use the Base64URL alphabet
-///
-/// @return The decoded data
-///
+/**
+ * Decode a C-String from Base64 format
+ *
+ * @param data
+ *   The C-String to decode from Base64 format
+ *
+ * @param url_alphabet_switch
+ *   Whether to use the Base64URL alphabet
+ *
+ * @return The decoded data
+ */
 template<typename R = std::vector<char>>
 inline R decode(const char* data, const url_alphabet url_alphabet_switch = url_alphabet{false}) {
   const auto length = std::strlen(data);
