@@ -16,13 +16,12 @@
 ; limitations under the License.
 USE32
 global unused_interrupt_handler:function
-extern current_eoi_mechanism
-
-extern register_modern_interrupt
 global modern_interrupt_handler:function
-
-extern cpu_sampling_irq_handler
 global cpu_sampling_irq_entry:function
+
+extern current_eoi_mechanism
+extern current_intr_handler
+extern cpu_sampling_irq_handler
 
 unused_interrupt_handler:
   cli
@@ -35,8 +34,7 @@ unused_interrupt_handler:
 modern_interrupt_handler:
   cli
   pusha
-  call register_modern_interrupt
-  call DWORD [current_eoi_mechanism]
+  call DWORD [current_intr_handler]
   popa
   sti
   iret

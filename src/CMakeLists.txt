@@ -26,9 +26,9 @@ add_custom_command(
 
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
-  kernel/kernel_start.cpp kernel/sanity_checks.cpp
-  kernel/syscalls.cpp kernel/interrupts.asm kernel/os.cpp kernel/cpuid.cpp
-  kernel/memmap.cpp kernel/irq_manager.cpp kernel/pci_manager.cpp
+  kernel/kernel_start.cpp kernel/sanity_checks.cpp kernel/syscalls.cpp
+  kernel/irq_manager.cpp
+  kernel/os.cpp kernel/cpuid.cpp kernel/memmap.cpp kernel/pci_manager.cpp
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
@@ -62,7 +62,7 @@ set(OS_OBJECTS
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
   posix/pwd.cpp
   ### x86 arch ###
-  arch/x86/start.asm
+  arch/x86/start.asm arch/x86/interrupts.asm
   arch/x86/arch.cpp arch/x86/gdt.cpp arch/x86/gdt_asm.asm arch/x86/acpi.cpp
   arch/x86/ioapic.cpp arch/x86/apic.cpp arch/x86/apic_timer.cpp
   arch/x86/apic_asm.asm arch/x86/apic_revenant.cpp arch/x86/smp.cpp
@@ -70,6 +70,9 @@ set(OS_OBJECTS
 )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
+
+set_source_files_properties(os virtio/virtio.cpp PROPERTIES COMPILE_FLAGS "-mno-avx -msse3")
+
 add_dependencies(os PrecompiledLibraries botan)
 
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)

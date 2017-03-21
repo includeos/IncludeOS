@@ -28,7 +28,7 @@ struct alignas(SMP_ALIGN) per_cpu_test
   int value;
   
 };
-static std::array<per_cpu_test, SMP_MAX_CORES> testing;
+static SMP_ARRAY<per_cpu_test> testing;
 
 #include <malloc.h>
 void smp_advanced_test()
@@ -60,6 +60,8 @@ void smp_advanced_test()
       printf("bits = %#x\n", job);
       SMP::global_unlock();
       assert(job = 0xffffffff && "All 32 bits must be set");
+      if (SMP::cpu_count() == 1)
+          printf("SUCCESS\n");
     }
     volatile void* test = calloc(4, 128u);
     assert(test);

@@ -15,10 +15,9 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 USE32
-extern current_eoi_mechanism
-extern register_modern_interrupt
+extern current_intr_handler
 
-global parasite_interrupt_handler
+global parasite_interrupt_handler:function
 extern profiler_stack_sampler
 
 parasite_interrupt_handler:
@@ -27,8 +26,7 @@ parasite_interrupt_handler:
   push DWORD [esp + 32]
   call profiler_stack_sampler
   pop eax
-  call register_modern_interrupt
-  call DWORD [current_eoi_mechanism]
+  call DWORD [current_intr_handler]
   popa
   sti
   iret

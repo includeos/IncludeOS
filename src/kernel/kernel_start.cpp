@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
+#include <kernel/cpuid.hpp>
 #include <boot/multiboot.h>
 #include <kprint>
 
@@ -28,8 +29,8 @@ extern "C" void _init_syscalls();
 extern "C" void _init();
 
 extern "C"
-void kernel_start(uintptr_t magic, uintptr_t addr)  {
-
+void kernel_start(uintptr_t magic, uintptr_t addr)
+{
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
