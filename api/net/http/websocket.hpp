@@ -26,11 +26,11 @@ namespace http {
 
 class WebSocket {
 public:
-  typedef std::unique_ptr<WebSocket> WebSocket_ptr;
-  // client connected
-  typedef delegate<void(WebSocket_ptr)> connect_func;
-  // server new client
-  typedef delegate<bool(net::tcp::Socket, std::string)> accept_func;
+  using WebSocket_ptr   = std::unique_ptr<WebSocket>;
+  // When a handshake is established and the WebSocket is created
+  using Connect_handler = delegate<void(WebSocket_ptr)>;
+  // Whether to accept the client or not before handshake
+  using Accept_handler  = delegate<bool(net::tcp::Socket, std::string)>;
   // data read (data, length)
   typedef delegate<void(const char*, size_t)> read_func;
   // closed (status code)
@@ -38,16 +38,69 @@ public:
   // error (reason)
   typedef delegate<void(std::string)> error_func;
 
-  /// Server-side connection
-  WebSocket(http::Request_ptr         request,
-            http::Response_writer_ptr response,
-            accept_func = nullptr);
-  /// Client-side connection
-  static void
-  connect(http::Client& client, 
-          std::string   origin,
-          uri::URI      dest,
-          connect_func  callback);
+  /**
+   * @brief      Upgrade a HTTP Request to a WebSocket connection.
+   *
+   * @param      req     The HTTP request
+   * @param      writer  The HTTP response writer
+   *
+   * @return     A WebSocket_ptr, or nullptr if upgrade fails.
+   */
+  static WebSocket_ptr upgrade(Request& req, Response_writer& writer);
+
+  /**
+   * @brief      Upgrade a HTTP Response to a WebSocket connection.
+   *
+   * @param[in]  err   The HTTP error
+   * @param      res   The HTTP response
+   * @param      conn  The HTTP connection
+   * @param      key   The WS key sent in the HTTP request
+   *
+   * @return     A WebSocket_ptr, or nullptr if upgrade fails.
+   */
+  static WebSocket_ptr upgrade(Error err, Response& res,
+                               Connection& conn, const std::string& key);
+
+  /**
+   * @brief      Generate a random WebSocket key
+   *
+   * @return     A 16 char WebSocket key
+   */
+  static std::string generate_key();
+
+  /**
+   * @brief      Use a HTTP Client to connect to a WebSocket destination
+   *
+   * @param      client    The HTTP client
+   * @param[in]  dest      The destination
+   * @param[in]  callback  The connect callback
+   */
+  static void connect(http::Client&   client,
+                      uri::URI        dest,
+                      Connect_handler callback);
+
+  /**
+   * @brief      Creates a request handler on heap.
+   *
+   * @param[in]  on_connect  On connect handler
+   * @param[in]  on_accept   On accept (optional)
+   *
+   * @return     A Request handler for a http::Server
+   */
+  static Server::Request_handler
+  create_request_handler(Connect_handler on_connect,
+                         Accept_handler  on_accept = nullptr);
+
+  /**
+   * @brief      Creates a response handler on heap.
+   *
+   * @param[in]  on_connect  On connect handler
+   * @param[in]  key         The WebSocket key sent in outgoing HTTP header
+   *
+   * @return     A Response handler for a http::Client
+   */
+  static Client::Response_handler
+  create_response_handler(Connect_handler on_connect, std::string key);
 
   enum mode_t {
     TEXT,
@@ -70,13 +123,13 @@ public:
   read_func    on_read  = nullptr;
 
   bool is_alive() const noexcept {
-    return this->conn != nullptr;
+    return this->stream != nullptr;
   }
   bool is_client() const noexcept {
     return this->clientside;
   }
   const auto& get_connection() const noexcept {
-    return this->conn;
+    return this->stream;
   }
 
   // string description for status codes
@@ -87,7 +140,7 @@ public:
   ~WebSocket();
 
 private:
-  net::Stream_ptr conn;
+  net::Stream_ptr stream;
   bool clientside;
 
   WebSocket(const WebSocket&) = delete;

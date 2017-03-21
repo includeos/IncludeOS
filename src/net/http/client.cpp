@@ -34,7 +34,7 @@ namespace http {
     req->set_method(method);
 
     auto& header = req->header();
-    header.set_field(header::User_Agent, "IncludeOS/0.9");
+    header.set_field(header::User_Agent, "IncludeOS/0.10");
     set_connection_header(*req);
 
     return req;
@@ -47,9 +47,14 @@ namespace http {
     auto& conn = get_connection(host);
 
     auto&& header = req->header();
+
     // Set Host if not already set
     if(! header.has_field(header::Host))
       header.set_field(header::Host, host.to_string());
+
+    // Set Origin if not already set
+    if(! header.has_field(header::Origin))
+      header.set_field(header::Origin, origin());
 
     debug("<http::Client> Sending Request:\n%s\n", req->to_string().c_str());
 
