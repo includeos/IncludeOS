@@ -126,7 +126,11 @@ int ::SMP::cpu_id() noexcept
 }
 int ::SMP::cpu_count() noexcept
 {
+#ifdef INCLUDEOS_SINGLE_THREADED
+  return 1;
+#else
   return x86::ACPI::get_cpus().size();
+#endif
 }
 
 __attribute__((weak))
@@ -157,8 +161,10 @@ void ::SMP::add_task(smp_task_func task)
 }
 void ::SMP::signal()
 {
+#ifndef INCLUDEOS_SINGLE_THREADED
   // broadcast that there is work to do
   x86::APIC::get().bcast_ipi(0x20);
+#endif
 }
 
 void ::SMP::broadcast(uint8_t irq)

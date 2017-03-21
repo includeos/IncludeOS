@@ -135,6 +135,15 @@ namespace x86 {
       enable();
     }
 
+    static uint8_t static_get_isr() noexcept
+    {
+      for (int i = 8; i >= 0; i--) {
+        uint32_t reg = CPU::read_msr(BASE_MSR + x2APIC_ISR + i);
+        if (reg) return 32 * i + __builtin_ffs(reg) - 1;
+      }
+      return 255;
+    }
+
     void eoi() noexcept override
     {
       write(x2APIC_EOI, 0);

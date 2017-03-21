@@ -23,7 +23,7 @@
 #include "arch"
 #include <delegate>
 
-//#define INCLUDEOS_SINGLE_THREADED
+#define INCLUDEOS_SINGLE_THREADED
 
 #ifdef INCLUDEOS_SINGLE_THREADED
 #define SMP_MAX_CORES   1
@@ -96,6 +96,8 @@ inline T& per_cpu_help(std::array<T, N>& array)
 #endif
 #endif
 
+template <typename T>
+using SMP_ARRAY = std::array<T, SMP_MAX_CORES>;
 
 class SMP {
 public:

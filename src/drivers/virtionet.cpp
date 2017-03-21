@@ -93,24 +93,24 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 
 
   /** RX que is 0, TX Queue is 1 - Virtio Std. §5.1.2  */
-  new (&rx_q) Virtio::Queue(queue_size(0),0,iobase());
-  new (&tx_q) Virtio::Queue(queue_size(1),1,iobase());
-  new (&ctrl_q) Virtio::Queue(queue_size(2),2,iobase());
+  new (&rx_q) Virtio::Queue(device_name() + ".rx_q", queue_size(0),0,iobase());
+  new (&tx_q) Virtio::Queue(device_name() + ".tx_q", queue_size(1),1,iobase());
+  new (&ctrl_q) Virtio::Queue(device_name() + ".ctl_q", queue_size(2),2,iobase());
 
   // Step 1 - Initialize RX/TX queues
-  auto success = assign_queue(0, (uint32_t)rx_q.queue_desc());
-  CHECK(success, "RX queue (%u) assigned (0x%x) to device",
-        rx_q.size(), (uint32_t)rx_q.queue_desc());
+  auto success = assign_queue(0, rx_q.queue_desc());
+  CHECKSERT(success, "RX queue (%u) assigned (%p) to device",
+        rx_q.size(), rx_q.queue_desc());
 
-  success = assign_queue(1, (uint32_t)tx_q.queue_desc());
-  CHECK(success, "TX queue (%u) assigned (0x%x) to device",
-        tx_q.size(), (uint32_t)tx_q.queue_desc());
+  success = assign_queue(1, tx_q.queue_desc());
+  CHECKSERT(success, "TX queue (%u) assigned (%p) to device",
+        tx_q.size(), tx_q.queue_desc());
 
   // Step 2 - Initialize Ctrl-queue if it exists
   if (features() & (1 << VIRTIO_NET_F_CTRL_VQ)) {
-    success = assign_queue(2, (uint32_t)tx_q.queue_desc());
-    CHECK(success, "CTRL queue (%u) assigned (0x%x) to device",
-          ctrl_q.size(), (uint32_t)ctrl_q.queue_desc());
+    success = assign_queue(2, tx_q.queue_desc());
+    CHECKSERT(success, "CTRL queue (%u) assigned (%p) to device",
+          ctrl_q.size(), ctrl_q.queue_desc());
   }
 
   // Step 3 - Fill receive queue with buffers
