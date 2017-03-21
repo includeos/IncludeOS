@@ -197,21 +197,25 @@ public:
   bool full() const noexcept
   { return next_available_ == stats_.size(); }
 
-  /**
-   * Returns an iterator to the last used (or filled in) element
-   * in the span stats_
-   */
-  Span_iterator last_used();
-
   ///
   ///
   ///
   auto begin() noexcept
   { return stats_.begin(); }
 
-  ///
-  ///
-  ///
+  /**
+   *  Returns an iterator to the last element (Stat)
+   *  in the span stats_
+   */
+  Span_iterator last_used() {
+    Expects(next_available_ <= stats_.size());
+    return Span_iterator(&stats_, next_available_);
+  }
+
+  /**
+   *  Returns an iterator to the end of the span stats_ regardless
+   *  of the span begin full or not
+   */
   auto end() noexcept
   { return stats_.end(); }
 
@@ -221,11 +225,21 @@ public:
   auto cbegin() const noexcept
   { return stats_.cbegin(); }
 
-  ///
-  ///
-  ///
+  /**
+   *  Returns a const iterator to the last element (Stat)
+   *  in the span stats_
+   */
+  Span_citerator clast_used() {
+    Expects(next_available_ <= stats_.size());
+    return Span_citerator(&stats_, next_available_);
+  }
+
+  /**
+   *  Returns a const iterator to the end of the span stats_ regardless
+   *  of the span begin full or not
+   */
   auto cend() const noexcept
-  { return Span_citerator(&stats_, next_available_); }
+  { return stats_.cend(); }
 
   ///
   ///
