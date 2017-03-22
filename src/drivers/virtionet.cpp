@@ -169,10 +169,16 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   }
 #endif
 
+  CHECK(this->link_up(), "Link up");
   // Done
-  INFO("VirtioNet", "Driver initialization complete");
-  CHECK(_conf.status & 1, "Link up\n");
-  rx_q.kick();
+  if (this->link_up()) {
+    rx_q.kick();
+  }
+}
+
+bool VirtioNet::link_up() const noexcept
+{
+  return _conf.status & 1;
 }
 
 void VirtioNet::msix_conf_handler()
@@ -259,9 +265,9 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 #endif
 
   new (ptr) net::Packet(
-      sizeof(virtio_net_hdr), 
-      size - sizeof(virtio_net_hdr), 
-      sizeof(virtio_net_hdr) + packet_len(), 
+      sizeof(virtio_net_hdr),
+      size - sizeof(virtio_net_hdr),
+      sizeof(virtio_net_hdr) + packet_len(),
       &bufstore());
 
   return net::Packet_ptr(ptr);
@@ -274,9 +280,9 @@ VirtioNet::create_packet(int link_offset)
   auto* ptr = (net::Packet*) buffer.addr;
 
   new (ptr) net::Packet(
-        sizeof(virtio_net_hdr) + link_offset, 
-        0, 
-        sizeof(virtio_net_hdr) + packet_len(), 
+        sizeof(virtio_net_hdr) + link_offset,
+        0,
+        sizeof(virtio_net_hdr) + packet_len(),
         buffer.bufstore);
 
   return net::Packet_ptr(ptr);
