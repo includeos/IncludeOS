@@ -17,10 +17,10 @@
 // limitations under the License.
 
 #pragma once
-#ifndef ___HTTP_API___
-#define ___HTTP_API___
+#ifndef INCLUDEOS_HTTP_API_HPP
+#define INCLUDEOS_HTTP_API_HPP
 
-#include "net/http/response.hpp"
-#include "net/http/request.hpp"
+#include "net/http/client.hpp"
+#include "net/http/server.hpp"
 
-#endif //< ___HTTP_API___
+#endif //< INCLUDEOS_HTTP_API_HPP
