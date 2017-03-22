@@ -17,11 +17,10 @@
 // limitations under the License.
 
 #pragma once
-#ifndef API_HTTPS_HEADER
-#define API_HTTPS_HEADER
+#ifndef INCLUDEOS_HTTPS_API_HPP
+#define INCLUDEOS_HTTPS_API_HPP
 
-#include "net/http/response.hpp"
-#include "net/http/request.hpp"
+#include "net/http/client.hpp"
 #include "net/http/secure_server.hpp"
 
-#endif
+#endif //< INCLUDEOS_HTTPS_API_HPP
