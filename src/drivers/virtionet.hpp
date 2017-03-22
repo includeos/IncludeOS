@@ -156,6 +156,8 @@ public:
     return tx_q.num_free() / 2;
   }
 
+  bool link_up() const noexcept;
+
   void deactivate() override;
 
   void move_to_this_cpu() override;
