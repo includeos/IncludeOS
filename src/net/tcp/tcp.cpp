@@ -32,7 +32,6 @@ TCP::TCP(IPStack& inet) :
   listeners_(),
   connections_(),
   writeq(),
-  current_ephemeral_{new_ephemeral_port()}, // TODO: Verify RFC 6056
   max_seg_lifetime_{default_msl},       // 30s
   win_size_{default_ws_window_size},    // 8096*1024
   wscale_{default_window_scaling},      // 5
@@ -54,6 +53,30 @@ TCP::TCP(IPStack& inet) :
   inet.on_transmit_queue_available({this, &TCP::process_writeq});
 }
 
+
+TCP::Port_util::Port_util()
+  : ports{},
+    ephemeral_(new_ephemeral_port()),
+    eph_count(0)
+{
+  ports.set(port_ranges::DYNAMIC_END);
+}
+
+void TCP::Port_util::increment_ephemeral()
+{
+  if(UNLIKELY(! has_free_ephemeral() ))
+    throw TCP_error{"All ephemeral ports are taken"};
+
+  ephemeral_ = (ephemeral_ == port_ranges::DYNAMIC_END)
+    ? port_ranges::DYNAMIC_START
+    : ephemeral_ + 1;
+
+  // TODO: Avoid wrap around, increment ephemeral to next free port.
+  // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
+  // need a solution that checks each word of the subset (the dynamic range)
+  Ensures(is_bound(ephemeral_) == false && "Hoped I wouldn't see the day..."); // this may happen...
+}
+
 /*
   Note: There is different approaches to how to handle listeners & connections.
   Need to discuss and decide for the best one.
@@ -65,21 +88,18 @@ TCP::TCP(IPStack& inet) :
   Current solution:
   Simple.
 */
-Listener& TCP::bind(tcp::Socket socket, ConnectCallback cb)
+Listener& TCP::listen(tcp::Socket socket, ConnectCallback cb)
 {
-  Listeners::const_iterator it = cfind_listener(socket);
-  // Already a listening socket.
-  if(it != listeners_.cend()) {
-    throw TCPException{"Port is already taken."};
-  }
+  bind(socket);
+
   auto& listener = listeners_.emplace(socket,
     std::make_unique<tcp::Listener>(*this, socket, std::move(cb))
     ).first->second;
-  debug("<TCP::bind> Bound to port %s \n", socket.to_string());
+  debug("<TCP::bind> Bound to socket %s \n", socket.to_string());
   return *listener;
 }
 
-bool TCP::unbind(tcp::Socket socket) {
+bool TCP::close(tcp::Socket socket) {
   auto it = listeners_.find(socket);
   if(it != listeners_.end())
   {
@@ -91,17 +111,46 @@ bool TCP::unbind(tcp::Socket socket) {
   return false;
 }
 
-void TCP::connect(Socket remote, ConnectCallback callback) {
-  auto port = next_free_port();
-  auto connection = create_connection({address(), port}, remote, std::move(callback));
-  connection->open(true);
+void TCP::connect(Socket remote, ConnectCallback callback)
+{
+  create_connection(bind(), remote, std::move(callback))->open(true);
 }
 
-Connection_ptr TCP::connect(Socket remote) {
-  auto port = next_free_port();
-  auto connection = create_connection({address(), port}, remote);
-  connection->open(true);
-  return connection;
+void TCP::connect(Address source, Socket remote, ConnectCallback callback)
+{
+  validate_address(source);
+  connect(bind(source), remote, std::move(callback));
+}
+
+void TCP::connect(Socket local, Socket remote, ConnectCallback callback)
+{
+  validate_address(local.address());
+  bind(local);
+  create_connection(local, remote, std::move(callback))->open(true);
+}
+
+Connection_ptr TCP::connect(Socket remote)
+{
+  auto conn = create_connection(bind(), remote);
+  conn->open(true);
+  return conn;
+}
+
+Connection_ptr TCP::connect(Address source, Socket remote)
+{
+  validate_address(source);
+  auto conn = create_connection(bind(source), remote);
+  conn->open(true);
+  return conn;
+}
+
+Connection_ptr TCP::connect(Socket local, Socket remote)
+{
+  validate_address(local.address());
+  bind(local);
+  auto conn = create_connection(local, remote);
+  conn->open(true);
+  return conn;
 }
 
 void TCP::insert_connection(Connection_ptr conn)
@@ -216,34 +265,6 @@ seq_t TCP::generate_iss() {
   return rand();
 }
 
-// TODO: Check if there is any ports free.
-port_t TCP::next_free_port()
-{
-  current_ephemeral_ = (current_ephemeral_ == port_ranges::DYNAMIC_END)
-    ? port_ranges::DYNAMIC_START
-    : current_ephemeral_ + 1;
-
-  // Avoid giving a port that is bound to a service.
-  while(listeners_.find({address(), current_ephemeral_}) != listeners_.end())
-    current_ephemeral_++;
-
-  return current_ephemeral_;
-}
-
-/*
-  Expensive look up if port is in use.
-*/
-bool TCP::port_in_use(const port_t port) const {
-  if(listeners_.find({address(), port}) != listeners_.end())
-    return true;
-
-  for(auto conn : connections_) {
-    if(conn.first.first == tcp::Socket{address(), port})
-      return true;
-  }
-  return false;
-}
-
 uint32_t TCP::get_ts_value() const
 {
   return ((OS::micros_since_boot() >> 10) & 0xffffffff);
@@ -253,6 +274,63 @@ void TCP::drop(const tcp::Packet&) {
   // Stat increment packets dropped
   packets_dropped_++;
   debug("<TCP::drop> Packet dropped\n");
+}
+
+bool TCP::is_bound(const Socket socket) const
+{
+  auto it = ports_.find(socket.address());
+
+  if(it == ports_.cend() and socket.address() != 0)
+    it = ports_.find({0});
+
+  if(it != ports_.cend())
+    return it->second.is_bound(socket.port());
+
+  return false;
+}
+
+void TCP::bind(const Socket socket)
+{
+  if (UNLIKELY( is_bound(socket) ))
+    throw TCP_error{"Socket is already in use: " + socket.to_string()};
+
+  ports_[socket.address()].bind(socket.port());
+}
+
+Socket TCP::bind(const Address addr)
+{
+  // assume address is already verified
+  auto& port_util = ports_[addr];
+  const auto port = port_util.get_next_ephemeral();
+  // we know the port is not bound, else the above would throw
+  port_util.bind(port);
+  return {addr, port};
+}
+
+bool TCP::unbind(const Socket socket)
+{
+  auto it = ports_.find(socket.address());
+
+  if(it != ports_.end())
+  {
+    auto& port_util = it->second;
+    if( port_util.is_bound(socket.port()) )
+    {
+      port_util.unbind(socket.port());
+      return true;
+    }
+  }
+  return false;
+}
+
+void TCP::validate_address(const Address addr)
+{
+  // TODO:
+  // Ask inet if the address is allowed
+  // if not
+  //   throw TCP_error{"Address not allowed."};
+  if(addr != address() or addr != 0) // temp
+    throw TCP_error{"Cannot bind to address: " + addr.to_string()};
 }
 
 void TCP::add_connection(tcp::Connection_ptr conn) {

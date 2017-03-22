@@ -107,7 +107,10 @@ namespace net {
     static constexpr uint16_t USER_START    {1024};
     static constexpr uint16_t USER_END      {49151};
     static constexpr uint16_t DYNAMIC_START {49152};
-    static constexpr uint16_t DYNAMIC_END   {65534}; // 65535 never assigned
+    static constexpr uint16_t DYNAMIC_END   {65535}; // 65535 should never be assigned
+
+    static constexpr bool is_dynamic(const uint16_t port) noexcept
+    { return port > USER_END; }
   }
 
   /**

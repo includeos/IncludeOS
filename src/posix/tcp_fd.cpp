@@ -168,7 +168,7 @@ int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
   // ignore IP address (FIXME?)
   /// TODO: verify that the IP is "local"
   try {
-    auto& L = net_stack().tcp().bind(port);
+    auto& L = net_stack().tcp().listen(port);
     // remove existing listener
     if (ld) {
       int ret = ld->close();
@@ -366,6 +366,6 @@ int TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__restr
 }
 int TCP_FD_Listen::close()
 {
-  net_stack().tcp().unbind(listener.local());
+  listener.close();
   return 0;
 }

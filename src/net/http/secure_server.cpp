@@ -64,7 +64,7 @@ namespace http
 
   void Secure_server::bind(const uint16_t port)
   {
-    tcp_.bind(port).on_connect({this, &Secure_server::on_connect});
+    tcp_.listen(port, {this, &Secure_server::on_connect});
     INFO("HTTPS Server", "Listening on port %u", port);
   }
 

@@ -29,9 +29,13 @@
 #include <map>  // connections, listeners
 #include <queue>  // writeq
 #include <net/inet.hpp>
+#include <bitset>
 
 namespace net {
 
+  struct TCP_error : public std::runtime_error {
+    using runtime_error::runtime_error;
+  };
   /**
    * @brief      An access point for TCP, handling connections, config and such.
    */
@@ -49,6 +53,90 @@ namespace net {
     using Listeners       = std::map<tcp::Socket, std::unique_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
 
+    /**
+     * @brief      Class for port utility.
+     */
+    class Port_util {
+    public:
+      /**
+       * @brief      Construct a port util with a new generated ephemeral port
+       *             and a empty port list.
+       */
+      Port_util();
+
+      /**
+       * @brief      Gets the next ephemeral port.
+       *             increment_ephemeral may throw
+       *
+       * @return     The next ephemeral port.
+       */
+      uint16_t get_next_ephemeral()
+      {
+        increment_ephemeral();
+        return ephemeral_;
+      }
+
+      /**
+       * @brief      Bind a port, making it reserved.
+       *
+       * @param[in]  port  The port
+       */
+      void bind(const uint16_t port) noexcept
+      {
+        Expects(port < port_ranges::DYNAMIC_END);
+        ports.set(port);
+
+        if(port_ranges::is_dynamic(port)) ++eph_count;
+      }
+
+      /**
+       * @brief      Unbind a port, making it available.
+       *
+       * @param[in]  port  The port
+       */
+      void unbind(const uint16_t port) noexcept
+      {
+        Expects(port < port_ranges::DYNAMIC_END);
+        ports.reset(port);
+
+        if(port_ranges::is_dynamic(port)) --eph_count;
+      }
+
+      /**
+       * @brief      Determines if the port is bound.
+       *
+       * @param[in]  port  The port
+       *
+       * @return     True if bound, False otherwise.
+       */
+      bool is_bound(const uint16_t port) const noexcept
+      {
+        Expects(port < port_ranges::DYNAMIC_END);
+        return ports[port];
+      }
+
+      /**
+       * @brief      Determines if it has any free ephemeral ports.
+       *
+       * @return     True if has free ephemeral, False otherwise.
+       */
+      bool has_free_ephemeral() const noexcept
+      { return eph_count < (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START); }
+
+    private:
+      std::bitset<65536> ports;
+      uint16_t           ephemeral_;
+      uint16_t           eph_count;
+
+      /**
+       * @brief      Increment the ephemeral port by one.
+       *             Throws if there are no more free ephemeral ports available.
+       */
+      void increment_ephemeral();
+
+    }; // < class Port_util
+    using Port_lists      = std::map<tcp::Address, Port_util>;
+
   public:
     /////// TCP Stuff - Relevant to the protocol /////
 
@@ -63,30 +151,40 @@ namespace net {
 
     /**
      * @brief      Bind to a port to start listening for new connections
-     *             Throws if port is already in use.
+     *             Throws if unable to bind
      *
      * @param[in]  port  The port
      * @param[in]  cb    (optional) Connect callback to be invoked on new connections.
      *
-     * @return     a TCP Listener
+     * @return     A TCP Listener
      */
-    tcp::Listener& bind(const tcp::port_t port, ConnectCallback cb = nullptr)
-    { return bind({0, port}, std::move(cb)); }
-
-    tcp::Listener& bind(tcp::Socket socket, ConnectCallback cb = nullptr);
+    tcp::Listener& listen(const tcp::port_t port, ConnectCallback cb = nullptr)
+    { return listen({0, port}, std::move(cb)); }
 
     /**
-     * @brief Unbind (and close) a Listener
+     * @brief      Bind to a socket to start listening for new connections
+     *             Throws if unable to bind
+     *
+     * @param[in]  socket  The socket
+     * @param[in]  cb      (optional) Connect callback to be invoked on new connections.
+     *
+     * @return     A TCP Listener
+     */
+    tcp::Listener& listen(tcp::Socket socket, ConnectCallback cb = nullptr);
+
+    /**
+     * @brief Close a Listener
      * @details Closes the Listener and removes it from the
      * map of listeners
      *
-     * @param port listening port
-     * @return whether the listener had a port
+     * @param socket listening socket
+     * @return whether the listener existed and was closed
      */
-    bool unbind(tcp::Socket socket);
+    bool close(tcp::Socket socket);
 
     /**
      * @brief      Make an outgoing connection to a TCP remote (IP:port).
+     *             May throw if no available ephemeral ports.
      *
      * @param[in]  remote     The remote
      * @param[in]  cb         Connect callback to be invoked when the connection is established.
@@ -94,34 +192,58 @@ namespace net {
     void connect(tcp::Socket remote, ConnectCallback cb);
 
     /**
-     * @brief      Overload for the one above
+     * @brief      Make an outgoing connection from a given source address.
+     *             May throw if the source address can not be bound to, or if
+     *             no available ephemeral port.
      *
-     * @param[in]  address   The address
-     * @param[in]  port      The port
-     * @param[in]  callback  The callback
+     * @param[in]  source    The source address
+     * @param[in]  remote    The remote socket
+     * @param[in]  callback  The connect callback
      */
-    void connect(tcp::Address address, tcp::port_t port, ConnectCallback callback)
-    { connect({address, port}, std::move(callback)); }
+    void connect(tcp::Address source, tcp::Socket remote, ConnectCallback callback);
+
+    /**
+     * @brief      Make an outgoing connection to from a given source socket.
+     *             May throw if the socket cannot be bound to (for different reasons).
+     *
+     * @param[in]  local     The local socket
+     * @param[in]  remote    The remote socket
+     * @param[in]  callback  The connect callback
+     */
+    void connect(tcp::Socket local, tcp::Socket remote, ConnectCallback callback);
 
     /**
      * @brief      Make an outgoing connecction to a TCP remote (IP:port).
+     *             May throw if no available ephemeral ports.
      *
-     * @param[in]  remote  The remote
+     * @param[in]  remote  The remote socket
      *
      * @return     A ptr to an unestablished TCP Connection
      */
     tcp::Connection_ptr connect(tcp::Socket remote);
 
     /**
-     * @brief      Overload for the one above
+     * @brief      Make an outgoing connection from a given source address.
+     *             May throw if the source address can not be bound to, or if
+     *             no available ephemeral port.
      *
-     * @param[in]  address  The address
-     * @param[in]  port     The port
+     * @param[in]  source  The source
+     * @param[in]  remote  The remote
      *
      * @return     A ptr to an unestablished TCP Connection
      */
-    auto connect(tcp::Address address, tcp::port_t port)
-    { return connect({address, port}); }
+    tcp::Connection_ptr connect(tcp::Address source, tcp::Socket remote);
+
+    /**
+     * @brief      Make an outgoing connection to from a given source socket.
+     *             May throw if the socket cannot be bound to (for different reasons).
+     *
+     * @param[in]  local   The local
+     * @param[in]  remote  The remote
+     *
+     * @return     A ptr to an unestablished TCP Connection
+     */
+    tcp::Connection_ptr connect(tcp::Socket local, tcp::Socket remote);
 
     /**
      * @brief      Insert a connection ptr into the TCP (used for restoring)
@@ -171,11 +293,11 @@ namespace net {
     { return connections_; }
 
     /**
-     * @brief      Number of bound (listening) ports
+     * @brief      Number of listening ports
      *
-     * @return     Number of bound (listening) ports
+     * @return     Number of listening ports
      */
-    size_t open_ports() const
+    size_t listening_ports() const
     { return listeners_.size(); }
 
     /**
@@ -332,6 +454,15 @@ namespace net {
     { return to_string(); }
 
     /**
+     * @brief      Determines if the socket is bound.
+     *
+     * @param[in]  socket  The socket
+     *
+     * @return     True if bound, False otherwise.
+     */
+    bool is_bound(const tcp::Socket socket) const;
+
+    /**
      * @brief      Number of connections queued for writing.
      *
      * @return     Number of connections queued for writing
@@ -356,17 +487,16 @@ namespace net {
     { return inet_; }
 
   private:
-    IPStack&    inet_;
-    Listeners   listeners_;
-    Connections connections_;
+    IPStack&      inet_;
+    Listeners     listeners_;
+    Connections   connections_;
+
+    Port_lists    ports_;
 
     downstream  _network_layer_out;
 
     /** Internal writeq - connections gets queued in the wait for packets and recvs offer */
     std::deque<tcp::Connection_ptr> writeq;
-
-    /** Current outgoing port */
-    tcp::port_t current_ephemeral_;
 
     /* Settings */
 
@@ -409,22 +539,6 @@ namespace net {
     static tcp::seq_t generate_iss();
 
     /**
-     * @brief      Returns the next free port to be used.
-     *
-     * @return     A port
-     */
-    tcp::port_t next_free_port();
-
-    /**
-     * @brief      Check whether the port is in use or not
-     *
-     * @param[in]  <unnamed>  a port
-     *
-     * @return     Whether the port is in use or not
-     */
-    bool port_in_use(const tcp::port_t) const;
-
-    /**
      * @brief      Gets an incremental timestamp value.
      *
      * @return     The timestamp value.
@@ -450,6 +564,51 @@ namespace net {
     // INTERNALS - Handling of collections
 
     /**
+     * @brief      Binds a socket, reserving it for future use
+     *             (until unbound)
+     *             Throws if unable to bind.
+     *
+     * @param[in]  socket  The socket
+     */
+    void bind(const tcp::Socket socket);
+
+    /**
+     * @brief      Unbinds a socket, making it free for future use
+     *
+     * @param[in]  socket  The socket
+     *
+     * @return     Returns wether there was a socket that got unbound
+     */
+    bool unbind(const tcp::Socket socket);
+
+    /**
+     * @brief      Bind to an socket where the address is given and the
+     *             port is an ephemeral port.
+     *             Throws if there are no more free ephemeral ports.
+     *
+     * @param[in]  addr  The address
+     *
+     * @return     The socket that got bound.
+     */
+    tcp::Socket bind(const tcp::Address addr);
+
+    /**
+     * @brief      Binds to an socket where the address is given by the
+     *             stack and port is ephemeral. See bind(addr)
+     *
+     * @return     The socket that got bound.
+     */
+    tcp::Socket bind()
+    { return bind(address()); }
+
+    /**
+     * @brief      Validate the address by making sure it's allowed in this context.
+     *
+     * @param[in]  addr  The address
+     */
+    void validate_address(const tcp::Address addr);
+
+    /**
      * @brief      Try to find the listener bound to socket.
      *             If none is found directly, try any address (0).
      *
@@ -460,7 +619,7 @@ namespace net {
     Listeners::iterator find_listener(const tcp::Socket socket)
     {
       Listeners::iterator it = listeners_.find(socket);
-      if(it == listeners_.end())
+      if(it == listeners_.end() and socket.address() != 0)
         it = listeners_.find({0, socket.port()});
       return it;
     }
@@ -473,10 +632,10 @@ namespace net {
      *
      * @return     A listener const iterator
      */
-    Listeners::const_iterator cfind_listener(const tcp::Socket socket)
+    Listeners::const_iterator cfind_listener(const tcp::Socket socket) const
     {
       Listeners::const_iterator it = listeners_.find(socket);
-      if(it == listeners_.cend())
+      if(it == listeners_.cend() and socket.address() != 0)
         it = listeners_.find({0, socket.port()});
       return it;
     }
@@ -507,7 +666,10 @@ namespace net {
      * @param[in]  conn  A ptr to a Connection
      */
     void close_connection(tcp::Connection_ptr conn)
-    { connections_.erase(conn->tuple()); }
+    {
+      unbind(conn->local());
+      connections_.erase(conn->tuple());
+    }
 
     /**
      * @brief      Closes and deletes a listener.
@@ -515,7 +677,11 @@ namespace net {
      * @param[in]  listener  A Listener
      */
     void close_listener(tcp::Listener& listener)
-    { listeners_.erase(listener.local()); }
+    {
+      const auto socket = listener.local();
+      unbind(socket);
+      listeners_.erase(socket);
+    }
 
 
     // WRITEQ HANDLING
