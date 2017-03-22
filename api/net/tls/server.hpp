@@ -37,10 +37,10 @@ public:
 
   Server(Connection_ptr remote,
          Botan::RandomNumberGenerator& rng,
-         Botan::Credentials_Manager& credman) 
+         Botan::Credentials_Manager& credman)
   : tcp::Stream({remote}),
     m_creds(credman),
-    m_session_manager(rng),
+    m_session_manager(),
     m_tls(*this, m_session_manager, m_creds, m_policy, rng)
   {
     assert(tcp->is_connected());
@@ -140,7 +140,7 @@ protected:
     {
       auto buffff = std::shared_ptr<uint8_t> (new uint8_t[buf_len]);
       memcpy(buffff.get(), buf, buf_len);
-      
+
       o_read(buffff, buf_len);
     }
   }
@@ -157,7 +157,7 @@ private:
 
   Botan::Credentials_Manager&   m_creds;
   Botan::TLS::Strict_Policy     m_policy;
-  Botan::TLS::Session_Manager_In_Memory m_session_manager;
+  Botan::TLS::Session_Manager_Noop m_session_manager;
 
   Botan::TLS::Server m_tls;
 };
