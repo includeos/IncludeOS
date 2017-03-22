@@ -50,7 +50,7 @@ void Service::start(const std::string&)
     { 10,0,0,1 });     // DNS
 
   // Set up a TCP server on port 80
-  auto& server = inet.tcp().bind(80);
+  auto& server = inet.tcp().listen(80);
 
   server.on_connect([](auto conn)
   {

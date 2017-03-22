@@ -30,7 +30,7 @@ std::string HTML_RESPONSE()
 {
   const int color = rand();
 
-  // Generate some HTML                                                                                                                                                                                                      
+  // Generate some HTML
   std::stringstream stream;
   stream << "<!DOCTYPE html><html><head>"
          << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300'"
@@ -96,7 +96,7 @@ void Service::start(const std::string&)
   });
 
   // Set up a TCP server on port 80
-  auto& server = inet.tcp().bind(80);
+  auto& server = inet.tcp().listen(80);
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.on_connect(
