@@ -178,7 +178,7 @@ ssize_t UDP_FD::sendto(const void* message, size_t len, int,
   // Sending
   bool written = false;
   this->sock->sendto(ntohl(dest.sin_addr.s_addr), ntohs(dest.sin_port), message, len,
-    [&written]() { written = true; });
+    [&written](net::Error) { written = true; });
 
   while(!written)
     OS::block();

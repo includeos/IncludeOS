@@ -38,6 +38,7 @@ namespace net {
     auto udp_packet = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
 
     debug("<%s> UDP", stack_.ifname().c_str());
+
     debug("\t Source port: %u, Dest. Port: %u Length: %u\n",
           udp_packet->src_port(), udp_packet->dst_port(), udp_packet->length());
 
@@ -62,22 +63,21 @@ namespace net {
     }
   }
 
-  void UDP::error_report(Error_type type, Error_code code,
-    IP4::addr src_addr, port_t src_port, IP4::addr dest_addr, port_t dest_port) {
+  void UDP::error_report(const Error&) {
+    // TODO
+  }
+
+  void UDP::error_report(const ICMP_error& err, Socket dest) {
     // Report to application layer that got an ICMP error message of type and code (reason and subreason)
     // Should be possible to enable and disable this error report
 
-    // Find UDPSocket
-    auto it = ports_.find(src_port);
-    if (LIKELY(it != ports_.end())) {
-      debug("<%s> UDP Error report: Found listener on port %u\n",
-              stack_.ifname().c_str(), src_port);
-      it->second.error_read(type, code, src_addr, src_port, dest_addr, dest_port);
-      return;
-    }
+    // Find callback with this destination address and port, and call it with the incoming err
+    auto it = error_callbacks_.find(std::make_pair(dest.address(), dest.port()));
 
-    debug("<%s> UDP Error report: Nobody listening on %u. Drop!\n",
-            stack_.ifname().c_str(), src_port);
+    if (it != error_callbacks_.end()) {
+      it->second.callback(err);
+      error_callbacks_.erase(it);
+    }
   }
 
   UDPSocket& UDP::bind(UDP::port_t port)
@@ -94,7 +94,7 @@ namespace net {
             std::forward_as_tuple(port),
             std::forward_as_tuple(*this, port));
       it = res.first;
-    }else {
+    } else {
       throw UDP::Port_in_use_exception(it->first);
     }
     return it->second;
@@ -143,6 +143,20 @@ namespace net {
     if (packets) process_sendq(packets);
   }
 
+  void UDP::flush_expired() {
+    INFO("UDP", "Flushing expired error callbacks");
+
+    for (auto& err : error_callbacks_) {
+      if (err.second.expired()) {
+        // error_callbacks_.second.callback(ICMP_error{});
+        error_callbacks_.erase(err.first);
+      }
+    }
+
+    if (not error_callbacks_.empty())
+      flush_timer_.start(flush_interval_);
+  }
+
   void UDP::process_sendq(size_t num)
   {
     while (!sendq.empty() && num != 0)
@@ -154,11 +168,18 @@ namespace net {
       num--;
 
       if (buffer.done()) {
-        auto copy = buffer.callback;
+        if (buffer.callback != nullptr) {
+          error_callbacks_.emplace(std::piecewise_construct,
+                              std::forward_as_tuple(std::make_pair(buffer.d_addr, buffer.d_port)),
+                              std::forward_as_tuple(Error_entry{buffer.callback}));
+
+          if (UNLIKELY(not flush_timer_.is_running()))
+            flush_timer_.start(flush_interval_);
+        }
+
         // remove buffer from queue
         sendq.pop_front();
-        // call on_written callback
-        copy();
+
         // reduce @num, just in case packets were sent in
         // another stack frame
         size_t avail = stack_.transmit_queue_available();

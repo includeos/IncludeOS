@@ -200,12 +200,11 @@ void TCP::error_report(const Error&) {
   // TODO
 }
 
-void TCP::error_report(const ICMP_error& err, Quadruple quad) {
+void TCP::error_report(const ICMP_error& /* err */, Socket /* dest */) {
   // TODO
-  printf("<TCP::error_report> Error %s : %s occurred when sending data to %s port %u from %s port %u\n",
+  debug("<TCP::error_report> Error %s : %s occurred when sending data to %s port %u\n",
     err.icmp_type_str().c_str(), err.icmp_code_str().c_str(),
-    quad.destination().address().to_string().c_str(), quad.destination().port(),
-    quad.source().address().to_string().c_str(), quad.source().port());
+    dest.address().to_string().c_str(), dest.port());
 }
 
 void TCP::transmit(tcp::Packet_ptr packet) {

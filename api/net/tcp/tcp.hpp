@@ -28,7 +28,7 @@
 #include <map>  // connections, listeners
 #include <queue>  // writeq
 #include <net/inet.hpp>
-#include <net/socket.hpp> // Socket and Quadruple (struct with two Sockets, source and destination)
+#include <net/socket.hpp>
 
 namespace net {
 
@@ -356,7 +356,7 @@ namespace net {
     void error_report(const Error&);
 
     /** Is called when an ICMP error message has been received in response to a sent TCP packet */
-    void error_report(const ICMP_error& err, Quadruple quad);
+    void error_report(const ICMP_error& err, Socket dest);
 
   private:
     IPStack&    inet_;
