@@ -1,30 +1,22 @@
 #! /bin/bash
 . ./set_traps.sh
 
-# Env variables
+# Paths
 export INCLUDEOS_SRC=${INCLUDEOS_SRC:-~/IncludeOS}
-export BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build}
-export TEMP_INSTALL_DIR=${TEMP_INSTALL_DIR:-$BUILD_DIR/IncludeOS_TEMP_install}
+export BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build}	# Where the libs are built
+export TEMP_INSTALL_DIR=${TEMP_INSTALL_DIR:-$BUILD_DIR/IncludeOS_TEMP_install}	# Libs are installed
+export PATH="$TEMP_INSTALL_DIR/bin:$PATH"
 
+# Build options
 export TARGET=i686-elf	# Configure target
-export PREFIX=$TEMP_INSTALL_DIR
-export PATH="$PREFIX/bin:$PATH"
+export num_jobs=${num_jobs:-"-j"}	# Specify number of build jobs	
 
-# Build_llvm specific options
-export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
-export llvm_src=llvm
-export llvm_build=build_llvm
-# TODO: These should be determined by inspecting if local llvm repo is up-to-date
-[ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
-[ ! -v download_llvm ] && export download_llvm=1
-
+# Version numbers
 export binutils_version=${binutils_version:-2.26}		# ftp://ftp.gnu.org/gnu/binutils
 export newlib_version=${newlib_version:-2.4.0}			# ftp://sourceware.org/pub/newlib
 export gcc_version=${gcc_version:-6.2.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
 export clang_version=${clang_version:-3.8}				# http://releases.llvm.org/
 export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-project/llvm/tags
-
-export libcpp_version=${libcpp_version:-3.8.1}			# Not in use anywhere???
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
@@ -53,7 +45,7 @@ fi
 
 if [ ! -z $do_gcc ]; then
     echo -e "\n\n >>> GETTING / BUILDING GCC COMPILER (Required for libgcc / unwind / crt) \n"
-    $INCLUDEOS_SRC/etc/cross_compiler.sh
+    $INCLUDEOS_SRC/etc/build_gcc.sh
 fi
 
 if [ ! -z $do_newlib ]; then
