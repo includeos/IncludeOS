@@ -26,8 +26,13 @@ string(STRIP ${OS_VERSION} OS_VERSION)
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "-mavx -maes -mfma -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
-
+set(CAPABS "-fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
+option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
+if(cpu_feat_vanilla)
+  set(CAPABS "-msse3 -maes ${CAPABS}")
+else()
+  set(CAPABS "-mavx -maes -mfma ${CAPABS}")
+endif(cpu_feat_vanilla)
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
@@ -160,10 +165,24 @@ endif(rapidjson)
 #
 # Installation
 #
+
+# Install cmake files
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
-install(DIRECTORY vmrunner DESTINATION includeos/)
+
+# Install vmrunner
+install(DIRECTORY vmrunner DESTINATION includeos)
+if(cpu_feat_vanilla)
+  set(DEFAULT_VM "vm.vanilla.json")
+else()
+  set(DEFAULT_VM "vm.cpu_feat.json")
+endif(cpu_feat_vanilla)
+install(FILES vmrunner/${DEFAULT_VM} DESTINATION includeos/vmrunner/ RENAME vm.default.json)
+
+# Install toolchain
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
+
+# Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
 # Install boot util
