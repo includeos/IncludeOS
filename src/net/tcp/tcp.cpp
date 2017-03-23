@@ -88,7 +88,7 @@ void TCP::Port_util::increment_ephemeral()
   Current solution:
   Simple.
 */
-Listener& TCP::listen(tcp::Socket socket, ConnectCallback cb)
+Listener& TCP::listen(Socket socket, ConnectCallback cb)
 {
   bind(socket);
 
@@ -99,7 +99,7 @@ Listener& TCP::listen(tcp::Socket socket, ConnectCallback cb)
   return *listener;
 }
 
-bool TCP::close(tcp::Socket socket) {
+bool TCP::close(Socket socket) {
   auto it = listeners_.find(socket);
   if(it != listeners_.end())
   {
