@@ -33,7 +33,10 @@ pushd $NEWLIB_DIR
 
 # Clean out config cache in case the cross-compiler has changed
 # make distclean
-../newlib-$newlib_version/configure --target=$TARGET --prefix=$PREFIX --enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib #CC_FOR_TARGET="clang-3.6 -Wno-return-type --target=i686-pc-none-elf" #--target=i686-elf -ffreestanding
+../newlib-$newlib_version/configure \
+	--target=$TARGET \
+	--prefix=$PREFIX \
+	--enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib \
 
 echo -e "\n\n >>> BUILDING NEWLIB \n\n"    
 make $num_jobs all 
