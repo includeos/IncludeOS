@@ -95,7 +95,7 @@ Listener& TCP::listen(tcp::Socket socket, ConnectCallback cb)
   auto& listener = listeners_.emplace(socket,
     std::make_unique<tcp::Listener>(*this, socket, std::move(cb))
     ).first->second;
-  debug("<TCP::bind> Bound to socket %s \n", socket.to_string());
+  debug("<TCP::listen> Bound to socket %s \n", socket.to_string());
   return *listener;
 }
 
@@ -118,13 +118,11 @@ void TCP::connect(Socket remote, ConnectCallback callback)
 
 void TCP::connect(Address source, Socket remote, ConnectCallback callback)
 {
-  validate_address(source);
   connect(bind(source), remote, std::move(callback));
 }
 
 void TCP::connect(Socket local, Socket remote, ConnectCallback callback)
 {
-  validate_address(local.address());
   bind(local);
   create_connection(local, remote, std::move(callback))->open(true);
 }
@@ -138,7 +136,6 @@ Connection_ptr TCP::connect(Socket remote)
 
 Connection_ptr TCP::connect(Address source, Socket remote)
 {
-  validate_address(source);
   auto conn = create_connection(bind(source), remote);
   conn->open(true);
   return conn;
@@ -146,7 +143,6 @@ Connection_ptr TCP::connect(Address source, Socket remote)
 
 Connection_ptr TCP::connect(Socket local, Socket remote)
 {
-  validate_address(local.address());
   bind(local);
   auto conn = create_connection(local, remote);
   conn->open(true);
@@ -298,6 +294,9 @@ bool TCP::is_bound(const Socket socket) const
 
 void TCP::bind(const Socket socket)
 {
+  if(UNLIKELY( is_valid_source(socket.address()) == false ))
+    throw TCP_error{"Cannot bind to address: " + socket.address().to_string()};
+
   if (UNLIKELY( is_bound(socket) ))
     throw TCP_error{"Socket is already in use: " + socket.to_string()};
 
@@ -306,7 +305,9 @@ void TCP::bind(const Socket socket)
 
 Socket TCP::bind(const Address addr)
 {
-  // assume address is already verified
+  if(UNLIKELY( is_valid_source(addr) == false ))
+    throw TCP_error{"Cannot bind to address: " + addr.to_string()};
+
   auto& port_util = ports_[addr];
   const auto port = port_util.get_next_ephemeral();
   // we know the port is not bound, else the above would throw
@@ -328,16 +329,6 @@ bool TCP::unbind(const Socket socket)
     }
   }
   return false;
-}
-
-void TCP::validate_address(const Address addr)
-{
-  // TODO:
-  // Ask inet if the address is allowed
-  // if not
-  //   throw TCP_error{"Address not allowed."};
-  if(addr != address() or addr != 0) // temp
-    throw TCP_error{"Cannot bind to address: " + addr.to_string()};
 }
 
 void TCP::add_connection(tcp::Connection_ptr conn) {

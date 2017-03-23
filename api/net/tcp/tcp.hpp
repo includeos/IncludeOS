@@ -608,11 +608,14 @@ namespace net {
     { return bind(address()); }
 
     /**
-     * @brief      Validate the address by making sure it's allowed in this context.
+     * @brief      Determines if the source address is valid.
      *
-     * @param[in]  addr  The address
+     * @param[in]  addr  The source address
+     *
+     * @return     True if valid source, False otherwise.
      */
-    void validate_address(const tcp::Address addr);
+    bool is_valid_source(const tcp::Address addr) const noexcept
+    { return addr == address() or addr == 0; /* temp */ }
 
     /**
      * @brief      Try to find the listener bound to socket.
