@@ -98,6 +98,9 @@ namespace net {
     operator bool() const noexcept
     { return t_ != Type::no_error; }
 
+    virtual bool is_icmp() const noexcept
+    { return t_ == Type::ICMP; }
+
   private:
     Type t_{Type::no_error};
     const char* msg_{"No error"};
@@ -108,8 +111,6 @@ namespace net {
   /**
    *  An object of this error class is sent to UDP and TCP (via Inet) when an ICMP error message
    *  is received in ICMPv4::receive
-   *
-   *  Inherits from the Error class in inet_common.hpp
    */
   class ICMP_error : public Error {
 
@@ -117,6 +118,10 @@ namespace net {
     using ICMP_type = icmp4::Type;
     using ICMP_code = uint8_t;    // Codes in icmp4_common.hpp in namespace icmp4::code
                                   // icmp4::code::Dest_unreachable::PORT f.ex.
+
+    ICMP_error()
+      : Error{}
+    {}
 
     ICMP_error(Type t, const char* msg, ICMP_type icmp_type, ICMP_code icmp_code)
       : Error{t, msg}, icmp_type_{icmp_type}, icmp_code_{icmp_code}
@@ -141,7 +146,7 @@ namespace net {
     { icmp_code_ = icmp_code; }
 
   private:
-    ICMP_type icmp_type_{ICMP_type::NO_REPLY};
+    ICMP_type icmp_type_{ICMP_type::NO_ERROR};
     ICMP_code icmp_code_{0};
 
   };  // < class ICMP_error
