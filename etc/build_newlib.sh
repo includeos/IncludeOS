@@ -36,7 +36,7 @@ pushd $NEWLIB_DIR
 ../newlib-$newlib_version/configure \
 	--target=$TARGET \
 	--prefix=$PREFIX \
-	--enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib \
+	--enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib
 
 echo -e "\n\n >>> BUILDING NEWLIB \n\n"    
 make $num_jobs all 
