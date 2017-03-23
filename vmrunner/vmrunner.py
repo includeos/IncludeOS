@@ -17,7 +17,7 @@ INCLUDEOS_HOME = None
 
 if "INCLUDEOS_PREFIX" not in os.environ:
     def_home = "/usr/local"
-    print color.WARNING("WARNING:"), "Environment varialble INCLUDEOS_PREFIX is not set. Trying default", def_home
+    print color.WARNING("WARNING:"), "Environment variable INCLUDEOS_PREFIX is not set. Trying default", def_home
     if not os.path.isdir(def_home): raise Exception("Couldn't find INCLUDEOS_PREFIX")
     INCLUDEOS_HOME= def_home
 else:
@@ -25,8 +25,7 @@ else:
 
 package_path = os.path.dirname(os.path.realpath(__file__))
 
-default_config = {"description" : "Single virtio nic, otherwise hypervisor defaults",
-                  "net" : [{"device" : "virtio", "backend" : "tap" }] }
+default_config = INCLUDEOS_HOME + "/includeos/vmrunner/vm.default.json"
 
 default_json = "./vm.json"
 
@@ -261,6 +260,7 @@ class qemu(hypervisor):
             if (image_name.endswith(".img")):
                 image_name = image_name.split(".")[0]
 
+            if not kernel_args: kernel_args = "\"\""
             kernel_args = ["-kernel", image_name, "-append", kernel_args]
             info ( "Booting", image_name, "directly without bootloader (multiboot / -kernel args)")
         else:
@@ -292,7 +292,11 @@ class qemu(hypervisor):
             kernel_args.extend(["-smp", str(self._config["smp"])])
 
         if "cpu" in self._config:
-            kernel_args.extend(["-cpu", self._config["cpu"]])
+            cpu = self._config["cpu"]
+            cpu_str = cpu["model"]
+            if "features" in cpu:
+                cpu_str += ",+" + ",+".join(cpu["features"])
+            kernel_args.extend(["-cpu", cpu_str])
 
         net_args = []
         i = 0
@@ -401,7 +405,7 @@ class vm:
         self._exit_msg = ""
         self._exit_complete = False
 
-        self._config = load_single_config(config)
+        self._config = load_with_default_config(True, config)
         self._on_success = lambda(line) : self.exit(exit_codes["SUCCESS"], nametag + " All tests passed")
         self._on_panic =  self.panic
         self._on_timeout = self.timeout
@@ -564,7 +568,7 @@ class vm:
             # if everything went well, build with make and install
             return self.make()
         except Exception as e:
-            print "Excetption while building: ", e
+            print "Exception while building: ", e
             self.exit(exit_codes["BUILD_FAIL"], "building with cmake failed")
 
     # Clean cmake build folder
@@ -689,11 +693,37 @@ class vm:
         # If everything went well we can return
         return self
 
+# Fallback to default
+def load_with_default_config(use_default, path = default_json):
 
-# Load a single vm config. Fallback to default
-def load_single_config(path = default_json):
+    # load default config
+    conf = {}
+    if use_default == True:
+        info("Loading default config.")
+        conf = load_config(default_config)
 
-    config = default_config
+    # load user config (or fallback)
+    user_conf = load_config(path)
+
+    if user_conf:
+        if use_default == False:
+            # return user_conf as is
+            return user_conf
+        else:
+            # extend (override) default config with user config
+            for key, value in user_conf.iteritems():
+                conf[key] = value
+            info(str(conf))
+            return conf
+    else:
+        return conf
+
+    program_exit(73, "No config found. Try enable default config.")
+
+# Load a vm config.
+def load_config(path):
+
+    config = {}
     description = None
 
     # If path is explicitly "None", try current dir
@@ -723,8 +753,6 @@ def load_single_config(path = default_json):
             info("No valid config found: ", e)
             program_exit(73, "No valid config files in " + path)
 
-    else:
-        info("Falling back to default config")
 
     if config.has_key("description"):
         description = config["description"]

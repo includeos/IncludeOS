@@ -1,0 +1,10 @@
+{
+  "description" : "Single virtio nic with extended cpu features",
+  "net" : [
+    {"device" : "virtio", "backend" : "tap" }
+  ],
+  "cpu" : {
+    "model" : "host",
+    "features" : ["xsave", "avx", "aes"]
+  }
+}
