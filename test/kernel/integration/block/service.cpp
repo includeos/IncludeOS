@@ -48,15 +48,6 @@ void Service::ready()
 {
   static int sleeps = 0;
 
-  Timers::oneshot(std::chrono::seconds(5), [](auto){
-      INFO("Test","About half way done (%i / 10)", sleeps);
-      Expects(sleeps < 10);
-    });
-
-  Timers::oneshot(std::chrono::seconds(20), [](auto){
-      Expects(sleeps >= 10);
-    });
-
   int n = 10;
   for (int i = 0; i < n; i++) {
     sleep(1);

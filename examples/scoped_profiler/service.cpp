@@ -44,10 +44,10 @@ void Service::start(const std::string&)
 
   // static IP in case DHCP fails
   net::Inet4::ifconfig(
-    { 10,0,0,42 },     // IP
-    { 255,255,255,0 }, // Netmask
-    { 10,0,0,1 },      // Gateway
-    { 10,0,0,1 });     // DNS
+    { 10,0,0,42 },      // IP
+    { 255,255,255,0 },  // Netmask
+    { 10,0,0,1 },       // Gateway
+    { 8,8,8,8 });       // DNS
 
   // Set up a TCP server on port 80
   auto& server = inet.tcp().listen(80);

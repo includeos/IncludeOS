@@ -27,14 +27,14 @@ Inet4::Inet4(hw::Nic& nic)
     gateway_(IP4::ADDR_ANY),
     dns_server(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ip4_(*this),
-    icmp_(*this), udp_(*this), tcp_(*this), dns(*this),
+    icmp_(*this), udp_(*this), tcp_(*this), dns_(*this),
     MTU_(nic.MTU())
 {
   static_assert(sizeof(IP4::addr) == 4, "IPv4 addresses must be 32-bits");
 
   /** SMP related **/
   this->cpu_id = SMP::cpu_id();
-  INFO("Inet4", "Bringing up %s on CPU %d", 
+  INFO("Inet4", "Bringing up %s on CPU %d",
         ifname().c_str(), this->get_cpu_id());
 
   /** Upstream delegates */
@@ -93,6 +93,20 @@ Inet4::Inet4(hw::Nic& nic)
     this->move_to_this_cpu();
   }
 #endif
+}
+
+void Inet4::error_report(Error_type type, Error_code code, Packet_ptr orig_pckt) {
+  auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(orig_pckt));
+
+  if (pckt_ip4->ip_protocol() == Protocol::UDP) {
+    auto pckt_udp = static_unique_ptr_cast<PacketUDP>(std::move(pckt_ip4));
+    udp_.error_report(type, code, pckt_udp->ip_src(), pckt_udp->src_port(),
+      pckt_udp->ip_dst(), pckt_udp->dst_port());
+  } else if (pckt_ip4->ip_protocol() == Protocol::TCP) {
+    auto pckt_tcp = static_unique_ptr_cast<tcp::Packet>(std::move(pckt_ip4));
+    tcp_.error_report(type, code, pckt_tcp->ip_src(), pckt_tcp->src_port(),
+      pckt_tcp->ip_dst(), pckt_tcp->dst_port());
+  }
 }
 
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {

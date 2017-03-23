@@ -20,6 +20,7 @@
 #include <net/ip4/udp.hpp>
 #include <net/util.hpp>
 #include <memory>
+#include <net/ip4/icmp4.hpp>
 
 namespace net {
 
@@ -34,22 +35,49 @@ namespace net {
 
   void UDP::receive(net::Packet_ptr pckt)
   {
-    auto udp = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
+    auto udp_packet = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
 
     debug("<%s> UDP", stack_.ifname().c_str());
     debug("\t Source port: %u, Dest. Port: %u Length: %u\n",
-          udp->src_port(), udp->dst_port(), udp->length());
+          udp_packet->src_port(), udp_packet->dst_port(), udp_packet->length());
 
-    auto it = ports_.find(udp->dst_port());
+    auto it = ports_.find(udp_packet->dst_port());
     if (LIKELY(it != ports_.end())) {
       debug("<%s> UDP found listener on port %u\n",
-              stack_.ifname().c_str(), udp->dst_port());
-      it->second.internal_read(std::move(udp));
+              stack_.ifname().c_str(), udp_packet->dst_port());
+      it->second.internal_read(std::move(udp_packet));
       return;
     }
 
     debug("<%s> UDP: nobody listening on %u. Drop!\n",
-            stack_.ifname().c_str(), udp->dst_port());
+            stack_.ifname().c_str(), udp_packet->dst_port());
+
+    // Sending ICMP error message of type Destination Unreachable and code PORT
+    // But only if the destination IP address is not broadcast or multicast
+    auto ip4_packet = static_unique_ptr_cast<PacketIP4>(std::move(udp_packet));
+    if (ip4_packet->ip_dst() != IP4::ADDR_BCAST and (ip4_packet->ip_dst().part(3) <= 224 or
+      ip4_packet->ip_dst().part(3) >= 239))
+    {
+      stack_.icmp().destination_unreachable(std::move(ip4_packet), icmp4::code::Dest_unreachable::PORT);
+    }
+  }
+
+  void UDP::error_report(Error_type type, Error_code code,
+    IP4::addr src_addr, port_t src_port, IP4::addr dest_addr, port_t dest_port) {
+    // Report to application layer that got an ICMP error message of type and code (reason and subreason)
+    // Should be possible to enable and disable this error report
+
+    // Find UDPSocket
+    auto it = ports_.find(src_port);
+    if (LIKELY(it != ports_.end())) {
+      debug("<%s> UDP Error report: Found listener on port %u\n",
+              stack_.ifname().c_str(), src_port);
+      it->second.error_read(type, code, src_addr, src_port, dest_addr, dest_port);
+      return;
+    }
+
+    debug("<%s> UDP Error report: Nobody listening on %u. Drop!\n",
+            stack_.ifname().c_str(), src_port);
   }
 
   UDPSocket& UDP::bind(UDP::port_t port)

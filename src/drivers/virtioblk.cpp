@@ -34,7 +34,7 @@ void null_deleter(uint8_t*) {};
 #include <statman>
 
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
-  : Virtio(d), hw::Block_device(), req(queue_size(0), 0, iobase()), inflight(0)
+  : Virtio(d), hw::Block_device(), req(device_name() + ".req0", queue_size(0), 0, iobase()), inflight(0)
 {
   INFO("VirtioBlk", "Block_devicer initializing");
   {
@@ -74,7 +74,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
          "Negotiated needed features");
 
   // Step 1 - Initialize REQ queue
-  auto success = assign_queue(0, (uint32_t) req.queue_desc());
+  auto success = assign_queue(0, req.queue_desc());
   CHECK(success, "Request queue assigned (0x%x) to device",
         (uint32_t) req.queue_desc());
 

@@ -75,7 +75,9 @@ namespace net
     const Byte* buf() const noexcept
     { return &buf_[0]; }
 
-    /** Get the start of the layer currently being accessed */
+    /** Get the start of the layer currently being accessed
+     *  Returns a pointer to the start of the header
+     */
     Byte_ptr layer_begin() const noexcept
     { return layer_begin_; }
 

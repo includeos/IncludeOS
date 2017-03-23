@@ -32,7 +32,7 @@
 #include <vector>
 
 #include <nic.hpp>
-#include "ip4/icmpv4.hpp"
+#include "ip4/icmp4.hpp"
 
 namespace net {
 
@@ -96,7 +96,7 @@ namespace net {
     static Inet& up()
     {
       if (_ip4_list.size() < 1)
-        printf("<Inet> Is bringing up an IP stack without any IP addresses");      
+        printf("<Inet> Is bringing up an IP stack without any IP addresses");
       static Inet instance;
       return instance;
     }

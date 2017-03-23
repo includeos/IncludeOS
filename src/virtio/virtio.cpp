@@ -134,23 +134,18 @@ Virtio::Virtio(hw::PCI_Device& dev)
   }
 
   INFO("Virtio", "Initialization complete");
-
-  // It would be nice if we new that all queues were the same size.
-  // Then we could pass this size on to the device-specific constructor
-  // But, it seems there aren't any guarantees in the standard.
-
-  // @note this is "the Legacy interface" according to Virtio std. 4.1.4.8.
-  // uint32_t queue_size = hw::inpd(_iobase + 0x0C);
 }
 
-void Virtio::get_config(void* buf, int len){
+void Virtio::get_config(void* buf, int len)
+{
   // io addr is different when MSI-X is enabled
   uint32_t ioaddr = _iobase;
   ioaddr += (has_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
 
   uint8_t* ptr = (uint8_t*) buf;
-  for (int i = 0; i < len; i++)
+  for (int i = 0; i < len; i++) {
     ptr[i] = hw::inp(ioaddr + i);
+  }
 }
 
 
@@ -162,21 +157,21 @@ uint8_t Virtio::get_legacy_irq()
 {
   // Get legacy IRQ from PCI
   uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
-  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
+  if ((value & 0xFF) != 0xFF) {
     return value & 0xFF;
   }
   return 0;
 }
 
-uint32_t Virtio::queue_size(uint16_t index){
+uint32_t Virtio::queue_size(uint16_t index) {
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
   return hw::inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
 }
 
-#define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)
-bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
+bool Virtio::assign_queue(uint16_t index, const void* queue_desc)
+{
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::page_nr_from_addr(queue_desc));
+  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::addr_to_page((uintptr_t) queue_desc));
 
   if (_pcidev.has_msix())
   {
@@ -187,28 +182,20 @@ bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
     assert(hw::inpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR) == index);
   }
 
-  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::page_nr_from_addr(queue_desc);
+  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::addr_to_page((uintptr_t) queue_desc);
 }
 
-uint32_t Virtio::probe_features(){
-  return hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
+uint32_t Virtio::probe_features() {
+  return hw::inpd(iobase() + VIRTIO_PCI_HOST_FEATURES);
 }
 
-void Virtio::negotiate_features(uint32_t features){
-  _features = hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
-  //_features &= features; //SanOS just adds features
-  _features = features;
-  debug("<Virtio> Wanted features: 0x%lx \n",_features);
+void Virtio::negotiate_features(uint32_t features) {
+  //_features = hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
+  this->_features = features;
+  debug("<Virtio> Wanted features: 0x%lx \n", _features);
   hw::outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
   _features = probe_features();
   debug("<Virtio> Got features: 0x%lx \n",_features);
-
-}
-
-void Virtio::setup_complete(bool ok){
-  uint8_t status = ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
-  debug("<VIRTIO> status: %i ",status);
-  hw::outp(_iobase + VIRTIO_PCI_STATUS, hw::inp(_iobase + VIRTIO_PCI_STATUS) | status);
 }
 
 void Virtio::move_to_this_cpu()
@@ -230,4 +217,14 @@ void Virtio::move_to_this_cpu()
       IRQ_manager::get().subscribe(this->irqs[i], nullptr);
     }
   }
+}
+
+void Virtio::setup_complete(bool ok)
+{
+  uint8_t value = hw::inp(_iobase + VIRTIO_PCI_STATUS);
+  value |= ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
+  if (!ok) {
+    INFO("Virtio", "Setup failed, status: %hhx", value);
+  }
+  hw::outp(_iobase + VIRTIO_PCI_STATUS, value);
 }

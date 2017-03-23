@@ -11,4 +11,4 @@ from subprocess import call
 from vmrunner import vmrunner
 vm = vmrunner.vms[0]
 
-vm.cmake().boot(30).clean()
+vm.cmake().boot(40).clean()

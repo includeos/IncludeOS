@@ -10,8 +10,6 @@ includeos_src = os.environ.get('INCLUDEOS_SRC',
 sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
-import socket
-
 from vmrunner.prettify import color
 
 # Get an auto-created VM from the vmrunner

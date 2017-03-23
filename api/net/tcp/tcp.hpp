@@ -137,6 +137,9 @@ namespace net {
     }; // < class Port_util
     using Port_lists      = std::map<tcp::Address, Port_util>;
 
+    using Error_type      = Inet<IP4>::Error_type;
+    using Error_code      = Inet<IP4>::Error_code;
+
   public:
     /////// TCP Stuff - Relevant to the protocol /////
 
@@ -485,6 +488,9 @@ namespace net {
      */
     IPStack& stack() const
     { return inet_; }
+
+    void error_report(Error_type type, Error_code code,
+      tcp::Address src_addr, tcp::port_t src_port, tcp::Address dest_addr, tcp::port_t dest_port);
 
   private:
     IPStack&      inet_;
