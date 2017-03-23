@@ -53,8 +53,8 @@ namespace net {
     IP4::addr gateway() override
     { return gateway_; }
 
-    IP4::addr dns() override
-    { return dns_server; }
+    IP4::addr dns_addr() override
+    { return dns_server_; }
 
     IP4& ip_obj() override
     { return ip4_; }
@@ -139,7 +139,7 @@ namespace net {
     void resolve(const std::string& hostname,
                  resolve_func<IP4>  func) override
     {
-      dns_.resolve(this->dns_server, hostname, func);
+      dns_.resolve(this->dns_server_, hostname, func);
     }
 
     void set_gateway(IP4::addr gateway) override
@@ -149,7 +149,7 @@ namespace net {
 
     void set_dns_server(IP4::addr server) override
     {
-      this->dns_server = server;
+      this->dns_server_ = server;
     }
 
     /**
@@ -179,12 +179,12 @@ namespace net {
       this->ip4_addr_  = addr;
       this->netmask_   = nmask;
       this->gateway_    = gateway;
-      this->dns_server = (dns == IP4::ADDR_ANY) ? gateway : dns;
+      this->dns_server_ = (dns == IP4::ADDR_ANY) ? gateway : dns;
       INFO("Inet4", "Network configured");
       INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
       INFO2("Netmask: \t%s", netmask_.str().c_str());
       INFO2("Gateway: \t%s", gateway_.str().c_str());
-      INFO2("DNS Server: \t%s", dns_server.str().c_str());
+      INFO2("DNS Server: \t%s", dns_server_.str().c_str());
     }
 
     virtual void
@@ -256,7 +256,7 @@ namespace net {
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
     IP4::addr gateway_;
-    IP4::addr dns_server;
+    IP4::addr dns_server_;
 
     // This is the actual stack
     hw::Nic& nic_;

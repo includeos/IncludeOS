@@ -493,7 +493,7 @@ namespace net {
     void error_report(const Error&);
 
     /** Is called when an ICMP error message has been received in response to a sent TCP packet */
-    void error_report(const ICMP_error& err, Quadruple quad);
+    void error_report(const ICMP_error& err, Socket dest);
 
   private:
     IPStack&      inet_;

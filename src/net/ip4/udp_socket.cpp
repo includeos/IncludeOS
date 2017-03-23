@@ -41,15 +41,7 @@ namespace net
   }
 
   void UDPSocket::internal_read(UDP::Packet_ptr udp)
-  {
-    on_read_handler(udp->ip_src(), udp->src_port(), (const char*) udp->data(), udp->data_length());
-  }
-
-  void UDPSocket::error_read(Error_type type, Error_code code,
-    IP4::addr src_addr, port_t src_port, IP4::addr dest_addr, port_t dest_port)
-  {
-    on_error_handler(type, code, src_addr, src_port, dest_addr, dest_port);
-  }
+  { on_read_handler(udp->ip_src(), udp->src_port(), (const char*) udp->data(), udp->data_length()); }
 
   void UDPSocket::sendto (
      addr_t destIP,
@@ -66,6 +58,7 @@ namespace net
     // UDP packets are meant to be sent immediately, so try flushing
     udp_.flush();
   }
+
   void UDPSocket::bcast (
       addr_t srcIP,
       port_t port,

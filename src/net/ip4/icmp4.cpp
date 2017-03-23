@@ -53,27 +53,27 @@ namespace net {
 
     switch(req.type()) {
     case (ICMP_type::ECHO):
-      debug("<ICMP> PING from %s\n", req.ip().src().str().c_str());
+      debug("<ICMP> PING from %s\n", req.ip().src().ip_str().c_str());
       ping_reply(req);
       break;
     case (ICMP_type::ECHO_REPLY):
-      debug("<ICMP> PING Reply from %s\n", req.ip().src().str().c_str());
+      debug("<ICMP> PING Reply from %s\n", req.ip().ip_src().str().c_str());
       execute_ping_callback(req);
       break;
     case (ICMP_type::DEST_UNREACHABLE):
     case (ICMP_type::REDIRECT):
     case (ICMP_type::TIME_EXCEEDED):
     case (ICMP_type::PARAMETER_PROBLEM):
-      debug("<ICMP> ICMP error message from %s\n", req.ip().src().str().c_str());
+      debug("<ICMP> ICMP error message from %s\n", req.ip().ip_src().str().c_str());
       forward_to_transport_layer(req);
       break;
     case (ICMP_type::TIMESTAMP):
-      debug("<ICMP> TIMESTAMP from %s\n", req.ip().src().str().c_str());
+      debug("<ICMP> TIMESTAMP from %s\n", req.ip().ip_src().str().c_str());
       // TODO May
       // timestamp_reply(req);
       break;
     case (ICMP_type::TIMESTAMP_REPLY):
-      debug("<ICMP> TIMESTAMP REPLY from %s\n", req.ip().src().str().c_str());
+      debug("<ICMP> TIMESTAMP REPLY from %s\n", req.ip().ip_src().str().c_str());
       // TODO May
       break;
     default:  // ICMP_type::NO_REPLY
@@ -89,7 +89,7 @@ namespace net {
     int payload_idx = req.payload_index();
     auto packet_ptr = req.release();
     packet_ptr->increment_layer_begin(payload_idx);
-
+    
     // inet forwards to transport layer (UDP or TCP)
     inet_.error_report(err, std::move(packet_ptr));
   }
