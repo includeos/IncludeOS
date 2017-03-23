@@ -49,7 +49,10 @@ echo -e "\n\n>>> Best guess for compatible compilers: $CXX / $CC"
 echo -e "\n\n>>> Building IncludeOS"
 mkdir -p $INCLUDEOS_SRC/build
 pushd $INCLUDEOS_SRC/build
-cmake $INCLUDEOS_SRC -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX -Dtests=$INCLUDEOS_ENABLE_TEST
+cmake $INCLUDEOS_SRC \
+	  -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX \
+	  -Dtests=$INCLUDEOS_ENABLE_TEST \
+	  -DBUNDLE_LOC=$BUNDLE_LOC
 make PrecompiledLibraries
 make -j 4
 make install

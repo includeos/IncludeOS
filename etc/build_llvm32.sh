@@ -1,5 +1,5 @@
 #! /bin/bash
-set -e # Exit immediately on error (we're trapping the exit signal)
+set -e # Exit immediately on error (were trapping the exit signal)
 trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 
@@ -20,7 +20,7 @@ trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
 libcxx_inc=$BUILD_DIR/$llvm_src/projects/libcxx/include
-LLVM_TAG=RELEASE_381/final
+#LLVM_TAG=RELEASE_381/final
 
 if [ ! -z $install_llvm_dependencies ]; then
     # Dependencies
@@ -107,6 +107,8 @@ OPTS+=-LIBCXXABI_USE_LLVM_UNWINDER=ON" "
 
 echo "LLVM CMake Build options:" $OPTS
 
+# CXX flags
+CXX_FLAGS="-std=c++14 -nostdlibinc -mavx -maes -mfma"
 
 # CMAKE configure step
 #
@@ -116,7 +118,7 @@ echo "LLVM CMake Build options:" $OPTS
 # 1. IncludeOS_posix has to come first, as it provides lots of C11 prototypes that libc++ relies on, but which newlib does not provide (see our math.h)
 # 2. libcxx_inc must come before newlib, due to math.h function wrappers around C99 macros (signbit, nan etc)
 # 3. newlib_inc provodes standard C headers
-cmake -GNinja $OPTS  -DCMAKE_CXX_FLAGS="-std=c++14 -nostdlibinc  -I$IncludeOS_posix -I$libcxx_inc -I$newlib_inc" $BUILD_DIR/$llvm_src
+cmake -GNinja $OPTS  -DCMAKE_CXX_FLAGS="$CXX_FLAGS -I$IncludeOS_posix -I$libcxx_inc -I$newlib_inc" $BUILD_DIR/$llvm_src
 
 
 #
