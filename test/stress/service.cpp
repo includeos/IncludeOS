@@ -88,9 +88,9 @@ void Service::start(const std::string&)
   srand(OS::cycles_since_boot());
 
   // Set up a TCP server
-  auto& server = inet.tcp().bind(80);
+  auto& server = inet.tcp().listen(80);
   inet.tcp().set_MSL(5s);
-  auto& server_mem = inet.tcp().bind(4243);
+  auto& server_mem = inet.tcp().listen(4243);
 
   // Set up a UDP server
   net::UDP::port_t port = 4242;
