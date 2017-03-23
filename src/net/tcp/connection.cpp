@@ -31,9 +31,9 @@ using namespace std;
 /*
   This is most likely used in a ACTIVE open
 */
-Connection::Connection(TCP& host, port_t local_port, net::Socket remote, ConnectCallback callback)
+Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback)
   : host_(host),
-    local_port_(local_port),
+    local_(local),
     remote_(remote),
     state_(&Connection::Closed::instance()),
     prev_state_(state_),
@@ -87,10 +87,6 @@ void Connection::reset_callbacks()
   on_rtx_timeout_.reset();
   on_close_.reset();
   read_request.clean_up();
-}
-
-net::Socket Connection::local() const noexcept {
-  return {host_.address(), local_port_};
 }
 
 uint16_t Connection::MSDS() const noexcept {

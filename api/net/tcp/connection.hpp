@@ -50,7 +50,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
 public:
   /** Connection identifier */
-  using Tuple = std::pair<port_t, Socket>;
+  using Tuple = std::pair<Socket, Socket>;
   /** Interface for TCP states */
   class State;
   /** Disconnect event */
@@ -517,7 +517,7 @@ public:
    * @return     A "tuple" of [[local port], [remote ip, remote port]]
    */
   Connection::Tuple tuple() const noexcept
-  { return {local_port_, remote_}; }
+  { return {local_, remote_}; }
 
   /// --- State checks --- ///
 
@@ -610,14 +610,15 @@ public:
    * @return     A 16 bit unsigned port number
    */
   port_t local_port() const noexcept
-  { return local_port_; }
+  { return local_.port(); }
 
   /**
    * @brief      The local Socket bound to this connection.
    *
    * @return     A TCP Socket
    */
-  Socket local() const noexcept;
+  Socket local() const noexcept
+  { return local_; }
 
   /**
    * @brief      The remote Socket bound to this connection.
@@ -777,7 +778,7 @@ public:
    * @param[in]  remote      The remote socket
    * @param[in]  callback    The connection callback
    */
-  Connection(TCP& host, port_t local_port, Socket remote, ConnectCallback callback = nullptr);
+  Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback = nullptr);
 
   Connection(const Connection&)             = delete;
   Connection(Connection&&)                  = delete;
@@ -819,7 +820,7 @@ private:
   TCP& host_;
 
   /* End points. */
-  port_t local_port_;
+  Socket local_;
   Socket remote_;
 
   /** The current state the Connection is in. Handles most of the logic. */
