@@ -31,8 +31,8 @@ pushd build_gcc
 
 # Configure
 echo -e "\n\n >>> Configuring GCC \n"
-../gcc-$gcc_version/configure 
-	--target=$TARGET \ 
+../gcc-$gcc_version/configure \
+	--target=$TARGET \
 	--prefix="$TEMP_INSTALL_DIR" \
 	--disable-nls \
 	--enable-languages=c,c++ \

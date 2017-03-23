@@ -12,6 +12,8 @@ sudo apt-get install -y cmake ninja-build subversion zlib1g-dev libtinfo-dev
 
 cd $BUILD_DIR
 
+download_llvm=${download_llvm:-"1"}	# This should be more dynamic
+
 if [ ! -z $download_llvm ]; then
     # Clone LLVM
     svn co http://llvm.org/svn/llvm-project/llvm/tags/$LLVM_TAG llvm

@@ -26,6 +26,25 @@ export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-proj
 [ ! -v do_llvm ] &&  do_llvm=1
 [ ! -v do_bridge ] &&  do_bridge=1
 
+############################################################
+# COMMAND LINE PROPERTIES:
+############################################################
+
+# Initialize variables:
+install_yes=0
+
+while getopts "h?y" opt; do
+    case "$opt" in
+    h|\?)
+        printf "%s\n" "Options:"\
+                "-y Yes: answer yes to install"\
+        exit 0
+        ;;
+    y)  install_yes=1
+        ;;
+    esac
+done
+
 # Install build dependencies
 DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
 
@@ -33,6 +52,32 @@ echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $DEPS_BUILD \n"
 sudo apt-get update
 sudo apt-get install -y $DEPS_BUILD
+
+# Print currently set install options
+printf "\n\n>>> Bundle will be created with the following options:\n\n"
+printf "    %-25s %-25s %s\n"\
+	   "Env variable" "Description" "Value"\
+	   "------------" "-----------" "-----"\
+	   "INCLUDEOS_SRC" "Source dir of IncludeOS" "$INCLUDEOS_SRC"\
+	   "binutils_version" "binutils version" "$binutils_version"\
+	   "newlib_version" "newlib version" "$newlib_version"\
+	   "gcc_version" "gcc version" "$gcc_version"\
+	   "clang_version" "clang version" "$clang_version"\
+	   "LLVM_TAG" "LLVM version" "$LLVM_TAG"\
+
+# Give user option to evaluate install options
+if tty -s && [ $install_yes -eq 0 ]; then
+	read -p "Is this correct [Y/n]?" answer
+	answer=${answer:-"Y"}	# Default value
+	case $answer in
+		[yY] | [yY][Ee][Ss] )
+			true;;
+		[nN] | [n|N][O|o] )
+			exit 1;;
+		*) echo "Invalid input"
+		   exit 1;;
+	esac
+fi
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
