@@ -56,7 +56,7 @@ namespace net {
         return h1 ^ h2;
       }
     };
-    
+
     // write buffer for sendq
     struct WriteBuffer
     {
@@ -110,11 +110,11 @@ namespace net {
     void set_network_out(downstream del)
     { network_layer_out_ = del; }
 
-    /** Is called when an Error has occurred in the OS */
-    void error_report(const Error&);
-
-    /** Is called when an ICMP error message has been received in response to a sent UDP datagram */
-    void error_report(const ICMP_error& err, Socket dest);
+    /**
+     *  Is called when an Error has occurred in the OS
+     *  F.ex.: An ICMP error message has been received in response to a sent UDP datagram
+    */
+    void error_report(const Error& err, Socket dest);
 
     /** Send UDP datagram from source ip/port to destination ip/port.
 
@@ -170,7 +170,7 @@ namespace net {
 
   private:
     static constexpr uint16_t exp_t_ {60 * 5};
-    
+
     std::chrono::minutes        flush_interval_{5};
     downstream                  network_layer_out_;
     Stack&                      stack_;
@@ -199,7 +199,7 @@ namespace net {
     /** The error callbacks that the user has sent in via the UDPSockets' sendto and bcast methods */
     std::unordered_map<Dest_tuple, Error_entry, pair_hash> error_callbacks_;
 
-    /** Timer that flushes expired error entries/callbacks (no errors have occurred) */    
+    /** Timer that flushes expired error entries/callbacks (no errors have occurred) */
     Timer flush_timer_{{ *this, &UDP::flush_expired }};
 
     friend class net::UDPSocket;

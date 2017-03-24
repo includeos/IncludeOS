@@ -244,15 +244,8 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-void TCP::error_report(const Error&) {
+void TCP::error_report(const Error& /* err */, Socket /* dest */) {
   // TODO
-}
-
-void TCP::error_report(const ICMP_error& /* err */, Socket /* dest */) {
-  // TODO
-  debug("<TCP::error_report> Error %s : %s occurred when sending data to %s port %u\n",
-    err.icmp_type_str().c_str(), err.icmp_code_str().c_str(),
-    dest.address().to_string().c_str(), dest.port());
 }
 
 void TCP::transmit(tcp::Packet_ptr packet) {

@@ -63,13 +63,9 @@ namespace net {
     }
   }
 
-  void UDP::error_report(const Error&) {
-    // TODO
-  }
-
-  void UDP::error_report(const ICMP_error& err, Socket dest) {
+  void UDP::error_report(const Error& err, Socket dest) {
+    // If err is an ICMP error message:
     // Report to application layer that got an ICMP error message of type and code (reason and subreason)
-    // Should be possible to enable and disable this error report
 
     // Find callback with this destination address and port, and call it with the incoming err
     auto it = error_callbacks_.find(std::make_pair(dest.address(), dest.port()));

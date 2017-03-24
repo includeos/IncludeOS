@@ -80,13 +80,12 @@ namespace net {
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
 
-    void error_report(const Error&) override;
-
     /**
-     *  Error report in accordance with RFC 1122
+     *  Error reporting
+     *  Incl. ICMP error report in accordance with RFC 1122
      *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
     */
-    void error_report(const ICMP_error& err, Packet_ptr orig_pckt) override;
+    void error_report(const Error& err, Packet_ptr orig_pckt) override;
 
     /**
      * Set the forwarding delegate used by this stack.

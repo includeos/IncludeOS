@@ -96,11 +96,7 @@ Inet4::Inet4(hw::Nic& nic)
 #endif
 }
 
-void Inet4::error_report(const Error&) {
-  // TODO
-}
-
-void Inet4::error_report(const ICMP_error& err, Packet_ptr orig_pckt) {
+void Inet4::error_report(const Error& err, Packet_ptr orig_pckt) {
   auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(orig_pckt));
 
   if (pckt_ip4->ip_protocol() == Protocol::UDP) {

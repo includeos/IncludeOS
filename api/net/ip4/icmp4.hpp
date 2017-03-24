@@ -184,7 +184,7 @@ namespace net {
      *  Find the ping-callback that this packet is a response to, execute it and erase the object
      *  from the ping_callbacks_ map
      */
-    void execute_ping_callback(icmp4::Packet& ping_response) {
+    inline void execute_ping_callback(icmp4::Packet& ping_response) {
       // Find callback matching the reply
       auto it = ping_callbacks_.find(std::make_pair(ping_response.id(), ping_response.sequence()));
 
@@ -211,7 +211,8 @@ namespace net {
       icmp_func callback = nullptr, uint16_t sequence = 0);
 
     /** Send response without id and sequence number */
-    void send_response(icmp4::Packet& req, ICMP_type type, ICMP_code code, uint8_t error_pointer = std::numeric_limits<uint8_t>::max());
+    void send_response(icmp4::Packet& req, ICMP_type type, ICMP_code code,
+      uint8_t error_pointer = std::numeric_limits<uint8_t>::max());
 
     /**
      *  Responding to a ping (echo) request

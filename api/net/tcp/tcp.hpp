@@ -486,11 +486,11 @@ namespace net {
     IPStack& stack() const
     { return inet_; }
 
-    /** Is called when an Error has occurred in the OS */
-    void error_report(const Error&);
-
-    /** Is called when an ICMP error message has been received in response to a sent TCP packet */
-    void error_report(const ICMP_error& err, Socket dest);
+    /**
+     *  Is called when an Error has occurred in the OS
+     *  F.ex.: Is called when an ICMP error message has been received in response to a sent TCP packet
+    */
+    void error_report(const Error& err, Socket dest);
 
   private:
     IPStack&      inet_;

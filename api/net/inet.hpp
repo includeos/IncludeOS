@@ -99,13 +99,12 @@ namespace net {
     /** Get the ICMP protocol object for this interface */
     virtual ICMPv4&     icmp()    = 0;
 
-    virtual void error_report(const Error&) = 0;
-
     /**
-     *  Error report in accordance with RFC 1122
+     *  Error reporting
+     *  Incl. ICMP error report in accordance with RFC 1122
      *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
     */
-    virtual void error_report(const ICMP_error& err, Packet_ptr orig_pckt) = 0;
+    virtual void error_report(const Error& err, Packet_ptr orig_pckt) = 0;
 
 
 
