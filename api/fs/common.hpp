@@ -188,7 +188,7 @@ namespace fs {
   using on_init_func  = delegate<void(error_t, File_system&)>;
   using on_ls_func    = delegate<void(error_t, dirvec_t)>;
   using on_read_func  = delegate<void(error_t, buffer_t, uint64_t)>;
-  using on_stat_func  = delegate<void(error_t, const Dirent&)>;
+  using on_stat_func  = delegate<void(error_t, Dirent)>;
 
 
   struct List
