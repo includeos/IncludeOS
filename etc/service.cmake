@@ -25,7 +25,7 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-set(CAPABS "-msse3 -fstack-protector-strong")
+set(CAPABS "-msse3 -mfpmath=sse -fstack-protector-strong")
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures

@@ -112,7 +112,7 @@ OPTS+=-DLIBCXXABI_USE_LLVM_UNWINDER=ON" "
 echo "LLVM CMake Build options:" $OPTS
 
 # Compiler flags
-CXX_FLAGS="-std=c++14 -nostdlibinc -msse3 -maes"
+CXX_FLAGS="-std=c++14 -nostdlibinc -msse3 -mfpmath=sse"
 
 # CMAKE configure step
 #
