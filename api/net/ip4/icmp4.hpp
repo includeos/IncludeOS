@@ -27,18 +27,23 @@ namespace net {
   /**
    *  User friendly ICMP packet (view) used in ping callback (icmp_func)
    */
-  class ICMP_packet {
+  class ICMP_view {
 
     using ICMP_type = ICMP_error::ICMP_type;
     using ICMP_code = ICMP_error::ICMP_code;
 
   public:
-    ICMP_packet() {}
+    ICMP_view() {}
 
-    ICMP_packet(uint16_t id, uint16_t seq, IP4::addr src, IP4::addr dst, ICMP_type type, ICMP_code code,
-      uint16_t checksum, const std::string& payload)
-    : id_{id}, seq_{seq}, src_{src}, dst_{dst}, type_{type}, code_{code},
-      checksum_{checksum}, payload_{payload}
+    ICMP_view(icmp4::Packet& pckt)
+    : id_{pckt.id()},
+      seq_{pckt.sequence()},
+      src_{pckt.ip().ip_src()},
+      dst_{pckt.ip().ip_dst()},
+      type_{pckt.type()},
+      code_{pckt.code()},
+      checksum_{pckt.checksum()},
+      payload_{(const char*) pckt.payload().data()}
     {}
 
     uint16_t id() const noexcept
@@ -80,7 +85,7 @@ namespace net {
     uint16_t      checksum_{0};
     std::string   payload_{""};
 
-  }; // < class ICMP_packet
+  }; // < class ICMP_view
 
 
   /**
@@ -94,7 +99,7 @@ namespace net {
   public:
     using Stack = IP4::Stack;
     using Tuple = std::pair<uint16_t, uint16_t>;  // identifier and sequence number
-    using icmp_func = delegate<void(ICMP_packet)>;
+    using icmp_func = delegate<void(ICMP_view)>;
 
     // Initialize
     ICMPv4(Stack&);
@@ -144,12 +149,12 @@ namespace net {
     Stack& inet_;
     downstream network_layer_out_ =   nullptr;
     uint8_t includeos_payload_[48] =  {'I','N','C','L','U','D',
-                                      'E','O','S',1,2,3,4,5,
+                                      'E','O','S','1','2','3','4','5',
                                       'A','B','C','D','E','F','G','H',
                                       'I','J','K','L','M','N','O','P',
                                       'Q','R','S','T','U','V','W','X',
-                                      'Y','Z',1,2,3,4,5,6,
-                                      7,8};
+                                      'Y','Z','1','2','3','4','5','6',
+                                      '7','8'};
 
     inline bool is_full_header(size_t pckt_size)
     { return (pckt_size >= sizeof(IP4::header) + icmp4::Packet::header_size()); }
@@ -179,14 +184,12 @@ namespace net {
      *  Find the ping-callback that this packet is a response to, execute it and erase the object
      *  from the ping_callbacks_ map
      */
-    inline void execute_ping_callback(icmp4::Packet& ping_response) {
+    void execute_ping_callback(icmp4::Packet& ping_response) {
       // Find callback matching the reply
       auto it = ping_callbacks_.find(std::make_pair(ping_response.id(), ping_response.sequence()));
 
       if (it != ping_callbacks_.end()) {
-        it->second.callback(ICMP_packet{ping_response.id(), ping_response.sequence(), ping_response.ip().ip_src(),
-          ping_response.ip().ip_dst(), ping_response.type(), ping_response.code(), ping_response.checksum(),
-          std::string{ping_response.payload().begin(), ping_response.payload().end()}});
+        it->second.callback(ICMP_view{ping_response});
         Timers::stop(it->second.timer_id);
         ping_callbacks_.erase(it);
       }
@@ -198,7 +201,7 @@ namespace net {
 
       if (it != ping_callbacks_.end()) {
         // Data back to user if no response found
-        it->second.callback(ICMP_packet{});
+        it->second.callback(ICMP_view{});
         Timers::stop(it->second.timer_id);
         ping_callbacks_.erase(it);
       }

@@ -29,7 +29,7 @@ void Service::start(const std::string&)
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
   // ping gateway
-  inet.icmp().ping(inet.gateway(), [](ICMP_packet pckt) {
+  inet.icmp().ping(inet.gateway(), [](ICMP_view pckt) {
     if (pckt)
       printf("Received packet from gateway\n%s\n", pckt.to_string().c_str());
     else
@@ -38,7 +38,7 @@ void Service::start(const std::string&)
 
   /* If IP forwarding on:
   // ping google.com with callback
-  inet.icmp().ping(IP4::addr{193,90,147,109}, [](ICMP_packet pckt) {
+  inet.icmp().ping(IP4::addr{193,90,147,109}, [](ICMP_view pckt) {
     if (pckt.is_reply()) // or pckt.type() != icmp4::Type::NO_REPLY
       printf("Received packet\n%s\n", pckt.to_string().c_str());
     else
@@ -48,7 +48,7 @@ void Service::start(const std::string&)
 
   // No reply-pings
   // Waiting 30 seconds for reply
-  inet.icmp().ping(IP4::addr{10,0,0,42}, [](ICMP_packet pckt) {
+  inet.icmp().ping(IP4::addr{10,0,0,42}, [](ICMP_view pckt) {
     if (pckt)
       printf("Received packet from 10.0.0.42\n%s\n", pckt.to_string().c_str());
     else
@@ -56,7 +56,7 @@ void Service::start(const std::string&)
   });
 
   // Waiting 30 seconds for reply
-  inet.icmp().ping(IP4::addr{10,0,0,43}, [](ICMP_packet pckt) {
+  inet.icmp().ping(IP4::addr{10,0,0,43}, [](ICMP_view pckt) {
     if (pckt)
       printf("Received packet from 10.0.0.43\n%s\n", pckt.to_string().c_str());
     else

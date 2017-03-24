@@ -20,9 +20,9 @@
 
 namespace net {
 
-  // ---------------------------- ICMP_packet ----------------------------
+  // ---------------------------- ICMP_view ----------------------------
 
-  std::string ICMP_packet::to_string() const {
+  std::string ICMP_view::to_string() const {
     if (type_ == ICMP_type::NO_REPLY)
       return "No reply received";
 
@@ -89,7 +89,7 @@ namespace net {
     int payload_idx = req.payload_index();
     auto packet_ptr = req.release();
     packet_ptr->increment_layer_begin(payload_idx);
-    
+
     // inet forwards to transport layer (UDP or TCP)
     inet_.error_report(err, std::move(packet_ptr));
   }
