@@ -80,7 +80,8 @@ OPTS+=-DCMAKE_BUILD_TYPE=MinSizeRel" "
 OPTS+=-DCMAKE_C_COMPILER=clang-$clang_version" "
 OPTS+=-DCMAKE_CXX_COMPILER=clang++-$clang_version" "
 
-TRIPLE=i686-pc-none-elf
+#TRIPLE=i686-pc-none-elf
+TRIPLE=i686-pc-linux-elf
 
 OPTS+=-DTARGET_TRIPLE=$TRIPLE" "
 OPTS+=-DLLVM_BUILD_32_BITS=ON" "

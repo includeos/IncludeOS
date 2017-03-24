@@ -21,10 +21,10 @@ export llvm_build=build_llvm
 export binutils_version=${binutils_version:-2.28}		# ftp://ftp.gnu.org/gnu/binutils
 export newlib_version=${newlib_version:-2.5.0}			# ftp://sourceware.org/pub/newlib
 export gcc_version=${gcc_version:-6.3.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
-export clang_version=${clang_version:-3.8}				# http://releases.llvm.org/
-export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-project/llvm/tags
+export clang_version=${clang_version:-3.9}				# http://releases.llvm.org/
+export LLVM_TAG=${LLVM_TAG:-RELEASE_391/final}			# http://llvm.org/svn/llvm-project/llvm/tags
 
-export libcpp_version=${libcpp_version:-3.8.1}			# Not in use anywhere???
+export libcpp_version=${libcpp_version:-3.9.1}			# Not in use anywhere???
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
