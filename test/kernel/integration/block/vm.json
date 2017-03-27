@@ -1,4 +1,3 @@
 {"image" : "test_block.img",
- "time_sensitive" : "True",
- "cpu" : "host"
+ "time_sensitive" : "True"
 }
