@@ -62,7 +62,7 @@ namespace icmp4 {
     { return header().sequence; }
 
     int payload_index()
-    { return pckt_->data_end() - &(header().payload[0]); }
+    { return pckt_->ip_header_length() + header_size(); }
 
     Span payload()
     { return {&(header().payload[0]), pckt_->data_end() - &(header().payload[0]) }; }
