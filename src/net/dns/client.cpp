@@ -32,7 +32,7 @@ namespace net
 
     // store the request for later match
     requests_.emplace(std::piecewise_construct,
-      std::forward_as_tuple(request.get_id()),
+      std::forward_as_tuple(key),
       std::forward_as_tuple(std::move(request), std::move(func)));
 
     // send request to DNS server

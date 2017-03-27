@@ -98,7 +98,7 @@ namespace net {
     bool is_icmp() const noexcept
     { return t_ == Type::ICMP; }
 
-    virtual const char* what()
+    virtual const char* what() const noexcept
     { return msg_; }
 
   private:

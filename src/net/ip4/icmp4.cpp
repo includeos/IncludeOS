@@ -138,11 +138,26 @@ namespace net {
   void ICMPv4::ping(IP4::addr ip)
   { send_request(ip, ICMP_type::ECHO, 0); }
 
-  void ICMPv4::ping(IP4::addr ip, icmp_func callback)
-  { send_request(ip, ICMP_type::ECHO, 0, callback); }
+  void ICMPv4::ping(IP4::addr ip, icmp_func callback, int sec_wait)
+  { send_request(ip, ICMP_type::ECHO, 0, callback, sec_wait); }
+
+  void ICMPv4::ping(const std::string& hostname) {
+    inet_.resolve(hostname, [this] (IP4::addr a, Error err) {
+      if (!err and a != IP4::ADDR_ANY)
+        ping(a);
+    });
+  }
+
+  /* TODO
+  void ICMPv4::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
+    inet_.resolve(hostname, [this, callback, sec_wait] (IP4::addr a, Error err) {
+      if (!err and a != IP4::ADDR_ANY)
+        ping(a, callback, sec_wait);
+    });
+  }*/
 
   void ICMPv4::send_request(IP4::addr dest_ip, ICMP_type type, ICMP_code code,
-    icmp_func callback, uint16_t sequence) {
+    icmp_func callback, int sec_wait, uint16_t sequence) {
 
     // Provision new IP4-packet
     icmp4::Packet req(inet_.ip_packet_factory());
@@ -161,7 +176,7 @@ namespace net {
     if (callback) {
       ping_callbacks_.emplace(std::piecewise_construct,
                               std::forward_as_tuple(std::make_pair(temp_id, sequence)),
-                              std::forward_as_tuple(ICMP_callback{*this, std::make_pair(temp_id, sequence), callback}));
+                              std::forward_as_tuple(ICMP_callback{*this, std::make_pair(temp_id, sequence), callback, sec_wait}));
     }
 
     debug("<ICMP> Transmitting request to %s\n", dest_ip.to_string().c_str());

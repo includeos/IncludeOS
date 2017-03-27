@@ -43,7 +43,7 @@ namespace net {
       type_{pckt.type()},
       code_{pckt.code()},
       checksum_{pckt.checksum()},
-      payload_{(const char*) pckt.payload().data()}
+      payload_{(const char*) pckt.payload().data(), (size_t) pckt.payload().size()}
     {}
 
     uint16_t id() const noexcept
@@ -101,6 +101,8 @@ namespace net {
     using Tuple = std::pair<uint16_t, uint16_t>;  // identifier and sequence number
     using icmp_func = delegate<void(ICMP_view)>;
 
+    static const int SEC_WAIT_FOR_REPLY = 40;
+
     // Initialize
     ICMPv4(Stack&);
 
@@ -142,7 +144,10 @@ namespace net {
     void timestamp_reply(icmp4::Packet& req);
 
     void ping(IP4::addr ip);
-    void ping(IP4::addr ip, icmp_func callback);
+    void ping(IP4::addr ip, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
+
+    void ping(const std::string& hostname);
+    void ping(const std::string& hostname, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
 
   private:
     static int request_id_; // message identifier for messages originating from IncludeOS
@@ -167,10 +172,10 @@ namespace net {
       icmp_func callback;
       Timers::id_t timer_id;
 
-      ICMP_callback(ICMPv4& icmp, Tuple t, icmp_func cb)
+      ICMP_callback(ICMPv4& icmp, Tuple t, icmp_func cb, int sec_wait)
       : tuple{t}, callback{cb}
       {
-        timer_id = Timers::oneshot(std::chrono::seconds(40), [&icmp, t](Timers::id_t) {
+        timer_id = Timers::oneshot(std::chrono::seconds(sec_wait), [&icmp, t](Timers::id_t) {
           icmp.remove_ping_callback(t);
         });
       }
@@ -208,7 +213,7 @@ namespace net {
     }
 
     void send_request(IP4::addr dest_ip, ICMP_type type, ICMP_code code,
-      icmp_func callback = nullptr, uint16_t sequence = 0);
+      icmp_func callback = nullptr, int sec_wait = SEC_WAIT_FOR_REPLY, uint16_t sequence = 0);
 
     /** Send response without id and sequence number */
     void send_response(icmp4::Packet& req, ICMP_type type, ICMP_code code,
