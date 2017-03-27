@@ -61,6 +61,11 @@ namespace icmp4 {
     uint16_t sequence() const noexcept
     { return header().sequence; }
 
+    /**
+     *  Where the payload of an ICMP packet starts, calculated from the start of the IP header
+     *  The payload of an ICMP error message packet contains the original packet sent that caused an
+     *  ICMP error to occur (the original IP header and 8 bytes of the original packet's data)
+     */
     int payload_index()
     { return pckt_->ip_header_length() + header_size(); }
 
