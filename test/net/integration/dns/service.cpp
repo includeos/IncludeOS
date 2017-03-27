@@ -20,6 +20,20 @@
 
 using namespace net;
 
+void print_error(const std::string& hostname, IP4::addr server, Error& err) {
+  printf("Error occurred when resolving IP address of %s with DNS server %s: %s\n", hostname.c_str(),
+        server.to_string().c_str(), err.what());
+}
+
+void print_not_resolved(const std::string& hostname) {
+  printf("%s couldn't be resolved\n", hostname.c_str());
+}
+
+void print_success(const std::string& hostname, IP4::addr server, IP4::addr res) {
+  printf("Resolved IP address of %s with DNS server %s: %s\n", hostname.c_str(),
+          server.to_string().c_str(), res.to_string().c_str());
+}
+
 void Service::start(const std::string&)
 {
   auto& inet = net::Inet4::stack<0>();
@@ -29,14 +43,74 @@ void Service::start(const std::string&)
     { 10, 0, 0, 1 },        // Gateway
     {  8, 8, 8, 8 }         // DNS
   );
-  printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
-  inet.resolve("google.com", [] (IP4::addr a, Error err) {
-    printf("Resolve callback. Address: %s\n", a.to_string().c_str());
+  const std::string google        = "google.com";
+  const std::string github        = "github.com";
+  const std::string guardian      = "theguardian.com";
+  const std::string hotmail       = "hotmail.com";
+  const std::string some_address  = "some_address_that_doesnt_exist.com";
 
-    if (err)
-      printf("Error occurred: %s\n", err.what());
-    else
-      printf("No error occurred\n");
+  const IP4::addr stack_dns       = inet.dns_addr();
+  const IP4::addr gateway         = inet.gateway();
+  const IP4::addr level3          = IP4::addr{4, 2, 2, 1};
+
+  inet.resolve(google, [google, stack_dns] (IP4::addr res, Error err) {
+    if (err) {
+      print_error(google, stack_dns, err);
+    }
+    else {
+      if (res != IP4::ADDR_ANY)
+        print_success(google, stack_dns, res);
+      else
+        print_not_resolved(google);
+    }
+  });
+
+  inet.resolve(github, [github, stack_dns] (IP4::addr res, Error err) {
+    if (err) {
+      print_error(github, stack_dns, err);
+    }
+    else {
+      if (res != IP4::ADDR_ANY)
+        print_success(github, stack_dns, res);
+      else
+        print_not_resolved(github);
+    }
+  });
+
+  inet.resolve(guardian, level3, [guardian, level3] (IP4::addr res, Error err) {
+    if (err) {
+      print_error(guardian, level3, err);
+    }
+    else {
+      if (res != IP4::ADDR_ANY)
+        print_success(guardian, level3, res);
+      else
+        print_not_resolved(guardian);
+    }
+  });
+
+  inet.resolve(hotmail, gateway, [hotmail, gateway] (IP4::addr res, Error err) {
+    if (err) {
+      print_error(hotmail, gateway, err);
+    }
+    else {
+      if (res != IP4::ADDR_ANY)
+        print_success(hotmail, gateway, res);
+      else
+        print_not_resolved(hotmail);
+    }
+  });
+
+  inet.resolve(some_address, [some_address, stack_dns] (IP4::addr res, Error err) {
+    if (err) {
+      print_error(some_address, stack_dns, err);
+    }
+    else {
+      if (res != IP4::ADDR_ANY)
+        print_success(some_address, stack_dns, res);
+      else
+        print_not_resolved(some_address);
+    }
   });
 }
