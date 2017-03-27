@@ -141,6 +141,13 @@ namespace net {
       dns_.resolve(this->dns_server_, hostname, func);
     }
 
+    void resolve(const std::string& hostname,
+                  IP4::addr         server,
+                  resolve_func<IP4> func) override
+    {
+      dns_.resolve(server, hostname, func);
+    }
+
     void set_gateway(IP4::addr gateway) override
     {
       this->gateway_ = gateway;

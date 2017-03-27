@@ -114,7 +114,7 @@ namespace net {
 
     /** DNS resolution */
     virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
-
+    virtual void resolve(const std::string& hostname, typename IPV::addr server, resolve_func<IPV> func) = 0;
 
     ///
     /// LINK LAYER
