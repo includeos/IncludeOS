@@ -77,7 +77,7 @@ namespace net
       }
 
       void finish()
-      { callback(request.getFirstIP4()); }
+      { callback(request.getFirstIP4(), Error{}); }
 
       void start_timeout(Timer::duration_t timeout)
       { timer.start(timeout); }

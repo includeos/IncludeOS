@@ -44,7 +44,7 @@ namespace net {
     using IP_packet_factory = delegate<typename IPV::IP_packet_ptr(Protocol)>;
 
     template <typename IPv>
-    using resolve_func = delegate<void(typename IPv::addr)>;
+    using resolve_func = delegate<void(typename IPv::addr, Error)>;
 
     ///
     /// NETWORK CONFIGURATION

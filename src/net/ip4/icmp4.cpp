@@ -82,7 +82,7 @@ namespace net {
   }
 
   void ICMPv4::forward_to_transport_layer(icmp4::Packet& req) {
-    ICMP_error err{Error::Type::ICMP, "ICMP error message received", req.type(), req.code()};
+    ICMP_error err{req.type(), req.code()};
 
     // The icmp4::Packet's payload contains the original packet sent that resulted
     // in an error

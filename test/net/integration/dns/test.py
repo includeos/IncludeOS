@@ -19,7 +19,7 @@ def DNS_test(trigger_line):
   dns = ""
 
 # Add custom event-handler
-vm.on_output("", DNS_test)
+vm.on_output("Service IP address is 10.0.0.48", DNS_test)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(20).clean()

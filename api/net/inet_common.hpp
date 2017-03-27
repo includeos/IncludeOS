@@ -68,7 +68,7 @@ namespace net {
 
   /**
    *  General Error class for the OS
-   *  ICMP_error in icmp4_common.hpp f.ex. inherits from this class
+   *  ICMP_error f.ex. inherits from this class
    */
   class Error {
   public:
@@ -81,25 +81,25 @@ namespace net {
       // Add more as needed
     };
 
-    virtual Type type()
-    { return t_; }
-
-    virtual const char* what()
-    { return msg_; }
-
-    virtual ~Error() = default;
-
     Error() = default;
 
     Error(Type t, const char* msg)
       : t_{t}, msg_{msg}
     {}
 
+    virtual ~Error() = default;
+
+    Type type()
+    { return t_; }
+
     operator bool() const noexcept
     { return t_ != Type::no_error; }
 
-    virtual bool is_icmp() const noexcept
+    bool is_icmp() const noexcept
     { return t_ == Type::ICMP; }
+
+    virtual const char* what()
+    { return msg_; }
 
   private:
     Type t_{Type::no_error};
@@ -123,8 +123,9 @@ namespace net {
       : Error{}
     {}
 
-    ICMP_error(Type t, const char* msg, ICMP_type icmp_type, ICMP_code icmp_code)
-      : Error{t, msg}, icmp_type_{icmp_type}, icmp_code_{icmp_code}
+    ICMP_error(ICMP_type icmp_type, ICMP_code icmp_code)
+      : Error{Error::Type::ICMP, "ICMP error message received"},
+        icmp_type_{icmp_type}, icmp_code_{icmp_code}
     {}
 
     ICMP_type icmp_type() const noexcept
