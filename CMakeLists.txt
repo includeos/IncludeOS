@@ -23,10 +23,21 @@ execute_process(COMMAND git describe --dirty
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
 
+option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
+if(cpu_feat_vanilla)
+  include("cmake/vanilla.cmake")
+  set(DEFAULT_SETTINGS_CMAKE "vanilla.cmake") # for service cmake
+  set(DEFAULT_VM "vm.vanilla.json") # vmrunner
+else()
+  include("cmake/cpu_feat.cmake")
+  set(DEFAULT_SETTINGS_CMAKE "cpu_feat.cmake") # for service cmake
+  set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
+endif(cpu_feat_vanilla)
+
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "-mavx -maes -mfma -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
+set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -160,10 +171,20 @@ endif(rapidjson)
 #
 # Installation
 #
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
-install(DIRECTORY vmrunner DESTINATION includeos/)
+
+# Install cmake files
+install(FILES etc/service.cmake DESTINATION includeos)
+install(FILES etc/library.cmake DESTINATION includeos)
+install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION includeos RENAME settings.cmake) # cpu_feat_vanilla opt
+
+# Install vmrunner
+install(DIRECTORY vmrunner DESTINATION includeos)
+install(FILES vmrunner/${DEFAULT_VM} DESTINATION includeos/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
+
+# Install toolchain
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
+
+# Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
 # Install boot util
