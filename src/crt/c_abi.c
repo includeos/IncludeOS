@@ -23,6 +23,7 @@
 #include <sys/reent.h>
 #include <malloc.h>
 #include <string.h>
+#include <locale.h>
 #include <kprint>
 
 #define HEAP_ALIGNMENT   63
@@ -37,6 +38,8 @@ caddr_t heap_end;
 __FILE* stdin;
 __FILE* stdout;
 __FILE* stderr;
+extern char* __c_locale;
+const struct lconv* currentlocale;
 
 // stack-protector guard
 const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
@@ -78,6 +81,9 @@ void _init_c_runtime()
   stdin  = _REENT->_stdin;  // stdin  == 1
   stdout = _REENT->_stdout; // stdout == 2
   stderr = _REENT->_stderr; // stderr == 3
+
+  // C locale initialization
+  __c_locale = _setlocale_r (_REENT, LC_ALL, "C");
 
   /// initialize exceptions before we can run constructors
   extern char __eh_frame_start[];

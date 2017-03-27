@@ -18,6 +18,10 @@
 #ifndef SYS_CTYPE_H
 #define SYS_CTYPE_H
 
+// newlib 2.5.0:
+//#define _LIBCPP_SUPPORT_XLOCALE_POSIX_L_FALLBACK_H
+//#define _LIBCPP_SUPPORT_NEWLIB_XLOCALE_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,7 +46,7 @@ inline int isalnum(int ch) {
 
 #include_next <ctype.h>
 
-#include <locale.h>
+//#include <locale.h>
 
 #ifdef __cplusplus
 extern "C" {

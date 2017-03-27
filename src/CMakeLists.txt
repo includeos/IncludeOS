@@ -58,7 +58,7 @@ set(OS_OBJECTS
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
-  posix/ucontext.cpp posix/ucontext_asm.asm
+  posix/ucontext.cpp posix/ucontext_asm.asm posix/locale.cpp
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
   posix/pwd.cpp
   ### x86 arch ###

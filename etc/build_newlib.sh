@@ -2,13 +2,13 @@
 . $INCLUDEOS_SRC/etc/set_traps.sh
 
 
-# Configure for an "unspecified x86 elf" target, 
+# Configure for an "unspecified x86 elf" target,
 
 pushd $BUILD_DIR
 NEWLIB_DIR="build_newlib"
 
 if [ ! -d newlib-$newlib_version ]; then
-    
+
     if [ ! -f newlib-$newlib_version.tar.gz ]; then
 	echo -e "\n\n >>> Getting newlib \n"
 	wget -c --trust-server-name ftp://sourceware.org/pub/newlib/newlib-$newlib_version.tar.gz
@@ -36,10 +36,13 @@ pushd $NEWLIB_DIR
 ../newlib-$newlib_version/configure \
 	--target=$TARGET \
 	--prefix=$PREFIX \
-	--enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib
+	AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib \
+  --enable-newlib-io-long-long --enable-newlib-io-c99-formats \
+  --enable-newlib-io-float --enable-newlib-io-long-double
 
-echo -e "\n\n >>> BUILDING NEWLIB \n\n"    
-make $num_jobs all 
+
+echo -e "\n\n >>> BUILDING NEWLIB \n\n"
+make $num_jobs all
 make install
 
 popd # NEWLIB_DIR
