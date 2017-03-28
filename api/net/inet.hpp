@@ -27,41 +27,45 @@
 
 namespace net {
 
-
-  class TCP;
-  class UDP;
-  class DHClient;
+  class   TCP;
+  class   UDP;
+  class   DHClient;
+  struct  ICMPv4;
 
   /**
    * An abstract IP-stack interface.
    * Provides a common interface for IPv4 and (future) IPv6, simplified with
    *  no constructors etc.
    **/
-  template <typename IPV >
+  template <typename IPV>
   struct Inet {
     using Stack = Inet<IPV>;
     using Forward_delg = delegate<void(Stack& source, typename IPV::IP_packet_ptr)>;
     using Route_checker = delegate<bool(typename IPV::addr)>;
     using IP_packet_factory = delegate<typename IPV::IP_packet_ptr(Protocol)>;
 
+    using Error_type = icmp4::Type;
+    using Error_code = uint8_t;
+
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
-
     using Vip_list = std::unordered_set<typename IPV::addr>;
-
 
     ///
     /// NETWORK CONFIGURATION
     ///
 
     /** Get IP address of this interface **/
-    virtual typename IPV::addr ip_addr() = 0;
+    virtual typename IPV::addr ip_addr()  = 0;
 
     /** Get netmask of this interface **/
-    virtual typename IPV::addr netmask() = 0;
+    virtual typename IPV::addr netmask()  = 0;
 
     /** Get default gateway for this interface **/
     virtual typename IPV::addr gateway()  = 0;
+
+    /** Get default dns for this interface **/
+    virtual typename IPV::addr dns()      = 0;
 
    /** Set default gateway for this interface */
     virtual void set_gateway(typename IPV::addr server) = 0;
@@ -114,6 +118,15 @@ namespace net {
 
     /** Get the UDP protocol object for this interface */
     virtual UDP& udp() = 0;
+
+    /** Get the ICMP protocol object for this interface */
+    virtual ICMPv4&     icmp()    = 0;
+
+    /**
+     *  Error report in accordance with RFC 1122
+     *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
+    */
+    virtual void error_report(Error_type type, Error_code code, Packet_ptr orig_pckt) = 0;
 
 
     ///

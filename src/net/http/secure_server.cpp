@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,18 +31,18 @@ inline std::unique_ptr<Botan::Private_Key> read_pkey(fs::Dirent& key_file)
 
 namespace http
 {
-  Secure_server::Secure_server(
-      const std::string& server_name,
-      fs::Dirent& file_ca_key,
-      fs::Dirent& file_ca_cert,
-      fs::Dirent& file_server_key,
-      TCP& tcp,
-      Request_handler cb)
-    : http::Server(tcp, cb), 
-      rng(get_rng())
-  {
-    on_connect = {this, &Secure_server::secure_connect};
 
+  Botan::RandomNumberGenerator& Secure_server::get_rng()
+  {
+    return ::get_rng();
+  }
+
+  void Secure_server::load_credentials(
+    const std::string& server_name,
+    fs::Dirent& file_ca_key,
+    fs::Dirent& file_ca_cert,
+    fs::Dirent& file_server_key)
+  {
     // load CA certificate
     assert(file_ca_cert.is_valid());
     auto ca_cert = file_ca_cert.read();
@@ -62,16 +62,28 @@ namespace http
     this->credman.reset(credman);
   }
 
-  Secure_server::Secure_server(
-      const std::string& server_name,
-      fs::Dirent& file_ca_key,
-      fs::Dirent& file_ca_cert,
-      fs::Dirent& file_server_key,
-      TCP& tcp)
-    : Secure_server(
-          server_name, 
-          file_ca_key, file_ca_cert, file_server_key, 
-          tcp, nullptr)
-  {}
+  void Secure_server::bind(const uint16_t port)
+  {
+    tcp_.listen(port, {this, &Secure_server::on_connect});
+    INFO("HTTPS Server", "Listening on port %u", port);
+  }
+
+  void Secure_server::on_connect(TCP_conn conn)
+  {
+    auto* ptr = new net::tls::Server(std::move(conn), rng, *credman);
+
+    ptr->on_connect(
+    [this, ptr] (net::Stream&)
+    {
+      // create and pass TLS socket
+      connect(std::unique_ptr<net::tls::Server>(ptr));
+    });
+
+    // this is ok due to the created Server_connection inside
+    // connect assigns a new on_close
+    ptr->on_close([ptr] {
+      delete ptr;
+    });
+  }
 
 }

@@ -22,8 +22,7 @@ namespace http {
   const Server::idle_duration Server::DEFAULT_IDLE_TIMEOUT{std::chrono::seconds(60)};
 
   Server::Server(TCP& tcp, Request_handler cb, idle_duration timeout)
-    : on_connect{this, &Server::connected},
-      tcp_(tcp),
+    : tcp_(tcp),
       on_request_(std::move(cb)),
       keep_alive_(true),
       timer_id_(Timers::UNUSED_ID),
@@ -39,8 +38,7 @@ namespace http {
   {
     Expects(on_request_ != nullptr);
 
-    tcp_.bind(port).on_connect(this->on_connect);
-    INFO("HTTP Server", "Listening on port %u", port);
+    bind(port);
 
     using namespace std::chrono;
 
@@ -61,6 +59,12 @@ namespace http {
     {
       Timers::stop(timer_id_);
     }
+  }
+
+  void Server::bind(const uint16_t port)
+  {
+    tcp_.listen(port, {this, &Server::on_connect});
+    INFO("HTTP Server", "Listening on port %u", port);
   }
 
   void Server::connect(Connection::Stream_ptr stream)

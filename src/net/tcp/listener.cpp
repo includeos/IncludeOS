@@ -23,8 +23,8 @@
 
 using namespace net::tcp;
 
-Listener::Listener(TCP& host, port_t port, ConnectCallback cb)
-  : host_(host), port_(port), syn_queue_(),
+Listener::Listener(TCP& host, Socket local, ConnectCallback cb)
+  : host_(host), local_(local), syn_queue_(),
     on_accept_({this, &Listener::default_on_accept}),
     on_connect_{std::move(cb)},
     _on_close_({host_, &TCP::close_listener})
@@ -38,9 +38,6 @@ bool Listener::default_on_accept(Socket) {
 bool Listener::syn_queue_full() const
 { return syn_queue_.size() >= host_.max_syn_backlog(); }
 
-Socket Listener::local() const {
-  return {host_.address(), port_};
-}
 
 void Listener::segment_arrived(Packet_ptr packet) {
   debug2("<Listener::segment_arrived> Received packet: %s\n",
@@ -87,7 +84,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
 
     auto& conn = *(syn_queue_.emplace(
       syn_queue_.cbegin(),
-      std::make_shared<Connection>(host_, port_, packet->source(), ConnectCallback{this, &Listener::connected})
+      std::make_shared<Connection>(host_, packet->destination(), packet->source(), ConnectCallback{this, &Listener::connected})
       )
     );
     conn->_on_cleanup({this, &Listener::remove});
@@ -143,7 +140,7 @@ void Listener::close() {
 
 std::string Listener::to_string() const {
   std::stringstream ss;
-  ss << "Port [ " << port_ << " ] " << " SynQueue ( " <<  syn_queue_.size() << " ) ";
+  ss << "[ " << local_.to_string() << " ] " << " SynQueue ( " <<  syn_queue_.size() << " ) ";
 
   for(auto& conn : syn_queue_)
     ss << "\n\t" << conn->to_string();

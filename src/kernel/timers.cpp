@@ -129,10 +129,11 @@ id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
           sched_timer(when, id);
 
           // Stat increment timer started
-          if (system.timers[id].is_oneshot())
-            (*system.oneshot_started)++;
-          else
-            (*system.periodic_started)++;
+          if (system.timers[id].is_oneshot()) {
+            if (system.oneshot_started) (*system.oneshot_started)++;
+          } else {
+            if (system.periodic_started) (*system.periodic_started)++;
+          }
 
           return id;
         }
@@ -156,10 +157,11 @@ id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
   sched_timer(when, id);
 
   // Stat increment timer started
-  if (system.timers[id].is_oneshot())
-    (*system.oneshot_started)++;
-  else
-    (*system.periodic_started)++;
+  if (system.timers[id].is_oneshot()) {
+    if (system.oneshot_started) (*system.oneshot_started)++;
+  } else {
+    if (system.periodic_started) (*system.periodic_started)++;
+  }
 
   return id;
 }

@@ -46,7 +46,7 @@ struct Addr {
    *
    * Create an IPv4 address object to represent the address <0.0.0.0>
    */
-  Addr() noexcept
+  constexpr Addr() noexcept
     : whole{}
   {}
 
@@ -60,7 +60,7 @@ struct Addr {
    *
    * @note The 32-bit value must be in network byte order
    */
-  Addr(const uint32_t ipv4_addr) noexcept
+  constexpr Addr(const uint32_t ipv4_addr) noexcept
     : whole{ipv4_addr}
   {}
 
@@ -81,7 +81,7 @@ struct Addr {
    * @param p4
    *  The fourth part of the IPv4 address
    */
-  Addr(const uint8_t p1, const uint8_t p2, const uint8_t p3, const uint8_t p4) noexcept
+  constexpr Addr(const uint8_t p1, const uint8_t p2, const uint8_t p3, const uint8_t p4) noexcept
     : whole(p1 | (p2 << 8) | (p3 << 16) | (p4 << 24))
   {}
 
@@ -135,7 +135,7 @@ struct Addr {
    *
    * @return The object that invoked this method
    */
-  Addr& operator=(const Addr other) noexcept {
+  constexpr Addr& operator=(const Addr other) noexcept {
     whole = other.whole;
     return *this;
   }
@@ -148,7 +148,7 @@ struct Addr {
    *
    * @return true if this object is equal to other, false otherwise
    */
-  bool operator==(const Addr other) const noexcept
+  constexpr bool operator==(const Addr other) const noexcept
   { return whole == other.whole; }
 
   /**
@@ -161,7 +161,7 @@ struct Addr {
    *
    * @note The 32-bit value must be in network byte order
    */
-  bool operator==(const uint32_t raw_addr) const noexcept
+  constexpr bool operator==(const uint32_t raw_addr) const noexcept
   { return whole == raw_addr; }
 
   /**
@@ -172,7 +172,7 @@ struct Addr {
    *
    * @return true if this object is not equal to other, false otherwise
    */
-  bool operator!=(const Addr other) const noexcept
+  constexpr bool operator!=(const Addr other) const noexcept
   { return not (*this == other); }
 
   /**
@@ -185,7 +185,7 @@ struct Addr {
    *
    * @note The 32-bit value must be in network byte order
    */
-  bool operator!=(const uint32_t raw_addr) const noexcept
+  constexpr bool operator!=(const uint32_t raw_addr) const noexcept
   { return not (*this == raw_addr); }
 
   /**
@@ -196,7 +196,7 @@ struct Addr {
    *
    * @return true if this object is less-than other, false otherwise
    */
-  bool operator<(const Addr other) const noexcept
+  constexpr bool operator<(const Addr other) const noexcept
   { return ntohl(whole) < ntohl(other.whole); }
 
   /**
@@ -209,7 +209,7 @@ struct Addr {
    *
    * @note The 32-bit value must be in network byte order
    */
-  bool operator<(const uint32_t raw_addr) const noexcept
+  constexpr bool operator<(const uint32_t raw_addr) const noexcept
   { return ntohl(whole) < ntohl(raw_addr); }
 
   /**
@@ -220,7 +220,7 @@ struct Addr {
    *
    * @return true if this object is greater-than other, false otherwise
    */
-  bool operator>(const Addr other) const noexcept
+  constexpr bool operator>(const Addr other) const noexcept
   { return not (*this < other); }
 
   /**
@@ -233,7 +233,7 @@ struct Addr {
    *
    * @note The 32-bit value must be in network byte order
    */
-  bool operator>(const uint32_t raw_addr) const noexcept
+  constexpr bool operator>(const uint32_t raw_addr) const noexcept
   { return not (*this < raw_addr); }
 
   /**
@@ -246,7 +246,7 @@ struct Addr {
    * @return An IPv4 address object containing the result of the
    * operation
    */
-  Addr operator&(const Addr other) const noexcept
+  constexpr Addr operator&(const Addr other) const noexcept
   { return Addr{whole & other.whole}; }
 
   /**
@@ -259,7 +259,7 @@ struct Addr {
    * @return An IPv4 address object containing the result of the
    * operation
    */
-  Addr operator|(const Addr other) const noexcept
+  constexpr Addr operator|(const Addr other) const noexcept
   { return Addr{whole | other.whole}; }
 
   /**
@@ -269,7 +269,7 @@ struct Addr {
    * @return An IPv4 address object containing the result of the
    * operation
    */
-  Addr operator~() const noexcept
+  constexpr Addr operator~() const noexcept
   { return Addr{~whole}; }
 
   /**

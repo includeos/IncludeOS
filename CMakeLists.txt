@@ -26,7 +26,7 @@ string(STRIP ${OS_VERSION} OS_VERSION)
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "-msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
+set(CAPABS "-mavx -maes -mfma -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -138,6 +138,7 @@ if(tests)
   ExternalProject_Add(unittests
     PREFIX unittests
     SOURCE_DIR ${INCLUDEOS_ROOT}/test
+    BINARY_DIR unittests
     CMAKE_ARGS -DINCLUDEOS_ROOT=${INCLUDEOS_ROOT} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
     )
   #add_subdirectory(test)

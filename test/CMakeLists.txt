@@ -104,7 +104,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/statman.cpp
   ${TEST}/util/unit/syslogd_test.cpp
   ${TEST}/util/unit/syslog_facility_test.cpp
-  ${TEST}/util/unit/tar_test.cpp
+  #${TEST}/util/unit/tar_test.cpp
   ${TEST}/util/unit/uri_test.cpp
 )
 
@@ -159,7 +159,7 @@ set(OS_SOURCES
   ${SRC}/net/inet_common.cpp
   ${SRC}/net/inet4.cpp
   ${SRC}/net/ip4/arp.cpp
-  ${SRC}/net/ip4/icmpv4.cpp
+  ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
   ${SRC}/net/ip4/udp.cpp
   ${SRC}/net/ip4/udp_socket.cpp

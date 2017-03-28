@@ -33,7 +33,7 @@ void Service::start(const std::string&)
     { 10,200,0,1 },     // IP
     { 255,255,0,0 },    // Netmask
     { 10,0,0,1 },       // Gateway
-    { 10,0,0,1 });      // DNS
+    { 8,8,8,8 });       // DNS
 
   IP4::addr pool_start{10,200,100,20};
   IP4::addr pool_end{10,200,100,30};

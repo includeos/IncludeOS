@@ -22,6 +22,7 @@
 #include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
 #include <statman>
+#include <net/ip4/icmp4.hpp>
 
 namespace net {
 
@@ -121,7 +122,8 @@ namespace net {
       return;
     }
 
-    switch(packet->ip_protocol()){
+    // Pass packet to it's respective protocol controller
+    switch (packet->ip_protocol()) {
     case Protocol::ICMPv4:
       debug2("\t Type: ICMP\n");
       icmp_handler_(std::move(packet));
@@ -134,8 +136,14 @@ namespace net {
       tcp_handler_(std::move(packet));
       debug2("\t Type: TCP\n");
       break;
+
     default:
-      debug("\t Type: UNKNOWN %hhu\n", packet->ip_protocol());
+      debug("\t Type: UNKNOWN %hhu. Dropping. \n", packet->ip_protocol());
+
+      // Send ICMP error of type Destination Unreachable and code PROTOCOL
+      // @note: If dest. is broadcast or multicast it should be dropped by now
+      stack_.icmp().destination_unreachable(std::move(packet), icmp4::code::Dest_unreachable::PROTOCOL);
+
       drop(std::move(packet), Direction::Upstream, Drop_reason::Unknown_proto);
       break;
     }

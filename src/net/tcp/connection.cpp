@@ -31,9 +31,9 @@ using namespace std;
 /*
   This is most likely used in a ACTIVE open
 */
-Connection::Connection(TCP& host, port_t local_port, Socket remote, ConnectCallback callback)
+Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback)
   : host_(host),
-    local_port_(local_port),
+    local_(local),
     remote_(remote),
     state_(&Connection::Closed::instance()),
     prev_state_(state_),
@@ -87,10 +87,6 @@ void Connection::reset_callbacks()
   on_rtx_timeout_.reset();
   on_close_.reset();
   read_request.clean_up();
-}
-
-Socket Connection::local() const noexcept {
-  return {host_.address(), local_port_};
 }
 
 uint16_t Connection::MSDS() const noexcept {
@@ -153,10 +149,15 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 
 void Connection::write(Chunk buffer)
 {
-  writeq.push_back(std::move(buffer));
+  // Only write if allowed
   if(state_->is_writable())
   {
-    host_.request_offer(*this);
+    // add to queue
+    writeq.push_back(std::move(buffer));
+
+    // request packets if connected, else let ACK clock do the writing
+    if(state_->is_connected())
+      host_.request_offer(*this);
   }
 }
 
@@ -916,7 +917,6 @@ std::string Connection::TCB::to_string() const {
 }
 
 void Connection::parse_options(const Packet& packet) {
-  assert(packet.has_tcp_options());
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
         packet.offset(), packet.tcp_options_length());
 

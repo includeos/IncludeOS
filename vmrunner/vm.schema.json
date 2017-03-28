@@ -63,7 +63,8 @@
 
     "cpu" : {
       "description" : "The virtual CPU",
-      "enum" : ["host", "pentium", "qemu64", "kvm64"]
+      "type"    : "string",
+      "default" : "host,+xsave,+avx,+aes"
     },
 
     "smp" : {
