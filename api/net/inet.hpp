@@ -19,6 +19,7 @@
 #define NET_INET_HPP
 
 #include <chrono>
+#include <unordered_set>
 
 #include <net/inet_common.hpp>
 #include <hw/mac_addr.hpp>
@@ -45,6 +46,8 @@ namespace net {
 
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr)>;
+
+    using Vip_list = std::unordered_set<typename IPV::addr>;
 
 
     ///
@@ -80,19 +83,37 @@ namespace net {
     /** Use DHCP to configure this interface */
     virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) = 0;
 
+    /** Get a list of virtual IP4 addresses assigned to this interface */
+    virtual const Vip_list virtual_ips() const = 0;
+
+    /** Check if an IP is a (possibly virtual) loopback address */
+    virtual bool is_loopback(typename IPV::addr a) const = 0;
+
+    /** Add an IP address as a virtual loopback IP */
+    virtual void add_vip(typename IPV::addr a) = 0;
+
+    /** Remove an IP address from the virtual loopback IP list */
+    virtual void remove_vip(typename IPV::addr a) = 0;
+
+    /** Determine the appropriate source address for a destination. */
+    virtual typename IPV::addr get_source_addr(typename IPV::addr dest) = 0;
+
+    /** Determine if an IP address is a valid source address for this stack */
+    virtual bool is_valid_source(typename IPV::addr) = 0;
+
 
     ///
     /// PROTOCOL OBJECTS
     ///
 
     /** Get the IP protocol object for this interface */
-    virtual IPV&       ip_obj() = 0;
+    virtual IPV& ip_obj() = 0;
 
     /** Get the TCP protocol object for this interface */
-    virtual TCP&       tcp()    = 0;
+    virtual TCP& tcp() = 0;
 
     /** Get the UDP protocol object for this interface */
-    virtual UDP&       udp()    = 0;
+    virtual UDP& udp() = 0;
 
 
     ///
@@ -108,13 +129,13 @@ namespace net {
     ///
 
     /** Get the network interface device */
-    virtual hw::Nic&           nic() = 0;
+    virtual hw::Nic& nic() = 0;
 
     /** Get interface name for this interface **/
-    virtual std::string        ifname() const = 0;
+    virtual std::string ifname() const = 0;
 
     /** Get linklayer address for this interface **/
-    virtual MAC::Addr       link_addr() = 0;
+    virtual MAC::Addr link_addr() = 0;
 
     /** Add cache entry to the link / IP address cache */
     virtual void cache_link_addr(typename IPV::addr, MAC::Addr) = 0;
@@ -123,7 +144,7 @@ namespace net {
     virtual void flush_link_cache() = 0;
 
     /** Set the regular interval for link address cache flushing */
-    virtual void set_link_cache_flush_interval(std::chrono::minutes);
+    virtual void set_link_cache_flush_interval(std::chrono::minutes) = 0;
 
 
     ///
