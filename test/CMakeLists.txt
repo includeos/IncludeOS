@@ -50,7 +50,6 @@ include_directories(
 set(LEST_UTIL
   ${TEST}/lest_util/lestmain.cxx
   ${TEST}/lest_util/os_mock.cpp
-  ${TEST}/lest_util/inet4_mock.cpp
 )
 
 set(TEST_SOURCES
