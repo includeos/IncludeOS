@@ -99,7 +99,7 @@ void Service::start(const std::string&)
   });
 
   // Set up a TCP server on port 80
-  auto& server = inet.tcp().bind(80);
+  auto& server = inet.tcp().listen(80);
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.on_connect(

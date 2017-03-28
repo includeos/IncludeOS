@@ -70,9 +70,6 @@ set(OS_OBJECTS
 )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
-
-set_source_files_properties(os virtio/virtio.cpp PROPERTIES COMPILE_FLAGS "-mno-avx -msse3")
-
 add_dependencies(os PrecompiledLibraries botan)
 
 file(GLOB CXX_ABI crt/cxxabi/*.cpp)
