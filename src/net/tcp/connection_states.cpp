@@ -960,6 +960,13 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
       tcb.SND.WL2 = in->ack();
       // end of correction
 
+      // [RFC 6298] p.4 (5.7)
+      if(UNLIKELY(tcp.syn_rtx_ > 0))
+      {
+        tcp.syn_rtx_ = 0;
+        tcp.rttm.RTO = RTTM::seconds(3.0);
+      }
+
       tcp.set_state(Connection::Established::instance());
       const seq_t snd_nxt = tcb.SND.NXT;
       tcp.signal_connect(); // NOTE: User callback
@@ -1060,6 +1067,13 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
       tcp.set_state(Connection::Established::instance());
 
       tcp.handle_ack(*in);
+
+      // [RFC 6298] p.4 (5.7)
+      if(UNLIKELY(tcp.syn_rtx_ > 0))
+      {
+        tcp.syn_rtx_ = 0;
+        tcp.rttm.RTO = RTTM::seconds(3.0);
+      }
 
       tcp.signal_connect(); // NOTE: User callback
 

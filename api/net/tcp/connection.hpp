@@ -1264,7 +1264,7 @@ private:
     Retransmission timeout limit reached
   */
   bool rto_limit_reached() const
-  { return rtx_attempt_ >= 15 or syn_rtx_ >= 5; };
+  { return rtx_attempt_ >= 14 or syn_rtx_ >= 4; };
 
   /*
     Remove all packets acknowledge by ACK in retransmission queue

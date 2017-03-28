@@ -685,7 +685,7 @@ void Connection::retransmit() {
       writeq.size(), buf.length() - buf.acknowledged);
     fill_packet(*packet, buf.data() + writeq.acked(), buf.length() - writeq.acked());
   }
-
+  rtx_attempt_++;
   packet->set_seq(cb.SND.UNA);
 
   /*
@@ -766,16 +766,11 @@ void Connection::rtx_timeout() {
   }
 
   // retransmit SND.UNA
-  retransmit();
+  retransmit(); // increases rtx_attempt
 
-  if(cb.SND.UNA != cb.ISS) {
-    // "back off" timer
-    rttm.RTO *= 2.0;
-  }
-  // we never queue SYN packets since they don't carry data..
-  else {
-    rttm.RTO = std::chrono::seconds(3);
-  }
+  // "back off" timer
+  rttm.RTO *= 2.0;
+
   // timer need to be restarted
   rtx_start();
 
@@ -789,7 +784,7 @@ void Connection::rtx_timeout() {
 
       ssthresh = max (FlightSize / 2, 2*SMSS)
   */
-  if(rtx_attempt_++ == 0)
+  if(rtx_attempt_ == 1)
   {
     // RFC 4015
     /*
@@ -895,7 +890,7 @@ void Connection::clean_up() {
   read_request.clean_up();
   _on_cleanup_.reset();
 
-  debug("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
+  debug2("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
 }
 
 std::string Connection::TCB::to_string() const {
