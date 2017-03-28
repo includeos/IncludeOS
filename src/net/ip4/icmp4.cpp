@@ -148,13 +148,12 @@ namespace net {
     });
   }
 
-  /* TODO
   void ICMPv4::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
-    inet_.resolve(hostname, [this, callback, sec_wait] (IP4::addr a, Error err) {
+    inet_.resolve(hostname, Inet<IP4>::resolve_func<IP4>::make_packed([this, callback, sec_wait] (IP4::addr a, Error err) {
       if (!err and a != IP4::ADDR_ANY)
         ping(a, callback, sec_wait);
-    });
-  }*/
+    }));
+  }
 
   void ICMPv4::send_request(IP4::addr dest_ip, ICMP_type type, ICMP_code code,
     icmp_func callback, int sec_wait, uint16_t sequence) {

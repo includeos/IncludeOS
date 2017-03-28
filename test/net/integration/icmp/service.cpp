@@ -38,16 +38,14 @@ void Service::start(const std::string&)
       printf("No reply received from gateway\n");
   });
 
-  /* TODO
-  // If IP forwarding on:
+  /* If IP forwarding on:
   inet.icmp().ping("google.com", [](ICMP_view pckt) {
     if (pckt)
       printf("Received packet\n%s\n", pckt.to_string().c_str());
     else
       printf("No reply received from google.com. Identifier: %u. Sequence number: %u\n", pckt.id(), pckt.seq());
-  });*/
+  });
 
-  /* If IP forwarding on:
   // ping google.com with callback
   inet.icmp().ping(IP4::addr{193,90,147,109}, [](ICMP_view pckt) {
     if (pckt)
