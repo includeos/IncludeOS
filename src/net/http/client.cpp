@@ -155,19 +155,19 @@ namespace http {
         if(ip != 0)
         {
           // setup request with method and headers
-          auto req = create_request(method);
+          auto req = this->create_request(method);
           *req << hfields;
 
           // Set Host & path from url
-          populate_from_url(*req, url);
+          this->populate_from_url(*req, url);
 
           // Add data and content length
-          add_data(*req, data);
+          this->add_data(*req, data);
 
           // Default to port 80 if non given
           const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-          send(move(req), {ip, port}, move(cb), move(opt));
+          this->send(move(req), {ip, port}, move(cb), move(opt));
         }
         else
         {

@@ -65,7 +65,7 @@ public:
    */
   Socket local() const;
 
-  constexpr port_t port() const
+  port_t port() const
   { return port_; }
 
   auto syn_queue_size() const

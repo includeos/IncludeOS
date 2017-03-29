@@ -14,7 +14,7 @@ set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 if(CMAKE_COMPILER_IS_GNUCC)
 	# currently gcc is not supported due to problems cross-compiling a unikernel
 	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
+#	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 # create OS version string from git describe (used in CXX flags)
@@ -81,9 +81,14 @@ endif(silent)
 # Append optimization level
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
-# these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+if (CMAKE_COMPILER_IS_GNUCC)
+  set(CMAKE_CXX_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+else()
+  # these kinda work with llvm
+  set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+endif()
 
 # either download or cross-compile needed libraries
 #option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)

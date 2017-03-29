@@ -145,7 +145,7 @@ namespace net {
     ///
 
     /** Get Maximum Transmission Unit **/
-    virtual constexpr uint16_t MTU() const = 0;
+    virtual uint16_t MTU() const = 0;
 
     /** Provision empty anonymous packet **/
     virtual Packet_ptr create_packet() = 0;

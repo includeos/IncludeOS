@@ -506,7 +506,7 @@ public:
    *
    * @return     True if able to send, False otherwise.
    */
-  constexpr bool can_send() const noexcept
+  bool can_send() const noexcept
   { return (usable_window() >= SMSS()) and writeq.has_remaining_requests(); }
 
   /**
@@ -762,6 +762,8 @@ public:
       ISS = Connection::generate_iss();
       recover = ISS; // [RFC 6582]
     }
+
+    uint32_t get_ts_recent() const noexcept { return TS_recent; }
 
     bool slow_start() const noexcept
     { return cwnd < ssthresh; }
@@ -1122,7 +1124,7 @@ private:
    *
    * @return     True if able to send one, False otherwise.
    */
-  constexpr bool can_send_one() const
+  bool can_send_one() const
   { return send_window() >= SMSS() and writeq.has_remaining_requests(); }
 
   /**

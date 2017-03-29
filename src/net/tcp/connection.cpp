@@ -341,7 +341,7 @@ Packet_ptr Connection::create_outgoing_packet() {
   packet->set_win(std::min((cb.RCV.WND >> cb.RCV.wind_shift), (uint32_t)default_window_size));
 
   if(cb.SND.TS_OK)
-    packet->add_tcp_option_aligned<Option::opt_ts_align>(host_.get_ts_value(), cb.TS_recent);
+    packet->add_tcp_option_aligned<Option::opt_ts_align>(host_.get_ts_value(), cb.get_ts_recent());
   // Set SEQ and ACK - I think this is OK..
   packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
   debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
