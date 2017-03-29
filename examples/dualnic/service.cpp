@@ -84,10 +84,10 @@ void Service::start(const std::string&)
                        { 8,8,8,8 });       // DNS
 
   // Set up a TCP server on port 80
-  auto& server1 = inet1.tcp().bind(80);
+  auto& server1 = inet1.tcp().listen(80);
   create_server(server1);
 
-  auto& server2 = inet2.tcp().bind(80);
+  auto& server2 = inet2.tcp().listen(80);
   create_server(server2);
 
   // Print some useful netstats every 30 secs

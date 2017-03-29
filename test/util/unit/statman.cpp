@@ -66,6 +66,8 @@ CASE( "Creating Statman objects" )
         // Statman is both empty and full (no room for more Stat-objects)
         EXPECT(statman_.empty());
         EXPECT(statman_.full());
+
+        EXPECT_THROWS(Stat& stat = statman_.create(Stat::UINT32, "some.new.stat"));
       }
     }
 
@@ -185,14 +187,12 @@ CASE( "Filling Statman with Stats and running through Statman using iterators be
       EXPECT_NOT(statman_.full());
       EXPECT(statman_.num_stats() == 0);
 
-      AND_WHEN( "Statman is filled with Stats using Statman iterators begin and end" )
+      AND_WHEN( "Statman is filled with Stats" )
       {
         EXPECT(statman_.empty());
         EXPECT(statman_.size() == expected_num_elements);
 
-        int i = 0;
-
-        for (auto it = statman_.begin(); it != statman_.end(); ++it)
+        for (int i = 0; i < statman_.size(); i++)
         {
           EXPECT(statman_.num_stats() == i);
 
@@ -207,8 +207,6 @@ CASE( "Filling Statman with Stats and running through Statman using iterators be
             Stat& stat = statman_.create(Stat::FLOAT, "net.tcp." + std::to_string(i));
             ++stat;
           }
-
-          i++;
         }
 
         THEN("Statman is full and the Stats can be displayed using Statman iterators begin and end")
@@ -323,6 +321,9 @@ CASE("get(\"name\") returns reference to stat with name, throws if not present")
   EXPECT_NO_THROW(Stat& res2 = statman_.get("other.important.stat"));
   EXPECT_NO_THROW(Stat& res3 = statman_.get("very.important.stat"));
   EXPECT_THROWS_AS(Stat& res5 = statman_.get("some.missing.stat"), Stats_exception);
+
+  // Can't create stats with empty name
+  EXPECT_THROWS_AS(Stat& stat6 = statman_.create(Stat::UINT32, ""), Stats_exception);
 
   free((void*)buffer);
 }

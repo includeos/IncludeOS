@@ -26,11 +26,16 @@ namespace net
   class UDPSocket
   {
   public:
+
+    using Error_type = UDP::Error_type;
+    using Error_code = UDP::Error_code;
+
     typedef UDP::port_t port_t;
     typedef IP4::addr addr_t;
     typedef IP4::addr multicast_group_addr;
 
     typedef delegate<void(addr_t, port_t, const char*, size_t)> recvfrom_handler;
+    typedef delegate<void(Error_type, Error_code, addr_t, port_t, addr_t, port_t)> recvfromicmp_handler;
     typedef UDP::sendto_handler sendto_handler;
 
     // constructors
@@ -43,15 +48,18 @@ namespace net
 
     // functions
     void on_read(recvfrom_handler callback)
-    {
-      on_read_handler = callback;
-    }
+    { on_read_handler = callback; }
+
     void sendto(addr_t destIP, port_t port,
                 const void* buffer, size_t length,
                 sendto_handler cb = [] {});
+
     void bcast(addr_t srcIP, port_t port,
                const void* buffer, size_t length,
                sendto_handler cb = [] {});
+
+    void on_error(recvfromicmp_handler callback)
+    { on_error_handler = callback; }
 
     void close()
     { udp_.close(l_port); }
@@ -61,26 +69,33 @@ namespace net
 
     // stuff
     addr_t local_addr() const
-    {
-      return udp_.local_ip();
-    }
-    port_t local_port() const
-    {
-      return l_port;
-    }
+    { return udp_.local_ip(); }
 
-    UDP& udp(){
-      return udp_;
-    }
+    port_t local_port() const
+    { return l_port; }
+
+    UDP& udp()
+    { return udp_; }
 
   private:
     void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
     void internal_read(UDP::Packet_ptr);
+    void error_read(Error_type error_type, Error_code error_code,
+      IP4::addr src_addr, port_t src_port, IP4::addr dest_addr, port_t dest_port);
 
     UDP& udp_;
     port_t l_port;
     recvfrom_handler on_read_handler =
       [] (addr_t, port_t, const char*, size_t) {};
+    recvfromicmp_handler on_error_handler =
+      [](Error_type /*type*/, Error_code /*code*/,
+        addr_t /*src_addr*/, port_t /*src_port*/, addr_t /*dest_addr*/, port_t /*dest_port*/) {
+
+        // Default behavior: Report to application layer about ICMP error messages
+        debug("<UDPSocket> Error %s : %s occurred when sending data to %s port %u from %s port %u\n",
+          icmp4::get_type_string(type).c_str(), icmp4::get_code_string(type, code).c_str(),
+          dest_addr.to_string().c_str(), dest_port, src_addr.to_string().c_str(), src_port);
+    };
 
     bool reuse_addr;
     bool loopback; // true means multicast data is looped back to sender

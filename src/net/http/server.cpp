@@ -63,7 +63,7 @@ namespace http {
 
   void Server::bind(const uint16_t port)
   {
-    tcp_.bind(port).on_connect({this, &Server::on_connect});
+    tcp_.listen(port, {this, &Server::on_connect});
     INFO("HTTP Server", "Listening on port %u", port);
   }
 

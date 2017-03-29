@@ -41,7 +41,7 @@ public:
 
 public:
 
-  Listener(TCP& host, port_t port, ConnectCallback cb = nullptr);
+  Listener(TCP& host, Socket local, ConnectCallback cb = nullptr);
 
   Listener& on_accept(AcceptCallback cb)
   {
@@ -59,14 +59,14 @@ public:
 
   /**
    * @brief Returns the local socket identified with this Listener
-   * @details Creates a temporary identifier for the Listener,
-   * in form of Address to the current stack (TCP) and the port_
-   * @return The local Socket
+   *
+   * @return The local Socket the listener is bound to
    */
-  Socket local() const;
+  Socket local() const noexcept
+  { return local_; }
 
-  port_t port() const
-  { return port_; }
+  port_t port() const noexcept
+  { return local_.port(); }
 
   auto syn_queue_size() const
   { return syn_queue_.size(); }
@@ -88,17 +88,13 @@ public:
 
 private:
   friend class net::TCP;
-  TCP& host_;
-  const port_t port_;
-  SynQueue syn_queue_;
+  TCP&      host_;
+  Socket    local_;
+  SynQueue  syn_queue_;
 
-  /** */
-  AcceptCallback on_accept_;
-
-  /** */
+  AcceptCallback  on_accept_;
   ConnectCallback on_connect_;
-
-  CloseCallback _on_close_;
+  CloseCallback   _on_close_;
 
   bool default_on_accept(Socket);
 

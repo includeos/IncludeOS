@@ -24,6 +24,7 @@
 #include <net/packet.hpp>
 #include <hw/mac_addr.hpp>
 #include <net/ethernet/ethertype.hpp>
+#include <net/ip4/icmp4_common.hpp>
 
 namespace net {
   // Packet must be forward declared to avoid circular dependency
@@ -107,7 +108,10 @@ namespace net {
     static constexpr uint16_t USER_START    {1024};
     static constexpr uint16_t USER_END      {49151};
     static constexpr uint16_t DYNAMIC_START {49152};
-    static constexpr uint16_t DYNAMIC_END   {65534}; // 65535 never assigned
+    static constexpr uint16_t DYNAMIC_END   {65535}; // 65535 should never be assigned
+
+    static constexpr bool is_dynamic(const uint16_t port) noexcept
+    { return port > USER_END; }
   }
 
   /**
@@ -116,9 +120,9 @@ namespace net {
    * http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
    */
   enum class Protocol : uint8_t {
-    HOPOPT = 0,
+    HOPOPT  =  0,
     ICMPv4  =  1,
-    IP4v4   =  4,  // IPv4 encapsulation
+    IPv4    =  4,  // IPv4 encapsulation
     TCP     =  6,
     UDP     = 17,
     IPv6    = 41,  // IPv6 encapsulation

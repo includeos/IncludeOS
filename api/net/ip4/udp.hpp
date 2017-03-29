@@ -36,8 +36,10 @@ namespace net {
     using addr_t = IP4::addr;
     using port_t = uint16_t;
 
-    using Packet_ptr = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
-    using Stack  = IP4::Stack;
+    using Packet_ptr    = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
+    using Stack         = IP4::Stack;
+    using Error_type    = Inet<IP4>::Error_type;
+    using Error_code    = Inet<IP4>::Error_code;
 
     typedef delegate<void()> sendto_handler;
 
@@ -95,6 +97,9 @@ namespace net {
     void set_network_out(downstream del)
     { network_layer_out_ = del; }
 
+    void error_report(Error_type type, Error_code code,
+      IP4::addr src_addr, port_t src_port, IP4::addr dest_addr, port_t dest_port);
+
     /** Send UDP datagram from source ip/port to destination ip/port.
 
         @param sip   Local IP-address
@@ -137,7 +142,7 @@ namespace net {
       Port_in_use_exception(UDP::port_t p)
         : port_(p) {}
       virtual const char* what() const noexcept {
-        return "UDP port allready in use";
+        return "UDP port already in use";
       }
 
       UDP::port_t port(){
