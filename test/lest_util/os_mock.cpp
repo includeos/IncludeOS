@@ -154,7 +154,16 @@ extern "C" {
   void malloc_trim() {
     return;
   }
-}
+
+  static char __printbuf[4096];
+
+  __attribute__((weak))
+  void __serial_print1(const char* cstr) {
+    snprintf(__printbuf, 4096, "%s", cstr);
+  }
+
+
+} // ~ extern "C"
 
 /// arch ///
 void __arch_init() {}
@@ -197,4 +206,3 @@ void IRQ_manager::process_interrupts() {
   return;
 }
 #endif
-

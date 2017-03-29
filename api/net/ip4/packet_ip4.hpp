@@ -39,7 +39,10 @@ namespace net {
 
     /** Get IP protocol version field. Must be 4 (RFC 1122) */
     uint8_t ip_version() const noexcept
-    { return ip_header().version_ihl & 0x0f; }
+    { return (ip_header().version_ihl >> 4) & 0xf; }
+
+    bool is_ipv4() const noexcept
+    { return (ip_header().version_ihl & 0xf0) == 0x40; }
 
     /** Get IP header length field as-is. */
     uint8_t ip_ihl() const noexcept
@@ -71,7 +74,7 @@ namespace net {
 
     /** Get Fragment offset field */
     uint16_t ip_frag_offs() const noexcept
-    { return ntohs(ip_header().frag_off_flags) | 0xe; }
+    { return ntohs(ip_header().frag_off_flags) & 0xe; }
 
     /** Get Time-To-Live field */
     uint8_t ip_ttl() const noexcept
@@ -104,6 +107,9 @@ namespace net {
     uint16_t ip_capacity() const noexcept
     { return capacity() - ip_header_length(); }
 
+    /** Compute IP header checksum on header as-is */
+    uint16_t compute_checksum() noexcept
+    { return net::checksum(&ip_header(), ip_header_length()); };
 
 
     //
@@ -208,6 +214,8 @@ namespace net {
       hdr.frag_off_flags = 0;
       hdr.ttl            = DEFAULT_TTL;
       hdr.protocol       = static_cast<uint8_t>(proto);
+      hdr.check          = 0;
+      hdr.tot_len        = 0x1400; // Big-endian 20
       increment_data_end(sizeof(IP4::header));
     }
 
@@ -218,7 +226,6 @@ namespace net {
     Cspan ip_data() const {
       return {ip_data_ptr(), ip_data_length()};
     }
-
 
   protected:
 
