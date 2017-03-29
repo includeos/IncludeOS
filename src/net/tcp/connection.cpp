@@ -82,7 +82,6 @@ void Connection::reset_callbacks()
   on_disconnect_ = {this, &Connection::default_on_disconnect};
   on_connect_.reset();
   writeq.on_write(nullptr);
-  on_error_.reset();
   on_packet_dropped_.reset();
   on_rtx_timeout_.reset();
   on_close_.reset();
@@ -246,16 +245,10 @@ void Connection::writeq_reset() {
   rtx_timer.stop();
 }
 
-void Connection::open(bool active) {
-  try {
-    debug("<TCP::Connection::open> Trying to open Connection...\n");
-    state_->open(*this, active);
-  }
-  // No remote host, or state isnt valid for opening.
-  catch (const TCPException& e) {
-    debug("<TCP::Connection::open> Cannot open Connection. \n");
-    signal_error(e);
-  }
+void Connection::open(bool active)
+{
+  debug("<TCP::Connection::open> Trying to open Connection...\n");
+  state_->open(*this, active);
 }
 
 void Connection::close() {
@@ -269,8 +262,9 @@ void Connection::close() {
     if(is_state(Closed::instance()))
       signal_close();
   }
-  catch(const TCPException& err) {
-    signal_error(err);
+  catch(const TCPException&) {
+    // just ignore for now, it's kinda stupid its even throwing (i think)
+    // early return is_closing will probably prevent this from happening
   }
 }
 
@@ -883,7 +877,6 @@ void Connection::clean_up() {
 
   on_connect_.reset();
   on_disconnect_.reset();
-  on_error_.reset();
   on_packet_dropped_.reset();
   on_rtx_timeout_.reset();
   on_close_.reset();

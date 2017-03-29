@@ -890,7 +890,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
   // 2. check RST
   if(UNLIKELY(in->isset(RST))) {
     if(in->isset(ACK)) {
-      tcp.signal_error(TCPException{"Connection reset."});
+      tcp.signal_connect(false);
       tcp.drop(*in, Drop_reason::RST);
       return CLOSED;
     } else {

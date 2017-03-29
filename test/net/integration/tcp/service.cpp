@@ -80,17 +80,16 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
     [port](auto ip_address) {
       CHECK(ip_address != 0, "Resolved host");
 
-      if(ip_address != 0) {
+      if(ip_address != 0)
+      {
         Inet4::stack<0>().tcp().connect({ip_address, port})
-          ->on_connect([](tcp::Connection_ptr conn) {
-              CHECK(true, "Connected");
-              conn->on_read(1024, [](tcp::buffer_t, size_t n) {
-                  CHECK(n > 0, "Received a response");
-                });
-            })
-          .on_error([](tcp::TCPException err) {
-              CHECK(false, "Error occured: %s", err.what());
-            });
+          ->on_connect([](tcp::Connection_ptr conn)
+          {
+            CHECKSERT(conn != nullptr, "Connected");
+            conn->on_read(1024, [](tcp::buffer_t, size_t n) {
+                CHECK(n > 0, "Received a response");
+              });
+          });
       }
     });
 }
@@ -102,6 +101,7 @@ void OUTGOING_TEST(tcp::Socket outgoing) {
   INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
   Inet4::stack<0>().tcp().connect(outgoing, [](tcp::Connection_ptr conn)
   {
+    CHECKSERT(conn != nullptr, "Connection successfully established.");
     conn->on_read(small.size(), [](tcp::buffer_t buffer, size_t n)
     {
       CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");

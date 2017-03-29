@@ -24,11 +24,6 @@ inline Connection& Connection::on_write(WriteCallback cb) {
   return *this;
 }
 
-inline Connection& Connection::on_error(ErrorCallback callback) {
-  on_error_ = callback;
-  return *this;
-}
-
 inline Connection& Connection::on_packet_dropped(PacketDroppedCallback callback) {
   on_packet_dropped_ = callback;
   return *this;
