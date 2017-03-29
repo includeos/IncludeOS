@@ -82,7 +82,6 @@ void Connection::reset_callbacks()
   on_disconnect_ = {this, &Connection::default_on_disconnect};
   on_connect_.reset();
   writeq.on_write(nullptr);
-  on_error_.reset();
   on_packet_dropped_.reset();
   on_rtx_timeout_.reset();
   on_close_.reset();
@@ -246,16 +245,10 @@ void Connection::writeq_reset() {
   rtx_timer.stop();
 }
 
-void Connection::open(bool active) {
-  try {
-    debug("<TCP::Connection::open> Trying to open Connection...\n");
-    state_->open(*this, active);
-  }
-  // No remote host, or state isnt valid for opening.
-  catch (const TCPException& e) {
-    debug("<TCP::Connection::open> Cannot open Connection. \n");
-    signal_error(e);
-  }
+void Connection::open(bool active)
+{
+  debug("<TCP::Connection::open> Trying to open Connection...\n");
+  state_->open(*this, active);
 }
 
 void Connection::close() {
@@ -269,8 +262,9 @@ void Connection::close() {
     if(is_state(Closed::instance()))
       signal_close();
   }
-  catch(const TCPException& err) {
-    signal_error(err);
+  catch(const TCPException&) {
+    // just ignore for now, it's kinda stupid its even throwing (i think)
+    // early return is_closing will probably prevent this from happening
   }
 }
 
@@ -685,7 +679,7 @@ void Connection::retransmit() {
       writeq.size(), buf.length() - buf.acknowledged);
     fill_packet(*packet, buf.data() + writeq.acked(), buf.length() - writeq.acked());
   }
-
+  rtx_attempt_++;
   packet->set_seq(cb.SND.UNA);
 
   /*
@@ -766,16 +760,11 @@ void Connection::rtx_timeout() {
   }
 
   // retransmit SND.UNA
-  retransmit();
+  retransmit(); // increases rtx_attempt
 
-  if(cb.SND.UNA != cb.ISS) {
-    // "back off" timer
-    rttm.RTO *= 2.0;
-  }
-  // we never queue SYN packets since they don't carry data..
-  else {
-    rttm.RTO = std::chrono::seconds(3);
-  }
+  // "back off" timer
+  rttm.RTO *= 2.0;
+
   // timer need to be restarted
   rtx_start();
 
@@ -789,7 +778,7 @@ void Connection::rtx_timeout() {
 
       ssthresh = max (FlightSize / 2, 2*SMSS)
   */
-  if(rtx_attempt_++ == 0)
+  if(rtx_attempt_ == 1)
   {
     // RFC 4015
     /*
@@ -888,14 +877,13 @@ void Connection::clean_up() {
 
   on_connect_.reset();
   on_disconnect_.reset();
-  on_error_.reset();
   on_packet_dropped_.reset();
   on_rtx_timeout_.reset();
   on_close_.reset();
   read_request.clean_up();
   _on_cleanup_.reset();
 
-  debug("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
+  debug2("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
 }
 
 std::string Connection::TCB::to_string() const {
