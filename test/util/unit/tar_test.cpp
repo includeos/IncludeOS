@@ -21,7 +21,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-/*
+
 CASE("Reading single entry tar file")
 {
   tar::Reader r;
@@ -126,4 +126,3 @@ CASE("Reading tar.gz inside tar file")
   EXPECT(inner_e.name().find(".tar.gz") == std::string::npos);
   close(fd);
 }
-*/
