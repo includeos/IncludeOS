@@ -30,12 +30,23 @@ namespace net {
   /** IP4 layer */
   class IP4 {
   public:
+
+    enum class Drop_reason
+    { None, Bad_source, Bad_destination, Wrong_version, Wrong_checksum,
+        Unknown_proto, TTL0 };
+
+    enum class Direction
+    { Upstream, Downstream };
+
+
     using Stack = Inet<IP4>;
     using addr = ip4::Addr;
     using header = ip4::Header;
     using IP_packet = PacketIP4;
     using IP_packet_ptr = std::unique_ptr<IP_packet>;
     using downstream_arp = delegate<void(Packet_ptr, IP4::addr)>;
+    using Packet_filter = delegate<IP_packet_ptr(IP_packet_ptr)>;
+    using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
 
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Stack&) noexcept;
@@ -69,14 +80,25 @@ namespace net {
     void set_tcp_handler(upstream s)
     { tcp_handler_ = s; }
 
+    /** Set packet dropped handler */
+    void set_drop_handler(drop_handler s)
+    { drop_handler_ = s; }
+
     /** Set handler for packets not addressed to this interface (upstream) */
     void set_packet_forwarding(Stack::Forward_delg fwd)
     { forward_packet_ = fwd; }
 
     /** Set linklayer out (downstream) */
     void set_linklayer_out(downstream_arp s)
-    { linklayer_out_ = s; };
+    { linklayer_out_ = s; }
 
+    /** Assign function to determine which upstream packets gets filtered */
+    void set_upstream_filter(Packet_filter f)
+    { upstream_filter_ = f; }
+
+    /** Assign function to determine which downstream packets gets filtered */
+    void set_downstream_filter(Packet_filter f)
+    { downstream_filter_ = f; }
 
     //
     // Delegate getters
@@ -120,6 +142,7 @@ namespace net {
       return stack_.ip_addr();
     }
 
+
     /**
      * Stats getters
      **/
@@ -131,6 +154,15 @@ namespace net {
 
     uint64_t get_packets_dropped()
     { return packets_dropped_; }
+
+    /**  Default upstream packet filter */
+    IP_packet_ptr filter_upstream(IP_packet_ptr packet);
+
+    /**  Default downstream packet filter */
+    IP_packet_ptr filter_downstream(IP_packet_ptr packet);
+
+
+
 
   private:
     /** Stats */
@@ -151,8 +183,18 @@ namespace net {
     /** Packet forwarding  */
     Stack::Forward_delg forward_packet_;
 
-  }; //< class IP4
+    /** Packet filters */
+    Packet_filter upstream_filter_;
+    Packet_filter downstream_filter_;
 
+
+    /** All dropped packets go here */
+    drop_handler drop_handler_;
+
+    /** Drop a packet, calling drop handler if set */
+    IP_packet_ptr drop(IP_packet_ptr ptr, Direction direction, Drop_reason reason);
+
+  }; //< class IP4
 
 } //< namespace net
 

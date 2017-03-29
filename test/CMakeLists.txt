@@ -4,6 +4,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(COVERAGE "Build with coverage generation" OFF)
 option(SILENT_BUILD "Build with some warnings turned off" ON)
+
+option(INFO "Print INFO macro output" OFF)
+option(DEBUG_INFO "Print debug macro output when DEBUG/DEBUG2 etc. is defined in source" OFF)
+option(GENERATE_SUPPORT_FILES "Generate external files required by some tests (e.g. tar)" ON)
 option(EXTRA_TESTS "Build extra test" OFF)
 
 if ("${ARCH}" STREQUAL "")
@@ -14,7 +18,18 @@ add_definitions(-D${ARCH} -DINCLUDEOS_SINGLE_THREADED)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "-m32 -g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR -DNO_INFO=1 -DNO_DEBUG=1 -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+
+set(NO_INFO "-DNO_INFO=1")
+if(INFO)
+  set(NO_INFO "")
+endif()
+
+set(NO_DEBUG "-DNO_DEBUG=1")
+if (DEBUG_INFO)
+  set(NO_DEBUG "")
+endif()
+
+set(CMAKE_CXX_FLAGS "-m32 -g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -63,6 +78,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/http_time_test.cpp
   ${TEST}/net/unit/http_version_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
+  ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_socket.cpp
@@ -139,11 +155,13 @@ set(OS_SOURCES
   ${SRC}/net/http/time.cpp
   ${SRC}/net/http/version.cpp
   ${SRC}/net/inet_common.cpp
+  ${SRC}/net/inet4.cpp
   ${SRC}/net/ip4/arp.cpp
   ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
   ${SRC}/net/ip4/udp.cpp
   ${SRC}/net/ip4/udp_socket.cpp
+  ${SRC}/net/dhcp/dh4client.cpp
   ${SRC}/net/tcp/connection.cpp
   ${SRC}/net/tcp/connection_states.cpp
   ${SRC}/net/tcp/listener.cpp
@@ -176,9 +194,11 @@ set(MOD_OBJECTS
 )
 
 if(EXTRA_TESTS)
+  set(GENERATE_SUPPORT_FILES ON)
   message(STATUS "Adding some extra tests")
   list(APPEND TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
   list(APPEND TEST_SOURCES ${TEST}/util/unit/tar_test.cpp)
+  
 endif()
 
 if(COVERAGE)
@@ -210,7 +230,7 @@ endif("${ARCH}" STREQUAL "ARCH_ARMv7")
 if(NOT SINGLE)
   set(SOURCES ${MOD_OBJECTS} ${OS_SOURCES} ${TEST_SOURCES} ${LEST_UTIL})
 else()
-  set(SOURCES ${SINGLE} ${LEST_UTIL})
+  set(SOURCES ${MOD_OBJECTS} ${OS_SOURCES} ${SINGLE} ${LEST_UTIL})
 endif()
 
 if ("${ARCH}" STREQUAL "ARCH_ARMv7")
@@ -227,16 +247,19 @@ add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
 install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
-add_custom_command(
-  TARGET unittests PRE_BUILD
-  COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-single.tar ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
-  COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-multiple.tar ${CMAKE_CURRENT_SOURCE_DIR}/*.py
-  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/test-invalid.tar
-  COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
-  COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_CURRENT_BINARY_DIR}/test-corrupt.gz ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
-  COMMAND bash ${TEST}/util/unit/corrupt-tar-gz.sh ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/test-corrupt.gz
-  COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz
-)
+if (GENERATE_SUPPORT_FILES)
+
+  add_custom_command(
+    TARGET unittests PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-single.tar ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+    COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-multiple.tar ${CMAKE_CURRENT_SOURCE_DIR}/*.py
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/test-invalid.tar
+    COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+    COMMAND ${CMAKE_COMMAND} -E tar czf ${CMAKE_CURRENT_BINARY_DIR}/test-corrupt.gz ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+    COMMAND bash ${TEST}/util/unit/corrupt-tar-gz.sh ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz ${CMAKE_CURRENT_BINARY_DIR}/test-corrupt.gz
+    COMMAND ${CMAKE_COMMAND} -E tar cf ${CMAKE_CURRENT_BINARY_DIR}/test-tar-gz-inside.tar ${CMAKE_CURRENT_BINARY_DIR}/test.tar.gz
+    )
+endif()
 
 add_custom_target(
   cppcheck

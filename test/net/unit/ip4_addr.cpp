@@ -86,3 +86,17 @@ CASE("IP4 addresses can be compared to each other")
   const Addr expected_result { 192,168,1,0 };
   EXPECT( result == expected_result );
 }
+
+CASE("Determine if an address is loopback")
+{
+  Addr l1 { 127,0,0,1 };
+  Addr l2 { 127,10,0,42 };
+  Addr l3 { 127,255,255,255 };
+  Addr no { 128,0,0,2 };
+
+  EXPECT(l1.is_loopback());
+  EXPECT(l2.is_loopback());
+  EXPECT(l3.is_loopback());
+  EXPECT(not no.is_loopback());
+
+}
