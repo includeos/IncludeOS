@@ -1,6 +1,23 @@
 {
   "$schema": "http://json-schema.org/schema#",
   "title" : "Virtual Machine Image",
+
+  "definitions" : {
+    "cpu" : {
+      "description" : "The virtual CPU",
+      "type"    : "object",
+      "properties": {
+        "model" : {
+          "enum" : ["host", "pentium", "qemu64", "kvm64"]
+        },
+        "features" : {
+          "type" : "array",
+          "items" : { "enum" : ["xsave", "avx", "aes"] }
+        }
+      }
+    }
+  },
+
   "type" : "object",
   "properties" : {
 
@@ -61,11 +78,7 @@
       "default" : 128
     },
 
-    "cpu" : {
-      "description" : "The virtual CPU",
-      "type"    : "string",
-      "default" : "host,+xsave,+avx,+aes"
-    },
+    "cpu" : { "$ref": "#/definitions/cpu" },
 
     "smp" : {
       "description" : "Number of virtual CPU's",
