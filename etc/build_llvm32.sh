@@ -1,5 +1,5 @@
 #! /bin/bash
-set -e # Exit immediately on error (we're trapping the exit signal)
+set -e # Exit immediately on error (were trapping the exit signal)
 trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 
@@ -20,7 +20,7 @@ trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
 libcxx_inc=$BUILD_DIR/$llvm_src/projects/libcxx/include
-LLVM_TAG=RELEASE_381/final
+#LLVM_TAG=RELEASE_391/final
 
 if [ ! -z $install_llvm_dependencies ]; then
     # Dependencies
@@ -65,7 +65,7 @@ mkdir -p $llvm_build
 cd $llvm_build
 
 if [ ! -z $clear_llvm_build_cache ]; then
-    rm CMakeCache.txt
+    rm -f CMakeCache.txt
 fi
 
 # General options
@@ -78,9 +78,10 @@ OPTS+=-DCMAKE_BUILD_TYPE=MinSizeRel" "
 
 # Can't build libc++ with g++ unless it's a cross compiler (need to specify target)
 OPTS+=-DCMAKE_C_COMPILER=clang-$clang_version" "
-OPTS+=-DCMAKE_CXX_COMPILER=clang++-$clang_version" " # -std=c++11" "
+OPTS+=-DCMAKE_CXX_COMPILER=clang++-$clang_version" "
 
-TRIPLE=i686-pc-none-elf
+#TRIPLE=i686-pc-none-elf
+TRIPLE=i686-pc-linux-elf
 
 OPTS+=-DTARGET_TRIPLE=$TRIPLE" "
 OPTS+=-DLLVM_BUILD_32_BITS=ON" "
@@ -93,20 +94,26 @@ OPTS+=-DLIBCXX_ENABLE_SHARED=OFF" "
 OPTS+=-DLIBCXX_ENABLE_THREADS=OFF" "
 OPTS+=-DLIBCXX_TARGET_TRIPLE=$TRIPLE" "
 OPTS+=-DLIBCXX_BUILD_32_BITS=ON" "
+#OPTS+=-DLLVM_USE_SANITIZER=OFF" "
+#OPTS+=-DLLVM_USE_SANITIZE_COVERAGE=NO" "
+#OPTS+=-DLIBCXX_GENERATE_COVERAGE=OFF" "
+#OPTS+=-DLIBCXX_COVERAGE_LIBRARY=" "
 
 # OPTS+=-DLIBCXX_GCC_TOOLCHAIN=/usr/local/IncludeOS/i686/" "
-OPTS+=-DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON" "
+OPTS+=-DLIBCXX_ENABLE_ABI_LINKER_SCRIPT=OFF" "
 
 OPTS+=-DLIBCXX_CXX_ABI=libcxxabi" "
 OPTS+=-DLIBCXX_CXX_ABI_INCLUDE_PATHS=$INCLUDEOS_SRC/src/include" "
-
+OPTS+=-DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON" "
 
 # libunwind-specific options
 OPTS+=-DLIBUNWIND_ENABLE_SHARED=OFF" "
-OPTS+=-LIBCXXABI_USE_LLVM_UNWINDER=ON" "
+OPTS+=-DLIBCXXABI_USE_LLVM_UNWINDER=ON" "
 
 echo "LLVM CMake Build options:" $OPTS
 
+# Compiler flags
+CXX_FLAGS="-std=c++14 -nostdlibinc -msse3 -mfpmath=sse"
 
 # CMAKE configure step
 #
@@ -116,7 +123,7 @@ echo "LLVM CMake Build options:" $OPTS
 # 1. IncludeOS_posix has to come first, as it provides lots of C11 prototypes that libc++ relies on, but which newlib does not provide (see our math.h)
 # 2. libcxx_inc must come before newlib, due to math.h function wrappers around C99 macros (signbit, nan etc)
 # 3. newlib_inc provodes standard C headers
-cmake -GNinja $OPTS  -DCMAKE_CXX_FLAGS="-std=c++14 -nostdlibinc  -I$IncludeOS_posix -I$libcxx_inc -I$newlib_inc" $BUILD_DIR/$llvm_src
+cmake -GNinja $OPTS -DCMAKE_CXX_FLAGS="$CXX_FLAGS -I$IncludeOS_posix -I$libcxx_inc -I$newlib_inc" $BUILD_DIR/$llvm_src
 
 
 #

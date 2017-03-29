@@ -25,7 +25,7 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-set(CAPABS "-mavx -maes -mfma -fstack-protector-strong")
+set(CAPABS "-msse3 -mfpmath=sse -fstack-protector-strong")
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
@@ -54,8 +54,8 @@ if (debug)
 endif()
 
 # these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32")
+set(CMAKE_CXX_FLAGS "-MMD -target i686-elf -fno-sanitize=all ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+set(CMAKE_C_FLAGS "-MMD -target i686-elf -fno-sanitize=all ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32")
 
 # executable
 set(SERVICE_STUB "$ENV{INCLUDEOS_PREFIX}/includeos/src/service_name.cpp")

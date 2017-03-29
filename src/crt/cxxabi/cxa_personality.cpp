@@ -17,6 +17,7 @@
 #include <string.h>
 #include <typeinfo>
 
+#include "__cxxabi_config.h"
 #include "config.h"
 #include "cxa_exception.hpp"
 #include "cxa_handlers.hpp"
@@ -273,8 +274,7 @@ readEncodedPointer(const uint8_t** data, uint8_t encoding)
         break;
     default:
         // not supported 
-        abort_ex("cxa_personality readEncodedPointer: unsupported encoding value");
-        //abort();
+        abort();
         break;
     }
     // then add relative offset 
@@ -293,8 +293,7 @@ readEncodedPointer(const uint8_t** data, uint8_t encoding)
     case DW_EH_PE_aligned:
     default:
         // not supported 
-        abort_ex("cxa_personality readEncodedPointer: unsupported offset type");
-        //abort();
+        abort();
         break;
     }
     // then apply indirection 
@@ -516,11 +515,14 @@ void
 set_registers(_Unwind_Exception* unwind_exception, _Unwind_Context* context,
               const scan_results& results)
 {
-    _Unwind_SetGR(context, __builtin_eh_return_data_regno(0),
-                                 reinterpret_cast<uintptr_t>(unwind_exception));
-    _Unwind_SetGR(context, __builtin_eh_return_data_regno(1),
-                                    static_cast<uintptr_t>(results.ttypeIndex));
-    _Unwind_SetIP(context, results.landingPad);
+#if defined(__USING_SJLJ_EXCEPTIONS__)
+#define __builtin_eh_return_data_regno(regno) regno
+#endif
+  _Unwind_SetGR(context, __builtin_eh_return_data_regno(0),
+                reinterpret_cast<uintptr_t>(unwind_exception));
+  _Unwind_SetGR(context, __builtin_eh_return_data_regno(1),
+                static_cast<uintptr_t>(results.ttypeIndex));
+  _Unwind_SetIP(context, results.landingPad);
 }
 
 /*
@@ -927,7 +929,7 @@ _UA_CLEANUP_PHASE
 */
 
 #if !LIBCXXABI_ARM_EHABI
-_Unwind_Reason_Code
+_LIBCXXABI_FUNC_VIS _Unwind_Reason_Code
 #ifdef __USING_SJLJ_EXCEPTIONS__
 __gxx_personality_sj0
 #else
@@ -1058,7 +1060,7 @@ static void load_results_from_barrier_cache(scan_results& results,
     results.ttypeIndex = (int64_t)(int32_t)unwind_exception->barrier_cache.bitpattern[4];
 }
 
-extern "C" _Unwind_Reason_Code
+extern "C" _LIBCXXABI_FUNC_VIS _Unwind_Reason_Code
 __gxx_personality_v0(_Unwind_State state,
                      _Unwind_Exception* unwind_exception,
                      _Unwind_Context* context)
@@ -1164,7 +1166,7 @@ __gxx_personality_v0(_Unwind_State state,
 
 
 __attribute__((noreturn))
-void
+_LIBCXXABI_FUNC_VIS void
 __cxa_call_unexpected(void* arg)
 {
     _Unwind_Exception* unwind_exception = static_cast<_Unwind_Exception*>(arg);

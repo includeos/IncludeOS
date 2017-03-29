@@ -18,21 +18,24 @@
 #ifndef SYS_CTYPE_H
 #define SYS_CTYPE_H
 
+// newlib 2.5.0:
+//#define _LIBCPP_SUPPORT_XLOCALE_POSIX_L_FALLBACK_H
+//#define _LIBCPP_SUPPORT_NEWLIB_XLOCALE_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  static inline int isascii(int c){
-    return c >= 0 && c <= 0177;
-  }
+inline int isascii(int c) {
+  return c >= 0 && c <= 0177;
+}
 
-  static inline int isalnum(int ch){
-    // http://en.cppreference.com/w/cpp/string/byte/isalnum
-    return (ch >= 48 && ch <= 57)
-      || (ch >= 65 && ch <= 90)
-      || (ch >= 97 && ch <= 122);
-  }
-
+inline int isalnum(int ch) {
+  // http://en.cppreference.com/w/cpp/string/byte/isalnum
+  return (ch >= 48 && ch <= 57)
+    || (ch >= 65 && ch <= 90)
+    || (ch >= 97 && ch <= 122);
+}
 
 #ifdef __cplusplus
 }
@@ -42,3 +45,64 @@ extern "C" {
 
 
 #include_next <ctype.h>
+
+//#include <locale.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/// isalnum, isblank, iscntrl, isdigit, isgraph, islower, isprint, ispunct, isspace, isupper, isxdigit, setlocale, uselocale
+/*
+inline int isalnum_l(int ch, locale_t) {
+  return isalnum(ch);
+}
+
+inline int isblank_l(int ch, locale_t) {
+  return isblank(ch);
+}
+
+inline int iscntrl_l(int ch, locale_t) {
+  return iscntrl(ch);
+}
+
+inline int isdigit_l(int ch, locale_t) {
+  return isdigit(ch);
+}
+
+inline int isgraph_l(int ch, locale_t) {
+  return isgraph(ch);
+}
+
+inline int islower_l(int ch, locale_t) {
+  return islower(ch);
+}
+
+inline int isprint_l(int ch, locale_t) {
+  return isprint(ch);
+}
+
+inline int ispunct_l(int ch, locale_t) {
+  return ispunct(ch);
+}
+
+inline int isspace_l(int ch, locale_t) {
+  return isspace(ch);
+}
+
+inline int isupper_l(int ch, locale_t) {
+  return isupper(ch);
+}
+
+inline int isxdigit_l(int ch, locale_t) {
+  return isxdigit(ch);
+}
+
+inline int isalpha_l(int ch, locale_t) {
+  return isalpha(ch);
+}
+*/
+
+#ifdef __cplusplus
+}
+#endif

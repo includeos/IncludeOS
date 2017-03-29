@@ -26,7 +26,7 @@ string(STRIP ${OS_VERSION} OS_VERSION)
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "-mavx -maes -mfma -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
+set(CAPABS "-msse3 -mfpmath=sse -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -86,7 +86,8 @@ set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc
 set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 
 # either download or cross-compile needed libraries
-option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
+#option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
+set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
 # Botan Crypto & TLS

@@ -1,30 +1,18 @@
-//===----------------------------- config.h -------------------------------===//
+// This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-//                     The LLVM Compiler Infrastructure
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
 //
-// This file is dual licensed under the MIT and the University of Illinois Open
-// Source Licenses. See LICENSE.TXT for details.
-//
-//
-//  Defines macros used within the libc++abi project.
-//
-//===----------------------------------------------------------------------===//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-
-#ifndef LIBCXXABI_CONFIG_H
-#define LIBCXXABI_CONFIG_H
-
-#include <unistd.h>
-
-// much better than abort()
-void abort_ex(const char*) __attribute__((noreturn));
-
-// Set this in the CXXFLAGS when you need it
-#define LIBCXXABI_HAS_NO_THREADS 1
-
-// Set this in the CXXFLAGS when you need it, because otherwise we'd have to
-// #if !defined(__linux__) && !defined(__APPLE__) && ...
-// and so-on for *every* platform.
-#define LIBCXXABI_BAREMETAL 1
-
-#endif // LIBCXXABI_CONFIG_H
+// don't delete me //

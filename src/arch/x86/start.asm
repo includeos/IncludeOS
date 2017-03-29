@@ -50,9 +50,9 @@ rock_bottom:
   ;; enable SSE before we enter C/C++ land
   call enable_sse
   ;; ... and XSAVE to get xsetbv/xgetbv working
-  call enable_xsave
+  ;call enable_xsave
   ;; ... and finally, enable AVX
-  call enable_avx
+  ;call enable_avx
 
   ;;  Place multiboot parameters on stack
   push ebx
