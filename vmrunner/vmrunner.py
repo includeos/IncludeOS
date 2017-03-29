@@ -577,7 +577,7 @@ class vm:
         subprocess.call(["rm","-rf","build"])
         return self
 
-    def find_exit_trigger(self, line):
+    def find_exit_status(self, line):
 
         # Kernel reports service exit status
         if (line.startswith("     [ Kernel ] service exited with status") or
@@ -585,14 +585,14 @@ class vm:
 
             self._exit_status = int(line.split(" ")[-1].rstrip())
             self._exit_msg = "Service exited with status " + str(self._exit_status)
-            return True
+            return self._exit_status
 
         # Special case for end-of-transmission, e.g. on panic
         if line == EOT:
             self._exit_status = exit_codes["VM_EOT"]
-            return True
+            return self._exit_status
 
-        return False
+        return None
 
 
     def trigger_event(self, line):
@@ -646,7 +646,7 @@ class vm:
                 print color.WARNING("Exception thrown while waiting for vm output")
                 break
 
-            if line and not self.find_exit_trigger(line):
+            if line and self.find_exit_status(line) == None:
                     print color.VM(line.rstrip())
                     self.trigger_event(line)
 
@@ -677,7 +677,7 @@ class vm:
                 lines = data.split("\n")
                 for line in lines:
                     print color.VM(line)
-                    self.find_exit_trigger(line)
+                    self.find_exit_status(line)
                     # Note: keep going. Might find panic after service exit
 
             except Exception as e:

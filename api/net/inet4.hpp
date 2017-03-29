@@ -18,6 +18,9 @@
 #ifndef NET_INET4_HPP
 #define NET_INET4_HPP
 
+#include <vector>
+#include <unordered_set>
+
 #include "inet.hpp"
 #include "ip4/arp.hpp"
 #include "ip4/ip4.hpp"
@@ -25,7 +28,6 @@
 #include "ip4/icmp4.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
-#include <vector>
 #include "super_stack.hpp"
 
 namespace net {
@@ -35,6 +37,9 @@ namespace net {
   /** A complete IP4 network stack */
   class Inet4 : public Inet<IP4>{
   public:
+
+    using Vip4_list = std::unordered_set<IP4::addr>;
+
     std::string ifname() const override
     { return nic_.device_name(); }
 
@@ -122,7 +127,6 @@ namespace net {
       ip_packet->init(proto);
       return ip_packet;
     }
-
 
     IP_packet_factory ip_packet_factory() override
     { return IP_packet_factory{this, &Inet4::create_ip_packet}; }
@@ -251,9 +255,49 @@ namespace net {
       return stack<N>();
     }
 
-  private:
+    /** Add virtual IP4 address as loopback */
+    const Vip4_list virtual_ips() const noexcept override
+    { return vip4s_; }
+
+    /** Check if IP4 address is virtual loopback */
+    bool is_loopback(IP4::addr a) const override
+    {
+      return a.is_loopback()
+        or vip4s_.find(a) != vip4s_.end();
+    }
+
+    /** Add IP4 address as virtual loopback */
+    void add_vip(IP4::addr a) override
+    {
+      if (not is_loopback(a)) {
+        INFO("Inet4", "Adding virtual IP address %s", a.to_string().c_str());
+        vip4s_.emplace(a);
+      }
+    }
+
+    /** Add IP4 address as virtual loopback */
+    void remove_vip(IP4::addr a) override
+    { vip4s_.erase(a); }
+
+    IP4::addr get_source_addr(IP4::addr dest) override
+    {
+
+      if (dest.is_loopback())
+        return {127,0,0,1};
+
+      if (is_loopback(dest))
+        return dest;
+
+      return ip_addr();
+    }
+
+    bool is_valid_source(IP4::addr src) override
+    { return is_loopback(src) or src == ip_addr(); }
+
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
+
+  private:
 
     void process_sendq(size_t);
     // delegates registered to get signalled about free packets
@@ -263,6 +307,8 @@ namespace net {
     IP4::addr netmask_;
     IP4::addr gateway_;
     IP4::addr dns_server_;
+
+    Vip4_list vip4s_ = {{127,0,0,1}};
 
     // This is the actual stack
     hw::Nic& nic_;
