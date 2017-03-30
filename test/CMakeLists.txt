@@ -107,7 +107,6 @@ set(TEST_SOURCES
 )
 
 set(OS_SOURCES
-  ${SRC}/boot/multiboot.cpp
   ${SRC}/fs/disk.cpp
   ${SRC}/fs/fat.cpp
   ${SRC}/fs/fat_async.cpp
