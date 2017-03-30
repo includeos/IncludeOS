@@ -323,6 +323,7 @@ struct Addr {
   { return part(3) == 127; }
 
   /**
+   * @note: The class E range 240/4 for "future use" is not included here
    * RFC-5771 defining multicast address range from 224.0.0.0 to 239.255.255.255
    */
   bool is_multicast() const noexcept
