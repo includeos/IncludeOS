@@ -14,8 +14,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#pragma once
 
+#pragma once
 #ifndef NET_ETHERNET_HEADER_HPP
 #define NET_ETHERNET_HEADER_HPP
 
@@ -40,7 +40,7 @@ public:
   const MAC::Addr& src() const noexcept
   { return src_; }
 
-  const Ethertype& type() const noexcept
+  Ethertype type() const noexcept
   { return type_; }
 
   void set_dest(const MAC::Addr& dest)
