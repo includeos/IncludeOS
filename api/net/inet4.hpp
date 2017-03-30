@@ -61,6 +61,9 @@ namespace net {
     IP4::addr dns_addr() override
     { return dns_server_; }
 
+    IP4::addr broadcast_addr() override
+    { return ip4_addr_ | ( ~ netmask_); }
+
     IP4& ip_obj() override
     { return ip4_; }
 
