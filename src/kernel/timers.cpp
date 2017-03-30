@@ -8,11 +8,11 @@
 #include <vector>
 
 using namespace std::chrono;
-typedef Timers::id_t       id_t;
+// typedef Timers::id_t       id_t;
 typedef Timers::duration_t duration_t;
 typedef Timers::handler_t  handler_t;
 
-static void sched_timer(duration_t when, id_t id);
+static void sched_timer(duration_t when, Timers::id_t id);
 
 struct Timer
 {
@@ -57,9 +57,9 @@ struct alignas(SMP_ALIGN) timer_system
   Timers::start_func_t arch_start_func;
   Timers::stop_func_t  arch_stop_func;
   std::vector<Timer>   timers;
-  std::vector<id_t>    free_timers;
+  std::vector<Timers::id_t>    free_timers;
   // timers sorted by timestamp
-  std::multimap<duration_t, id_t> scheduled;
+  std::multimap<duration_t, Timers::id_t> scheduled;
   /** Stats */
   int64_t*  oneshot_started;
   int64_t*  oneshot_stopped;
@@ -79,7 +79,7 @@ void Timers::init(const start_func_t& start, const stop_func_t& stop)
   // architecture specific start and stop functions
   system.arch_start_func = start;
   system.arch_stop_func  = stop;
-  
+
   std::string CPU = "cpu" + std::to_string(SMP::cpu_id());
   system.oneshot_started = (int64_t*) &Statman::get().create(Stat::UINT64, CPU + ".timers.oneshot_started").get_uint64();
   system.oneshot_stopped = (int64_t*) &Statman::get().create(Stat::UINT64, CPU + ".timers.oneshot_stopped").get_uint64();
@@ -102,10 +102,10 @@ void Timers::ready()
   Service::ready();
 }
 
-id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
+Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
 {
   auto& system = get();
-  id_t id;
+  Timers::id_t id;
 
   if (UNLIKELY(system.free_timers.empty()))
   {
@@ -115,7 +115,7 @@ id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
       auto it = system.scheduled.begin();
       while (it != system.scheduled.end()) {
         // take over this timer, if dead
-        id_t id = it->second;
+        Timers::id_t id = it->second;
 
         if (system.timers[id].deferred_destruct)
         {
@@ -166,7 +166,7 @@ id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
   return id;
 }
 
-void Timers::stop(id_t id)
+void Timers::stop(Timers::id_t id)
 {
   auto& system = get();
   if (LIKELY(system.timers[id].deferred_destruct == false))
@@ -209,7 +209,7 @@ void Timers::timers_handler()
   {
     auto it = system.scheduled.begin();
     auto when = it->first;
-    id_t id   = it->second;
+    Timers::id_t id   = it->second;
 
     // remove dead timers
     if (system.timers[id].deferred_destruct)
@@ -266,7 +266,7 @@ void Timers::timers_handler()
   // stop hardware timer, since no timers are enabled
   system.arch_stop_func();
 }
-static void sched_timer(duration_t when, id_t id)
+static void sched_timer(duration_t when, Timers::id_t id)
 {
   auto& system = get();
   system.scheduled.
