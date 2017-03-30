@@ -133,7 +133,11 @@ public:
 };
 
 // access a std::array of structs indexed by current CPU id
+#ifdef INCLUDEOS_SINGLE_THREADED
+#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, 1>(x))
+#else
 #define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, x.size()>(x))
+#endif
 
 #ifndef ARCH_X86
 typedef int spinlock_t;
@@ -142,4 +146,3 @@ inline void unlock(spinlock_t&) {}
 #endif
 
 #endif
-

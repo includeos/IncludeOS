@@ -1,7 +1,75 @@
 #! /bin/bash
+. ./set_traps.sh
 
+# Env variables
+export INCLUDEOS_SRC=${INCLUDEOS_SRC:-~/IncludeOS}
+export BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build}
+export TEMP_INSTALL_DIR=${TEMP_INSTALL_DIR:-$BUILD_DIR/IncludeOS_TEMP_install}
+
+export TARGET=i686-elf	# Configure target
+export PREFIX=$TEMP_INSTALL_DIR
+export PATH="$PREFIX/bin:$PATH"
+
+# Build_llvm specific options
+export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
+export llvm_src=llvm
+export llvm_build=build_llvm
+# TODO: These should be determined by inspecting if local llvm repo is up-to-date
+[ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
+[ ! -v download_llvm ] && export download_llvm=1
+
+export binutils_version=${binutils_version:-2.26}		# ftp://ftp.gnu.org/gnu/binutils
+export newlib_version=${newlib_version:-2.4.0}			# ftp://sourceware.org/pub/newlib
+export gcc_version=${gcc_version:-6.2.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
+export clang_version=${clang_version:-3.8}				# http://releases.llvm.org/
+export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-project/llvm/tags
+
+export libcpp_version=${libcpp_version:-3.8.1}			# Not in use anywhere???
+
+# Options to skip steps
+[ ! -v do_binutils ] && do_binutils=1
+[ ! -v do_gcc ] && do_gcc=1
+[ ! -v do_newlib ] && do_newlib=1
+[ ! -v do_includeos ] &&  do_includeos=1
+[ ! -v do_llvm ] &&  do_llvm=1
+[ ! -v do_bridge ] &&  do_bridge=1
+
+# Install build dependencies
+DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
+
+echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
+echo -e  "        Packages: $DEPS_BUILD \n"
+sudo apt-get update
+sudo apt-get install -y $DEPS_BUILD
+
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
+
+# Build all sources
+if [ ! -z $do_binutils ]; then
+    echo -e "\n\n >>> GETTING / BUILDING binutils (Required for libgcc / unwind / crt) \n"
+    $INCLUDEOS_SRC/etc/build_binutils.sh
+fi
+
+if [ ! -z $do_gcc ]; then
+    echo -e "\n\n >>> GETTING / BUILDING GCC COMPILER (Required for libgcc / unwind / crt) \n"
+    $INCLUDEOS_SRC/etc/cross_compiler.sh
+fi
+
+if [ ! -z $do_newlib ]; then
+    echo -e "\n\n >>> GETTING / BUILDING NEWLIB \n"
+    $INCLUDEOS_SRC/etc/build_newlib.sh
+fi
+
+if [ ! -z $do_llvm ]; then
+    echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
+    $INCLUDEOS_SRC/etc/build_llvm32.sh
+fi
+
+#
+# Create the actual bundle
+#
 # Zip-file name
-[ ! -v INCLUDEOS_SRC ] && INCLUDEOS_SRC=$HOME/IncludeOS
 pushd $INCLUDEOS_SRC
 tag=`git describe --abbrev=0`
 filename_tag=`echo $tag | tr . -`
@@ -9,10 +77,7 @@ popd
 
 # Where to place the installation bundle
 DIR_NAME="IncludeOS_install"
-
-[ ! -v INSTALL_DIR ] && INSTALL_DIR=$HOME/$DIR_NAME
-[ ! -v BUILD_DIR ] && BUILD_DIR=$HOME/IncludeOS_build
-[ ! -v TEMP_INSTALL_DIR ] && TEMP_INSTALL_DIR=$BUILD_DIR/IncludeOS_TEMP_install
+export INSTALL_DIR=${INSTALL_DIR:-~/$DIR_NAME}
 
 echo ">>> Creating Installation Bundle as $INSTALL_DIR"
 
@@ -58,3 +123,5 @@ cp -r $include_libcxx $INSTALL_DIR/libcxx/include
 tar -czvf $OUTFILE --directory=$INSTALL_DIR/../ $DIR_NAME
 
 echo ">>> IncludeOS Installation Bundle created as $INSTALL_DIR and gzipped into $OUTFILE"
+
+trap - EXIT

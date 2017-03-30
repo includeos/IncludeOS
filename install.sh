@@ -5,7 +5,7 @@
 ############################################################
 
 # Location of the IncludeOS repo (default: current directory)
-export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
+export INCLUDEOS_SRC=${INCLUDEOS_SRC:-`pwd`}
 # Prefered install location (default: /usr/local)
 export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 # Enable compilation of tests in cmake (default: OFF)
@@ -18,22 +18,28 @@ export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST-OFF}
 # Initialize variables:
 install_yes=0
 quiet=0
-source=0
+bundle_location=""
 
-while getopts "h?yqs" opt; do
+while getopts "h?yqb:" opt; do
     case "$opt" in
     h|\?)
         printf "%s\n" "Options:"\
                 "-y Yes: answer yes to install"\
                 "-q Quiet: Suppress output from cmake during install"\
-                "-s Source: Install from source"
+                "-b Bundle: Local path to bundle"
         exit 0
         ;;
     y)  install_yes=1
         ;;
     q)  quiet=1
         ;;
-    s)  source=1
+    b)  BUNDLE_LOC=$OPTARG 
+		if [ -f $BUNDLE_LOC ]; then
+		    export BUNDLE_LOC=$BUNDLE_LOC
+		else
+			echo "File: $BUNDLE_LOC does not exist, exiting" >&2
+			exit 1
+		fi
         ;;
     esac
 done
@@ -107,10 +113,15 @@ if [ "Darwin" = "$SYSTEM" ]; then
 		exit 1
 	fi
 else
-	if ! ./etc/install_build_requirements.sh $SYSTEM $RELEASE; then
-		printf "%s\n" ">>> Sorry <<<"\
-			   "Could not install build requirements."
-		exit 1
+	# Will only check if build dependencies are installed at this point
+	if [ $INCLUDEOS_ENABLE_TEST == "ON" ]; then
+		dependency_level=all
+	else
+		dependency_level=build
+	fi	
+	echo ">>> Dependencies required:"
+	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
+		missing_dependencies=1
 	fi
 fi
 
@@ -141,6 +152,9 @@ done
 
 # Print currently set install options
 printf "\n\n>>> IncludeOS will be installed with the following options:\n\n"
+if [ ! -z $missing_dependencies ]; then
+	printf '    \e[31m%-s\e[0m %-s\n\n' "[NOTICE]" "Missing dependencies will be installed"
+fi
 printf "    %-25s %-25s %s\n"\
 	   "Env variable" "Description" "Value"\
 	   "------------" "-----------" "-----"\
@@ -162,6 +176,15 @@ if tty -s && [ $install_yes -eq 0 ]; then
 	esac
 fi
 
+# Install dependencies if there are any missing
+if [ ! -z $missing_dependencies ]; then
+	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE -d $dependency_level; then
+		printf "%s\n" ">>> Sorry <<<"\
+				"Could not install dependencies"
+		exit 1
+	fi
+fi
+
 # Trap that cleans the cmake output file in case of exit
 function clean {
 	if [ -f /tmp/cmake_output.txt ]; then
@@ -170,28 +193,19 @@ function clean {
 } 
 trap clean EXIT
 
-# if the --all-source parameter was given, build it the hard way
-if [ $source -eq 1 ]; then
-    printf "\n\n>>> Installing everything from source"
-    if ! ./etc/install_all_source.sh; then
-        printf  "%s\n" ">>> Sorry <<<"\
-				"Could not install from source."
+printf "\n\n>>> Running install_from_bundle.sh (expect up to 3 minutes)\n"
+if [ $quiet -eq 1 ]; then
+	if ! ./etc/install_from_bundle.sh &> /tmp/cmake_output.txt; then
+		cat /tmp/cmake_output.txt	# Print output because it failed
+		printf  "%s\n" ">>> Sorry <<<"\
+				"Could not install from bundle."
+		exit 1
 	fi
 else
-	printf "\n\n>>> Running install_from_bundle.sh (expect up to 3 minutes)\n"
-	if [ $quiet -eq 1 ]; then
-		if ! ./etc/install_from_bundle.sh &> /tmp/cmake_output.txt; then
-			cat /tmp/cmake_output.txt	# Print output because it failed
-			printf  "%s\n" ">>> Sorry <<<"\
-					"Could not install from bundle."
-			exit 1
-		fi
-	else
-		if ! ./etc/install_from_bundle.sh; then
-			printf  "%s\n" ">>> Sorry <<<"\
-					"Could not install from bundle."
-			exit 1
-		fi
+	if ! ./etc/install_from_bundle.sh; then
+		printf  "%s\n" ">>> Sorry <<<"\
+				"Could not install from bundle."
+		exit 1
 	fi
 fi
 

@@ -18,7 +18,7 @@ endif()
 if(CMAKE_COMPILER_IS_GNUCC)
 	# currently gcc is not supported due to problems cross-compiling a unikernel
 	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-	message(FATAL_ERROR "GCC is not currently supported, please clean-up build directory and configure for clang through CC and CXX environment variables")
+#	message(FATAL_ERROR "GCC is not currently supported, please clean-up build directory and configure for clang through CC and CXX environment variables")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 # Assembler
@@ -54,9 +54,14 @@ if (debug)
   set(CAPABS "${CAPABS} -g")
 endif()
 
-# these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32")
+if (CMAKE_COMPILER_IS_GNUCC)
+  set(CMAKE_CXX_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c")
+else()
+  # these kinda work with llvm
+  set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32")
+endif()
 
 # executable
 set(SERVICE_STUB "$ENV{INCLUDEOS_PREFIX}/includeos/src/service_name.cpp")
@@ -184,12 +189,6 @@ set_target_properties(crti PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(crti PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libcrti.a)
 
 target_link_libraries(service --whole-archive crti --no-whole-archive)
-
-add_library(multiboot STATIC IMPORTED)
-set_target_properties(multiboot PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(multiboot PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libmultiboot.a)
-
-target_link_libraries(service --whole-archive multiboot --no-whole-archive)
 
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)

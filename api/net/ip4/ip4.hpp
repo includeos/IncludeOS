@@ -57,7 +57,7 @@ namespace net {
     /*
       Maximum Datagram Data Size
     */
-    constexpr uint16_t MDDS() const
+    uint16_t MDDS() const
     { return stack_.MTU() - sizeof(ip4::Header); }
 
     /** Upstream: Input from link layer */
