@@ -5,7 +5,7 @@
 ############################################################
 
 # Location of the IncludeOS repo (default: current directory)
-export INCLUDEOS_SRC=${INCLUDEOS_SRC-`pwd`}
+export INCLUDEOS_SRC=${INCLUDEOS_SRC:-`pwd`}
 # Prefered install location (default: /usr/local)
 export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 # Enable compilation of tests in cmake (default: OFF)
@@ -18,22 +18,28 @@ export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST-OFF}
 # Initialize variables:
 install_yes=0
 quiet=0
-source=0
+bundle_location=""
 
-while getopts "h?yqs" opt; do
+while getopts "h?yqb:" opt; do
     case "$opt" in
     h|\?)
         printf "%s\n" "Options:"\
                 "-y Yes: answer yes to install"\
                 "-q Quiet: Suppress output from cmake during install"\
-                "-s Source: Install from source"
+                "-b Bundle: Local path to bundle"
         exit 0
         ;;
     y)  install_yes=1
         ;;
     q)  quiet=1
         ;;
-    s)  source=1
+    b)  BUNDLE_LOC=$OPTARG 
+		if [ -f $BUNDLE_LOC ]; then
+		    export BUNDLE_LOC=$BUNDLE_LOC
+		else
+			echo "File: $BUNDLE_LOC does not exist, exiting" >&2
+			exit 1
+		fi
         ;;
     esac
 done
@@ -170,28 +176,19 @@ function clean {
 } 
 trap clean EXIT
 
-# if the --all-source parameter was given, build it the hard way
-if [ $source -eq 1 ]; then
-    printf "\n\n>>> Installing everything from source"
-    if ! ./etc/install_all_source.sh; then
-        printf  "%s\n" ">>> Sorry <<<"\
-				"Could not install from source."
+printf "\n\n>>> Running install_from_bundle.sh (expect up to 3 minutes)\n"
+if [ $quiet -eq 1 ]; then
+	if ! ./etc/install_from_bundle.sh &> /tmp/cmake_output.txt; then
+		cat /tmp/cmake_output.txt	# Print output because it failed
+		printf  "%s\n" ">>> Sorry <<<"\
+				"Could not install from bundle."
+		exit 1
 	fi
 else
-	printf "\n\n>>> Running install_from_bundle.sh (expect up to 3 minutes)\n"
-	if [ $quiet -eq 1 ]; then
-		if ! ./etc/install_from_bundle.sh &> /tmp/cmake_output.txt; then
-			cat /tmp/cmake_output.txt	# Print output because it failed
-			printf  "%s\n" ">>> Sorry <<<"\
-					"Could not install from bundle."
-			exit 1
-		fi
-	else
-		if ! ./etc/install_from_bundle.sh; then
-			printf  "%s\n" ">>> Sorry <<<"\
-					"Could not install from bundle."
-			exit 1
-		fi
+	if ! ./etc/install_from_bundle.sh; then
+		printf  "%s\n" ">>> Sorry <<<"\
+				"Could not install from bundle."
+		exit 1
 	fi
 fi
 

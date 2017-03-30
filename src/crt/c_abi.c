@@ -103,6 +103,13 @@ void __stack_chk_fail(void)
   __builtin_unreachable();
 }
 
+__attribute__((noreturn))
+void __stack_chk_fail_local(void)
+{
+  panic("Stack protector: Canary modified");
+  __builtin_unreachable();
+}
+
 // old function result system
 int errno = 0;
 int* __errno_location(void)

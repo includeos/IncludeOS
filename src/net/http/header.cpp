@@ -64,7 +64,7 @@ bool Header::has_field(util::csview field) const noexcept {
 util::sview Header::value(util::csview field) const noexcept {
   if (field.empty()) return field;
   const auto it = find(field);
-  return (it not_eq fields_.cend()) ? it->second : util::sview{};
+  return (it not_eq fields_.cend()) ? util::csview{it->second} : util::sview();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

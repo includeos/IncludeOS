@@ -124,7 +124,7 @@ private:
    */
   inline void _internal_timeout(id_t id);
 
-} __attribute__((packed)); // < class Timer
+}; // < class Timer
 
 inline void Timer::start(duration_t when, handler_t on_timeout) {
   if(!is_running())
