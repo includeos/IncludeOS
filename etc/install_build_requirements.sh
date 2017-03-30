@@ -16,22 +16,25 @@ TEST_DEPENDENCIES="g++ g++-multilib python-junit.xml"
 # Initialize variables:
 SYSTEM=0
 RELEASE=0
-CHECK_INSTALLED=0
+CHECK_ONLY=0
+PRINT_INSTALL_STATUS=0
 DEPENDENCIES_TO_INSTALL=build
 
-while getopts "h?s:r:cd:" opt; do
+while getopts "h?s:r:cpd:" opt; do
     case "$opt" in
     h|\?)
         printf "%s\n" "Options:"\
                 "-s System: What system to install on"\
                 "-r Release: What release of said system"\
-                "-c Check installed: Flag for checking if dependencies are installed"
+				"-c Only check: Will only check what packages are needed (will always print status as well)"\
+                "-p Print install status: Flag for wheter or not to print dependency status"\
                 "-d Dependencies to install: [build | test | all] are the options"
         exit 0 ;;
-    s)  SYSTEM=$OPTARG ; shift 2 ;;
-    r)  RELEASE=$OPTARG ; shift 2 ;;
-    c)  CHECK_INSTALLED=1 ;;
-	d)  DEPENDENCIES_TO_INSTALL=$OPTARG ; shift 2 ;;
+	s)  SYSTEM=$OPTARG ;;
+	r)  RELEASE=$OPTARG ;;
+    c)  CHECK_ONLY=1 ; PRINT_INSTALL_STATUS=1;;
+	p)  PRINT_INSTALL_STATUS=1 ;;
+	d)  DEPENDENCIES_TO_INSTALL=$OPTARG ;;
     esac
 done
 
@@ -46,7 +49,7 @@ esac
 # CHECK INSTALLED PACKAGES:
 ############################################################
 
-if [ $CHECK_INSTALLED -eq 1 ]; then
+if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 	printf "%-15s %-20s %s \n"\
 		   "Status" "Package" "Version"\
 		   "------" "-------" "-------"
@@ -61,6 +64,16 @@ if [ $CHECK_INSTALLED -eq 1 ]; then
 			DEPENDENCIES="$DEPENDENCIES $package"
 		fi
 	done
+	# Exits if CHECK_ONLY is set, exit code 1 if there are packages to install
+	if [ $CHECK_ONLY -eq 1 ]; then
+		if [ -z "$DEPENDENCIES" ]; then
+			exit 0
+		else
+			exit 1
+		fi
+	fi
+else
+	DEPENDENCIES=$ALL_DEPENDENCIES
 fi
 
 ############################################################
@@ -72,24 +85,21 @@ case $SYSTEM in
         exit 0;
         ;;
     "Linux")
-		echo ">>> Installing dependencies (requires sudo):"
+		echo ">>> Installing missing dependencies (requires sudo):"
         case $RELEASE in
             "debian"|"ubuntu"|"linuxmint")
                 DEPENDENCIES="$DEPENDENCIES"
-                echo "    Packages: $DEPENDENCIES"
                 sudo apt-get -qq update || exit 1
                 sudo apt-get -qqy install $DEPENDENCIES > /dev/null || exit 1
                 exit 0;
                 ;;
             "fedora")
                 DEPENDENCIES="$DEPENDENCIES"
-                echo "    Packages: $DEPENDENCIES"
                 sudo dnf install $DEPENDENCIES || exit 1
                 exit 0;
                 ;;
             "arch")
                 DEPENDENCIES="$DEPENDENCIES python2 python2-jsonschema python2-psutil"
-                echo "    Packages: $DEPENDENCIES"
                 sudo pacman -Syyu
                 sudo pacman -S --needed $DEPENDENCIES
                 exit 0;

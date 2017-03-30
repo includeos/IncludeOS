@@ -107,10 +107,15 @@ if [ "Darwin" = "$SYSTEM" ]; then
 		exit 1
 	fi
 else
-	if ! ./etc/install_build_requirements.sh $SYSTEM $RELEASE; then
-		printf "%s\n" ">>> Sorry <<<"\
-			   "Could not install build requirements."
-		exit 1
+	# Will only check if build dependencies are installed at this point
+	if [ $INCLUDEOS_ENABLE_TEST == "ON" ]; then
+		dependency_level=all
+	else
+		dependency_level=build
+	fi	
+	echo ">>> Dependencies required:"
+	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
+		missing_dependencies=1
 	fi
 fi
 
@@ -141,6 +146,9 @@ done
 
 # Print currently set install options
 printf "\n\n>>> IncludeOS will be installed with the following options:\n\n"
+if [ ! -z $missing_dependencies ]; then
+	printf '    \e[31m%-s\e[0m %-s\n\n' "[NOTICE]" "Missing dependencies will be installed"
+fi
 printf "    %-25s %-25s %s\n"\
 	   "Env variable" "Description" "Value"\
 	   "------------" "-----------" "-----"\
@@ -160,6 +168,15 @@ if tty -s && [ $install_yes -eq 0 ]; then
 		*) echo "Invalid input"
 		   exit 1;;
 	esac
+fi
+
+# Install dependencies if there are any missing
+if [ ! -z $missing_dependencies ]; then
+	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE; then
+		printf "%s\n" ">>> Sorry <<<"\
+				"Could not install dependencies"
+		exit 1
+	fi
 fi
 
 # Trap that cleans the cmake output file in case of exit
