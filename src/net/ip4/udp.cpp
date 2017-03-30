@@ -56,8 +56,8 @@ namespace net {
     // Sending ICMP error message of type Destination Unreachable and code PORT
     // But only if the destination IP address is not broadcast or multicast
     auto ip4_packet = static_unique_ptr_cast<PacketIP4>(std::move(udp_packet));
-    if (ip4_packet->ip_dst() != IP4::ADDR_BCAST and (ip4_packet->ip_dst().part(3) <= 224 or
-      ip4_packet->ip_dst().part(3) >= 239))
+    if (ip4_packet->ip_dst() != stack_.broadcast_addr() and ip4_packet->ip_dst() != IP4::ADDR_BCAST and
+      not ip4_packet->ip_dst().is_multicast())
     {
       stack_.icmp().destination_unreachable(std::move(ip4_packet), icmp4::code::Dest_unreachable::PORT);
     }
