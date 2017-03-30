@@ -150,8 +150,9 @@ namespace net {
     // create and transmit @num packets from sendq
     void process_sendq(size_t num);
 
-    inline constexpr uint16_t max_datagram_size() noexcept
-    { return stack().ip_obj().MDDS() - sizeof(header); }
+    uint16_t max_datagram_size() noexcept {
+      return stack().ip_obj().MDDS() - sizeof(header);
+    }
 
     class Port_in_use_exception : public std::exception {
     public:

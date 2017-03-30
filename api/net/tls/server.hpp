@@ -38,7 +38,7 @@ public:
   Server(Connection_ptr remote,
          Botan::RandomNumberGenerator& rng,
          Botan::Credentials_Manager& credman)
-  : tcp::Stream({remote}),
+  : tcp::Stream{remote},
     m_creds(credman),
     m_session_manager(),
     m_tls(*this, m_session_manager, m_creds, m_policy, rng)

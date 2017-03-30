@@ -351,7 +351,7 @@ namespace net {
      *
      * @return     The window size
      */
-    constexpr uint32_t window_size() const
+    uint32_t window_size() const
     { return win_size_; }
 
     /**
@@ -368,7 +368,7 @@ namespace net {
      *
      * @return     The wscale factor
      */
-    constexpr uint8_t wscale() const
+    uint8_t wscale() const
     { return wscale_; }
 
     /**
@@ -377,7 +377,7 @@ namespace net {
      *
      * @return     Whether wscale is being used
      */
-    constexpr bool uses_wscale() const
+    bool uses_wscale() const
     { return wscale_ > 0; }
 
     /**
@@ -393,7 +393,7 @@ namespace net {
      *
      * @return     Whether the TCP instance is using Timestamp Options or not
      */
-    constexpr bool uses_timestamps() const
+    bool uses_timestamps() const
     { return timestamps_; }
 
     /**
@@ -425,7 +425,7 @@ namespace net {
      *
      * @return     The limit
      */
-    constexpr uint16_t max_syn_backlog() const
+    uint16_t max_syn_backlog() const
     { return max_syn_backlog_; }
 
     /**
@@ -435,7 +435,7 @@ namespace net {
      *
      * @return     The MSS
      */
-    constexpr uint16_t MSS() const
+    uint16_t MSS() const
     { return network().MDDS() - sizeof(tcp::Header); }
 
     /**
