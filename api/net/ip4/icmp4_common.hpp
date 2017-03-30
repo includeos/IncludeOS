@@ -95,9 +95,9 @@ namespace net {
         return "TIMESTAMP REPLY (14)";
       case Type::NO_REPLY:
         return "NO REPLY";
-      case Type::NO_ERROR:
-        return "NO ERROR";
-    };
+      default:
+        return "UNKNOWN";
+    }
   }
 
   static std::string __attribute__((unused)) get_code_string(Type type, uint8_t code) {

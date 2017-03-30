@@ -21,14 +21,35 @@ global _start
 global __xsave_enabled
 global __avx_enabled
 
+%define  MB_MAGIC   0x1BADB002
+%define  MB_FLAGS   0x3  ;; ALIGN + MEMINFO
+
+extern _MULTIBOOT_START_
+extern _LOAD_START_
+extern _LOAD_END_
+extern _end
+
+ALIGN 4
+section .multiboot
+  dd  MB_MAGIC
+  dd  MB_FLAGS
+  dd  -(MB_MAGIC + MB_FLAGS)
+  dd _MULTIBOOT_START_
+  dd _LOAD_START_
+  dd _LOAD_END_
+  dd _end
+  dd _start
+
 %define data_segment 0x10
 %define code_segment 0x08
 
+section .data
 __xsave_enabled:
     dw 0x0
 __avx_enabled:
     dw 0x0
 
+ALIGN32
 section .text
 ;; Multiboot places boot paramters on eax and ebx.
 _start:
@@ -57,7 +78,7 @@ rock_bottom:
   ;; enable SSE before we enter C/C++ land
   call enable_sse
   ;; enable AVX if xsave and avx supported on CPU
-  call enable_avx
+  ;call enable_avx
 
   ;;  Place multiboot parameters on stack
   push ebx
