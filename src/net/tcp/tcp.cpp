@@ -244,7 +244,7 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-void TCP::error_report(const Error& /* err */, Socket /* dest */) {
+void TCP::error_report(Error& /* err */, Socket /* dest */) {
   // TODO
 }
 

@@ -63,7 +63,7 @@ namespace net {
     }
   }
 
-  void UDP::error_report(const Error& err, Socket dest) {
+  void UDP::error_report(Error& err, Socket dest) {
     // If err is an ICMP error message:
     // Report to application layer that got an ICMP error message of type and code (reason and subreason)
 

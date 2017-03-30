@@ -45,7 +45,7 @@ namespace net {
     using IP_packet_factory = delegate<typename IPV::IP_packet_ptr(Protocol)>;
 
     template <typename IPv>
-    using resolve_func = delegate<void(typename IPv::addr, Error)>;
+    using resolve_func = delegate<void(typename IPv::addr, Error&)>;
     using Vip_list = std::unordered_set<typename IPV::addr>;
 
     ///
@@ -127,7 +127,7 @@ namespace net {
      *  Incl. ICMP error report in accordance with RFC 1122
      *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
     */
-    virtual void error_report(const Error& err, Packet_ptr orig_pckt) = 0;
+    virtual void error_report(Error& err, Packet_ptr orig_pckt) = 0;
 
 
 

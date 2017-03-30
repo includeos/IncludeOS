@@ -46,7 +46,7 @@ namespace net {
 
     using Dest_tuple    = std::pair<addr_t, port_t>;
 
-    typedef delegate<void(Error)> sendto_handler;
+    typedef delegate<void(Error&)> sendto_handler;
 
     struct pair_hash {
       template<class T1, class T2>
@@ -114,7 +114,7 @@ namespace net {
      *  Is called when an Error has occurred in the OS
      *  F.ex.: An ICMP error message has been received in response to a sent UDP datagram
     */
-    void error_report(const Error& err, Socket dest);
+    void error_report(Error& err, Socket dest);
 
     /** Send UDP datagram from source ip/port to destination ip/port.
 
@@ -185,7 +185,8 @@ namespace net {
     class Error_entry {
     public:
       Error_entry(UDP::sendto_handler cb) noexcept
-      : callback(cb), timestamp(RTC::time_since_boot()) {}
+      : callback(std::move(cb)), timestamp(RTC::time_since_boot())
+      {}
 
       bool expired() noexcept
       { return timestamp + exp_t_ < RTC::time_since_boot(); }

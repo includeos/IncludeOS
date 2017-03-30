@@ -93,7 +93,7 @@ namespace net {
      *  Incl. ICMP error report in accordance with RFC 1122
      *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
     */
-    void error_report(const Error& err, Packet_ptr orig_pckt) override;
+    void error_report(Error& err, Packet_ptr orig_pckt) override;
 
     /**
      * Set the forwarding delegate used by this stack.

@@ -23,6 +23,12 @@ using namespace net;
 void print_error(const std::string& hostname, IP4::addr server, Error& err) {
   printf("Error occurred when resolving IP address of %s with DNS server %s: %s\n", hostname.c_str(),
         server.to_string().c_str(), err.what());
+
+  if (err.is_icmp()) {
+    auto* pd = dynamic_cast<ICMP_error*>(&err);
+    printf("ICMP error type received when resolving %s: %s\n", hostname.c_str(), pd->icmp_type_str().c_str());
+    printf("ICMP error code received when resolving %s: %s\n", hostname.c_str(), pd->icmp_code_str().c_str());
+  }
 }
 
 void print_not_resolved(const std::string& hostname) {
@@ -54,7 +60,7 @@ void Service::start(const std::string&)
   const IP4::addr gateway         = inet.gateway();
   const IP4::addr level3          = IP4::addr{4, 2, 2, 1};
 
-  inet.resolve(google, [google, stack_dns] (IP4::addr res, Error err) {
+  inet.resolve(google, [google, stack_dns] (IP4::addr res, Error& err) {
     if (err) {
       print_error(google, stack_dns, err);
     }
@@ -66,7 +72,7 @@ void Service::start(const std::string&)
     }
   });
 
-  inet.resolve(github, [github, stack_dns] (IP4::addr res, Error err) {
+  inet.resolve(github, [github, stack_dns] (IP4::addr res, Error& err) {
     if (err) {
       print_error(github, stack_dns, err);
     }
@@ -78,7 +84,7 @@ void Service::start(const std::string&)
     }
   });
 
-  inet.resolve(guardian, level3, [guardian, level3] (IP4::addr res, Error err) {
+  inet.resolve(guardian, level3, [guardian, level3] (IP4::addr res, Error& err) {
     if (err) {
       print_error(guardian, level3, err);
     }
@@ -90,7 +96,7 @@ void Service::start(const std::string&)
     }
   });
 
-  inet.resolve(hotmail, gateway, [hotmail, gateway] (IP4::addr res, Error err) {
+  inet.resolve(hotmail, gateway, [hotmail, gateway] (IP4::addr res, Error& err) {
     if (err) {
       print_error(hotmail, gateway, err);
     }
@@ -102,7 +108,7 @@ void Service::start(const std::string&)
     }
   });
 
-  inet.resolve(some_address, [some_address, stack_dns] (IP4::addr res, Error err) {
+  inet.resolve(some_address, [some_address, stack_dns] (IP4::addr res, Error& err) {
     if (err) {
       print_error(some_address, stack_dns, err);
     }
