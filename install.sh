@@ -172,7 +172,7 @@ fi
 
 # Install dependencies if there are any missing
 if [ ! -z $missing_dependencies ]; then
-	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE; then
+	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE -d $dependency_level; then
 		printf "%s\n" ">>> Sorry <<<"\
 				"Could not install dependencies"
 		exit 1
