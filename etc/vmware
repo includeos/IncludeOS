@@ -74,13 +74,15 @@ if __name__ == "__main__":
 	servicename = sys.argv[1]
 	vmdkfile = "{filename}.vmdk".format(filename=servicename)
 	convertcmd = "qemu-img convert -O vmdk {filename}.img {filename}.vmdk".format(filename=servicename)
-	subprocess.call(convertcmd, shell=True)
-	vmxfile = write_vmx(servicename)
-	vmxpath = os.path.join(os.getcwd(), vmxfile)
-	try:
-		os.remove("includeos-serial.txt")
-	except:
-		pass
-	signal.signal(signal.SIGINT, handler)
-	subprocess.call([vmruncmd, "start", vmxpath, "nogui"])
-	subprocess.call(["tail", "-f", "includeos-serial.txt"])
+	res = subprocess.call(convertcmd, shell=True)
+	if res == 0:
+		vmxfile = write_vmx(servicename)
+		vmxpath = os.path.join(os.getcwd(), vmxfile)
+		try:
+			os.remove("includeos-serial.txt")
+		except:
+			pass
+		signal.signal(signal.SIGINT, handler)
+		res = subprocess.call([vmruncmd, "start", vmxpath, "nogui"])
+		if res == 0:
+			subprocess.call(["tail", "-f", "includeos-serial.txt"])
