@@ -3,7 +3,7 @@
 
 # Download, configure, compile and install llvm
 
-newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include	# path for newlib headers
+newlib_inc=$TEMP_INSTALL_DIR/x86_64-elf/include	# path for newlib headers
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
 libcxx_inc=$BUILD_DIR/llvm/projects/libcxx/include
 libcxxabi_inc=$BUILD_DIR/llvm/projects/libcxxabi/include
@@ -52,7 +52,7 @@ if [ ! -z $clear_llvm_build_cache ]; then
     rm CMakeCache.txt
 fi
 
-TRIPLE=i686-pc-none-elf
+TRIPLE=x86_64-pc-none-elf
 CXX_FLAGS="-std=c++14 -msse3"
 
 # CMAKE configure step

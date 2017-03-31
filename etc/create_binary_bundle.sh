@@ -8,7 +8,7 @@ export TEMP_INSTALL_DIR=${TEMP_INSTALL_DIR:-$BUILD_DIR/IncludeOS_TEMP_install}	#
 export PATH="$TEMP_INSTALL_DIR/bin:$PATH"
 
 # Build options
-export TARGET=i686-elf	# Configure target
+export TARGET=x86_64-elf	# Configure target
 export num_jobs=${num_jobs:-"-j"}	# Specify number of build jobs
 
 # Version numbers
