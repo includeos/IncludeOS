@@ -1,30 +1,22 @@
 #! /bin/bash
 . ./set_traps.sh
 
-# Env variables
+# Paths
 export INCLUDEOS_SRC=${INCLUDEOS_SRC:-~/IncludeOS}
-export BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build}
-export TEMP_INSTALL_DIR=${TEMP_INSTALL_DIR:-$BUILD_DIR/IncludeOS_TEMP_install}
+export BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build}	# Where the libs are built
+export TEMP_INSTALL_DIR=${TEMP_INSTALL_DIR:-$BUILD_DIR/IncludeOS_TEMP_install}	# Libs are installed
+export PATH="$TEMP_INSTALL_DIR/bin:$PATH"
 
+# Build options
 export TARGET=i686-elf	# Configure target
-export PREFIX=$TEMP_INSTALL_DIR
-export PATH="$PREFIX/bin:$PATH"
+export num_jobs=${num_jobs:-"-j"}	# Specify number of build jobs	
 
-# Build_llvm specific options
-export newlib_inc=$TEMP_INSTALL_DIR/i686-elf/include
-export llvm_src=llvm
-export llvm_build=build_llvm
-# TODO: These should be determined by inspecting if local llvm repo is up-to-date
-[ ! -v install_llvm_dependencies ] &&  export install_llvm_dependencies=1
-[ ! -v download_llvm ] && export download_llvm=1
-
+# Version numbers
 export binutils_version=${binutils_version:-2.26}		# ftp://ftp.gnu.org/gnu/binutils
 export newlib_version=${newlib_version:-2.4.0}			# ftp://sourceware.org/pub/newlib
 export gcc_version=${gcc_version:-6.2.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
 export clang_version=${clang_version:-3.8}				# http://releases.llvm.org/
 export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-project/llvm/tags
-
-export libcpp_version=${libcpp_version:-3.8.1}			# Not in use anywhere???
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
@@ -34,6 +26,25 @@ export libcpp_version=${libcpp_version:-3.8.1}			# Not in use anywhere???
 [ ! -v do_llvm ] &&  do_llvm=1
 [ ! -v do_bridge ] &&  do_bridge=1
 
+############################################################
+# COMMAND LINE PROPERTIES:
+############################################################
+
+# Initialize variables:
+install_yes=0
+
+while getopts "h?y" opt; do
+    case "$opt" in
+    h|\?)
+        printf "%s\n" "Options:"\
+                "-y Yes: answer yes to install"\
+        exit 0
+        ;;
+    y)  install_yes=1
+        ;;
+    esac
+done
+
 # Install build dependencies
 DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clang_version"
 
@@ -41,6 +52,32 @@ echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $DEPS_BUILD \n"
 sudo apt-get update
 sudo apt-get install -y $DEPS_BUILD
+
+# Print currently set install options
+printf "\n\n>>> Bundle will be created with the following options:\n\n"
+printf "    %-25s %-25s %s\n"\
+	   "Env variable" "Description" "Value"\
+	   "------------" "-----------" "-----"\
+	   "INCLUDEOS_SRC" "Source dir of IncludeOS" "$INCLUDEOS_SRC"\
+	   "binutils_version" "binutils version" "$binutils_version"\
+	   "newlib_version" "newlib version" "$newlib_version"\
+	   "gcc_version" "gcc version" "$gcc_version"\
+	   "clang_version" "clang version" "$clang_version"\
+	   "LLVM_TAG" "LLVM version" "$LLVM_TAG"\
+
+# Give user option to evaluate install options
+if tty -s && [ $install_yes -eq 0 ]; then
+	read -p "Is this correct [Y/n]?" answer
+	answer=${answer:-"Y"}	# Default value
+	case $answer in
+		[yY] | [yY][Ee][Ss] )
+			true;;
+		[nN] | [n|N][O|o] )
+			exit 1;;
+		*) echo "Invalid input"
+		   exit 1;;
+	esac
+fi
 
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
@@ -53,7 +90,7 @@ fi
 
 if [ ! -z $do_gcc ]; then
     echo -e "\n\n >>> GETTING / BUILDING GCC COMPILER (Required for libgcc / unwind / crt) \n"
-    $INCLUDEOS_SRC/etc/cross_compiler.sh
+    $INCLUDEOS_SRC/etc/build_gcc.sh
 fi
 
 if [ ! -z $do_newlib ]; then
