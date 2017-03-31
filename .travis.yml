@@ -17,5 +17,5 @@ before_script:
   - mkdir darwin && cd darwin
 
 script:
-  - cmake .. -DTRAVIS=ON
+  - cmake .. -DTRAVIS=ON -DEXTRA_TESTS=ON
   - make VERBOSE=1 && ./unittests --pass

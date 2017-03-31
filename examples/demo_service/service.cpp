@@ -82,8 +82,10 @@ http::Response handle_request(const http::Request& req)
 void Service::start(const std::string&)
 {
   // DHCP on interface 0
+  printf("*** Waiting up to 10 sec. for DHCP... ***\n");
   auto& inet = net::Inet4::ifconfig(5.0, [](bool timeout) {
     if (timeout) {
+      printf("*** Falling back to static network config ***\n");
       // static IP in case DHCP fails
       net::Inet4::stack().network_config(
         { 10,0,0,42 },     // IP
