@@ -8,7 +8,6 @@
 #include <vector>
 
 using namespace std::chrono;
-// typedef Timers::id_t       id_t;
 typedef Timers::duration_t duration_t;
 typedef Timers::handler_t  handler_t;
 
@@ -56,8 +55,8 @@ struct alignas(SMP_ALIGN) timer_system
   uint32_t dead_timers = 0;
   Timers::start_func_t arch_start_func;
   Timers::stop_func_t  arch_stop_func;
-  std::vector<Timer>   timers;
-  std::vector<Timers::id_t>    free_timers;
+  std::vector<Timer>        timers;
+  std::vector<Timers::id_t> free_timers;
   // timers sorted by timestamp
   std::multimap<duration_t, Timers::id_t> scheduled;
   /** Stats */
@@ -66,8 +65,7 @@ struct alignas(SMP_ALIGN) timer_system
   uint32_t* periodic_started;
   uint32_t* periodic_stopped;
 };
-
-static std::array<timer_system, SMP_MAX_CORES> systems;
+static SMP_ARRAY<timer_system> systems;
 
 static inline timer_system& get() {
   return PER_CPU(systems);
@@ -207,9 +205,9 @@ void Timers::timers_handler()
 
   while (LIKELY(!system.scheduled.empty()))
   {
-    auto it = system.scheduled.begin();
-    auto when = it->first;
-    Timers::id_t id   = it->second;
+    auto it         = system.scheduled.begin();
+    auto when       = it->first;
+    Timers::id_t id = it->second;
 
     // remove dead timers
     if (system.timers[id].deferred_destruct)

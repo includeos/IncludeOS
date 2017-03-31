@@ -98,7 +98,7 @@ void ftw_tests()
   printf("Total size: %ld\n", total_size);
 }
 
-int display_info(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf)
+int display_info(const char *fpath, const struct stat *sb, int flag, struct FTW *)
 {
   printf("%ld\t%s (%d)\n", sb->st_size, fpath, flag);
 #ifdef EXTRAVERBOSE

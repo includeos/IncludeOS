@@ -14,7 +14,7 @@ set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 if(CMAKE_COMPILER_IS_GNUCC)
 	# currently gcc is not supported due to problems cross-compiling a unikernel
 	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
+#	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 # create OS version string from git describe (used in CXX flags)
@@ -23,10 +23,21 @@ execute_process(COMMAND git describe --dirty
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
 
+option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
+if(cpu_feat_vanilla)
+  include("cmake/vanilla.cmake")
+  set(DEFAULT_SETTINGS_CMAKE "vanilla.cmake") # for service cmake
+  set(DEFAULT_VM "vm.vanilla.json") # vmrunner
+else()
+  include("cmake/cpu_feat.cmake")
+  set(DEFAULT_SETTINGS_CMAKE "cpu_feat.cmake") # for service cmake
+  set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
+endif(cpu_feat_vanilla)
+
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "-msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
+set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -81,9 +92,15 @@ endif(silent)
 # Append optimization level
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
-# these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+if (CMAKE_COMPILER_IS_GNUCC)
+  # gcc/g++ settings
+  set(CMAKE_CXX_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+else()
+  # these kinda work with llvm
+  set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+endif()
 
 # either download or cross-compile needed libraries
 #option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
@@ -161,10 +178,20 @@ endif(rapidjson)
 #
 # Installation
 #
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
-install(DIRECTORY vmrunner DESTINATION includeos/)
+
+# Install cmake files
+install(FILES etc/service.cmake DESTINATION includeos)
+install(FILES etc/library.cmake DESTINATION includeos)
+install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION includeos RENAME settings.cmake) # cpu_feat_vanilla opt
+
+# Install vmrunner
+install(DIRECTORY vmrunner DESTINATION includeos)
+install(FILES vmrunner/${DEFAULT_VM} DESTINATION includeos/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
+
+# Install toolchain
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
+
+# Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
 # Install boot util

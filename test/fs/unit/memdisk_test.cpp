@@ -20,16 +20,16 @@
 
 CASE("memdisk properties")
 {
-  auto disk = fs::new_shared_memdisk();
-  EXPECT(disk->empty() == true);
-  EXPECT(disk->device_id() == 0);
-  EXPECT(disk->fs_ready() == false);
-  EXPECT(disk->name() == "memdisk0");
-  EXPECT(disk->dev().size() == 0ull);
-  EXPECT(disk->dev().device_type() == "Block device");
-  EXPECT(disk->dev().driver_name() == "MemDisk");
+  fs::Disk& disk = fs::memdisk();
+  EXPECT(disk.empty() == true);
+  EXPECT(disk.device_id() == 0);
+  EXPECT(disk.fs_ready() == false);
+  EXPECT(disk.name() == "memdisk0");
+  EXPECT(disk.dev().size() == 0ull);
+  EXPECT(disk.dev().device_type() == "Block device");
+  EXPECT(disk.dev().driver_name() == "MemDisk");
   bool enumerated_partitions {false};
-  
+
   fs::Disk::on_parts_func part_fn = [&enumerated_partitions, &lest_env]
   (fs::error_t err, std::vector<fs::Disk::Partition>& partitions)
   {
@@ -39,6 +39,6 @@ CASE("memdisk properties")
     }
   };
 
-  disk->partitions(part_fn);
+  disk.partitions(part_fn);
   EXPECT(enumerated_partitions == true);
 }

@@ -95,6 +95,8 @@ namespace net {
           return "TIMESTAMP REPLY (14)";
         case Type::NO_REPLY:
           return "NO REPLY";
+        default:
+          return "UNKNOWN";
       };
     }();
   }

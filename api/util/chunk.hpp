@@ -97,7 +97,7 @@ public:
    *
    * @return The byte at index
    */
-  constexpr byte_t& operator[](index_type idx) const noexcept
+  byte_t& operator[](index_type idx) const noexcept
   { return data()[idx]; }
 
   /**
@@ -193,14 +193,14 @@ public:
 
     iterator& operator=(const iterator&) noexcept = default;
 
-    constexpr reference operator*() const
+    reference operator*() const
     {
       Expects(chunk_ && *chunk_);
 
       return (*chunk_)[index_];
     }
 
-    constexpr pointer operator->() const
+    pointer operator->() const
     {
       Expects(chunk_ && *chunk_);
 

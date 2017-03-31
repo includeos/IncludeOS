@@ -29,11 +29,11 @@ extern "C" void test_sysconf();
 extern "C" void test_pathconf();
 extern "C" void test_pwd();
 
-fs::Disk_ptr& memdisk() {
-  static auto disk = fs::new_shared_memdisk();
+fs::Disk& memdisk() {
+  fs::Disk& disk = fs::memdisk();
 
-  if (not disk->fs_ready()) {
-    disk->init_fs([](fs::error_t err, auto&) {
+  if (not disk.fs_ready()) {
+    disk.init_fs([](fs::error_t err, auto&) {
         if (err) {
           printf("ERROR MOUNTING DISK\n");
           printf("%s\n", err.reason().c_str());
@@ -58,7 +58,7 @@ int main(int, char **) {
   test_sysconf();
 
   // mount a disk with contents for testing
-  auto root = memdisk()->fs().stat("/");
+  auto root = memdisk().fs().stat("/");
   fs::mount("/etc", root, "test fs");
   test_pathconf();
 

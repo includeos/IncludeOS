@@ -65,12 +65,13 @@ public:
   using WriteBuffer = Write_queue::WriteBuffer;
 
 public:
-  /** Called with the connection itself when it's been established. */
+  /** Called with the connection itself when it's been established. May be a nullptr if the connection failed. */
   using ConnectCallback         = delegate<void(Connection_ptr self)>;
   /**
    * @brief      Event when a connection has been established.
    *             This event lets you know when to start using the connection,
    *             and should always be assigned.
+   *             NOTE: The Connection_ptr will be a nullptr when an outgoing connection failed.
    *
    * @param[in]  callback  The callback
    *
@@ -136,18 +137,6 @@ public:
    * @return     This connection
    */
   inline Connection&            on_write(WriteCallback callback);
-
-  /** Called with the error encountered. */
-  using ErrorCallback           = delegate<void(const TCPException& err)>;
-  /**
-   * @brief      Event when a connection has experienced an error of any kind.
-   *             Pretty useless in it's current form, and only useful for printing.
-   *
-   * @param[in]  callback  The callback
-   *
-   * @return     This connection
-   */
-  inline Connection&            on_error(ErrorCallback callback);
 
   /** Called with the packet that got dropped and the reason why. */
   using PacketDroppedCallback   = delegate<void(const Packet&, Drop_reason)>;
@@ -231,7 +220,10 @@ public:
      */
     Stream(Connection_ptr conn)
       : tcp{std::move(conn)}
-    {}
+    {
+      // stream for a nullptr makes no sense
+      Expects(tcp != nullptr);
+    }
 
     /**
      * @brief      Event when the stream is connected/established/ready to use.
@@ -506,7 +498,7 @@ public:
    *
    * @return     True if able to send, False otherwise.
    */
-  constexpr bool can_send() const noexcept
+  bool can_send() const noexcept
   { return (usable_window() >= SMSS()) and writeq.has_remaining_requests(); }
 
   /**
@@ -764,6 +756,8 @@ public:
       recover = ISS; // [RFC 6582]
     }
 
+    uint32_t get_ts_recent() const noexcept { return TS_recent; }
+
     bool slow_start() const noexcept
     { return cwnd < ssthresh; }
 
@@ -788,6 +782,7 @@ public:
   /**
    * @brief      Open the connection.
    *             Active determines whether the connection is active or passive.
+   *             May throw if no remote host, or state isnt valid for opening.
    *
    * @param[in]  active  Whether its an active (outgoing) or passive (listening)
    */
@@ -843,7 +838,6 @@ private:
   /** Callbacks */
   ConnectCallback         on_connect_;
   DisconnectCallback      on_disconnect_;
-  ErrorCallback           on_error_;
   PacketDroppedCallback   on_packet_dropped_;
   RtxTimeoutCallback      on_rtx_timeout_;
   CloseCallback           on_close_;
@@ -998,14 +992,14 @@ private:
   /*
     Invoke/signal the diffrent TCP events.
   */
-  void signal_connect()
-  { if(on_connect_) on_connect_(shared_from_this()); }
+  void signal_connect(const bool success = true)
+  {
+    if(on_connect_)
+      (success) ? on_connect_(shared_from_this()) : on_connect_(nullptr);
+  }
 
   void signal_disconnect(Disconnect::Reason&& reason)
   { on_disconnect_(shared_from_this(), Disconnect{reason}); }
-
-  void signal_error(TCPException error)
-  { if(on_error_) on_error_(std::forward<TCPException>(error)); }
 
   void signal_packet_dropped(const Packet& packet, Drop_reason reason)
   { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
@@ -1123,7 +1117,7 @@ private:
    *
    * @return     True if able to send one, False otherwise.
    */
-  constexpr bool can_send_one() const
+  bool can_send_one() const
   { return send_window() >= SMSS() and writeq.has_remaining_requests(); }
 
   /**
@@ -1264,7 +1258,7 @@ private:
     Retransmission timeout limit reached
   */
   bool rto_limit_reached() const
-  { return rtx_attempt_ >= 15 or syn_rtx_ >= 5; };
+  { return rtx_attempt_ >= 14 or syn_rtx_ >= 4; };
 
   /*
     Remove all packets acknowledge by ACK in retransmission queue

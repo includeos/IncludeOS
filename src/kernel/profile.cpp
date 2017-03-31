@@ -243,15 +243,13 @@ void ScopedProfiler::record()
   {
     asm volatile ("lfence\n\t"
                   "rdtsc\n\t"
-                  : "=A" (tick_start)
-                  :: "%eax", "%ebx", "%ecx", "%edx");
+                  : "=A" (tick_start));
   }
   else if (guard == Guard::MFENCE)
   {
     asm volatile ("mfence\n\t"
                   "rdtsc\n\t"
-                  : "=A" (tick_start)
-                  :: "%eax", "%ebx", "%ecx", "%edx");
+                  : "=A" (tick_start));
   }
 }
 
@@ -267,15 +265,13 @@ ScopedProfiler::~ScopedProfiler()
   {
     asm volatile ("lfence\n\t"
                   "rdtsc\n\t"
-                  : "=A" (tick)
-                  :: "%eax", "%ebx", "%ecx", "%edx");
+                  : "=A" (tick));
   }
   else if (guard == Guard::MFENCE)
   {
     asm volatile ("mfence\n\t"
                   "rdtsc\n\t"
-                  : "=A" (tick)
-                  :: "%eax", "%ebx", "%ecx", "%edx");
+                  : "=A" (tick));
   }
 
   auto cycles = tick - tick_start;
@@ -359,7 +355,7 @@ std::string ScopedProfiler::get_statistics()
       // optional name
       if (entry.name)
         ss << " (" << entry.name << ")";
-      
+
       ss << "\n";
     }
   }

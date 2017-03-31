@@ -19,8 +19,10 @@
 #include <info>
 #define ARGS_MAX    64
 
-__attribute__((weak))
-extern "C" int main(int, const char*[]);
+extern "C" {
+  __attribute__((weak))
+  int main(int, const char*[]);
+}
 
 __attribute__((weak))
 void Service::start(const std::string& cmd)
