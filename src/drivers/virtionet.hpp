@@ -220,6 +220,8 @@ private:
   void msix_xmit_handler();
   void msix_conf_handler();
 
+  void legacy_handler();
+
   /** Allocate and queue buffer from bufstore_ in RX queue. */
   void add_receive_buffer(uint8_t*);
 
