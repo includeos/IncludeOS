@@ -32,6 +32,14 @@ public:
   using Address = ip4::Addr;
   using port_t = uint16_t;
 
+  struct pair_hash {
+    std::size_t operator () (const Socket& s) const {
+      auto h1 = std::hash<Address>{}(s.address());
+      auto h2 = std::hash<port_t>{}(s.port());
+      return h1 ^ h2;
+    }
+  };
+
   /**
    * Constructor
    *

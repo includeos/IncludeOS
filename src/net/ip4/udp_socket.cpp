@@ -43,35 +43,37 @@ namespace net
   void UDPSocket::internal_read(UDP::Packet_ptr udp)
   { on_read_handler(udp->ip_src(), udp->src_port(), (const char*) udp->data(), udp->data_length()); }
 
-  void UDPSocket::sendto (
+  void UDPSocket::sendto(
      addr_t destIP,
      port_t port,
      const void* buffer,
-     size_t len,
-     sendto_handler cb)
+     size_t length,
+     sendto_handler cb,
+     error_handler ecb)
   {
-    if (UNLIKELY(len == 0)) return;
+    if (UNLIKELY(length == 0)) return;
     udp_.sendq.emplace_back(
-       (const uint8_t*) buffer, len, cb, this->udp_,
+       (const uint8_t*) buffer, length, cb, ecb, this->udp_,
        local_addr(), this->l_port, destIP, port);
 
     // UDP packets are meant to be sent immediately, so try flushing
     udp_.flush();
   }
 
-  void UDPSocket::bcast (
-      addr_t srcIP,
-      port_t port,
-      const void* buffer,
-      size_t len,
-      sendto_handler cb)
+  void UDPSocket::bcast(
+    addr_t srcIP,
+    port_t port,
+    const void* buffer,
+    size_t length,
+    sendto_handler cb,
+    error_handler ecb)
   {
-    if (UNLIKELY(len == 0)) return;
+    if (UNLIKELY(length == 0)) return;
     udp_.sendq.emplace_back(
-         (const uint8_t*) buffer, len, cb, this->udp_,
+         (const uint8_t*) buffer, length, cb, ecb, this->udp_,
          srcIP, this->l_port, IP4::ADDR_BCAST, port);
 
     // UDP packets are meant to be sent immediately, so try flushing
     udp_.flush();
   }
-}
+} // < namespace net

@@ -68,7 +68,7 @@ namespace net {
     // Report to application layer that got an ICMP error message of type and code (reason and subreason)
 
     // Find callback with this destination address and port, and call it with the incoming err
-    auto it = error_callbacks_.find(std::make_pair(dest.address(), dest.port()));
+    auto it = error_callbacks_.find(Socket{dest.address(), dest.port()});
 
     if (it != error_callbacks_.end()) {
       it->second.callback(err);
@@ -143,10 +143,8 @@ namespace net {
     INFO("UDP", "Flushing expired error callbacks");
 
     for (auto& err : error_callbacks_) {
-      if (err.second.expired()) {
-        // error_callbacks_.second.callback(ICMP_error{});
+      if (err.second.expired())
         error_callbacks_.erase(err.first);
-      }
     }
 
     if (not error_callbacks_.empty())
@@ -164,10 +162,13 @@ namespace net {
       num--;
 
       if (buffer.done()) {
-        if (buffer.callback != nullptr) {
+        if (buffer.send_callback != nullptr)
+          buffer.send_callback();
+
+        if (buffer.error_callback != nullptr) {
           error_callbacks_.emplace(std::piecewise_construct,
-                              std::forward_as_tuple(std::make_pair(buffer.d_addr, buffer.d_port)),
-                              std::forward_as_tuple(Error_entry{buffer.callback}));
+                              std::forward_as_tuple(Socket{buffer.d_addr, buffer.d_port}),
+                              std::forward_as_tuple(Error_entry{buffer.error_callback}));
 
           if (UNLIKELY(not flush_timer_.is_running()))
             flush_timer_.start(flush_interval_);
@@ -194,9 +195,9 @@ namespace net {
     return P;
   }
 
-  UDP::WriteBuffer::WriteBuffer(const uint8_t* data, size_t length, sendto_handler cb,
+  UDP::WriteBuffer::WriteBuffer(const uint8_t* data, size_t length, sendto_handler cb, error_handler ecb,
                                 UDP& stack, addr_t LA, port_t LP, addr_t DA, port_t DP)
-    : len(length), offset(0), callback(cb), udp(stack),
+    : len(length), offset(0), send_callback(cb), error_callback(ecb), udp(stack),
       l_addr(LA), l_port(LP), d_port(DP), d_addr(DA)
   {
     // create a copy of the data,

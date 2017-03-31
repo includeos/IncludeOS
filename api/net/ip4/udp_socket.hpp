@@ -33,6 +33,7 @@ namespace net
 
     typedef delegate<void(addr_t, port_t, const char*, size_t)> recvfrom_handler;
     typedef UDP::sendto_handler sendto_handler;
+    typedef UDP::error_handler error_handler;
 
     // constructors
     UDPSocket(UDP&, port_t port);
@@ -48,11 +49,13 @@ namespace net
 
     void sendto(addr_t destIP, port_t port,
                 const void* buffer, size_t length,
-                sendto_handler cb = nullptr);
+                sendto_handler cb = nullptr,
+                error_handler ecb = nullptr);
 
     void bcast(addr_t srcIP, port_t port,
                const void* buffer, size_t length,
-               sendto_handler cb = nullptr);
+               sendto_handler cb = nullptr,
+               error_handler ecb = nullptr);
 
     void close()
     { udp_.close(l_port); }

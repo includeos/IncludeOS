@@ -36,7 +36,7 @@ namespace net
       std::forward_as_tuple(std::move(request), std::move(func)));
 
     // send request to DNS server
-    socket_.sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len, [this, dns_server, key] (Error& err) {
+    socket_.sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len, nullptr, [this, dns_server, key] (Error& err) {
       // If an error is not received, this will never execute (Error is just erased from the map
       // without calling the callback)
 

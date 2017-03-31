@@ -44,24 +44,14 @@ namespace net {
     using Packet_ptr    = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
     using Stack         = IP4::Stack;
 
-    using Dest_tuple    = std::pair<addr_t, port_t>;
-
-    typedef delegate<void(Error&)> sendto_handler;
-
-    struct pair_hash {
-      template<class T1, class T2>
-      std::size_t operator () (const std::pair<T1, T2> &p) const {
-        auto h1 = std::hash<T1>{}(p.first);
-        auto h2 = std::hash<T2>{}(p.second);
-        return h1 ^ h2;
-      }
-    };
+    typedef delegate<void()> sendto_handler;
+    typedef delegate<void(Error&)> error_handler;
 
     // write buffer for sendq
     struct WriteBuffer
     {
       WriteBuffer(
-                  const uint8_t* data, size_t length, sendto_handler cb,
+                  const uint8_t* data, size_t length, sendto_handler cb, error_handler ecb,
                   UDP& udp, addr_t LA, port_t LP, addr_t DA, port_t DP);
 
       int remaining() const
@@ -78,7 +68,9 @@ namespace net {
       size_t len;
       size_t offset;
       // the callback for when this buffer is written
-      sendto_handler callback;
+      sendto_handler send_callback;
+      // the callback for when this receives an error
+      error_handler error_callback;
       // the UDP stack
       UDP& udp;
 
@@ -184,14 +176,14 @@ namespace net {
     /** Error entries are just error callbacks and timestamps */
     class Error_entry {
     public:
-      Error_entry(UDP::sendto_handler cb) noexcept
+      Error_entry(UDP::error_handler cb) noexcept
       : callback(std::move(cb)), timestamp(RTC::time_since_boot())
       {}
 
       bool expired() noexcept
       { return timestamp + exp_t_ < RTC::time_since_boot(); }
 
-      UDP::sendto_handler callback;
+      UDP::error_handler callback;
 
     private:
       RTC::timestamp_t timestamp;
@@ -199,7 +191,7 @@ namespace net {
     }; //< class Error_entry
 
     /** The error callbacks that the user has sent in via the UDPSockets' sendto and bcast methods */
-    std::unordered_map<Dest_tuple, Error_entry, pair_hash> error_callbacks_;
+    std::unordered_map<Socket, Error_entry, Socket::pair_hash> error_callbacks_;
 
     /** Timer that flushes expired error entries/callbacks (no errors have occurred) */
     Timer flush_timer_{{ *this, &UDP::flush_expired }};
