@@ -20,6 +20,7 @@ extern kernel_start
 global _start
 global __xsave_enabled
 global __avx_enabled
+global __ecx_was
 
 %define  MB_MAGIC   0x1BADB002
 %define  MB_FLAGS   0x3  ;; ALIGN + MEMINFO
@@ -77,8 +78,10 @@ rock_bottom:
 
   ;; enable SSE before we enter C/C++ land
   call enable_sse
+  ;; try to enable XSAVE before checking AVX
+  call enable_xsave
   ;; enable AVX if xsave and avx supported on CPU
-  ;call enable_avx
+  call enable_avx
 
   ;;  Place multiboot parameters on stack
   push ebx
@@ -99,11 +102,24 @@ enable_sse:
   ret
 
 enable_xsave:
+  push eax
+  push ebx
+  ; check for XSAVE support
+  mov eax, 1
+  xor ecx, ecx
+  cpuid
+  ; bit 26 ecx
+  and ecx, 0x04000000
+  cmp ecx, 0x04000000
+  jne xsave_not_supported
   ; enable XSAVE
   mov eax, cr4
   or  eax, 0x40000
   mov cr4, eax
   mov WORD [__xsave_enabled], 0x1
+xsave_not_supported:
+  pop ebx
+  pop eax
   ret
 
 enable_avx:
@@ -117,8 +133,6 @@ enable_avx:
   and ecx, 0x18000000
   cmp ecx, 0x18000000
   jne avx_not_supported
-  ;; enable XSAVE
-  call enable_xsave
   ;; enable AVX support
   xor ecx, ecx
   xgetbv
