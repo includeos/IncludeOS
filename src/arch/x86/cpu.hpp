@@ -42,7 +42,10 @@ namespace x86
     static void
     write_msr(uint32_t addr, uint32_t eax, uint32_t edx)
     {
-#ifdef ARCH_X86
+#ifdef ARCH_X64
+      uint64_t value = (uint64_t) eax | (edx << 32);
+      asm volatile("wrmsr" : : "A" (value), "c" (addr));
+#elif ARCH_X86
       asm volatile("wrmsr" : : "a" (eax), "d"(edx), "c" (addr));
 #else
 #warning "write_msr() not implemented for selected arch"
@@ -51,7 +54,7 @@ namespace x86
     static void
     write_msr(uint32_t addr, uint64_t value)
     {
-#ifdef ARCH_X86
+#if ARCH_X64 || ARCH_X86
       asm volatile("wrmsr" : : "A" (value), "c" (addr));
 #else
 #warning "write_msr() not implemented for selected arch"
@@ -72,4 +75,3 @@ namespace x86
 }
 
 #endif
-
