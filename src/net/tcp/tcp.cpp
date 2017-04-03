@@ -202,6 +202,9 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
     return;
   }
 
+  // Send a reset
+  send_reset(*packet);
+
   drop(*packet);
 }
 
@@ -261,6 +264,27 @@ void TCP::transmit(tcp::Packet_ptr packet) {
   packets_tx_++;
 
   _network_layer_out(std::move(packet));
+}
+
+tcp::Packet_ptr TCP::create_outgoing_packet()
+{
+  auto packet = static_unique_ptr_cast<net::tcp::Packet>(inet_.create_packet());
+  packet->init();
+  return packet;
+}
+
+void TCP::send_reset(const tcp::Packet& in)
+{
+  // TODO: maybe worth to just swap the fields in
+  // the incoming packet and send that one
+  auto out = create_outgoing_packet();
+  // increase incoming SEQ and ACK by 1 and set RST + ACK
+  out->set_seq(in.ack()+1).set_ack(in.seq()+1).set_flags(RST | ACK);
+  // swap dest and src
+  out->set_source(in.destination());
+  out->set_destination(in.source());
+
+  transmit(std::move(out));
 }
 
 seq_t TCP::generate_iss() {
