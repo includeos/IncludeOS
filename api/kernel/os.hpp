@@ -38,13 +38,13 @@ public:
   using Plugin = delegate<void()>;
 
   /**
-   * Returns the version of the OS from when 
+   * Returns the version of the OS from when
    * the service was built.
   **/
   static const std::string& version() noexcept
   { return version_field; }
 
-  /** 
+  /**
    *  Returns the commandline arguments provided,
    *  if any, to the VM passed on by multiboot or
    *  other mechanisms. The first argument is always
@@ -113,7 +113,7 @@ public:
    * The on_panic handler will be called directly after a panic,
    * or any condition which will deliberately cause the OS to become
    * unresponsive. After the handler is called, the OS goes to sleep.
-   * This handler can thus be used to, for example, automatically 
+   * This handler can thus be used to, for example, automatically
    * have the OS restart on any crash.
   **/
   typedef void (*on_panic_func) ();
@@ -241,6 +241,8 @@ private:
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
+
+  static std::string cmdline;
 
   // Prohibit copy and move operations
   OS(OS&)  = delete;
