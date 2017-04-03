@@ -52,7 +52,7 @@ void Virtio::Queue::init_queue(int size, char* buf)
   debug("\t * Queue avail @ 0x%lx \n ",(long)_queue.avail);
 
   // The used queue starts at the beginning of the next page
-  _queue.used = (virtq_used*) (((uint32_t) &_queue.avail->ring[size] + sizeof(uint16_t) + PAGE_SIZE-1) & ~(PAGE_SIZE-1));
+  _queue.used = (virtq_used*) (((uintptr_t) &_queue.avail->ring[size] + sizeof(uint16_t) + PAGE_SIZE-1) & ~(PAGE_SIZE-1));
   debug("\t * Queue used  @ 0x%lx \n ",(long)_queue.used);
 }
 
@@ -185,4 +185,3 @@ void Virtio::Queue::kick()
 #warning "kick() not implemented for selected arch"
 #endif
 }
-

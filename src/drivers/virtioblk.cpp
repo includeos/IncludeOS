@@ -75,8 +75,8 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
 
   // Step 1 - Initialize REQ queue
   auto success = assign_queue(0, req.queue_desc());
-  CHECK(success, "Request queue assigned (0x%x) to device",
-        (uint32_t) req.queue_desc());
+  CHECK(success, "Request queue assigned (%p) to device",
+        req.queue_desc());
 
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable

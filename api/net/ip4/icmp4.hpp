@@ -37,7 +37,7 @@ namespace net {
     icmp4::Type   type_{icmp4::Type::NO_REPLY};
     uint8_t       code_{0};
     uint16_t      checksum_{0};
-    Span          payload_{nullptr, 0};
+    Span          payload_;
 
   public:
     ICMP_packet() {}

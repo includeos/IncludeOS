@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,7 +25,7 @@
 #define  PCI_CAP_ID_AF        0x13	/* PCI Advanced Features */
 #define  PCI_CAP_ID_MAX       PCI_CAP_ID_AF
 #define  PCI_EXT_CAP_ID_PASID 0x1B	/* Process Address Space ID */
-#define  PCI_EXT_CAP_ID_MAX   PCI_EXT_CAP_ID_PASID    
+#define  PCI_EXT_CAP_ID_MAX   PCI_EXT_CAP_ID_PASID
 
 namespace PCI {
 
@@ -38,12 +38,12 @@ namespace PCI {
 
   static const uint8_t   CONFIG_BASE_ADDR_0    {0x10U};
 
-  static const uint32_t  BASE_ADDRESS_MEM_MASK {~0x0FUL};
-  static const uint32_t  BASE_ADDRESS_IO_MASK  {~0x03UL};
+  static const unsigned long  BASE_ADDRESS_MEM_MASK {~0x0FUL};
+  static const unsigned long  BASE_ADDRESS_IO_MASK  {~0x03UL};
 
-  static const uint32_t  WTF                   {0xffffffffU};
+  static const unsigned long  WTF                   {~0x0UL};
 
-  /** 
+  /**
    *  @brief PCI device message format
    *
    *  Used to communicate with PCI devices
@@ -52,7 +52,7 @@ namespace PCI {
 
     //! The whole message
     uint32_t data;
-  
+
     /**
      *  Packed attribtues, ordered low to high.
      *
@@ -63,7 +63,7 @@ namespace PCI {
     struct __attribute__((packed)) {
       //! The PCI register
       uint8_t reg;
-    
+
       //! The 16-bit PCI-address @see pci_addr()
       uint16_t addr;
       uint8_t  code;
@@ -111,16 +111,16 @@ namespace hw {
 struct msix_t;
   /**
    *  @brief Communication class for all PCI devices
-   *  
+   *
    *  All low level communication with PCI devices should (ideally) go here.
-   *  
-   *  @todo 
+   *
+   *  @todo
    *  - Consider if we ever need to separate the address into 'bus/dev/func' parts.
    *  - Do we ever need anything but PCI Devices?
    */
   class PCI_Device { // public Device //Why not? A PCI device is too general to be accessible?
   public:
-  
+
     enum {
       VENDOR_AMD     = 0x1022,
       VENDOR_INTEL   = 0x8086,
@@ -136,10 +136,10 @@ struct msix_t;
      *  @param pci_addr:  A 16-bit PCI address.
      *  @param device_id: A device ID, consisting of PCI vendor and product ID's.
      *
-     *  @see pci_addr() for more about the address  
+     *  @see pci_addr() for more about the address
      */
     explicit PCI_Device(const uint16_t pci_addr, const uint32_t, const uint32_t);
-  
+
     //! @brief Read from device with implicit pci_address (e.g. used by Nic)
     uint32_t read_dword(const uint8_t reg) noexcept;
 
@@ -165,7 +165,7 @@ struct msix_t;
      */
     uint16_t pci_addr() const noexcept
     { return pci_addr_; };
-    
+
     /** Get the pci class code. */
     PCI::classcode_t classcode() const noexcept
     { return static_cast<PCI::classcode_t>(devtype_.classcode); }
@@ -182,7 +182,7 @@ struct msix_t;
 
     uint16_t product_id() const noexcept
     { return device_id_.product; }
-  
+
     /**
      *  Parse all Base Address Registers (BAR's)
      *
@@ -191,15 +191,15 @@ struct msix_t;
      *  This function adds resources to the PCI_Device.
      */
     void probe_resources() noexcept;
-  
+
     /** The base address of the (first) I/O resource */
     uint32_t iobase() const noexcept;
 
     typedef uint32_t pcicap_t;
     void parse_capabilities();
-    
+
     void deactivate();
-    
+
     // return max number of possible MSI-x vectors for this device
     // or, zero if MSI-x support is not enabled
     uint8_t get_msix_vectors();
@@ -213,13 +213,13 @@ struct msix_t;
     }
     // deactivate msix (mask off vectors)
     void deactivate_msix();
-    
+
     // resource handling
     uintptr_t get_bar(uint8_t id) const noexcept
     {
       return resources.at(id).start;
     }
-    
+
     // @brief The 2-part ID retrieved from the device
     union vendor_product {
       uint32_t __value;
@@ -240,27 +240,27 @@ struct msix_t;
       struct __attribute__((packed)) {
         uint16_t class_subclass;
         uint8_t __prog_if; //Overlaps the above
-        uint8_t revision;        
+        uint8_t revision;
       };
     };
 
   private:
     // @brief The 3-part PCI address
     uint16_t pci_addr_;
-  
+
     vendor_product device_id_;
     class_revision devtype_;
-  
+
     // Device Resources
     typedef PCI::Resource Resource;
     //! @brief List of PCI BARs
     std::vector<Resource> resources;
-    
+
     pcicap_t caps[PCI_CAP_ID_MAX+1];
-    
+
     // has msix support if not null
     msix_t*  msix = nullptr;
-    
+
     // MSI and MSI-X capabilities for this device
     // the cap offsets and can also be used as boolean to determine
     // device MSI/MSIX support
