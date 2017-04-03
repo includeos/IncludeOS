@@ -23,13 +23,15 @@
 #include <cstddef>
 #include <cstdint>
 
+#define ARCH_X64 1
+
 extern void __arch_init();
 extern void __arch_poweroff();
 extern void __arch_reboot();
 extern void __arch_enable_legacy_irq(uint8_t);
 extern void __arch_disable_legacy_irq(uint8_t);
 
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
 inline uint64_t __arch_cpu_cycles() noexcept {
   uint64_t ret;
   asm("rdtsc" : "=A" (ret));
@@ -42,4 +44,3 @@ inline uint64_t __arch_cpu_cycles() noexcept {
 #endif
 
 #endif
-
