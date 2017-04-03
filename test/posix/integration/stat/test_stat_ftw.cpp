@@ -24,12 +24,12 @@
 int ftw_tests();
 int stat_tests();
 
-fs::Disk_ptr& memdisk() {
-  static auto disk = fs::new_shared_memdisk();
+fs::Disk& memdisk() {
+  fs::Disk& disk = fs::memdisk();
 
-  if (not disk->fs_ready()) {
-    printf("%s\n", disk->name().c_str());
-    disk->init_fs([](fs::error_t err, auto&) {
+  if (not disk.fs_ready()) {
+    printf("%s\n", disk.name().c_str());
+    disk.init_fs([](fs::error_t err, auto&) {
         if (err) {
           printf("ERROR MOUNTING DISK\n");
           exit(127);
@@ -44,7 +44,7 @@ int main()
   INFO("POSIX stat", "Running tests for POSIX stat");
 
   // mount a disk with contents for testing
-  auto root = memdisk()->fs().stat("/");
+  auto root = memdisk().fs().stat("/");
   fs::mount("/mnt/disk", root, "test root");
 
   fs::print_tree();
