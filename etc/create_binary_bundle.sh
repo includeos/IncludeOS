@@ -17,7 +17,7 @@ export newlib_version=${newlib_version:-2.5.0.20170323}			# ftp://sourceware.org
 #export newlib_version=${newlib_version:-2.5.0}			# ftp://sourceware.org/pub/newlib
 export gcc_version=${gcc_version:-6.3.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
 export clang_version=${clang_version:-3.9}				# http://releases.llvm.org/
-export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-project/llvm/tags
+export LLVM_TAG=${LLVM_TAG:-RELEASE_391/final}			# http://llvm.org/svn/llvm-project/llvm/tags
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
@@ -124,7 +124,7 @@ echo ">>> Creating Installation Bundle as $BUNDLE_DIR"
 
 OUTFILE="${DIR_NAME}_$filename_tag.tar.gz"
 
-newlib=$TEMP_INSTALL_DIR/i686-elf/lib
+newlib=$TEMP_INSTALL_DIR/x86_64-elf/lib
 llvm=$BUILD_DIR/build_llvm
 
 # Libraries
@@ -134,12 +134,12 @@ libg=$newlib/libg.a
 libcpp=$llvm/lib/libc++.a
 libcppabi=$llvm/lib/libc++abi.a
 
-GPP=$TEMP_INSTALL_DIR/bin/i686-elf-g++
+GPP=$TEMP_INSTALL_DIR/bin/x86_64-elf-g++
 GCC_VER=`$GPP -dumpversion`
-libgcc=$TEMP_INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/libgcc.a
+libgcc=$TEMP_INSTALL_DIR/lib/gcc/x86_64-elf/$GCC_VER/libgcc.a
 
 # Includes
-include_newlib=$TEMP_INSTALL_DIR/i686-elf/include
+include_newlib=$TEMP_INSTALL_DIR/x86_64-elf/include
 include_libcxx=$llvm/include/c++/v1
 
 # Make directory-tree
@@ -156,7 +156,7 @@ cp $libm $BUNDLE_DIR/newlib/
 cp $libc $BUNDLE_DIR/newlib/
 cp $libg $BUNDLE_DIR/newlib/
 cp $libgcc $BUNDLE_DIR/libgcc/
-cp $TEMP_INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/crt*.o $BUNDLE_DIR/crt/
+cp $TEMP_INSTALL_DIR/lib/gcc/x86_64-elf/$GCC_VER/crt*.o $BUNDLE_DIR/crt/
 
 # Copy includes
 cp -r $include_newlib $BUNDLE_DIR/newlib/
