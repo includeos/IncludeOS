@@ -64,7 +64,10 @@ void Listener::segment_arrived(Packet_ptr packet) {
   {
     // don't waste time if the packet does not have SYN
     if(UNLIKELY(not packet->isset(SYN)))
+    {
+      host_.send_reset(*packet);
       return;
+    }
 
     // Stat increment number of connection attempts
     host_.connection_attempts_++;
