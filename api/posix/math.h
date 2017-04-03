@@ -88,6 +88,10 @@ long double tgammal(long double);
 long double truncl(long double);
 long double nanl(const char*);
 
+long double rintl(long double);
+long        lrintl(long double);
+long long   llrintl(long double);
+
 #ifdef __cplusplus
 }
 #endif
