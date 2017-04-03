@@ -1,0 +1,57 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef KERNEL_IDT_HPP
+#define KERNEL_IDT_HPP
+
+#include <arch>
+
+#if ARCH_X64
+
+struct IDTDescr {
+  uint16_t offset_1;  // offset bits 0..15
+  uint16_t selector;  // a code segment selector in GDT or LDT
+  uint8_t  zero;      // unused, set to 0
+  uint8_t  type_attr; // type and attributes, see below
+  uint16_t offset_2;  // offset bits 16..31
+  uint32_t offset_3;  // 32..63
+  uint32_t zero2;
+};
+
+struct IDTR {
+  uint16_t limit;
+  uint64_t base;
+}__attribute__((packed));
+
+#elif ARCH_X86
+
+struct IDTDescr {
+  uint16_t offset_1;  // offset bits 0..15
+  uint16_t selector;  // a code segment selector in GDT or LDT
+  uint8_t  zero;      // unused, set to 0
+  uint8_t  type_attr; // type and attributes, see below
+  uint16_t offset_2;  // offset bits 16..31
+};
+
+struct IDTR {
+  uint16_t limit;
+  uint32_t base;
+}__attribute__((packed));
+
+#endif
+
+#endif
