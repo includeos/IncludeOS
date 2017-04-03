@@ -65,7 +65,7 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
         }
         // we got an index, lets send it
         else {
-          auto mime = http::ext_to_mime_type(get_extension(path));
+          auto mime = http::ext_to_mime_type(this->get_extension(path));
           res->header().set_field(http::header::Content_Type, mime.to_string());
           return res->send_file({disk_, entry});
         }
@@ -101,7 +101,7 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
           #ifdef VERBOSE_WEBSERVER
           printf("<Butler> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());
           #endif
-          auto mime = http::ext_to_mime_type(get_extension(path));
+          auto mime = http::ext_to_mime_type(this->get_extension(path));
           res->header().set_field(http::header::Content_Type, mime.to_string());
           res->send_file({disk_, entry});
           return;

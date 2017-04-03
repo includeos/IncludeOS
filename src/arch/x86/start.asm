@@ -18,9 +18,37 @@
 USE32
 extern kernel_start
 global _start
+global __xsave_enabled
+global __avx_enabled
+global __ecx_was
+
+%define  MB_MAGIC   0x1BADB002
+%define  MB_FLAGS   0x3  ;; ALIGN + MEMINFO
+
+extern _MULTIBOOT_START_
+extern _LOAD_START_
+extern _LOAD_END_
+extern _end
+
+ALIGN 4
+section .multiboot
+  dd  MB_MAGIC
+  dd  MB_FLAGS
+  dd  -(MB_MAGIC + MB_FLAGS)
+  dd _MULTIBOOT_START_
+  dd _LOAD_START_
+  dd _LOAD_END_
+  dd _end
+  dd _start
 
 %define data_segment 0x10
 %define code_segment 0x08
+
+section .data
+__xsave_enabled:
+    dw 0x0
+__avx_enabled:
+    dw 0x0
 
 section .text
 ;; Multiboot places boot paramters on eax and ebx.
@@ -49,9 +77,9 @@ rock_bottom:
 
   ;; enable SSE before we enter C/C++ land
   call enable_sse
-  ;; ... and XSAVE to get xsetbv/xgetbv working
+  ;; try to enable XSAVE before checking AVX
   call enable_xsave
-  ;; ... and finally, enable AVX
+  ;; enable AVX if xsave and avx supported on CPU
   call enable_avx
 
   ;;  Place multiboot parameters on stack
@@ -74,19 +102,44 @@ enable_sse:
 
 enable_xsave:
   push eax
+  push ebx
+  ; check for XSAVE support
+  mov eax, 1
+  xor ecx, ecx
+  cpuid
+  ; bit 26 ecx
+  and ecx, 0x04000000
+  cmp ecx, 0x04000000
+  jne xsave_not_supported
   ; enable XSAVE
   mov eax, cr4
   or  eax, 0x40000
   mov cr4, eax
+  mov WORD [__xsave_enabled], 0x1
+xsave_not_supported:
+  pop ebx
   pop eax
   ret
 
 enable_avx:
   push eax
+  push ebx
+  ;; assuming cpuid with eax=1 supported
+  mov eax, 1
+  xor ecx, ecx
+  cpuid
+  ;; check bits 27, 28 (xsave, avx)
+  and ecx, 0x18000000
+  cmp ecx, 0x18000000
+  jne avx_not_supported
+  ;; enable AVX support
   xor ecx, ecx
   xgetbv
   or eax, 0x7
   xsetbv
+  mov WORD [__avx_enabled], 0x1
+avx_not_supported:
+  pop ebx
   pop eax
   ret
 
@@ -96,7 +149,7 @@ gdtr:
   dd gdt32
 ALIGN 32
 gdt32:
-  ;; Entry 0x0: Null desriptor
+  ;; Entry 0x0: Null descriptor
   dq 0x0
   ;; Entry 0x8: Code segment
   dw 0xffff          ;Limit

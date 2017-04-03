@@ -21,12 +21,12 @@
 #include <iostream>
 
 #include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <sys/stat.h>
+#include <cassert>
 
 #include "../api/boot/multiboot.h"
-#include <gsl/gsl>
 #include "elf.h"
 #include "elf_binary.hpp"
 
@@ -72,7 +72,7 @@ string get_bootloader_path(int argc, char** argv) {
 int main(int argc, char** argv) {
 
   // Verify proper command usage
-  if (argc < 2) {
+  if (argc <= 2) {
     cout << info << usage;
     exit(EXIT_FAILURE);
   }
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
 
   const decltype(binary_sectors) img_size_sect  {1 + binary_sectors};
   const decltype(binary_sectors) img_size_bytes {img_size_sect * SECT_SIZE};
-  Expects((img_size_bytes & (SECT_SIZE-1)) == 0);
+  assert((img_size_bytes & (SECT_SIZE-1)) == 0);
 
   INFO("Total disk size: \t%ld bytes, => %ld sectors",
        img_size_bytes, img_size_sect);
@@ -175,14 +175,17 @@ int main(int argc, char** argv) {
 
   INFO("Verifying multiboot header:");
   INFO("Magic value: 0x%x\n" , multiboot.magic);
-  Expects(multiboot.magic == MULTIBOOT_HEADER_MAGIC);
+  if (multiboot.magic != MULTIBOOT_HEADER_MAGIC) {
+    printf("Multiboot magic mismatch: 0x%08x vs %#x\n", multiboot.magic, MULTIBOOT_HEADER_MAGIC);
+  }
+  assert(multiboot.magic == MULTIBOOT_HEADER_MAGIC);
 
   INFO("Flags: 0x%x" , multiboot.flags);
   INFO("Checksum: 0x%x" , multiboot.checksum);
   INFO("Checksum computed: 0x%x", multiboot.checksum + multiboot.flags + multiboot.magic);
 
   // Verify multiboot header checksum
-  Expects(multiboot.checksum + multiboot.flags + multiboot.magic == 0);
+  assert(multiboot.checksum + multiboot.flags + multiboot.magic == 0);
 
   INFO("Header addr: 0x%x" , multiboot.header_addr);
   INFO("Load start: 0x%x" , multiboot.load_addr);
