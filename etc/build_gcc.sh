@@ -1,20 +1,20 @@
-# Bash utils
+#!/bin/bash
 . $INCLUDEOS_SRC/etc/set_traps.sh
 
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
+# Download, configure, compile and install gcc
 
-GCC_LOC=ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
+pushd $BUILD_DIR
 
+# Download
 if [ ! -f gcc-$gcc_version.tar.gz ]; then
     echo -e "\n\n >>> Getting GCC \n"
+	GCC_LOC=ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
     wget -c --trust-server-name $GCC_LOC/gcc-$gcc_version/gcc-$gcc_version.tar.gz
 fi
 
 # UNPACK GCC
 if [ ! -d gcc-$gcc_version ]; then
     echo -e "\n\n >>> Unpacking GCC source \n"
-    cd $BUILD_DIR
     tar -xf gcc-$gcc_version.tar.gz
 
     # GET GCC PREREQS 
@@ -26,18 +26,23 @@ else
     echo -e "\n\n >>> SKIP: Unpacking GCC + getting prerequisites Seems to be there \n"
 fi
 
-cd $BUILD_DIR
-
-
 mkdir -p build_gcc
-cd build_gcc
+pushd build_gcc
 
+# Configure
 echo -e "\n\n >>> Configuring GCC \n"
-../gcc-$gcc_version/configure --target=$TARGET --prefix="$PREFIX" --disable-nls --enable-languages=c,c++ --without-headers
+../gcc-$gcc_version/configure \
+	--target=$TARGET \
+	--prefix="$TEMP_INSTALL_DIR" \
+	--disable-nls \
+	--enable-languages=c,c++ \
+   	--without-headers
 
+# Compile
 echo -e "\n\n >>> Building GCC \n"
 make all-gcc $num_jobs
 
+# Install
 echo -e "\n\n >>> Installing GCC (Might require sudo) \n"
 make install-gcc
 
@@ -47,5 +52,6 @@ make all-target-libgcc $num_jobs
 echo -e "\n\n >>> Installing libgcc (Might require sudo) \n"
 make install-target-libgcc
 
-
+popd	# build_gcc
+popd	# BUILD_DIR
 trap - EXIT
