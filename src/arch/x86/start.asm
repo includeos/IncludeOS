@@ -50,7 +50,6 @@ __xsave_enabled:
 __avx_enabled:
     dw 0x0
 
-ALIGN32
 section .text
 ;; Multiboot places boot paramters on eax and ebx.
 _start:
