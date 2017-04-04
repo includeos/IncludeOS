@@ -9,13 +9,14 @@ export PATH="$TEMP_INSTALL_DIR/bin:$PATH"
 
 # Build options
 export TARGET=i686-elf	# Configure target
-export num_jobs=${num_jobs:-"-j"}	# Specify number of build jobs	
+export num_jobs=${num_jobs:-"-j"}	# Specify number of build jobs
 
 # Version numbers
-export binutils_version=${binutils_version:-2.26}		# ftp://ftp.gnu.org/gnu/binutils
-export newlib_version=${newlib_version:-2.4.0}			# ftp://sourceware.org/pub/newlib
-export gcc_version=${gcc_version:-6.2.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
-export clang_version=${clang_version:-3.8}				# http://releases.llvm.org/
+export binutils_version=${binutils_version:-2.28}		# ftp://ftp.gnu.org/gnu/binutils
+export newlib_version=${newlib_version:-2.5.0.20170323}			# ftp://sourceware.org/pub/newlib
+#export newlib_version=${newlib_version:-2.5.0}			# ftp://sourceware.org/pub/newlib
+export gcc_version=${gcc_version:-6.3.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
+export clang_version=${clang_version:-3.9}				# http://releases.llvm.org/
 export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-project/llvm/tags
 
 # Options to skip steps
@@ -50,8 +51,11 @@ DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clan
 
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $DEPS_BUILD \n"
-sudo apt-get update
-sudo apt-get install -y $DEPS_BUILD
+
+if [ ! -z $do_packages ]; then
+  sudo apt-get update
+  sudo apt-get install -y $DEPS_BUILD
+fi
 
 # Print currently set install options
 printf "\n\n>>> Bundle will be created with the following options:\n\n"
@@ -113,10 +117,10 @@ filename_tag=`echo $tag | tr . -`
 popd
 
 # Where to place the installation bundle
-DIR_NAME="IncludeOS_install"
-export INSTALL_DIR=${INSTALL_DIR:-~/$DIR_NAME}
+DIR_NAME="IncludeOS_dependencies"
+export BUNDLE_DIR=${BUNDLE_DIR:-~/$DIR_NAME}
 
-echo ">>> Creating Installation Bundle as $INSTALL_DIR"
+echo ">>> Creating Installation Bundle as $BUNDLE_DIR"
 
 OUTFILE="${DIR_NAME}_$filename_tag.tar.gz"
 
@@ -128,6 +132,7 @@ libc=$newlib/libc.a
 libm=$newlib/libm.a
 libg=$newlib/libg.a
 libcpp=$llvm/lib/libc++.a
+libcppabi=$llvm/lib/libc++abi.a
 
 GPP=$TEMP_INSTALL_DIR/bin/i686-elf-g++
 GCC_VER=`$GPP -dumpversion`
@@ -138,26 +143,27 @@ include_newlib=$TEMP_INSTALL_DIR/i686-elf/include
 include_libcxx=$llvm/include/c++/v1
 
 # Make directory-tree
-mkdir -p $INSTALL_DIR
-mkdir -p $INSTALL_DIR/newlib
-mkdir -p $INSTALL_DIR/libcxx
-mkdir -p $INSTALL_DIR/crt
-mkdir -p $INSTALL_DIR/libgcc
+mkdir -p $BUNDLE_DIR
+mkdir -p $BUNDLE_DIR/newlib
+mkdir -p $BUNDLE_DIR/libcxx
+mkdir -p $BUNDLE_DIR/crt
+mkdir -p $BUNDLE_DIR/libgcc
 
 # Copy binaries
-cp $libcpp $INSTALL_DIR/libcxx/
-cp $libm $INSTALL_DIR/newlib/
-cp $libc $INSTALL_DIR/newlib/
-cp $libg $INSTALL_DIR/newlib/
-cp $libgcc $INSTALL_DIR/libgcc/
-cp $TEMP_INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/crt*.o $INSTALL_DIR/crt/
+cp $libcpp $BUNDLE_DIR/libcxx/
+cp $libcppabi $BUNDLE_DIR/libcxx/
+cp $libm $BUNDLE_DIR/newlib/
+cp $libc $BUNDLE_DIR/newlib/
+cp $libg $BUNDLE_DIR/newlib/
+cp $libgcc $BUNDLE_DIR/libgcc/
+cp $TEMP_INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/crt*.o $BUNDLE_DIR/crt/
 
 # Copy includes
-cp -r $include_newlib $INSTALL_DIR/newlib/
-cp -r $include_libcxx $INSTALL_DIR/libcxx/include
+cp -r $include_newlib $BUNDLE_DIR/newlib/
+cp -r $include_libcxx $BUNDLE_DIR/libcxx/include
 
 # Zip it
-tar -czvf $OUTFILE --directory=$INSTALL_DIR/../ $DIR_NAME
+tar -czvf $OUTFILE --directory=$BUNDLE_DIR/../ $DIR_NAME
 
 echo ">>> IncludeOS Installation Bundle created as $INSTALL_DIR and gzipped into $OUTFILE"
 

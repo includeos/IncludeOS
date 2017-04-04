@@ -72,18 +72,12 @@ set(OS_OBJECTS
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 add_dependencies(os PrecompiledLibraries botan)
 
-file(GLOB CXX_ABI crt/cxxabi/*.cpp)
-
-add_library(c++abi STATIC ${CXX_ABI})
-add_dependencies(c++abi libcxx)
-
 add_subdirectory(crt)
 add_subdirectory(boot)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
 
-install(TARGETS c++abi os DESTINATION includeos/lib)
-
+install(TARGETS os DESTINATION includeos/lib)
 
 install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")

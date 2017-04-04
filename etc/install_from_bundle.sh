@@ -15,6 +15,7 @@ set -e
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
+num_jobs=${num_jobs-"-j 4"}
 
 # Try to find suitable compiler
 cc_list="clang-3.9 clang-3.8 clang-3.7 clang-3.6 clang"
@@ -54,7 +55,7 @@ cmake $INCLUDEOS_SRC \
 	  -Dtests=$INCLUDEOS_ENABLE_TEST \
 	  -DBUNDLE_LOC=$BUNDLE_LOC
 make PrecompiledLibraries
-make -j 4
+make $num_jobs
 make install
 popd
 
