@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,6 +51,7 @@ extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
 extern uintptr_t _MAX_MEM_MIB_;
 
+// Initialize static OS data members
 bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 MHz   OS::cpu_mhz_ {-1};
@@ -59,6 +60,9 @@ uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::memory_end_ {0};
 uintptr_t OS::heap_max_ {0xfffffff};
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
+multiboot_info_t* OS::bootinfo_ = nullptr;
+std::string OS::cmdline{Service::binary_name()};
+
 // stdout redirection
 static std::vector<OS::print_func> os_print_handlers;
 extern void default_stdout_handlers();
@@ -71,14 +75,15 @@ std::vector<OS::Plugin_struct> OS::plugins_;
 std::string OS::version_field = OS_VERSION;
 
 // Multiboot command line for the service
-static std::string os_cmdline = Service::binary_name();
+
+
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
 
 const std::string& OS::cmdline_args() noexcept
 {
-  return os_cmdline;
+  return cmdline;
 }
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
@@ -293,59 +298,6 @@ size_t OS::print(const char* str, const size_t len)
   for (auto& func : os_print_handlers)
       func(str, len);
   return len;
-}
-
-void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
-  MYINFO("Booted with multiboot");
-  INFO2("* magic value: 0x%x Multiboot info at 0x%x", boot_magic, boot_addr);
-
-  multiboot_info_t* bootinfo = (multiboot_info_t*) boot_addr;
-
-  if (! bootinfo->flags & MULTIBOOT_INFO_MEMORY) {
-    INFO2("* No memory info provided in multiboot info");
-    return;
-  }
-
-  uint32_t mem_low_start = 0;
-  uint32_t mem_low_end = (bootinfo->mem_lower * 1024) - 1;
-  uint32_t mem_low_kb = bootinfo->mem_lower;
-  uint32_t mem_high_start = 0x100000;
-  uint32_t mem_high_end = mem_high_start + (bootinfo->mem_upper * 1024) - 1;
-  uint32_t mem_high_kb = bootinfo->mem_upper;
-
-  OS::low_memory_size_ = mem_low_kb * 1024;
-  OS::high_memory_size_ = mem_high_kb * 1024;
-  OS::memory_end_ = high_memory_size_ + mem_high_start;
-
-  INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
-  INFO2("\t 0x%08x - 0x%08x (%i Kib)",
-        mem_low_start, mem_low_end, mem_low_kb);
-  INFO2("\t 0x%08x - 0x%08x (%i Kib)",
-        mem_high_start, mem_high_end, mem_high_kb);
-  INFO2("");
-
-  if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE) {
-    INFO2("* Booted with parameters @ %p: %s",(void*)bootinfo->cmdline, (char*)bootinfo->cmdline);
-    os_cmdline = std::string((char*) bootinfo->cmdline);
-  }
-
-  if (bootinfo->flags & MULTIBOOT_INFO_MEM_MAP) {
-    INFO2("* Multiboot provided memory map  (%i entries @ %p)",
-          bootinfo->mmap_length / sizeof(multiboot_memory_map_t), (void*)bootinfo->mmap_addr);
-    gsl::span<multiboot_memory_map_t> mmap { reinterpret_cast<multiboot_memory_map_t*>(bootinfo->mmap_addr),
-        (int)(bootinfo->mmap_length / sizeof(multiboot_memory_map_t))};
-
-    for (auto map : mmap) {
-      const char* str_type = map.type & MULTIBOOT_MEMORY_AVAILABLE ? "FREE" : "RESERVED";
-      INFO2("\t 0x%08llx - 0x%08llx %s (%llu Kb.)",
-            map.addr, map.addr + map.len - 1, str_type, map.len / 1024 );
-
-      if (not (map.type & MULTIBOOT_MEMORY_AVAILABLE)) {
-        memory_map().assign_range({static_cast<uintptr_t>(map.addr), static_cast<uintptr_t>(map.addr + map.len - 1), "Reserved", "Multiboot / BIOS"});
-      }
-    }
-    printf("\n");
-  }
 }
 
 

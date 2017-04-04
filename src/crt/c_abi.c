@@ -26,8 +26,12 @@
 #include <kprint>
 
 #define HEAP_ALIGNMENT   63
-caddr_t heap_begin;
-caddr_t heap_end;
+void* heap_begin;
+void* heap_end;
+
+extern char _ELF_SYM_START_;
+extern char _end;
+
 
 /// IMPLEMENTATION OF Newlib I/O:
 #undef stdin
@@ -42,10 +46,25 @@ __FILE* stderr;
 const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 
-void _init_c_runtime()
-{
-  extern char _ELF_SYM_START_;
-  extern char _end;
+void _init_bss() {
+  /// Initialize .bss section
+  extern char _BSS_START_, _BSS_END_;
+  streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+
+}
+
+void _init_heap(uintptr_t free_mem_begin) {
+  // NOTE: Initialize the heap before exceptions
+  // cache-align heap, because its not aligned
+  heap_begin = (void*) free_mem_begin + HEAP_ALIGNMENT;
+  heap_begin = (void*) ((size_t)heap_begin & ~HEAP_ALIGNMENT);
+  // heap end tracking, used with sbrk
+  heap_end   = heap_begin;
+
+
+}
+
+uintptr_t _move_symbols(void* sym_loc) {
 
   /// read out size of symbols **before** moving them
   extern int  _get_elf_section_datasize(const void*);
@@ -54,23 +73,25 @@ void _init_c_runtime()
 
   /// move ELF symbols to safe area
   extern void _move_elf_syms_location(const void*, void*);
-  _move_elf_syms_location(&_ELF_SYM_START_, &_end);
+  _move_elf_syms_location(&_ELF_SYM_START_, sym_loc);
 
-  /// Initialize .bss section
-  extern char _BSS_START_, _BSS_END_;
-  streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+  return elfsym_size;
 
-  /// Initialize the heap before exceptions
-  // set heap start at end of ELF symbols
-  heap_begin = &_end + elfsym_size;
-  // cache-align heap, because its not aligned
-  heap_begin += HEAP_ALIGNMENT;
-  heap_begin = (char*) ((uintptr_t)heap_begin & ~(uintptr_t) HEAP_ALIGNMENT);
-  // heap end tracking, used with sbrk
-  heap_end   = heap_begin;
+}
+
+void _crt_sanity_checks() {
+
   // validate that heap is aligned
   int validate_heap_alignment =
-      ((uintptr_t)heap_begin & (uintptr_t) HEAP_ALIGNMENT) == 0;
+    ((uintptr_t)heap_begin & (uintptr_t) HEAP_ALIGNMENT) == 0;
+
+  assert(heap_begin >= (void*) &_end);
+  assert(heap_end >= heap_begin);
+  assert(validate_heap_alignment);
+};
+
+void _init_c_runtime()
+{
 
   /// initialize newlib I/O
   _REENT_INIT_PTR(_REENT);
@@ -89,10 +110,8 @@ void _init_c_runtime()
   extern void _init_elf_parser();
   _init_elf_parser();
 
-  // sanity checks
-  assert(heap_begin >= &_end);
-  assert(heap_end >= heap_begin);
-  assert(validate_heap_alignment);
+  _crt_sanity_checks();
+
 }
 
 // stack-protector

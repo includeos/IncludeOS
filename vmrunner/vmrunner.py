@@ -174,6 +174,14 @@ class qemu(hypervisor):
                 + ",if=" + drive_type
                 + ",media=" + media_type]
 
+    # -initrd "file1 arg=foo,file2"
+    # This syntax is only available with multiboot.
+
+    def mod_args(self, mods):
+        mods_list =",".join([mod["path"] + ((" " + mod["args"]) if "args" in mod else "")
+                             for mod in mods])
+        return ["-initrd", mods_list]
+
     def net_arg(self, backend, device, if_name = "net0", mac = None, bridge = None):
         qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
 
@@ -284,6 +292,9 @@ class qemu(hypervisor):
             for disk in self._config["drives"]:
                 disk_args += self.drive_arg(disk["file"], disk["type"], disk["format"], disk["media"])
 
+        mod_args = []
+        if "modules" in self._config:
+            mod_args += self.mod_args(self._config["modules"])
 
         if "bios" in self._config:
             kernel_args.extend(["-bios", self._config["bios"]])
@@ -321,7 +332,11 @@ class qemu(hypervisor):
 
         command += kernel_args
 
-        command += disk_args + net_args + mem_arg + vga_arg
+        command += disk_args + net_args + mem_arg + vga_arg + mod_args
+
+        #command_str = " ".join(command)
+        #command_str.encode('ascii','ignore')
+        #command = command_str.split(" ")
 
         info("Command:", " ".join(command))
 

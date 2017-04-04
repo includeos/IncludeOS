@@ -26,6 +26,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <boot/multiboot.h>
 
 /**
  *  The entrypoint for OS services
@@ -36,6 +37,7 @@ class OS {
 public:
   using print_func  = delegate<void(const char*, size_t)>;
   using Plugin = delegate<void()>;
+  using Span_mods = gsl::span<multiboot_module_t>;
 
   /**
    * Returns the version of the OS from when
@@ -204,6 +206,23 @@ public:
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
+  /** Get "kernel modules", provided by multiboot */
+  static Span_mods modules() {
+
+    if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS) {
+
+      Expects(bootinfo_->mods_count > 0
+              and bootinfo_->mods_count < std::numeric_limits<int>::max());
+
+      return Span_mods{
+        reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),
+          static_cast<int>(bootinfo_->mods_count) };
+
+    }
+
+    return nullptr;
+  }
+
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
@@ -216,15 +235,6 @@ private:
   static bool is_softreset_magic(uint32_t value);
   static void resume_softreset(intptr_t boot_addr);
 
-  static constexpr int PAGE_SHIFT = 12;
-
-  static bool power_;
-  static bool boot_sequence_passed_;
-
-  static MHz cpu_mhz_;
-
-  static std::string version_field;
-
   struct Plugin_struct {
     Plugin_struct(Plugin f, const char* n)
       : func_{f}, name_{n}
@@ -234,14 +244,18 @@ private:
     const char* name_;
   };
 
+  static constexpr int PAGE_SHIFT = 12;
+  static bool power_;
+  static bool boot_sequence_passed_;
+  static MHz cpu_mhz_;
+  static std::string version_field;
   static std::vector<Plugin_struct> plugins_;
-
   static uintptr_t low_memory_size_;
   static uintptr_t high_memory_size_;
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
-
+  static multiboot_info_t* bootinfo_;
   static std::string cmdline;
 
   // Prohibit copy and move operations

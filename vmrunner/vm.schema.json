@@ -32,6 +32,17 @@
       "default" : "service.img"
     },
 
+    "modules" : {
+      "description" : "Multiboot 'modules', e.g. extra files provided at boot",
+      "type" : "array",
+      "items" : {"type" : "object",
+                 "properties" : {
+                   "path" : { "type" : "string" },
+                   "args" : { "type" : "string" }
+                 }
+                }
+    },
+
     "bios" : {
       "description" : "64k BIOS image",
       "type" : "string"
