@@ -145,9 +145,9 @@ void panic(const char* why)
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
 
-  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%zx)\n",
+  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%z)\n",
          (void*) heap_end, (void*) OS::heap_max(), OS::heap_max() - heap_end);
-  fprintf(stderr, "\tHeap usage: %zu / %zu Kb (%.2f%%)\n",
+  fprintf(stderr, "\tHeap usage: %z / %z Kb (%.2f%%)\n",
          (uintptr_t) (heap_end - heap_begin) / 1024,
          heap_total / 1024,
          total * 100.0);

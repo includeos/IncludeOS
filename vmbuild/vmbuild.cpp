@@ -41,8 +41,8 @@ bool verb = false;
 using namespace std;
 
 // Location of special variables inside the bootloader
-static const int bootvar_binary_size {2};
-static const int bootvar_binary_location {6};
+static const int bootvar_binary_size     = 4;
+static const int bootvar_binary_location = 8;
 
 static bool test {false};
 
@@ -78,7 +78,8 @@ int main(int argc, char** argv)
   }
 
   // VERBOSE=...
-  if (strlen(getenv("VERBOSE")) > 0)
+  const char* env_verb = getenv("VERBOSE");
+  if (env_verb && strlen(env_verb) > 0)
       verb = true;
 
   const string bootloader_path = get_bootloader_path(argc, argv);
@@ -200,13 +201,12 @@ if (binary_imgloc[EI_MAG0] == ELFMAG0
   }
   else if (binary_imgloc[EI_CLASS] == ELFCLASS64)
   {
-    INFO("Found 64-bit ELF\n");
     auto* hdr   = (const Elf64_Ehdr*) binary_imgloc;
-    auto* phdr  = (Elf64_Phdr*) &binary_imgloc[hdr->e_phoff];
-    auto  entry = phdr->p_paddr;
+    auto  entry = hdr->e_entry;
+    INFO("Found 64-bit ELF with entry at %p", (void*) entry);
 
     // Write binary size and entry point to the bootloader
-    *(uint32_t*) (disk_head + bootvar_binary_size)     = binary_sectors;
+    *(uint32_t*) (disk_head + bootvar_binary_size)     = (uint32_t) binary_sectors;
     *(uint32_t*) (disk_head + bootvar_binary_location) = (uint32_t) entry;
   }
   else

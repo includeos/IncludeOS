@@ -23,6 +23,7 @@
 #define MULTIBOOT_CMDLINE_LOC 0x7000
 
 extern "C" {
+  void __init_serial1();
   void __init_sanity_checks();
   void kernel_sanity_checks();
   uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
@@ -38,6 +39,8 @@ extern "C" {
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)
 {
+  __init_serial1();
+  kprint("64-bit test1\n");
 
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
@@ -51,7 +54,6 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
-
 
   // Initialize zero-initialized vars
   _init_bss();

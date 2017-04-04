@@ -17,68 +17,79 @@
 global __arch_start:function
 extern kernel_start
 
+%define PAGE_SIZE          0x1000
+%define PAGE_MAP_TAB       0x1000
+%define PAGE_DIR_PTR_TAB   0x2000
+%define PAGE_DIR_TAB       0x3000
+%define PAGE_TABLE        0x10000
+%define STACK_LOCATION    0xA0000
+
 [BITS 32]
 __arch_start:
     ;; disable old paging
     mov eax, cr0                                   ; Set the A-register to control register 0.
     and eax, 01111111111111111111111111111111b     ; Clear the PG-bit, which is bit 31.
     mov cr0, eax                                   ; Set control register 0 to the A-register.
-    ;; clear page tables
-    mov edi, 0x9000    ; Set the destination index to 0x9000.
-    mov cr3, edi       ; Set control register 3 to the destination index.
+    ;; address for Page Map Level 4
+    mov edi, PAGE_MAP_TAB
+    mov cr3, edi
+    ;; clear page directory pointer table
+    ;; ... and page directory table
+    mov ecx, 0x3000    ; clear 3 pages
     xor eax, eax       ; Nullify the A-register.
-    mov ecx, 4096      ; Set the C-register to 4096.
-    rep stosd          ; Clear the memory.
+    rep stosd
 
-    ;; create page directory
-    mov ecx, 512    ;; entries
-    mov edi, cr3
-    mov ebx, 0xA003
+    ;; create page map entry
+    mov edi, PAGE_MAP_TAB
+    mov DWORD [edi], PAGE_DIR_PTR_TAB | 0x3 ;; present+write
+
+    ;; create page directory pointer table entry
+    mov edi, PAGE_DIR_PTR_TAB
+    mov DWORD [edi], PAGE_DIR_TAB | 0x3 ;; present+write
+
+    ;; create page directory entries
+    mov ecx, 512     ;; num entries
+    mov edi, PAGE_DIR_TAB
+    mov ebx, PAGE_TABLE | 0x3 ;; pagetables first address + present+write
   .ptd_loop:
     mov DWORD [edi], ebx
-    add ebx, 0x1000
+    add ebx, PAGE_SIZE
     add edi, 8
     loop .ptd_loop
 
-    ;; create page tables
+    ;; create page table entries
     mov ecx, 1048576 ;; num pages
-    mov edi, 0xA000
-    mov ebx, 0x0003  ;; present + write
+    mov edi, PAGE_TABLE
+    mov ebx, 0x3  ;; present + write
   .pt_loop:
     mov DWORD [edi], ebx
-    add ebx, 0x1000
+    add ebx, PAGE_SIZE
     add edi, 8
     loop .pt_loop
+
+    ;; enable PAE
+    mov eax, cr4
+    or  eax, 1 << 5
+    mov cr4, eax
 
     ;; enable long mode
     mov ecx, 0xC0000080          ; EFER MSR
     rdmsr
-    or eax, 1 << 8               ; LM-bit (bit 8)
+    or eax, 1 << 8               ; Long Mode bit
     wrmsr
 
     ;; enable paging & protected mode
     mov eax, cr0                 ; Set the A-register to control register 0.
     or  eax, 1 << 31 | 1 << 0    ; Set the PG-bit, which is the 31nd bit, and the PM-bit, which is the 0th bit.
     mov cr0, eax                 ; Set control register 0 to the A-register.
+
     ;; load 64-bit GDT
     lgdt [GDT64.Pointer]
+
     jmp  GDT64.Code:long_mode
 
-[BITS 64]
-long_mode:
-    cli
-    ;; segment regs
-    mov ax, GDT64.Data
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-    ;; geronimo
-    call kernel_start
-    ret
 
-GDT64:                           ; Global Descriptor Table (64-bit).
+GDT64:
   .Null: equ $ - GDT64         ; The null descriptor.
     dq 0
   .Code: equ $ - GDT64         ; The code descriptor.
@@ -99,3 +110,24 @@ GDT64:                           ; Global Descriptor Table (64-bit).
   .Pointer:                    ; The GDT-pointer.
     dw $ - GDT64 - 1             ; Limit.
     dq GDT64                     ; Base.
+
+[BITS 64]
+long_mode:
+    cli
+    ;; segment regs
+    mov ax, GDT64.Data
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    ;; set up new stack for 64-bit
+    push rsp
+    mov rsp, STACK_LOCATION
+    mov rbp, rsp
+
+    ;; geronimo!
+    call kernel_start
+    pop  rsp
+    ret
