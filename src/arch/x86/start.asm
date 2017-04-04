@@ -16,7 +16,7 @@
 ;; limitations under the License.
 
 USE32
-extern kernel_start
+extern __arch_start
 global _start
 global __xsave_enabled
 global __avx_enabled
@@ -86,7 +86,7 @@ rock_bottom:
   ;;  Place multiboot parameters on stack
   push ebx
   push eax
-  call kernel_start
+  call __arch_start
   ret
 
 enable_sse:
