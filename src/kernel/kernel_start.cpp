@@ -40,7 +40,6 @@ extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)
 {
   __init_serial1();
-  kprint("64-bit test1\n");
 
   // generate checksums of read-only areas etc.
   __init_sanity_checks();

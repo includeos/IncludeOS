@@ -21,8 +21,8 @@ extern kernel_start
 %define PAGE_MAP_TAB       0x1000
 %define PAGE_DIR_PTR_TAB   0x2000
 %define PAGE_DIR_TAB       0x3000
-%define PAGE_TABLE        0x10000
-%define STACK_LOCATION    0xA0000
+%define PAGE_TABLE       0x100000
+%define STACK_LOCATION   0xA00000
 
 [BITS 32]
 __arch_start:

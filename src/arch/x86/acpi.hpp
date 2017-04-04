@@ -25,6 +25,8 @@
 
 namespace x86 {
 
+  struct SDTHeader;
+
   class ACPI {
   public:
     struct LAPIC {
@@ -84,7 +86,7 @@ namespace x86 {
     bool checksum(const char*, size_t) const;
     void begin(const void* addr);
 
-    void walk_sdts(const char* addr);
+    void walk_sdts(SDTHeader* addr);
     void walk_madt(const char* addr);
     void walk_facp(const char* addr);
 

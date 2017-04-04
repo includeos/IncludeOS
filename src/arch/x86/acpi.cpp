@@ -26,10 +26,10 @@ extern "C" void reboot_os();
 namespace x86 {
 
   struct RSDPDescriptor {
-    char Signature[8];
-    uint8_t Checksum;
-    char OEMID[6];
-    uint8_t Revision;
+    char     Signature[8];
+    uint8_t  Checksum;
+    char     OEMID[6];
+    uint8_t  Revision;
     uint32_t RsdtAddress;
   } __attribute__ ((packed));
 
@@ -43,12 +43,12 @@ namespace x86 {
   } __attribute__ ((packed));
 
   struct SDTHeader {
-    char Signature[4];
+    char     Signature[4];
     uint32_t Length;
-    uint8_t Revision;
-    uint8_t Checksum;
-    char OEMID[6];
-    char OEMTableID[8];
+    uint8_t  Revision;
+    uint8_t  Checksum;
+    char     OEMID[6];
+    char     OEMTableID[8];
     uint32_t OEMRevision;
     uint32_t CreatorID;
     uint32_t CreatorRevision;
@@ -124,11 +124,17 @@ namespace x86 {
   void ACPI::begin(const void* addr) {
 
     auto* rdsp = (RSDPDescriptor20*) addr;
+    printf("RSDP: %p\n", addr);
+
     INFO("ACPI", "Reading headers");
     INFO2("OEM: %.*s Rev. %u",
         6, rdsp->rdsp10.OEMID, rdsp->rdsp10.Revision);
 
-    auto* rsdt = (SDTHeader*) rdsp->rdsp10.RsdtAddress;
+    SDTHeader* rsdt;
+    if (rdsp->XsdtAddress)
+        rsdt = (SDTHeader*) (uintptr_t) rdsp->XsdtAddress;
+    else
+        rsdt = (SDTHeader*) rdsp->rdsp10.RsdtAddress;
     // verify Root SDT
     if (!checksum((char*) rsdt, rsdt->Length)) {
       printf("ACPI: SDT failed checksum!");
@@ -137,18 +143,21 @@ namespace x86 {
 
     // walk through system description table headers
     // remember the interesting ones, and count CPUs
-    walk_sdts((char*) rsdt);
+    printf("Walk SDTs: %p\n", rsdt);
+    walk_sdts(rsdt);
   }
 
   constexpr uint32_t bake(char a, char b , char c, char d) {
     return a | (b << 8) | (c << 16) | (d << 24);
   }
 
-  void ACPI::walk_sdts(const char* addr)
+  void ACPI::walk_sdts(SDTHeader* addr)
   {
     // find total number of SDTs
     auto* rsdt = (SDTHeader*) addr;
+    printf("RSDT: %p\n", addr);
     int  total = (rsdt->Length - sizeof(SDTHeader)) / 4;
+    printf("total: %d\n", total);
     // go past rsdt
     addr += sizeof(SDTHeader);
 
@@ -157,23 +166,23 @@ namespace x86 {
     constexpr uint32_t HPET_t = bake('H', 'P', 'E', 'T');
     constexpr uint32_t FACP_t = bake('F', 'A', 'C', 'P');
 
-    while (total) {
-      // convert *addr to SDT-address
-      auto sdt_ptr = *(intptr_t*) addr;
+    while (total > 0)
+    {
       // create SDT pointer
-      auto* sdt = (SDTHeader*) sdt_ptr;
+      auto* sdt = (SDTHeader*) addr;
+      printf("sdt: %p\n", sdt);
       // find out which SDT it is
       switch (sdt->sigint()) {
       case APIC_t:
-        debug("APIC found: P=%p L=%u\n", sdt, sdt->Length);
+        printf("APIC found: P=%p L=%u\n", sdt, sdt->Length);
         walk_madt((char*) sdt);
         break;
       case HPET_t:
-        debug("HPET found: P=%p L=%u\n", sdt, sdt->Length);
-        this->hpet_base = sdt_ptr + sizeof(SDTHeader);
+        printf("HPET found: P=%p L=%u\n", sdt, sdt->Length);
+        this->hpet_base = (uintptr_t) addr + sizeof(SDTHeader);
         break;
       case FACP_t:
-        debug("FACP found: P=%p L=%u\n", sdt, sdt->Length);
+        printf("FACP found: P=%p L=%u\n", sdt, sdt->Length);
         walk_facp((char*) sdt);
         break;
       default:
@@ -299,8 +308,8 @@ namespace x86 {
     SCI_EN = 0;
   }
 
-  bool ACPI::checksum(const char* addr, size_t size) const {
-
+  bool ACPI::checksum(const char* addr, size_t size) const
+  {
     const char* end = addr + size;
     uint8_t sum = 0;
     while (addr < end) {
@@ -309,12 +318,13 @@ namespace x86 {
     return sum == 0;
   }
 
-  void ACPI::discover() {
+  void ACPI::discover()
+  {
     // "RSD PTR "
     const uint64_t sign = 0x2052545020445352;
 
     // guess at QEMU location of RDSP
-    const auto* guess = (char*) 0xf6450;
+    const auto* guess = (char*) 0xf68c0;
     if (*(uint64_t*) guess == sign) {
       if (checksum(guess, sizeof(RSDPDescriptor))) {
         debug("Found ACPI located at QEMU-guess (%p)\n", guess);
@@ -328,8 +338,8 @@ namespace x86 {
     const auto* end  = (char*) 0x000fffff;
     debug("Looking for ACPI at %p\n", addr);
 
-    while (addr < end) {
-
+    while (addr < end)
+    {
       if (*(uint64_t*) addr == sign) {
         // verify checksum of potential RDSP
         if (checksum(addr, sizeof(RSDPDescriptor))) {

@@ -243,7 +243,7 @@ void print_backtrace()
     auto symb = Elf::safe_resolve_symbol(                     \
                 ra, _symbol_buffer, sizeof(_symbol_buffer));  \
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
-             "[%d] %8p + 0x%.3x: %s\n", \
+             "[%d] %16p + 0x%.3x: %s\n", \
              N, (void*) symb.addr, symb.offset, symb.name);\
     write(1, _btrace_buffer, len);
 

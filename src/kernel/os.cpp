@@ -40,7 +40,7 @@
 #define PROFILE(name) /* name */
 #endif
 
-extern "C" uintptr_t get_cpu_esp();
+extern "C" void* get_cpu_esp();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -93,10 +93,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
-  auto esp = get_cpu_esp();
-  MYINFO ("Stack: 0x%x", esp);
-  Expects (esp < 0xA0000 and esp > 0x0 and "Stack location OK");
-
+  void* esp = get_cpu_esp();
+  MYINFO("Stack: %p", esp);
   MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
          boot_magic, boot_addr);
 
