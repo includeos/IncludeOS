@@ -314,18 +314,18 @@ if (debug)
 endif()
 
 add_custom_target(
-  pruned_elf_symbols ALL
+  pruned_elf_symbols #ALL
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
-  DEPENDS service
+  #DEPENDS service
 )
 
 # create .img files too automatically
 add_custom_target(
   prepend_bootloader ALL
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/vmbuild ${BINARY} $ENV{INCLUDEOS_PREFIX}/includeos/boot/bootloader
-  DEPENDS pruned_elf_symbols
+  DEPENDS service
 )
 
 # install binary directly to prefix (which should be service root)
