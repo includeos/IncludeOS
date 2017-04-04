@@ -49,7 +49,6 @@ extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
-extern uintptr_t _MAX_MEM_MIB_;
 
 bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
@@ -350,7 +349,6 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
 
 
 void OS::legacy_boot() {
-  MYINFO("Max mem (from linker): %u MiB", (size_t) &_MAX_MEM_MIB_);
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = cmos::meminfo();
   low_memory_size_ = mem.base.total * 1024;
@@ -358,13 +356,7 @@ void OS::legacy_boot() {
   high_memory_size_ = mem.extended.total * 1024;
 
   // Use memsize provided by Make / linker unless CMOS knows this is wrong
-  decltype(high_memory_size_) hardcoded_mem = reinterpret_cast<size_t>(&_MAX_MEM_MIB_ - 0x100000) << 20;
-  if (mem.extended.total == 0xffff or hardcoded_mem < mem.extended.total) {
-    high_memory_size_ = hardcoded_mem;
-    INFO2("* High memory (from linker): %i Kib", high_memory_size_ / 1024);
-  } else {
-    INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
-  }
+  INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
 
   auto& memmap = memory_map();
 
