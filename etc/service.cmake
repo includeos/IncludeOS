@@ -59,8 +59,8 @@ if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-  set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32")
+  set(CMAKE_CXX_FLAGS "-MMD -target x86_64-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-MMD -target x86_64-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c")
 endif()
 
 # executable
@@ -180,7 +180,7 @@ if (stripped)
   set(STRIP_LV "--strip-all")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_i386 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld --defsym=_MAX_MEM_MIB_=${MAX_MEM} $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o")
+set(LDFLAGS "-nostdlib -melf_x86_64 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
@@ -229,7 +229,7 @@ function(add_memdisk DISK)
   add_custom_command(
     OUTPUT  memdisk.o
     COMMAND python $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.py --file $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.asm ${DISK_RELPATH}
-    COMMAND nasm -f elf $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.asm -o memdisk.o
+    COMMAND nasm -f elf64 $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.asm -o memdisk.o
     DEPENDS ${DISK_RELPATH}
   )
   add_library(memdisk STATIC memdisk.o)

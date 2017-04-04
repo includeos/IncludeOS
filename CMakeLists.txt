@@ -2,20 +2,13 @@ cmake_minimum_required(VERSION 2.8.9)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
-set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/i686-elf-toolchain.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/x86_64-toolchain.cmake)
 
-project (includeos)
+project (includeos C CXX)
 
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
 set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
 set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
-
-# test compiler
-if(CMAKE_COMPILER_IS_GNUCC)
-	# currently gcc is not supported due to problems cross-compiling a unikernel
-	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-#	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
-endif(CMAKE_COMPILER_IS_GNUCC)
 
 # create OS version string from git describe (used in CXX flags)
 execute_process(COMMAND git describe --dirty
