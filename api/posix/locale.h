@@ -15,31 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SYS_CTYPE_H
-#define SYS_CTYPE_H
+#ifndef SYS_LOCALE_H
+#define SYS_LOCALE_H
 
-#define _LIBCPP_SUPPORT_XLOCALE_POSIX_L_FALLBACK_H
+#define _LIBCPP_SUPPORT_XLOCALE_NOP_LOCALE_MGMT_H
 
-#ifdef __cplusplus
-extern "C" {
+#include_next <locale.h>
+
 #endif
-
-  static inline int isascii(int c){
-    return c >= 0 && c <= 0177;
-  }
-
-  static inline int isalnum(int ch){
-    // http://en.cppreference.com/w/cpp/string/byte/isalnum
-    return (ch >= 48 && ch <= 57)
-      || (ch >= 65 && ch <= 90)
-      || (ch >= 97 && ch <= 122);
-  }
-
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif //SYS_CTYPE_H
-
-#include_next <ctype.h>

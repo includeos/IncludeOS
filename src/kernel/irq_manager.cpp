@@ -68,7 +68,6 @@ print_error_code(uint32_t err){
   kprintf("Error code: 0x%x \n", err);
 }
 
-
 // Default: no error code
 template <int NR>
 typename std::enable_if<((NR < 8 or NR > 15) and NR != 17 and NR != 30)>::type
@@ -145,9 +144,9 @@ void IRQ_manager::init_local()
   set_handler(INTR_LINES - 1, spurious_intr);
 
   // Load IDT
-  idt_loc idt_reg;
+  IDTR idt_reg;
   idt_reg.limit = INTR_LINES * sizeof(IDTDescr) - 1;
-  idt_reg.base = (uint32_t) idt;
+  idt_reg.base = (uintptr_t) idt;
   asm volatile ("lidt %0": :"m"(idt_reg) );
 }
 
@@ -166,10 +165,14 @@ void IRQ_manager::create_gate(
     uint16_t segment_sel,
     char attributes)
 {
+  auto waddr = (uintptr_t) func;
   addr_union addr;
-  addr.whole           = (uint32_t) func;
+  addr.whole           = waddr & 0xffffffff;
   idt_entry->offset_1  = addr.lo16;
   idt_entry->offset_2  = addr.hi16;
+#ifdef ARCH_X64
+  idt_entry->offset_3  = waddr >> 32;
+#endif
   idt_entry->selector  = segment_sel;
   idt_entry->type_attr = attributes;
   idt_entry->zero      = 0;

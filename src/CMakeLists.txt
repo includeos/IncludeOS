@@ -1,4 +1,4 @@
-set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
 enable_language(ASM_NASM)
 
 if ("${ARCH}" STREQUAL "")
@@ -20,7 +20,7 @@ include_directories(${BOTAN_DIR})
 add_custom_command(
 	OUTPUT apic_boot.o
 	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/arch/x86/apic_boot.asm
-	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 apic_boot.bin apic_boot.o
+	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf64-x86-64 apic_boot.bin apic_boot.o
 	DEPENDS arch/x86/apic_boot.asm
 )
 
@@ -51,7 +51,7 @@ set(OS_OBJECTS
   net/super_stack.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
-  net/http/mime_types.cpp net/http/cookie.cpp net/http/secure_server.cpp
+  net/http/mime_types.cpp net/http/cookie.cpp #net/http/secure_server.cpp
   net/http/client_connection.cpp net/http/client.cpp net/http/websocket.cpp
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
   fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
@@ -62,17 +62,19 @@ set(OS_OBJECTS
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
   posix/pwd.cpp
   ### x86 arch ###
-  arch/x86/start.asm arch/x86/interrupts.asm
+  arch/x86/start.asm #arch/x86/interrupts.asm
   arch/x86/arch.cpp arch/x86/gdt.cpp arch/x86/gdt_asm.asm arch/x86/acpi.cpp
   arch/x86/ioapic.cpp arch/x86/apic.cpp arch/x86/apic_timer.cpp
-  arch/x86/apic_asm.asm arch/x86/apic_revenant.cpp arch/x86/smp.cpp
+  arch/x86/apic_revenant.cpp arch/x86/smp.cpp #arch/x86/apic_asm.asm
   arch/x86/pit.cpp arch/x86/cpu_freq_sampling.cpp arch/x86/pic.cpp
+  ### x64 arch ###
+  arch/x64/apic_asm.asm arch/x64/arch_start.asm arch/x64/interrupts.asm
 )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 add_dependencies(os PrecompiledLibraries botan)
 
-add_subdirectory(crt)
+add_subdirectory(arch/x64)
 add_subdirectory(boot)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
