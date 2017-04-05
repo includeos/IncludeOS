@@ -23,16 +23,13 @@ def count(trigger_line):
   global counter
   counter += 1
 
-  if counter == 7:
+  if counter == 4:
     finish()
 
 def finish():
   vm.exit(0, "DNS resolution test succeeded")
 
 # Add custom event-handler
-vm.on_output("Error occurred when resolving IP address of hotmail.com with DNS server 10.0.0.1: ICMP error message received", count)
-vm.on_output("ICMP error type received when resolving hotmail.com: DESTINATION UNREACHABLE \\(3\\)", count)
-vm.on_output("ICMP error code received when resolving hotmail.com: PORT \\(3\\)", count)
 vm.on_output("Resolved IP address of google.com with DNS server 8.8.8.8", count)
 vm.on_output("Resolved IP address of theguardian.com with DNS server 4.2.2.1", count)
 vm.on_output("Resolved IP address of github.com with DNS server 8.8.8.8", count)

@@ -53,11 +53,9 @@ void Service::start(const std::string&)
   const std::string google        = "google.com";
   const std::string github        = "github.com";
   const std::string guardian      = "theguardian.com";
-  const std::string hotmail       = "hotmail.com";
   const std::string some_address  = "some_address_that_doesnt_exist.com";
 
   const IP4::addr stack_dns       = inet.dns_addr();
-  const IP4::addr gateway         = inet.gateway();
   const IP4::addr level3          = IP4::addr{4, 2, 2, 1};
 
   inet.resolve(google, [google, stack_dns] (IP4::addr res, Error& err) {
@@ -93,18 +91,6 @@ void Service::start(const std::string&)
         print_success(guardian, level3, res);
       else
         print_not_resolved(guardian);
-    }
-  });
-
-  inet.resolve(hotmail, gateway, [hotmail, gateway] (IP4::addr res, Error& err) {
-    if (err) {
-      print_error(hotmail, gateway, err);
-    }
-    else {
-      if (res != IP4::ADDR_ANY)
-        print_success(hotmail, gateway, res);
-      else
-        print_not_resolved(hotmail);
     }
   });
 
