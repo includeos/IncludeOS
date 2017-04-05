@@ -53,11 +53,11 @@ struct GDT
 #define MSR_GS_BASE 0xC0000101
 #define MSR_GS_SWAP 0xC0000102
 
-  static inline void set_fs(uint16_t entry) noexcept {
-    CPU::write_msr(MSR_FS_BASE, entry);
+  static inline void set_fs(void* entry) noexcept {
+    CPU::write_msr(MSR_FS_BASE, (uintptr_t) entry);
   }
-  static inline void set_gs(uint16_t entry) noexcept {
-    CPU::write_msr(MSR_GS_BASE, entry);
+  static inline void set_gs(void* entry) noexcept {
+    CPU::write_msr(MSR_GS_BASE, (uintptr_t) entry);
   }
 #elif ARCH_X86
   static inline void set_fs(uint16_t entry) noexcept {

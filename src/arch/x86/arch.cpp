@@ -45,7 +45,7 @@ void __arch_init()
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
 
-  // set fs/gs for local APIC
+  // enable fs/gs for local APIC
   initialize_gdt_for_cpu(APIC::get().get_id());
 
   // IDT manager: Interrupt and exception handlers
@@ -130,6 +130,9 @@ namespace x86
 
   void initialize_gdt_for_cpu(int id)
   {
+  #ifdef ARCH_X64
+    GDT::set_fs(&cpudata.at(id));
+  #else
     // initialize GDT for this core
     gdtables.at(id).gdt.initialize();
     // create PER-CPU segment
@@ -139,5 +142,6 @@ namespace x86
     // enable per-cpu for this core
     cpudata[id].cpduid = id;
     GDT::set_fs(fs);
+  #endif
   }
 } // x86
