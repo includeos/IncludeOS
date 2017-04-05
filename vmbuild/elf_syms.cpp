@@ -42,7 +42,7 @@ int main(int argc, const char** args)
   fclose(f);
 
   // Verify that the symbols aren't allready moved
-  Elf_binary binary ({fdata, size});
+  Elf_binary<Elf32> binary ({fdata, size});
   auto& sh_elf_syms = binary.section_header(syms_section_name);
   auto syms_file_exists = access(syms_file, F_OK ) == 0;
   auto sym_sectionsize_ok = sh_elf_syms.sh_size > 4;

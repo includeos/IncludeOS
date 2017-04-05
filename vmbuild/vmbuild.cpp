@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
   INFO("Read %ld bytes from service image" , read_bytes);
 
   // Validate ELF binary
-  Elf_binary binary ({binary_imgloc, stat_binary.st_size});
+  Elf_binary<Elf32> binary ({binary_imgloc, stat_binary.st_size});
 
   // Verify multiboot header
   auto& sh_multiboot = binary.section_header(".multiboot");
