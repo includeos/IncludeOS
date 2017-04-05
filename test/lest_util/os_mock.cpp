@@ -81,6 +81,8 @@ bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
 
+void OS::multiboot(unsigned, unsigned) {}
+
 extern "C" {
 
   char _binary_apic_boot_bin_end;
@@ -104,6 +106,13 @@ extern "C" {
   void _init_c_runtime() {
     return;
   }
+  void _init_bss() {
+    return;
+  }
+  void _init_heap(uintptr_t) {
+    return;
+  }
+
 
 #ifdef __MACH__
   void _init() {
@@ -140,6 +149,15 @@ extern "C" {
   }
 
   void __init_sanity_checks() noexcept {}
+
+  uintptr_t _multiboot_free_begin(uintptr_t boot_addr) {
+    return 0;
+  };
+
+  uintptr_t _move_symbols(uintptr_t loc) {
+    return 0;
+  };
+
   void kernel_sanity_checks() {}
 
   void reboot_os() {

@@ -24,7 +24,7 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
-#include "../../vmbuild/elf.h"
+#include <util/elf.h>
 
 static const char* boot_stringz = "Bootloader area";
 extern "C" char _ELF_START_;

@@ -2,8 +2,11 @@
 KERNEL=${1-build/test_grub}
 DISK=${DISK-$KERNEL.grub.img}
 MOUNTDIR=${MOUNTDIR-/mnt}
-MOUNT_OPTS="sync,rw"
-BLOCKCCOUNT=10000
+MOUNT_OPTS="rw"
+
+# GRUB uses roughly 4.6 Mb of disk
+GRUB_KB=5000
+
 set -e
 
 function unmount {
@@ -23,9 +26,6 @@ function clean {
 
 
 function create_disk {
-  echo -e ">>> Creating FAT file system on $DISK with $BLOCKSIZE blocks"
-  # NOTE: mkfs with the '-C' option creates the disk before creating FS
-  # fallocate -l 10MiB $DISK
 
   if [ -f $DISK ]
   then
@@ -33,8 +33,18 @@ function create_disk {
     mv $DISK $DISK.bak
   fi
 
+  # Kernel size in Kb
+  KERN_KB=$(( ($(stat -c%s "$KERNEL") / 1024) ))
 
-  mkfs.fat -C $DISK $BLOCKCCOUNT
+  # Estimate some overhead for the FAT
+  FAT_KB=$(( ($KERN_KB + $GRUB_KB) / 10 ))
+
+  DISK_KB=$(( $KERN_KB + $GRUB_KB + $FAT_KB ))
+
+  echo ">>> Estimated disk size: $GRUB_KB Kb GRUB + $KERN_KB Kb kernel + $FAT_KB Kb FAT = $DISK_KB Kb"
+  echo ">>> Creating FAT file system on $DISK"
+
+  mkfs.fat -C $DISK $DISK_KB
 }
 
 function mount_loopback {
@@ -58,6 +68,7 @@ function mount_loopback {
 function copy_kernel {
   echo ">>> Copying kernel '$KERNEL' to $MOUNTDIR/boot/includeos_service"
   sudo cp $KERNEL $MOUNTDIR/boot/includeos_service
+  sync
 }
 
 function build {
@@ -129,6 +140,9 @@ copy_kernel
 
 echo -e ">>> Running grub install"
 sudo grub-install --target=i386-pc --force --boot-directory $MOUNTDIR/boot/ $LOOP
+
+echo -e ">>> Synchronize file cache"
+sync
 
 unmount
 
