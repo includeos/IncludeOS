@@ -208,13 +208,14 @@ namespace net {
     void init(Protocol proto = Protocol::HOPOPT) noexcept {
       Expects(size() == 0);
       auto& hdr = ip_header();
+      std::memset(&ip_header(), 0, sizeof(ip4::Header));
       hdr.version_ihl    = 0x45;
-      hdr.ds_ecn         = 0;
-      hdr.id             = 0;
-      hdr.frag_off_flags = 0;
+      //hdr.ds_ecn         = 0;
+      //hdr.id             = 0;
+      //hdr.frag_off_flags = 0;
       hdr.ttl            = DEFAULT_TTL;
       hdr.protocol       = static_cast<uint8_t>(proto);
-      hdr.check          = 0;
+      //hdr.check          = 0;
       hdr.tot_len        = 0x1400; // Big-endian 20
       increment_data_end(sizeof(IP4::header));
     }
