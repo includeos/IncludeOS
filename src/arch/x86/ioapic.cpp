@@ -34,20 +34,17 @@ namespace x86
 {
   struct ioapic
   {
-    struct io_regs {
-      volatile uint32_t reg;
-      uint32_t   pad1[3];
-      volatile uint32_t val;
-      uint32_t   pad2[3];
-    };
-
-    uint32_t read(uint8_t reg) noexcept {
-      base->reg = reg;
-      return base->val;
+    __attribute__((noinline))
+    uint32_t read(uint32_t reg) noexcept {
+      printf("ioapic read %p : %#x\n", (void*) base, reg);
+      *(volatile uint32_t*) (base + 0x0)  = reg;
+      return *(volatile uint32_t*) (base + 0x10);
     }
-    void write(uint8_t reg, uint32_t value) noexcept {
-      base->reg = reg;
-      base->val = value;
+    __attribute__((noinline))
+    void write(uint32_t reg, uint32_t value) noexcept {
+      printf("ioapic write %p : %#x = %#x\n", (void*) base, reg, value);
+      *(volatile uint32_t*) (base + 0x0)  = reg;
+      *(volatile uint32_t*) (base + 0x10) = value;
     }
     void set_entry(uint8_t index, uint32_t lo, uint32_t hi)
     {
@@ -59,6 +56,10 @@ namespace x86
     {
       write(IOAPIC_ID, id << 24);
     }
+    uint32_t get_id() noexcept
+    {
+      return read(IOAPIC_ID) >> 24;
+    }
 
     uint8_t entries() const noexcept
     {
@@ -67,29 +68,39 @@ namespace x86
 
     void init(uintptr_t base_addr)
     {
-      this->base = (decltype(base)) base_addr;
+      assert(this->base == 0);
+      assert(this->entries_ == 0);
+
+      this->base = base_addr;
+      assert(this->base == base_addr);
+
       // required: set IOAPIC ID
       set_id(0);
+      // print base addr and version
+      //uint8_t version = read(IOAPIC_VER) & 0xff;
+      //INFO2("Base addr: %p  Version: %#x", (void*) base, version);
+
       // number of redirection entries supported
-      auto reg = read(IOAPIC_VER) >> 16;
+      uint32_t reg = read(IOAPIC_VER) >> 16;
       this->entries_ = 1 + (reg & 0xff);
 
-      INFO2("Base addr: %p  Redirection entries: %u", base, entries());
+      INFO2("ID: %u  Redirection entries: %u", get_id(), entries());
 
       // default: all entries disabled
       for (unsigned i = 0; i < entries(); i++)
         set_entry(i, IOAPIC_IRQ_DISABLE, 0);
     }
 
-    io_regs* base;
-    uint32_t entries_;
+  private:
+    uintptr_t base;
+    uint32_t  entries_;
   };
   // there can be more than one IOAPIC
   static ioapic numbawan;
 
   void IOAPIC::init(const ACPI::ioapic_list& vec)
   {
-    INFO("IOAPIC", "Initializing");
+    INFO("I/O APIC", "Initializing");
     // enable IO APIC (ICMR wiring mode?)
     hw::outb(0x22, 0x70);
     hw::outb(0x23, 0x1);

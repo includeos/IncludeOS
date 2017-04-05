@@ -175,15 +175,15 @@ namespace x86 {
       // find out which SDT it is
       switch (sdt->sigint()) {
       case APIC_t:
-        printf("APIC found: P=%p L=%u\n", sdt, sdt->Length);
+        debug("APIC found: P=%p L=%u\n", sdt, sdt->Length);
         walk_madt((char*) sdt);
         break;
       case HPET_t:
-        printf("HPET found: P=%p L=%u\n", sdt, sdt->Length);
+        debug("HPET found: P=%p L=%u\n", sdt, sdt->Length);
         this->hpet_base = (uintptr_t) addr + sizeof(SDTHeader);
         break;
       case FACP_t:
-        printf("FACP found: P=%p L=%u\n", sdt, sdt->Length);
+        debug("FACP found: P=%p L=%u\n", sdt, sdt->Length);
         walk_facp((char*) sdt);
         break;
       default:
@@ -330,7 +330,7 @@ namespace x86 {
     if (*(uint64_t*) guess == sign) {
       if (checksum(guess, sizeof(RSDPDescriptor)) == 0)
       {
-        printf("Found ACPI located at QEMU-guess (%p)\n", guess);
+        debug("Found ACPI located at QEMU-guess (%p)\n", guess);
         begin(guess);
         return;
       }
@@ -347,7 +347,7 @@ namespace x86 {
         // verify checksum of potential RDSP
         if (checksum(addr, sizeof(RSDPDescriptor)) == 0)
         {
-          printf("Found ACPI located at %p\n", addr);
+          debug("Found ACPI located at %p\n", addr);
           begin(addr);
           return;
         }

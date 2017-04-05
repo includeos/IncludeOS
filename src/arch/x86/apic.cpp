@@ -61,7 +61,7 @@ namespace x86
   IApic& APIC::get() noexcept {
     return *current_apic;
   }
-  
+
   void APIC::init()
   {
     // disable the legacy 8259 PIC
@@ -74,7 +74,7 @@ namespace x86
         current_intr_handler  = x2apic_intr_handler;
     } else {
         // an x86 PC without APIC is insane
-        assert(CPUID::has_feature(CPUID::Feature::APIC) 
+        assert(CPUID::has_feature(CPUID::Feature::APIC)
             && "If this fails, the machine is insane");
         current_apic = &xapic::get();
         current_eoi_mechanism = lapic_send_eoi;
