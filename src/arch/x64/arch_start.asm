@@ -33,8 +33,6 @@ __arch_start:
     ;; address for Page Map Level 4
     mov edi, PAGE_MAP_TAB
     mov cr3, edi
-    ;; clear page directory pointer table
-    ;; ... and page directory table
     mov ecx, 0x3000    ; clear 3 pages
     xor eax, eax       ; Nullify the A-register.
     rep stosd

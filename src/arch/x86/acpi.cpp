@@ -64,10 +64,10 @@ namespace x86 {
     uint8_t data[0];
   };
 
-  struct MADTHeader {
-
+  struct MADTHeader
+  {
     SDTHeader  hdr;
-    uintptr_t  lapic_addr;
+    uint32_t   lapic_addr;
     uint32_t   flags; // 1 = dual 8259 PICs
     MADTRecord record[0];
   };
@@ -76,16 +76,16 @@ namespace x86 {
   {
     SDTHeader sdt;
     uint32_t  unneded1;
-    uint32_t* DSDT;
-    uint8_t unneded2[48 - 44];
-    uint32_t* SMI_CMD;
-    uint8_t ACPI_ENABLE;
-    uint8_t ACPI_DISABLE;
-    uint8_t unneded3[64 - 54];
-    uint32_t* PM1a_CNT_BLK;
-    uint32_t* PM1b_CNT_BLK;
-    uint8_t unneded4[89 - 72];
-    uint8_t PM1_CNT_LEN;
+    uint32_t  DSDT;
+    uint8_t   unneded2[48 - 44];
+    uint32_t  SMI_CMD;
+    uint8_t   ACPI_ENABLE;
+    uint8_t   ACPI_DISABLE;
+    uint8_t   unneded3[64 - 54];
+    uint32_t  PM1a_CNT_BLK;
+    uint32_t  PM1b_CNT_BLK;
+    uint8_t   unneded4[89 - 72];
+    uint8_t   PM1_CNT_LEN;
   };
 
   struct AddressStructure
@@ -121,10 +121,9 @@ namespace x86 {
     return 0;
   }
 
-  void ACPI::begin(const void* addr) {
-
+  void ACPI::begin(const void* addr)
+  {
     auto* rdsp = (RSDPDescriptor20*) addr;
-    printf("RSDP: %p\n", addr);
 
     INFO("ACPI", "Reading headers");
     INFO2("OEM: %.*s Rev. %u",
@@ -134,16 +133,21 @@ namespace x86 {
     if (rdsp->XsdtAddress)
         rsdt = (SDTHeader*) (uintptr_t) rdsp->XsdtAddress;
     else
-        rsdt = (SDTHeader*) rdsp->rdsp10.RsdtAddress;
+        rsdt = (SDTHeader*) (uintptr_t) rdsp->rdsp10.RsdtAddress;
+
     // verify Root SDT
-    if (!checksum((char*) rsdt, rsdt->Length)) {
-      printf("ACPI: SDT failed checksum!");
+    if (rsdt->Length < sizeof(SDTHeader)) {
+      printf("ACPI: SDT verification failed: len=%u / %u", rsdt->Length, sizeof(SDTHeader));
+      panic("SDT had impossible length");
+    }
+    if (checksum((char*) rsdt, rsdt->Length) != 0)
+    {
+      printf("ACPI: SDT verification failed!");
       panic("SDT checksum failed");
     }
 
     // walk through system description table headers
     // remember the interesting ones, and count CPUs
-    printf("Walk SDTs: %p\n", rsdt);
     walk_sdts(rsdt);
   }
 
@@ -151,14 +155,12 @@ namespace x86 {
     return a | (b << 8) | (c << 16) | (d << 24);
   }
 
-  void ACPI::walk_sdts(SDTHeader* addr)
+  void ACPI::walk_sdts(SDTHeader* rsdt)
   {
     // find total number of SDTs
-    auto* rsdt = (SDTHeader*) addr;
-    printf("RSDT: %p\n", addr);
     int  total = (rsdt->Length - sizeof(SDTHeader)) / 4;
-    printf("total: %d\n", total);
     // go past rsdt
+    const char* addr = (const char*) rsdt;
     addr += sizeof(SDTHeader);
 
     // parse all tables
@@ -169,8 +171,7 @@ namespace x86 {
     while (total > 0)
     {
       // create SDT pointer
-      auto* sdt = (SDTHeader*) addr;
-      printf("sdt: %p\n", sdt);
+      auto* sdt = (SDTHeader*) *(uint32_t*) addr;
       // find out which SDT it is
       switch (sdt->sigint()) {
       case APIC_t:
@@ -201,7 +202,7 @@ namespace x86 {
     // the base address for APIC registers
     INFO2("LAPIC base: 0x%x  (flags: 0x%x)",
         hdr->lapic_addr, hdr->flags);
-    this->apic_base = hdr->lapic_addr;
+    this->apic_base = (uintptr_t) hdr->lapic_addr;
 
     // the length remaining after MADT header
     int len = hdr->hdr.Length - sizeof(MADTHeader);
@@ -251,7 +252,7 @@ namespace x86 {
     auto* facp = (FACPHeader*) addr;
     // verify DSDT
     constexpr uint32_t DSDT_t = bake('D', 'S', 'D', 'T');
-    assert(*facp->DSDT == DSDT_t);
+    assert(*(uint32_t*) (uintptr_t) facp->DSDT == DSDT_t);
 
     /// big thanks to kaworu from OSdev.org forums for algo
     /// http://forum.osdev.org/viewtopic.php?t=16990
@@ -270,6 +271,7 @@ namespace x86 {
       printf("WARNING: _S5 not present in ACPI\n");
       return;
     }
+
     // check for valid AML structure
     if ( ( *(S5Addr-1) == 0x08 || ( *(S5Addr-2) == 0x08 && *(S5Addr-1) == '\\') ) && *(S5Addr+4) == 0x12 )
     {
@@ -285,13 +287,13 @@ namespace x86 {
           S5Addr++;   // skip byteprefix
        SLP_TYPb = *(S5Addr)<<10;
 
-       SMI_CMD = facp->SMI_CMD;
+       SMI_CMD = (uint32_t*) (uintptr_t) facp->SMI_CMD;
 
        ACPI_ENABLE = facp->ACPI_ENABLE;
        ACPI_DISABLE = facp->ACPI_DISABLE;
 
-       PM1a_CNT = facp->PM1a_CNT_BLK;
-       PM1b_CNT = facp->PM1b_CNT_BLK;
+       PM1a_CNT = (uint32_t*) (uintptr_t) facp->PM1a_CNT_BLK;
+       PM1b_CNT = (uint32_t*) (uintptr_t) facp->PM1b_CNT_BLK;
 
        PM1_CNT_LEN = facp->PM1_CNT_LEN;
 
@@ -308,14 +310,14 @@ namespace x86 {
     SCI_EN = 0;
   }
 
-  bool ACPI::checksum(const char* addr, size_t size) const
+  uint8_t ACPI::checksum(const char* addr, size_t size) const noexcept
   {
     const char* end = addr + size;
     uint8_t sum = 0;
     while (addr < end) {
       sum += *addr; addr++;
     }
-    return sum == 0;
+    return sum;
   }
 
   void ACPI::discover()
@@ -326,8 +328,9 @@ namespace x86 {
     // guess at QEMU location of RDSP
     const auto* guess = (char*) 0xf68c0;
     if (*(uint64_t*) guess == sign) {
-      if (checksum(guess, sizeof(RSDPDescriptor))) {
-        debug("Found ACPI located at QEMU-guess (%p)\n", guess);
+      if (checksum(guess, sizeof(RSDPDescriptor)) == 0)
+      {
+        printf("Found ACPI located at QEMU-guess (%p)\n", guess);
         begin(guess);
         return;
       }
@@ -342,13 +345,14 @@ namespace x86 {
     {
       if (*(uint64_t*) addr == sign) {
         // verify checksum of potential RDSP
-        if (checksum(addr, sizeof(RSDPDescriptor))) {
-          debug("Found ACPI located at %p\n", addr);
+        if (checksum(addr, sizeof(RSDPDescriptor)) == 0)
+        {
+          printf("Found ACPI located at %p\n", addr);
           begin(addr);
           return;
         }
       }
-      addr++;
+      addr += 16;
     }
 
     panic("ACPI RDST-search failed\n");
