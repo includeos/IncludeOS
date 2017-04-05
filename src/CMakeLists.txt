@@ -27,7 +27,7 @@ add_custom_command(
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
   kernel/kernel_start.cpp kernel/sanity_checks.cpp kernel/syscalls.cpp
-  kernel/irq_manager.cpp
+  kernel/irq_manager.cpp kernel/multiboot.cpp
   kernel/os.cpp kernel/cpuid.cpp kernel/memmap.cpp kernel/pci_manager.cpp
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
@@ -37,7 +37,7 @@ set(OS_OBJECTS
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp
   util/os_statman.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
-  util/tar.cpp util/path_to_regex.cpp
+  util/tar.cpp util/path_to_regex.cpp util/elf_binary.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp hw/serial1.cpp
   hw/cmos.cpp hw/block_device.cpp hw/msi.cpp hw/pci_msi.cpp
