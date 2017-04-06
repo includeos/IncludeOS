@@ -18,52 +18,52 @@ global __arch_start:function
 extern kernel_start
 
 %define PAGE_SIZE          0x1000
-%define PAGE_MAP_TAB       0x1000
-%define PAGE_DIR_PTR_TAB   0x2000
-%define PAGE_DIR_TAB       0x3000
-%define PAGE_TABLE       0x100000
+%define P4_TAB             0x1000
+%define P3_TAB             0x2000 ;; - 0x5000
+%define P2_TAB           0x100000
 %define STACK_LOCATION   0xA00000
 
 [BITS 32]
 __arch_start:
     ;; disable old paging
-    mov eax, cr0                                   ; Set the A-register to control register 0.
-    and eax, 01111111111111111111111111111111b     ; Clear the PG-bit, which is bit 31.
-    mov cr0, eax                                   ; Set control register 0 to the A-register.
+    mov eax, cr0
+    and eax, 1 << 31  ;; clear PG
+    mov cr0, eax
     ;; address for Page Map Level 4
-    mov edi, PAGE_MAP_TAB
+    mov edi, P4_TAB
     mov cr3, edi
     mov ecx, 0x3000    ; clear 3 pages
     xor eax, eax       ; Nullify the A-register.
     rep stosd
 
     ;; create page map entry
-    mov edi, PAGE_MAP_TAB
-    mov DWORD [edi], PAGE_DIR_PTR_TAB | 0x3 ;; present+write
+    mov edi, P4_TAB
+    mov DWORD [edi], P3_TAB | 0x3 ;; present+write
 
-    ;; create page directory pointer table entry
-    mov edi, PAGE_DIR_PTR_TAB
-    mov DWORD [edi], PAGE_DIR_TAB | 0x3 ;; present+write
+    ;; create 4x page directory pointer table entries
+    mov edi, P3_TAB
+    mov ebx, P2_TAB | 0x3 ;; present + write
+    mov DWORD [edi], ebx
+    add edi, 8
+    add ebx, 0x1000
+    mov DWORD [edi], ebx
+    add edi, 8
+    add ebx, 0x1000
+    mov DWORD [edi], ebx
+    add edi, 8
+    add ebx, 0x1000
+    mov DWORD [edi], ebx
 
     ;; create page directory entries
-    mov ecx, 512     ;; num entries
-    mov edi, PAGE_DIR_TAB
-    mov ebx, PAGE_TABLE | 0x3 ;; pagetables first address + present+write
+    mov ecx, 512*4    ;; num entries
+    mov edi, P2_TAB
+    ;; start at address 0x0
+    mov ebx, 0x0 | 0x3 | 1 << 7 ;; present+write + huge
   .ptd_loop:
     mov DWORD [edi], ebx
-    add ebx, PAGE_SIZE
+    add ebx, 1 << 21 ;; 2MB increments
     add edi, 8
     loop .ptd_loop
-
-    ;; create page table entries
-    mov ecx, 1048576 ;; num pages
-    mov edi, PAGE_TABLE
-    mov ebx, 0x3  ;; present + write
-  .pt_loop:
-    mov DWORD [edi], ebx
-    add ebx, PAGE_SIZE
-    add edi, 8
-    loop .pt_loop
 
     ;; enable PAE
     mov eax, cr4

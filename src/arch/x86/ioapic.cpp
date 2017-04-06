@@ -36,13 +36,11 @@ namespace x86
   {
     __attribute__((noinline))
     uint32_t read(uint32_t reg) noexcept {
-      printf("ioapic read %p : %#x\n", (void*) base, reg);
       *(volatile uint32_t*) (base + 0x0)  = reg;
       return *(volatile uint32_t*) (base + 0x10);
     }
     __attribute__((noinline))
     void write(uint32_t reg, uint32_t value) noexcept {
-      printf("ioapic write %p : %#x = %#x\n", (void*) base, reg, value);
       *(volatile uint32_t*) (base + 0x0)  = reg;
       *(volatile uint32_t*) (base + 0x10) = value;
     }
@@ -68,17 +66,12 @@ namespace x86
 
     void init(uintptr_t base_addr)
     {
-      assert(this->base == 0);
-      assert(this->entries_ == 0);
-
       this->base = base_addr;
-      assert(this->base == base_addr);
-
       // required: set IOAPIC ID
       set_id(0);
       // print base addr and version
-      //uint8_t version = read(IOAPIC_VER) & 0xff;
-      //INFO2("Base addr: %p  Version: %#x", (void*) base, version);
+      uint8_t version = read(IOAPIC_VER) & 0xff;
+      INFO2("Base addr: %p  Version: %#x", (void*) base, version);
 
       // number of redirection entries supported
       uint32_t reg = read(IOAPIC_VER) >> 16;
