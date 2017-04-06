@@ -156,7 +156,8 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   }
   else
   {
-    assert(0 && "Legacy IRQs not supported");
+    auto irq = Virtio::get_legacy_irq();
+    IRQ_manager::get().subscribe(irq, {this, &VirtioNet::legacy_handler});
   }
 
 #ifndef NO_DEFERRED_KICK
@@ -241,6 +242,12 @@ void VirtioNet::msix_xmit_handler()
     if (!transmit_queue_ && tx_q.num_free() > 1)
         transmit_queue_available_event_(tx_q.num_free() / 2);
   }
+}
+
+void VirtioNet::legacy_handler()
+{
+  msix_recv_handler();
+  msix_xmit_handler();
 }
 
 void VirtioNet::add_receive_buffer(uint8_t* pkt)

@@ -28,7 +28,7 @@
 
 #include "../api/boot/multiboot.h"
 #include "elf.h"
-#include "elf_binary.hpp"
+#include "../api/util/elf_binary.hpp"
 
 #define SECT_SIZE 512
 #define SECT_SIZE_ERR  666

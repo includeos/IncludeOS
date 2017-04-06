@@ -3,7 +3,6 @@ if [ "$(egrep -m 1 '^flags.*(vmx|svm)' /proc/cpuinfo)" ]
 then
     echo ">>> KVM: ON "
     export QEMU="qemu-system-x86_64 --enable-kvm"
-    export CPU="-cpu host"
 else
     echo ">>> KVM: OFF "
     export QEMU="qemu-system-i386"
