@@ -201,6 +201,7 @@ if (binary_imgloc[EI_MAG0] == ELFMAG0
   }
   else if (binary_imgloc[EI_CLASS] == ELFCLASS64)
   {
+
     auto* hdr   = (const Elf64_Ehdr*) binary_imgloc;
     auto  entry = hdr->e_entry;
     INFO("Found 64-bit ELF with entry at %p", (void*) entry);
