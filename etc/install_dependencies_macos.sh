@@ -1,9 +1,15 @@
 #! /bin/bash
 
-[ -z ${INCLUDEOS_PREFIX} ] && export INCLUDEOS_PREFIX="/usr/local";
+############################################################
+# OPTIONS:
+############################################################
+# Brew, llvm38, nasm, cmake, jq, qemu, tuntap, binutils, python pip, Xcode CLT
+#BUILD_DEPENDENCIES="curl make clang cmake nasm bridge-utils qemu jq python-jsonschema python-psutil"
+#TEST_DEPENDENCIES="g++ g++-multilib python-junit.xml"
+BUILD_DEPENDENCIES="homebrew/versions/llvm38 nasm cmake jq qemu Caskroom/cask/tuntap"
+export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-"/usr/local"}
+export INCLUDEOS_BIN=$INCLUDEOS_PREFIX/includeos/bin # Where to link stuff 
 
-# Where to link stuff
-INCLUDEOS_BIN=$INCLUDEOS_PREFIX/includeos/bin
 
 echo -e "\n###########################################"
 echo -e " IncludeOS dependency installation for Mac"
@@ -15,42 +21,25 @@ echo -e "\n# Prequisites:\n
     - \`/usr/local/bin\` added to your PATH
     - (Recommended) Xcode CLT (Command Line Tools)"
 
-### DEPENDENCIES ###
+############################################################
+# BREW DEPENDENCIES:
+############################################################
 
-# Make sure brew is installed
-command -v brew >/dev/null 2>&1 || { echo >&2 " Cannot find brew! Visit http://brew.sh/ for how-to install. Aborting."; exit 1; }
-# Try to update brew
-echo -e "\n>>> Making sure homebrew is up to date ..."
-brew update
+# Brew update
+if ! brew update; then
+    printf "%s\n" ">>> Sorry <<<"\
+		   "Cannot find brew! Visit http://brew.sh/ for how-to install. Aborting"
+	exit 1
+fi
 
-echo -e "\n# Dependencies:\n"
-## llvm (clang 3.8) ##
-BREW_LLVM=homebrew/versions/llvm38
-echo -e " llvm38\t\t - clang 3.8 (compiler)"
+for formula in $BUILD_DEPENDENCIES; do
+	echo Installing: $formula
+	brew install $formula
+done
 
-## nasm ##
-BREW_NASM=nasm
-echo -e " $BREW_NASM\t\t - assembler"
-
-## cmake ##
-BREW_CMAKE=cmake
-echo -e " $BREW_CMAKE\t\t - for building OS and services"
-
-## jq ##
-BREW_JQ=jq
-echo -e " $BREW_JQ"
-
-## qemu ##
-BREW_QEMU=qemu
-echo -e " $BREW_QEMU\t\t - hypervisor for running unikernels"
-
-## tuntap ##
-BREW_TUNTAP=Caskroom/cask/tuntap
-echo -e " tuntap\t\t - tap device for macOS (used by qemu)"
-
-## BINUTILS ##
-echo -e "\n binutils\t - xcompile tools required for building IncludeOS"
-DEPENDENCY_BINUTILS=false
+############################################################
+# BINUTILS:
+############################################################
 
 BINUTILS_BIN="/usr/local/bin/i686-elf-"
 LD_INC=$BINUTILS_BIN"ld"
@@ -67,6 +56,10 @@ function install_binutils {
   source ./etc/install_binutils.sh
 }
 
+############################################################
+# PYTHON DEPENDENCIES:
+############################################################
+
 ## python packages (pip) ##
 PIP_INSTALLED=false
 PIP_MODS=(jsonschema psutil)
@@ -80,12 +73,15 @@ else
   echo -e " > Not found"
 fi
 
+############################################################
+# XCODE CLT:
+############################################################
 ## WARN ABOUT XCODE CLT ##
 
 echo -e "\n NOTE: Cannot tell if Xcode Command Line Tools is installed - installation MAY fail if not installed."
 echo -e " > Install with: xcode-select --install"
 
-### INSTALL ###
+### INSTALL prompt ###
 echo
 read -p "Install dependencies? [y/n]" -n 1 -r
 if [[ $REPLY =~ ^[Yy]$ ]]
