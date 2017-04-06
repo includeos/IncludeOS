@@ -27,7 +27,7 @@
 #include <cassert>
 
 #include "../api/boot/multiboot.h"
-#include "elf.h"
+#include "../api/util/elf.h"
 #include "../api/util/elf_binary.hpp"
 
 #define SECT_SIZE 512
