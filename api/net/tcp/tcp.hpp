@@ -538,6 +538,21 @@ namespace net {
     void transmit(tcp::Packet_ptr);
 
     /**
+     * @brief      Creates an outgoing TCP packet.
+     *
+     * @return     A tcp packet ptr
+     */
+    tcp::Packet_ptr create_outgoing_packet();
+
+    /**
+     * @brief      Sends a TCP reset based on the values of the incoming packet.
+     *             Used when packet are addressed to closed ports or already dead connections.
+     *
+     * @param[in]  incoming  The incoming tcp packet "to reset".
+     */
+    void send_reset(const tcp::Packet& incoming);
+
+    /**
      * @brief      Generate a unique initial sequence number (ISS).
      *
      * @return     A sequence number (SEQ)

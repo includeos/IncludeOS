@@ -318,11 +318,9 @@ Connection::~Connection() {
   rtx_clear();
 }
 
-Packet_ptr Connection::create_outgoing_packet() {
-  auto packet = static_unique_ptr_cast<net::tcp::Packet>((host_.inet_).create_packet());
-  //auto packet = std::static_pointer_cast<TCP::Packet>(create_packet());
-
-  packet->init();
+Packet_ptr Connection::create_outgoing_packet()
+{
+  auto packet = host_.create_outgoing_packet();
   // Set Source (local == the current connection)
   packet->set_source(local());
   // Set Destination (remote)

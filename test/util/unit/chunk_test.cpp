@@ -37,7 +37,7 @@ CASE("Constructing a chunk with a shared buffer and size")
   Chunk c{buf, N};
 
   EXPECT(c.size() == N);
-  EXPECT(c);
+  EXPECT(static_cast<bool>(c));
 
   EXPECT(c.data() == buf.get());
 }

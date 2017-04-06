@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Trick to prevent libc++ from using old newlib locale stubs
+#define _LIBCPP_SUPPORT_NEWLIB_XLOCALE_H
+
+
 #ifndef SYS_CTYPE_H
 #define SYS_CTYPE_H
 
@@ -39,6 +43,5 @@ extern "C" {
 #endif
 
 #endif //SYS_CTYPE_H
-
 
 #include_next <ctype.h>
