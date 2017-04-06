@@ -19,5 +19,6 @@
 
 void Service::start()
 {
-  printf("Hello world - OS included!\n");
+  printf("IncludeOS was just chainloaded by IncludeOS\n");
+  exit(0);
 }

@@ -11,5 +11,21 @@ from vmrunner import vmrunner
 
 vm = vmrunner.vms[0];
 
+chainloaded = False
+
+
+def chainload_ok(string):
+    global chainloaded
+    chainloaded = True
+    return chainloaded
+
+
+def verify_chainload():
+    print "<test.py>", "Chainloaded: ", chainloaded
+    return chainloaded
+
+vm.on_output("IncludeOS was just chainloaded", chainload_ok);
+vm.on_exit(verify_chainload)
+
 # Build, run and clean
 vm.cmake().boot().clean()

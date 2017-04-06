@@ -16,21 +16,29 @@
 // limitations under the License.
 
 #include <os>
+#include <util/elf_binary.hpp>
+#include <util/sha1.hpp>
+
+bool verb = true;
+
+#define MYINFO(X,...) INFO("Service", X, ##__VA_ARGS__)
+
+extern "C" void hotswap(const char* base, int len, char* dest, void* start);
 
 void Service::start(const std::string& args)
 {
-  printf("Testing kernel modules. Args: %s \n", args.c_str());
+  MYINFO("Testing kernel modules. Args: %s", args.c_str());
 
   auto mods = OS::modules();
 
-  Expects(mods.size() == 3);
+  //Expects(mods.size() == 3);
 
   printf("Found %i modules: \n", mods.size());
 
   for (auto mod : mods)
-    printf("\t* %s @ 0x%x - 0x%x, size: %ib \n",
+    INFO2("* %s @ 0x%x - 0x%x, size: %ib",
            reinterpret_cast<char*>(mod.cmdline),
-           mod.mod_start, mod.mod_end, mod.mod_end - mod.mod_start);
+          mod.mod_start, mod.mod_end, mod.mod_end - mod.mod_start);
 
   // Verify module cmdlines
   Expects(std::string((char*)mods[0].cmdline) == "../mod1.json");
@@ -44,11 +52,34 @@ void Service::start(const std::string& args)
   Expects(std::string((char*)mods[2].mod_start)
           == "{\"module3\" : \"More JSON data, for mod2 service\" }\n");
 
-  // TODO: Properly verify mod2 as ELF binary
-  Expects(((uint8_t*) mods[1].mod_start)[0] == 0x7f);
-  Expects(((char*) mods[1].mod_start)[1] == 'E');
-  Expects(((char*) mods[1].mod_start)[2] == 'L');
-  Expects(((char*) mods[1].mod_start)[3] == 'F');
+  multiboot_module_t binary = mods[1];
 
-  exit(0);
+  MYINFO("Verifying mod2 as ELF binary");
+  Elf_binary elf ({(char*)binary.mod_start, (int)(binary.mod_end - binary.mod_start)});
+
+  MYINFO("Moving hotswap function (now at %p)", &hotswap);
+  memcpy((void*)0x8000, (void*)&hotswap, 1024);
+
+  MYINFO("Preparing for jump to %s", (char*)binary.cmdline);
+
+  char* base  = (char*)binary.mod_start;
+  int len = (int)(binary.mod_end - binary.mod_start);
+  char* dest = (char*)0x100000;
+  void* start = (void*)elf.entry();
+
+  SHA1 sha;
+  sha.update(base, len);
+  MYINFO("Sha1 of ELF binary module: %s", sha.as_hex().c_str());
+
+
+  MYINFO("Jump params: base: %p, len: %i, dest: %p, start: %p",
+         base, len, dest, start);
+
+  MYINFO("Disabling interrupts and calling hotswap...");
+
+  asm("cli");
+  ((decltype(&hotswap))0x8000)(base, len, dest, start);
+
+  panic("Should have jumped\n");
+
 }

@@ -24,7 +24,7 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
-#include "../../vmbuild/elf.h"
+#include <util/elf.h>
 #include <arch>
 
 #if ARCH_X64

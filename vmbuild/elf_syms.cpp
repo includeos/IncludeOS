@@ -4,7 +4,7 @@
 #include <cstring>
 #include <cassert>
 #include <vector>
-#include "elf_binary.hpp"
+#include "../api/util/elf_binary.hpp"
 #include "../api/util/crc32.hpp"
 #include <unistd.h>
 
@@ -42,7 +42,7 @@ int main(int argc, const char** args)
   fclose(f);
 
   // Verify that the symbols aren't allready moved
-  Elf_binary binary ({fdata, size});
+  Elf_binary<Elf32> binary ({fdata, size});
   auto& sh_elf_syms = binary.section_header(syms_section_name);
   auto syms_file_exists = access(syms_file, F_OK ) == 0;
   auto sym_sectionsize_ok = sh_elf_syms.sh_size > 4;
@@ -95,7 +95,7 @@ static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& 
   {
     auto& cursym = symtab.base[i];
     auto type = ELF32_ST_TYPE(cursym.st_info);
-    // we want both functions and untyped, because some 
+    // we want both functions and untyped, because some
     // C functions are NOTYPE
     if (type == STT_FUNC || type == STT_NOTYPE) {
       symloc[symidx++] = cursym;
@@ -122,7 +122,7 @@ static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& 
   // new entry base and total length
   hdr.strtab_size = index;
   // length of symbols & strings
-  const size_t size = 
+  const size_t size =
          hdr.symtab_entries * sizeof(Elf32_Sym) +
          hdr.strtab_size * sizeof(char);
   // sanity check
