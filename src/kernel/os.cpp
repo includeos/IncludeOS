@@ -159,6 +159,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Realtime/monotonic clock
   RTC::init();
 
+  MYINFO("Initializing RNG");
   PROFILE("RNG init");
   // initialize random seed based on cycles since start
   if (CPUID::has_feature(CPUID::Feature::RDRAND)) {

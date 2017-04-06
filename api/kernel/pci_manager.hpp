@@ -117,7 +117,7 @@ inline bool PCI_manager::register_device(hw::PCI_Device& dev) {
   try
   {
     debug("sz=%u, mod: 0x%x prod: 0x%x, id: 0x%x\n",
-      drivers<Device_type>().size(), dev.vendor_id(), dev.product_id(),
+      (int) drivers<Device_type>().size(), dev.vendor_id(), dev.product_id(),
       get_driver_id(dev));
 
     auto driver_factory = drivers<Device_type>().at(get_driver_id(dev));
