@@ -2,8 +2,10 @@
 . $INCLUDEOS_SRC/etc/set_traps.sh
 
 # Download, configure, compile and install llvm
+ARCH=${ARCH:-i686} # CPU architecture. Alternatively x86_64
+TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
 
-newlib_inc=$TEMP_INSTALL_DIR/x86_64-elf/include	# path for newlib headers
+newlib_inc=$TEMP_INSTALL_DIR/$TARGET/include	# path for newlib headers
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
 libcxx_inc=$BUILD_DIR/llvm/projects/libcxx/include
 libcxxabi_inc=$BUILD_DIR/llvm/projects/libcxxabi/include
@@ -17,27 +19,27 @@ download_llvm=${download_llvm:-"1"}	# This should be more dynamic
 
 if [ ! -z $download_llvm ]; then
     # Clone LLVM
-    git clone -b release_39 git@github.com:llvm-mirror/llvm.git
+    git clone -b $llvm_branch git@github.com:llvm-mirror/llvm.git || true
     #svn co http://llvm.org/svn/llvm-project/llvm/tags/$LLVM_TAG llvm
 
     # Clone libc++, libc++abi, and some extra stuff (recommended / required for clang)
     pushd llvm/projects
-    git checkout release_39
+    git checkout $llvm_branch
 
     # Compiler-rt
-    git clone -b release_39 git@github.com:llvm-mirror/compiler-rt.git
+    git clone -b $llvm_branch git@github.com:llvm-mirror/compiler-rt.git || true
     #svn co http://llvm.org/svn/llvm-project/compiler-rt/tags/$LLVM_TAG compiler-rt
 
     # libc++abi
-    git clone -b release_39 git@github.com:llvm-mirror/libcxxabi.git
+    git clone -b $llvm_branch git@github.com:llvm-mirror/libcxxabi.git || true
     #svn co http://llvm.org/svn/llvm-project/libcxxabi/tags/$LLVM_TAG libcxxabi
 
     # libc++
-    git clone -b release_39 git@github.com:llvm-mirror/libcxx.git
+    git clone -b $llvm_branch git@github.com:llvm-mirror/libcxx.git || true
     #svn co http://llvm.org/svn/llvm-project/libcxx/tags/$LLVM_TAG libcxx
 
     # libunwind
-    git clone -b release_39 git@github.com:llvm-mirror/libunwind.git
+    git clone -b $llvm_branch git@github.com:llvm-mirror/libunwind.git || true
     #svn co http://llvm.org/svn/llvm-project/libunwind/tags/$LLVM_TAG libunwind
 
     # Back to start
@@ -52,7 +54,9 @@ if [ ! -z $clear_llvm_build_cache ]; then
     rm CMakeCache.txt
 fi
 
-TRIPLE=x86_64-pc-linux-elf
+
+
+TRIPLE=$ARCH-pc-linux-elf
 CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse"
 
 # CMAKE configure step
