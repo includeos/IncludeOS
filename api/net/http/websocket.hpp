@@ -30,7 +30,7 @@ public:
   // When a handshake is established and the WebSocket is created
   using Connect_handler = delegate<void(WebSocket_ptr)>;
   // Whether to accept the client or not before handshake
-  using Accept_handler  = delegate<bool(net::tcp::Socket, std::string)>;
+  using Accept_handler  = delegate<bool(net::Socket, std::string)>;
   // data read (data, length)
   typedef delegate<void(const char*, size_t)> read_func;
   // closed (status code)
