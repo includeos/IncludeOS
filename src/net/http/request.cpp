@@ -28,14 +28,6 @@ static http_parser_settings settings;
 __attribute__((constructor))
 static void _GFRGRGRgegerjiuo_()
 {
-  settings.on_message_begin = [](http_parser* parser) {
-    auto req = reinterpret_cast<Request*>(parser->data);
-    req->set_method(
-          http::method::code(
-            http_method_str(static_cast<http_method>(parser->method))));
-    return 0;
-  };
-
   settings.on_url = [](http_parser* parser, const char* at, size_t length) {
     auto req = reinterpret_cast<Request*>(parser->data);
     req->set_uri(URI{std::string{at, length}});
@@ -63,6 +55,10 @@ static void _GFRGRGRgegerjiuo_()
   settings.on_headers_complete = [](http_parser* parser) {
     auto req = reinterpret_cast<Request*>(parser->data);
     req->set_version(Version{parser->http_major, parser->http_minor});
+    req->set_method(
+          http::method::code(
+            http_method_str(static_cast<http_method>(parser->method))));
+    req->set_headers_complete(true);
     return 0;
   };
 }
