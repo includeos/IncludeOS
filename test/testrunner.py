@@ -163,10 +163,10 @@ class Test:
         # Start and wait for the process
         self.proc_.communicate()
 
-        with codecs.open('{}/log_stdout.log'.format(self.path_), encoding='utf-8') as log_stdout:
+        with codecs.open('{}/log_stdout.log'.format(self.path_), encoding='utf-8', errors='replace') as log_stdout:
             self.output_.append(log_stdout.read())
 
-        with codecs.open('{}/log_stderr.log'.format(self.path_), encoding='utf-8') as log_stderr:
+        with codecs.open('{}/log_stderr.log'.format(self.path_), encoding='utf-8', errors='replace') as log_stderr:
             self.output_.append(log_stderr.read())
 
 
