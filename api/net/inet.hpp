@@ -30,7 +30,7 @@ namespace net {
   class   TCP;
   class   UDP;
   class   DHClient;
-  struct  ICMPv4;
+  class   ICMPv4;
 
   /**
    * An abstract IP-stack interface.
@@ -44,11 +44,8 @@ namespace net {
     using Route_checker = delegate<bool(typename IPV::addr)>;
     using IP_packet_factory = delegate<typename IPV::IP_packet_ptr(Protocol)>;
 
-    using Error_type = icmp4::Type;
-    using Error_code = uint8_t;
-
     template <typename IPv>
-    using resolve_func = delegate<void(typename IPv::addr)>;
+    using resolve_func = delegate<void(typename IPv::addr, Error&)>;
     using Vip_list = std::unordered_set<typename IPV::addr>;
 
     ///
@@ -56,16 +53,19 @@ namespace net {
     ///
 
     /** Get IP address of this interface **/
-    virtual typename IPV::addr ip_addr()  = 0;
+    virtual typename IPV::addr ip_addr()        = 0;
 
     /** Get netmask of this interface **/
-    virtual typename IPV::addr netmask()  = 0;
+    virtual typename IPV::addr netmask()        = 0;
 
     /** Get default gateway for this interface **/
-    virtual typename IPV::addr gateway()  = 0;
+    virtual typename IPV::addr gateway()        = 0;
 
     /** Get default dns for this interface **/
-    virtual typename IPV::addr dns()      = 0;
+    virtual typename IPV::addr dns_addr()       = 0;
+
+    /** Get broadcast address for this interface **/
+    virtual typename IPV::addr broadcast_addr() = 0;
 
    /** Set default gateway for this interface */
     virtual void set_gateway(typename IPV::addr server) = 0;
@@ -120,13 +120,15 @@ namespace net {
     virtual UDP& udp() = 0;
 
     /** Get the ICMP protocol object for this interface */
-    virtual ICMPv4&     icmp()    = 0;
+    virtual ICMPv4& icmp() = 0;
 
     /**
-     *  Error report in accordance with RFC 1122
+     *  Error reporting
+     *  Incl. ICMP error report in accordance with RFC 1122
      *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
     */
-    virtual void error_report(Error_type type, Error_code code, Packet_ptr orig_pckt) = 0;
+    virtual void error_report(Error& err, Packet_ptr orig_pckt) = 0;
+
 
 
     ///
@@ -135,7 +137,7 @@ namespace net {
 
     /** DNS resolution */
     virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
-
+    virtual void resolve(const std::string& hostname, typename IPV::addr server, resolve_func<IPV> func) = 0;
 
     ///
     /// LINK LAYER

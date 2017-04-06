@@ -30,7 +30,7 @@ DHCPD::DHCPD(UDP& udp, IP4::addr pool_start, IP4::addr pool_end,
   server_id_{stack_.ip_addr()},
   netmask_{stack_.netmask()},
   router_{stack_.gateway()},
-  dns_{stack_.dns()},
+  dns_{stack_.dns_addr()},
   lease_{lease}, max_lease_{max_lease}, pending_{pending}
 {
   if (not valid_pool(pool_start, pool_end))

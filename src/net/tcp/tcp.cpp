@@ -89,7 +89,7 @@ void TCP::Port_util::increment_ephemeral()
   Current solution:
   Simple.
 */
-Listener& TCP::listen(tcp::Socket socket, ConnectCallback cb)
+Listener& TCP::listen(Socket socket, ConnectCallback cb)
 {
   bind(socket);
 
@@ -100,7 +100,7 @@ Listener& TCP::listen(tcp::Socket socket, ConnectCallback cb)
   return *listener;
 }
 
-bool TCP::close(tcp::Socket socket) {
+bool TCP::close(Socket socket) {
   auto it = listeners_.find(socket);
   if(it != listeners_.end())
   {
@@ -248,11 +248,8 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-void TCP::error_report(Error_type type, Error_code code,
-  tcp::Address src_addr, tcp::port_t src_port, tcp::Address dest_addr, tcp::port_t dest_port) {
-  printf("<TCP::error_report> Error %s : %s occurred when sending data to %s port %u from %s port %u\n",
-    icmp4::get_type_string(type).c_str(), icmp4::get_code_string(type, code).c_str(),
-    dest_addr.to_string().c_str(), dest_port, src_addr.to_string().c_str(), src_port);
+void TCP::error_report(Error& /* err */, Socket /* dest */) {
+  // TODO
 }
 
 void TCP::transmit(tcp::Packet_ptr packet) {
