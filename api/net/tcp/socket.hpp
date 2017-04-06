@@ -34,7 +34,7 @@ public:
    *
    * Intialize an empty socket <0.0.0.0:0>
    */
-  Socket() noexcept
+  constexpr Socket() noexcept
     : address_{}
     , port_{}
   {}
@@ -50,7 +50,7 @@ public:
    * @param port
    *  The port associated with the process
    */
-  Socket(const Address address, const port_t port) noexcept
+  constexpr Socket(const Address address, const port_t port) noexcept
     : address_{address}
     , port_{port}
   {}
@@ -60,7 +60,7 @@ public:
    *
    * @return The socket's network address
    */
-  Address address() const noexcept
+  constexpr Address address() const noexcept
   { return address_; }
 
   /**
@@ -68,7 +68,7 @@ public:
    *
    * @return The socket's port value
    */
-  port_t port() const noexcept
+  constexpr port_t port() const noexcept
   { return port_; }
 
   /**
@@ -84,7 +84,7 @@ public:
    *
    * @return true if this socket is empty, false otherwise
    */
-  bool is_empty() const noexcept
+  constexpr bool is_empty() const noexcept
   { return (address_ == 0) and (port_ == 0); }
 
   /**
@@ -95,7 +95,7 @@ public:
    *
    * @return true if the specified socket is equal, false otherwise
    */
-  bool operator==(const Socket& other) const noexcept
+  constexpr bool operator==(const Socket& other) const noexcept
   {
     return (address() == other.address())
        and (port() == other.port());
@@ -109,7 +109,7 @@ public:
    *
    * @return true if the specified socket is not equal, false otherwise
    */
-  bool operator!=(const Socket& other) const noexcept
+  constexpr bool operator!=(const Socket& other) const noexcept
   { return not (*this == other); }
 
   /**
@@ -121,7 +121,7 @@ public:
    * @return true if this socket is less-than the specified socket,
    * false otherwise
    */
-  bool operator<(const Socket& other) const noexcept
+  constexpr bool operator<(const Socket& other) const noexcept
   {
     return (address() < other.address())
         or ((address() == other.address()) and (port() < other.port()));
@@ -136,7 +136,7 @@ public:
    * @return true if this socket is greater-than the specified socket,
    * false otherwise
    */
-  bool operator>(const Socket& other) const noexcept
+  constexpr bool operator>(const Socket& other) const noexcept
   { return not (*this < other); }
 private:
   Address address_;
