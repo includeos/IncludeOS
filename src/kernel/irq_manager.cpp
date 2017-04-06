@@ -152,10 +152,13 @@ void IRQ_manager::init_local()
 
 // A union to be able to extract the lower and upper part of an address
 union addr_union {
-  uint32_t whole;
+  uintptr_t whole;
   struct {
     uint16_t lo16;
     uint16_t hi16;
+#ifdef ARCH_X64
+    uint32_t top32;
+#endif
   };
 };
 
@@ -165,13 +168,12 @@ void IRQ_manager::create_gate(
     uint16_t segment_sel,
     char attributes)
 {
-  auto waddr = (uintptr_t) func;
   addr_union addr;
-  addr.whole           = waddr & 0xffffffff;
+  addr.whole           = (uintptr_t) func;
   idt_entry->offset_1  = addr.lo16;
   idt_entry->offset_2  = addr.hi16;
 #ifdef ARCH_X64
-  idt_entry->offset_3  = waddr >> 32;
+  idt_entry->offset_3  = addr.top32;
 #endif
   idt_entry->selector  = segment_sel;
   idt_entry->type_attr = attributes;
@@ -180,8 +182,9 @@ void IRQ_manager::create_gate(
 
 IRQ_manager::intr_func IRQ_manager::get_handler(uint8_t vec) {
   addr_union addr;
-  addr.lo16 = idt[vec].offset_1;
-  addr.hi16 = idt[vec].offset_2;
+  addr.lo16  = idt[vec].offset_1;
+  addr.hi16  = idt[vec].offset_2;
+  addr.top32 = idt[vec].offset_3;
 
   return (intr_func) addr.whole;
 }

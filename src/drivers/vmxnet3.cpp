@@ -372,9 +372,9 @@ vmxnet3::create_packet(int link_offset)
   auto buffer = bufstore().get_buffer();
   auto* ptr = (net::Packet*) buffer.addr;
   new (ptr) net::Packet(
-        frame_offset_device() + link_offset, 
-        0, 
-        frame_offset_device() + packet_len(), 
+        frame_offset_device() + link_offset,
+        0,
+        frame_offset_device() + packet_len(),
         buffer.bufstore);
   return net::Packet_ptr(ptr);
 }

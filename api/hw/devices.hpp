@@ -167,7 +167,7 @@ namespace hw {
       INFO2("+--+ %s", Device_type::device_type());
 
       for(size_t i = 0; i < devices.size(); i++)
-        INFO2("|  + #%zu: %s, driver %s", i, devices[i]->device_name().c_str(),
+        INFO2("|  + #%u: %s, driver %s", (uint32_t) i, devices[i]->device_name().c_str(),
               devices[i]->driver_name());
     }
   }

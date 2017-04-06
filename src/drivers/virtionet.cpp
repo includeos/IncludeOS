@@ -24,7 +24,7 @@
 #include <malloc.h>
 #include <cstring>
 
-//#define NO_DEFERRED_KICK
+#define NO_DEFERRED_KICK
 #ifndef NO_DEFERRED_KICK
 #include <smp>
 struct alignas(SMP_ALIGN) smp_deferred_kick
@@ -116,7 +116,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
   INFO("VirtioNet", "Adding %u receive buffers of size %u",
-       rx_q.size() / 2, bufstore().bufsize());
+       rx_q.size() / 2, (uint32_t) bufstore().bufsize());
 
   for (int i = 0; i < rx_q.size() / 2; i++)
       add_receive_buffer(bufstore().get_buffer().addr);
@@ -214,6 +214,7 @@ void VirtioNet::msix_recv_handler()
 }
 void VirtioNet::msix_xmit_handler()
 {
+  printf("Transmit complete\n");
   bool dequeued_tx = false;
   tx_q.disable_interrupts();
   // Do one TX-packet
@@ -325,6 +326,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
       VirtualBox *does not* accept ANY_LAYOUT, while Qemu does, so this is to
       support VirtualBox
   */
+  printf("Transmit called\n");
   int transmitted = 0;
   net::Packet_ptr tail = std::move(pckt);
 
@@ -346,6 +348,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
   if (LIKELY(transmitted)) {
 #ifdef NO_DEFERRED_KICK
     tx_q.enable_interrupts();
+    printf("kick\n");
     tx_q.kick();
 #else
     begin_deferred_kick();
@@ -370,6 +373,7 @@ void VirtioNet::enqueue(net::Packet* pckt)
   std::array<Token, 2> tokens {{ token1, token2 }};
 
   // Enqueue scatterlist, 2 pieces readable, 0 writable.
+  printf("enqueue\n");
   tx_q.enqueue(tokens);
 }
 
