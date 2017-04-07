@@ -87,7 +87,6 @@ namespace x86
     }();
     // restart counter
     lapic.timer_begin(0xFFFFFFFF);
-    printf("begin\n");
 
     /// use PIT to measure <time> in one-shot ///
     PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
@@ -108,7 +107,6 @@ namespace x86
         APIC::get().bcast_ipi(0x21);
       }
     });
-    printf("done\n");
   }
 
   void APIC_Timer::start_timers() noexcept
