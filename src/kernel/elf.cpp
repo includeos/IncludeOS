@@ -113,7 +113,7 @@ public:
       return {"0x0 (null)", addr, 0};
     }
     // function or space not found
-    snprintf(buffer, length, "%p", addr);
+    snprintf(buffer, length, "%p", (void*) addr);
     return {buffer, addr, 0};
   }
 
@@ -275,15 +275,15 @@ void Elf::print_info()
   auto& hdr = elf_header();
   // program headers
   auto* phdr = (ElfPhdr*) (ELF_START + hdr.e_phoff);
-  printf("program headers offs=%#x at phys %p\n", hdr.e_phoff, phdr);
+  printf("program headers offs=%#lx at phys %p\n", hdr.e_phoff, phdr);
   // section headers
   auto* shdr = (ElfShdr*) (ELF_START + hdr.e_shoff);
-  printf("section headers offs=%#x at phys %p\n", hdr.e_shoff, shdr);
+  printf("section headers offs=%#lx at phys %p\n", hdr.e_shoff, shdr);
   for (uint16_t i = 0; i < hdr.e_shnum; i++)
   {
     uintptr_t start = ELF_START + shdr[i].sh_offset;
     uintptr_t end   = start     + shdr[i].sh_size;
-    printf("sh from %#x to %#x\n", start, end);
+    printf("sh from %#lx to %#lx\n", start, end);
   }
 
 }
@@ -297,7 +297,7 @@ void _print_elf_symbols()
 
   for (size_t i = 0; i < symtab.entries; i++)
   {
-    kprintf("%8x: %s\n", symtab.base[i].st_value, &strtab[symtab.base[i].st_name]);
+    kprintf("%16p: %s\n", (void*) symtab.base[i].st_value, &strtab[symtab.base[i].st_name]);
   }
   kprintf("*** %u entries\n", symtab.entries);
 }
