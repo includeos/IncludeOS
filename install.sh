@@ -33,7 +33,7 @@ while getopts "h?yqb:" opt; do
         ;;
     q)  quiet=1
         ;;
-    b)  BUNDLE_LOC=$OPTARG 
+    b)  BUNDLE_LOC=$OPTARG
 		if [ -f $BUNDLE_LOC ]; then
 		    export BUNDLE_LOC=$BUNDLE_LOC
 		else
@@ -105,7 +105,7 @@ if ! command -v sudo > /dev/null 2>&1; then
     exit 1
 fi
 
-# Install build requirements (compiler, etc) 
+# Install build requirements (compiler, etc)
 if [ "Darwin" = "$SYSTEM" ]; then
     if ! ./etc/install_osx.sh; then
 		printf "%s\n" ">>> Sorry <<<"\
@@ -118,7 +118,7 @@ else
 		dependency_level=all
 	else
 		dependency_level=build
-	fi	
+	fi
 	echo ">>> Dependencies required:"
 	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
 		missing_dependencies=1
@@ -132,7 +132,7 @@ fi
 # Check if script has write permission to PREFIX location
 start_dir=$INCLUDEOS_PREFIX
 while [ "$start_dir" != "/" ]
-do	
+do
 	if [ -d $start_dir ]; then	# If dir exists
 		if [ ! -w $start_dir ]; then	# If dir is not writable
 			printf "\n\n>>> IncludeOS can't be installed with the current options\n"
@@ -164,7 +164,7 @@ printf "    %-25s %-25s %s\n"\
 
 # Give user option to evaluate install options
 if tty -s && [ $install_yes -eq 0 ]; then
-	read -p "Is this correct [Y/n]?" answer
+	read -p "Is this correct [Y/n]? " answer
 	answer=${answer:-"Y"}	# Default value
 	case $answer in
 		[yY] | [yY][Ee][Ss] )
@@ -190,7 +190,7 @@ function clean {
 	if [ -f /tmp/cmake_output.txt ]; then
 		rm /tmp/cmake_output.txt
 	fi
-} 
+}
 trap clean EXIT
 
 printf "\n\n>>> Running install_from_bundle.sh (expect up to 3 minutes)\n"
@@ -223,7 +223,7 @@ fi
 # INSTALL FINISHED:
 ############################################################
 
-printf "\n\n>>> IncludeOS installation Done!\n" 
+printf "\n\n>>> IncludeOS installation Done!\n"
 printf "    %s\n" "To use IncludeOS set env variables for cmake to know your compiler, e.g.:"\
 	   '    export CC="clang-3.8"'\
 	   '    export CXX="clang++-3.8"'\

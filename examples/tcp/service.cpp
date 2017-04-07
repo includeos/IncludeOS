@@ -36,7 +36,7 @@ using Disconnect = net::tcp::Connection::Disconnect;
 
 // Address to our python server: 10.0.2.2:1337
 // @note: This may have to be modified depending on network and server settings.
-net::tcp::Socket python_server{ {10,0,2,2} , 1337};
+net::Socket python_server{ {10,0,2,2} , 1337};
 
 // Called when data is received on client (incoming connection)
 void handle_client_on_read(Connection_ptr python, const std::string& request) {

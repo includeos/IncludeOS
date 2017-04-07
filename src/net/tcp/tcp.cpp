@@ -67,9 +67,10 @@ void TCP::Port_util::increment_ephemeral()
   if(UNLIKELY(! has_free_ephemeral() ))
     throw TCP_error{"All ephemeral ports are taken"};
 
-  ephemeral_ = (ephemeral_ == port_ranges::DYNAMIC_END)
-    ? port_ranges::DYNAMIC_START
-    : ephemeral_ + 1;
+  ephemeral_++;
+
+  if(UNLIKELY(ephemeral_ == port_ranges::DYNAMIC_END))
+    ephemeral_ = port_ranges::DYNAMIC_START;
 
   // TODO: Avoid wrap around, increment ephemeral to next free port.
   // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
@@ -88,7 +89,7 @@ void TCP::Port_util::increment_ephemeral()
   Current solution:
   Simple.
 */
-Listener& TCP::listen(tcp::Socket socket, ConnectCallback cb)
+Listener& TCP::listen(Socket socket, ConnectCallback cb)
 {
   bind(socket);
 
@@ -99,7 +100,7 @@ Listener& TCP::listen(tcp::Socket socket, ConnectCallback cb)
   return *listener;
 }
 
-bool TCP::close(tcp::Socket socket) {
+bool TCP::close(Socket socket) {
   auto it = listeners_.find(socket);
   if(it != listeners_.end())
   {
@@ -202,6 +203,9 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
     return;
   }
 
+  // Send a reset
+  send_reset(*packet);
+
   drop(*packet);
 }
 
@@ -244,11 +248,8 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-void TCP::error_report(Error_type type, Error_code code,
-  tcp::Address src_addr, tcp::port_t src_port, tcp::Address dest_addr, tcp::port_t dest_port) {
-  printf("<TCP::error_report> Error %s : %s occurred when sending data to %s port %u from %s port %u\n",
-    icmp4::get_type_string(type).c_str(), icmp4::get_code_string(type, code).c_str(),
-    dest_addr.to_string().c_str(), dest_port, src_addr.to_string().c_str(), src_port);
+void TCP::error_report(Error& /* err */, Socket /* dest */) {
+  // TODO
 }
 
 void TCP::transmit(tcp::Packet_ptr packet) {
@@ -261,6 +262,27 @@ void TCP::transmit(tcp::Packet_ptr packet) {
   packets_tx_++;
 
   _network_layer_out(std::move(packet));
+}
+
+tcp::Packet_ptr TCP::create_outgoing_packet()
+{
+  auto packet = static_unique_ptr_cast<net::tcp::Packet>(inet_.create_packet());
+  packet->init();
+  return packet;
+}
+
+void TCP::send_reset(const tcp::Packet& in)
+{
+  // TODO: maybe worth to just swap the fields in
+  // the incoming packet and send that one
+  auto out = create_outgoing_packet();
+  // increase incoming SEQ and ACK by 1 and set RST + ACK
+  out->set_seq(in.ack()+1).set_ack(in.seq()+1).set_flags(RST | ACK);
+  // swap dest and src
+  out->set_source(in.destination());
+  out->set_destination(in.source());
+
+  transmit(std::move(out));
 }
 
 seq_t TCP::generate_iss() {

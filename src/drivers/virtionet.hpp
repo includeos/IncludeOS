@@ -220,6 +220,7 @@ private:
   void msix_xmit_handler();
   void msix_conf_handler();
 
+  /** Legacy IRQ handler */
   void legacy_handler();
 
   /** Allocate and queue buffer from bufstore_ in RX queue. */

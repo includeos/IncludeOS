@@ -28,13 +28,27 @@ namespace net
     std::array<char, 256> buf{};
     size_t len  = request.create(buf.data(), hostname);
 
+    auto key = request.get_id();
+
     // store the request for later match
     requests_.emplace(std::piecewise_construct,
-      std::forward_as_tuple(request.get_id()),
+      std::forward_as_tuple(key),
       std::forward_as_tuple(std::move(request), std::move(func)));
 
     // send request to DNS server
-    socket_.sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len);
+    socket_.sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len, nullptr, [this, dns_server, key] (Error& err) {
+      // If an error is not received, this will never execute (Error is just erased from the map
+      // without calling the callback)
+
+      INFO("DNS", "Couldn't resolve DNS server at %s. Reason: %s", dns_server.to_string().c_str(), err.what());
+
+      // Find the request and remove it since an error occurred
+      auto it = requests_.find(key);
+      if (it != requests_.end()) {
+        it->second.callback(IP4::ADDR_ANY, err);
+        requests_.erase(it);
+      }
+    });
   }
 
   void DNSClient::receive_response(IP4::addr, UDP::port_t, const char* data, size_t)

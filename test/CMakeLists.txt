@@ -80,8 +80,8 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/packets.cpp
+  ${TEST}/net/unit/socket.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
-  ${TEST}/net/unit/tcp_socket.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/net/unit/router.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
@@ -197,7 +197,7 @@ if(EXTRA_TESTS)
   message(STATUS "Adding some extra tests")
   list(APPEND TEST_SOURCES ${TEST}/kernel/unit/rdrand_test.cpp)
   list(APPEND TEST_SOURCES ${TEST}/util/unit/tar_test.cpp)
-  
+
 endif()
 
 if(COVERAGE)

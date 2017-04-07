@@ -16,9 +16,11 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <net/tcp/socket.hpp>
+#include <net/socket.hpp>
+#include <net/tcp/common.hpp>
 
-using namespace net::tcp;
+using namespace net;
+using namespace tcp;
 
 CASE("Creating a Socket without arguments is empty")
 {

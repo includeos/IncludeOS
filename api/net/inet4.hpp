@@ -58,8 +58,11 @@ namespace net {
     IP4::addr gateway() override
     { return gateway_; }
 
-    IP4::addr dns() override
-    { return dns_server; }
+    IP4::addr dns_addr() override
+    { return dns_server_; }
+
+    IP4::addr broadcast_addr() override
+    { return ip4_addr_ | ( ~ netmask_); }
 
     IP4& ip_obj() override
     { return ip4_; }
@@ -86,10 +89,11 @@ namespace net {
     auto dhclient() { return dhcp_;  }
 
     /**
-     *  Error report in accordance with RFC 1122
+     *  Error reporting
+     *  Incl. ICMP error report in accordance with RFC 1122
      *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
     */
-    void error_report(Error_type type, Error_code code, Packet_ptr orig_pckt) override;
+    void error_report(Error& err, Packet_ptr orig_pckt) override;
 
     /**
      * Set the forwarding delegate used by this stack.
@@ -141,7 +145,14 @@ namespace net {
     void resolve(const std::string& hostname,
                  resolve_func<IP4>  func) override
     {
-      dns_.resolve(this->dns_server, hostname, func);
+      dns_.resolve(this->dns_server_, hostname, func);
+    }
+
+    void resolve(const std::string& hostname,
+                  IP4::addr         server,
+                  resolve_func<IP4> func) override
+    {
+      dns_.resolve(server, hostname, func);
     }
 
     void set_gateway(IP4::addr gateway) override
@@ -151,7 +162,7 @@ namespace net {
 
     void set_dns_server(IP4::addr server) override
     {
-      this->dns_server = server;
+      this->dns_server_ = server;
     }
 
     /**
@@ -181,12 +192,12 @@ namespace net {
       this->ip4_addr_  = addr;
       this->netmask_   = nmask;
       this->gateway_    = gateway;
-      this->dns_server = (dns == IP4::ADDR_ANY) ? gateway : dns;
+      this->dns_server_ = (dns == IP4::ADDR_ANY) ? gateway : dns;
       INFO("Inet4", "Network configured");
       INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
       INFO2("Netmask: \t%s", netmask_.str().c_str());
       INFO2("Gateway: \t%s", gateway_.str().c_str());
-      INFO2("DNS Server: \t%s", dns_server.str().c_str());
+      INFO2("DNS Server: \t%s", dns_server_.str().c_str());
     }
 
     virtual void
@@ -298,7 +309,7 @@ namespace net {
     IP4::addr ip4_addr_;
     IP4::addr netmask_;
     IP4::addr gateway_;
-    IP4::addr dns_server;
+    IP4::addr dns_server_;
 
     Vip4_list vip4s_ = {{127,0,0,1}};
 

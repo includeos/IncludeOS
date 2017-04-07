@@ -17,8 +17,8 @@ else(BUNDLE_LOC)
 	include(ExternalProject)
 	ExternalProject_Add(PrecompiledLibraries
 			    PREFIX precompiled
-			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.9.0/IncludeOS_install_v0-9-0.tar.gz
-			    URL_HASH SHA1=8f7dfa92d38814c0c4f3e83adacfbd741a617622
+			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.10.1-bundle/IncludeOS_dependencies_v0-10-1-bundle.tar.gz
+			    URL_HASH SHA1=8b298ea394b304c03f59d4a2fa3db711ae7d5161
 			    CONFIGURE_COMMAND ""
 			    BUILD_COMMAND ""
 			    UPDATE_COMMAND ""
@@ -32,8 +32,12 @@ set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibra
 set(LIBCXX_INCLUDE_DIR ${PRECOMPILED_DIR}libcxx/include/)
 set(LIBCXX_LIB_DIR ${PRECOMPILED_DIR}/libcxx/)
 add_library(libcxx STATIC IMPORTED)
+add_library(libcxxabi STATIC IMPORTED)
+
 add_dependencies(libcxx PrecompiledLibraries)
+add_dependencies(libcxxabi PrecompiledLibraries)
 set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++.a)
+set_target_properties(libcxxabi PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++abi.a)
 
 set(NEWLIB_INCLUDE_DIR ${PRECOMPILED_DIR}/newlib/include/)
 set(NEWLIB_LIB_DIR ${PRECOMPILED_DIR}/newlib/)
@@ -62,4 +66,4 @@ install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/include/newlib)
 
 install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/lib)
 
-install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a DESTINATION includeos/lib)
+install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a ${LIBCXX_LIB_DIR}/libc++abi.a DESTINATION includeos/lib)

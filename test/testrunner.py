@@ -8,6 +8,7 @@ import json
 import time
 import multiprocessing  # To figure out number of cpus
 import junit_xml as jx
+import codecs
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
 sys.path.insert(0, ".")
@@ -162,10 +163,10 @@ class Test:
         # Start and wait for the process
         self.proc_.communicate()
 
-        with open('{}/log_stdout.log'.format(self.path_), 'r') as log_stdout:
+        with codecs.open('{}/log_stdout.log'.format(self.path_), encoding='utf-8', errors='replace') as log_stdout:
             self.output_.append(log_stdout.read())
 
-        with open('{}/log_stderr.log'.format(self.path_), 'r') as log_stderr:
+        with codecs.open('{}/log_stderr.log'.format(self.path_), encoding='utf-8', errors='replace') as log_stderr:
             self.output_.append(log_stderr.read())
 
 

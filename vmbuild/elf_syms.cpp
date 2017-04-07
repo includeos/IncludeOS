@@ -4,7 +4,7 @@
 #include <cstring>
 #include <cassert>
 #include <vector>
-#include "elf_binary.hpp"
+#include "../api/util/elf_binary.hpp"
 #include "../api/util/crc32.hpp"
 #include <unistd.h>
 
@@ -95,7 +95,7 @@ static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& 
   {
     auto& cursym = symtab.base[i];
     auto type = ELF32_ST_TYPE(cursym.st_info);
-    // we want both functions and untyped, because some 
+    // we want both functions and untyped, because some
     // C functions are NOTYPE
     if (type == STT_FUNC || type == STT_NOTYPE) {
       symloc[symidx++] = cursym;
@@ -122,7 +122,7 @@ static int relocate_pruned_sections(char* new_location, SymTab& symtab, StrTab& 
   // new entry base and total length
   hdr.strtab_size = index;
   // length of symbols & strings
-  const size_t size = 
+  const size_t size =
          hdr.symtab_entries * sizeof(Elf32_Sym) +
          hdr.strtab_size * sizeof(char);
   // sanity check

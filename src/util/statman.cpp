@@ -82,16 +82,6 @@ Statman::Statman(const uintptr_t start, const Size_type num_bytes) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Statman::Span_iterator Statman::last_used() {
-  Expects(next_available_ <= stats_.size());
-
-  auto it = stats_.begin();
-  std::advance(it, next_available_);
-
-  return it;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
   if (name.empty())
     throw Stats_exception{"Cannot create Stat with no name"};

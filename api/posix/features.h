@@ -27,6 +27,11 @@
 #define _POSIX_TIMERS 1
 #define _POSIX_MONOTONIC_CLOCK 1
 
+// Enable newlib multibyte support
+#define _MB_CAPABLE 1
+
+
+
 // Required to pass CMake tests for libc++
 #define __GLIBC_PREREQ__(min, maj) 1
 #define __GLIBC_PREREQ(min, maj) 1
