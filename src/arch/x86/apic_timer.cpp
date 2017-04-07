@@ -39,16 +39,16 @@ namespace x86
 {
   // calculated once on BSP
   static uint32_t ticks_per_micro = 0;
-  
+
   struct alignas(SMP_ALIGN) timer_data
   {
     bool intr_enabled = false;
-    
+
   };
   static std::array<timer_data, SMP_MAX_CORES> timerdata;
-  
+
   #define GET_TIMER() PER_CPU(timerdata)
-  
+
   void APIC_Timer::init()
   {
     // initialize timer system
@@ -74,7 +74,7 @@ namespace x86
 
     // start timer (unmask)
     INFO("APIC", "Measuring APIC timer...");
-    
+
     auto& lapic = APIC::get();
     // See: Vol3a 10.5.4.1 TSC-Deadline Mode
     // 0xFFFFFFFF --> ~68 seconds
@@ -87,6 +87,7 @@ namespace x86
     }();
     // restart counter
     lapic.timer_begin(0xFFFFFFFF);
+    printf("begin\n");
 
     /// use PIT to measure <time> in one-shot ///
     PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
@@ -107,6 +108,7 @@ namespace x86
         APIC::get().bcast_ipi(0x21);
       }
     });
+    printf("done\n");
   }
 
   void APIC_Timer::start_timers() noexcept

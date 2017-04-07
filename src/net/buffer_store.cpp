@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
 //#undef  NO_DEBUG
+#define DEBUG
 #if !defined(__MACH__)
 #include <malloc.h>
 #else
@@ -33,7 +33,7 @@ extern void *memalign(size_t, size_t);
 #define PAGE_SIZE     0x1000
 
 #define ENABLE_BUFFERSTORE_CHAIN
-#define BS_CHAIN_ALLOC_PACKETS   2048
+#define BS_CHAIN_ALLOC_PACKETS   256
 
 namespace net {
 

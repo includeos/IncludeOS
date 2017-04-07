@@ -14,7 +14,7 @@
 ; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
-USE64
+[BITS 64]
 global spurious_intr:function
 global lapic_send_eoi:function
 global get_cpu_id:function
@@ -38,8 +38,8 @@ spurious_intr:
     iret
 
 lapic_send_eoi:
-    mov rax, 0xfee000B0
-    mov DWORD [rax], 0
+    mov eax, 0xfee000B0
+    mov DWORD [eax], 0
     ret
 
 reboot_os:
