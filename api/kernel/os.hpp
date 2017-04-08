@@ -211,8 +211,7 @@ public:
 
     if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS) {
 
-      Expects(bootinfo_->mods_count > 0
-              and bootinfo_->mods_count < std::numeric_limits<int>::max());
+      Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
 
       return Span_mods{
         reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),

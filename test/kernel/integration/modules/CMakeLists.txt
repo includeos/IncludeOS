@@ -14,7 +14,7 @@ set(SERVICE_NAME "Kernel modules test")
 set(BINARY       "test_mods")
 set(MAX_MEM 128)
 set(SOURCES
-    service.cpp
+    service.cpp hotswap.cpp
   )
 #set(LOCAL_INCLUDES ".")
 

@@ -28,7 +28,7 @@
 
 #include "../api/boot/multiboot.h"
 #include "elf.h"
-#include "elf_binary.hpp"
+#include "../api/util/elf_binary.hpp"
 
 #define SECT_SIZE 512
 #define SECT_SIZE_ERR  666
@@ -169,7 +169,7 @@ if (binary_imgloc[EI_MAG0] == ELFMAG0
   {
     INFO("Found 32-bit ELF\n");
     // ELF32 binary
-    Elf_binary binary ({binary_imgloc, stat_binary.st_size});
+    Elf_binary<Elf32> binary ({binary_imgloc, stat_binary.st_size});
 
     // Verify multiboot header
     auto& sh_multiboot = binary.section_header(".multiboot");
