@@ -116,7 +116,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
   INFO("VirtioNet", "Adding %u receive buffers of size %u",
-       rx_q.size() / 2, bufstore().bufsize());
+       rx_q.size() / 2, (uint32_t) bufstore().bufsize());
 
   for (int i = 0; i < rx_q.size() / 2; i++)
       add_receive_buffer(bufstore().get_buffer().addr);

@@ -32,7 +32,7 @@ set(OS_OBJECTS
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
-  kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp
+  kernel/profile.cpp kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp
   util/os_statman.cpp util/sha1.cpp
@@ -62,12 +62,13 @@ set(OS_OBJECTS
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
   posix/pwd.cpp
   ### x86 arch ###
-  arch/x86/start.asm #arch/x86/interrupts.asm
+  arch/x86/start.asm #arch/x86/interrupts.asm arch/x86/profile_intr.asm
   arch/x86/arch.cpp arch/x86/gdt.cpp arch/x86/gdt_asm.asm arch/x86/acpi.cpp
   arch/x86/ioapic.cpp arch/x86/apic.cpp arch/x86/apic_timer.cpp
   arch/x86/apic_revenant.cpp arch/x86/smp.cpp #arch/x86/apic_asm.asm
   arch/x86/pit.cpp arch/x86/cpu_freq_sampling.cpp arch/x86/pic.cpp
   ### x64 arch ###
+  arch/x64/profile_intr.asm
   arch/x64/apic_asm.asm arch/x64/arch_start.asm arch/x64/interrupts.asm
 )
 

@@ -27,7 +27,7 @@ extern kernel_start
 __arch_start:
     ;; disable old paging
     mov eax, cr0
-    and eax, 1 << 31  ;; clear PG
+    and eax, 0x7fffffff  ;; clear PG (bit 31)
     mov cr0, eax
     ;; address for Page Map Level 4
     mov edi, P4_TAB

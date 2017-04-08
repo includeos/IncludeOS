@@ -30,6 +30,8 @@ extern void __arch_poweroff();
 extern void __arch_reboot();
 extern void __arch_enable_legacy_irq(uint8_t);
 extern void __arch_disable_legacy_irq(uint8_t);
+inline void __arch_hw_barrier() noexcept;
+inline void __sw_barrier() noexcept;
 
 #if ARCH_X86 || ARCH_X64
 inline uint64_t __arch_cpu_cycles() noexcept {
@@ -37,10 +39,20 @@ inline uint64_t __arch_cpu_cycles() noexcept {
   asm("rdtsc" : "=A" (ret));
   return ret;
 }
+inline void __arch_hw_barrier() noexcept
+{
+  asm volatile("mfence" ::: "memory");
+}
 #else
 inline uint64_t __arch_cpu_cycles() noexcept {
   return 0;
 }
+inline void __arch_hw_barrier() noexcept {}
 #endif
+
+inline void __sw_barrier() noexcept
+{
+  asm volatile("" ::: "memory");
+}
 
 #endif

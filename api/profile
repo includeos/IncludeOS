@@ -24,6 +24,7 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <arch>
 
 struct Sample {
   uint32_t    samp; // samples
@@ -90,9 +91,9 @@ class ScopedProfiler
   {
     record();
     // memory clobbered make sure ScopedProfilers aren't moved around
-    asm volatile("" : : : "memory");
+    __sw_barrier();
   }
-  
+
   void record();
   ~ScopedProfiler();
 

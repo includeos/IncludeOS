@@ -30,14 +30,14 @@ void PCI_manager::scan_bus(int bus)
   for (uint16_t device = 0; device < 255; ++device)
   {
     uint16_t pci_addr = bus * 256 + device;
-    uint32_t id = 
+    uint32_t id =
         hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_VENDOR);
 
     if (id != PCI::WTF)
     {
       // needed for classcode
       hw::PCI_Device::class_revision devclass;
-      devclass.reg = 
+      devclass.reg =
           hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
       // convert to annoying enum :-)
       auto classcode = (PCI::classcode_t) devclass.classcode;

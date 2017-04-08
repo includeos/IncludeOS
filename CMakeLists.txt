@@ -91,8 +91,8 @@ if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-target x86_64 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS "-target x86_64 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "-target x86_64-pc-linux-elf -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS "-target x86_64-pc-linux-elf -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 endif()
 
 # either download or cross-compile needed libraries

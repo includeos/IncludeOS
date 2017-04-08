@@ -20,38 +20,21 @@
 
 #include <arch>
 
-#if ARCH_X64
-
 struct IDTDescr {
   uint16_t offset_1;  // offset bits 0..15
   uint16_t selector;  // a code segment selector in GDT or LDT
   uint8_t  zero;      // unused, set to 0
   uint8_t  type_attr; // type and attributes, see below
   uint16_t offset_2;  // offset bits 16..31
+#ifdef ARCH_X64
   uint32_t offset_3;  // 32..63
   uint32_t zero2;
-};
-
-struct IDTR {
-  uint16_t limit;
-  uint64_t base;
-}__attribute__((packed));
-
-#elif ARCH_X86
-
-struct IDTDescr {
-  uint16_t offset_1;  // offset bits 0..15
-  uint16_t selector;  // a code segment selector in GDT or LDT
-  uint8_t  zero;      // unused, set to 0
-  uint8_t  type_attr; // type and attributes, see below
-  uint16_t offset_2;  // offset bits 16..31
-};
-
-struct IDTR {
-  uint16_t limit;
-  uint32_t base;
-}__attribute__((packed));
-
 #endif
+};
+
+struct IDTR {
+  uint16_t  limit;
+  uintptr_t base;
+}__attribute__((packed));
 
 #endif

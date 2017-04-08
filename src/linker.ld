@@ -64,6 +64,15 @@ SECTIONS
     LONG(0);
   }
 
+  .init_array ALIGN(0x10) :
+  {
+    *(.init_array*)
+  }
+  .fini_array ALIGN(0x10) :
+  {
+    *(.fini_array*)
+  }
+
   .rodata :
   {
     _RODATA_START_ = .;
@@ -72,22 +81,22 @@ SECTIONS
     _RODATA_END_ = .;
   }
 
-  .gcc_except_table :
-  {
-    *(.gcc_except_table)
-  }
-
-    /* For stack unwinding (exception handling)  */
-  .eh_frame_hdr ALIGN(0x4):
+  /* For stack unwinding (exception handling)  */
+  .eh_frame_hdr ALIGN(0x8):
   {
     KEEP(*(.eh_frame_hdr*))
 
   }
-  .eh_frame ALIGN(0x4):
+  .eh_frame ALIGN(0x8):
   {
     PROVIDE (__eh_frame_start = .);
     KEEP(*(.eh_frame))
     LONG (0);
+  }
+
+  .gcc_except_table :
+  {
+    *(.gcc_except_table)
   }
 
   .data :

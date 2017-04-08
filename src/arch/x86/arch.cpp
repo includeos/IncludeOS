@@ -76,8 +76,8 @@ void __arch_init()
   INFO2("+--> %f MHz", OS::cpu_freq().count());
 
   // Note: CPU freq must be known before we can start timer system
-  // initialize BSP APIC timer
-  // call Service::ready when calibrated
+  // Initialize APIC timers and timer systems
+  // Deferred call to Service::ready() when calibration is complete
   APIC_Timer::calibrate();
 
   // Initialize PCI devices

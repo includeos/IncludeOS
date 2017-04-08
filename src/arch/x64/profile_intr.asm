@@ -15,39 +15,53 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 [BITS 64]
-global spurious_intr:function
-global lapic_send_eoi:function
-global get_cpu_id:function
-global get_cpu_eip:function
-global get_cpu_esp:function
-global reboot_os:function
+extern current_intr_handler
 
-get_cpu_id:
-    mov rax, [fs:0x0]
-    ret
+global parasite_interrupt_handler:function
+extern profiler_stack_sampler
 
-get_cpu_esp:
-    mov rax, rsp
-    ret
+%macro PUSHAQ 0
+   push rax
+   push rbx
+   push rcx
+   push rdx
+   push rbp
+   push rdi
+   push rsi
+   push r8
+   push r9
+   push r10
+   push r11
+   push r12
+   push r13
+   push r14
+   push r15
+%endmacro
+%macro POPAQ 0
+   pop r15
+   pop r14
+   pop r13
+   pop r12
+   pop r11
+   pop r10
+   pop r9
+   pop r8
+   pop rsi
+   pop rdi
+   pop rbp
+   pop rdx
+   pop rcx
+   pop rbx
+   pop rax
+%endmacro
 
-get_cpu_eip:
-    mov rax, [rsp]
-    ret
-
-spurious_intr:
-    iret
-
-lapic_send_eoi:
-    mov eax, 0xfee000B0
-    mov DWORD [eax], 0
-    ret
-
-reboot_os:
-    ; load bogus IDT
-    lidt [reset_idtr]
-    ; 1-byte breakpoint instruction
-    int3
-
-reset_idtr:
-    dw      400h - 1
-    dd      0
+parasite_interrupt_handler:
+  cli
+  PUSHAQ
+  push QWORD [rsp + 32]
+  call profiler_stack_sampler
+  pop  rax
+  call QWORD [current_intr_handler]
+  POPAQ
+  sti
+  iretq

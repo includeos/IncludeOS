@@ -21,8 +21,9 @@
 #include <kernel/os.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
-//#define DEBUG
-//#define DEBUG2
+//#undef NO_DEBUG
+#define DEBUG
+#define DEBUG2
 
 // Used for cpu frequency sampling
 extern const uint16_t _cpu_sampling_freq_divider_;
@@ -66,11 +67,11 @@ namespace x86
       oneshot(1);
   }
 
-  double PIT::estimate_CPU_frequency() {
-
+  double PIT::estimate_CPU_frequency()
+  {
     debug("<CPU frequency> Saving state: curr_freq_div %i \n", current_freq_divider_);
     reset_cpufreq_sampling();
-    
+
     // Save PIT-state
     temp_mode_ = current_mode_;
     temp_freq_divider_ = current_freq_divider_;
@@ -96,8 +97,8 @@ namespace x86
     return freq;
   }
 
-
-  PIT::Timer_iterator PIT::start_timer(Timer t, std::chrono::milliseconds in_msecs){
+  PIT::Timer_iterator PIT::start_timer(Timer t, std::chrono::milliseconds in_msecs)
+  {
     if (in_msecs < 1ms) panic("Can't wait less than 1 ms. ");
 
     if (current_mode_ != RATE_GEN) {
@@ -109,7 +110,8 @@ namespace x86
       set_freq_divider(millisec_interval);
 
     auto cycles_pr_millisec = KHz(OS::cpu_freq());
-    //debug("<PIT start_timer> CPU KHz: %f Cycles to wait: %f \n",cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
+    debug("<PIT start_timer> CPU KHz: %f Cycles to wait: %f\n",
+          cycles_pr_millisec.count(), cycles_pr_millisec.count() * in_msecs);
 
     auto ticks = in_msecs / KHz(current_frequency()).count();
     //debug("<PIT start_timer> PIT KHz: %f * %i = %f ms. \n",
@@ -151,8 +153,7 @@ namespace x86
           (uint32_t)msec.count(), t.id());
 
     return start_timer(t, msec);
-
-  };
+  }
 
   void PIT::stop_timer(PIT::Timer_iterator it) {
     if (not it->second.expired()) {
@@ -173,21 +174,19 @@ namespace x86
   }
 
 
-  uint8_t PIT::read_back(uint8_t){
+  uint8_t PIT::read_back(uint8_t)
+  {
     const uint8_t READ_BACK_CMD = 0xc2;
 
     hw::outb(PIT_mode_register, READ_BACK_CMD );
-
     auto res = hw::inb(PIT_chan0);
 
     debug("STATUS: %#x \n", res);
-
     return res;
-
   }
 
-  void PIT::irq_handler(){
-
+  void PIT::irq_handler()
+  {
     IRQ_counter_ ++;
 
     if (current_freq_divider_ == millisec_interval)
@@ -195,7 +194,7 @@ namespace x86
 
 #ifdef DEBUG
     if (millisec_counter % 100 == 0)
-      OS::rsprint(".");
+      OS::print(".", 1);
 #endif
 
     static std::vector<Timer_iterator> restart;
@@ -228,8 +227,6 @@ namespace x86
 
       // Queue this timer for deletion (Escape iterator death by not deleting it now)
       stop_timer(it);
-
-
     }
 
     if (not garbage_) {

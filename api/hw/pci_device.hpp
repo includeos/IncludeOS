@@ -38,10 +38,10 @@ namespace PCI {
 
   static const uint8_t   CONFIG_BASE_ADDR_0    {0x10U};
 
-  static const unsigned long  BASE_ADDRESS_MEM_MASK {~0x0FUL};
-  static const unsigned long  BASE_ADDRESS_IO_MASK  {~0x03UL};
+  static const uint32_t  BASE_ADDRESS_MEM_MASK {~0x0FU};
+  static const uint32_t  BASE_ADDRESS_IO_MASK  {~0x03U};
 
-  static const unsigned long  WTF                   {~0x0UL};
+  static const uint32_t  WTF                   {~0x0U};
 
   /**
    *  @brief PCI device message format

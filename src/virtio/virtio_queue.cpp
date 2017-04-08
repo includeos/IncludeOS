@@ -174,7 +174,7 @@ void Virtio::Queue::kick()
   update_avail_idx();
 
   // Std. §3.2.1 pt. 4
-  asm volatile("mfence" ::: "memory");
+  __arch_hw_barrier();
   if (!(_queue.used->flags & VIRTQ_USED_F_NO_NOTIFY)){
     debug("<%s> Kicking virtio. Iobase 0x%x \n", qname.c_str(), _iobase);
     hw::outpw(_iobase + VIRTIO_PCI_QUEUE_NOTIFY , _pci_index);

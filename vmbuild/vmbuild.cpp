@@ -168,7 +168,6 @@ if (binary_imgloc[EI_MAG0] == ELFMAG0
   if (binary_imgloc[EI_CLASS] == ELFCLASS32)
   {
     INFO("Found 32-bit ELF\n");
-    // ELF32 binary
     Elf_binary<Elf32> binary ({binary_imgloc, stat_binary.st_size});
 
     // Verify multiboot header

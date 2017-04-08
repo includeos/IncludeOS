@@ -193,9 +193,9 @@ public:
        Update the available index */
     inline void update_avail_idx ()
     {
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
       // Std. §3.2.1 pt. 4
-      asm volatile("mfence" ::: "memory");
+      __arch_hw_barrier();
       _queue.avail->idx += _num_added;
       _num_added = 0;
 #else
@@ -382,4 +382,3 @@ private:
 };
 
 #endif
-

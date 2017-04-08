@@ -6,9 +6,9 @@
 #include <kernel/irq_manager.hpp>
 #include <kprint>
 
-extern "C" int       get_cpu_id();
-extern "C" uintptr_t get_cpu_esp();
-extern "C" void      lapic_exception_handler();
+extern "C" int    get_cpu_id();
+extern "C" void*  get_cpu_esp();
+extern "C" void   lapic_exception_handler();
 #define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 
 using namespace x86;
@@ -18,22 +18,22 @@ static bool revenant_task_doer()
 {
   // grab hold on task list
   lock(smp.tlock);
-  
+
   if (smp.tasks.empty()) {
     unlock(smp.tlock);
     // try again
     return false;
   }
-  
+
   // get copy of shared task
   auto task = std::move(smp.tasks.front());
   smp.tasks.pop_front();
-  
+
   unlock(smp.tlock);
-  
+
   // execute actual task
   task.func();
-  
+
   // add done function to completed list (only if its callable)
   if (task.done)
   {
@@ -67,7 +67,7 @@ void revenant_main(int cpu)
   // newlibs printf just does way too much static stuff to work in SMP
   // it can work if REENTs are initalized per-cpu ... and other things
   ::SMP::global_lock();
-  INFO2("AP %d started at %#x", get_cpu_id(), get_cpu_esp());
+  INFO2("AP %d started at %p", get_cpu_id(), get_cpu_esp());
   ::SMP::global_unlock();
 
   IRQ_manager::init(cpu);
