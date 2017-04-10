@@ -57,7 +57,7 @@ CASE("Creating an ICMP_error of type Too Big")
   EXPECT(err.pmtu() == 500);
 }
 
-CASE("Creating an ICMP_error of type Port Unreachable")
+CASE("Creating and modifying an ICMP_error of type Port Unreachable")
 {
   ICMP_error err{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::PORT};
 
@@ -69,6 +69,16 @@ CASE("Creating an ICMP_error of type Port Unreachable")
   EXPECT(err.icmp_code() == (uint8_t) icmp4::code::Dest_unreachable::PORT);
   EXPECT(err.icmp_type_str() == "DESTINATION UNREACHABLE (3)");
   EXPECT(err.icmp_code_str() == "PORT (3)");
+  EXPECT(not err.is_too_big());
+  EXPECT(err.pmtu() == 0);
+
+  err.set_icmp_type(icmp4::Type::PARAMETER_PROBLEM);
+  err.set_icmp_code((uint8_t) icmp4::code::Parameter_problem::POINTER_INDICATES_ERROR);
+
+  EXPECT(err.icmp_type() == icmp4::Type::PARAMETER_PROBLEM);
+  EXPECT(err.icmp_code() == (uint8_t) icmp4::code::Parameter_problem::POINTER_INDICATES_ERROR);
+  EXPECT(err.icmp_type_str() == "PARAMETER PROBLEM (12)");
+  EXPECT(err.icmp_code_str() == "POINTER INDICATES ERROR (0)");
   EXPECT(not err.is_too_big());
   EXPECT(err.pmtu() == 0);
 }

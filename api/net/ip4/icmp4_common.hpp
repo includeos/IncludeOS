@@ -34,7 +34,7 @@ namespace net {
     PARAMETER_PROBLEM   = 12,
     TIMESTAMP           = 13,
     TIMESTAMP_REPLY     = 14,
-    NO_REPLY            = 100,  // Custom: Type in ICMP_packet if no ping reply received
+    NO_REPLY            = 100,  // Custom: Type in ICMP_view if no ping reply received
     NO_ERROR            = 200
   };
 
