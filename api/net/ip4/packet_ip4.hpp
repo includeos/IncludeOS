@@ -152,7 +152,10 @@ namespace net {
 
     /** Set flags field */
     void set_ip_flags(ip4::Flags f)
-    { ip_header().frag_off_flags |= static_cast<uint16_t>(f) << 13; }
+    {
+      ip_header().frag_off_flags |= static_cast<uint16_t>(f) << 13;
+      ip_header().frag_off_flags = htons(ip_header().frag_off_flags);
+    }
 
     /** Set fragment offset header field */
     void set_ip_frag_offs(uint16_t offs)
