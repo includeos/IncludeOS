@@ -27,14 +27,15 @@ SECTIONS
       PROVIDE(_MULTIBOOT_START_ = .);
       *(.multiboot)
    }
-  PROVIDE ( _TEXT_START_ = . );
+
+  PROVIDE( _TEXT_START_ = . );
   .text (_TEXT_START_ ) :
   {
     *(.text)
     *(.text.*)
     *(.gnu.linkonce.t*)
   }
-  PROVIDE ( _TEXT_END_ = . );
+  PROVIDE( _TEXT_END_ = . );
 
   .init ALIGN(0x10) : {
     _INIT_START_ = .;
@@ -125,9 +126,9 @@ SECTIONS
     _BSS_START_ = .;
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
+    _BSS_END_ = .;
     . = ALIGN(64 / 8);
   }
-  _BSS_END_ = .;
   . = ALIGN(64 / 8);
   _end = .;
 

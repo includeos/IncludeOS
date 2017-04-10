@@ -227,7 +227,7 @@ uint64_t OS::get_cycles_total() noexcept {
 __attribute__((noinline))
 void OS::halt() {
   *os_cycles_total = cycles_since_boot();
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
   asm volatile("hlt");
 
   // add a global symbol here so we can quickly discard
