@@ -111,7 +111,6 @@ namespace x86
 
   void PIT::irq_handler()
   {
-    printf("PIT interrupt\n");
     IRQ_counter ++;
 
     if (now() >= this->expiration || run_forever)
@@ -121,7 +120,6 @@ namespace x86
       {
         disable_regular_interrupts();
       }
-      printf("Calling handler\n");
       if (this->handler) {
         this->handler();
         this->handler = nullptr;
