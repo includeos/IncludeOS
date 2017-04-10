@@ -122,8 +122,8 @@ function(plugin_config_option type plugin_list)
 endfunction()
 
 # Location of installed drivers / plugins
-set(DRIVER_LOC ${INSTALL_LOC}/drivers)
-set(PLUGIN_LOC ${INSTALL_LOC}/plugins)
+set(DRIVER_LOC ${INSTALL_LOC}/${ARCH}/drivers)
+set(PLUGIN_LOC ${INSTALL_LOC}/${ARCH}/plugins)
 
 # Enable DRIVERS which may be specified by parent cmake list
 enable_plugins(DRIVERS ${DRIVER_LOC})
@@ -204,7 +204,7 @@ set_target_properties(libarch PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH
 
 add_library(libbotan STATIC IMPORTED)
 set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/lib/libbotan-2.a)
+set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libbotan-2.a)
 
 add_library(libosdeps STATIC IMPORTED)
 set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)

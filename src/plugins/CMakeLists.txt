@@ -11,4 +11,4 @@ add_library(unik      STATIC unik.cpp)
 add_dependencies(unik PrecompiledLibraries)
 
 
-install(TARGETS syslogd unik DESTINATION includeos/plugins)
+install(TARGETS syslogd unik DESTINATION includeos/${ARCH}/plugins)
