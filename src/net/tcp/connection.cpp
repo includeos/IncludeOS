@@ -46,7 +46,8 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     timewait_dack_timer({this, &Connection::dack_timeout}),
     queued_(false),
     dack_{0},
-    last_ack_sent_{cb.RCV.NXT}
+    last_ack_sent_{cb.RCV.NXT},
+    smss_{host_.MSS()}
 {
   setup_congestion_control();
   debug("<Connection> %s created\n", to_string().c_str());
@@ -93,7 +94,7 @@ uint16_t Connection::MSDS() const noexcept {
 }
 
 uint16_t Connection::SMSS() const noexcept {
-  return host_.MSS();
+  return smss_; // Updated by Path MTU Discovery process
 }
 
 void Connection::read(ReadBuffer&& buffer, ReadCallback callback) {

@@ -875,6 +875,12 @@ private:
   uint8_t  dack_{0};
   seq_t    last_ack_sent_;
 
+  /**
+   *  The size of the largest segment that the sender can transmit
+   *  Updated by the Path MTU Discovery process (RFC 1191)
+   */
+  uint16_t smss_;
+
   /** RFC 3522 - The Eifel Detection Algorithm for TCP */
   //int16_t spurious_recovery = 0;
   //static constexpr int8_t SPUR_TO {1};
@@ -983,6 +989,18 @@ private:
   */
   void set_queued(bool queued)
   { queued_ = queued; }
+
+  /**
+   * @brief      Sets the size of the largest segment that the sender can transmit
+   *             Updated through the Path MTU Discovery process (RFC 1191) when TCP
+   *             gets a notification about an updated PMTU value for this connection
+   *             Set in TCP if Path MTU Discovery is enabled
+   *
+   * @param[in]  smss  The new SMSS (The PMTU value minus the size of the IP4 header and
+   *                   the size of the TCP header)
+   */
+  void set_SMSS(uint16_t smss) noexcept
+  { smss_ = smss; }
 
   /**
    * @brief      Sends an acknowledgement.
