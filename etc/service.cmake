@@ -146,6 +146,14 @@ endforeach()
 
 # add all extra libs
 foreach(LIBR ${LIBRARIES})
+  # if relative path but not local, use includeos lib.
+  if(NOT IS_ABSOLUTE ${LIBR} AND NOT EXISTS ${LIBR})
+    set(OS_LIB "$ENV{INCLUDEOS_PREFIX}/includeos/lib/${LIBR}")
+    if(EXISTS ${OS_LIB})
+      message(STATUS "Cannot find local ${LIBR}; using ${OS_LIB} instead")
+      set(LIBR ${OS_LIB})
+    endif()
+  endif()
   get_filename_component(LNAME ${LIBR} NAME_WE)
   add_library(libr_${LNAME} STATIC IMPORTED)
   set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)

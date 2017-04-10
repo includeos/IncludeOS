@@ -67,9 +67,10 @@ void TCP::Port_util::increment_ephemeral()
   if(UNLIKELY(! has_free_ephemeral() ))
     throw TCP_error{"All ephemeral ports are taken"};
 
-  ephemeral_ = (ephemeral_ == port_ranges::DYNAMIC_END)
-    ? port_ranges::DYNAMIC_START
-    : ephemeral_ + 1;
+  ephemeral_++;
+
+  if(UNLIKELY(ephemeral_ == port_ranges::DYNAMIC_END))
+    ephemeral_ = port_ranges::DYNAMIC_START;
 
   // TODO: Avoid wrap around, increment ephemeral to next free port.
   // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
