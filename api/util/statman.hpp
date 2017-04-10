@@ -143,7 +143,11 @@ public:
   ///
   ///
   ///
-  static Statman& get();
+  static Statman& get() {
+      static Statman inst{0x8000, 8192};
+      printf("Statman created\n");
+      return inst;
+  }
 
   ///
   ///
