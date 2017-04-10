@@ -153,6 +153,9 @@ namespace net {
 
     auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
+    if (path_mtu_discovery_)
+      ip4_pckt->set_ip_flags(ip4::Flags::DF);
+
     ip4_pckt->make_flight_ready();
 
     ship(std::move(ip4_pckt));
@@ -201,6 +204,115 @@ namespace net {
     debug("<IP4> Transmitting packet, layer begin: buf + %i\n", ip4_pckt->layer_begin() - ip4_pckt->buf());
 
     linklayer_out_(std::move(ip4_pckt), next_hop);
+  }
+
+  void IP4::set_path_mtu_discovery(bool on, RTC::timestamp_t increase_interval) noexcept {
+    path_mtu_discovery_ = on;
+
+    if (increase_interval != -1)
+      pmtu_stale_ = increase_interval;
+
+    if (not on and pmtu_timer_.is_running()) {
+      pmtu_timer_.stop();
+      paths_.clear();
+    }
+  }
+
+  void IP4::update_path(Socket dest, PMTU new_pmtu, bool received_too_big,
+    uint16_t total_length, uint8_t header_length) {
+
+    if (UNLIKELY(not path_mtu_discovery_ or dest.address() == IP4::ADDR_ANY or (new_pmtu > 0 and new_pmtu < minimum_MTU())))
+      return;
+
+    if (UNLIKELY(dest.address().is_multicast())) {
+      // TODO RFC4821 p. 12
+
+    }
+
+    // If an entry for this destination already exists, update the Path MTU value, but only if
+    // the value is smaller than the existing one
+    auto it = paths_.find(dest);
+
+    if (it != paths_.end()) {
+      // If a router returns a next hop MTU value of zero: Try to discover the correct MTU value from the Total Length field
+      if (UNLIKELY(new_pmtu == 0 and total_length not_eq 0))
+        new_pmtu = pmtu_from_total_length(total_length, header_length, it->second.pmtu());
+
+      if (new_pmtu < it->second.pmtu())
+        it->second.set_pmtu(new_pmtu, received_too_big);
+    } else {
+      // If a router returns a next hop MTU value of zero: Try to discover the correct MTU value from the Total Length field
+      if (UNLIKELY(new_pmtu == 0 and total_length not_eq 0))
+        new_pmtu = pmtu_from_total_length(total_length, header_length, default_PMTU());
+
+      // Add to paths_ if the entry doesn't exist
+      // Initially, the PMTU value for a path is assumed to be the (known) MTU of the first-hop link
+      // TODO PMTU: Maybe reset value according to the plateau table instead of default_PMTU()
+      paths_.emplace(dest, PMTU_entry{new_pmtu, default_PMTU()});
+
+      // Start the stale pmtu timer if it is not already running
+      if (UNLIKELY(not pmtu_timer_.is_running()))
+        pmtu_timer_.start(pmtu_timer_interval_);  // interval in seconds
+    }
+  }
+
+  IP4::PMTU IP4::pmtu(Socket dest) const {
+    auto it = paths_.find(dest);
+
+    if (it != paths_.end())
+      return it->second.pmtu();
+
+    return 0;
+  }
+
+  IP4::PMTU IP4::pmtu_from_total_length(uint16_t total_length, uint8_t header_length, PMTU current) {
+    /*
+      RFC 1191 p. 8:
+      Note: routers based on implementations derived from 4.2BSD Unix send an incorrect value
+      for the Total Length of the original IP datagram. The value sent by these routers is the
+      sum of the original Total Length and the original Header Length (expressed in octets).
+      Since it is impossible for the host receiving such a Datagram Too Big message to know if it
+      sent by one of these routers, the host must be conservative and assume that it is.
+      If the Total Length field returned is not less than the current PMTU estimate, it must be
+      reduced by 4 times the value of the returned Header Length field.
+    */
+    const uint16_t quad = header_length * 4;
+
+    if (total_length >= current and total_length >= (quad + (PMTU) PMTU_plateau::ONE))
+      total_length -= quad;
+
+    return total_length;
+  }
+
+  void IP4::reset_stale_paths() {
+    if (UNLIKELY(not path_mtu_discovery_)) {
+      paths_.clear();
+
+      if (pmtu_timer_.is_running())
+        pmtu_timer_.stop();
+
+      return;
+    }
+
+    if (UNLIKELY(pmtu_stale_ == PMTU_INFINITY)) {
+      // Then the PMTU values should never be increased and there's no need for the timer
+      pmtu_timer_.stop();
+      return;
+    }
+
+    for (auto& entry : paths_) {
+      /*
+        If the timestamp of the PMTU_entry is not "reserved" and is older than the timout interval
+        (default set to 10 minutes), then the PMTU can be increased/reset to see if the PMTU has
+        increased since the last decrease over 10 minutes ago
+      */
+      if (entry.second.timestamp() != 0 and RTC::time_since_boot() > pmtu_stale_ and
+        entry.second.timestamp() < (RTC::time_since_boot() - pmtu_stale_))
+      {
+        entry.second.reset_pmtu();
+        stack_.reset_pmtu(entry.first, entry.second.pmtu());
+      }
+    }
   }
 
 } //< namespace net
