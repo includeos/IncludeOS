@@ -38,6 +38,16 @@ namespace isotime
     strftime(buf, sizeof buf, "%FT%TZ", gmtime(&ts));
     return buf;
   }
+
+  /**
+   * @brief      Returns the current time as a datetime according "to_datetime_string"
+   *
+   * @return     A datetime string representing now
+   */
+  std::string now()
+  {
+    return to_datetime_string(time(0));
+  }
 }
 
 #endif

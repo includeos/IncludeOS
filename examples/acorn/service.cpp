@@ -41,10 +41,8 @@ Disk_ptr disk;
 
 #include <isotime>
 // Get current date/time, format is [YYYY-MM-DDTHH:mm:ssZ]
-const std::string timestamp() {
-  time_t     now = time(0);
-  return "[" + isotime::to_datetime_string(now) + "] ";
-}
+const std::string timestamp()
+{ return "[" + isotime::now() + "] "; }
 
 #include <net/inet4>
 
