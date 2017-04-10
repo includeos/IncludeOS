@@ -196,6 +196,21 @@ CASE("IP4 is still a thing")
       MYINFO("Section %i done", ++sections);
     }
 
+    SECTION("IP header flags are set correctly")
+    {
+      auto ip_pckt = inet.create_ip_packet(Protocol::TCP);
+      EXPECT(ip_pckt->ip_flags() == ip4::Flags::NONE);
+
+      ip_pckt->set_ip_flags(ip4::Flags::DF);
+      EXPECT(ip_pckt->ip_flags() == ip4::Flags::DF);
+
+      ip_pckt->set_ip_flags(ip4::Flags::MF);
+      EXPECT(ip_pckt->ip_flags() == ip4::Flags::MF);
+
+      ip_pckt->set_ip_flags(ip4::Flags::MFDF);
+      EXPECT(ip_pckt->ip_flags() == ip4::Flags::MFDF);
+    }
+
 
     //
     // Packet with unknown protocol gets dropped
