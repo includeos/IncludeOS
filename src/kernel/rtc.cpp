@@ -2,14 +2,13 @@
 
 #include <kernel/os.hpp>
 #include <kernel/timers.hpp>
-#include <hw/cpu.hpp>
 #include <hw/cmos.hpp>
 #include <hertz>
 
-#define MYINFO(X,...) INFO("RTC", X, ##__VA_ARGS__)
-
-static int64_t  current_time  = 0;
-static uint64_t current_ticks = 0;
+using timestamp_t = RTC::timestamp_t;
+timestamp_t RTC::booted_at;
+timestamp_t RTC::current_time;
+uint64_t    RTC::current_ticks;
 
 using namespace std::chrono;
 
@@ -20,20 +19,23 @@ void RTC::init()
 
   // set current timestamp and ticks
   current_time  = cmos::now().to_epoch();
-  current_ticks = hw::CPU::rdtsc();
+  current_ticks = OS::cycles_since_boot();
 
-  MYINFO("Enabling regular clock sync with CMOS");
+  // set boot timestamp
+  booted_at = current_time;
+
+  INFO("RTC", "Enabling regular clock sync with CMOS");
   // every minute recalibrate
   Timers::periodic(seconds(60), seconds(60),
   [] (Timers::id_t) {
     current_time  = cmos::now().to_epoch();
-    current_ticks = hw::CPU::rdtsc();
+    current_ticks = OS::cycles_since_boot();
   });
 }
 
-RTC::timestamp_t RTC::now()
+timestamp_t RTC::now()
 {
-  auto ticks = hw::CPU::rdtsc() - current_ticks;
+  auto ticks = OS::cycles_since_boot() - current_ticks;
   auto diff  = ticks / Hz(MHz(OS::cpu_freq())).count();
 
   return current_time + diff;

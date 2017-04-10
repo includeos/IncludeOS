@@ -15,5 +15,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <os>
+#include <kprint>
+
 // prevent default serial out
-void default_stdout_handlers() {}
+void default_stdout_handlers()
+{
+  OS::add_stdout(
+  [] (const char* str, size_t len)
+  {
+    if (OS::is_booted())
+      kprintf("%.*s", len, str);
+  });
+}

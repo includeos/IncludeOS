@@ -21,8 +21,10 @@ namespace http {
 
   const Client::timeout_duration Client::DEFAULT_TIMEOUT{std::chrono::seconds(5)};
 
-  Client::Client(TCP& tcp)
-    : tcp_(tcp), conns_{}
+  Client::Client(TCP& tcp, Request_handler on_send)
+    : tcp_(tcp),
+      on_send_{std::move(on_send)},
+      conns_{}
   {
   }
 
@@ -32,7 +34,7 @@ namespace http {
     req->set_method(method);
 
     auto& header = req->header();
-    header.set_field(header::User_Agent, "IncludeOS/0.9");
+    header.set_field(header::User_Agent, "IncludeOS/0.10");
     set_connection_header(*req);
 
     return req;
@@ -45,11 +47,19 @@ namespace http {
     auto& conn = get_connection(host);
 
     auto&& header = req->header();
+
     // Set Host if not already set
     if(! header.has_field(header::Host))
       header.set_field(header::Host, host.to_string());
 
+    // Set Origin if not already set
+    if(! header.has_field(header::Origin))
+      header.set_field(header::Origin, origin());
+
     debug("<http::Client> Sending Request:\n%s\n", req->to_string().c_str());
+
+    if(on_send_)
+      on_send_(*req, options, host);
 
     conn.send(move(req), move(cb), options.bufsize, options.timeout);
   }
@@ -58,8 +68,26 @@ namespace http {
   {
     Expects(cb != nullptr);
     using namespace std;
-    tcp_.stack().resolve(
-      url.host().to_string(),
+
+    if (url.host_is_ip4())
+    {
+      std::string host = url.host().to_string();
+      auto ip = net::ip4::Addr(host);
+      // setup request with method and headers
+      auto req = create_request(method);
+      *req << hfields;
+
+      // Set Host and URI path
+      populate_from_url(*req, url);
+
+      // Default to port 80 if non given
+      const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
+
+      send(move(req), {ip, port}, move(cb), move(options));
+    }
+    else
+    {
+      tcp_.stack().resolve(url.host().to_string(),
       ResolveCallback::make_packed(
       [
         this,
@@ -68,11 +96,11 @@ namespace http {
         hfields{move(hfields)},
         cb{move(cb)},
         opt{move(options)}
-      ] (auto ip)
+      ]
+        (net::ip4::Addr ip, net::Error&)
       {
-        Expects(cb != nullptr);
         // Host resolved
-        if(ip != 0)
+        if (ip != 0)
         {
           // setup request with method and headers
           auto req = create_request(method);
@@ -88,10 +116,10 @@ namespace http {
         }
         else
         {
-          cb({Error::RESOLVE_HOST}, nullptr);
+          cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
         }
-      })
-    );
+      }));
+    }
   }
 
   void Client::request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb, Options options)
@@ -121,29 +149,29 @@ namespace http {
         data{move(data)},
         cb{move(cb)},
         opt{move(options)}
-      ] (auto ip)
+      ] (auto ip, net::Error&)
       {
         // Host resolved
         if(ip != 0)
         {
           // setup request with method and headers
-          auto req = create_request(method);
+          auto req = this->create_request(method);
           *req << hfields;
 
           // Set Host & path from url
-          populate_from_url(*req, url);
+          this->populate_from_url(*req, url);
 
           // Add data and content length
-          add_data(*req, data);
+          this->add_data(*req, data);
 
           // Default to port 80 if non given
           const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-          send(move(req), {ip, port}, move(cb), move(opt));
+          this->send(move(req), {ip, port}, move(cb), move(opt));
         }
         else
         {
-          cb({Error::RESOLVE_HOST}, nullptr);
+          cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
         }
       })
     );
@@ -210,7 +238,7 @@ namespace http {
     }
 
     // no non-occupied connections, emplace a new one
-    cset.push_back(std::make_unique<Client_connection>(*this, tcp_.connect(host)));
+    cset.push_back(std::make_unique<Client_connection>(*this, std::make_unique<Connection::Stream>(tcp_.connect(host))));
     return *cset.back();
   }
 

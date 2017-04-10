@@ -52,6 +52,8 @@ const std::string timestamp() {
     return buf;
 }
 
+#include <net/inet4>
+
 void Service::start(const std::string&) {
 
   /** SETUP LOGGER */
@@ -70,8 +72,9 @@ void Service::start(const std::string&) {
   disk = fs::new_shared_memdisk();
 
   // mount the main partition in the Master Boot Record
-  disk->init_fs([](fs::error_t err) {
-
+  disk->init_fs(
+  [](fs::error_t err, auto& fs)
+  {
       if (err)  panic("Could not mount filesystem, retreating...\n");
 
       /** IP STACK SETUP **/
@@ -150,11 +153,12 @@ void Service::start(const std::string&) {
       router.use("/api/dashboard", dashboard_->router());
 
       // Fallback route for angular application - serve index.html if route is not found
-      router.on_get("/app/.*", [](auto, auto res) {
+      router.on_get("/app/.*", 
+      [&fs](auto, auto res) {
         #ifdef VERBOSE_WEBSERVER
         printf("[@GET:/app/*] Fallback route - try to serve index.html\n");
         #endif
-        disk->fs().cstat("/public/app/index.html", [res](auto err, const auto& entry) {
+        fs.cstat("/public/app/index.html", [res](auto err, const auto& entry) {
           if(err) {
             res->send_code(http::Not_Found);
           } else {
@@ -173,7 +177,7 @@ void Service::start(const std::string&) {
       /** SERVER SETUP **/
 
       // initialize server
-      server_ = std::make_unique<Server>(static_cast<net::Inet4&>(stack));
+      server_ = std::make_unique<Server>(stack.tcp());
       // set routes and start listening
       server_->set_routes(router).listen(80);
 

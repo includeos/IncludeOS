@@ -27,10 +27,6 @@ namespace fs {
   struct Dirent;
 
   struct File_system {
-
-    /** Initialize this filesystem with LBA at @base_sector */
-    virtual void init(uint64_t lba, uint64_t size, on_init_func on_init) = 0;
-
     /** Get unique (per device type) device id for underlying device.*/
     virtual Device_id device_id() = 0;
 
@@ -75,6 +71,9 @@ namespace fs {
 
     /** Returns the name of this filesystem */
     virtual std::string name() const = 0;
+
+    /** Initialize this filesystem with LBA at @base_sector */
+    virtual void init(uint64_t lba, uint64_t size, on_init_func on_init) = 0;
 
     /** Default destructor */
     virtual ~File_system() noexcept = default;

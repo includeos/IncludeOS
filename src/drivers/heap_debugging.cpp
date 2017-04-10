@@ -20,6 +20,7 @@
 
 #include <kernel/elf.hpp>
 #include <util/fixedvec.hpp>
+#include <common>
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
@@ -126,7 +127,11 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
     safe_print_symbol(2, __builtin_return_address(1));
   }
 
-  if (!data) throw std::bad_alloc();
+  if (UNLIKELY(!data)) {
+      print_backtrace();
+      DPRINTF("malloc(%u bytes): FAILED\n", len);
+      throw std::bad_alloc();
+  }
 
   if (enable_debugging) {
     if (!free_allocs.empty()) {

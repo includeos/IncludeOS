@@ -18,7 +18,7 @@
 #ifndef HTTP_MIME_TYPES_HPP
 #define HTTP_MIME_TYPES_HPP
 
-#include <experimental/string_view>
+#include "../../util/detail/string_view"
 
 namespace http {
 
@@ -29,7 +29,7 @@ namespace http {
 ///
 /// @return The associated mime type for the specified extension
 ///
-std::experimental::string_view ext_to_mime_type(const std::experimental::string_view extension) noexcept;
+util::sview ext_to_mime_type(util::csview extension) noexcept;
 
 } //< namespace http
 

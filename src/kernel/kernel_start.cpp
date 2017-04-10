@@ -16,50 +16,64 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
+#include <kernel/cpuid.hpp>
 #include <boot/multiboot.h>
+#include <kprint>
 
-#define MULTIBOOT_CMDLINE_LOC 0x3000
+#define MULTIBOOT_CMDLINE_LOC 0x7000
 
-extern "C" void __init_sanity_checks();
-extern "C" void _init_c_runtime();
-extern "C" void _init_syscalls();
-
-// enables Streaming SIMD Extensions
-static void enableSSE(void) noexcept
-{
-  asm ("mov %cr0, %eax");
-  asm ("and $0xFFFB,%ax");
-  asm ("or  $0x2,   %ax");
-  asm ("mov %eax, %cr0");
-
-  asm ("mov %cr4, %eax");
-  asm ("or  $0x600,%ax");
-  asm ("mov %eax, %cr4");
+extern "C" {
+  void __init_sanity_checks();
+  void kernel_sanity_checks();
+  uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
+  uintptr_t _move_symbols(uintptr_t loc);
+  void _init_bss();
+  void _init_heap(uintptr_t);
+  void _init_c_runtime();
+  void _init_syscalls();
+  void _init();
+  extern uintptr_t _end;
 }
 
 extern "C"
-void kernel_start(uintptr_t magic, uintptr_t addr)  {
-
-  // enable SSE extensions bitmask in CR4 register
-  enableSSE();
+void kernel_start(uintptr_t magic, uintptr_t addr)
+{
 
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
-  // Initialize system calls
-  _init_syscalls();
+  uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
 
   // Save multiboot string before symbols overwrite area after binary
-  char* cmdline = reinterpret_cast<char*>(reinterpret_cast<multiboot_info_t*>(addr)->cmdline);
-  strcpy(reinterpret_cast<char*>(MULTIBOOT_CMDLINE_LOC), cmdline);
-  ((multiboot_info_t*) addr)->cmdline = MULTIBOOT_CMDLINE_LOC;
+  if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
+    free_mem_begin = _multiboot_free_begin(addr);
+  }
+
+  // Preserve symbols from the ELF binary
+  free_mem_begin += _move_symbols(free_mem_begin);
+
+
+  // Initialize zero-initialized vars
+  _init_bss();
+
+  // Initialize heap
+  _init_heap(free_mem_begin);
 
   // Initialize stack-unwinder, call global constructors etc.
   _init_c_runtime();
 
+  // Initialize system calls
+  _init_syscalls();
+
+  // call global constructors emitted by compiler
+  _init();
+
   // Initialize OS including devices
   OS::start(magic, addr);
-  
+
+  // verify certain read-only sections in memory
+  kernel_sanity_checks();
+
   // Starting event loop from here allows us to profile OS::start
   OS::event_loop();
 }

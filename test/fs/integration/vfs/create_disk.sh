@@ -12,7 +12,7 @@ DISK=$LOCALDIR.disk
 
 rm -f $DISK
 echo ">> Creating disk image from $LOCALDIR to $LOCALDIR.disk"
-fallocate -l 1048576 $DISK # 256000 sectors
+truncate -s 1048576 $DISK # 256000 sectors
 mkfs.fat $DISK
 mkdir -p $MOUNTDIR
 sudo mount $DISK $MOUNTDIR

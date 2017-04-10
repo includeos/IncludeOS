@@ -39,28 +39,22 @@ void sleep(int i){
   INFO("Test", " Done");
 }
 
-
-void Service::start(const std::string&)
+void Service::start()
 {
   INFO("Block", "Testing blocking calls.");
+}
 
+void Service::ready()
+{
   static int sleeps = 0;
-
-  Timers::oneshot(std::chrono::seconds(5), [](auto){
-      INFO("Test","About half way done (%i / 10)", sleeps);
-      Expects(sleeps < 10);
-    });
-
-  Timers::oneshot(std::chrono::seconds(15), [](auto){
-      Expects(sleeps >= 10);
-      INFO("Test","SUCCESS");
-    });
 
   int n = 10;
   for (int i = 0; i < n; i++) {
     sleep(1);
     sleeps++;
     printf("Sleep %i/%i \n", sleeps, n);
+    if (sleeps == 10)
+    INFO("Test", "SUCCESS");
   }
 
   Expects(os_get_blocking_level() == 0);

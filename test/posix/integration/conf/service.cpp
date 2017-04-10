@@ -29,11 +29,11 @@ extern "C" void test_sysconf();
 extern "C" void test_pathconf();
 extern "C" void test_pwd();
 
-fs::Disk_ptr& memdisk() {
-  static auto disk = fs::new_shared_memdisk();
+fs::Disk& memdisk() {
+  fs::Disk& disk = fs::memdisk();
 
-  if (not disk->fs_ready()) {
-    disk->init_fs([](fs::error_t err) {
+  if (not disk.fs_ready()) {
+    disk.init_fs([](fs::error_t err, auto&) {
         if (err) {
           printf("ERROR MOUNTING DISK\n");
           printf("%s\n", err.reason().c_str());
@@ -44,7 +44,7 @@ fs::Disk_ptr& memdisk() {
   return disk;
 }
 
-int main(int argc, char *argv[]) {
+int main(int, char **) {
 
   struct utsname name;
 
@@ -58,18 +58,18 @@ int main(int argc, char *argv[]) {
   test_sysconf();
 
   // mount a disk with contents for testing
-  auto root = memdisk()->fs().stat("/");
+  auto root = memdisk().fs().stat("/");
   fs::mount("/etc", root, "test fs");
   test_pathconf();
 
   // test environment variables
   char* value = getenv("HOME");
-  printf("HOME: %s\n", value);
+  if (value) printf("HOME: %s\n", value);
 
-  char* new_env = "CPPHOME=/usr/home/cpp";
+  char* new_env = const_cast<char*>("CPPHOME=/usr/home/cpp");
   res = putenv(new_env);
   value = getenv("CPPHOME");
-  printf("CPPHOME: %s\n", value);
+  if (value) printf("CPPHOME: %s\n", value);
 
   res = setenv("INCLUDEOS_CORE_DUMP", "core.dump", 1);
   value = getenv("INCLUDEOS_CORE_DUMP");

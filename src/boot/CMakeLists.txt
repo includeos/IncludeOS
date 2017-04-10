@@ -1,5 +1,3 @@
-add_library(multiboot STATIC multiboot.cpp)
-add_dependencies(multiboot PrecompiledLibraries)
 
 add_custom_command(
 	OUTPUT bootloader
@@ -10,4 +8,3 @@ add_custom_command(
 add_custom_target(run ALL DEPENDS bootloader)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bootloader DESTINATION includeos/boot)
-install(TARGETS multiboot DESTINATION includeos/lib)

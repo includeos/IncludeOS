@@ -28,10 +28,16 @@
 
 namespace http {
 
+  using Response_handler = Client_connection::Response_handler;
+
   class Client {
   public:
     using TCP                 = net::TCP;
-    using Host                = net::tcp::Socket;
+    using Host                = net::Socket;
+
+    using Response_handler    = Client_connection::Response_handler;
+    struct Options;
+    using Request_handler     = delegate<void(Request&, Options&, const Host)>;
 
     using Connection_set      = std::vector<std::unique_ptr<Client_connection>>;
     using Connection_mapset   = std::map<Host, Connection_set>;
@@ -61,10 +67,10 @@ namespace http {
     };
 
   private:
-    using ResolveCallback    = delegate<void(net::ip4::Addr)>;
+    using ResolveCallback    = delegate<void(net::ip4::Addr, net::Error&)>;
 
   public:
-    explicit Client(TCP& tcp);
+    explicit Client(TCP& tcp, Request_handler on_send = nullptr);
 
     /**
      * @brief      Creates a request with some predefined attributes
@@ -150,10 +156,30 @@ namespace http {
     inline void post(std::string url, Header_set hfields, std::string data, Response_handler cb, Options options = {});
     inline void post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options = {});
 
+    /**
+     * @brief      Set callback to be invoked right before the request gets sent.
+     *
+     * @details    Useful for modifying/inspecting auto-generated Requests.
+     *
+     * @param[in]  cb    Request_handler callback
+     */
+    void on_send(Request_handler cb)
+    { on_send_ = std::move(cb); }
+
+    /**
+     * @brief      Returns the Origin for the Client as a string.
+     *             Currently returns the IP address to the stack.
+     *
+     * @return     The origin as a string
+     */
+    std::string origin() const
+    { return tcp_.stack().ip_addr().to_string(); }
+
   private:
     friend class Client_connection;
 
     TCP&              tcp_;
+    Request_handler   on_send_;
     Connection_mapset conns_;
     bool              keep_alive_ = false;
 

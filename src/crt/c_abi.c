@@ -21,12 +21,17 @@
 #include <util/memstream.h>
 #include <stdio.h>
 #include <sys/reent.h>
+#include <malloc.h>
 #include <string.h>
 #include <kprint>
 
 #define HEAP_ALIGNMENT   63
-caddr_t heap_begin;
-caddr_t heap_end;
+void* heap_begin;
+void* heap_end;
+
+extern char _ELF_SYM_START_;
+extern char _end;
+
 
 /// IMPLEMENTATION OF Newlib I/O:
 #undef stdin
@@ -41,32 +46,52 @@ __FILE* stderr;
 const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 
-void _init_c_runtime()
-{
-  extern char _ELF_SYM_START_;
-  extern char _end;
-
-  /// init backtrace functionality
-  extern int  _get_elf_section_datasize(const void*);
-  extern void _move_elf_syms_location(const void*, void*);
-  // store symbols temporarily in a safe location
-  char* sym_temp = &_end + 
-        2*4096 + _get_elf_section_datasize(&_ELF_SYM_START_);
-  _move_elf_syms_location(&_ELF_SYM_START_, sym_temp);
-
-  // Initialize .bss section
+void _init_bss() {
+  /// Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
   streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 
-  // Initialize the heap before exceptions
+}
+
+void _init_heap(uintptr_t free_mem_begin) {
+  // NOTE: Initialize the heap before exceptions
   // cache-align heap, because its not aligned
-  heap_begin = &_end + 64 + HEAP_ALIGNMENT;
-  heap_begin = (char*) ((uintptr_t)heap_begin & ~(uintptr_t) HEAP_ALIGNMENT);
+  heap_begin = (void*) free_mem_begin + HEAP_ALIGNMENT;
+  heap_begin = (void*) ((size_t)heap_begin & ~HEAP_ALIGNMENT);
   // heap end tracking, used with sbrk
   heap_end   = heap_begin;
+
+
+}
+
+uintptr_t _move_symbols(void* sym_loc) {
+
+  /// read out size of symbols **before** moving them
+  extern int  _get_elf_section_datasize(const void*);
+  int elfsym_size = _get_elf_section_datasize(&_ELF_SYM_START_);
+  elfsym_size = (elfsym_size < HEAP_ALIGNMENT) ? HEAP_ALIGNMENT : elfsym_size;
+
+  /// move ELF symbols to safe area
+  extern void _move_elf_syms_location(const void*, void*);
+  _move_elf_syms_location(&_ELF_SYM_START_, sym_loc);
+
+  return elfsym_size;
+
+}
+
+void _crt_sanity_checks() {
+
   // validate that heap is aligned
   int validate_heap_alignment =
-      ((uintptr_t)heap_begin & (uintptr_t) HEAP_ALIGNMENT) == 0;
+    ((uintptr_t)heap_begin & (uintptr_t) HEAP_ALIGNMENT) == 0;
+
+  assert(heap_begin >= (void*) &_end);
+  assert(heap_end >= heap_begin);
+  assert(validate_heap_alignment);
+};
+
+void _init_c_runtime()
+{
 
   /// initialize newlib I/O
   _REENT_INIT_PTR(_REENT);
@@ -75,33 +100,30 @@ void _init_c_runtime()
   stdout = _REENT->_stdout; // stdout == 2
   stderr = _REENT->_stderr; // stderr == 3
 
-  /// init ELF / backtrace functionality
-  extern void _elf_relocate_to_heap();
-  extern void _init_elf_parser();
-  // move ELF symbols into heap
-  _elf_relocate_to_heap();
-  // enable ELF symbols here (before global constructors)
-  _init_elf_parser();
-
   /// initialize exceptions before we can run constructors
   extern char __eh_frame_start[];
   // Tell the stack unwinder where exception frames are located
   extern void __register_frame(void*);
   __register_frame(&__eh_frame_start);
 
-  /// call global constructors emitted by compiler
-  extern void _init();
-  _init();
+  /// init ELF / backtrace functionality
+  extern void _init_elf_parser();
+  _init_elf_parser();
 
-  // sanity checks
-  assert(heap_begin >= &_end);
-  assert(heap_end >= heap_begin);
-  assert(validate_heap_alignment);
+  _crt_sanity_checks();
+
 }
 
 // stack-protector
 __attribute__((noreturn))
 void __stack_chk_fail(void)
+{
+  panic("Stack protector: Canary modified");
+  __builtin_unreachable();
+}
+
+__attribute__((noreturn))
+void __stack_chk_fail_local(void)
 {
   panic("Stack protector: Canary modified");
   __builtin_unreachable();
@@ -145,6 +167,10 @@ int sched_yield(void)
   return -1;
 }
 
+void *aligned_alloc(size_t alignment, size_t size)
+{
+  return memalign(alignment, size);
+}
 
 int access(const char *pathname, int mode)
 {

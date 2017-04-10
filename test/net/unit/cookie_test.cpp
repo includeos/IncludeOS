@@ -327,6 +327,7 @@ using namespace http;
     EXPECT_THROWS( (Cookie{"name", "value", {"Expires", "abc"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Expires", "saT, Apr 16 00:09:44 GMT"}}) );
     EXPECT_THROWS( (Cookie{"name", "value", {"Expires", "Sun Nov 6 08:49:37"}}) );
+    EXPECT_THROWS( (Cookie{"name", "value", {"Expires", ""}}) );
   }
 
   // Option: Max-Age (int)
@@ -431,3 +432,27 @@ using namespace http;
     EXPECT_NOT( c5.is_http_only() );
   }
 
+CASE("Cookies can be streamed")
+{
+  Cookie c{"name", "value"};
+  std::stringstream ss;
+  ss << c;
+  EXPECT(ss.str().size() > 13);
+}
+
+CASE("CookieException::what() returns string describing exception")
+{
+  try {
+    Cookie c {"name", "value", {"Path", "/;invalidpath"}};
+  }
+  catch (const CookieException& ce) {
+    const auto msg_len = strlen(ce.what());
+    EXPECT(msg_len > 20);
+  }
+}
+
+CASE("Cookie::set_value throws if attempting to set invalid value")
+{
+  Cookie c {"name", "value"};
+  EXPECT_THROWS(c.set_value("v:a[]l{ue____"));
+}

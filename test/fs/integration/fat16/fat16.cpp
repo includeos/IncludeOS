@@ -38,11 +38,10 @@ void Service::start(const std::string&)
 
   // auto-init filesystem
   disk->init_fs(
-  [disk] (fs::error_t err)
+  [] (fs::error_t err, auto& fs)
   {
     CHECKSERT(!err, "Filesystem auto-initialized");
 
-    auto& fs = disk->fs();
     printf("\t\t%s filesystem\n", fs.name().c_str());
 
     auto list = fs.ls("/");
@@ -57,12 +56,11 @@ void Service::start(const std::string&)
   });
   // re-init on MBR (sigh)
   disk->init_fs(disk->MBR,
-  [disk] (fs::error_t err)
+  [] (fs::error_t err, auto& fs)
   {
     CHECKSERT(!err, "Filesystem initialized on VBR1");
 
     // verify that we can read file
-    auto& fs = disk->fs();
     auto ent = fs.stat("/banana.txt");
     CHECKSERT(ent.is_valid(), "Stat file in root dir");
     CHECKSERT(ent.is_file(), "Entity is file");

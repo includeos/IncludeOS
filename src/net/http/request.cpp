@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,46 +23,45 @@ namespace http {
 ///
 /// Configure the settings for parsing a request
 ///
-static http_parser_settings settings
+static http_parser_settings settings;
+
+__attribute__((constructor))
+static void _GFRGRGRgegerjiuo_()
 {
-  .on_message_begin = [](http_parser* parser) {
+  settings.on_url = [](http_parser* parser, const char* at, size_t length) {
     auto req = reinterpret_cast<Request*>(parser->data);
-    req->set_method(
-          http::method::code(
-            http_method_str(static_cast<http_method>(parser->method))));
+    req->set_uri(URI{std::string{at, length}});
     return 0;
-  },
+  };
 
-  .on_url = [](http_parser* parser, const char* at, size_t length) {
-    auto req = reinterpret_cast<Request*>(parser->data);
-    req->set_uri(URI{{at, length}});
-    return 0;
-  },
-
-  .on_header_field = [](http_parser* parser, const char* at, size_t length) {
+  settings.on_header_field = [](http_parser* parser, const char* at, size_t length) {
     auto req = reinterpret_cast<Request*>(parser->data);
     req->set_private_field(at, length);
     return 0;
-  },
+  };
 
-  .on_header_value = [](http_parser* parser, const char* at, size_t length) {
+  settings.on_header_value = [](http_parser* parser, const char* at, size_t length) {
     auto req = reinterpret_cast<Request*>(parser->data);
     req->header().set_field(req->private_field().to_string(), {at, length});
     return 0;
-  },
+  };
 
-  .on_body = [](http_parser* parser, const char* at, size_t length) {
+  settings.on_body = [](http_parser* parser, const char* at, size_t length) {
     auto req = reinterpret_cast<Request*>(parser->data);
     req->add_chunk({at, length});
     return 0;
-  },
+  };
 
-  .on_headers_complete = [](http_parser* parser) {
+  settings.on_headers_complete = [](http_parser* parser) {
     auto req = reinterpret_cast<Request*>(parser->data);
     req->set_version(Version{parser->http_major, parser->http_minor});
+    req->set_method(
+          http::method::code(
+            http_method_str(static_cast<http_method>(parser->method))));
+    req->set_headers_complete(true);
     return 0;
-  }
-};
+  };
+}
 
 ///
 /// Function to parse the request data

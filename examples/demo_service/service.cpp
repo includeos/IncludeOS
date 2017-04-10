@@ -30,15 +30,16 @@ std::string HTML_RESPONSE()
 {
   const int color = rand();
 
-  // Generate some HTML                                                                                                                                                                                                      
+  // Generate some HTML
   std::stringstream stream;
   stream << "<!DOCTYPE html><html><head>"
          << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300'"
-         << "rel='stylesheet' type='text/css'> </head><body>"
+         << " rel='stylesheet' type='text/css'>"
+         << "<title>IncludeOS Demo Service</title></head><body>"
          << "<h1 style='color: #" << std::hex << ((color >> 8) | 0x020202)
          << "; font-family: \"Arial\", sans-serif'>"
          << "Include<span style='font-weight: lighter'>OS</span></h1>"
-         <<  "<h2>The C++ Unikernel</h2>"
+         << "<h2>The C++ Unikernel</h2>"
          << "<p>You have successfully booted an IncludeOS TCP service with simple http. "
          << "For a more sophisticated example, take a look at "
          << "<a href='https://github.com/hioa-cs/IncludeOS/tree/master/examples/acorn'>Acorn</a>.</p>"
@@ -81,14 +82,18 @@ http::Response handle_request(const http::Request& req)
 void Service::start(const std::string&)
 {
   // DHCP on interface 0
-  auto& inet = net::Inet4::ifconfig(10.0);
-  // static IP in case DHCP fails
-  net::Inet4::ifconfig(
-    { 10,0,0,42 },     // IP
-    { 255,255,255,0 }, // Netmask
-    { 10,0,0,1 },      // Gateway
-    { 10,0,0,1 });     // DNS
-
+  printf("*** Waiting up to 10 sec. for DHCP... ***\n");
+  auto& inet = net::Inet4::ifconfig(5.0, [](bool timeout) {
+    if (timeout) {
+      printf("*** Falling back to static network config ***\n");
+      // static IP in case DHCP fails
+      net::Inet4::stack().network_config(
+        { 10,0,0,42 },     // IP
+        { 255,255,255,0 }, // Netmask
+        { 10,0,0,1 },      // Gateway
+        { 10,0,0,1 });     // DNS
+    }
+  });
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,
   [&inet] (uint32_t) {
@@ -96,17 +101,17 @@ void Service::start(const std::string&)
   });
 
   // Set up a TCP server on port 80
-  auto& server = inet.tcp().bind(80);
+  auto& server = inet.tcp().listen(80);
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.on_connect(
-  [] (auto conn) {
+  [] (net::tcp::Connection_ptr conn) {
     printf("<Service> @on_connect: Connection %s successfully established.\n",
       conn->remote().to_string().c_str());
     // read async with a buffer size of 1024 bytes
     // define what to do when data is read
     conn->on_read(1024,
-    [conn] (auto buf, size_t n)
+    [conn] (net::tcp::buffer_t buf, size_t n)
     {
       printf("<Service> @on_read: %u bytes received.\n", n);
       try
@@ -121,14 +126,15 @@ void Service::start(const std::string&)
         printf("<Service> Responding with %u %s.\n",
           res.status_code(), http::code_description(res.status_code()).to_string().c_str());
 
-        conn->write(res, [](size_t written) {
-          printf("<Service> @on_write: %u bytes written.\n", written);
-        });
+        conn->write(res);
       }
       catch(const std::exception& e)
       {
         printf("<Service> Unable to parse request:\n%s\n", e.what());
       }
+    });
+    conn->on_write([](size_t written) {
+      printf("<Service> @on_write: %u bytes written.\n", written);
     });
   });
 

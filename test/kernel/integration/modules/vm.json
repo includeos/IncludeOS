@@ -1,0 +1,8 @@
+{
+  "image" : "test_mods.img",
+  "modules" : [
+    {"path" : "../mod1.json"},
+    {"path" : "../seed", "args" : "loaded as module"},
+    {"path" : "../mod3.json"}
+  ]
+}

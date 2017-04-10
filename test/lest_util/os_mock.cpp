@@ -40,8 +40,8 @@ Statman& Statman::get() {
   return statman_;
 }
 
-#include <os>
-#include <kernel/timers.hpp>
+#include <rtc>
+RTC::timestamp_t RTC::booted_at = 0;
 
 RTC::timestamp_t RTC::now() {
   return 0;
@@ -51,6 +51,7 @@ void RTC::init() {
   return;
 }
 
+#include <kernel/timers.hpp>
 void Timers::timers_handler() {
   return;
 }
@@ -71,6 +72,7 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
   return 0;
 }
 
+#include <os>
 void OS::resume_softreset(intptr_t) {
   return;
 }
@@ -78,6 +80,8 @@ void OS::resume_softreset(intptr_t) {
 bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
+
+void OS::multiboot(unsigned, unsigned) {}
 
 extern "C" {
 
@@ -102,6 +106,19 @@ extern "C" {
   void _init_c_runtime() {
     return;
   }
+  void _init_bss() {
+    return;
+  }
+  void _init_heap(uintptr_t) {
+    return;
+  }
+
+
+#ifdef __MACH__
+  void _init() {
+    return;
+  }
+#endif
 
   void modern_interrupt_handler() {
     return;
@@ -131,11 +148,79 @@ extern "C" {
     return;
   }
 
-  void __init_sanity_checks() noexcept {
-    return;
-  }
+  void __init_sanity_checks() noexcept {}
+
+  uintptr_t _multiboot_free_begin(uintptr_t boot_addr) {
+    return 0;
+  };
+
+  uintptr_t _move_symbols(uintptr_t loc) {
+    return 0;
+  };
+
+  void kernel_sanity_checks() {}
 
   void reboot_os() {
     return;
   }
+
+  struct mallinfo { int x; };
+  struct mallinfo mallinfo() {
+    return {0};
+  }
+
+  void malloc_trim() {
+    return;
+  }
+
+  static char __printbuf[4096];
+
+  __attribute__((weak))
+  void __serial_print1(const char* cstr) {
+    snprintf(__printbuf, 4096, "%s", cstr);
+  }
+
+
+} // ~ extern "C"
+
+/// arch ///
+void __arch_init() {}
+void __arch_poweroff() {}
+void __arch_reboot() {}
+void __arch_enable_legacy_irq(uint8_t) {}
+void __arch_disable_legacy_irq(uint8_t) {}
+
+#include <smp>
+int SMP::cpu_id() noexcept {
+  return 0;
 }
+void SMP::global_lock() noexcept {}
+void SMP::global_unlock() noexcept {}
+
+extern "C"
+void (*current_eoi_mechanism) () = nullptr;
+
+#ifdef ARCH_X86
+#include "../../src/arch/x86/apic.hpp"
+namespace x86 {
+  IApic& APIC::get() noexcept { return *(IApic*) 0; }
+}
+#endif
+
+#ifndef ARCH_X86
+bool rdrand32(uint32_t* result) {
+  return true;
+}
+#include <kernel/cpuid.hpp>
+bool CPUID::has_feature(Feature f) {
+  return true;
+}
+#include <kernel/irq_manager.hpp>
+IRQ_manager& IRQ_manager::get() {
+  static IRQ_manager m;
+  return m;
+}
+void IRQ_manager::process_interrupts() {
+  return;
+}
+#endif

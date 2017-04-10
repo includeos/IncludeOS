@@ -168,7 +168,7 @@ int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
   // ignore IP address (FIXME?)
   /// TODO: verify that the IP is "local"
   try {
-    auto& L = net_stack().tcp().bind(port);
+    auto& L = net_stack().tcp().listen(port);
     // remove existing listener
     if (ld) {
       int ret = ld->close();
@@ -244,17 +244,19 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
   }
 
   bool written = false;
-  conn->write(
-    data,
-    len,
-    [&written] (bool) { written = true; }
-  );
+
+  conn->on_write([&written] (bool) { written = true; }); // temp
+
+  conn->write(data, len);
 
   // sometimes we can just write and forget
   if (written) return len;
   while (!written) {
     OS::block();
   }
+
+  conn->on_write(nullptr); // temp
+
   return len;
 }
 ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
@@ -364,6 +366,6 @@ int TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__restr
 }
 int TCP_FD_Listen::close()
 {
-  net_stack().tcp().unbind(listener.local().port());
+  listener.close();
   return 0;
 }

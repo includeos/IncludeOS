@@ -1,25 +1,148 @@
+// -*-C++-*-
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#pragma once
 #ifndef API_SMP_HEADER
 #define API_SMP_HEADER
 
-#include "hw/apic.hpp"
+#include "arch"
+#include <delegate>
+
+#define INCLUDEOS_SINGLE_THREADED
+
+#ifdef INCLUDEOS_SINGLE_THREADED
+#define SMP_MAX_CORES   1
+#else
+#define SMP_MAX_CORES   16
+#endif
+
+#define SMP_ALIGN       64
+
+/// x86-related locking stuff ///
+#ifdef ARCH_X86
+// Intel 3a  8.10.6.7: 128-byte boundary
+typedef volatile int spinlock_t __attribute__((aligned(128)));
+
+#ifdef INCLUDEOS_SINGLE_THREADED
+inline void lock(spinlock_t&) {}
+inline void unlock(spinlock_t&) {}
+#else
+inline void lock(spinlock_t& lock) {
+  while (__sync_lock_test_and_set(&lock, 1)) {
+    while (lock) asm("pause");
+  }
+}
+inline void unlock(spinlock_t& lock) {
+  __sync_synchronize(); // barrier
+  lock = 0;
+}
+#endif
+
+struct minimal_barrier_t
+{
+  void inc()
+  {
+    __sync_fetch_and_add(&val, 1);
+  }
+
+  void spin_wait(int max)
+  {
+    asm("mfence");
+    while (this->val < max) {
+      asm("pause; nop;");
+    }
+  }
+
+  void reset(int val)
+  {
+    asm volatile("mfence");
+    this->val = val;
+  }
+
+private:
+  volatile int val = 0;
+};
+
+#include <array>
+#ifdef INCLUDEOS_SINGLE_THREADED
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  return array[0];
+}
+#else
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  unsigned cpuid;
+  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
+  return array.at(cpuid);
+}
+#endif
+#endif
+
+template <typename T>
+using SMP_ARRAY = std::array<T, SMP_MAX_CORES>;
 
 class SMP {
 public:
-  using task_func = hw::APIC::smp_task_func;
-  using done_func = hw::APIC::smp_done_func;
-  
-  inline static void
-  add_task(task_func func, done_func done)
-  {
-    hw::APIC::add_task(func, done);
-  }
-  
-  inline static void
-  start()
-  {
-    hw::APIC::work_signal();
-  }
-  
+  using task_func = delegate<void()>;
+  using done_func = delegate<void()>;
+
+  // return the current CPU id
+  static int cpu_id() noexcept;
+
+  // return the number of active CPUs
+  static int cpu_count() noexcept;
+
+  // implement this function to execute something on all APs at init
+  static void init_task();
+
+  // execute @func on another CPU core
+  // call @done back on main CPU when task returns
+  // use signal() to broadcast work should begin
+  static void add_task(task_func func, done_func done);
+  static void add_task(task_func func);
+
+  // call this to signal that tasks are queued up
+  static void signal();
+
+  // trigger interrupt on specified CPU
+  static void unicast(int cpu, uint8_t intr);
+  // broadcast-trigger interrupt on all waiting APs
+  static void broadcast(uint8_t intr);
+
+  // a global spinlock to synchronize text output (and other things)
+  static void global_lock()   noexcept;
+  static void global_unlock() noexcept;
 };
+
+// access a std::array of structs indexed by current CPU id
+#ifdef INCLUDEOS_SINGLE_THREADED
+#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, 1>(x))
+#else
+#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, x.size()>(x))
+#endif
+
+#ifndef ARCH_X86
+typedef int spinlock_t;
+inline void lock(spinlock_t&) {}
+inline void unlock(spinlock_t&) {}
+#endif
 
 #endif

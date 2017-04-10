@@ -1,6 +1,23 @@
 {
   "$schema": "http://json-schema.org/schema#",
   "title" : "Virtual Machine Image",
+
+  "definitions" : {
+    "cpu" : {
+      "description" : "The virtual CPU",
+      "type"    : "object",
+      "properties": {
+        "model" : {
+          "enum" : ["host", "pentium", "qemu64", "kvm64"]
+        },
+        "features" : {
+          "type" : "array",
+          "items" : { "enum" : ["xsave", "avx", "aes"] }
+        }
+      }
+    }
+  },
+
   "type" : "object",
   "properties" : {
 
@@ -13,6 +30,17 @@
       "description" : "A bootable virtual machine image",
       "type" : "string",
       "default" : "service.img"
+    },
+
+    "modules" : {
+      "description" : "Multiboot 'modules', e.g. extra files provided at boot",
+      "type" : "array",
+      "items" : {"type" : "object",
+                 "properties" : {
+                   "path" : { "type" : "string" },
+                   "args" : { "type" : "string" }
+                 }
+                }
     },
 
     "bios" : {
@@ -45,7 +73,7 @@
       "items" : {
         "type" : "object",
         "properties" : {
-          "device" : { "enum" : ["virtio", "vmxnet", "vmxnet3"] },
+          "device" : { "type" : "string" },
           "name" : { "type" : "string" },
           "backend" : { "enum" : ["tap", "user"], "default" : "tap" }
         },
@@ -61,10 +89,7 @@
       "default" : 128
     },
 
-    "cpu" : {
-      "description" : "The virtual CPU",
-      "enum" : ["host", "pentium", "qemu64", "kvm64"]
-    },
+    "cpu" : { "$ref": "#/definitions/cpu" },
 
     "smp" : {
       "description" : "Number of virtual CPU's",

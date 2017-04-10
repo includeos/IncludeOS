@@ -34,7 +34,7 @@ std::string from_time_t(const std::time_t time_) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::time_t to_time_t(const std::experimental::string_view time_) {
+std::time_t to_time_t(util::csview time_) {
   std::tm tm{};
 
   if (time_.empty()) goto error;

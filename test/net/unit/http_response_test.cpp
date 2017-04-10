@@ -18,6 +18,8 @@
 #include <common.cxx>
 #include <net/http/response.hpp>
 
+using namespace std::string_literals;
+
 CASE("HTTP response can be created from a string")
 {
   http::Response r("HTTP/1.1 200 OK\r\nServer: IncludeOS/Acorn\r\nConnection: keep-alive\r\nContent-Type: application/json\r\nContent-Length: 194\r\n\r\n{\"version\":\"v0.9.3-1868-gd008d1a-dirty\",\"service\":\"Acorn Web Appliance\",\"heap_usage\":438272,\"cpu_freq\":2600.381981722683,\"boot_time\":\"2016-12-20T12:29:28Z\",\"current_time\":\"2017-01-10T16:03:53Z\"}");
@@ -77,4 +79,19 @@ CASE("responses can be streamed")
   std::stringstream ss;
   ss << r;
   EXPECT(ss.str().size() > 20);
+}
+
+CASE("status_line() returns the status line portion of the response")
+{
+  http::Response r("HTTP/1.0 200 OK\r\nServer: IncludeOS/Acorn\r\nConnection: keep-alive\r\nContent-Type: application/json\r\nContent-Length: 194\r\n\r\n{\"version\":\"v0.9.3-1868-gd008d1a-dirty\",\"service\":\"Acorn Web Appliance\",\"heap_usage\":438272,\"cpu_freq\":2600.381981722683,\"boot_time\":\"2016-12-20T12:29:28Z\",\"current_time\":\"2017-01-10T16:03:53Z\"}");
+  EXPECT(r.status_line() == "HTTP/1.0 200 OK");
+}
+
+CASE("operator std::string returns string representation of response")
+{
+  http::Response r;
+  r.set_version(http::Version(1, 0));
+  r.set_status_code(http::Not_Found);
+  std::string s = (std::string)r;
+  EXPECT(s == "HTTP/1.0 404 Not Found\r\n");
 }

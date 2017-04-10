@@ -18,14 +18,15 @@
 #ifndef FS_VFS_HPP
 #define FS_VFS_HPP
 
-#include <memory>
 #include <fs/disk.hpp>
 #include <fs/filesystem.hpp>
 #include <fs/path.hpp>
 #include <hw/devices.hpp>
-#include <typeinfo>
-#include <stdexcept>
 #include <algorithm>
+#include <map>
+#include <memory>
+#include <stdexcept>
+#include <typeinfo>
 
 // Demangle
 extern "C" char* __cxa_demangle(const char* mangled_name,

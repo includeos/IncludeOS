@@ -85,6 +85,24 @@ public:
   ///
   const Header& header() const noexcept;
 
+  /**
+   * @brief      Returns the Content-Length value in header as an integer
+   *
+   * @note       Return value 0 can mean its either unset or zero.
+   *
+   * @return     The content length as integer
+   */
+  inline size_t content_length() const;
+
+  /**
+   * @brief      Sets the Content-Length value in the header
+   *
+   * @param[in]  len   The length of the content
+   *
+   * @return     Outcome of whether the field got updated or not
+   */
+  inline bool set_content_length(size_t len);
+
   ///
   /// Add an entity to the message
   ///
@@ -118,7 +136,7 @@ public:
   ///
   /// @return A view of the entity in this message
   ///
-  std::experimental::string_view body() const noexcept;
+  util::sview body() const noexcept;
 
   ///
   /// Remove the entity from the message
@@ -154,19 +172,34 @@ public:
   ///
   /// @return A view of a buffer holding intermediate information
   ///
-  const std::experimental::string_view private_field() const noexcept;
+  util::sview private_field() const noexcept;
 
   ///
   /// Set the content of the buffer holding intermediate information
   ///
   void set_private_field(const char* base, const size_t length) noexcept;
+
+  /**
+   * @brief      Whether the headers are complete or not.
+   *
+   * @return     True if complete, False if not
+   */
+  inline bool headers_complete() const noexcept;
+
+  /**
+   * @brief      Sets the status whether the headers are complete or not
+   *
+   * @param[in]  complete  Indicates if complete
+   */
+  inline void set_headers_complete(const bool complete) noexcept;
 private:
   ///
   /// Class data members
   ///
-  Header                         header_fields_;
-  Message_body                   message_body_;
-  std::experimental::string_view field_;
+  Header       header_fields_;
+  Message_body message_body_;
+  util::sview  field_;
+  bool         headers_complete_;
 }; //< class Message
 
 /**--v----------- Helper Functions -----------v--**/
@@ -177,6 +210,25 @@ private:
 Message& operator << (Message& res, const Header_set& headers);
 
 /**--^----------- Helper Functions -----------^--**/
+
+/**--v-------- Inline Implementations --------v--**/
+inline size_t Message::content_length() const {
+  return header_fields_.content_length();
+}
+
+inline bool Message::set_content_length(const size_t len) {
+  return header_fields_.set_content_length(len);
+}
+
+inline void Message::set_headers_complete(const bool complete) noexcept {
+  headers_complete_ = complete;
+}
+
+inline bool Message::headers_complete() const noexcept {
+  return headers_complete_;
+}
+
+/**--^-------- Inline Implementations --------^--**/
 
 } //< namespace http
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "Creating *huge* disk for test"
-fallocate -l 4000000000 image.img
+truncate -s 4000000000 image.img
 mkfs.fat image.img
 
 mkdir -p mountpoint

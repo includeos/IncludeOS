@@ -30,9 +30,10 @@ BufferStore bufstore_{ BUFFER_CNT,  MTU };
 
 auto create_packet(BufferStore& bufstore) {
   // get buffer (as packet + data)
-  auto* ptr = (Packet*) bufstore.get_buffer();
+  auto buffer = bufstore.get_buffer();
   // place packet at front of buffer
-  new (ptr) Packet(MTU, 0, &bufstore);
+  auto* ptr = (Packet*) buffer.addr;
+  new (ptr) Packet(0, 0, MTU, buffer.bufstore);
   // regular shared_ptr that calls delete on Packet
   return std::unique_ptr<Packet>(ptr);
 }
@@ -61,17 +62,16 @@ void Service::start(const std::string&)
   packet = nullptr;
   CHECKSERT(bufstore_.available() == BUFFER_CNT, "Bufcount is now %i", BUFFER_CNT);
 
-  INFO("Test 2","Create and chain packets, release one-by-one");
+  INFO("Test 2", "Create and chain %u packets, release one-by-one", BUFFER_CNT*10);
 
   // Reinitialize the first packet
   packet = create_packet(bufstore_);
   CHECKSERT(bufstore_.available() == BUFFER_CNT - 1, "Bufcount is now %i", BUFFER_CNT - 1);
 
   // Chain
-  for (int i = 0; i < chain_size - 1; i++){
+  for (int i = 0; i < 10*BUFFER_CNT - 1; i++){
     auto chained_packet = create_packet(bufstore_);
     packet->chain(std::move(chained_packet));
-    CHECKSERT(bufstore_.available() == BUFFER_CNT - i - 2, "Bufcount is now %i", BUFFER_CNT - i - 2);
   }
 
   INFO("Test 2","Releasing packet-chain one-by-one");
@@ -79,10 +79,7 @@ void Service::start(const std::string&)
   // Release one-by-one
   auto tail = std::move(packet);
   size_t i = 0;
-  while(tail && i < BUFFER_CNT - 1) {
-    CHECKSERT(bufstore_.available() == i,
-              "Bufcount is now %i == %i", i,
-              bufstore_.available());
+  while(tail && i < 10*BUFFER_CNT - 1) {
     tail = tail->detach_tail();
     i++;
   }

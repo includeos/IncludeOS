@@ -21,7 +21,7 @@ def increment(line):
 
 def check_num_outputs(line):
   assert(num_outputs == 5)
-  vmrunner.vms[0].exit(0, "SUCCESS")
+  vmrunner.vms[0].exit(0, "All tests passed", True)
 
 vm.on_output("Sysname: IncludeOS", increment)
 vm.on_output("Nodename: IncludeOS-node", increment)

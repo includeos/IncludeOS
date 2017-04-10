@@ -32,10 +32,11 @@ namespace http {
 
   class Client_connection : public Connection {
   public:
+    using Response_handler  = delegate<void(Error, Response_ptr, Connection&)>;
     using timeout_duration  = std::chrono::milliseconds;
 
   public:
-    explicit Client_connection(Client&, TCP_conn);
+    explicit Client_connection(Client&, Stream_ptr);
 
     bool available() const
     { return on_response_ == nullptr && keep_alive_; }
@@ -47,6 +48,8 @@ namespace http {
 
   private:
     Client&           client_;
+    Request_ptr       req_;
+    Response_ptr      res_;
     Response_handler  on_response_;
     Timer             timer_;
     timeout_duration  timeout_dur_;
@@ -60,7 +63,7 @@ namespace http {
     void timeout_request()
     { end_response(Error::TIMEOUT); }
 
-    void close();
+    void close() override;
 
   }; // < class Client_connection
 

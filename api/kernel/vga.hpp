@@ -19,11 +19,9 @@
 #define KERNEL_VGA_HPP
 
 #include <os>
-#include <stdint.h>
+#include <cstdint>
 
-class ConsoleVGA {
-private:
-  using size_t = unsigned;
+class TextmodeVGA {
 public:
   enum vga_color {
     COLOR_BLACK         = 0,
@@ -44,10 +42,11 @@ public:
     COLOR_WHITE         = 15,
   };
 
-  explicit ConsoleVGA() noexcept;
+  static const int VGA_WIDTH  {80};
+  static const int VGA_HEIGHT {25};
 
   OS::print_func get_print_handler() {
-    return {this, &ConsoleVGA::write};
+    return {this, &TextmodeVGA::write};
   }
 
   constexpr static uint8_t make_color(const vga_color fg, const vga_color bg) noexcept
@@ -56,18 +55,24 @@ public:
   void write(const char* data, const size_t len) noexcept;
   void clear() noexcept;
 
-  static const size_t VGA_WIDTH  {80};
-  static const size_t VGA_HEIGHT {25};
-
   uint16_t get(uint8_t x, uint8_t y);
   void put(const char, uint8_t color, uint8_t x, uint8_t y) noexcept;
   void put(const char, uint8_t x, uint8_t y) noexcept;
-  void set_cursor(uint8_t, uint8_t) noexcept;
   void newline() noexcept;
-  inline void set_color(vga_color c)
-  { color = c; };
+
+  void set_cursor(uint8_t x, uint8_t y) noexcept;
+
+  void set_color(vga_color c)
+  { this->color = c; };
+
+  static TextmodeVGA& get() {
+    static TextmodeVGA vga;
+    return vga;
+  }
 
 private:
+  explicit TextmodeVGA() noexcept;
+
   void increment(int) noexcept;
   void write(char) noexcept;
   static const uint16_t DEFAULT_ENTRY;
@@ -77,6 +82,6 @@ private:
   size_t    column;
   uint8_t   color;
   uint16_t* buffer;
-}; //< ConsoleVGA
+};
 
 #endif //< KERNEL_VGA_HPP

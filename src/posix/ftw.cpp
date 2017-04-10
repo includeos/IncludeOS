@@ -66,7 +66,7 @@ public:
               {
                 //printf("Skipping %s\n", ent.name().c_str());
               }
-              else if ((result = walk(abs_path + "/" + ent.name(), level) != 0))
+              else if ((result = this->walk(abs_path + "/" + ent.name(), level) != 0))
                 break;
             }
           })

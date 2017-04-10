@@ -23,32 +23,36 @@ namespace http {
 ///
 /// Configure the settings for parsing a response
 ///
-static http_parser_settings settings
+static http_parser_settings settings;
+
+__attribute__((constructor))
+static void riegfjeriugfjreiougf()
 {
-  .on_header_field = [](http_parser* parser, const char* at, size_t length) {
+  settings.on_header_field = [](http_parser* parser, const char* at, size_t length) {
     auto res = reinterpret_cast<Response*>(parser->data);
     res->set_private_field(at, length);
     return 0;
-  },
+  };
 
-  .on_header_value = [](http_parser* parser, const char* at, size_t length) {
+  settings.on_header_value = [](http_parser* parser, const char* at, size_t length) {
     auto res = reinterpret_cast<Response*>(parser->data);
     res->header().set_field(res->private_field().to_string(), {at, length});
     return 0;
-  },
+  };
 
-  .on_body = [](http_parser* parser, const char* at, size_t length) {
+  settings.on_body = [](http_parser* parser, const char* at, size_t length) {
     auto res = reinterpret_cast<Response*>(parser->data);
     res->add_chunk({at, length});
     return 0;
-  },
+  };
 
-  .on_headers_complete = [](http_parser* parser) {
+  settings.on_headers_complete = [](http_parser* parser) {
     auto res = reinterpret_cast<Response*>(parser->data);
     res->set_version(Version{parser->http_major, parser->http_minor});
     res->set_status_code(static_cast<status_t>(parser->status_code));
+    res->set_headers_complete(true);
     return 0;
-  }
+  };
 };
 
 ///
@@ -99,6 +103,16 @@ const Version Response::version() const noexcept {
 Response& Response::set_version(const Version version) noexcept {
   version_ = version;
   return *this;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+std::string Response::status_line() const noexcept {
+  std::ostringstream status_line;
+  //-----------------------------------
+  status_line << version_ << " " << code_ << " "
+              << code_description(code_);
+  //-----------------------------------
+  return status_line.str();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

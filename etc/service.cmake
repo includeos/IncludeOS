@@ -18,25 +18,32 @@ endif()
 if(CMAKE_COMPILER_IS_GNUCC)
 	# currently gcc is not supported due to problems cross-compiling a unikernel
 	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-	message(FATAL_ERROR "GCC is not currently supported, please clean-up build directory and configure for clang through CC and CXX environment variables")
+#	message(FATAL_ERROR "GCC is not currently supported, please clean-up build directory and configure for clang through CC and CXX environment variables")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
 # Assembler
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-set(CAPABS "-msse3 -fstack-protector-strong")
+# defines $CAPABS depending on installation
+include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
+set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # configure options
 option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
+
+if ("${ARCH}" STREQUAL "")
+  set (ARCH "ARCH_X86")
+endif("${ARCH}" STREQUAL "")
+
+add_definitions(-D${ARCH})
 
 # Compiler optimization
 set(OPTIMIZE "-O2")
@@ -47,9 +54,14 @@ if (debug)
   set(CAPABS "${CAPABS} -g")
 endif()
 
-# these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32")
+if (CMAKE_COMPILER_IS_GNUCC)
+  set(CMAKE_CXX_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c")
+else()
+  # these kinda work with llvm
+  set(CMAKE_CXX_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-MMD -target i686-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -m32")
+endif()
 
 # executable
 set(SERVICE_STUB "$ENV{INCLUDEOS_PREFIX}/includeos/src/service_name.cpp")
@@ -134,6 +146,14 @@ endforeach()
 
 # add all extra libs
 foreach(LIBR ${LIBRARIES})
+  # if relative path but not local, use includeos lib.
+  if(NOT IS_ABSOLUTE ${LIBR} AND NOT EXISTS ${LIBR})
+    set(OS_LIB "$ENV{INCLUDEOS_PREFIX}/includeos/lib/${LIBR}")
+    if(EXISTS ${OS_LIB})
+      message(STATUS "Cannot find local ${LIBR}; using ${OS_LIB} instead")
+      set(LIBR ${OS_LIB})
+    endif()
+  endif()
   get_filename_component(LNAME ${LIBR} NAME_WE)
   add_library(libr_${LNAME} STATIC IMPORTED)
   set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -178,15 +198,13 @@ set_target_properties(crti PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/i
 
 target_link_libraries(service --whole-archive crti --no-whole-archive)
 
-add_library(multiboot STATIC IMPORTED)
-set_target_properties(multiboot PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(multiboot PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libmultiboot.a)
-
-target_link_libraries(service --whole-archive multiboot --no-whole-archive)
-
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libos PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libos.a)
+
+add_library(libbotan STATIC IMPORTED)
+set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libbotan-2.a)
 
 add_library(libosdeps STATIC IMPORTED)
 set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
@@ -244,17 +262,19 @@ if(TARFILE)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 
   if(CREATE_TAR)
+    get_filename_component(TAR_BASE_NAME "${CREATE_TAR}" NAME)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar cf ${TAR_RELPATH} ${CREATE_TAR}
+      COMMAND tar cf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   elseif(CREATE_TAR_GZ)
+    get_filename_component(TAR_BASE_NAME "${CREATE_TAR_GZ}" NAME)
     add_custom_command(
       OUTPUT tarfile.o
-      COMMAND tar czf ${TAR_RELPATH} ${CREATE_TAR_GZ}
+      COMMAND tar czf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
       COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
       COMMAND rm input.bin
@@ -280,11 +300,13 @@ set_target_properties(crtn PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/i
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
     libos
+    libbotan
     libosdeps
     libcxx
     cxxabi
     libos
     libc
+    libos
     libm
     libg
     libgcc
@@ -304,7 +326,6 @@ add_custom_target(
   COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
-  COMMAND rm _elf_symbols.bin
   DEPENDS service
 )
 

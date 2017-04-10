@@ -229,7 +229,9 @@ int chdir(const char *path)
 
 char *getcwd(char *buf, size_t size)
 {
-  assert(cwd.front() == '/');
+  Expects(cwd.front() == '/');
+  Expects(buf != nullptr);
+
   if (size == 0)
   {
     errno = EINVAL;
@@ -373,6 +375,7 @@ gid_t getgid() {
 long fpathconf(int fd, int name) {
   try {
     auto& fildes = FD_map::_get(fd);
+    (void) fildes;
     switch (name) {
     case _PC_FILESIZEBITS:
       return 64;
@@ -414,4 +417,32 @@ long pathconf(const char *path, int name) {
   long res = fpathconf(fd, name);
   close(fd);
   return res;
+}
+
+int execve(const char*,
+           char* const*,
+           char* const*)
+{
+  panic("SYSCALL EXECVE NOT SUPPORTED");
+  return -1;
+}
+
+int fork() {
+  panic("SYSCALL FORK NOT SUPPORTED");
+  return -1;
+}
+
+int getpid() {
+  debug("SYSCALL GETPID Dummy, returning 1");
+  return 1;
+}
+
+int link(const char*, const char*) {
+  panic("SYSCALL LINK unsupported");
+  return -1;
+}
+
+int unlink(const char*) {
+  panic("SYSCALL UNLINK unsupported");
+  return -1;
 }

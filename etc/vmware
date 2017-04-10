@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+import os
+import signal
+import subprocess
+import sys
+
+vmruncmd = "/Applications/VMware Fusion.app/Contents/Library/vmrun"
+vmxpath = ""
+
+def handler(signal, frame):
+	print "Stopping vm {path}".format(path=vmxpath)
+	subprocess.call([vmruncmd, "stop", vmxpath, "hard"])
+	sys.exit(0)
+
+def write_vmx(servicename):
+	vmdkfile = "{filename}.vmdk".format(filename=servicename)
+	vmxfile = "{filename}.vmx".format(filename=servicename)
+	vmx = """.encoding = "UTF-8"
+config.version = "8"
+virtualHW.version = "11"
+memsize = "256"
+ide0:0.present = "TRUE"
+ide0:0.fileName = "{path}"
+ide1:0.present = "TRUE"
+ide1:0.autodetect = "TRUE"
+ide1:0.deviceType = "cdrom-raw"
+ide1:0.startConnected = "FALSE"
+ethernet0.present = "TRUE"
+ethernet0.connectionType = "nat"
+ethernet0.wakeOnPcktRcv = "FALSE"
+ethernet0.addressType = "generated"
+ethernet0.linkStatePropagation.enable = "TRUE"
+sound.present = "TRUE"
+sound.fileName = "-1"
+sound.autodetect = "TRUE"
+pciBridge0.present = "TRUE"
+pciBridge4.present = "TRUE"
+pciBridge4.virtualDev = "pcieRootPort"
+pciBridge4.functions = "8"
+pciBridge5.present = "TRUE"
+pciBridge5.virtualDev = "pcieRootPort"
+pciBridge5.functions = "8"
+pciBridge6.present = "TRUE"
+pciBridge6.virtualDev = "pcieRootPort"
+pciBridge6.functions = "8"
+pciBridge7.present = "TRUE"
+pciBridge7.virtualDev = "pcieRootPort"
+pciBridge7.functions = "8"
+vmci0.present = "TRUE"
+hpet0.present = "TRUE"
+tools.syncTime = "TRUE"
+displayName = "IncludeOS"
+guestOS = "other"
+nvram = "IncludeOS.nvram"
+virtualHW.productCompatibility = "hosted"
+tools.upgrade.policy = "upgradeAtPowerCycle"
+powerType.powerOff = "soft"
+powerType.powerOn = "soft"
+powerType.suspend = "soft"
+powerType.reset = "soft"
+extendedConfigFile = "IncludeOS.vmxf"
+floppy0.present = "FALSE"
+serial0.present = "TRUE"
+serial0.fileType = "file"
+serial0.fileName = "includeos-serial.txt"
+serial0.tryNoRxLoss = "FALSE"
+ethernet0.virtualDev = "vmxnet3"
+""".format(path=os.path.join(os.getcwd(), vmdkfile))
+	with open(vmxfile, "w") as f:
+		f.write(vmx)
+	return vmxfile
+
+if __name__ == "__main__":
+	servicename = sys.argv[1]
+	vmdkfile = "{filename}.vmdk".format(filename=servicename)
+	convertcmd = "qemu-img convert -O vmdk {filename}.img {filename}.vmdk".format(filename=servicename)
+	subprocess.call(convertcmd, shell=True)
+	vmxfile = write_vmx(servicename)
+	vmxpath = os.path.join(os.getcwd(), vmxfile)
+	try:
+		os.remove("includeos-serial.txt")
+	except:
+		pass
+	signal.signal(signal.SIGINT, handler)
+	subprocess.call([vmruncmd, "start", vmxpath, "nogui"])
+	subprocess.call(["tail", "-f", "includeos-serial.txt"])
