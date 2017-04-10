@@ -33,6 +33,7 @@ extern "C" {
   void _init_c_runtime();
   void _init_syscalls();
   void _init();
+  void _init_array();
   extern uintptr_t _end;
 }
 
@@ -69,14 +70,8 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   // call global constructors emitted by compiler
   _init();
 
-  // init array
-  extern void* _INIT_ARRAY_START_;
-  typedef void (*generic_func)();
-  auto* ptr = (generic_func*) &_INIT_ARRAY_START_;
-  while (*ptr != nullptr) {
-    (*ptr)();
-    ptr++;
-  }
+  // modern init array
+  _init_array();
 
   // Initialize OS including devices
   OS::start(magic, addr);

@@ -114,6 +114,17 @@ void _init_c_runtime()
 
 }
 
+void _init_array()
+{
+  extern void* _INIT_ARRAY_START_;
+  typedef void (*generic_func)();
+  generic_func* ptr = (generic_func*) &_INIT_ARRAY_START_;
+  while (*ptr != 0x0) {
+    (*ptr)();
+    ptr++;
+  }
+}
+
 // stack-protector
 __attribute__((noreturn))
 void __stack_chk_fail(void)
