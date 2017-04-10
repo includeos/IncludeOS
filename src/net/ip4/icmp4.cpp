@@ -61,6 +61,12 @@ namespace net {
       execute_ping_callback(req);
       break;
     case (ICMP_type::DEST_UNREACHABLE):
+      if (req.code() == (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED) {
+        debug("<ICMP> ICMP Too Big message from %s\n", req.ip().ip_src().str().c_str());
+        handle_too_big(req);
+        return;
+      }
+      // else continue
     case (ICMP_type::REDIRECT):
     case (ICMP_type::TIME_EXCEEDED):
     case (ICMP_type::PARAMETER_PROBLEM):
@@ -94,13 +100,34 @@ namespace net {
     inet_.error_report(err, std::move(packet_ptr));
   }
 
+  void ICMPv4::handle_too_big(icmp4::Packet& req) {
+    // In this type of ICMP packet, the Next-Hop MTU is placed at the same location as
+    // the sequence number in an ECHO message f.ex.
+    ICMP_error err{req.type(), req.code(), req.sequence()};
+
+    // The icmp4::Packet's payload contains the original packet sent that resulted
+    // in the Fragmentation Needed
+    int payload_idx = req.payload_index();
+    auto packet_ptr = req.release();
+    packet_ptr->increment_layer_begin(payload_idx);
+
+    // Inet updates the corresponding Path MTU value in IP and notifies the transport/packetization layer
+    inet_.error_report(err, std::move(packet_ptr));
+  }
+
   void ICMPv4::destination_unreachable(Packet_ptr pckt, icmp4::code::Dest_unreachable code) {
     if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
       return;
 
     auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
-    auto pckt_icmp4 = icmp4::Packet(std::move(pckt_ip4));
-    send_response(pckt_icmp4, ICMP_type::DEST_UNREACHABLE, (ICMP_code) code);
+
+    // Only sending destination unreachable message if the destination IP address is not
+    // broadcast or multicast
+    if (pckt_ip4->ip_dst() != inet_.broadcast_addr() and pckt_ip4->ip_dst() != IP4::ADDR_BCAST and
+      not pckt_ip4->ip_dst().is_multicast()) {
+      auto pckt_icmp4 = icmp4::Packet(std::move(pckt_ip4));
+      send_response(pckt_icmp4, ICMP_type::DEST_UNREACHABLE, (ICMP_code) code);
+    }
   }
 
   void ICMPv4::redirect(Packet_ptr /* pckt */, icmp4::code::Redirect /* code */) {

@@ -45,7 +45,7 @@ namespace net {
       HOST,
       PROTOCOL,
       PORT,
-      FRAGMENTATION,
+      FRAGMENTATION_NEEDED,
       SRC_ROUTE,
       NET_UNKNOWN,          // RFC 1122
       HOST_UNKNOWN,
@@ -118,8 +118,8 @@ namespace net {
             return "PROTOCOL (2)";
           case code::Dest_unreachable::PORT:
             return "PORT (3)";
-          case code::Dest_unreachable::FRAGMENTATION:
-            return "FRAGMENTATION (4)";
+          case code::Dest_unreachable::FRAGMENTATION_NEEDED:
+            return "FRAGMENTATION NEEDED (4)";
           case code::Dest_unreachable::SRC_ROUTE:
             return "SOURCE ROUTE (5)";
           case code::Dest_unreachable::NET_UNKNOWN:
