@@ -21,7 +21,6 @@
 #include <cstdio>
 #include <os>
 #include <boot/multiboot.h>
-#include <kernel/elf.hpp>
 #include <hw/cmos.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/rtc.hpp>
@@ -41,6 +40,7 @@
 #endif
 
 extern "C" void* get_cpu_esp();
+extern "C" void  kernel_sanity_checks();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -73,9 +73,6 @@ std::vector<OS::Plugin_struct> OS::plugins_;
 #endif
 std::string OS::version_field = OS_VERSION;
 
-// Multiboot command line for the service
-
-
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
@@ -97,6 +94,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Stack: %p", esp);
   MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
          boot_magic, boot_addr);
+
+  /// STATMAN ///
+  /// initialize on page 9, 2 pages in size
+  Statman::init(0x8000, 0x2000);
 
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
@@ -154,10 +155,12 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Arch init");
   extern void __arch_init();
   __arch_init();
+  kernel_sanity_checks();
 
   PROFILE("RTC init");
   // Realtime/monotonic clock
   RTC::init();
+  kernel_sanity_checks();
 
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
@@ -301,7 +304,7 @@ size_t OS::print(const char* str, const size_t len)
 
 void OS::legacy_boot() {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
-  auto mem = cmos::meminfo();
+  auto mem = hw::CMOS::meminfo();
   low_memory_size_ = mem.base.total * 1024;
   INFO2("* Low memory: %i Kib", mem.base.total);
   high_memory_size_ = mem.extended.total * 1024;

@@ -143,21 +143,7 @@ public:
   ///
   ///
   ///
-  static Statman& get() {
-      static Statman inst{0x8000, 8192};
-      printf("Statman created\n");
-      return inst;
-  }
-
-  ///
-  ///
-  ///
-  Statman(const uintptr_t start, const Size_type num_bytes);
-
-  ///
-  ///
-  ///
-  ~Statman() = default;
+  static Statman& get();
 
   ///
   ///
@@ -240,6 +226,11 @@ public:
   ///
   ///
   Stat& get(const std::string& name);
+
+  static void init(const uintptr_t location, const Size_type size);
+  Statman() {}
+  ~Statman() = default;
+
 private:
   Span      stats_;
   int       next_available_ {0};

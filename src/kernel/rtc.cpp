@@ -15,10 +15,10 @@ using namespace std::chrono;
 void RTC::init()
 {
   // Initialize CMOS
-  cmos::init();
+  hw::CMOS::init();
 
   // set current timestamp and ticks
-  current_time  = cmos::now().to_epoch();
+  current_time  = hw::CMOS::now().to_epoch();
   current_ticks = OS::cycles_since_boot();
 
   // set boot timestamp
@@ -28,7 +28,9 @@ void RTC::init()
   // every minute recalibrate
   Timers::periodic(seconds(60), seconds(60),
   [] (Timers::id_t) {
-    current_time  = cmos::now().to_epoch();
+    static int d = 0;
+    printf("One minute passed: %d\n", ++d);
+    current_time  = hw::CMOS::now().to_epoch();
     current_ticks = OS::cycles_since_boot();
   });
 }

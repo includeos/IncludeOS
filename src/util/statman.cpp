@@ -18,6 +18,9 @@
 #include <iterator>
 #include <statman>
 
+static Statman statman;
+Statman& Statman::get() { return statman; }
+
 ///////////////////////////////////////////////////////////////////////////////
 Stat::Stat(const Stat_type type, const int index_into_span, const std::string& name)
   : type_{type}
@@ -71,14 +74,14 @@ uint64_t& Stat::get_uint64() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Statman::Statman(const uintptr_t start, const Size_type num_bytes) {
+void Statman::init(const uintptr_t start, const Size_type num_bytes) {
   if(num_bytes < 0)
     throw Stats_exception{"Creating Statman: A negative number of bytes has been given"};
 
   const Size_type num_stats_in_span = num_bytes / sizeof(Stat);
 
-  num_bytes_ = sizeof(Stat) * num_stats_in_span;
-  stats_     = Span{reinterpret_cast<Stat*>(start), num_stats_in_span};
+  statman.num_bytes_ = sizeof(Stat) * num_stats_in_span;
+  statman.stats_     = Span{reinterpret_cast<Stat*>(start), num_stats_in_span};
 }
 
 ///////////////////////////////////////////////////////////////////////////////
