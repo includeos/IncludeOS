@@ -126,7 +126,6 @@ OS::on_panic_func panic_handler = nullptr;
 **/
 void panic(const char* why)
 {
-#if ARCH_X86 || ARCH_X64
   /// prevent re-entering panic() more than once per CPU
   if (PER_CPU(panic_stuff).reenter)
       OS::reboot();
@@ -154,9 +153,11 @@ void panic(const char* why)
   print_backtrace();
   fflush(stderr);
   SMP::global_unlock();
-  // call custom on panic handler
+
+  // call custom on panic handler (if present)
   if (panic_handler) panic_handler();
 
+#if ARCH_X86 || ARCH_X64
   if (SMP::cpu_id() == 0) {
     SMP::global_lock();
     // Signal End-Of-Transmission
@@ -168,7 +169,7 @@ void panic(const char* why)
   while (1) asm("cli; hlt");
   __builtin_unreachable();
 #else
-#warning "panic() not implemented for selected arch"
+#warning "panic() handler not implemented for selected arch"
 #endif
 }
 
