@@ -69,6 +69,15 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   // call global constructors emitted by compiler
   _init();
 
+  // init array
+  extern void* _INIT_ARRAY_START_;
+  typedef void (*generic_func)();
+  auto* ptr = (generic_func*) &_INIT_ARRAY_START_;
+  while (*ptr != nullptr) {
+    (*ptr)();
+    ptr++;
+  }
+
   // Initialize OS including devices
   OS::start(magic, addr);
 

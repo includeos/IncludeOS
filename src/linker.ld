@@ -67,6 +67,7 @@ SECTIONS
 
   .init_array ALIGN(0x10) :
   {
+    _INIT_ARRAY_START_ = .;
     *(.init_array*)
   }
   .fini_array ALIGN(0x10) :
