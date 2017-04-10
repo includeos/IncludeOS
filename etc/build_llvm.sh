@@ -11,7 +11,7 @@ libcxx_inc=$BUILD_DIR/llvm/projects/libcxx/include
 libcxxabi_inc=$BUILD_DIR/llvm/projects/libcxxabi/include
 
 # Install dependencies
-sudo apt-get install -y cmake ninja-build subversion zlib1g-dev libtinfo-dev
+sudo apt-get install -y ninja-build zlib1g-dev libtinfo-dev
 
 cd $BUILD_DIR
 
@@ -46,6 +46,12 @@ if [ ! -z $download_llvm ]; then
     popd
 fi
 
+if [ -d build_llvm ]; then
+  echo -e "\n\n >>> Cleaning previous build \n"
+  rm -rf build_llvm
+fi
+
+
 # Make a build-directory
 mkdir -p build_llvm
 pushd build_llvm
@@ -65,6 +71,10 @@ CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse"
 # 1. IncludeOS_posix has to come first, as it provides lots of C11 prototypes that libc++ relies on, but which newlib does not provide (see our math.h)
 # 2. libcxx_inc must come before newlib, due to math.h function wrappers around C99 macros (signbit, nan etc)
 # 3. newlib_inc provodes standard C headers
+
+echo "Building LLVM for $TRIPLE"
+
+
 cmake -GNinja $OPTS  \
       -DCMAKE_CXX_FLAGS="$CXX_FLAGS -I$IncludeOS_posix -I$libcxxabi_inc -I$libcxx_inc -I$newlib_inc " $BUILD_DIR/llvm \
       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \

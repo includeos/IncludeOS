@@ -1,11 +1,14 @@
-set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
 enable_language(ASM_NASM)
 
-if ("${ARCH}" STREQUAL "")
-  set (ARCH "ARCH_X86")
-endif("${ARCH}" STREQUAL "")
+if ("${ARCH}" STREQUAL "x86_64")
+  set (ARCH_INTERNAL "ARCH_X64")
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+else()
+  set (ARCH_INTERNAL "ARCH_X86")
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+endif()
 
-add_definitions(-D${ARCH})
+add_definitions(-D${ARCH_INTERNAL})
 
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
@@ -60,27 +63,22 @@ set(OS_OBJECTS
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
-  posix/pwd.cpp
-  ### x86 arch ###
-  arch/x86/start.asm #arch/x86/interrupts.asm arch/x86/profile_intr.asm
-  arch/x86/arch.cpp arch/x86/gdt.cpp arch/x86/gdt_asm.asm arch/x86/acpi.cpp
-  arch/x86/ioapic.cpp arch/x86/apic.cpp arch/x86/apic_timer.cpp
-  arch/x86/apic_revenant.cpp arch/x86/smp.cpp #arch/x86/apic_asm.asm
-  arch/x86/pit.cpp arch/x86/cpu_freq_sampling.cpp arch/x86/pic.cpp
-  ### x64 arch ###
-  arch/x64/profile_intr.asm
-  arch/x64/apic_asm.asm arch/x64/arch_start.asm arch/x64/interrupts.asm
-)
+  posix/pwd.cpp )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 add_dependencies(os PrecompiledLibraries botan)
 
-add_subdirectory(arch/x64)
+add_subdirectory(arch/${ARCH})
 add_subdirectory(boot)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
 
-install(TARGETS os DESTINATION includeos/lib)
+# add_dependencies(arch/${ARCH} PrecompiledLibraries)
+# add_dependencies(drivers PrecompiledLibraries)
+# add_dependencies(plugins PrecompiledLibraries)
+
+
+install(TARGETS os DESTINATION includeos/${ARCH}/lib)
 
 install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")

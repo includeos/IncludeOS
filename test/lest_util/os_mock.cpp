@@ -176,6 +176,11 @@ extern "C" {
   static char __printbuf[4096];
 
   __attribute__((weak))
+  void __init_serial1 () {
+    return;
+  }
+
+  __attribute__((weak))
   void __serial_print1(const char* cstr) {
     snprintf(__printbuf, 4096, "%s", cstr);
   }

@@ -106,15 +106,15 @@ public:
         auto     base   = sym->st_value;
         uint32_t offset = (uint32_t) (addr - base);
         // return string name for symbol
-        return {demangle_safe( sym_name(sym), buffer, length ), base, offset};
+        return {demangle_safe( sym_name(sym), buffer, length ), static_cast<uintptr_t>(base), offset};
       }
     }
     else if (addr == 0x0) {
-      return {"0x0 (null)", addr, 0};
+      return {"0x0 (null)", static_cast<uintptr_t>(addr), 0};
     }
     // function or space not found
     snprintf(buffer, length, "%p", (void*) addr);
-    return {buffer, addr, 0};
+    return {buffer, static_cast<uintptr_t>(addr), 0};
   }
 
   ElfSym* getaddr(ElfAddr addr)

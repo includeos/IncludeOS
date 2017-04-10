@@ -121,7 +121,8 @@ popd
 
 # Where to place the installation bundle
 DIR_NAME="IncludeOS_dependencies"
-BUNDLE_DIR=${BUNDLE_DIR:-~/$DIR_NAME}
+BUNDLE_PATH=${BUNDLE_PATH:-~}
+BUNDLE_DIR=$BUNDLE_PATH/$DIR_NAME
 BUNDLE_LOC=${BUNDLE_DIR}/$ARCH
 
 echo ">>> Creating Installation Bundle as $BUNDLE_LOC"
@@ -167,8 +168,8 @@ cp -r $include_newlib $BUNDLE_LOC/newlib/
 cp -r $include_libcxx $BUNDLE_LOC/libcxx/include
 
 # Zip it
-tar -czvf $OUTFILE --directory=$BUNDLE_DIR/../ $BUNDLE_DIR
+tar -czvf $OUTFILE --directory=$BUNDLE_PATH $DIR_NAME
 
-echo ">>> IncludeOS Installation Bundle created as $INSTALL_DIR and gzipped into $OUTFILE"
+echo ">>> IncludeOS Installation Bundle created as $BUNDLE_DIR and gzipped into $OUTFILE"
 
 trap - EXIT

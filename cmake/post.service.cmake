@@ -12,6 +12,8 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
+set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
+
 # TODO: Verify that the OS libraries exist
 
 # Fail on GCC
@@ -64,7 +66,7 @@ else()
 endif()
 
 # executable
-set(SERVICE_STUB "$ENV{INCLUDEOS_PREFIX}/includeos/src/service_name.cpp")
+set(SERVICE_STUB "${INSTALL_LOC}/src/service_name.cpp")
 
 add_executable(service ${SOURCES} ${SERVICE_STUB})
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
@@ -120,8 +122,8 @@ function(plugin_config_option type plugin_list)
 endfunction()
 
 # Location of installed drivers / plugins
-set(DRIVER_LOC $ENV{INCLUDEOS_PREFIX}/includeos/drivers)
-set(PLUGIN_LOC $ENV{INCLUDEOS_PREFIX}/includeos/plugins)
+set(DRIVER_LOC ${INSTALL_LOC}/drivers)
+set(PLUGIN_LOC ${INSTALL_LOC}/plugins)
 
 # Enable DRIVERS which may be specified by parent cmake list
 enable_plugins(DRIVERS ${DRIVER_LOC})
@@ -157,11 +159,11 @@ endforeach()
 
 # includes
 include_directories(${LOCAL_INCLUDES})
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api/posix)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/libcxx)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include/newlib)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/api)
-include_directories($ENV{INCLUDEOS_PREFIX}/includeos/include)
+include_directories(${INSTALL_LOC}/api/posix)
+include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
+include_directories(${INSTALL_LOC}/${ARCH}/include/newlib)
+include_directories(${INSTALL_LOC}/api)
+include_directories(${INSTALL_LOC}/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)
 
 
@@ -180,47 +182,53 @@ if (stripped)
   set(STRIP_LV "--strip-all")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_x86_64 -N --eh-frame-hdr ${STRIP_LV} --script=$ENV{INCLUDEOS_PREFIX}/includeos/linker.ld $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtbegin.o")
+set(LDFLAGS "-nostdlib -melf_${ARCH} -N --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/linker.ld ${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
+
 add_library(crti STATIC IMPORTED)
 set_target_properties(crti PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(crti PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libcrti.a)
+set_target_properties(crti PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrti.a)
 
 target_link_libraries(service --whole-archive crti --no-whole-archive)
 
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libos PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libos.a)
+set_target_properties(libos PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libos.a)
+
+add_library(libarch STATIC IMPORTED)
+set_target_properties(libarch PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libarch PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libarch.a)
+
 
 add_library(libbotan STATIC IMPORTED)
 set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libbotan-2.a)
+set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/lib/libbotan-2.a)
 
 add_library(libosdeps STATIC IMPORTED)
 set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libosdeps.a)
+set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libosdeps.a)
 
 add_library(libcxx STATIC IMPORTED)
 add_library(cxxabi STATIC IMPORTED)
 set_target_properties(libcxx PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libc++.a)
+set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libc++.a)
 set_target_properties(cxxabi PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(cxxabi PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libc++abi.a)
+set_target_properties(cxxabi PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libc++abi.a)
 
 add_library(libc STATIC IMPORTED)
 set_target_properties(libc PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libc PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libc.a)
+set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libc.a)
 add_library(libm STATIC IMPORTED)
 set_target_properties(libm PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libm PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libm.a)
+set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libm.a)
 add_library(libg STATIC IMPORTED)
 set_target_properties(libg PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libg PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libg.a)
+set_target_properties(libg PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libg.a)
 add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libgcc.a)
+set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libgcc.a)
 
 # add memdisk
 function(add_memdisk DISK)
@@ -228,8 +236,8 @@ function(add_memdisk DISK)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND python $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.py --file $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.asm ${DISK_RELPATH}
-    COMMAND nasm -f elf64 $ENV{INCLUDEOS_PREFIX}/includeos/memdisk/memdisk.asm -o memdisk.o
+    COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file ${INSTALL_LOC}/memdisk/memdisk.asm ${DISK_RELPATH}
+    COMMAND nasm -f elf64 ${INSTALL_LOC}/memdisk/memdisk.asm -o memdisk.o
     DEPENDS ${DISK_RELPATH}
   )
   add_library(memdisk STATIC memdisk.o)
@@ -242,7 +250,7 @@ function(diskbuilder FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
       OUTPUT  memdisk.fat
-      COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/diskbuilder -o memdisk.fat ${REL_PATH}
+      COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
     )
   add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
@@ -287,24 +295,26 @@ endif(TARFILE)
 
 add_library(crtn STATIC IMPORTED)
 set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(crtn PROPERTIES IMPORTED_LOCATION $ENV{INCLUDEOS_PREFIX}/includeos/lib/libcrtn.a)
+set_target_properties(crtn PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrtn.a)
 
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
-    libos
-    libbotan
-    libosdeps
-    libcxx
-    cxxabi
-    libos
-    libc
-    libos
-    libm
-    libg
-    libgcc
-    $ENV{INCLUDEOS_PREFIX}/includeos/lib/crtend.o
-    --whole-archive crtn --no-whole-archive
-    )
+  libarch
+  libos
+  libbotan
+  libosdeps
+  cxxabi
+  libarch
+  libos
+  libc
+  libos
+  libcxx
+  libm
+  libg
+  libgcc
+  ${INSTALL_LOC}/${ARCH}/lib/crtend.o
+  --whole-archive crtn --no-whole-archive
+  )
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
@@ -315,7 +325,7 @@ endif()
 
 add_custom_target(
   pruned_elf_symbols #ALL
-  COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/elf_syms ${BINARY}
+  COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
   #DEPENDS service
@@ -324,7 +334,7 @@ add_custom_target(
 # create .img files too automatically
 add_custom_target(
   prepend_bootloader ALL
-  COMMAND $ENV{INCLUDEOS_PREFIX}/includeos/bin/vmbuild ${BINARY} $ENV{INCLUDEOS_PREFIX}/includeos/boot/bootloader
+  COMMAND ${INSTALL_LOC}/bin/vmbuild ${BINARY} ${INSTALL_LOC}/boot/bootloader
   DEPENDS service
 )
 
