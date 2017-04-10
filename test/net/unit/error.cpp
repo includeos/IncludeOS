@@ -21,13 +21,54 @@
 
 using namespace net;
 
+CASE("Default Error indicates no error")
+{
+  Error err;
+
+  EXPECT(not err);
+  EXPECT(not err.is_icmp());
+  EXPECT(err.type() == Error::Type::no_error);
+  EXPECT(err.what() == "No error");
+}
+
+CASE("Creating Error of type Ifdown")
+{
+  Error err{Error::Type::ifdown, "Ifdown error"};
+
+  EXPECT(err);
+  EXPECT(not err.is_icmp());
+  EXPECT(err.type() == Error::Type::ifdown);
+  EXPECT(err.what() == "Ifdown error");
+}
+
 CASE("Creating an ICMP_error of type Too Big")
 {
   ICMP_error err{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 500};
 
+  EXPECT(err);
   EXPECT(err.is_icmp());
+  EXPECT(err.type() == Error::Type::ICMP);
+  EXPECT(err.what() == "ICMP error message received");
   EXPECT(err.icmp_type() == icmp4::Type::DEST_UNREACHABLE);
   EXPECT(err.icmp_code() == (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED);
+  EXPECT(err.icmp_type_str() == "DESTINATION UNREACHABLE (3)");
+  EXPECT(err.icmp_code_str() == "FRAGMENTATION NEEDED (4)");
   EXPECT(err.is_too_big());
   EXPECT(err.pmtu() == 500);
+}
+
+CASE("Creating an ICMP_error of type Port Unreachable")
+{
+  ICMP_error err{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::PORT};
+
+  EXPECT(err);
+  EXPECT(err.is_icmp());
+  EXPECT(err.type() == Error::Type::ICMP);
+  EXPECT(err.what() == "ICMP error message received");
+  EXPECT(err.icmp_type() == icmp4::Type::DEST_UNREACHABLE);
+  EXPECT(err.icmp_code() == (uint8_t) icmp4::code::Dest_unreachable::PORT);
+  EXPECT(err.icmp_type_str() == "DESTINATION UNREACHABLE (3)");
+  EXPECT(err.icmp_code_str() == "PORT (3)");
+  EXPECT(not err.is_too_big());
+  EXPECT(err.pmtu() == 0);
 }

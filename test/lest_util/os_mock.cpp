@@ -36,7 +36,7 @@ Statman& Statman::get() {
   if (!start) {
     start = (uintptr_t) malloc(65536);
   }
-  static Statman statman_{start, 8192};
+  static Statman statman_{start, 16384};
   return statman_;
 }
 
