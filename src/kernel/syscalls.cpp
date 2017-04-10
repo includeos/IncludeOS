@@ -126,7 +126,7 @@ OS::on_panic_func panic_handler = nullptr;
 **/
 void panic(const char* why)
 {
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
   /// prevent re-entering panic() more than once per CPU
   if (PER_CPU(panic_stuff).reenter)
       OS::reboot();
