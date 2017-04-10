@@ -89,7 +89,7 @@ namespace x86
     lapic.timer_begin(0xFFFFFFFF);
 
     /// use PIT to measure <time> in one-shot ///
-    PIT::instance().on_timeout_ms(milliseconds(CALIBRATION_MS),
+    PIT::oneshot(milliseconds(CALIBRATION_MS),
     [overhead] {
       uint32_t diff = APIC::get().timer_diff() - overhead;
       assert(ticks_per_micro == 0);

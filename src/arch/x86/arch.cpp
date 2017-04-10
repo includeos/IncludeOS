@@ -60,18 +60,15 @@ void __arch_init()
   MYINFO("Enabling interrupts");
   IRQ_manager::enable_interrupts();
 
-  // Initialize the Interval Timer
-  PIT::init();
-
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
   INFO2("+--(%d samples, %f sec. interval)", 18,
-        (x86::PIT::frequency() / _cpu_sampling_freq_divider_).count());
+        (x86::PIT::FREQUENCY / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
   if (OS::cpu_freq().count() <= 0.0) {
-    OS::cpu_mhz_ = MHz(PIT::estimate_CPU_frequency());
+    OS::cpu_mhz_ = MHz(PIT::get().estimate_CPU_frequency());
   }
   INFO2("+--> %f MHz", OS::cpu_freq().count());
 
