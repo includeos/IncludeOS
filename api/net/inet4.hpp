@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,9 +89,40 @@ namespace net {
     auto dhclient() { return dhcp_;  }
 
     /**
+     * @brief      Disable or enable Path MTU Discovery (enabled by default)
+     *             RFC 1191
+     *             If enabled, it sets the Don't Fragment flag on each IP4 packet
+     *             TCP and UDP acts based on this being enabled or not
+     *
+     * @param[in]  on                      Enables Path MTU Discovery if true, disables if false
+     * @param[in]  pmtu_increase_interval  Number of seconds that indicate that a PMTU value
+     *                                     has grown stale and should be reset/increased
+     *                                     This could be set to "infinity" (PMTU should never be
+     *                                     increased) by setting the value to IP4::INFINITY
+     */
+    void set_path_mtu_discovery(bool on, int64_t increase_interval = -1) override
+    { ip4_.set_path_mtu_discovery(on, increase_interval); }
+
+    /**
+     * @brief      Triggered by IP when a Path MTU value has grown stale and the value
+     *             is reset (increased) to check if the PMTU for the path could have increased
+     *             This is NOT a change in the Path MTU in response to receiving an ICMP Too Big message
+     *             and no retransmission of packets should take place
+     *
+     * @param[in]  dest  The destination/path
+     * @param[in]  pmtu  The reset PMTU value
+     */
+    void reset_pmtu(Socket dest, IP4::PMTU pmtu) override
+    { tcp_.reset_pmtu(dest, pmtu); /* Maybe later: udp_.reset_pmtu(dest, pmtu);*/ }
+
+    /**
      *  Error reporting
-     *  Incl. ICMP error report in accordance with RFC 1122
-     *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
+     *
+     *  Including ICMP error report in accordance with RFC 1122 and handling of ICMP
+     *  too big messages in accordance with RFC 1191, 1981 and 4821 (Path MTU Discovery
+     *  and Packetization Layer Path MTU Discovery)
+     *
+     *  Forwards errors to the transport layer (UDP and TCP)
     */
     void error_report(Error& err, Packet_ptr orig_pckt) override;
 
@@ -127,7 +158,9 @@ namespace net {
     IP4::IP_packet_ptr create_ip_packet(Protocol proto) override {
       auto raw = nic_.create_packet(nic_.frame_offset_link());
       auto ip_packet = static_unique_ptr_cast<IP4::IP_packet>(std::move(raw));
+
       ip_packet->init(proto);
+
       return ip_packet;
     }
 
