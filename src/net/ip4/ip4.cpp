@@ -248,7 +248,7 @@ namespace net {
       // Add to paths_ if the entry doesn't exist
       // Initially, the PMTU value for a path is assumed to be the (known) MTU of the first-hop link
       // TODO PMTU: Maybe reset value according to the plateau table instead of default_PMTU()
-      paths_.emplace(dest, PMTU_entry{new_pmtu, default_PMTU()});
+      paths_.emplace(dest, PMTU_entry{new_pmtu, default_PMTU(), received_too_big});
 
       // Start the stale pmtu timer if it is not already running
       if (UNLIKELY(not pmtu_timer_.is_running()))

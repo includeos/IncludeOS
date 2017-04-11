@@ -331,9 +331,18 @@ namespace net {
 
     class PMTU_entry {
     public:
-      PMTU_entry(PMTU pmtu, PMTU reset_pmtu) noexcept
+      PMTU_entry(PMTU pmtu, PMTU reset_pmtu, bool received_too_big) noexcept
       : pmtu_{pmtu}, reset_pmtu_{reset_pmtu}
-      {}
+      {
+        /* If the entry is created as a result of a received ICMP Too Big message,
+        we'll set the timestamp to something other than 0.
+        This way, it will be part of the aging process.
+
+        RFC 1191: Whenever a PMTU is decreased in response to a Datagram Too Big message, the
+        timestamp is set to the current time */
+        if (received_too_big)
+          timestamp_ = RTC::time_since_boot();
+      }
 
       PMTU pmtu() const noexcept
       { return pmtu_; }
