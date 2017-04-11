@@ -31,6 +31,7 @@
 #include <kprint>
 #include <service>
 #include <statman>
+#include <cinttypes>
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -75,7 +76,8 @@ OS::Plugin_vec OS::plugins_(OS::Plugin_vec::UNINITIALIZED);
 #ifndef OS_VERSION
 #define OS_VERSION "v?.?.?"
 #endif
-std::string OS::version_field = OS_VERSION;
+std::string OS::version_str_ = OS_VERSION;
+std::string OS::arch_str_ = ARCH;
 
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
@@ -210,7 +212,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Service::start");
   // begin service start
   FILLINE('=');
-  printf(" IncludeOS %s\n", version().c_str());
+  printf(" IncludeOS %s (%s / %i-bit)\n",
+         version().c_str(), arch().c_str(),
+         static_cast<int>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name().c_str());
   FILLINE('~');
 
@@ -288,7 +292,7 @@ void OS::add_stdout_default_serial()
 {
   add_stdout(
   [] (const char* str, const size_t len) {
-    kprintf("%.*s", len, str);
+    kprintf("%.*s", static_cast<int>(len), str);
   });
 }
 __attribute__ ((weak))
@@ -331,14 +335,14 @@ void OS::legacy_boot() {
   uintptr_t unavail_end = unavail_start + interval;
 
   while (unavail_end < addr_max){
-    INFO2("* Unavailable memory: 0x%x - 0x%x", unavail_start, unavail_end);
+    INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
     memmap.assign_range({unavail_start, unavail_end,
           "N/A", "Reserved / outside physical range" });
     unavail_start = unavail_end + 1;
     interval = std::min(span_max, addr_max - unavail_start);
     // Increment might wrapped around
     if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
-      INFO2("* Last chunk of memory: 0x%x - 0x%x", unavail_start, addr_max);
+      INFO2("* Last chunk of memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, addr_max);
       memmap.assign_range({unavail_start, addr_max,
             "N/A", "Reserved / outside physical range" });
       break;

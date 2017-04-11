@@ -41,11 +41,17 @@ public:
   using Span_mods = gsl::span<multiboot_module_t>;
 
   /**
-   * Returns the version of the OS from when
-   * the service was built.
-  **/
+   * Returns the OS version string
+   **/
   static const std::string& version() noexcept
-  { return version_field; }
+  { return version_str_; }
+
+  /**
+   * Returns the CPU architecture for which the OS was built
+   **/
+  static const std::string& arch() noexcept
+  { return arch_str_; }
+
 
   /**
    *  Returns the commandline arguments provided,
@@ -253,7 +259,8 @@ private:
   static bool power_;
   static bool boot_sequence_passed_;
   static MHz cpu_mhz_;
-  static std::string version_field;
+  static std::string version_str_;
+  static std::string arch_str_;
   static Plugin_vec plugins_;
   static uintptr_t low_memory_size_;
   static uintptr_t high_memory_size_;
