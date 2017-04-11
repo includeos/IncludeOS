@@ -21,7 +21,7 @@
 
 /**
  * High performance no-heap fixed vector
- *
+ * All data is reserved uninitialized
  **/
 
 #include <cstdint>
@@ -29,12 +29,11 @@
 
 template <typename T, int N>
 struct fixedvector {
-  fixedvector()
-    : count(0) {}
+  fixedvector() {}
 
   // add existing
   void add(const T& e) noexcept {
-    element[count++] = e;
+    (*this)[count++] = e;
   }
   // construct into
   template <typename... Args>
@@ -44,7 +43,7 @@ struct fixedvector {
 
   // pop back and return last element
   T pop() {
-    return element[--count];
+    return (*this)[--count];
   }
   // clear whole thing
   void clear() noexcept {
@@ -59,14 +58,14 @@ struct fixedvector {
   }
 
   T& operator[] (uint32_t i) noexcept {
-    return element[i];
+    return *(T*) (element + i);
   }
 
   T* begin() noexcept {
-    return &element[0];
+    return (T*) &element[0];
   }
   T* end() noexcept {
-    return &element[count];
+    return (T*) &element[count];
   }
 
   constexpr int capacity() const noexcept {
@@ -86,7 +85,7 @@ struct fixedvector {
 
 private:
   uint32_t count = 0;
-  T element[N];
+  typename std::aligned_storage<sizeof(T), alignof(T)>::type element[N];
 };
 
 
