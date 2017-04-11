@@ -542,5 +542,5 @@ void vmxnet3::move_to_this_cpu()
 __attribute__((constructor))
 static void register_func()
 {
-  PCI_manager::register_driver<hw::Nic>(hw::PCI_Device::VENDOR_VMWARE, PRODUCT_ID, &vmxnet3::new_instance);
+  PCI_manager::register_nic(PCI::VENDOR_VMWARE, PRODUCT_ID, &vmxnet3::new_instance);
 }

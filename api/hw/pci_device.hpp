@@ -72,7 +72,7 @@ namespace PCI {
 
   /** Relevant class codes (many more) */
   enum classcode_t {
-    OLD,
+    OLD = 0,
     STORAGE,
     NIC,
     DISPLAY,
@@ -92,6 +92,15 @@ namespace PCI {
     SIGPRO,
     OTHER=255
   }; //< enum classcode_t
+
+  enum {
+    VENDOR_AMD     = 0x1022,
+    VENDOR_INTEL   = 0x8086,
+    VENDOR_CIRRUS  = 0x1013,
+    VENDOR_VIRTIO  = 0x1AF4,
+    VENDOR_REALTEK = 0x10EC,
+    VENDOR_VMWARE  = 0x15AD,
+  };
 
   struct Resource {
     int       type;
@@ -120,15 +129,6 @@ struct msix_t;
    */
   class PCI_Device { // public Device //Why not? A PCI device is too general to be accessible?
   public:
-
-    enum {
-      VENDOR_AMD     = 0x1022,
-      VENDOR_INTEL   = 0x8086,
-      VENDOR_CIRRUS  = 0x1013,
-      VENDOR_VIRTIO  = 0x1AF4,
-      VENDOR_REALTEK = 0x10EC,
-      VENDOR_VMWARE  = 0x15AD,
-    };
 
     /**
      *  Constructor
@@ -167,8 +167,8 @@ struct msix_t;
     { return pci_addr_; };
 
     /** Get the pci class code. */
-    PCI::classcode_t classcode() const noexcept
-    { return static_cast<PCI::classcode_t>(devtype_.classcode); }
+    uint8_t classcode() const noexcept
+    { return devtype_.classcode; }
 
     uint8_t subclass() const noexcept
     { return devtype_.subclass; }
@@ -182,6 +182,9 @@ struct msix_t;
 
     uint16_t product_id() const noexcept
     { return device_id_.product; }
+
+    uint32_t vendor_product() const noexcept
+    { return device_id_.both; }
 
     /**
      *  Parse all Base Address Registers (BAR's)
@@ -221,15 +224,15 @@ struct msix_t;
     }
 
     // @brief The 2-part ID retrieved from the device
-    union vendor_product {
-      uint32_t __value;
+    union vendor_product_t {
+      uint32_t both;
       struct __attribute__((packed)) {
         uint16_t vendor;
         uint16_t product;
       };
     };
     // @brief The class code (device type)
-    union class_revision {
+    union class_revision_t {
       uint32_t reg;
       struct __attribute__((packed)) {
         uint8_t rev_id;
@@ -248,8 +251,8 @@ struct msix_t;
     // @brief The 3-part PCI address
     uint16_t pci_addr_;
 
-    vendor_product device_id_;
-    class_revision devtype_;
+    vendor_product_t device_id_;
+    class_revision_t devtype_;
 
     // Device Resources
     typedef PCI::Resource Resource;

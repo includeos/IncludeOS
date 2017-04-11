@@ -24,6 +24,7 @@
 #include <kernel/irq_manager.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/os.hpp>
+#include <hw/devices.hpp>
 #include <info>
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
 

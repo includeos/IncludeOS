@@ -15,15 +15,53 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <assert.h>
-
+#include <cassert>
 #include <common>
-
+#include <delegate>
+#include <stdexcept>
 #include <kernel/pci_manager.hpp>
 #include <hw/devices.hpp>
-#include <stdexcept>
+#include <hw/pci_device.hpp>
+#include <util/fixedvec.hpp>
 
-PCI_manager::Device_registry PCI_manager::devices_;
+static const int ELEMENTS = 16;
+
+template <typename Driver>
+using Driver_entry = std::pair<uint32_t, Driver>;
+template <typename Driver>
+using fixed_factory_t = fixedvector<Driver_entry<Driver>, ELEMENTS>;
+
+// PCI devices
+fixedvector<hw::PCI_Device, ELEMENTS> devices(Fixedvector_Init::UNINIT);
+
+// driver factories
+fixed_factory_t<PCI_manager::NIC_driver> nic_fact(Fixedvector_Init::UNINIT);
+fixed_factory_t<PCI_manager::BLK_driver> blk_fact(Fixedvector_Init::UNINIT);
+
+template <typename Factory, typename Class>
+static inline bool register_device(hw::PCI_Device& dev, fixed_factory_t<Factory>& fact) {
+  debug("vendor: 0x%x prod: 0x%x, id: 0x%x\n",
+    dev.vendor_id(), dev.product_id(), driver_id(dev));
+
+  for (auto& driver : fact) {
+    if (driver.first == dev.vendor_product())
+    {
+      INFO2("|  +--+ Driver: Found");
+
+      hw::Devices::register_device<Class>(driver.second(dev));
+      return true;
+    }
+  }
+  INFO2("|  +--+ Driver: Not found");
+  return false;
+}
+
+void PCI_manager::pre_init()
+{
+  devices.clear();
+  nic_fact.clear();
+  blk_fact.clear();
+}
 
 void PCI_manager::scan_bus(int bus)
 {
@@ -35,25 +73,20 @@ void PCI_manager::scan_bus(int bus)
 
     if (id != PCI::WTF)
     {
-      // needed for classcode
-      hw::PCI_Device::class_revision devclass;
+      hw::PCI_Device::class_revision_t devclass;
       devclass.reg =
-          hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
-      // convert to annoying enum :-)
-      auto classcode = (PCI::classcode_t) devclass.classcode;
+              hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
 
-      // store device directly into map
-      devices_[classcode].emplace_back(pci_addr, id, devclass.reg);
-      auto& dev = devices_[classcode].back();
+      auto& dev = devices.emplace(pci_addr, id, devclass.reg);
 
       bool registered = false;
       // translate classcode to device and register
       switch (dev.classcode()) {
       case PCI::STORAGE:
-          registered = register_device<hw::Block_device>(dev);
+          registered = register_device<BLK_driver, hw::Block_device>(dev, blk_fact);
           break;
       case PCI::NIC:
-          registered = register_device<hw::Nic>(dev);
+          registered = register_device<NIC_driver, hw::Nic>(dev, nic_fact);
           break;
       case PCI::BRIDGE:
           // scan secondary bus for PCI-to-PCI bridges
@@ -84,4 +117,17 @@ void PCI_manager::init()
   // @todo should probably be moved, or optionally non-printed
   INFO2("|");
   INFO2("o");
+}
+
+inline uint32_t driver_id(uint16_t vendor, uint16_t prod) {
+  return (uint32_t) prod << 16 | vendor;
+}
+
+void PCI_manager::register_nic(uint16_t vendor, uint16_t prod, NIC_driver factory)
+{
+  nic_fact.emplace(driver_id(vendor, prod), factory);
+}
+void PCI_manager::register_blk(uint16_t vendor, uint16_t prod, BLK_driver factory)
+{
+  blk_fact.emplace(driver_id(vendor, prod), factory);
 }
