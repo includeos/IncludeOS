@@ -89,12 +89,6 @@ namespace net {
     auto dhclient() { return dhcp_;  }
 
     /**
-     * @brief      Returns true if Path MTU Discovery is enabled
-     */
-    bool path_mtu_discovery() override
-    { return ip4_.path_mtu_discovery(); }
-
-    /**
      * @brief      Disable or enable Path MTU Discovery (enabled by default)
      *             RFC 1191
      *             If enabled, it sets the Don't Fragment flag on each IP4 packet
@@ -120,12 +114,6 @@ namespace net {
      */
     void reset_pmtu(Socket dest, IP4::PMTU pmtu) override
     { tcp_.reset_pmtu(dest, pmtu); /* Maybe later: udp_.reset_pmtu(dest, pmtu);*/ }
-
-    void remove_pmtu_path(Socket dest) override
-    { ip4_.remove_path(dest); }
-
-    void flush_pmtu_paths() override
-    { ip4_.flush_paths(); }
 
     /**
      *  Error reporting
