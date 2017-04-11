@@ -20,8 +20,6 @@
 #include <boot/multiboot.h>
 #include <kprint>
 
-#define MULTIBOOT_CMDLINE_LOC 0x7000
-
 extern "C" {
   void __init_serial1();
   void __init_sanity_checks();
@@ -33,7 +31,7 @@ extern "C" {
   void _init_c_runtime();
   void _init_syscalls();
   void __libc_init_array();
-  extern uintptr_t _end;
+  uintptr_t _end;
 }
 
 extern void default_stdout_handlers();
@@ -41,14 +39,16 @@ extern void default_stdout_handlers();
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)
 {
+
+  // Initialize default serial port
   __init_serial1();
 
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
+  // Determine where free memory starts
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
 
-  // Save multiboot string before symbols overwrite area after binary
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
   }
@@ -68,10 +68,10 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   // Initialize system calls
   _init_syscalls();
 
-  // initialize stdout handlers
+  // Initialize stdout handlers
   default_stdout_handlers();
 
-  // modern init array
+  // Call global ctors
   __libc_init_array();
 
   // Initialize OS including devices

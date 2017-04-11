@@ -9,6 +9,7 @@ else()
 endif()
 
 add_definitions(-D${ARCH_INTERNAL})
+add_definitions(-DARCH="${ARCH}")
 
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
