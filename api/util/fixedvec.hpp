@@ -27,18 +27,25 @@
 #include <cstdint>
 #include <cstring>
 
+enum class Fixedvector_Init {
+  UNINIT
+};
+
 template <typename T, int N>
 struct fixedvector {
-  fixedvector() {}
+  fixedvector() : count(0) {}
+  fixedvector(Fixedvector_Init) {}
 
   // add existing
-  void add(const T& e) noexcept {
-    (*this)[count++] = e;
+  T& add(const T& e) noexcept {
+    (*this)[count] = e;
+    return (*this)[count++];
   }
   // construct into
   template <typename... Args>
-  void emplace(Args&&... args) noexcept {
-    new (&element[count++]) T(args...);
+  T& emplace(Args&&... args) noexcept {
+    new (&element[count]) T(args...);
+    return (*this)[count++];
   }
 
   // pop back and return last element
@@ -59,6 +66,10 @@ struct fixedvector {
 
   T& operator[] (uint32_t i) noexcept {
     return *(T*) (element + i);
+  }
+  T* at (uint32_t i) noexcept {
+    if (i >= size()) return nullptr;
+    return (T*) (element + i);
   }
 
   T* begin() noexcept {
@@ -84,7 +95,7 @@ struct fixedvector {
   }
 
 private:
-  uint32_t count = 0;
+  uint32_t count;
   typename std::aligned_storage<sizeof(T), alignof(T)>::type element[N];
 };
 
