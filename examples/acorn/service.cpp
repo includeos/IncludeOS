@@ -39,18 +39,10 @@ Disk_ptr disk;
 
 #include <time.h>
 
-// Get current date/time, format is [YYYY-MM-DD.HH:mm:ss]
-const std::string timestamp() {
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
-    tstruct = *localtime(&now);
-    // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
-    // for more information about date/time format
-    strftime(buf, sizeof(buf), "[%Y-%m-%d.%X] ", &tstruct);
-
-    return buf;
-}
+#include <isotime>
+// Get current date/time, format is [YYYY-MM-DDTHH:mm:ssZ]
+const std::string timestamp()
+{ return "[" + isotime::now() + "] "; }
 
 #include <net/inet4>
 
@@ -153,7 +145,7 @@ void Service::start(const std::string&) {
       router.use("/api/dashboard", dashboard_->router());
 
       // Fallback route for angular application - serve index.html if route is not found
-      router.on_get("/app/.*", 
+      router.on_get("/app/.*",
       [&fs](auto, auto res) {
         #ifdef VERBOSE_WEBSERVER
         printf("[@GET:/app/*] Fallback route - try to serve index.html\n");
