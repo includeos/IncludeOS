@@ -5,28 +5,26 @@
 # 3. Installs the tools (prefixed with the target) in /usr/local/bin
 # 4. Cleans up tarball
 
-set -e # Exit immediately on error (we're trapping the exit signal)
-trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
-trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 
+INCLUDEOS_SRC=${INCLUDEOS_SRC:-"~/IncludeOS"}
+BUILD_DIR="/tmp/IncludeOS_build"
+INSTALL_DIR=${INCLUDEOS_PREFIX:-"/usr/local"}
 TARGET="i686-elf"
-BUILD_DIR=$HOME"/IncludeOS_build"
 VERSION=2.27
 BINUTILS="binutils-"$VERSION
 TARBALL=$BINUTILS".tar.gz"
-INSTALL_DIR="/usr/local"
 
+. $INCLUDEOS_SRC/etc/set_traps.sh
 echo -e "\n>>> Installing: $BINUTILS for $TARGET"
 
 mkdir -p $BUILD_DIR
-
 pushd $BUILD_DIR
 
+# Download binutils if needed
 echo -e "\n>> Looking for tarball ..."
 if [ -e $TARBALL ]; then
     echo -e "\n> $TARBALL found."
 else
-    # Download binutils
     echo -e "\n> Downloading $TARBALL ..."
     curl https://ftp.gnu.org/gnu/binutils/$TARBALL -o $TARBALL
 fi
@@ -40,23 +38,20 @@ fi
 pushd $BINUTILS
 
 # Configure & install
+mkdir -p $INSTALL_DIR
 echo -e "\n>> Configure for $TARGET to be installed in $INSTALL_DIR"
 ./configure --program-prefix=$TARGET- --prefix=$INSTALL_DIR --target=$TARGET --enable-multilib --enable-ld=yes --disable-werror --enable-silent-rules
 
 echo -e "\n>> Start install"
 make -j4 V=0 --silent
 make install
-
 echo -e "\n>> Installation finished"
 
-popd
-
 # Clean up
+popd	# Out of $BINUTILS
 echo -e "\n>> Cleaning up installation ..."
 rm -rf $BINUTILS $TARBALL
-
-popd
-
+popd	# Out of $BUILD_DIR
 rm -r $BUILD_DIR
 
 echo -e "\n>>> Done installing $BINUTILS in $INSTALL_DIR"
