@@ -66,11 +66,11 @@ std::string OS::cmdline{Service::binary_name()};
 
 // stdout redirection
 using Print_vec = fixedvector<OS::print_func, 8>;
-static Print_vec os_print_handlers(Print_vec::UNINITIALIZED);
+static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
 extern void default_stdout_handlers();
 
 // Plugins
-OS::Plugin_vec OS::plugins_(OS::Plugin_vec::UNINITIALIZED);
+OS::Plugin_vec OS::plugins_(Fixedvector_Init::UNINIT);
 
 // OS version
 #ifndef OS_VERSION

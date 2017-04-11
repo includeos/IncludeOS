@@ -308,6 +308,6 @@ void VirtioBlk::deactivate()
 /** Global constructor - register VirtioBlk's driver factory at the PCI_manager */
 struct Autoreg_virtioblk {
   Autoreg_virtioblk() {
-    PCI_manager::register_driver<hw::Block_device>(hw::PCI_Device::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
+    PCI_manager::register_blk(PCI::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
   }
 } autoreg_virtioblk;
