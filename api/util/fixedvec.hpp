@@ -29,7 +29,10 @@
 
 template <typename T, int N>
 struct fixedvector {
-  fixedvector() {}
+
+  enum No_init { UNINITIALIZED };
+  fixedvector() : count(0) {}
+  fixedvector(No_init) {}
 
   // add existing
   void add(const T& e) noexcept {
@@ -84,7 +87,9 @@ struct fixedvector {
   }
 
 private:
-  uint32_t count = 0;
+
+  // NOTE: We can't default initialize here due to plugins / global ctors
+  uint32_t count;
   typename std::aligned_storage<sizeof(T), alignof(T)>::type element[N];
 };
 

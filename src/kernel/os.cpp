@@ -64,10 +64,13 @@ multiboot_info_t* OS::bootinfo_ = nullptr;
 std::string OS::cmdline{Service::binary_name()};
 
 // stdout redirection
-static fixedvector<OS::print_func, 8> os_print_handlers;
+using Print_vec = fixedvector<OS::print_func, 8>;
+static Print_vec os_print_handlers(Print_vec::UNINITIALIZED);
 extern void default_stdout_handlers();
-// custom init
-std::vector<OS::Plugin_struct> OS::plugins_;
+
+// Plugins
+OS::Plugin_vec OS::plugins_(OS::Plugin_vec::UNINITIALIZED);
+
 // OS version
 #ifndef OS_VERSION
 #define OS_VERSION "v?.?.?"
@@ -216,7 +219,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
-  plugins_.emplace_back(delg, name);
+  plugins_.emplace(delg, name);
 }
 
 uint64_t OS::get_cycles_halt() noexcept {

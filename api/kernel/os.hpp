@@ -27,6 +27,7 @@
 #include <sstream>
 #include <vector>
 #include <boot/multiboot.h>
+#include <util/fixedvec.hpp>
 
 /**
  *  The entrypoint for OS services
@@ -194,6 +195,7 @@ public:
   **/
   static void register_plugin(Plugin delg, const char* name);
 
+
   /**
    * Block for a while, e.g. until the next round in the event loop
    **/
@@ -222,6 +224,8 @@ public:
     return nullptr;
   }
 
+
+
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
@@ -243,12 +247,14 @@ private:
     const char* name_;
   };
 
+  using Plugin_vec = fixedvector<Plugin_struct, 16>;
+
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;
   static bool boot_sequence_passed_;
   static MHz cpu_mhz_;
   static std::string version_field;
-  static std::vector<Plugin_struct> plugins_;
+  static Plugin_vec plugins_;
   static uintptr_t low_memory_size_;
   static uintptr_t high_memory_size_;
   static uintptr_t memory_end_;
