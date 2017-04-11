@@ -40,8 +40,6 @@ namespace net
       // If an error is not received, this will never execute (Error is just erased from the map
       // without calling the callback)
 
-      INFO("DNS", "Couldn't resolve DNS server at %s. Reason: %s", dns_server.to_string().c_str(), err.what());
-
       // Find the request and remove it since an error occurred
       auto it = requests_.find(key);
       if (it != requests_.end()) {

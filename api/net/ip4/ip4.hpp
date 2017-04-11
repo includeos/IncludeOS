@@ -200,7 +200,7 @@ namespace net {
     IP_packet_ptr filter_downstream(IP_packet_ptr packet);
 
     /**
-     *  Path MTU (and Packetization Layered Path MTU Discovery) related methods
+     *  Path MTU Discovery (and Packetization Layered Path MTU Discovery) related methods
      */
 
     /**
@@ -237,15 +237,42 @@ namespace net {
      *                               as a result of this
      * @param[in]  total_length      The IP header's total length, given if the ICMP Too Big message contains a
      *                               next hop MTU value of zero. This is used to make an estimate of the new Path MTU value
+     * @param[in]  header_length     The IP header's header length, given if the ICMP Too Big message contains a
+     *                               next hop MTU value of zero. This is used to make an estimate of the new Path MTU value
      */
     void update_path(Socket dest, PMTU new_pmtu, bool received_too_big,
       uint16_t total_length = 0, uint8_t header_length = 0);
 
     /**
-     * Returns the Path MTU for this path (represented by the destination Socket (address and port))
-     * Returns 0 if destination/path not found
+     * @brief      Removes a path.
+     *
+     * @param[in]  dest  The destination (represented by the destination Socket (IP address and port))
+     */
+    void remove_path(Socket dest);
+
+    inline void flush_paths() noexcept
+    { paths_.clear(); }
+
+    /**
+     * @brief      Get the Path MTU value for the specified path/destination
+     *
+     * @param[in]  dest  The destination (represented by the destination Socket (IP address and port))
+     *
+     * @return     The Path MTU value for this path/destination
+     *             Returns 0 if the entry wasn't found
      */
     PMTU pmtu(Socket dest) const;
+
+    /**
+     * @brief      Get the timestamp (time since boot) for when the PMTU entry's PMTU value was last decreased
+     *
+     *
+     * @param[in]  dest  The destination (IP address and port), used as index into paths_
+     *
+     * @return     The path/destination's timestamp (when it was last decreased)
+     *             Returns 0 if the entry wasn't found or the PMTU for the entry has never been decreased
+     */
+    RTC::timestamp_t pmtu_timestamp(Socket dest) const;
 
     PMTU minimum_MTU() const noexcept
     { return (PMTU) PMTU_plateau::ONE; }

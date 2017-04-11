@@ -130,6 +130,8 @@ namespace net {
     /// Communication from ICMP and IP to UDP and TCP
     ///
 
+    virtual bool path_mtu_discovery() = 0;
+
     /**
      * @brief      Disable or enable Path MTU Discovery (enabled by default)
      *             RFC 1191
@@ -154,6 +156,13 @@ namespace net {
      * @param[in]  pmtu  The reset PMTU value
      */
     virtual void reset_pmtu(Socket dest, typename IPV::PMTU pmtu) = 0;
+
+    virtual void remove_pmtu_path(Socket dest) = 0;
+
+    /**
+     * @brief      Remove all entries from the PMTU cache in IP
+     */
+    virtual void flush_pmtu_paths() = 0;
 
     /**
      *  Error reporting

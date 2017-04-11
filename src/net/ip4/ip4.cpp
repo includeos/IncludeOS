@@ -256,11 +256,27 @@ namespace net {
     }
   }
 
+  void IP4::remove_path(Socket dest) {
+    auto it = paths_.find(dest);
+
+    if (it != paths_.end())
+      paths_.erase(it);
+  }
+
   IP4::PMTU IP4::pmtu(Socket dest) const {
     auto it = paths_.find(dest);
 
     if (it != paths_.end())
       return it->second.pmtu();
+
+    return 0;
+  }
+
+  RTC::timestamp_t IP4::pmtu_timestamp(Socket dest) const {
+    auto it = paths_.find(dest);
+
+    if (it != paths_.end())
+      return it->second.timestamp();
 
     return 0;
   }
@@ -303,18 +319,18 @@ namespace net {
     auto rtc_aged = (RTC::timestamp_t) pmtu_aged_;  // cast from uint16_t to int64_t (RTC::timestamp_t)
     rtc_aged = rtc_aged * 60; // from minutes to seconds
 
-    for (auto& entry : paths_) {
+    for (auto it = paths_.begin(); it != paths_.end(); ++it) {
       /*
         If the timestamp of the PMTU_entry is not "reserved" and is older than the timout interval
         (default set to 10 minutes), then the PMTU can be increased/reset to see if the PMTU has
         increased since the last decrease over 10 minutes ago
       */
 
-      if (entry.second.timestamp() != 0 and RTC::time_since_boot() > rtc_aged and
-        entry.second.timestamp() < (RTC::time_since_boot() - rtc_aged))
+      if (it->second.timestamp() != 0 and RTC::time_since_boot() > rtc_aged and
+        it->second.timestamp() < (RTC::time_since_boot() - rtc_aged))
       {
-        entry.second.reset_pmtu();
-        stack_.reset_pmtu(entry.first, entry.second.pmtu());
+        stack_.reset_pmtu(it->first, it->second.pmtu());
+        paths_.erase(it); // Optional, if keep the entry in the map: it->second.reset_pmtu();
       }
     }
   }

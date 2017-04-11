@@ -23,6 +23,8 @@ namespace net {
   /**
    *  General Error class for the OS
    *  ICMP_error f.ex. inherits from this class
+   *
+   *  Default: No error occurred
    */
   class Error {
   public:

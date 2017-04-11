@@ -35,7 +35,8 @@ namespace net {
                                   // icmp4::code::Dest_unreachable::PORT f.ex.
 
     /**
-     * @brief      Constructor (default: no error occurred)
+     * @brief      Constructor
+     *             Default: No error occurred
      */
     ICMP_error()
       : Error{}
@@ -84,7 +85,7 @@ namespace net {
     void set_pmtu(uint16_t pmtu) noexcept
     { pmtu_ = pmtu; }
 
-    std::string to_string() const
+    std::string to_string() const override
     { return "ICMP " + icmp_type_str() + ": " + icmp_code_str(); }
 
   private:
