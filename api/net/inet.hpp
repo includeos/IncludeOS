@@ -136,13 +136,13 @@ namespace net {
      *             If enabled, it sets the Don't Fragment flag on each IP4 packet
      *             TCP and UDP acts based on this being enabled or not
      *
-     * @param[in]  on                      Enables Path MTU Discovery if true, disables if false
-     * @param[in]  pmtu_increase_interval  Number of seconds that indicate that a PMTU value
-     *                                     has grown stale and should be reset/increased
-     *                                     This could be set to "infinity" (PMTU should never be
-     *                                     increased) by setting the value to IP4::INFINITY
+     * @param[in]  on    Enables Path MTU Discovery if true, disables if false
+     * @param[in]  aged  Number of minutes that indicate that a PMTU value
+     *                   has grown stale and should be reset/increased
+     *                   This could be set to "infinity" (PMTU should never be
+     *                   increased) by setting the value to IP4::INFINITY
      */
-    virtual void set_path_mtu_discovery(bool on, int64_t increase_interval = -1) = 0;
+    virtual void set_path_mtu_discovery(bool on, uint16_t aged = 10) = 0;
 
     /**
      * @brief      Triggered by IP when a Path MTU value has grown stale and the value

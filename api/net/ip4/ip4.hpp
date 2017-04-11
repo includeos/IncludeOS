@@ -80,9 +80,9 @@ namespace net {
      *  Path MTU Discovery increases a path's PMTU if it hasn't been decreased in the last 10 minutes
      *  to avoid stale PMTU values
      */
-    static const RTC::timestamp_t DEFAULT_PMTU_INCREASE_INTERVAL = 600;  // 10 minutes in seconds
+    static const uint16_t DEFAULT_PMTU_AGED = 10;
 
-    static const RTC::timestamp_t PMTU_INFINITY = 0;
+    static const uint16_t PMTU_INFINITY = 0;
 
     /*
       Maximum Datagram Data Size
@@ -218,13 +218,13 @@ namespace net {
      *             If enabled, it sets the Don't Fragment flag on each IP4 packet
      *             TCP and UDP acts based on this being enabled or not
      *
-     * @param[in]  on                      Enables Path MTU Discovery if true, disables if false
-     * @param[in]  pmtu_increase_interval  Number of seconds that indicate that a PMTU value
-     *                                     has grown stale and should be reset/increased
-     *                                     This could be set to "infinity" (PMTU should never be
-     *                                     increased) by setting the value to INFINITY
+     * @param[in]  on     Enables Path MTU Discovery if true, disables if false
+     * @param[in]  aged   Number of minutes that indicate that a PMTU value
+     *                    has grown stale and should be reset/increased
+     *                    This could be set to "infinity" (PMTU should never be
+     *                    increased) by setting the value to INFINITY
      */
-    void set_path_mtu_discovery(bool on, RTC::timestamp_t increase_interval = -1) noexcept;
+    void set_path_mtu_discovery(bool on, uint16_t aged = 10) noexcept;
 
     /**
      * @brief      Updates the Path MTU for the specified path (represented by the destination address and port (Socket))
@@ -386,11 +386,11 @@ namespace net {
     std::chrono::seconds pmtu_timer_interval_{DEFAULT_PMTU_TIMER_INTERVAL};
 
     /**
-     * How old a PMTU_entry can get before being increased/reset again (in seconds)
+     * How old a PMTU_entry can get before being increased/reset again (in minutes)
      * The entry's timestamp is renewed/updated every time its PMTU value is decreased in response to
      * a ICMP Datagram Too Big message
      */
-    RTC::timestamp_t pmtu_stale_{DEFAULT_PMTU_INCREASE_INTERVAL};
+    uint16_t pmtu_aged_{DEFAULT_PMTU_AGED};
 
     /** Downstream: Linklayer output delegate */
     downstream_arp linklayer_out_ = nullptr;

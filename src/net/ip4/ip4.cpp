@@ -206,11 +206,11 @@ namespace net {
     linklayer_out_(std::move(ip4_pckt), next_hop);
   }
 
-  void IP4::set_path_mtu_discovery(bool on, RTC::timestamp_t increase_interval) noexcept {
+  void IP4::set_path_mtu_discovery(bool on, uint16_t aged) noexcept {
     path_mtu_discovery_ = on;
 
-    if (increase_interval != -1)
-      pmtu_stale_ = increase_interval;
+    if (aged != 10)
+      pmtu_aged_ = aged;
 
     if (not on and pmtu_timer_.is_running()) {
       pmtu_timer_.stop();
@@ -294,11 +294,14 @@ namespace net {
       return;
     }
 
-    if (UNLIKELY(pmtu_stale_ == PMTU_INFINITY)) {
+    if (UNLIKELY(pmtu_aged_ == PMTU_INFINITY)) {
       // Then the PMTU values should never be increased and there's no need for the timer
       pmtu_timer_.stop();
       return;
     }
+
+    auto rtc_aged = (RTC::timestamp_t) pmtu_aged_;  // cast from uint16_t to int64_t (RTC::timestamp_t)
+    rtc_aged = rtc_aged * 60; // from minutes to seconds
 
     for (auto& entry : paths_) {
       /*
@@ -306,8 +309,9 @@ namespace net {
         (default set to 10 minutes), then the PMTU can be increased/reset to see if the PMTU has
         increased since the last decrease over 10 minutes ago
       */
-      if (entry.second.timestamp() != 0 and RTC::time_since_boot() > pmtu_stale_ and
-        entry.second.timestamp() < (RTC::time_since_boot() - pmtu_stale_))
+
+      if (entry.second.timestamp() != 0 and RTC::time_since_boot() > rtc_aged and
+        entry.second.timestamp() < (RTC::time_since_boot() - rtc_aged))
       {
         entry.second.reset_pmtu();
         stack_.reset_pmtu(entry.first, entry.second.pmtu());
