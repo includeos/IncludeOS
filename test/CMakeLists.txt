@@ -14,7 +14,7 @@ if ("${ARCH}" STREQUAL "")
   set (ARCH "ARCH_X86")
 endif("${ARCH}" STREQUAL "")
 
-add_definitions(-D${ARCH} -DINCLUDEOS_SINGLE_THREADED)
+add_definitions(-D${ARCH})
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
@@ -80,8 +80,8 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/packets.cpp
+  ${TEST}/net/unit/socket.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
-  ${TEST}/net/unit/tcp_socket.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/net/unit/router.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
@@ -93,6 +93,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/delegate.cpp
   ${TEST}/util/unit/fixed_queue.cpp
   ${TEST}/util/unit/fixed_vector.cpp
+  ${TEST}/util/unit/isotime.cpp
   ${TEST}/util/unit/logger_test.cpp
   ${TEST}/util/unit/membitmap.cpp
   ${TEST}/util/unit/path_to_regex_no_options.cpp
