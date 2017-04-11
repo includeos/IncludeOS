@@ -27,6 +27,9 @@
 #include <net/ip4/icmp4_common.hpp>
 #include <net/socket.hpp>
 
+#include <net/error.hpp>
+#include <net/ip4/icmp_error.hpp>
+
 namespace net {
   // Packet must be forward declared to avoid circular dependency
   // i.e. IP uses Packet, and Packet uses IP headers
@@ -66,117 +69,6 @@ namespace net {
       auto* d = static_cast<Derived *>(p.release());
       return std::unique_ptr<Derived>(d);
   }
-
-  /**
-   *  General Error class for the OS
-   *  ICMP_error f.ex. inherits from this class
-   */
-  class Error {
-  public:
-
-    enum class Type : uint8_t {
-      no_error,
-      general_IO,
-      ifdown,
-      ICMP
-      // Add more as needed
-    };
-
-    Error() = default;
-
-    Error(Type t, const char* msg)
-      : t_{t}, msg_{msg}
-    {}
-
-    virtual ~Error() = default;
-
-    Type type()
-    { return t_; }
-
-    operator bool() const noexcept
-    { return t_ != Type::no_error; }
-
-    bool is_icmp() const noexcept
-    { return t_ == Type::ICMP; }
-
-    virtual const char* what() const noexcept
-    { return msg_; }
-
-  private:
-    Type t_{Type::no_error};
-    const char* msg_{"No error"};
-
-  };  // < class Error
-
-
-  /**
-   *  An object of this error class is sent to UDP and TCP (via Inet) when an ICMP error message
-   *  is received in ICMPv4::receive
-   */
-  class ICMP_error : public Error {
-
-  public:
-    using ICMP_type = icmp4::Type;
-    using ICMP_code = uint8_t;    // Codes in icmp4_common.hpp in namespace icmp4::code
-                                  // icmp4::code::Dest_unreachable::PORT f.ex.
-
-    /**
-     * @brief      Constructor (default: no error occurred)
-     */
-    ICMP_error()
-      : Error{}
-    {}
-
-    /**
-     * @brief      Constructor
-     *
-     * @param[in]  icmp_type  The ICMP type
-     * @param[in]  icmp_code  The ICMP code
-     * @param[in]  pmtu       The Path MTU (Maximum Transmission Unit for the destination)
-     *                        This is set in Inet, which asks the IP layer for the most recent
-     *                        Path MTU value
-     */
-    ICMP_error(ICMP_type icmp_type, ICMP_code icmp_code, uint16_t pmtu = 0)
-      : Error{Error::Type::ICMP, "ICMP error message received"},
-        icmp_type_{icmp_type}, icmp_code_{icmp_code}, pmtu_{pmtu}
-    {}
-
-    ICMP_type icmp_type() const noexcept
-    { return icmp_type_; }
-
-    std::string icmp_type_str() const
-    { return icmp4::get_type_string(icmp_type_); }
-
-    void set_icmp_type(ICMP_type icmp_type) noexcept
-    { icmp_type_ = icmp_type; }
-
-    ICMP_code icmp_code() const noexcept
-    { return icmp_code_; }
-
-    std::string icmp_code_str() const
-    { return icmp4::get_code_string(icmp_type_, icmp_code_); }
-
-    void set_icmp_code(ICMP_code icmp_code) noexcept
-    { icmp_code_ = icmp_code; }
-
-    bool is_too_big() const noexcept {
-      return icmp_type_ == ICMP_type::DEST_UNREACHABLE and
-        icmp_code_ == (ICMP_code) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED;
-    }
-
-    uint16_t pmtu() const noexcept
-    { return pmtu_; }
-
-    void set_pmtu(uint16_t pmtu) noexcept
-    { pmtu_ = pmtu; }
-
-  private:
-    ICMP_type icmp_type_{ICMP_type::NO_ERROR};
-    ICMP_code icmp_code_{0};
-    uint16_t pmtu_{0};   // Is set if packet sent received an ICMP too big message
-
-  };  // < class ICMP_error
-
 
   /* RFC 6335 - IANA */
   namespace port_ranges
