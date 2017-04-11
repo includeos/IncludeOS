@@ -19,17 +19,18 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <cstdio>
-#include <os>
 #include <boot/multiboot.h>
 #include <hw/cmos.hpp>
+#include <kernel/os.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/rtc.hpp>
 #include <kernel/rdrand.hpp>
 #include <kernel/rng.hpp>
 #include <kernel/cpuid.hpp>
+#include <util/fixedvec.hpp>
 #include <kprint>
+#include <service>
 #include <statman>
-#include <vector>
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -63,7 +64,7 @@ multiboot_info_t* OS::bootinfo_ = nullptr;
 std::string OS::cmdline{Service::binary_name()};
 
 // stdout redirection
-static std::vector<OS::print_func> os_print_handlers;
+static fixedvector<OS::print_func, 8> os_print_handlers;
 extern void default_stdout_handlers();
 // custom init
 std::vector<OS::Plugin_struct> OS::plugins_;
@@ -85,8 +86,6 @@ const std::string& OS::cmdline_args() noexcept
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   PROFILE("");
-  default_stdout_handlers();
-
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
@@ -280,7 +279,7 @@ void OS::on_panic(on_panic_func func)
 
 void OS::add_stdout(OS::print_func func)
 {
-  os_print_handlers.push_back(func);
+  os_print_handlers.add(func);
 }
 void OS::add_stdout_default_serial()
 {

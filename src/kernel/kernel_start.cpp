@@ -37,6 +37,8 @@ extern "C" {
   extern uintptr_t _end;
 }
 
+extern void default_stdout_handlers();
+
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)
 {
@@ -66,6 +68,9 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 
   // Initialize system calls
   _init_syscalls();
+
+  // initialize stdout handlers
+  default_stdout_handlers();
 
   // modern init array
   _init_array();
