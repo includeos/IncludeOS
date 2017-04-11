@@ -93,10 +93,6 @@ uint16_t Connection::MSDS() const noexcept {
   return std::min(host_.MSS(), cb.SND.MSS) + sizeof(Header);
 }
 
-uint16_t Connection::SMSS() const noexcept {
-  return smss_; // Updated by Path MTU Discovery process
-}
-
 void Connection::read(ReadBuffer&& buffer, ReadCallback callback) {
   try {
     state_->receive(*this, std::forward<ReadBuffer>(buffer));

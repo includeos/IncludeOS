@@ -1189,7 +1189,9 @@ private:
    *
    * @return     SMSS
    */
-  uint16_t SMSS() const noexcept;
+  inline uint16_t SMSS() const noexcept {
+    return smss_; // Updated by Path MTU Discovery process
+  }
 
   /**
    * @brief      Receiver Maximum Segment Size
