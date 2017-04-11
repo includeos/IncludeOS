@@ -1,11 +1,6 @@
-#
-# CMakeList for IncludeOS services
-#
-
-
-#
-# COMPILER / Build options
-#
+###                                 ###
+## CMakeList for IncludeOS services ##
+#___________________________________#
 
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
@@ -16,15 +11,8 @@ set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
 # TODO: Verify that the OS libraries exist
 
-# Fail on GCC
-if(CMAKE_COMPILER_IS_GNUCC)
-	# currently gcc is not supported due to problems cross-compiling a unikernel
-	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-#	message(FATAL_ERROR "GCC is not currently supported, please clean-up build directory and configure for clang through CC and CXX environment variables")
-endif(CMAKE_COMPILER_IS_GNUCC)
-
 # Assembler
-set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
 enable_language(ASM_NASM)
 
 # defines $CAPABS depending on installation
@@ -39,7 +27,7 @@ set(WARNS  "-Wall -Wextra") #-pedantic
 # configure options
 option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
-option(stripped "reduce size" OFF)
+option(stripped "Strip symbols to further reduce size" OFF)
 
 if ("${ARCH}" STREQUAL "")
   set (ARCH "ARCH_X86")
@@ -75,7 +63,6 @@ set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 #
 # DRIVERS / PLUGINS - support for parent cmake list specification
 #
-
 
 # Function:
 # Add plugin / driver as library, set link options
