@@ -383,6 +383,9 @@ namespace net {
      */
     Timer pmtu_timer_{{ *this, &IP4::reset_stale_paths }};
 
+    /**
+     * How often the pmtu_timer_ should check for aged values in the PMTU cache (paths_)
+     */
     std::chrono::seconds pmtu_timer_interval_{DEFAULT_PMTU_TIMER_INTERVAL};
 
     /**
