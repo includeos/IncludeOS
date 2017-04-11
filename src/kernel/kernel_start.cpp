@@ -67,9 +67,6 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   // Initialize system calls
   _init_syscalls();
 
-  // call global constructors emitted by compiler
-  _init();
-
   // modern init array
   _init_array();
 
