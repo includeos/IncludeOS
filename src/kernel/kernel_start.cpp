@@ -32,8 +32,7 @@ extern "C" {
   void _init_heap(uintptr_t);
   void _init_c_runtime();
   void _init_syscalls();
-  void _init();
-  void _init_array();
+  void __libc_init_array();
   extern uintptr_t _end;
 }
 
@@ -73,7 +72,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   default_stdout_handlers();
 
   // modern init array
-  _init_array();
+  __libc_init_array();
 
   // Initialize OS including devices
   OS::start(magic, addr);
