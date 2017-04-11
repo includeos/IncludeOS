@@ -65,6 +65,10 @@ SECTIONS
     LONG(0);
   }
 
+  .pre_init ALIGN(0x10) :
+  {
+    *(.pre_init*)
+  }
   .init_array ALIGN(0x10) :
   {
     _INIT_ARRAY_START_ = .;
