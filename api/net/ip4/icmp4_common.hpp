@@ -34,7 +34,8 @@ namespace net {
     PARAMETER_PROBLEM   = 12,
     TIMESTAMP           = 13,
     TIMESTAMP_REPLY     = 14,
-    NO_REPLY            = 100   // Custom: Type in ICMP_packet if no ping reply received
+    NO_REPLY            = 100,  // Custom: Type in ICMP_packet if no ping reply received
+    NO_ERROR            = 200
   };
 
   namespace code {
@@ -75,107 +76,103 @@ namespace net {
   } // < namespace code
 
   static std::string __attribute__((unused)) get_type_string(Type type) {
-    return [&type] () {
-      switch (type) {
-        case Type::ECHO:
-          return "ECHO (8)";
-        case Type::ECHO_REPLY:
-          return "ECHO REPLY (0)";
-        case Type::DEST_UNREACHABLE:
-          return "DESTINATION UNREACHABLE (3)";
-        case Type::REDIRECT:
-          return "REDIRECT (5)";
-        case Type::TIME_EXCEEDED:
-          return "TIME EXCEEDED (11)";
-        case Type::PARAMETER_PROBLEM:
-          return "PARAMETER PROBLEM (12)";
-        case Type::TIMESTAMP:
-          return "TIMESTAMP (13)";
-        case Type::TIMESTAMP_REPLY:
-          return "TIMESTAMP REPLY (14)";
-        case Type::NO_REPLY:
-          return "NO REPLY";
-        default:
-          return "UNKNOWN";
-      };
-    }();
+    switch (type) {
+      case Type::ECHO:
+        return "ECHO (8)";
+      case Type::ECHO_REPLY:
+        return "ECHO REPLY (0)";
+      case Type::DEST_UNREACHABLE:
+        return "DESTINATION UNREACHABLE (3)";
+      case Type::REDIRECT:
+        return "REDIRECT (5)";
+      case Type::TIME_EXCEEDED:
+        return "TIME EXCEEDED (11)";
+      case Type::PARAMETER_PROBLEM:
+        return "PARAMETER PROBLEM (12)";
+      case Type::TIMESTAMP:
+        return "TIMESTAMP (13)";
+      case Type::TIMESTAMP_REPLY:
+        return "TIMESTAMP REPLY (14)";
+      case Type::NO_REPLY:
+        return "NO REPLY";
+      default:
+        return "UNKNOWN";
+    }
   }
 
   static std::string __attribute__((unused)) get_code_string(Type type, uint8_t code) {
-    return [&type, &code] () {
-      switch (type) {
-        case Type::ECHO:  // Have only code 0
-        case Type::ECHO_REPLY:
-        case Type::TIMESTAMP:
-        case Type::TIMESTAMP_REPLY:
-        case Type::NO_REPLY:
-          return "DEFAULT (0)";
-        case Type::DEST_UNREACHABLE:
-          switch ( (code::Dest_unreachable) code ) {
-            case code::Dest_unreachable::NET:
-              return "NET (0)";
-            case code::Dest_unreachable::HOST:
-              return "HOST (1)";
-            case code::Dest_unreachable::PROTOCOL:
-              return "PROTOCOL (2)";
-            case code::Dest_unreachable::PORT:
-              return "PORT (3)";
-            case code::Dest_unreachable::FRAGMENTATION:
-              return "FRAGMENTATION (4)";
-            case code::Dest_unreachable::SRC_ROUTE:
-              return "SOURCE ROUTE (5)";
-            case code::Dest_unreachable::NET_UNKNOWN:
-              return "NET UNKNOWN (6)";
-            case code::Dest_unreachable::HOST_UNKNOWN:
-              return "HOST UNKNOWN (7)";
-            case code::Dest_unreachable::SRC_HOST_ISOLATED:
-              return "SOURCE HOST ISOLATED (8)";
-            case code::Dest_unreachable::NET_PROHIBITED:
-              return "NET PROHIBITED (9)";
-            case code::Dest_unreachable::HOST_PROHIBITED:
-              return "HOST PROHIBITED (10)";
-            case code::Dest_unreachable::NET_FOR_TOS:
-              return "NET FOR Type-of-Service (11)";
-            case code::Dest_unreachable::HOST_FOR_TOS:
-              return "HOST FOR Type-of-Service (12)";
-            default:
-              return "-";
-          }
-        case Type::REDIRECT:
-          switch ( (code::Redirect) code ) {
-            case code::Redirect::NET:
-              return "NET (0)";
-            case code::Redirect::HOST:
-              return "HOST (1)";
-            case code::Redirect::TOS_NET:
-              return "Type-of-Service NET (2)";
-            case code::Redirect::TOS_HOST:
-              return "Type-of-Service HOST (3)";
-            default:
-              return "-";
-          }
-        case Type::TIME_EXCEEDED:
-          switch ( (code::Time_exceeded) code ) {
-            case code::Time_exceeded::TTL:
-              return "TTL (0)";
-            case code::Time_exceeded::FRAGMENT_REASSEMBLY:
-              return "FRAGMENT REASSEMBLY (1)";
-            default:
-              return "-";
-          }
-        case Type::PARAMETER_PROBLEM:
-          switch ( (code::Parameter_problem) code ) {
-            case code::Parameter_problem::POINTER_INDICATES_ERROR:
-              return "POINTER INDICATES ERROR (0)";
-            case code::Parameter_problem::REQUIRED_OPT_MISSING:
-              return "REQUIRED OPTION MISSING (1)";
-            default:
-              return "-";
-          }
-        default:
-          return "-";
-      };
-    }();
+    switch (type) {
+      case Type::ECHO:  // Have only code 0
+      case Type::ECHO_REPLY:
+      case Type::TIMESTAMP:
+      case Type::TIMESTAMP_REPLY:
+      case Type::NO_REPLY:
+        return "DEFAULT (0)";
+      case Type::DEST_UNREACHABLE:
+        switch ( (code::Dest_unreachable) code ) {
+          case code::Dest_unreachable::NET:
+            return "NET (0)";
+          case code::Dest_unreachable::HOST:
+            return "HOST (1)";
+          case code::Dest_unreachable::PROTOCOL:
+            return "PROTOCOL (2)";
+          case code::Dest_unreachable::PORT:
+            return "PORT (3)";
+          case code::Dest_unreachable::FRAGMENTATION:
+            return "FRAGMENTATION (4)";
+          case code::Dest_unreachable::SRC_ROUTE:
+            return "SOURCE ROUTE (5)";
+          case code::Dest_unreachable::NET_UNKNOWN:
+            return "NET UNKNOWN (6)";
+          case code::Dest_unreachable::HOST_UNKNOWN:
+            return "HOST UNKNOWN (7)";
+          case code::Dest_unreachable::SRC_HOST_ISOLATED:
+            return "SOURCE HOST ISOLATED (8)";
+          case code::Dest_unreachable::NET_PROHIBITED:
+            return "NET PROHIBITED (9)";
+          case code::Dest_unreachable::HOST_PROHIBITED:
+            return "HOST PROHIBITED (10)";
+          case code::Dest_unreachable::NET_FOR_TOS:
+            return "NET FOR Type-of-Service (11)";
+          case code::Dest_unreachable::HOST_FOR_TOS:
+            return "HOST FOR Type-of-Service (12)";
+          default:
+            return "-";
+        }
+      case Type::REDIRECT:
+        switch ( (code::Redirect) code ) {
+          case code::Redirect::NET:
+            return "NET (0)";
+          case code::Redirect::HOST:
+            return "HOST (1)";
+          case code::Redirect::TOS_NET:
+            return "Type-of-Service NET (2)";
+          case code::Redirect::TOS_HOST:
+            return "Type-of-Service HOST (3)";
+          default:
+            return "-";
+        }
+      case Type::TIME_EXCEEDED:
+        switch ( (code::Time_exceeded) code ) {
+          case code::Time_exceeded::TTL:
+            return "TTL (0)";
+          case code::Time_exceeded::FRAGMENT_REASSEMBLY:
+            return "FRAGMENT REASSEMBLY (1)";
+          default:
+            return "-";
+        }
+      case Type::PARAMETER_PROBLEM:
+        switch ( (code::Parameter_problem) code ) {
+          case code::Parameter_problem::POINTER_INDICATES_ERROR:
+            return "POINTER INDICATES ERROR (0)";
+          case code::Parameter_problem::REQUIRED_OPT_MISSING:
+            return "REQUIRED OPTION MISSING (1)";
+          default:
+            return "-";
+        }
+      default:
+        return "-";
+    };
   }
 
   } // < namespace icmp4

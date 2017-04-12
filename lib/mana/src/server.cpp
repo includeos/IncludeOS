@@ -73,7 +73,6 @@ void Server::process_route(Request_ptr req, Response_ptr res) {
     parsed_route.job(req, res);
   }
   catch (const Router_error& err) {
-    printf("<Server> Router_error: %s - Responding with 404.\n", err.what());
     res->send_code(http::Not_Found, true);
   }
 }

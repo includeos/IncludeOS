@@ -23,6 +23,8 @@
 #include <common>
 #include <net/inet.hpp>
 
+#include <unordered_map>
+
 namespace net {
 
   class PacketIP4;
@@ -38,7 +40,6 @@ namespace net {
     enum class Direction
     { Upstream, Downstream };
 
-
     using Stack = Inet<IP4>;
     using addr = ip4::Addr;
     using header = ip4::Header;
@@ -47,6 +48,7 @@ namespace net {
     using downstream_arp = delegate<void(Packet_ptr, IP4::addr)>;
     using Packet_filter = delegate<IP_packet_ptr(IP_packet_ptr)>;
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
+    using PMTU = uint16_t;
 
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Stack&) noexcept;
@@ -161,8 +163,10 @@ namespace net {
     /**  Default downstream packet filter */
     IP_packet_ptr filter_downstream(IP_packet_ptr packet);
 
-
-
+    /**
+     *  Path MTU (and Packetization Layered Path MTU Discovery) related methods
+     */
+    void update_path(IP4::addr dest, PMTU val);
 
   private:
     /** Stats */
@@ -171,6 +175,20 @@ namespace net {
     uint32_t& packets_dropped_;
 
     Stack& stack_;
+
+    /**
+     *  Map of Path MTUs
+     *
+     *  MTU (RFC4821, p. 7): Maximum Transmission Unit, the size in bytes of the largest IP packet, including the IP header and payload,
+     *  that can be transmitted on a link or path
+     *
+     *  Link MTU (RFC4821, p. 7): Maximum Transmission Unit, i.e., maximum IP packet size in bytes, that can be conveyed in one piece
+     *  over a link
+     *
+     *  Key: Destination address (chosen as the local representation of a path after reviewing RFC 1191, 1981 and 4821)
+     *  Value: The Path MTU (the minimum link MTU of all the links in a path between a source node and a destination node)
+     */
+    std::unordered_map<IP4::addr, PMTU> paths_;
 
     /** Downstream: Linklayer output delegate */
     downstream_arp linklayer_out_ = nullptr;
@@ -186,7 +204,6 @@ namespace net {
     /** Packet filters */
     Packet_filter upstream_filter_;
     Packet_filter downstream_filter_;
-
 
     /** All dropped packets go here */
     drop_handler drop_handler_;

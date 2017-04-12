@@ -23,12 +23,12 @@
 #include "connection.hpp"
 #include "headers.hpp"
 #include "listener.hpp"
-#include "socket.hpp"
 #include "packet.hpp"
 
 #include <map>  // connections, listeners
 #include <queue>  // writeq
 #include <net/inet.hpp>
+#include <net/socket.hpp>
 #include <bitset>
 
 namespace net {
@@ -50,7 +50,7 @@ namespace net {
     friend class tcp::Listener;
 
   private:
-    using Listeners       = std::map<tcp::Socket, std::unique_ptr<tcp::Listener>>;
+    using Listeners       = std::map<Socket, std::unique_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
 
     /**
@@ -137,9 +137,6 @@ namespace net {
     }; // < class Port_util
     using Port_lists      = std::map<tcp::Address, Port_util>;
 
-    using Error_type      = Inet<IP4>::Error_type;
-    using Error_code      = Inet<IP4>::Error_code;
-
   public:
     /////// TCP Stuff - Relevant to the protocol /////
 
@@ -173,7 +170,7 @@ namespace net {
      *
      * @return     A TCP Listener
      */
-    tcp::Listener& listen(tcp::Socket socket, ConnectCallback cb = nullptr);
+    tcp::Listener& listen(Socket socket, ConnectCallback cb = nullptr);
 
     /**
      * @brief Close a Listener
@@ -183,7 +180,7 @@ namespace net {
      * @param socket listening socket
      * @return whether the listener existed and was closed
      */
-    bool close(tcp::Socket socket);
+    bool close(Socket socket);
 
     /**
      * @brief      Make an outgoing connection to a TCP remote (IP:port).
@@ -192,7 +189,7 @@ namespace net {
      * @param[in]  remote     The remote
      * @param[in]  cb         Connect callback to be invoked when the connection is established.
      */
-    void connect(tcp::Socket remote, ConnectCallback cb);
+    void connect(Socket remote, ConnectCallback cb);
 
     /**
      * @brief      Make an outgoing connection from a given source address.
@@ -203,7 +200,7 @@ namespace net {
      * @param[in]  remote    The remote socket
      * @param[in]  callback  The connect callback
      */
-    void connect(tcp::Address source, tcp::Socket remote, ConnectCallback callback);
+    void connect(tcp::Address source, Socket remote, ConnectCallback callback);
 
     /**
      * @brief      Make an outgoing connection to from a given source socket.
@@ -213,7 +210,7 @@ namespace net {
      * @param[in]  remote    The remote socket
      * @param[in]  callback  The connect callback
      */
-    void connect(tcp::Socket local, tcp::Socket remote, ConnectCallback callback);
+    void connect(Socket local, Socket remote, ConnectCallback callback);
 
     /**
      * @brief      Make an outgoing connecction to a TCP remote (IP:port).
@@ -223,7 +220,7 @@ namespace net {
      *
      * @return     A ptr to an unestablished TCP Connection
      */
-    tcp::Connection_ptr connect(tcp::Socket remote);
+    tcp::Connection_ptr connect(Socket remote);
 
     /**
      * @brief      Make an outgoing connection from a given source address.
@@ -235,7 +232,7 @@ namespace net {
      *
      * @return     A ptr to an unestablished TCP Connection
      */
-    tcp::Connection_ptr connect(tcp::Address source, tcp::Socket remote);
+    tcp::Connection_ptr connect(tcp::Address source, Socket remote);
 
     /**
      * @brief      Make an outgoing connection to from a given source socket.
@@ -246,7 +243,7 @@ namespace net {
      *
      * @return     A ptr to an unestablished TCP Connection
      */
-    tcp::Connection_ptr connect(tcp::Socket local, tcp::Socket remote);
+    tcp::Connection_ptr connect(Socket local, Socket remote);
 
     /**
      * @brief      Insert a connection ptr into the TCP (used for restoring)
@@ -463,7 +460,7 @@ namespace net {
      *
      * @return     True if bound, False otherwise.
      */
-    bool is_bound(const tcp::Socket socket) const;
+    bool is_bound(const Socket socket) const;
 
     /**
      * @brief      Number of connections queued for writing.
@@ -489,8 +486,11 @@ namespace net {
     IPStack& stack() const
     { return inet_; }
 
-    void error_report(Error_type type, Error_code code,
-      tcp::Address src_addr, tcp::port_t src_port, tcp::Address dest_addr, tcp::port_t dest_port);
+    /**
+     *  Is called when an Error has occurred in the OS
+     *  F.ex.: Is called when an ICMP error message has been received in response to a sent TCP packet
+    */
+    void error_report(Error& err, Socket dest);
 
   private:
     IPStack&      inet_;
@@ -591,7 +591,7 @@ namespace net {
      *
      * @param[in]  socket  The socket
      */
-    void bind(const tcp::Socket socket);
+    void bind(const Socket socket);
 
     /**
      * @brief      Unbinds a socket, making it free for future use
@@ -600,7 +600,7 @@ namespace net {
      *
      * @return     Returns wether there was a socket that got unbound
      */
-    bool unbind(const tcp::Socket socket);
+    bool unbind(const Socket socket);
 
     /**
      * @brief      Bind to an socket where the address is given and the
@@ -611,7 +611,7 @@ namespace net {
      *
      * @return     The socket that got bound.
      */
-    tcp::Socket bind(const tcp::Address addr);
+    Socket bind(const tcp::Address addr);
 
     /**
      * @brief      Binds to an socket where the address is given by the
@@ -619,7 +619,7 @@ namespace net {
      *
      * @return     The socket that got bound.
      */
-    tcp::Socket bind()
+    Socket bind()
     { return bind(address()); }
 
     /**
@@ -640,7 +640,7 @@ namespace net {
      *
      * @return     A listener iterator
      */
-    Listeners::iterator find_listener(const tcp::Socket socket)
+    Listeners::iterator find_listener(const Socket socket)
     {
       Listeners::iterator it = listeners_.find(socket);
       if(it == listeners_.end() and socket.address() != 0)
@@ -656,7 +656,7 @@ namespace net {
      *
      * @return     A listener const iterator
      */
-    Listeners::const_iterator cfind_listener(const tcp::Socket socket) const
+    Listeners::const_iterator cfind_listener(const Socket socket) const
     {
       Listeners::const_iterator it = listeners_.find(socket);
       if(it == listeners_.cend() and socket.address() != 0)
@@ -680,8 +680,8 @@ namespace net {
      *
      * @return     A ptr to the Connection whos created
      */
-    tcp::Connection_ptr create_connection(tcp::Socket local,
-                                          tcp::Socket remote,
+    tcp::Connection_ptr create_connection(Socket local,
+                                          Socket remote,
                                           ConnectCallback cb = nullptr);
 
     /**

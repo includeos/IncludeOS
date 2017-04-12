@@ -87,7 +87,7 @@ namespace http {
     else
     {
       // this is the case when Status line is received, but not yet headers.
-      if(res_->header().is_empty() && req_->method() != HEAD)
+      if(not res_->headers_complete() && req_->method() != HEAD)
       {
         *res_ << data;
         res_->parse();
@@ -111,12 +111,17 @@ namespace http {
         try
         {
           const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
+          const unsigned body_size = res_->body().size();
           debug2("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
-            req_->uri().to_string().to_string().c_str(), data.size(), conlen, res_->body().size());
+            req_->uri().to_string().to_string().c_str(), data.size(), conlen, body_size);
           // risk buffering forever if no timeout
-          if(conlen == res_->body().size())
+          if(body_size == conlen)
           {
             end_response();
+          }
+          else if(body_size > conlen)
+          {
+            end_response({Error::INVALID});
           }
         }
         catch(...)

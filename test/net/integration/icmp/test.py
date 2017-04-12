@@ -53,6 +53,8 @@ def start_icmp_test(trigger_line):
     "Destination: 10.0.0.45" in output_data and \
     "Type: ECHO REPLY (0)" in output_data and \
     "Code: DEFAULT (0)" in output_data and \
+    "Checksum: " in output_data and \
+    "Data: INCLUDEOS12345ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678" in output_data and \
     "No reply received from 10.0.0.42" in output_data and \
     "No reply received from 10.0.0.43" in output_data:
     num_successes += 1
