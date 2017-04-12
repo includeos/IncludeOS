@@ -79,7 +79,7 @@ public:
   ElfTables() {}
 
   void set(ElfSym* syms,
-           uint32_t   entries,
+           uint32_t    entries,
            const char* string_table,
            uint32_t    strsize,
            uint32_t csum_syms,
@@ -330,7 +330,6 @@ static struct relocated_header {
   }
 } relocs;
 
-static const char* SANITY_STRING = "Hello world!";
 struct elfsyms_header {
   uint32_t  symtab_entries;
   uint32_t  strtab_size;
@@ -362,7 +361,10 @@ void _move_elf_syms_location(const void* location, void* new_location)
   // incoming header
   auto* hdr = (elfsyms_header*) location;
   // verify CRC sanity check
-  const uint32_t our_sanity = crc32(SANITY_STRING, strlen(SANITY_STRING));
+  const uint32_t temp_hdr = hdr->sanity_check;
+  hdr->sanity_check = 0;
+  const uint32_t our_sanity = crc32(hdr, sizeof(elfsyms_header));
+  hdr->sanity_check = temp_hdr;
   if (hdr->sanity_check != our_sanity)
   {
     kprintf("CRC sanity check failed! "
