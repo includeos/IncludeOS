@@ -335,11 +335,11 @@ if (debug)
 endif()
 
 add_custom_target(
-  pruned_elf_symbols #ALL
+  pruned_elf_symbols ALL
   COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
-  #DEPENDS service
+  DEPENDS service
 )
 
 # create .img files too automatically

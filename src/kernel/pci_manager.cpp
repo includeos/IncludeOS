@@ -39,16 +39,15 @@ fixed_factory_t<PCI_manager::NIC_driver> nic_fact(Fixedvector_Init::UNINIT);
 fixed_factory_t<PCI_manager::BLK_driver> blk_fact(Fixedvector_Init::UNINIT);
 
 template <typename Factory, typename Class>
-static inline bool register_device(hw::PCI_Device& dev, fixed_factory_t<Factory>& fact) {
-  debug("vendor: 0x%x prod: 0x%x, id: 0x%x\n",
-    dev.vendor_id(), dev.product_id(), driver_id(dev));
-
-  for (auto& driver : fact) {
-    if (driver.first == dev.vendor_product())
+static inline bool register_device(hw::PCI_Device& dev,
+                                   fixed_factory_t<Factory>& factory) {
+  for (auto& fact : factory) {
+    if (fact.first == dev.vendor_product())
     {
       INFO2("|  +--+ Driver: Found");
 
-      hw::Devices::register_device<Class>(driver.second(dev));
+      auto driver = fact.second(dev);
+      hw::Devices::register_device<Class>(std::move(driver));
       return true;
     }
   }
@@ -78,6 +77,8 @@ void PCI_manager::scan_bus(int bus)
               hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
 
       auto& dev = devices.emplace(pci_addr, id, devclass.reg);
+      debug("class: %u  vendor: 0x%x  prod: 0x%x\n",
+            dev.classcode(), dev.vendor_id(), dev.product_id());
 
       bool registered = false;
       // translate classcode to device and register
