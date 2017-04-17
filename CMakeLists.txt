@@ -9,7 +9,7 @@ if(DEFINED ENV{ARCH})
 endif()
 message(STATUS "Target CPU architecture ${ARCH}")
 
-set(TRIPLE "${ARCH}-pc-linux-elf") #
+set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
