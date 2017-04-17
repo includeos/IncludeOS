@@ -101,7 +101,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   /// STATMAN ///
   /// initialize on page 9, 2 pages in size
-  Statman::init(0x8000, 0x2000);
+  Statman::get().init(0x8000, 0x2000);
 
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type

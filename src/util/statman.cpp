@@ -19,6 +19,8 @@
 #include <statman>
 
 static Statman statman;
+
+__attribute__((weak))
 Statman& Statman::get() { return statman; }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -75,13 +77,14 @@ uint64_t& Stat::get_uint64() {
 
 ///////////////////////////////////////////////////////////////////////////////
 void Statman::init(const uintptr_t start, const Size_type num_bytes) {
+
   if(num_bytes < 0)
     throw Stats_exception{"Creating Statman: A negative number of bytes has been given"};
 
   const Size_type num_stats_in_span = num_bytes / sizeof(Stat);
 
-  statman.num_bytes_ = sizeof(Stat) * num_stats_in_span;
-  statman.stats_     = Span{reinterpret_cast<Stat*>(start), num_stats_in_span};
+  num_bytes_ = sizeof(Stat) * num_stats_in_span;
+  stats_     = Span{reinterpret_cast<Stat*>(start), num_stats_in_span};
 }
 
 ///////////////////////////////////////////////////////////////////////////////

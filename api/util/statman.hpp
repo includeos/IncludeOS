@@ -23,18 +23,15 @@
 #include <cstddef>
 #include <string>
 
-///
-/// This type is thrown when Statman's span is full
-///
+/** This type is thrown when Statman's span is full */
 struct Stats_out_of_memory : public std::out_of_range {
   explicit Stats_out_of_memory()
     : std::out_of_range(std::string{"Statman has no room for more statistics"})
     {}
 }; //< struct Stats_out_of_memory
 
-///
-/// This type is thrown from within the operations of class Statman
-///
+
+/** This type is thrown from within the operations of class Statman */
 struct Stats_exception : public std::runtime_error {
   using runtime_error::runtime_error;
 }; //< struct Stats_exception
@@ -241,8 +238,14 @@ public:
   ///
   Stat& get(const std::string& name);
 
-  static void init(const uintptr_t location, const Size_type size);
+  void init(const uintptr_t location, const Size_type size);
+
   Statman() {}
+  Statman(const uintptr_t location, const Size_type size)
+  {
+    init(location, size);
+  }
+
   ~Statman() = default;
 
 private:

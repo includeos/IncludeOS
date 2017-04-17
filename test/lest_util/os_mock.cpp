@@ -33,10 +33,11 @@ void* aligned_alloc(size_t alignment, size_t size) {
 #include <util/statman.hpp>
 Statman& Statman::get() {
   static uintptr_t start {0};
+  static const size_t memsize = 0x100000;
   if (!start) {
-    start = (uintptr_t) malloc(65536);
+    start = (uintptr_t) malloc(memsize);
   }
-  static Statman statman_{start, 8192};
+  static Statman statman_{start, memsize / sizeof(Stat)};
   return statman_;
 }
 
@@ -97,7 +98,6 @@ extern "C" {
 #ifdef __MACH__
   uintptr_t _start;
 #endif
-  uintptr_t _end;
 
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
@@ -119,6 +119,10 @@ extern "C" {
     return;
   }
 #endif
+
+  void __libc_init_array () {
+    return;
+  }
 
   void modern_interrupt_handler() {
     return;
