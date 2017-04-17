@@ -10,9 +10,23 @@ endif()
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
 # TODO: Verify that the OS libraries exist
+set(ARCH i686)
+if(DEFINED ENV{ARCH})
+  set(ARCH $ENV{ARCH})
+endif()
+
+set(TRIPLE ${ARCH}) #-pc-linux-elf
+set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
+set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 # Assembler
-set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+if ("${ARCH}" STREQUAL "x86_64")
+  set (ARCH_INTERNAL "ARCH_X64")
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+else()
+  set (ARCH_INTERNAL "ARCH_X86")
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+endif()
 enable_language(ASM_NASM)
 
 # defines $CAPABS depending on installation
@@ -28,10 +42,6 @@ set(WARNS  "-Wall -Wextra") #-pedantic
 option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "Strip symbols to further reduce size" OFF)
-
-if ("${ARCH}" STREQUAL "")
-  set (ARCH "ARCH_X86")
-endif("${ARCH}" STREQUAL "")
 
 add_definitions(-D${ARCH})
 
@@ -49,8 +59,8 @@ if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD -target x86_64-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-  set(CMAKE_C_FLAGS "-MMD -target x86_64-elf ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c")
 endif()
 
 # executable
@@ -177,7 +187,13 @@ if (stripped)
   set(STRIP_LV "--strip-all")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_${ARCH} -N --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/linker.ld ${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
+set(ELF ${ARCH})
+if (${ELF} STREQUAL "i686")
+  set(ELF "i386")
+endif()
+
+
+set(LDFLAGS "-nostdlib -melf_${ELF} -N --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/linker.ld ${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
@@ -329,7 +345,7 @@ add_custom_target(
 # create .img files too automatically
 add_custom_target(
   prepend_bootloader ALL
-  COMMAND ${INSTALL_LOC}/bin/vmbuild ${BINARY} ${INSTALL_LOC}/boot/bootloader
+  COMMAND ${INSTALL_LOC}/bin/vmbuild ${BINARY} ${INSTALL_LOC}/${ARCH}/boot/bootloader
   DEPENDS service
 )
 

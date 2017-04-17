@@ -69,7 +69,6 @@ add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 add_dependencies(os PrecompiledLibraries botan)
 
 add_subdirectory(arch/${ARCH})
-add_subdirectory(boot)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
 

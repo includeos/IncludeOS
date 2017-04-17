@@ -7,10 +7,13 @@ set(ARCH i686)
 if(DEFINED ENV{ARCH})
   set(ARCH $ENV{ARCH})
 endif()
+message(STATUS "Target CPU architecture ${ARCH}")
 
-set(TRIPLE ${ARCH}) #-pc-linux-elf
-set(DCMAKE_CXX_COMPILER_TARGET ${TRIPLE})
-set(DCMAKE_C_COMPILER_TARGET ${TRIPLE})
+set(TRIPLE "${ARCH}-pc-linux-elf") #
+set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
+set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
+
+message(STATUS "Target triple ${TRIPLE}")
 
 set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
 
