@@ -23,8 +23,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#define ARCH_X64 1
-
 extern void __arch_init();
 extern void __arch_poweroff();
 extern void __arch_reboot();
@@ -33,16 +31,32 @@ extern void __arch_disable_legacy_irq(uint8_t);
 inline void __arch_hw_barrier() noexcept;
 inline void __sw_barrier() noexcept;
 
-#if ARCH_X86 || ARCH_X64
+#if defined(ARCH_X86)
+
 inline uint64_t __arch_cpu_cycles() noexcept {
   uint64_t ret;
   asm("rdtsc" : "=A" (ret));
   return ret;
 }
+
+#elif defined(ARCH_X64)
+
+inline uint64_t __arch_cpu_cycles() noexcept {
+  unsigned hi, lo;
+  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
+
+#endif
+
+#if ARCH_X64 || ARCH_x86
+
 inline void __arch_hw_barrier() noexcept
 {
   asm volatile("mfence" ::: "memory");
 }
+
+
 #else
 inline uint64_t __arch_cpu_cycles() noexcept {
   assert(0);
