@@ -226,6 +226,10 @@ void OS::register_plugin(Plugin delg, const char* name){
   plugins_.emplace(delg, name);
 }
 
+int64_t OS::micros_since_boot() noexcept {
+  return cycles_since_boot() / cpu_freq().count();
+}
+
 uint64_t OS::get_cycles_halt() noexcept {
   return *os_cycles_hlt;
 }

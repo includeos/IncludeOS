@@ -66,9 +66,7 @@ public:
     return __arch_cpu_cycles();
   }
   /** micro seconds since boot */
-  static int64_t micros_since_boot() {
-    return cycles_since_boot() / cpu_freq().count();
-  }
+  static int64_t micros_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
   static RTC::timestamp_t boot_timestamp()
