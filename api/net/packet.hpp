@@ -60,13 +60,7 @@ namespace net
               data_end() <= buffer_end());
     }
 
-    ~Packet()
-    {
-      if (bufstore_)
-          bufstore_->release(this);
-      else
-          delete[] (Byte_ptr) this;
-    }
+    ~Packet() {}
 
     /** Get the buffer */
     Byte_ptr buf() noexcept
@@ -146,7 +140,13 @@ namespace net
 
 
     // override delete to do nothing
-    static void operator delete (void*) {}
+    static void operator delete (void* data) {
+      auto* pk = (Packet*) data;
+      if (pk->bufstore_)
+          pk->bufstore_->release(data);
+      else
+          delete[] (Byte_ptr) data;
+    }
 
   private:
     Packet_ptr chain_ {nullptr};

@@ -45,7 +45,7 @@ inline void __arch_hw_barrier() noexcept
 }
 #else
 inline uint64_t __arch_cpu_cycles() noexcept {
-  return 0;
+  assert(0);
 }
 inline void __arch_hw_barrier() noexcept {}
 #endif
