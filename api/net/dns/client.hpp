@@ -30,6 +30,9 @@ namespace net
   /**
    * @brief      A simple DNS client which is able to resolve hostnames
    *             and locally cache them.
+   *
+   * @note       A entry can stay longer than TTL due to flush timer granularity.
+   *             Max_TTL = TTL + FLUSH_INTERVAL (90s default)
    */
   class DNSClient
   {
@@ -52,7 +55,7 @@ namespace net
         : address{addr}, expires{exp}
       {}
     };
-    using Cache           = std::map<Hostname, Cache_entry>;
+    using Cache           = std::unordered_map<Hostname, Cache_entry>;
 
     static Timer::duration_t DEFAULT_RESOLVE_TIMEOUT; // 5s, client.cpp
     static Timer::duration_t DEFAULT_FLUSH_INTERVAL; // 60s, client.cpp

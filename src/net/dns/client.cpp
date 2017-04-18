@@ -20,7 +20,7 @@
 namespace net
 {
   Timer::duration_t DNSClient::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(5)};
-  Timer::duration_t DNSClient::DEFAULT_FLUSH_INTERVAL{std::chrono::seconds(60)};
+  Timer::duration_t DNSClient::DEFAULT_FLUSH_INTERVAL{std::chrono::seconds(30)};
   std::chrono::seconds DNSClient::DEFAULT_CACHE_TTL{std::chrono::seconds(60)};
 
   void DNSClient::resolve(Address dns_server,
@@ -88,7 +88,13 @@ namespace net
 
       // cache the response for 60 seconds
       if(cache_ttl_ > std::chrono::seconds::zero())
-        add_cache_entry(dns_req.hostname(), dns_req.getFirstIP4(), cache_ttl_);
+      {
+        const auto ip = dns_req.getFirstIP4();
+
+        // online cache if ip was resolved
+        if(ip != 0)
+          add_cache_entry(dns_req.hostname(), ip, cache_ttl_);
+      }
 
       // fire onResolve event
       req.finish();
@@ -105,15 +111,13 @@ namespace net
   void DNSClient::add_cache_entry(const Hostname& hostname, Address addr, std::chrono::seconds ttl)
   {
     // cache the address
-    auto it = cache_.emplace(std::piecewise_construct,
+    cache_.emplace(std::piecewise_construct,
       std::forward_as_tuple(hostname),
-      std::forward_as_tuple(addr, timestamp() + ttl.count())).first;
+      std::forward_as_tuple(addr, timestamp() + ttl.count()));
 
-    (void)it;
     debug("<DNSClient> Cache entry added: [%s] %s (%lld)\n",
-      it->first.c_str(),
-      it->second.address.to_string().c_str(),
-      it->second.expires - timestamp());
+      hostname.c_str(), addr.to_string().c_str(), ttl.count());
+
     // start the timer if not already active
     if(not flush_timer_.is_running())
       flush_timer_.start(DEFAULT_FLUSH_INTERVAL);
@@ -122,12 +126,23 @@ namespace net
   void DNSClient::flush_expired()
   {
     const auto before = cache_.size();
-    for(auto it = cache_.begin(); it != cache_.end(); ++it)
+
+    // which key that has expired
+    std::vector<const std::string*> expired;
+    expired.reserve(before);
+
+    const auto now = timestamp();
+    // gather all expired entries
+    for(auto& ent : cache_)
     {
-      if(it->second.expires <= timestamp())
-        cache_.erase(it);
+      if(ent.second.expires <= now)
+        expired.push_back(&ent.first);
     }
-    (void)before;
+
+    // remove all expired from cache
+    for(auto* exp : expired)
+      cache_.erase(*exp);
+
     debug("<DNSClient> Flushed %u expired entries.\n", before - cache_.size());
 
     if(not cache_.empty())
