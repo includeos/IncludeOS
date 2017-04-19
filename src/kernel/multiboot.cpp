@@ -69,34 +69,31 @@ extern "C" {
   }
 }
 
-void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
+void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr) {
   MYINFO("Booted with multiboot");
 
-  INFO2("* magic value: 0x%x Multiboot info at 0x%x", boot_magic, boot_addr);
+  INFO2("* Multiboot info at 0x%x", boot_addr);
   bootinfo_ = (multiboot_info_t*) boot_addr;
 
-  if (! bootinfo_->flags & MULTIBOOT_INFO_MEMORY) {
-    INFO2("* No memory info provided in multiboot info");
-    return;
+  if (bootinfo_->flags & MULTIBOOT_INFO_MEMORY) {
+    uint32_t mem_low_start = 0;
+    uint32_t mem_low_end = (bootinfo_->mem_lower * 1024) - 1;
+    uint32_t mem_low_kb = bootinfo_->mem_lower;
+    uint32_t mem_high_start = 0x100000;
+    uint32_t mem_high_end = mem_high_start + (bootinfo_->mem_upper * 1024) - 1;
+    uint32_t mem_high_kb = bootinfo_->mem_upper;
+
+    OS::low_memory_size_ = mem_low_kb * 1024;
+    OS::high_memory_size_ = mem_high_kb * 1024;
+    OS::memory_end_ = high_memory_size_ + mem_high_start;
+
+    INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
+    INFO2("\t 0x%08x - 0x%08x (%i Kib)",
+          mem_low_start, mem_low_end, mem_low_kb);
+    INFO2("\t 0x%08x - 0x%08x (%i Kib)",
+          mem_high_start, mem_high_end, mem_high_kb);
+    INFO2("");
   }
-
-  uint32_t mem_low_start = 0;
-  uint32_t mem_low_end = (bootinfo_->mem_lower * 1024) - 1;
-  uint32_t mem_low_kb = bootinfo_->mem_lower;
-  uint32_t mem_high_start = 0x100000;
-  uint32_t mem_high_end = mem_high_start + (bootinfo_->mem_upper * 1024) - 1;
-  uint32_t mem_high_kb = bootinfo_->mem_upper;
-
-  OS::low_memory_size_ = mem_low_kb * 1024;
-  OS::high_memory_size_ = mem_high_kb * 1024;
-  OS::memory_end_ = high_memory_size_ + mem_high_start;
-
-  INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
-  INFO2("\t 0x%08x - 0x%08x (%i Kib)",
-        mem_low_start, mem_low_end, mem_low_kb);
-  INFO2("\t 0x%08x - 0x%08x (%i Kib)",
-        mem_high_start, mem_high_end, mem_high_kb);
-  INFO2("");
 
   if (bootinfo_->flags & MULTIBOOT_INFO_CMDLINE) {
     INFO2("* Booted with parameters @ 0x%x: %s", bootinfo_->cmdline,
@@ -107,8 +104,10 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
   if (bootinfo_->flags & MULTIBOOT_INFO_MEM_MAP) {
     INFO2("* Multiboot provided memory map  (%i entries @ %p)",
           bootinfo_->mmap_length / sizeof(multiboot_memory_map_t), (void*)bootinfo_->mmap_addr);
-    gsl::span<multiboot_memory_map_t> mmap { reinterpret_cast<multiboot_memory_map_t*>(bootinfo_->mmap_addr),
-        (int)(bootinfo_->mmap_length / sizeof(multiboot_memory_map_t))};
+    gsl::span<multiboot_memory_map_t> mmap {
+        reinterpret_cast<multiboot_memory_map_t*>(bootinfo_->mmap_addr),
+        (int)(bootinfo_->mmap_length / sizeof(multiboot_memory_map_t))
+      };
 
     for (auto map : mmap) {
       const char* str_type = map.type & MULTIBOOT_MEMORY_AVAILABLE ? "FREE" : "RESERVED";
