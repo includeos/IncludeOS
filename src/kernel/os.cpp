@@ -106,10 +106,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-    OS::multiboot(boot_magic, boot_addr);
+    OS::multiboot(boot_addr);
     // if we got no memory information from multiboot, do legacy stuff
-    if (high_memory_size_ == 0)
-        OS::legacy_boot();
+    //if (high_memory_size_ == 0)
+    //    OS::legacy_boot();
   } else {
 
     if (is_softreset_magic(boot_magic) && boot_addr != 0)

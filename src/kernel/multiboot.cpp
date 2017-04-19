@@ -69,11 +69,11 @@ extern "C" {
   }
 }
 
-void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr) {
+void OS::multiboot(uint32_t boot_addr)
+{
   MYINFO("Booted with multiboot");
-
-  INFO2("* Multiboot info at 0x%x", boot_addr);
   bootinfo_ = (multiboot_info_t*) boot_addr;
+  INFO2("* Boot flags: %#x", bootinfo_->flags);
 
   if (bootinfo_->flags & MULTIBOOT_INFO_MEMORY) {
     uint32_t mem_low_start = 0;
@@ -93,6 +93,9 @@ void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr) {
     INFO2("\t 0x%08x - 0x%08x (%i Kib)",
           mem_high_start, mem_high_end, mem_high_kb);
     INFO2("");
+  }
+  else {
+    INFO2("No memory information from multiboot");
   }
 
   if (bootinfo_->flags & MULTIBOOT_INFO_CMDLINE) {

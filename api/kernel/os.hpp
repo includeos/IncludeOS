@@ -233,7 +233,7 @@ public:
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
-  static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
+  static void multiboot(uint32_t boot_addr);
 
   /** Boot with no multiboot params */
   static void legacy_boot();
