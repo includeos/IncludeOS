@@ -250,7 +250,7 @@ function(add_memdisk DISK)
   add_custom_command(
     OUTPUT  memdisk.o
     COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file ${INSTALL_LOC}/memdisk/memdisk.asm ${DISK_RELPATH}
-    COMMAND nasm -f elf64 ${INSTALL_LOC}/memdisk/memdisk.asm -o memdisk.o
+    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${INSTALL_LOC}/memdisk/memdisk.asm -o memdisk.o
     DEPENDS ${DISK_RELPATH}
   )
   add_library(memdisk STATIC memdisk.o)
