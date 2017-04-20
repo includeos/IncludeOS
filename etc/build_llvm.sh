@@ -2,7 +2,7 @@
 . $INCLUDEOS_SRC/etc/set_traps.sh
 
 # Download, configure, compile and install llvm
-ARCH=${ARCH:-i686} # CPU architecture. Alternatively x86_64
+ARCH=${ARCH:-x86_64} # CPU architecture. Alternatively x86_64
 TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
 
 newlib_inc=$TEMP_INSTALL_DIR/$TARGET/include	# path for newlib headers

@@ -10,7 +10,7 @@ endif()
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
 # TODO: Verify that the OS libraries exist
-set(ARCH i686)
+set(ARCH x86_64)
 if(DEFINED ENV{ARCH})
   set(ARCH $ENV{ARCH})
 endif()

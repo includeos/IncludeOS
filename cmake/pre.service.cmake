@@ -1,5 +1,5 @@
 # Target CPU Architecture
-set(ARCH i686)
+set(ARCH x86_64)
 if(DEFINED ENV{ARCH})
   set(ARCH $ENV{ARCH})
 endif()
