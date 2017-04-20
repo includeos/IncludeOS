@@ -14,5 +14,4 @@ include_directories(. ./../mod/GSL/)
 add_executable(vmbuild ${SOURCES})
 add_executable(elf_syms ${ELF_SYMS_SOURCES})
 
-# TODO: use prefix to install into the right directory
-install(TARGETS vmbuild elf_syms DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(TARGETS vmbuild elf_syms DESTINATION ${CMAKE_INSTALL_PREFIX}/includeos/bin)
