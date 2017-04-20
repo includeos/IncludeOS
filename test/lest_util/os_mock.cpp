@@ -82,7 +82,7 @@ bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
 
-void OS::multiboot(unsigned, unsigned) {}
+void OS::multiboot(unsigned) {}
 
 extern "C" {
 
@@ -218,18 +218,10 @@ namespace x86 {
 
 #ifndef ARCH_X86
 bool rdrand32(uint32_t* result) {
+  *result = rand();
   return true;
 }
 #include <kernel/cpuid.hpp>
-bool CPUID::has_feature(Feature f) {
-  return true;
-}
 #include <kernel/irq_manager.hpp>
-IRQ_manager& IRQ_manager::get() {
-  static IRQ_manager m;
-  return m;
-}
-void IRQ_manager::process_interrupts() {
-  return;
-}
+
 #endif
