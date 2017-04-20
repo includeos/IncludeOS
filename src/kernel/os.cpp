@@ -107,9 +107,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_addr);
-    // if we got no memory information from multiboot, do legacy stuff
-    //if (high_memory_size_ == 0)
-    //    OS::legacy_boot();
   } else {
 
     if (is_softreset_magic(boot_magic) && boot_addr != 0)
@@ -126,7 +123,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   OS::memory_end_ = high_memory_size_ + 0x100000;
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x4000, 0x5fff, "Statman", "Statistics"});
+  memmap.assign_range({0x6000, 0x7fff, "Statman", "Statistics"});
   memmap.assign_range({0xA000, 0x9fbff, "Kernel / service main stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
