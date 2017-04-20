@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <statman>
+#ifndef KERNEL_IDT_HPP
+#define KERNEL_IDT_HPP
 
-Statman& Statman::get() {
-    static Statman statman_{0x8000, 8192};
-    return statman_;
-}
+#include <arch>
+
+struct IDTDescr {
+  uint16_t offset_1;  // offset bits 0..15
+  uint16_t selector;  // a code segment selector in GDT or LDT
+  uint8_t  zero;      // unused, set to 0
+  uint8_t  type_attr; // type and attributes, see below
+  uint16_t offset_2;  // offset bits 16..31
+#ifdef ARCH_X64
+  uint32_t offset_3;  // 32..63
+  uint32_t zero2;
+#endif
+};
+
+struct IDTR {
+  uint16_t  limit;
+  uintptr_t base;
+}__attribute__((packed));
+
+#endif

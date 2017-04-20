@@ -11,13 +11,14 @@ option(GENERATE_SUPPORT_FILES "Generate external files required by some tests (e
 option(EXTRA_TESTS "Build extra test" OFF)
 
 if ("${ARCH}" STREQUAL "")
-  set (ARCH "ARCH_X86")
+  set (ARCH "ARCH_X64")
 endif("${ARCH}" STREQUAL "")
 
 add_definitions(-D${ARCH})
+add_definitions(-DARCH="${ARCH}")
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
+set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
 if(INFO)
@@ -29,7 +30,7 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-m32 -g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
@@ -132,7 +133,6 @@ set(OS_SOURCES
   ${SRC}/kernel/os.cpp
   ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
-  ${SRC}/kernel/rdrand.cpp
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp

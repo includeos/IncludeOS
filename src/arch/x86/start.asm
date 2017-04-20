@@ -16,11 +16,10 @@
 ;; limitations under the License.
 
 USE32
-extern kernel_start
+extern __arch_start
 global _start
 global __xsave_enabled
 global __avx_enabled
-global __ecx_was
 
 %define  MB_MAGIC   0x1BADB002
 %define  MB_FLAGS   0x3  ;; ALIGN + MEMINFO
@@ -53,9 +52,7 @@ __avx_enabled:
 section .text
 ;; Multiboot places boot paramters on eax and ebx.
 _start:
-
-  ;; With multiboot we get a possibly unusable GDT
-  ;; So load our own
+  ;; load simple GDT
   lgdt [gdtr]
 
   ;; Reload all data segments to new GDT
@@ -85,7 +82,7 @@ rock_bottom:
   ;;  Place multiboot parameters on stack
   push ebx
   push eax
-  call kernel_start
+  call __arch_start
   ret
 
 enable_sse:

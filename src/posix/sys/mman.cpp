@@ -43,7 +43,7 @@ void* mmap(void* addr, size_t length,
   entry.flags  = flags;
   entry.fd     = fd;
   entry.offset = offset;
-  printf("mmap allocated %d bytes (%d pages)\n",
+  printf("mmap allocated %d bytes (%z pages)\n",
          length, length / 4096);
 
   // TODO:

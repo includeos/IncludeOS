@@ -19,18 +19,19 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <cstdio>
-#include <os>
 #include <boot/multiboot.h>
-#include <kernel/elf.hpp>
 #include <hw/cmos.hpp>
+#include <kernel/os.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/rtc.hpp>
 #include <kernel/rdrand.hpp>
 #include <kernel/rng.hpp>
 #include <kernel/cpuid.hpp>
+#include <util/fixedvec.hpp>
 #include <kprint>
+#include <service>
 #include <statman>
-#include <vector>
+#include <cinttypes>
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -40,7 +41,8 @@
 #define PROFILE(name) /* name */
 #endif
 
-extern "C" uintptr_t get_cpu_esp();
+extern "C" void* get_cpu_esp();
+extern "C" void  kernel_sanity_checks();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -49,7 +51,6 @@ extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
-extern uintptr_t _MAX_MEM_MIB_;
 
 // Initialize static OS data members
 bool  OS::power_   = true;
@@ -64,18 +65,19 @@ multiboot_info_t* OS::bootinfo_ = nullptr;
 std::string OS::cmdline{Service::binary_name()};
 
 // stdout redirection
-static std::vector<OS::print_func> os_print_handlers;
+using Print_vec = fixedvector<OS::print_func, 8>;
+static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
 extern void default_stdout_handlers();
-// custom init
-std::vector<OS::Plugin_struct> OS::plugins_;
+
+// Plugins
+OS::Plugin_vec OS::plugins_(Fixedvector_Init::UNINIT);
+
 // OS version
 #ifndef OS_VERSION
 #define OS_VERSION "v?.?.?"
 #endif
-std::string OS::version_field = OS_VERSION;
-
-// Multiboot command line for the service
-
+std::string OS::version_str_ = OS_VERSION;
+std::string OS::arch_str_ = ARCH;
 
 // sleep statistics
 static uint64_t* os_cycles_hlt   = nullptr;
@@ -89,22 +91,22 @@ const std::string& OS::cmdline_args() noexcept
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   PROFILE("");
-  default_stdout_handlers();
-
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
-  auto esp = get_cpu_esp();
-  MYINFO ("Stack: 0x%x", esp);
-  Expects (esp < 0xA0000 and esp > 0x0 and "Stack location OK");
-
-  MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
+  void* esp = get_cpu_esp();
+  MYINFO("Stack: %p", esp);
+  MYINFO("Boot magic: 0x%x, addr: 0x%x",
          boot_magic, boot_addr);
+
+  /// STATMAN ///
+  /// initialize on page 7, 2 pages in size
+  Statman::get().init(0x6000, 0x2000);
 
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-    OS::multiboot(boot_magic, boot_addr);
+    OS::multiboot(boot_addr);
   } else {
 
     if (is_softreset_magic(boot_magic) && boot_addr != 0)
@@ -121,7 +123,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   OS::memory_end_ = high_memory_size_ + 0x100000;
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x4000, 0x5fff, "Statman", "Statistics"});
+  memmap.assign_range({0x6000, 0x7fff, "Statman", "Statistics"});
   memmap.assign_range({0xA000, 0x9fbff, "Kernel / service main stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
@@ -157,11 +159,14 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Arch init");
   extern void __arch_init();
   __arch_init();
+  kernel_sanity_checks();
 
   PROFILE("RTC init");
   // Realtime/monotonic clock
   RTC::init();
+  kernel_sanity_checks();
 
+  MYINFO("Initializing RNG");
   PROFILE("RNG init");
   // initialize random seed based on cycles since start
   if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
@@ -207,7 +212,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Service::start");
   // begin service start
   FILLINE('=');
-  printf(" IncludeOS %s\n", version().c_str());
+  printf(" IncludeOS %s (%s / %i-bit)\n",
+         version().c_str(), arch().c_str(),
+         static_cast<int>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name().c_str());
   FILLINE('~');
 
@@ -216,7 +223,11 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
-  plugins_.emplace_back(delg, name);
+  plugins_.emplace(delg, name);
+}
+
+int64_t OS::micros_since_boot() noexcept {
+  return cycles_since_boot() / cpu_freq().count();
 }
 
 uint64_t OS::get_cycles_halt() noexcept {
@@ -229,7 +240,7 @@ uint64_t OS::get_cycles_total() noexcept {
 __attribute__((noinline))
 void OS::halt() {
   *os_cycles_total = cycles_since_boot();
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
   asm volatile("hlt");
 
   // add a global symbol here so we can quickly discard
@@ -279,13 +290,13 @@ void OS::on_panic(on_panic_func func)
 
 void OS::add_stdout(OS::print_func func)
 {
-  os_print_handlers.push_back(func);
+  os_print_handlers.add(func);
 }
 void OS::add_stdout_default_serial()
 {
   add_stdout(
   [] (const char* str, const size_t len) {
-    kprintf("%.*s", len, str);
+    kprintf("%.*s", static_cast<int>(len), str);
   });
 }
 __attribute__ ((weak))
@@ -302,21 +313,14 @@ size_t OS::print(const char* str, const size_t len)
 
 
 void OS::legacy_boot() {
-  MYINFO("Max mem (from linker): %u MiB", (size_t) &_MAX_MEM_MIB_);
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
-  auto mem = cmos::meminfo();
+  auto mem = hw::CMOS::meminfo();
   low_memory_size_ = mem.base.total * 1024;
   INFO2("* Low memory: %i Kib", mem.base.total);
   high_memory_size_ = mem.extended.total * 1024;
 
   // Use memsize provided by Make / linker unless CMOS knows this is wrong
-  decltype(high_memory_size_) hardcoded_mem = reinterpret_cast<size_t>(&_MAX_MEM_MIB_ - 0x100000) << 20;
-  if (mem.extended.total == 0xffff or hardcoded_mem < mem.extended.total) {
-    high_memory_size_ = hardcoded_mem;
-    INFO2("* High memory (from linker): %i Kib", high_memory_size_ / 1024);
-  } else {
-    INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
-  }
+  INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
 
   auto& memmap = memory_map();
 
@@ -335,14 +339,14 @@ void OS::legacy_boot() {
   uintptr_t unavail_end = unavail_start + interval;
 
   while (unavail_end < addr_max){
-    INFO2("* Unavailable memory: 0x%x - 0x%x", unavail_start, unavail_end);
+    INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
     memmap.assign_range({unavail_start, unavail_end,
           "N/A", "Reserved / outside physical range" });
     unavail_start = unavail_end + 1;
     interval = std::min(span_max, addr_max - unavail_start);
     // Increment might wrapped around
     if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
-      INFO2("* Last chunk of memory: 0x%x - 0x%x", unavail_start, addr_max);
+      INFO2("* Last chunk of memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, addr_max);
       memmap.assign_range({unavail_start, addr_max,
             "N/A", "Reserved / outside physical range" });
       break;

@@ -21,27 +21,32 @@ else
 fi
 
 # Configuring
-if [ ! -d build_binutils ]; then
-    echo -e "\n\n >>> Configuring binutils \n"
-    mkdir -p build_binutils
-    cd build_binutils
-    ../binutils-$binutils_version/configure \
-		--target=$TARGET \
-	   	--prefix="$TEMP_INSTALL_DIR" \
-	   	--disable-nls \
-	   	--disable-werror
+echo -e "\n\n >>> Configuring binutils \n"
+
+if [ -d build_binutils ]; then
+
+  # We don't know if the previous build was for a different target so remove
+  echo -e "\n\n >>> Cleaning previous build \n"
+  rm -rf build_binutils
+fi
+
+mkdir -p build_binutils
+cd build_binutils
+
+
+../binutils-$binutils_version/configure \
+	--target=$TARGET \
+	--prefix="$TEMP_INSTALL_DIR" \
+	--disable-nls \
+	--disable-werror
 
 # Compiling
-    echo -e "\n\n >>> Building binutils \n" 
+    echo -e "\n\n >>> Building binutils \n"
     make $num_jobs
 
 # Installing
-    echo -e "\n\n >>> Installing binutils \n"    
+    echo -e "\n\n >>> Installing binutils \n"
     make install
-
-else
-    echo -e "\n\n >>> SKIP: Configure / build binutils. Seems to be there  \n"
-fi
 
 popd
 

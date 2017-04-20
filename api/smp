@@ -34,7 +34,7 @@
 #define SMP_ALIGN       64
 
 /// x86-related locking stuff ///
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
 // Intel 3a  8.10.6.7: 128-byte boundary
 typedef volatile int spinlock_t __attribute__((aligned(128)));
 
@@ -139,10 +139,5 @@ public:
 #define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, x.size()>(x))
 #endif
 
-#ifndef ARCH_X86
-typedef int spinlock_t;
-inline void lock(spinlock_t&) {}
-inline void unlock(spinlock_t&) {}
-#endif
 
 #endif

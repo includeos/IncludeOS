@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #define DEBUG
-// #define DEBUG2
+//#undef NO_DEBUG
+#define DEBUG
+#define DEBUG2
 
 #include <net/tcp/tcp.hpp>
 #include <net/inet_common.hpp> // checksum
@@ -96,7 +97,7 @@ Listener& TCP::listen(Socket socket, ConnectCallback cb)
   auto& listener = listeners_.emplace(socket,
     std::make_unique<tcp::Listener>(*this, socket, std::move(cb))
     ).first->second;
-  debug("<TCP::listen> Bound to socket %s \n", socket.to_string());
+  debug("<TCP::listen> Bound to socket %s \n", socket.to_string().c_str());
   return *listener;
 }
 
@@ -170,7 +171,8 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
 
   // Validate checksum
   if (UNLIKELY(checksum(*packet) != 0)) {
-    debug("<TCP::receive> TCP Packet Checksum != 0 \n");
+    debug("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
+          checksum(*packet), 0x0);
     drop(*packet);
     return;
   }
@@ -211,7 +213,7 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
 
 uint16_t TCP::checksum(const tcp::Packet& packet)
 {
-  short length = packet.tcp_length();
+  uint16_t length = packet.tcp_length();
   // Compute sum of pseudo-header
   uint32_t sum =
         (packet.ip_src().whole >> 16)

@@ -35,14 +35,14 @@
 #define DISK_SIZE_ERR  999
 
 bool verb = false;
-#define INFO_(FROM, TEXT, ...) if (verb) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
+#define INFO_(FROM, TEXT, ...) if (verb) fprintf(stderr, "%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 #define INFO(X,...) INFO_("Vmbuild", X, ##__VA_ARGS__)
 
 using namespace std;
 
 // Location of special variables inside the bootloader
-static const int bootvar_binary_size {2};
-static const int bootvar_binary_location {6};
+static const int bootvar_binary_size     = 4;
+static const int bootvar_binary_location = 8;
 
 static bool test {false};
 
@@ -69,13 +69,18 @@ string get_bootloader_path(int argc, char** argv) {
   }
 }
 
-int main(int argc, char** argv) {
-
+int main(int argc, char** argv)
+{
   // Verify proper command usage
   if (argc <= 2) {
     cout << info << usage;
     exit(EXIT_FAILURE);
   }
+
+  // VERBOSE=...
+  const char* env_verb = getenv("VERBOSE");
+  if (env_verb && strlen(env_verb) > 0)
+      verb = true;
 
   const string bootloader_path = get_bootloader_path(argc, argv);
 
@@ -87,7 +92,7 @@ int main(int argc, char** argv) {
   const string elf_binary_path  {argv[1]};
   const string img_name {elf_binary_path.substr(elf_binary_path.find_last_of("/") + 1, string::npos) + ".img"};
 
-  INFO("\nCreating VM disk image '%s'" , img_name.c_str());
+  INFO("Creating image '%s'" , img_name.c_str());
 
   if (argc > 3) {
     if (string{argv[3]} == "-test") {
@@ -101,6 +106,7 @@ int main(int argc, char** argv) {
   struct stat stat_boot;
   struct stat stat_binary;
 
+  // Validate boot loader
   // Validate boot loader
   if (stat(bootloader_path.c_str(), &stat_boot) == -1) {
     INFO("Could not open %s, exiting\n" , bootloader_path.c_str());
@@ -116,7 +122,7 @@ int main(int argc, char** argv) {
 
   // Validate service binary location
   if (stat(elf_binary_path.c_str(), &stat_binary) == -1) {
-    INFO("Could not open '%s' - exiting" , elf_binary_path.c_str());
+    fprintf(stderr, "vmbuild: Could not open '%s'\n" , elf_binary_path.c_str());
     return errno;
   }
 
@@ -131,18 +137,6 @@ int main(int argc, char** argv) {
 
   INFO("Total disk size: \t%ld bytes, => %ld sectors",
        img_size_bytes, img_size_sect);
-
-  // Bochs requires old-school disk specifications.
-  // sectors = cyls * heads * spt (sectors per track)
-  /*
-    const int spt = 63;
-    auto disk_tracks =
-    (img_size_sect % spt) == 0 ?
-    (img_size_sect / spt) :    // Sector count is a multiple of 63
-    (img_size_sect / spt) + 1; // There's a remainder, so we add one track
-
-    const decltype(img_size_sect) disksize {disk_tracks * spt * SECT_SIZE};
-  */
 
   const auto disk_size = img_size_bytes;
 
@@ -165,37 +159,67 @@ int main(int argc, char** argv) {
   read_bytes = file_binary.read(binary_imgloc, stat_binary.st_size).gcount();
   INFO("Read %ld bytes from service image" , read_bytes);
 
-  // Validate ELF binary
-  Elf_binary binary ({binary_imgloc, stat_binary.st_size});
+  // only accept ELF binaries
+if (binary_imgloc[EI_MAG0] == ELFMAG0
+ && binary_imgloc[EI_MAG1] == ELFMAG1
+ && binary_imgloc[EI_MAG2] == ELFMAG2
+ && binary_imgloc[EI_MAG3] == ELFMAG3)
+{
+  if (binary_imgloc[EI_CLASS] == ELFCLASS32)
+  {
+    INFO("Found 32-bit ELF\n");
+    Elf_binary<Elf32> binary ({binary_imgloc, stat_binary.st_size});
 
-  // Verify multiboot header
-  auto& sh_multiboot = binary.section_header(".multiboot");
-  multiboot_header& multiboot = *reinterpret_cast<multiboot_header*>(binary.section_data(sh_multiboot).data());
+    // Verify multiboot header
+    auto& sh_multiboot = binary.section_header(".multiboot");
+    multiboot_header& multiboot = *reinterpret_cast<multiboot_header*>(binary.section_data(sh_multiboot).data());
 
+    INFO("Verifying multiboot header:");
+    INFO("Magic value: 0x%x\n" , multiboot.magic);
+    if (multiboot.magic != MULTIBOOT_HEADER_MAGIC) {
+      printf("Multiboot magic mismatch: 0x%08x vs %#x\n", multiboot.magic, MULTIBOOT_HEADER_MAGIC);
+    }
+    assert(multiboot.magic == MULTIBOOT_HEADER_MAGIC);
 
-  INFO("Verifying multiboot header:");
-  INFO("Magic value: 0x%x\n" , multiboot.magic);
-  if (multiboot.magic != MULTIBOOT_HEADER_MAGIC) {
-    printf("Multiboot magic mismatch: 0x%08x vs %#x\n", multiboot.magic, MULTIBOOT_HEADER_MAGIC);
+    INFO("Flags: 0x%x" , multiboot.flags);
+    INFO("Checksum: 0x%x" , multiboot.checksum);
+    INFO("Checksum computed: 0x%x", multiboot.checksum + multiboot.flags + multiboot.magic);
+
+    // Verify multiboot header checksum
+    assert(multiboot.checksum + multiboot.flags + multiboot.magic == 0);
+
+    INFO("Header addr: 0x%x" , multiboot.header_addr);
+    INFO("Load start: 0x%x" , multiboot.load_addr);
+    INFO("Load end: 0x%x" , multiboot.load_end_addr);
+    INFO("BSS end: 0x%x" , multiboot.bss_end_addr);
+    INFO("Entry: 0x%x" , multiboot.entry_addr);
+
+    // Write binary size and entry point to the bootloader
+    *(reinterpret_cast<int*>(disk_head + bootvar_binary_size))     = binary_sectors;
+    *(reinterpret_cast<int*>(disk_head + bootvar_binary_location)) = binary.entry();
   }
-  assert(multiboot.magic == MULTIBOOT_HEADER_MAGIC);
+  else if (binary_imgloc[EI_CLASS] == ELFCLASS64)
+  {
 
-  INFO("Flags: 0x%x" , multiboot.flags);
-  INFO("Checksum: 0x%x" , multiboot.checksum);
-  INFO("Checksum computed: 0x%x", multiboot.checksum + multiboot.flags + multiboot.magic);
+    auto* hdr   = (const Elf64_Ehdr*) binary_imgloc;
+    auto  entry = hdr->e_entry;
+    INFO("Found 64-bit ELF with entry at %p", (void*) entry);
 
-  // Verify multiboot header checksum
-  assert(multiboot.checksum + multiboot.flags + multiboot.magic == 0);
-
-  INFO("Header addr: 0x%x" , multiboot.header_addr);
-  INFO("Load start: 0x%x" , multiboot.load_addr);
-  INFO("Load end: 0x%x" , multiboot.load_end_addr);
-  INFO("BSS end: 0x%x" , multiboot.bss_end_addr);
-  INFO("Entry: 0x%x" , multiboot.entry_addr);
-
-  // Write binary size and entry point to the bootloader
-  *(reinterpret_cast<int*>(disk_head + bootvar_binary_size))     = binary_sectors;
-  *(reinterpret_cast<int*>(disk_head + bootvar_binary_location)) = binary.entry();
+    // Write binary size and entry point to the bootloader
+    *(uint32_t*) (disk_head + bootvar_binary_size)     = (uint32_t) binary_sectors;
+    *(uint32_t*) (disk_head + bootvar_binary_location) = (uint32_t) entry;
+  }
+  else
+  {
+    fprintf(stderr, "ERROR: Unknown ELF format\n");
+    std::terminate();
+  }
+}
+else
+{
+  fprintf(stderr, "ERROR: Not ELF binary\n");
+  std::terminate();
+}
 
   if (test) {
     INFO("\nTEST overwriting service with testdata");

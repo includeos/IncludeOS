@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,7 +24,7 @@
 #include <vector>
 
 extern "C"
-const uint16_t _cpu_sampling_freq_divider_ = KHz(x86::PIT::frequency()).count() * 10; // Run 1 KHz  Lowest: 0xffff
+const uint16_t _cpu_sampling_freq_divider_ = KHz(x86::PIT::FREQUENCY).count() * 10; // Run 1 KHz  Lowest: 0xffff
 
 namespace x86 {
 
@@ -32,14 +32,14 @@ namespace x86 {
   static size_t  sample_counter = 0;
 
   constexpr static MHz test_frequency() {
-    return MHz(PIT::frequency().count() / _cpu_sampling_freq_divider_);
+    return MHz(PIT::FREQUENCY.count() / _cpu_sampling_freq_divider_);
   }
-  
+
   void reset_cpufreq_sampling()
   {
     sample_counter = 0;
   }
-  
+
   double calculate_cpu_frequency()
   {
     // We expect the cpu_sampling_irq_handler to push in samples;
@@ -59,7 +59,7 @@ namespace x86 {
       auto cycles = cpu_timestamps[i] - cpu_timestamps[i-1] + overhead;
       // Cycles pr. second == Hertz
       auto freq = cycles * test_frequency().count();
-      cpu_freq_samples.push_back(freq);    
+      cpu_freq_samples.push_back(freq);
     }
 
     std::sort(cpu_freq_samples.begin(), cpu_freq_samples.end());

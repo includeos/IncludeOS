@@ -23,9 +23,9 @@ add_library(vga_output STATIC vgaout.cpp)
 add_dependencies(vga_output PrecompiledLibraries)
 
 
-install(TARGETS 
+install(TARGETS
     virtionet virtioblk
-    vmxnet3 
-    heap_debugging 
+    vmxnet3
+    heap_debugging
     silent_start vga_output
-    DESTINATION includeos/drivers)
+    DESTINATION includeos/${ARCH}/drivers)

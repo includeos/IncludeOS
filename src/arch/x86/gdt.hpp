@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cassert>
+#include "cpu.hpp"
 
 namespace x86
 {
@@ -44,15 +45,28 @@ struct gdt_entry
 struct GDT
 {
   static const int MAX_ENTRIES = 6;
-  
+
   static void reload_gdt(GDT& base) noexcept;
 
+#if ARCH_X64
+#define MSR_FS_BASE 0xC0000100
+#define MSR_GS_BASE 0xC0000101
+#define MSR_GS_SWAP 0xC0000102
+
+  static inline void set_fs(void* entry) noexcept {
+    CPU::write_msr(MSR_FS_BASE, (uintptr_t) entry);
+  }
+  static inline void set_gs(void* entry) noexcept {
+    CPU::write_msr(MSR_GS_BASE, (uintptr_t) entry);
+  }
+#elif ARCH_X86
   static inline void set_fs(uint16_t entry) noexcept {
     asm volatile("movw %h0, %%fs" : : "r"(entry * 0x8));
   }
   static inline void set_gs(uint16_t entry) noexcept {
     asm volatile("movw %h0, %%gs" : : "r"(entry * 0x8));
   }
+#endif
 
   GDT() {
     desc.size   = 0;

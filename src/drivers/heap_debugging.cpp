@@ -122,14 +122,14 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
   }
 
   if (enable_debugging_verbose) {
-    DPRINTF("malloc(%u bytes) == %p\n", len, data);
+    DPRINTF("malloc(%llu bytes) == %p\n", (unsigned long long) len, data);
     safe_print_symbol(1, __builtin_return_address(0));
     safe_print_symbol(2, __builtin_return_address(1));
   }
 
   if (UNLIKELY(!data)) {
       print_backtrace();
-      DPRINTF("malloc(%u bytes): FAILED\n", len);
+      DPRINTF("malloc(%llu bytes): FAILED\n", (unsigned long long) len);
       throw std::bad_alloc();
   }
 
@@ -185,7 +185,7 @@ inline static void deleted_ptr(void* ptr)
     }
     else if (x->addr == ptr) {
       if (enable_debugging_verbose) {
-        DPRINTF("free(%p) == %u bytes\n", x->addr, x->len);
+        DPRINTF("free(%p) == %llu bytes\n", x->addr, (unsigned long long) x->len);
         safe_print_symbol(1, __builtin_return_address(1));
         safe_print_symbol(2, __builtin_return_address(2));
       }
@@ -221,8 +221,8 @@ inline static void deleted_ptr(void* ptr)
       free_allocs.add(x);
     }
     else if (x->addr != ptr) {
-      DPRINTF("[ERROR] Free on misaligned address: %p inside %p:%u",
-             ptr, x->addr, x->len);
+      DPRINTF("[ERROR] Free on misaligned address: %p inside %p:%llu",
+             ptr, x->addr, (unsigned long long) x->len);
       print_backtrace();
       return;
     }
@@ -245,8 +245,8 @@ static void safe_print_symbol(int N, void* addr)
   auto symb = Elf::safe_resolve_symbol(
               addr, _symbol_buffer, sizeof(_symbol_buffer));
   int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),
-           "-> [%d] %8x + 0x%.3x: %s\n", \
-           N, symb.addr, symb.offset, symb.name);\
+           "-> [%d] %16p + 0x%.3x: %s\n", \
+           N, (void*) symb.addr, symb.offset, symb.name);\
   write(1, _btrace_buffer, len);
 }
 
@@ -259,7 +259,7 @@ void print_heap_allocations(heap_print_func func)
   for (auto& x : allocs) {
     if (x.addr != nullptr && func(x.addr, x.len)) {
       // entry
-      DPRINTF("[%p] %u bytes\n", x.addr, x.len);
+      DPRINTF("[%p] %llu bytes\n", x.addr, (unsigned long long) x.len);
       // backtrace
       safe_print_symbol(1, x.level1);
       safe_print_symbol(2, x.level2);
