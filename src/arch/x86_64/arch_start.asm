@@ -29,6 +29,7 @@ __arch_start:
     mov eax, cr0
     and eax, 0x7fffffff  ;; clear PG (bit 31)
     mov cr0, eax
+
     ;; address for Page Map Level 4
     mov edi, P4_TAB
     mov cr3, edi
@@ -57,11 +58,13 @@ __arch_start:
     ;; create page directory entries
     mov ecx, 512*4    ;; num entries
     mov edi, P2_TAB
+
     ;; start at address 0x0
     mov ebx, 0x0 | 0x3 | 1 << 7 ;; present+write + huge
-  .ptd_loop:
-    mov DWORD [edi], ebx
-    add ebx, 1 << 21 ;; 2MB increments
+.ptd_loop:
+    mov DWORD [edi], ebx     ;; Assign the physical adress to lower 32-bits
+    mov DWORD [edi+4], 0x0   ;; Zero out the rest of the 64-bit  word
+    add ebx, 1 << 21         ;; 2MB increments
     add edi, 8
     loop .ptd_loop
 
@@ -76,14 +79,13 @@ __arch_start:
     or eax, 1 << 8               ; Long Mode bit
     wrmsr
 
-    ;; enable paging & protected mode
+    ;; enable paging
     mov eax, cr0                 ; Set the A-register to control register 0.
-    or  eax, 1 << 31 | 1 << 0    ; Set the PG-bit, which is the 31nd bit, and the PM-bit, which is the 0th bit.
+    or eax, 1 << 31
     mov cr0, eax                 ; Set control register 0 to the A-register.
 
     ;; load 64-bit GDT
     lgdt [GDT64.Pointer]
-
     jmp  GDT64.Code:long_mode
 
 
