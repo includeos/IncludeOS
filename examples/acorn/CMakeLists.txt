@@ -5,7 +5,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
 project (acorn)
 
@@ -38,11 +38,11 @@ set(DRIVERS
   )
 
 set(LIBRARIES
-  $ENV{INCLUDEOS_PREFIX}/includeos/lib/libmana.a # Temp
+  $ENV{INCLUDEOS_PREFIX}/includeos/${ARCH}/lib/libmana.a # Temp
   )
 
 # include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
 # Build memdisk content
 diskbuilder(disk1)
