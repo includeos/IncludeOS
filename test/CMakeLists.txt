@@ -11,7 +11,7 @@ option(GENERATE_SUPPORT_FILES "Generate external files required by some tests (e
 option(EXTRA_TESTS "Build extra test" OFF)
 
 if ("${ARCH}" STREQUAL "")
-  set (ARCH "ARCH_X86")
+  set (ARCH "ARCH_X64")
 endif("${ARCH}" STREQUAL "")
 
 add_definitions(-D${ARCH})
@@ -133,7 +133,6 @@ set(OS_SOURCES
   ${SRC}/kernel/os.cpp
   ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
-  ${SRC}/kernel/rdrand.cpp
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
