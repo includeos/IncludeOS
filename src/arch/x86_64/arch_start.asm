@@ -25,8 +25,6 @@ extern kernel_start
 
 [BITS 32]
 __arch_start:
-    push eax
-    push ebx
     ;; disable old paging
     mov eax, cr0
     and eax, 0x7fffffff  ;; clear PG (bit 31)
@@ -35,7 +33,7 @@ __arch_start:
     ;; address for Page Map Level 4
     mov edi, P4_TAB
     mov cr3, edi
-    mov ecx, 0x3000    ; clear 3 pages
+    mov ecx, 0x3000 / 0x4
     xor eax, eax       ; Nullify the A-register.
     rep stosd
 
@@ -86,8 +84,8 @@ __arch_start:
     or eax, 1 << 31
     mov cr0, eax                 ; Set control register 0 to the A-register.
 
-    pop ebx
-    pop eax
+    mov eax, DWORD[esp+4]        ; Preserve multiboot regs
+    mov ebx, DWORD[esp+8]
 
     ;; load 64-bit GDT
     lgdt [GDT64.Pointer]
