@@ -16,7 +16,7 @@ if ("${ARCH}" STREQUAL "")
 endif("${ARCH}" STREQUAL "")
 message(STATUS "Building for arch ${ARCH}")
 
-add_definitions(-D${ARCH})
+add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 
 set(CMAKE_CXX_STANDARD 14)
