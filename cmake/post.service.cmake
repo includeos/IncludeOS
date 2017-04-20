@@ -149,7 +149,7 @@ endforeach()
 foreach(LIBR ${LIBRARIES})
   # if relative path but not local, use includeos lib.
   if(NOT IS_ABSOLUTE ${LIBR} AND NOT EXISTS ${LIBR})
-    set(OS_LIB "$ENV{INCLUDEOS_PREFIX}/includeos/lib/${LIBR}")
+    set(OS_LIB "$ENV{INCLUDEOS_PREFIX}/includeos/${ARCH}/lib/${LIBR}")
     if(EXISTS ${OS_LIB})
       message(STATUS "Cannot find local ${LIBR}; using ${OS_LIB} instead")
       set(LIBR ${OS_LIB})

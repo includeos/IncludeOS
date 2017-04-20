@@ -36,8 +36,10 @@ int main(int argc, const char** args)
   assert(res == size);
   fclose(f);
 
-  auto arch = std::string(getenv("ARCH"));
-  fprintf(stderr, "ARCH = %s\n", arch.c_str());
+  auto carch = getenv("ARCH");
+  std::string arch = "x86_64";
+  if (carch) arch = std::string(carch);
+//  fprintf(stderr, "ARCH = %s\n", arch.c_str());
 
   int pruned_size = 0;
   fprintf(stderr, "%s: Pruning ELF symbols \n", args[0]);

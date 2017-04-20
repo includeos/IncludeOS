@@ -143,16 +143,18 @@ namespace net {
      * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
      **/
     void resolve(const std::string& hostname,
-                 resolve_func<IP4>  func) override
+                 resolve_func<IP4>  func,
+                 bool               force = false) override
     {
-      dns_.resolve(this->dns_server_, hostname, func);
+      dns_.resolve(this->dns_server_, hostname, func, force);
     }
 
     void resolve(const std::string& hostname,
                   IP4::addr         server,
-                  resolve_func<IP4> func) override
+                  resolve_func<IP4> func,
+                  bool              force = false) override
     {
-      dns_.resolve(server, hostname, func);
+      dns_.resolve(server, hostname, func, force);
     }
 
     void set_gateway(IP4::addr gateway) override
