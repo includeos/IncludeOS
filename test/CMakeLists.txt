@@ -11,8 +11,10 @@ option(GENERATE_SUPPORT_FILES "Generate external files required by some tests (e
 option(EXTRA_TESTS "Build extra test" OFF)
 
 if ("${ARCH}" STREQUAL "")
-  set (ARCH "ARCH_X64")
+  message(STATUS "CMake detected host arch: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+  set (ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
 endif("${ARCH}" STREQUAL "")
+message(STATUS "Building for arch ${ARCH}")
 
 add_definitions(-D${ARCH})
 add_definitions(-DARCH="${ARCH}")
