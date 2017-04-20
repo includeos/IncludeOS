@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cassert>
 
 extern void __arch_init();
 extern void __arch_poweroff();

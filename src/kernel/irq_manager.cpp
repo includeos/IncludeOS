@@ -184,7 +184,9 @@ IRQ_manager::intr_func IRQ_manager::get_handler(uint8_t vec) {
   addr_union addr;
   addr.lo16  = idt[vec].offset_1;
   addr.hi16  = idt[vec].offset_2;
+#ifdef ARCH_X64
   addr.top32 = idt[vec].offset_3;
+#endif
 
   return (intr_func) addr.whole;
 }

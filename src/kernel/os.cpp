@@ -96,17 +96,20 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   void* esp = get_cpu_esp();
   MYINFO("Stack: %p", esp);
-  MYINFO("Boot args: 0x%x (multiboot magic), 0x%x (bootinfo addr)",
+  MYINFO("Boot magic: 0x%x, addr: 0x%x",
          boot_magic, boot_addr);
 
   /// STATMAN ///
-  /// initialize on page 9, 2 pages in size
-  Statman::get().init(0x8000, 0x2000);
+  /// initialize on page 7, 2 pages in size
+  Statman::get().init(0x6000, 0x2000);
 
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-    OS::multiboot(boot_magic, boot_addr);
+    OS::multiboot(boot_addr);
+    // if we got no memory information from multiboot, do legacy stuff
+    //if (high_memory_size_ == 0)
+    //    OS::legacy_boot();
   } else {
 
     if (is_softreset_magic(boot_magic) && boot_addr != 0)

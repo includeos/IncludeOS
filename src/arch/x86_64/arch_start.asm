@@ -25,6 +25,8 @@ extern kernel_start
 
 [BITS 32]
 __arch_start:
+    push eax
+    push ebx
     ;; disable old paging
     mov eax, cr0
     and eax, 0x7fffffff  ;; clear PG (bit 31)
@@ -84,6 +86,9 @@ __arch_start:
     or eax, 1 << 31
     mov cr0, eax                 ; Set control register 0 to the A-register.
 
+    pop ebx
+    pop eax
+
     ;; load 64-bit GDT
     lgdt [GDT64.Pointer]
     jmp  GDT64.Code:long_mode
@@ -114,13 +119,14 @@ GDT64:
 [BITS 64]
 long_mode:
     cli
+
     ;; segment regs
-    mov ax, GDT64.Data
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
+    mov cx, GDT64.Data
+    mov ds, cx
+    mov es, cx
+    mov fs, cx
+    mov gs, cx
+    mov ss, cx
 
     ;; set up new stack for 64-bit
     push rsp
@@ -128,6 +134,8 @@ long_mode:
     mov rbp, rsp
 
     ;; geronimo!
+    mov rdi, rax
+    mov rsi, rbx
     call kernel_start
     pop  rsp
     ret

@@ -15,11 +15,15 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 
-  global __arch_start:function
+global __arch_start:function
 extern kernel_start
 
 
 [BITS 32]
 __arch_start:
+    pop eax
+    pop ebx
+    push eax
+    push ebx
     call kernel_start
     ret
