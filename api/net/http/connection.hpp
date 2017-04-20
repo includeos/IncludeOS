@@ -31,7 +31,7 @@ namespace http {
   public:
     using Stream        = net::tcp::Connection::Stream;
     using Stream_ptr    = std::unique_ptr<Stream>;
-    using Peer          = net::tcp::Socket;
+    using Peer          = net::Socket;
     using buffer_t      = net::tcp::buffer_t;
 
   public:

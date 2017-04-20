@@ -25,8 +25,16 @@ fi
 
 # Configure
 echo -e "\n\n >>> Configuring newlib \n"
-mkdir -p build_newlib
-pushd build_newlib
+
+if [ -d build_newlib ]; then
+  echo -e "\n\n >>> Cleaning previous build \n"
+  cd build_newlib
+  rm ./config.cache || true
+  make distclean || true
+else
+  mkdir -p build_newlib
+  cd build_newlib
+fi
 
 ../newlib-$newlib_version/configure \
 	--target=$TARGET \
@@ -47,7 +55,6 @@ make $num_jobs all
 # Install
 make install
 
-popd # build_newlib
 popd # BUILD_DIR
 
 trap - EXIT

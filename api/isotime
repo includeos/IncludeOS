@@ -1,6 +1,7 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +16,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <statman>
+#pragma once
+#ifndef API_ISOTIME_HEADER
+#define API_ISOTIME_HEADER
 
-Statman& Statman::get() {
-    static Statman statman_{0x8000, 8192};
-    return statman_;
-}
+#include "util/isotime.hpp"
+
+#endif

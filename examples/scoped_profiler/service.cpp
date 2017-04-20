@@ -37,7 +37,7 @@ std::string create_html_response(const std::string& message)
          + message;
 }
 
-void Service::start(const std::string&)
+void Service::start()
 {
   // DHCP on interface 0
   auto& inet = net::Inet4::ifconfig<0>(10.0);

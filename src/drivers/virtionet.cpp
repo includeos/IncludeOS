@@ -116,7 +116,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
   INFO("VirtioNet", "Adding %u receive buffers of size %u",
-       rx_q.size() / 2, bufstore().bufsize());
+       rx_q.size() / 2, (uint32_t) bufstore().bufsize());
 
   for (int i = 0; i < rx_q.size() / 2; i++)
       add_receive_buffer(bufstore().get_buffer().addr);
@@ -433,8 +433,7 @@ void VirtioNet::move_to_this_cpu()
 #include <kernel/pci_manager.hpp>
 
 /** Register VirtioNet's driver factory at the PCI_manager */
-static struct Autoreg_virtionet {
-  Autoreg_virtionet() {
-    PCI_manager::register_driver<hw::Nic>(hw::PCI_Device::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
-  }
-} autoreg_virtionet;
+__attribute__((constructor))
+void autoreg_virtionet() {
+  PCI_manager::register_nic(PCI::VENDOR_VIRTIO, 0x1000, &VirtioNet::new_instance);
+}

@@ -28,7 +28,7 @@ namespace hw {
   static inline uint8_t inp(port_t port)
   {
     uint8_t ret;
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inb %%dx,%%al"
                      :"=a"(ret)
@@ -42,7 +42,7 @@ namespace hw {
   static inline uint16_t inpw(port_t port)
   {
     uint16_t ret;
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inw %%dx,%%ax"
                      :"=a"(ret)
@@ -56,7 +56,7 @@ namespace hw {
   static inline uint32_t inpd(port_t port)
   {
     uint32_t ret;
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inl %%dx,%%eax"
                      :"=a"(ret)
@@ -71,7 +71,7 @@ namespace hw {
 
   static inline void outp(port_t port, uint8_t data)
   {
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
     __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
 #else
 #warning "outp() not implemented for selected arch"
@@ -79,7 +79,7 @@ namespace hw {
   }
   static inline void outpw(port_t port, uint16_t data)
   {
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
     __asm__ volatile ("outw %%ax,%%dx"::"a" (data), "d"(port));
 #else
 #warning "outpw() not implemented for selected arch"
@@ -87,7 +87,7 @@ namespace hw {
   }
   static inline void outpd(port_t port, uint32_t data)
   {
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
     __asm__ volatile ("outl %%eax,%%dx"::"a" (data), "d"(port));
 #else
 #warning "outpd() not implemented for selected arch"
@@ -97,4 +97,3 @@ namespace hw {
 } //< namespace hw
 
 #endif
-

@@ -19,7 +19,7 @@ struct softreset_t
   size_t   extra_len;
 };
 
-bool OS::is_softreset_magic(uintptr_t value)
+bool OS::is_softreset_magic(uint32_t value)
 {
   return value == SOFT_RESET_MAGIC;
 }
@@ -60,7 +60,7 @@ void* __os_store_soft_reset(void* extra, size_t extra_len)
   data->apic_ticks  = x86::apic_timer_get_ticks();
   data->extra       = extra;
   data->extra_len   = extra_len;
-  
+
   uint32_t csum = crc32(data, sizeof(softreset_t));
   data->checksum = csum;
   return data;

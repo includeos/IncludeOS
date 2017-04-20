@@ -21,9 +21,8 @@
 
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/dhcp4.hpp>
+#include <cstdlib>
 #include <debug>
-
-#include <random>
 
 namespace net
 {
@@ -68,10 +67,8 @@ namespace net
     });
 
     // create a random session ID
-    std::random_device rd;  // Will be used to obtain a seed for the random number engine
-    std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
-    std::uniform_int_distribution<> dis(std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
-    this->xid = dis(gen);
+    this->xid  = (rand() & 0xffff);
+    this->xid |= (rand() & 0xffff) << 16;
 
     if (console_spam)
       MYINFO("Negotiating IP-address (xid=%u)", xid);

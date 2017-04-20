@@ -38,6 +38,7 @@ namespace net {
     auto udp_packet = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
 
     debug("<%s> UDP", stack_.ifname().c_str());
+
     debug("\t Source port: %u, Dest. Port: %u Length: %u\n",
           udp_packet->src_port(), udp_packet->dst_port(), udp_packet->length());
 
@@ -55,29 +56,24 @@ namespace net {
     // Sending ICMP error message of type Destination Unreachable and code PORT
     // But only if the destination IP address is not broadcast or multicast
     auto ip4_packet = static_unique_ptr_cast<PacketIP4>(std::move(udp_packet));
-    if (ip4_packet->ip_dst() != IP4::ADDR_BCAST and (ip4_packet->ip_dst().part(3) <= 224 or
-      ip4_packet->ip_dst().part(3) >= 239))
+    if (ip4_packet->ip_dst() != stack_.broadcast_addr() and ip4_packet->ip_dst() != IP4::ADDR_BCAST and
+      not ip4_packet->ip_dst().is_multicast())
     {
       stack_.icmp().destination_unreachable(std::move(ip4_packet), icmp4::code::Dest_unreachable::PORT);
     }
   }
 
-  void UDP::error_report(Error_type type, Error_code code,
-    IP4::addr src_addr, port_t src_port, IP4::addr dest_addr, port_t dest_port) {
+  void UDP::error_report(Error& err, Socket dest) {
+    // If err is an ICMP error message:
     // Report to application layer that got an ICMP error message of type and code (reason and subreason)
-    // Should be possible to enable and disable this error report
 
-    // Find UDPSocket
-    auto it = ports_.find(src_port);
-    if (LIKELY(it != ports_.end())) {
-      debug("<%s> UDP Error report: Found listener on port %u\n",
-              stack_.ifname().c_str(), src_port);
-      it->second.error_read(type, code, src_addr, src_port, dest_addr, dest_port);
-      return;
+    // Find callback with this destination address and port, and call it with the incoming err
+    auto it = error_callbacks_.find(Socket{dest.address(), dest.port()});
+
+    if (it != error_callbacks_.end()) {
+      it->second.callback(err);
+      error_callbacks_.erase(it);
     }
-
-    debug("<%s> UDP Error report: Nobody listening on %u. Drop!\n",
-            stack_.ifname().c_str(), src_port);
   }
 
   UDPSocket& UDP::bind(UDP::port_t port)
@@ -94,7 +90,7 @@ namespace net {
             std::forward_as_tuple(port),
             std::forward_as_tuple(*this, port));
       it = res.first;
-    }else {
+    } else {
       throw UDP::Port_in_use_exception(it->first);
     }
     return it->second;
@@ -143,6 +139,18 @@ namespace net {
     if (packets) process_sendq(packets);
   }
 
+  void UDP::flush_expired() {
+    INFO("UDP", "Flushing expired error callbacks");
+
+    for (auto& err : error_callbacks_) {
+      if (err.second.expired())
+        error_callbacks_.erase(err.first);
+    }
+
+    if (not error_callbacks_.empty())
+      flush_timer_.start(flush_interval_);
+  }
+
   void UDP::process_sendq(size_t num)
   {
     while (!sendq.empty() && num != 0)
@@ -154,11 +162,21 @@ namespace net {
       num--;
 
       if (buffer.done()) {
-        auto copy = buffer.callback;
+        if (buffer.send_callback != nullptr)
+          buffer.send_callback();
+
+        if (buffer.error_callback != nullptr) {
+          error_callbacks_.emplace(std::piecewise_construct,
+                              std::forward_as_tuple(Socket{buffer.d_addr, buffer.d_port}),
+                              std::forward_as_tuple(Error_entry{buffer.error_callback}));
+
+          if (UNLIKELY(not flush_timer_.is_running()))
+            flush_timer_.start(flush_interval_);
+        }
+
         // remove buffer from queue
         sendq.pop_front();
-        // call on_written callback
-        copy();
+
         // reduce @num, just in case packets were sent in
         // another stack frame
         size_t avail = stack_.transmit_queue_available();
@@ -177,9 +195,9 @@ namespace net {
     return P;
   }
 
-  UDP::WriteBuffer::WriteBuffer(const uint8_t* data, size_t length, sendto_handler cb,
+  UDP::WriteBuffer::WriteBuffer(const uint8_t* data, size_t length, sendto_handler cb, error_handler ecb,
                                 UDP& stack, addr_t LA, port_t LP, addr_t DA, port_t DP)
-    : len(length), offset(0), callback(cb), udp(stack),
+    : len(length), offset(0), send_callback(cb), error_callback(ecb), udp(stack),
       l_addr(LA), l_port(LP), d_port(DP), d_addr(DA)
   {
     // create a copy of the data,

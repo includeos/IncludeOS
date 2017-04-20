@@ -24,6 +24,7 @@
 #include <kernel/irq_manager.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/os.hpp>
+#include <hw/devices.hpp>
 #include <info>
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
 
@@ -45,7 +46,7 @@ void __arch_init()
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
 
-  // set fs/gs for local APIC
+  // enable fs/gs for local APIC
   initialize_gdt_for_cpu(APIC::get().get_id());
 
   // IDT manager: Interrupt and exception handlers
@@ -60,24 +61,21 @@ void __arch_init()
   MYINFO("Enabling interrupts");
   IRQ_manager::enable_interrupts();
 
-  // Initialize the Interval Timer
-  PIT::init();
-
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
   INFO2("|");
   INFO2("+--(%d samples, %f sec. interval)", 18,
-        (x86::PIT::frequency() / _cpu_sampling_freq_divider_).count());
+        (x86::PIT::FREQUENCY / _cpu_sampling_freq_divider_).count());
   INFO2("|");
 
   if (OS::cpu_freq().count() <= 0.0) {
-    OS::cpu_mhz_ = MHz(PIT::estimate_CPU_frequency());
+    OS::cpu_mhz_ = MHz(PIT::get().estimate_CPU_frequency());
   }
   INFO2("+--> %f MHz", OS::cpu_freq().count());
 
   // Note: CPU freq must be known before we can start timer system
-  // initialize BSP APIC timer
-  // call Service::ready when calibrated
+  // Initialize APIC timers and timer systems
+  // Deferred call to Service::ready() when calibration is complete
   APIC_Timer::calibrate();
 
   // Initialize PCI devices
@@ -130,6 +128,9 @@ namespace x86
 
   void initialize_gdt_for_cpu(int id)
   {
+  #ifdef ARCH_X64
+    GDT::set_fs(&cpudata.at(id));
+  #else
     // initialize GDT for this core
     gdtables.at(id).gdt.initialize();
     // create PER-CPU segment
@@ -139,5 +140,6 @@ namespace x86
     // enable per-cpu for this core
     cpudata[id].cpduid = id;
     GDT::set_fs(fs);
+  #endif
   }
 } // x86

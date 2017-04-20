@@ -1,16 +1,25 @@
 #include <hw/cmos.hpp>
 #include <statman>
 
-/** Stat */
-static uint32_t& now_called {Statman::get().create(Stat::UINT32, "cmos.now").get_uint32()};
+using namespace hw;
+uint8_t   CMOS::reg_b_value = 0;
+uint32_t* CMOS::now_called  = nullptr;
 
-uint8_t cmos::reg_b_value = 0; //cmos::get(cmos::r_status_b);
+void CMOS::init()
+{
+  now_called = &Statman::get().create(Stat::UINT32, "cmos.now").get_uint32();
+  // Changing modes doesn't give expected results on e.g. GCE
+  //set(r_status_b, b_24_hr_clock | b_binary_mode);
+  reg_b_value = get(r_status_b);
+  INFO("CMOS", "RTC is %i hour format, %s mode",
+       mode_24_hour() ? 24 : 12, mode_binary() ? "binary" : "BCD");
+}
 
-cmos::Time cmos::Time::hw_update() {
+CMOS::Time& CMOS::Time::hw_update() {
   // We're supposed to check this before every read
   while (update_in_progress());
 
-  if (cmos::mode_binary()) {
+  if (CMOS::mode_binary()) {
     f.second = get(r_sec);
     f.minute = get(r_min);
     f.hour = get(r_hrs);
@@ -36,11 +45,10 @@ cmos::Time cmos::Time::hw_update() {
   }
 
   return *this;
-
 }
 
 
-std::string cmos::Time::to_string(){
+std::string CMOS::Time::to_string(){
   std::array<char,20> str;
   sprintf(str.data(), "%.2i-%.2i-%iT%.2i:%.2i:%.2iZ",
           (f.century + 20) * 100 + f.year,
@@ -51,7 +59,7 @@ std::string cmos::Time::to_string(){
 }
 
 
-int cmos::Time::day_of_year() {
+int CMOS::Time::day_of_year() {
   static std::array<uint8_t, 13> days_in_normal_month =
     {{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }};
 
@@ -66,8 +74,8 @@ int cmos::Time::day_of_year() {
   return res;
 }
 
-cmos::Time cmos::now() {
-  now_called++;
-
+CMOS::Time CMOS::now()
+{
+  CMOS::now_called++;
   return Time().hw_update();
-};
+}

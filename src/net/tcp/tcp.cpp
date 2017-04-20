@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #define DEBUG
-// #define DEBUG2
+//#undef NO_DEBUG
+#define DEBUG
+#define DEBUG2
 
 #include <net/tcp/tcp.hpp>
 #include <net/inet_common.hpp> // checksum
@@ -67,9 +68,10 @@ void TCP::Port_util::increment_ephemeral()
   if(UNLIKELY(! has_free_ephemeral() ))
     throw TCP_error{"All ephemeral ports are taken"};
 
-  ephemeral_ = (ephemeral_ == port_ranges::DYNAMIC_END)
-    ? port_ranges::DYNAMIC_START
-    : ephemeral_ + 1;
+  ephemeral_++;
+
+  if(UNLIKELY(ephemeral_ == port_ranges::DYNAMIC_END))
+    ephemeral_ = port_ranges::DYNAMIC_START;
 
   // TODO: Avoid wrap around, increment ephemeral to next free port.
   // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
@@ -88,18 +90,18 @@ void TCP::Port_util::increment_ephemeral()
   Current solution:
   Simple.
 */
-Listener& TCP::listen(tcp::Socket socket, ConnectCallback cb)
+Listener& TCP::listen(Socket socket, ConnectCallback cb)
 {
   bind(socket);
 
   auto& listener = listeners_.emplace(socket,
     std::make_unique<tcp::Listener>(*this, socket, std::move(cb))
     ).first->second;
-  debug("<TCP::listen> Bound to socket %s \n", socket.to_string());
+  debug("<TCP::listen> Bound to socket %s \n", socket.to_string().c_str());
   return *listener;
 }
 
-bool TCP::close(tcp::Socket socket) {
+bool TCP::close(Socket socket) {
   auto it = listeners_.find(socket);
   if(it != listeners_.end())
   {
@@ -169,7 +171,8 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
 
   // Validate checksum
   if (UNLIKELY(checksum(*packet) != 0)) {
-    debug("<TCP::receive> TCP Packet Checksum != 0 \n");
+    debug("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
+          checksum(*packet), 0x0);
     drop(*packet);
     return;
   }
@@ -210,7 +213,7 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
 
 uint16_t TCP::checksum(const tcp::Packet& packet)
 {
-  short length = packet.tcp_length();
+  uint16_t length = packet.tcp_length();
   // Compute sum of pseudo-header
   uint32_t sum =
         (packet.ip_src().whole >> 16)
@@ -247,11 +250,8 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-void TCP::error_report(Error_type type, Error_code code,
-  tcp::Address src_addr, tcp::port_t src_port, tcp::Address dest_addr, tcp::port_t dest_port) {
-  printf("<TCP::error_report> Error %s : %s occurred when sending data to %s port %u from %s port %u\n",
-    icmp4::get_type_string(type).c_str(), icmp4::get_code_string(type, code).c_str(),
-    dest_addr.to_string().c_str(), dest_port, src_addr.to_string().c_str(), src_port);
+void TCP::error_report(Error& /* err */, Socket /* dest */) {
+  // TODO
 }
 
 void TCP::transmit(tcp::Packet_ptr packet) {

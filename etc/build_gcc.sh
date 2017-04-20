@@ -17,26 +17,31 @@ if [ ! -d gcc-$gcc_version ]; then
     echo -e "\n\n >>> Unpacking GCC source \n"
     tar -xf gcc-$gcc_version.tar.gz
 
-    # GET GCC PREREQS 
+    # GET GCC PREREQS
     echo -e "\n\n >>> Getting GCC Prerequisites \n"
-    pushd gcc-$gcc_version/    
+    pushd gcc-$gcc_version/
     ./contrib/download_prerequisites
     popd
 else
     echo -e "\n\n >>> SKIP: Unpacking GCC + getting prerequisites Seems to be there \n"
 fi
 
-mkdir -p build_gcc
-pushd build_gcc
-
 # Configure
 echo -e "\n\n >>> Configuring GCC \n"
+if [ -d build_gcc ]; then
+  echo -e "\n\n >>> Cleaning previous build \n"
+  rm -rf build_gcc
+fi
+
+mkdir -p build_gcc
+cd build_gcc
+
 ../gcc-$gcc_version/configure \
 	--target=$TARGET \
 	--prefix="$TEMP_INSTALL_DIR" \
 	--disable-nls \
 	--enable-languages=c,c++ \
-   	--without-headers
+  --without-headers
 
 # Compile
 echo -e "\n\n >>> Building GCC \n"
@@ -52,6 +57,5 @@ make all-target-libgcc $num_jobs
 echo -e "\n\n >>> Installing libgcc (Might require sudo) \n"
 make install-target-libgcc
 
-popd	# build_gcc
 popd	# BUILD_DIR
 trap - EXIT

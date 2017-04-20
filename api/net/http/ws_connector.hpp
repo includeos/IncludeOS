@@ -44,7 +44,7 @@ protected:
  */
 class WS_server_connector : public WS_connector {
 public:
-  using AcceptCallback    = delegate<bool(net::tcp::Socket peer, const std::string& origin)>;
+  using AcceptCallback    = delegate<bool(net::Socket peer, const std::string& origin)>;
   using Request_handler   = delegate<void(Request_ptr, Response_writer_ptr)>;
 
   /**
