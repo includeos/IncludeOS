@@ -1,14 +1,12 @@
 enable_language(ASM_NASM)
 
-if ("${ARCH}" STREQUAL "x86_64")
-  set (ARCH_INTERNAL "ARCH_X64")
-  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
-else()
-  set (ARCH_INTERNAL "ARCH_X86")
+if ("${ARCH}" STREQUAL "i686")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+else()
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
 endif()
 
-add_definitions(-D${ARCH_INTERNAL})
+add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 
 include_directories(${INCLUDEOS_ROOT}/api/posix)

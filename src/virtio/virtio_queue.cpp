@@ -170,7 +170,7 @@ void Virtio::Queue::enable_interrupts() {
 
 void Virtio::Queue::kick()
 {
-#if ARCH_X86 || ARCH_X64
+#if defined(ARCH_x86)
   update_avail_idx();
 
   // Std. §3.2.1 pt. 4

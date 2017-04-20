@@ -41,8 +41,8 @@
 /* the reason for termination.                      */
 #if defined(OS_TERMINATE_ON_CONTRACT_VIOLATION)
 
-#include <cstdlib> // Needed for std::exit
-#include <iostream> // Needed for std::err
+#include <cassert>
+
 #define OS_STRINGIFY(x) #x
 
 #undef Expects

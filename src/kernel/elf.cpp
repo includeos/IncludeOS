@@ -25,20 +25,22 @@
 #include <unistd.h>
 #include <vector>
 #include <util/elf.h>
-#include <arch>
+#include <arch.hpp>
 
-#if ARCH_X64
+#if defined(ARCH_x86_64)
 typedef Elf64_Sym   ElfSym;
 typedef Elf64_Ehdr  ElfEhdr;
 typedef Elf64_Phdr  ElfPhdr;
 typedef Elf64_Shdr  ElfShdr;
 typedef Elf64_Addr  ElfAddr;
-#elif ARCH_X86
+#elif defined(ARCH_i686) || defined(ARCH_i386)
 typedef Elf32_Sym   ElfSym;
 typedef Elf32_Ehdr  ElfEhdr;
 typedef Elf32_Phdr  ElfPhdr;
 typedef Elf32_Shdr  ElfShdr;
 typedef Elf32_Addr  ElfAddr;
+#else
+static_assert(false, "Not yet implemented for this arch");
 #endif
 
 static const char* boot_stringz = "Bootloader area";

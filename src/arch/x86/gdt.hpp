@@ -48,7 +48,7 @@ struct GDT
 
   static void reload_gdt(GDT& base) noexcept;
 
-#if ARCH_X64
+#if defined(ARCH_x86_64)
 #define MSR_FS_BASE 0xC0000100
 #define MSR_GS_BASE 0xC0000101
 #define MSR_GS_SWAP 0xC0000102
@@ -59,13 +59,15 @@ struct GDT
   static inline void set_gs(void* entry) noexcept {
     CPU::write_msr(MSR_GS_BASE, (uintptr_t) entry);
   }
-#elif ARCH_X86
+#elif defined(ARCH_i686)
   static inline void set_fs(uint16_t entry) noexcept {
     asm volatile("movw %h0, %%fs" : : "r"(entry * 0x8));
   }
   static inline void set_gs(uint16_t entry) noexcept {
     asm volatile("movw %h0, %%gs" : : "r"(entry * 0x8));
   }
+#else
+  static_assert(false, "Error: missing x86 arch");
 #endif
 
   GDT() {

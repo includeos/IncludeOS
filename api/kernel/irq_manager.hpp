@@ -18,7 +18,7 @@
 #ifndef KERNEL_IRQ_MANAGER_HPP
 #define KERNEL_IRQ_MANAGER_HPP
 
-#include <arch>
+#include <arch.hpp>
 #include <delegate>
 #include <membitmap>
 #include <smp>

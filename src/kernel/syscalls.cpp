@@ -157,7 +157,7 @@ void panic(const char* why)
   // call custom on panic handler (if present)
   if (panic_handler) panic_handler();
 
-#if ARCH_X86 || ARCH_X64
+#if defined(ARCH_x86)
   if (SMP::cpu_id() == 0) {
     SMP::global_lock();
     // Signal End-Of-Transmission

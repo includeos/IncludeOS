@@ -30,4 +30,5 @@ add_subdirectory(../x86/boot ../x86/boot/build)
 
 add_dependencies(arch PrecompiledLibraries)
 set_target_properties(crti crtn arch PROPERTIES LINKER_LANGUAGE CXX)
+
 install(TARGETS crti crtn arch DESTINATION includeos/${ARCH}/lib)
