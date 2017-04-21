@@ -19,15 +19,13 @@
 #ifndef NET_DHCP_DH4CLIENT_HPP
 #define NET_DHCP_DH4CLIENT_HPP
 
-#include <timers>
-#include "../packet.hpp"
-#include <net/ip4/ip4.hpp>
-#include <net/inet.hpp>
 #include "dhcp4.hpp"
+#include "options.hpp"
 
-namespace net
-{
-  class UDPSocket;
+#include <timers>
+#include <net/ip4/udp.hpp>
+
+namespace net {
 
   class DHClient
   {
@@ -52,7 +50,7 @@ namespace net
 
   private:
     void offer(UDPSocket&, const char* data, size_t len);
-    void request(UDPSocket&, const dhcp_option_t* server_id);   // --> acknowledge
+    void request(UDPSocket&, const dhcp::option::server_identifier* server_id);   // --> acknowledge
     void acknowledge(const char* data, size_t len);
 
     Stack& stack;
@@ -64,6 +62,7 @@ namespace net
     bool         console_spam;
     bool         in_progress;
   };
+
 }
 
 #endif
