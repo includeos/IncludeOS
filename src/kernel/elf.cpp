@@ -27,20 +27,20 @@
 #include <util/elf.h>
 #include <arch.hpp>
 
-#if defined(ARCH_x86_64)
+#if __LP64__
 typedef Elf64_Sym   ElfSym;
 typedef Elf64_Ehdr  ElfEhdr;
 typedef Elf64_Phdr  ElfPhdr;
 typedef Elf64_Shdr  ElfShdr;
 typedef Elf64_Addr  ElfAddr;
-#elif defined(ARCH_i686) || defined(ARCH_i386)
+#elif __ILP32__
 typedef Elf32_Sym   ElfSym;
 typedef Elf32_Ehdr  ElfEhdr;
 typedef Elf32_Phdr  ElfPhdr;
 typedef Elf32_Shdr  ElfShdr;
 typedef Elf32_Addr  ElfAddr;
 #else
-static_assert(false, "Not yet implemented for this arch");
+  #error "Unknown data model"
 #endif
 
 static const char* boot_stringz = "Bootloader area";
@@ -122,11 +122,13 @@ public:
   ElfSym* getaddr(ElfAddr addr)
   {
     // find exact match
-    for (size_t i = 0; i < symtab.entries; i++)
+    for (int i = 0; i < (int) symtab.entries; i++)
     {
       if (addr >= symtab.base[i].st_value
-      && (addr <  symtab.base[i].st_value + symtab.base[i].st_size))
+      && (addr <  symtab.base[i].st_value + symtab.base[i].st_size)) {
+          //printf("found sym (%p) at %d\n", (void*) addr, i);
           return &symtab.base[i];
+        }
     }
     // try again, but use guesstimate size
     ElfSym* guess = nullptr;
@@ -184,7 +186,7 @@ private:
   {
     int status;
     // internally, demangle just returns buf when status is ok
-    auto* res = __cxa_demangle(name, (char*) buffer, &buflen, &status);
+    auto* res = __cxa_demangle(name, buffer, &buflen, &status);
     if (status == 0) return res;
     return name;
   }
@@ -241,13 +243,25 @@ void print_backtrace()
     write(1, _btrace_buffer, len);
   }
 
+#if defined(__ILP32__)
   #define PRINT_TRACE(N, ra) \
     auto symb = Elf::safe_resolve_symbol(                     \
                 ra, _symbol_buffer, sizeof(_symbol_buffer));  \
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
-             "[%d] %16p + 0x%.3x: %s\n", \
-             N, (void*) symb.addr, symb.offset, symb.name);\
-    write(1, _btrace_buffer, len);
+            "[%d] 0x%08x + 0x%.3x: %s\n",         \
+            N, symb.addr, symb.offset, symb.name);\
+            write(1, _btrace_buffer, len);
+#elif defined(__LP64__)
+  #define PRINT_TRACE(N, ra) \
+    auto symb = Elf::safe_resolve_symbol(                     \
+                ra, _symbol_buffer, sizeof(_symbol_buffer));  \
+    int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
+            "[%d] 0x%016lx + 0x%.3x: %s\n",       \
+            N, symb.addr, symb.offset, symb.name);\
+            write(1, _btrace_buffer, len);
+#else
+  #error "Implement me"
+#endif
 
   printf("\n");
   void* ra;

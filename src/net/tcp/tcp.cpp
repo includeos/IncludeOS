@@ -165,6 +165,13 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
 
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
+
+  // validate some unlikely but invalid packet properties
+  if (UNLIKELY(packet->src_port() == 0)) {
+    drop(*packet);
+    return;
+  }
+
   const auto dest = packet->destination();
   debug2("<TCP::receive> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), dest.to_string().c_str());
