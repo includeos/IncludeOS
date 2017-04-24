@@ -1,24 +1,63 @@
 #!/usr/bin/env python
+import argparse
+import collections
+import datetime
 import os
 import signal
 import subprocess
 import sys
 
-vmruncmd = "/Applications/VMware Fusion.app/Contents/Library/vmrun"
-vmxpath = ""
+Instance = collections.namedtuple("Instance", "path name")
+
+vmrun_cmd = "/Applications/VMware Fusion.app/Contents/Library/vmrun"
+instances = []
+
+# Argparse setup
+parser = argparse.ArgumentParser(description="IncludeOS VMmware runner")
+parser.add_argument("-n", "--instances", dest="instances",
+	type=int, help="Number of instances to launch")
+parser.add_argument("vm_filename", type=str, help="Filename of VM")
+args = parser.parse_args()
+if args.instances == None:
+	args.instances = 1
 
 def handler(signal, frame):
-	print "Stopping vm {path}".format(path=vmxpath)
-	subprocess.call([vmruncmd, "stop", vmxpath, "hard"])
+	stop_instances()
 	sys.exit(0)
 
-def write_vmx(servicename):
+def stop_instances():
+	for instance in instances:
+		stop_instance(instance)
+
+def start_instance(instance):
+	serial_path = os.path.join(instance.path, "includeos-serial.txt")
+	vmxpath = os.path.join(instance.path, instance.name)
+	return subprocess.call([vmrun_cmd, "start", vmxpath, "nogui"])
+
+def stop_instance(instance):
+	full_path = os.path.join(instance.path, instance.name)
+	print "Stopping vm {path}".format(path=full_path)
+	subprocess.call([vmrun_cmd, "stop", full_path, "hard"])
+
+def convert_image(servicename, destination_path):
 	vmdkfile = "{filename}.vmdk".format(filename=servicename)
+	vmdk_path = os.path.join(destination_path, vmdkfile)
+	convert_cmd = "qemu-img convert -O vmdk {filename}.img {dest}".format(dest=vmdk_path, filename=servicename)
+	try:
+		os.makedirs(destination_path)
+	except:
+		pass
+	return subprocess.call(convert_cmd, shell=True)
+
+def write_vmx(instance_path, servicename):
+	vmdkfile = "{filename}.vmdk".format(filename=servicename)
+	vmdk_full_path = os.path.join(instance_path, vmdkfile)
 	vmxfile = "{filename}.vmx".format(filename=servicename)
+	vmx_full_path = os.path.join(instance_path, vmxfile)
 	vmx = """.encoding = "UTF-8"
 config.version = "8"
 virtualHW.version = "11"
-memsize = "256"
+memsize = "64"
 ide0:0.present = "TRUE"
 ide0:0.fileName = "{path}"
 ide1:0.present = "TRUE"
@@ -47,6 +86,7 @@ pciBridge7.present = "TRUE"
 pciBridge7.virtualDev = "pcieRootPort"
 pciBridge7.functions = "8"
 vmci0.present = "TRUE"
+vprobe.enable = "TRUE"
 hpet0.present = "TRUE"
 tools.syncTime = "TRUE"
 displayName = "IncludeOS"
@@ -65,22 +105,40 @@ serial0.fileType = "file"
 serial0.fileName = "includeos-serial.txt"
 serial0.tryNoRxLoss = "FALSE"
 ethernet0.virtualDev = "vmxnet3"
-""".format(path=os.path.join(os.getcwd(), vmdkfile))
-	with open(vmxfile, "w") as f:
-		f.write(vmx)
-	return vmxfile
-
-if __name__ == "__main__":
-	servicename = sys.argv[1]
-	vmdkfile = "{filename}.vmdk".format(filename=servicename)
-	convertcmd = "qemu-img convert -O vmdk {filename}.img {filename}.vmdk".format(filename=servicename)
-	subprocess.call(convertcmd, shell=True)
-	vmxfile = write_vmx(servicename)
-	vmxpath = os.path.join(os.getcwd(), vmxfile)
+""".format(path=vmdk_full_path)
 	try:
-		os.remove("includeos-serial.txt")
+		os.makedirs(vmx_output_path)
 	except:
 		pass
-	signal.signal(signal.SIGINT, handler)
-	subprocess.call([vmruncmd, "start", vmxpath, "nogui"])
-	subprocess.call(["tail", "-f", "includeos-serial.txt"])
+	with open(vmx_full_path, "w") as f:
+		f.write(vmx)
+	instance = Instance(path=instance_path, name=vmxfile)
+	return instance
+
+if __name__ == "__main__":
+	timestamp = "{:%Y%m%d_%H%M%S}".format(datetime.datetime.now())
+	servicename = args.vm_filename
+	path, _ = os.path.split(os.path.abspath(args.vm_filename))
+	root_path = os.path.join(path, timestamp)
+	for i in range(args.instances):
+		instance_path = os.path.join(root_path, str(i))
+		# VMWare wants an exclusive lock on the disk file, so every instance
+		# needs their own copy :(
+		res = convert_image(servicename, instance_path)
+		if res == 0:
+			instance = write_vmx(instance_path, servicename)
+			res = start_instance(instance)
+			if res == 0:
+				instances.append(instance)
+	if len(instances) != args.instances:
+		print "One or more instances failed to launch, stopping all"
+		stop_instances()
+	else:
+		signal.signal(signal.SIGINT, handler)
+		tail_cmd = ["tail", "-f"]
+		# Feel free to substitute your preferred tail variant
+		#tail_cmd = ["multitail", "-s", "2"]
+		for instance in instances:
+			log_path = os.path.join(instance.path, "includeos-serial.txt")
+			tail_cmd.append(log_path)
+		subprocess.call(tail_cmd)

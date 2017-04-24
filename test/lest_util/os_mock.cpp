@@ -33,10 +33,11 @@ void* aligned_alloc(size_t alignment, size_t size) {
 #include <util/statman.hpp>
 Statman& Statman::get() {
   static uintptr_t start {0};
+  static const size_t memsize = 0x100000;
   if (!start) {
-    start = (uintptr_t) malloc(65536);
+    start = (uintptr_t) malloc(memsize);
   }
-  static Statman statman_{start, 16384};
+  static Statman statman_{start, memsize / sizeof(Stat)};
   return statman_;
 }
 
@@ -81,7 +82,7 @@ bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
 
-void OS::multiboot(unsigned, unsigned) {}
+void OS::multiboot(unsigned) {}
 
 extern "C" {
 
@@ -97,7 +98,6 @@ extern "C" {
 #ifdef __MACH__
   uintptr_t _start;
 #endif
-  uintptr_t _end;
 
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
@@ -119,6 +119,10 @@ extern "C" {
     return;
   }
 #endif
+
+  void __libc_init_array () {
+    return;
+  }
 
   void modern_interrupt_handler() {
     return;
@@ -176,6 +180,11 @@ extern "C" {
   static char __printbuf[4096];
 
   __attribute__((weak))
+  void __init_serial1 () {
+    return;
+  }
+
+  __attribute__((weak))
   void __serial_print1(const char* cstr) {
     snprintf(__printbuf, 4096, "%s", cstr);
   }
@@ -209,18 +218,10 @@ namespace x86 {
 
 #ifndef ARCH_X86
 bool rdrand32(uint32_t* result) {
+  *result = rand();
   return true;
 }
 #include <kernel/cpuid.hpp>
-bool CPUID::has_feature(Feature f) {
-  return true;
-}
 #include <kernel/irq_manager.hpp>
-IRQ_manager& IRQ_manager::get() {
-  static IRQ_manager m;
-  return m;
-}
-void IRQ_manager::process_interrupts() {
-  return;
-}
+
 #endif

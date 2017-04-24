@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//#undef NO_DEBUG
 #define DEBUG // Allow debugging
 #define DEBUG2 // Allow debug lvl 2
 
@@ -95,7 +96,7 @@ namespace net {
     debug2("\t* Source IP: %s Dest.IP: %s Type: 0x%x\n",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
-           packet->ip_protocol());
+           (int) packet->ip_protocol());
 
 
     // Stat increment packets received
@@ -201,7 +202,7 @@ namespace net {
     // Stat increment packets transmitted
     packets_tx_++;
 
-    debug("<IP4> Transmitting packet, layer begin: buf + %i\n", ip4_pckt->layer_begin() - ip4_pckt->buf());
+    debug("<IP4> Transmitting packet, layer begin: buf + %li\n", ip4_pckt->layer_begin() - ip4_pckt->buf());
 
     linklayer_out_(std::move(ip4_pckt), next_hop);
   }

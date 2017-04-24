@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <cassert>
+#include <cstdio>
 #include <new>
 
 #define ACCESS_DUMMY  0x0
@@ -11,6 +12,7 @@
 #define ACCESS_DATA3  0xF2
 
 #define FLAGS_X32_PAGE 0xC
+#define FLAGS_X64_PAGE 0xA
 
 namespace x86
 {

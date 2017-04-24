@@ -22,7 +22,7 @@
 #include <ctime>
 #include <string>
 
-namespace isotime
+struct isotime
 {
   /**
    * @brief      Returns a ISO 8601 UTC datetime string.
@@ -32,7 +32,7 @@ namespace isotime
    *
    * @return     An ISO datetime string, formatted as "YYYY-MM-DDThh:mm:ssZ"
    */
-  std::string to_datetime_string(time_t ts)
+  static std::string to_datetime_string(time_t ts)
   {
     char buf[sizeof "2017-04-10T13:37:00Z"];
     strftime(buf, sizeof buf, "%FT%TZ", gmtime(&ts));
@@ -44,13 +44,10 @@ namespace isotime
    *
    * @return     A datetime string representing now
    */
-  std::string now()
+  static std::string now()
   {
     return to_datetime_string(time(0));
   }
-}
+};
 
 #endif
-
-
-

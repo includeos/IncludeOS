@@ -126,7 +126,6 @@ OS::on_panic_func panic_handler = nullptr;
 **/
 void panic(const char* why)
 {
-#ifdef ARCH_X86
   /// prevent re-entering panic() more than once per CPU
   if (PER_CPU(panic_stuff).reenter)
       OS::reboot();
@@ -145,18 +144,20 @@ void panic(const char* why)
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
 
-  fprintf(stderr, "\tHeap is at: %#x / %#x  (diff=%#x)\n",
-         heap_end, OS::heap_max(), OS::heap_max() - heap_end);
-  fprintf(stderr, "\tHeap usage: %u / %u Kb (%.2f%%)\n",
-         (uintptr_t) (heap_end - heap_begin) / 1024,
+  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%u)\n",
+         (void*) heap_end, (void*) OS::heap_max(), (uint32_t) (OS::heap_max() - heap_end));
+  fprintf(stderr, "\tHeap usage: %lu / %lu Kb (%.2f%%)\n",
+         (unsigned long) (heap_end - heap_begin) / 1024,
          heap_total / 1024,
          total * 100.0);
   print_backtrace();
   fflush(stderr);
   SMP::global_unlock();
-  // call custom on panic handler
+
+  // call custom on panic handler (if present)
   if (panic_handler) panic_handler();
 
+#if ARCH_X86 || ARCH_X64
   if (SMP::cpu_id() == 0) {
     SMP::global_lock();
     // Signal End-Of-Transmission
@@ -168,7 +169,7 @@ void panic(const char* why)
   while (1) asm("cli; hlt");
   __builtin_unreachable();
 #else
-#warning "panic() not implemented for selected arch"
+#warning "panic() handler not implemented for selected arch"
 #endif
 }
 

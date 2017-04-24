@@ -52,7 +52,7 @@ void Virtio::Queue::init_queue(int size, char* buf)
   debug("\t * Queue avail @ 0x%lx \n ",(long)_queue.avail);
 
   // The used queue starts at the beginning of the next page
-  _queue.used = (virtq_used*) (((uint32_t) &_queue.avail->ring[size] + sizeof(uint16_t) + PAGE_SIZE-1) & ~(PAGE_SIZE-1));
+  _queue.used = (virtq_used*) (((uintptr_t) &_queue.avail->ring[size] + sizeof(uint16_t) + PAGE_SIZE-1) & ~(PAGE_SIZE-1));
   debug("\t * Queue used  @ 0x%lx \n ",(long)_queue.used);
 }
 
@@ -170,11 +170,11 @@ void Virtio::Queue::enable_interrupts() {
 
 void Virtio::Queue::kick()
 {
-#ifdef ARCH_X86
+#if ARCH_X86 || ARCH_X64
   update_avail_idx();
 
   // Std. §3.2.1 pt. 4
-  asm volatile("mfence" ::: "memory");
+  __arch_hw_barrier();
   if (!(_queue.used->flags & VIRTQ_USED_F_NO_NOTIFY)){
     debug("<%s> Kicking virtio. Iobase 0x%x \n", qname.c_str(), _iobase);
     hw::outpw(_iobase + VIRTIO_PCI_QUEUE_NOTIFY , _pci_index);
@@ -185,4 +185,3 @@ void Virtio::Queue::kick()
 #warning "kick() not implemented for selected arch"
 #endif
 }
-

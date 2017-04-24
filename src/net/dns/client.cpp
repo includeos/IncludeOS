@@ -20,9 +20,24 @@
 namespace net
 {
   Timer::duration_t DNSClient::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(5)};
+  Timer::duration_t DNSClient::DEFAULT_FLUSH_INTERVAL{std::chrono::seconds(30)};
+  std::chrono::seconds DNSClient::DEFAULT_CACHE_TTL{std::chrono::seconds(60)};
 
-  void DNSClient::resolve(IP4::addr dns_server, const std::string& hostname, Stack::resolve_func<IP4> func)
+  void DNSClient::resolve(Address dns_server,
+                          const Hostname& hostname,
+                          Resolve_handler func,
+                          Timer::duration_t timeout, bool force)
   {
+    if(not force)
+    {
+      auto it = cache_.find(hostname);
+      if(it != cache_.end())
+      {
+        Error err;
+        func(it->second.address, err);
+        return;
+      }
+    }
     // create DNS request
     DNS::Request request;
     std::array<char, 256> buf{};
@@ -33,7 +48,7 @@ namespace net
     // store the request for later match
     requests_.emplace(std::piecewise_construct,
       std::forward_as_tuple(key),
-      std::forward_as_tuple(std::move(request), std::move(func)));
+      std::forward_as_tuple(std::move(request), std::move(func), timeout));
 
     // send request to DNS server
     socket_.sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len, nullptr, [this, dns_server, key] (const Error& err) {
@@ -49,6 +64,13 @@ namespace net
     });
   }
 
+  void DNSClient::flush_cache()
+  {
+    cache_.clear();
+
+    flush_timer_.stop();
+  }
+
   void DNSClient::receive_response(IP4::addr, UDP::port_t, const char* data, size_t)
   {
     const auto& reply = *(DNS::header*) data;
@@ -57,12 +79,25 @@ namespace net
     // if this is match
     if(it != requests_.end())
     {
+      auto& req = it->second;
       // TODO: do some necessary validation ... (truncate etc?)
 
+      auto& dns_req = req.request;
       // parse request
-      it->second.request.parseResponse(data);
+      dns_req.parseResponse(data);
+
+      // cache the response for 60 seconds
+      if(cache_ttl_ > std::chrono::seconds::zero())
+      {
+        const auto ip = dns_req.getFirstIP4();
+
+        // online cache if ip was resolved
+        if(ip != 0)
+          add_cache_entry(dns_req.hostname(), ip, cache_ttl_);
+      }
+
       // fire onResolve event
-      it->second.finish();
+      req.finish();
 
       // the request is finished, removed it from our map
       requests_.erase(it);
@@ -71,6 +106,46 @@ namespace net
     {
       debug("<DNSClient::receive_response> Cannot find matching DNS Request with transid=%u\n", ntohs(reply.id));
     }
+  }
 
+  void DNSClient::add_cache_entry(const Hostname& hostname, Address addr, std::chrono::seconds ttl)
+  {
+    // cache the address
+    cache_.emplace(std::piecewise_construct,
+      std::forward_as_tuple(hostname),
+      std::forward_as_tuple(addr, timestamp() + ttl.count()));
+
+    debug("<DNSClient> Cache entry added: [%s] %s (%lld)\n",
+      hostname.c_str(), addr.to_string().c_str(), ttl.count());
+
+    // start the timer if not already active
+    if(not flush_timer_.is_running())
+      flush_timer_.start(DEFAULT_FLUSH_INTERVAL);
+  }
+
+  void DNSClient::flush_expired()
+  {
+    const auto before = cache_.size();
+
+    // which key that has expired
+    std::vector<const std::string*> expired;
+    expired.reserve(before);
+
+    const auto now = timestamp();
+    // gather all expired entries
+    for(auto& ent : cache_)
+    {
+      if(ent.second.expires <= now)
+        expired.push_back(&ent.first);
+    }
+
+    // remove all expired from cache
+    for(auto* exp : expired)
+      cache_.erase(*exp);
+
+    debug("<DNSClient> Flushed %u expired entries.\n", before - cache_.size());
+
+    if(not cache_.empty())
+      flush_timer_.start(DEFAULT_FLUSH_INTERVAL);
   }
 }

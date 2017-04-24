@@ -136,7 +136,7 @@ namespace net
 
   int DNS::Request::create(char* buffer, const std::string& hostname)
   {
-    this->hostname = hostname;
+    this->hostname_ = hostname;
     this->answers.clear();
     this->auth.clear();
     this->addit.clear();
@@ -233,7 +233,7 @@ namespace net
   {
     int lock = 0;
 
-    std::string copy = this->hostname + ".";
+    std::string copy = this->hostname_ + ".";
     int len = copy.size();
 
     for(int i = 0; i < len; i++)

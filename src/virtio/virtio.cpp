@@ -37,8 +37,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   /**
       Match vendor ID and Device ID : §4.1.2.2
   */
-  if (_pcidev.vendor_id() != hw::PCI_Device::VENDOR_VIRTIO)
-    panic("This is not a Virtio device");
+  if (_pcidev.vendor_id() != PCI::VENDOR_VIRTIO)
+      panic("This is not a Virtio device");
   CHECK(true, "Vendor ID is VIRTIO");
 
   bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
