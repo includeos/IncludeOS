@@ -35,6 +35,7 @@ struct Message
   static const uint8_t CHADDR_LEN =  16;
   static const uint8_t SNAME_LEN  =  64;
   static const uint8_t FILE_LEN   = 128;
+  static constexpr uint16_t LIMIT{DHCP_VEND_LEN}; // 304
 
   uint8_t   op;           // message opcode
   uint8_t   htype;        // hardware addr type
@@ -79,7 +80,7 @@ struct Message
    * @return     Returns some kind fo standard size for a message.
    */
   static constexpr uint16_t size() noexcept
-  { return sizeof(Message) + DHCP_VEND_LEN; }
+  { return sizeof(Message) + LIMIT; }
 }; // < struct Message
 
 /**
@@ -231,6 +232,9 @@ public:
   template <typename Opt, typename... Args>
   Opt& add_option(Args&&... args) noexcept
   {
+    Expects((opt_offset + sizeof(option::base)) < Message::LIMIT &&
+      "Adding option past artifical limit set on message (review the limit in dhcp::Message::size())");
+
     auto& opt = message_.add_option<Opt>(opt_offset, std::forward<Args>(args)...);
     // increase the option offset by the size of the newly created option
     opt_offset += opt.size();
@@ -265,7 +269,7 @@ public:
     auto* raw = reinterpret_cast<uint8_t*>(&message_.options[0]);
     auto* opt = reinterpret_cast<option::base*>(raw);
 
-    while (opt->code != code && opt->code != option::END)
+    while (opt->code != code && opt->code != option::END && opt < max_opt_addr())
     {
       raw += opt->size();
       opt = reinterpret_cast<option::base*>(raw);
@@ -291,7 +295,7 @@ public:
     auto* raw = reinterpret_cast<uint8_t*>(&message_.options[0]);
     auto* opt = reinterpret_cast<option::base*>(raw);
 
-    while(opt->code != option::END)
+    while(opt->code != option::END && opt < max_opt_addr())
     {
       if(opt->code != option::PAD)
       {
@@ -314,6 +318,16 @@ private:
   {
     Expects(data != nullptr);
   }
+
+  /**
+   * @brief      Returns the maximum address for an option
+   *             based on the limit set in Message.
+   *             Used for restrict iteration on options.
+   *
+   * @return     The maximum address for an option.
+   */
+  option::base* max_opt_addr() const noexcept
+  { return &message_.options[0] + (Message::LIMIT / sizeof(option::base)); }
 
 }; // < class Message_view
 
