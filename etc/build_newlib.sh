@@ -39,14 +39,14 @@ fi
 ../newlib-$newlib_version/configure \
 	--target=$TARGET \
 	--prefix=$TEMP_INSTALL_DIR \
-	--enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib \
+  AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib \
+	--enable-newlib-io-long-long \
+  --enable-newlib-io-c99-formats \
+  --enable-newlib-io-pos-args \
   --enable-newlib-hw-fp \
-  --enable-newlib-mb \
-  --enable-newlib-iconv \
-  --enable-newlib-iconv-encodings=utf-16,utf-8,ucs_2 \
   --disable-libgloss \
   --disable-multilib \
-  --enable-newlib-multithread \
+  --disable-newlib-multithread \
   --disable-newlib-supplied-syscalls
 
 echo -e "\n\n >>> BUILDING NEWLIB \n\n"
