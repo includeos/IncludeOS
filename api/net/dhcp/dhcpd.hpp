@@ -19,7 +19,7 @@
 #ifndef NET_DHCP_DHCPD_HPP
 #define NET_DHCP_DHCPD_HPP
 
-#include <net/dhcp/dhcp4.hpp>
+#include <net/dhcp/message.hpp>
 #include <net/dhcp/record.hpp>  // Status and Record
 #include <net/ip4/udp.hpp>
 #include <map>
@@ -42,7 +42,7 @@ namespace dhcp {
       uint32_t lease = DEFAULT_LEASE, uint32_t max_lease = DEFAULT_MAX_LEASE, uint8_t pending = DEFAULT_PENDING);
 
     ~DHCPD() {
-      socket_.udp().close(socket_.local_port());
+      socket_.close();
     }
 
     void add_record(const Record& record)

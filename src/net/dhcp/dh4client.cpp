@@ -86,7 +86,7 @@ namespace net {
 
     // create DHCP discover packet
     uint8_t buffer[Message::size()];
-    auto msg = Message_view::create(&buffer[0], op_code::BOOTREQUEST, message_type::DISCOVER);
+    Message_writer msg{&buffer[0], op_code::BOOTREQUEST, message_type::DISCOVER};
     msg.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // eth dependency
     msg.set_xid(this->xid);
     msg.set_flag(flag::BOOTP_BROADCAST);
@@ -127,7 +127,7 @@ namespace net {
 
   void DHClient::offer(UDPSocket& sock, const char* data, size_t)
   {
-    const auto msg = Message_view::open(reinterpret_cast<uint8_t*>(const_cast<char*>(data))); // lol, temp
+    const Message_reader msg{reinterpret_cast<const uint8_t*>(data)};
 
     // silently ignore transactions not our own
     if (msg.xid() != this->xid) return;
@@ -208,7 +208,7 @@ namespace net {
     // form a response
     uint8_t buffer[Message::size()];
 
-    auto msg = Message_view::create(&buffer[0], op_code::BOOTREQUEST, message_type::REQUEST);
+    Message_writer msg{&buffer[0], op_code::BOOTREQUEST, message_type::REQUEST};
 
     msg.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // eth dependency
     msg.set_xid(this->xid);
@@ -265,7 +265,7 @@ namespace net {
 
   void DHClient::acknowledge(const char* data, size_t)
   {
-    const auto msg = Message_view::open(reinterpret_cast<uint8_t*>(const_cast<char*>(data))); // lol, temp
+    const Message_reader msg{reinterpret_cast<const uint8_t*>(data)};
 
     // silently ignore transactions not our own
     if (msg.xid() != this->xid) return;

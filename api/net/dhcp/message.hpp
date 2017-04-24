@@ -85,46 +85,196 @@ struct Message
 }; // < struct Message
 
 /**
- * @brief      A view for operating messages (reading existing ones or creating new ones).
+ * @brief      A readable DHCP message. Needs to be inherited.
+ *             This class is used to determine if the storage should be const or not.
+ *
+ * @tparam     Storage  Message or const Message
  */
-class Message_view {
+template <typename Storage>
+class Readable_message {
 public:
-  using Addr = Message::Addr;
+
+  auto ciaddr() const noexcept
+  { return message_.ciaddr; }
+
+  auto yiaddr() const noexcept
+  { return message_.yiaddr; }
+
+  auto siaddr() const noexcept
+  { return message_.siaddr; }
+
+  auto giaddr() const noexcept
+  { return message_.giaddr; }
+
+  uint32_t xid() const noexcept
+  { return ntohl(message_.xid); }
 
   /**
-   * @brief      Constructs a Message_view over a buffer.
+   * @brief      Returns the client hardware address.
+   *
+   * @tparam     Addr  The type of the hardware address.
+   *
+   * @return     The client hardware address.
+   */
+  template <typename Addr>
+  const Addr& chaddr() const
+  { return *reinterpret_cast<const Addr*>(&message_.chaddr[0]); }
+
+    /**
+   * @brief      Find the option of the given type.
+   *
+   * @tparam     Opt   The option to be found.
+   *
+   * @return     A pointer to the option if found, nullptr if not.
+   */
+  template <typename Opt>
+  const Opt* find_option() const
+  {
+    const auto* opt = find_option(Opt::CODE);
+
+    return (opt->code == Opt::CODE)
+      ? static_cast<const Opt*>(opt) : nullptr;
+  }
+
+  /**
+   * @brief      Find an "anonymous" option with the given code.
+   *
+   * @param[in]  code  The code to look for.
+   *
+   * @return     A pointer to an "anonymous" option, most likely with code == END if not found.
+   */
+  const option::base* find_option(option::Code code) const
+  {
+    auto* raw = reinterpret_cast<uint8_t*>(const_cast<option::base*>(&message_.options[0]));
+    auto* opt = reinterpret_cast<option::base*>(raw);
+
+    while (opt->code != code && opt->code != option::END && opt < max_opt_addr())
+    {
+      raw += opt->size();
+      opt = reinterpret_cast<option::base*>(raw);
+    }
+    return opt;
+  }
+
+  /** Invoked with a const pointer of an "anonymous" option. */
+  using Option_inspector = delegate<void(const option::base*)>;
+  /**
+   * @brief      Iterates over all the options, calling the on_option
+   *             for every hit.
+   *
+   * @param[in]  on_option  On option inspector to be called for every hit.
+   *
+   * @return     Returns the total number of options found.
+   */
+  uint8_t parse_options(Option_inspector on_option) const
+  {
+    Expects(on_option);
+    uint8_t x = 0;
+
+    auto* raw = reinterpret_cast<uint8_t*>(const_cast<option::base*>(&message_.options[0]));
+    auto* opt = reinterpret_cast<option::base*>(raw);
+
+    while(opt->code != option::END && opt < max_opt_addr())
+    {
+      if(opt->code != option::PAD)
+      {
+        ++x;
+        on_option(opt);
+      }
+      raw += opt->size();
+      opt = reinterpret_cast<option::base*>(raw);
+    }
+
+    return x;
+  }
+
+  /**
+   * @brief      Returns the maximum address for an option
+   *             based on the limit set in Message.
+   *             Used for restrict iteration on options.
+   *
+   * @return     The maximum address for an option.
+   */
+  const option::base* max_opt_addr() const noexcept
+  { return &message_.options[0] + (Message::LIMIT / sizeof(option::base)); }
+
+protected:
+  Storage& message_;
+
+  Readable_message(Storage& msg)
+    : message_{msg}
+  {}
+};
+
+/**
+ * @brief      Helper for reading a message and options.
+ */
+class Message_reader : public Readable_message<const Message> {
+public:
+  /**
+   * @brief      Constructs a Message_reader over a message.
    *             Used when reading existing messages.
    *
-   * @param      buffer  The buffer
-   *
-   * @return     A Message_view
+   * @param[in]  msg   The message
    */
-  static Message_view open(uint8_t* buffer) noexcept
-  { return Message_view{buffer}; }
+  explicit Message_reader(const Message* msg) noexcept
+    : Readable_message{*msg}
+  {
+    Expects(msg != nullptr);
+  }
+
+  /**
+   * @brief      Constructs a Message_reader over a buffer.
+   *
+   * @param[in]  buffer  The buffer
+   */
+  explicit Message_reader(const uint8_t* buffer) noexcept
+    : Message_reader{reinterpret_cast<const Message*>(buffer)}
+  {}
+
+};
+
+/**
+ * @brief      Helper for creating new messages and adding options.
+ */
+class Message_writer : public Readable_message<Message> {
+public:
+  using Addr = Message::Addr;
 
   /**
    * @brief      Constructs a new Message_view over a buffer.
    *             Used when creating new messages.
    *             The user needs to make sure the buffer is big enough.
    *
-   * @param      buffer  The buffer
-   * @param[in]  op      The op code
-   * @param[in]  type    The DHCP message type
-   *
-   * @return     A initialized Message_view
+   * @param      msg   The message
+   * @param[in]  op    The op code
+   * @param[in]  type  The DHCP message type
    */
-  static Message_view create(uint8_t* buffer, op_code op, message_type type) noexcept
+  explicit Message_writer(Message* msg, const op_code op, const message_type type) noexcept
+    : Readable_message{*msg}
   {
-    Message_view view{buffer};
+    Expects(msg != nullptr);
     // null the buffer
-    view.reset();
-    view.set_op(op);
+    reset();
+    set_op(op);
     // add magic cookie
-    view.set_magic();
+    set_magic();
     // add message option
-    view.add_option<option::message>(type);
-    return view;
+    add_option<option::message>(type);
   }
+
+  /**
+   * @brief      Constructs a new Message_view over a buffer.
+   *             Used when creating new messages.
+   *             The user needs to make sure the buffer is big enough.
+   *
+   * @param      buffer   The buffer
+   * @param[in]  op       The op code
+   * @param[in]  type     The DHCP message type
+   */
+  explicit Message_writer(uint8_t* buffer, const op_code op, const message_type type) noexcept
+    : Message_writer{reinterpret_cast<Message*>(buffer), op, type}
+  {}
 
   void set_op(op_code op) noexcept
   { message_.op = static_cast<uint8_t>(op); }
@@ -144,32 +294,17 @@ public:
   void set_ciaddr(Addr addr) noexcept
   { message_.ciaddr = addr; }
 
-  auto ciaddr() const noexcept
-  { return message_.ciaddr; }
-
   void set_yiaddr(Addr addr) noexcept
   { message_.yiaddr = addr; }
-
-  auto yiaddr() const noexcept
-  { return message_.yiaddr; }
 
   void set_siaddr(Addr addr) noexcept
   { message_.siaddr = addr; }
 
-  auto siaddr() const noexcept
-  { return message_.siaddr; }
-
   void set_giaddr(Addr addr) noexcept
   { message_.giaddr = addr; }
 
-  auto giaddr() const noexcept
-  { return message_.giaddr; }
-
   void set_xid(uint32_t xid) noexcept
   { message_.xid = htonl(xid); }
-
-  uint32_t xid() const noexcept
-  { return ntohl(message_.xid); }
 
   void set_flag(flag fl) noexcept
   { message_.flags = htons(static_cast<uint16_t>(fl)); }
@@ -191,17 +326,6 @@ public:
     memset(message_.chaddr, 0, Message::CHADDR_LEN);
     memcpy(message_.chaddr, hwaddr, sizeof(Addr));
   }
-
-  /**
-   * @brief      Returns the client hardware address.
-   *
-   * @tparam     Addr  The type of the hardware address.
-   *
-   * @return     The client hardware address.
-   */
-  template <typename Addr>
-  const Addr& chaddr() const
-  { return *reinterpret_cast<Addr*>(&message_.chaddr[0]); }
 
   /**
    * @brief      Sets the magic cookie.
@@ -253,93 +377,8 @@ public:
     return opt;
   }
 
-  /**
-   * @brief      Find the option of the given type.
-   *
-   * @tparam     Opt   The option to be found.
-   *
-   * @return     A pointer to the option if found, nullptr if not.
-   */
-  template <typename Opt>
-  const Opt* find_option() const
-  {
-    const auto* opt = find_option(Opt::CODE);
-
-    return (opt->code == Opt::CODE)
-      ? static_cast<const Opt*>(opt) : nullptr;
-  }
-
-  /**
-   * @brief      Find an "anonymous" option with the given code.
-   *
-   * @param[in]  code  The code to look for.
-   *
-   * @return     A pointer to an "anonymous" option, most likely with code == END if not found.
-   */
-  const option::base* find_option(option::Code code) const
-  {
-    auto* raw = reinterpret_cast<uint8_t*>(&message_.options[0]);
-    auto* opt = reinterpret_cast<option::base*>(raw);
-
-    while (opt->code != code && opt->code != option::END && opt < max_opt_addr())
-    {
-      raw += opt->size();
-      opt = reinterpret_cast<option::base*>(raw);
-    }
-    return opt;
-  }
-
-  /** Invoked with a const pointer of an "anonymous" option. */
-  using Option_inspector = delegate<void(const option::base*)>;
-  /**
-   * @brief      Iterates over all the options, calling the on_option
-   *             for every hit.
-   *
-   * @param[in]  on_option  On option inspector to be called for every hit.
-   *
-   * @return     Returns the total number of options found.
-   */
-  uint8_t parse_options(Option_inspector on_option) const
-  {
-    Expects(on_option);
-    uint8_t x = 0;
-
-    auto* raw = reinterpret_cast<uint8_t*>(&message_.options[0]);
-    auto* opt = reinterpret_cast<option::base*>(raw);
-
-    while(opt->code != option::END && opt < max_opt_addr())
-    {
-      if(opt->code != option::PAD)
-      {
-        ++x;
-        on_option(opt);
-      }
-      raw += opt->size();
-      opt = reinterpret_cast<option::base*>(raw);
-    }
-
-    return x;
-  }
-
 private:
-  Message& message_;
   uint16_t opt_offset{0};
-
-  Message_view(uint8_t* data) noexcept
-    : message_{*(reinterpret_cast<Message*>(data))}
-  {
-    Expects(data != nullptr);
-  }
-
-  /**
-   * @brief      Returns the maximum address for an option
-   *             based on the limit set in Message.
-   *             Used for restrict iteration on options.
-   *
-   * @return     The maximum address for an option.
-   */
-  option::base* max_opt_addr() const noexcept
-  { return &message_.options[0] + (Message::LIMIT / sizeof(option::base)); }
 
 }; // < class Message_view
 

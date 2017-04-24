@@ -97,9 +97,9 @@ CASE("Reading Message and parsing options with Message_view")
   using namespace net::dhcp;
   uint8_t buffer[Message::size()];
 
-  auto* msg = create_discovery_msg(&buffer[0]);
+  const auto* msg = create_discovery_msg(&buffer[0]);
 
-  const auto view = Message_view::open(reinterpret_cast<uint8_t*>(msg));
+  const Message_reader view{msg};
   MAC::Addr link_addr = test_mac();
 
   EXPECT(view.xid() == 322420);
@@ -172,7 +172,7 @@ CASE("Creating Message and adding options with Message_view")
   uint8_t buffer[Message::size()];
   std::memset(buffer, 0, Message::size());
 
-  auto view = Message_view::create(&buffer[0], op_code::BOOTREQUEST, message_type::DISCOVER);
+  Message_writer view{&buffer[0], op_code::BOOTREQUEST, message_type::DISCOVER};
 
   auto* message_opt = view.find_option<option::message>();
 
