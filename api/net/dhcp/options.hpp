@@ -274,6 +274,10 @@ struct client_identifier : public type<DHCP_CLIENT_IDENTIFIER>, public base
     val[0] = static_cast<uint8_t>(type);
     memcpy(&val[1], addr, sizeof(Addr));
   }
+
+  template <typename Addr>
+  const Addr* addr() const noexcept
+  { return reinterpret_cast<const Addr*>(&val[1]); }
 };
 
 } // < namespace option

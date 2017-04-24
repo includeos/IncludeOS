@@ -22,6 +22,7 @@
 #include "dhcp4.hpp"
 #include "options.hpp"
 #include <net/ip4/addr.hpp>
+#include <delegate> // option inspection
 
 namespace net {
 namespace dhcp {
@@ -188,8 +189,19 @@ public:
     Expects(sizeof(Addr) == message_.hlen && "size of Addr is not equal the set length of the hw address");
     // clean just to be sure
     memset(message_.chaddr, 0, Message::CHADDR_LEN);
-    memcpy(message_.chaddr, &hwaddr, sizeof(Addr));
+    memcpy(message_.chaddr, hwaddr, sizeof(Addr));
   }
+
+  /**
+   * @brief      Returns the client hardware address.
+   *
+   * @tparam     Addr  The type of the hardware address.
+   *
+   * @return     The client hardware address.
+   */
+  template <typename Addr>
+  const Addr& chaddr() const
+  { return *reinterpret_cast<Addr*>(&message_.chaddr[0]); }
 
   /**
    * @brief      Sets the magic cookie.
