@@ -28,8 +28,6 @@ void RTC::init()
   // every minute recalibrate
   Timers::periodic(seconds(60), seconds(60),
   [] (Timers::id_t) {
-    static int d = 0;
-    printf("One minute passed: %d\n", ++d);
     current_time  = hw::CMOS::now().to_epoch();
     current_ticks = OS::cycles_since_boot();
   });

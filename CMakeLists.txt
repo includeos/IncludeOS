@@ -103,12 +103,12 @@ set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -c -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 endif()
 
 # either download or cross-compile needed libraries

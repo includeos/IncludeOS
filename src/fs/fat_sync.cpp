@@ -1,15 +1,11 @@
 //#define DEBUG
 #include <fs/fat.hpp>
 
-#include <cassert>
 #include <fs/path.hpp>
-#include <debug>
-
+#include <cassert>
 #include <cstring>
 #include <memory>
-
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
+#include <common>
 
 inline size_t roundup(size_t n, size_t multiple)
 {
@@ -51,7 +47,7 @@ namespace fs
     do {
       // read sector sync
       buffer_t data = device.read_sync(sector);
-      if (unlikely(!data))
+      if (UNLIKELY(!data))
           return { error_t::E_IO, "Unable to read directory" };
       // parse directory into @ents
       done = int_dirent(sector, data.get(), ents);
@@ -73,14 +69,14 @@ namespace fs
       ents.clear(); // mui importante
       // sync read entire directory
       auto err = int_ls(S, ents);
-      if (unlikely(err)) return err;
+      if (UNLIKELY(err)) return err;
       // the name we are looking for
       std::string name = path.front();
       path.pop_front();
 
       // check for matches in dirents
       for (auto& e : ents)
-      if (unlikely(e.name() == name)) {
+      if (UNLIKELY(e.name() == name)) {
         // go to this directory, unless its the last name
         debug("traverse_sync: Found match for %s", name.c_str());
         // enter the matching directory
@@ -133,7 +129,7 @@ namespace fs
 
   Dirent FAT::stat(Path path, const Dirent* const start)
   {
-    if (unlikely(path.empty())) {
+    if (UNLIKELY(path.empty())) {
       // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
       return Dirent(this, INVALID_ENTITY);
     }
@@ -147,12 +143,12 @@ namespace fs
     dirvector dirents;
 
     auto err = traverse(path, dirents, start);
-    if (unlikely(err))
+    if (UNLIKELY(err))
       return Dirent(this, INVALID_ENTITY); // for now
 
     // find the matching filename in directory
     for (auto& e : dirents)
-    if (unlikely(e.name() == filename)) {
+    if (UNLIKELY(e.name() == filename)) {
       // return this directory entry
       return e;
     }
