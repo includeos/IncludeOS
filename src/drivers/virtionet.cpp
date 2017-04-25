@@ -223,7 +223,7 @@ void VirtioNet::msix_xmit_handler()
 
     // get packet offset, and call destructor
     auto* packet = (net::Packet*) (res.data() - sizeof(net::Packet));
-    packet->~Packet(); // call destructor on Packet to release it
+    delete packet; // call deleter on Packet to release it
     dequeued_tx = true;
   }
 

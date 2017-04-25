@@ -39,8 +39,10 @@ extern cpu_sampling_irq_handler
    push r13
    push r14
    push r15
+   push rbp
 %endmacro
 %macro POPAQ 0
+   pop rbp
    pop r15
    pop r14
    pop r13
@@ -58,10 +60,13 @@ extern cpu_sampling_irq_handler
    pop rax
 %endmacro
 
+SECTION .text
 unused_interrupt_handler:
   cli
   PUSHAQ
+  sub  rsp, 128 ; skip red-zone
   call QWORD [current_eoi_mechanism]
+  add  rsp, 128
   POPAQ
   sti
   iretq
@@ -69,7 +74,9 @@ unused_interrupt_handler:
 modern_interrupt_handler:
   cli
   PUSHAQ
+  sub  rsp, 128 ; skip red-zone
   call QWORD [current_intr_handler]
+  add  rsp, 128
   POPAQ
   sti
   iretq
@@ -77,8 +84,10 @@ modern_interrupt_handler:
 cpu_sampling_irq_entry:
   cli
   PUSHAQ
+  sub  rsp, 128 ; skip red-zone
   call cpu_sampling_irq_handler
   call QWORD [current_eoi_mechanism]
+  add  rsp, 128
   POPAQ
   sti
   iretq
