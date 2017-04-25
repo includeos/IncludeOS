@@ -57,7 +57,7 @@ namespace net {
     }
 
     // make sure packet is minimum ethernet frame size
-    if (pckt->size() < 68) pckt->set_data_end(68);
+    //if (pckt->size() < 68) pckt->set_data_end(68);
 
     debug("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: 0x%hx\n",
           pckt->size(), mac_.str().c_str(), dest.str().c_str(), type);
