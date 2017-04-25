@@ -48,10 +48,10 @@ net::dhcp::Message* create_discovery_msg(uint8_t* buffer)
   msg->giaddr = 0;
 
   MAC::Addr link_addr = test_mac();
-  memset(msg->chaddr, 0, Message::CHADDR_LEN);
-  memcpy(msg->chaddr, &link_addr, ETH_ALEN);
+  memset(msg->chaddr.data(), 0, Message::CHADDR_LEN);
+  memcpy(msg->chaddr.data(), &link_addr, ETH_ALEN);
 
-  memset(msg->sname, 0, Message::SNAME_LEN + Message::FILE_LEN);
+  memset(msg->sname.data(), 0, Message::SNAME_LEN + Message::FILE_LEN);
 
   msg->magic[0] =  99;
   msg->magic[1] = 130;

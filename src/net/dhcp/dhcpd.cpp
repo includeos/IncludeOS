@@ -98,41 +98,41 @@ void DHCPD::listen() {
     const char* data, size_t len) {
 
     if (port == DHCP_CLIENT_PORT) {
-      if (len < sizeof(dhcp_packet_t))
+      if (len < sizeof(Message))
         return;
 
       // Message
-      const dhcp_packet_t* msg = (dhcp_packet_t*) data;
-      // Options
-      const dhcp_option_t* opt = (dhcp_option_t*) msg->options;
+      const auto* msg = reinterpret_cast<const Message*>(data);
       // Find out what kind of DHCP message this is
-      resolve(msg, opt);
+      resolve(msg);
     }
   });
 }
 
-void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
-  if (msg->op not_eq BOOTREQUEST or msg->hops not_eq 0) {
+void DHCPD::resolve(const Message* msg) {
+  if (UNLIKELY(msg->op not_eq static_cast<uint8_t>(op_code::BOOTREQUEST)
+      or msg->hops not_eq 0))
+  {
     debug("Invalid op\n");
     return;
   }
 
-  if (msg->htype == 0 or msg->htype > HTYPE_HFI) {  // http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
+  if (UNLIKELY(msg->htype == 0 or msg->htype > static_cast<uint8_t>(htype::HFI))) {  // http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
     debug("Invalid htype\n");
     return;
   }
 
-  if (msg->yiaddr not_eq IP4::addr{0} or msg->siaddr not_eq IP4::addr{0} or msg->giaddr not_eq IP4::addr{0}) {
+  if (UNLIKELY(msg->yiaddr not_eq 0 or msg->siaddr not_eq 0 or msg->giaddr not_eq 0)) {
     debug("Invalid yiaddr, siaddr or giaddr\n");
     return;
   }
 
-  if (not valid_options(opts)) {
+  if (not valid_options(msg)) {
     debug("Invalid options\n");
     return;
   }
 
-  const auto cid = get_client_id(msg->chaddr, opts);
+  const auto cid = get_client_id(msg);
   if (cid.empty() or std::all_of(cid.begin(), cid.end(), [] (int i) { return i == 0; })) {
     debug("Invalid client id\n");
     return;
@@ -143,27 +143,35 @@ void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
     return;
   }
 
-  int ridx;
+  const Message_reader reader{msg};
+  const auto* msg_opt = reader.find_option<option::message>();
 
-  switch (opts->val[0]) {
-    case DHCPDISCOVER:
+  if (UNLIKELY(msg_opt == nullptr)) {
+    debug("No Message option\n");
+    return;
+  }
+
+  int ridx;
+  switch(msg_opt->type()) {
+
+    case message_type::DISCOVER:
 
       debug("------------Discover------------\n");
-      print(msg, opts);
+      print(msg);
 
-      offer(msg, opts);
+      offer(msg);
       break;
-    case DHCPREQUEST:
+    case message_type::REQUEST:
 
       debug("-------------Request--------------\n");
-      print(msg, opts);
+      print(msg);
 
-      handle_request(msg, opts);
+      handle_request(msg);
       break;
-    case DHCPDECLINE:
+    case message_type::DECLINE:
 
       debug("-------------Decline--------------\n");
-      print(msg, opts);
+      print(msg);
 
       // A client has discovered that the suggested network address is already in use.
       // The server must mark the network address as not available and should notify the network admin
@@ -172,12 +180,12 @@ void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
       // Erase record if exists because client hasn't got a valid IP
       if (ridx not_eq -1)
         records_.erase(records_.begin() + ridx);
-      update_pool(get_requested_ip_in_opts(opts), Status::IN_USE);    // In use - possible config problem
-      break;
-    case DHCPRELEASE:
+      update_pool(get_requested_ip_in_opts(msg), Status::IN_USE);    // In use - possible config problem
+      return;
+    case message_type::RELEASE:
 
       debug("--------------Release--------------\n");
-      print(msg, opts);
+      print(msg);
 
       // Mark the network address as not allocated anymore
       // Should retain a record of the client's initialization parameters for possible reuse
@@ -195,33 +203,41 @@ void DHCPD::resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
       //    records_.at(ridx).set_status(Status::RELEASED);
       // update_pool(msg->ciaddr, Status::RELEASED);
 
-    case DHCPINFORM:
+    case message_type::INFORM:
 
       debug("---------------Inform---------------\n");
-      print(msg, opts);
+      print(msg);
 
       inform_ack(msg);
+      break;
+
+    default:
+      debug("---------------Unhandled------------\n")
+      print(msg);
+
       break;
   }
 }
 
-void DHCPD::handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
+void DHCPD::handle_request(const Message* msg) {
   // Client could be:
   // 1. Responding to a DHCPOFFER message from a server
   // 2. Verifying a previously allocated IP address
   // 3. Extending the lease on a particular network address
 
+  const Message_reader reader{msg};
+
   // Checking server identifier
-  const dhcp_option_t* opt = get_option(opts, DHO_DHCP_SERVER_IDENTIFIER);
+  const auto* opt = reader.find_option<option::server_identifier>();
   // Server identifier from client:
-  if (opt->code == DHO_DHCP_SERVER_IDENTIFIER) {  // Then this is a response to a DHCPOFFER message
-    IP4::addr sid{opt->val[0], opt->val[1], opt->val[2], opt->val[3]};
+  if (opt != nullptr) {  // Then this is a response to a DHCPOFFER message
+    IP4::addr sid = *(opt->addr<ip4::Addr>());
 
     if (sid not_eq server_id()) { // The client has not chosen this server
 
       debug("Client hasn't chosen this server - returning\n");
 
-      int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
+      int ridx = get_record_idx(get_client_id(msg));
       if (ridx != -1) {
 
         debug("Freeing up record\n");
@@ -237,20 +253,20 @@ void DHCPD::handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts) 
 
     debug("Client has chosen this server\n");
 
-    int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
+    int ridx = get_record_idx(get_client_id(msg));
 
     if (ridx not_eq -1) { // A record for this client already exists
       auto& record = records_.at(ridx);
 
       // If ciaddr is zero and requested IP address is filled in with the yiaddr value from the chosen DHCPOFFER:
       // Client state: SELECTING
-      if (msg->ciaddr == IP4::addr{0} and get_requested_ip_in_opts(opts) == record.ip()) {
+      if (msg->ciaddr == IP4::addr{0} and get_requested_ip_in_opts(msg) == record.ip()) {
         // RECORD
         record.set_status(Status::IN_USE);
         // POOL
         update_pool(record.ip(), Status::IN_USE);
         // Send DHCPACK
-        request_ack(msg, opts);
+        request_ack(msg);
         return;
       }
 
@@ -274,11 +290,11 @@ void DHCPD::handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts) 
 
   // Else server identifier is not filled in and this is not a response to a DHCPOFFER message, but
   // a request to verify or extend an existing lease
-  verify_or_extend_lease(msg, opts);
+  verify_or_extend_lease(msg);
 }
 
-void DHCPD::verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
-  int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
+void DHCPD::verify_or_extend_lease(const Message* msg) {
+  int ridx = get_record_idx(get_client_id(msg));
 
   if (ridx == -1) {
     // If the server has no record of this client, then it MUST remain silent and MAY
@@ -298,7 +314,7 @@ void DHCPD::verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t
     // subnet mask or remote subnet mask (if giaddr is not zero) to requested IP address value doesn't
     // match reality), then the server should send a DHCPNAK message to the client.
     // 2. (After or in the if statement) If client is on correct network: Check if the client's notion of IP is correct
-    if ((not on_correct_network(msg->giaddr, opts)) or (get_requested_ip_in_opts(opts) not_eq records_.at(ridx).ip())) {
+    if ((not on_correct_network(msg)) or (get_requested_ip_in_opts(msg) not_eq records_.at(ridx).ip())) {
 
       debug("Client not on correct network\n");
 
@@ -317,11 +333,11 @@ void DHCPD::verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t
     update_pool(record.ip(), Status::IN_USE);
 
     // Sending DHCPACK
-    request_ack(msg, opts);
+    request_ack(msg);
     return;
   }
 
-  if (get_requested_ip_in_opts(opts) == IP4::addr{0} and msg->ciaddr not_eq IP4::addr{0}) {
+  if (get_requested_ip_in_opts(msg) == IP4::addr{0} and msg->ciaddr not_eq IP4::addr{0}) {
     // Client is in RENEWING state
     // The client is then completely configured and is trying to extend its lease.
     // This message will be unicast, so no relay agents will be involved in its transmission.
@@ -349,62 +365,25 @@ void DHCPD::verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t
     update_pool(record.ip(), Status::IN_USE);
 
     // Send DHCPACK
-    request_ack(msg, opts);
+    request_ack(msg);
   }
 }
 
-void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
+void DHCPD::offer(const Message* msg) {
   // It may occur that the client doesn't get our offers and then we don't want to
   // exhaust our pool
-  int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
+  auto client_id = get_client_id(msg);
+  int ridx = get_record_idx(client_id);
   if (ridx not_eq -1)
     return;
 
-  char packet[PACKET_SIZE];
+  // Search for available IP in pool
+  auto it = std::find_if(pool_.begin(), pool_.end(), [](const auto& entry)->bool {
+    return entry.second == Status::AVAILABLE;
+  });
 
-  // If we want to offer this client an IP address: Create a RECORD
-  Record record;
-  // Keep client identifier (index into database)
-  record.set_client_id(get_client_id(msg->chaddr, opts));
-
-  // OFFER
-  dhcp_packet_t* offer = (dhcp_packet_t*) packet;
-
-  offer->op = BOOTREPLY;
-  offer->htype = 1;   // From "Assigned Numbers" RFC. 1 = 10mb ethernet
-  offer->hlen = 6;    // Hardware address length in octets. 6 for 10mb ethernet
-  offer->hops = 0;
-  offer->xid = msg->xid;
-  offer->secs = 0;
-  offer->ciaddr = IP4::addr{0};
-
-  // yiaddr - IP address offered to the client from the pool
-  bool ok = false;
-  for (auto& entry : pool_) {
-    if (entry.second == Status::AVAILABLE) {
-
-      debug("Found available IP: %s\n", entry.first.to_string().c_str());
-
-      entry.second = Status::OFFERED;
-      offer->yiaddr = entry.first;
-      ok = true;
-
-      // Servers need not reserve the offered network address, although the protocol will work more efficiently if the server
-      // avoids allocating the offered network address to another client.
-      // When allocating a new address, servers should check that the offered network address is not already in use; e.g.
-      // the server may probe the offered address with an ICMP Echo Request. Servers SHOULD be implemented so that
-      // network admins MAY choose to disable probes of newly allocated addresses.
-
-      // RECORD
-      record.set_ip(entry.first);
-      record.set_status(Status::OFFERED);
-      record.set_lease_start(RTC::now());
-      record.set_lease_duration(lease_);
-      break;
-    }
-  }
-  if (not ok) { // Then no IP is available - sending DHCPNAK
-
+  if(UNLIKELY(it == pool_.end()))
+  {
     debug("No more available IPs - clearing offered ips and sending nak\n");
 
     // Clear offered ips that have not been confirmed - Maybe use pending value instead
@@ -413,19 +392,47 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
     return;
   }
 
-  offer->siaddr = IP4::addr{0};   // IP address of next bootstrap server
-  offer->flags = msg->flags;
-  offer->giaddr = msg->giaddr;
-  std::memcpy(offer->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN); // uint8_t array - size 16, client hardware address
-  std::memcpy(offer->sname, msg->sname, dhcp_packet_t::SNAME_LEN);  // Server host name or options - MAY
-  std::memcpy(offer->file, msg->file, dhcp_packet_t::FILE_LEN);     // Client boot file name or options - MAY
-  offer->magic[0] =  99;
-  offer->magic[1] = 130;
-  offer->magic[2] =  83;
-  offer->magic[3] =  99;
+  const auto free_addr = it->first;
+  debug("Found available IP: %s\n", free_addr.to_string().c_str());
+  // mark the IP as offered
+  it->second = Status::OFFERED;
 
-  // OPTIONS
-  dhcp_option_t* offer_opts = conv_option(offer->options, 0);
+  // If we want to offer this client an IP address: Create a RECORD
+  Record record;
+  // Keep client identifier (index into database)
+  record.set_client_id(client_id);
+
+  // Servers need not reserve the offered network address, although the protocol will work more efficiently if the server
+  // avoids allocating the offered network address to another client.
+  // When allocating a new address, servers should check that the offered network address is not already in use; e.g.
+  // the server may probe the offered address with an ICMP Echo Request. Servers SHOULD be implemented so that
+  // network admins MAY choose to disable probes of newly allocated addresses.
+
+  // RECORD
+  record.set_ip(free_addr);
+  record.set_status(Status::OFFERED);
+  record.set_lease_start(RTC::now());
+  record.set_lease_duration(lease_);
+
+  // OFFER
+  // NOTE: It may be possible with some changes to use the incoming "msg" as buffer to avoid some extra copy
+  // due to some of the fields are sent in return to the client
+  char buffer[Message::size()];
+  Message_writer offer{reinterpret_cast<Message*>(buffer), op_code::BOOTREPLY, message_type::OFFER};
+
+  offer.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // assume ethernet
+  offer.set_xid(msg->xid);
+  //offer.set_ciaddr(IP4::addr{0});
+  //offer.set_siaddr(IP4::addr{0});   // IP address of next bootstrap server
+  // yiaddr - IP address offered to the client from the pool
+  offer.set_yiaddr(free_addr);
+
+  offer.set_flags(msg->flags);
+  offer.set_giaddr(msg->giaddr);
+  offer.set_chaddr(reinterpret_cast<const MAC::Addr*>(&msg->chaddr)); // assume ethernet
+
+  offer.set_sname(msg->sname);  // Server host name or options - MAY
+  offer.set_file(msg->file);    // Client boot file name or options - MAY
 
   // DHCPOFFER Options:
   // Requested IP address                                         MUST NOT
@@ -440,82 +447,38 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   // Maximum message size                                         MUST NOT
   // All others                                                   MAY
 
-  // MESSAGE_TYPE
-  offer_opts->code = DHO_DHCP_MESSAGE_TYPE;
-  offer_opts->length = 1;
-  offer_opts->val[0] = DHCPOFFER;
-
   // SERVER_IDENTIFIER (the server's network address(es))
-  offer_opts = conv_option(offer->options, 3);     // 3 bytes filled in prior
-  add_server_id(offer_opts);
+  offer.add_option<option::server_identifier>(&server_id_);
 
   // SUBNET_MASK
-  offer_opts = conv_option(offer->options, 9);     // 9 bytes filled in prior
-  offer_opts->code = DHO_SUBNET_MASK;
-  offer_opts->length = 4;
-  offer_opts->val[0] = netmask_.part(3);
-  offer_opts->val[1] = netmask_.part(2);
-  offer_opts->val[2] = netmask_.part(1);
-  offer_opts->val[3] = netmask_.part(0);
+  offer.add_option<option::subnet_mask>(&netmask_);
 
   // ROUTERS
-  offer_opts = conv_option(offer->options, 15);      // 15 bytes filled in prior
-  offer_opts->code = DHO_ROUTERS;
-  offer_opts->length = 4;
-  offer_opts->val[0] = router_.part(3);
-  offer_opts->val[1] = router_.part(2);
-  offer_opts->val[2] = router_.part(1);
-  offer_opts->val[3] = router_.part(0);
+  offer.add_option<option::routers>(&router_);
 
   // LEASE_TIME
-  // Time in units of seconds (32-bit unsigned integer / 4 uint8_t)
-  offer_opts = conv_option(offer->options, 21);      // 21 bytes filled in prior
-  offer_opts->code = DHO_DHCP_LEASE_TIME;
-  offer_opts->length = 4;
-  offer_opts->val[0] = (lease_ & 0xff000000) >> 24;
-  offer_opts->val[1] = (lease_ & 0x00ff0000) >> 16;
-  offer_opts->val[2] = (lease_ & 0x0000ff00) >> 8;
-  offer_opts->val[3] = (lease_ & 0x000000ff);
+  offer.add_option<option::lease_time>(lease_);
 
   // MESSAGE (SHOULD)
   // No error message (only in DHCPNAK)
-  offer_opts = conv_option(offer->options, 27);      // 27 bytes filled in prior
-  offer_opts->code = DHO_DHCP_MESSAGE;
-  offer_opts->length = 1;
-  offer_opts->val[0] = 0;
+  //offer.add_option<option::message>(message_type::NO_ERROR);
+  //offer_opts = conv_option(offer->options, 27);      // 27 bytes filled in prior
+  //offer_opts->code = DHO_DHCP_MESSAGE;
+  //offer_opts->length = 1;
+  //offer_opts->val[0] = 0;
 
   // TIME_OFFSET
-  offer_opts = conv_option(offer->options, 30);
-  offer_opts->code = DHO_TIME_OFFSET;
-  offer_opts->length = 4;
-  offer_opts->val[0] = 0;
-  offer_opts->val[1] = 0;
-  offer_opts->val[2] = 0;
-  offer_opts->val[3] = 0;
+  offer.add_option<option::time_offset>(0);
 
   // DOMAIN_NAME_SERVERS
-  offer_opts = conv_option(offer->options, 36);
-  offer_opts->code = DHO_DOMAIN_NAME_SERVERS;
-  offer_opts->length = 4;
-  offer_opts->val[0] = dns_.part(3);
-  offer_opts->val[1] = dns_.part(2);
-  offer_opts->val[2] = dns_.part(1);
-  offer_opts->val[3] = dns_.part(0);
+  offer.add_option<option::domain_name_servers>(&dns_);
 
   // BROADCAST_ADDRESS
-  offer_opts = conv_option(offer->options, 42);
-  offer_opts->code = DHO_BROADCAST_ADDRESS;
-  offer_opts->length = 4;
-  auto broadcast = broadcast_address();
-  offer_opts->val[0] = broadcast.part(3);
-  offer_opts->val[1] = broadcast.part(2);
-  offer_opts->val[2] = broadcast.part(1);
-  offer_opts->val[3] = broadcast.part(0);
+  auto bcast = broadcast_address();
+  offer.add_option<option::broadcast_address>(&bcast);
 
   // END
-  offer_opts = conv_option(offer->options, 48);
-  offer_opts->code   = DHO_END;
-  offer_opts->length = 0;
+  offer.end();
 
   // RECORD
   add_record(record);
@@ -525,29 +488,29 @@ void DHCPD::offer(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
   // If the giaddr field in a DHCP message from a client is non-zero, the server sends any return
   // messages to the DHCP server port on the BOOTP relay agent whose address appears in giaddr
   if (msg->giaddr != IP4::addr{0}) {
-    socket_.sendto(msg->giaddr, DHCP_SERVER_PORT, packet, PACKET_SIZE);
+    socket_.sendto(msg->giaddr, DHCP_SERVER_PORT, buffer, sizeof(buffer));
     return;
   }
   // If the giaddr field is zero and the ciaddr field is non-zero, then the server unicasts
   // DHCPOFFER and DHCPACK messages to the address in ciaddr
   if (msg->ciaddr != IP4::addr{0}) {
-    socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
+    socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, buffer, sizeof(buffer));
     return;
   }
   // If giaddr is zero and ciaddr is zero, and the broadcast bit (leftmost bit in flags field) is set,
   // then the server broadcasts DHCPOFFER and DHCPACK messsages to 0xffffffff
-  if (msg->flags & BOOTP_BROADCAST) {
-    socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
+  if (ntohs(msg->flags) & static_cast<uint16_t>(flag::BOOTP_BROADCAST)) {
+    socket_.bcast(server_id_, DHCP_CLIENT_PORT, buffer, sizeof(buffer));
     return;
   }
   // If the broadcast bit is not set and giaddr is zero and ciaddr is zero, then the server unicasts
   // DHCPOFFER and DHCPACK messages to the client's hardware address and yiaddr address
-  socket_.sendto(msg->yiaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
+  socket_.sendto(msg->yiaddr, DHCP_CLIENT_PORT, buffer, sizeof(buffer));
   // TODO: Send the message to the client's hardware address:
   // socket_.sendto(, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
 }
 
-void DHCPD::inform_ack(const dhcp_packet_t* msg) {
+void DHCPD::inform_ack(const Message* msg) {
   // The client has obtained a network address through some other means (e.g., manual configuration)
   // and may use a DHCPINFORM request message to obtain other local configuration parameters.
   // Servers receiving a DHCPINFORM message construct a DHCPACK message with any local configuration
@@ -563,46 +526,27 @@ void DHCPD::inform_ack(const dhcp_packet_t* msg) {
   // check for an existing lease. The server forms a DHCPACK message containing the configuration parameters
   // for the requesting client and sends the DHCPACK message directly to the client.
 
-  char packet[PACKET_SIZE];
+  char buffer[Message::size()];
+  Message_writer ack{reinterpret_cast<Message*>(buffer), op_code::BOOTREPLY, message_type::ACK};
 
-  // ACK
-  dhcp_packet_t* ack = (dhcp_packet_t*) packet;
-
-  ack->op = BOOTREPLY;
-  ack->htype = 1; // From "Assigned Numbers" RFC. 1 = 10mb ethernet
-  ack->hlen = 6;  // Hardware address length in octets. 6 for 10mb ethernet
-  ack->hops = 0;
-  ack->xid = msg->xid;
-  ack->secs = 0;
-  ack->ciaddr = msg->ciaddr;      // or 0
-  ack->siaddr = IP4::addr{0};     // TODO IP address of next bootstrap server
-  ack->flags = msg->flags;
-  ack->giaddr = msg->giaddr;
-  std::memcpy(ack->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN);
-  std::memcpy(ack->sname, msg->sname, dhcp_packet_t::SNAME_LEN);  // Server host name or options - MAY
-  std::memcpy(ack->file, msg->file, dhcp_packet_t::FILE_LEN);     // Client boot file name or options - MAY
-  ack->magic[0] =  99;
-  ack->magic[1] = 130;
-  ack->magic[2] =  83;
-  ack->magic[3] =  99;
-
-  // OPTIONS
-  dhcp_option_t* ack_opts = conv_option(ack->options, 0);
-
-  // MESSAGE_TYPE
-  ack_opts->code = DHO_DHCP_MESSAGE_TYPE;
-  ack_opts->length = 1;
-  ack_opts->val[0] = DHCPACK;
+  ack.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // assume ethernet
+  ack.set_xid(msg->xid);
+  ack.set_ciaddr(msg->ciaddr); // or 0
+  ack.set_giaddr(msg->giaddr);
+  ack.set_flags(msg->flags);
+  ack.set_chaddr(reinterpret_cast<const MAC::Addr*>(&msg->chaddr)); // assume ethernet
+  ack.set_sname(msg->sname);  // Server host name or options - MAY
+  ack.set_file(msg->file);    // Client boot file name or options - MAY
 
   debug("Sending inform ack\n");
 
   // TODO Add options requested by the client
 
   // Send the DHCPACK - Unicast to DHCPINFORM message's ciaddr field
-  socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
+  socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, buffer, sizeof(buffer));
 }
 
-void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
+void DHCPD::request_ack(const Message* msg) {
   // If the client included a list of requested parameters in a DHCPDISCOVER message, it MUST
   // include that list in all subsequent messages.
 
@@ -612,213 +556,151 @@ void DHCPD::request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts) {
 
   // Table 3 RFC 2131 DHCPACK
 
-  char packet[PACKET_SIZE];
+  char buffer[Message::size()];
+  Message_writer ack{reinterpret_cast<Message*>(buffer), op_code::BOOTREPLY, message_type::ACK};
 
-  // ACK
-  dhcp_packet_t* ack = (dhcp_packet_t*) packet;
+  ack.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // assume ethernet
+  ack.set_xid(msg->xid);
 
-  ack->op = BOOTREPLY;
-  ack->htype = 1; // From "Assigned Numbers" RFC. 1 = 10mb ethernet
-  ack->hlen = 6;  // Hardware address length in octets. 6 for 10mb ethernet
-  ack->hops = 0;
-  ack->xid = msg->xid;
-  ack->secs = 0;
-  ack->ciaddr = msg->ciaddr;      // or 0
+  int ridx = get_record_idx(get_client_id(msg));
+  ack.set_yiaddr((ridx not_eq -1) ? records_.at(ridx).ip() : 0); // TODO: else what?     // IP address assigned to client
+  ack.set_ciaddr(msg->ciaddr); // or 0
+  ack.set_giaddr(msg->giaddr);
 
-  int ridx = get_record_idx(get_client_id(msg->chaddr, opts));
-  ack->yiaddr = (ridx not_eq -1) ? records_.at(ridx).ip() : IP4::addr{0}; // TODO: else what?     // IP address assigned to client
-
-  ack->siaddr = IP4::addr{0};     // TODO IP address of next bootstrap server
-  ack->flags = msg->flags;
-  ack->giaddr = msg->giaddr;
-  std::memcpy(ack->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN);
-  std::memcpy(ack->sname, msg->sname, dhcp_packet_t::SNAME_LEN);  // Server host name or options - MAY
-  std::memcpy(ack->file, msg->file, dhcp_packet_t::FILE_LEN);     // Client boot file name or options - MAY
-  ack->magic[0] =  99;
-  ack->magic[1] = 130;
-  ack->magic[2] =  83;
-  ack->magic[3] =  99;
-
-  // OPTIONS
-  dhcp_option_t* ack_opts = conv_option(ack->options, 0);
-
-  // MESSAGE_TYPE
-  ack_opts->code = DHO_DHCP_MESSAGE_TYPE;
-  ack_opts->length = 1;
-  ack_opts->val[0] = DHCPACK;
+  ack.set_flags(msg->flags);
+  ack.set_chaddr(reinterpret_cast<const MAC::Addr*>(&msg->chaddr)); // assume ethernet
+  ack.set_sname(msg->sname);  // Server host name or options - MAY
+  ack.set_file(msg->file);    // Client boot file name or options - MAY
 
   // LEASE_TIME (MUST)
-  ack_opts = conv_option(ack->options, 3);     // 3 bytes filled in prior
-  ack_opts->code = DHO_DHCP_LEASE_TIME;
-  ack_opts->length = 4;
-  ack_opts->val[0] = (lease_ & 0xff000000) >> 24;
-  ack_opts->val[1] = (lease_ & 0x00ff0000) >> 16;
-  ack_opts->val[2] = (lease_ & 0x0000ff00) >> 8;
-  ack_opts->val[3] = (lease_ & 0x000000ff);
+  ack.add_option<option::lease_time>(lease_);
 
   // SERVER_IDENTIFIER (the server's network address(es))
-  ack_opts = conv_option(ack->options, 9);     // 9 bytes filled in prior
-  add_server_id(ack_opts);
+  ack.add_option<option::server_identifier>(&server_id_);
 
   // MESSAGE (SHOULD)
   // No error message (only in DHCPNAK)
-  ack_opts = conv_option(ack->options, 15);    // 15 bytes filled in prior
-  ack_opts->code = DHO_DHCP_MESSAGE;
-  ack_opts->length = 1;
-  ack_opts->val[0] = 0;
+  //ack.add_option<option::message>(message_type::NO_ERROR);
+  //ack_opts = conv_option(ack->options, 15);    // 15 bytes filled in prior
+  //ack_opts->code = DHO_DHCP_MESSAGE;
+  //ack_opts->length = 1;
+  //ack_opts->val[0] = 0;
 
   // END
-  ack_opts = conv_option(ack->options, 18);    // 18 bytes filled in prior
-  ack_opts->code   = DHO_END;
-  ack_opts->length = 0;
+  ack.end();
 
   debug("Sending request ack\n");
 
   // If the giaddr field in a DHCP message from a client is non-zero, the server sends any return
   // messages to the DHCP server port on the BOOTP relay agent whose address appears in giaddr
   if (msg->giaddr != IP4::addr{0}) {
-    socket_.sendto(msg->giaddr, DHCP_SERVER_PORT, packet, PACKET_SIZE);
+    socket_.sendto(msg->giaddr, DHCP_SERVER_PORT, buffer, sizeof(buffer));
     return;
   }
   // If the giaddr field is zero and the ciaddr field is non-zero, then the server unicasts
   // DHCPOFFER and DHCPACK messages to the address in ciaddr
   if (msg->ciaddr != IP4::addr{0}) {
-    socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
+    socket_.sendto(msg->ciaddr, DHCP_CLIENT_PORT, buffer, sizeof(buffer));
     return;
   }
   // If giaddr is zero and ciaddr is zero, and the broadcast bit (leftmost bit in flags field) is set,
   // then the server broadcasts DHCPOFFER and DHCPACK messsages to 0xffffffff
   std::bitset<8> bits(msg->flags);
   if (bits[7] == 1) {
-    socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
+    socket_.bcast(server_id_, DHCP_CLIENT_PORT, buffer, sizeof(buffer));
     return;
   }
   // If the broadcast bit is not set and giaddr is zero and ciaddr is zero, then the server unicasts
   // DHCPOFFER and DHCPACK messages to the client's hardware address and yiaddr address
-  socket_.sendto(msg->yiaddr, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
+  socket_.sendto(msg->yiaddr, DHCP_CLIENT_PORT, buffer, sizeof(buffer));
   // TODO: Send the message to the client's hardware address:
   // socket_.sendto(, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
 }
 
-void DHCPD::nak(const dhcp_packet_t* msg) {
+void DHCPD::nak(const Message* msg) {
   // DHCPNAK: Server to client indicating client’s notion of network address is incorrect (e.g., client
   // has moved to new subnet) or client’s lease has expired
 
-  char packet[PACKET_SIZE];
-
   // NAK
-  dhcp_packet_t* nak = (dhcp_packet_t*) packet;
+  char buffer[Message::size()];
+  Message_writer nak{reinterpret_cast<Message*>(buffer), op_code::BOOTREPLY, message_type::NAK};
 
-  nak->op = BOOTREPLY;
-  nak->htype = 1; // From "Assigned Numbers" RFC. 1 = 10mb ethernet
-  nak->hlen = 6;  // Hardware address length in octets. 6 for 10mb ethernet
-  nak->hops = 0;
-  nak->xid = msg->xid;
-  nak->secs = 0;
-  nak->ciaddr = 0;
-  nak->yiaddr = 0;
-  nak->siaddr = 0;
-  nak->flags = msg->flags;
-  nak->giaddr = msg->giaddr;
-  std::memcpy(nak->chaddr, msg->chaddr, dhcp_packet_t::CHADDR_LEN);
+  nak.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // assume ethernet
+  nak.set_xid(msg->xid);
 
-  // OPTIONS
-  dhcp_option_t* nak_opts = conv_option(nak->options, 0);
+  nak.set_giaddr(msg->giaddr);
 
-  // MESSAGE_TYPE
-  nak_opts->code = DHO_DHCP_MESSAGE_TYPE;
-  nak_opts->length = 1;
-  nak_opts->val[0] = DHCPNAK;
+  nak.set_flags(msg->flags);
+  nak.set_chaddr(reinterpret_cast<const MAC::Addr*>(&msg->chaddr)); // assume ethernet
 
   // MESSAGE (SHOULD)
-  nak_opts = conv_option(nak->options, 3);   // 3 bytes filled in prior
-  nak_opts->code = DHO_DHCP_MESSAGE;
+  //nak_opts = conv_option(nak->options, 3);   // 3 bytes filled in prior
+  //nak_opts->code = DHO_DHCP_MESSAGE;
   // TODO Fill in error message instead of 0
-  nak_opts->length = 1;
-  nak_opts->val[0] = 0;
+  //nak_opts->length = 1;
+  //nak_opts->val[0] = 0;
 
   // SERVER_IDENTIFIER
-  nak_opts = conv_option(nak->options, 6);   // 6 bytes filled in prior
-  add_server_id(nak_opts);
+  nak.add_option<option::server_identifier>(&server_id_);
 
   // END
-  nak_opts = conv_option(nak->options, 12);  // 12 bytes filled in prior
-  nak_opts->code = DHO_END;
-  nak_opts->length = 0;
+  nak.end();
 
   debug("Sending NAK\n");
 
   // Send the DHCPNAK - Broadcast
-  socket_.bcast(server_id_, DHCP_CLIENT_PORT, packet, PACKET_SIZE);
+  socket_.bcast(server_id_, DHCP_CLIENT_PORT, buffer, sizeof(buffer));
 }
 
-bool DHCPD::valid_options(const dhcp_option_t* opts) const {
+bool DHCPD::valid_options(const Message* msg) const {
+  const Message_reader reader{msg};
   int num_bytes = 0;
-  int num_options = 0;
+  int num_options = reader.parse_options([&num_bytes] (const auto* opt) {
+    num_bytes += opt->size();
+  });
 
-  const dhcp_option_t* opt = opts;
-  while (opt->code != DHO_END) {
-    num_bytes += 2 + opt->length;
-    num_options++;
-
-    // F.ex. if DHO_END isn't included
-    if (num_bytes > DHCP_VEND_LEN or num_options > MAX_NUM_OPTIONS)
-      return false;
-
-    // go to next option
-    opt = (const dhcp_option_t*) (((const uint8_t*) opt) + 2 + opt->length);
-  }
-
-  return true;
+  return (num_bytes <= Message::LIMIT and num_options <= MAX_NUM_OPTIONS);
 }
 
-Record::byte_seq DHCPD::get_client_id(const uint8_t* chaddr, const dhcp_option_t* opts) const {
-  const dhcp_option_t* opt = get_option(opts, DHO_DHCP_CLIENT_IDENTIFIER);
-  Record::byte_seq client_id;
+Record::byte_seq DHCPD::get_client_id(const Message* msg) const {
+  const Message_reader reader{msg};
 
-  if (opt->code == DHO_DHCP_CLIENT_IDENTIFIER) {
-    for (int i = 0; i < opt->length; i++)
-      client_id.push_back(opt->val[i]);
-    return client_id;
-  }
+  const auto* opt = reader.find_option<option::client_identifier>();
 
-  for (int i = 0; i < dhcp_packet_t::CHADDR_LEN; i++)
-    client_id.push_back(chaddr[i]);
-  return client_id;
+  // client id if found
+  if(opt != nullptr)
+    return {opt->val, opt->val + opt->length};
+  // else use client hardware address
+  else
+    return {msg->chaddr.begin(), msg->chaddr.end()};
 }
 
-IP4::addr DHCPD::get_requested_ip_in_opts(const dhcp_option_t* opts) const {
-  const dhcp_option_t* opt = get_option(opts, DHO_DHCP_REQUESTED_ADDRESS);
-  if (opt->code == DHO_DHCP_REQUESTED_ADDRESS)
-    return IP4::addr{opt->val[0], opt->val[1], opt->val[2], opt->val[3]};
-  return IP4::addr{0};
+IP4::addr DHCPD::get_requested_ip_in_opts(const Message* msg) const {
+  Message_reader reader{msg};
+  const auto* opt = reader.find_option<option::req_addr>();
+  return (opt != nullptr) ? *(opt->addr<ip4::Addr>()) : 0;
 }
 
-IP4::addr DHCPD::get_remote_netmask(const dhcp_option_t* opts) const {
-  const dhcp_option_t* opt = get_option(opts, DHO_SUBNET_MASK);
-  if (opt->code == DHO_SUBNET_MASK)
-    return IP4::addr{opt->val[0], opt->val[1], opt->val[2], opt->val[3]};
-  return IP4::addr{0};
+IP4::addr DHCPD::get_remote_netmask(const Message* msg) const {
+  Message_reader reader{msg};
+  const auto* opt = reader.find_option<option::subnet_mask>();
+  return (opt != nullptr) ? *(opt->addr<ip4::Addr>()) : 0;
 }
 
-void DHCPD::add_server_id(dhcp_option_t* opts) {
-  opts->code = DHO_DHCP_SERVER_IDENTIFIER;
-  opts->length = 4;
-  opts->val[0] = server_id_.part(3);
-  opts->val[1] = server_id_.part(2);
-  opts->val[2] = server_id_.part(1);
-  opts->val[3] = server_id_.part(0);
-}
-
-bool DHCPD::on_correct_network(IP4::addr giaddr, const dhcp_option_t* opts) const {
+bool DHCPD::on_correct_network(const Message* msg) const {
   // The client is on the wrong network if the result of applying the local subnet mask or remote subnet
   // mask (if giaddr is not zero) to requested IP address option value doesn't match reality
 
-  IP4::addr subnet = (giaddr == IP4::addr{0}) ? netmask_ : get_remote_netmask(opts);
-  IP4::addr requested_ip = get_requested_ip_in_opts(opts);
+  const auto subnet = (msg->giaddr == 0) ? netmask_ : get_remote_netmask(msg);
 
-  // Check if remote subnet mask from client exists and valid IP
-  if (subnet == IP4::addr{0} or requested_ip == IP4::addr{0})
+  // Check if remote subnet mask from client exists
+  if(UNLIKELY(subnet == 0))
+    return false;
+
+  const auto requested_ip = get_requested_ip_in_opts(msg);
+
+  // Check if requested ip is valid
+  if(UNLIKELY(requested_ip == 0))
     return false;
 
   // Check if requested IP is on the same subnet as the server
@@ -851,4 +733,53 @@ void DHCPD::clear_offered_ips() {
       records_.erase(records_.begin() + i);
     }
   }
+}
+
+void DHCPD::print(const Message* msg) const
+{
+  debug("Printing:\n");
+
+  debug("OP: %u\n", msg->op);
+  debug("HTYPE: %u\n", msg->htype);
+  debug("HLEN: %u\n", msg->hlen);
+  debug("HOPS: %u\n", msg->hops);
+  debug("XID: %u\n", msg->xid);
+  debug("SECS: %u\n", msg->secs);
+  debug("FLAGS: %u\n", msg->flags);
+  debug("CIADDR (IP4::addr): %s\n", msg->ciaddr.to_string().c_str());
+  debug("YIADDR (IP4::addr): %s\n", msg->yiaddr.to_string().c_str());
+  debug("SIADDR (IP4::addr): %s\n", msg->siaddr.to_string().c_str());
+  debug("GIADDR (IP4::addr): %s\n", msg->giaddr.to_string().c_str());
+
+  debug("\nCHADDR:\n");
+  for (int i = 0; i < Message::CHADDR_LEN; i++)
+    debug("%u ", msg->chaddr[i]);
+  debug("\n");
+
+  debug("\nSNAME:\n");
+  for (int i = 0; i < Message::SNAME_LEN; i++)
+    debug("%u ", msg->sname[i]);
+  debug("\n");
+
+  debug("\nFILE:\n");
+  for (int i = 0; i < Message::FILE_LEN; i++)
+    debug("%u ", msg->file[i]);
+  debug("\n");
+
+  debug("\nMAGIC:\n");
+  for (int i = 0; i < 4; i++)
+    debug("%u ", msg->magic[i]);
+  debug("\n");
+
+  // Opts
+  const Message_reader reader{msg};
+  reader.parse_options([](const auto* opt) {
+    debug("\nOptions->code: %d\n", opt->code);
+    debug("\nOptions->length: %d\n", opt->length);
+
+    debug("\nOptions->val: ");
+    for (size_t i = 0; i < opt->length; i++)
+      debug("%d ", opt->val[i]);
+    debug("\n");
+  });
 }

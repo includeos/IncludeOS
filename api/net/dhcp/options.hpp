@@ -172,6 +172,18 @@ struct subnet_mask : public type<SUBNET_MASK>, public addr_option
 };
 
 /**
+ * @brief      TIME_OFFSET (2)
+ */
+struct time_offset : public type<TIME_OFFSET>, public base
+{
+  constexpr time_offset(int32_t offset_secs) noexcept
+    : base{type::CODE, 4}
+  {
+    *(reinterpret_cast<int32_t*>(&val[0])) = htonl(offset_secs);
+  }
+};
+
+/**
  * @brief      ROUTERS (3)
  */
 struct routers : public type<ROUTERS>, public addr_option
@@ -191,6 +203,18 @@ struct domain_name_servers : public type<DOMAIN_NAME_SERVERS>, public addr_optio
 {
   template <typename Addr>
   constexpr domain_name_servers(const Addr* addr) noexcept
+    : addr_option{CODE, addr}
+  {
+  }
+};
+
+/**
+ * @brief      BROADCAST_ADDRESS (28)
+ */
+struct broadcast_address : public type<BROADCAST_ADDRESS>, public addr_option
+{
+  template <typename Addr>
+  constexpr broadcast_address(const Addr* addr) noexcept
     : addr_option{CODE, addr}
   {
   }

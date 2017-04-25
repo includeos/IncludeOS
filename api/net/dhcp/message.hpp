@@ -37,6 +37,11 @@ struct Message
   static const uint8_t SNAME_LEN  =  64;
   static const uint8_t FILE_LEN   = 128;
   static constexpr uint16_t LIMIT{DHCP_VEND_LEN}; // 304
+  using Chaddr_arr = std::array<uint8_t, CHADDR_LEN>;
+  using Sname_arr  = std::array<uint8_t, SNAME_LEN>;
+  using File_arr   = std::array<uint8_t, FILE_LEN>;
+  using Magic_arr  = std::array<uint8_t, 4>;
+
 
   uint8_t   op;           // message opcode
   uint8_t   htype;        // hardware addr type
@@ -49,10 +54,10 @@ struct Message
   Addr      yiaddr;       // client IP address
   Addr      siaddr;       // IP address of next server
   Addr      giaddr;       // DHCP relay agent IP address
-  uint8_t   chaddr[CHADDR_LEN];  // client hardware address
-  uint8_t   sname[SNAME_LEN];    // server name
-  uint8_t   file[FILE_LEN];      // BOOT filename
-  std::array<uint8_t,4> magic;   // option_format aka magic
+  Chaddr_arr chaddr;  // client hardware address
+  Sname_arr  sname;   // server name
+  File_arr   file;    // BOOT filename
+  Magic_arr  magic;   // option_format aka magic
   option::base          options[0];
 
   /**
@@ -93,6 +98,9 @@ struct Message
 template <typename Storage>
 class Readable_message {
 public:
+
+  op_code op() const noexcept
+  { return static_cast<op_code>(message_.op); }
 
   auto ciaddr() const noexcept
   { return message_.ciaddr; }
@@ -204,7 +212,8 @@ protected:
   Readable_message(Storage& msg)
     : message_{msg}
   {}
-};
+
+}; // < class Readable_message
 
 /**
  * @brief      Helper for reading a message and options.
@@ -232,7 +241,7 @@ public:
     : Message_reader{reinterpret_cast<const Message*>(buffer)}
   {}
 
-};
+}; // < class Message_reader
 
 /**
  * @brief      Helper for creating new messages and adding options.
@@ -309,6 +318,9 @@ public:
   void set_flag(flag fl) noexcept
   { message_.flags = htons(static_cast<uint16_t>(fl)); }
 
+  void set_flags(uint16_t fl) noexcept
+  { message_.flags = fl; }
+
   /**
    * @brief      Sets the client hardware address.
    *             htype and hlen need to already be set (set_hw_addr)
@@ -323,9 +335,15 @@ public:
     Expects(message_.htype != 0 && "hardware address type must be set");
     Expects(sizeof(Addr) == message_.hlen && "size of Addr is not equal the set length of the hw address");
     // clean just to be sure
-    memset(message_.chaddr, 0, Message::CHADDR_LEN);
-    memcpy(message_.chaddr, hwaddr, sizeof(Addr));
+    std::memset(message_.chaddr.begin(), 0, Message::CHADDR_LEN);
+    std::memcpy(message_.chaddr.begin(), hwaddr, sizeof(Addr));
   }
+
+  void set_sname(const Message::Sname_arr& sname)
+  { message_.sname = sname; }
+
+  void set_file(const Message::File_arr& file)
+  { message_.file = file; }
 
   /**
    * @brief      Sets the magic cookie.
@@ -380,7 +398,7 @@ public:
 private:
   uint16_t opt_offset{0};
 
-}; // < class Message_view
+}; // < class Message_writer
 
 } // < namespace dhcp
 } // < namespace net
