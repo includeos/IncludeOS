@@ -1,7 +1,7 @@
 // -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,43 +31,25 @@ extern void __arch_enable_legacy_irq(uint8_t);
 extern void __arch_disable_legacy_irq(uint8_t);
 inline void __arch_hw_barrier() noexcept;
 inline void __sw_barrier() noexcept;
+inline uint64_t __arch_cpu_cycles() noexcept;
 
-#if defined(ARCH_X86)
-
-inline uint64_t __arch_cpu_cycles() noexcept {
-  uint64_t ret;
-  asm("rdtsc" : "=A" (ret));
-  return ret;
-}
-
-#elif defined(ARCH_X64)
-
-inline uint64_t __arch_cpu_cycles() noexcept {
-  unsigned hi, lo;
-  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
-}
-
-#endif
-
-#if ARCH_X64 || ARCH_X86
-
-inline void __arch_hw_barrier() noexcept
-{
-  asm volatile("mfence" ::: "memory");
-}
-
-
-#else
-inline uint64_t __arch_cpu_cycles() noexcept {
-  assert(0);
-}
-inline void __arch_hw_barrier() noexcept {}
-#endif
 
 inline void __sw_barrier() noexcept
 {
   asm volatile("" ::: "memory");
 }
+
+// Include arch specific inline implementations
+// (There might be fancier tricks for doing this)
+#if defined(ARCH_x86_64)
+#include "arch/x86_64.hpp"
+#elif defined(ARCH_i686)
+#include "arch/i686.hpp"
+#error "No supported arch specified"
+
+
+#else
+#endif
+
 
 #endif

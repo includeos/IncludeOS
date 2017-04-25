@@ -1,14 +1,12 @@
 enable_language(ASM_NASM)
 
-if ("${ARCH}" STREQUAL "x86_64")
-  set (ARCH_INTERNAL "ARCH_X64")
-  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
-else()
-  set (ARCH_INTERNAL "ARCH_X86")
+if ("${ARCH}" STREQUAL "i686")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+else()
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
 endif()
 
-add_definitions(-D${ARCH_INTERNAL})
+add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 
 include_directories(${INCLUDEOS_ROOT}/api/posix)
@@ -36,6 +34,7 @@ set(OS_OBJECTS
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
+  kernel/fiber.cpp kernel/fiber_asm.asm
   kernel/profile.cpp kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp

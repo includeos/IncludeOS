@@ -20,7 +20,7 @@
 #ifndef API_SMP_HEADER
 #define API_SMP_HEADER
 
-#include "arch"
+#include <arch.hpp>
 #include <delegate>
 
 #define INCLUDEOS_SINGLE_THREADED
@@ -34,7 +34,7 @@
 #define SMP_ALIGN       64
 
 /// x86-related locking stuff ///
-#if ARCH_X86 || ARCH_X64
+#if defined(ARCH_x86)
 // Intel 3a  8.10.6.7: 128-byte boundary
 typedef volatile int spinlock_t __attribute__((aligned(128)));
 

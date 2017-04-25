@@ -19,7 +19,7 @@
 #define KERNEL_OS_HPP
 
 #include <common>
-#include <arch>
+#include <arch.hpp>
 #include <kernel/memmap.hpp>
 #include <kernel/rtc.hpp>
 #include <hertz>
