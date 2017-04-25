@@ -26,8 +26,6 @@ extern void *memalign(size_t, size_t);
 #include <net/buffer_store.hpp>
 #include <kernel/syscalls.hpp>
 #include <common>
-#include <debug>
-#include <info>
 #include <cassert>
 #include <smp>
 #define PAGE_SIZE     0x1000
@@ -117,6 +115,8 @@ namespace net {
 
     auto addr = available_.back();
     available_.pop_back();
+    debug("Gave away %p, %lu buffers remain\n",
+            (void*) addr, available_.size());
 
 #ifndef INCLUDEOS_SINGLE_THREADED
     if (is_locked) unlock(plock);
@@ -142,7 +142,7 @@ namespace net {
 #ifndef INCLUDEOS_SINGLE_THREADED
       if (is_locked) unlock(plock);
 #endif
-      debug("released\n");
+      debug("released (avail=%lu)\n", available_.size());
       return;
     }
 #ifdef ENABLE_BUFFERSTORE_CHAIN

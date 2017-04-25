@@ -406,7 +406,7 @@ void vmxnet3::msix_xmit_handler()
       continue;
     }
     auto* packet = (net::Packet*) (tx.buffers[desc] - sizeof(net::Packet));
-    packet->~Packet(); // call destructor on Packet to release it
+    delete packet; // call deleter on Packet to release it
     tx.buffers[desc] = nullptr;
   }
   // try to send sendq first
