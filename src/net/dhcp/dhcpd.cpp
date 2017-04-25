@@ -421,7 +421,7 @@ void DHCPD::offer(const Message* msg) {
   Message_writer offer{reinterpret_cast<Message*>(buffer), op_code::BOOTREPLY, message_type::OFFER};
 
   offer.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // assume ethernet
-  offer.set_xid(msg->xid);
+  offer.set_xid(ntohl(msg->xid));
   //offer.set_ciaddr(IP4::addr{0});
   //offer.set_siaddr(IP4::addr{0});   // IP address of next bootstrap server
   // yiaddr - IP address offered to the client from the pool
@@ -530,7 +530,7 @@ void DHCPD::inform_ack(const Message* msg) {
   Message_writer ack{reinterpret_cast<Message*>(buffer), op_code::BOOTREPLY, message_type::ACK};
 
   ack.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // assume ethernet
-  ack.set_xid(msg->xid);
+  ack.set_xid(ntohl(msg->xid));
   ack.set_ciaddr(msg->ciaddr); // or 0
   ack.set_giaddr(msg->giaddr);
   ack.set_flags(msg->flags);
@@ -560,7 +560,7 @@ void DHCPD::request_ack(const Message* msg) {
   Message_writer ack{reinterpret_cast<Message*>(buffer), op_code::BOOTREPLY, message_type::ACK};
 
   ack.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // assume ethernet
-  ack.set_xid(msg->xid);
+  ack.set_xid(ntohl(msg->xid));
 
   int ridx = get_record_idx(get_client_id(msg));
   ack.set_yiaddr((ridx not_eq -1) ? records_.at(ridx).ip() : 0); // TODO: else what?     // IP address assigned to client
@@ -626,7 +626,7 @@ void DHCPD::nak(const Message* msg) {
   Message_writer nak{reinterpret_cast<Message*>(buffer), op_code::BOOTREPLY, message_type::NAK};
 
   nak.set_hw_addr(htype::ETHER, sizeof(MAC::Addr)); // assume ethernet
-  nak.set_xid(msg->xid);
+  nak.set_xid(ntohl(msg->xid));
 
   nak.set_giaddr(msg->giaddr);
 
@@ -654,7 +654,7 @@ void DHCPD::nak(const Message* msg) {
 
 bool DHCPD::valid_options(const Message* msg) const {
   const Message_reader reader{msg};
-  int num_bytes = 0;
+  int num_bytes = 0; // this may be unecessary due to the limit in message reader
   int num_options = reader.parse_options([&num_bytes] (const auto* opt) {
     num_bytes += opt->size();
   });

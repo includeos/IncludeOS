@@ -30,17 +30,15 @@ namespace net {
   using namespace dhcp;
 
   DHClient::DHClient(Stack& inet)
-    : stack(inet), xid(0), console_spam(true), in_progress(false)
+    : stack(inet), xid(0), in_progress(false)
   {
     this->on_config(
     [this] (bool timeout)
     {
-      if (console_spam) {
-        if (timeout)
-          INFO("DHCPv4", "Negotiation timed out");
-        else
-          INFO("DHCPv4", "Config complete");
-      }
+      if (timeout)
+        MYINFO("Negotiation timed out (%s)", this->stack.ifname().c_str());
+      else
+        MYINFO("Configuration complete (%s)", this->stack.ifname().c_str());
     });
   }
 
@@ -81,8 +79,7 @@ namespace net {
     // create a random session ID
     this->xid = generate_xid();
 
-    if (console_spam)
-      MYINFO("Negotiating IP-address (xid=%u)", xid);
+    debug("Negotiating IP-address for %s (xid=%u)\n", stack.ifname().c_str(), xid);
 
     // create DHCP discover packet
     uint8_t buffer[Message::size()];
@@ -118,7 +115,8 @@ namespace net {
       if (port == DHCP_SERVER_PORT)
       {
         // we have got a DHCP Offer
-        MYINFO("Received possible DHCP OFFER from %s",
+        (void) addr;
+        debug("Received possible DHCP OFFER from %s\n",
                addr.str().c_str());
         this->offer(socket, data, len);
       }
@@ -225,12 +223,12 @@ namespace net {
     {
       const auto* addr = server_id->addr<ip4::Addr>();
       msg.add_option<option::server_identifier>(addr);
-      MYINFO("Server IP set to %s", addr->to_string().c_str());
+      debug("Server IP set to %s\n", addr->to_string().c_str());
     }
     else
     {
       msg.add_option<option::server_identifier>(&this->router);
-      MYINFO("Server IP set to gateway (%s)", this->router.to_string().c_str());
+      debug("Server IP set to gateway (%s)\n", this->router.to_string().c_str());
     }
 
     // DHCP Requested Address
@@ -290,8 +288,6 @@ namespace net {
     debug("LEASE TIME: \t%u mins", this->lease_time / 60);
     debug("GATEWAY: \t%s", this->router.str().c_str());
     debug("DNS SERVER: \t%s", this->dns_server.str().c_str());
-
-    MYINFO("DHCP configuration succeeded");
 
     // configure our network stack
     stack.network_config(this->ipaddr, this->netmask,
