@@ -130,27 +130,43 @@ void panic(const char* why)
   if (PER_CPU(panic_stuff).reenter)
       OS::reboot();
   PER_CPU(panic_stuff).reenter = true;
+
   /// display informacion ...
   SMP::global_lock();
   fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n",
           SMP::cpu_id(), why);
-  // the crash context buffer can help determine cause of crash
+
+  // crash context (can help determine source of crash)
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
     printf("\n\t**** CONTEXT: ****\n %*s\n\n",
         len, get_crash_context_buffer());
   }
-  // heap and backtrace info
+
+  // stack info
+#ifdef ARCH_X64
+  void* SP; asm volatile("mov %%rsp, %0" : "=r"(SP));
+  void* SB; asm volatile("mov %%rbp, %0" : "=r"(SB));
+#elif ARCH_X86
+  register void* SP asm("esp");
+  register void* SB asm("ebp");
+#else
+  #error "Implement me"
+#endif
+  fprintf(stderr, "\tStack pointer: %p  Base: %p\n", SP, SB);
+
+  // heap info
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
-
   fprintf(stderr, "\tHeap is at: %p / %p  (diff=%u)\n",
          (void*) heap_end, (void*) OS::heap_max(), (uint32_t) (OS::heap_max() - heap_end));
   fprintf(stderr, "\tHeap usage: %lu / %lu Kb (%.2f%%)\n",
          (unsigned long) (heap_end - heap_begin) / 1024,
-         heap_total / 1024,
-         total * 100.0);
+         heap_total / 1024, total * 100.0);
+
+  // call stack
   print_backtrace();
+
   fflush(stderr);
   SMP::global_unlock();
 
