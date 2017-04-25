@@ -124,7 +124,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x6000, 0x7fff, "Statman", "Statistics"});
-  memmap.assign_range({0xA000, 0x9fbff, "Kernel / service main stack"});
+  memmap.assign_range({0xA000, 0x9fbff, "Stack", "Kernel / service main stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
 
