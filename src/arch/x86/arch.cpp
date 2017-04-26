@@ -128,7 +128,7 @@ namespace x86
 
   void initialize_gdt_for_cpu(int id)
   {
-  #ifdef ARCH_X64
+  #ifdef ARCH_x86_64
     GDT::set_fs(&cpudata.at(id));
   #else
     // initialize GDT for this core

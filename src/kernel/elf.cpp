@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <vector>
 #include <util/elf.h>
-#include <arch>
+#include <arch.hpp>
 
 #if __LP64__
 typedef Elf64_Sym   ElfSym;

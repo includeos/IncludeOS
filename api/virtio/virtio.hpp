@@ -193,7 +193,7 @@ public:
        Update the available index */
     inline void update_avail_idx ()
     {
-#if ARCH_X86 || ARCH_X64
+#if defined(ARCH_x86)
       // Std. §3.2.1 pt. 4
       __arch_hw_barrier();
       _queue.avail->idx += _num_added;

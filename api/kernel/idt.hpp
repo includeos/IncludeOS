@@ -18,7 +18,7 @@
 #ifndef KERNEL_IDT_HPP
 #define KERNEL_IDT_HPP
 
-#include <arch>
+#include <arch.hpp>
 
 struct IDTDescr {
   uint16_t offset_1;  // offset bits 0..15
@@ -26,7 +26,7 @@ struct IDTDescr {
   uint8_t  zero;      // unused, set to 0
   uint8_t  type_attr; // type and attributes, see below
   uint16_t offset_2;  // offset bits 16..31
-#ifdef ARCH_X64
+#ifdef ARCH_x86_64
   uint32_t offset_3;  // 32..63
   uint32_t zero2;
 #endif

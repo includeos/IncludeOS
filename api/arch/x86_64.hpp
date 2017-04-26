@@ -1,6 +1,7 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,13 +16,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <common.cxx>
+#ifndef X86_64_ARCH_HPP
+#define X86_64_ARCH_HPP
 
-#include <arch.hpp>
+#include <arch/x86.hpp>
 
-CASE("CPU cycle counter")
-{
-  uint64_t r1 = __arch_cpu_cycles();
-  uint64_t r2 = __arch_cpu_cycles();
-  EXPECT(r1 != r2);
+inline uint64_t __arch_cpu_cycles() noexcept {
+  uint64_t ret;
+  asm("rdtsc" : "=A" (ret));
+  return ret;
 }
+
+#endif

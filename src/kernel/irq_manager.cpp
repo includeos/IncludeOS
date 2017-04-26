@@ -156,7 +156,7 @@ union addr_union {
   struct {
     uint16_t lo16;
     uint16_t hi16;
-#ifdef ARCH_X64
+#ifdef ARCH_x86_64
     uint32_t top32;
 #endif
   };
@@ -172,7 +172,7 @@ void IRQ_manager::create_gate(
   addr.whole           = (uintptr_t) func;
   idt_entry->offset_1  = addr.lo16;
   idt_entry->offset_2  = addr.hi16;
-#ifdef ARCH_X64
+#ifdef ARCH_x86_64
   idt_entry->offset_3  = addr.top32;
 #endif
   idt_entry->selector  = segment_sel;
@@ -184,7 +184,7 @@ IRQ_manager::intr_func IRQ_manager::get_handler(uint8_t vec) {
   addr_union addr;
   addr.lo16  = idt[vec].offset_1;
   addr.hi16  = idt[vec].offset_2;
-#ifdef ARCH_X64
+#ifdef ARCH_x86_64
   addr.top32 = idt[vec].offset_3;
 #endif
 

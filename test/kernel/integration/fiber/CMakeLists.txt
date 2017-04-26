@@ -4,20 +4,18 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+set($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
-project (test_grub)
+project (test_fiber)
 
-set(SERVICE_NAME "Grub test")
-set(BINARY       ${PROJECT_NAME})
+MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
+
+set(SERVICE_NAME "Fibers test")
+set(BINARY       "test_fiber")
 set(MAX_MEM 128)
 set(SOURCES
     service.cpp
   )
-
-
-
-
 #set(LOCAL_INCLUDES ".")
 
 # include service build script

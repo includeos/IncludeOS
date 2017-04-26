@@ -20,6 +20,7 @@
 #define X86_CPU_HPP
 
 #include <cstdint>
+#include <arch.hpp>
 
 namespace x86
 {
@@ -30,46 +31,46 @@ namespace x86
     static uint64_t
     read_msr(uint32_t addr)
     {
-#if ARCH_X64 || ARCH_X86
+
+#if defined(ARCH_x86)
       uint64_t v;
       asm volatile("rdmsr": "=A" (v) : "c" (addr));
       return v;
 #else
-#warning "read_msr() not implemented for selected arch"
-      return 0;
+#error "read_msr() not implemented for selected arch"
 #endif
     }
 
     static void
     write_msr(uint32_t addr, uint32_t eax, uint32_t edx)
     {
-#ifdef ARCH_X64
+#if defined(ARCH_x86_64)
       uint64_t value = eax | ((uint64_t) edx << 32);
       asm volatile("wrmsr" : : "A" (value), "c" (addr));
-#elif ARCH_X86
+#elif defined(ARCH_i686)
       asm volatile("wrmsr" : : "a" (eax), "d"(edx), "c" (addr));
 #else
-#warning "write_msr() not implemented for selected arch"
+#error "write_msr() not implemented for selected arch"
 #endif
     }
     static void
     write_msr(uint32_t addr, uint64_t value)
     {
-#if ARCH_X64 || ARCH_X86
+#if defined(ARCH_x86)
       asm volatile("wrmsr" : : "A" (value), "c" (addr));
 #else
-#warning "write_msr() not implemented for selected arch"
+#error "write_msr() not implemented for selected arch"
 #endif
     }
 
     static uint64_t rdtsc()
     {
-#if ARCH_X64 || ARCH_X86
+#if defined(ARCH_x86)
       uint64_t ret;
       asm volatile("rdtsc" : "=A"(ret));
       return ret;
 #else
-#warning "rdtsc() not implemented for selected arch"
+#error "rdtsc() not implemented for selected arch"
       return 0;
 #endif
     }
