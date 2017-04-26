@@ -15,30 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <pthread.h>
-#include <cstdio>
-#include <vector>
-#include <fiber>
-#include <unordered_map>
+#include <sys/types.h>
 
-std::unordered_map<pthread_t, Fiber> fibers;
-
-
-int pthread_create(pthread_t* th, const pthread_attr_t* attr, void *(*func)(void *), void* args) {
-
-  static int __thread_id__ = 0;
-  auto new_id = __thread_id__++;
-
-  fibers.emplace(new_id, Fiber{func, args});
-  fibers[new_id].start();
-
-  *th = new_id;
-
-  return 0;
-};
-
-int pthread_join(pthread_t thread, void **value_ptr) {
-  void* retval = fibers[thread].ret<void*>();
-  *value_ptr = retval;
-  return 0;
-};
+typedef struct {
+  int sched_priority;
+} sched_param;

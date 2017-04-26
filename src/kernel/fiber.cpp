@@ -21,15 +21,17 @@
 #include <memory>
 
 void* previous_stack_ = nullptr;
+Fiber* Fiber::main_ = nullptr;
+Fiber* Fiber::current_ = nullptr;
 
 
 extern "C" {
-  void __fiber_jumpstart(void* th_stack, delegate<void()> func, void* parent_stack);
+  void __fiber_jumpstart(void* th_stack, Fiber* f, void* parent_stack);
   void __fiber_yield(void* stack, void* parent_stack);
 
-  void fiber_jumpstarter(delegate<void()> func)
+  void fiber_jumpstarter(Fiber* f)
   {
-    func();
+    f->ret_= f->func_(f->param_);
   }
 }
 
@@ -43,6 +45,9 @@ void Fiber::start() {
     main_ = this;
   }
 
+  if (not func_)
+    throw Err_bad_fiber("Can't start fiber without a function");
+
   current_ = this;
 
   // Switch stack + call thread initialize
@@ -51,7 +56,7 @@ void Fiber::start() {
   if (parent_)
     prev_stack = &(parent_->stack_loc_);
 
-  __fiber_jumpstart(stack_loc_, func_, prev_stack);
+  __fiber_jumpstart(stack_loc_, this, prev_stack);
 
   if (main_ == this)
     main_ = nullptr;
