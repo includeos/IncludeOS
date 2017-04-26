@@ -52,7 +52,7 @@ echo -e " tuntap\t\t - tap device for macOS (used by qemu)"
 echo -e "\n binutils\t - xcompile tools required for building IncludeOS"
 DEPENDENCY_BINUTILS=false
 
-BINUTILS_BIN="/usr/local/bin/i686-elf-"
+BINUTILS_BIN="/usr/local/bin/$ARCH-elf-"
 LD_INC=$BINUTILS_BIN"ld"
 AR_INC=$BINUTILS_BIN"ar"
 OBJCOPY_INC=$BINUTILS_BIN"objcopy"
@@ -126,8 +126,8 @@ then
   echo -e ">> $SRC_CXX > $INCLUDEOS_BIN/g++"
 
   SRC_BINUTILS="/usr/local/bin"
-  ln -sf $SRC_BINUTILS/i686-elf-* $INCLUDEOS_BIN/
-  echo -e ">> $SRC_BINUTILS/i686-elf-* > $INCLUDEOS_BIN/"
+  ln -sf $SRC_BINUTILS/$ARCH-elf-* $INCLUDEOS_BIN/
+  echo -e ">> $SRC_BINUTILS/$ARCH-elf-* > $INCLUDEOS_BIN/"
 
   SRC_NASM="/usr/local/bin/nasm"
   ln -sf $SRC_NASM $INCLUDEOS_BIN/nasm
