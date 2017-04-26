@@ -44,34 +44,24 @@ namespace x86
     static void
     write_msr(uint32_t addr, uint32_t eax, uint32_t edx)
     {
-#if defined(ARCH_x86_64)
-      uint64_t value = eax | ((uint64_t) edx << 32);
-      asm volatile("wrmsr" : : "A" (value), "c" (addr));
-#elif defined(ARCH_i686)
+#if defined(ARCH_x86)
       asm volatile("wrmsr" : : "a" (eax), "d"(edx), "c" (addr));
 #else
 #error "write_msr() not implemented for selected arch"
 #endif
     }
+
     static void
     write_msr(uint32_t addr, uint64_t value)
     {
-#if defined(ARCH_x86)
+#if defined(ARCH_x86_64)
+      const uint32_t eax = value & 0xffffffff;
+      const uint32_t edx = value >> 32;
+      asm volatile("wrmsr" : : "a" (eax), "d"(edx), "c" (addr));
+#elif defined(ARCH_x86)
       asm volatile("wrmsr" : : "A" (value), "c" (addr));
 #else
 #error "write_msr() not implemented for selected arch"
-#endif
-    }
-
-    static uint64_t rdtsc()
-    {
-#if defined(ARCH_x86)
-      uint64_t ret;
-      asm volatile("rdtsc" : "=A"(ret));
-      return ret;
-#else
-#error "rdtsc() not implemented for selected arch"
-      return 0;
 #endif
     }
   };

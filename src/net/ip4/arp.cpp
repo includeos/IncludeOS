@@ -160,6 +160,10 @@ namespace net {
       dest_mac = MAC::BROADCAST;
     } else {
 
+#ifdef ARP_PASSTHROUGH
+      extern MAC::Addr linux_tap_device;
+      dest_mac = linux_tap_device;
+#else
       // If we don't have a cached IP, perform address resolution
       auto cache_entry = cache_.find(next_hop);
       if (UNLIKELY(cache_entry == cache_.end())) {
@@ -170,6 +174,7 @@ namespace net {
 
       // Get MAC from cache
       dest_mac = cache_[next_hop].mac();
+#endif
 
       debug("<ARP> Found cache entry for IP %s -> %s \n",
             next_hop.to_string().c_str(), dest_mac.to_string().c_str());

@@ -124,7 +124,6 @@ Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t hand
           system.timers[id].reset();
           // reuse timer
           new (&system.timers[id]) Timer(period, handler);
-          sched_timer(when, id);
 
           // Stat increment timer started
           if (system.timers[id].is_oneshot()) {
@@ -133,6 +132,7 @@ Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t hand
             if (system.periodic_started) (*system.periodic_started)++;
           }
 
+          sched_timer(when, id);
           return id;
         }
         ++it;
@@ -151,9 +151,6 @@ Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t hand
     new (&system.timers[id]) Timer(period, handler);
   }
 
-  // immediately schedule timer
-  sched_timer(when, id);
-
   // Stat increment timer started
   if (system.timers[id].is_oneshot()) {
     if (system.oneshot_started) (*system.oneshot_started)++;
@@ -161,13 +158,15 @@ Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t hand
     if (system.periodic_started) (*system.periodic_started)++;
   }
 
+  // immediately schedule timer
+  sched_timer(when, id);
   return id;
 }
 
 void Timers::stop(Timers::id_t id)
 {
   auto& system = get();
-  if (LIKELY(system.timers[id].deferred_destruct == false))
+  if (LIKELY(system.timers.at(id).deferred_destruct == false))
   {
     // mark as dead already
     system.timers[id].deferred_destruct = true;
@@ -241,7 +240,7 @@ void Timers::timers_handler()
           if (timer.deferred_destruct) system.dead_timers--;
           system.free_timers.push_back(id);
         }
-        else if (timer.is_oneshot() == false)
+        else
         {
           // if the timer is recurring, we will simply reschedule it
           // NOTE: we are carefully using (when + period) to avoid drift
@@ -266,6 +265,8 @@ void Timers::timers_handler()
 }
 static void sched_timer(duration_t when, Timers::id_t id)
 {
+  assert(when != microseconds::zero());
+
   auto& system = get();
   system.scheduled.
     emplace(std::piecewise_construct,
