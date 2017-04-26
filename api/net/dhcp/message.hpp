@@ -269,7 +269,7 @@ public:
     // add magic cookie
     set_magic();
     // add message option
-    add_option<option::message>(type);
+    add_option<option::message_type>(type);
   }
 
   /**

@@ -118,7 +118,7 @@ CASE("Reading Message and parsing options with Message_view")
   EXPECT(anon_opt->code == option::DHCP_MESSAGE_TYPE);
   EXPECT(anon_opt->val[0] == static_cast<uint8_t>(message_type::DISCOVER));
 
-  auto* message_opt = view.find_option<option::message>();
+  auto* message_opt = view.find_option<option::message_type>();
 
   EXPECT(message_opt != nullptr);
   EXPECT(message_opt->code == option::DHCP_MESSAGE_TYPE);
@@ -174,7 +174,7 @@ CASE("Creating Message and adding options with Message_view")
 
   Message_writer view{&buffer[0], op_code::BOOTREQUEST, message_type::DISCOVER};
 
-  auto* message_opt = view.find_option<option::message>();
+  auto* message_opt = view.find_option<option::message_type>();
 
   EXPECT(message_opt != nullptr);
   EXPECT(message_opt->code == option::DHCP_MESSAGE_TYPE);

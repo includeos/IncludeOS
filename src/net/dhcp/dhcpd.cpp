@@ -143,7 +143,7 @@ void DHCPD::resolve(const Message* msg) {
   }
 
   const Message_reader reader{msg};
-  const auto* msg_opt = reader.find_option<option::message>();
+  const auto* msg_opt = reader.find_option<option::message_type>();
 
   if (UNLIKELY(msg_opt == nullptr)) {
     debug("No Message option\n");
@@ -458,14 +458,6 @@ void DHCPD::offer(const Message* msg) {
   // LEASE_TIME
   offer.add_option<option::lease_time>(lease_);
 
-  // MESSAGE (SHOULD)
-  // No error message (only in DHCPNAK)
-  //offer.add_option<option::message>(message_type::NO_ERROR);
-  //offer_opts = conv_option(offer->options, 27);      // 27 bytes filled in prior
-  //offer_opts->code = DHO_DHCP_MESSAGE;
-  //offer_opts->length = 1;
-  //offer_opts->val[0] = 0;
-
   // TIME_OFFSET
   offer.add_option<option::time_offset>(0);
 
@@ -632,11 +624,7 @@ void DHCPD::nak(const Message* msg) {
   nak.set_chaddr(reinterpret_cast<const MAC::Addr*>(&msg->chaddr)); // assume ethernet
 
   // MESSAGE (SHOULD)
-  //nak_opts = conv_option(nak->options, 3);   // 3 bytes filled in prior
-  //nak_opts->code = DHO_DHCP_MESSAGE;
-  // TODO Fill in error message instead of 0
-  //nak_opts->length = 1;
-  //nak_opts->val[0] = 0;
+  nak.add_option<option::message>(std::string{"Something went wrong"});
 
   // SERVER_IDENTIFIER
   nak.add_option<option::server_identifier>(&server_id_);

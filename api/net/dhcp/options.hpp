@@ -23,6 +23,7 @@
 #include <vector>
 #include <net/util.hpp>
 #include <cstring>
+#include <common>
 
 namespace net {
 namespace dhcp {
@@ -251,16 +252,16 @@ struct lease_time : public type<DHCP_LEASE_TIME>, public base
 /**
  * @brief      DHCP_MESSAGE_TYPE (53)
  */
-struct message : public type<DHCP_MESSAGE_TYPE>, public base
+struct message_type : public type<DHCP_MESSAGE_TYPE>, public base
 {
-  constexpr message(const message_type m_type) noexcept
+  constexpr message_type(const dhcp::message_type m_type) noexcept
     : base{DHCP_MESSAGE_TYPE, 1}
   {
     val[0] = static_cast<uint8_t>(m_type);
   }
 
-  message_type type() const noexcept
-  { return static_cast<message_type>(val[0]); }
+  dhcp::message_type type() const noexcept
+  { return static_cast<dhcp::message_type>(val[0]); }
 };
 
 /**
@@ -283,8 +284,25 @@ struct param_req_list : public type<DHCP_PARAMETER_REQUEST_LIST>, public base
   constexpr param_req_list(const std::vector<Code>& codes) noexcept
     : base{DHCP_PARAMETER_REQUEST_LIST, static_cast<uint8_t>(codes.size())}
   {
+    Expects(codes.size() < 50); // or something
     std::memcpy(&val[0], codes.data(), codes.size());
   }
+};
+
+/**
+ * @brief      DHCP_MESSAGE (56)
+ */
+struct message : public type<DHCP_MESSAGE>, public base
+{
+  constexpr message(const std::string& msg) noexcept
+    : base{CODE, static_cast<uint8_t>(msg.size())}
+  {
+    Expects(not msg.empty() and msg.size() <= 128); // or something
+    std::memcpy(&val[0], msg.data(), msg.size());
+  }
+
+  std::string msg() const
+  { return {reinterpret_cast<const char*>(&val[0]), length}; }
 };
 
 /**

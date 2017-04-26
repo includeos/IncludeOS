@@ -124,7 +124,7 @@ namespace net {
     //const dhcp_option_t* server_id {nullptr};
 
     // check if the BOOTP message is a DHCP OFFER
-    const auto* msg_opt = msg.find_option<option::message>();
+    const auto* msg_opt = msg.find_option<option::message_type>();
     if(msg_opt != nullptr)
     {
       // ignore when not a DHCP Offer
@@ -260,7 +260,7 @@ namespace net {
     if (msg.xid() != this->xid) return;
 
     // check if the BOOTP message is a DHCP ACK
-    const auto* msg_opt = msg.find_option<option::message>();
+    const auto* msg_opt = msg.find_option<option::message_type>();
     if(msg_opt != nullptr)
     {
       // ignore when not a DHCP Ack
