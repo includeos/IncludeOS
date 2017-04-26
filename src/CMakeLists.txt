@@ -1,10 +1,12 @@
-enable_language(ASM_NASM)
-
+# object format needs to be set BEFORE enabling ASM
+# see: https://cmake.org/Bug/bug_relationship_graph.php?bug_id=13166
 if ("${ARCH}" STREQUAL "i686")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 else()
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
 endif()
+
+enable_language(ASM_NASM)
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
