@@ -1,4 +1,5 @@
 set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+SET(CMAKE_ASM-NASM_COMPILER_ARG1 "-f elf64")
 
 set(ARCH_OBJECTS
   ### x86 arch ###

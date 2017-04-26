@@ -9,9 +9,11 @@ set -e # Exit immediately on error (we're trapping the exit signal)
 trap 'previous_command=$this_command; this_command=$BASH_COMMAND' DEBUG
 trap 'echo -e "\nINSTALL FAILED ON COMMAND: $previous_command\n"' EXIT
 
-TARGET="i686-elf"
-BUILD_DIR=$HOME"/IncludeOS_build"
-VERSION=2.27
+export ARCH=${ARCH:-i686} # CPU architecture. Alternatively x86_64
+export TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
+export BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build}	# Where the libs are built
+
+VERSION=2.28
 BINUTILS="binutils-"$VERSION
 TARBALL=$BINUTILS".tar.gz"
 INSTALL_DIR="/usr/local"
