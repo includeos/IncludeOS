@@ -150,19 +150,19 @@ namespace x86 {
     }
     uint8_t get_isr() noexcept override
     {
-      for (int i = 8; i >= 0; i--) {
+      for (int i = 5; i >= 0; i--) {
         uint32_t reg = read(x2APIC_ISR + i);
         if (reg) return 32 * i + __builtin_ffs(reg) - 1;
       }
-      return 255;
+      return 159;
     }
     uint8_t get_irr() noexcept override
     {
-      for (int i = 8; i >= 0; i--) {
+      for (int i = 5; i >= 0; i--) {
         uint32_t reg = read(x2APIC_IRR + i);
         if (reg) return 32 * i + __builtin_ffs(reg) - 1;
       }
-      return 255;
+      return 159;
     }
 
     void ap_init(int id) noexcept override
