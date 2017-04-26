@@ -39,9 +39,9 @@ net::dhcp::Message* create_discovery_msg(uint8_t* buffer)
   msg->htype  = static_cast<uint8_t>(htype::ETHER);
   msg->hlen   = ETH_ALEN;
   msg->hops   = 0;
-  msg->xid    = htonl(322420);
+  msg->xid    = net::htonl(322420);
   msg->secs   = 0;
-  msg->flags  = htons(static_cast<uint16_t>(flag::BOOTP_BROADCAST));
+  msg->flags  = net::htons(static_cast<uint16_t>(flag::BOOTP_BROADCAST));
   msg->ciaddr = 0;
   msg->yiaddr = 0;
   msg->siaddr = 0;
