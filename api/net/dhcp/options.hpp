@@ -22,6 +22,7 @@
 #include "dhcp4.hpp"
 #include <vector>
 #include <net/util.hpp>
+#include <cstring>
 
 namespace net {
 namespace dhcp {
@@ -282,7 +283,7 @@ struct param_req_list : public type<DHCP_PARAMETER_REQUEST_LIST>, public base
   constexpr param_req_list(const std::vector<Code>& codes) noexcept
     : base{DHCP_PARAMETER_REQUEST_LIST, static_cast<uint8_t>(codes.size())}
   {
-    memcpy(&val[0], codes.data(), codes.size());
+    std::memcpy(&val[0], codes.data(), codes.size());
   }
 };
 
