@@ -61,12 +61,8 @@ struct Sampler
   }
 
   void begin() {
-    // gather samples repeatedly over small periods
-    using namespace std::chrono;
-    static const milliseconds GATHER_PERIOD_MS = 150ms;
-
-    x86::PIT::instance().on_repeated_timeout(
-        GATHER_PERIOD_MS, gather_stack_sampling);
+    // gather samples repeatedly over single period
+    x86::PIT::forever(gather_stack_sampling);
   }
   void add(void* current, void* ra)
   {

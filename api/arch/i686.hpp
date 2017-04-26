@@ -1,7 +1,7 @@
 // -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,30 +16,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef INCLUDEOS_ARCH_HEADER
-#define INCLUDEOS_ARCH_HEADER
+#ifndef i686_ARCH_HPP
+#define i686_ARCH_HPP
 
-#include <cstddef>
-#include <cstdint>
+#define ARCH_i686
 
-extern void __arch_init();
-extern void __arch_poweroff();
-extern void __arch_reboot();
-extern void __arch_enable_legacy_irq(uint8_t);
-extern void __arch_disable_legacy_irq(uint8_t);
+#include <arch/x86.hpp>
 
-#ifdef ARCH_X86
 inline uint64_t __arch_cpu_cycles() noexcept {
-  uint64_t ret;
-  asm("rdtsc" : "=A" (ret));
-  return ret;
+  unsigned hi, lo;
+  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
 }
-#else
-inline uint64_t __arch_cpu_cycles() noexcept {
-  return 0;
-}
-#endif
+
 
 #endif
-

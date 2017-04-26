@@ -69,13 +69,13 @@ namespace x86 {
       this->regbase = this->base_msr & 0xFFFFF000;
       // turn the xAPIC on
       INFO("xAPIC", "Enabling xAPIC");
-      this->base_msr = 
+      this->base_msr =
           (this->base_msr & 0xfffff100) | MSR_ENABLE_XAPIC;
-      CPU::write_msr(IA32_APIC_BASE_MSR, this->base_msr, 0);
+      CPU::write_msr(IA32_APIC_BASE_MSR, this->base_msr);
       // verify that xAPIC is online
       uint64_t verify = CPU::read_msr(IA32_APIC_BASE_MSR);
       assert(verify & MSR_ENABLE_XAPIC);
-      INFO2("xAPIC id: %x  ver: %x\n", get_id(), version());
+      INFO2("ID: %x  Ver: %x", get_id(), version());
     }
 
     uint32_t read(uint32_t reg) noexcept override
@@ -102,7 +102,7 @@ namespace x86 {
     {
       write(xAPIC_SPURIOUS, bits | spurious);
     }
-    
+
     void enable() noexcept override
     {
       /// enable interrupts ///
@@ -149,7 +149,7 @@ namespace x86 {
       }
       return 255;
     }
-    
+
     void ap_init(int id) noexcept override
     {
       write(xAPIC_ICRH, (id & 0xff) << ICR_DEST_BITS);

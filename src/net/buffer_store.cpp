@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
 //#undef  NO_DEBUG
+#define DEBUG
 #if !defined(__MACH__)
 #include <malloc.h>
 #else
@@ -26,14 +26,12 @@ extern void *memalign(size_t, size_t);
 #include <net/buffer_store.hpp>
 #include <kernel/syscalls.hpp>
 #include <common>
-#include <debug>
-#include <info>
 #include <cassert>
 #include <smp>
 #define PAGE_SIZE     0x1000
 
 #define ENABLE_BUFFERSTORE_CHAIN
-#define BS_CHAIN_ALLOC_PACKETS   2048
+#define BS_CHAIN_ALLOC_PACKETS   256
 
 namespace net {
 
@@ -117,6 +115,8 @@ namespace net {
 
     auto addr = available_.back();
     available_.pop_back();
+    debug("Gave away %p, %lu buffers remain\n",
+            (void*) addr, available_.size());
 
 #ifndef INCLUDEOS_SINGLE_THREADED
     if (is_locked) unlock(plock);
@@ -142,7 +142,7 @@ namespace net {
 #ifndef INCLUDEOS_SINGLE_THREADED
       if (is_locked) unlock(plock);
 #endif
-      debug("released\n");
+      debug("released (avail=%lu)\n", available_.size());
       return;
     }
 #ifdef ENABLE_BUFFERSTORE_CHAIN

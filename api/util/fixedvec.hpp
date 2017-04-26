@@ -21,30 +21,36 @@
 
 /**
  * High performance no-heap fixed vector
- *
+ * All data is reserved uninitialized
  **/
 
 #include <cstdint>
 #include <cstring>
 
+enum class Fixedvector_Init {
+  UNINIT
+};
+
 template <typename T, int N>
 struct fixedvector {
-  fixedvector()
-    : count(0) {}
+  fixedvector() : count(0) {}
+  fixedvector(Fixedvector_Init) {}
 
   // add existing
-  void add(const T& e) noexcept {
-    element[count++] = e;
+  T& add(const T& e) noexcept {
+    (*this)[count] = e;
+    return (*this)[count++];
   }
   // construct into
   template <typename... Args>
-  void emplace(Args&&... args) noexcept {
-    new (&element[count++]) T(args...);
+  T& emplace(Args&&... args) noexcept {
+    new (&element[count]) T(args...);
+    return (*this)[count++];
   }
 
   // pop back and return last element
   T pop() {
-    return element[--count];
+    return (*this)[--count];
   }
   // clear whole thing
   void clear() noexcept {
@@ -59,14 +65,18 @@ struct fixedvector {
   }
 
   T& operator[] (uint32_t i) noexcept {
-    return element[i];
+    return *(T*) (element + i);
+  }
+  T* at (uint32_t i) noexcept {
+    if (i >= size()) return nullptr;
+    return (T*) (element + i);
   }
 
   T* begin() noexcept {
-    return &element[0];
+    return (T*) &element[0];
   }
   T* end() noexcept {
-    return &element[count];
+    return (T*) &element[count];
   }
 
   constexpr int capacity() const noexcept {
@@ -85,8 +95,8 @@ struct fixedvector {
   }
 
 private:
-  uint32_t count = 0;
-  T element[N];
+  uint32_t count;
+  typename std::aligned_storage<sizeof(T), alignof(T)>::type element[N];
 };
 
 

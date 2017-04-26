@@ -23,9 +23,10 @@ double mysecond()
   return OS::micros_since_boot() / 1000000.f;
 }
 
-void Service::start(const std::string&)
+void Service::start()
 {
   // do the STREAM test here
+  printf("Running STREAM benchmark\n");
   extern int main();
   main();
   OS::shutdown();

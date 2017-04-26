@@ -14,7 +14,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include <net/dhcp/dhcpd.hpp>
 #include <rtc>
 
@@ -605,8 +604,7 @@ void DHCPD::request_ack(const Message* msg) {
   }
   // If giaddr is zero and ciaddr is zero, and the broadcast bit (leftmost bit in flags field) is set,
   // then the server broadcasts DHCPOFFER and DHCPACK messsages to 0xffffffff
-  std::bitset<8> bits(msg->flags);
-  if (bits[7] == 1) {
+  if (ntohs(msg->flags) & static_cast<uint16_t>(flag::BOOTP_BROADCAST)) {
     socket_.bcast(server_id_, DHCP_CLIENT_PORT, buffer, sizeof(buffer));
     return;
   }

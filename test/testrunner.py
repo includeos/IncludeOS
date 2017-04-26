@@ -51,6 +51,10 @@ parser.add_argument("-f", "--fail-early", dest="fail", action="store_true",
 parser.add_argument("-j", "--junit-xml", dest="junit", action="store_true",
                     help="Produce junit xml results")
 
+parser.add_argument("-p", "--parallel-tests", dest="parallel", default=0,
+                    help="How many tests to run at once in parallell, \
+                    overrides cpu count which is default")
+
 args = parser.parse_args()
 
 test_count = 0
@@ -297,7 +301,10 @@ def integration_tests(tests):
     test_count += len(tests) + len(time_sensitive_tests)
 
     # Find number of cpu cores
-    num_cpus = multiprocessing.cpu_count()
+    if args.parallel:
+        num_cpus = args.parallel
+    else:
+        num_cpus = multiprocessing.cpu_count()
 
 	# Collect test results
     print pretty.HEADER("Collecting integration test results, on {0} cpu(s)".format(num_cpus))

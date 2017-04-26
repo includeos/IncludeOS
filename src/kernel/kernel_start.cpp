@@ -20,9 +20,8 @@
 #include <boot/multiboot.h>
 #include <kprint>
 
-#define MULTIBOOT_CMDLINE_LOC 0x7000
-
 extern "C" {
+  void __init_serial1();
   void __init_sanity_checks();
   void kernel_sanity_checks();
   uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
@@ -31,27 +30,31 @@ extern "C" {
   void _init_heap(uintptr_t);
   void _init_c_runtime();
   void _init_syscalls();
-  void _init();
-  extern uintptr_t _end;
+  void __libc_init_array();
+  uintptr_t _end;
 }
+
+extern void default_stdout_handlers();
 
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)
 {
 
+  // Initialize default serial port
+  __init_serial1();
+
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
+  // Determine where free memory starts
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
 
-  // Save multiboot string before symbols overwrite area after binary
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
   }
 
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
-
 
   // Initialize zero-initialized vars
   _init_bss();
@@ -65,8 +68,11 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   // Initialize system calls
   _init_syscalls();
 
-  // call global constructors emitted by compiler
-  _init();
+  // Initialize stdout handlers
+  default_stdout_handlers();
+
+  // Call global ctors
+  __libc_init_array();
 
   // Initialize OS including devices
   OS::start(magic, addr);

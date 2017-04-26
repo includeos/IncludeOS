@@ -64,7 +64,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
   else
   {
     // don't waste time if the packet does not have SYN
-    if(UNLIKELY(not packet->isset(SYN)))
+    if(UNLIKELY(not packet->isset(SYN) or packet->has_tcp_data()))
     {
       host_.send_reset(*packet);
       return;

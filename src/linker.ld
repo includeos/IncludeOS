@@ -20,21 +20,22 @@ ENTRY(_start)
 
 SECTIONS
 {
-  PROVIDE ( _ELF_START_ = . + 0x100000);
+  PROVIDE ( _ELF_START_ = . + 0xA00000);
   PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
   .multiboot (_ELF_START_ + SIZEOF_HEADERS): {
       PROVIDE(_MULTIBOOT_START_ = .);
       *(.multiboot)
    }
-  PROVIDE ( _TEXT_START_ = . );
+
+  PROVIDE( _TEXT_START_ = . );
   .text (_TEXT_START_ ) :
   {
     *(.text)
     *(.text.*)
     *(.gnu.linkonce.t*)
   }
-  PROVIDE ( _TEXT_END_ = . );
+  PROVIDE( _TEXT_END_ = . );
 
   .init ALIGN(0x10) : {
     _INIT_START_ = .;
@@ -50,19 +51,69 @@ SECTIONS
   .got ALIGN(0x10) : {
       *(.got*)
   }
-  /* Global constructor array */
-  .ctors ALIGN(0x10) :
+
+/**
+ *  .ctors, .dtors, .preinit_array, .init_array, .fini_array
+ *  from GNU LD default linker script
+ */
+
+.ctors          :
   {
     _GCONSTR_START_ = .;
-    *(.ctors)
+      /* gcc uses crtbegin.o to find the start of
+       the constructors, so we make sure it is
+       first.  Because this is a wildcard, it
+       doesn't matter if the user does not
+       actually link against crtbegin.o; the
+       linker won't look for a file to match a
+       wildcard.  The wildcard also means that it
+       doesn't matter which directory crtbegin.o
+       is in.  */
+       KEEP (*crtbegin.o(.ctors))
+       KEEP (*crtbegin?.o(.ctors))
+       /* We don't want to include the .ctor section from
+       the crtend.o file until after the sorted ctors.
+       The .ctor section from the crtend file contains the
+       end of ctors marker and it must be last */
+       KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .ctors))
+       KEEP (*(SORT(.ctors.*)))
+       KEEP (*(.ctors))
     _GCONSTR_END_ = .;
-    LONG(0);
   }
-  .dtors ALIGN(0x10) :
+
+  .dtors :
   {
-    *(.dtors)
-    LONG(0);
+    KEEP (*crtbegin.o(.dtors))
+    KEEP (*crtbegin?.o(.dtors))
+    KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
+    KEEP (*(SORT(.dtors.*)))
+    KEEP (*(.dtors))
   }
+
+  .preinit_array :
+  {
+    PROVIDE_HIDDEN (__preinit_array_start = .);
+    KEEP (*(.preinit_array))
+    PROVIDE_HIDDEN (__preinit_array_end = .);
+  }
+
+  .init_array :
+  {
+
+    PROVIDE_HIDDEN (__init_array_start = .);
+    KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
+    KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .ctors))
+    PROVIDE_HIDDEN (__init_array_end = .);
+  }
+
+  .fini_array     :
+  {
+   PROVIDE_HIDDEN (__fini_array_start = .);
+   KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.dtors.*)))
+   KEEP (*(.fini_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .dtors))
+   PROVIDE_HIDDEN (__fini_array_end = .);
+  }
+
 
   .rodata :
   {
@@ -72,22 +123,22 @@ SECTIONS
     _RODATA_END_ = .;
   }
 
-  .gcc_except_table :
-  {
-    *(.gcc_except_table)
-  }
-
-    /* For stack unwinding (exception handling)  */
-  .eh_frame_hdr ALIGN(0x4):
+  /* For stack unwinding (exception handling)  */
+  .eh_frame_hdr ALIGN(0x8):
   {
     KEEP(*(.eh_frame_hdr*))
 
   }
-  .eh_frame ALIGN(0x4):
+  .eh_frame ALIGN(0x8):
   {
     PROVIDE (__eh_frame_start = .);
     KEEP(*(.eh_frame))
     LONG (0);
+  }
+
+  .gcc_except_table :
+  {
+    *(.gcc_except_table)
   }
 
   .data :
@@ -116,13 +167,14 @@ SECTIONS
     _BSS_START_ = .;
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
+    _BSS_END_ = .;
     . = ALIGN(64 / 8);
   }
-  _BSS_END_ = .;
   . = ALIGN(64 / 8);
   _end = .;
 
   PROVIDE (end = .);
   PROVIDE (_ELF_END_ = .);
   PROVIDE (_LOAD_END_ = .);
+
 }

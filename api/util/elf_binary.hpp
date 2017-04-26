@@ -22,12 +22,28 @@
 #include <gsl/gsl>
 #include <stdexcept>
 
+
+struct Elf32 {
+  using Ehdr = Elf32_Ehdr;
+  using Shdr = Elf32_Shdr;
+  using Phdr = Elf32_Phdr;
+  using Addr = Elf32_Addr;
+};
+
+struct Elf64{
+  using Ehdr = Elf64_Ehdr;
+  using Shdr = Elf64_Shdr;
+  using Phdr = Elf64_Phdr;
+  using Addr = Elf64_Addr;
+};
+
+template <typename Arch>
 class Elf_binary {
 
 public:
 
   using Span = gsl::span<char>;
-  using Section_header = Elf32_Shdr;
+  using Section_header = typename Arch::Shdr;
   using Section_headers = gsl::span<Section_header>;
 
   Elf_binary(Span data)
@@ -36,15 +52,22 @@ public:
     validate();
   }
 
-  const Elf32_Ehdr& elf_header() const;
-  const Elf32_Phdr& program_header() const;
-  const Elf32_Shdr& section_header() const;
+  const typename Arch::Ehdr& elf_header() const;
+  const typename Arch::Phdr& program_header() const;
+  const typename Arch::Shdr& section_header() const;
 
-  /** Make sure this is a valid ELF binary **/
+  /** Make sure this is a valid ELF binary. Throws if not. **/
   void validate();
 
+  bool is_ELF();
+  bool is_executable();
+  bool is_bootable();
+
+  /** Print human-readable summary */
+  void print_summary();
+
   /** Program entry point **/
-  Elf32_Addr entry();
+  typename Arch::Addr entry();
 
   /** Get the span of seciton headers **/
   const Section_headers section_headers() const;
@@ -65,5 +88,8 @@ private:
 class Elf_exception : public std::runtime_error {
   using runtime_error::runtime_error;
 };
+
+// Implementation
+#include "elf_binary.inc"
 
 #endif

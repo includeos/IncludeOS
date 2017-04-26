@@ -22,11 +22,21 @@ extern int f1_data;
 extern int f2_data;
 extern int f3_data;
 extern int my_plugin_functions;
+extern bool example_plugin_registered;
+extern bool example_plugin_run;
+
 
 const lest::test specification[] =
   {
     {
-      CASE( "Make sure the plugin initialization functions were called" )
+      CASE("Make sure the external example plugin was registered and called")
+      {
+        EXPECT(example_plugin_registered);
+        EXPECT(example_plugin_run);
+      }
+    },
+    {
+      CASE( "Make sure the custom plugin initialization functions were called" )
       {
         EXPECT(f1_data == 0xf1);
         EXPECT(f2_data == 0xf2);
@@ -37,8 +47,10 @@ const lest::test specification[] =
   };
 
 
+
 void Service::start(const std::string&)
 {
+
   INFO("Plugin test", "Testing the plugin initialization");
 
   auto failed = lest::run(specification, {"-p"});

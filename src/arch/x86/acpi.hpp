@@ -25,6 +25,8 @@
 
 namespace x86 {
 
+  struct SDTHeader;
+
   class ACPI {
   public:
     struct LAPIC {
@@ -39,8 +41,8 @@ namespace x86 {
       uint8_t   length;
       uint8_t   id;
       uint8_t   reserved;
-      uintptr_t addr_base;
-      uintptr_t intr_base;
+      uint32_t  addr_base;
+      uint32_t  intr_base;
     };
     struct override_t {
       uint8_t   type;
@@ -80,11 +82,11 @@ namespace x86 {
     static void shutdown();
 
   private:
-    void discover();
-    bool checksum(const char*, size_t) const;
-    void begin(const void* addr);
+    void    discover();
+    uint8_t checksum(const char*, size_t) const noexcept;
+    void    begin(const void* addr);
 
-    void walk_sdts(const char* addr);
+    void walk_sdts(SDTHeader* addr);
     void walk_madt(const char* addr);
     void walk_facp(const char* addr);
 

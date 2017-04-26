@@ -21,9 +21,8 @@
 
 #include <net/dhcp/dh4client.hpp>
 #include <net/dhcp/message.hpp>
+#include <cstdlib>
 #include <debug>
-
-#include <random>
 
 namespace net {
 
@@ -40,15 +39,6 @@ namespace net {
       else
         MYINFO("Configuration complete (%s)", this->stack.ifname().c_str());
     });
-  }
-
-  auto generate_xid()
-  {
-    // create a random session ID
-    std::random_device rd;  // Will be used to obtain a seed for the random number engine
-    std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
-    std::uniform_int_distribution<> dis(std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max());
-    return dis(gen);
   }
 
   void DHClient::on_config(config_func handler)
@@ -77,7 +67,8 @@ namespace net {
     });
 
     // create a random session ID
-    this->xid = generate_xid();
+    this->xid  = (rand() & 0xffff);
+    this->xid |= (rand() & 0xffff) << 16;
 
     debug("Negotiating IP-address for %s (xid=%u)\n", stack.ifname().c_str(), xid);
 

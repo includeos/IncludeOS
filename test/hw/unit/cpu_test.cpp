@@ -17,7 +17,7 @@
 
 #include <common.cxx>
 
-#include <arch>
+#include <arch.hpp>
 
 CASE("CPU cycle counter")
 {

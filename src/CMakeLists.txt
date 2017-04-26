@@ -1,11 +1,13 @@
-set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
 enable_language(ASM_NASM)
 
-if ("${ARCH}" STREQUAL "")
-  set (ARCH "ARCH_X86")
-endif("${ARCH}" STREQUAL "")
+if ("${ARCH}" STREQUAL "i686")
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+else()
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+endif()
 
-add_definitions(-D${ARCH})
+add_definitions(-DARCH_${ARCH})
+add_definitions(-DARCH="${ARCH}")
 
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
@@ -20,7 +22,7 @@ include_directories(${BOTAN_DIR})
 add_custom_command(
 	OUTPUT apic_boot.o
 	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/arch/x86/apic_boot.asm
-	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 apic_boot.bin apic_boot.o
+	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf64-x86-64 apic_boot.bin apic_boot.o
 	DEPENDS arch/x86/apic_boot.asm
 )
 
@@ -32,12 +34,12 @@ set(OS_OBJECTS
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
-  kernel/profile.cpp kernel/profile_intr.asm kernel/softreset.cpp
+  kernel/fiber.cpp kernel/fiber_asm.asm
+  kernel/profile.cpp kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
-  util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp
-  util/os_statman.cpp util/sha1.cpp
+  util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
-  util/tar.cpp util/path_to_regex.cpp util/elf_binary.cpp
+  util/tar.cpp util/path_to_regex.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp hw/serial1.cpp
   hw/cmos.cpp hw/block_device.cpp hw/msi.cpp hw/pci_msi.cpp
@@ -60,24 +62,21 @@ set(OS_OBJECTS
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
-  posix/pwd.cpp
-  ### x86 arch ###
-  arch/x86/start.asm arch/x86/interrupts.asm
-  arch/x86/arch.cpp arch/x86/gdt.cpp arch/x86/gdt_asm.asm arch/x86/acpi.cpp
-  arch/x86/ioapic.cpp arch/x86/apic.cpp arch/x86/apic_timer.cpp
-  arch/x86/apic_asm.asm arch/x86/apic_revenant.cpp arch/x86/smp.cpp
-  arch/x86/pit.cpp arch/x86/cpu_freq_sampling.cpp arch/x86/pic.cpp
-)
+  posix/pwd.cpp )
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 add_dependencies(os PrecompiledLibraries botan)
 
-add_subdirectory(crt)
-add_subdirectory(boot)
+add_subdirectory(arch/${ARCH})
 add_subdirectory(drivers)
 add_subdirectory(plugins)
 
-install(TARGETS os DESTINATION includeos/lib)
+# add_dependencies(arch/${ARCH} PrecompiledLibraries)
+# add_dependencies(drivers PrecompiledLibraries)
+# add_dependencies(plugins PrecompiledLibraries)
+
+
+install(TARGETS os DESTINATION includeos/${ARCH}/lib)
 
 install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")

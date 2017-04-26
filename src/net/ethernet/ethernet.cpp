@@ -69,7 +69,7 @@ namespace net {
 
     do {
       // Demote to ethernet frame
-      next->increment_layer_begin(- sizeof(header));
+      next->increment_layer_begin(- (int)sizeof(header));
 
       auto& hdr = *reinterpret_cast<header*>(next->layer_begin());
 

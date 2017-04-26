@@ -6,7 +6,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 
 # Use toolchain (if needed)
-set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
 # Name of your project
 project (seed)
@@ -59,4 +59,4 @@ set(LIBRARIES
 
 
 # include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
