@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 2.8.9)
 
+add_definitions(-DARCH_${ARCH})
+add_definitions(-DARCH="${ARCH}")
+
 set(LIB_MANA ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${LIB_MANA}/include)
 include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)

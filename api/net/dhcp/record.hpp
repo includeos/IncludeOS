@@ -19,6 +19,10 @@
 #ifndef NET_DHCP_RECORD_HPP
 #define NET_DHCP_RECORD_HPP
 
+#include <cstdint>
+#include <vector>
+#include <net/ip4/addr.hpp>
+
 namespace net {
 namespace dhcp {
 
@@ -37,7 +41,7 @@ namespace dhcp {
 
     Record() {}
 
-    Record(const byte_seq& client_id, const IP4::addr& ip, Status status, int64_t lease_start, uint32_t lease_duration)
+    Record(const byte_seq& client_id, const ip4::Addr& ip, Status status, int64_t lease_start, uint32_t lease_duration)
     : client_id_{client_id}, ip_{ip}, status_{status}, lease_start_{lease_start}, lease_duration_{lease_duration} {}
 
     // Getters
@@ -45,7 +49,7 @@ namespace dhcp {
     const byte_seq& client_id() const noexcept
     { return client_id_; }
 
-    const IP4::addr& ip() const noexcept
+    const ip4::Addr& ip() const noexcept
     { return ip_; }
 
     const Status& status() const noexcept
@@ -62,7 +66,7 @@ namespace dhcp {
     void set_client_id(const byte_seq& client_id)
     { client_id_ = client_id; }
 
-    void set_ip(IP4::addr ip)
+    void set_ip(ip4::Addr ip)
     { ip_ = ip; }
 
     void set_status(Status status)
@@ -76,7 +80,7 @@ namespace dhcp {
 
   private:
     byte_seq client_id_;
-    IP4::addr ip_;
+    ip4::Addr ip_;
     Status status_;
     int64_t lease_start_;           // For now: RTC::now()
     uint32_t lease_duration_;
