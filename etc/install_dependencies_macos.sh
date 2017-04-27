@@ -15,6 +15,7 @@ INSTALLED_BREW_PACKAGES=0
 INSTALLED_PIP=0
 INSTALLED_PIP_PACKAGES=0
 INSTALLED_BINUTILS=0
+INSTALLED_SYMLINKING=0
 ALL_DEPENDENCIES="llvm38 nasm cmake jq qemu Caskroom/cask/tuntap"
 PIP_MODS="jsonschema psutil"
 
@@ -56,31 +57,49 @@ fi
 
 # Individual packages installed with brew
 if [ $INSTALLED_BREW -eq 1 ]; then
+	installed_packages=0
+	not_installed_packages=0
 	if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 		printf "%s\n" "     Brew installed packages"
 		printf "     %-15s %-20s %s \n"\
 			   "Status" "Package" "Version"\
 			   "------" "-------" "-------"
-		for package in $ALL_DEPENDENCIES; do
-			brew ls $package > /dev/null 2>&1
-			if [ $? -eq 0 ]; then
+	fi
+	for package in $ALL_DEPENDENCIES; do
+		brew ls $package > /dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			installed_packages=$((++installed_packages))
+			if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 				printf '     \e[32m%-15s\e[0m %-20s %s \n'\
 					"INSTALLED" $(brew ls --versions $package)
-			elif brew cask ls $package; then
+			fi
+		elif brew cask ls $package; then
+			installed_packages=$((++installed_packages))
+			if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 				printf '     \e[32m%-15s\e[0m %-20s %s \n'\
 					"INSTALLED" $(brew cask ls --versions $package)
-			else
+			fi
+		else
+			not_installed_packages=$((++not_installed_packages))
+			BREW_DEPENDENCIES_TO_INSTALL="$BREW_DEPENDENCIES_TO_INSTALL $package"
+			if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 				printf '     \e[31m%-15s\e[0m %-20s %s \n'\
 					"MISSING" $package
-				BREW_DEPENDENCIES_TO_INSTALL="$BREW_DEPENDENCIES_TO_INSTALL $package"
 			fi
-		done
-	fi
-	if [[ $CHECK_ONLY -eq 0 && ${#BREW_DEPENDENCIES_TO_INSTALL} -gt 1 ]]; then
-		echo ">>> Installing: $BREW_DEPENDENCIES_TO_INSTALL"
-		for formula in $BREW_DEPENDENCIES_TO_INSTALL; do
-			brew install $formula
-		done
+		fi
+	done
+	# If not all brew packages are installed they have to be installed
+	if [[ $not_installed_packages -gt 0 ]]; then
+		INSTALLED_BREW_PACKAGES=0 
+		if [[ $CHECK_ONLY -eq 0 ]]; then
+			echo ">>> Installing: $BREW_DEPENDENCIES_TO_INSTALL"
+			for formula in $BREW_DEPENDENCIES_TO_INSTALL; do
+				brew install $formula
+			done
+			INSTALLED_BREW_PACKAGES=1
+		fi
+	else
+		INSTALLED_BREW_PACKAGES=1
 	fi
 fi
 
@@ -109,26 +128,40 @@ fi
 
 # Individual packages installed with pip
 if [ $INSTALLED_PIP -eq 1 ]; then
+	installed_packages=0
+	not_installed_packages=0
 	if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 		printf "%s\n" "     pip installed packages"
 		printf "     %-15s %-20s %s \n"\
 			   "Status" "Package" "Version"\
 			   "------" "-------" "-------"
-		for package in $PIP_MODS; do
-			python -c "import $package"> /dev/null 2>&1
-			if [ $? -eq 0 ]; then
+	for package in $PIP_MODS; do
+		python -c "import $package"> /dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			installed_packages=$((++installed_packages))
+			if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 				printf '     \e[32m%-15s\e[0m %-20s %s \n'\
 					"INSTALLED" $(pip list 2> /dev/null | grep $package)
-			else
+			fi
+		else
+			not_installed_packages=$((++installed_packages))
+			PIP_MODS_TO_INSTALL="$PIP_MODS_TO_INSTALL $package"
+			if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 				printf '     \e[31m%-15s\e[0m %-20s %s \n'\
 					"MISSING" $package
-				PIP_MODS_TO_INSTALL="$PIP_MODS_TO_INSTALL $package"
 			fi
+		fi
 		done
 	fi
-	if [[ $CHECK_ONLY -eq 0 && ${#PIP_MODS_TO_INSTALL} -gt 1 ]]; then
-		echo ">>> Installing: $PIP_MODS"
-		sudo pip install ${PIP_MODS[*]}
+	if [[ $not_installed_packages -gt 0 ]]; then
+		INSTALLED_PIP_PACKAGES=0
+		if [[ $CHECK_ONLY -eq 0 ]]; then
+			echo ">>> Installing: $PIP_MODS"
+			sudo pip install ${PIP_MODS[*]}
+			INSTALLED_PIP_PACKAGES=1
+		fi
+	else
+		INSTALLED_PIP_PACKAGES=1
 	fi
 fi
 
@@ -138,7 +171,7 @@ fi
 ############################################################
 
 # Check if binutils is installed, if not it will be built and installed
-BINUTILS_BIN="$INCLUDEOS_PREFIX/bin/i686-elf-"
+BINUTILS_BIN="$INCLUDEOS_PREFIX/includeos/bin/i686-elf-"
 LD_INC=$BINUTILS_BIN"ld"
 AR_INC=$BINUTILS_BIN"ar"
 OBJCOPY_INC=$BINUTILS_BIN"objcopy"
@@ -165,36 +198,29 @@ fi
 # SYMLINK CROSSCOMPILE DEPENDENCIES:
 ############################################################
 
-echo -e "\n\n>>> Symlinking dependencies ..."
-mkdir -p $INCLUDEOS_BIN
+if [[ $INSTALLED_BREW_PACKAGES -eq 1 ]]; then
+	mkdir -p $INCLUDEOS_BIN
+	SRC_CC=$(which clang-3.8)
+	ln -sf $SRC_CC $INCLUDEOS_BIN/gcc
 
-SRC_CC=$(which clang-3.8)
-ln -sf $SRC_CC $INCLUDEOS_BIN/gcc
-echo -e ">> $SRC_CC > $INCLUDEOS_BIN/gcc"
+	SRC_CXX=$(which clang++-3.8)
+	ln -sf $SRC_CXX $INCLUDEOS_BIN/g++
 
-SRC_CXX=$(which clang++-3.8)
-ln -sf $SRC_CXX $INCLUDEOS_BIN/g++
-echo -e ">> $SRC_CXX > $INCLUDEOS_BIN/g++"
+	SRC_NASM=$(which nasm)
+	ln -sf $SRC_NASM $INCLUDEOS_BIN/nasm
+	INSTALLED_SYMLINKING=1
 
-SRC_BINUTILS="$INCLUDEOS_PREFIX/bin"
-ln -sf $SRC_BINUTILS/i686-elf-* $INCLUDEOS_BIN/
-echo -e ">> $SRC_BINUTILS/i686-elf-* > $INCLUDEOS_BIN/"
-
-SRC_NASM=$(which nasm)
-ln -sf $SRC_NASM $INCLUDEOS_BIN/nasm
-echo -e ">> $SRC_NASM > $INCLUDEOS_BIN/nasm"
-
-echo -e "\n>>> Done symlinking dependencies to $INCLUDEOS_BIN"
-
+	if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
+		echo -e "\n>>> Symlinking dependencies ..."
+		echo -e ">> $SRC_CC > $INCLUDEOS_BIN/gcc"
+		echo -e ">> $SRC_CXX > $INCLUDEOS_BIN/g++"
+		echo -e ">> $SRC_NASM > $INCLUDEOS_BIN/nasm"
+	fi
+fi
 
 ############################################################
 # EXIT:
 ############################################################
 
-
-
-echo -e Brew installed: $INSTALLED_BREW
-echo -e Brew dependencies installed: $INSTALLED_BREW
-echo -e Pip installed: $INSTALLED_PIP
-echo -e Pip installed: $INSTALLED_PIP
-echo -e Binutils installed: $INSTALLED_BINUTILS
+total_errors=$(( 5 - INSTALLED_BREW - INSTALLED_BREW_PACKAGES - INSTALLED_PIP - INSTALLED_PIP_PACKAGES - INSTALLED_BINUTILS ))
+exit $total_errors

@@ -7,8 +7,10 @@
 
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC:-"~/IncludeOS"}
+INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX/:-"/usr/local"}
 BUILD_DIR="/tmp/IncludeOS_build"
-INSTALL_DIR=${INCLUDEOS_PREFIX:-"/usr/local"}
+TMP_INSTALL_DIR="/tmp/IncludeOS_binutils_install"
+INSTALL_DIR=$INCLUDEOS_PREFIX/includeos/bin
 TARGET="i686-elf"
 VERSION=2.27
 BINUTILS="binutils-"$VERSION
@@ -38,21 +40,26 @@ fi
 pushd $BINUTILS
 
 # Configure & install
-mkdir -p $INSTALL_DIR
-echo -e "\n>> Configure for $TARGET to be installed in $INSTALL_DIR"
-./configure --program-prefix=$TARGET- --prefix=$INSTALL_DIR --target=$TARGET --enable-multilib --enable-ld=yes --disable-werror --enable-silent-rules
+mkdir -p $TMP_INSTALL_DIR
+echo -e "\n>> Configure for $TARGET to be installed in $TMP_INSTALL_DIR"
+./configure --program-prefix=$TARGET- --prefix=$TMP_INSTALL_DIR --target=$TARGET --enable-multilib --enable-ld=yes --disable-werror --enable-silent-rules
 
 echo -e "\n>> Start install"
 make -j4 V=0 --silent
 make install
 echo -e "\n>> Installation finished"
 
+# Copy binaries to proper location
+mkdir -p $INSTALL_DIR
+cp $TMP_INSTALL_DIR/bin/* $INSTALL_DIR
+
 # Clean up
 popd	# Out of $BINUTILS
 echo -e "\n>> Cleaning up installation ..."
-rm -rf $BINUTILS $TARBALL
+rm -rf $BINUTILS $TARBALL 
 popd	# Out of $BUILD_DIR
 rm -r $BUILD_DIR
+rm -r $TMP_INSTALL_DIR
 
 echo -e "\n>>> Done installing $BINUTILS in $INSTALL_DIR"
 echo -e "# Available from the following paths:"
