@@ -45,7 +45,8 @@ option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "Strip symbols to further reduce size" OFF)
 
-add_definitions(-D${ARCH})
+add_definitions(-DARCH_${ARCH})
+add_definitions(-DARCH="${ARCH}")
 
 # Compiler optimization
 set(OPTIMIZE "-O2")
