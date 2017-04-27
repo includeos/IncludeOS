@@ -52,6 +52,7 @@ if brew help > /dev/null 2>&1; then
 else
 	if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 		printf "%s\n" "Brew -> MISSING Visit http://brew.sh/ for how-to install. Aborting"
+		exit 1
 	fi
 fi
 
@@ -73,7 +74,7 @@ if [ $INSTALLED_BREW -eq 1 ]; then
 				printf '     \e[32m%-15s\e[0m %-20s %s \n'\
 					"INSTALLED" $(brew ls --versions $package)
 			fi
-		elif brew cask ls $package; then
+		elif brew cask ls $package > /dev/null 2>&1; then
 			installed_packages=$((++installed_packages))
 			if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 				printf '     \e[32m%-15s\e[0m %-20s %s \n'\
@@ -144,7 +145,7 @@ if [ $INSTALLED_PIP -eq 1 ]; then
 					"INSTALLED" $(pip list 2> /dev/null | grep $package)
 			fi
 		else
-			not_installed_packages=$((++installed_packages))
+			not_installed_packages=$((++not_installed_packages))
 			PIP_MODS_TO_INSTALL="$PIP_MODS_TO_INSTALL $package"
 			if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 				printf '     \e[31m%-15s\e[0m %-20s %s \n'\
@@ -156,8 +157,8 @@ if [ $INSTALLED_PIP -eq 1 ]; then
 	if [[ $not_installed_packages -gt 0 ]]; then
 		INSTALLED_PIP_PACKAGES=0
 		if [[ $CHECK_ONLY -eq 0 ]]; then
-			echo ">>> Installing: $PIP_MODS"
-			sudo pip install ${PIP_MODS[*]}
+			echo ">>> Installing: $PIP_MODS_TO_INSTALL"
+			sudo pip install ${PIP_MODS_TO_INSTALL[*]}
 			INSTALLED_PIP_PACKAGES=1
 		fi
 	else
