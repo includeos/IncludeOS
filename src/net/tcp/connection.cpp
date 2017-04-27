@@ -906,7 +906,7 @@ void Connection::parse_options(const Packet& packet) {
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
         packet.offset(), packet.tcp_options_length());
 
-  auto* opt = packet.tcp_options();
+  const uint8_t* opt = packet.tcp_options();
 
   while((Byte*)opt < packet.tcp_data()) {
 
@@ -983,7 +983,8 @@ void Connection::parse_options(const Packet& packet) {
     }
 
     default:
-      return;
+      opt += option->length;
+      break;
     }
   }
 }

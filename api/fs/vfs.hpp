@@ -27,6 +27,7 @@
 #include <memory>
 #include <stdexcept>
 #include <typeinfo>
+#include <iostream>
 
 // Demangle
 extern "C" char* __cxa_demangle(const char* mangled_name,

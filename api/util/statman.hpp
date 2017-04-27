@@ -23,18 +23,15 @@
 #include <cstddef>
 #include <string>
 
-///
-/// This type is thrown when Statman's span is full
-///
+/** This type is thrown when Statman's span is full */
 struct Stats_out_of_memory : public std::out_of_range {
   explicit Stats_out_of_memory()
     : std::out_of_range(std::string{"Statman has no room for more statistics"})
     {}
 }; //< struct Stats_out_of_memory
 
-///
-/// This type is thrown from within the operations of class Statman
-///
+
+/** This type is thrown from within the operations of class Statman */
 struct Stats_exception : public std::runtime_error {
   using runtime_error::runtime_error;
 }; //< struct Stats_exception
@@ -148,16 +145,6 @@ public:
   ///
   ///
   ///
-  Statman(const uintptr_t start, const Size_type num_bytes);
-
-  ///
-  ///
-  ///
-  ~Statman() = default;
-
-  ///
-  ///
-  ///
   Stat& operator[](const int i)
   { return stats_[i]; }
 
@@ -197,21 +184,25 @@ public:
   bool full() const noexcept
   { return next_available_ == stats_.size(); }
 
-  /**
-   * Returns an iterator to the last used (or filled in) element
-   * in the span stats_
-   */
-  Span_iterator last_used();
-
   ///
   ///
   ///
   auto begin() noexcept
   { return stats_.begin(); }
 
-  ///
-  ///
-  ///
+  /**
+   *  Returns an iterator to the last element (Stat)
+   *  in the span stats_
+   */
+  Span_iterator last_used() {
+    Expects(next_available_ <= stats_.size());
+    return Span_iterator(&stats_, next_available_);
+  }
+
+  /**
+   *  Returns an iterator to the end of the span stats_ regardless
+   *  of the span begin full or not
+   */
   auto end() noexcept
   { return stats_.end(); }
 
@@ -221,11 +212,21 @@ public:
   auto cbegin() const noexcept
   { return stats_.cbegin(); }
 
-  ///
-  ///
-  ///
+  /**
+   *  Returns a const iterator to the last element (Stat)
+   *  in the span stats_
+   */
+  Span_citerator clast_used() {
+    Expects(next_available_ <= stats_.size());
+    return Span_citerator(&stats_, next_available_);
+  }
+
+  /**
+   *  Returns a const iterator to the end of the span stats_ regardless
+   *  of the span begin full or not
+   */
   auto cend() const noexcept
-  { return Span_citerator(&stats_, next_available_); }
+  { return stats_.cend(); }
 
   ///
   ///
@@ -236,6 +237,17 @@ public:
   ///
   ///
   Stat& get(const std::string& name);
+
+  void init(const uintptr_t location, const Size_type size);
+
+  Statman() {}
+  Statman(const uintptr_t location, const Size_type size)
+  {
+    init(location, size);
+  }
+
+  ~Statman() = default;
+
 private:
   Span      stats_;
   int       next_available_ {0};

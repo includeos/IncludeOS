@@ -20,10 +20,15 @@
 
 #include <deque>
 #include <map>
+#include <cstring>
+#include <unordered_map>
+
 #include "../inet.hpp"
 #include "ip4.hpp"
-#include <cstring>
 #include <net/packet.hpp>
+#include <net/socket.hpp>
+#include <util/timer.hpp>
+#include <rtc>
 
 namespace net {
 
@@ -38,24 +43,22 @@ namespace net {
 
     using Packet_ptr    = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
     using Stack         = IP4::Stack;
-    using Error_type    = Inet<IP4>::Error_type;
-    using Error_code    = Inet<IP4>::Error_code;
 
     typedef delegate<void()> sendto_handler;
+    typedef delegate<void(Error&)> error_handler;
 
     // write buffer for sendq
     struct WriteBuffer
     {
       WriteBuffer(
-                  const uint8_t* data, size_t length, sendto_handler cb,
+                  const uint8_t* data, size_t length, sendto_handler cb, error_handler ecb,
                   UDP& udp, addr_t LA, port_t LP, addr_t DA, port_t DP);
 
-      int remaining() const {
-        return len - offset;
-      }
-      bool done() const {
-        return offset == len;
-      }
+      int remaining() const
+      { return len - offset; }
+
+      bool done() const
+      { return offset == len; }
 
       size_t packets_needed() const;
       void write();
@@ -65,7 +68,9 @@ namespace net {
       size_t len;
       size_t offset;
       // the callback for when this buffer is written
-      sendto_handler callback;
+      sendto_handler send_callback;
+      // the callback for when this receives an error
+      error_handler error_callback;
       // the UDP stack
       UDP& udp;
 
@@ -75,7 +80,7 @@ namespace net {
       // destination address and port
       port_t d_port;
       addr_t d_addr;
-    };
+    }; // < struct WriteBuffer
 
     /** UDP header */
     struct header {
@@ -97,8 +102,11 @@ namespace net {
     void set_network_out(downstream del)
     { network_layer_out_ = del; }
 
-    void error_report(Error_type type, Error_code code,
-      IP4::addr src_addr, port_t src_port, IP4::addr dest_addr, port_t dest_port);
+    /**
+     *  Is called when an Error has occurred in the OS
+     *  F.ex.: An ICMP error message has been received in response to a sent UDP datagram
+    */
+    void error_report(Error& err, Socket dest);
 
     /** Send UDP datagram from source ip/port to destination ip/port.
 
@@ -123,12 +131,13 @@ namespace net {
     UDP(Stack& inet);
 
     Stack& stack()
-    {
-      return stack_;
-    }
+    { return stack_; }
 
     // send as much as possible from sendq
     void flush();
+
+    /** Flush expired error entries (in error_callbacks_) when flush_timer_ has timed out */
+    void flush_expired();
 
     // create and transmit @num packets from sendq
     void process_sendq(size_t num);
@@ -141,27 +150,52 @@ namespace net {
     public:
       Port_in_use_exception(UDP::port_t p)
         : port_(p) {}
-      virtual const char* what() const noexcept {
-        return "UDP port already in use";
-      }
 
-      UDP::port_t port(){
-        return port_;
-      }
+      virtual const char* what() const noexcept
+      { return "UDP port already in use"; }
+
+      UDP::port_t port()
+      { return port_; }
 
     private:
       UDP::port_t port_;
     };
 
   private:
+    static constexpr uint16_t exp_t_ {60 * 5};
 
-    downstream  network_layer_out_;
-    Stack&      stack_;
+    std::chrono::minutes        flush_interval_{5};
+    downstream                  network_layer_out_;
+    Stack&                      stack_;
     std::map<port_t, UDPSocket> ports_;
-    port_t      current_port_;
+    port_t                      current_port_;
 
     // the async send queue
     std::deque<WriteBuffer> sendq;
+
+    /** Error entries are just error callbacks and timestamps */
+    class Error_entry {
+    public:
+      Error_entry(UDP::error_handler cb) noexcept
+      : callback(std::move(cb)), timestamp(RTC::time_since_boot())
+      {}
+
+      bool expired() noexcept
+      { return timestamp + exp_t_ < RTC::time_since_boot(); }
+
+      UDP::error_handler callback;
+
+    private:
+      RTC::timestamp_t timestamp;
+
+    }; //< class Error_entry
+
+    /** The error callbacks that the user has sent in via the UDPSockets' sendto and bcast methods */
+    std::unordered_map<Socket, Error_entry, Socket::pair_hash> error_callbacks_;
+
+    /** Timer that flushes expired error entries/callbacks (no errors have occurred) */
+    Timer flush_timer_{{ *this, &UDP::flush_expired }};
+
     friend class net::UDPSocket;
   }; //< class UDP
 

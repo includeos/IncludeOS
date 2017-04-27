@@ -21,7 +21,8 @@
 #include <net/tcp/listener.hpp>
 #include <net/tcp/tcp.hpp>
 
-using namespace net::tcp;
+using namespace net;
+using namespace tcp;
 
 Listener::Listener(TCP& host, Socket local, ConnectCallback cb)
   : host_(host), local_(local), syn_queue_(),
@@ -63,7 +64,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
   else
   {
     // don't waste time if the packet does not have SYN
-    if(UNLIKELY(not packet->isset(SYN)))
+    if(UNLIKELY(not packet->isset(SYN) or packet->has_tcp_data()))
     {
       host_.send_reset(*packet);
       return;

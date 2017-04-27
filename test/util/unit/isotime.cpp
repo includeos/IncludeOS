@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <statman>
+#include <common.cxx>
+#include <isotime>
 
-Statman& Statman::get() {
-    static Statman statman_{0x8000, 8192};
-    return statman_;
+CASE("A timestamp can be converted into a ISO UTC datetime string")
+{
+  uint64_t beginning = 0;
+  auto str = isotime::to_datetime_string(beginning);
+
+  EXPECT(str == "1970-01-01T00:00:00Z");
+
+  uint64_t one_minute_later = 60;
+  str = isotime::to_datetime_string(one_minute_later);
+
+  EXPECT(str == "1970-01-01T00:01:00Z");
+
+  uint64_t five_hours_later = 3600*5;
+  str = isotime::to_datetime_string(five_hours_later);
+
+  EXPECT(str == "1970-01-01T05:00:00Z");
+
+  // Not gonna bother more due to leap seconds and calendars etc...
 }

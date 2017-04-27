@@ -21,10 +21,10 @@
 
 #include <net/ip4/packet_ip4.hpp> // PacketIP4
 #include <net/util.hpp> // byte ordering helpers
+#include <net/socket.hpp>
 
 #include "common.hpp" // constants, seq_t
 #include "headers.hpp"
-#include "socket.hpp"
 
 #include <sstream> // ostringstream
 

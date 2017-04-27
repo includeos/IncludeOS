@@ -23,10 +23,10 @@
 #include "packet.hpp"
 #include "read_request.hpp"
 #include "rttm.hpp"
-#include "socket.hpp"
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
 
+#include <net/socket.hpp>
 #include <delegate>
 #include <util/timer.hpp>
 #include <net/stream.hpp>
@@ -321,7 +321,7 @@ public:
      *
      * @return     A TCP Socket
      */
-    tcp::Socket local() const override
+    Socket local() const override
     { return tcp->local(); }
 
     /**
@@ -329,7 +329,7 @@ public:
      *
      * @return     A TCP Socket
      */
-    tcp::Socket remote() const override
+    Socket remote() const override
     { return tcp->remote(); }
 
     /**
@@ -1029,14 +1029,13 @@ private:
   static seq_t generate_iss();
 
   /*
-
     SND.UNA + SND.WND - SND.NXT
     SND.UNA + WINDOW - SND.NXT
   */
   uint32_t usable_window() const noexcept
   {
     const auto x = (int64_t)send_window() - (int64_t)flight_size();
-    return (uint32_t) std::max(0ll, x);
+    return (uint32_t) std::max((decltype(x)) 0, x);
   }
 
   uint32_t send_window() const noexcept

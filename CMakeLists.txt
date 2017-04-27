@@ -2,20 +2,29 @@ cmake_minimum_required(VERSION 2.8.9)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
-set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/i686-elf-toolchain.cmake)
+# Target CPU Architecture
+set(ARCH x86_64)
+if(DEFINED ENV{ARCH})
+  set(ARCH $ENV{ARCH})
+endif()
+message(STATUS "Target CPU architecture ${ARCH}")
 
-project (includeos)
+set(TRIPLE "${ARCH}-pc-linux-elf")
+set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
+set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
+
+message(STATUS "Target triple ${TRIPLE}")
+
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
+
+project (includeos C CXX)
 
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
 set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
 set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 
-# test compiler
-if(CMAKE_COMPILER_IS_GNUCC)
-	# currently gcc is not supported due to problems cross-compiling a unikernel
-	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-#	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
-endif(CMAKE_COMPILER_IS_GNUCC)
+# C++ version
+set(CMAKE_CXX_STANDARD 14)
 
 # create OS version string from git describe (used in CXX flags)
 execute_process(COMMAND git describe --dirty
@@ -45,7 +54,7 @@ set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_P
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
 set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE")
 
-set(WARNS "-Wall -Wextra") #-pedantic
+set(WARNS "-Wall -Wextra -Wno-expansion-to-defined")
 
 # configure options
 option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
@@ -94,12 +103,12 @@ set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 endif()
 
 # either download or cross-compile needed libraries
@@ -180,8 +189,9 @@ endif(rapidjson)
 #
 
 # Install cmake files
-install(FILES etc/service.cmake DESTINATION includeos)
-install(FILES etc/library.cmake DESTINATION includeos)
+install(FILES cmake/pre.service.cmake DESTINATION includeos)
+install(FILES cmake/post.service.cmake DESTINATION includeos)
+install(FILES cmake/library.cmake DESTINATION includeos)
 install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION includeos RENAME settings.cmake) # cpu_feat_vanilla opt
 
 # Install vmrunner
@@ -189,7 +199,7 @@ install(DIRECTORY vmrunner DESTINATION includeos)
 install(FILES vmrunner/${DEFAULT_VM} DESTINATION includeos/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
 
 # Install toolchain
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${ARCH}-elf-toolchain.cmake DESTINATION includeos)
 
 # Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)

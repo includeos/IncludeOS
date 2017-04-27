@@ -97,7 +97,7 @@ namespace http {
         cb{move(cb)},
         opt{move(options)}
       ]
-        (net::ip4::Addr ip)
+        (net::ip4::Addr ip, net::Error&)
       {
         // Host resolved
         if (ip != 0)
@@ -149,7 +149,7 @@ namespace http {
         data{move(data)},
         cb{move(cb)},
         opt{move(options)}
-      ] (auto ip)
+      ] (auto ip, net::Error&)
       {
         // Host resolved
         if(ip != 0)

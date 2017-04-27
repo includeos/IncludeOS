@@ -24,7 +24,7 @@ USE16
 %define _mode32_code_segment 0x08
 %define _mode32_data_segment 0x10
 
-%define _kernel_loc   0x100000
+%define _kernel_loc   0xA00000
 %define _kernel_stack 0xA0000
 
 ;; We don't really need a stack, except for calls
@@ -42,11 +42,12 @@ _start:
 
 ;;; The size of the service on disk, to be loaded at boot. (Convenient to
 ;;; have it at the beginning, so it remains at a fixed location. )
+ALIGN 4
 srv_size:
 	dd 0
-
 srv_offs:
 	dd 0
+
 ;;; Actual start
 boot:
 	;; Need to set data segment, to access strings
@@ -71,9 +72,9 @@ boot:
 
 
   ; check that it was enabled
-	test al,0
+	test al, 0
 	jz .a20_ok
-	;; NOT OK
+	; NOT OK
 	mov esi,str_a20_fail
 	call printstr
 	cli
@@ -82,14 +83,13 @@ boot:
 	call protected_mode
 
 protected_mode:
-	;xchg bx,bx
 	cli
 	;; Load global descriptor table register
 	lgdt [gdtr] ;;Bochs seems to allready have one
 	;; Set the 2n'd bit in cr0
-	mov eax,cr0
-	or al,1
-	mov cr0,eax
+	mov eax, cr0
+	or   al, 1
+	mov cr0, eax
 	jmp _mode32_code_segment:mode32+(_boot_segment<<4)
 
 fill_screen:
@@ -136,7 +136,7 @@ color:
 	dw 0x0d
 
 USE32
-ALIGN 32
+ALIGN 4
 ;; Global descriptor table
 gdtr:
 	dw gdt32_end -gdt32 -1
@@ -162,7 +162,7 @@ gdt32_end:
 
 ;;; 32-bit code
 USE32
-ALIGN 32
+ALIGN 4
 mode32:
 	;; Set up 32-bit data segment
 	mov eax,_mode32_data_segment

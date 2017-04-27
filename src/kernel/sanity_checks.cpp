@@ -31,6 +31,13 @@ extern char _RODATA_START_;
 extern char _RODATA_END_;
 const auto* LOW_CHECK_SIZE = (volatile int*) 0x200;
 
+// Global constructors
+static int gconstr_value = 0;
+__attribute__((constructor))
+static void self_test_gconstr() {
+  gconstr_value = 1;
+}
+
 static uint32_t generate_ro_crc() noexcept
 {
   uint32_t crc = CRC32_BEGIN();
@@ -67,4 +74,11 @@ void kernel_sanity_checks()
   bool symbols_verified = Elf::verify_symbols();
   if (!symbols_verified)
     panic("Sanity checks: Consistency of Elf symbols and string areas");
+
+  // global constructor self-test
+  if (gconstr_value != 1) {
+    kprintf("Sanity checks: Global constructors not working (or modified during run-time)!\n");
+    panic("Sanity checks: Global constructors verification failed");
+  }
+
 }

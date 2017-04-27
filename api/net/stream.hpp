@@ -23,7 +23,7 @@
 #include <cstddef>
 #include <delegate>
 #include <util/chunk.hpp>
-#include "tcp/socket.hpp"
+#include <net/socket.hpp>
 
 namespace net {
   class Stream;
@@ -123,14 +123,14 @@ namespace net {
      *
      * @return     A TCP Socket
      */
-    virtual tcp::Socket local() const = 0;
+    virtual Socket local() const = 0;
 
     /**
      * @brief      Returns the streams remote socket.
      *
      * @return     A TCP Socket
      */
-    virtual tcp::Socket remote() const = 0;
+    virtual Socket remote() const = 0;
 
     /**
      * @brief      Returns the local port.

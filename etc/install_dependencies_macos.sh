@@ -172,7 +172,7 @@ fi
 ############################################################
 
 # Check if binutils is installed, if not it will be built and installed
-BINUTILS_BIN="$INCLUDEOS_PREFIX/includeos/bin/i686-elf-"
+BINUTILS_BIN="$INCLUDEOS_PREFIX/includeos/bin/$ARCH-elf-"
 LD_INC=$BINUTILS_BIN"ld"
 AR_INC=$BINUTILS_BIN"ar"
 OBJCOPY_INC=$BINUTILS_BIN"objcopy"

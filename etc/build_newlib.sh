@@ -25,20 +25,28 @@ fi
 
 # Configure
 echo -e "\n\n >>> Configuring newlib \n"
-mkdir -p build_newlib
-pushd build_newlib
+
+if [ -d build_newlib ]; then
+  echo -e "\n\n >>> Cleaning previous build \n"
+  cd build_newlib
+  rm ./config.cache || true
+  make distclean || true
+else
+  mkdir -p build_newlib
+  cd build_newlib
+fi
 
 ../newlib-$newlib_version/configure \
 	--target=$TARGET \
 	--prefix=$TEMP_INSTALL_DIR \
-	--enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib \
+  AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib \
+	--enable-newlib-io-long-long \
+  --enable-newlib-io-c99-formats \
+  --enable-newlib-io-pos-args \
   --enable-newlib-hw-fp \
-  --enable-newlib-mb \
-  --enable-newlib-iconv \
-  --enable-newlib-iconv-encodings=utf-16,utf-8,ucs_2 \
   --disable-libgloss \
   --disable-multilib \
-  --enable-newlib-multithread \
+  --disable-newlib-multithread \
   --disable-newlib-supplied-syscalls
 
 echo -e "\n\n >>> BUILDING NEWLIB \n\n"
@@ -47,7 +55,6 @@ make $num_jobs all
 # Install
 make install
 
-popd # build_newlib
 popd # BUILD_DIR
 
 trap - EXIT

@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//#undef NO_DEBUG
 #define DEBUG // Allow debugging
 #define DEBUG2 // Allow debug lvl 2
 
@@ -36,22 +37,21 @@ namespace net {
   stack_            {inet},
   upstream_filter_  {this, &IP4::filter_upstream},
   downstream_filter_{this, &IP4::filter_downstream}
- { }
+  {}
 
 
   IP4::IP_packet_ptr IP4::drop(IP_packet_ptr ptr, Direction direction, Drop_reason reason) {
-      packets_dropped_++;
+    packets_dropped_++;
 
-      if(drop_handler_)
-        drop_handler_(std::move(ptr), direction, reason);
+    if(drop_handler_)
+      drop_handler_(std::move(ptr), direction, reason);
 
-      return nullptr;
-    }
+    return nullptr;
+  }
 
 
   IP4::IP_packet_ptr IP4::filter_upstream(IP4::IP_packet_ptr packet)
   {
-
     IP4::Direction up = IP4::Direction::Upstream;
 
     // RFC-1122 3.2.1.1, Silently discard Version != 4
@@ -63,18 +63,18 @@ namespace net {
       return drop(std::move(packet), up, Drop_reason::Wrong_checksum);
 
     // RFC-1122 3.2.1.3, Silently discard datagram with bad src addr
-    if (UNLIKELY(packet->ip_src().is_illegal_src()))
+    // Here dropping if the source ip address is a multicast address or is this interface's broadcast address
+    if (UNLIKELY(packet->ip_src().is_multicast() or packet->ip_src() == IP4::ADDR_BCAST or
+      packet->ip_src() == stack_.broadcast_addr())) {
       return drop(std::move(packet), up, Drop_reason::Bad_source);
-
+    }
 
     return packet;
-
-  };
+  }
 
 
   IP4::IP_packet_ptr IP4::filter_downstream(IP4::IP_packet_ptr packet)
   {
-
     // RFC-1122 3.2.1.7, MUST NOT send packet with TTL of 0
     if (packet->ip_ttl() == 0)
       return drop(std::move(packet), Direction::Downstream, Drop_reason::TTL0);
@@ -96,7 +96,7 @@ namespace net {
     debug2("\t* Source IP: %s Dest.IP: %s Type: 0x%x\n",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
-           packet->ip_protocol());
+           (int) packet->ip_protocol());
 
 
     // Stat increment packets received
@@ -199,10 +199,9 @@ namespace net {
     // Stat increment packets transmitted
     packets_tx_++;
 
-    debug("<IP4> Transmitting packet, layer begin: buf + %i\n", ip4_pckt->layer_begin() - ip4_pckt->buf());
+    debug("<IP4> Transmitting packet, layer begin: buf + %li\n", ip4_pckt->layer_begin() - ip4_pckt->buf());
 
     linklayer_out_(std::move(ip4_pckt), next_hop);
   }
-
 
 } //< namespace net

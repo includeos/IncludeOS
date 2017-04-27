@@ -45,16 +45,19 @@ std::map<net::Protocol, int> pass_count {
 
 void ip_rcv_udp(net::Packet_ptr) {
   MYINFO("UDP got packet from IP");
+
   pass_count[net::Protocol::UDP]++;
 }
 
 void ip_rcv_tcp(net::Packet_ptr) {
   MYINFO("TCP got packet from IP");
+
   pass_count[net::Protocol::TCP]++;
 }
 
 void ip_rcv_icmp(net::Packet_ptr) {
   MYINFO("ICMP got packet from IP");
+
   pass_count[net::Protocol::ICMPv4]++;
 }
 
@@ -166,7 +169,7 @@ CASE("IP4 is still a thing")
       EXPECT_DROP(std::move(ip_pckt), Direction::Upstream, Drop_reason::Bad_source);
 
       ip_pckt = inet.create_ip_packet(Protocol::UDP);
-      ip_pckt->set_ip_src({0,0,0,255});
+      ip_pckt->set_ip_src(inet.broadcast_addr());
       ip_pckt->make_flight_ready();
 
       EXPECT_DROP(std::move(ip_pckt), Direction::Upstream, Drop_reason::Bad_source);
@@ -183,8 +186,27 @@ CASE("IP4 is still a thing")
 
       EXPECT_DROP(std::move(ip_pckt), Direction::Upstream, Drop_reason::Bad_source);
 
+      // Corner case source from multicast address gets dropped
+      ip_pckt = inet.create_ip_packet(Protocol::UDP);
+      ip_pckt->set_ip_src({239,255,255,255});
+      ip_pckt->make_flight_ready();
+
+      EXPECT_DROP(std::move(ip_pckt), Direction::Upstream, Drop_reason::Bad_source);
 
       MYINFO("Section %i done", ++sections);
+    }
+
+
+    //
+    // Packet with unknown protocol gets dropped
+    //
+
+
+    SECTION("IP packet with invalid protocol gets dropped"){
+      auto ip_pckt = inet.create_ip_packet((Protocol) 16);  // CHAOS
+      ip_pckt->set_ip_src({10,0,0,45});
+      ip_pckt->make_flight_ready();
+      EXPECT_DROP(std::move(ip_pckt), Direction::Upstream, Drop_reason::Unknown_proto);
     }
 
 
@@ -199,7 +221,6 @@ CASE("IP4 is still a thing")
       auto ip_pckt = inet.create_ip_packet(Protocol::UDP);
       ip_pckt->make_flight_ready();
       EXPECT_PASS(std::move(ip_pckt), Protocol::UDP);
-
     }
 
     SECTION("Valid TCP packets gets passed on"){

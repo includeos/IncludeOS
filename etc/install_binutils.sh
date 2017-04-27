@@ -6,13 +6,14 @@
 # 4. Cleans up tarball
 
 
-INCLUDEOS_SRC=${INCLUDEOS_SRC:-"~/IncludeOS"}
-INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX/:-"/usr/local"}
-BUILD_DIR="/tmp/IncludeOS_build"
+export INCLUDEOS_SRC=${INCLUDEOS_SRC:-"~/IncludeOS"}
+export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX/:-"/usr/local"}
+export BUILD_DIR="/tmp/IncludeOS_build"
 TMP_INSTALL_DIR="/tmp/IncludeOS_binutils_install"
 INSTALL_DIR=$INCLUDEOS_PREFIX/includeos/bin
-TARGET="i686-elf"
-VERSION=2.27
+export ARCH=${ARCH:-x86_64} # CPU architecture. Alternatively i686
+export TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
+VERSION=2.28
 BINUTILS="binutils-"$VERSION
 TARBALL=$BINUTILS".tar.gz"
 

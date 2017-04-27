@@ -10,6 +10,8 @@ export INCLUDEOS_SRC=${INCLUDEOS_SRC:-`pwd`}
 export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
 # Enable compilation of tests in cmake (default: OFF)
 export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST-OFF}
+# Set CPU-architecture (default x86_64)
+export ARCH=${ARCH-x86_64}
 
 ############################################################
 # COMMAND LINE PROPERTIES:
@@ -159,6 +161,7 @@ printf "    %-25s %-25s %s\n"\
 	   "------------" "-----------" "-----"\
 	   "INCLUDEOS_SRC" "Source dir of IncludeOS" "$INCLUDEOS_SRC"\
 	   "INCLUDEOS_PREFIX" "Install location" "$INCLUDEOS_PREFIX"\
+	   "ARCH" "CPU Architecture" "$ARCH"\
 	   "INCLUDEOS_ENABLE_TEST" "Enable test compilation" "$INCLUDEOS_ENABLE_TEST"
 
 # Give user option to evaluate install options

@@ -178,6 +178,20 @@ public:
   /// Set the content of the buffer holding intermediate information
   ///
   void set_private_field(const char* base, const size_t length) noexcept;
+
+  /**
+   * @brief      Whether the headers are complete or not.
+   *
+   * @return     True if complete, False if not
+   */
+  inline bool headers_complete() const noexcept;
+
+  /**
+   * @brief      Sets the status whether the headers are complete or not
+   *
+   * @param[in]  complete  Indicates if complete
+   */
+  inline void set_headers_complete(const bool complete) noexcept;
 private:
   ///
   /// Class data members
@@ -185,6 +199,7 @@ private:
   Header       header_fields_;
   Message_body message_body_;
   util::sview  field_;
+  bool         headers_complete_;
 }; //< class Message
 
 /**--v----------- Helper Functions -----------v--**/
@@ -204,6 +219,15 @@ inline size_t Message::content_length() const {
 inline bool Message::set_content_length(const size_t len) {
   return header_fields_.set_content_length(len);
 }
+
+inline void Message::set_headers_complete(const bool complete) noexcept {
+  headers_complete_ = complete;
+}
+
+inline bool Message::headers_complete() const noexcept {
+  return headers_complete_;
+}
+
 /**--^-------- Inline Implementations --------^--**/
 
 } //< namespace http

@@ -50,6 +50,7 @@ static void riegfjeriugfjreiougf()
     auto res = reinterpret_cast<Response*>(parser->data);
     res->set_version(Version{parser->http_major, parser->http_minor});
     res->set_status_code(static_cast<status_t>(parser->status_code));
+    res->set_headers_complete(true);
     return 0;
   };
 };

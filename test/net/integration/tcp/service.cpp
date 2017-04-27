@@ -77,7 +77,7 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
   // This needs correct setup to work
   INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
   Inet4::stack<0>().resolve(address.first,
-    [port](auto ip_address) {
+    [port](auto ip_address, Error&) {
       CHECK(ip_address != 0, "Resolved host");
 
       if(ip_address != 0)
@@ -97,7 +97,7 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 /*
   TEST: Outgoing Connection to Host
 */
-void OUTGOING_TEST(tcp::Socket outgoing) {
+void OUTGOING_TEST(Socket outgoing) {
   INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
   Inet4::stack<0>().tcp().connect(outgoing, [](tcp::Connection_ptr conn)
   {

@@ -323,15 +323,11 @@ struct Addr {
   { return part(3) == 127; }
 
   /**
-   * Determine if an address is a-priori illegal as source address in *all* cases.
-   *
-   * @note: The class E range 240/4 for "future use" is not illegal here
-   * @note: RFC-1122 prohibits 0.0.0.0 as source, but with exceptions
+   * @note: The class E range 240/4 for "future use" is not included here
+   * RFC-5771 defining multicast address range from 224.0.0.0 to 239.255.255.255
    */
-  bool is_illegal_src() const noexcept {
-    return (part(3) >= 224 and part(3) < 240) // Multicast
-      or (part(0) == 255); // Limited and directed broadcast
-  }
+  bool is_multicast() const noexcept
+  { return part(3) >= 224 and part(3) < 240; }
 
   /* Data member */
   uint32_t whole;

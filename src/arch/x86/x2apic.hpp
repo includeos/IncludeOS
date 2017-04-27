@@ -71,7 +71,7 @@ namespace x86 {
       // verify that x2APIC is online
       uint64_t verify = CPU::read_msr(IA32_APIC_BASE_MSR);
       assert(verify & MSR_ENABLE_X2APIC);
-      INFO2("APIC id: %x  ver: %x\n", get_id(), version());
+      INFO2("APIC id: %x  ver: %x", get_id(), version());
     }
 
     uint32_t read(uint32_t reg) noexcept override
@@ -150,21 +150,21 @@ namespace x86 {
     }
     uint8_t get_isr() noexcept override
     {
-      for (int i = 8; i >= 0; i--) {
+      for (int i = 5; i >= 0; i--) {
         uint32_t reg = read(x2APIC_ISR + i);
         if (reg) return 32 * i + __builtin_ffs(reg) - 1;
       }
-      return 255;
+      return 159;
     }
     uint8_t get_irr() noexcept override
     {
-      for (int i = 8; i >= 0; i--) {
+      for (int i = 5; i >= 0; i--) {
         uint32_t reg = read(x2APIC_IRR + i);
         if (reg) return 32 * i + __builtin_ffs(reg) - 1;
       }
-      return 255;
+      return 159;
     }
-    
+
     void ap_init(int id) noexcept override
     {
       writel(x2APIC_ICR, id,
@@ -193,7 +193,7 @@ namespace x86 {
     void bcast_ipi(uint8_t vector) noexcept override
     {
       debug("bcast_ipi  vector %u\n", vector);
-      writel(x2APIC_ICR, 0, 
+      writel(x2APIC_ICR, 0,
                          ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector);
     }
 
