@@ -40,16 +40,12 @@ inline void __sw_barrier() noexcept
 }
 
 // Include arch specific inline implementations
-// (There might be fancier tricks for doing this)
 #if defined(ARCH_x86_64)
 #include "arch/x86_64.hpp"
 #elif defined(ARCH_i686)
 #include "arch/i686.hpp"
-#error "No supported arch specified"
-
-
 #else
+#error "Unsupported arch specified"
 #endif
-
 
 #endif
