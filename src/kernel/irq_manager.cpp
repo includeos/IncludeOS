@@ -35,6 +35,7 @@ IRQ_manager& IRQ_manager::get(int cpuid)
 #ifndef INCLUDEOS_SINGLE_THREADED
   return managers.at(cpuid);
 #else
+  (void) cpuid;
   return managers[0];
 #endif
 }
