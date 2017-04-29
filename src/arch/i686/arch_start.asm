@@ -18,12 +18,16 @@
 global __arch_start:function
 extern kernel_start
 
-
 [BITS 32]
 __arch_start:
-    pop eax
-    pop ebx
-    push eax
+
+    ;; Fetch multiboot regs and pass as params
+    mov eax, [esp+4]
+    mov ebx, [esp+8]
+
     push ebx
+    push eax
+
     call kernel_start
+
     ret
