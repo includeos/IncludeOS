@@ -55,7 +55,7 @@ void Service::start(const std::string& args)
   multiboot_module_t binary = mods[1];
 
   MYINFO("Verifying mod2 as ELF binary");
-  Elf_binary elf ({(char*)binary.mod_start, (int)(binary.mod_end - binary.mod_start)});
+  Elf_binary<Elf64> elf ({(char*)binary.mod_start, (int)(binary.mod_end - binary.mod_start)});
 
   MYINFO("Moving hotswap function (now at %p)", &hotswap);
   memcpy((void*)0x8000, (void*)&hotswap, 1024);
