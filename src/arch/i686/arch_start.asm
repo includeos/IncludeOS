@@ -19,15 +19,24 @@ global __arch_start:function
 extern kernel_start
 
 [BITS 32]
+
+;; @param: eax - multiboot magic
+;; @param: ebx - multiboot bootinfo addr
 __arch_start:
 
-    ;; Fetch multiboot regs and pass as params
-    mov eax, [esp+4]
-    mov ebx, [esp+8]
+    ;; Create stack frame for backtrace
+    push ebp
+    mov ebp, esp
 
-    push ebx
-    push eax
+    ;; Push params on 16-byte aligned stack
+    sub esp, 8
+    and esp, -16
+    mov [esp], eax
+    mov [esp+4], ebx
 
     call kernel_start
 
+    ;; Restore stack frame
+    mov esp, ebp
+    pop ebp
     ret
