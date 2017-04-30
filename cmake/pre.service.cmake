@@ -1,8 +1,13 @@
 # Target CPU Architecture
-set(ARCH x86_64)
-if(DEFINED ENV{ARCH})
-  set(ARCH $ENV{ARCH})
+if (NOT DEFINED ARCH)
+  if (DEFINED ENV{ARCH})
+    set(ARCH $ENV{ARCH})
+  else()
+    set(ARCH x86_64)
+  endif()
 endif()
+
+message(STATUS "Building for arch ${ARCH}")
 
 set(TRIPLE ${ARCH}) #-pc-linux-elf
 set(DCMAKE_CXX_COMPILER_TARGET ${TRIPLE})

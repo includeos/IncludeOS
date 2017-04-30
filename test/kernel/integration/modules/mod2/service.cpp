@@ -16,9 +16,14 @@
 // limitations under the License.
 
 #include <os>
+#include <net/inet4>
 
 void Service::start()
 {
+  auto& inet = net::Inet4::stack<0>();
+  inet.network_config({10,0,0,42},
+                      {255,255,255,0},
+                      {10,0,0,1});
   printf("IncludeOS was just chainloaded by IncludeOS\n");
-  exit(0);
+
 }

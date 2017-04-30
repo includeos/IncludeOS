@@ -9,13 +9,8 @@ endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
-# TODO: Verify that the OS libraries exist
-set(ARCH x86_64)
-if(DEFINED ENV{ARCH})
-  set(ARCH $ENV{ARCH})
-endif()
-message(STATUS "Target CPU architecture ${ARCH}")
 
+message(STATUS "Target CPU architecture ${ARCH}")
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})

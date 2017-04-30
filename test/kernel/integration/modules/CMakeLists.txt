@@ -4,6 +4,8 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
+set(ARCH i686)
+
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
 project (test_kprint)
