@@ -52,6 +52,7 @@ namespace net {
     Stack& stack;
     uint32_t     xid;
     IP4::addr    ipaddr, netmask, router, dns_server;
+    std::string  domain_name;
     uint32_t     lease_time;
     std::vector<config_func> config_handlers_;
     Timers::id_t timeout;

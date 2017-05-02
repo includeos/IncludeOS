@@ -29,6 +29,7 @@ Inet4::Inet4(hw::Nic& nic)
     dns_server_(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ip4_(*this),
     icmp_(*this), udp_(*this), tcp_(*this), dns_(*this),
+    domain_name_{},
     MTU_(nic.MTU())
 {
   static_assert(sizeof(IP4::addr) == 4, "IPv4 addresses must be 32-bits");

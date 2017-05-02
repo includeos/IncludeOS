@@ -29,7 +29,7 @@ namespace net {
   using namespace dhcp;
 
   DHClient::DHClient(Stack& inet)
-    : stack(inet), xid(0), in_progress(false)
+    : stack(inet), xid(0), domain_name{}, in_progress(false)
   {
     this->on_config(
     [this] (bool timeout)
@@ -89,7 +89,8 @@ namespace net {
     msg.add_option<option::param_req_list>(std::vector<option::Code>{
       option::ROUTERS,
       option::SUBNET_MASK,
-      option::DOMAIN_NAME_SERVERS
+      option::DOMAIN_NAME_SERVERS,
+      option::DOMAIN_NAME
     });
     // END
     msg.end();
@@ -183,6 +184,18 @@ namespace net {
     else
     { // just try using ROUTER as DNS server
       this->dns_server = this->router;
+    }
+
+    // domain name
+    const auto* dn_opt = msg.find_option<option::domain_name>();
+    if (dn_opt != nullptr)
+    {
+      auto dname = dn_opt->name();
+      if(not dname.empty())
+      {
+        this->domain_name = std::move(dname);
+      }
+      //printf("Found Domain name option: %s\n", dn_opt->name().c_str());
     }
 
     // Remove any existing IP config to be able to receive on broadcast
@@ -283,6 +296,12 @@ namespace net {
     // configure our network stack
     stack.network_config(this->ipaddr, this->netmask,
                          this->router, this->dns_server);
+    if(not domain_name.empty())
+    {
+      debug("DOMAIN NAME: \t%s", this->domain_name.c_str());
+      stack.set_domain_name(domain_name);
+    }
+    debug("\n");
     // stop timeout from happening
     Timers::stop(timeout);
 

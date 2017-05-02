@@ -157,6 +157,12 @@ namespace net {
       dns_.resolve(server, hostname, func, force);
     }
 
+    void set_domain_name(std::string domain_name) override
+    { this->domain_name_ = std::move(domain_name); }
+
+    const std::string& domain_name() const override
+    { return this->domain_name_; }
+
     void set_gateway(IP4::addr gateway) override
     {
       this->gateway_ = gateway;
@@ -325,6 +331,7 @@ namespace net {
 
     // we need this to store the cache per-stack
     DNSClient dns_;
+    std::string domain_name_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
 
