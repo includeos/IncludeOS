@@ -109,10 +109,9 @@ fi
 
 # Install build requirements (compiler, etc)
 if [ "Darwin" = "$SYSTEM" ]; then
-    if ! ./etc/install_osx.sh; then
-		printf "%s\n" ">>> Sorry <<<"\
-			   "Could not install osx dependencies"
-		exit 1
+	echo ">>> Dependencies required:"
+    if ! ./etc/install_dependencies_macos.sh -c; then
+		missing_dependencies=1
 	fi
 else
 	# Will only check if build dependencies are installed at this point
@@ -122,7 +121,7 @@ else
 		dependency_level=build
 	fi
 	echo ">>> Dependencies required:"
-	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
+	if ! ./etc/install_dependencies_linux.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
 		missing_dependencies=1
 	fi
 fi
@@ -181,10 +180,17 @@ fi
 
 # Install dependencies if there are any missing
 if [ ! -z $missing_dependencies ]; then
-	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE -d $dependency_level; then
-		printf "%s\n" ">>> Sorry <<<"\
-				"Could not install dependencies"
-		exit 1
+	if [ "Darwin" = "$SYSTEM" ]; then
+		if ! ./etc/install_dependencies_macos.sh; then
+			printf "%s\n" ">>> Sorry <<<"\
+					"Could not install dependencies"
+		fi
+	else
+		if ! ./etc/install_dependencies_linux.sh -s $SYSTEM -r $RELEASE -d $dependency_level; then
+			printf "%s\n" ">>> Sorry <<<"\
+					"Could not install dependencies"
+			exit 1
+		fi
 	fi
 fi
 
