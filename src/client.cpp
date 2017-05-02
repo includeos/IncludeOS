@@ -37,7 +37,7 @@ namespace mender {
     MENDER_INFO("Client", "Client created");
   }
 
-  Client::Client(Auth_manager&& man, Device&& dev, net::TCP& tcp, net::tcp::Socket socket)
+  Client::Client(Auth_manager&& man, Device&& dev, net::TCP& tcp, net::Socket socket)
     : am_{std::forward<Auth_manager>(man)},
       device_{std::forward<Device>(dev)},
       server_{socket.address().to_string()},
@@ -197,7 +197,7 @@ namespace mender {
     const Header_set headers{
       { header::Accept, "application/json;application/vnd.mender-artifact" },
       { header::Authorization, "Bearer " + std::string{token.begin(), token.end()}},
-      { header::Host, uri.host_and_port().to_string() }
+      { header::Host, uri.host_and_port() }
     };
 
     httpclient_->get({cached_.address(), uri.port()},
@@ -260,7 +260,7 @@ namespace mender {
 
     httpclient_.release();
 
-    liu::LiveUpdate::begin(device_.update_loc(), {(const char*) e.content(), e.size()}, {this, &Client::store_state});
+    liu::LiveUpdate::begin(device_.update_loc(), {(const char*) e.content(), static_cast<int>(e.size())}, {this, &Client::store_state});
   }
 
   void Client::store_state(liu::Storage& store, liu::buffer_len)
