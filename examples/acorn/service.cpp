@@ -138,7 +138,7 @@ void Service::start(const std::string&) {
       // Construct component
       dashboard_->construct<dashboard::Statman>(Statman::get());
       dashboard_->construct<dashboard::TCP>(stack.tcp());
-      dashboard_->construct<dashboard::CPUsage>(0ms, 500ms);
+      dashboard_->construct<dashboard::CPUsage>(500ms);
       dashboard_->construct<dashboard::Logger>(*logger_, static_cast<size_t>(50));
 
       // Add Dashboard routes to "/api/dashboard"
