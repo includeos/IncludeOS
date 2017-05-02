@@ -211,6 +211,21 @@ struct domain_name_servers : public type<DOMAIN_NAME_SERVERS>, public addr_optio
 };
 
 /**
+ * @brief      DOMAIN_NAME (15)
+ */
+struct domain_name : public type<DOMAIN_NAME>, public base
+{
+  constexpr domain_name(const std::string& dname) noexcept
+    : base{type::CODE, static_cast<uint8_t>(dname.size())}
+  {
+    std::memcpy(&val[0], dname.data(), dname.size());
+  }
+
+  std::string name() const
+  { return {reinterpret_cast<const char*>(&val[0]), length}; }
+};
+
+/**
  * @brief      BROADCAST_ADDRESS (28)
  */
 struct broadcast_address : public type<BROADCAST_ADDRESS>, public addr_option
@@ -246,7 +261,7 @@ struct lease_time : public type<DHCP_LEASE_TIME>, public base
   }
 
   uint32_t secs() const noexcept
-  { return *(reinterpret_cast<const uint32_t*>(&val[0])); }
+  { return ntohl(*(reinterpret_cast<const uint32_t*>(&val[0]))); }
 };
 
 /**

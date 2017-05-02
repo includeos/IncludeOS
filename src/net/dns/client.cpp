@@ -24,10 +24,15 @@ namespace net
   std::chrono::seconds DNSClient::DEFAULT_CACHE_TTL{std::chrono::seconds(60)};
 
   void DNSClient::resolve(Address dns_server,
-                          const Hostname& hostname,
+                          const Hostname& hname,
                           Resolve_handler func,
                           Timer::duration_t timeout, bool force)
   {
+    auto hostname = hname; // fixme: unecessary copy
+    if(not is_FQDN(hostname) and not stack_.domain_name().empty())
+    {
+      hostname.append(".").append(stack_.domain_name());
+    }
     if(not force)
     {
       auto it = cache_.find(hostname);

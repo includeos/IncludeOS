@@ -23,12 +23,15 @@ extern current_eoi_mechanism
 extern current_intr_handler
 extern cpu_sampling_irq_handler
 
+SECTION .bss
+ALIGN 16
+xsave_storage_area: resb  512
+
 %macro PUSHAQ 0
    push rax
    push rbx
    push rcx
    push rdx
-   push rbp
    push rdi
    push rsi
    push r8
@@ -39,10 +42,14 @@ extern cpu_sampling_irq_handler
    push r13
    push r14
    push r15
-   push rbp
+
+   ; Preserve extended state
+   fxsave [xsave_storage_area]
 %endmacro
 %macro POPAQ 0
-   pop rbp
+   ; Restore extended state
+   fxrstor [xsave_storage_area]
+
    pop r15
    pop r14
    pop r13
@@ -53,7 +60,6 @@ extern cpu_sampling_irq_handler
    pop r8
    pop rsi
    pop rdi
-   pop rbp
    pop rdx
    pop rcx
    pop rbx
