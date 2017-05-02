@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,15 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <net/inet4>
+#include <sys/types.h>
 
-void Service::start()
-{
-  auto& inet = net::Inet4::stack<0>();
-  inet.network_config({10,0,0,42},
-                      {255,255,255,0},
-                      {10,0,0,1});
-  printf("IncludeOS was just chainloaded by IncludeOS\n");
-
-}
+typedef struct {
+  int sched_priority;
+} sched_param;

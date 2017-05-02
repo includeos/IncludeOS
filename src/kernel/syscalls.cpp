@@ -144,10 +144,10 @@ void panic(const char* why)
   }
 
   // stack info
-#ifdef ARCH_x86_64
+#if defined(ARCH_x86_64)
   void* SP; asm volatile("mov %%rsp, %0" : "=r"(SP));
   void* SB; asm volatile("mov %%rbp, %0" : "=r"(SB));
-#elif ARCH_i386
+#elif defined(ARCH_i686)
   register void* SP asm("esp");
   register void* SB asm("ebp");
 #else

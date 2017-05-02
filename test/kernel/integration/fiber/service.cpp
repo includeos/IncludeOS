@@ -29,8 +29,6 @@ Fiber sched1 {scheduler1};
 Fiber sched2 {scheduler2};
 Fiber sched3 {scheduler3};
 
-Fiber* Fiber::main_ = nullptr;
-Fiber* Fiber::current_ = nullptr;
 
 inline void* get_rsp() {
   void* stack = 0;
@@ -63,6 +61,7 @@ void work() {
     Fiber::yield();
     INFO("Work","Worker %i resumed", id);
   }
+
 }
 
 
@@ -74,6 +73,20 @@ void basic_test() {
   INFO("B1", "test. backtrace: ");
   print_backtrace();
   printf("_____________________________________ \n\n");
+
+}
+
+
+void* posix_style(void* param) {
+
+  printf("POSIX testz. Param: %p\n", param);
+  if (not param)
+    printf("POSIX test, empty parameter\n");
+  else
+    printf("Param string: %s\n", (char*)param);
+
+  return nullptr;
+
 }
 
 void basic_yield() {
@@ -119,6 +132,7 @@ void scheduler1(){
   INFO("Scheduler1", "Completed. Returning to service.");
 
   printf("______________________________________________ \n");
+
 }
 
 
@@ -127,7 +141,7 @@ void scheduler2(){
   printf("     SCHED 2  - schedule yielding thread \n");
   printf("============================================== \n");
   print_frame();
-  Fiber basic{&sched2, basic_yield};
+  Fiber basic{basic_yield};
 
   Expects(Fiber::main() == &sched2);
   basic.start();
@@ -174,22 +188,65 @@ void scheduler3 () {
   }
 
   INFO("Scheduler", "Done ");
+
 }
 
+std::string dangerous_string{"Hello danger"};
+std::string empty_string;
+
+std::string* strongly_typed(std::string* str) {
+  INFO("Strong","Strongly typed param: %s", str->c_str());
+  empty_string = "Danger is my middle name";
+
+  Fiber::yield();
+
+  INFO("Strong","Strongly typed resumed.");
+  Expects(empty_string == "Danger is my middle name");
+
+  return &empty_string;
+}
+
+
+void scheduler4(){
+  printf("\n============================================== \n");
+  printf("     SCHED 4  - run strongly typed fiber\n");
+  printf("============================================== \n");
+
+  Fiber strong{strongly_typed, &dangerous_string};
+  strong.start();
+
+  /** The line below throws Err_bad_cast: */
+  /*
+  char* ret = dangerous.ret<char*>();
+  printf("Dangerous returned: %s \n", ret);
+  */
+
+  auto ret = strong.ret<std::string*>();
+  INFO("Sched4", "Strongly typed fiber returned: %s", ret->c_str());
+
+}
+
+const char* posix_str = "Hello POSIX";
+
+
+
+void print_int(int i) {
+  INFO("Print_int","integer passed : %i \n", i);
+}
+
+long compute_int() {
+  int i = 42;
+  INFO("Compute_int","returning integer : %i \n", i);
+  return i;
+}
 
 void Service::start()
 {
   INFO("service", "Testing threading");
   print_frame();
 
-  INFO("Service","Init backtrace: \n\t* 0: %p\n\t* 1: %p \n\t* 2: %p\n\t* 3:%p\n",
-       __builtin_return_address(0),
-       __builtin_return_address(1),
-       __builtin_return_address(2),
-       __builtin_return_address(3));
-
+  INFO("Service", "Param address %p, string: %s \n", posix_str, posix_str);
   print_backtrace();
-
 
   INFO("Service", "Starting basic test. rsp @ %p", get_rsp());
   print_frame();
@@ -198,6 +255,11 @@ void Service::start()
   Fiber basic{basic_test};
   basic.start();
 
+
+  INFO("Service", "Starting posix signature test. rsp @ %p", get_rsp());
+
+  Fiber posix1{posix_style, (void*)posix_str};
+  posix1.start();
 
   INFO("Service", "Starting sched1. rsp @ %p", get_rsp());
   print_frame();
@@ -215,10 +277,26 @@ void Service::start()
 
   sched3.start();
 
+  INFO("Service", "Starting sched4. rsp @ %p", get_rsp());
+
+  Fiber sched4{scheduler4};
+  sched4.start();
+
+  INFO("Service", "Starting print_int. rsp @ %p", get_rsp());
+  Fiber{print_int, 5}.start();
+
+  INFO("Service", "Starting compute_int. rsp @ %p", get_rsp());
+  Fiber compute{compute_int};
+  compute.start();
+  auto ret = compute.ret<long>();
+
+  INFO("Service", "Computed long: %li", ret);
 
   printf("\n");
   INFO("Service", "Done. rsp @ %p", get_rsp());
   print_frame();
+
+
   exit(0);
 
 }

@@ -20,6 +20,7 @@ set(ARCH_OBJECTS
   apic_asm.asm
   arch_start.asm
   interrupts.asm
+  fiber_asm.asm
 )
 
 add_library(arch STATIC ${ARCH_OBJECTS})

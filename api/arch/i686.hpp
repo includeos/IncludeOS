@@ -19,8 +19,6 @@
 #ifndef i686_ARCH_HPP
 #define i686_ARCH_HPP
 
-#define ARCH_i686
-
 #include <arch/x86.hpp>
 
 inline uint64_t __arch_cpu_cycles() noexcept {

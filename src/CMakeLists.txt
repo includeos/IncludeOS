@@ -36,7 +36,7 @@ set(OS_OBJECTS
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
-  kernel/fiber.cpp kernel/fiber_asm.asm
+  kernel/fiber.cpp
   kernel/profile.cpp kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
@@ -64,7 +64,7 @@ set(OS_OBJECTS
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
-  posix/pwd.cpp )
+  posix/pwd.cpp posix/pthread.cpp)
 
 add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
 add_dependencies(os PrecompiledLibraries botan)

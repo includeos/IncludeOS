@@ -17,6 +17,9 @@
 
 USE32
 extern __arch_start
+extern __serial_print1
+global __multiboot_magic
+global __multiboot_addr
 global _start
 global __xsave_enabled
 global __avx_enabled
@@ -48,6 +51,10 @@ __xsave_enabled:
     dw 0x0
 __avx_enabled:
     dw 0x0
+__multiboot_magic:
+    dd 0x0
+__multiboot_addr:
+    dd 0x0
 
 section .text
 ;; Multiboot places boot paramters on eax and ebx.
@@ -79,11 +86,12 @@ rock_bottom:
   ;; enable AVX if xsave and avx supported on CPU
   call enable_avx
 
-  ;;  Place multiboot parameters on stack
-  push ebx
-  push eax
+  ;;  Save multiboot params
+  mov DWORD [__multiboot_magic], eax
+  mov DWORD [__multiboot_addr], ebx
+
   call __arch_start
-  ret
+  jmp __start_panic
 
 enable_sse:
   push eax        ;preserve eax for multiboot
@@ -140,6 +148,14 @@ avx_not_supported:
   pop eax
   ret
 
+__start_panic:
+    sub esp, 4
+    and esp, -16
+    mov DWORD [esp], str.panic
+    call __serial_print1
+    cli
+    hlt
+
 ALIGN 32
 gdtr:
   dw gdt32_end - gdt32 - 1
@@ -161,3 +177,8 @@ gdt32:
   dw 0xcf92          ;Flags / Limit / Type [F,L,F,Type]
   db 0x00            ;Base 32:24
 gdt32_end:
+
+
+str:
+    .panic:
+    db `Panic: OS returned to x86 start.asm. Halting\n`,0x0

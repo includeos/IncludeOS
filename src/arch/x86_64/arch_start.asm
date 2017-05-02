@@ -16,6 +16,8 @@
 ; limitations under the License.
 global __arch_start:function
 extern kernel_start
+extern __multiboot_magic
+extern __multiboot_addr
 
 %define PAGE_SIZE          0x1000
 %define P4_TAB             0x1000
@@ -84,8 +86,8 @@ __arch_start:
     or eax, 1 << 31
     mov cr0, eax                 ; Set control register 0 to the A-register.
 
-    mov eax, DWORD[esp+4]        ; Preserve multiboot regs
-    mov ebx, DWORD[esp+8]
+    mov eax, DWORD[__multiboot_magic]        ; Preserve multiboot regs
+    mov ebx, DWORD[__multiboot_addr]
 
     ;; load 64-bit GDT
     lgdt [GDT64.Pointer]
