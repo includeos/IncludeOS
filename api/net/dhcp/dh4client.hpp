@@ -22,7 +22,7 @@
 #include "dhcp4.hpp"
 #include "options.hpp"
 
-#include <timers>
+#include <util/timer.hpp>
 #include <net/ip4/udp.hpp>
 
 namespace net {
@@ -49,13 +49,15 @@ namespace net {
     void request(UDPSocket&, const dhcp::option::server_identifier* server_id);   // --> acknowledge
     void acknowledge(const char* data, size_t len);
 
+    void timeout();
+
     Stack& stack;
     uint32_t     xid;
     IP4::addr    ipaddr, netmask, router, dns_server;
     std::string  domain_name;
     uint32_t     lease_time;
     std::vector<config_func> config_handlers_;
-    Timers::id_t timeout;
+    Timer        timeout_timer_;
     bool         in_progress;
   };
 
