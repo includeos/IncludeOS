@@ -3,21 +3,20 @@
 ; by Alf-Andre Walla 2016-2017
 ;
 ;
-global disable_longmode
+SECTION  .text   ;;
+;ORG      0x1000  ;;
+
+global hotswap64
 global longmode_winddown_len
-extern _start
 
 %define code32_segment 0x08
 %define data32_segment 0x10
 
-bootaddr:    dd  0
-bootmagic:   dd  0
-startaddr:   dd  0
-
 [BITS 64]
-SECTION .text
 ALIGN 16
-disable_longmode:
+hotswap64:
+    nop
+begin_enter_protected:
     cli
     mov [bootaddr],  edi ; a
     mov [bootmagic], esi ; b
@@ -26,14 +25,17 @@ disable_longmode:
     ; load 64-bit GDTR with 32-bit entries
     lgdt [gdtr64]
     ; enter compatibility mode
-    mov ecx, ss
-    push rcx
+    push data32_segment
     push rsp
     pushf
     push code32_segment
     mov  ecx, compatibility_mode
     push rcx
     iretq
+
+bootaddr:    dd  0
+bootmagic:   dd  0
+startaddr:   dd  0
 
 [BITS 32]
 ALIGN 16
@@ -88,5 +90,5 @@ gdtr64:
     dw $ - gdt32 - 1   ; Limit
     dq gdt32           ; Base
 
-longmode_winddown_len:
-    dd $ - disable_longmode
+hotswap64_len:
+    dd $ - hotswap64

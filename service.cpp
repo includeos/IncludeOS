@@ -85,13 +85,9 @@ template <typename T>
 void setup_liveupdate_server(T& inet);
 
 extern "C" void panic(const char*);
-extern "C" void disable_longmode(uintptr_t addr, uint32_t magic, void* start);
-extern "C" void _start();
 void Service::start()
 {
   //OS::add_stdout_default_serial();
-  printf("Disabling longmode and calling _start\n");
-  disable_longmode(0x1, 0x2, (void*) &_start);
 }
 void Service::ready()
 {
