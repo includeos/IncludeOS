@@ -5,7 +5,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
 project(mender_client)
 
@@ -22,8 +22,7 @@ set(SOURCES
 # Necessary includes to build your library
 set(LOCAL_INCLUDES
   "include/mender"
-  "$ENV{INCLUDEOS_PREFIX}/includeos/include/botan-2" # Assumes botan is installed in your IncludeOS installation
-  # "path-to-liveupdate" # Assumes liveupdate is installed in your IncludeOS installation
+  # Assumes liveupdate is installed in your IncludeOS installation
   )
 
 # include library build script
@@ -40,6 +39,6 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 # Where to install library
-install(TARGETS ${LIBRARY_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(TARGETS ${LIBRARY_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/${ARCH}/lib)
 set(LIBRARY_HEADERS "include/mender")
 install(DIRECTORY ${LIBRARY_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)

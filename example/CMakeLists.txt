@@ -5,7 +5,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
 project (mender_demo)
 
@@ -21,7 +21,6 @@ set(SOURCES
   )
 
 set(LOCAL_INCLUDES
-  "$ENV{INCLUDEOS_PREFIX}/includeos/include/botan-2" # Assumes botan is installed in your IncludeOS installation
   # Assumes mender and liveupdate headers are installed in your IncludeOS installation
   )
 
@@ -31,12 +30,12 @@ set(DRIVERS
 
 set(LIBRARIES
   # Assumes the libraries are installed in your IncludeOS installation
-  "$ENV{INCLUDEOS_PREFIX}/includeos/lib/libmender_client.a"
-  "$ENV{INCLUDEOS_PREFIX}/includeos/lib/libliveupdate.a"
-  "$ENV{INCLUDEOS_PREFIX}/includeos/lib/libbotan-2.a"
+  "libmender_client.a"
+  "libliveupdate.a"
+  "libbotan-2.a"
   )
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
 # Build private key into disk
 diskbuilder(disk disk.img)

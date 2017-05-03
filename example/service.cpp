@@ -22,13 +22,13 @@
 #include <memdisk>
 
 // Helper function to create a unique identity
-std::string mac_identity(hw::MAC_addr mac)
+std::string mac_identity(MAC::Addr mac)
 {
   return "{\"mac\" : \"" + mac.to_string() + "\"}";
 }
 
 // Mender server instance (IP:PORT) (local hostnames not supported yet)
-net::tcp::Socket MENDER_SERVER{{10,0,0,1}, 8090};
+net::Socket MENDER_SERVER{{10,0,0,1}, 8090};
 
 // Current running version (artifact_name)
 std::string ARTIFACT{"example"};
@@ -56,8 +56,8 @@ void Service::ready()
 
   // Mender client currently only supports sync disks (memdisk)
   auto disk = fs::new_shared_memdisk();
-  disk->init_fs([](auto err) {
-    if(err) panic("Could not init FS."); // dont have to panic, can just generate key (but not store..)
+  disk->init_fs([](auto err, auto&) {
+    assert(!err && "Could not init FS."); // dont have to panic, can just generate key (but not store..)
   });
 
   using namespace mender;

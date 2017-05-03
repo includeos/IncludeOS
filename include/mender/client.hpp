@@ -40,7 +40,7 @@ namespace mender {
 
   public:
     Client(Auth_manager&&, Device&&, net::TCP&, const std::string& server, const uint16_t port = 0);
-    Client(Auth_manager&&, Device&&, net::TCP&, net::tcp::Socket);
+    Client(Auth_manager&&, Device&&, net::TCP&, net::Socket);
 
     void make_auth_request();
 
@@ -107,7 +107,7 @@ namespace mender {
 
     // http related
     const std::string server_;
-    net::tcp::Socket cached_;
+    net::Socket cached_;
     std::unique_ptr<http::Client> httpclient_;
 
     // state related
