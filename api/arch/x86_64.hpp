@@ -22,9 +22,9 @@
 #include <arch/x86.hpp>
 
 inline uint64_t __arch_cpu_cycles() noexcept {
-  uint64_t ret;
-  asm("rdtsc" : "=A" (ret));
-  return ret;
+  uint32_t hi, lo;
+  asm("rdtsc" : "=a"(lo), "=d"(hi));
+  return ((uint64_t) lo) | ((uint64_t) hi) << 32;
 }
 
 #endif
