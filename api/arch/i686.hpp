@@ -22,9 +22,9 @@
 #include <arch/x86.hpp>
 
 inline uint64_t __arch_cpu_cycles() noexcept {
-  unsigned hi, lo;
-  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+  uint64_t ret;
+  asm("rdtsc" : "=A" (ret));
+  return ret;
 }
 
 
