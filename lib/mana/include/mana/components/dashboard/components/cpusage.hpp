@@ -31,9 +31,9 @@ class CPUsage : public Component {
 
 public:
 
-  CPUsage(Timers::duration_t when, Timers::duration_t interval)
+  CPUsage(Timers::duration_t interval)
    :  interval_{interval},
-      timer_id_{Timers::periodic(when, interval, {this, &CPUsage::update_values})}
+      timer_id_{Timers::periodic(interval, interval, {this, &CPUsage::update_values})}
   {}
 
   ~CPUsage() {
