@@ -1,7 +1,7 @@
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
- * 
+ *
 **/
 #include "liveupdate.hpp"
 
@@ -33,9 +33,9 @@ bool LiveUpdate::is_resumable(void* location)
 {
   /// memory sanity check
   if (heap_end >= (char*) location) {
-    fprintf(stderr, 
-        "WARNING: LiveUpdate storage area inside heap (margin: %d)\n",
-		heap_end - (char*) location);
+    fprintf(stderr,
+        "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
+		     heap_end - (char*) location);
     return false;
   }
   return ((storage_header*) location)->validate();
@@ -44,7 +44,7 @@ bool LiveUpdate::resume(void* location, resume_func func)
 {
   // check if an update has occurred
   if (!is_resumable(location)) return false;
-  
+
   LPRINT("* Restoring data...\n");
   // restore connections etc.
   extern bool resume_begin(storage_header&, LiveUpdate::resume_func);
@@ -61,8 +61,8 @@ inline bool validate_elf_header(const Elf32_Ehdr* hdr)
            hdr->e_ident[3] == 'F';
 }
 
-void LiveUpdate::begin(void*        location, 
-                       buffer_len   blob, 
+void LiveUpdate::begin(void*        location,
+                       buffer_len   blob,
                        storage_func storage_callback)
 {
   // use area provided to us directly, which we will assume
@@ -74,7 +74,7 @@ void LiveUpdate::begin(void*        location,
   // the copy mechanism just copies single bytes.
   const char* update_area  = blob.buffer;
   char* storage_area = (char*) location;
-  
+
   // validate not overwriting heap, kernel area and other things
   if (storage_area < (char*) 0x200) {
     throw std::runtime_error("The storage area is probably a null pointer");
@@ -95,7 +95,7 @@ void LiveUpdate::begin(void*        location,
     /// try again with 1 sector offset (skip bootloader)
     binary   = &update_area[SECT_SIZE];
     hdr      = (const Elf32_Ehdr*) binary;
-    
+
     if (!validate_elf_header(hdr))
     {
       /// failed to find elf header at sector 0 and 1
@@ -106,7 +106,7 @@ void LiveUpdate::begin(void*        location,
   LPRINT("* Found ELF header\n");
 
   /// note: this assumes section headers are at the end
-  int expected_total = 
+  int expected_total =
       hdr->e_shnum * hdr->e_shentsize +
       hdr->e_shoff;
 
@@ -129,7 +129,7 @@ void LiveUpdate::begin(void*        location,
   // save ourselves if function passed
   if (storage_callback)
   {
-      auto storage_len = 
+      auto storage_len =
           update_store_data(storage_area, storage_callback, blob);
       (void) storage_len;
   }
@@ -145,7 +145,7 @@ void LiveUpdate::begin(void*        location,
   const char* bin_data  = &binary[phdr->p_offset];
   const int   bin_len   = phdr->p_filesz;
   char*       phys_base = (char*) phdr->p_paddr;
-  
+
   //char* phys_base = (char*) (start_offset & 0xffff0000);
   LPRINT("* Physical base address is %p...\n", phys_base);
 
@@ -175,14 +175,14 @@ size_t update_store_data(void* location, LiveUpdate::storage_func func, buffer_l
   // create storage header in the fixed location
   new (location) storage_header();
   auto* storage = (storage_header*) location;
-  
+
   /// callback for storing stuff
   Storage wrapper {*storage};
   func(wrapper, blob);
-  
+
   /// finalize
   storage->finalize();
-  
+
   /// sanity check
   if (storage->validate() == false)
       throw std::runtime_error("Failed sanity check on user storage data");

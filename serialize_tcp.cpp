@@ -1,7 +1,7 @@
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
- * 
+ *
 **/
 #include <net/inet4>
 #include <net/tcp/connection_states.hpp>
@@ -49,7 +49,7 @@ struct read_buffer
 {
   size_t remaining;
   size_t offset;
-  
+
   size_t size() const noexcept {
     return offset;
   }
@@ -72,7 +72,7 @@ struct serialized_writeq
   uint32_t offset;
   uint32_t acked;
   size_t   buffers;
-  
+
   char     vla[0];
 };
 
@@ -83,11 +83,11 @@ int Write_queue::deserialize_from(void* addr)
   this->current_ = writeq->current;
   this->offset_  = writeq->offset;
   this->acked_   = writeq->acked;
-  
+
   /// restore write buffers
   int len = 0;
   int total = writeq->buffers;
-  
+
   while (total--)
   {
     auto* current = (write_buffer*) &writeq->vla[len];
@@ -107,10 +107,10 @@ int Write_queue::deserialize_from(void* addr)
 void Connection::deserialize_from(void* addr)
 {
   auto* area = (serialized_tcp*) addr;
-  
+
   /// restore TCP stuff
-  //this->local_port_ = area->local_port;
-  //this->remote_     = area->remote;
+  //this->local_     = area->local;
+  //this->remote_    = area->remote;
   this->cb           = area->tcb;
   this->state_       = area->to_state(area->state_now);
   this->prev_state_  = area->to_state(area->state_prev);
@@ -118,15 +118,16 @@ void Connection::deserialize_from(void* addr)
   this->rtx_attempt_ = area->rtx_att;
   this->syn_rtx_     = area->syn_rtx;
   this->queued_      = area->queued;
-  this->fast_recovery = area->fast_recovery;
+  this->fast_recovery_  = area->fast_recovery;
   this->reno_fpack_seen = area->reno_fpack_seen;
   this->limited_tx_  = area->limited_tx;
   this->dup_acks_    = area->dup_acks;
   this->highest_ack_ = area->highest_ack;
   this->prev_highest_ack_ = area->prev_highest_ack;
   // new:
-  this->dack_        = area->dack;
-  this->last_ack_sent_= area->last_ack_sent;
+  this->last_acked_ts_ = area->last_acked_ts;
+  this->dack_          = area->dack;
+  this->last_ack_sent_ = area->last_ack_sent;
 
   /// restore writeq from VLA
   int writeq_len = this->writeq.deserialize_from(area->vla);
@@ -146,14 +147,14 @@ void Connection::deserialize_from(void* addr)
   read_request.buffer.offset = readq->offset;
   memcpy(read_request.buffer.buffer.get(), readq->vla, readq->size());
 
-  //printf("READ: %u  SEND: %u  REMAIN: %u  STATE: %s\n", 
+  //printf("READ: %u  SEND: %u  REMAIN: %u  STATE: %s\n",
   //    readq_size(), sendq_size(), sendq_remaining(), cb.to_string().c_str());
 }
 Connection_ptr deserialize_connection(void* addr, net::TCP& tcp)
 {
   auto* area = (serialized_tcp*) addr;
-  
-  auto conn = std::make_shared<Connection> (tcp, area->local_port, area->remote);
+
+  auto conn = std::make_shared<Connection> (tcp, area->local, area->remote);
   conn->deserialize_from(addr);
   // add connection TCP list
   tcp.insert_connection(conn);
@@ -172,11 +173,11 @@ int  Write_queue::serialize_to(void* addr) const
   for (auto& chunk : this->q)
   {
     auto* current = (write_buffer*) &writeq->vla[len];
-    
+
     // header
     current->length = chunk.size();
     len += sizeof(write_buffer);
-    
+
     // data
     memcpy(&writeq->vla[len], chunk.data(), current->length);
     len += current->length;
@@ -187,9 +188,9 @@ int  Write_queue::serialize_to(void* addr) const
 int Connection::serialize_to(void* addr) const
 {
   auto* area = (serialized_tcp*) addr;
-  
+
   /// serialize TCP stuff
-  area->local_port = this->local_port();
+  area->local      = this->local();
   area->remote     = this->remote();
   area->tcb        = this->cb;
   area->state_now  = area->to_state(this->state_);
@@ -199,25 +200,26 @@ int Connection::serialize_to(void* addr) const
   area->syn_rtx    = this->syn_rtx_;
   area->dup_acks   = this->dup_acks_;
   area->queued     = this->queued_;
-  area->fast_recovery    = this->fast_recovery;
+  area->fast_recovery    = this->fast_recovery_;
   area->reno_fpack_seen  = this->reno_fpack_seen;
   area->limited_tx = this->limited_tx_;
   area->dup_acks   = this->dup_acks_;
   area->highest_ack      = this->highest_ack_;
   area->prev_highest_ack = this->prev_highest_ack_;
+  area->last_acked_ts    = this->last_acked_ts_;
   area->dack       = this->dack_;
   area->last_ack_sent= this->last_ack_sent_;
-  
+
   /// serialize write queue
   int writeq_len = this->writeq.serialize_to(area->vla);
-  
+
   /// serialize read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
   readq->remaining = read_request.buffer.remaining;
   readq->offset    = read_request.buffer.offset;
   memcpy(readq->vla, read_request.buffer.buffer.get(), readq->size());
   int readq_len = sizeof(read_buffer) + readq->size();
-  
+
   return sizeof(serialized_tcp) + writeq_len + readq_len;
 }
 

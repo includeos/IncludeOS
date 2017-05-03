@@ -1,7 +1,7 @@
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
- * 
+ *
 **/
 #pragma once
 #include <net/tcp/connection.hpp>
@@ -10,9 +10,9 @@ struct serialized_tcp
 {
   typedef net::tcp::Connection Connection;
   typedef net::tcp::port_t     port_t;
-  typedef net::tcp::Socket     Socket;
-  
-  port_t local_port;
+  typedef net::Socket          Socket;
+
+  Socket local;
   Socket remote;
 
   int8_t  state_now;
@@ -34,11 +34,13 @@ struct serialized_tcp
 
   net::tcp::seq_t highest_ack;
   net::tcp::seq_t prev_highest_ack;
+  uint32_t last_acked_ts;
+
   net::tcp::seq_t last_ack_sent;
 
   /// vla for write buffers
   char   vla[0];
-  
+
   /// helper functions
   Connection::State* to_state(int8_t st) const;
   int8_t to_state(Connection::State* state) const;

@@ -1,3 +1,8 @@
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ *
+**/
 #include "liveupdate.hpp"
 #include <os>
 
@@ -6,6 +11,11 @@ extern uintptr_t heap_end;
 namespace liu
 {
   static buffer_len rollback_data = {nullptr, 0};
+
+  void disable_longmode()
+  {
+    asm("");
+  }
 
 void LiveUpdate::rollback_now()
 {
@@ -22,10 +32,11 @@ void LiveUpdate::rollback_now()
     {
       printf("Rollback failed:\n%s\n", err.what());
     }
-    
+
   }
   else {
     printf("\nMissing rollback data, rebooting...\n");
+
     OS::reboot();
   }
 }

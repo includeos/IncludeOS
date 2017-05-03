@@ -1,12 +1,17 @@
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ *
+**/
 #pragma once
 #include <stdexcept>
 
 static inline
-void server(net::Inet<net::IP4>& inet, 
-            const uint16_t port, 
+void server(net::Inet<net::IP4>& inet,
+            const uint16_t port,
             delegate<void(liu::buffer_len&)> callback)
 {
-  auto& server = inet.tcp().bind(port);
+  auto& server = inet.tcp().listen(port);
   server.on_connect(
   net::tcp::Connection::ConnectCallback::make_packed(
   [callback, port] (auto conn)
@@ -27,7 +32,7 @@ void server(net::Inet<net::IP4>& inet,
     net::tcp::Connection::CloseCallback::make_packed(
     [buffer, callback] {
       float frac = buffer->length / (float) UPDATE_MAX * 100.f;
-      printf("* Blob size: %u b  (%.2f%%) stored at %p\n", 
+      printf("* Blob size: %u b  (%.2f%%) stored at %p\n",
              buffer->length, frac, buffer->buffer);
       callback(*buffer);
       delete[] buffer->buffer;

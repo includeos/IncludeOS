@@ -1,7 +1,7 @@
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
- * 
+ *
 **/
 #include <service>
 #include <net/inet4>
@@ -18,11 +18,11 @@ void show_heap_stats()
 {
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
-  
+
   fprintf(stderr, "\tHeap is at: %#x / %#x  (diff=%#x)\n",
          heap_end, OS::heap_max(), OS::heap_max() - heap_end);
   fprintf(stderr, "\tHeap usage: %u / %u Kb (%.2f%%)\n",
-         (heap_end - heap_begin) / 1024, 
+         (heap_end - heap_begin) / 1024,
          heap_total / 1024,
          total * 100.0);
 }
@@ -57,8 +57,8 @@ void setup_terminal(T& inet)
 {
   // mini terminal
   printf("Setting up terminal on port %u\n", TERM_PORT);
-  
-  auto& term = inet.tcp().bind(TERM_PORT);
+
+  auto& term = inet.tcp().listen(TERM_PORT);
   term.on_connect(
   [] (auto conn) {
     setup_terminal_connection(conn);
@@ -74,7 +74,7 @@ void setup_terminal(T& inet)
       crc = crc32(crc, (char*) buf.get(), LEN);
       printf("[%p] CRC32: %08x   %s\n", buf.get(), CRC32_VALUE(crc), conn->to_string().c_str());
     });
-    
+
     for (int i = 0; i < 1000; i++) {
       conn->write(buf, LEN);
     }
@@ -85,9 +85,13 @@ template <typename T>
 void setup_liveupdate_server(T& inet);
 
 extern "C" void panic(const char*);
+extern "C" void disable_longmode(uintptr_t addr, uint32_t magic, void* start);
+extern "C" void _start();
 void Service::start()
 {
   //OS::add_stdout_default_serial();
+  printf("Disabling longmode and calling _start\n");
+  disable_longmode(0x1, 0x2, (void*) &_start);
 }
 void Service::ready()
 {
@@ -121,7 +125,7 @@ void Service::ready()
     // .. logic for when there is nothing to resume yet
   }
   setup_liveupdate_server(inet);
-  
+
   // listen for telnet clients
   setup_terminal(inet);
   // show profile stats for boot
@@ -133,7 +137,6 @@ void Service::ready()
 
 static std::vector<double> timestamps;
 
-#include <hw/cpu.hpp>
 void save_stuff(liu::Storage& storage, liu::buffer_len final_blob)
 {
   storage.add_int(0, 1234);
@@ -151,7 +154,7 @@ void save_stuff(liu::Storage& storage, liu::buffer_len final_blob)
   storage.add_vector<std::string> (1, strvec);
 
   // store current timestamp using same ID = 100
-  int64_t ts = hw::CPU::rdtsc();
+  int64_t ts = OS::cycles_since_boot();
   storage.add<int64_t>(100, ts);
 
   // store vector of timestamps
@@ -159,7 +162,7 @@ void save_stuff(liu::Storage& storage, liu::buffer_len final_blob)
 
   // where the update was stored last
   storage.add_buffer(999, final_blob.buffer, final_blob.length);
-  
+
   // messages received from terminals
   storage.add_vector<std::string> (665, savemsg);
 
@@ -212,7 +215,7 @@ void on_missing(liu::Restore& thing)
 void the_timing(liu::Restore& thing)
 {
   auto t1 = thing.as_type<int64_t>();
-  auto t2 = hw::CPU::rdtsc();
+  auto t2 = OS::cycles_since_boot();
   //printf("! CPU ticks after: %lld  (CPU freq: %f)\n", t2, OS::cpu_freq().count());
 
   using namespace std::chrono;
@@ -239,7 +242,7 @@ void the_timing(liu::Restore& thing)
 
   printf(">> %u timestamps, median TS: %.2f ms\n",
       timestamps.size(), median);
-  
+
 }
 void restore_term(liu::Restore& thing)
 {
@@ -248,7 +251,7 @@ void restore_term(liu::Restore& thing)
   auto conn = thing.as_tcp_connection(stack.tcp());
   setup_terminal_connection(conn);
   printf("Restored terminal connection to %s\n", conn->remote().to_string().c_str());
-  
+
   // send all the messages so far
   //for (auto msg : savemsg)
   //  conn->write(msg);
@@ -259,7 +262,7 @@ void on_update_area(liu::Restore& thing)
 {
   auto updloc = thing.as_buffer().deep_copy();
   //printf("Reloading from %p:%d\n", updloc.buffer, updloc.length);
-  
+
   // we are perpetually updating ourselves
   using namespace std::chrono;
   Timers::oneshot(milliseconds(250),
@@ -306,6 +309,6 @@ void setup_liveupdate_server(T& inet)
     //panic(":(");
     liu::LiveUpdate::rollback_now();
   });
-  
+
   printf("LiveUpdate server listening on port 666\n");
 }
