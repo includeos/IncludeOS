@@ -126,8 +126,7 @@ void Service::ready()
   setup_terminal(inet);
   // show profile stats for boot
   //printf("%s\n", ScopedProfiler::get_statistics().c_str());
-  //printf("This is the known good version :)\n");
-  //panic("Oh noes! :(\n");
+  printf("This is the known good version :)\n");
   //panic("Oh noes! :(\n");
 }
 

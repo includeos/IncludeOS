@@ -3,11 +3,7 @@
 ; by Alf-Andre Walla 2016-2017
 ;
 ;
-SECTION  .text   ;;
-ORG      0x1000  ;;
-
-global hotswap_amd64
-global hotswap_amd64_len
+ORG 0x8000
 
 %define code32_segment     0x08
 %define data32_segment     0x10
@@ -28,18 +24,13 @@ hotswap_amd64:
     mov rax, r8
     mov [startaddr], ecx ; rcx
     mov [bootaddr],  eax ; r8
-    ;; hotswap 64-bit kernel
 
-    ;; Hotswap kernels
+    ;; hotswap 64-bit kernel
     ;; source: RSI
     ;; dest:   RDI
     mov rcx, rdx ;; count
-.hotswap_loop:
-    mov rax, [rsi]
-    mov [rdi], rax
-    inc rdi
-    inc rsi
-    loop .hotswap_loop
+    cld
+    rep movsb
 
 begin_enter_protected:
     ; load 64-bit GDTR with 32-bit entries
@@ -108,6 +99,3 @@ gdt32_end:
 gdtr64:
     dw $ - gdt32 - 1   ; Limit
     dq gdt32           ; Base
-
-hotswap_amd64_len:
-    dd $ - hotswap_amd64

@@ -22,6 +22,8 @@ static const int ELF_MINIMUM = 164;
 static void* HOTSWAP_AREA = (void*) 0x8000;
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
+extern "C" void  hotswap64(char*, const char*, int, uintptr_t, void*);
+extern uint32_t  hotswap64_len;
 extern "C" void* __os_store_soft_reset(const void*, size_t);
 extern char _ELF_START_;
 extern char* heap_begin;
@@ -53,7 +55,8 @@ bool LiveUpdate::resume(void* location, resume_func func)
 
 static size_t update_store_data(void* location, LiveUpdate::storage_func, buffer_len);
 
-inline bool validate_elf_header(const Elf32_Ehdr* hdr)
+template <typename Class>
+inline bool validate_header(const Class* hdr)
 {
     return hdr->e_ident[0] == 0x7F &&
            hdr->e_ident[1] == 'E'  &&
@@ -86,17 +89,16 @@ void LiveUpdate::begin(void*        location,
     throw std::runtime_error("The storage area is inside the heap area");
   }
 
-  // validate ELF header
+  // search for ELF header
   const char* binary  = &update_area[0];
   const auto* hdr = (const Elf32_Ehdr*) binary;
-
-  if (!validate_elf_header(hdr))
+  if (!validate_header<Elf32_Ehdr>(hdr))
   {
     /// try again with 1 sector offset (skip bootloader)
     binary   = &update_area[SECT_SIZE];
     hdr      = (const Elf32_Ehdr*) binary;
 
-    if (!validate_elf_header(hdr))
+    if (!validate_header<Elf32_Ehdr>(hdr))
     {
       /// failed to find elf header at sector 0 and 1
       /// simply return
@@ -105,10 +107,41 @@ void LiveUpdate::begin(void*        location,
   }
   LPRINT("* Found ELF header\n");
 
-  /// note: this assumes section headers are at the end
-  int expected_total =
-      hdr->e_shnum * hdr->e_shentsize +
-      hdr->e_shoff;
+  int expected_total = 0;
+  uintptr_t start_offset;
+
+  const char* bin_data  = nullptr;
+  int         bin_len   = 0;
+  char*       phys_base = nullptr;
+
+  if (hdr->e_type == ELFCLASS32)
+  {
+    /// note: this assumes section headers are at the end
+    expected_total =
+        hdr->e_shnum * hdr->e_shentsize +
+        hdr->e_shoff;
+    /// program entry point
+    start_offset = hdr->e_entry;
+    // get offsets for the new service from program header
+    auto* phdr = (Elf32_Phdr*) &binary[hdr->e_phoff];
+    bin_data  = &binary[phdr->p_offset];
+    bin_len   = phdr->p_filesz;
+    phys_base = (char*) (uintptr_t) phdr->p_paddr;
+  }
+  else {
+    auto* ehdr = (Elf64_Ehdr*) hdr;
+    /// note: this assumes section headers are at the end
+    expected_total =
+        ehdr->e_shnum * ehdr->e_shentsize +
+        ehdr->e_shoff;
+    /// program entry point
+    start_offset = ehdr->e_entry;
+    // get offsets for the new service from program header
+    auto* phdr = (Elf64_Phdr*) &binary[ehdr->e_phoff];
+    bin_data  = &binary[phdr->p_offset];
+    bin_len   = phdr->p_filesz;
+    phys_base = (char*) phdr->p_paddr;
+  }
 
   if (blob.length < expected_total || expected_total < ELF_MINIMUM)
   {
@@ -122,8 +155,7 @@ void LiveUpdate::begin(void*        location,
   }
   LPRINT("* Validated ELF header\n");
 
-  // discover _start() entry point
-  const uintptr_t start_offset = hdr->e_entry;
+  // _start() entry point
   LPRINT("* _start is located at %#x\n", start_offset);
 
   // save ourselves if function passed
@@ -141,10 +173,10 @@ void LiveUpdate::begin(void*        location,
   //void* sr_data = nullptr;
 
   // get offsets for the new service from program header
-  Elf32_Phdr* phdr = (Elf32_Phdr*) &binary[hdr->e_phoff];
-  const char* bin_data  = &binary[phdr->p_offset];
-  const int   bin_len   = phdr->p_filesz;
-  char*       phys_base = (char*) phdr->p_paddr;
+  if (bin_data == nullptr ||
+      phys_base == nullptr || bin_len <= 0) {
+    throw std::runtime_error("ELF program header malformed");
+  }
 
   //char* phys_base = (char*) (start_offset & 0xffff0000);
   LPRINT("* Physical base address is %p...\n", phys_base);
@@ -159,11 +191,19 @@ void LiveUpdate::begin(void*        location,
   // replace ourselves and reset by jumping to _start
   LPRINT("* Replacing self with %d bytes and jumping to %#x\n", bin_len, start_offset);
 
+#ifdef ARCH_i686
   // copy hotswapping function to sweet spot
   memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
-
   /// the end
   ((decltype(&hotswap)) HOTSWAP_AREA)(bin_data, bin_len, phys_base, start_offset, sr_data);
+#elif defined(ARCH_x86_64)
+  // copy hotswapping function to sweet spot
+  memcpy(HOTSWAP_AREA, (void*) &hotswap64, hotswap64_len);
+  /// the end
+  ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data);
+#else
+  #error "Unimplemented architecture"
+#endif
 }
 size_t LiveUpdate::store(void* location, storage_func func)
 {
