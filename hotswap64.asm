@@ -4,24 +4,44 @@
 ;
 ;
 SECTION  .text   ;;
-;ORG      0x1000  ;;
+ORG      0x1000  ;;
 
-global hotswap64
-global longmode_winddown_len
+global hotswap_amd64
+global hotswap_amd64_len
 
-%define code32_segment 0x08
-%define data32_segment 0x10
+%define code32_segment     0x08
+%define data32_segment     0x10
+%define SOFT_RESET_MAGIC   0xFEE1DEAD
 
 [BITS 64]
 ALIGN 16
-hotswap64:
-    nop
-begin_enter_protected:
-    cli
-    mov [bootaddr],  edi ; a
-    mov [bootmagic], esi ; b
-    mov [startaddr], edx ; dst
+;; first six pointer arguments are passed in
+;;     RDI, RSI, RDX, RCX, R8, and R9
+;; hotswap64(
+;; RDI:   char* dest,
+;; RSI:   const char* base,
+;; RDX:   size_t len,
+;; RCX:   void* entry_function,
+;; R8:    void* reset_data)
+hotswap_amd64:
+    ;; save soft reset data location and entry function
+    mov rax, r8
+    mov [startaddr], ecx ; rcx
+    mov [bootaddr],  eax ; r8
+    ;; hotswap 64-bit kernel
 
+    ;; Hotswap kernels
+    ;; source: RSI
+    ;; dest:   RDI
+    mov rcx, rdx ;; count
+.hotswap_loop:
+    mov rax, [rsi]
+    mov [rdi], rax
+    inc rdi
+    inc rsi
+    loop .hotswap_loop
+
+begin_enter_protected:
     ; load 64-bit GDTR with 32-bit entries
     lgdt [gdtr64]
     ; enter compatibility mode
@@ -33,9 +53,8 @@ begin_enter_protected:
     push rcx
     iretq
 
-bootaddr:    dd  0
-bootmagic:   dd  0
 startaddr:   dd  0
+bootaddr:    dd  0
 
 [BITS 32]
 ALIGN 16
@@ -63,7 +82,7 @@ protected_mode:
     ;; enter the new service from its entry point
     ;; in 32-bit protected mode, while passing
     ;; multiboot parameters in eax and ebx
-    mov eax, [bootmagic]
+    mov eax, SOFT_RESET_MAGIC
     mov ebx, [bootaddr]
     jmp DWORD [startaddr]
 
@@ -90,5 +109,5 @@ gdtr64:
     dw $ - gdt32 - 1   ; Limit
     dq gdt32           ; Base
 
-hotswap64_len:
-    dd $ - hotswap64
+hotswap_amd64_len:
+    dd $ - hotswap_amd64
