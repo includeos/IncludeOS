@@ -96,7 +96,7 @@ int kill(pid_t pid, int sig) THROW {
 }
 
 static const size_t CONTEXT_BUFFER_LENGTH = 0x1000;
-static char _crash_context_buffer[CONTEXT_BUFFER_LENGTH] __attribute__((aligned(0x1000)));
+static char _crash_context_buffer[CONTEXT_BUFFER_LENGTH];
 
 size_t get_crash_context_length()
 {
@@ -107,12 +107,7 @@ char*  get_crash_context_buffer()
   return _crash_context_buffer;
 }
 
-struct alignas(SMP_ALIGN) panic_struct
-{
-  bool reenter = false;
-};
-static std::array<panic_struct, SMP_MAX_CORES> panic_stuff;
-
+static bool panic_reenter = false;
 OS::on_panic_func panic_handler = nullptr;
 /**
  * panic:
@@ -127,13 +122,12 @@ OS::on_panic_func panic_handler = nullptr;
 void panic(const char* why)
 {
   /// prevent re-entering panic() more than once per CPU
-  if (PER_CPU(panic_stuff).reenter)
-      OS::reboot();
-  PER_CPU(panic_stuff).reenter = true;
+  if (panic_reenter) OS::reboot();
+  panic_reenter = true;
 
   /// display informacion ...
   SMP::global_lock();
-  fprintf(stderr, "\n\t**** CPU %u PANIC: ****\n %s\n",
+  fprintf(stderr, "\n\t**** CPU %d PANIC: ****\n %s\n",
           SMP::cpu_id(), why);
 
   // crash context (can help determine source of crash)
