@@ -42,6 +42,7 @@ option(stripped "Strip symbols to further reduce size" OFF)
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 
 # Compiler optimization
 set(OPTIMIZE "-O2")
