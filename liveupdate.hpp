@@ -1,7 +1,7 @@
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
- * 
+ *
 **/
 #pragma once
 #ifndef LIVEUPDATE_HEADER_HPP
@@ -18,53 +18,46 @@ namespace liu
 {
 struct Storage;
 struct Restore;
-
-struct buffer_len {
-  const char* buffer;
-  int length;
-  
-  buffer_len deep_copy() const;
-};
-
+typedef std::vector<char> buffer_t;
 
 /**
  * The beginning and the end of the LiveUpdate process is the begin() and resume() functions.
  * begin() is called with a provided fixed memory location for where to store all serialized data,
- * and after an update is_resumable, with the same fixed memory location, will return true. 
+ * and after an update is_resumable, with the same fixed memory location, will return true.
  * resume() can then be called with this same location, and it will call handlers for each @id it finds,
  * unless no such handler is registered, in which case it just calls the default handler which is passed
  * to the call to resume(). The call to resume returns true if everything went well.
 **/
 struct LiveUpdate
 {
-  // The buffer_len parameter is the update blob (the new kernel) and can be null.
+  // The buffer_t parameter is the update blob (the new kernel) and can be null.
   // If the parameter is null, you can assume that it's currently not a live update.
-  typedef delegate<void(Storage&, buffer_len)> storage_func;
+  typedef delegate<void(Storage&, const buffer_t*)> storage_func;
   typedef delegate<void(Restore&)> resume_func;
 
   // Start a live update process, storing all user-defined data
   // at @location, which can then be resumed by the future service after update
-  static void begin(void* location, buffer_len blob, storage_func = nullptr);
-  
+  static void begin(void* location, buffer_t blob, storage_func = nullptr);
+
   // Only store user data, as if there was a live update process
   // Throws exception if process or sanity checks fail
   static size_t store(void* location, storage_func);
-  
+
   // Returns true if there is stored data from before at @location.
   // It performs an extensive validation process to make sure the data is
   // complete and consistent
   static bool is_resumable(void* location);
-  
+
   // Register a user-defined handler for what to do with @id from storage
   static void on_resume(uint16_t id, resume_func custom_handler);
-  
+
   // Attempt to restore existing stored entries from fixed location.
   // Returns false if there was nothing there. or if the process failed
   // to be sure that only failure can return false, use is_resumable first
   static bool resume(void* location, resume_func default_handler);
-  
+
   // Set location of known good blob to rollback to if something happens
-  static void set_rollback_blob(buffer_len) noexcept;
+  static void set_rollback_blob(const void*, size_t) noexcept;
   // Returns true if a backup rollback blob has been set
   static bool has_rollback_blob() noexcept;
   // Immediately start a rollback, not saving any state other than
@@ -89,11 +82,11 @@ struct LiveUpdate
  * By using the various add_* functions, the user stores data with @uid
  * as a marker to be able to recognize the object when restoring data.
  * IDs don't have to have specific values, and the user is free to use any value.
- * 
+ *
  * When using the add() function, the type cannot be verified on the other side,
  * simply because type_info isn't guaranteed to work across updates. A new update
  * could have been compiled with a different compiler.
- * 
+ *
 **/
 struct Storage
 {
@@ -109,34 +102,34 @@ struct Storage
   // storing as int saves some storage space compared to all the other types
   void add_int   (uid, int value);
   void add_string(uid, const std::string&);
-  void add_buffer(uid, buffer_len);
+  void add_buffer(uid, const buffer_t&);
   void add_buffer(uid, const void*, size_t length);
   // store vectors of PODs or std::string
   template <typename T>
   inline void add_vector(uid, const std::vector<T>& vector);
   // store a TCP connection
   void add_connection(uid, Connection_ptr);
-  
+
   Storage(storage_header& sh) : hdr(sh) {}
   void add_vector (uid, const void*, size_t count, size_t element_size);
   void add_string_vector (uid, const std::vector<std::string>&);
-  
+
 private:
   storage_header& hdr;
 };
 
 /**
  * A Restore object is given to the user by restore handlers,
- * during the resume() process. The user should know what type 
+ * during the resume() process. The user should know what type
  * each id is, and call the correct as_* function. The object
  * will still be validated, and an error is thrown if there was
  * a type mismatch in most cases.
- * 
+ *
  * It's possible to restore many objects from the same handler by
  * using go_next(). In that way, a user can restore complicated objects
  * completely without leaving the handler. go_next() will throw if there
  * is no next object to go to.
- * 
+ *
 **/
 struct Restore
 {
@@ -145,9 +138,9 @@ struct Restore
   bool           is_marker() const noexcept;
   int            as_int()    const;
   std::string    as_string() const;
-  buffer_len     as_buffer() const;
+  buffer_t       as_buffer() const;
   Connection_ptr as_tcp_connection(net::TCP&) const;
-  
+
   template <typename S>
   inline const S& as_type() const;
 

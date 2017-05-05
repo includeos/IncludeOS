@@ -53,7 +53,7 @@ bool LiveUpdate::resume(void* location, resume_func func)
   return resume_begin(*(storage_header*) location, func);
 }
 
-static size_t update_store_data(void* location, LiveUpdate::storage_func, buffer_len);
+static size_t update_store_data(void* location, LiveUpdate::storage_func, const buffer_t*);
 
 template <typename Class>
 inline bool validate_header(const Class* hdr)
@@ -65,7 +65,7 @@ inline bool validate_header(const Class* hdr)
 }
 
 void LiveUpdate::begin(void*        location,
-                       buffer_len   blob,
+                       buffer_t     blob,
                        storage_func storage_callback)
 {
   // use area provided to us directly, which we will assume
@@ -75,7 +75,7 @@ void LiveUpdate::begin(void*        location,
   // blobs are separated by at least one old kernel size and
   // some early heap allocations, which is at least 1mb, while
   // the copy mechanism just copies single bytes.
-  const char* update_area  = blob.buffer;
+  const char* update_area  = blob.data();
   char* storage_area = (char*) location;
 
   // validate not overwriting heap, kernel area and other things
@@ -107,8 +107,8 @@ void LiveUpdate::begin(void*        location,
   }
   LPRINT("* Found ELF header\n");
 
-  int expected_total = 0;
-  uintptr_t start_offset;
+  size_t    expected_total = 0;
+  uintptr_t start_offset = 0;
 
   const char* bin_data  = nullptr;
   int         bin_len   = 0;
@@ -143,14 +143,14 @@ void LiveUpdate::begin(void*        location,
     phys_base = (char*) phdr->p_paddr;
   }
 
-  if (blob.length < expected_total || expected_total < ELF_MINIMUM)
+  if (blob.size() < expected_total || expected_total < ELF_MINIMUM)
   {
     fprintf(stderr,
         "*** There was a mismatch between blob length and expected ELF file size:\n");
     fprintf(stderr,
         "EXPECTED: %u byte\n",  expected_total);
     fprintf(stderr,
-        "ACTUAL:   %u bytes\n", blob.length);
+        "ACTUAL:   %u bytes\n", blob.size());
     throw std::runtime_error("ELF file was incomplete");
   }
   LPRINT("* Validated ELF header\n");
@@ -162,14 +162,14 @@ void LiveUpdate::begin(void*        location,
   if (storage_callback)
   {
       auto storage_len =
-          update_store_data(storage_area, storage_callback, blob);
+          update_store_data(storage_area, storage_callback, &blob);
       (void) storage_len;
   }
 
   // store soft-resetting stuff
-  extern buffer_len get_rollback_location();
-  auto  rollback = get_rollback_location();
-  void* sr_data  = __os_store_soft_reset(rollback.buffer, rollback.length);
+  extern const std::pair<const char*, size_t> get_rollback_location();
+  const auto rollback = get_rollback_location();
+  void* sr_data  = __os_store_soft_reset(rollback.first, rollback.second);
   //void* sr_data = nullptr;
 
   // get offsets for the new service from program header
@@ -207,10 +207,10 @@ void LiveUpdate::begin(void*        location,
 }
 size_t LiveUpdate::store(void* location, storage_func func)
 {
-  return update_store_data(location, func, {nullptr, 0});
+  return update_store_data(location, func, nullptr);
 }
 
-size_t update_store_data(void* location, LiveUpdate::storage_func func, buffer_len blob)
+size_t update_store_data(void* location, LiveUpdate::storage_func func, const buffer_t* blob)
 {
   // create storage header in the fixed location
   new (location) storage_header();
@@ -245,9 +245,9 @@ void Storage::add_string(uid id, const std::string& str)
 {
   hdr.add_string(id, str);
 }
-void Storage::add_buffer(uid id, buffer_len blob)
+void Storage::add_buffer(uid id, const buffer_t& blob)
 {
-  hdr.add_buffer(id, blob.buffer, blob.length);
+  hdr.add_buffer(id, blob.data(), blob.size());
 }
 void Storage::add_buffer(uid id, const void* buf, size_t len)
 {
@@ -270,11 +270,4 @@ void Storage::add_connection(uid id, Connection_ptr conn)
     // return size of all the serialized data
     return conn->serialize_to(location);
   });
-}
-
-buffer_len buffer_len::deep_copy() const
-{
-  char* newbuffer = new char[this->length];
-  memcpy(newbuffer, this->buffer, this->length);
-  return { newbuffer, this->length };
 }

@@ -27,7 +27,7 @@ void show_heap_stats()
          total * 100.0);
 }
 
-static void* LIVEUPD_LOCATION   = (void*) 0x1400000; // at 20mb
+static void* LIVEUPD_LOCATION   = (void*) 0x1800000; // at 24mb
 static const uint16_t TERM_PORT = 6667;
 
 typedef net::tcp::Connection_ptr Connection_ptr;
@@ -132,7 +132,7 @@ void Service::ready()
 
 static std::vector<double> timestamps;
 
-void save_stuff(liu::Storage& storage, liu::buffer_len final_blob)
+void save_stuff(liu::Storage& storage, const liu::buffer_t* final_blob)
 {
   storage.add_int(0, 1234);
   storage.add_int(0, 5678);
@@ -140,8 +140,8 @@ void save_stuff(liu::Storage& storage, liu::buffer_len final_blob)
   storage.add_string(1, "Some string :(");
   storage.add_string(1, "Some other string :(");
 
-  char buffer[] = "Just some random buffer";
-  storage.add_buffer(1, {buffer, sizeof(buffer)});
+  const char buffer[] = "Just some random buffer";
+  storage.add_buffer(1, buffer, sizeof(buffer));
 
   std::vector<std::string> strvec;
   strvec.push_back("|String 1|");
@@ -156,7 +156,7 @@ void save_stuff(liu::Storage& storage, liu::buffer_len final_blob)
   storage.add_vector<double> (100, timestamps);
 
   // where the update was stored last
-  storage.add_buffer(999, final_blob.buffer, final_blob.length);
+  storage.add_buffer(999, *final_blob);
 
   // messages received from terminals
   storage.add_vector<std::string> (665, savemsg);
@@ -183,7 +183,7 @@ void strings_and_buffers(liu::Restore& thing)
 
   auto buffer = thing.as_buffer(); thing.go_next();
   // there is an extra zero at the end of the buffer
-  str = std::string(buffer.buffer, buffer.length-1);
+  str = std::string(buffer.data(), buffer.size()-1);
   assert(str == "Just some random buffer");
 
   auto vec = thing.as_vector<std::string> (); thing.go_next();
@@ -255,30 +255,29 @@ void restore_term(liu::Restore& thing)
 #include <timers>
 void on_update_area(liu::Restore& thing)
 {
-  auto updloc = thing.as_buffer().deep_copy();
+  auto updloc = thing.as_buffer();
   //printf("Reloading from %p:%d\n", updloc.buffer, updloc.length);
 
   // we are perpetually updating ourselves
   using namespace std::chrono;
   Timers::oneshot(milliseconds(250),
   [updloc] (auto) {
-    extern uintptr_t heap_end;
-    //printf("* Re-running previous update at %p vs heap %#x\n", updloc.buffer, heap_end);
-    liu::LiveUpdate::begin(LIVEUPD_LOCATION, updloc, save_stuff);
+    printf("* Re-running previous update at %p vs heap %p\n",
+            updloc.data(), (void*) heap_end);
+    liu::LiveUpdate::begin(LIVEUPD_LOCATION, std::move(updloc), save_stuff);
   });
 }
 
-static liu::buffer_len rollback;
 #include "server.hpp"
-
 template <typename T>
 void setup_liveupdate_server(T& inet)
 {
   // listen for live updates
   server(inet, 666,
-  [] (liu::buffer_len& buffer)
+  [] (liu::buffer_t buffer)
   {
-    printf("* Live updating from %p (len=%u)\n", buffer.buffer, buffer.length);
+    printf("* Live updating from %p (len=%u)\n",
+            buffer.data(), buffer.size());
     try
     {
       // run live update process
@@ -293,13 +292,12 @@ void setup_liveupdate_server(T& inet)
   });
   // listen for rollback blobs
   server(inet, 665,
-  [] (liu::buffer_len& buffer)
+  [] (liu::buffer_t buffer)
   {
-    char* location = (char*) LIVEUPD_LOCATION - buffer.length;
-    memcpy(location, buffer.buffer, buffer.length);
-    rollback = {location, buffer.length};
-    printf("* Rollback location: %p (len=%u)\n", rollback.buffer, rollback.length);
-    liu::LiveUpdate::set_rollback_blob(rollback);
+    char* location = (char*) LIVEUPD_LOCATION - buffer.size();
+    memcpy(location, buffer.data(), buffer.size());
+    printf("* Rollback location: %p (len=%u)\n", location, buffer.size());
+    liu::LiveUpdate::set_rollback_blob(location, buffer.size());
     // simulate crash
     //panic(":(");
     liu::LiveUpdate::rollback_now();

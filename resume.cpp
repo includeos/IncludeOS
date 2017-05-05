@@ -1,7 +1,7 @@
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
- * 
+ *
 **/
 #include "liveupdate.hpp"
 
@@ -45,7 +45,7 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
   serialized_tcp::wakeup_ip_networks();
   /// zero out all the state for security reasons
   storage.zero();
-  
+
   return true;
 }
 
@@ -73,10 +73,13 @@ std::string Restore::as_string() const
       return std::string(ent->data(), ent->len);
   throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
 }
-buffer_len  Restore::as_buffer() const
+buffer_t  Restore::as_buffer() const
 {
-  if (ent->type == TYPE_BUFFER)
-      return {ent->data(), ent->len};
+  if (ent->type == TYPE_BUFFER) {
+      buffer_t buffer;
+      buffer.insert(buffer.end(), ent->data(), ent->data() + ent->len);
+      return buffer;
+  }
   throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
 }
 Restore::Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
@@ -108,7 +111,7 @@ const void* Restore::get_segment(size_t size, size_t& count) const
   auto& segs = ent->get_segs();
   if (ent->type != TYPE_VECTOR)
       throw std::runtime_error("Incorrect T size: " + std::to_string(size) + " vs " + std::to_string(segs.esize));
-  
+
   count = segs.count;
   return (const void*) segs.vla;
 }
@@ -132,7 +135,7 @@ std::vector<std::string> Restore::rebuild_string_vector() const
   return retv;
 }
 
-/// 
+///
 bool     Restore::is_end() const noexcept
 {
   return get_type() == TYPE_END;
