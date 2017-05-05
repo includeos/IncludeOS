@@ -114,7 +114,7 @@ void LiveUpdate::begin(void*        location,
   int         bin_len   = 0;
   char*       phys_base = nullptr;
 
-  if (hdr->e_type == ELFCLASS32)
+  if (hdr->e_ident[EI_CLASS] == ELFCLASS32)
   {
     /// note: this assumes section headers are at the end
     expected_total =
