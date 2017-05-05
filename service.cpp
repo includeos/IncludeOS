@@ -83,13 +83,11 @@ void setup_terminal(net::Inet<net::IP4>& inet)
 
 void setup_liveupdate_server(net::Inet<net::IP4>& inet);
 
-extern "C" void panic(const char*);
 void Service::start()
 {
-  //OS::add_stdout_default_serial();
-  OS::on_panic(liu::LiveUpdate::rollback_now);
   // simulate crash
-  panic(":(");
+  //OS::on_panic(liu::LiveUpdate::rollback_now);
+  //liu::LiveUpdate::rollback_now();
 }
 void Service::ready()
 {
@@ -301,8 +299,7 @@ void setup_liveupdate_server(net::Inet<net::IP4>& inet)
             location, (uint32_t) buffer.size());
     liu::LiveUpdate::set_rollback_blob(location, buffer.size());
     // simulate crash
-    panic(":(");
-    //liu::LiveUpdate::rollback_now();
+    liu::LiveUpdate::rollback_now();
   });
 
   printf("LiveUpdate server listening on port 666\n");

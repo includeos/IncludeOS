@@ -17,8 +17,8 @@ void LiveUpdate::rollback_now()
 {
   if (LiveUpdate::has_rollback_blob())
   {
-    //printf("\nPerforming rollback from %p:%u...\n",
-    //      rollback_data, (uint32_t) rollback_len);
+    printf("\nPerforming rollback from %p:%u...\n",
+          rollback_data, (uint32_t) rollback_len);
     try
     {
       buffer_t vec(rollback_data, rollback_data + rollback_len);
@@ -29,13 +29,15 @@ void LiveUpdate::rollback_now()
     catch (std::exception& err)
     {
       fprintf(stderr, "Rollback failed:\n%s\n", err.what());
-      OS::reboot();
     }
   }
   else {
     fprintf(stderr, "\nMissing rollback data, rebooting...\n");
-    OS::reboot();
   }
+  fflush(stderr);
+  // no matter what, reboot
+  OS::reboot();
+  __builtin_unreachable();
 }
 
 const std::pair<const char*, size_t> get_rollback_location()
