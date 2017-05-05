@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include "elf.h"
 #include "storage.hpp"
+#include <kernel/os.hpp>
 
 //#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
 #define LPRINT(x, ...) /** x **/
@@ -25,7 +26,10 @@ extern "C" char  __hotswap_length;
 extern "C" void  hotswap64(char*, const char*, int, uintptr_t, void*);
 extern uint32_t  hotswap64_len;
 extern "C" void* __os_store_soft_reset(const void*, size_t);
+// kernel area
 extern char _ELF_START_;
+extern char _end;
+// heap area
 extern char* heap_begin;
 extern char* heap_end;
 
@@ -37,7 +41,7 @@ bool LiveUpdate::is_resumable(void* location)
   if (heap_end >= (char*) location) {
     fprintf(stderr,
         "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
-		     heap_end - (char*) location);
+		     (long int) (heap_end - (char*) location));
     return false;
   }
   return ((storage_header*) location)->validate();
@@ -80,13 +84,19 @@ void LiveUpdate::begin(void*        location,
 
   // validate not overwriting heap, kernel area and other things
   if (storage_area < (char*) 0x200) {
-    throw std::runtime_error("The storage area is probably a null pointer");
+    throw std::runtime_error("LiveUpdate storage area is (probably) a null pointer");
   }
-  if (storage_area >= &_ELF_START_ && storage_area < heap_begin) {
-    throw std::runtime_error("The storage area is inside kernel area");
+  if (storage_area >= &_ELF_START_ && storage_area < &_end) {
+    throw std::runtime_error("LiveUpdate storage area is inside kernel area");
   }
   if (storage_area >= heap_begin && storage_area < heap_end) {
-    throw std::runtime_error("The storage area is inside the heap area");
+    throw std::runtime_error("LiveUpdate storage area is inside the heap area");
+  }
+  if (storage_area >= (char*) OS::heap_max()) {
+    throw std::runtime_error("LiveUpdate storage area is outside memory");
+  }
+  if (storage_area >= (char*) OS::heap_max() - 0x10000) {
+    throw std::runtime_error("LiveUpdate storage area needs at least 64kb memory");
   }
 
   // search for ELF header
@@ -148,9 +158,9 @@ void LiveUpdate::begin(void*        location,
     fprintf(stderr,
         "*** There was a mismatch between blob length and expected ELF file size:\n");
     fprintf(stderr,
-        "EXPECTED: %u byte\n",  expected_total);
+        "EXPECTED: %u byte\n",  (uint32_t) expected_total);
     fprintf(stderr,
-        "ACTUAL:   %u bytes\n", blob.size());
+        "ACTUAL:   %u bytes\n", (uint32_t) blob.size());
     throw std::runtime_error("ELF file was incomplete");
   }
   LPRINT("* Validated ELF header\n");
@@ -174,7 +184,7 @@ void LiveUpdate::begin(void*        location,
 
   // get offsets for the new service from program header
   if (bin_data == nullptr ||
-      phys_base == nullptr || bin_len <= 0) {
+      phys_base == nullptr || bin_len <= 64) {
     throw std::runtime_error("ELF program header malformed");
   }
 

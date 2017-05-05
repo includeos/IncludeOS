@@ -13,33 +13,27 @@ namespace liu
   static const char* rollback_data;
   static size_t      rollback_len;
 
-  void disable_longmode()
-  {
-    asm("");
-  }
-
 void LiveUpdate::rollback_now()
 {
   if (LiveUpdate::has_rollback_blob())
   {
-    //printf("\nPerforming rollback from %p...\n", rollback_data.buffer);
+    //printf("\nPerforming rollback from %p:%u...\n",
+    //      rollback_data, (uint32_t) rollback_len);
     try
     {
-      void* ROLLBACK_LOCATION = (void*) (heap_end + 0x4000);
+      buffer_t vec(rollback_data, rollback_data + rollback_len);
       // run live update process
-      buffer_t vec;
-      vec.insert(vec.end(), rollback_data, rollback_data + rollback_len);
+      void* ROLLBACK_LOCATION = (void*) (heap_end + 0x4000);
       LiveUpdate::begin(ROLLBACK_LOCATION, std::move(vec));
     }
     catch (std::exception& err)
     {
-      printf("Rollback failed:\n%s\n", err.what());
+      fprintf(stderr, "Rollback failed:\n%s\n", err.what());
+      OS::reboot();
     }
-
   }
   else {
-    printf("\nMissing rollback data, rebooting...\n");
-
+    fprintf(stderr, "\nMissing rollback data, rebooting...\n");
     OS::reboot();
   }
 }

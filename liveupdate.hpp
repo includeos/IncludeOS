@@ -62,6 +62,7 @@ struct LiveUpdate
   static bool has_rollback_blob() noexcept;
   // Immediately start a rollback, not saving any state other than
   // performing a soft-reset to reduce downtime to a minimum
+  // Never returns, and upon failure intentionally hard-resets the OS
   static void rollback_now();
 };
 
@@ -187,7 +188,7 @@ inline std::vector<T> Restore::as_vector() const
 template <>
 inline std::vector<std::string> Restore::as_vector() const
 {
-  return rebuild_string_vector();;
+  return rebuild_string_vector();
 }
 
 template <typename T>

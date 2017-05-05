@@ -19,15 +19,15 @@ void show_heap_stats()
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
 
-  fprintf(stderr, "\tHeap is at: %#x / %#x  (diff=%#x)\n",
-         heap_end, OS::heap_max(), OS::heap_max() - heap_end);
+  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%#x)\n",
+         (void*) heap_end, (void*) OS::heap_max(),
+         (uint32_t) (OS::heap_max() - heap_end));
   fprintf(stderr, "\tHeap usage: %u / %u Kb (%.2f%%)\n",
-         (heap_end - heap_begin) / 1024,
-         heap_total / 1024,
-         total * 100.0);
+         (uint32_t) (heap_end - heap_begin) / 1024,
+         heap_total / 1024, total * 100.0);
 }
 
-static void* LIVEUPD_LOCATION   = (void*) 0x1800000; // at 24mb
+static void* LIVEUPD_LOCATION   = (void*) 0x2800000; // at 40mb
 static const uint16_t TERM_PORT = 6667;
 
 typedef net::tcp::Connection_ptr Connection_ptr;
@@ -42,7 +42,8 @@ void setup_terminal_connection(Connection_ptr conn)
   [conn] (net::tcp::buffer_t buf, size_t n)
   {
     std::string str((const char*) buf.get(), n);
-    printf("Received message %u: %s", savemsg.size()+1, str.c_str());
+    printf("Received message %u: %s",
+          (uint32_t) savemsg.size()+1, str.c_str());
     // save for later as strings
     savemsg.push_back(str);
   });
@@ -52,8 +53,7 @@ void setup_terminal_connection(Connection_ptr conn)
   });
 }
 
-template <typename T>
-void setup_terminal(T& inet)
+void setup_terminal(net::Inet<net::IP4>& inet)
 {
   // mini terminal
   printf("Setting up terminal on port %u\n", TERM_PORT);
@@ -81,13 +81,15 @@ void setup_terminal(T& inet)
   });
 }
 
-template <typename T>
-void setup_liveupdate_server(T& inet);
+void setup_liveupdate_server(net::Inet<net::IP4>& inet);
 
 extern "C" void panic(const char*);
 void Service::start()
 {
   //OS::add_stdout_default_serial();
+  OS::on_panic(liu::LiveUpdate::rollback_now);
+  // simulate crash
+  panic(":(");
 }
 void Service::ready()
 {
@@ -126,7 +128,7 @@ void Service::ready()
   setup_terminal(inet);
   // show profile stats for boot
   //printf("%s\n", ScopedProfiler::get_statistics().c_str());
-  printf("This is the known good version :)\n");
+  //printf("This is the known good version :)\n");
   //panic("Oh noes! :(\n");
 }
 
@@ -197,7 +199,7 @@ void saved_message(liu::Restore& thing)
   for (auto& str : vec)
   {
     static int n = 0;
-    printf("[%d] %.*s", ++n, str.size(), str.c_str());
+    printf("[%d] %.*s", ++n, (int) str.size(), str.c_str());
     // re-save it
     //savemsg.push_back(str);
   }
@@ -236,7 +238,7 @@ void the_timing(liu::Restore& thing)
   double median = timestamps[timestamps.size()/2];
 
   printf(">> %u timestamps, median TS: %.2f ms\n",
-      timestamps.size(), median);
+        (uint32_t) timestamps.size(), median);
 
 }
 void restore_term(liu::Restore& thing)
@@ -269,15 +271,14 @@ void on_update_area(liu::Restore& thing)
 }
 
 #include "server.hpp"
-template <typename T>
-void setup_liveupdate_server(T& inet)
+void setup_liveupdate_server(net::Inet<net::IP4>& inet)
 {
   // listen for live updates
   server(inet, 666,
-  [] (liu::buffer_t buffer)
+  [] (liu::buffer_t& buffer)
   {
     printf("* Live updating from %p (len=%u)\n",
-            buffer.data(), buffer.size());
+            buffer.data(), (uint32_t) buffer.size());
     try
     {
       // run live update process
@@ -292,15 +293,16 @@ void setup_liveupdate_server(T& inet)
   });
   // listen for rollback blobs
   server(inet, 665,
-  [] (liu::buffer_t buffer)
+  [] (liu::buffer_t& buffer)
   {
     char* location = (char*) LIVEUPD_LOCATION - buffer.size();
     memcpy(location, buffer.data(), buffer.size());
-    printf("* Rollback location: %p (len=%u)\n", location, buffer.size());
+    printf("* Rollback location: %p (len=%u)\n",
+            location, (uint32_t) buffer.size());
     liu::LiveUpdate::set_rollback_blob(location, buffer.size());
     // simulate crash
-    //panic(":(");
-    liu::LiveUpdate::rollback_now();
+    panic(":(");
+    //liu::LiveUpdate::rollback_now();
   });
 
   printf("LiveUpdate server listening on port 666\n");

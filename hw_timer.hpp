@@ -1,7 +1,7 @@
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
- * 
+ *
 **/
 #pragma once
 
@@ -18,7 +18,8 @@ struct HW_timer
     const double div  = OS::cpu_freq().count() * 1000.0;
     const double time = diff / div;
 
-    printf("HW timer for %s: %lld (%.2f ms)\n", context, diff, time);
+    printf("HW timer for %s: %lld (%.2f ms)\n",
+            context, diff, time);
   }
 private:
   const char* context;

@@ -25,13 +25,12 @@ void server(net::Inet<net::IP4>& inet,
     [conn, buffer] (net::tcp::buffer_t buf, size_t n)
     {
       buffer->insert(buffer->end(), buf.get(), buf.get() + n);
-      printf("New len: %u\n", buffer->size());
 
     }).on_close(
     net::tcp::Connection::CloseCallback::make_packed(
     [buffer, callback] {
       printf("* Blob size: %u b  stored at %p\n",
-             buffer->size(), buffer->data());
+            (uint32_t) buffer->size(), buffer->data());
       callback(*buffer);
       delete buffer;
     }));
