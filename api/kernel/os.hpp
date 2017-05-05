@@ -277,7 +277,7 @@ private:
   // Prohibit construction
   OS() = delete;
 
-  friend void __arch_init();
+  friend void __platform_init();
 }; //< OS
 
 #endif //< KERNEL_OS_HPP

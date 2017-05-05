@@ -156,9 +156,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   os_cycles_total = &Statman::get().create(
       Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
-  PROFILE("Arch init");
-  extern void __arch_init();
-  __arch_init();
+  PROFILE("Platform init");
+  extern void __platform_init();
+  __platform_init();
   kernel_sanity_checks();
 
   PROFILE("RTC init");
