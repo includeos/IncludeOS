@@ -120,9 +120,13 @@ std::vector<smp_done_func> SMP::get_completed()
 /// implementation of the SMP interface ///
 int ::SMP::cpu_id() noexcept
 {
+#ifdef INCLUDEOS_SINGLE_THREADED
+  return 0;
+#else
   int cpuid;
   asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
   return cpuid;
+#endif
 }
 int ::SMP::cpu_count() noexcept
 {

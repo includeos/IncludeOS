@@ -10,6 +10,7 @@ enable_language(ASM_NASM)
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
