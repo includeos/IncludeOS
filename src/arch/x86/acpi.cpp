@@ -377,7 +377,7 @@ namespace x86 {
   __attribute__((noreturn))
   void ACPI::shutdown()
   {
-    asm volatile("cli");
+    asm("cli");
 
     // ACPI shutdown
     get().acpi_shutdown();
@@ -393,8 +393,6 @@ namespace x86 {
 
     // VMWare poweroff when "gui.exitOnCLIHLT" is true
     printf("Shutdown failed :(\n");
-    while (true) {
-      asm volatile("cli; hlt" : : : "memory");
-    }
+    while (true) asm ("cli; hlt");
   }
 }

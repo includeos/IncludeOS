@@ -108,7 +108,13 @@ char*  get_crash_context_buffer()
 }
 
 static bool panic_reenter = false;
-OS::on_panic_func panic_handler = nullptr;
+static OS::on_panic_func panic_handler = nullptr;
+
+void OS::on_panic(on_panic_func func)
+{
+  panic_handler = std::move(func);
+}
+
 /**
  * panic:
  * Display reason for kernel panic
@@ -179,7 +185,7 @@ void panic(const char* why)
   while (1) asm("cli; hlt");
   __builtin_unreachable();
 #else
-#warning "panic() handler not implemented for selected arch"
+  #warning "panic() handler not implemented for selected arch"
 #endif
 }
 
