@@ -66,7 +66,7 @@ public:
    *
    * @return     A 16 char WebSocket key
    */
-  static std::string generate_key();
+  static std::vector<char> generate_key();
 
   /**
    * @brief      Use a HTTP Client to connect to a WebSocket destination
