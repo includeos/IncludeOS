@@ -218,20 +218,17 @@ WebSocket_ptr WebSocket::upgrade(Error err, Response& res, Connection& conn, con
   }
 }
 
-static std::string generate16b()
+std::vector<char> WebSocket::generate_key()
 {
-  std::string hash; hash.resize(16);
+  std::vector<char> key(16);
   uint16_t v;
-  for (size_t i = 0; i < hash.size(); i += sizeof(v))
+  for (size_t i = 0; i < key.size(); i += sizeof(v))
   {
     v = rand() & 0xffff;
-    memcpy(&hash[i], &v, sizeof(v));
+    memcpy(&key[i], &v, sizeof(v));
   }
-  return hash;
+  return key;
 }
-
-std::string WebSocket::generate_key()
-{ return generate16b(); }
 
 Server::Request_handler WebSocket::create_request_handler(
   Connect_handler on_connect, Accept_handler on_accept)
@@ -286,7 +283,7 @@ void WebSocket::connect(
       Connect_handler callback)
 {
   // doesn't have to be extremely random, just random
-  std::string key  = base64::encode(generate16b());
+  std::string key  = base64::encode(generate_key());
   http::Header_set ws_headers {
       {"Host",       remote.to_string()},
       {"Connection", "Upgrade"  },
