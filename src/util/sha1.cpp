@@ -225,6 +225,10 @@ void SHA1::update(const std::string &s)
     update(s.c_str(), s.size());
 }
 
+void SHA1::update(const std::vector<char>& vec)
+{
+    update(vec.data(), vec.size());
+}
 
 void SHA1::update(const char* inbuffer, size_t inlen)
 {

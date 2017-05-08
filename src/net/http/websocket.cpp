@@ -158,7 +158,8 @@ encode_hash(const std::string& key)
 {
   static const std::string GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
   static SHA1  sha;
-  sha.update(key + GUID);
+  sha.update(key);
+  sha.update(GUID);
   return base64::encode(sha.as_raw());
 }
 
