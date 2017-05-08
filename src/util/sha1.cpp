@@ -285,12 +285,12 @@ void SHA1::finalize()
     transform(digest, block, transforms);
 }
 
-std::string SHA1::as_raw()
+std::vector<char> SHA1::as_raw()
 {
     finalize();
 
-    /* Result as hex string */
-    std::string result;  result.resize(20);
+    /* Result as raw character array */
+    std::vector<char> result(20);
     for (int i = 0; i < 5; i++) {
       result[i * 4 + 0] = digest[i] >> 24;
       result[i * 4 + 1] = digest[i] >> 16;
@@ -301,7 +301,7 @@ std::string SHA1::as_raw()
     /* Reset for next run */
     reset(digest, transforms);
     buffer_len = 0;
-    
+
     return result;
 }
 std::string SHA1::as_hex()
@@ -310,20 +310,20 @@ std::string SHA1::as_hex()
 
     /* Result as hex string */
     std::string result;  result.resize(40);
-    sprintf(&result[0], "%08x%08x%08x%08x%08x", 
+    sprintf(&result[0], "%08x%08x%08x%08x%08x",
              digest[0], digest[1], digest[2], digest[3], digest[4]);
 
     /* Reset for next run */
     reset(digest, transforms);
     buffer_len = 0;
-    
+
     return result;
 }
 
-std::string SHA1::oneshot_raw(const std::string& buffer)
+std::vector<char> SHA1::oneshot_raw(const std::vector<char>& vec)
 {
   SHA1 object;
-  object.update(buffer.c_str(), buffer.size());
+  object.update(vec.data(), vec.size());
   return object.as_raw();
 }
 std::string SHA1::oneshot_hex(const std::string& buffer)
