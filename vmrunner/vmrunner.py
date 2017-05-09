@@ -81,7 +81,8 @@ def info(*args):
 
 
 def file_type(filename):
-    return magic.from_file(filename)
+    with magic.Magic() as m:
+        return m.id_filename(filename)
 
 def is_Elf64(filename):
     magic = file_type(filename)
