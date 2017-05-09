@@ -214,7 +214,7 @@ public:
 
   /** Get "kernel modules", provided by multiboot */
   static Span_mods modules() {
-
+    auto* bootinfo_ = bootinfo();
     if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS) {
 
       Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
@@ -234,6 +234,8 @@ private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
+
+  static multiboot_info_t* bootinfo();
 
   /** Boot with no multiboot params */
   static void legacy_boot();
@@ -265,7 +267,6 @@ private:
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
-  static multiboot_info_t* bootinfo_;
   static std::string cmdline;
 
   // Prohibit copy and move operations
@@ -277,7 +278,7 @@ private:
   // Prohibit construction
   OS() = delete;
 
-  friend void __arch_init();
+  friend void __platform_init();
 }; //< OS
 
 #endif //< KERNEL_OS_HPP

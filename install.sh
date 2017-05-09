@@ -7,11 +7,11 @@
 # Location of the IncludeOS repo (default: current directory)
 export INCLUDEOS_SRC=${INCLUDEOS_SRC:-`pwd`}
 # Prefered install location (default: /usr/local)
-export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
+export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-/usr/local}
 # Enable compilation of tests in cmake (default: OFF)
-export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST-OFF}
+export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST:-OFF}
 # Set CPU-architecture (default x86_64)
-export ARCH=${ARCH-x86_64}
+export ARCH=${ARCH:-x86_64}
 
 ############################################################
 # COMMAND LINE PROPERTIES:
@@ -227,6 +227,15 @@ if [ "Linux" = "$SYSTEM" ]; then
         exit 1
     fi
 fi
+
+
+printf "\n\n>>> Installing chain loader\n"
+if ! ./etc/build_chainloader.sh; then
+  printf "%s\n" ">>> Sorry <<<"\
+			   "Could not build chainloader."
+  exit 1
+fi
+
 
 ############################################################
 # INSTALL FINISHED:
