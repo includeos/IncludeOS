@@ -23,8 +23,6 @@
 #include <arch.hpp>
 #include <delegate>
 
-#define INCLUDEOS_SINGLE_THREADED
-
 #ifdef INCLUDEOS_SINGLE_THREADED
 #define SMP_MAX_CORES   1
 #else
