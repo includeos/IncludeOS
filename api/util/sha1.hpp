@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 class SHA1
 {
@@ -34,14 +35,15 @@ public:
     SHA1();
     // update with new data
     void update(const std::string&);
+    void update(const std::vector<char>&);
     void update(const char*, size_t);
     // finalize values
-    std::string as_raw();  // 20 bytes
-    std::string as_hex();  // 40 bytes
+    std::vector<char> as_raw();  // 20 bytes
+    std::string       as_hex();  // 40 bytes
 
-    // 20 byte SHA1 sum of string
-    static std::string oneshot_raw(const std::string&);
-    // 40 byte hex string of SHA1 sum
+    // 20 byte SHA1 raw value
+    static std::vector<char> oneshot_raw(const std::vector<char>&);
+    // 40 byte SHA1 hex string
     static std::string oneshot_hex(const std::string&);
 
 private:

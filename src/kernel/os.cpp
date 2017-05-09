@@ -282,11 +282,6 @@ void OS::shutdown()
   MYINFO("Soft shutdown signalled");
   power_ = false;
 }
-void OS::on_panic(on_panic_func func)
-{
-  extern on_panic_func panic_handler;
-  panic_handler = func;
-}
 
 void OS::add_stdout(OS::print_func func)
 {
