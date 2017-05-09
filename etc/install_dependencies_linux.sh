@@ -114,8 +114,6 @@ fi
 
 echo ">>> Installing missing dependencies (requires sudo):"
 
-sudo -H pip -q install $PYTHON_DEPENDENCIES
-
 case $SYSTEM in
     "Darwin")
         exit 0;
@@ -126,20 +124,17 @@ case $SYSTEM in
                 DEPENDENCIES="$DEPENDENCIES"
                 sudo apt-get -qq update || exit 1
                 sudo apt-get -qqy install $DEPENDENCIES > /dev/null || exit 1
-                exit 0;
                 ;;
             "fedora")
                 DEPENDENCIES="$DEPENDENCIES"
                 sudo dnf install $DEPENDENCIES || exit 1
-                exit 0;
                 ;;
             "arch")
                 DEPENDENCIES="$DEPENDENCIES python2 python2-jsonschema python2-psutil"
                 sudo pacman -Syyu
                 sudo pacman -S --needed $DEPENDENCIES
-                exit 0;
                 ;;
         esac
 esac
 
-exit 1
+sudo -H pip -q install $PYTHON_DEPENDENCIES
