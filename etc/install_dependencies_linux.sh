@@ -6,7 +6,7 @@
 # OPTIONS:
 ############################################################
 
-BUILD_DEPENDENCIES="curl make clang cmake nasm bridge-utils qemu jq"
+BUILD_DEPENDENCIES="curl make clang cmake nasm bridge-utils qemu jq python-pip"
 TEST_DEPENDENCIES="g++ g++-multilib"
 PYTHON_DEPENDENCIES="jsonschema psutil junit-xml filemagic"
 INSTALLED_PIP=0
