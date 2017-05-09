@@ -6,6 +6,7 @@
 
 extern  void default_stdout_handlers();
 extern  void __platform_init();
+
 #define MYINFO(X,...) INFO("x86_nano", X, ##__VA_ARGS__)
 
 extern "C" {
@@ -25,10 +26,6 @@ extern "C" {
 
     // Initialize serial port 1
     __init_serial1();
-
-    kprintf("\n#include<os> // Literally\n\n");
-
-    //MYINFO("Booting");
 
     // generate checksums of read-only areas etc.
     __init_sanity_checks();

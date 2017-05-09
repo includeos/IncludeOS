@@ -51,6 +51,7 @@ extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
+extern multiboot_info_t* __multiboot_addr;
 
 // Initialize static OS data members
 bool  OS::power_   = true;
@@ -61,7 +62,6 @@ uintptr_t OS::high_memory_size_ {0};
 uintptr_t OS::memory_end_ {0};
 uintptr_t OS::heap_max_ {0xfffffff};
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
-multiboot_info_t* OS::bootinfo_ = nullptr;
 std::string OS::cmdline{Service::binary_name()};
 
 // stdout redirection
@@ -306,6 +306,9 @@ size_t OS::print(const char* str, const size_t len)
   return len;
 }
 
+multiboot_info_t* OS::bootinfo() {
+  return __multiboot_addr;
+}
 
 void OS::legacy_boot() {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
