@@ -41,17 +41,16 @@ Statman& Statman::get() {
   return statman_;
 }
 
+/// RTC ///
 #include <rtc>
 RTC::timestamp_t RTC::booted_at = 0;
 
+void RTC::init() {}
 RTC::timestamp_t RTC::now() {
-  return 0;
+  return time(0);
 }
 
-void RTC::init() {
-  return;
-}
-
+/// TIMERS ///
 #include <kernel/timers.hpp>
 void Timers::timers_handler() {
   return;
@@ -73,7 +72,7 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
   return 0;
 }
 
-#include <os>
+#include <kernel/os.hpp>
 void OS::resume_softreset(intptr_t) {
   return;
 }
@@ -94,106 +93,64 @@ extern "C" {
   uintptr_t _LOAD_START_;
   uintptr_t _LOAD_END_;
   uintptr_t _BSS_END_;
-  uintptr_t _MAX_MEM_MIB_;
-#ifdef __MACH__
-  uintptr_t _start;
-#endif
 
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
   }
 
-  void _init_c_runtime() {
-    return;
-  }
-  void _init_bss() {
-    return;
-  }
-  void _init_heap(uintptr_t) {
-    return;
-  }
-
+  void _init_c_runtime() {}
+  void _init_bss() {}
+  void _init_heap(uintptr_t) {}
 
 #ifdef __MACH__
-  void _init() {
-    return;
-  }
+  void _init() {}
 #endif
 
-  void __libc_init_array () {
-    return;
-  }
+  void __libc_init_array () {}
 
-  void modern_interrupt_handler() {
-    return;
-  }
+  /// IRQ manager ///
+  void modern_interrupt_handler() {}
+  void unused_interrupt_handler() {}
+  void spurious_intr() {}
+  void cpu_sampling_irq_entry() {}
 
-  void unused_interrupt_handler() {
-    return;
-  }
 
-  void spurious_intr() {
-    return;
-  }
-
-  void lapic_send_eoi() {
-    return;
-  }
-
-  void lapic_irq_entry() {
-    return;
-  }
-
-  void get_cpu_id() {
-    return;
-  }
-
-  void cpu_sampling_irq_entry() {
-    return;
-  }
-
-  void __init_sanity_checks() noexcept {}
-
-  uintptr_t _multiboot_free_begin(uintptr_t boot_addr) {
+  uintptr_t _multiboot_free_begin(uintptr_t) {
     return 0;
-  };
-
-  uintptr_t _move_symbols(uintptr_t loc) {
+  }
+  uintptr_t _move_symbols(uintptr_t) {
     return 0;
-  };
-
-  void kernel_sanity_checks() {}
+  }
 
   void reboot_os() {
-    return;
+    assert(0 && "Reboot called");
   }
 
   struct mallinfo { int x; };
   struct mallinfo mallinfo() {
     return {0};
   }
-
-  void malloc_trim() {
-    return;
-  }
-
-  static char __printbuf[4096];
+  void malloc_trim() {}
 
   __attribute__((weak))
-  void __init_serial1 () {
-    return;
-  }
-
+  void __init_serial1 () {}
   __attribute__((weak))
   void __serial_print1(const char* cstr) {
-    snprintf(__printbuf, 4096, "%s", cstr);
+    static char __printbuf[4096];
+    snprintf(__printbuf, sizeof(__printbuf), "%s", cstr);
   }
 
 
 } // ~ extern "C"
 
+/// platform ///
+void* __multiboot_addr;
+
+void __platform_init() {}
+extern "C" void __init_sanity_checks() {}
+extern "C" void kernel_sanity_checks() {}
+
 /// arch ///
-void __arch_init() {}
 void __arch_poweroff() {}
 void __arch_reboot() {}
 void __arch_enable_legacy_irq(uint8_t) {}
@@ -221,7 +178,5 @@ bool rdrand32(uint32_t* result) {
   *result = rand();
   return true;
 }
-#include <kernel/cpuid.hpp>
-#include <kernel/irq_manager.hpp>
 
 #endif
