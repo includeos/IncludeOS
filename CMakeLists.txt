@@ -8,12 +8,7 @@ if(DEFINED ENV{ARCH})
   set(ARCH $ENV{ARCH})
 endif()
 
-set(PLATFORM x86_pc)
-if(DEFINED ENV{PLATFORM})
-  set(PLATFORM $ENV{PLATFORM})
-endif()
-
-message(STATUS "Target CPU ${ARCH}, platform ${PLATFORM}")
+message(STATUS "Target CPU ${ARCH}")
 
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
