@@ -21,21 +21,8 @@ void default_stdout_handlers()
   OS::add_stdout_default_serial();
 }
 
-#define MYINFO(X,...) INFO("x86_nano", X, ##__VA_ARGS__)
-
 void __platform_init(){
-  // read ACPI tables
-  ACPI::init();
-
-  // setup APIC, APIC timer, SMP etc.
-  APIC::init();
-
-  // IDT manager: Interrupt and exception handlers
-  IRQ_manager::init(APIC::get().get_id());
-
-  // enable interrupts
-  IRQ_manager::enable_interrupts();
-
+  // TODO: set up minimal CPU exception handlers
 }
 
 void __arch_reboot(){}
