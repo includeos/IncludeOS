@@ -48,8 +48,8 @@ echo -e "\n\n>>> Best guess for compatible compilers: $CXX / $CC"
 
 # Build IncludeOS
 echo -e "\n\n>>> Building IncludeOS"
-mkdir -p $INCLUDEOS_SRC/build
-pushd $INCLUDEOS_SRC/build
+mkdir -p $INCLUDEOS_SRC/build_${ARCH}
+pushd $INCLUDEOS_SRC/build_${ARCH}
 cmake $INCLUDEOS_SRC \
 	  -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX \
 	  -Dtests=$INCLUDEOS_ENABLE_TEST \

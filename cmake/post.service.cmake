@@ -211,6 +211,9 @@ add_library(libarch STATIC IMPORTED)
 set_target_properties(libarch PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libarch PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libarch.a)
 
+add_library(libplatform STATIC IMPORTED)
+set_target_properties(libplatform PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libplatform PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/platform/lib${PLATFORM}.a)
 
 add_library(libbotan STATIC IMPORTED)
 set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
@@ -309,19 +312,31 @@ set_target_properties(crtn PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/l
 
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
+  libplatform
   libarch
   libos
   libbotan
   libosdeps
   cxxabi
-  libarch
-  libos
   libc
-  libos
   libcxx
   libm
   libg
   libgcc
+
+  libplatform
+  libarch
+  libos
+  libbotan
+  libosdeps
+  cxxabi
+  libc
+  libcxx
+  libm
+  libg
+  libgcc
+
+
   ${INSTALL_LOC}/${ARCH}/lib/crtend.o
   --whole-archive crtn --no-whole-archive
   )

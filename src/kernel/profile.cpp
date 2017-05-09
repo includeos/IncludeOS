@@ -17,7 +17,7 @@
 
 #include <profile>
 #include <common>
-#include "../arch/x86/pit.hpp"
+#include "../platform/x86_pc/pit.hpp"
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/irq_manager.hpp>

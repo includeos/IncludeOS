@@ -7,7 +7,16 @@ if (NOT DEFINED ARCH)
   endif()
 endif()
 
-message(STATUS "Building for arch ${ARCH}")
+if (NOT DEFINED PLATFORM)
+  if (DEFINED ENV{PLATFORM})
+    set(PLATFORM $ENV{PLATFORM})
+  else()
+    set(PLATFORM x86_pc)
+  endif()
+endif()
+
+
+message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
 
 set(TRIPLE ${ARCH}) #-pc-linux-elf
 set(DCMAKE_CXX_COMPILER_TARGET ${TRIPLE})

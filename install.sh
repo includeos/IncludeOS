@@ -228,6 +228,15 @@ if [ "Linux" = "$SYSTEM" ]; then
     fi
 fi
 
+
+printf "\n\n>>> Installing chain loader\n"
+if ! ./etc/build_chainloader.sh; then
+  printf "%s\n" ">>> Sorry <<<"\
+			   "Could not build chainloader."
+  exit 1
+fi
+
+
 ############################################################
 # INSTALL FINISHED:
 ############################################################
