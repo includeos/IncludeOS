@@ -13,9 +13,9 @@ set -e
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
 # $ export INCLUDEOS_PREFIX=parent/folder/for/IncludeOS/libraries i.e.
 
-INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
-INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
-num_jobs=${num_jobs-"-j 4"}
+INCLUDEOS_SRC=${INCLUDEOS_SRC:-$HOME/IncludeOS}
+INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-/usr/local}
+num_jobs=${num_jobs:-"-j 4"}
 
 # Try to find suitable compiler
 cc_list="clang-3.9 clang-3.8 clang-3.7 clang-3.6 clang"
@@ -48,8 +48,8 @@ echo -e "\n\n>>> Best guess for compatible compilers: $CXX / $CC"
 
 # Build IncludeOS
 echo -e "\n\n>>> Building IncludeOS"
-mkdir -p $INCLUDEOS_SRC/build
-pushd $INCLUDEOS_SRC/build
+mkdir -p $INCLUDEOS_SRC/build_${ARCH}
+pushd $INCLUDEOS_SRC/build_${ARCH}
 cmake $INCLUDEOS_SRC \
 	  -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX \
 	  -Dtests=$INCLUDEOS_ENABLE_TEST \

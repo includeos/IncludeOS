@@ -188,6 +188,7 @@ static int prune_elf_symbols()
   }
   // stripped variant
   pruned_location = new char[sizeof(relocate_header)];
+  memset(pruned_location, 0, sizeof(relocate_header));
   return sizeof(relocate_header);
 }
 

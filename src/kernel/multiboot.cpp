@@ -32,6 +32,7 @@ extern "C" {
     multiboot_info_t* bootinfo = (multiboot_info_t*) boot_addr;
     uintptr_t multi_end = reinterpret_cast<uintptr_t>(&_end);
 
+    debug("* Multiboot begin: 0x%x \n", bootinfo);
     if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE
         and bootinfo->cmdline > multi_end) {
 
@@ -72,7 +73,7 @@ extern "C" {
 void OS::multiboot(uint32_t boot_addr)
 {
   MYINFO("Booted with multiboot");
-  bootinfo_ = (multiboot_info_t*) boot_addr;
+  auto* bootinfo_ = bootinfo();
   INFO2("* Boot flags: %#x", bootinfo_->flags);
 
   if (bootinfo_->flags & MULTIBOOT_INFO_MEMORY) {
