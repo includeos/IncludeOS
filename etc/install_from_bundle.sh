@@ -13,9 +13,9 @@ set -e
 # Parent directory of where you want the IncludeOS libraries (i.e. IncludeOS_home)
 # $ export INCLUDEOS_PREFIX=parent/folder/for/IncludeOS/libraries i.e.
 
-INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
-INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
-num_jobs=${num_jobs-"-j 4"}
+INCLUDEOS_SRC=${INCLUDEOS_SRC:-$HOME/IncludeOS}
+INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-/usr/local}
+num_jobs=${num_jobs:-"-j 4"}
 
 # Try to find suitable compiler
 cc_list="clang-3.9 clang-3.8 clang-3.7 clang-3.6 clang"
