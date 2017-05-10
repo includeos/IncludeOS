@@ -55,7 +55,7 @@ set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -D_STACK_GUARD_VALU
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
 set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE")
 
-set(WARNS "-Wall -Wextra -Wno-expansion-to-defined")
+set(WARNS "-Wall -Wextra")
 
 # configure options
 option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
