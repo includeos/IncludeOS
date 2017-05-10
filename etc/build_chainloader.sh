@@ -13,6 +13,13 @@ export ARCH=i686
 
 echo -e "\n\n>>> Building chainloader deps, $ARCH / $PLATFORM"
 
+if [ "Darwin" = "$SYSTEM" ]; then
+	if ! ./etc/install_dependencies_macos.sh; then
+		printf "%s\n" ">>> Sorry <<<"\
+					 "Could not install dependencies"
+	fi
+fi
+
 $INCLUDEOS_SRC/etc/install_from_bundle.sh
 
 echo -e "\n\n>>> Building chainloader"

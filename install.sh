@@ -50,7 +50,7 @@ done
 # SYSTEM PROPERTIES:
 ############################################################
 
-SYSTEM=`uname -s`
+export SYSTEM=`uname -s`
 
 read_linux_release() {
     LINE=`grep "^ID=" /etc/os-release`
