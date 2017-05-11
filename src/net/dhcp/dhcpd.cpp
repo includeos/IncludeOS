@@ -16,6 +16,7 @@
 // limitations under the License.
 #include <net/dhcp/dhcpd.hpp>
 #include <rtc>
+#include <bitset>
 
 using namespace net;
 using namespace dhcp;
