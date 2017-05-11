@@ -24,8 +24,8 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 |        | Build from bundle | Integration tests |
 |--------|-------------------|-------------------|
-| Master | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_master_bundle)](https://jenkins.includeos.org/job/shield_master_bundle/) |  Coming soon |
-| Dev    | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_dev_bundle)](https://jenkins.includeos.org/job/shield_dev_bundle/)      | [![Jenkins tests](https://img.shields.io/jenkins/t/https/jenkins.includeos.org/shield_dev_integration_tests.svg)](https://jenkins.includeos.org/job/shield_dev_integration_tests/) |
+| Master | [![Build Status](https://img.shields.io/jenkins/s/https/jenkins.includeos.org/shield_master_bundle.svg)](https://jenkins.includeos.org/job/shield_master_bundle/) |  Coming soon |
+| Dev    | [![Build Status](https://img.shields.io/jenkins/s/https/jenkins.includeos.org/shield_dev_bundle.svg)](https://jenkins.includeos.org/job/shield_dev_bundle/)      | [![Jenkins tests](https://img.shields.io/jenkins/t/https/jenkins.includeos.org/shield_dev_integration_tests.svg)](https://jenkins.includeos.org/job/shield_dev_integration_tests/) |
 
 ### Key features
 
