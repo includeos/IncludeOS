@@ -78,7 +78,7 @@ if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 			if [ $? -eq 0 ]; then
 				if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 					printf '     \e[32m%-15s\e[0m %-20s %s \n'\
-						"INSTALLED" $(pip list --format=legacy 2> /dev/null | grep $package)
+						"INSTALLED" $(pip list 2> /dev/null | grep $package)
 				fi
 			else
 				if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
