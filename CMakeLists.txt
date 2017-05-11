@@ -3,9 +3,10 @@ cmake_minimum_required(VERSION 2.8.9)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 # Target CPU Architecture
-set(ARCH x86_64)
 if(DEFINED ENV{ARCH})
-  set(ARCH $ENV{ARCH})
+  set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
+else()
+  set(ARCH "x86_64" CACHE STRING "Architecture (default)")
 endif()
 
 message(STATUS "Target CPU ${ARCH}")
