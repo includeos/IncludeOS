@@ -11,11 +11,11 @@ if [[ $(command -v clang-$clang_version) && $(command -v clang++-$clang_version)
 fi
 
 # Construct apt string which is added to sources.list
-printf -v apt_string "deb http://apt.llvm.org/%s/ llvm-toolchain-%s-%s main
-deb-src http://apt.llvm.org/%s/ llvm-toolchain-%s-%s main" $name $name $clang_version $name $name $clang_version
+export apt_string=$(printf "deb http://apt.llvm.org/%s/ llvm-toolchain-%s-%s main
+deb-src http://apt.llvm.org/%s/ llvm-toolchain-%s-%s main" $ubuntu_version $ubuntu_version $clang_version $ubuntu_version $ubuntu_version $clang_version)
 
 # Add to sources.list
-sudo sh -c 'echo $apt_string >> /etc/apt/sources.list'
+sudo -E sh -c 'echo $apt_string >> /etc/apt/sources.list'
 
 # Retrieve the archive signature
 wget -qO - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
