@@ -26,7 +26,7 @@ void Service::start()
   auto& stacks = Super_stack::inet().ip4_stacks();
   CHECKSERT(stacks.size() == 5, "There is 5 interfaces");
 
-  net::autoconf::without_dhcp("config.json");
+  net::autoconf::load();
 
   INFO("Test", "Verify eth0");
   CHECKSERT(stacks[0] != nullptr, "eth0 is initialized");
@@ -57,7 +57,7 @@ void Service::start()
   CHECKSERT(eth2.dns_addr() == EMPTY, "DNS addr is 0.0.0.0");
 
   INFO("Test", "Verify eth3");
-  CHECKSERT(stacks[3] == nullptr, "eth3 is uninitialized");
+  CHECKSERT(stacks[3] != nullptr, "eth3 is initialized (but waiting for DHCP)");
 
   INFO("Test", "Verify eth4");
   CHECKSERT(stacks[4] == nullptr, "eth4 is uninitialized");

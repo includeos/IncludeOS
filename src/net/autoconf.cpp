@@ -19,23 +19,15 @@
 
 #include <net/super_stack.hpp>
 #include <memdisk>
-#include <rapidjson/document.h>
 #include <info>
 
 #define MYINFO(X,...) INFO("Autoconf",X,##__VA_ARGS__)
 
-#ifndef RAPIDJSON_HAS_STDSTRING
-  #define RAPIDJSON_HAS_STDSTRING 1
-#endif
-
-#ifndef RAPIDJSON_THROWPARSEEXCEPTION
-  #define RAPIDJSON_THROWPARSEEXCEPTION 1
-#endif
-
 namespace net {
 
+const std::string autoconf::DEFAULT_CFG{"config.json"};
+
 using Addresses = std::vector<ip4::Addr>;
-using Configs = std::vector<Addresses>;
 
 template <typename T>
 Addresses parse_iface(T& obj)
@@ -74,32 +66,15 @@ inline void config_stack(Inet<IP4>& stack, const Addresses& addrs)
     );
 }
 
-inline Configs parse_configs(const std::string& json)
-{
-  using namespace rapidjson;
-  Document doc;
-  doc.Parse(json.data());
-
-  Expects(doc.IsArray());
-
-  Configs cfgs;
-  for(auto& addrs : doc.GetArray())
-  {
-    cfgs.push_back(parse_iface(addrs));
-  }
-
-  return cfgs;
-}
-
 inline std::string failure(const std::string& err)
 {
   INFO2("Aborted: %s", err.c_str());
   return {};
 }
 
-inline std::string load_config(const std::string& file)
+inline std::string read_json_from_memdisk(const std::string& file)
 {
-  MYINFO("Loading config \"%s\" from disk", file.c_str());
+  MYINFO("Loading config \"%s\" from memdisk", file.c_str());
 
   auto& disk = fs::memdisk();
 
@@ -125,52 +100,58 @@ inline std::string load_config(const std::string& file)
   return dirent.read();
 }
 
-
-void autoconf::with_dhcp(const std::string& file)
+void autoconf::load()
 {
-  MYINFO("Configuring interfaces (with DHCP)");
-  auto cfg = load_config(file);
+  load(DEFAULT_CFG);
+}
 
-  if(not cfg.empty())
-  {
+void autoconf::load(const std::string& file)
+{
+  auto json = read_json_from_memdisk(file);
 
-  }
-  else
+  if(not json.empty())
   {
-    only_dhcp();
+    configure(json);
   }
 }
 
-void autoconf::without_dhcp(const std::string& file)
+void autoconf::configure(const std::string& json)
 {
-  MYINFO("Configuring interfaces (without DHCP)");
-  auto str = load_config(file);
+  using namespace rapidjson;
+  Document doc;
+  doc.Parse(json.data());
 
-  if(not str.empty())
-  {
-    auto cfgs = parse_configs(str);
-    MYINFO("Found config for %lu stacks", cfgs.size());
+  Expects(doc.IsObject() && "Malformed config");
 
-    for(auto& cfg : cfgs)
-    {
+  Expects(doc.HasMember("net") && "Missing member \"net\"");
 
-    }
-
-    int no_stacks = static_cast<int>(Super_stack::inet().ip4_stacks().size());
-    for(int i = 0; i < no_stacks && i < static_cast<int>(cfgs.size()); ++i)
-    {
-      config_stack(Super_stack::get<IP4>(i), cfgs[i]);
-    }
-  }
+  configure(doc["net"]);
 }
 
-void autoconf::only_dhcp()
+void autoconf::configure(const rapidjson::Value& net)
 {
-  MYINFO("Configuring interfaces (DHCP only)");
-  for(auto& stack : Super_stack::inet().ip4_stacks())
+  Expects(net.IsArray() && "Member net is not an array");
+
+  int N = 0;
+  for(auto& val : net.GetArray())
   {
-    stack->negotiate_dhcp(5.0);
+    if(N >= static_cast<int>(Super_stack::inet().ip4_stacks().size()))
+      break;
+
+    auto& stack = Super_stack::get<IP4>(N);
+    // static configs
+    if(val.IsArray())
+    {
+      config_stack(stack, parse_iface(val));
+    }
+    else if(val.IsString() and strcmp(val.GetString(), "dhcp") == 0)
+    {
+      stack.negotiate_dhcp(5.0);
+    }
+    ++N;
   }
+
+  MYINFO("Configure complete");
 }
 
 }
