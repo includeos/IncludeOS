@@ -33,8 +33,8 @@ public:
 
   struct Config
   {
-    std::string server;
-    std::string password;
+    std::string url;
+    std::string token;
   };
 
   WS_uplink(net::Inet<net::IP4>&); 
@@ -50,6 +50,7 @@ public:
 private:
   std::unique_ptr<http::Client> client_;
   http::WebSocket_ptr           ws_;
+  std::string                   id_;
   std::string                   token_;
 
   Config config_;
@@ -61,6 +62,8 @@ private:
     if (not token_.empty())
       req.header().add_field("Authorization", "Bearer " + token_);
   }
+
+  std::string auth_data() const;
 
   void handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&);
 

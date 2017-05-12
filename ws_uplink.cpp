@@ -19,20 +19,27 @@
 #include "common.hpp"
 
 #include <memdisk>
+#include <rapidjson/document.h>
 
 namespace uplink {
 
-  const std::string WS_uplink::UPLINK_CFG_FILE{"uplink.json"};
+  const std::string WS_uplink::UPLINK_CFG_FILE{"config.json"};
 
   WS_uplink::WS_uplink(net::Inet<net::IP4>& inet)
-    : parser_({this, &WS_uplink::handle_transport})
+    : id_{inet.link_addr().to_string()},
+      parser_({this, &WS_uplink::handle_transport})
   {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
+
+    read_config();
+
     start(inet);
   }
 
   void WS_uplink::start(net::Inet<net::IP4>& inet) {
     MYINFO("Starting WS uplink on %s", inet.ifname().c_str());
+
+    Expects(not config_.url.empty());
 
     client_ = std::make_unique<http::Client>(inet.tcp(), 
       http::Client::Request_handler{this, &WS_uplink::inject_token});
@@ -40,14 +47,20 @@ namespace uplink {
     auth();
   }
 
+  std::string WS_uplink::auth_data() const
+  {
+    return "{ \"id\": \"" + id_ + "\", \"key\": \"" + config_.token + "\"}";
+  }
   void WS_uplink::auth()
   {
     std::string url{"http://"};
-    url.append(config_.server).append("/auth");
+    url.append(config_.url).append("/auth");
 
     static const std::string auth_data{"{ \"id\": \"testor\", \"key\": \"kappa123\"}"};
 
-    client_->post(http::URI{"http://" + config_.server + "/auth"}, 
+    MYINFO("Sending auth request to %s", url.c_str());
+
+    client_->post(http::URI{url}, 
       { {"Content-Type", "application/json"} }, 
       auth_data, 
       {this, &WS_uplink::handle_auth_response});
@@ -78,7 +91,9 @@ namespace uplink {
     Expects(not token_.empty() and client_ != nullptr);
 
     std::string url{"ws://"};
-    url.append(config_.server).append("/dock");
+    url.append(config_.url).append("/dock");
+
+    MYINFO("Dock attempt to %s", url.c_str());
 
     http::WebSocket::connect(*client_, http::URI{url}, {this, &WS_uplink::establish_ws});
   }
@@ -149,8 +164,23 @@ namespace uplink {
     parse_config(content);
   }
 
-  void WS_uplink::parse_config(const std::string& cfg)
+  void WS_uplink::parse_config(const std::string& json)
   {
+    using namespace rapidjson;
+    Document doc;
+    doc.Parse(json.data());
 
+    Expects(doc.IsObject() && "Malformed config");
+
+    Expects(doc.HasMember("uplink") && "Missing member \"uplink\"");
+
+    auto& cfg = doc["uplink"];
+
+    Expects(cfg.HasMember("url") && cfg.HasMember("token") && "Missing url or/and token");
+
+    config_.url   = cfg["url"].GetString();
+    config_.token = cfg["token"].GetString();
+    
   }
+
 }
