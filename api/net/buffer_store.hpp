@@ -48,6 +48,9 @@ namespace net
     buffer_t get_buffer();
     void release(void*);
 
+    size_t local_buffers() const noexcept
+    { return poolsize_ / bufsize_; }
+
     /** Get size of a buffer **/
     size_t bufsize() const noexcept
     { return bufsize_; }
@@ -64,7 +67,9 @@ namespace net
     { return (addr - pool_) % bufsize_ == 0; }
 
     size_t available() const noexcept
-    { return available_.size(); }
+    { return total_avail; }
+
+    size_t total_buffers() const noexcept;
 
     /** move this bufferstore to the current CPU **/
     void move_to_this_cpu() noexcept;
@@ -85,6 +90,7 @@ namespace net
     size_t               bufsize_;
     uint8_t*             pool_;
     std::vector<uint8_t*> available_;
+    size_t               total_avail;
     BufferStore*         next_;
     int                  cpu;
     int                  index;
