@@ -13,7 +13,7 @@ project (test_autoconf)
 set(SERVICE_NAME "Autoconf Test Service")
 
 # Name of your service binary
-set(BINARY       "test_autconf")
+set(BINARY       "test_autoconf")
 
 # Maximum memory can be hard-coded into the binary
 set(MAX_MEM 128)
