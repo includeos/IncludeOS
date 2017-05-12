@@ -66,8 +66,7 @@ namespace net
     bool is_buffer(uint8_t* addr) const noexcept
     { return (addr - pool_) % bufsize_ == 0; }
 
-    size_t available() const noexcept
-    { return total_avail; }
+    size_t available() const noexcept;
 
     size_t total_buffers() const noexcept;
 
@@ -90,7 +89,6 @@ namespace net
     size_t               bufsize_;
     uint8_t*             pool_;
     std::vector<uint8_t*> available_;
-    size_t               total_avail;
     BufferStore*         next_;
     int                  cpu;
     int                  index;

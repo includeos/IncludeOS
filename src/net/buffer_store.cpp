@@ -29,6 +29,7 @@ extern void *memalign(size_t, size_t);
 #include <cassert>
 #include <smp>
 #define DEBUG_RELEASE
+#define DEBUG_RETRIEVE
 
 #define PAGE_SIZE     0x1000
 #define ENABLE_BUFFERSTORE_CHAIN
@@ -39,6 +40,12 @@ extern void *memalign(size_t, size_t);
 #define BSD_RELEASE(fmt, ...) printf(fmt, ##__VA_ARGS__);
 #else
 #define BSD_RELEASE(fmt, ...)  /** fmt **/
+#endif
+
+#ifdef DEBUG_RETRIEVE
+#define BSD_GET(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#else
+#define BSD_GET(fmt, ...)  /** fmt **/
 #endif
 
 namespace net {
@@ -61,7 +68,6 @@ namespace net {
     for (uint8_t* b = pool_end()-bufsize; b >= pool_begin(); b -= bufsize) {
         available_.push_back(b);
     }
-    this->total_avail = num;
     assert(available_.capacity() == num);
     assert(available() == num);
 
@@ -82,6 +88,18 @@ namespace net {
     free(this->pool_);
   }
 
+  size_t BufferStore::available() const noexcept
+  {
+    auto avail = this->available_.size();
+#ifdef ENABLE_BUFFERSTORE_CHAIN
+    auto* parent = this;
+    while (parent->next_ != nullptr) {
+        parent = parent->next_;
+        avail += parent->available_.size();
+    }
+#endif
+    return avail;
+  }
   size_t BufferStore::total_buffers() const noexcept
   {
     size_t total = this->local_buffers();
@@ -105,7 +123,6 @@ namespace net {
     }
     INFO("BufferStore", "Allocating %u new packets", BS_CHAIN_ALLOC_PACKETS);
     parent->next_ = new BufferStore(BS_CHAIN_ALLOC_PACKETS, bufsize());
-    total_avail += BS_CHAIN_ALLOC_PACKETS;
     return parent->next_;
 #else
     return nullptr;
@@ -116,7 +133,6 @@ namespace net {
   {
     auto addr = available_.back();
     available_.pop_back();
-    this->total_avail --;
     return { this, addr };
   }
 
@@ -139,7 +155,6 @@ namespace net {
       if (next == nullptr) return {this, nullptr};
 
       // take buffer from external bufstore
-      this->total_avail--;
       return next->get_buffer_directly();
 #else
       panic("<BufferStore> Buffer pool empty! Not configured to increase pool size.\n");
@@ -147,8 +162,8 @@ namespace net {
     }
 
     auto buffer = get_buffer_directly();
-    debug("Gave away %p, %lu buffers remain\n",
-            (void*) addr, available_.size());
+    BSD_GET("%d: Gave away %p, %lu buffers remain\n",
+            this->index, buffer.addr, available());
 
 #ifndef INCLUDEOS_SINGLE_THREADED
     if (is_locked) unlock(plock);
@@ -171,12 +186,11 @@ namespace net {
     // expensive: is_buffer(buff)
     if (LIKELY(is_from_pool(buff))) {
       available_.push_back(buff);
-      this->total_avail++;
 #ifndef INCLUDEOS_SINGLE_THREADED
       if (is_locked) unlock(plock);
 #endif
       BSD_RELEASE("released (avail=%lu / %lu)\n",
-                  available_.size(), total_buffers());
+                  available(), total_buffers());
       return;
     }
 #ifdef ENABLE_BUFFERSTORE_CHAIN
@@ -186,7 +200,6 @@ namespace net {
       if (ptr->is_from_pool(buff)) {
         BSD_RELEASE("released on other bufferstore\n");
         ptr->release_directly(buff);
-        this->total_avail++;
         return;
       }
       ptr = ptr->next_;
@@ -200,8 +213,9 @@ namespace net {
 
   void BufferStore::release_directly(uint8_t* buffer)
   {
+    BSD_GET("%d: Gave away %p, %lu buffers remain\n",
+            this->index, buffer, available());
     available_.push_back(buffer);
-    this->total_avail ++;
   }
 
   void BufferStore::move_to_this_cpu() noexcept
