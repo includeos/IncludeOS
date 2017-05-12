@@ -15,7 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#undef NO_DEBUG
 #define DEBUG  // Allow debugging
 #define DEBUG2 // Allow debugging
 
@@ -50,17 +49,10 @@ namespace net {
 
     /// always try to ship waiting packets when someone talks
     auto waiting = waiting_packets_.find(hdr->sipaddr);
-
     if (waiting != waiting_packets_.end()) {
       debug("<Arp> Had a packet waiting for this IP. Sending\n");
       transmit(std::move(waiting->second), hdr->sipaddr);
       waiting_packets_.erase(waiting);
-    }
-    else {
-      printf("Not waiting on IP %s\n", hdr->sipaddr.str().c_str());
-      for (auto& pair : waiting_packets_) {
-        printf("Instead waiting on: %s\n", pair.first.str().c_str());
-      }
     }
 
     switch(hdr->opcode) {
