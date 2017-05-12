@@ -186,7 +186,7 @@ namespace net {
     // handler called after the network successfully, or
     // unsuccessfully negotiated with DHCP-server
     // the timeout parameter indicates whether dhcp negotitation failed
-    void on_config(dhcp_timeout_func handler);
+    void on_config(dhcp_timeout_func handler) override;
 
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
