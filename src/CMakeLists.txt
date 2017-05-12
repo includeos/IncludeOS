@@ -2,11 +2,14 @@
 # see: https://cmake.org/Bug/bug_relationship_graph.php?bug_id=13166
 if ("${ARCH}" STREQUAL "i686")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+  set(OBJCPY_TARGET "elf32-i386")
 else()
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+  set(OBJCPY_TARGET "elf64-x86-64")
 endif()
 
 enable_language(ASM_NASM)
+
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
@@ -23,12 +26,6 @@ include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 include_directories(${BOTAN_DIR})
 
-add_custom_command(
-	OUTPUT apic_boot.o
-	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/arch/x86/apic_boot.asm
-	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf64-x86-64 apic_boot.bin apic_boot.o
-	DEPENDS arch/x86/apic_boot.asm
-)
 
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
@@ -68,10 +65,12 @@ set(OS_OBJECTS
   posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
   posix/pwd.cpp posix/pthread.cpp)
 
-add_library(os STATIC ${OS_OBJECTS} apic_boot.o)
+add_library(os STATIC ${OS_OBJECTS})
 add_dependencies(os PrecompiledLibraries botan)
 
 add_subdirectory(arch/${ARCH})
+add_subdirectory(platform/x86_pc)
+add_subdirectory(platform/x86_nano)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
 

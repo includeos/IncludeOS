@@ -4,19 +4,22 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
+set(ARCH i686)
+set(PLATFORM x86_nano)
+
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
-project (test_fiber)
+project (chainloader)
 
 MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
 
-set(SERVICE_NAME "Fibers test")
-set(BINARY       "test_fiber")
-set(MAX_MEM 128)
+set(SERVICE_NAME "IncludeOS chainloader")
+set(BINARY       "chainloader")
 set(SOURCES
-    service.cpp
+    service.cpp hotswap.cpp
   )
 #set(LOCAL_INCLUDES ".")
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${BINARY} DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos)

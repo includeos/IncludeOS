@@ -17,7 +17,7 @@ INSTALLED_PIP_PACKAGES=0
 INSTALLED_BINUTILS=0
 INSTALLED_SYMLINKING=0
 ALL_DEPENDENCIES="llvm38 nasm cmake jq qemu Caskroom/cask/tuntap"
-PIP_MODS="jsonschema psutil"
+PIP_MODS="jsonschema psutil filemagic" 
 
 ############################################################
 # COMMAND LINE PROPERTIES:
@@ -137,7 +137,7 @@ if [ $INSTALLED_PIP -eq 1 ]; then
 			   "Status" "Package" "Version"\
 			   "------" "-------" "-------"
 	for package in $PIP_MODS; do
-		python -c "import $package"> /dev/null 2>&1
+		pip show $package > /dev/null 2>&1
 		if [ $? -eq 0 ]; then
 			installed_packages=$((++installed_packages))
 			if [ $PRINT_INSTALL_STATUS -eq 1 ]; then

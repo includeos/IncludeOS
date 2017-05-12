@@ -3,11 +3,13 @@ cmake_minimum_required(VERSION 2.8.9)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 # Target CPU Architecture
-set(ARCH x86_64)
 if(DEFINED ENV{ARCH})
-  set(ARCH $ENV{ARCH})
+  set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
+else()
+  set(ARCH "x86_64" CACHE STRING "Architecture (default)")
 endif()
-message(STATUS "Target CPU architecture ${ARCH}")
+
+message(STATUS "Target CPU ${ARCH}")
 
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
@@ -54,7 +56,7 @@ set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -D_STACK_GUARD_VALU
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
 set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE")
 
-set(WARNS "-Wall -Wextra -Wno-expansion-to-defined")
+set(WARNS "-Wall -Wextra")
 
 # configure options
 option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)

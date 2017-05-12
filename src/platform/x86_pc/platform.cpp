@@ -36,7 +36,7 @@ namespace x86 {
   static void initialize_cpu_shared();
 }
 
-void __arch_init()
+void __platform_init()
 {
   // read ACPI tables
   ACPI::init();
