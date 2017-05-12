@@ -118,8 +118,11 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
   INFO("VirtioNet", "Adding %u receive buffers of size %u",
        rx_q.size() / 2, (uint32_t) bufstore().bufsize());
 
-  for (int i = 0; i < rx_q.size() / 2; i++)
-      add_receive_buffer(bufstore().get_buffer().addr);
+  for (int i = 0; i < rx_q.size() / 2; i++) {
+      auto buf = bufstore().get_buffer();
+      assert(bufstore().is_from_pool(buf.addr));
+      add_receive_buffer(buf.addr);
+  }
 
   // Step 4 - If there are many queues, we should negotiate the number.
   // Set config length, based on whether there are multiple queues
@@ -253,6 +256,7 @@ void VirtioNet::legacy_handler()
 
 void VirtioNet::add_receive_buffer(uint8_t* pkt)
 {
+  assert(pkt >= (uint8_t*) 0x1000);
   // offset pointer to virtionet header
   auto* vnet = pkt + sizeof(Packet);
 
@@ -267,10 +271,6 @@ net::Packet_ptr
 VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 {
   auto* ptr = (net::Packet*) (data - sizeof(net::Packet));
-#ifdef DEBUG
-  assert(bufstore().is_from_pool((uint8_t*) ptr));
-  assert(bufstore().is_buffer((uint8_t*) ptr));
-#endif
 
   new (ptr) net::Packet(
       sizeof(virtio_net_hdr),

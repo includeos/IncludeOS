@@ -59,8 +59,7 @@ namespace net
     { return poolsize_; }
 
     /** Check if a buffer belongs here */
-    bool is_from_pool(uint8_t* addr) const noexcept
-    { return addr >= pool_begin() and addr < pool_end(); }
+    bool is_from_pool(uint8_t* addr) const noexcept;
 
     /** Check if an address is the start of a buffer */
     bool is_buffer(uint8_t* addr) const noexcept
@@ -74,6 +73,10 @@ namespace net
     void move_to_this_cpu() noexcept;
 
   private:
+    bool is_from_this_pool(uint8_t* addr) const noexcept {
+      return (addr >= this->pool_begin()
+          and addr <  this->pool_end());
+    }
     uint8_t* pool_begin() const noexcept {
       return pool_;
     }

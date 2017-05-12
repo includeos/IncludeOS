@@ -28,8 +28,8 @@ extern void *memalign(size_t, size_t);
 #include <common>
 #include <cassert>
 #include <smp>
-#define DEBUG_RELEASE
-#define DEBUG_RETRIEVE
+//#define DEBUG_RELEASE
+//#define DEBUG_RETRIEVE
 
 #define PAGE_SIZE     0x1000
 #define ENABLE_BUFFERSTORE_CHAIN
@@ -113,13 +113,28 @@ namespace net {
     return total;
   }
 
+  bool BufferStore::is_from_pool(uint8_t* addr) const noexcept
+  {
+    auto* current = this;
+    if (addr >= current->pool_begin() and
+        addr < current->pool_end()) return true;
+#ifdef ENABLE_BUFFERSTORE_CHAIN
+    while (current->next_ != nullptr) {
+        current = current->next_;
+        if (addr >= current->pool_begin() and
+            addr < current->pool_end()) return true;
+    }
+#endif
+    return false;
+  }
+
   BufferStore* BufferStore::get_next_bufstore()
   {
 #ifdef ENABLE_BUFFERSTORE_CHAIN
     BufferStore* parent = this;
     while (parent->next_ != nullptr) {
         parent = parent->next_;
-        if (parent->available() != 0) return parent;
+        if (!parent->available_.empty()) return parent;
     }
     INFO("BufferStore", "Allocating %u new packets", BS_CHAIN_ALLOC_PACKETS);
     parent->next_ = new BufferStore(BS_CHAIN_ALLOC_PACKETS, bufsize());
@@ -152,10 +167,14 @@ namespace net {
 #endif
 #ifdef ENABLE_BUFFERSTORE_CHAIN
       auto* next = get_next_bufstore();
-      if (next == nullptr) return {this, nullptr};
+      if (next == nullptr)
+          throw std::runtime_error("Unable to create new bufstore");
 
       // take buffer from external bufstore
-      return next->get_buffer_directly();
+      auto buffer = next->get_buffer_directly();
+      BSD_GET("%d: Gave away EXTERN %p, %lu buffers remain\n",
+              this->index, buffer.addr, available());
+      return buffer;
 #else
       panic("<BufferStore> Buffer pool empty! Not configured to increase pool size.\n");
 #endif
@@ -213,7 +232,7 @@ namespace net {
 
   void BufferStore::release_directly(uint8_t* buffer)
   {
-    BSD_GET("%d: Gave away %p, %lu buffers remain\n",
+    BSD_GET("%d: Released EXTERN %p, %lu buffers remain\n",
             this->index, buffer, available());
     available_.push_back(buffer);
   }
