@@ -28,10 +28,19 @@ extern void *memalign(size_t, size_t);
 #include <common>
 #include <cassert>
 #include <smp>
-#define PAGE_SIZE     0x1000
+//#define DEBUG_RELEASE
 
+#define PAGE_SIZE     0x1000
 #define ENABLE_BUFFERSTORE_CHAIN
 #define BS_CHAIN_ALLOC_PACKETS   256
+
+
+#ifdef DEBUG_RELEASE
+#define BSD_RELEASE(fmt, ...) \
+      if (this->index != 1) printf(fmt, ##__VA_ARGS__);
+#else
+#define BSD_RELEASE(fmt, ...)  /** fmt **/
+#endif
 
 namespace net {
 
@@ -53,15 +62,19 @@ namespace net {
     for (uint8_t* b = pool_end()-bufsize; b >= pool_begin(); b -= bufsize) {
         available_.push_back(b);
     }
+    assert(available_.capacity() == num);
     assert(available() == num);
 
 #ifndef INCLUDEOS_SINGLE_THREADED
     // set CPU id this bufferstore was created for
     this->cpu = SMP::cpu_id();
-    if (this->cpu != 0) smp_enabled_ = true;
+    smp_enabled_ = (this->cpu != 0);
 #else
     this->cpu = 0;
 #endif
+
+    static int bsidx = 0;
+    this->index = ++bsidx;
   }
 
   BufferStore::~BufferStore() {
@@ -113,21 +126,20 @@ namespace net {
 #endif
     }
 
-    auto addr = available_.back();
-    available_.pop_back();
+    auto buffer = get_buffer_directly();
     debug("Gave away %p, %lu buffers remain\n",
             (void*) addr, available_.size());
 
 #ifndef INCLUDEOS_SINGLE_THREADED
     if (is_locked) unlock(plock);
 #endif
-    return { this, addr };
+    return buffer;
   }
 
   void BufferStore::release(void* addr)
   {
     auto* buff = (uint8_t*) addr;
-    debug("Release %p -> ", buff);
+    BSD_RELEASE("%d: Release %p -> ", this->index, buff);
 
 #ifndef INCLUDEOS_SINGLE_THREADED
     bool is_locked = false;
@@ -142,7 +154,7 @@ namespace net {
 #ifndef INCLUDEOS_SINGLE_THREADED
       if (is_locked) unlock(plock);
 #endif
-      debug("released (avail=%lu)\n", available_.size());
+      BSD_RELEASE("released (avail=%lu)\n", available_.size());
       return;
     }
 #ifdef ENABLE_BUFFERSTORE_CHAIN
@@ -150,19 +162,17 @@ namespace net {
     BufferStore* ptr = next_;
     while (ptr != nullptr) {
       if (ptr->is_from_pool(buff)) {
-        debug("released on other bufferstore\n");
+        BSD_RELEASE("released on other bufferstore\n");
         ptr->release_directly(buff);
         return;
       }
       ptr = ptr->next_;
     }
 #endif
-    // buffer not owned by bufferstore, so just delete it?
-    debug("deleted\n");
-    delete[] buff;
 #ifndef INCLUDEOS_SINGLE_THREADED
     if (is_locked) unlock(plock);
 #endif
+    throw std::runtime_error("Packet did not belong");
   }
 
   void BufferStore::release_directly(uint8_t* buffer)

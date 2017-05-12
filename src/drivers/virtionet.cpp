@@ -199,6 +199,7 @@ void VirtioNet::msix_recv_handler()
   while (rx_q.new_incoming())
   {
     auto res = rx_q.dequeue();
+    debug("[virtionet] Recv %u bytes\n", (uint32_t) res.size());
     Link::receive( recv_packet(res.data(), res.size()) );
 
     dequeued_rx++;
@@ -331,7 +332,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
   // Transmit all we can directly
   while (tx_q.num_free() and tail != nullptr)
   {
-    debug("%i tokens left in TX queue \n", tx_q.num_free());
+    debug("[virtionet] %u tokens left in TX queue \n", tx_q.num_free());
     // next in line
     auto next = tail->detach_tail();
     // write data to network
@@ -363,6 +364,7 @@ void VirtioNet::enqueue(net::Packet* pckt)
 {
   Expects(pckt->layer_begin() == pckt->buf() + sizeof(virtio_net_hdr));
   auto* hdr = pckt->buf();
+  debug("[virtionet] Transmit %u bytes\n", (uint32_t) pckt->size());
 
   Token token1 {{ hdr, sizeof(virtio_net_hdr)}, Token::OUT };
   Token token2 {{ pckt->layer_begin(), pckt->size()}, Token::OUT };

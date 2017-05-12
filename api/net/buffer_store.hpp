@@ -87,6 +87,7 @@ namespace net
     std::vector<uint8_t*> available_;
     BufferStore*         next_;
     int                  cpu;
+    int                  index;
     static bool          smp_enabled_;
 #ifndef INCLUDEOS_SINGLE_THREADED
     // has strict alignment reqs, so put at end
