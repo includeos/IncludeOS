@@ -45,7 +45,7 @@ namespace net {
   void DHClient::on_config(config_func handler)
   {
     assert(handler);
-    config_handlers_.push_back(handler);
+    config_handler_ = handler;
   }
 
   void DHClient::timeout()
@@ -55,8 +55,10 @@ namespace net {
     this->in_progress = false;
 
     // call on_config with timeout = true
-    for(auto handler : this->config_handlers_)
-      handler(true);
+    if(config_handler_)
+      config_handler_(true);
+
+    config_handler_.reset();
   }
 
   void DHClient::negotiate(uint32_t timeout_secs)
@@ -312,8 +314,8 @@ namespace net {
     in_progress = false;
 
     // run some post-DHCP event to release the hounds
-    for (auto handler : config_handlers_)
-      handler(false);
+    if(config_handler_)
+      config_handler_(false);
   }
 
 }
