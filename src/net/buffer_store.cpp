@@ -33,7 +33,6 @@ extern void *memalign(size_t, size_t);
 
 #define PAGE_SIZE     0x1000
 #define ENABLE_BUFFERSTORE_CHAIN
-#define BS_CHAIN_ALLOC_PACKETS   256
 
 
 #ifdef DEBUG_RELEASE
@@ -119,7 +118,7 @@ namespace net {
     if (addr >= current->pool_begin() and
         addr < current->pool_end()) return true;
 #ifdef ENABLE_BUFFERSTORE_CHAIN
-    while (current->next_ != nullptr) {
+    while (current->next_ != nullptr) {
         current = current->next_;
         if (addr >= current->pool_begin() and
             addr < current->pool_end()) return true;
@@ -136,8 +135,8 @@ namespace net {
         parent = parent->next_;
         if (!parent->available_.empty()) return parent;
     }
-    INFO("BufferStore", "Allocating %u new packets", BS_CHAIN_ALLOC_PACKETS);
-    parent->next_ = new BufferStore(BS_CHAIN_ALLOC_PACKETS, bufsize());
+    INFO("BufferStore", "Allocating %u new packets", local_buffers());
+    parent->next_ = new BufferStore(local_buffers(), bufsize());
     return parent->next_;
 #else
     return nullptr;

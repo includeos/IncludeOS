@@ -30,7 +30,6 @@ void panic(const char*) { throw std::runtime_error("panic()"); }
 
 CASE("Create empty packet")
 {
-
   auto buffer = bufstore.get_buffer();
   auto* ptr = (net::Packet*) buffer.addr;
   new (ptr) net::Packet(0, 0, 0, buffer.bufstore);
