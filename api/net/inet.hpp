@@ -87,6 +87,9 @@ namespace net {
     /** Use DHCP to configure this interface */
     virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) = 0;
 
+    /** Assign callback to when DHCP finishes */
+    virtual void on_config(dhcp_timeout_func handler) = 0;
+
     /** Get a list of virtual IP4 addresses assigned to this interface */
     virtual const Vip_list virtual_ips() const = 0;
 
