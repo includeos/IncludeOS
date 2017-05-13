@@ -229,6 +229,9 @@ namespace net {
     size_t buffers_available() override {
       return nic_.buffers_available();
     }
+    size_t buffers_total() override {
+      return nic_.buffers_total();
+    }
 
     void force_start_send_queues() override;
 

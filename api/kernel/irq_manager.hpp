@@ -129,7 +129,7 @@ private:
   IRQ_manager& operator=(IRQ_manager&&) = delete;
   IRQ_manager& operator=(IRQ_manager&) = delete;
 
-  IDTDescr     idt[INTR_LINES];
+  IDTDescr     idt[INTR_LINES] __attribute__((aligned(16)));
   irq_delegate irq_delegates_[IRQ_LINES];
   std::array<uint64_t*,IRQ_LINES> count_handled;
   std::array<uint64_t, IRQ_LINES> count_received;

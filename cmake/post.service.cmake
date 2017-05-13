@@ -16,13 +16,15 @@ set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 message(STATUS "Target triple ${TRIPLE}")
 
-# Assembler
+# Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")
-  set (ARCH_INTERNAL "ARCH_X64")
+  set(ARCH_INTERNAL "ARCH_X64")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+  set(OBJCOPY_TARGET "elf64-x86-64")
 else()
-  set (ARCH_INTERNAL "ARCH_X86")
+  set(ARCH_INTERNAL "ARCH_X86")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+  set(OBJCOPY_TARGET "elf32-i386")
 endif()
 enable_language(ASM_NASM)
 
@@ -166,6 +168,7 @@ include_directories(${LOCAL_INCLUDES})
 include_directories(${INSTALL_LOC}/api/posix)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
 include_directories(${INSTALL_LOC}/${ARCH}/include/newlib)
+include_directories(${INSTALL_LOC}/${ARCH}/include)
 include_directories(${INSTALL_LOC}/api)
 include_directories(${INSTALL_LOC}/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)
@@ -280,7 +283,7 @@ if(TARFILE)
       OUTPUT tarfile.o
       COMMAND tar cf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
-      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} input.bin tarfile.o
       COMMAND rm input.bin
     )
   elseif(CREATE_TAR_GZ)
@@ -289,14 +292,14 @@ if(TARFILE)
       OUTPUT tarfile.o
       COMMAND tar czf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
-      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} input.bin tarfile.o
       COMMAND rm input.bin
     )
   else(true)
     add_custom_command(
       OUTPUT tarfile.o
       COMMAND cp ${TAR_RELPATH} input.bin
-      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} input.bin tarfile.o
       COMMAND rm input.bin
     )
   endif(CREATE_TAR)
