@@ -29,4 +29,4 @@ add_library(libbotan STATIC IMPORTED)
 set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${BOTAN_LIB})
 
 install(FILES ${BOTAN_LIB} DESTINATION includeos/${ARCH}/lib)
-install(DIRECTORY ${BOTAN_INCLUDE} DESTINATION includeos/include)
+install(DIRECTORY ${BOTAN_INCLUDE} DESTINATION includeos/${ARCH}/include)

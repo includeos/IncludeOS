@@ -217,6 +217,9 @@ namespace net {
     /** Number of buffers available in the bufstore */
     virtual size_t buffers_available() = 0;
 
+    /** Number of total buffers in the bufstore */
+    virtual size_t buffers_total() = 0;
+
     /** Start TCP (e.g. after system suspension). */
     virtual void force_start_send_queues() = 0;
 

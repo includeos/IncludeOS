@@ -61,8 +61,13 @@ namespace hw {
     net::BufferStore& bufstore() noexcept
     { return bufstore_; }
 
+    /** Number of free buffers in the BufferStore **/
     size_t buffers_available()
     { return bufstore_.available(); }
+
+    /** Number of total buffers in the BufferStore **/
+    size_t buffers_total()
+    { return bufstore_.total_buffers(); }
 
     /** Number of bytes in a frame needed by the device itself **/
     virtual size_t frame_offset_device() = 0;
