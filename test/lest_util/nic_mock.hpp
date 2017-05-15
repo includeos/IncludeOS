@@ -31,6 +31,9 @@ public:
   const char* driver_name() const override
   { return "Mock driver"; }
 
+  std::string device_name() const override
+  { return "Mock device name"; }
+
   /** The mac address. */
   const MAC::Addr& mac() const noexcept override
   { return mac_; }
