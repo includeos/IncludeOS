@@ -121,11 +121,9 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
 
     for (int i = 0; i < msix_vectors; i++)
     {
-      auto irq = IRQ_manager::get().get_free_irq();
-      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + irq);
+      auto irq = IRQ_manager::get().subscribe(nullptr);
       this->irqs.push_back(irq);
-      // dummpy subscription to make free_irq change
-      IRQ_manager::get().subscribe(irq, nullptr);
+      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + irq);
     }
 
     IRQ_manager::get().subscribe(irqs[0], {this, &vmxnet3::msix_evt_handler});
