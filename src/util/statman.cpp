@@ -18,10 +18,10 @@
 #include <iterator>
 #include <statman>
 
-static Statman statman;
-
-__attribute__((weak))
-Statman& Statman::get() { return statman; }
+Statman& Statman::get() {
+  static Statman statman;
+  return statman;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 Stat::Stat(const Stat_type type, const std::string& name)
@@ -111,17 +111,17 @@ Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
 Stat& Statman::get(const void* addr)
 {
   auto* st = (Stat*) addr;
-  if (st >= cbegin() && st < clast_used())
+  if (st >= cbegin() && st < end())
   if ((uintptr_t) st % sizeof(Stat) == 0) // stat boundary
       return *st;
 
   throw std::out_of_range("Address out of range");
 }
 
-void Statman::free(const void* addr)
+void Statman::free(void* addr)
 {
   auto* st = (Stat*) addr;
-  if (st >= cbegin() && st < clast_used())
+  if (st >= cbegin() && st < end())
   if ((uintptr_t) st % sizeof(Stat) == 0) // stat boundary
   {
     int idx = st - cbegin();

@@ -127,14 +127,10 @@ public:
   using Span = gsl::span<Stat>;
   using Size_type = ptrdiff_t;
 
-  ///
-  ///
-  ///
+  // retrieve main instance of Statman
   static Statman& get();
 
-  ///
-  ///
-  ///
+  // access a Stat by a given index
   Stat& operator[] (const int i)
   {
     if (i < 0 || i >= cend() - cbegin())
@@ -147,6 +143,15 @@ public:
       throw std::out_of_range("Index " + std::to_string(i) + " was out of range");
     return stats_[i];
   }
+
+  /**
+    * Create a new stat
+   **/
+  Stat& create(const Stat::Stat_type type, const std::string& name);
+  // retrieve stat based on address from stats counter: &stat.get_xxx()
+  Stat& get(const void* addr);
+  // free/delete stat based on address from stats counter
+  void free(void* addr);
 
   /**
    * Returns the max capacity of the container
@@ -195,14 +200,6 @@ public:
   Stat* begin() noexcept { return (Stat*) cbegin(); }
   Stat* end() noexcept { return (Stat*) cend(); }
 
-  /**
-    * Create a new stat
-   **/
-  Stat& create(const Stat::Stat_type type, const std::string& name);
-  // retrieve stat based on address from stats counter: &stat.get_xxx()
-  Stat& get(const void* addr);
-  // free/delete stat based on address from stats counter
-  void  free(const void* addr);
 
   void init(const uintptr_t location, const Size_type size);
 
