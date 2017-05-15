@@ -52,7 +52,7 @@ void Stat::operator++() {
 
 ///////////////////////////////////////////////////////////////////////////////
 float& Stat::get_float() {
-  if(type_ not_eq FLOAT)
+  if (type_ not_eq FLOAT)
     throw Stats_exception{"Get stat: Stat_type is not a float"};
 
   return f;
@@ -60,7 +60,7 @@ float& Stat::get_float() {
 
 ///////////////////////////////////////////////////////////////////////////////
 uint32_t& Stat::get_uint32() {
-  if(type_ not_eq UINT32)
+  if (type_ not_eq UINT32)
     throw Stats_exception{"Get stat: Stat_type is not an uint32_t"};
 
   return ui32;
@@ -68,7 +68,7 @@ uint32_t& Stat::get_uint32() {
 
 ///////////////////////////////////////////////////////////////////////////////
 uint64_t& Stat::get_uint64() {
-  if(type_ not_eq UINT64)
+  if (type_ not_eq UINT64)
     throw Stats_exception{"Get stat: Stat_type is not an uint64_t"};
 
   return ui64;

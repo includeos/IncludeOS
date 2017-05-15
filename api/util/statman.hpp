@@ -57,48 +57,30 @@ public:
   ///
   ///
   Stat(const Stat_type type, const std::string& name);
-
-  ///
-  ///
-  ///
   ~Stat() = default;
 
-  ///
-  ///
-  ///
+  // increment stat counter
   void operator++();
 
-  ///
-  ///
   ///
   Stat_type type() const noexcept
   { return type_; }
 
   ///
-  ///
-  ///
   const char* name() const noexcept
   { return name_; }
 
-  ///
-  ///
   ///
   bool unused() const noexcept {
     return name_[0] == 0;
   }
 
   ///
-  ///
-  ///
   float& get_float();
 
   ///
-  ///
-  ///
   uint32_t& get_uint32();
 
-  ///
-  ///
   ///
   uint64_t& get_uint64();
 
@@ -119,9 +101,7 @@ private:
 
 } __attribute__((packed)); //< class Stat
 
-///
-///
-///
+
 class Statman {
 public:
   using Span = gsl::span<Stat>;
@@ -131,17 +111,15 @@ public:
   static Statman& get();
 
   // access a Stat by a given index
-  Stat& operator[] (const int i)
-  {
-    if (i < 0 || i >= cend() - cbegin())
-      throw std::out_of_range("Index " + std::to_string(i) + " was out of range");
-    return stats_[i];
-  }
   const Stat& operator[] (const int i) const
   {
     if (i < 0 || i >= cend() - cbegin())
       throw std::out_of_range("Index " + std::to_string(i) + " was out of range");
     return stats_[i];
+  }
+  Stat& operator[] (const int i)
+  {
+    return const_cast<Stat&>(static_cast<const Statman&>(*this)[i]);
   }
 
   /**
