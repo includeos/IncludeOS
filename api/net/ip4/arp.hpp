@@ -94,9 +94,15 @@ namespace net {
     /** Flush expired cache entries. RFC-2.3.2.1 */
     void flush_expired () {
       INFO("ARP", "Flushing expired entries");
+      std::vector<IP4::addr> expired;
       for (auto ent : cache_) {
-        if (ent.second.expired())
-          cache_.erase(ent.first);
+        if (ent.second.expired()) {
+          expired.push_back(ent.first);
+        }
+      }
+
+      for (auto ip : expired) {
+        cache_.erase(ip);
       }
 
       if (not cache_.empty()) {
@@ -110,8 +116,8 @@ namespace net {
 
   private:
 
-    /** ARP cache expires after cache_exp_t_ seconds */
-    static constexpr uint16_t cache_exp_t_ {60 * 5};
+    /** ARP cache expires after cache_exp_sec_ seconds */
+    static constexpr uint16_t cache_exp_sec_ {60 * 5};
 
     /** Cache entries are just MAC's and timestamps */
     struct Cache_entry {
@@ -127,13 +133,16 @@ namespace net {
       void update() noexcept { timestamp_ = RTC::time_since_boot(); }
 
       bool expired() const noexcept
-      { return timestamp_ + cache_exp_t_ > RTC::time_since_boot(); }
+      { return RTC::time_since_boot() > timestamp_ + cache_exp_sec_; }
 
       MAC::Addr mac() const noexcept
       { return mac_; }
 
-      auto timestamp() const noexcept
+      RTC::timestamp_t timestamp() const noexcept
       { return timestamp_; }
+
+      RTC::timestamp_t expires() const noexcept
+      { return timestamp_ + cache_exp_sec_; }
 
     private:
       MAC::Addr mac_;
@@ -165,7 +174,7 @@ namespace net {
     downstream_link linklayer_out_ = nullptr;
 
     // The ARP cache
-    Cache cache_;
+    Cache cache_ {};
 
     // RFC-1122 2.3.2.2 Packet queue
     PacketQueue waiting_packets_;
@@ -173,13 +182,11 @@ namespace net {
     // Settable resolver - defualts to arp_resolve
     Arp_resolver arp_resolver_ = {this, &Arp::arp_resolve};
 
-
     /** Respond to arp request */
     void arp_respond(header* hdr_in, IP4::addr ack_ip);
 
     /** Send an arp resolution request */
     void arp_resolve(IP4::addr next_hop);
-
 
     /**
      * Add a packet to waiting queue, to be sent when IP is resolved.
