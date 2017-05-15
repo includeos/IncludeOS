@@ -217,7 +217,13 @@ void IRQ_manager::disable_irq(uint8_t irq) {
   __arch_disable_legacy_irq(irq);
 }
 
-void IRQ_manager::subscribe(uint8_t irq, irq_delegate del, bool create_stat)
+uint8_t IRQ_manager::subscribe(irq_delegate del)
+{
+  uint8_t irq = get_free_irq();
+  subscribe(irq, del);
+  return irq;
+}
+void IRQ_manager::subscribe(uint8_t irq, irq_delegate del)
 {
   if (irq >= IRQ_LINES)
     panic("IRQ value out of range (too high)!");
@@ -228,12 +234,10 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del, bool create_stat)
   // Mark IRQ as subscribed to
   irq_subs.atomic_set(irq);
 
-  if (create_stat)
-  {
-    Stat& subscribed = Statman::get().create(Stat::UINT64,
-        "cpu" + std::to_string(SMP::cpu_id()) + ".irq" + std::to_string(irq));
-    count_handled[irq] = &subscribed.get_uint64();
-  }
+  // Create stat for this event
+  Stat& subscribed = Statman::get().create(Stat::UINT64,
+      "cpu" + std::to_string(SMP::cpu_id()) + ".irq" + std::to_string(irq));
+  count_handled[irq] = &subscribed.get_uint64();
 
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
@@ -248,6 +252,9 @@ void IRQ_manager::unsubscribe(uint8_t irq)
 {
   irq_subs.atomic_reset(irq);
   irq_delegates_[irq] = nullptr;
+  if (count_handled[irq]) {
+    Statman::get().free(count_handled[irq]);
+  }
 }
 
 void IRQ_manager::process_interrupts()
