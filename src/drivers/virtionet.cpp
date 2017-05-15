@@ -15,9 +15,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define PRINT_INFO
-//#define DEBUG
-//#define DEBUG2
+#define VNET_DEBUG
+//#define VNET_DEBUG_RX
+#define VNET_DEBUG_TX
+
+#ifdef VNET_DEBUG
+#define VDBG(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define VDBG(fmt, ...) /* fmt */
+#endif
+
+#ifdef VNET_DEBUG_RX
+#define VDBG_RX(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define VDBG_RX(fmt, ...) /* fmt */
+#endif
+
+#ifdef VNET_DEBUG_TX
+#define VDBG_TX(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define VDBG_TX(fmt, ...) /* fmt */
+#endif
 
 #include "virtionet.hpp"
 #include <kernel/irq_manager.hpp>
@@ -187,12 +205,12 @@ bool VirtioNet::link_up() const noexcept
 
 void VirtioNet::msix_conf_handler()
 {
-  debug("\t <VirtioNet> Configuration change:\n");
+  VDBG("\t <VirtioNet> Configuration change:\n");
 
   // Getting the MAC + status
-  debug("\t             Old status: 0x%x\n",_conf.status);
+  VDBG("\t    Old status: 0x%x\n",_conf.status);
   get_config();
-  debug("\t             New status: 0x%x \n",_conf.status);
+  VDBG("\t    New status: 0x%x \n",_conf.status);
 }
 void VirtioNet::msix_recv_handler()
 {
@@ -202,7 +220,7 @@ void VirtioNet::msix_recv_handler()
   while (rx_q.new_incoming())
   {
     auto res = rx_q.dequeue();
-    debug("[virtionet] Recv %u bytes\n", (uint32_t) res.size());
+    VDBG_RX("[virtionet] Recv %u bytes\n", (uint32_t) res.size());
     Link::receive( recv_packet(res.data(), res.size()) );
 
     dequeued_rx++;
@@ -218,7 +236,8 @@ void VirtioNet::msix_recv_handler()
 }
 void VirtioNet::msix_xmit_handler()
 {
-  bool dequeued_tx = false;
+  printf("Transmit interrupt\n");
+  int dequeued_tx = 0;
   tx_q.disable_interrupts();
   // Do one TX-packet
   while (tx_q.new_incoming())
@@ -228,14 +247,15 @@ void VirtioNet::msix_xmit_handler()
     // get packet offset, and call destructor
     auto* packet = (net::Packet*) (res.data() - sizeof(net::Packet));
     delete packet; // call deleter on Packet to release it
-    dequeued_tx = true;
+    dequeued_tx++;
   }
 
   // If we have a transmit queue, eat from it, otherwise let the stack know we
   // have increased transmit capacity
-  if (dequeued_tx)
+  if (dequeued_tx > 0)
   {
-    debug("<VirtioNet>%i dequeued, transmitting backlog\n", dequeued_tx);
+    VDBG_TX("[virtionet] %d transmitted, tx_q is %p\n",
+            dequeued_tx, transmit_queue_.get());
 
     // transmit as much as possible from the buffer
     if (transmit_queue_) {
@@ -302,16 +322,15 @@ void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
   else
     transmit_queue_ = std::move(pckt);
 
-#ifdef DEBUG
-  size_t chain_length = 1;
+#ifdef VNET_DEBUG
+  int chain_length = 1;
   auto* next = transmit_queue_->tail();
   while (next) {
     chain_length++;
     next = next->tail();
   }
+  VDBG_TX("Buffering, %d packets chained\n", chain_length);
 #endif
-
-  debug("Buffering, %i packets chained \n", chain_length);
 }
 
 void VirtioNet::transmit(net::Packet_ptr pckt) {
@@ -332,7 +351,8 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
   // Transmit all we can directly
   while (tx_q.num_free() and tail != nullptr)
   {
-    debug("[virtionet] %u tokens left in TX queue \n", tx_q.num_free());
+    VDBG_TX("[virtionet] tx: %u tokens left in TX queue \n",
+            tx_q.num_free());
     // next in line
     auto next = tail->detach_tail();
     // write data to network
@@ -355,7 +375,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt) {
 
   // Buffer the rest
   if (UNLIKELY(tail)) {
-    debug("Buffering remaining packets..\n");
+    VDBG_TX("[virtionet] tx: Buffering remaining tail..\n");
     add_to_tx_buffer(std::move(tail));
   }
 }
@@ -364,7 +384,7 @@ void VirtioNet::enqueue(net::Packet* pckt)
 {
   Expects(pckt->layer_begin() == pckt->buf() + sizeof(virtio_net_hdr));
   auto* hdr = pckt->buf();
-  debug("[virtionet] Transmit %u bytes\n", (uint32_t) pckt->size());
+  VDBG_TX("[virtionet] tx: Transmit %u bytes\n", (uint32_t) pckt->size());
 
   Token token1 {{ hdr, sizeof(virtio_net_hdr)}, Token::OUT };
   Token token2 {{ pckt->layer_begin(), pckt->size()}, Token::OUT };
@@ -402,6 +422,7 @@ void VirtioNet::handle_deferred_devices()
 
 void VirtioNet::deactivate()
 {
+  VDBG("[virtionet] Disabling device\n");
   /// disable interrupts on virtio queues
   rx_q.disable_interrupts();
   tx_q.disable_interrupts();
