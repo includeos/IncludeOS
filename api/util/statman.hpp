@@ -22,6 +22,7 @@
 #include <common>
 #include <cstddef>
 #include <string>
+#include <membitmap>
 
 /** This type is thrown when Statman's span is full */
 struct Stats_out_of_memory : public std::out_of_range {
@@ -40,13 +41,12 @@ struct Stats_exception : public std::runtime_error {
 ///
 ///
 class Stat {
-private:
-  constexpr static int MAX_NAME_LEN {48};
 public:
+  static const int MAX_NAME_LEN {47};
   ///
   ///
   ///
-  enum Stat_type
+  enum Stat_type: uint8_t
   {
     FLOAT,
     UINT32,
@@ -56,7 +56,7 @@ public:
   ///
   ///
   ///
-  Stat(const Stat_type type, const int index_into_span, const std::string& name);
+  Stat(const Stat_type type, const std::string& name);
 
   ///
   ///
@@ -77,14 +77,15 @@ public:
   ///
   ///
   ///
-  int index() const noexcept
-  { return index_into_span_; }
+  const char* name() const noexcept
+  { return name_; }
 
   ///
   ///
   ///
-  const char* name() const noexcept
-  { return name_; }
+  bool unused() const noexcept {
+    return name_[0] == 0;
+  }
 
   ///
   ///
@@ -102,14 +103,12 @@ public:
   uint64_t& get_uint64();
 
 private:
-  Stat_type type_;
-  int       index_into_span_;
-
   union {
     float    f;
     uint32_t ui32;
     uint64_t ui64;
   };
+  Stat_type type_;
 
   char name_[MAX_NAME_LEN];
 
@@ -117,25 +116,16 @@ private:
   Stat(const Stat&& other) = delete;
   Stat& operator=(const Stat& other) = delete;
   Stat& operator=(Stat&& other) = delete;
-}; //< class Stat
+
+} __attribute__((packed)); //< class Stat
 
 ///
 ///
 ///
 class Statman {
-  /*
-    @note
-    This fails on g++ 5.4.0
-    Passes on clang 3.8.0
-
-    static_assert(std::is_pod<Stat>::value, "Stat is pod type");
-  */
-
-  using Span = gsl::span<Stat>;
 public:
-  using Size_type =       ptrdiff_t;
-  using Span_iterator =   Span::iterator;
-  using Span_citerator =  Span::const_iterator;
+  using Span = gsl::span<Stat>;
+  using Size_type = ptrdiff_t;
 
   ///
   ///
@@ -145,98 +135,74 @@ public:
   ///
   ///
   ///
-  Stat& operator[](const int i)
-  { return stats_[i]; }
+  Stat& operator[] (const int i)
+  {
+    if (i < 0 || i >= cend() - cbegin())
+      throw std::out_of_range("Index " + std::to_string(i) + " was out of range");
+    return stats_[i];
+  }
+  const Stat& operator[] (const int i) const
+  {
+    if (i < 0 || i >= cend() - cbegin())
+      throw std::out_of_range("Index " + std::to_string(i) + " was out of range");
+    return stats_[i];
+  }
 
   /**
-   * Returns the number of elements the span stats_ can contain
+   * Returns the max capacity of the container
    */
-  Size_type size() const noexcept
+  Size_type capacity() const noexcept
   { return stats_.size(); }
 
   /**
-   * Returns the number of bytes the span stats_ takes up
+   * Returns the number of used elements
+   */
+  Size_type size() const noexcept
+  { return bitmap.count_set(); }
+
+  /**
+   * Returns the number of bytes necessary to dump stats
    */
   Size_type num_bytes() const noexcept
-  { return num_bytes_; }
-
-  /**
-   * Returns the total number of bytes the Statman object takes up
-   */
-  Size_type total_num_bytes() const noexcept
-  { return num_bytes() + sizeof(int) + sizeof(Size_type); }
-
-  /**
-   * Returns the number of Stat-objects the span stats_ actually contains
-   */
-  int num_stats() const noexcept
-  { return next_available_; }
+  { return (cend() - cbegin()) * sizeof(Stat); }
 
   /**
    * Is true if the span stats_ contains no Stat-objects
    */
   bool empty() const noexcept
-  { return next_available_ == 0; }
+  { return size() == 0; }
 
   /**
-   * Is true if the span stats_ can not contain any more Stat-objects
+   * Returns true if the container is full
    */
   bool full() const noexcept
-  { return next_available_ == stats_.size(); }
-
-  ///
-  ///
-  ///
-  auto begin() noexcept
-  { return stats_.begin(); }
+  { return size() == capacity(); }
 
   /**
-   *  Returns an iterator to the last element (Stat)
-   *  in the span stats_
+   *  Returns a pointer to the first element
    */
-  Span_iterator last_used() {
-    Expects(next_available_ <= stats_.size());
-    return Span_iterator(&stats_, next_available_);
+  const Stat* cbegin() const noexcept
+  { return &stats_[0]; }
+
+  /**
+   *  Returns a pointer to after the last used element
+   */
+  const Stat* cend() const noexcept {
+    int idx = bitmap.last_set() + 1; // 0 .. N-1
+    return &stats_[idx];
   }
 
-  /**
-   *  Returns an iterator to the end of the span stats_ regardless
-   *  of the span begin full or not
-   */
-  auto end() noexcept
-  { return stats_.end(); }
-
-  ///
-  ///
-  ///
-  auto cbegin() const noexcept
-  { return stats_.cbegin(); }
+  Stat* begin() noexcept { return (Stat*) cbegin(); }
+  Stat* end() noexcept { return (Stat*) cend(); }
 
   /**
-   *  Returns a const iterator to the last element (Stat)
-   *  in the span stats_
-   */
-  Span_citerator clast_used() {
-    Expects(next_available_ <= stats_.size());
-    return Span_citerator(&stats_, next_available_);
-  }
-
-  /**
-   *  Returns a const iterator to the end of the span stats_ regardless
-   *  of the span begin full or not
-   */
-  auto cend() const noexcept
-  { return stats_.cend(); }
-
-  ///
-  ///
-  ///
+    * Create a new stat
+   **/
   Stat& create(const Stat::Stat_type type, const std::string& name);
-
-  ///
-  ///
-  ///
-  Stat& get(const std::string& name);
+  // retrieve stat based on address from stats counter: &stat.get_xxx()
+  Stat& get(const void* addr);
+  // free/delete stat based on address from stats counter
+  void  free(const void* addr);
 
   void init(const uintptr_t location, const Size_type size);
 
@@ -250,8 +216,8 @@ public:
 
 private:
   Span      stats_;
-  int       next_available_ {0};
-  Size_type num_bytes_;
+  MemBitmap::word* bdata = nullptr;
+  MemBitmap bitmap;
 
   Statman(const Statman& other) = delete;
   Statman(const Statman&& other) = delete;

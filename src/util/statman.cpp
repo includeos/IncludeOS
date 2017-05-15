@@ -24,9 +24,8 @@ __attribute__((weak))
 Statman& Statman::get() { return statman; }
 
 ///////////////////////////////////////////////////////////////////////////////
-Stat::Stat(const Stat_type type, const int index_into_span, const std::string& name)
+Stat::Stat(const Stat_type type, const std::string& name)
   : type_{type}
-  , index_into_span_{index_into_span}
 {
   if(name.size() > MAX_NAME_LEN)
     throw Stats_exception{"Creating stat: Name cannot be longer than " + std::to_string(MAX_NAME_LEN) + " characters"};
@@ -76,15 +75,22 @@ uint64_t& Stat::get_uint64() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void Statman::init(const uintptr_t start, const Size_type num_bytes) {
-
-  if(num_bytes < 0)
+void Statman::init(const uintptr_t start, const Size_type num_bytes)
+{
+  if (num_bytes < 0)
     throw Stats_exception{"Creating Statman: A negative number of bytes has been given"};
 
-  const Size_type num_stats_in_span = num_bytes / sizeof(Stat);
+  const int N = num_bytes / sizeof(Stat);
+  this->stats_ = Span{reinterpret_cast<Stat*>(start), N};
 
-  num_bytes_ = sizeof(Stat) * num_stats_in_span;
-  stats_     = Span{reinterpret_cast<Stat*>(start), num_stats_in_span};
+  // create bitmap
+  int chunks = N / (sizeof(MemBitmap::word) * 8) + 1;
+  bdata = new MemBitmap::word[chunks];
+  bitmap = MemBitmap(bdata, chunks);
+
+  // mark out of range bits as used
+  for (int i = capacity(); i < bitmap.size(); i++)
+      bitmap.set(i);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -92,24 +98,37 @@ Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
   if (name.empty())
     throw Stats_exception{"Cannot create Stat with no name"};
 
-  const int idx = next_available_;
-
-  if(idx >= stats_.size())
+  const int idx = bitmap.first_free();
+  if (idx == -1 || idx >= capacity())
     throw Stats_out_of_memory{};
 
-  auto& stat = *new (&stats_[next_available_]) Stat(type, idx, name);
-  next_available_++;
+  auto& stat = *new (&stats_[idx]) Stat(type, name);
+  bitmap.set(idx);
   return stat;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Stat& Statman::get(const std::string& name) {
-  if (name.empty())
-    throw Stats_exception{"Stat name is empty"};
+Stat& Statman::get(const void* addr)
+{
+  auto* st = (Stat*) addr;
+  if (st >= cbegin() && st < clast_used())
+  if ((uintptr_t) st % sizeof(Stat) == 0) // stat boundary
+      return *st;
 
-  for (auto it = begin(); it != last_used(); ++it)
-    if ((*it).name() == name)
-      return (*it);
+  throw std::out_of_range("Address out of range");
+}
 
-  throw Stats_exception{"No stat with name " + name + " exists"};
+void Statman::free(const void* addr)
+{
+  auto* st = (Stat*) addr;
+  if (st >= cbegin() && st < clast_used())
+  if ((uintptr_t) st % sizeof(Stat) == 0) // stat boundary
+  {
+    int idx = st - cbegin();
+    assert(idx >= 0 && idx < size());
+    // delete entry
+    new (st) Stat(Stat::FLOAT, "");
+    bitmap.reset(idx);
+  }
+  throw std::out_of_range("Address out of range");
 }
