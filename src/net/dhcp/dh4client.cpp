@@ -55,7 +55,7 @@ namespace net {
     this->in_progress = false;
 
     // call on_config with timeout = true
-    for(auto handler : this->config_handlers_)
+    for(auto& handler : this->config_handlers_)
       handler(true);
   }
 
@@ -312,7 +312,7 @@ namespace net {
     in_progress = false;
 
     // run some post-DHCP event to release the hounds
-    for (auto handler : config_handlers_)
+    for(auto& handler : this->config_handlers_)
       handler(false);
   }
 

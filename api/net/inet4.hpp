@@ -183,10 +183,17 @@ namespace net {
      */
     void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) override;
 
-    // handler called after the network successfully, or
-    // unsuccessfully negotiated with DHCP-server
-    // the timeout parameter indicates whether dhcp negotitation failed
-    void on_config(dhcp_timeout_func handler) override;
+    bool is_configured() const override
+    {
+      return ip4_addr_ != 0;
+    }
+
+    // handler called after the network is configured,
+    // either by DHCP or static network configuration
+    void on_config(on_configured_func handler) override
+    {
+      configured_handlers_.push_back(handler);
+    }
 
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
@@ -194,19 +201,10 @@ namespace net {
     Inet4& operator=(Inet4) = delete;
     Inet4 operator=(Inet4&&) = delete;
 
-    virtual void
-    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr gateway, IP4::addr dns = IP4::ADDR_ANY) override
-    {
-      this->ip4_addr_  = addr;
-      this->netmask_   = nmask;
-      this->gateway_    = gateway;
-      this->dns_server_ = (dns == IP4::ADDR_ANY) ? gateway : dns;
-      INFO("Inet4", "Network configured");
-      INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
-      INFO2("Netmask: \t%s", netmask_.str().c_str());
-      INFO2("Gateway: \t%s", gateway_.str().c_str());
-      INFO2("DNS Server: \t%s", dns_server_.str().c_str());
-    }
+    void network_config(IP4::addr addr,
+                        IP4::addr nmask,
+                        IP4::addr gateway,
+                        IP4::addr dns = IP4::ADDR_ANY) override;
 
     virtual void
     reset_config() override
@@ -337,6 +335,8 @@ namespace net {
     std::string domain_name_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
+
+    std::vector<on_configured_func> configured_handlers_;
 
     int   cpu_id;
     const uint16_t MTU_;
