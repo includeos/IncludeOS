@@ -104,7 +104,6 @@ private:
 
 class Statman {
 public:
-  using Span = gsl::span<Stat>;
   using Size_type = ptrdiff_t;
 
   // retrieve main instance of Statman
@@ -135,7 +134,7 @@ public:
    * Returns the max capacity of the container
    */
   Size_type capacity() const noexcept
-  { return stats_.size(); }
+  { return end_stats_ - stats_; }
 
   /**
    * Returns the number of used elements
@@ -165,7 +164,7 @@ public:
    *  Returns a pointer to the first element
    */
   const Stat* cbegin() const noexcept
-  { return &stats_[0]; }
+  { return stats_; }
 
   /**
    *  Returns a pointer to after the last used element
@@ -186,11 +185,11 @@ public:
   {
     init(location, size);
   }
-
-  ~Statman() = default;
+  ~Statman();
 
 private:
-  Span      stats_;
+  Stat* stats_;
+  Stat* end_stats_;
   MemBitmap::word* bdata = nullptr;
   MemBitmap bitmap;
 
