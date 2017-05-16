@@ -16,7 +16,7 @@ INSTALLED_PIP=0
 INSTALLED_PIP_PACKAGES=0
 INSTALLED_BINUTILS=0
 INSTALLED_SYMLINKING=0
-ALL_DEPENDENCIES="llvm38 nasm cmake jq qemu Caskroom/cask/tuntap"
+ALL_DEPENDENCIES="llvm38 nasm cmake jq qemu Caskroom/cask/tuntap file-formula"
 PIP_MODS="jsonschema psutil filemagic" 
 
 ############################################################
@@ -136,6 +136,7 @@ if [ $INSTALLED_PIP -eq 1 ]; then
 		printf "     %-15s %-20s %s \n"\
 			   "Status" "Package" "Version"\
 			   "------" "-------" "-------"
+	fi
 	for package in $PIP_MODS; do
 		pip show $package > /dev/null 2>&1
 		if [ $? -eq 0 ]; then
@@ -147,18 +148,18 @@ if [ $INSTALLED_PIP -eq 1 ]; then
 		else
 			not_installed_packages=$((++not_installed_packages))
 			PIP_MODS_TO_INSTALL="$PIP_MODS_TO_INSTALL $package"
+			echo b: $PIP_MODS_TO_INSTALL
 			if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 				printf '     \e[31m%-15s\e[0m %-20s %s \n'\
 					"MISSING" $package
 			fi
 		fi
-		done
-	fi
+	done
 	if [[ $not_installed_packages -gt 0 ]]; then
 		INSTALLED_PIP_PACKAGES=0
 		if [[ $CHECK_ONLY -eq 0 ]]; then
 			echo ">>> Installing: $PIP_MODS_TO_INSTALL"
-			sudo pip install ${PIP_MODS_TO_INSTALL[*]}
+			sudo -H pip install ${PIP_MODS_TO_INSTALL[*]}
 			INSTALLED_PIP_PACKAGES=1
 		fi
 	else
