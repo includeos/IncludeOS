@@ -34,26 +34,6 @@ namespace net {
     PONG      = 10
   }; // < op_code
 
-  const char* to_string(op_code code)
-  {
-    switch (code) {
-      case op_code::CONTINUE:
-          return "Continuation frame";
-      case op_code::TEXT:
-          return "Text frame";
-      case op_code::BINARY:
-          return "Binary frame";
-      case op_code::CLOSE:
-          return "Connection close";
-      case op_code::PING:
-          return "Ping";
-      case op_code::PONG:
-          return "Pong";
-      default:
-          return "Reserved (unspecified)";
-    }
-  }
-
   static constexpr uint8_t WS_HEADER_MAXLEN{16};
 
   struct ws_header
@@ -133,6 +113,10 @@ namespace net {
           return __builtin_bswap16(*(uint16_t*) vla);
       return payload();
     }
+
+    uint16_t header_length() const noexcept
+    { return sizeof(ws_header) + data_offset(); }
+
     const char* data() const noexcept {
       return &vla[data_offset()];
     }
@@ -150,7 +134,7 @@ namespace net {
     }
 
     size_t reported_length() const noexcept {
-      return sizeof(ws_header) + data_offset() + data_length();
+      return header_length() + data_length();
     }
 
     char vla[0];

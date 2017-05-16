@@ -28,13 +28,90 @@ namespace net {
 
 class WebSocket {
 public:
+  class Message {
+  public:
+    using Data = std::vector<char>;
+    using Data_it = Data::iterator;
+    using Data_cit = Data::const_iterator;
+
+  public:
+    Message(const char* data, size_t len)
+      : data_{data, data + len}
+    {
+      data_.reserve(header().reported_length());
+    }
+
+    Message(ws_header&& header)
+    {
+      data_.reserve(header.reported_length());
+      const char* hdr = reinterpret_cast<const char*>(&header);
+      data_.insert(data_.end(), hdr, hdr + header.header_length());
+    }
+
+    const ws_header& header() const
+    { return *(reinterpret_cast<const ws_header*>(data_.data())); }
+
+    op_code opcode() const
+    { return header().opcode(); }
+
+    auto size() const
+    { return header().data_length(); }
+
+    std::string text() const
+    { return {begin(), end()}; }
+
+    Data_it begin()
+    { return data_.begin() + header().header_length(); }
+
+    Data_it end()
+    { return data_.end(); }
+
+    Data_cit begin() const
+    { return data_.begin() + header().header_length(); }
+
+    Data_cit end() const
+    { return data_.end(); }
+
+    void add(const char* data, size_t len)
+    {
+      //data_.insert(data_.end(), data, data+len);
+      if (data_.capacity() >= data_.size() + len) {
+        data_.insert(data_.end(), data, data+len);
+      }
+      else {
+        throw std::string{"Panncake"};
+      }
+    }
+
+    const char* data() const
+    { return data_.data() + header().header_length(); }
+
+    char* data()
+    { return data_.data() + header().header_length(); }
+
+    bool is_complete() const
+    { return header().data_length() == (data_.size() - header().header_length()); }
+
+    void unmask()
+    { if (_header().is_masked()) _header().masking_algorithm(); }
+
+  private:
+    std::vector<char> data_;
+
+    ws_header& _header()
+    { return *(reinterpret_cast<ws_header*>(data_.data())); }
+
+  }; // < class Message
+
+  using Message_ptr     = std::unique_ptr<Message>;
+
   using WebSocket_ptr   = std::unique_ptr<WebSocket>;
   // When a handshake is established and the WebSocket is created
   using Connect_handler = delegate<void(WebSocket_ptr)>;
   // Whether to accept the client or not before handshake
   using Accept_handler  = delegate<bool(net::Socket, std::string)>;
   // data read (data, length)
-  typedef delegate<void(const char*, size_t)> read_func;
+  typedef delegate<void(Message_ptr)> read_func;
   // closed (status code)
   typedef delegate<void(uint16_t)>    close_func;
   // error (reason)
@@ -130,6 +207,9 @@ public:
     return this->stream;
   }
 
+  // op code to string
+  const char* to_string(op_code code);
+
   // string description for status codes
   static const char* status_code(uint16_t code);
 
@@ -139,6 +219,7 @@ public:
 
 private:
   net::Stream_ptr stream;
+  Message_ptr message;
   bool clientside;
 
   WebSocket(const WebSocket&) = delete;
