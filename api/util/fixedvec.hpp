@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <cassert>
 
 enum class Fixedvector_Init {
   UNINIT
@@ -38,12 +39,14 @@ struct fixedvector {
 
   // add existing
   T& add(const T& e) noexcept {
+    assert(count < N);
     (*this)[count] = e;
     return (*this)[count++];
   }
   // construct into
   template <typename... Args>
   T& emplace(Args&&... args) noexcept {
+    assert(count < N);
     new (&element[count]) T(args...);
     return (*this)[count++];
   }
