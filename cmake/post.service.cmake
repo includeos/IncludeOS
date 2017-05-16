@@ -283,7 +283,7 @@ if(TARFILE)
       OUTPUT tarfile.o
       COMMAND tar cf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
-      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} input.bin tarfile.o
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   elseif(CREATE_TAR_GZ)
@@ -292,14 +292,14 @@ if(TARFILE)
       OUTPUT tarfile.o
       COMMAND tar czf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
-      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} input.bin tarfile.o
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   else(true)
     add_custom_command(
       OUTPUT tarfile.o
       COMMAND cp ${TAR_RELPATH} input.bin
-      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} input.bin tarfile.o
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   endif(CREATE_TAR)

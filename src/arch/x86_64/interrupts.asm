@@ -71,10 +71,10 @@ xsave_storage_area: resb  512
     and  rsp, ~0xf
     sub  rsp, 128
     push rax ;; save old RSP
-    push rax
+    push rbp
 %endmacro
 %macro SPRSTOR 0
-    pop rax
+    pop rbp
     pop rsp  ;; restore old RSP
 %endmacro
 

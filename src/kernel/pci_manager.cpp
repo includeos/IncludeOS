@@ -76,26 +76,29 @@ void PCI_manager::scan_bus(int bus)
       devclass.reg =
               hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
 
-      auto& dev = devices.emplace(pci_addr, id, devclass.reg);
-      debug("class: %u  vendor: 0x%x  prod: 0x%x\n",
-            dev.classcode(), dev.vendor_id(), dev.product_id());
-
       bool registered = false;
       // translate classcode to device and register
-      switch (dev.classcode()) {
+      switch (devclass.classcode) {
       case PCI::STORAGE:
-          registered = register_device<BLK_driver, hw::Block_device>(dev, blk_fact);
-          break;
+        {
+          auto& stored_dev = devices.emplace(pci_addr, id, devclass.reg);
+          registered = register_device<BLK_driver, hw::Block_device>(stored_dev, blk_fact);
+        }
+        break;
       case PCI::NIC:
-          registered = register_device<NIC_driver, hw::Nic>(dev, nic_fact);
-          break;
+        {
+          auto& stored_dev = devices.emplace(pci_addr, id, devclass.reg);
+          registered = register_device<NIC_driver, hw::Nic>(stored_dev, nic_fact);
+        }
+        break;
       case PCI::BRIDGE:
-          // scan secondary bus for PCI-to-PCI bridges
-          if (dev.subclass() == 0x4) {
-            uint16_t buses = dev.read16(0x18);
-            scan_bus(buses >> 8); // secondary is bits 8-15
-          }
-          break;
+        // scan secondary bus for PCI-to-PCI bridges
+        if (devclass.subclass == 0x4) {
+          uint16_t buses =
+            hw::PCI_Device::read_dword(pci_addr, 0x18);
+          scan_bus(buses >> 8); // secondary is bits 8-15
+        }
+        break;
       default:
           break;
       }

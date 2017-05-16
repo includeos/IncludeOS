@@ -15,9 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define VNET_DEBUG
+//#define VNET_DEBUG
 //#define VNET_DEBUG_RX
-#define VNET_DEBUG_TX
+//#define VNET_DEBUG_TX
 
 #ifdef VNET_DEBUG
 #define VDBG(fmt, ...) printf(fmt, ##__VA_ARGS__)
@@ -238,7 +238,6 @@ void VirtioNet::msix_recv_handler()
 }
 void VirtioNet::msix_xmit_handler()
 {
-  printf("Transmit interrupt\n");
   int dequeued_tx = 0;
   tx_q.disable_interrupts();
   // Do one TX-packet
