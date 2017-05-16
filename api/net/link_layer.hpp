@@ -17,6 +17,10 @@ public:
 public:
   explicit Link_layer(Protocol&& protocol, uint32_t bufstore_sz, uint16_t bufsz);
 
+  std::string device_name() const override {
+    return link_.link_name();
+  }
+
   downstream_link create_link_downstream() override
   { return {link_, &Protocol::transmit}; }
 
