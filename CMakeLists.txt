@@ -74,6 +74,9 @@ endfunction()
 init_submodule(mod/GSL)
 init_submodule(mod/http-parser)
 init_submodule(mod/uzlib)
+init_submodule(mod/rapidjson)
+
+install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 
 # set optimization level
 set(OPTIMIZE "-O2")
@@ -175,16 +178,8 @@ endif(tests)
 
 option(libmana "Build and install mana web application framework library" ON)
 if(libmana)
-  set(rapidjson ON) # Dependent on rapidjson
   add_subdirectory(lib/mana)
 endif(libmana)
-
-option(rapidjson "Download and install rapidjson submodule" ON)
-if(rapidjson)
-  init_submodule(mod/rapidjson)
-  install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
-endif(rapidjson)
-
 
 #
 # Installation
