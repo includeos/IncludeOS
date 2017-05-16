@@ -492,6 +492,34 @@ namespace net {
     */
     void error_report(Error& err, Socket dest);
 
+    /**
+     * Return the associated shared_ptr for a connection, if it exists
+     * Throws out_of_range if it doesn't
+    **/
+    tcp::Connection_ptr retrieve_shared(tcp::Connection* self)
+    {
+      auto i = connections_.find(self->tuple());
+      if (i != connections_.end())
+      {
+        //printf("Found connection: %p\n", i->second.get());
+        return i->second;
+      }
+
+      auto j = find_listener(self->local());
+      if (j != listeners_.end())
+      {
+        //printf("Found listener\n");
+        auto& q = j->second->syn_queue_;
+        for (auto& conn : q) {
+          if (conn.get() == self) {
+            //printf("Found connection: %p\n", conn.get());
+            return conn;
+          }
+        }
+      }
+      throw std::out_of_range("Missing connection");
+    }
+
   private:
     IPStack&      inet_;
     Listeners     listeners_;

@@ -44,7 +44,7 @@ namespace tcp {
   Receives and handle TCP::Packet.
   Transist between many states.
 */
-class Connection : public std::enable_shared_from_this<Connection> {
+class Connection {
   friend class net::TCP;
   friend class Listener;
 
@@ -773,6 +773,7 @@ public:
    * @param[in]  callback    The connection callback
    */
   Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback = nullptr);
+  ~Connection();
 
   Connection(const Connection&)             = delete;
   Connection(Connection&&)                  = delete;
@@ -804,11 +805,6 @@ public:
    * @brief      Reset all callbacks back to default
    */
   void reset_callbacks();
-
-  /**
-   * @brief      Destroys the object, releasing resources.
-   */
-  ~Connection();
 
 private:
   /** "Parent" for Connection. */
@@ -884,6 +880,10 @@ private:
   //static constexpr int8_t LATE_SPUR_TO {1};
   //RTTM::seconds SRTT_prev{1.0f};
   //RTTM::seconds RTTVAR_prev{1.0f};
+
+  // Retrieve the associated shared_ptr for a connection, if it exists
+  // Throws out_of_range if it doesn't
+  Connection_ptr retrieve_shared();
 
   /// --- CALLBACKS --- ///
 
@@ -995,11 +995,11 @@ private:
   void signal_connect(const bool success = true)
   {
     if(on_connect_)
-      (success) ? on_connect_(shared_from_this()) : on_connect_(nullptr);
+      (success) ? on_connect_(retrieve_shared()) : on_connect_(nullptr);
   }
 
   void signal_disconnect(Disconnect::Reason&& reason)
-  { on_disconnect_(shared_from_this(), Disconnect{reason}); }
+  { on_disconnect_(retrieve_shared(), Disconnect{reason}); }
 
   void signal_packet_dropped(const Packet& packet, Drop_reason reason)
   { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
