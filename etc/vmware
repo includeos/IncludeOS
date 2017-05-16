@@ -136,7 +136,8 @@ if __name__ == "__main__":
 		res = convert_image(servicename, instance_path)
 		if res == 0:
 			instance = write_vmx(instance_path, servicename)
-                        write_ova(instance_path, servicename)
+                        if os.path.isfile(ovftool_cmd):
+                            write_ova(instance_path, servicename)
 			res = start_instance(instance)
 			if res == 0:
 				instances.append(instance)
