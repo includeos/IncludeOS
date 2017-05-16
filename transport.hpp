@@ -28,9 +28,15 @@
 namespace uplink {
   
   enum class Transport_code : uint8_t {
+    IDENT     = 1,
     UPDATE    = 5,
+    APPDATA   = 6,     
     ERROR     = 255
   };
+
+  // send service name and current binary hash
+
+  using Hashtype = uint32_t;
 
   struct Header {
     Transport_code  code;

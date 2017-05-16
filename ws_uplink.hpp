@@ -23,7 +23,8 @@
 
 #include <net/inet4>
 #include <net/http/client.hpp>
-#include <net/http/websocket.hpp>
+#include <net/ws/websocket.hpp>
+#include <liveupdate.hpp>
 
 namespace uplink {
 
@@ -47,11 +48,16 @@ public:
 
   void handle_transport(Transport_ptr);
 
+  void send_ident();
+
+  void update(const std::vector<char>& buffer);
+
 private:
   std::unique_ptr<http::Client> client_;
-  http::WebSocket_ptr           ws_;
+  net::WebSocket_ptr            ws_;
   std::string                   id_;
   std::string                   token_;
+  std::string                   binary_hash_;
 
   Config config_;
 
@@ -67,13 +73,17 @@ private:
 
   void handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&);
 
-  void establish_ws(http::WebSocket_ptr ws);
+  void establish_ws(net::WebSocket_ptr ws);
 
-  void parse_transport(const char* data, size_t len);
+  void parse_transport(net::WebSocket::Message_ptr msg);
 
   void read_config();
 
   void parse_config(const std::string& cfg);
+
+  void store(liu::Storage& store, const liu::buffer_t*);
+
+  void restore(liu::Restore& store);
 
 }; // < class WS_uplink
 

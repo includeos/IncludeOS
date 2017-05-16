@@ -33,28 +33,15 @@ void setup_uplink()
   auto& en0 = net::Super_stack::get<net::IP4>(0);
   
   // already initialized
-  if(en0.ip_addr() != 0)
+  if(en0.is_configured())
   {
     uplink = std::make_unique<WS_uplink>(en0);
   }
-  // if not register on config event
+  // if not, register on config event
   else
   {
-    en0.on_config(
-    [] (bool timeout)
-    {
-      auto& en0 = net::Super_stack::get<net::IP4>(0);
-      if(timeout)
-      {
-        // temporary fallback
-        en0.network_config(
-          { 10,0,0,42 },     // IP
-          { 255,255,255,0 }, // Netmask
-          { 10,0,0,1 },      // Gateway
-          { 10,0,0,1 });     // DNS
-      }
-
-      uplink = std::make_unique<WS_uplink>(en0);
+    en0.on_config([] (auto& inet) {
+      uplink = std::make_unique<WS_uplink>(inet);
     });
   }
 }

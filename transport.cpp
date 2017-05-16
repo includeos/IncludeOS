@@ -37,7 +37,6 @@ Transport_parser::Transport_parser(Transport_complete cb)
 
 void Transport_parser::parse(const char* data, size_t len)
 {
-  printf("Parsing data %lu\n", len);
   if(transport_ != nullptr)
   {
     transport_->load_cargo(data, len);

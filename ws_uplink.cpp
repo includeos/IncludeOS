@@ -19,11 +19,26 @@
 #include "common.hpp"
 
 #include <memdisk>
+
+#ifndef RAPIDJSON_HAS_STDSTRING
+  #define RAPIDJSON_HAS_STDSTRING 1
+#endif
+
+#ifndef RAPIDJSON_THROWPARSEEXCEPTION
+  #define RAPIDJSON_THROWPARSEEXCEPTION 1
+#endif
+
 #include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+
+#include <os>
+#include <util/sha1.hpp>
 
 namespace uplink {
 
   const std::string WS_uplink::UPLINK_CFG_FILE{"config.json"};
+
+  void* UPDATE_LOC = (void*) 0x3200000; // at 50mb
 
   WS_uplink::WS_uplink(net::Inet<net::IP4>& inet)
     : id_{inet.link_addr().to_string()},
@@ -34,12 +49,24 @@ namespace uplink {
     read_config();
 
     start(inet);
+
+    /*parser_.on_header = [](const auto& hdr) {
+      MYINFO("Header: Code: %u Len: %u", static_cast<uint8_t>(hdr.code), hdr.length);
+    };*/
   }
 
   void WS_uplink::start(net::Inet<net::IP4>& inet) {
-    MYINFO("Starting WS uplink on %s", inet.ifname().c_str());
+    MYINFO("Starting WS uplink on %s with ID: %s", 
+      inet.ifname().c_str(), id_.c_str());
 
     Expects(not config_.url.empty());
+
+    if(liu::LiveUpdate::is_resumable(UPDATE_LOC))
+    {
+      MYINFO("Found resumable state, try restoring...");
+      auto success = liu::LiveUpdate::resume(UPDATE_LOC, {this, &WS_uplink::restore});
+      CHECK(success, "Success");
+    }
 
     client_ = std::make_unique<http::Client>(inet.tcp(), 
       http::Client::Request_handler{this, &WS_uplink::inject_token});
@@ -47,22 +74,37 @@ namespace uplink {
     auth();
   }
 
+  void WS_uplink::store(liu::Storage& store, const liu::buffer_t*)
+  {
+    liu::Storage::uid id = 0;
+
+    // BINARY HASH
+    store.add_string(id++, binary_hash_);
+  }
+
+  void WS_uplink::restore(liu::Restore& store)
+  {
+    // BINARY HASH
+    binary_hash_ = store.as_string(); store.go_next();
+  }
+
   std::string WS_uplink::auth_data() const
   {
     return "{ \"id\": \"" + id_ + "\", \"key\": \"" + config_.token + "\"}";
   }
+
   void WS_uplink::auth()
   {
     std::string url{"http://"};
     url.append(config_.url).append("/auth");
 
-    static const std::string auth_data{"{ \"id\": \"testor\", \"key\": \"kappa123\"}"};
+    //static const std::string auth_data{"{ \"id\": \"testor\", \"key\": \"kappa123\"}"};
 
     MYINFO("Sending auth request to %s", url.c_str());
 
     client_->post(http::URI{url}, 
       { {"Content-Type", "application/json"} }, 
-      auth_data, 
+      auth_data(), 
       {this, &WS_uplink::handle_auth_response});
   }
 
@@ -95,10 +137,10 @@ namespace uplink {
 
     MYINFO("Dock attempt to %s", url.c_str());
 
-    http::WebSocket::connect(*client_, http::URI{url}, {this, &WS_uplink::establish_ws});
+    net::WebSocket::connect(*client_, http::URI{url}, {this, &WS_uplink::establish_ws});
   }
 
-  void WS_uplink::establish_ws(http::WebSocket_ptr ws)
+  void WS_uplink::establish_ws(net::WebSocket_ptr ws)
   {
     if(ws == nullptr) {
       MYINFO("Failed to establish websocket");
@@ -107,31 +149,36 @@ namespace uplink {
 
     ws_ = std::move(ws);
     ws_->on_read = {this, &WS_uplink::parse_transport};
+    ws_->on_error = [](const auto& reason) {
+      printf("WS err: %s\n", reason.c_str());
+    };
 
     MYINFO("Websocket established");
+
+    send_ident();
   }
 
-  void WS_uplink::parse_transport(const char* data, size_t len)
+  void WS_uplink::parse_transport(net::WebSocket::Message_ptr msg)
   {
-    printf("Received data %lu\n", len);
-    parser_.parse(data, len);
+    parser_.parse(msg->data(), msg->size());
   }
 
   void WS_uplink::handle_transport(Transport_ptr t)
   {
     if(UNLIKELY(t == nullptr))
     {
-      printf("Something went terribly wrong...\n");
+      MYINFO("Something went terribly wrong...");
       return;
     }
     
-    MYINFO("New transport (%zu bytes)", t->size());
+    MYINFO("New transport (%lu bytes)", t->size());
     switch(t->code())
     {
       case Transport_code::UPDATE:
       {
-        auto msg = t->message();
-        INFO2("Received update: %s\n", msg.c_str());
+        INFO2("Update received - commencing update...");
+        
+        update({t->begin(), t->end()});
         return;
       }
 
@@ -140,6 +187,16 @@ namespace uplink {
         INFO2("Bad transport\n");
       }
     }
+  }
+
+  void WS_uplink::update(const std::vector<char>& buffer)
+  {
+    static SHA1 checksum;
+    checksum.update(buffer);
+    binary_hash_ = checksum.as_hex();
+
+    // do the update
+    liu::LiveUpdate::begin(UPDATE_LOC, buffer, {this, &WS_uplink::store});
   }
 
   void WS_uplink::read_config()
@@ -181,6 +238,44 @@ namespace uplink {
     config_.url   = cfg["url"].GetString();
     config_.token = cfg["token"].GetString();
     
+  }
+
+  void WS_uplink::send_ident()
+  {
+    MYINFO("Sending ident");
+    using namespace rapidjson;
+
+    StringBuffer buf;
+
+    Writer<StringBuffer> writer{buf};
+
+    writer.StartObject();
+
+    writer.Key("version");
+    writer.String(OS::version());
+    
+    writer.Key("arch");
+    writer.String(OS::arch());
+    
+    writer.Key("service");
+    writer.String(Service::name());
+    
+    if(not binary_hash_.empty())
+    {
+      writer.Key("binary");
+      writer.String(binary_hash_);  
+    }
+
+    writer.EndObject();
+    
+    std::string str = buf.GetString();
+
+    auto transport = Transport{Header{Transport_code::IDENT, static_cast<uint32_t>(str.size())}};
+
+    transport.load_cargo(str.data(), str.size());
+
+    ws_->write(transport.data().data(), transport.data().size());
+
   }
 
 }
