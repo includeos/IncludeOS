@@ -18,15 +18,15 @@
 #include <iterator>
 #include <statman>
 
-static Statman statman;
-
 __attribute__((weak))
-Statman& Statman::get() { return statman; }
+Statman& Statman::get() {
+  static Statman statman;
+  return statman;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-Stat::Stat(const Stat_type type, const int index_into_span, const std::string& name)
+Stat::Stat(const Stat_type type, const std::string& name)
   : type_{type}
-  , index_into_span_{index_into_span}
 {
   if(name.size() > MAX_NAME_LEN)
     throw Stats_exception{"Creating stat: Name cannot be longer than " + std::to_string(MAX_NAME_LEN) + " characters"};
@@ -35,13 +35,12 @@ Stat::Stat(const Stat_type type, const int index_into_span, const std::string& n
     case UINT32: ui32 = 0;    break;
     case UINT64: ui64 = 0;    break;
     case FLOAT:  f    = 0.0f; break;
-    default:     throw Stats_exception{"Creating stat: Invalid Stat_type"};
+    default: throw Stats_exception{"Unimplemented stat type"};
   }
 
   snprintf(name_, sizeof(name_), "%s", name.c_str());
 }
 
-///////////////////////////////////////////////////////////////////////////////
 void Stat::operator++() {
   switch (type_) {
     case UINT32: ui32++;    break;
@@ -51,65 +50,86 @@ void Stat::operator++() {
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////
 float& Stat::get_float() {
-  if(type_ not_eq FLOAT)
+  if (type_ not_eq FLOAT)
     throw Stats_exception{"Get stat: Stat_type is not a float"};
 
   return f;
 }
 
-///////////////////////////////////////////////////////////////////////////////
 uint32_t& Stat::get_uint32() {
-  if(type_ not_eq UINT32)
+  if (type_ not_eq UINT32)
     throw Stats_exception{"Get stat: Stat_type is not an uint32_t"};
 
   return ui32;
 }
 
-///////////////////////////////////////////////////////////////////////////////
 uint64_t& Stat::get_uint64() {
-  if(type_ not_eq UINT64)
+  if (type_ not_eq UINT64)
     throw Stats_exception{"Get stat: Stat_type is not an uint64_t"};
 
   return ui64;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void Statman::init(const uintptr_t start, const Size_type num_bytes) {
 
-  if(num_bytes < 0)
+void Statman::init(const uintptr_t start, const Size_type num_bytes)
+{
+  if (num_bytes < 0)
     throw Stats_exception{"Creating Statman: A negative number of bytes has been given"};
 
-  const Size_type num_stats_in_span = num_bytes / sizeof(Stat);
+  const int N = num_bytes / sizeof(Stat);
+  this->stats_     = reinterpret_cast<Stat*>(start);
+  this->end_stats_ = this->stats_ + N;
 
-  num_bytes_ = sizeof(Stat) * num_stats_in_span;
-  stats_     = Span{reinterpret_cast<Stat*>(start), num_stats_in_span};
+  // create bitmap
+  int chunks = N / (sizeof(MemBitmap::word) * 8) + 1;
+  delete[] bdata;
+  bdata = new MemBitmap::word[chunks]();
+  bitmap = MemBitmap(bdata, chunks);
+}
+Statman::~Statman()
+{
+  delete[] bdata;
 }
 
-///////////////////////////////////////////////////////////////////////////////
 Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
   if (name.empty())
     throw Stats_exception{"Cannot create Stat with no name"};
 
-  const int idx = next_available_;
-
-  if(idx >= stats_.size())
+  const int idx = bitmap.first_free();
+  if (idx == -1 || idx >= capacity())
     throw Stats_out_of_memory{};
 
-  auto& stat = *new (&stats_[next_available_]) Stat(type, idx, name);
-  next_available_++;
+  // note: we have to create this early in case it throws
+  auto& stat = *new (&stats_[idx]) Stat(type, name);
+  bitmap.set(idx);
   return stat;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-Stat& Statman::get(const std::string& name) {
-  if (name.empty())
-    throw Stats_exception{"Stat name is empty"};
+Stat& Statman::get(const void* addr)
+{
+  auto* st = (Stat*) addr;
+  auto  mod  = ((uintptr_t) st - (uintptr_t) stats_) % sizeof(Stat);
 
-  for (auto it = begin(); it != last_used(); ++it)
-    if ((*it).name() == name)
-      return (*it);
+  if (st >= cbegin() && st < cend())
+  if (mod == 0) // verify stat boundary
+  {
+    if (st->unused() == false)
+      return *st;
+    else
+      throw Stats_exception{"Accessing deleted stat"};
+  }
 
-  throw Stats_exception{"No stat with name " + name + " exists"};
+  throw std::out_of_range("Address out of range");
+}
+
+void Statman::free(void* addr)
+{
+  auto& stat = this->get(addr);
+  auto  idx  = &stat - cbegin();
+
+  // delete entry
+  new (&stat) Stat(Stat::FLOAT, "");
+  bitmap.reset(idx);
 }

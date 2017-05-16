@@ -39,7 +39,7 @@ public:
 
   void serialize(Writer& writer) override {
     writer.StartArray();
-    for(auto it = statman_.begin(); it != statman_.last_used(); ++it) {
+    for(auto it = statman_.begin(); it != statman_.end(); ++it) {
       auto& stat = *it;
       writer.StartObject();
 
@@ -62,7 +62,7 @@ public:
       writer.String(type);
 
       writer.Key("index");
-      writer.Int(stat.index());
+      writer.Int(&stat - statman_.begin());
 
       writer.EndObject();
     }
@@ -79,6 +79,3 @@ private:
 } // < namespace mana
 
 #endif
-
-
-
