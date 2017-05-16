@@ -36,12 +36,11 @@ namespace hw {
 
     virtual Proto proto() const = 0;
 
-    /** Get a readable name. */
+    /** Human-readable driver name */
     virtual const char* driver_name() const = 0;
 
-    std::string device_name() const {
-      return "eth" + std::to_string(N);
-    }
+    /** Human-readable interface/device name (eg. eth0) */
+    virtual std::string device_name() const = 0;
 
     /** A readable name of the type of device @todo: move to a abstract Device? */
     static const char* device_type()
