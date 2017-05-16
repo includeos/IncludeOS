@@ -17,7 +17,7 @@ set(X86_PC_OBJECTS
 add_custom_command(
 	OUTPUT apic_boot.o
 	COMMAND ${CMAKE_ASM_NASM_COMPILER} -f bin -o apic_boot.bin ${CMAKE_CURRENT_SOURCE_DIR}/apic_boot.asm
-	COMMAND ${CMAKE_OBJCOPY} -I binary -O elf64-x86-64 apic_boot.bin apic_boot.o
+	COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} apic_boot.bin apic_boot.o
 	DEPENDS apic_boot.asm
 )
 

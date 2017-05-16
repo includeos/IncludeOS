@@ -8,16 +8,16 @@
 #TEST_DEPENDENCIES="g++ g++-multilib python-junit.xml"
 export INCLUDEOS_SRC=${INCLUDEOS_SRC:-"~/IncludeOS"}
 export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-"/usr/local"}
-export INCLUDEOS_BIN=$INCLUDEOS_PREFIX/includeos/bin # Where to link stuff 
+export INCLUDEOS_BIN=$INCLUDEOS_PREFIX/includeos/bin # Where to link stuff
 
 INSTALLED_BREW=0
-INSTALLED_BREW_PACKAGES=0 
+INSTALLED_BREW_PACKAGES=0
 INSTALLED_PIP=0
 INSTALLED_PIP_PACKAGES=0
 INSTALLED_BINUTILS=0
 INSTALLED_SYMLINKING=0
-ALL_DEPENDENCIES="llvm38 nasm cmake jq qemu Caskroom/cask/tuntap file-formula"
-PIP_MODS="jsonschema psutil filemagic" 
+ALL_DEPENDENCIES="llvm38 nasm cmake jq qemu Caskroom/cask/tuntap libmagic"
+PIP_MODS="jsonschema psutil filemagic"
 
 ############################################################
 # COMMAND LINE PROPERTIES:
@@ -91,7 +91,7 @@ if [ $INSTALLED_BREW -eq 1 ]; then
 	done
 	# If not all brew packages are installed they have to be installed
 	if [[ $not_installed_packages -gt 0 ]]; then
-		INSTALLED_BREW_PACKAGES=0 
+		INSTALLED_BREW_PACKAGES=0
 		if [[ $CHECK_ONLY -eq 0 ]]; then
 			echo ">>> Installing: $BREW_DEPENDENCIES_TO_INSTALL"
 			for formula in $BREW_DEPENDENCIES_TO_INSTALL; do
@@ -104,7 +104,7 @@ if [ $INSTALLED_BREW -eq 1 ]; then
 	fi
 fi
 
-	
+
 ############################################################
 # PYTHON DEPENDENCIES:
 ############################################################

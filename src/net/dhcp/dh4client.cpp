@@ -29,7 +29,8 @@ namespace net {
   using namespace dhcp;
 
   DHClient::DHClient(Stack& inet)
-    : stack(inet), xid(0), domain_name{}, in_progress(false)
+    : stack(inet), xid(0), domain_name{},
+      timeout_timer_{{this, &DHClient::timeout}}, in_progress(false)
   {
     this->on_config(
     [this] (bool timeout)
@@ -47,6 +48,17 @@ namespace net {
     config_handlers_.push_back(handler);
   }
 
+  void DHClient::timeout()
+  {
+    // reset session ID
+    this->xid = 0;
+    this->in_progress = false;
+
+    // call on_config with timeout = true
+    for(auto& handler : this->config_handlers_)
+      handler(true);
+  }
+
   void DHClient::negotiate(uint32_t timeout_secs)
   {
     // Allow multiple calls to negotiate without restarting the process
@@ -55,16 +67,8 @@ namespace net {
 
     // set timeout handler
     using namespace std::chrono;
-    this->timeout = Timers::oneshot(seconds(timeout_secs),
-    [this] (int) {
-      // reset session ID
-      this->xid = 0;
-      this->in_progress = false;
 
-      // call on_config with timeout = true
-      for(auto handler : this->config_handlers_)
-          handler(true);
-    });
+    timeout_timer_.start(seconds(timeout_secs));
 
     // create a random session ID
     this->xid  = (rand() & 0xffff);
@@ -303,12 +307,12 @@ namespace net {
     }
     debug("\n");
     // stop timeout from happening
-    Timers::stop(timeout);
+    timeout_timer_.stop();
 
     in_progress = false;
 
     // run some post-DHCP event to release the hounds
-    for (auto handler : config_handlers_)
+    for(auto& handler : this->config_handlers_)
       handler(false);
   }
 

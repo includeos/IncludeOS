@@ -69,6 +69,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
+  ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/net/unit/dhcp_message_test.cpp

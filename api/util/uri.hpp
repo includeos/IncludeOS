@@ -98,7 +98,7 @@ class URI {
   /// @param parse
   ///   Whether to perform parsing on the the data specified in {uri}
   ///
-  explicit URI(const char* uri, const size_t count, const bool parse = true);
+  URI(const char* uri, const size_t count, const bool parse = true);
 
   ///
   /// Construct using a std::string representing a uri
@@ -109,7 +109,7 @@ class URI {
   /// @param parse
   ///   Whether to perform parsing on the the data specified in {uri}
   ///
-  explicit URI(const std::string& uri, const bool parse = true);
+  URI(const std::string& uri, const bool parse = true);
 
   ///
   /// Construct using a view of a string representing a uri
@@ -120,7 +120,7 @@ class URI {
   /// @param parse
   ///   Whether to perform parsing on the the data specified in {uri}
   ///
-  explicit URI(util::csview uri, const bool parse = true);
+  URI(util::csview uri, const bool parse = true);
 
   ///////////////////////////////////////////////
   //----------RFC-specified URI parts----------//

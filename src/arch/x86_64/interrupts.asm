@@ -66,13 +66,26 @@ xsave_storage_area: resb  512
    pop rax
 %endmacro
 
+%macro SPSAVE 0
+    mov  rax, rsp
+    and  rsp, ~0xf
+    sub  rsp, 128
+    push rax ;; save old RSP
+    push rax
+%endmacro
+%macro SPRSTOR 0
+    pop rax
+    pop rsp  ;; restore old RSP
+%endmacro
+
+
 SECTION .text
 unused_interrupt_handler:
   cli
   PUSHAQ
-  sub  rsp, 128 ; skip red-zone
+  SPSAVE
   call QWORD [current_eoi_mechanism]
-  add  rsp, 128
+  SPRSTOR
   POPAQ
   sti
   iretq
@@ -80,9 +93,9 @@ unused_interrupt_handler:
 modern_interrupt_handler:
   cli
   PUSHAQ
-  sub  rsp, 128 ; skip red-zone
+  SPSAVE
   call QWORD [current_intr_handler]
-  add  rsp, 128
+  SPRSTOR
   POPAQ
   sti
   iretq
@@ -90,10 +103,10 @@ modern_interrupt_handler:
 cpu_sampling_irq_entry:
   cli
   PUSHAQ
-  sub  rsp, 128 ; skip red-zone
+  SPSAVE
   call cpu_sampling_irq_handler
   call QWORD [current_eoi_mechanism]
-  add  rsp, 128
+  SPRSTOR
   POPAQ
   sti
   iretq

@@ -87,6 +87,13 @@ namespace net {
     /** Use DHCP to configure this interface */
     virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) = 0;
 
+    virtual bool is_configured() const = 0;
+
+    using on_configured_func = delegate<void(Stack&)>;
+
+    /** Assign callback to when the stack has been configured */
+    virtual void on_config(on_configured_func handler) = 0;
+
     /** Get a list of virtual IP4 addresses assigned to this interface */
     virtual const Vip_list virtual_ips() const = 0;
 
@@ -209,6 +216,9 @@ namespace net {
 
     /** Number of buffers available in the bufstore */
     virtual size_t buffers_available() = 0;
+
+    /** Number of total buffers in the bufstore */
+    virtual size_t buffers_total() = 0;
 
     /** Start TCP (e.g. after system suspension). */
     virtual void force_start_send_queues() = 0;

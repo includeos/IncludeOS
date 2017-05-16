@@ -7,22 +7,32 @@ endif()
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
-project (test_timers)
+project (test_autoconf)
 
 # Human-readable name of your service
-set(SERVICE_NAME "Timers Test Service")
+set(SERVICE_NAME "Autoconf Test Service")
 
 # Name of your service binary
-set(BINARY       "test_timers")
+set(BINARY       "test_autoconf")
 
 # Maximum memory can be hard-coded into the binary
-set(MAX_MEM 64)
+set(MAX_MEM 128)
 
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp timers.cpp
+  service.cpp # ...add more here
+  )
+
+# DRIVERS / PLUGINS:
+
+set(DRIVERS
+  virtionet   # Virtio networking
+  # virtioblock # Virtio block device
+  # ... Others from IncludeOS/src/drivers
   )
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+
+diskbuilder(disk)
