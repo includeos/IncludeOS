@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,13 +16,15 @@
 // limitations under the License.
 
 #pragma once
-#ifndef NET_HTTP_WEBSOCKET_HPP
-#define NET_HTTP_WEBSOCKET_HPP
+#ifndef NET_WS_WEBSOCKET_HPP
+#define NET_WS_WEBSOCKET_HPP
+
+#include "header.hpp"
 
 #include <net/http/server.hpp>
 #include <net/http/client.hpp>
 
-namespace http {
+namespace net {
 
 class WebSocket {
 public:
@@ -46,7 +48,7 @@ public:
    *
    * @return     A WebSocket_ptr, or nullptr if upgrade fails.
    */
-  static WebSocket_ptr upgrade(Request& req, Response_writer& writer);
+  static WebSocket_ptr upgrade(http::Request& req, http::Response_writer& writer);
 
   /**
    * @brief      Upgrade a HTTP Response to a WebSocket connection.
@@ -58,8 +60,8 @@ public:
    *
    * @return     A WebSocket_ptr, or nullptr if upgrade fails.
    */
-  static WebSocket_ptr upgrade(Error err, Response& res,
-                               Connection& conn, const std::string& key);
+  static WebSocket_ptr upgrade(http::Error err, http::Response& res,
+                               http::Connection& conn, const std::string& key);
 
   /**
    * @brief      Generate a random WebSocket key
@@ -87,7 +89,7 @@ public:
    *
    * @return     A Request handler for a http::Server
    */
-  static Server::Request_handler
+  static http::Server::Request_handler
   create_request_handler(Connect_handler on_connect,
                          Accept_handler  on_accept = nullptr);
 
@@ -99,19 +101,15 @@ public:
    *
    * @return     A Response handler for a http::Client
    */
-  static Client::Response_handler
+  static http::Client::Response_handler
   create_response_handler(Connect_handler on_connect, std::string key);
 
-  enum mode_t {
-    TEXT,
-    BINARY
-  };
-  void write(const char* buffer, size_t len, mode_t = TEXT);
-  void write(net::tcp::buffer_t, size_t len, mode_t = TEXT);
+  void write(const char* buffer, size_t len, op_code = op_code::TEXT);
+  void write(net::tcp::buffer_t, size_t len, op_code = op_code::TEXT);
 
   void write(const std::string& text)
   {
-    write(text.c_str(), text.size(), TEXT);
+    write(text.c_str(), text.size(), op_code::TEXT);
   }
 
   // close the websocket
@@ -147,7 +145,7 @@ private:
   WebSocket& operator= (const WebSocket&) = delete;
   WebSocket& operator= (WebSocket&&) = delete;
   void read_data(net::tcp::buffer_t, size_t);
-  bool write_opcode(uint8_t code, const char*, size_t);
+  bool write_opcode(op_code code, const char*, size_t);
   void failure(const std::string&);
   void tcp_closed();
   void reset();
