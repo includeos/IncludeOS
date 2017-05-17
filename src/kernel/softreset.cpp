@@ -12,11 +12,12 @@ namespace x86 {
 
 struct softreset_t
 {
-  uint32_t checksum;
-  MHz      cpu_freq;
-  uint32_t apic_ticks;
-  void*    extra;
-  size_t   extra_len;
+  uint32_t  checksum;
+  uintptr_t high_mem;
+  MHz       cpu_freq;
+  uint32_t  apic_ticks;
+  void*     extra;
+  size_t    extra_len;
 };
 
 bool OS::is_softreset_magic(uint32_t value)
@@ -43,7 +44,8 @@ void OS::resume_softreset(intptr_t addr)
   data->checksum = csum_copy;
 
   /// restore known values
-  OS::cpu_mhz_ = data->cpu_freq;
+  OS::memory_end_ = data->high_mem;
+  OS::cpu_mhz_    = data->cpu_freq;
   x86::apic_timer_set_ticks(data->apic_ticks);
 
   /// call service-specific softreset handler
@@ -56,6 +58,7 @@ void* __os_store_soft_reset(void* extra, size_t extra_len)
   // store softreset data in low memory
   auto* data = (softreset_t*) SOFT_RESET_LOCATION;
   data->checksum    = 0;
+  data->high_mem    = OS::memory_end();
   data->cpu_freq    = OS::cpu_freq();
   data->apic_ticks  = x86::apic_timer_get_ticks();
   data->extra       = extra;

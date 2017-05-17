@@ -62,6 +62,42 @@ extern "C" {
   extern void spurious_intr();
 }
 
+static const char* exception_names[] =
+{
+  "Divide-by-zero Error",
+  "Debug",
+  "Non-maskable Interrupt",
+  "Breakpoint",
+  "Overflow",
+  "Bound Range Exceeded",
+  "Invalid Opcode",
+  "Device Not Available",
+  "Double Fault",
+  "Reserved",
+  "Invalid TSS",
+  "Segment Not Present",
+  "Stack-Segment Fault",
+  "General Protection Fault",
+  "Page Fault",
+  "Reserved",
+  "x87 Floating-point Exception",
+  "Alignment Check",
+  "Machine Check",
+  "SIMD Floating-point Exception",
+  "Virtualization Exception",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Security Exception",
+  "Reserved"
+};
+
 // Only certain exceptions have error codes
 template <int NR>
 typename std::enable_if<((NR >= 8 and NR <= 15) or NR == 17 or NR == 30)>::type
@@ -80,12 +116,12 @@ void cpu_exception(void** eip, uint32_t error)
 {
   SMP::global_lock();
   kprintf("\n>>>> !!! CPU %u EXCEPTION !!! <<<<\n", SMP::cpu_id());
-  kprintf("Exception %i   EIP  %p\n", NR, eip);
+  kprintf("    %s (%d)   EIP  %p\n", exception_names[NR], NR, eip);
   print_error_code<NR>(error);
   SMP::global_unlock();
   // call panic, which will decide what to do next
   char buffer[64];
-  snprintf(buffer, sizeof(buffer), "CPU exception %d", NR);
+  snprintf(buffer, sizeof(buffer), "%s (%d)", exception_names[NR], NR);
   panic(buffer);
 }
 
