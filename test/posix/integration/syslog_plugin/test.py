@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 import sys
 import os
+import subprocess
+import atexit
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
@@ -12,9 +14,17 @@ vm = vmrunner.vms[0]
 
 import socket
 
-# Gateway IP is 10.0.0.1 - syslog sends its messages here on port 6514
+# Gateway IP is 10.0.0.2 - syslog sends its messages here on port 6514
 
-UDP_IP = "10.0.0.1"
+# Set up a temporary interface
+subprocess.call(["sudo", "ifconfig", "bridge43:0", "10.0.0.2/24"])
+
+# Tear down interface on exit
+@atexit.register
+def tear_down():
+    subprocess.call(["sudo", "ifconfig", "bridge43:0", "down"])
+
+UDP_IP = "10.0.0.2"
 UDP_PORT = 6514
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((UDP_IP, UDP_PORT))
