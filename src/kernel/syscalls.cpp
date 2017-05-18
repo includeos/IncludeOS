@@ -128,7 +128,7 @@ void OS::on_panic(on_panic_func func)
 void panic(const char* why)
 {
   /// prevent re-entering panic() more than once per CPU
-  if (panic_reenter) OS::reboot();
+  //if (panic_reenter) OS::reboot();
   panic_reenter = true;
 
   /// display informacion ...
@@ -203,28 +203,42 @@ void panic(const char* why)
   printf("  CR3:  %016lx  IDT:  %016lx (%u)\n", regs[21], idt.location, idt.limit);
   fprintf(stderr, "\n");
 
-  // stack info
-  void* SP = 0; asm volatile("mov %%rsp, %0" : "=r"(SP));
-  void* SB = 0; asm volatile("mov %%rbp, %0" : "=r"(SB));
 #elif defined(ARCH_i686)
   // CPU registers
+  uintptr_t regs[16];
+  asm ("movl %%eax, %0" : "=r" (regs[0]));
+  asm ("movl %%ebx, %0" : "=r" (regs[1]));
+  asm ("movl %%ecx, %0" : "=r" (regs[2]));
+  asm ("movl %%edx, %0" : "=r" (regs[3]));
 
-  // stack info
-  register void* SP asm("esp");
-  register void* SB asm("ebp");
+  asm ("movl %%ebp, %0" : "=r" (regs[4]));
+  asm ("movl %%esp, %0" : "=r" (regs[5]));
+  asm ("movl %%esi, %0" : "=r" (regs[6]));
+  asm ("movl %%edi, %0" : "=r" (regs[7]));
+
+  asm ("movl (%%esp), %0" : "=r" (regs[8]));
+  asm ("pushf; popl %0" : "=r" (regs[9]));
+
+  printf("  EAX:  %08x  EBP:  %08x\n", regs[0], regs[4]);
+  printf("  EBX:  %08x  ESP:  %08x\n", regs[1], regs[5]);
+  printf("  ECX:  %08x  ESI:  %08x\n", regs[2], regs[6]);
+  printf("  EDX:  %08x  EDI:  %08x\n", regs[3], regs[7]);
+  printf("  EIP:  %08x  EFL:  %08x\n", regs[8], regs[9]);
+  fprintf(stderr, "\n");
+
 #else
   #error "Implement me"
 #endif
-  fprintf(stderr, "\tStack pointer: %p  Base: %p\n", SP, SB);
 
   // heap info
+  typedef unsigned long ulong;
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
-  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%u)\n",
-         (void*) heap_end, (void*) OS::heap_max(), (uint32_t) (OS::heap_max() - heap_end));
+  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%lu)\n",
+         (void*) heap_end, (void*) OS::heap_max(), (ulong) (OS::heap_max() - heap_end));
   fprintf(stderr, "\tHeap usage: %lu / %lu Kb (%.2f%%)\n",
-         (unsigned long) (heap_end - heap_begin) / 1024,
-         heap_total / 1024, total * 100.0);
+         (ulong) (heap_end - heap_begin) / 1024,
+         (ulong) heap_total / 1024, total * 100.0);
 
   // call stack
   print_backtrace();
