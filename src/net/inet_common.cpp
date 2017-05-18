@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +23,11 @@ uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
 {
   const char* buffer = (const char*) data;
   int64_t sum = tsum;
+  // align 2-byte misaligned buffer
+  if ((uintptr_t) buffer & 2) {
+    sum += *(uint16_t*) buffer;
+    length -= 2; buffer += 2;
+  }
   // unrolled 32 bytes at once
   while (length >= 32)
   {
