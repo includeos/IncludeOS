@@ -137,7 +137,7 @@ void IRQ_manager::init(int cpuid)
 
 void IRQ_manager::init_local()
 {
-  const auto WORDS_PER_BMP = IRQ_LINES / 32;
+  const auto WORDS_PER_BMP = INTR_LINES / 32;
   auto* bmp = new MemBitmap::word[WORDS_PER_BMP * 3]();
   irq_subs.set_location(bmp + 0 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_pend.set_location(bmp + 1 * WORDS_PER_BMP, WORDS_PER_BMP);
