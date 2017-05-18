@@ -128,7 +128,7 @@ void OS::on_panic(on_panic_func func)
 void panic(const char* why)
 {
   /// prevent re-entering panic() more than once per CPU
-  if (panic_reenter) OS::reboot();
+  //if (panic_reenter) OS::reboot();
   panic_reenter = true;
 
   /// display informacion ...
@@ -147,35 +147,35 @@ void panic(const char* why)
 #if defined(ARCH_x86_64)
   // CPU registers
   uintptr_t regs[24];
-  asm ("movq %%rax, %0" : "=r" (regs[0]));
-  asm ("movq %%rbx, %0" : "=r" (regs[1]));
-  asm ("movq %%rcx, %0" : "=r" (regs[2]));
-  asm ("movq %%rdx, %0" : "=r" (regs[3]));
-  asm ("movq %%rbp, %0" : "=r" (regs[4]));
+  asm ("movq %%rax, %0" : "=a" (regs[0]));
+  asm ("movq %%rbx, %0" : "=b" (regs[1]));
+  asm ("movq %%rcx, %0" : "=c" (regs[2]));
+  asm ("movq %%rdx, %0" : "=d" (regs[3]));
+  asm ("movq %%rbp, %0" : "=a" (regs[4]));
 
-  asm ("movq %%r8, %0"  : "=r" (regs[5]));
-  asm ("movq %%r9, %0"  : "=r" (regs[6]));
-  asm ("movq %%r10, %0" : "=r" (regs[7]));
-  asm ("movq %%r11, %0" : "=r" (regs[8]));
-  asm ("movq %%r12, %0" : "=r" (regs[9]));
-  asm ("movq %%r13, %0" : "=r" (regs[10]));
-  asm ("movq %%r14, %0" : "=r" (regs[11]));
-  asm ("movq %%r15, %0" : "=r" (regs[12]));
+  asm ("movq %%r8, %0"  : "=a" (regs[5]));
+  asm ("movq %%r9, %0"  : "=b" (regs[6]));
+  asm ("movq %%r10, %0" : "=c" (regs[7]));
+  asm ("movq %%r11, %0" : "=d" (regs[8]));
+  asm ("movq %%r12, %0" : "=a" (regs[9]));
+  asm ("movq %%r13, %0" : "=b" (regs[10]));
+  asm ("movq %%r14, %0" : "=c" (regs[11]));
+  asm ("movq %%r15, %0" : "=d" (regs[12]));
 
-  asm ("movq %%rsp, %0" : "=r" (regs[13]));
-  asm ("movq %%rip, %0" : "=r" (regs[14]));
-  asm ("movq %%rsi, %0" : "=r" (regs[15]));
-  asm ("movq %%rdi, %0" : "=r" (regs[16]));
+  asm ("movq %%rsp, %0" : "=a" (regs[13]));
+  asm ("movq %%rsi, %0" : "=b" (regs[14]));
+  asm ("movq %%rdi, %0" : "=c" (regs[15]));
+  asm ("movq %%rip, %0" : "=d" (regs[16]));
 
-  asm ("pushf; popq %0" : "=r" (regs[17]));
-  asm ("movq %%cr0, %0" : "=r" (regs[18]));
+  asm ("pushf; popq %0" : "=a" (regs[17]));
+  asm ("movq %%cr0, %0" : "=b" (regs[18]));
   /*
   asm ("movq %%cr1, %0" : "=r" (regs[19]));
   */
-  asm ("movq %%cr2, %0" : "=r" (regs[20]));
-  asm ("movq %%cr3, %0" : "=r" (regs[21]));
-  asm ("movq %%cr4, %0" : "=r" (regs[22]));
-  asm ("movq %%cr8, %0" : "=r" (regs[23]));
+  asm ("movq %%cr2, %0" : "=c" (regs[20]));
+  asm ("movq %%cr3, %0" : "=d" (regs[21]));
+  asm ("movq %%cr4, %0" : "=a" (regs[22]));
+  asm ("movq %%cr8, %0" : "=b" (regs[23]));
 
   struct desc_table_t {
     uint16_t  limit;
@@ -192,9 +192,9 @@ void panic(const char* why)
 
   printf("  RBP:  %016lx  R12:  %016lx\n", regs[4], regs[9]);
   printf("  RSP:  %016lx  R13:  %016lx\n", regs[13], regs[10]);
-  printf("  RIP:  %016lx  R14:  %016lx\n", regs[14], regs[11]);
-  printf("  RSI:  %016lx  R15:  %016lx\n", regs[15], regs[12]);
-  printf("  RDI:  %016lx  FLA:  %016lx\n", regs[16], regs[17]);
+  printf("  RSI:  %016lx  R14:  %016lx\n", regs[14], regs[11]);
+  printf("  RDI:  %016lx  R15:  %016lx\n", regs[15], regs[12]);
+  printf("  RIP:  %016lx  FLA:  %016lx\n", regs[16], regs[17]);
   fprintf(stderr, "\n");
 
   printf("  CR0:  %016lx  CR4:  %016lx\n", regs[18], regs[22]);
@@ -203,28 +203,42 @@ void panic(const char* why)
   printf("  CR3:  %016lx  IDT:  %016lx (%u)\n", regs[21], idt.location, idt.limit);
   fprintf(stderr, "\n");
 
-  // stack info
-  void* SP = 0; asm volatile("mov %%rsp, %0" : "=r"(SP));
-  void* SB = 0; asm volatile("mov %%rbp, %0" : "=r"(SB));
 #elif defined(ARCH_i686)
   // CPU registers
+  uintptr_t regs[16];
+  asm ("movl %%eax, %0" : "=r" (regs[0]));
+  asm ("movl %%ebx, %0" : "=r" (regs[1]));
+  asm ("movl %%ecx, %0" : "=r" (regs[2]));
+  asm ("movl %%edx, %0" : "=r" (regs[3]));
 
-  // stack info
-  register void* SP asm("esp");
-  register void* SB asm("ebp");
+  asm ("movl %%ebp, %0" : "=r" (regs[4]));
+  asm ("movl %%esp, %0" : "=r" (regs[5]));
+  asm ("movl %%esi, %0" : "=r" (regs[6]));
+  asm ("movl %%edi, %0" : "=r" (regs[7]));
+
+  asm ("movl (%%esp), %0" : "=r" (regs[8]));
+  asm ("pushf; popl %0" : "=r" (regs[9]));
+
+  printf("  EAX:  %08x  EBP:  %08x\n", regs[0], regs[4]);
+  printf("  EBX:  %08x  ESP:  %08x\n", regs[1], regs[5]);
+  printf("  ECX:  %08x  ESI:  %08x\n", regs[2], regs[6]);
+  printf("  EDX:  %08x  EDI:  %08x\n", regs[3], regs[7]);
+  printf("  EIP:  %08x  EFL:  %08x\n", regs[8], regs[9]);
+  fprintf(stderr, "\n");
+
 #else
   #error "Implement me"
 #endif
-  fprintf(stderr, "\tStack pointer: %p  Base: %p\n", SP, SB);
 
   // heap info
+  typedef unsigned long ulong;
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
-  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%u)\n",
-         (void*) heap_end, (void*) OS::heap_max(), (uint32_t) (OS::heap_max() - heap_end));
+  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%lu)\n",
+         (void*) heap_end, (void*) OS::heap_max(), (ulong) (OS::heap_max() - heap_end));
   fprintf(stderr, "\tHeap usage: %lu / %lu Kb (%.2f%%)\n",
-         (unsigned long) (heap_end - heap_begin) / 1024,
-         heap_total / 1024, total * 100.0);
+         (ulong) (heap_end - heap_begin) / 1024,
+         (ulong) heap_total / 1024, total * 100.0);
 
   // call stack
   print_backtrace();
