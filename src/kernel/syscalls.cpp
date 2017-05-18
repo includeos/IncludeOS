@@ -139,15 +139,77 @@ void panic(const char* why)
   // crash context (can help determine source of crash)
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
-    printf("\n\t**** CONTEXT: ****\n %*s\n\n",
+    printf("\n\t**** CONTEXT: ****\n %*s\n",
         len, get_crash_context_buffer());
   }
+  fprintf(stderr, "\n");
+
+#if defined(ARCH_x86_64)
+  // CPU registers
+  uintptr_t regs[24];
+  asm ("movq %%rax, %0" : "=r" (regs[0]));
+  asm ("movq %%rbx, %0" : "=r" (regs[1]));
+  asm ("movq %%rcx, %0" : "=r" (regs[2]));
+  asm ("movq %%rdx, %0" : "=r" (regs[3]));
+  asm ("movq %%rbp, %0" : "=r" (regs[4]));
+
+  asm ("movq %%r8, %0"  : "=r" (regs[5]));
+  asm ("movq %%r9, %0"  : "=r" (regs[6]));
+  asm ("movq %%r10, %0" : "=r" (regs[7]));
+  asm ("movq %%r11, %0" : "=r" (regs[8]));
+  asm ("movq %%r12, %0" : "=r" (regs[9]));
+  asm ("movq %%r13, %0" : "=r" (regs[10]));
+  asm ("movq %%r14, %0" : "=r" (regs[11]));
+  asm ("movq %%r15, %0" : "=r" (regs[12]));
+
+  asm ("movq %%rsp, %0" : "=r" (regs[13]));
+  asm ("movq %%rip, %0" : "=r" (regs[14]));
+  asm ("movq %%rsi, %0" : "=r" (regs[15]));
+  asm ("movq %%rdi, %0" : "=r" (regs[16]));
+
+  asm ("pushf; popq %0" : "=r" (regs[17]));
+  asm ("movq %%cr0, %0" : "=r" (regs[18]));
+  /*
+  asm ("movq %%cr1, %0" : "=r" (regs[19]));
+  */
+  asm ("movq %%cr2, %0" : "=r" (regs[20]));
+  asm ("movq %%cr3, %0" : "=r" (regs[21]));
+  asm ("movq %%cr4, %0" : "=r" (regs[22]));
+  asm ("movq %%cr8, %0" : "=r" (regs[23]));
+
+  struct desc_table_t {
+    uint16_t  limit;
+    uintptr_t location;
+  } __attribute__((packed))  gdt, idt;
+  asm ("sgdtq %0" : : "m" (* &gdt));
+  asm ("sidtq %0" : : "m" (* &idt));
+
+  printf("  RAX:  %016lx  R 8:  %016lx\n", regs[0], regs[5]);
+  printf("  RBX:  %016lx  R 9:  %016lx\n", regs[1], regs[6]);
+  printf("  RCX:  %016lx  R10:  %016lx\n", regs[2], regs[7]);
+  printf("  RDX:  %016lx  R11:  %016lx\n", regs[3], regs[8]);
+  fprintf(stderr, "\n");
+
+  printf("  RBP:  %016lx  R12:  %016lx\n", regs[4], regs[9]);
+  printf("  RSP:  %016lx  R13:  %016lx\n", regs[13], regs[10]);
+  printf("  RIP:  %016lx  R14:  %016lx\n", regs[14], regs[11]);
+  printf("  RSI:  %016lx  R15:  %016lx\n", regs[15], regs[12]);
+  printf("  RDI:  %016lx  FLA:  %016lx\n", regs[16], regs[17]);
+  fprintf(stderr, "\n");
+
+  printf("  CR0:  %016lx  CR4:  %016lx\n", regs[18], regs[22]);
+  printf("  CR1:  %016lx  CR8:  %016lx\n", regs[19], regs[23]);
+  printf("  CR2:  %016lx  GDT:  %016lx (%u)\n", regs[20], gdt.location, gdt.limit);
+  printf("  CR3:  %016lx  IDT:  %016lx (%u)\n", regs[21], idt.location, idt.limit);
+  fprintf(stderr, "\n");
 
   // stack info
-#if defined(ARCH_x86_64)
-  void* SP; asm volatile("mov %%rsp, %0" : "=r"(SP));
-  void* SB; asm volatile("mov %%rbp, %0" : "=r"(SB));
+  void* SP = 0; asm volatile("mov %%rsp, %0" : "=r"(SP));
+  void* SB = 0; asm volatile("mov %%rbp, %0" : "=r"(SB));
 #elif defined(ARCH_i686)
+  // CPU registers
+
+  // stack info
   register void* SP asm("esp");
   register void* SB asm("ebp");
 #else
