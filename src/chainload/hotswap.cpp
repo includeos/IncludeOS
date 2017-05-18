@@ -36,9 +36,7 @@ void hotswap(const char* base, int len, char* dest, void* start,
     dest[i] = base[i];
 
   // Populate multiboot regs and jump to start
-  asm volatile("movl %0, %%eax" : : "a" (magic) : "eax");
-  asm volatile("movl %0, %%ebx" : : "b" (bootinfo) : "ebx");
-  asm volatile("jmp *%0" : : "r" (start));
+  asm volatile("jmp *%0" : : "r" (start), "a" (magic), "b" (bootinfo));
   asm volatile (".global __hotswap_end;\n__hotswap_end:");
   __builtin_unreachable();
 
