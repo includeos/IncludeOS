@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,143 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/http/websocket.hpp>
+#include <net/ws/websocket.hpp>
 #include <kernel/os.hpp>
 #include <util/base64.hpp>
 #include <util/sha1.hpp>
 #include <cstdint>
-#include <net/http/ws_connector.hpp>
+#include <net/ws/connector.hpp>
 
-#define OPCODE_CONTINUE    0
-#define OPCODE_TEXT        1
-#define OPCODE_BINARY      2
-#define OPCODE_CLOSE       8
-#define OPCODE_PING        9
-#define OPCODE_PONG       10
-#define HEADER_MAXLEN     16
-
-const char* opcode_string(uint16_t code)
-{
-  switch (code) {
-  case OPCODE_CONTINUE:
-      return "Continuation frame";
-  case OPCODE_TEXT:
-      return "Text frame";
-  case OPCODE_BINARY:
-      return "Binary frame";
-  case OPCODE_CLOSE:
-      return "Connection close";
-  case OPCODE_PING:
-      return "Ping";
-  case OPCODE_PONG:
-      return "Pong";
-  default:
-      return "Reserved (unspecified)";
-  }
-}
-
-namespace http {
-
-struct ws_header
-{
-  uint16_t bits;
-
-  bool is_final() const noexcept {
-    return (bits >> 7) & 1;
-  }
-  void set_final() noexcept {
-    bits |= 0x80;
-    assert(is_final() == true);
-  }
-  uint16_t payload() const noexcept {
-    return (bits >> 8) & 0x7f;
-  }
-  void set_payload(const size_t len)
-  {
-    uint16_t pbits = len;
-    if      (len > 65535) pbits = 127;
-    else if (len > 125)   pbits = 126;
-    bits &= 0x80ff;
-    bits |= (pbits & 0x7f) << 8;
-
-    if (is_ext())
-        *(uint16_t*) vla = __builtin_bswap16(len);
-    else if (is_ext2())
-        *(uint64_t*) vla = __builtin_bswap64(len);
-    assert(data_length() == len);
-  }
-
-  bool is_ext() const noexcept {
-    return payload() == 126;
-  }
-  bool is_ext2() const noexcept {
-    return payload() == 127;
-  }
-
-  bool is_masked() const noexcept {
-    return bits & 0x8000;
-  }
-  void set_masked() noexcept {
-    bits |= 0x8000;
-    uint32_t mask = OS::cycles_since_boot() & 0xffffffff;
-    memcpy(keymask(), &mask, sizeof(mask));
-  }
-
-  uint8_t opcode() const noexcept {
-    return bits & 0xf;
-  }
-  void set_opcode(uint8_t code) {
-    bits &= ~0xf;
-    bits |= code & 0xf;
-    assert(opcode() == code);
-  }
-
-  bool is_fail() const noexcept {
-    return false;
-  }
-
-  size_t mask_length() const noexcept {
-    return is_masked() ? 4 : 0;
-  }
-  char* keymask() noexcept {
-    return &vla[data_offset() - mask_length()];
-  }
-
-  size_t data_offset() const noexcept {
-    size_t len = mask_length();
-    if (is_ext2()) return len + 8;
-    if (is_ext())  return len + 2;
-    return len;
-  }
-  size_t data_length() const noexcept {
-    if (is_ext2())
-        return __builtin_bswap64(*(uint64_t*) vla) & 0xffffffff;
-    if (is_ext())
-        return __builtin_bswap16(*(uint16_t*) vla);
-    return payload();
-  }
-  const char* data() const noexcept {
-    return &vla[data_offset()];
-  }
-  char* data() noexcept {
-    return &vla[data_offset()];
-  }
-  void masking_algorithm()
-  {
-    char* ptr  = data();
-    const char* mask = keymask();
-    for (size_t i = 0; i < data_length(); i++)
-    {
-      ptr[i] = ptr[i] xor mask[i & 3];
-    }
-  }
-
-  size_t reported_length() const noexcept {
-    return sizeof(ws_header) + data_offset() + data_length();
-  }
-
-  char vla[0];
-} __attribute__((packed));
+namespace net {
 
 static inline std::string
 encode_hash(const std::string& key)
@@ -163,8 +34,27 @@ encode_hash(const std::string& key)
   return base64::encode(sha.as_raw());
 }
 
+const char* WebSocket::to_string(op_code code)
+{
+  switch (code) {
+    case op_code::CONTINUE:
+        return "Continuation frame";
+    case op_code::TEXT:
+        return "Text frame";
+    case op_code::BINARY:
+        return "Binary frame";
+    case op_code::CLOSE:
+        return "Connection close";
+    case op_code::PING:
+        return "Ping";
+    case op_code::PONG:
+        return "Pong";
+    default:
+        return "Reserved (unspecified)";
+  }
+}
 
-WebSocket_ptr WebSocket::upgrade(Request& req, Response_writer& writer)
+WebSocket_ptr WebSocket::upgrade(http::Request& req, http::Response_writer& writer)
 {
   // validate handshake
   auto view = req.header().value("Sec-WebSocket-Version");
@@ -196,7 +86,7 @@ WebSocket_ptr WebSocket::upgrade(Request& req, Response_writer& writer)
   return nullptr;
 }
 
-WebSocket_ptr WebSocket::upgrade(Error err, Response& res, Connection& conn, const std::string& key)
+WebSocket_ptr WebSocket::upgrade(http::Error err, http::Response& res, http::Connection& conn, const std::string& key)
 {
   if (err or res.status_code() != http::Switching_Protocols)
   {
@@ -230,15 +120,15 @@ std::vector<char> WebSocket::generate_key()
   return key;
 }
 
-Server::Request_handler WebSocket::create_request_handler(
+http::Server::Request_handler WebSocket::create_request_handler(
   Connect_handler on_connect, Accept_handler on_accept)
 {
-  auto handler = Server::Request_handler::make_packed(
+  auto handler = http::Server::Request_handler::make_packed(
     [
       on_connect{std::move(on_connect)},
       on_accept{std::move(on_accept)}
     ]
-    (Request_ptr req, Response_writer_ptr writer)
+    (http::Request_ptr req, http::Response_writer_ptr writer)
     {
       if (on_accept)
       {
@@ -259,15 +149,15 @@ Server::Request_handler WebSocket::create_request_handler(
   return handler;
 }
 
-Client::Response_handler WebSocket::create_response_handler(
+http::Client::Response_handler WebSocket::create_response_handler(
   Connect_handler on_connect, std::string key)
 {
-  auto handler = Client::Response_handler::make_packed(
+  auto handler = http::Client::Response_handler::make_packed(
     [
       on_connect{std::move(on_connect)},
       key{std::move(key)}
     ]
-    (Error err, Response_ptr res, Connection& conn)
+    (http::Error err, http::Response_ptr res, http::Connection& conn)
     {
       auto ws = WebSocket::upgrade(err, *res, conn, key);
 
@@ -300,72 +190,92 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
 {
   // silently ignore data from reset connection
   if (this->stream == nullptr) return;
-  /// parse header
-  if (len < sizeof(ws_header)) {
-    failure("read_data: Header was too short");
-    return;
+
+  // parse message
+  if (message != nullptr)
+  {
+    message->add(reinterpret_cast<char*>(buf.get()), len);
   }
-  ws_header& hdr = *(ws_header*) buf.get();
-  /*
-  printf("Code: %hhu  (%s) (final=%d)\n",
-          hdr.opcode(), opcode_string(hdr.opcode()), hdr.is_final());
-  printf("Mask: %d  len=%u\n", hdr.is_masked(), hdr.mask_length());
-  printf("Payload: len=%u dataofs=%u\n",
-          hdr.data_length(), hdr.data_offset());
-  */
-  /// validate payload length
-  if (hdr.reported_length() != len) {
-    failure("read: Invalid length");
-    return;
-  }
-  /// unmask data (if masked)
-  if (hdr.is_masked()) {
-      if (clientside == false)
-          // apply masking algorithm to demask data
-          hdr.masking_algorithm();
-      else {
+  // create new message
+  else
+  {
+    // parse header
+    if (len < sizeof(ws_header)) {
+      failure("read_data: Header was too short");
+      return;
+    }
+
+    ws_header& hdr = *reinterpret_cast<ws_header*>(buf.get());
+
+    // TODO: Add configuration for this, hardcoded max msgs of 5MB for now
+    if (hdr.data_length() > (1024 * 1024 * 5)) {
+      failure("read: Maximum message size exceeded (5MB)");
+      return;
+    }
+    /*
+    printf("Code: %hhu  (%s) (final=%d)\n",
+            hdr.opcode(), opcode_string(hdr.opcode()), hdr.is_final());
+    printf("Mask: %d  len=%u\n", hdr.is_masked(), hdr.mask_length());
+    printf("Payload: len=%u dataofs=%u\n",
+            hdr.data_length(), hdr.data_offset());
+    */
+    /// validate payload length
+
+    /// unmask data (if masked)
+    if (hdr.is_masked()) {
+      if (clientside == true) {
         failure("Read masked message from server");
         return;
       }
-  } else if (clientside == false) {
-    failure("Read unmasked message from client");
-    return;
+    } else if (clientside == false) {
+      failure("Read unmasked message from client");
+      return;
+    }
+
+    message = std::make_unique<Message>(reinterpret_cast<char*>(buf.get()), len);
   }
 
-  switch (hdr.opcode()) {
-  case OPCODE_TEXT:
-  case OPCODE_BINARY:
-      /// .. call on_read
-      if (on_read) {
-          on_read(hdr.data(), hdr.data_length());
+  if(message->is_complete())
+  {
+    message->unmask();
+    const auto& hdr = message->header();
+    switch (hdr.opcode()) {
+      case op_code::TEXT:
+      case op_code::BINARY:
+        /// .. call on_read
+        if (on_read) {
+            on_read(std::move(message));
+        }
+        break;
+      case op_code::CLOSE:
+        // they are angry with us :(
+        if (hdr.data_length() >= 2) {
+          // provide reason to user
+          uint16_t reason = *(uint16_t*) message->data();
+          if (this->on_close)
+              this->on_close(__builtin_bswap16(reason));
+        }
+        else {
+          if (this->on_close) this->on_close(1000);
+        }
+        // close it down
+        this->close();
+        break;
+      case op_code::PING:
+        write_opcode(op_code::PONG, hdr.data(), hdr.data_length());
+        break;
+      case op_code::PONG:
+        break;
+      default:
+        printf("Unknown opcode: %u\n", static_cast<unsigned>(hdr.opcode()));
+        break;
       }
-      break;
-  case OPCODE_CLOSE:
-      // they are angry with us :(
-      if (hdr.data_length() >= 2) {
-        // provide reason to user
-        uint16_t reason = *(uint16_t*) hdr.data();
-        if (this->on_close)
-            this->on_close(__builtin_bswap16(reason));
-      }
-      else {
-        if (this->on_close) this->on_close(1000);
-      }
-      // close it down
-      this->close();
-      return;
-  case OPCODE_PING:
-      write_opcode(OPCODE_PONG, hdr.data(), hdr.data_length());
-      return;
-  case OPCODE_PONG:
-      return;
-  default:
-      printf("Unknown opcode: %u\n", hdr.opcode());
-      break;
+    message.reset();
   }
+
 }
 
-static size_t make_header(char* dest, size_t len, uint8_t code, bool client)
+static size_t make_header(char* dest, size_t len, op_code code, bool client)
 {
   new (dest) ws_header;
   auto& hdr = *(ws_header*) dest;
@@ -374,13 +284,13 @@ static size_t make_header(char* dest, size_t len, uint8_t code, bool client)
   hdr.set_payload(len);
   hdr.set_opcode(code);
   if (client) {
-    hdr.set_masked();
+    hdr.set_masked(OS::cycles_since_boot() & 0xffffffff);
   }
   // header size + data offset
   return sizeof(ws_header) + hdr.data_offset();
 }
 
-void WebSocket::write(const char* buffer, size_t len, mode_t mode)
+void WebSocket::write(const char* buffer, size_t len, op_code code)
 {
   if (UNLIKELY(this->stream == nullptr)) {
     failure("write: Already closed");
@@ -390,11 +300,14 @@ void WebSocket::write(const char* buffer, size_t len, mode_t mode)
     failure("write: Connection not writable");
     return;
   }
-  uint8_t opcode = (mode == TEXT) ? OPCODE_TEXT : OPCODE_BINARY;
+
+  Expects(code == op_code::TEXT or code == op_code::BINARY
+    && "Write currently only supports TEXT or BINARY");
+
   // allocate header and data at the same time
-  auto buf = net::tcp::buffer_t(new uint8_t[HEADER_MAXLEN + len]);
+  auto buf = net::tcp::buffer_t(new uint8_t[WS_HEADER_MAXLEN + len]);
   // fill header
-  int  header_len = make_header((char*) buf.get(), len, opcode, clientside);
+  int  header_len = make_header((char*) buf.get(), len, code, clientside);
   // get data offset & fill in data into buffer
   char* data_ptr = (char*) buf.get() + header_len;
   memcpy(data_ptr, buffer, len);
@@ -409,7 +322,7 @@ void WebSocket::write(const char* buffer, size_t len, mode_t mode)
   /// send everything as shared buffer
   this->stream->write(buf, header_len + len);
 }
-void WebSocket::write(net::tcp::buffer_t buffer, size_t len, mode_t mode)
+void WebSocket::write(net::tcp::buffer_t buffer, size_t len, op_code code)
 {
   if (UNLIKELY(this->stream == nullptr)) {
     failure("write: Already closed");
@@ -423,22 +336,25 @@ void WebSocket::write(net::tcp::buffer_t buffer, size_t len, mode_t mode)
     failure("write: Client-side does not support sending shared buffers");
     return;
   }
-  uint8_t opcode = (mode == TEXT) ? OPCODE_TEXT : OPCODE_BINARY;
+
+  Expects(code == op_code::TEXT or code == op_code::BINARY
+    && "Write currently only supports TEXT or BINARY");
+
   /// write header
-  char header[HEADER_MAXLEN];
-  int  header_len = make_header(header, len, opcode, false);
-  assert(header_len < HEADER_MAXLEN);
+  char header[WS_HEADER_MAXLEN];
+  int  header_len = make_header(header, len, code, false);
+  assert(header_len < WS_HEADER_MAXLEN);
   this->stream->write(header, header_len);
   /// write shared buffer
   this->stream->write(buffer, len);
 }
-bool WebSocket::write_opcode(uint8_t code, const char* buffer, size_t datalen)
+bool WebSocket::write_opcode(op_code code, const char* buffer, size_t datalen)
 {
   if (UNLIKELY(stream == nullptr || stream->is_writable() == false)) {
     return false;
   }
   /// write header
-  char header[HEADER_MAXLEN];
+  char header[WS_HEADER_MAXLEN];
   int  header_len = make_header(header, datalen, code, clientside);
   this->stream->write(header, header_len);
   /// write buffer (if present)
@@ -478,7 +394,7 @@ void WebSocket::close()
 {
   /// send CLOSE message
   if (this->stream->is_writable())
-      this->write_opcode(OPCODE_CLOSE, nullptr, 0);
+      this->write_opcode(op_code::CLOSE, nullptr, 0);
   /// close and unset socket
   this->stream->close();
   this->reset();
@@ -534,4 +450,4 @@ const char* WebSocket::status_code(uint16_t code)
   }
 }
 
-} // http
+} // net

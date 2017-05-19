@@ -121,11 +121,16 @@ void autoconf::configure(const std::string& json)
   Document doc;
   doc.Parse(json.data());
 
-  Expects(doc.IsObject() && "Malformed config");
+  Expects(doc.IsObject() && "Malformed config (not an object)");
 
-  Expects(doc.HasMember("net") && "Missing member \"net\"");
-
-  configure(doc["net"]);
+  if(doc.HasMember("net"))
+  {
+    configure(doc["net"]);
+  }
+  else
+  {
+    MYINFO("Could not find \"net\" - nothing to do");
+  }
 }
 
 void autoconf::configure(const rapidjson::Value& net)
@@ -151,7 +156,7 @@ void autoconf::configure(const rapidjson::Value& net)
     ++N;
   }
 
-  MYINFO("Configure complete");
+  MYINFO("Configuration complete");
 }
 
 }

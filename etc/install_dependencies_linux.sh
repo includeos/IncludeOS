@@ -6,10 +6,12 @@
 # OPTIONS:
 ############################################################
 
-BUILD_DEPENDENCIES="curl make clang cmake nasm bridge-utils qemu jq python-pip"
-TEST_DEPENDENCIES="g++ g++-multilib"
+BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip g++-multilib"
+CLANG_VERSION="3.9"
+TEST_DEPENDENCIES="g++"
 PYTHON_DEPENDENCIES="jsonschema psutil junit-xml filemagic"
 INSTALLED_PIP=0
+INSTALLED_CLANG=0
 
 ############################################################
 # COMMAND LINE PROPERTIES:
@@ -67,6 +69,19 @@ if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 		fi
 	done
 
+	# Check clang version
+	if [[ $(command -v clang-$CLANG_VERSION) ]]; then
+		INSTALLED_CLANG=1
+		if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
+			printf "\n%s\n" "clang-$CLANG_VERSION -> INSTALLED"
+	   	fi
+	else
+		if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
+			printf "%s\n\n" "clang-$CLANG_VERSION -> MISSING"
+		fi
+
+	fi
+
 	# Check if pip is installed
 	if pip --version > /dev/null 2>&1; then
 		INSTALLED_PIP=1
@@ -78,7 +93,7 @@ if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 			if [ $? -eq 0 ]; then
 				if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 					printf '     \e[32m%-15s\e[0m %-20s %s \n'\
-						"INSTALLED" $(pip list --format=legacy 2> /dev/null | grep $package)
+						"INSTALLED" $(pip list 2> /dev/null | grep $package)
 				fi
 			else
 				if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
@@ -98,7 +113,7 @@ if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 
 	# Exits if CHECK_ONLY is set, exit code 1 if there are packages to install
 	if [ $CHECK_ONLY -eq 1 ]; then
-		if [[ -z "$DEPENDENCIES" && -z "$PYTHON_DEPS_TO_INSTALL" ]]; then
+		if [[ -z "$DEPENDENCIES" && -z "$PYTHON_DEPS_TO_INSTALL" && $INSTALLED_CLANG -eq 1 ]]; then
 			exit 0
 		else
 			exit 1
@@ -136,5 +151,7 @@ case $SYSTEM in
                 ;;
         esac
 esac
+
+$INCLUDEOS_SRC/etc/install_clang_version.sh $CLANG_VERSION
 
 sudo -H pip -q install $PYTHON_DEPENDENCIES

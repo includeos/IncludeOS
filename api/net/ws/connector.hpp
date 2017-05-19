@@ -19,9 +19,9 @@
 #ifndef NET_HTTP_WS_CONNECTOR_HPP
 #define NET_HTTP_WS_CONNECTOR_HPP
 
-#include <net/http/websocket.hpp>
+#include <net/ws/websocket.hpp>
 
-namespace http {
+namespace net {
 
 /**
  * @brief      A WebSocket connector.
@@ -45,7 +45,7 @@ protected:
 class WS_server_connector : public WS_connector {
 public:
   using AcceptCallback    = delegate<bool(net::Socket peer, const std::string& origin)>;
-  using Request_handler   = delegate<void(Request_ptr, Response_writer_ptr)>;
+  using Request_handler   = delegate<void(http::Request_ptr, http::Response_writer_ptr)>;
 
   /**
    * @brief      Construct a server connector.
@@ -77,7 +77,7 @@ public:
    * @param[in]  req     The HTTP request
    * @param[in]  writer  The HTTP Response writer
    */
-  void on_request(Request_ptr req, Response_writer_ptr writer)
+  void on_request(http::Request_ptr req, http::Response_writer_ptr writer)
   {
     if (on_accept_)
     {
@@ -109,7 +109,7 @@ private:
  */
 class WS_client_connector : public WS_connector {
 public:
-  using Response_handler  = delegate<void(Error, Response_ptr, Connection&)>;
+  using Response_handler  = delegate<void(http::Error, http::Response_ptr, http::Connection&)>;
 
   /**
    * @brief      Construct a client connector.
@@ -169,7 +169,7 @@ public:
    * @param[in]  res   The HTTP response
    * @param      conn  The HTTP connection
    */
-  void on_response(Error err, Response_ptr res, Connection& conn)
+  void on_response(http::Error err, http::Response_ptr res, http::Connection& conn)
   {
     auto ws = WebSocket::upgrade(err, *res, conn, key_);
 
@@ -209,6 +209,6 @@ private:
 
 }; // < WS_client_connector
 
-} // < http
+} // < net
 
 #endif // NET_HTTP_WS_CONNECTOR_HPP

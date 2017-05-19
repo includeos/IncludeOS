@@ -10,6 +10,7 @@ import sys
 Instance = collections.namedtuple("Instance", "path name")
 
 vmrun_cmd = "/Applications/VMware Fusion.app/Contents/Library/vmrun"
+ovftool_cmd = "/Applications/VMware OVF Tool/ovftool"
 instances = []
 
 # Argparse setup
@@ -115,6 +116,14 @@ ethernet0.virtualDev = "vmxnet3"
 	instance = Instance(path=instance_path, name=vmxfile)
 	return instance
 
+def write_ova(instance_path, servicename):
+    vmxfile = "{filename}.vmx".format(filename=servicename)
+    vmx_full_path = os.path.join(instance_path, vmxfile)
+    ovafile = "{filename}.ova".format(filename=servicename)
+    ova_full_path = os.path.join(instance_path, ovafile)
+    subprocess.call([ovftool_cmd, vmx_full_path, ova_full_path])
+    return
+
 if __name__ == "__main__":
 	timestamp = "{:%Y%m%d_%H%M%S}".format(datetime.datetime.now())
 	servicename = args.vm_filename
@@ -127,6 +136,8 @@ if __name__ == "__main__":
 		res = convert_image(servicename, instance_path)
 		if res == 0:
 			instance = write_vmx(instance_path, servicename)
+                        if os.path.isfile(ovftool_cmd):
+                            write_ova(instance_path, servicename)
 			res = start_instance(instance)
 			if res == 0:
 				instances.append(instance)
