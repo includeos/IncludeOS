@@ -63,7 +63,7 @@ fi
 
 
 TRIPLE=$ARCH-pc-linux-elf
-CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse"
+CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse -mno-red-zone"
 
 # CMAKE configure step
 #
