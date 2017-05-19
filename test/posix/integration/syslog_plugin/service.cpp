@@ -40,7 +40,7 @@ int main()
                                    {  10,  0,  0,  1} );   // DNS
 
   // Setting IP and port for the syslog messages
-  Syslog::settings( {10, 0, 0, 1}, 6514 );
+  Syslog::settings( {10, 0, 0, 2}, 6514 );
   printf("Syslog messages are sent to IP %s and port %d\n", Syslog::ip().str().c_str(), Syslog::port());
 
   // Starts the python integration test:
