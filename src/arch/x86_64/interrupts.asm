@@ -26,6 +26,8 @@ extern cpu_sampling_irq_handler
 SECTION .bss
 ALIGN 16
 xsave_storage_area: resb  512
+ALIGN 16
+stack_storage_area: resb  512
 
 %macro PUSHAQ 0
    push rax
@@ -68,8 +70,7 @@ xsave_storage_area: resb  512
 
 %macro SPSAVE 0
     mov  rax, rsp
-    and  rsp, ~0xf
-    sub  rsp, 128
+    mov  rsp, stack_storage_area+512-16
     push rax ;; save old RSP
     push rbp
 %endmacro

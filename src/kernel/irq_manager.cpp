@@ -110,11 +110,99 @@ template <int NR>
 typename std::enable_if<((NR < 8 or NR > 15) and NR != 17 and NR != 30)>::type
 print_error_code(uint32_t){}
 
+inline void cpu_dump_regs()
+{
+#if defined(ARCH_x86_64)
+  // CPU registers
+  uintptr_t regs[24];
+  asm ("movq %%rax, %0" : "=a" (regs[0]));
+  asm ("movq %%rbx, %0" : "=b" (regs[1]));
+  asm ("movq %%rcx, %0" : "=c" (regs[2]));
+  asm ("movq %%rdx, %0" : "=d" (regs[3]));
+  asm ("movq %%rbp, %0" : "=a" (regs[4]));
+
+  asm ("movq %%r8, %0"  : "=a" (regs[5]));
+  asm ("movq %%r9, %0"  : "=b" (regs[6]));
+  asm ("movq %%r10, %0" : "=c" (regs[7]));
+  asm ("movq %%r11, %0" : "=d" (regs[8]));
+  asm ("movq %%r12, %0" : "=a" (regs[9]));
+  asm ("movq %%r13, %0" : "=b" (regs[10]));
+  asm ("movq %%r14, %0" : "=c" (regs[11]));
+  asm ("movq %%r15, %0" : "=d" (regs[12]));
+
+  asm ("movq %%rsp, %0" : "=a" (regs[13]));
+  asm ("movq %%rsi, %0" : "=b" (regs[14]));
+  asm ("movq %%rdi, %0" : "=c" (regs[15]));
+  asm ("movq %%rip, %0" : "=d" (regs[16]));
+
+  asm ("pushf; popq %0" : "=a" (regs[17]));
+  asm ("movq %%cr0, %0" : "=b" (regs[18]));
+  regs[19] = 0;
+  asm ("movq %%cr2, %0" : "=c" (regs[20]));
+  asm ("movq %%cr3, %0" : "=d" (regs[21]));
+  asm ("movq %%cr4, %0" : "=a" (regs[22]));
+  asm ("movq %%cr8, %0" : "=b" (regs[23]));
+
+  struct desc_table_t {
+    uint16_t  limit;
+    uintptr_t location;
+  } __attribute__((packed))  gdt, idt;
+  asm ("sgdtq %0" : : "m" (* &gdt));
+  asm ("sidtq %0" : : "m" (* &idt));
+
+  fprintf(stderr, "\n");
+  printf("  RAX:  %016lx  R 8:  %016lx\n", regs[0], regs[5]);
+  printf("  RBX:  %016lx  R 9:  %016lx\n", regs[1], regs[6]);
+  printf("  RCX:  %016lx  R10:  %016lx\n", regs[2], regs[7]);
+  printf("  RDX:  %016lx  R11:  %016lx\n", regs[3], regs[8]);
+  fprintf(stderr, "\n");
+
+  printf("  RBP:  %016lx  R12:  %016lx\n", regs[4], regs[9]);
+  printf("  RSP:  %016lx  R13:  %016lx\n", regs[13], regs[10]);
+  printf("  RSI:  %016lx  R14:  %016lx\n", regs[14], regs[11]);
+  printf("  RDI:  %016lx  R15:  %016lx\n", regs[15], regs[12]);
+  printf("  RIP:  %016lx  FLA:  %016lx\n", regs[16], regs[17]);
+  fprintf(stderr, "\n");
+
+  printf("  CR0:  %016lx  CR4:  %016lx\n", regs[18], regs[22]);
+  printf("  CR1:  %016lx  CR8:  %016lx\n", regs[19], regs[23]);
+  printf("  CR2:  %016lx  GDT:  %016lx (%u)\n", regs[20], gdt.location, gdt.limit);
+  printf("  CR3:  %016lx  IDT:  %016lx (%u)\n", regs[21], idt.location, idt.limit);
+
+#elif defined(ARCH_i686)
+  // CPU registers
+  uintptr_t regs[16];
+  asm ("movl %%eax, %0" : "=a" (regs[0]));
+  asm ("movl %%ebx, %0" : "=b" (regs[1]));
+  asm ("movl %%ecx, %0" : "=c" (regs[2]));
+  asm ("movl %%edx, %0" : "=d" (regs[3]));
+
+  asm ("movl %%ebp, %0" : "=r" (regs[4]));
+  asm ("movl %%esp, %0" : "=r" (regs[5]));
+  asm ("movl %%esi, %0" : "=r" (regs[6]));
+  asm ("movl %%edi, %0" : "=r" (regs[7]));
+
+  asm ("movl (%%esp), %0" : "=r" (regs[8]));
+  asm ("pushf; popl %0" : "=r" (regs[9]));
+
+  fprintf(stderr, "\n");
+  printf("  EAX:  %08x  EBP:  %08x\n", regs[0], regs[4]);
+  printf("  EBX:  %08x  ESP:  %08x\n", regs[1], regs[5]);
+  printf("  ECX:  %08x  ESI:  %08x\n", regs[2], regs[6]);
+  printf("  EDX:  %08x  EDI:  %08x\n", regs[3], regs[7]);
+  printf("  EIP:  %08x  EFL:  %08x\n", regs[8], regs[9]);
+
+#else
+  #error "Implement me"
+#endif
+  fprintf(stderr, "\n");
+}
 
 template <int NR>
 void cpu_exception(void** eip, uint32_t error)
 {
   SMP::global_lock();
+  cpu_dump_regs();
   kprintf("\n>>>> !!! CPU %u EXCEPTION !!! <<<<\n", SMP::cpu_id());
   kprintf("    %s (%d)   EIP  %p\n", exception_names[NR], NR, eip);
   print_error_code<NR>(error);
@@ -137,7 +225,7 @@ void IRQ_manager::init(int cpuid)
 
 void IRQ_manager::init_local()
 {
-  const auto WORDS_PER_BMP = IRQ_LINES / 32;
+  const auto WORDS_PER_BMP = INTR_LINES / 32;
   auto* bmp = new MemBitmap::word[WORDS_PER_BMP * 3]();
   irq_subs.set_location(bmp + 0 * WORDS_PER_BMP, WORDS_PER_BMP);
   irq_pend.set_location(bmp + 1 * WORDS_PER_BMP, WORDS_PER_BMP);
