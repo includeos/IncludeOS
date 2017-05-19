@@ -112,13 +112,13 @@ namespace uplink {
   {
     if(err)
     {
-      MYINFO("Auth failed - %s\n", err.to_string().c_str());
+      MYINFO("Auth failed - %s", err.to_string().c_str());
       return;
     }
 
     if(res->status_code() != http::OK)
     {
-      MYINFO("Auth failed - %s\n", res->to_string().c_str());
+      MYINFO("Auth failed - %s", res->to_string().c_str());
       return;
     } 
     
@@ -150,7 +150,7 @@ namespace uplink {
     ws_ = std::move(ws);
     ws_->on_read = {this, &WS_uplink::parse_transport};
     ws_->on_error = [](const auto& reason) {
-      printf("WS err: %s\n", reason.c_str());
+      MYINFO("(WS err) %s", reason.c_str());
     };
 
     MYINFO("Websocket established");
@@ -160,7 +160,14 @@ namespace uplink {
 
   void WS_uplink::parse_transport(net::WebSocket::Message_ptr msg)
   {
-    parser_.parse(msg->data(), msg->size());
+    if(msg != nullptr) {
+      parser_.parse(msg->data(), msg->size());
+    }
+    else {
+      MYINFO("Malformed WS message, try to re-establish");
+      send_error("WebSocket error");
+      dock();
+    }
   }
 
   void WS_uplink::handle_transport(Transport_ptr t)
@@ -184,7 +191,7 @@ namespace uplink {
 
       default:
       {
-        INFO2("Bad transport\n");
+        INFO2("Bad transport");
       }
     }
   }
@@ -195,8 +202,16 @@ namespace uplink {
     checksum.update(buffer);
     binary_hash_ = checksum.as_hex();
 
+    // send a reponse with the to tell we received the update
+    auto trans = Transport{Header{Transport_code::UPDATE, static_cast<uint32_t>(binary_hash_.size())}};
+    trans.load_cargo(binary_hash_.data(), binary_hash_.size());
+    ws_->write(trans.data().data(), trans.data().size());
+
+    ws_->close();
     // do the update
-    liu::LiveUpdate::begin(UPDATE_LOC, buffer, {this, &WS_uplink::store});
+    Timers::oneshot(std::chrono::milliseconds(200), [this, buffer] (auto) {
+      liu::LiveUpdate::begin(UPDATE_LOC, buffer, {this, &WS_uplink::store});
+    });
   }
 
   void WS_uplink::read_config()
@@ -276,6 +291,15 @@ namespace uplink {
 
     ws_->write(transport.data().data(), transport.data().size());
 
+  }
+
+  void WS_uplink::send_error(const std::string& err)
+  {
+    auto transport = Transport{Header{Transport_code::IDENT, static_cast<uint32_t>(err.size())}};
+
+    transport.load_cargo(err.data(), err.size());
+
+    ws_->write(transport.data().data(), transport.data().size());
   }
 
 }

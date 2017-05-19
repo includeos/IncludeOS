@@ -52,6 +52,8 @@ public:
 
   void update(const std::vector<char>& buffer);
 
+  void send_error(const std::string& err);
+
 private:
   std::unique_ptr<http::Client> client_;
   net::WebSocket_ptr            ws_;
