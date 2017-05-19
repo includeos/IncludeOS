@@ -7,7 +7,7 @@
 ############################################################
 
 BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip g++-multilib"
-CLANG_VERSION="3.9"
+CLANG_VERSION="3.8"
 TEST_DEPENDENCIES="g++"
 PYTHON_DEPENDENCIES="jsonschema psutil junit-xml filemagic"
 INSTALLED_PIP=0
@@ -77,7 +77,7 @@ if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 	   	fi
 	else
 		if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
-			printf "%s\n\n" "clang-$CLANG_VERSION -> MISSING"
+			printf "\n%s\n" "clang-$CLANG_VERSION -> MISSING"
 		fi
 
 	fi
