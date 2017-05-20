@@ -43,6 +43,7 @@ namespace x86
         @param handler: A delegate or function to be called on timeout.   */
     static void oneshot(std::chrono::milliseconds ms, timeout_handler handler);
 
+    /** Run a custom handler forever */
     static void forever(timeout_handler handler);
 
     /** Stop PIT interrupts */
@@ -81,12 +82,12 @@ namespace x86
 
     // State-keeping
     uint16_t current_freq_divider_;
-    bool     run_forever;
     Mode     current_mode_;
     int64_t  IRQ_counter;
 
     // Timer handler & expiration timestamp
     timeout_handler           handler;
+    timeout_handler           forev_handler;
     std::chrono::milliseconds expiration;
 
     // Access mode bits are bits 4- and 5 in the Mode register

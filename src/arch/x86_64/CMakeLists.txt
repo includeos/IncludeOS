@@ -2,7 +2,6 @@ set(CMAKE_ASM_NASM_OBJECT_FORMAT elf64)
 
 ### x86_64 arch specific ###
 set(ARCH_OBJECTS
-  profile_intr.asm
   apic_asm.asm
   arch_start.asm
   interrupts.asm
