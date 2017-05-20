@@ -3,6 +3,7 @@
 # If a local bundle location is set that is used, otherwise download from github
 if (BUNDLE_LOC)
 	include(ExternalProject)
+  message(STATUS "Using bundle ${BUNDLE_LOC}")
 	ExternalProject_Add(PrecompiledLibraries
 			    PREFIX precompiled
 			    URL ${BUNDLE_LOC}
