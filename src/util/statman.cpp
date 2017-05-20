@@ -124,6 +124,17 @@ Stat& Statman::get(const void* addr)
   throw std::out_of_range("Address out of range");
 }
 
+Stat& Statman::get_by_name(const char* name)
+{
+  for (auto* st = begin(); st < end(); st++)
+  {
+    if (st->unused() == false)
+    if (strncmp(st->name(), name, Stat::MAX_NAME_LEN) == 0)
+        return *st;
+  }
+  throw std::out_of_range("No stat found with exact given name");
+}
+
 void Statman::free(void* addr)
 {
   auto& stat = this->get(addr);
