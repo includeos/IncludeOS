@@ -46,21 +46,21 @@ uint64_t ts{0};
 
 void start_measure() {
   received    = 0;
-  packets_rx  = Statman::get().get("eth0.packets_rx").get_uint64();
-  packets_tx  = Statman::get().get("eth0.packets_tx").get_uint64();
+  packets_rx  = Statman::get().get_by_name("eth0.packets_rx").get_uint64();
+  packets_tx  = Statman::get().get_by_name("eth0.packets_tx").get_uint64();
   printf("<Settings> DACK: %lli ms WSIZE: %u WS: %u CALC_WIN: %u TS: %s\n",
     dack.count(), winsize, wscale, winsize << wscale, timestamps ? "ON" : "OFF");
-  
+
   ts          = OS::micros_since_boot();
   printf("<START> %lld\n", ts);
 }
 
 void stop_measure() {
   auto diff   = OS::micros_since_boot() - ts;
-  
+
   kernel_sanity_checks();
-  packets_rx  = Statman::get().get("eth0.packets_rx").get_uint64() - packets_rx;
-  packets_tx  = Statman::get().get("eth0.packets_tx").get_uint64() - packets_tx;
+  packets_rx  = Statman::get().get_by_name("eth0.packets_rx").get_uint64() - packets_rx;
+  packets_tx  = Statman::get().get_by_name("eth0.packets_tx").get_uint64() - packets_tx;
   printf("<STOP> %lld\n", OS::micros_since_boot());
   printf("Packets RX [%llu] TX [%llu]\n", packets_rx, packets_tx);
   double durs   = ((double)diff) / 1000 / 1000;
@@ -70,7 +70,7 @@ void stop_measure() {
   StackSampler::print(30);
 }
 
-void Service::start(const std::string&) {
+void Service::start() {
   kernel_sanity_checks();
 }
 
@@ -85,7 +85,7 @@ void Service::ready()
       { 255,255,255, 0 },  // Netmask
       {  10, 0,  0,  1 },  // Gateway
       {  10, 0,  0,  1 }); // DNS
-  
+
   blob = std::make_unique<Chunk>(SIZE);
 
   static auto& tcp = inet.tcp();
@@ -96,24 +96,24 @@ void Service::ready()
   tcp.set_window_size(winsize, wscale);
   tcp.set_timestamps(timestamps);
 
-  tcp.bind(1337).on_connect([](Connection_ptr conn)
+  tcp.listen(1337).on_connect([](Connection_ptr conn)
   {
     using namespace std::chrono;
     auto id = Timers::periodic(100ms, 500ms,
     [conn](uint32_t)
     {
-      //printf("State: %s, Writeq: %u bytes\n", 
-      //  conn->state().to_string().c_str(), conn->sendq_remaining());
+      printf("State: %s, Writeq: %u bytes\n",
+            conn->state().to_string().c_str(), conn->sendq_remaining());
     });
-    
+
     printf("%s connected. Sending file %u MB\n", conn->remote().to_string().c_str(), SIZE/(1024*1024));
-    kernel_sanity_checks(); 
+    kernel_sanity_checks();
     start_measure();
-    
+
     conn->on_close([id]
     {
       Timers::stop(id);
-      
+
     });
     conn->on_disconnect([] (Connection_ptr self, Connection::Disconnect)
     {
@@ -129,23 +129,23 @@ void Service::ready()
     conn->close();
   });
 
-  tcp.bind(1338).on_connect([](Connection_ptr conn)
+  tcp.listen(1338).on_connect([](Connection_ptr conn)
   {
     using namespace std::chrono;
-    
+
     printf("%s connected. Receiving file %u MB\n", conn->remote().to_string().c_str(), SIZE/(1024*1024));
-    
+
     start_measure();
-    
+
     conn->on_close([]
     {
-      
+
     });
     conn->on_disconnect([] (Connection_ptr self, Connection::Disconnect)
     {
       if(!self->is_closing())
         self->close();
-      
+
       stop_measure();
     });
     conn->on_read(16384, [] (buffer_t buf, size_t n)
