@@ -27,6 +27,7 @@ def tear_down():
 UDP_IP = "10.0.0.2"
 UDP_PORT = 6514
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sock.bind((UDP_IP, UDP_PORT))
 
 num_received = 0
