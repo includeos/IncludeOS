@@ -278,6 +278,8 @@ class qemu(hypervisor):
     def boot(self, multiboot, kernel_args = "", image_name = None):
         self._stopped = False
 
+        info ("Booting with multiboot:", multiboot, "kernel_args: ", kernel_args, "image_name:", image_name)
+
         # Resolve if kvm is present
         self._kvm_present = self.kvm_present()
 
@@ -290,7 +292,6 @@ class qemu(hypervisor):
         self._image_name = image_name
 
         disk_args = []
-        kernel_args = []
 
         # multiboot - e.g. boot with '-kernel' and no bootloader
         if multiboot:
@@ -309,7 +310,7 @@ class qemu(hypervisor):
                 print "Found", chainloader, "Type: ",  file_type(chainloader)
                 if not is_Elf32(chainloader):
                     print color.WARNING("Chainloader doesn't seem to be a 32-bit ELF executable")
-                kernel_args = ["-kernel", chainloader, "-append", kernel_args, "-initrd", image_name]
+                kernel_args = ["-kernel", chainloader, "-append", kernel_args, "-initrd", image_name + " " + kernel_args]
             elif is_Elf32(image_name):
                 info ("Found 32-bit elf, trying direct boot")
                 kernel_args = ["-kernel", image_name, "-append", kernel_args]
@@ -678,7 +679,7 @@ class vm:
 
     # Boot the VM and start reading output. This is the main event loop.
     def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner", image_name = None):
-
+        info ("VM boot, timeout: ", timeout, "multiboot: ", multiboot, "Kernel_args: ", kernel_args, "image_name: ", image_name)
         # This might be a reboot
         self._exit_status = None
         self._exit_complete = False
