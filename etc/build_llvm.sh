@@ -51,6 +51,7 @@ if [ -d build_llvm ]; then
   rm -rf build_llvm
 fi
 
+echo -e "\n\n >>> Building libc++ for ${ARCH} \n"
 
 # Make a build-directory
 mkdir -p build_llvm
