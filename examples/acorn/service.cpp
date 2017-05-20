@@ -15,8 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sstream>
-
 #include <os>
 #include <acorn>
 
@@ -123,7 +121,7 @@ void Service::start()
       dashboard_ = std::make_unique<dashboard::Dashboard>(8192);
       // Add singleton component
       dashboard_->add(dashboard::Memmap::instance());
-      //dashboard_->add(dashboard::StackSampler::instance());
+      dashboard_->add(dashboard::StackSampler::instance());
       dashboard_->add(dashboard::Status::instance());
       // Construct component
       dashboard_->construct<dashboard::Statman>(Statman::get());
