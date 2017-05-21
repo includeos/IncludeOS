@@ -359,10 +359,9 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del)
   irq_subs.atomic_set(irq);
 
   // Create stat for this event
-  //Stat& subscribed = Statman::get().create(Stat::UINT64,
-  //    "cpu" + std::to_string(SMP::cpu_id()) + ".irq" + std::to_string(irq));
-  //count_handled[irq] = &subscribed.get_uint64();
-  count_handled[irq] = nullptr;
+  Stat& subscribed = Statman::get().create(Stat::UINT64,
+      "cpu" + std::to_string(SMP::cpu_id()) + ".irq" + std::to_string(irq));
+  count_handled[irq] = &subscribed.get_uint64();
 
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
