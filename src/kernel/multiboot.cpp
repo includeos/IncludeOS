@@ -21,53 +21,57 @@
 
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
-extern "C" {
+extern uintptr_t _end;
+extern multiboot_info_t* __multiboot_addr;
+extern "C" uintptr_t _multiboot_free_begin(uintptr_t);
 
-  extern uintptr_t _end;
+multiboot_info_t* OS::bootinfo()
+{
+  return __multiboot_addr;
+}
 
-  // Deterimine the end of multiboot provided data
-  // (e.g. multiboot's data area as offset to the _end symbol)
-  uintptr_t _multiboot_free_begin(uintptr_t boot_addr){
+// Deterimine the end of multiboot provided data
+// (e.g. multiboot's data area as offset to the _end symbol)
+uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
+{
+  multiboot_info_t* bootinfo = (multiboot_info_t*) boot_addr;
+  uintptr_t multi_end = reinterpret_cast<uintptr_t>(&_end);
 
-    multiboot_info_t* bootinfo = (multiboot_info_t*) boot_addr;
-    uintptr_t multi_end = reinterpret_cast<uintptr_t>(&_end);
+  debug("* Multiboot begin: 0x%x \n", bootinfo);
+  if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE
+      and bootinfo->cmdline > multi_end) {
 
-    debug("* Multiboot begin: 0x%x \n", bootinfo);
-    if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE
-        and bootinfo->cmdline > multi_end) {
+    debug("* Multiboot cmdline @ 0x%x: %s \n", bootinfo->cmdline, (char*)bootinfo->cmdline);
 
-      debug("* Multiboot cmdline @ 0x%x: %s \n", bootinfo->cmdline, (char*)bootinfo->cmdline);
-
-      // Set free begin to after the cmdline string
-      multi_end = bootinfo->cmdline +
-        strlen(reinterpret_cast<const char*>(bootinfo->cmdline)) + 1;
-    }
-
-    debug("* Multiboot end: 0x%x \n", multi_end);
-
-
-    if (not bootinfo->mods_count)
-      return multi_end;
-
-    multiboot_module_t* mods_list =  (multiboot_module_t*)bootinfo->mods_addr;
-    debug("* Module list @ %p \n",mods_list);
-
-    for (multiboot_module_t* mod = mods_list;
-         mod < mods_list + bootinfo->mods_count;
-         mod ++) {
-
-      debug("\t * Module @ %p \n", (void*)mod->mod_start);
-      debug("\t * Args: %s \n ", (char*)mod->cmdline);
-      debug("\t * End: %p \n ", (char*)mod->mod_end);
-
-      if (mod->mod_end > multi_end)
-        multi_end = mod->mod_end;
-
-    }
-
-    debug("* Multiboot end: 0x%x \n", multi_end);
-    return multi_end;
+    // Set free begin to after the cmdline string
+    multi_end = bootinfo->cmdline +
+      strlen(reinterpret_cast<const char*>(bootinfo->cmdline)) + 1;
   }
+
+  debug("* Multiboot end: 0x%x \n", multi_end);
+
+
+  if (not bootinfo->mods_count)
+    return multi_end;
+
+  multiboot_module_t* mods_list =  (multiboot_module_t*)bootinfo->mods_addr;
+  debug("* Module list @ %p \n",mods_list);
+
+  for (multiboot_module_t* mod = mods_list;
+       mod < mods_list + bootinfo->mods_count;
+       mod ++) {
+
+    debug("\t * Module @ %p \n", (void*)mod->mod_start);
+    debug("\t * Args: %s \n ", (char*)mod->cmdline);
+    debug("\t * End: %p \n ", (char*)mod->mod_end);
+
+    if (mod->mod_end > multi_end)
+      multi_end = mod->mod_end;
+
+  }
+
+  debug("* Multiboot end: 0x%x \n", multi_end);
+  return multi_end;
 }
 
 void OS::multiboot(uint32_t boot_addr)
