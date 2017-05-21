@@ -22,12 +22,13 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 extern uintptr_t _end;
-extern multiboot_info_t* __multiboot_addr;
 extern "C" uintptr_t _multiboot_free_begin(uintptr_t);
 
 multiboot_info_t* OS::bootinfo()
 {
-  return __multiboot_addr;
+  // NOTE: the address is 32-bit and not a pointer
+  extern uint32_t __multiboot_addr;
+  return (multiboot_info_t*) (uintptr_t) __multiboot_addr;
 }
 
 // Deterimine the end of multiboot provided data
