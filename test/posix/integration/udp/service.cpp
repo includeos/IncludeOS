@@ -32,7 +32,7 @@ int main()
 {
   auto&& inet = net::Inet4::ifconfig({  10,  0,  0, 50 },   // IP
                                      { 255, 255, 0,  0 },   // Netmask
-                                     {  10,  0,  0,  1 });  // Gateway
+                                     {  10,  0,  0,  3 });  // Gateway
 
   INFO("UDP Socket", "bind(%u)", PORT);
 

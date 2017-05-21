@@ -15,9 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 #include <os>
 #include <kprint>
 #include <boot/multiboot.h>
+
+#define DEBUG 1
+#if defined(DEBUG)
+#define debug(X,...)  kprintf(X,##__VA_ARGS__);
+#else
+#define debug(X,...)
+#endif
 
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
@@ -40,20 +48,23 @@ uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
 
   debug("* Multiboot begin: 0x%x \n", bootinfo);
   if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE
-      and bootinfo->cmdline > multi_end) {
-
+      and bootinfo->cmdline > multi_end)
+  {
     debug("* Multiboot cmdline @ 0x%x: %s \n", bootinfo->cmdline, (char*)bootinfo->cmdline);
+    // We can't use a cmdline that's either insde our ELF or pre-ELF area
+    Expects(bootinfo->cmdline > multi_end
+            or bootinfo->cmdline < 0x100000);
 
-    // Set free begin to after the cmdline string
-    multi_end = bootinfo->cmdline +
-      strlen(reinterpret_cast<const char*>(bootinfo->cmdline)) + 1;
+    if (bootinfo->cmdline > multi_end) {
+      auto* cmdline_ptr = (const char*) (uintptr_t) bootinfo->cmdline;
+      // Set free begin to after the cmdline string
+      multi_end = bootinfo->cmdline + strlen(cmdline_ptr) + 1;
+    }
   }
 
   debug("* Multiboot end: 0x%x \n", multi_end);
-
-
-  if (not bootinfo->mods_count)
-    return multi_end;
+  if (bootinfo->mods_count == 0)
+      return multi_end;
 
   multiboot_module_t* mods_list =  (multiboot_module_t*)bootinfo->mods_addr;
   debug("* Module list @ %p \n",mods_list);
@@ -62,9 +73,9 @@ uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
        mod < mods_list + bootinfo->mods_count;
        mod ++) {
 
-    debug("\t * Module @ %p \n", (void*)mod->mod_start);
-    debug("\t * Args: %s \n ", (char*)mod->cmdline);
-    debug("\t * End: %p \n ", (char*)mod->mod_end);
+    debug("\t * Module @ %#x \n", mod->mod_start);
+    debug("\t * Args: %s \n ", (char*) (uintptr_t) mod->cmdline);
+    debug("\t * End: %#x \n ", mod->mod_end);
 
     if (mod->mod_end > multi_end)
       multi_end = mod->mod_end;

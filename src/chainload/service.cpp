@@ -28,16 +28,24 @@ extern "C" void hotswap(const char* base, int len, char* dest, void* start,
 extern uintptr_t __multiboot_magic;
 extern uintptr_t __multiboot_addr;
 
-static void steal_commandline_from_module()
-{
+/** Modify multiboot data to show first module as the kernel */
+void promote_mod_to_kernel(){
   auto* bootinfo = (multiboot_info_t*) __multiboot_addr;
 
   Expects (bootinfo->mods_count);
-  auto* mod = (multiboot_module_t*) bootinfo->mods_addr;
+  auto* mod =  (multiboot_module_t*)bootinfo->mods_addr;
 
   // Set command line param to mod param
   bootinfo->cmdline = mod->cmdline;
+
+  // Subtract one module
+  (bootinfo->mods_count)--;
+
+  if (bootinfo->mods_count)
+    bootinfo->mods_addr = (uintptr_t)((multiboot_module_t*)bootinfo->mods_addr + 1);
+
 }
+
 
 void Service::start(const std::string&)
 {
@@ -76,7 +84,7 @@ void Service::start(const std::string&)
   MYINFO("Hotswapping with params: base: %p, len: %i, dest: %p, start: %p",
          base, len, dest, start);
 
-  steal_commandline_from_module();
+  promote_mod_to_kernel();
 
   asm("cli");
   ((decltype(&hotswap))hotswap_addr)(base, len, dest, start, __multiboot_magic, __multiboot_addr);
