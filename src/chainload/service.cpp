@@ -25,12 +25,13 @@ bool verb = true;
 extern "C" void hotswap(const char* base, int len, char* dest, void* start,
                         uintptr_t magic, uintptr_t bootinfo);
 
-extern uintptr_t __multiboot_magic;
-extern uintptr_t __multiboot_addr;
+extern uint32_t __multiboot_magic;
+extern uint32_t __multiboot_addr;
 
 /** Modify multiboot data to show first module as the kernel */
-void promote_mod_to_kernel(){
-  auto* bootinfo = (multiboot_info_t*) __multiboot_addr;
+void promote_mod_to_kernel()
+{
+  auto* bootinfo = (multiboot_info_t*) (uintptr_t) __multiboot_addr;
 
   Expects (bootinfo->mods_count);
   auto* mod =  (multiboot_module_t*)bootinfo->mods_addr;
@@ -43,11 +44,9 @@ void promote_mod_to_kernel(){
 
   if (bootinfo->mods_count)
     bootinfo->mods_addr = (uintptr_t)((multiboot_module_t*)bootinfo->mods_addr + 1);
-
 }
 
-
-void Service::start(const std::string&)
+void Service::start()
 {
   auto mods = OS::modules();
   MYINFO("%u-bit chainloader found %u modules",
@@ -70,8 +69,6 @@ void Service::start(const std::string&)
          &hotswap,  &__hotswap_end, &__hotswap_end - (char*)&hotswap);
   memcpy(hotswap_addr,(void*)&hotswap, &__hotswap_end - (char*)&hotswap );
 
-  extern uintptr_t __multiboot_magic;
-  extern uintptr_t __multiboot_addr;
   debug("Preparing for jump to %s. Multiboot magic: 0x%x, addr 0x%x",
          (char*)binary.cmdline, __multiboot_magic, __multiboot_addr);
 
