@@ -28,6 +28,7 @@
 extern "C" {
   extern char _binary_apic_boot_bin_start;
   extern char _binary_apic_boot_bin_end;
+  extern void __apic_trampoline(); // 64-bit entry
 }
 
 static const uintptr_t BOOTLOADER_LOCATION = 0x10000;
@@ -35,11 +36,11 @@ static const size_t    REV_STACK_SIZE = 1 << 18; // 256kb
 
 struct apic_boot {
   // the jump instruction at the start
-  uint32_t  jump;
+  uint32_t  padding;
   // stuff we will modify
-  void*     worker_addr;
-  char*     stack_base;
-  size_t    stack_size;
+  uint32_t  worker_addr;
+  uint32_t  stack_base;
+  uint32_t  stack_size;
 };
 
 namespace x86
@@ -47,7 +48,7 @@ namespace x86
 
 void SMP::init()
 {
-  size_t CPUcount = ACPI::get_cpus().size();
+  uint32_t CPUcount = ACPI::get_cpus().size();
   if (CPUcount <= 1) return;
   assert(CPUcount <= SMP_MAX_CORES);
 
@@ -59,11 +60,18 @@ void SMP::init()
   // modify bootloader to support our cause
   auto* boot = (apic_boot*) BOOTLOADER_LOCATION;
 
-  boot->worker_addr = (void*) &revenant_main;
-  boot->stack_base = (char*) memalign(4096, CPUcount * REV_STACK_SIZE);
+#if defined(ARCH_i686)
+  boot->worker_addr = (uint32_t) &revenant_main;
+#elif defined(ARCH_x86_64)
+  boot->worker_addr = (uint32_t) (uintptr_t) &__apic_trampoline;
+#else
+  #error "Unimplemented arch"
+#endif
+  auto* stack = memalign(4096, CPUcount * REV_STACK_SIZE);
+  boot->stack_base = (uint32_t) (uintptr_t) stack;
   boot->stack_base += REV_STACK_SIZE; // make sure the stack starts at the top
   boot->stack_size = REV_STACK_SIZE;
-  debug("APIC stack base: %p  size: %u   main size: %u\n",
+  debug("APIC stack base: %#x  size: %u   main size: %u\n",
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
 
   // reset barrier

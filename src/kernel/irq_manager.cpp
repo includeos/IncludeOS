@@ -218,9 +218,9 @@ void IRQ_manager::enable_interrupts() {
   asm volatile("sti");
 }
 
-void IRQ_manager::init(int cpuid)
+void IRQ_manager::init()
 {
-  get(cpuid).init_local();
+  get().init_local();
 }
 
 void IRQ_manager::init_local()
@@ -359,9 +359,10 @@ void IRQ_manager::subscribe(uint8_t irq, irq_delegate del)
   irq_subs.atomic_set(irq);
 
   // Create stat for this event
-  Stat& subscribed = Statman::get().create(Stat::UINT64,
-      "cpu" + std::to_string(SMP::cpu_id()) + ".irq" + std::to_string(irq));
-  count_handled[irq] = &subscribed.get_uint64();
+  //Stat& subscribed = Statman::get().create(Stat::UINT64,
+  //    "cpu" + std::to_string(SMP::cpu_id()) + ".irq" + std::to_string(irq));
+  //count_handled[irq] = &subscribed.get_uint64();
+  count_handled[irq] = nullptr;
 
   // Add callback to subscriber list (for now overwriting any previous)
   irq_delegates_[irq] = del;
