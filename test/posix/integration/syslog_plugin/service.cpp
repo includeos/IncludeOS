@@ -34,7 +34,7 @@ int main()
   // DHCP on interface 0
   auto& inet = net::Inet4::stack();
   // static IP in case DHCP fails
-  inet.network_config({  10,  0,  0, 46 },   // IP
+  inet.network_config({  10,  0,  0, 47 },   // IP
                                    { 255, 255, 255,  0 },    // Netmask
                                    {  10,  0,  0,  1 },    // Gateway
                                    {  10,  0,  0,  1} );   // DNS

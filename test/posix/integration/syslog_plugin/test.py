@@ -34,44 +34,44 @@ num_received = 0
 num_expected_msgs = 24
 
 pre_msg1 = "<11>1 "
-post_msg1 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - Syslog: Unknown priority -1. Message: Invalid -1"
+post_msg1 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - Syslog: Unknown priority -1. Message: Invalid -1"
 
 pre_msg2 = "<11>1 "
-post_msg2 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - Syslog: Unknown priority 10. Message: Invalid 10"
+post_msg2 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - Syslog: Unknown priority 10. Message: Invalid 10"
 
 pre_msg3 = "<11>1 "
-post_msg3 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - Syslog: Unknown priority 55. Message: Invalid 55"
+post_msg3 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - Syslog: Unknown priority 55. Message: Invalid 55"
 
 pre_msg4 = "<14>1 "
-post_msg4 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - (Info) No open has been called prior to this"
+post_msg4 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - (Info) No open has been called prior to this"
 
 pre_msg5 = "<13>1 "
-post_msg5 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - (Notice) Program created with two arguments: one and two"
+post_msg5 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - (Notice) Program created with two arguments: one and two"
 
 pre_msg6 = "<19>1 "
-post_msg6 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - Prepended message (Err) Log after prepended message with " + \
+post_msg6 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - Prepended message (Err) Log after prepended message with " + \
 "one argument: 44"
 
 pre_msg7 = "<20>1 "
-post_msg7 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - Prepended message (Warning) Log number two after openlog " + \
+post_msg7 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - Prepended message (Warning) Log number two after openlog " + \
 "set prepended message"
 
 pre_msg8 = "<12>1 "
-post_msg8 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - (Warning) Log after closelog with three arguments. One is 33, " + \
+post_msg8 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - (Warning) Log after closelog with three arguments. One is 33, " + \
 "another is this, a third is 4011"
 
 pre_msg9 = "<8>1 "
-post_msg9 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - Second prepended message Emergency log after openlog and new " + \
+post_msg9 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - Second prepended message Emergency log after openlog and new " + \
 "facility: user"
 
 pre_msg10 = "<9>1 "
-post_msg10 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - Second prepended message Alert log with the m argument: Success"
+post_msg10 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - Second prepended message Alert log with the m argument: Success"
 
 pre_msg11 = "<10>1 "
-post_msg11 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - Critical after cleared prepended message (closelog has been called)"
+post_msg11 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - Critical after cleared prepended message (closelog has been called)"
 
 pre_msg12 = "<22>1 "
-post_msg12 = " 10.0.0.46 test_syslog_plugin 1 UDPOUT - Open after close prepended message Info after openlog with " + \
+post_msg12 = " 10.0.0.47 test_syslog_plugin 1 UDPOUT - Open after close prepended message Info after openlog with " + \
 "both m: Success and two hex arguments: 0x64 and 0x32"
 
 pre_messages = [pre_msg1, pre_msg2, pre_msg3, pre_msg4, pre_msg5, pre_msg6, pre_msg7, pre_msg8,
@@ -112,7 +112,7 @@ def end():
     sock.close()
     vmrunner.vms[0].exit(0, "All expected syslog messages received")
 
-vm.on_output("Service IP address is 10.0.0.46", start)
+vm.on_output("Service IP address is 10.0.0.47", start)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(60).clean()

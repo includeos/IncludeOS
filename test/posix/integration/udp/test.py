@@ -20,8 +20,9 @@ server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 server.bind((S_HOST, S_PORT))
 
+HOST, PORT = '10.0.0.50', 1042
+
 def UDP_send(trigger_line):
-  HOST, PORT = '10.0.0.45', 1042
   MESSAGE = "POSIX is for hipsters"
   sock = socket.socket
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -33,7 +34,6 @@ def UDP_recv(trigger_line):
   return received == S_MESSAGE
 
 def UDP_send_much(trigger_line):
-  HOST, PORT = '10.0.0.45', 1042
   MESSAGE = "Message #"
   sock = socket.socket
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -52,4 +52,3 @@ vm.on_output("reading from buffer", UDP_send_much)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(10).clean()
-
