@@ -2,6 +2,8 @@
 
 import sys
 import os
+import subprocess
+import atexit
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
@@ -13,10 +15,20 @@ vm = vmrunner.vms[0]
 
 import socket
 
-S_HOST, S_PORT = '', 4242
+# Set up a temporary interface
+subprocess.call(["sudo", "ifconfig", "bridge43:1", "10.0.0.3/24"])
+
+# Tear down interface on exit
+@atexit.register
+def tear_down():
+    subprocess.call(["sudo", "ifconfig", "bridge43:1", "down"])
+
+
+S_HOST, S_PORT = '10.0.0.3', 4242
 S_MESSAGE = "Only hipsters uses POSIX"
 server = socket.socket
 server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
 
 server.bind((S_HOST, S_PORT))
 
@@ -26,7 +38,7 @@ def UDP_send(trigger_line):
   MESSAGE = "POSIX is for hipsters"
   sock = socket.socket
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+  sock.bind((S_HOST, S_PORT + 1))
   sock.sendto(MESSAGE, (HOST, PORT))
 
 def UDP_recv(trigger_line):
