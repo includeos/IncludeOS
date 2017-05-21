@@ -168,9 +168,9 @@ public:
 
 private:
   const char* ident_ = nullptr;
-  int facility_;
-  int priority_;
-  int logopt_;
+  int facility_{};
+  int priority_{};
+  int logopt_{};
 
   net::UDP::addr_t ip_{0};
   net::UDP::port_t port_{0};
