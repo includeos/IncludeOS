@@ -2,7 +2,6 @@
 
 #include "apic.hpp"
 #include "apic_timer.hpp"
-#include "gdt.hpp"
 #include <kernel/irq_manager.hpp>
 #include <kprint>
 
@@ -64,13 +63,13 @@ void revenant_main(int cpu)
   x86::APIC::get().smp_enable();
   // setup GDT & per-cpu feature
   initialize_gdt_for_cpu(cpu);
-  // newlibs printf just does way too much static stuff to work in SMP
-  // it can work if REENTs are initalized per-cpu ... and other things
+  // show we are online, and verify CPU ID is correct
   ::SMP::global_lock();
-  INFO2("AP %d started at %p", get_cpu_id(), get_cpu_esp());
+  INFO2("AP %d started at %p", cpu, get_cpu_esp());
   ::SMP::global_unlock();
+  assert(cpu == ::SMP::cpu_id());
 
-  IRQ_manager::init(cpu);
+  IRQ_manager::init();
   // enable interrupts
   IRQ_manager::enable_interrupts();
   // init timer system

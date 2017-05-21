@@ -218,9 +218,9 @@ void IRQ_manager::enable_interrupts() {
   asm volatile("sti");
 }
 
-void IRQ_manager::init(int cpuid)
+void IRQ_manager::init()
 {
-  get(cpuid).init_local();
+  get().init_local();
 }
 
 void IRQ_manager::init_local()

@@ -23,8 +23,7 @@
 #include <cstdint>
 #include <deque>
 
-extern "C"
-void revenant_main(int);
+extern "C" void revenant_main(int);
 
 struct smp_stuff
 {
@@ -32,16 +31,16 @@ struct smp_stuff
     task(SMP::task_func a,
          SMP::done_func b)
       : func(a), done(b) {}
-    
+
     SMP::task_func func;
     SMP::done_func done;
   };
-  
+
   minimal_barrier_t boot_barrier;
-  
+
   spinlock_t tlock;
   std::deque<task> tasks;
-  
+
   spinlock_t flock;
   std::deque<SMP::done_func> completed;
 };

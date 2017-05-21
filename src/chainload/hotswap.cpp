@@ -24,9 +24,6 @@
 #include <cstdint>
 asm(".org 0x200000");
 
-extern "C" void* __multiboot_magic;
-extern "C" void* __multiboot_addr;
-
 extern "C" __attribute__((noreturn))
 void hotswap(const char* base, int len, char* dest, void* start,
              uintptr_t magic, uintptr_t bootinfo)
@@ -39,5 +36,4 @@ void hotswap(const char* base, int len, char* dest, void* start,
   asm volatile("jmp *%0" : : "r" (start), "a" (magic), "b" (bootinfo));
   asm volatile (".global __hotswap_end;\n__hotswap_end:");
   __builtin_unreachable();
-
 }
