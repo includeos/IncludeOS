@@ -71,7 +71,7 @@ check_os_support() {
             ;;
         "Linux")
             case $RELEASE in
-                "debian"|"ubuntu"|"linuxmint")
+                "debian"|"ubuntu"|"linuxmint"|"parrot")
                     return 0;
                     ;;
                 "fedora")

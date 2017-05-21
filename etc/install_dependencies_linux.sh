@@ -135,7 +135,7 @@ case $SYSTEM in
         ;;
     "Linux")
         case $RELEASE in
-            "debian"|"ubuntu"|"linuxmint")
+            "debian"|"ubuntu"|"linuxmint"|"parrot")
                 DEPENDENCIES="$DEPENDENCIES"
                 sudo apt-get -qq update || exit 1
                 sudo apt-get -qqy install $DEPENDENCIES > /dev/null || exit 1
