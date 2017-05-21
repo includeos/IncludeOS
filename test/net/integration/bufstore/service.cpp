@@ -20,77 +20,76 @@
 #include <os>
 #include <net/buffer_store.hpp>
 #include <net/packet.hpp>
-
-using namespace std;
 using namespace net;
 
-constexpr size_t MTU = 1520;
-constexpr size_t BUFFER_CNT = 100;
-BufferStore bufstore_{ BUFFER_CNT,  MTU };
+static const uint32_t MTU = 1520;
+static const uint32_t BUFFER_CNT = 100;
+static const uint32_t BS_CHAINS  = 10;
+static const uint32_t TOTAL_BUFFERS = BUFFER_CNT * BS_CHAINS;
 
 auto create_packet(BufferStore& bufstore) {
   // get buffer (as packet + data)
-  auto* ptr = (Packet*) bufstore.get_buffer();
+  auto buffer = bufstore.get_buffer();
   // place packet at front of buffer
-  new (ptr) Packet(MTU, 0, &bufstore);
+  auto* ptr = (Packet*) buffer.addr;
+  new (ptr) Packet(0, 0, MTU, buffer.bufstore);
   // regular shared_ptr that calls delete on Packet
   return std::unique_ptr<Packet>(ptr);
 }
 
 void Service::start(const std::string&)
 {
-  INFO("Test net::Packet","Starting tests");
+  INFO("Test", "Testing BufferStore and Packet chaining");
+  BufferStore bufstore(BUFFER_CNT,  MTU);
 
   INFO("Test 1","Naively create, chain and release packets");
 
   // Create packets, using buffer from the bufstore, and the bufstore's release
-  auto packet = create_packet(bufstore_);
-  CHECKSERT(bufstore_.available() == BUFFER_CNT - 1, "Bufcount is now %i", BUFFER_CNT - 1);
+  auto packet = create_packet(bufstore);
+  CHECKSERT(bufstore.available() == BUFFER_CNT - 1, "Bufcount is now %i", BUFFER_CNT - 1);
 
   int chain_size = BUFFER_CNT;
 
   // Chain packets
   for (int i = 0; i < chain_size - 1; i++){
-    auto chained_packet = create_packet(bufstore_);
+    auto chained_packet = create_packet(bufstore);
     packet->chain(std::move(chained_packet));
-    CHECKSERT(bufstore_.available() == BUFFER_CNT - i - 2, "Bufcount is now %i", BUFFER_CNT - i - 2);
+    CHECKSERT(bufstore.available() == BUFFER_CNT - i - 2, "Bufcount is now %i", BUFFER_CNT - i - 2);
   }
 
   // Release
   INFO("Test 1","Releasing packet-chain all at once: Expect bufcount restored");
   packet = nullptr;
-  CHECKSERT(bufstore_.available() == BUFFER_CNT, "Bufcount is now %i", BUFFER_CNT);
+  CHECKSERT(bufstore.available() == BUFFER_CNT,
+            "Bufcount is now %i", BUFFER_CNT);
 
-  INFO("Test 2","Create and chain packets, release one-by-one");
+  INFO("Test 2", "Create and chain %u packets, release one-by-one",
+        TOTAL_BUFFERS);
 
   // Reinitialize the first packet
-  packet = create_packet(bufstore_);
-  CHECKSERT(bufstore_.available() == BUFFER_CNT - 1, "Bufcount is now %i", BUFFER_CNT - 1);
+  packet = create_packet(bufstore);
+  CHECKSERT(bufstore.available() == BUFFER_CNT - 1,
+            "Bufcount is now %u", BUFFER_CNT - 1);
 
   // Chain
-  for (int i = 0; i < chain_size - 1; i++){
-    auto chained_packet = create_packet(bufstore_);
+  for (int i = 0; i < TOTAL_BUFFERS-1; i++){
+    auto chained_packet = create_packet(bufstore);
     packet->chain(std::move(chained_packet));
-    CHECKSERT(bufstore_.available() == BUFFER_CNT - i - 2, "Bufcount is now %i", BUFFER_CNT - i - 2);
   }
 
   INFO("Test 2","Releasing packet-chain one-by-one");
 
   // Release one-by-one
   auto tail = std::move(packet);
-  size_t i = 0;
-  while(tail && i < BUFFER_CNT - 1) {
-    CHECKSERT(bufstore_.available() == i,
-              "Bufcount is now %i == %i", i,
-              bufstore_.available());
+  while (tail) {
     tail = tail->detach_tail();
-    i++;
   }
 
   INFO("Test 2","Releasing last packet");
   tail = 0;
   packet = 0;
-  CHECKSERT(bufstore_.available() == BUFFER_CNT, "Bufcount is now %i", BUFFER_CNT);
-
+  CHECK(bufstore.available() == TOTAL_BUFFERS,
+        "Bufcount is now %u / %u", bufstore.available(), TOTAL_BUFFERS);
+  //assert(bufstore.available() == TOTAL_BUFFERS);
   INFO("Tests","SUCCESS");
 }

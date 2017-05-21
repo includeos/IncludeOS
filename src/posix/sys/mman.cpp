@@ -43,8 +43,8 @@ void* mmap(void* addr, size_t length,
   entry.flags  = flags;
   entry.fd     = fd;
   entry.offset = offset;
-  printf("mmap allocated %d bytes (%d pages)\n",
-         length, length / 4096);
+  printf("mmap allocated %d bytes (%u pages)\n",
+         length, (uint32_t) (length / 4096));
 
   // TODO:
   // read entire file into entry space

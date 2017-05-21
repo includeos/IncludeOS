@@ -15,12 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sstream>
-
 #include <os>
-#include <rtc>
 #include <acorn>
-#include <profile>
 
 using namespace std;
 using namespace acorn;
@@ -37,50 +33,39 @@ std::unique_ptr<Logger> logger_;
 
 Disk_ptr disk;
 
-#include <time.h>
+#include <isotime>
+#include <net/inet4>
 
-// Get current date/time, format is [YYYY-MM-DD.HH:mm:ss]
-const std::string timestamp() {
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
-    tstruct = *localtime(&now);
-    // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
-    // for more information about date/time format
-    strftime(buf, sizeof(buf), "[%Y-%m-%d.%X] ", &tstruct);
-
-    return buf;
-}
-
-void Service::start(const std::string&) {
-
+void Service::start()
+{
   /** SETUP LOGGER */
-  char* buffer = (char*)malloc(1024*16);
-  static gsl::span<char> spanerino{buffer, 1024*16};
+  const int LOGBUFFER_LEN = 1024*16;
+  static gsl::span<char> spanerino{new char[LOGBUFFER_LEN], LOGBUFFER_LEN};
   logger_ = std::make_unique<Logger>(spanerino);
   logger_->flush();
   logger_->log("LUL\n");
 
   OS::add_stdout([] (const char* data, size_t len) {
     // append timestamp
-    auto entry = timestamp() + std::string{data, len};
+    auto entry = "[" + isotime::now() + "]" + std::string{data, len};
     logger_->log(entry);
   });
 
   disk = fs::new_shared_memdisk();
 
-  // mount the main partition in the Master Boot Record
-  disk->init_fs([](fs::error_t err) {
-
-      if (err)  panic("Could not mount filesystem, retreating...\n");
+  // init the first legit partition/filesystem
+  disk->init_fs(
+  [] (fs::error_t err, auto& fs)
+  {
+      if (err) panic("Could not mount filesystem...\n");
 
       /** IP STACK SETUP **/
       // Bring up IPv4 stack on network interface 0
-      auto& stack = net::Inet4::ifconfig(5.0, [](bool timeout) {
-          printf("DHCP Resolution %s.\n", timeout?"failed":"succeeded");
-
-          if (timeout) {
-
+      auto& stack = net::Inet4::ifconfig(5.0,
+        [] (bool timeout) {
+          printf("DHCP resolution %s\n", timeout ? "failed" : "succeeded");
+          if (timeout)
+          {
             /**
              * Default Manual config. Can only be done after timeout to work
              * with DHCP offers going to unicast IP (e.g. in GCE)
@@ -117,10 +102,8 @@ void Service::start(const std::string&) {
 
       // setup users bucket
       users = std::make_shared<UserBucket>();
-
       users->spawn();
       users->spawn();
-
 
       /** ROUTES SETUP **/
       using namespace mana;
@@ -143,18 +126,19 @@ void Service::start(const std::string&) {
       // Construct component
       dashboard_->construct<dashboard::Statman>(Statman::get());
       dashboard_->construct<dashboard::TCP>(stack.tcp());
-      dashboard_->construct<dashboard::CPUsage>(0ms, 500ms);
+      dashboard_->construct<dashboard::CPUsage>(500ms);
       dashboard_->construct<dashboard::Logger>(*logger_, static_cast<size_t>(50));
 
       // Add Dashboard routes to "/api/dashboard"
       router.use("/api/dashboard", dashboard_->router());
 
       // Fallback route for angular application - serve index.html if route is not found
-      router.on_get("/app/.*", [](auto, auto res) {
+      router.on_get("/app/.*",
+      [&fs](auto, auto res) {
         #ifdef VERBOSE_WEBSERVER
         printf("[@GET:/app/*] Fallback route - try to serve index.html\n");
         #endif
-        disk->fs().cstat("/public/app/index.html", [res](auto err, const auto& entry) {
+        fs.cstat("/public/app/index.html", [res](auto err, const auto& entry) {
           if(err) {
             res->send_code(http::Not_Found);
           } else {
@@ -166,14 +150,11 @@ void Service::start(const std::string&) {
           }
         });
       });
-
       INFO("Router", "Registered routes:\n%s", router.to_string().c_str());
 
 
       /** SERVER SETUP **/
-
-      // initialize server
-      server_ = std::make_unique<Server>(static_cast<net::Inet4&>(stack));
+      server_ = std::make_unique<Server>(stack.tcp());
       // set routes and start listening
       server_->set_routes(router).listen(80);
 
@@ -195,4 +176,5 @@ void Service::start(const std::string&) {
       server_->use(cookie_parser);
 
     }); // < disk
+
 }

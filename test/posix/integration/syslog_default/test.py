@@ -25,13 +25,16 @@ DEBUG_C   = "\033\\[94m"          # BLUE
 END_C     = "\033\\[0m"           # CLEAR
 
 def increment(line):
-  global num_outputs
-  num_outputs += 1
-  print "num_outputs after increment: ", num_outputs
+    global num_outputs
+    num_outputs += 1
+    print "num_outputs after increment: ", num_outputs
+
+expected_outputs = 53
 
 def check_num_outputs(line):
-  assert(num_outputs == 53)
-  vmrunner.vms[0].exit(0, "SUCCESS")
+    print "Registered", num_outputs, " / ", expected_outputs, " expected ouput lines"
+    assert(num_outputs == expected_outputs)
+    vmrunner.vms[0].exit(0, "All tests passed")
 
 # ---------- POSIX wrapper syslog ----------
 

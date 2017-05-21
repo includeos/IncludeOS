@@ -33,24 +33,25 @@ void* aligned_alloc(size_t alignment, size_t size) {
 #include <util/statman.hpp>
 Statman& Statman::get() {
   static uintptr_t start {0};
+  static const size_t memsize = 0x100000;
   if (!start) {
-    start = (uintptr_t) malloc(65536);
+    start = (uintptr_t) malloc(memsize);
   }
-  static Statman statman_{start, 8192};
+  static Statman statman_{start, memsize / sizeof(Stat)};
   return statman_;
 }
 
-#include <os>
-#include <kernel/timers.hpp>
+/// RTC ///
+#include <rtc>
+RTC::timestamp_t RTC::booted_at = 0;
 
+void RTC::init() {}
 RTC::timestamp_t RTC::now() {
-  return 0;
+  return time(0);
 }
 
-void RTC::init() {
-  return;
-}
-
+/// TIMERS ///
+#include <kernel/timers.hpp>
 void Timers::timers_handler() {
   return;
 }
@@ -71,6 +72,7 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
   return 0;
 }
 
+#include <kernel/os.hpp>
 void OS::resume_softreset(intptr_t) {
   return;
 }
@@ -78,6 +80,8 @@ void OS::resume_softreset(intptr_t) {
 bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
+
+void OS::multiboot(unsigned) {}
 
 extern "C" {
 
@@ -89,53 +93,90 @@ extern "C" {
   uintptr_t _LOAD_START_;
   uintptr_t _LOAD_END_;
   uintptr_t _BSS_END_;
-  uintptr_t _MAX_MEM_MIB_;
-#ifdef __MACH__
-  uintptr_t _start;
-#endif
-  uintptr_t _end;
 
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
   }
 
-  void _init_c_runtime() {
-    return;
-  }
+  void _init_c_runtime() {}
+  void _init_bss() {}
+  void _init_heap(uintptr_t) {}
 
-  void modern_interrupt_handler() {
-    return;
-  }
+#ifdef __MACH__
+  void _init() {}
+#endif
 
-  void unused_interrupt_handler() {
-    return;
-  }
+  void __libc_init_array () {}
 
-  void spurious_intr() {
-    return;
-  }
+  /// IRQ manager ///
+  void modern_interrupt_handler() {}
+  void unused_interrupt_handler() {}
+  void spurious_intr() {}
+  void cpu_sampling_irq_entry() {}
 
-  void lapic_send_eoi() {
-    return;
-  }
 
-  void lapic_irq_entry() {
-    return;
+  uintptr_t _multiboot_free_begin(uintptr_t) {
+    return 0;
   }
-
-  void get_cpu_id() {
-    return;
-  }
-
-  void cpu_sampling_irq_entry() {
-    return;
-  }
-
-  void __init_sanity_checks() noexcept {
-    return;
+  uintptr_t _move_symbols(uintptr_t) {
+    return 0;
   }
 
   void reboot_os() {
-    return;
+    assert(0 && "Reboot called");
   }
+
+  struct mallinfo { int x; };
+  struct mallinfo mallinfo() {
+    return {0};
+  }
+  void malloc_trim() {}
+
+  __attribute__((weak))
+  void __init_serial1 () {}
+  __attribute__((weak))
+  void __serial_print1(const char* cstr) {
+    static char __printbuf[4096];
+    snprintf(__printbuf, sizeof(__printbuf), "%s", cstr);
+  }
+
+
+} // ~ extern "C"
+
+/// platform ///
+void* __multiboot_addr;
+
+void __platform_init() {}
+extern "C" void __init_sanity_checks() {}
+extern "C" void kernel_sanity_checks() {}
+
+/// arch ///
+void __arch_poweroff() {}
+void __arch_reboot() {}
+void __arch_enable_legacy_irq(uint8_t) {}
+void __arch_disable_legacy_irq(uint8_t) {}
+
+#include <smp>
+int SMP::cpu_id() noexcept {
+  return 0;
 }
+void SMP::global_lock() noexcept {}
+void SMP::global_unlock() noexcept {}
+
+extern "C"
+void (*current_eoi_mechanism) () = nullptr;
+
+#ifdef ARCH_X86
+#include "../../src/arch/x86/apic.hpp"
+namespace x86 {
+  IApic& APIC::get() noexcept { return *(IApic*) 0; }
+}
+#endif
+
+#ifndef ARCH_X86
+bool rdrand32(uint32_t* result) {
+  *result = rand();
+  return true;
+}
+
+#endif

@@ -20,7 +20,6 @@
 
 #include "../net/buffer_store.hpp"
 #include "mac_addr.hpp"
-#include <net/frame.hpp>
 #include <net/inet_common.hpp>
 
 namespace hw {
@@ -31,25 +30,24 @@ namespace hw {
   class Nic {
   public:
     using upstream    = delegate<void(net::Packet_ptr)>;
-    using downstream  = upstream;
+    using downstream  = net::downstream_link;
 
     enum class Proto {ETH, IEEE802111};
 
     virtual Proto proto() const = 0;
 
-    /** Get a readable name. */
+    /** Human-readable driver name */
     virtual const char* driver_name() const = 0;
 
-    std::string device_name() const {
-      return "eth" + std::to_string(N);
-    }
+    /** Human-readable interface/device name (eg. eth0) */
+    virtual std::string device_name() const = 0;
 
     /** A readable name of the type of device @todo: move to a abstract Device? */
     static const char* device_type()
     { return "NIC"; }
 
     /** The mac address. */
-    virtual const MAC_addr& mac() const noexcept = 0;
+    virtual const MAC::Addr& mac() const noexcept = 0;
 
     virtual uint16_t MTU() const noexcept = 0;
 
@@ -62,11 +60,25 @@ namespace hw {
     net::BufferStore& bufstore() noexcept
     { return bufstore_; }
 
+    /** Number of free buffers in the BufferStore **/
     size_t buffers_available()
     { return bufstore_.available(); }
 
-    uint16_t bufsize() const
-    { return bufstore_.bufsize(); }
+    /** Number of total buffers in the BufferStore **/
+    size_t buffers_total()
+    { return bufstore_.total_buffers(); }
+
+    /** Number of bytes in a frame needed by the device itself **/
+    virtual size_t frame_offset_device() = 0;
+
+    /** Number of bytes in a frame needed by the link layer **/
+    virtual size_t frame_offset_link() = 0;
+
+    /**
+     * Create a packet with appropriate size for the underlying link
+     * @param layer_begin : offset in octets from the link-layer header
+     */
+    virtual net::Packet_ptr create_packet(int layer_begin) = 0;
 
     /** Subscribe to event for when there is more room in the tx queue */
     void on_transmit_queue_available(net::transmit_avail_delg del)
@@ -74,10 +86,17 @@ namespace hw {
 
     virtual size_t transmit_queue_available() = 0;
 
-    virtual size_t receive_queue_waiting() = 0;
-
     virtual void deactivate() = 0;
 
+    /** Stats getters **/
+    virtual uint64_t get_packets_rx() = 0;
+    virtual uint64_t get_packets_tx() = 0;
+    virtual uint64_t get_packets_dropped() = 0;
+
+    /** Move this nic to current CPU **/
+    virtual void move_to_this_cpu() = 0;
+
+    virtual ~Nic() {}
   protected:
     /**
      *  Constructor
@@ -99,7 +118,6 @@ namespace hw {
   private:
     net::BufferStore bufstore_;
     int N;
-
   };
 
 } //< namespace hw

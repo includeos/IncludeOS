@@ -42,7 +42,7 @@ namespace hw {
   
   struct msix_t
   {
-    msix_t(PCI_Device&);
+    msix_t(PCI_Device&, uint32_t capoff);
     
     // initialize msi-x tables for device
     void mask_entry(size_t);
@@ -50,6 +50,8 @@ namespace hw {
     void zero_entry(size_t);
     // enable one (cpu, vector) entry for this device
     uint16_t setup_vector(uint8_t cpu, uint8_t vector);
+    // redirect MSI-X vector to another CPU
+    void redirect_vector(uint16_t idx, uint8_t cpu, uint8_t vector);
     
     uint16_t vectors() const noexcept {
       return vector_cnt;

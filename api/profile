@@ -24,6 +24,7 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <arch.hpp>
 
 struct Sample {
   uint32_t    samp; // samples
@@ -45,6 +46,9 @@ struct StackSampler
 
   // retrieve N top results/hotspots
   static std::vector<Sample> results(int N);
+
+  // print N top results to stdout
+  static void print(int N);
 
   // enable or disable sample-taking
   // eg. disable sampling during stack sample result printout
@@ -87,9 +91,9 @@ class ScopedProfiler
   {
     record();
     // memory clobbered make sure ScopedProfilers aren't moved around
-    asm volatile("" : : : "memory");
+    __sw_barrier();
   }
-  
+
   void record();
   ~ScopedProfiler();
 

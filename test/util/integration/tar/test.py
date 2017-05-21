@@ -38,28 +38,32 @@ def increment_header2(line):
 
 def check_num_outputs(line):
   assert(num_elements == 20)  # 2 * 10
+  print "Num_header1: ", num_header1
   assert(num_header1 == 17)
   assert(num_content == 5)
   assert(num_header2 == 17)
-  vmrunner.vms[0].exit(0, "SUCCESS")
+  vmrunner.vms[0].exit(0, "All tests passed")
 
 # All elements in tarball
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/ - element", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/ - element", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/ - element", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/README.md - element", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/service.cpp - element", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/service.cpp - element", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/second_file.md - element", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/first_file.txt - element", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f2/ - element", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f2/virtio.hpp - element", increment_element)
+vm.on_output("tar_example/ - element", increment_element)
+vm.on_output("tar_example/l1_f1/ - element", increment_element)
+vm.on_output("tar_example/l1_f1/l2/ - element", increment_element)
+vm.on_output("tar_example/l1_f1/l2/README.md - element", increment_element)
+vm.on_output("tar_example/l1_f1/l2/service.cpp - element", increment_element)
+vm.on_output("tar_example/l1_f1/service.cpp - element", increment_element)
+vm.on_output("tar_example/second_file.md - element", increment_element)
+vm.on_output("tar_example/first_file.txt - element", increment_element)
+vm.on_output("tar_example/l1_f2/ - element", increment_element)
+vm.on_output("tar_example/l1_f2/virtio.hpp - element", increment_element)
 
 # README.md's header
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/README.md - name of README.md", increment_header1)
-vm.on_output("Mode of README.md: 0000664", increment_header1)
-vm.on_output("Uid of README.md: 0001750", increment_header1)
-vm.on_output("Gid of README.md: 0001750", increment_header1)
+vm.on_output("tar_example/l1_f1/l2/README.md - name of README.md", increment_header1)
+
+# TODO: check for not null
+vm.on_output("Mode of README.md:", increment_header1)
+vm.on_output("Uid of README.md:", increment_header1)
+vm.on_output("Gid of README.md:", increment_header1)
+
 vm.on_output("Size of README.md: 293", increment_header1)
 vm.on_output("Mod_time of README.md: ", increment_header1)
 vm.on_output("Checksum of README.md: ", increment_header1)
@@ -81,10 +85,13 @@ vm.on_output("This demo-service should start an instance of IncludeOS that bring
 vm.on_output("Note: Remember to run the bridge creation script for networking to work on qemu ", increment_content)
 
 # Folder l2's header and content (no content)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/ - name of l2", increment_header2)
+vm.on_output("tar_example/l1_f1/l2/ - name of l2", increment_header2)
 vm.on_output("Mode of l2: 0000775", increment_header2)
-vm.on_output("Uid of l2: 0001750", increment_header2)
-vm.on_output("Gid of l2: 0001750", increment_header2)
+
+# TODO: check for not null
+vm.on_output("Uid of l2: ", increment_header2)
+vm.on_output("Gid of l2: ", increment_header2)
+
 vm.on_output("Size of l2: 0", increment_header2)
 vm.on_output("Mod_time of l2: ", increment_header2)
 vm.on_output("Checksum of l2: ", increment_header2)
@@ -102,16 +109,16 @@ vm.on_output("Pad of l2: ", increment_header2)
 vm.on_output("l2 is a folder", increment_content)
 
 # All elements in tarball's name and typeflag (0 is file and 5 is folder)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/ Typeflag: 5", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/ Typeflag: 5", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/ Typeflag: 5", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/README.md Typeflag: 0", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/l2/service.cpp Typeflag: 0", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f1/service.cpp Typeflag: 0", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/second_file.md Typeflag: 0", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/first_file.txt Typeflag: 0", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f2/ Typeflag: 5", increment_element)
-vm.on_output("/IncludeOS/test/util/integration/tar/tar_example/l1_f2/virtio.hpp Typeflag: 0", increment_element)
+vm.on_output("tar_example/ Typeflag: 5", increment_element)
+vm.on_output("tar_example/l1_f1/ Typeflag: 5", increment_element)
+vm.on_output("tar_example/l1_f1/l2/ Typeflag: 5", increment_element)
+vm.on_output("tar_example/l1_f1/l2/README.md Typeflag: 0", increment_element)
+vm.on_output("tar_example/l1_f1/l2/service.cpp Typeflag: 0", increment_element)
+vm.on_output("tar_example/l1_f1/service.cpp Typeflag: 0", increment_element)
+vm.on_output("tar_example/second_file.md Typeflag: 0", increment_element)
+vm.on_output("tar_example/first_file.txt Typeflag: 0", increment_element)
+vm.on_output("tar_example/l1_f2/ Typeflag: 5", increment_element)
+vm.on_output("tar_example/l1_f2/virtio.hpp Typeflag: 0", increment_element)
 
 vm.on_output("Something special to close with", check_num_outputs)
 

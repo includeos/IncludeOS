@@ -19,49 +19,24 @@
 #ifndef NET_IP4_ARP_HPP
 #define NET_IP4_ARP_HPP
 
-#include <os>
-#include <map>
-
+#include <rtc>
+#include <unordered_map>
+#include <util/timer.hpp>
 #include <delegate>
 #include "ip4.hpp"
 
+using namespace std::chrono_literals;
 namespace net {
 
   class PacketArp;
 
   /** ARP manager, including an ARP-Cache. */
   class Arp {
-    using Stack   = IP4::Stack;
-  private:
-    /** ARP cache expires after cache_exp_t_ seconds */
-    static constexpr uint16_t cache_exp_t_ {60 * 60 * 12};
 
-    /** Cache entries are just MAC's and timestamps */
-    struct cache_entry {
-      Ethernet::addr mac_;
-      uint64_t       timestamp_;
-
-      /** Map needs empty constructor (we have no emplace yet) */
-      cache_entry() noexcept = default;
-
-      cache_entry(Ethernet::addr mac) noexcept
-      : mac_(mac), timestamp_(OS::uptime()) {}
-
-      cache_entry(const cache_entry& cpy) noexcept
-      : mac_(cpy.mac_), timestamp_(cpy.timestamp_) {}
-
-      void update() noexcept { timestamp_ = OS::uptime(); }
-    }; //< struct cache_entry
-
-    using Cache       = std::map<IP4::addr, cache_entry>;
-    using PacketQueue = std::map<IP4::addr, Packet_ptr>;
   public:
-    /**
-     *  You can assign your own ARP-resolution delegate
-     *
-     *  We're doing this to keep the Hårek Haugerud mapping (HH_MAP)
-     */
-    using Arp_resolver = delegate<void(Packet_ptr packet)>;
+    using Stack   = IP4::Stack;
+    using Route_checker = delegate<bool(IP4::addr)>;
+    using Arp_resolver = delegate<void(IP4::addr)>;
 
     enum Opcode { H_request = 0x100, H_reply = 0x200 };
 
@@ -74,19 +49,18 @@ namespace net {
     explicit Arp(Stack&) noexcept;
 
     struct __attribute__((packed)) header {
-      Ethernet::header ethhdr;    // Ethernet header
       uint16_t         htype;     // Hardware type
       uint16_t         ptype;     // Protocol type
       uint16_t         hlen_plen; // Protocol address length
       uint16_t         opcode;    // Opcode
-      Ethernet::addr   shwaddr;   // Source mac
+      MAC::Addr     shwaddr;   // Source mac
       IP4::addr        sipaddr;   // Source ip
-      Ethernet::addr   dhwaddr;   // Target mac
+      MAC::Addr     dhwaddr;   // Target mac
       IP4::addr        dipaddr;   // Target ip
     };
 
     /** Handle incoming ARP packet. */
-    void bottom(Packet_ptr pckt);
+    void receive(Packet_ptr pckt);
 
     /** Roll your own arp-resolution system. */
     void set_resolver(Arp_resolver ar)
@@ -94,25 +68,90 @@ namespace net {
 
     enum Resolver_name { DEFAULT, HH_MAP };
 
-    void set_resolver(Resolver_name nm) {
-      // @TODO: Add HÅREK-mapping here
-      switch (nm) {
-      case HH_MAP:
-        arp_resolver_ = {this, &Arp::hh_map};
-        break;
-      default:
-        arp_resolver_ = {this, &Arp::arp_resolve};
-      }
-    }
+    /**
+     * Set ARP proxy policy.
+     * No route checker (default) implies ARP proxy functionality is disabled.
+     *
+     * @param delg : delegate to determine if we should reply to a given IP
+     */
+    void set_proxy_policy(Route_checker delg)
+    { proxy_ = delg; }
 
     /** Delegate link-layer output. */
-    void set_linklayer_out(downstream link)
+    void set_linklayer_out(downstream_link link)
     { linklayer_out_ = link; }
 
     /** Downstream transmission. */
-    void transmit(Packet_ptr);
+    void transmit(Packet_ptr, IP4::addr next_hop);
+
+    /** Cache IP resolution. */
+    void cache(IP4::addr, MAC::Addr);
+
+    /** Flush the ARP cache. RFC-2.3.2.1 */
+    void flush_cache()
+    { cache_.clear(); };
+
+    /** Flush expired cache entries. RFC-2.3.2.1 */
+    void flush_expired () {
+      INFO("ARP", "Flushing expired entries");
+      std::vector<IP4::addr> expired;
+      for (auto ent : cache_) {
+        if (ent.second.expired()) {
+          expired.push_back(ent.first);
+        }
+      }
+
+      for (auto ip : expired) {
+        cache_.erase(ip);
+      }
+
+      if (not cache_.empty()) {
+        flush_timer_.start(flush_interval_);
+      }
+    }
+
+    void set_cache_flush_interval(std::chrono::minutes m) {
+      flush_interval_ = m;
+    }
 
   private:
+
+    /** ARP cache expires after cache_exp_sec_ seconds */
+    static constexpr uint16_t cache_exp_sec_ {60 * 5};
+
+    /** Cache entries are just MAC's and timestamps */
+    struct Cache_entry {
+      /** Map needs empty constructor (we have no emplace yet) */
+      Cache_entry() noexcept = default;
+
+      Cache_entry(MAC::Addr mac) noexcept
+      : mac_(mac), timestamp_(RTC::time_since_boot()) {}
+
+      Cache_entry(const Cache_entry& cpy) noexcept
+      : mac_(cpy.mac_), timestamp_(cpy.timestamp_) {}
+
+      void update() noexcept { timestamp_ = RTC::time_since_boot(); }
+
+      bool expired() const noexcept
+      { return RTC::time_since_boot() > timestamp_ + cache_exp_sec_; }
+
+      MAC::Addr mac() const noexcept
+      { return mac_; }
+
+      RTC::timestamp_t timestamp() const noexcept
+      { return timestamp_; }
+
+      RTC::timestamp_t expires() const noexcept
+      { return timestamp_ + cache_exp_sec_; }
+
+    private:
+      MAC::Addr mac_;
+      RTC::timestamp_t timestamp_;
+    }; //< struct Cache_entry
+
+    using Cache       = std::unordered_map<IP4::addr, Cache_entry>;
+    using PacketQueue = std::unordered_map<IP4::addr, Packet_ptr>;
+
 
     /** Stats */
     uint32_t& requests_rx_;
@@ -120,41 +159,51 @@ namespace net {
     uint32_t& replies_rx_;
     uint32_t& replies_tx_;
 
+    std::chrono::minutes flush_interval_ = 5min;
+
+    Timer resolve_timer_ {{ *this, &Arp::resolve_waiting }};
+    Timer flush_timer_ {{ *this, &Arp::flush_expired }};
+
     Stack& inet_;
+    Route_checker proxy_ = nullptr;
 
-    /** Needs to know which mac address to put in header->swhaddr */
-    Ethernet::addr mac_;
+    // Needs to know which mac address to put in header->swhaddr
+    MAC::Addr mac_;
 
-    /** Outbound data goes through here */
-    downstream linklayer_out_;
+    // Outbound data goes through here */
+    downstream_link linklayer_out_ = nullptr;
 
-    /** The ARP cache */
-    Cache cache_;
+    // The ARP cache
+    Cache cache_ {};
 
-    /** Cache IP resolution. */
-    void cache(IP4::addr, Ethernet::addr);
-
-    /** Check if an IP is cached and not expired */
-    bool is_valid_cached(IP4::addr);
-
-    /** ARP resolution. */
-    Ethernet::addr resolve(IP4::addr);
-
-    void arp_respond(header* hdr_in);
-
-    // two different ARP resolvers
-    void arp_resolve(Packet_ptr);
-    void hh_map(Packet_ptr);
-
-    Arp_resolver arp_resolver_ = {this, &Arp::arp_resolve};
-
+    // RFC-1122 2.3.2.2 Packet queue
     PacketQueue waiting_packets_;
 
-    /** Add a packet to waiting queue, to be sent when IP is resolved */
+    // Settable resolver - defualts to arp_resolve
+    Arp_resolver arp_resolver_ = {this, &Arp::arp_resolve};
+
+    /** Respond to arp request */
+    void arp_respond(header* hdr_in, IP4::addr ack_ip);
+
+    /** Send an arp resolution request */
+    void arp_resolve(IP4::addr next_hop);
+
+    /**
+     * Add a packet to waiting queue, to be sent when IP is resolved.
+     *
+     * Implements RFC1122
+     * 2.3.2.1 : Prevent ARP flooding
+     * 2.3.2.2 : Packets SHOULD be queued.
+     */
     void await_resolution(Packet_ptr, IP4::addr);
 
     /** Create a default initialized ARP-packet */
     Packet_ptr create_packet();
+
+    /** Retry arp-resolution for packets still waiting */
+    void resolve_waiting();
+
+
   }; //< class Arp
 
 } //< namespace net

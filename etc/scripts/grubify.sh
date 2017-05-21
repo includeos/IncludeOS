@@ -1,15 +1,66 @@
 #! /bin/bash
-KERNEL=${1-build/test_grub}
+
+# GRUB uses roughly 4.6 Mb of disk
+GRUB_KB=5000
+BASE_KB=$GRUB_KB
+
+usage() {
+  echo "Usage: $0 [OPTIONS] BINARY" 1>&2
+  echo ""
+  echo "Create a bootable grub image for a multiboot compatible BINARY"
+  echo ""
+  echo "OPTIONS:"
+  echo "-c Unmount and clean previous image, for consecutive development runs"
+  echo "-e Exit after cleaning. Only makes sense in combination with -c"
+  echo "-k keep mountpoint open for inspection - don't unmount"
+  echo "-u update image with new kernel"
+  echo "-s base image size, to which BINARY size will be added. Default $GRUB_KB Kb"
+  exit 1
+}
+
+while getopts "cekus:" o; do
+  case "${o}" in
+    c)
+      clean=1
+      ;;
+    e)
+      exit_on_clean=1
+      ;;
+    k)
+      keep_open=1
+      ;;
+    u)
+      update=1
+      ;;
+    s)
+      BASE_KB=$OPTARG
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+
+[[ $1 ]] || usage
+
+KERNEL=$1
 DISK=${DISK-$KERNEL.grub.img}
 MOUNTDIR=${MOUNTDIR-/mnt}
-MOUNT_OPTS="sync,rw"
-BLOCKCCOUNT=10000
+MOUNT_OPTS="rw"
+
 set -e
 
 function unmount {
 
   # NOTE:  Mounted Loopback devices won't get detached with losetup -d
   # Instead we use umount -d to have mount detach the loopback device
+  #
+  # NOTE:
+  # If the script is interrupted before getting to this step you'll end up with
+  # lots of half-mounted loopback-devices after a while.
+  # Unmount by consecutive calls to command below.
 
   echo -e ">>> Unmounting and detaching $LOOP"
   sudo umount -vd $MOUNTDIR || :
@@ -23,9 +74,6 @@ function clean {
 
 
 function create_disk {
-  echo -e ">>> Creating FAT file system on $DISK with $BLOCKSIZE blocks"
-  # NOTE: mkfs with the '-C' option creates the disk before creating FS
-  # fallocate -l 10MiB $DISK
 
   if [ -f $DISK ]
   then
@@ -33,8 +81,18 @@ function create_disk {
     mv $DISK $DISK.bak
   fi
 
+  # Kernel size in Kb
+  KERN_KB=$(( ($(stat -c%s "$KERNEL") / 1024) ))
 
-  mkfs.fat -C $DISK $BLOCKCCOUNT
+  # Estimate some overhead for the FAT
+  FAT_KB=$(( ($KERN_KB + $BASE_KB) / 10 ))
+
+  DISK_KB=$(( $KERN_KB + $BASE_KB + $FAT_KB ))
+
+  echo ">>> Estimated disk size: $BASE_KB Kb Base size + $KERN_KB Kb kernel + $FAT_KB Kb FAT = $DISK_KB Kb"
+  echo ">>> Creating FAT file system on $DISK"
+
+  mkfs.fat -C $DISK $DISK_KB
 }
 
 function mount_loopback {
@@ -58,6 +116,7 @@ function mount_loopback {
 function copy_kernel {
   echo ">>> Copying kernel '$KERNEL' to $MOUNTDIR/boot/includeos_service"
   sudo cp $KERNEL $MOUNTDIR/boot/includeos_service
+  sync
 }
 
 function build {
@@ -68,15 +127,14 @@ function build {
 }
 
 
-
 # Unmount and Clean previous image
-if [[ "$2" =~ -c.* ]]
+if [[ $clean ]]
 then
-
+  echo ">>> Cleaning "
   unmount
   clean
 
-  if [[ "$2" =~ -ce.* ]]
+  if [[ $exit_on_clean ]]
   then
     echo "Exit option set. Exiting."
     exit 0
@@ -84,7 +142,7 @@ then
 fi
 
 # Update image and exit
-if [[ "$2" == --update ]]
+if [[ $update ]]
 then
   mount_loopback
   copy_kernel
@@ -104,32 +162,51 @@ mount_loopback
 echo -e ">>> Creating boot dir"
 sudo mkdir -p $MOUNTDIR/boot
 
+
+echo -e ">>> Populating boot dir with grub config"
+sudo mkdir -p $MOUNTDIR/boot/grub
+
+
 GRUB_CFG='
 set default="0"
 set timeout=0
 serial --unit=0 --speed=9600
 terminal_input serial; terminal_output serial
 
-menuentry IncludeOS Grub test {
+menuentry IncludeOS {
   multiboot /boot/includeos_service
   }
 '
 
-if [ ! -e grub.cfg ]
+if [[ ! -e grub.cfg ]]
 then
   echo -e ">>> Creating grub config file"
   sudo echo "$GRUB_CFG" > grub.cfg
+  sudo mv grub.cfg $MOUNTDIR/boot/grub/grub.cfg
+else
+  echo -e ">>> Copying grub config file"
+  sudo cp grub.cfg $MOUNTDIR/boot/grub/grub.cfg
 fi
-
-echo -e ">>> Populating boot dir with grub config"
-sudo mkdir -p $MOUNTDIR/boot/grub
-sudo mv grub.cfg $MOUNTDIR/boot/grub/grub.cfg
 
 copy_kernel
 
-echo -e ">>> Running grub install"
-sudo grub-install --target=i386-pc --force --boot-directory $MOUNTDIR/boot/ $LOOP
+# EFI?
+sudo mkdir -p $MOUNTDIR/boot/efi
 
-unmount
+
+ARCH=${ARCH-i386}
+TARGET=i386-pc
+echo -e ">>> Running grub install for target $TARGET"
+sudo grub-install --target=$TARGET --force --boot-directory $MOUNTDIR/boot/ $LOOP
+
+echo -e ">>> Synchronize file cache"
+sync
+
+if [[ -z $keep_open ]]
+then
+  unmount
+else
+  echo -e ">>> NOTE: Keeping mountpoint open"
+fi
 
 echo -e ">>> Done. You can now boot $DISK"

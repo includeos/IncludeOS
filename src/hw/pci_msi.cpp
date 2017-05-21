@@ -40,16 +40,21 @@ namespace hw
   
   uint8_t PCI_Device::init_msix()
   {
+    assert(this->msix == nullptr);
     // disable intx
     auto cmd = read16(PCI_CMD_REG);
     write16(PCI_CMD_REG, cmd | (1 << 10));
     // enable MSI-X
-    this->msix = new msix_t(*this);
+    this->msix = new msix_t(*this, msix_cap());
     return msix->vectors();
   }
   void PCI_Device::setup_msix_vector(uint8_t cpu, uint8_t irq)
   {
     msix->setup_vector(cpu, irq);
+  }
+  void PCI_Device::rebalance_msix_vector(uint16_t idx, uint8_t cpu, uint8_t irq)
+  {
+    msix->redirect_vector(idx, cpu, irq);
   }
   
   void PCI_Device::deactivate_msix()
@@ -58,5 +63,11 @@ namespace hw
         msix->mask_entry(ent);
         msix->zero_entry(ent);
     }
+  }
+  
+  uint8_t PCI_Device::get_msix_vectors()
+  {
+    if (this->msix == nullptr) return 0;
+    return msix->vectors();
   }
 }

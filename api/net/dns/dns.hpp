@@ -153,9 +153,9 @@ namespace net
       bool parseResponse(const char* buffer);
       void print(const char* buffer) const;
 
-      const std::string& getHostname() const
+      const std::string& hostname() const
       {
-        return this->hostname;
+        return this->hostname_;
       }
 
       IP4::addr getFirstIP4() const
@@ -200,7 +200,7 @@ namespace net
       void dnsNameFormat(char* dns);
 
       unsigned short id;
-      std::string    hostname;
+      std::string    hostname_;
 
       std::vector<rr_t> answers;
       std::vector<rr_t> auth;

@@ -1,6 +1,5 @@
 #include <kernel/os.hpp>
 #include <posix/ucontext.h>
-#include <hw/acpi.hpp>
 
 // default successor context
 static ucontext_t default_successor_context;
@@ -16,7 +15,7 @@ void initialize_default_successor_context()
   default_successor_context.uc_stack.ss_sp = (new char[1024] + 1024);
   default_successor_context.uc_stack.ss_size = 1024;
   makecontext(&default_successor_context,
-              [](){ Service::stop(); hw::ACPI::shutdown(); },
+              [](){ Service::stop(); },
               0);
 }
 
@@ -72,6 +71,8 @@ void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...) {
   va_start(args, argc);
 
   prepare_context_stack(ucp, ucp->uc_link, argc, args);
+
+  va_end(args);
 }
 
 int swapcontext(ucontext_t *oucp, ucontext_t *ucp)

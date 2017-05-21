@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,158 +15,190 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef UTILITY_STATMAN_HPP
-#define UTILITY_STATMAN_HPP
+#pragma once
+#ifndef UTIL_STATMAN_HPP
+#define UTIL_STATMAN_HPP
 
+#include <common>
 #include <cstddef>
 #include <string>
+#include <membitmap>
 
-// IncludeOS
-#include <common>
-
-/** Exception thrown when Statman's span is full */
-class Stats_out_of_memory : public std::out_of_range {
-public:
+/** This type is thrown when Statman's span is full */
+struct Stats_out_of_memory : public std::out_of_range {
   explicit Stats_out_of_memory()
     : std::out_of_range(std::string{"Statman has no room for more statistics"})
     {}
-}; //< class Stats_out_of_memory
+}; //< struct Stats_out_of_memory
 
-/** Exception for Statman */
-class Stats_exception : public std::runtime_error {
+
+/** This type is thrown from within the operations of class Statman */
+struct Stats_exception : public std::runtime_error {
   using runtime_error::runtime_error;
-};
+}; //< struct Stats_exception
 
+///
+///
+///
 class Stat {
-
 public:
-  enum stat_type
+  static const int MAX_NAME_LEN {47};
+  ///
+  ///
+  ///
+  enum Stat_type: uint8_t
   {
     FLOAT,
     UINT32,
     UINT64
   };
 
-  Stat(const stat_type type, const int index_into_span, const std::string& name);
-
+  ///
+  ///
+  ///
+  Stat(const Stat_type type, const std::string& name);
   ~Stat() = default;
 
+  // increment stat counter
   void operator++();
 
-  stat_type type() const { return type_; }
+  ///
+  Stat_type type() const noexcept
+  { return type_; }
 
-  int index() const { return index_into_span_; }
+  ///
+  const char* name() const noexcept
+  { return name_; }
 
-  std::string name() const { return name_; }
+  ///
+  bool unused() const noexcept {
+    return name_[0] == 0;
+  }
 
+  ///
   float& get_float();
 
+  ///
   uint32_t& get_uint32();
 
+  ///
   uint64_t& get_uint64();
 
 private:
-  stat_type type_;
-  int index_into_span_;
   union {
-    float f;
+    float    f;
     uint32_t ui32;
     uint64_t ui64;
   };
-  char name_[48];
+  Stat_type type_;
+
+  char name_[MAX_NAME_LEN];
 
   Stat(const Stat& other) = delete;
-
   Stat(const Stat&& other) = delete;
-
   Stat& operator=(const Stat& other) = delete;
-
   Stat& operator=(Stat&& other) = delete;
 
-};  // < class Stat
+} __attribute__((packed)); //< class Stat
+
 
 class Statman {
-  /*
-    @note
-    This fails on g++ 5.4.0
-    Passes on clang 3.8.0
-
-    static_assert(std::is_pod<Stat>::value, "Stat is pod type");
-  */
-
-  using Span = gsl::span<Stat>;
-
 public:
+  using Size_type = ptrdiff_t;
+
+  // retrieve main instance of Statman
   static Statman& get();
 
-  using Size_type = ptrdiff_t;
-  using Span_iterator = gsl::span<Stat>::iterator;
-
-  Statman(uintptr_t start, Size_type num_bytes);
-
-  ~Statman() = default;
-
-  Stat& operator[](int i) { return stats_[i]; }
-
-  /**
-   * Returns the number of elements the span stats_ can contain
-   */
-  Size_type size() const { return stats_.size(); }
+  // access a Stat by a given index
+  const Stat& operator[] (const int i) const
+  {
+    if (i < 0 || i >= cend() - cbegin())
+      throw std::out_of_range("Index " + std::to_string(i) + " was out of range");
+    return stats_[i];
+  }
+  Stat& operator[] (const int i)
+  {
+    return const_cast<Stat&>(static_cast<const Statman&>(*this)[i]);
+  }
 
   /**
-   * Returns the number of bytes the span stats_ takes up
-   */
-  Size_type num_bytes() const { return num_bytes_; }
+    * Create a new stat
+   **/
+  Stat& create(const Stat::Stat_type type, const std::string& name);
+  // retrieve stat based on address from stats counter: &stat.get_xxx()
+  Stat& get(const void* addr);
+  // if you know the name of a statistic already
+  Stat& get_by_name(const char* name);
+  // free/delete stat based on address from stats counter
+  void free(void* addr);
 
   /**
-   * Returns the total number of bytes the Statman object takes up
+   * Returns the max capacity of the container
    */
-  Size_type total_num_bytes() const { return num_bytes() + sizeof(int) + sizeof(Size_type); }
+  Size_type capacity() const noexcept
+  { return end_stats_ - stats_; }
 
   /**
-   * Returns the number of Stat-objects the span stats_ actually contains
+   * Returns the number of used elements
    */
-  int num_stats() const { return next_available_; }
+  Size_type size() const noexcept
+  { return bitmap.count_set(); }
+
+  /**
+   * Returns the number of bytes necessary to dump stats
+   */
+  Size_type num_bytes() const noexcept
+  { return (cend() - cbegin()) * sizeof(Stat); }
 
   /**
    * Is true if the span stats_ contains no Stat-objects
    */
-  bool empty() const { return next_available_ == 0; }
+  bool empty() const noexcept
+  { return size() == 0; }
 
   /**
-   * Is true if the span stats_ can not contain any more Stat-objects
+   * Returns true if the container is full
    */
-  bool full() const { return next_available_ == stats_.size(); }
+  bool full() const noexcept
+  { return size() == capacity(); }
 
   /**
-   * Returns an iterator to the last used (or filled in) element
-   * in the span stats_
+   *  Returns a pointer to the first element
    */
-  Span_iterator last_used();
+  const Stat* cbegin() const noexcept
+  { return stats_; }
 
-  auto begin() { return stats_.begin(); }
+  /**
+   *  Returns a pointer to after the last used element
+   */
+  const Stat* cend() const noexcept {
+    int idx = bitmap.last_set() + 1; // 0 .. N-1
+    return &stats_[idx];
+  }
 
-  auto end() { return stats_.end(); }
+  Stat* begin() noexcept { return (Stat*) cbegin(); }
+  Stat* end() noexcept { return (Stat*) cend(); }
 
-  auto cbegin() const { return stats_.cbegin(); }
 
-  auto cend() const { return stats_.cend(); }
+  void init(const uintptr_t location, const Size_type size);
 
-  Stat& create(const Stat::stat_type type, const std::string& name);
+  Statman() {}
+  Statman(const uintptr_t location, const Size_type size)
+  {
+    init(location, size);
+  }
+  ~Statman();
 
 private:
-  Span stats_;
-  int next_available_ = 0;
-  Size_type num_bytes_;
+  Stat* stats_;
+  Stat* end_stats_;
+  MemBitmap::word* bdata = nullptr;
+  MemBitmap bitmap;
 
   Statman(const Statman& other) = delete;
-
   Statman(const Statman&& other) = delete;
-
   Statman& operator=(const Statman& other) = delete;
-
   Statman& operator=(Statman&& other) = delete;
+}; //< class Statman
 
-};  // < class Statman
-
-#endif  // < UTILITY_STATMAN_HPP
+#endif //< UTIL_STATMAN_HPP

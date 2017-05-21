@@ -26,32 +26,36 @@ namespace net
 {
   class PacketArp : public Packet
   {
+
   public:
+
     Arp::header& header() const
     {
-      return *(Arp::header*) buffer();
+      return *reinterpret_cast<Arp::header*>(layer_begin());
     }
 
     static const size_t headers_size = sizeof(Arp::header);
 
     /** initializes to a default, empty Arp packet, given
         a valid MTU-sized buffer */
-    void init(Ethernet::addr local_mac, IP4::addr local_ip)
+    void init(MAC::Addr local_mac, IP4::addr local_ip, IP4::addr dest_ip)
     {
+
       auto& hdr = header();
-      hdr.ethhdr.type = Ethernet::ETH_ARP;
       hdr.htype = Arp::H_htype_eth;
       hdr.ptype = Arp::H_ptype_ip4;
       hdr.hlen_plen = Arp::H_hlen_plen;
 
-      hdr.dipaddr = next_hop();
+      hdr.dipaddr = dest_ip;
       hdr.sipaddr = local_ip;
       hdr.shwaddr = local_mac;
+
+      // We've effectively added data to the packet
+      increment_data_end(sizeof(Arp::header));
     }
 
-    void set_dest_mac(Ethernet::addr mac) {
+    void set_dest_mac(MAC::Addr mac) {
       header().dhwaddr = mac;
-      header().ethhdr.dest = mac;
     }
 
     void set_opcode(Arp::Opcode op) {
@@ -70,12 +74,12 @@ namespace net
       return header().dipaddr;
     }
 
-    Ethernet::addr source_mac() const {
-      return header().ethhdr.src;
+    MAC::Addr source_mac() const {
+      return header().shwaddr;
     };
 
-    Ethernet::addr dest_mac() const {
-      return header().ethhdr.dest;
+    MAC::Addr dest_mac() const {
+      return header().dhwaddr;
     };
 
 

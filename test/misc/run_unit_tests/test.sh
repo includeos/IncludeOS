@@ -1,6 +1,8 @@
 #!/bin/bash
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
-cd $INCLUDEOS_SRC/test
+ARCH=${ARCH:-x86_64}
 
-./unittests
+pushd $INCLUDEOS_SRC/build_$ARCH/unittests
+./unittests --pass
+popd

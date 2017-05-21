@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,11 +20,12 @@
 
 #include <cstdint>
 #include <common>
+#include <vector>
 
 #define  PCI_CAP_ID_AF        0x13	/* PCI Advanced Features */
 #define  PCI_CAP_ID_MAX       PCI_CAP_ID_AF
 #define  PCI_EXT_CAP_ID_PASID 0x1B	/* Process Address Space ID */
-#define  PCI_EXT_CAP_ID_MAX   PCI_EXT_CAP_ID_PASID    
+#define  PCI_EXT_CAP_ID_MAX   PCI_EXT_CAP_ID_PASID
 
 namespace PCI {
 
@@ -37,12 +38,12 @@ namespace PCI {
 
   static const uint8_t   CONFIG_BASE_ADDR_0    {0x10U};
 
-  static const uint32_t  BASE_ADDRESS_MEM_MASK {~0x0FUL};
-  static const uint32_t  BASE_ADDRESS_IO_MASK  {~0x03UL};
+  static const uint32_t  BASE_ADDRESS_MEM_MASK {~0x0FU};
+  static const uint32_t  BASE_ADDRESS_IO_MASK  {~0x03U};
 
-  static const uint32_t  WTF                   {0xffffffffU};
+  static const uint32_t  WTF                   {~0x0U};
 
-  /** 
+  /**
    *  @brief PCI device message format
    *
    *  Used to communicate with PCI devices
@@ -51,7 +52,7 @@ namespace PCI {
 
     //! The whole message
     uint32_t data;
-  
+
     /**
      *  Packed attribtues, ordered low to high.
      *
@@ -62,7 +63,7 @@ namespace PCI {
     struct __attribute__((packed)) {
       //! The PCI register
       uint8_t reg;
-    
+
       //! The 16-bit PCI-address @see pci_addr()
       uint16_t addr;
       uint8_t  code;
@@ -71,7 +72,7 @@ namespace PCI {
 
   /** Relevant class codes (many more) */
   enum classcode_t {
-    OLD,
+    OLD = 0,
     STORAGE,
     NIC,
     DISPLAY,
@@ -92,6 +93,15 @@ namespace PCI {
     OTHER=255
   }; //< enum classcode_t
 
+  enum {
+    VENDOR_AMD     = 0x1022,
+    VENDOR_INTEL   = 0x8086,
+    VENDOR_CIRRUS  = 0x1013,
+    VENDOR_VIRTIO  = 0x1AF4,
+    VENDOR_REALTEK = 0x10EC,
+    VENDOR_VMWARE  = 0x15AD,
+  };
+
   struct Resource {
     int       type;
     uint32_t  start;
@@ -110,24 +120,15 @@ namespace hw {
 struct msix_t;
   /**
    *  @brief Communication class for all PCI devices
-   *  
+   *
    *  All low level communication with PCI devices should (ideally) go here.
-   *  
-   *  @todo 
+   *
+   *  @todo
    *  - Consider if we ever need to separate the address into 'bus/dev/func' parts.
    *  - Do we ever need anything but PCI Devices?
    */
   class PCI_Device { // public Device //Why not? A PCI device is too general to be accessible?
   public:
-  
-    enum {
-      VENDOR_AMD     = 0x1022,
-      VENDOR_INTEL   = 0x8086,
-      VENDOR_CIRRUS  = 0x1013,
-      VENDOR_VIRTIO  = 0x1AF4,
-      VENDOR_REALTEK = 0x10EC,
-      VENDOR_VMWARE  = 0x15AD,
-    };
 
     /**
      *  Constructor
@@ -135,10 +136,10 @@ struct msix_t;
      *  @param pci_addr:  A 16-bit PCI address.
      *  @param device_id: A device ID, consisting of PCI vendor and product ID's.
      *
-     *  @see pci_addr() for more about the address  
+     *  @see pci_addr() for more about the address
      */
-    explicit PCI_Device(const uint16_t pci_addr, const uint32_t device_id);
-  
+    explicit PCI_Device(const uint16_t pci_addr, const uint32_t, const uint32_t);
+
     //! @brief Read from device with implicit pci_address (e.g. used by Nic)
     uint32_t read_dword(const uint8_t reg) noexcept;
 
@@ -162,23 +163,29 @@ struct msix_t;
      *
      *  @return: The address of the device
      */
-    inline uint16_t pci_addr() const noexcept
+    uint16_t pci_addr() const noexcept
     { return pci_addr_; };
-    
+
     /** Get the pci class code. */
-    inline PCI::classcode_t classcode() const noexcept
-    { return static_cast<PCI::classcode_t>(devtype_.classcode); }
-  
-    inline uint16_t rev_id() const noexcept
+    uint8_t classcode() const noexcept
+    { return devtype_.classcode; }
+
+    uint8_t subclass() const noexcept
+    { return devtype_.subclass; }
+
+    uint16_t rev_id() const noexcept
     { return devtype_.rev_id; }
 
     /** Get the pci vendor and product id */
-    inline uint16_t vendor_id() const noexcept
+    uint16_t vendor_id() const noexcept
     { return device_id_.vendor; }
 
-    inline uint16_t product_id() const noexcept
+    uint16_t product_id() const noexcept
     { return device_id_.product; }
-  
+
+    uint32_t vendor_product() const noexcept
+    { return device_id_.both; }
+
     /**
      *  Parse all Base Address Registers (BAR's)
      *
@@ -187,76 +194,45 @@ struct msix_t;
      *  This function adds resources to the PCI_Device.
      */
     void probe_resources() noexcept;
-  
+
     /** The base address of the (first) I/O resource */
     uint32_t iobase() const noexcept;
 
     typedef uint32_t pcicap_t;
     void parse_capabilities();
-    
+
     void deactivate();
-    
-    // MSI and MSI-X capabilities for this device
-    // the cap offsets and can also be used as boolean to determine
-    // device MSI/MSIX support
-    int msi_cap();
-    int msix_cap();
-    // setup msix with irq starting at irq_base, returns the number of vectors assigned
-    uint8_t init_msix();
+
+    // return max number of possible MSI-x vectors for this device
+    // or, zero if MSI-x support is not enabled
+    uint8_t get_msix_vectors();
     // setup one msix vector directed to @cpu on @irq
     void setup_msix_vector(uint8_t cpu, uint8_t irq);
-    // deactivate msix (mask off vectors)
-    void deactivate_msix();
+    // redirect MSI-X vector to another CPU
+    void rebalance_msix_vector(uint16_t index, uint8_t cpu, uint8_t irq);
     // true if msix is enabled
-    bool is_msix() const noexcept
-    {
+    bool has_msix() const noexcept {
       return this->msix != nullptr;
     }
-    
-    // getters for resources
-    uintptr_t get_membar(uint8_t id) const noexcept
-    {
-      // FIXME: use idx to get correct membar
-      auto* res = resources;
-      while (res && id >= 0) {
-        if (id == 0 && res->type == PCI::RES_MEM)
-            return res->start;
-        if (res->type == PCI::RES_MEM) id--;
-        res = res->next;
-      }
-      assert(0 && "No such mem BAR");
-    }
+    // deactivate msix (mask off vectors)
+    void deactivate_msix();
+
+    // resource handling
     uintptr_t get_bar(uint8_t id) const noexcept
     {
-      // FIXME: use idx to get correct membar
-      auto* res = resources;
-      while (res && id--)
-          res = res->next;
-      if (res && res->type == PCI::RES_MEM)
-          return res->start;
-      assert(0 && "No such BAR");
+      return resources.at(id).start;
     }
-    
-  private:
-    // @brief The 3-part PCI address
-    uint16_t pci_addr_;
-  
-    //@brief The three address parts derived (if needed)      
-    uint8_t busno_  {0};
-    uint8_t devno_  {0};
-    uint8_t funcno_ {0};
-  
+
     // @brief The 2-part ID retrieved from the device
-    union vendor_product {
-      uint32_t __value;
+    union vendor_product_t {
+      uint32_t both;
       struct __attribute__((packed)) {
         uint16_t vendor;
         uint16_t product;
       };
-    } device_id_;
-
+    };
     // @brief The class code (device type)
-    union class_revision {
+    union class_revision_t {
       uint32_t reg;
       struct __attribute__((packed)) {
         uint8_t rev_id;
@@ -267,41 +243,34 @@ struct msix_t;
       struct __attribute__((packed)) {
         uint16_t class_subclass;
         uint8_t __prog_if; //Overlaps the above
-        uint8_t revision;        
+        uint8_t revision;
       };
-    } devtype_;
+    };
 
-    // @brief Printable names
-    const char* classname_;
-    const char* vendorname_;
-    const char* productname_;
-  
+  private:
+    // @brief The 3-part PCI address
+    uint16_t pci_addr_;
+
+    vendor_product_t device_id_;
+    class_revision_t devtype_;
+
     // Device Resources
-
-    /** A device resource - possibly a list */
     typedef PCI::Resource Resource;
-    
-    //! @brief Resource lists. Members added by add_resource();
-    Resource* resources {nullptr};
-    
-    /**
-     *  Add a resource to resources.
-    **/
-    void add_resource(Resource* res) noexcept {
-      if (resources) {
-        auto* q = resources;
-        while (q->next) q = q->next;
-        q->next = res;
-      } else {
-        resources = res;
-      }
-    }
-    
+    //! @brief List of PCI BARs
+    std::vector<Resource> resources;
+
     pcicap_t caps[PCI_CAP_ID_MAX+1];
-    
+
     // has msix support if not null
     msix_t*  msix = nullptr;
-    
+
+    // MSI and MSI-X capabilities for this device
+    // the cap offsets and can also be used as boolean to determine
+    // device MSI/MSIX support
+    int msi_cap();
+    int msix_cap();
+    // enable msix with intx disabled
+    uint8_t init_msix();
   }; //< class PCI_Device
 
 } //< namespace hw

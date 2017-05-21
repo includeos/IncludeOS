@@ -15,58 +15,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <common.cxx>
 #include <util/statman.hpp>
 
-// IncludeOS
-#include <common.cxx>
+const Statman::Size_type NUM_BYTES_GIVEN {1000};
 
-const Statman::Size_type NUM_BYTES_GIVEN = 1000;
+using namespace std;
 
 CASE( "Creating Statman objects" )
 {
   GIVEN( "A fixed range of memory and its start position" )
   {
-    void* buffer = malloc(NUM_BYTES_GIVEN);
+    auto* buffer = new char[NUM_BYTES_GIVEN];
     uintptr_t start = (uintptr_t) buffer;
     Statman::Size_type expected_num_elements = NUM_BYTES_GIVEN / sizeof(Stat);
 
-    WHEN( "Creating Statman" )
+    WHEN("Creating Statman")
     {
       Statman statman_{start, NUM_BYTES_GIVEN};
 
-      THEN( "Statman should have correct number of bytes" )
-      {
-        Statman::Size_type space_taken = expected_num_elements * sizeof(Stat);
-        Statman::Size_type space_not_used = NUM_BYTES_GIVEN - space_taken;
+      EXPECT(statman_.capacity() == expected_num_elements);
+      EXPECT(statman_.size() == 0);
+      EXPECT(statman_.num_bytes() == 0);
 
-        EXPECT(statman_.num_bytes() == (NUM_BYTES_GIVEN - space_not_used) );
-      }
-
-      AND_THEN( "Statman should have room for expected number of Stat-objects" )
-      {
-        EXPECT(statman_.size() == expected_num_elements);
-      }
-
-      AND_THEN( "Statman should contain no Stats" )
-      {
-        EXPECT(statman_.empty());
-        EXPECT(statman_.num_stats() == 0);
-        EXPECT_NOT(statman_.full());
-      }
+      EXPECT(statman_.empty());
+      EXPECT(!statman_.full());
     }
 
     WHEN( "Creating Statman that is given 0 bytes" )
     {
       Statman statman_{start, 0};
 
-      THEN( "Statman is created, but has no room for any Stat-objects" )
-      {
-        EXPECT(statman_.size() == 0);
-        EXPECT(statman_.num_bytes() == 0);
-        // Statman is both empty and full (no room for more Stat-objects)
-        EXPECT(statman_.empty());
-        EXPECT(statman_.full());
-      }
+      EXPECT(statman_.capacity() == 0);
+      EXPECT(statman_.size() == 0);
+      EXPECT(statman_.num_bytes() == 0);
+      EXPECT(statman_.empty());
+      EXPECT(statman_.full());
+
+      EXPECT_THROWS(Stat& stat = statman_.create(Stat::UINT32, "some.new.stat"));
+      EXPECT_THROWS(statman_[0]);
     }
 
     WHEN( "Creating Statman with a negative size an exception is thrown" )
@@ -74,7 +61,7 @@ CASE( "Creating Statman objects" )
       EXPECT_THROWS_AS((Statman{start, -1}), Stats_exception);
     }
 
-    free(buffer);
+    delete[] buffer;
   }
 }
 
@@ -91,25 +78,27 @@ CASE( "Creating and running through three Stats using Statman iterators begin an
 
       EXPECT(statman_.empty());
       EXPECT_NOT(statman_.full());
-      EXPECT(statman_.num_stats() == 0);
+      EXPECT(statman_.size() == 0);
 
       THEN( "A Stat can be created" )
       {
         Stat& stat = statman_.create(Stat::UINT32, "net.tcp.dropped");
+        EXPECT(stat.get_uint32() == 0);
 
         EXPECT_NOT(statman_.empty());
-        EXPECT(statman_.num_stats() == 1);
         EXPECT_NOT(statman_.full());
-        EXPECT(stat.get_uint32() == 0);
+        EXPECT(statman_.size() == 1);
         EXPECT_THROWS(stat.get_uint64());
         EXPECT_THROWS(stat.get_float());
+        EXPECT(stat.get_uint32() == 0);
 
         AND_THEN( "The Stat can be incremented in two ways" )
         {
           ++stat;
+          EXPECT(stat.get_uint32() == 1);
           stat.get_uint32()++;
-
           EXPECT(stat.get_uint32() == 2);
+
           EXPECT_THROWS(stat.get_uint64());
           EXPECT_THROWS(stat.get_float());
 
@@ -121,44 +110,58 @@ CASE( "Creating and running through three Stats using Statman iterators begin an
             stat3.get_float()++;
 
             EXPECT_NOT(statman_.empty());
-            EXPECT(statman_.num_stats() == 3);
             EXPECT_NOT(statman_.full());
+            EXPECT(statman_.size() == 3);
 
             AND_THEN( "The registered Stats can be iterated through and displayed" )
             {
               int i = 0;
 
-              for (auto it = statman_.begin(); it != statman_.last_used(); ++it)
+              for (auto it = statman_.begin(); it != statman_.end(); ++it)
               {
                 Stat& s = *it;
 
                 if (i == 0)
                 {
-                  EXPECT(s.name() == "net.tcp.dropped");
+                  EXPECT(s.name() == "net.tcp.dropped"s);
                   EXPECT(s.get_uint32() == 2);
                   EXPECT_THROWS(s.get_uint64());
                   EXPECT_THROWS(s.get_float());
-                  EXPECT(s.index() == 0);
                 }
                 else if (i == 1)
                 {
-                  EXPECT(s.name() == "net.tcp.bytes_transmitted");
+                  EXPECT(s.name() == "net.tcp.bytes_transmitted"s);
                   EXPECT(s.get_uint64() == 0);
                   EXPECT_THROWS(s.get_float());
-                  EXPECT(s.index() == 1);
                 }
-                else
+                else if (i == 2)
                 {
-                  EXPECT(s.name() == "net.tcp.average");
+                  EXPECT(s.name() == "net.tcp.average"s);
                   EXPECT(s.get_float() == 2.0f);
                   EXPECT_THROWS(s.get_uint32());
                   EXPECT_THROWS(s.get_uint64());
+                }
+                else {
+                  EXPECT(i < 3);
                 }
 
                 i++;
               }
 
               EXPECT(i == 3);
+
+              // note: if you move this, it might try to delete
+              // the stats before running the above
+              AND_THEN("Delete the stats")
+              {
+                EXPECT(statman_.size() == 3);
+                statman_.free(&statman_[0]);
+                EXPECT(statman_.size() == 2);
+                statman_.free(&statman_[1]);
+                EXPECT(statman_.size() == 1);
+                statman_.free(&statman_[2]);
+                EXPECT(statman_.size() == 0);
+              }
             }
           }
         }
@@ -183,18 +186,17 @@ CASE( "Filling Statman with Stats and running through Statman using iterators be
 
       EXPECT(statman_.empty());
       EXPECT_NOT(statman_.full());
-      EXPECT(statman_.num_stats() == 0);
+      EXPECT(statman_.size() == 0);
 
-      AND_WHEN( "Statman is filled with Stats using Statman iterators begin and end" )
+      AND_WHEN( "Statman is filled with Stats" )
       {
         EXPECT(statman_.empty());
-        EXPECT(statman_.size() == expected_num_elements);
+        EXPECT(statman_.capacity() == expected_num_elements);
 
-        int i = 0;
-
-        for (auto it = statman_.begin(); it != statman_.end(); ++it)
+        // fill it to the brim
+        for (int i = 0; i < statman_.capacity(); i++)
         {
-          EXPECT(statman_.num_stats() == i);
+          EXPECT(statman_.size() == i);
 
           if(i % 2 == 0)
           {
@@ -207,15 +209,13 @@ CASE( "Filling Statman with Stats and running through Statman using iterators be
             Stat& stat = statman_.create(Stat::FLOAT, "net.tcp." + std::to_string(i));
             ++stat;
           }
-
-          i++;
         }
 
         THEN("Statman is full and the Stats can be displayed using Statman iterators begin and end")
         {
           EXPECT_NOT(statman_.empty());
           EXPECT(statman_.full());
-          EXPECT(statman_.num_stats() == statman_.size());
+          EXPECT(statman_.size() == statman_.capacity());
 
           int j = 0;
 
@@ -224,7 +224,6 @@ CASE( "Filling Statman with Stats and running through Statman using iterators be
             Stat& stat = *it;
 
             EXPECT(stat.name() == "net.tcp." + std::to_string(j));
-            EXPECT(stat.index() == j);
             EXPECT_NOT(stat.type() == Stat::UINT64);
 
             if(j % 2 == 0)
@@ -261,27 +260,61 @@ CASE("A Stat is accessible through index operator")
 {
   GIVEN( "A fixed range of memory and its start position" )
   {
-    void* buffer = malloc(NUM_BYTES_GIVEN);
+    char buffer[NUM_BYTES_GIVEN];
     uintptr_t start = (uintptr_t) buffer;
 
-    WHEN("Creating Statman")
+    WHEN("Creating Stat with Statman")
     {
       Statman statman_{start, NUM_BYTES_GIVEN};
+      Stat& stat = statman_.create(Stat::UINT32, "one.stat");
 
-      AND_WHEN( "Statman is filled with a Stat" )
+      THEN("The created Stat can be accessed via the index operator")
       {
-        Stat& stat = statman_.create(Stat::UINT32, "one.stat");
+        Stat& s = statman_[0];
 
-        THEN("The created Stat can be accessed via the index operator")
-        {
-          Stat& s = statman_[0];
-
-          EXPECT(s.get_uint32() == stat.get_uint32());
-          EXPECT(s.name() == stat.name());
-        }
+        EXPECT(s.get_uint32() == stat.get_uint32());
+        EXPECT(s.name() == std::string("one.stat"));
       }
     }
-
-    free(buffer);
   }
+}
+
+CASE("stats names can only be MAX_NAME_LEN characters long")
+{
+  char buffer[8192];
+  Statman statman_((uintptr_t) buffer, sizeof(buffer));
+  // ok
+  std::string statname1 {"a.stat"};
+  Stat& stat1 = statman_.create(Stat::UINT32, statname1);
+  // also ok
+  std::string statname2(Stat::MAX_NAME_LEN, 'x');
+  Stat& stat2 = statman_.create(Stat::UINT32, statname2);
+  int size_before = statman_.size();
+  // not ok
+  std::string statname3(Stat::MAX_NAME_LEN + 1, 'y');
+  EXPECT_THROWS(statman_.create(Stat::FLOAT, statname3));
+  int size_after = statman_.size();
+  EXPECT(size_before == size_after);
+}
+
+CASE("get(addr) returns reference to stat, throws if not present")
+{
+  char buffer[8192];
+  Statman statman_((uintptr_t) buffer, sizeof(buffer));
+
+  EXPECT_THROWS(statman_.get((void*) 0));
+  EXPECT_THROWS(statman_.get(statman_.begin()));
+  Stat& stat1 = statman_.create(Stat::UINT32, "some.important.stat");
+  Stat& stat2 = statman_.create(Stat::UINT64, "other.important.stat");
+  Stat& stat3 = statman_.create(Stat::FLOAT, "very.important.stat");
+  ++stat1;
+  ++stat2;
+  ++stat3;
+  EXPECT_NO_THROW(statman_.get(&stat1));
+  EXPECT_NO_THROW(statman_.get(&stat2));
+  EXPECT_NO_THROW(statman_.get(&stat3));
+  EXPECT_THROWS(statman_.get(statman_.end()));
+
+  // Can't create stats with empty name
+  EXPECT_THROWS_AS(statman_.create(Stat::UINT32, ""), Stats_exception);
 }

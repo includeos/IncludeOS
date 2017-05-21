@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,15 +19,13 @@
 #ifndef NET_DHCP_DH4CLIENT_HPP
 #define NET_DHCP_DH4CLIENT_HPP
 
-#include <timers>
-#include "../packet.hpp"
-#include <net/ip4/ip4.hpp>
-#include <net/inet.hpp>
 #include "dhcp4.hpp"
+#include "options.hpp"
 
-namespace net
-{
-  class UDPSocket;
+#include <util/timer.hpp>
+#include <net/ip4/udp.hpp>
+
+namespace net {
 
   class DHClient
   {
@@ -46,24 +44,23 @@ namespace net
     // timeout is true if the negotiation timed out
     void on_config(config_func handler);
 
-    // disable or enable console spam
-    void set_silent(bool sil) noexcept
-    { this->console_spam = !sil; }
-
   private:
     void offer(UDPSocket&, const char* data, size_t len);
-    void request(UDPSocket&, const dhcp_option_t* server_id);   // --> acknowledge
+    void request(UDPSocket&, const dhcp::option::server_identifier* server_id);   // --> acknowledge
     void acknowledge(const char* data, size_t len);
+
+    void timeout();
 
     Stack& stack;
     uint32_t     xid;
     IP4::addr    ipaddr, netmask, router, dns_server;
+    std::string  domain_name;
     uint32_t     lease_time;
     std::vector<config_func> config_handlers_;
-    Timers::id_t timeout;
-    bool         console_spam;
+    Timer        timeout_timer_;
     bool         in_progress;
   };
+
 }
 
 #endif

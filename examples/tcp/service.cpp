@@ -21,13 +21,13 @@
 /**
  * An example to show incoming and outgoing TCP Connections.
  * In this example, IncludeOS is listening on port 80.
- * 
+ *
  * Data received on port 80 will be redirected to a
  * outgoing connection to a (in this case) python server (server.py)
- * 
+ *
  * Data received from the python server connection
  * will be redirected back to the client.
- * 
+ *
  * To try it out, use netcat to connect to this IncludeOS instance.
 **/
 
@@ -36,7 +36,7 @@ using Disconnect = net::tcp::Connection::Disconnect;
 
 // Address to our python server: 10.0.2.2:1337
 // @note: This may have to be modified depending on network and server settings.
-net::tcp::Socket python_server{ {10,0,2,2} , 1337};
+net::Socket python_server{ {10,0,2,2} , 1337};
 
 // Called when data is received on client (incoming connection)
 void handle_client_on_read(Connection_ptr python, const std::string& request) {
@@ -61,7 +61,7 @@ void Service::start(const std::string&)
                       { 8,8,8,8 });       // DNS
 
   // Set up a TCP server on port 80
-  auto& server = inet.tcp().bind(80);
+  auto& server = inet.tcp().listen(80);
   printf("Server listening: %s \n", server.local().to_string().c_str());
 
   // When someone connects to our server

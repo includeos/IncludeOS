@@ -21,10 +21,10 @@
 
 #include <net/ip4/packet_ip4.hpp> // PacketIP4
 #include <net/util.hpp> // byte ordering helpers
+#include <net/socket.hpp>
 
 #include "common.hpp" // constants, seq_t
 #include "headers.hpp"
-#include "socket.hpp"
 
 #include <sstream> // ostringstream
 
@@ -44,27 +44,28 @@ class Packet : public PacketIP4 {
 public:
 
   inline Header& tcp_header() const
-  { return *(Header*) ip_data(); }
+  { return *(Header*) ip_data_ptr(); }
 
   //! initializes to a default, empty TCP packet, given
   //! a valid MTU-sized buffer
   void init()
   {
-    PacketIP4::init();
 
-    // clear TCP headers
-    memset(ip_data(), 0, sizeof(Header));
+    PacketIP4::init(Protocol::TCP);
+    Byte* ipdata = ip_data_ptr();
 
-    set_protocol(IP4::IP4_TCP);
-    set_win(tcp::default_window_size);
-    set_offset(5);
+    // clear TCP header
+    ((uint32_t*) ipdata)[3] = 0;
+    ((uint32_t*) ipdata)[4] = 0;
+
+    auto& hdr = *(Header*) ipdata;
+    // set some default values
+    hdr.window_size = htons(tcp::default_window_size);
+    hdr.offset_flags.offset_reserved = (5 << 4);
+
+    /// TODO: optimize:
     set_length();
-
-    // set TCP payload location (!?)
-    set_payload(buffer() + tcp_full_header_length());
-
-    debug2("<TCP::Packet::init> size()=%u ip_header_size()=%u full_header_size()=%u\n",
-      size(), ip_header_size(), tcp_full_header_length());
+    //set_payload(buffer() + tcp_full_header_length());
   }
 
   // GETTERS
@@ -84,10 +85,10 @@ public:
   { return ntohs(tcp_header().window_size); }
 
   inline Socket source() const
-  { return Socket{src(), src_port()}; }
+  { return Socket{ip_src(), src_port()}; }
 
   inline Socket destination() const
-  { return Socket{dst(), dst_port()}; }
+  { return Socket{ip_dst(), dst_port()}; }
 
   inline seq_t end() const
   { return seq() + tcp_data_length(); }
@@ -124,13 +125,13 @@ public:
   }
 
   inline Packet& set_source(const Socket& src) {
-    set_src(src.address()); // PacketIP4::set_src
+    set_ip_src(src.address()); // PacketIP4::set_src
     set_src_port(src.port());
     return *this;
   }
 
   inline Packet& set_destination(const Socket& dest) {
-    set_dst(dest.address()); // PacketIP4::set_dst
+    set_ip_dst(dest.address()); // PacketIP4::set_dst
     set_dst_port(dest.port());
     return *this;
   }
@@ -177,16 +178,16 @@ public:
   inline uint8_t tcp_header_length() const
   { return offset() * 4; }
 
-  inline uint8_t tcp_full_header_length() const
-  { return ip_full_header_length() + tcp_header_length(); }
-
   // The total length of the TCP segment (TCP header + data)
   uint16_t tcp_length() const
   { return tcp_header_length() + tcp_data_length(); }
 
   // Where data starts
-  inline char* tcp_data()
-  { return ip_data() + tcp_header_length(); }
+  inline Byte* tcp_data()
+  { return ip_data_ptr() + tcp_header_length(); }
+
+  inline const Byte* tcp_data() const
+  { return ip_data_ptr() + tcp_header_length(); }
 
   // Length of data in packet when header has been accounted for
   inline uint16_t tcp_data_length() const
@@ -195,15 +196,64 @@ public:
   inline bool has_tcp_data() const
   { return tcp_data_length() > 0; }
 
-  template <typename T, typename... Args>
+  /**
+   * @brief      Adds a tcp option.
+   *
+   * @todo       It's probably a better idea to make the option include
+   *             the padding for it to be aligned, and avoid two mem operations
+   *
+   * @tparam     T          TCP Option
+   * @tparam     Padding    padding in bytes to be put infront of the option
+   * @tparam     Args       construction args to option T
+   */
+  template <typename T, int Padding = 0, typename... Args>
   inline void add_tcp_option(Args&&... args) {
     // to avoid headache, options need to be added BEFORE any data.
     assert(!has_tcp_data());
+    struct NOP {
+      uint8_t kind{0x01};
+    };
     // option address
     auto* addr = tcp_options()+tcp_options_length();
-    new (addr) T(args...);
+    // if to use pre padding
+    if(Padding)
+      new (addr) NOP[Padding];
+
+    // emplace the option after pre padding
+    const auto& opt = *(new (addr + Padding) T(args...));
+
+    // find number of NOP to pad with
+    const auto nops = (opt.length + Padding) % 4;
+    if(nops) {
+      new (addr + Padding + opt.length) NOP[nops];
+    }
+
     // update offset
-    set_offset(offset() + round_up( ((T*)addr)->length, 4 ));
+    set_offset(offset() + round_up(opt.length + Padding, 4));
+
+    set_length(); // update
+  }
+
+  /**
+   * @brief      Adds a tcp option aligned.
+   *             Assumes the user knows what he's doing.
+   *
+   * @tparam     T          An aligned TCP option
+   * @tparam     Args       construction args to option T
+   */
+  template <typename T, typename... Args>
+  inline void add_tcp_option_aligned(Args&&... args) {
+    // to avoid headache, options need to be added BEFORE any data.
+    Expects(!has_tcp_data() and sizeof(T) % 4 == 0);
+
+    // option address
+    auto* addr = tcp_options()+tcp_options_length();
+    // emplace the option
+    new (addr) T(args...);
+
+    // update offset
+    set_offset(offset() + (sizeof(T) / 4));
+
     set_length(); // update
   }
 
@@ -218,6 +268,9 @@ public:
   inline uint8_t* tcp_options()
   { return (uint8_t*) tcp_header().options; }
 
+  inline const uint8_t* tcp_options() const
+  { return (const uint8_t*) tcp_header().options; }
+
   inline uint8_t tcp_options_length() const
   { return tcp_header_length() - sizeof(Header); }
 
@@ -228,9 +281,10 @@ public:
   //! assuming the packet has been properly initialized,
   //! this will fill bytes from @buffer into this packets buffer,
   //! then return the number of bytes written. buffer is unmodified
-  size_t fill(const char* buffer, size_t length) {
-    size_t rem = capacity() - size();
-    size_t total = (length < rem) ? length : rem;
+  size_t fill(const uint8_t* buffer, size_t length) {
+    size_t rem = ip_capacity() - tcp_length();
+    if(rem == 0) return 0;
+    size_t total = std::min(length, rem);
     // copy from buffer to packet buffer
     memcpy(tcp_data() + tcp_data_length(), buffer, total);
     // set new packet length
@@ -260,9 +314,8 @@ private:
   // sets the correct length for all the protocols up to IP4
   void set_length(uint16_t newlen = 0) {
     // new total packet length
-    set_size( tcp_full_header_length() + newlen );
-    // update IP packet aswell - bad idea?
-    set_segment_length();
+    set_data_end( ip_header_length() + tcp_header_length() + newlen );
+
   }
 
 }; // << class Packet

@@ -20,6 +20,7 @@
 #define HW_PCI_HPP
 
 #include <cstdint>
+#include <arch.hpp>
 
 namespace hw {
 
@@ -28,47 +29,70 @@ namespace hw {
   static inline uint8_t inp(port_t port)
   {
     uint8_t ret;
-  
+#if defined(ARCH_x86)
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inb %%dx,%%al"
                      :"=a"(ret)
                      :"d"(port));
-    return ret;  
+#else
+#error "inp() not implemented for selected arch"
+#endif
+    return ret;
   }
 
   static inline uint16_t inpw(port_t port)
   {
     uint16_t ret;
+#if defined(ARCH_x86)
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inw %%dx,%%ax"
                      :"=a"(ret)
                      :"d"(port));
-    return ret;    
+#else
+#error "inpw() not implemented for selected arch"
+#endif
+    return ret;
   }
 
   static inline uint32_t inpd(port_t port)
   {
     uint32_t ret;
+#if defined(ARCH_x86)
     __asm__ volatile("xorl %eax,%eax");
     __asm__ volatile("inl %%dx,%%eax"
                      :"=a"(ret)
                      :"d"(port));
-  
+#else
+#error "inpd() not implemented for selected arch"
+#endif
+
     return ret;
   }
 
 
   static inline void outp(port_t port, uint8_t data)
   {
+#if defined(ARCH_x86)
     __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
+#else
+#error "outp() not implemented for selected arch"
+#endif
   }
   static inline void outpw(port_t port, uint16_t data)
   {
+#if defined(ARCH_x86)
     __asm__ volatile ("outw %%ax,%%dx"::"a" (data), "d"(port));
+#else
+#error "outpw() not implemented for selected arch"
+#endif
   }
   static inline void outpd(port_t port, uint32_t data)
   {
+#if defined(ARCH_x86)
     __asm__ volatile ("outl %%eax,%%dx"::"a" (data), "d"(port));
+#else
+#error "outpd() not implemented for selected arch"
+#endif
   }
 
 } //< namespace hw

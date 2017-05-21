@@ -21,11 +21,9 @@
 
 #include "snake.hpp"
 
-ConsoleVGA vga;
-
 void begin_snake()
 {
-  static Snake snake {vga};
+  static Snake snake {TextmodeVGA::get()};
 
   hw::KBM::init();
   hw::KBM::set_virtualkey_handler(

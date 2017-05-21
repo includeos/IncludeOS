@@ -129,7 +129,7 @@ namespace
     uint32_t EDX;
   }; //< cpuid_t
 
-  cpuid_t cpuid(uint32_t func, uint32_t subfunc)
+  static cpuid_t cpuid(uint32_t func, uint32_t subfunc)
   {
     // Cache up to 4 results
     struct cpuid_cache_t
@@ -182,7 +182,7 @@ namespace
 
 } //< namespace
 
-bool CPUID::is_amd_cpu()
+bool CPUID::is_amd_cpu() noexcept
 {
   auto result = cpuid(0, 0);
   return
@@ -191,7 +191,7 @@ bool CPUID::is_amd_cpu()
   && memcmp(reinterpret_cast<char*>(&result.ECX), "DMAc", 4) == 0;
 }
 
-bool CPUID::is_intel_cpu()
+bool CPUID::is_intel_cpu() noexcept
 {
   auto result = cpuid(0, 0);
   return
@@ -216,7 +216,7 @@ bool CPUID::has_feature(Feature f)
 
 #define KVM_CPUID_SIGNATURE       0x40000000
 
-unsigned CPUID::kvm_function()
+static unsigned kvm_function() noexcept
 {
   auto res = cpuid(KVM_CPUID_SIGNATURE, 0);
   /// "KVMKVMKVM"
@@ -224,7 +224,7 @@ unsigned CPUID::kvm_function()
       return res.EAX;
   return 0;
 }
-bool CPUID::kvm_feature(unsigned id)
+bool CPUID::kvm_feature(unsigned id) noexcept
 {
   unsigned func = kvm_function();
   if (func == 0) return false;

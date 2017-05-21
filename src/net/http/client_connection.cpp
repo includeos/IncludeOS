@@ -22,22 +22,23 @@
 
 namespace http {
 
-  Client_connection::Client_connection(Client& client, TCP_conn tcpconn)
-    : Connection{std::move(tcpconn)},
+  Client_connection::Client_connection(Client& client, Stream_ptr stream)
+    : Connection{std::move(stream)},
       client_(client),
+      req_(nullptr),
+      res_(nullptr),
       on_response_{nullptr},
       timer_({this, &Client_connection::timeout_request}),
       timeout_dur_{timeout_duration::zero()}
   {
     // setup close event
-    tcpconn_->on_close({this, &Client_connection::close});
+    stream_->on_close({this, &Client_connection::close});
   }
 
   void Client_connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize, timeout_duration timeout)
   {
     Expects(available());
     req_ = std::move(req);
-    Expects(on_res != nullptr);
     on_response_ = std::move(on_res);
     Expects(on_response_ != nullptr);
     timeout_dur_ = timeout;
@@ -52,9 +53,9 @@ namespace http {
   {
     keep_alive_ = (req_->header().value(header::Connection) != "close");
 
-    tcpconn_->on_read(bufsize, {this, &Client_connection::recv_response});
+    stream_->on_read(bufsize, {this, &Client_connection::recv_response});
 
-    tcpconn_->write(req_->to_string());
+    stream_->write(req_->to_string());
   }
 
   void Client_connection::recv_response(buffer_t buf, size_t len)
@@ -86,7 +87,7 @@ namespace http {
     else
     {
       // this is the case when Status line is received, but not yet headers.
-      if(res_->header().is_empty() && req_->method() != HEAD)
+      if(not res_->headers_complete() && req_->method() != HEAD)
       {
         *res_ << data;
         res_->parse();
@@ -110,12 +111,17 @@ namespace http {
         try
         {
           const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
+          const unsigned body_size = res_->body().size();
           debug2("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
-            req_->uri().to_string().to_string().c_str(), data.size(), conlen, res_->body().size());
+            req_->uri().to_string().to_string().c_str(), data.size(), conlen, body_size);
           // risk buffering forever if no timeout
-          if(conlen == res_->body().size())
+          if(body_size == conlen)
           {
             end_response();
+          }
+          else if(body_size > conlen)
+          {
+            end_response({Error::INVALID});
           }
         }
         catch(...)
@@ -140,25 +146,31 @@ namespace http {
     // stop timeout timer
     timer_.stop();
 
-    callback(err, std::move(res_));
+    callback(err, std::move(res_), *this);
+    end();
+    /*if(!released())
+    {
+      // avoid trying to parse any more responses
+      tcpconn_->on_read(0, nullptr);
 
-    // avoid trying to parse any more responses
-    tcpconn_->on_read(0, nullptr);
-
-    // user callback may override this
-    if(!keep_alive_)
-      tcpconn_->close();
+      if(!keep_alive_) // user callback may override this
+        shutdown();
+    }
+    else
+    {
+      close();
+    }*/
   }
 
   void Client_connection::close()
   {
-    // if the user already
+    // if the user havent received a response yet
     if(on_response_ != nullptr)
     {
       auto callback = std::move(on_response_);
       on_response_.reset();
       timer_.stop();
-      callback(Error::CLOSING, std::move(res_));
+      callback(Error::CLOSING, std::move(res_), *this);
     }
 
     client_.close(*this);

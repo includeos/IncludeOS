@@ -44,22 +44,60 @@ private:
 };
 
 /**
- * @brief An extended HTTP Request.
+ * @brief A wrapper around a HTTP Request.
  * @details Extends the basic HTTP Request by adding n attributes (Attribute)
  *
  */
-class Request : public http::Request {
-private:
-  using Parent = http::Request;
-  using buffer_t = std::shared_ptr<uint8_t>;
-
-  using OnRecv = delegate<void(size_t)>;
-
+class Request {
 public:
-  // inherit constructors
-  using Parent::Parent;
+  /**
+   * @brief      Construct a Request with a given http::Request
+   *
+   * @param[in]  req   The HTTP request
+   */
+  explicit Request(http::Request_ptr req);
 
-  Request(buffer_t, size_t);
+  /**
+   * @brief      Construct a Request by internally creating a http::Request
+   *
+   * @param[in]  req  The HTTP request to be created
+   */
+  explicit Request(http::Request&& req);
+
+  /**
+   * @brief      Returns the underlying HTTP header
+   *
+   * @return     A HTTP header
+   */
+  auto& header()
+  { return req_->header(); }
+
+  const auto& header() const
+  { return req_->header(); }
+
+  /**
+   * @brief      Returns the underlying HTTP method
+   *
+   * @return     The requests HTTP method
+   */
+  auto method() const
+  { return req_->method(); }
+
+  /**
+   * @brief      Returns the Requests URI
+   *
+   * @return     The requests URI
+   */
+  const auto& uri() const
+  { return req_->uri(); }
+
+  /**
+   * @brief      Returns the underlying HTTP Request object
+   *
+   * @return     The HTTP Request object
+   */
+  auto& source()
+  { return *req_; }
 
   /**
    * @brief Check if the given attribute exists.
@@ -92,40 +130,15 @@ public:
   template<typename A>
   void set_attribute(std::shared_ptr<A>);
 
-  size_t content_length() const;
-
-  inline size_t payload_length() const
-  { return body().size(); }
-
-  inline size_t total_length() const
-  { return to_string().size(); }
-
-  // TODO: This should be EQUAL (==) to avoid receiving more data then announced
-  inline bool is_complete() const
-  { return payload_length() >= content_length(); }
-
-  inline std::string route_string() const
-  { return "@" + http::method::str(method()).to_string() + ":" + uri().path().to_string(); }
-
-  static void on_recv(OnRecv cb)
-  { on_recv_ = cb; }
-
-  void complete();
-
-  bool should_buffer() const {
-    return (method() == http::POST or method() == http::PUT)
-        and !is_complete();
-  }
-
-  void validate() const;
+  std::string route_string() const
+  { return "@" + http::method::str(req_->method()).to_string() + ":" + req_->uri().path().to_string(); }
 
   void set_params(const Params& params) { params_ = params; }
 
   const Params& params() const { return params_; }
 
-  ~Request();
-
 private:
+  http::Request_ptr req_;
   /**
    * @brief A map with pointers to attributes.
    * @details A map with a unique key to a specific attribute
@@ -135,8 +148,6 @@ private:
   std::map<AttrType, Attribute_ptr> attributes_;
 
   Params params_;
-
-  static OnRecv on_recv_;
 
 }; // < class Request
 
@@ -159,7 +170,5 @@ void Request::set_attribute(std::shared_ptr<A> attr) {
 }
 
 }; // < namespace mana
-
-
 
 #endif

@@ -19,20 +19,10 @@
 #define HW_DEVICES_HPP
 
 #include <common>
-#include <virtio/console.hpp>
-
 #include "nic.hpp"
-#include "pit.hpp"
 #include "block_device.hpp"
 
-class PCI_manager; // for friending
-
 namespace hw {
-
-  /** @Todo: Implement */
-  class Serial;
-  class APIC;
-  class HPET;
 
   class Device_not_found;
 
@@ -55,25 +45,6 @@ namespace hw {
 
     static Block_device& drive(const int N)
     { return get<Block_device>(N); }
-
-    /** Get console N using driver DRIVER */
-    /*
-    template <int N, typename DRIVER>
-    static DRIVER& console() {
-      static DRIVER con_ {PCI_manager::device<PCI::COMMUNICATION>(N)};
-      return con_;
-    }
-    */
-
-    /**
-     *  Get serial port n
-     *
-     *  @Todo: Make a serial port class, and move rsprint / rswrite etc. from OS out to it.
-     *
-     *  @Note: The DRIVER parameter is there to support virtio serial ports.
-     */
-    template <typename DRIVER>
-    static PCI_Device& serial(int n);
 
     /** List all devices (decorated, as seen in boot output) */
     inline static void print_devices();
@@ -106,10 +77,6 @@ namespace hw {
       return devices_;
     }
 
-
-  private:
-
-
     /**
      * @brief Register the given device
      * @details
@@ -125,15 +92,13 @@ namespace hw {
         dev->device_type(), devices<Device_type>().size()-1);
     }
 
+  private:
     /** Print a decorated indexed list with the devices of the given type. No output if empty */
     template <typename Device_type>
     inline static void print_devices(const Device_registry<Device_type>& devices);
 
     template <typename Device_type>
     inline static void deactivate_type(Device_registry<Device_type>& devices);
-
-    /** Following classes are allowed to register a device */
-    friend class ::PCI_manager;
 
   }; //< class Devices
 
@@ -168,7 +133,7 @@ namespace hw {
       INFO2("+--+ %s", Device_type::device_type());
 
       for(size_t i = 0; i < devices.size(); i++)
-        INFO2("|  + #%u: %s, driver %s", i, devices[i]->device_name().c_str(),
+        INFO2("|  + #%u: %s, driver %s", (uint32_t) i, devices[i]->device_name().c_str(),
               devices[i]->driver_name());
     }
   }

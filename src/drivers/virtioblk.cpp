@@ -34,7 +34,7 @@ void null_deleter(uint8_t*) {};
 #include <statman>
 
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
-  : Virtio(d), hw::Block_device(), req(queue_size(0), 0, iobase()), inflight(0)
+  : Virtio(d), hw::Block_device(), req(device_name() + ".req0", queue_size(0), 0, iobase()), inflight(0)
 {
   INFO("VirtioBlk", "Block_devicer initializing");
   {
@@ -74,9 +74,9 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
          "Negotiated needed features");
 
   // Step 1 - Initialize REQ queue
-  auto success = assign_queue(0, (uint32_t) req.queue_desc());
-  CHECK(success, "Request queue assigned (0x%x) to device",
-        (uint32_t) req.queue_desc());
+  auto success = assign_queue(0, req.queue_desc());
+  CHECK(success, "Request queue assigned (%p) to device",
+        req.queue_desc());
 
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
@@ -91,16 +91,18 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
   // Hook up IRQ handler (inherited from Virtio)
-  if (is_msix())
+  if (has_msix())
   {
+    assert(get_msix_vectors() >= 2);
+    auto& irqs = this->get_irqs();
     // update IRQ subscriptions
-    IRQ_manager::get().subscribe(irq() + 0, {this, &VirtioBlk::service_RX});
-    IRQ_manager::get().subscribe(irq() + 1, {this, &VirtioBlk::msix_conf_handler});
+    IRQ_manager::get().subscribe(irqs[0], {this, &VirtioBlk::service_RX});
+    IRQ_manager::get().subscribe(irqs[1], {this, &VirtioBlk::msix_conf_handler});
   }
   else
   {
-    auto del(delegate<void()>{this, &VirtioBlk::irq_handler});
-    IRQ_manager::get().subscribe(irq(), del);
+    auto& irqs = this->get_irqs();
+    IRQ_manager::get().subscribe(irqs[0], {this, &VirtioBlk::irq_handler});
   }
 
   // Done
@@ -297,7 +299,7 @@ void VirtioBlk::deactivate()
   req.disable_interrupts();
 
   /// mask off MSI-X vectors
-  if (is_msix())
+  if (has_msix())
       deactivate_msix();
 }
 
@@ -306,6 +308,6 @@ void VirtioBlk::deactivate()
 /** Global constructor - register VirtioBlk's driver factory at the PCI_manager */
 struct Autoreg_virtioblk {
   Autoreg_virtioblk() {
-    PCI_manager::register_driver<hw::Block_device>(hw::PCI_Device::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
+    PCI_manager::register_blk(PCI::VENDOR_VIRTIO, 0x1001, &VirtioBlk::new_instance);
   }
 } autoreg_virtioblk;

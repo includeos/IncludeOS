@@ -74,12 +74,12 @@ static inline bool is_unreserved (const char chr) noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string uri::encode(const std::experimental::string_view input) {
+std::string uri::encode(util::csview input) {
   static const std::array<char,16> hex
-  {{ '0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' }};
+  {{ '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' }};
 
   std::string res;
-  res.reserve(input.size());
+  res.reserve(input.size() * 3);
 
   for (const auto chr : input)
     if (is_unreserved(chr)) {
@@ -90,11 +90,12 @@ std::string uri::encode(const std::experimental::string_view input) {
       res += hex[ chr & 0xf ];
     }
 
+  res.shrink_to_fit();
   return res;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-std::string uri::decode(const std::experimental::string_view input) {
+std::string uri::decode(util::csview input) {
   std::string res;
   res.reserve(input.size());
 
@@ -117,5 +118,6 @@ std::string uri::decode(const std::experimental::string_view input) {
     }
   }
 
+  res.shrink_to_fit();
   return res;
 }

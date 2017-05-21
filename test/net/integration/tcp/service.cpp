@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <service>
+#include <os>
 #include <net/inet4>
 #include <net/dhcp/dh4client.hpp>
 #include <net/tcp/tcp.hpp>
@@ -46,8 +46,6 @@ S{150}, B{1500}, H{150000};
 std::string
 TEST_STR {"Kappa!"};
 
-size_t buffers_available{0};
-
 // Default MSL is 30s. Timeout 2*MSL.
 // To reduce test duration, lower MSL to 3s.
 milliseconds MSL_TEST = 3s;
@@ -62,9 +60,15 @@ void FINISH_TEST() {
       INFO("TEST", "Verify release of resources");
       CHECKSERT(Inet4::stack<0>().tcp().active_connections() == 0,
         "No (0) active connections");
-      INFO("Buffers available", "%u", Inet4::stack<0>().buffers_available());
-      CHECKSERT(Inet4::stack<0>().buffers_available() == buffers_available,
-        "No hogged buffer (%u available)", buffers_available);
+      INFO("Buffers", "%u avail / %u total",
+            Inet4::stack<0>().buffers_available(),
+            Inet4::stack<0>().buffers_total());
+      // unfortunately we can't know just how many buffers SHOULD be
+      // available, because drivers take some buffers, but there should
+      // be at least half the buffers left
+      auto total = Inet4::stack<0>().buffers_total();
+      CHECKSERT(Inet4::stack<0>().buffers_available() >= total / 2,
+                "Free buffers (%u available)", total);
       printf("# TEST SUCCESS #\n");
     });
 }
@@ -77,20 +81,19 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
   // This needs correct setup to work
   INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
   Inet4::stack<0>().resolve(address.first,
-    [port](auto ip_address) {
+    [port](auto ip_address, Error&) {
       CHECK(ip_address != 0, "Resolved host");
 
-      if(ip_address != 0) {
-        Inet4::stack<0>().tcp().connect(ip_address, port)
-          ->on_connect([](tcp::Connection_ptr conn) {
-              CHECK(true, "Connected");
-              conn->on_read(1024, [](tcp::buffer_t, size_t n) {
-                  CHECK(n > 0, "Received a response");
-                });
-            })
-          .on_error([](tcp::TCPException err) {
-              CHECK(false, "Error occured: %s", err.what());
-            });
+      if(ip_address != 0)
+      {
+        Inet4::stack<0>().tcp().connect({ip_address, port})
+          ->on_connect([](tcp::Connection_ptr conn)
+          {
+            CHECKSERT(conn != nullptr, "Connected");
+            conn->on_read(1024, [](tcp::buffer_t, size_t n) {
+                CHECK(n > 0, "Received a response");
+              });
+          });
       }
     });
 }
@@ -98,21 +101,25 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 /*
   TEST: Outgoing Connection to Host
 */
-void OUTGOING_TEST(tcp::Socket outgoing) {
+void OUTGOING_TEST(Socket outgoing) {
   INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
-  Inet4::stack<0>().tcp().connect(outgoing)
-    ->on_connect([](auto conn) {
-        conn->write(small.data(), small.size());
-        conn->on_read(small.size(), [](tcp::buffer_t buffer, size_t n) {
-            CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
-          });
-      })
-    .on_disconnect([](auto conn, tcp::Connection::Disconnect) {
-        CHECK(true, "Connection closed by server");
-        CHECKSERT(conn->is_state({"CLOSE-WAIT"}), "State: CLOSE-WAIT");
-        conn->close();
-      })
+  Inet4::stack<0>().tcp().connect(outgoing, [](tcp::Connection_ptr conn)
+  {
+    CHECKSERT(conn != nullptr, "Connection successfully established.");
+    conn->on_read(small.size(), [](tcp::buffer_t buffer, size_t n)
+    {
+      CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
+    });
+
+    conn->write(small);
+
+    conn->on_disconnect([](tcp::Connection_ptr conn, tcp::Connection::Disconnect) {
+      CHECK(true, "Connection closed by server");
+      CHECKSERT(conn->is_state({"CLOSE-WAIT"}), "State: CLOSE-WAIT");
+      conn->close();
+    })
     .on_close([]{ OUTGOING_TEST_INTERNET(TEST_ADDR_TIME); });
+  });
 }
 
 // Used to send big data
@@ -129,24 +136,12 @@ struct Buffer {
   std::string str() { return {data, size};}
 };
 
-void Service::start(const std::string&)
+void Service::start()
 {
-  IP4::addr A1 (255, 255, 255, 255);
-  IP4::addr B1 (  0, 255, 255, 255);
-  IP4::addr C1 (  0,   0, 255, 255);
-  IP4::addr D1 (  0,   0,   0, 255);
-  IP4::addr E1 (  0,   0,   0,   0);
-  printf("A: %s\n", A1.str().c_str());
-  printf("B: %s\n", B1.str().c_str());
-  printf("C: %s\n", C1.str().c_str());
-  printf("D: %s\n", D1.str().c_str());
-  printf("E: %s\n", E1.str().c_str());
-  printf("D & A: %s\n", (D1 & A1).str().c_str());
-
   for(int i = 0; i < S; i++) small += TEST_STR;
 
   big += "start-";
-  for(int i = 0; i < B; i++) big += TEST_STR;
+  for(int i = 0; i < B; i++) big += std::to_string(i) + "-";
   big += "-end";
 
   huge = "start-";
@@ -160,8 +155,6 @@ void Service::start(const std::string&)
     {  10,  0,  0,  1 },  // Gateway
     {   8,  8,  8,  8 }   // DNS
   );
-
-  buffers_available = inet.buffers_available();
   INFO("Buffers available", "%u", inet.buffers_available());
 
   auto& tcp = inet.tcp();
@@ -176,10 +169,10 @@ void Service::start(const std::string&)
   /*
     TEST: Nothing should be allocated.
   */
-  CHECK(tcp.open_ports() == 0, "No (0) open ports (listening connections)");
+  CHECK(tcp.listening_ports() == 0, "No (0) open ports (listening connections)");
   CHECK(tcp.active_connections() == 0, "No (0) active connections");
 
-  tcp.bind(TEST1).on_connect([](auto conn) {
+  tcp.listen(TEST1).on_connect([](tcp::Connection_ptr conn) {
       INFO("Test 1", "SMALL string (%u)", small.size());
       conn->on_read(small.size(), [conn](tcp::buffer_t buffer, size_t n) {
           CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
@@ -192,19 +185,20 @@ void Service::start(const std::string&)
   /*
     TEST: Server should be bound.
   */
-  CHECK(tcp.open_ports() == 1, "One (1) open port");
+  CHECK(tcp.listening_ports() == 1, "One (1) open port");
 
   /*
     TEST: Send and receive big string.
   */
-  tcp.bind(TEST2).on_connect([](auto conn) {
+  tcp.listen(TEST2).on_connect([](tcp::Connection_ptr conn) {
       INFO("Test 2", "BIG string (%u)", big.size());
       auto response = std::make_shared<std::string>();
-      conn->on_read(big.size(), [response, conn](tcp::buffer_t buffer, size_t n) {
-          *response += std::string((char*)buffer.get(), n);
+      conn->on_read(big.size(),
+      [response, conn] (tcp::buffer_t buffer, size_t n)
+        {
+          response->append(std::string{(char*)buffer.get(), n});
           if(response->size() == big.size()) {
-            bool OK = (*response == big);
-            CHECKSERT(OK, "Received BIG");
+            CHECKSERT((*response == big), "Received BIG");
             INFO("Test 2", "Succeeded, TEST3");
             conn->close();
           }
@@ -215,39 +209,37 @@ void Service::start(const std::string&)
   /*
     TEST: Send and receive huge string.
   */
-  tcp.bind(TEST3).on_connect([](auto conn) {
+  tcp.listen(TEST3).on_connect([](tcp::Connection_ptr conn) {
       INFO("Test 3", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
       conn->on_read(16384, [temp, conn](tcp::buffer_t buffer, size_t n) {
           memcpy(temp->data + temp->written, buffer.get(), n);
           temp->written += n;
-          //printf("Read: %u\n", n);
           // when all expected data is read
           if(temp->written == huge.size()) {
             bool OK = (temp->str() == huge);
             CHECKSERT(OK, "Received HUGE");
             INFO("Test 3", "Succeeded, TEST4");
-            conn->close();
           }
         });
       auto half = huge.size() / 2;
-      conn->write(huge.data(), half, [half, conn](size_t n) {
-        CHECKSERT(n == half, "Wrote one half HUGE (%u bytes)", n);
+      conn->on_write([half](size_t n) {
+        CHECKSERT(n == half, "Wrote half HUGE (%u bytes)", n);
       });
-      conn->write(huge.data()+half, half, [half](size_t n) {
-        CHECKSERT(n == half, "Wrote the other half of HUGE (%u bytes)", n);
-      });
+      conn->write(huge.data(), half);
+      conn->write(huge.data()+half, half);
+      conn->close();
     });
 
   /*
     TEST: More servers should be bound.
   */
-  CHECK(tcp.open_ports() == 3, "Three (3) open ports");
+  CHECK(tcp.listening_ports() == 3, "Three (3) open ports");
 
   /*
     TEST: Connection (Status etc.) and Active Close
   */
-  tcp.bind(TEST4).on_connect([](auto conn) {
+  tcp.listen(TEST4).on_connect([](tcp::Connection_ptr conn) {
       INFO("Test 4","Connection/TCP state");
       // There should be at least one connection.
       CHECKSERT(Inet4::stack<0>().tcp().active_connections() > 0, "There is (>0) open connection(s)");

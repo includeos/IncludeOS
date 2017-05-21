@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 #define NET_UTIL_HPP
 
 #include <cstdint>
+#include <type_traits>
 
 namespace net {
 
@@ -28,8 +29,12 @@ namespace net {
    * e.g., getbits(x, 31, 8) -- highest byte
    *       getbits(x,  7, 8) -- lowest  byte
    */
-  template<typename T>
-  constexpr inline auto getbits(T&& x, T&& p, T&& n) noexcept {
+  template
+  <
+    typename T,
+    typename = std::enable_if_t<std::is_integral<T>::value>
+  >
+  constexpr inline auto getbits(const T x, const T p, const T n) noexcept {
     return (x >> ((p + 1) - n)) & ~(~0 << n);
   }
 

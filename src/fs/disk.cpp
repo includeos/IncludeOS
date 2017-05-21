@@ -19,6 +19,7 @@
 #include <fs/mbr.hpp>
 #include <fs/fat.hpp>
 #include <cassert>
+#include <info>
 
 namespace fs {
 
@@ -59,7 +60,6 @@ namespace fs {
 
   void Disk::init_fs(on_init_func func)
   {
-    INFO("Disk","init_fs reading block 0");
     device.read(
       0,
       hw::Block_device::on_read_func::make_packed(
@@ -67,7 +67,7 @@ namespace fs {
       {
         if (!data) {
           // TODO: error-case for unable to read MBR
-          func({ error_t::E_IO, "Unable to read MBR"});
+          func({ error_t::E_IO, "Unable to read MBR"}, fs());
           return;
         }
 
@@ -105,7 +105,7 @@ namespace fs {
         }
 
         // no partition was found (TODO: extended partitions)
-        func({ error_t::E_MNT, "No FAT partition auto-detected"});
+        func({ error_t::E_MNT, "No FAT partition auto-detected"}, fs());
       })
     );
   }
@@ -136,7 +136,7 @@ namespace fs {
         {
           if (!data) {
             // TODO: error-case for unable to read MBR
-            func({ error_t::E_IO, "Unable to read MBR" });
+            func({ error_t::E_IO, "Could not read MBR" }, fs());
             return;
           }
 

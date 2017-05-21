@@ -47,7 +47,7 @@
 #define IDE_IRQN     14
 #define IDE_BLKSZ    512
 
-#define IDE_VENDOR_ID   PCI_Device::VENDOR_INTEL
+#define IDE_VENDOR_ID   PCI::VENDOR_INTEL
 #define IDE_PRODUCT_ID  0x7010
 
 #define IDE_TIMEOUT 2048

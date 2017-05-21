@@ -36,8 +36,18 @@ def Client_test():
 # Start web server in a separate thread
 thread.start_new_thread(Client_test, ())
 
+
+import urllib2
+def Server_test(triggerline):
+    res = urllib2.urlopen("http://10.0.0.46:8080").read()
+    assert(res == "Hello")
+
+
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
+
+# Add custom event for testing server
+vm.on_output("Listening on port 8080", Server_test)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(20).clean()

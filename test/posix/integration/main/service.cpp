@@ -15,16 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include <cstdio>
-#include <iostream>
-#include <os>
-
+#include <string>
+#include <gsl/gsl>
 
 int main(int argc, char** argv) {
 
   printf("Hello main\n");
-  std::cout << "Argc: %i \n" << argc << "\n";
+  printf("Argc: %d\n", argc);
 
   for (int i = 0; i < argc; i++)
     printf("Arg %i: %s\n", i, argv[i]);
@@ -36,5 +34,4 @@ int main(int argc, char** argv) {
 
   // We want to veirify this "exit status" on the back-end
   return 200;
-
 }

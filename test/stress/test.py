@@ -210,10 +210,6 @@ def check_vitals(string):
   mem = get_mem()
   diff = mem - memuse_at_start
   pages = diff / PAGE_SIZE
-  if diff % PAGE_SIZE != 0:
-    print color.WARNING("Memory increase was not a multple of page size.")
-    wait_for_tw()
-    return False
   print color.INFO("Memory use at test end:"), mem, "bytes"
   print color.INFO("Memory difference from test start:"), memuse_at_start, "bytes (Diff:",diff, "b == ",pages, "pages)"
   sock_mem.close()

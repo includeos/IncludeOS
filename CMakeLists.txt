@@ -2,20 +2,31 @@ cmake_minimum_required(VERSION 2.8.9)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
-set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/i686-elf-toolchain.cmake)
+# Target CPU Architecture
+if(DEFINED ENV{ARCH})
+  set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
+else()
+  set(ARCH "x86_64" CACHE STRING "Architecture (default)")
+endif()
 
-project (includeos)
+message(STATUS "Target CPU ${ARCH}")
+
+set(TRIPLE "${ARCH}-pc-linux-elf")
+set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
+set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
+
+message(STATUS "Target triple ${TRIPLE}")
+
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
+
+project (includeos C CXX)
 
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
 set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
 set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 
-# test compiler
-if(CMAKE_COMPILER_IS_GNUCC)
-	# currently gcc is not supported due to problems cross-compiling a unikernel
-	# (i.e., building a 32bit unikernel (only supported for now) on a 64bit system)
-	message(FATAL_ERROR "Building IncludeOS with gcc is not currently supported. Please clean-up build directory and configure for clang through CC and CXX environmental variables.")
-endif(CMAKE_COMPILER_IS_GNUCC)
+# C++ version
+set(CMAKE_CXX_STANDARD 14)
 
 # create OS version string from git describe (used in CXX flags)
 execute_process(COMMAND git describe --dirty
@@ -23,10 +34,23 @@ execute_process(COMMAND git describe --dirty
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
 
+option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
+if(cpu_feat_vanilla)
+  include("cmake/vanilla.cmake")
+  set(DEFAULT_SETTINGS_CMAKE "vanilla.cmake") # for service cmake
+  set(DEFAULT_VM "vm.vanilla.json") # vmrunner
+else()
+  include("cmake/cpu_feat.cmake")
+  set(DEFAULT_SETTINGS_CMAKE "cpu_feat.cmake") # for service cmake
+  set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
+endif(cpu_feat_vanilla)
+
+option(single_threaded "Compile without SMP support" ON)
+
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "-msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE} ")
+set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -34,7 +58,7 @@ set(CAPABS "-msse3 -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROT
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
 set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE")
 
-set(WARNS "-Wall -Wextra") #-pedantic
+set(WARNS "-Wall -Wextra")
 
 # configure options
 option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
@@ -52,12 +76,15 @@ endfunction()
 init_submodule(mod/GSL)
 init_submodule(mod/http-parser)
 init_submodule(mod/uzlib)
+init_submodule(mod/rapidjson)
+
+install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 
 # set optimization level
 set(OPTIMIZE "-O2")
 
 if(debug OR debug-info OR debug-all)
-	set(CAPABS "${CAPABS} -O0")
+	set(OTPIMIZE "-O0")
 endif(debug OR debug-info OR debug-all)
 
 if(minimal)
@@ -81,24 +108,41 @@ endif(silent)
 # Append optimization level
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
-# these kinda work with llvm
-set(CMAKE_CXX_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-set(CMAKE_C_FLAGS "-target i686 -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -m32 -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+if (CMAKE_COMPILER_IS_GNUCC)
+  # gcc/g++ settings
+  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+else()
+  # these kinda work with llvm
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+endif()
 
 # either download or cross-compile needed libraries
-option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
+#option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
+set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
-add_subdirectory(mod)
+# Botan Crypto & TLS
+# Note: Include order matters!
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
 
+#
+# Subprojects
+#
+add_subdirectory(mod)
 add_subdirectory(src)
 
+#
+# External projects
+#
 option(vmbuild "Build and install vmbuild and elf_syms" ON)
 if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
     PREFIX vmbuild # Build where
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
+    BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
     )
@@ -128,6 +172,7 @@ if(tests)
   ExternalProject_Add(unittests
     PREFIX unittests
     SOURCE_DIR ${INCLUDEOS_ROOT}/test
+    BINARY_DIR unittests
     CMAKE_ARGS -DINCLUDEOS_ROOT=${INCLUDEOS_ROOT} -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
     )
   #add_subdirectory(test)
@@ -135,20 +180,27 @@ endif(tests)
 
 option(libmana "Build and install mana web application framework library" ON)
 if(libmana)
-  set(rapidjson ON) # Dependent on rapidjson
   add_subdirectory(lib/mana)
 endif(libmana)
 
-option(rapidjson "Download and install rapidjson submodule" ON)
-if(rapidjson)
-  init_submodule(mod/rapidjson)
-  install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
-endif(rapidjson)
+#
+# Installation
+#
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/service.cmake DESTINATION includeos)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/etc/library.cmake DESTINATION includeos)
-install(DIRECTORY vmrunner DESTINATION includeos/)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/i686-elf-toolchain.cmake DESTINATION includeos)
+# Install cmake files
+install(FILES cmake/pre.service.cmake DESTINATION includeos)
+install(FILES cmake/post.service.cmake DESTINATION includeos)
+install(FILES cmake/library.cmake DESTINATION includeos)
+install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION includeos RENAME settings.cmake) # cpu_feat_vanilla opt
+
+# Install vmrunner
+install(DIRECTORY vmrunner DESTINATION includeos)
+install(FILES vmrunner/${DEFAULT_VM} DESTINATION includeos/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
+
+# Install toolchain
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${ARCH}-elf-toolchain.cmake DESTINATION includeos)
+
+# Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
 # Install boot util

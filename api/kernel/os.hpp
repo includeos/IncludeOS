@@ -18,14 +18,16 @@
 #ifndef KERNEL_OS_HPP
 #define KERNEL_OS_HPP
 
+#include <common>
+#include <arch.hpp>
+#include <kernel/memmap.hpp>
+#include <kernel/rtc.hpp>
+#include <hertz>
 #include <string>
 #include <sstream>
-#include <common>
-#include <kernel/memmap.hpp>
-#include <hw/cpu.hpp>
-#include <hertz>
 #include <vector>
-#include <kernel/rtc.hpp>
+#include <boot/multiboot.h>
+#include <util/fixedvec.hpp>
 
 /**
  *  The entrypoint for OS services
@@ -36,15 +38,22 @@ class OS {
 public:
   using print_func  = delegate<void(const char*, size_t)>;
   using Plugin = delegate<void()>;
+  using Span_mods = gsl::span<multiboot_module_t>;
 
   /**
-   * Returns the version of the OS from when 
-   * the service was built.
-  **/
+   * Returns the OS version string
+   **/
   static const std::string& version() noexcept
-  { return version_field; }
+  { return version_str_; }
 
-  /** 
+  /**
+   * Returns the CPU architecture for which the OS was built
+   **/
+  static const std::string& arch() noexcept
+  { return arch_str_; }
+
+
+  /**
    *  Returns the commandline arguments provided,
    *  if any, to the VM passed on by multiboot or
    *  other mechanisms. The first argument is always
@@ -54,20 +63,18 @@ public:
 
   /** Clock cycles since boot. */
   static uint64_t cycles_since_boot() {
-    return hw::CPU::rdtsc();
+    return __arch_cpu_cycles();
   }
   /** micro seconds since boot */
-  static int64_t micros_since_boot() {
-    return cycles_since_boot() / cpu_freq().count();
-  }
+  static int64_t micros_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
   static RTC::timestamp_t boot_timestamp()
-  { return booted_at_; }
+  { return RTC::boot_timestamp(); }
 
   /** Uptime in whole seconds. */
   static RTC::timestamp_t uptime() {
-    return RTC::now() - booted_at_;
+    return RTC::time_since_boot();
   }
 
   static MHz cpu_freq() noexcept
@@ -101,11 +108,19 @@ public:
   }
 
   /**
+   *  Returns true when the OS has passed the boot sequence, and
+   *  is at least processing plugins and about to call Service::start
+   */
+  static bool is_booted() {
+    return boot_sequence_passed_;
+  }
+
+  /**
    * Sometimes the OS just has a bad day and crashes
    * The on_panic handler will be called directly after a panic,
    * or any condition which will deliberately cause the OS to become
    * unresponsive. After the handler is called, the OS goes to sleep.
-   * This handler can thus be used to, for example, automatically 
+   * This handler can thus be used to, for example, automatically
    * have the OS restart on any crash.
   **/
   typedef void (*on_panic_func) ();
@@ -129,12 +144,18 @@ public:
   static constexpr uint32_t page_size() noexcept {
     return 4096;
   }
-  static constexpr uint32_t page_nr_from_addr(uint32_t x) noexcept {
-    return x >> PAGE_SHIFT;
+  static constexpr uint32_t addr_to_page(uintptr_t addr) noexcept {
+    return addr >> PAGE_SHIFT;
   }
-  static constexpr uint32_t base_from_page_nr(uint32_t x) noexcept {
-    return x << PAGE_SHIFT;
+  static constexpr uintptr_t page_to_addr(uint32_t page) noexcept {
+    return page << PAGE_SHIFT;
   }
+
+  /** Total used dynamic memory, in bytes */
+  static uintptr_t heap_usage() noexcept;
+
+  /** Attempt to trim the heap end, reducing the size */
+  static void heap_trim() noexcept;
 
   /** First address of the heap **/
   static uintptr_t heap_begin() noexcept;
@@ -142,18 +163,11 @@ public:
   /** Last used address of the heap **/
   static uintptr_t heap_end() noexcept;
 
-  /** The maximum last address of the dynamic memory area (heap) */
-  static uintptr_t heap_max() noexcept{
-    return heap_max_;
-  };
-
-  /** Currently used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept {
-    return heap_end() - heap_begin();
-  };
-
   /** Resize the heap if possible. Return (potentially) new size. **/
   static uintptr_t resize_heap(size_t size);
+
+  /** The maximum last address of the dynamic memory area (heap) */
+  static uintptr_t heap_max() noexcept;
 
   /** The end of usable memory **/
   static inline uintptr_t memory_end(){
@@ -185,6 +199,7 @@ public:
   **/
   static void register_plugin(Plugin delg, const char* name);
 
+
   /**
    * Block for a while, e.g. until the next round in the event loop
    **/
@@ -197,10 +212,16 @@ public:
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
+  /** Get "kernel modules", provided by multiboot */
+  static Span_mods modules();
+
+
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
-  static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
+  static void multiboot(uint32_t boot_addr);
+
+  static multiboot_info_t* bootinfo();
 
   /** Boot with no multiboot params */
   static void legacy_boot();
@@ -208,16 +229,6 @@ private:
   /** Resume stuff from a soft reset **/
   static bool is_softreset_magic(uint32_t value);
   static void resume_softreset(intptr_t boot_addr);
-
-  static constexpr int PAGE_SHIFT = 12;
-
-  /** Indicate if the OS is running. */
-  static bool power_;
-
-  static MHz cpu_mhz_;
-
-  static RTC::timestamp_t booted_at_;
-  static std::string version_field;
 
   struct Plugin_struct {
     Plugin_struct(Plugin f, const char* n)
@@ -228,13 +239,21 @@ private:
     const char* name_;
   };
 
-  static std::vector<Plugin_struct> plugins_;
+  using Plugin_vec = fixedvector<Plugin_struct, 16>;
 
+  static constexpr int PAGE_SHIFT = 12;
+  static bool power_;
+  static bool boot_sequence_passed_;
+  static MHz cpu_mhz_;
+  static std::string version_str_;
+  static std::string arch_str_;
+  static Plugin_vec plugins_;
   static uintptr_t low_memory_size_;
   static uintptr_t high_memory_size_;
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
+  static std::string cmdline;
 
   // Prohibit copy and move operations
   OS(OS&)  = delete;
@@ -245,6 +264,21 @@ private:
   // Prohibit construction
   OS() = delete;
 
+  friend void __platform_init();
 }; //< OS
+
+inline OS::Span_mods OS::modules()
+{
+  auto* bootinfo_ = bootinfo();
+  if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS and bootinfo_->mods_count) {
+
+    Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
+
+    return Span_mods{
+      reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),
+        static_cast<int>(bootinfo_->mods_count) };
+  }
+  return nullptr;
+}
 
 #endif //< KERNEL_OS_HPP

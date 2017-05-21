@@ -17,9 +17,10 @@
 
 #include <virtio/virtio.hpp>
 #include <kernel/irq_manager.hpp>
+#include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
-#include <hw/apic.hpp>
 #include <hw/pci.hpp>
+#include <smp>
 #include <assert.h>
 
 #define VIRTIO_MSI_CONFIG_VECTOR  20
@@ -36,8 +37,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   /**
       Match vendor ID and Device ID : §4.1.2.2
   */
-  if (_pcidev.vendor_id() != hw::PCI_Device::VENDOR_VIRTIO)
-    panic("This is not a Virtio device");
+  if (_pcidev.vendor_id() != PCI::VENDOR_VIRTIO)
+      panic("This is not a Virtio device");
   CHECK(true, "Vendor ID is VIRTIO");
 
   bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
@@ -62,8 +63,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
 
   assert(rev_id_ok); // We'll try to continue if it's newer than supported.
 
-  // Probe PCI resources and fetch I/O-base for device
-  _pcidev.probe_resources();
+  // fetch I/O-base for device
   _iobase = _pcidev.iobase();
 
   CHECK(_iobase, "Unit has valid I/O base (0x%x)", _iobase);
@@ -93,90 +93,87 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // Where the standard isn't clear, we'll do our best to separate work
   // between this class and subclasses.
 
-  // read caps
-  _pcidev.parse_capabilities();
-
   // initialize MSI-X if available
-  if (_pcidev.msix_cap())
+  if (_pcidev.has_msix())
   {
-    this->_msix_vectors = _pcidev.init_msix();
-    if (is_msix())
+    uint8_t msix_vectors = _pcidev.get_msix_vectors();
+    if (msix_vectors)
     {
-      INFO2("[x] Device has %u MSI-X vectors", get_msix_vectors());
+      INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
+      this->current_cpu = SMP::cpu_id();
 
-      // remember the base IRQ
-      this->_irq = IRQ_manager::get().get_next_msix_irq();
-      _pcidev.setup_msix_vector(0x0, IRQ_BASE + this->_irq);
-
-      // setup all the other vectors
-      for (int i = 1; i < get_msix_vectors(); i++)
+      // setup all the MSI-X vectors
+      for (int i = 0; i < msix_vectors; i++)
       {
-        auto irq = IRQ_manager::get().get_next_msix_irq();
-        _pcidev.setup_msix_vector(0x0, IRQ_BASE + irq);
+        auto irq = IRQ_manager::get().get_free_irq();
+        _pcidev.setup_msix_vector(current_cpu, IRQ_BASE + irq);
+        IRQ_manager::get().subscribe(irq, nullptr);
+        // store IRQ for later
+        this->irqs.push_back(irq);
       }
     }
     else
       INFO2("[ ] No MSI-X vectors");
   } else {
-    this->_msix_vectors = 0;
     INFO2("[ ] No MSI-X vectors");
   }
 
   // use legacy if msix was not enabled
-  if (is_msix() == false)
+  if (has_msix() == false)
   {
     // Fetch IRQ from PCI resource
-    set_irq();
-    CHECK(_irq, "Unit has legacy IRQ %u", _irq);
+    auto irq = get_legacy_irq();
+    CHECKSERT(irq, "Unit has legacy IRQ %u", irq);
 
-    // create IO APIC entry for legacy interrupt
-    hw::APIC::enable_irq(_irq);
+   // create IO APIC entry for legacy interrupt
+    extern void __arch_enable_legacy_irq(uint8_t);
+    __arch_enable_legacy_irq(irq);
+
+    // store for later
+    irqs.push_back(irq);
   }
 
   INFO("Virtio", "Initialization complete");
-
-  // It would be nice if we new that all queues were the same size.
-  // Then we could pass this size on to the device-specific constructor
-  // But, it seems there aren't any guarantees in the standard.
-
-  // @note this is "the Legacy interface" according to Virtio std. 4.1.4.8.
-  // uint32_t queue_size = hw::inpd(_iobase + 0x0C);
 }
 
-void Virtio::get_config(void* buf, int len){
+void Virtio::get_config(void* buf, int len)
+{
   // io addr is different when MSI-X is enabled
   uint32_t ioaddr = _iobase;
-  ioaddr += (is_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
+  ioaddr += (has_msix()) ? VIRTIO_PCI_CONFIG_MSIX : VIRTIO_PCI_CONFIG;
 
   uint8_t* ptr = (uint8_t*) buf;
-  for (int i = 0; i < len; i++)
+  for (int i = 0; i < len; i++) {
     ptr[i] = hw::inp(ioaddr + i);
-}
-
-
-void Virtio::reset(){
-  hw::outp(_iobase + VIRTIO_PCI_STATUS, 0);
-}
-
-void Virtio::set_irq() {
-  // Get legacy IRQ from PCI
-  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
-  if ((value & 0xFF) > 0 && (value & 0xFF) < 32){
-    this->_irq = value & 0xFF;
   }
 }
 
-uint32_t Virtio::queue_size(uint16_t index){
+
+void Virtio::reset() {
+  hw::outp(_iobase + VIRTIO_PCI_STATUS, 0);
+}
+
+uint8_t Virtio::get_legacy_irq()
+{
+  // Get legacy IRQ from PCI
+  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
+  if ((value & 0xFF) != 0xFF) {
+    return value & 0xFF;
+  }
+  return 0;
+}
+
+uint32_t Virtio::queue_size(uint16_t index) {
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
   return hw::inpw(iobase() + VIRTIO_PCI_QUEUE_SIZE);
 }
 
-#define BTOP(x) ((unsigned long)(x) >> PAGESHIFT)
-bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
+bool Virtio::assign_queue(uint16_t index, const void* queue_desc)
+{
   hw::outpw(iobase() + VIRTIO_PCI_QUEUE_SEL, index);
-  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::page_nr_from_addr(queue_desc));
+  hw::outpd(iobase() + VIRTIO_PCI_QUEUE_PFN, OS::addr_to_page((uintptr_t) queue_desc));
 
-  if (_pcidev.is_msix())
+  if (_pcidev.has_msix())
   {
     // also update virtio MSI-X queue vector
     hw::outpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR, index);
@@ -185,43 +182,49 @@ bool Virtio::assign_queue(uint16_t index, uint32_t queue_desc){
     assert(hw::inpw(iobase() + VIRTIO_MSI_QUEUE_VECTOR) == index);
   }
 
-  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::page_nr_from_addr(queue_desc);
+  return hw::inpd(iobase() + VIRTIO_PCI_QUEUE_PFN) == OS::addr_to_page((uintptr_t) queue_desc);
 }
 
-uint32_t Virtio::probe_features(){
-  return hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
+uint32_t Virtio::probe_features() {
+  return hw::inpd(iobase() + VIRTIO_PCI_HOST_FEATURES);
 }
 
-void Virtio::negotiate_features(uint32_t features){
-  _features = hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
-  //_features &= features; //SanOS just adds features
-  _features = features;
-  debug("<Virtio> Wanted features: 0x%lx \n",_features);
+void Virtio::negotiate_features(uint32_t features) {
+  //_features = hw::inpd(_iobase + VIRTIO_PCI_HOST_FEATURES);
+  this->_features = features;
+  debug("<Virtio> Wanted features: 0x%lx \n", _features);
   hw::outpd(_iobase + VIRTIO_PCI_GUEST_FEATURES, _features);
   _features = probe_features();
   debug("<Virtio> Got features: 0x%lx \n",_features);
-
 }
 
-void Virtio::setup_complete(bool ok){
-  uint8_t status = ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
-  debug("<VIRTIO> status: %i ",status);
-  hw::outp(_iobase + VIRTIO_PCI_STATUS, hw::inp(_iobase + VIRTIO_PCI_STATUS) | status);
-}
-
-
-void Virtio::default_irq_handler(){
-  printf("*** PRIVATE virtio IRQ handler\n");
-  printf("Old Features : 0x%x \n",_features);
-  printf("New Features : 0x%x \n",probe_features());
-
-  unsigned char isr = hw::inp(_iobase + VIRTIO_PCI_ISR);
-  printf("Virtio ISR: 0x%i \n",isr);
-  printf("Virtio ISR: 0x%i \n",isr);
-}
-
-void Virtio::enable_irq_handler()
+void Virtio::move_to_this_cpu()
 {
-  auto del(delegate<void()>{this, &Virtio::default_irq_handler});
-  IRQ_manager::get().subscribe(_irq, del);
+  if (has_msix())
+  {
+    // unsubscribe IRQs on old CPU
+    for (size_t i = 0; i < irqs.size(); i++)
+    {
+      auto& oldman = IRQ_manager::get(this->current_cpu);
+      oldman.unsubscribe(this->irqs[i]);
+    }
+    // resubscribe on the new CPU
+    this->current_cpu = SMP::cpu_id();
+    for (size_t i = 0; i < irqs.size(); i++)
+    {
+      this->irqs[i] = IRQ_manager::get().get_free_irq();
+      _pcidev.rebalance_msix_vector(i, current_cpu, IRQ_BASE + this->irqs[i]);
+      IRQ_manager::get().subscribe(this->irqs[i], nullptr);
+    }
+  }
+}
+
+void Virtio::setup_complete(bool ok)
+{
+  uint8_t value = hw::inp(_iobase + VIRTIO_PCI_STATUS);
+  value |= ok ? VIRTIO_CONFIG_S_DRIVER_OK : VIRTIO_CONFIG_S_FAILED;
+  if (!ok) {
+    INFO("Virtio", "Setup failed, status: %hhx", value);
+  }
+  hw::outp(_iobase + VIRTIO_PCI_STATUS, value);
 }
