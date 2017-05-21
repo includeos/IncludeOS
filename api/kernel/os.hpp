@@ -215,7 +215,7 @@ public:
   /** Get "kernel modules", provided by multiboot */
   static Span_mods modules() {
     auto* bootinfo_ = bootinfo();
-    if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS) {
+    if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS and bootinfo_->mods_count) {
 
       Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
 

@@ -15,22 +15,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 #include <os>
 #include <kprint>
 #include <boot/multiboot.h>
 
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
+#define DEBUG 1
+
+#if defined(DEBUG)
+#define debug(X,...)  kprintf(X,##__VA_ARGS__);
+#else
+#define debug(X,...)
+#endif
+
 extern "C" {
 
   extern uintptr_t _end;
-
   // Deterimine the end of multiboot provided data
   // (e.g. multiboot's data area as offset to the _end symbol)
   uintptr_t _multiboot_free_begin(uintptr_t boot_addr){
 
     multiboot_info_t* bootinfo = (multiboot_info_t*) boot_addr;
     uintptr_t multi_end = reinterpret_cast<uintptr_t>(&_end);
+    debug ("* ELF end: %p \n", &_end);
 
     debug("* Multiboot begin: 0x%x \n", bootinfo);
     if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE
@@ -38,9 +47,15 @@ extern "C" {
 
       debug("* Multiboot cmdline @ 0x%x: %s \n", bootinfo->cmdline, (char*)bootinfo->cmdline);
 
-      // Set free begin to after the cmdline string
-      multi_end = bootinfo->cmdline +
-        strlen(reinterpret_cast<const char*>(bootinfo->cmdline)) + 1;
+      // We can't use a cmdline that's either insde our ELF or pre-ELF area
+      Expects(bootinfo->cmdline > multi_end
+              or bootinfo->cmdline < 0x100000);
+
+      if (bootinfo->cmdline > multi_end) {
+        // Set free begin to after the cmdline string
+        multi_end = bootinfo->cmdline +
+          strlen(reinterpret_cast<const char*>(bootinfo->cmdline)) + 1;
+      }
     }
 
     debug("* Multiboot end: 0x%x \n", multi_end);
