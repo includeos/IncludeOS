@@ -50,7 +50,7 @@ void __platform_init()
   initialize_gdt_for_cpu(APIC::get().get_id());
 
   // IDT manager: Interrupt and exception handlers
-  IRQ_manager::init(APIC::get().get_id());
+  IRQ_manager::init();
 
   // initialize and start registered APs found in ACPI-tables
 #ifndef INCLUDEOS_SINGLE_THREADED

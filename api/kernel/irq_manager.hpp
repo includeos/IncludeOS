@@ -123,7 +123,7 @@ public:
   { return count_handled; }
 
   /** Initialize for a local APIC */
-  static void init(int cpuid);
+  static void init();
   IRQ_manager() = default;
 
 private:

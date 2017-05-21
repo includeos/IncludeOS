@@ -15,6 +15,7 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 global __arch_start:function
+global __gdt64_base_pointer
 extern kernel_start
 extern __multiboot_magic
 extern __multiboot_addr
@@ -78,19 +79,16 @@ __arch_start:
     ;; enable long mode
     mov ecx, 0xC0000080          ; EFER MSR
     rdmsr
-    or eax, 1 << 8               ; Long Mode bit
+    or  eax, 1 << 8              ; Long Mode bit
     wrmsr
 
     ;; enable paging
     mov eax, cr0                 ; Set the A-register to control register 0.
-    or eax, 1 << 31
+    or  eax, 1 << 31
     mov cr0, eax                 ; Set control register 0 to the A-register.
 
-    mov eax, DWORD[__multiboot_magic]        ; Preserve multiboot regs
-    mov ebx, DWORD[__multiboot_addr]
-
     ;; load 64-bit GDT
-    lgdt [GDT64.Pointer]
+    lgdt [__gdt64_base_pointer]
     jmp  GDT64.Code:long_mode
 
 
@@ -112,7 +110,7 @@ GDT64:
     db 00000000b                 ; Granularity.
     db 0                         ; Base (high).
     dw 0x0 ;; alignment padding
-  .Pointer:                    ; The GDT-pointer.
+__gdt64_base_pointer:
     dw $ - GDT64 - 1             ; Limit.
     dq GDT64                     ; Base.
 
@@ -130,12 +128,12 @@ long_mode:
 
     ;; set up new stack for 64-bit
     push rsp
-    mov rsp, STACK_LOCATION
-    mov rbp, rsp
+    mov  rsp, STACK_LOCATION
+    mov  rbp, rsp
 
     ;; geronimo!
-    mov rdi, rax
-    mov rsi, rbx
+    mov  edi, DWORD[__multiboot_magic]
+    mov  esi, DWORD[__multiboot_addr]
     call kernel_start
     pop  rsp
     ret
