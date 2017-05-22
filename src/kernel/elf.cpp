@@ -131,17 +131,17 @@ public:
         }
     }
     // try again, but use guesstimate size
-    ElfSym* guess = nullptr;
-    size_t     gdiff = 1000;
+    ElfSym*   guess = nullptr;
+    uintptr_t gdiff = 512;
     for (size_t i = 0; i < symtab.entries; i++)
     {
       if (addr >= symtab.base[i].st_value
       && (addr <  symtab.base[i].st_value + 512))
       {
-        if (addr - symtab.base[i].st_value < gdiff)
-        {
+        auto diff = addr - symtab.base[i].st_value;
+        if (diff < gdiff) {
+          gdiff = diff;
           guess = &symtab.base[i];
-          gdiff = addr - symtab.base[i].st_value;
         }
       }
     }

@@ -100,7 +100,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   /// STATMAN ///
   /// initialize on page 7, 2 pages in size
-  Statman::get().init(0x6000, 0x2000);
+  Statman::get().init(0x6000, 0x3000);
 
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
@@ -122,7 +122,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   OS::memory_end_ = high_memory_size_ + 0x100000;
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x6000, 0x7fff, "Statman", "Statistics"});
+  memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
   memmap.assign_range({0xA000, 0x9fbff, "Stack", "Kernel / service main stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
@@ -158,12 +158,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Platform init");
   extern void __platform_init();
   __platform_init();
-  kernel_sanity_checks();
 
   PROFILE("RTC init");
   // Realtime/monotonic clock
   RTC::init();
-  kernel_sanity_checks();
 
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
@@ -218,6 +216,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   FILLINE('~');
 
   Service::start();
+  // NOTE: this is a feature for service writers, don't move!
+  kernel_sanity_checks();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){
