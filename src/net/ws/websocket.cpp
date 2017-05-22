@@ -201,6 +201,7 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
     {
       on_read(nullptr);
       failure(err.what());
+      return;
     }
   }
   // create new message
