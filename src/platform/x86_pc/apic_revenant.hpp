@@ -47,6 +47,7 @@ struct smp_system_stuff
 {
   spinlock_t tlock;
   std::deque<smp_task> tasks;
+  bool work_done;
 };
 extern SMP_ARRAY<smp_system_stuff> smp_system;
 

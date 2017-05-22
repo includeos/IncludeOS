@@ -42,27 +42,21 @@ static bool revenant_task_doer(smp_system_stuff& system)
     lock(smp_main.flock);
     smp_main.completed.push_back(std::move(task.done));
     unlock(smp_main.flock);
-    return true;
+    // signal home
+    PER_CPU(smp_system).work_done = true;
   }
-  // we did work, but we aren't going to signal back
-  return false;
+  return true;
 }
 static void revenant_task_handler()
 {
-  bool work_done     = false;
-  bool did_something = false;
-  do {
-    // cpu-specific tasks
-    did_something = revenant_task_doer(PER_CPU(smp_system));
-    work_done = work_done || did_something;
-    // global tasks (by taking from index 0)
-    did_something = revenant_task_doer(smp_system[0]);
-    work_done = work_done || did_something;
-    // continue as long as something was done
-    // because there could be more
-  } while (did_something);
+  auto& system = PER_CPU(smp_system);
+  system.work_done = false;
+  // cpu-specific tasks
+  while(revenant_task_doer(PER_CPU(smp_system)));
+  // global tasks (by taking from index 0)
+  while (revenant_task_doer(smp_system[0]));
   // if we did any work with done functions, signal back
-  if (work_done) {
+  if (system.work_done) {
     x86::APIC::get().send_bsp_intr();
   }
 }
