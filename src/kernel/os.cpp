@@ -251,12 +251,12 @@ void OS::halt() {
 #warning "OS::halt() not implemented for selected arch"
 #endif
   // Count sleep cycles
-  *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
+  if (os_cycles_hlt)
+      *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
 }
 
 void OS::event_loop()
 {
-
   IRQ_manager::get().process_interrupts();
   do {
     OS::halt();
