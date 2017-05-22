@@ -236,4 +236,23 @@ namespace net {
   }
 
 
+  void Arp::flush_expired()
+  {
+    debug("<ARP> Flushing expired entries\n");
+    std::vector<IP4::addr> expired;
+    for (auto ent : cache_) {
+      if (ent.second.expired()) {
+        expired.push_back(ent.first);
+      }
+    }
+
+    for (auto ip : expired) {
+      cache_.erase(ip);
+    }
+
+    if (not cache_.empty()) {
+      flush_timer_.start(flush_interval_);
+    }
+  }
+
 } //< namespace net

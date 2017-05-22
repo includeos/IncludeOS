@@ -140,7 +140,7 @@ namespace net {
   }
 
   void UDP::flush_expired() {
-    INFO("UDP", "Flushing expired error callbacks");
+    debug("<UDP> Flushing expired error callbacks\n");
 
     for (auto& err : error_callbacks_) {
       if (err.second.expired())
