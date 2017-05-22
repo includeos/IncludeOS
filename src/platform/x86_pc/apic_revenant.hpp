@@ -45,5 +45,6 @@ struct smp_stuff
   std::deque<SMP::done_func> completed;
 };
 extern smp_stuff smp;
+extern SMP_ARRAY<smp_stuff> smp_local;
 
 #endif

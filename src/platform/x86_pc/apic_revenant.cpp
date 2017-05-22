@@ -3,6 +3,7 @@
 #include "apic.hpp"
 #include "apic_timer.hpp"
 #include <kernel/irq_manager.hpp>
+#include <kernel/rng.hpp>
 #include <kprint>
 
 extern "C" int    get_cpu_id();
@@ -12,23 +13,24 @@ extern "C" void   lapic_exception_handler();
 
 using namespace x86;
 smp_stuff smp;
+SMP_ARRAY<smp_stuff> smp_local;
 
-static bool revenant_task_doer()
+static bool revenant_task_doer(smp_stuff& system)
 {
   // grab hold on task list
-  lock(smp.tlock);
+  lock(system.tlock);
 
-  if (smp.tasks.empty()) {
-    unlock(smp.tlock);
+  if (system.tasks.empty()) {
+    unlock(system.tlock);
     // try again
     return false;
   }
 
   // get copy of shared task
-  auto task = std::move(smp.tasks.front());
-  smp.tasks.pop_front();
+  auto task = std::move(system.tasks.front());
+  system.tasks.pop_front();
 
-  unlock(smp.tlock);
+  unlock(system.tlock);
 
   // execute actual task
   task.func();
@@ -36,6 +38,7 @@ static bool revenant_task_doer()
   // add done function to completed list (only if its callable)
   if (task.done)
   {
+    // NOTE: specifically pushing to 'smp' here, and not 'system'
     lock(smp.flock);
     smp.completed.push_back(std::move(task.done));
     unlock(smp.flock);
@@ -48,7 +51,11 @@ static void revenant_task_handler()
 {
   bool work_done = false;
   while (true) {
-    bool did_something = revenant_task_doer();
+    // global tasks
+    bool did_something = revenant_task_doer(smp);
+    work_done = work_done || did_something;
+    // cpu-specific tasks
+    did_something = revenant_task_doer(PER_CPU(smp_local));
     work_done = work_done || did_something;
     if (did_something == false) break;
   }
@@ -74,9 +81,11 @@ void revenant_main(int cpu)
   IRQ_manager::enable_interrupts();
   // init timer system
   APIC_Timer::init();
-
+  // subscribe to task and timer interrupts
   IRQ_manager::get().subscribe(0, revenant_task_handler);
   IRQ_manager::get().subscribe(1, APIC_Timer::start_timers);
+  // seed RNG
+  RNG::init();
 
   // allow programmers to do stuff on each core at init
   ::SMP::init_task();

@@ -151,31 +151,69 @@ void ::SMP::init_task()
   /* do nothing */
 }
 
-void ::SMP::add_task(smp_task_func task, smp_done_func done)
+void ::SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
+  assert(cpu == -1 || cpu == 0);
   task(); done();
 #else
-  lock(smp.tlock);
-  smp.tasks.emplace_back(std::move(task), std::move(done));
-  unlock(smp.tlock);
+  if (cpu == -1)
+  {
+    lock(smp.tlock);
+    smp.tasks.emplace_back(std::move(task), std::move(done));
+    unlock(smp.tlock);
+  }
+  else {
+    lock(smp_local[cpu].tlock);
+    smp_local[cpu].tasks.emplace_back(std::move(task), std::move(done));
+    unlock(smp_local[cpu].tlock);
+  }
 #endif
 }
-void ::SMP::add_task(smp_task_func task)
+void ::SMP::add_task(smp_task_func task, int cpu)
+{
+#ifdef INCLUDEOS_SINGLE_THREADED
+  assert(cpu == -1 || cpu == 0);
+  task();
+#else
+  if (cpu == -1)
+  {
+    lock(smp.tlock);
+    smp.tasks.emplace_back(std::move(task), nullptr);
+    unlock(smp.tlock);
+  }
+  else {
+    lock(smp_local[cpu].tlock);
+    smp_local[cpu].tasks.emplace_back(std::move(task), nullptr);
+    unlock(smp_local[cpu].tlock);
+  }
+#endif
+}
+void ::SMP::add_bsp_task(smp_done_func task)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
   task();
 #else
-  lock(smp.tlock);
-  smp.tasks.emplace_back(std::move(task), nullptr);
-  unlock(smp.tlock);
+  lock(smp.flock);
+  smp.completed.push_back(std::move(task));
+  unlock(smp.flock);
+  x86::APIC::get().send_bsp_intr();
 #endif
 }
-void ::SMP::signal()
+
+void ::SMP::signal(int cpu)
 {
 #ifndef INCLUDEOS_SINGLE_THREADED
   // broadcast that there is work to do
-  x86::APIC::get().bcast_ipi(0x20);
+  // -1: Broadcast to everyone except BSP
+  if (cpu == -1)
+      x86::APIC::get().bcast_ipi(0x20);
+  // 1-xx: Unicast specific vCPU
+  else if (cpu != 0)
+      x86::APIC::get().send_ipi(cpu, 0x20);
+  // 0: BSP unicast
+  else
+      x86::APIC::get().send_bsp_intr();
 #endif
 }
 
