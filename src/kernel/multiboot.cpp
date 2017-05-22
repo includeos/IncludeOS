@@ -20,7 +20,7 @@
 #include <kprint>
 #include <boot/multiboot.h>
 
-#define DEBUG 1
+//#define DEBUG
 #if defined(DEBUG)
 #define debug(X,...)  kprintf(X,##__VA_ARGS__);
 #else
