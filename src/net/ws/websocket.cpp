@@ -199,8 +199,8 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
     }
     catch(const WS_error& err)
     {
-      on_read(nullptr);
       failure(err.what());
+      on_read(nullptr);
       return;
     }
   }
@@ -245,8 +245,8 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
     }
     catch(const WS_error& err)
     {
-      on_read(nullptr);
       failure(err.what());
+      on_read(nullptr);
       return;
     }
   }
