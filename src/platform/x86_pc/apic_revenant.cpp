@@ -12,10 +12,10 @@ extern "C" void   lapic_exception_handler();
 #define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 
 using namespace x86;
-smp_stuff smp;
-SMP_ARRAY<smp_stuff> smp_local;
+smp_stuff smp_main;
+SMP_ARRAY<smp_system_stuff> smp_system;
 
-static bool revenant_task_doer(smp_stuff& system)
+static bool revenant_task_doer(smp_system_stuff& system)
 {
   // grab hold on task list
   lock(system.tlock);
@@ -39,9 +39,9 @@ static bool revenant_task_doer(smp_stuff& system)
   if (task.done)
   {
     // NOTE: specifically pushing to 'smp' here, and not 'system'
-    lock(smp.flock);
-    smp.completed.push_back(std::move(task.done));
-    unlock(smp.flock);
+    lock(smp_main.flock);
+    smp_main.completed.push_back(std::move(task.done));
+    unlock(smp_main.flock);
     return true;
   }
   // we did work, but we aren't going to signal back
@@ -49,16 +49,19 @@ static bool revenant_task_doer(smp_stuff& system)
 }
 static void revenant_task_handler()
 {
-  bool work_done = false;
-  while (true) {
-    // global tasks
-    bool did_something = revenant_task_doer(smp);
-    work_done = work_done || did_something;
+  bool work_done     = false;
+  bool did_something = false;
+  do {
     // cpu-specific tasks
-    did_something = revenant_task_doer(PER_CPU(smp_local));
+    did_something = revenant_task_doer(PER_CPU(smp_system));
     work_done = work_done || did_something;
-    if (did_something == false) break;
-  }
+    // global tasks (by taking from index 0)
+    did_something = revenant_task_doer(smp_system[0]);
+    work_done = work_done || did_something;
+    // continue as long as something was done
+    // because there could be more
+  } while (did_something);
+  // if we did any work with done functions, signal back
   if (work_done) {
     x86::APIC::get().send_bsp_intr();
   }
@@ -91,7 +94,7 @@ void revenant_main(int cpu)
   ::SMP::init_task();
 
   // signal that the revenant has started
-  smp.boot_barrier.inc();
+  smp_main.boot_barrier.inc();
 
   while (true)
   {

@@ -75,7 +75,7 @@ void SMP::init()
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
 
   // reset barrier
-  smp.boot_barrier.reset(1);
+  smp_main.boot_barrier.reset(1);
 
   auto& apic = x86::APIC::get();
   // turn on CPUs
@@ -98,7 +98,7 @@ void SMP::init()
   }
 
   // wait for all APs to start
-  smp.boot_barrier.spin_wait(CPUcount);
+  smp_main.boot_barrier.spin_wait(CPUcount);
   INFO("SMP", "All %u APs are online now\n", CPUcount);
 
   // subscribe to IPIs
@@ -116,10 +116,10 @@ void SMP::init()
 std::vector<smp_done_func> SMP::get_completed()
 {
   std::vector<smp_done_func> done;
-  lock(smp.flock);
-  for (auto& func : smp.completed) done.push_back(func);
-  smp.completed.clear(); // MUI IMPORTANTE
-  unlock(smp.flock);
+  lock(smp_main.flock);
+  for (auto& func : smp_main.completed) done.push_back(func);
+  smp_main.completed.clear(); // MUI IMPORTANTE
+  unlock(smp_main.flock);
   return done;
 }
 
@@ -154,39 +154,23 @@ void ::SMP::init_task()
 void ::SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
-  assert(cpu == -1 || cpu == 0);
+  assert(cpu == 0);
   task(); done();
 #else
-  if (cpu == -1)
-  {
-    lock(smp.tlock);
-    smp.tasks.emplace_back(std::move(task), std::move(done));
-    unlock(smp.tlock);
-  }
-  else {
-    lock(smp_local[cpu].tlock);
-    smp_local[cpu].tasks.emplace_back(std::move(task), std::move(done));
-    unlock(smp_local[cpu].tlock);
-  }
+  lock(smp_system[cpu].tlock);
+  smp_system[cpu].tasks.emplace_back(std::move(task), std::move(done));
+  unlock(smp_system[cpu].tlock);
 #endif
 }
 void ::SMP::add_task(smp_task_func task, int cpu)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
-  assert(cpu == -1 || cpu == 0);
+  assert(cpu == 0);
   task();
 #else
-  if (cpu == -1)
-  {
-    lock(smp.tlock);
-    smp.tasks.emplace_back(std::move(task), nullptr);
-    unlock(smp.tlock);
-  }
-  else {
-    lock(smp_local[cpu].tlock);
-    smp_local[cpu].tasks.emplace_back(std::move(task), nullptr);
-    unlock(smp_local[cpu].tlock);
-  }
+  lock(smp_system[cpu].tlock);
+  smp_system[cpu].tasks.emplace_back(std::move(task), nullptr);
+  unlock(smp_system[cpu].tlock);
 #endif
 }
 void ::SMP::add_bsp_task(smp_done_func task)
@@ -194,9 +178,9 @@ void ::SMP::add_bsp_task(smp_done_func task)
 #ifdef INCLUDEOS_SINGLE_THREADED
   task();
 #else
-  lock(smp.flock);
-  smp.completed.push_back(std::move(task));
-  unlock(smp.flock);
+  lock(smp_main.flock);
+  smp_main.completed.push_back(std::move(task));
+  unlock(smp_main.flock);
   x86::APIC::get().send_bsp_intr();
 #endif
 }
