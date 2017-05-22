@@ -46,7 +46,7 @@ struct crc64 {
   }
 
 
-  static constexpr inline uint64_t checksum(uint64_t crc_accumulator, const char* data, size_t data_len) noexcept {
+  static constexpr uint64_t checksum(uint64_t crc_accumulator, const char* data, size_t data_len) noexcept {
     auto crc64_table = get_table();
 
     crc_accumulator = ~crc_accumulator;
@@ -84,10 +84,10 @@ private:
 
   using CRC64_table_t = std::array<std::array<uint64_t, 256>, 8>;
 
-  static constexpr inline const CRC64_table_t get_table() noexcept {
+  static constexpr const CRC64_table_t get_table() noexcept {
     auto crc64_itable = get_init_table();
 
-    CRC64_table_t crc64_table;
+    CRC64_table_t crc64_table {{}};
     crc64_table[0] = crc64_itable;
 
     for (uint64_t i = 0; i < 256; ++i) {
@@ -102,18 +102,14 @@ private:
     return crc64_table;
   }
 
-  static constexpr inline const std::array<uint64_t, 256> get_init_table() noexcept {
-    std::array<uint64_t, 256> data;
+  static constexpr const std::array<uint64_t, 256> get_init_table() noexcept {
+    std::array<uint64_t, 256> data {{}};
 
     for (uint64_t i {0}; i < 256; ++i) {
       uint64_t crc {i};
 
       for (uint64_t j {0}; j < 8; ++j) {
-        if (crc & 1) {
-          crc = (crc >> 1) ^ POLY;
-        } else {
-          crc >>= 1;
-        }
+        crc = (crc & 1) ? ((crc >> 1) ^ POLY) : (crc >> 1);
       }
 
       data[i] = crc;
