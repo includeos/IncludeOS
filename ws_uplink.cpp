@@ -166,6 +166,8 @@ namespace uplink {
     else {
       MYINFO("Malformed WS message, try to re-establish");
       send_error("WebSocket error");
+      ws_->close();
+      ws_ = nullptr;
       dock();
     }
   }
