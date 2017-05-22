@@ -51,6 +51,7 @@ if [ -d build_llvm ]; then
   rm -rf build_llvm
 fi
 
+echo -e "\n\n >>> Building libc++ for ${ARCH} \n"
 
 # Make a build-directory
 mkdir -p build_llvm
@@ -63,7 +64,7 @@ fi
 
 
 TRIPLE=$ARCH-pc-linux-elf
-CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse"
+CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse -mno-red-zone"
 
 # CMAKE configure step
 #

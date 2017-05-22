@@ -51,7 +51,6 @@ extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
-extern multiboot_info_t* __multiboot_addr;
 
 // Initialize static OS data members
 bool  OS::power_   = true;
@@ -304,10 +303,6 @@ size_t OS::print(const char* str, const size_t len)
   for (auto& func : os_print_handlers)
       func(str, len);
   return len;
-}
-
-multiboot_info_t* OS::bootinfo() {
-  return __multiboot_addr;
 }
 
 void OS::legacy_boot() {

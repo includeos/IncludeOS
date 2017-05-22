@@ -20,7 +20,7 @@
 
 static const char* ident_ = nullptr;	/* what is prepended to each message
 																				default could be the name of the program */
-																			
+
 static int logopt_ = 0;								/* default logging option */
 static int facility_ = LOG_USER;			/* default facility */
 
@@ -76,10 +76,10 @@ void openlog(const char* ident, int logopt, int facility) {
 	If the maskpri argument is 0, the current log mask is not modified.
 	Calls by the current process to syslog() with a priority not set in maskpri
 	shall be rejected.
-	
+
 	The default log mask allows all priorities to be logged.
 	(on top set to 0xff)
-	
+
 	A call to openlog() is not required prior to calling setlogmask().
 
 	The function shall return the previous log priority mask.
@@ -136,8 +136,9 @@ void syslog(int priority, const char* message, ... /* arguments*/) {
 	/* Arguments */
 	va_list ap;
 	va_start(ap, message);
-	va_end(ap);
 
 	// Calling syslog-function that takes a va_list (uses vsnprintf)
 	Syslog::syslog(priority, message, ap);
+
+  va_end(ap);
 }

@@ -22,5 +22,7 @@ set(TRIPLE ${ARCH}) #-pc-linux-elf
 set(DCMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(DCMAKE_C_COMPILER_TARGET ${TRIPLE})
 
+option(single_threaded "Compile without SMP support" ON)
+
 # include toolchain for arch
 include($ENV{INCLUDEOS_PREFIX}/includeos/${ARCH}-elf-toolchain.cmake)

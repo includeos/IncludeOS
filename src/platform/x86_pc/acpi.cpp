@@ -137,7 +137,7 @@ namespace x86 {
 
     // verify Root SDT
     if (rsdt->Length < sizeof(SDTHeader)) {
-      printf("ACPI: SDT verification failed: len=%u / %u", rsdt->Length, sizeof(SDTHeader));
+      printf("ACPI: SDT verification failed: len=%u\n", rsdt->Length);
       panic("SDT had impossible length");
     }
     if (checksum((char*) rsdt, rsdt->Length) != 0)
@@ -170,8 +170,9 @@ namespace x86 {
 
     while (total > 0)
     {
-      // create SDT pointer
-      auto* sdt = (SDTHeader*) *(uint32_t*) addr;
+      // create SDT pointer from 32-bit address
+      // NOTE: don't touch!
+      auto* sdt = (SDTHeader*) (uintptr_t) (*(uint32_t*) addr);
       // find out which SDT it is
       switch (sdt->sigint()) {
       case APIC_t:
@@ -244,20 +245,21 @@ namespace x86 {
       // go to next entry
       ptr += rec->length;
     }
-    INFO("SMP", "Found %u APs", lapics.size());
+    INFO("SMP", "Found %u APs", (uint32_t) lapics.size());
   }
 
   void ACPI::walk_facp(const char* addr)
   {
     auto* facp = (FACPHeader*) addr;
+    auto  dsdt_addr = (uintptr_t) facp->DSDT;
     // verify DSDT
     constexpr uint32_t DSDT_t = bake('D', 'S', 'D', 'T');
-    assert(*(uint32_t*) (uintptr_t) facp->DSDT == DSDT_t);
+    assert(*(uint32_t*) dsdt_addr == DSDT_t);
 
     /// big thanks to kaworu from OSdev.org forums for algo
     /// http://forum.osdev.org/viewtopic.php?t=16990
-    char* S5Addr = (char*) facp->DSDT + 36; // skip header
-    int dsdtLength = ((SDTHeader*) facp->DSDT)->Length;
+    char* S5Addr = (char*) dsdt_addr + 36; // skip header
+    int dsdtLength = ((SDTHeader*) dsdt_addr)->Length;
     // some ting wong
     dsdtLength *= 2;
     while (dsdtLength-- > 0)

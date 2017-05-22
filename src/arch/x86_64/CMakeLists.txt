@@ -2,8 +2,8 @@ set(CMAKE_ASM_NASM_OBJECT_FORMAT elf64)
 
 ### x86_64 arch specific ###
 set(ARCH_OBJECTS
-  profile_intr.asm
   apic_asm.asm
+  apic_longmode.asm
   arch_start.asm
   interrupts.asm
   fiber_asm.asm
