@@ -19,7 +19,6 @@ global unused_interrupt_handler:function
 global modern_interrupt_handler:function
 global cpu_sampling_irq_entry:function
 global parasite_interrupt_handler:function
-global __stack_storage_area
 
 extern current_eoi_mechanism
 extern current_intr_handler
@@ -29,8 +28,6 @@ extern profiler_stack_sampler
 SECTION .bss
 ALIGN 16
 __xsave_storage_area: resb  512
-ALIGN 16
-__stack_storage_area: resb  512
 
 %macro PUSHAQ 0
    push rax
@@ -73,7 +70,8 @@ __stack_storage_area: resb  512
 
 %macro SPSAVE 0
     mov  rax, rsp
-    mov  rsp, __stack_storage_area+512-16
+    ;;mov  rsp, __stack_storage_area+512-16
+    and  rsp, -16
     push rax ;; save old RSP
     push rbp
 %endmacro
