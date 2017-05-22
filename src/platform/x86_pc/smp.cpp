@@ -75,7 +75,7 @@ void SMP::init()
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
 
   // reset barrier
-  smp.boot_barrier.reset(1);
+  smp_main.boot_barrier.reset(1);
 
   auto& apic = x86::APIC::get();
   // turn on CPUs
@@ -98,7 +98,7 @@ void SMP::init()
   }
 
   // wait for all APs to start
-  smp.boot_barrier.spin_wait(CPUcount);
+  smp_main.boot_barrier.spin_wait(CPUcount);
   INFO("SMP", "All %u APs are online now\n", CPUcount);
 
   // subscribe to IPIs
@@ -116,10 +116,10 @@ void SMP::init()
 std::vector<smp_done_func> SMP::get_completed()
 {
   std::vector<smp_done_func> done;
-  lock(smp.flock);
-  for (auto& func : smp.completed) done.push_back(func);
-  smp.completed.clear(); // MUI IMPORTANTE
-  unlock(smp.flock);
+  lock(smp_main.flock);
+  for (auto& func : smp_main.completed) done.push_back(func);
+  smp_main.completed.clear(); // MUI IMPORTANTE
+  unlock(smp_main.flock);
   return done;
 }
 
@@ -151,31 +151,53 @@ void ::SMP::init_task()
   /* do nothing */
 }
 
-void ::SMP::add_task(smp_task_func task, smp_done_func done)
+void ::SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
+  assert(cpu == 0);
   task(); done();
 #else
-  lock(smp.tlock);
-  smp.tasks.emplace_back(std::move(task), std::move(done));
-  unlock(smp.tlock);
+  lock(smp_system[cpu].tlock);
+  smp_system[cpu].tasks.emplace_back(std::move(task), std::move(done));
+  unlock(smp_system[cpu].tlock);
 #endif
 }
-void ::SMP::add_task(smp_task_func task)
+void ::SMP::add_task(smp_task_func task, int cpu)
+{
+#ifdef INCLUDEOS_SINGLE_THREADED
+  assert(cpu == 0);
+  task();
+#else
+  lock(smp_system[cpu].tlock);
+  smp_system[cpu].tasks.emplace_back(std::move(task), nullptr);
+  unlock(smp_system[cpu].tlock);
+#endif
+}
+void ::SMP::add_bsp_task(smp_done_func task)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
   task();
 #else
-  lock(smp.tlock);
-  smp.tasks.emplace_back(std::move(task), nullptr);
-  unlock(smp.tlock);
+  lock(smp_main.flock);
+  smp_main.completed.push_back(std::move(task));
+  unlock(smp_main.flock);
+  x86::APIC::get().send_bsp_intr();
 #endif
 }
-void ::SMP::signal()
+
+void ::SMP::signal(int cpu)
 {
 #ifndef INCLUDEOS_SINGLE_THREADED
   // broadcast that there is work to do
-  x86::APIC::get().bcast_ipi(0x20);
+  // -1: Broadcast to everyone except BSP
+  if (cpu == -1)
+      x86::APIC::get().bcast_ipi(0x20);
+  // 1-xx: Unicast specific vCPU
+  else if (cpu != 0)
+      x86::APIC::get().send_ipi(cpu, 0x20);
+  // 0: BSP unicast
+  else
+      x86::APIC::get().send_bsp_intr();
 #endif
 }
 
