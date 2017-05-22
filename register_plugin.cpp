@@ -19,6 +19,7 @@
 #include "common.hpp"
 
 #include <net/autoconf.hpp>
+#include <os>
 
 namespace uplink {
 
@@ -28,22 +29,28 @@ void setup_uplink()
 {
   MYINFO("Setting up WS uplink");
 
-  net::autoconf::load();
+  try {
+    net::autoconf::load();
+    
+    auto& en0 = net::Super_stack::get<net::IP4>(0);
+    
+    // already initialized
+    if(en0.is_configured())
+      {
+	uplink = std::make_unique<WS_uplink>(en0);
+      }
+    // if not, register on config event
+    else
+      {
+	en0.on_config([] (auto& inet) {
+	    uplink = std::make_unique<WS_uplink>(inet);
+	  });
+      }
 
-  auto& en0 = net::Super_stack::get<net::IP4>(0);
-  
-  // already initialized
-  if(en0.is_configured())
-  {
-    uplink = std::make_unique<WS_uplink>(en0);
-  }
-  // if not, register on config event
-  else
-  {
-    en0.on_config([] (auto& inet) {
-      uplink = std::make_unique<WS_uplink>(inet);
-    });
-  }
+  }catch(...) {
+      MYINFO("Uplink initialization failed. Reboot.");
+      OS::reboot();
+    }
 }
 
 } // < namespace uplink
