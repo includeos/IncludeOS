@@ -22,7 +22,6 @@
 #include <rtc>
 #include <unordered_map>
 #include <util/timer.hpp>
-#include <delegate>
 #include "ip4.hpp"
 
 using namespace std::chrono_literals;
@@ -92,23 +91,7 @@ namespace net {
     { cache_.clear(); };
 
     /** Flush expired cache entries. RFC-2.3.2.1 */
-    void flush_expired () {
-      INFO("ARP", "Flushing expired entries");
-      std::vector<IP4::addr> expired;
-      for (auto ent : cache_) {
-        if (ent.second.expired()) {
-          expired.push_back(ent.first);
-        }
-      }
-
-      for (auto ip : expired) {
-        cache_.erase(ip);
-      }
-
-      if (not cache_.empty()) {
-        flush_timer_.start(flush_interval_);
-      }
-    }
+    void flush_expired ();
 
     void set_cache_flush_interval(std::chrono::minutes m) {
       flush_interval_ = m;

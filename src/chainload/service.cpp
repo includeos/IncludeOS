@@ -15,67 +15,80 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <cstdint>
+#include <kernel/os.hpp>
+#include <kernel/syscalls.hpp>
 #include <util/elf_binary.hpp>
-#include <util/sha1.hpp>
+#include <service>
+#include <cstdint>
 
-bool verb = true;
-
-#define MYINFO(X,...) INFO("chainload", X, ##__VA_ARGS__)
+static const bool verb = false;
+#define MYINFO(X,...) \
+  if (verb) { INFO("chainload", X, ##__VA_ARGS__); }
 
 extern "C" void hotswap(const char* base, int len, char* dest, void* start,
                         uintptr_t magic, uintptr_t bootinfo);
 
-constexpr int bits() { return sizeof(void*) * 8; }
+extern uint32_t __multiboot_magic;
+extern uint32_t __multiboot_addr;
 
-void Service::start(const std::string&)
+/** Modify multiboot data to show first module as the kernel */
+void promote_mod_to_kernel()
+{
+  auto* bootinfo = (multiboot_info_t*) (uintptr_t) __multiboot_addr;
+
+  Expects (bootinfo->mods_count);
+  auto* mod =  (multiboot_module_t*)bootinfo->mods_addr;
+
+  // Set command line param to mod param
+  bootinfo->cmdline = mod->cmdline;
+
+  // Subtract one module
+  (bootinfo->mods_count)--;
+
+  if (bootinfo->mods_count)
+    bootinfo->mods_addr = (uintptr_t)((multiboot_module_t*)bootinfo->mods_addr + 1);
+}
+
+void Service::start()
 {
   auto mods = OS::modules();
-
-  MYINFO("%i-bit chainloader found %i modules", bits(), mods.size());
+  MYINFO("%u-bit chainloader found %u modules",
+        sizeof(void*) * 8, mods.size());
 
   if (mods.size() <= 0) {
-    MYINFO("Nothing to do. Exiting.");
+    MYINFO("No modules passed to multiboot. Exiting.");
     exit(1);
   }
   multiboot_module_t binary = mods[0];
 
-  //MYINFO("Verifying ELF binary");
-
-  Elf_binary<Elf64> elf ({(char*)binary.mod_start,
+  Elf_binary<Elf64> elf (
+      {(char*)binary.mod_start,
         (int)(binary.mod_end - binary.mod_start)});
 
   void* hotswap_addr = (void*)0x200000;
-
   extern char __hotswap_end;
 
   debug("Moving hotswap function (begin at %p end at %p) of size %i",
          &hotswap,  &__hotswap_end, &__hotswap_end - (char*)&hotswap);
-
   memcpy(hotswap_addr,(void*)&hotswap, &__hotswap_end - (char*)&hotswap );
 
-  extern uintptr_t __multiboot_magic;
-  extern uintptr_t __multiboot_addr;
   debug("Preparing for jump to %s. Multiboot magic: 0x%x, addr 0x%x",
          (char*)binary.cmdline, __multiboot_magic, __multiboot_addr);
 
   char* base  = (char*)binary.mod_start;
   int len = (int)(binary.mod_end - binary.mod_start);
+  // FIXME: determine kernel base from ELF program header
   char* dest = (char*)0xA00000;
   void* start = (void*)elf.entry();
 
-  SHA1 sha;
-  sha.update(base, len);
-  debug("Sha1 of ELF binary module: %s", sha.as_hex().c_str());
-
-
   MYINFO("Hotswapping with params: base: %p, len: %i, dest: %p, start: %p",
          base, len, dest, start);
+
+  promote_mod_to_kernel();
 
   asm("cli");
   ((decltype(&hotswap))hotswap_addr)(base, len, dest, start, __multiboot_magic, __multiboot_addr);
 
   panic("Should have jumped\n");
-
+  __builtin_unreachable();
 }

@@ -58,9 +58,10 @@ extern profiler_stack_sampler
 parasite_interrupt_handler:
   cli
   PUSHAQ
-  push QWORD [rsp + 32]
+  mov  rax, rsp
+  push rsp
+  mov  rsi, QWORD [rsp + 32]
   call profiler_stack_sampler
-  pop  rax
   call QWORD [current_intr_handler]
   POPAQ
   sti

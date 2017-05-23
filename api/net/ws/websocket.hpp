@@ -23,8 +23,14 @@
 
 #include <net/http/server.hpp>
 #include <net/http/client.hpp>
+#include <stdexcept>
 
 namespace net {
+
+struct WS_error : public std::runtime_error {
+  using base = std::runtime_error;
+  using base::base;
+};
 
 class WebSocket {
 public:
@@ -45,31 +51,28 @@ public:
     {
       data_.reserve(header.reported_length());
       const char* hdr = reinterpret_cast<const char*>(&header);
-      data_.insert(data_.end(), hdr, hdr + header.header_length());
+      std::copy(hdr, hdr + header.header_length(), std::back_inserter(data_));
     }
 
-    const ws_header& header() const
+    const ws_header& header() const noexcept
     { return *(reinterpret_cast<const ws_header*>(data_.data())); }
 
-    op_code opcode() const
+    op_code opcode() const noexcept
     { return header().opcode(); }
 
-    auto size() const
+    auto size() const noexcept
     { return header().data_length(); }
 
-    std::string text() const
-    { return {begin(), end()}; }
-
-    Data_it begin()
+    Data_it begin() noexcept
     { return data_.begin() + header().header_length(); }
 
-    Data_it end()
+    Data_it end() noexcept
     { return data_.end(); }
 
-    Data_cit begin() const
+    Data_cit cbegin() const noexcept
     { return data_.begin() + header().header_length(); }
 
-    Data_cit end() const
+    Data_cit cend() const noexcept
     { return data_.end(); }
 
     void add(const char* data, size_t len)
@@ -79,20 +82,23 @@ public:
         data_.insert(data_.end(), data, data+len);
       }
       else {
-        throw std::string{"Panncake"};
+        throw WS_error{"Exceeding Message size"};
       }
     }
 
-    const char* data() const
+    const char* data() const noexcept
     { return data_.data() + header().header_length(); }
 
-    char* data()
+    char* data() noexcept
     { return data_.data() + header().header_length(); }
 
-    bool is_complete() const
+    std::string as_text() const
+    { return std::string(cbegin(), cend()); }
+
+    bool is_complete() const noexcept
     { return header().data_length() == (data_.size() - header().header_length()); }
 
-    void unmask()
+    void unmask() noexcept
     { if (_header().is_masked()) _header().masking_algorithm(); }
 
   private:

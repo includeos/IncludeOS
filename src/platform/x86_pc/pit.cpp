@@ -81,16 +81,18 @@ namespace x86
 
   void PIT::oneshot(milliseconds timeval, timeout_handler handler)
   {
-    if (get().current_mode_ != RATE_GEN) {
+    if (get().current_mode_ != RATE_GEN)
       get().set_mode(RATE_GEN);
-    }
-
     if (get().current_freq_divider_ != MILLISEC_INTERVAL)
       get().set_freq_divider(MILLISEC_INTERVAL);
 
-    get().expiration = now() + timeval;
-    get().handler    = handler;
-    get().run_forever = timeval == milliseconds::zero();
+    bool forever = timeval == milliseconds::zero();
+    if (forever) {
+      get().forev_handler = handler;
+    } else {
+      get().expiration    = now() + timeval;
+      get().handler       = handler;
+    }
   }
 
   void PIT::forever(timeout_handler handler)
@@ -113,17 +115,20 @@ namespace x86
   {
     IRQ_counter ++;
 
-    if (now() >= this->expiration || run_forever)
+    if (now() >= this->expiration)
     {
-      // reset when not running forever
-      if (this->run_forever == false)
-      {
-        disable_regular_interrupts();
-      }
       if (this->handler) {
         this->handler();
         this->handler = nullptr;
       }
+      // stop PIT when not running forever
+      if (this->forev_handler == nullptr)
+          disable_regular_interrupts();
+    }
+    // always call forever handler, if set
+    if (this->forev_handler)
+    {
+      this->forev_handler();
     }
   }
 

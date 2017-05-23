@@ -28,6 +28,14 @@
 #include <kprint>
 #include <info>
 
+namespace x86
+{
+  static IApic* current_apic = nullptr;
+  IApic& APIC::get() noexcept {
+    return *current_apic;
+  }
+}
+
 extern "C" {
   // current selected EOI method
   void (*current_eoi_mechanism)();
@@ -42,12 +50,14 @@ extern "C" {
   void xapic_intr_handler()
   {
     uint8_t vector = x86::APIC::get_isr();
+    //assert(vector >= IRQ_BASE && vector < 160);
     IRQ_manager::get().register_irq(vector - IRQ_BASE);
     lapic_send_eoi();
   }
   void x2apic_intr_handler()
   {
     uint8_t vector = x86::x2apic::static_get_isr();
+    //assert(vector >= IRQ_BASE && vector < 160);
     IRQ_manager::get().register_irq(vector - IRQ_BASE);
     x2apic_send_eoi();
   }
@@ -57,11 +67,6 @@ void kvm_pv_eoi_init();
 
 namespace x86
 {
-  static IApic* current_apic = nullptr;
-  IApic& APIC::get() noexcept {
-    return *current_apic;
-  }
-
   void APIC::init()
   {
     // disable the legacy 8259 PIC

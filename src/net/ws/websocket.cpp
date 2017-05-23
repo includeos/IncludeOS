@@ -194,7 +194,15 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
   // parse message
   if (message != nullptr)
   {
-    message->add(reinterpret_cast<char*>(buf.get()), len);
+    try {
+      message->add(reinterpret_cast<char*>(buf.get()), len);
+    }
+    catch(const WS_error& err)
+    {
+      failure(err.what());
+      on_read(nullptr);
+      return;
+    }
   }
   // create new message
   else
@@ -219,7 +227,6 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
     printf("Payload: len=%u dataofs=%u\n",
             hdr.data_length(), hdr.data_offset());
     */
-    /// validate payload length
 
     /// unmask data (if masked)
     if (hdr.is_masked()) {
@@ -232,7 +239,16 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
       return;
     }
 
-    message = std::make_unique<Message>(reinterpret_cast<char*>(buf.get()), len);
+    try
+    {
+      message = std::make_unique<Message>(reinterpret_cast<char*>(buf.get()), len);
+    }
+    catch(const WS_error& err)
+    {
+      failure(err.what());
+      on_read(nullptr);
+      return;
+    }
   }
 
   if(message->is_complete())

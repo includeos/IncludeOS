@@ -81,6 +81,8 @@ rock_bottom:
 
   ;; enable SSE before we enter C/C++ land
   call enable_sse
+  ;; Enable modern x87 FPU exception handling
+  call enable_fpu_native
   ;; try to enable XSAVE before checking AVX
   call enable_xsave
   ;; enable AVX if xsave and avx supported on CPU
@@ -92,6 +94,14 @@ rock_bottom:
 
   call __arch_start
   jmp __start_panic
+
+enable_fpu_native:
+    push eax
+    mov eax, cr0
+    or eax, 0x20
+    mov cr0, eax
+    pop eax
+    ret
 
 enable_sse:
   push eax        ;preserve eax for multiboot

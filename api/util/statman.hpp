@@ -127,6 +127,8 @@ public:
   Stat& create(const Stat::Stat_type type, const std::string& name);
   // retrieve stat based on address from stats counter: &stat.get_xxx()
   Stat& get(const void* addr);
+  // if you know the name of a statistic already
+  Stat& get_by_name(const char* name);
   // free/delete stat based on address from stats counter
   void free(void* addr);
 

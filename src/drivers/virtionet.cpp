@@ -385,6 +385,7 @@ void VirtioNet::enqueue(net::Packet* pckt)
 {
   Expects(pckt->layer_begin() == pckt->buf() + sizeof(virtio_net_hdr));
   auto* hdr = pckt->buf();
+  memset(hdr, 0, sizeof(virtio_net_hdr));
   VDBG_TX("[virtionet] tx: Transmit %u bytes\n", (uint32_t) pckt->size());
 
   Token token1 {{ hdr, sizeof(virtio_net_hdr)}, Token::OUT };

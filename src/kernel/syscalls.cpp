@@ -128,7 +128,7 @@ void OS::on_panic(on_panic_func func)
 void panic(const char* why)
 {
   /// prevent re-entering panic() more than once per CPU
-  if (panic_reenter) OS::reboot();
+  //if (panic_reenter) OS::reboot();
   panic_reenter = true;
 
   /// display informacion ...
@@ -139,30 +139,19 @@ void panic(const char* why)
   // crash context (can help determine source of crash)
   int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
   if (len > 0) {
-    printf("\n\t**** CONTEXT: ****\n %*s\n\n",
+    printf("\n\t**** CONTEXT: ****\n %*s\n",
         len, get_crash_context_buffer());
   }
 
-  // stack info
-#if defined(ARCH_x86_64)
-  void* SP; asm volatile("mov %%rsp, %0" : "=r"(SP));
-  void* SB; asm volatile("mov %%rbp, %0" : "=r"(SB));
-#elif defined(ARCH_i686)
-  register void* SP asm("esp");
-  register void* SB asm("ebp");
-#else
-  #error "Implement me"
-#endif
-  fprintf(stderr, "\tStack pointer: %p  Base: %p\n", SP, SB);
-
   // heap info
+  typedef unsigned long ulong;
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
-  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%u)\n",
-         (void*) heap_end, (void*) OS::heap_max(), (uint32_t) (OS::heap_max() - heap_end));
-  fprintf(stderr, "\tHeap usage: %lu / %lu Kb (%.2f%%)\n",
-         (unsigned long) (heap_end - heap_begin) / 1024,
-         heap_total / 1024, total * 100.0);
+  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%lu)\n",
+         (void*) heap_end, (void*) OS::heap_max(), (ulong) (OS::heap_max() - heap_end));
+  fprintf(stderr, "\tHeap usage: %lu / %lu Kb\n", // (%.2f%%)\n",
+         (ulong) (heap_end - heap_begin) / 1024,
+         (ulong) heap_total / 1024); //, total * 100.0);
 
   // call stack
   print_backtrace();

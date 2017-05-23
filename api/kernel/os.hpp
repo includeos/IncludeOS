@@ -213,21 +213,7 @@ public:
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
   /** Get "kernel modules", provided by multiboot */
-  static Span_mods modules() {
-    auto* bootinfo_ = bootinfo();
-    if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS) {
-
-      Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
-
-      return Span_mods{
-        reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),
-          static_cast<int>(bootinfo_->mods_count) };
-
-    }
-
-    return nullptr;
-  }
-
+  static Span_mods modules();
 
 
 private:
@@ -280,5 +266,19 @@ private:
 
   friend void __platform_init();
 }; //< OS
+
+inline OS::Span_mods OS::modules()
+{
+  auto* bootinfo_ = bootinfo();
+  if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS and bootinfo_->mods_count) {
+
+    Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
+
+    return Span_mods{
+      reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),
+        static_cast<int>(bootinfo_->mods_count) };
+  }
+  return nullptr;
+}
 
 #endif //< KERNEL_OS_HPP
