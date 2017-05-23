@@ -21,21 +21,27 @@
 
 #include <kernel/pci_manager.hpp>
 #include <hw/pci_device.hpp>
+#include <kernel/cpuid.hpp>
 
-void Service::start(const std::string& args)
+#define MYINFO(X,...) INFO("Starbase",X,##__VA_ARGS__)
+
+void Service::start(const std::string&)
 {
-  printf("[ Starbase ] booted \n");
-   
+  MYINFO("booted");
+
   // Print some useful netstats every 30 secs
-  Timers::periodic(5s, 30s, [] (uint32_t) {	
-      auto& inet = net::Inet4::stack(); 
-      printf("[ Starbase ] TCP STATUS:\n%s\n", inet.tcp().status().c_str());
+  Timers::periodic(5s, 30s, [] (uint32_t) {
+      auto& inet = net::Inet4::stack();
+      MYINFO("TCP STATUS:\n%s\n", inet.tcp().status().c_str());
     });
-  
-  auto devices = PCI_manager::devices();
-   
-  for (auto* dev : devices) {
-    printf("PCI device: %s\n", dev->to_string().c_str());        
-  }
-  
+
+  auto detected_features = CPUID::detect_features_str();
+
+  MYINFO("Detected %lu / %lu CPU features. Detected:",
+         detected_features.size(), CPUID::feature_names.size());
+
+  for (auto f : detected_features)
+    printf("%s %s", f, f == detected_features.back() ? "" : ", ");
+
+  printf("\n");
 }

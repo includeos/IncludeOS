@@ -35,6 +35,7 @@
 #include <util/sha1.hpp>
 #include <kernel/pci_manager.hpp>
 #include <hw/pci_device.hpp>
+#include <kernel/cpuid.hpp>
 
 namespace uplink {
 
@@ -285,18 +286,29 @@ namespace uplink {
     writer.Key("arch");
     writer.String(OS::arch());
 
+    // CPU Features
+    auto features = CPUID::detect_features_str();
+    writer.Key("cpu_features");
+    writer.StartArray();
+    for (auto f : features) {
+      writer.String(f);
+    }
+    writer.EndArray();
+
+    // PCI devices
     auto devices = PCI_manager::devices();
     writer.Key("devices");
-
     writer.StartArray();
     for (auto* dev : devices) {
       writer.String(dev->to_string());
     }
     writer.EndArray();
 
+
     writer.EndObject();
 
     std::string str = buf.GetString();
+
 
     MYINFO("%s", str.c_str());
 
