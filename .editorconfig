@@ -1,0 +1,26 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+draw_white_space = all
+trim_trailing_white_space_on_save = true
+
+[Makefile]
+indent_style = tab
+
+[Makelib]
+indent_style = tab
+
+[*.py]
+indent_size = 4
+
+[boot]
+indent_size = 4
+
+[*.asm]
+indent_size = 4
