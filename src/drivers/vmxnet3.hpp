@@ -30,8 +30,8 @@ public:
   using Link_protocol = Link::Protocol;
   static const int ETH_FRAME_LEN = 1514;
   static const int NUM_RX_QUEUES = 1;
-  static const int NUM_TX_DESC   = 128;
-  static const int NUM_RX_DESC   = 128;
+  static const int NUM_TX_DESC   = 256;
+  static const int NUM_RX_DESC   = 256;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
   { return std::make_unique<vmxnet3>(d); }
@@ -52,8 +52,8 @@ public:
   }
 
   uint16_t packet_len() const noexcept
-  {        // ethernet + vlan + fcs
-    return ETH_FRAME_LEN + 4 + 4;
+  {
+    return sizeof(net::ethernet::Header) + MTU();
   }
 
   net::downstream create_physical_downstream()
