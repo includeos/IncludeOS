@@ -52,8 +52,8 @@ public:
   }
 
   uint16_t packet_len() const noexcept
-  {        // ethernet + vlan + fcs
-    return ETH_FRAME_LEN + 4 + 4;
+  {
+    return sizeof(net::ethernet::Header) + MTU();
   }
 
   net::downstream create_physical_downstream()
