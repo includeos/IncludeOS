@@ -19,6 +19,7 @@
 #include <cstring>
 #include <cstdint>
 #include <array>
+#include <unordered_map>
 
 namespace
 {
@@ -117,6 +118,12 @@ namespace
 
       case Feature::SVM:          return FeatureInfo { 0x80000001, 0, Register::ECX, 1u <<  2 }; // Secure Virtual Machine (AMD-V)
       case Feature::SSE4A:        return FeatureInfo { 0x80000001, 0, Register::ECX, 1u <<  6 }; // SSE4a
+      case Feature::AVX2:         return FeatureInfo { 7, 0, Register::ECX, 1u <<  5 }; // AVX2
+      case Feature::BMI1:         return FeatureInfo { 7, 0, Register::ECX, 1u <<  3 }; // BMI1
+      case Feature::BMI2:         return FeatureInfo { 7, 0, Register::ECX, 1u <<  8 }; // BMI2
+      case Feature::LZCNT:        return FeatureInfo { 7, 0, Register::ECX, 1u <<  5 }; // LZCNT
+
+
     }
   }
 
@@ -230,4 +237,22 @@ bool CPUID::kvm_feature(unsigned id) noexcept
   if (func == 0) return false;
   auto res = cpuid(func, 0);
   return (res.EAX & (1 << id)) != 0;
+}
+
+CPUID::Feature_list CPUID::detect_features() {
+  CPUID::Feature_list vec;
+  for (const auto feat : feature_names) {
+    if (CPUID::has_feature(feat.first))
+      vec.push_back(feat.first);
+  }
+  return vec;
+}
+
+CPUID::Feature_names CPUID::detect_features_str() {
+  CPUID::Feature_names names;
+  auto features = detect_features();
+  for (auto& feat : features) {
+    names.push_back(feature_names.at(feat));
+  }
+  return names;
 }
