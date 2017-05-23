@@ -248,6 +248,10 @@ add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libgcc.a)
 
+# Depending on the output of this command will make it always run. Like magic.
+add_custom_command(OUTPUT fake_news
+      COMMAND cmake -E touch_nocreate alternative_facts)
+
 # add memdisk
 function(add_memdisk DISK)
   get_filename_component(DISK_RELPATH "${DISK}"
@@ -256,7 +260,7 @@ function(add_memdisk DISK)
     OUTPUT  memdisk.o
     COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file ${INSTALL_LOC}/memdisk/memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${INSTALL_LOC}/memdisk/memdisk.asm -o memdisk.o
-    DEPENDS ${DISK_RELPATH}
+    DEPENDS ${DISK_RELPATH} fake_news
   )
   add_library(memdisk STATIC memdisk.o)
   set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
@@ -269,8 +273,9 @@ function(diskbuilder FOLD)
   add_custom_command(
       OUTPUT  memdisk.fat
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
-    )
-  add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
+      DEPENDS fake_news
+      )
+    add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
   add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
 endfunction()

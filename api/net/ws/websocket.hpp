@@ -23,8 +23,14 @@
 
 #include <net/http/server.hpp>
 #include <net/http/client.hpp>
+#include <stdexcept>
 
 namespace net {
+
+struct WS_error : public std::runtime_error {
+  using base = std::runtime_error;
+  using base::base;
+};
 
 class WebSocket {
 public:
@@ -76,7 +82,7 @@ public:
         data_.insert(data_.end(), data, data+len);
       }
       else {
-        throw std::string{"Panncake"};
+        throw WS_error{"Exceeding Message size"};
       }
     }
 

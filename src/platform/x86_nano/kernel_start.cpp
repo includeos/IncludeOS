@@ -7,8 +7,6 @@
 extern  void default_stdout_handlers();
 extern  void __platform_init();
 
-#define MYINFO(X,...) INFO("x86_nano", X, ##__VA_ARGS__)
-
 extern "C" {
   void __init_serial1();
   void __init_sanity_checks();
@@ -59,8 +57,6 @@ extern "C" {
     __libc_init_array();
 
     __platform_init();
-
-    MYINFO("Starting %s\n", Service::name().c_str());
 
     // Start the service
     Service::start();

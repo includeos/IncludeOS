@@ -22,6 +22,7 @@ void default_stdout_handlers()
 }
 
 void __platform_init(){
+  // FIXME: set up minimal CPU exception handlers
   // TODO: set up minimal CPU exception handlers
 }
 

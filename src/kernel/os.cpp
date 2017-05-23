@@ -100,7 +100,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   /// STATMAN ///
   /// initialize on page 7, 2 pages in size
-  Statman::get().init(0x6000, 0x2000);
+  Statman::get().init(0x6000, 0x3000);
 
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
@@ -122,7 +122,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   OS::memory_end_ = high_memory_size_ + 0x100000;
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x6000, 0x7fff, "Statman", "Statistics"});
+  memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
   memmap.assign_range({0xA000, 0x9fbff, "Stack", "Kernel / service main stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF", "Your service binary including OS"});
@@ -158,35 +158,14 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Platform init");
   extern void __platform_init();
   __platform_init();
-  kernel_sanity_checks();
 
   PROFILE("RTC init");
   // Realtime/monotonic clock
   RTC::init();
-  kernel_sanity_checks();
 
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
-  // initialize random seed based on cycles since start
-  if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
-    uint32_t rdrand_output[32];
-
-    for (size_t i = 0; i != 32; ++i) {
-      while (!rdrand32(&rdrand_output[i])) {}
-    }
-
-    rng_absorb(rdrand_output, sizeof(rdrand_output));
-  }
-  else {
-    // this is horrible, better solution needed here
-   for (size_t i = 0; i != 32; ++i) {
-      uint64_t clock = cycles_since_boot();
-      // maybe additionally call something which will take
-      // variable time depending in some way on the processor
-      // state (clflush?) or a HAVEGE-like approach.
-      rng_absorb(&clock, sizeof(clock));
-    }
-  }
+  RNG::init();
 
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
@@ -218,6 +197,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   FILLINE('~');
 
   Service::start();
+  // NOTE: this is a feature for service writers, don't move!
+  kernel_sanity_checks();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){
@@ -251,12 +232,12 @@ void OS::halt() {
 #warning "OS::halt() not implemented for selected arch"
 #endif
   // Count sleep cycles
-  *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
+  if (os_cycles_hlt)
+      *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
 }
 
 void OS::event_loop()
 {
-
   IRQ_manager::get().process_interrupts();
   do {
     OS::halt();

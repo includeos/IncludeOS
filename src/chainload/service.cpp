@@ -15,12 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <cstdint>
+#include <kernel/os.hpp>
+#include <kernel/syscalls.hpp>
 #include <util/elf_binary.hpp>
+#include <service>
+#include <cstdint>
 
-bool verb = true;
-#define MYINFO(X,...) INFO("chainload", X, ##__VA_ARGS__)
+static const bool verb = false;
+#define MYINFO(X,...) \
+  if (verb) { INFO("chainload", X, ##__VA_ARGS__); }
 
 extern "C" void hotswap(const char* base, int len, char* dest, void* start,
                         uintptr_t magic, uintptr_t bootinfo);
@@ -53,7 +56,7 @@ void Service::start()
         sizeof(void*) * 8, mods.size());
 
   if (mods.size() <= 0) {
-    MYINFO("Nothing to do. Exiting.");
+    MYINFO("No modules passed to multiboot. Exiting.");
     exit(1);
   }
   multiboot_module_t binary = mods[0];
@@ -87,4 +90,5 @@ void Service::start()
   ((decltype(&hotswap))hotswap_addr)(base, len, dest, start, __multiboot_magic, __multiboot_addr);
 
   panic("Should have jumped\n");
+  __builtin_unreachable();
 }

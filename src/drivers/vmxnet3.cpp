@@ -106,7 +106,7 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()},
-         2048, 2048 /* half-page buffer size */),
+         1024, 2048 /* half-page buffer size */),
     pcidev(d)
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
@@ -330,8 +330,7 @@ void vmxnet3::refill(rxring_state& rxq)
   bool added_buffers = false;
   int  old_value = rxq.producers;
 
-  while (rxq.prod_count < VMXNET3_RX_FILL
-      && bufstore().available() != 0)
+  while (rxq.prod_count < VMXNET3_RX_FILL)
   {
     size_t i = rxq.producers % vmxnet3::NUM_RX_DESC;
     const uint32_t generation =
