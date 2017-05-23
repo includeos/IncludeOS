@@ -18,17 +18,22 @@
 global unused_interrupt_handler:function
 global modern_interrupt_handler:function
 global cpu_sampling_irq_entry:function
+global parasite_interrupt_handler:function
 
 extern current_eoi_mechanism
 extern current_intr_handler
 extern cpu_sampling_irq_handler
+extern profiler_stack_sampler
+
+SECTION .bss
+ALIGN 16
+__xsave_storage_area: resb  512
 
 %macro PUSHAQ 0
    push rax
    push rbx
    push rcx
    push rdx
-   push rbp
    push rdi
    push rsi
    push r8
@@ -39,8 +44,14 @@ extern cpu_sampling_irq_handler
    push r13
    push r14
    push r15
+
+   ; Preserve extended state
+   ;fxsave [__xsave_storage_area]
 %endmacro
 %macro POPAQ 0
+   ; Restore extended state
+   ;fxrstor [__xsave_storage_area]
+
    pop r15
    pop r14
    pop r13
@@ -51,17 +62,32 @@ extern cpu_sampling_irq_handler
    pop r8
    pop rsi
    pop rdi
-   pop rbp
    pop rdx
    pop rcx
    pop rbx
    pop rax
 %endmacro
 
+%macro SPSAVE 0
+    mov  rax, rsp
+    ;;mov  rsp, __stack_storage_area+512-16
+    and  rsp, -16
+    push rax ;; save old RSP
+    push rbp
+%endmacro
+%macro SPRSTOR 0
+    pop rbp
+    pop rsp  ;; restore old RSP
+%endmacro
+
+
+SECTION .text
 unused_interrupt_handler:
   cli
   PUSHAQ
+  SPSAVE
   call QWORD [current_eoi_mechanism]
+  SPRSTOR
   POPAQ
   sti
   iretq
@@ -69,7 +95,9 @@ unused_interrupt_handler:
 modern_interrupt_handler:
   cli
   PUSHAQ
+  SPSAVE
   call QWORD [current_intr_handler]
+  SPRSTOR
   POPAQ
   sti
   iretq
@@ -77,8 +105,22 @@ modern_interrupt_handler:
 cpu_sampling_irq_entry:
   cli
   PUSHAQ
+  SPSAVE
   call cpu_sampling_irq_handler
   call QWORD [current_eoi_mechanism]
+  SPRSTOR
+  POPAQ
+  sti
+  iretq
+
+parasite_interrupt_handler:
+  cli
+  PUSHAQ
+  mov  rdi, QWORD [rsp + 8*14]
+  SPSAVE
+  call profiler_stack_sampler
+  call QWORD [current_intr_handler]
+  SPRSTOR
   POPAQ
   sti
   iretq

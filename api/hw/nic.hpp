@@ -36,12 +36,11 @@ namespace hw {
 
     virtual Proto proto() const = 0;
 
-    /** Get a readable name. */
+    /** Human-readable driver name */
     virtual const char* driver_name() const = 0;
 
-    std::string device_name() const {
-      return "eth" + std::to_string(N);
-    }
+    /** Human-readable interface/device name (eg. eth0) */
+    virtual std::string device_name() const = 0;
 
     /** A readable name of the type of device @todo: move to a abstract Device? */
     static const char* device_type()
@@ -61,8 +60,13 @@ namespace hw {
     net::BufferStore& bufstore() noexcept
     { return bufstore_; }
 
+    /** Number of free buffers in the BufferStore **/
     size_t buffers_available()
     { return bufstore_.available(); }
+
+    /** Number of total buffers in the BufferStore **/
+    size_t buffers_total()
+    { return bufstore_.total_buffers(); }
 
     /** Number of bytes in a frame needed by the device itself **/
     virtual size_t frame_offset_device() = 0;

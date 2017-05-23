@@ -29,6 +29,7 @@ Inet4::Inet4(hw::Nic& nic)
     dns_server_(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ip4_(*this),
     icmp_(*this), udp_(*this), tcp_(*this), dns_(*this),
+    domain_name_{},
     MTU_(nic.MTU())
 {
   static_assert(sizeof(IP4::addr) == 4, "IPv4 addresses must be 32-bits");
@@ -173,11 +174,25 @@ void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
       dhcp_->on_config(handler);
 }
 
-void Inet4::on_config(dhcp_timeout_func handler)
+void Inet4::network_config(IP4::addr addr,
+                           IP4::addr nmask,
+                           IP4::addr gateway,
+                           IP4::addr dns)
 {
-  if(!dhcp_)
-      throw std::runtime_error("DHCP is not yet initialized");
-  dhcp_->on_config(handler);
+  this->ip4_addr_   = addr;
+  this->netmask_    = nmask;
+  this->gateway_    = gateway;
+  this->dns_server_ = (dns == IP4::ADDR_ANY) ? gateway : dns;
+  INFO("Inet4", "Network configured");
+  INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
+  INFO2("Netmask: \t%s", netmask_.str().c_str());
+  INFO2("Gateway: \t%s", gateway_.str().c_str());
+  INFO2("DNS Server: \t%s", dns_server_.str().c_str());
+
+  for(auto& handler : configured_handlers_)
+    handler(*this);
+
+  configured_handlers_.clear();
 }
 
 void Inet4::process_sendq(size_t packets) {

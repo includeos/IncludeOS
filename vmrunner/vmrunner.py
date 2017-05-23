@@ -10,6 +10,7 @@ import traceback
 import validate_vm
 import signal
 import psutil
+import magic
 
 from prettify import color
 
@@ -28,6 +29,8 @@ package_path = os.path.dirname(os.path.realpath(__file__))
 default_config = INCLUDEOS_HOME + "/includeos/vmrunner/vm.default.json"
 
 default_json = "./vm.json"
+
+chainloader = INCLUDEOS_HOME + "/includeos/chainloader"
 
 # Provide a list of VM's with validated specs
 # (One default vm added at the end)
@@ -61,6 +64,33 @@ class Logger:
 default_logger = Logger(INFO)
 def info(*args):
     default_logger.info(args)
+
+
+
+# Example on Ubuntu:
+# ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), statically linked, not stripped
+# ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, not stripped
+#
+# Example on mac (same files):
+# ELF 32-bit LSB executable, Intel 80386, version 1 (SYSV), statically linked, not stripped, with debug_info
+# ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, not stripped, with debug_info
+#
+# Mac native:
+# Mach-O 64-bit x86_64 executable, flags:<NOUNDEFS|DYLDLINK|TWOLEVEL|WEAK_DEFINES|BINDS_TO_WEAK|PIE>
+
+
+
+def file_type(filename):
+    with magic.Magic() as m:
+        return m.id_filename(filename)
+
+def is_Elf64(filename):
+    magic = file_type(filename)
+    return "ELF" in magic and "executable" in magic and "64-bit" in magic
+
+def is_Elf32(filename):
+    magic = file_type(filename)
+    return "ELF" in magic and "executable" in magic and "32-bit" in magic
 
 
 # The end-of-transmission character
@@ -248,6 +278,8 @@ class qemu(hypervisor):
     def boot(self, multiboot, kernel_args = "", image_name = None):
         self._stopped = False
 
+        info ("Booting with multiboot:", multiboot, "kernel_args: ", kernel_args, "image_name:", image_name)
+
         # Resolve if kvm is present
         self._kvm_present = self.kvm_present()
 
@@ -269,7 +301,23 @@ class qemu(hypervisor):
                 image_name = image_name.split(".")[0]
 
             if not kernel_args: kernel_args = "\"\""
-            kernel_args = ["-kernel", image_name, "-append", kernel_args]
+
+            info ("File magic: ", file_type(image_name))
+
+            if is_Elf64(image_name):
+                info ("Found 64-bit ELF, need chainloader" )
+                print "Looking for chainloader: "
+                print "Found", chainloader, "Type: ",  file_type(chainloader)
+                if not is_Elf32(chainloader):
+                    print color.WARNING("Chainloader doesn't seem to be a 32-bit ELF executable")
+                kernel_args = ["-kernel", chainloader, "-append", kernel_args, "-initrd", image_name + " " + kernel_args]
+            elif is_Elf32(image_name):
+                info ("Found 32-bit elf, trying direct boot")
+                kernel_args = ["-kernel", image_name, "-append", kernel_args]
+            else:
+                print color.WARNING("Provided kernel is neither 64-bit or 32-bit ELF executable.")
+                kernel_args = ["-kernel", image_name, "-append", kernel_args]
+
             info ( "Booting", image_name, "directly without bootloader (multiboot / -kernel args)")
         else:
             kernel_args = []
@@ -631,7 +679,7 @@ class vm:
 
     # Boot the VM and start reading output. This is the main event loop.
     def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner", image_name = None):
-
+        info ("VM boot, timeout: ", timeout, "multiboot: ", multiboot, "Kernel_args: ", kernel_args, "image_name: ", image_name)
         # This might be a reboot
         self._exit_status = None
         self._exit_complete = False

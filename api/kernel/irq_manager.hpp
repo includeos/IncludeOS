@@ -18,7 +18,7 @@
 #ifndef KERNEL_IRQ_MANAGER_HPP
 #define KERNEL_IRQ_MANAGER_HPP
 
-#include <arch>
+#include <arch.hpp>
 #include <delegate>
 #include <membitmap>
 #include <smp>
@@ -94,8 +94,9 @@ public:
    *  @todo Implies enable_irq(irq)?
    *
    *  @todo Create a public member IRQ_manager::eoi for delegates to use
-   */
-  void subscribe(uint8_t irq, irq_delegate, bool create_stat = false);
+  **/
+  uint8_t subscribe(irq_delegate);
+  void subscribe(uint8_t irq, irq_delegate);
   void unsubscribe(uint8_t irq);
 
   // start accepting interrupts
@@ -113,14 +114,16 @@ public:
   /** process all pending interrupts */
   void process_interrupts();
 
-  std::array<uint64_t*,IRQ_LINES>& get_count_handled()
-  { return count_handled; }
-
-  std::array<uint64_t,IRQ_LINES>& get_count_received()
+  /** std::array of received interrupts */
+  auto& get_count_received() const noexcept
   { return count_received; }
 
+  /** std::array of handled interrupts */
+  auto& get_count_handled() const noexcept
+  { return count_handled; }
+
   /** Initialize for a local APIC */
-  static void init(int cpuid);
+  static void init();
   IRQ_manager() = default;
 
 private:
@@ -129,7 +132,7 @@ private:
   IRQ_manager& operator=(IRQ_manager&&) = delete;
   IRQ_manager& operator=(IRQ_manager&) = delete;
 
-  IDTDescr     idt[INTR_LINES];
+  IDTDescr     idt[INTR_LINES] __attribute__((aligned(16)));
   irq_delegate irq_delegates_[IRQ_LINES];
   std::array<uint64_t*,IRQ_LINES> count_handled;
   std::array<uint64_t, IRQ_LINES> count_received;

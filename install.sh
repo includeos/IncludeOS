@@ -7,11 +7,11 @@
 # Location of the IncludeOS repo (default: current directory)
 export INCLUDEOS_SRC=${INCLUDEOS_SRC:-`pwd`}
 # Prefered install location (default: /usr/local)
-export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX-/usr/local}
+export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-/usr/local}
 # Enable compilation of tests in cmake (default: OFF)
-export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST-OFF}
+export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST:-OFF}
 # Set CPU-architecture (default x86_64)
-export ARCH=${ARCH-x86_64}
+export ARCH=${ARCH:-x86_64}
 
 ############################################################
 # COMMAND LINE PROPERTIES:
@@ -50,7 +50,7 @@ done
 # SYSTEM PROPERTIES:
 ############################################################
 
-SYSTEM=`uname -s`
+export SYSTEM=`uname -s`
 
 read_linux_release() {
     LINE=`grep "^ID=" /etc/os-release`
@@ -71,7 +71,7 @@ check_os_support() {
             ;;
         "Linux")
             case $RELEASE in
-                "debian"|"ubuntu"|"linuxmint")
+                "debian"|"ubuntu"|"linuxmint"|"parrot")
                     return 0;
                     ;;
                 "fedora")
@@ -109,10 +109,9 @@ fi
 
 # Install build requirements (compiler, etc)
 if [ "Darwin" = "$SYSTEM" ]; then
-    if ! ./etc/install_osx.sh; then
-		printf "%s\n" ">>> Sorry <<<"\
-			   "Could not install osx dependencies"
-		exit 1
+	echo ">>> Dependencies required:"
+    if ! ./etc/install_dependencies_macos.sh -c; then
+		missing_dependencies=1
 	fi
 else
 	# Will only check if build dependencies are installed at this point
@@ -122,7 +121,7 @@ else
 		dependency_level=build
 	fi
 	echo ">>> Dependencies required:"
-	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
+	if ! ./etc/install_dependencies_linux.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
 		missing_dependencies=1
 	fi
 fi
@@ -181,10 +180,17 @@ fi
 
 # Install dependencies if there are any missing
 if [ ! -z $missing_dependencies ]; then
-	if ! ./etc/install_build_requirements.sh -s $SYSTEM -r $RELEASE -d $dependency_level; then
-		printf "%s\n" ">>> Sorry <<<"\
-				"Could not install dependencies"
-		exit 1
+	if [ "Darwin" = "$SYSTEM" ]; then
+		if ! ./etc/install_dependencies_macos.sh; then
+			printf "%s\n" ">>> Sorry <<<"\
+					"Could not install dependencies"
+		fi
+	else
+		if ! ./etc/install_dependencies_linux.sh -s $SYSTEM -r $RELEASE -d $dependency_level; then
+			printf "%s\n" ">>> Sorry <<<"\
+					"Could not install dependencies"
+			exit 1
+		fi
 	fi
 fi
 
@@ -221,6 +227,15 @@ if [ "Linux" = "$SYSTEM" ]; then
         exit 1
     fi
 fi
+
+
+printf "\n\n>>> Installing chain loader\n"
+if ! ./etc/build_chainloader.sh; then
+  printf "%s\n" ">>> Sorry <<<"\
+			   "Could not build chainloader."
+  exit 1
+fi
+
 
 ############################################################
 # INSTALL FINISHED:

@@ -148,12 +148,10 @@ namespace http {
 
     /* GET */
     inline void get(URI url, Header_set hfields, Response_handler cb, Options options = {});
-    inline void get(std::string url, Header_set hfields, Response_handler cb, Options options = {});
     inline void get(Host host, std::string path, Header_set hfields, Response_handler cb, Options options = {});
 
     /* POST */
     inline void post(URI url, Header_set hfields, std::string data, Response_handler cb, Options options = {});
-    inline void post(std::string url, Header_set hfields, std::string data, Response_handler cb, Options options = {});
     inline void post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options = {});
 
     /**
@@ -208,18 +206,12 @@ namespace http {
   inline void Client::get(URI url, Header_set hfields, Response_handler cb, Options options)
   { request(GET, std::move(url), std::move(hfields), std::move(cb), std::move(options)); }
 
-  inline void Client::get(std::string url, Header_set hfields, Response_handler cb, Options options)
-  { get(URI{std::move(url)}, std::move(hfields), std::move(cb), std::move(options)); }
-
   inline void Client::get(Host host, std::string path, Header_set hfields, Response_handler cb, Options options)
   { request(GET, std::move(host), std::move(path), std::move(hfields), std::move(cb), std::move(options)); }
 
   /* POST */
   inline void Client::post(URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
   { request(POST, std::move(url), std::move(hfields), std::move(data), std::move(cb), std::move(options)); }
-
-  inline void Client::post(std::string url, Header_set hfields, std::string data, Response_handler cb, Options options)
-  { post(URI{std::move(url)}, std::move(hfields), std::move(data), std::move(cb), std::move(options)); }
 
   inline void Client::post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options)
   { request(POST, std::move(host), std::move(path), std::move(hfields), std::move(data), std::move(cb), std::move(options)); }

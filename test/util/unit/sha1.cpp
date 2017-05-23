@@ -38,11 +38,23 @@ CASE("Rolling checksum verification") {
   EXPECT(checksum.as_hex() == "34aa973cd4c4daa4f61eeb2bdbad27316534016f");
 }
 
+CASE("Vector magic") {
+  SHA1 checksum;
+  checksum.update("abc");
+  auto raw = checksum.as_raw();
+  EXPECT(raw.size() == 20);
+  EXPECT(memcmp(raw.data(),
+  "\xa9\x99\x3e\x36\x47\x06\x81\x6a\xba\x3e\x25\x71\x78\x50\xc2\x6c\x9c\xd0\xd8\x9d",
+          raw.size()) == 0);
+}
+
 inline std::string encode_hash(const std::string& key)
 {
   static const std::string GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-  std::string hash  = SHA1::oneshot_raw(key + GUID);
-  return base64::encode(hash);
+  static SHA1  hash;
+  hash.update(key);
+  hash.update(GUID);
+  return base64::encode(hash.as_raw());
 }
 
 CASE("WebSocket Handshake") {

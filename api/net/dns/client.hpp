@@ -68,7 +68,8 @@ namespace net
      * @param      stack   The stack
      */
     DNSClient(Stack& stack)
-      : socket_(stack.udp().bind()),
+      : stack_{stack},
+        socket_(stack.udp().bind()),
         cache_ttl_{DEFAULT_CACHE_TTL},
         flush_timer_{{this, &DNSClient::flush_expired}}
     {
@@ -151,12 +152,16 @@ namespace net
     void enable_cache(std::chrono::seconds ttl = DEFAULT_CACHE_TTL)
     { set_cache_ttl(ttl); }
 
+    static bool is_FQDN(const std::string& hostname)
+    { return hostname.find('.') != std::string::npos; }
+
     ~DNSClient()
     {
       socket_.close();
     }
 
   private:
+    Stack&                stack_;
     UDPSocket&            socket_;
     Cache                 cache_;
     std::chrono::seconds  cache_ttl_;

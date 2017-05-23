@@ -25,7 +25,7 @@ long FileSys::write(FILE* file)
   auto* mbr = (fs::MBR::mbr*) mbr_code;
 
   // create "valid" MBR
-  strcpy(mbr->oem_name, "INCLUDOS");
+  memcpy(mbr->oem_name, "INCLUDOS", 8);
   mbr->magic = 0xAA55;
 
   // create valid BPB for old FAT

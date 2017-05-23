@@ -16,7 +16,10 @@ if [ ! -d newlib-$newlib_version ]; then
     fi
     echo -e "\n\n >>> Extracting newlib \n"
     tar -xf newlib-$newlib_version.tar.gz
-
+    # patch in no-red-zone for 64-bit
+    pushd newlib-$newlib_version
+    find . -type f -exec sed -i 's/-g -O2/-g -O2 -mno-red-zone -msse3/g' {} \;
+    popd
 else
     echo -e "\n\n >>> SKIP:  Download / extract newlib. Found source folder "newlib-$newlib_version" \n"
 fi
@@ -39,14 +42,14 @@ fi
 ../newlib-$newlib_version/configure \
 	--target=$TARGET \
 	--prefix=$TEMP_INSTALL_DIR \
-	--enable-newlib-io-long-long AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib \
+  AS_FOR_TARGET=as LD_FOR_TARGET=ld AR_FOR_TARGET=ar RANLIB_FOR_TARGET=ranlib \
+	--enable-newlib-io-long-long \
+  --enable-newlib-io-c99-formats \
+  --enable-newlib-io-pos-args \
   --enable-newlib-hw-fp \
-  --enable-newlib-mb \
-  --enable-newlib-iconv \
-  --enable-newlib-iconv-encodings=utf-16,utf-8,ucs_2 \
   --disable-libgloss \
   --disable-multilib \
-  --enable-newlib-multithread \
+  --disable-newlib-multithread \
   --disable-newlib-supplied-syscalls
 
 echo -e "\n\n >>> BUILDING NEWLIB \n\n"

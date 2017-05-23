@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,12 +16,18 @@
 // limitations under the License.
 
 #include <kernel/rng.hpp>
-#include <kernel/rdrand.hpp>
 #include <kernel/cpuid.hpp>
+#include <kernel/os.hpp>
+#include <kernel/rdrand.hpp>
 #include <algorithm>
 #include <cstring>
+#include <smp>
 
-static uint64_t rng_state[25];
+struct rng_state
+{
+  uint64_t state[25];
+};
+static SMP_ARRAY<rng_state> rng;
 
 static inline uint64_t rotate_left(uint64_t input, size_t rot) {
   return (input << rot) | (input >> (64-rot));
@@ -125,10 +131,10 @@ void rng_absorb(const void* input, size_t bytes)
      size_t absorbing = std::min<size_t>(bytes - absorbed, SHAKE_128_RATE);
 
      xor_bytes(static_cast<const uint8_t*>(input) + absorbed,
-               reinterpret_cast<uint8_t*>(rng_state),
+               reinterpret_cast<uint8_t*>(PER_CPU(rng).state),
                absorbing);
 
-      keccak_1600_p(rng_state);
+      keccak_1600_p(PER_CPU(rng).state);
       absorbed += absorbing;
      }
   }
@@ -140,8 +146,32 @@ void rng_extract(void* output, size_t bytes)
    while(copied < bytes)
       {
       size_t copying = std::min<size_t>(bytes - copied, SHAKE_128_RATE);
-      memcpy(static_cast<uint8_t*>(output) + copied, rng_state, copying);
-      keccak_1600_p(rng_state);
+      memcpy(static_cast<uint8_t*>(output) + copied, PER_CPU(rng).state, copying);
+      keccak_1600_p(PER_CPU(rng).state);
       copied += copying;
       }
    }
+
+void RNG::init()
+{
+   // initialize random seed based on cycles since start
+   if (CPUID::has_feature(CPUID::Feature::RDRAND)) {
+     uint32_t rdrand_output[32];
+
+     for (size_t i = 0; i != 32; ++i) {
+       while (!rdrand32(&rdrand_output[i])) {}
+     }
+
+     rng_absorb(rdrand_output, sizeof(rdrand_output));
+   }
+   else {
+     // this is horrible, better solution needed here
+    for (size_t i = 0; i != 32; ++i) {
+       uint64_t clock = OS::cycles_since_boot();
+       // maybe additionally call something which will take
+       // variable time depending in some way on the processor
+       // state (clflush?) or a HAVEGE-like approach.
+       rng_absorb(&clock, sizeof(clock));
+     }
+   }
+}

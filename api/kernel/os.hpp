@@ -19,7 +19,7 @@
 #define KERNEL_OS_HPP
 
 #include <common>
-#include <arch>
+#include <arch.hpp>
 #include <kernel/memmap.hpp>
 #include <kernel/rtc.hpp>
 #include <hertz>
@@ -213,27 +213,15 @@ public:
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
   /** Get "kernel modules", provided by multiboot */
-  static Span_mods modules() {
-
-    if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS) {
-
-      Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
-
-      return Span_mods{
-        reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),
-          static_cast<int>(bootinfo_->mods_count) };
-
-    }
-
-    return nullptr;
-  }
-
+  static Span_mods modules();
 
 
 private:
 
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
+
+  static multiboot_info_t* bootinfo();
 
   /** Boot with no multiboot params */
   static void legacy_boot();
@@ -265,7 +253,6 @@ private:
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
-  static multiboot_info_t* bootinfo_;
   static std::string cmdline;
 
   // Prohibit copy and move operations
@@ -277,7 +264,21 @@ private:
   // Prohibit construction
   OS() = delete;
 
-  friend void __arch_init();
+  friend void __platform_init();
 }; //< OS
+
+inline OS::Span_mods OS::modules()
+{
+  auto* bootinfo_ = bootinfo();
+  if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS and bootinfo_->mods_count) {
+
+    Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
+
+    return Span_mods{
+      reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),
+        static_cast<int>(bootinfo_->mods_count) };
+  }
+  return nullptr;
+}
 
 #endif //< KERNEL_OS_HPP

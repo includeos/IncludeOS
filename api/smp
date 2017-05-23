@@ -20,10 +20,8 @@
 #ifndef API_SMP_HEADER
 #define API_SMP_HEADER
 
-#include "arch"
+#include <arch.hpp>
 #include <delegate>
-
-#define INCLUDEOS_SINGLE_THREADED
 
 #ifdef INCLUDEOS_SINGLE_THREADED
 #define SMP_MAX_CORES   1
@@ -34,7 +32,7 @@
 #define SMP_ALIGN       64
 
 /// x86-related locking stuff ///
-#if ARCH_X86 || ARCH_X64
+#if defined(ARCH_x86)
 // Intel 3a  8.10.6.7: 128-byte boundary
 typedef volatile int spinlock_t __attribute__((aligned(128)));
 
@@ -116,11 +114,13 @@ public:
   // execute @func on another CPU core
   // call @done back on main CPU when task returns
   // use signal() to broadcast work should begin
-  static void add_task(task_func func, done_func done);
-  static void add_task(task_func func);
+  static void add_task(task_func func, done_func done, int cpu = 0);
+  static void add_task(task_func func, int cpu = 0);
+  // execute a function on the main cpu
+  static void add_bsp_task(done_func func);
 
   // call this to signal that tasks are queued up
-  static void signal();
+  static void signal(int cpu = -1);
 
   // trigger interrupt on specified CPU
   static void unicast(int cpu, uint8_t intr);

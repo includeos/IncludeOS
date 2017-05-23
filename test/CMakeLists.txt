@@ -11,10 +11,12 @@ option(GENERATE_SUPPORT_FILES "Generate external files required by some tests (e
 option(EXTRA_TESTS "Build extra test" OFF)
 
 if ("${ARCH}" STREQUAL "")
-  set (ARCH "ARCH_X64")
+  message(STATUS "CMake detected host arch: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+  set (ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
 endif("${ARCH}" STREQUAL "")
+message(STATUS "Building for arch ${ARCH}")
 
-add_definitions(-D${ARCH})
+add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 
 set(CMAKE_CXX_STANDARD 14)
@@ -33,7 +35,7 @@ endif()
 set(CMAKE_CXX_FLAGS "-g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
-  set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
+  set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 endif()
 
 set(SRC ${INCLUDEOS_ROOT}/src)
@@ -67,8 +69,10 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
+  ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cookie_test.cpp
+  ${TEST}/net/unit/dhcp_message_test.cpp
   ${TEST}/net/unit/dns_test.cpp
   ${TEST}/net/unit/error.cpp
   ${TEST}/net/unit/http_header_test.cpp

@@ -27,7 +27,7 @@ def DHCP_test(trigger_line):
   print color.INFO("<Test.py>"), "Trying to ping"
   time.sleep(1)
   try:
-    command = ["ping", ip_string.rstrip(), "-c", str(ping_count), "-i", "0.2"]
+    command = ["ping", "-c", str(ping_count), "-i", "0.2", ip_string.rstrip()]
     print color.DATA(" ".join(command))
     print subprocess.check_output(command)
     print color.INFO("<Test.py>"), "Number of ping tests passed: ", str(num_assigned_clients)

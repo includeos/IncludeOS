@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #define DEBUG  // Allow debugging
-// #define DEBUG2 // Allow debugging
+#define DEBUG  // Allow debugging
+#define DEBUG2 // Allow debugging
 
 #include <vector>
 
@@ -44,11 +44,18 @@ namespace net {
 
     header* hdr = reinterpret_cast<header*>(pckt->layer_begin());
 
-    debug2("<Arp> Have valid cache? %s\n", is_valid_cached(hdr->sipaddr) ? "YES" : "NO");
-    cache(hdr->sipaddr, hdr->shwaddr);
+    /// cache entry
+    this->cache(hdr->sipaddr, hdr->shwaddr);
+
+    /// always try to ship waiting packets when someone talks
+    auto waiting = waiting_packets_.find(hdr->sipaddr);
+    if (waiting != waiting_packets_.end()) {
+      debug("<Arp> Had a packet waiting for this IP. Sending\n");
+      transmit(std::move(waiting->second), hdr->sipaddr);
+      waiting_packets_.erase(waiting);
+    }
 
     switch(hdr->opcode) {
-
     case H_request: {
       // Stat increment requests received
       requests_rx_++;
@@ -75,28 +82,18 @@ namespace net {
       }
       break;
     }
-
     case H_reply: {
       // Stat increment replies received
       replies_rx_++;
-
       debug("\t ARP REPLY: %s belongs to %s (waiting: %u)\n",
              hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str(), waiting_packets_.size());
-
-      auto waiting = waiting_packets_.find(hdr->sipaddr);
-
-      if (waiting != waiting_packets_.end()) {
-        debug("<Arp> Had a packet waiting for this IP. Sending\n");
-        transmit(std::move(waiting->second), hdr->sipaddr);
-        waiting_packets_.erase(waiting);
-      }
       break;
     }
-
     default:
       debug2("\t UNKNOWN OPCODE\n");
       break;
     } //< switch(hdr->opcode)
+
   }
 
   void Arp::cache(IP4::addr ip, MAC::Addr mac) {
@@ -106,7 +103,7 @@ namespace net {
 
     if (entry != cache_.end()) {
       debug2("Cached entry found: %s recorded @ %llu. Updating timestamp\n",
-             entry->second.mac_.str().c_str(), entry->second.timestamp_);
+             entry->second.mac().str().c_str(), entry->second.timestamp());
 
       if (entry->second.mac() != mac) {
         cache_.erase(entry);
@@ -151,8 +148,8 @@ namespace net {
 
     Expects(pckt->size());
 
-    debug2("<ARP -> physical> Transmitting %i bytes to %s\n",
-           pckt->size(), dip.str().c_str());
+    debug2("<ARP -> physical> Transmitting %u bytes to %s\n",
+          (uint32_t) pckt->size(), next_hop.str().c_str());
 
     MAC::Addr dest_mac;
 
@@ -160,6 +157,10 @@ namespace net {
       dest_mac = MAC::BROADCAST;
     } else {
 
+#ifdef ARP_PASSTHROUGH
+      extern MAC::Addr linux_tap_device;
+      dest_mac = linux_tap_device;
+#else
       // If we don't have a cached IP, perform address resolution
       auto cache_entry = cache_.find(next_hop);
       if (UNLIKELY(cache_entry == cache_.end())) {
@@ -170,6 +171,7 @@ namespace net {
 
       // Get MAC from cache
       dest_mac = cache_[next_hop].mac();
+#endif
 
       debug("<ARP> Found cache entry for IP %s -> %s \n",
             next_hop.to_string().c_str(), dest_mac.to_string().c_str());
@@ -233,5 +235,24 @@ namespace net {
     linklayer_out_(std::move(req), MAC::BROADCAST, Ethertype::ARP);
   }
 
+
+  void Arp::flush_expired()
+  {
+    debug("<ARP> Flushing expired entries\n");
+    std::vector<IP4::addr> expired;
+    for (auto ent : cache_) {
+      if (ent.second.expired()) {
+        expired.push_back(ent.first);
+      }
+    }
+
+    for (auto ip : expired) {
+      cache_.erase(ip);
+    }
+
+    if (not cache_.empty()) {
+      flush_timer_.start(flush_interval_);
+    }
+  }
 
 } //< namespace net

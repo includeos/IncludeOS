@@ -13,10 +13,15 @@ typedef Timers::handler_t  handler_t;
 
 static void sched_timer(duration_t when, Timers::id_t id);
 
-struct Timer
+struct SystemTimer
 {
-  Timer(duration_t p, handler_t cb)
-    : period(p), callback(cb), deferred_destruct(false) {}
+  SystemTimer(duration_t p, handler_t cb)
+    : period(p), callback(std::move(cb)), deferred_destruct(false) {}
+
+  SystemTimer(SystemTimer&& other)
+  : period(other.period),
+    callback(std::move(other.callback)),
+    deferred_destruct(other.deferred_destruct) {}
 
   bool is_alive() const noexcept {
     return deferred_destruct == false;
@@ -55,7 +60,7 @@ struct alignas(SMP_ALIGN) timer_system
   uint32_t dead_timers = 0;
   Timers::start_func_t arch_start_func;
   Timers::stop_func_t  arch_stop_func;
-  std::vector<Timer>        timers;
+  std::vector<SystemTimer>  timers;
   std::vector<Timers::id_t> free_timers;
   // timers sorted by timestamp
   std::multimap<duration_t, Timers::id_t> scheduled;
@@ -113,7 +118,7 @@ Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t hand
       auto it = system.scheduled.begin();
       while (it != system.scheduled.end()) {
         // take over this timer, if dead
-        Timers::id_t id = it->second;
+        id = it->second;
 
         if (system.timers[id].deferred_destruct)
         {
@@ -123,8 +128,7 @@ Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t hand
           // reset timer
           system.timers[id].reset();
           // reuse timer
-          new (&system.timers[id]) Timer(period, handler);
-          sched_timer(when, id);
+          new (&system.timers[id]) SystemTimer(period, handler);
 
           // Stat increment timer started
           if (system.timers[id].is_oneshot()) {
@@ -133,6 +137,7 @@ Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t hand
             if (system.periodic_started) (*system.periodic_started)++;
           }
 
+          sched_timer(when, id);
           return id;
         }
         ++it;
@@ -148,11 +153,8 @@ Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t hand
     system.free_timers.pop_back();
 
     // occupy free slot
-    new (&system.timers[id]) Timer(period, handler);
+    new (&system.timers[id]) SystemTimer(period, handler);
   }
-
-  // immediately schedule timer
-  sched_timer(when, id);
 
   // Stat increment timer started
   if (system.timers[id].is_oneshot()) {
@@ -161,13 +163,15 @@ Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t hand
     if (system.periodic_started) (*system.periodic_started)++;
   }
 
+  // immediately schedule timer
+  sched_timer(when, id);
   return id;
 }
 
 void Timers::stop(Timers::id_t id)
 {
   auto& system = get();
-  if (LIKELY(system.timers[id].deferred_destruct == false))
+  if (LIKELY(system.timers.at(id).deferred_destruct == false))
   {
     // mark as dead already
     system.timers[id].deferred_destruct = true;
@@ -241,7 +245,7 @@ void Timers::timers_handler()
           if (timer.deferred_destruct) system.dead_timers--;
           system.free_timers.push_back(id);
         }
-        else if (timer.is_oneshot() == false)
+        else
         {
           // if the timer is recurring, we will simply reschedule it
           // NOTE: we are carefully using (when + period) to avoid drift
@@ -266,6 +270,8 @@ void Timers::timers_handler()
 }
 static void sched_timer(duration_t when, Timers::id_t id)
 {
+  assert(when != microseconds::zero());
+
   auto& system = get();
   system.scheduled.
     emplace(std::piecewise_construct,

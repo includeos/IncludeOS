@@ -3,11 +3,13 @@ cmake_minimum_required(VERSION 2.8.9)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 # Target CPU Architecture
-set(ARCH x86_64)
 if(DEFINED ENV{ARCH})
-  set(ARCH $ENV{ARCH})
+  set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
+else()
+  set(ARCH "x86_64" CACHE STRING "Architecture (default)")
 endif()
-message(STATUS "Target CPU architecture ${ARCH}")
+
+message(STATUS "Target CPU ${ARCH}")
 
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
@@ -43,10 +45,12 @@ else()
   set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
 endif(cpu_feat_vanilla)
 
+option(single_threaded "Compile without SMP support" ON)
+
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
+set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -54,7 +58,7 @@ set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_P
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
 set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE")
 
-set(WARNS "-Wall -Wextra -Wno-expansion-to-defined")
+set(WARNS "-Wall -Wextra")
 
 # configure options
 option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
@@ -72,6 +76,9 @@ endfunction()
 init_submodule(mod/GSL)
 init_submodule(mod/http-parser)
 init_submodule(mod/uzlib)
+init_submodule(mod/rapidjson)
+
+install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 
 # set optimization level
 set(OPTIMIZE "-O2")
@@ -103,12 +110,12 @@ set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -c -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 endif()
 
 # either download or cross-compile needed libraries
@@ -173,16 +180,8 @@ endif(tests)
 
 option(libmana "Build and install mana web application framework library" ON)
 if(libmana)
-  set(rapidjson ON) # Dependent on rapidjson
   add_subdirectory(lib/mana)
 endif(libmana)
-
-option(rapidjson "Download and install rapidjson submodule" ON)
-if(rapidjson)
-  init_submodule(mod/rapidjson)
-  install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
-endif(rapidjson)
-
 
 #
 # Installation

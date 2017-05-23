@@ -9,25 +9,22 @@ endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
-# TODO: Verify that the OS libraries exist
-set(ARCH x86_64)
-if(DEFINED ENV{ARCH})
-  set(ARCH $ENV{ARCH})
-endif()
-message(STATUS "Target CPU architecture ${ARCH}")
 
+message(STATUS "Target CPU architecture ${ARCH}")
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 message(STATUS "Target triple ${TRIPLE}")
 
-# Assembler
+# Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")
-  set (ARCH_INTERNAL "ARCH_X64")
+  set(ARCH_INTERNAL "ARCH_X64")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+  set(OBJCOPY_TARGET "elf64-x86-64")
 else()
-  set (ARCH_INTERNAL "ARCH_X86")
+  set(ARCH_INTERNAL "ARCH_X86")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+  set(OBJCOPY_TARGET "elf32-i386")
 endif()
 enable_language(ASM_NASM)
 
@@ -37,7 +34,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
+set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # configure options
@@ -45,7 +42,11 @@ option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "Strip symbols to further reduce size" OFF)
 
-add_definitions(-D${ARCH})
+add_definitions(-DARCH_${ARCH})
+add_definitions(-DARCH="${ARCH}")
+if (single_threaded)
+add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+endif()
 
 # Compiler optimization
 set(OPTIMIZE "-O2")
@@ -57,12 +58,12 @@ if (debug)
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-  set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -c")
+  set(CMAKE_CXX_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -c")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
 # executable
@@ -169,6 +170,7 @@ include_directories(${LOCAL_INCLUDES})
 include_directories(${INSTALL_LOC}/api/posix)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
 include_directories(${INSTALL_LOC}/${ARCH}/include/newlib)
+include_directories(${INSTALL_LOC}/${ARCH}/include)
 include_directories(${INSTALL_LOC}/api)
 include_directories(${INSTALL_LOC}/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)
@@ -214,6 +216,9 @@ add_library(libarch STATIC IMPORTED)
 set_target_properties(libarch PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libarch PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libarch.a)
 
+add_library(libplatform STATIC IMPORTED)
+set_target_properties(libplatform PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libplatform PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/platform/lib${PLATFORM}.a)
 
 add_library(libbotan STATIC IMPORTED)
 set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
@@ -243,6 +248,10 @@ add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libgcc.a)
 
+# Depending on the output of this command will make it always run. Like magic.
+add_custom_command(OUTPUT fake_news
+      COMMAND cmake -E touch_nocreate alternative_facts)
+
 # add memdisk
 function(add_memdisk DISK)
   get_filename_component(DISK_RELPATH "${DISK}"
@@ -251,7 +260,7 @@ function(add_memdisk DISK)
     OUTPUT  memdisk.o
     COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file ${INSTALL_LOC}/memdisk/memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${INSTALL_LOC}/memdisk/memdisk.asm -o memdisk.o
-    DEPENDS ${DISK_RELPATH}
+    DEPENDS ${DISK_RELPATH} fake_news
   )
   add_library(memdisk STATIC memdisk.o)
   set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
@@ -264,8 +273,9 @@ function(diskbuilder FOLD)
   add_custom_command(
       OUTPUT  memdisk.fat
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
-    )
-  add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
+      DEPENDS fake_news
+      )
+    add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
   add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
 endfunction()
@@ -280,7 +290,7 @@ if(TARFILE)
       OUTPUT tarfile.o
       COMMAND tar cf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
-      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   elseif(CREATE_TAR_GZ)
@@ -289,14 +299,14 @@ if(TARFILE)
       OUTPUT tarfile.o
       COMMAND tar czf ${TAR_RELPATH} -C ${CMAKE_SOURCE_DIR} ${TAR_BASE_NAME}
       COMMAND cp ${TAR_RELPATH} input.bin
-      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   else(true)
     add_custom_command(
       OUTPUT tarfile.o
       COMMAND cp ${TAR_RELPATH} input.bin
-      COMMAND ${CMAKE_OBJCOPY} -I binary -O elf32-i386 -B i386 input.bin tarfile.o
+      COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 input.bin tarfile.o
       COMMAND rm input.bin
     )
   endif(CREATE_TAR)
@@ -312,19 +322,31 @@ set_target_properties(crtn PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/l
 
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
+  libplatform
   libarch
   libos
   libbotan
   libosdeps
   cxxabi
-  libarch
-  libos
   libc
-  libos
   libcxx
   libm
   libg
   libgcc
+
+  libplatform
+  libarch
+  libos
+  libbotan
+  libosdeps
+  cxxabi
+  libc
+  libcxx
+  libm
+  libg
+  libgcc
+
+
   ${INSTALL_LOC}/${ARCH}/lib/crtend.o
   --whole-archive crtn --no-whole-archive
   )

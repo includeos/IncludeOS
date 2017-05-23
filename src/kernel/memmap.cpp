@@ -82,7 +82,7 @@ std::string Fixed_memory_range::to_string() const {
 
   out << name_      << " "      << std::hex      << addr_start() << " - "
       << addr_end() << " ("     << description_  << ", "
-      << std::dec   << bytes_in_use() << " / "   <<  " bytes used) ";
+      << std::dec   << bytes_in_use() << " / " << size() <<  " bytes used) ";
 
   return out.str();
 }

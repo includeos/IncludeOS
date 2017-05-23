@@ -50,7 +50,19 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     smss_{host_.MSS()}
 {
   setup_congestion_control();
-  debug("<Connection> %s created\n", to_string().c_str());
+  //printf("<Connection> Created %p %s  ACTIVE: %u\n", this,
+  //        to_string().c_str(), host_.active_connections());
+}
+
+Connection::~Connection()
+{
+  //printf("<Connection> Deleted %p %s  ACTIVE: %u\n", this,
+  //        to_string().c_str(), host_.active_connections());
+  rtx_clear();
+}
+
+Connection_ptr Connection::retrieve_shared() {
+  return host_.retrieve_shared(this);
 }
 
 /*
@@ -203,7 +215,7 @@ void Connection::offer(size_t& packets)
 
   if(can_send() and not queued_)
   {
-    host_.queue_offer(shared_from_this());
+    host_.queue_offer(retrieve_shared());
   }
 }
 
@@ -294,7 +306,7 @@ void Connection::segment_arrived(Packet_ptr incoming)
         prev_state_->to_string().c_str(), state_->to_string().c_str());
       writeq_reset();
       signal_close();
-      set_state(Closed::instance());
+      /// NOTE: connection is dead here!
       break;
   }
 }
@@ -307,13 +319,6 @@ __attribute__((weak))
 void Connection::deserialize_from(void*) {}
 __attribute__((weak))
 int  Connection::serialize_to(void*) const {  return 0;  }
-
-Connection::~Connection() {
-  // Do all necessary clean up.
-  // Free up buffers etc.
-  debug2("<Connection::~Connection> Deleted %s\n", to_string().c_str());
-  rtx_clear();
-}
 
 Packet_ptr Connection::create_outgoing_packet()
 {
@@ -865,7 +870,7 @@ void Connection::clean_up() {
 
   // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called
   // avoids connection being destructed before function is done
-  auto shared = shared_from_this();
+  auto shared = retrieve_shared();
   // clean up all other copies
   // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
   if(_on_cleanup_) _on_cleanup_(shared);

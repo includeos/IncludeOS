@@ -50,4 +50,4 @@ reboot_os:
 
 reset_idtr:
     dw      400h - 1
-    dd      0
+    dq      0

@@ -22,7 +22,6 @@
 #include <rtc>
 #include <unordered_map>
 #include <util/timer.hpp>
-#include <delegate>
 #include "ip4.hpp"
 
 using namespace std::chrono_literals;
@@ -92,17 +91,7 @@ namespace net {
     { cache_.clear(); };
 
     /** Flush expired cache entries. RFC-2.3.2.1 */
-    void flush_expired () {
-      INFO("ARP", "Flushing expired entries");
-      for (auto ent : cache_) {
-        if (ent.second.expired())
-          cache_.erase(ent.first);
-      }
-
-      if (not cache_.empty()) {
-        flush_timer_.start(flush_interval_);
-      }
-    }
+    void flush_expired ();
 
     void set_cache_flush_interval(std::chrono::minutes m) {
       flush_interval_ = m;
@@ -110,12 +99,11 @@ namespace net {
 
   private:
 
-    /** ARP cache expires after cache_exp_t_ seconds */
-    static constexpr uint16_t cache_exp_t_ {60 * 5};
+    /** ARP cache expires after cache_exp_sec_ seconds */
+    static constexpr uint16_t cache_exp_sec_ {60 * 5};
 
     /** Cache entries are just MAC's and timestamps */
     struct Cache_entry {
-
       /** Map needs empty constructor (we have no emplace yet) */
       Cache_entry() noexcept = default;
 
@@ -125,17 +113,23 @@ namespace net {
       Cache_entry(const Cache_entry& cpy) noexcept
       : mac_(cpy.mac_), timestamp_(cpy.timestamp_) {}
 
-      bool expired() noexcept { return timestamp_ + cache_exp_t_ > RTC::time_since_boot(); }
-
       void update() noexcept { timestamp_ = RTC::time_since_boot(); }
 
-      MAC::Addr mac()
+      bool expired() const noexcept
+      { return RTC::time_since_boot() > timestamp_ + cache_exp_sec_; }
+
+      MAC::Addr mac() const noexcept
       { return mac_; }
+
+      RTC::timestamp_t timestamp() const noexcept
+      { return timestamp_; }
+
+      RTC::timestamp_t expires() const noexcept
+      { return timestamp_ + cache_exp_sec_; }
 
     private:
       MAC::Addr mac_;
       RTC::timestamp_t timestamp_;
-
     }; //< struct Cache_entry
 
     using Cache       = std::unordered_map<IP4::addr, Cache_entry>;
@@ -163,7 +157,7 @@ namespace net {
     downstream_link linklayer_out_ = nullptr;
 
     // The ARP cache
-    Cache cache_;
+    Cache cache_ {};
 
     // RFC-1122 2.3.2.2 Packet queue
     PacketQueue waiting_packets_;
@@ -171,13 +165,11 @@ namespace net {
     // Settable resolver - defualts to arp_resolve
     Arp_resolver arp_resolver_ = {this, &Arp::arp_resolve};
 
-
     /** Respond to arp request */
     void arp_respond(header* hdr_in, IP4::addr ack_ip);
 
     /** Send an arp resolution request */
     void arp_resolve(IP4::addr next_hop);
-
 
     /**
      * Add a packet to waiting queue, to be sent when IP is resolved.
