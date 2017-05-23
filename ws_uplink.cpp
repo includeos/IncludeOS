@@ -33,6 +33,8 @@
 
 #include <os>
 #include <util/sha1.hpp>
+#include <kernel/pci_manager.hpp>
+#include <hw/pci_device.hpp>
 
 namespace uplink {
 
@@ -56,7 +58,7 @@ namespace uplink {
   }
 
   void WS_uplink::start(net::Inet<net::IP4>& inet) {
-    MYINFO("Starting WS uplink on %s with ID: %s", 
+    MYINFO("Starting WS uplink on %s with ID: %s",
       inet.ifname().c_str(), id_.c_str());
 
     Expects(not config_.url.empty());
@@ -68,9 +70,9 @@ namespace uplink {
       CHECK(success, "Success");
     }
 
-    client_ = std::make_unique<http::Client>(inet.tcp(), 
+    client_ = std::make_unique<http::Client>(inet.tcp(),
       http::Client::Request_handler{this, &WS_uplink::inject_token});
-    
+
     auth();
   }
 
@@ -102,9 +104,9 @@ namespace uplink {
 
     MYINFO("Sending auth request to %s", url.c_str());
 
-    client_->post(http::URI{url}, 
-      { {"Content-Type", "application/json"} }, 
-      auth_data(), 
+    client_->post(http::URI{url},
+      { {"Content-Type", "application/json"} },
+      auth_data(),
       {this, &WS_uplink::handle_auth_response});
   }
 
@@ -120,8 +122,8 @@ namespace uplink {
     {
       MYINFO("Auth failed - %s", res->to_string().c_str());
       return;
-    } 
-    
+    }
+
     MYINFO("Auth success (token received)");
     token_ = res->body().to_string();
 
@@ -179,14 +181,14 @@ namespace uplink {
       MYINFO("Something went terribly wrong...");
       return;
     }
-    
+
     MYINFO("New transport (%lu bytes)", t->size());
     switch(t->code())
     {
       case Transport_code::UPDATE:
       {
         INFO2("Update received - commencing update...");
-        
+
         update({t->begin(), t->end()});
         return;
       }
@@ -220,16 +222,16 @@ namespace uplink {
   {
     MYINFO("Reading uplink config from %s", UPLINK_CFG_FILE.c_str());
     auto& disk = fs::memdisk();
-    
+
     if (not disk.fs_ready())
     {
       disk.init_fs([] (auto err, auto&) {
         Expects(not err && "Error occured when mounting FS.");
-      });  
+      });
     }
 
     auto cfg = disk.fs().stat(UPLINK_CFG_FILE); // name hardcoded for now
-    
+
     Expects(cfg.is_file() && "File not found.");
     Expects(cfg.size() && "File is empty.");
 
@@ -254,7 +256,7 @@ namespace uplink {
 
     config_.url   = cfg["url"].GetString();
     config_.token = cfg["token"].GetString();
-    
+
   }
 
   void WS_uplink::send_ident()
@@ -270,22 +272,33 @@ namespace uplink {
 
     writer.Key("version");
     writer.String(OS::version());
-    
-    writer.Key("arch");
-    writer.String(OS::arch());
-    
+
     writer.Key("service");
     writer.String(Service::name());
-    
+
     if(not binary_hash_.empty())
     {
       writer.Key("binary");
-      writer.String(binary_hash_);  
+      writer.String(binary_hash_);
     }
 
+    writer.Key("arch");
+    writer.String(OS::arch());
+
+    auto devices = PCI_manager::devices();
+    writer.Key("devices");
+
+    writer.StartArray();
+    for (auto* dev : devices) {
+      writer.String(dev->to_string());
+    }
+    writer.EndArray();
+
     writer.EndObject();
-    
+
     std::string str = buf.GetString();
+
+    MYINFO("%s", str.c_str());
 
     auto transport = Transport{Header{Transport_code::IDENT, static_cast<uint32_t>(str.size())}};
 
