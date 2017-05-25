@@ -120,7 +120,9 @@ public:
   static void add_bsp_task(done_func func);
 
   // call this to signal that tasks are queued up
-  static void signal(int cpu = -1);
+  // if cpu == 0, broadcast signal to all
+  static void signal(int cpu = 0);
+  static void signal_bsp();
 
   // trigger interrupt on specified CPU
   static void unicast(int cpu, uint8_t intr);

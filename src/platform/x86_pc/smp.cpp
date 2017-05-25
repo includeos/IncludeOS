@@ -189,16 +189,17 @@ void ::SMP::signal(int cpu)
 {
 #ifndef INCLUDEOS_SINGLE_THREADED
   // broadcast that there is work to do
-  // -1: Broadcast to everyone except BSP
-  if (cpu == -1)
+  // 0: Broadcast to everyone except BSP
+  if (cpu == 0)
       x86::APIC::get().bcast_ipi(0x20);
   // 1-xx: Unicast specific vCPU
-  else if (cpu != 0)
-      x86::APIC::get().send_ipi(cpu, 0x20);
-  // 0: BSP unicast
   else
-      x86::APIC::get().send_bsp_intr();
+      x86::APIC::get().send_ipi(cpu, 0x20);
 #endif
+}
+void ::SMP::signal_bsp()
+{
+  x86::APIC::get().send_bsp_intr();
 }
 
 void ::SMP::broadcast(uint8_t irq)
@@ -228,9 +229,6 @@ static spinlock_t __memory_lock = 0;
 #include <malloc.h>
 void* malloc(size_t size)
 {
-  if (SMP::cpu_count() == 1) {
-    return _malloc_r(_REENT, size);
-  }
   lock(__memory_lock);
   void* addr = _malloc_r(_REENT, size);
   unlock(__memory_lock);
@@ -252,11 +250,23 @@ void* realloc(void *ptr, size_t new_size)
 }
 void free(void* ptr)
 {
-  if (SMP::cpu_count() == 1) {
-    return _free_r(_REENT, ptr);
-  }
   lock(__memory_lock);
   _free_r(_REENT, ptr);
   unlock(__memory_lock);
 }
+void* posix_memalign(size_t align, size_t nbytes)
+{
+  lock(__memory_lock);
+  void* addr = _memalign_r(_REENT, align, nbytes);
+  unlock(__memory_lock);
+  return addr;
+}
+void* memalign(size_t align, size_t nbytes)
+{
+  lock(__memory_lock);
+  void* addr = _memalign_r(_REENT, align, nbytes);
+  unlock(__memory_lock);
+  return addr;
+}
+
 #endif
