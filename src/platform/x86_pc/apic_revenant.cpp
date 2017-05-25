@@ -39,9 +39,9 @@ static bool revenant_task_doer(smp_system_stuff& system)
   if (task.done)
   {
     // NOTE: specifically pushing to 'smp' here, and not 'system'
-    lock(smp_main.flock);
-    smp_main.completed.push_back(std::move(task.done));
-    unlock(smp_main.flock);
+    lock(PER_CPU(smp_system).flock);
+    PER_CPU(smp_system).completed.push_back(std::move(task.done));
+    unlock(PER_CPU(smp_system).flock);
     // signal home
     PER_CPU(smp_system).work_done = true;
   }
@@ -57,6 +57,9 @@ static void revenant_task_handler()
   while (revenant_task_doer(smp_system[0]));
   // if we did any work with done functions, signal back
   if (system.work_done) {
+    // set bit for this CPU
+    smp_main.bitmap.atomic_set(::SMP::cpu_id());
+    // signal main CPU
     x86::APIC::get().send_bsp_intr();
   }
 }

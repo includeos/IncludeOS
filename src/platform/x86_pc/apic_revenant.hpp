@@ -22,6 +22,7 @@
 #include "smp.hpp"
 #include <cstdint>
 #include <deque>
+#include <membitmap>
 
 extern "C" void revenant_main(int);
 
@@ -38,8 +39,8 @@ struct smp_stuff
 {
   minimal_barrier_t boot_barrier;
 
-  spinlock_t flock;
-  std::deque<SMP::done_func> completed;
+  uint32_t  bmp_storage[1] = {0};
+  MemBitmap bitmap{&bmp_storage[0], 1};
 };
 extern smp_stuff smp_main;
 
@@ -47,6 +48,8 @@ struct smp_system_stuff
 {
   spinlock_t tlock;
   std::deque<smp_task> tasks;
+  spinlock_t flock;
+  std::deque<SMP::done_func> completed;
   bool work_done;
 };
 extern SMP_ARRAY<smp_system_stuff> smp_system;

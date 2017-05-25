@@ -116,10 +116,22 @@ void SMP::init()
 std::vector<smp_done_func> SMP::get_completed()
 {
   std::vector<smp_done_func> done;
-  lock(smp_main.flock);
-  for (auto& func : smp_main.completed) done.push_back(func);
-  smp_main.completed.clear(); // MUI IMPORTANTE
-  unlock(smp_main.flock);
+  int next = smp_main.bitmap.first_set();
+  while (next != -1)
+  {
+    // remove bit
+    smp_main.bitmap.atomic_reset(next);
+    // get jobs from other CPU
+    lock(smp_system[next].flock);
+    auto& vec = smp_system[next].completed;
+
+    for (auto& func : vec) done.push_back(func);
+    vec.clear(); // MUI IMPORTANTE
+
+    unlock(smp_system[next].flock);
+    // get next set bit
+    next = smp_main.bitmap.first_set();
+  }
   return done;
 }
 
@@ -178,9 +190,13 @@ void ::SMP::add_bsp_task(smp_done_func task)
 #ifdef INCLUDEOS_SINGLE_THREADED
   task();
 #else
-  lock(smp_main.flock);
-  smp_main.completed.push_back(std::move(task));
-  unlock(smp_main.flock);
+  // queue job
+  lock(PER_CPU(smp_system).flock);
+  PER_CPU(smp_system).completed.push_back(std::move(task));
+  unlock(PER_CPU(smp_system).flock);
+  // set this CPU bit
+  smp_main.bitmap.atomic_set(::SMP::cpu_id());
+  // call home
   x86::APIC::get().send_bsp_intr();
 #endif
 }
