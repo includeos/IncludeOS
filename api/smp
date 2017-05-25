@@ -20,8 +20,8 @@
 #ifndef API_SMP_HEADER
 #define API_SMP_HEADER
 
-#include <arch.hpp>
 #include <delegate>
+#include <smp_utils>
 
 #ifdef INCLUDEOS_SINGLE_THREADED
 #define SMP_MAX_CORES   1
@@ -30,69 +30,6 @@
 #endif
 
 #define SMP_ALIGN       64
-
-/// x86-related locking stuff ///
-#if defined(ARCH_x86)
-// Intel 3a  8.10.6.7: 128-byte boundary
-typedef volatile int spinlock_t __attribute__((aligned(128)));
-
-#ifdef INCLUDEOS_SINGLE_THREADED
-inline void lock(spinlock_t&) {}
-inline void unlock(spinlock_t&) {}
-#else
-inline void lock(spinlock_t& lock) {
-  while (__sync_lock_test_and_set(&lock, 1)) {
-    while (lock) asm("pause");
-  }
-}
-inline void unlock(spinlock_t& lock) {
-  __sync_synchronize(); // barrier
-  lock = 0;
-}
-#endif
-
-struct minimal_barrier_t
-{
-  void inc()
-  {
-    __sync_fetch_and_add(&val, 1);
-  }
-
-  void spin_wait(int max)
-  {
-    asm("mfence");
-    while (this->val < max) {
-      asm("pause; nop;");
-    }
-  }
-
-  void reset(int val)
-  {
-    asm volatile("mfence");
-    this->val = val;
-  }
-
-private:
-  volatile int val = 0;
-};
-
-#include <array>
-#ifdef INCLUDEOS_SINGLE_THREADED
-template <typename T, size_t N>
-inline T& per_cpu_help(std::array<T, N>& array)
-{
-  return array[0];
-}
-#else
-template <typename T, size_t N>
-inline T& per_cpu_help(std::array<T, N>& array)
-{
-  unsigned cpuid;
-  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
-  return array.at(cpuid);
-}
-#endif
-#endif
 
 template <typename T>
 using SMP_ARRAY = std::array<T, SMP_MAX_CORES>;
