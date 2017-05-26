@@ -47,10 +47,11 @@ void setup_uplink()
 	  });
       }
 
-  }catch(...) {
-      MYINFO("Uplink initialization failed. Reboot.");
-      OS::reboot();
-    }
+  }catch(const std::exception& e) {
+    MYINFO("Uplink initialization failed: %s ", e.what());
+    MYINFO("Rebooting");
+    OS::reboot();
+  }
 }
 
 } // < namespace uplink
