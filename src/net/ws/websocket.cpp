@@ -28,7 +28,7 @@ static inline std::string
 encode_hash(const std::string& key)
 {
   static const std::string GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-  static SHA1  sha;
+  SHA1 sha;
   sha.update(key);
   sha.update(GUID);
   return base64::encode(sha.as_raw());
@@ -283,7 +283,7 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
       case op_code::PONG:
         break;
       default:
-        printf("Unknown opcode: %u\n", static_cast<unsigned>(hdr.opcode()));
+        printf("Unknown opcode: %hhu\n", hdr.opcode());
         break;
       }
     message.reset();
