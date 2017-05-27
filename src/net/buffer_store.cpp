@@ -143,7 +143,7 @@ namespace net {
   BufferStore::buffer_t BufferStore::get_buffer()
   {
 #ifndef INCLUDEOS_SINGLE_THREADED
-    lock(plock);
+    scoped_spinlock spinlock(plock);
 #endif
 
     if (UNLIKELY(available_.empty())) {
@@ -156,9 +156,6 @@ namespace net {
       auto buffer = next->get_buffer_directly();
       BSD_GET("%d: Gave away EXTERN %p, %lu buffers remain\n",
               this->index, buffer.addr, available());
-#ifndef INCLUDEOS_SINGLE_THREADED
-      unlock(plock);
-#endif
       return buffer;
 #else
       panic("<BufferStore> Buffer pool empty! Not configured to increase pool size.\n");
@@ -168,10 +165,6 @@ namespace net {
     auto buffer = get_buffer_directly();
     BSD_GET("%d: Gave away %p, %lu buffers remain\n",
             this->index, buffer.addr, available());
-
-#ifndef INCLUDEOS_SINGLE_THREADED
-    unlock(plock);
-#endif
     return buffer;
   }
 
@@ -181,16 +174,13 @@ namespace net {
     BSD_RELEASE("%d: Release %p -> ", this->index, buff);
 
 #ifndef INCLUDEOS_SINGLE_THREADED
-    lock(plock);
+    scoped_spinlock spinlock(plock);
 #endif
     // expensive: is_buffer(buff)
     if (LIKELY(is_from_pool(buff))) {
       available_.push_back(buff);
       BSD_RELEASE("released (avail=%lu / %lu)\n",
                   available(), total_buffers());
-#ifndef INCLUDEOS_SINGLE_THREADED
-      unlock(plock);
-#endif
       return;
     }
 #ifdef ENABLE_BUFFERSTORE_CHAIN
@@ -200,16 +190,10 @@ namespace net {
       if (ptr->is_from_pool(buff)) {
         BSD_RELEASE("released on other bufferstore\n");
         ptr->release_directly(buff);
-#ifndef INCLUDEOS_SINGLE_THREADED
-        unlock(plock);
-#endif
         return;
       }
       ptr = ptr->next_;
     }
-#endif
-#ifndef INCLUDEOS_SINGLE_THREADED
-    unlock(plock);
 #endif
     throw std::runtime_error("Packet did not belong");
   }
