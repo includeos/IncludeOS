@@ -558,14 +558,14 @@ namespace net {
     uint16_t                  max_syn_backlog_;
 
     /** Stats */
-    uint64_t& bytes_rx_;
-    uint64_t& bytes_tx_;
-    uint64_t& packets_rx_;
-    uint64_t& packets_tx_;
-    uint64_t& incoming_connections_;
-    uint64_t& outgoing_connections_;
-    uint64_t& connection_attempts_;
-    uint32_t& packets_dropped_;
+    uint64_t* bytes_rx_ = nullptr;
+    uint64_t* bytes_tx_ = nullptr;
+    uint64_t* packets_rx_ = nullptr;
+    uint64_t* packets_tx_ = nullptr;
+    uint64_t* incoming_connections_ = nullptr;
+    uint64_t* outgoing_connections_ = nullptr;
+    uint64_t* connection_attempts_ = nullptr;
+    uint32_t* packets_dropped_ = nullptr;
 
     bool smp_enabled = false;
     int  cpu_id = 0;
