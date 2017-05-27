@@ -48,7 +48,7 @@ struct smp_system_stuff
 {
   spinlock_t tlock = 0;
   spinlock_t flock = 0;
-  std::deque<smp_task> tasks;
+  std::vector<smp_task> tasks;
   std::deque<SMP::done_func> completed;
   bool work_done;
 };

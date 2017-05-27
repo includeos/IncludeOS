@@ -26,24 +26,27 @@ static bool revenant_task_doer(smp_system_stuff& system)
     return false;
   }
 
-  // get copy of shared task
-  auto task = std::move(system.tasks.front());
-  system.tasks.pop_front();
+  // create local vector which holds tasks
+  std::vector<smp_task> tasks;
+  system.tasks.swap(tasks);
 
   unlock(system.tlock);
 
-  // execute actual task
-  task.func();
-
-  // add done function to completed list (only if its callable)
-  if (task.done)
+  for (auto& task : tasks)
   {
-    // NOTE: specifically pushing to 'smp' here, and not 'system'
-    lock(PER_CPU(smp_system).flock);
-    PER_CPU(smp_system).completed.push_back(std::move(task.done));
-    unlock(PER_CPU(smp_system).flock);
-    // signal home
-    PER_CPU(smp_system).work_done = true;
+    // execute actual task
+    task.func();
+
+    // add done function to completed list (only if its callable)
+    if (task.done)
+    {
+      // NOTE: specifically pushing to 'smp' here, and not 'system'
+      lock(PER_CPU(smp_system).flock);
+      PER_CPU(smp_system).completed.push_back(std::move(task.done));
+      unlock(PER_CPU(smp_system).flock);
+      // signal home
+      PER_CPU(smp_system).work_done = true;
+    }
   }
   return true;
 }
