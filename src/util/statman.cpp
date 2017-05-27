@@ -15,8 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iterator>
 #include <statman>
+#include <iterator>
+#include <info>
+#include <smp_utils>
 
 __attribute__((weak))
 Statman& Statman::get() {
@@ -73,6 +75,7 @@ uint64_t& Stat::get_uint64() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+
 void Statman::init(const uintptr_t start, const Size_type num_bytes)
 {
   if (num_bytes < 0)
@@ -87,6 +90,8 @@ void Statman::init(const uintptr_t start, const Size_type num_bytes)
   delete[] bdata;
   bdata = new MemBitmap::word[chunks]();
   bitmap = MemBitmap(bdata, chunks);
+
+  INFO("Statman", "Initialized with %u stats capacity", (uint32_t) capacity());
 }
 Statman::~Statman()
 {
@@ -94,6 +99,9 @@ Statman::~Statman()
 }
 
 Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
+#ifndef INCLUDEOS_SINGLE_THREADED
+  volatile scoped_spinlock lock(this->stlock);
+#endif
   if (name.empty())
     throw Stats_exception{"Cannot create Stat with no name"};
 

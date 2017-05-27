@@ -219,6 +219,10 @@ public:
   // string description for status codes
   static const char* status_code(uint16_t code);
 
+  int get_cpuid() const noexcept {
+    return stream->get_cpuid();
+  }
+
   WebSocket(net::Stream_ptr, bool);
   WebSocket(WebSocket&&);
   ~WebSocket();

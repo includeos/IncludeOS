@@ -388,6 +388,8 @@ public:
     virtual bool is_closed() const noexcept override
     { return tcp->is_closed(); };
 
+    int get_cpuid() const noexcept override;
+
     virtual ~Stream() {}
 
   protected:

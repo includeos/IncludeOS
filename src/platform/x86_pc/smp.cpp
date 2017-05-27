@@ -32,7 +32,8 @@ extern "C" {
 }
 
 static const uintptr_t BOOTLOADER_LOCATION = 0x10000;
-static const size_t    REV_STACK_SIZE = 1 << 18; // 256kb
+static const uint32_t  REV_STACK_SIZE = 1 << 19; // 512kb
+static_assert((BOOTLOADER_LOCATION & 0xfff) == 0, "Must be page-aligned");
 
 struct apic_boot {
   // the jump instruction at the start
@@ -46,7 +47,7 @@ struct apic_boot {
 namespace x86
 {
 
-void SMP::init()
+void init_SMP()
 {
   uint32_t CPUcount = ACPI::get_cpus().size();
   if (CPUcount <= 1) return;
@@ -67,12 +68,14 @@ void SMP::init()
 #else
   #error "Unimplemented arch"
 #endif
-  auto* stack = memalign(4096, CPUcount * REV_STACK_SIZE);
+  auto* stack = memalign(4096, (CPUcount-1) * REV_STACK_SIZE);
   boot->stack_base = (uint32_t) (uintptr_t) stack;
-  boot->stack_base += REV_STACK_SIZE; // make sure the stack starts at the top
+  // add to start at top of each stack, remove to offset cpu 1 to idx 0
+  boot->stack_base -= 16;
   boot->stack_size = REV_STACK_SIZE;
   debug("APIC stack base: %#x  size: %u   main size: %u\n",
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
+  assert((boot->stack_base & 15) == 0);
 
   // reset barrier
   smp_main.boot_barrier.reset(1);
@@ -104,29 +107,30 @@ void SMP::init()
   // subscribe to IPIs
   IRQ_manager::get().subscribe(BSP_LAPIC_IPI_IRQ,
   [] {
-    // copy all the done functions out from queue to our local vector
-    auto done = SMP::get_completed();
-    // call all the done functions
-    for (auto& func : done) {
-      func();
+    int next = smp_main.bitmap.first_set();
+    while (next != -1)
+    {
+      // remove bit
+      smp_main.bitmap.atomic_reset(next);
+      // get jobs from other CPU
+      std::vector<smp_done_func> done;
+      lock(smp_system[next].flock);
+      smp_system[next].completed.swap(done);
+      unlock(smp_system[next].flock);
+
+      // execute all tasks
+      for (auto& func : done) func();
+
+      // get next set bit
+      next = smp_main.bitmap.first_set();
     }
   });
-}
-
-std::vector<smp_done_func> SMP::get_completed()
-{
-  std::vector<smp_done_func> done;
-  lock(smp_main.flock);
-  for (auto& func : smp_main.completed) done.push_back(func);
-  smp_main.completed.clear(); // MUI IMPORTANTE
-  unlock(smp_main.flock);
-  return done;
 }
 
 } // x86
 
 /// implementation of the SMP interface ///
-int ::SMP::cpu_id() noexcept
+int SMP::cpu_id() noexcept
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
   return 0;
@@ -136,7 +140,7 @@ int ::SMP::cpu_id() noexcept
   return cpuid;
 #endif
 }
-int ::SMP::cpu_count() noexcept
+int SMP::cpu_count() noexcept
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
   return 1;
@@ -146,12 +150,12 @@ int ::SMP::cpu_count() noexcept
 }
 
 __attribute__((weak))
-void ::SMP::init_task()
+void SMP::init_task()
 {
   /* do nothing */
 }
 
-void ::SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
+void SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
   assert(cpu == 0);
@@ -162,7 +166,7 @@ void ::SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
   unlock(smp_system[cpu].tlock);
 #endif
 }
-void ::SMP::add_task(smp_task_func task, int cpu)
+void SMP::add_task(smp_task_func task, int cpu)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
   assert(cpu == 0);
@@ -173,50 +177,56 @@ void ::SMP::add_task(smp_task_func task, int cpu)
   unlock(smp_system[cpu].tlock);
 #endif
 }
-void ::SMP::add_bsp_task(smp_done_func task)
+void SMP::add_bsp_task(smp_done_func task)
 {
 #ifdef INCLUDEOS_SINGLE_THREADED
   task();
 #else
-  lock(smp_main.flock);
-  smp_main.completed.push_back(std::move(task));
-  unlock(smp_main.flock);
+  // queue job
+  auto& system = PER_CPU(smp_system);
+  lock(system.flock);
+  system.completed.push_back(std::move(task));
+  unlock(system.flock);
+  // set this CPU bit
+  smp_main.bitmap.atomic_set(SMP::cpu_id());
+  // call home
   x86::APIC::get().send_bsp_intr();
 #endif
 }
 
-void ::SMP::signal(int cpu)
+void SMP::signal(int cpu)
 {
 #ifndef INCLUDEOS_SINGLE_THREADED
   // broadcast that there is work to do
-  // -1: Broadcast to everyone except BSP
-  if (cpu == -1)
+  // 0: Broadcast to everyone except BSP
+  if (cpu == 0)
       x86::APIC::get().bcast_ipi(0x20);
   // 1-xx: Unicast specific vCPU
-  else if (cpu != 0)
-      x86::APIC::get().send_ipi(cpu, 0x20);
-  // 0: BSP unicast
   else
-      x86::APIC::get().send_bsp_intr();
+      x86::APIC::get().send_ipi(cpu, 0x20);
 #endif
 }
+void SMP::signal_bsp()
+{
+  x86::APIC::get().send_bsp_intr();
+}
 
-void ::SMP::broadcast(uint8_t irq)
+void SMP::broadcast(uint8_t irq)
 {
   x86::APIC::get().bcast_ipi(IRQ_BASE + irq);
 }
-void ::SMP::unicast(int cpu, uint8_t irq)
+void SMP::unicast(int cpu, uint8_t irq)
 {
   x86::APIC::get().send_ipi(cpu, IRQ_BASE + irq);
 }
 
 static spinlock_t __global_lock = 0;
 
-void ::SMP::global_lock() noexcept
+void SMP::global_lock() noexcept
 {
   lock(__global_lock);
 }
-void ::SMP::global_unlock() noexcept
+void SMP::global_unlock() noexcept
 {
   unlock(__global_lock);
 }
@@ -228,9 +238,6 @@ static spinlock_t __memory_lock = 0;
 #include <malloc.h>
 void* malloc(size_t size)
 {
-  if (SMP::cpu_count() == 1) {
-    return _malloc_r(_REENT, size);
-  }
   lock(__memory_lock);
   void* addr = _malloc_r(_REENT, size);
   unlock(__memory_lock);
@@ -252,11 +259,23 @@ void* realloc(void *ptr, size_t new_size)
 }
 void free(void* ptr)
 {
-  if (SMP::cpu_count() == 1) {
-    return _free_r(_REENT, ptr);
-  }
   lock(__memory_lock);
   _free_r(_REENT, ptr);
   unlock(__memory_lock);
 }
+void* posix_memalign(size_t align, size_t nbytes)
+{
+  lock(__memory_lock);
+  void* addr = _memalign_r(_REENT, align, nbytes);
+  unlock(__memory_lock);
+  return addr;
+}
+void* memalign(size_t align, size_t nbytes)
+{
+  lock(__memory_lock);
+  void* addr = _memalign_r(_REENT, align, nbytes);
+  unlock(__memory_lock);
+  return addr;
+}
+
 #endif

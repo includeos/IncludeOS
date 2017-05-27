@@ -114,6 +114,7 @@ set(TEST_SOURCES
 
 set(OS_SOURCES
   ${SRC}/fs/disk.cpp
+  ${SRC}/fs/dirent.cpp
   ${SRC}/fs/fat.cpp
   ${SRC}/fs/fat_async.cpp
   ${SRC}/fs/fat_sync.cpp

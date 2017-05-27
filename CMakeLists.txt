@@ -48,7 +48,7 @@ endif(cpu_feat_vanilla)
 option(single_threaded "Compile without SMP support" ON)
 
 # create random hex string as stack protector canary
-string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
+string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
 set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
 

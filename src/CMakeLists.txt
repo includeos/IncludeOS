@@ -60,7 +60,7 @@ set(OS_OBJECTS
   net/http/client_connection.cpp net/http/client.cpp
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
   net/ws/websocket.cpp
-  fs/disk.cpp fs/filesystem.cpp fs/mbr.cpp fs/path.cpp
+  fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp

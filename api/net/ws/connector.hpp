@@ -91,6 +91,7 @@ public:
       }
     }
     auto ws = WebSocket::upgrade(*req, *writer);
+    assert(ws->get_cpuid() == SMP::cpu_id());
 
     if(ws == nullptr) {
     } // not ok

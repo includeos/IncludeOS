@@ -84,11 +84,13 @@ int gettimeofday(struct timeval* p, void*) {
 }
 
 int kill(pid_t pid, int sig) THROW {
+  SMP::global_lock();
   printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
 
   if (sig == 6ul) {
     printf("/ ABORT\n");
   }
+  SMP::global_unlock();
 
   panic("\tKilling a process doesn't make sense in IncludeOS. Panic.");
   errno = ESRCH;
@@ -163,12 +165,10 @@ void panic(const char* why)
   if (panic_handler) panic_handler();
 
 #if defined(ARCH_x86)
-  if (SMP::cpu_id() == 0) {
-    SMP::global_lock();
-    // Signal End-Of-Transmission
-    kprint("\x04");
-    SMP::global_unlock();
-  }
+  SMP::global_lock();
+  // Signal End-Of-Transmission
+  kprint("\x04");
+  SMP::global_unlock();
 
   // .. if we return from the panic handler, go to permanent sleep
   while (1) asm("cli; hlt");
@@ -181,12 +181,6 @@ void panic(const char* why)
 // Shutdown the machine when one of the exit functions are called
 void default_exit() {
   __arch_poweroff();
-  __builtin_unreachable();
-}
-
-// To keep our sanity, we need a reason for the abort
-void abort_ex(const char* why) {
-  panic(why);
   __builtin_unreachable();
 }
 
