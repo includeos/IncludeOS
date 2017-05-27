@@ -44,10 +44,11 @@ inline void unlock(spinlock_t& lock) {
 struct scoped_spinlock
 {
   scoped_spinlock(spinlock_t& ref) noexcept : spinlock(ref) {
+    //asm("" : : : "memory");
     lock(this->spinlock);
   }
   ~scoped_spinlock() noexcept {
-    unlock(this->spinlock);
+    __sync_lock_release(&spinlock, 0); // barrier
   }
 private:
     spinlock_t& spinlock;

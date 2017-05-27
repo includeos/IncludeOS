@@ -28,6 +28,10 @@
 using namespace net::tcp;
 using namespace std;
 
+int Connection::Stream::get_cpuid() const noexcept {
+  return tcp->host().get_cpuid();
+}
+
 /*
   This is most likely used in a ACTIVE open
 */

@@ -51,9 +51,30 @@ TCP::TCP(IPStack& inet) :
   Expects(wscale_ <= 14 && "WScale factor cannot exceed 14");
   Expects(win_size_ <= 0x40000000 && "Invalid size");
 
-  inet.on_transmit_queue_available({this, &TCP::process_writeq});
+  this->cpu_id = SMP::cpu_id();
+  //inet.on_transmit_queue_available({this, &TCP::process_writeq});
 }
 
+TCP::TCP(IPStack& inet, int cpu)
+  : TCP(inet)
+{
+  assert(SMP::cpu_id() == cpu);
+  assert(this->cpu_id == cpu);
+  this->smp_enabled = true;
+  SMP::global_lock();
+  inet.on_transmit_queue_available({this, &TCP::smp_process_writeq});
+  SMP::global_unlock();
+}
+void TCP::smp_process_writeq(size_t packets)
+{
+  assert(SMP::cpu_id() == 0);
+  assert(this->cpu_id != 0);
+  SMP::add_task(
+  [this, packets] () {
+    this->process_writeq(packets);
+  }, this->cpu_id);
+  SMP::signal(this->cpu_id);
+}
 
 TCP::Port_util::Port_util()
   : ports{},
@@ -76,7 +97,8 @@ void TCP::Port_util::increment_ephemeral()
   // TODO: Avoid wrap around, increment ephemeral to next free port.
   // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
   // need a solution that checks each word of the subset (the dynamic range)
-  Ensures(is_bound(ephemeral_) == false && "Hoped I wouldn't see the day..."); // this may happen...
+  // FIXME: this may happen...
+  Ensures(is_bound(ephemeral_) == false && "Hoped I wouldn't see the day...");
 }
 
 /*
@@ -162,6 +184,7 @@ void TCP::insert_connection(Connection_ptr conn)
 void TCP::receive(net::Packet_ptr packet_ptr) {
   // Stat increment packets received
   packets_rx_++;
+  assert(get_cpuid() == SMP::cpu_id());
 
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
@@ -186,6 +209,12 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
 
   // Stat increment bytes received
   bytes_rx_ += packet->tcp_data_length();
+
+  // Redirect packet to custom function
+  if (packet_rerouter) {
+    packet_rerouter(std::move(packet));
+    return;
+  }
 
   const Connection::Tuple tuple { dest, packet->source() };
 
@@ -400,7 +429,9 @@ void TCP::process_writeq(size_t packets) {
 }
 
 void TCP::request_offer(Connection& conn) {
+  SMP::global_lock();
   auto packets = inet_.transmit_queue_available();
+  SMP::global_unlock();
 
   debug2("<TCP::request_offer> %s requestin offer: uw=%u rem=%u\n",
     conn.to_string().c_str(), conn.usable_window(), conn.sendq_remaining());

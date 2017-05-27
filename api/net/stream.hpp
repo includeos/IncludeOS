@@ -181,6 +181,11 @@ namespace net {
      */
     virtual bool is_closed() const noexcept = 0;
 
+    /**
+     * Returns the CPU id the Stream originates from
+    **/
+    virtual int get_cpuid() const noexcept = 0;
+
     Stream() = default;
     virtual ~Stream() {}
 

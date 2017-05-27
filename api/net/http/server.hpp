@@ -94,6 +94,13 @@ namespace http {
      */
     Response_ptr create_response(status_t code = http::OK) const;
 
+    /**
+     * Return CPU server is hosted on
+    **/
+    int get_cpuid() const noexcept {
+      return tcp_.get_cpuid();
+    }
+
     virtual ~Server();
 
   protected:

@@ -72,11 +72,20 @@ public:
 };
 
 // access a std::array of structs indexed by current CPU id
-#ifdef INCLUDEOS_SINGLE_THREADED
-#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, 1>(x))
-#else
-#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, x.size()>(x))
-#endif
+#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, SMP_MAX_CORES>(x))
 
+#define SMP_DEBUG 1
+
+// SMP serialized print helpers
+#define SMP_ALWAYS_PRINT(fmt, ...) \
+    SMP::global_lock();     \
+    printf(fmt, ##__VA_ARGS__); \
+    SMP::global_unlock();
+
+#ifdef SMP_DEBUG
+#define SMP_PRINT(fmt, ...) SMP_ALWAYS_PRINT(fmt, ##__VA_ARGS__)
+#else
+#define SMP_PRINT(fmt, ...) /** fmt **/
+#endif
 
 #endif
