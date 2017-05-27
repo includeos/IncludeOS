@@ -116,82 +116,6 @@ namespace CPUID
   using Feature_list = std::vector<Feature>;
   using Feature_names = std::vector<const char*>;
 
-  const Feature_map feature_names {
-      {Feature::SSE2,"SSE2"},
-      {Feature::SSE3,"SSE3"},
-      {Feature::SSSE3,"SSSE3"},
-      {Feature::RDRAND,"RDRAND"},
-      {Feature::XSAVE,"XSAVE"},
-      {Feature::FXSR,"FXSR"},
-      {Feature::AES,"AES"},
-      {Feature::AVX,"AVX"},
-      {Feature::SSE4A,"SSE4a"},
-      {Feature::SSE4_1,"SSE4.1"},
-      {Feature::SSE4_2,"SSE4.2"},
-      {Feature::NX,"NX"},
-      {Feature::SYSCALL,"SYSCALL"},
-      {Feature::PDPE1GB,"PDPE1GB"},
-      {Feature::RDTSCP,"RDTSCP"},
-      {Feature::FMA, "FMA"},
-      {Feature::AVX2, "AVX2"},
-      {Feature::BMI1,"BMI1"},
-      {Feature::BMI2,"BMI2"},
-      {Feature::LZCNT,"LZCNT"},
-      {Feature::MOVBE,"MOVBE"},
-      {Feature::PCLMULQDQ,"PCLMULQDQ"},
-      {Feature::DTES64,"DTES64"},
-      {Feature::MONITOR,"MONITOR"},
-      {Feature::DS_CPL,"DS_CPL"},
-      {Feature::VMX,"VMX"},
-      {Feature::SMX,"SMX"},
-      {Feature::EST,"EST"},
-      {Feature::TM2,"TM2"},
-      {Feature::CNXT_ID,"CNXT_ID"},
-      {Feature::CX16,"CX16"},
-      {Feature::XTPR,"XTPR"},
-      {Feature::PDCM,"PDCM"},
-      {Feature::PCID,"PCID"},
-      {Feature::DCA,"DCA"},
-      {Feature::X2APIC,"X2APIC"},
-      {Feature::POPCNT,"POPCNT"},
-      {Feature::TSC_DEADLINE,"TSC_DEADLINE"},
-      {Feature::OSXSAVE,"OSXSAVE"},
-      {Feature::F16C,"F16C"},
-      {Feature::FPU,"FPU"},
-      {Feature::VME,"VME"},
-      {Feature::DE,"DE"},
-      {Feature::PSE,"PSE"},
-      {Feature::TSC,"TSC"},
-      {Feature::MSR,"MSR"},
-      {Feature::PAE,"PAE"},
-      {Feature::MCE,"MCE"},
-      {Feature::CX8,"CX8"},
-      {Feature::APIC,"APIC"},
-      {Feature::SEP,"SEP"},
-      {Feature::MTRR,"MTRR"},
-      {Feature::PGE,"PGE"},
-      {Feature::MCA,"MCA"},
-      {Feature::CMOV,"CMOV"},
-      {Feature::PAT,"PAT"},
-      {Feature::PSE_36,"PSE_36"},
-      {Feature::PSN,"PSN"},
-      {Feature::CLFLUSH,"CLFLUSH"},
-      {Feature::DS,"DS"},
-      {Feature::ACPI,"ACPI"},
-      {Feature::MMX,"MMX"},
-      {Feature::FXSR,"FXSR"},
-      {Feature::SSE,"SSE"},
-      {Feature::SS,"SS"},
-      {Feature::HTT,"HTT"},
-      {Feature::TM,"TM"},
-      {Feature::NX,"NX"},
-      {Feature::PDPE1GB,"PDPE1GB"},
-      {Feature::RDTSCP,"RDTSCP"},
-      {Feature::LM,"LM"},
-      {Feature::SVM,"SVM"}
-  };
-
-
   Feature_names  detect_features_str();
   Feature_list detect_features();
 
@@ -201,6 +125,8 @@ namespace CPUID
 
   bool kvm_feature(unsigned id) noexcept;
 } //< CPUID
+
+
 
 #define KVM_FEATURE_CLOCKSOURCE   0
 #define KVM_FEATURE_NOP_IO_DELAY  1
