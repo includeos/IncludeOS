@@ -32,7 +32,8 @@ extern "C" {
 }
 
 static const uintptr_t BOOTLOADER_LOCATION = 0x10000;
-static const size_t    REV_STACK_SIZE = 1 << 18; // 256kb
+static const uint32_t  REV_STACK_SIZE = 1 << 19; // 512kb
+static_assert((BOOTLOADER_LOCATION & 0xfff) == 0, "Must be page-aligned");
 
 struct apic_boot {
   // the jump instruction at the start
@@ -67,12 +68,14 @@ void SMP::init()
 #else
   #error "Unimplemented arch"
 #endif
-  auto* stack = memalign(4096, CPUcount * REV_STACK_SIZE);
+  auto* stack = memalign(4096, (CPUcount-1) * REV_STACK_SIZE);
   boot->stack_base = (uint32_t) (uintptr_t) stack;
-  boot->stack_base += REV_STACK_SIZE; // make sure the stack starts at the top
+  // add to start at top of each stack, remove to offset cpu 1 to idx 0
+  boot->stack_base -= 16;
   boot->stack_size = REV_STACK_SIZE;
   debug("APIC stack base: %#x  size: %u   main size: %u\n",
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
+  assert((boot->stack_base & 15) == 0);
 
   // reset barrier
   smp_main.boot_barrier.reset(1);
@@ -125,7 +128,7 @@ std::vector<smp_done_func> SMP::get_completed()
     lock(smp_system[next].flock);
     auto& vec = smp_system[next].completed;
 
-    for (auto& func : vec) done.push_back(func);
+    for (auto& func : vec) done.push_back(std::move(func));
     vec.clear(); // MUI IMPORTANTE
 
     unlock(smp_system[next].flock);
@@ -191,9 +194,10 @@ void ::SMP::add_bsp_task(smp_done_func task)
   task();
 #else
   // queue job
-  lock(PER_CPU(smp_system).flock);
-  PER_CPU(smp_system).completed.push_back(std::move(task));
-  unlock(PER_CPU(smp_system).flock);
+  auto& system = PER_CPU(smp_system);
+  lock(system.flock);
+  system.completed.push_back(std::move(task));
+  unlock(system.flock);
   // set this CPU bit
   smp_main.bitmap.atomic_set(::SMP::cpu_id());
   // call home
