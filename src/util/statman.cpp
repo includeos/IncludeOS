@@ -17,6 +17,7 @@
 
 #include <iterator>
 #include <statman>
+#include <smp_utils>
 
 __attribute__((weak))
 Statman& Statman::get() {
@@ -94,6 +95,9 @@ Statman::~Statman()
 }
 
 Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
+#ifndef INCLUDEOS_SINGLE_THREADED
+  volatile scoped_spinlock lock(this->stlock);
+#endif
   if (name.empty())
     throw Stats_exception{"Cannot create Stat with no name"};
 
