@@ -54,7 +54,7 @@ void __platform_init()
 
   // initialize and start registered APs found in ACPI-tables
 #ifndef INCLUDEOS_SINGLE_THREADED
-  x86::SMP::init();
+  x86::init_SMP();
 #endif
 
   // enable interrupts

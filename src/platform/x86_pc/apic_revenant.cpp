@@ -61,7 +61,7 @@ static void revenant_task_handler()
   // if we did any work with done functions, signal back
   if (system.work_done) {
     // set bit for this CPU
-    smp_main.bitmap.atomic_set(::SMP::cpu_id());
+    smp_main.bitmap.atomic_set(SMP::cpu_id());
     // signal main CPU
     x86::APIC::get().send_bsp_intr();
   }
@@ -74,10 +74,10 @@ void revenant_main(int cpu)
   // setup GDT & per-cpu feature
   initialize_gdt_for_cpu(cpu);
   // show we are online, and verify CPU ID is correct
-  ::SMP::global_lock();
+  SMP::global_lock();
   INFO2("AP %d started at %p", cpu, get_cpu_esp());
-  ::SMP::global_unlock();
-  assert(cpu == ::SMP::cpu_id());
+  SMP::global_unlock();
+  assert(cpu == SMP::cpu_id());
 
   IRQ_manager::init();
   // enable interrupts
@@ -91,7 +91,7 @@ void revenant_main(int cpu)
   RNG::init();
 
   // allow programmers to do stuff on each core at init
-  ::SMP::init_task();
+  SMP::init_task();
 
   // signal that the revenant has started
   smp_main.boot_barrier.inc();

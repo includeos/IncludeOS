@@ -49,7 +49,7 @@ struct smp_system_stuff
   spinlock_t tlock = 0;
   spinlock_t flock = 0;
   std::vector<smp_task> tasks;
-  std::deque<SMP::done_func> completed;
+  std::vector<SMP::done_func> completed;
   bool work_done;
 };
 extern SMP_ARRAY<smp_system_stuff> smp_system;
