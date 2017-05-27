@@ -26,13 +26,18 @@
 #ifdef INCLUDEOS_SINGLE_THREADED
 #define SMP_MAX_CORES   1
 #else
+#ifndef SMP_MAX_CORES
 #define SMP_MAX_CORES   16
+#endif
 #endif
 
 #define SMP_ALIGN       64
 
 template <typename T>
 using SMP_ARRAY = std::array<T, SMP_MAX_CORES>;
+
+// access a std::array of T by current CPU id
+#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, SMP_MAX_CORES>(x))
 
 class SMP {
 public:
@@ -70,9 +75,6 @@ public:
   static void global_lock()   noexcept;
   static void global_unlock() noexcept;
 };
-
-// access a std::array of structs indexed by current CPU id
-#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, SMP_MAX_CORES>(x))
 
 #define SMP_DEBUG 1
 
