@@ -149,8 +149,7 @@ namespace net {
      *
      * @param      <unnamed>  The IPStack used by TCP
      */
-    TCP(IPStack&);
-    TCP(IPStack&, int);
+    TCP(IPStack&, bool smp = false);
 
     /**
      * @brief      Bind to a port to start listening for new connections

@@ -28,7 +28,7 @@ using namespace std;
 using namespace net;
 using namespace net::tcp;
 
-TCP::TCP(IPStack& inet) :
+TCP::TCP(IPStack& inet, bool smp_enable) :
   inet_{inet},
   listeners_(),
   connections_(),
@@ -52,19 +52,19 @@ TCP::TCP(IPStack& inet) :
   Expects(win_size_ <= 0x40000000 && "Invalid size");
 
   this->cpu_id = SMP::cpu_id();
-  //inet.on_transmit_queue_available({this, &TCP::process_writeq});
+  this->smp_enabled = smp_enable;
+  if (this->smp_enabled == false)
+  {
+    inet.on_transmit_queue_available({this, &TCP::process_writeq});
+  }
+  else
+  {
+    SMP::global_lock();
+    inet.on_transmit_queue_available({this, &TCP::smp_process_writeq});
+    SMP::global_unlock();
+  }
 }
 
-TCP::TCP(IPStack& inet, int cpu)
-  : TCP(inet)
-{
-  assert(SMP::cpu_id() == cpu);
-  assert(this->cpu_id == cpu);
-  this->smp_enabled = true;
-  SMP::global_lock();
-  inet.on_transmit_queue_available({this, &TCP::smp_process_writeq});
-  SMP::global_unlock();
-}
 void TCP::smp_process_writeq(size_t packets)
 {
   assert(SMP::cpu_id() == 0);
