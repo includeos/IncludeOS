@@ -49,8 +49,6 @@ extern void *memalign(size_t, size_t);
 
 namespace net {
 
-  bool BufferStore::smp_enabled_ = false;
-
   BufferStore::BufferStore(size_t num, size_t bufsize) :
     poolsize_  {num * bufsize},
     bufsize_   {bufsize},
@@ -69,14 +67,6 @@ namespace net {
     }
     assert(available_.capacity() == num);
     assert(available() == num);
-
-#ifndef INCLUDEOS_SINGLE_THREADED
-    // set CPU id this bufferstore was created for
-    this->cpu = SMP::cpu_id();
-    smp_enabled_ = (this->cpu != 0);
-#else
-    this->cpu = 0;
-#endif
 
     static int bsidx = 0;
     this->index = ++bsidx;
@@ -135,7 +125,7 @@ namespace net {
         parent = parent->next_;
         if (!parent->available_.empty()) return parent;
     }
-    INFO("BufferStore", "Allocating %u new packets", local_buffers());
+    INFO("BufferStore", "Allocating %lu new packets", local_buffers());
     parent->next_ = new BufferStore(local_buffers(), bufsize());
     return parent->next_;
 #else
@@ -153,17 +143,10 @@ namespace net {
   BufferStore::buffer_t BufferStore::get_buffer()
   {
 #ifndef INCLUDEOS_SINGLE_THREADED
-    bool is_locked = false;
-    if (smp_enabled_) {
-      lock(plock);
-      is_locked = true;
-    }
+    lock(plock);
 #endif
 
     if (UNLIKELY(available_.empty())) {
-#ifndef INCLUDEOS_SINGLE_THREADED
-      if (is_locked) unlock(plock);
-#endif
 #ifdef ENABLE_BUFFERSTORE_CHAIN
       auto* next = get_next_bufstore();
       if (next == nullptr)
@@ -173,6 +156,9 @@ namespace net {
       auto buffer = next->get_buffer_directly();
       BSD_GET("%d: Gave away EXTERN %p, %lu buffers remain\n",
               this->index, buffer.addr, available());
+#ifndef INCLUDEOS_SINGLE_THREADED
+      unlock(plock);
+#endif
       return buffer;
 #else
       panic("<BufferStore> Buffer pool empty! Not configured to increase pool size.\n");
@@ -184,7 +170,7 @@ namespace net {
             this->index, buffer.addr, available());
 
 #ifndef INCLUDEOS_SINGLE_THREADED
-    if (is_locked) unlock(plock);
+    unlock(plock);
 #endif
     return buffer;
   }
@@ -195,20 +181,16 @@ namespace net {
     BSD_RELEASE("%d: Release %p -> ", this->index, buff);
 
 #ifndef INCLUDEOS_SINGLE_THREADED
-    bool is_locked = false;
-    if (smp_enabled_) {
-      lock(plock);
-      is_locked = true;
-    }
+    lock(plock);
 #endif
     // expensive: is_buffer(buff)
     if (LIKELY(is_from_pool(buff))) {
       available_.push_back(buff);
-#ifndef INCLUDEOS_SINGLE_THREADED
-      if (is_locked) unlock(plock);
-#endif
       BSD_RELEASE("released (avail=%lu / %lu)\n",
                   available(), total_buffers());
+#ifndef INCLUDEOS_SINGLE_THREADED
+      unlock(plock);
+#endif
       return;
     }
 #ifdef ENABLE_BUFFERSTORE_CHAIN
@@ -218,13 +200,16 @@ namespace net {
       if (ptr->is_from_pool(buff)) {
         BSD_RELEASE("released on other bufferstore\n");
         ptr->release_directly(buff);
+#ifndef INCLUDEOS_SINGLE_THREADED
+        unlock(plock);
+#endif
         return;
       }
       ptr = ptr->next_;
     }
 #endif
 #ifndef INCLUDEOS_SINGLE_THREADED
-    if (is_locked) unlock(plock);
+    unlock(plock);
 #endif
     throw std::runtime_error("Packet did not belong");
   }
@@ -238,8 +223,7 @@ namespace net {
 
   void BufferStore::move_to_this_cpu() noexcept
   {
-    this->cpu = SMP::cpu_id();
-    if (this->cpu != 0) smp_enabled_ = true;
+    // TODO: hmm
   }
 
 } //< namespace net
