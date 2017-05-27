@@ -32,15 +32,26 @@ inline void lock(spinlock_t&) {}
 inline void unlock(spinlock_t&) {}
 #else
 inline void lock(spinlock_t& lock) {
-  while (__sync_lock_test_and_set(&lock, 1)) {
+  while (!__sync_bool_compare_and_swap(&lock, 0, 1)) {
     while (lock) asm("pause");
   }
 }
 inline void unlock(spinlock_t& lock) {
-  __sync_synchronize(); // barrier
-  lock = 0;
+  __sync_lock_release(&lock, 0); // barrier
 }
 #endif
+
+struct scoped_spinlock
+{
+  scoped_spinlock(spinlock_t& ref) noexcept : spinlock(ref) {
+    lock(this->spinlock);
+  }
+  ~scoped_spinlock() noexcept {
+    unlock(this->spinlock);
+  }
+private:
+    spinlock_t& spinlock;
+};
 
 struct minimal_barrier_t
 {
