@@ -19,8 +19,12 @@
 #ifndef KERNEL_CPUID_HPP
 #define KERNEL_CPUID_HPP
 
+#include <unordered_map>
+#include <vector>
+
 namespace CPUID
 {
+
   enum class Feature
   {
     // ------------------------------------------------------------------------
@@ -46,7 +50,7 @@ namespace CPUID
     SSE4_1,            // Streaming SIMD Extensions 4.1
     SSE4_2,            // Streaming SIMD Extensions 4.2
     X2APIC,            // Extended xAPIC Support
-    MOVBE,             // MOVBE Instruction
+    MOVBE,             // MOVBE Instruction (move after swapping bytes)
     POPCNT,            // POPCNT Instruction
     TSC_DEADLINE,      // Local APIC supports TSC Deadline
     AES,               // AESNI Instruction
@@ -98,7 +102,22 @@ namespace CPUID
     SVM,               // Secture Virtual Machines (AMD-V)
                        // aka. AMD-V (AMD's virtualization extension)
     SSE4A,             // SSE4a
+
+    // ------------------------------------------------------------------------
+    // 4th gen. Core features
+    // ------------------------------------------------------------------------
+    AVX2,              // AVX2
+    BMI1,              // Bit manipulation 1
+    BMI2,              // Bit manipulation 2
+    LZCNT,             // Count leading zero bits
   };
+
+  using Feature_map =  const std::unordered_map<Feature, const char*>;
+  using Feature_list = std::vector<Feature>;
+  using Feature_names = std::vector<const char*>;
+
+  Feature_names  detect_features_str();
+  Feature_list detect_features();
 
   bool is_amd_cpu()   noexcept;
   bool is_intel_cpu() noexcept;
@@ -106,6 +125,8 @@ namespace CPUID
 
   bool kvm_feature(unsigned id) noexcept;
 } //< CPUID
+
+
 
 #define KVM_FEATURE_CLOCKSOURCE   0
 #define KVM_FEATURE_NOP_IO_DELAY  1
