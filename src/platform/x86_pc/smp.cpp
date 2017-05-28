@@ -136,7 +136,7 @@ int SMP::cpu_id() noexcept
   return 0;
 #else
   int cpuid;
-  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
+  asm volatile("movl %%gs:(0x0), %0" : "=r" (cpuid));
   return cpuid;
 #endif
 }

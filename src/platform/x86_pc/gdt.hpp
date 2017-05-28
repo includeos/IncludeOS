@@ -61,10 +61,10 @@ struct GDT
   }
 #elif defined(ARCH_i686)
   static inline void set_fs(uint16_t entry) noexcept {
-    asm volatile("movw %h0, %%fs" : : "r"(entry * 0x8));
+    asm volatile("movw %%ax, %%fs" : : "a"(entry * 0x8));
   }
   static inline void set_gs(uint16_t entry) noexcept {
-    asm volatile("movw %h0, %%gs" : : "r"(entry * 0x8));
+    asm volatile("movw %%ax, %%gs" : : "a"(entry * 0x8));
   }
 #else
   static_assert(false, "Error: missing x86 arch");

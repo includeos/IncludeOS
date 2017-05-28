@@ -97,16 +97,19 @@ int kill(pid_t pid, int sig) THROW {
   return -1;
 }
 
-static const size_t CONTEXT_BUFFER_LENGTH = 0x1000;
-static char _crash_context_buffer[CONTEXT_BUFFER_LENGTH];
+struct alignas(SMP_ALIGN) context_buffer
+{
+  std::array<char, 512> buffer;
+};
+static SMP_ARRAY<context_buffer> contexts;
 
 size_t get_crash_context_length()
 {
-  return CONTEXT_BUFFER_LENGTH;
+  return PER_CPU(contexts).buffer.size();
 }
 char*  get_crash_context_buffer()
 {
-  return _crash_context_buffer;
+  return PER_CPU(contexts).buffer.data();
 }
 
 static bool panic_reenter = false;
@@ -137,17 +140,18 @@ void panic(const char* why)
   /// prevent re-entering panic() more than once per CPU
   //if (panic_reenter) OS::reboot();
   panic_reenter = true;
+  const int current_cpu = SMP::cpu_id();
 
   /// display informacion ...
   SMP::global_lock();
   fprintf(stderr, "\n\t**** CPU %d PANIC: ****\n %s\n",
-          SMP::cpu_id(), why);
+          current_cpu, why);
 
   // crash context (can help determine source of crash)
-  int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
+  const int len = strnlen(get_crash_context_buffer(), get_crash_context_length());
   if (len > 0) {
-    printf("\n\t**** CONTEXT: ****\n %*s\n",
-        len, get_crash_context_buffer());
+    printf("\n\t**** CPU %d CONTEXT: ****\n %*s\n\n",
+        current_cpu, len, get_crash_context_buffer());
   }
 
   // heap info
@@ -210,6 +214,7 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
 extern "C" void _init_syscalls();
 void _init_syscalls()
 {
-  // make sure that the buffers length is zero so it won't always show up in crashes
-  _crash_context_buffer[0] = 0;
+  // make sure each buffer is zero length so it won't always show up in crashes
+  for (auto& ctx : contexts)
+      ctx.buffer[0] = 0;
 }
