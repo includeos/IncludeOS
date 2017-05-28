@@ -117,6 +117,11 @@ void OS::on_panic(on_panic_func func)
   panic_handler = std::move(func);
 }
 
+bool OS::is_panicking() noexcept
+{
+  return panic_reenter; // should work
+}
+
 /**
  * panic:
  * Display reason for kernel panic
