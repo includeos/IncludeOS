@@ -29,10 +29,21 @@
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
+extern "C" void* get_cpu_esp();
+extern "C" void* get_cpu_ebp();
+
 namespace tls {
-  void  init(int count);
-  char* get_tls_data(int);
+  size_t get_tls_size();
+  void   fill_tls_data(char*);
 }
+struct smp_table
+{
+  // thread self-pointer
+  smp_table* tls_data;
+  // per-cpu data
+  int cpuid;
+  int unused;
+};
 
 using namespace x86;
 
@@ -40,9 +51,6 @@ void __platform_init()
 {
   // read ACPI tables
   ACPI::init();
-
-  // allocate Thread Local Storage
-  tls::init(ACPI::get_cpus().size());
 
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
@@ -106,36 +114,39 @@ void __arch_reboot()
   __builtin_unreachable();
 }
 
+#include <malloc.h>
 namespace x86
 {
-#ifdef ARCH_x86_64
-  struct alignas(SMP_ALIGN) segtable
-  {
-    int cpuid;
-    // threads
-    char* tls_data;
-  };
-#else
   struct alignas(SMP_ALIGN) segtable
   {
     int cpuid;
     struct GDT gdt;
+    char  stuff[128];
+    void* selfptr;
   };
+  static std::array<segtable, SMP_MAX_CORES> gdtables;
+#ifdef ARCH_i686
   struct alignas(SMP_ALIGN) tls_table
   {
     char* tls_data;
   };
   static std::array<tls_table, SMP_MAX_CORES> tlstables;
 #endif
-  static std::array<segtable, SMP_MAX_CORES> gdtables;
 
   void initialize_gdt_for_cpu(int id)
   {
 #ifdef ARCH_x86_64
-    gdtables[id].cpuid = id;
-    gdtables[id].tls_data = tls::get_tls_data(id);
-    GDT::set_fs(&gdtables[id].tls_data);
-    GDT::set_gs(&gdtables[id]);
+    size_t thread_size = tls::get_tls_size();
+    size_t total_size  = thread_size + sizeof(smp_table);
+    char* data = (char*) memalign(64, total_size);
+    tls::fill_tls_data(&data[thread_size]);
+
+    auto* table = (smp_table*) &data[thread_size];
+    table->tls_data = table;
+    table->cpuid    = id;
+    GDT::set_gs(&table->cpuid); // PER_CPU on gs
+    GDT::set_fs(table); // TLS self-ptr in fs
+
 #else
     tlstables[id].tls_data = tls::get_tls_data(id);
     gdtables[id].cpuid = id;
