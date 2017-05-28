@@ -26,9 +26,7 @@
 #ifdef INCLUDEOS_SINGLE_THREADED
 #define SMP_MAX_CORES   1
 #else
-#ifndef SMP_MAX_CORES
-#define SMP_MAX_CORES   16
-#endif
+#define SMP_MAX_CORES   32
 #endif
 
 #define SMP_ALIGN       64
