@@ -150,6 +150,19 @@ SECTIONS
     _DATA_END_ = .;
   }
 
+  .tdata :
+  {
+    _TDATA_START_ = .;
+    *(.tdata .tdata.*)
+    _TDATA_END_ = .;
+  }
+  .tbss :
+  {
+    _TBSS_START_ = .;
+    *(.tbss .tbss.*)
+    _TBSS_END_ = .;
+  }
+
   .memdisk :
   {
     _DISK_START_ = .;
@@ -168,9 +181,7 @@ SECTIONS
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
     _BSS_END_ = .;
-    . = ALIGN(64 / 8);
   }
-  . = ALIGN(64 / 8);
   _end = .;
 
   PROVIDE (end = .);

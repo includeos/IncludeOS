@@ -29,19 +29,20 @@
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
+namespace tls {
+  void  init(int count);
+  char* get_tls_data(int);
+}
 
 using namespace x86;
-
-namespace x86 {
-  static void initialize_cpu_shared();
-}
 
 void __platform_init()
 {
   // read ACPI tables
   ACPI::init();
-  // create CPU storage struct
-  initialize_cpu_shared();
+
+  // allocate Thread Local Storage
+  tls::init(ACPI::get_cpus().size());
 
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
@@ -107,39 +108,34 @@ void __arch_reboot()
 
 namespace x86
 {
-  struct alignas(SMP_ALIGN) cpu_shared
-  {
-    int cpduid;
-  };
-  static std::array<cpu_shared, SMP_MAX_CORES> cpudata; // for alignment
-
-  static void initialize_cpu_shared()
-  {
-    for (size_t id = 0; id < cpudata.size(); id++) {
-      cpudata[id].cpduid = id;
-    }
-  }
-
   struct alignas(SMP_ALIGN) segtable
   {
+    int cpuid;
     struct GDT gdt;
+    // threads
+    char* tls_data;
   };
   static std::array<segtable, SMP_MAX_CORES> gdtables;
 
   void initialize_gdt_for_cpu(int id)
   {
-    cpudata[id].cpduid = id;
-  #ifdef ARCH_x86_64
-    GDT::set_fs(&cpudata.at(id));
-  #else
+    gdtables[id].cpuid = id;
+    gdtables[id].tls_data = tls::get_tls_data(id);
+#ifdef ARCH_x86_64
+    GDT::set_fs(&gdtables[id].tls_data);
+    GDT::set_gs(&gdtables[id]);
+#else
     // initialize GDT for this core
     gdtables.at(id).gdt.initialize();
+    // create per-thread segment
+    int fs = gdtables[id].gdt.create_data(&gdtables[id].tls_data, 1);
     // create PER-CPU segment
-    int fs = gdtables[id].gdt.create_data(&cpudata.at(id), 1);
+    int gs = gdtables[id].gdt.create_data(&gdtables[id], 1);
     // load GDT and refresh segments
     GDT::reload_gdt(gdtables[id].gdt);
-    // enable per-cpu for this core
+    // enable per-cpu and per-thread
     GDT::set_fs(fs);
-  #endif
+    GDT::set_gs(gs);
+#endif
   }
 } // x86
