@@ -108,31 +108,46 @@ void __arch_reboot()
 
 namespace x86
 {
+#ifdef ARCH_x86_64
+  struct alignas(SMP_ALIGN) segtable
+  {
+    int cpuid;
+    // threads
+    char* tls_data;
+  };
+#else
   struct alignas(SMP_ALIGN) segtable
   {
     int cpuid;
     struct GDT gdt;
-    // threads
+  };
+  struct alignas(SMP_ALIGN) tls_table
+  {
     char* tls_data;
   };
+  static std::array<tls_table, SMP_MAX_CORES> tlstables;
+#endif
   static std::array<segtable, SMP_MAX_CORES> gdtables;
 
   void initialize_gdt_for_cpu(int id)
   {
+#ifdef ARCH_x86_64
     gdtables[id].cpuid = id;
     gdtables[id].tls_data = tls::get_tls_data(id);
-#ifdef ARCH_x86_64
     GDT::set_fs(&gdtables[id].tls_data);
     GDT::set_gs(&gdtables[id]);
 #else
+    tlstables[id].tls_data = tls::get_tls_data(id);
+    gdtables[id].cpuid = id;
     // initialize GDT for this core
-    gdtables.at(id).gdt.initialize();
+    auto& gdt = gdtables.at(id).gdt;
+    gdt.initialize();
     // create per-thread segment
-    int fs = gdtables[id].gdt.create_data(&gdtables[id].tls_data, 1);
+    int gs = gdt.create_data(&tlstables[id], 1);
     // create PER-CPU segment
-    int gs = gdtables[id].gdt.create_data(&gdtables[id], 1);
+    int fs = gdt.create_data(&gdtables[id], 1);
     // load GDT and refresh segments
-    GDT::reload_gdt(gdtables[id].gdt);
+    GDT::reload_gdt(gdt);
     // enable per-cpu and per-thread
     GDT::set_fs(fs);
     GDT::set_gs(gs);
