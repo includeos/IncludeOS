@@ -46,6 +46,9 @@ struct smp_table
 };
 
 using namespace x86;
+namespace x86 {
+  void initialize_tls_for_smp();
+}
 
 void __platform_init()
 {
@@ -54,6 +57,8 @@ void __platform_init()
 
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
+
+  initialize_tls_for_smp();
 
   // enable fs/gs for local APIC
   initialize_gdt_for_cpu(APIC::get().get_id());
@@ -117,35 +122,52 @@ void __arch_reboot()
 #include <malloc.h>
 namespace x86
 {
+  constexpr size_t smp_table_aligned_size()
+  {
+    size_t size = sizeof(smp_table);
+    if (size & 63) size += 64 - (size & 63);
+    return size;
+  }
+
+  static std::vector<char*> tls_buffers;
+
+  void initialize_tls_for_smp()
+  {
+    const size_t thread_size = tls::get_tls_size();
+    const size_t total_size  = thread_size + smp_table_aligned_size();
+    const size_t cpu_count = ACPI::get_cpus().size();
+
+    char* buffer = (char*) memalign(64, total_size * cpu_count);
+    tls_buffers.reserve(cpu_count);
+    for (auto cpu = 0u; cpu < cpu_count; cpu++)
+        tls_buffers.push_back(&buffer[total_size * cpu]);
+  }
+
+#ifdef ARCH_i686
   struct alignas(SMP_ALIGN) segtable
   {
     int cpuid;
     struct GDT gdt;
-    char  stuff[128];
-    void* selfptr;
   };
   static std::array<segtable, SMP_MAX_CORES> gdtables;
-#ifdef ARCH_i686
-  struct alignas(SMP_ALIGN) tls_table
-  {
-    char* tls_data;
-  };
-  static std::array<tls_table, SMP_MAX_CORES> tlstables;
 #endif
 
-  void initialize_gdt_for_cpu(int id)
+  void initialize_gdt_for_cpu(int cpu_id)
   {
 #ifdef ARCH_x86_64
-    size_t thread_size = tls::get_tls_size();
-    size_t total_size  = thread_size + sizeof(smp_table);
-    char* data = (char*) memalign(64, total_size);
-    tls::fill_tls_data(&data[thread_size]);
-
+    char* data = tls_buffers.at(cpu_id);
+    // TLS data at front of buffer
+    tls::fill_tls_data(data);
+    // SMP control block after data
+    const size_t thread_size = tls::get_tls_size();
     auto* table = (smp_table*) &data[thread_size];
     table->tls_data = table;
-    table->cpuid    = id;
-    GDT::set_gs(&table->cpuid); // PER_CPU on gs
+    table->cpuid    = cpu_id;
     GDT::set_fs(table); // TLS self-ptr in fs
+    GDT::set_gs(&table->cpuid); // PER_CPU on gs
+    __sync_synchronize();
+    //for (int i = 0; i < 2; i++)
+    //SMP_PRINT("fs: %p\n", (void*) CPU::read_msr(MSR_FS_BASE));
 
 #else
     tlstables[id].tls_data = tls::get_tls_data(id);
@@ -162,6 +184,7 @@ namespace x86
     // enable per-cpu and per-thread
     GDT::set_fs(fs);
     GDT::set_gs(gs);
+
 #endif
   }
 } // x86

@@ -28,10 +28,10 @@ namespace tls
     const auto TBSS_SIZE = &_TBSS_END_ - &_TBSS_START_;
 
     // copy over APs .tdata
-    char* tdata = data - (align_value(TDATA_SIZE) + align_value(TBSS_SIZE));
+    char* tdata = data;
     memcpy(tdata, &_TDATA_START_, TDATA_SIZE);
     // clear APs .tbss
-    char* tbss  = data - align_value(TBSS_SIZE);
+    char* tbss  = data + align_value(TDATA_SIZE);
     memset(tbss, 0, TBSS_SIZE);
 
     //printf("TLS at %p is %lu -> %lu bytes\n", data, TDATA_SIZE + TBSS_SIZE, align_value(TDATA_SIZE) + align_value(TBSS_SIZE));
