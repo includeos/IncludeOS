@@ -23,7 +23,7 @@
 #include <cstring>
 #include <smp>
 
-struct rng_state
+struct alignas(SMP_ALIGN) rng_state
 {
   uint64_t state[25];
 };

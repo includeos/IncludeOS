@@ -28,12 +28,7 @@ typedef SMP::done_func smp_done_func;
 
 namespace x86 {
 
-class SMP {
-public:
-  static std::vector<smp_done_func> get_completed();
-  static void init();
-};
-
+extern void init_SMP();
 extern void initialize_gdt_for_cpu(int cpuid);
 
 }

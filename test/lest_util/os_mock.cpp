@@ -162,6 +162,8 @@ int SMP::cpu_id() noexcept {
 }
 void SMP::global_lock() noexcept {}
 void SMP::global_unlock() noexcept {}
+void SMP::add_task(SMP::task_func func, int) { func(); }
+void SMP::signal(int) {}
 
 extern "C"
 void (*current_eoi_mechanism) () = nullptr;

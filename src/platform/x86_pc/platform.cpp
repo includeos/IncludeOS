@@ -54,7 +54,7 @@ void __platform_init()
 
   // initialize and start registered APs found in ACPI-tables
 #ifndef INCLUDEOS_SINGLE_THREADED
-  x86::SMP::init();
+  x86::init_SMP();
 #endif
 
   // enable interrupts
@@ -128,6 +128,7 @@ namespace x86
 
   void initialize_gdt_for_cpu(int id)
   {
+    cpudata[id].cpduid = id;
   #ifdef ARCH_x86_64
     GDT::set_fs(&cpudata.at(id));
   #else
@@ -138,7 +139,6 @@ namespace x86
     // load GDT and refresh segments
     GDT::reload_gdt(gdtables[id].gdt);
     // enable per-cpu for this core
-    cpudata[id].cpduid = id;
     GDT::set_fs(fs);
   #endif
   }

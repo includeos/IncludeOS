@@ -43,7 +43,7 @@ __FILE* stdout;
 __FILE* stderr;
 
 // stack-protector guard
-const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
+const uintptr_t __stack_chk_guard = (uintptr_t) _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 
 void _init_bss() {

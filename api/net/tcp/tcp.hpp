@@ -46,6 +46,8 @@ namespace net {
     using CleanupCallback = tcp::Connection::CleanupCallback;
     using ConnectCallback = tcp::Connection::ConnectCallback;
 
+    using Packet_reroute_func = delegate<void(tcp::Packet_ptr)>;
+
     friend class tcp::Connection;
     friend class tcp::Listener;
 
@@ -147,7 +149,7 @@ namespace net {
      *
      * @param      <unnamed>  The IPStack used by TCP
      */
-    TCP(IPStack&);
+    TCP(IPStack&, bool smp = false);
 
     /**
      * @brief      Bind to a port to start listening for new connections
@@ -520,6 +522,14 @@ namespace net {
       throw std::out_of_range("Missing connection");
     }
 
+    void redirect(Packet_reroute_func func) {
+      this->packet_rerouter = func;
+    }
+
+    int get_cpuid() const noexcept {
+      return this->cpu_id;
+    }
+
   private:
     IPStack&      inet_;
     Listeners     listeners_;
@@ -548,14 +558,18 @@ namespace net {
     uint16_t                  max_syn_backlog_;
 
     /** Stats */
-    uint64_t& bytes_rx_;
-    uint64_t& bytes_tx_;
-    uint64_t& packets_rx_;
-    uint64_t& packets_tx_;
-    uint64_t& incoming_connections_;
-    uint64_t& outgoing_connections_;
-    uint64_t& connection_attempts_;
-    uint32_t& packets_dropped_;
+    uint64_t* bytes_rx_ = nullptr;
+    uint64_t* bytes_tx_ = nullptr;
+    uint64_t* packets_rx_ = nullptr;
+    uint64_t* packets_tx_ = nullptr;
+    uint64_t* incoming_connections_ = nullptr;
+    uint64_t* outgoing_connections_ = nullptr;
+    uint64_t* connection_attempts_ = nullptr;
+    uint32_t* packets_dropped_ = nullptr;
+
+    bool smp_enabled = false;
+    int  cpu_id = 0;
+    Packet_reroute_func packet_rerouter = nullptr;
 
     /**
      * @brief      Transmit an outgoing TCP segment to the network.
@@ -744,6 +758,7 @@ namespace net {
      * @param[in]  packets  Number of disposable packets
      */
     void process_writeq(size_t packets);
+    void smp_process_writeq(size_t packets);
 
     /**
      * @brief      Request an offer of packets.

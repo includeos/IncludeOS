@@ -15,43 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef X86_APIC_REVENANT_HPP
-#define X86_APIC_REVENANT_HPP
+#include <fs/dirent.hpp>
 
-#include "smp.hpp"
-#include <cstdint>
-#include <deque>
-#include <membitmap>
-
-extern "C" void revenant_main(int);
-
-struct smp_task {
-  smp_task(SMP::task_func a,
-           SMP::done_func b)
-   : func(a), done(b) {}
-
-  SMP::task_func func;
-  SMP::done_func done;
-};
-
-struct smp_stuff
+namespace fs
 {
-  minimal_barrier_t boot_barrier;
-
-  uint32_t  bmp_storage[1] = {0};
-  MemBitmap bitmap{&bmp_storage[0], 1};
-};
-extern smp_stuff smp_main;
-
-struct smp_system_stuff
-{
-  spinlock_t tlock = 0;
-  spinlock_t flock = 0;
-  std::vector<smp_task> tasks;
-  std::vector<SMP::done_func> completed;
-  bool work_done;
-};
-extern SMP_ARRAY<smp_system_stuff> smp_system;
-
-#endif
+  Dirent::Dirent(const Dirent& other) noexcept
+  {
+    this->fs_     = other.fs_;
+    this->ftype   = other.ftype;
+    this->fname_  = other.fname_;
+    this->block_  = other.block_;
+    this->parent_ = other.parent_;
+    this->size_   = other.size_;
+    this->attrib_ = other.attrib_;
+    this->modif   = other.modif;
+  }
+}
