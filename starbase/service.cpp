@@ -37,8 +37,7 @@ void Service::start(const std::string&)
 
   auto detected_features = CPUID::detect_features_str();
 
-  MYINFO("Detected %lu / %lu CPU features. Detected:",
-         detected_features.size(), CPUID::feature_names.size());
+  MYINFO("Detected %lu CPU features:", detected_features.size());
 
   for (auto f : detected_features)
     printf("%s %s", f, f == detected_features.back() ? "" : ", ");
