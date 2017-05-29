@@ -191,105 +191,111 @@ void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
   // silently ignore data from reset connection
   if (this->stream == nullptr) return;
 
+  char* data = reinterpret_cast<char*>(buf.get());
   // parse message
-  if (message != nullptr)
-  {
-    try {
-      message->add(reinterpret_cast<char*>(buf.get()), len);
-    }
-    catch(const WS_error& err)
-    {
-      failure(err.what());
-      on_read(nullptr);
-      return;
-    }
-  }
-  // create new message
-  else
-  {
-    // parse header
-    if (len < sizeof(ws_header)) {
-      failure("read_data: Header was too short");
-      return;
-    }
 
-    ws_header& hdr = *reinterpret_cast<ws_header*>(buf.get());
 
-    // TODO: Add configuration for this, hardcoded max msgs of 5MB for now
-    if (hdr.data_length() > (1024 * 1024 * 5)) {
-      failure("read: Maximum message size exceeded (5MB)");
-      return;
-    }
-    /*
-    printf("Code: %hhu  (%s) (final=%d)\n",
-            hdr.opcode(), opcode_string(hdr.opcode()), hdr.is_final());
-    printf("Mask: %d  len=%u\n", hdr.is_masked(), hdr.mask_length());
-    printf("Payload: len=%u dataofs=%u\n",
-            hdr.data_length(), hdr.data_offset());
-    */
 
-    /// unmask data (if masked)
-    if (hdr.is_masked()) {
-      if (clientside == true) {
-        failure("Read masked message from server");
-        return;
+  while (len) {
+    if (message != nullptr)
+      {
+        len -= message->add(data, len);
       }
-    } else if (clientside == false) {
-      failure("Read unmasked message from client");
-      return;
-    }
-
-    try
-    {
-      message = std::make_unique<Message>(reinterpret_cast<char*>(buf.get()), len);
-    }
-    catch(const WS_error& err)
-    {
-      failure(err.what());
-      on_read(nullptr);
-      return;
-    }
-  }
-
-  if(message->is_complete())
-  {
-    message->unmask();
-    const auto& hdr = message->header();
-    switch (hdr.opcode()) {
-      case op_code::TEXT:
-      case op_code::BINARY:
-        /// .. call on_read
-        if (on_read) {
-            on_read(std::move(message));
-        }
-        break;
-      case op_code::CLOSE:
-        // they are angry with us :(
-        if (hdr.data_length() >= 2) {
-          // provide reason to user
-          uint16_t reason = *(uint16_t*) message->data();
-          if (this->on_close)
-              this->on_close(__builtin_bswap16(reason));
-        }
-        else {
-          if (this->on_close) this->on_close(1000);
-        }
-        // close it down
-        this->close();
-        break;
-      case op_code::PING:
-        write_opcode(op_code::PONG, hdr.data(), hdr.data_length());
-        break;
-      case op_code::PONG:
-        break;
-      default:
-        printf("Unknown opcode: %hhu\n", hdr.opcode());
-        break;
+    // create new message
+    else
+      {
+        len -= create_message(data, len);
       }
-    message.reset();
+
+    if(message->is_complete()) {
+      finalize_message();
+    }
   }
 
 }
+
+size_t WebSocket::create_message(char* buf, size_t len){
+  // parse header
+  if (len < sizeof(ws_header)) {
+    failure("read_data: Header was too short");
+
+    // Consider the remaining buffer as garbage
+    return len;
+  }
+
+  ws_header& hdr = *reinterpret_cast<ws_header*>(buf);
+
+  // TODO: Add configuration for this, hardcoded max msgs of 5MB for now
+  if (hdr.data_length() > (1024 * 1024 * 5)) {
+    failure("read: Maximum message size exceeded (5MB)");
+
+    // consume and discard current message, leave any remaining data in buffer
+    return std::min(hdr.data_length(), len);
+  }
+
+  /*
+    printf("Code: %hhu  (%s) (final=%d)\n",
+    hdr.opcode(), opcode_string(hdr.opcode()), hdr.is_final());
+    printf("Mask: %d  len=%u\n", hdr.is_masked(), hdr.mask_length());
+    printf("Payload: len=%u dataofs=%u\n",
+    hdr.data_length(), hdr.data_offset());
+  */
+
+  /// unmask data (if masked)
+  if (hdr.is_masked()) {
+    if (clientside == true) {
+      failure("Read masked message from server");
+      return std::min(hdr.data_length(), len);
+    }
+  } else if (clientside == false) {
+    failure("Read unmasked message from client");
+    return std::min(hdr.data_length(), len);
+  }
+
+  auto msg_size = std::min(len, hdr.reported_length());
+  message = std::make_unique<Message>(buf, msg_size);
+
+  return msg_size;
+}
+
+void WebSocket::finalize_message() {
+  Expects(message != nullptr and message->is_complete());
+  message->unmask();
+  const auto& hdr = message->header();
+  switch (hdr.opcode()) {
+  case op_code::TEXT:
+  case op_code::BINARY:
+    /// .. call on_read
+    if (on_read) {
+      on_read(std::move(message));
+    }
+    break;
+  case op_code::CLOSE:
+    // they are angry with us :(
+    if (hdr.data_length() >= 2) {
+      // provide reason to user
+      uint16_t reason = *(uint16_t*) message->data();
+      if (this->on_close)
+        this->on_close(__builtin_bswap16(reason));
+    }
+    else {
+      if (this->on_close) this->on_close(1000);
+    }
+    // close it down
+    this->close();
+    break;
+  case op_code::PING:
+    write_opcode(op_code::PONG, hdr.data(), hdr.data_length());
+    break;
+  case op_code::PONG:
+    break;
+  default:
+    printf("Unknown opcode: %hhu\n", hdr.opcode());
+    break;
+  }
+  message.reset();
+}
+
 
 static size_t make_header(char* dest, size_t len, op_code code, bool client)
 {
