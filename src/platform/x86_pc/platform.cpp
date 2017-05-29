@@ -45,13 +45,15 @@ struct smp_table
   int cpuid;  // 0x8
   int unused;
 
-  uintptr_t pad1; // 0x10
-  uintptr_t pad2; // 0x18
-  uintptr_t pad3; // 0x20
-  uintptr_t guard = _SENTINEL_VALUE_;
+#ifdef ARCH_x86_64
+  uintptr_t pad[3]; // 64-bit padding
+#else
+  uintptr_t pad[7]; // 64-bit padding
+#endif
+  uintptr_t guard; // _SENTINEL_VALUE_
 };
 // FS:0x28 on Linux is storing a special sentinel stack-guard value
-static_assert(offsetof(smp_table, guard) == 0x28);
+static_assert(offsetof(smp_table, guard) == 0x28, "Linux stack sentinel");
 
 using namespace x86;
 namespace x86 {
@@ -171,7 +173,7 @@ namespace x86
     auto* table = (smp_table*) &data[thread_size];
     table->tls_data = table;
     table->cpuid    = cpu_id;
-    table->guard    = _SENTINEL_VALUE_;
+    table->guard    = (uintptr_t) _SENTINEL_VALUE_;
     // should be at least 8-byte aligned
     assert((((uintptr_t) table) & 7) == 0);
 #ifdef ARCH_x86_64
