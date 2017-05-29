@@ -75,15 +75,11 @@ public:
     Data_cit cend() const noexcept
     { return data_.end(); }
 
-    void add(const char* data, size_t len)
+    size_t add(const char* data, size_t len)
     {
-      //data_.insert(data_.end(), data, data+len);
-      if (data_.capacity() >= data_.size() + len) {
-        data_.insert(data_.end(), data, data+len);
-      }
-      else {
-        throw WS_error{"Exceeding Message size"};
-      }
+      size_t insert_size = std::min(data_.capacity() - data_.size(), len);
+      data_.insert(data_.end(), data, data + insert_size);
+      return insert_size;
     }
 
     const char* data() const noexcept
@@ -239,6 +235,8 @@ private:
   bool write_opcode(op_code code, const char*, size_t);
   void failure(const std::string&);
   void tcp_closed();
+  size_t create_message(char*, size_t len);
+  void finalize_message();
   void reset();
 };
 using WebSocket_ptr = WebSocket::WebSocket_ptr;
