@@ -27,15 +27,18 @@
 namespace net {
 
   using namespace dhcp;
+  const int DHClient::NUM_RETRIES;
 
   DHClient::DHClient(Stack& inet)
-    : stack(inet), xid(0), domain_name{},
-      timeout_timer_{{this, &DHClient::timeout}}, in_progress(false)
+    : stack(inet),
+      domain_name{},
+      timeout_timer_{{this, &DHClient::restart_negotation}}
   {
+    // default timed out handler spams logs
     this->on_config(
-    [this] (bool timeout)
+    [this] (bool timed_out)
     {
-      if (timeout)
+      if (timed_out)
         MYINFO("Negotiation timed out (%s)", this->stack.ifname().c_str());
       else
         MYINFO("Configuration complete (%s)", this->stack.ifname().c_str());
@@ -48,34 +51,60 @@ namespace net {
     config_handlers_.push_back(handler);
   }
 
-  void DHClient::timeout()
+  void DHClient::restart_negotation()
   {
-    // reset session ID
-    this->xid = 0;
-    this->in_progress = false;
-
+    if (retries-- <= 0)
+    {
+      // give up when retries reached zero
+      end_negotiation(true);
+    }
+    else
+    {
+      timeout_timer_.start(this->timeout);
+      send_first();
+    }
+  }
+  void DHClient::end_negotiation(bool timed_out)
+  {
+    // wind down
+    this->xid      = 0;
+    timeout_timer_.stop();
+    this->progress = 0;
+    this->retries  = NUM_RETRIES;
+    // close UDP socket
+    stack.udp().close(DHCP_CLIENT_PORT);
+    this->socket = nullptr;
     // call on_config with timeout = true
     for(auto& handler : this->config_handlers_)
-      handler(true);
+        handler(timed_out);
   }
 
   void DHClient::negotiate(uint32_t timeout_secs)
   {
     // Allow multiple calls to negotiate without restarting the process
-    if (in_progress) return;
-    in_progress = true;
+    if (this->xid != 0) return;
+    this->retries = NUM_RETRIES;
+    this->progress = 0;
 
-    // set timeout handler
+    // calculate progress timeout
     using namespace std::chrono;
+    this->timeout = seconds(timeout_secs) / NUM_RETRIES;
 
-    timeout_timer_.start(seconds(timeout_secs));
-
-    // create a random session ID
+    // generate a new session ID
     this->xid  = (rand() & 0xffff);
     this->xid |= (rand() & 0xffff) << 16;
+    assert(this->xid != 0);
 
     debug("Negotiating IP-address for %s (xid=%u)\n", stack.ifname().c_str(), xid);
 
+    assert(this->socket == nullptr);
+    this->socket = &stack.udp().bind(DHCP_CLIENT_PORT);
+
+    restart_negotation();
+  }
+
+  void DHClient::send_first()
+  {
     // create DHCP discover packet
     uint8_t buffer[Message::size()];
     Message_writer msg{&buffer[0], op_code::BOOTREQUEST, message_type::DISCOVER};
@@ -99,13 +128,11 @@ namespace net {
     // END
     msg.end();
 
-    ////////////////////////////////////////////////////////
-    auto& socket = stack.udp().bind(DHCP_CLIENT_PORT);
+    assert(socket);
     /// broadcast our DHCP plea as 0.0.0.0:67
-    socket.bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, buffer, sizeof(buffer));
-
-    socket.on_read(
-    [this, &socket] (IP4::addr addr, UDP::port_t port,
+    socket->bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, buffer, sizeof(buffer));
+    socket->on_read(
+    [this] (IP4::addr addr, UDP::port_t port,
                      const char* data, size_t len)
     {
       if (port == DHCP_SERVER_PORT)
@@ -114,12 +141,12 @@ namespace net {
         (void) addr;
         debug("Received possible DHCP OFFER from %s\n",
                addr.str().c_str());
-        this->offer(socket, data, len);
+        this->offer(data, len);
       }
     });
   }
 
-  void DHClient::offer(UDPSocket& sock, const char* data, size_t)
+  void DHClient::offer(const char* data, size_t)
   {
     const Message_reader msg{reinterpret_cast<const uint8_t*>(data)};
 
@@ -205,11 +232,12 @@ namespace net {
     // Remove any existing IP config to be able to receive on broadcast
     stack.reset_config();
 
+    this->progress++;
     // we can accept the offer now by requesting the IP!
-    this->request(sock, server_id);
+    this->request(server_id);
   }
 
-  void DHClient::request(UDPSocket& sock, const option::server_identifier* server_id)
+  void DHClient::request(const option::server_identifier* server_id)
   {
     // form a response
     uint8_t buffer[Message::size()];
@@ -251,8 +279,9 @@ namespace net {
     // END
     msg.end();
 
+    assert(this->socket);
     // set our onRead function to point to a hopeful DHCP ACK!
-    sock.on_read(
+    socket->on_read(
     [this] (IP4::addr, UDP::port_t port,
           const char* data, size_t len)
     {
@@ -264,9 +293,8 @@ namespace net {
         this->acknowledge(data, len);
       }
     });
-
-    // send our DHCP Request
-    sock.bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, buffer, sizeof(buffer));
+    socket->bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, buffer, sizeof(buffer));
+    this->progress++;
   }
 
   void DHClient::acknowledge(const char* data, size_t)
@@ -306,14 +334,8 @@ namespace net {
       stack.set_domain_name(domain_name);
     }
     debug("\n");
-    // stop timeout from happening
-    timeout_timer_.stop();
-
-    in_progress = false;
-
-    // run some post-DHCP event to release the hounds
-    for(auto& handler : this->config_handlers_)
-      handler(false);
+    // did not time out!
+    end_negotiation(false);
   }
 
 }
