@@ -68,10 +68,10 @@ void init_SMP()
 #else
   #error "Unimplemented arch"
 #endif
-  auto* stack = memalign(4096, (CPUcount-1) * REV_STACK_SIZE);
+  void* stack = memalign(4096, CPUcount * REV_STACK_SIZE);
   boot->stack_base = (uint32_t) (uintptr_t) stack;
   // add to start at top of each stack, remove to offset cpu 1 to idx 0
-  boot->stack_base -= 16;
+  //boot->stack_base -= 16;
   boot->stack_size = REV_STACK_SIZE;
   debug("APIC stack base: %#x  size: %u   main size: %u\n",
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
@@ -132,13 +132,15 @@ void init_SMP()
 /// implementation of the SMP interface ///
 int SMP::cpu_id() noexcept
 {
-#ifdef INCLUDEOS_SINGLE_THREADED
-  return 0;
-#else
   int cpuid;
-  asm volatile("movl %%gs:(0x0), %0" : "=r" (cpuid));
-  return cpuid;
+#ifdef ARCH_x86_64
+  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
+#elif defined(ARCH_i686)
+  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
+#else
+  #error "Implement me?"
 #endif
+  return cpuid;
 }
 int SMP::cpu_count() noexcept
 {
