@@ -137,6 +137,7 @@ namespace x86
     const size_t total_size  = thread_size + smp_table_aligned_size();
     const size_t cpu_count = ACPI::get_cpus().size();
 
+    //printf("TLS buffers are %lu bytes, SMP table %lu bytes\n", total_size, smp_table_aligned_size());
     char* buffer = (char*) memalign(64, total_size * cpu_count);
     tls_buffers.reserve(cpu_count);
     for (auto cpu = 0u; cpu < cpu_count; cpu++)
@@ -154,7 +155,6 @@ namespace x86
 
   void initialize_gdt_for_cpu(int cpu_id)
   {
-#ifdef ARCH_x86_64
     char* data = tls_buffers.at(cpu_id);
     // TLS data at front of buffer
     tls::fill_tls_data(data);
@@ -163,28 +163,29 @@ namespace x86
     auto* table = (smp_table*) &data[thread_size];
     table->tls_data = table;
     table->cpuid    = cpu_id;
+    // should be at least 8-byte aligned
+    assert((((uintptr_t) table) & 7) == 0);
+#ifdef ARCH_x86_64
     GDT::set_fs(table); // TLS self-ptr in fs
     GDT::set_gs(&table->cpuid); // PER_CPU on gs
     __sync_synchronize();
     //for (int i = 0; i < 2; i++)
     //SMP_PRINT("fs: %p\n", (void*) CPU::read_msr(MSR_FS_BASE));
-
 #else
-    tlstables[id].tls_data = tls::get_tls_data(id);
-    gdtables[id].cpuid = id;
+    gdtables[cpu_id].cpuid = cpu_id;
     // initialize GDT for this core
-    auto& gdt = gdtables.at(id).gdt;
+    auto& gdt = gdtables.at(cpu_id).gdt;
     gdt.initialize();
-    // create per-thread segment
-    int gs = gdt.create_data(&tlstables[id], 1);
     // create PER-CPU segment
-    int fs = gdt.create_data(&gdtables[id], 1);
+    int fs = gdt.create_data(&gdtables[cpu_id], 1);
+    // create per-thread segment
+    int gs = gdt.create_data(table, 1);
     // load GDT and refresh segments
     GDT::reload_gdt(gdt);
     // enable per-cpu and per-thread
     GDT::set_fs(fs);
     GDT::set_gs(gs);
-
+    __sync_synchronize();
 #endif
   }
 } // x86
