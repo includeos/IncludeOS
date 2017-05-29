@@ -49,14 +49,14 @@ namespace x86
 
 void init_SMP()
 {
-  uint32_t CPUcount = ACPI::get_cpus().size();
+  const uint32_t CPUcount = ACPI::get_cpus().size();
   if (CPUcount <= 1) return;
   assert(CPUcount <= SMP_MAX_CORES);
 
   // copy our bootloader to APIC init location
   const char* start = &_binary_apic_boot_bin_start;
-  ptrdiff_t bootloader_size = &_binary_apic_boot_bin_end - start;
-  memcpy((char*) BOOTLOADER_LOCATION, start, bootloader_size);
+  const ptrdiff_t bootl_size = &_binary_apic_boot_bin_end - start;
+  memcpy((char*) BOOTLOADER_LOCATION, start, bootl_size);
 
   // modify bootloader to support our cause
   auto* boot = (apic_boot*) BOOTLOADER_LOCATION;
@@ -83,7 +83,7 @@ void init_SMP()
   auto& apic = x86::APIC::get();
   // turn on CPUs
   INFO("SMP", "Initializing APs");
-  for (auto& cpu : ACPI::get_cpus())
+  for (const auto& cpu : ACPI::get_cpus())
   {
     if (cpu.id == apic.get_id()) continue;
     debug("-> CPU %u ID %u  fl 0x%x\n",
@@ -92,7 +92,7 @@ void init_SMP()
   }
   // start CPUs
   INFO("SMP", "Starting APs");
-  for (auto& cpu : ACPI::get_cpus())
+  for (const auto& cpu : ACPI::get_cpus())
   {
     if (cpu.id == apic.get_id()) continue;
     // Send SIPI with start address BOOTLOADER_LOCATION
@@ -136,7 +136,7 @@ int SMP::cpu_id() noexcept
   return 0;
 #else
   int cpuid;
-  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
+  asm volatile("movl %%gs:(0x0), %0" : "=r" (cpuid));
   return cpuid;
 #endif
 }

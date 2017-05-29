@@ -26,9 +26,7 @@
 #ifdef INCLUDEOS_SINGLE_THREADED
 #define SMP_MAX_CORES   1
 #else
-#ifndef SMP_MAX_CORES
-#define SMP_MAX_CORES   16
-#endif
+#define SMP_MAX_CORES   32
 #endif
 
 #define SMP_ALIGN       64
@@ -88,6 +86,23 @@ public:
 #define SMP_PRINT(fmt, ...) SMP_ALWAYS_PRINT(fmt, ##__VA_ARGS__)
 #else
 #define SMP_PRINT(fmt, ...) /** fmt **/
+#endif
+
+#include <array>
+#ifdef INCLUDEOS_SINGLE_THREADED
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  return array[0];
+}
+#else
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  unsigned cpuid;
+  asm volatile("movl %%gs:(0x0), %0" : "=r" (cpuid));
+  return array.at(cpuid);
+}
 #endif
 
 #endif

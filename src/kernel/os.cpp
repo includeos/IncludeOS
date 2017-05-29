@@ -42,7 +42,6 @@
 #endif
 
 extern "C" void* get_cpu_esp();
-extern "C" void  kernel_sanity_checks();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -197,8 +196,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   FILLINE('~');
 
   Service::start();
-  // NOTE: this is a feature for service writers, don't move!
-  kernel_sanity_checks();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){

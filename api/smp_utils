@@ -79,22 +79,6 @@ private:
   volatile int val = 0;
 };
 
-#include <array>
-#ifdef INCLUDEOS_SINGLE_THREADED
-template <typename T, size_t N>
-inline T& per_cpu_help(std::array<T, N>& array)
-{
-  return array[0];
-}
-#else
-template <typename T, size_t N>
-inline T& per_cpu_help(std::array<T, N>& array)
-{
-  unsigned cpuid;
-  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
-  return array.at(cpuid);
-}
-#endif
-#endif
+#endif // arch
 
-#endif
+#endif // hdr

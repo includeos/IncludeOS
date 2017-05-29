@@ -75,7 +75,7 @@ void revenant_main(int cpu)
   initialize_gdt_for_cpu(cpu);
   // show we are online, and verify CPU ID is correct
   SMP::global_lock();
-  INFO2("AP %d started at %p", cpu, get_cpu_esp());
+  INFO2("AP %d started at %p", SMP::cpu_id(), get_cpu_esp());
   SMP::global_unlock();
   assert(cpu == SMP::cpu_id());
 
