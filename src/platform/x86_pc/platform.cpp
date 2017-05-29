@@ -29,8 +29,9 @@
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
-extern "C" void* get_cpu_esp();
+extern "C" char* get_cpu_esp();
 extern "C" void* get_cpu_ebp();
+#define _SENTINEL_VALUE_   0x123456789ABCDEF
 
 namespace tls {
   size_t get_tls_size();
@@ -39,11 +40,18 @@ namespace tls {
 struct smp_table
 {
   // thread self-pointer
-  smp_table* tls_data;
+  smp_table* tls_data; // 0x0
   // per-cpu data
-  int cpuid;
+  int cpuid;  // 0x8
   int unused;
+
+  uintptr_t pad1; // 0x10
+  uintptr_t pad2; // 0x18
+  uintptr_t pad3; // 0x20
+  uintptr_t guard = _SENTINEL_VALUE_;
 };
+// FS:0x28 on Linux is storing a special sentinel stack-guard value
+static_assert(offsetof(smp_table, guard) == 0x28);
 
 using namespace x86;
 namespace x86 {
@@ -163,14 +171,13 @@ namespace x86
     auto* table = (smp_table*) &data[thread_size];
     table->tls_data = table;
     table->cpuid    = cpu_id;
+    table->guard    = _SENTINEL_VALUE_;
     // should be at least 8-byte aligned
     assert((((uintptr_t) table) & 7) == 0);
 #ifdef ARCH_x86_64
     GDT::set_fs(table); // TLS self-ptr in fs
     GDT::set_gs(&table->cpuid); // PER_CPU on gs
     __sync_synchronize();
-    //for (int i = 0; i < 2; i++)
-    //SMP_PRINT("fs: %p\n", (void*) CPU::read_msr(MSR_FS_BASE));
 #else
     gdtables[cpu_id].cpuid = cpu_id;
     // initialize GDT for this core
