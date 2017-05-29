@@ -133,7 +133,7 @@ public:
   { return 1500; }
 
   uint16_t packet_len() const noexcept {
-    return Link::Protocol::header_size() + MTU();
+    return sizeof(net::ethernet::Header) + MTU();
   }
 
   net::Packet_ptr create_packet(int) override;

@@ -15,16 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <kprint>
+#include <fs/dirent.hpp>
 
-// prevent default serial out
-void default_stdout_handlers()
+namespace fs
 {
-  OS::add_stdout(
-  [] (const char* str, size_t len)
+  Dirent::Dirent(const Dirent& other) noexcept
   {
-    if (OS::is_booted() || OS::is_panicking())
-      kprintf("%.*s", len, str);
-  });
+    this->fs_     = other.fs_;
+    this->ftype   = other.ftype;
+    this->fname_  = other.fname_;
+    this->block_  = other.block_;
+    this->parent_ = other.parent_;
+    this->size_   = other.size_;
+    this->attrib_ = other.attrib_;
+    this->modif   = other.modif;
+  }
 }

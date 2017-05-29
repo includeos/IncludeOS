@@ -376,7 +376,7 @@ class qemu(hypervisor):
 
         # TODO: sudo is only required for tap networking and kvm. Check for those.
         command = ["sudo", "qemu-system-x86_64"]
-        if self._kvm_present: command.append("--enable-kvm")
+        if self._kvm_present: command.extend(["--enable-kvm", "-cpu", "host"])
 
         command += kernel_args
 

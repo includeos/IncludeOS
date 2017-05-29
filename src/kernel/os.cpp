@@ -42,7 +42,6 @@
 #endif
 
 extern "C" void* get_cpu_esp();
-extern "C" void  kernel_sanity_checks();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -99,8 +98,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
          boot_magic, boot_addr);
 
   /// STATMAN ///
-  /// initialize on page 7, 2 pages in size
-  Statman::get().init(0x6000, 0x3000);
+  /// initialize on page 7, size: 10x pages
+  Statman::get().init(0x6000, 0xA000);
 
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
@@ -197,8 +196,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   FILLINE('~');
 
   Service::start();
-  // NOTE: this is a feature for service writers, don't move!
-  kernel_sanity_checks();
 }
 
 void OS::register_plugin(Plugin delg, const char* name){

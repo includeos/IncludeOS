@@ -103,7 +103,7 @@ public:
   /**
    *  Returns true when the OS will still be running, and not shutting down.
    */
-  static bool is_running() {
+  static bool is_running() noexcept {
     return power_;
   }
 
@@ -111,9 +111,14 @@ public:
    *  Returns true when the OS has passed the boot sequence, and
    *  is at least processing plugins and about to call Service::start
    */
-  static bool is_booted() {
+  static bool is_booted() noexcept {
     return boot_sequence_passed_;
   }
+
+  /**
+   *  Returns true when the OS is currently panicking
+   */
+  static bool is_panicking() noexcept;
 
   /**
    * Sometimes the OS just has a bad day and crashes
