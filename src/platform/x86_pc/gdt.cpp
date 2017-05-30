@@ -50,21 +50,21 @@ void GDT::initialize() noexcept
   data.base_hi  = 0;
 }
 
-int GDT::create_data(void* ptr, uint16_t pages) noexcept
+int GDT::create_data(void* ptr, int size) noexcept
 {
   uintptr_t base = (uintptr_t) ptr;
-  assert((base & 0xf) == 0); // at least 16-byte aligned
-  this->create_data(base, pages);
+  assert((base & 0x3) == 0); // at least 4-byte aligned
+  this->create_data(base, size);
   return this->count-1;
 }
 
-gdt_entry& GDT::create_data(uint32_t base, uint16_t size) noexcept
+gdt_entry& GDT::create_data(uint32_t base, int size) noexcept
 {
   auto& ent = create();
-  ent.limit_lo = size;
+  ent.limit_lo = size & 0xffff;
   ent.base_lo  = base & 0xffffff;
   ent.access   = ACCESS_DATA;
-  ent.limit_hi = 0x0;
+  ent.limit_hi = (size >> 16) & 0xf;
   ent.flags    = FLAGS_X32_PAGE;
   ent.base_hi  = (base >> 24) & 0xff;
   return ent;

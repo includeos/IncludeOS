@@ -73,6 +73,7 @@ rock_bottom:
   mov ds, cx
   mov es, cx
   mov fs, cx
+  mov cx, 0x18 ;; GS segment
   mov gs, cx
 
   ;; Set up stack.
@@ -185,6 +186,12 @@ gdt32:
   dw 0x0000          ;Base 15:00
   db 0x00            ;Base 23:16
   dw 0xcf92          ;Flags / Limit / Type [F,L,F,Type]
+  db 0x00            ;Base 32:24
+  ;; Entry 0x18: GS Data segment
+  dw 0x0100          ;Limit
+  dw 0x1000          ;Base 15:00
+  db 0x00            ;Base 23:16
+  dw 0x4092          ;Flags / Limit / Type [F,L,F,Type]
   db 0x00            ;Base 32:24
 gdt32_end:
 
