@@ -35,12 +35,15 @@ typedef struct {} pthread_barrier_t;
 typedef struct {} pthread_barrierattr_t;
 typedef struct {} pthread_cond_t;
 typedef struct {} pthread_condattr_t;
-typedef struct {} pthread_mutex_t;
 typedef struct {} pthread_mutexattr_t;
 typedef struct {} pthread_rwlock_t;
 typedef struct {} pthread_rwlockattr_t;
 typedef struct {} pthread_spinlock_t;
 
+typedef volatile int spinlock_t __attribute__((aligned(128)));
+typedef struct {
+  spinlock_t spinlock;
+} pthread_mutex_t;
 
 int pthread_cond_broadcast(pthread_cond_t* cond);
 int pthread_cond_signal(pthread_cond_t* cond);
@@ -49,6 +52,9 @@ int pthread_cond_timedwait(pthread_cond_t* cond,
                            const struct timespec* abstime);
 int pthread_cond_wait(pthread_cond_t* cond,
                       pthread_mutex_t* mutex);
+
+int pthread_create(pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
+int pthread_join(pthread_t, void **);
 int pthread_detach(pthread_t thread);
 int pthread_equal(pthread_t t1, pthread_t t2);
 
@@ -59,9 +65,16 @@ int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);
 int pthread_mutexattr_init(pthread_mutexattr_t *attr);
 int pthread_mutexattr_gettype(const pthread_mutexattr_t *attr, int *type);
 int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type);
-int pthread_mutex_destroy(pthread_mutex_t *mutex);
-int pthread_mutex_init(pthread_mutex_t* mutex,
-                         const pthread_mutexattr_t* attr);
-int pthread_create(pthread_t *, const pthread_attr_t *, void *(*)(void *), void *);
-int pthread_join(pthread_t, void **);
 
+typedef struct {} pthread_once_t;
+int pthread_once(pthread_once_t *once_control, void (*init_routine)(void));
+
+#define PTHREAD_MUTEX_INITIALIZER {0}
+#define PTHREAD_COND_INITIALIZER {}
+#define PTHREAD_ONCE_INIT {}
+
+int pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* attr);
+int pthread_mutex_lock(pthread_mutex_t *mutex);
+int pthread_mutex_trylock(pthread_mutex_t *mutex);
+int pthread_mutex_unlock(pthread_mutex_t *mutex);
+int pthread_mutex_destroy(pthread_mutex_t *mutex);
