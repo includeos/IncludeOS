@@ -37,23 +37,28 @@ namespace tls {
   size_t get_tls_size();
   void   fill_tls_data(char*);
 }
-struct smp_table
+struct alignas(64) smp_table
 {
   // thread self-pointer
-  smp_table* tls_data; // 0x0
-  // per-cpu data
-  int cpuid;  // 0x8
-  int unused;
+  void* tls_data; // 0x0
+  // per-cpu cpuid (and more)
+  int cpuid;
+  int reserved;
 
 #ifdef ARCH_x86_64
   uintptr_t pad[3]; // 64-bit padding
-#else
-  uintptr_t pad[7]; // 64-bit padding
-#endif
   uintptr_t guard; // _SENTINEL_VALUE_
+#else
+  uint32_t  pad[2];
+  uintptr_t guard; // _SENTINEL_VALUE_
+  x86::GDT gdt; // 32-bit GDT
+#endif
+  /** put more here **/
 };
+#ifdef ARCH_x86_64
 // FS:0x28 on Linux is storing a special sentinel stack-guard value
 static_assert(offsetof(smp_table, guard) == 0x28, "Linux stack sentinel");
+#endif
 
 using namespace x86;
 namespace x86 {
@@ -154,24 +159,15 @@ namespace x86
         tls_buffers.push_back(&buffer[total_size * cpu]);
   }
 
-#ifdef ARCH_i686
-  struct alignas(SMP_ALIGN) segtable
-  {
-    int cpuid;
-    struct GDT gdt;
-  };
-  static std::array<segtable, SMP_MAX_CORES> gdtables;
-#endif
-
   void initialize_gdt_for_cpu(int cpu_id)
   {
-    char* data = tls_buffers.at(cpu_id);
+    char* tls_data  = tls_buffers.at(cpu_id);
+    char* tls_table = tls_data + tls::get_tls_size();
     // TLS data at front of buffer
-    tls::fill_tls_data(data);
-    // SMP control block after data
-    const size_t thread_size = tls::get_tls_size();
-    auto* table = (smp_table*) &data[thread_size];
-    table->tls_data = table;
+    tls::fill_tls_data(tls_data);
+    // SMP control block after TLS data
+    auto* table = (smp_table*) tls_table;
+    table->tls_data = tls_data;
     table->cpuid    = cpu_id;
     table->guard    = (uintptr_t) _SENTINEL_VALUE_;
     // should be at least 8-byte aligned
@@ -179,22 +175,21 @@ namespace x86
 #ifdef ARCH_x86_64
     GDT::set_fs(table); // TLS self-ptr in fs
     GDT::set_gs(&table->cpuid); // PER_CPU on gs
-    __sync_synchronize();
 #else
-    gdtables[cpu_id].cpuid = cpu_id;
     // initialize GDT for this core
-    auto& gdt = gdtables.at(cpu_id).gdt;
+    auto& gdt = table->gdt;
     gdt.initialize();
     // create PER-CPU segment
-    int fs = gdt.create_data(&gdtables[cpu_id], 1);
+    int fs = gdt.create_data(&table->cpuid, 1);
     // create per-thread segment
-    int gs = gdt.create_data(table, 1);
+    int gs = gdt.create_data(table, 0xffffffff);
     // load GDT and refresh segments
     GDT::reload_gdt(gdt);
     // enable per-cpu and per-thread
     GDT::set_fs(fs);
     GDT::set_gs(gs);
-    __sync_synchronize();
 #endif
+    // hardware barrier
+    __sync_synchronize();
   }
 } // x86

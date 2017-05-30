@@ -150,7 +150,7 @@ SECTIONS
     _DATA_END_ = .;
   }
 
-  .tdata :
+  .tdata ALIGN(0x10) :
   {
     _TDATA_START_ = .;
     *(.tdata .tdata.*)

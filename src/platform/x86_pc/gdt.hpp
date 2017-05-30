@@ -85,10 +85,10 @@ struct GDT
   }
 
   // create new data entry and return index
-  int create_data(void* base, uint16_t pages) noexcept;
+  int create_data(void* base, int) noexcept;
 
 private:
-  gdt_entry& create_data(uint32_t base, uint16_t size) noexcept;
+  gdt_entry& create_data(uint32_t base, int size) noexcept;
 
   uint16_t  count = 0;
   gdt_desc  desc;
