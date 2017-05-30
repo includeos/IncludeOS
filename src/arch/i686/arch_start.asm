@@ -28,6 +28,9 @@ __arch_start:
     push ebp
     mov ebp, esp
 
+    ;; hack to avoid stack protector
+    mov DWORD [0x1014], 0x89abcdef
+
     ;; Push params on 16-byte aligned stack
     sub esp, 8
     and esp, -16
@@ -40,3 +43,11 @@ __arch_start:
     mov esp, ebp
     pop ebp
     ret
+
+sentinel_table:
+    dd sentinel_table ;; 0x0
+    dd 0 ;; 0x8
+    dd 0 ;; 0x10
+    dd 0 ;; 0x18
+    dd 0 ;; 0x20
+    dd 0x123456789ABCDEF

@@ -150,17 +150,19 @@ SECTIONS
     _DATA_END_ = .;
   }
 
-  .tdata :
+  .tdata ALIGN(0x10) :
   {
     _TDATA_START_ = .;
     *(.tdata .tdata.*)
     _TDATA_END_ = .;
+    . = ALIGN(0x10);
   }
   .tbss :
   {
     _TBSS_START_ = .;
     *(.tbss .tbss.*)
     _TBSS_END_ = .;
+    . = ALIGN(0x10);
   }
 
   .memdisk :

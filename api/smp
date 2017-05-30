@@ -100,7 +100,13 @@ template <typename T, size_t N>
 inline T& per_cpu_help(std::array<T, N>& array)
 {
   unsigned cpuid;
-  asm volatile("movl %%gs:(0x0), %0" : "=r" (cpuid));
+#ifdef ARCH_x86_64
+  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
+#elif defined(ARCH_i686)
+  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
+#else
+  #error "Implement me?"
+#endif
   return array.at(cpuid);
 }
 #endif
