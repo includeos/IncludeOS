@@ -17,6 +17,7 @@
 
 #include <pthread.h>
 #include <cstdio>
+#include <smp>
 
 /*
 #include <fiber>
@@ -42,7 +43,37 @@ int pthread_join(pthread_t thread, void **value_ptr) {
 }
 */
 
-#include <smp>
+int sched_yield()
+{
+  SMP_PRINT("WARNING: Sched yield called\n");
+}
+
+thread_local pthread_t tself = 0;
+pthread_t pthread_self()
+{
+  return tself;
+}
+int pthread_create(pthread_t* th, const pthread_attr_t *, void *(*)(void *), void *)
+{
+  printf("pthread_create: %p\n", th);
+  return 0;
+}
+int pthread_join(pthread_t th, void **)
+{
+  printf("pthread_join %d\n", th);
+  return 0;
+}
+int pthread_detach(pthread_t th)
+{
+  printf("pthread_detach %d\n", th);
+  return 0;
+}
+int pthread_equal(pthread_t t1, pthread_t t2)
+{
+  return t1 == t2;
+}
+
+
 int pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* attr)
 {
   if (mutex == nullptr) return 1;
@@ -52,7 +83,7 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
   if (mutex == nullptr) return 1;
   lock(mutex->spinlock);
-  SMP_PRINT("Locked %p\n", mutex);
+  //SMP_PRINT("Locked %p\n", mutex);
   return 0;
 }
 int pthread_mutex_trylock(pthread_mutex_t *mutex)
@@ -65,7 +96,7 @@ int pthread_mutex_trylock(pthread_mutex_t *mutex)
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
   if (mutex == nullptr) return 1;
-  SMP_PRINT("Unlocked %p\n", mutex);
+  //SMP_PRINT("Unlocked %p\n", mutex);
   unlock(mutex->spinlock);
   return 0;
 }
@@ -87,12 +118,29 @@ int pthread_once(pthread_once_t*, void (*routine)())
 
 int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex)
 {
-  SMP_PRINT("pthread_cond_wait\n")
+  SMP_PRINT("pthread_cond_wait\n");
   return 0;
 }
 int pthread_cond_broadcast(pthread_cond_t* cond)
 {
-  SMP_PRINT("pthread_cond_broadcast\n")
+  SMP_PRINT("pthread_cond_broadcast\n");
+  return 0;
+}
+int pthread_cond_signal(pthread_cond_t* cond)
+{
+  SMP_PRINT("pthread_cond_signal %p\n", cond);
+  return 0;
+}
+int pthread_cond_timedwait(pthread_cond_t* cond,
+                           pthread_mutex_t* mutex,
+                           const struct timespec* abstime)
+{
+  SMP_PRINT("pthread_cond_timedwait cond %p mutex %p\n", cond, mutex);
+  return 0;
+}
+int pthread_cond_destroy(pthread_cond_t *cond)
+{
+  SMP_PRINT("pthread_cond_timedwait cond %p\n", cond);
   return 0;
 }
 
@@ -113,8 +161,34 @@ int pthread_setspecific(pthread_key_t key, const void *value)
 }
 int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
 {
+  printf("pthread_key_create: %p destructor %p\n", key, destructor);
   scoped_spinlock spinlock(key_lock);
   key_vec.push_back(nullptr);
   *key = key_vec.size()-1;
   return 0;
+}
+
+int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
+{
+  return 0;
+}
+int pthread_mutexattr_init(pthread_mutexattr_t *attr)
+{
+  return 0;
+}
+int pthread_mutexattr_gettype(const pthread_mutexattr_t *__restrict attr, int *__restrict type)
+{
+  return 0;
+}
+int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
+{
+  return 0;
+}
+
+
+#include <time.h>
+extern "C"
+int nanosleep(const struct timespec *req, struct timespec *rem)
+{
+  return -1;
 }

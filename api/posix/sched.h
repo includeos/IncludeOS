@@ -15,8 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #include <sys/types.h>
 
 typedef struct {
   int sched_priority;
 } sched_param;
+
+extern int sched_yield();
