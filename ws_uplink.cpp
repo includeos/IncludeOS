@@ -214,7 +214,7 @@ namespace uplink {
 
     ws_->close();
     // do the update
-    Timers::oneshot(std::chrono::milliseconds(200), [this, buffer] (auto) {
+    Timers::oneshot(std::chrono::milliseconds(10), [this, buffer] (auto) {
       liu::LiveUpdate::begin(UPDATE_LOC, buffer, {this, &WS_uplink::store});
     });
   }
@@ -260,6 +260,38 @@ namespace uplink {
 
   }
 
+  template <typename Writer, typename Stack_ptr>
+  void serialize_stack(Writer& writer, const Stack_ptr& stack)
+  {
+    if(stack != nullptr)
+    {
+      writer.StartObject();
+
+      writer.Key("name");
+      writer.String(stack->ifname());
+
+      writer.Key("addr");
+      writer.String(stack->ip_addr().str());
+
+      writer.Key("netmask");
+      writer.String(stack->netmask().str());
+
+      writer.Key("gateway");
+      writer.String(stack->gateway().str());
+
+      writer.Key("dns");
+      writer.String(stack->dns_addr().str());
+
+      writer.Key("mac");
+      writer.String(stack->link_addr().to_string());
+
+      writer.Key("driver");
+      writer.String(stack->nic().driver_name());
+
+      writer.EndObject();
+    }
+  }
+
   void WS_uplink::send_ident()
   {
     MYINFO("Sending ident");
@@ -303,6 +335,19 @@ namespace uplink {
       writer.String(dev->to_string());
     }
     writer.EndArray();
+
+    // Network
+    writer.Key("net");
+
+    writer.StartArray();
+
+    auto& stacks = net::Super_stack::inet().ip4_stacks();
+    for(const auto& stack : stacks) {
+      serialize_stack(writer, stack);
+    }
+
+    writer.EndArray();
+
 
 
     writer.EndObject();
