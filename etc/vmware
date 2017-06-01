@@ -6,6 +6,7 @@ import os
 import signal
 import subprocess
 import sys
+import fileinput
 
 Instance = collections.namedtuple("Instance", "path name")
 
@@ -119,6 +120,14 @@ ethernet0.virtualDev = "vmxnet3"
 def write_ova(instance_path, servicename):
     vmxfile = "{filename}.vmx".format(filename=servicename)
     vmx_full_path = os.path.join(instance_path, vmxfile)
+    vmx_full_path_new = vmx_full_path + ".new"
+    f1 = open(vmx_full_path, 'r')
+    f2 = open(vmx_full_path_new, 'w')
+    for line in f1:
+        f2.write(line.replace('nat', 'IOS-Network'))
+    f1.close()
+    f2.close()
+    os.rename(vmx_full_path_new, vmx_full_path)
     ovafile = "{filename}.ova".format(filename=servicename)
     ova_full_path = os.path.join(instance_path, ovafile)
     subprocess.call([ovftool_cmd, vmx_full_path, ova_full_path])
