@@ -26,11 +26,12 @@
 #include <memory>
 
 namespace uplink {
-  
+
   enum class Transport_code : uint8_t {
     IDENT     = 1,
+    LOG       = 2,
     UPDATE    = 5,
-    APPDATA   = 6,     
+    APPDATA   = 6,
     ERROR     = 255
   };
 
@@ -56,7 +57,7 @@ namespace uplink {
     using Data = std::vector<char>;
     using Cargo_it = Data::iterator;
     using Cargo_cit = Data::const_iterator;
-  
+
   public:
     Transport(const char* data, size_t len)
       : data_{data, data + len}
@@ -107,10 +108,10 @@ namespace uplink {
 
     bool is_complete() const
     { return header().length == size(); }
-  
+
   private:
     Data data_;
-  
+
   }; // < class Transport
 
   using Transport_ptr = std::unique_ptr<Transport>;
@@ -130,7 +131,7 @@ namespace uplink {
 
   private:
     Transport_ptr transport_;
-  
+
   }; // < class Transport_parser
 
 } // < namespace uplink

@@ -38,7 +38,7 @@ public:
     std::string token;
   };
 
-  WS_uplink(net::Inet<net::IP4>&); 
+  WS_uplink(net::Inet<net::IP4>&);
 
   void start(net::Inet<net::IP4>&);
 
@@ -49,6 +49,8 @@ public:
   void handle_transport(Transport_ptr);
 
   void send_ident();
+
+  void send_log(const char*, size_t);
 
   void update(const std::vector<char>& buffer);
 

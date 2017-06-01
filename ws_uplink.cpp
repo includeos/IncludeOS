@@ -53,6 +53,8 @@ namespace uplink {
 
     start(inet);
 
+    OS::add_stdout({this, &WS_uplink::send_log});
+
     /*parser_.on_header = [](const auto& hdr) {
       MYINFO("Header: Code: %u Len: %u", static_cast<uint8_t>(hdr.code), hdr.length);
     };*/
@@ -372,6 +374,18 @@ namespace uplink {
     transport.load_cargo(err.data(), err.size());
 
     ws_->write(transport.data().data(), transport.data().size());
+  }
+
+  void WS_uplink::send_log(const char* data, size_t len)
+  {
+    if(ws_ != nullptr and ws_->is_alive() and ws_->get_connection()->is_writable())
+    {
+      auto transport = Transport{Header{Transport_code::LOG, static_cast<uint32_t>(len)}};
+
+      transport.load_cargo(data, len);
+
+      ws_->write(transport.data().data(), transport.data().size());
+    }
   }
 
 }
