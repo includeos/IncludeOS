@@ -38,14 +38,17 @@ LiveUpdate::storage_func begin_test_boot()
     // show information
     printf("Median boot time over %lu samples: %f millis\n",
             timestamps.size(), median);
-    if (timestamps.size() == 300)
+    if (timestamps.size() >= 30)
     {
       for (auto& stamp : timestamps) {
-        printf("");
+        printf("%f\n", stamp);
       }
+      OS::shutdown();
     }
-    // immediately liveupdate
-    LiveUpdate::begin(LIVEUPD_LOCATION, bloberino, boot_save);
+    else {
+      // immediately liveupdate
+      LiveUpdate::begin(LIVEUPD_LOCATION, bloberino, boot_save);
+    }
   }
   // wait for update
   return boot_save;

@@ -143,7 +143,7 @@ bool     Restore::is_end() const noexcept
 void     Restore::go_next()
 {
   if (is_end())
-      throw std::runtime_error("Already at end of entries");
+      throw std::runtime_error("Already reached end of storage");
   // increase the counter, so the resume loop skips entries properly
   ent = ent->next();
 }
@@ -152,15 +152,26 @@ uint16_t Restore::next_id() const noexcept
   return ent->next()->id;
 }
 
-void Restore::pop_marker()
+uint16_t Restore::pop_marker()
 {
+  uint16_t result = 0;
   while (is_marker() == false
       && is_end() == false) go_next();
+  if (is_marker()) {
+    result = get_id();
+    go_next();
+  }
+  return result;
 }
 void Restore::pop_marker(uint16_t id)
 {
-  while (not (is_marker() && get_id() == id)
-          && is_end() == false) go_next();
+  while (is_marker() == false
+      && is_end() == false) go_next();
+  if (is_marker()) {
+    if (get_id() != id)
+        throw std::runtime_error("Ran past marker with another id: " + std::to_string(get_id()));
+    go_next();
+  }
 }
 
 void Restore::cancel()
