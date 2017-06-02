@@ -77,7 +77,7 @@ buffer_t  Restore::as_buffer() const
 {
   if (ent->type == TYPE_BUFFER) {
       buffer_t buffer;
-      buffer.insert(buffer.end(), ent->data(), ent->data() + ent->len);
+      buffer.assign(ent->data(), ent->data() + ent->len);
       return buffer;
   }
   throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
@@ -109,8 +109,8 @@ const void* Restore::get_segment(size_t size, size_t& count) const
       throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
 
   auto& segs = ent->get_segs();
-  if (ent->type != TYPE_VECTOR)
-      throw std::runtime_error("Incorrect T size: " + std::to_string(size) + " vs " + std::to_string(segs.esize));
+  if (size != segs.esize)
+      throw std::runtime_error("Incorrect type size: " + std::to_string(size) + " vs " + std::to_string(segs.esize));
 
   count = segs.count;
   return (const void*) segs.vla;
@@ -150,6 +150,17 @@ void     Restore::go_next()
 uint16_t Restore::next_id() const noexcept
 {
   return ent->next()->id;
+}
+
+void Restore::pop_marker()
+{
+  while (is_marker() == false
+      && is_end() == false) go_next();
+}
+void Restore::pop_marker(uint16_t id)
+{
+  while (not (is_marker() && get_id() == id)
+          && is_end() == false) go_next();
 }
 
 void Restore::cancel()

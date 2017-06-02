@@ -157,8 +157,13 @@ struct Restore
   uint16_t    next_id()  const noexcept;
   void        go_next();
 
-  // cancel restore process
-  // NOTE: the call to resume() will still return true
+  // go next until reaching the first marker (or end)
+  void pop_marker();
+  // go next until reaching the first marker with given id (or end)
+  void pop_marker(uint16_t);
+
+  // cancel and exit state restoration process
+  // NOTE: resume() will still return true
   void cancel();  // pseudo: "while (!is_end()) go_next()"
 
   Restore(storage_entry*& ptr) : ent(ptr) {}

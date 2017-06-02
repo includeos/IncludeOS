@@ -9,7 +9,7 @@ project(service)
 set(SERVICE_NAME "Live Update")
 set(BINARY       "LiveUpdate")
 set(SOURCES
-    service.cpp
+    service.cpp test_boot.cpp test_all.cpp
   )
 set(LOCAL_INCLUDES ".")
 

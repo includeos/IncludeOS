@@ -1,7 +1,7 @@
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
- * 
+ *
 **/
 #include "storage.hpp"
 
@@ -89,16 +89,16 @@ void storage_header::add_string_vector(uint16_t id, const std::vector<std::strin
 void storage_header::add_end()
 {
   auto& ent = create_entry(TYPE_END);
-  
+
   // test against heap max
   uintptr_t storage_end = (uintptr_t) ent.vla;
   if (storage_end > OS::heap_max())
   {
     printf("ERROR:\n"
-           "Storage end outside memory: %#x > %#x by %d bytes\n",
-			storage_end, 
-			OS::heap_max()+1, 
-			storage_end - (OS::heap_max()+1));
+          "Storage end outside memory: %#lx > %#lx by %ld bytes\n",
+	        storage_end,
+	        OS::heap_max()+1,
+          storage_end - (OS::heap_max()+1));
     throw std::runtime_error("LiveUpdate storage end outside memory");
   }
   // verify memory is writable at the current end
@@ -121,7 +121,7 @@ bool storage_header::validate() noexcept
 {
   if (this->magic != LIVEUPD_MAGIC) return false;
   if (this->crc   == 0) return false;
-  
+
   uint32_t chsum = generate_checksum();
   if (this->crc != chsum) return false;
   return true;
@@ -131,11 +131,11 @@ uint32_t storage_header::generate_checksum() noexcept
 {
   uint32_t crc_copy = this->crc;
   this->crc         = 0;
-  
+
   const char* begin = (const char*) this;
   size_t      len   = sizeof(storage_header) + this->length;
   uint32_t checksum = crc32(begin, len);
-  
+
   this->crc = crc_copy;
   return checksum;
 }
