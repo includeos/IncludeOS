@@ -129,6 +129,8 @@ namespace uplink {
       return;
     }
 
+    retry_backoff = 0;
+
     MYINFO("Auth success (token received)");
     token_ = res->body().to_string();
 
