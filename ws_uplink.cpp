@@ -118,12 +118,14 @@ namespace uplink {
     if(err)
     {
       MYINFO("Auth failed - %s", err.to_string().c_str());
+      retry_auth();
       return;
     }
 
     if(res->status_code() != http::OK)
     {
       MYINFO("Auth failed - %s", res->to_string().c_str());
+      retry_auth();
       return;
     }
 
@@ -131,6 +133,17 @@ namespace uplink {
     token_ = res->body().to_string();
 
     dock();
+  }
+
+  void WS_uplink::retry_auth()
+  {
+    if(retry_backoff < 6)
+      ++retry_backoff;
+
+    std::chrono::seconds secs{5 * retry_backoff};
+
+    MYINFO("Retry auth in %lld seconds...", secs.count());
+    retry_timer.restart(secs, {this, &WS_uplink::auth});
   }
 
   void WS_uplink::dock()
@@ -149,6 +162,7 @@ namespace uplink {
   {
     if(ws == nullptr) {
       MYINFO("Failed to establish websocket");
+      retry_auth();
       return;
     }
 
@@ -158,9 +172,17 @@ namespace uplink {
       MYINFO("(WS err) %s", reason.c_str());
     };
 
+    ws_->on_close = {this, &WS_uplink::handle_ws_close};
+
     MYINFO("Websocket established");
 
     send_ident();
+  }
+
+  void WS_uplink::handle_ws_close(uint16_t code)
+  {
+    (void) code;
+    auth();
   }
 
   void WS_uplink::parse_transport(net::WebSocket::Message_ptr msg)
@@ -378,7 +400,7 @@ namespace uplink {
 
   void WS_uplink::send_log(const char* data, size_t len)
   {
-    if(ws_ != nullptr and ws_->is_alive() and ws_->get_connection()->is_writable())
+    if(is_online() and ws_->get_connection()->is_writable())
     {
       auto transport = Transport{Header{Transport_code::LOG, static_cast<uint32_t>(len)}};
 

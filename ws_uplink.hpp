@@ -25,6 +25,7 @@
 #include <net/http/client.hpp>
 #include <net/ws/websocket.hpp>
 #include <liveupdate.hpp>
+#include <util/timer.hpp>
 
 namespace uplink {
 
@@ -56,6 +57,9 @@ public:
 
   void send_error(const std::string& err);
 
+  bool is_online() const
+  { return ws_ != nullptr and ws_->is_alive(); }
+
 private:
   std::unique_ptr<http::Client> client_;
   net::WebSocket_ptr            ws_;
@@ -67,6 +71,9 @@ private:
 
   Transport_parser parser_;
 
+  Timer retry_timer;
+  uint8_t retry_backoff = 0;
+
   void inject_token(http::Request& req, http::Client::Options&, const http::Client::Host)
   {
     if (not token_.empty())
@@ -77,7 +84,11 @@ private:
 
   void handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&);
 
+  void retry_auth();
+
   void establish_ws(net::WebSocket_ptr ws);
+
+  void handle_ws_close(uint16_t code);
 
   void parse_transport(net::WebSocket::Message_ptr msg);
 
