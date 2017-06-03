@@ -6,14 +6,14 @@ using namespace liu;
 static std::vector<double> timestamps;
 static buffer_t bloberino;
 
-void boot_save(Storage& storage, const buffer_t* blob)
+static void boot_save(Storage& storage, const buffer_t* blob)
 {
   storage.add_vector(0, timestamps);
   storage.add<int64_t> (1, OS::cycles_since_boot());
   assert(blob != nullptr);
   storage.add_buffer(2, *blob);
 }
-void boot_resume_all(Restore& thing)
+static void boot_resume_all(Restore& thing)
 {
   timestamps = thing.as_vector<double>(); thing.go_next();
   // calculate time spent

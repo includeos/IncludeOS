@@ -9,7 +9,7 @@ project(service)
 set(SERVICE_NAME "Live Update")
 set(BINARY       "LiveUpdate")
 set(SOURCES
-    service.cpp test_boot.cpp test_all.cpp
+    service.cpp test_boot.cpp test_all.cpp test_tcp.cpp
   )
 set(LOCAL_INCLUDES ".")
 
@@ -17,6 +17,7 @@ set(LIBRARIES ${CMAKE_BINARY_DIR}/libliveupdate.a)
 
 set(DRIVERS
     virtionet
+    vmxnet3
     silent_start
     #heap_debugging
   )

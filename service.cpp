@@ -5,7 +5,6 @@
 **/
 #include <service>
 #include <net/inet4>
-#include <profile>
 #include <cstdio>
 #include "liveupdate.hpp"
 #include "common.hpp"
@@ -15,13 +14,11 @@ void setup_liveupdate_server(net::Inet<net::IP4>&, storage_func_t);
 
 extern storage_func_t begin_test_all(net::Inet<net::IP4>&);
 extern storage_func_t begin_test_boot();
+extern storage_func_t begin_test_tcpflow(net::Inet<net::IP4>&);
 
 void Service::start()
 {
-  // simulate crash
-  //OS::on_panic(liu::LiveUpdate::rollback_now);
-  //liu::LiveUpdate::rollback_now();
-  auto func = begin_test_boot();
+  //auto func = begin_test_boot();
 
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
@@ -32,7 +29,8 @@ void Service::start()
         { 10,0,0,1 },      // Gateway
         { 10,0,0,1 });     // DNS
 
-  setup_liveupdate_server(inet, func);
+  auto func = begin_test_tcpflow(inet);
+  //setup_liveupdate_server(inet, func);
 }
 
 #include "server.hpp"

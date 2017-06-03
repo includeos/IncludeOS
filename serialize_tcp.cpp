@@ -139,10 +139,17 @@ void Connection::deserialize_from(void* addr)
 
   /// restore read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
+  assert(readq->cap() > 0);
   read_request = ReadRequest(readq->cap());
-  //read_request.buffer.remaining = readq->remaining;
-  read_request.buffer.offset = readq->offset;
-  memcpy(read_request.buffer.buffer.get(), readq->vla, readq->size());
+  read_request.buffer.offset    = readq->offset;
+  read_request.buffer.remaining = readq->remaining;
+  if (readq->size() > 0) {
+    memcpy(read_request.buffer.buffer.get(), readq->vla, readq->size());
+  }
+
+  if (area->rtx_is_running) {
+    this->rtx_start();
+  }
 
   //printf("READ: %u  SEND: %u  REMAIN: %u  STATE: %s\n",
   //    readq_size(), sendq_size(), sendq_remaining(), cb.to_string().c_str());
@@ -207,6 +214,8 @@ int Connection::serialize_to(void* addr) const
   area->dack       = this->dack_;
   area->last_ack_sent= this->last_ack_sent_;
 
+  area->rtx_is_running = this->rtx_timer.is_running();
+
   /// serialize write queue
   int writeq_len = this->writeq.serialize_to(area->vla);
 
@@ -216,6 +225,9 @@ int Connection::serialize_to(void* addr) const
   readq->offset    = read_request.buffer.offset;
   memcpy(readq->vla, read_request.buffer.buffer.get(), readq->size());
   int readq_len = sizeof(read_buffer) + readq->size();
+
+  //printf("READ: %u  SEND: %u  REMAIN: %u  STATE: %s\n",
+  //    readq_size(), sendq_size(), sendq_remaining(), cb.to_string().c_str());
 
   return sizeof(serialized_tcp) + writeq_len + readq_len;
 }
