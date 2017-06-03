@@ -135,9 +135,6 @@ void Connection::deserialize_from(void* addr)
   {
     /// we have to retransmit because of magic
     slumbering_ip4.insert(&this->host_.stack());
-    // retransmit immediately if we haven't gotten an ACK
-    if (writeq.bytes_unacknowledged() > 0)
-        this->retransmit();
   }
 
   /// restore read queue
