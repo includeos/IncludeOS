@@ -9,41 +9,58 @@ using namespace net;
 
 static tcp::Connection_ptr conn = nullptr;
 static net::TCP*        tcp_ptr = nullptr;
+static net::Inet<net::IP4>* inet_ptr = nullptr;
 static buffer_t bloberino;
 static void setup_callbacks(tcp::Connection_ptr);
 static void open_for_business(net::TCP& tcp, uint16_t port);
 static bool updated_yet = false;
+static int  measuring_timer = -1;
 
 struct measurement_t
 {
   int64_t  received = 0;
+  int64_t  received_last = 0;
   int64_t  ts = 0;
+  int      expr = 0;
 };
 static measurement_t measurement;
 
-void start_measure() {
+static void start_measuring() {
   //printf("*** Starting measurements...\n");
   measurement.received = 0;
+  measurement.received_last = 0;
   measurement.ts       = OS::micros_since_boot();
   updated_yet = false;
 }
 
-void stop_measure() {
-  auto   diff   = OS::micros_since_boot() - measurement.ts;
-  double durs   = ((double)diff) / 1000 / 1000;
-  double mbits  = (measurement.received/(1024*1024)*8) / durs;
-  //printf("Duration: %.2f s - Payload: %lld/%u MB - %.2f MBit/s\n",
-  //        durs, measurement.received/(1024*1024), SIZE/(1024*1024), mbits);
+static void take_measure() {
+  auto tick = OS::micros_since_boot();
+  auto diff = tick - measurement.ts;
+  measurement.ts = tick;
+  double secs  = ((double)diff) / 1000 / 1000;
+
+  auto rdiff = measurement.received - measurement.received_last;
+
+  static const double MBITS_MLT = 8.0 / (1024*1024);
+  double mbits = rdiff * MBITS_MLT / secs;
+  measurement.received_last = measurement.received;
+
+  //printf("Duration: %.2f s - Payload: %lld MB - %.2f MBit/s\n",
+  //        secs, measurement.received/(1024*1024), mbits);
   printf("%f\n", mbits);
-  if (updated_yet) {
-    auto data = std::to_string(mbits) + "\n";
-    auto& inet = net::Inet4::ifconfig();
-    auto& sock = inet.udp().bind(667);
-    sock.sendto({10,0,0,1}, 667, data.data(), data.size());
-  }
+  auto data = std::to_string(mbits) + "\n";
+  auto& sock = inet_ptr->udp().bind();
+  sock.sendto({10,0,0,1}, 667, data.data(), data.size());
+}
+static void begin_measurements()
+{
+  using namespace std::chrono;
+  measuring_timer = Timers::periodic(100ms,
+    [] (int) {
+      take_measure();
+    });
 }
 
-#include <util/crc32.hpp>
 static void tcpflow_save(Storage& storage, const buffer_t* blob)
 {
   if (conn == nullptr)
@@ -76,14 +93,18 @@ void setup_callbacks(tcp::Connection_ptr conn)
     measurement.received += n;
     if (measurement.received >= 512*1024*1024)
     {
-      // record measurement
-      stop_measure();
+      // stop measurement
+      Timers::stop(measuring_timer);
+      // measure one last time
+      take_measure();
       // close this shit down
       ::conn->close();
       // reopen transfer port
       open_for_business(*tcp_ptr, 1337);
     }
   });
+  // take measurements
+  begin_measurements();
 }
 
 #include "server.hpp"
@@ -123,17 +144,19 @@ void open_for_business(net::TCP& tcp, uint16_t port)
     assert(tcp.close({0, port}));
     if (!bloberino.empty()) {
       // auto-liveupdate after duration
-      //Timers::oneshot(std::chrono::milliseconds(400), begin_live_updating);
+      Timers::oneshot(std::chrono::milliseconds(400), begin_live_updating);
     }
+    printf("Experiment %d\n", ++measurement.expr);
     // begin experiment
     setup_callbacks(conn);
-    start_measure();
+    start_measuring();
   });
 }
 
 LiveUpdate::storage_func begin_test_tcpflow(net::Inet<net::IP4>& inet)
 {
   tcp_ptr = &inet.tcp();
+  inet_ptr = &inet;
 
   bool resumed = LiveUpdate::resume(LIVEUPD_LOCATION, tcpflow_resume);
   if (resumed == false)
