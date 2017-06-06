@@ -13,12 +13,12 @@ namespace liu
   static const char* rollback_data;
   static size_t      rollback_len;
 
-void LiveUpdate::rollback_now()
+void LiveUpdate::rollback_now(const char* reason)
 {
   if (LiveUpdate::has_rollback_blob())
   {
-    printf("\nPerforming rollback from %p:%u...\n",
-          rollback_data, (uint32_t) rollback_len);
+    printf("\nPerforming rollback from %p:%u... Reason: %s\n",
+	   rollback_data, (uint32_t) rollback_len, reason);
     try
     {
       buffer_t vec(rollback_data, rollback_data + rollback_len);

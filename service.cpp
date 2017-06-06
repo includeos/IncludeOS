@@ -67,7 +67,7 @@ void setup_liveupdate_server(net::Inet<net::IP4>& inet, liu::LiveUpdate::storage
             location, (uint32_t) buffer.size());
     liu::LiveUpdate::set_rollback_blob(location, buffer.size());
     // simulate crash
-    liu::LiveUpdate::rollback_now();
+    liu::LiveUpdate::rollback_now("Network triggered rollback");
   });
 
   printf("LiveUpdate server listening on port 666\n");
