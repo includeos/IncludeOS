@@ -127,6 +127,8 @@ public:
     }
   }
 
+  void flush() override {}
+
 private:
 
   upstream ip4_handler_ = nullptr;
