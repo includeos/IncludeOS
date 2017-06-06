@@ -97,9 +97,6 @@ struct Storage
   template <typename T>
   inline void add(uid, const T& type);
 
-  // marker are used to mark where structures that might change over time
-  // ends, making it possible to partially reconstruct across updates
-  void add_marker(uid);
   // storing as int saves some storage space compared to all the other types
   void add_int   (uid, int value);
   void add_string(uid, const std::string&);
@@ -114,6 +111,9 @@ struct Storage
   Storage(storage_header& sh) : hdr(sh) {}
   void add_vector (uid, const void*, size_t count, size_t element_size);
   void add_string_vector (uid, const std::vector<std::string>&);
+
+  // markers are used to delineate the end of variable-length structures
+  void put_marker(uid);
 
 private:
   storage_header& hdr;
@@ -155,11 +155,25 @@ struct Restore
 
   bool        is_end()   const noexcept;
   uint16_t    next_id()  const noexcept;
+  // go to the next storage entry
   void        go_next();
 
-  // cancel restore process
-  // NOTE: the call to resume() will still return true
+  // go *past* the first marker found (or end reached)
+  // if a marker is found, the markers id is returned
+  // if the end is reached, 0 is returned
+  uint16_t pop_marker();
+  // go *past* the first marker found (or end reached)
+  // if a marker is found, verify that @id matches
+  // if the end is reached, @id is not used
+  void pop_marker(uint16_t id);
+
+  // cancel and exit state restoration process
+  // NOTE: resume() will still return true
   void cancel();  // pseudo: "while (!is_end()) go_next()"
+
+  // NOTE:
+  // it is safe to immediately use is_end() after any call to:
+  // go_next(), pop_marker(), pop_marker(uint16_t), cancel()
 
   Restore(storage_entry*& ptr) : ent(ptr) {}
   Restore(const Restore&);

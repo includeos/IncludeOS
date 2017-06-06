@@ -38,6 +38,8 @@ struct serialized_tcp
 
   net::tcp::seq_t last_ack_sent;
 
+  bool rtx_is_running;
+
   /// vla for write buffers
   char   vla[0];
 

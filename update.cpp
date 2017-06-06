@@ -243,7 +243,7 @@ size_t update_store_data(void* location, LiveUpdate::storage_func func, const bu
 
 /// struct Storage
 
-void Storage::add_marker(uid id)
+void Storage::put_marker(uid id)
 {
   hdr.add_marker(id);
 }

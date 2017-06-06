@@ -77,7 +77,7 @@ buffer_t  Restore::as_buffer() const
 {
   if (ent->type == TYPE_BUFFER) {
       buffer_t buffer;
-      buffer.insert(buffer.end(), ent->data(), ent->data() + ent->len);
+      buffer.assign(ent->data(), ent->data() + ent->len);
       return buffer;
   }
   throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
@@ -109,8 +109,8 @@ const void* Restore::get_segment(size_t size, size_t& count) const
       throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
 
   auto& segs = ent->get_segs();
-  if (ent->type != TYPE_VECTOR)
-      throw std::runtime_error("Incorrect T size: " + std::to_string(size) + " vs " + std::to_string(segs.esize));
+  if (size != segs.esize)
+      throw std::runtime_error("Incorrect type size: " + std::to_string(size) + " vs " + std::to_string(segs.esize));
 
   count = segs.count;
   return (const void*) segs.vla;
@@ -143,13 +143,35 @@ bool     Restore::is_end() const noexcept
 void     Restore::go_next()
 {
   if (is_end())
-      throw std::runtime_error("Already at end of entries");
+      throw std::runtime_error("Already reached end of storage");
   // increase the counter, so the resume loop skips entries properly
   ent = ent->next();
 }
 uint16_t Restore::next_id() const noexcept
 {
   return ent->next()->id;
+}
+
+uint16_t Restore::pop_marker()
+{
+  uint16_t result = 0;
+  while (is_marker() == false
+      && is_end() == false) go_next();
+  if (is_marker()) {
+    result = get_id();
+    go_next();
+  }
+  return result;
+}
+void Restore::pop_marker(uint16_t id)
+{
+  while (is_marker() == false
+      && is_end() == false) go_next();
+  if (is_marker()) {
+    if (get_id() != id)
+        throw std::runtime_error("Ran past marker with another id: " + std::to_string(get_id()));
+    go_next();
+  }
 }
 
 void Restore::cancel()
