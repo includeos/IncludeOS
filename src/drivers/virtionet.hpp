@@ -160,6 +160,10 @@ public:
 
   void deactivate() override;
 
+  void flush() override {
+    tx_q.kick();
+  };
+
   void move_to_this_cpu() override;
 
 private:
