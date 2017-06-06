@@ -57,10 +57,15 @@ public:
 
   void send_error(const std::string& err);
 
+  void send_message(Transport_code, const char* data, size_t len);
+
   bool is_online() const
   { return ws_ != nullptr and ws_->is_alive(); }
 
+  void panic(const char* why);
+
 private:
+  net::Inet<net::IP4>&          inet_;
   std::unique_ptr<http::Client> client_;
   net::WebSocket_ptr            ws_;
   std::string                   id_;
@@ -101,6 +106,7 @@ private:
   void restore(liu::Restore& store);
 
 }; // < class WS_uplink
+
 
 } // < namespace uplink
 
