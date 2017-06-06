@@ -171,7 +171,7 @@ void panic(const char* why)
   SMP::global_unlock();
 
   // call custom on panic handler (if present)
-  if (panic_handler) panic_handler();
+  if (panic_handler) panic_handler(why);
 
 #if defined(ARCH_x86)
   SMP::global_lock();
