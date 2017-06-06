@@ -128,7 +128,7 @@ public:
    * This handler can thus be used to, for example, automatically
    * have the OS restart on any crash.
   **/
-  typedef void (*on_panic_func) ();
+  typedef void (*on_panic_func) (const char*);
   static void on_panic(on_panic_func);
 
   /**

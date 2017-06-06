@@ -72,6 +72,8 @@ public:
     return tx_tokens_free();
   }
 
+  void flush() override;
+
   void deactivate() override;
 
   void move_to_this_cpu() override;

@@ -497,19 +497,19 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
     IRQ_manager::get().register_irq(deferred_irq);
   }
 }
+
+void vmxnet3::flush() {
+  auto idx = tx.producers % vmxnet3::NUM_TX_DESC;
+  if (idx != transmit_idx) {
+      mmio_write32(ptbase + VMXNET3_PT_TXPROD, idx);
+  }
+}
+
 void vmxnet3::handle_deferred()
 {
   for (auto* dev : deferred_devs)
   {
-    auto idx = dev->tx.producers % vmxnet3::NUM_TX_DESC;
-    if (idx != dev->transmit_idx)
-    {
-      //printf("idx: %d   t.idx: %d\n", idx, dev->transmit_idx);
-      mmio_write32(dev->ptbase + VMXNET3_PT_TXPROD, idx);
-    }
-    else {
-      printf("Avoided mmio write\n");
-    }
+    dev->flush();
     dev->deferred_kick = false;
   }
   deferred_devs.clear();
