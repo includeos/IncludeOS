@@ -74,6 +74,7 @@ add_dependencies(os PrecompiledLibraries botan)
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)
 add_subdirectory(platform/x86_nano)
+add_subdirectory(platform/x86_solo5)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
 

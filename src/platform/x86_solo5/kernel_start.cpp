@@ -3,13 +3,13 @@
 #include <service>
 #include <smp>
 #include <boot/multiboot.h>
+#include <kernel/os.hpp>
 
 extern  void default_stdout_handlers();
 extern  void __platform_init();
 
-
 extern "C" {
-  void __init_serial1();
+  void __init_serial_solo5();
   void __init_sanity_checks();
   void kernel_sanity_checks();
   uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
@@ -21,20 +21,22 @@ extern "C" {
   void __libc_init_array();
   uintptr_t _end;
 
-  void kernel_start(uintptr_t magic, uintptr_t addr){
+  void solo5_poweroff()
+  {
+    __asm__ __volatile__("cli; hlt");
+    for(;;);
+  }
 
-    // Initialize serial port 1
-    __init_serial1();
+  void kernel_start(){
+
+    // Initialize a serial/console channel
+    __init_serial_solo5();
 
     // generate checksums of read-only areas etc.
     __init_sanity_checks();
 
     // Determine where free memory starts
     uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
-
-    if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-      free_mem_begin = _multiboot_free_begin(addr);
-    }
 
     // Preserve symbols from the ELF binary
     free_mem_begin += _move_symbols(free_mem_begin);
@@ -57,6 +59,9 @@ extern "C" {
     // Call global ctors
     __libc_init_array();
 
+    // Initialize OS including devices
+    OS::start(1,1);
+
     __platform_init();
 
     // Start the service
@@ -65,7 +70,13 @@ extern "C" {
     // verify certain read-only sections in memory
     kernel_sanity_checks();
 
-    __arch_poweroff();
+    // Starting event loop from here allows us to profile OS::start
+    OS::event_loop();
 
+    solo5_poweroff();
+  }
+
+  void _start() {
+     kernel_start();
   }
 }
