@@ -86,6 +86,8 @@ namespace x86 {
     uint32_t  PM1b_CNT_BLK;
     uint8_t   unneded4[89 - 72];
     uint8_t   PM1_CNT_LEN;
+    uint8_t   unneded5[18];
+    uint8_t   century;
   };
 
   struct AddressStructure
@@ -251,6 +253,8 @@ namespace x86 {
   void ACPI::walk_facp(const char* addr)
   {
     auto* facp = (FACPHeader*) addr;
+    this->century = facp->century;
+
     auto  dsdt_addr = (uintptr_t) facp->DSDT;
     // verify DSDT
     constexpr uint32_t DSDT_t = bake('D', 'S', 'D', 'T');
