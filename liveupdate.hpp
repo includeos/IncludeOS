@@ -63,7 +63,7 @@ struct LiveUpdate
   // Immediately start a rollback, not saving any state other than
   // performing a soft-reset to reduce downtime to a minimum
   // Never returns, and upon failure intentionally hard-resets the OS
-  static void rollback_now();
+  static void rollback_now(const char* reason);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
