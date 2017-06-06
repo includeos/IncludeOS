@@ -141,7 +141,8 @@ case $SYSTEM in
                 sudo apt-get -qqy install $DEPENDENCIES > /dev/null || exit 1
                 ;;
             "fedora")
-                DEPENDENCIES="$DEPENDENCIES"
+                # Removes g++-multilib from dependencies
+                DEPENDENCIES=${DEPENDENCIES%g++-multilib}
                 sudo dnf install $DEPENDENCIES || exit 1
                 ;;
             "arch")
