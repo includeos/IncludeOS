@@ -32,7 +32,8 @@ namespace uplink {
     LOG       = 2,
     UPDATE    = 5,
     APPDATA   = 6,
-    ERROR     = 255
+    PANIC     = 7,
+    ERROR     = 255 // Legacy
   };
 
   // send service name and current binary hash

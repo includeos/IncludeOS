@@ -44,7 +44,7 @@ namespace uplink {
   void* UPDATE_LOC = (void*) 0x3200000; // at 50mb
 
   WS_uplink::WS_uplink(net::Inet<net::IP4>& inet)
-    : id_{inet.link_addr().to_string()},
+    : inet_{inet}, id_{inet.link_addr().to_string()},
       parser_({this, &WS_uplink::handle_transport})
   {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
@@ -391,25 +391,32 @@ namespace uplink {
 
   }
 
-  void WS_uplink::send_error(const std::string& err)
-  {
-    auto transport = Transport{Header{Transport_code::IDENT, static_cast<uint32_t>(err.size())}};
+  void WS_uplink::send_message(Transport_code code, const char* data, size_t len) {
+    auto transport = Transport{Header{code, static_cast<uint32_t>(len)}};
 
-    transport.load_cargo(err.data(), err.size());
+    transport.load_cargo(data, len);
 
     ws_->write(transport.data().data(), transport.data().size());
+  }
+
+  void WS_uplink::send_error(const std::string& err)
+  {
+    send_message(Transport_code::ERROR, err.c_str(), err.size());
   }
 
   void WS_uplink::send_log(const char* data, size_t len)
   {
     if(is_online() and ws_->get_connection()->is_writable())
     {
-      auto transport = Transport{Header{Transport_code::LOG, static_cast<uint32_t>(len)}};
-
-      transport.load_cargo(data, len);
-
-      ws_->write(transport.data().data(), transport.data().size());
+      send_message(Transport_code::LOG, data, len);
     }
+  }
+
+  void WS_uplink::panic(const char* why){
+    MYINFO("WS_uplink sending panic\n");
+    send_message(Transport_code::PANIC, why, strlen(why));
+    ws_->close();
+    inet_.nic().flush();
   }
 
 }

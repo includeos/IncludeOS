@@ -25,27 +25,37 @@ namespace uplink {
 
 static std::unique_ptr<WS_uplink> uplink{nullptr};
 
+
+  void on_panic(const char* why){
+    if (uplink)
+      uplink->panic(why);
+  }
+
+
 void setup_uplink()
 {
   MYINFO("Setting up WS uplink");
 
   try {
     net::autoconf::load();
-    
+
     auto& en0 = net::Super_stack::get<net::IP4>(0);
-    
+
     // already initialized
     if(en0.is_configured())
       {
-	uplink = std::make_unique<WS_uplink>(en0);
+        uplink = std::make_unique<WS_uplink>(en0);
       }
     // if not, register on config event
     else
       {
-	en0.on_config([] (auto& inet) {
-	    uplink = std::make_unique<WS_uplink>(inet);
-	  });
+        en0.on_config([] (auto& inet) {
+            uplink = std::make_unique<WS_uplink>(inet);
+          });
       }
+
+
+    OS::on_panic(uplink::on_panic);
 
   }catch(const std::exception& e) {
     MYINFO("Uplink initialization failed: %s ", e.what());
