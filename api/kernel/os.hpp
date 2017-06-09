@@ -140,6 +140,8 @@ public:
   **/
   static void add_stdout_default_serial();
 
+  static void add_stdout_solo5();
+
   /** Memory page helpers */
   static constexpr uint32_t page_size() noexcept {
     return 4096;
@@ -211,6 +213,9 @@ public:
 
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
+
+  /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
+  static void start_solo5(uint32_t boot_magic, uint32_t boot_addr);
 
   /** Get "kernel modules", provided by multiboot */
   static Span_mods modules();
