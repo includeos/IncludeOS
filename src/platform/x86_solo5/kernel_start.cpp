@@ -18,6 +18,10 @@ extern char _MULTIBOOT_START_;
 #include <statman>
 #include <kernel/rng.hpp>
 
+// sleep statistics
+static uint64_t* os_cycles_hlt   = nullptr;
+static uint64_t* os_cycles_total = nullptr;
+
 extern "C" void* get_cpu_esp();
 extern "C" void  kernel_sanity_checks();
 extern uintptr_t heap_begin;
@@ -69,8 +73,6 @@ void OS::start_solo5(uint32_t boot_magic, uint32_t boot_addr)
   /// initialize on page 7, 2 pages in size
   Statman::get().init(0x6000, 0x3000);
 
-  printf("multiboot addr %u\n", boot_addr);
-
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
@@ -118,12 +120,11 @@ void OS::start_solo5(uint32_t boot_magic, uint32_t boot_addr)
     INFO2("* %s",i.second.to_string().c_str());
 
   // sleep statistics
-  // XXX need these back
   // NOTE: needs to be positioned before anything that calls OS::halt
- // os_cycles_hlt = &Statman::get().create(
-   //   Stat::UINT64, std::string("cpu0.cycles_hlt")).get_uint64();
-  //os_cycles_total = &Statman::get().create(
-    //  Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
+  os_cycles_hlt = &Statman::get().create(
+      Stat::UINT64, std::string("cpu0.cycles_hlt")).get_uint64();
+  os_cycles_total = &Statman::get().create(
+      Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
   PROFILE("Platform init");
   extern void __platform_init();
@@ -168,10 +169,8 @@ void OS::start_solo5(uint32_t boot_magic, uint32_t boot_addr)
 
   Service::start();
   // NOTE: this is a feature for service writers, don't move!
-
   kernel_sanity_checks();
 }
-
 
 extern "C" {
   void __init_sanity_checks();
