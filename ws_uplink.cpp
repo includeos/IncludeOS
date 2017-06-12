@@ -36,6 +36,7 @@
 #include <kernel/pci_manager.hpp>
 #include <hw/pci_device.hpp>
 #include <kernel/cpuid.hpp>
+#include <statman>
 
 namespace uplink {
 
@@ -209,15 +210,21 @@ namespace uplink {
       return;
     }
 
-    MYINFO("New transport (%lu bytes)", t->size());
+    //MYINFO("New transport (%lu bytes)", t->size());
     switch(t->code())
     {
       case Transport_code::UPDATE:
       {
-        INFO2("Update received - commencing update...");
+        MYINFO("Update received - commencing update...");
 
         update({t->begin(), t->end()});
         return;
+      }
+
+      case Transport_code::STATS:
+      {
+        send_stats();
+        break;
       }
 
       default:
@@ -383,12 +390,7 @@ namespace uplink {
 
     MYINFO("%s", str.c_str());
 
-    auto transport = Transport{Header{Transport_code::IDENT, static_cast<uint32_t>(str.size())}};
-
-    transport.load_cargo(str.data(), str.size());
-
-    ws_->write(transport.data().data(), transport.data().size());
-
+    send_message(Transport_code::IDENT, str.data(), str.size());
   }
 
   void WS_uplink::send_message(Transport_code code, const char* data, size_t len) {
@@ -417,6 +419,39 @@ namespace uplink {
     send_message(Transport_code::PANIC, why, strlen(why));
     ws_->close();
     inet_.nic().flush();
+  }
+
+  void WS_uplink::send_stats()
+  {
+    using namespace rapidjson;
+
+    StringBuffer buf;
+    Writer<StringBuffer> writer{buf};
+
+    writer.StartArray();
+    auto& statman = Statman::get();
+    for(auto it = statman.begin(); it != statman.end(); ++it)
+    {
+      auto& stat = *it;
+      writer.StartObject();
+
+      writer.Key("name");
+      writer.String(stat.name());
+
+      writer.Key("value");
+      switch(stat.type()) {
+        case Stat::UINT64:  writer.Uint64(stat.get_uint64()); break;
+        case Stat::UINT32:  writer.Uint(stat.get_uint32()); break;
+        case Stat::FLOAT:   writer.Double(stat.get_float()); break;
+      }
+
+      writer.EndObject();
+    }
+    writer.EndArray();
+
+    std::string str = buf.GetString();
+
+    send_message(Transport_code::STATS, str.data(), str.size());
   }
 
 }

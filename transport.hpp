@@ -33,6 +33,7 @@ namespace uplink {
     UPDATE    = 5,
     APPDATA   = 6,
     PANIC     = 7,
+    STATS     = 8,
     ERROR     = 255 // Legacy
   };
 

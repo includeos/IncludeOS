@@ -57,6 +57,8 @@ public:
 
   void send_error(const std::string& err);
 
+  void send_stats();
+
   void send_message(Transport_code, const char* data, size_t len);
 
   bool is_online() const
