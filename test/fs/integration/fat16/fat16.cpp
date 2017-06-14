@@ -27,7 +27,7 @@
 void Service::start(const std::string&)
 {
   INFO("FAT16", "Running tests for FAT16");
-  auto disk = fs::new_shared_memdisk();
+  auto disk = fs::shared_memdisk();
   assert(disk);
 
   // verify that the size is indeed N sectors
@@ -72,7 +72,7 @@ void Service::start(const std::string&)
     // try reading banana-file
     auto buf = fs.read(ent, 0, ent.size());
     CHECKSERT(!buf.error(), "No error reading file");
-    
+
     auto banana = buf.to_string();
 
     CHECKSERT(banana == internal_banana, "Correct banana #1");

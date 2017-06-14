@@ -28,7 +28,7 @@
 #include <fstream>
 
 fs::Disk_ptr& memdisk() {
-  static auto disk = fs::new_shared_memdisk();
+  static auto disk = fs::shared_memdisk();
 
   if (not disk->fs_ready()) {
     disk->init_fs([](fs::error_t err, auto&) {
