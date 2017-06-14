@@ -53,6 +53,8 @@ public:
 
   void send_log(const char*, size_t);
 
+  void send_uplink();
+
   void update(const std::vector<char>& buffer);
 
   void send_error(const std::string& err);
