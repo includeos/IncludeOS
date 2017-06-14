@@ -23,6 +23,7 @@
 #include <fs/filesystem.hpp>
 #include <fs/dirent.hpp>
 #include <hw/block_device.hpp>
+#include <common>
 
 #include <deque>
 #include <vector>
@@ -129,7 +130,13 @@ namespace fs {
     // Returns a reference to a mounted filesystem
     // If no filesystem is mounted, the results are undefined
     File_system& fs() noexcept
-    { return *filesys; }
+    {
+      if(UNLIKELY(not fs_ready()))
+      {
+        throw Err_not_mounted{"Filesystem not ready - make sure to init_fs before accessing"};
+      }
+      return *filesys;
+    }
 
   private:
     void internal_init(partition_t part, on_init_func func);
