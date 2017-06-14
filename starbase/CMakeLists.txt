@@ -18,9 +18,6 @@ set(SERVICE_NAME "IncludeOS Starbase")
 # Name of your service binary
 set(BINARY       "starbase")
 
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp # ...add more here
