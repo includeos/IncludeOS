@@ -473,7 +473,7 @@ class vm:
         self._on_panic =  self.panic
         self._on_timeout = self.timeout
         self._on_output = {
-            "PANIC" : self._on_panic,
+            "\\x15\\x07\\t\*\*\*\* PANIC \*\*\*\*" : self._on_panic,
             "SUCCESS" : self._on_success }
 
         # Initialize hypervisor with config
