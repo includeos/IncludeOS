@@ -13,13 +13,8 @@ extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 void __arch_poweroff()
 {
-  ACPI::shutdown();
-  __builtin_unreachable();
-}
-
-void default_stdout_handlers()
-{
-  OS::add_stdout_default_serial();
+  __asm__ __volatile__("cli; hlt");
+  for(;;);
 }
 
 void __platform_init(){
