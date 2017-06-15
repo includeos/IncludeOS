@@ -180,6 +180,8 @@ namespace uplink {
     MYINFO("Websocket established");
 
     send_ident();
+
+    send_uplink();
   }
 
   void WS_uplink::handle_ws_close(uint16_t code)
@@ -391,6 +393,32 @@ namespace uplink {
     MYINFO("%s", str.c_str());
 
     send_message(Transport_code::IDENT, str.data(), str.size());
+  }
+
+  void WS_uplink::send_uplink() {
+    MYINFO("Sending uplink");
+    using namespace rapidjson;
+
+    StringBuffer buf;
+    Writer<StringBuffer> writer{buf};
+
+    writer.StartObject();
+
+    writer.Key("url");
+    writer.String(config_.url);
+
+    writer.Key("token");
+    writer.String(config_.token);
+
+    writer.EndObject();
+
+    std::string str = buf.GetString();
+
+    MYINFO("%s", str.c_str());
+
+    auto transport = Transport{Header{Transport_code::UPLINK, static_cast<uint32_t>(str.size())}};
+    transport.load_cargo(str.data(), str.size());
+    ws_->write(transport.data().data(), transport.data().size());
   }
 
   void WS_uplink::send_message(Transport_code code, const char* data, size_t len) {
