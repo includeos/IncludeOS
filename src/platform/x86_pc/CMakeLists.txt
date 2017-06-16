@@ -12,6 +12,7 @@ set(X86_PC_OBJECTS
   smp.cpp
   pit.cpp
   cpu_freq_sampling.cpp
+  serial1.cpp
   pic.cpp
   )
 

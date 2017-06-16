@@ -45,7 +45,7 @@ set(OS_OBJECTS
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
-  hw/ide.cpp hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp hw/serial1.cpp
+  hw/ide.cpp hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp
   hw/cmos.cpp hw/block_device.cpp hw/msi.cpp hw/pci_msi.cpp
   virtio/virtio.cpp virtio/virtio_queue.cpp
   net/ethernet/ethernet.cpp net/inet_common.cpp net/ip4/arp.cpp net/ip4/ip4.cpp
