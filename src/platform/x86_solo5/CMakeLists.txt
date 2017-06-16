@@ -6,6 +6,7 @@ set(PLATFORM_OBJECTS
   ../x86_pc/ioapic.cpp
   ../x86_pc/pit.cpp
   ../x86_pc/cpu_freq_sampling.cpp
+  os.cpp
   serial1.cpp
   start.asm
   platform.cpp
