@@ -35,6 +35,7 @@ struct posix_typed_mem_info
 int    mlock(const void *, size_t);
 int    mlockall(int);
 void  *mmap(void *, size_t, int, int, int, off_t);
+void  *mremap(void*, size_t, size_t, int flags, ... /* void *new_address */);
 int    mprotect(void *, size_t, int);
 int    msync(void *, size_t, int);
 int    munlock(const void *, size_t);
@@ -67,6 +68,9 @@ int    shm_unlink(const char *);
 
 // Returned on failure to allocate pages
 #define MAP_FAILED    ((void*)-1)
+
+#define MREMAP_FIXED    0x2
+#define MREMAP_MAYMOVE  0x4
 
 #ifdef __cplusplus
 }
