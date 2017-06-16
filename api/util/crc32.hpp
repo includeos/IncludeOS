@@ -81,15 +81,41 @@ static uint32_t crc_32_tab[] =
 
   for (; len; --len, ++buf)
       partial = UPDC32(*buf, partial);
-  
+
   return partial;
 
 #undef UPDC32
 }
 
+#ifdef __SSE4_2__
+#include <immintrin.h>
+
+inline uint32_t crc32_hw(const uint8_t* buffer, size_t len)
+{
+  uint32_t hash = 0xFFFFFFFF;
+  for (size_t i = 0; i < len; i++) {
+    hash = _mm_crc32_u8(hash, buffer[i]);
+  }
+  return hash ^ 0xFFFFFFFF;
+}
+#endif
+
+/** Ethernet/ZIP **/
 inline uint32_t crc32(const void* buf, size_t len)
 {
   return ~crc32(0xFFFFFFFF, (const char*) buf, len);
+}
+
+/** Intel (iSCSI) or vanilla-polynomial, DONT mix with other code **/
+/** This variant uses the fastest CRC method possible, but we don't
+    know which polynomial it will use, so use with care! **/
+inline uint32_t crc32_fast(const void* buf, size_t len)
+{
+#ifdef __SSE4_2__
+  return crc32_hw((const uint8_t*) buf, len);
+#else
+  return ~crc32(0xFFFFFFFF, (const char*) buf, len);
+#endif
 }
 
 #endif

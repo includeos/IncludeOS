@@ -35,7 +35,7 @@ void OS::resume_softreset(intptr_t addr)
   /// validate soft-reset data
   const uint32_t csum_copy = data->checksum;
   data->checksum = 0;
-  uint32_t crc = crc32(data, sizeof(softreset_t));
+  uint32_t crc = crc32_fast(data, sizeof(softreset_t));
   if (crc != csum_copy) {
     kprintf("[!] Failed to verify CRC of softreset data: %08x vs %08x\n",
             crc, csum_copy);
@@ -66,7 +66,7 @@ void* __os_store_soft_reset(void* extra, size_t extra_len)
   data->extra       = extra;
   data->extra_len   = extra_len;
 
-  uint32_t csum = crc32(data, sizeof(softreset_t));
+  uint32_t csum = crc32_fast(data, sizeof(softreset_t));
   data->checksum = csum;
   return data;
 }
