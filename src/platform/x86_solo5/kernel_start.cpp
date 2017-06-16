@@ -12,6 +12,8 @@ extern "C" {
 extern  void solo5_stdout_handlers();
 extern  void __platform_init();
 
+char cmdline[256];
+uintptr_t mem_size;
 
 __attribute__ ((weak))
 void solo5_stdout_handlers()
@@ -29,7 +31,8 @@ extern "C" {
   void _init_syscalls();
   void __libc_init_array();
   uintptr_t _end;
-  void __set_stack();
+  void set_stack();
+  void* get_cpu_ebp();
 
   void solo5_poweroff()
   {
@@ -37,7 +40,8 @@ extern "C" {
     for(;;);
   }
 
-  void kernel_start(char *cmdline){
+  void kernel_start()
+  {
 
     // generate checksums of read-only areas etc.
     __init_sanity_checks();
@@ -70,7 +74,7 @@ extern "C" {
     __libc_init_array();
 
     // Initialize OS including devices
-    OS::start(0, 0);
+    OS::start(cmdline, mem_size);
 
     // Starting event loop from here allows us to profile OS::start
     OS::event_loop();
@@ -78,8 +82,16 @@ extern "C" {
     solo5_poweroff();
   }
 
-  int solo5_app_main(char *cmdline) {
-     // solo5 sets the stack to be at the end of memory.
-     __set_stack();
+  int solo5_app_main(char *_cmdline)
+  {
+     // cmdline is stored at 0x6000 by ukvm which is used by includeos. Move it fast.
+     strncpy(cmdline, _cmdline, 256);
+
+     // solo5 sets the stack to be at the end of memory, so let's use that as
+     // our memory size (before we change).
+     mem_size = (uintptr_t)get_cpu_ebp();
+
+     // set the stack location to its new includeos location, and call kernel_start
+     set_stack();
   }
 }

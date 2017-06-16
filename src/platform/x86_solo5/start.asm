@@ -17,7 +17,8 @@
 
 global __multiboot_magic
 global __multiboot_addr
-global __set_stack
+global set_stack
+global get_cpu_ebp
 
 %define  MB_MAGIC   0x1BADB002
 %define  MB_FLAGS   0x3  ;; ALIGN + MEMINFO
@@ -44,7 +45,11 @@ __multiboot_magic:
 __multiboot_addr:
     dd 0x0
 
-__set_stack:
+set_stack:
   mov esp, 0xA0000
   mov ebp, esp
   call kernel_start
+
+get_cpu_ebp:
+    mov eax, ebp
+    ret

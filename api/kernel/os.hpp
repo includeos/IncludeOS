@@ -211,6 +211,8 @@ public:
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
+  static void start(char *cmdline, uintptr_t mem_size);
+
   /** Get "kernel modules", provided by multiboot */
   static Span_mods modules();
 

@@ -20,6 +20,7 @@ extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
 extern uintptr_t _end;
+extern uintptr_t mem_size;
 extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
@@ -54,7 +55,7 @@ void OS::add_stdout_solo5()
   });
 }
 
-void OS::start(uint32_t boot_magic, uint32_t boot_addr)
+void OS::start(char *cmdline, uintptr_t mem_size)
 {
   PROFILE("");
   // Print a fancy header
@@ -70,9 +71,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Multiboot / legacy");
 
   low_memory_size_ = 0;
-  // Approximate high memory size. solo5 starts the stack at the end of memory.
-  high_memory_size_ = (uint64_t)0x2000000 - 0x200000;
-  //high_memory_size_ = (uint64_t)esp - 0x200000;
+  high_memory_size_ = mem_size - 0x200000;
 
   Expects(high_memory_size_);
 
