@@ -73,7 +73,7 @@ void OS::start_solo5()
 
   // Detect memory limits etc. depending on boot type
   low_memory_size_ = 0;
-  high_memory_size_ = 0x20000000;
+  high_memory_size_ = 0x20000000 - 0x100000;
 
   Expects(high_memory_size_);
 
@@ -95,7 +95,7 @@ void OS::start_solo5()
         "Pre-heap", "Heap randomization area"});
 
   // Give the rest of physical memory to heap
-  heap_max_ = ((0x100000 + high_memory_size_)  & 0xffff0000) - 1;
+  heap_max_ = high_memory_size_;
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
