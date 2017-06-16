@@ -25,7 +25,9 @@ namespace middleware {
 
 Butler::Butler(SharedDisk disk, std::string root, Options opt)
   : disk_(disk), root_(root), options_(opt)
-{}
+{
+  Expects(disk != nullptr && disk->fs_ready());
+}
 
 void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next next)
 {
@@ -46,12 +48,11 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
   // concatenate root with path, example: / => /public/
   path = root_ + path;
 
-
   // no extension found
   if(ext.empty() and !options_.index.empty()) {
     if(path.back() != '/') path += '/';
     // lets try to see if we can serve an index
-    path += options_.index[0]; // only check first one for now, else we have to use fs().ls
+    path += options_.index.at(0); // only check first one for now, else we have to use fs().ls
     disk_->fs().cstat(
       path,
       fs::on_stat_func::make_packed(
