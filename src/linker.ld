@@ -168,9 +168,6 @@ SECTIONS
     LONG (0);
   }
 
-  /* XXX: We shouldn't have to do this. */
-  . = ALIGN(0x100000);
-
   .bss :
   {
     _BSS_START_ = .;
