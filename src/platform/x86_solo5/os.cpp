@@ -54,7 +54,7 @@ void OS::add_stdout_solo5()
   });
 }
 
-void OS::start_solo5()
+void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   PROFILE("");
   // Print a fancy header
@@ -71,7 +71,8 @@ void OS::start_solo5()
 
   low_memory_size_ = 0;
   // Approximate high memory size. solo5 starts the stack at the end of memory.
-  high_memory_size_ = (uint64_t)esp - 0x100000;
+  high_memory_size_ = (uint64_t)0x2000000 - 0x200000;
+  //high_memory_size_ = (uint64_t)esp - 0x200000;
 
   Expects(high_memory_size_);
 
@@ -158,4 +159,14 @@ void OS::start_solo5()
   Service::start();
   // NOTE: this is a feature for service writers, don't move!
   kernel_sanity_checks();
+}
+
+void OS::event_loop()
+{
+  printf("event_loop\n");
+}
+
+void OS::block()
+{
+  printf("block\n");
 }

@@ -23,11 +23,13 @@ extern "C" {
   void __init_sanity_checks();
   void kernel_sanity_checks();
   uintptr_t _move_symbols(uintptr_t loc);
+  void _init_bss();
   void _init_heap(uintptr_t);
   void _init_c_runtime();
   void _init_syscalls();
   void __libc_init_array();
   uintptr_t _end;
+  void __set_stack();
 
   void solo5_poweroff()
   {
@@ -46,9 +48,13 @@ extern "C" {
     // Preserve symbols from the ELF binary
     free_mem_begin += _move_symbols(free_mem_begin);
 
-    // Do not zero out all solo5 variables!! == don't touch the BSS
+    // Do not zero out all solo5 global variables!! == don't touch the BSS
+    //_init_bss();
 
     // Initialize heap
+    // XXX: this is dangerous as solo5 might be doing malloc()'s using it's own
+    // idea of a heap. Luckily there is no malloc instance at solo5/kernel/[ukvm|virtio|muen],
+    // so might be OK (for now).
     _init_heap(free_mem_begin);
 
     //Initialize stack-unwinder, call global constructors etc.
@@ -64,7 +70,7 @@ extern "C" {
     __libc_init_array();
 
     // Initialize OS including devices
-    OS::start_solo5();
+    OS::start(0, 0);
 
     // Starting event loop from here allows us to profile OS::start
     OS::event_loop();
@@ -73,6 +79,7 @@ extern "C" {
   }
 
   int solo5_app_main(char *cmdline) {
-     kernel_start(cmdline);
+     // solo5 sets the stack to be at the end of memory.
+     __set_stack();
   }
 }

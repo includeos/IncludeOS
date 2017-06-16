@@ -37,7 +37,7 @@ set(OS_OBJECTS
   kernel/os.cpp kernel/cpuid.cpp kernel/memmap.cpp kernel/pci_manager.cpp
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
-  kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm kernel/block.cpp
+  kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm
   kernel/fiber.cpp
   kernel/profile.cpp kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp

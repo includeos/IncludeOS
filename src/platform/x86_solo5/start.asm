@@ -15,9 +15,9 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-USE32
 global __multiboot_magic
 global __multiboot_addr
+global __set_stack
 
 %define  MB_MAGIC   0x1BADB002
 %define  MB_FLAGS   0x3  ;; ALIGN + MEMINFO
@@ -26,6 +26,7 @@ extern _MULTIBOOT_START_
 extern _LOAD_START_
 extern _LOAD_END_
 extern _end
+extern kernel_start
 
 ALIGN 4
 section .multiboot
@@ -42,3 +43,8 @@ __multiboot_magic:
     dd 0x0
 __multiboot_addr:
     dd 0x0
+
+__set_stack:
+  mov esp, 0xA0000
+  mov ebp, esp
+  call kernel_start

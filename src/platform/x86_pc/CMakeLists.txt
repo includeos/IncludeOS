@@ -3,6 +3,7 @@ set(X86_PC_OBJECTS
   start.asm
   platform.cpp
   os.cpp
+  block.cpp
   gdt.cpp
   acpi.cpp
   ioapic.cpp
