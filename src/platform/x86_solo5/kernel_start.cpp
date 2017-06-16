@@ -39,6 +39,19 @@ extern uintptr_t _ELF_END_;
 #else
 #define PROFILE(name) /* name */
 #endif
+
+RTC::timestamp_t OS::booted_at_ {0};
+
+RTC::timestamp_t OS::boot_timestamp()
+{
+  return booted_at_;
+}
+
+RTC::timestamp_t OS::uptime()
+{
+  return solo5_clock_monotonic() - booted_at_;
+}
+
 /* os */
 
 void OS::add_stdout_solo5()
@@ -71,9 +84,7 @@ void OS::start_solo5()
 
   PROFILE("Multiboot / legacy");
 
-  // Detect memory limits etc. depending on boot type
   low_memory_size_ = 0;
-
   // Approximate high memory size. solo5 starts the stack at the end of memory.
   high_memory_size_ = (uint64_t)esp - 0x100000;
 
@@ -122,9 +133,9 @@ void OS::start_solo5()
   extern void __platform_init();
   __platform_init();
 
-  //PROFILE("RTC init");
-  // Realtime/monotonic clock
-  //RTC::init();
+  booted_at_ = solo5_clock_monotonic();
+  MYINFO("Booted at monotonic_ns=%lld walltime_ns=%lld",
+         booted_at_, solo5_clock_wall());
 
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
@@ -191,8 +202,7 @@ extern "C" {
     // Preserve symbols from the ELF binary
     free_mem_begin += _move_symbols(free_mem_begin);
 
-    // Initialize zero-initialized vars
-    _init_bss();
+    // Do not zero out all solo5 variables!! == don't touch the BSS
 
     // Initialize heap
     _init_heap(free_mem_begin);
@@ -210,7 +220,6 @@ extern "C" {
     __libc_init_array();
 
     // Initialize OS including devices
-
     OS::start_solo5();
 
     // Starting event loop from here allows us to profile OS::start

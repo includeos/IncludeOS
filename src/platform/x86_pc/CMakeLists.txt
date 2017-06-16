@@ -2,6 +2,7 @@
 set(X86_PC_OBJECTS
   start.asm
   platform.cpp
+  os.cpp
   gdt.cpp
   acpi.cpp
   ioapic.cpp
