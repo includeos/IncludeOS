@@ -2,7 +2,7 @@
 #include "hw_timer.hpp"
 #include <kernel/os.hpp>
 
-static void* LIVEUPD_LOCATION   = (void*) 0x2800000; // at 40mb
+static void* LIVEUPD_LOCATION   = (void*) 0x20000000; // at 512mb
 extern char* heap_begin;
 extern char* heap_end;
 

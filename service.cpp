@@ -18,19 +18,21 @@ extern storage_func_t begin_test_tcpflow(net::Inet<net::IP4>&);
 
 void Service::start()
 {
-  //auto func = begin_test_boot();
-
   printf("\n");
   printf("-= Starting LiveUpdate test service =-\n");
+  auto func = begin_test_boot();
 
-  auto& inet = net::Inet4::ifconfig<0>(
-        { 10,0,0,42 },     // IP
-        { 255,255,255,0 }, // Netmask
-        { 10,0,0,1 },      // Gateway
-        { 10,0,0,1 });     // DNS
+  if (liu::LiveUpdate::is_resumable(LIVEUPD_LOCATION) == false)
+  {
+    auto& inet = net::Inet4::ifconfig<0>(
+          { 10,0,0,42 },     // IP
+          { 255,255,255,0 }, // Netmask
+          { 10,0,0,1 },      // Gateway
+          { 10,0,0,1 });     // DNS
 
-  auto func = begin_test_tcpflow(inet);
-  //setup_liveupdate_server(inet, func);
+    //auto func = begin_test_tcpflow(inet);
+    setup_liveupdate_server(inet, func);
+  }
 }
 
 #include "server.hpp"
@@ -52,6 +54,7 @@ void setup_liveupdate_server(net::Inet<net::IP4>& inet, liu::LiveUpdate::storage
     }
     catch (std::exception& err)
     {
+      liu::LiveUpdate::restore_environment();
       printf("Live Update location: %p\n", LIVEUPD_LOCATION);
       show_heap_stats();
       printf("Live update failed:\n%s\n", err.what());

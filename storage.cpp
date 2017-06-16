@@ -7,6 +7,7 @@
 
 #include <kernel/os.hpp>
 #include <util/crc32.hpp>
+#include <immintrin.h>
 #include <cassert>
 //#define VERIFY_MEMORY
 
@@ -16,6 +17,20 @@ storage_header::storage_header()
   : magic(LIVEUPD_MAGIC), crc(0), entries(0), length(0)
 {
   //printf("%p --> %#llx\n", this, value);
+}
+
+inline uint32_t liu_crc32(const void* buf, size_t len)
+{
+#ifdef USE_SSE42
+  uint32_t hash = 0xFFFFFFFF;
+  auto* buffer = (const char*) buf;
+  for (size_t i = 0; i < len; i++) {
+    _mm_crc32_u8(hash, buffer[i]);
+  }
+  return hash;
+#else
+  return crc32(buf, len);
+#endif
 }
 
 void storage_header::add_marker(uint16_t id)
@@ -33,7 +48,7 @@ void storage_header::add_string(uint16_t id, const std::string& data)
   memcpy(entry.vla, data.c_str(), data.size());
 #ifdef VERIFY_MEMORY
   /// verify memory
-  uint32_t csum = crc32(data.c_str(), data.size());
+  uint32_t csum = liu_crc32(data.c_str(), data.size());
   assert(entry.checksum() == csum);
 #endif
 }
@@ -43,7 +58,7 @@ void storage_header::add_buffer(uint16_t id, const char* buffer, int length)
   memcpy(entry.vla, buffer, length);
 #ifdef VERIFY_MEMORY
   /// verify memory
-  uint32_t csum = crc32(buffer, length);
+  uint32_t csum = liu_crc32(buffer, length);
   assert(entry.checksum() == csum);
 #endif
 }
@@ -134,7 +149,7 @@ uint32_t storage_header::generate_checksum() noexcept
 
   const char* begin = (const char*) this;
   size_t      len   = sizeof(storage_header) + this->length;
-  uint32_t checksum = crc32(begin, len);
+  uint32_t checksum = liu_crc32(begin, len);
 
   this->crc = crc_copy;
   return checksum;
@@ -170,5 +185,5 @@ storage_entry* storage_entry::next() const noexcept
 
 uint32_t storage_entry::checksum() const
 {
-  return crc32(vla, length());
+  return liu_crc32(vla, length());
 }

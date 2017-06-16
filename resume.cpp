@@ -56,11 +56,20 @@ void LiveUpdate::on_resume(uint16_t id, resume_func func)
 
 /// struct Restore
 
-bool        Restore::is_marker() const noexcept
+bool Restore::is_end() const noexcept
 {
-  return ent->type == TYPE_MARKER;
+  return get_type() == TYPE_END;
 }
-int         Restore::as_int()    const
+bool Restore::is_int() const noexcept
+{
+  return get_type() == TYPE_INTEGER;
+}
+bool Restore::is_marker() const noexcept
+{
+  return get_type() == TYPE_MARKER;
+}
+
+int Restore::as_int() const
 {
   // this type uses the length field directly as value to save space
   if (ent->type == TYPE_INTEGER)
@@ -136,10 +145,6 @@ std::vector<std::string> Restore::rebuild_string_vector() const
 }
 
 ///
-bool     Restore::is_end() const noexcept
-{
-  return get_type() == TYPE_END;
-}
 void     Restore::go_next()
 {
   if (is_end())

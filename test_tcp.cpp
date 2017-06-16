@@ -55,7 +55,7 @@ static void take_measure() {
 static void begin_measurements()
 {
   using namespace std::chrono;
-  measuring_timer = Timers::periodic(100ms,
+  measuring_timer = Timers::periodic(50ms,
     [] (int) {
       take_measure();
     });

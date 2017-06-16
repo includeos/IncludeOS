@@ -5,6 +5,7 @@ using namespace liu;
 
 static std::vector<double> timestamps;
 static buffer_t bloberino;
+static const size_t NUM_ITEMS = 1;
 
 static void boot_save(Storage& storage, const buffer_t* blob)
 {
@@ -12,6 +13,12 @@ static void boot_save(Storage& storage, const buffer_t* blob)
   storage.add<int64_t> (1, OS::cycles_since_boot());
   assert(blob != nullptr);
   storage.add_buffer(2, *blob);
+  /*
+  for (int i = 0; i < NUM_ITEMS; i++) {
+    storage.add_int(69, i);
+  }*/
+  //std::vector<char> data(NUM_ITEMS);
+  //storage.add_buffer(69, std::move(data));
 }
 static void boot_resume_all(Restore& thing)
 {
@@ -24,6 +31,18 @@ static void boot_resume_all(Restore& thing)
   timestamps.push_back(time);
   // retrieve old blob
   bloberino = thing.as_buffer(); thing.go_next();
+  /*
+  // retrieve and validate "items"
+  while (thing.get_id() == 69) {
+    assert(thing.is_int());
+    int value = thing.as_int();
+    static int next = 0;
+    assert(value == next++);
+    thing.go_next();
+  }*/
+  //assert(thing.get_id() == 69);
+  //auto buffer = thing.as_buffer(); thing.go_next();
+
   thing.pop_marker();
 }
 

@@ -17,7 +17,7 @@ set(LIBRARIES ${CMAKE_BINARY_DIR}/libliveupdate.a)
 
 set(DRIVERS
     virtionet
-    vmxnet3
+    #vmxnet3
     silent_start
     #heap_debugging
   )
@@ -40,3 +40,6 @@ add_library(liveupdate STATIC
 add_dependencies(liveupdate hotswap64)
 target_link_libraries(service liveupdate)
 install(TARGETS liveupdate DESTINATION lib)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
+add_definitions(-DUSE_SSE42) # enables hardware crc32

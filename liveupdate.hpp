@@ -39,6 +39,10 @@ struct LiveUpdate
   // at @location, which can then be resumed by the future service after update
   static void begin(void* location, buffer_t blob, storage_func = nullptr);
 
+  // In the event that LiveUpdate::begin() fails,
+  // call this function in the C++ exception handler:
+  static void restore_environment();
+
   // Only store user data, as if there was a live update process
   // Throws exception if process or sanity checks fail
   static size_t store(void* location, storage_func);
@@ -136,7 +140,9 @@ struct Restore
 {
   typedef net::tcp::Connection_ptr Connection_ptr;
 
-  bool           is_marker() const noexcept;
+  bool  is_end()    const noexcept;
+  bool  is_int()    const noexcept;
+  bool  is_marker() const noexcept;
   int            as_int()    const;
   std::string    as_string() const;
   buffer_t       as_buffer() const;
@@ -153,7 +159,6 @@ struct Restore
   int         length()   const noexcept;
   const void* data()     const noexcept;
 
-  bool        is_end()   const noexcept;
   uint16_t    next_id()  const noexcept;
   // go to the next storage entry
   void        go_next();

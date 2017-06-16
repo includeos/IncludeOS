@@ -13,6 +13,7 @@
 #include "elf.h"
 #include "storage.hpp"
 #include <kernel/os.hpp>
+#include <hw/devices.hpp>
 
 //#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
 #define LPRINT(x, ...) /** x **/
@@ -72,6 +73,9 @@ void LiveUpdate::begin(void*        location,
                        buffer_t     blob,
                        storage_func storage_callback)
 {
+  // 1. turn off interrupts
+  asm volatile("cli");
+
   // use area provided to us directly, which we will assume
   // is far enough into heap to not get overwritten by hotswap.
   // even then, it's still guaranteed to work: the copy mechanism
@@ -176,6 +180,12 @@ void LiveUpdate::begin(void*        location,
       (void) storage_len;
   }
 
+  // 2. flush all devices with flush() interface
+  hw::Devices::flush_all();
+  // 3. deactivate all PCI devices and mask all MSI-X vectors
+  // NOTE: there are some nasty side effects from calling this
+  //hw::Devices::deactivate_all();
+
   // store soft-resetting stuff
   extern const std::pair<const char*, size_t> get_rollback_location();
   const auto rollback = get_rollback_location();
@@ -190,13 +200,6 @@ void LiveUpdate::begin(void*        location,
 
   //char* phys_base = (char*) (start_offset & 0xffff0000);
   LPRINT("* Physical base address is %p...\n", phys_base);
-
-  /// prepare for the end
-  // 1. turn off interrupts
-  asm volatile("cli");
-  // 2. deactivate all PCI devices and mask all MSI-X vectors
-  // NOTE: there are some nasty side effects from calling this
-  //hw::Devices::deactivate_all();
 
   // replace ourselves and reset by jumping to _start
   LPRINT("* Replacing self with %d bytes and jumping to %#x\n", bin_len, start_offset);
@@ -214,6 +217,11 @@ void LiveUpdate::begin(void*        location,
 #else
   #error "Unimplemented architecture"
 #endif
+}
+void LiveUpdate::restore_environment()
+{
+  // enable interrupts again
+  asm volatile("sti");
 }
 size_t LiveUpdate::store(void* location, storage_func func)
 {

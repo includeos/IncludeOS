@@ -1,4 +1,4 @@
 {
-  "net" : [{"device" : "vmxnet3"}],
-  "mem"   : 64
+  "net" : [{"device" : "virtio"}],
+  "mem"   : 1024
 }
