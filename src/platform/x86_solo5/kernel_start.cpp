@@ -73,7 +73,9 @@ void OS::start_solo5()
 
   // Detect memory limits etc. depending on boot type
   low_memory_size_ = 0;
-  high_memory_size_ = 0x20000000 - 0x100000;
+
+  // Approximate high memory size. solo5 starts the stack at the end of memory.
+  high_memory_size_ = (uint64_t)esp - 0x100000;
 
   Expects(high_memory_size_);
 
