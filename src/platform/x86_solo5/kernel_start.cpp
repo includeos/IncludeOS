@@ -12,8 +12,6 @@ extern "C" {
 extern  void solo5_stdout_handlers();
 extern  void __platform_init();
 
-extern char _MULTIBOOT_START_;
-
 /* os */
 #include <statman>
 #include <kernel/rng.hpp>
@@ -58,7 +56,7 @@ void solo5_stdout_handlers()
 }
 
 
-void OS::start_solo5(uint32_t boot_magic, uint32_t boot_addr)
+void OS::start_solo5()
 {
   PROFILE("");
   // Print a fancy header
@@ -66,24 +64,16 @@ void OS::start_solo5(uint32_t boot_magic, uint32_t boot_addr)
 
   void* esp = get_cpu_esp();
   MYINFO("Stack: %p", esp);
-  MYINFO("Boot magic: 0x%x, addr: 0x%x",
-         boot_magic, boot_addr);
 
   /// STATMAN ///
   /// initialize on page 7, 2 pages in size
   Statman::get().init(0x6000, 0x3000);
 
   PROFILE("Multiboot / legacy");
+
   // Detect memory limits etc. depending on boot type
-  if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-    OS::multiboot(boot_addr);
-  } else {
-
-    if (is_softreset_magic(boot_magic) && boot_addr != 0)
-        OS::resume_softreset(boot_addr);
-
-    OS::legacy_boot();
-  }
+  low_memory_size_ = 0;
+  high_memory_size_ = 0x20000000;
 
   Expects(high_memory_size_);
 
@@ -175,7 +165,6 @@ void OS::start_solo5(uint32_t boot_magic, uint32_t boot_addr)
 extern "C" {
   void __init_sanity_checks();
   void kernel_sanity_checks();
-  uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_bss();
   void _init_heap(uintptr_t);
@@ -192,7 +181,6 @@ extern "C" {
   void kernel_start(char *cmdline){
 
     // generate checksums of read-only areas etc.
-    // XXX this takes 40ms
     __init_sanity_checks();
 
     // Determine where free memory starts
@@ -221,20 +209,7 @@ extern "C" {
 
     // Initialize OS including devices
 
-    /* Horrible hack to set __multiboot_addr, which is 32 bits, from a
-     * pointer to &_MULTIBOOT_START_, which is 64 bits.
-     */
-    extern uint32_t __multiboot_addr;
-    uint64_t mb_64 = (uint64_t) &_MULTIBOOT_START_;
-    __multiboot_addr = 1 + mb_64 - 1;
-    multiboot_info_t *bootinfo =  (multiboot_info_t*) &_MULTIBOOT_START_;
-    //bootinfo->flags = MULTIBOOT_INFO_MEMORY | MULTIBOOT_INFO_CMDLINE;
-    bootinfo->flags = MULTIBOOT_INFO_MEMORY;
-    bootinfo->mem_lower = 639; // copied from a regular includeos run
-    bootinfo->mem_upper = 524288 - (0xeffff / 1024); // ukvm mem_size to kb
-    //std::strcpy((char *) bootinfo->cmdline, cmdline);
-
-    OS::start_solo5(MULTIBOOT_BOOTLOADER_MAGIC, __multiboot_addr);
+    OS::start_solo5();
 
     // Starting event loop from here allows us to profile OS::start
     OS::event_loop();
