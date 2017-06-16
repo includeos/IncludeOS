@@ -45,6 +45,8 @@ void OS::resume_softreset(intptr_t addr)
 
   /// restore known values
   OS::memory_end_ = data->high_mem;
+  OS::low_memory_size_ = 0x100000;
+  OS::high_memory_size_ = OS::memory_end_ - 0x100000;
   OS::cpu_mhz_    = data->cpu_freq;
   x86::apic_timer_set_ticks(data->apic_ticks);
 
