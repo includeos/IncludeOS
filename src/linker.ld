@@ -163,6 +163,18 @@ SECTIONS
     _DISK_END_ = .;
   }
 
+  .elf_symbols : {
+    _ELF_SYM_START_ = .;
+    LONG (0);
+  }
+
+  /*
+   * XXX: We need this padding because in solo5 initialization some variables
+   * in the bss are set to non-zero values. So, without the padding the ELFs
+   * symbol table would get modified.
+   */
+  . += 0x1000000;
+
   .bss :
   {
     _BSS_START_ = .;
@@ -170,18 +182,6 @@ SECTIONS
     *(COMMON)
     _BSS_END_ = .;
     . = ALIGN(64 / 8);
-  }
-  . = ALIGN(64 / 8);
-
-  /*
-   * This has to be moved after the bss because in solo5 initialization some
-   * variables in the bss are set to non-zero values. So, what happens is that
-   * the ELFs symbol table would get modified if it stays at the beginning of
-   * the bss.
-   */
-  .elf_symbols : {
-    _ELF_SYM_START_ = .;
-    LONG (0);
   }
   . = ALIGN(64 / 8);
 
