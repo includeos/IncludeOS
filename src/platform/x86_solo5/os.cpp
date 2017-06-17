@@ -55,7 +55,7 @@ void OS::add_stdout_solo5()
   });
 }
 
-void OS::start(char *cmdline, uintptr_t mem_size)
+void OS::start(char* _cmdline, uintptr_t mem_size)
 {
   PROFILE("");
   // Print a fancy header
@@ -68,8 +68,10 @@ void OS::start(char *cmdline, uintptr_t mem_size)
   /// initialize on page 7, 2 pages in size
   Statman::get().init(0x6000, 0x3000);
 
-  PROFILE("Multiboot / legacy");
+  OS::cmdline = reinterpret_cast<char*>(_cmdline);
 
+  // XXX: double check these numbers. Is 0 OK? and why are high_memory_size_
+  // not equal to OS::memory_end_
   low_memory_size_ = 0;
   high_memory_size_ = mem_size - 0x200000;
 
@@ -82,6 +84,7 @@ void OS::start(char *cmdline, uintptr_t mem_size)
   OS::memory_end_ = high_memory_size_ + 0x100000;
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
+  memmap.assign_range({0x500, 0x5fff, "solo5", "solo5"});
   memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
   memmap.assign_range({0xA000, 0x9fbff, "Stack", "Kernel / service main stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
