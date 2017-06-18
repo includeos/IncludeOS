@@ -56,6 +56,9 @@ extern uintptr_t _ELF_END_;
 static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
 
+int64_t OS::micros_since_boot() noexcept {
+  return cycles_since_boot() / cpu_freq().count();
+}
 
 RTC::timestamp_t OS::boot_timestamp()
 {

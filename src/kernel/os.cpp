@@ -88,10 +88,6 @@ void OS::register_plugin(Plugin delg, const char* name){
   plugins_.emplace(delg, name);
 }
 
-int64_t OS::micros_since_boot() noexcept {
-  return cycles_since_boot() / cpu_freq().count();
-}
-
 void OS::reboot()
 {
   extern void __arch_reboot();

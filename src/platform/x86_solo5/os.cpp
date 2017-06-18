@@ -4,7 +4,11 @@
 #include <smp>
 #include <kernel/os.hpp>
 #include <statman>
+#include <os>
 #include <kernel/rng.hpp>
+
+#include <kernel/irq_manager.hpp>
+#include <kernel/timers.hpp>
 
 extern "C" {
 #include <solo5.h>
@@ -42,9 +46,14 @@ RTC::timestamp_t OS::boot_timestamp()
   return booted_at_;
 }
 
+// uptime in nanoseconds
 RTC::timestamp_t OS::uptime()
 {
   return solo5_clock_monotonic() - booted_at_;
+}
+
+int64_t OS::micros_since_boot() noexcept {
+  return uptime() / 1000;
 }
 
 void OS::add_stdout_solo5()
@@ -70,8 +79,8 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
 
   OS::cmdline = reinterpret_cast<char*>(_cmdline);
 
-  // XXX: double check these numbers. Is 0 OK? and why are high_memory_size_
-  // not equal to OS::memory_end_
+  // XXX: double check these numbers. Is 0 OK? and why is high_memory_size_
+  // not equal to OS::memory_end_. What's that "+ 0x100000"?
   low_memory_size_ = 0;
   high_memory_size_ = mem_size - 0x200000;
 
@@ -149,6 +158,19 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
     }
   }
 
+  // We don't need a start or stop function in solo5.
+  Timers::init(
+    // timer start function
+    [] (std::chrono::microseconds) {},
+    // timer stop function
+    [] () {});
+
+  // Some tests are asserting there is at least one timer that is always ON
+  // (the RTC calibration timer). Let's fake some timer so those tests pass.
+  Timers::oneshot(std::chrono::hours(1000000), [] (auto) {});
+
+  Timers::ready();
+
   PROFILE("Service::start");
   // begin service start
   FILLINE('=');
@@ -166,9 +188,96 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
 void OS::event_loop()
 {
   printf("event_loop\n");
+  FILLINE('=');
+  printf(" IncludeOS %s\n", version().c_str());
+  printf(" +--> Running [ %s ]\n", Service::name().c_str());
+  FILLINE('~');
+
+  while (power_) {
+    int rc;
+    rc = solo5_poll(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
+    if (rc == 0) {
+      Timers::timers_handler();
+    } else {
+      int len = 1520;
+      uint8_t *data = (uint8_t *) malloc(1520);
+      assert(data);
+      memset(data, 0, 1520);
+
+      if (solo5_net_read_sync(data, &len) == 0) {
+        // make sure packet is copied
+        for(auto& nic : hw::Devices::devices<hw::Nic>()) {
+          nic->upstream_received_packet(data, len);
+          break;
+        }
+      }
+
+      free(data);
+    }
+  }
+
+  // Cleanup
+  Service::stop();
 }
 
-void OS::block()
-{
-  printf("block\n");
+// Keep track of blocking levels
+static uint32_t* blocking_level = 0;
+static uint32_t* highest_blocking_level = 0;
+
+
+// Getters, mostly for testing
+extern "C" uint32_t os_get_blocking_level() {
+  return *blocking_level;
+};
+
+extern "C" uint32_t os_get_highest_blocking_level() {
+  return *highest_blocking_level;
+};
+
+
+void OS::block(){
+
+  // Initialize stats
+  if (not blocking_level) {
+    blocking_level = &Statman::get()
+      .create(Stat::UINT32, std::string("blocking.current_level")).get_uint32();
+    *blocking_level = 0;
+  }
+
+  if (not highest_blocking_level) {
+    highest_blocking_level = &Statman::get()
+      .create(Stat::UINT32, std::string("blocking.highest")).get_uint32();
+    *highest_blocking_level = 0;
+  }
+
+  // Increment level
+  *blocking_level += 1;
+
+  // Increment highest if applicable
+  if (*blocking_level > *highest_blocking_level)
+    *highest_blocking_level = *blocking_level;
+
+  int rc;
+  rc = solo5_poll(solo5_clock_monotonic() + 50000ULL); // now + 0.05 ms
+  if (rc == 0) {
+    Timers::timers_handler();
+  } else {
+    int len = 1520;
+    uint8_t *data = (uint8_t *) malloc(1520);
+    assert(data);
+    memset(data, 0, 1520);
+
+    if (solo5_net_read_sync(data, &len) == 0) {
+      // make sure packet is copied
+      for(auto& nic : hw::Devices::devices<hw::Nic>()) {
+        nic->upstream_received_packet(data, len);
+        break;
+      }
+    }
+
+    free(data);
+  }
+
+  // Decrement level
+  *blocking_level -= 1;
 }

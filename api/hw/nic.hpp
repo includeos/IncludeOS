@@ -97,6 +97,9 @@ namespace hw {
     virtual void move_to_this_cpu() = 0;
 
     virtual ~Nic() {}
+
+    virtual void upstream_received_packet(uint8_t *data, int len) = 0;
+
   protected:
     /**
      *  Constructor
