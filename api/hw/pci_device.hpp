@@ -43,6 +43,9 @@ namespace PCI {
 
   static const uint32_t  WTF                   {~0x0U};
 
+  static const uint32_t  SOLO5_NET_DUMMY_ADDR  {0xFFFE};
+  static const uint32_t  SOLO5_BLK_DUMMY_ADDR  {0xFFFF};
+
   /**
    *  @brief PCI device message format
    *
@@ -100,6 +103,7 @@ namespace PCI {
     VENDOR_VIRTIO  = 0x1AF4,
     VENDOR_REALTEK = 0x10EC,
     VENDOR_VMWARE  = 0x15AD,
+    VENDOR_SOLO5   = 0x5050,
   };
 
   struct Resource {

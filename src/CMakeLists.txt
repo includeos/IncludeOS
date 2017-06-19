@@ -41,6 +41,7 @@ set(OS_OBJECTS
   kernel/fiber.cpp
   kernel/profile.cpp kernel/softreset.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
+  kernel/solo5_manager.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp

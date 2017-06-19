@@ -9,6 +9,7 @@
 
 #include <kernel/irq_manager.hpp>
 #include <kernel/timers.hpp>
+#include <kernel/solo5_manager.hpp>
 
 extern "C" {
 #include <solo5.h>
@@ -185,6 +186,8 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
          static_cast<int>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name().c_str());
   FILLINE('~');
+
+  Solo5_manager::init();
 
   Service::start();
   // NOTE: this is a feature for service writers, don't move!
