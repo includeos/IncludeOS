@@ -187,12 +187,6 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
 
 void OS::event_loop()
 {
-  printf("event_loop\n");
-  FILLINE('=');
-  printf(" IncludeOS %s\n", version().c_str());
-  printf(" +--> Running [ %s ]\n", Service::name().c_str());
-  FILLINE('~');
-
   while (power_) {
     int rc;
     rc = solo5_poll(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
@@ -216,8 +210,12 @@ void OS::event_loop()
     }
   }
 
-  // Cleanup
+  MYINFO("Stopping service");
   Service::stop();
+
+  MYINFO("Powering off");
+  extern void solo5_poweroff();
+  solo5_poweroff();
 }
 
 // Keep track of blocking levels
