@@ -41,6 +41,12 @@ extern uintptr_t _ELF_END_;
 
 RTC::timestamp_t OS::booted_at_ {0};
 
+void solo5_poweroff()
+{
+  __asm__ __volatile__("cli; hlt");
+  for(;;);
+}
+
 RTC::timestamp_t OS::boot_timestamp()
 {
   return booted_at_;
@@ -214,7 +220,6 @@ void OS::event_loop()
   Service::stop();
 
   MYINFO("Powering off");
-  extern void solo5_poweroff();
   solo5_poweroff();
 }
 

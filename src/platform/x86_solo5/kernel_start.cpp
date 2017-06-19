@@ -34,12 +34,6 @@ extern "C" {
   void set_stack();
   void* get_cpu_ebp();
 
-  void solo5_poweroff()
-  {
-    __asm__ __volatile__("cli; hlt");
-    for(;;);
-  }
-
   void kernel_start()
   {
 
@@ -78,8 +72,6 @@ extern "C" {
 
     // Starting event loop from here allows us to profile OS::start
     OS::event_loop();
-
-    solo5_poweroff();
   }
 
   int solo5_app_main(char *_cmdline)
