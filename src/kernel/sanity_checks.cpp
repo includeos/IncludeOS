@@ -40,9 +40,7 @@ static void self_test_gconstr() {
 
 static uint32_t generate_ro_crc() noexcept
 {
-  uint32_t crc = CRC32_BEGIN();
-  crc = crc32(crc, &_TEXT_START_, &_RODATA_END_ - &_TEXT_START_);
-  return CRC32_VALUE(crc);
+  return crc32_fast(&_TEXT_START_, &_RODATA_END_ - &_TEXT_START_);
 }
 
 extern "C"
