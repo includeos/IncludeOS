@@ -25,10 +25,12 @@ add_dependencies(vga_output PrecompiledLibraries)
 add_library(solo5blk STATIC solo5blk.cpp)
 add_dependencies(solo5blk PrecompiledLibraries)
 
+add_library(solo5net STATIC solo5net.cpp)
+add_dependencies(solo5net PrecompiledLibraries)
 
 install(TARGETS
     virtionet virtioblk
-    solo5blk
+    solo5net solo5blk
     vmxnet3
     heap_debugging
     silent_start vga_output

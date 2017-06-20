@@ -39,9 +39,9 @@ Solo5Blk::buffer_t Solo5Blk::read_sync(block_t blk, size_t count) {
   return buffer_t{buffer, std::default_delete<uint8_t[]>()};
 }
 
-
 void Solo5Blk::deactivate()
 {
+  INFO("Solo5Net", "deactivate");
 }
 
 #include <kernel/solo5_manager.hpp>

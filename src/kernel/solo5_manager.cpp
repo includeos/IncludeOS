@@ -39,7 +39,8 @@ void Solo5_manager::init() {
   uint32_t id_blk = 0x1001 << 16 | PCI::VENDOR_SOLO5;
 
   auto& stored_blk = devices.emplace(PCI::SOLO5_BLK_DUMMY_ADDR, id_blk, 0);
-  //auto& stored_net = devices.emplace(PCI::SOLO5_NET_DUMMY_ADDR, id_net, 0);
+  auto& stored_net = devices.emplace(PCI::SOLO5_NET_DUMMY_ADDR, id_net, 0);
 
   register_device<hw::Block_device>(stored_blk);
+  register_device<hw::Nic>(stored_net);
 }
