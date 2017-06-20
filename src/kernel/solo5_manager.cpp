@@ -20,8 +20,6 @@
 #include <delegate>
 
 #include <kernel/solo5_manager.hpp>
-#include "../drivers/solo5blk.hpp"
-//#include "../drivers/solo5net.hpp"
 #include <hw/devices.hpp>
 #include <hw/pci_device.hpp>
 #include <stdexcept>

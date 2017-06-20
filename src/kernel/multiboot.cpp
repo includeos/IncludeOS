@@ -90,7 +90,6 @@ void OS::multiboot(uint32_t boot_addr)
 {
   MYINFO("Booted with multiboot");
   auto* bootinfo_ = bootinfo();
-  INFO2("* Multiboot address: %#x", bootinfo_);
   INFO2("* Boot flags: %#x", bootinfo_->flags);
 
   if (bootinfo_->flags & MULTIBOOT_INFO_MEMORY) {
