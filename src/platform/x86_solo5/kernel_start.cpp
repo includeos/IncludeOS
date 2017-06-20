@@ -34,6 +34,12 @@ extern "C" {
   void set_stack();
   void* get_cpu_ebp();
 
+  // Set to NULL. There are no interrupts in ukvm
+  void (*current_eoi_mechanism)();
+  void (*current_intr_handler)();
+  void (*cpu_sampling_irq_handler)();
+ 
+
   void kernel_start()
   {
 
@@ -66,6 +72,12 @@ extern "C" {
 
     // Call global ctors
     __libc_init_array();
+
+    // interrupts.asm uses these symbols. This is just to make the compiler happy.
+    // These won't ever be called.
+    current_eoi_mechanism = NULL;
+    current_intr_handler  = NULL;
+    cpu_sampling_irq_handler = NULL;
 
     // Initialize OS including devices
     OS::start(cmdline, mem_size);

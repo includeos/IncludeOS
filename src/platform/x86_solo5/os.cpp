@@ -53,6 +53,13 @@ RTC::timestamp_t OS::boot_timestamp()
   return booted_at_;
 }
 
+uint64_t OS::get_cycles_halt() noexcept {
+  return *os_cycles_hlt;
+}
+uint64_t OS::get_cycles_total() noexcept {
+  return *os_cycles_total;
+}
+
 // uptime in nanoseconds
 RTC::timestamp_t OS::uptime()
 {
@@ -198,6 +205,13 @@ void OS::event_loop()
 {
   while (power_) {
     int rc;
+
+    // add a global symbol here so we can quickly discard
+    // event loop from stack sampling
+    asm volatile(
+    ".global _irq_cb_return_location;\n"
+    "_irq_cb_return_location:" );
+
     rc = solo5_poll(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
     if (rc == 0) {
       Timers::timers_handler();
@@ -224,6 +238,19 @@ void OS::event_loop()
 
   MYINFO("Powering off");
   solo5_poweroff();
+}
+
+__attribute__((noinline))
+void OS::halt() {
+  *os_cycles_total = cycles_since_boot();
+#if defined(ARCH_x86)
+  asm volatile("hlt");
+#else
+#warning "OS::halt() not implemented for selected arch"
+#endif
+  // Count sleep cycles
+  if (os_cycles_hlt)
+      *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
 }
 
 // Keep track of blocking levels
