@@ -129,8 +129,7 @@ private:
     // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
     // need a solution that checks each word of the subset (the dynamic range)
     // FIXME: this may happen...
-    if(UNLIKELY( is_bound(ephemeral_) ))
-      throw Port_error{"Generated ephemeral port is already bound. Please fix me!"};
+    Expects(not is_bound(ephemeral_) && "Generated ephemeral port is already bound. Please fix me!");
   }
 }; // < class Port_util
 
