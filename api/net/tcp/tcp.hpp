@@ -29,7 +29,7 @@
 #include <queue>  // writeq
 #include <net/inet.hpp>
 #include <net/socket.hpp>
-#include <bitset>
+#include <net/port_util.hpp>
 
 namespace net {
 
@@ -54,89 +54,6 @@ namespace net {
   private:
     using Listeners       = std::map<Socket, std::unique_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
-
-    /**
-     * @brief      Class for port utility.
-     */
-    class Port_util {
-    public:
-      /**
-       * @brief      Construct a port util with a new generated ephemeral port
-       *             and a empty port list.
-       */
-      Port_util();
-
-      /**
-       * @brief      Gets the next ephemeral port.
-       *             increment_ephemeral may throw
-       *
-       * @return     The next ephemeral port.
-       */
-      uint16_t get_next_ephemeral()
-      {
-        increment_ephemeral();
-        return ephemeral_;
-      }
-
-      /**
-       * @brief      Bind a port, making it reserved.
-       *
-       * @param[in]  port  The port
-       */
-      void bind(const uint16_t port) noexcept
-      {
-        Expects(port < port_ranges::DYNAMIC_END);
-        ports.set(port);
-
-        if(port_ranges::is_dynamic(port)) ++eph_count;
-      }
-
-      /**
-       * @brief      Unbind a port, making it available.
-       *
-       * @param[in]  port  The port
-       */
-      void unbind(const uint16_t port) noexcept
-      {
-        Expects(port < port_ranges::DYNAMIC_END);
-        ports.reset(port);
-
-        if(port_ranges::is_dynamic(port)) --eph_count;
-      }
-
-      /**
-       * @brief      Determines if the port is bound.
-       *
-       * @param[in]  port  The port
-       *
-       * @return     True if bound, False otherwise.
-       */
-      bool is_bound(const uint16_t port) const noexcept
-      {
-        Expects(port < port_ranges::DYNAMIC_END);
-        return ports[port];
-      }
-
-      /**
-       * @brief      Determines if it has any free ephemeral ports.
-       *
-       * @return     True if has free ephemeral, False otherwise.
-       */
-      bool has_free_ephemeral() const noexcept
-      { return eph_count < (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START); }
-
-    private:
-      std::bitset<65536> ports;
-      uint16_t           ephemeral_;
-      uint16_t           eph_count;
-
-      /**
-       * @brief      Increment the ephemeral port by one.
-       *             Throws if there are no more free ephemeral ports available.
-       */
-      void increment_ephemeral();
-
-    }; // < class Port_util
     using Port_lists      = std::map<tcp::Address, Port_util>;
 
   public:
