@@ -7,7 +7,6 @@
 extern  void default_stdout_handlers();
 extern  void __platform_init();
 
-
 extern "C" {
   void __init_serial1();
   void __init_sanity_checks();

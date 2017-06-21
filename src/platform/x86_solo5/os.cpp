@@ -203,6 +203,9 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
 
 void OS::event_loop()
 {
+  uint8_t *data = (uint8_t *) malloc(1520);
+  assert(data);
+
   while (power_) {
     int rc;
 
@@ -212,26 +215,28 @@ void OS::event_loop()
     ".global _irq_cb_return_location;\n"
     "_irq_cb_return_location:" );
 
+    // XXX: temporarily ALWAYS sleep for 0.5 ms. We should ideally ask Timers
+    // for the next immediate timer to fire (the first from the "scheduled" list
+    // of timers?)
     rc = solo5_poll(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
     if (rc == 0) {
       Timers::timers_handler();
     } else {
       int len = 1520;
-      uint8_t *data = (uint8_t *) malloc(1520);
-      assert(data);
       memset(data, 0, 1520);
 
       if (solo5_net_read_sync(data, &len) == 0) {
-        // make sure packet is copied
+        // XXX: packet is copied by upstream_received_packet (slow!)
         for(auto& nic : hw::Devices::devices<hw::Nic>()) {
           nic->upstream_received_packet(data, len);
           break;
         }
       }
 
-      free(data);
     }
   }
+
+  free(data);
 
   MYINFO("Stopping service");
   Service::stop();

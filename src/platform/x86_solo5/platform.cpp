@@ -18,8 +18,7 @@ void __arch_poweroff()
 }
 
 void __platform_init(){
-  // FIXME: set up minimal CPU exception handlers
-  // TODO: set up minimal CPU exception handlers
+  // minimal CPU exception handlers already set by solo5/ukvm
 }
 
 void __arch_reboot(){}

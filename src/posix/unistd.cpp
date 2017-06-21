@@ -171,7 +171,6 @@ unsigned int sleep(unsigned int seconds)
   int64_t done = now + seconds;
   while (true) {
     if (now >= done) break;
-    // OS::block is defined at src/platform/x86_xxx/ so, how do we get the right one?
     OS::block();
     now = RTC::now();
   }
