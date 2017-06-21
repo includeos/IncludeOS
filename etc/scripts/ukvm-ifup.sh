@@ -31,10 +31,15 @@ fi
 
 case `uname -s` in
 Linux)
-    set -xe
-    ip tuntap add tap100 mode tap
-    ip link set dev tap100 up
-    brctl addif $BRIDGE tap100
+    if ip tuntap | grep -q tap100; then
+        echo "tap100 already exists"
+    else
+        set -xe
+        echo "Creating tap100 for ukvm"
+        ip tuntap add tap100 mode tap
+        ip link set dev tap100 up
+        brctl addif $BRIDGE tap100
+    fi
     ;;
 FreeBSD)
     kldload vmm
