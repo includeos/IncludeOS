@@ -20,7 +20,7 @@
 #define NET_PORT_UTIL_HPP
 
 #include "inet_common.hpp"
-#include <bitset>
+#include <util/fixed_bitmap.hpp>
 
 namespace net {
 
@@ -30,7 +30,9 @@ struct Port_error : public std::runtime_error {
 };
 
 /**
- * @brief      Class for port utility.
+ * @brief      Class for handling a full range of network ports.
+ *             Generates ephemeral ports and track what ports are bound or not.
+ *             1 means free, 0 means bound (occupied)
  */
 class Port_util {
 public:
@@ -40,10 +42,15 @@ public:
    */
   Port_util()
     : ports(),
+      eph_view{ // set the ephemeral view to be between 49152-65535
+        ports.data() + port_ranges::DYNAMIC_START,
+        (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START + 1) / sizeof(MemBitmap::word)
+      },
       ephemeral_(net::new_ephemeral_port()),
       eph_count(0)
   {
-    ports.set(port_ranges::DYNAMIC_END);
+    // all ports are free
+    ports.set_all();
   }
 
   /**
@@ -65,8 +72,7 @@ public:
    */
   void bind(const uint16_t port) noexcept
   {
-    Expects(port < port_ranges::DYNAMIC_END);
-    ports.set(port);
+    ports.reset(port);
 
     if(port_ranges::is_dynamic(port)) ++eph_count;
   }
@@ -78,8 +84,7 @@ public:
    */
   void unbind(const uint16_t port) noexcept
   {
-    Expects(port < port_ranges::DYNAMIC_END);
-    ports.reset(port);
+    ports.set(port);
 
     if(port_ranges::is_dynamic(port)) --eph_count;
   }
@@ -93,8 +98,7 @@ public:
    */
   bool is_bound(const uint16_t port) const noexcept
   {
-    Expects(port < port_ranges::DYNAMIC_END);
-    return ports[port];
+    return !ports[port];
   }
 
   /**
@@ -106,9 +110,10 @@ public:
   { return eph_count < (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START); }
 
 private:
-  std::bitset<65536> ports;
-  uint16_t           ephemeral_;
-  uint16_t           eph_count;
+  Fixed_bitmap<65536> ports;
+  MemBitmap           eph_view;
+  uint16_t            ephemeral_;
+  uint16_t            eph_count;
 
   /**
    * @brief      Increment the ephemeral port by one.
@@ -122,13 +127,16 @@ private:
     ephemeral_++;
 
     // wrap around to dynamic start if end
-    if(UNLIKELY(ephemeral_ == port_ranges::DYNAMIC_END))
+    if(UNLIKELY(ephemeral_ == 0))
       ephemeral_ = port_ranges::DYNAMIC_START;
 
-    // TODO: Avoid wrap around, increment ephemeral to next free port.
-    // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
-    // need a solution that checks each word of the subset (the dynamic range)
-    // FIXME: this may happen...
+    if(UNLIKELY( is_bound(ephemeral_) ))
+    {
+      auto i = eph_view.first_set();
+      Ensures(i != -1 && "Did not found a free ephemeral even tho has_free_ephemeral() == true...");
+      ephemeral_ = port_ranges::DYNAMIC_START + i;
+    }
+
     Expects(not is_bound(ephemeral_) && "Generated ephemeral port is already bound. Please fix me!");
   }
 }; // < class Port_util

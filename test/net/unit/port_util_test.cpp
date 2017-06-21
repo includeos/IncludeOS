@@ -39,14 +39,18 @@ CASE("Generating ephemeral port throws when all are bound")
 {
   net::Port_util util;
 
+  EXPECT(util.has_free_ephemeral() == true);
+
   // Bind all
   for(auto i = 0; i < (net::port_ranges::DYNAMIC_END - net::port_ranges::DYNAMIC_START); ++i)
     util.bind(util.get_next_ephemeral());
 
+  EXPECT(util.has_free_ephemeral() == false);
+
   EXPECT_THROWS_AS(util.get_next_ephemeral(), net::Port_error);
 }
 
-CASE("[.expectedfailure] Generating ephemeral handles wrap around")
+CASE("Generating ephemeral handles wrap around")
 {
   net::Port_util util;
 
