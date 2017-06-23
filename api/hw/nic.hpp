@@ -101,7 +101,8 @@ namespace hw {
 
     virtual ~Nic() {}
 
-    virtual void upstream_received_packet(uint8_t *data, int len) = 0;
+    /** Trigger a read from buffers, pusing any packets up the stack */
+    virtual void poll() = 0;
 
   protected:
     /**

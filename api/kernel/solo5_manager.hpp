@@ -28,15 +28,15 @@
 
 class Solo5_manager {
 private:
-  using Device_registry = std::unordered_map<PCI::classcode_t, std::vector<hw::PCI_Device>>;
+  using Device_registry = std::unordered_map<PCI::classcode, std::vector<hw::PCI_Device>>;
 
 public:
-  template <PCI::classcode_t CLASS>
+  template <PCI::classcode CLASS>
   static hw::PCI_Device& device(const int n) noexcept {
     return devices_[CLASS][n];
   };
 
-  template <PCI::classcode_t CLASS>
+  template <PCI::classcode CLASS>
   static size_t num_of_devices() noexcept {
     return devices_[CLASS].size();
   }

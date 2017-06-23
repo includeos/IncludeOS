@@ -63,6 +63,8 @@ void Solo5Net::transmit(net::Packet_ptr pckt) {
     // explicitly release the data to prevent destructor being called
     net::Packet* pckt = tail.release();
     uint8_t *buf = pckt->buf();
+
+    printf("Solo5 writing packet %i bytes \n", pckt->size());
     solo5_net_write_sync(buf, pckt->size());
 
     tail = std::move(next);
@@ -87,21 +89,33 @@ Solo5Net::create_packet(int link_offset)
 }
 
 std::unique_ptr<Packet>
-Solo5Net::recv_packet(uint8_t* data, uint16_t size)
+Solo5Net::recv_packet()
 {
   auto buffer = solo5_bufstore.get_buffer();
   auto* pckt = (net::Packet*) buffer.addr;
-
+  int size = MTU_;
   new (pckt) net::Packet(0, size, MTU_, &solo5_bufstore);
   uint8_t *buf = pckt->buf();
-  memcpy(buf, data, size);
-  return net::Packet_ptr(pckt);
+  memset(buf, 0, size);
+  // Populate the packet buffer with new packet, if any
+  if (solo5_net_read_sync(buf, &size) == 0) {
+    // Adjust packet size to match received data
+    //printf("Solo5 data size: %i \n", size);
+    if (size) {
+      pckt->set_data_end(size);
+      //printf("Solo5 Packet size: %i \n", pckt->size());
+      return net::Packet_ptr(pckt);
+    }
+  }
+  printf("Solo5 didn't get data. Size: %i \n", size);
+  return nullptr;
 }
 
-void Solo5Net::upstream_received_packet(uint8_t *data, int len)
+void Solo5Net::poll()
 {
-  auto pckt_ptr = recv_packet(data, len);
-  Link::receive(std::move(pckt_ptr));
+  auto pckt_ptr = recv_packet();
+  if (pckt_ptr != nullptr)
+    Link::receive(std::move(pckt_ptr));
 }
 
 void Solo5Net::deactivate()

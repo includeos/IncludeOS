@@ -47,9 +47,7 @@ public:
   /** Mac address. */
   const MAC::Addr& mac() const noexcept override
   {
-    char *smac = solo5_net_mac_str();
-    MAC::Addr mac(smac);
-    return mac;
+    return MAC::Addr(solo5_net_mac_str());
   }
 
   uint16_t MTU() const noexcept override
@@ -74,16 +72,19 @@ public:
     return 0;
   }
 
-  net::Packet_ptr create_packet(int);
-  void move_to_this_cpu() {};
+  net::Packet_ptr create_packet(int) override;
+
+  void move_to_this_cpu() override {};
 
   void deactivate() override;
 
-  void upstream_received_packet(uint8_t *data, int len) override;
+  void flush() override {};
+
+  void poll() override;
 
 private:
 
-  std::unique_ptr<net::Packet> recv_packet(uint8_t* data, uint16_t sz);
+  std::unique_ptr<net::Packet> recv_packet();
   /** Stats */
   uint64_t& packets_rx_;
   uint64_t& packets_tx_;
