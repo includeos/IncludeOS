@@ -18,12 +18,12 @@ echo -e "Starting VM with ukvm/solo5. "
 touch dummy.disk
 
 # Create a tap100 device
-./etc/scripts/ukvm-ifup.sh
+sudo ./etc/scripts/ukvm-ifup.sh
 
 # XXX: fix this during installation
 chmod +x ./build_x86_64/precompiled/src/solo5_repo/ukvm/ukvm-bin
 
 # XXX: should be using the installation directory instead
-./build_x86_64/precompiled/src/solo5_repo/ukvm/ukvm-bin --disk=dummy.disk --net=tap100 ./examples/demo_service/build/IncludeOS_example
+sudo ./build_x86_64/precompiled/src/solo5_repo/ukvm/ukvm-bin --disk=dummy.disk --net=tap100 ./examples/demo_service/build/IncludeOS_example
 
 trap - EXIT
