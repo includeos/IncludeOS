@@ -6,8 +6,8 @@
 
 struct mode_table_t
 {
-  mode_table_t(const std::string& lut);
-  
+  mode_table_t(const char* lut);
+
   bool is_mode(char c) {
     return LUT.find(c) != std::string::npos;
   }
@@ -22,9 +22,9 @@ struct mode_table_t
     }
     return LUT[bit];
   }
-  
+
   const std::string& get() const { return LUT; }
-  
+
   const std::string LUT;
 };
 extern mode_table_t usermodes;

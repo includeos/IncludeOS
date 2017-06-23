@@ -21,9 +21,9 @@ class Client
 public:
   using Connection = net::tcp::Connection_ptr;
   using ChannelList = std::list<chindex_t>;
-  
+
   Client(clindex_t s, IrcServer& sref);
-  
+
   bool is_alive() const noexcept
   {
     return (regis & 7) != 0;
@@ -41,7 +41,7 @@ public:
   }
   // reset to a new connection
   void reset_to(Connection conn);
-  void reset_to(clindex_t uid, sindex_t sid, clindex_t rid, 
+  void reset_to(clindex_t uid, sindex_t sid, clindex_t rid,
       const std::string& n, const std::string& u, const std::string& h, const std::string& rn);
   // disable client completely
   void disable();
@@ -77,7 +77,7 @@ public:
   // send the string as-is
   void send_raw(const char* buff, size_t len);
   void send_buffer(net::tcp::buffer_t buff, size_t len);
-  
+
   const std::string& nick() const noexcept {
     return nick_;
   }
@@ -93,9 +93,9 @@ public:
   const std::string& realname() const noexcept {
     return rname_;
   }
-  
+
   std::string mode_string() const;
-  
+
   std::string userhost() const
   {
     std::string temp;
@@ -109,7 +109,7 @@ public:
   {
     std::string temp;
     temp.reserve(64);
-    
+
     temp += nick_;
     temp += "!";
     temp += user_;
@@ -117,26 +117,26 @@ public:
     temp += host_;
     return temp;
   }
-  
+
   ChannelList& channels() {
     return channels_;
   }
   bool on_channel(chindex_t) const noexcept;
-  
+
   // close connection with given reason
   void kill(bool warn, const std::string&);
   // tell everyone this client has quit
   void propagate_quit(const char*, int len);
-  
+
   long get_timeout_ts() const noexcept {
     return to_stamp;
   }
-  
+
   void set_vhost(const std::string& new_vhost)
   {
     this->host_ = new_vhost;
   }
-  
+
   void set_to_stamp(long new_tos) noexcept {
     to_stamp = new_tos;
   }
@@ -147,11 +147,11 @@ public:
   bool is_warned() const noexcept {
     return regis & WARNED_BIT;
   }
-  
+
   size_t club() const noexcept {
     return nick_.size() + user_.size() + host_.size() + readq.size() + sizeof(conn) + sizeof(*conn);
   }
-  
+
   Connection& get_conn() noexcept {
     return conn;
   }
@@ -167,34 +167,36 @@ public:
   void send_stats(const std::string&);
   void send_quit(const std::string& reason);
   bool change_nick(const std::string& new_nick);
-  
+
   void not_ircop(const std::string& cmd);
   void need_parms(const std::string& cmd);
-  
+
   const std::string& name_hash() const noexcept {
     return nick_;
   }
+
+  static void init();
 private:
   void split_message(const std::string&);
   void handle_new(const std::vector<std::string>&);
   void handle_cmd(const std::vector<std::string>&);
-  
+
   clindex_t   self;
   clindex_t   remote_id;
   uint8_t     regis;
   uint8_t     server_id;
   uint16_t    umodes_;
-  
+
   IrcServer&  server;
   Connection  conn;
   long        to_stamp;
-  
+
   std::string nick_;
   std::string user_;
   std::string host_;
   std::string ip_;
   std::string rname_;
   ChannelList channels_;
-  
+
   ReadQ readq;
 };

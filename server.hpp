@@ -12,12 +12,12 @@ class Server
 public:
   using Connection = net::tcp::Connection_ptr;
   Server(sindex_t, IrcServer&);
-  
+
   // incoming
   void connect(Connection conn);
   // outgoing
   void connect(Connection conn, std::string name, std::string pass);
-  
+
   bool is_alive() const noexcept {
     return regis & 1;
   }
@@ -62,21 +62,23 @@ public:
   const std::string& get_pass() const noexcept {
     return spass;
   }
-  
+
   IrcServer& get_server() noexcept {
     return server;
   }
-  
+
   void send(const std::string&);
   void send(const char*, size_t);
-  
+
   void split_message(const std::string&);
-  
+
   void squit(const std::string& reason);
-  
+
   const std::string& name_hash() const noexcept {
     return sname;
   }
+
+  static void init();
 private:
   void setup_dg();
   void handle_commands(const std::vector<std::string>&);
@@ -97,7 +99,7 @@ private:
   std::string sname;
   std::string spass;
   std::string sdesc;
-  
+
   std::list<sindex_t> remote_links;
 
   ReadQ readq;

@@ -27,15 +27,7 @@ static std::string servername = "irc.includeos.org";
 #include "ircd.hpp"
 IrcServer* ircd = nullptr;
 
-extern "C"
-void _enable_heap_debugging_verbose(int enabled);
-extern "C"
-void _enable_heap_debugging_buffer_protection(int enabled);
-
-extern void print_heap_allocations(delegate<bool(void*, size_t)>);
-
-extern "C"
-void kernel_sanity_checks();
+extern "C" void kernel_sanity_checks();
 
 void Service::start()
 {
@@ -44,7 +36,6 @@ void Service::start()
 
   // show that we are starting :)
   printf("*** %s starting up...\n", servername.c_str());
-  //_enable_heap_debugging_verbose(1);
 
   // default configuration (with DHCP)
   auto& inet = net::Inet4::ifconfig<>(10);
@@ -54,8 +45,9 @@ void Service::start()
       {  10, 0,  0,  1 },  // Gateway
       {  10, 0,  0,  1 }); // DNS
 
+  IrcServer::init();
   ircd =
-  new IrcServer(inet, 6667, 7000, 
+  new IrcServer(inet, 6667, 7000,
                 server_id, servername, "IncludeNet",
   [] () -> const std::string& {
     static const std::string motd = R"M0TDT3XT(
@@ -74,12 +66,12 @@ Rewritten clients, channels and servers to use perf_array! Hope nothing broke...
     return motd;
   });
 
-  ircd->add_remote_server(
-      {"irc.other.net", "password123", {46,31,184,184}, 7000});
-  ircd->add_remote_server(
-      {"irc.includeos.org", "password123", {195,159,159,10}, 7000});
+  //ircd->add_remote_server(
+  //    {"irc.other.net", "password123", {46,31,184,184}, 7000});
+  //ircd->add_remote_server(
+  //    {"irc.includeos.org", "password123", {195,159,159,10}, 7000});
 
-  printf("%s\n", ircd->get_motd().c_str());
+  //printf("%s\n", ircd->get_motd().c_str());
   printf("This is server version " IRC_SERVER_VERSION "\n");
 
   /// LiveUpdate on port 666 ///
@@ -110,8 +102,7 @@ void print_heap_info()
   last = heap_size - last;
   printf("Heap begin  %#x  size %u Kb\n",     heap_begin, heap_size / 1024);
   printf("Heap end    %#x  diff %u (%d Kb)\n", heap_end,  last, last / 1024);
-  printf("Heap usage  %u kB\n", 
-          heap_usage / 1024);
+  printf("Heap usage  %u kB\n", heap_usage / 1024);
   last = (int32_t) heap_size;
 }
 
@@ -140,10 +131,10 @@ void print_stats(int)
       now().c_str(), cps, OS::heap_usage() / 1024.0);
   // client and channel stats
   auto& inet = net::Inet4::stack<0>();
-  
+
   printf("Syns: %u  Conns: %u  Users: %u  RAM: %u bytes Chans: %u\n",
-         ircd->get_counter(STAT_TOTAL_CONNS), 
-         inet.tcp().active_connections(), 
+         ircd->get_counter(STAT_TOTAL_CONNS),
+         inet.tcp().active_connections(),
          ircd->get_counter(STAT_LOCAL_USERS),
          ircd->club(),
          ircd->get_counter(STAT_CHANNELS));
@@ -179,9 +170,9 @@ void Service::ready()
   // .. and done
   printf("*** IRC SERVICE STARTED ***\n");
   // connect to all known remote servers
-  ircd->call_remote_servers();
+  //ircd->call_remote_servers();
 #ifdef USE_STACK_SAMPLING
-  StackSampler::begin();
+  //StackSampler::begin();
   //StackSampler::set_mode(StackSampler::MODE_CALLER);
 #endif
 

@@ -1,6 +1,5 @@
 {
   "image" : "IRCd",
   "net" : [{"device" : "virtio"}],
-  "cpu" : "host",
-  "mem" : 256
+  "mem" : 1024
 }

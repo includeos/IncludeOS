@@ -5,7 +5,7 @@
 #define BUFFER_SIZE   1024
 
 typedef delegate<void(Client&, const std::vector<std::string>&)> command_func_t;
-static std::unordered_map<std::string, command_func_t> funcs;
+static std::map<std::string, command_func_t> funcs;
 
 inline void Client::not_ircop(const std::string& cmd)
 {
@@ -91,11 +91,11 @@ static void handle_who(Client& client, const std::vector<std::string>& msg)
   {
     auto& server = client.get_server();
     auto cl = server.clients.find(msg[1]);
-    
+
     if (cl != NO_SUCH_CLIENT)
     {
       auto& other = server.clients.get(cl);
-      
+
       char buffer[BUFFER_SIZE];
       int len = snprintf(buffer, sizeof(buffer),
                 ":%s 352 %s * %s %s %s %s H :0 %s\r\n",
@@ -166,7 +166,7 @@ static void handle_join(Client& client, const std::vector<std::string>& msg)
         {
           auto& channel = server.channels.get(ch);
           bool joined = false;
-          
+
           if (msg.size() < 3)
             joined = channel.join(client);
           else
@@ -208,7 +208,7 @@ static void handle_part(Client& client, const std::vector<std::string>& msg)
       {
         auto& channel = server.channels.get(ch);
         bool left = false;
-        
+
         if (msg.size() < 3)
           left = channel.part(client);
         else
@@ -340,14 +340,14 @@ static void handle_kill(Client& client, const std::vector<std::string>& msg)
       if (cl != NO_SUCH_CLIENT)
       {
         auto& other = server.clients.get(cl);
-        
+
         std::string reason = "Killed by " + client.nick();
         if (msg.size() > 2) reason += ": " + msg[2];
         other.kill(true, reason);
       }
       else
         client.send(ERR_NOSUCHNICK, msg[1] + " :No such nickname");
-      
+
     }
     else
       client.need_parms(msg[0]);
@@ -408,36 +408,35 @@ void Client::handle_cmd(const std::vector<std::string>& msg)
   }
 }
 
-__attribute__((constructor))
-static void initialize_funcs()
+void Client::init()
 {
   funcs["PING"] = handle_ping;
   funcs["PONG"] = handle_pong;
   funcs["PASS"] = handle_pass;
-  
+
   funcs["NICK"] = handle_nick;
   funcs["USER"] = handle_user;
   funcs["MOTD"] = handle_motd;
   funcs["LUSERS"] = handle_lusers;
   funcs["STATS"]  = handle_stats;
   funcs["MODE"] = handle_mode;
-  
+
   funcs["USERHOST"] = handle_userhost;
   funcs["WHOIS"]    = handle_whois;
   funcs["WHO"]      = handle_who;
-  
+
   funcs["JOIN"]  = handle_join;
   funcs["PART"]  = handle_part;
   funcs["TOPIC"] = handle_topic;
   funcs["NAMES"] = handle_names;
   funcs["PRIVMSG"] = handle_privmsg;
   funcs["QUIT"]  = handle_quit;
-  
+
   funcs["KILL"]  = handle_kill;
   funcs["SVSNICK"]  = handle_svsnick;
   funcs["SVSHOST"]  = handle_svshost;
   funcs["SVSJOIN"]  = handle_svsjoin;
-  
+
   funcs["VERSION"]  = handle_version;
   funcs["ADMIN"]    = handle_admin;
 }

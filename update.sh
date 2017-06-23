@@ -5,4 +5,4 @@
 #  dd if=./build/IRCd bs=9000 > /dev/tcp/10.0.0.42/666
 #  sleep 1
 #done
-dd if=IRCd bs=9000 > /dev/tcp/10.0.0.42/666
+dd if=build/IRCd bs=9000 > /dev/tcp/10.0.0.42/666

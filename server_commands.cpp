@@ -30,8 +30,7 @@ void Server::handle_commands(const std::vector<std::string>& msg)
   }
 }
 
-__attribute__((constructor))
-static void initialize_funcs()
+void Server::init()
 {
   funcs["PING"] = handle_ping;
   funcs["PONG"] = handle_pong;

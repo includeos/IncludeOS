@@ -2,52 +2,96 @@
 #include "ircd.hpp"
 #include "channel.hpp"
 #include "client.hpp"
-
-using namespace liu;
-static void* LIVEUPD_LOCATION = (void*) 0x5000000; // at 80mb
-
 extern IrcServer* ircd;
 
-static void save_server_state(Storage storage, buffer_len)
+using namespace liu;
+static void* LIVEUPD_LOCATION = (void*) 0x20000000; // at 512mb
+
+#define BOOT_TESTING
+#ifdef BOOT_TESTING
+static std::vector<double> timestamps;
+static buffer_t bloberino;
+#include <kernel/os.hpp>
+#endif
+
+static void save_server_state(Storage& storage, const buffer_t* buf)
 {
   ircd->serialize(storage);
+#ifdef BOOT_TESTING
+  storage.add_vector(666, timestamps);
+  storage.add<int64_t> (666, OS::cycles_since_boot());
+  storage.add_buffer(666, *buf);
+  storage.put_marker(666);
+#endif
 }
 
-static void restore_server_state(Restore thing)
+static void restore_server_state(Restore& thing)
 {
-  ircd->deserialize(thing);
+  //
+  while (thing.get_id() != 666)
+  {
+    ircd->deserialize(thing);
+  }
+
+#ifdef BOOT_TESTING
+  assert(thing.get_id() == 666);
+  timestamps = thing.as_vector<double>(); thing.go_next();
+  // calculate time spent
+  auto t1 = thing.as_type<int64_t>(); thing.go_next();
+  auto t2 = OS::cycles_since_boot();
+  double time = (t2-t1) / (OS::cpu_freq().count() * 1000.0);
+  // add time
+  timestamps.push_back(time);
+  // retrieve old blob
+  bloberino = thing.as_buffer(); thing.go_next();
+  // exit boot time testing
+  thing.pop_marker(666);
+  assert(thing.is_end());
+
+  // calculate median by sorting
+  std::sort(timestamps.begin(), timestamps.end());
+  double median = timestamps[timestamps.size()/2];
+  // show information
+  if (timestamps.size() >= 30)
+  {
+    printf("Median boot time over %lu samples: %f millis\n",
+            timestamps.size(), median);
+    for (auto& stamp : timestamps) {
+      printf("%f\n", stamp);
+    }
+    //OS::shutdown();
+  }
+  else {
+    // immediately liveupdate
+    LiveUpdate::begin(LIVEUPD_LOCATION, bloberino, save_server_state);
+  }
+#endif
 }
 
 static void setup_liveupdate_server(net::Inet<net::IP4>& inet, uint16_t port)
 {
   // listen for live updates
-  auto& server = inet.tcp().bind(port);
+  auto& server = inet.tcp().listen(port);
   server.on_connect(
   [] (auto conn)
   {
-    static const int UPDATE_MAX = 4 << 20; // 4mb files supported
-    char* update_blob = new char[UPDATE_MAX];
-    int*  update_size = new int(0);
+    auto* upd_buffer = new std::vector<char> ();
 
     // retrieve binary
     conn->on_read(9000,
-    [conn, update_blob, update_size] (net::tcp::buffer_t buf, size_t n)
+    [conn, upd_buffer] (auto buf, size_t n)
     {
-      memcpy(update_blob + *update_size, buf.get(), n);
-      assert(*update_size + n <= UPDATE_MAX);
-      *update_size += (int) n;
-
+      upd_buffer->insert(upd_buffer->end(), buf.get(), buf.get() + n);
     }).on_close(
-    [update_blob, update_size] {
-      
-      if (update_size) {
+    [upd_buffer] {
+      if (upd_buffer->size()) {
         // we received a binary:
-        float frac = *update_size / (float) UPDATE_MAX * 100.f;
-        printf("* New update size: %u b  (%.2f%%) stored at %p\n", *update_size, frac, update_blob);
+        printf("* New update size: %u b  stored at %p\n",
+              upd_buffer->size(), upd_buffer->data());
         // run live update process
-        LiveUpdate::begin(LIVEUPD_LOCATION, {update_blob, *update_size}, save_server_state);
+        LiveUpdate::begin(LIVEUPD_LOCATION, *upd_buffer, save_server_state);
       }
-      delete[] update_blob;
+      delete upd_buffer;
       /// We should never return :-) ///
       //assert(0 && "!! Update failed !!");
     });
@@ -66,10 +110,6 @@ void liveupdate_init(net::Inet<net::IP4>& inet, uint16_t port)
 
 void IrcServer::serialize(Storage& storage)
 {
-  std::vector<std::string> tmp;
-  std::vector<clindex_t> clivec;
-  std::vector<chindex_t> chivec;
-
   // h_users
   storage.add<size_t> (1, clients.hash_map().size());
   for (auto& hu : clients.hash_map()) {
@@ -87,7 +127,7 @@ void IrcServer::serialize(Storage& storage)
   // creation time and timestamp
   storage.add_string(4, created_string);
   storage.add<long> (4, created_ts);
-  
+
   // stats
   storage.add_buffer(5, statcounters, sizeof(statcounters));
 
@@ -112,13 +152,12 @@ void IrcServer::deserialize(Restore& thing)
   static chindex_t current_chan = 0;
   static clindex_t current_client = 0;
 
-  switch (thing.get_id())
-  {
+  switch (thing.get_id()) {
   case 1:  /// server
     {
       size_t count;
       count = thing.as_type<size_t> (); thing.go_next();
-      
+
       for (size_t i = 0; i < count; i++) {
         auto fir = thing.as_string();           thing.go_next();
         auto sec = thing.as_type<clindex_t> (); thing.go_next();
@@ -137,8 +176,8 @@ void IrcServer::deserialize(Restore& thing)
       created_ts     = thing.as_type<long> ();  thing.go_next();
 
       auto buf = thing.as_buffer();  thing.go_next();
-      if ((size_t) buf.length >= sizeof(statcounters)) {
-          memcpy(statcounters, buf.buffer, buf.length);
+      if (buf.size() >= sizeof(statcounters)) {
+          memcpy(statcounters, buf.data(), buf.size());
       }
       printf("* Resumed server, next id: %u\n", thing.get_id());
       break;
@@ -193,12 +232,12 @@ void Client::serialize_to(Storage& storage)
   IrcServer&  server;
   Connection  conn;
   long        to_stamp;
-  
+
   std::string nick_;
   std::string user_;
   std::string host_;
   ChannelList channels_;
-  
+
   std::string readq;
   */
   /// start with index
@@ -221,7 +260,7 @@ void Client::serialize_to(Storage& storage)
   storage.add_vector<chindex_t> (59, chans);
   // readq
   storage.add_string(60, readq.get());
-  
+
 }
 void Client::deserialize(Restore& thing)
 {
@@ -267,7 +306,7 @@ void Channel::serialize_to(Storage& storage)
   */
   /// start with index
   storage.add<chindex_t> (20, self);
-  
+
   storage.add<uint16_t> (21, cmodes);
   storage.add<long>     (22, create_ts);
   storage.add_string    (23, cname);
@@ -301,15 +340,15 @@ void Channel::deserialize(Restore& thing)
   ctopic_ts = thing.as_type<long> (); thing.go_next();
   ckey      = thing.as_string();      thing.go_next();
   climit    = thing.as_type<uint16_t> (); thing.go_next();
-  
+
   // clients
   auto cli = thing.as_vector<clindex_t> (); thing.go_next();
   for (auto& cl : cli) clients_.push_back(cl);
-  
+
   // chanops
   cli = thing.as_vector<clindex_t> (); thing.go_next();
   for (auto& cl : cli) chanops.insert(cl);
-  
+
   // voices
   cli = thing.as_vector<clindex_t> (); thing.go_next();
   for (auto& cl : cli) voices.insert(cl);

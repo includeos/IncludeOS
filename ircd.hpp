@@ -35,16 +35,16 @@ public:
   using Connection = net::tcp::Connection_ptr;
   using Network    = net::Inet<net::IP4>;
   typedef std::function<const std::string&()> motd_func_t;
-  
+
   IrcServer(
-      Network& inet, 
-      uint16_t client_port, 
-      uint16_t server_port, 
+      Network& inet,
+      uint16_t client_port,
+      uint16_t server_port,
       uint16_t id,
-      const std::string& name, 
-      const std::string& network, 
+      const std::string& name,
+      const std::string& network,
       const motd_func_t&);
-  
+
   const std::string& name() const noexcept {
     return server_name;
   }
@@ -74,7 +74,7 @@ public:
   char token() const noexcept {
     return 'A' + this->id;
   }
-  
+
   /// clients
   perf_array<Client, clindex_t> clients;
   void free_client(Client&);
@@ -134,40 +134,40 @@ public:
   }
 
   // server configuration stuff
-  constexpr static 
+  constexpr static
   uint8_t nick_minlen() noexcept {
     return 1;
   }
-  constexpr static 
+  constexpr static
   uint8_t nick_maxlen() noexcept {
     return 9;
   }
-  constexpr static 
+  constexpr static
   uint8_t chan_minlen() noexcept {
     return 1;
   }
-  constexpr static 
+  constexpr static
   uint8_t chan_maxlen() noexcept {
     return 16;
   }
-  constexpr static 
+  constexpr static
   uint8_t chan_max() noexcept {
     return 8;
   }
-  constexpr static 
+  constexpr static
   uint8_t client_maxchans() noexcept {
     return 10;
   }
-  
-  constexpr static 
+
+  constexpr static
   uint16_t ping_timeout() noexcept {
     return 120;
   }
-  constexpr static 
+  constexpr static
   uint16_t short_ping_timeout() noexcept {
     return 20;
   }
-  
+
   size_t clis() const noexcept {
     return clients.size();
   }
@@ -178,7 +178,7 @@ public:
     }
     return sum;
   }
-  
+
   // create a now() timestamp
   long create_timestamp() const noexcept {
     return RTC::now();
@@ -187,14 +187,14 @@ public:
   long get_cheapstamp() const noexcept {
     return cheapstamp;
   }
-  
+
   void print_stuff() {
     int i = 0;
     int hmm = 0;
     for (auto& cl : clients) {
-      
+
       if (cl.get_conn()->sendq_size() == 0) continue;
-      
+
       printf("CL[%04d] sendq: %u b sendq rem: %u can send: %d queued: %d b\t",
           i++,
           cl.get_conn()->sendq_size(),
@@ -206,7 +206,7 @@ public:
     }
     printf("HMM: %d  TOTAL: %u\n", hmm, clients.size());
   }
-  
+
   // network stack
   Network& get_stack() noexcept { return inet; }
 
@@ -214,24 +214,25 @@ public:
   void serialize(liu::Storage& storage);
   void deserialize(liu::Restore& thing);
 
+  static void init();
 private:
   size_t to_current = 0;
   void   timeout_handler(int);
-  
+
   Network&    inet;
   std::string server_name;
   std::string network_name;
-  
+
   // server callbacks
   motd_func_t motd_func;
-  
+
   // network
   uint16_t id;
   std::vector<RemoteServer> remote_server_list;
-  
+
   // performance stuff
   long cheapstamp;
-  
+
   // statistics
   std::string created_string;
   long        created_ts;

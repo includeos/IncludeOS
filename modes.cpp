@@ -6,7 +6,7 @@ mode_table_t usermodes("airoOws");
 // visible channel modes (+eIb)
 mode_table_t chanmodes("klimnpstu");
 
-mode_table_t::mode_table_t(const std::string& lut)
+mode_table_t::mode_table_t(const char* lut)
   : LUT(lut) {}
 
 uint16_t default_user_modes()

@@ -7,36 +7,42 @@
 
 #include <kernel/syscalls.hpp>
 
+void IrcServer::init()
+{
+  Client::init();
+  Server::init();
+}
+
 IrcServer::IrcServer(
-    Network& inet_, 
+    Network& inet_,
     const uint16_t cl_port,
     const uint16_t sv_port,
     const uint16_t Id,
-    const std::string& name, 
-    const std::string& netw, 
+    const std::string& name,
+    const std::string& netw,
     const motd_func_t& mfunc)
     : inet(inet_), server_name(name), network_name(netw), motd_func(mfunc), id(Id)
 {
   // initialize lookup tables
   extern void transform_init();
   transform_init();
-  
+
   // timeout for clients and servers
   using namespace std::chrono;
   Timers::periodic(10s, 5s, {this, &IrcServer::timeout_handler});
-  
+
   auto& tcp = inet.tcp();
   // client listener (although IRC servers usually have many ports open)
-  tcp.bind(cl_port).on_connect(
+  tcp.listen(cl_port).on_connect(
   [this] (auto csock)
   {
     // one more connection in total
     inc_counter(STAT_TOTAL_CONNS);
 
     // in case splitter is bad
-    SET_CRASH_CONTEXT("client_port.on_connect(): %s", 
+    SET_CRASH_CONTEXT("client_port.on_connect(): %s",
           csock->remote().to_string().c_str());
-    
+
     debug("*** Received connection from %s\n",
           csock->remote().to_string().c_str());
 
@@ -48,14 +54,14 @@ IrcServer::IrcServer(
   printf("*** Accepting clients on port %u\n", cl_port);
 
   // server listener
-  tcp.bind(sv_port).on_connect(
+  tcp.listen(sv_port).on_connect(
   [this] (auto ssock)
   {
     // one more connection in total
     inc_counter(STAT_TOTAL_CONNS);
 
     // in case splitter is bad
-    SET_CRASH_CONTEXT("server_port.on_connect(): %s", 
+    SET_CRASH_CONTEXT("server_port.on_connect(): %s",
           ssock->remote().to_string().c_str());
 
     printf("*** Received server connection from %s\n",
@@ -66,7 +72,7 @@ IrcServer::IrcServer(
     srv.connect(ssock);
   });
   printf("*** Accepting servers on port %u\n", sv_port);
-  
+
   // set timestamp for when the server was started
   this->created_ts = create_timestamp();
   this->created_string = std::string(ctime(&created_ts));
@@ -112,7 +118,7 @@ void IrcServer::user_bcast(clindex_t idx, const std::string& from, uint16_t tk, 
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
             ":%s %03u %s", from.c_str(), tk, msg.c_str());
-  
+
   user_bcast(idx, buffer, len);
 }
 void IrcServer::user_bcast(clindex_t idx, const char* buffer, size_t len)
@@ -120,7 +126,7 @@ void IrcServer::user_bcast(clindex_t idx, const char* buffer, size_t len)
   // we might save some memory by trying to use a shared buffer
   auto netbuff = std::shared_ptr<uint8_t> (new uint8_t[len]);
   memcpy(netbuff.get(), buffer, len);
-  
+
   std::set<clindex_t> uset;
   // add user
   uset.insert(idx);
@@ -141,7 +147,7 @@ void IrcServer::user_bcast_butone(clindex_t idx, const std::string& from, uint16
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
             ":%s %03u %s", from.c_str(), tk, msg.c_str());
-  
+
   user_bcast_butone(idx, buffer, len);
 }
 void IrcServer::user_bcast_butone(clindex_t idx, const char* buffer, size_t len)
@@ -149,7 +155,7 @@ void IrcServer::user_bcast_butone(clindex_t idx, const char* buffer, size_t len)
   // we might save some memory by trying to use a shared buffer
   auto netbuff = std::shared_ptr<uint8_t> (new uint8_t[len]);
   memcpy(netbuff.get(), buffer, len);
-  
+
   std::set<clindex_t> uset;
   // for each channel user is in
   for (auto ch : clients.get(idx).channels())
@@ -237,11 +243,11 @@ void IrcServer::begin_netburst(Server& target)
     auto& srv = servers.get(id);
     if (srv.is_regged()) {
       /// [server] SERVER [name] [hops] [boot_ts] [link_ts] [proto] [token] 0 :[desc]
-      target.send(std::string(1, srv.nl_token()) + " S " + srv.name() + 
-            " " + std::to_string(srv.hop_count()) + 
+      target.send(std::string(1, srv.nl_token()) + " S " + srv.name() +
+            " " + std::to_string(srv.hop_count()) +
             " " + std::to_string(srv.boot_ts()) + // protocol:
             " " + std::to_string(srv.link_ts()) + " J10 " +
-            " " + std::string(1, srv.token()) + 
+            " " + std::string(1, srv.token()) +
             " :" + srv.get_desc() + "\r\n");
     }
   }
@@ -252,13 +258,13 @@ void IrcServer::begin_netburst(Server& target)
     if (cl.is_reg()) {
       /// [tk] NICK [nick] [hops] [ts] [user] [host] [+modes] [ip] [numeric] :[rname]
       auto& srv = servers.get(cl.get_server_id());
-      target.send(std::string(1, 
-            srv.token()) + " N " + cl.nick() + 
-            " " + std::to_string(srv.hop_count()) + 
+      target.send(std::string(1,
+            srv.token()) + " N " + cl.nick() +
+            " " + std::to_string(srv.hop_count()) +
             " " + std::to_string(0u) +
-            " " + cl.user() + 
+            " " + cl.user() +
             " " + cl.host() +
-            " " + cl.mode_string() + 
+            " " + cl.mode_string() +
             " " + cl.ip_addr() +
             " " + cl.token() +
             " :" + cl.realname() + "\r\n");
@@ -272,9 +278,9 @@ void IrcServer::begin_netburst(Server& target)
       /// with topic:
       if (chan.has_topic()) {
         /// [tk] BURST [name] [ts] [+modes] [user] ... :[bans]
-        target.send(std::string(1, 
-          token()) + " B " + chan.name() + 
-          " " + std::to_string(chan.created()) + 
+        target.send(std::string(1,
+          token()) + " B " + chan.name() +
+          " " + std::to_string(chan.created()) +
           " " + chan.mode_string() + "\r\n");
       }
       else {

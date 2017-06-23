@@ -14,11 +14,11 @@ Client::Client(clindex_t s, IrcServer& sref)
 
 std::string Client::token() const
 {
-  static const std::string base64_chars = 
+  static const char* base64_chars = 
              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
              "abcdefghijklmnopqrstuvwxyz"
              "0123456789+/";
-  
+
   std::string tk; tk.resize(4);
   if (is_local())
       tk[0] = server.token();
@@ -45,11 +45,11 @@ void Client::reset_to(Connection conn)
   this->readq.clear();
   // assign correct delegates
   this->assign_socket_dg();
-  
+
   // send auth notices
   auth_notice();
 }
-void Client::reset_to(clindex_t uid, sindex_t sid, clindex_t rid, 
+void Client::reset_to(clindex_t uid, sindex_t sid, clindex_t rid,
       const std::string& nick, const std::string& user, const std::string& host, const std::string& rname)
 {
   this->self    = uid;
@@ -66,10 +66,10 @@ void Client::reset_to(clindex_t uid, sindex_t sid, clindex_t rid,
 void Client::assign_socket_dg()
 {
   // set up callbacks
-  conn->on_read(128, 
+  conn->on_read(128,
   [srv = &server, idx = self] (auto buffer, size_t len)
   {
-    /// NOTE: the underlying array can move around, 
+    /// NOTE: the underlying array can move around,
     /// so we have to retrieve the address each time
     auto& client = srv->clients.get(idx);
     client.read(buffer.get(), len);
@@ -158,7 +158,7 @@ void Client::send_from(const std::string& from, const std::string& text)
   char data[128];
   int len = snprintf(data, sizeof(data),
     ":%s %s\r\n", from.c_str(), text.c_str());
-  
+
   send_raw(data, len);
 }
 void Client::send_from(const std::string& from, uint16_t numeric, const std::string& text)
@@ -166,7 +166,7 @@ void Client::send_from(const std::string& from, uint16_t numeric, const std::str
   char data[128];
   int len = snprintf(data, sizeof(data),
     ":%s %03u %s\r\n", from.c_str(), numeric, text.c_str());
-  
+
   send_raw(data, len);
 }
 void Client::send(uint16_t numeric, std::string text)
@@ -174,7 +174,7 @@ void Client::send(uint16_t numeric, std::string text)
   char data[128];
   int len = snprintf(data, sizeof(data),
     ":%s %03u %s %s\r\n", server.name().c_str(), numeric, nick().c_str(), text.c_str());
-  
+
   send_raw(data, len);
 }
 void Client::send_raw(const char* buff, size_t len)
@@ -205,7 +205,7 @@ static bool validate_name(const std::string& new_name)
   // forbidden first characters
   if (isdigit(new_name[0])) return false;
   // a-z A-Z 0-9 _ - \ [ ] { } ^ ` |
-  static const std::string LUT = 
+  static const std::string LUT =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_-\\[]{}^`|ÆØÅæøå";
   // forbidden characters
   if (LUT.find_first_of(new_name) == std::string::npos) return false;
@@ -256,7 +256,7 @@ std::string Client::mode_string() const
 {
   std::string res;
   res.reserve(4);
-  
+
   for (int i = 0; i < 8; i++)
   {
     if (umodes_ & (1 << i))
@@ -273,9 +273,9 @@ bool Client::on_channel(chindex_t idx) const noexcept
 void Client::kill(bool warn, const std::string& reason)
 {
   char buff[256];
-  int len = snprintf(buff, sizeof(buff), 
+  int len = snprintf(buff, sizeof(buff),
       ":%s QUIT :%s\r\n", nickuserhost().c_str(), reason.c_str());
-  
+
   // inform everyone what happened
   if (is_reg())
       propagate_quit(buff, len);
@@ -300,7 +300,7 @@ void Client::propagate_quit(const char* buff, int len)
   {
     Channel& ch = server.channels.get(idx);
     ch.remove(get_id());
-    
+
     // if the channel became empty, remove it
     if (ch.is_alive() == false)
         server.free_channel(ch);
