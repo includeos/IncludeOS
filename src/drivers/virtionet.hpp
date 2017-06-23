@@ -166,6 +166,8 @@ public:
 
   void move_to_this_cpu() override;
 
+  void upstream_received_packet(uint8_t *data, int len) override {}
+
 private:
 
   /** Stats */

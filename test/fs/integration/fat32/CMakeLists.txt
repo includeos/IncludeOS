@@ -16,6 +16,10 @@ set(SOURCES
   )
 #set(LOCAL_INCLUDES ".")
 
-set(DRIVERS virtioblk)
+if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
+  set(DRIVERS solo5blk)
+else()
+  set(DRIVERS virtioblk)
+endif()
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)

@@ -100,6 +100,9 @@ namespace hw {
     virtual void flush() = 0;
 
     virtual ~Nic() {}
+
+    virtual void upstream_received_packet(uint8_t *data, int len) = 0;
+
   protected:
     /**
      *  Constructor
