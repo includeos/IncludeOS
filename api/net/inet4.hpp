@@ -98,6 +98,7 @@ namespace net {
     /**
      * Set the forwarding delegate used by this stack.
      * If set it will get all incoming packets not intended for this stack.
+     * NOTE: This delegate is expected to call the forward chain
      */
     void set_forward_delg(Forward_delg fwd) override {
       ip4_.set_packet_forwarding(fwd);
@@ -306,6 +307,26 @@ namespace net {
     bool is_valid_source(IP4::addr src) override
     { return is_loopback(src) or src == ip_addr(); }
 
+    /** Packets pass through prerouting chain before routing decision */
+    virtual Filter_chain& prerouting_chain() override
+    { return prerouting_chain_; }
+
+    /** Packets pass through postrouting chain after routing decision */
+    virtual Filter_chain& postrouting_chain() override
+    { return postrouting_chain_; }
+
+    /** Packets pass through postrouting chain after routing decision */
+    virtual Filter_chain& forward_chain() override
+    { return forward_chain_; }
+
+    /** Packets pass through input chain before hitting protocol handlers */
+    virtual Filter_chain& input_chain() override
+    { return input_chain_; }
+
+    /** Packets pass through output chain after exiting protocol handlers */
+    virtual Filter_chain& output_chain() override
+    { return output_chain_; }
+
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
 
@@ -329,6 +350,13 @@ namespace net {
     ICMPv4 icmp_;
     UDP    udp_;
     TCP    tcp_;
+
+    // Filter chains
+    Filter_chain prerouting_chain_{"Prerouting", {}};
+    Filter_chain postrouting_chain_{"Postrouting", {}};
+    Filter_chain input_chain_{"Input", {}};
+    Filter_chain output_chain_{"Output", {}};
+    Filter_chain forward_chain_{"Forward", {}};
 
     // we need this to store the cache per-stack
     DNSClient dns_;
