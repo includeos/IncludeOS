@@ -43,25 +43,25 @@ namespace net {
     std::string ifname() const override
     { return nic_.device_name(); }
 
-    MAC::Addr link_addr() override
+    MAC::Addr link_addr() const override
     { return nic_.mac(); }
 
     hw::Nic& nic() override
     { return nic_; }
 
-    IP4::addr ip_addr() override
+    IP4::addr ip_addr() const override
     { return ip4_addr_; }
 
-    IP4::addr netmask() override
+    IP4::addr netmask() const override
     { return netmask_; }
 
-    IP4::addr gateway() override
+    IP4::addr gateway() const override
     { return gateway_; }
 
-    IP4::addr dns_addr() override
+    IP4::addr dns_addr() const override
     { return dns_server_; }
 
-    IP4::addr broadcast_addr() override
+    IP4::addr broadcast_addr() const override
     { return ip4_addr_ | ( ~ netmask_); }
 
     IP4& ip_obj() override

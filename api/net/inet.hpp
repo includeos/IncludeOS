@@ -54,19 +54,19 @@ namespace net {
     ///
 
     /** Get IP address of this interface **/
-    virtual typename IPV::addr ip_addr()        = 0;
+    virtual typename IPV::addr ip_addr() const = 0;
 
     /** Get netmask of this interface **/
-    virtual typename IPV::addr netmask()        = 0;
+    virtual typename IPV::addr netmask() const = 0;
 
     /** Get default gateway for this interface **/
-    virtual typename IPV::addr gateway()        = 0;
+    virtual typename IPV::addr gateway() const = 0;
 
     /** Get default dns for this interface **/
-    virtual typename IPV::addr dns_addr()       = 0;
+    virtual typename IPV::addr dns_addr() const = 0;
 
     /** Get broadcast address for this interface **/
-    virtual typename IPV::addr broadcast_addr() = 0;
+    virtual typename IPV::addr broadcast_addr() const = 0;
 
    /** Set default gateway for this interface */
     virtual void set_gateway(typename IPV::addr server) = 0;
@@ -216,7 +216,7 @@ namespace net {
     virtual std::string ifname() const = 0;
 
     /** Get linklayer address for this interface **/
-    virtual MAC::Addr link_addr() = 0;
+    virtual MAC::Addr link_addr() const = 0;
 
     /** Add cache entry to the link / IP address cache */
     virtual void cache_link_addr(typename IPV::addr, MAC::Addr) = 0;
