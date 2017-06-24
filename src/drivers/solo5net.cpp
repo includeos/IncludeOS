@@ -28,14 +28,14 @@
 extern "C" {
 #include <solo5.h>
 }
-
+static const uint32_t NUM_BUFFERS = 1024;
 using namespace net;
 
 const char* Solo5Net::driver_name() const { return "Solo5Net"; }
 
 Solo5Net::Solo5Net()
   : Link(Link_protocol{{this, &Solo5Net::transmit}, mac()},
-         2048u, sizeof(net::Packet) + MTU()),
+         NUM_BUFFERS, 2048u), // don't change this
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {
@@ -70,8 +70,7 @@ void Solo5Net::transmit(net::Packet_ptr pckt)
   }
 }
 
-std::unique_ptr<Packet>
-Solo5Net::create_packet(int link_offset)
+net::Packet_ptr Solo5Net::create_packet(int link_offset)
 {
   auto buffer = bufstore().get_buffer();
   auto* pckt = (net::Packet*) buffer.addr;
@@ -79,23 +78,21 @@ Solo5Net::create_packet(int link_offset)
   new (pckt) net::Packet(link_offset, 0, packet_len(), buffer.bufstore);
   return net::Packet_ptr(pckt);
 }
-
-std::unique_ptr<Packet>
-Solo5Net::recv_packet()
+net::Packet_ptr Solo5Net::recv_packet()
 {
   auto buffer = bufstore().get_buffer();
   auto* pckt = (net::Packet*) buffer.addr;
-  new (pckt) net::Packet(0, MTU(), packet_len(), &bufstore());
-  uint8_t *buf = pckt->buf();
+  new (pckt) net::Packet(0, MTU(), packet_len(), buffer.bufstore);
   // Populate the packet buffer with new packet, if any
   int size = MTU();
-  if (solo5_net_read_sync(buf, &size) == 0) {
+  if (solo5_net_read_sync(pckt->buf(), &size) == 0) {
     // Adjust packet size to match received data
     if (size) {
       pckt->set_data_end(size);
       return net::Packet_ptr(pckt);
     }
   }
+  bufstore().release(buffer.addr);
   return nullptr;
 }
 

@@ -15,6 +15,7 @@ set(X86_PC_OBJECTS
   cpu_freq_sampling.cpp
   serial1.cpp
   pic.cpp
+  softreset.cpp
   )
 
 add_custom_command(

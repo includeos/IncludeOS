@@ -39,7 +39,7 @@ set(OS_OBJECTS
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm
   kernel/fiber.cpp kernel/tls.cpp
-  kernel/profile.cpp kernel/softreset.cpp
+  kernel/profile.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   kernel/solo5_manager.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp

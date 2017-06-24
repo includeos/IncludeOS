@@ -17,7 +17,7 @@
 
 #include <profile>
 #include <common>
-#include "../platform/x86_pc/pit.hpp"
+//#include "../platform/x86_pc/pit.hpp"
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/irq_manager.hpp>
@@ -62,7 +62,7 @@ struct Sampler
 
   void begin() {
     // gather samples repeatedly over single period
-    x86::PIT::forever(gather_stack_sampling);
+    //x86::PIT::forever(gather_stack_sampling);
   }
   void add(void* current, void* ra)
   {

@@ -306,3 +306,6 @@ void OS::block(){
   // Decrement level
   *blocking_level -= 1;
 }
+
+extern "C"
+void __os_store_soft_reset(void*, size_t) {}

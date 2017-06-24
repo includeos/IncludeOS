@@ -10,7 +10,7 @@ set(PLATFORM_OBJECTS
   ../x86_pc/serial1.cpp
   ../x86_pc/os.cpp
   ../x86_pc/block.cpp
-  ../../kernel/softreset.cpp
+  ../x86_pc/softreset.cpp
   platform.cpp
   kernel_start.cpp
   )
