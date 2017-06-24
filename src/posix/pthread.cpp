@@ -83,7 +83,7 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
   if (mutex == nullptr) return 1;
   lock(mutex->spinlock);
-  //SMP_PRINT("Locked %p\n", mutex);
+  //SMP_PRINT("Spin locked %p\n", mutex);
   return 0;
 }
 int pthread_mutex_trylock(pthread_mutex_t *mutex)
@@ -96,7 +96,7 @@ int pthread_mutex_trylock(pthread_mutex_t *mutex)
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
   if (mutex == nullptr) return 1;
-  //SMP_PRINT("Unlocked %p\n", mutex);
+  //SMP_PRINT("Spin unlocked %p\n", mutex);
   unlock(mutex->spinlock);
   return 0;
 }
@@ -109,7 +109,7 @@ int pthread_once(pthread_once_t*, void (*routine)())
 {
   thread_local bool executed = false;
   if (!executed) {
-    printf("Executing pthread_once routine %p\n", routine);
+    //SMP_PRINT("Executing pthread_once routine %p\n", routine);
     executed = true;
     routine();
   }
@@ -118,17 +118,17 @@ int pthread_once(pthread_once_t*, void (*routine)())
 
 int pthread_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex)
 {
-  SMP_PRINT("pthread_cond_wait\n");
+  //SMP_PRINT("pthread_cond_wait\n");
   return 0;
 }
 int pthread_cond_broadcast(pthread_cond_t* cond)
 {
-  SMP_PRINT("pthread_cond_broadcast\n");
+  //SMP_PRINT("pthread_cond_broadcast\n");
   return 0;
 }
 int pthread_cond_signal(pthread_cond_t* cond)
 {
-  SMP_PRINT("pthread_cond_signal %p\n", cond);
+  //SMP_PRINT("pthread_cond_signal %p\n", cond);
   return 0;
 }
 int pthread_cond_timedwait(pthread_cond_t* cond,
@@ -161,7 +161,7 @@ int pthread_setspecific(pthread_key_t key, const void *value)
 }
 int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
 {
-  printf("pthread_key_create: %p destructor %p\n", key, destructor);
+  //SMP_PRINT("pthread_key_create: %p destructor %p\n", key, destructor);
   scoped_spinlock spinlock(key_lock);
   key_vec.push_back(nullptr);
   *key = key_vec.size()-1;
