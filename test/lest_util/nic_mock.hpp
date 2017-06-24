@@ -128,6 +128,7 @@ public:
   }
 
   void flush() override {}
+  void poll() override {}
 
 private:
 
