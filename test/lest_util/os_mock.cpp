@@ -73,10 +73,17 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
 }
 
 #include <kernel/os.hpp>
-void OS::resume_softreset(intptr_t) {
-  return;
+void OS::start(unsigned, unsigned) {
 }
-
+void OS::event_loop() {
+}
+void OS::block() {
+}
+int64_t OS::micros_since_boot() noexcept {
+  return 0;
+}
+void OS::resume_softreset(intptr_t) {
+}
 bool OS::is_softreset_magic(uint32_t) {
   return true;
 }

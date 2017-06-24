@@ -166,6 +166,8 @@ public:
 
   void move_to_this_cpu() override;
 
+  void poll() {}
+
 private:
 
   /** Stats */

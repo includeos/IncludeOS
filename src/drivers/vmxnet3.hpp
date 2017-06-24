@@ -78,6 +78,8 @@ public:
 
   void move_to_this_cpu() override;
 
+  void poll() override {}
+
 private:
   void msix_evt_handler();
   void msix_xmit_handler();

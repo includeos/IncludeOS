@@ -89,12 +89,37 @@ static uint32_t crc_32_tab[] =
 
 #ifdef __SSE4_2__
 #include <immintrin.h>
+inline bool ____is__aligned(const uint8_t* buffer, const int align) noexcept {
+  return (((uintptr_t) buffer) & (align-1)) == 0;
+}
 
-inline uint32_t crc32_hw(const uint8_t* buffer, size_t len)
+inline uint32_t crc32_hw(const uint8_t* buffer, size_t len) noexcept
 {
   uint32_t hash = 0xFFFFFFFF;
-  for (size_t i = 0; i < len; i++) {
-    hash = _mm_crc32_u8(hash, buffer[i]);
+  // 8-bits until 4-byte aligned
+  while (____is__aligned(buffer, 4) == false && len > 0) {
+    hash = _mm_crc32_u8(hash, *buffer++); len--;
+  }
+  // 16 bytes at a time
+  while (len >= 16) {
+    hash = _mm_crc32_u32(hash, *(uint32_t*) (buffer +  0));
+    hash = _mm_crc32_u32(hash, *(uint32_t*) (buffer +  4));
+    hash = _mm_crc32_u32(hash, *(uint32_t*) (buffer +  8));
+    hash = _mm_crc32_u32(hash, *(uint32_t*) (buffer + 12));
+    buffer += 16; len -= 16;
+  }
+  // 4 bytes at a time
+  while (len >= 4) {
+    hash = _mm_crc32_u32(hash, *(uint32_t*) buffer);
+    buffer += 4; len -= 4;
+  }
+  // remaining bytes
+  if (len & 2) {
+    hash = _mm_crc32_u16(hash, *(uint16_t*) buffer);
+    buffer += 2;
+  }
+  if (len & 1) {
+    hash = _mm_crc32_u8(hash, *buffer);
   }
   return hash ^ 0xFFFFFFFF;
 }
