@@ -79,31 +79,6 @@ void TCP::smp_process_writeq(size_t packets)
   SMP::signal(this->cpu_id);
 }
 
-TCP::Port_util::Port_util()
-  : ports{},
-    ephemeral_(new_ephemeral_port()),
-    eph_count(0)
-{
-  ports.set(port_ranges::DYNAMIC_END);
-}
-
-void TCP::Port_util::increment_ephemeral()
-{
-  if(UNLIKELY(! has_free_ephemeral() ))
-    throw TCP_error{"All ephemeral ports are taken"};
-
-  ephemeral_++;
-
-  if(UNLIKELY(ephemeral_ == port_ranges::DYNAMIC_END))
-    ephemeral_ = port_ranges::DYNAMIC_START;
-
-  // TODO: Avoid wrap around, increment ephemeral to next free port.
-  // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
-  // need a solution that checks each word of the subset (the dynamic range)
-  // FIXME: this may happen...
-  Ensures(is_bound(ephemeral_) == false && "Hoped I wouldn't see the day...");
-}
-
 /*
   Note: There is different approaches to how to handle listeners & connections.
   Need to discuss and decide for the best one.

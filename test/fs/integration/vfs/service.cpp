@@ -57,7 +57,7 @@ private:
 
 
 fs::File_system& memdisk() {
-  static auto disk = fs::new_shared_memdisk();
+  static auto disk = fs::shared_memdisk();
 
   if (not disk->fs_ready())
   {
