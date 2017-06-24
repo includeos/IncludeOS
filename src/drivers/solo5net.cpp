@@ -84,7 +84,7 @@ net::Packet_ptr Solo5Net::recv_packet()
   auto* pckt = (net::Packet*) buffer.addr;
   new (pckt) net::Packet(0, MTU(), packet_len(), buffer.bufstore);
   // Populate the packet buffer with new packet, if any
-  int size = MTU();
+  int size = packet_len();
   if (solo5_net_read_sync(pckt->buf(), &size) == 0) {
     // Adjust packet size to match received data
     if (size) {
