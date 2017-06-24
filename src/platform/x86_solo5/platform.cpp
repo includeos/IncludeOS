@@ -1,20 +1,9 @@
-#include <os>
-#include "../x86_pc/acpi.hpp"
-#include "../x86_pc/pit.hpp"
-#include "../x86_pc/apic.hpp"
-#include "../x86_pc/apic_timer.hpp"
-#include "../x86_pc/ioapic.hpp"
 #include <kernel/os.hpp>
-
-using namespace x86;
-using namespace std::chrono;
-
-extern "C" uint16_t _cpu_sampling_freq_divider_;
+#include <smp>
 
 void __arch_poweroff()
 {
-  __asm__ __volatile__("cli; hlt");
-  for(;;);
+  while (true) asm ("cli; hlt");
 }
 
 void __platform_init(){
@@ -24,7 +13,6 @@ void __platform_init(){
 void __arch_reboot(){}
 void __arch_enable_legacy_irq(unsigned char){}
 void __arch_disable_legacy_irq(unsigned char){}
-
 
 void SMP::global_lock() noexcept {}
 void SMP::global_unlock() noexcept {}

@@ -1,11 +1,5 @@
 
 set(PLATFORM_OBJECTS
-  ../x86_pc/acpi.cpp
-  ../x86_pc/apic.cpp
-  ../x86_pc/apic_timer.cpp
-  ../x86_pc/ioapic.cpp
-  pit.cpp
-  ../x86_pc/cpu_freq_sampling.cpp
   os.cpp
   serial1.cpp
   start.asm
