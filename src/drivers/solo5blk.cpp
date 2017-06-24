@@ -13,7 +13,7 @@ extern "C" {
 #include <solo5.h>
 }
 
-Solo5Blk::Solo5Blk(hw::PCI_Device& d)
+Solo5Blk::Solo5Blk()
   : hw::Block_device()
 {
   INFO("Solo5Blk", "Block device with %llu sectors", solo5_blk_sectors());
@@ -48,7 +48,6 @@ void Solo5Blk::deactivate()
 
 struct Autoreg_solo5blk {
   Autoreg_solo5blk() {
-    Solo5_manager::register_driver<hw::Block_device>(PCI::VENDOR_SOLO5, 0x1001,
-                                                     &Solo5Blk::new_instance);
+    Solo5_manager::register_blk(&Solo5Blk::new_instance);
   }
 } autoreg_solo5blk;

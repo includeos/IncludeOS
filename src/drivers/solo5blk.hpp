@@ -29,9 +29,9 @@ class Solo5Blk : public hw::Block_device
 {
 public:
 
-  static std::unique_ptr<Block_device> new_instance(hw::PCI_Device& d)
+  static std::unique_ptr<Block_device> new_instance()
   {
-    return std::make_unique<Solo5Blk>(d);
+    return std::make_unique<Solo5Blk>();
   }
 
   static constexpr size_t SECTOR_SIZE = 512;
@@ -68,7 +68,7 @@ public:
   void deactivate() override; // stays
 
   /** Constructor. @param pcidev an initialized PCI device. */
-  Solo5Blk(hw::PCI_Device& pcidev);
+  Solo5Blk();
 
 private:
   // stat counters

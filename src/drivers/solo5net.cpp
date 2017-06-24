@@ -21,12 +21,9 @@
 
 #include "solo5net.hpp"
 #include <net/packet.hpp>
-#include <kernel/irq_manager.hpp>
-#include <kernel/syscalls.hpp>
 #include <hw/pci.hpp>
-#include <stdio.h>
-#include <malloc.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 extern "C" {
 #include <solo5.h>
@@ -34,25 +31,21 @@ extern "C" {
 
 using namespace net;
 
-constexpr size_t MTU_ = 1520;
-constexpr size_t BUFFER_CNT = 1000;
-
-// XXX: do we really need a bufstore?
-BufferStore solo5_bufstore{ BUFFER_CNT,  MTU_ };
-
 const char* Solo5Net::driver_name() const { return "Solo5Net"; }
 
-Solo5Net::Solo5Net(hw::PCI_Device& d)
+Solo5Net::Solo5Net()
   : Link(Link_protocol{{this, &Solo5Net::transmit}, mac()},
          2048u, sizeof(net::Packet) + MTU()),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
 {
   INFO("Solo5Net", "Driver initializing");
+  mac_addr = MAC::Addr(solo5_net_mac_str());
 }
 
 #include <cstdlib>
-void Solo5Net::transmit(net::Packet_ptr pckt) {
+void Solo5Net::transmit(net::Packet_ptr pckt)
+{
   net::Packet_ptr tail = std::move(pckt);
 
   // Transmit all we can directly
@@ -64,7 +57,6 @@ void Solo5Net::transmit(net::Packet_ptr pckt) {
     net::Packet* pckt = tail.release();
     uint8_t *buf = pckt->buf();
 
-    printf("Solo5 writing packet %i bytes \n", pckt->size());
     solo5_net_write_sync(buf, pckt->size());
 
     tail = std::move(next);
@@ -81,33 +73,29 @@ void Solo5Net::transmit(net::Packet_ptr pckt) {
 std::unique_ptr<Packet>
 Solo5Net::create_packet(int link_offset)
 {
-  auto buffer = solo5_bufstore.get_buffer();
+  auto buffer = bufstore().get_buffer();
   auto* pckt = (net::Packet*) buffer.addr;
 
-  new (pckt) net::Packet(link_offset, 0, MTU_, &solo5_bufstore);
+  new (pckt) net::Packet(link_offset, 0, packet_len(), buffer.bufstore);
   return net::Packet_ptr(pckt);
 }
 
 std::unique_ptr<Packet>
 Solo5Net::recv_packet()
 {
-  auto buffer = solo5_bufstore.get_buffer();
+  auto buffer = bufstore().get_buffer();
   auto* pckt = (net::Packet*) buffer.addr;
-  int size = MTU_;
-  new (pckt) net::Packet(0, size, MTU_, &solo5_bufstore);
+  new (pckt) net::Packet(0, MTU(), packet_len(), &bufstore());
   uint8_t *buf = pckt->buf();
-  memset(buf, 0, size);
   // Populate the packet buffer with new packet, if any
+  int size = MTU();
   if (solo5_net_read_sync(buf, &size) == 0) {
     // Adjust packet size to match received data
-    //printf("Solo5 data size: %i \n", size);
     if (size) {
       pckt->set_data_end(size);
-      //printf("Solo5 Packet size: %i \n", pckt->size());
       return net::Packet_ptr(pckt);
     }
   }
-  printf("Solo5 didn't get data. Size: %i \n", size);
   return nullptr;
 }
 
@@ -127,7 +115,6 @@ void Solo5Net::deactivate()
 
 struct Autoreg_solo5net {
   Autoreg_solo5net() {
-    Solo5_manager::register_driver<hw::Nic>(PCI::VENDOR_SOLO5, 0x1000,
-                                            &Solo5Net::new_instance);
+    Solo5_manager::register_net(&Solo5Net::new_instance);
   }
 } autoreg_solo5net;

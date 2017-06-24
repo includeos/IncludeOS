@@ -36,22 +36,25 @@ public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
 
-  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
+  static std::unique_ptr<Nic> new_instance()
   {
-    return std::make_unique<Solo5Net>(d);
+    return std::make_unique<Solo5Net>();
   }
 
   /** Human readable name. */
   const char* driver_name() const override;
 
   /** Mac address. */
-  const MAC::Addr& mac() const noexcept override
-  {
-    return MAC::Addr(solo5_net_mac_str());
+  const MAC::Addr& mac() const noexcept override {
+    return mac_addr;
   }
 
   uint16_t MTU() const noexcept override
   { return 1500; }
+
+  uint16_t packet_len() const noexcept {
+    return sizeof(net::ethernet::Header) + MTU();
+  }
 
   net::downstream create_physical_downstream()
   { return {this, &Solo5Net::transmit}; }
@@ -60,7 +63,7 @@ public:
   void transmit(net::Packet_ptr pckt);
 
   /** Constructor. @param pcidev an initialized PCI device. */
-  Solo5Net(hw::PCI_Device& pcidev);
+  Solo5Net();
 
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override {
@@ -83,7 +86,7 @@ public:
   void poll() override;
 
 private:
-
+  MAC::Addr mac_addr;
   std::unique_ptr<net::Packet> recv_packet();
   /** Stats */
   uint64_t& packets_rx_;

@@ -2,7 +2,6 @@
 . ./etc/set_traps.sh
 
 pushd examples/demo_service
-rm -rf build
 mkdir -p build
 pushd build
 PLATFORM=x86_solo5 cmake ..
