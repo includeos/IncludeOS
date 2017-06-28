@@ -9,14 +9,11 @@ endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
-add_definitions(-DARCH_${ARCH})
-add_definitions(-DARCH="${ARCH}")
-add_definitions(-DPLATFORM="${PLATFORM}")
-add_definitions(-DPLATFORM_${PLATFORM})
-
-if (single_threaded)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
-endif()
+message(STATUS "Target CPU architecture ${ARCH}")
+set(TRIPLE "${ARCH}-pc-linux-elf")
+set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
+set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
+message(STATUS "Target triple ${TRIPLE}")
 
 # Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")

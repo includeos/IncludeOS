@@ -27,5 +27,14 @@ set(TRIPLE ${ARCH}) #-pc-linux-elf
 set(DCMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(DCMAKE_C_COMPILER_TARGET ${TRIPLE})
 
+add_definitions(-DARCH_${ARCH})
+add_definitions(-DARCH="${ARCH}")
+add_definitions(-DPLATFORM="${PLATFORM}")
+add_definitions(-DPLATFORM_${PLATFORM})
+
+if (single_threaded)
+add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+endif()
+
 # include toolchain for arch
 include($ENV{INCLUDEOS_PREFIX}/includeos/${ARCH}-elf-toolchain.cmake)
