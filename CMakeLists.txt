@@ -141,6 +141,7 @@ if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
     PREFIX vmbuild # Build where
+    BUILD_ALWAYS 1
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
     BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
@@ -151,6 +152,7 @@ endif(vmbuild)
 option(diskbuilder "Build and install memdisk helper tool" ON)
 if(diskbuilder)
   ExternalProject_Add(diskbuilder
+    BUILD_ALWAYS 1
     SOURCE_DIR ${INCLUDEOS_ROOT}/diskimagebuild
     BINARY_DIR ${INCLUDEOS_ROOT}/diskimagebuild/build
     INSTALL_DIR ${BIN}
