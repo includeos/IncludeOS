@@ -15,14 +15,17 @@ if (NOT DEFINED PLATFORM)
   endif()
 endif()
 
+# configure options
+option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
+option(minimal "Build for minimal size" OFF)
+option(stripped "Strip symbols to further reduce size" OFF)
+option(single_threaded "Compile without SMP support" ON)
 
+# arch and platform defines
 message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
-
 set(TRIPLE ${ARCH}) #-pc-linux-elf
 set(DCMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(DCMAKE_C_COMPILER_TARGET ${TRIPLE})
-
-option(single_threaded "Compile without SMP support" ON)
 
 # include toolchain for arch
 include($ENV{INCLUDEOS_PREFIX}/includeos/${ARCH}-elf-toolchain.cmake)

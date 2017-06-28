@@ -9,12 +9,14 @@ endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
+add_definitions(-DARCH_${ARCH})
+add_definitions(-DARCH="${ARCH}")
+add_definitions(-DPLATFORM="${PLATFORM}")
+add_definitions(-DPLATFORM_${PLATFORM})
 
-message(STATUS "Target CPU architecture ${ARCH}")
-set(TRIPLE "${ARCH}-pc-linux-elf")
-set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
-set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
-message(STATUS "Target triple ${TRIPLE}")
+if (single_threaded)
+add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+endif()
 
 # Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")
@@ -36,18 +38,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
 set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
-
-# configure options
-option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
-option(minimal "Build for minimal size" OFF)
-option(stripped "Strip symbols to further reduce size" OFF)
-
-add_definitions(-DARCH_${ARCH})
-add_definitions(-DARCH="${ARCH}")
-add_definitions(-DPLATFORM="${PLATFORM}")
-if (single_threaded)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
-endif()
 
 # Compiler optimization
 set(OPTIMIZE "-O2")
