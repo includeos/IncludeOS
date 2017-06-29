@@ -16,6 +16,7 @@ set(X86_PC_OBJECTS
   serial1.cpp
   pic.cpp
   softreset.cpp
+  sanity_checks.cpp
   )
 
 add_custom_command(

@@ -32,7 +32,7 @@ include_directories(${BOTAN_DIR})
 
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
-  kernel/kernel_start.cpp kernel/sanity_checks.cpp kernel/syscalls.cpp
+  kernel/kernel_start.cpp kernel/syscalls.cpp
   kernel/irq_manager.cpp kernel/multiboot.cpp
   kernel/os.cpp kernel/cpuid.cpp kernel/memmap.cpp kernel/pci_manager.cpp
   kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp

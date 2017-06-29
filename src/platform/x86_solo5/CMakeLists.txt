@@ -5,6 +5,7 @@ set(PLATFORM_OBJECTS
   start.asm
   platform.cpp
   kernel_start.cpp
+  sanity_checks.cpp
   )
 
 add_library(x86_solo5 STATIC ${PLATFORM_OBJECTS})
