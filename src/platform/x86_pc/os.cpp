@@ -226,5 +226,3 @@ void OS::event_loop()
   extern void __arch_poweroff();
   __arch_poweroff();
 }
-
-

@@ -16,11 +16,6 @@ void __arch_poweroff()
   __builtin_unreachable();
 }
 
-void default_stdout_handlers()
-{
-  OS::add_stdout_default_serial();
-}
-
 void __platform_init(){
   // FIXME: set up minimal CPU exception handlers
   // TODO: set up minimal CPU exception handlers

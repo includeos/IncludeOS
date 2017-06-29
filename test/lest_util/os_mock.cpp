@@ -75,6 +75,8 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
 #include <kernel/os.hpp>
 void OS::start(unsigned, unsigned) {
 }
+void OS::default_stdout(const char*, size_t) {
+}
 void OS::event_loop() {
 }
 void OS::block() {
