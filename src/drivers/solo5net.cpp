@@ -43,7 +43,6 @@ Solo5Net::Solo5Net()
   mac_addr = MAC::Addr(solo5_net_mac_str());
 }
 
-#include <cstdlib>
 void Solo5Net::transmit(net::Packet_ptr pckt)
 {
   net::Packet_ptr tail = std::move(pckt);
@@ -53,12 +52,8 @@ void Solo5Net::transmit(net::Packet_ptr pckt)
     // next in line
     auto next = tail->detach_tail();
     // write data to network
-    // explicitly release the data to prevent destructor being called
-    net::Packet* pckt = tail.release();
-    uint8_t *buf = pckt->buf();
-
-    solo5_net_write_sync(buf, pckt->size());
-
+    solo5_net_write_sync(tail->buf(), tail->size());
+    // set tail to next, releasing tail
     tail = std::move(next);
     // Stat increase packets transmitted
     packets_tx_++;
@@ -99,8 +94,10 @@ net::Packet_ptr Solo5Net::recv_packet()
 void Solo5Net::poll()
 {
   auto pckt_ptr = recv_packet();
-  if (pckt_ptr != nullptr)
+
+  if (LIKELY(pckt_ptr != nullptr)) {
     Link::receive(std::move(pckt_ptr));
+  }
 }
 
 void Solo5Net::deactivate()
