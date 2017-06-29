@@ -144,9 +144,8 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   extern void __platform_init();
   __platform_init();
 
-  booted_at_ = solo5_clock_monotonic();
   MYINFO("Booted at monotonic_ns=%lld walltime_ns=%lld",
-         booted_at_, solo5_clock_wall());
+         solo5_clock_monotonic(), solo5_clock_wall());
 
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
