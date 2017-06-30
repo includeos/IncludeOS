@@ -9,17 +9,11 @@ extern "C" {
 #include <solo5.h>
 }
 
-extern  void solo5_stdout_handlers();
-extern  void __platform_init();
+extern void __platform_init();
+extern void default_stdout_handlers();
 
 char cmdline[256];
 uintptr_t mem_size;
-
-__attribute__ ((weak))
-void solo5_stdout_handlers()
-{
-  OS::add_stdout_solo5();
-}
 
 extern "C" {
   void __init_sanity_checks();
@@ -38,7 +32,7 @@ extern "C" {
   void (*current_eoi_mechanism)();
   void (*current_intr_handler)();
   void (*cpu_sampling_irq_handler)();
- 
+
 
   void kernel_start()
   {
@@ -68,7 +62,7 @@ extern "C" {
     _init_syscalls();
 
     //Initialize stdout handlers
-    solo5_stdout_handlers();
+    default_stdout_handlers();
 
     // Call global ctors
     __libc_init_array();

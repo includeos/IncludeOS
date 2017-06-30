@@ -93,7 +93,8 @@ int read(int fd, void* buf, size_t len)
 int write(int fd, const void* ptr, size_t len)
 {
   if (fd < 4) {
-    return OS::print((const char*) ptr, len);
+    OS::print((const char*) ptr, len);
+    return len;
   }
   else if (fd == rng_fd) {
     rng_absorb(ptr, len);

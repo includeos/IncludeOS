@@ -131,18 +131,24 @@ public:
   /**
    *  Write data to standard out callbacks
    */
-  static size_t print(const char* ptr, const size_t len);
+  static void print(const char* ptr, const size_t len);
 
   /**
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
   /**
-   *  Add "default" serial port output
+   *  Add stdout handler that simply calls OS::default_stdout
   **/
-  static void add_stdout_default_serial();
+  static void add_default_stdout() {
+    add_stdout(OS::default_stdout);
+  }
 
-  static void add_stdout_solo5();
+  /**
+   *  The default output method preferred by each platform
+   *  Directly writes the string to its output mechanism
+   **/
+  static void default_stdout(const char*, size_t);
 
   /** Memory page helpers */
   static constexpr uint32_t page_size() noexcept {

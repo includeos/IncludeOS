@@ -70,12 +70,9 @@ int64_t OS::micros_since_boot() noexcept {
   return uptime() / 1000;
 }
 
-void OS::add_stdout_solo5()
+void OS::default_stdout(const char* str, const size_t len)
 {
-  add_stdout(
-  [] (const char* str, const size_t len) {
-    solo5_console_write(str, len);
-  });
+  solo5_console_write(str, len);
 }
 
 void OS::start(char* _cmdline, uintptr_t mem_size)

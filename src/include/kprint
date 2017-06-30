@@ -33,6 +33,7 @@ extern "C" {
 #endif
 
 extern void __serial_print1(const char* cstr);
+extern void __serial_print(const char* str, size_t len);
 
 /**
  * The earliest possible print function (requires no heap, global ctors etc.)

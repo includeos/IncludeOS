@@ -65,7 +65,6 @@ std::string OS::cmdline{Service::binary_name()};
 // stdout redirection
 using Print_vec = fixedvector<OS::print_func, 8>;
 static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
-extern void default_stdout_handlers();
 
 // Plugins
 OS::Plugin_vec OS::plugins_(Fixedvector_Init::UNINIT);
@@ -102,23 +101,15 @@ void OS::add_stdout(OS::print_func func)
 {
   os_print_handlers.add(func);
 }
-void OS::add_stdout_default_serial()
-{
-  add_stdout(
-  [] (const char* str, const size_t len) {
-    kprintf("%.*s", static_cast<int>(len), str);
-  });
-}
 __attribute__ ((weak))
 void default_stdout_handlers()
 {
-  OS::add_stdout_default_serial();
+  OS::add_default_stdout();
 }
-size_t OS::print(const char* str, const size_t len)
+void OS::print(const char* str, const size_t len)
 {
   for (auto& func : os_print_handlers)
       func(str, len);
-  return len;
 }
 
 void OS::legacy_boot() {
