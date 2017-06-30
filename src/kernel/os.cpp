@@ -101,23 +101,15 @@ void OS::add_stdout(OS::print_func func)
 {
   os_print_handlers.add(func);
 }
-void OS::add_default_stdout()
-{
-  add_stdout(
-  [] (const char* str, const size_t len) {
-      OS::default_stdout(str, len);
-  });
-}
 __attribute__ ((weak))
 void default_stdout_handlers()
 {
   OS::add_default_stdout();
 }
-size_t OS::print(const char* str, const size_t len)
+void OS::print(const char* str, const size_t len)
 {
   for (auto& func : os_print_handlers)
       func(str, len);
-  return len;
 }
 
 void OS::legacy_boot() {

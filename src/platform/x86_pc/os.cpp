@@ -20,7 +20,6 @@
 
 #include <cstdio>
 #include <boot/multiboot.h>
-#include <hw/cmos.hpp>
 #include <kernel/os.hpp>
 #include <kernel/irq_manager.hpp>
 #include <kernel/rtc.hpp>
@@ -96,6 +95,10 @@ void OS::halt() {
       *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
 }
 
+void OS::default_stdout(const char* str, const size_t len)
+{
+  __serial_print(str, len);
+}
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {

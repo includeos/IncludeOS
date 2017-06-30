@@ -131,16 +131,18 @@ public:
   /**
    *  Write data to standard out callbacks
    */
-  static size_t print(const char* ptr, const size_t len);
+  static void print(const char* ptr, const size_t len);
 
   /**
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
   /**
-   *  Add stdout handler that calls OS::default_stdout
+   *  Add stdout handler that simply calls OS::default_stdout
   **/
-  static void add_default_stdout();
+  static void add_default_stdout() {
+    add_stdout(OS::default_stdout);
+  }
 
   /**
    *  The default output method preferred by each platform
