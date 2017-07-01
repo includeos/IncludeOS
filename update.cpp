@@ -21,6 +21,8 @@
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
 
+extern "C"
+void solo5_exec(const char*, size_t);
 static void* HOTSWAP_AREA = (void*) 0x8000;
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
@@ -73,6 +75,7 @@ void LiveUpdate::begin(void*        location,
                        buffer_t     blob,
                        storage_func storage_callback)
 {
+  LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
   // 1. turn off interrupts
   asm volatile("cli");
 
@@ -97,13 +100,14 @@ void LiveUpdate::begin(void*        location,
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }
   if (storage_area >= (char*) OS::heap_max()) {
-    throw std::runtime_error("LiveUpdate storage area is outside memory");
+    throw std::runtime_error("LiveUpdate storage area is outside physical memory");
   }
   if (storage_area >= (char*) OS::heap_max() - 0x10000) {
     throw std::runtime_error("LiveUpdate storage area needs at least 64kb memory");
   }
 
   // search for ELF header
+  LPRINT("* Looking for ELF header at %p\n", update_area);
   const char* binary  = &update_area[0];
   const auto* hdr = (const Elf32_Ehdr*) binary;
   if (!validate_header<Elf32_Ehdr>(hdr))
@@ -187,10 +191,13 @@ void LiveUpdate::begin(void*        location,
   //hw::Devices::deactivate_all();
 
   // store soft-resetting stuff
+#ifdef PLATFORM_x86_solo5
+  void* sr_data = nullptr;
+#else
   extern const std::pair<const char*, size_t> get_rollback_location();
   const auto rollback = get_rollback_location();
-  void* sr_data  = __os_store_soft_reset(rollback.first, rollback.second);
-  //void* sr_data = nullptr;
+  void* sr_data = __os_store_soft_reset(rollback.first, rollback.second);
+#endif
 
   // get offsets for the new service from program header
   if (bin_data == nullptr ||
@@ -204,18 +211,23 @@ void LiveUpdate::begin(void*        location,
   // replace ourselves and reset by jumping to _start
   LPRINT("* Replacing self with %d bytes and jumping to %#x\n", bin_len, start_offset);
 
-#ifdef ARCH_i686
-  // copy hotswapping function to sweet spot
-  memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
-  /// the end
-  ((decltype(&hotswap)) HOTSWAP_AREA)(bin_data, bin_len, phys_base, start_offset, sr_data);
-#elif defined(ARCH_x86_64)
-  // copy hotswapping function to sweet spot
-  memcpy(HOTSWAP_AREA, (void*) &hotswap64, hotswap64_len);
-  /// the end
-  ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data);
+#ifdef PLATFORM_x86_solo5
+  solo5_exec(blob.data(), blob.size());
+  throw std::runtime_error("solo5_exec returned");
 #else
-  #error "Unimplemented architecture"
+# ifdef ARCH_i686
+    // copy hotswapping function to sweet spot
+    memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
+    /// the end
+    ((decltype(&hotswap)) HOTSWAP_AREA)(bin_data, bin_len, phys_base, start_offset, sr_data);
+# elif defined(ARCH_x86_64)
+    // copy hotswapping function to sweet spot
+    memcpy(HOTSWAP_AREA, (void*) &hotswap64, hotswap64_len);
+    /// the end
+    ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data);
+# else
+#    error "Unimplemented architecture"
+# endif
 #endif
 }
 void LiveUpdate::restore_environment()

@@ -7,7 +7,6 @@
 
 #include <kernel/os.hpp>
 #include <util/crc32.hpp>
-#include <immintrin.h>
 #include <cassert>
 //#define VERIFY_MEMORY
 
@@ -21,16 +20,7 @@ storage_header::storage_header()
 
 inline uint32_t liu_crc32(const void* buf, size_t len)
 {
-#ifdef USE_SSE42
-  uint32_t hash = 0xFFFFFFFF;
-  auto* buffer = (const char*) buf;
-  for (size_t i = 0; i < len; i++) {
-    _mm_crc32_u8(hash, buffer[i]);
-  }
-  return hash;
-#else
-  return crc32(buf, len);
-#endif
+  return crc32_fast(buf, len);
 }
 
 void storage_header::add_marker(uint16_t id)

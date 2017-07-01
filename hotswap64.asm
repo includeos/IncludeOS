@@ -70,6 +70,10 @@ protected_mode:
     mov fs, cx
     mov gs, cx
 
+    ;;rdtsc
+    ;;mov DWORD [0x10000], eax
+    ;;mov DWORD [0x10004], edx
+
     ;; enter the new service from its entry point
     ;; in 32-bit protected mode, while passing
     ;; multiboot parameters in eax and ebx

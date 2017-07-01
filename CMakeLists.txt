@@ -16,8 +16,9 @@ set(LOCAL_INCLUDES ".")
 set(LIBRARIES ${CMAKE_BINARY_DIR}/libliveupdate.a)
 
 set(DRIVERS
-    virtionet
+    #virtionet
     #vmxnet3
+    solo5net
     silent_start
     #heap_debugging
   )
@@ -41,5 +42,5 @@ add_dependencies(liveupdate hotswap64)
 target_link_libraries(service liveupdate)
 install(TARGETS liveupdate DESTINATION lib)
 
+# Uncomment this to build vanilla:
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
-add_definitions(-DUSE_SSE42) # enables hardware crc32
