@@ -28,6 +28,7 @@ else(BUNDLE_LOC)
 
 endif (BUNDLE_LOC)
 
+if (WITH_SOLO5)
 ExternalProject_Add(solo5_repo
 	PREFIX precompiled
 	BUILD_IN_SOURCE 1
@@ -56,6 +57,13 @@ add_dependencies(ukvm-bin solo5_repo)
 
 # Some OS components depend on solo5 (for solo5.h for example)
 add_dependencies(PrecompiledLibraries solo5)
+
+# Only x86_64 supported at the moment
+if ("${ARCH}" STREQUAL "x86_64")
+  install(FILES ${SOLO5_LIB_DIR}/ukvm/solo5.o ${SOLO5_LIB_DIR}/ukvm/ukvm-bin DESTINATION includeos/${ARCH}/lib)
+endif()
+
+endif (WITH_SOLO5)
 
 set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/${ARCH})
 
@@ -94,10 +102,5 @@ install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/ne
 install(DIRECTORY ${SOLO5_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/solo5)
 
 install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/${ARCH}/lib)
-
-# Only x86_64 supported at the moment
-if ("${ARCH}" STREQUAL "x86_64")
-  install(FILES ${SOLO5_LIB_DIR}/ukvm/solo5.o ${SOLO5_LIB_DIR}/ukvm/ukvm-bin DESTINATION includeos/${ARCH}/lib)
-endif()
 
 install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a ${LIBCXX_LIB_DIR}/libc++abi.a DESTINATION includeos/${ARCH}/lib)
