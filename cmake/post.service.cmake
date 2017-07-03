@@ -9,7 +9,6 @@ endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
-
 message(STATUS "Target CPU architecture ${ARCH}")
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
@@ -36,17 +35,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
 set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
-
-# configure options
-option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
-option(minimal "Build for minimal size" OFF)
-option(stripped "Strip symbols to further reduce size" OFF)
-
-add_definitions(-DARCH_${ARCH})
-add_definitions(-DARCH="${ARCH}")
-if (single_threaded)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
-endif()
 
 # Compiler optimization
 set(OPTIMIZE "-O2")
@@ -170,6 +158,11 @@ include_directories(${LOCAL_INCLUDES})
 include_directories(${INSTALL_LOC}/api/posix)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
 include_directories(${INSTALL_LOC}/${ARCH}/include/newlib)
+
+if ("${PLATFORM}" STREQUAL "x86_solo5")
+  include_directories(${INSTALL_LOC}/${ARCH}/include/solo5)
+endif()
+
 include_directories(${INSTALL_LOC}/${ARCH}/include)
 include_directories(${INSTALL_LOC}/api)
 include_directories(${INSTALL_LOC}/include)
@@ -248,6 +241,12 @@ add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libgcc.a)
 
+if ("${PLATFORM}" STREQUAL "x86_solo5")
+  add_library(solo5 STATIC IMPORTED)
+  set_target_properties(solo5 PROPERTIES LINKER_LANGUAGE C)
+  set_target_properties(solo5 PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/solo5.o)
+endif()
+
 # Depending on the output of this command will make it always run. Like magic.
 add_custom_command(OUTPUT fake_news
       COMMAND cmake -E touch_nocreate alternative_facts)
@@ -319,6 +318,10 @@ endif(TARFILE)
 add_library(crtn STATIC IMPORTED)
 set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(crtn PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrtn.a)
+
+if ("${PLATFORM}" STREQUAL "x86_solo5")
+  target_link_libraries(service solo5 --whole-archive crtn --no-whole-archive)
+endif()
 
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service

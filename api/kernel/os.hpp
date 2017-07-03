@@ -69,13 +69,10 @@ public:
   static int64_t micros_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
-  static RTC::timestamp_t boot_timestamp()
-  { return RTC::boot_timestamp(); }
+  static RTC::timestamp_t boot_timestamp();
 
   /** Uptime in whole seconds. */
-  static RTC::timestamp_t uptime() {
-    return RTC::time_since_boot();
-  }
+  static RTC::timestamp_t uptime();
 
   static MHz cpu_freq() noexcept
   { return cpu_mhz_; }
@@ -134,16 +131,24 @@ public:
   /**
    *  Write data to standard out callbacks
    */
-  static size_t print(const char* ptr, const size_t len);
+  static void print(const char* ptr, const size_t len);
 
   /**
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
   /**
-   *  Add "default" serial port output
+   *  Add stdout handler that simply calls OS::default_stdout
   **/
-  static void add_stdout_default_serial();
+  static void add_default_stdout() {
+    add_stdout(OS::default_stdout);
+  }
+
+  /**
+   *  The default output method preferred by each platform
+   *  Directly writes the string to its output mechanism
+   **/
+  static void default_stdout(const char*, size_t);
 
   /** Memory page helpers */
   static constexpr uint32_t page_size() noexcept {
@@ -217,6 +222,8 @@ public:
   /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
+  static void start(char *cmdline, uintptr_t mem_size);
+
   /** Get "kernel modules", provided by multiboot */
   static Span_mods modules();
 
@@ -250,6 +257,9 @@ private:
   static bool power_;
   static bool boot_sequence_passed_;
   static MHz cpu_mhz_;
+
+  // XXX: Only used by solo5
+  static RTC::timestamp_t booted_at_;
   static std::string version_str_;
   static std::string arch_str_;
   static Plugin_vec plugins_;

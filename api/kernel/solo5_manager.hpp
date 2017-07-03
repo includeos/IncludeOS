@@ -1,4 +1,3 @@
-// -*-C-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -16,43 +15,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDE_KPRINT
-#define INCLUDE_KPRINT
+#ifndef KERNEL_SOLO5_MANAGER_HPP
+#define KERNEL_SOLO5_MANAGER_HPP
 
-#ifdef __cplusplus
-#include <cstring>
-#include <cstdarg>
-#include <cstdio>
+#include <memory>
+#include <delegate>
+#include <hw/devices.hpp>
 
-extern "C" {
-#else
-#include <string.h>
-#include <stdarg.h>
-#include <stdlib.h>
+class Solo5_manager {
+public:
+  using Nic_ptr = std::unique_ptr<hw::Nic>;
+  using Blk_ptr = std::unique_ptr<hw::Block_device>;
 
-#endif
+  static void register_net(delegate<Nic_ptr()>);
+  static void register_blk(delegate<Blk_ptr()>);
 
-extern void __serial_print1(const char* cstr);
-extern void __serial_print(const char* str, size_t len);
+  static void init();
+}; //< class Solo5_manager
 
-/**
- * The earliest possible print function (requires no heap, global ctors etc.)
- **/
-__attribute__ ((format (printf, 1, 2)))
-inline void kprintf(const char* format, ...)
-{
-  char buf[8192];
-  va_list aptr;
-  va_start(aptr, format);
-  vsnprintf(buf, sizeof(buf), format, aptr);
-  __serial_print1(buf);
-  va_end(aptr);
-}
-
-#define kprint(cstr) __serial_print1(cstr)
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif //< KERNEL_SOLO5_MANAGER_HPP

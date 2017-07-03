@@ -100,6 +100,10 @@ namespace hw {
     virtual void flush() = 0;
 
     virtual ~Nic() {}
+
+    /** Trigger a read from buffers, pusing any packets up the stack */
+    virtual void poll() = 0;
+
   protected:
     /**
      *  Constructor
