@@ -66,6 +66,7 @@ IP4::IP_packet_ptr NAPT::dnat(IP4::IP_packet_ptr pkt, const Stack& inet)
 
 void NAPT::snat(tcp::Packet& pkt, ip4::Addr src_ip)
 {
+  tcp_tracker.incoming(pkt);
   // Get the Socket
   Socket socket = pkt.source();
 
@@ -96,31 +97,50 @@ void NAPT::snat(tcp::Packet& pkt, ip4::Addr src_ip)
   // At last, replace the source address
   pkt.set_ip_src(src_ip);
 
-  printf("SNAT %s => %s\n", socket.to_string().c_str(), pkt.source().to_string().c_str());
+  debug2("SNAT %s => %s\n", socket.to_string().c_str(), pkt.source().to_string().c_str());
 
   // Recalculate checksum
-  recalculate_checksum(pkt);
+  recalculate_checksum(pkt, socket, pkt.source());
 }
 
 void NAPT::dnat(tcp::Packet& pkt)
 {
-  auto dst_port = pkt.dst_port();
+  auto orgsock = pkt.destination();
 
   // Is there an entry?
-  auto it = tcp_trans.find(dst_port);
+  auto it = tcp_trans.find(orgsock.port());
 
   // If there already is an entry
   if(it != tcp_trans.end())
   {
     // Get the Socket
     auto socket = it->second;
-    printf("DNAT %s => %s\n", pkt.destination().to_string().c_str(), socket.to_string().c_str());
+    debug2("DNAT %s => %s\n", orgsock.to_string().c_str(), socket.to_string().c_str());
     // Replace the destination port with the original one
     pkt.set_destination(socket);
 
     // Recalculate checksum
-    recalculate_checksum(pkt);
+    recalculate_checksum(pkt, orgsock, socket);
+
+    tcp_tracker.outgoing(pkt);
   }
+}
+
+void NAPT::recalculate_checksum(tcp::Packet& pkt, Socket osock, Socket nsock)
+{
+  auto old_addr = osock.address();
+  auto new_addr = nsock.address();
+  auto old_port = htons(osock.port());
+  auto new_port = htons(nsock.port());
+
+  auto ip_sum = pkt.ip_checksum();
+  checksum_adjust(&ip_sum, &old_addr, &new_addr);
+  pkt.set_ip_checksum(ip_sum);
+
+  auto tcp_sum = pkt.tcp_checksum();
+  checksum_adjust(&tcp_sum, &old_addr, &new_addr);
+  checksum_adjust<uint16_t>(&tcp_sum, &old_port, &new_port);
+  pkt.set_checksum(tcp_sum);
 }
 
 }

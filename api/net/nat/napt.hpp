@@ -23,6 +23,7 @@
 #include <net/port_util.hpp>
 #include <net/inet>
 #include <net/tcp/tcp.hpp>
+#include <net/tcp/connection_tracker.hpp>
 
 namespace net {
 namespace nat {
@@ -36,6 +37,10 @@ public:
   using Translation_table = std::map<uint16_t, Socket>;
 
 public:
+
+  NAPT() {
+    tcp_tracker.on_close = {this, &NAPT::conn_close};
+  }
 
   // NAT
   IP4::IP_packet_ptr nat(IP4::IP_packet_ptr pkt, const Stack& inet);
@@ -56,6 +61,22 @@ public:
     //printf("NAT entry: %s => %u\n", sock.to_string().c_str(), port);
   }
 
+  void remove_entry(Socket socket)
+  {
+    auto it = std::find_if(tcp_trans.begin(), tcp_trans.end(),
+      [socket] (auto& ent) {
+        return ent.second == socket;
+      });
+
+    tcp_ports.unbind(it->first);
+    tcp_trans.erase(it);
+  }
+
+  void conn_close(const tcp::Connection_tracker::Tuple& tuple)
+  {
+    remove_entry(tuple.first);
+  }
+
 private:
   Port_util tcp_ports;
   Port_util udp_ports;
@@ -63,18 +84,15 @@ private:
   Translation_table tcp_trans;
   Translation_table udp_trans;
 
+  tcp::Connection_tracker tcp_tracker;
+
   // Source NAT
   void snat(tcp::Packet& pkt, ip4::Addr src_ip);
 
   // Destination NAT
   void dnat(tcp::Packet& pkt);
 
-  void recalculate_checksum(tcp::Packet& pkt) noexcept
-  {
-    pkt.set_checksum(0);
-    pkt.set_ip_checksum();
-    pkt.set_checksum(TCP::checksum(pkt));
-  }
+  void recalculate_checksum(tcp::Packet& pkt, Socket osock, Socket nsock);
 
 }; // < class NAPT
 
