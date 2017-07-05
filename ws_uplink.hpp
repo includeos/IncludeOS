@@ -26,6 +26,7 @@
 #include <net/ws/websocket.hpp>
 #include <liveupdate.hpp>
 #include <util/timer.hpp>
+#include <util/logger.hpp>
 
 namespace uplink {
 
@@ -52,6 +53,8 @@ public:
   void send_ident();
 
   void send_log(const char*, size_t);
+
+  void flush_log();
 
   void send_uplink();
 
@@ -82,6 +85,8 @@ private:
 
   Timer retry_timer;
   uint8_t retry_backoff = 0;
+
+  std::vector<char> logbuf_;
 
   void inject_token(http::Request& req, http::Client::Options&, const http::Client::Host)
   {

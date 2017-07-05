@@ -48,23 +48,27 @@ namespace uplink {
     : inet_{inet}, id_{inet.link_addr().to_string()},
       parser_({this, &WS_uplink::handle_transport})
   {
-    Expects(inet.ip_addr() != 0 && "Network interface not configured");
+    OS::add_stdout({this, &WS_uplink::send_log});
 
     read_config();
 
-    start(inet);
-
-    OS::add_stdout({this, &WS_uplink::send_log});
-
-    /*parser_.on_header = [](const auto& hdr) {
-      MYINFO("Header: Code: %u Len: %u", static_cast<uint8_t>(hdr.code), hdr.length);
-    };*/
+    if(inet_.is_configured())
+    {
+      start(inet);
+    }
+    // if not, register on config event
+    else
+    {
+      MYINFO("Interface not yet configured, starts when ready.");
+      inet_.on_config({this, &WS_uplink::start});
+    }
   }
 
   void WS_uplink::start(net::Inet<net::IP4>& inet) {
     MYINFO("Starting WS uplink on %s with ID: %s",
       inet.ifname().c_str(), id_.c_str());
 
+    Expects(inet.ip_addr() != 0 && "Network interface not configured");
     Expects(not config_.url.empty());
 
     if(liu::LiveUpdate::is_resumable(UPDATE_LOC))
@@ -178,6 +182,8 @@ namespace uplink {
     ws_->on_close = {this, &WS_uplink::handle_ws_close};
 
     MYINFO("Websocket established");
+
+    flush_log();
 
     send_ident();
 
@@ -439,6 +445,20 @@ namespace uplink {
     if(is_online() and ws_->get_connection()->is_writable())
     {
       send_message(Transport_code::LOG, data, len);
+    }
+    else
+    {
+      // buffer for later
+      logbuf_.insert(logbuf_.end(), data, data+len);
+    }
+  }
+
+  void WS_uplink::flush_log()
+  {
+    if(not logbuf_.empty())
+    {
+      send_message(Transport_code::LOG, logbuf_.data(), logbuf_.size());
+      logbuf_.clear();
     }
   }
 

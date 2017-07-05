@@ -41,19 +41,7 @@ void setup_uplink()
 
     auto& en0 = net::Super_stack::get<net::IP4>(0);
 
-    // already initialized
-    if(en0.is_configured())
-      {
-        uplink = std::make_unique<WS_uplink>(en0);
-      }
-    // if not, register on config event
-    else
-      {
-        en0.on_config([] (auto& inet) {
-            uplink = std::make_unique<WS_uplink>(inet);
-          });
-      }
-
+    uplink = std::make_unique<WS_uplink>(en0);
 
     OS::on_panic(uplink::on_panic);
 
