@@ -84,6 +84,9 @@ public:
   inline uint16_t win() const
   { return ntohs(tcp_header().window_size); }
 
+  uint16_t tcp_checksum() const noexcept
+  { return tcp_header().checksum; }
+
   inline Socket source() const
   { return Socket{ip_src(), src_port()}; }
 
