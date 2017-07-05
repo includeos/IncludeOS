@@ -73,4 +73,34 @@ uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
   return ~a16;
 }
 
+// Taken from https://tools.ietf.org/html/rfc3022#page-9
+void checksum_adjust(uint8_t* chksum, const void* odata,
+   int olen, const void* ndata, int nlen)
+{
+  Expects(olen % 2 == 0 and nlen % 2 == 0);
+
+  const auto* optr = reinterpret_cast<const uint8_t*>(odata);
+  const auto* nptr = reinterpret_cast<const uint8_t*>(ndata);
+
+  int32_t x, o32, n32;
+  x=chksum[0]*256+chksum[1];
+  x=~x & 0xFFFF;
+  while (olen)
+  {
+    o32=optr[0]*256+optr[1]; optr+=2;
+    x-=o32 & 0xffff;
+    if (x<=0) { x--; x&=0xffff; }
+    olen-=2;
+  }
+  while (nlen)
+  {
+    n32=nptr[0]*256+nptr[1]; nptr+=2;
+    x+=n32 & 0xffff;
+    if (x & 0x10000) { x++; x&=0xffff; }
+    nlen-=2;
+  }
+  x=~x & 0xFFFF;
+  chksum[0]=x/256; chksum[1]=x & 0xff;
+}
+
 } //< namespace net
