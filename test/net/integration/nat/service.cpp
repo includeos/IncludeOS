@@ -21,6 +21,11 @@
 
 using namespace net;
 
+void verify() {
+  static int i = 0;
+  if(++i == 4)
+    printf("SUCCESS\n");
+}
 
 void ip_forward(Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
   stack.ip_obj().ship(std::move(pckt));
@@ -49,19 +54,23 @@ void Service::start()
 
   internet_host.tcp().listen(80, [](auto conn) {
     printf("Internet page received a new connection! (%s)\n", conn->to_string().c_str());
+    verify();
   });
 
   laptop1.tcp().connect({ internet_host.ip_addr(), 80 }, [](auto conn) {
     printf("Laptop1 connected to internet web page! (%s)\n", conn->to_string().c_str());
+    verify();
   });
 
   nat.add_entry(8080, { laptop1.ip_addr(), 80 });
 
   laptop1.tcp().listen(80, [](auto conn) {
     printf("Laptop1 received a new connection! (%s)\n", conn->to_string().c_str());
+    verify();
   });
 
   internet_client.tcp().connect({ laptop1.ip_addr(), 80 }, [](auto conn) {
     printf("Bob (internet) connected to Laptop1! (%s)\n", conn->to_string().c_str());
+    verify();
   });
 }
