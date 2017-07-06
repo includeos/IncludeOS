@@ -42,12 +42,14 @@ namespace uplink {
 
   const std::string WS_uplink::UPLINK_CFG_FILE{"config.json"};
 
-  void* UPDATE_LOC = (void*) 0x3200000; // at 50mb
-
   WS_uplink::WS_uplink(net::Inet<net::IP4>& inet)
     : inet_{inet}, id_{inet.link_addr().to_string()},
       parser_({this, &WS_uplink::handle_transport})
   {
+    // This is not totally safe...
+    LIVEUPD_LOCATION = (void*) (OS::heap_max() - 0x2000000); // 32MB below heap_max
+    MYINFO("Maximum heap at (%p), assigning liveupdate location 32MB below (%p)", (void*)OS::heap_max(), LIVEUPD_LOCATION);
+
     OS::add_stdout({this, &WS_uplink::send_log});
 
     read_config();
@@ -71,10 +73,10 @@ namespace uplink {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
     Expects(not config_.url.empty());
 
-    if(liu::LiveUpdate::is_resumable(UPDATE_LOC))
+    if(liu::LiveUpdate::is_resumable(LIVEUPD_LOCATION))
     {
       MYINFO("Found resumable state, try restoring...");
-      auto success = liu::LiveUpdate::resume(UPDATE_LOC, {this, &WS_uplink::restore});
+      auto success = liu::LiveUpdate::resume(LIVEUPD_LOCATION, {this, &WS_uplink::restore});
       CHECK(success, "Success");
     }
 
@@ -256,7 +258,7 @@ namespace uplink {
     ws_->close();
     // do the update
     Timers::oneshot(std::chrono::milliseconds(10), [this, buffer] (auto) {
-      liu::LiveUpdate::begin(UPDATE_LOC, buffer, {this, &WS_uplink::store});
+      liu::LiveUpdate::begin(LIVEUPD_LOCATION, buffer, {this, &WS_uplink::store});
     });
   }
 

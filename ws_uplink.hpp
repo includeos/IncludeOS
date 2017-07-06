@@ -88,6 +88,8 @@ private:
 
   std::vector<char> logbuf_;
 
+  void* LIVEUPD_LOCATION;
+
   void inject_token(http::Request& req, http::Client::Options&, const http::Client::Host)
   {
     if (not token_.empty())
