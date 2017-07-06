@@ -46,11 +46,11 @@ namespace uplink {
     : inet_{inet}, id_{inet.link_addr().to_string()},
       parser_({this, &WS_uplink::handle_transport})
   {
+    OS::add_stdout({this, &WS_uplink::send_log});
+
     // This is not totally safe...
     LIVEUPD_LOCATION = (void*) (OS::heap_max() - 0x2000000); // 32MB below heap_max
     MYINFO("Maximum heap at (%p), assigning liveupdate location 32MB below (%p)", (void*)OS::heap_max(), LIVEUPD_LOCATION);
-
-    OS::add_stdout({this, &WS_uplink::send_log});
 
     read_config();
 
@@ -61,13 +61,13 @@ namespace uplink {
     // if not, register on config event
     else
     {
-      MYINFO("Interface not yet configured, starts when ready.");
+      MYINFO("Interface %s not yet configured, starts when ready.", inet_.ifname().c_str());
       inet_.on_config({this, &WS_uplink::start});
     }
   }
 
   void WS_uplink::start(net::Inet<net::IP4>& inet) {
-    MYINFO("Starting WS uplink on %s with ID: %s",
+    MYINFO("Starting WS uplink on %s with ID %s",
       inet.ifname().c_str(), id_.c_str());
 
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
@@ -183,9 +183,9 @@ namespace uplink {
 
     ws_->on_close = {this, &WS_uplink::handle_ws_close};
 
-    MYINFO("Websocket established");
-
     flush_log();
+
+    MYINFO("Websocket established");
 
     send_ident();
 
