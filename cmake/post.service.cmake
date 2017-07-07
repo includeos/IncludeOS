@@ -286,7 +286,6 @@ endfunction()
 # automatically build memdisk from folder
 function(build_memdisk FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
-  message(STATUS ${REL_PATH})
   add_custom_command(
       OUTPUT  memdisk.fat
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
@@ -299,6 +298,7 @@ endfunction()
 
 # build memdisk if defined
 if(MEMDISK)
+  message(STATUS "Memdisk folder set: " ${MEMDISK})
   build_memdisk(${MEMDISK})
 endif()
 
