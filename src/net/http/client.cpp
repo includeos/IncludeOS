@@ -170,7 +170,7 @@ namespace http {
           data{move(data)},
           cb{move(cb)},
           opt{move(options)}
-        ] (auto ip, net::Error&)
+        ] (auto ip, const net::Error&)
         {
           // Host resolved
           if(ip != 0)
