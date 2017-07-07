@@ -28,7 +28,7 @@ using namespace std;
 using namespace net;
 using namespace net::tcp;
 
-TCP::TCP(IPStack& inet) :
+TCP::TCP(IPStack& inet, bool smp_enable) :
   inet_{inet},
   listeners_(),
   connections_(),
@@ -38,45 +38,45 @@ TCP::TCP(IPStack& inet) :
   wscale_{default_window_scaling},      // 5
   timestamps_{default_timestamps},      // true
   dack_timeout_{default_dack_timeout},  // 40ms
-  max_syn_backlog_{default_max_syn_backlog}, // 64
-  bytes_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_rx").get_uint64()},
-  bytes_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_tx").get_uint64()},
-  packets_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_rx").get_uint64()},
-  packets_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_tx").get_uint64()},
-  incoming_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.incoming_connections").get_uint64()},
-  outgoing_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.outgoing_connections").get_uint64()},
-  connection_attempts_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.connection_attempts").get_uint64()},
-  packets_dropped_{Statman::get().create(Stat::UINT32, inet.ifname() + ".tcp.packets_dropped").get_uint32()}
+  max_syn_backlog_{default_max_syn_backlog} // 64
 {
   Expects(wscale_ <= 14 && "WScale factor cannot exceed 14");
   Expects(win_size_ <= 0x40000000 && "Invalid size");
 
-  inet.on_transmit_queue_available({this, &TCP::process_writeq});
+  this->cpu_id = SMP::cpu_id();
+  this->smp_enabled = smp_enable;
+  std::string stat_prefix;
+  if (this->smp_enabled == false)
+  {
+    inet.on_transmit_queue_available({this, &TCP::process_writeq});
+    stat_prefix = inet.ifname();
+  }
+  else
+  {
+    SMP::global_lock();
+    inet.on_transmit_queue_available({this, &TCP::smp_process_writeq});
+    SMP::global_unlock();
+    stat_prefix = inet.ifname() + ".cpu" + std::to_string(this->cpu_id);
+  }
+  bytes_rx_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.rx").get_uint64();
+  bytes_tx_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.tx").get_uint64();
+  packets_rx_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.packets_rx").get_uint64();
+  packets_tx_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.packets_tx").get_uint64();
+  incoming_connections_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.conn_incoming").get_uint64();
+  outgoing_connections_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.conn_outgoing").get_uint64();
+  connection_attempts_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.conn_attempts").get_uint64();
+  packets_dropped_ = &Statman::get().create(Stat::UINT32, stat_prefix + ".tcp.dropped").get_uint32();
 }
 
-
-TCP::Port_util::Port_util()
-  : ports{},
-    ephemeral_(new_ephemeral_port()),
-    eph_count(0)
+void TCP::smp_process_writeq(size_t packets)
 {
-  ports.set(port_ranges::DYNAMIC_END);
-}
-
-void TCP::Port_util::increment_ephemeral()
-{
-  if(UNLIKELY(! has_free_ephemeral() ))
-    throw TCP_error{"All ephemeral ports are taken"};
-
-  ephemeral_++;
-
-  if(UNLIKELY(ephemeral_ == port_ranges::DYNAMIC_END))
-    ephemeral_ = port_ranges::DYNAMIC_START;
-
-  // TODO: Avoid wrap around, increment ephemeral to next free port.
-  // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
-  // need a solution that checks each word of the subset (the dynamic range)
-  Ensures(is_bound(ephemeral_) == false && "Hoped I wouldn't see the day..."); // this may happen...
+  assert(SMP::cpu_id() == 0);
+  assert(this->cpu_id != 0);
+  SMP::add_task(
+  [this, packets] () {
+    this->process_writeq(packets);
+  }, this->cpu_id);
+  SMP::signal(this->cpu_id);
 }
 
 /*
@@ -161,7 +161,8 @@ void TCP::insert_connection(Connection_ptr conn)
 
 void TCP::receive(net::Packet_ptr packet_ptr) {
   // Stat increment packets received
-  packets_rx_++;
+  (*packets_rx_)++;
+  assert(get_cpuid() == SMP::cpu_id());
 
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
@@ -185,7 +186,13 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
   }
 
   // Stat increment bytes received
-  bytes_rx_ += packet->tcp_data_length();
+  (*bytes_rx_) += packet->tcp_data_length();
+
+  // Redirect packet to custom function
+  if (packet_rerouter) {
+    packet_rerouter(std::move(packet));
+    return;
+  }
 
   const Connection::Tuple tuple { dest, packet->source() };
 
@@ -342,8 +349,8 @@ void TCP::transmit(tcp::Packet_ptr packet) {
   debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
 
   // Stat increment bytes transmitted and packets transmitted
-  bytes_tx_ += packet->tcp_data_length();
-  packets_tx_++;
+  (*bytes_tx_) += packet->tcp_data_length();
+  (*packets_tx_)++;
 
   _network_layer_out(std::move(packet));
 }
@@ -381,7 +388,7 @@ uint32_t TCP::get_ts_value() const
 
 void TCP::drop(const tcp::Packet&) {
   // Stat increment packets dropped
-  packets_dropped_++;
+  (*packets_dropped_)++;
   debug("<TCP::drop> Packet dropped\n");
 }
 
@@ -439,7 +446,7 @@ bool TCP::unbind(const Socket socket)
 
 void TCP::add_connection(tcp::Connection_ptr conn) {
   // Stat increment number of incoming connections
-  incoming_connections_++;
+  (*incoming_connections_)++;
 
   debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
   conn->_on_cleanup({this, &TCP::close_connection});
@@ -449,7 +456,7 @@ void TCP::add_connection(tcp::Connection_ptr conn) {
 Connection_ptr TCP::create_connection(Socket local, Socket remote, ConnectCallback cb)
 {
   // Stat increment number of outgoing connections
-  outgoing_connections_++;
+  (*outgoing_connections_)++;
 
   auto& conn = (connections_.emplace(
       Connection::Tuple{ local, remote },
@@ -475,7 +482,9 @@ void TCP::process_writeq(size_t packets) {
 }
 
 void TCP::request_offer(Connection& conn) {
+  SMP::global_lock();
   auto packets = inet_.transmit_queue_available();
+  SMP::global_unlock();
 
   debug2("<TCP::request_offer> %s requestin offer: uw=%u rem=%u\n",
     conn.to_string().c_str(), conn.usable_window(), conn.sendq_remaining());

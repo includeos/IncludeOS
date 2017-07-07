@@ -133,7 +133,7 @@ inline void cpu_dump_regs()
   asm ("movq %%rsp, %0" : "=a" (regs[13]));
   asm ("movq %%rsi, %0" : "=b" (regs[14]));
   asm ("movq %%rdi, %0" : "=c" (regs[15]));
-  asm ("movq %%rip, %0" : "=d" (regs[16]));
+  asm ("leaq (%%rip), %0" : "=d" (regs[16]));
 
   asm ("pushf; popq %0" : "=a" (regs[17]));
   asm ("movq %%cr0, %0" : "=b" (regs[18]));

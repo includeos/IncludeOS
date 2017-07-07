@@ -34,9 +34,7 @@ namespace net {
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
-  stack_            {inet},
-  upstream_filter_  {this, &IP4::filter_upstream},
-  downstream_filter_{this, &IP4::filter_downstream}
+  stack_            {inet}
   {}
 
 
@@ -50,7 +48,7 @@ namespace net {
   }
 
 
-  IP4::IP_packet_ptr IP4::filter_upstream(IP4::IP_packet_ptr packet)
+  IP4::IP_packet_ptr IP4::drop_invalid_in(IP4::IP_packet_ptr packet)
   {
     IP4::Direction up = IP4::Direction::Upstream;
 
@@ -73,7 +71,7 @@ namespace net {
   }
 
 
-  IP4::IP_packet_ptr IP4::filter_downstream(IP4::IP_packet_ptr packet)
+  IP4::IP_packet_ptr IP4::drop_invalid_out(IP4::IP_packet_ptr packet)
   {
     // RFC-1122 3.2.1.7, MUST NOT send packet with TTL of 0
     if (packet->ip_ttl() == 0)
@@ -102,7 +100,12 @@ namespace net {
     // Stat increment packets received
     packets_rx_++;
 
-    packet = upstream_filter_(std::move(packet));
+
+    packet = drop_invalid_in(std::move(packet));
+    if (UNLIKELY(packet == nullptr)) return;
+
+    // Enter prerouting chain
+    packet = stack_.prerouting_chain()(std::move(packet), stack_);
     if (UNLIKELY(packet == nullptr)) return;
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
@@ -121,6 +124,9 @@ namespace net {
 
       return;
     }
+
+    packet = stack_.input_chain()(std::move(packet), stack_);
+    if (UNLIKELY(packet == nullptr)) return;
 
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {
@@ -152,59 +158,64 @@ namespace net {
   void IP4::transmit(Packet_ptr pckt) {
     assert((size_t)pckt->size() > sizeof(header));
 
-    auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+    auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
     if (path_mtu_discovery_)
-      ip4_pckt->set_ip_flags(ip4::Flags::DF);
+      packet->set_ip_flags(ip4::Flags::DF);
 
-    ip4_pckt->make_flight_ready();
+    packet->make_flight_ready();
 
-    ship(std::move(ip4_pckt));
+    packet = stack_.output_chain()(std::move(packet), stack_);
+    if (UNLIKELY(packet == nullptr)) return;
+
+    ship(std::move(packet));
   }
 
-  void IP4::ship(Packet_ptr pckt)
+  void IP4::ship(Packet_ptr pckt, addr next_hop)
   {
-    auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+    auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
     // Send loopback packets right back
-    if (UNLIKELY(stack_.is_loopback(ip4_pckt->ip_dst()))) {
+    if (UNLIKELY(stack_.is_loopback(packet->ip_dst()))) {
       debug("<IP4> Destination address is loopback \n");
-      IP4::receive(std::move(ip4_pckt));
+      IP4::receive(std::move(packet));
       return;
     }
 
-    addr next_hop;
-
-    if (ip4_pckt->ip_dst() != IP4::ADDR_BCAST)
-    {
-      // Create local and target subnets
-      addr target = ip4_pckt->ip_dst()  & stack_.netmask();
-      addr local  = stack_.ip_addr() & stack_.netmask();
-
-      // Compare subnets to know where to send packet
-      next_hop = target == local ? ip4_pckt->ip_dst() : stack_.gateway();
-
-      debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
-          ip4_pckt->ip_dst().str().c_str(),
-          stack_.netmask().str().c_str(),
-          stack_.ip_addr().str().c_str(),
-          stack_.gateway().str().c_str(),
-          next_hop.str().c_str());
-
-    } else {
-      next_hop = IP4::ADDR_BCAST;
-    }
-
     // Filter illegal egress packets
-    ip4_pckt = upstream_filter_(std::move(ip4_pckt));
-    if (ip4_pckt == nullptr) return;
+    packet = drop_invalid_out(std::move(packet));
+    if (packet == nullptr) return;
+
+    packet = stack_.postrouting_chain()(std::move(packet), stack_);
+    if (UNLIKELY(packet == nullptr)) return;
+
+
+    if (next_hop == 0) {
+      if (UNLIKELY(packet->ip_dst() == IP4::ADDR_BCAST)) {
+        next_hop = IP4::ADDR_BCAST;
+      } else {
+        // Create local and target subnets
+        addr target = packet->ip_dst()  & stack_.netmask();
+        addr local  = stack_.ip_addr() & stack_.netmask();
+
+        // Compare subnets to know where to send packet
+        next_hop = target == local ? packet->ip_dst() : stack_.gateway();
+
+        debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+              packet->ip_dst().str().c_str(),
+              stack_.netmask().str().c_str(),
+              stack_.ip_addr().str().c_str(),
+              stack_.gateway().str().c_str(),
+              next_hop.str().c_str());
+      }
+    }
 
     // Stat increment packets transmitted
     packets_tx_++;
 
-    debug("<IP4> Transmitting packet, layer begin: buf + %li\n", ip4_pckt->layer_begin() - ip4_pckt->buf());
+    debug("<IP4> Transmitting packet, layer begin: buf + %li\n", packet->layer_begin() - packet->buf());
 
-    linklayer_out_(std::move(ip4_pckt), next_hop);
+    linklayer_out_(std::move(packet), next_hop);
   }
 
   void IP4::set_path_mtu_discovery(bool on, uint16_t aged) noexcept {

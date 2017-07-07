@@ -51,7 +51,7 @@ void Service::start()
     logger_->log(entry);
   });
 
-  disk = fs::new_shared_memdisk();
+  disk = fs::shared_memdisk();
 
   // init the first legit partition/filesystem
   disk->init_fs(

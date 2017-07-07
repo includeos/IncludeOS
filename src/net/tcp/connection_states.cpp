@@ -123,8 +123,11 @@ bool Connection::State::check_seq(Connection& tcp, const Packet& in)
   if( in.seq() == tcb.RCV.NXT ) {
     goto acceptable;
   }
+  /// TODO: FIXME: reordering issues solved by this
+  else goto unacceptable;
+
   // #2
-  else if( tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND ) {
+  if( tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND ) {
     goto acceptable;
   }
   // #3 (INVALID)

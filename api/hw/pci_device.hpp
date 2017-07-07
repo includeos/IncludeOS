@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <common>
 #include <vector>
+#include <unordered_map>
 
 #define  PCI_CAP_ID_AF        0x13	/* PCI Advanced Features */
 #define  PCI_CAP_ID_MAX       PCI_CAP_ID_AF
@@ -42,6 +43,9 @@ namespace PCI {
   static const uint32_t  BASE_ADDRESS_IO_MASK  {~0x03U};
 
   static const uint32_t  WTF                   {~0x0U};
+
+  static const uint32_t  SOLO5_NET_DUMMY_ADDR  {0xFFFE};
+  static const uint32_t  SOLO5_BLK_DUMMY_ADDR  {0xFFFF};
 
   /**
    *  @brief PCI device message format
@@ -71,7 +75,7 @@ namespace PCI {
   }; //< union msg
 
   /** Relevant class codes (many more) */
-  enum classcode_t {
+  enum classcode : uint8_t {
     OLD = 0,
     STORAGE,
     NIC,
@@ -91,16 +95,22 @@ namespace PCI {
     ENCRYPTION,
     SIGPRO,
     OTHER=255
+
+
   }; //< enum classcode_t
 
-  enum {
+  enum vendor_t : uint16_t {
     VENDOR_AMD     = 0x1022,
     VENDOR_INTEL   = 0x8086,
     VENDOR_CIRRUS  = 0x1013,
     VENDOR_VIRTIO  = 0x1AF4,
     VENDOR_REALTEK = 0x10EC,
     VENDOR_VMWARE  = 0x15AD,
+    VENDOR_SOLO5   = 0x5050,
   };
+
+  static inline const char* classcode_str(uint8_t code);
+  static inline const char* vendor_str(uint16_t code);
 
   struct Resource {
     int       type;
@@ -117,6 +127,8 @@ namespace PCI {
 } //< namespace PCI
 
 namespace hw {
+
+
 struct msix_t;
   /**
    *  @brief Communication class for all PCI devices
@@ -247,6 +259,8 @@ struct msix_t;
       };
     };
 
+    inline std::string to_string() const;
+
   private:
     // @brief The 3-part PCI address
     uint16_t pci_addr_;
@@ -275,14 +289,60 @@ struct msix_t;
 
 } //< namespace hw
 
-namespace std {
-template<>
-struct hash<PCI::classcode_t> {
-public:
-  std::size_t operator()(PCI::classcode_t const& key) const noexcept {
-    return key;
-  }
-};
+static const char* PCI::classcode_str(uint8_t code){
+  const std::unordered_map<uint8_t, const char*> classcodes {
+      {classcode::OLD, "Old"},
+      {classcode::STORAGE, "Storage controller"},
+      {classcode::NIC, "Network controller"},
+      {classcode::DISPLAY, "Display controller"},
+      {classcode::MULTIMEDIA, "Multimedia device"},
+      {classcode::MEMORY, "Memory controller"},
+      {classcode::BRIDGE, "Bridge device"},
+      {classcode::COMMUNICATION, "Simple comm. controller "},
+      {classcode::BASE_SYSTEM_PER,"Base system periph."},
+      {classcode::INPUT_DEVICE, "Input device"},
+      {classcode::DOCKING_STATION, "Docking station"},
+      {classcode::PROCESSOR, "Processor"},
+      {classcode::SERIAL_BUS, "Serial bus controller"},
+      {classcode::WIRELESS, "Wireless"},
+      {classcode::IO_CTL, "Intelligent IO controller"},
+      {classcode::SATELLITE, "Satellite comm. controller"},
+      {classcode::ENCRYPTION, "Encryption / decryption controller"},
+      {classcode::SIGPRO,"Sigpro"},
+      {classcode::OTHER, "Other"}
+    };
+
+  auto it = classcodes.find(code);
+  if (it != classcodes.end())
+    return it->second;
+
+  return "Unknown classcode";
 }
+
+static const char* PCI::vendor_str(uint16_t code){
+  const std::unordered_map<uint16_t, const char*> classcodes {
+    {VENDOR_AMD,     "AMD"},
+    {VENDOR_INTEL,   "Intel"},
+    {VENDOR_CIRRUS,  "Cirrus"},
+    {VENDOR_VIRTIO,  "VirtIO"} ,
+    {VENDOR_REALTEK, "REALTEK"},
+    {VENDOR_VMWARE,  "VMWare"}
+  };
+
+  auto it = classcodes.find(code);
+  return it == classcodes.end() ? "Unknown vendor" : it->second;
+}
+
+
+#include <sstream>
+std::string hw::PCI_Device::to_string() const {
+  std::stringstream str;
+  str << PCI::classcode_str(classcode()) << ", "
+      << PCI::vendor_str((PCI::vendor_t)vendor_id())
+      << std::hex << " ("<< vendor_id() << " / " << product_id() << ")";
+  return str.str();
+};
+
+
 
 #endif //< HW_PCI_DEVICE_HPP

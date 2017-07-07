@@ -29,10 +29,6 @@
 void* heap_begin;
 void* heap_end;
 
-extern char _ELF_SYM_START_;
-extern char _end;
-
-
 /// IMPLEMENTATION OF Newlib I/O:
 #undef stdin
 #undef stdout
@@ -43,29 +39,29 @@ __FILE* stdout;
 __FILE* stderr;
 
 // stack-protector guard
-const uintptr_t __stack_chk_guard = _STACK_GUARD_VALUE_;
+const uintptr_t __stack_chk_guard = (uintptr_t) _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 
-void _init_bss() {
+void _init_bss()
+{
   /// Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
   streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
-
 }
 
-void _init_heap(uintptr_t free_mem_begin) {
+void _init_heap(uintptr_t free_mem_begin)
+{
   // NOTE: Initialize the heap before exceptions
   // cache-align heap, because its not aligned
   heap_begin = (void*) free_mem_begin + HEAP_ALIGNMENT;
   heap_begin = (void*) ((size_t)heap_begin & ~HEAP_ALIGNMENT);
   // heap end tracking, used with sbrk
   heap_end   = heap_begin;
-
-
 }
 
-uintptr_t _move_symbols(void* sym_loc) {
-
+uintptr_t _move_symbols(void* sym_loc)
+{
+  extern char _ELF_SYM_START_;
   /// read out size of symbols **before** moving them
   extern int  _get_elf_section_datasize(const void*);
   int elfsym_size = _get_elf_section_datasize(&_ELF_SYM_START_);
@@ -76,23 +72,22 @@ uintptr_t _move_symbols(void* sym_loc) {
   _move_elf_syms_location(&_ELF_SYM_START_, sym_loc);
 
   return elfsym_size;
-
 }
 
-void _crt_sanity_checks() {
-
+void _crt_sanity_checks()
+{
   // validate that heap is aligned
   int validate_heap_alignment =
     ((uintptr_t)heap_begin & (uintptr_t) HEAP_ALIGNMENT) == 0;
 
+  extern char _end;
   assert(heap_begin >= (void*) &_end);
   assert(heap_end >= heap_begin);
   assert(validate_heap_alignment);
-};
+}
 
 void _init_c_runtime()
 {
-
   /// initialize newlib I/O
   _REENT_INIT_PTR(_REENT);
   // Unix standard streams
@@ -111,7 +106,6 @@ void _init_c_runtime()
   _init_elf_parser();
 
   _crt_sanity_checks();
-
 }
 
 // stack-protector

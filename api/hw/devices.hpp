@@ -49,6 +49,7 @@ namespace hw {
     /** List all devices (decorated, as seen in boot output) */
     inline static void print_devices();
 
+    inline static void flush_all();
 
     inline static void deactivate_all();
 
@@ -160,6 +161,11 @@ namespace hw {
   {
     deactivate_type(devices<hw::Block_device>());
     deactivate_type(devices<hw::Nic>());
+  }
+  inline void Devices::flush_all()
+  {
+    for (auto& dev : devices<hw::Nic>())
+        dev->flush();
   }
 
 } //< namespace hw

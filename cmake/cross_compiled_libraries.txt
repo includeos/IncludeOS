@@ -28,6 +28,43 @@ else(BUNDLE_LOC)
 
 endif (BUNDLE_LOC)
 
+if (WITH_SOLO5)
+ExternalProject_Add(solo5_repo
+	PREFIX precompiled
+	BUILD_IN_SOURCE 1
+	GIT_REPOSITORY https://github.com/ricarkol/solo5.git
+	GIT_TAG includeos64
+	CONFIGURE_COMMAND ./configure.sh
+	UPDATE_COMMAND ""
+	BUILD_COMMAND make build
+	INSTALL_COMMAND ""
+)
+
+set(SOLO5_REPO_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/solo5_repo)
+set(SOLO5_INCLUDE_DIR ${SOLO5_REPO_DIR}/build/include/)
+set(SOLO5_LIB_DIR ${SOLO5_REPO_DIR}/build/${ARCH})
+
+# solo5 in ukvm mode (let's call it "solo5")
+add_library(solo5 STATIC IMPORTED)
+set_target_properties(solo5 PROPERTIES IMPORTED_LOCATION ${SOLO5_LIB_DIR}/ukvm/solo5.o)
+
+# ukvm-bin
+add_library(ukvm-bin STATIC IMPORTED)
+set_target_properties(solo5 PROPERTIES IMPORTED_LOCATION ${SOLO5_LIB_DIR}/ukvm/ukvm-bin)
+
+add_dependencies(solo5 solo5_repo)
+add_dependencies(ukvm-bin solo5_repo)
+
+# Some OS components depend on solo5 (for solo5.h for example)
+add_dependencies(PrecompiledLibraries solo5)
+
+# Only x86_64 supported at the moment
+if ("${ARCH}" STREQUAL "x86_64")
+  install(FILES ${SOLO5_LIB_DIR}/ukvm/solo5.o ${SOLO5_LIB_DIR}/ukvm/ukvm-bin DESTINATION includeos/${ARCH}/lib)
+endif()
+
+endif (WITH_SOLO5)
+
 set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/${ARCH})
 
 set(LIBCXX_INCLUDE_DIR ${PRECOMPILED_DIR}/libcxx/include/)
@@ -54,10 +91,6 @@ add_library(libm STATIC IMPORTED)
 set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libm.a)
 add_dependencies(libm PrecompiledLibraries)
 
-add_library(libgcc STATIC IMPORTED)
-set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${LIBGCC_LIB_DIR}/libgcc.a)
-add_dependencies(libgcc PrecompiledLibraries)
-
 set(CRTEND ${PRECOMPILED_DIR}/crt/crtend.o)
 set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
 
@@ -65,6 +98,8 @@ set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
 install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libcxx)
 
 install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/newlib)
+
+install(DIRECTORY ${SOLO5_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/solo5)
 
 install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/${ARCH}/lib)
 

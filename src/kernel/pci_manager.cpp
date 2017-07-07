@@ -32,7 +32,7 @@ template <typename Driver>
 using fixed_factory_t = fixedvector<Driver_entry<Driver>, ELEMENTS>;
 
 // PCI devices
-fixedvector<hw::PCI_Device, ELEMENTS> devices(Fixedvector_Init::UNINIT);
+fixedvector<hw::PCI_Device, ELEMENTS> devices_(Fixedvector_Init::UNINIT);
 
 // driver factories
 fixed_factory_t<PCI_manager::NIC_driver> nic_fact(Fixedvector_Init::UNINIT);
@@ -44,20 +44,28 @@ static inline bool register_device(hw::PCI_Device& dev,
   for (auto& fact : factory) {
     if (fact.first == dev.vendor_product())
     {
-      INFO2("|  +--+ Driver: Found");
+      INFO2("|  +-o Driver found, initializing ");
+      INFO2("|");
 
       auto driver = fact.second(dev);
       hw::Devices::register_device<Class>(std::move(driver));
       return true;
     }
   }
-  INFO2("|  +--+ Driver: Not found");
+  INFO2("|  +-x Driver not found ");
   return false;
+}
+
+PCI_manager::Device_vector PCI_manager::devices () {
+  Device_vector device_vec;
+  for (const auto& dev : devices_)
+    device_vec.push_back(&dev);
+  return device_vec;
 }
 
 void PCI_manager::pre_init()
 {
-  devices.clear();
+  devices_.clear();
   nic_fact.clear();
   blk_fact.clear();
 }
@@ -81,13 +89,13 @@ void PCI_manager::scan_bus(int bus)
       switch (devclass.classcode) {
       case PCI::STORAGE:
         {
-          auto& stored_dev = devices.emplace(pci_addr, id, devclass.reg);
+          auto& stored_dev = devices_.emplace(pci_addr, id, devclass.reg);
           registered = register_device<BLK_driver, hw::Block_device>(stored_dev, blk_fact);
         }
         break;
       case PCI::NIC:
         {
-          auto& stored_dev = devices.emplace(pci_addr, id, devclass.reg);
+          auto& stored_dev = devices_.emplace(pci_addr, id, devclass.reg);
           registered = register_device<NIC_driver, hw::Nic>(stored_dev, nic_fact);
         }
         break;
@@ -119,6 +127,7 @@ void PCI_manager::init()
 
   // Pretty printing, end of device tree
   // @todo should probably be moved, or optionally non-printed
+
   INFO2("|");
   INFO2("o");
 }

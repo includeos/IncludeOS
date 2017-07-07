@@ -41,6 +41,9 @@
 // We can't use the usual "info", as printf isn't available after call to exit
 #define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
 
+// Emitted if and only if panic (unrecoverable system wide error) happens
+const char* panic_signature = "\x15\x07\t**** PANIC ****";
+
 char*   __env[1] {nullptr};
 char**  environ {__env};
 extern "C" {
@@ -84,27 +87,32 @@ int gettimeofday(struct timeval* p, void*) {
 }
 
 int kill(pid_t pid, int sig) THROW {
+  SMP::global_lock();
   printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
 
   if (sig == 6ul) {
     printf("/ ABORT\n");
   }
+  SMP::global_unlock();
 
-  panic("\tKilling a process doesn't make sense in IncludeOS. Panic.");
+  panic("kill called");
   errno = ESRCH;
   return -1;
 }
 
-static const size_t CONTEXT_BUFFER_LENGTH = 0x1000;
-static char _crash_context_buffer[CONTEXT_BUFFER_LENGTH];
+struct alignas(SMP_ALIGN) context_buffer
+{
+  std::array<char, 512> buffer;
+};
+static SMP_ARRAY<context_buffer> contexts;
 
 size_t get_crash_context_length()
 {
-  return CONTEXT_BUFFER_LENGTH;
+  return PER_CPU(contexts).buffer.size();
 }
 char*  get_crash_context_buffer()
 {
-  return _crash_context_buffer;
+  return PER_CPU(contexts).buffer.data();
 }
 
 static bool panic_reenter = false;
@@ -115,14 +123,18 @@ void OS::on_panic(on_panic_func func)
   panic_handler = std::move(func);
 }
 
+bool OS::is_panicking() noexcept
+{
+  return panic_reenter; // should work
+}
+
 /**
  * panic:
  * Display reason for kernel panic
  * Display last crash context value, if it exists
  * Display no-heap backtrace of stack
- * Print EOT character to stderr, to signal outside that PANIC occured
- * Call on_panic handler function, which determines what to do when
- *    the kernel panics
+ * Call on_panic handler function, to allow application specific panic behavior
+ * Print EOT character to stderr, to signal outside that PANIC output completed
  * If the handler returns, go to (permanent) sleep
 **/
 void panic(const char* why)
@@ -130,26 +142,28 @@ void panic(const char* why)
   /// prevent re-entering panic() more than once per CPU
   //if (panic_reenter) OS::reboot();
   panic_reenter = true;
+  const int current_cpu = SMP::cpu_id();
 
   /// display informacion ...
   SMP::global_lock();
-  fprintf(stderr, "\n\t**** CPU %d PANIC: ****\n %s\n",
-          SMP::cpu_id(), why);
+
+  fprintf(stderr, "\n%s\nCPU: %d, Reason: %s\n",
+          panic_signature, current_cpu, why);
 
   // crash context (can help determine source of crash)
-  int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
+  const int len = strnlen(get_crash_context_buffer(), get_crash_context_length());
   if (len > 0) {
-    printf("\n\t**** CONTEXT: ****\n %*s\n",
-        len, get_crash_context_buffer());
+    printf("\n\t**** CPU %d CONTEXT: ****\n %*s\n\n",
+        current_cpu, len, get_crash_context_buffer());
   }
 
   // heap info
   typedef unsigned long ulong;
   uintptr_t heap_total = OS::heap_max() - heap_begin;
   double total = (heap_end - heap_begin) / (double) heap_total;
-  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%lu)\n",
+  fprintf(stderr, "Heap is at: %p / %p  (diff=%lu)\n",
          (void*) heap_end, (void*) OS::heap_max(), (ulong) (OS::heap_max() - heap_end));
-  fprintf(stderr, "\tHeap usage: %lu / %lu Kb\n", // (%.2f%%)\n",
+  fprintf(stderr, "Heap usage: %lu / %lu Kb\n", // (%.2f%%)\n",
          (ulong) (heap_end - heap_begin) / 1024,
          (ulong) heap_total / 1024); //, total * 100.0);
 
@@ -160,15 +174,13 @@ void panic(const char* why)
   SMP::global_unlock();
 
   // call custom on panic handler (if present)
-  if (panic_handler) panic_handler();
+  if (panic_handler) panic_handler(why);
 
 #if defined(ARCH_x86)
-  if (SMP::cpu_id() == 0) {
-    SMP::global_lock();
-    // Signal End-Of-Transmission
-    kprint("\x04");
-    SMP::global_unlock();
-  }
+  SMP::global_lock();
+  // Signal End-Of-Transmission
+  kprint("\x04");
+  SMP::global_unlock();
 
   // .. if we return from the panic handler, go to permanent sleep
   while (1) asm("cli; hlt");
@@ -181,12 +193,6 @@ void panic(const char* why)
 // Shutdown the machine when one of the exit functions are called
 void default_exit() {
   __arch_poweroff();
-  __builtin_unreachable();
-}
-
-// To keep our sanity, we need a reason for the abort
-void abort_ex(const char* why) {
-  panic(why);
   __builtin_unreachable();
 }
 
@@ -211,6 +217,7 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
 extern "C" void _init_syscalls();
 void _init_syscalls()
 {
-  // make sure that the buffers length is zero so it won't always show up in crashes
-  _crash_context_buffer[0] = 0;
+  // make sure each buffer is zero length so it won't always show up in crashes
+  for (auto& ctx : contexts)
+      ctx.buffer[0] = 0;
 }

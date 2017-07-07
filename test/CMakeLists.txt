@@ -87,6 +87,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/path_mtu_discovery.cpp
+  ${TEST}/net/unit/port_util_test.cpp
   ${TEST}/net/unit/socket.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
@@ -116,6 +117,7 @@ set(TEST_SOURCES
 
 set(OS_SOURCES
   ${SRC}/fs/disk.cpp
+  ${SRC}/fs/dirent.cpp
   ${SRC}/fs/fat.cpp
   ${SRC}/fs/fat_async.cpp
   ${SRC}/fs/fat_sync.cpp
@@ -129,7 +131,6 @@ set(OS_SOURCES
   ${SRC}/hw/pci_msi.cpp
   ${SRC}/hw/ps2.cpp
   ${SRC}/hw/serial.cpp
-  ${SRC}/kernel/block.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
   ${SRC}/kernel/irq_manager.cpp

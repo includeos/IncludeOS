@@ -20,14 +20,19 @@ global lapic_send_eoi:function
 global get_cpu_id:function
 global get_cpu_eip:function
 global get_cpu_esp:function
+global get_cpu_ebp:function
 global reboot_os:function
 
 get_cpu_id:
-    mov rax, [fs:0x0]
+    mov rax, [gs:0x0]
     ret
 
 get_cpu_esp:
     mov rax, rsp
+    ret
+
+get_cpu_ebp:
+    mov rax, rbp
     ret
 
 get_cpu_eip:

@@ -86,7 +86,7 @@ namespace net {
 
     /** Get the IP header checksum field as-is */
     uint16_t ip_checksum() const noexcept
-    { return ntohs(ip_header().check); }
+    { return ip_header().check; }
 
     /** Get source address */
     const ip4::Addr& ip_src() const noexcept
@@ -174,7 +174,7 @@ namespace net {
 
     /** Set IP header checksum field directly */
     void set_ip_checksum(uint16_t sum) noexcept
-    { ip_header().check = ntohs(sum); }
+    { ip_header().check = sum; }
 
     /** Calculate and set IP header checksum field */
     void set_ip_checksum() noexcept {

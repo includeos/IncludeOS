@@ -7,7 +7,7 @@
 ############################################################
 
 BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip g++-multilib"
-CLANG_VERSION="3.8"
+[ ! -z "$CC" ] && { CLANG_VERSION=${CC: -3}; } || CLANG_VERSION="3.8"
 TEST_DEPENDENCIES="g++"
 PYTHON_DEPENDENCIES="jsonschema psutil junit-xml filemagic"
 INSTALLED_PIP=0
@@ -141,7 +141,8 @@ case $SYSTEM in
                 sudo apt-get -qqy install $DEPENDENCIES > /dev/null || exit 1
                 ;;
             "fedora")
-                DEPENDENCIES="$DEPENDENCIES"
+                # Removes g++-multilib from dependencies
+                DEPENDENCIES=${DEPENDENCIES%g++-multilib}
                 sudo dnf install $DEPENDENCIES || exit 1
                 ;;
             "arch")

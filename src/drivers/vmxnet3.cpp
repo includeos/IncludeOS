@@ -106,7 +106,7 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()},
-         2048, 2048 /* half-page buffer size */),
+         1024, 2048 /* half-page buffer size */),
     pcidev(d)
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
@@ -330,8 +330,7 @@ void vmxnet3::refill(rxring_state& rxq)
   bool added_buffers = false;
   int  old_value = rxq.producers;
 
-  while (rxq.prod_count < VMXNET3_RX_FILL
-      && bufstore().available() != 0)
+  while (rxq.prod_count < VMXNET3_RX_FILL)
   {
     size_t i = rxq.producers % vmxnet3::NUM_RX_DESC;
     const uint32_t generation =
@@ -498,19 +497,19 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
     IRQ_manager::get().register_irq(deferred_irq);
   }
 }
+
+void vmxnet3::flush() {
+  auto idx = tx.producers % vmxnet3::NUM_TX_DESC;
+  if (idx != transmit_idx) {
+      mmio_write32(ptbase + VMXNET3_PT_TXPROD, idx);
+  }
+}
+
 void vmxnet3::handle_deferred()
 {
   for (auto* dev : deferred_devs)
   {
-    auto idx = dev->tx.producers % vmxnet3::NUM_TX_DESC;
-    if (idx != dev->transmit_idx)
-    {
-      //printf("idx: %d   t.idx: %d\n", idx, dev->transmit_idx);
-      mmio_write32(dev->ptbase + VMXNET3_PT_TXPROD, idx);
-    }
-    else {
-      printf("Avoided mmio write\n");
-    }
+    dev->flush();
     dev->deferred_kick = false;
   }
   deferred_devs.clear();

@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <string>
 #include <membitmap>
+#include <smp_utils>
 
 /** This type is thrown when Statman's span is full */
 struct Stats_out_of_memory : public std::out_of_range {
@@ -194,6 +195,7 @@ private:
   Stat* end_stats_;
   MemBitmap::word* bdata = nullptr;
   MemBitmap bitmap;
+  spinlock_t stlock = 0;
 
   Statman(const Statman& other) = delete;
   Statman(const Statman&& other) = delete;

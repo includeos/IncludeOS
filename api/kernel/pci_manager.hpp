@@ -31,6 +31,7 @@ public:
   // a <...> driver is constructed from a PCI device,
   //   and returns a unique_ptr to itself
   using NIC_driver = delegate< std::unique_ptr<hw::Nic> (hw::PCI_Device&) >;
+  using Device_vector = std::vector<const hw::PCI_Device*>;
   static void register_nic(uint16_t, uint16_t, NIC_driver);
 
   using BLK_driver = delegate< std::unique_ptr<hw::Block_device> (hw::PCI_Device&) >;
@@ -38,6 +39,8 @@ public:
 
   static void pre_init();
   static void init();
+  static  Device_vector devices();
+
 private:
   static void scan_bus(int bus);
 };

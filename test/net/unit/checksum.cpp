@@ -70,3 +70,38 @@ CASE("Verify IP checksum using buffers of various lengths")
     EXPECT(net::checksum(buffer, sizeof(buffer)) == 0);
   }
 }
+
+CASE("Verify adjusting checksum")
+{
+  char buffer[2048];
+  for (size_t j = 0; j < 32; j++)
+  {
+    buffer[0] = 0;
+    buffer[1] = 0;
+    for (size_t i = 2; i < sizeof(buffer); i++)
+      buffer[i] = rand() & 0xff;
+
+    // Set checksum
+    auto csum = net::checksum(buffer, sizeof(buffer));
+    memcpy(buffer, &csum, sizeof(csum));
+
+    // Create some random data
+    char rndm[512];
+    for (size_t i = 0; i < sizeof(rndm); i++)
+      rndm[i] = rand() & 0xff;
+
+    // A fixed point inside the buffer
+    const size_t N = sizeof(buffer) / 2;
+
+    // Adjust the checksum
+    net::checksum_adjust((uint8_t*)buffer, &buffer[N], sizeof(rndm), rndm, sizeof(rndm));
+
+    // Make sure to add the random data at the same place
+    memcpy(&buffer[N], rndm, sizeof(rndm));
+
+    // Checksum the buffer (without the csum)
+    csum = net::checksum(&buffer[2], sizeof(buffer)-2);
+
+    EXPECT(csum == *(uint16_t*)buffer);
+  }
+}

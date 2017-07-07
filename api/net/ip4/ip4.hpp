@@ -61,7 +61,6 @@ namespace net {
     using IP_packet = PacketIP4;
     using IP_packet_ptr = std::unique_ptr<IP_packet>;
     using downstream_arp = delegate<void(Packet_ptr, IP4::addr)>;
-    using Packet_filter = delegate<IP_packet_ptr(IP_packet_ptr)>;
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
     using PMTU = uint16_t;
 
@@ -130,14 +129,6 @@ namespace net {
     void set_linklayer_out(downstream_arp s)
     { linklayer_out_ = s; }
 
-    /** Assign function to determine which upstream packets gets filtered */
-    void set_upstream_filter(Packet_filter f)
-    { upstream_filter_ = f; }
-
-    /** Assign function to determine which downstream packets gets filtered */
-    void set_downstream_filter(Packet_filter f)
-    { downstream_filter_ = f; }
-
     //
     // Delegate getters
     //
@@ -168,7 +159,7 @@ namespace net {
      *  Source IP *can* be set - if it's not, IP4 will set it
      */
     void transmit(Packet_ptr);
-    void ship(Packet_ptr);
+    void ship(Packet_ptr, addr next_hop = 0);
 
 
     /**
@@ -193,11 +184,11 @@ namespace net {
     uint64_t get_packets_dropped()
     { return packets_dropped_; }
 
-    /**  Default upstream packet filter */
-    IP_packet_ptr filter_upstream(IP_packet_ptr packet);
+    /**  Drop incoming packets invalid according to RFC */
+    IP_packet_ptr drop_invalid_in(IP_packet_ptr packet);
 
-    /**  Default downstream packet filter */
-    IP_packet_ptr filter_downstream(IP_packet_ptr packet);
+    /**  Drop outgoing packets invalid according to RFC */
+    IP_packet_ptr drop_invalid_out(IP_packet_ptr packet);
 
     /**
      *  Path MTU Discovery (and Packetization Layered Path MTU Discovery) related methods
@@ -441,10 +432,6 @@ namespace net {
 
     /** Packet forwarding  */
     Stack::Forward_delg forward_packet_;
-
-    /** Packet filters */
-    Packet_filter upstream_filter_;
-    Packet_filter downstream_filter_;
 
     /** All dropped packets go here */
     drop_handler drop_handler_;

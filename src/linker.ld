@@ -31,9 +31,13 @@ SECTIONS
   PROVIDE( _TEXT_START_ = . );
   .text (_TEXT_START_ ) :
   {
+    /* For solo5, although it's just used to print the mem layout. */
+    _stext = .;
     *(.text)
     *(.text.*)
     *(.gnu.linkonce.t*)
+    /* For solo5, although it's just used to print the mem layout. */
+    _etext = .;
   }
   PROVIDE( _TEXT_END_ = . );
 
@@ -121,6 +125,8 @@ SECTIONS
     *(.rodata*)
     *(.gnu.linkonce.r*)
     _RODATA_END_ = .;
+    /* For solo5, although it's just used to print the mem layout. */
+    _erodata = .;
   }
 
   /* For stack unwinding (exception handling)  */
@@ -150,6 +156,21 @@ SECTIONS
     _DATA_END_ = .;
   }
 
+  .tdata ALIGN(0x10) :
+  {
+    _TDATA_START_ = .;
+    *(.tdata .tdata.*)
+    _TDATA_END_ = .;
+    . = ALIGN(0x10);
+  }
+  .tbss :
+  {
+    _TBSS_START_ = .;
+    *(.tbss .tbss.*)
+    _TBSS_END_ = .;
+    . = ALIGN(0x10);
+  }
+
   .memdisk :
   {
     _DISK_START_ = .;
@@ -162,15 +183,22 @@ SECTIONS
     LONG (0);
   }
 
+  /*
+   * XXX: We need this padding because in solo5 initialization some variables
+   * in the bss are set to non-zero values. So, without the padding the ELFs
+   * symbol table would get modified.
+   */
+  . += 0x1000000;
+
   .bss :
   {
     _BSS_START_ = .;
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
     _BSS_END_ = .;
-    . = ALIGN(64 / 8);
   }
-  . = ALIGN(64 / 8);
+  . = ALIGN(0x8);
+
   _end = .;
 
   PROVIDE (end = .);

@@ -64,6 +64,29 @@ union Addr {
     : part{a,b,c,d,e,f}
   {}
 
+  static uint8_t dehex(char c)
+  {
+    if (c >= '0' && c <= '9')
+        return (c - '0');
+    else if (c >= 'a' && c <= 'f')
+        return 10 + (c - 'a');
+    else if (c >= 'A' && c <= 'F')
+        return 10 + (c - 'A');
+    else
+        return 0;
+  }
+
+  Addr(const char *smac) noexcept
+  {
+    uint8_t macaddr[PARTS_LEN] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    for (size_t i = 0; i < PARTS_LEN; i++) {
+        macaddr[i] = dehex(*smac++) << 4;
+        macaddr[i] |= dehex(*smac++);
+        smac++;
+    }
+    memcpy(part, macaddr, PARTS_LEN);
+  }
+
   /**
    * Assignment operator
    *

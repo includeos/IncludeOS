@@ -131,9 +131,23 @@ long_mode:
     mov  rsp, STACK_LOCATION
     mov  rbp, rsp
 
+    ;; setup temporary smp table
+    mov rax, sentinel_table
+    mov rdx, 0
+    mov rcx, 0xC0000100 ;; FS BASE
+    wrmsr
+
     ;; geronimo!
     mov  edi, DWORD[__multiboot_magic]
     mov  esi, DWORD[__multiboot_addr]
     call kernel_start
     pop  rsp
     ret
+
+sentinel_table:
+    dq sentinel_table ;; 0x0
+    dq 0 ;; 0x8
+    dq 0 ;; 0x10
+    dq 0 ;; 0x18
+    dq 0 ;; 0x20
+    dq 0x123456789ABCDEF

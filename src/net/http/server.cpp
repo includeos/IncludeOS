@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/http/server.hpp>
+#include <smp>
 
 namespace http {
 
@@ -63,8 +64,11 @@ namespace http {
 
   void Server::bind(const uint16_t port)
   {
+    assert(tcp_.get_cpuid() == SMP::cpu_id());
     tcp_.listen(port, {this, &Server::on_connect});
-    INFO("HTTP Server", "Listening on port %u", port);
+    SMP::global_lock();
+    INFO("HTTP Server", "Listening on port %u on CPU %d", port, SMP::cpu_id());
+    SMP::global_unlock();
   }
 
   void Server::connect(Connection::Stream_ptr stream)

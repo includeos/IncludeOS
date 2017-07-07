@@ -29,7 +29,7 @@
 #include <queue>  // writeq
 #include <net/inet.hpp>
 #include <net/socket.hpp>
-#include <bitset>
+#include <net/port_util.hpp>
 
 namespace net {
 
@@ -46,95 +46,14 @@ namespace net {
     using CleanupCallback = tcp::Connection::CleanupCallback;
     using ConnectCallback = tcp::Connection::ConnectCallback;
 
+    using Packet_reroute_func = delegate<void(tcp::Packet_ptr)>;
+
     friend class tcp::Connection;
     friend class tcp::Listener;
 
   private:
     using Listeners       = std::map<Socket, std::unique_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
-
-    /**
-     * @brief      Class for port utility.
-     */
-    class Port_util {
-    public:
-      /**
-       * @brief      Construct a port util with a new generated ephemeral port
-       *             and a empty port list.
-       */
-      Port_util();
-
-      /**
-       * @brief      Gets the next ephemeral port.
-       *             increment_ephemeral may throw
-       *
-       * @return     The next ephemeral port.
-       */
-      uint16_t get_next_ephemeral()
-      {
-        increment_ephemeral();
-        return ephemeral_;
-      }
-
-      /**
-       * @brief      Bind a port, making it reserved.
-       *
-       * @param[in]  port  The port
-       */
-      void bind(const uint16_t port) noexcept
-      {
-        Expects(port < port_ranges::DYNAMIC_END);
-        ports.set(port);
-
-        if(port_ranges::is_dynamic(port)) ++eph_count;
-      }
-
-      /**
-       * @brief      Unbind a port, making it available.
-       *
-       * @param[in]  port  The port
-       */
-      void unbind(const uint16_t port) noexcept
-      {
-        Expects(port < port_ranges::DYNAMIC_END);
-        ports.reset(port);
-
-        if(port_ranges::is_dynamic(port)) --eph_count;
-      }
-
-      /**
-       * @brief      Determines if the port is bound.
-       *
-       * @param[in]  port  The port
-       *
-       * @return     True if bound, False otherwise.
-       */
-      bool is_bound(const uint16_t port) const noexcept
-      {
-        Expects(port < port_ranges::DYNAMIC_END);
-        return ports[port];
-      }
-
-      /**
-       * @brief      Determines if it has any free ephemeral ports.
-       *
-       * @return     True if has free ephemeral, False otherwise.
-       */
-      bool has_free_ephemeral() const noexcept
-      { return eph_count < (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START); }
-
-    private:
-      std::bitset<65536> ports;
-      uint16_t           ephemeral_;
-      uint16_t           eph_count;
-
-      /**
-       * @brief      Increment the ephemeral port by one.
-       *             Throws if there are no more free ephemeral ports available.
-       */
-      void increment_ephemeral();
-
-    }; // < class Port_util
     using Port_lists      = std::map<tcp::Address, Port_util>;
 
   public:
@@ -147,7 +66,7 @@ namespace net {
      *
      * @param      <unnamed>  The IPStack used by TCP
      */
-    TCP(IPStack&);
+    TCP(IPStack&, bool smp = false);
 
     /**
      * @brief      Bind to a port to start listening for new connections
@@ -539,6 +458,14 @@ namespace net {
       throw std::out_of_range("Missing connection");
     }
 
+    void redirect(Packet_reroute_func func) {
+      this->packet_rerouter = func;
+    }
+
+    int get_cpuid() const noexcept {
+      return this->cpu_id;
+    }
+
   private:
     IPStack&      inet_;
     Listeners     listeners_;
@@ -567,14 +494,18 @@ namespace net {
     uint16_t                  max_syn_backlog_;
 
     /** Stats */
-    uint64_t& bytes_rx_;
-    uint64_t& bytes_tx_;
-    uint64_t& packets_rx_;
-    uint64_t& packets_tx_;
-    uint64_t& incoming_connections_;
-    uint64_t& outgoing_connections_;
-    uint64_t& connection_attempts_;
-    uint32_t& packets_dropped_;
+    uint64_t* bytes_rx_ = nullptr;
+    uint64_t* bytes_tx_ = nullptr;
+    uint64_t* packets_rx_ = nullptr;
+    uint64_t* packets_tx_ = nullptr;
+    uint64_t* incoming_connections_ = nullptr;
+    uint64_t* outgoing_connections_ = nullptr;
+    uint64_t* connection_attempts_ = nullptr;
+    uint32_t* packets_dropped_ = nullptr;
+
+    bool smp_enabled = false;
+    int  cpu_id = 0;
+    Packet_reroute_func packet_rerouter = nullptr;
 
     /**
      * @brief      Transmit an outgoing TCP segment to the network.
@@ -763,6 +694,7 @@ namespace net {
      * @param[in]  packets  Number of disposable packets
      */
     void process_writeq(size_t packets);
+    void smp_process_writeq(size_t packets);
 
     /**
      * @brief      Request an offer of packets.

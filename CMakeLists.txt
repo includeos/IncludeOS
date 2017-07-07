@@ -17,6 +17,8 @@ set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 message(STATUS "Target triple ${TRIPLE}")
 
+option(WITH_SOLO5 "Install with solo5 support" ON)
+
 set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
 
 project (includeos C CXX)
@@ -48,7 +50,7 @@ endif(cpu_feat_vanilla)
 option(single_threaded "Compile without SMP support" ON)
 
 # create random hex string as stack protector canary
-string(RANDOM LENGTH 8 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
+string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
 set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
 
@@ -141,6 +143,7 @@ if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
     PREFIX vmbuild # Build where
+    BUILD_ALWAYS 1
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
     BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
@@ -151,6 +154,7 @@ endif(vmbuild)
 option(diskbuilder "Build and install memdisk helper tool" ON)
 if(diskbuilder)
   ExternalProject_Add(diskbuilder
+    BUILD_ALWAYS 1
     SOURCE_DIR ${INCLUDEOS_ROOT}/diskimagebuild
     BINARY_DIR ${INCLUDEOS_ROOT}/diskimagebuild/build
     INSTALL_DIR ${BIN}
@@ -213,6 +217,7 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/grubify.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/ukvm-ifup.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
   DESTINATION includeos/scripts)
 

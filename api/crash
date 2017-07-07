@@ -1,0 +1,8 @@
+// -*-C++-*-
+#pragma once
+#ifndef API_CRASH_HEADER
+#define API_CRASH_HEADER
+
+#include <kernel/syscalls.hpp>
+
+#endif
