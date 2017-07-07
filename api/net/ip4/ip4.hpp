@@ -277,8 +277,10 @@ namespace net {
     /**
      * Path MTU Discovery can be enabled or disabled
      * It is enabled by default and can be disabled via Inet
+     *
+     * @todo When Path MTU Discovery has been tested for a while, set this to true (default on)
      */
-    bool path_mtu_discovery_{true};
+    bool path_mtu_discovery_{false};
 
     Stack& stack_;
 
