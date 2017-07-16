@@ -35,6 +35,8 @@ extern char _end;
 // heap area
 extern char* heap_begin;
 extern char* heap_end;
+// turn this off to reduce liveupdate times at the cost of extra checks
+bool LIVEUPDATE_PERFORM_SANITY_CHECKS = true;
 
 using namespace liu;
 
@@ -177,12 +179,7 @@ void LiveUpdate::begin(void*        location,
   LPRINT("* _start is located at %#x\n", start_offset);
 
   // save ourselves if function passed
-  if (storage_callback)
-  {
-      auto storage_len =
-          update_store_data(storage_area, storage_callback, &blob);
-      (void) storage_len;
-  }
+  update_store_data(storage_area, storage_callback, &blob);
 
   // 2. flush all devices with flush() interface
   hw::Devices::flush_all();
@@ -240,25 +237,39 @@ size_t LiveUpdate::store(void* location, storage_func func)
   return update_store_data(location, func, nullptr);
 }
 
+size_t LiveUpdate::stored_data_length(void* location)
+{
+  auto* storage = (storage_header*) location;
+  
+  if (LIVEUPDATE_PERFORM_SANITY_CHECKS)
+  {
+    /// sanity check
+    if (storage->validate() == false)
+        throw std::runtime_error("Failed sanity check on LiveUpdate storage area");
+  }
+
+  /// return length of the whole area
+  return storage->total_bytes();
+}
+
 size_t update_store_data(void* location, LiveUpdate::storage_func func, const buffer_t* blob)
 {
   // create storage header in the fixed location
   new (location) storage_header();
   auto* storage = (storage_header*) location;
 
-  /// callback for storing stuff
-  Storage wrapper {*storage};
-  func(wrapper, blob);
+  /// callback for storing stuff, if provided
+  if (func != nullptr)
+  {
+    Storage wrapper {*storage};
+    func(wrapper, blob);
+  }
 
   /// finalize
   storage->finalize();
 
-  /// sanity check
-  if (storage->validate() == false)
-      throw std::runtime_error("Failed sanity check on user storage data");
-
-  /// return length of the whole thing
-  return storage->total_bytes();
+  /// return length (and perform sanity check)
+  return LiveUpdate::stored_data_length(location);
 }
 
 /// struct Storage
