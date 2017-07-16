@@ -40,28 +40,6 @@ bool LIVEUPDATE_PERFORM_SANITY_CHECKS = true;
 
 using namespace liu;
 
-bool LiveUpdate::is_resumable(void* location)
-{
-  /// memory sanity check
-  if (heap_end >= (char*) location) {
-    fprintf(stderr,
-        "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
-		     (long int) (heap_end - (char*) location));
-    return false;
-  }
-  return ((storage_header*) location)->validate();
-}
-bool LiveUpdate::resume(void* location, resume_func func)
-{
-  // check if an update has occurred
-  if (!is_resumable(location)) return false;
-
-  LPRINT("* Restoring data...\n");
-  // restore connections etc.
-  extern bool resume_begin(storage_header&, LiveUpdate::resume_func);
-  return resume_begin(*(storage_header*) location, func);
-}
-
 static size_t update_store_data(void* location, LiveUpdate::storage_func, const buffer_t*);
 
 template <typename Class>

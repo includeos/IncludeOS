@@ -60,6 +60,9 @@ struct LiveUpdate
   // to be sure that only failure can return false, use is_resumable first
   static bool resume(void* location, resume_func default_handler);
 
+  // When explicitly resuming from heap, heap overrun checks are disabled
+  static bool resume_from_heap(void* location, resume_func default_handler);
+
   // Retrieve the recorded length, in bytes, of a valid storage area
   // Throws std::runtime_error when something bad happens
   // Never returns zero
