@@ -20,10 +20,21 @@ set(SOURCES
   service.cpp # ...add more here
   )
 
-set(DRIVERS
-  virtionet   # Virtio networking
-  #vmxnet3
-  )
+if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
+  set(DRIVERS
+      silent_start  # Less output during boot
+      solo5net     # Virtio networking
+      # virtioblock # Virtio block device
+      # ... Others from src/drivers
+    )
+else()
+  set(DRIVERS
+      silent_start  # Less output during boot
+      virtionet     # Virtio networking
+      # virtioblock # Virtio block device
+      # ... Others from src/drivers
+    )
+endif()
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
