@@ -168,6 +168,8 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
     }
   }
 
+  Solo5_manager::init();
+
   // We don't need a start or stop function in solo5.
   Timers::init(
     // timer start function
@@ -189,8 +191,6 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
          static_cast<int>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name().c_str());
   FILLINE('~');
-
-  Solo5_manager::init();
 
   Service::start();
   // NOTE: this is a feature for service writers, don't move!

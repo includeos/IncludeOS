@@ -61,7 +61,7 @@ set(OS_OBJECTS
   net/http/mime_types.cpp net/http/cookie.cpp net/http/secure_server.cpp
   net/http/client_connection.cpp net/http/client.cpp
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
-  net/ws/websocket.cpp
+  net/ws/websocket.cpp net/nat/napt.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
@@ -76,7 +76,9 @@ add_dependencies(os PrecompiledLibraries botan)
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)
 add_subdirectory(platform/x86_nano)
+if(WITH_SOLO5)
 add_subdirectory(platform/x86_solo5)
+endif(WITH_SOLO5)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
 

@@ -20,7 +20,7 @@
 
 #include <chrono>
 #include <unordered_set>
-
+#include <list>
 #include <net/inet_common.hpp>
 #include <hw/mac_addr.hpp>
 #include <hw/nic.hpp>
@@ -48,24 +48,25 @@ namespace net {
     using resolve_func = delegate<void(typename IPv::addr, Error&)>;
     using Vip_list = std::unordered_set<typename IPV::addr>;
 
+
     ///
     /// NETWORK CONFIGURATION
     ///
 
     /** Get IP address of this interface **/
-    virtual typename IPV::addr ip_addr()        = 0;
+    virtual typename IPV::addr ip_addr() const = 0;
 
     /** Get netmask of this interface **/
-    virtual typename IPV::addr netmask()        = 0;
+    virtual typename IPV::addr netmask() const = 0;
 
     /** Get default gateway for this interface **/
-    virtual typename IPV::addr gateway()        = 0;
+    virtual typename IPV::addr gateway() const = 0;
 
     /** Get default dns for this interface **/
-    virtual typename IPV::addr dns_addr()       = 0;
+    virtual typename IPV::addr dns_addr() const = 0;
 
     /** Get broadcast address for this interface **/
-    virtual typename IPV::addr broadcast_addr() = 0;
+    virtual typename IPV::addr broadcast_addr() const = 0;
 
    /** Set default gateway for this interface */
     virtual void set_gateway(typename IPV::addr server) = 0;
@@ -111,6 +112,55 @@ namespace net {
 
     /** Determine if an IP address is a valid source address for this stack */
     virtual bool is_valid_source(typename IPV::addr) = 0;
+
+
+    ///
+    /// PACKET FILTERING
+    ///
+
+    using Packetfilter = delegate<typename IPV::IP_packet_ptr(typename IPV::IP_packet_ptr, const Stack&)>;
+
+    struct Filter_chain {
+      std::list<Packetfilter> chain;
+      const char* name;
+
+      typename IPV::IP_packet_ptr operator()(typename IPV::IP_packet_ptr pckt, const Stack& stack) {
+        int i = 0;
+        for (auto filter : chain) {
+          i++;
+          pckt = filter(std::move(pckt), stack);
+          if (pckt == nullptr) {
+            debug("Packet dropped in %s chain, filter %i \n", name, i);
+            // do some logging
+            return nullptr;
+          }
+        }
+        return pckt;
+      }
+
+      Filter_chain(const char* chain_name, std::initializer_list<Packetfilter> filters) :
+        chain{filters},
+        name{chain_name} {}
+    };
+
+    /**
+     * Packet filtering hooks for firewall, NAT, connection tracking etc.
+     **/
+
+    /** Packets pass through prerouting chain before routing decision */
+    virtual Filter_chain& prerouting_chain() = 0;
+
+    /** Packets pass through postrouting chain after routing decision */
+    virtual Filter_chain& postrouting_chain() = 0;
+
+    /** Packets pass through forward chain by forwarder, if enabled */
+    virtual Filter_chain& forward_chain() = 0;
+
+    /** Packets pass through input chain before hitting protocol handlers */
+    virtual Filter_chain& input_chain() = 0;
+
+    /** Packets pass through output chain after exiting protocol handlers */
+    virtual Filter_chain& output_chain() = 0;
 
 
     ///
@@ -166,7 +216,7 @@ namespace net {
     virtual std::string ifname() const = 0;
 
     /** Get linklayer address for this interface **/
-    virtual MAC::Addr link_addr() = 0;
+    virtual MAC::Addr link_addr() const = 0;
 
     /** Add cache entry to the link / IP address cache */
     virtual void cache_link_addr(typename IPV::addr, MAC::Addr) = 0;
@@ -182,7 +232,9 @@ namespace net {
     /// ROUTING
     ///
 
-    /** Set an IP forwarding delegate. E.g. used to enable routing */
+    /** Set an IP forwarding delegate. E.g. used to enable routing.
+     *  NOTE: The packet forwarder is expected to call the forward_chain
+     **/
     virtual void set_forward_delg(Forward_delg) = 0;
 
     /** Assign boolean function to determine if we have route to a given IP */

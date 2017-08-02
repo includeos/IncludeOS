@@ -65,6 +65,17 @@ set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 # DRIVERS / PLUGINS - support for parent cmake list specification
 #
 
+# Add extra drivers defined from command line
+set(DRIVERS ${DRIVERS} ${EXTRA_DRIVERS})
+if(DRIVERS)
+  list(REMOVE_DUPLICATES DRIVERS) # Remove duplicate drivers
+endif()
+# Add extra plugins defined from command line
+set(PLUGINS ${PLUGINS} ${EXTRA_PLUGINS})
+if(PLUGINS)
+  list(REMOVE_DUPLICATES PLUGINS) # Remove duplicate plugins
+endif()
+
 # Function:
 # Add plugin / driver as library, set link options
 function(configure_plugin type plugin_name path)
@@ -133,6 +144,12 @@ foreach(DEP ${DEPENDENCIES})
   add_subdirectory(${DIR_PATH})
   add_dependencies(service ${DEP_NAME})
 endforeach()
+
+# Add extra libraries defined from command line
+set(LIBRARIES ${LIBRARIES} ${EXTRA_LIBRARIES})
+if(LIBRARIES)
+  list(REMOVE_DUPLICATES LIBRARIES) # Remove duplicate libraries
+endif()
 
 # add all extra libs
 foreach(LIBR ${LIBRARIES})
@@ -267,8 +284,9 @@ function(add_memdisk DISK)
 endfunction()
 
 # automatically build memdisk from folder
-function(diskbuilder FOLD)
+function(build_memdisk FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  message(STATUS ${REL_PATH})
   add_custom_command(
       OUTPUT  memdisk.fat
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
@@ -277,6 +295,18 @@ function(diskbuilder FOLD)
     add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
   add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
+endfunction()
+
+# build memdisk if defined
+if(MEMDISK)
+  build_memdisk(${MEMDISK})
+endif()
+
+# call build_memdisk only if MEMDISK is not defined from command line
+function(diskbuilder FOLD)
+  if(NOT MEMDISK)
+    build_memdisk(${FOLD})
+  endif()
 endfunction()
 
 if(TARFILE)
