@@ -48,14 +48,14 @@ using namespace net;
 #define BUFFER_SIZE 2048
 static BufferStore bufstore(BUFFER_CNT, BUFFER_SIZE);
 
-#define DRIVER_OFFSET    12
-#define PACKET_CAPA    1012
+#define PHYS_OFFSET     0
+#define PACKET_CAPA  1514
 
 static Packet_ptr create_packet() noexcept
 {
   auto buffer = bufstore.get_buffer();
   auto* ptr = (net::Packet*) buffer.addr;
-  new (ptr) net::Packet(DRIVER_OFFSET, 0, DRIVER_OFFSET + PACKET_CAPA, buffer.bufstore);
+  new (ptr) net::Packet(PHYS_OFFSET, 0, PHYS_OFFSET + PACKET_CAPA, buffer.bufstore);
   return net::Packet_ptr(ptr);
 }
 static tcp::Packet_ptr create_tcp_packet() noexcept
@@ -72,6 +72,7 @@ CASE("Empty TCP packet")
 {
   auto tcp = create_tcp_packet();
   EXPECT(tcp->size() == 40);
+  EXPECT(tcp->ip_capacity() == 1480);
   EXPECT(tcp->ip_header_length() == 20);
   EXPECT(tcp->ip_data_length() == 20);
 
@@ -85,7 +86,7 @@ CASE("Empty TCP packet")
 CASE("Fill 1 byte")
 {
   auto tcp = create_tcp_packet();
-  tcp->fill((const uint8_t*) "data", 1);
+  EXPECT(tcp->fill((const uint8_t*) "data", 1) == 1);
 
   EXPECT(tcp->size() == 41);
   EXPECT(tcp->ip_header_length() == 20);
@@ -97,6 +98,23 @@ CASE("Fill 1 byte")
 
   EXPECT(tcp->has_tcp_options() == false);
   EXPECT(tcp->tcp_options_length() == 0);
+}
+
+CASE("Fill too many bytes")
+{
+  uint8_t buffer[9000];
+  strcpy((char*) buffer, "data here!");
+
+  auto tcp = create_tcp_packet();
+  EXPECT(tcp->fill(buffer, sizeof(buffer)) == 1460);
+  // packet should be full now
+  EXPECT(tcp->fill(buffer, sizeof(buffer)) == 0);
+  EXPECT(tcp->ip_capacity() == 1480);
+
+  EXPECT(tcp->ip_data_length() == 1480);
+  EXPECT(tcp->tcp_data_length() == 1460);
+
+  EXPECT(strcmp((const char*) tcp->tcp_data(), "data here!") == 0);
 }
 
 struct Optijohn {
@@ -141,4 +159,44 @@ CASE("Add too many options")
 
   EXPECT(tcp->has_tcp_options() == true);
   EXPECT(tcp->tcp_options_length() == 40);
+}
+
+CASE("TCP header flags")
+{
+  auto tcp = create_tcp_packet();
+  using namespace net::tcp;
+
+  EXPECT(tcp->isset(SYN) == false);
+  tcp->set_flags(SYN);
+  EXPECT(tcp->isset(SYN) == true);
+
+  EXPECT(tcp->isset(FIN) == false);
+  tcp->set_flags(FIN);
+  EXPECT(tcp->isset(SYN) == true);
+  EXPECT(tcp->isset(FIN) == true);
+
+  tcp->clear_flags();
+  EXPECT(tcp->isset(SYN) == false);
+  EXPECT(tcp->isset(FIN) == false);
+
+  tcp->set_flags(SYN | FIN);
+  EXPECT(tcp->isset(SYN) == true);
+  EXPECT(tcp->isset(FIN) == true);
+
+  tcp->clear_flag(SYN);
+  EXPECT(tcp->isset(SYN) == false);
+  EXPECT(tcp->isset(FIN) == true);
+}
+
+CASE("TCP header source and dest")
+{
+  auto tcp = create_tcp_packet();
+
+  tcp->set_source({{10,0,0,1}, 666});
+  tcp->set_destination({{10,0,0,2}, 667});
+
+  EXPECT(tcp->source().address() == ip4::Addr(10,0,0,1));
+  EXPECT(tcp->source().port()    == 666);
+  EXPECT(tcp->destination().address() == ip4::Addr(10,0,0,2));
+  EXPECT(tcp->destination().port()    == 667);
 }

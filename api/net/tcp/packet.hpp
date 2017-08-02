@@ -50,7 +50,6 @@ public:
   //! a valid MTU-sized buffer
   void init()
   {
-
     PacketIP4::init(Protocol::TCP);
     auto* ipdata = ip_data_ptr();
 
@@ -233,7 +232,9 @@ Socket source() const
 
     // update offset
     auto newoffset = offset() + round_up(opt.length + Padding, 4);
-    if (newoffset > 0xF) throw std::runtime_error("Too many TCP options");
+    if (UNLIKELY(newoffset > 0xF)) {
+      throw std::runtime_error("Too many TCP options");
+    }
     set_offset(newoffset);
 
     set_length(); // update
@@ -260,13 +261,17 @@ Socket source() const
     auto newoffset = offset() + (sizeof(T) / 4);
 
     set_offset(newoffset);
-    if (newoffset > 0xF) throw std::runtime_error("Too many TCP options");
+    if (UNLIKELY(newoffset > 0xF)) {
+      throw std::runtime_error("Too many TCP options");
+    }
     set_length(); // update
   }
 
   void clear_options() {
     // clear existing options
-    // move data (if any) (??)
+    if (UNLIKELY(tcp_data_length() > 0)) {
+      throw std::runtime_error("Can't clear options on TCP packet with data");
+    }
     set_offset(5);
     set_length(); // update
   }
