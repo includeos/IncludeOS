@@ -136,13 +136,18 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
-  memmap.assign_range({0xA000, 0x9fbff, "Stack", "Kernel / service main stack"});
-  memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
+#if defined(ARCH_x86_64)
+  memmap.assign_range({0x100000, 0x8fffff, "Pagetables", "System page tables"});
+  memmap.assign_range({0x900000, 0x9fffff, "Stack", "System main stack"});
+#elif defined(ARCH_i686)
+  memmap.assign_range({0xA000, 0x9fbff, "Stack", "System main stack"});
+#endif
+  memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end - 1,
         "ELF", "Your service binary including OS"});
 
   Expects(::heap_begin and heap_max_);
   // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
+  memmap.assign_range({(uintptr_t)&_end, ::heap_begin - 1,
         "Pre-heap", "Heap randomization area"});
 
   // Give the rest of physical memory to heap

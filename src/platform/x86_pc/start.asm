@@ -76,8 +76,9 @@ rock_bottom:
   mov cx, 0x18 ;; GS segment
   mov gs, cx
 
-  ;; Set up stack.
-  mov esp, 0xA0000
+  ;; 32-bit stack base address at EBDA border
+  ;; NOTE: Multiboot can use 9fc00 to 9ffff
+  mov esp, 0x9FC00
   mov ebp, esp
 
   ;; enable SSE before we enter C/C++ land
