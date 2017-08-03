@@ -93,4 +93,3 @@ install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")
 
 install(FILES service_name.cpp DESTINATION includeos/src)
-install(FILES linker.ld DESTINATION includeos)

@@ -65,21 +65,20 @@ void Service::start()
       {(char*)binary.mod_start,
         (int)(binary.mod_end - binary.mod_start)});
 
-  void* hotswap_addr = (void*)0x200000;
+  void* hotswap_addr = (void*)0x2000;
   extern char __hotswap_end;
 
-  debug("Moving hotswap function (begin at %p end at %p) of size %i",
+  MYINFO("Moving hotswap function (begin at %p end at %p) of size %i",
          &hotswap,  &__hotswap_end, &__hotswap_end - (char*)&hotswap);
   memcpy(hotswap_addr,(void*)&hotswap, &__hotswap_end - (char*)&hotswap );
 
-  debug("Preparing for jump to %s. Multiboot magic: 0x%x, addr 0x%x",
+  MYINFO("Preparing for jump to %s. Multiboot magic: 0x%x, addr 0x%x",
          (char*)binary.cmdline, __multiboot_magic, __multiboot_addr);
 
   char* base  = (char*)binary.mod_start;
   int len = (int)(binary.mod_end - binary.mod_start);
-  // FIXME: determine kernel base from ELF program header
-  char* dest = (char*)0xA00000;
-  void* start = (void*)elf.entry();
+  char* dest = (char*) 0xA00000; //elf.program_header().p_paddr;
+  void* start = (void*) elf.entry();
 
   MYINFO("Hotswapping with params: base: %p, len: %i, dest: %p, start: %p",
          base, len, dest, start);

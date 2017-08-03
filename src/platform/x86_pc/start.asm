@@ -76,7 +76,7 @@ rock_bottom:
   mov cx, 0x18 ;; GS segment
   mov gs, cx
 
-  ;; Set up stack.
+  ;; 32-bit stack base address at EBDA border
   mov esp, 0xA0000
   mov ebp, esp
 
