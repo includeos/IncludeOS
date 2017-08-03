@@ -143,8 +143,14 @@ CASE("SACK List Array implementation [RFC 2018]")
         6500       5500    6000   7500   8000   8500
   */
 
+  for(auto& b : sack_list.impl.blocks)
+    std::cout << b << "\n";
   // 6000   7500   8000   8500
   entries = sack_list.recv_out_of_order(6500, 500);
+
+  for(auto& b : sack_list.impl.blocks)
+    std::cout << b << "\n";
+
   EXPECT(entries == expected({6000,7500}, {8000,8500}));
 
   /*
@@ -158,6 +164,8 @@ CASE("SACK List Array implementation [RFC 2018]")
         5500       7500    8000   8500
   */
   auto result = sack_list.new_valid_ack(5500 + 500);
+  for(auto& b : sack_list.impl.blocks)
+    std::cout << b << "\n";
   EXPECT(result.entries == expected({8000,8500}));
   EXPECT(result.bytes_freed == 7500-6000);
 
