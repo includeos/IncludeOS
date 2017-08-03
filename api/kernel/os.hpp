@@ -180,7 +180,7 @@ public:
   static uintptr_t heap_max() noexcept;
 
   /** The end of usable memory **/
-  static inline uintptr_t memory_end(){
+  static uintptr_t memory_end() noexcept {
     return memory_end_;
   }
 
@@ -198,6 +198,9 @@ public:
     static  Memory_map memmap {};
     return memmap;
   }
+
+  /** Get "kernel modules", provided by multiboot */
+  static Span_mods modules();
 
   /**
    * Register a custom initialization function. The provided delegate is
@@ -219,17 +222,15 @@ public:
   /** The main event loop. Check interrupts, timers etc., and do callbacks. */
   static void event_loop();
 
-  /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
+  /** Initialize platform, devices etc. */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
   static void start(char *cmdline, uintptr_t mem_size);
 
-  /** Get "kernel modules", provided by multiboot */
-  static Span_mods modules();
-
+  /** Initialize common subsystems, call Service::start */
+  static void post_start();
 
 private:
-
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
 

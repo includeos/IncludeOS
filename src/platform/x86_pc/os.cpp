@@ -41,7 +41,6 @@
 #endif
 
 extern "C" void* get_cpu_esp();
-extern "C" void  kernel_sanity_checks();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -180,43 +179,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("RTC init");
   // Realtime/monotonic clock
   RTC::init();
-
-  MYINFO("Initializing RNG");
-  PROFILE("RNG init");
-  RNG::init();
-
-  // Seed rand with 32 bits from RNG
-  srand(rng_extract_uint32());
-
-  // Custom initialization functions
-  MYINFO("Initializing plugins");
-  // the boot sequence is over when we get to plugins/Service::start
-  OS::boot_sequence_passed_ = true;
-
-  PROFILE("Plugins init");
-  for (auto plugin : plugins_) {
-    INFO2("* Initializing %s", plugin.name_);
-    try{
-      plugin.func_();
-    } catch(std::exception& e){
-      MYINFO("Exception thrown when initializing plugin: %s", e.what());
-    } catch(...){
-      MYINFO("Unknown exception when initializing plugin");
-    }
-  }
-
-  PROFILE("Service::start");
-  // begin service start
-  FILLINE('=');
-  printf(" IncludeOS %s (%s / %i-bit)\n",
-         version().c_str(), arch().c_str(),
-         static_cast<int>(sizeof(uintptr_t)) * 8);
-  printf(" +--> Running [ %s ]\n", Service::name().c_str());
-  FILLINE('~');
-
-  Service::start();
-  // NOTE: this is a feature for service writers, don't move!
-  kernel_sanity_checks();
 }
 
 void OS::event_loop()
