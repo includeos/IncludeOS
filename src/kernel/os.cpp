@@ -97,6 +97,44 @@ void OS::shutdown()
   power_ = false;
 }
 
+void OS::post_start()
+{
+  MYINFO("Initializing RNG");
+  PROFILE("RNG init");
+  RNG::init();
+
+  // Seed rand with 32 bits from RNG
+  srand(rng_extract_uint32());
+
+  // Custom initialization functions
+  MYINFO("Initializing plugins");
+  // the boot sequence is over when we get to plugins/Service::start
+  OS::boot_sequence_passed_ = true;
+
+  PROFILE("Plugins init");
+  for (auto plugin : plugins_) {
+    INFO2("* Initializing %s", plugin.name_);
+    try{
+      plugin.func_();
+    } catch(std::exception& e){
+      MYINFO("Exception thrown when initializing plugin: %s", e.what());
+    } catch(...){
+      MYINFO("Unknown exception when initializing plugin");
+    }
+  }
+
+  PROFILE("Service::start");
+  // begin service start
+  FILLINE('=');
+  printf(" IncludeOS %s (%s / %i-bit)\n",
+         version().c_str(), arch().c_str(),
+         static_cast<int>(sizeof(uintptr_t)) * 8);
+  printf(" +--> Running [ %s ]\n", Service::name().c_str());
+  FILLINE('~');
+
+  Service::start();
+}
+
 void OS::add_stdout(OS::print_func func)
 {
   os_print_handlers.add(func);

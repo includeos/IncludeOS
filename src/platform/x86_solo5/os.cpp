@@ -20,7 +20,6 @@ static uint64_t* os_cycles_hlt   = nullptr;
 static uint64_t* os_cycles_total = nullptr;
 
 extern "C" void* get_cpu_esp();
-extern "C" void  kernel_sanity_checks();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -144,29 +143,7 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   MYINFO("Booted at monotonic_ns=%lld walltime_ns=%lld",
          solo5_clock_monotonic(), solo5_clock_wall());
 
-  MYINFO("Initializing RNG");
-  PROFILE("RNG init");
-  RNG::init();
-
-  // Seed rand with 32 bits from RNG
-  srand(rng_extract_uint32());
-
-  // Custom initialization functions
-  MYINFO("Initializing plugins");
-  // the boot sequence is over when we get to plugins/Service::start
-  OS::boot_sequence_passed_ = true;
-
-  PROFILE("Plugins init");
-  for (auto plugin : plugins_) {
-    INFO2("* Initializing %s", plugin.name_);
-    try{
-      plugin.func_();
-    } catch(std::exception& e){
-      MYINFO("Exception thrown when initializing plugin: %s", e.what());
-    } catch(...){
-      MYINFO("Unknown exception when initializing plugin");
-    }
-  }
+  Solo5_manager::init();
 
   // We don't need a start or stop function in solo5.
   Timers::init(
@@ -180,28 +157,10 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   Timers::oneshot(std::chrono::hours(1000000), [] (auto) {});
 
   Timers::ready();
-
-  PROFILE("Service::start");
-  // begin service start
-  FILLINE('=');
-  printf(" IncludeOS %s (%s / %i-bit)\n",
-         version().c_str(), arch().c_str(),
-         static_cast<int>(sizeof(uintptr_t)) * 8);
-  printf(" +--> Running [ %s ]\n", Service::name().c_str());
-  FILLINE('~');
-
-  Solo5_manager::init();
-
-  Service::start();
-  // NOTE: this is a feature for service writers, don't move!
-  kernel_sanity_checks();
 }
 
 void OS::event_loop()
 {
-  //uint8_t *data = (uint8_t *) malloc(1520);
-  //assert(data);
-
   while (power_) {
     int rc;
 
@@ -217,10 +176,6 @@ void OS::event_loop()
     rc = solo5_poll(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
     Timers::timers_handler();
     if (rc) {
-
-      //int len = 1520;
-      //memset(data, 0, 1520);
-
       for(auto& nic : hw::Devices::devices<hw::Nic>()) {
         nic->poll();
         break;

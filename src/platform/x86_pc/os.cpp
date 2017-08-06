@@ -41,7 +41,6 @@
 #endif
 
 extern "C" void* get_cpu_esp();
-extern "C" void  kernel_sanity_checks();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -136,13 +135,18 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
-  memmap.assign_range({0xA000, 0x9fbff, "Stack", "Kernel / service main stack"});
-  memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
+#if defined(ARCH_x86_64)
+  memmap.assign_range({0x100000, 0x8fffff, "Pagetables", "System page tables"});
+  memmap.assign_range({0x900000, 0x9fffff, "Stack", "System main stack"});
+#elif defined(ARCH_i686)
+  memmap.assign_range({0xA000, 0x9fbff, "Stack", "System main stack"});
+#endif
+  memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end - 1,
         "ELF", "Your service binary including OS"});
 
   Expects(::heap_begin and heap_max_);
   // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
+  memmap.assign_range({(uintptr_t)&_end, ::heap_begin - 1,
         "Pre-heap", "Heap randomization area"});
 
   // Give the rest of physical memory to heap
@@ -175,43 +179,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("RTC init");
   // Realtime/monotonic clock
   RTC::init();
-
-  MYINFO("Initializing RNG");
-  PROFILE("RNG init");
-  RNG::init();
-
-  // Seed rand with 32 bits from RNG
-  srand(rng_extract_uint32());
-
-  // Custom initialization functions
-  MYINFO("Initializing plugins");
-  // the boot sequence is over when we get to plugins/Service::start
-  OS::boot_sequence_passed_ = true;
-
-  PROFILE("Plugins init");
-  for (auto plugin : plugins_) {
-    INFO2("* Initializing %s", plugin.name_);
-    try{
-      plugin.func_();
-    } catch(std::exception& e){
-      MYINFO("Exception thrown when initializing plugin: %s", e.what());
-    } catch(...){
-      MYINFO("Unknown exception when initializing plugin");
-    }
-  }
-
-  PROFILE("Service::start");
-  // begin service start
-  FILLINE('=');
-  printf(" IncludeOS %s (%s / %i-bit)\n",
-         version().c_str(), arch().c_str(),
-         static_cast<int>(sizeof(uintptr_t)) * 8);
-  printf(" +--> Running [ %s ]\n", Service::name().c_str());
-  FILLINE('~');
-
-  Service::start();
-  // NOTE: this is a feature for service writers, don't move!
-  kernel_sanity_checks();
 }
 
 void OS::event_loop()

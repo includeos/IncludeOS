@@ -22,7 +22,7 @@
  * overwrite the currently running binary with a new one.
  */
 #include <cstdint>
-asm(".org 0x200000");
+asm(".org 0x2000");
 
 extern "C" __attribute__((noreturn))
 void hotswap(const char* base, int len, char* dest, void* start,

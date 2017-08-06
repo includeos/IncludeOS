@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <array>
 #include <iostream>
+#include <common>
 
 using seq_t = uint32_t;
 
@@ -25,7 +26,7 @@ namespace net {
 namespace tcp {
 namespace sack {
 
-union Block {
+struct Block {
   Block(seq_t start, seq_t end)
     : start(start), end(end)
   {}
@@ -33,12 +34,17 @@ union Block {
   Block() : whole{0}
   {}
 
-  struct {
-    seq_t start;
-    seq_t end;
+  union {
+    struct {
+      seq_t start;
+      seq_t end;
+    };
+
+    uint64_t whole = 0;
   };
 
-  uint64_t whole = 0;
+  Block* older = nullptr;
+  Block* newer = nullptr;
 
   bool operator==(const Block& other) const noexcept
   { return start == other.start and end == other.end; }
@@ -57,11 +63,30 @@ union Block {
   Block& operator=(uint64_t whole)
   { this->whole = whole; return *this; }
 
+
+  void free() {
+    detach();
+    whole = 0;
+    older = nullptr;
+    newer = nullptr;
+  }
+
+  void detach() {
+    if (newer)
+      newer->older = older;
+    if (older)
+      older->newer = newer;
+
+    older = nullptr;
+    newer = nullptr;
+  }
+
+
 }__attribute__((packed));
 
 // Print for Block
 std::ostream& operator<<(std::ostream& out, const Block& b) {
-  out << "Start: " << b.start << " End: " << b.end;
+  out << "[" << b.start << " => " << b.end << "]";
   return out;
 }
 
@@ -100,128 +125,139 @@ public:
   {
     Block inc{seq, seq+len};
 
-    int connected_end = -1;
-    int connected_start = -1;
-    int idx = (latest[0] >= 0) ? latest[0] : 0;
-    int i = idx;
-    int free = -1;
-    do {
-      if (blocks[i].empty()) {
-        free = i;
-        continue;
-      }
+    Block* connected_end = nullptr;
+    Block* connected_start = nullptr;
+    Block* current = latest_;
 
-      if (blocks[i].connect_end(inc))
+    while (current) {
+
+      Expects(not current->empty());
+
+      if (current->connect_end(inc))
       {
-        std::cout << "Block [ " << inc << " ] "
-          << "connects to end of [ " << blocks[i] << " ]\n";
-
-        connected_end = i;
+        connected_end = current;
       }
-      else if (blocks[i].connect_start(inc))
+      else if (current->connect_start(inc))
       {
-        std::cout << "Block [ " << inc << " ] "
-          << "connects to start of [ " << blocks[i] << " ]\n";
-
-        connected_start = i;
+        connected_start = current;
       }
 
-      if (connected_start >= 0 and connected_end >= 0)
+      if (connected_start and connected_end)
         break;
 
-      // increment i, continue as long as we havent wrapped around (to idx)
-    } while((i = (i+1) % N) != idx);
+      current = current->older;
 
-    int latest_idx = -1;
-    // Connectes to two blocks, e.g. fill a hole
-    if (connected_end >= 0) {
-
-      auto& update = blocks[connected_end];
-      std::cout << "1: " << update << "\n";
-      update.end = inc.end;
-      std::cout << "2: " << update << "\n";
-
-      // It also connects to a start
-      if(connected_start >= 0)
-      {
-        update.end = blocks[connected_start].end;
-        std::cout << "3: " << update << "\n";
-        blocks[connected_start] = 0;
-      }
-
-      latest_idx = connected_end;
-      // Connected only to an end
-    } else if (connected_start >= 0) {
-      blocks[connected_start].start = inc.start;
-
-      latest_idx = connected_start;
-      // No connection - new entry
-    } else {
-      if(free >= 0) {
-        blocks[free] = inc;
-        latest_idx = free;
-      }
-      else
-        std::cout << "Cannot add block at idx: " << idx << "\n";
     }
 
-    update_latest(latest_idx);
+    Block* update = nullptr;
 
-    auto entries = recent_entries();
+    // Connectes to two blocks, e.g. fill a hole
+    if (connected_end) {
 
-    return entries;
+      update = connected_end;
+      update->detach();
+      update->end = inc.end;
+
+      // It also connects to a start
+      if(connected_start)
+      {
+        update->end = connected_start->end;
+        connected_start->free();
+      }
+
+      // Connected only to an end
+    } else if (connected_start) {
+      update = connected_start;
+      update->start = inc.start;
+      update->detach();
+      // No connection - new entry
+    } else {
+      update = get_free();
+      if (not update) {
+        // TODO: return older sack list
+        std::cout << "No free blocks left \n";
+      } else {
+        *update = inc;
+      }
+    }
+
+    update_latest(update);
+    return recent_entries();
   }
 
   Ack_result new_valid_ack(seq_t seq)
   {
-    int idx = (latest[0] >= 0) ? latest[0] : 0;
-    int i = idx;
+    Block* current = latest_;
     uint32_t bytes_freed = 0;
-    do {
-      if (blocks[i].empty())
-        continue;
 
-      if (blocks[i].start == seq) {
-        bytes_freed = blocks[i].size();
-        blocks[i] = 0;
-        clear_latest(i);
+    while (current) {
+
+      if (current->start == seq) {
+        bytes_freed = current->size();
+
+        if (latest_ == current)
+          latest_ = current->older;
+        current->free();
+
         break;
       }
 
-      // increment i, continue as long as we havent wrapped around (to idx)
-    } while((i = (i+ 1) % N) != idx);
+      current = current->older;
+
+    };
 
     return {recent_entries(), bytes_freed};
   }
 
-  void update_latest(int idx)
+  void update_latest(Block* blk)
   {
-    if(idx == latest[0])
+    Expects(blk);
+    Expects(!blk->empty());
+
+    if (blk == latest_)
       return;
 
-    if(idx != latest[1])
-      latest[2] = latest[1];
+    blk->older = latest_;
+    blk->newer = nullptr;
 
-    latest[1] = latest[0];
-    latest[0] = idx;
+    if (latest_)
+      latest_->newer = blk;
+
+    latest_ = blk;
+    Ensures(latest_);
+    Ensures(latest_ != latest_->newer);
+    Ensures(latest_ != latest_->older);
   }
 
-  void clear_latest(int idx)
-  {
 
+  Block* get_free() {
+
+    // TODO: Optimize.
+    for (auto& block : blocks)
+      if (block.empty())
+        return &block;
+
+    return nullptr;
   }
 
   Entries recent_entries() const
   {
-    return {{
-      (latest[0] >= 0) ? blocks[latest[0]] : Block(),
-      (latest[1] >= 0) ? blocks[latest[1]] : Block(),
-      (latest[2] >= 0) ? blocks[latest[2]] : Block()
-    }};
+
+    Entries ret;
+    int i = 0;
+    Block* current = latest_;
+
+    while (current and i < ret.size()) {
+      ret[i++] = *current;
+      current = current->older;
+    }
+
+    return ret;
   }
 
   std::array<Block, N> blocks;
-  std::array<int, 3> latest = {{-1,-1,-1}};
+
+  Block* latest_ = nullptr;
 
 };
 
