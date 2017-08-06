@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>
+<html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>
+<html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>
+<html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!-->
+<html class="no-js"> <!--<![endif]-->
+<head>
+  <base href="/app">
+
+  <!-- Meta-Information -->
+  <title>Acorn Web Appliance</title>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="description" content="Acorn Web Appliance">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Vendor: Bootstrap Stylesheets http://getbootstrap.com -->
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+
+  <!-- Font awesome -->
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+  <!-- angular-toastr -->
+  <link rel="stylesheet" href="https://npmcdn.com/angular-toastr/dist/angular-toastr.css" />
+
+  <!-- Our Website CSS Styles -->
+  <link rel="stylesheet" href="../css/main.css">
+
+  <!-- C3 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.min.css">
+
+</head>
+<body ng-app="acornWebApp">
+<!--[if lt IE 7]>
+<p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade
+    your browser</a> to improve your experience.</p>
+<![endif]-->
+
+<!-- Our Website Content Goes Here -->
+<!--<div ng-include='"templates/header.html"'></div>-->
+<div ng-view></div>
+<!--<div ng-include='"templates/footer.html"'></div>-->
+
+<div id="footer" class="container">
+  <hr/>
+  <p>
+    Powered by<br>
+    <img src="img/includeos_logo.svg" id="logo-footer" />
+  </p>
+</div>
+
+<!-- Vendor: Javascripts -->
+<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+<!-- Vendor: Angular, followed by our custom Javascripts -->
+<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-route.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-resource.js"></script>
+
+<!-- D3 -->
+<script src="//d3js.org/d3.v3.min.js"></script>
+<!-- C3 -->
+<script src="//cdnjs.cloudflare.com/ajax/libs/c3/0.4.11/c3.min.js"></script>
+<!-- countdown.js -->
+<script src="//cdnjs.cloudflare.com/ajax/libs/countdown/2.6.0/countdown.min.js"></script>
+
+<!-- angular-toastr -->
+<script src="//npmcdn.com/angular-toastr/dist/angular-toastr.tpls.js"></script>
+
+<!-- Our Website Javascripts -->
+<script src="app/js/app.js"></script>
+
+<script src="app/js/statman_treeview.js"></script>
+
+<script src="app/js/controllers/home.js"></script>
+<script src="app/js/controllers/squirrel.js"></script>
+<script src="app/js/controllers/dashboard.js"></script>
+
+<script src="app/js/services/squirrel.js"></script>
+<script src="app/js/services/dashboard.js"></script>
+<script src="app/js/services/cpusage.js"></script>
+
+<!-- Angular cookies -->
+<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-cookies.js"></script>
+
+</body>
+</html>

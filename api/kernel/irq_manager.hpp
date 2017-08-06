@@ -18,33 +18,13 @@
 #ifndef KERNEL_IRQ_MANAGER_HPP
 #define KERNEL_IRQ_MANAGER_HPP
 
+#include <arch.hpp>
 #include <delegate>
+#include <membitmap>
+#include <smp>
+#include "idt.hpp"
 
-#include "os.hpp"
-#include "../hw/pic.hpp"
-
-// From osdev
-struct IDTDescr {
-  uint16_t offset_1;  // offset bits 0..15
-  uint16_t selector;  // a code segment selector in GDT or LDT
-  uint8_t  zero;      // unused, set to 0
-  uint8_t  type_attr; // type and attributes, see below
-  uint16_t offset_2;  // offset bits 16..31
-};
-
-struct idt_loc {
-  uint16_t limit;
-  uint32_t base;
-}__attribute__((packed));
-
-/** We'll limit the number of subscribable IRQ lines to this. */
-typedef uint32_t irq_bitfield;
-
-// irq_bitfield irq_pending;
-
-extern "C" {
-  void irq_default_handler();
-}
+#define IRQ_BASE          32
 
 /** A class to manage interrupt handlers
 
@@ -62,12 +42,14 @@ extern "C" {
 
     @TODO: Remove all dependencies on old SanOS code. In particular, eoi is now in global scope
 */
-class IRQ_manager {
+class alignas(SMP_ALIGN) IRQ_manager {
 public:
+  typedef void (*intr_func) ();
+  typedef void (*exception_func) (void**, uint32_t);
   using irq_delegate = delegate<void()>;
 
-  static constexpr uint8_t irq_base = 32;
-  static constexpr uint8_t irq_lines = 64;
+  static constexpr size_t  IRQ_LINES = 128;
+  static constexpr size_t  INTR_LINES = IRQ_BASE + 128;
 
 
   /**
@@ -77,7 +59,8 @@ public:
    *
    *  @param irq: the IRQ to enable
    */
-  static void enable_irq(uint8_t irq);
+  void enable_irq(uint8_t irq);
+  void disable_irq(uint8_t irq);
 
   /**
    *  Directly set an IRQ handler in IDT
@@ -91,17 +74,19 @@ public:
    *    stack overflow or similar badness.
    *  }
    */
-  static void set_handler(uint8_t irq, void(*function_addr)());
+  void set_handler(uint8_t intr, intr_func func);
+  void set_exception_handler(uint8_t intr, exception_func func);
+  void set_irq_handler(uint8_t irq, intr_func func);
 
   /** Get handler from inside the IDT. */
-  static void (*get_handler(uint8_t irq))();
+  intr_func get_handler(uint8_t intr);
+  intr_func get_irq_handler(uint8_t irq);
 
   /**
    *  Subscribe to an IRQ
-
+   *
    *  @param irq: The IRQ to subscribe to
    *  @param del: A delegate to attach to the IRQ DPC-system
-
    *  The delegate will be called a.s.a.p. after @param irq gets triggered
    *
    *  @warning The delegate is responsible for signalling a proper EOI
@@ -109,79 +94,64 @@ public:
    *  @todo Implies enable_irq(irq)?
    *
    *  @todo Create a public member IRQ_manager::eoi for delegates to use
-   */
-  static void subscribe(uint8_t irq, irq_delegate del);
+  **/
+  uint8_t subscribe(irq_delegate);
+  void subscribe(uint8_t irq, irq_delegate);
+  void unsubscribe(uint8_t irq);
 
-  /**
-   *  Get the current subscriber of an IRQ-line
-   *
-   *  @param irq: The IRQ to get subscriber for
-   */
-  static irq_delegate get_subscriber(uint8_t irq);
-
-  /**
-   *  End of Interrupt
-   *
-   *  Indicate to the IRQ-controller that the IRQ is handled, allowing new irq.
-   *
-   *  @param irq: The interrupt number
-   *
-   *  @note Until this is called, no furter IRQ's will be triggered on this line
-   *
-   *  @warning This function is only supposed to be called inside an IRQ-handler
-   */
-  static void eoi(uint8_t irq);
-
-  static inline void register_interrupt(uint8_t i){
-    irq_pending_ |=  (1 << i);
-    __sync_fetch_and_add(&irq_counters_[i],1);
-    debug("<IRQ !> IRQ %i Pending: 0x%ix. Count: %i\n", i,
-          irq_pending_, irq_counters_[i]);
-  }
-
-
-private:
-  static unsigned int   irq_mask;
-  static int            timer_interrupts;
-  static IDTDescr       idt[irq_lines];
-  static const char     default_attr {static_cast<char>(0x8e)};
-  static const uint16_t default_sel  {0x8};
-  static bool           idt_is_set;
-
-  /** bit n set means IRQ n has fired since last check */
-  //static irq_bitfield irq_pending;
-  static irq_bitfield irq_subscriptions_;
-
-  static void(*irq_subscribers_[sizeof(irq_bitfield)*8])();
-  static irq_delegate irq_delegates_[sizeof(irq_bitfield)*8];
-  static uint32_t irq_counters_[32];
-  static uint32_t irq_pending_;
-
-  /** STI */
+  // start accepting interrupts
   static void enable_interrupts();
 
-  /** @deprecated A default handler */
-  static void handle_IRQ_default();
+  /**
+   * Get the IRQ manager instance
+   */
+  static IRQ_manager& get();
+  static IRQ_manager& get(int cpu);
+
+  uint8_t get_free_irq();
+  void register_irq(uint8_t irq);
+
+  /** process all pending interrupts */
+  void process_interrupts();
+
+  /** std::array of received interrupts */
+  auto& get_count_received() const noexcept
+  { return count_received; }
+
+  /** std::array of handled interrupts */
+  auto& get_count_handled() const noexcept
+  { return count_handled; }
+
+  /** Initialize for a local APIC */
+  static void init();
+  IRQ_manager() = default;
+
+private:
+  IRQ_manager(IRQ_manager&) = delete;
+  IRQ_manager(IRQ_manager&&) = delete;
+  IRQ_manager& operator=(IRQ_manager&&) = delete;
+  IRQ_manager& operator=(IRQ_manager&) = delete;
+
+  IDTDescr     idt[INTR_LINES] __attribute__((aligned(16)));
+  irq_delegate irq_delegates_[IRQ_LINES];
+  std::array<uint64_t*,IRQ_LINES> count_handled;
+  std::array<uint64_t, IRQ_LINES> count_received;
+
+  MemBitmap  irq_subs;
+  MemBitmap  irq_pend;
+  MemBitmap  irq_todo;
 
   /**
    *  Create an IDT-gate
    *
    *  Use "set_handler" for a simpler version using defaults
    */
-  static void create_gate(IDTDescr* idt_entry,
-                          void (*function_addr)(),
-                          uint16_t segment_sel,
-                          char attributes);
+  void create_gate(IDTDescr* idt_entry,
+                   void (*function_addr)(),
+                   uint16_t segment_sel,
+                   char attributes);
 
-  /** The OS will call the following : */
-  friend class OS;
-  friend void ::irq_default_handler();
-
-  /** Initialize. Only the OS can initialize the IRQ manager */
-  static void init();
-
-  /** Notify all delegates waiting for interrupts */
-  static void notify();
+  void init_local();
 
 }; //< IRQ_manager
 

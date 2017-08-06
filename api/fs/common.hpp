@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,80 +21,186 @@
 
 #include <memory>
 #include <string>
+#include <delegate>
+#include <vector>
+#include "path.hpp"
+#include <hw/block_device.hpp>
 
 namespace fs {
 
-  typedef std::shared_ptr<uint8_t> buffer_t;
+  struct Dirent;
+  struct File_system;
 
+  /**
+   * @brief Type used as a building block to represent buffers
+   * within the filesystem subsystem
+   */
+  using buffer_t = std::shared_ptr<uint8_t>;
+
+  /** Container types **/
+  using dirvector = std::vector<Dirent>;
+  using dirvec_t  = std::shared_ptr<dirvector>;
+
+  /** Pointer types **/
+  using Path_ptr = std::shared_ptr<Path>;
+
+  /** ID types **/
+  using Device_id = hw::Block_device::Device_id;
+
+  /** Entity types for dirents **/
+  enum Enttype {
+    FILE,
+    DIR,
+    /** FAT puts disk labels in the root directory, hence: */
+    VOLUME_ID,
+    SYM_LINK,
+
+    INVALID_ENTITY
+  };
+
+
+  /** Error type **/
   struct error_t
   {
     enum token_t {
       NO_ERR = 0,
       E_IO, // general I/O error
       E_MNT,
-      
+
       E_NOENT,
       E_NOTDIR,
-    };
-    
-    error_t(token_t tk, const std::string& rsn)
-      : token_(tk), reason_(rsn) {}
-    
-    // error code to string
-    std::string token() const noexcept;
-    // show explanation for error
-    std::string reason() const noexcept {
-      return reason_;
-    }
-    
-    // returns "description": "reason"
-    std::string to_string() const noexcept {
-      return token() + ": " + reason();
-    }
-    
-    // returns true when it's an error
-    operator bool () const noexcept {
-      return token_ != NO_ERR;
-    }
-    
+      E_NOTFILE
+    }; //< enum token_t
+
+    /**
+     * @brief Constructor
+     *
+     * @param tk:  An error token
+     * @param rsn: The reason for the error
+     */
+    error_t(const token_t tk, const std::string& rsn)
+      : token_{tk}
+      , reason_{rsn}
+    {}
+
+    /**
+     * @brief Get a human-readable description of the token
+     *
+     * @return Description of the token as a {std::string}
+     */
+    const std::string& token() const noexcept;
+
+    /**
+     * @brief Get an explanation for error
+     */
+    const std::string& reason() const noexcept
+    { return reason_; }
+
+    /**
+     * @brief Get a {std::string} representation of this type
+     *
+     * Format "description: reason"
+     *
+     * @return {std::string} representation of this type
+     */
+    std::string to_string() const
+    { return token() + ": " + reason(); }
+
+    /**
+     * @brief Check if the object of this type represents
+     * an error
+     *
+     * @return true if its an error, false otherwise
+     */
+    operator bool () const noexcept
+    { return token_ not_eq NO_ERR; }
+
   private:
     token_t     token_;
     std::string reason_;
-  };
-  
+  }; //< struct error_t
+
+  /**
+   * @brief Type used for buffers within the filesystem
+   * subsystem
+   */
   struct Buffer
   {
-    Buffer(error_t e, buffer_t b, size_t l)
-      : err(e), buffer(b), len(l) {}
-      
-    // returns true if this buffer is valid
-    bool is_valid() const noexcept {
-      return buffer != nullptr;
-    }
-    operator bool () const noexcept {
-      return is_valid();
-    }
-    
-    uint8_t* data() {
-      return buffer.get();
-    }
-    size_t   size() const noexcept {
-      return len;
-    }
-    
-    // create a std::string from the stored buffer and return it
-    std::string to_string() const noexcept {
-      return std::string((char*) buffer.get(), size());
-    }
-    
-    error_t  err;
-    buffer_t buffer;
-    uint64_t len;
-  };
-  
+    Buffer(const error_t& e, buffer_t b, const uint64_t l)
+      : err_    {e}
+      , buffer_ {b}
+      , len_    {l}
+    {}
+
+    /**
+     * @brief Check if an object of this type is in a valid
+     * state
+     *
+     * @return true if valid, false otherwise
+     */
+    bool is_valid() const noexcept
+    { return (buffer_ not_eq nullptr) and (not err_); }
+
+    /**
+     * @brief Coerce an object of this type to a bool
+     */
+    operator bool () const noexcept
+    { return is_valid(); }
+
+    /// retrieve error status
+    error_t error() const noexcept
+    { return err_; }
+
+    /**
+     * @brief Get the starting address of the underlying data buffer
+     *
+     * @return The starting address of the underlying data buffer
+     */
+    uint8_t* data() noexcept
+    { return buffer_.get(); }
+
+    /**
+     * @brief Get the size/length of the buffer
+     *
+     * @return The size/length of the buffer
+     */
+    size_t   size() const noexcept
+    { return len_; }
+
+    /**
+     * @brief Get a {std::string} representation of this type
+     *
+     * @return A {std::string} representation of this type
+     */
+    std::string to_string() const noexcept
+    { return std::string{reinterpret_cast<char*>(buffer_.get()), size()}; }
+
+  private:
+    error_t  err_;
+    buffer_t buffer_;
+    uint64_t len_;
+  }; //< struct Buffer
+
   /** @var no_error: Always returns boolean false when used in expressions */
   extern error_t no_error;
 
-} //< namespace fs
+  /** Async function types **/
+  using on_init_func  = delegate<void(error_t, File_system&)>;
+  using on_ls_func    = delegate<void(error_t, dirvec_t)>;
+  using on_read_func  = delegate<void(error_t, buffer_t, uint64_t)>;
+  using on_stat_func  = delegate<void(error_t, Dirent)>;
 
-#endif //< FS_ERROR_HPP
+
+  struct List
+  {
+    error_t  error;
+    dirvec_t entries;
+    auto begin() { return entries->begin(); }
+    auto end() { return entries->end(); }
+    auto cbegin() { return entries->cbegin(); }
+    auto cend() { return entries->cend(); }
+  };
+
+} //< fs
+
+#endif //< FS_COMMON_HPP

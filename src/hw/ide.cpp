@@ -24,6 +24,7 @@
 
 #include <kernel/irq_manager.hpp>
 #include <kernel/syscalls.hpp>
+#include <hw/ioport.hpp>
 
 #define IDE_DATA        0x1F0
 #define IDE_SECCNT      0x1F2
@@ -46,7 +47,7 @@
 #define IDE_IRQN     14
 #define IDE_BLKSZ    512
 
-#define IDE_VENDOR_ID   PCI_Device::VENDOR_INTEL
+#define IDE_VENDOR_ID   PCI::VENDOR_INTEL
 #define IDE_PRODUCT_ID  0x7010
 
 #define IDE_TIMEOUT 2048
@@ -61,7 +62,7 @@ namespace hw {
 {
   INFO("IDE","VENDOR_ID : 0x%x, PRODUCT_ID : 0x%x", _pcidev.vendor_id(), _pcidev.product_id());
   INFO("IDE","Attaching to  PCI addr 0x%x",_pcidev.pci_addr());
-  
+
   /** PCI device checking */
   if (_pcidev.vendor_id() not_eq IDE_VENDOR_ID) {
     panic("This is not an Intel device");
@@ -144,7 +145,7 @@ namespace hw {
       callback(buffer_t());
       return;
     }
-  
+
     set_irq_mode(true);
     set_drive(0xE0 | _drive | ((blk >> 24) & 0x0F));
     set_nbsectors(count);
@@ -171,12 +172,12 @@ namespace hw {
     auto* buffer = new uint8_t[block_size()];
 
     wait_status_flags(IDE_DRDY, false);
-  
+
     uint16_t* wptr = (uint16_t*) buffer;
     uint16_t* wend = (uint16_t*)&buffer[block_size()];
     while (wptr < wend)
       *(wptr++) = inw(IDE_DATA);
-  
+
     // return a shared_ptr wrapper for the buffer
     return buffer_t(buffer, std::default_delete<uint8_t[]>());
   }
@@ -205,7 +206,7 @@ namespace hw {
         if ((ret & flags) not_eq flags)
           break;
       }
-    
+
       ret = inb(IDE_STATUS);
     }
   }
@@ -241,10 +242,10 @@ namespace hw {
     outb(IDE_CTRL_IRQ, on ? 0 : 1);
   }
 
-  extern "C" void ide_irq_handler() {
+  extern "C"
+  void ide_irq_handler() {
     if (!_nb_irqs || _current_callback == nullptr) {
       IDE::set_irq_mode(false);
-      IRQ_manager::eoi(IDE_IRQN);
       return;
     }
 
@@ -259,9 +260,6 @@ namespace hw {
 
     _ide_irqs.push_back(ide_irq(buffer, _current_callback));
     _nb_irqs--;
-
-    IRQ_manager::register_interrupt(IDE_IRQN);
-    IRQ_manager::eoi(IDE_IRQN);
   }
 
   extern "C" void ide_irq_entry();
@@ -274,9 +272,9 @@ namespace hw {
   }
 
   void IDE::enable_irq_handler() {
-    auto del(delegate<void()>::from<IDE, &IDE::callback_wrapper>(this));
-    IRQ_manager::subscribe(IDE_IRQN, del);
-    IRQ_manager::set_handler(IDE_IRQN + 32, ide_irq_entry);
+    auto del(delegate<void()>{this, &IDE::callback_wrapper});
+    IRQ_manager::get().subscribe(IDE_IRQN, del);
+    //IRQ_manager::cpu(0).set_irq_handler(IDE_IRQN + 32, ide_irq_entry);
   }
 
 } //< namespace hw

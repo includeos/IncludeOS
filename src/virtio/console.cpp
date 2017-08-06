@@ -87,7 +87,7 @@ VirtioCon::VirtioCon(hw::PCI_Device& d)
   CHECK((features() & needed_features) == needed_features, "Signalled driver OK");
 
   // Hook up IRQ handler (inherited from Virtio)
-  auto del(delegate<void()>::from<VirtioCon, &VirtioCon::irq_handler>(this));
+  auto del(delegate<void()>{this, &VirtioCon::irq_handler});
   IRQ_manager::subscribe(irq(), del);
   IRQ_manager::enable_irq(irq());
 

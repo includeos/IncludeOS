@@ -18,96 +18,107 @@
 #ifndef HW_NIC_HPP
 #define HW_NIC_HPP
 
-#include "pci_device.hpp"
-
-#include "../net/ethernet.hpp"
-#include "../net/inet_common.hpp"
 #include "../net/buffer_store.hpp"
+#include "mac_addr.hpp"
+#include <net/inet_common.hpp>
 
 namespace hw {
 
   /**
-   *  A public interface for Network cards
-   *
-   *  @note: The requirements for a driver is implicitly given by how it's used below,
-   *         rather than explicitly by inheritance. This avoids vtables.
-   *
-   *  @note: Drivers are passed in as template paramter so that only the drivers
-   *         we actually need will be added to our project.
+   *  A public interface Network cards
    */
-  template <typename DRIVER>
   class Nic {
   public:
-    using driver_t = DRIVER;
+    using upstream    = delegate<void(net::Packet_ptr)>;
+    using downstream  = net::downstream_link;
 
-    /** Get a readable name. */
-    inline const char* name() const noexcept
-    { return driver_.name(); }
+    enum class Proto {ETH, IEEE802111};
 
+    virtual Proto proto() const = 0;
+
+    /** Human-readable driver name */
+    virtual const char* driver_name() const = 0;
+
+    /** Human-readable interface/device name (eg. eth0) */
+    virtual std::string device_name() const = 0;
+
+    /** A readable name of the type of device @todo: move to a abstract Device? */
+    static const char* device_type()
+    { return "NIC"; }
 
     /** The mac address. */
-    inline const net::Ethernet::addr& mac()
-    { return driver_.mac(); }
+    virtual const MAC::Addr& mac() const noexcept = 0;
 
-    inline void set_linklayer_out(net::upstream del)
-    { driver_.set_linklayer_out(del); }
+    virtual uint16_t MTU() const noexcept = 0;
 
-    inline net::upstream get_linklayer_out()
-    { return driver_.get_linklayer_out(); }
+    /** Implemented by the underlying (link) driver */
+    virtual downstream create_link_downstream() = 0;
+    virtual void set_ip4_upstream(upstream handler) = 0;
+    virtual void set_ip6_upstream(upstream handler) = 0;
+    virtual void set_arp_upstream(upstream handler) = 0;
 
-    inline void transmit(net::Packet_ptr pckt)
-    { driver_.transmit(pckt); }
+    net::BufferStore& bufstore() noexcept
+    { return bufstore_; }
 
-    inline uint16_t MTU() const noexcept
-    { return driver_.MTU(); }
+    /** Number of free buffers in the BufferStore **/
+    size_t buffers_available()
+    { return bufstore_.available(); }
 
-    inline uint16_t bufsize() const noexcept
-    { return driver_.bufsize(); }
+    /** Number of total buffers in the BufferStore **/
+    size_t buffers_total()
+    { return bufstore_.total_buffers(); }
 
-    inline net::BufferStore& bufstore() noexcept
-    { return driver_.bufstore(); }
+    /** Number of bytes in a frame needed by the device itself **/
+    virtual size_t frame_offset_device() = 0;
 
-    inline void on_transmit_queue_available(net::transmit_avail_delg del)
-    { driver_.on_transmit_queue_available(del); }
+    /** Number of bytes in a frame needed by the link layer **/
+    virtual size_t frame_offset_link() = 0;
 
-    inline size_t transmit_queue_available()
-    { return driver_.transmit_queue_available(); }
+    /**
+     * Create a packet with appropriate size for the underlying link
+     * @param layer_begin : offset in octets from the link-layer header
+     */
+    virtual net::Packet_ptr create_packet(int layer_begin) = 0;
 
-    inline size_t receive_queue_waiting(){
-      return driver_.receive_queue_waiting();
-    };
+    /** Subscribe to event for when there is more room in the tx queue */
+    void on_transmit_queue_available(net::transmit_avail_delg del)
+    { transmit_queue_available_event_ = del; }
 
-    inline size_t buffers_available()
-    { return bufstore().buffers_available(); }
+    virtual size_t transmit_queue_available() = 0;
 
-    inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
-    { driver_.on_exit_to_physical(dlg); }
+    virtual void deactivate() = 0;
 
-  private:
-    driver_t driver_;
+    /** Stats getters **/
+    virtual uint64_t get_packets_rx() = 0;
+    virtual uint64_t get_packets_tx() = 0;
+    virtual uint64_t get_packets_dropped() = 0;
 
+    /** Move this nic to current CPU **/
+    virtual void move_to_this_cpu() = 0;
+
+    virtual ~Nic() {}
+  protected:
     /**
      *  Constructor
      *
-     *  Just a wrapper around the driver constructor.
-     *
-     *  @note: The Dev-class is a friend and will call this
+     *  Constructed by the actual Nic Driver
      */
-    Nic(PCI_Device& d) : driver_{d} {}
+    Nic(uint32_t bufstore_packets, uint16_t bufsz)
+      : bufstore_{ bufstore_packets, bufsz }
+    {
+      static int id_counter = 0;
+      N = id_counter++;
+    }
 
-    friend class Dev;
+    friend class Devices;
+
+    net::transmit_avail_delg transmit_queue_available_event_ =
+      [](auto) { assert(0 && "<NIC> Transmit queue available delegate is not set!"); };
+
+  private:
+    net::BufferStore bufstore_;
+    int N;
   };
-
-  /** Future drivers may start out like so, */
-  class E1000 {
-  public:
-    inline const char* name() const noexcept
-    { return "E1000 Driver"; }
-    //...whatever the Nic class implicitly needs
-  };
-
-  /** Hopefully somebody will port a driver for this one */
-  class RTL8139;
 
 } //< namespace hw
 

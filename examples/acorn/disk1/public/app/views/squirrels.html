@@ -1,0 +1,46 @@
+<div class="container">
+  <div class="page-header">
+    <h1 class="text-center">IncludeOS supports REST.. Look, a squirrel!</h1>
+  </div>
+
+  <div class="well">
+    <form role="form" class="form-inline" ng-submit="create()">
+      <div class="form-group">
+        <input type="text" ng-model="squirrel.name" id="name" class="form-control" placeholder="Name" required/>
+      </div>
+
+      <div class="form-group">
+        <input type="number" ng-model="squirrel.age" id="age" class="form-control" placeholder="Age" required/>
+      </div>
+
+      <div class="form-group">
+        <input type="text" ng-model="squirrel.occupation" id="occupation" class="form-control" placeholder="Occupation" required/>
+      </div>
+      <button type="submit" class="btn btn-primary">Capture</button>
+    </form>
+  </div>
+
+  <div class="container">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Occupation</th>
+          <th>Captured</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="squirrel in squirrels track by squirrel.key">
+          <td>{{ squirrel.key }}</td>
+          <td>{{ squirrel.name }}</td>
+          <td>{{ squirrel.age }}</td>
+          <td>{{ squirrel.occupation }}</td>
+          <td>{{ squirrel.created_at | date: 'yyyy-MM-dd HH:mm' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

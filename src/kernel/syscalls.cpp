@@ -22,128 +22,68 @@
 #include <sys/errno.h>
 #include <sys/stat.h>
 
-#include <os>
+#include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
+#include <kernel/rtc.hpp>
+#include <hw/serial.hpp>
 
-char *__env[1] {nullptr};
-char **environ {__env};
+#include <statman>
+#include <kprint>
+#include <info>
+#include <smp>
 
-static const int syscall_fd {999};
-static bool debug_syscalls  {true};
+#if defined (UNITTESTS) && !defined(__MACH__)
+#define THROW throw()
+#else
+#define THROW
+#endif
 
-caddr_t heap_end;
+// We can't use the usual "info", as printf isn't available after call to exit
+#define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
 
+char*   __env[1] {nullptr};
+char**  environ {__env};
+extern "C" {
+  uintptr_t heap_begin;
+  uintptr_t heap_end;
+}
 
 void _exit(int status) {
-  (void) status;
-  panic("Exit called");
-}
-
-int close(int) {
-  panic("SYSCALL CLOSE NOT SUPPORTED");
-  return -1;
-};
-
-int execve(const char* UNUSED(name),
-           char* const* UNUSED(argv),
-           char* const* UNUSED(env))
-{
-  panic("SYSCALL EXECVE NOT SUPPORTED");
-  return -1;
-};
-
-int fork() {
-  panic("SYSCALL FORK NOT SUPPORTED");
-  return -1;
-};
-
-int fstat(int UNUSED(file), struct stat *st) {
-  debug("SYSCALL FSTAT Dummy, returning OK 0");
-  st->st_mode = S_IFCHR;
-  return 0;
-};
-
-int getpid() {
-  debug("SYSCALL GETPID Dummy, returning 1");
-  return 1;
-};
-
-int isatty(int file) {
-  if (file == 1 || file == 2 || file == 3) {
-    debug("SYSCALL ISATTY Dummy returning 1");
-    return 1;
-  }
-
-  // Not stdxxx, error out
-  panic("SYSCALL ISATTY Unknown descriptor ");
-  errno = EBADF;
-  return 0;
-}
-
-int link(const char* UNUSED(old), const char* UNUSED(_new)) {
-  panic("SYSCALL LINK unsupported");
-  return -1;
-}
-
-int unlink(const char* UNUSED(name)) {
-  panic("SYSCALL UNLINK unsupported");
-  return -1;
-}
-
-off_t lseek(int UNUSED(file), off_t UNUSED(ptr), int UNUSED(dir)) {
-  panic("SYSCALL LSEEK returning 0");
-  return 0;
-}
-
-int open(const char* UNUSED(name), int UNUSED(flags), ...) {
-  panic("SYSCALL OPEN unsupported");
-  return -1;
-};
-
-int read(int UNUSED(file), void* UNUSED(ptr), size_t UNUSED(len)) {
-  panic("SYSCALL READ unsupported");
-  return 0;
-}
-
-int write(int file, const void* ptr, size_t len) {
-  if (file == syscall_fd and not debug_syscalls) {
-    return len;
-  }
-  return OS::rsprint((const char*) ptr, len);
+  kprintf("%s",std::string(LINEWIDTH, '=').c_str());
+  kprint("\n");
+  SYSINFO("service exited with status %i", status);
+  default_exit();
 }
 
 void* sbrk(ptrdiff_t incr) {
-  void* prev_heap_end = heap_end;
+  /// NOTE:
+  /// sbrk gets called really early on, before everything else
+  if (UNLIKELY(heap_end + incr > OS::heap_max())) {
+    errno = ENOMEM;
+    return (void*)-1;
+  }
+  auto prev_heap_end = heap_end;
   heap_end += incr;
-  return (caddr_t) prev_heap_end;
+  return (void*) prev_heap_end;
 }
 
-
-int stat(const char* UNUSED(file), struct stat *st) {
-  debug("SYSCALL STAT Dummy");
-  st->st_mode = S_IFCHR;
-  return 0;
-};
-
-clock_t times(struct tms* UNUSED(buf)) {
+clock_t times(struct tms*) {
   panic("SYSCALL TIMES Dummy, returning -1");
   return -1;
-};
-
-int wait(int* UNUSED(status)) {
-  debug((char*)"SYSCALL WAIT Dummy, returning -1");
-  return -1;
-};
-
-int gettimeofday(struct timeval* p, void* UNUSED(z)) {
-  // Currently every reboot takes us back to 1970 :-)
-  float seconds = OS::uptime();
-  p->tv_sec = int(seconds);
-  p->tv_usec = (seconds - p->tv_sec) * 1000000;
-  return 5;
 }
 
-int kill(pid_t pid, int sig) {
+int wait(int*) {
+  debug((char*)"SYSCALL WAIT Dummy, returning -1");
+  return -1;
+}
+
+int gettimeofday(struct timeval* p, void*) {
+  p->tv_sec  = RTC::now();
+  p->tv_usec = 0;
+  return 0;
+}
+
+int kill(pid_t pid, int sig) THROW {
   printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
 
   if (sig == 6ul) {
@@ -155,21 +95,122 @@ int kill(pid_t pid, int sig) {
   return -1;
 }
 
-// No continuation from here
-void panic(const char* why) {
-  printf("\n\t **** PANIC: ****\n %s\n", why);
-  printf("\tHeap end: %p\n", heap_end);
-  while(1) __asm__("cli; hlt;");
+static const size_t CONTEXT_BUFFER_LENGTH = 0x1000;
+static char _crash_context_buffer[CONTEXT_BUFFER_LENGTH];
+
+size_t get_crash_context_length()
+{
+  return CONTEXT_BUFFER_LENGTH;
+}
+char*  get_crash_context_buffer()
+{
+  return _crash_context_buffer;
 }
 
-// No continuation from here
+static bool panic_reenter = false;
+static OS::on_panic_func panic_handler = nullptr;
+
+void OS::on_panic(on_panic_func func)
+{
+  panic_handler = std::move(func);
+}
+
+/**
+ * panic:
+ * Display reason for kernel panic
+ * Display last crash context value, if it exists
+ * Display no-heap backtrace of stack
+ * Print EOT character to stderr, to signal outside that PANIC occured
+ * Call on_panic handler function, which determines what to do when
+ *    the kernel panics
+ * If the handler returns, go to (permanent) sleep
+**/
+void panic(const char* why)
+{
+  /// prevent re-entering panic() more than once per CPU
+  //if (panic_reenter) OS::reboot();
+  panic_reenter = true;
+
+  /// display informacion ...
+  SMP::global_lock();
+  fprintf(stderr, "\n\t**** CPU %d PANIC: ****\n %s\n",
+          SMP::cpu_id(), why);
+
+  // crash context (can help determine source of crash)
+  int len = strnlen(get_crash_context_buffer(), CONTEXT_BUFFER_LENGTH);
+  if (len > 0) {
+    printf("\n\t**** CONTEXT: ****\n %*s\n",
+        len, get_crash_context_buffer());
+  }
+
+  // heap info
+  typedef unsigned long ulong;
+  uintptr_t heap_total = OS::heap_max() - heap_begin;
+  double total = (heap_end - heap_begin) / (double) heap_total;
+  fprintf(stderr, "\tHeap is at: %p / %p  (diff=%lu)\n",
+         (void*) heap_end, (void*) OS::heap_max(), (ulong) (OS::heap_max() - heap_end));
+  fprintf(stderr, "\tHeap usage: %lu / %lu Kb\n", // (%.2f%%)\n",
+         (ulong) (heap_end - heap_begin) / 1024,
+         (ulong) heap_total / 1024); //, total * 100.0);
+
+  // call stack
+  print_backtrace();
+
+  fflush(stderr);
+  SMP::global_unlock();
+
+  // call custom on panic handler (if present)
+  if (panic_handler) panic_handler();
+
+#if defined(ARCH_x86)
+  if (SMP::cpu_id() == 0) {
+    SMP::global_lock();
+    // Signal End-Of-Transmission
+    kprint("\x04");
+    SMP::global_unlock();
+  }
+
+  // .. if we return from the panic handler, go to permanent sleep
+  while (1) asm("cli; hlt");
+  __builtin_unreachable();
+#else
+  #warning "panic() handler not implemented for selected arch"
+#endif
+}
+
+// Shutdown the machine when one of the exit functions are called
 void default_exit() {
-  panic("Exit was called");
+  __arch_poweroff();
+  __builtin_unreachable();
 }
-
 
 // To keep our sanity, we need a reason for the abort
 void abort_ex(const char* why) {
-  printf("\n\t !!! abort_ex. Why: %s", why);
   panic(why);
+  __builtin_unreachable();
+}
+
+#if defined(__MACH__)
+#if !defined(__MAC_10_12)
+typedef int clockid_t;
+#endif
+#if !defined(CLOCK_REALTIME)
+#define CLOCK_REALTIME 0
+#endif
+#endif
+// Basic second-resolution implementation - using CMOS directly for now.
+int clock_gettime(clockid_t clk_id, struct timespec* tp) {
+  if (clk_id == CLOCK_REALTIME) {
+    tp->tv_sec = RTC::now();
+    tp->tv_nsec = 0;
+    return 0;
+  }
+  return -1;
+}
+
+extern "C" void _init_syscalls();
+void _init_syscalls()
+{
+  // make sure that the buffers length is zero so it won't always show up in crashes
+  _crash_context_buffer[0] = 0;
 }

@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,39 +18,28 @@
 #ifndef KERNEL_PCI_MANAGER_HPP
 #define KERNEL_PCI_MANAGER_HPP
 
-#include <vector>
-#include <cstdio>
-#include <unordered_map>
+#include <cstdint>
+#include <hw/nic.hpp>
+#include <hw/block_device.hpp>
 
-#include <hw/pci_device.hpp>
+namespace hw {
+  class PCI_Device;
+}
 
 class PCI_manager {
-private:
-  using Device_Registry = std::unordered_map<PCI::classcode_t, std::vector<hw::PCI_Device>>;
-
 public:
-  template <PCI::classcode_t CLASS>
-  static hw::PCI_Device& device(const int n) noexcept {
-    return devices_[CLASS][n];
-  };
+  // a <...> driver is constructed from a PCI device,
+  //   and returns a unique_ptr to itself
+  using NIC_driver = delegate< std::unique_ptr<hw::Nic> (hw::PCI_Device&) >;
+  static void register_nic(uint16_t, uint16_t, NIC_driver);
 
-  template <PCI::classcode_t CLASS>
-  static size_t num_of_devices() noexcept {
-    return devices_[CLASS].size();
-  }
+  using BLK_driver = delegate< std::unique_ptr<hw::Block_device> (hw::PCI_Device&) >;
+  static void register_blk(uint16_t, uint16_t, BLK_driver);
 
-private:
-  static Device_Registry devices_;
-
-  /**
-   *  Keep track of certain devices
-   *  
-   *  The PCI manager can probe and keep track of devices which can (possibly)
-   *  be specialized by the Dev-class later.
-   */
+  static void pre_init();
   static void init();
-
-  friend class OS;
-}; //< class PCI_manager
+private:
+  static void scan_bus(int bus);
+};
 
 #endif //< KERNEL_PCI_MANAGER_HPP

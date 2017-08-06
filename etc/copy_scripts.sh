@@ -1,9 +1,5 @@
 #!/bin/bash
 
-INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS/}
 INCLUDEOS_INSTALL=${INCLUDEOS_INSTALL-$HOME/IncludeOS_install}
 mkdir -p $INCLUDEOS_INSTALL/etc
-cp $INCLUDEOS_SRC/etc/qemu-ifup $INCLUDEOS_INSTALL/etc/
-cp $INCLUDEOS_SRC/etc/qemu_cmd.sh $INCLUDEOS_INSTALL/etc/
-cp $INCLUDEOS_SRC/etc/run.sh $INCLUDEOS_INSTALL/etc/
-cp $INCLUDEOS_SRC/etc/create_memdisk.sh $INCLUDEOS_INSTALL/etc/
+cp $PWD/to-be-installed/* $INCLUDEOS_INSTALL/etc/

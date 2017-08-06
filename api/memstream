@@ -20,7 +20,7 @@
 #define ___API_MEMSTREAM___
 
 extern "C" {
-#include "utility/memstream.h"
+#include "util/memstream.h"
 }
 
 #endif //< ___API_MEMSTREAM___

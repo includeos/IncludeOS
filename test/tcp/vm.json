@@ -1,6 +1,0 @@
-{
-  "image" : "test_tcp.img",
-  "net" : [{"type" : "virtio", "mac" : "c0:01:0a:00:00:2a"}],
-  "cpu"   : "host",
-  "mem"   : 256
-}

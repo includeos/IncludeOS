@@ -19,135 +19,162 @@
 #define NET_PACKET_HPP
 
 #include "buffer_store.hpp"
-#include "ip4/ip4.hpp"
+#include "ip4/addr.hpp"
+#include <gsl/gsl_assert>
+#include <delegate>
 #include <cassert>
 
-namespace net {
+namespace net
+{
+  class Packet;
+  using Packet_ptr = std::unique_ptr<Packet>;
 
-  /** Default buffer release-function. Returns the buffer to Packet's bufferStore  **/
-  void default_release(BufferStore::buffer_t, size_t);
-
-  class Packet : public std::enable_shared_from_this<Packet> {
+  class Packet
+  {
   public:
-    using release_del = BufferStore::release_del;
+    using Byte = uint8_t;
+    using Byte_ptr = Byte*;
 
     /**
      *  Construct, using existing buffer.
      *
-     *  @param buf:     The buffer to use as the packet
-     *  @param bufsize: Size of the buffer
-     *  @param datalen: Length of data in the buffer
+     *  @param offs_layer_begin : Pointer to where the current protocol layer starts
+     *  @param offs_data_end :    Pointer to data end, e.g. next to last write
+     *  @param offs_buffer_end :  Pointer to byte after last in buffer
+     *  @param bufstore :         Pointer to buffer store owning this buffer
      *
-     *  @WARNING: There are two adjacent parameters of the same type, violating CG I.24.
+     *  @WARNING: There are adjacent parameters of the same type, violating CG I.24.
+     *  Note that the order is strict from left to right: begin, data
      */
-    Packet(BufferStore::buffer_t buf, size_t bufsize, size_t datalen, release_del d = default_release) noexcept;
-
-    /** Destruct. */
-    virtual ~Packet();
+    Packet(int offs_layer_begin,
+           int offs_data_end,
+           int offs_buffer_end,
+           BufferStore* bufstore) noexcept
+      : layer_begin_(buf() + offs_layer_begin),
+        data_end_(layer_begin() + offs_data_end),
+        buffer_end_(buf() + offs_buffer_end),
+        bufstore_(bufstore)
+    {
+      Expects(offs_layer_begin >= 0 and
+              buf() + offs_layer_begin <= buffer_end() and
+              data_end() <= buffer_end() and
+              bufstore != nullptr);
+    }
+    // no-op destructor, see delete
+    ~Packet() {}
 
     /** Get the buffer */
-    BufferStore::buffer_t buffer() const noexcept
-    { return buf_; }
+    Byte_ptr buf() noexcept
+    { return &buf_[0]; }
 
-    /** Get the network packet length - i.e. the number of populated bytes  */
-    inline uint32_t size() const noexcept
-    { return size_; }
+    const Byte* buf() const noexcept
+    { return &buf_[0]; }
 
-    /** Get the size of the buffer. This is >= len(), usually MTU-size */
-    inline uint32_t capacity() const noexcept
-    { return capacity_; }
+    /** Get the start of the layer currently being accessed
+     *  Returns a pointer to the start of the header
+     */
+    Byte_ptr layer_begin() const noexcept
+    { return layer_begin_; }
 
-    int set_size(const size_t) noexcept;
+    /** Get the write position */
+    Byte_ptr data_end() const noexcept
+    { return data_end_; }
 
-    /** Set next-hop ip4. */
-    void next_hop(IP4::addr ip) noexcept;
+    /** Get the end of the buffer, e.g. pointer to byte after last */
+    const Byte* buffer_end() const noexcept
+    { return buffer_end_; }
 
-    /** Get next-hop ip4. */
-    IP4::addr next_hop() const noexcept;
+    /** Get the number of populated bytes relative to current layer start */
+    int size() const noexcept
+    { return data_end_ - layer_begin_; }
+
+    /** Get the total size of current layers data portion, >= size() and MTU-like */
+    int capacity() const noexcept
+    { return buffer_end_ - layer_begin_; }
+
+    /** Returns the total packet data capacity, irrespective of layer */
+    int bufsize() const noexcept
+    { return buffer_end() - buf(); }
+
+    /** Increment / decrement layer_begin, resets data_end */
+    void increment_layer_begin(int i)
+    {
+      set_layer_begin(layer_begin() + i);
+    }
+
+    /** Set data end / write-position relative to layer_begin */
+    void set_data_end(int offset)
+    {
+      Expects(offset >= 0 and layer_begin() + offset <= buffer_end_);
+      data_end_ = layer_begin() + offset;
+    }
+
+    void increment_data_end(int i)
+    {
+      Expects(i > 0 && data_end_ + i <= buffer_end_);
+      data_end_ += i;
+    }
 
     /* Add a packet to this packet chain.  */
     void chain(Packet_ptr p) noexcept {
       if (!chain_) {
-        chain_ = p;
-        last_ = p;
+        chain_ = std::move(p);
+        last_ = chain_.get();
       } else {
-        last_->chain(p);
-        last_ = p->last_in_chain() ? p->last_in_chain() : p;
+        auto* ptr = p.get();
+        last_->chain(std::move(p));
+        last_ = ptr->last_in_chain() ? ptr->last_in_chain() : ptr;
         assert(last_);
       }
     }
 
     /* Get the last packet in the chain */
-    Packet_ptr last_in_chain() noexcept
+    Packet* last_in_chain() noexcept
     { return last_; }
 
     /* Get the tail, i.e. chain minus the first element */
-    Packet_ptr tail() noexcept
-    { return chain_; }
+    Packet* tail() noexcept
+    { return chain_.get(); }
 
     /* Get the tail, and detach it from the head (for FIFO) */
     Packet_ptr detach_tail() noexcept
+    { return std::move(chain_); }
+
+
+    // override delete to do nothing
+    static void operator delete (void* data) {
+      auto* pk = (Packet*) data;
+      assert(pk->bufstore_);
+      pk->bufstore_->release(data);
+    }
+
+  private:
+    Packet_ptr chain_ {nullptr};
+    Packet*    last_  {nullptr};
+
+    /** Set layer begin, e.g. view the packet from another layer */
+    void set_layer_begin(Byte_ptr loc)
     {
-      auto tail = chain_;
-      chain_ = 0;
-      return tail;
+      Expects(loc >= buf() and loc <= buffer_end_);
+      layer_begin_ = loc;
+      // prevent data_end from being below layer_begin,
+      // but also make sure its not moved back when decrementing
+      data_end_    = std::max(loc, data_end_);
     }
 
 
-    /**
-     *  For a UDPv6 packet, the payload location is the start of
-     *  the UDPv6 header, and so on
-     */
-    inline void set_payload(BufferStore::buffer_t location) noexcept
-    { payload_ = location; }
-
-    /** Get the payload of the packet */
-    inline BufferStore::buffer_t payload() const noexcept
-    { return payload_; }
-
-    /**
-     *  Upcast back to normal packet
-     *
-     *  Unfortunately, we can't upcast with std::static_pointer_cast
-     *  however, all classes derived from Packet should be good to use
-     */
-    static Packet_ptr packet(Packet_ptr pckt) noexcept
-    { return *static_cast<Packet_ptr*>(&pckt); }
-
-    /** @Todo: Avoid Protected Data. (Jedi Council CG, C.133) **/
-  protected:
-    BufferStore::buffer_t payload_   {nullptr};
-    BufferStore::buffer_t buf_       {nullptr};
-    size_t                capacity_  {0};     // NOTE: Actual value is provided by BufferStore
-    size_t                size_      {0};
-    IP4::addr             next_hop4_ {};
-  private:
-    /** Send the buffer back home, after destruction */
-    release_del release_;
-
-    /** Let's chain packets */
-    Packet_ptr chain_ {0};
-    Packet_ptr last_ {0};
-
-    /** Default constructor Deleted. See Packet(Packet&). */
     Packet() = delete;
-
-    /**
-     *  Delete copy and move because we want Packets and buffers to be 1 to 1
-     *
-     *  (Well, we really deleted this to avoid accidental copying)
-     *
-     *  The idea is to use Packet_ptr (i.e. shared_ptr<Packet>) for passing packets.
-     *
-     *  @todo Add an explicit way to copy packets.
-     */
     Packet(Packet&) = delete;
     Packet(Packet&&) = delete;
-
-
-    /** Delete copy and move assignment operators. See Packet(Packet&). */
     Packet& operator=(Packet) = delete;
     Packet operator=(Packet&&) = delete;
+
+    // const uint16_t     capacity_;
+    Byte_ptr              layer_begin_;
+    Byte_ptr              data_end_;
+    const Byte* const     buffer_end_;
+    BufferStore*          bufstore_;
+    Byte buf_[0];
   }; //< class Packet
 
 } //< namespace net

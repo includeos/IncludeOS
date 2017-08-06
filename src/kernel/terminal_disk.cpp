@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,16 +21,16 @@
 
 using namespace fs;
 
-int target_directory(Disk_ptr disk, const Path& path)
+int target_directory(Terminal::Disk_ptr disk, const Path& path)
 {
   // avoid stat on root directory
   if (path.empty()) return 0;
-  
+
   std::string strpath(path.to_string());
-  
+
   auto& fs = disk->fs();
   auto ent = fs.stat(strpath);
-  
+
   if (!ent.is_valid())
     return 1;
   else if (!ent.is_dir())
@@ -39,10 +39,10 @@ int target_directory(Disk_ptr disk, const Path& path)
     return 0;
 }
 
-void Terminal::add_disk_commands(Disk_ptr disk)
+void Terminal::add_disk_commands(Terminal::Disk_ptr disk)
 {
   auto curdir = std::make_shared<std::string> ("/");
-  
+
   // add 'cd' command
   add("cd", "Change current directory",
   [this, curdir, disk] (const std::vector<std::string>& args) -> int
@@ -50,10 +50,10 @@ void Terminal::add_disk_commands(Disk_ptr disk)
     // current directory, somehow...
     std::string target = "/";
     if (!args.empty()) target = args[0];
-    
+
     Path path(*curdir);
     path += target;
-    
+
     int rv = target_directory(disk, path);
     if (rv)
     {
@@ -70,26 +70,26 @@ void Terminal::add_disk_commands(Disk_ptr disk)
     // current directory, somehow...
     Path path(*curdir);
     if (!args.empty()) path += args[0];
-  
+
     int rv = target_directory(disk, path);
     if (rv)
     {
       this->write("ls: %s: No such file or directory\r\n", path.to_string().c_str());
       return rv;
     }
-    
+
     std::string target = path.to_string();
-    
+
     auto& fs = disk->fs();
     auto list = fs.ls(target);
     if (!list.error)
     {
-      this->write("%s \t%s \t%s \t%s\r\n", 
+      this->write("%s \t%s \t%s \t%s\r\n",
                   "Name", "Size", "Type", "Sector");
       for (auto& ent : *list.entries)
       {
-        this->write("%s \t%llu \t%s \t%llu\r\n", 
-          ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block);
+        this->write("%s \t%llu \t%s \t%llu\r\n",
+           ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block());
       }
       this->write("Total %u\r\n", list.entries->size());
       return 0;
@@ -110,10 +110,10 @@ void Terminal::add_disk_commands(Disk_ptr disk)
       auto ent = fs.stat(args[0]);
       if (ent.is_valid())
       {
-        this->write("%s \t%s \t%s \t%s\r\n", 
+        this->write("%s \t%s \t%s \t%s\r\n",
                     "Name", "Size", "Type", "Sector");
-        this->write("%s \t%llu \t%s \t%llu\r\n", 
-                    ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block);
+        this->write("%s \t%llu \t%s \t%llu\r\n",
+                    ent.name().c_str(), ent.size(), ent.type_string().c_str(), ent.block());
         return 0;
       }
       else
@@ -133,7 +133,7 @@ void Terminal::add_disk_commands(Disk_ptr disk)
   [this, disk] (const std::vector<std::string>& args) -> int
   {
     auto& fs = disk->fs();
-  
+
     for (const auto& file : args)
     {
       // get file information
@@ -145,13 +145,13 @@ void Terminal::add_disk_commands(Disk_ptr disk)
       }
       // read file contents
       auto buf = fs.read(ent, 0, ent.size());
-      if (!buf.buffer)
+      if (not buf.is_valid())
       {
         this->write("cat: '%s': I/O error\r\n", file.c_str());
         return 1;
       }
       // write to terminal client
-      std::string buffer((char*) buf.buffer.get(), buf.len);
+      std::string buffer((char*) buf.data(), buf.size());
       this->write("%s\r\n", buffer.c_str());
     }
     return 0;

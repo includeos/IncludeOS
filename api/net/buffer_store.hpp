@@ -15,16 +15,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
 #ifndef NET_BUFFER_STORE_HPP
 #define NET_BUFFER_STORE_HPP
 
-#include <deque>
 #include <stdexcept>
+#include <vector>
+#include <smp>
 
-#include <net/inet_common.hpp>
-
-namespace net{
-
+namespace net
+{
   /**
    * Network buffer storage for uniformly sized buffers.
    *
@@ -35,70 +35,76 @@ namespace net{
    **/
   class BufferStore {
   public:
-    using buffer_t = uint8_t*;
-    using release_del = delegate<void(buffer_t, size_t)>;
+    struct buffer_t
+    {
+      BufferStore* bufstore;
+      uint8_t*     addr;
+    };
 
-    BufferStore(size_t num, size_t bufsize, size_t device_offset);
-
-    /** Free all the buffers **/
+    BufferStore() = delete;
+    BufferStore(size_t num, size_t bufsize);
     ~BufferStore();
 
-    /** Get a free buffer */
-    buffer_t get_raw_buffer();
+    buffer_t get_buffer();
+    void release(void*);
 
-    /** Get a free buffer, offset by device-offset */
-    buffer_t get_offset_buffer();
+    size_t local_buffers() const noexcept
+    { return poolsize_ / bufsize_; }
 
-    /** Return a buffer. */
-    void release_raw_buffer(buffer_t b, size_t);
-
-    /** Return a buffer, offset by offset_ bytes from actual buffer. */
-    void release_offset_buffer(buffer_t b, size_t);
-
-    /** Get size of a raw buffer **/
-    inline size_t raw_bufsize()
+    /** Get size of a buffer **/
+    size_t bufsize() const noexcept
     { return bufsize_; }
 
-    inline size_t offset_bufsize()
-    { return bufsize_ - device_offset_; }
-
-    /** @return the total buffer capacity in bytes */
-    inline size_t capacity()
-    { return available_buffers_.size() * bufsize_; }
+    size_t poolsize() const noexcept
+    { return poolsize_; }
 
     /** Check if a buffer belongs here */
-    inline bool address_is_from_pool(buffer_t addr)
-    { return addr >= pool_ and addr < pool_ + (bufcount_ * bufsize_); }
+    bool is_from_pool(uint8_t* addr) const noexcept;
 
     /** Check if an address is the start of a buffer */
-    inline bool address_is_bufstart(buffer_t addr)
+    bool is_buffer(uint8_t* addr) const noexcept
     { return (addr - pool_) % bufsize_ == 0; }
 
-    /** Check if an address is the start of a buffer */
-    inline bool address_is_offset_bufstart(buffer_t addr)
-    { return (addr - pool_ - device_offset_) % bufsize_ == 0; }
+    size_t available() const noexcept;
 
-    inline size_t buffers_available()
-    { return available_buffers_.size(); }
+    size_t total_buffers() const noexcept;
+
+    /** move this bufferstore to the current CPU **/
+    void move_to_this_cpu() noexcept;
 
   private:
-    size_t               bufcount_;
-    const size_t         bufsize_;
-    size_t               device_offset_;
-    buffer_t             pool_;
-    std::deque<buffer_t> available_buffers_;
+    bool is_from_this_pool(uint8_t* addr) const noexcept {
+      return (addr >= this->pool_begin()
+          and addr <  this->pool_end());
+    }
+    uint8_t* pool_begin() const noexcept {
+      return pool_;
+    }
+    uint8_t* pool_end() const noexcept {
+      return pool_begin() + poolsize_;
+    }
 
-    /** Delete move and copy operations **/
+    BufferStore* get_next_bufstore();
+    inline buffer_t get_buffer_directly() noexcept;
+    inline void     release_directly(uint8_t*);
+
+    size_t               poolsize_;
+    size_t               bufsize_;
+    uint8_t*             pool_;
+    std::vector<uint8_t*> available_;
+    BufferStore*         next_;
+    int                  cpu;
+    int                  index;
+    static bool          smp_enabled_;
+#ifndef INCLUDEOS_SINGLE_THREADED
+    // has strict alignment reqs, so put at end
+    spinlock_t           plock;
+#endif
     BufferStore(BufferStore&)  = delete;
     BufferStore(BufferStore&&) = delete;
     BufferStore& operator=(BufferStore&)  = delete;
     BufferStore  operator=(BufferStore&&) = delete;
-
-    /** Prohibit default construction **/
-    BufferStore() = delete;
-
-    void increaseStorage();
-  }; //< class BufferStore
-} //< namespace net
+  };
+} //< net
 
 #endif //< NET_BUFFER_STORE_HPP

@@ -1,0 +1,5 @@
+all:
+	$(CC) syslog_example.c -o syslog_linux
+
+clean:
+		rm -f syslog_linux

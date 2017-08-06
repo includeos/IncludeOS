@@ -1,0 +1,4 @@
+*.gcov
+*.gcda
+*.gcno
+unittests
