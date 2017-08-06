@@ -15,113 +15,128 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <net/inet4>
-#include <net/dhcp/dh4client.hpp>
-#include <math.h> // rand()
+#include <cmath> // rand()
 #include <sstream>
 
-// An IP-stack object
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
+#include <os>
+#include <net/inet4>
+#include <timers>
+#include <net/http/request.hpp>
+#include <net/http/response.hpp>
 
 using namespace std::chrono;
 
-std::string HTML_RESPONSE() {
-  int color = rand();
+std::string HTML_RESPONSE()
+{
+  const int color = rand();
+
+  // Generate some HTML
   std::stringstream stream;
+  stream << "<!DOCTYPE html><html><head>"
+         << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300'"
+         << " rel='stylesheet' type='text/css'>"
+         << "<title>IncludeOS Demo Service</title></head><body>"
+         << "<h1 style='color: #" << std::hex << ((color >> 8) | 0x020202)
+         << "; font-family: \"Arial\", sans-serif'>"
+         << "Include<span style='font-weight: lighter'>OS</span></h1>"
+         << "<h2>The C++ Unikernel</h2>"
+         << "<p>You have successfully booted an IncludeOS TCP service with simple http. "
+         << "For a more sophisticated example, take a look at "
+         << "<a href='https://github.com/hioa-cs/IncludeOS/tree/master/examples/acorn'>Acorn</a>.</p>"
+         << "<footer><hr/>&copy; 2017 IncludeOS </footer></body></html>";
 
-  /* HTML Fonts */
-  std::string ubuntu_medium  = "font-family: \'Ubuntu\', sans-serif; font-weight: 500; ";
-  std::string ubuntu_normal  = "font-family: \'Ubuntu\', sans-serif; font-weight: 400; ";
-  std::string ubuntu_light  = "font-family: \'Ubuntu\', sans-serif; font-weight: 300; ";
-
-  /* HTML */
-  stream << "<html><head>"
-         << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300' rel='stylesheet' type='text/css'>"
-         << "</head><body>"
-         << "<h1 style= \"color: " << "#" << std::hex << (color >> 8) << "\">"
-         <<  "<span style=\""+ubuntu_medium+"\">Include</span><span style=\""+ubuntu_light+"\">OS</span> </h1>"
-         <<  "<h2>Now speaks TCP!</h2>"
-    // .... generate more dynamic content
-         << "<p>  ...and can improvise http. With limitations of course, but it's been easier than expected so far </p>"
-         << "<footer><hr /> &copy; 2015, Oslo and Akershus University College of Applied Sciences </footer>"
-         << "</body></html>\n";
-
-  std::string html = stream.str();
-
-  std::string header="HTTP/1.1 200 OK \n "        \
-    "Date: Mon, 01 Jan 1970 00:00:01 GMT \n"      \
-    "Server: IncludeOS prototype 4.0 \n"        \
-    "Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT \n"   \
-    "Content-Type: text/html; charset=UTF-8 \n"     \
-    "Content-Length: "+std::to_string(html.size())+"\n"   \
-    "Accept-Ranges: bytes\n"          \
-    "Connection: close\n\n";
-  return header + html;
+  return stream.str();
 }
 
-const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \n Connection: close\n\n";
+http::Response handle_request(const http::Request& req)
+{
+  printf("<Service> Request:\n%s\n", req.to_string().c_str());
 
-void Service::start() {
-  // Assign a driver (VirtioNet) to a network interface (eth0)
-  // @note: We could determine the appropirate driver dynamically, but then we'd
-  // have to include all the drivers into the image, which  we want to avoid.
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
+  http::Response res;
 
-  // Bring up a network stack, attached to the nic
-  // @note : No parameters after 'nic' means we'll use DHCP for IP config.
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
+  auto& header = res.header();
 
-  // Static IP configuration, until we (possibly) get DHCP
-  // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet->network_config( { 10,0,0,42 },      // IP
-                        { 255,255,255,0 },  // Netmask
-                        { 10,0,0,1 },       // Gateway
-                        { 8,8,8,8 } );      // DNS
+  header.set_field(http::header::Server, "IncludeOS/0.10");
 
-  srand(OS::cycles_since_boot());
+  // GET /
+  if(req.method() == http::GET && req.uri().to_string() == "/")
+  {
+    // add HTML response
+    res.add_body(HTML_RESPONSE());
 
-  // Set up a TCP server on port 80
-  auto& server = inet->tcp().bind(80);
+    // set Content type and length
+    header.set_field(http::header::Content_Type, "text/html; charset=UTF-8");
+    header.set_field(http::header::Content_Length, std::to_string(res.body().to_string().size()));
+  }
+  else
+  {
+    // Generate 404 response
+    res.set_status_code(http::Not_Found);
+  }
 
-  hw::PIT::instance().onRepeatedTimeout(30s, []{
-      printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
-    });
+  header.set_field(http::header::Connection, "close");
 
-  // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onAccept([](auto conn) -> bool {
-    printf("<Service> @onAccept - Connection attempt from: %s \n",
-           conn->to_string().c_str());
-    return true; // allow all connections
+  return res;
+}
 
-  }).onConnect([](auto conn) {
-    printf("<Service> @onConnect - Connection successfully established.\n");
-    // read async with a buffer size of 1024 bytes
-    // define what to do when data is read
-    conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
-      // create string from buffer
-      std::string data { (char*)buf.get(), n };
-      printf("<Service> @read:\n%s\n", data.c_str());
-      if(data.find("GET / ") != std::string::npos) {
-        // create response
-        std::string response = HTML_RESPONSE();
-        // write the data from the string with the strings size
-        conn->write(response.data(), response.size(), [](size_t n) {
-          printf("<Service> @write: %u bytes written\n", n);
-        });
-      }
-      else {
-        conn->write(NOT_FOUND.data(), NOT_FOUND.size());
-      }
-
-    });
-
-  }).onDisconnect([](auto conn, auto reason) {
-    printf("<Service> @onDisconnect - Reason: %s \n", reason.to_string().c_str());
-    conn->close();
-  }).onPacketReceived([](auto, auto packet) {
-    printf("@Packet: %s\n", packet->to_string().c_str());
+void Service::start(const std::string&)
+{
+  // DHCP on interface 0
+  printf("*** Waiting up to 10 sec. for DHCP... ***\n");
+  auto& inet = net::Inet4::ifconfig(5.0, [](bool timeout) {
+    if (timeout) {
+      printf("*** Falling back to static network config ***\n");
+      // static IP in case DHCP fails
+      net::Inet4::stack().network_config(
+        { 10,0,0,42 },     // IP
+        { 255,255,255,0 }, // Netmask
+        { 10,0,0,1 },      // Gateway
+        { 10,0,0,1 });     // DNS
+    }
+  });
+  // Print some useful netstats every 30 secs
+  Timers::periodic(5s, 30s,
+  [&inet] (uint32_t) {
+    printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
 
-  printf("*** TEST SERVICE STARTED *** \n");
+  // Set up a TCP server on port 80
+  auto& server = inet.tcp().listen(80);
+
+  // Add a TCP connection handler - here a hardcoded HTTP-service
+  server.on_connect(
+  [] (net::tcp::Connection_ptr conn) {
+    printf("<Service> @on_connect: Connection %s successfully established.\n",
+      conn->remote().to_string().c_str());
+    // read async with a buffer size of 1024 bytes
+    // define what to do when data is read
+    conn->on_read(1024,
+    [conn] (net::tcp::buffer_t buf, size_t n)
+    {
+      printf("<Service> @on_read: %u bytes received.\n", n);
+      try
+      {
+        std::string data{(const char*)buf.get(), n};
+        // try to parse the request
+        http::Request req{data};
+
+        // handle the request, getting a matching response
+        auto res = handle_request(req);
+
+        printf("<Service> Responding with %u %s.\n",
+          res.status_code(), http::code_description(res.status_code()).to_string().c_str());
+
+        conn->write(res);
+      }
+      catch(const std::exception& e)
+      {
+        printf("<Service> Unable to parse request:\n%s\n", e.what());
+      }
+    });
+    conn->on_write([](size_t written) {
+      printf("<Service> @on_write: %u bytes written.\n", written);
+    });
+  });
+
+  printf("*** Basic demo service started ***\n");
 }

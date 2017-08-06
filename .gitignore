@@ -1,11 +1,11 @@
+*
+!/**/
+!*.*
 *~
 *.a
 *.o
 *.out
 *.log
-\#*
-\*.*
-\.\#*
 *.iso
 *.qcow2
 *.vdi
@@ -13,8 +13,13 @@
 *.tmp
 *.d
 *.pyc
+*.ropeproject
+*.xml
 nbproject
 
+!Dockerfile
+
+src/apic_boot.bin
 src/bootloader
 src/TAGS
 
@@ -22,8 +27,6 @@ src/.codelite/
 src/compile_commands.json
 *.project
 *.workspace
-
-vmbuild/vmbuild
 
 *.img
 *.img.*
@@ -35,3 +38,12 @@ vmbuild/vmbuild
 /.vagrant
 /examples/demo_service/IncludeOS_Demo_Service
 /seed/My_Service
+
+build/
+build_i686/
+build_x86_64/
+
+# cmake related
+CMakeFiles*
+CMakeCache*
+cmake_install.cmake

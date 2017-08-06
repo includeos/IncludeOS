@@ -26,12 +26,14 @@ namespace net
   class UDPSocket
   {
   public:
+
     typedef UDP::port_t port_t;
     typedef IP4::addr addr_t;
     typedef IP4::addr multicast_group_addr;
 
     typedef delegate<void(addr_t, port_t, const char*, size_t)> recvfrom_handler;
     typedef UDP::sendto_handler sendto_handler;
+    typedef UDP::error_handler error_handler;
 
     // constructors
     UDPSocket(UDP&, port_t port);
@@ -43,35 +45,39 @@ namespace net
 
     // functions
     void on_read(recvfrom_handler callback)
-    {
-      on_read_handler = callback;
-    }
+    { on_read_handler = callback; }
+
     void sendto(addr_t destIP, port_t port,
                 const void* buffer, size_t length,
-                sendto_handler cb = [] {});
+                sendto_handler cb = nullptr,
+                error_handler ecb = nullptr);
+
     void bcast(addr_t srcIP, port_t port,
                const void* buffer, size_t length,
-               sendto_handler cb = [] {});
-    void close();
+               sendto_handler cb = nullptr,
+               error_handler ecb = nullptr);
+
+    void close()
+    { udp_.close(l_port); }
 
     void join(multicast_group_addr);
     void leave(multicast_group_addr);
 
     // stuff
     addr_t local_addr() const
-    {
-      return udp.local_ip();
-    }
+    { return udp_.local_ip(); }
+
     port_t local_port() const
-    {
-      return l_port;
-    }
+    { return l_port; }
+
+    UDP& udp()
+    { return udp_; }
 
   private:
     void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
     void internal_read(UDP::Packet_ptr);
 
-    UDP& udp;
+    UDP& udp_;
     port_t l_port;
     recvfrom_handler on_read_handler =
       [] (addr_t, port_t, const char*, size_t) {};

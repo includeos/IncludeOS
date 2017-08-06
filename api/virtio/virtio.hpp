@@ -55,7 +55,8 @@
 #define VIRTIO_PCI_QUEUE_NOTIFY         16  // Queue notifier
 #define VIRTIO_PCI_STATUS               18  // Device status register
 #define VIRTIO_PCI_ISR                  19  // Interrupt status register
-#define VIRTIO_PCI_CONFIG               20  // Configuration data block
+#define VIRTIO_PCI_CONFIG               20  // Configuration data offset
+#define VIRTIO_PCI_CONFIG_MSIX          24  // .. when MSI-X is enabled
 
 
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE     1
@@ -69,8 +70,6 @@ class Virtio
 {
 
 public:
-  using data_handler_t = delegate<int(uint8_t* data,int len)>;
-
   /** A wrapper for buffers to be passed in to the Queue */
   class Token {
 
@@ -114,11 +113,8 @@ public:
     };
 
   /** Virtio Queue class. */
-  class Queue
-  {
-
-  private:
-
+  class Queue {
+  public:
     /** @note Using typedefs in order to keep the standard notation. */
     using le64 =  uint64_t;
     using le32 = uint32_t;
@@ -193,39 +189,18 @@ public:
     /** Virtque size calculation. Virtio std. §2.4.2 */
     static inline unsigned virtq_size(unsigned int qsz);
 
-    // The size as read from the PCI device
-    uint16_t _size;
-
-    // Actual size in bytes - virtq_size(size)
-    uint32_t _size_bytes;
-
-    // The actual queue struct
-    virtq _queue;
-
-    uint16_t _iobase = 0; // Device PCI location
-    uint16_t _free_head = 0; // First available descriptor (_queue.desc[_free_head])
-    uint16_t _num_added = 0; // Entries to be added to _queue.avail->idx
-    uint16_t _desc_in_flight = 0; // Entries in _queue_desc currently in use
-    uint16_t _last_used_idx = 0; // Last known value of _queue.used->idx
-    uint16_t _pci_index = 0; // Queue nr.
-
-    delegate<void(net::Packet_ptr p)> on_exit_to_physical_ {};
-
-    /** Handler for data coming in on virtq.used. */
-    data_handler_t _data_handler;
-
-    /** Initialize the queue buffer */
-    void init_queue(int size, void* buf);
-
-  public:
     /**
        Update the available index */
     inline void update_avail_idx ()
     {
+#if defined(ARCH_x86)
       // Std. §3.2.1 pt. 4
-      asm volatile("mfence" ::: "memory");
+      __arch_hw_barrier();
       _queue.avail->idx += _num_added;
       _num_added = 0;
+#else
+#warning "update_avail_idx() not implemented for selected arch"
+#endif
     }
 
     /** Kick hypervisor.
@@ -234,7 +209,9 @@ public:
     void kick();
 
     /** Constructor. @param size shuld be fetched from PCI device. */
-    Queue(uint16_t size, uint16_t q_index, uint16_t iobase);
+    Queue() {}
+    Queue(const std::string& name,
+          uint16_t size, uint16_t q_index, uint16_t iobase);
 
     /** Get the queue descriptor. To be written to the Virtio device. */
     virtq_desc* queue_desc() const { return _queue.desc; }
@@ -246,12 +223,9 @@ public:
 
     /** Dequeue a received packet */
     Token dequeue();
-    std::vector<Token> dequeue_chain();
 
     void disable_interrupts();
     void enable_interrupts();
-
-    void set_data_handler(data_handler_t dataHandler);
 
     /** Release token. @param head : the token ID to release*/
     void release(uint32_t head);
@@ -265,6 +239,11 @@ public:
     /** Get number of used buffers */
     uint16_t num_used() const noexcept
     { return _queue.avail->idx - _queue.used->idx; }
+
+    uint16_t num_inflight() const noexcept
+    {
+      return _desc_in_flight;
+    }
 
     /** Get number of free tokens in Queue */
     uint16_t num_free() const noexcept
@@ -298,7 +277,26 @@ public:
     inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
     { on_exit_to_physical_ = dlg; };
 
+  private:
+    /** Initialize the queue buffer */
+    void init_queue(int size, char* buf);
 
+    std::string qname;
+
+    // The size as read from the PCI device
+    uint16_t _size;
+
+    // The actual queue struct
+    virtq _queue;
+
+    uint16_t _iobase = 0; // Device PCI location
+    uint16_t _free_head = 0; // First available descriptor (_queue.desc[_free_head])
+    uint16_t _num_added = 0; // Entries to be added to _queue.avail->idx
+    uint16_t _desc_in_flight = 0; // Entries in _queue_desc currently in use
+    uint16_t _last_used_idx = 0; // Last known value of _queue.used->idx
+    uint16_t _pci_index = 0; // Queue nr.
+
+    delegate<void(net::Packet_ptr p)> on_exit_to_physical_ {};
   };
 
 
@@ -307,17 +305,17 @@ public:
       @note it varies how these are structured, hence a void* buf */
   void get_config(void* buf, int len);
 
-  /** Get the (saved) device IRQ */
-  inline uint8_t irq(){ return _irq; };
+  /** Get the list of subscribed IRQs */
+  auto& get_irqs() { return irqs; };
+
+  /** Get the legacy PCI IRQ */
+  uint8_t get_legacy_irq();
 
   /** Reset the virtio device */
   void reset();
 
   /** Negotiate supported features with host */
   void negotiate_features(uint32_t features);
-
-  /** Register interrupt handler & enable IRQ */
-  void enable_irq_handler();
 
   /** Probe PCI device for features */
   uint32_t probe_features();
@@ -332,7 +330,7 @@ public:
   uint32_t queue_size(uint16_t index);
 
   /** Assign a queue descriptor to a PCI queue index */
-  bool assign_queue(uint16_t index, uint32_t queue_desc);
+  bool assign_queue(uint16_t index, const void* queue_desc);
 
   /** Tell Virtio device if we're OK or not. Virtio Std. § 3.1.1,step 8*/
   void setup_complete(bool ok);
@@ -343,6 +341,16 @@ public:
   */
   static inline bool version_supported(uint16_t i) { return i <= 0; }
 
+  // returns true if MSI-X is supported
+  bool has_msix() const noexcept {
+    return _pcidev.has_msix();
+  }
+  // returns non-zero if MSI-x is supported
+  uint8_t get_msix_vectors() const noexcept {
+    return _pcidev.get_msix_vectors();
+  }
+
+  void move_to_this_cpu();
 
   /** Virtio device constructor.
 
@@ -351,14 +359,15 @@ public:
   */
   Virtio(hw::PCI_Device& pci);
 
+protected:
+  void deactivate_msix() {
+    _pcidev.deactivate_msix();
+  }
 private:
-  //PCI memer as reference (so no indirection overhead)
   hw::PCI_Device& _pcidev;
 
   //We'll get this from PCI_device::iobase(), but that lookup takes longer
   uint32_t _iobase = 0;
-
-  uint8_t _irq = 0;
   uint32_t _features = 0;
   uint16_t _virtio_device_id = 0;
 
@@ -366,12 +375,10 @@ private:
   bool _LEGACY_ID = 0;
   bool _STD_ID = 0;
 
-  void set_irq();
-
-  //TEST
-  int calls = 0;
-
   void default_irq_handler();
+
+  uint8_t current_cpu;
+  std::vector<uint8_t> irqs;
 };
 
 #endif

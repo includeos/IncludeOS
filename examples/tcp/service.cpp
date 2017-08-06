@@ -15,99 +15,90 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
-  An example to show incoming and outgoing TCP Connections.
-  In this example, IncludeOS is listening on port 80.
-
-  Data received on port 80 will be redirected to a
-  outgoing connection to a (in this case) python server (server.py)
-
-  Data received from the python server connection
-  will be redirected back to the client.
-
-  To try it out, use netcat to connect to this IncludeOS instance.
-*/
-
 #include <os>
 #include <net/inet4>
 
-using Connection_ptr = std::shared_ptr<net::TCP::Connection>;
-using Disconnect = net::TCP::Connection::Disconnect;
+/**
+ * An example to show incoming and outgoing TCP Connections.
+ * In this example, IncludeOS is listening on port 80.
+ *
+ * Data received on port 80 will be redirected to a
+ * outgoing connection to a (in this case) python server (server.py)
+ *
+ * Data received from the python server connection
+ * will be redirected back to the client.
+ *
+ * To try it out, use netcat to connect to this IncludeOS instance.
+**/
 
-// An IP-stack object
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
+using Connection_ptr = net::tcp::Connection_ptr;
+using Disconnect = net::tcp::Connection::Disconnect;
 
 // Address to our python server: 10.0.2.2:1337
-// @note: This may be needed to be modified depending on network and server settings.
-net::TCP::Socket python_server{ {10,0,2,2} , 1337};
+// @note: This may have to be modified depending on network and server settings.
+net::Socket python_server{ {10,0,2,2} , 1337};
 
 // Called when data is received on client (incoming connection)
-void handle_client_on_read(Connection_ptr python, std::string request) {
+void handle_client_on_read(Connection_ptr python, const std::string& request) {
   printf("Received [Client]: %s\n", request.c_str());
   // Write the request to our python server
-  python->write(request.data(), request.size());
+  python->write(request);
 }
 
 // Called when data is received on python (outgoing connection)
-void handle_python_on_read(Connection_ptr client, std::string response) {
+void handle_python_on_read(Connection_ptr client, const std::string& response) {
   // Write response to our client
-  client->write(response.data(), response.size());
+  client->write(response);
 }
 
-void Service::start() {
-  // Assign a driver (VirtioNet) to a network interface (eth0)
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
-
-  // Bring up a network stack, attached to the nic
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
-
-  // Static IP configuration, until we (possibly) get DHCP
-  inet->network_config( { 10,0,0,42 },      // IP
-                        { 255,255,255,0 },  // Netmask
-                        { 10,0,0,1 },       // Gateway
-                        { 8,8,8,8 } );      // DNS
+void Service::start(const std::string&)
+{
+  // Static IP configuration will get overwritten by DHCP, if found
+  auto& inet = net::Inet4::ifconfig<0>(10);
+  inet.network_config({ 10,0,0,42 },      // IP
+                      { 255,255,255,0 },  // Netmask
+                      { 10,0,0,1 },       // Gateway
+                      { 8,8,8,8 });       // DNS
 
   // Set up a TCP server on port 80
-  auto& server = inet->tcp().bind(80);
-  inet->dhclient()->on_config([&server](bool timeout) {
-    if(!timeout)
-      printf("Server IP updated: %s\n", server.local().to_string().c_str());
-  });
+  auto& server = inet.tcp().listen(80);
   printf("Server listening: %s \n", server.local().to_string().c_str());
+
   // When someone connects to our server
-  server.onConnect([](Connection_ptr client) {
-      printf("Connected [Client]: %s\n", client->to_string().c_str());
-      // Make an outgoing connection to our python server
-      auto outgoing = inet->tcp().connect(python_server);
-      // When outgoing connection to python sever is established
-      outgoing->onConnect([client](Connection_ptr python) {
-          printf("Connected [Python]: %s\n", python->to_string().c_str());
+  server.on_connect(
+  [&inet] (Connection_ptr client) {
+    printf("Connected [Client]: %s\n", client->to_string().c_str());
+    // Make an outgoing connection to our python server
+    auto outgoing = inet.tcp().connect(python_server);
+    // When outgoing connection to python sever is established
+    outgoing->on_connect(
+    [client] (Connection_ptr python) {
+        printf("Connected [Python]: %s\n", python->to_string().c_str());
 
-          // Setup handlers for when data is received on client and python connection
-          // When client reads data
-          client->read(1024, [python](auto buf, size_t n) {
-              std::string data{ (char*)buf.get(), n };
-              handle_client_on_read(python, data);
-            });
+        // Setup handlers for when data is received on client and python connection
+        // When client reads data
+        client->on_read(1024, [python](auto buf, size_t n) {
+            std::string data{ (char*)buf.get(), n };
+            handle_client_on_read(python, data);
+          });
 
-          // When python server reads data
-          python->read(1024, [client](auto buf, size_t n) {
-              std::string data{ (char*)buf.get(), n };
-              handle_python_on_read(client, data);
-            });
+        // When python server reads data
+        python->on_read(1024, [client](auto buf, size_t n) {
+            std::string data{ (char*)buf.get(), n };
+            handle_python_on_read(client, data);
+          });
 
-          // When client is disconnecting
-          client->onDisconnect([python](Connection_ptr, Disconnect reason) {
-              printf("Disconnected [Client]: %s\n", reason.to_string().c_str());
-              python->close();
-            });
+        // When client is disconnecting
+        client->on_disconnect([python](Connection_ptr, Disconnect reason) {
+            printf("Disconnected [Client]: %s\n", reason.to_string().c_str());
+            python->close();
+          });
 
-          // When python is disconnecting
-          python->onDisconnect([client](Connection_ptr, Disconnect reason) {
-              printf("Disconnected [Python]: %s\n", reason.to_string().c_str());
-              client->close();
-            });
-        }); // << onConnect (outgoing (python))
-    }); // << onConnect (client)
-
+        // When python is disconnecting
+        python->on_disconnect([client](Connection_ptr, Disconnect reason) {
+            printf("Disconnected [Python]: %s\n", reason.to_string().c_str());
+            client->close();
+          });
+      }); // << onConnect (outgoing (python))
+  }); // << onConnect (client)
 }

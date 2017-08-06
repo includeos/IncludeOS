@@ -18,8 +18,6 @@
 #ifndef KERNEL_SERVICE_HPP
 #define KERNEL_SERVICE_HPP
 
-extern "C" const char* service_name__;
-
 #include <string>
 
 /**
@@ -30,27 +28,34 @@ extern "C" const char* service_name__;
 class Service {
 public:
   /**
-   *  Get the name of the service
-   *
-   *  @return: The name of the service
+   *  @return: The (descriptive) name of the service
    */
-  static const std::string name()
-  { return service_name__; }
-  
+  static std::string name();
+
+  /**
+   *  @return: The name of the service binary
+   */
+  static std::string binary_name();
+
+
   /**
    *  The service entry point
    *
-   *  This is like 'main' - which we don't have, since the signature wouldn't
-   *  make sense (no command line, no args, no where to return to)
-   *  
-   *  @note Whenever this function returns, the OS will call `hlt`, sleeping
+   *  This is like an applications 'main' function
+   *
+   *  @note Whenever this function returns, the OS will be sleeping
    *        until an external interrupt fires (there are no regular timer
    *        interrupts unless you've enabled them).
-   *
-   *        Your service should hook up event handlers to some of the events
-   *        (like `Nic::on(HttpConnection, your_callback`))
    */
   static void start();
+  static void start(const std::string& cmdline_args);
+
+
+  /**
+   * Ready is called when the kernel is done calibrating stuff and won't be
+   * doing anything on its own anymore
+  **/
+  static void ready();
 
   /**
    *  Graceful shutdown
@@ -58,10 +63,9 @@ public:
    *  If the virtual machine running your service gets a poweroff signal
    *  (i.e. from the hypervisor, like Qemu or VirtualBox) this function should
    *  ensure a safe shutdown.
-   *  
-   *  @todo This is not implemented
    */
   static void stop();
+
 }; //< Service
 
 #endif //< KERNEL_SERVICE_HPP

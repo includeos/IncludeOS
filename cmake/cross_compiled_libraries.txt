@@ -1,0 +1,71 @@
+# ex: set syntax=cmake:
+
+# If a local bundle location is set that is used, otherwise download from github
+if (BUNDLE_LOC)
+	include(ExternalProject)
+  message(STATUS "Using bundle ${BUNDLE_LOC}")
+	ExternalProject_Add(PrecompiledLibraries
+			    PREFIX precompiled
+			    URL ${BUNDLE_LOC}
+			    CONFIGURE_COMMAND ""
+			    BUILD_COMMAND ""
+			    UPDATE_COMMAND ""
+			    INSTALL_COMMAND ""
+	)
+
+else(BUNDLE_LOC)
+	# TODO: improve (like dynamically download latest version)
+	include(ExternalProject)
+	ExternalProject_Add(PrecompiledLibraries
+			    PREFIX precompiled
+			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.11.0-bundle/IncludeOS_dependencies_v0-11-0-rc-1.tar.gz
+			    URL_HASH SHA1=f719886bcab5c55957361c024bab54c601d862f5
+			    CONFIGURE_COMMAND ""
+			    BUILD_COMMAND ""
+			    UPDATE_COMMAND ""
+			    INSTALL_COMMAND ""
+	)
+
+endif (BUNDLE_LOC)
+
+set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/${ARCH})
+
+set(LIBCXX_INCLUDE_DIR ${PRECOMPILED_DIR}/libcxx/include/)
+set(LIBCXX_LIB_DIR ${PRECOMPILED_DIR}/libcxx/)
+
+add_library(libcxx STATIC IMPORTED)
+add_library(libcxxabi STATIC IMPORTED)
+
+add_dependencies(libcxx PrecompiledLibraries)
+add_dependencies(libcxxabi PrecompiledLibraries)
+set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++.a)
+set_target_properties(libcxxabi PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++abi.a)
+
+set(NEWLIB_INCLUDE_DIR ${PRECOMPILED_DIR}/newlib/include/)
+set(NEWLIB_LIB_DIR ${PRECOMPILED_DIR}/newlib/)
+
+set(LIBGCC_LIB_DIR ${PRECOMPILED_DIR}/libgcc/)
+
+add_library(libc STATIC IMPORTED)
+set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libc.a)
+add_dependencies(libc PrecompiledLibraries)
+
+add_library(libm STATIC IMPORTED)
+set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libm.a)
+add_dependencies(libm PrecompiledLibraries)
+
+add_library(libgcc STATIC IMPORTED)
+set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${LIBGCC_LIB_DIR}/libgcc.a)
+add_dependencies(libgcc PrecompiledLibraries)
+
+set(CRTEND ${PRECOMPILED_DIR}/crt/crtend.o)
+set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
+
+# installation instructions
+install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libcxx)
+
+install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/newlib)
+
+install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/${ARCH}/lib)
+
+install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a ${LIBCXX_LIB_DIR}/libc++abi.a DESTINATION includeos/${ARCH}/lib)

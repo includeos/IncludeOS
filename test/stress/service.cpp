@@ -20,9 +20,7 @@
 #include <net/dhcp/dh4client.hpp>
 #include <math.h> // rand()
 #include <sstream>
-
-// An IP-stack object
-std::unique_ptr<net::Inet4<VirtioNet> > inet;
+#include <timers>
 
 using namespace std::chrono;
 
@@ -68,65 +66,63 @@ std::string html() {
 
 const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \n Connection: close\n\n";
 
-extern char _end;
-
 uint64_t TCP_BYTES_RECV = 0;
 uint64_t TCP_BYTES_SENT = 0;
 
-void Service::start() {
-  // Assign a driver (VirtioNet) to a network interface (eth0)
-  // @note: We could determine the appropirate driver dynamically, but then we'd
-  // have to include all the drivers into the image, which  we want to avoid.
-  hw::Nic<VirtioNet>& eth0 = hw::Dev::eth<0,VirtioNet>();
+void Service::start(const std::string&)
+{
 
-  // Bring up a network stack, attached to the nic
-  // @note : No parameters after 'nic' means we'll use DHCP for IP config.
-  inet = std::make_unique<net::Inet4<VirtioNet> >(eth0);
+  // Timer spam
+  for (int i = 0; i < 1000; i++)
+    Timers::oneshot(std::chrono::microseconds(i + 200), [](auto){});
+
+  static auto& inet = net::Inet4::stack<0>();
 
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
-  inet->network_config( { 10,0,0,42 },      // IP
-                        { 255,255,255,0 },  // Netmask
-                        { 10,0,0,1 },       // Gateway
-                        { 8,8,8,8 } );      // DNS
+  inet.network_config( { 10,0,0,42 },      // IP
+                       { 255,255,255,0 },  // Netmask
+                       { 10,0,0,1 },       // Gateway
+                       { 8,8,8,8 } );      // DNS
 
   srand(OS::cycles_since_boot());
 
   // Set up a TCP server
-  auto& server = inet->tcp().bind(80);
-  inet->tcp().set_MSL(5s);
-  auto& server_mem = inet->tcp().bind(4243);
+  auto& server = inet.tcp().listen(80);
+  inet.tcp().set_MSL(5s);
+  auto& server_mem = inet.tcp().listen(4243);
 
   // Set up a UDP server
   net::UDP::port_t port = 4242;
-  auto& conn = inet->udp().bind(port);
+  auto& conn = inet.udp().bind(port);
 
   net::UDP::port_t port_mem = 4243;
-  auto& conn_mem = inet->udp().bind(port_mem);
+  auto& conn_mem = inet.udp().bind(port_mem);
 
+/*
+  Timers::periodic(10s, 10s,
+  [] (Timers::id_t) {
+    printf("<Service> TCP STATUS:\n%s \n", inet.tcp().status().c_str());
 
-
-  hw::PIT::instance().onRepeatedTimeout(10s, []{
-      printf("<Service> TCP STATUS:\n%s \n", inet->tcp().status().c_str());
-      auto memuse =  OS::memory_usage();
-      printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
-      printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
-
-    });
-
-  server_mem.onConnect([] (auto conn) {
-      conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+    auto memuse =  OS::heap_usage();
+    printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
+    printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
+  });
+*/
+  server_mem.on_connect([] (net::tcp::Connection_ptr conn) {
+      conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
           TCP_BYTES_RECV += n;
           // create string from buffer
           std::string received { (char*)buf.get(), n };
-          auto reply = std::to_string(OS::memory_usage())+"\n";
+          auto reply = std::to_string(OS::heap_usage())+"\n";
           // Send the first packet, and then wait for ARP
           printf("TCP Mem: Reporting memory size as %s bytes\n", reply.c_str());
-          conn->write(reply.c_str(), reply.size(), [conn](size_t n) {
-              TCP_BYTES_SENT += n;
-            });
+          conn->on_write([](size_t n) {
+            TCP_BYTES_SENT += n;
+          });
+          conn->write(reply);
 
-          conn->onDisconnect([](auto c, auto){
+          conn->on_disconnect([](net::tcp::Connection_ptr c, auto){
               c->close();
             });
         });
@@ -135,10 +131,10 @@ void Service::start() {
 
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.onConnect([] (auto conn) {
+  server.on_connect([] (net::tcp::Connection_ptr conn) {
         // read async with a buffer size of 1024 bytes
         // define what to do when data is read
-        conn->read(1024, [conn](net::TCP::buffer_t buf, size_t n) {
+        conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
             TCP_BYTES_RECV += n;
             // create string from buffer
             std::string data { (char*)buf.get(), n };
@@ -148,19 +144,20 @@ void Service::start() {
               auto htm = html();
               auto hdr = header(htm.size());
 
+
               // create response
-              conn->write(hdr.data(), hdr.size(), [](size_t n) { TCP_BYTES_SENT += n; });
-              conn->write(htm.data(), htm.size(), [](size_t n) { TCP_BYTES_SENT += n; });
+              conn->write(hdr);
+              conn->write(htm);
             }
             else {
-              conn->write(NOT_FOUND.data(), NOT_FOUND.size(), [](size_t n) { TCP_BYTES_SENT += n; });
+              conn->write(NOT_FOUND);
             }
           });
+        conn->on_write([](size_t n) {
+          TCP_BYTES_SENT += n;
+        });
 
-      }).onDisconnect([](auto conn, auto reason) {
-          conn->close();
-        }).onPacketReceived([](auto, auto packet) {});
-
+      });
 
   // UDP connection handler
   conn.on_read([&] (net::UDP::addr_t addr, net::UDP::port_t port, const char* data, int len) {
@@ -175,7 +172,7 @@ void Service::start() {
   conn_mem.on_read([&] (net::UDP::addr_t addr, net::UDP::port_t port, const char* data, int len) {
       std::string received = std::string(data,len);
       Expects(received == "memsize");
-      auto reply = std::to_string(OS::memory_usage());
+      auto reply = std::to_string(OS::heap_usage());
       // Send the first packet, and then wait for ARP
       printf("Reporting memory size as %s bytes\n", reply.c_str());
       conn.sendto(addr, port, reply.c_str(), reply.size());
@@ -184,7 +181,7 @@ void Service::start() {
 
 
   printf("*** TEST SERVICE STARTED *** \n");
-  auto memuse = OS::memory_usage();
+  auto memuse = OS::heap_usage();
   printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
 
   /** These printouts are event-triggers for the vmrunner **/

@@ -1,0 +1,242 @@
+<div class="container-fluid">
+  <div class="page-header">
+    <h1 class="text-center">Dashboard</h1>
+  </div>
+
+  <div class="row">
+
+  </div>
+
+  <div class="row">
+
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading" data-toggle="collapse" data-target="#cpu_usage">
+          <h3 class="panel-title">CPU usage</h3>
+        </div>
+        <div id="cpu_usage" class="panel-collapse collapse in">
+          <div id="cpu_usage_chart"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading" data-toggle="collapse" data-target="#memmap">
+          <h3 class="panel-title">Memory map</h3>
+        </div>
+        <div id="memmap" class="panel-collapse collapse in">
+          <div id="memory_map_chart"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="row">
+
+    <div class="col-md-4">
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="panel panel-default">
+            <div class="panel-heading" data-toggle="collapse" data-target="#os_status">
+              <h3 class="panel-title">OS Status</h3>
+            </div>
+
+            <div id="os_status" class="panel-collapse collapse in">
+              <div class="panel-body">
+
+                <img src="../img/includeos_logo.svg" width="50%" style="margin: 0 auto; display:block;"/>
+                <hr/>
+                <dl class="dl-horizontal">
+                  <dt>Version</dt>
+                  <dd>{{ status.version }}</dd>
+
+                  <dt>Service</dt>
+                  <dd>{{ status.service }}</dd>
+
+                  <dt>Uptime</dt>
+                  <dd id="uptime">{{ uptime }}</dd>
+
+                  <hr/>
+
+                  <dt>CPU freq</dt>
+                  <dd>{{ status.cpu_freq | number:0 }} MHz</dd>
+
+                  <dt>Heap Usage</dt>
+                  <dd>{{ status.heap_usage | bytes }}</dd>
+
+                  <dt>Booted</dt>
+                  <dd>{{ status.boot_time | date: 'yyyy-MM-dd HH:mm' }}</dd>
+
+                  <dt>Current Time</dt>
+                  <dd>{{ status.current_time | date: 'yyyy-MM-dd HH:mm' }}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="panel panel-default">
+            <div class="panel-heading" data-toggle="collapse" data-target="#statman">
+              <h3 class="panel-title">Statman</h3>
+            </div>
+
+            <div id="statman" class="panel-collapse collapse in">
+
+              <div id="tree" class="just-padding">
+
+                <div class="list-group list-group-root well">
+
+                  <div ng-repeat="parent in statTree">
+
+                    <div class="list-group-item gap-0 parent">
+                      {{ parent.text }}
+                      <span class="badge">{{ parent.value }}</span>
+                    </div>
+
+                    <div class="list-group" id="{{'parent-' + parent.id}}">
+
+                      <div ng-repeat="child in parent.nodes">
+
+                        <div class="list-group-item gap-1" ng-class="{'parent second-parent': child.nodes}">
+                          {{ child.text }}
+                          <span class="badge">{{ child.value }}</span>
+                        </div>
+
+                        <div class="list-group" id="{{'child-' + child.id }}">
+
+                          <div ng-repeat="grandchild in child.nodes">
+
+                            <div class="list-group-item gap-2">
+                              {{ grandchild.text }}
+                              <span class="badge">{{ grandchild.value }}</span>
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col-md-8">
+
+      <div class="row">
+        <div class="col-md-12">
+        <div class="panel panel-default">
+          <div class="panel-heading" data-toggle="collapse" data-target="#tcp">
+            <h3 class="panel-title">
+              TCP <small>{{ tcp.address }} ({{ tcp.ifname }})</small>
+            </h3>
+          </div>
+          <div id="tcp" class="panel-collapse collapse in">
+            <div class="table-responsive vertical-max">
+              <table class="table table-condensed">
+                <thead>
+                  <tr>
+                    <th>Local</th>
+                    <th>Remote</th>
+                    <th>Recv</th>
+                    <th>Sent</th>
+                    <th>State</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="conn in tcp.connections">
+                    <td>{{ conn.local }}</td>
+                    <td>{{ conn.remote }}</td>
+                    <td>{{ conn.bytes_rx | bytes }}</td>
+                    <td>{{ conn.bytes_tx | bytes }}</td>
+                    <td>{{ conn.state }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+        <div class="panel panel-default">
+          <div class="panel-heading" data-toggle="collapse" data-target="#stack_sampler">
+            <h3 class="panel-title">Stack Sampler</h3>
+          </div>
+          <div id="stack_sampler" class="panel-collapse collapse in">
+            <div class="panel-body">
+              <dl>
+                <dt>Active / Asleep:</dt>
+                <dd>{{ stack_sampler.active | number:2 }} / {{ stack_sampler.asleep | number:2 }} %</dd>
+              </dl>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-condensed">
+                <thead>
+                  <tr>
+                    <th>Percent</th>
+                    <th>Total</th>
+                    <th>Addr</th>
+                    <th>Function</th>
+                  </tr>
+                </thead>
+                <tbody class="programming">
+                  <tr ng-repeat="sample in stack_sampler.samples">
+                    <td>{{ sample.percent | number:2 }}</td>
+                    <td>{{ sample.total }}</td>
+                    <td>0x{{ sample.address.toString(16) }}</td>
+                    <td style="word-wrap:break-word; background-color: rgba(255,0,0, {{ sample.percent / 100 }})">
+                      {{ sample.name }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+        <div class="panel panel-default">
+          <div class="panel-heading" data-toggle="collapse" data-target="#logger">
+            <h3 class="panel-title">Logger</h3>
+          </div>
+          <div id="logger" class="panel-collapse collapse in">
+            <div class="table-responsive">
+              <div class="panel-body">
+                <pre>
+                <span ng-repeat="entry in logger track by $index">{{entry}}</span>
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>

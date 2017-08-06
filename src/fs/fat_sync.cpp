@@ -1,17 +1,13 @@
 //#define DEBUG
 #include <fs/fat.hpp>
 
-#include <cassert>
 #include <fs/path.hpp>
-#include <debug>
-
+#include <cassert>
 #include <cstring>
 #include <memory>
+#include <common>
 
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
-
-inline size_t roundup(size_t n, size_t multiple) 
+inline size_t roundup(size_t n, size_t multiple)
 {
   return ((n + multiple - 1) / multiple) * multiple;
 }
@@ -28,60 +24,30 @@ namespace fs
     // cluster -> sector + position
     uint32_t sector = stapos / this->sector_size;
     uint32_t nsect = roundup(endpos, sector_size) / sector_size - sector;
-    
-    // the resulting buffer
-    uint8_t* result = new uint8_t[n];
-    
+
     // read @nsect sectors ahead
-    buffer_t data = device.read_sync(this->cl_to_sector(ent.block) + sector, nsect);
+    buffer_t data = device.read_sync(this->cl_to_sector(ent.block()) + sector, nsect);
     // where to start copying from the device result
     uint32_t internal_ofs = stapos % device.block_size();
     // when the offset is non-zero we aren't on a sector boundary
     if (internal_ofs != 0) {
+      // new buffer for offset result
+      uint8_t* result = new uint8_t[n];
       // so, we need to copy offset data to data buffer
       memcpy(result, data.get() + internal_ofs, n);
       data = buffer_t(result, std::default_delete<uint8_t[]>());
     }
-    
+
     return Buffer(no_error, data, n);
   }
-  
-  Buffer FAT::readFile(const std::string& strpath)
-  {
-    Path path(strpath);
-    if (unlikely(path.empty())) {
-      // there is no possible file to read where path is empty
-      return Buffer({ error_t::E_NOENT, "Path is empty" }, nullptr, 0);
-    }
-    debug("readFile: %s\n", path.back().c_str());
-    
-    std::string filename = path.back();
-    path.pop_back();
-    
-    // result directory entries are put into @dirents
-    dirvector dirents;
-    
-    auto err = traverse(path, dirents);
-    if (unlikely(err))
-        return Buffer(err, buffer_t(), 0); // for now
-    
-    // find the matching filename in directory
-    for (auto& e : dirents)
-    if (unlikely(e.name() == filename)) {
-      // read this file
-      return read(e, 0, e.size());
-    }
-    // entry not found
-    return Buffer({ error_t::E_NOENT, filename }, buffer_t(), 0);
-  } // readFile()
-  
+
   error_t FAT::int_ls(uint32_t sector, dirvector& ents)
   {
     bool done = false;
     do {
       // read sector sync
       buffer_t data = device.read_sync(sector);
-      if (unlikely(!data))
+      if (UNLIKELY(!data))
           return { error_t::E_IO, "Unable to read directory" };
       // parse directory into @ents
       done = int_dirent(sector, data.get(), ents);
@@ -90,27 +56,27 @@ namespace fs
     } while (!done);
     return no_error;
   }
-  
-  error_t FAT::traverse(Path path, dirvector& ents)
+
+  error_t FAT::traverse(Path path, dirvector& ents, const Dirent* const start)
   {
-    // start with root dir
-    uint32_t cluster = 0;
-    Dirent found(INVALID_ENTITY);
-    
+    // start with given entry (defaults to root)
+    uint32_t cluster = start ? start->block() : 0;
+    Dirent found(this, INVALID_ENTITY);
+
     while (!path.empty()) {
-      
+
       uint32_t S = this->cl_to_sector(cluster);
       ents.clear(); // mui importante
       // sync read entire directory
       auto err = int_ls(S, ents);
-      if (unlikely(err)) return err;
+      if (UNLIKELY(err)) return err;
       // the name we are looking for
       std::string name = path.front();
       path.pop_front();
-    
+
       // check for matches in dirents
       for (auto& e : ents)
-      if (unlikely(e.name() == name)) {
+      if (UNLIKELY(e.name() == name)) {
         // go to this directory, unless its the last name
         debug("traverse_sync: Found match for %s", name.c_str());
         // enter the matching directory
@@ -125,67 +91,68 @@ namespace fs
           return { error_t::E_NOTDIR, "Cannot list non-directory" };
         }
       } // for (ents)
-    
+
       // validate result
       if (found.type() == INVALID_ENTITY) {
         debug("traverse_sync: NO MATCH for %s\n", name.c_str());
         return { error_t::E_NOENT, name };
       }
       // set next cluster
-      cluster = found.block;
+      cluster = found.block();
     }
-    
+
     uint32_t S = this->cl_to_sector(cluster);
     // read result directory entries into ents
+    ents.clear(); // mui importante!
     return int_ls(S, ents);
   }
-  
-  FAT::List FAT::ls(const std::string& strpath)
+
+  List FAT::ls(const std::string& strpath)
   {
     auto ents = std::make_shared<dirvector> ();
     auto err = traverse(strpath, *ents);
     return { err, ents };
   }
-  FAT::List FAT::ls(const Dirent& ent)
+
+  List FAT::ls(const Dirent& ent)
   {
     auto ents = std::make_shared<dirvector> ();
     // verify ent is a directory
     if (!ent.is_valid() || !ent.is_dir())
       return { { error_t::E_NOTDIR, ent.name() }, ents };
     // convert cluster to sector
-    uint32_t S = this->cl_to_sector(ent.block);
+    uint32_t S = this->cl_to_sector(ent.block());
     // read result directory entries into ents
     auto err = int_ls(S, *ents);
     return { err, ents };
   }
-  
-  FAT::Dirent FAT::stat(const std::string& strpath)
+
+  Dirent FAT::stat(Path path, const Dirent* const start)
   {
-    Path path(strpath);
-    if (unlikely(path.empty())) {
+    if (UNLIKELY(path.empty())) {
       // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
-      return Dirent(INVALID_ENTITY);
+      return Dirent(this, INVALID_ENTITY);
     }
-    
+
     debug("stat_sync: %s\n", path.back().c_str());
     // extract file we are looking for
     std::string filename = path.back();
     path.pop_back();
-    
+
     // result directory entries are put into @dirents
     dirvector dirents;
-    
-    auto err = traverse(path, dirents);
-    if (unlikely(err))
-        return Dirent(INVALID_ENTITY); // for now
-    
+
+    auto err = traverse(path, dirents, start);
+    if (UNLIKELY(err))
+      return Dirent(this, INVALID_ENTITY); // for now
+
     // find the matching filename in directory
     for (auto& e : dirents)
-    if (unlikely(e.name() == filename)) {
+    if (UNLIKELY(e.name() == filename)) {
       // return this directory entry
       return e;
     }
     // entry not found
-    return Dirent(INVALID_ENTITY);
+    return Dirent(this, INVALID_ENTITY);
   }
 }

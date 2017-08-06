@@ -21,42 +21,42 @@
 #include <delegate>
 #include <list>
 
-#include "disk.hpp"
+#include "block_device.hpp"
 #include "pci_device.hpp"
 
 namespace hw {
 
   /** IDE device driver  */
-  class IDE : public IDiskDevice {
-  public: 
+  class IDE : public Block_device {
+  public:
     enum selector_t
       {
         MASTER = 0x00,
         SLAVE = 0x10
       };
-  
+
     /**
      * Constructor
      *
      * @param pcidev: An initialized PCI device
      */
     explicit IDE(hw::PCI_Device& pcidev, selector_t);
-  
+
     /** Human-readable name of this disk controller  */
-    virtual const char* name() const noexcept override
+    virtual const char* driver_name() const noexcept override
     { return "IDE Controller"; }
 
     /** Returns the optimal block size for this device.  */
     virtual block_t block_size() const noexcept override
     { return 512; }
-  
+
     virtual void read(block_t blk, on_read_func reader) override;
     virtual void read(block_t blk, size_t cnt, on_read_func cb) override;
-  
+
     /** read synchronously from IDE disk  */
     virtual buffer_t read_sync(block_t blk) override;
     virtual buffer_t read_sync(block_t blk, size_t cnt) override;
-  
+
     virtual block_t size() const noexcept override
     { return _nb_blk; }
 

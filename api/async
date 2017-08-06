@@ -1,8 +1,8 @@
+// -*-C++-*-
 #pragma once
 #ifndef API_ASYNC_HEADER
 #define API_ASYNC_HEADER
 
-// hmm...
-#include "utility/async.hpp"
+#include "util/async.hpp"
 
 #endif

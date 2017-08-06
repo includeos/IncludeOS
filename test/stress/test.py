@@ -1,12 +1,16 @@
-#! /usr/bin/python
+#! /usr/bin/env python
 import sys
 import socket
 import time
 import subprocess
-sys.path.insert(0,"..")
+import os
 
-import vmrunner
-from vmrunner import color
+includeos_src = os.environ.get('INCLUDEOS_SRC',
+                               os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
+sys.path.insert(0,includeos_src)
+
+from vmrunner import vmrunner
+from vmrunner.prettify import color
 
 test_name="Stresstest"
 name_tag = "<" + test_name + ">"
@@ -26,7 +30,7 @@ sock_timeout = 20
 
 # It's to be expected that the VM allocates more room during the running of tests
 # e.g. for containers, packets etc. These should all be freed after a run.
-acceptable_increase = 0
+acceptable_increase = 12 * PAGE_SIZE
 
 # A persistent connection to the VM for getting memory info
 # TODO: This should be expanded to check more vital signs, such as time of day,
@@ -39,14 +43,15 @@ def get_mem():
 
   try:
     # We expect this socket to allready be opened
+    time.sleep(1)
     sock_mem.send("memsize\n")
     received = sock_mem.recv(1000).rstrip()
 
   except Exception as e:
-    color.FAIL(name_tag+"Python socket failed while getting memsize: "+e)
+    print color.FAIL(name_tag), "Python socket failed while getting memsize: ", e
     return False
 
-  print color.INFO(name_tag),"Current VM memory usage reported as ",received
+  print color.INFO(name_tag),"Current VM memory usage reported as ", received
   return int(received)
 
 def get_mem_start():
@@ -110,8 +115,8 @@ def httperf(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 
 # Fire a single burst of ARP requests
 def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
-  # Note: Arping requires sudo, and we expect the bridge 'include0' to be present
-  command = ["sudo", "arping", "-q","-w", str(100), "-i", "include0", "-c", str(burst_size * 10),  HOST]
+  # Note: Arping requires sudo, and we expect the bridge 'bridge43' to be present
+  command = ["sudo", "arping", "-q","-w", str(100), "-I", "bridge43", "-c", str(burst_size * 10),  HOST]
   print color.DATA(" ".join(command))
   time.sleep(0.5)
   res = subprocess.check_call(command);
@@ -119,7 +124,7 @@ def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   return get_mem()
 
 
-def crash_test():
+def crash_test(string):
   print color.INFO("Opening persistent TCP connection for diagnostics")
   sock_mem.connect((HOST, PORT_MEM))
   get_mem_start()
@@ -180,19 +185,19 @@ def fire_bursts(func, sub_test_name, lead_out = 3):
 
 
 # Trigger several UDP bursts
-def ARP():
+def ARP(string):
   return fire_bursts(ARP_burst, "ARP bombardment")
 
 # Trigger several UDP bursts
-def UDP():
+def UDP(string):
   return fire_bursts(UDP_burst, "UDP bombardment")
 
 # Trigger several ICMP bursts
-def ICMP():
+def ICMP(string):
   return fire_bursts(ICMP_flood, "Ping-flooding");
 
 # Trigger several HTTP-brusts
-def TCP():
+def TCP(string):
   return fire_bursts(httperf, "HTTP bombardment")
 
 
@@ -200,15 +205,11 @@ def TCP():
 vm = vmrunner.vms[0]
 
 # Check for vital signs after all the bombardment is done
-def check_vitals():
+def check_vitals(string):
   print color.INFO("Checking vital signs")
   mem = get_mem()
   diff = mem - memuse_at_start
   pages = diff / PAGE_SIZE
-  if diff % PAGE_SIZE != 0:
-    print color.WARNING("Memory increase was not a multple of page size.")
-    wait_for_tw()
-    return False
   print color.INFO("Memory use at test end:"), mem, "bytes"
   print color.INFO("Memory difference from test start:"), memuse_at_start, "bytes (Diff:",diff, "b == ",pages, "pages)"
   sock_mem.close()
@@ -252,4 +253,4 @@ if len(sys.argv) > 3:
 print color.HEADER(test_name + " initializing")
 print color.INFO(name_tag),"Doing", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
 
-vm.boot(timeout)
+vm.cmake().boot(timeout).clean()

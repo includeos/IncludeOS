@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,11 +18,10 @@
 #ifndef KERNEL_VGA_HPP
 #define KERNEL_VGA_HPP
 
-#include <stdint.h>
+#include <os>
+#include <cstdint>
 
-class ConsoleVGA {
-private:
-  using size_t = unsigned;
+class TextmodeVGA {
 public:
   enum vga_color {
     COLOR_BLACK         = 0,
@@ -43,35 +42,46 @@ public:
     COLOR_WHITE         = 15,
   };
 
-  explicit ConsoleVGA() noexcept;
+  static const int VGA_WIDTH  {80};
+  static const int VGA_HEIGHT {25};
+
+  OS::print_func get_print_handler() {
+    return {this, &TextmodeVGA::write};
+  }
 
   constexpr static uint8_t make_color(const vga_color fg, const vga_color bg) noexcept
   { return fg | bg << 4; }
-  
+
   void write(const char* data, const size_t len) noexcept;
-  void setColor(const uint8_t color) noexcept;
   void clear() noexcept;
-  
-  static const size_t VGA_WIDTH  {80};
-  static const size_t VGA_HEIGHT {25};
-  
-  void write(char) noexcept;
-  void putEntryAt(const char, const uint8_t, const size_t, const size_t) noexcept;
-  void putEntryAt(const char, const size_t, const size_t) noexcept;
-  void setCursorAt(const size_t, const size_t) noexcept;
-  void increment(int) noexcept;
+
+  uint16_t get(uint8_t x, uint8_t y);
+  void put(const char, uint8_t color, uint8_t x, uint8_t y) noexcept;
+  void put(const char, uint8_t x, uint8_t y) noexcept;
   void newline() noexcept;
-  inline void set_color(vga_color c)
-  { color = c; };
-  
+
+  void set_cursor(uint8_t x, uint8_t y) noexcept;
+
+  void set_color(vga_color c)
+  { this->color = c; };
+
+  static TextmodeVGA& get() {
+    static TextmodeVGA vga;
+    return vga;
+  }
+
 private:
+  explicit TextmodeVGA() noexcept;
+
+  void increment(int) noexcept;
+  void write(char) noexcept;
   static const uint16_t DEFAULT_ENTRY;
-  void put(uint16_t, size_t, size_t) noexcept;
-  
+  void putent(uint16_t, uint8_t, uint8_t) noexcept;
+
   size_t    row;
   size_t    column;
   uint8_t   color;
   uint16_t* buffer;
-}; //< ConsoleVGA
+};
 
 #endif //< KERNEL_VGA_HPP
