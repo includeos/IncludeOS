@@ -10,11 +10,7 @@ inline Connection& Connection::on_connect(ConnectCallback cb) {
 
 inline Connection& Connection::on_read(size_t recv_bufsz, ReadCallback cb)
 {
-  if (recv_bufsz != read_request.buffer.capacity()) {
-    read_request = {{new_shared_buffer(recv_bufsz), recv_bufsz}, cb};
-  } else {
-    read_request.callback = std::move(cb);
-  }
+  read_request = std::make_unique<ReadRequest>(recv_bufsz, this->cb.RCV.NXT, cb);
   return *this;
 }
 
