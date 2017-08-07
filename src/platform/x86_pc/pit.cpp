@@ -53,10 +53,8 @@ namespace x86
     auto temp_mode     = get().current_mode_;
     auto temp_freq_div = get().current_freq_divider_;
 
-    auto prev_irq_handler = IRQ_manager::get().get_irq_handler(0);
-
     debug("<CPU frequency> Measuring...\n");
-    IRQ_manager::get().set_irq_handler(0, cpu_sampling_irq_entry);
+    __arch_install_irq(0, cpu_sampling_irq_entry);
 
     // GO!
     get().set_mode(RATE_GEN);
@@ -70,7 +68,7 @@ namespace x86
     get().set_mode(temp_mode);
     get().set_freq_divider(temp_freq_div);
 
-    IRQ_manager::get().set_irq_handler(0, prev_irq_handler);
+    __arch_subscribe_irq(0);
     return freq;
   }
 

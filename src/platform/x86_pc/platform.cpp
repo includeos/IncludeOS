@@ -63,6 +63,7 @@ static_assert(offsetof(smp_table, guard) == 0x28, "Linux stack sentinel");
 using namespace x86;
 namespace x86 {
   void initialize_tls_for_smp();
+  extern void idt_initialize_for_cpu(int);
 }
 
 void __platform_init()
@@ -79,6 +80,7 @@ void __platform_init()
   initialize_gdt_for_cpu(APIC::get().get_id());
 
   // IDT manager: Interrupt and exception handlers
+  x86::idt_initialize_for_cpu(0);
   IRQ_manager::init();
 
   // initialize and start registered APs found in ACPI-tables
@@ -88,7 +90,7 @@ void __platform_init()
 
   // enable interrupts
   MYINFO("Enabling interrupts");
-  IRQ_manager::enable_interrupts();
+  asm volatile("sti");
 
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");

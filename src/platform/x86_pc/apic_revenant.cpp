@@ -2,6 +2,7 @@
 
 #include "apic.hpp"
 #include "apic_timer.hpp"
+#include "idt.hpp"
 #include <kernel/irq_manager.hpp>
 #include <kernel/rng.hpp>
 #include <kprint>
@@ -79,9 +80,10 @@ void revenant_main(int cpu)
   SMP::global_unlock();
   assert(cpu == SMP::cpu_id());
 
+  x86::idt_initialize_for_cpu(cpu);
   IRQ_manager::init();
   // enable interrupts
-  IRQ_manager::enable_interrupts();
+  asm volatile("sti");
   // init timer system
   APIC_Timer::init();
   // subscribe to task and timer interrupts

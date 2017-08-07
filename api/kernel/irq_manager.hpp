@@ -22,7 +22,6 @@
 #include <delegate>
 #include <membitmap>
 #include <smp>
-#include "idt.hpp"
 
 #define IRQ_BASE          32
 
@@ -45,7 +44,6 @@
 class alignas(SMP_ALIGN) IRQ_manager {
 public:
   typedef void (*intr_func) ();
-  typedef void (*exception_func) (void**, uint32_t);
   using irq_delegate = delegate<void()>;
 
   static constexpr size_t  IRQ_LINES = 128;
@@ -63,26 +61,6 @@ public:
   void disable_irq(uint8_t irq);
 
   /**
-   *  Directly set an IRQ handler in IDT
-   *
-   *  @param irq:           The IRQ to handle
-   *  @param function_addr: A proper IRQ handler
-   *
-   *  @warning {
-   *    This has to be a function that properly returns with `iret`.
-   *    Failure to do so will keep the interrupt from firing and cause a
-   *    stack overflow or similar badness.
-   *  }
-   */
-  void set_handler(uint8_t intr, intr_func func);
-  void set_exception_handler(uint8_t intr, exception_func func);
-  void set_irq_handler(uint8_t irq, intr_func func);
-
-  /** Get handler from inside the IDT. */
-  intr_func get_handler(uint8_t intr);
-  intr_func get_irq_handler(uint8_t irq);
-
-  /**
    *  Subscribe to an IRQ
    *
    *  @param irq: The IRQ to subscribe to
@@ -98,9 +76,6 @@ public:
   uint8_t subscribe(irq_delegate);
   void subscribe(uint8_t irq, irq_delegate);
   void unsubscribe(uint8_t irq);
-
-  // start accepting interrupts
-  static void enable_interrupts();
 
   /**
    * Get the IRQ manager instance
@@ -132,7 +107,6 @@ private:
   IRQ_manager& operator=(IRQ_manager&&) = delete;
   IRQ_manager& operator=(IRQ_manager&) = delete;
 
-  IDTDescr     idt[INTR_LINES] __attribute__((aligned(16)));
   irq_delegate irq_delegates_[IRQ_LINES];
   std::array<uint64_t*,IRQ_LINES> count_handled;
   std::array<uint64_t, IRQ_LINES> count_received;
@@ -140,16 +114,6 @@ private:
   MemBitmap  irq_subs;
   MemBitmap  irq_pend;
   MemBitmap  irq_todo;
-
-  /**
-   *  Create an IDT-gate
-   *
-   *  Use "set_handler" for a simpler version using defaults
-   */
-  void create_gate(IDTDescr* idt_entry,
-                   void (*function_addr)(),
-                   uint16_t segment_sel,
-                   char attributes);
 
   void init_local();
 
