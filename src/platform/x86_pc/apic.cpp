@@ -22,7 +22,7 @@
 #include "pic.hpp"
 #include "smp.hpp"
 #include <kernel/cpuid.hpp>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <cstdlib>
 #include <debug>
 #include <kprint>
@@ -51,14 +51,14 @@ extern "C" {
   {
     uint8_t vector = x86::APIC::get_isr();
     //assert(vector >= IRQ_BASE && vector < 160);
-    IRQ_manager::get().register_irq(vector - IRQ_BASE);
+    Events::get().trigger_event(vector - IRQ_BASE);
     lapic_send_eoi();
   }
   void x2apic_intr_handler()
   {
     uint8_t vector = x86::x2apic::static_get_isr();
     //assert(vector >= IRQ_BASE && vector < 160);
-    IRQ_manager::get().register_irq(vector - IRQ_BASE);
+    Events::get().trigger_event(vector - IRQ_BASE);
     x2apic_send_eoi();
   }
 }

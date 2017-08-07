@@ -19,7 +19,7 @@
 #include "cpu_freq_sampling.hpp"
 #include <hw/ioport.hpp>
 #include <kernel/os.hpp>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <kernel/syscalls.hpp>
 //#undef NO_DEBUG
 #define DEBUG
@@ -135,10 +135,9 @@ namespace x86
     debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", frequency().count());
     PIT::disable_regular_interrupts();
     // must be done to program IOAPIC to redirect to BSP LAPIC
-    IRQ_manager::get().enable_irq(0);
+    __arch_enable_legacy_irq(0);
     // register irq handler
-    auto handler(IRQ_manager::irq_delegate{this, &PIT::irq_handler});
-    IRQ_manager::get().subscribe(0, handler);
+    Events::get().subscribe(0, {this, &PIT::irq_handler});
   }
 
   void PIT::set_mode(Mode mode)

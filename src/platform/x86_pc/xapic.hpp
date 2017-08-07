@@ -22,7 +22,7 @@
 #include "apic_iface.hpp"
 #include "apic_regs.hpp"
 #include "cpu.hpp"
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <debug>
 #include <info>
 
@@ -61,7 +61,7 @@ namespace x86 {
   struct xapic : public IApic
   {
     static const uint32_t MSR_ENABLE_XAPIC   = 0x800;
-    static const uint8_t  SPURIOUS_INTR = IRQ_manager::INTR_LINES-1;
+    static const uint8_t  SPURIOUS_INTR = IRQ_BASE + Events::NUM_EVENTS-1;
 
     xapic() {
       // read xAPIC base address from masked out MSR

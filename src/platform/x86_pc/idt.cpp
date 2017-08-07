@@ -1,5 +1,5 @@
 #include "idt.hpp"
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <kernel/syscalls.hpp>
 #include <kprint>
 #include <info>
@@ -11,8 +11,8 @@ extern "C" {
   extern void spurious_intr();
 }
 
-#define INTR_LINES IRQ_manager::INTR_LINES
-#define IRQ_LINES  IRQ_manager::IRQ_LINES
+#define IRQ_LINES  Events::NUM_EVENTS
+#define INTR_LINES (IRQ_BASE + IRQ_LINES)
 
 namespace x86
 {
@@ -244,8 +244,6 @@ void x86_IDT::set_exception_handler(uint8_t vec, except_handler_t func) {
 
 void x86_IDT::init()
 {
-  if (SMP::cpu_id() == 0)
-      INFO("INTR", "Creating exception handlers");
   set_exception_handler(0, cpu_exception<0>);
   set_exception_handler(1, cpu_exception<1>);
   set_exception_handler(2, cpu_exception<2>);
@@ -268,9 +266,6 @@ void x86_IDT::init()
   set_exception_handler(19, cpu_exception<19>);
   set_exception_handler(20, cpu_exception<20>);
   set_exception_handler(30, cpu_exception<30>);
-
-  if (SMP::cpu_id() == 0)
-      INFO2("+ Default interrupt gates set for irq >= 32");
 
   for (size_t i = 32; i < INTR_LINES - 1; i++) {
     set_handler(i, unused_interrupt_handler);
