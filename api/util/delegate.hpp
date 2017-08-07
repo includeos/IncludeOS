@@ -86,13 +86,8 @@ template<
 	typename std::decay<T>::type
 >;
 
-template<typename T = void, typename...> struct pack_first
-{
-	using type = std::remove_cv_t<T>;
-};
-
-template<typename... Ts>
-using pack_first_t = typename pack_first<Ts...>::type;
+template<typename T = void,typename... Ts>
+using pack_first_t = std::remove_cv_t<T>;
 
 }
 
@@ -159,7 +154,7 @@ public:
 	explicit inplace_triv() noexcept :
 		invoke_ptr_{ detail::empty_inplace<R, storage_t, Args...> }
 	{
-		new(&storage_)std::nullptr_t{ nullptr };
+		new(&storage_)std::nullptr_t{};
 	}
 
 	template<
@@ -258,7 +253,7 @@ public:
 		new(&storage_)C{ std::forward<T>(closure) };
 	}
 
-	inplace(const inplace& other) :
+	inplace(const inplace& other) noexcept:
 		invoke_ptr_{ other.invoke_ptr_ },
 		copy_ptr_{ other.copy_ptr_ },
 		destructor_ptr_{ other.destructor_ptr_ }
@@ -266,27 +261,19 @@ public:
 		copy_ptr_(storage_, other.storage_);
 	}
 
-	inplace(inplace&& other)  :
-		storage_ { std::move(other.storage_) },
-		invoke_ptr_{ other.invoke_ptr_ },
-		copy_ptr_{ other.copy_ptr_ },
-		destructor_ptr_{ other.destructor_ptr_ }
+	inplace(inplace&& other) noexcept : inplace()
 	{
-		other.destructor_ptr_ = [](storage_t&) -> void {};
+		inplace tmp{*this};
+		new (this) inplace{other};
+		new (&other) inplace{tmp};
 	}
 
 	inplace& operator= (const inplace& other)
 	{
 		if (this != std::addressof(other))
 		{
-			invoke_ptr_ = other.invoke_ptr_;
-			copy_ptr_ = other.copy_ptr_;
-
-			if (destructor_ptr_)
-				destructor_ptr_(storage_);
-
-			copy_ptr_(storage_, other.storage_);
-			destructor_ptr_ = other.destructor_ptr_;
+			inplace tmp{*this};
+			new (this) inplace{other};
 		}
 		return *this;
 	}
@@ -295,16 +282,8 @@ public:
 	{
 		if (this != std::addressof(other))
 		{
-			if (destructor_ptr_)
-				destructor_ptr_(storage_);
-
-			storage_ = std::move(other.storage_);
-
-			invoke_ptr_ = other.invoke_ptr_;
-			copy_ptr_ = other.copy_ptr_;
-			destructor_ptr_ = other.destructor_ptr_;
-
-			other.destructor_ptr_ = [](storage_t&) -> void {};
+			inplace temp{std::move(*this)};
+			new (this) inplace{std::move(other)};
 		}
 		return *this;
 	}
