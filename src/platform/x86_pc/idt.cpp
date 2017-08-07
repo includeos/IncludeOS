@@ -204,6 +204,7 @@ union addr_union {
 static void set_intr_entry(
     IDTDescr* idt_entry,
     intr_handler_t func,
+    uint8_t  ist,
     uint16_t segment_sel,
     char attributes)
 {
@@ -217,7 +218,7 @@ static void set_intr_entry(
   idt_entry->selector  = segment_sel;
   idt_entry->type_attr = attributes;
 #ifdef ARCH_x86_64
-  idt_entry->ist       = 0;
+  idt_entry->ist       = ist;
 #else
   idt_entry->zero      = 0;
 #endif
@@ -236,10 +237,10 @@ intr_handler_t x86_IDT::get_handler(uint8_t vec)
 }
 
 void x86_IDT::set_handler(uint8_t vec, intr_handler_t func) {
-  set_intr_entry(&entry[vec], func, RING0_CODE_SEG, 0x8e);
+  set_intr_entry(&entry[vec], func, 1, RING0_CODE_SEG, 0x8e);
 }
 void x86_IDT::set_exception_handler(uint8_t vec, except_handler_t func) {
-  set_intr_entry(&entry[vec], (intr_handler_t) func, RING0_CODE_SEG, 0x8e);
+  set_intr_entry(&entry[vec], (intr_handler_t) func, 2, RING0_CODE_SEG, 0x8e);
 }
 
 void x86_IDT::init()
