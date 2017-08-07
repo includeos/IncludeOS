@@ -159,7 +159,7 @@ public:
 	explicit inplace_triv() noexcept :
 		invoke_ptr_{ detail::empty_inplace<R, storage_t, Args...> }
 	{
-		new(&storage_)std::nullptr_t{ nullptr };
+		new(&storage_)std::nullptr_t{};
 	}
 
 	template<
@@ -237,7 +237,8 @@ public:
 
 	template<
 		typename T,
-		typename C = typename detail::closure_decay<T, R, Args...>::type
+		typename C = typename detail::closure_decay<T, R, Args...>::type,
+		typename = std::enable_if_t<not std::is_same<std::decay_t<T>,inplace<size,align,R,Args...>>::value>
 	> explicit inplace(T&& closure) noexcept :
 		invoke_ptr_{ static_cast<invoke_ptr_t>(
 			[](storage_t& storage, Args&&... args) -> R
@@ -258,7 +259,7 @@ public:
 		new(&storage_)C{ std::forward<T>(closure) };
 	}
 
-	inplace(const inplace& other) :
+	inplace(const inplace& other) noexcept:
 		invoke_ptr_{ other.invoke_ptr_ },
 		copy_ptr_{ other.copy_ptr_ },
 		destructor_ptr_{ other.destructor_ptr_ }
@@ -266,27 +267,19 @@ public:
 		copy_ptr_(storage_, other.storage_);
 	}
 
-	inplace(inplace&& other)  :
-		storage_ { std::move(other.storage_) },
-		invoke_ptr_{ other.invoke_ptr_ },
-		copy_ptr_{ other.copy_ptr_ },
-		destructor_ptr_{ other.destructor_ptr_ }
+	inplace(inplace&& other) noexcept : inplace()
 	{
-		other.destructor_ptr_ = [](storage_t&) -> void {};
+		inplace tmp{*this};
+		new (this) inplace{other};
+		new (&other) inplace{tmp};
 	}
 
 	inplace& operator= (const inplace& other)
 	{
 		if (this != std::addressof(other))
 		{
-			invoke_ptr_ = other.invoke_ptr_;
-			copy_ptr_ = other.copy_ptr_;
-
-			if (destructor_ptr_)
-				destructor_ptr_(storage_);
-
-			copy_ptr_(storage_, other.storage_);
-			destructor_ptr_ = other.destructor_ptr_;
+			inplace tmp{*this};
+			new (this) inplace{other};
 		}
 		return *this;
 	}
@@ -295,16 +288,8 @@ public:
 	{
 		if (this != std::addressof(other))
 		{
-			if (destructor_ptr_)
-				destructor_ptr_(storage_);
-
-			storage_ = std::move(other.storage_);
-
-			invoke_ptr_ = other.invoke_ptr_;
-			copy_ptr_ = other.copy_ptr_;
-			destructor_ptr_ = other.destructor_ptr_;
-
-			other.destructor_ptr_ = [](storage_t&) -> void {};
+			inplace temp{std::move(*this)};
+			new (this) inplace{std::move(other)};
 		}
 		return *this;
 	}
