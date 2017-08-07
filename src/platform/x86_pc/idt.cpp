@@ -6,7 +6,6 @@
 #define RING0_CODE_SEG   0x8
 
 extern "C" {
-  extern void* get_cpu_esp();
   extern void unused_interrupt_handler();
   extern void modern_interrupt_handler();
   extern void spurious_intr();
