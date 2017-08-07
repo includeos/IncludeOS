@@ -17,6 +17,7 @@ set(X86_PC_OBJECTS
   pic.cpp
   softreset.cpp
   sanity_checks.cpp
+  idt.cpp
   )
 
 add_custom_command(

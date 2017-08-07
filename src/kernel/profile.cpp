@@ -91,7 +91,7 @@ static Sampler& get() {
 void StackSampler::begin()
 {
   // install interrupt handler
-  IRQ_manager::get().set_irq_handler(0, parasite_interrupt_handler);
+  __arch_install_irq(0, parasite_interrupt_handler);
   // start taking samples using PIT interrupts
   get().begin();
 }
