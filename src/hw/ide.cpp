@@ -22,7 +22,7 @@
 
 #include <hw/ide.hpp>
 
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <kernel/syscalls.hpp>
 #include <hw/ioport.hpp>
 
@@ -272,9 +272,7 @@ namespace hw {
   }
 
   void IDE::enable_irq_handler() {
-    auto del(delegate<void()>{this, &IDE::callback_wrapper});
-    IRQ_manager::get().subscribe(IDE_IRQN, del);
-    //IRQ_manager::cpu(0).set_irq_handler(IDE_IRQN + 32, ide_irq_entry);
+    Events::get().subscribe(IDE_IRQN, {this, &IDE::callback_wrapper});
   }
 
 } //< namespace hw

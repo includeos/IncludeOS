@@ -2,7 +2,7 @@
 #define DEBUG2
 #include "virtioblk.hpp"
 
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <hw/pci.hpp>
 #include <cassert>
 #include <stdlib.h>
@@ -96,13 +96,13 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
     assert(get_msix_vectors() >= 2);
     auto& irqs = this->get_irqs();
     // update IRQ subscriptions
-    IRQ_manager::get().subscribe(irqs[0], {this, &VirtioBlk::service_RX});
-    IRQ_manager::get().subscribe(irqs[1], {this, &VirtioBlk::msix_conf_handler});
+    Events::get().subscribe(irqs[0], {this, &VirtioBlk::service_RX});
+    Events::get().subscribe(irqs[1], {this, &VirtioBlk::msix_conf_handler});
   }
   else
   {
     auto& irqs = this->get_irqs();
-    IRQ_manager::get().subscribe(irqs[0], {this, &VirtioBlk::irq_handler});
+    Events::get().subscribe(irqs[0], {this, &VirtioBlk::irq_handler});
   }
 
   // Done

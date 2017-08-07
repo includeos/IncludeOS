@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <hw/serial.hpp>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 
 using namespace hw;
 
@@ -54,8 +54,8 @@ void Serial::on_data(on_data_handler del) {
   enable_interrupt();
   on_data_ = del;
   INFO("Serial", "Subscribing to data on IRQ %i",irq_);
-  IRQ_manager::get().subscribe(irq_, {this, &Serial::irq_handler_});
-  IRQ_manager::get().enable_irq(irq_);
+  Events::get().subscribe(irq_, {this, &Serial::irq_handler_});
+  __arch_enable_legacy_irq(irq_);
 }
 
 void Serial::on_readline(on_string_handler del, char delim) {

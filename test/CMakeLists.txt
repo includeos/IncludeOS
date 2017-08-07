@@ -131,7 +131,7 @@ set(OS_SOURCES
   ${SRC}/hw/serial.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
-  ${SRC}/kernel/irq_manager.cpp
+  ${SRC}/kernel/events.cpp
   ${SRC}/kernel/kernel_start.cpp
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp

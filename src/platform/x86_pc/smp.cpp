@@ -20,7 +20,7 @@
 #include "apic.hpp"
 #include "apic_revenant.hpp"
 #include <kernel/os.hpp>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <malloc.h>
 #include <algorithm>
 #include <cstring>
@@ -105,7 +105,7 @@ void init_SMP()
   INFO("SMP", "All %u APs are online now\n", CPUcount);
 
   // subscribe to IPIs
-  IRQ_manager::get().subscribe(BSP_LAPIC_IPI_IRQ,
+  Events::get().subscribe(BSP_LAPIC_IPI_IRQ,
   [] {
     int next = smp_main.bitmap.first_set();
     while (next != -1)

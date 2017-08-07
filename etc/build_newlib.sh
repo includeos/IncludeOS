@@ -18,7 +18,7 @@ if [ ! -d newlib-$newlib_version ]; then
     tar -xf newlib-$newlib_version.tar.gz
     # patch in no-red-zone for 64-bit
     pushd newlib-$newlib_version
-    find . -type f -exec sed -i 's/-g -O2/-g -O2 -mno-red-zone -msse3/g' {} \;
+    find . -type f -exec sed -i 's/-g -O2/-g -O2 -msse3/g' {} \;
     popd
 else
     echo -e "\n\n >>> SKIP:  Download / extract newlib. Found source folder "newlib-$newlib_version" \n"

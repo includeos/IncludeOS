@@ -22,7 +22,7 @@
 #include "apic_iface.hpp"
 #include "apic_regs.hpp"
 #include "cpu.hpp"
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <debug>
 #include <info>
 
@@ -59,7 +59,7 @@ namespace x86 {
   struct x2apic : public IApic
   {
     static const uint32_t MSR_ENABLE_X2APIC = 0xC00;
-    static const uint8_t  SPURIOUS_INTR = IRQ_manager::INTR_LINES-1;
+    static const uint8_t  SPURIOUS_INTR = IRQ_BASE + Events::NUM_EVENTS-1;
 
     x2apic() {
       INFO("x2APIC", "Enabling x2APIC");

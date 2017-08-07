@@ -20,7 +20,6 @@
 //#include "../platform/x86_pc/pit.hpp"
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
-#include <kernel/irq_manager.hpp>
 #include <kernel/os.hpp>
 #include <util/fixedvec.hpp>
 #include <unordered_map>

@@ -164,7 +164,6 @@ int isatty(int fd) {
   }
 }
 
-#include <kernel/irq_manager.hpp>
 #include <kernel/rtc.hpp>
 unsigned int sleep(unsigned int seconds)
 {

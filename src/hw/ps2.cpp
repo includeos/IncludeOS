@@ -17,7 +17,8 @@
 
 #include <hw/ps2.hpp>
 #include <hw/ioport.hpp>
-#include <kernel/irq_manager.hpp>
+#include <arch.hpp>
+#include <kernel/events.hpp>
 #include <debug>
 
 #define PS2_DATA_PORT   0x60
@@ -207,12 +208,11 @@ namespace hw
     assert(KEYB_IRQ != MOUS_IRQ);
 
     // need to route IRQs from IO APIC to BSP LAPIC
-    IRQ_manager::get().enable_irq(KEYB_IRQ);
-    IRQ_manager::get().enable_irq(MOUS_IRQ);
+    __arch_enable_legacy_irq(KEYB_IRQ);
+    __arch_enable_legacy_irq(MOUS_IRQ);
 
-    IRQ_manager::get().subscribe(KEYB_IRQ,
+    Events::get().subscribe(KEYB_IRQ,
     [KEYB_IRQ] {
-      //IRQ_manager::eoi(KEYB_IRQ);
       uint8_t byte = read_fast();
       // transform to virtual key
       int key = get().transform_vk(byte);
@@ -220,9 +220,8 @@ namespace hw
       get().on_virtualkey(key);
     });
 
-    IRQ_manager::get().subscribe(MOUS_IRQ,
+    Events::get().subscribe(MOUS_IRQ,
     [MOUS_IRQ] {
-      //IRQ_manager::eoi(MOUS_IRQ);
       get().handle_mouse(read_fast());
     });
 

@@ -17,25 +17,15 @@
 
 #include <os>
 #include <hw/serial.hpp>
-#include <kernel/irq_manager.hpp>
 
-using namespace std::chrono;
-
-void Service::start(const std::string&)
+void Service::start()
 {
-
   auto& com1 = hw::Serial::port<1>();
 
   com1.on_readline([](const std::string& s){
       CHECK(true, "Received: %s", s.c_str());
 
     });
-  //IRQ_manager::cpu(0).enable_irq(4);
   INFO("Serial Test","Doing some serious serial");
   printf("trigger_test_serial_port\n");
-
-  hw::PIT::instance().on_repeated_timeout(3s, []{
-    printf("I'm alive\n");
-  });
-
 }
