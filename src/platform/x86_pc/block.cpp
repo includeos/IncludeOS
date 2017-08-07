@@ -64,7 +64,7 @@ void OS::block(){
   OS::halt();
 
   // Process callbacks
-  Events::get().process_interrupts();
+  Events::get().process_events();
 
   // Decrement level
   *blocking_level -= 1;

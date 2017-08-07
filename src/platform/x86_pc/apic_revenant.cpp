@@ -100,7 +100,7 @@ void revenant_main(int cpu)
 
   while (true)
   {
-    Events::get().process_interrupts();
+    Events::get().process_events();
     asm volatile("hlt");
   }
   __builtin_unreachable();
