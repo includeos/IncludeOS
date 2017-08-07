@@ -72,9 +72,13 @@ public:
     return tx_tokens_free();
   }
 
+  void flush() override;
+
   void deactivate() override;
 
   void move_to_this_cpu() override;
+
+  void poll() override {}
 
 private:
   void msix_evt_handler();

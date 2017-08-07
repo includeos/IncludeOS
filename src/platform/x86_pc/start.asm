@@ -73,10 +73,12 @@ rock_bottom:
   mov ds, cx
   mov es, cx
   mov fs, cx
+  mov cx, 0x18 ;; GS segment
   mov gs, cx
 
-  ;; Set up stack.
-  mov esp, 0xA0000
+  ;; 32-bit stack base address at EBDA border
+  ;; NOTE: Multiboot can use 9fc00 to 9ffff
+  mov esp, 0x9FC00
   mov ebp, esp
 
   ;; enable SSE before we enter C/C++ land
@@ -185,6 +187,12 @@ gdt32:
   dw 0x0000          ;Base 15:00
   db 0x00            ;Base 23:16
   dw 0xcf92          ;Flags / Limit / Type [F,L,F,Type]
+  db 0x00            ;Base 32:24
+  ;; Entry 0x18: GS Data segment
+  dw 0x0100          ;Limit
+  dw 0x1000          ;Base 15:00
+  db 0x00            ;Base 23:16
+  dw 0x4092          ;Flags / Limit / Type [F,L,F,Type]
   db 0x00            ;Base 32:24
 gdt32_end:
 

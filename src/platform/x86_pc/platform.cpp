@@ -29,22 +29,51 @@
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
+extern "C" char* get_cpu_esp();
+extern "C" void* get_cpu_ebp();
+#define _SENTINEL_VALUE_   0x123456789ABCDEF
+
+namespace tls {
+  size_t get_tls_size();
+  void   fill_tls_data(char*);
+}
+struct alignas(64) smp_table
+{
+  // thread self-pointer
+  void* tls_data; // 0x0
+  // per-cpu cpuid (and more)
+  int cpuid;
+  int reserved;
+
+#ifdef ARCH_x86_64
+  uintptr_t pad[3]; // 64-bit padding
+  uintptr_t guard; // _SENTINEL_VALUE_
+#else
+  uint32_t  pad[2];
+  uintptr_t guard; // _SENTINEL_VALUE_
+  x86::GDT gdt; // 32-bit GDT
+#endif
+  /** put more here **/
+};
+#ifdef ARCH_x86_64
+// FS:0x28 on Linux is storing a special sentinel stack-guard value
+static_assert(offsetof(smp_table, guard) == 0x28, "Linux stack sentinel");
+#endif
 
 using namespace x86;
-
 namespace x86 {
-  static void initialize_cpu_shared();
+  void initialize_tls_for_smp();
 }
 
 void __platform_init()
 {
   // read ACPI tables
   ACPI::init();
-  // create CPU storage struct
-  initialize_cpu_shared();
 
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
+
+  initialize_tls_for_smp();
 
   // enable fs/gs for local APIC
   initialize_gdt_for_cpu(APIC::get().get_id());
@@ -54,7 +83,7 @@ void __platform_init()
 
   // initialize and start registered APs found in ACPI-tables
 #ifndef INCLUDEOS_SINGLE_THREADED
-  x86::SMP::init();
+  x86::init_SMP();
 #endif
 
   // enable interrupts
@@ -105,41 +134,62 @@ void __arch_reboot()
   __builtin_unreachable();
 }
 
+#include <malloc.h>
 namespace x86
 {
-  struct alignas(SMP_ALIGN) cpu_shared
+  constexpr size_t smp_table_aligned_size()
   {
-    int cpduid;
-  };
-  static std::array<cpu_shared, SMP_MAX_CORES> cpudata; // for alignment
-
-  static void initialize_cpu_shared()
-  {
-    for (size_t id = 0; id < cpudata.size(); id++) {
-      cpudata[id].cpduid = id;
-    }
+    size_t size = sizeof(smp_table);
+    if (size & 63) size += 64 - (size & 63);
+    return size;
   }
 
-  struct alignas(SMP_ALIGN) segtable
-  {
-    struct GDT gdt;
-  };
-  static std::array<segtable, SMP_MAX_CORES> gdtables;
+  static std::vector<char*> tls_buffers;
 
-  void initialize_gdt_for_cpu(int id)
+  void initialize_tls_for_smp()
   {
-  #ifdef ARCH_x86_64
-    GDT::set_fs(&cpudata.at(id));
-  #else
+    const size_t thread_size = tls::get_tls_size();
+    const size_t total_size  = thread_size + smp_table_aligned_size();
+    const size_t cpu_count = ACPI::get_cpus().size();
+
+    //printf("TLS buffers are %lu bytes, SMP table %lu bytes\n", total_size, smp_table_aligned_size());
+    char* buffer = (char*) memalign(64, total_size * cpu_count);
+    tls_buffers.reserve(cpu_count);
+    for (auto cpu = 0u; cpu < cpu_count; cpu++)
+        tls_buffers.push_back(&buffer[total_size * cpu]);
+  }
+
+  void initialize_gdt_for_cpu(int cpu_id)
+  {
+    char* tls_data  = tls_buffers.at(cpu_id);
+    char* tls_table = tls_data + tls::get_tls_size();
+    // TLS data at front of buffer
+    tls::fill_tls_data(tls_data);
+    // SMP control block after TLS data
+    auto* table = (smp_table*) tls_table;
+    table->tls_data = tls_data;
+    table->cpuid    = cpu_id;
+    table->guard    = (uintptr_t) _SENTINEL_VALUE_;
+    // should be at least 8-byte aligned
+    assert((((uintptr_t) table) & 7) == 0);
+#ifdef ARCH_x86_64
+    GDT::set_fs(table); // TLS self-ptr in fs
+    GDT::set_gs(&table->cpuid); // PER_CPU on gs
+#else
     // initialize GDT for this core
-    gdtables.at(id).gdt.initialize();
+    auto& gdt = table->gdt;
+    gdt.initialize();
     // create PER-CPU segment
-    int fs = gdtables[id].gdt.create_data(&cpudata.at(id), 1);
+    int fs = gdt.create_data(&table->cpuid, 1);
+    // create per-thread segment
+    int gs = gdt.create_data(table, 0xffffffff);
     // load GDT and refresh segments
-    GDT::reload_gdt(gdtables[id].gdt);
-    // enable per-cpu for this core
-    cpudata[id].cpduid = id;
+    GDT::reload_gdt(gdt);
+    // enable per-cpu and per-thread
     GDT::set_fs(fs);
-  #endif
+    GDT::set_gs(gs);
+#endif
+    // hardware barrier
+    __sync_synchronize();
   }
 } // x86

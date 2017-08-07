@@ -26,24 +26,27 @@ static bool revenant_task_doer(smp_system_stuff& system)
     return false;
   }
 
-  // get copy of shared task
-  auto task = std::move(system.tasks.front());
-  system.tasks.pop_front();
+  // create local vector which holds tasks
+  std::vector<smp_task> tasks;
+  system.tasks.swap(tasks);
 
   unlock(system.tlock);
 
-  // execute actual task
-  task.func();
-
-  // add done function to completed list (only if its callable)
-  if (task.done)
+  for (auto& task : tasks)
   {
-    // NOTE: specifically pushing to 'smp' here, and not 'system'
-    lock(smp_main.flock);
-    smp_main.completed.push_back(std::move(task.done));
-    unlock(smp_main.flock);
-    // signal home
-    PER_CPU(smp_system).work_done = true;
+    // execute actual task
+    task.func();
+
+    // add done function to completed list (only if its callable)
+    if (task.done)
+    {
+      // NOTE: specifically pushing to 'smp' here, and not 'system'
+      lock(PER_CPU(smp_system).flock);
+      PER_CPU(smp_system).completed.push_back(std::move(task.done));
+      unlock(PER_CPU(smp_system).flock);
+      // signal home
+      PER_CPU(smp_system).work_done = true;
+    }
   }
   return true;
 }
@@ -57,6 +60,9 @@ static void revenant_task_handler()
   while (revenant_task_doer(smp_system[0]));
   // if we did any work with done functions, signal back
   if (system.work_done) {
+    // set bit for this CPU
+    smp_main.bitmap.atomic_set(SMP::cpu_id());
+    // signal main CPU
     x86::APIC::get().send_bsp_intr();
   }
 }
@@ -68,10 +74,10 @@ void revenant_main(int cpu)
   // setup GDT & per-cpu feature
   initialize_gdt_for_cpu(cpu);
   // show we are online, and verify CPU ID is correct
-  ::SMP::global_lock();
-  INFO2("AP %d started at %p", cpu, get_cpu_esp());
-  ::SMP::global_unlock();
-  assert(cpu == ::SMP::cpu_id());
+  SMP::global_lock();
+  INFO2("AP %d started at %p", SMP::cpu_id(), get_cpu_esp());
+  SMP::global_unlock();
+  assert(cpu == SMP::cpu_id());
 
   IRQ_manager::init();
   // enable interrupts
@@ -85,7 +91,7 @@ void revenant_main(int cpu)
   RNG::init();
 
   // allow programmers to do stuff on each core at init
-  ::SMP::init_task();
+  SMP::init_task();
 
   // signal that the revenant has started
   smp_main.boot_barrier.inc();

@@ -9,7 +9,6 @@ endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
-
 message(STATUS "Target CPU architecture ${ARCH}")
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
@@ -36,17 +35,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
 set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
-
-# configure options
-option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
-option(minimal "Build for minimal size" OFF)
-option(stripped "Strip symbols to further reduce size" OFF)
-
-add_definitions(-DARCH_${ARCH})
-add_definitions(-DARCH="${ARCH}")
-if (single_threaded)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
-endif()
 
 # Compiler optimization
 set(OPTIMIZE "-O2")
@@ -76,6 +64,17 @@ set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 #
 # DRIVERS / PLUGINS - support for parent cmake list specification
 #
+
+# Add extra drivers defined from command line
+set(DRIVERS ${DRIVERS} ${EXTRA_DRIVERS})
+if(DRIVERS)
+  list(REMOVE_DUPLICATES DRIVERS) # Remove duplicate drivers
+endif()
+# Add extra plugins defined from command line
+set(PLUGINS ${PLUGINS} ${EXTRA_PLUGINS})
+if(PLUGINS)
+  list(REMOVE_DUPLICATES PLUGINS) # Remove duplicate plugins
+endif()
 
 # Function:
 # Add plugin / driver as library, set link options
@@ -146,6 +145,12 @@ foreach(DEP ${DEPENDENCIES})
   add_dependencies(service ${DEP_NAME})
 endforeach()
 
+# Add extra libraries defined from command line
+set(LIBRARIES ${LIBRARIES} ${EXTRA_LIBRARIES})
+if(LIBRARIES)
+  list(REMOVE_DUPLICATES LIBRARIES) # Remove duplicate libraries
+endif()
+
 # add all extra libs
 foreach(LIBR ${LIBRARIES})
   # if relative path but not local, use includeos lib.
@@ -170,6 +175,11 @@ include_directories(${LOCAL_INCLUDES})
 include_directories(${INSTALL_LOC}/api/posix)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
 include_directories(${INSTALL_LOC}/${ARCH}/include/newlib)
+
+if ("${PLATFORM}" STREQUAL "x86_solo5")
+  include_directories(${INSTALL_LOC}/${ARCH}/include/solo5)
+endif()
+
 include_directories(${INSTALL_LOC}/${ARCH}/include)
 include_directories(${INSTALL_LOC}/api)
 include_directories(${INSTALL_LOC}/include)
@@ -197,7 +207,7 @@ if (${ELF} STREQUAL "i686")
 endif()
 
 
-set(LDFLAGS "-nostdlib -melf_${ELF} -N --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/linker.ld ${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
+set(LDFLAGS "-nostdlib -melf_${ELF} -N --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
@@ -248,6 +258,12 @@ add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libgcc.a)
 
+if ("${PLATFORM}" STREQUAL "x86_solo5")
+  add_library(solo5 STATIC IMPORTED)
+  set_target_properties(solo5 PROPERTIES LINKER_LANGUAGE C)
+  set_target_properties(solo5 PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/solo5.o)
+endif()
+
 # Depending on the output of this command will make it always run. Like magic.
 add_custom_command(OUTPUT fake_news
       COMMAND cmake -E touch_nocreate alternative_facts)
@@ -268,8 +284,9 @@ function(add_memdisk DISK)
 endfunction()
 
 # automatically build memdisk from folder
-function(diskbuilder FOLD)
+function(build_memdisk FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  message(STATUS ${REL_PATH})
   add_custom_command(
       OUTPUT  memdisk.fat
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
@@ -278,6 +295,18 @@ function(diskbuilder FOLD)
     add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
   add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
+endfunction()
+
+# build memdisk if defined
+if(MEMDISK)
+  build_memdisk(${MEMDISK})
+endif()
+
+# call build_memdisk only if MEMDISK is not defined from command line
+function(diskbuilder FOLD)
+  if(NOT MEMDISK)
+    build_memdisk(${FOLD})
+  endif()
 endfunction()
 
 if(TARFILE)
@@ -319,6 +348,10 @@ endif(TARFILE)
 add_library(crtn STATIC IMPORTED)
 set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(crtn PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrtn.a)
+
+if ("${PLATFORM}" STREQUAL "x86_solo5")
+  target_link_libraries(service solo5 --whole-archive crtn --no-whole-archive)
+endif()
 
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service

@@ -47,7 +47,7 @@ CASE("Create empty packet")
 #define DRIVER_OFFSET    12
 #define PACKET_CAPA    1012
 
-Packet_ptr create_packet() noexcept
+static Packet_ptr create_packet() noexcept
 {
   auto buffer = bufstore.get_buffer();
   auto* ptr = (net::Packet*) buffer.addr;

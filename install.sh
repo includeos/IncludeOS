@@ -21,14 +21,16 @@ export ARCH=${ARCH:-x86_64}
 install_yes=0
 quiet=0
 bundle_location=""
+net_bridge=1
 
-while getopts "h?yqb:" opt; do
+while getopts "h?yqb:n" opt; do
     case "$opt" in
     h|\?)
         printf "%s\n" "Options:"\
                 "-y Yes: answer yes to install"\
                 "-q Quiet: Suppress output from cmake during install"\
-                "-b Bundle: Local path to bundle"
+                "-b Bundle: Local path to bundle"\
+                "-n No Net bridge: Disable setting up network bridge"
         exit 0
         ;;
     y)  install_yes=1
@@ -42,6 +44,8 @@ while getopts "h?yqb:" opt; do
 			echo "File: $BUNDLE_LOC does not exist, exiting" >&2
 			exit 1
 		fi
+        ;;
+    n)  net_bridge=0
         ;;
     esac
 done
@@ -219,7 +223,7 @@ else
 fi
 
 # Install network bridge
-if [ "Linux" = "$SYSTEM" ]; then
+if [[ "Linux" = "$SYSTEM" && $net_bridge -eq 1 ]]; then
     printf "\n\n>>> Installing network bridge\n"
     if ! ./etc/scripts/create_bridge.sh; then
         printf "%s\n" ">>> Sorry <<<"\

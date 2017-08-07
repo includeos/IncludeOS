@@ -31,9 +31,15 @@ set(LOCAL_INCLUDES
 
 # DRIVERS / PLUGINS:
 
-set(DRIVERS
-  virtionet   # Virtio networking
+if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
+  set(DRIVERS
+    solo5net
   )
+else()
+  set(DRIVERS
+    virtionet   # Virtio networking
+  )
+endif()
 
 set(LIBRARIES
   "libmana.a"

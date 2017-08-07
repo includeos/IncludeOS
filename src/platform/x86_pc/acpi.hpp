@@ -78,6 +78,10 @@ namespace x86 {
       return get().overrides;
     }
 
+    uint8_t cmos_century() const noexcept {
+      return century;
+    }
+
     static void reboot();
     static void shutdown();
 
@@ -109,6 +113,8 @@ namespace x86 {
     uint16_t SLP_EN;
     uint16_t SCI_EN;
     uint8_t  PM1_CNT_LEN;
+
+    uint8_t century;
   };
 
 }

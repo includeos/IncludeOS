@@ -75,8 +75,11 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   // Call global ctors
   __libc_init_array();
 
-  // Initialize OS including devices
+  // Initialize early OS, platform and devices
   OS::start(magic, addr);
+
+  // Initialize common subsystems and call Service::start
+  OS::post_start();
 
   // verify certain read-only sections in memory
   kernel_sanity_checks();

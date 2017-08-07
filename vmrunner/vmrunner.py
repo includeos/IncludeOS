@@ -376,7 +376,7 @@ class qemu(hypervisor):
 
         # TODO: sudo is only required for tap networking and kvm. Check for those.
         command = ["sudo", "qemu-system-x86_64"]
-        if self._kvm_present: command.append("--enable-kvm")
+        if self._kvm_present: command.extend(["--enable-kvm", "-cpu", "host"])
 
         command += kernel_args
 
@@ -473,7 +473,7 @@ class vm:
         self._on_panic =  self.panic
         self._on_timeout = self.timeout
         self._on_output = {
-            "PANIC" : self._on_panic,
+            "\\x15\\x07\\t\*\*\*\* PANIC \*\*\*\*" : self._on_panic,
             "SUCCESS" : self._on_success }
 
         # Initialize hypervisor with config

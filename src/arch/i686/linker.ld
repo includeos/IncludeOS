@@ -20,7 +20,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-  PROVIDE ( _ELF_START_ = . + 0xA00000);
+  PROVIDE ( _ELF_START_ = . + 0x100000);
   PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
   .multiboot (_ELF_START_ + SIZEOF_HEADERS): {
@@ -99,7 +99,6 @@ SECTIONS
 
   .init_array :
   {
-
     PROVIDE_HIDDEN (__init_array_start = .);
     KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
     KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .ctors))
@@ -114,7 +113,6 @@ SECTIONS
    PROVIDE_HIDDEN (__fini_array_end = .);
   }
 
-
   .rodata :
   {
     _RODATA_START_ = .;
@@ -127,7 +125,6 @@ SECTIONS
   .eh_frame_hdr ALIGN(0x8):
   {
     KEEP(*(.eh_frame_hdr*))
-
   }
   .eh_frame ALIGN(0x8):
   {
@@ -150,6 +147,21 @@ SECTIONS
     _DATA_END_ = .;
   }
 
+  .tdata ALIGN(0x10) :
+  {
+    _TDATA_START_ = .;
+    *(.tdata .tdata.*)
+    _TDATA_END_ = .;
+    . = ALIGN(0x10);
+  }
+  .tbss :
+  {
+    _TBSS_START_ = .;
+    *(.tbss .tbss.*)
+    _TBSS_END_ = .;
+    . = ALIGN(0x10);
+  }
+
   .memdisk :
   {
     _DISK_START_ = .;
@@ -168,13 +180,12 @@ SECTIONS
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
     _BSS_END_ = .;
-    . = ALIGN(64 / 8);
   }
-  . = ALIGN(64 / 8);
+  . = ALIGN(0x8);
+
   _end = .;
 
   PROVIDE (end = .);
   PROVIDE (_ELF_END_ = .);
   PROVIDE (_LOAD_END_ = .);
-
 }

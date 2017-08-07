@@ -69,13 +69,10 @@ public:
   static int64_t micros_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
-  static RTC::timestamp_t boot_timestamp()
-  { return RTC::boot_timestamp(); }
+  static RTC::timestamp_t boot_timestamp();
 
   /** Uptime in whole seconds. */
-  static RTC::timestamp_t uptime() {
-    return RTC::time_since_boot();
-  }
+  static RTC::timestamp_t uptime();
 
   static MHz cpu_freq() noexcept
   { return cpu_mhz_; }
@@ -103,7 +100,7 @@ public:
   /**
    *  Returns true when the OS will still be running, and not shutting down.
    */
-  static bool is_running() {
+  static bool is_running() noexcept {
     return power_;
   }
 
@@ -111,9 +108,14 @@ public:
    *  Returns true when the OS has passed the boot sequence, and
    *  is at least processing plugins and about to call Service::start
    */
-  static bool is_booted() {
+  static bool is_booted() noexcept {
     return boot_sequence_passed_;
   }
+
+  /**
+   *  Returns true when the OS is currently panicking
+   */
+  static bool is_panicking() noexcept;
 
   /**
    * Sometimes the OS just has a bad day and crashes
@@ -123,22 +125,30 @@ public:
    * This handler can thus be used to, for example, automatically
    * have the OS restart on any crash.
   **/
-  typedef void (*on_panic_func) ();
+  typedef void (*on_panic_func) (const char*);
   static void on_panic(on_panic_func);
 
   /**
    *  Write data to standard out callbacks
    */
-  static size_t print(const char* ptr, const size_t len);
+  static void print(const char* ptr, const size_t len);
 
   /**
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
   /**
-   *  Add "default" serial port output
+   *  Add stdout handler that simply calls OS::default_stdout
   **/
-  static void add_stdout_default_serial();
+  static void add_default_stdout() {
+    add_stdout(OS::default_stdout);
+  }
+
+  /**
+   *  The default output method preferred by each platform
+   *  Directly writes the string to its output mechanism
+   **/
+  static void default_stdout(const char*, size_t);
 
   /** Memory page helpers */
   static constexpr uint32_t page_size() noexcept {
@@ -170,7 +180,7 @@ public:
   static uintptr_t heap_max() noexcept;
 
   /** The end of usable memory **/
-  static inline uintptr_t memory_end(){
+  static uintptr_t memory_end() noexcept {
     return memory_end_;
   }
 
@@ -188,6 +198,9 @@ public:
     static  Memory_map memmap {};
     return memmap;
   }
+
+  /** Get "kernel modules", provided by multiboot */
+  static Span_mods modules();
 
   /**
    * Register a custom initialization function. The provided delegate is
@@ -209,15 +222,15 @@ public:
   /** The main event loop. Check interrupts, timers etc., and do callbacks. */
   static void event_loop();
 
-  /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
+  /** Initialize platform, devices etc. */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
-  /** Get "kernel modules", provided by multiboot */
-  static Span_mods modules();
+  static void start(char *cmdline, uintptr_t mem_size);
 
+  /** Initialize common subsystems, call Service::start */
+  static void post_start();
 
 private:
-
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
 
@@ -245,6 +258,9 @@ private:
   static bool power_;
   static bool boot_sequence_passed_;
   static MHz cpu_mhz_;
+
+  // XXX: Only used by solo5
+  static RTC::timestamp_t booted_at_;
   static std::string version_str_;
   static std::string arch_str_;
   static Plugin_vec plugins_;

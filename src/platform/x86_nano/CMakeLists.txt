@@ -7,7 +7,11 @@ set(PLATFORM_OBJECTS
   ../x86_pc/ioapic.cpp
   ../x86_pc/pit.cpp
   ../x86_pc/cpu_freq_sampling.cpp
-  ../../hw/serial1.cpp
+  ../x86_pc/serial1.cpp
+  ../x86_pc/os.cpp
+  ../x86_pc/block.cpp
+  ../x86_pc/softreset.cpp
+  ../x86_pc/sanity_checks.cpp
   platform.cpp
   kernel_start.cpp
   )

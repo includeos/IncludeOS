@@ -22,3 +22,11 @@ void __serial_print1(const char* cstr)
     hw::outb(port, *cstr++);
   }
 }
+extern "C"
+void __serial_print(const char* str, size_t len)
+{
+  for (size_t i = 0; i < len; i++) {
+    while (not (hw::inb(port + 5) & 0x20));
+    hw::outb(port, str[i]);
+  }
+}

@@ -96,7 +96,14 @@ namespace hw {
     /** Move this nic to current CPU **/
     virtual void move_to_this_cpu() = 0;
 
+    /** Flush remaining packets if possible. **/
+    virtual void flush() = 0;
+
     virtual ~Nic() {}
+
+    /** Trigger a read from buffers, pusing any packets up the stack */
+    virtual void poll() = 0;
+
   protected:
     /**
      *  Constructor

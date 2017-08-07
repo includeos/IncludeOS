@@ -24,7 +24,7 @@ void default_stdout_handlers()
   OS::add_stdout(
   [] (const char* str, size_t len)
   {
-    if (OS::is_booted())
-      kprintf("%.*s", len, str);
+    if (OS::is_booted() || OS::is_panicking())
+        OS::default_stdout(str, len);
   });
 }

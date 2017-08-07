@@ -2,6 +2,8 @@
 set(X86_PC_OBJECTS
   start.asm
   platform.cpp
+  os.cpp
+  block.cpp
   gdt.cpp
   acpi.cpp
   ioapic.cpp
@@ -11,7 +13,10 @@ set(X86_PC_OBJECTS
   smp.cpp
   pit.cpp
   cpu_freq_sampling.cpp
+  serial1.cpp
   pic.cpp
+  softreset.cpp
+  sanity_checks.cpp
   )
 
 add_custom_command(

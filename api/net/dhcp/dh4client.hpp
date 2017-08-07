@@ -30,6 +30,8 @@ namespace net {
   class DHClient
   {
   public:
+    static const int NUM_RETRIES = 5;
+
     using Stack = IP4::Stack;
     using config_func = delegate<void(bool)>;
 
@@ -45,20 +47,25 @@ namespace net {
     void on_config(config_func handler);
 
   private:
-    void offer(UDPSocket&, const char* data, size_t len);
-    void request(UDPSocket&, const dhcp::option::server_identifier* server_id);   // --> acknowledge
+    void send_first();
+    void offer(const char* data, size_t len);
+    void request(const dhcp::option::server_identifier* server_id);   // --> acknowledge
     void acknowledge(const char* data, size_t len);
 
-    void timeout();
+    void restart_negotation();
+    void end_negotiation(bool);
 
     Stack& stack;
-    uint32_t     xid;
+    uint32_t     xid = 0;
     IP4::addr    ipaddr, netmask, router, dns_server;
     std::string  domain_name;
     uint32_t     lease_time;
     std::vector<config_func> config_handlers_;
+    int          retries  = 0;
+    int          progress = 0;
     Timer        timeout_timer_;
-    bool         in_progress;
+    std::chrono::milliseconds timeout;
+    UDPSocket* socket = nullptr;
   };
 
 }
