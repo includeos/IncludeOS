@@ -64,6 +64,7 @@ using namespace x86;
 namespace x86 {
   void initialize_tls_for_smp();
   extern void idt_initialize_for_cpu(int);
+  extern void ist_initialize_for_cpu(int);
 }
 
 void __platform_init()
@@ -177,6 +178,8 @@ namespace x86
 #ifdef ARCH_x86_64
     GDT::set_fs(table); // TLS self-ptr in fs
     GDT::set_gs(&table->cpuid); // PER_CPU on gs
+    // interrupt stack tables
+    ist_initialize_for_cpu(cpu_id);
 #else
     // initialize GDT for this core
     auto& gdt = table->gdt;

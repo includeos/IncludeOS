@@ -7,6 +7,7 @@ set(ARCH_OBJECTS
   arch_start.asm
   interrupts.asm
   fiber_asm.asm
+  ist.cpp
 )
 
 add_library(arch STATIC ${ARCH_OBJECTS})
