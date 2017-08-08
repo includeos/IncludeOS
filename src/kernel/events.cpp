@@ -15,8 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG // Enable debugging
-//#define DEBUG2
 #include <kernel/events.hpp>
 #include <cassert>
 #include <statman>
@@ -93,7 +91,7 @@ void Events::unsubscribe(uint8_t evt)
   }
 }
 
-void Events::process_interrupts()
+void Events::process_events()
 {
   while (true)
   {

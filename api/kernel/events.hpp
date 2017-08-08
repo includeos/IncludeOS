@@ -35,7 +35,7 @@ public:
   void subscribe(uint8_t evt, event_callback);
   void unsubscribe(uint8_t evt);
 
-  // soft-trigger event
+  // register event for deferred processing
   void trigger_event(uint8_t evt);
 
   /**
@@ -44,8 +44,8 @@ public:
   static Events& get();
   static Events& get(int cpu);
 
-  /** process all pending interrupts */
-  void process_interrupts();
+  /** process all pending events */
+  void process_events();
 
   /** array of received events */
   auto& get_received_array() const noexcept
@@ -73,4 +73,4 @@ private:
   Fixed_bitmap<NUM_EVENTS>  event_todo;
 };
 
-#endif //< KERNEL_IRQ_MANAGER_HPP
+#endif //< KERNEL_EVENTS_HPP

@@ -183,10 +183,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
 void OS::event_loop()
 {
-  Events::get(0).process_interrupts();
+  Events::get(0).process_events();
   do {
     OS::halt();
-    Events::get(0).process_interrupts();
+    Events::get(0).process_events();
   } while (power_);
 
   MYINFO("Stopping service");
