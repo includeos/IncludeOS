@@ -65,6 +65,14 @@ public:
   { return buf; }
 
   /**
+   * @brief      Exposes the internal buffer (read only)
+   *
+   * @return     A const referene to the internal shared buffer
+   */
+  const buffer_t& buffer() const
+  { return buf; }
+
+  /**
    * @brief      The capacity of the internal buffer
    *
    * @return     The capacity
@@ -114,6 +122,10 @@ public:
    * @param[in]  seq   The starting sequence number
    */
   void renew(const seq_t seq);
+
+
+  int deserialize_from(void*);
+  int serialize_to(void*) const;
 
 private:
   buffer_t        buf;

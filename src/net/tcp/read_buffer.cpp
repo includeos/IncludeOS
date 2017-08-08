@@ -68,5 +68,10 @@ void Read_buffer::renew(const seq_t seq)
   buf = new_shared_buffer(cap);
 }
 
+__attribute__((weak))
+int Read_buffer::deserialize_from(void*) { return 0; }
+__attribute__((weak))
+int Read_buffer::serialize_to(void*) const { return 0; }
+
 }
 }
