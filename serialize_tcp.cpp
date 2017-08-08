@@ -122,6 +122,9 @@ int Read_buffer::deserialize_from(void* addr)
 
 void Connection::deserialize_from(void* addr)
 {
+  if(this->VERSION != serialized_tcp::VERSION)
+    throw std::runtime_error{"TCP Serialization version mismatch"};
+
   auto* area = (serialized_tcp*) addr;
 
   /// restore TCP stuff
@@ -220,6 +223,9 @@ int Read_buffer::serialize_to(void* addr) const
 
 int Connection::serialize_to(void* addr) const
 {
+  if(this->VERSION != serialized_tcp::VERSION)
+    throw std::runtime_error{"TCP Serialization version mismatch"};
+
   auto* area = (serialized_tcp*) addr;
 
   /// serialize TCP stuff

@@ -8,6 +8,9 @@
 
 struct serialized_tcp
 {
+  // has to match with tcp::Connection::VERSION
+  static const int VERSION = 1;
+
   typedef net::tcp::Connection Connection;
   typedef net::tcp::port_t     port_t;
   typedef net::Socket          Socket;
