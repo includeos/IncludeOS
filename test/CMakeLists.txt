@@ -74,6 +74,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/net/unit/dhcp_message_test.cpp
   ${TEST}/net/unit/dns_test.cpp
+  ${TEST}/net/unit/error.cpp
   ${TEST}/net/unit/http_header_test.cpp
   ${TEST}/net/unit/http_status_codes_test.cpp
   ${TEST}/net/unit/http_method_test.cpp
@@ -85,6 +86,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/packets.cpp
+  ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
   ${TEST}/net/unit/socket.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp

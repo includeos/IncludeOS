@@ -32,14 +32,6 @@ public:
   using Address = ip4::Addr;
   using port_t = uint16_t;
 
-  struct pair_hash {
-    std::size_t operator () (const Socket& s) const {
-      auto h1 = std::hash<Address>{}(s.address());
-      auto h2 = std::hash<port_t>{}(s.port());
-      return h1 ^ h2;
-    }
-  };
-
   /**
    * Constructor
    *
@@ -72,6 +64,9 @@ public:
   constexpr Address address() const noexcept
   { return address_; }
 
+  void set_address(const Address address) noexcept
+  { address_ = address; }
+
   /**
    * Get the socket's port value
    *
@@ -79,6 +74,9 @@ public:
    */
   constexpr port_t port() const noexcept
   { return port_; }
+
+  void set_port(const port_t port) noexcept
+  { port_ = port; }
 
   /**
    * Get a string representation of this class
@@ -157,11 +155,15 @@ private:
 class Quadruple {
 
 public:
-  Quadruple() noexcept
+  constexpr Quadruple() noexcept
     : source_{}, destination_{}
   {}
 
-  Quadruple(const Socket::Address src_address, const Socket::port_t src_port,
+  constexpr Quadruple(const Socket source, const Socket destination) noexcept
+    : source_{source}, destination_{destination}
+  {}
+
+  constexpr Quadruple(const Socket::Address src_address, const Socket::port_t src_port,
     const Socket::Address dst_address, const Socket::port_t dst_port) noexcept
     : source_{src_address, src_port}, destination_{dst_address, dst_port}
   {}
@@ -179,5 +181,17 @@ private:
 };  //< class Quadruple
 
 } //< namespace net
+
+namespace std {
+  template<>
+  struct hash<net::Socket> {
+  public:
+    size_t operator () (const net::Socket& key) const noexcept {
+      const auto h1 = std::hash<net::Socket::Address>{}(key.address());
+      const auto h2 = std::hash<net::Socket::port_t>{}(key.port());
+      return h1 ^ h2;
+    }
+  };
+} // < namespace std
 
 #endif //< NET_SOCKET_HPP
