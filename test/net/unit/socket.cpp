@@ -20,12 +20,11 @@
 #include <net/tcp/common.hpp>
 
 using namespace net;
-using namespace tcp;
 
 CASE("Creating a Socket without arguments is empty")
 {
   Socket socket;
-  const Address addr { 0,0,0,0 };
+  const Socket::Address addr { 0,0,0,0 };
   EXPECT( socket.is_empty() );
   EXPECT( socket.address() == addr );
   EXPECT( socket.address() == 0 );
@@ -37,8 +36,8 @@ CASE("Creating a Socket without arguments is empty")
 
 CASE("Creating a Socket with arguments is not empty")
 {
-  const Address addr { 10,0,0,42 };
-  const port_t port = 80;
+  const Socket::Address addr { 10,0,0,42 };
+  const Socket::port_t port = 80;
 
   Socket socket { addr, 80 };
 
@@ -71,4 +70,3 @@ CASE("Sockets can be compared to each other")
   EXPECT( sock2 < sock3 );
   EXPECT( sock3 > sock1 );
 }
-

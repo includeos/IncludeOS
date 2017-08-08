@@ -186,6 +186,15 @@ namespace net {
     void forward_to_transport_layer(icmp4::Packet& req);
 
     /**
+     *  If a Destination Unreachable: Fragmentation Needed error mesage is received, the Path MTUs in
+     *  IP should be updated and the packetization/transportation layer should be notified (through Inet)
+     *  RFC 1191 (Path MTU Discovery IP4), 1981 (Path MTU Discovery IP6) and 4821 (Packetization Layer Path MTU Discovery)
+     *  A Fragmentation Needed error message is sent as a response to a packet with an MTU that is too big
+     *  for a node in the path to its destination and with the Don't Fragment bit set as well
+     */
+    void handle_too_big(icmp4::Packet& req);
+
+    /**
      *  Find the ping-callback that this packet is a response to, execute it and erase the object
      *  from the ping_callbacks_ map
      */
