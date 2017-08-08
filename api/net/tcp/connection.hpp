@@ -799,6 +799,7 @@ public:
   // ???
   void deserialize_from(void*);
   int  serialize_to(void*) const;
+  static const int VERSION = 1;
 
   /**
    * @brief      Reset all callbacks back to default
