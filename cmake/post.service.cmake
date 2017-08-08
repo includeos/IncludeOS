@@ -60,6 +60,20 @@ set(SERVICE_STUB "${INSTALL_LOC}/src/service_name.cpp")
 add_executable(service ${SOURCES} ${SERVICE_STUB})
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 
+#
+# CONFIG.JSON
+#
+
+if (EXISTS ${CMAKE_SOURCE_DIR}/config.json)
+  add_custom_command(
+	   OUTPUT config_json.o
+	   COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 --rename-section .data=.config,CONTENTS,ALLOC,LOAD,READONLY,DATA ${CMAKE_SOURCE_DIR}/config.json config_json.o
+	   DEPENDS ${CMAKE_SOURCE_DIR}/config.json
+   )
+   add_library(config_json STATIC config_json.o)
+   set_target_properties(config_json PROPERTIES LINKER_LANGUAGE CXX)
+   target_link_libraries(service --whole-archive config_json --no-whole-archive)
+endif()
 
 #
 # DRIVERS / PLUGINS - support for parent cmake list specification
