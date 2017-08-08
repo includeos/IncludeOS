@@ -10,18 +10,56 @@
 #include "serialize_tcp.hpp"
 #include <map>
 
+//#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
+#define LPRINT(x, ...) /** x **/
+
+// heap area
+extern char* heap_end;
+
 namespace liu
 {
 static std::map<uint16_t, LiveUpdate::resume_func> resume_funcs;
+
+bool LiveUpdate::is_resumable(void* location)
+{
+  return ((storage_header*) location)->validate();
+}
+
+static bool resume_helper(void* location, LiveUpdate::resume_func func)
+{
+  // check if an update has occurred
+  if (!LiveUpdate::is_resumable(location)) return false;
+
+  LPRINT("* Restoring data...\n");
+  // restore connections etc.
+  extern bool resume_begin(storage_header&, LiveUpdate::resume_func);
+  return resume_begin(*(storage_header*) location, func);
+}
+bool LiveUpdate::resume(void* location, resume_func func)
+{
+  /// memory sanity check
+  if (heap_end >= (char*) location) {
+    fprintf(stderr,
+        "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
+		     (long int) (heap_end - (char*) location));
+    return false;
+  }
+  return resume_helper(location, func);
+}
+bool LiveUpdate::resume_from_heap(void* location, LiveUpdate::resume_func func)
+{
+  return resume_helper(location, func);
+}
 
 bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
 {
   /// restore each entry one by one, calling registered handlers
   auto num_ents = storage.get_entries();
-  if (num_ents > 1)
-      printf("* Resuming %d stored entries\n", num_ents-1);
-  else
-      printf("* No stored entries to resume\n");
+  if (num_ents > 1) {
+    LPRINT("* Resuming %d stored entries\n", num_ents-1);
+  } else {
+    LPRINT("* No stored entries to resume\n");
+  }
 
   for (auto* ptr = storage.begin(); ptr->type != TYPE_END;)
   {

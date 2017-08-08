@@ -64,11 +64,9 @@ void setup_liveupdate_server(net::Inet<net::IP4>& inet, liu::LiveUpdate::storage
   server(inet, 665,
   [] (liu::buffer_t& buffer)
   {
-    char* location = (char*) LIVEUPD_LOCATION - buffer.size();
-    memcpy(location, buffer.data(), buffer.size());
-    printf("* Rollback location: %p (len=%u)\n",
-            location, (uint32_t) buffer.size());
-    liu::LiveUpdate::set_rollback_blob(location, buffer.size());
+    static liu::buffer_t rb_blob;
+    rb_blob = buffer;
+    liu::LiveUpdate::set_rollback_blob(rb_blob.data(), rb_blob.size());
     // simulate crash
     liu::LiveUpdate::rollback_now("Network triggered rollback");
   });
