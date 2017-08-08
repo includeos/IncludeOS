@@ -469,6 +469,7 @@ namespace uplink {
     send_message(Transport_code::PANIC, why, strlen(why));
     ws_->close();
     inet_.nic().flush();
+    OS::reboot();
   }
 
   void WS_uplink::send_stats()
