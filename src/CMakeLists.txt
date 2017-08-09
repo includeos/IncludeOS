@@ -44,7 +44,7 @@ set(OS_OBJECTS
   kernel/solo5_manager.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
-  util/tar.cpp util/path_to_regex.cpp
+  util/tar.cpp util/path_to_regex.cpp util/config.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/ide.cpp hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp
   hw/cmos.cpp hw/block_device.cpp hw/msi.cpp hw/pci_msi.cpp
