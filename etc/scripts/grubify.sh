@@ -77,7 +77,7 @@ function create_disk {
 
   if [ -f $DISK ]
   then
-    echo -e ">>> $DISK allready exists. Preserving existing image as $DISK.bak"
+    echo -e ">>> $DISK already exists. Preserving existing image as $DISK.bak"
     mv $DISK $DISK.bak
   fi
 
