@@ -61,7 +61,7 @@ void Events::subscribe(uint8_t evt, event_callback func)
 {
   assert(evt < NUM_EVENTS);
 
-  // cheap way of changing from unused handler to event loop irq marker
+  // enable IRQ in hardware
   __arch_subscribe_irq(evt);
 
   // Mark as subscribed to
@@ -95,7 +95,7 @@ void Events::process_events()
 {
   while (true)
   {
-    // Get the IRQ's that are both pending and subscribed to
+    // event bits that are both pending and subscribed to
     event_todo.set_from_and(event_subs, event_pend);
 
     int intr = event_todo.first_set();
