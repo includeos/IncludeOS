@@ -94,6 +94,7 @@ void OS::multiboot(unsigned) {}
 
 extern "C" {
 
+/// Kernel ///
   char _binary_apic_boot_bin_end;
   char _binary_apic_boot_bin_start;
   char _ELF_START_;
@@ -107,6 +108,7 @@ extern "C" {
     return 0xdeadbeef;
   }
 
+/// C ABI ///
   void _init_c_runtime() {}
   void _init_bss() {}
   void _init_heap(uintptr_t) {}
@@ -117,13 +119,6 @@ extern "C" {
 
   void __libc_init_array () {}
 
-  /// IRQ manager ///
-  void modern_interrupt_handler() {}
-  void unused_interrupt_handler() {}
-  void spurious_intr() {}
-  void cpu_sampling_irq_entry() {}
-
-
   uintptr_t _multiboot_free_begin(uintptr_t) {
     return 0;
   }
@@ -131,10 +126,7 @@ extern "C" {
     return 0;
   }
 
-  void reboot_os() {
-    assert(0 && "Reboot called");
-  }
-
+  /// malloc ///
   struct mallinfo { int x; };
   struct mallinfo mallinfo() {
     return {0};
@@ -162,9 +154,11 @@ extern "C" void kernel_sanity_checks() {}
 /// arch ///
 void __arch_poweroff() {}
 void __arch_reboot() {}
+void __arch_subscribe_irq(uint8_t) {}
 void __arch_enable_legacy_irq(uint8_t) {}
 void __arch_disable_legacy_irq(uint8_t) {}
 
+/// smp ///
 #include <smp>
 int SMP::cpu_id() noexcept {
   return 0;

@@ -16,9 +16,8 @@
 // limitations under the License.
 
 #include <virtio/virtio.hpp>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <kernel/os.hpp>
-#include <kernel/syscalls.hpp>
 #include <hw/pci.hpp>
 #include <smp>
 #include <assert.h>
@@ -37,8 +36,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
   /**
       Match vendor ID and Device ID : §4.1.2.2
   */
-  if (_pcidev.vendor_id() != PCI::VENDOR_VIRTIO)
-      panic("This is not a Virtio device");
+  assert (_pcidev.vendor_id() == PCI::VENDOR_VIRTIO &&
+          "Must be a Virtio device");
   CHECK(true, "Vendor ID is VIRTIO");
 
   bool _STD_ID = _virtio_device_id >= 0x1040 and _virtio_device_id < 0x107f;
@@ -105,9 +104,8 @@ Virtio::Virtio(hw::PCI_Device& dev)
       // setup all the MSI-X vectors
       for (int i = 0; i < msix_vectors; i++)
       {
-        auto irq = IRQ_manager::get().get_free_irq();
+        auto irq = Events::get().subscribe(nullptr);
         _pcidev.setup_msix_vector(current_cpu, IRQ_BASE + irq);
-        IRQ_manager::get().subscribe(irq, nullptr);
         // store IRQ for later
         this->irqs.push_back(irq);
       }
@@ -205,16 +203,15 @@ void Virtio::move_to_this_cpu()
     // unsubscribe IRQs on old CPU
     for (size_t i = 0; i < irqs.size(); i++)
     {
-      auto& oldman = IRQ_manager::get(this->current_cpu);
+      auto& oldman = Events::get(this->current_cpu);
       oldman.unsubscribe(this->irqs[i]);
     }
     // resubscribe on the new CPU
     this->current_cpu = SMP::cpu_id();
     for (size_t i = 0; i < irqs.size(); i++)
     {
-      this->irqs[i] = IRQ_manager::get().get_free_irq();
+      this->irqs[i] = Events::get().subscribe(nullptr);
       _pcidev.rebalance_msix_vector(i, current_cpu, IRQ_BASE + this->irqs[i]);
-      IRQ_manager::get().subscribe(this->irqs[i], nullptr);
     }
   }
 }

@@ -38,7 +38,7 @@
 #endif
 
 #include "virtionet.hpp"
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <malloc.h>
 #include <cstring>
 
@@ -173,23 +173,22 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
     assert(get_msix_vectors() >= 3);
     auto& irqs = this->get_irqs();
     // update BSP IDT
-    IRQ_manager::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
-    IRQ_manager::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
-    IRQ_manager::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
+    Events::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
+    Events::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
+    Events::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
   }
   else
   {
     auto irq = Virtio::get_legacy_irq();
-    IRQ_manager::get().subscribe(irq, {this, &VirtioNet::legacy_handler});
+    Events::get().subscribe(irq, {this, &VirtioNet::legacy_handler});
   }
 
 #ifndef NO_DEFERRED_KICK
   static bool init_deferred = false;
   if (!init_deferred) {
     init_deferred = true;
-    auto defirq = IRQ_manager::get().get_free_irq();
+    auto defirq = Events::get().subscribe(handle_deferred_devices);
     PER_CPU(deferred_devs).irq = defirq;
-    IRQ_manager::get().subscribe(defirq, handle_deferred_devices);
   }
 #endif
 
@@ -403,7 +402,7 @@ void VirtioNet::begin_deferred_kick()
   if (!deferred_kick) {
     deferred_kick = true;
     PER_CPU(deferred_devs).devs.push_back(this);
-    IRQ_manager::get().register_irq(PER_CPU(deferred_devs).irq);
+    Events::get().trigger_event(PER_CPU(deferred_devs).irq);
   }
 #endif
 }
@@ -444,14 +443,13 @@ void VirtioNet::move_to_this_cpu()
   this->Virtio::move_to_this_cpu();
   // reset the IRQ handlers on this CPU
   auto& irqs = this->Virtio::get_irqs();
-  IRQ_manager::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
-  IRQ_manager::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
-  IRQ_manager::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
+  Events::get().subscribe(irqs[0], {this, &VirtioNet::msix_recv_handler});
+  Events::get().subscribe(irqs[1], {this, &VirtioNet::msix_xmit_handler});
+  Events::get().subscribe(irqs[2], {this, &VirtioNet::msix_conf_handler});
 #ifndef NO_DEFERRED_KICK
   // update deferred kick IRQ
-  auto defirq = IRQ_manager::get().get_free_irq();
+  auto defirq = Events::get().subscribe(handle_deferred_devices);
   PER_CPU(deferred_devs).irq = defirq;
-  IRQ_manager::get().subscribe(defirq, handle_deferred_devices);
 #endif
 }
 

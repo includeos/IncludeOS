@@ -22,9 +22,6 @@
 #include <boot/multiboot.h>
 #include <hw/cmos.hpp>
 #include <kernel/os.hpp>
-#include <kernel/irq_manager.hpp>
-#include <kernel/rtc.hpp>
-#include <kernel/rdrand.hpp>
 #include <kernel/rng.hpp>
 #include <kernel/cpuid.hpp>
 #include <util/fixedvec.hpp>

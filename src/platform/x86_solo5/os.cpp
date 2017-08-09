@@ -1,13 +1,9 @@
+#include <os>
+
 #include <kprint>
 #include <info>
-#include <service>
 #include <smp>
-#include <kernel/os.hpp>
 #include <statman>
-#include <os>
-#include <kernel/rng.hpp>
-
-#include <kernel/irq_manager.hpp>
 #include <kernel/timers.hpp>
 #include <kernel/solo5_manager.hpp>
 

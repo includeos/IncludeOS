@@ -2,7 +2,8 @@
 
 #include "apic.hpp"
 #include "apic_timer.hpp"
-#include <kernel/irq_manager.hpp>
+#include "idt.hpp"
+#include <kernel/events.hpp>
 #include <kernel/rng.hpp>
 #include <kprint>
 
@@ -79,14 +80,15 @@ void revenant_main(int cpu)
   SMP::global_unlock();
   assert(cpu == SMP::cpu_id());
 
-  IRQ_manager::init();
+  x86::idt_initialize_for_cpu(cpu);
+  Events::get(cpu).init_local();
   // enable interrupts
-  IRQ_manager::enable_interrupts();
+  asm volatile("sti");
   // init timer system
   APIC_Timer::init();
   // subscribe to task and timer interrupts
-  IRQ_manager::get().subscribe(0, revenant_task_handler);
-  IRQ_manager::get().subscribe(1, APIC_Timer::start_timers);
+  Events::get().subscribe(0, revenant_task_handler);
+  Events::get().subscribe(1, APIC_Timer::start_timers);
   // seed RNG
   RNG::init();
 
@@ -98,7 +100,7 @@ void revenant_main(int cpu)
 
   while (true)
   {
-    IRQ_manager::get().process_interrupts();
+    Events::get().process_events();
     asm volatile("hlt");
   }
   __builtin_unreachable();

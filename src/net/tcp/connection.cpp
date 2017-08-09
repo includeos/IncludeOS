@@ -47,7 +47,8 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     timewait_dack_timer({this, &Connection::dack_timeout}),
     queued_(false),
     dack_{0},
-    last_ack_sent_{cb.RCV.NXT}
+    last_ack_sent_{cb.RCV.NXT},
+    smss_{host_.MSS()}
 {
   setup_congestion_control();
   //printf("<Connection> Created %p %s  ACTIVE: %u\n", this,
@@ -105,10 +106,6 @@ void Connection::reset_callbacks()
 
 uint16_t Connection::MSDS() const noexcept {
   return std::min(host_.MSS(), cb.SND.MSS) + sizeof(Header);
-}
-
-uint16_t Connection::SMSS() const noexcept {
-  return host_.MSS();
 }
 
 size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) {

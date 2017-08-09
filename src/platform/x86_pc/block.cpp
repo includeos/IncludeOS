@@ -17,7 +17,7 @@
 
 #include <os>
 #include <statman>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 
 // Keep track of blocking levels
 static uint32_t* blocking_level = 0;
@@ -64,7 +64,7 @@ void OS::block(){
   OS::halt();
 
   // Process callbacks
-  IRQ_manager::get().process_interrupts();
+  Events::get().process_events();
 
   // Decrement level
   *blocking_level -= 1;

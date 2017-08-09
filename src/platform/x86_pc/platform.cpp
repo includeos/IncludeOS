@@ -21,7 +21,7 @@
 #include "gdt.hpp"
 #include "pit.hpp"
 #include "smp.hpp"
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/os.hpp>
 #include <hw/devices.hpp>
@@ -63,6 +63,8 @@ static_assert(offsetof(smp_table, guard) == 0x28, "Linux stack sentinel");
 using namespace x86;
 namespace x86 {
   void initialize_tls_for_smp();
+  extern void idt_initialize_for_cpu(int);
+  extern void ist_initialize_for_cpu(int);
 }
 
 void __platform_init()
@@ -73,13 +75,17 @@ void __platform_init()
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
 
+  INFO("x86", "Setting up TLS");
   initialize_tls_for_smp();
 
   // enable fs/gs for local APIC
+  INFO("x86", "Setting up GDT, TLS, IST");
   initialize_gdt_for_cpu(APIC::get().get_id());
 
   // IDT manager: Interrupt and exception handlers
-  IRQ_manager::init();
+  INFO("x86", "Creating CPU exception handlers");
+  x86::idt_initialize_for_cpu(0);
+  Events::get(0).init_local();
 
   // initialize and start registered APs found in ACPI-tables
 #ifndef INCLUDEOS_SINGLE_THREADED
@@ -88,7 +94,7 @@ void __platform_init()
 
   // enable interrupts
   MYINFO("Enabling interrupts");
-  IRQ_manager::enable_interrupts();
+  asm volatile("sti");
 
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");
@@ -175,6 +181,8 @@ namespace x86
 #ifdef ARCH_x86_64
     GDT::set_fs(table); // TLS self-ptr in fs
     GDT::set_gs(&table->cpuid); // PER_CPU on gs
+    // interrupt stack tables
+    ist_initialize_for_cpu(cpu_id);
 #else
     // initialize GDT for this core
     auto& gdt = table->gdt;
