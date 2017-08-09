@@ -421,6 +421,11 @@ void VirtioNet::handle_deferred_devices()
 #endif
 }
 
+void VirtioNet::poll()
+{
+  
+}
+
 void VirtioNet::deactivate()
 {
   VDBG("[virtionet] Disabling device\n");

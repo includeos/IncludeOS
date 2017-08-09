@@ -166,7 +166,7 @@ public:
 
   void move_to_this_cpu() override;
 
-  void poll() {}
+  void poll() override;
 
 private:
 

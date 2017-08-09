@@ -50,6 +50,7 @@ struct IDTR {
 }__attribute__((packed));
 
 extern void idt_initialize_for_cpu(int cpu);
+extern void ist_initialize_for_cpu(int cpu, uintptr_t);
 }
 
 #endif

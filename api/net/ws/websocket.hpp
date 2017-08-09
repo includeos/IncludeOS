@@ -215,6 +215,10 @@ public:
   // string description for status codes
   static const char* status_code(uint16_t code);
 
+  std::string to_string() const {
+    return stream->to_string();
+  }
+
   int get_cpuid() const noexcept {
     return stream->get_cpuid();
   }

@@ -25,7 +25,7 @@ namespace x86
   };
   static std::array<LM_IST, SMP_MAX_CORES> lm_ist;
 
-  void ist_initialize_for_cpu(int cpu)
+  void ist_initialize_for_cpu(int cpu, uintptr_t stack)
   {
     auto& ist = lm_ist.at(cpu);
     ist.intr = new char[INTR_SIZE];
@@ -33,9 +33,9 @@ namespace x86
     ist.dfi  = new char[DFI_SIZE];
 
     memset(&ist.tss, 0, sizeof(AMD64_TSS));
-    ist.tss.rsp0 = 0xA00000;
-    ist.tss.rsp1 = 0xA00000;
-    ist.tss.rsp2 = 0xA00000;
+    ist.tss.rsp0 = stack;
+    ist.tss.rsp1 = stack;
+    ist.tss.rsp2 = stack;
 
     ist.tss.ist1 = (uintptr_t) ist.intr + INTR_SIZE - 16;
     ist.tss.ist2 = (uintptr_t) ist.nmi  + NMI_SIZE - 16;

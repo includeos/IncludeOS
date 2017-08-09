@@ -58,6 +58,11 @@ void init_SMP()
   const ptrdiff_t bootl_size = &_binary_apic_boot_bin_end - start;
   memcpy((char*) BOOTLOADER_LOCATION, start, bootl_size);
 
+  // allocate revenant main stacks
+  void* stack = memalign(4096, CPUcount * REV_STACK_SIZE);
+  smp_main.stack_base = (uintptr_t) stack;
+  smp_main.stack_size = REV_STACK_SIZE;
+
   // modify bootloader to support our cause
   auto* boot = (apic_boot*) BOOTLOADER_LOCATION;
 
@@ -68,11 +73,10 @@ void init_SMP()
 #else
   #error "Unimplemented arch"
 #endif
-  void* stack = memalign(4096, CPUcount * REV_STACK_SIZE);
-  boot->stack_base = (uint32_t) (uintptr_t) stack;
+  boot->stack_base = (uint32_t) smp_main.stack_base;
   // add to start at top of each stack, remove to offset cpu 1 to idx 0
-  //boot->stack_base -= 16;
-  boot->stack_size = REV_STACK_SIZE;
+  boot->stack_base -= 16;
+  boot->stack_size = smp_main.stack_size;
   debug("APIC stack base: %#x  size: %u   main size: %u\n",
       boot->stack_base, boot->stack_size, sizeof(boot->worker_addr));
   assert((boot->stack_base & 15) == 0);
@@ -95,7 +99,7 @@ void init_SMP()
   for (const auto& cpu : ACPI::get_cpus())
   {
     if (cpu.id == apic.get_id()) continue;
-    // Send SIPI with start address BOOTLOADER_LOCATION
+    // Send SIPI with start page at BOOTLOADER_LOCATION
     apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
     apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
   }
