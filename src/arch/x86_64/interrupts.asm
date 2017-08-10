@@ -31,7 +31,6 @@ __xsave_storage_area: resb  512
 
 %macro PUSHAQ 0
    push rax
-   push rbx
    push rcx
    push rdx
    push rdi
@@ -40,10 +39,6 @@ __xsave_storage_area: resb  512
    push r9
    push r10
    push r11
-   push r12
-   push r13
-   push r14
-   push r15
 
    ; Preserve extended state
    ;fxsave [__xsave_storage_area]
@@ -52,10 +47,6 @@ __xsave_storage_area: resb  512
    ; Restore extended state
    ;fxrstor [__xsave_storage_area]
 
-   pop r15
-   pop r14
-   pop r13
-   pop r12
    pop r11
    pop r10
    pop r9
@@ -64,20 +55,7 @@ __xsave_storage_area: resb  512
    pop rdi
    pop rdx
    pop rcx
-   pop rbx
    pop rax
-%endmacro
-
-%macro SPSAVE 0
-    mov  rax, rsp
-    ;;mov  rsp, __stack_storage_area+512-16
-    and  rsp, -16
-    push rax ;; save old RSP
-    push rbp
-%endmacro
-%macro SPRSTOR 0
-    pop rbp
-    pop rsp  ;; restore old RSP
 %endmacro
 
 
@@ -85,9 +63,7 @@ SECTION .text
 unused_interrupt_handler:
   cli
   PUSHAQ
-  SPSAVE
   call QWORD [current_eoi_mechanism]
-  SPRSTOR
   POPAQ
   sti
   iretq
@@ -95,9 +71,7 @@ unused_interrupt_handler:
 modern_interrupt_handler:
   cli
   PUSHAQ
-  SPSAVE
   call QWORD [current_intr_handler]
-  SPRSTOR
   POPAQ
   sti
   iretq
@@ -105,10 +79,8 @@ modern_interrupt_handler:
 cpu_sampling_irq_entry:
   cli
   PUSHAQ
-  SPSAVE
   call cpu_sampling_irq_handler
   call QWORD [current_eoi_mechanism]
-  SPRSTOR
   POPAQ
   sti
   iretq
@@ -117,10 +89,8 @@ parasite_interrupt_handler:
   cli
   PUSHAQ
   mov  rdi, QWORD [rsp + 8*14]
-  SPSAVE
   call profiler_stack_sampler
   call QWORD [current_intr_handler]
-  SPRSTOR
   POPAQ
   sti
   iretq

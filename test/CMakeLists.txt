@@ -74,6 +74,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/net/unit/dhcp_message_test.cpp
   ${TEST}/net/unit/dns_test.cpp
+  ${TEST}/net/unit/error.cpp
   ${TEST}/net/unit/http_header_test.cpp
   ${TEST}/net/unit/http_status_codes_test.cpp
   ${TEST}/net/unit/http_method_test.cpp
@@ -85,9 +86,11 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/packets.cpp
+  ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
   ${TEST}/net/unit/socket.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
+  ${TEST}/net/unit/tcp_read_buffer_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/net/unit/router.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
@@ -131,7 +134,7 @@ set(OS_SOURCES
   ${SRC}/hw/serial.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
-  ${SRC}/kernel/irq_manager.cpp
+  ${SRC}/kernel/events.cpp
   ${SRC}/kernel/kernel_start.cpp
   ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
@@ -172,6 +175,7 @@ set(OS_SOURCES
   ${SRC}/net/tcp/listener.cpp
   ${SRC}/net/tcp/rttm.cpp
   ${SRC}/net/tcp/tcp.cpp
+  ${SRC}/net/tcp/read_buffer.cpp
   ${SRC}/net/tcp/write_queue.cpp
   ${SRC}/posix/fcntl.cpp
   ${SRC}/posix/fd.cpp

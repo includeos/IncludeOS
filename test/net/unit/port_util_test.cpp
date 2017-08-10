@@ -42,7 +42,7 @@ CASE("Generating ephemeral port throws when all are bound")
   EXPECT(util.has_free_ephemeral() == true);
 
   // Bind all
-  for(auto i = 0; i < (net::port_ranges::DYNAMIC_END - net::port_ranges::DYNAMIC_START); ++i)
+  for(auto i = 0; i < util.size(); ++i)
     util.bind(util.get_next_ephemeral());
 
   EXPECT(util.has_free_ephemeral() == false);
@@ -60,10 +60,30 @@ CASE("Generating ephemeral handles wrap around")
   util.bind(port);
 
   // wrap around
-  for(auto i = 0; i < (net::port_ranges::DYNAMIC_END - net::port_ranges::DYNAMIC_START - 1); ++i)
+  for(auto i = 0; i < util.size() - 1; ++i)
     util.get_next_ephemeral();
 
   auto port2 = util.get_next_ephemeral();
 
   EXPECT(port != port2);
+}
+
+CASE("Simulating random connections")
+{
+  using namespace net;
+  srand(time(0));
+
+  for(int rounds = 0; rounds < 10; rounds++)
+  {
+    Port_util util;
+    // random ephemeral
+    int p = port_ranges::DYNAMIC_START + rand() % Port_util::size();
+    util.bind(p);
+    // bind ephemerals
+    for (auto i = 0; i < util.size() - 1; ++i) {
+        int p = util.get_next_ephemeral();
+        util.bind(p);
+    }
+    EXPECT(util.has_free_ephemeral() == false);
+  }
 }

@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -99,13 +99,67 @@ Inet4::Inet4(hw::Nic& nic)
 
 void Inet4::error_report(Error& err, Packet_ptr orig_pckt) {
   auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(orig_pckt));
+  bool too_big = false;
 
-  if (pckt_ip4->ip_protocol() == Protocol::UDP) {
-    auto pckt_udp = static_unique_ptr_cast<PacketUDP>(std::move(pckt_ip4));
-    udp_.error_report(err, Socket{pckt_udp->ip_dst(), pckt_udp->dst_port()});
+  // Get the destination to the original packet
+  Socket dest;
+  switch (pckt_ip4->ip_protocol()) {
+    case Protocol::UDP: {
+      auto pckt_udp = static_unique_ptr_cast<PacketUDP>(std::move(pckt_ip4));
+      dest.set_address(pckt_udp->ip_dst());
+      dest.set_port(pckt_udp->dst_port());
+      break;
+    }
+    case Protocol::TCP: {
+      auto pckt_tcp = static_unique_ptr_cast<tcp::Packet>(std::move(pckt_ip4));
+      dest.set_address(pckt_tcp->ip_dst());
+      dest.set_port(pckt_tcp->dst_port());
+      break;
+    }
+    default:
+      return;
+  }
+
+  if (err.is_icmp()) {
+    auto* icmp_err = dynamic_cast<ICMP_error*>(&err);
+
+    if (icmp_err->is_too_big()) {
+      // If Path MTU Discovery is not enabled, ignore the ICMP Datagram Too Big message
+      if (not ip4_.path_mtu_discovery())
+        return;
+
+      too_big = true;
+
+      // We have received a response to a packet with an MTU that is too big for a node in the path,
+      // and the packet has been dropped (the original packet was too big and the Don't Fragment bit was set)
+
+      // Notify every protocol of the received MTU if any of the protocol's connections use the given
+      // path (based on destination address)
+
+      // Also need to notify the instance that sent the packet that the packet has been dropped, so
+      // it can retransmit it
+
+      // A Destination Unreachable: Fragmentation Needed ICMP error message has been received
+      // And we'll notify the IP layer of the received MTU value
+      // IP will create the path if it doesn't exist and only update the value if
+      // the value is smaller than the already registered pmtu for this path/destination
+      // If the received MTU value is zero, the method will use the original packet's Total Length
+      // and Header Length values to estimate a new Path MTU value
+      ip4_.update_path(dest, icmp_err->pmtu(), too_big, pckt_ip4->ip_total_length(), pckt_ip4->ip_header_length());
+
+      // The actual MTU for the path is set in the error object
+      icmp_err->set_pmtu(ip4_.pmtu(dest));
+    }
+  }
+
+  if (too_big) {
+    // Notify both transport layers in case they use the path
+    udp_.error_report(err, dest);
+    tcp_.error_report(err, dest);
+  } else if (pckt_ip4->ip_protocol() == Protocol::UDP) {
+    udp_.error_report(err, dest);
   } else if (pckt_ip4->ip_protocol() == Protocol::TCP) {
-    auto pckt_tcp = static_unique_ptr_cast<tcp::Packet>(std::move(pckt_ip4));
-    tcp_.error_report(err, Socket{pckt_tcp->ip_dst(), pckt_tcp->dst_port()});
+    tcp_.error_report(err, dest);
   }
 }
 

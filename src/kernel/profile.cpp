@@ -20,7 +20,6 @@
 //#include "../platform/x86_pc/pit.hpp"
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
-#include <kernel/irq_manager.hpp>
 #include <kernel/os.hpp>
 #include <util/fixedvec.hpp>
 #include <unordered_map>
@@ -91,7 +90,7 @@ static Sampler& get() {
 void StackSampler::begin()
 {
   // install interrupt handler
-  IRQ_manager::get().set_irq_handler(0, parasite_interrupt_handler);
+  __arch_install_irq(0, parasite_interrupt_handler);
   // start taking samples using PIT interrupts
   get().begin();
 }

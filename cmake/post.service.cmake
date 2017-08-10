@@ -33,7 +33,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
+set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # Compiler optimization
@@ -60,6 +60,20 @@ set(SERVICE_STUB "${INSTALL_LOC}/src/service_name.cpp")
 add_executable(service ${SOURCES} ${SERVICE_STUB})
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 
+#
+# CONFIG.JSON
+#
+
+if (EXISTS ${CMAKE_SOURCE_DIR}/config.json)
+  add_custom_command(
+	   OUTPUT config_json.o
+	   COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 --rename-section .data=.config,CONTENTS,ALLOC,LOAD,READONLY,DATA ${CMAKE_SOURCE_DIR}/config.json config_json.o
+	   DEPENDS ${CMAKE_SOURCE_DIR}/config.json
+   )
+   add_library(config_json STATIC config_json.o)
+   set_target_properties(config_json PROPERTIES LINKER_LANGUAGE CXX)
+   target_link_libraries(service --whole-archive config_json --no-whole-archive)
+endif()
 
 #
 # DRIVERS / PLUGINS - support for parent cmake list specification
@@ -286,7 +300,6 @@ endfunction()
 # automatically build memdisk from folder
 function(build_memdisk FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
-  message(STATUS ${REL_PATH})
   add_custom_command(
       OUTPUT  memdisk.fat
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
@@ -299,6 +312,7 @@ endfunction()
 
 # build memdisk if defined
 if(MEMDISK)
+  message(STATUS "Memdisk folder set: " ${MEMDISK})
   build_memdisk(${MEMDISK})
 endif()
 

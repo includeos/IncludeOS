@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <udp_fd.hpp>
-#include <kernel/irq_manager.hpp>
 #include <kernel/os.hpp> // OS::block()
 
 // return the "currently selected" networking stack

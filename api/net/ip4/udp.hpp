@@ -45,7 +45,7 @@ namespace net {
     using Stack         = IP4::Stack;
 
     typedef delegate<void()> sendto_handler;
-    typedef delegate<void(Error&)> error_handler;
+    typedef delegate<void(const Error&)> error_handler;
 
     // write buffer for sendq
     struct WriteBuffer
@@ -106,7 +106,7 @@ namespace net {
      *  Is called when an Error has occurred in the OS
      *  F.ex.: An ICMP error message has been received in response to a sent UDP datagram
     */
-    void error_report(Error& err, Socket dest);
+    void error_report(const Error& err, Socket dest);
 
     /** Send UDP datagram from source ip/port to destination ip/port.
 
@@ -142,9 +142,8 @@ namespace net {
     // create and transmit @num packets from sendq
     void process_sendq(size_t num);
 
-    uint16_t max_datagram_size() noexcept {
-      return stack().ip_obj().MDDS() - sizeof(header);
-    }
+    uint16_t max_datagram_size() noexcept
+    { return stack().ip_obj().MDDS() - sizeof(header); }
 
     class Port_in_use_exception : public std::exception {
     public:
@@ -191,7 +190,7 @@ namespace net {
     }; //< class Error_entry
 
     /** The error callbacks that the user has sent in via the UDPSockets' sendto and bcast methods */
-    std::unordered_map<Socket, Error_entry, Socket::pair_hash> error_callbacks_;
+    std::unordered_map<Socket, Error_entry> error_callbacks_;
 
     /** Timer that flushes expired error entries/callbacks (no errors have occurred) */
     Timer flush_timer_{{ *this, &UDP::flush_expired }};

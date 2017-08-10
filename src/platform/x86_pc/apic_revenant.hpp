@@ -37,6 +37,8 @@ struct smp_task {
 
 struct smp_stuff
 {
+  uintptr_t stack_base;
+  uintptr_t stack_size;
   minimal_barrier_t boot_barrier;
 
   uint32_t  bmp_storage[1] = {0};

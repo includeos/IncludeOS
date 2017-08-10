@@ -19,9 +19,10 @@
 #include "apic.hpp"
 #include "apic_timer.hpp"
 #include "gdt.hpp"
+#include "idt.hpp"
 #include "pit.hpp"
 #include "smp.hpp"
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <kernel/pci_manager.hpp>
 #include <kernel/os.hpp>
 #include <hw/devices.hpp>
@@ -73,13 +74,21 @@ void __platform_init()
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
 
+  INFO("x86", "Setting up TLS");
   initialize_tls_for_smp();
 
   // enable fs/gs for local APIC
+  INFO("x86", "Setting up GDT, TLS, IST");
   initialize_gdt_for_cpu(APIC::get().get_id());
+#ifdef ARCH_x86_64
+  // setup Interrupt Stack Table
+  x86::ist_initialize_for_cpu(0, 0xA00000);
+#endif
 
   // IDT manager: Interrupt and exception handlers
-  IRQ_manager::init();
+  INFO("x86", "Creating CPU exception handlers");
+  x86::idt_initialize_for_cpu(0);
+  Events::get(0).init_local();
 
   // initialize and start registered APs found in ACPI-tables
 #ifndef INCLUDEOS_SINGLE_THREADED
@@ -88,7 +97,7 @@ void __platform_init()
 
   // enable interrupts
   MYINFO("Enabling interrupts");
-  IRQ_manager::enable_interrupts();
+  asm volatile("sti");
 
   // Estimate CPU frequency
   MYINFO("Estimating CPU-frequency");

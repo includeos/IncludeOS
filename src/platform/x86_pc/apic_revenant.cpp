@@ -2,11 +2,11 @@
 
 #include "apic.hpp"
 #include "apic_timer.hpp"
-#include <kernel/irq_manager.hpp>
+#include "idt.hpp"
+#include <kernel/events.hpp>
 #include <kernel/rng.hpp>
 #include <kprint>
 
-extern "C" int    get_cpu_id();
 extern "C" void*  get_cpu_esp();
 extern "C" void   lapic_exception_handler();
 #define INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
@@ -69,24 +69,33 @@ static void revenant_task_handler()
 
 void revenant_main(int cpu)
 {
+  uintptr_t this_stack = smp_main.stack_base + cpu * smp_main.stack_size;
+  uintptr_t this_stack_end = this_stack - smp_main.stack_size;
   // enable Local APIC
   x86::APIC::get().smp_enable();
   // setup GDT & per-cpu feature
   initialize_gdt_for_cpu(cpu);
+#ifdef ARCH_x86_64
+  // interrupt stack tables
+  ist_initialize_for_cpu(cpu, this_stack);
+#endif
   // show we are online, and verify CPU ID is correct
   SMP::global_lock();
-  INFO2("AP %d started at %p", SMP::cpu_id(), get_cpu_esp());
+  auto stack = (uintptr_t) get_cpu_esp();
+  INFO2("AP %d started at %p", SMP::cpu_id(), this_stack);
   SMP::global_unlock();
   assert(cpu == SMP::cpu_id());
+  assert(stack >= this_stack_end && stack < this_stack);
 
-  IRQ_manager::init();
+  x86::idt_initialize_for_cpu(cpu);
+  Events::get(cpu).init_local();
   // enable interrupts
-  IRQ_manager::enable_interrupts();
+  asm volatile("sti");
   // init timer system
   APIC_Timer::init();
   // subscribe to task and timer interrupts
-  IRQ_manager::get().subscribe(0, revenant_task_handler);
-  IRQ_manager::get().subscribe(1, APIC_Timer::start_timers);
+  Events::get().subscribe(0, revenant_task_handler);
+  Events::get().subscribe(1, APIC_Timer::start_timers);
   // seed RNG
   RNG::init();
 
@@ -98,7 +107,7 @@ void revenant_main(int cpu)
 
   while (true)
   {
-    IRQ_manager::get().process_interrupts();
+    Events::get().process_events();
     asm volatile("hlt");
   }
   __builtin_unreachable();
