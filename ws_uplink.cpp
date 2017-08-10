@@ -18,8 +18,6 @@
 #include "ws_uplink.hpp"
 #include "common.hpp"
 
-#include <memdisk>
-
 #ifndef RAPIDJSON_HAS_STDSTRING
   #define RAPIDJSON_HAS_STDSTRING 1
 #endif
@@ -37,6 +35,7 @@
 #include <hw/pci_device.hpp>
 #include <kernel/cpuid.hpp>
 #include <statman>
+#include <config>
 
 namespace uplink {
 
@@ -264,24 +263,13 @@ namespace uplink {
 
   void WS_uplink::read_config()
   {
-    MYINFO("Reading uplink config from %s", UPLINK_CFG_FILE.c_str());
-    auto& disk = fs::memdisk();
+    MYINFO("Reading uplink config");
 
-    if (not disk.fs_ready())
-    {
-      disk.init_fs([] (auto err, auto&) {
-        Expects(not err && "Error occured when mounting FS.");
-      });
-    }
+    const auto& cfg = ::Config::get();
 
-    auto cfg = disk.fs().stat(UPLINK_CFG_FILE); // name hardcoded for now
+    Expects(not cfg.empty() && "Config is empty");
 
-    Expects(cfg.is_file() && "File not found.");
-    Expects(cfg.size() && "File is empty.");
-
-    auto content = cfg.read();
-
-    parse_config(content);
+    parse_config({cfg.data(), cfg.size()});
   }
 
   void WS_uplink::parse_config(const std::string& json)
