@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,30 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef NET_TCP_READ_REQUEST_HPP
-#define NET_TCP_READ_REQUEST_HPP
+#include <util/config.hpp>
 
-#include "read_buffer.hpp"
-#include <delegate>
+extern char _CONFIG_JSON_START_;
+extern char _CONFIG_JSON_END_;
 
-namespace net {
-namespace tcp {
-
-struct ReadRequest {
-  using ReadCallback = delegate<void(buffer_t, size_t)>;
-
-  Read_buffer buffer;
-  ReadCallback callback;
-
-  ReadRequest(const size_t n, const seq_t seq, ReadCallback cb)
-    : buffer{n, seq},
-      callback{cb}
-  {}
-
-};
-
-} // < namespace tcp
-} // < namespace net
-
-#endif // < NET_TCP_READ_REQUEST_HPP
+const Config& Config::get() noexcept
+{
+  static Config config{&_CONFIG_JSON_START_, &_CONFIG_JSON_END_};
+  return config;
+}

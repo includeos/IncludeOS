@@ -68,8 +68,11 @@ public:
         return ent.second == socket;
       });
 
-    tcp_ports.unbind(it->first);
-    tcp_trans.erase(it);
+    if(it != tcp_trans.end())
+    {
+      tcp_ports.unbind(it->first);
+      tcp_trans.erase(it);
+    }
   }
 
   void conn_close(const tcp::Connection_tracker::Tuple& tuple)

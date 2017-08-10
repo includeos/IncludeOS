@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,29 +16,16 @@
 // limitations under the License.
 
 #pragma once
-#ifndef NET_TCP_READ_REQUEST_HPP
-#define NET_TCP_READ_REQUEST_HPP
+#ifndef UTIL_AUTOCONF_HPP
+#define UTIL_AUTOCONF_HPP
 
-#include "read_buffer.hpp"
-#include <delegate>
+struct autoconf {
 
-namespace net {
-namespace tcp {
-
-struct ReadRequest {
-  using ReadCallback = delegate<void(buffer_t, size_t)>;
-
-  Read_buffer buffer;
-  ReadCallback callback;
-
-  ReadRequest(const size_t n, const seq_t seq, ReadCallback cb)
-    : buffer{n, seq},
-      callback{cb}
-  {}
+  /**
+   * @brief      Run automatic configuration of the OS based on the built in config.
+   */
+  static void run();
 
 };
 
-} // < namespace tcp
-} // < namespace net
-
-#endif // < NET_TCP_READ_REQUEST_HPP
+#endif

@@ -1,0 +1,8 @@
+// -*-C++-*-
+#pragma once
+#ifndef API_AUTOCONF_HEADER
+#define API_AUTOCONF_HEADER
+
+#include "util/autoconf.hpp"
+
+#endif

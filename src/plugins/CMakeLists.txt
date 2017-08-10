@@ -13,5 +13,7 @@ add_dependencies(unik PrecompiledLibraries)
 add_library(example STATIC example.cpp)
 add_dependencies(example PrecompiledLibraries)
 
+add_library(autoconf STATIC autoconf.cpp)
+add_dependencies(autoconf PrecompiledLibraries)
 
-install(TARGETS syslogd unik example DESTINATION includeos/${ARCH}/plugins)
+install(TARGETS syslogd unik example autoconf DESTINATION includeos/${ARCH}/plugins)
