@@ -113,7 +113,7 @@ namespace net {
     static constexpr uint16_t DYNAMIC_END   {65535};
 
     static constexpr bool is_dynamic(const uint16_t port) noexcept
-    { return port > USER_END; }
+    { return port >= DYNAMIC_START; }
   }
 
   /**
