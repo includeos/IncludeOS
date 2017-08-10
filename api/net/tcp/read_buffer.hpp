@@ -123,6 +123,15 @@ public:
    */
   void renew(const seq_t seq);
 
+  /**
+   * @brief      Sets the starting sequence number.
+   *             Should not be messed with.
+   *
+   * @param[in]  seq   The sequence number
+   */
+  void set_start(const seq_t seq)
+  { start = seq; }
+
 
   int deserialize_from(void*);
   int serialize_to(void*) const;

@@ -838,6 +838,17 @@ void Connection::start_dack()
   timewait_dack_timer.start(host_.DACK_timeout());
 }
 
+void Connection::signal_connect(const bool success)
+{
+  // if on read was set before we got a seq number,
+  // update the starting sequence number for the read buffer
+  if(read_request and success)
+    read_request->buffer.set_start(cb.RCV.NXT);
+
+  if(on_connect_)
+    (success) ? on_connect_(retrieve_shared()) : on_connect_(nullptr);
+}
+
 void Connection::signal_close() {
   debug("<Connection::signal_close> It's time to delete this connection. \n");
 

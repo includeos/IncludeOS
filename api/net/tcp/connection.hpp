@@ -976,11 +976,7 @@ private:
   /*
     Invoke/signal the diffrent TCP events.
   */
-  void signal_connect(const bool success = true)
-  {
-    if(on_connect_)
-      (success) ? on_connect_(retrieve_shared()) : on_connect_(nullptr);
-  }
+  void signal_connect(const bool success = true);
 
   void signal_disconnect(Disconnect::Reason&& reason)
   { on_disconnect_(retrieve_shared(), Disconnect{reason}); }
