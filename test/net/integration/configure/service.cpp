@@ -16,8 +16,9 @@
 // limitations under the License.
 
 #include <service>
-#include <net/autoconf.hpp>
+#include <net/configure.hpp>
 #include <net/super_stack.hpp>
+#include <config>
 
 void Service::start()
 {
@@ -26,7 +27,12 @@ void Service::start()
   auto& stacks = Super_stack::inet().ip4_stacks();
   CHECKSERT(stacks.size() == 5, "There is 5 interfaces");
 
-  net::autoconf::load();
+  const auto& cfg = Config::get();
+  using namespace rapidjson;
+  Document doc;
+  doc.Parse(cfg.data());
+
+  net::configure(doc["net"]);
 
   INFO("Test", "Verify eth0");
   CHECKSERT(stacks[0] != nullptr, "eth0 is initialized");

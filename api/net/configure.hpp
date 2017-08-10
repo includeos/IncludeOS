@@ -27,52 +27,23 @@
   #define RAPIDJSON_THROWPARSEEXCEPTION 1
 #endif
 
-#include <string>
 #include <rapidjson/document.h>
 
 namespace net {
 
-/**
- * @brief      Automatically configures network interfaces from a config.
- *
- * Example for configuring interface 0 and 1:
- * {
- *   "net": [
- *      ["10.0.0.42", "255.255.255.0", "10.0.0.1"],
- *      "dhcp"
- *   ]
- * }
- */
-struct autoconf
-{
-  const static std::string DEFAULT_CFG; // config.json
-
   /**
-   * @brief      Try to load the default config from memdisk.
-   */
-  static void load();
-
-  /**
-   * @brief      Try to load a config with a specific name/path from memdisk.
+   * @brief      Configure interfaces according the json array "net".
    *
-   * @param[in]  file  The config file to load
-   */
-  static void load(const std::string& file);
-
-  /**
-   * @brief      Configure interfaces according to the JSON.
+   * @details    Example for configuring interface 0 and 1:
    *
-   * @param[in]  json  JSON representing the config
-   */
-  static void configure(const std::string& json);
-
-  /**
-   * @brief      Configure interfaces according the json object "net".
+   *             "net": [
+   *                ["10.0.0.42", "255.255.255.0", "10.0.0.1"],
+   *                 "dhcp"
+   *             ]
    *
    * @param[in]  net   A rapidjson value of the member "net"
    */
-  static void configure(const rapidjson::Value& net);
-};
+  void configure(const rapidjson::Value& net);
 
 }
 

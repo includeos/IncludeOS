@@ -1,3 +1,3 @@
-# Autoconf Test
+# Configure Test
 
-Verifies that `disk/config.json` is getting correctly parsed.
+Verifies that the network config in `config.json` is getting correctly parsed.

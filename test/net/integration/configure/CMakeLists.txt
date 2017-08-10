@@ -7,13 +7,13 @@ endif()
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
-project (test_autoconf)
+project (test_net_configure)
 
 # Human-readable name of your service
-set(SERVICE_NAME "Autoconf Test Service")
+set(SERVICE_NAME "Network Configure Test Service")
 
 # Name of your service binary
-set(BINARY       "test_autoconf")
+set(BINARY       "test_net_configure")
 
 # Maximum memory can be hard-coded into the binary
 set(MAX_MEM 128)
