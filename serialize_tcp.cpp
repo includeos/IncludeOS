@@ -47,14 +47,14 @@ int8_t serialized_tcp::to_state(Connection::State* state) const
 
 struct read_buffer
 {
-  size_t remaining;
-  size_t offset;
+  uint32_t  seq;
+  size_t    cap = 0;
+  int32_t   head;
+  int32_t   hole;
+  bool      push;
 
   size_t size() const noexcept {
-    return offset;
-  }
-  size_t cap() const noexcept {
-    return remaining + offset;
+    return head;
   }
 
   char vla[0];
@@ -104,8 +104,27 @@ int Write_queue::deserialize_from(void* addr)
   }
   return sizeof(serialized_writeq) + len;
 }
+
+int Read_buffer::deserialize_from(void* addr)
+{
+  const auto& readq = *reinterpret_cast<read_buffer*>(addr);
+
+  // start (seq) and cap is already set in the construction of the Read_buffer
+  this->head      = readq.head;
+  this->hole      = readq.hole;
+  this->push_seen = readq.push;
+
+  if(readq.size() > 0)
+    std::copy(readq.vla, readq.vla + readq.size(), this->buffer().get());
+
+  return sizeof(read_buffer) + readq.size();
+}
+
 void Connection::deserialize_from(void* addr)
 {
+  if(this->VERSION != serialized_tcp::VERSION)
+    throw std::runtime_error{"TCP Serialization version mismatch"};
+
   auto* area = (serialized_tcp*) addr;
 
   /// restore TCP stuff
@@ -139,12 +158,10 @@ void Connection::deserialize_from(void* addr)
 
   /// restore read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
-  assert(readq->cap() > 0);
-  read_request = ReadRequest(readq->cap());
-  read_request.buffer.offset    = readq->offset;
-  read_request.buffer.remaining = readq->remaining;
-  if (readq->size() > 0) {
-    memcpy(read_request.buffer.buffer.get(), readq->vla, readq->size());
+  if(readq->cap)
+  {
+    read_request = std::make_unique<ReadRequest>(readq->cap, readq->seq, nullptr);
+    read_request->buffer.deserialize_from(readq);
   }
 
   if (area->rtx_is_running) {
@@ -189,8 +206,26 @@ int  Write_queue::serialize_to(void* addr) const
   return sizeof(serialized_writeq) + len;
 }
 
+int Read_buffer::serialize_to(void* addr) const
+{
+  auto& readbuf = *reinterpret_cast<read_buffer*>(addr);
+
+  readbuf.cap   = this->cap;
+  readbuf.seq   = this->start;
+  readbuf.head  = this->head;
+  readbuf.hole  = this->hole;
+  readbuf.push  = this->push_seen;
+
+  std::copy(this->buf.get(), this->buf.get() + this->size(), readbuf.vla);
+
+  return sizeof(read_buffer) + this->size();
+}
+
 int Connection::serialize_to(void* addr) const
 {
+  if(this->VERSION != serialized_tcp::VERSION)
+    throw std::runtime_error{"TCP Serialization version mismatch"};
+
   auto* area = (serialized_tcp*) addr;
 
   /// serialize TCP stuff
@@ -221,10 +256,7 @@ int Connection::serialize_to(void* addr) const
 
   /// serialize read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
-  readq->remaining = read_request.buffer.remaining;
-  readq->offset    = read_request.buffer.offset;
-  memcpy(readq->vla, read_request.buffer.buffer.get(), readq->size());
-  int readq_len = sizeof(read_buffer) + readq->size();
+  int readq_len = (read_request) ? read_request->buffer.serialize_to(readq) : sizeof(read_buffer);
 
   //printf("READ: %u  SEND: %u  REMAIN: %u  STATE: %s\n",
   //    readq_size(), sendq_size(), sendq_remaining(), cb.to_string().c_str());
