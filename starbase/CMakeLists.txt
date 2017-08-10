@@ -10,7 +10,7 @@ include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
 
 # Name of your project
-project (seed)
+project (starbase)
 
 # Human-readable name of your service
 set(SERVICE_NAME "IncludeOS Starbase")
@@ -39,16 +39,13 @@ set(SOURCES
 # DRIVERS / PLUGINS:
 
 set(DRIVERS
-  virtionet   # Virtio networking
+  virtionet
   vmxnet3
-  # virtioblock # Virtio block device
-  # ... Others from IncludeOS/src/drivers
   )
 
 set(PLUGINS
-  # syslogd    # Syslog over UDP
-  # ...others
   uplink
+  autoconf
   )
 
 # THIRD PARTY LIBRARIES:

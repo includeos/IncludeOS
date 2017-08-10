@@ -17,8 +17,6 @@
 
 #include "ws_uplink.hpp"
 #include "common.hpp"
-
-#include <net/autoconf.hpp>
 #include <os>
 
 namespace uplink {
@@ -37,8 +35,6 @@ void setup_uplink()
   MYINFO("Setting up WS uplink");
 
   try {
-    net::autoconf::load();
-
     auto& en0 = net::Super_stack::get<net::IP4>(0);
 
     uplink = std::make_unique<WS_uplink>(en0);
