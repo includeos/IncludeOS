@@ -38,6 +38,7 @@ public:
   {
     std::string url;
     std::string token;
+    bool        reboot = true;
   };
 
   WS_uplink(net::Inet<net::IP4>&);
