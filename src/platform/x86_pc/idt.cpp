@@ -17,7 +17,7 @@ extern "C" {
 namespace x86
 {
 typedef void (*intr_handler_t)();
-typedef void (*except_handler_t)(void**, uint32_t);
+typedef void (*except_handler_t)();
 
 struct x86_IDT
 {
@@ -33,159 +33,6 @@ static std::array<x86_IDT, SMP_MAX_CORES> idt;
 
 void idt_initialize_for_cpu(int cpu) {
   idt.at(cpu).init();
-}
-
-/// CPU EXCEPTIONS ///
-
-static const char* exception_names[] =
-{
-  "Divide-by-zero Error",
-  "Debug",
-  "Non-maskable Interrupt",
-  "Breakpoint",
-  "Overflow",
-  "Bound Range Exceeded",
-  "Invalid Opcode",
-  "Device Not Available",
-  "Double Fault",
-  "Reserved",
-  "Invalid TSS",
-  "Segment Not Present",
-  "Stack-Segment Fault",
-  "General Protection Fault",
-  "Page Fault",
-  "Reserved",
-  "x87 Floating-point Exception",
-  "Alignment Check",
-  "Machine Check",
-  "SIMD Floating-point Exception",
-  "Virtualization Exception",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Security Exception",
-  "Reserved"
-};
-
-// Only certain exceptions have error codes
-template <int NR>
-typename std::enable_if<((NR >= 8 and NR <= 15) or NR == 17 or NR == 30)>::type
-print_error_code(uint32_t err){
-  kprintf("Error code: 0x%x \n", err);
-}
-
-// Default: no error code
-template <int NR>
-typename std::enable_if<((NR < 8 or NR > 15) and NR != 17 and NR != 30)>::type
-print_error_code(uint32_t){}
-
-inline void cpu_dump_regs()
-{
-#if defined(ARCH_x86_64)
-  // CPU registers
-  uintptr_t regs[24];
-  asm ("movq %%rax, %0" : "=a" (regs[0]));
-  asm ("movq %%rbx, %0" : "=b" (regs[1]));
-  asm ("movq %%rcx, %0" : "=c" (regs[2]));
-  asm ("movq %%rdx, %0" : "=d" (regs[3]));
-  asm ("movq %%rbp, %0" : "=a" (regs[4]));
-
-  asm ("movq %%r8, %0"  : "=a" (regs[5]));
-  asm ("movq %%r9, %0"  : "=b" (regs[6]));
-  asm ("movq %%r10, %0" : "=c" (regs[7]));
-  asm ("movq %%r11, %0" : "=d" (regs[8]));
-  asm ("movq %%r12, %0" : "=a" (regs[9]));
-  asm ("movq %%r13, %0" : "=b" (regs[10]));
-  asm ("movq %%r14, %0" : "=c" (regs[11]));
-  asm ("movq %%r15, %0" : "=d" (regs[12]));
-
-  asm ("movq %%rsp, %0" : "=a" (regs[13]));
-  asm ("movq %%rsi, %0" : "=b" (regs[14]));
-  asm ("movq %%rdi, %0" : "=c" (regs[15]));
-  asm ("leaq (%%rip), %0" : "=d" (regs[16]));
-
-  asm ("pushf; popq %0" : "=a" (regs[17]));
-  asm ("movq %%cr0, %0" : "=b" (regs[18]));
-  regs[19] = 0;
-  asm ("movq %%cr2, %0" : "=c" (regs[20]));
-  asm ("movq %%cr3, %0" : "=d" (regs[21]));
-  asm ("movq %%cr4, %0" : "=a" (regs[22]));
-  asm ("movq %%cr8, %0" : "=b" (regs[23]));
-
-  struct desc_table_t {
-    uint16_t  limit;
-    uintptr_t location;
-  } __attribute__((packed))  gdt, idt;
-  asm ("sgdtq %0" : : "m" (* &gdt));
-  asm ("sidtq %0" : : "m" (* &idt));
-
-  fprintf(stderr, "\n");
-  printf("  RAX:  %016lx  R 8:  %016lx\n", regs[0], regs[5]);
-  printf("  RBX:  %016lx  R 9:  %016lx\n", regs[1], regs[6]);
-  printf("  RCX:  %016lx  R10:  %016lx\n", regs[2], regs[7]);
-  printf("  RDX:  %016lx  R11:  %016lx\n", regs[3], regs[8]);
-  fprintf(stderr, "\n");
-
-  printf("  RBP:  %016lx  R12:  %016lx\n", regs[4], regs[9]);
-  printf("  RSP:  %016lx  R13:  %016lx\n", regs[13], regs[10]);
-  printf("  RSI:  %016lx  R14:  %016lx\n", regs[14], regs[11]);
-  printf("  RDI:  %016lx  R15:  %016lx\n", regs[15], regs[12]);
-  printf("  RIP:  %016lx  FLA:  %016lx\n", regs[16], regs[17]);
-  fprintf(stderr, "\n");
-
-  printf("  CR0:  %016lx  CR4:  %016lx\n", regs[18], regs[22]);
-  printf("  CR1:  %016lx  CR8:  %016lx\n", regs[19], regs[23]);
-  printf("  CR2:  %016lx  GDT:  %016lx (%u)\n", regs[20], gdt.location, gdt.limit);
-  printf("  CR3:  %016lx  IDT:  %016lx (%u)\n", regs[21], idt.location, idt.limit);
-
-#elif defined(ARCH_i686)
-  // CPU registers
-  uintptr_t regs[16];
-  asm ("movl %%eax, %0" : "=a" (regs[0]));
-  asm ("movl %%ebx, %0" : "=b" (regs[1]));
-  asm ("movl %%ecx, %0" : "=c" (regs[2]));
-  asm ("movl %%edx, %0" : "=d" (regs[3]));
-
-  asm ("movl %%ebp, %0" : "=r" (regs[4]));
-  asm ("movl %%esp, %0" : "=r" (regs[5]));
-  asm ("movl %%esi, %0" : "=r" (regs[6]));
-  asm ("movl %%edi, %0" : "=r" (regs[7]));
-
-  asm ("movl (%%esp), %0" : "=r" (regs[8]));
-  asm ("pushf; popl %0" : "=r" (regs[9]));
-
-  fprintf(stderr, "\n");
-  printf("  EAX:  %08x  EBP:  %08x\n", regs[0], regs[4]);
-  printf("  EBX:  %08x  ESP:  %08x\n", regs[1], regs[5]);
-  printf("  ECX:  %08x  ESI:  %08x\n", regs[2], regs[6]);
-  printf("  EDX:  %08x  EDI:  %08x\n", regs[3], regs[7]);
-  printf("  EIP:  %08x  EFL:  %08x\n", regs[8], regs[9]);
-
-#else
-  #error "Unknown architecture"
-#endif
-  fprintf(stderr, "\n");
-}
-
-template <int NR>
-void cpu_exception(void** eip, uint32_t error)
-{
-  SMP::global_lock();
-  cpu_dump_regs();
-  kprintf("\n>>>> !!! CPU %u EXCEPTION !!! <<<<\n", SMP::cpu_id());
-  kprintf("    %s (%d)   EIP  %p\n", exception_names[NR], NR, eip);
-  print_error_code<NR>(error);
-  SMP::global_unlock();
-  // call panic, which will decide what to do next
-  char buffer[64];
-  snprintf(buffer, sizeof(buffer), "%s (%d)", exception_names[NR], NR);
-  panic(buffer);
 }
 
 // A union to be able to extract the lower and upper part of an address
@@ -242,30 +89,55 @@ void x86_IDT::set_exception_handler(uint8_t vec, except_handler_t func) {
   set_intr_entry(&entry[vec], (intr_handler_t) func, 2, RING0_CODE_SEG, 0x8e);
 }
 
+extern "C" {
+  void __cpu_except_0();
+  void __cpu_except_1();
+  void __cpu_except_2();
+  void __cpu_except_3();
+  void __cpu_except_4();
+  void __cpu_except_5();
+  void __cpu_except_6();
+  void __cpu_except_7();
+  void __cpu_except_8();
+  void __cpu_except_9();
+  void __cpu_except_10();
+  void __cpu_except_11();
+  void __cpu_except_12();
+  void __cpu_except_13();
+  void __cpu_except_14();
+  void __cpu_except_15();
+  void __cpu_except_16();
+  void __cpu_except_17();
+  void __cpu_except_18();
+  void __cpu_except_19();
+  void __cpu_except_20();
+  void __cpu_except_30();
+}
+
 void x86_IDT::init()
 {
-  set_exception_handler(0, cpu_exception<0>);
-  set_exception_handler(1, cpu_exception<1>);
-  set_exception_handler(2, cpu_exception<2>);
-  set_exception_handler(3, cpu_exception<3>);
-  set_exception_handler(4, cpu_exception<4>);
-  set_exception_handler(5, cpu_exception<5>);
-  set_exception_handler(6, cpu_exception<6>);
-  set_exception_handler(7, cpu_exception<7>);
-  set_exception_handler(8, cpu_exception<8>);
-  set_exception_handler(9, cpu_exception<9>);
-  set_exception_handler(10, cpu_exception<10>);
-  set_exception_handler(11, cpu_exception<11>);
-  set_exception_handler(12, cpu_exception<12>);
-  set_exception_handler(13, cpu_exception<13>);
-  set_exception_handler(14, cpu_exception<14>);
-  set_exception_handler(15, cpu_exception<15>);
-  set_exception_handler(16, cpu_exception<16>);
-  set_exception_handler(17, cpu_exception<17>);
-  set_exception_handler(18, cpu_exception<18>);
-  set_exception_handler(19, cpu_exception<19>);
-  set_exception_handler(20, cpu_exception<20>);
-  set_exception_handler(30, cpu_exception<30>);
+  set_exception_handler(0, __cpu_except_0);
+  set_exception_handler(1, __cpu_except_1);
+  set_exception_handler(2, __cpu_except_2);
+  set_exception_handler(3, __cpu_except_3);
+  set_exception_handler(4, __cpu_except_4);
+  set_exception_handler(5, __cpu_except_5);
+  set_exception_handler(6, __cpu_except_6);
+  set_exception_handler(7, __cpu_except_7);
+  set_exception_handler(8, __cpu_except_8);
+  set_exception_handler(9, __cpu_except_9);
+  set_exception_handler(10, __cpu_except_10);
+  set_exception_handler(11, __cpu_except_11);
+  set_exception_handler(12, __cpu_except_12);
+  set_exception_handler(13, __cpu_except_13);
+  set_exception_handler(14, __cpu_except_14);
+  set_exception_handler(15, __cpu_except_15);
+  set_exception_handler(16, __cpu_except_16);
+  set_exception_handler(17, __cpu_except_17);
+  set_exception_handler(18, __cpu_except_18);
+  set_exception_handler(19, __cpu_except_19);
+  set_exception_handler(20, __cpu_except_20);
+  set_exception_handler(30, __cpu_except_30);
 
   for (size_t i = 32; i < INTR_LINES - 1; i++) {
     set_handler(i, unused_interrupt_handler);
@@ -296,4 +168,106 @@ void __arch_unsubscribe_irq(uint8_t irq)
 {
   assert(irq < IRQ_LINES);
   PER_CPU(x86::idt).set_handler(IRQ_BASE + irq, unused_interrupt_handler);
+}
+
+/// CPU EXCEPTIONS ///
+
+static const char* exception_names[] =
+{
+  "Divide-by-zero Error",
+  "Debug",
+  "Non-maskable Interrupt",
+  "Breakpoint",
+  "Overflow",
+  "Bound Range Exceeded",
+  "Invalid Opcode",
+  "Device Not Available",
+  "Double Fault",
+  "Reserved",
+  "Invalid TSS",
+  "Segment Not Present",
+  "Stack-Segment Fault",
+  "General Protection Fault",
+  "Page Fault",
+  "Reserved",
+  "x87 Floating-point Exception",
+  "Alignment Check",
+  "Machine Check",
+  "SIMD Floating-point Exception",
+  "Virtualization Exception",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Security Exception",
+  "Reserved"
+};
+
+static void cpu_dump_regs(uintptr_t* regs)
+{
+#if defined(ARCH_x86_64)
+# define RIP_REG 16
+  // AMD64 CPU registers
+  struct desc_table_t {
+    uint16_t  limit;
+    uintptr_t location;
+  } __attribute__((packed))  gdt, idt;
+  asm ("sgdtq %0" : : "m" (* &gdt));
+  asm ("sidtq %0" : : "m" (* &idt));
+
+  fprintf(stderr, "\n");
+  printf("  RAX:  %016lx  R 8:  %016lx\n", regs[0], regs[5]);
+  printf("  RBX:  %016lx  R 9:  %016lx\n", regs[1], regs[6]);
+  printf("  RCX:  %016lx  R10:  %016lx\n", regs[2], regs[7]);
+  printf("  RDX:  %016lx  R11:  %016lx\n", regs[3], regs[8]);
+  fprintf(stderr, "\n");
+
+  printf("  RBP:  %016lx  R12:  %016lx\n", regs[4], regs[9]);
+  printf("  RSP:  %016lx  R13:  %016lx\n", regs[13], regs[10]);
+  printf("  RSI:  %016lx  R14:  %016lx\n", regs[14], regs[11]);
+  printf("  RDI:  %016lx  R15:  %016lx\n", regs[15], regs[12]);
+  printf("  RIP:  %016lx  FLA:  %016lx\n", regs[16], regs[17]);
+  fprintf(stderr, "\n");
+
+  printf("  CR0:  %016lx  CR4:  %016lx\n", regs[18], regs[22]);
+  printf("  CR1:  %016lx  CR8:  %016lx\n", regs[19], regs[23]);
+  printf("  CR2:  %016lx  GDT:  %016lx (%u)\n", regs[20], gdt.location, gdt.limit);
+  printf("  CR3:  %016lx  IDT:  %016lx (%u)\n", regs[21], idt.location, idt.limit);
+
+#elif defined(ARCH_i686)
+# define RIP_REG 8
+  // i386 CPU registers
+  fprintf(stderr, "\n");
+  printf("  EAX:  %08x  EBP:  %08x\n", regs[0], regs[4]);
+  printf("  EBX:  %08x  ESP:  %08x\n", regs[1], regs[5]);
+  printf("  ECX:  %08x  ESI:  %08x\n", regs[2], regs[6]);
+  printf("  EDX:  %08x  EDI:  %08x\n", regs[3], regs[7]);
+
+  fprintf(stderr, "\n");
+  printf("  EIP:  %08x  EFL:  %08x\n", regs[8], regs[9]);
+
+#else
+  #error "Unknown architecture"
+#endif
+  fprintf(stderr, "\n");
+}
+
+extern "C"
+void cpu_exception(uintptr_t* regs, int error, uint32_t code)
+{
+  SMP::global_lock();
+  kprintf("\n>>>> !!! CPU %u EXCEPTION !!! <<<<\n", SMP::cpu_id());
+  kprintf("    %s (%d)   EIP  %p   CODE %#x\n",
+          exception_names[error], error, (void*) regs[RIP_REG], code);
+  cpu_dump_regs(regs);
+  SMP::global_unlock();
+  // call panic, which will decide what to do next
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "%s (%d)", exception_names[error], error);
+  panic(buffer);
 }

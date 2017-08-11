@@ -6,6 +6,7 @@ set(ARCH_OBJECTS
   profile_intr.asm
   apic_asm.asm
   arch_start.asm
+  exceptions.asm
   interrupts.asm
 )
 
