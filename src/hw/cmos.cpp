@@ -1,5 +1,6 @@
 #include <hw/cmos.hpp>
 #include <statman>
+#include "../platform/x86_pc/acpi.hpp"
 
 using namespace hw;
 uint8_t   CMOS::reg_b_value = 0;
@@ -18,6 +19,7 @@ void CMOS::init()
 CMOS::Time& CMOS::Time::hw_update() {
   // We're supposed to check this before every read
   while (update_in_progress());
+  const reg_t r_cent = x86::ACPI::get().cmos_century();
 
   if (CMOS::mode_binary()) {
     f.second = get(r_sec);
@@ -36,7 +38,7 @@ CMOS::Time& CMOS::Time::hw_update() {
     f.day_of_month = bcd_to_binary(get(r_day));
     f.month = bcd_to_binary(get(r_month));
     f.year =  bcd_to_binary(get(r_year));
-    f.century = get(r_cent);
+    f.century = bcd_to_binary(get(r_cent));
   }
 
   // Convert to 24-hour clock if necessary
@@ -51,7 +53,7 @@ CMOS::Time& CMOS::Time::hw_update() {
 std::string CMOS::Time::to_string(){
   std::array<char,20> str;
   sprintf(str.data(), "%.2i-%.2i-%iT%.2i:%.2i:%.2iZ",
-          (f.century + 20) * 100 + f.year,
+          f.century * 100 + f.year,
           f.month,
           f.day_of_month,
           f.hour, f.minute, f.second);
