@@ -57,5 +57,3 @@ set(LIBRARIES
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-
-diskbuilder(disk)

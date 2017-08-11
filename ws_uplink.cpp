@@ -49,9 +49,12 @@ namespace uplink {
 
     // This is not totally safe...
     LIVEUPD_LOCATION = (void*) (OS::heap_max() - 0x2000000); // 32MB below heap_max
-    MYINFO("Maximum heap at (%p), assigning liveupdate location 32MB below (%p)", (void*)OS::heap_max(), LIVEUPD_LOCATION);
+    MYINFO("Maximum heap at (%p), assigning liveupdate location 32MB below (%p)",
+      (void*)OS::heap_max(), LIVEUPD_LOCATION);
 
     read_config();
+
+    CHECK(config_.reboot, "Reboot on panic");
 
     if(inet_.is_configured())
     {
@@ -289,6 +292,12 @@ namespace uplink {
     config_.url   = cfg["url"].GetString();
     config_.token = cfg["token"].GetString();
 
+    // Reboot on panic (optional)
+    if(cfg.HasMember("reboot"))
+    {
+      config_.reboot = cfg["reboot"].GetBool();
+    }
+
   }
 
   template <typename Writer, typename Stack_ptr>
@@ -457,7 +466,8 @@ namespace uplink {
     send_message(Transport_code::PANIC, why, strlen(why));
     ws_->close();
     inet_.nic().flush();
-    OS::reboot();
+
+    if(config_.reboot) OS::reboot();
   }
 
   void WS_uplink::send_stats()
