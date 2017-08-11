@@ -30,7 +30,7 @@ CMOS::Time& CMOS::Time::hw_update() {
     f.day_of_month = get(r_day);
     f.month = get(r_month);
     f.year =  get(r_year);
-    century = get(r_cent);
+    if (r_cent) century = get(r_cent);
   } else {
     f.second = bcd_to_binary(get(r_sec));
     f.minute = bcd_to_binary(get(r_min));
@@ -39,12 +39,12 @@ CMOS::Time& CMOS::Time::hw_update() {
     f.day_of_month = bcd_to_binary(get(r_day));
     f.month = bcd_to_binary(get(r_month));
     f.year =  bcd_to_binary(get(r_year));
-    century = bcd_to_binary(get(r_cent));
+    if (r_cent) century = bcd_to_binary(get(r_cent));
   }
 
   // Insanity
   #define CURRENT_YEAR  2017  // Change this each year!
-  if (century != 0) {
+  if (r_cent != 0) {
     f.year += century * 100;
   } else {
     f.year += (CURRENT_YEAR / 100) * 100;
