@@ -45,7 +45,7 @@ namespace hw
     static const reg_t r_day = 0x7;
     static const reg_t r_month = 0x8;
     static const reg_t r_year = 0x9;
-    static const reg_t r_cent = 0x48;
+    //static const reg_t r_cent = 0x48;
 
     // RTC Alarm registers
     static const reg_t r_alarm_sec = 0x1;
@@ -153,8 +153,7 @@ namespace hw
        * (For initialization. Recommended practice by CG I.24)
        **/
       struct Fields {
-        uint8_t century = 0;
-        uint8_t year = 0;
+        int     year = 0;
         uint8_t month = 0;
         uint8_t day_of_month = 0;
         uint8_t day_of_week = 0;
@@ -163,8 +162,7 @@ namespace hw
         uint8_t second = 0;
       };
 
-      uint8_t century() { return f.century; }
-      uint16_t year() { return (f.century + 20) * 100 + f.year; }
+      uint16_t year() { return f.year; }
       uint8_t month() { return f.month; }
       uint8_t day_of_month() { return f.day_of_month; }
       uint8_t day_of_week() { return f.day_of_week; }
