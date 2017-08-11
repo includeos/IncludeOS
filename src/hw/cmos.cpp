@@ -20,6 +20,7 @@ CMOS::Time& CMOS::Time::hw_update() {
   // We're supposed to check this before every read
   while (update_in_progress());
   const reg_t r_cent = x86::ACPI::get().cmos_century();
+  int century = 0;
 
   if (CMOS::mode_binary()) {
     f.second = get(r_sec);
@@ -29,7 +30,7 @@ CMOS::Time& CMOS::Time::hw_update() {
     f.day_of_month = get(r_day);
     f.month = get(r_month);
     f.year =  get(r_year);
-    f.century = get(r_cent);
+    century = get(r_cent);
   } else {
     f.second = bcd_to_binary(get(r_sec));
     f.minute = bcd_to_binary(get(r_min));
@@ -38,7 +39,16 @@ CMOS::Time& CMOS::Time::hw_update() {
     f.day_of_month = bcd_to_binary(get(r_day));
     f.month = bcd_to_binary(get(r_month));
     f.year =  bcd_to_binary(get(r_year));
-    f.century = bcd_to_binary(get(r_cent));
+    century = bcd_to_binary(get(r_cent));
+  }
+
+  // Insanity
+  #define CURRENT_YEAR  2017  // Change this each year!
+  if (century != 0) {
+    f.year += century * 100;
+  } else {
+    f.year += (CURRENT_YEAR / 100) * 100;
+    if (f.year < CURRENT_YEAR) f.year += 100;
   }
 
   // Convert to 24-hour clock if necessary
@@ -53,9 +63,7 @@ CMOS::Time& CMOS::Time::hw_update() {
 std::string CMOS::Time::to_string(){
   std::array<char,20> str;
   sprintf(str.data(), "%.2i-%.2i-%iT%.2i:%.2i:%.2iZ",
-          f.century * 100 + f.year,
-          f.month,
-          f.day_of_month,
+          f.year, f.month, f.day_of_month,
           f.hour, f.minute, f.second);
   return std::string(str.data(), str.size());
 }
