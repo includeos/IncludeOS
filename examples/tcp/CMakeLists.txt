@@ -34,7 +34,6 @@ set(SOURCES
 # DRIVERS / PLUGINS:
 
 set(DRIVERS
-  silent_start
   virtionet   # Virtio networking
   # ... Others from IncludeOS/src/drivers
   )

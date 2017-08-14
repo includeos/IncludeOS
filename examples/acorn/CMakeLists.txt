@@ -15,9 +15,6 @@ set(SERVICE_NAME "Acorn Web Appliance")
 # Name of your service binary
 set(BINARY       "acorn")
 
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp fs/acorn_fs.cpp
