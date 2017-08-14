@@ -73,6 +73,7 @@ if (EXISTS ${CMAKE_SOURCE_DIR}/config.json)
    add_library(config_json STATIC config_json.o)
    set_target_properties(config_json PROPERTIES LINKER_LANGUAGE CXX)
    target_link_libraries(service --whole-archive config_json --no-whole-archive)
+   set(PLUGINS ${PLUGINS} autoconf)
 endif()
 
 #

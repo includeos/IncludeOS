@@ -15,17 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <kernel/syscalls.hpp>
+
 #include <fcntl.h> // open()
 #include <string.h>
 #include <signal.h>
-
 #include <sys/errno.h>
 #include <sys/stat.h>
-
 #include <kernel/os.hpp>
-#include <kernel/syscalls.hpp>
 #include <kernel/rtc.hpp>
-#include <hw/serial.hpp>
 
 #include <statman>
 #include <kprint>
@@ -49,6 +47,26 @@ char**  environ {__env};
 extern "C" {
   uintptr_t heap_begin;
   uintptr_t heap_end;
+}
+
+extern "C"
+void abort() {
+  panic("abort() called");
+}
+extern "C"
+void abort_message(const char* fmt, ...)
+{
+  char buffer[1024];
+  va_list list;
+  va_start(list, fmt);
+  vsnprintf(buffer, sizeof(buffer), fmt, list);
+  va_end(list);
+#ifdef ARCH_x86_64
+  asm("movq %0, %%rdi" : : "r"(buffer));
+  asm("jmp panic_begin");
+#else
+  panic(buffer);
+#endif
 }
 
 void _exit(int status) {
@@ -90,8 +108,10 @@ int kill(pid_t pid, int sig) THROW {
   SMP::global_lock();
   printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
 
-  if (sig == 6ul) {
+  if (sig == 6) {
     printf("/ ABORT\n");
+  } else {
+    printf("\n");
   }
   SMP::global_unlock();
 
@@ -139,6 +159,7 @@ bool OS::is_panicking() noexcept
 **/
 void panic(const char* why)
 {
+asm("panic_begin:");
   /// prevent re-entering panic() more than once per CPU
   //if (panic_reenter) OS::reboot();
   panic_reenter = true;
@@ -160,7 +181,6 @@ void panic(const char* why)
   // heap info
   typedef unsigned long ulong;
   uintptr_t heap_total = OS::heap_max() - heap_begin;
-  double total = (heap_end - heap_begin) / (double) heap_total;
   fprintf(stderr, "Heap is at: %p / %p  (diff=%lu)\n",
          (void*) heap_end, (void*) OS::heap_max(), (ulong) (OS::heap_max() - heap_end));
   fprintf(stderr, "Heap usage: %lu / %lu Kb\n", // (%.2f%%)\n",

@@ -15,10 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// use VGA as default output instead of serial
 #include <vga>
 
+// output to VGA as well as the default stdout
 void default_stdout_handlers()
 {
+  OS::add_stdout(&OS::default_stdout);
   OS::add_stdout(TextmodeVGA::get().get_print_handler());
 }

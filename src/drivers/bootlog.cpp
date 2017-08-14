@@ -15,16 +15,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <kprint>
-
-// prevent default serial out
-void default_stdout_handlers()
-{
-  OS::add_stdout(
-  [] (const char* str, size_t len)
-  {
-    if (OS::is_booted() || OS::is_panicking())
-        OS::default_stdout(str, len);
-  });
-}
+// enable logging during boot
+bool os_enable_boot_logging = true;

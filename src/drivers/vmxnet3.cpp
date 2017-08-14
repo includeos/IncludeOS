@@ -462,13 +462,13 @@ void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
     sendq = std::move(next);
   }
 }
-int  vmxnet3::tx_tokens_free() const noexcept
+inline int  vmxnet3::tx_tokens_free() const noexcept
 {
   return VMXNET3_TX_FILL - (tx.producers - tx.consumers);
 }
-bool vmxnet3::can_transmit() const noexcept
+inline bool vmxnet3::can_transmit() const noexcept
 {
-  return tx.producers - tx.consumers < VMXNET3_TX_FILL;
+  return tx_tokens_free() > 0;
 }
 
 void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)

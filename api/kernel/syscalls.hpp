@@ -22,7 +22,6 @@
 #include <sys/types.h>
 
 extern "C" {
-  int  kill(pid_t pid, int sig);
   void panic(const char* why) __attribute__((noreturn));
   void default_exit() __attribute__((noreturn));
 
