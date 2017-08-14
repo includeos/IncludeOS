@@ -16,8 +16,8 @@ add_dependencies(vmxnet3 PrecompiledLibraries)
 add_library(heap_debugging STATIC heap_debugging.cpp)
 add_dependencies(heap_debugging PrecompiledLibraries)
 
-add_library(silent_start STATIC silent.cpp)
-add_dependencies(silent_start PrecompiledLibraries)
+add_library(boot_logger STATIC bootlog.cpp)
+add_dependencies(boot_logger PrecompiledLibraries)
 
 add_library(vga_output STATIC vgaout.cpp)
 add_dependencies(vga_output PrecompiledLibraries)
@@ -26,7 +26,7 @@ install(TARGETS
     virtionet virtioblk
     vmxnet3
     heap_debugging
-    silent_start vga_output
+    boot_logger vga_output
     DESTINATION includeos/${ARCH}/drivers)
 
 if(WITH_SOLO5)
