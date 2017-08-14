@@ -117,6 +117,7 @@ SECTIONS
     _CONFIG_JSON_START_ = .;
     KEEP(*(.config))
     _CONFIG_JSON_END_ = .;
+    BYTE(0);
   }
 
   .rodata :
