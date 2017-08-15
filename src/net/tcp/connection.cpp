@@ -629,9 +629,14 @@ void Connection::take_rtt_measure(const Packet& packet)
   if(cb.SND.TS_OK)
   {
     auto* ts = parse_ts_option(packet);
-    rttm.rtt_measurement(RTTM::milliseconds{host_.get_ts_value() - ntohl(ts->ecr)});
+    if(ts)
+    {
+      rttm.rtt_measurement(RTTM::milliseconds{host_.get_ts_value() - ntohl(ts->ecr)});
+      return;
+    }
   }
-  else if(rttm.active())
+
+  if(rttm.active())
   {
     rttm.stop(RTTM::milliseconds{host_.get_ts_value()});
   }
