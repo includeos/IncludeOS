@@ -19,7 +19,7 @@ set(DRIVERS
     virtionet
     #vmxnet3
     #solo5net
-    silent_start
+    #boot_logger
     #heap_debugging
   )
 
