@@ -54,12 +54,12 @@ bool Nodes::assign(tcp_ptr conn)
   for (size_t i = 0; i < nodes.size(); i++) {
     // algorithm here //
     iterator = (iterator + 1) % nodes.size();
-    if (nodes[iterator].pool.empty() == false)
+    auto outgoing = nodes[iterator].get_connection();
+    if (outgoing != nullptr)
     {
-      auto outgoing = nodes[iterator].take();
+      assert(outgoing->is_connected());
       LBOUT("Assigning client to node %d (%s)\n",
             iterator, outgoing->to_string().c_str());
-      assert(outgoing != nullptr);
       this->create_session(conn, outgoing);
       return true;
     }
@@ -143,13 +143,14 @@ void Node::connect(netstack_t& stack, const int MAX_POOL)
     }
   }
 }
-
-tcp_ptr Node::take()
+tcp_ptr Node::get_connection()
 {
-  assert(pool.empty() == false);
-  auto conn = pool.back();
-  pool.pop_back();
-  return conn;
+  while (pool.empty() == false) {
+      auto conn = pool.back();
+      pool.pop_back();
+      if (conn->is_connected()) return conn;
+  }
+  return nullptr;
 }
 
 // use indexing to access Session because std::vector

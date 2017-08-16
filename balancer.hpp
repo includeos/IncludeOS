@@ -22,7 +22,7 @@ struct Node {
   delegate<void()> pool_signal = nullptr;
 
   void connect(netstack_t&, const int);
-  tcp_ptr take();
+  tcp_ptr get_connection();
 };
 
 struct Nodes {

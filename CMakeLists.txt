@@ -20,6 +20,7 @@ set(SOURCES
 # DRIVERS / PLUGINS:
 set(DRIVERS
   vmxnet3
+  vga_output
   )
 
 set(PLUGINS
