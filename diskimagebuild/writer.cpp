@@ -127,6 +127,7 @@ void create_preamble(
   cl_dir ent;
   ent.attrib = ATTR_DIRECTORY;
   ent.filesize = 0;
+  ent.modified = 0;
   // . current directory
   memcpy((char*) ent.shortname, ".            ", SHORTNAME_LEN);
   ent.cluster_hi = fsys.to_cluster_hi(self);
@@ -152,6 +153,7 @@ cl_dir create_entry(const std::string& name, uint8_t attr, uint32_t size)
   ent.cluster_hi = 0; /// SET THIS
   ent.cluster_lo = 0; /// SET THIS
   ent.filesize   = size;
+  ent.modified   = 0;
   return ent;
 }
 
@@ -163,6 +165,7 @@ void fill_unused(std::vector<cl_dir>& ents, int num)
   ent.cluster_hi = 0;
   ent.cluster_lo = 0;
   ent.filesize   = 0;
+  ent.modified   = 0;
   while (num-- > 0) ents.push_back(ent);
 }
 void mod16_test(std::vector<cl_dir>& ents, int& mod16, int long_entries)
@@ -229,7 +232,11 @@ long Dir::write(FileSys& fsys, FILE* file, long pos, long parent)
   {
     cl_dir last;
     last.shortname[0] = 0x0; // last entry
-    last.attrib = 0;
+    last.cluster_hi = 0;
+    last.cluster_lo = 0;
+    last.attrib   = 0;
+    last.modified = 0;
+    last.filesize = 0;
     ents.push_back(last);
   }
 
