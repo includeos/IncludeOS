@@ -1,30 +1,14 @@
 cmake_minimum_required(VERSION 2.8.9)
-# default IncludeOS location #FIXME#
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
-endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project(service)
 
-set(SERVICE_NAME "Live Update")
-set(BINARY       "LiveUpdate")
-set(SOURCES
-    service.cpp test_boot.cpp test_all.cpp test_tcp.cpp
-  )
-set(LOCAL_INCLUDES ".")
+add_definitions(-DARCH_${ARCH})
+add_definitions(-DARCH="${ARCH}")
 
-set(LIBRARIES ${CMAKE_BINARY_DIR}/libliveupdate.a)
-
-set(DRIVERS
-    virtionet
-    #vmxnet3
-    #solo5net
-    #boot_logger
-    #heap_debugging
-  )
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+include_directories(${INCLUDEOS_ROOT}/api/posix)
+include_directories(${LIBCXX_INCLUDE_DIR})
+include_directories(${NEWLIB_INCLUDE_DIR})
+include_directories(${INCLUDEOS_ROOT}/src/include)
+include_directories(${INCLUDEOS_ROOT}/api)
+include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 
 add_custom_command(
   OUTPUT hotswap64.bin
@@ -39,8 +23,5 @@ add_library(liveupdate STATIC
     serialize_tcp.cpp hotswap64_blob.asm
   )
 add_dependencies(liveupdate hotswap64)
-target_link_libraries(service liveupdate)
-install(TARGETS liveupdate DESTINATION lib)
-
-# Uncomment this to build vanilla:
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
+install(TARGETS liveupdate DESTINATION includeos/${ARCH}/lib)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/liveupdate.hpp DESTINATION includeos/include RENAME liveupdate)

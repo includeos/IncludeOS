@@ -10,7 +10,7 @@
 #include <stdexcept>
 #include <string>
 #include <unistd.h>
-#include "elf.h"
+#include <util/elf.h>
 #include "storage.hpp"
 #include <kernel/os.hpp>
 #include <hw/devices.hpp>
@@ -218,7 +218,7 @@ size_t LiveUpdate::store(void* location, storage_func func)
 size_t LiveUpdate::stored_data_length(void* location)
 {
   auto* storage = (storage_header*) location;
-  
+
   if (LIVEUPDATE_PERFORM_SANITY_CHECKS)
   {
     /// sanity check
