@@ -100,7 +100,7 @@ private:
   Stat& operator=(const Stat& other) = delete;
   Stat& operator=(Stat&& other) = delete;
 
-} __attribute__((packed)); //< class Stat
+}; //< class Stat
 
 
 class Statman {
