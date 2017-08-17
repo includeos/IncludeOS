@@ -1,45 +1,27 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-# IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
-endif()
+add_definitions(-DARCH_${ARCH})
+add_definitions(-DARCH="${ARCH}")
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include_directories(${INCLUDEOS_ROOT}/api/posix)
+include_directories(${LIBCXX_INCLUDE_DIR})
+include_directories(${NEWLIB_INCLUDE_DIR})
+include_directories(${INCLUDEOS_ROOT}/src/include)
+include_directories(${INCLUDEOS_ROOT}/api)
+include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 
-# Name of your project
-project (uplink)
+#dependencies
+include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
+include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 
-# Name of your IncludeOS library
-set(LIBRARY_NAME "uplink") # => libseed.a
+set(LIBRARY_NAME "uplink")
 
-# Source files to be built into your IncludeOS library
 set(SOURCES
-  transport.cpp # ...add more here
+  transport.cpp
   ws_uplink.cpp
   register_plugin.cpp
   )
 
-# Necessary includes to build your library
-set(LOCAL_INCLUDES
-  # "include"
-  )
+add_library(${LIBRARY_NAME} STATIC ${SOURCES})
 
-# include library build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/library.cmake)
-
-
-# INSTALLATION (OPTIONAL):
-
-# If CMAKE_INSTALL_PREFIX is not set, install to source directory
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}") # $ENV{INCLUDEOS_PREFIX}/includeos
-endif()
-
-# Where to install library
-install(TARGETS ${LIBRARY_NAME} DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos/${ARCH}/plugins)
-
-# Where to install library headers
-# NOTE: There is a difference between installing a list of files and a directory
-# set(LIBRARY_HEADERS "include/seed")
-# install(DIRECTORY ${LIBRARY_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+install(TARGETS ${LIBRARY_NAME} DESTINATION includeos/${ARCH}/plugins)
