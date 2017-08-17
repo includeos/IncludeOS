@@ -36,9 +36,9 @@ extern "C" {
 
 extern void default_stdout_handlers();
 
-__attribute__((weak))
 extern "C"
-void kernel_start(uintptr_t magic, uintptr_t addr)
+void __attribute__((weak))
+kernel_start(uintptr_t magic, uintptr_t addr)
 {
 
   // Initialize default serial port

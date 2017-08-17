@@ -15,20 +15,22 @@ set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 message(STATUS "Target triple ${TRIPLE}")
 
+# defines $CAPABS depending on installation
+include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
+
 # Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")
   set(ARCH_INTERNAL "ARCH_X64")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
   set(OBJCOPY_TARGET "elf64-x86-64")
+  set(CAPABS "${CAPABS} -m64")
 else()
   set(ARCH_INTERNAL "ARCH_X86")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
   set(OBJCOPY_TARGET "elf32-i386")
+  set(CAPABS "${CAPABS} -m32")
 endif()
 enable_language(ASM_NASM)
-
-# defines $CAPABS depending on installation
-include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
@@ -46,8 +48,8 @@ if (debug)
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-  set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
   set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
