@@ -231,8 +231,7 @@ void VirtioBlk::read (block_t blk, on_read_func func) {
 void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
 
   // create big buffer for collecting all the disk data
-  uint8_t* bufdata = new uint8_t[block_size() * cnt];
-  buffer_t bigbuf { bufdata, std::default_delete<uint8_t[]>() };
+  buffer_t bigbuf { new uint8_t[block_size() * cnt], std::default_delete<uint8_t[]>() };
   // (initialized) boolean array of partial jobs
   auto results = std::make_shared<size_t> (cnt);
   bool shipped = false;
