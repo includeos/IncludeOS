@@ -30,6 +30,7 @@
 #include <net/inet.hpp>
 #include <net/socket.hpp>
 #include <net/port_util.hpp>
+#include <net/ip4/ip4.hpp>
 
 namespace net {
 

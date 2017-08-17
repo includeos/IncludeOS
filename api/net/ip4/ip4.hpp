@@ -20,6 +20,7 @@
 
 #include "addr.hpp"
 #include "header.hpp"
+#include "packet_ip4.hpp"
 #include <common>
 #include <net/inet.hpp>
 #include <rtc>
@@ -28,8 +29,6 @@
 #include <unordered_map>
 
 namespace net {
-
-  class PacketIP4;
 
   /** IP4 layer */
   class IP4 {
