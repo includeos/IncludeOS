@@ -152,33 +152,32 @@ private:
 
 }; //< class Socket
 
-class Quadruple {
+/**
+ * @brief      A pair of Sockets
+ */
+struct Quadruple {
+  Socket src;
+  Socket dst;
 
-public:
-  constexpr Quadruple() noexcept
-    : source_{}, destination_{}
-  {}
+  bool operator==(const Quadruple& other) const noexcept
+  { return src == other.src and dst == other.dst; }
 
-  constexpr Quadruple(const Socket source, const Socket destination) noexcept
-    : source_{source}, destination_{destination}
-  {}
+  bool operator!=(const Quadruple& other) const noexcept
+  { return not (*this == other); }
 
-  constexpr Quadruple(const Socket::Address src_address, const Socket::port_t src_port,
-    const Socket::Address dst_address, const Socket::port_t dst_port) noexcept
-    : source_{src_address, src_port}, destination_{dst_address, dst_port}
-  {}
+  bool operator<(const Quadruple& other) const noexcept
+  { return src < other.src or (src == other.src and dst < other.dst); }
 
-  const Socket& source() const noexcept
-  { return source_; }
+  bool operator>(const Quadruple& other) const noexcept
+  { return src > other.src or (src == other.src and dst > other.dst); }
 
-  const Socket& destination() const noexcept
-  { return destination_; }
+  bool is_reverse(const Quadruple& other) const noexcept
+  { return src == other.dst and dst == other.src; }
 
-private:
-  Socket source_;
-  Socket destination_;
+  void swap()
+  { std::swap(src, dst); }
 
-};  //< class Quadruple
+}; //< struct Quadruple
 
 } //< namespace net
 
@@ -189,6 +188,16 @@ namespace std {
     size_t operator () (const net::Socket& key) const noexcept {
       const auto h1 = std::hash<net::Socket::Address>{}(key.address());
       const auto h2 = std::hash<net::Socket::port_t>{}(key.port());
+      return h1 ^ h2;
+    }
+  };
+
+  template<>
+  struct hash<net::Quadruple> {
+  public:
+    size_t operator () (const net::Quadruple& key) const noexcept {
+      const auto h1 = std::hash<net::Socket>{}(key.src);
+      const auto h2 = std::hash<net::Socket>{}(key.dst);
       return h1 ^ h2;
     }
   };
