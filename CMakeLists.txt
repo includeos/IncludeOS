@@ -125,6 +125,18 @@ endif()
 set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 
+# object format needs to be set BEFORE enabling ASM
+# see: https://cmake.org/Bug/bug_relationship_graph.php?bug_id=13166
+if ("${ARCH}" STREQUAL "i686")
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+  set(OBJCOPY_TARGET "elf32-i386")
+else()
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+  set(OBJCOPY_TARGET "elf64-x86-64")
+endif()
+
+enable_language(ASM_NASM)
+
 # Botan Crypto & TLS
 # Note: Include order matters!
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
@@ -186,6 +198,17 @@ option(libmana "Build and install mana web application framework library" ON)
 if(libmana)
   add_subdirectory(lib/mana)
 endif(libmana)
+
+option(libuplink "Build and install uplink" ON)
+if(libuplink)
+  set(libliveupdate ON) # dependent
+  add_subdirectory(lib/uplink)
+endif(libuplink)
+
+option(libliveupdate "Build and install LiveUpdate" ON)
+if(libliveupdate)
+  add_subdirectory(lib/LiveUpdate)
+endif(libliveupdate)
 
 #
 # Installation

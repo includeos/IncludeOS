@@ -69,7 +69,9 @@ namespace net {
 
     debug("<Ethernet OUT> Transmitting %i b, from %s -> %s. Type: 0x%hx\n",
           pckt->size(), mac_.str().c_str(), dest.str().c_str(), type);
+#ifndef ARP_PASSTHROUGH
     Expects(dest.major or dest.minor);
+#endif
 
     // Populate ethernet header for each packet in the (potential) chain
     // NOTE: It's assumed that chained packets are for the same destination
