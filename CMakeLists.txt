@@ -199,6 +199,12 @@ if(libmana)
   add_subdirectory(lib/mana)
 endif(libmana)
 
+option(libuplink "Build and install uplink" ON)
+if(libuplink)
+  set(libliveupdate ON) # dependent
+  add_subdirectory(lib/uplink)
+endif(libuplink)
+
 option(libliveupdate "Build and install LiveUpdate" ON)
 if(libliveupdate)
   add_subdirectory(lib/LiveUpdate)
