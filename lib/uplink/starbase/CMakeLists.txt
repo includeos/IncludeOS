@@ -4,15 +4,19 @@ cmake_minimum_required(VERSION 2.8.9)
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
+
+# Use toolchain (if needed)
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
-project (demo_service)
+
+# Name of your project
+project (starbase)
 
 # Human-readable name of your service
-set(SERVICE_NAME "IncludeOS minimal example")
+set(SERVICE_NAME "IncludeOS Starbase")
 
 # Name of your service binary
-set(BINARY       "IncludeOS_example")
+set(BINARY       "starbase")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
@@ -34,21 +38,20 @@ set(SOURCES
 
 # DRIVERS / PLUGINS:
 
-if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  set(DRIVERS
-      solo5net
-    )
-else()
-  set(DRIVERS
-      virtionet     # Virtio networking
-      # virtioblock # Virtio block device
-      # ... Others from src/drivers
-    )
-endif()
+set(DRIVERS
+  virtionet
+  vmxnet3
+  )
 
 set(PLUGINS
-    # syslogd    # Syslog over UDP
-    # ...others
+  uplink
+  autoconf
+  )
+
+# THIRD PARTY LIBRARIES:
+
+set(LIBRARIES
+  libliveupdate.a  # path to full library
   )
 
 

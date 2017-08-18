@@ -1,0 +1,158 @@
+/**
+ * Master thesis
+ * by Alf-Andre Walla 2016-2017
+ * 
+**/
+#pragma once
+#include <cstdint>
+#include <string>
+#include <vector>
+#include <delegate>
+
+enum storage_type
+{
+  TYPE_END     = 0,
+  TYPE_MARKER  = 1,
+  TYPE_INTEGER = 2,
+
+  TYPE_STRING  = 10,
+  TYPE_BUFFER  = 11,
+  TYPE_VECTOR  = 12,
+  TYPE_STR_VECTOR = 13,
+
+  TYPE_TCP = 100,
+};
+
+struct segmented_entry
+{
+  size_t     count;
+  size_t     esize;
+  char       vla[0];
+};
+
+struct varseg_begin
+{
+  size_t count;
+  char   vla[0];
+};
+struct varseg_entry
+{
+  size_t len;
+  char   vla[0];
+};
+
+struct storage_entry
+{
+  storage_entry(int16_t type, uint16_t id, int length);
+  storage_entry(int16_t type);
+  
+  int16_t   type = TYPE_END;
+  uint16_t  id   = 0;
+  int       len  = 0;
+  char      vla[0];
+  
+  int length() const noexcept {
+    if (type != TYPE_INTEGER)
+        return len;
+    else
+        return sizeof(int);
+  }
+  int size() const noexcept {
+    return sizeof(storage_entry) + length();
+  }
+  segmented_entry& get_segs() noexcept {
+    return *(segmented_entry*) vla;
+  }
+  const char* data() const noexcept {
+    return vla;
+  }
+  
+  storage_entry* next() const noexcept;
+  uint32_t       checksum() const;
+};
+
+struct storage_header
+{
+  typedef delegate<int(char*)> construct_func;
+  static const uint64_t  LIVEUPD_MAGIC;
+  
+  size_t get_length() const noexcept {
+    return this->length;
+  }
+  size_t total_bytes() const noexcept {
+    return sizeof(storage_header) + get_length();
+  }
+  uint32_t get_entries() const noexcept {
+    return this->entries;
+  }
+  
+  storage_header();
+  
+  void add_marker(uint16_t id);
+  void add_int   (uint16_t id, int value);
+  void add_string(uint16_t id, const std::string& data);
+  void add_buffer(uint16_t id, const char*, int);
+  storage_entry& add_struct(int16_t type, uint16_t id, int length);
+  storage_entry& add_struct(int16_t type, uint16_t id, construct_func);
+  void add_vector(uint16_t, const void*, size_t cnt, size_t esize);
+  void add_string_vector(uint16_t id, const std::vector<std::string>& vec);
+  void add_end();
+  
+  storage_entry* begin();
+  storage_entry* next(storage_entry*);
+  
+  template <typename... Args>
+  storage_entry& create_entry(Args&&... args);
+  
+  inline storage_entry&
+  var_entry(int16_t type, uint16_t id, construct_func func);
+  
+  void append_eof() noexcept {
+    ((storage_entry*) &vla[length])->type = TYPE_END;
+  }
+  void finalize();
+  bool validate() noexcept;
+  
+  // zero out the entire header and its data, for extra security
+  void zero();
+  
+private:
+  uint32_t generate_checksum() noexcept;
+  
+  uint64_t magic;
+  uint32_t crc;
+  uint32_t entries = 0;
+  uint32_t length  = 0;
+  char     vla[0];
+};
+
+template <typename... Args>
+inline storage_entry&
+storage_header::create_entry(Args&&... args)
+{
+  // create entry
+  auto* entry = (storage_entry*) &vla[length];
+  new (entry) storage_entry(args...);
+  // next storage_entry will be this much further out:
+  this->length += entry->size();
+  this->entries++;
+  // make sure storage is properly EOF'd
+  this->append_eof();
+  return *entry;
+}
+
+inline storage_entry&
+storage_header::var_entry(int16_t type, uint16_t id, construct_func func)
+{
+  // create entry
+  auto* entry = (storage_entry*) &vla[length];
+  new (entry) storage_entry(type, id, 0);
+  // determine and set size of entry
+  entry->len = func(entry->vla);
+  // next storage_entry will be this much further out:
+  this->length += entry->size();
+  this->entries++;
+  // make sure storage is properly EOF'd
+  this->append_eof();
+  return *entry;
+}

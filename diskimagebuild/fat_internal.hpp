@@ -37,12 +37,12 @@ static const uint8_t LAST_LONG_ENTRY = 0x40;
 struct cl_dir
 {
   uint8_t  shortname[11];
-  uint8_t  attrib;
+  uint8_t  attrib     = 0;
   uint8_t  pad1[8];
-  uint16_t cluster_hi;
-  uint32_t modified;
-  uint16_t cluster_lo;
-  uint32_t filesize;
+  uint16_t cluster_hi = 0;
+  uint32_t modified   = 0;
+  uint16_t cluster_lo = 0;
+  uint32_t filesize   = 0;
 
 } __attribute__((packed));
 
