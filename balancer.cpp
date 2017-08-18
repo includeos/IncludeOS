@@ -134,8 +134,12 @@ void Node::connect(netstack_t& stack, const int MAX_POOL)
     try {
       stack.tcp().connect(this->addr,
       [this] (auto conn) {
-        pool.push_back(conn);
-        if (pool_signal) pool_signal();
+        // connection may be null, apparently
+        if (conn != nullptr)
+        {
+          pool.push_back(conn);
+          if (pool_signal) pool_signal();
+        }
       });
     } catch (std::exception&) {
       // probably ran out of eph ports
@@ -147,6 +151,7 @@ tcp_ptr Node::get_connection()
 {
   while (pool.empty() == false) {
       auto conn = pool.back();
+      assert(conn != nullptr);
       pool.pop_back();
       if (conn->is_connected()) return conn;
   }
