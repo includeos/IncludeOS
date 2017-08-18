@@ -110,6 +110,21 @@ endif(silent)
 # Append optimization level
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
 
+# object format needs to be set BEFORE enabling ASM
+# see: https://cmake.org/Bug/bug_relationship_graph.php?bug_id=13166
+if ("${ARCH}" STREQUAL "i686")
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
+  set(OBJCOPY_TARGET "elf32-i386")
+  set(CAPABS "${CAPABS} -m32")
+else()
+  set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
+  set(OBJCOPY_TARGET "elf64-x86-64")
+  set(CAPABS "${CAPABS} -m64")
+endif()
+
+enable_language(ASM_NASM)
+
+# initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
   set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
@@ -186,6 +201,17 @@ option(libmana "Build and install mana web application framework library" ON)
 if(libmana)
   add_subdirectory(lib/mana)
 endif(libmana)
+
+option(libuplink "Build and install uplink" ON)
+if(libuplink)
+  set(libliveupdate ON) # dependent
+  add_subdirectory(lib/uplink)
+endif(libuplink)
+
+option(libliveupdate "Build and install LiveUpdate" ON)
+if(libliveupdate)
+  add_subdirectory(lib/LiveUpdate)
+endif(libliveupdate)
 
 #
 # Installation
