@@ -199,9 +199,9 @@ void Connection::offer(size_t& packets)
   debug2("<Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
         packets, writeq.size(), usable_window());
 
-  if(can_send() and not queued_)
+  if (this->can_send() and not this->is_queued())
   {
-    host_.queue_offer(retrieve_shared());
+    host_.queue_offer(*this);
   }
 }
 
