@@ -43,7 +43,7 @@ void Service::start()
     {{10,0,0,1}, 6001}, {{10,0,0,1}, 6002},
     {{10,0,0,1}, 6003}, {{10,0,0,1}, 6004}
   };
-  balancer = new Balancer(inc, 80, out, nodes, 1);
+  balancer = new Balancer(inc, 80, out, nodes, 5);
 
   Timers::periodic(1s, STATS_PERIOD, print_stats);
 }

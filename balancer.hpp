@@ -32,7 +32,7 @@ struct Node {
   std::vector<tcp_ptr> pool;
   delegate<void()> pool_signal = nullptr;
 
-  void connect(netstack_t&, const int);
+  void connect(netstack_t&);
   tcp_ptr get_connection();
 };
 
@@ -52,7 +52,7 @@ struct Nodes {
 
   netstack_t& netout;
   std::vector<Node> nodes;
-  unsigned pool_dynsize;
+  int pool_dynsize;
 
 private:
   int64_t session_total = 0;
@@ -74,5 +74,10 @@ struct Balancer {
 
 private:
   void queue_check();
+
   std::deque<Waiting> queue;
+  int64_t cps_total = 0;
+  int64_t cps_last  = 0;
+  int  pool_base_value;
+  int  cps_timer = 0;
 };

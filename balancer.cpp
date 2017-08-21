@@ -9,20 +9,34 @@
 
 Balancer::Balancer(
        netstack_t& incoming, uint16_t in_port,
-       netstack_t& outgoing, std::vector<net::Socket> nodelist, int max_pool)
-  : netin(incoming), nodes(outgoing, max_pool)
+       netstack_t& outgoing, std::vector<net::Socket> nodelist,
+       const int POOL_BASE)
+  : netin(incoming), nodes(outgoing, 1), pool_base_value(POOL_BASE)
 {
   for (auto& addr : nodelist) {
     nodes.nodes.emplace_back(addr);
     nodes.nodes.back().pool_signal = {this, &Balancer::queue_check};
   }
-  nodes.maintain_pool();
 
   netin.tcp().listen(in_port,
   [this] (tcp_ptr conn) {
     if (conn == nullptr) return;
+    this->cps_total++;
     this->incoming(conn);
   });
+
+  using namespace std::chrono;
+  this->cps_timer = Timers::periodic(1s,
+    [this] (int) {
+      auto diff = cps_total - cps_last;
+      diff = (diff > 0) ? diff : 1;
+      cps_last = cps_total;
+
+      nodes.pool_dynsize = pool_base_value + diff;
+      LBOUT("Poolsize: %ld  connections: %ld\n",
+            nodes.pool_dynsize, nodes.pool_connections());
+      nodes.maintain_pool();
+    });
 }
 
 int Balancer::wait_queue() const {
@@ -33,8 +47,11 @@ void Balancer::incoming(tcp_ptr conn)
   if (nodes.assign(conn, {}) == false) {
       queue.emplace_back(conn);
       LBOUT("Queueing connection (q=%lu)\n", queue.size());
-      //nodes.pool_dynsize++;
-      nodes.maintain_pool();
+  }
+  // add more when needed
+  if (nodes.pool_connections() < nodes.pool_dynsize)
+  {
+    nodes.maintain_pool();
   }
 }
 void Balancer::queue_check()
@@ -101,8 +118,12 @@ int Nodes::pool_connections() const {
 }
 void Nodes::maintain_pool()
 {
-  for (auto& node : nodes) {
-    node.connect(netout, this->pool_size());
+  int estimate = this->pool_size() - this->pool_connections();
+  if (estimate < 0) estimate = 0;
+  LBOUT("Extending pools with %d connections\n", estimate);
+  for (int i = 0; i < estimate; i++)
+  {
+    nodes.at(i % nodes.size()).connect(netout);
   }
 }
 int64_t Nodes::total_sessions() const {
@@ -149,27 +170,21 @@ void Nodes::close_session(int idx)
   LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
 }
 
-void Node::connect(netstack_t& stack, const int MAX_POOL)
+void Node::connect(netstack_t& stack)
 {
-  int estimate = MAX_POOL - pool.size();
-  LBOUT("Extending pool on %s with %d connections\n",
-          this->addr.to_string().c_str(), estimate);
-  for (int i = 0; i < estimate; i++)
-  {
-    try {
-      stack.tcp().connect(this->addr,
-      [this] (auto conn) {
-        // connection may be null, apparently
-        if (conn != nullptr)
-        {
-          pool.push_back(conn);
-          if (pool_signal) pool_signal();
-        }
-      });
-    } catch (std::exception&) {
-      // probably ran out of eph ports
-      return;
-    }
+  try {
+    stack.tcp().connect(this->addr,
+    [this] (auto conn) {
+      // connection may be null, apparently
+      if (conn != nullptr)
+      {
+        pool.push_back(conn);
+        if (pool_signal) pool_signal();
+      }
+    });
+  } catch (std::exception&) {
+    // probably ran out of eph ports
+    return;
   }
 }
 tcp_ptr Node::get_connection()
