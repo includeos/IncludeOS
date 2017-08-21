@@ -159,6 +159,11 @@ struct Quadruple {
   Socket src;
   Socket dst;
 
+  Quadruple() = default;
+  Quadruple(Socket s, Socket d)
+    : src(std::move(s)), dst(std::move(d))
+  {}
+
   bool operator==(const Quadruple& other) const noexcept
   { return src == other.src and dst == other.dst; }
 
