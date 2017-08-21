@@ -1,8 +1,19 @@
 #pragma once
 #include <net/inet4>
+#define READQ_PER_CLIENT    4096
+#define MAX_READQ_PER_NODE  8192
 
 typedef net::Inet<net::IP4> netstack_t;
 typedef net::tcp::Connection_ptr tcp_ptr;
+typedef std::vector< std::pair<net::tcp::buffer_t, size_t> > queue_vector_t;
+
+struct Waiting {
+  Waiting(tcp_ptr);
+
+  tcp_ptr conn;
+  queue_vector_t buffers;
+  int total = 0;
+};
 
 struct Nodes;
 struct Session {
@@ -33,7 +44,7 @@ struct Nodes {
   int pool_size() const;
   int pool_connections() const;
 
-  bool assign(tcp_ptr);
+  bool assign(tcp_ptr, queue_vector_t);
   void maintain_pool();
   void create_session(tcp_ptr inc, tcp_ptr out);
   Session& get_session(int);
@@ -63,5 +74,5 @@ struct Balancer {
 
 private:
   void queue_check();
-  std::deque<tcp_ptr>  queue;
+  std::deque<Waiting> queue;
 };

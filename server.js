@@ -23,7 +23,7 @@ function handleRequest(request, response){
   response.end(page);
 }
 
-http.createServer(handleRequest).listen(6000, '10.0.0.1');
 http.createServer(handleRequest).listen(6001, '10.0.0.1');
 http.createServer(handleRequest).listen(6002, '10.0.0.1');
 http.createServer(handleRequest).listen(6003, '10.0.0.1');
+http.createServer(handleRequest).listen(6004, '10.0.0.1');

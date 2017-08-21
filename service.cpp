@@ -18,7 +18,8 @@
 #include <os>
 #include <timers>
 #include <ctime>
-#define PERIOD_SECS  5
+using namespace std::chrono;
+#define STATS_PERIOD  5s
 static void print_stats(int);
 
 #include "balancer.hpp"
@@ -37,14 +38,14 @@ void Service::start()
   auto& out = net::Super_stack::get<net::IP4>(NET_OUTGOING);
 
   std::vector<net::Socket> nodes {
-    {{10,20,17,191}, 80}, {{10,20,17,192}, 80},
-    {{10,20,17,193}, 80}, {{10,20,17,194}, 80}
-    //{{10,0,0,1}, 6001}, {{10,0,0,1}, 6002}, {{10,0,0,1}, 6003}, {{10,0,0,1}, 6004}
+    //{{10,20,17,191}, 80}, {{10,20,17,192}, 80},
+    //{{10,20,17,193}, 80}, {{10,20,17,194}, 80}
+    {{10,0,0,1}, 6001}, {{10,0,0,1}, 6002},
+    {{10,0,0,1}, 6003}, {{10,0,0,1}, 6004}
   };
-  balancer = new Balancer(inc, 80, out, nodes, 20);
+  balancer = new Balancer(inc, 80, out, nodes, 1);
 
-  using namespace std::chrono;
-  Timers::periodic(seconds(1), seconds(PERIOD_SECS), print_stats);
+  Timers::periodic(1s, STATS_PERIOD, print_stats);
 }
 
 

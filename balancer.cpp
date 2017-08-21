@@ -1,6 +1,6 @@
 #include "balancer.hpp"
 
-#define LB_VERBOSE 0
+#define LB_VERBOSE 1
 #if LB_VERBOSE
 #define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -30,8 +30,8 @@ int Balancer::wait_queue() const {
 }
 void Balancer::incoming(tcp_ptr conn)
 {
-  if (nodes.assign(conn) == false) {
-      queue.push_back(conn);
+  if (nodes.assign(conn, {}) == false) {
+      queue.emplace_back(conn);
       LBOUT("Queueing connection (q=%lu)\n", queue.size());
       //nodes.pool_dynsize++;
       nodes.maintain_pool();
@@ -41,15 +41,35 @@ void Balancer::queue_check()
 {
   if (queue.empty() == false)
   {
-    nodes.assign(queue.front());
+    auto& waiting = queue.front();
+    assert(nodes.assign(waiting.conn, std::move(waiting.buffers)));
     queue.pop_front();
   }
+}
+
+Waiting::Waiting(tcp_ptr incoming)
+  : conn(incoming), total(0)
+{
+  // queue incoming data from clients not yet
+  // assigned to a node
+  conn->on_read(READQ_PER_CLIENT,
+  [this] (auto buf, size_t len) {
+    // prevent buffer bloat attack
+    total += len;
+    if (total > MAX_READQ_PER_NODE) {
+      conn->abort();
+    }
+    else {
+      LBOUT("*** Queued %lu bytes\n", len);
+      buffers.emplace_back(buf, len);
+    }
+  });
 }
 
 Nodes::Nodes(netstack_t& out, int sz)
     : netout(out), pool_dynsize(sz)
 {}
-bool Nodes::assign(tcp_ptr conn)
+bool Nodes::assign(tcp_ptr conn, queue_vector_t readq)
 {
   for (size_t i = 0; i < nodes.size(); i++) {
     // algorithm here //
@@ -61,6 +81,11 @@ bool Nodes::assign(tcp_ptr conn)
       LBOUT("Assigning client to node %d (%s)\n",
             iterator, outgoing->to_string().c_str());
       this->create_session(conn, outgoing);
+      // flush readq
+      for (auto& buffer : readq) {
+        LBOUT("*** Flushing %lu bytes\n", buffer.second);
+        outgoing->write(std::move(buffer.first), buffer.second);
+      }
       return true;
     }
   }
@@ -162,9 +187,11 @@ tcp_ptr Node::get_connection()
 Session::Session(Nodes& n, int idx, tcp_ptr inc, tcp_ptr out)
     : parent(n), self(idx), incoming(inc), outgoing(out)
 {
-  incoming->on_read(4096,
+  incoming->on_read(READQ_PER_CLIENT,
   [&nodes = n, idx] (auto buf, size_t len) mutable {
-      nodes.get_session(idx).outgoing->write(std::move(buf), len);
+    assert(len > 0);
+      auto& remote = nodes.get_session(idx).outgoing;
+      remote->write(std::move(buf), len);
   });
   incoming->on_close(
   [&nodes = n, idx] () mutable {
@@ -172,7 +199,9 @@ Session::Session(Nodes& n, int idx, tcp_ptr inc, tcp_ptr out)
   });
   outgoing->on_read(4096,
   [&nodes = n, idx] (auto buf, size_t len) mutable {
-      nodes.get_session(idx).incoming->write(std::move(buf), len);
+    assert(len > 0);
+      auto& remote = nodes.get_session(idx).incoming;
+      remote->write(std::move(buf), len);
   });
   outgoing->on_close(
   [&nodes = n, idx] () mutable {

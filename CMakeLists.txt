@@ -19,6 +19,7 @@ set(SOURCES
 
 # DRIVERS / PLUGINS:
 set(DRIVERS
+  virtionet
   vmxnet3
   vga_output
   )
