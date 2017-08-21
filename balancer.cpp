@@ -1,6 +1,6 @@
 #include "balancer.hpp"
 
-#define LB_VERBOSE 1
+#define LB_VERBOSE 0
 #if LB_VERBOSE
 #define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -11,30 +11,20 @@ Balancer::Balancer(
        netstack_t& incoming, uint16_t in_port,
        netstack_t& outgoing, std::vector<net::Socket> nodelist,
        const int POOL_BASE)
-  : netin(incoming), nodes(outgoing, 1), pool_base_value(POOL_BASE)
+  : netin(incoming), nodes(outgoing, POOL_BASE)
 {
   for (auto& addr : nodelist) {
     nodes.nodes.emplace_back(addr);
     nodes.nodes.back().pool_signal = {this, &Balancer::queue_check};
   }
+  // initial pool
+  nodes.maintain_pool();
 
   netin.tcp().listen(in_port,
   [this] (tcp_ptr conn) {
     if (conn == nullptr) return;
-    this->cps_total++;
     this->incoming(conn);
   });
-
-  using namespace std::chrono;
-  this->cps_timer = Timers::periodic(1s,
-    [this] (int) {
-      auto diff = cps_total - cps_last;
-      diff = (diff > 0) ? diff : 1;
-      cps_last = cps_total;
-
-      nodes.pool_dynsize = pool_base_value + diff;
-      nodes.maintain_pool();
-    });
 }
 
 int Balancer::wait_queue() const {
@@ -45,18 +35,31 @@ void Balancer::incoming(tcp_ptr conn)
   if (nodes.assign(conn, {}) == false) {
       queue.emplace_back(conn);
       LBOUT("Queueing connection (q=%lu)\n", queue.size());
-      // add more when needed
-      nodes.maintain_pool();
   }
+  // make sure connection pool is healthy
+  nodes.maintain_pool();
 }
-void Balancer::queue_check()
+void Balancer::queue_check(bool success)
 {
-  if (queue.empty() == false)
+  LBOUT("Connection attempt %s\n", ((success) ? "success" : "failed"));
+
+  // one less TCP connection connecting out
+  nodes.connect_ended();
+  // if the connect succeeded
+  if (success)
   {
-    auto& waiting = queue.front();
-    assert(nodes.assign(waiting.conn, std::move(waiting.buffers)));
-    queue.pop_front();
-  }
+    // check waitq
+    while (nodes.pool_connections() > 0 && queue.empty() == false)
+    {
+      auto item = std::move(queue.front());
+      queue.pop_front();
+      if (item.conn->is_connected()) {
+        if (nodes.assign(item.conn, std::move(item.buffers)) == false) {
+          queue.push_back(std::move(item));
+        }
+      }
+    } // waitq check
+  } // succcess
 }
 
 Waiting::Waiting(tcp_ptr incoming)
@@ -78,8 +81,8 @@ Waiting::Waiting(tcp_ptr incoming)
   });
 }
 
-Nodes::Nodes(netstack_t& out, int sz)
-    : netout(out), pool_dynsize(sz)
+Nodes::Nodes(netstack_t& out, const int POOL_SZ)
+    : netout(out), POOL_SIZE(POOL_SZ)
 {}
 bool Nodes::assign(tcp_ptr conn, queue_vector_t readq)
 {
@@ -104,24 +107,39 @@ bool Nodes::assign(tcp_ptr conn, queue_vector_t readq)
   return false;
 }
 int Nodes::pool_size() const {
-  return pool_dynsize;
+  return POOL_SIZE;
 }
 int Nodes::pool_connections() const {
   int count = 0;
   for (auto& node : nodes) count += node.pool.size();
   return count;
 }
+void Nodes::connect_ended()
+{
+  assert(this->connecting > 0);
+  this->connecting --;
+  // re-grow connection pool
+  this->maintain_pool();
+}
 void Nodes::maintain_pool()
 {
-  int estimate = this->pool_size() - this->pool_connections();
+  // each time a connect is resolved, maintain pool if necessary
+  int estimate = pool_size() - (this->connecting + pool_connections());
+  LBOUT("Estimate need %d new connections\n", estimate);
   if (estimate <= 0) return;
 
-  LBOUT("Extending pools with %d conns (current=%ld)\n", 
+  LBOUT("*** Extending pools with %d conns (current=%d)\n",
         estimate, this->pool_connections());
-  for (int i = 0; i < estimate; i++)
-  {
-    nodes.at(pool_iterator).connect(netout);
-    pool_iterator = (pool_iterator + 1) % nodes.size();
+  try {
+    for (int i = 0; i < estimate; i++)
+    {
+      connecting++;
+      nodes.at(pool_iterator).connect(netout);
+      pool_iterator = (pool_iterator + 1) % nodes.size();
+    }
+  } catch (std::exception&) {
+    // probably ran out of eph ports
+    return;
   }
 }
 int64_t Nodes::total_sessions() const {
@@ -170,20 +188,20 @@ void Nodes::close_session(int idx)
 
 void Node::connect(netstack_t& stack)
 {
-  try {
-    stack.tcp().connect(this->addr,
-    [this] (auto conn) {
-      // connection may be null, apparently
-      if (conn != nullptr)
-      {
-        pool.push_back(conn);
-        if (pool_signal) pool_signal();
-      }
-    });
-  } catch (std::exception&) {
-    // probably ran out of eph ports
-    return;
-  }
+  stack.tcp().connect(this->addr,
+  [this] (auto conn) {
+    // connection may be null, apparently
+    if (conn != nullptr)
+    {
+      LBOUT("Connected to %s  (%ld total)\n",
+              addr.to_string().c_str(), pool.size());
+      pool.push_back(conn);
+      pool_signal(true);
+    }
+    else {
+      pool_signal(false);
+    }
+  });
 }
 tcp_ptr Node::get_connection()
 {

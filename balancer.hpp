@@ -30,14 +30,14 @@ struct Node {
 
   net::Socket addr;
   std::vector<tcp_ptr> pool;
-  delegate<void()> pool_signal = nullptr;
+  delegate<void(bool)> pool_signal = nullptr;
 
   void connect(netstack_t&);
   tcp_ptr get_connection();
 };
 
 struct Nodes {
-  Nodes(netstack_t& out, int sz);
+  Nodes(netstack_t& out, const int POOL);
 
   int64_t total_sessions() const;
   int open_sessions() const;
@@ -45,6 +45,7 @@ struct Nodes {
   int pool_connections() const;
 
   bool assign(tcp_ptr, queue_vector_t);
+  void connect_ended();
   void maintain_pool();
   void create_session(tcp_ptr inc, tcp_ptr out);
   Session& get_session(int);
@@ -52,13 +53,14 @@ struct Nodes {
 
   netstack_t& netout;
   std::vector<Node> nodes;
-  int pool_dynsize;
+  const int POOL_SIZE;
 
 private:
   int64_t session_total = 0;
   int     session_cnt = 0;
   int     iterator = -1;
   int     pool_iterator = 0;
+  int     connecting = 0;
   std::vector<Session> sessions;
   std::vector<int> free_sessions;
 };
@@ -74,11 +76,7 @@ struct Balancer {
   Nodes nodes;
 
 private:
-  void queue_check();
+  void queue_check(bool result);
 
   std::deque<Waiting> queue;
-  int64_t cps_total = 0;
-  int64_t cps_last  = 0;
-  int  pool_base_value;
-  int  cps_timer = 0;
 };
