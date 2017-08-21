@@ -65,10 +65,10 @@ struct alignas(SMP_ALIGN) timer_system
   // timers sorted by timestamp
   std::multimap<duration_t, Timers::id_t> scheduled;
   /** Stats */
-  int64_t*  oneshot_started;
-  int64_t*  oneshot_stopped;
-  uint32_t* periodic_started;
-  uint32_t* periodic_stopped;
+  int64_t*  oneshot_started = nullptr;
+  int64_t*  oneshot_stopped = nullptr;
+  uint32_t* periodic_started = nullptr;
+  uint32_t* periodic_stopped = nullptr;
 };
 static SMP_ARRAY<timer_system> systems;
 
@@ -83,7 +83,7 @@ void Timers::init(const start_func_t& start, const stop_func_t& stop)
   system.arch_start_func = start;
   system.arch_stop_func  = stop;
 
-  std::string CPU = "cpu" + std::to_string(SMP::cpu_id());
+  const std::string CPU = "cpu" + std::to_string(SMP::cpu_id());
   system.oneshot_started = (int64_t*) &Statman::get().create(Stat::UINT64, CPU + ".timers.oneshot_started").get_uint64();
   system.oneshot_stopped = (int64_t*) &Statman::get().create(Stat::UINT64, CPU + ".timers.oneshot_stopped").get_uint64();
   system.periodic_started = &Statman::get().create(Stat::UINT32, CPU + ".timers.periodic_started").get_uint32();
