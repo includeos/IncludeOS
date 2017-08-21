@@ -6,6 +6,7 @@
 typedef net::Inet<net::IP4> netstack_t;
 typedef net::tcp::Connection_ptr tcp_ptr;
 typedef std::vector< std::pair<net::tcp::buffer_t, size_t> > queue_vector_t;
+typedef delegate<void(bool)> pool_signal_t;
 
 struct Waiting {
   Waiting(tcp_ptr);
@@ -26,41 +27,49 @@ struct Session {
 };
 
 struct Node {
-  Node(net::Socket a) : addr(a) {}
+  Node(netstack_t& stk, net::Socket a, pool_signal_t sig)
+    : stack(stk), addr(a), pool_signal(sig) {}
 
-  net::Socket addr;
-  std::vector<tcp_ptr> pool;
-  delegate<void(bool)> pool_signal = nullptr;
+  auto address() const noexcept { return this->addr; }
+  int  connection_attempts() const noexcept { return this->connecting; }
+  int  pool_size() const noexcept { return pool.size(); }
 
-  void connect(netstack_t&);
+  void maintain_pool(const int);
   tcp_ptr get_connection();
+
+private:
+  void connect();
+
+  netstack_t& stack;
+  net::Socket addr;
+  pool_signal_t pool_signal;
+  signed int  connecting = 0;
+  std::vector<tcp_ptr> pool;
 };
 
 struct Nodes {
-  Nodes(netstack_t& out, const int POOL);
+  Nodes(const int POOL);
 
   int64_t total_sessions() const;
   int open_sessions() const;
   int pool_size() const;
+  int pool_connecting() const;
   int pool_connections() const;
 
+  template <typename... Args>
+  void add_node(Args&&... args);
   bool assign(tcp_ptr, queue_vector_t);
-  void connect_ended();
-  void maintain_pool();
+  void maintain_pools();
   void create_session(tcp_ptr inc, tcp_ptr out);
   Session& get_session(int);
   void close_session(int);
 
-  netstack_t& netout;
+private:
   std::vector<Node> nodes;
   const int POOL_SIZE;
-
-private:
-  int64_t session_total = 0;
-  int     session_cnt = 0;
-  int     iterator = -1;
-  int     pool_iterator = 0;
-  int     connecting = 0;
+  int64_t   session_total = 0;
+  int       session_cnt = 0;
+  int       iterator = -1;
   std::vector<Session> sessions;
   std::vector<int> free_sessions;
 };
@@ -76,7 +85,12 @@ struct Balancer {
   Nodes nodes;
 
 private:
-  void queue_check(bool result);
+  void handle_waitq(bool result);
 
   std::deque<Waiting> queue;
 };
+
+template <typename... Args>
+inline void Nodes::add_node(Args&&... args) {
+  nodes.emplace_back(std::forward<Args> (args)...);
+}

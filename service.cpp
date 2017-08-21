@@ -110,8 +110,9 @@ void print_stats(int)
   avg_waiting.push(balancer->wait_queue());
 
   printf("*** [%s] ***\n", now().c_str());
-  printf("Total %ld G %ld  Open %d  Wait %d\n",
-         totals, growth, nodes.open_sessions(), balancer->wait_queue());
+  printf("Total %ld Gr %+ld  Sess %d Wait %d  Pool %d Wait %d\n",
+         totals, growth, nodes.open_sessions(), balancer->wait_queue(),
+         nodes.pool_connecting(), nodes.pool_connections());
   printf("Avg.sessions=%.2f Avg.growth=%.2f Avg.waitq=%.2f\n",
           avg_session.avg(), avg_growth.avg(), avg_waiting.avg());
   printf("Avg.pool size=%.2f Avg.pool conns=%.2f\n",
