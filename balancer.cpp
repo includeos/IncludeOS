@@ -33,8 +33,6 @@ Balancer::Balancer(
       cps_last = cps_total;
 
       nodes.pool_dynsize = pool_base_value + diff;
-      LBOUT("Poolsize: %ld  connections: %ld\n",
-            nodes.pool_dynsize, nodes.pool_connections());
       nodes.maintain_pool();
     });
 }
@@ -47,11 +45,8 @@ void Balancer::incoming(tcp_ptr conn)
   if (nodes.assign(conn, {}) == false) {
       queue.emplace_back(conn);
       LBOUT("Queueing connection (q=%lu)\n", queue.size());
-  }
-  // add more when needed
-  if (nodes.pool_connections() < nodes.pool_dynsize)
-  {
-    nodes.maintain_pool();
+      // add more when needed
+      nodes.maintain_pool();
   }
 }
 void Balancer::queue_check()
@@ -119,11 +114,14 @@ int Nodes::pool_connections() const {
 void Nodes::maintain_pool()
 {
   int estimate = this->pool_size() - this->pool_connections();
-  if (estimate < 0) estimate = 0;
-  LBOUT("Extending pools with %d connections\n", estimate);
+  if (estimate <= 0) return;
+
+  LBOUT("Extending pools with %d conns (current=%ld)\n", 
+        estimate, this->pool_connections());
   for (int i = 0; i < estimate; i++)
   {
-    nodes.at(i % nodes.size()).connect(netout);
+    nodes.at(pool_iterator).connect(netout);
+    pool_iterator = (pool_iterator + 1) % nodes.size();
   }
 }
 int64_t Nodes::total_sessions() const {

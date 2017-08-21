@@ -58,6 +58,7 @@ private:
   int64_t session_total = 0;
   int     session_cnt = 0;
   int     iterator = -1;
+  int     pool_iterator = 0;
   std::vector<Session> sessions;
   std::vector<int> free_sessions;
 };
