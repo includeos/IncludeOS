@@ -269,10 +269,10 @@ void Connection::close() {
 
 void Connection::receive_disconnect() {
   Expects(read_request and read_request->buffer.buffer());
-  auto& buf = read_request->buffer;
 
   if(read_request->callback) {
     // TODO: consider adding back when SACK is complete
+    //auto& buf = read_request->buffer;
     //if (buf.size() > 0 && buf.missing() == 0)
     //    read_request->callback(buf.buffer(), buf.size());
   }
