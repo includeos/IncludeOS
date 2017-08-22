@@ -285,7 +285,17 @@ void print_backtrace()
                     PRINT_TRACE(8, ra);
                     if (frp(9, ra)) {
                       PRINT_TRACE(9, ra);
-  }}}}}}}}}}
+                      if (frp(10, ra)) {
+                        PRINT_TRACE(10, ra);
+                        if (frp(11, ra)) {
+                          PRINT_TRACE(11, ra);
+                          if (frp(12, ra)) {
+                            PRINT_TRACE(12, ra);
+                            if (frp(13, ra)) {
+                              PRINT_TRACE(13, ra);
+                              if (frp(14, ra)) {
+                                PRINT_TRACE(14, ra);
+  }}}}}}}}}}}}}}}
 }
 
 void Elf::print_info()
