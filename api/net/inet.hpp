@@ -138,9 +138,9 @@ namespace net {
         return pckt;
       }
 
-      Filter_chain(const char* chain_name, std::initializer_list<Packetfilter> filters) :
-        chain{filters},
-        name{chain_name} {}
+      Filter_chain(const char* chain_name, std::initializer_list<Packetfilter> filters)
+        : chain(filters), name{chain_name}
+      {}
     };
 
     /**
