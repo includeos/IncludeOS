@@ -26,7 +26,7 @@
 #include "packet.hpp"
 
 #include <map>  // connections, listeners
-#include <queue>  // writeq
+#include <deque>  // writeq
 #include <net/inet.hpp>
 #include <net/socket.hpp>
 #include <net/port_util.hpp>
@@ -710,7 +710,7 @@ namespace net {
      *
      * @param[in]  <unnamed>  A ptr to a Connection
      */
-    void queue_offer(tcp::Connection_ptr);
+    void queue_offer(tcp::Connection&);
 
     /**
      * @brief      Force the TCP to process the it's queue with the current amount of available packets.

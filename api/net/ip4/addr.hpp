@@ -107,10 +107,11 @@ struct Addr {
 
     const static std::regex ipv4_address_pattern
     {
-      "^\\s*(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\."
-           "(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\."
-           "(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\."
-           "(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\s*$"
+
+#define OCTET_PATTERN "(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)"
+      "^\\s*" OCTET_PATTERN "\\." OCTET_PATTERN "\\." OCTET_PATTERN "\\." OCTET_PATTERN "\\s*$"
+#undef OCTET_PATTERN
+
     };
 
     std::smatch ipv4_parts;
