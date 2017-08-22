@@ -489,10 +489,11 @@ void TCP::request_offer(Connection& conn) {
   debug2("<TCP::request_offer> %s requestin offer: uw=%u rem=%u\n",
     conn.to_string().c_str(), conn.usable_window(), conn.sendq_remaining());
 
-  if (packets > 0) {
-    conn.offer(packets);
-  }
+  // Note: Must be called even if packets is 0
+  // because the connectoin is responsible for requeuing itself (see Connection::offer)
+  conn.offer(packets);
 }
+
 
 void TCP::queue_offer(Connection& conn)
 {
