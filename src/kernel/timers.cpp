@@ -1,6 +1,7 @@
 #include <kernel/timers.hpp>
 
 #include <kernel/os.hpp>
+#include <kernel/events.hpp>
 #include <service>
 #include <smp>
 #include <statman>
@@ -58,6 +59,7 @@ struct alignas(SMP_ALIGN) timer_system
 {
   bool     is_running  = false;
   uint32_t dead_timers = 0;
+  int      interrupt = 0;
   Timers::start_func_t arch_start_func;
   Timers::stop_func_t  arch_stop_func;
   std::vector<SystemTimer>  timers;
@@ -79,6 +81,8 @@ static inline timer_system& get() {
 void Timers::init(const start_func_t& start, const stop_func_t& stop)
 {
   auto& system = get();
+  // event for processing timers
+  system.interrupt = Events::get().subscribe(&Timers::timers_handler);
   // architecture specific start and stop functions
   system.arch_start_func = start;
   system.arch_stop_func  = stop;
@@ -88,6 +92,7 @@ void Timers::init(const start_func_t& start, const stop_func_t& stop)
   system.oneshot_stopped = (int64_t*) &Statman::get().create(Stat::UINT64, CPU + ".timers.oneshot_stopped").get_uint64();
   system.periodic_started = &Statman::get().create(Stat::UINT32, CPU + ".timers.periodic_started").get_uint32();
   system.periodic_stopped = &Statman::get().create(Stat::UINT32, CPU + ".timers.periodic_stopped").get_uint32();
+
 }
 
 bool Timers::is_ready()
@@ -283,11 +288,12 @@ static void sched_timer(duration_t when, Timers::id_t id)
 
   // if the hardware timer is not running, try starting it
   if (UNLIKELY(system.is_running == false)) {
-    Timers::timers_handler();
+    Events::get().trigger_event(system.interrupt);
     return;
   }
   // if the scheduled timer is the new front, restart timer
   auto it = system.scheduled.begin();
-  if (it->second == id)
-      Timers::timers_handler();
+  if (it->second == id) {
+    Events::get().trigger_event(system.interrupt);
+  }
 }
