@@ -25,12 +25,12 @@ set(DRIVERS
   )
 
 set(PLUGINS
-  autoconf
+  uplink
   )
 
 # STATIC LIBRARIES:
 set(LIBRARIES
-  #libliveupdate.a
+  libliveupdate.a
   )
 
 

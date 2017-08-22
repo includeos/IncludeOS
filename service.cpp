@@ -28,7 +28,9 @@ static Balancer* balancer = nullptr;
 #define NET_INCOMING  1
 #define NET_OUTGOING  2
 
-void Service::start()
+void Service::start() {}
+
+void Service::ready()
 {
   // uplink
   auto& upl = net::Super_stack::get<net::IP4>(NET_UPLINK);
