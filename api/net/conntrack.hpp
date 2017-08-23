@@ -63,7 +63,8 @@ public:
    */
   enum class State : uint8_t {
     NEW,
-    ESTABLISHED
+    ESTABLISHED,
+    RELATED
   };
 
   /**
@@ -91,6 +92,9 @@ public:
 
     bool is_mirrored() const noexcept
     { return out.src == in.dst and out.dst == in.src; }
+
+    std::string to_string() const;
+
   };
 
 public:
@@ -177,6 +181,8 @@ public:
    * @return     The quadruple.
    */
   static Quadruple get_quadruple(const PacketIP4& pkt);
+
+  static Quadruple get_quadruple_icmp(const PacketIP4& pkt);
 
   Conntrack();
 

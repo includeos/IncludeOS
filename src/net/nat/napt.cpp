@@ -68,7 +68,7 @@ void NAPT::tcp_masq(IP4::IP_packet& p, const Stack& inet)
   Quadruple quad{pkt.source(), pkt.destination()};
 
   auto* entry = conntrack->out(quad, Protocol::TCP);
-  Expects(entry != nullptr);
+  Expects(entry);
 
   if(entry->in.dst == entry->out.src)
   {
@@ -90,7 +90,7 @@ void NAPT::tcp_demasq(IP4::IP_packet& p, const Stack&)
   Quadruple quad{pkt.source(), pkt.destination()};
 
   auto* entry = conntrack->in(quad, Protocol::TCP);
-  Expects(entry != nullptr);
+  Expects(entry);
 
   // if the entry's in and out are not the same
   if(not entry->is_mirrored())
@@ -110,7 +110,8 @@ void NAPT::udp_masq(IP4::IP_packet& p, const Stack& inet)
   Quadruple quad{src, dst};
 
   auto* entry = conntrack->out(quad, Protocol::UDP);
-  Expects(entry != nullptr);
+
+  if(not entry) return;
 
   if(entry->in.dst == entry->out.src)
   {
@@ -135,7 +136,7 @@ void NAPT::udp_demasq(IP4::IP_packet& p, const Stack&)
   Quadruple quad{src, dst};
 
   auto* entry = conntrack->in(quad, Protocol::UDP);
-  Expects(entry != nullptr);
+  Expects(entry);
 
   // if the entry's in and out are not the same
   if(not entry->is_mirrored())

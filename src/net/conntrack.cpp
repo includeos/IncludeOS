@@ -19,10 +19,29 @@
 
 namespace net {
 
+std::string proto_str(const Protocol proto)
+{
+  switch(proto) {
+    case Protocol::TCP: return "TCP";
+    case Protocol::UDP: return "UDP";
+    case Protocol::ICMPv4: return "ICMPv4";
+    default: return "???";
+  }
+}
+
+std::string Conntrack::Entry::to_string() const
+{
+  return "OUT: " + out.src.to_string() + " " + out.dst.to_string()
+    + " IN: " + in.src.to_string() + " " + in.dst.to_string() + " P: " + proto_str(proto);
+}
+
 Conntrack::Entry* Conntrack::simple_track_out(Quadruple q, const Protocol proto)
 {
   // find the entry
   auto* entry = out(q, proto);
+
+  printf("<Conntrack> Track out SRC: %s - DST: %s\n",
+    q.src.to_string().c_str(), q.dst.to_string().c_str());
 
   // if none, add new and return
   if(entry == nullptr)
@@ -32,9 +51,12 @@ Conntrack::Entry* Conntrack::simple_track_out(Quadruple q, const Protocol proto)
     return entry;
   }
 
+  printf("<Conntrack> Entry found: %s\n", entry->to_string().c_str());
+
   // if this is a reply
   if(entry->direction == Seen::IN)
   {
+    printf("<Conntrack> Reply - ESTABLISHED\n");
     entry->direction  = Seen::BOTH;
     entry->state      = State::ESTABLISHED;
   }
@@ -50,18 +72,24 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
   // find the entry
   auto* entry = in(q, proto);
 
+  printf("<Conntrack> Track in SRC: %s - DST: %s\n",
+    q.src.to_string().c_str(), q.dst.to_string().c_str());
+
   // if none, add new and return
   if(entry == nullptr)
   {
     q.swap(); // swap due to the nature of add_entry
-    entry = add_entry(q, proto, Seen::OUT);
+    entry = add_entry(q, proto, Seen::IN);
     entry->timeout = RTC::now() + timeout_new.count();
     return entry;
   }
 
+  printf("<Conntrack> Entry found: %s\n", entry->to_string().c_str());
+
   // if this is a reply
   if(entry->direction == Seen::OUT)
   {
+    printf("<Conntrack> Reply - ESTABLISHED\n");
     entry->direction  = Seen::BOTH;
     entry->state      = State::ESTABLISHED;
   }
@@ -112,18 +140,36 @@ Quadruple Conntrack::get_quadruple(const PacketIP4& pkt)
   return {{pkt.ip_src(), src_port}, {pkt.ip_dst(), dst_port}};
 }
 
+Quadruple Conntrack::get_quadruple_icmp(const PacketIP4& pkt)
+{
+  Expects(pkt.ip_protocol() == Protocol::ICMPv4);
+
+  struct partial_header {
+    uint8_t   type;
+    uint8_t   code;
+    uint16_t  checksum;
+    uint16_t  id;
+  };
+
+  // not sure if sufficent
+  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->id;
+
+  return {{pkt.ip_src(), id}, {pkt.ip_dst(), id}};
+}
+
 Conntrack::Entry* Conntrack::track_out(const PacketIP4& pkt)
 {
-  switch(pkt.ip_protocol())
+  const auto proto = pkt.ip_protocol();
+  switch(proto)
   {
     case Protocol::TCP:
       return tcp_out(*this, get_quadruple(pkt), pkt);
 
     case Protocol::UDP:
-      return simple_track_out(get_quadruple(pkt), pkt.ip_protocol());
+      return simple_track_out(get_quadruple(pkt), proto);
 
     case Protocol::ICMPv4:
-      return nullptr;
+      return simple_track_out(get_quadruple_icmp(pkt), proto);
 
     default:
       return nullptr;
@@ -132,16 +178,17 @@ Conntrack::Entry* Conntrack::track_out(const PacketIP4& pkt)
 
 Conntrack::Entry* Conntrack::track_in(const PacketIP4& pkt)
 {
-  switch(pkt.ip_protocol())
+  const auto proto = pkt.ip_protocol();
+  switch(proto)
   {
     case Protocol::TCP:
       return tcp_in(*this, get_quadruple(pkt), pkt);
 
     case Protocol::UDP:
-      return simple_track_in(get_quadruple(pkt), pkt.ip_protocol());
+      return simple_track_in(get_quadruple(pkt), proto);
 
     case Protocol::ICMPv4:
-      return nullptr;
+      return simple_track_in(get_quadruple_icmp(pkt), proto);
 
     default:
       return nullptr;
@@ -164,6 +211,8 @@ Conntrack::Entry* Conntrack::add_entry(
     std::forward_as_tuple(entry->in, proto),
     std::forward_as_tuple(entry));
 
+  printf("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
+
   return entry;
 }
 
@@ -172,7 +221,7 @@ void Conntrack::remove_entry(Entry* entry)
   out_lookup.erase({entry->out, entry->proto});
   in_lookup.erase({entry->in, entry->proto});
 
-  on_close(entry);
+  if(on_close) on_close(entry);
 }
 
 }
