@@ -246,6 +246,11 @@ void Node::perform_active_check()
         // signal change in pool
         this->pool_signal();
       }
+      else {
+        // if no periodic check is being done right now,
+        // start doing it (after initial delay)
+        this->restart_active_check();
+      }
     });
   } catch (std::exception& e) {
     // do nothing, because might just be eph.ports used up
@@ -296,12 +301,12 @@ void Node::connect()
       this->pool.push_back(conn);
       // stop any active check
       this->stop_active_check();
+      // signal change in pool
+      this->pool_signal();
     }
     else {
-      this->perform_active_check();
+      this->restart_active_check();
     }
-    // signal change in pool
-    this->pool_signal();
   });
 }
 tcp_ptr Node::get_connection()
