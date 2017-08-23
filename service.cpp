@@ -45,7 +45,7 @@ void Service::ready()
     //{{10,0,0,1}, 6001}, {{10,0,0,1}, 6002},
     //{{10,0,0,1}, 6003}, {{10,0,0,1}, 6004}
   };
-  balancer = new Balancer(inc, 80, out, nodes, 25);
+  balancer = new Balancer(inc, 80, out, nodes);
 
   Timers::periodic(1s, STATS_PERIOD, print_stats);
 }
@@ -97,7 +97,6 @@ void print_stats(int)
   static rolling_avg<5, int64_t> avg_growth;
   static rolling_avg<5, int> avg_session;
   static rolling_avg<5, int> avg_poolsize;
-  static rolling_avg<5, int> avg_poolconn;
   static rolling_avg<5, int> avg_waiting;
 
   const auto& nodes = balancer->nodes;
@@ -108,17 +107,14 @@ void print_stats(int)
 
   avg_session.push(nodes.open_sessions());
   avg_poolsize.push(nodes.pool_size());
-  avg_poolconn.push(nodes.pool_connections());
   avg_waiting.push(balancer->wait_queue());
 
   printf("*** [%s] ***\n", now().c_str());
   printf("Total %ld Gr %+ld  Sess %d Wait %d  Pool %d Wait %d\n",
          totals, growth, nodes.open_sessions(), balancer->wait_queue(),
-         nodes.pool_connecting(), nodes.pool_connections());
-  printf("Avg.sessions=%.2f Avg.growth=%.2f Avg.waitq=%.2f\n",
-          avg_session.avg(), avg_growth.avg(), avg_waiting.avg());
-  printf("Avg.pool size=%.2f Avg.pool conns=%.2f\n",
-          avg_poolsize.avg(), avg_poolconn.avg());
+         nodes.pool_connecting(), nodes.pool_size());
+  printf("Avg.sessions=%.2f Avg.growth=%.2f Avg.waitq=%.2f Avg.pool=%.2f\n",
+          avg_session.avg(), avg_growth.avg(), avg_waiting.avg(), avg_poolsize.avg());
   // heap statistics
   print_heap_info();
 }

@@ -6,11 +6,13 @@
 
 #define INITIAL_SESSION_TIMEOUT   5s
 #define ROLLING_SESSION_TIMEOUT  60s
+#define CONNECT_WAIT_PERIOD       5s
+#define CONNECT_RETRY_WAIT_TIME   5s
 
 typedef net::Inet<net::IP4> netstack_t;
 typedef net::tcp::Connection_ptr tcp_ptr;
 typedef std::vector< std::pair<net::tcp::buffer_t, size_t> > queue_vector_t;
-typedef delegate<void(bool)> pool_signal_t;
+typedef delegate<void()> pool_signal_t;
 
 struct Waiting {
   Waiting(tcp_ptr);
@@ -40,12 +42,10 @@ struct Node {
   int  connection_attempts() const noexcept { return this->connecting; }
   int  pool_size() const noexcept { return pool.size(); }
 
-  void maintain_pool(const int);
+  void    connect();
   tcp_ptr get_connection();
 
 private:
-  void connect();
-
   netstack_t& stack;
   net::Socket addr;
   pool_signal_t pool_signal;
@@ -54,35 +54,34 @@ private:
 };
 
 struct Nodes {
-  Nodes(const int POOL);
+  Nodes() {}
 
   int64_t total_sessions() const;
   int open_sessions() const;
-  int pool_size() const;
   int pool_connecting() const;
-  int pool_connections() const;
+  int pool_size() const;
 
   template <typename... Args>
   void add_node(Args&&... args);
+  void create_connections(int total);
   bool assign(tcp_ptr, queue_vector_t);
-  void maintain_pools();
   void create_session(tcp_ptr inc, tcp_ptr out);
   Session& get_session(int);
   void close_session(int);
 
 private:
   std::vector<Node> nodes;
-  const int POOL_SIZE;
   int64_t   session_total = 0;
   int       session_cnt = 0;
-  int       iterator = -1;
+  int       conn_iterator = 0;
+  int       algo_iterator = 0;
   std::vector<Session> sessions;
   std::vector<int> free_sessions;
 };
 
 struct Balancer {
   Balancer(netstack_t& in, uint16_t port,
-           netstack_t& out, std::vector<net::Socket> nodes, int max_pool);
+           netstack_t& out, std::vector<net::Socket> nodes);
 
   void incoming(tcp_ptr);
   int  wait_queue() const;
@@ -91,7 +90,8 @@ struct Balancer {
   Nodes nodes;
 
 private:
-  void handle_waitq(bool result);
+  void handle_connections();
+  void handle_queue();
 
   std::deque<Waiting> queue;
 };
