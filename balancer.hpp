@@ -5,9 +5,9 @@
 #define MAX_OUTGOING_ATTEMPTS 100
 
 #define ACTIVE_RETRY_PERIOD      15s
-#define ACTIVE_CHECK_PERIOD      60s
+#define ACTIVE_CHECK_PERIOD     120s
 #define CONNECT_THROW_PERIOD     20s
-#define CONNECT_WAIT_PERIOD       5s
+#define CONNECT_WAIT_PERIOD      10s
 #define CONNECT_RETRY_WAIT_TIME   5s
 #define INITIAL_SESSION_TIMEOUT   5s
 #define ROLLING_SESSION_TIMEOUT  60s
@@ -63,13 +63,19 @@ private:
 };
 
 struct Nodes {
+  typedef std::deque<Node> nodevec_t;
+  typedef nodevec_t::iterator iterator;
+  typedef nodevec_t::const_iterator const_iterator;
   Nodes() {}
 
+  size_t   size() const noexcept;
+  const_iterator begin() const;
+  const_iterator end() const;
+
+  int32_t open_sessions() const;
   int64_t total_sessions() const;
-  int open_sessions() const;
-  int pool_connecting() const;
-  int pool_size() const;
-  int size() const noexcept { return nodes.size(); }
+  int  pool_connecting() const;
+  int  pool_size() const;
 
   template <typename... Args>
   void add_node(Args&&... args);
@@ -80,7 +86,7 @@ struct Nodes {
   void close_session(int);
 
 private:
-  std::deque<Node> nodes;
+  nodevec_t nodes;
   int64_t   session_total = 0;
   int       session_cnt = 0;
   int       conn_iterator = 0;

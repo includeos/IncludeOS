@@ -52,10 +52,12 @@ void Balancer::handle_queue()
 }
 void Balancer::handle_connections()
 {
-  int estimate = queue.size() - (nodes.pool_connecting() + nodes.pool_size());
+  int np_connecting = nodes.pool_connecting();
+  int estimate = queue.size() - (np_connecting + nodes.pool_size());
+  estimate = std::min(estimate, MAX_OUTGOING_ATTEMPTS);
+  estimate = std::max(0, estimate - np_connecting);
   if (estimate > 0)
   {
-    estimate = std::min(nodes.pool_connecting() + estimate, MAX_OUTGOING_ATTEMPTS);
     try {
       // create more outgoing connections
       nodes.create_connections(estimate);
@@ -108,8 +110,11 @@ void Nodes::create_connections(int total)
       conn_iterator = (conn_iterator + 1) % nodes.size();
       if (nodes[conn_iterator].is_active()) break;
     }
-    // try to connect whether active or not
-    nodes[conn_iterator].connect();
+    // only connect if node is determined active, to prevent
+    // building up connect attempts on just one node
+    if (nodes[conn_iterator].is_active()) {
+      nodes[conn_iterator].connect();
+    }
   }
 }
 bool Nodes::assign(tcp_ptr conn, queue_vector_t& readq)
@@ -136,6 +141,15 @@ bool Nodes::assign(tcp_ptr conn, queue_vector_t& readq)
   }
   return false;
 }
+size_t Nodes::size() const noexcept {
+  return nodes.size();
+}
+Nodes::const_iterator Nodes::begin() const {
+  return nodes.cbegin();
+}
+Nodes::const_iterator Nodes::end() const {
+  return nodes.cend();
+}
 int Nodes::pool_connecting() const {
   int count = 0;
   for (auto& node : nodes) count += node.connection_attempts();
@@ -146,11 +160,11 @@ int Nodes::pool_size() const {
   for (auto& node : nodes) count += node.pool_size();
   return count;
 }
+int32_t Nodes::open_sessions() const {
+  return session_cnt;
+}
 int64_t Nodes::total_sessions() const {
   return session_total;
-}
-int Nodes::open_sessions() const {
-  return session_cnt;
 }
 void Nodes::create_session(tcp_ptr client, tcp_ptr outgoing)
 {
@@ -221,18 +235,16 @@ void Node::perform_active_check()
   try {
     this->stack.tcp().connect(this->addr,
     [this] (auto conn) {
-      bool new_active = (conn != nullptr);
-      if (this->active != new_active) {
-        printf("*** Node %s now %s\n",
-              addr.to_string().c_str(), (new_active ? "online" : "offline"));
-      }
-      this->active = new_active;
+      this->active = (conn != nullptr);
       // if we are connected, its alive
       if (conn != nullptr)
       {
-        conn->close();
+        // hopefully put this to good use
+        pool.push_back(conn);
         // stop any active check
         this->stop_active_check();
+        // signal change in pool
+        this->pool_signal();
       }
     });
   } catch (std::exception& e) {
@@ -286,7 +298,7 @@ void Node::connect()
       this->stop_active_check();
     }
     else {
-      this->restart_active_check();
+      this->perform_active_check();
     }
     // signal change in pool
     this->pool_signal();

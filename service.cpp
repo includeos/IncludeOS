@@ -32,8 +32,6 @@ void Service::start() {}
 
 void Service::ready()
 {
-  // uplink
-  auto& upl = net::Super_stack::get<net::IP4>(NET_UPLINK);
   // incoming
   auto& inc = net::Super_stack::get<net::IP4>(NET_INCOMING);
   // outgoing
@@ -94,27 +92,25 @@ struct rolling_avg {
 void print_stats(int)
 {
   static int64_t last = 0;
-  static rolling_avg<5, int64_t> avg_growth;
-  static rolling_avg<5, int> avg_waiting;
-  static rolling_avg<5, int> avg_session;
-  static rolling_avg<5, int> avg_poolsize;
-
   const auto& nodes = balancer->nodes;
 
   auto totals = nodes.total_sessions();
   auto growth = totals - last;  last = totals;
-  avg_growth.push(growth);
-
-  avg_waiting.push(balancer->wait_queue());
-  avg_session.push(nodes.open_sessions());
-  avg_poolsize.push(nodes.pool_size());
 
   printf("*** [%s] ***\n", now().c_str());
   printf("Total %ld Gr %+ld  Sess %d Wait %d  Pool %d Wait %d\n",
          totals, growth, nodes.open_sessions(), balancer->wait_queue(),
          nodes.pool_size(), nodes.pool_connecting());
-  printf("Avg.sessions=%.2f Avg.growth=%.2f Avg.waitq=%.2f Avg.pool=%.2f\n",
-          avg_session.avg(), avg_growth.avg(), avg_waiting.avg(), avg_poolsize.avg());
+  // node information
+  int n = 0;
+  for (auto& node : nodes) {
+    printf("[%s %s P=%d C=%d]  ", node.address().to_string().c_str(),
+        (node.is_active() ? "ONL" : "OFF"),
+        node.pool_size(), node.connection_attempts());
+    if (++n == 2) { n = 0; printf("\n"); }
+  }
+  if (n > 0) printf("\n");
+
   // heap statistics
   print_heap_info();
 }
