@@ -2,6 +2,10 @@
 #include <net/inet4>
 #define READQ_PER_CLIENT    4096
 #define MAX_READQ_PER_NODE  8192
+#define READQ_FOR_NODES     8192
+
+#define INITIAL_SESSION_TIMEOUT   5s
+#define ROLLING_SESSION_TIMEOUT  60s
 
 typedef net::Inet<net::IP4> netstack_t;
 typedef net::tcp::Connection_ptr tcp_ptr;
@@ -19,9 +23,11 @@ struct Waiting {
 struct Nodes;
 struct Session {
   Session(Nodes&, int idx, tcp_ptr inc, tcp_ptr out);
+  void handle_timeout();
 
   Nodes&    parent;
   const int self;
+  int       timeout_timer;
   tcp_ptr   incoming;
   tcp_ptr   outgoing;
 };

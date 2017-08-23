@@ -154,6 +154,12 @@ Session& Nodes::get_session(int idx)
 void Nodes::close_session(int idx)
 {
   auto& session = get_session(idx);
+  // disable timeout timer
+  if (session.timeout_timer != Timers::UNUSED_ID) {
+    Timers::stop(session.timeout_timer);
+    session.timeout_timer = Timers::UNUSED_ID;
+  }
+  // close connections
   if (session.incoming != nullptr) {
     auto conn = std::move(session.incoming);
     conn->reset_callbacks();
@@ -164,6 +170,7 @@ void Nodes::close_session(int idx)
     conn->reset_callbacks();
     if (conn->is_connected()) conn->close();
   }
+  // free session
   free_sessions.push_back(session.self);
   session_cnt--;
   LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
@@ -243,16 +250,22 @@ tcp_ptr Node::get_connection()
 Session::Session(Nodes& n, int idx, tcp_ptr inc, tcp_ptr out)
     : parent(n), self(idx), incoming(inc), outgoing(out)
 {
+  using namespace std::chrono;
+  this->timeout_timer = Timers::oneshot(INITIAL_SESSION_TIMEOUT,
+  [&nodes = n, idx] (int) {
+    nodes.close_session(idx);
+  });
   incoming->on_read(READQ_PER_CLIENT,
   [&nodes = n, idx] (auto buf, size_t len) mutable {
-      auto& remote = nodes.get_session(idx).outgoing;
-      remote->write(std::move(buf), len);
+      auto& session = nodes.get_session(idx);
+      session.handle_timeout();
+      session.outgoing->write(std::move(buf), len);
   });
   incoming->on_close(
   [&nodes = n, idx] () mutable {
       nodes.close_session(idx);
   });
-  outgoing->on_read(4096,
+  outgoing->on_read(READQ_FOR_NODES,
   [&nodes = n, idx] (auto buf, size_t len) mutable {
       auto& remote = nodes.get_session(idx).incoming;
       remote->write(std::move(buf), len);
@@ -260,5 +273,16 @@ Session::Session(Nodes& n, int idx, tcp_ptr inc, tcp_ptr out)
   outgoing->on_close(
   [&nodes = n, idx] () mutable {
       nodes.close_session(idx);
+  });
+}
+void Session::handle_timeout()
+{
+  // stop old timer
+  Timers::stop(this->timeout_timer);
+  // create new timeout
+  using namespace std::chrono;
+  this->timeout_timer = Timers::oneshot(ROLLING_SESSION_TIMEOUT,
+  [&nodes = parent, idx = self] (int) {
+    nodes.close_session(idx);
   });
 }
