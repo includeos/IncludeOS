@@ -95,9 +95,9 @@ void print_stats(int)
 {
   static int64_t last = 0;
   static rolling_avg<5, int64_t> avg_growth;
+  static rolling_avg<5, int> avg_waiting;
   static rolling_avg<5, int> avg_session;
   static rolling_avg<5, int> avg_poolsize;
-  static rolling_avg<5, int> avg_waiting;
 
   const auto& nodes = balancer->nodes;
 
@@ -105,14 +105,14 @@ void print_stats(int)
   auto growth = totals - last;  last = totals;
   avg_growth.push(growth);
 
+  avg_waiting.push(balancer->wait_queue());
   avg_session.push(nodes.open_sessions());
   avg_poolsize.push(nodes.pool_size());
-  avg_waiting.push(balancer->wait_queue());
 
   printf("*** [%s] ***\n", now().c_str());
   printf("Total %ld Gr %+ld  Sess %d Wait %d  Pool %d Wait %d\n",
          totals, growth, nodes.open_sessions(), balancer->wait_queue(),
-         nodes.pool_connecting(), nodes.pool_size());
+         nodes.pool_size(), nodes.pool_connecting());
   printf("Avg.sessions=%.2f Avg.growth=%.2f Avg.waitq=%.2f Avg.pool=%.2f\n",
           avg_session.avg(), avg_growth.avg(), avg_waiting.avg(), avg_poolsize.avg());
   // heap statistics

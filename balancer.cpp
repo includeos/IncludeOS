@@ -7,6 +7,8 @@
 #define LBOUT(fmt, ...) /** **/
 #endif
 
+using namespace std::chrono;
+
 Balancer::Balancer(
        netstack_t& incoming, uint16_t in_port,
        netstack_t& outgoing, std::vector<net::Socket> nodelist)
@@ -17,9 +19,8 @@ Balancer::Balancer(
   }
 
   netin.tcp().listen(in_port,
-  [this] (tcp_ptr conn) {
-    if (conn == nullptr) return;
-    this->incoming(conn);
+  [this] (auto conn) {
+    if (conn != nullptr) this->incoming(conn);
   });
 }
 
@@ -30,20 +31,19 @@ void Balancer::incoming(tcp_ptr conn)
 {
     queue.emplace_back(conn);
     LBOUT("Queueing connection (q=%lu)\n", queue.size());
-    this->handle_queue();
+    // see if LB needs more connections out
+    this->handle_connections();
 }
 void Balancer::handle_queue()
 {
   // check waitq
   while (nodes.pool_size() > 0 && queue.empty() == false)
   {
-    auto item = std::move(queue.front());
-    queue.pop_front();
-    if (item.conn->is_connected()) {
+    auto& client = queue.front();
+    if (client.conn->is_connected()) {
       // NOTE: explicitly want to copy buffers
-      if (nodes.assign(item.conn, item.buffers) == false) {
-        queue.push_back(std::move(item));
-        break;
+      if (nodes.assign(client.conn, client.readq)) {
+        queue.pop_front();
       }
     }
   } // waitq check
@@ -55,11 +55,24 @@ void Balancer::handle_connections()
   int estimate = queue.size() - (nodes.pool_connecting() + nodes.pool_size());
   if (estimate > 0)
   {
-    const int MAX_ATTEMPTS = 100;
-    estimate = std::min(nodes.pool_connecting() + estimate, MAX_ATTEMPTS);
-    nodes.create_connections(estimate);
-  }
-}
+    estimate = std::min(nodes.pool_connecting() + estimate, MAX_OUTGOING_ATTEMPTS);
+    try {
+      // create more outgoing connections
+      nodes.create_connections(estimate);
+    }
+    catch (std::exception& e)
+    {
+      if (this->rethrow_timer != Timers::UNUSED_ID)
+          Timers::stop(this->rethrow_timer);
+      // assuming the failure is due to not enough eph. ports
+      this->rethrow_timer = Timers::oneshot(CONNECT_THROW_PERIOD,
+      [this] (int) {
+          this->rethrow_timer = Timers::UNUSED_ID;
+          this->handle_connections();
+      });
+    }
+  } // estimate
+} // handle_connections()
 
 Waiting::Waiting(tcp_ptr incoming)
   : conn(incoming), total(0)
@@ -75,21 +88,31 @@ Waiting::Waiting(tcp_ptr incoming)
     }
     else {
       LBOUT("*** Queued %lu bytes\n", len);
-      buffers.emplace_back(buf, len);
+      readq.emplace_back(buf, len);
     }
   });
 }
 
+template <typename... Args>
+inline void Nodes::add_node(Args&&... args) {
+  nodes.emplace_back(std::forward<Args> (args)...);
+}
 void Nodes::create_connections(int total)
 {
   // temporary iterator
   for (int i = 0; i < total; i++)
   {
+    // look for next active node up to *size* times
+    for (size_t i = 0; i < nodes.size(); i++)
+    {
+      conn_iterator = (conn_iterator + 1) % nodes.size();
+      if (nodes[conn_iterator].is_active()) break;
+    }
+    // try to connect whether active or not
     nodes[conn_iterator].connect();
-    conn_iterator = (conn_iterator + 1) % nodes.size();
   }
 }
-bool Nodes::assign(tcp_ptr conn, queue_vector_t readq)
+bool Nodes::assign(tcp_ptr conn, queue_vector_t& readq)
 {
   for (size_t i = 0; i < nodes.size(); i++)
   {
@@ -153,10 +176,8 @@ void Nodes::close_session(int idx)
 {
   auto& session = get_session(idx);
   // disable timeout timer
-  if (session.timeout_timer != Timers::UNUSED_ID) {
-    Timers::stop(session.timeout_timer);
-    session.timeout_timer = Timers::UNUSED_ID;
-  }
+  Timers::stop(session.timeout_timer);
+  session.timeout_timer = Timers::UNUSED_ID;
   // close connections
   if (session.incoming != nullptr) {
     auto conn = std::move(session.incoming);
@@ -174,6 +195,57 @@ void Nodes::close_session(int idx)
   LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
 }
 
+Node::Node(netstack_t& stk, net::Socket a, pool_signal_t sig)
+  : stack(stk), addr(a), pool_signal(sig)
+{
+  // periodically connect to node and determine if active
+  // however, perform first check immediately
+  this->active_timer = Timers::periodic(0s, ACTIVE_CHECK_PERIOD,
+  [this] (int) {
+    this->perform_active_check();
+  });
+}
+void Node::restart_active_check()
+{
+  if (this->active_timer == Timers::UNUSED_ID)
+  {
+    this->active_timer = Timers::periodic(
+      ACTIVE_RETRY_PERIOD, ACTIVE_CHECK_PERIOD,
+    [this] (int) {
+      this->perform_active_check();
+    });
+  }
+}
+void Node::perform_active_check()
+{
+  try {
+    this->stack.tcp().connect(this->addr,
+    [this] (auto conn) {
+      bool new_active = (conn != nullptr);
+      if (this->active != new_active) {
+        printf("*** Node %s now %s\n",
+              addr.to_string().c_str(), (new_active ? "online" : "offline"));
+      }
+      this->active = new_active;
+      // if we are connected, its alive
+      if (conn != nullptr)
+      {
+        conn->close();
+        // stop any active check
+        this->stop_active_check();
+      }
+    });
+  } catch (std::exception& e) {
+    // do nothing, because might just be eph.ports used up
+  }
+}
+void Node::stop_active_check()
+{
+  if (this->active_timer != Timers::UNUSED_ID) {
+    Timers::stop(this->active_timer);
+    this->active_timer = Timers::UNUSED_ID;
+  }
+}
 void Node::connect()
 {
   auto outgoing = this->stack.tcp().connect(this->addr);
@@ -188,11 +260,12 @@ void Node::connect()
     // no longer connecting
     assert(this->connecting > 0);
     this->connecting --;
-    // retry connection?
-    Timers::oneshot(CONNECT_RETRY_WAIT_TIME,
-      [] (this) {
-        this->connect();
-      });
+    // set as inactive
+    this->active = false;
+    // restart active check
+    this->restart_active_check();
+    // signal change in pool
+    this->pool_signal();
   });
   // add connection to pool on success, otherwise.. retry
   outgoing->on_connect(
@@ -204,18 +277,19 @@ void Node::connect()
     assert(this->connecting > 0);
     this->connecting --;
     // connection may be null, apparently
-    if (conn != nullptr)
+    if (conn != nullptr && conn->is_connected())
     {
       LBOUT("Connected to %s  (%ld total)\n",
               addr.to_string().c_str(), pool.size());
       this->pool.push_back(conn);
-      // signal change in pool
-      this->pool_signal();
+      // stop any active check
+      this->stop_active_check();
     }
     else {
-      // signal change in pool
-      this->pool_signal();
+      this->restart_active_check();
     }
+    // signal change in pool
+    this->pool_signal();
   });
 }
 tcp_ptr Node::get_connection()
@@ -234,7 +308,6 @@ tcp_ptr Node::get_connection()
 Session::Session(Nodes& n, int idx, tcp_ptr inc, tcp_ptr out)
     : parent(n), self(idx), incoming(inc), outgoing(out)
 {
-  using namespace std::chrono;
   this->timeout_timer = Timers::oneshot(INITIAL_SESSION_TIMEOUT,
   [&nodes = n, idx] (int) {
     nodes.close_session(idx);
@@ -265,7 +338,6 @@ void Session::handle_timeout()
   // stop old timer
   Timers::stop(this->timeout_timer);
   // create new timeout
-  using namespace std::chrono;
   this->timeout_timer = Timers::oneshot(ROLLING_SESSION_TIMEOUT,
   [&nodes = parent, idx = self] (int) {
     nodes.close_session(idx);
