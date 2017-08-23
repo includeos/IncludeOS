@@ -27,14 +27,7 @@
 
 void Service::start(const std::string&)
 {
-  MYINFO("booted");
-
-  // Print some useful netstats every 30 secs
-  Timers::periodic(5s, 30s, [] (uint32_t) {
-      auto& inet = net::Inet4::stack();
-      MYINFO("TCP STATUS:\n%s\n", inet.tcp().status().c_str());
-    });
-
+  MYINFO("Running CPUID...");
   auto detected_features = CPUID::detect_features_str();
 
   MYINFO("Detected %lu CPU features:", detected_features.size());

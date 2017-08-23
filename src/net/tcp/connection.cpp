@@ -143,6 +143,10 @@ size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) 
 
 void Connection::write(Chunk buffer)
 {
+  if (UNLIKELY(buffer.size() == 0)) {
+    throw TCP_error("Can't write zero bytes to TCP stream");
+  }
+
   // Only write if allowed
   if(state_->is_writable())
   {
@@ -199,9 +203,9 @@ void Connection::offer(size_t& packets)
   debug2("<Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
         packets, writeq.size(), usable_window());
 
-  if(can_send() and not queued_)
+  if (this->can_send() and not this->is_queued())
   {
-    host_.queue_offer(retrieve_shared());
+    host_.queue_offer(*this);
   }
 }
 
@@ -265,10 +269,13 @@ void Connection::close() {
 
 void Connection::receive_disconnect() {
   Expects(read_request and read_request->buffer.buffer());
-  auto& buf = read_request->buffer;
 
-  if(read_request->callback)
-    read_request->callback(buf.buffer(), buf.size());
+  if(read_request->callback) {
+    // TODO: consider adding back when SACK is complete
+    //auto& buf = read_request->buffer;
+    //if (buf.size() > 0 && buf.missing() == 0)
+    //    read_request->callback(buf.buffer(), buf.size());
+  }
 }
 
 void Connection::segment_arrived(Packet_ptr incoming)

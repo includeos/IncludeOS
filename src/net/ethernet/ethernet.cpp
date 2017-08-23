@@ -1,4 +1,4 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
+// This file is a part of the IncludeOS unikernel - wwbroadw.includeos.org
 //
 // Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
@@ -117,6 +117,21 @@ namespace net {
 
     // Stat increment packets received
     packets_rx_++;
+
+    if (UNLIKELY(eth->dest() != mac_
+                 and eth->dest() != MAC::BROADCAST
+                 and eth->dest() != MAC::MULTICAST
+                 and eth->dest() != MAC::IPv6mcast_01
+                 and eth->dest() != MAC::IPv6mcast_02)){
+
+      if (forward_) {
+        forward_(std::move(pckt));
+      } else {
+        packets_dropped_ ++;
+      }
+
+      return;
+    }
 
     switch(eth->type()) {
     case Ethertype::IP4:

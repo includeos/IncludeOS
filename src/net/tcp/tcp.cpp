@@ -489,15 +489,25 @@ void TCP::request_offer(Connection& conn) {
   debug2("<TCP::request_offer> %s requestin offer: uw=%u rem=%u\n",
     conn.to_string().c_str(), conn.usable_window(), conn.sendq_remaining());
 
+  // Note: Must be called even if packets is 0
+  // because the connectoin is responsible for requeuing itself (see Connection::offer)
   conn.offer(packets);
 }
 
-void TCP::queue_offer(Connection_ptr conn)
+
+void TCP::queue_offer(Connection& conn)
 {
-  if(not conn->is_queued() and conn->can_send())
+  if(not conn.is_queued() and conn.can_send())
   {
-    debug("<TCP::queue_offer> %s queued\n", conn->to_string().c_str());
-    writeq.push_back(conn);
-    conn->set_queued(true);
+    try {
+      debug("<TCP::queue_offer> %s queued\n", conn.to_string().c_str());
+      writeq.push_back(conn.retrieve_shared());
+      conn.set_queued(true);
+    }
+    catch (std::exception& e) {
+      printf("ERROR: Could not find connection for %p: %s\n",
+            &conn, conn.to_string().c_str());
+      throw;
+    }
   }
 }

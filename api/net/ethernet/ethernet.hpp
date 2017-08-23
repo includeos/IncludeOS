@@ -57,7 +57,7 @@ namespace net {
     { ip4_upstream_ = del; }
 
     /** Delegate upstream IPv4 upstream. */
-    upstream& ip4_upstream()
+    upstream ip4_upstream()
     { return ip4_upstream_; }
 
     /** Delegate upstream IPv6 upstream. */
@@ -68,8 +68,14 @@ namespace net {
     void set_arp_upstream(upstream del)
     { arp_upstream_ = del; }
 
-    upstream& arp_upstream()
+    upstream arp_upstream()
     { return arp_upstream_; }
+
+    void set_packet_forwarding(upstream fwd)
+    { forward_ = fwd; }
+
+    upstream forward_delg()
+    { return forward_; }
 
     /** Delegate downstream */
     void set_physical_downstream(downstream del)
@@ -114,6 +120,9 @@ namespace net {
     upstream ip4_upstream_ = nullptr;
     upstream ip6_upstream_ = nullptr;
     upstream arp_upstream_ = nullptr;
+
+    /** Forward - e.g. for bridging */
+    upstream forward_ = nullptr;
 
     /** Downstream OUTPUT connection */
     downstream physical_downstream_ = [](Packet_ptr){};
