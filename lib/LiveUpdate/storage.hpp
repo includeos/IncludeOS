@@ -1,7 +1,22 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2017 IncludeOS AS, Oslo, Norway
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 /**
  * Master thesis
  * by Alf-Andre Walla 2016-2017
- * 
+ *
 **/
 #pragma once
 #include <cstdint>
@@ -45,12 +60,12 @@ struct storage_entry
 {
   storage_entry(int16_t type, uint16_t id, int length);
   storage_entry(int16_t type);
-  
+
   int16_t   type = TYPE_END;
   uint16_t  id   = 0;
   int       len  = 0;
   char      vla[0];
-  
+
   int length() const noexcept {
     if (type != TYPE_INTEGER)
         return len;
@@ -66,7 +81,7 @@ struct storage_entry
   const char* data() const noexcept {
     return vla;
   }
-  
+
   storage_entry* next() const noexcept;
   uint32_t       checksum() const;
 };
@@ -75,7 +90,7 @@ struct storage_header
 {
   typedef delegate<int(char*)> construct_func;
   static const uint64_t  LIVEUPD_MAGIC;
-  
+
   size_t get_length() const noexcept {
     return this->length;
   }
@@ -85,9 +100,9 @@ struct storage_header
   uint32_t get_entries() const noexcept {
     return this->entries;
   }
-  
+
   storage_header();
-  
+
   void add_marker(uint16_t id);
   void add_int   (uint16_t id, int value);
   void add_string(uint16_t id, const std::string& data);
@@ -97,28 +112,28 @@ struct storage_header
   void add_vector(uint16_t, const void*, size_t cnt, size_t esize);
   void add_string_vector(uint16_t id, const std::vector<std::string>& vec);
   void add_end();
-  
+
   storage_entry* begin();
   storage_entry* next(storage_entry*);
-  
+
   template <typename... Args>
   storage_entry& create_entry(Args&&... args);
-  
+
   inline storage_entry&
   var_entry(int16_t type, uint16_t id, construct_func func);
-  
+
   void append_eof() noexcept {
     ((storage_entry*) &vla[length])->type = TYPE_END;
   }
   void finalize();
   bool validate() noexcept;
-  
+
   // zero out the entire header and its data, for extra security
   void zero();
-  
+
 private:
   uint32_t generate_checksum() noexcept;
-  
+
   uint64_t magic;
   uint32_t crc;
   uint32_t entries = 0;
