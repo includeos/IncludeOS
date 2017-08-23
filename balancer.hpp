@@ -3,12 +3,12 @@
 #define MAX_READQ_PER_NODE   8192
 #define READQ_FOR_NODES      8192
 #define MAX_OUTGOING_ATTEMPTS 100
-
-#define ACTIVE_RETRY_PERIOD      15s
-#define ACTIVE_CHECK_PERIOD     120s
+// checking if nodes are dead or not
+#define ACTIVE_INITIAL_PERIOD     8s
+#define ACTIVE_CHECK_PERIOD      30s
+// connection attempt timeouts
+#define CONNECT_TIMEOUT          10s
 #define CONNECT_THROW_PERIOD     20s
-#define CONNECT_WAIT_PERIOD      10s
-#define CONNECT_RETRY_WAIT_TIME   5s
 #define INITIAL_SESSION_TIMEOUT   5s
 #define ROLLING_SESSION_TIMEOUT  60s
 

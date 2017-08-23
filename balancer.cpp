@@ -52,20 +52,24 @@ void Balancer::handle_queue()
 }
 void Balancer::handle_connections()
 {
+  // stop any rethrow timer since this is a de-facto retry
+  if (this->rethrow_timer != Timers::UNUSED_ID) {
+      Timers::stop(this->rethrow_timer);
+      this->rethrow_timer = Timers::UNUSED_ID;
+  }
+  // calculating number of connection attempts to create
   int np_connecting = nodes.pool_connecting();
   int estimate = queue.size() - (np_connecting + nodes.pool_size());
   estimate = std::min(estimate, MAX_OUTGOING_ATTEMPTS);
   estimate = std::max(0, estimate - np_connecting);
+  // create more outgoing connections
   if (estimate > 0)
   {
     try {
-      // create more outgoing connections
       nodes.create_connections(estimate);
     }
     catch (std::exception& e)
     {
-      if (this->rethrow_timer != Timers::UNUSED_ID)
-          Timers::stop(this->rethrow_timer);
       // assuming the failure is due to not enough eph. ports
       this->rethrow_timer = Timers::oneshot(CONNECT_THROW_PERIOD,
       [this] (int) {
@@ -224,7 +228,7 @@ void Node::restart_active_check()
   if (this->active_timer == Timers::UNUSED_ID)
   {
     this->active_timer = Timers::periodic(
-      ACTIVE_RETRY_PERIOD, ACTIVE_CHECK_PERIOD,
+      ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
     [this] (int) {
       this->perform_active_check();
     });
@@ -269,7 +273,7 @@ void Node::connect()
   // connecting to node atm.
   this->connecting++;
   // retry timer when connect takes too long
-  int fail_timer = Timers::oneshot(CONNECT_WAIT_PERIOD,
+  int fail_timer = Timers::oneshot(CONNECT_TIMEOUT,
   [this, outgoing] (int)
   {
     // close connection
