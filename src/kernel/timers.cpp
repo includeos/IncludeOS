@@ -275,8 +275,6 @@ void Timers::timers_handler()
 }
 static void sched_timer(duration_t when, Timers::id_t id)
 {
-  assert(when != microseconds::zero());
-
   auto& system = get();
   system.scheduled.
     emplace(std::piecewise_construct,
