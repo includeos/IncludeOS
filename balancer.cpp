@@ -11,9 +11,10 @@ using namespace std::chrono;
 
 Balancer::Balancer(
        netstack_t& incoming, uint16_t in_port,
-       netstack_t& outgoing, std::vector<net::Socket> nodelist)
-  : netin(incoming), nodes()
+       netstack_t& outgoing)
+  : nodes(), netin(incoming)
 {
+  auto nodelist = parse_node_confg();
   for (auto& addr : nodelist) {
     nodes.add_node(outgoing, addr, pool_signal_t{this, &Balancer::handle_queue});
   }
@@ -99,10 +100,6 @@ Waiting::Waiting(tcp_ptr incoming)
   });
 }
 
-template <typename... Args>
-inline void Nodes::add_node(Args&&... args) {
-  nodes.emplace_back(std::forward<Args> (args)...);
-}
 void Nodes::create_connections(int total)
 {
   // temporary iterator

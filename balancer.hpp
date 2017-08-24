@@ -95,19 +95,23 @@ private:
 };
 
 struct Balancer {
-  Balancer(netstack_t& in, uint16_t port,
-           netstack_t& out, std::vector<net::Socket> nodes);
+  Balancer(netstack_t& in, uint16_t port, netstack_t& out);
 
-  void incoming(tcp_ptr);
   int  wait_queue() const;
-
-  netstack_t& netin;
   Nodes nodes;
 
 private:
+  void incoming(tcp_ptr);
   void handle_connections();
   void handle_queue();
+  std::vector<net::Socket> parse_node_confg();
 
+  netstack_t& netin;
   std::deque<Waiting> queue;
   int rethrow_timer = -1;
 };
+
+template <typename... Args>
+inline void Nodes::add_node(Args&&... args) {
+  nodes.emplace_back(std::forward<Args> (args)...);
+}
