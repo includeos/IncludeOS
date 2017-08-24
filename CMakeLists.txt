@@ -15,7 +15,7 @@ set(BINARY       "microlb")
 set(SOURCES
   service.cpp
   balancer.cpp
-  config.cpp
+  autoconf.cpp
   )
 
 # DRIVERS / PLUGINS:

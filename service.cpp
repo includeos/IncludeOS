@@ -28,6 +28,7 @@ void Service::start()
 {
   auto& inc = net::Super_stack::get<net::IP4>(NET_INCOMING);
   auto& out = net::Super_stack::get<net::IP4>(NET_OUTGOING);
+  out.tcp().set_MSL(15s);
 
   balancer = new Balancer(inc, 80, out);
 

@@ -29,6 +29,7 @@ struct Waiting {
 struct Nodes;
 struct Session {
   Session(Nodes&, int idx, tcp_ptr inc, tcp_ptr out);
+  bool is_alive() const;
   void handle_timeout();
 
   Nodes&    parent;
@@ -82,8 +83,8 @@ struct Nodes {
   void create_connections(int total);
   bool assign(tcp_ptr, queue_vector_t&);
   void create_session(tcp_ptr inc, tcp_ptr out);
-  void close_session(int, tcp_ptr);
   void close_session(int);
+  Session& get_session(int);
 
 private:
   nodevec_t nodes;
