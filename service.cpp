@@ -18,6 +18,7 @@
 #include <os>
 #include "balancer.hpp"
 static void print_stats(int);
+#define STATS_PERIOD  5s
 
 static Balancer* balancer = nullptr;
 #define NET_INCOMING  1
@@ -37,7 +38,6 @@ void Service::start()
 #include <timers>
 #include <ctime>
 using namespace std::chrono;
-#define STATS_PERIOD  5s
 
 static std::string now()
 {

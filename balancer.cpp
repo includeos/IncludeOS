@@ -32,8 +32,12 @@ void Balancer::incoming(tcp_ptr conn)
 {
     queue.emplace_back(conn);
     LBOUT("Queueing connection (q=%lu)\n", queue.size());
-    // see if LB needs more connections out
-    this->handle_connections();
+    if (nodes.pool_size() > 0)
+      // IMPORTANT: immediately handle queue
+      this->handle_queue();
+    else
+      // see if LB needs more connections out
+      this->handle_connections();
 }
 void Balancer::handle_queue()
 {
