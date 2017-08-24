@@ -16,25 +16,16 @@
 // limitations under the License.
 
 #include <os>
-#include <timers>
-#include <ctime>
-using namespace std::chrono;
-#define STATS_PERIOD  5s
+#include "balancer.hpp"
 static void print_stats(int);
 
-#include "balancer.hpp"
 static Balancer* balancer = nullptr;
-#define NET_UPLINK    0
 #define NET_INCOMING  1
 #define NET_OUTGOING  2
 
-void Service::start() {}
-
-void Service::ready()
+void Service::start()
 {
-  // incoming
   auto& inc = net::Super_stack::get<net::IP4>(NET_INCOMING);
-  // outgoing
   auto& out = net::Super_stack::get<net::IP4>(NET_OUTGOING);
 
   balancer = new Balancer(inc, 80, out);
@@ -42,6 +33,11 @@ void Service::ready()
   Timers::periodic(1s, STATS_PERIOD, print_stats);
 }
 
+/// statistics ///
+#include <timers>
+#include <ctime>
+using namespace std::chrono;
+#define STATS_PERIOD  5s
 
 static std::string now()
 {
