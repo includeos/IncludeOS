@@ -56,7 +56,6 @@ public:
         or (proto == other.proto and quad < other.quad);
     }
   };
-  using Lookup_table = std::map<Quintuple, Entry*>;
 
   /**
    * @brief      The state of the connection.
@@ -78,20 +77,19 @@ public:
    * @brief      A entry in the connection tracker (a Connection)
    */
   struct Entry {
-    Quadruple         out;
-    Quadruple         in;
+    Quadruple         first;
+    Quadruple         second;
     RTC::timestamp_t  timeout;
     Protocol          proto;
     State             state;
-    Seen              direction;
 
-    Entry(Quadruple o, Protocol p, Seen d)
-      : out(std::move(o)), in({out.dst, out.src}),
-        proto(p), state(State::NEW), direction(d)
+    Entry(Quadruple quad, Protocol p)
+      : first{std::move(quad)}, second{first.dst, first.src},
+        proto(p), state(State::NEW)
     {}
 
     bool is_mirrored() const noexcept
-    { return out.src == in.dst and out.dst == in.src; }
+    { return first.src == second.dst and first.dst == second.src; }
 
     std::string to_string() const;
 
@@ -100,7 +98,7 @@ public:
 public:
 
   /**
-   * @brief      Find the entry where the outgoing quadruple
+   * @brief      Find the entry where the quadruple
    *             with the given protocol matches.
    *
    * @param[in]  quad   The quad
@@ -108,62 +106,36 @@ public:
    *
    * @return     A matching conntrack entry (nullptr if not found)
    */
-  Entry* out(const Quadruple& quad, const Protocol proto) const;
+  Entry* get(const Quadruple& quad, const Protocol proto) const;
 
   /**
-   * @brief      Find the entry where the incoming quadruple
-   *             with the given protocol matches.
-   *
-   * @param[in]  quad   The quad
-   * @param[in]  proto  The prototype
-   *
-   * @return     A matching conntrack entry (nullptr if not found)
-   */
-  Entry* in(const Quadruple& quad, const Protocol proto) const;
-
-  /**
-   * @brief      Track a outgoing packet, updating the state of the entry.
+   * @brief      Track a packet, updating the state of the entry.
    *
    * @param[in]  pkt   The packet
    *
    * @return     The conntrack entry related to this packet.
    */
-  Entry* track_out(const PacketIP4& pkt);
+  Entry* in(const PacketIP4& pkt);
+
+  Entry* confirm(const PacketIP4& pkt);
 
   /**
-   * @brief      Track a incoming packet, updating the state of the entry.
+   * @brief      Adds an entry, mirroring the quadruple.
    *
-   * @param[in]  pkt   The packet
-   *
-   * @return     The conntrack entry related to this packet.
-   */
-  Entry* track_in(const PacketIP4& pkt);
-
-  /**
-   * @brief      Adds an entry, mirroring the outgoing quadruple.
-   *
-   * @param[in]  quad   The outgoing quadruple
+   * @param[in]  quad   The quadruple
    * @param[in]  proto  The prototype
    * @param[in]  dir    The direction the packet is going
    *
    * @return     { description_of_the_return_value }
    */
-  Entry* add_entry(const Quadruple& quad, const Protocol proto, const Seen dir);
+  Entry* add_entry(const Quadruple& quad, const Protocol proto);
+
+  void update_entry(const Protocol proto, const Quadruple& oldq, const Quadruple& newq);
 
   void remove_entry(Entry*);
 
   /**
-   * @brief      A very simple and unreliable way for tracking outgoing quintuples.
-   *
-   * @param[in]  quad   The quad
-   * @param[in]  proto  The prototype
-   *
-   * @return     The conntrack entry related to quintuple.
-   */
-  Entry* simple_track_out(Quadruple quad, const Protocol proto);
-
-  /**
-   * @brief      A very simple and unreliable way for tracking incoming quintuples.
+   * @brief      A very simple and unreliable way for tracking quintuples.
    *
    * @param[in]  quad   The quad
    * @param[in]  proto  The prototype
@@ -192,15 +164,13 @@ public:
   Timeout_duration timeout_new_tcp  {60};
   Timeout_duration timeout_est_tcp  {600};
 
-  Packet_tracker tcp_out;
   Packet_tracker tcp_in;
 
   Entry_handler on_close; // single for now
 
 private:
-  std::vector<std::unique_ptr<Entry>> entries;
-  Lookup_table out_lookup;
-  Lookup_table in_lookup;
+  using Entry_table = std::map<Quintuple, std::shared_ptr<Entry>>;
+  Entry_table entries;
 
 };
 

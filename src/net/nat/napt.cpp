@@ -23,7 +23,7 @@
 namespace net {
 namespace nat {
 
-NAPT::NAPT(const Conntrack* ct)
+NAPT::NAPT(Conntrack* ct)
   : conntrack(ct)
 {}
 
@@ -67,20 +67,23 @@ void NAPT::tcp_masq(IP4::IP_packet& p, const Stack& inet)
   auto& pkt = static_cast<tcp::Packet&>(p);
   Quadruple quad{pkt.source(), pkt.destination()};
 
-  auto* entry = conntrack->out(quad, Protocol::TCP);
-  Expects(entry);
+  auto* entry = conntrack->get(quad, Protocol::TCP);
 
-  if(entry->in.dst == entry->out.src)
+  if(not entry) return;
+
+  // If the entry is mirrored, it's not masked yet
+  if(entry->first.src == entry->second.dst)
   {
     // Generate a new port
     auto port = tcp_ports.get_next_ephemeral();
     tcp_ports.bind(port);
+    auto masq_sock = Socket{inet.ip_addr(), port};
 
-    entry->in.dst = {inet.ip_addr(), port};
+    conntrack->update_entry(Protocol::TCP, entry->second, {entry->second.src, masq_sock});
   }
 
   // static source nat
-  tcp_snat(pkt, entry->in.dst);
+  tcp_snat(pkt, entry->second.dst);
 }
 
 void NAPT::tcp_demasq(IP4::IP_packet& p, const Stack&)
@@ -89,14 +92,15 @@ void NAPT::tcp_demasq(IP4::IP_packet& p, const Stack&)
   auto& pkt = static_cast<tcp::Packet&>(p);
   Quadruple quad{pkt.source(), pkt.destination()};
 
-  auto* entry = conntrack->in(quad, Protocol::TCP);
-  Expects(entry);
+  auto* entry = conntrack->get(quad, Protocol::TCP);
+
+  if(not entry) return;
 
   // if the entry's in and out are not the same
   if(not entry->is_mirrored())
   {
     // static dest nat
-    tcp_dnat(pkt, entry->out.src);
+    tcp_dnat(pkt, entry->first.src);
   }
 }
 
@@ -109,21 +113,21 @@ void NAPT::udp_masq(IP4::IP_packet& p, const Stack& inet)
   auto dst = Socket{pkt.ip_dst(), pkt.dst_port()};
   Quadruple quad{src, dst};
 
-  auto* entry = conntrack->out(quad, Protocol::UDP);
+  auto* entry = conntrack->get(quad, Protocol::UDP);
 
   if(not entry) return;
 
-  if(entry->in.dst == entry->out.src)
+  if(entry->first.dst == entry->second.src)
   {
     // Generate a new port
     auto port = udp_ports.get_next_ephemeral();
     udp_ports.bind(port);
 
-    entry->in.dst = {inet.ip_addr(), port};
+    entry->first.dst = {inet.ip_addr(), port};
   }
 
   // static source nat
-  udp_snat(pkt, entry->in.dst);
+  udp_snat(pkt, entry->first.dst);
 }
 
 void NAPT::udp_demasq(IP4::IP_packet& p, const Stack&)
@@ -135,14 +139,15 @@ void NAPT::udp_demasq(IP4::IP_packet& p, const Stack&)
   auto dst = Socket{pkt.ip_dst(), pkt.dst_port()};
   Quadruple quad{src, dst};
 
-  auto* entry = conntrack->in(quad, Protocol::UDP);
-  Expects(entry);
+  auto* entry = conntrack->get(quad, Protocol::UDP);
+
+  if(not entry) return;
 
   // if the entry's in and out are not the same
   if(not entry->is_mirrored())
   {
     // static dest nat
-    udp_dnat(pkt, entry->out.src);
+    udp_dnat(pkt, entry->second.src);
   }
 }
 

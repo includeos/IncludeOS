@@ -37,7 +37,7 @@ public:
 
 public:
 
-  NAPT(const Conntrack* ct);
+  NAPT(Conntrack* ct);
 
   /**
    * @brief      Masquerade a packet
@@ -59,7 +59,7 @@ private:
   Port_util tcp_ports;
   Port_util udp_ports;
 
-  const Conntrack* conntrack;
+  Conntrack* conntrack;
 
   void tcp_masq(IP4::IP_packet& pkt, const Stack& inet);
 

@@ -43,7 +43,7 @@ void ip_forward(Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
     return;
   }
 
-  debug("ip_fwd %s transmitting packet to %s", ifname, route->ifname().c_str());
+  //printf("ip_fwd transmitting packet to %s\n", route->ifname().c_str());
   route->ip_obj().ship(std::move(pckt));
 }
 
@@ -56,10 +56,10 @@ void Service::start()
     { 192, 1, 0, 1 }, { 255, 255, 255, 0 }, { 10, 0, 0, 1 });
 
   auto& laptop1 = Inet4::ifconfig<2>(
-    { 10, 1, 0, 101 }, { 255, 255, 255, 0 }, eth0.ip_addr());
+    { 10, 1, 0, 10 }, { 255, 255, 255, 0 }, eth0.ip_addr());
 
   auto& internet_host = Inet4::ifconfig<3>(
-    { 192, 1, 0, 101 }, { 255, 255, 255, 0 }, eth1.ip_addr());
+    { 192, 1, 0, 192 }, { 255, 255, 255, 0 }, eth1.ip_addr());
 
   Router<IP4>::Routing_table routing_table{
     {{10, 1, 0, 0 }, { 255, 255, 255, 0}, {10, 1, 0, 1}, eth0 , 1 },
@@ -70,48 +70,52 @@ void Service::start()
 
   eth0.ip_obj().set_packet_forwarding(ip_forward);
   eth1.ip_obj().set_packet_forwarding(ip_forward);
-
+  //laptop1.ip_obj().set_packet_forwarding(ip_forward);
+  //internet_host.ip_obj().set_packet_forwarding(ip_forward);
 
   // Setup Conntracker
   ct = std::make_unique<Conntrack>();
   auto ct_in = [](IP4::IP_packet_ptr pkt, const Inet<IP4>& stack)->IP4::IP_packet_ptr {
-    printf("Track In on %s\n", stack.ip_addr().str().c_str());
-    ct->track_in(*pkt);
+    printf("Connection tracking on %s (%s)\n", stack.ip_addr().str().c_str(), stack.ifname().c_str());
+    ct->in(*pkt);
     return pkt;
   };
-  auto ct_out = [](IP4::IP_packet_ptr pkt, const Inet<IP4>& stack)->IP4::IP_packet_ptr {
-    printf("Track Out on %s\n", stack.ip_addr().str().c_str());
-    ct->track_out(*pkt);
-    return pkt;
-  };
+
   eth0.prerouting_chain().chain.push_back(ct_in);
-  eth0.output_chain().chain.push_back(ct_out);
+  eth0.output_chain().chain.push_back(ct_in);
   eth1.prerouting_chain().chain.push_back(ct_in);
-  eth1.output_chain().chain.push_back(ct_out);
+  eth1.output_chain().chain.push_back(ct_in);
 
   // Setup NAT (Masquerade)
   natty = std::make_unique<nat::NAPT>(ct.get());
 
   auto masq = [](IP4::IP_packet_ptr pkt, const Inet<IP4>& stack)->IP4::IP_packet_ptr {
-    printf("Masq on %s\n", stack.ip_addr().str().c_str());
+    printf("Masq %s %s on %s (%s)\n",
+      pkt->ip_src().str().c_str(), pkt->ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
+      stack.ifname().c_str());
     natty->masquerade(*pkt, stack);
+    printf("-> %s %s\n", pkt->ip_src().str().c_str(), pkt->ip_dst().str().c_str());
     return pkt;
   };
   auto demasq = [](IP4::IP_packet_ptr pkt, const Inet<IP4>& stack)->IP4::IP_packet_ptr {
-    printf("DeMasq on %s\n", stack.ip_addr().str().c_str());
+    printf("DeMasq %s %s on %s (%s)\n",
+      pkt->ip_src().str().c_str(), pkt->ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
+      stack.ifname().c_str());
     natty->demasquerade(*pkt, stack);
+    printf("-> %s %s\n", pkt->ip_src().str().c_str(), pkt->ip_dst().str().c_str());
     return pkt;
   };
-  /*eth0.prerouting_chain().chain.push_back(demasq);
-  eth0.postrouting_chain().chain.push_back(masq);
+  //eth0.prerouting_chain().chain.push_back(demasq);
+  //eth0.postrouting_chain().chain.push_back(masq);
   eth1.prerouting_chain().chain.push_back(demasq);
-  eth1.postrouting_chain().chain.push_back(masq);*/
+  eth1.postrouting_chain().chain.push_back(masq);
 
   internet_host.tcp().listen(80, [](auto conn) {
     printf("Internet page received a new connection! (%s)\n", conn->to_string().c_str());
   });
 
   laptop1.tcp().connect({ internet_host.ip_addr(), 80 }, [](auto conn) {
-    printf("Laptop1 connected to internet web page! (%s)\n", conn->to_string().c_str());
+    if(conn)
+      printf("Laptop1 connected to internet web page! (%s)\n", conn->to_string().c_str());
   });
 }

@@ -31,46 +31,14 @@ std::string proto_str(const Protocol proto)
 
 std::string Conntrack::Entry::to_string() const
 {
-  return "OUT: " + out.src.to_string() + " " + out.dst.to_string()
-    + " IN: " + in.src.to_string() + " " + in.dst.to_string() + " P: " + proto_str(proto);
-}
-
-Conntrack::Entry* Conntrack::simple_track_out(Quadruple q, const Protocol proto)
-{
-  // find the entry
-  auto* entry = out(q, proto);
-
-  printf("<Conntrack> Track out SRC: %s - DST: %s\n",
-    q.src.to_string().c_str(), q.dst.to_string().c_str());
-
-  // if none, add new and return
-  if(entry == nullptr)
-  {
-    entry = add_entry(q, proto, Seen::OUT);
-    entry->timeout = RTC::now() + timeout_new.count();
-    return entry;
-  }
-
-  printf("<Conntrack> Entry found: %s\n", entry->to_string().c_str());
-
-  // if this is a reply
-  if(entry->direction == Seen::IN)
-  {
-    printf("<Conntrack> Reply - ESTABLISHED\n");
-    entry->direction  = Seen::BOTH;
-    entry->state      = State::ESTABLISHED;
-  }
-
-  entry->timeout = RTC::now() +
-    ((entry->state == State::ESTABLISHED) ? timeout_est.count() : timeout_new.count());
-
-  return entry;
+  return "0: " + first.src.to_string() + " " + first.dst.to_string()
+    + " 1: " + second.src.to_string() + " " + second.dst.to_string() + " P: " + proto_str(proto);
 }
 
 Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
 {
   // find the entry
-  auto* entry = in(q, proto);
+  auto* entry = get(q, proto);
 
   printf("<Conntrack> Track in SRC: %s - DST: %s\n",
     q.src.to_string().c_str(), q.dst.to_string().c_str());
@@ -78,20 +46,18 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
   // if none, add new and return
   if(entry == nullptr)
   {
-    q.swap(); // swap due to the nature of add_entry
-    entry = add_entry(q, proto, Seen::IN);
+    entry = add_entry(q, proto);
     entry->timeout = RTC::now() + timeout_new.count();
     return entry;
   }
 
+  // temp
   printf("<Conntrack> Entry found: %s\n", entry->to_string().c_str());
 
-  // if this is a reply
-  if(entry->direction == Seen::OUT)
+  if(entry->state == State::NEW and q == entry->second)
   {
-    printf("<Conntrack> Reply - ESTABLISHED\n");
-    entry->direction  = Seen::BOTH;
-    entry->state      = State::ESTABLISHED;
+    entry->state = State::ESTABLISHED;
+    printf("<Conntrack> Assuming ESTABLISHED\n");
   }
 
   entry->timeout = RTC::now() +
@@ -100,33 +66,19 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
   return entry;
 }
 
-Conntrack::Entry* dumb_out(Conntrack& ct, Quadruple q, const PacketIP4& pkt)
-{ return ct.simple_track_out(std::move(q), pkt.ip_protocol()); }
-
 Conntrack::Entry* dumb_in(Conntrack& ct, Quadruple q, const PacketIP4& pkt)
 { return  ct.simple_track_in(std::move(q), pkt.ip_protocol()); }
 
 Conntrack::Conntrack()
- : tcp_out{&dumb_out},
-   tcp_in{&dumb_in}
+ : tcp_in{&dumb_in}
 {}
 
-Conntrack::Entry* Conntrack::out(const Quadruple& quad, const Protocol proto) const
+Conntrack::Entry* Conntrack::get(const Quadruple& quad, const Protocol proto) const
 {
-  auto it = out_lookup.find({quad, proto});
+  auto it = entries.find({quad, proto});
 
-  if(it != out_lookup.end())
-    return it->second;
-
-  return nullptr;
-}
-
-Conntrack::Entry* Conntrack::in(const Quadruple& quad, const Protocol proto) const
-{
-  auto it = in_lookup.find({quad, proto});
-
-  if(it != in_lookup.end())
-    return it->second;
+  if(it != entries.end())
+    return it->second.get();
 
   return nullptr;
 }
@@ -145,38 +97,18 @@ Quadruple Conntrack::get_quadruple_icmp(const PacketIP4& pkt)
   Expects(pkt.ip_protocol() == Protocol::ICMPv4);
 
   struct partial_header {
-    uint8_t   type;
-    uint8_t   code;
+    uint16_t  type_code;
     uint16_t  checksum;
     uint16_t  id;
   };
 
   // not sure if sufficent
-  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->id;
+  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->type_code;
 
   return {{pkt.ip_src(), id}, {pkt.ip_dst(), id}};
 }
 
-Conntrack::Entry* Conntrack::track_out(const PacketIP4& pkt)
-{
-  const auto proto = pkt.ip_protocol();
-  switch(proto)
-  {
-    case Protocol::TCP:
-      return tcp_out(*this, get_quadruple(pkt), pkt);
-
-    case Protocol::UDP:
-      return simple_track_out(get_quadruple(pkt), proto);
-
-    case Protocol::ICMPv4:
-      return simple_track_out(get_quadruple_icmp(pkt), proto);
-
-    default:
-      return nullptr;
-  }
-}
-
-Conntrack::Entry* Conntrack::track_in(const PacketIP4& pkt)
+Conntrack::Entry* Conntrack::in(const PacketIP4& pkt)
 {
   const auto proto = pkt.ip_protocol();
   switch(proto)
@@ -196,30 +128,45 @@ Conntrack::Entry* Conntrack::track_in(const PacketIP4& pkt)
 }
 
 Conntrack::Entry* Conntrack::add_entry(
-  const Quadruple& quad, const Protocol proto, const Seen direction)
+  const Quadruple& quad, const Protocol proto)
 {
-  entries.push_back(std::make_unique<Entry>(quad, proto, direction));
-  auto* entry = entries.back().get();
+  auto entry = std::make_shared<Entry>(quad, proto);
 
-  // index OUT
-  out_lookup.emplace(std::piecewise_construct,
-    std::forward_as_tuple(entry->out, proto),
+  entries.emplace(std::piecewise_construct,
+    std::forward_as_tuple(entry->first, proto),
     std::forward_as_tuple(entry));
 
-  // index IN
-  in_lookup.emplace(std::piecewise_construct,
-    std::forward_as_tuple(entry->in, proto),
+  entries.emplace(std::piecewise_construct,
+    std::forward_as_tuple(entry->second, proto),
     std::forward_as_tuple(entry));
 
   printf("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
 
-  return entry;
+  return entry.get();
+}
+
+void Conntrack::update_entry(const Protocol proto, const Quadruple& oldq, const Quadruple& newq)
+{
+  auto it = entries.find({oldq, proto});
+  auto entry = it->second;
+
+  auto& quad = (entry->first == oldq)
+    ? entry->first : entry->second;
+
+  quad = newq;
+  entries.erase({oldq, proto});
+  entries.emplace(std::piecewise_construct,
+    std::forward_as_tuple(newq, proto),
+    std::forward_as_tuple(entry));
+
+  printf("<Conntrack> Entry updated: %s\n", entry->to_string().c_str());
 }
 
 void Conntrack::remove_entry(Entry* entry)
 {
-  out_lookup.erase({entry->out, entry->proto});
-  in_lookup.erase({entry->in, entry->proto});
+  // TODO: Mega dangerous, destroying storage to the entry pointer
+  entries.erase({entry->first, entry->proto});
+  entries.erase({entry->second, entry->proto});
 
   if(on_close) on_close(entry);
 }
