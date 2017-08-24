@@ -82,7 +82,6 @@ struct Nodes {
   void create_connections(int total);
   bool assign(tcp_ptr, queue_vector_t&);
   void create_session(tcp_ptr inc, tcp_ptr out);
-  Session& get_session(int);
   void close_session(int);
 
 private:
@@ -91,7 +90,7 @@ private:
   int       session_cnt = 0;
   int       conn_iterator = 0;
   int       algo_iterator = 0;
-  std::vector<Session> sessions;
+  std::deque<Session> sessions;
   std::vector<int> free_sessions;
 };
 

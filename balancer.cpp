@@ -186,13 +186,9 @@ void Nodes::create_session(tcp_ptr client, tcp_ptr outgoing)
   LBOUT("New session %d  (current = %d, total = %ld)\n",
         idx, session_cnt, session_total);
 }
-Session& Nodes::get_session(int idx)
-{
-  return sessions.at(idx);
-}
 void Nodes::close_session(int idx)
 {
-  auto& session = get_session(idx);
+  auto& session = sessions.at(idx);
   // disable timeout timer
   Timers::stop(session.timeout_timer);
   session.timeout_timer = Timers::UNUSED_ID;
@@ -223,17 +219,6 @@ Node::Node(netstack_t& stk, net::Socket a, pool_signal_t sig)
     this->perform_active_check();
   });
 }
-void Node::restart_active_check()
-{
-  if (this->active_timer == Timers::UNUSED_ID)
-  {
-    this->active_timer = Timers::periodic(
-      ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
-    [this] (int) {
-      this->perform_active_check();
-    });
-  }
-}
 void Node::perform_active_check()
 {
   try {
@@ -260,8 +245,25 @@ void Node::perform_active_check()
     // do nothing, because might just be eph.ports used up
   }
 }
+void Node::restart_active_check()
+{
+  // set as inactive
+  this->active = false;
+  // begin checking active again
+  if (this->active_timer == Timers::UNUSED_ID)
+  {
+    this->active_timer = Timers::periodic(
+      ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
+    [this] (int) {
+      this->perform_active_check();
+    });
+  }
+}
 void Node::stop_active_check()
 {
+  // set as active
+  this->active = true;
+  // stop active checking for now
   if (this->active_timer != Timers::UNUSED_ID) {
     Timers::stop(this->active_timer);
     this->active_timer = Timers::UNUSED_ID;
@@ -281,8 +283,6 @@ void Node::connect()
     // no longer connecting
     assert(this->connecting > 0);
     this->connecting --;
-    // set as inactive
-    this->active = false;
     // restart active check
     this->restart_active_check();
     // signal change in pool
@@ -334,20 +334,18 @@ Session::Session(Nodes& n, int idx, tcp_ptr inc, tcp_ptr out)
     nodes.close_session(idx);
   });
   incoming->on_read(READQ_PER_CLIENT,
-  [&nodes = n, idx] (auto buf, size_t len) mutable {
-      auto& session = nodes.get_session(idx);
-      session.handle_timeout();
-      session.outgoing->write(std::move(buf), len);
+  [this] (auto buf, size_t len) {
+      this->handle_timeout();
+      this->outgoing->write(std::move(buf), len);
   });
   incoming->on_close(
   [&nodes = n, idx] () mutable {
       nodes.close_session(idx);
   });
   outgoing->on_read(READQ_FOR_NODES,
-  [&nodes = n, idx] (auto buf, size_t len) mutable {
-      auto& session = nodes.get_session(idx);
-      session.handle_timeout();
-      session.incoming->write(std::move(buf), len);
+  [this] (auto buf, size_t len) {
+      this->handle_timeout();
+      this->incoming->write(std::move(buf), len);
   });
   outgoing->on_close(
   [&nodes = n, idx] () mutable {
