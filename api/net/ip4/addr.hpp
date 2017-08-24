@@ -19,11 +19,10 @@
 #ifndef NET_IP4_ADDR_HPP
 #define NET_IP4_ADDR_HPP
 
-#include <regex>
-#include <string>
-
 #include <common>
 #include <net/util.hpp>
+#include <cstdlib>
+#include <string>
 
 namespace net {
 namespace ip4 {
@@ -98,34 +97,38 @@ struct Addr {
    *  IIf the {std::string} object doesn't representing a valid IPv4
    *  address
    */
-  template<typename = void>
-  Addr(const std::string& ipv4_addr)
+  Addr(const std::string& str)
   {
-    if (not (ipv4_addr.size() >= 7 && ipv4_addr.size() <= 15)) { //< [7, 15] minimum and maximum address length
-      throw Invalid_address{ipv4_addr + " is not a valid IP"};
-    }
-
-    const static std::regex ipv4_address_pattern
+    int value[4] = {0};
+    int index = 0;
+    bool length_error = true;
+    const char* ptr  = str.c_str();
+    while (*ptr)
     {
-
-#define OCTET_PATTERN "(25[0-5]|2[0-4]\\d|[01]?\\d\\d?)"
-      "^\\s*" OCTET_PATTERN "\\." OCTET_PATTERN "\\." OCTET_PATTERN "\\." OCTET_PATTERN "\\s*$"
-#undef OCTET_PATTERN
-
-    };
-
-    std::smatch ipv4_parts;
-
-    if (not std::regex_match(ipv4_addr, ipv4_parts, ipv4_address_pattern)) {
-      throw Invalid_address{ipv4_addr + " is not a valid IP"};
+      if (std::isdigit((int) *ptr))
+      {
+        value[index] *= 10;
+        value[index] += *ptr - '0';
+        if (value[index] & 0xFFFFFF00) {
+          throw Invalid_address("Out-of-range byte values in " + str);
+        }
+        length_error = false;
+      } else {
+        if (*ptr == '.') {
+          if (++index > 3)
+              throw Invalid_address("Too many dots in " + str);
+          length_error = true;
+        }
+        else {
+          throw Invalid_address("Unexpected characters in " + str);
+        }
+      }
+      ptr++;
     }
-
-    const auto p1 = static_cast<uint8_t>(std::stoi(ipv4_parts[1]));
-    const auto p2 = static_cast<uint8_t>(std::stoi(ipv4_parts[2]));
-    const auto p3 = static_cast<uint8_t>(std::stoi(ipv4_parts[3]));
-    const auto p4 = static_cast<uint8_t>(std::stoi(ipv4_parts[4]));
-
-    whole = p1 | (p2 << 8) | (p3 << 16) | (p4 << 24);
+    if (length_error) {
+      throw Invalid_address("Missing byte value at end of " + str);
+    }
+    this->whole = value[0] | (value[1] << 8) | (value[2] << 16) | (value[3] << 24);
   }
 
   /**
