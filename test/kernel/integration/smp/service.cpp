@@ -19,7 +19,7 @@
 #include <cassert>
 #include <smp>
 #include <timers>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 
 static int irq_times = 0;
 
@@ -111,7 +111,7 @@ static void random_irq_handler()
 static const uint8_t IRQ = 110;
 void SMP::init_task()
 {
-  IRQ_manager::get().subscribe(IRQ, random_irq_handler);
+  Events::get().subscribe(IRQ, random_irq_handler);
 }
 
 void Service::start()

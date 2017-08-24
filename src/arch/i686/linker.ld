@@ -113,6 +113,13 @@ SECTIONS
    PROVIDE_HIDDEN (__fini_array_end = .);
   }
 
+  .config ALIGN(0x8) : {
+    _CONFIG_JSON_START_ = .;
+    KEEP(*(.config))
+    _CONFIG_JSON_END_ = .;
+    BYTE(0);
+  }
+
   .rodata :
   {
     _RODATA_START_ = .;

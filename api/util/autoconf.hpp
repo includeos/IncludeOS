@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <kprint>
+#pragma once
+#ifndef UTIL_AUTOCONF_HPP
+#define UTIL_AUTOCONF_HPP
 
-// prevent default serial out
-void default_stdout_handlers()
-{
-  OS::add_stdout(
-  [] (const char* str, size_t len)
-  {
-    if (OS::is_booted() || OS::is_panicking())
-        OS::default_stdout(str, len);
-  });
-}
+struct autoconf {
+
+  /**
+   * @brief      Run automatic configuration of the OS based on the built in config.
+   */
+  static void run();
+
+};
+
+#endif

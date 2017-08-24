@@ -25,6 +25,10 @@
 #include <hw/mac_addr.hpp>
 #include <net/ethernet/ethertype.hpp>
 #include <net/ip4/icmp4_common.hpp>
+#include <net/socket.hpp>
+
+#include <net/error.hpp>
+#include <net/ip4/icmp_error.hpp>
 
 namespace net {
   // Packet must be forward declared to avoid circular dependency
@@ -98,93 +102,6 @@ namespace net {
       return std::unique_ptr<Derived>(d);
   }
 
-  /**
-   *  General Error class for the OS
-   *  ICMP_error f.ex. inherits from this class
-   */
-  class Error {
-  public:
-
-    enum class Type : uint8_t {
-      no_error,
-      general_IO,
-      ifdown,
-      ICMP
-      // Add more as needed
-    };
-
-    Error() = default;
-
-    Error(Type t, const char* msg)
-      : t_{t}, msg_{msg}
-    {}
-
-    virtual ~Error() = default;
-
-    Type type()
-    { return t_; }
-
-    operator bool() const noexcept
-    { return t_ != Type::no_error; }
-
-    bool is_icmp() const noexcept
-    { return t_ == Type::ICMP; }
-
-    virtual const char* what() const noexcept
-    { return msg_; }
-
-  private:
-    Type t_{Type::no_error};
-    const char* msg_{"No error"};
-
-  };  // < class Error
-
-
-  /**
-   *  An object of this error class is sent to UDP and TCP (via Inet) when an ICMP error message
-   *  is received in ICMPv4::receive
-   */
-  class ICMP_error : public Error {
-
-  public:
-    using ICMP_type = icmp4::Type;
-    using ICMP_code = uint8_t;    // Codes in icmp4_common.hpp in namespace icmp4::code
-                                  // icmp4::code::Dest_unreachable::PORT f.ex.
-
-    ICMP_error()
-      : Error{}
-    {}
-
-    ICMP_error(ICMP_type icmp_type, ICMP_code icmp_code)
-      : Error{Error::Type::ICMP, "ICMP error message received"},
-        icmp_type_{icmp_type}, icmp_code_{icmp_code}
-    {}
-
-    ICMP_type icmp_type() const noexcept
-    { return icmp_type_; }
-
-    std::string icmp_type_str() const
-    { return icmp4::get_type_string(icmp_type_); }
-
-    void set_icmp_type(ICMP_type icmp_type)
-    { icmp_type_ = icmp_type; }
-
-    ICMP_code icmp_code() const noexcept
-    { return icmp_code_; }
-
-    std::string icmp_code_str() const
-    { return icmp4::get_code_string(icmp_type_, icmp_code_); }
-
-    void set_icmp_code(ICMP_code icmp_code)
-    { icmp_code_ = icmp_code; }
-
-  private:
-    ICMP_type icmp_type_{ICMP_type::NO_ERROR};
-    ICMP_code icmp_code_{0};
-
-  };  // < class ICMP_error
-
-
   /* RFC 6335 - IANA */
   namespace port_ranges
   {
@@ -196,7 +113,7 @@ namespace net {
     static constexpr uint16_t DYNAMIC_END   {65535};
 
     static constexpr bool is_dynamic(const uint16_t port) noexcept
-    { return port > USER_END; }
+    { return port >= DYNAMIC_START; }
   }
 
   /**

@@ -126,8 +126,8 @@ namespace net {
         if (!parent->available_.empty()) return parent;
     }
     parent->next_ = new BufferStore(local_buffers(), bufsize());
-    INFO("BufferStore", "Allocating %lu new buffers (%lu total)", 
-          local_buffers(), total_buffers());
+    BSD_GET("<BufferStore> Allocating %lu new buffers (%lu total)",
+            local_buffers(), total_buffers());
     return parent->next_;
 #else
     return nullptr;

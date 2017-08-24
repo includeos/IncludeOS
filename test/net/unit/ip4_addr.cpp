@@ -49,8 +49,13 @@ CASE("Create IP4 addresses from strings")
   EXPECT( valid_addr.to_string() == valid_addr_str );
 
   std::string extra_whitespace_addr_str {"\r 10.0.0.42 \n\r"};
-  Addr ipv4_address {extra_whitespace_addr_str};
-  EXPECT(ipv4_address.str() == "10.0.0.42");
+  EXPECT_THROWS(Addr{extra_whitespace_addr_str});
+  EXPECT(Addr{"10"} == Addr(10,0,0,0));
+  EXPECT_THROWS(Addr{"10."});
+  EXPECT(Addr{"10.0"} == Addr(10,0,0,0));
+  EXPECT_THROWS(Addr{"10.0."});
+  EXPECT(Addr{"10.0.0"} == Addr(10,0,0,0));
+  EXPECT_THROWS(Addr{"10.0.0."});
 
   // Check some special cases / previously failed cases
   std::vector<std::string> ips {

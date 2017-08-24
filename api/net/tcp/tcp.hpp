@@ -26,7 +26,7 @@
 #include "packet.hpp"
 
 #include <map>  // connections, listeners
-#include <queue>  // writeq
+#include <deque>  // writeq
 #include <net/inet.hpp>
 #include <net/socket.hpp>
 #include <net/port_util.hpp>
@@ -406,10 +406,29 @@ namespace net {
     { return inet_; }
 
     /**
-     *  Is called when an Error has occurred in the OS
-     *  F.ex.: Is called when an ICMP error message has been received in response to a sent TCP packet
-    */
-    void error_report(Error& err, Socket dest);
+     *  Methods for handling Path MTU Discovery - RFC 1191
+     */
+
+    /**
+     * @brief      Is called when an Error has occurred in the OS
+     *             F.ex.: Is called when an ICMP error message has been received in response
+     *             to a sent TCP (or UDP) packet
+     *
+     * @param[in]  err   The error
+     * @param[in]  dest  The destination the original packet was sent to, that resulted in an error
+     */
+    void error_report(const Error& err, Socket dest);
+
+    /**
+     * @brief      Called by Inet (triggered by IP) when a Path MTU value has grown stale and the value
+     *             is reset (increased) to check if the PMTU for the path could have increased
+     *             This is NOT a change in the Path MTU in response to receiving an ICMP Too Big message
+     *             and no retransmission of packets should take place
+     *
+     * @param[in]  dest  The destination/path
+     * @param[in]  pmtu  The reset PMTU value
+     */
+    void reset_pmtu(Socket dest, IP4::PMTU pmtu);
 
     /**
      * Return the associated shared_ptr for a connection, if it exists
@@ -691,7 +710,7 @@ namespace net {
      *
      * @param[in]  <unnamed>  A ptr to a Connection
      */
-    void queue_offer(tcp::Connection_ptr);
+    void queue_offer(tcp::Connection&);
 
     /**
      * @brief      Force the TCP to process the it's queue with the current amount of available packets.

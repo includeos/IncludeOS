@@ -19,7 +19,7 @@
 #include "vmxnet3.hpp"
 #include "vmxnet3_queues.hpp"
 
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <smp>
 #include <info>
 #include <cassert>
@@ -121,14 +121,14 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
 
     for (int i = 0; i < msix_vectors; i++)
     {
-      auto irq = IRQ_manager::get().subscribe(nullptr);
+      auto irq = Events::get().subscribe(nullptr);
       this->irqs.push_back(irq);
       d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + irq);
     }
 
-    IRQ_manager::get().subscribe(irqs[0], {this, &vmxnet3::msix_evt_handler});
-    IRQ_manager::get().subscribe(irqs[1], {this, &vmxnet3::msix_xmit_handler});
-    IRQ_manager::get().subscribe(irqs[2], {this, &vmxnet3::msix_recv_handler});
+    Events::get().subscribe(irqs[0], {this, &vmxnet3::msix_evt_handler});
+    Events::get().subscribe(irqs[1], {this, &vmxnet3::msix_xmit_handler});
+    Events::get().subscribe(irqs[2], {this, &vmxnet3::msix_recv_handler});
   }
   else {
     assert(0 && "This driver does not support legacy IRQs");
@@ -241,8 +241,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   }
 
   // deferred transmit
-  this->deferred_irq = IRQ_manager::get().get_free_irq();
-  IRQ_manager::get().subscribe(this->deferred_irq, handle_deferred);
+  this->deferred_irq = Events::get().subscribe(handle_deferred);
 
   // enable interrupts
   enable_intr(0);
@@ -463,13 +462,13 @@ void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
     sendq = std::move(next);
   }
 }
-int  vmxnet3::tx_tokens_free() const noexcept
+inline int  vmxnet3::tx_tokens_free() const noexcept
 {
   return VMXNET3_TX_FILL - (tx.producers - tx.consumers);
 }
-bool vmxnet3::can_transmit() const noexcept
+inline bool vmxnet3::can_transmit() const noexcept
 {
-  return tx.producers - tx.consumers < VMXNET3_TX_FILL;
+  return tx_tokens_free() > 0;
 }
 
 void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
@@ -494,7 +493,7 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
     transmit_idx  = idx;
     deferred_kick = true;
     deferred_devs.push_back(this);
-    IRQ_manager::get().register_irq(deferred_irq);
+    Events::get().trigger_event(deferred_irq);
   }
 }
 
@@ -528,9 +527,8 @@ void vmxnet3::move_to_this_cpu()
   {
     for (size_t i = 0; i < irqs.size(); i++)
     {
-      this->irqs[i] = IRQ_manager::get().get_free_irq();
+      this->irqs[i] = Events::get().subscribe(nullptr);
       pcidev.rebalance_msix_vector(i, SMP::cpu_id(), IRQ_BASE + this->irqs[i]);
-      IRQ_manager::get().subscribe(this->irqs[i], nullptr);
     }
   }
 }

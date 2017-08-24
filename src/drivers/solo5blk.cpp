@@ -2,7 +2,6 @@
 #define DEBUG2
 #include "solo5blk.hpp"
 
-#include <kernel/irq_manager.hpp>
 #include <hw/pci.hpp>
 #include <cassert>
 #include <stdlib.h>

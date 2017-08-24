@@ -21,7 +21,7 @@
 #include <cstdio>
 #include <boot/multiboot.h>
 #include <kernel/os.hpp>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <kernel/rtc.hpp>
 #include <kernel/rdrand.hpp>
 #include <kernel/rng.hpp>
@@ -183,10 +183,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
 void OS::event_loop()
 {
-  IRQ_manager::get().process_interrupts();
+  Events::get(0).process_events();
   do {
     OS::halt();
-    IRQ_manager::get().process_interrupts();
+    Events::get(0).process_events();
   } while (power_);
 
   MYINFO("Stopping service");

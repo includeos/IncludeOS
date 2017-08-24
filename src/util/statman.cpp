@@ -28,17 +28,10 @@ Statman& Statman::get() {
 
 ///////////////////////////////////////////////////////////////////////////////
 Stat::Stat(const Stat_type type, const std::string& name)
-  : type_{type}
+  : ui64(0), type_{type}
 {
   if(name.size() > MAX_NAME_LEN)
     throw Stats_exception{"Creating stat: Name cannot be longer than " + std::to_string(MAX_NAME_LEN) + " characters"};
-
-  switch (type) {
-    case UINT32: ui32 = 0;    break;
-    case UINT64: ui64 = 0;    break;
-    case FLOAT:  f    = 0.0f; break;
-    default: throw Stats_exception{"Unimplemented stat type"};
-  }
 
   snprintf(name_, sizeof(name_), "%s", name.c_str());
 }
@@ -79,7 +72,7 @@ uint64_t& Stat::get_uint64() {
 void Statman::init(const uintptr_t start, const Size_type num_bytes)
 {
   if (num_bytes < 0)
-    throw Stats_exception{"Creating Statman: A negative number of bytes has been given"};
+    throw Stats_exception("Can't initialize statman with negative size");
 
   const int N = num_bytes / sizeof(Stat);
   this->stats_     = reinterpret_cast<Stat*>(start);
@@ -103,7 +96,7 @@ Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
   volatile scoped_spinlock lock(this->stlock);
 #endif
   if (name.empty())
-    throw Stats_exception{"Cannot create Stat with no name"};
+    throw Stats_exception("Cannot create Stat with no name");
 
   const int idx = bitmap.first_free();
   if (idx == -1 || idx >= capacity())

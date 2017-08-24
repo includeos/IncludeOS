@@ -43,14 +43,18 @@ public:
   Port_util()
     : ports(),
       eph_view{ // set the ephemeral view to be between 49152-65535
-        ports.data() + port_ranges::DYNAMIC_START,
-        (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START + 1) / sizeof(MemBitmap::word)
+        ports.data() + port_ranges::DYNAMIC_START / 8,
+        static_cast<MemBitmap::index_t> (size() / sizeof(MemBitmap::word))
       },
       ephemeral_(net::new_ephemeral_port()),
       eph_count(0)
   {
     // all ports are free
     ports.set_all();
+  }
+
+  static constexpr int size() {
+    return port_ranges::DYNAMIC_END + 1 - port_ranges::DYNAMIC_START;
   }
 
   /**
@@ -107,7 +111,7 @@ public:
    * @return     True if has free ephemeral, False otherwise.
    */
   bool has_free_ephemeral() const noexcept
-  { return eph_count < (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START); }
+  { return eph_count < size(); }
 
 private:
   Fixed_bitmap<65536> ports;
@@ -140,6 +144,8 @@ private:
     Expects(not is_bound(ephemeral_) && "Generated ephemeral port is already bound. Please fix me!");
   }
 }; // < class Port_util
+static_assert((port_ranges::DYNAMIC_START / 8) % sizeof(MemBitmap::word) == 0, "Must be word-sized multiple");
+static_assert(Port_util::size() % sizeof(MemBitmap::word) == 0, "Must be word-sized multiple");
 
 } // < namespace net
 

@@ -264,8 +264,83 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-void TCP::error_report(Error& /* err */, Socket /* dest */) {
-  // TODO: FIXME: ???
+void TCP::error_report(const Error& err, Socket dest) {
+  if (err.is_icmp()) {
+    auto* icmp_err = dynamic_cast<const ICMP_error*>(&err);
+
+    if (network().path_mtu_discovery() and icmp_err->is_too_big() and
+      icmp_err->pmtu() >= network().minimum_MTU()) {
+
+      /*
+      Note RFC 1191 p. 14:
+      TCP performance can be reduced if the sender’s maximum window size is not an exact multiple of
+      the segment size in use (this is not the congestion window size, which is always a multiple of
+      the segment size).  In many system (such as those derived from 4.2BSD), the segment size is often
+      set to 1024 octets, and the maximum window size (the "send space") is usually a multiple of 1024
+      octets, so the proper relationship holds by default.
+      If PMTU Discovery is used, however, the segment size may not be a submultiple of the send space,
+      and it may change during a connection; this means that the TCP layer may need to change the transmission
+      window size when PMTU Discovery changes the PMTU value. The maximum window size should be set to the
+      greatest multiple of the segment size (PMTU - 40) that is less than or equal to the sender’s buffer
+      space size.
+      */
+
+      // Find all connections sending to this destination
+      // Notify the TCP Connection that the sent packet has been dropped and needs to be retransmitted
+      for (auto& conn_entry : connections_) {
+        if (conn_entry.first.second == dest) {
+          /*
+          Note: One MUST not retransmit in response to every Datagram Too Big message, since
+          a burst of several oversized segments will give rise to several such messages and hence
+          several retransmissions of the same data. If the new estimated PMTU is still wrong, the
+          process repeats, and there is an exponential growth in the number of superfluous segments
+          sent. This means that the TCP layer must be able to recongnize when a Datagram Too Big
+          message actually decreases the PMTU that it has already used to send a datagram on the
+          given connection, and should ignore any other notifications.
+          */
+
+          // PMTU is maximum transmission unit including the size of the IP header, while SMSS is
+          // minus the size of the IP header and minus the size of the TCP header
+          auto new_smss = icmp_err->pmtu() - sizeof(ip4::Header) - sizeof(tcp::Header);
+
+          if (conn_entry.second->SMSS() > new_smss) {
+            conn_entry.second->set_SMSS(new_smss);
+
+            // TODO Check that this works as expected:
+            // Unlike a retransmission caused by a TCP retransmission timeout, a retransmission
+            // caused by a Datagram Too Big message should not change the congestion window.
+            // It should, however, trigger the slow-start mechanism (i.e., only one segment should
+            // be retransmitted until acknowledgements begin to arrive again)
+
+            // And retransmit latest packet that hasn't received an ACK
+            // Note: Only retransmit in response to an ICMP Datagram Too Big message
+
+            // Note:
+            // Check if it is necessary to call reduce_ssthresh() (slow start)
+            conn_entry.second->reduce_ssthresh();
+            conn_entry.second->retransmit();
+          }
+        }
+      }
+
+      // return;
+    }
+  }
+
+  // TODO - Regular error reporting
+
+}
+
+void TCP::reset_pmtu(Socket dest, IP4::PMTU pmtu) {
+  if (UNLIKELY(not network().path_mtu_discovery() or pmtu < network().minimum_MTU()))
+    return;
+
+  // Find all connections sending to this destination and update their SMSS value
+  // based on the new increased pmtu
+  for (auto& conn_entry : connections_) {
+    if (conn_entry.first.second == dest)
+      conn_entry.second->set_SMSS(pmtu - sizeof(ip4::Header) - sizeof(tcp::Header));
+  }
 }
 
 void TCP::transmit(tcp::Packet_ptr packet) {
@@ -414,15 +489,25 @@ void TCP::request_offer(Connection& conn) {
   debug2("<TCP::request_offer> %s requestin offer: uw=%u rem=%u\n",
     conn.to_string().c_str(), conn.usable_window(), conn.sendq_remaining());
 
+  // Note: Must be called even if packets is 0
+  // because the connectoin is responsible for requeuing itself (see Connection::offer)
   conn.offer(packets);
 }
 
-void TCP::queue_offer(Connection_ptr conn)
+
+void TCP::queue_offer(Connection& conn)
 {
-  if(not conn->is_queued() and conn->can_send())
+  if(not conn.is_queued() and conn.can_send())
   {
-    debug("<TCP::queue_offer> %s queued\n", conn->to_string().c_str());
-    writeq.push_back(conn);
-    conn->set_queued(true);
+    try {
+      debug("<TCP::queue_offer> %s queued\n", conn.to_string().c_str());
+      writeq.push_back(conn.retrieve_shared());
+      conn.set_queued(true);
+    }
+    catch (std::exception& e) {
+      printf("ERROR: Could not find connection for %p: %s\n",
+            &conn, conn.to_string().c_str());
+      throw;
+    }
   }
 }

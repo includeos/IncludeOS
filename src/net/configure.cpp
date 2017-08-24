@@ -15,17 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/autoconf.hpp>
+#include <net/configure.hpp>
 
 #include <net/super_stack.hpp>
-#include <memdisk>
 #include <info>
 
-#define MYINFO(X,...) INFO("Autoconf",X,##__VA_ARGS__)
+#define MYINFO(X,...) INFO("Network configure",X,##__VA_ARGS__)
 
 namespace net {
-
-const std::string autoconf::DEFAULT_CFG{"config.json"};
 
 using Addresses = std::vector<ip4::Addr>;
 
@@ -66,75 +63,10 @@ inline void config_stack(Inet<IP4>& stack, const Addresses& addrs)
     );
 }
 
-inline std::string failure(const std::string& err)
+void configure(const rapidjson::Value& net)
 {
-  INFO2("Aborted: %s", err.c_str());
-  return {};
-}
+  MYINFO("Configuring network");
 
-inline std::string read_json_from_memdisk(const std::string& file)
-{
-  MYINFO("Loading config \"%s\" from memdisk", file.c_str());
-
-  auto& disk = fs::memdisk();
-
-  disk.init_fs([] (auto, auto&) {});
-
-  if(not disk.fs_ready())
-  {
-    return failure("No memdisk found");
-  }
-
-  auto dirent = disk.fs().stat(file);
-
-  if(not dirent.is_file())
-  {
-    return failure("File not found");
-  }
-
-  if(not dirent.size())
-  {
-    return failure("File is empty");
-  }
-
-  return dirent.read();
-}
-
-void autoconf::load()
-{
-  load(DEFAULT_CFG);
-}
-
-void autoconf::load(const std::string& file)
-{
-  auto json = read_json_from_memdisk(file);
-
-  if(not json.empty())
-  {
-    configure(json);
-  }
-}
-
-void autoconf::configure(const std::string& json)
-{
-  using namespace rapidjson;
-  Document doc;
-  doc.Parse(json.data());
-
-  Expects(doc.IsObject() && "Malformed config (not an object)");
-
-  if(doc.HasMember("net"))
-  {
-    configure(doc["net"]);
-  }
-  else
-  {
-    MYINFO("Could not find \"net\" - nothing to do");
-  }
-}
-
-void autoconf::configure(const rapidjson::Value& net)
-{
   Expects(net.IsArray() && "Member net is not an array");
 
   int N = 0;
@@ -160,5 +92,3 @@ void autoconf::configure(const rapidjson::Value& net)
 }
 
 }
-
-

@@ -17,7 +17,7 @@
 
 #include <os>
 #include <statman>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 
 // Keep track of blocking levels
 static uint32_t* blocking_level = 0;
@@ -38,8 +38,8 @@ extern "C" uint32_t os_get_highest_blocking_level() {
  * A quick and dirty implementation of blocking calls, which simply halts,
  * then calls  the event loop, then returns.
  **/
-void OS::block(){
-
+void OS::block()
+{
   // Initialize stats
   if (not blocking_level) {
     blocking_level = &Statman::get()
@@ -60,11 +60,14 @@ void OS::block(){
   if (*blocking_level > *highest_blocking_level)
     *highest_blocking_level = *blocking_level;
 
+  // Process immediate events
+  Events::get().process_events();
+
   // Await next interrupt
   OS::halt();
 
-  // Process callbacks
-  IRQ_manager::get().process_interrupts();
+  // Process events (again?)
+  Events::get().process_events();
 
   // Decrement level
   *blocking_level -= 1;

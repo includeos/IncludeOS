@@ -25,28 +25,20 @@
 #include <membitmap>
 #include <smp_utils>
 
-/** This type is thrown when Statman's span is full */
 struct Stats_out_of_memory : public std::out_of_range {
   explicit Stats_out_of_memory()
-    : std::out_of_range(std::string{"Statman has no room for more statistics"})
+    : std::out_of_range("Statman has no room for more statistics")
     {}
-}; //< struct Stats_out_of_memory
+};
 
-
-/** This type is thrown from within the operations of class Statman */
 struct Stats_exception : public std::runtime_error {
   using runtime_error::runtime_error;
-}; //< struct Stats_exception
+};
 
-///
-///
-///
 class Stat {
 public:
-  static const int MAX_NAME_LEN {47};
-  ///
-  ///
-  ///
+  static const int MAX_NAME_LEN = 47;
+
   enum Stat_type: uint8_t
   {
     FLOAT,
@@ -54,9 +46,6 @@ public:
     UINT64
   };
 
-  ///
-  ///
-  ///
   Stat(const Stat_type type, const std::string& name);
   ~Stat() = default;
 
@@ -93,14 +82,14 @@ private:
   };
   Stat_type type_;
 
-  char name_[MAX_NAME_LEN];
+  char name_[MAX_NAME_LEN+1];
 
   Stat(const Stat& other) = delete;
   Stat(const Stat&& other) = delete;
   Stat& operator=(const Stat& other) = delete;
   Stat& operator=(Stat&& other) = delete;
 
-} __attribute__((packed)); //< class Stat
+}; //< class Stat
 
 
 class Statman {

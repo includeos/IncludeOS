@@ -15,25 +15,27 @@ set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 message(STATUS "Target triple ${TRIPLE}")
 
+# defines $CAPABS depending on installation
+include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
+
 # Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")
   set(ARCH_INTERNAL "ARCH_X64")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf64")
   set(OBJCOPY_TARGET "elf64-x86-64")
+  set(CAPABS "${CAPABS} -m64")
 else()
   set(ARCH_INTERNAL "ARCH_X86")
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
   set(OBJCOPY_TARGET "elf32-i386")
+  set(CAPABS "${CAPABS} -m32")
 endif()
 enable_language(ASM_NASM)
-
-# defines $CAPABS depending on installation
-include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} -mno-red-zone -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
+set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # Compiler optimization
@@ -46,8 +48,8 @@ if (debug)
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
-  set(CMAKE_C_FLAGS "-m32 -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
   set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
@@ -60,6 +62,21 @@ set(SERVICE_STUB "${INSTALL_LOC}/src/service_name.cpp")
 add_executable(service ${SOURCES} ${SERVICE_STUB})
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 
+#
+# CONFIG.JSON
+#
+
+if (EXISTS ${CMAKE_SOURCE_DIR}/config.json)
+  add_custom_command(
+	   OUTPUT config_json.o
+	   COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 --rename-section .data=.config,CONTENTS,ALLOC,LOAD,READONLY,DATA ${CMAKE_SOURCE_DIR}/config.json config_json.o
+	   DEPENDS ${CMAKE_SOURCE_DIR}/config.json
+   )
+   add_library(config_json STATIC config_json.o)
+   set_target_properties(config_json PROPERTIES LINKER_LANGUAGE CXX)
+   target_link_libraries(service --whole-archive config_json --no-whole-archive)
+   set(PLUGINS ${PLUGINS} autoconf)
+endif()
 
 #
 # DRIVERS / PLUGINS - support for parent cmake list specification
@@ -286,7 +303,6 @@ endfunction()
 # automatically build memdisk from folder
 function(build_memdisk FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
-  message(STATUS ${REL_PATH})
   add_custom_command(
       OUTPUT  memdisk.fat
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
@@ -299,6 +315,7 @@ endfunction()
 
 # build memdisk if defined
 if(MEMDISK)
+  message(STATUS "Memdisk folder set: " ${MEMDISK})
   build_memdisk(${MEMDISK})
 endif()
 

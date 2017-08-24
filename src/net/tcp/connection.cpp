@@ -32,9 +32,6 @@ int Connection::Stream::get_cpuid() const noexcept {
   return tcp->host().get_cpuid();
 }
 
-/*
-  This is most likely used in a ACTIVE open
-*/
 Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback)
   : host_(host),
     local_(local),
@@ -42,7 +39,7 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     state_(&Connection::Closed::instance()),
     prev_state_(state_),
     cb{host_.window_size()},
-    read_request(),
+    read_request(nullptr),
     writeq(),
     on_connect_{std::move(callback)},
     on_disconnect_({this, &Connection::default_on_disconnect}),
@@ -50,7 +47,8 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     timewait_dack_timer({this, &Connection::dack_timeout}),
     queued_(false),
     dack_{0},
-    last_ack_sent_{cb.RCV.NXT}
+    last_ack_sent_{cb.RCV.NXT},
+    smss_{host_.MSS()}
 {
   setup_congestion_control();
   //printf("<Connection> Created %p %s  ACTIVE: %u\n", this,
@@ -101,61 +99,42 @@ void Connection::reset_callbacks()
   on_packet_dropped_.reset();
   on_rtx_timeout_.reset();
   on_close_.reset();
-  read_request.clean_up();
+
+  if(read_request)
+    read_request->callback.reset();
 }
 
 uint16_t Connection::MSDS() const noexcept {
   return std::min(host_.MSS(), cb.SND.MSS) + sizeof(Header);
 }
 
-uint16_t Connection::SMSS() const noexcept {
-  return host_.MSS();
-}
-
-void Connection::read(ReadBuffer&& buffer, ReadCallback callback) {
-  try {
-    state_->receive(*this, std::forward<ReadBuffer>(buffer));
-    read_request.callback = callback;
-  }
-  catch (const TCPException&) {
-    callback(buffer.buffer, buffer.size());
-  }
-}
-
-size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
-  //printf("<Connection::receive> len=%u\n", n);
+size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) {
   // should not be called without an read request
-  Ensures(read_request.buffer.capacity());
-  Ensures(n);
-  auto& buf = read_request.buffer;
-  size_t received{0};
-  while(n) {
-    if (buf.empty()) buf.renew();
-    auto read = receive(buf, data+received, n);
-    // nothing was read to buffer
-    if(!buf.advance(read)) {
-      // buffer should be full
-      Expects(buf.full());
-      // signal the user
-      debug2("<Connection::receive> Buffer full - signal user\n");
-      if(LIKELY(read_request.callback != nullptr))
-        read_request.callback(buf.buffer, buf.size());
-      // renew the buffer, releasing the old one
-      buf.clear();
-    }
-    n -= read;
-    received += read;
-  }
-  // n shouldnt be negative
-  Expects(n == 0);
+  Expects(read_request);
+  Expects(n > 0);
 
-  // end of data, signal the user
-  if(PUSH) {
-    debug2("<Connection::receive> PUSH present - signal user\n");
-    if(LIKELY(read_request.callback != nullptr))
-      read_request.callback(buf.buffer, buf.size());
-    // free buffer
-    buf.clear();
+  auto& buf = read_request->buffer;
+  size_t received{0};
+
+  while(n)
+  {
+    // if the buffer has been "stolen" (sent to user), renew it
+    if (buf.buffer() == nullptr) buf.renew(seq);
+
+    auto read = buf.insert(seq, data + received, n, PUSH);
+
+    // deliver if finished for delivery
+    if(buf.is_ready())
+    {
+      auto buffer = std::move(buf.buffer());
+
+      if(read_request->callback)
+        read_request->callback(buffer, buf.size());
+    }
+
+    n -= read; // subtract amount of data left to insert
+    received += read; // add to the total recieved
+    seq += read; // advance the sequence number
   }
 
   return received;
@@ -164,6 +143,10 @@ size_t Connection::receive(const uint8_t* data, size_t n, bool PUSH) {
 
 void Connection::write(Chunk buffer)
 {
+  if (UNLIKELY(buffer.size() == 0)) {
+    throw TCP_error("Can't write zero bytes to TCP stream");
+  }
+
   // Only write if allowed
   if(state_->is_writable())
   {
@@ -220,9 +203,9 @@ void Connection::offer(size_t& packets)
   debug2("<Connection::offer> Finished working offer with [%u] packets left and a queue of (%u) with a usable window of %i\n",
         packets, writeq.size(), usable_window());
 
-  if(can_send() and not queued_)
+  if (this->can_send() and not this->is_queued())
   {
-    host_.queue_offer(retrieve_shared());
+    host_.queue_offer(*this);
   }
 }
 
@@ -285,11 +268,14 @@ void Connection::close() {
 }
 
 void Connection::receive_disconnect() {
-  assert(!read_request.buffer.empty());
-  auto& buf = read_request.buffer;
+  Expects(read_request and read_request->buffer.buffer());
 
-  if(LIKELY(read_request.callback != nullptr))
-    read_request.callback(buf.buffer, buf.size());
+  if(read_request->callback) {
+    // TODO: consider adding back when SACK is complete
+    //auto& buf = read_request->buffer;
+    //if (buf.size() > 0 && buf.missing() == 0)
+    //    read_request->callback(buf.buffer(), buf.size());
+  }
 }
 
 void Connection::segment_arrived(Packet_ptr incoming)
@@ -650,9 +636,14 @@ void Connection::take_rtt_measure(const Packet& packet)
   if(cb.SND.TS_OK)
   {
     auto* ts = parse_ts_option(packet);
-    rttm.rtt_measurement(RTTM::milliseconds{host_.get_ts_value() - ntohl(ts->ecr)});
+    if(ts)
+    {
+      rttm.rtt_measurement(RTTM::milliseconds{host_.get_ts_value() - ntohl(ts->ecr)});
+      return;
+    }
   }
-  else if(rttm.active())
+
+  if(rttm.active())
   {
     rttm.stop(RTTM::milliseconds{host_.get_ts_value()});
   }
@@ -859,6 +850,17 @@ void Connection::start_dack()
   timewait_dack_timer.start(host_.DACK_timeout());
 }
 
+void Connection::signal_connect(const bool success)
+{
+  // if on read was set before we got a seq number,
+  // update the starting sequence number for the read buffer
+  if(read_request and success)
+    read_request->buffer.set_start(cb.RCV.NXT);
+
+  if(on_connect_)
+    (success) ? on_connect_(retrieve_shared()) : on_connect_(nullptr);
+}
+
 void Connection::signal_close() {
   debug("<Connection::signal_close> It's time to delete this connection. \n");
 
@@ -887,7 +889,8 @@ void Connection::clean_up() {
   on_packet_dropped_.reset();
   on_rtx_timeout_.reset();
   on_close_.reset();
-  read_request.clean_up();
+  if(read_request)
+    read_request->callback.reset();
   _on_cleanup_.reset();
 
   debug2("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());

@@ -28,33 +28,14 @@ namespace tcp {
 struct ReadRequest {
   using ReadCallback = delegate<void(buffer_t, size_t)>;
 
-  ReadBuffer buffer;
+  Read_buffer buffer;
   ReadCallback callback;
 
-  ReadRequest()
-    : buffer{nullptr, 0},
-      callback{nullptr}
+  ReadRequest(const size_t n, const seq_t seq, ReadCallback cb)
+    : buffer{n, seq},
+      callback{cb}
   {}
 
-  ReadRequest(ReadBuffer buf)
-    : ReadRequest(buf, nullptr)
-  {}
-
-  ReadRequest(ReadBuffer buf, ReadCallback cb)
-    : buffer(buf),
-      callback(cb)
-  {}
-
-  ReadRequest(size_t n)
-    : buffer({new_shared_buffer(n), n}),
-      callback({this, &ReadRequest::default_read_callback})
-  {}
-
-  void clean_up() {
-    callback.reset();
-  }
-
-  void default_read_callback(buffer_t, size_t) {}
 };
 
 } // < namespace tcp

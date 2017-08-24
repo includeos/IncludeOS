@@ -81,7 +81,7 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
   // This needs correct setup to work
   INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
   Inet4::stack<0>().resolve(address.first,
-    [port](auto ip_address, Error&) {
+    [port](auto ip_address, const Error&) {
       CHECK(ip_address != 0, "Resolved host");
 
       if(ip_address != 0)

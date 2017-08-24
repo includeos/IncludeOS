@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 #include <net/ip4/addr.hpp>
 #include <common>
+#include <errno.h>
 
 /**
  * @note: shortcut, not sufficent.

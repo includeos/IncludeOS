@@ -22,9 +22,6 @@
 #include <boot/multiboot.h>
 #include <hw/cmos.hpp>
 #include <kernel/os.hpp>
-#include <kernel/irq_manager.hpp>
-#include <kernel/rtc.hpp>
-#include <kernel/rdrand.hpp>
 #include <kernel/rng.hpp>
 #include <kernel/cpuid.hpp>
 #include <util/fixedvec.hpp>
@@ -142,12 +139,16 @@ void OS::add_stdout(OS::print_func func)
 __attribute__ ((weak))
 void default_stdout_handlers()
 {
-  OS::add_default_stdout();
+  OS::add_stdout(&OS::default_stdout);
 }
+__attribute__((weak))
+bool os_enable_boot_logging = false;
 void OS::print(const char* str, const size_t len)
 {
-  for (auto& func : os_print_handlers)
-      func(str, len);
+  for (auto& callback : os_print_handlers) {
+    if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
+      callback(str, len);
+  }
 }
 
 void OS::legacy_boot() {

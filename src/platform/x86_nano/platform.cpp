@@ -4,6 +4,7 @@
 #include "../x86_pc/apic.hpp"
 #include "../x86_pc/apic_timer.hpp"
 #include "../x86_pc/ioapic.hpp"
+#include "../x86_pc/idt.hpp"
 
 using namespace x86;
 using namespace std::chrono;
@@ -16,9 +17,10 @@ void __arch_poweroff()
   __builtin_unreachable();
 }
 
-void __platform_init(){
-  // FIXME: set up minimal CPU exception handlers
-  // TODO: set up minimal CPU exception handlers
+void __platform_init()
+{
+  // setup CPU exception handlers
+  x86::idt_initialize_for_cpu(0);
 }
 
 void __arch_reboot(){}

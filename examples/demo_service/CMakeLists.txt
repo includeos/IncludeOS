@@ -36,14 +36,10 @@ set(SOURCES
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
   set(DRIVERS
-      silent_start  # Less output during boot
-      solo5net     # Virtio networking
-      # virtioblock # Virtio block device
-      # ... Others from src/drivers
+      solo5net
     )
 else()
   set(DRIVERS
-      silent_start  # Less output during boot
       virtionet     # Virtio networking
       # virtioblock # Virtio block device
       # ... Others from src/drivers

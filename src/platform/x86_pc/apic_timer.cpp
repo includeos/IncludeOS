@@ -18,7 +18,7 @@
 #include "apic_timer.hpp"
 #include "apic.hpp"
 #include "pit.hpp"
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <kernel/timers.hpp>
 #include <smp>
 #include <cstdio>
@@ -66,9 +66,9 @@ namespace x86
     if (ticks_per_micro != 0) {
       // make sure timers are delay-initalized
       const auto irq = LAPIC_IRQ_TIMER;
-      IRQ_manager::get().subscribe(irq, start_timers);
+      Events::get().subscribe(irq, start_timers);
       // soft-trigger IRQ immediately
-      IRQ_manager::get().register_irq(irq);
+      Events::get().trigger_event(irq);
       return;
     }
 
@@ -113,11 +113,10 @@ namespace x86
   {
     assert(ready());
     // set interrupt handler
-    IRQ_manager::get().subscribe(LAPIC_IRQ_TIMER, Timers::timers_handler);
+    Events::get().subscribe(LAPIC_IRQ_TIMER, Timers::timers_handler);
     // delay-start all timers
-    auto irq = IRQ_manager::get().get_free_irq();
-    IRQ_manager::get().subscribe(irq, Timers::ready);
-    IRQ_manager::get().register_irq(irq);
+    auto irq = Events::get().subscribe(Timers::ready);
+    Events::get().trigger_event(irq);
   }
 
   bool APIC_Timer::ready() noexcept

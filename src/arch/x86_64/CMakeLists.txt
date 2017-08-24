@@ -5,8 +5,10 @@ set(ARCH_OBJECTS
   apic_asm.asm
   apic_longmode.asm
   arch_start.asm
+  exceptions.asm
   interrupts.asm
   fiber_asm.asm
+  ist.cpp
 )
 
 add_library(arch STATIC ${ARCH_OBJECTS})
