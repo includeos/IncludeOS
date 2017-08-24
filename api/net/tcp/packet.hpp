@@ -317,7 +317,7 @@ Socket source() const
     os << "[ S:" << source().to_string() << " D:" <<  destination().to_string()
        << " SEQ:" << seq() << " ACK:" << ack()
        << " HEAD-LEN:" << (int)tcp_header_length() << " OPT-LEN:" << (int)tcp_options_length() << " DATA-LEN:" << tcp_data_length()
-       << " WIN:" << win() << " FLAGS:" << std::bitset<8>{tcp_header().offset_flags.flags}  << " ]";
+       << " WIN:" << win() << " FLAGS:" << tcp_header().offset_flags.flags  << " ]";
     return os.str();
   }
 
