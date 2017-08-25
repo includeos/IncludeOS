@@ -4,6 +4,7 @@
 #include "apic_timer.hpp"
 #include "idt.hpp"
 #include <kernel/events.hpp>
+#include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <kprint>
 
@@ -108,7 +109,7 @@ void revenant_main(int cpu)
   while (true)
   {
     Events::get().process_events();
-    asm volatile("hlt");
+    OS::halt();
   }
   __builtin_unreachable();
 }
