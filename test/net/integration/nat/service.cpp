@@ -81,10 +81,21 @@ void Service::start()
     return pkt;
   };
 
+  auto ct_confirm = [](IP4::IP_packet_ptr pkt, const Inet<IP4>& stack)->IP4::IP_packet_ptr {
+    printf("CT Confirm on %s (%s)\n", stack.ip_addr().str().c_str(), stack.ifname().c_str());
+    ct->confirm(*pkt);
+    return pkt;
+  };
+
   eth0.prerouting_chain().chain.push_back(ct_in);
   eth0.output_chain().chain.push_back(ct_in);
+  eth0.postrouting_chain().chain.push_back(ct_confirm);
+  eth0.input_chain().chain.push_back(ct_confirm);
+
   eth1.prerouting_chain().chain.push_back(ct_in);
   eth1.output_chain().chain.push_back(ct_in);
+  eth1.postrouting_chain().chain.push_back(ct_confirm);
+  eth1.input_chain().chain.push_back(ct_confirm);
 
   // Setup NAT (Masquerade)
   natty = std::make_unique<nat::NAPT>(ct.get());

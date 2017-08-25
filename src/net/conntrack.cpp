@@ -60,8 +60,7 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
     printf("<Conntrack> Assuming ESTABLISHED\n");
   }
 
-  entry->timeout = RTC::now() +
-    ((entry->state == State::ESTABLISHED) ? timeout_est.count() : timeout_new.count());
+  update_timeout(*entry, (entry->state == State::ESTABLISHED) ? timeout_est : timeout_new);
 
   return entry;
 }
@@ -127,34 +126,102 @@ Conntrack::Entry* Conntrack::in(const PacketIP4& pkt)
   }
 }
 
-Conntrack::Entry* Conntrack::add_entry(
-  const Quadruple& quad, const Protocol proto)
+Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
 {
-  auto entry = std::make_shared<Entry>(quad, proto);
+  const auto proto = pkt.ip_protocol();
 
+  auto quad = [&]()->Quadruple {
+    switch(proto)
+    {
+      case Protocol::TCP:
+      case Protocol::UDP:
+        return get_quadruple(pkt);
+
+      case Protocol::ICMPv4:
+        return get_quadruple_icmp(pkt);
+
+      default:
+        return Quadruple();
+    }
+  }();
+
+  auto quint = Quintuple{quad, proto};
+  auto it = unconfirmed.find(quint);
+
+  // if the connection already been confirmed, early return
+  if(it == unconfirmed.end())
+    return nullptr;
+
+  auto entry = it->second;
+  printf("<Conntrack> Confirming %s\n", entry->to_string().c_str());
+
+  // confirm the entry, adding it into the entries map
   entries.emplace(std::piecewise_construct,
-    std::forward_as_tuple(entry->first, proto),
-    std::forward_as_tuple(entry));
+  std::forward_as_tuple(entry->first, proto),
+  std::forward_as_tuple(entry));
 
+  // also reveresed
   entries.emplace(std::piecewise_construct,
     std::forward_as_tuple(entry->second, proto),
     std::forward_as_tuple(entry));
 
-  printf("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
+  // remove it from the list of unconfirmed
+  unconfirmed.erase(quint);
+
+  update_timeout(*entry, timeout_new);
 
   return entry.get();
 }
 
-void Conntrack::update_entry(const Protocol proto, const Quadruple& oldq, const Quadruple& newq)
+Conntrack::Entry* Conntrack::add_entry(
+  const Quadruple& quad, const Protocol proto)
 {
-  auto it = entries.find({oldq, proto});
+  std::shared_ptr<Entry> entry = nullptr;
+  // check if there already is a unconfirmed entry
+  auto it = unconfirmed.find({quad, proto});
+
+  // if not found
+  if(it == unconfirmed.end())
+  {
+    // create the entry
+    entry = std::make_shared<Entry>(quad, proto);
+
+    // insert it into the map of unconfirmed entries
+    unconfirmed.emplace(std::piecewise_construct,
+      std::forward_as_tuple(entry->first, proto),
+      std::forward_as_tuple(entry));
+    // think it's enough to only store one way.
+    printf("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
+  }
+  else {
+    entry = it->second;
+    printf("<Conntrack> Entry already seen: %s\n", entry->to_string().c_str());
+  }
+
+  update_timeout(*entry, std::chrono::seconds(10));
+
+  return entry.get();
+}
+
+void Conntrack::update_entry(
+  const Protocol proto, const Quadruple& oldq, const Quadruple& newq)
+{
+  // find the entry that has quintuple containing the old quant
+  const auto quint = Quintuple{oldq, proto};
+  auto it = entries.find(quint);
   auto entry = it->second;
 
+  // determine if the old quant hits the first or second quantuple
   auto& quad = (entry->first == oldq)
     ? entry->first : entry->second;
 
+  // give it a new value
   quad = newq;
-  entries.erase({oldq, proto});
+
+  // TODO: this could probably be optimized with C++17 map::extract
+  // erase the old entry
+  entries.erase(quint);
+  // insert the entry with updated quintuple
   entries.emplace(std::piecewise_construct,
     std::forward_as_tuple(newq, proto),
     std::forward_as_tuple(entry));
@@ -170,5 +237,12 @@ void Conntrack::remove_entry(Entry* entry)
 
   if(on_close) on_close(entry);
 }
+
+void Conntrack::update_timeout(Entry& ent, Timeout_duration dur)
+{
+  ent.timeout = RTC::now() + dur.count();
+  printf("<Conntrack> Timeout updated with %llu secs\n", dur.count());
+}
+
 
 }

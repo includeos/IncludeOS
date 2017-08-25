@@ -117,6 +117,13 @@ public:
    */
   Entry* in(const PacketIP4& pkt);
 
+  /**
+   * @brief      Confirms a connection, moving the entry to confirmed.
+   *
+   * @param[in]  pkt   The packet
+   *
+   * @return     { description_of_the_return_value }
+   */
   Entry* confirm(const PacketIP4& pkt);
 
   /**
@@ -171,6 +178,9 @@ public:
 private:
   using Entry_table = std::map<Quintuple, std::shared_ptr<Entry>>;
   Entry_table entries;
+  Entry_table unconfirmed;
+
+  void update_timeout(Entry& ent, Timeout_duration dur);
 
 };
 
