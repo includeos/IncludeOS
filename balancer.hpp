@@ -28,9 +28,10 @@ struct Waiting {
 
 struct Nodes;
 struct Session {
-  Session(Nodes&, int idx, tcp_ptr inc, tcp_ptr out);
+  Session(Nodes&, int idx, bool talk, tcp_ptr inc, tcp_ptr out);
   bool is_alive() const;
   void handle_timeout();
+  void timeout(Nodes&);
 
   Nodes&    parent;
   const int self;
@@ -75,6 +76,7 @@ struct Nodes {
 
   int32_t open_sessions() const;
   int64_t total_sessions() const;
+  int32_t timed_out_sessions() const;
   int  pool_connecting() const;
   int  pool_size() const;
 
@@ -82,14 +84,15 @@ struct Nodes {
   void add_node(Args&&... args);
   void create_connections(int total);
   bool assign(tcp_ptr, queue_vector_t&);
-  void create_session(tcp_ptr inc, tcp_ptr out);
-  void close_session(int);
+  void create_session(bool talk, tcp_ptr inc, tcp_ptr out);
+  void close_session(int, bool timeout = false);
   Session& get_session(int);
 
 private:
   nodevec_t nodes;
   int64_t   session_total = 0;
   int       session_cnt = 0;
+  int       session_timeouts = 0;
   int       conn_iterator = 0;
   int       algo_iterator = 0;
   std::deque<Session> sessions;
@@ -100,6 +103,7 @@ struct Balancer {
   Balancer(netstack_t& in, uint16_t port, netstack_t& out);
 
   int  wait_queue() const;
+  int  connect_throws() const;
   Nodes nodes;
 
 private:
@@ -111,6 +115,7 @@ private:
   netstack_t& netin;
   std::deque<Waiting> queue;
   int rethrow_timer = -1;
+  int throw_counter = 0;
 };
 
 template <typename... Args>

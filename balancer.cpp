@@ -24,9 +24,11 @@ Balancer::Balancer(
     if (conn != nullptr) this->incoming(conn);
   });
 }
-
 int Balancer::wait_queue() const {
-  return queue.size();
+  return this->queue.size();
+}
+int Balancer::connect_throws() const {
+  return this->throw_counter;
 }
 void Balancer::incoming(tcp_ptr conn)
 {
@@ -81,6 +83,7 @@ void Balancer::handle_connections()
           this->rethrow_timer = Timers::UNUSED_ID;
           this->handle_connections();
       });
+      this->throw_counter++;
     }
   } // estimate
 } // handle_connections()
@@ -135,7 +138,7 @@ bool Nodes::assign(tcp_ptr conn, queue_vector_t& readq)
       assert(outgoing->is_connected());
       LBOUT("Assigning client to node %d (%s)\n",
             iterator, outgoing->to_string().c_str());
-      this->create_session(conn, outgoing);
+      this->create_session(not readq.empty(), conn, outgoing);
       // flush readq
       for (auto& buffer : readq) {
         LBOUT("*** Flushing %lu bytes\n", buffer.second);
@@ -171,15 +174,18 @@ int32_t Nodes::open_sessions() const {
 int64_t Nodes::total_sessions() const {
   return session_total;
 }
-void Nodes::create_session(tcp_ptr client, tcp_ptr outgoing)
+int32_t Nodes::timed_out_sessions() const {
+  return session_timeouts;
+}
+void Nodes::create_session(bool talk, tcp_ptr client, tcp_ptr outgoing)
 {
   int idx = -1;
   if (free_sessions.empty()) {
     idx = sessions.size();
-    sessions.emplace_back(*this, idx, client, outgoing);
+    sessions.emplace_back(*this, idx, talk, client, outgoing);
   } else {
     idx = free_sessions.back();
-    new (&sessions[idx]) Session(*this, idx, client, outgoing);
+    new (&sessions[idx]) Session(*this, idx, talk, client, outgoing);
     free_sessions.pop_back();
   }
   session_total++;
@@ -191,7 +197,7 @@ Session& Nodes::get_session(int idx)
 {
   return sessions.at(idx);
 }
-void Nodes::close_session(int idx)
+void Nodes::close_session(int idx, bool timeout)
 {
   auto& session = sessions.at(idx);
   assert(session.is_alive());
@@ -206,6 +212,7 @@ void Nodes::close_session(int idx)
   session.outgoing->reset_callbacks();
   session.outgoing = nullptr;
   // free session
+  if (timeout) this->session_timeouts++;
   free_sessions.push_back(session.self);
   session_cnt--;
   LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
@@ -328,14 +335,15 @@ tcp_ptr Node::get_connection()
 }
 
 // use indexing to access Session because std::vector
-Session::Session(Nodes& n, int idx, tcp_ptr inc, tcp_ptr out)
+Session::Session(Nodes& n, int idx, bool talk, tcp_ptr inc, tcp_ptr out)
     : parent(n), self(idx), incoming(inc), outgoing(out)
 {
-  this->timeout_timer = Timers::oneshot(INITIAL_SESSION_TIMEOUT,
+  // if the client talked before it was assigned a session, use bigger timeout
+  auto timeout = (talk) ? ROLLING_SESSION_TIMEOUT : INITIAL_SESSION_TIMEOUT;
+  // session timeout timer
+  this->timeout_timer = Timers::oneshot(timeout,
   [&nodes = n, this] (int) {
-      assert(this->is_alive());
-      this->timeout_timer = Timers::UNUSED_ID;
-      nodes.close_session(this->self);
+      this->timeout(nodes);
   });
   incoming->on_read(READQ_PER_CLIENT,
   [this] (auto buf, size_t len) {
@@ -374,8 +382,12 @@ void Session::handle_timeout()
   // create new timeout
   this->timeout_timer = Timers::oneshot(ROLLING_SESSION_TIMEOUT,
   [&nodes = parent, this] (int) {
-      assert(this->is_alive());
-      this->timeout_timer = Timers::UNUSED_ID;
-      nodes.close_session(this->self);
+      this->timeout(nodes);
   });
+}
+void Session::timeout(Nodes& nodes)
+{
+  assert(this->is_alive());
+  this->timeout_timer = Timers::UNUSED_ID;
+  nodes.close_session(this->self, true);
 }

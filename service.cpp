@@ -86,12 +86,13 @@ void print_stats(int)
   const auto& nodes = balancer->nodes;
 
   auto totals = nodes.total_sessions();
-  auto growth = totals - last;  last = totals;
+  int  growth = totals - last;  last = totals;
 
   printf("*** [%s] ***\n", now().c_str());
-  printf("Total %ld Gr %+ld  Sess %d Wait %d  Pool %d Wait %d\n",
+  printf("Total %ld (%+d) Sess %d Wait %d TO %d - Pool %d C.Att %d Err %d\n",
          totals, growth, nodes.open_sessions(), balancer->wait_queue(),
-         nodes.pool_size(), nodes.pool_connecting());
+         nodes.timed_out_sessions(), nodes.pool_size(),
+         nodes.pool_connecting(), balancer->connect_throws());
   // node information
   int n = 0;
   for (auto& node : nodes) {
