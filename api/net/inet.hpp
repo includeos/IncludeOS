@@ -24,6 +24,8 @@
 #include <net/inet_common.hpp>
 #include <hw/mac_addr.hpp>
 #include <hw/nic.hpp>
+#include <map>
+#include <net/port_util.hpp>
 
 namespace net {
 
@@ -47,6 +49,8 @@ namespace net {
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr, const Error&)>;
     using Vip_list = std::unordered_set<typename IPV::addr>;
+
+    using Port_utils      = std::map<typename IPV::addr, Port_util>;
 
 
     ///
@@ -179,6 +183,8 @@ namespace net {
     /** Get the ICMP protocol object for this interface */
     virtual ICMPv4& icmp() = 0;
 
+    virtual Port_utils& tcp_ports() = 0;
+    virtual Port_utils& udp_ports() = 0;
 
     ///
     /// PATH MTU DISCOVERY

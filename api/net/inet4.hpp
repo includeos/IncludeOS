@@ -360,6 +360,12 @@ namespace net {
     virtual Filter_chain& output_chain() override
     { return output_chain_; }
 
+    virtual Port_utils& tcp_ports() override
+    { return tcp_ports_; }
+
+    virtual Port_utils& udp_ports() override
+    { return udp_ports_; }
+
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
 
@@ -383,6 +389,9 @@ namespace net {
     ICMPv4 icmp_;
     UDP    udp_;
     TCP    tcp_;
+
+    Port_utils tcp_ports_;
+    Port_utils udp_ports_;
 
     // Filter chains
     Filter_chain prerouting_chain_{"Prerouting", {}};
