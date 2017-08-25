@@ -123,6 +123,7 @@ int kill(pid_t pid, int sig) THROW {
 struct alignas(SMP_ALIGN) context_buffer
 {
   std::array<char, 512> buffer;
+  bool is_panicking = false;
 };
 static SMP_ARRAY<context_buffer> contexts;
 
@@ -134,18 +135,20 @@ char*  get_crash_context_buffer()
 {
   return PER_CPU(contexts).buffer.data();
 }
+bool OS::is_panicking() noexcept
+{
+  return PER_CPU(contexts).is_panicking;
+}
+extern "C"
+void cpu_enable_panicking()
+{
+  PER_CPU(contexts).is_panicking = true;
+}
 
-static bool panic_reenter = false;
 static OS::on_panic_func panic_handler = nullptr;
-
 void OS::on_panic(on_panic_func func)
 {
   panic_handler = std::move(func);
-}
-
-bool OS::is_panicking() noexcept
-{
-  return panic_reenter; // should work
 }
 
 /**
@@ -160,14 +163,11 @@ bool OS::is_panicking() noexcept
 void panic(const char* why)
 {
 asm("panic_begin:");
-  /// prevent re-entering panic() more than once per CPU
-  //if (panic_reenter) OS::reboot();
-  panic_reenter = true;
+  cpu_enable_panicking();
   const int current_cpu = SMP::cpu_id();
 
   /// display informacion ...
   SMP::global_lock();
-
   fprintf(stderr, "\n%s\nCPU: %d, Reason: %s\n",
           panic_signature, current_cpu, why);
 
