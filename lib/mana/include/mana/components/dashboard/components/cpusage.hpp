@@ -82,8 +82,8 @@ private:
     uint64_t temp_halt = new_halt_;
     uint64_t temp_total = new_total_;
 
-    new_halt_ = OS::get_cycles_halt();
-    new_total_ = OS::get_cycles_total();
+    new_halt_ = OS::cycles_asleep();
+    new_total_ = OS::cycles_since_boot();
     old_halt_ = temp_halt;
     old_total_ = temp_total;
   }
