@@ -50,9 +50,10 @@ extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
 
-// sleep statistics
-static uint64_t* os_cycles_hlt   = nullptr;
-static uint64_t* os_cycles_total = nullptr;
+struct alignas(SMP_ALIGN) OS_CPU {
+  uint64_t cycles_hlt = 0;
+};
+static SMP_ARRAY<OS_CPU> os_per_cpu;
 
 int64_t OS::micros_since_boot() noexcept {
   return cycles_since_boot() / cpu_freq().count();
@@ -68,17 +69,17 @@ RTC::timestamp_t OS::uptime()
   return RTC::time_since_boot();
 }
 
-uint64_t OS::get_cycles_halt() noexcept {
-  return *os_cycles_hlt;
+uint64_t OS::cycles_asleep() noexcept {
+  return PER_CPU(os_per_cpu).cycles_hlt;
 }
-uint64_t OS::get_cycles_total() noexcept {
-  return *os_cycles_total;
+uint64_t OS::micros_asleep() noexcept {
+  return PER_CPU(os_per_cpu).cycles_hlt / cpu_freq().count();
 }
 
 __attribute__((noinline))
-void OS::halt() {
-  *os_cycles_total = cycles_since_boot();
-#if defined(ARCH_x86)
+void OS::halt()
+{
+  uint64_t cycles_before = __arch_cpu_cycles();
   asm volatile("hlt");
 
   // add a global symbol here so we can quickly discard
@@ -86,12 +87,9 @@ void OS::halt() {
   asm volatile(
   ".global _irq_cb_return_location;\n"
   "_irq_cb_return_location:" );
-#else
-#warning "OS::halt() not implemented for selected arch"
-#endif
+
   // Count sleep cycles
-  if (os_cycles_hlt)
-      *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
+  PER_CPU(os_per_cpu).cycles_hlt += __arch_cpu_cycles() - cycles_before;
 }
 
 void OS::default_stdout(const char* str, const size_t len)
@@ -111,7 +109,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
          boot_magic, boot_addr);
 
   /// STATMAN ///
-  /// initialize on page 7, 2 pages in size
+  /// initialize on page 7, 3 pages in size
   Statman::get().init(0x6000, 0x3000);
 
   PROFILE("Multiboot / legacy");
@@ -160,17 +158,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
         "Heap", "Dynamic memory", heap_usage });
 
   MYINFO("Printing memory map");
-
   for (const auto &i : memmap)
     INFO2("* %s",i.second.to_string().c_str());
 
-
-  // sleep statistics
-  // NOTE: needs to be positioned before anything that calls OS::halt
-  os_cycles_hlt = &Statman::get().create(
-      Stat::UINT64, std::string("cpu0.cycles_hlt")).get_uint64();
-  os_cycles_total = &Statman::get().create(
-      Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
 
   PROFILE("Platform init");
   extern void __platform_init();

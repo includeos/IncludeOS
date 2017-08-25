@@ -74,6 +74,13 @@ public:
   /** Uptime in whole seconds. */
   static RTC::timestamp_t uptime();
 
+  /** Time spent sleeping (halt) in cycles */
+  static uint64_t cycles_asleep() noexcept;
+
+  /** Time spent sleeping (halt) in micros */
+  static uint64_t micros_asleep() noexcept;
+
+
   static MHz cpu_freq() noexcept
   { return cpu_mhz_; }
 
@@ -177,12 +184,6 @@ public:
   static uintptr_t memory_end() noexcept {
     return memory_end_;
   }
-
-  /** time spent sleeping (halt) in cycles */
-  static uint64_t get_cycles_halt() noexcept;
-
-  /** total time spent in cycles */
-  static uint64_t get_cycles_total() noexcept;
 
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
