@@ -75,16 +75,16 @@ void Service::start()
 
   // Setup Conntracker
   ct = std::make_unique<Conntrack>();
-  auto ct_in = [](IP4::IP_packet_ptr pkt, const Inet<IP4>& stack)->IP4::IP_packet_ptr {
+  auto ct_in = [](IP4::IP_packet& pkt, Inet<IP4>& stack)->auto {
     printf("Connection tracking on %s (%s)\n", stack.ip_addr().str().c_str(), stack.ifname().c_str());
-    ct->in(*pkt);
-    return pkt;
+    ct->in(pkt);
+    return Filter_verdict::ACCEPT;
   };
 
-  auto ct_confirm = [](IP4::IP_packet_ptr pkt, const Inet<IP4>& stack)->IP4::IP_packet_ptr {
+  auto ct_confirm = [](IP4::IP_packet& pkt, Inet<IP4>& stack)->auto {
     printf("CT Confirm on %s (%s)\n", stack.ip_addr().str().c_str(), stack.ifname().c_str());
-    ct->confirm(*pkt);
-    return pkt;
+    ct->confirm(pkt);
+    return Filter_verdict::ACCEPT;
   };
 
   eth0.prerouting_chain().chain.push_back(ct_in);
@@ -100,21 +100,21 @@ void Service::start()
   // Setup NAT (Masquerade)
   natty = std::make_unique<nat::NAPT>(ct.get());
 
-  auto masq = [](IP4::IP_packet_ptr pkt, const Inet<IP4>& stack)->IP4::IP_packet_ptr {
+  auto masq = [](IP4::IP_packet& pkt, Inet<IP4>& stack)->auto {
     printf("Masq %s %s on %s (%s)\n",
-      pkt->ip_src().str().c_str(), pkt->ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
+      pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
       stack.ifname().c_str());
-    natty->masquerade(*pkt, stack);
-    printf("-> %s %s\n", pkt->ip_src().str().c_str(), pkt->ip_dst().str().c_str());
-    return pkt;
+    natty->masquerade(pkt, stack);
+    printf("-> %s %s\n", pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str());
+    return Filter_verdict::ACCEPT;
   };
-  auto demasq = [](IP4::IP_packet_ptr pkt, const Inet<IP4>& stack)->IP4::IP_packet_ptr {
+  auto demasq = [](IP4::IP_packet& pkt, Inet<IP4>& stack)->auto {
     printf("DeMasq %s %s on %s (%s)\n",
-      pkt->ip_src().str().c_str(), pkt->ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
+      pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
       stack.ifname().c_str());
-    natty->demasquerade(*pkt, stack);
-    printf("-> %s %s\n", pkt->ip_src().str().c_str(), pkt->ip_dst().str().c_str());
-    return pkt;
+    natty->demasquerade(pkt, stack);
+    printf("-> %s %s\n", pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str());
+    return Filter_verdict::ACCEPT;
   };
   //eth0.prerouting_chain().chain.push_back(demasq);
   //eth0.postrouting_chain().chain.push_back(masq);

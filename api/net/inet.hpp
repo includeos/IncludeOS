@@ -26,6 +26,7 @@
 #include <hw/nic.hpp>
 #include <map>
 #include <net/port_util.hpp>
+#include "netfilter.hpp"
 
 namespace net {
 
@@ -122,24 +123,25 @@ namespace net {
     /// PACKET FILTERING
     ///
 
-    using Packetfilter = delegate<typename IPV::IP_packet_ptr(typename IPV::IP_packet_ptr, const Stack&)>;
+    using Packetfilter = delegate<Filter_verdict(typename IPV::IP_packet&, Stack&)>;
 
     struct Filter_chain {
       std::list<Packetfilter> chain;
       const char* name;
 
-      typename IPV::IP_packet_ptr operator()(typename IPV::IP_packet_ptr pckt, const Stack& stack) {
+      Filter_verdict operator()(typename IPV::IP_packet& pckt, Stack& stack) {
+        auto verdict = Filter_verdict::ACCEPT;
         int i = 0;
-        for (auto filter : chain) {
+        for (auto filter : chain)
+        {
           i++;
-          pckt = filter(std::move(pckt), stack);
-          if (pckt == nullptr) {
+          verdict = filter(pckt, stack);
+          if(verdict == Filter_verdict::DROP) {
             debug("Packet dropped in %s chain, filter %i \n", name, i);
-            // do some logging
-            return nullptr;
+            break;
           }
         }
-        return pckt;
+        return verdict;
       }
 
       Filter_chain(const char* chain_name, std::initializer_list<Packetfilter> filters)
