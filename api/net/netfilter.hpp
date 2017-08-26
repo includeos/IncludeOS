@@ -19,13 +19,44 @@
 #ifndef NET_NETFILTER_HPP
 #define NET_NETFILTER_HPP
 
-namespace net {
+#include <delegate>
+#include <list>
 
-// TODO: Move filter related stuff in here.
+namespace net {
 
 enum class Filter_verdict {
   ACCEPT,
   DROP
+};
+
+template <typename IPV>
+struct Inet;
+
+template <typename IPV>
+using Packetfilter = delegate<Filter_verdict(typename IPV::IP_packet&, Inet<IPV>&)>;
+
+template <typename IPV>
+struct Filter_chain {
+  std::list<Packetfilter<IPV>> chain;
+  const char* name;
+
+  Filter_verdict operator()(typename IPV::IP_packet& pckt, Inet<IPV>& stack) {
+    auto verdict = Filter_verdict::ACCEPT;
+    int i = 0;
+    for (auto filter : chain) {
+      i++;
+      verdict = filter(pckt, stack);
+      if(verdict == Filter_verdict::DROP) {
+        debug("Packet dropped in %s chain, filter %i \n", name, i);
+        break;
+      }
+    }
+    return verdict;
+  }
+
+  Filter_chain(const char* chain_name, std::initializer_list<Packetfilter<IPV>> filters)
+    : chain(filters), name{chain_name}
+  {}
 };
 
 }
