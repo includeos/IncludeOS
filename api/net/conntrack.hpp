@@ -24,6 +24,7 @@
 #include <vector>
 #include <map>
 #include <rtc>
+#include "netfilter.hpp"
 
 namespace net {
 
@@ -162,6 +163,22 @@ public:
   static Quadruple get_quadruple(const PacketIP4& pkt);
 
   static Quadruple get_quadruple_icmp(const PacketIP4& pkt);
+
+  template<typename IPV>
+  Packetfilter<IPV> in_filter() {
+    return [this] (PacketIP4& pkt, Inet<IPV>&)->auto {
+      return (in(pkt) != nullptr)
+        ? Filter_verdict::ACCEPT : Filter_verdict::DROP;
+    };
+  }
+
+  template<typename IPV>
+  Packetfilter<IPV> confirm_filter() {
+    return [this] (PacketIP4& pkt, Inet<IPV>&)->auto {
+      confirm(pkt);
+      return Filter_verdict::ACCEPT; // always accept?
+    };
+  }
 
   Conntrack();
 
