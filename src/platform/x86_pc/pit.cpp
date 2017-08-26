@@ -171,3 +171,8 @@ namespace x86
   }
 
 } //< x86
+
+void __arch_preempt_forever(void(*func)())
+{
+  x86::PIT::forever(func);
+}
