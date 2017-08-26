@@ -75,27 +75,8 @@ void Service::start()
 
   // Setup Conntracker
   ct = std::make_unique<Conntrack>();
-  auto ct_in = [](IP4::IP_packet& pkt, Inet<IP4>& stack)->auto {
-    printf("Connection tracking on %s (%s)\n", stack.ip_addr().str().c_str(), stack.ifname().c_str());
-    ct->in(pkt);
-    return Filter_verdict::ACCEPT;
-  };
-
-  auto ct_confirm = [](IP4::IP_packet& pkt, Inet<IP4>& stack)->auto {
-    printf("CT Confirm on %s (%s)\n", stack.ip_addr().str().c_str(), stack.ifname().c_str());
-    ct->confirm(pkt);
-    return Filter_verdict::ACCEPT;
-  };
-
-  eth0.prerouting_chain().chain.push_back(ct_in);
-  eth0.output_chain().chain.push_back(ct_in);
-  eth0.postrouting_chain().chain.push_back(ct_confirm);
-  eth0.input_chain().chain.push_back(ct_confirm);
-
-  eth1.prerouting_chain().chain.push_back(ct_in);
-  eth1.output_chain().chain.push_back(ct_in);
-  eth1.postrouting_chain().chain.push_back(ct_confirm);
-  eth1.input_chain().chain.push_back(ct_confirm);
+  eth0.enable_conntrack(ct.get());
+  eth1.enable_conntrack(ct.get());
 
   // Setup NAT (Masquerade)
   natty = std::make_unique<nat::NAPT>(ct.get());

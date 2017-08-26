@@ -26,6 +26,7 @@
 #include <map>
 #include <net/port_util.hpp>
 #include "netfilter.hpp"
+#include "conntrack.hpp"
 
 namespace net {
 
@@ -143,6 +144,21 @@ namespace net {
 
     /** Packets pass through output chain after exiting protocol handlers */
     virtual Filter_chain& output_chain() = 0;
+
+    /**
+     * @brief      Get the active conntrack for this stack.
+     *
+     * @return     The conntrack for this stack, nullptr if none.
+     */
+    virtual Conntrack* conntrack() const = 0;
+
+    /**
+     * @brief      Enables the conntrack for this stack,
+     *             setting up the necessary hooks.
+     *
+     * @param      <unnamed>  The conntrack to assign to this stack.
+     */
+    virtual void enable_conntrack(Conntrack*) = 0;
 
 
     ///

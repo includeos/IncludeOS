@@ -195,6 +195,19 @@ void Inet4::network_config(IP4::addr addr,
   configured_handlers_.clear();
 }
 
+void Inet4::enable_conntrack(Conntrack* ct)
+{
+  Expects(conntrack_ == nullptr && "Conntrack is already set");
+  conntrack_ = ct;
+  auto ct_in      = conntrack_->in_filter<IP4>();
+  auto ct_confirm = conntrack_->confirm_filter<IP4>();
+  // add hooks
+  prerouting_chain().chain.push_front(ct_in);
+  output_chain().chain.push_front(ct_in);
+  postrouting_chain().chain.push_front(ct_confirm);
+  input_chain().chain.push_front(ct_confirm);
+}
+
 void Inet4::process_sendq(size_t packets) {
 
   ////////////////////////////////////////////
