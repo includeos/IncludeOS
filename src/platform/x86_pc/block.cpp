@@ -20,26 +20,23 @@
 #include <kernel/events.hpp>
 
 // Keep track of blocking levels
-static uint32_t* blocking_level = 0;
-static uint32_t* highest_blocking_level = 0;
-
+static uint32_t* blocking_level = nullptr;
+static uint32_t* highest_blocking_level = nullptr;
 
 // Getters, mostly for testing
 extern "C" uint32_t os_get_blocking_level() {
   return *blocking_level;
-};
-
+}
 extern "C" uint32_t os_get_highest_blocking_level() {
   return *highest_blocking_level;
-};
-
+}
 
 /**
  * A quick and dirty implementation of blocking calls, which simply halts,
  * then calls  the event loop, then returns.
  **/
-void OS::block(){
-
+void OS::block()
+{
   // Initialize stats
   if (not blocking_level) {
     blocking_level = &Statman::get()
@@ -60,10 +57,13 @@ void OS::block(){
   if (*blocking_level > *highest_blocking_level)
     *highest_blocking_level = *blocking_level;
 
+  // Process immediate events
+  Events::get().process_events();
+
   // Await next interrupt
   OS::halt();
 
-  // Process callbacks
+  // Process events (again?)
   Events::get().process_events();
 
   // Decrement level

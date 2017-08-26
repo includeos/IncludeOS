@@ -108,8 +108,8 @@ void Events::process_events()
 #ifdef DEBUG_SMP
       SMP::global_lock();
       if (intr != 0)
-      printf("[%p] Calling handler for intr=%u irq=%u cpu %d\n",
-             get_cpu_esp(), IRQ_BASE + intr, intr, SMP::cpu_id());
+      printf("[cpu%d] Calling handler for intr=%u irq=%u\n",
+             SMP::cpu_id(), IRQ_BASE + intr, intr);
       SMP::global_unlock();
 #endif
       callbacks[intr]();

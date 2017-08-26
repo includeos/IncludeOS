@@ -17,26 +17,25 @@
 
 #include <os>
 #include <timers>
+using namespace std::chrono;
 
 extern "C" uint32_t os_get_blocking_level();
 extern "C" uint32_t os_get_highest_blocking_level();
 
-void sleep(int i){
-  static Timers::id_t timer{};
+static void msleep(int micros)
+{
+  bool ticked = false;
+  Timers::oneshot(microseconds(micros),
+  [&ticked] (int) {
+    INFO("Timer", "Ticked");
+    ticked = true;
+    Expects(os_get_blocking_level() == 1);
+  });
 
-  if (not timer)
-    timer = Timers::oneshot(std::chrono::seconds(i), [](auto){
-        INFO("Timer", "Ticked");
-        timer = 0;
-        Expects(os_get_blocking_level() == 1);
-      });
-
-  while (timer) {
+  while (ticked == false) {
     OS::block();
     Expects(os_get_blocking_level() == 0);
   }
-
-  INFO("Test", " Done");
 }
 
 void Service::start()
@@ -50,7 +49,7 @@ void Service::ready()
 
   int n = 10;
   for (int i = 0; i < n; i++) {
-    sleep(1);
+    msleep(1000000);
     sleeps++;
     printf("Sleep %i/%i \n", sleeps, n);
     if (sleeps == 10)

@@ -477,7 +477,7 @@ void TCP::process_writeq(size_t packets) {
     // remove from writeq
     writeq.pop_front();
     conn->set_queued(false);
-    // ...
+    // packets taken in as reference
     conn->offer(packets);
   }
 }
