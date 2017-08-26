@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <os>
+#include <profile>
 #include "balancer.hpp"
 static void print_stats(int);
 #define STATS_PERIOD  5s
@@ -24,7 +25,8 @@ static Balancer* balancer = nullptr;
 #define NET_INCOMING  1
 #define NET_OUTGOING  2
 
-void Service::start()
+void Service::start() {}
+void Service::ready()
 {
   auto& inc = net::Super_stack::get<net::IP4>(NET_INCOMING);
   auto& out = net::Super_stack::get<net::IP4>(NET_OUTGOING);
@@ -33,6 +35,8 @@ void Service::start()
   balancer = new Balancer(inc, 80, out);
 
   Timers::periodic(1s, STATS_PERIOD, print_stats);
+  StackSampler::begin();
+  StackSampler::set_mode(StackSampler::MODE_CURRENT);
 }
 
 /// statistics ///
@@ -102,7 +106,23 @@ void print_stats(int)
     if (++n == 2) { n = 0; printf("\n"); }
   }
   if (n > 0) printf("\n");
+  // CPU-usage statistics
+  static uint64_t last_total = 0, last_asleep = 0;
+  uint64_t tdiff = StackSampler::samples_total() - last_total;
+  last_total = StackSampler::samples_total();
+  uint64_t adiff = StackSampler::samples_asleep() - last_asleep;
+  last_asleep = StackSampler::samples_asleep();
+
+  double asleep = adiff / (double) tdiff;
+  static rolling_avg<5, double> asleep_avg;
+  asleep_avg.push(asleep);
+
+  printf("CPU usage: %.2f%%  Idle: %.2f%%  Avg. usage: %.2f%%  Idle: %.2f%%\n",
+        (1.0 - asleep) * 100.0, asleep * 100.0,
+        (1.0 - asleep_avg.avg()) * 100.0, asleep_avg.avg() * 100.0);
 
   // heap statistics
   print_heap_info();
+  // stack sampling
+  StackSampler::print(3);
 }
