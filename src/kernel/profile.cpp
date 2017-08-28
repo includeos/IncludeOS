@@ -44,8 +44,8 @@ struct Sampler
   std::unordered_map<uintptr_t, func_sample> dict;
   uint64_t total  = 0;
   uint64_t asleep = 0;
-  int  lockless;
-  bool discard; // discard results as long as true
+  int  lockless = 0;
+  bool discard = false; // discard results as long as true
   StackSampler::mode_t mode = StackSampler::MODE_CURRENT;
 
   Sampler() {
@@ -53,15 +53,13 @@ struct Sampler
     #define blargh(T) std::remove_pointer<decltype(T)>::type;
     samplerq = new blargh(samplerq);
     transferq = new blargh(transferq);
-    total    = 0;
-    asleep   = 0;
-    lockless = 0;
-    discard  = false;
   }
 
   void begin() {
     // gather samples repeatedly over single period
     __arch_preempt_forever(gather_stack_sampling);
+    // install interrupt handler (NOTE: after "initializing" PIT)
+    __arch_install_irq(0, parasite_interrupt_handler);
   }
   void add(void* current)
   {
@@ -75,7 +73,7 @@ struct Sampler
     // return when its not our turn
     if (lockless) return;
 
-    // transfer all the built up samplings
+    // transfer all the built up samples
     transferq->copy(samplerq->begin(), samplerq->size());
     samplerq->clear();
     lockless = 1;
@@ -89,8 +87,6 @@ static Sampler& get() {
 
 void StackSampler::begin()
 {
-  // install interrupt handler
-  __arch_install_irq(0, parasite_interrupt_handler);
   // start taking samples using PIT interrupts
   get().begin();
 }
