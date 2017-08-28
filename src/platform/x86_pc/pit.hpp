@@ -81,13 +81,12 @@ namespace x86
     void irq_handler();
 
     // State-keeping
-    uint16_t current_freq_divider_;
-    Mode     current_mode_;
-    int64_t  IRQ_counter;
+    uint16_t current_freq_divider_ = 0;
+    Mode     current_mode_ = NONE;
 
     // Timer handler & expiration timestamp
-    timeout_handler           handler;
-    timeout_handler           forev_handler;
+    timeout_handler           handler = nullptr;
+    timeout_handler           forev_handler = nullptr;
     std::chrono::milliseconds expiration;
 
     // Access mode bits are bits 4- and 5 in the Mode register
