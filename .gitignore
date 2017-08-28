@@ -1,6 +1,1 @@
-#rwarwar
-*.o
-*.d
-*.img
-_elf_symbols.bin
-IRCd
+build/
