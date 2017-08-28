@@ -23,7 +23,7 @@
 using namespace net;
 
 std::unique_ptr<Router<IP4>> router;
-std::unique_ptr<Conntrack> ct;
+std::shared_ptr<Conntrack> ct;
 std::unique_ptr<nat::NAPT> natty;
 
 void ip_forward(Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
@@ -74,12 +74,12 @@ void Service::start()
   //internet_host.ip_obj().set_packet_forwarding(ip_forward);
 
   // Setup Conntracker
-  ct = std::make_unique<Conntrack>();
-  eth0.enable_conntrack(ct.get());
-  eth1.enable_conntrack(ct.get());
+  ct = std::make_shared<Conntrack>();
+  eth0.enable_conntrack(ct);
+  eth1.enable_conntrack(ct);
 
   // Setup NAT (Masquerade)
-  natty = std::make_unique<nat::NAPT>(ct.get());
+  natty = std::make_unique<nat::NAPT>(ct);
 
   auto masq = [](IP4::IP_packet& pkt, Inet<IP4>& stack)->auto {
     printf("Masq %s %s on %s (%s)\n",

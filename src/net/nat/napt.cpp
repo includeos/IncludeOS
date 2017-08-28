@@ -23,11 +23,13 @@
 namespace net {
 namespace nat {
 
-NAPT::NAPT(Conntrack* ct)
-  : conntrack(ct)
-{}
+NAPT::NAPT(std::shared_ptr<Conntrack> ct)
+  : conntrack(std::move(ct))
+{
+  Expects(conntrack != nullptr);
+}
 
-void NAPT::masquerade(IP4::IP_packet& pkt, const Stack& inet)
+void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet)
 {
   switch(pkt.ip_protocol())
   {
@@ -61,7 +63,7 @@ void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack& inet)
   }
 }
 
-void NAPT::tcp_masq(IP4::IP_packet& p, const Stack& inet)
+void NAPT::tcp_masq(IP4::IP_packet& p, Stack& inet)
 {
   Expects(p.ip_protocol() == Protocol::TCP);
   auto& pkt = static_cast<tcp::Packet&>(p);
@@ -74,11 +76,14 @@ void NAPT::tcp_masq(IP4::IP_packet& p, const Stack& inet)
   // If the entry is mirrored, it's not masked yet
   if(entry->first.src == entry->second.dst)
   {
-    // Generate a new port
-    auto port = tcp_ports.get_next_ephemeral();
-    tcp_ports.bind(port);
+    // Get the TCP ports for the given stack
+    const auto ip = inet.ip_addr();
+    auto& ports = inet.tcp_ports()[ip];
+    // Generate a new eph port and bind it
+    auto port = ports.get_next_ephemeral();
+    ports.bind(port);
+    // Update the entry to have the new socket as second
     auto masq_sock = Socket{inet.ip_addr(), port};
-
     conntrack->update_entry(Protocol::TCP, entry->second, {entry->second.src, masq_sock});
   }
 
@@ -104,7 +109,7 @@ void NAPT::tcp_demasq(IP4::IP_packet& p, const Stack&)
   }
 }
 
-void NAPT::udp_masq(IP4::IP_packet& p, const Stack& inet)
+void NAPT::udp_masq(IP4::IP_packet& p, Stack& inet)
 {
   Expects(p.ip_protocol() == Protocol::UDP);
   auto& pkt = static_cast<PacketUDP&>(p);
@@ -119,11 +124,15 @@ void NAPT::udp_masq(IP4::IP_packet& p, const Stack& inet)
 
   if(entry->first.dst == entry->second.src)
   {
-    // Generate a new port
-    auto port = udp_ports.get_next_ephemeral();
-    udp_ports.bind(port);
-
-    entry->first.dst = {inet.ip_addr(), port};
+    // Get the UDP ports for the given stack
+    const auto ip = inet.ip_addr();
+    auto& ports = inet.udp_ports()[ip];
+    // Generate a new eph port and bind it
+    auto port = ports.get_next_ephemeral();
+    ports.bind(port);
+    // Update the entry to have the new socket as second
+    auto masq_sock = Socket{inet.ip_addr(), port};
+    conntrack->update_entry(Protocol::UDP, entry->second, {entry->second.src, masq_sock});
   }
 
   // static source nat

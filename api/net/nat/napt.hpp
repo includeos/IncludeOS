@@ -37,7 +37,7 @@ public:
 
 public:
 
-  NAPT(Conntrack* ct);
+  NAPT(std::shared_ptr<Conntrack> ct);
 
   /**
    * @brief      Masquerade a packet
@@ -45,7 +45,7 @@ public:
    * @param      pkt   The packet
    * @param[in]  inet  The inet
    */
-  void masquerade(IP4::IP_packet& pkt, const Stack& inet);
+  void masquerade(IP4::IP_packet& pkt, Stack& inet);
 
   /**
    * @brief      Demasquerade a packet
@@ -56,16 +56,13 @@ public:
   void demasquerade(IP4::IP_packet& pkt, const Stack& inet);
 
 private:
-  Port_util tcp_ports;
-  Port_util udp_ports;
+  std::shared_ptr<Conntrack> conntrack;
 
-  Conntrack* conntrack;
-
-  void tcp_masq(IP4::IP_packet& pkt, const Stack& inet);
+  void tcp_masq(IP4::IP_packet& pkt, Stack& inet);
 
   void tcp_demasq(IP4::IP_packet& pkt, const Stack& inet);
 
-  void udp_masq(IP4::IP_packet& pkt, const Stack& inet);
+  void udp_masq(IP4::IP_packet& pkt, Stack& inet);
 
   void udp_demasq(IP4::IP_packet& pkt, const Stack& inet);
 
