@@ -43,12 +43,12 @@ void ip_forward(Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
     return;
   }
 
-  //printf("ip_fwd transmitting packet to %s\n", route->ifname().c_str());
   route->ip_obj().ship(std::move(pckt));
 }
 
 void Service::start()
 {
+  INFO("NAT Test", "Setting up enviornment to simulate a home router");
   auto& eth0 = Inet4::ifconfig<0>(
     { 10, 1, 0, 1 }, { 255, 255, 255, 0 }, { 10, 0, 0, 1 });
 
@@ -61,19 +61,19 @@ void Service::start()
   auto& internet_host = Inet4::ifconfig<3>(
     { 192, 1, 0, 192 }, { 255, 255, 255, 0 }, eth1.ip_addr());
 
+
+  INFO("NAT Test", "Setup routing between eth0 and eth1");
   Router<IP4>::Routing_table routing_table{
     {{10, 1, 0, 0 }, { 255, 255, 255, 0}, {10, 1, 0, 1}, eth0 , 1 },
     {{192, 1, 0, 0 }, { 255, 255, 255, 0}, {192, 1, 0, 1}, eth1 , 1 }
   };
 
   router = std::make_unique<Router<IP4>>(Super_stack::inet().ip4_stacks(), routing_table);
-
   eth0.ip_obj().set_packet_forwarding(ip_forward);
   eth1.ip_obj().set_packet_forwarding(ip_forward);
-  //laptop1.ip_obj().set_packet_forwarding(ip_forward);
-  //internet_host.ip_obj().set_packet_forwarding(ip_forward);
 
   // Setup Conntracker
+  INFO("NAT Test", "Enable Conntrack on eth0 and eth1");
   ct = std::make_shared<Conntrack>();
   eth0.enable_conntrack(ct);
   eth1.enable_conntrack(ct);
@@ -82,32 +82,47 @@ void Service::start()
   natty = std::make_unique<nat::NAPT>(ct);
 
   auto masq = [](IP4::IP_packet& pkt, Inet<IP4>& stack)->auto {
-    printf("Masq %s %s on %s (%s)\n",
-      pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
-      stack.ifname().c_str());
+    //printf("Masq %s %s on %s (%s)\n",
+    //  pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
+    //  stack.ifname().c_str());
     natty->masquerade(pkt, stack);
-    printf("-> %s %s\n", pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str());
+    //printf("-> %s %s\n", pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str());
     return Filter_verdict::ACCEPT;
   };
   auto demasq = [](IP4::IP_packet& pkt, Inet<IP4>& stack)->auto {
-    printf("DeMasq %s %s on %s (%s)\n",
-      pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
-      stack.ifname().c_str());
+    //printf("DeMasq %s %s on %s (%s)\n",
+    //  pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str(), stack.ip_addr().str().c_str(),
+    //  stack.ifname().c_str());
     natty->demasquerade(pkt, stack);
-    printf("-> %s %s\n", pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str());
+    //printf("-> %s %s\n", pkt.ip_src().str().c_str(), pkt.ip_dst().str().c_str());
     return Filter_verdict::ACCEPT;
   };
-  //eth0.prerouting_chain().chain.push_back(demasq);
-  //eth0.postrouting_chain().chain.push_back(masq);
+
+  INFO("NAT Test", "Enable MASQUERADE on eth1");
   eth1.prerouting_chain().chain.push_back(demasq);
   eth1.postrouting_chain().chain.push_back(masq);
 
-  internet_host.tcp().listen(80, [](auto conn) {
-    printf("Internet page received a new connection! (%s)\n", conn->to_string().c_str());
+  // Open TCP 80 on internet
+  internet_host.tcp().listen(80, [&eth1] (auto conn) {
+    INFO("TCP MASQ", "Internet host receiving connection");
+    CHECKSERT(conn->remote().address() == eth1.ip_addr(),
+      "Received connection from (what appears to be) my gateway! (%s)", conn->to_string().c_str());
+    conn->on_read(1024, [](auto buf, auto n) {
+      auto str = std::string{reinterpret_cast<const char*>(buf.get()), n};
+      CHECKSERT(str == "Testing NAT", "Data from laptop is received");
+
+      printf("SUCCESS\n");
+    });
   });
 
-  laptop1.tcp().connect({ internet_host.ip_addr(), 80 }, [](auto conn) {
-    if(conn)
-      printf("Laptop1 connected to internet web page! (%s)\n", conn->to_string().c_str());
+  // Connect to internet from laptop in local network
+  auto website = Socket{internet_host.ip_addr(), 80};
+  laptop1.tcp().connect(website, [website] (auto conn) {
+    INFO("TCP MASQ", "Laptop connecting out");
+    assert(conn);
+    CHECKSERT(conn->remote() == website,
+      "Laptop1 connected to internet! (%s)", conn->to_string().c_str());
+
+    conn->write("Testing NAT");
   });
 }
