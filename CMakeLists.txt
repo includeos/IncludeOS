@@ -24,12 +24,12 @@ set(LOCAL_INCLUDES "include")
 # DRIVERS / PLUGINS:
 set(DRIVERS
   virtionet
-  #vmxnet3
+  vmxnet3
   silent_start
   #heap_debugging
   )
 
-set(LIBRARIES ../../LiveUpdate/build/libliveupdate.a)
+set(LIBRARIES libliveupdate.a)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)

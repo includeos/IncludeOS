@@ -147,18 +147,6 @@ void print_stats(int)
   // heap statistics
   print_heap_info();
   printf("*** ---------------------- ***\n");
-  //printf("%s\n", ScopedProfiler::get_statistics().c_str());
-  //ircd->print_stuff();
-  /*
-  _enable_heap_debugging_buffer_protection(0);
-  print_heap_allocations(
-  [] (void*, size_t len) -> bool {
-    return len >= 0x1000;
-  });
-  */
-  //printf("%s\n", inet.tcp().to_string().c_str());
-  kernel_sanity_checks();
-  assert(Elf::verify_symbols());
 
 #ifdef USE_STACK_SAMPLING
   StackSampler::set_mask(false);
@@ -172,7 +160,7 @@ void Service::ready()
   // connect to all known remote servers
   //ircd->call_remote_servers();
 #ifdef USE_STACK_SAMPLING
-  //StackSampler::begin();
+  StackSampler::begin();
   //StackSampler::set_mode(StackSampler::MODE_CALLER);
 #endif
 

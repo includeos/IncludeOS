@@ -48,18 +48,18 @@ static void restore_server_state(Restore& thing)
   thing.pop_marker(666);
   assert(thing.is_end());
 
-  // calculate median by sorting
-  std::sort(timestamps.begin(), timestamps.end());
-  double median = timestamps[timestamps.size()/2];
-  // show information
   if (timestamps.size() >= 30)
   {
+    // calculate median by sorting
+    std::sort(timestamps.begin(), timestamps.end());
+    double median = timestamps[timestamps.size()/2];
+    // show information
     printf("Median boot time over %lu samples: %f millis\n",
             timestamps.size(), median);
     for (auto& stamp : timestamps) {
       printf("%f\n", stamp);
     }
-    //OS::shutdown();
+    OS::shutdown();
   }
   else {
     // immediately liveupdate
