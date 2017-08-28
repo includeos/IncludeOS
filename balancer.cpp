@@ -1,4 +1,5 @@
 #include "balancer.hpp"
+#include <liveupdate>
 
 #define LB_VERBOSE 0
 #if LB_VERBOSE
@@ -60,9 +61,9 @@ void Balancer::handle_queue()
 void Balancer::handle_connections()
 {
   // stop any rethrow timer since this is a de-facto retry
-  if (this->rethrow_timer != Timers::UNUSED_ID) {
-      Timers::stop(this->rethrow_timer);
-      this->rethrow_timer = Timers::UNUSED_ID;
+  if (this->throw_retry_timer != Timers::UNUSED_ID) {
+      Timers::stop(this->throw_retry_timer);
+      this->throw_retry_timer = Timers::UNUSED_ID;
   }
   // calculating number of connection attempts to create
   int np_connecting = nodes.pool_connecting();
@@ -77,13 +78,13 @@ void Balancer::handle_connections()
     }
     catch (std::exception& e)
     {
+      this->throw_counter++;
       // assuming the failure is due to not enough eph. ports
-      this->rethrow_timer = Timers::oneshot(CONNECT_THROW_PERIOD,
+      this->throw_retry_timer = Timers::oneshot(CONNECT_THROW_PERIOD,
       [this] (int) {
-          this->rethrow_timer = Timers::UNUSED_ID;
+          this->throw_retry_timer = Timers::UNUSED_ID;
           this->handle_connections();
       });
-      this->throw_counter++;
     }
   } // estimate
 } // handle_connections()
@@ -195,12 +196,13 @@ void Nodes::create_session(bool talk, tcp_ptr client, tcp_ptr outgoing)
 }
 Session& Nodes::get_session(int idx)
 {
-  return sessions.at(idx);
+  auto& session = sessions.at(idx);
+  assert(session.is_alive());
+  return session;
 }
 void Nodes::close_session(int idx, bool timeout)
 {
-  auto& session = sessions.at(idx);
-  assert(session.is_alive());
+  auto& session = get_session(idx);
   // disable timeout timer
   if (session.timeout_timer != Timers::UNUSED_ID) {
     Timers::stop(session.timeout_timer);
@@ -314,12 +316,12 @@ void Node::connect()
       this->pool.push_back(conn);
       // stop any active check
       this->stop_active_check();
-      // signal change in pool
-      this->pool_signal();
     }
     else {
       this->restart_active_check();
     }
+    // signal change in pool
+    this->pool_signal();
   });
 }
 tcp_ptr Node::get_connection()

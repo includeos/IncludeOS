@@ -25,8 +25,7 @@ static Balancer* balancer = nullptr;
 #define NET_INCOMING  1
 #define NET_OUTGOING  2
 
-void Service::start() {}
-void Service::ready()
+void Service::start()
 {
   auto& inc = net::Super_stack::get<net::IP4>(NET_INCOMING);
   auto& out = net::Super_stack::get<net::IP4>(NET_OUTGOING);
@@ -36,7 +35,24 @@ void Service::ready()
 
   Timers::periodic(1s, STATS_PERIOD, print_stats);
   StackSampler::begin();
-  StackSampler::set_mode(StackSampler::MODE_CURRENT);
+  //StackSampler::set_mode(StackSampler::MODE_CURRENT);
+}
+
+static void* LIVEUPD_LOCATION = (void*) ((1 << 29) - 0xFFFFF);
+#include "liu.hpp"
+
+static void save_all(liu::Storage&, const liu::buffer_t*)
+{
+
+}
+
+void Service::ready()
+{
+  if (liu::LiveUpdate::is_resumable(LIVEUPD_LOCATION) == false)
+  {
+    auto& inc = net::Super_stack::get<net::IP4>(NET_INCOMING);
+    setup_liveupdate_server(inc, 666, save_all);
+  }
 }
 
 /// statistics ///
@@ -97,6 +113,7 @@ void print_stats(int)
          totals, growth, nodes.open_sessions(), balancer->wait_queue(),
          nodes.timed_out_sessions(), nodes.pool_size(),
          nodes.pool_connecting(), balancer->connect_throws());
+
   // node information
   int n = 0;
   for (auto& node : nodes) {
@@ -106,6 +123,7 @@ void print_stats(int)
     if (++n == 2) { n = 0; printf("\n"); }
   }
   if (n > 0) printf("\n");
+
   // CPU-usage statistics
   static uint64_t last_total = 0, last_asleep = 0;
   uint64_t tdiff = StackSampler::samples_total() - last_total;
@@ -113,13 +131,19 @@ void print_stats(int)
   uint64_t adiff = StackSampler::samples_asleep() - last_asleep;
   last_asleep = StackSampler::samples_asleep();
 
-  double asleep = adiff / (double) tdiff;
-  static rolling_avg<5, double> asleep_avg;
-  asleep_avg.push(asleep);
+  if (tdiff > 0)
+  {
+    double asleep = adiff / (double) tdiff;
+    static rolling_avg<5, double> asleep_avg;
+    asleep_avg.push(asleep);
 
-  printf("CPU usage: %.2f%%  Idle: %.2f%%  Avg. usage: %.2f%%  Idle: %.2f%%\n",
-        (1.0 - asleep) * 100.0, asleep * 100.0,
-        (1.0 - asleep_avg.avg()) * 100.0, asleep_avg.avg() * 100.0);
+    printf("CPU usage: %.2f%%  Idle: %.2f%%  Active: %ld Existing: %ld Free: %ld\n",
+          (1.0 - asleep) * 100.0, asleep * 100.0,
+          Timers::active(), Timers::existing(), Timers::free());
+  }
+  else {
+    printf("CPU usage unavailable due to lack of samples\n");
+  }
 
   // heap statistics
   print_heap_info();

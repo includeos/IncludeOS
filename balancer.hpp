@@ -114,7 +114,7 @@ private:
 
   netstack_t& netin;
   std::deque<Waiting> queue;
-  int rethrow_timer = -1;
+  int throw_retry_timer = -1;
   int throw_counter = 0;
 };
 
