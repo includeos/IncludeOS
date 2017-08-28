@@ -31,7 +31,7 @@ void test_timers()
   INFO("Timers", "Testing one-shot timers");
   // RTC is using a timer to calibrate itself over large periods of time
   assert(Timers::active() == 1);
-  
+
   // 30 sec. - Test End
   Timers::oneshot(30s, [] (auto) {
       printf("One-shots fired: %i \n", one_shots);
@@ -65,7 +65,7 @@ void test_timers()
   // You can also use the std::function interface (which is great)
   std::vector<int> integers={1,2,3};
 
-  auto in_a_second = 
+  auto in_a_second =
   [integers] (Timers::id_t) {
     for (auto i : integers)
       CHECKSERT(i == integers[i - 1], "%i == integers[%i - 1]", i, integers[i - 1]);
@@ -74,17 +74,17 @@ void test_timers()
 
   Timers::oneshot(1s, in_a_second);
 
-  auto timer1s = Timers::periodic(1s, 1s, 
+  auto timer1s = Timers::periodic(1s, 1s,
   [] (auto) {
       repeat1++;
       printf("1s. PULSE #%i \n", repeat1);
     });
 
-  Timers::periodic(2s, 2s, 
+  Timers::periodic(2s, 2s,
   [] (auto id) {
       repeat2++;
       printf("2s. PULSE #%i \n", repeat2);
-      
+
       //CHECKSERT(repeat1 == (repeat2 * 2), "2s timer fired %i, 1s fired %i x 2 == %i times", repeat2, repeat2, repeat1);
       if (repeat2 >= 10) {
         CHECK(true, "2sec. pulse DONE!");
@@ -93,7 +93,7 @@ void test_timers()
     });
 
   // 25 sec. - end last repeating timer
-  Timers::oneshot(25s + 20ms, 
+  Timers::oneshot(25s + 20ms,
   [timer1s] (auto) {
       one_shots++;
       printf("repeat1: %u,  repeat2: %u\n", repeat1, repeat2);
@@ -103,13 +103,11 @@ void test_timers()
 
       // Make sure this timer iterator is valid
       Timers::stop(timer1s);
-      // there are still 3 timers left, because the stopped timer above
-      // will be removed deferred (when it would ordinarily trigger)
-      // ALSO: the current timer does not count towards the total active
-      // AND: RTC uses a timer to calibrate itself over time
-      CHECKSERT(Timers::active() == 3, "There are still 3 timers left");
+      // The current timer does not count towards the total active,
+      // but RTC uses a timer to calibrate itself over time
+      CHECKSERT(Timers::active() == 2, "There are still 2 timers left");
 
-      Timers::oneshot(1s, 
+      Timers::oneshot(1s,
       [] (auto) {
         CHECKSERT(1, "Timers are still functioning");
       });

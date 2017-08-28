@@ -20,7 +20,6 @@
 #include <hw/ioport.hpp>
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
-#include <kernel/syscalls.hpp>
 //#undef NO_DEBUG
 #define DEBUG
 #define DEBUG2
@@ -111,8 +110,6 @@ namespace x86
 
   void PIT::irq_handler()
   {
-    IRQ_counter ++;
-
     if (now() >= this->expiration)
     {
       if (this->handler) {
@@ -132,7 +129,7 @@ namespace x86
 
   PIT::PIT()
   {
-    debug("<PIT> Initializing @ frequency: %16.16f MHz. Assigning myself to all timer interrupts.\n ", frequency().count());
+    debug("<PIT> Initializing @ frequency: %f MHz.\n ", frequency().count());
     PIT::disable_regular_interrupts();
     // must be done to program IOAPIC to redirect to BSP LAPIC
     __arch_enable_legacy_irq(0);
@@ -171,3 +168,8 @@ namespace x86
   }
 
 } //< x86
+
+void __arch_preempt_forever(void(*func)())
+{
+  x86::PIT::forever(func);
+}
