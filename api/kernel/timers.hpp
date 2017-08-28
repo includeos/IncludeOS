@@ -45,6 +45,13 @@ public:
 
   /// returns the number of current, active timers
   static size_t active();
+  /// returns the number of existing timers
+  static size_t existing();
+  /// returns the number of free timers
+  static size_t free();
+
+  /// NOTE: All above operations operate on the current CPU
+  /// NOTE: There is a separate timer system on each active CPU
 
   /// initialization
   typedef delegate<void(duration_t)> start_func_t;
