@@ -360,10 +360,10 @@ namespace net {
     virtual Filter_chain& output_chain() override
     { return output_chain_; }
 
-    virtual Conntrack* conntrack() const override
+    virtual std::shared_ptr<Conntrack>& conntrack() override
     { return conntrack_; }
 
-    virtual void enable_conntrack(Conntrack* ct) override;
+    virtual void enable_conntrack(std::shared_ptr<Conntrack> ct) override;
 
     virtual Port_utils& tcp_ports() override
     { return tcp_ports_; }
@@ -405,7 +405,7 @@ namespace net {
     Filter_chain output_chain_{"Output", {}};
     Filter_chain forward_chain_{"Forward", {}};
 
-    Conntrack* conntrack_;
+    std::shared_ptr<Conntrack> conntrack_;
 
     // we need this to store the cache per-stack
     DNSClient dns_;
