@@ -21,6 +21,8 @@ typedef delegate<void()> pool_signal_t;
 
 struct Waiting {
   Waiting(tcp_ptr);
+  Waiting(liu::Restore&, net::TCP&);
+  void serialize(liu::Storage&);
 
   tcp_ptr conn;
   queue_vector_t readq;
@@ -33,14 +35,13 @@ struct Session {
   bool is_alive() const;
   void handle_timeout();
   void timeout(Nodes&);
+  void serialize(liu::Storage&);
 
   Nodes&    parent;
   const int self;
   int       timeout_timer;
   tcp_ptr   incoming;
   tcp_ptr   outgoing;
-
-  void serialize(liu::Storage&);
 };
 
 struct Node {
