@@ -108,7 +108,7 @@ void storage_header::add_string_vector(uint16_t id, const std::vector<std::strin
 }
 void storage_header::add_end()
 {
-  auto& ent = create_entry(TYPE_END);
+  auto& ent = create_entry(TYPE_END, 0, 0);
 
   // test against heap max
   uintptr_t storage_end = (uintptr_t) ent.vla;
@@ -178,11 +178,8 @@ storage_entry* storage_header::next(storage_entry* ptr)
   return ptr->next();
 }
 
-storage_entry::storage_entry(int16_t t, uint16_t ID, int v)
-  : type(t), id(ID), len(v) {}
-// used for last entry, for the most part
-storage_entry::storage_entry(int16_t t)
-  : type(t), id(0), len(0)  {}
+storage_entry::storage_entry(int16_t t, uint16_t ID, int L)
+  : type(t), id(ID), len(L) {}
 
 storage_entry* storage_entry::next() const noexcept
 {

@@ -60,7 +60,6 @@ struct varseg_entry
 struct storage_entry
 {
   storage_entry(int16_t type, uint16_t id, int length);
-  storage_entry(int16_t type);
 
   int16_t   type = TYPE_END;
   uint16_t  id   = 0;

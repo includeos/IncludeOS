@@ -76,7 +76,7 @@ std::string OS::arch_str_ = ARCH;
 void* OS::liveupdate_storage_area() noexcept
 {
   // Default: 32MB below heap_max
-  return (void*) (OS::heap_max() - 0x2000000);
+  return (void*) (OS::heap_max() & 0xFFFFFFF0 - 0x2000000);
 }
 
 const std::string& OS::cmdline_args() noexcept
