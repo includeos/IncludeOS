@@ -13,6 +13,7 @@
 #define ROLLING_SESSION_TIMEOUT  60s
 
 #include <net/inet4>
+#include <liveupdate>
 typedef net::Inet<net::IP4> netstack_t;
 typedef net::tcp::Connection_ptr tcp_ptr;
 typedef std::vector< std::pair<net::tcp::buffer_t, size_t> > queue_vector_t;
@@ -38,6 +39,8 @@ struct Session {
   int       timeout_timer;
   tcp_ptr   incoming;
   tcp_ptr   outgoing;
+
+  void serialize(liu::Storage&);
 };
 
 struct Node {
@@ -54,8 +57,8 @@ struct Node {
   void    connect();
   tcp_ptr get_connection();
 
-private:
   netstack_t& stack;
+private:
   net::Socket addr;
   pool_signal_t pool_signal;
   std::vector<tcp_ptr> pool;
@@ -88,6 +91,9 @@ struct Nodes {
   void close_session(int, bool timeout = false);
   Session& get_session(int);
 
+  void serialize(liu::Storage&);
+  void deserialize(netstack_t& in, netstack_t& out, liu::Restore&);
+
 private:
   nodevec_t nodes;
   int64_t   session_total = 0;
@@ -104,6 +110,10 @@ struct Balancer {
 
   int  wait_queue() const;
   int  connect_throws() const;
+
+  void serialize(liu::Storage&, const liu::buffer_t*);
+  void deserialize(liu::Restore&);
+
   Nodes nodes;
 
 private:
@@ -113,6 +123,7 @@ private:
   std::vector<net::Socket> parse_node_confg();
 
   netstack_t& netin;
+  netstack_t& netout;
   std::deque<Waiting> queue;
   int throw_retry_timer = -1;
   int throw_counter = 0;

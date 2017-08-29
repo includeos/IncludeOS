@@ -13,8 +13,14 @@ using namespace std::chrono;
 Balancer::Balancer(
        netstack_t& incoming, uint16_t in_port,
        netstack_t& outgoing)
-  : nodes(), netin(incoming)
+  : nodes(), netin(incoming), netout(outgoing)
 {
+  liu::LiveUpdate::register_serialization_callback("micro_lb", {this, &Balancer::serialize});
+
+  if(liu::LiveUpdate::is_resumable())
+  {
+    liu::LiveUpdate::resume("micro_lb", {this, &Balancer::deserialize});
+  }
   auto nodelist = parse_node_confg();
   for (auto& addr : nodelist) {
     nodes.add_node(outgoing, addr, pool_signal_t{this, &Balancer::handle_queue});
