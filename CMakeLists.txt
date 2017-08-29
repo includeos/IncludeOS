@@ -16,6 +16,7 @@ set(SOURCES
   service.cpp
   balancer.cpp
   autoconf.cpp
+  serialize.cpp
   )
 
 # DRIVERS / PLUGINS:

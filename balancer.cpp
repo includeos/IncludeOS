@@ -13,7 +13,7 @@ using namespace std::chrono;
 Balancer::Balancer(
        netstack_t& incoming, uint16_t in_port,
        netstack_t& outgoing)
-  : nodes(), netin(incoming)
+  : nodes(), netin(incoming), netout(outgoing)
 {
   auto nodelist = parse_node_confg();
   for (auto& addr : nodelist) {
