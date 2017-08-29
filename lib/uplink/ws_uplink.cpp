@@ -47,6 +47,8 @@ namespace uplink {
   {
     OS::add_stdout({this, &WS_uplink::send_log});
 
+    liu::LiveUpdate::register_serialization_callback("uplink", {this, &WS_uplink::store});
+
     read_config();
     CHECK(config_.reboot, "Reboot on panic");
 
@@ -72,7 +74,7 @@ namespace uplink {
     if(liu::LiveUpdate::is_resumable())
     {
       MYINFO("Found resumable state, try restoring...");
-      auto success = liu::LiveUpdate::resume({this, &WS_uplink::restore});
+      auto success = liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
       CHECK(success, "Success");
     }
 
@@ -254,7 +256,7 @@ namespace uplink {
     ws_->close();
     // do the update
     Timers::oneshot(std::chrono::milliseconds(10), [this, buffer] (auto) {
-      liu::LiveUpdate::begin(buffer, {this, &WS_uplink::store});
+      liu::LiveUpdate::begin(buffer);
     });
   }
 

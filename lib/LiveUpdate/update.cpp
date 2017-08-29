@@ -55,7 +55,24 @@ bool LIVEUPDATE_PERFORM_SANITY_CHECKS = true;
 
 using namespace liu;
 
-static size_t update_store_data(void* location, LiveUpdate::storage_func, const buffer_t*);
+static size_t update_store_data(void* location, const buffer_t*);
+
+// serialization callbacks
+static std::unordered_map<std::string, LiveUpdate::storage_func> storage_callbacks;
+
+void LiveUpdate::register_serialization_callback(std::string key, storage_func callback)
+{
+  auto it = storage_callbacks.find(key);
+  if (it == storage_callbacks.end())
+  {
+    storage_callbacks.emplace(std::piecewise_construct,
+              std::forward_as_tuple(std::move(key)),
+              std::forward_as_tuple(std::move(callback)));
+  }
+  else {
+    throw std::runtime_error("Storage key '" + key + "' already used");
+  }
+}
 
 template <typename Class>
 inline bool validate_header(const Class* hdr)
@@ -66,8 +83,7 @@ inline bool validate_header(const Class* hdr)
            hdr->e_ident[3] == 'F';
 }
 
-void LiveUpdate::begin(buffer_t     blob,
-                       storage_func storage_callback)
+void LiveUpdate::begin(buffer_t  blob)
 {
   void* location = OS::liveupdate_storage_area();
   LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
@@ -172,7 +188,7 @@ void LiveUpdate::begin(buffer_t     blob,
   LPRINT("* _start is located at %#x\n", start_offset);
 
   // save ourselves if function passed
-  update_store_data(storage_area, storage_callback, &blob);
+  update_store_data(storage_area, &blob);
 
   // 2. flush all devices with flush() interface
   hw::Devices::flush_all();
@@ -225,10 +241,10 @@ void LiveUpdate::restore_environment()
   // enable interrupts again
   asm volatile("sti");
 }
-buffer_t LiveUpdate::store(storage_func func)
+buffer_t LiveUpdate::store()
 {
   char* location = (char*) OS::liveupdate_storage_area();
-  size_t size = update_store_data(location, func, nullptr);
+  size_t size = update_store_data(location, nullptr);
   return buffer_t(location, location + size);
 }
 
@@ -251,17 +267,17 @@ size_t LiveUpdate::stored_data_length(void* location)
   return storage->total_bytes();
 }
 
-size_t update_store_data(void* location, LiveUpdate::storage_func func, const buffer_t* blob)
+size_t update_store_data(void* location, const buffer_t* blob)
 {
   // create storage header in the fixed location
   new (location) storage_header();
   auto* storage = (storage_header*) location;
 
   /// callback for storing stuff, if provided
-  if (func != nullptr)
+  for (const auto& pair : storage_callbacks)
   {
     Storage wrapper {*storage};
-    func(wrapper, blob);
+    pair.second(wrapper, blob);
   }
 
   /// finalize

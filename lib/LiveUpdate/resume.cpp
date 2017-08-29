@@ -55,7 +55,7 @@ static bool resume_helper(void* location, LiveUpdate::resume_func func)
   extern bool resume_begin(storage_header&, LiveUpdate::resume_func);
   return resume_begin(*(storage_header*) location, func);
 }
-bool LiveUpdate::resume(resume_func func)
+bool LiveUpdate::resume(std::string key, resume_func func)
 {
   void* location = OS::liveupdate_storage_area();
   /// memory sanity check

@@ -50,9 +50,12 @@ struct LiveUpdate
   typedef delegate<void(Storage&, const buffer_t*)> storage_func;
   typedef delegate<void(Restore&)> resume_func;
 
+  // Register a function to be called when serialization phase begins
+  static void register_serialization_callback(std::string key, storage_func);
+
   // Start a live update process, storing all user-defined data
   // If no storage function is provided no state will be saved
-  static void begin(buffer_t blob, storage_func = nullptr);
+  static void begin(buffer_t blob);
 
   // In the event that LiveUpdate::begin() fails,
   // call this function in the C++ exception handler:
@@ -60,7 +63,7 @@ struct LiveUpdate
 
   // Only store user data, as if there was a live update process
   // Throws exception if process or sanity checks fail
-  static buffer_t store(storage_func);
+  static buffer_t store();
 
   // Returns true if there is stored data from before.
   // It performs an extensive validation process to make sure the data is
@@ -74,7 +77,7 @@ struct LiveUpdate
   // Attempt to restore existing stored entries.
   // Returns false if there was nothing there. or if the process failed
   // to be sure that only failure can return false, use is_resumable first
-  static bool resume(resume_func default_handler);
+  static bool resume(std::string key, resume_func default_handler);
 
   // When explicitly resuming from heap, heap overrun checks are disabled
   static bool resume_from_heap(void* location, resume_func default_handler);
