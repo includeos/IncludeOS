@@ -105,6 +105,20 @@ void udp_dnat(IP4::IP_packet& p, Socket new_sock)
   pkt.set_dst_port(new_sock.port());
 }
 
+void icmp_snat(IP4::IP_packet& pkt, ip4::Addr addr)
+{
+  // recalc IP checksum
+  recalc_ip_checksum(pkt, pkt.ip_src(), addr);
+  pkt.set_ip_src(addr);
+}
+
+void icmp_dnat(IP4::IP_packet& pkt, ip4::Addr addr)
+{
+  // recalc IP checksum
+  recalc_ip_checksum(pkt, pkt.ip_dst(), addr);
+  pkt.set_ip_dst(addr);
+}
+
 inline void recalc_ip_checksum(IP4::IP_packet& pkt, ip4::Addr old_addr, ip4::Addr new_addr)
 {
   auto ip_sum = pkt.ip_checksum();

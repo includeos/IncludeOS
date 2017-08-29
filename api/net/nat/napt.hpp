@@ -66,6 +66,10 @@ private:
 
   void udp_demasq(IP4::IP_packet& pkt, const Stack& inet);
 
+  void icmp_masq(IP4::IP_packet& pkt, Stack& inet);
+
+  void icmp_demasq(IP4::IP_packet& pkt, const Stack& inet);
+
 }; // < class NAPT
 
 } // < namespace nat

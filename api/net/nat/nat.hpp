@@ -37,6 +37,8 @@ void tcp_snat(IP4::IP_packet& pkt, Socket new_sock);
 
 void udp_snat(IP4::IP_packet& pkt, Socket new_sock);
 
+void icmp_snat(IP4::IP_packet& pkt, ip4::Addr);
+
 /**
  * @brief      Destination NAT
  *
@@ -48,6 +50,8 @@ void dnat(IP4::IP_packet& pkt, Socket dst_socket);
 void tcp_dnat(IP4::IP_packet& pkt, Socket new_sock);
 
 void udp_dnat(IP4::IP_packet& pkt, Socket new_sock);
+
+void icmp_dnat(IP4::IP_packet& pkt, ip4::Addr);
 
 }
 }
