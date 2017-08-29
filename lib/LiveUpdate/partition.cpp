@@ -46,7 +46,7 @@ int storage_header::find_partition(const char* key)
   for (uint32_t p = 0; p < this->partitions; p++)
   {
     auto& part = ptable.at(p);
-    if (strncmp(part.name, key, sizeof(part.name)))
+    if (strncmp(part.name, key, sizeof(part.name)) == 0)
     {
       uint32_t chsum = part.generate_checksum(this->vla);
       if (part.crc == chsum) {
@@ -69,6 +69,8 @@ void storage_header::finish_partition(int p)
 void storage_header::zero_partition(int p)
 {
   auto& part = ptable.at(p);
-  memset(&vla[part.offset], 0, part.length);
+  memset(&this->vla[part.offset], 0, part.length);
   memset(&part, 0, sizeof(partition_header));
+  // NOTE: generate **NEW** checksum for header
+  this->crc = generate_checksum();
 }

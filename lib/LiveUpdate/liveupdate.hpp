@@ -140,14 +140,13 @@ struct Storage
   // store a TCP connection
   void add_connection(uid, Connection_ptr);
 
-  Storage(storage_header& sh) : hdr(sh) {}
-  void add_vector (uid, const void*, size_t count, size_t element_size);
-  void add_string_vector (uid, const std::vector<std::string>&);
-
   // markers are used to delineate the end of variable-length structures
   void put_marker(uid);
 
+  Storage(storage_header& sh) : hdr(sh) {}
 private:
+  void add_vector (uid, const void*, size_t count, size_t element_size);
+  void add_string_vector (uid, const std::vector<std::string>&);
   storage_header& hdr;
 };
 

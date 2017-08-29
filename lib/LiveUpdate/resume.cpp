@@ -34,7 +34,7 @@ extern char* heap_end;
 
 namespace liu
 {
-static void resume_begin(storage_header&, const char*, LiveUpdate::resume_func);
+static void resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
 static std::map<uint16_t, LiveUpdate::resume_func> resume_funcs;
 
 bool LiveUpdate::is_resumable()
@@ -66,17 +66,21 @@ void LiveUpdate::resume(std::string key, resume_func func)
 		     (long int) (heap_end - (char*) location));
     throw std::runtime_error("LiveUpdate storage area inside heap");
   }
-  resume_helper(location, key, func);
+  resume_helper(location, std::move(key), func);
 }
 void LiveUpdate::resume_from_heap(void* location, std::string key, LiveUpdate::resume_func func)
 {
-  resume_helper(location, key, func);
+  resume_helper(location, std::move(key), func);
 }
 
-void resume_begin(storage_header& storage, const char* key, LiveUpdate::resume_func func)
+void resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_func func)
 {
-  int p = storage.find_partition(key);
-  LPRINT("* Resuming from partition %d\n", p);
+  if (key.empty())
+      throw std::length_error("LiveUpdate partition key cannot be an empty string");
+
+  int p = storage.find_partition(key.c_str());
+  LPRINT("* Resuming from partition %d at %p from %p\n",
+        p, storage.begin(p), &storage);
 
   /// restore each entry one by one, calling registered handlers
   for (auto* ptr = storage.begin(p); ptr->type != TYPE_END;)
