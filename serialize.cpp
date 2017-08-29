@@ -13,7 +13,6 @@ using namespace liu;
 void Nodes::serialize(Storage& store)
 {
   store.add<int64_t>(100, this->session_total);
-  store.add_int(100, this->session_cnt);
   store.add_int(100, this->session_timeouts);
   store.put_marker(100);
 
@@ -47,7 +46,6 @@ void Nodes::deserialize(netstack_t& in, netstack_t& out, Restore& store)
 {
   /// nodes member fields ///
   this->session_total = store.as_type<int64_t>(); store.go_next();
-  this->session_cnt   = store.as_int();           store.go_next();
   this->session_timeouts = store.as_int();        store.go_next();
   store.pop_marker(100);
 
@@ -55,6 +53,9 @@ void Nodes::deserialize(netstack_t& in, netstack_t& out, Restore& store)
   auto& tcp_in  = in.tcp();
   auto& tcp_out = out.tcp();
   const int tot_sessions = store.as_int(); store.go_next();
+  // since we are remaking all the sessions, reduce total
+  this->session_total -= tot_sessions;
+
   LBOUT("Deserialize %llu sessions\n", tot_sessions);
   for(auto i = 0; i < static_cast<int>(tot_sessions); i++)
   {
