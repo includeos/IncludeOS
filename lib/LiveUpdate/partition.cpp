@@ -71,4 +71,6 @@ void storage_header::zero_partition(int p)
   auto& part = ptable.at(p);
   memset(&this->vla[part.offset], 0, part.length);
   memset(&part, 0, sizeof(partition_header));
+  // NOTE: generate **NEW** checksum for header
+  this->crc = generate_checksum();
 }
