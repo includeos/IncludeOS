@@ -66,10 +66,10 @@ inline bool validate_header(const Class* hdr)
            hdr->e_ident[3] == 'F';
 }
 
-void LiveUpdate::begin(void*        location,
-                       buffer_t     blob,
+void LiveUpdate::begin(buffer_t     blob,
                        storage_func storage_callback)
 {
+  void* location = OS::liveupdate_storage_area();
   LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
   // 1. turn off interrupts
   asm volatile("cli");
@@ -216,7 +216,7 @@ void LiveUpdate::begin(void*        location,
     /// the end
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data);
 # else
-#    error "Unimplemented architecture"
+#   error "Unimplemented architecture"
 # endif
 #endif
 }
@@ -225,11 +225,17 @@ void LiveUpdate::restore_environment()
   // enable interrupts again
   asm volatile("sti");
 }
-size_t LiveUpdate::store(void* location, storage_func func)
+buffer_t LiveUpdate::store(storage_func func)
 {
-  return update_store_data(location, func, nullptr);
+  char* location = (char*) OS::liveupdate_storage_area();
+  size_t size = update_store_data(location, func, nullptr);
+  return buffer_t(location, location + size);
 }
 
+size_t LiveUpdate::stored_data_length()
+{
+  return stored_data_length(OS::liveupdate_storage_area());
+}
 size_t LiveUpdate::stored_data_length(void* location)
 {
   auto* storage = (storage_header*) location;

@@ -20,9 +20,10 @@
 **/
 #include "liveupdate.hpp"
 
-#include <cstdio>
+#include <kernel/os.hpp>
 #include "storage.hpp"
 #include "serialize_tcp.hpp"
+#include <cstdio>
 #include <map>
 
 //#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
@@ -35,6 +36,10 @@ namespace liu
 {
 static std::map<uint16_t, LiveUpdate::resume_func> resume_funcs;
 
+bool LiveUpdate::is_resumable()
+{
+  return is_resumable(OS::liveupdate_storage_area());
+}
 bool LiveUpdate::is_resumable(void* location)
 {
   return ((storage_header*) location)->validate();
@@ -50,8 +55,9 @@ static bool resume_helper(void* location, LiveUpdate::resume_func func)
   extern bool resume_begin(storage_header&, LiveUpdate::resume_func);
   return resume_begin(*(storage_header*) location, func);
 }
-bool LiveUpdate::resume(void* location, resume_func func)
+bool LiveUpdate::resume(resume_func func)
 {
+  void* location = OS::liveupdate_storage_area();
   /// memory sanity check
   if (heap_end >= (char*) location) {
     fprintf(stderr,
