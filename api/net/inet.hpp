@@ -151,6 +151,7 @@ namespace net {
      * @return     The conntrack for this stack, nullptr if none.
      */
     virtual std::shared_ptr<Conntrack>& conntrack() = 0;
+    virtual const std::shared_ptr<Conntrack>& conntrack() const = 0;
 
     /**
      * @brief      Enables the conntrack for this stack,

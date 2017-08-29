@@ -363,6 +363,9 @@ namespace net {
     virtual std::shared_ptr<Conntrack>& conntrack() override
     { return conntrack_; }
 
+    virtual const std::shared_ptr<Conntrack>& conntrack() const override
+    { return conntrack_; }
+
     virtual void enable_conntrack(std::shared_ptr<Conntrack> ct) override;
 
     virtual Port_utils& tcp_ports() override
