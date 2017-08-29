@@ -88,7 +88,7 @@ cpu_sampling_irq_entry:
 parasite_interrupt_handler:
   cli
   PUSHAQ
-  mov  rdi, QWORD [rsp + 8*14]
+  mov  rdi, QWORD [rsp + 8*9]
   call profiler_stack_sampler
   call QWORD [current_intr_handler]
   POPAQ

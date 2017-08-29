@@ -44,8 +44,8 @@ struct Sampler
   std::unordered_map<uintptr_t, func_sample> dict;
   uint64_t total  = 0;
   uint64_t asleep = 0;
-  int  lockless;
-  bool discard; // discard results as long as true
+  int  lockless = 0;
+  bool discard = false; // discard results as long as true
   StackSampler::mode_t mode = StackSampler::MODE_CURRENT;
 
   Sampler() {
@@ -53,29 +53,27 @@ struct Sampler
     #define blargh(T) std::remove_pointer<decltype(T)>::type;
     samplerq = new blargh(samplerq);
     transferq = new blargh(transferq);
-    total    = 0;
-    asleep   = 0;
-    lockless = 0;
-    discard  = false;
   }
 
   void begin() {
     // gather samples repeatedly over single period
-    //x86::PIT::forever(gather_stack_sampling);
+    __arch_preempt_forever(gather_stack_sampling);
+    // install interrupt handler (NOTE: after "initializing" PIT)
+    __arch_install_irq(0, parasite_interrupt_handler);
   }
-  void add(void* current, void* ra)
+  void add(void* current)
   {
     // need free space to take more samples
     if (samplerq->free_capacity()) {
       if (mode == StackSampler::MODE_CURRENT)
           samplerq->add((uintptr_t) current);
-      else
-          samplerq->add((uintptr_t) ra);
+      else if (mode == StackSampler::MODE_CALLER)
+          samplerq->add((uintptr_t) __builtin_return_address(2));
     }
     // return when its not our turn
     if (lockless) return;
 
-    // transfer all the built up samplings
+    // transfer all the built up samples
     transferq->copy(samplerq->begin(), samplerq->size());
     samplerq->clear();
     lockless = 1;
@@ -89,8 +87,6 @@ static Sampler& get() {
 
 void StackSampler::begin()
 {
-  // install interrupt handler
-  __arch_install_irq(0, parasite_interrupt_handler);
   // start taking samples using PIT interrupts
   get().begin();
 }
@@ -99,21 +95,23 @@ void StackSampler::set_mode(mode_t md)
   get().mode = md;
 }
 
-void profiler_stack_sampler(void* esp)
+void profiler_stack_sampler(void* sample)
 {
-  void* current = esp; //__builtin_return_address(1);
-  // maybe qemu, maybe some bullshit we don't care about
-  if (UNLIKELY(current == nullptr || get().discard)) return;
-  // ignore event loop (and take sleep statistic)
-  if (current == &_irq_cb_return_location) {
-    ++get().asleep;
+  auto& system = get();
+  if (UNLIKELY(sample == nullptr)) return;
+  // gather sample statistics
+  system.total++;
+  if (sample == &_irq_cb_return_location) {
+    system.asleep++;
     return;
   }
+  // if discard enabled, ignore samples
+  if (UNLIKELY(system.discard)) return;
   // add address to sampler queue
-  get().add(current, __builtin_return_address(1));
+  system.add(sample);
 }
 
-static void gather_stack_sampling()
+void gather_stack_sampling()
 {
   // gather results on our turn only
   if (get().lockless == 1)
@@ -135,18 +133,15 @@ static void gather_stack_sampling()
             std::forward_as_tuple(1));
       }
     }
-    // increase total and switch back transferring of samples
-    get().total += get().transferq->size();
+    // switch back transferring of samples
     get().lockless = 0;
   }
 }
 
-uint64_t StackSampler::samples_total()
-{
+uint64_t StackSampler::samples_total() noexcept {
   return get().total;
 }
-uint64_t StackSampler::samples_asleep()
-{
+uint64_t StackSampler::samples_asleep() noexcept {
   return get().asleep;
 }
 

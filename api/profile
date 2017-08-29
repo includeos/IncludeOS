@@ -39,10 +39,10 @@ struct StackSampler
   static void begin();
 
   // total number of waking samples taken
-  static uint64_t samples_total();
+  static uint64_t samples_total() noexcept;
 
   // total number of samples taken while asleep
-  static uint64_t samples_asleep();
+  static uint64_t samples_asleep() noexcept;
 
   // retrieve N top results/hotspots
   static std::vector<Sample> results(int N);
@@ -57,6 +57,7 @@ struct StackSampler
   enum mode_t {
     MODE_CURRENT,
     MODE_CALLER,
+    MODE_DUMMY
   };
 
   // set sampling mode

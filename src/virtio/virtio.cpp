@@ -20,6 +20,7 @@
 #include <kernel/os.hpp>
 #include <hw/pci.hpp>
 #include <smp>
+#include <arch.hpp>
 #include <assert.h>
 
 #define VIRTIO_MSI_CONFIG_VECTOR  20
@@ -123,8 +124,7 @@ Virtio::Virtio(hw::PCI_Device& dev)
     auto irq = get_legacy_irq();
     CHECKSERT(irq, "Unit has legacy IRQ %u", irq);
 
-   // create IO APIC entry for legacy interrupt
-    extern void __arch_enable_legacy_irq(uint8_t);
+    // create IO APIC entry for legacy interrupt
     __arch_enable_legacy_irq(irq);
 
     // store for later
