@@ -74,6 +74,6 @@ void Nodes::deserialize(netstack_t& in, netstack_t& out, Restore& store)
     auto incoming = store.as_tcp_connection(tcp_in); store.go_next();
     auto outgoing = store.as_tcp_connection(tcp_out); store.go_next();
 
-    create_session(false /* no readq atm */, incoming, outgoing);
+    create_session(true /* no readq atm */, incoming, outgoing);
   }
 }

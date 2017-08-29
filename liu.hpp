@@ -16,12 +16,11 @@ void setup_liveupdate_server(net::Inet<net::IP4>& inet, const uint16_t PORT, liu
     try
     {
       // run live update process
-      liu::LiveUpdate::begin(LIVEUPD_LOCATION, buffer, save_function);
+      liu::LiveUpdate::begin(buffer);
     }
     catch (std::exception& err)
     {
       liu::LiveUpdate::restore_environment();
-      printf("Live Update location: %p\n", LIVEUPD_LOCATION);
       printf("Live update failed:\n%s\n", err.what());
     }
   });
