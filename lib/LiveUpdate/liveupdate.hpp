@@ -50,9 +50,12 @@ struct LiveUpdate
   typedef delegate<void(Storage&, const buffer_t*)> storage_func;
   typedef delegate<void(Restore&)> resume_func;
 
+  // Register a function to be called when serialization phase begins
+  static void register_serialization_callback(std::string key, storage_func);
+
   // Start a live update process, storing all user-defined data
-  // at @location, which can then be resumed by the future service after update
-  static void begin(void* location, buffer_t blob, storage_func = nullptr);
+  // If no storage function is provided no state will be saved
+  static void begin(buffer_t blob);
 
   // In the event that LiveUpdate::begin() fails,
   // call this function in the C++ exception handler:
@@ -60,27 +63,29 @@ struct LiveUpdate
 
   // Only store user data, as if there was a live update process
   // Throws exception if process or sanity checks fail
-  static size_t store(void* location, storage_func);
+  static buffer_t store();
 
-  // Returns true if there is stored data from before at @location.
+  // Returns true if there is stored data from before.
   // It performs an extensive validation process to make sure the data is
   // complete and consistent
+  static bool is_resumable();
   static bool is_resumable(void* location);
 
   // Register a user-defined handler for what to do with @id from storage
   static void on_resume(uint16_t id, resume_func custom_handler);
 
-  // Attempt to restore existing stored entries from fixed location.
+  // Attempt to restore existing stored entries.
   // Returns false if there was nothing there. or if the process failed
   // to be sure that only failure can return false, use is_resumable first
-  static bool resume(void* location, resume_func default_handler);
+  static void resume(std::string key, resume_func default_handler);
 
   // When explicitly resuming from heap, heap overrun checks are disabled
-  static bool resume_from_heap(void* location, resume_func default_handler);
+  static void resume_from_heap(void* location, std::string key, resume_func);
 
   // Retrieve the recorded length, in bytes, of a valid storage area
   // Throws std::runtime_error when something bad happens
   // Never returns zero
+  static size_t stored_data_length();
   static size_t stored_data_length(void* location);
 
   // Set location of known good blob to rollback to if something happens

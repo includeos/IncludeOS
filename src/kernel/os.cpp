@@ -73,6 +73,12 @@ OS::Plugin_vec OS::plugins_(Fixedvector_Init::UNINIT);
 std::string OS::version_str_ = OS_VERSION;
 std::string OS::arch_str_ = ARCH;
 
+void* OS::liveupdate_storage_area() noexcept
+{
+  // Default: 32MB below heap_max
+  return (void*) (OS::heap_max() - 0x2000000);
+}
+
 const std::string& OS::cmdline_args() noexcept
 {
   return cmdline;

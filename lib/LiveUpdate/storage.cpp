@@ -25,17 +25,17 @@
 #include <cassert>
 //#define VERIFY_MEMORY
 
+inline uint32_t liu_crc32(const void* buf, size_t len)
+{
+  return crc32_fast(buf, len);
+}
+
 const uint64_t storage_header::LIVEUPD_MAGIC = 0xbaadb33fdeadc0de;
 
 storage_header::storage_header()
   : magic(LIVEUPD_MAGIC), crc(0), entries(0), length(0)
 {
   //printf("%p --> %#llx\n", this, value);
-}
-
-inline uint32_t liu_crc32(const void* buf, size_t len)
-{
-  return crc32_fast(buf, len);
 }
 
 void storage_header::add_marker(uint16_t id)
@@ -134,7 +134,9 @@ void storage_header::finalize()
 {
   if (this->magic != LIVEUPD_MAGIC)
       throw std::runtime_error("Magic field invalidated during store process");
-  add_end();
+  // add end if missing
+  if (this->length == 0) this->add_end();
+  // generate checksum for header
   this->crc = generate_checksum();
 }
 bool storage_header::validate() noexcept
@@ -153,7 +155,7 @@ uint32_t storage_header::generate_checksum() noexcept
   this->crc         = 0;
 
   const char* begin = (const char*) this;
-  size_t      len   = sizeof(storage_header) + this->length;
+  size_t      len   = sizeof(storage_header);
   uint32_t checksum = liu_crc32(begin, len);
 
   this->crc = crc_copy;
@@ -166,9 +168,9 @@ void storage_header::zero()
   assert(this->magic == 0);
 }
 
-storage_entry* storage_header::begin()
+storage_entry* storage_header::begin(int p)
 {
-  return (storage_entry*) vla;
+  return (storage_entry*) &vla[ptable.at(p).offset];
 }
 storage_entry* storage_header::next(storage_entry* ptr)
 {
