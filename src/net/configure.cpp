@@ -20,7 +20,7 @@
 #include <net/super_stack.hpp>
 #include <info>
 
-#define MYINFO(X,...) INFO("Network configure",X,##__VA_ARGS__)
+#define MYINFO(X,...) INFO("Netconf",X,##__VA_ARGS__)
 
 namespace net {
 
@@ -81,10 +81,12 @@ void configure(const rapidjson::Value& net)
     {
       config_stack(stack, parse_iface(val));
     }
+    // only negotiate if "dhcp"
     else if(val.IsString() and strcmp(val.GetString(), "dhcp") == 0)
     {
       stack.negotiate_dhcp(5.0);
     }
+    // else leave it uninitialized
     ++N;
   }
 
