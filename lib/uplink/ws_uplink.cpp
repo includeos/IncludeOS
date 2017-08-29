@@ -74,8 +74,7 @@ namespace uplink {
     if(liu::LiveUpdate::is_resumable())
     {
       MYINFO("Found resumable state, try restoring...");
-      auto success = liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
-      CHECK(success, "Success");
+      liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
     }
 
     client_ = std::make_unique<http::Client>(inet.tcp(),

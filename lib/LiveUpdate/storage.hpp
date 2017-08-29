@@ -20,6 +20,7 @@
 **/
 #pragma once
 #include <cstdint>
+#include <array>
 #include <string>
 #include <vector>
 #include <delegate>
@@ -86,6 +87,16 @@ struct storage_entry
   uint32_t       checksum() const;
 };
 
+struct partition_header
+{
+  uint32_t generate_checksum(const char* vla) const;
+
+  char      name[16] = {0};
+  uint32_t  crc = 0;
+  uint32_t  offset = 0;
+  uint32_t  length = 0;
+};
+
 struct storage_header
 {
   typedef delegate<int(char*)> construct_func;
@@ -102,6 +113,10 @@ struct storage_header
   }
 
   storage_header();
+  int  create_partition(std::string key);
+  int  find_partition(const char*);
+  void finish_partition(int);
+  void zero_partition(int);
 
   void add_marker(uint16_t id);
   void add_int   (uint16_t id, int value);
@@ -113,7 +128,7 @@ struct storage_header
   void add_string_vector(uint16_t id, const std::vector<std::string>& vec);
   void add_end();
 
-  storage_entry* begin();
+  storage_entry* begin(int p);
   storage_entry* next(storage_entry*);
 
   template <typename... Args>
@@ -138,6 +153,8 @@ private:
   uint32_t crc;
   uint32_t entries = 0;
   uint32_t length  = 0;
+  std::array<partition_header, 16> ptable;
+  uint32_t partitions = 0;
   char     vla[0];
 };
 

@@ -77,10 +77,10 @@ struct LiveUpdate
   // Attempt to restore existing stored entries.
   // Returns false if there was nothing there. or if the process failed
   // to be sure that only failure can return false, use is_resumable first
-  static bool resume(std::string key, resume_func default_handler);
+  static void resume(std::string key, resume_func default_handler);
 
   // When explicitly resuming from heap, heap overrun checks are disabled
-  static bool resume_from_heap(void* location, resume_func default_handler);
+  static void resume_from_heap(void* location, std::string key, resume_func);
 
   // Retrieve the recorded length, in bytes, of a valid storage area
   // Throws std::runtime_error when something bad happens

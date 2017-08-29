@@ -276,8 +276,13 @@ size_t update_store_data(void* location, const buffer_t* blob)
   /// callback for storing stuff, if provided
   for (const auto& pair : storage_callbacks)
   {
+    // create partition
+    int p = storage->create_partition(pair.first);
+    // run serialization process
     Storage wrapper {*storage};
     pair.second(wrapper, blob);
+    // add end for partition
+    storage->finish_partition(p);
   }
 
   /// finalize

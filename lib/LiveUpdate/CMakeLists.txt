@@ -19,8 +19,8 @@ add_custom_target(hotswap64 DEPENDS hotswap64.bin)
 
 # LiveUpdate static library
 add_library(liveupdate STATIC
-    storage.cpp update.cpp resume.cpp rollback.cpp hotswap.cpp
-    serialize_tcp.cpp hotswap64_blob.asm
+    storage.cpp partition.cpp update.cpp resume.cpp rollback.cpp
+    serialize_tcp.cpp hotswap.cpp hotswap64_blob.asm
   )
 add_dependencies(liveupdate hotswap64)
 install(TARGETS liveupdate DESTINATION includeos/${ARCH}/lib)
