@@ -229,6 +229,42 @@ void Conntrack::update_entry(
   printf("<Conntrack> Entry updated: %s\n", entry->to_string().c_str());
 }
 
+void Conntrack::flush_expired()
+{
+  const auto NOW = RTC::now();
+  // unconfirmed data structure
+  {
+    auto it = unconfirmed.begin();
+    while(it != unconfirmed.end())
+    {
+      auto tmp = it++;
+
+      if(tmp->second->timeout > NOW)
+        continue;
+
+      if(tmp->second.unique() && on_close)
+        on_close(tmp->second.get());
+
+      unconfirmed.erase(tmp);
+    }
+  }
+  // entries data structure
+  {
+    auto it = entries.begin();
+    while(it != entries.end())
+    {
+      auto tmp = it++;
+      if(tmp->second->timeout > NOW)
+        continue;
+
+      if(tmp->second.unique() && on_close)
+        on_close(tmp->second.get());
+
+      entries.erase(tmp);
+    }
+  }
+}
+
 void Conntrack::remove_entry(Entry* entry)
 {
   // TODO: Mega dangerous, destroying storage to the entry pointer

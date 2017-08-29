@@ -139,9 +139,22 @@ public:
    */
   Entry* add_entry(const Quadruple& quad, const Protocol proto);
 
+  /**
+   * @brief      Update one quadruple of a old entry (proto + oldq)
+   *             to a new Quadruple. This changes the entry and updates the key.
+   *
+   * @param[in]  proto  The protocol
+   * @param[in]  oldq   The old (current) quadruple
+   * @param[in]  newq   The new quadruple
+   */
   void update_entry(const Protocol proto, const Quadruple& oldq, const Quadruple& newq);
 
-  void remove_entry(Entry*);
+  /**
+   * @brief      Flush expired entries.
+   */
+  void flush_expired();
+
+  void remove_entry(Entry* entry);
 
   /**
    * @brief      A very simple and unreliable way for tracking quintuples.
@@ -184,6 +197,8 @@ public:
   Conntrack();
 
   using Timeout_duration = std::chrono::seconds;
+  Timeout_duration gc_interval_     {10};
+
   Timeout_duration timeout_new      {30};
   Timeout_duration timeout_est      {180};
   Timeout_duration timeout_new_tcp  {60};
@@ -197,6 +212,7 @@ private:
   using Entry_table = std::map<Quintuple, std::shared_ptr<Entry>>;
   Entry_table entries;
   Entry_table unconfirmed;
+  //Timer       flush_timer_;
 
   void update_timeout(Entry& ent, Timeout_duration dur);
 
