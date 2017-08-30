@@ -20,9 +20,10 @@
 **/
 #include "liveupdate.hpp"
 
-#include <cstdio>
+#include <kernel/os.hpp>
 #include "storage.hpp"
 #include "serialize_tcp.hpp"
+#include <cstdio>
 #include <map>
 
 //#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
@@ -33,50 +34,56 @@ extern char* heap_end;
 
 namespace liu
 {
+static void resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
 static std::map<uint16_t, LiveUpdate::resume_func> resume_funcs;
 
+bool LiveUpdate::is_resumable()
+{
+  return is_resumable(OS::liveupdate_storage_area());
+}
 bool LiveUpdate::is_resumable(void* location)
 {
   return ((storage_header*) location)->validate();
 }
 
-static bool resume_helper(void* location, LiveUpdate::resume_func func)
+static void resume_helper(void* location, std::string key, LiveUpdate::resume_func func)
 {
   // check if an update has occurred
-  if (!LiveUpdate::is_resumable(location)) return false;
+  if (!LiveUpdate::is_resumable(location))
+      throw std::runtime_error("Trying to resume from invalid storage area");
 
   LPRINT("* Restoring data...\n");
   // restore connections etc.
-  extern bool resume_begin(storage_header&, LiveUpdate::resume_func);
-  return resume_begin(*(storage_header*) location, func);
+  resume_begin(*(storage_header*) location, key.c_str(), func);
 }
-bool LiveUpdate::resume(void* location, resume_func func)
+void LiveUpdate::resume(std::string key, resume_func func)
 {
+  void* location = OS::liveupdate_storage_area();
   /// memory sanity check
   if (heap_end >= (char*) location) {
     fprintf(stderr,
         "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
 		     (long int) (heap_end - (char*) location));
-    return false;
+    throw std::runtime_error("LiveUpdate storage area inside heap");
   }
-  return resume_helper(location, func);
+  resume_helper(location, std::move(key), func);
 }
-bool LiveUpdate::resume_from_heap(void* location, LiveUpdate::resume_func func)
+void LiveUpdate::resume_from_heap(void* location, std::string key, LiveUpdate::resume_func func)
 {
-  return resume_helper(location, func);
+  resume_helper(location, std::move(key), func);
 }
 
-bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
+void resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_func func)
 {
+  if (key.empty())
+      throw std::length_error("LiveUpdate partition key cannot be an empty string");
+
+  int p = storage.find_partition(key.c_str());
+  LPRINT("* Resuming from partition %d at %p from %p\n",
+        p, storage.begin(p), &storage);
+
   /// restore each entry one by one, calling registered handlers
-  auto num_ents = storage.get_entries();
-  if (num_ents > 1) {
-    LPRINT("* Resuming %d stored entries\n", num_ents-1);
-  } else {
-    LPRINT("* No stored entries to resume\n");
-  }
-
-  for (auto* ptr = storage.begin(); ptr->type != TYPE_END;)
+  for (auto* ptr = storage.begin(p); ptr->type != TYPE_END;)
   {
     auto* oldptr = ptr;
     // resume wrapper
@@ -94,12 +101,14 @@ bool resume_begin(storage_header& storage, LiveUpdate::resume_func func)
     // call next manually only when no one called go_next
     if (oldptr == ptr) ptr = storage.next(ptr);
   }
-  /// wake all the slumbering IP stacks
+  // wake all the slumbering IP stacks
   serialized_tcp::wakeup_ip_networks();
-  /// zero out all the state for security reasons
-  storage.zero();
-
-  return true;
+  // clear registered resume callbacks
+  resume_funcs.clear();
+  // zero out the partition for security reasons
+  storage.zero_partition(p);
+  // if there are no more partitions, clear everything
+  storage.try_zero();
 }
 
 void LiveUpdate::on_resume(uint16_t id, resume_func func)

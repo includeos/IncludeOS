@@ -185,6 +185,9 @@ public:
     return memory_end_;
   }
 
+  /** Returns the automatic location set aside for storing system and program state **/
+  static void* liveupdate_storage_area() noexcept;
+
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
    * @note : the idea is to avoid raw pointers whenever possible
@@ -256,6 +259,7 @@ private:
 
   // XXX: Only used by solo5
   static RTC::timestamp_t booted_at_;
+  static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
   static Plugin_vec plugins_;

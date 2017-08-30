@@ -67,6 +67,7 @@ static void set_intr_entry(
 #ifdef ARCH_x86_64
   idt_entry->ist       = ist;
 #else
+  (void) ist;
   idt_entry->zero      = 0;
 #endif
 }
