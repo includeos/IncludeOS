@@ -35,7 +35,6 @@ extern char* heap_end;
 namespace liu
 {
 static void resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
-static std::map<uint16_t, LiveUpdate::resume_func> resume_funcs;
 
 bool LiveUpdate::is_resumable()
 {
@@ -82,38 +81,17 @@ void resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_f
   LPRINT("* Resuming from partition %d at %p from %p\n",
         p, storage.begin(p), &storage);
 
-  /// restore each entry one by one, calling registered handlers
-  for (auto* ptr = storage.begin(p); ptr->type != TYPE_END;)
-  {
-    auto* oldptr = ptr;
-    // resume wrapper
-    Restore wrapper {ptr};
-    // use registered functions when we can, otherwise, use normal
-    auto it = resume_funcs.find(ptr->id);
-    if (it != resume_funcs.end())
-    {
-      it->second(wrapper);
-    } else {
-      func(wrapper);
-    }
-    // if we are already at the end due calls to go_next, break early
-    if (ptr->type == TYPE_END) break;
-    // call next manually only when no one called go_next
-    if (oldptr == ptr) ptr = storage.next(ptr);
-  }
+  // resume wrapper
+  Restore wrapper(storage.begin(p));
+  // use registered functions when we can, otherwise, use normal
+  func(wrapper);
+
   // wake all the slumbering IP stacks
   serialized_tcp::wakeup_ip_networks();
-  // clear registered resume callbacks
-  resume_funcs.clear();
   // zero out the partition for security reasons
   storage.zero_partition(p);
   // if there are no more partitions, clear everything
   storage.try_zero();
-}
-
-void LiveUpdate::on_resume(uint16_t id, resume_func func)
-{
-  resume_funcs[id] = func;
 }
 
 /// struct Restore
@@ -136,13 +114,13 @@ int Restore::as_int() const
   // this type uses the length field directly as value to save space
   if (ent->type == TYPE_INTEGER)
       return ent->len;
-  throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
+  throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
 }
 std::string Restore::as_string() const
 {
   if (ent->type == TYPE_STRING)
       return std::string(ent->data(), ent->len);
-  throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
+  throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
 }
 buffer_t  Restore::as_buffer() const
 {
@@ -151,7 +129,7 @@ buffer_t  Restore::as_buffer() const
       buffer.assign(ent->data(), ent->data() + ent->len);
       return buffer;
   }
-  throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
+  throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
 }
 Restore::Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
 {
@@ -177,11 +155,11 @@ const void* Restore::data() const noexcept
 const void* Restore::get_segment(size_t size, size_t& count) const
 {
   if (ent->type != TYPE_VECTOR)
-      throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
+      throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
 
   auto& segs = ent->get_segs();
   if (size != segs.esize)
-      throw std::runtime_error("Incorrect type size: " + std::to_string(size) + " vs " + std::to_string(segs.esize));
+      throw std::runtime_error("LiveUpdate: Incorrect type size " + std::to_string(size) + " vs " + std::to_string(segs.esize));
 
   count = segs.count;
   return (const void*) segs.vla;
@@ -189,7 +167,7 @@ const void* Restore::get_segment(size_t size, size_t& count) const
 std::vector<std::string> Restore::rebuild_string_vector() const
 {
   if (ent->type != TYPE_STR_VECTOR)
-      throw std::runtime_error("Incorrect type: " + std::to_string(ent->type));
+      throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
   std::vector<std::string> retv;
   // reserve just enough room
   auto* begin = (varseg_begin*) ent->vla;
@@ -210,7 +188,7 @@ std::vector<std::string> Restore::rebuild_string_vector() const
 void     Restore::go_next()
 {
   if (is_end())
-      throw std::runtime_error("Already reached end of storage");
+      throw std::out_of_range("Already reached end of partition");
   // increase the counter, so the resume loop skips entries properly
   ent = ent->next();
 }
@@ -236,18 +214,9 @@ void Restore::pop_marker(uint16_t id)
       && is_end() == false) go_next();
   if (is_marker()) {
     if (get_id() != id)
-        throw std::runtime_error("Ran past marker with another id: " + std::to_string(get_id()));
+        throw std::out_of_range("Ran past marker with another id: " + std::to_string(get_id()));
     go_next();
   }
 }
 
-void Restore::cancel()
-{
-  while (is_end() == false) go_next();
-}
-
-// copy operator
-Restore::Restore(const Restore& other)
-  : ent(other.ent)  {}
-
-}
+} // liu

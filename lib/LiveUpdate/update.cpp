@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <unistd.h>
 #include <util/elf.h>
 #include "storage.hpp"
