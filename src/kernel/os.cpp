@@ -52,6 +52,7 @@ extern uintptr_t _ELF_END_;
 bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 MHz   OS::cpu_mhz_ {-1};
+uintptr_t OS::liveupdate_loc_   = 0;
 uintptr_t OS::low_memory_size_  = 0;
 uintptr_t OS::high_memory_size_ = 0;
 uintptr_t OS::memory_end_ = 0;
@@ -75,8 +76,7 @@ std::string OS::arch_str_ = ARCH;
 
 void* OS::liveupdate_storage_area() noexcept
 {
-  // Default: 32MB below heap_max
-  return (void*) (OS::heap_max() & 0xFFFFFFF0 - 0x2000000);
+  return (void*) OS::liveupdate_loc_;
 }
 
 const std::string& OS::cmdline_args() noexcept
@@ -102,6 +102,13 @@ void OS::shutdown()
 
 void OS::post_start()
 {
+  if (OS::liveupdate_loc_ == 0)
+  {
+    // default size is 1/4 of heap from the end of memory
+    auto size = OS::heap_max() / 4;
+    OS::liveupdate_loc_ = (OS::heap_max() - size) & 0xFFFFFFF0;
+  }
+
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
   RNG::init();

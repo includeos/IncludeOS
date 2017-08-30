@@ -259,6 +259,7 @@ private:
 
   // XXX: Only used by solo5
   static RTC::timestamp_t booted_at_;
+  static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
   static Plugin_vec plugins_;
