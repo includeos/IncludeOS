@@ -36,8 +36,8 @@ struct Restore;
 typedef std::vector<char> buffer_t;
 
 /**
- * The beginning and the end of the LiveUpdate process is the begin() and resume() functions.
- * begin() is called with a provided fixed memory location for where to store all serialized data,
+ * The beginning and the end of the LiveUpdate process is the exec() and resume() functions.
+ * exec() is called with a provided fixed memory location for where to store all serialized data,
  * and after an update is_resumable, with the same fixed memory location, will return true.
  * resume() can then be called with this same location, and it will call handlers for each @id it finds,
  * unless no such handler is registered, in which case it just calls the default handler which is passed
@@ -55,10 +55,10 @@ struct LiveUpdate
 
   // Start a live update process, storing all user-defined data
   // If no storage function is provided no state will be saved
-  static void begin(buffer_t blob);
+  static void exec(const buffer_t& blob);
 
-  // In the event that LiveUpdate::begin() fails,
-  // call this function in the C++ exception handler:
+  // In the event that LiveUpdate::exec() fails,
+  // call this function in the C++ exception catch scope:
   static void restore_environment();
 
   // Only store user data, as if there was a live update process
@@ -105,7 +105,7 @@ struct LiveUpdate
 
 /**
  * The Storage object is passed to the user from the handler given to the
- * call to begin(), starting the liveupdate process. When the handler is
+ * call to exec(), starting the liveupdate process. When the handler is
  * called the system is ready to serialize data into the given @location.
  * By using the various add_* functions, the user stores data with @uid
  * as a marker to be able to recognize the object when restoring data.
@@ -146,16 +146,14 @@ private:
 };
 
 /**
- * A Restore object is given to the user by restore handlers,
+ * A Restore object is given to the user in a restore handler,
  * during the resume() process. The user should know what type
  * each id is, and call the correct as_* function. The object
  * will still be validated, and an error is thrown if there was
- * a type mismatch in most cases.
+ * a type mismatch in some cases.
  *
- * It's possible to restore many objects from the same handler by
- * using go_next(). In that way, a user can restore complicated objects
- * completely without leaving the handler. go_next() will throw if there
- * is no next object to go to.
+ * Use go_next() on the Restore& object to go to the next
+ * deserializable object in the storage.
  *
 **/
 struct Restore

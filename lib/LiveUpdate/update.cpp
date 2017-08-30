@@ -84,7 +84,7 @@ inline bool validate_header(const Class* hdr)
            hdr->e_ident[3] == 'F';
 }
 
-void LiveUpdate::begin(buffer_t  blob)
+void LiveUpdate::exec(const buffer_t& blob)
 {
   void* location = OS::liveupdate_storage_area();
   LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
