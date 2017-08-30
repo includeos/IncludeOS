@@ -102,6 +102,8 @@ void OS::shutdown()
 
 void OS::post_start()
 {
+  // if the LiveUpdate storage area is not yet determined,
+  // we can assume its a fresh boot, so calculate new one based on ...
   if (OS::liveupdate_loc_ == 0)
   {
     // default size is 1/4 of heap from the end of memory

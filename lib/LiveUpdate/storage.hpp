@@ -141,12 +141,13 @@ struct storage_header
   }
   void finalize();
   bool validate() noexcept;
-
-  // zero out the entire header and its data, for extra security
-  void zero();
+  // zero out everything if all partitions consumed
+  void try_zero() noexcept;
 
 private:
   uint32_t generate_checksum() noexcept;
+  // zero out the entire header and its data, for extra security
+  void zero();
 
   uint64_t magic;
   uint32_t crc;

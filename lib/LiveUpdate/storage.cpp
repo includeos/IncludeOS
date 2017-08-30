@@ -162,6 +162,15 @@ uint32_t storage_header::generate_checksum() noexcept
   return checksum;
 }
 
+void storage_header::try_zero() noexcept
+{
+  for (int p = 0; p < partitions; p++) {
+    auto& part = ptable.at(p);
+    if (part.length != 0 && part.name[0] != 0) return;
+  }
+  // zero everything
+  this->zero();
+}
 void storage_header::zero()
 {
   memset(this, 0, sizeof(storage_header) + this->length);
