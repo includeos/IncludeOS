@@ -71,6 +71,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
+  ${TEST}/net/unit/conntrack_test.cpp
   ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/net/unit/dhcp_message_test.cpp
   ${TEST}/net/unit/dns_test.cpp
@@ -147,6 +148,7 @@ set(OS_SOURCES
   ${SRC}/kernel/terminal.cpp
   ${SRC}/kernel/terminal_disk.cpp
   ${SRC}/net/buffer_store.cpp
+  ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp
   ${SRC}/net/dns/dns.cpp
   ${SRC}/net/ethernet/ethernet.cpp
