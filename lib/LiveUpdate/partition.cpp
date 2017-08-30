@@ -20,6 +20,7 @@
 **/
 #include "storage.hpp"
 #include <util/crc32.hpp>
+#include <cassert>
 
 inline uint32_t liu_crc32(const void* buf, size_t len)
 {
@@ -48,6 +49,9 @@ int storage_header::find_partition(const char* key)
     auto& part = ptable.at(p);
     if (strncmp(part.name, key, sizeof(part.name)) == 0)
     {
+      // the partition must have a valid name
+      assert(part.name[0] != 0);
+      // the partition should be fully consistent
       uint32_t chsum = part.generate_checksum(this->vla);
       if (part.crc == chsum) {
         return p;

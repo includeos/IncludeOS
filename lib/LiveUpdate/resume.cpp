@@ -101,10 +101,14 @@ void resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_f
     // call next manually only when no one called go_next
     if (oldptr == ptr) ptr = storage.next(ptr);
   }
-  /// wake all the slumbering IP stacks
+  // wake all the slumbering IP stacks
   serialized_tcp::wakeup_ip_networks();
-  /// zero out the partition for security reasons
+  // clear registered resume callbacks
+  resume_funcs.clear();
+  // zero out the partition for security reasons
   storage.zero_partition(p);
+  // if there are no more partitions, clear everything
+  storage.try_zero();
 }
 
 void LiveUpdate::on_resume(uint16_t id, resume_func func)
