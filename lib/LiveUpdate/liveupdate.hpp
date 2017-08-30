@@ -71,13 +71,8 @@ struct LiveUpdate
   static bool is_resumable();
   static bool is_resumable(void* location);
 
-  // Register a user-defined handler for what to do with @id from storage
-  static void on_resume(uint16_t id, resume_func custom_handler);
-
-  // Attempt to restore existing stored entries.
-  // Returns false if there was nothing there. or if the process failed
-  // to be sure that only failure can return false, use is_resumable first
-  static void resume(std::string key, resume_func default_handler);
+  // Restore existing state for a partition named @key.
+  static void resume(std::string key, resume_func handler);
 
   // When explicitly resuming from heap, heap overrun checks are disabled
   static void resume_from_heap(void* location, std::string key, resume_func);
@@ -199,20 +194,15 @@ struct Restore
   // if the end is reached, @id is not used
   void pop_marker(uint16_t id);
 
-  // cancel and exit state restoration process
-  // NOTE: resume() will still return true
-  void cancel();  // pseudo: "while (!is_end()) go_next()"
-
   // NOTE:
   // it is safe to immediately use is_end() after any call to:
-  // go_next(), pop_marker(), pop_marker(uint16_t), cancel()
+  // go_next(), pop_marker(), pop_marker(uint16_t)
 
-  Restore(storage_entry*& ptr) : ent(ptr) {}
-  Restore(const Restore&);
+  Restore(storage_entry* ptr) : ent(ptr) {}
 private:
   const void* get_segment(size_t, size_t&) const;
   std::vector<std::string> rebuild_string_vector() const;
-  storage_entry*& ent;
+  storage_entry* ent;
 };
 
 /// various inline functions
