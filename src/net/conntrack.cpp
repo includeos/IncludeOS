@@ -60,7 +60,6 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
   if(entry == nullptr)
   {
     entry = add_entry(q, proto);
-    entry->timeout = RTC::now() + timeout_new.count();
     return entry;
   }
 
@@ -73,7 +72,7 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
     CTDBG("<Conntrack> Assuming ESTABLISHED\n");
   }
 
-  update_timeout(*entry, (entry->state == State::ESTABLISHED) ? timeout_est : timeout_new);
+  update_timeout(*entry, (entry->state == State::ESTABLISHED) ? timeout_established : timeout_new);
 
   return entry;
 }
@@ -159,6 +158,11 @@ Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
     }
   }();
 
+  return confirm(quad, proto);
+}
+
+Conntrack::Entry* Conntrack::confirm(const Quadruple& quad, const Protocol proto)
+{
   auto quint = Quintuple{quad, proto};
   auto it = unconfirmed.find(quint);
 
@@ -215,7 +219,7 @@ Conntrack::Entry* Conntrack::add_entry(
     CTDBG("<Conntrack> Entry already seen: %s\n", entry->to_string().c_str());
   }
 
-  update_timeout(*entry, std::chrono::seconds(10));
+  update_timeout(*entry, timeout_unconfirmed);
 
   return entry.get();
 }

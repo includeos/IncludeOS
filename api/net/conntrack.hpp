@@ -121,18 +121,29 @@ public:
    *
    * @param[in]  pkt   The packet
    *
-   * @return     { description_of_the_return_value }
+   * @return     The confirmed entry, if any
    */
   Entry* confirm(const PacketIP4& pkt);
 
   /**
-   * @brief      Adds an entry, mirroring the quadruple.
+   * @brief      Confirms a connection, moving the entry to confirmed
+   *             and indexing it both ways.
+   *
+   * @param[in]  quad   The quad
+   * @param[in]  proto  The prototype
+   *
+   * @return     The confirmed entry, if any
+   */
+  Entry* confirm(const Quadruple& quad, const Protocol proto);
+
+  /**
+   * @brief      Adds an entry as uncofirmed, mirroring the quadruple.
    *
    * @param[in]  quad   The quadruple
    * @param[in]  proto  The prototype
    * @param[in]  dir    The direction the packet is going
    *
-   * @return     { description_of_the_return_value }
+   * @return     The created entry
    */
   Entry* add_entry(const Quadruple& quad, const Protocol proto);
 
@@ -171,20 +182,44 @@ public:
    */
   static Quadruple get_quadruple(const PacketIP4& pkt);
 
+  /**
+   * @brief      Gets the quadruple from a IP4 packet carrying
+   *             ICMP payload
+   *
+   * @param[in]  pkt   The packet
+   *
+   * @return     The quadruple for ICMP.
+   */
   static Quadruple get_quadruple_icmp(const PacketIP4& pkt);
 
+  /**
+   * @brief      Creates a Packetfilter for in (tracking),
+   *             to be placed in PREROUTING and OUTPUT
+   *
+   * @tparam     IPV   The IP version
+   *
+   * @return     A Packet filter
+   */
   template<typename IPV>
   Packetfilter<IPV> in_filter() {
     return [this] (PacketIP4& pkt, Inet<IPV>&)->auto {
-      return (in(pkt) != nullptr)
+      return (this->in(pkt) != nullptr)
         ? Filter_verdict::ACCEPT : Filter_verdict::DROP;
     };
   }
 
+  /**
+   * @brief      Creates a Packetfilter for confirm,
+   *             to be placed in POSTROUTING and INPUT
+   *
+   * @tparam     IPV   The IP Version
+   *
+   * @return     A Packet filter
+   */
   template<typename IPV>
   Packetfilter<IPV> confirm_filter() {
     return [this] (PacketIP4& pkt, Inet<IPV>&)->auto {
-      confirm(pkt);
+      this->confirm(pkt);
       return Filter_verdict::ACCEPT; // always accept?
     };
   }
@@ -192,13 +227,17 @@ public:
   Conntrack();
 
   using Timeout_duration = std::chrono::seconds;
+  /** How often the flush timer should fire */
   Timeout_duration timeout_interval {10};
 
-  Timeout_duration timeout_new      {30};
-  Timeout_duration timeout_est      {180};
-  Timeout_duration timeout_new_tcp  {60};
-  Timeout_duration timeout_est_tcp  {600};
+  /** Timeout for a unconfirmed entry */
+  Timeout_duration timeout_unconfirmed  {10};
+  /** Timeout for a new entry */
+  Timeout_duration timeout_new          {30};
+  /** Timeout for a established entry */
+  Timeout_duration timeout_established  {180};
 
+  /** Custom TCP handler can (and should) be added here */
   Packet_tracker tcp_in;
 
   Entry_handler on_close; // single for now
@@ -207,7 +246,6 @@ private:
   using Entry_table = std::map<Quintuple, std::shared_ptr<Entry>>;
   Entry_table entries;
   Entry_table unconfirmed;
-
   Timer       flush_timer;
 
   void update_timeout(Entry& ent, Timeout_duration dur);
