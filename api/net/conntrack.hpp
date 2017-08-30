@@ -26,6 +26,7 @@
 #include <rtc>
 #include <chrono>
 #include "netfilter.hpp"
+#include <util/timer.hpp>
 
 namespace net {
 
@@ -69,13 +70,6 @@ public:
   };
 
   /**
-   * @brief      Which direction packet has been seen on a connection.
-   */
-  enum class Seen : uint8_t {
-    OUT, IN, BOTH
-  };
-
-  /**
    * @brief      A entry in the connection tracker (a Connection)
    */
   struct Entry {
@@ -84,16 +78,19 @@ public:
     RTC::timestamp_t  timeout;
     Protocol          proto;
     State             state;
+    Entry_handler     on_close;
 
     Entry(Quadruple quad, Protocol p)
       : first{std::move(quad)}, second{first.dst, first.src},
-        proto(p), state(State::NEW)
+        proto(p), state(State::NEW), on_close(nullptr)
     {}
 
     bool is_mirrored() const noexcept
     { return first.src == second.dst and first.dst == second.src; }
 
     std::string to_string() const;
+
+    ~Entry();
 
   };
 
@@ -150,11 +147,9 @@ public:
   void update_entry(const Protocol proto, const Quadruple& oldq, const Quadruple& newq);
 
   /**
-   * @brief      Flush expired entries.
+   * @brief      Remove all expired entries, both confirmed and unconfirmed.
    */
-  void flush_expired();
-
-  void remove_entry(Entry* entry);
+  void remove_expired();
 
   /**
    * @brief      A very simple and unreliable way for tracking quintuples.
@@ -197,7 +192,7 @@ public:
   Conntrack();
 
   using Timeout_duration = std::chrono::seconds;
-  Timeout_duration gc_interval_     {10};
+  Timeout_duration timeout_interval {10};
 
   Timeout_duration timeout_new      {30};
   Timeout_duration timeout_est      {180};
@@ -212,9 +207,12 @@ private:
   using Entry_table = std::map<Quintuple, std::shared_ptr<Entry>>;
   Entry_table entries;
   Entry_table unconfirmed;
-  //Timer       flush_timer_;
+
+  Timer       flush_timer;
 
   void update_timeout(Entry& ent, Timeout_duration dur);
+
+  void on_timeout();
 
 };
 

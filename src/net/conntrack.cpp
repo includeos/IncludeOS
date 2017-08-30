@@ -17,6 +17,13 @@
 
 #include <net/conntrack.hpp>
 
+//#define CT_DEBUG 1
+#ifdef CT_DEBUG
+#define CTDBG(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define CTDBG(fmt, ...) /* fmt */
+#endif
+
 namespace net {
 
 std::string proto_str(const Protocol proto)
@@ -35,12 +42,18 @@ std::string Conntrack::Entry::to_string() const
     + " 1: " + second.src.to_string() + " " + second.dst.to_string() + " P: " + proto_str(proto);
 }
 
+Conntrack::Entry::~Entry()
+{
+  if(this->on_close)
+    on_close(this);
+}
+
 Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
 {
   // find the entry
   auto* entry = get(q, proto);
 
-  printf("<Conntrack> Track in SRC: %s - DST: %s\n",
+  CTDBG("<Conntrack> Track in S: %s - D: %s\n",
     q.src.to_string().c_str(), q.dst.to_string().c_str());
 
   // if none, add new and return
@@ -52,12 +65,12 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
   }
 
   // temp
-  printf("<Conntrack> Entry found: %s\n", entry->to_string().c_str());
+  CTDBG("<Conntrack> Entry found: %s\n", entry->to_string().c_str());
 
   if(entry->state == State::NEW and q == entry->second)
   {
     entry->state = State::ESTABLISHED;
-    printf("<Conntrack> Assuming ESTABLISHED\n");
+    CTDBG("<Conntrack> Assuming ESTABLISHED\n");
   }
 
   update_timeout(*entry, (entry->state == State::ESTABLISHED) ? timeout_est : timeout_new);
@@ -69,7 +82,8 @@ Conntrack::Entry* dumb_in(Conntrack& ct, Quadruple q, const PacketIP4& pkt)
 { return  ct.simple_track_in(std::move(q), pkt.ip_protocol()); }
 
 Conntrack::Conntrack()
- : tcp_in{&dumb_in}
+ : tcp_in{&dumb_in},
+   flush_timer({this, &Conntrack::on_timeout})
 {}
 
 Conntrack::Entry* Conntrack::get(const Quadruple& quad, const Protocol proto) const
@@ -153,7 +167,7 @@ Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
     return nullptr;
 
   auto entry = it->second;
-  printf("<Conntrack> Confirming %s\n", entry->to_string().c_str());
+  CTDBG("<Conntrack> Confirming %s\n", entry->to_string().c_str());
 
   // confirm the entry, adding it into the entries map
   entries.emplace(std::piecewise_construct,
@@ -176,6 +190,9 @@ Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
 Conntrack::Entry* Conntrack::add_entry(
   const Quadruple& quad, const Protocol proto)
 {
+  if(not flush_timer.is_running())
+    flush_timer.start(timeout_interval);
+
   std::shared_ptr<Entry> entry = nullptr;
   // check if there already is a unconfirmed entry
   auto it = unconfirmed.find({quad, proto});
@@ -191,11 +208,11 @@ Conntrack::Entry* Conntrack::add_entry(
       std::forward_as_tuple(entry->first, proto),
       std::forward_as_tuple(entry));
     // think it's enough to only store one way.
-    printf("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
+    CTDBG("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
   }
   else {
     entry = it->second;
-    printf("<Conntrack> Entry already seen: %s\n", entry->to_string().c_str());
+    CTDBG("<Conntrack> Entry already seen: %s\n", entry->to_string().c_str());
   }
 
   update_timeout(*entry, std::chrono::seconds(10));
@@ -226,11 +243,12 @@ void Conntrack::update_entry(
     std::forward_as_tuple(newq, proto),
     std::forward_as_tuple(entry));
 
-  printf("<Conntrack> Entry updated: %s\n", entry->to_string().c_str());
+  CTDBG("<Conntrack> Entry updated: %s\n", entry->to_string().c_str());
 }
 
-void Conntrack::flush_expired()
+void Conntrack::remove_expired()
 {
+  CTDBG("<Conntrack> Removing expired entries\n");
   const auto NOW = RTC::now();
   // unconfirmed data structure
   {
@@ -245,6 +263,7 @@ void Conntrack::flush_expired()
       if(tmp->second.unique() && on_close)
         on_close(tmp->second.get());
 
+      CTDBG("<Conntrack> Erasing unconfirmed %s\n", tmp->second->to_string().c_str());
       unconfirmed.erase(tmp);
     }
   }
@@ -260,24 +279,24 @@ void Conntrack::flush_expired()
       if(tmp->second.unique() && on_close)
         on_close(tmp->second.get());
 
+      CTDBG("<Conntrack> Erasing confirmed %s\n", tmp->second->to_string().c_str());
       entries.erase(tmp);
     }
   }
 }
 
-void Conntrack::remove_entry(Entry* entry)
-{
-  // TODO: Mega dangerous, destroying storage to the entry pointer
-  entries.erase({entry->first, entry->proto});
-  entries.erase({entry->second, entry->proto});
-
-  if(on_close) on_close(entry);
-}
-
 void Conntrack::update_timeout(Entry& ent, Timeout_duration dur)
 {
   ent.timeout = RTC::now() + dur.count();
-  printf("<Conntrack> Timeout updated with %llu secs\n", dur.count());
+  CTDBG("<Conntrack> Timeout updated with %llu secs\n", dur.count());
+}
+
+void Conntrack::on_timeout()
+{
+  remove_expired();
+
+  if(not entries.empty() or not unconfirmed.empty())
+    flush_timer.restart(timeout_interval);
 }
 
 

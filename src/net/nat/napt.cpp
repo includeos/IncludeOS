@@ -90,6 +90,8 @@ void NAPT::tcp_masq(IP4::IP_packet& p, Stack& inet)
     // Generate a new eph port and bind it
     auto port = ports.get_next_ephemeral();
     ports.bind(port);
+    // Setup to unbind port on entry close
+    entry->on_close = [&ports, port](auto*){ ports.unbind(port); };
     // Update the entry to have the new socket as second
     auto masq_sock = Socket{inet.ip_addr(), port};
     conntrack->update_entry(Protocol::TCP, entry->second, {entry->second.src, masq_sock});
@@ -138,6 +140,8 @@ void NAPT::udp_masq(IP4::IP_packet& p, Stack& inet)
     // Generate a new eph port and bind it
     auto port = ports.get_next_ephemeral();
     ports.bind(port);
+    // Setup to unbind port on entry close
+    entry->on_close = [&ports, port](auto*){ ports.unbind(port); };
     // Update the entry to have the new socket as second
     auto masq_sock = Socket{inet.ip_addr(), port};
     conntrack->update_entry(Protocol::UDP, entry->second, {entry->second.src, masq_sock});
