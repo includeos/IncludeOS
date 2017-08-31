@@ -86,7 +86,7 @@ inline bool validate_header(const Class* hdr)
 
 void LiveUpdate::exec(const buffer_t& blob, std::string key, storage_func func)
 {
-  register_serialization_callback(key, func);
+  if (func != nullptr) register_serialization_callback(key, func);
   LiveUpdate::exec(blob);
 }
 
