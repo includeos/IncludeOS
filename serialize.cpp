@@ -1,5 +1,5 @@
-
 #include "balancer.hpp"
+#include <stdexcept>
 
 #define LB_VERBOSE 0
 #if LB_VERBOSE
@@ -113,4 +113,15 @@ void Balancer::deserialize(Restore& store)
   }
   /// nodes
   nodes.deserialize(netin, netout, store);
+}
+
+void Balancer::resume_callback(liu::Restore& store)
+{
+  try {
+    this->deserialize(store);
+  }
+  catch (std::exception& e) {
+    printf("\n!!! Error during microLB resume !!!\n");
+    printf("REASON: %s\n", e.what());
+  }
 }

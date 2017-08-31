@@ -22,37 +22,14 @@ static void print_stats(int);
 #define STATS_PERIOD  5s
 
 static Balancer* balancer = nullptr;
-#define NET_INCOMING  1
-#define NET_OUTGOING  2
 
 void Service::start()
 {
-  auto& inc = net::Super_stack::get<net::IP4>(NET_INCOMING);
-  auto& out = net::Super_stack::get<net::IP4>(NET_OUTGOING);
-  out.tcp().set_MSL(15s);
-
-  balancer = new Balancer(inc, 80, out);
+  balancer = Balancer::from_config();
 
   Timers::periodic(1s, STATS_PERIOD, print_stats);
   StackSampler::begin();
   //StackSampler::set_mode(StackSampler::MODE_CURRENT);
-}
-
-static void* LIVEUPD_LOCATION = (void*) ((1 << 29) - 0xFFFFF);
-#include "liu.hpp"
-
-static void save_all(liu::Storage&, const liu::buffer_t*)
-{
-
-}
-
-void Service::ready()
-{
-  if (liu::LiveUpdate::is_resumable(LIVEUPD_LOCATION) == false)
-  {
-    auto& inc = net::Super_stack::get<net::IP4>(NET_INCOMING);
-    setup_liveupdate_server(inc, 666, save_all);
-  }
 }
 
 /// statistics ///

@@ -13,17 +13,12 @@ using namespace std::chrono;
 Balancer::Balancer(
        netstack_t& incoming, uint16_t in_port,
        netstack_t& outgoing)
-  : nodes(), netin(incoming), netout(outgoing)
+  : nodes(), netin(incoming), netout(outgoing), signal({this, &Balancer::handle_queue})
 {
   liu::LiveUpdate::register_serialization_callback("micro_lb", {this, &Balancer::serialize});
-
   if(liu::LiveUpdate::is_resumable())
   {
-    liu::LiveUpdate::resume("micro_lb", {this, &Balancer::deserialize});
-  }
-  auto nodelist = parse_node_confg();
-  for (auto& addr : nodelist) {
-    nodes.add_node(outgoing, addr, pool_signal_t{this, &Balancer::handle_queue});
+    liu::LiveUpdate::resume("micro_lb", {this, &Balancer::resume_callback});
   }
 
   netin.tcp().listen(in_port,
@@ -36,6 +31,18 @@ int Balancer::wait_queue() const {
 }
 int Balancer::connect_throws() const {
   return this->throw_counter;
+}
+netstack_t& Balancer::get_client_network() noexcept
+{
+  return this->netin;
+}
+netstack_t& Balancer::get_nodes_network() noexcept
+{
+  return this->netin;
+}
+const pool_signal_t& Balancer::get_pool_signal() const
+{
+  return this->signal;
 }
 void Balancer::incoming(tcp_ptr conn)
 {
@@ -226,7 +233,7 @@ void Nodes::close_session(int idx, bool timeout)
   LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
 }
 
-Node::Node(netstack_t& stk, net::Socket a, pool_signal_t sig)
+Node::Node(netstack_t& stk, net::Socket a, const pool_signal_t& sig)
   : stack(stk), addr(a), pool_signal(sig)
 {
   // periodically connect to node and determine if active

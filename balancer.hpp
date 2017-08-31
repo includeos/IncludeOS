@@ -1,8 +1,8 @@
 #pragma once
-#define READQ_PER_CLIENT     4096
-#define MAX_READQ_PER_NODE   8192
-#define READQ_FOR_NODES      8192
-#define MAX_OUTGOING_ATTEMPTS 100
+#define READQ_PER_CLIENT        4096
+#define MAX_READQ_PER_NODE      8192
+#define READQ_FOR_NODES         8192
+#define MAX_OUTGOING_ATTEMPTS    100
 // checking if nodes are dead or not
 #define ACTIVE_INITIAL_PERIOD     8s
 #define ACTIVE_CHECK_PERIOD      30s
@@ -45,7 +45,7 @@ struct Session {
 };
 
 struct Node {
-  Node(netstack_t& stk, net::Socket a, pool_signal_t sig);
+  Node(netstack_t& stk, net::Socket a, const pool_signal_t&);
 
   auto address() const noexcept { return this->addr; }
   int  connection_attempts() const noexcept { return this->connecting; }
@@ -61,7 +61,7 @@ struct Node {
   netstack_t& stack;
 private:
   net::Socket addr;
-  pool_signal_t pool_signal;
+  const pool_signal_t& pool_signal;
   std::vector<tcp_ptr> pool;
   bool        active = false;
   int         active_timer = -1;
@@ -108,23 +108,29 @@ private:
 
 struct Balancer {
   Balancer(netstack_t& in, uint16_t port, netstack_t& out);
+  static Balancer* from_config();
 
   int  wait_queue() const;
   int  connect_throws() const;
 
   void serialize(liu::Storage&, const liu::buffer_t*);
-  void deserialize(liu::Restore&);
+  void resume_callback(liu::Restore&);
 
   Nodes nodes;
+  netstack_t& get_client_network() noexcept;
+  netstack_t& get_nodes_network()  noexcept;
+  const pool_signal_t& get_pool_signal() const;
 
 private:
   void incoming(tcp_ptr);
   void handle_connections();
   void handle_queue();
+  void deserialize(liu::Restore&);
   std::vector<net::Socket> parse_node_confg();
 
   netstack_t& netin;
   netstack_t& netout;
+  pool_signal_t signal = nullptr;
   std::deque<Waiting> queue;
   int throw_retry_timer = -1;
   int throw_counter = 0;

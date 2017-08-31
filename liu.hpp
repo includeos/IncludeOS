@@ -16,7 +16,7 @@ void setup_liveupdate_server(net::Inet<net::IP4>& inet, const uint16_t PORT, liu
     try
     {
       // run live update process
-      liu::LiveUpdate::begin(buffer);
+      liu::LiveUpdate::exec(buffer);
     }
     catch (std::exception& err)
     {
