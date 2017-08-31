@@ -5,7 +5,6 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-
 project (demo_service)
 
 # Human-readable name of your service
@@ -19,18 +18,8 @@ set(SOURCES
   service.cpp # ...add more here
   )
 
-#
-# Service CMake options
-# (uncomment to enable)
-#
-
-# MISC:
-
 # To add your own include paths:
 # set(LOCAL_INCLUDES ".")
-
-# Adding memdisk (expects my.disk to exist in current dir):
-# set(MEMDISK ${CMAKE_SOURCE_DIR}/my.disk)
 
 # DRIVERS / PLUGINS:
 
@@ -47,10 +36,9 @@ else()
 endif()
 
 set(PLUGINS
-    # syslogd    # Syslog over UDP
+    autoconf  # configuration from config.json
     # ...others
   )
-
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
