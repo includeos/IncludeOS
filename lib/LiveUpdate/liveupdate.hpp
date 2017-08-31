@@ -51,11 +51,15 @@ struct LiveUpdate
   typedef delegate<void(Restore&)> resume_func;
 
   // Register a function to be called when serialization phase begins
+  // Internally it will be stored as its own partition and can be restored using
+  // the same @key value during the resume process
   static void register_serialization_callback(std::string key, storage_func);
 
   // Start a live update process, storing all user-defined data
-  // If no storage function is provided no state will be saved
+  // If no storage functions are registered no state will be saved
   static void exec(const buffer_t& blob);
+  // Same as above, but including the partition [@key, func]
+  static void exec(const buffer_t& blob, std::string key, storage_func func);
 
   // In the event that LiveUpdate::exec() fails,
   // call this function in the C++ exception catch scope:
