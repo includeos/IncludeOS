@@ -84,6 +84,12 @@ inline bool validate_header(const Class* hdr)
            hdr->e_ident[3] == 'F';
 }
 
+void LiveUpdate::exec(const buffer_t& blob, std::string key, storage_func func)
+{
+  register_serialization_callback(key, func);
+  LiveUpdate::exec(blob);
+}
+
 void LiveUpdate::exec(const buffer_t& blob)
 {
   void* location = OS::liveupdate_storage_area();
