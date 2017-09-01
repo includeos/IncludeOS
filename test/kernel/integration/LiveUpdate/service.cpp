@@ -31,5 +31,7 @@ void Service::start()
   {
     auto& inet = net::Super_stack::get<net::IP4>(0);
     setup_liveupdate_server(inet, 666, func);
+    // signal test.py that the server is up
+    printf("Ready to receive binary blob\n");
   }
 }

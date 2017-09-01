@@ -28,17 +28,15 @@ static void boot_resume_all(Restore& thing)
 
 LiveUpdate::storage_func begin_test_boot()
 {
-  try {
-    LiveUpdate::resume("test", boot_resume_all);
-    // if we are here,
-    // resume() must have succeeded
+  if (LiveUpdate::resume("test", boot_resume_all))
+  {
     if (timestamps.size() >= 30)
     {
       // calculate median by sorting
       std::sort(timestamps.begin(), timestamps.end());
       auto median = timestamps[timestamps.size()/2];
       // show information
-      printf("Median boot time over %lu samples: %llu micros\n",
+      printf("Median boot time over %lu samples: %ld micros\n",
               timestamps.size(), median);
       /*
       for (auto& stamp : timestamps) {
@@ -52,9 +50,6 @@ LiveUpdate::storage_func begin_test_boot()
       // immediately liveupdate
       LiveUpdate::exec(bloberino, "test", boot_save);
     }
-  }
-  catch (std::exception& e) {
-    printf("Ready to receive binary blob\n");
   }
   // wait for update
   return boot_save;

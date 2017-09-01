@@ -34,7 +34,7 @@ extern char* heap_end;
 
 namespace liu
 {
-static void resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
+static bool resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
 
 bool LiveUpdate::is_resumable()
 {
@@ -45,17 +45,17 @@ bool LiveUpdate::is_resumable(void* location)
   return ((storage_header*) location)->validate();
 }
 
-static void resume_helper(void* location, std::string key, LiveUpdate::resume_func func)
+static bool resume_helper(void* location, std::string key, LiveUpdate::resume_func func)
 {
   // check if an update has occurred
   if (!LiveUpdate::is_resumable(location))
-      throw std::runtime_error("Trying to resume from invalid storage area");
+      return false;
 
   LPRINT("* Restoring data...\n");
   // restore connections etc.
-  resume_begin(*(storage_header*) location, key.c_str(), func);
+  return resume_begin(*(storage_header*) location, key.c_str(), func);
 }
-void LiveUpdate::resume(std::string key, resume_func func)
+bool LiveUpdate::resume(std::string key, resume_func func)
 {
   void* location = OS::liveupdate_storage_area();
   /// memory sanity check
@@ -65,19 +65,20 @@ void LiveUpdate::resume(std::string key, resume_func func)
 		     (long int) (heap_end - (char*) location));
     throw std::runtime_error("LiveUpdate storage area inside heap");
   }
-  resume_helper(location, std::move(key), func);
+  return resume_helper(location, std::move(key), func);
 }
 void LiveUpdate::resume_from_heap(void* location, std::string key, LiveUpdate::resume_func func)
 {
   resume_helper(location, std::move(key), func);
 }
 
-void resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_func func)
+bool resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_func func)
 {
   if (key.empty())
       throw std::length_error("LiveUpdate partition key cannot be an empty string");
 
   int p = storage.find_partition(key.c_str());
+  if (p == -1) return false;
   LPRINT("* Resuming from partition %d at %p from %p\n",
         p, storage.begin(p), &storage);
 
@@ -92,6 +93,7 @@ void resume_begin(storage_header& storage, std::string key, LiveUpdate::resume_f
   storage.zero_partition(p);
   // if there are no more partitions, clear everything
   storage.try_zero();
+  return true;
 }
 
 /// struct Restore
