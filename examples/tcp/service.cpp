@@ -51,14 +51,9 @@ void handle_python_on_read(Connection_ptr client, const std::string& response) {
   client->write(response);
 }
 
-void Service::start(const std::string&)
+void Service::start()
 {
-  // Static IP configuration will get overwritten by DHCP, if found
-  auto& inet = net::Inet4::ifconfig<0>(10);
-  inet.network_config({ 10,0,0,42 },      // IP
-                      { 255,255,255,0 },  // Netmask
-                      { 10,0,0,1 },       // Gateway
-                      { 8,8,8,8 });       // DNS
+  auto& inet = net::Super_stack::get<net::IP4>(0);
 
   // Set up a TCP server on port 80
   auto& server = inet.tcp().listen(80);

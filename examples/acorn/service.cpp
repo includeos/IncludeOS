@@ -36,7 +36,7 @@ Disk_ptr disk;
 #include <isotime>
 #include <net/inet4>
 
-void Service::start()
+static void start_acorn(net::Inet<net::IP4>& inet)
 {
   /** SETUP LOGGER */
   const int LOGBUFFER_LEN = 1024*16;
@@ -56,11 +56,9 @@ void Service::start()
 
   // init the first legit partition/filesystem
   disk->init_fs(
-  [] (fs::error_t err, auto& fs)
+  [&inet] (fs::error_t err, auto& fs)
   {
       if (err) panic("Could not mount filesystem...\n");
-
-      auto& inet = net::Super_stack::get<net::IP4>(0);
 
       // only works with synchronous disks (memdisk)
       list_static_content(disk);
@@ -162,4 +160,16 @@ void Service::start()
 
     }); // < disk
 
+}
+
+void Service::start()
+{
+  auto& inet = net::Super_stack::get<net::IP4>(0);
+  if (not inet.is_configured())
+  {
+    inet.on_config(start_acorn);
+  }
+  else {
+    start_acorn(inet);
+  }
 }
