@@ -15,16 +15,12 @@ Balancer::Balancer(
        netstack_t& outgoing)
   : nodes(), netin(incoming), netout(outgoing), signal({this, &Balancer::handle_queue})
 {
-  liu::LiveUpdate::register_serialization_callback("micro_lb", {this, &Balancer::serialize});
-  if(liu::LiveUpdate::is_resumable())
-  {
-    liu::LiveUpdate::resume("micro_lb", {this, &Balancer::resume_callback});
-  }
-
   netin.tcp().listen(in_port,
   [this] (auto conn) {
     if (conn != nullptr) this->incoming(conn);
   });
+
+  this->init_liveupdate();
 }
 int Balancer::wait_queue() const {
   return this->queue.size();

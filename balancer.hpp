@@ -125,6 +125,7 @@ private:
   void incoming(tcp_ptr);
   void handle_connections();
   void handle_queue();
+  void init_liveupdate();
   void deserialize(liu::Restore&);
   std::vector<net::Socket> parse_node_confg();
 

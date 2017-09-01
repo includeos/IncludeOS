@@ -125,3 +125,12 @@ void Balancer::resume_callback(liu::Restore& store)
     printf("REASON: %s\n", e.what());
   }
 }
+
+void Balancer::init_liveupdate()
+{
+  liu::LiveUpdate::register_partition("microlb", {this, &Balancer::serialize});
+  if(liu::LiveUpdate::is_resumable())
+  {
+    liu::LiveUpdate::resume("microlb", {this, &Balancer::resume_callback});
+  }
+}
