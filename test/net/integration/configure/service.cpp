@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <service>
-#include <net/configure.hpp>
 #include <net/super_stack.hpp>
 #include <config>
 
@@ -25,14 +24,7 @@ void Service::start()
   using namespace net;
 
   auto& stacks = Super_stack::inet().ip4_stacks();
-  CHECKSERT(stacks.size() == 5, "There is 5 interfaces");
-
-  const auto& cfg = Config::get();
-  using namespace rapidjson;
-  Document doc;
-  doc.Parse(cfg.data());
-
-  net::configure(doc["net"]);
+  CHECKSERT(stacks.size() == 6, "There are 6 interfaces");
 
   INFO("Test", "Verify eth0");
   CHECKSERT(stacks[0] != nullptr, "eth0 is initialized");
@@ -56,7 +48,7 @@ void Service::start()
   CHECKSERT(stacks[2] != nullptr, "eth2 is initialized");
 
   auto& eth2 = *stacks[2];
-  const ip4::Addr EMPTY{0};
+  static const ip4::Addr EMPTY{0};
   CHECKSERT(eth2.ip_addr() == EMPTY, "IP address is 0.0.0.0");
   CHECKSERT(eth2.netmask() == EMPTY, "Netmask is 0.0.0.0");
   CHECKSERT(eth2.gateway() == EMPTY, "Gateway is 0.0.0.0");
@@ -68,5 +60,15 @@ void Service::start()
   INFO("Test", "Verify eth4");
   CHECKSERT(stacks[4] == nullptr, "eth4 is uninitialized");
 
-  printf("SUCCESS\n");
+  auto& eth5 = *stacks[5];
+  auto verify_eth5 = [](auto& eth5) {
+    INFO("Test", "Verify eth5");
+    CHECKSERT(eth5.ip_addr() != EMPTY, "IP not empty (%s)", eth5.ip_addr().str().c_str());
+    CHECKSERT(eth5.netmask() != EMPTY, "Netmask  not empty (%s)", eth5.netmask().str().c_str());
+    CHECKSERT(eth5.gateway() != EMPTY, "Gateway  not empty (%s)", eth5.gateway().str().c_str());
+    CHECKSERT(eth5.dns_addr() != EMPTY, "DNS addr not empty (%s)", eth5.dns_addr().str().c_str());
+    printf("SUCCESS\n");
+  };
+  eth5.on_config(verify_eth5);
+
 }
