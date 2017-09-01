@@ -20,73 +20,43 @@
 #define DASHBOARD_COMPONENTS_CPUSAGE_HPP
 
 #include "../component.hpp"
-
 #include <timers>
 #include <delegate>
+#include <profile>
 
 namespace mana {
 namespace dashboard {
 
 class CPUsage : public Component {
-
 public:
-
-  CPUsage(Timers::duration_t interval)
-   :  interval_{interval},
-      timer_id_{Timers::periodic(interval, interval, {this, &CPUsage::update_values})}
-  {}
-
-  ~CPUsage() {
-    Timers::stop(timer_id_);
-  }
+  CPUsage() = default;
+  ~CPUsage() = default;
 
   std::string key() const override
   { return "cpu_usage"; }
 
-  void serialize(Writer& writer) override {
+  void serialize(Writer& writer) override
+  {
+    uint64_t tdiff = ::StackSampler::samples_total() - last_total;
+    last_total = ::StackSampler::samples_total();
+    uint64_t adiff = ::StackSampler::samples_asleep() - last_asleep;
+    last_asleep = ::StackSampler::samples_asleep();
+
+    double asleep = 1.0;
+    if (tdiff > 0) asleep = adiff / (double) tdiff;
+
     writer.StartObject();
+    writer.Key("idle");
+    writer.Uint64(asleep * 100.0);
 
-    writer.Key("halt");
-
-    if(new_halt_ > old_halt_)
-      serialized_halt_ = new_halt_ - old_halt_;
-
-    writer.Uint64(serialized_halt_);
-
-    writer.Key("total");
-
-    if(new_total_ > old_total_)
-      serialized_total_ = new_total_ - old_total_;
-
-    writer.Uint64(serialized_total_);
-
-    writer.Key("interval");
-    writer.Double(interval_.count());
-
+    writer.Key("active");
+    writer.Uint64((1.0 - asleep) * 100.0);
     writer.EndObject();
   }
 
 private:
-  uint64_t old_halt_ = 0;
-  uint64_t new_halt_ = 0;
-  uint64_t old_total_ = 0;
-  uint64_t new_total_ = 0;
-
-  uint64_t serialized_halt_ = 0;
-  uint64_t serialized_total_ = 0;
-
-  Timers::duration_t interval_;
-  Timers::id_t timer_id_;
-
-  void update_values(Timers::id_t) {
-    uint64_t temp_halt = new_halt_;
-    uint64_t temp_total = new_total_;
-
-    new_halt_ = OS::cycles_asleep();
-    new_total_ = OS::cycles_since_boot();
-    old_halt_ = temp_halt;
-    old_total_ = temp_total;
-  }
+  uint64_t last_asleep = 0;
+  uint64_t last_total = 0;
 };
 
 } // < namespace dashboard

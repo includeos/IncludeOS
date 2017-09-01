@@ -45,7 +45,8 @@ void Service::start()
   logger_->flush();
   logger_->log("LUL\n");
 
-  OS::add_stdout([] (const char* data, size_t len) {
+  OS::add_stdout(
+  [] (const char* data, size_t len) {
     // append timestamp
     auto entry = "[" + isotime::now() + "]" + std::string{data, len};
     logger_->log(entry);
@@ -59,23 +60,7 @@ void Service::start()
   {
       if (err) panic("Could not mount filesystem...\n");
 
-      /** IP STACK SETUP **/
-      // Bring up IPv4 stack on network interface 0
-      auto& stack = net::Inet4::ifconfig(5.0,
-        [] (bool timeout) {
-          printf("DHCP resolution %s\n", timeout ? "failed" : "succeeded");
-          if (timeout)
-          {
-            /**
-             * Default Manual config. Can only be done after timeout to work
-             * with DHCP offers going to unicast IP (e.g. in GCE)
-             **/
-            net::Inet4::stack().network_config({ 10,0,0,42 },     // IP
-                                               { 255,255,255,0 }, // Netmask
-                                               { 10,0,0,1 },      // Gateway
-                                               { 8,8,8,8 });      // DNS
-          }
-        });
+      auto& inet = net::Super_stack::get<net::IP4>(0);
 
       // only works with synchronous disks (memdisk)
       list_static_content(disk);
@@ -125,8 +110,8 @@ void Service::start()
       dashboard_->add(dashboard::Status::instance());
       // Construct component
       dashboard_->construct<dashboard::Statman>(Statman::get());
-      dashboard_->construct<dashboard::TCP>(stack.tcp());
-      dashboard_->construct<dashboard::CPUsage>(500ms);
+      dashboard_->construct<dashboard::TCP>(inet.tcp());
+      dashboard_->construct<dashboard::CPUsage>();
       dashboard_->construct<dashboard::Logger>(*logger_, static_cast<size_t>(50));
 
       // Add Dashboard routes to "/api/dashboard"
@@ -154,7 +139,7 @@ void Service::start()
 
 
       /** SERVER SETUP **/
-      server_ = std::make_unique<Server>(stack.tcp());
+      server_ = std::make_unique<Server>(inet.tcp());
       // set routes and start listening
       server_->set_routes(router).listen(80);
 
