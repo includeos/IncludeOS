@@ -59,7 +59,7 @@ int storage_header::find_partition(const char* key)
       throw std::runtime_error("Invalid CRC in partition '" + std::string(key) + "'");
     }
   }
-  throw std::out_of_range("Could not find partition named " + std::string(key));
+  return -1;
 }
 void storage_header::finish_partition(int p)
 {

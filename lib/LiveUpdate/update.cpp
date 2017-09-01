@@ -36,9 +36,8 @@
 
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
-
-extern "C"
-void solo5_exec(const char*, size_t);
+// hotswapping functions
+extern "C" void solo5_exec(const char*, size_t);
 static void* HOTSWAP_AREA = (void*) 0x8000;
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
@@ -61,7 +60,7 @@ static size_t update_store_data(void* location, const buffer_t*);
 // serialization callbacks
 static std::unordered_map<std::string, LiveUpdate::storage_func> storage_callbacks;
 
-void LiveUpdate::register_serialization_callback(std::string key, storage_func callback)
+void LiveUpdate::register_partition(std::string key, storage_func callback)
 {
   auto it = storage_callbacks.find(key);
   if (it == storage_callbacks.end())
@@ -86,7 +85,7 @@ inline bool validate_header(const Class* hdr)
 
 void LiveUpdate::exec(const buffer_t& blob, std::string key, storage_func func)
 {
-  if (func != nullptr) register_serialization_callback(key, func);
+  if (func != nullptr) LiveUpdate::register_partition(key, func);
   LiveUpdate::exec(blob);
 }
 

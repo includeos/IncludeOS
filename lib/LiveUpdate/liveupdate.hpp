@@ -53,7 +53,7 @@ struct LiveUpdate
   // Register a function to be called when serialization phase begins
   // Internally it will be stored as its own partition and can be restored using
   // the same @key value during the resume process
-  static void register_serialization_callback(std::string key, storage_func);
+  static void register_partition(std::string key, storage_func);
 
   // Start a live update process, storing all user-defined data
   // If no storage functions are registered no state will be saved
@@ -76,7 +76,9 @@ struct LiveUpdate
   static bool is_resumable(void* location);
 
   // Restore existing state for a partition named @key.
-  static void resume(std::string key, resume_func handler);
+  // Returns false if there was no such partition
+  // Can throw lots of standard exceptions
+  static bool resume(std::string key, resume_func handler);
 
   // When explicitly resuming from heap, heap overrun checks are disabled
   static void resume_from_heap(void* location, std::string key, resume_func);
