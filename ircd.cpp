@@ -2,7 +2,6 @@
 #include "tokens.hpp"
 #include <algorithm>
 #include <set>
-#include <debug>
 #include <timers>
 
 #include <kernel/syscalls.hpp>
@@ -73,10 +72,14 @@ IrcServer::IrcServer(
   });
   printf("*** Accepting servers on port %u\n", sv_port);
 
-  // set timestamp for when the server was started
-  this->created_ts = create_timestamp();
-  this->created_string = std::string(ctime(&created_ts));
-  this->cheapstamp = this->created_ts;
+  /// LiveUpdate ///
+  if (this->init_liveupdate() == false)
+  {
+    // set timestamp for when the server was started
+    this->created_ts = create_timestamp();
+    this->created_string = std::string(ctime(&created_ts));
+    this->cheapstamp = this->created_ts;
+  }
 }
 
 void IrcServer::new_registered_client()

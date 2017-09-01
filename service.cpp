@@ -18,12 +18,12 @@
 #include <os>
 #include <profile>
 #include <timers>
-#include "liveupdate"
 #define USE_STACK_SAMPLING
 #define PERIOD_SECS    4
 
-static uint16_t    server_id  = 0;
-static std::string servername = "irc.includeos.org";
+static uint16_t    srv_id   = 0;
+static std::string srv_name = "irc.includeos.org";
+static std::string srv_netw = "IncludeNet";
 #include "ircd.hpp"
 IrcServer* ircd = nullptr;
 
@@ -33,22 +33,14 @@ void Service::start()
 {
   //  server_id  = 2;
   //  servername = "irc.other.org";
+  auto& inet = net::Super_stack::get<net::IP4>(0);
 
   // show that we are starting :)
-  printf("*** %s starting up...\n", servername.c_str());
-
-  // default configuration (with DHCP)
-  auto& inet = net::Inet4::ifconfig<>(10);
-  inet.network_config(
-      {  10, 0,  0, 42 },  // IP
-      { 255,255,255, 0 },  // Netmask
-      {  10, 0,  0,  1 },  // Gateway
-      {  10, 0,  0,  1 }); // DNS
+  printf("*** %s starting up...\n", srv_name.c_str());
 
   IrcServer::init();
   ircd =
-  new IrcServer(inet, 6667, 7000,
-                server_id, servername, "IncludeNet",
+  new IrcServer(inet, 6667, 7000, srv_id, srv_name, srv_netw,
   [] () -> const std::string& {
     static const std::string motd = R"M0TDT3XT(
               .-') _                               _ .-') _     ('-.                       .-')
@@ -73,11 +65,6 @@ Rewritten clients, channels and servers to use perf_array! Hope nothing broke...
 
   //printf("%s\n", ircd->get_motd().c_str());
   printf("This is server version " IRC_SERVER_VERSION "\n");
-
-  /// LiveUpdate on port 666 ///
-  extern void liveupdate_init(net::Inet<net::IP4>&, uint16_t);
-  liveupdate_init(inet, 666);
-  /// LiveUpdate ///
 }
 
 #include <ctime>

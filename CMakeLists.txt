@@ -19,14 +19,16 @@ set(SOURCES
   )
 
 # To add your own include paths:
-set(LOCAL_INCLUDES "include")
+set(LOCAL_INCLUDES "")
 
 # DRIVERS / PLUGINS:
 set(DRIVERS
   virtionet
   vmxnet3
-  silent_start
-  #heap_debugging
+  )
+
+set (PLUGINS
+  uplink
   )
 
 set(LIBRARIES libliveupdate.a)

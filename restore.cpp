@@ -3,9 +3,7 @@
 #include "channel.hpp"
 #include "client.hpp"
 extern IrcServer* ircd;
-
 using namespace liu;
-static void* LIVEUPD_LOCATION = (void*) 0x20000000; // at 512mb
 
 #define BOOT_TESTING
 #ifdef BOOT_TESTING
@@ -14,101 +12,15 @@ static buffer_t bloberino;
 #include <kernel/os.hpp>
 #endif
 
-static void save_server_state(Storage& storage, const buffer_t* buf)
+bool IrcServer::init_liveupdate()
 {
-  ircd->serialize(storage);
-#ifdef BOOT_TESTING
-  storage.add_vector(666, timestamps);
-  storage.add<int64_t> (666, OS::cycles_since_boot());
-  storage.add_buffer(666, *buf);
-  storage.put_marker(666);
-#endif
-}
-
-static void restore_server_state(Restore& thing)
-{
-  //
-  while (thing.get_id() != 666)
-  {
-    ircd->deserialize(thing);
-  }
-
-#ifdef BOOT_TESTING
-  assert(thing.get_id() == 666);
-  timestamps = thing.as_vector<double>(); thing.go_next();
-  // calculate time spent
-  auto t1 = thing.as_type<int64_t>(); thing.go_next();
-  auto t2 = OS::cycles_since_boot();
-  double time = (t2-t1) / (OS::cpu_freq().count() * 1000.0);
-  // add time
-  timestamps.push_back(time);
-  // retrieve old blob
-  bloberino = thing.as_buffer(); thing.go_next();
-  // exit boot time testing
-  thing.pop_marker(666);
-  assert(thing.is_end());
-
-  if (timestamps.size() >= 30)
-  {
-    // calculate median by sorting
-    std::sort(timestamps.begin(), timestamps.end());
-    double median = timestamps[timestamps.size()/2];
-    // show information
-    printf("Median boot time over %lu samples: %f millis\n",
-            timestamps.size(), median);
-    for (auto& stamp : timestamps) {
-      printf("%f\n", stamp);
-    }
-    OS::shutdown();
-  }
-  else {
-    // immediately liveupdate
-    LiveUpdate::begin(LIVEUPD_LOCATION, bloberino, save_server_state);
-  }
-#endif
-}
-
-static void setup_liveupdate_server(net::Inet<net::IP4>& inet, uint16_t port)
-{
-  // listen for live updates
-  auto& server = inet.tcp().listen(port);
-  server.on_connect(
-  [] (auto conn)
-  {
-    auto* upd_buffer = new std::vector<char> ();
-
-    // retrieve binary
-    conn->on_read(9000,
-    [conn, upd_buffer] (auto buf, size_t n)
-    {
-      upd_buffer->insert(upd_buffer->end(), buf.get(), buf.get() + n);
-    }).on_close(
-    [upd_buffer] {
-      if (upd_buffer->size()) {
-        // we received a binary:
-        printf("* New update size: %u b  stored at %p\n",
-              upd_buffer->size(), upd_buffer->data());
-        // run live update process
-        LiveUpdate::begin(LIVEUPD_LOCATION, *upd_buffer, save_server_state);
-      }
-      delete upd_buffer;
-      /// We should never return :-) ///
-      //assert(0 && "!! Update failed !!");
-    });
-  });
-  printf("*** Listening for LiveUpdate on port %u\n", port);
-}
-
-void liveupdate_init(net::Inet<net::IP4>& inet, uint16_t port)
-{
+  // register function that saves IRCd state
+  LiveUpdate::register_partition("ircd", {this, &IrcServer::serialize});
   // begin restoring saved data
-  if (LiveUpdate::resume(LIVEUPD_LOCATION, restore_server_state) == false) {
-  }
-  // .. logic for when there is nothing to resume
-  setup_liveupdate_server(inet, port);
+  return LiveUpdate::resume("ircd", {this, &IrcServer::deserialize});
 }
 
-void IrcServer::serialize(Storage& storage)
+void IrcServer::serialize(Storage& storage, const buffer_t*)
 {
   // h_users
   storage.add<size_t> (1, clients.hash_map().size());
@@ -149,12 +61,13 @@ void IrcServer::serialize(Storage& storage)
 void IrcServer::deserialize(Restore& thing)
 {
   // we are re-entering this function, so store the counters statically
-  static chindex_t current_chan = 0;
-  static clindex_t current_client = 0;
-
-  switch (thing.get_id()) {
-  case 1:  /// server
-    {
+  chindex_t current_chan = 0;
+  clindex_t current_client = 0;
+  while (thing.is_end() == false)
+  {
+    switch (thing.get_id()) {
+    case 1: {
+      /// server
       size_t count;
       count = thing.as_type<size_t> (); thing.go_next();
 
@@ -182,7 +95,7 @@ void IrcServer::deserialize(Restore& thing)
       printf("* Resumed server, next id: %u\n", thing.get_id());
       break;
     }
-  case 20: /// channels
+    case 20: /// channels
       // create free channel indices
       while (channels.size() < thing.as_type<chindex_t> ())
       {
@@ -198,7 +111,7 @@ void IrcServer::deserialize(Restore& thing)
         current_chan++;
       }
       break;
-  case 50: /// clients
+    case 50: /// clients
       // create free client indices
       while (clients.size() < thing.as_type<clindex_t> ())
       {
@@ -216,10 +129,12 @@ void IrcServer::deserialize(Restore& thing)
         current_client++;
       }
       break;
-  default:
-      printf("Unknown restore ID: %u\n", thing.get_id());
+    default:
+      printf("Unknown ID: %u\n", thing.get_id());
+      thing.go_next();
       break;
-  }
+    }
+  } // while (is_end() == false)
 }
 
 void Client::serialize_to(Storage& storage)

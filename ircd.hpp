@@ -3,6 +3,7 @@
 #include <rtc>
 #include <map>
 #include <vector>
+#include <liveupdate>
 
 #include "common.hpp"
 #include "client.hpp"
@@ -210,14 +211,14 @@ public:
   // network stack
   Network& get_stack() noexcept { return inet; }
 
-  // liveupdate serialization
-  void serialize(liu::Storage& storage);
-  void deserialize(liu::Restore& thing);
-
   static void init();
 private:
   size_t to_current = 0;
-  void   timeout_handler(int);
+  void  timeout_handler(int);
+  bool  init_liveupdate();
+  // liveupdate serialization
+  void serialize(liu::Storage& storage, const liu::buffer_t*);
+  void deserialize(liu::Restore& thing);
 
   Network&    inet;
   std::string server_name;

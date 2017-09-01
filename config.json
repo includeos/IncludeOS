@@ -1,0 +1,19 @@
+{
+  "net" : [
+    {
+      "iface": 0,
+      "config": "dhcp-with-fallback",
+      "address": "10.0.0.42",
+      "netmask": "255.255.255.0",
+      "gateway": "10.0.0.1"
+    }
+  ],
+
+  "uplink": {
+    "iface": 0,
+    "url": "10.20.17.12:9090",
+    "token": "kappa123",
+    "reboot": false
+  }
+
+}
