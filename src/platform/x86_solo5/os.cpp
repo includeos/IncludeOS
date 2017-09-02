@@ -190,39 +190,17 @@ void OS::halt() {
 }
 
 // Keep track of blocking levels
-static uint32_t* blocking_level = 0;
-static uint32_t* highest_blocking_level = 0;
-
-
-// Getters, mostly for testing
-extern "C" uint32_t os_get_blocking_level() {
-  return *blocking_level;
-}
-extern "C" uint32_t os_get_highest_blocking_level() {
-  return *highest_blocking_level;
-}
+static uint32_t blocking_level = 0;
+static uint32_t highest_blocking_level = 0;
 
 void OS::block()
 {
-  // Initialize stats
-  if (not blocking_level) {
-    blocking_level = &Statman::get()
-      .create(Stat::UINT32, std::string("blocking.current_level")).get_uint32();
-    *blocking_level = 0;
-  }
-
-  if (not highest_blocking_level) {
-    highest_blocking_level = &Statman::get()
-      .create(Stat::UINT32, std::string("blocking.highest")).get_uint32();
-    *highest_blocking_level = 0;
-  }
-
   // Increment level
-  *blocking_level += 1;
+  blocking_level += 1;
 
   // Increment highest if applicable
-  if (*blocking_level > *highest_blocking_level)
-    *highest_blocking_level = *blocking_level;
+  if (blocking_level > highest_blocking_level)
+      highest_blocking_level = blocking_level;
 
   int rc;
   rc = solo5_poll(solo5_clock_monotonic() + 50000ULL); // now + 0.05 ms
@@ -238,7 +216,7 @@ void OS::block()
   }
 
   // Decrement level
-  *blocking_level -= 1;
+  blocking_level -= 1;
 }
 
 extern "C"

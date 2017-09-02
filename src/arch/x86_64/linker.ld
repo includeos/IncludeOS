@@ -187,6 +187,9 @@ SECTIONS
     LONG (0);
   }
 
+  /** Optional memory hole between memdisk and bss **/
+  . += PRE_BSS_AREA;
+
   .bss ALIGN(0x1000) :
   {
     _BSS_START_ = .;

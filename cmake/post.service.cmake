@@ -223,8 +223,13 @@ if (${ELF} STREQUAL "i686")
   set(ELF "i386")
 endif()
 
+set(PRE_BSS_SIZE  "--defsym PRE_BSS_AREA=0x0")
+if ("${PLATFORM}" STREQUAL "x86_solo5")
+  # pre-BSS memory hole for uKVM global variables
+  set(PRE_BSS_SIZE  "--defsym PRE_BSS_AREA=0x200000")
+endif()
 
-set(LDFLAGS "-nostdlib -melf_${ELF} -N --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
+set(LDFLAGS "-nostdlib -melf_${ELF} -N --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE} ${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
