@@ -12,8 +12,7 @@ extern "C" {
 }
 
 // sleep statistics
-static uint64_t* os_cycles_hlt   = nullptr;
-static uint64_t* os_cycles_total = nullptr;
+static uint64_t os_cycles_hlt = 0;
 
 extern "C" void* get_cpu_esp();
 extern uintptr_t heap_begin;
@@ -48,11 +47,12 @@ RTC::timestamp_t OS::boot_timestamp()
   return booted_at_;
 }
 
-uint64_t OS::get_cycles_halt() noexcept {
-  return *os_cycles_hlt;
+// actually uses nanoseconds (but its just a number)
+uint64_t OS::cycles_asleep() noexcept {
+  return os_cycles_hlt;
 }
-uint64_t OS::get_cycles_total() noexcept {
-  return *os_cycles_total;
+uint64_t OS::micros_asleep() noexcept {
+  return os_cycles_hlt / 1000;
 }
 
 // uptime in nanoseconds
@@ -60,7 +60,6 @@ RTC::timestamp_t OS::uptime()
 {
   return solo5_clock_monotonic() - booted_at_;
 }
-
 int64_t OS::micros_since_boot() noexcept {
   return uptime() / 1000;
 }
@@ -121,18 +120,9 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
         "Heap", "Dynamic memory", heap_usage });
 
   MYINFO("Printing memory map");
-
   for (const auto &i : memmap)
     INFO2("* %s",i.second.to_string().c_str());
 
-  // sleep statistics
-  // NOTE: needs to be positioned before anything that calls OS::halt
-  os_cycles_hlt = &Statman::get().create(
-      Stat::UINT64, std::string("cpu0.cycles_hlt")).get_uint64();
-  os_cycles_total = &Statman::get().create(
-      Stat::UINT64, std::string("cpu0.cycles_total")).get_uint64();
-
-  PROFILE("Platform init");
   extern void __platform_init();
   __platform_init();
 
@@ -189,53 +179,28 @@ void OS::event_loop()
 
 __attribute__((noinline))
 void OS::halt() {
-  *os_cycles_total = cycles_since_boot();
+  auto cycles_before = solo5_clock_monotonic();
 #if defined(ARCH_x86)
   asm volatile("hlt");
 #else
 #warning "OS::halt() not implemented for selected arch"
 #endif
-  // Count sleep cycles
-  if (os_cycles_hlt)
-      *os_cycles_hlt += cycles_since_boot() - *os_cycles_total;
+  // Count sleep nanos
+  os_cycles_hlt += solo5_clock_monotonic() - cycles_before;
 }
 
 // Keep track of blocking levels
-static uint32_t* blocking_level = 0;
-static uint32_t* highest_blocking_level = 0;
+static uint32_t blocking_level = 0;
+static uint32_t highest_blocking_level = 0;
 
-
-// Getters, mostly for testing
-extern "C" uint32_t os_get_blocking_level() {
-  return *blocking_level;
-};
-
-extern "C" uint32_t os_get_highest_blocking_level() {
-  return *highest_blocking_level;
-};
-
-
-void OS::block(){
-
-  // Initialize stats
-  if (not blocking_level) {
-    blocking_level = &Statman::get()
-      .create(Stat::UINT32, std::string("blocking.current_level")).get_uint32();
-    *blocking_level = 0;
-  }
-
-  if (not highest_blocking_level) {
-    highest_blocking_level = &Statman::get()
-      .create(Stat::UINT32, std::string("blocking.highest")).get_uint32();
-    *highest_blocking_level = 0;
-  }
-
+void OS::block()
+{
   // Increment level
-  *blocking_level += 1;
+  blocking_level += 1;
 
   // Increment highest if applicable
-  if (*blocking_level > *highest_blocking_level)
-    *highest_blocking_level = *blocking_level;
+  if (blocking_level > highest_blocking_level)
+      highest_blocking_level = blocking_level;
 
   int rc;
   rc = solo5_poll(solo5_clock_monotonic() + 50000ULL); // now + 0.05 ms
@@ -251,7 +216,7 @@ void OS::block(){
   }
 
   // Decrement level
-  *blocking_level -= 1;
+  blocking_level -= 1;
 }
 
 extern "C"

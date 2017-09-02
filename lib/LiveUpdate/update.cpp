@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <unistd.h>
 #include <util/elf.h>
 #include "storage.hpp"
@@ -35,9 +36,8 @@
 
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
-
-extern "C"
-void solo5_exec(const char*, size_t);
+// hotswapping functions
+extern "C" void solo5_exec(const char*, size_t);
 static void* HOTSWAP_AREA = (void*) 0x8000;
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
@@ -55,7 +55,24 @@ bool LIVEUPDATE_PERFORM_SANITY_CHECKS = true;
 
 using namespace liu;
 
-static size_t update_store_data(void* location, LiveUpdate::storage_func, const buffer_t*);
+static size_t update_store_data(void* location, const buffer_t*);
+
+// serialization callbacks
+static std::unordered_map<std::string, LiveUpdate::storage_func> storage_callbacks;
+
+void LiveUpdate::register_partition(std::string key, storage_func callback)
+{
+  auto it = storage_callbacks.find(key);
+  if (it == storage_callbacks.end())
+  {
+    storage_callbacks.emplace(std::piecewise_construct,
+              std::forward_as_tuple(std::move(key)),
+              std::forward_as_tuple(std::move(callback)));
+  }
+  else {
+    throw std::runtime_error("Storage key '" + key + "' already used");
+  }
+}
 
 template <typename Class>
 inline bool validate_header(const Class* hdr)
@@ -66,10 +83,15 @@ inline bool validate_header(const Class* hdr)
            hdr->e_ident[3] == 'F';
 }
 
-void LiveUpdate::begin(void*        location,
-                       buffer_t     blob,
-                       storage_func storage_callback)
+void LiveUpdate::exec(const buffer_t& blob, std::string key, storage_func func)
 {
+  if (func != nullptr) LiveUpdate::register_partition(key, func);
+  LiveUpdate::exec(blob);
+}
+
+void LiveUpdate::exec(const buffer_t& blob)
+{
+  void* location = OS::liveupdate_storage_area();
   LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
   // 1. turn off interrupts
   asm volatile("cli");
@@ -172,7 +194,7 @@ void LiveUpdate::begin(void*        location,
   LPRINT("* _start is located at %#x\n", start_offset);
 
   // save ourselves if function passed
-  update_store_data(storage_area, storage_callback, &blob);
+  update_store_data(storage_area, &blob);
 
   // 2. flush all devices with flush() interface
   hw::Devices::flush_all();
@@ -216,7 +238,7 @@ void LiveUpdate::begin(void*        location,
     /// the end
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data);
 # else
-#    error "Unimplemented architecture"
+#   error "Unimplemented architecture"
 # endif
 #endif
 }
@@ -225,11 +247,17 @@ void LiveUpdate::restore_environment()
   // enable interrupts again
   asm volatile("sti");
 }
-size_t LiveUpdate::store(void* location, storage_func func)
+buffer_t LiveUpdate::store()
 {
-  return update_store_data(location, func, nullptr);
+  char* location = (char*) OS::liveupdate_storage_area();
+  size_t size = update_store_data(location, nullptr);
+  return buffer_t(location, location + size);
 }
 
+size_t LiveUpdate::stored_data_length()
+{
+  return stored_data_length(OS::liveupdate_storage_area());
+}
 size_t LiveUpdate::stored_data_length(void* location)
 {
   auto* storage = (storage_header*) location;
@@ -245,17 +273,22 @@ size_t LiveUpdate::stored_data_length(void* location)
   return storage->total_bytes();
 }
 
-size_t update_store_data(void* location, LiveUpdate::storage_func func, const buffer_t* blob)
+size_t update_store_data(void* location, const buffer_t* blob)
 {
   // create storage header in the fixed location
   new (location) storage_header();
   auto* storage = (storage_header*) location;
 
+  Storage wrapper(*storage);
   /// callback for storing stuff, if provided
-  if (func != nullptr)
+  for (const auto& pair : storage_callbacks)
   {
-    Storage wrapper {*storage};
-    func(wrapper, blob);
+    // create partition
+    int p = storage->create_partition(pair.first);
+    // run serialization process
+    pair.second(wrapper, blob);
+    // add end for partition
+    storage->finish_partition(p);
   }
 
   /// finalize

@@ -25,17 +25,17 @@
 #include <cassert>
 //#define VERIFY_MEMORY
 
+inline uint32_t liu_crc32(const void* buf, size_t len)
+{
+  return crc32_fast(buf, len);
+}
+
 const uint64_t storage_header::LIVEUPD_MAGIC = 0xbaadb33fdeadc0de;
 
 storage_header::storage_header()
   : magic(LIVEUPD_MAGIC), crc(0), entries(0), length(0)
 {
   //printf("%p --> %#llx\n", this, value);
-}
-
-inline uint32_t liu_crc32(const void* buf, size_t len)
-{
-  return crc32_fast(buf, len);
 }
 
 void storage_header::add_marker(uint16_t id)
@@ -108,7 +108,7 @@ void storage_header::add_string_vector(uint16_t id, const std::vector<std::strin
 }
 void storage_header::add_end()
 {
-  auto& ent = create_entry(TYPE_END);
+  auto& ent = create_entry(TYPE_END, 0, 0);
 
   // test against heap max
   uintptr_t storage_end = (uintptr_t) ent.vla;
@@ -134,7 +134,9 @@ void storage_header::finalize()
 {
   if (this->magic != LIVEUPD_MAGIC)
       throw std::runtime_error("Magic field invalidated during store process");
-  add_end();
+  // add end if missing
+  if (this->length == 0) this->add_end();
+  // generate checksum for header
   this->crc = generate_checksum();
 }
 bool storage_header::validate() noexcept
@@ -153,22 +155,31 @@ uint32_t storage_header::generate_checksum() noexcept
   this->crc         = 0;
 
   const char* begin = (const char*) this;
-  size_t      len   = sizeof(storage_header) + this->length;
+  size_t      len   = sizeof(storage_header);
   uint32_t checksum = liu_crc32(begin, len);
 
   this->crc = crc_copy;
   return checksum;
 }
 
+void storage_header::try_zero() noexcept
+{
+  for (int p = 0; p < partitions; p++) {
+    auto& part = ptable.at(p);
+    if (part.length != 0 && part.name[0] != 0) return;
+  }
+  // zero everything
+  this->zero();
+}
 void storage_header::zero()
 {
   memset(this, 0, sizeof(storage_header) + this->length);
   assert(this->magic == 0);
 }
 
-storage_entry* storage_header::begin()
+storage_entry* storage_header::begin(int p)
 {
-  return (storage_entry*) vla;
+  return (storage_entry*) &vla[ptable.at(p).offset];
 }
 storage_entry* storage_header::next(storage_entry* ptr)
 {
@@ -176,11 +187,8 @@ storage_entry* storage_header::next(storage_entry* ptr)
   return ptr->next();
 }
 
-storage_entry::storage_entry(int16_t t, uint16_t ID, int v)
-  : type(t), id(ID), len(v) {}
-// used for last entry, for the most part
-storage_entry::storage_entry(int16_t t)
-  : type(t), id(0), len(0)  {}
+storage_entry::storage_entry(int16_t t, uint16_t ID, int L)
+  : type(t), id(ID), len(L) {}
 
 storage_entry* storage_entry::next() const noexcept
 {

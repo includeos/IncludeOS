@@ -36,8 +36,8 @@ struct Restore;
 typedef std::vector<char> buffer_t;
 
 /**
- * The beginning and the end of the LiveUpdate process is the begin() and resume() functions.
- * begin() is called with a provided fixed memory location for where to store all serialized data,
+ * The beginning and the end of the LiveUpdate process is the exec() and resume() functions.
+ * exec() is called with a provided fixed memory location for where to store all serialized data,
  * and after an update is_resumable, with the same fixed memory location, will return true.
  * resume() can then be called with this same location, and it will call handlers for each @id it finds,
  * unless no such handler is registered, in which case it just calls the default handler which is passed
@@ -50,37 +50,43 @@ struct LiveUpdate
   typedef delegate<void(Storage&, const buffer_t*)> storage_func;
   typedef delegate<void(Restore&)> resume_func;
 
-  // Start a live update process, storing all user-defined data
-  // at @location, which can then be resumed by the future service after update
-  static void begin(void* location, buffer_t blob, storage_func = nullptr);
+  // Register a function to be called when serialization phase begins
+  // Internally it will be stored as its own partition and can be restored using
+  // the same @key value during the resume process
+  static void register_partition(std::string key, storage_func);
 
-  // In the event that LiveUpdate::begin() fails,
-  // call this function in the C++ exception handler:
+  // Start a live update process, storing all user-defined data
+  // If no storage functions are registered no state will be saved
+  static void exec(const buffer_t& blob);
+  // Same as above, but including the partition [@key, func]
+  static void exec(const buffer_t& blob, std::string key, storage_func func);
+
+  // In the event that LiveUpdate::exec() fails,
+  // call this function in the C++ exception catch scope:
   static void restore_environment();
 
   // Only store user data, as if there was a live update process
   // Throws exception if process or sanity checks fail
-  static size_t store(void* location, storage_func);
+  static buffer_t store();
 
-  // Returns true if there is stored data from before at @location.
+  // Returns true if there is stored data from before.
   // It performs an extensive validation process to make sure the data is
   // complete and consistent
+  static bool is_resumable();
   static bool is_resumable(void* location);
 
-  // Register a user-defined handler for what to do with @id from storage
-  static void on_resume(uint16_t id, resume_func custom_handler);
-
-  // Attempt to restore existing stored entries from fixed location.
-  // Returns false if there was nothing there. or if the process failed
-  // to be sure that only failure can return false, use is_resumable first
-  static bool resume(void* location, resume_func default_handler);
+  // Restore existing state for a partition named @key.
+  // Returns false if there was no such partition
+  // Can throw lots of standard exceptions
+  static bool resume(std::string key, resume_func handler);
 
   // When explicitly resuming from heap, heap overrun checks are disabled
-  static bool resume_from_heap(void* location, resume_func default_handler);
+  static void resume_from_heap(void* location, std::string key, resume_func);
 
   // Retrieve the recorded length, in bytes, of a valid storage area
   // Throws std::runtime_error when something bad happens
   // Never returns zero
+  static size_t stored_data_length();
   static size_t stored_data_length(void* location);
 
   // Set location of known good blob to rollback to if something happens
@@ -105,7 +111,7 @@ struct LiveUpdate
 
 /**
  * The Storage object is passed to the user from the handler given to the
- * call to begin(), starting the liveupdate process. When the handler is
+ * call to exec(), starting the liveupdate process. When the handler is
  * called the system is ready to serialize data into the given @location.
  * By using the various add_* functions, the user stores data with @uid
  * as a marker to be able to recognize the object when restoring data.
@@ -135,28 +141,25 @@ struct Storage
   // store a TCP connection
   void add_connection(uid, Connection_ptr);
 
-  Storage(storage_header& sh) : hdr(sh) {}
-  void add_vector (uid, const void*, size_t count, size_t element_size);
-  void add_string_vector (uid, const std::vector<std::string>&);
-
   // markers are used to delineate the end of variable-length structures
   void put_marker(uid);
 
+  Storage(storage_header& sh) : hdr(sh) {}
 private:
+  void add_vector (uid, const void*, size_t count, size_t element_size);
+  void add_string_vector (uid, const std::vector<std::string>&);
   storage_header& hdr;
 };
 
 /**
- * A Restore object is given to the user by restore handlers,
+ * A Restore object is given to the user in a restore handler,
  * during the resume() process. The user should know what type
  * each id is, and call the correct as_* function. The object
  * will still be validated, and an error is thrown if there was
- * a type mismatch in most cases.
+ * a type mismatch in some cases.
  *
- * It's possible to restore many objects from the same handler by
- * using go_next(). In that way, a user can restore complicated objects
- * completely without leaving the handler. go_next() will throw if there
- * is no next object to go to.
+ * Use go_next() on the Restore& object to go to the next
+ * deserializable object in the storage.
  *
 **/
 struct Restore
@@ -195,20 +198,15 @@ struct Restore
   // if the end is reached, @id is not used
   void pop_marker(uint16_t id);
 
-  // cancel and exit state restoration process
-  // NOTE: resume() will still return true
-  void cancel();  // pseudo: "while (!is_end()) go_next()"
-
   // NOTE:
   // it is safe to immediately use is_end() after any call to:
-  // go_next(), pop_marker(), pop_marker(uint16_t), cancel()
+  // go_next(), pop_marker(), pop_marker(uint16_t)
 
-  Restore(storage_entry*& ptr) : ent(ptr) {}
-  Restore(const Restore&);
+  Restore(storage_entry* ptr) : ent(ptr) {}
 private:
   const void* get_segment(size_t, size_t&) const;
   std::vector<std::string> rebuild_string_vector() const;
-  storage_entry*& ent;
+  storage_entry* ent;
 };
 
 /// various inline functions

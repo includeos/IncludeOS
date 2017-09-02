@@ -52,6 +52,7 @@ extern uintptr_t _ELF_END_;
 bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 MHz   OS::cpu_mhz_ {-1};
+uintptr_t OS::liveupdate_loc_   = 0;
 uintptr_t OS::low_memory_size_  = 0;
 uintptr_t OS::high_memory_size_ = 0;
 uintptr_t OS::memory_end_ = 0;
@@ -72,6 +73,11 @@ OS::Plugin_vec OS::plugins_(Fixedvector_Init::UNINIT);
 #endif
 std::string OS::version_str_ = OS_VERSION;
 std::string OS::arch_str_ = ARCH;
+
+void* OS::liveupdate_storage_area() noexcept
+{
+  return (void*) OS::liveupdate_loc_;
+}
 
 const std::string& OS::cmdline_args() noexcept
 {
@@ -96,6 +102,15 @@ void OS::shutdown()
 
 void OS::post_start()
 {
+  // if the LiveUpdate storage area is not yet determined,
+  // we can assume its a fresh boot, so calculate new one based on ...
+  if (OS::liveupdate_loc_ == 0)
+  {
+    // default size is 1/4 of heap from the end of memory
+    auto size = OS::heap_max() / 4;
+    OS::liveupdate_loc_ = (OS::heap_max() - size) & 0xFFFFFFF0;
+  }
+
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
   RNG::init();

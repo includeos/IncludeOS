@@ -20,19 +20,16 @@
 #include <kernel/events.hpp>
 
 // Keep track of blocking levels
-static uint32_t* blocking_level = 0;
-static uint32_t* highest_blocking_level = 0;
-
+static uint32_t* blocking_level = nullptr;
+static uint32_t* highest_blocking_level = nullptr;
 
 // Getters, mostly for testing
 extern "C" uint32_t os_get_blocking_level() {
   return *blocking_level;
-};
-
+}
 extern "C" uint32_t os_get_highest_blocking_level() {
   return *highest_blocking_level;
-};
-
+}
 
 /**
  * A quick and dirty implementation of blocking calls, which simply halts,

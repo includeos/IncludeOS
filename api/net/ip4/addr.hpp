@@ -217,6 +217,30 @@ struct Addr {
   { return ntohl(whole) < ntohl(raw_addr); }
 
   /**
+   * Operator to check for less-than-or-equal relationship
+   *
+   * @param other
+   *  The IPv4 address object to check for less-than-or-equal relationship
+   *
+   * @return true if this object is less-than-or-equal to other, false otherwise
+   */
+  constexpr bool operator<=(const Addr other) const noexcept
+  { return (*this < other or *this == other); }
+
+  /**
+   * Operator to check for less-than-or-equal relationship
+   *
+   * @param raw_addr
+   *  The 32-bit value to check for less-than-or-equal relationship
+   *
+   * @return true if this object is less-than-or-equal to raw_addr, false otherwise
+   *
+   * @note The 32-bit value must be in network byte order
+   */
+  constexpr bool operator<=(const uint32_t raw_addr) const noexcept
+  { return (*this < raw_addr or *this == raw_addr); }
+
+  /**
    * Operator to check for greater-than relationship
    *
    * @param other
@@ -225,7 +249,7 @@ struct Addr {
    * @return true if this object is greater-than other, false otherwise
    */
   constexpr bool operator>(const Addr other) const noexcept
-  { return not (*this < other); }
+  { return not (*this <= other); }
 
   /**
    * Operator to check for greater-than relationship
@@ -238,7 +262,31 @@ struct Addr {
    * @note The 32-bit value must be in network byte order
    */
   constexpr bool operator>(const uint32_t raw_addr) const noexcept
-  { return not (*this < raw_addr); }
+  { return not (*this <= raw_addr); }
+
+  /**
+   * Operator to check for greater-than-or-equal relationship
+   *
+   * @param other
+   *  The IPv4 address object to check for greater-than-or-equal relationship
+   *
+   * @return true if this object is greater-than-or-equal to other, false otherwise
+   */
+  constexpr bool operator>=(const Addr other) const noexcept
+  { return (*this > other or *this == other); }
+
+  /**
+   * Operator to check for greater-than-or-equal relationship
+   *
+   * @param raw_addr
+   *  The 32-bit value to check for greater-than-or-equal relationship
+   *
+   * @return true if this object is greater-than-or-equal to raw_addr, false otherwise
+   *
+   * @note The 32-bit value must be in network byte order
+   */
+  constexpr bool operator>=(const uint32_t raw_addr) const noexcept
+  { return (*this > raw_addr or *this == raw_addr); }
 
   /**
    * Operator to perform a bitwise-and operation on the given

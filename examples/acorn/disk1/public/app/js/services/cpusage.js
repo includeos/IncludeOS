@@ -3,10 +3,9 @@
 angular.module('acornWebApp')
   .factory('CPUsage', function() {
     // CPU usage chart
-    var date = new Date();
-    var total_data = ['total'];
+    var time_data = ['x', new Date()];
+    var idle_data = ['idle'];
     var active_data = ['active'];
-    var time_data = ['x', date];
 
     var cpu_usage_chart = {};
 
@@ -21,17 +20,19 @@ angular.module('acornWebApp')
           x: 'x',
           columns: [
             time_data,
-            total_data,
+            idle_data,
             active_data
           ],
           colors: {
-            total: '#3A8BF1',
+            idle: '#3A8BF1',
             active: '#F87E0C'
           },
           types: {
-            total: 'area-spline',
-            active: 'area-spline'
-            // 'line', 'spline', 'step', 'area', 'area-step' are also available to stack
+            idle: 'area',
+            active: 'area'
+          },
+          area : {
+            zerobased: true
           }
         },
         axis: {
@@ -50,12 +51,12 @@ angular.module('acornWebApp')
           },
           y: {
             label: {
-              text: 'cycles',
+              text: 'percent',
               position: 'outer-middle'
             },
             tick: {
               format: function (d) {
-                return d + " mill.";
+                return d + " %";
               }
             }
           }
@@ -68,35 +69,23 @@ angular.module('acornWebApp')
     };
 
     CPUsage.prototype.update = function(usage) {
-      // Showing interval in number of seconds
-      var interval = usage.interval / 1000000;
 
-      if(total_data.length > 20) {
+      if(idle_data.length > 20) {
         // Remove second element in each array (first element is name)
-        total_data.splice(1, 1);
-        active_data.splice(1, 1);
         time_data.splice(1, 1);
+        idle_data.splice(1, 1);
+        active_data.splice(1, 1);
       }
 
-      var total = usage.total;
-      var halt = usage.halt;
-      var active = total - halt;
+      time_data.push(new Date());
+      idle_data.push(usage.idle.toFixed(3));
+      active_data.push(usage.active.toFixed(3));
 
-      // Showing cycles in millions
-      total /= 1000000;
-      active /= 1000000;
-
-      var d = new Date();
-
-      total_data.push(total.toFixed(3));
-      active_data.push(active.toFixed(3));
-      time_data.push(d);
-
-      cpu_usage_chart.axis.labels({x: 'CPU data updated at an interval of ' + interval + ((interval > 1) ? ' seconds' : ' second')});
+      cpu_usage_chart.axis.labels({x: 'CPU usage over time'});
       cpu_usage_chart.load({
         columns: [
           time_data,
-          total_data,
+          idle_data,
           active_data
         ]
       });

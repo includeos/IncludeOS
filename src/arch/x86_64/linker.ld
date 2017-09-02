@@ -187,14 +187,10 @@ SECTIONS
     LONG (0);
   }
 
-  /*
-   * XXX: We need this padding because in solo5 initialization some variables
-   * in the bss are set to non-zero values. So, without the padding the ELFs
-   * symbol table would get modified.
-   */
-  . += 0x1000000;
+  /** Optional memory hole between memdisk and bss **/
+  . += PRE_BSS_AREA;
 
-  .bss :
+  .bss ALIGN(0x1000) :
   {
     _BSS_START_ = .;
     *(.bss .bss.* .gnu.linkonce.b.*)
@@ -208,5 +204,4 @@ SECTIONS
   PROVIDE (end = .);
   PROVIDE (_ELF_END_ = .);
   PROVIDE (_LOAD_END_ = .);
-
 }

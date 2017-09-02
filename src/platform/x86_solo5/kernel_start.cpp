@@ -11,6 +11,7 @@ extern "C" {
 
 extern void __platform_init();
 extern void default_stdout_handlers();
+void __arch_subscribe_irq(unsigned char) {} // for now
 
 char cmdline[256];
 uintptr_t mem_size;
@@ -27,12 +28,6 @@ extern "C" {
   uintptr_t _end;
   void set_stack();
   void* get_cpu_ebp();
-
-  // Set to NULL. There are no interrupts in ukvm
-  void (*current_eoi_mechanism)();
-  void (*current_intr_handler)();
-  void (*cpu_sampling_irq_handler)();
-
 
   void kernel_start()
   {
@@ -67,14 +62,9 @@ extern "C" {
     // Call global ctors
     __libc_init_array();
 
-    // interrupts.asm uses these symbols. This is just to make the compiler happy.
-    // These won't ever be called.
-    current_eoi_mechanism = NULL;
-    current_intr_handler  = NULL;
-    cpu_sampling_irq_handler = NULL;
-
     // Initialize OS including devices
     OS::start(cmdline, mem_size);
+    OS::post_start();
 
     // Starting event loop from here allows us to profile OS::start
     OS::event_loop();
@@ -91,5 +81,6 @@ extern "C" {
 
      // set the stack location to its new includeos location, and call kernel_start
      set_stack();
+     return 0;
   }
 }

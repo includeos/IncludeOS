@@ -9,6 +9,7 @@ extern "C" {
   extern void unused_interrupt_handler();
   extern void modern_interrupt_handler();
   extern void spurious_intr();
+  extern void cpu_enable_panicking();
 }
 
 #define IRQ_LINES  Events::NUM_EVENTS
@@ -66,6 +67,7 @@ static void set_intr_entry(
 #ifdef ARCH_x86_64
   idt_entry->ist       = ist;
 #else
+  (void) ist;
   idt_entry->zero      = 0;
 #endif
 }
@@ -260,6 +262,7 @@ static void cpu_dump_regs(uintptr_t* regs)
 extern "C"
 void cpu_exception(uintptr_t* regs, int error, uint32_t code)
 {
+  cpu_enable_panicking();
   SMP::global_lock();
   kprintf("\n>>>> !!! CPU %u EXCEPTION !!! <<<<\n", SMP::cpu_id());
   kprintf("    %s (%d)   EIP  %p   CODE %#x\n",

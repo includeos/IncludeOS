@@ -74,6 +74,13 @@ public:
   /** Uptime in whole seconds. */
   static RTC::timestamp_t uptime();
 
+  /** Time spent sleeping (halt) in cycles */
+  static uint64_t cycles_asleep() noexcept;
+
+  /** Time spent sleeping (halt) in micros */
+  static uint64_t micros_asleep() noexcept;
+
+
   static MHz cpu_freq() noexcept
   { return cpu_mhz_; }
 
@@ -178,11 +185,8 @@ public:
     return memory_end_;
   }
 
-  /** time spent sleeping (halt) in cycles */
-  static uint64_t get_cycles_halt() noexcept;
-
-  /** total time spent in cycles */
-  static uint64_t get_cycles_total() noexcept;
+  /** Returns the automatic location set aside for storing system and program state **/
+  static void* liveupdate_storage_area() noexcept;
 
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
@@ -255,6 +259,7 @@ private:
 
   // XXX: Only used by solo5
   static RTC::timestamp_t booted_at_;
+  static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
   static Plugin_vec plugins_;

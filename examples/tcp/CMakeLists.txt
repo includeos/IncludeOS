@@ -18,13 +18,6 @@ set(SOURCES
   service.cpp # ...add more here
   )
 
-#
-# Service CMake options
-# (uncomment to enable)
-#
-
-# MISC:
-
 # To add your own include paths:
 # set(LOCAL_INCLUDES ".")
 

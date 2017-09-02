@@ -38,8 +38,7 @@ void LiveUpdate::rollback_now(const char* reason)
     {
       buffer_t vec(rollback_data, rollback_data + rollback_len);
       // run live update process
-      void* ROLLBACK_LOCATION = (void*) (heap_end + 0x4000);
-      LiveUpdate::begin(ROLLBACK_LOCATION, std::move(vec));
+      LiveUpdate::exec(vec);
     }
     catch (std::exception& err)
     {
