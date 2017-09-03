@@ -141,7 +141,7 @@ void x86_IDT::init()
   set_exception_handler(20, __cpu_except_20);
   set_exception_handler(30, __cpu_except_30);
 
-  for (size_t i = 32; i < INTR_LINES - 1; i++) {
+  for (size_t i = 32; i < INTR_LINES - 2; i++) {
     set_handler(i, unused_interrupt_handler);
   }
   // spurious interrupt handler
@@ -260,7 +260,8 @@ static void cpu_dump_regs(uintptr_t* regs)
 }
 
 extern "C"
-void cpu_exception(uintptr_t* regs, int error, uint32_t code)
+__attribute__((noreturn, optnone))
+void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
 {
   cpu_enable_panicking();
   SMP::global_lock();
