@@ -5,18 +5,26 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (tcp)
+
+project (ws_example)
 
 # Human-readable name of your service
-set(SERVICE_NAME "TCP Example Service")
+set(SERVICE_NAME "IncludeOS WebSocket Example")
 
 # Name of your service binary
-set(BINARY       "tcp_example")
+set(BINARY       "ws_example")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp # ...add more here
   )
+
+#
+# Service CMake options
+# (uncomment to enable)
+#
+
+# MISC:
 
 # To add your own include paths:
 # set(LOCAL_INCLUDES ".")
@@ -26,16 +34,21 @@ set(SOURCES
 
 # DRIVERS / PLUGINS:
 
-set(DRIVERS
-  virtionet   # Virtio networking
-  # ... Others from IncludeOS/src/drivers
-  )
+if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
+  set(DRIVERS
+      solo5net
+    )
+else()
+  set(DRIVERS
+      virtionet     # Virtio networking
+    )
+endif()
 
 set(PLUGINS
-  # syslogd    # Syslog over UDP
-  # ...others
+  autoconf
   )
-
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+
+diskbuilder(disk)

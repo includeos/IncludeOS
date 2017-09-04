@@ -23,66 +23,14 @@
 #include <timers>
 #include <net/http/request.hpp>
 #include <net/http/response.hpp>
+#include "liu.hpp"
 
 using namespace std::chrono;
-
-std::string HTML_RESPONSE()
-{
-  const int color = rand();
-
-  // Generate some HTML
-  std::stringstream stream;
-  stream << "<!DOCTYPE html><html><head>"
-         << "<link href='https://fonts.googleapis.com/css?family=Ubuntu:500,300'"
-         << " rel='stylesheet' type='text/css'>"
-         << "<title>IncludeOS Demo Service</title></head><body>"
-         << "<h1 style='color: #" << std::hex << ((color >> 8) | 0x020202)
-         << "; font-family: \"Arial\", sans-serif'>"
-         << "Include<span style='font-weight: lighter'>OS</span></h1>"
-         << "<h2>The C++ Unikernel</h2>"
-         << "<p>You have successfully booted an IncludeOS TCP service with simple http. "
-         << "For a more sophisticated example, take a look at "
-         << "<a href='https://github.com/hioa-cs/IncludeOS/tree/master/examples/acorn'>Acorn</a>.</p>"
-         << "<footer><hr/>&copy; 2017 IncludeOS </footer></body></html>";
-
-  return stream.str();
-}
-
-http::Response handle_request(const http::Request& req)
-{
-  printf("<Service> Request:\n%s\n", req.to_string().c_str());
-
-  http::Response res;
-
-  auto& header = res.header();
-
-  header.set_field(http::header::Server, "IncludeOS/0.10");
-
-  // GET /
-  if(req.method() == http::GET && req.uri().to_string() == "/")
-  {
-    // add HTML response
-    res.add_body(HTML_RESPONSE());
-
-    // set Content type and length
-    header.set_field(http::header::Content_Type, "text/html; charset=UTF-8");
-    header.set_field(http::header::Content_Length, std::to_string(res.body().to_string().size()));
-  }
-  else
-  {
-    // Generate 404 response
-    res.set_status_code(http::Not_Found);
-  }
-
-  header.set_field(http::header::Connection, "close");
-
-  return res;
-}
+http::Response handle_request(const http::Request& req);
 
 void Service::start()
 {
   // Get the first IP stack
-  // It should have configuration from config.json
   auto& inet = net::Super_stack::get<net::IP4>(0);
 
   // Print some useful netstats every 30 secs
@@ -96,15 +44,16 @@ void Service::start()
 
   // Add a TCP connection handler - here a hardcoded HTTP-service
   server.on_connect(
-  [] (net::tcp::Connection_ptr conn) {
+  [] (auto conn)
+  {
     printf("<Service> @on_connect: Connection %s successfully established.\n",
-      conn->remote().to_string().c_str());
+            conn->remote().to_string().c_str());
     // read async with a buffer size of 1024 bytes
     // define what to do when data is read
     conn->on_read(1024,
-    [conn] (net::tcp::buffer_t buf, size_t n)
+    [conn] (auto buf, size_t n)
     {
-      printf("<Service> @on_read: %u bytes received.\n", n);
+      printf("<Service> @on_read: %lu bytes received.\n", n);
       try
       {
         std::string data{(const char*)buf.get(), n};
@@ -124,10 +73,13 @@ void Service::start()
         printf("<Service> Unable to parse request:\n%s\n", e.what());
       }
     });
-    conn->on_write([](size_t written) {
-      printf("<Service> @on_write: %u bytes written.\n", written);
-    });
   });
 
-  printf("*** Basic demo service started ***\n");
+  if (liu::LiveUpdate::is_resumable() == false)
+  {
+    setup_liveupdate_server(inet, 666, nullptr);
+  }
+  else {
+    printf("System live updated!\n");
+  }
 }

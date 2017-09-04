@@ -1,0 +1,82 @@
+ <!DOCTYPE html>
+  <meta charset="utf-8" />
+  <title>IncludeOS WebSocket Example</title>
+  <link href="https://fonts.googleapis.com/css?family=Ubuntu:500,300" rel="stylesheet" type="text/css">
+  <script language="javascript" type="text/javascript">
+
+  var wsUri = "ws://10.0.0.42/ws";
+  var output;
+
+  function init()
+  {
+    output = document.getElementById("output");
+    testWebSocket();
+  }
+
+  function testWebSocket()
+  {
+    websocket = new WebSocket(wsUri);
+    websocket.onopen = function(evt) { onOpen(evt) };
+    websocket.onclose = function(evt) { onClose(evt) };
+    websocket.onmessage = function(evt) { onMessage(evt) };
+    websocket.onerror = function(evt) { onError(evt) };
+  }
+
+  function onOpen(evt)
+  {
+    writeToScreen("CONNECTED");
+  }
+
+  function onClose(evt)
+  {
+    writeToScreen("DISCONNECTED");
+  }
+
+  function onMessage(evt)
+  {
+    writeToScreen('&lt; <span style="color: blue;">' + evt.data+'</span>');
+  }
+
+  function onError(evt)
+  {
+    writeToScreen('<span style="color: red;">!:</span> ' + evt.data);
+  }
+
+  function doSend(message)
+  {
+    writeToScreen('&gt; <span style="color: green;">' + message+'</span>');
+    websocket.send(message);
+  }
+
+  function sendMessage()
+  {
+    doSend(document.getElementById("message").value);
+  }
+
+  function writeToScreen(message)
+  {
+    var pre = document.createElement("p");
+    pre.style.wordWrap = "break-word";
+    pre.innerHTML = message;
+    output.appendChild(pre);
+  }
+
+  function closeWs()
+  {
+    websocket.close();
+  }
+
+  window.addEventListener("load", init, false);
+
+  </script>
+
+  <h1 style="font-family: Arial, sans-serif">
+    Include<span style='font-weight: lighter'>OS</span>
+  </h1>
+  <hr />
+  <h2>WebSocket Echo</h2>
+  <input type="text" id="message"/>
+  <button type="submit" onclick="sendMessage()">Send</button>
+  <button type="submit" onclick="closeWs()">Close</button>
+
+  <div id="output"></div>

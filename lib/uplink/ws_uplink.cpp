@@ -47,7 +47,7 @@ namespace uplink {
   {
     OS::add_stdout({this, &WS_uplink::send_log});
 
-    liu::LiveUpdate::register_serialization_callback("uplink", {this, &WS_uplink::store});
+    liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
 
     read_config();
     CHECK(config_.reboot, "Reboot on panic");
@@ -255,7 +255,7 @@ namespace uplink {
     ws_->close();
     // do the update
     Timers::oneshot(std::chrono::milliseconds(10), [this, buffer] (auto) {
-      liu::LiveUpdate::begin(buffer);
+      liu::LiveUpdate::exec(buffer);
     });
   }
 
