@@ -15,7 +15,7 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 [BITS 64]
-extern cpu_exception
+extern __cpu_exception
 
 SECTION .bss
 __amd64_registers:
@@ -26,14 +26,16 @@ global __cpu_except_%1:function
 __cpu_except_%1:
     call save_cpu_regs
 
-    ;; new stack frame
+    ;; reveal origin stack frame
     push rbp
     mov  rbp, rsp
+    ;; re-align stack
+    and rsp, ~0xF
     ;; enter panic
     mov rdi, __amd64_registers
     mov rsi, %1
     mov rdx, 0
-    call cpu_exception
+    call __cpu_exception
 %endmacro
 
 %macro CPU_EXCEPT_CODE 1
@@ -43,13 +45,15 @@ __cpu_except_%1:
 
     ;; pop error code
     pop rdx
-    ;; new stack frame
+    ;; reveal origin stack frame
     push rbp
     mov  rbp, rsp
+    ;; re-align stack
+    and rsp, ~0xF
     ;; enter panic
     mov rdi, __amd64_registers
     mov rsi, %1
-    call cpu_exception
+    call __cpu_exception
 %endmacro
 
 SECTION .text

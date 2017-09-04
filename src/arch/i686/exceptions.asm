@@ -15,7 +15,7 @@
 ; See the License for the specific language governing permissions and
 ; limitations under the License.
 [BITS 32]
-extern cpu_exception
+extern __cpu_exception
 
 SECTION .bss
 i386_registers:
@@ -33,7 +33,7 @@ __cpu_except_%1:
     push 0
     push %1
     push i386_registers
-    call cpu_exception
+    call __cpu_exception
 %endmacro
 
 %macro CPU_EXCEPT_CODE 1
@@ -50,7 +50,7 @@ __cpu_except_%1:
     push edx
     push %1
     push i386_registers
-    call cpu_exception
+    call __cpu_exception
 %endmacro
 
 SECTION .text
