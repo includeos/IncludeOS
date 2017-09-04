@@ -23,7 +23,8 @@ SECTIONS
   PROVIDE ( _ELF_START_ = . + 0xA00000);
   PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
-  .multiboot (_ELF_START_ + SIZEOF_HEADERS): {
+  . = _ELF_START_ + SIZEOF_HEADERS;
+  .multiboot ALIGN(0x1000): {
       PROVIDE(_MULTIBOOT_START_ = .);
       *(.multiboot)
    }
