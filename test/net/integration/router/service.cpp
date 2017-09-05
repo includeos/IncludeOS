@@ -19,12 +19,9 @@
 // #define NO_INFO
 
 #include <os>
-#include <kernel/irq_manager.hpp>
-#include <list>
 #include <net/inet4>
 #include <net/router.hpp>
 #include <timers>
-#include <profile>
 
 #define USE_STACK_SAMPLING
 
