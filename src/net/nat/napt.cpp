@@ -18,7 +18,7 @@
 #include <net/nat/napt.hpp>
 #include <net/nat/nat.hpp>
 
-#define NAPT_DEBUG 1
+//#define NAPT_DEBUG 1
 #ifdef NAPT_DEBUG
 #define NATDBG(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -227,31 +227,35 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const uint16_t po
 void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
 {
   Expects(entry);
+
+  if(entry->first.dst == entry->second.src) // The entry has not been DNAT
+    return;
+
   switch(p.ip_protocol())
   {
     case Protocol::TCP:
     {
-      if(Conntrack::get_quadruple(p) == entry->second)
+      if(Conntrack::get_quadruple(p) == entry->second) // assume reply
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.to_string().c_str());
-        tcp_snat(p, entry->first.dst);
+        tcp_snat(p, entry->first.dst); // TODO: currently rewrites full socket
       }
       return;
     }
     case Protocol::UDP:
     {
-      if(Conntrack::get_quadruple(p) == entry->second)
+      if(Conntrack::get_quadruple(p) == entry->second) // assume reply
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.to_string().c_str());
-        udp_dnat(p, entry->first.dst);
+        udp_dnat(p, entry->first.dst); // TODO: currently rewrites full socket
       }
       return;
     }
     case Protocol::ICMPv4:
     {
-      if(Conntrack::get_quadruple_icmp(p) == entry->second)
+      if(Conntrack::get_quadruple_icmp(p) == entry->second) // assume reply
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.address().to_string().c_str());

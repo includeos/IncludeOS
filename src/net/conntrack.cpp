@@ -17,7 +17,7 @@
 
 #include <net/conntrack.hpp>
 
-#define CT_DEBUG 1
+//#define CT_DEBUG 1
 #ifdef CT_DEBUG
 #define CTDBG(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else

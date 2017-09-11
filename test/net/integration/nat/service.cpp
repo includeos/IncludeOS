@@ -28,7 +28,7 @@ std::unique_ptr<nat::NAPT> natty;
 
 void test_finished() {
   static int i = 0;
-  if (++i == 2) printf("SUCCESS\n");
+  if (++i == 3) printf("SUCCESS\n");
 }
 
 void ip_forward(Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
@@ -61,7 +61,7 @@ void Service::start()
   static auto& internet_host = Inet4::ifconfig<3>(
     { 192, 1, 0, 192 }, { 255, 255, 255, 0 }, eth1.ip_addr());
 
-  static auto& mail_server = Inet4::ifconfig<4>(
+  static auto& server = Inet4::ifconfig<4>(
     { 10, 1, 10, 20 }, { 255, 255, 255, 0 }, eth0.ip_addr());
 
 
@@ -127,17 +127,23 @@ void Service::start()
 
 
   INFO("NAT Test", "Setup DNAT on eth0");
-  static const Socket LOCAL_SERVER{mail_server.ip_addr(), 8080};
-  static const ip4::Addr DNAT_ADDR{eth1.ip_addr()};
+  static const ip4::Addr SERVER{server.ip_addr()};
   static const uint16_t DNAT_PORT{3389};
-  // DNAT all TCP on dst_port==DNAT_PORT to LOCAL_SERVER
+  static const uint16_t DNAT_PORT2{8933};
+  // DNAT all TCP on dst_port==DNAT_PORT to SERVER
   auto dnat_rule = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto
   {
+    if(not stack.is_valid_source(pkt.ip_dst())) // this is not for me
+      return Filter_verdict::ACCEPT; // i'm still a gateway tho..
+
     if(pkt.ip_protocol() == Protocol::TCP)
     {
       auto& tcp = static_cast<tcp::Packet&>(pkt);
+
       if(tcp.dst_port() == DNAT_PORT)
-        natty->dnat(pkt, entry, LOCAL_SERVER);
+        natty->dnat(pkt, entry, SERVER);
+      else if(tcp.dst_port() == DNAT_PORT2)
+        natty->dnat(pkt, entry, {SERVER, DNAT_PORT});
     }
     return Filter_verdict::ACCEPT;
   };
@@ -151,9 +157,9 @@ void Service::start()
   eth0.prerouting_chain().chain.push_back(dnat_rule);
   eth0.postrouting_chain().chain.push_back(snat_translate);
 
-  mail_server.tcp().listen(8080, [] (auto conn)
+  server.tcp().listen(DNAT_PORT, [] (auto conn)
   {
-    INFO("TCP DNAT", "Mail server received connection - %s", conn->to_string().c_str());
+    INFO("TCP DNAT", "Server received connection - %s", conn->to_string().c_str());
     CHECKSERT(conn->remote().address() != eth1.ip_addr(),
       "Received non SNAT connection - %s", conn->remote().to_string().c_str());
 
@@ -166,15 +172,25 @@ void Service::start()
     });
   });
 
-  static auto mail_socket = Socket{DNAT_ADDR, DNAT_PORT};
-  laptop1.tcp().connect(mail_socket, [] (auto conn)
+  static auto server_socket = Socket{eth0.ip_addr(), DNAT_PORT};
+  laptop1.tcp().connect(server_socket, [] (auto conn)
   {
     assert(conn);
     INFO("TCP DNAT", "Laptop1 connected to %s", conn->to_string().c_str());
-    CHECKSERT(conn->remote() == mail_socket,
-      "Laptop1 connected to mail_server - %s", conn->remote().to_string().c_str());
+    CHECKSERT(conn->remote() == server_socket,
+      "Laptop1 connected to server - %s", conn->remote().to_string().c_str());
 
     conn->write("Testing DNAT");
   });
 
+  static auto server_socket_alt = Socket{eth0.ip_addr(), DNAT_PORT2};
+  laptop1.tcp().connect(server_socket_alt, [] (auto conn)
+  {
+    assert(conn);
+    INFO("TCP DNAT", "Laptop1 connected to %s", conn->to_string().c_str());
+    CHECKSERT(conn->remote() == server_socket_alt,
+      "Laptop1 connected to server - %s", conn->remote().to_string().c_str());
+
+    conn->write("Testing DNAT");
+  });
 }

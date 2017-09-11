@@ -56,9 +56,7 @@ public:
   void demasquerade(IP4::IP_packet& pkt, const Stack& inet, Conntrack::Entry_ptr);
 
   void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const Socket sock);
-
   void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const ip4::Addr addr);
-
   void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const uint16_t port);
 
   void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr);
