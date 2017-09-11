@@ -38,7 +38,7 @@ CASE("Testing Conntrack flow")
   EXPECT((entry = ct.simple_track_in(quad, proto)) != nullptr);
 
   // It should now have state NEW
-  EXPECT(entry->state == Conntrack::State::NEW);
+  EXPECT(entry->state == Conntrack::State::UNCONFIRMED);
   EXPECT(entry->proto == proto);
   // The timeout should be set to "timeout_unconfirmed"
   EXPECT(entry->timeout == RTC::now() + ct.timeout_unconfirmed.count());
@@ -46,17 +46,18 @@ CASE("Testing Conntrack flow")
   EXPECT(entry->first == quad);
   EXPECT(entry->second == rquad);
 
-  // Still unconfirmed, cannot get()
-  EXPECT(ct.get(quad, proto) == nullptr);
+  // We can get the entry
+  EXPECT(ct.get(quad, proto) == entry);
 
   // Confirm works
-  EXPECT(ct.confirm(quad, proto) != nullptr);
+  EXPECT(ct.confirm(quad, proto) == entry);
+  EXPECT(entry->state == Conntrack::State::NEW);
 
-  // The timeout should now be updated to "timeout_ew" when confirmed
+  // The timeout should now be updated to "timeout_new" when confirmed
   EXPECT(entry->timeout == RTC::now() + ct.timeout_new.count());
 
   // Confirming it again wont have any effect
-  EXPECT(ct.confirm(quad, proto) == nullptr);
+  EXPECT(ct.confirm(quad, proto) != nullptr);
 
   // We can now get the entry after being confirmed
   EXPECT(entry == ct.get(quad, proto));

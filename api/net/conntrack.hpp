@@ -22,10 +22,9 @@
 #include <net/socket.hpp>
 #include <net/ip4/packet_ip4.hpp>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <rtc>
 #include <chrono>
-#include "netfilter.hpp"
 #include <util/timer.hpp>
 
 namespace net {
@@ -33,6 +32,7 @@ namespace net {
 class Conntrack {
 public:
   struct Entry;
+  using Entry_ptr = const Entry*;
   /**
    * Custom handler for tracking packets in a certain way
    */
@@ -61,12 +61,26 @@ public:
   };
 
   /**
+   * @brief      Hasher for Quintuple
+   */
+  struct Quintuple_hasher
+  {
+    std::size_t operator()(const Quintuple& key) const noexcept
+    {
+      const auto h1 = std::hash<Quadruple>{}(key.quad);
+      const auto h2 = std::hash<Protocol>{}(key.proto);
+      return h1 ^ h2;
+    }
+  };
+
+  /**
    * @brief      The state of the connection.
    */
   enum class State : uint8_t {
     NEW,
     ESTABLISHED,
-    RELATED
+    RELATED,
+    UNCONFIRMED // not sure about this one
   };
 
   /**
@@ -82,7 +96,7 @@ public:
 
     Entry(Quadruple quad, Protocol p)
       : first{std::move(quad)}, second{first.dst, first.src},
-        proto(p), state(State::NEW), on_close(nullptr)
+        proto(p), state(State::UNCONFIRMED), on_close(nullptr)
     {}
 
     bool is_mirrored() const noexcept
@@ -95,6 +109,15 @@ public:
   };
 
 public:
+
+  /**
+   * @brief      Find the entry for the given packet
+   *
+   * @param[in]  pkt   The packet
+   *
+   * @return     A matching conntrack entry (nullptr if not found)
+   */
+  Entry* get(const PacketIP4& pkt) const;
 
   /**
    * @brief      Find the entry where the quadruple
@@ -134,10 +157,10 @@ public:
    *
    * @return     The confirmed entry, if any
    */
-  Entry* confirm(const Quadruple& quad, const Protocol proto);
+  Entry* confirm(Quadruple quad, const Protocol proto);
 
   /**
-   * @brief      Adds an entry as uncofirmed, mirroring the quadruple.
+   * @brief      Adds an entry as unconfirmed, mirroring the quadruple.
    *
    * @param[in]  quad   The quadruple
    * @param[in]  proto  The prototype
@@ -155,7 +178,7 @@ public:
    * @param[in]  oldq   The old (current) quadruple
    * @param[in]  newq   The new quadruple
    */
-  void update_entry(const Protocol proto, const Quadruple& oldq, const Quadruple& newq);
+  Entry* update_entry(const Protocol proto, const Quadruple& oldq, const Quadruple& newq);
 
   /**
    * @brief      Remove all expired entries, both confirmed and unconfirmed.
@@ -192,37 +215,6 @@ public:
    */
   static Quadruple get_quadruple_icmp(const PacketIP4& pkt);
 
-  /**
-   * @brief      Creates a Packetfilter for in (tracking),
-   *             to be placed in PREROUTING and OUTPUT
-   *
-   * @tparam     IPV   The IP version
-   *
-   * @return     A Packet filter
-   */
-  template<typename IPV>
-  Packetfilter<IPV> in_filter() {
-    return [this] (PacketIP4& pkt, Inet<IPV>&)->auto {
-      return (this->in(pkt) != nullptr)
-        ? Filter_verdict::ACCEPT : Filter_verdict::DROP;
-    };
-  }
-
-  /**
-   * @brief      Creates a Packetfilter for confirm,
-   *             to be placed in POSTROUTING and INPUT
-   *
-   * @tparam     IPV   The IP Version
-   *
-   * @return     A Packet filter
-   */
-  template<typename IPV>
-  Packetfilter<IPV> confirm_filter() {
-    return [this] (PacketIP4& pkt, Inet<IPV>&)->auto {
-      this->confirm(pkt);
-      return Filter_verdict::ACCEPT; // always accept?
-    };
-  }
 
   Conntrack();
 
@@ -243,9 +235,8 @@ public:
   Entry_handler on_close; // single for now
 
 private:
-  using Entry_table = std::map<Quintuple, std::shared_ptr<Entry>>;
+  using Entry_table = std::unordered_map<Quintuple, std::shared_ptr<Entry>, Quintuple_hasher>;
   Entry_table entries;
-  Entry_table unconfirmed;
   Timer       flush_timer;
 
   void update_timeout(Entry& ent, Timeout_duration dur);

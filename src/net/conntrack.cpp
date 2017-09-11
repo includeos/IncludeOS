@@ -17,7 +17,7 @@
 
 #include <net/conntrack.hpp>
 
-//#define CT_DEBUG 1
+#define CT_DEBUG 1
 #ifdef CT_DEBUG
 #define CTDBG(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -36,10 +36,21 @@ std::string proto_str(const Protocol proto)
   }
 }
 
+std::string state_str(const Conntrack::State state)
+{
+  switch(state) {
+    case Conntrack::State::NEW: return "NEW";
+    case Conntrack::State::ESTABLISHED: return "EST";
+    case Conntrack::State::RELATED: return "RELATED";
+    case Conntrack::State::UNCONFIRMED: return "UNCONFIRMED";
+    default: return "???";
+  }
+}
+
 std::string Conntrack::Entry::to_string() const
 {
-  return "0: " + first.src.to_string() + " " + first.dst.to_string()
-    + " 1: " + second.src.to_string() + " " + second.dst.to_string() + " P: " + proto_str(proto);
+  return "[ " + first.to_string() + " ] [ " + second.to_string() + " ]"
+    + " P: " + proto_str(proto) + " S: " + state_str(state);
 }
 
 Conntrack::Entry::~Entry()
@@ -84,6 +95,23 @@ Conntrack::Conntrack()
  : tcp_in{&dumb_in},
    flush_timer({this, &Conntrack::on_timeout})
 {}
+
+Conntrack::Entry* Conntrack::get(const PacketIP4& pkt) const
+{
+  const auto proto = pkt.ip_protocol();
+  switch(proto)
+  {
+    case Protocol::TCP:
+    case Protocol::UDP:
+      return get(get_quadruple(pkt), proto);
+
+    case Protocol::ICMPv4:
+      return get(get_quadruple_icmp(pkt), proto);
+
+    default:
+      return nullptr;
+  }
+}
 
 Conntrack::Entry* Conntrack::get(const Quadruple& quad, const Protocol proto) const
 {
@@ -161,34 +189,27 @@ Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
   return confirm(quad, proto);
 }
 
-Conntrack::Entry* Conntrack::confirm(const Quadruple& quad, const Protocol proto)
+Conntrack::Entry* Conntrack::confirm(Quadruple quad, const Protocol proto)
 {
-  auto quint = Quintuple{quad, proto};
-  auto it = unconfirmed.find(quint);
+  auto* entry = get(quad, proto);
 
-  // if the connection already been confirmed, early return
-  if(it == unconfirmed.end())
-    return nullptr;
+  if(UNLIKELY(entry == nullptr)) {
+    CTDBG("<Conntrack> Entry not found on confirm, checking swapped: %s\n",
+      quad.to_string().c_str());
+    // the packet my be NATed. note: not sure if this is good
+    if(UNLIKELY((entry = get(quad.swap(), proto)) == nullptr)) {
+      return nullptr;
+    }
+  }
 
-  auto entry = it->second;
-  CTDBG("<Conntrack> Confirming %s\n", entry->to_string().c_str());
+  if(entry->state == State::UNCONFIRMED)
+  {
+    CTDBG("<Conntrack> Confirming %s\n", entry->to_string().c_str());
+    entry->state = State::NEW;
+    update_timeout(*entry, timeout_new);
+  }
 
-  // confirm the entry, adding it into the entries map
-  entries.emplace(std::piecewise_construct,
-  std::forward_as_tuple(entry->first, proto),
-  std::forward_as_tuple(entry));
-
-  // also reveresed
-  entries.emplace(std::piecewise_construct,
-    std::forward_as_tuple(entry->second, proto),
-    std::forward_as_tuple(entry));
-
-  // remove it from the list of unconfirmed
-  unconfirmed.erase(quint);
-
-  update_timeout(*entry, timeout_new);
-
-  return entry.get();
+  return entry;
 }
 
 Conntrack::Entry* Conntrack::add_entry(
@@ -197,39 +218,40 @@ Conntrack::Entry* Conntrack::add_entry(
   if(not flush_timer.is_running())
     flush_timer.start(timeout_interval);
 
-  std::shared_ptr<Entry> entry = nullptr;
-  // check if there already is a unconfirmed entry
-  auto it = unconfirmed.find({quad, proto});
+  // we dont check if it's already exists
+  // because it should be called from in()
 
-  // if not found
-  if(it == unconfirmed.end())
-  {
-    // create the entry
-    entry = std::make_shared<Entry>(quad, proto);
+  // create the entry
+  auto entry = std::make_shared<Entry>(quad, proto);
 
-    // insert it into the map of unconfirmed entries
-    unconfirmed.emplace(std::piecewise_construct,
-      std::forward_as_tuple(entry->first, proto),
-      std::forward_as_tuple(entry));
-    // think it's enough to only store one way.
-    CTDBG("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
-  }
-  else {
-    entry = it->second;
-    CTDBG("<Conntrack> Entry already seen: %s\n", entry->to_string().c_str());
-  }
+  entries.emplace(std::piecewise_construct,
+    std::forward_as_tuple(entry->first, proto),
+    std::forward_as_tuple(entry));
+
+  entries.emplace(std::piecewise_construct,
+    std::forward_as_tuple(entry->second, proto),
+    std::forward_as_tuple(entry));
+
+  CTDBG("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
 
   update_timeout(*entry, timeout_unconfirmed);
 
   return entry.get();
 }
 
-void Conntrack::update_entry(
+Conntrack::Entry* Conntrack::update_entry(
   const Protocol proto, const Quadruple& oldq, const Quadruple& newq)
 {
   // find the entry that has quintuple containing the old quant
   const auto quint = Quintuple{oldq, proto};
   auto it = entries.find(quint);
+
+  if(UNLIKELY(it == entries.end())) {
+    CTDBG("<Conntrack> Cannot find entry when updating: %s\n",
+      oldq.to_string().c_str());
+    return nullptr;
+  }
+
   auto entry = it->second;
 
   // determine if the old quant hits the first or second quantuple
@@ -248,43 +270,26 @@ void Conntrack::update_entry(
     std::forward_as_tuple(entry));
 
   CTDBG("<Conntrack> Entry updated: %s\n", entry->to_string().c_str());
+
+  return entry.get();
 }
 
 void Conntrack::remove_expired()
 {
   CTDBG("<Conntrack> Removing expired entries\n");
   const auto NOW = RTC::now();
-  // unconfirmed data structure
-  {
-    auto it = unconfirmed.begin();
-    while(it != unconfirmed.end())
-    {
-      auto tmp = it++;
-
-      if(tmp->second->timeout > NOW)
-        continue;
-
-      if(tmp->second.unique() && on_close)
-        on_close(tmp->second.get());
-
-      CTDBG("<Conntrack> Erasing unconfirmed %s\n", tmp->second->to_string().c_str());
-      unconfirmed.erase(tmp);
-    }
-  }
   // entries data structure
+  for(auto it = entries.begin(); it != entries.end();)
   {
-    auto it = entries.begin();
-    while(it != entries.end())
-    {
-      auto tmp = it++;
-      if(tmp->second->timeout > NOW)
-        continue;
+    if(it->second->timeout > NOW) {
+      ++it;
+    }
+    else {
+      if(it->second.unique() && on_close)
+        on_close(it->second.get());
 
-      if(tmp->second.unique() && on_close)
-        on_close(tmp->second.get());
-
-      CTDBG("<Conntrack> Erasing confirmed %s\n", tmp->second->to_string().c_str());
-      entries.erase(tmp);
+      CTDBG("<Conntrack> Erasing %s\n", it->second->to_string().c_str());
+      entries.erase(it++);
     }
   }
 }
@@ -292,14 +297,14 @@ void Conntrack::remove_expired()
 void Conntrack::update_timeout(Entry& ent, Timeout_duration dur)
 {
   ent.timeout = RTC::now() + dur.count();
-  CTDBG("<Conntrack> Timeout updated with %llu secs\n", dur.count());
+  //CTDBG("<Conntrack> Timeout updated with %llu secs\n", dur.count());
 }
 
 void Conntrack::on_timeout()
 {
   remove_expired();
 
-  if(not entries.empty() or not unconfirmed.empty())
+  if(not entries.empty())
     flush_timer.restart(timeout_interval);
 }
 
