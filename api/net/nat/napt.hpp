@@ -40,35 +40,38 @@ public:
   NAPT(std::shared_ptr<Conntrack> ct);
 
   /**
-   * @brief      Masquerade a packet
+   * @brief      Masquerade a packet, changing it's source
    *
    * @param      pkt   The packet
    * @param[in]  inet  The inet
    */
-  void masquerade(IP4::IP_packet& pkt, Stack& inet);
+  void masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr);
 
   /**
-   * @brief      Demasquerade a packet
+   * @brief      Demasquerade a packet, restoring it's destination
    *
    * @param      pkt   The packet
    * @param[in]  inet  The inet
    */
-  void demasquerade(IP4::IP_packet& pkt, const Stack& inet);
+  void demasquerade(IP4::IP_packet& pkt, const Stack& inet, Conntrack::Entry_ptr);
+
+  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, Socket sock);
+
+  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr);
 
 private:
   std::shared_ptr<Conntrack> conntrack;
 
-  void tcp_masq(IP4::IP_packet& pkt, Stack& inet);
-
-  void tcp_demasq(IP4::IP_packet& pkt, const Stack& inet);
-
-  void udp_masq(IP4::IP_packet& pkt, Stack& inet);
-
-  void udp_demasq(IP4::IP_packet& pkt, const Stack& inet);
-
-  void icmp_masq(IP4::IP_packet& pkt, Stack& inet);
-
-  void icmp_demasq(IP4::IP_packet& pkt, const Stack& inet);
+  /**
+   * @brief      If not already updated, bind to a ephemeral port and update the entry.
+   *
+   * @param[in]  entry  The entry
+   * @param[in]  addr   The address
+   * @param      ports  The ports
+   *
+   * @return     The socket used for SNAT
+   */
+  Socket masq(Conntrack::Entry_ptr entry, const ip4::Addr addr, Port_util& ports);
 
 }; // < class NAPT
 

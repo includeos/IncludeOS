@@ -17,8 +17,13 @@
 
 #include <net/nat/napt.hpp>
 #include <net/nat/nat.hpp>
-#include <net/tcp/packet.hpp>
-#include <net/ip4/packet_udp.hpp>
+
+#define NAPT_DEBUG 1
+#ifdef NAPT_DEBUG
+#define NATDBG(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define NATDBG(fmt, ...) /* fmt */
+#endif
 
 namespace net {
 namespace nat {
@@ -29,20 +34,70 @@ NAPT::NAPT(std::shared_ptr<Conntrack> ct)
   Expects(conntrack != nullptr);
 }
 
-void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet)
+void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr entry)
 {
+  Expects(entry);
+  const auto ip = inet.ip_addr();
   switch(pkt.ip_protocol())
   {
     case Protocol::TCP:
-      tcp_masq(pkt, inet);
+    {
+      // Get the TCP ports for the given stack
+      auto& ports = inet.tcp_ports()[ip];
+      auto socket = masq(entry, ip, ports);
+      // static source nat
+      tcp_snat(pkt, socket);
+      break;
+    }
+
+    case Protocol::UDP:
+    {
+      // Get the UDP ports for the given stack
+      auto& ports = inet.udp_ports()[ip];
+      auto socket = masq(entry, ip, ports);
+      // static source nat
+      udp_snat(pkt, socket);
+      break;
+    }
+
+    case Protocol::ICMPv4:
+    {
+      // If the entry is mirrored, it's not masked yet
+      if(entry->first.src == entry->second.dst)
+      {
+        // Update the entry to have the new socket as second (keep port)
+        auto masq_sock = Socket{ip, entry->second.dst.port()};
+        conntrack->update_entry(Protocol::ICMPv4, entry->second, {entry->second.src, masq_sock});
+      }
+      // static source nat
+      icmp_snat(pkt, entry->second.dst.address());
+      break;
+    }
+
+    default:
+      break;
+  }
+}
+
+void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack&, Conntrack::Entry_ptr entry)
+{
+  Expects(entry);
+
+  if(entry->is_mirrored())
+    return;
+
+  switch(pkt.ip_protocol())
+  {
+    case Protocol::TCP:
+      tcp_dnat(pkt, entry->first.src);
       break;
 
     case Protocol::UDP:
-      udp_masq(pkt, inet);
+      udp_dnat(pkt, entry->first.src);
       break;
 
     case Protocol::ICMPv4:
-      icmp_masq(pkt, inet);
+      icmp_dnat(pkt, entry->first.src.address());
       break;
 
     default:
@@ -50,167 +105,99 @@ void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet)
   }
 }
 
-void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack& inet)
+Socket NAPT::masq(Conntrack::Entry_ptr entry, const ip4::Addr addr, Port_util& ports)
 {
-  switch(pkt.ip_protocol())
+  Expects(entry->proto != Protocol::ICMPv4);
+
+  // If the entry is mirrored, it's not masked yet
+  if(entry->first.src == entry->second.dst)
+  {
+    // Generate a new eph port and bind it
+    auto port = ports.get_next_ephemeral();
+    ports.bind(port);
+
+    // Update the entry to have the new socket as second
+    auto masq_sock = Socket{addr, port};
+    auto updated = conntrack->update_entry(
+      entry->proto, entry->second, {entry->second.src, masq_sock});
+
+    // Setup to unbind port on entry close
+    auto on_close = [&ports, port](Conntrack::Entry_ptr){ ports.unbind(port); };
+    updated->on_close = on_close;
+  }
+
+  return entry->second.dst;
+}
+
+void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, Socket socket)
+{
+  Expects(entry);
+  NATDBG("<NAPT> DNAT: %s => %s\n",
+        entry->to_string().c_str(), socket.to_string().c_str());
+
+  const auto proto = p.ip_protocol();
+  switch(proto)
   {
     case Protocol::TCP:
-      tcp_demasq(pkt, inet);
-      break;
+    {
+      if(entry->second.src != socket)
+        conntrack->update_entry(proto, entry->second, {socket, entry->second.dst});
 
+      tcp_dnat(p, socket);
+      return;
+    }
     case Protocol::UDP:
-      udp_demasq(pkt, inet);
-      break;
+    {
+      if(entry->second.src != socket)
+        conntrack->update_entry(proto, entry->second, {socket, entry->second.dst});
 
+      udp_dnat(p, socket);
+      return;
+    }
     case Protocol::ICMPv4:
-      icmp_demasq(pkt, inet);
-      break;
-
+    {
+      // do not support Socket
+      return;
+    }
     default:
-      break;
+      return;
   }
 }
 
-void NAPT::tcp_masq(IP4::IP_packet& p, Stack& inet)
+void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
 {
-  Expects(p.ip_protocol() == Protocol::TCP);
-  auto& pkt = static_cast<tcp::Packet&>(p);
-  Quadruple quad{pkt.source(), pkt.destination()};
-
-  auto* entry = conntrack->get(quad, Protocol::TCP);
-
-  if(not entry) return;
-
-  // If the entry is mirrored, it's not masked yet
-  if(entry->first.src == entry->second.dst)
+  Expects(entry);
+  switch(p.ip_protocol())
   {
-    // Get the TCP ports for the given stack
-    const auto ip = inet.ip_addr();
-    auto& ports = inet.tcp_ports()[ip];
-    // Generate a new eph port and bind it
-    auto port = ports.get_next_ephemeral();
-    ports.bind(port);
-    // Setup to unbind port on entry close
-    entry->on_close = [&ports, port](auto*){ ports.unbind(port); };
-    // Update the entry to have the new socket as second
-    auto masq_sock = Socket{inet.ip_addr(), port};
-    conntrack->update_entry(Protocol::TCP, entry->second, {entry->second.src, masq_sock});
-  }
-
-  // static source nat
-  tcp_snat(pkt, entry->second.dst);
-}
-
-void NAPT::tcp_demasq(IP4::IP_packet& p, const Stack&)
-{
-  Expects(p.ip_protocol() == Protocol::TCP);
-  auto& pkt = static_cast<tcp::Packet&>(p);
-  Quadruple quad{pkt.source(), pkt.destination()};
-
-  auto* entry = conntrack->get(quad, Protocol::TCP);
-
-  if(not entry) return;
-
-  // if the entry's in and out are not the same
-  if(not entry->is_mirrored())
-  {
-    // static dest nat
-    tcp_dnat(pkt, entry->first.src);
-  }
-}
-
-void NAPT::udp_masq(IP4::IP_packet& p, Stack& inet)
-{
-  Expects(p.ip_protocol() == Protocol::UDP);
-  auto& pkt = static_cast<PacketUDP&>(p);
-
-  auto src = Socket{pkt.ip_src(), pkt.src_port()};
-  auto dst = Socket{pkt.ip_dst(), pkt.dst_port()};
-  Quadruple quad{src, dst};
-
-  auto* entry = conntrack->get(quad, Protocol::UDP);
-
-  if(not entry) return;
-
-  if(entry->first.dst == entry->second.src)
-  {
-    // Get the UDP ports for the given stack
-    const auto ip = inet.ip_addr();
-    auto& ports = inet.udp_ports()[ip];
-    // Generate a new eph port and bind it
-    auto port = ports.get_next_ephemeral();
-    ports.bind(port);
-    // Setup to unbind port on entry close
-    entry->on_close = [&ports, port](auto*){ ports.unbind(port); };
-    // Update the entry to have the new socket as second
-    auto masq_sock = Socket{inet.ip_addr(), port};
-    conntrack->update_entry(Protocol::UDP, entry->second, {entry->second.src, masq_sock});
-  }
-
-  // static source nat
-  udp_snat(pkt, entry->first.dst);
-}
-
-void NAPT::udp_demasq(IP4::IP_packet& p, const Stack&)
-{
-  Expects(p.ip_protocol() == Protocol::UDP);
-  auto& pkt = static_cast<PacketUDP&>(p);
-
-  auto src = Socket{pkt.ip_src(), pkt.src_port()};
-  auto dst = Socket{pkt.ip_dst(), pkt.dst_port()};
-  Quadruple quad{src, dst};
-
-  auto* entry = conntrack->get(quad, Protocol::UDP);
-
-  if(not entry) return;
-
-  // if the entry's in and out are not the same
-  if(not entry->is_mirrored())
-  {
-    // static dest nat
-    udp_dnat(pkt, entry->second.src);
-  }
-}
-
-void NAPT::icmp_masq(IP4::IP_packet& pkt, Stack& inet)
-{
-  // Not sure what ICMP masq means (yet)..
-  Expects(pkt.ip_protocol() == Protocol::ICMPv4);
-
-  auto quad = Conntrack::get_quadruple_icmp(pkt);
-
-  auto* entry = conntrack->get(quad, Protocol::ICMPv4);
-
-  if(not entry) return;
-
-  // If the entry is mirrored, it's not masked yet
-  if(entry->first.src == entry->second.dst)
-  {
-    // Update the entry to have the new socket as second (keep port)
-    auto masq_sock = Socket{inet.ip_addr(), entry->second.dst.port()};
-    conntrack->update_entry(Protocol::ICMPv4, entry->second, {entry->second.src, masq_sock});
-  }
-
-  // static source nat
-  icmp_snat(pkt, entry->second.dst.address());
-}
-
-void NAPT::icmp_demasq(IP4::IP_packet& pkt, const Stack&)
-{
-  // Not sure what ICMP demasq means (yet)..
-  Expects(pkt.ip_protocol() == Protocol::ICMPv4);
-
-  auto quad = Conntrack::get_quadruple_icmp(pkt);
-
-  auto* entry = conntrack->get(quad, Protocol::ICMPv4);
-
-  if(not entry) return;
-
-  // if the entry's in and out are not the same
-  if(not entry->is_mirrored())
-  {
-    // static dest nat
-    icmp_dnat(pkt, entry->second.src.address());
+    case Protocol::TCP:
+    {
+      const auto quad = Conntrack::get_quadruple(p);
+      if(quad == entry->second)
+      {
+        NATDBG("<NAPT> Found SNAT target: %s => %s\n",
+          entry->to_string().c_str(), entry->first.dst.to_string().c_str());
+        tcp_snat(p, entry->first.dst);
+      }
+      return;
+    }
+    case Protocol::UDP:
+    {
+      const auto quad = Conntrack::get_quadruple(p);
+      if(quad == entry->second)
+      {
+        NATDBG("<NAPT> Found SNAT target: %s => %s\n",
+          entry->to_string().c_str(), entry->first.dst.to_string().c_str());
+        udp_dnat(p, entry->first.dst);
+      }
+      return;
+    }
+    case Protocol::ICMPv4:
+    {
+      // do not support Socket
+      return;
+    }
+    default:
+      return;
   }
 }
 
