@@ -78,7 +78,8 @@ void Service::start()
   }
 
   auto init_seg = phdrs[0];
-  Expects(loadable == 1);
+  // Expects(loadable == 1);
+  // TODO: Handle multiple loadable segments properly
   Expects(init_seg.p_type == PT_LOAD);
 
   // Move hotswap function away from binary

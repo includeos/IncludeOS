@@ -44,38 +44,40 @@ bool verb = false;
 #define ERROR(X,...) fprintf(stderr, "[ vmbuild ] Error: " X "\n", ##__VA_ARGS__); std::terminate()
 
 
-using namespace std;
-
-// Location of special variables inside the bootloader
-static const int bootvar_size          = 4;
-static const int bootvar_entry         = bootvar_size + 4;
-static const int bootvar_load_addr     = bootvar_entry + 4;
+// Special variables inside the bootloader
+struct bootvars {
+  const uint32_t __first_instruction;
+  uint32_t size;
+  uint32_t entry;
+  uint32_t load_addr;
+};
 
 static bool test {false};
 
-static const string info  {"Create a bootable disk image for IncludeOS.\n"};
-static const string usage {"Usage: vmbuild <service_binary> [<bootloader>][-test]\n"};
+const std::string info  {"Create a bootable disk image for IncludeOS.\n"};
+const std::string usage {"Usage: vmbuild <service_binary> [<bootloader>][-test]\n"};
+
+std::string includeos_install = "/usr/local/includeos/";
 
 class Vmbuild_error : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
-string get_bootloader_path(int argc, char** argv) {
+std::string get_bootloader_path(int argc, char** argv) {
 
   if (argc == 2) {
     // Determine IncludeOS install location from environment, or set to default
-    std::string includeos_install;
     std::string arch = "x86_64";
     auto env_arch = getenv("ARCH");
 
     if (env_arch)
       arch = std::string(env_arch);
 
-    if (auto env_install = getenv("INCLUDEOS_PREFIX")) {
-      includeos_install = std::string{env_install} + "/includeos/" + arch;
-    } else {
-      includeos_install = std::string{getenv("HOME")} + "/IncludeOS_install";
-    }
+    std::string includeos_install = "/usr/local/includeos/" + arch;
+
+    if (auto env_prefix = getenv("INCLUDEOS_PREFIX"))
+      includeos_install = std::string{env_prefix} + "/includeos/" + arch;
+
     return includeos_install + "/boot/bootloader";
   } else {
     return argv[2];
@@ -86,32 +88,32 @@ int main(int argc, char** argv)
 {
   // Verify proper command usage
   if (argc < 2) {
-    cout << info << usage;
+    std::cout << info << usage;
     exit(EXIT_FAILURE);
   }
 
-  // VERBOSE=...
+  // Set verbose from environment
   const char* env_verb = getenv("VERBOSE");
   if (env_verb && strlen(env_verb) > 0)
       verb = true;
 
-  const string bootloader_path = get_bootloader_path(argc, argv);
+  const std::string bootloader_path = get_bootloader_path(argc, argv);
 
   if (argc > 2)
-    const string bootloader_path {argv[2]};
+    const std::string bootloader_path {argv[2]};
 
   INFO("Using bootloader %s" , bootloader_path.c_str());
 
-  const string elf_binary_path  {argv[1]};
-  const string img_name {elf_binary_path.substr(elf_binary_path.find_last_of("/") + 1, string::npos) + ".img"};
+  const std::string elf_binary_path  {argv[1]};
+  const std::string img_name {elf_binary_path.substr(elf_binary_path.find_last_of("/") + 1, std::string::npos) + ".img"};
 
   INFO("Creating image '%s'" , img_name.c_str());
 
   if (argc > 3) {
-    if (string{argv[3]} == "-test") {
+    if (std::string{argv[3]} == "-test") {
       test = true;
       verb = true;
-    } else if (string{argv[3]} == "-v"){
+    } else if (std::string{argv[3]} == "-v"){
       verb = true;
     }
   }
@@ -119,7 +121,6 @@ int main(int argc, char** argv)
   struct stat stat_boot;
   struct stat stat_binary;
 
-  // Validate boot loader
   // Validate boot loader
   if (stat(bootloader_path.c_str(), &stat_boot) == -1) {
     INFO("Could not open %s, exiting\n" , bootloader_path.c_str());
@@ -131,6 +132,7 @@ int main(int argc, char** argv)
          stat_boot.st_size, SECT_SIZE);
     return SECT_SIZE_ERR;
   }
+
   INFO("Size of bootloader: %ld\t" , stat_boot.st_size);
 
   // Validate service binary location
@@ -156,16 +158,16 @@ int main(int argc, char** argv)
   INFO("Creating disk of size %ld sectors / %ld bytes" ,
        (disk_size / SECT_SIZE), disk_size);
 
-  vector<char> disk (disk_size);
+  std::vector<char> disk (disk_size);
 
   auto* disk_head = disk.data();
 
-  ifstream file_boot {bootloader_path}; //< Load the boot loader into memory
+  std::ifstream file_boot {bootloader_path}; //< Load the boot loader into memory
 
   auto read_bytes = file_boot.read(disk_head, stat_boot.st_size).gcount();
   INFO("Read %ld bytes from boot image", read_bytes);
 
-  ifstream file_binary {elf_binary_path}; //< Load the service into memory
+  std::ifstream file_binary {elf_binary_path}; //< Load the service into memory
 
   auto* binary_imgloc = disk_head + SECT_SIZE; //< Location of service code within the image
 
@@ -219,7 +221,8 @@ int main(int argc, char** argv)
     INFO("Found 64-bit ELF with entry at 0x%x", srv_entry);
 
     auto loadable = binary.loadable_segments();
-    Expects(loadable.size() == 1);
+    // Expects(loadable.size() == 1);
+    // TODO: Handle multiple loadable segments properly
     srv_load_addr = loadable[0]->p_paddr;
     binary_load_offs = loadable[0]->p_offset;
 
@@ -263,9 +266,11 @@ int main(int argc, char** argv)
   srv_load_addr -= binary_load_offs;
 
   // Write binary size and entry point to the bootloader
-  *(reinterpret_cast<uint32_t*>(disk_head + bootvar_size))      = srv_size;
-  *(reinterpret_cast<uint32_t*>(disk_head + bootvar_entry))     = srv_entry;
-  *(reinterpret_cast<uint32_t*>(disk_head + bootvar_load_addr)) = srv_load_addr;
+  bootvars* boot = reinterpret_cast<bootvars*>(disk_head);
+
+  boot->size       = srv_size;
+  boot->entry      = srv_entry;
+  boot->load_addr  = srv_load_addr;
 
   INFO("srv_size: %i", srv_size);
   INFO("srv_entry: 0x%x", srv_entry);
