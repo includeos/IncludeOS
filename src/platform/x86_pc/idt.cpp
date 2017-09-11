@@ -259,6 +259,8 @@ static void cpu_dump_regs(uintptr_t* regs)
   fprintf(stderr, "\n");
 }
 
+extern "C" void double_fault(const char*);
+
 extern "C"
 __attribute__((noreturn, optnone))
 void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
@@ -270,8 +272,17 @@ void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
           exception_names[error], error, (void*) regs[RIP_REG], code);
   cpu_dump_regs(regs);
   SMP::global_unlock();
-  // call panic, which will decide what to do next
+  // error message:
   char buffer[64];
   snprintf(buffer, sizeof(buffer), "%s (%d)", exception_names[error], error);
-  panic(buffer);
+  // normal CPU exception
+  if (error != 0x8) {
+    // call panic, which will decide what to do next
+    panic(buffer);
+  }
+  else {
+    // handle double faults differently
+    double_fault(buffer);
+  }
+  __builtin_unreachable();
 }
