@@ -36,7 +36,7 @@
 #define SECT_SIZE_ERR  666
 #define DISK_SIZE_ERR  999
 
-bool verb = true;
+bool verb = false;
 
 #define INFO_(FROM, TEXT, ...) if (verb) fprintf(stderr, "%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
 #define INFO(X,...) INFO_("Vmbuild", X, ##__VA_ARGS__)
@@ -65,12 +65,18 @@ string get_bootloader_path(int argc, char** argv) {
   if (argc == 2) {
     // Determine IncludeOS install location from environment, or set to default
     std::string includeos_install;
-    if (auto env_install = getenv("INCLUDEOS_INSTALL")) {
-      includeos_install = env_install;
+    std::string arch = "x86_64";
+    auto env_arch = getenv("ARCH");
+
+    if (env_arch)
+      arch = std::string(env_arch);
+
+    if (auto env_install = getenv("INCLUDEOS_PREFIX")) {
+      includeos_install = std::string{env_install} + "/includeos/" + arch;
     } else {
       includeos_install = std::string{getenv("HOME")} + "/IncludeOS_install";
     }
-    return includeos_install + "/bootloader";
+    return includeos_install + "/boot/bootloader";
   } else {
     return argv[2];
   }
@@ -79,7 +85,7 @@ string get_bootloader_path(int argc, char** argv) {
 int main(int argc, char** argv)
 {
   // Verify proper command usage
-  if (argc <= 2) {
+  if (argc < 2) {
     cout << info << usage;
     exit(EXIT_FAILURE);
   }
@@ -91,10 +97,10 @@ int main(int argc, char** argv)
 
   const string bootloader_path = get_bootloader_path(argc, argv);
 
-  INFO("Using bootloader %s" , bootloader_path.c_str());
-
   if (argc > 2)
     const string bootloader_path {argv[2]};
+
+  INFO("Using bootloader %s" , bootloader_path.c_str());
 
   const string elf_binary_path  {argv[1]};
   const string img_name {elf_binary_path.substr(elf_binary_path.find_last_of("/") + 1, string::npos) + ".img"};
