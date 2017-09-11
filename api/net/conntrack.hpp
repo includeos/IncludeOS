@@ -68,7 +68,7 @@ public:
     std::size_t operator()(const Quintuple& key) const noexcept
     {
       const auto h1 = std::hash<Quadruple>{}(key.quad);
-      const auto h2 = std::hash<Protocol>{}(key.proto);
+      const auto h2 = std::hash<uint8_t>{}(static_cast<uint8_t>(key.proto));
       return h1 ^ h2;
     }
   };

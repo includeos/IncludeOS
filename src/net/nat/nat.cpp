@@ -61,6 +61,44 @@ void dnat(IP4::IP_packet& pkt, Socket dst_socket)
   }
 }
 
+void dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr)
+{
+  switch(pkt.ip_protocol())
+  {
+    case Protocol::TCP:
+      tcp_dnat(pkt, new_addr);
+      return;
+
+    case Protocol::UDP:
+      udp_dnat(pkt, new_addr);
+      return;
+
+    case Protocol::ICMPv4:
+      icmp_dnat(pkt, new_addr);
+      return;
+
+    default:
+      return;
+  }
+}
+
+void dnat(IP4::IP_packet& pkt, const uint16_t new_port)
+{
+  switch(pkt.ip_protocol())
+  {
+    case Protocol::TCP:
+      tcp_dnat(pkt, new_port);
+      return;
+
+    case Protocol::UDP:
+      udp_dnat(pkt, new_port);
+      return;
+
+    default:
+      return;
+  }
+}
+
 void tcp_snat(IP4::IP_packet& p, Socket new_sock)
 {
   Expects(p.ip_protocol() == Protocol::TCP);
@@ -77,8 +115,43 @@ void tcp_dnat(IP4::IP_packet& p, Socket new_sock)
   auto& pkt = static_cast<tcp::Packet&>(p);
   // Recalc checksum
   recalc_tcp_checksum(pkt, pkt.destination(), new_sock);
-  // Set the value
+
+  // change destination socket
   pkt.set_destination(new_sock);
+}
+
+void tcp_dnat(IP4::IP_packet& p, const ip4::Addr new_addr)
+{
+  Expects(p.ip_protocol() == Protocol::TCP);
+  auto& pkt = static_cast<tcp::Packet&>(p);
+
+  // recalc IP checksum
+  auto old_addr = pkt.ip_dst();
+  recalc_ip_checksum(pkt, old_addr, new_addr);
+
+  // recalc tcp address part
+  auto tcp_sum = pkt.tcp_checksum();
+  checksum_adjust(&tcp_sum, &old_addr, &new_addr);
+  pkt.set_checksum(tcp_sum);
+
+  // change destination address
+  pkt.set_ip_dst(new_addr);
+}
+
+void tcp_dnat(IP4::IP_packet& p, const uint16_t new_port)
+{
+  Expects(p.ip_protocol() == Protocol::TCP);
+  auto& pkt = static_cast<tcp::Packet&>(p);
+
+  // recalc tcp port
+  auto tcp_sum = pkt.tcp_checksum();
+  auto old_port = htons(pkt.dst_port());
+  auto tmp_port = htons(new_port);
+  checksum_adjust<uint16_t>(&tcp_sum, &old_port, &tmp_port);
+  pkt.set_checksum(tcp_sum);
+
+  // change destination port
+  pkt.set_dst_port(new_port);
 }
 
 void udp_snat(IP4::IP_packet& p, Socket new_sock)
@@ -98,21 +171,49 @@ void udp_dnat(IP4::IP_packet& p, Socket new_sock)
   Expects(p.ip_protocol() == Protocol::UDP);
   auto& pkt = static_cast<PacketUDP&>(p);
   auto old_sock = Socket{pkt.ip_dst(), pkt.dst_port()};
+
   // Recalc checksum
   recalc_udp_checksum(pkt, old_sock, new_sock);
-  // Set the value
+
+  // change destination
   pkt.set_ip_dst(new_sock.address());
   pkt.set_dst_port(new_sock.port());
 }
 
-void icmp_snat(IP4::IP_packet& pkt, ip4::Addr addr)
+void udp_dnat(IP4::IP_packet& p, const ip4::Addr new_addr)
+{
+  Expects(p.ip_protocol() == Protocol::UDP);
+  auto& pkt = static_cast<PacketUDP&>(p);
+
+  // recalc IP checksum
+  auto old_addr = pkt.ip_dst();
+  recalc_ip_checksum(pkt, old_addr, new_addr);
+
+  // TODO: recalc UDP checksum (psuedo header change)
+
+  // change destination address
+  pkt.set_ip_dst(new_addr);
+}
+
+void udp_dnat(IP4::IP_packet& p, const uint16_t port)
+{
+  Expects(p.ip_protocol() == Protocol::UDP);
+  auto& pkt = static_cast<PacketUDP&>(p);
+
+  // TODO: recalc UDP checksum
+
+  // change destination port
+  pkt.set_dst_port(port);
+}
+
+void icmp_snat(IP4::IP_packet& pkt, const ip4::Addr addr)
 {
   // recalc IP checksum
   recalc_ip_checksum(pkt, pkt.ip_src(), addr);
   pkt.set_ip_src(addr);
 }
 
-void icmp_dnat(IP4::IP_packet& pkt, ip4::Addr addr)
+void icmp_dnat(IP4::IP_packet& pkt, const ip4::Addr addr)
 {
   // recalc IP checksum
   recalc_ip_checksum(pkt, pkt.ip_dst(), addr);

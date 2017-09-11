@@ -37,7 +37,7 @@ void tcp_snat(IP4::IP_packet& pkt, Socket new_sock);
 
 void udp_snat(IP4::IP_packet& pkt, Socket new_sock);
 
-void icmp_snat(IP4::IP_packet& pkt, ip4::Addr);
+void icmp_snat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
 
 /**
  * @brief      Destination NAT
@@ -46,12 +46,18 @@ void icmp_snat(IP4::IP_packet& pkt, ip4::Addr);
  * @param[in]  dst_socket  The destination socket
  */
 void dnat(IP4::IP_packet& pkt, Socket dst_socket);
+void dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
+void dnat(IP4::IP_packet& pkt, const uint16_t new_port);
 
 void tcp_dnat(IP4::IP_packet& pkt, Socket new_sock);
+void tcp_dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
+void tcp_dnat(IP4::IP_packet& pkt, const uint16_t new_port);
 
 void udp_dnat(IP4::IP_packet& pkt, Socket new_sock);
+void udp_dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
+void udp_dnat(IP4::IP_packet& pkt, const uint16_t new_port);
 
-void icmp_dnat(IP4::IP_packet& pkt, ip4::Addr);
+void icmp_dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
 
 }
 }
