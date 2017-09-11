@@ -21,6 +21,7 @@
 
 #include <delegate>
 #include <list>
+#include "conntrack.hpp"
 
 namespace net {
 
@@ -33,19 +34,19 @@ template <typename IPV>
 struct Inet;
 
 template <typename IPV>
-using Packetfilter = delegate<Filter_verdict(typename IPV::IP_packet&, Inet<IPV>&)>;
+using Packetfilter = delegate<Filter_verdict(typename IPV::IP_packet&, Inet<IPV>&, Conntrack::Entry_ptr)>;
 
 template <typename IPV>
 struct Filter_chain {
   std::list<Packetfilter<IPV>> chain;
   const char* name;
 
-  Filter_verdict operator()(typename IPV::IP_packet& pckt, Inet<IPV>& stack) {
+  Filter_verdict operator()(typename IPV::IP_packet& pckt, Inet<IPV>& stack, Conntrack::Entry_ptr ct) {
     auto verdict = Filter_verdict::ACCEPT;
     int i = 0;
     for (auto filter : chain) {
       i++;
-      verdict = filter(pckt, stack);
+      verdict = filter(pckt, stack, ct);
       if(verdict == Filter_verdict::DROP) {
         debug("Packet dropped in %s chain, filter %i \n", name, i);
         break;

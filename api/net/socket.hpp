@@ -179,8 +179,13 @@ struct Quadruple {
   bool is_reverse(const Quadruple& other) const noexcept
   { return src == other.dst and dst == other.src; }
 
-  void swap()
-  { std::swap(src, dst); }
+  Quadruple& swap() {
+    std::swap(src, dst);
+    return *this;
+  }
+
+  std::string to_string() const
+  { return src.to_string() + " " + dst.to_string(); }
 
 }; //< struct Quadruple
 
