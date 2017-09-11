@@ -23,15 +23,17 @@ SECTIONS
   PROVIDE ( _ELF_START_ = . + 0xA00000);
   PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
-  . = _ELF_START_ + SIZEOF_HEADERS;
-  .multiboot ALIGN(0x1000): {
+  . = _ELF_START_;
+
+  .multiboot : {
       PROVIDE(_MULTIBOOT_START_ = .);
       *(.multiboot)
    }
 
-  PROVIDE( _TEXT_START_ = . );
-  .text (_TEXT_START_ ) :
+
+  .text ALIGN(0x10):
   {
+  PROVIDE( _TEXT_START_ = . );
     /* For solo5, although it's just used to print the mem layout. */
     _stext = .;
     *(.text)
