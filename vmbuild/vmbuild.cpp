@@ -221,7 +221,8 @@ int main(int argc, char** argv)
     INFO("Found 64-bit ELF with entry at 0x%x", srv_entry);
 
     auto loadable = binary.loadable_segments();
-    Expects(loadable.size() == 1);
+    // Expects(loadable.size() == 1);
+    // TODO: Handle multiple loadable segments properly
     srv_load_addr = loadable[0]->p_paddr;
     binary_load_offs = loadable[0]->p_offset;
 
