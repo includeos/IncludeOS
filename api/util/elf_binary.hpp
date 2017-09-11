@@ -43,8 +43,12 @@ class Elf_binary {
 public:
 
   using Span = gsl::span<char>;
+  using Elf_header = typename Arch::Ehdr;
   using Section_header = typename Arch::Shdr;
   using Section_headers = gsl::span<Section_header>;
+  using Program_header = typename Arch::Phdr;
+  using Program_headers = gsl::span<Program_header>;
+  using Addr = typename Arch::Addr;
 
   Elf_binary(Span data)
     : data_{data}
@@ -52,9 +56,9 @@ public:
     validate();
   }
 
-  const typename Arch::Ehdr& elf_header() const;
-  const typename Arch::Phdr& program_header() const;
-  const typename Arch::Shdr& section_header() const;
+  const Elf_header& elf_header() const;
+  const Program_headers program_headers() const;
+  const Section_header& section_header() const;
 
   /** Make sure this is a valid ELF binary. Throws if not. **/
   void validate();
@@ -67,7 +71,10 @@ public:
   void print_summary();
 
   /** Program entry point **/
-  typename Arch::Addr entry();
+  Addr entry();
+
+  /** Program headers marked loadable */
+  std::vector<const Program_header*> loadable_segments();
 
   /** Get the span of seciton headers **/
   const Section_headers section_headers() const;
@@ -82,6 +89,7 @@ public:
 
 private:
   Span data_;
+  Program_header& program_header() const;
 
 };
 
