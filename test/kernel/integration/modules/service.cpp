@@ -70,7 +70,8 @@ void Service::start(const std::string& args)
   MYINFO("Preparing for jump to %s. Multiboot magic: 0x%x, addr 0x%x",
          (char*)binary.cmdline, __multiboot_magic, __multiboot_addr);
 
-  char* base  = (char*)binary.mod_start;
+  auto load_offs = elf.program_headers()[0].p_offset;
+  char* base  = (char*)binary.mod_start + load_offs;
   int len = (int)(binary.mod_end - binary.mod_start);
   char* dest = (char*)0xA00000;
   void* start = (void*)elf.entry();

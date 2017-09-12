@@ -141,7 +141,7 @@ void x86_IDT::init()
   set_exception_handler(20, __cpu_except_20);
   set_exception_handler(30, __cpu_except_30);
 
-  for (size_t i = 32; i < INTR_LINES - 1; i++) {
+  for (size_t i = 32; i < INTR_LINES - 2; i++) {
     set_handler(i, unused_interrupt_handler);
   }
   // spurious interrupt handler
@@ -259,8 +259,11 @@ static void cpu_dump_regs(uintptr_t* regs)
   fprintf(stderr, "\n");
 }
 
+extern "C" void double_fault(const char*);
+
 extern "C"
-void cpu_exception(uintptr_t* regs, int error, uint32_t code)
+__attribute__((noreturn, optnone))
+void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
 {
   cpu_enable_panicking();
   SMP::global_lock();
@@ -269,8 +272,17 @@ void cpu_exception(uintptr_t* regs, int error, uint32_t code)
           exception_names[error], error, (void*) regs[RIP_REG], code);
   cpu_dump_regs(regs);
   SMP::global_unlock();
-  // call panic, which will decide what to do next
+  // error message:
   char buffer[64];
   snprintf(buffer, sizeof(buffer), "%s (%d)", exception_names[error], error);
-  panic(buffer);
+  // normal CPU exception
+  if (error != 0x8) {
+    // call panic, which will decide what to do next
+    panic(buffer);
+  }
+  else {
+    // handle double faults differently
+    double_fault(buffer);
+  }
+  __builtin_unreachable();
 }

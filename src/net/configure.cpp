@@ -81,9 +81,11 @@ void configure(const rapidjson::Value& net)
 
     std::string method = val["config"].GetString();
 
+    double timeout = (val.HasMember("timeout")) ? val["timeout"].GetDouble() : 10.0;
+
     if(method == "dhcp")
     {
-      stack.negotiate_dhcp(5.0);
+      stack.negotiate_dhcp(timeout);
     }
     else if(method == "static")
     {
@@ -92,14 +94,14 @@ void configure(const rapidjson::Value& net)
     else if(method == "dhcp-with-fallback")
     {
       auto addresses = parse_iface(val);
-      auto static_cfg = [addresses, &stack] (bool timeout)
+      auto static_cfg = [addresses, &stack] (bool timedout)
       {
-        if(timeout) {
+        if(timedout) {
           MYINFO("DHCP timeout (%s) - falling back to static configuration", stack.ifname().c_str());
           config_stack(stack, addresses);
         }
       };
-      stack.negotiate_dhcp(5.0, static_cfg);
+      stack.negotiate_dhcp(timeout, static_cfg);
     }
   }
 

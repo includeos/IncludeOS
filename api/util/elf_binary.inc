@@ -1,3 +1,4 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
@@ -20,26 +21,32 @@
 template <typename Arch>
 const typename Arch::Ehdr& Elf_binary<Arch>::elf_header() const{
   Expects(data_.size() >=  (long) sizeof(typename Arch::Ehdr));
-  return *reinterpret_cast<typename Arch::Ehdr*>(data_.data());
+  return *reinterpret_cast<Elf_header*>(data_.data());
 }
 
 template <typename Arch>
-const typename Arch::Phdr& Elf_binary<Arch>::program_header() const{
+typename Arch::Phdr& Elf_binary<Arch>::program_header() const{
   auto hdr = elf_header();
   Expects(data_.size() >= (long)(hdr.e_phoff + sizeof(typename Arch::Phdr)));
-  return *reinterpret_cast<typename Arch::Phdr*>(data_.data() + hdr.e_phoff);
+  return *reinterpret_cast<Program_header*>(data_.data() + hdr.e_phoff);
+}
+
+
+template <typename Arch>
+const typename Elf_binary<Arch>::Program_headers Elf_binary<Arch>::program_headers() const {
+  return {reinterpret_cast<Program_header*>(&program_header()), elf_header().e_phnum};
 }
 
 
 template <typename Arch>
 void Elf_binary<Arch>::print_summary() {
 
-  auto hdr = elf_header();  
+  auto hdr = elf_header();
 
   for(int i {0}; i < EI_NIDENT; ++i) {
     std::cout << hdr.e_ident[i];
   }
-  
+
   std::cout << "\nType: "
             << ((hdr.e_type == ET_EXEC) ? " ELF Executable\n" : "Non-executable\n");
   std::cout << "Machine: ";
@@ -52,34 +59,34 @@ void Elf_binary<Arch>::print_summary() {
     break;
   default:
     std::cout << "Other (" << hdr.e_machine << ")\n";
-    break;      
+    break;
   }
-  
+
   std::cout << "Version: "                   << hdr.e_version      << '\n';
   std::cout << "Entry point: 0x"             << std::hex << hdr.e_entry << '\n';
   std::cout << "Number of program headers: " << std::dec << hdr.e_phnum        << '\n';
   std::cout << "Program header offset: "     << hdr.e_phoff        << '\n';
   std::cout << "Number of section headers: " << hdr.e_shnum        << '\n';
   std::cout << "Section header offset: "     << hdr.e_shoff        << '\n';
-  std::cout << "Size of ELF-header: "        << hdr.e_ehsize << " bytes\n";  
+  std::cout << "Size of ELF-header: "        << hdr.e_ehsize << " bytes\n";
 }
 
 
 template <typename Arch>
 bool Elf_binary<Arch>::is_executable(){
-  return elf_header().e_type == ET_EXEC;    
+  return elf_header().e_type == ET_EXEC;
 }
 
 template <typename Arch>
 bool Elf_binary<Arch>::is_bootable(){
 
   bool has_multiboot = false;
-  
+
   try {
     section_header(".multiboot");
     has_multiboot = true;
   }catch(...) {}
-  
+
   return is_executable() and has_multiboot;
 }
 
@@ -90,23 +97,35 @@ bool Elf_binary<Arch>::is_ELF(){
     data_[EI_MAG0] == ELFMAG0 and
     data_[EI_MAG1] == ELFMAG1 and
     data_[EI_MAG2] == ELFMAG2 and
-    data_[EI_MAG3] == ELFMAG3;    
-    
+    data_[EI_MAG3] == ELFMAG3;
+
 }
 
 
 template <typename Arch>
 void Elf_binary<Arch>::validate(){
-  
+
   if (not is_ELF() or not is_bootable() or not is_executable())
-    throw Elf_exception("Not a bootable ELF binary.");
-  
+    throw Elf_exception("Not a bootable and executable ELF binary.");
+
 }
 
 template <typename Arch>
 typename Arch::Addr Elf_binary<Arch>::entry() {
   return elf_header().e_entry;
 }
+
+
+template <typename Arch>
+std::vector<const typename Arch::Phdr*> Elf_binary<Arch>::loadable_segments() {
+  std::vector<const Program_header*> hdrs;
+  for (auto& phdr : program_headers()) {
+    if (phdr.p_type == PT_LOAD)
+      hdrs.push_back(&phdr);
+  }
+  return hdrs;
+};
+
 
 template <typename Arch>
 const typename Elf_binary<Arch>::Section_headers Elf_binary<Arch>::section_headers() const {
