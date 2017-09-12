@@ -151,6 +151,9 @@ void OS::on_panic(on_panic_func func)
   panic_handler = std::move(func);
 }
 
+extern "C" __attribute__((noreturn)) void panic_epilogue(const char*);
+
+
 /**
  * panic:
  * Display reason for kernel panic
@@ -193,21 +196,37 @@ asm("panic_begin:");
   fflush(stderr);
   SMP::global_unlock();
 
+  panic_epilogue(why);
+}
+
+extern "C"
+void double_fault(const char* why)
+{
+  SMP::global_lock();
+  fprintf(stderr, "\n%s\nCPU: %d, Reason: %s\n",
+          panic_signature, SMP::cpu_id(), why);
+  SMP::global_unlock();
+
+  panic_epilogue(why);
+}
+
+void panic_epilogue(const char* why)
+{
   // call custom on panic handler (if present)
   if (panic_handler) panic_handler(why);
 
-#if defined(ARCH_x86)
-  SMP::global_lock();
-  // Signal End-Of-Transmission
-  kprint("\x04");
-  SMP::global_unlock();
+  #if defined(ARCH_x86)
+    SMP::global_lock();
+    // Signal End-Of-Transmission
+    kprint("\x04");
+    SMP::global_unlock();
 
-  // .. if we return from the panic handler, go to permanent sleep
-  while (1) asm("cli; hlt");
+    // .. if we return from the panic handler, go to permanent sleep
+    while (1) asm("cli; hlt");
+  #else
+    #warning "panic() handler not implemented for selected arch"
+  #endif
   __builtin_unreachable();
-#else
-  #warning "panic() handler not implemented for selected arch"
-#endif
 }
 
 // Shutdown the machine when one of the exit functions are called
