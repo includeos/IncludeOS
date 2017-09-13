@@ -15,6 +15,7 @@ extern "C" {
 static uint64_t os_cycles_hlt = 0;
 
 extern "C" void* get_cpu_esp();
+extern "C" void __libc_init_array();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -84,18 +85,18 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
 
   OS::cmdline = reinterpret_cast<char*>(_cmdline);
 
-  // XXX: double check these numbers. Is 0 OK? and why is high_memory_size_
-  // not equal to OS::memory_end_. What's that "+ 0x100000"?
-  low_memory_size_ = 0;
-  high_memory_size_ = mem_size - 0x200000;
+  // setup memory and heap end
+  OS::memory_end_ = mem_size;
+  OS::heap_max_ = OS::memory_end_;
 
-  Expects(high_memory_size_);
+  // Call global ctors
+  PROFILE("Global constructors");
+  __libc_init_array();
+
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
-
-  OS::memory_end_ = high_memory_size_ + 0x100000;
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x500, 0x5fff, "solo5", "solo5"});
@@ -108,9 +109,6 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
         "Pre-heap", "Heap randomization area"});
-
-  // Give the rest of physical memory to heap
-  heap_max_ = high_memory_size_;
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, heap_max_);

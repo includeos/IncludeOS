@@ -263,8 +263,6 @@ private:
   static std::string version_str_;
   static std::string arch_str_;
   static Plugin_vec plugins_;
-  static uintptr_t low_memory_size_;
-  static uintptr_t high_memory_size_;
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;

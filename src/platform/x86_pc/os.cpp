@@ -41,6 +41,7 @@
 #endif
 
 extern "C" void* get_cpu_esp();
+extern "C" void __libc_init_array();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -99,20 +100,25 @@ void OS::default_stdout(const char* str, const size_t len)
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
-  PROFILE("");
+  // Initialize stdout handlers
+  OS::add_stdout(&OS::default_stdout);
+
+  PROFILE("OS::start");
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
   void* esp = get_cpu_esp();
   MYINFO("Stack: %p", esp);
-  MYINFO("Boot magic: 0x%x, addr: 0x%x",
-         boot_magic, boot_addr);
+  MYINFO("Boot magic: 0x%x, addr: 0x%x", boot_magic, boot_addr);
 
   /// STATMAN ///
+  PROFILE("Statman");
   /// initialize on page 7, 3 pages in size
   Statman::get().init(0x6000, 0x3000);
 
+  // BOOT METHOD //
   PROFILE("Multiboot / legacy");
+  OS::memory_end_ = 0;
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_addr);
@@ -123,13 +129,17 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
     OS::legacy_boot();
   }
-  Expects(high_memory_size_);
+  Expects(OS::memory_end_ != 0);
+  // Give the rest of physical memory to heap
+  OS::heap_max_ = OS::memory_end_;
+
+  // Call global ctors
+  PROFILE("Global constructors");
+  __libc_init_array();
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
-
-  OS::memory_end_ = high_memory_size_ + 0x100000;
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
@@ -146,9 +156,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end, ::heap_begin - 1,
         "Pre-heap", "Heap randomization area"});
-
-  // Give the rest of physical memory to heap
-  heap_max_ = ((0x100000 + high_memory_size_)  & 0xffff0000) - 1;
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, heap_max_);

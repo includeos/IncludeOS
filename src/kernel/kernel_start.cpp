@@ -30,8 +30,6 @@ extern "C" {
   void _init_heap(uintptr_t);
   void _init_c_runtime();
   void _init_syscalls();
-  void __libc_init_array();
-  uintptr_t _end;
 }
 
 extern void default_stdout_handlers();
@@ -48,6 +46,7 @@ kernel_start(uintptr_t magic, uintptr_t addr)
   __init_sanity_checks();
 
   // Determine where free memory starts
+  extern char _end;
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
@@ -68,12 +67,6 @@ kernel_start(uintptr_t magic, uintptr_t addr)
 
   // Initialize system calls
   _init_syscalls();
-
-  // Initialize stdout handlers
-  default_stdout_handlers();
-
-  // Call global ctors
-  __libc_init_array();
 
   // Initialize early OS, platform and devices
   OS::start(magic, addr);

@@ -53,10 +53,8 @@ bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 MHz   OS::cpu_mhz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
-uintptr_t OS::low_memory_size_  = 0;
-uintptr_t OS::high_memory_size_ = 0;
 uintptr_t OS::memory_end_ = 0;
-uintptr_t OS::heap_max_ {0xfffffff};
+uintptr_t OS::heap_max_ = (uintptr_t) -1;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 std::string OS::cmdline{Service::binary_name()};
 
@@ -151,11 +149,6 @@ void OS::add_stdout(OS::print_func func)
 {
   os_print_handlers.add(func);
 }
-__attribute__ ((weak))
-void default_stdout_handlers()
-{
-  OS::add_stdout(&OS::default_stdout);
-}
 __attribute__((weak))
 bool os_enable_boot_logging = false;
 void OS::print(const char* str, const size_t len)
@@ -169,14 +162,11 @@ void OS::print(const char* str, const size_t len)
 void OS::legacy_boot() {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = hw::CMOS::meminfo();
-  if (low_memory_size_ == 0) {
-    low_memory_size_ = mem.base.total * 1024;
-    INFO2("* Low memory: %i Kib", mem.base.total);
-  }
-  if (high_memory_size_ == 0) {
-    high_memory_size_ = mem.extended.total * 1024;
-    INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
-  }
+  uintptr_t low_memory_size = mem.base.total * 1024;
+  INFO2("* Low memory: %i Kib", mem.base.total);
+
+  uintptr_t high_memory_size = mem.extended.total * 1024;
+  INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
 
   auto& memmap = memory_map();
 
@@ -190,7 +180,7 @@ void OS::legacy_boot() {
   uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
 
-  uintptr_t unavail_start = 0x100000 + high_memory_size_;
+  uintptr_t unavail_start = 0x100000 + high_memory_size;
   size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
   uintptr_t unavail_end = unavail_start + interval;
 
