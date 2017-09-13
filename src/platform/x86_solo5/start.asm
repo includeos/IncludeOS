@@ -26,6 +26,7 @@ extern _MULTIBOOT_START_
 extern _LOAD_START_
 extern _LOAD_END_
 extern _end
+extern _start
 extern kernel_start
 
 ALIGN 4
@@ -37,6 +38,7 @@ section .multiboot
   dd _LOAD_START_
   dd _LOAD_END_
   dd _end
+  dd _start
 
 section .data
 __multiboot_magic:
