@@ -164,7 +164,7 @@ void Inet4::error_report(Error& err, Packet_ptr orig_pckt) {
 }
 
 void Inet4::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
-  INFO("Inet4", "Negotiating DHCP...");
+  INFO("Inet4", "Negotiating DHCP (%.1fs timeout)...", timeout);
   if (!dhcp_)
       dhcp_ = std::make_shared<DHClient>(*this);
   // @timeout for DHCP-server negotation
