@@ -17,11 +17,10 @@
 
 #include <kprint>
 #include <info>
-#include <service>
-#include <smp>
+#include <kernel/os.hpp>
+#include <kernel/service.hpp>
 #include <boot/multiboot.h>
 
-extern  void default_stdout_handlers();
 extern  void __platform_init();
 
 extern "C" {
@@ -41,7 +40,6 @@ extern "C" {
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)
 {
-
   // Initialize serial port 1
   __init_serial1();
 
@@ -71,7 +69,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   _init_syscalls();
 
   //Initialize stdout handlers
-  default_stdout_handlers();
+  OS::add_stdout(&OS::default_stdout);
 
   // Call global ctors
   __libc_init_array();
