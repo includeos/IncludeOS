@@ -380,21 +380,19 @@ target_link_libraries(service
   libos
   libbotan
   libosdeps
-  cxxabi
-  libc
-  libcxx
-  libm
-  libg
-  libgcc
 
-  libos
   libplatform
   libarch
-  libplatform
   libos
-  libosdeps
+
+  libplatform
+  libarch
+  libos
+  libplatform
+
   cxxabi
   libc
+  libos
   libcxx
   libm
   libg
