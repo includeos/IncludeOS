@@ -32,13 +32,9 @@ extern "C" {
   void _init_syscalls();
 }
 
-extern void default_stdout_handlers();
-
 extern "C"
-void __attribute__((weak))
-kernel_start(uintptr_t magic, uintptr_t addr)
+void kernel_start(uintptr_t magic, uintptr_t addr)
 {
-
   // Initialize default serial port
   __init_serial1();
 

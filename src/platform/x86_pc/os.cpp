@@ -18,18 +18,14 @@
 //#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
-#include <cstdio>
 #include <boot/multiboot.h>
+#include <hw/cmos.hpp>
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
-#include <kernel/rtc.hpp>
-#include <kernel/rdrand.hpp>
-#include <kernel/rng.hpp>
-#include <kernel/cpuid.hpp>
-#include <util/fixedvec.hpp>
 #include <kprint>
 #include <service>
 #include <statman>
+#include <cstdio>
 #include <cinttypes>
 
 //#define ENABLE_PROFILERS
@@ -192,4 +188,49 @@ void OS::event_loop()
   MYINFO("Powering off");
   extern void __arch_poweroff();
   __arch_poweroff();
+}
+
+
+void OS::legacy_boot()
+{
+  // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
+  auto mem = hw::CMOS::meminfo();
+  //uintptr_t low_memory_size = mem.base.total * 1024;
+  INFO2("* Low memory: %i Kib", mem.base.total);
+
+  uintptr_t high_memory_size = mem.extended.total * 1024;
+  INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
+
+  auto& memmap = memory_map();
+
+  // No guarantees without multiboot, but we assume standard memory layout
+  memmap.assign_range({0x0009FC00, 0x0009FFFF,
+        "EBDA", "Extended BIOS data area"});
+  memmap.assign_range({0x000A0000, 0x000FFFFF,
+        "VGA/ROM", "Memory mapped video memory"});
+
+  // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
+  uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
+  uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
+
+  uintptr_t unavail_start = 0x100000 + high_memory_size;
+  size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
+  uintptr_t unavail_end = unavail_start + interval;
+
+  while (unavail_end < addr_max){
+    INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
+    memmap.assign_range({unavail_start, unavail_end,
+          "N/A", "Reserved / outside physical range" });
+    unavail_start = unavail_end + 1;
+    interval = std::min(span_max, addr_max - unavail_start);
+    // Increment might wrapped around
+    if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
+      INFO2("* Last chunk of memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, addr_max);
+      memmap.assign_range({unavail_start, addr_max,
+            "N/A", "Reserved / outside physical range" });
+      break;
+    }
+
+    unavail_end += interval;
+  }
 }

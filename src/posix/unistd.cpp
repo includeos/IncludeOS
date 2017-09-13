@@ -169,8 +169,7 @@ unsigned int sleep(unsigned int seconds)
 {
   int64_t now  = RTC::now();
   int64_t done = now + seconds;
-  while (true) {
-    if (now >= done) break;
+  while (now < done) {
     OS::block();
     now = RTC::now();
   }
