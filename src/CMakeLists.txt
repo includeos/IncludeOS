@@ -25,7 +25,7 @@ set(OS_OBJECTS
   kernel/multiboot.cpp
   kernel/syscalls.cpp kernel/os.cpp kernel/cpuid.cpp
   kernel/events.cpp kernel/memmap.cpp kernel/pci_manager.cpp
-  kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
+  kernel/heap.cpp kernel/service_stub.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm
   kernel/fiber.cpp kernel/tls.cpp

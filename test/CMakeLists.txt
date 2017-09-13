@@ -135,7 +135,6 @@ set(OS_SOURCES
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
   ${SRC}/kernel/events.cpp
-  ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
   ${SRC}/kernel/heap.cpp
