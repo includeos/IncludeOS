@@ -96,6 +96,7 @@ void OS::default_stdout(const char* str, const size_t len)
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
+  OS::cmdline = Service::binary_name();
   // Initialize stdout handlers
   OS::add_stdout(&OS::default_stdout);
 
@@ -111,6 +112,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Statman");
   /// initialize on page 7, 3 pages in size
   Statman::get().init(0x6000, 0x3000);
+
+  // Call global ctors
+  PROFILE("Global constructors");
+  __libc_init_array();
 
   // BOOT METHOD //
   PROFILE("Multiboot / legacy");
@@ -128,10 +133,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   Expects(OS::memory_end_ != 0);
   // Give the rest of physical memory to heap
   OS::heap_max_ = OS::memory_end_;
-
-  // Call global ctors
-  PROFILE("Global constructors");
-  __libc_init_array();
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel

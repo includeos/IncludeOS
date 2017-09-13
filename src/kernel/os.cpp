@@ -52,7 +52,6 @@ uintptr_t OS::liveupdate_loc_   = 0;
 uintptr_t OS::memory_end_ = 0;
 uintptr_t OS::heap_max_ = (uintptr_t) -1;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
-std::string OS::cmdline{Service::binary_name()};
 
 // stdout redirection
 using Print_vec = fixedvector<OS::print_func, 8>;
@@ -73,8 +72,8 @@ void* OS::liveupdate_storage_area() noexcept
   return (void*) OS::liveupdate_loc_;
 }
 
-const std::string& OS::cmdline_args() noexcept
-{
+const char* OS::cmdline = nullptr;
+const char* OS::cmdline_args() noexcept {
   return cmdline;
 }
 
@@ -135,7 +134,7 @@ void OS::post_start()
   printf(" IncludeOS %s (%s / %i-bit)\n",
          version().c_str(), arch().c_str(),
          static_cast<int>(sizeof(uintptr_t)) * 8);
-  printf(" +--> Running [ %s ]\n", Service::name().c_str());
+  printf(" +--> Running [ %s ]\n", Service::name());
   FILLINE('~');
 
   Service::start();

@@ -86,7 +86,7 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   /// initialize on page 7, 2 pages in size
   Statman::get().init(0x6000, 0x3000);
 
-  OS::cmdline = reinterpret_cast<char*>(_cmdline);
+  OS::cmdline = _cmdline;
 
   // setup memory and heap end
   OS::memory_end_ = mem_size;
