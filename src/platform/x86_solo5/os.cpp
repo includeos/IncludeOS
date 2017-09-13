@@ -72,6 +72,9 @@ void OS::default_stdout(const char* str, const size_t len)
 
 void OS::start(char* _cmdline, uintptr_t mem_size)
 {
+  // Initialize stdout handlers
+  OS::add_stdout(&OS::default_stdout);
+
   PROFILE("");
   // Print a fancy header
   CAPTION("#include<os> // Literally");
