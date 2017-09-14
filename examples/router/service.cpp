@@ -27,12 +27,13 @@ namespace net {
   {
     Expects(obj.HasMember("address"));
     Expects(obj.HasMember("netmask"));
-    Expects(obj.HasMember("nexthop"));
     Expects(obj.HasMember("iface"));
 
     ip4::Addr address{obj["address"].GetString()};
     ip4::Addr netmask{obj["netmask"].GetString()};
-    ip4::Addr nexthop{obj["nexthop"].GetString()};
+
+    ip4::Addr nexthop = (obj.HasMember("nexthop"))
+      ? ip4::Addr{obj["nexthop"].GetString()} : 0;
 
     int N = obj["iface"].GetInt();
     auto& iface = Super_stack::get<IP4>(N);
