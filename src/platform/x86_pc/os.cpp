@@ -154,7 +154,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
         "Pre-heap", "Heap randomization area"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-  uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_-1);
+  uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_);
 
   MYINFO("Assigning heap");
   memmap.assign_range({::heap_begin, heap_range_max_,
