@@ -168,6 +168,18 @@ namespace net {
     void set_ip_ttl(uint8_t ttl) noexcept
     { ip_header().ttl = ttl; }
 
+    /**
+     * @brief      Decrement Time-To-Live by 1 and adjust the checksum.
+     */
+    void decrement_ttl()
+    {
+      Expects(ip_ttl() != 0);
+      ip_header().ttl--;
+      // RFC 1141 p. 1
+      uint16_t sum = ntohs(ip_header().check) + 0x100; // increment checksum high byte
+      ip_header().check = htons(sum + (sum>>16)); // add carry
+    }
+
     /** Set protocol header field */
     void set_protocol(Protocol p) noexcept
     { ip_header().protocol = static_cast<uint8_t>(p); }
