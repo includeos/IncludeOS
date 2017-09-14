@@ -104,8 +104,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
-  void* esp = get_cpu_esp();
-  MYINFO("Stack: %p", esp);
+  MYINFO("Stack: %p", get_cpu_esp());
   MYINFO("Boot magic: 0x%x, addr: 0x%x", boot_magic, boot_addr);
 
   /// STATMAN ///
@@ -130,7 +129,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
     OS::legacy_boot();
   }
-  Expects(OS::memory_end_ != 0);
+  assert(OS::memory_end_ != 0);
   // Give the rest of physical memory to heap
   OS::heap_max_ = OS::memory_end_;
 
@@ -149,13 +148,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end - 1,
         "ELF", "Your service binary including OS"});
 
-  Expects(::heap_begin and heap_max_);
+  assert(::heap_begin != 0x0 and OS::heap_max_ != 0x0);
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end, ::heap_begin - 1,
         "Pre-heap", "Heap randomization area"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-  uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
+  uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_-1);
 
   MYINFO("Assigning heap");
   memmap.assign_range({::heap_begin, heap_range_max_,
@@ -196,14 +195,17 @@ void OS::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = hw::CMOS::meminfo();
-  //uintptr_t low_memory_size = mem.base.total * 1024;
-  INFO2("* Low memory: %i Kib", mem.base.total);
+  if (OS::memory_end_ == 0)
+  {
+    //uintptr_t low_memory_size = mem.base.total * 1024;
+    INFO2("* Low memory: %i Kib", mem.base.total);
 
-  uintptr_t high_memory_size = mem.extended.total * 1024;
-  INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
+    uintptr_t high_memory_size = mem.extended.total * 1024;
+    INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
+    OS::memory_end_ = 0x100000 + high_memory_size;
+  }
 
   auto& memmap = memory_map();
-
   // No guarantees without multiboot, but we assume standard memory layout
   memmap.assign_range({0x0009FC00, 0x0009FFFF,
         "EBDA", "Extended BIOS data area"});
@@ -214,11 +216,12 @@ void OS::legacy_boot()
   uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
 
-  uintptr_t unavail_start = 0x100000 + high_memory_size;
+  uintptr_t unavail_start = OS::memory_end_;
   size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
   uintptr_t unavail_end = unavail_start + interval;
 
-  while (unavail_end < addr_max){
+  while (unavail_end < addr_max)
+  {
     INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
     memmap.assign_range({unavail_start, unavail_end,
           "N/A", "Reserved / outside physical range" });
