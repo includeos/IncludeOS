@@ -182,6 +182,14 @@ namespace net {
   {
     Expects(pckt);
 
+    if(pckt->ip_ttl() == 0)
+    {
+      INFO("Router", "TTL equals 0 - dropping");
+      return;
+    }
+
+    pckt->decrement_ttl();
+
     const auto dest = pckt->ip_dst();
     auto* route = get_first_route(dest);
 
