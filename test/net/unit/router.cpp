@@ -37,7 +37,7 @@ CASE("Creating and matching against routes")
 
   EXPECT(r1.netmask() == (IP4::addr{255, 255, 255, 0}));
   EXPECT(r1.net() == (IP4::addr{10, 42, 42, 0}));
-  EXPECT(r1.gateway() == (IP4::addr{10, 42, 42, 2}));
+  EXPECT(r1.nexthop() == (IP4::addr{10, 42, 42, 2}));
   EXPECT(r1.cost() == 1);
   EXPECT(r1.interface() == eth1);
 
@@ -91,11 +91,11 @@ CASE("Creating and using a router and routing table")
   // Get all routes for an IP
   auto routes = router.get_all_routes({10,42,42,10});
   EXPECT(routes.size() == 2u);
-  EXPECT((routes.front().gateway() == IP4::addr{10,42,42,2} or routes.front().gateway() == IP4::addr{10,42,42,3}));
+  EXPECT((routes.front().nexthop() == IP4::addr{10,42,42,2} or routes.front().nexthop() == IP4::addr{10,42,42,3}));
 
   // Get the cheapest route for an IP
   auto route = router.get_cheapest_route({10,42,42,10});
-  EXPECT((route->gateway() == IP4::addr{10,42,42,2} and route->interface() == eth1));
+  EXPECT((route->nexthop() == IP4::addr{10,42,42,2} and route->interface() == eth1));
 
   // Change the routing table
   router.set_routing_table( {{{10, 42, 43, 0 }, { 255, 255, 255, 0}, {10, 42, 42, 2}, *eth1 , 2 }} );
