@@ -45,9 +45,9 @@ void OS::resume_softreset(intptr_t addr)
   data->checksum = csum_copy;
 
   /// restore known values
-  OS::liveupdate_loc_  = data->liveupdate_loc;
-  OS::memory_end_      = data->high_mem;
-  OS::cpu_mhz_    = data->cpu_freq;
+  OS::liveupdate_loc_ = data->liveupdate_loc;
+  OS::memory_end_     = data->high_mem;
+  OS::cpu_mhz_        = data->cpu_freq;
   x86::apic_timer_set_ticks(data->apic_ticks);
 
   /// call service-specific softreset handler

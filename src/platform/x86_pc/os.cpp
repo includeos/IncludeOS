@@ -202,7 +202,7 @@ void OS::legacy_boot()
 
     uintptr_t high_memory_size = mem.extended.total * 1024;
     INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
-    OS::memory_end_ = 0x100000 + high_memory_size;
+    OS::memory_end_ = 0x100000 + high_memory_size - 1;
   }
 
   auto& memmap = memory_map();
@@ -216,7 +216,7 @@ void OS::legacy_boot()
   uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
 
-  uintptr_t unavail_start = OS::memory_end_;
+  uintptr_t unavail_start = OS::memory_end_+1;
   size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
   uintptr_t unavail_end = unavail_start + interval;
 
