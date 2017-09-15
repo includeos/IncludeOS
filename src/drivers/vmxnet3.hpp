@@ -42,8 +42,7 @@ public:
   }
 
   /** Mac address. */
-  const MAC::Addr& mac() const noexcept override
-  {
+  const MAC::Addr& mac() const noexcept override {
     return this->hw_addr;
   }
 
@@ -53,7 +52,7 @@ public:
 
   uint16_t packet_len() const noexcept
   {
-    return sizeof(net::ethernet::Header) + MTU();
+    return ETH_FRAME_LEN;
   }
 
   net::downstream create_physical_downstream()
@@ -78,7 +77,7 @@ public:
 
   void move_to_this_cpu() override;
 
-  void poll() override {}
+  void poll() override;
 
 private:
   void msix_evt_handler();
@@ -120,15 +119,14 @@ private:
 
   hw::PCI_Device& pcidev;
   std::vector<uint8_t> irqs;
-  uintptr_t     iobase;
-  uintptr_t     ptbase;
+  uintptr_t     iobase = 0;
+  uintptr_t     ptbase = 0;
   MAC::Addr     hw_addr;
-  vmxnet3_dma*  dma;
+  vmxnet3_dma*  dma = nullptr;
 
   ring_stuff tx;
   rxring_state rx[NUM_RX_QUEUES];
   // deferred transmit dma
-  int      transmit_idx = -1;
   uint8_t  deferred_irq  = 0;
   bool     deferred_kick = false;
   static void handle_deferred();

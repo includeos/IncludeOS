@@ -327,7 +327,7 @@ void vmxnet3::disable_intr(uint8_t idx) noexcept
 void vmxnet3::refill(rxring_state& rxq)
 {
   bool added_buffers = false;
-  int  old_value = rxq.producers;
+  auto old_value = rxq.producers;
 
   while (rxq.prod_count < VMXNET3_RX_FILL)
   {
@@ -490,18 +490,16 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
   // delay dma message until we have written as much as possible
   if (!deferred_kick)
   {
-    transmit_idx  = idx;
     deferred_kick = true;
     deferred_devs.push_back(this);
     Events::get().trigger_event(deferred_irq);
   }
 }
 
-void vmxnet3::flush() {
+void vmxnet3::flush()
+{
   auto idx = tx.producers % vmxnet3::NUM_TX_DESC;
-  if (idx != transmit_idx) {
-      mmio_write32(ptbase + VMXNET3_PT_TXPROD, idx);
-  }
+  mmio_write32(ptbase + VMXNET3_PT_TXPROD, idx);
 }
 
 void vmxnet3::handle_deferred()
@@ -512,6 +510,17 @@ void vmxnet3::handle_deferred()
     dev->deferred_kick = false;
   }
   deferred_devs.clear();
+}
+
+void vmxnet3::poll()
+{
+  msix_recv_handler();
+  msix_xmit_handler();
+  // immediately flush when possible
+  if (this->deferred_kick) {
+    this->deferred_kick = false;
+    this->flush();
+  }
 }
 
 void vmxnet3::deactivate()
