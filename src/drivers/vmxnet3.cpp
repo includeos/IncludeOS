@@ -338,7 +338,7 @@ void vmxnet3::refill(rxring_state& rxq)
 
     // get a pointer to packet data
     auto* pkt_data = bufstore().get_buffer().addr;
-    rxq.buffers[i] = &pkt_data[sizeof(net::Packet)];
+    rxq.buffers[i] = &pkt_data[sizeof(net::Packet) + DRIVER_OFFSET];
 
     // assign rx descriptor
     auto& desc = rxq.desc0[i];
@@ -359,8 +359,12 @@ void vmxnet3::refill(rxring_state& rxq)
 net::Packet_ptr
 vmxnet3::recv_packet(uint8_t* data, uint16_t size)
 {
-  auto* ptr = (net::Packet*) (data - sizeof(net::Packet));
-  new (ptr) net::Packet(frame_offset_device(), size - frame_offset_device(), frame_offset_device() + packet_len() , &bufstore());
+  auto* ptr = (net::Packet*) (data - DRIVER_OFFSET - sizeof(net::Packet));
+  new (ptr) net::Packet(
+        DRIVER_OFFSET,
+        size,
+        DRIVER_OFFSET + packet_len(),
+        &bufstore());
   return net::Packet_ptr(ptr);
 }
 net::Packet_ptr
@@ -369,9 +373,9 @@ vmxnet3::create_packet(int link_offset)
   auto buffer = bufstore().get_buffer();
   auto* ptr = (net::Packet*) buffer.addr;
   new (ptr) net::Packet(
-        frame_offset_device() + link_offset,
+        DRIVER_OFFSET + link_offset,
         0,
-        frame_offset_device() + packet_len(),
+        DRIVER_OFFSET + packet_len(),
         buffer.bufstore);
   return net::Packet_ptr(ptr);
 }
@@ -386,6 +390,16 @@ void vmxnet3::msix_evt_handler()
   printf("[vmxnet3] events: %#x\n", evts);
 }
 void vmxnet3::msix_xmit_handler()
+{
+  this->transmit_handler();
+}
+void vmxnet3::msix_recv_handler()
+{
+  for (int q = 0; q < NUM_RX_QUEUES; q++)
+      this->receive_handler(q);
+}
+
+void vmxnet3::transmit_handler()
 {
   while (true)
   {
@@ -402,7 +416,7 @@ void vmxnet3::msix_xmit_handler()
       printf("empty buffer? comp=%d, desc=%d\n", idx, desc);
       continue;
     }
-    auto* packet = (net::Packet*) (tx.buffers[desc] - sizeof(net::Packet));
+    auto* packet = (net::Packet*) (tx.buffers[desc] - DRIVER_OFFSET - sizeof(net::Packet));
     delete packet; // call deleter on Packet to release it
     tx.buffers[desc] = nullptr;
   }
@@ -415,16 +429,16 @@ void vmxnet3::msix_xmit_handler()
     transmit_queue_available_event_(tx_tokens_free());
   }
 }
-void vmxnet3::msix_recv_handler()
+void vmxnet3::receive_handler(const int Q)
 {
-  for (int Q = 0; Q < NUM_RX_QUEUES; Q++)
+  while (true)
   {
     uint32_t idx = rx[Q].consumers % VMXNET3_NUM_RX_COMP;
     uint32_t gen = (rx[Q].consumers & VMXNET3_NUM_RX_COMP) ? 0 : VMXNET3_RXCF_GEN;
 
     auto& comp = dma->rx_comp[idx];
     // break when exiting this generation
-    if (gen != (comp.flags & VMXNET3_RXCF_GEN)) continue;
+    if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
     rx[Q].consumers++;
     rx[Q].prod_count--;
 
@@ -441,11 +455,9 @@ void vmxnet3::msix_recv_handler()
 
     // emergency refill when really empty
     if (rx[Q].prod_count < VMXNET3_RX_FILL / 2)
-        refill(rx[Q]);
+        this->refill(rx[Q]);
   }
-  for (int q = 0; q < NUM_RX_QUEUES; q++) {
-    refill(rx[q]);
-  }
+  this->refill(rx[Q]);
 }
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
@@ -460,7 +472,7 @@ void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
     auto next = sendq->detach_tail();
     // transmit released buffer
     auto* packet = sendq.release();
-    transmit_data(packet->buf(), packet->size());
+    transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
     // next is the new sendq
     sendq = std::move(next);
   }
@@ -517,8 +529,9 @@ void vmxnet3::handle_deferred()
 
 void vmxnet3::poll()
 {
-  msix_recv_handler();
-  msix_xmit_handler();
+  for (int q = 0; q < NUM_RX_QUEUES; q++)
+      receive_handler(q);
+  transmit_handler();
   // immediately flush when possible
   if (this->deferred_kick) {
     this->deferred_kick = false;

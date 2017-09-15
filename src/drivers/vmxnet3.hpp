@@ -29,9 +29,10 @@ public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
   static const int ETH_FRAME_LEN = 1514;
+  static const int DRIVER_OFFSET = 2;
   static const int NUM_RX_QUEUES = 1;
-  static const int NUM_TX_DESC   = 128;
-  static const int NUM_RX_DESC   = 128;
+  static const int NUM_TX_DESC   = 512;
+  static const int NUM_RX_DESC   = 512;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
   { return std::make_unique<vmxnet3>(d); }
@@ -60,6 +61,9 @@ public:
 
   net::Packet_ptr create_packet(int) override;
 
+  size_t frame_offset_device() override
+  { return DRIVER_OFFSET; };
+
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);
 
@@ -83,6 +87,8 @@ private:
   void msix_evt_handler();
   void msix_xmit_handler();
   void msix_recv_handler();
+  void receive_handler(int);
+  void transmit_handler();
   void enable_intr(uint8_t idx) noexcept;
   void disable_intr(uint8_t idx) noexcept;
 
