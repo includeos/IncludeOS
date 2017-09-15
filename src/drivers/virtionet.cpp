@@ -215,7 +215,7 @@ void VirtioNet::msix_conf_handler()
 }
 void VirtioNet::msix_recv_handler()
 {
-  int dequeued_rx = 0;
+  bool dequeued_rx = false;
   rx_q.disable_interrupts();
   // handle incoming packets as long as bufstore has available buffers
   while (rx_q.new_incoming())
@@ -224,7 +224,7 @@ void VirtioNet::msix_recv_handler()
     VDBG_RX("[virtionet] Recv %u bytes\n", (uint32_t) res.size());
     Link::receive( recv_packet(res.data(), res.size()) );
 
-    dequeued_rx++;
+    dequeued_rx = true;
     // Requeue a new buffer
     add_receive_buffer(bufstore().get_buffer().addr);
 
@@ -423,7 +423,15 @@ void VirtioNet::handle_deferred_devices()
 
 void VirtioNet::poll()
 {
-  
+  msix_recv_handler();
+  msix_xmit_handler();
+  // flush transmit_q immediately
+  if (this->deferred_kick)
+  {
+    this->deferred_kick = false;
+    this->tx_q.enable_interrupts();
+    this->tx_q.kick();
+  }
 }
 
 void VirtioNet::deactivate()
