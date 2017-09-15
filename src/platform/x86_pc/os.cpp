@@ -18,18 +18,14 @@
 //#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
-#include <cstdio>
 #include <boot/multiboot.h>
+#include <hw/cmos.hpp>
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
-#include <kernel/rtc.hpp>
-#include <kernel/rdrand.hpp>
-#include <kernel/rng.hpp>
-#include <kernel/cpuid.hpp>
-#include <util/fixedvec.hpp>
 #include <kprint>
 #include <service>
 #include <statman>
+#include <cstdio>
 #include <cinttypes>
 
 //#define ENABLE_PROFILERS
@@ -41,6 +37,7 @@
 #endif
 
 extern "C" void* get_cpu_esp();
+extern "C" void __libc_init_array();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -99,20 +96,29 @@ void OS::default_stdout(const char* str, const size_t len)
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
-  PROFILE("");
+  OS::cmdline = Service::binary_name();
+  // Initialize stdout handlers
+  OS::add_stdout(&OS::default_stdout);
+
+  PROFILE("OS::start");
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
-  void* esp = get_cpu_esp();
-  MYINFO("Stack: %p", esp);
-  MYINFO("Boot magic: 0x%x, addr: 0x%x",
-         boot_magic, boot_addr);
+  MYINFO("Stack: %p", get_cpu_esp());
+  MYINFO("Boot magic: 0x%x, addr: 0x%x", boot_magic, boot_addr);
 
   /// STATMAN ///
+  PROFILE("Statman");
   /// initialize on page 7, 3 pages in size
   Statman::get().init(0x6000, 0x3000);
 
+  // Call global ctors
+  PROFILE("Global constructors");
+  __libc_init_array();
+
+  // BOOT METHOD //
   PROFILE("Multiboot / legacy");
+  OS::memory_end_ = 0;
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_addr);
@@ -123,13 +129,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
     OS::legacy_boot();
   }
-  Expects(high_memory_size_);
+  assert(OS::memory_end_ != 0);
+  // Give the rest of physical memory to heap
+  OS::heap_max_ = OS::memory_end_;
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
-
-  OS::memory_end_ = high_memory_size_ + 0x100000;
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
@@ -142,16 +148,13 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end - 1,
         "ELF", "Your service binary including OS"});
 
-  Expects(::heap_begin and heap_max_);
+  assert(::heap_begin != 0x0 and OS::heap_max_ != 0x0);
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end, ::heap_begin - 1,
         "Pre-heap", "Heap randomization area"});
 
-  // Give the rest of physical memory to heap
-  heap_max_ = ((0x100000 + high_memory_size_)  & 0xffff0000) - 1;
-
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-  uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
+  uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_);
 
   MYINFO("Assigning heap");
   memmap.assign_range({::heap_begin, heap_range_max_,
@@ -185,4 +188,53 @@ void OS::event_loop()
   MYINFO("Powering off");
   extern void __arch_poweroff();
   __arch_poweroff();
+}
+
+
+void OS::legacy_boot()
+{
+  // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
+  auto mem = hw::CMOS::meminfo();
+  if (OS::memory_end_ == 0)
+  {
+    //uintptr_t low_memory_size = mem.base.total * 1024;
+    INFO2("* Low memory: %i Kib", mem.base.total);
+
+    uintptr_t high_memory_size = mem.extended.total * 1024;
+    INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
+    OS::memory_end_ = 0x100000 + high_memory_size - 1;
+  }
+
+  auto& memmap = memory_map();
+  // No guarantees without multiboot, but we assume standard memory layout
+  memmap.assign_range({0x0009FC00, 0x0009FFFF,
+        "EBDA", "Extended BIOS data area"});
+  memmap.assign_range({0x000A0000, 0x000FFFFF,
+        "VGA/ROM", "Memory mapped video memory"});
+
+  // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
+  uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
+  uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
+
+  uintptr_t unavail_start = OS::memory_end_+1;
+  size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
+  uintptr_t unavail_end = unavail_start + interval;
+
+  while (unavail_end < addr_max)
+  {
+    INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
+    memmap.assign_range({unavail_start, unavail_end,
+          "N/A", "Reserved / outside physical range" });
+    unavail_start = unavail_end + 1;
+    interval = std::min(span_max, addr_max - unavail_start);
+    // Increment might wrapped around
+    if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
+      INFO2("* Last chunk of memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, addr_max);
+      memmap.assign_range({unavail_start, addr_max,
+            "N/A", "Reserved / outside physical range" });
+      break;
+    }
+
+    unavail_end += interval;
+  }
 }

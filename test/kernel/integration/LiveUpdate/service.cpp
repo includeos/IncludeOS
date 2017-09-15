@@ -30,6 +30,7 @@ void Service::start()
   if (liu::LiveUpdate::is_resumable() == false)
   {
     auto& inet = net::Super_stack::get<net::IP4>(0);
+    inet.network_config({10,0,0,49}, {255,255,255,0}, {10,0,0,1});
     setup_liveupdate_server(inet, 666, func);
     // signal test.py that the server is up
     printf("Ready to receive binary blob\n");

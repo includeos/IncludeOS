@@ -21,11 +21,13 @@
     },
     {
       "iface": 3,
-      "config": "dhcp"
+      "config": "dhcp",
+      "timeout": 5.0
     },
     {
       "iface": 5,
       "config": "dhcp-with-fallback",
+      "timeout": 10,
       "address": "10.0.0.44",
       "netmask": "255.255.255.0",
       "gateway": "10.0.0.1"

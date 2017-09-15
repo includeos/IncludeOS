@@ -55,7 +55,7 @@ vm = vmrunner.vms[0]
 
 # Move second interface to second bridge, right after boot
 # TODO: Add support for per-interface qemu-ifup scripts instead?
-vm.on_output("#include<os>", move_tap1)
+vm.on_output("Routing test service", move_tap1)
 
 
 # Start iperf server right away, client when vm is up

@@ -59,7 +59,7 @@ public:
    *  other mechanisms. The first argument is always
    *  the binary name.
   **/
-  static const std::string& cmdline_args() noexcept;
+  static const char* cmdline_args() noexcept;
 
   /** Clock cycles since boot. */
   static uint64_t cycles_since_boot() {
@@ -257,18 +257,15 @@ private:
   static bool boot_sequence_passed_;
   static MHz cpu_mhz_;
 
-  // XXX: Only used by solo5
   static RTC::timestamp_t booted_at_;
   static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
   static Plugin_vec plugins_;
-  static uintptr_t low_memory_size_;
-  static uintptr_t high_memory_size_;
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
-  static std::string cmdline;
+  static const char* cmdline;
 
   // Prohibit copy and move operations
   OS(OS&)  = delete;

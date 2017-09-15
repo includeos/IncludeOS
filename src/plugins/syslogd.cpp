@@ -102,7 +102,7 @@ void Syslog::syslog(const int priority, const char* buf) {
  	message += std::string{timebuf} + " " + net::Inet4::stack().ip_addr().str() + " ";
 
  	// Fourth: App-name, PROCID (LOG_PID) and MSGID
- 	message += Service::binary_name() + " " + std::to_string(getpid()) + " UDPOUT ";
+ 	message += std::string(Service::binary_name()) + " " + std::to_string(getpid()) + " UDPOUT ";
 
  	/* Structured data: SD-element (SD-ID PARAM-NAME=PARAM-VALUE) */
  	message += "- ";	// NILVALUE

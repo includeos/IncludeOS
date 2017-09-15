@@ -17,20 +17,19 @@
 
 #include <cstdio>
 #include <string>
-#include <gsl/gsl>
+#include <cassert>
 
-int main(int argc, char** argv) {
-
-  printf("Hello main\n");
+int main(int argc, char** argv)
+{
   printf("Argc: %d\n", argc);
 
   for (int i = 0; i < argc; i++)
     printf("Arg %i: %s\n", i, argv[i]);
 
-  Expects(std::string(argv[0]) == "test_main");
-  Expects(std::string(argv[1]) == "booted");
-  Expects(std::string(argv[2]) == "with");
-  Expects(std::string(argv[3]) == "vmrunner");
+  assert(std::string(argv[0]) == "test_main");
+  assert(std::string(argv[1]) == "booted");
+  assert(std::string(argv[2]) == "with");
+  assert(std::string(argv[3]) == "vmrunner");
 
   // We want to veirify this "exit status" on the back-end
   return 200;

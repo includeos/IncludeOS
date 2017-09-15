@@ -63,7 +63,7 @@ void ip_forward (Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
     return;
   }
 
-  debug("ip_fwd %s transmitting packet to %s", ifname, route->ifname().c_str());
+  debug("[ ip_fwd ] %s transmitting packet to %s",stack.ifname().c_str(), route->ifname().c_str());
   route->ip_obj().ship(std::move(pckt));
 }
 

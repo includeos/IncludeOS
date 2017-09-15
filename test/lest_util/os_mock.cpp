@@ -72,6 +72,11 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
   return 0;
 }
 
+#include <service>
+const char* service_binary_name__ = "Service binary name";
+const char* service_name__        = "Service name";
+
+
 #include <kernel/os.hpp>
 void OS::start(unsigned, unsigned) {
 }

@@ -24,7 +24,7 @@ extern __multiboot_addr
 %define P4_TAB             0x1000
 %define P3_TAB             0x2000 ;; - 0x5fff
 %define P2_TAB           0x100000
-%define STACK_LOCATION   0xA00000
+%define STACK_LOCATION   0x9ffff0
 
 [BITS 32]
 __arch_start:

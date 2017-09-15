@@ -11,7 +11,7 @@ extern gdtr64 __gdt64_base_pointer;
 
 #define INTR_SIZE  4096
 #define NMI_SIZE  20480
-#define DFI_SIZE  20480
+#define DFI_SIZE   4096
 
 namespace x86
 {
@@ -19,7 +19,7 @@ namespace x86
   {
     char* intr; // 4kb
     char* nmi;  // 20kb
-    char* dfi;  // 20kb
+    char* dfi;  // 4kb
 
     AMD64_TSS tss;
   };

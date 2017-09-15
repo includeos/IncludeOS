@@ -1,6 +1,7 @@
 ### x86 PC specific ###
 set(X86_PC_OBJECTS
   start.asm
+  kernel_start.cpp
   platform.cpp
   os.cpp
   block.cpp
