@@ -377,25 +377,22 @@ endif()
 
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
-  libplatform
-  libarch
   libos
   libbotan
   libosdeps
-  cxxabi
-  libc
-  libcxx
-  libm
-  libg
-  libgcc
 
   libplatform
   libarch
   libos
-  libbotan
-  libosdeps
+
+  libplatform
+  libarch
+  libos
+  libplatform
+
   cxxabi
   libc
+  libos
   libcxx
   libm
   libg

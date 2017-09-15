@@ -46,7 +46,7 @@ void _init_bss()
 {
   /// Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
-  streamset8(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+  __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 }
 
 void _init_heap(uintptr_t free_mem_begin)
@@ -54,12 +54,12 @@ void _init_heap(uintptr_t free_mem_begin)
   // NOTE: Initialize the heap before exceptions
   // cache-align heap, because its not aligned
   heap_begin = (void*) free_mem_begin + HEAP_ALIGNMENT;
-  heap_begin = (void*) ((size_t)heap_begin & ~HEAP_ALIGNMENT);
+  heap_begin = (void*) ((uintptr_t)heap_begin & ~HEAP_ALIGNMENT);
   // heap end tracking, used with sbrk
   heap_end   = heap_begin;
 }
 
-uintptr_t _move_symbols(void* sym_loc)
+uint32_t _move_symbols(void* sym_loc)
 {
   extern char _ELF_SYM_START_;
   /// read out size of symbols **before** moving them
@@ -74,7 +74,7 @@ uintptr_t _move_symbols(void* sym_loc)
   return elfsym_size;
 }
 
-void _crt_sanity_checks()
+static void crt_sanity_checks()
 {
   // validate that heap is aligned
   int validate_heap_alignment =
@@ -105,7 +105,7 @@ void _init_c_runtime()
   extern void _init_elf_parser();
   _init_elf_parser();
 
-  _crt_sanity_checks();
+  crt_sanity_checks();
 }
 
 // stack-protector

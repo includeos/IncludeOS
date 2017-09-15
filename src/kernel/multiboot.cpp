@@ -100,9 +100,7 @@ void OS::multiboot(uint32_t boot_addr)
     uint32_t mem_high_end = mem_high_start + (bootinfo_->mem_upper * 1024) - 1;
     uint32_t mem_high_kb = bootinfo_->mem_upper;
 
-    OS::low_memory_size_ = mem_low_kb * 1024;
-    OS::high_memory_size_ = mem_high_kb * 1024;
-    OS::memory_end_ = high_memory_size_ + mem_high_start;
+    OS::memory_end_ = mem_high_end;
 
     INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
     INFO2("\t 0x%08x - 0x%08x (%i Kib)",
@@ -118,7 +116,7 @@ void OS::multiboot(uint32_t boot_addr)
   if (bootinfo_->flags & MULTIBOOT_INFO_CMDLINE) {
     INFO2("* Booted with parameters @ 0x%x: %s", bootinfo_->cmdline,
           reinterpret_cast<const char*>(bootinfo_->cmdline));
-    cmdline = reinterpret_cast<const char*>(bootinfo_->cmdline);
+    OS::cmdline = reinterpret_cast<const char*>(bootinfo_->cmdline);
   }
 
   if (bootinfo_->flags & MULTIBOOT_INFO_MEM_MAP) {
