@@ -20,6 +20,7 @@
 #include "vmxnet3_queues.hpp"
 
 #include <kernel/events.hpp>
+#include <timers>
 #include <smp>
 #include <info>
 #include <cassert>
@@ -29,6 +30,9 @@ static std::vector<vmxnet3*> deferred_devs;
 #define VMXNET3_REV1_MAGIC 0xbabefee1
 #define VMXNET3_MAX_BUFFER_LEN 0x4000
 #define VMXNET3_DMA_ALIGN  512
+#define VMXNET3_IT_AUTO    0
+#define VMXNET3_IMM_AUTO   0
+#define VMXNET3_IMM_ACTIVE 1
 
 #define VMXNET3_NUM_TX_COMP  vmxnet3::NUM_TX_DESC
 #define VMXNET3_NUM_RX_COMP  vmxnet3::NUM_RX_DESC
@@ -216,7 +220,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   shared.misc.mtu = packet_len(); // 60-9000
   shared.misc.num_tx_queues  = 1;
   shared.misc.num_rx_queues  = NUM_RX_QUEUES;
-  shared.interrupt.mask_mode = 0; // IMM_AUTO
+  shared.interrupt.mask_mode = VMXNET3_IT_AUTO | (VMXNET3_IMM_AUTO << 2);
   shared.interrupt.num_intrs = 2 + NUM_RX_QUEUES;
   shared.interrupt.event_intr_index = 0;
   memset(shared.interrupt.moderation_level, 0, VMXNET3_MAX_INTRS);
@@ -431,7 +435,9 @@ bool vmxnet3::transmit_handler()
   }
   // if we can still send more, message network stack
   if (this->can_transmit()) {
-    transmit_queue_available_event_(tx_tokens_free());
+    auto tok = tx_tokens_free();
+    transmit_queue_available_event_(tok);
+    if (tx_tokens_free() != tok) transmitted = true;
   }
   return transmitted;
 }
@@ -490,8 +496,10 @@ void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
   if (!deferred_kick)
   {
     deferred_kick = true;
-    deferred_devs.push_back(this);
-    Events::get().trigger_event(deferred_irq);
+    if (this->already_polling == false) {
+        deferred_devs.push_back(this);
+        Events::get().trigger_event(deferred_irq);
+    }
   }
 }
 inline int  vmxnet3::tx_tokens_free() const noexcept
@@ -538,21 +546,33 @@ void vmxnet3::handle_deferred()
 
 void vmxnet3::poll()
 {
-  bool traffic;
-  do {
-    traffic = false;
+  if (transmit_queue_available_event_ == nullptr) return;
+  if (this->already_polling) return;
+  this->already_polling = true;
+  //static int pcounter = 0;
+  //printf("Entering poll mode %d\n", ++pcounter);
+  const int POLL_TIMES = 128;
+  int tcounter = 0;
+  while (tcounter < POLL_TIMES)
+  {
+    bool traffic = false;
+    // receive
     for (int q = 0; q < NUM_RX_QUEUES; q++)
         traffic = traffic or receive_handler(q);
-    if (transmit_queue_available_event_ != nullptr)
-    {
-      traffic = traffic or transmit_handler();
-      // immediately flush when possible
-      if (this->deferred_kick) {
+    // transmit
+    traffic = traffic or transmit_handler();
+    // immediately flush when possible
+    if (this->deferred_kick) {
         this->deferred_kick = false;
         this->flush();
-      }
     }
-  } while (traffic);
+    if (traffic == false) {
+      tcounter++;
+    }
+    else tcounter = 0;
+  };
+  //printf("Exiting poll mode %d\n", pcounter);
+  this->already_polling = false;
 }
 
 void vmxnet3::deactivate()

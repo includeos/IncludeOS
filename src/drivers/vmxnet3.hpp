@@ -32,7 +32,7 @@ public:
   static const int DRIVER_OFFSET = 2;
   static const int NUM_RX_QUEUES = 1;
   static const int NUM_TX_DESC   = 512;
-  static const int NUM_RX_DESC   = 512;
+  static const int NUM_RX_DESC   = 256;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
   { return std::make_unique<vmxnet3>(d); }
@@ -135,6 +135,7 @@ private:
   // deferred transmit dma
   uint8_t  deferred_irq  = 0;
   bool     deferred_kick = false;
+  bool   already_polling = false;
   static void handle_deferred();
   // sendq as packet chain
   net::Packet_ptr sendq = nullptr;
