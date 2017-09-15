@@ -117,7 +117,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
     uint8_t msix_vectors = d.get_msix_vectors();
     INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
     assert(msix_vectors >= 3);
-    if (msix_vectors > 3) msix_vectors = 3;
+    if (msix_vectors > 2 + NUM_RX_QUEUES) msix_vectors = 2 + NUM_RX_QUEUES;
 
     for (int i = 0; i < msix_vectors; i++)
     {
@@ -128,7 +128,8 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
 
     Events::get().subscribe(irqs[0], {this, &vmxnet3::msix_evt_handler});
     Events::get().subscribe(irqs[1], {this, &vmxnet3::msix_xmit_handler});
-    Events::get().subscribe(irqs[2], {this, &vmxnet3::msix_recv_handler});
+    for (int q = 0; q < NUM_RX_QUEUES; q++)
+    Events::get().subscribe(irqs[2 + q], {this, &vmxnet3::msix_recv_handler});
   }
   else {
     assert(0 && "This driver does not support legacy IRQs");
@@ -416,33 +417,35 @@ void vmxnet3::msix_xmit_handler()
 }
 void vmxnet3::msix_recv_handler()
 {
-  while (true)
+  for (int Q = 0; Q < NUM_RX_QUEUES; Q++)
   {
-    uint32_t idx = rx[0].consumers % VMXNET3_NUM_RX_COMP;
-    uint32_t gen = (rx[0].consumers & VMXNET3_NUM_RX_COMP) ? 0 : VMXNET3_RXCF_GEN;
+    uint32_t idx = rx[Q].consumers % VMXNET3_NUM_RX_COMP;
+    uint32_t gen = (rx[Q].consumers & VMXNET3_NUM_RX_COMP) ? 0 : VMXNET3_RXCF_GEN;
 
     auto& comp = dma->rx_comp[idx];
     // break when exiting this generation
-    if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
-    rx[0].consumers++;
-    rx[0].prod_count--;
+    if (gen != (comp.flags & VMXNET3_RXCF_GEN)) continue;
+    rx[Q].consumers++;
+    rx[Q].prod_count--;
 
     int desc = comp.index % vmxnet3::NUM_RX_DESC;
     // mask out length
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
     // get buffer and construct packet
-    assert(rx[0].buffers[desc] != nullptr);
-    auto packet = recv_packet(rx[0].buffers[desc], len);
-    rx[0].buffers[desc] = nullptr;
+    assert(rx[Q].buffers[desc] != nullptr);
+    auto packet = recv_packet(rx[Q].buffers[desc], len);
+    rx[Q].buffers[desc] = nullptr;
 
     // handle_magic()
     Link::receive(std::move(packet));
 
     // emergency refill when really empty
-    if (rx[0].prod_count < VMXNET3_RX_FILL / 2)
-        refill(rx[0]);
+    if (rx[Q].prod_count < VMXNET3_RX_FILL / 2)
+        refill(rx[Q]);
   }
-  refill(rx[0]);
+  for (int q = 0; q < NUM_RX_QUEUES; q++) {
+    refill(rx[q]);
+  }
 }
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
