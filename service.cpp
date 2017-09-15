@@ -25,7 +25,7 @@ using namespace net;
 using namespace net::tcp;
 
 std::unique_ptr<Chunk> blob;
-size_t    SIZE = 1024*1024*512;
+uint32_t  SIZE = 1024*1024*512;
 uint64_t  packets_rx{0};
 uint64_t  packets_tx{0};
 uint64_t  received{0};
@@ -82,7 +82,6 @@ void Service::ready()
   blob = std::make_unique<Chunk>(SIZE);
 
   static auto& tcp = inet.tcp();
-
   tcp.set_DACK(dack); // default
   tcp.set_MSL(std::chrono::seconds(3));
 
@@ -128,7 +127,7 @@ void Service::ready()
 
       stop_measure();
     });
-    conn->on_read(16384, [] (buffer_t buf, size_t n)
+    conn->on_read(16384, [] (buffer_t, size_t n)
     {
       recv(n);
     });

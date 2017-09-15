@@ -5,7 +5,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (tcp_perf)
+project (service)
 
 # Human-readable name of your service
 set(SERVICE_NAME "IncludeOS TCP Performance")
@@ -18,15 +18,17 @@ set(SOURCES
   service.cpp # ...add more here
   )
 
-set(DRIVERS
-  virtionet   # Virtio networking
-  vmxnet3
-  #boot_logger
+if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
+  set(DRIVERS
+      solo5net     # Virtio networking
+    )
+else()
+  set(DRIVERS
+    virtionet
+    vmxnet3
+    #boot_logger
   )
-
-set(LIBRARIES
-  # path to full library
-  )
+endif()
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
