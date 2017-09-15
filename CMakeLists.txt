@@ -20,8 +20,8 @@ set(SOURCES
 
 set(DRIVERS
   virtionet   # Virtio networking
-  #vmxnet3
-  silent_start
+  vmxnet3
+  #boot_logger
   )
 
 set(LIBRARIES
