@@ -87,8 +87,8 @@ private:
   void msix_evt_handler();
   void msix_xmit_handler();
   void msix_recv_handler();
-  void receive_handler(int);
-  void transmit_handler();
+  bool receive_handler(int);
+  bool transmit_handler();
   void enable_intr(uint8_t idx) noexcept;
   void disable_intr(uint8_t idx) noexcept;
 

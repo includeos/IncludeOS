@@ -391,16 +391,20 @@ void vmxnet3::msix_evt_handler()
 }
 void vmxnet3::msix_xmit_handler()
 {
-  this->transmit_handler();
+  if (this->transmit_handler()) this->poll();
 }
 void vmxnet3::msix_recv_handler()
 {
+  bool recv = false;
   for (int q = 0; q < NUM_RX_QUEUES; q++)
-      this->receive_handler(q);
+      recv = recv or this->receive_handler(q);
+  // try polling for even more data
+  if (recv) this->poll();
 }
 
-void vmxnet3::transmit_handler()
+bool vmxnet3::transmit_handler()
 {
+  bool transmitted = false;
   while (true)
   {
     uint32_t idx = tx.consumers % VMXNET3_NUM_TX_COMP;
@@ -423,14 +427,17 @@ void vmxnet3::transmit_handler()
   // try to send sendq first
   if (this->can_transmit() && sendq != nullptr) {
     this->transmit(std::move(sendq));
+    transmitted = true;
   }
   // if we can still send more, message network stack
   if (this->can_transmit()) {
     transmit_queue_available_event_(tx_tokens_free());
   }
+  return transmitted;
 }
-void vmxnet3::receive_handler(const int Q)
+bool vmxnet3::receive_handler(const int Q)
 {
+  bool received = false;
   while (true)
   {
     uint32_t idx = rx[Q].consumers % VMXNET3_NUM_RX_COMP;
@@ -456,8 +463,11 @@ void vmxnet3::receive_handler(const int Q)
     // emergency refill when really empty
     if (rx[Q].prod_count < VMXNET3_RX_FILL / 2)
         this->refill(rx[Q]);
+
+    received = true;
   }
   this->refill(rx[Q]);
+  return received;
 }
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
@@ -475,6 +485,13 @@ void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
     transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
     // next is the new sendq
     sendq = std::move(next);
+  }
+  // delay dma message until we have written as much as possible
+  if (!deferred_kick)
+  {
+    deferred_kick = true;
+    deferred_devs.push_back(this);
+    Events::get().trigger_event(deferred_irq);
   }
 }
 inline int  vmxnet3::tx_tokens_free() const noexcept
@@ -501,14 +518,6 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
   desc.address  = (uintptr_t) tx.buffers[idx];
   desc.flags[0] = gen | data_length;
   desc.flags[1] = VMXNET3_TXF_CQ | VMXNET3_TXF_EOP;
-
-  // delay dma message until we have written as much as possible
-  if (!deferred_kick)
-  {
-    deferred_kick = true;
-    deferred_devs.push_back(this);
-    Events::get().trigger_event(deferred_irq);
-  }
 }
 
 void vmxnet3::flush()
@@ -529,14 +538,21 @@ void vmxnet3::handle_deferred()
 
 void vmxnet3::poll()
 {
-  for (int q = 0; q < NUM_RX_QUEUES; q++)
-      receive_handler(q);
-  transmit_handler();
-  // immediately flush when possible
-  if (this->deferred_kick) {
-    this->deferred_kick = false;
-    this->flush();
-  }
+  bool traffic;
+  do {
+    traffic = false;
+    for (int q = 0; q < NUM_RX_QUEUES; q++)
+        traffic = traffic or receive_handler(q);
+    if (transmit_queue_available_event_ != nullptr)
+    {
+      traffic = traffic or transmit_handler();
+      // immediately flush when possible
+      if (this->deferred_kick) {
+        this->deferred_kick = false;
+        this->flush();
+      }
+    }
+  } while (traffic);
 }
 
 void vmxnet3::deactivate()
