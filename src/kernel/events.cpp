@@ -18,7 +18,6 @@
 #include <kernel/events.hpp>
 #include <cassert>
 #include <statman>
-#include <kprint>
 #include <smp>
 //#define DEBUG_SMP
 

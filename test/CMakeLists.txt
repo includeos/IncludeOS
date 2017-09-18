@@ -18,6 +18,7 @@ message(STATUS "Building for arch ${ARCH}")
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-DOS_VERSION="v0.0.0.1")
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")

@@ -220,6 +220,7 @@ endif(libliveupdate)
 # Install cmake files
 install(FILES cmake/pre.service.cmake DESTINATION includeos)
 install(FILES cmake/post.service.cmake DESTINATION includeos)
+install(FILES cmake/linux.service.cmake DESTINATION includeos)
 install(FILES cmake/library.cmake DESTINATION includeos)
 install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION includeos RENAME settings.cmake) # cpu_feat_vanilla opt
 
