@@ -338,7 +338,7 @@ namespace net {
     }
 
     bool is_valid_source(IP4::addr src) override
-    { return is_loopback(src) or src == ip_addr(); }
+    { return src == ip_addr() or is_loopback(src); }
 
     /** Packets pass through prerouting chain before routing decision */
     virtual Filter_chain& prerouting_chain() override

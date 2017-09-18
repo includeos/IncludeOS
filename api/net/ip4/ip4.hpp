@@ -171,6 +171,14 @@ namespace net {
       return stack_.ip_addr();
     }
 
+    /**
+     * @brief      Determines if the packet is for me (this host).
+     *
+     * @param[in]  dst   The destination
+     *
+     * @return     True if for me, False otherwise.
+     */
+    bool is_for_me(ip4::Addr dst) const;
 
     /**
      * Stats getters
