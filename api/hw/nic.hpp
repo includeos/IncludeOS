@@ -117,14 +117,12 @@ namespace hw {
       N = id_counter++;
     }
 
-    friend class Devices;
-
-    net::transmit_avail_delg transmit_queue_available_event_ =
-      [](auto) { assert(0 && "<NIC> Transmit queue available delegate is not set!"); };
+    net::transmit_avail_delg transmit_queue_available_event_ = nullptr;
 
   private:
     net::BufferStore bufstore_;
     int N;
+    friend class Devices;
   };
 
 } //< namespace hw
