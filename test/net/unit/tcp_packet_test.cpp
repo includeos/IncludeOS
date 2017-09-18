@@ -15,10 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <packet_factory.hpp>
 #include <net/tcp/packet.hpp>
-#include <net/ethernet/header.hpp>
-#include <net/buffer_store.hpp>
-#include <net/packet.hpp>
 #include <common.cxx>
 
 using namespace std::string_literals;
@@ -44,20 +42,6 @@ CASE("round_up expects div to be greater than 0")
 }
 
 using namespace net;
-#define BUFFER_CNT   128
-#define BUFFER_SIZE 2048
-static BufferStore bufstore(BUFFER_CNT, BUFFER_SIZE);
-
-#define PHYS_OFFSET     0
-#define PACKET_CAPA  1514
-
-static Packet_ptr create_packet() noexcept
-{
-  auto buffer = bufstore.get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
-  new (ptr) net::Packet(PHYS_OFFSET, 0, PHYS_OFFSET + PACKET_CAPA, buffer.bufstore);
-  return net::Packet_ptr(ptr);
-}
 static tcp::Packet_ptr create_tcp_packet() noexcept
 {
   auto pkt = create_packet();

@@ -85,6 +85,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/http_version_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
+  ${TEST}/net/unit/ip4_packet_test.cpp
   ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
