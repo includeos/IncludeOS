@@ -81,7 +81,8 @@ void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr ent
 
 void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack&, Conntrack::Entry_ptr entry)
 {
-  Expects(entry);
+  // unknown protocols aren't tracked, so exit
+  if (UNLIKELY(entry == nullptr)) return;
 
   if(entry->is_mirrored())
     return;
