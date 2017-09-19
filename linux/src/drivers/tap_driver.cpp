@@ -12,7 +12,7 @@
 #include <cstring>
 #include <stdarg.h>
 
-static bool debug = true;
+static bool debug = false;
 
 static int run_cmd(const char *cmd, ...)
 {
@@ -91,7 +91,9 @@ int TAP_driver::write(const void* buf, int len)
   return ::write(tun_fd, buf, len);
 }
 
-TAP_driver::TAP_driver(const char* devname)
+TAP_driver::TAP_driver(const char* devname,
+                       const char* route,
+                       const char* ip)
 {
   this->dev = devname;
   this->tun_fd = alloc_tun();
@@ -101,12 +103,13 @@ TAP_driver::TAP_driver(const char* devname)
       std::abort();
   }
 
-  if (set_if_route() != 0) {
+  if (route != nullptr)
+  if (set_if_route(route) != 0) {
       printf("[TAP] ERROR when setting route for if\n");
       std::abort();
   }
 
-  if (set_if_address() != 0) {
+  if (set_if_address(ip) != 0) {
       printf("[TAP] ERROR when setting addr for if\n");
       std::abort();
   }
@@ -117,23 +120,27 @@ TAP_driver::~TAP_driver()
   close (tun_fd);
 }
 
-void TAP_driver::wait()
+void TAP_driver::wait(TAPVEC& tap_devices)
 {
   fd_set readset;
   int    result;
   do {
      FD_ZERO(&readset);
-     FD_SET(tun_fd, &readset);
-     result = select(tun_fd + 1, &readset, NULL, NULL, NULL);
+     for (auto& tapd : tap_devices)
+        FD_SET(tapd.get().get_fd(), &readset);
+     result = select(tap_devices.back().get().get_fd() + 1, &readset, NULL, NULL, NULL);
   } while (result == -1 && errno == EINTR);
 
   if (result > 0) {
-     if (FD_ISSET(tun_fd, &readset)) {
+    for (auto& tapd : tap_devices)
+    {
+     if (FD_ISSET(tapd.get().get_fd(), &readset)) {
        char buffer[1600];
-       int len = this->read(buffer, sizeof(buffer));
+       int len = tapd.get().read(buffer, sizeof(buffer));
        // on_read callback
-       if (o_read) o_read(buffer, len);
+       tapd.get().on_read(buffer, len);
      }
+    }
   }
   else if (result < 0) {
      /* An error ocurred, just print it to stdout */

@@ -4,34 +4,33 @@
 #include <hw/devices.hpp>
 #include "drivers/tap_driver.hpp"
 #include "drivers/usernet.hpp"
+#include <vector>
 
 // create TAP device and hook up packet receive to UserNet driver
-static TAP_driver tap0("tap1");
-static void packet_sent(net::Packet_ptr packet);
 extern void __platform_init();
-static std::unique_ptr<net::Inet4> network = nullptr;
+static TAP_driver::TAPVEC tap_devices;
+
+void create_network_device(int N, const char* route, const char* ip)
+{
+  auto tap = std::make_shared<TAP_driver> (
+            ("tap" + std::to_string(N)).c_str(), route, ip);
+  tap_devices.push_back(*tap);
+  // the IncludeOS packet communicator
+  auto* usernet = new UserNet();
+  // register driver for superstack
+  auto driver = std::unique_ptr<hw::Nic> (usernet);
+  hw::Devices::register_device<hw::Nic> (std::move(driver));
+  // connect driver to tap device
+  usernet->set_transmit_forward(
+    [tap] (net::Packet_ptr packet) {
+      tap->write(packet->layer_begin(), packet->size());
+    });
+  tap->on_read({usernet, &UserNet::write});
+}
 
 int main(void)
 {
   __platform_init();
-
-  // the network userspace driver
-  auto* usernet = new UserNet();
-  usernet->set_transmit_forward(packet_sent);
-  // register driver
-  auto driver = std::unique_ptr<hw::Nic> (usernet);
-  hw::Devices::register_device<hw::Nic> (std::move(driver));
-  // connect userspace driver to tap device
-  tap0.on_read({usernet, &UserNet::write});
-
-  // configure default network stack
-  auto& network = net::Super_stack::get<net::IP4> (0);
-  network.network_config(
-    { 10,  0,  0,  2},
-    {255,255,255,  0},
-    { 10,  0,  0,  1}, // GW
-    {  8,  8,  8,  8}  // DNS
-  );
 
   // calls Service::start
   OS::post_start();
@@ -42,14 +41,7 @@ int main(void)
   return 0;
 }
 
-// send packet to Linux
-void packet_sent(net::Packet_ptr packet)
-{
-  //printf("write %d\n", packet->size());
-  tap0.write(packet->layer_begin(), packet->size());
-}
-
 void wait_tap_devices()
 {
-  tap0.wait();
+  TAP_driver::wait(tap_devices);
 }
