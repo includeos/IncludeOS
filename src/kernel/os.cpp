@@ -21,7 +21,6 @@
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <util/fixedvec.hpp>
-#include <kprint>
 #include <service>
 #include <cstdio>
 #include <cinttypes>
@@ -61,9 +60,6 @@ static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
 OS::Plugin_vec OS::plugins_(Fixedvector_Init::UNINIT);
 
 // OS version
-#ifndef OS_VERSION
-#define OS_VERSION "v?.?.?"
-#endif
 std::string OS::version_str_ = OS_VERSION;
 std::string OS::arch_str_ = ARCH;
 
