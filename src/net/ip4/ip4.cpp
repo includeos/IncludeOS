@@ -104,9 +104,13 @@ namespace net {
     packet = drop_invalid_in(std::move(packet));
     if (UNLIKELY(packet == nullptr)) return;
 
-    // Enter prerouting chain
-    packet = stack_.prerouting_chain()(std::move(packet), stack_);
-    if (UNLIKELY(packet == nullptr)) return;
+    /* PREROUTING */
+    // Track incoming packet if conntrack is active
+    Conntrack::Entry_ptr ct = (stack_.conntrack())
+      ? stack_.conntrack()->in(*packet) : nullptr;
+    auto res = stack_.prerouting_chain()(*packet, stack_, ct);
+    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
     if (UNLIKELY(packet->ip_dst() != local_ip()
@@ -125,8 +129,13 @@ namespace net {
       return;
     }
 
-    packet = stack_.input_chain()(std::move(packet), stack_);
-    if (UNLIKELY(packet == nullptr)) return;
+    /* INPUT */
+    // Confirm incoming packet if conntrack is active
+    if(stack_.conntrack())
+      stack_.conntrack()->confirm(*packet); // No need to set ct again
+    res = stack_.input_chain()(*packet, stack_, ct);
+    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+
 
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {
@@ -165,8 +174,11 @@ namespace net {
 
     packet->make_flight_ready();
 
-    packet = stack_.output_chain()(std::move(packet), stack_);
-    if (UNLIKELY(packet == nullptr)) return;
+    /* OUTPUT */
+    Conntrack::Entry_ptr ct =
+      (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
+    auto res = stack_.output_chain()(*packet, stack_, ct);
+    if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
     ship(std::move(packet));
   }
@@ -186,8 +198,11 @@ namespace net {
     packet = drop_invalid_out(std::move(packet));
     if (packet == nullptr) return;
 
-    packet = stack_.postrouting_chain()(std::move(packet), stack_);
-    if (UNLIKELY(packet == nullptr)) return;
+    /* POSTROUTING */
+    Conntrack::Entry_ptr ct =
+      (stack_.conntrack()) ? stack_.conntrack()->confirm(*packet) : nullptr;
+    auto res = stack_.postrouting_chain()(*packet, stack_, ct);
+    if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
 
     if (next_hop == 0) {

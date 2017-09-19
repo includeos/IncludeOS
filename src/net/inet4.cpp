@@ -195,6 +195,12 @@ void Inet4::network_config(IP4::addr addr,
   configured_handlers_.clear();
 }
 
+void Inet4::enable_conntrack(std::shared_ptr<Conntrack> ct)
+{
+  Expects(conntrack_ == nullptr && "Conntrack is already set");
+  conntrack_ = ct;
+}
+
 void Inet4::process_sendq(size_t packets) {
 
   ////////////////////////////////////////////
