@@ -15,9 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#undef NO_DEBUG
-#define DEBUG // Allow debugging
-#define DEBUG2 // Allow debug lvl 2
+//#define IP_DEBUG 1
+#ifdef IP_DEBUG
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
 
 #include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
@@ -90,16 +93,23 @@ namespace net {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
-    debug("<IP4> received packet \n");
-    debug2("\t* Source IP: %s Dest.IP: %s Type: 0x%x\n",
+    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x\n",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
            (int) packet->ip_protocol());
-
+    switch (packet->ip_protocol()) {
+    case Protocol::ICMPv4:
+       PRINT("\t Type: ICMP\n"); break;
+    case Protocol::UDP:
+       PRINT("\t Type: UDP\n"); break;
+    case Protocol::TCP:
+       PRINT("\t Type: TCP\n"); break;
+    default:
+       PRINT("\t Type: UNKNOWN %hhu. Dropping. \n", packet->ip_protocol());
+    }
 
     // Stat increment packets received
     packets_rx_++;
-
 
     packet = drop_invalid_in(std::move(packet));
     if (UNLIKELY(packet == nullptr)) return;
@@ -120,9 +130,9 @@ namespace net {
 
       if (forward_packet_) {
         forward_packet_(stack_, std::move(packet));
-        debug("Packet forwarded \n");
+        PRINT("Packet forwarded \n");
       } else {
-        debug("Packet dropped \n");
+        PRINT("Packet dropped \n");
         drop(std::move(packet), Direction::Upstream, Drop_reason::Bad_destination);
       }
 
@@ -140,21 +150,16 @@ namespace net {
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {
     case Protocol::ICMPv4:
-      debug2("\t Type: ICMP\n");
       icmp_handler_(std::move(packet));
       break;
     case Protocol::UDP:
-      debug2("\t Type: UDP\n");
       udp_handler_(std::move(packet));
       break;
     case Protocol::TCP:
       tcp_handler_(std::move(packet));
-      debug2("\t Type: TCP\n");
       break;
 
     default:
-      debug("\t Type: UNKNOWN %hhu. Dropping. \n", packet->ip_protocol());
-
       // Send ICMP error of type Destination Unreachable and code PROTOCOL
       // @note: If dest. is broadcast or multicast it should be dropped by now
       stack_.icmp().destination_unreachable(std::move(packet), icmp4::code::Dest_unreachable::PROTOCOL);
@@ -189,7 +194,7 @@ namespace net {
 
     // Send loopback packets right back
     if (UNLIKELY(stack_.is_loopback(packet->ip_dst()))) {
-      debug("<IP4> Destination address is loopback \n");
+      PRINT("<IP4> Destination address is loopback \n");
       IP4::receive(std::move(packet));
       return;
     }
@@ -216,7 +221,7 @@ namespace net {
         // Compare subnets to know where to send packet
         next_hop = target == local ? packet->ip_dst() : stack_.gateway();
 
-        debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+        PRINT("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
               packet->ip_dst().str().c_str(),
               stack_.netmask().str().c_str(),
               stack_.ip_addr().str().c_str(),
@@ -228,7 +233,7 @@ namespace net {
     // Stat increment packets transmitted
     packets_tx_++;
 
-    debug("<IP4> Transmitting packet, layer begin: buf + %li\n", packet->layer_begin() - packet->buf());
+    PRINT("<IP4> Transmitting packet, layer begin: buf + %li\n", packet->layer_begin() - packet->buf());
 
     linklayer_out_(std::move(packet), next_hop);
   }
