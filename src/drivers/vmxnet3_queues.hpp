@@ -291,5 +291,5 @@ struct vmxnet3_queues {
   /** Transmit queue descriptor(s) */
   struct vmxnet3_tx_queue tx;
   /** Receive queue descriptor(s) */
-  struct vmxnet3_rx_queue rx[1];
+  struct vmxnet3_rx_queue rx[vmxnet3::NUM_RX_QUEUES];
 } __attribute__ ((packed));
