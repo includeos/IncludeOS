@@ -31,11 +31,10 @@ Addresses parse_iface(T& obj)
 {
   Expects(obj.HasMember("address"));
   Expects(obj.HasMember("netmask"));
-  Expects(obj.HasMember("gateway"));
 
   ip4::Addr address{obj["address"].GetString()};
   ip4::Addr netmask{obj["netmask"].GetString()};
-  ip4::Addr gateway{obj["gateway"].GetString()};
+  ip4::Addr gateway = (obj.HasMember("gateway")) ? ip4::Addr{obj["gateway"].GetString()} : 0;
   ip4::Addr dns = (not obj.HasMember("dns")) ? gateway : ip4::Addr{obj["dns"].GetString()};
 
   Addresses addresses{address, netmask, gateway, dns};
