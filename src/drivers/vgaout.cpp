@@ -18,8 +18,8 @@
 #include <vga>
 
 // output to VGA as well as the default stdout
-void default_stdout_handlers()
+__attribute__((constructor))
+static void add_vga_output()
 {
-  OS::add_stdout(&OS::default_stdout);
   OS::add_stdout(TextmodeVGA::get().get_print_handler());
 }
