@@ -81,9 +81,12 @@ http::Response handle_request(const http::Request& req)
 
 void Service::start()
 {
+  extern void create_network_device(int N, const char* route, const char* ip);
+  create_network_device(0, "10.0.0.0/24", "10.0.0.1");
   // Get the first IP stack
   // It should have configuration from config.json
   auto& inet = net::Super_stack::get<net::IP4>(0);
+  inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
 
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,
