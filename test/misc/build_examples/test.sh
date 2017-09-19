@@ -22,12 +22,16 @@ script_invoke_path="$0"
 script_name=`basename "$0"`
 getScriptAbsoluteDir "$script_invoke_path"
 script_absolute_dir=$RESULT
+skip_tests="demo_linux"	# Tests to skip
 
 errors_present=0
 echo -e ">>> Will now attempt to make all examples. Outpt from make will only be present if an error occured"
-test_directories=$(ls -d $script_absolute_dir/../../../examples/* && echo $script_absolute_dir/../../../lib/uplink/starbase)
-for dir in $test_directories
+
+for dir in `ls -d $script_absolute_dir/../../../examples/*`
 do
+  if [[ $dir == *"$skip_tests"* ]]; then
+	  continue
+  fi
   BREAK=""
   cd $dir
   BASE=`basename $dir`
