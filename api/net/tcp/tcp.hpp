@@ -29,7 +29,7 @@
 #include <deque>  // writeq
 #include <net/inet.hpp>
 #include <net/socket.hpp>
-#include <net/port_util.hpp>
+#include <net/ip4/ip4.hpp>
 
 namespace net {
 
@@ -54,7 +54,6 @@ namespace net {
   private:
     using Listeners       = std::map<Socket, std::unique_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
-    using Port_lists      = std::map<tcp::Address, Port_util>;
 
   public:
     /////// TCP Stuff - Relevant to the protocol /////
@@ -471,7 +470,7 @@ namespace net {
     Listeners     listeners_;
     Connections   connections_;
 
-    Port_lists    ports_;
+    IPStack::Port_utils& ports_;
 
     downstream  _network_layer_out;
 

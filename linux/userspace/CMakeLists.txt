@@ -26,6 +26,10 @@ set(NET_SOURCES
   ${IOS}/src/net/dhcp/dh4client.cpp
   ${IOS}/src/net/dhcp/dhcpd.cpp
 
+  ${IOS}/src/net/conntrack.cpp
+  ${IOS}/src/net/nat/nat.cpp
+  ${IOS}/src/net/nat/napt.cpp
+
   ${IOS}/src/net/http/header.cpp
   ${IOS}/src/net/http/header_fields.cpp
   ${IOS}/src/net/http/message.cpp

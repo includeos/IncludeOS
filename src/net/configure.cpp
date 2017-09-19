@@ -20,7 +20,7 @@
 #include <net/super_stack.hpp>
 #include <info>
 
-#define MYINFO(X,...) INFO("Network configure",X,##__VA_ARGS__)
+#define MYINFO(X,...) INFO("Netconf",X,##__VA_ARGS__)
 
 namespace net {
 
