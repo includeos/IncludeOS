@@ -16,8 +16,6 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
-#include <kernel/cpuid.hpp>
-#include <boot/multiboot.h>
 #include <kprint>
 
 extern "C" {
@@ -30,24 +28,13 @@ extern "C" {
   void _init_heap(uintptr_t);
   void _init_c_runtime();
   void _init_syscalls();
-  void __libc_init_array();
-  uintptr_t _end;
 }
 
-extern void default_stdout_handlers();
-
 extern "C"
-void __attribute__((weak))
-kernel_start(uintptr_t magic, uintptr_t addr)
+void kernel_start(uintptr_t magic, uintptr_t addr)
 {
-
-  // Initialize default serial port
-  __init_serial1();
-
-  // generate checksums of read-only areas etc.
-  __init_sanity_checks();
-
   // Determine where free memory starts
+  extern char _end;
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
@@ -69,20 +56,11 @@ kernel_start(uintptr_t magic, uintptr_t addr)
   // Initialize system calls
   _init_syscalls();
 
-  // Initialize stdout handlers
-  default_stdout_handlers();
-
-  // Call global ctors
-  __libc_init_array();
-
   // Initialize early OS, platform and devices
   OS::start(magic, addr);
 
   // Initialize common subsystems and call Service::start
   OS::post_start();
-
-  // verify certain read-only sections in memory
-  kernel_sanity_checks();
 
   // Starting event loop from here allows us to profile OS::start
   OS::event_loop();

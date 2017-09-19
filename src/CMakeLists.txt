@@ -22,10 +22,10 @@ include_directories(${BOTAN_DIR})
 
 # TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
-  kernel/kernel_start.cpp kernel/multiboot.cpp
+  kernel/multiboot.cpp
   kernel/syscalls.cpp kernel/os.cpp kernel/cpuid.cpp
   kernel/events.cpp kernel/memmap.cpp kernel/pci_manager.cpp
-  kernel/heap.cpp kernel/service_stub.cpp kernel/main_call.cpp
+  kernel/heap.cpp kernel/service_stub.cpp
   kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm
   kernel/fiber.cpp kernel/tls.cpp
@@ -45,13 +45,14 @@ set(OS_OBJECTS
   net/ip4/icmp4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet4.cpp
-  net/super_stack.cpp net/configure.cpp
+  net/super_stack.cpp net/configure.cpp net/conntrack.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
   net/http/mime_types.cpp net/http/cookie.cpp net/http/secure_server.cpp
   net/http/client_connection.cpp net/http/client.cpp
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
-  net/ws/websocket.cpp net/nat/napt.cpp
+  net/ws/websocket.cpp
+  net/nat/nat.cpp net/nat/napt.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
@@ -66,6 +67,7 @@ add_dependencies(os PrecompiledLibraries botan)
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)
 add_subdirectory(platform/x86_nano)
+add_subdirectory(platform/x86_linux)
 if(WITH_SOLO5)
 add_subdirectory(platform/x86_solo5)
 endif(WITH_SOLO5)

@@ -360,6 +360,20 @@ namespace net {
     virtual Filter_chain& output_chain() override
     { return output_chain_; }
 
+    virtual std::shared_ptr<Conntrack>& conntrack() override
+    { return conntrack_; }
+
+    virtual const std::shared_ptr<Conntrack>& conntrack() const override
+    { return conntrack_; }
+
+    virtual void enable_conntrack(std::shared_ptr<Conntrack> ct) override;
+
+    virtual Port_utils& tcp_ports() override
+    { return tcp_ports_; }
+
+    virtual Port_utils& udp_ports() override
+    { return udp_ports_; }
+
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
 
@@ -384,12 +398,17 @@ namespace net {
     UDP    udp_;
     TCP    tcp_;
 
+    Port_utils tcp_ports_;
+    Port_utils udp_ports_;
+
     // Filter chains
     Filter_chain prerouting_chain_{"Prerouting", {}};
     Filter_chain postrouting_chain_{"Postrouting", {}};
     Filter_chain input_chain_{"Input", {}};
     Filter_chain output_chain_{"Output", {}};
     Filter_chain forward_chain_{"Forward", {}};
+
+    std::shared_ptr<Conntrack> conntrack_;
 
     // we need this to store the cache per-stack
     DNSClient dns_;

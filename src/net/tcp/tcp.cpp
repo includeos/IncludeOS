@@ -32,6 +32,7 @@ TCP::TCP(IPStack& inet, bool smp_enable) :
   inet_{inet},
   listeners_(),
   connections_(),
+  ports_(inet.tcp_ports()),
   writeq(),
   max_seg_lifetime_{default_msl},       // 30s
   win_size_{default_ws_window_size},    // 8096*1024

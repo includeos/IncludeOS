@@ -10,7 +10,6 @@ extern "C" {
 }
 
 extern void __platform_init();
-extern void default_stdout_handlers();
 void __arch_subscribe_irq(unsigned char) {} // for now
 
 char cmdline[256];
@@ -24,7 +23,6 @@ extern "C" {
   void _init_heap(uintptr_t);
   void _init_c_runtime();
   void _init_syscalls();
-  void __libc_init_array();
   uintptr_t _end;
   void set_stack();
   void* get_cpu_ebp();
@@ -55,12 +53,6 @@ extern "C" {
 
     // Initialize system calls
     _init_syscalls();
-
-    //Initialize stdout handlers
-    default_stdout_handlers();
-
-    // Call global ctors
-    __libc_init_array();
 
     // Initialize OS including devices
     OS::start(cmdline, mem_size);

@@ -34,7 +34,8 @@ if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
   )
 else()
   set(DRIVERS
-    virtionet   # Virtio networking
+    virtionet
+    vmxnet3
   )
 endif()
 

@@ -18,16 +18,11 @@
 //#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
-#include <cstdio>
-#include <boot/multiboot.h>
-#include <hw/cmos.hpp>
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
-#include <kernel/cpuid.hpp>
 #include <util/fixedvec.hpp>
-#include <kprint>
 #include <service>
-#include <statman>
+#include <cstdio>
 #include <cinttypes>
 
 //#define ENABLE_PROFILERS
@@ -53,12 +48,9 @@ bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 MHz   OS::cpu_mhz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
-uintptr_t OS::low_memory_size_  = 0;
-uintptr_t OS::high_memory_size_ = 0;
 uintptr_t OS::memory_end_ = 0;
-uintptr_t OS::heap_max_ {0xfffffff};
+uintptr_t OS::heap_max_ = (uintptr_t) -1;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
-std::string OS::cmdline{Service::binary_name()};
 
 // stdout redirection
 using Print_vec = fixedvector<OS::print_func, 8>;
@@ -68,9 +60,6 @@ static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
 OS::Plugin_vec OS::plugins_(Fixedvector_Init::UNINIT);
 
 // OS version
-#ifndef OS_VERSION
-#define OS_VERSION "v?.?.?"
-#endif
 std::string OS::version_str_ = OS_VERSION;
 std::string OS::arch_str_ = ARCH;
 
@@ -79,8 +68,8 @@ void* OS::liveupdate_storage_area() noexcept
   return (void*) OS::liveupdate_loc_;
 }
 
-const std::string& OS::cmdline_args() noexcept
-{
+const char* OS::cmdline = nullptr;
+const char* OS::cmdline_args() noexcept {
   return cmdline;
 }
 
@@ -141,7 +130,7 @@ void OS::post_start()
   printf(" IncludeOS %s (%s / %i-bit)\n",
          version().c_str(), arch().c_str(),
          static_cast<int>(sizeof(uintptr_t)) * 8);
-  printf(" +--> Running [ %s ]\n", Service::name().c_str());
+  printf(" +--> Running [ %s ]\n", Service::name());
   FILLINE('~');
 
   Service::start();
@@ -151,11 +140,6 @@ void OS::add_stdout(OS::print_func func)
 {
   os_print_handlers.add(func);
 }
-__attribute__ ((weak))
-void default_stdout_handlers()
-{
-  OS::add_stdout(&OS::default_stdout);
-}
 __attribute__((weak))
 bool os_enable_boot_logging = false;
 void OS::print(const char* str, const size_t len)
@@ -163,51 +147,5 @@ void OS::print(const char* str, const size_t len)
   for (auto& callback : os_print_handlers) {
     if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
       callback(str, len);
-  }
-}
-
-void OS::legacy_boot() {
-  // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
-  auto mem = hw::CMOS::meminfo();
-  if (low_memory_size_ == 0) {
-    low_memory_size_ = mem.base.total * 1024;
-    INFO2("* Low memory: %i Kib", mem.base.total);
-  }
-  if (high_memory_size_ == 0) {
-    high_memory_size_ = mem.extended.total * 1024;
-    INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
-  }
-
-  auto& memmap = memory_map();
-
-  // No guarantees without multiboot, but we assume standard memory layout
-  memmap.assign_range({0x0009FC00, 0x0009FFFF,
-        "EBDA", "Extended BIOS data area"});
-  memmap.assign_range({0x000A0000, 0x000FFFFF,
-        "VGA/ROM", "Memory mapped video memory"});
-
-  // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
-  uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
-  uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-
-  uintptr_t unavail_start = 0x100000 + high_memory_size_;
-  size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
-  uintptr_t unavail_end = unavail_start + interval;
-
-  while (unavail_end < addr_max){
-    INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
-    memmap.assign_range({unavail_start, unavail_end,
-          "N/A", "Reserved / outside physical range" });
-    unavail_start = unavail_end + 1;
-    interval = std::min(span_max, addr_max - unavail_start);
-    // Increment might wrapped around
-    if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
-      INFO2("* Last chunk of memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, addr_max);
-      memmap.assign_range({unavail_start, addr_max,
-            "N/A", "Reserved / outside physical range" });
-      break;
-    }
-
-    unavail_end += interval;
   }
 }

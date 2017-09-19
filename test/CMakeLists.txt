@@ -18,6 +18,7 @@ message(STATUS "Building for arch ${ARCH}")
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-DOS_VERSION="v0.0.0.1")
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
@@ -71,6 +72,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
+  ${TEST}/net/unit/conntrack_test.cpp
   ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/net/unit/dhcp_message_test.cpp
   ${TEST}/net/unit/dns_test.cpp
@@ -136,8 +138,6 @@ set(OS_SOURCES
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
   ${SRC}/kernel/events.cpp
-  ${SRC}/kernel/kernel_start.cpp
-  ${SRC}/kernel/main_call.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
   ${SRC}/kernel/heap.cpp
@@ -148,6 +148,7 @@ set(OS_SOURCES
   ${SRC}/kernel/terminal.cpp
   ${SRC}/kernel/terminal_disk.cpp
   ${SRC}/net/buffer_store.cpp
+  ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp
   ${SRC}/net/dns/dns.cpp
   ${SRC}/net/ethernet/ethernet.cpp
