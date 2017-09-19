@@ -66,7 +66,7 @@ private:
 
   event_callback callbacks[NUM_EVENTS];
   std::array<uint64_t, NUM_EVENTS> received_array;
-  std::array<uint64_t*,NUM_EVENTS> handled_array;
+  std::array<uint64_t, NUM_EVENTS> handled_array;
 
   Fixed_bitmap<NUM_EVENTS>  event_subs;
   Fixed_bitmap<NUM_EVENTS>  event_pend;
