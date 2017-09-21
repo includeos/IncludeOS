@@ -25,7 +25,6 @@
 #include <hw/nic.hpp>
 #include <map>
 #include <net/port_util.hpp>
-#include "netfilter.hpp"
 #include "conntrack.hpp"
 
 namespace net {
@@ -121,29 +120,6 @@ namespace net {
     /** Determine if an IP address is a valid source address for this stack */
     virtual bool is_valid_source(IP_addr) = 0;
 
-
-    ///
-    /// PACKET FILTERING
-    ///
-    using Filter_chain = Filter_chain<IPV>;
-    /**
-     * Packet filtering hooks for firewall, NAT, connection tracking etc.
-     **/
-
-    /** Packets pass through prerouting chain before routing decision */
-    virtual Filter_chain& prerouting_chain() = 0;
-
-    /** Packets pass through postrouting chain after routing decision */
-    virtual Filter_chain& postrouting_chain() = 0;
-
-    /** Packets pass through forward chain by forwarder, if enabled */
-    virtual Filter_chain& forward_chain() = 0;
-
-    /** Packets pass through input chain before hitting protocol handlers */
-    virtual Filter_chain& input_chain() = 0;
-
-    /** Packets pass through output chain after exiting protocol handlers */
-    virtual Filter_chain& output_chain() = 0;
 
     /**
      * @brief      Get the active conntrack for this stack.
