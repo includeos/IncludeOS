@@ -35,7 +35,9 @@ class Stack_not_found : public std::runtime_error
 class Super_stack {
 public:
   using IP4_stack = Inet<IP4>;
-  using IP4_stacks = std::vector<std::unique_ptr<IP4_stack>>;
+  template <typename IPV>
+  using Stacks = std::vector<std::unique_ptr<Inet<IPV>>>;
+  using IP4_stacks = Stacks<IP4>;
 
 public:
   static Super_stack& inet()

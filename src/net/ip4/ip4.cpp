@@ -87,6 +87,22 @@ namespace net {
     return packet;
   }
 
+  /*
+   * RFC 1122, p. 30
+   * An incoming datagram is destined
+     for the host if the datagram's destination address field is:
+     (1)  (one of) the host's IP address(es); or
+     (2)  an IP broadcast address valid for the connected
+          network; or
+     (3)  the address for a multicast group of which the host is
+          a member on the incoming physical interface.
+  */
+  bool IP4::is_for_me(ip4::Addr dst) const
+  {
+    return stack_.is_valid_source(dst)
+      or (dst | stack_.netmask()) == ADDR_BCAST
+      or local_ip() == ADDR_ANY;
+  }
 
   void IP4::receive(Packet_ptr pckt)
   {
@@ -123,11 +139,7 @@ namespace net {
 
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
-    if (UNLIKELY(packet->ip_dst() != local_ip()
-                 and (packet->ip_dst() | stack_.netmask()) != ADDR_BCAST
-                 and local_ip() != ADDR_ANY
-                 and not stack_.is_loopback(packet->ip_dst()))) {
-
+    if(not is_for_me(packet->ip_dst())) {
       if (forward_packet_) {
         forward_packet_(stack_, std::move(packet));
         PRINT("Packet forwarded \n");
@@ -173,6 +185,17 @@ namespace net {
     assert((size_t)pckt->size() > sizeof(header));
 
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+
+    /*
+     * RFC 1122 p. 30
+     * When a host sends any datagram, the IP source address MUST
+       be one of its own IP addresses (but not a broadcast or
+       multicast address).
+    */
+    if (UNLIKELY(not stack_.is_valid_source(packet->ip_src()))) {
+      drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_source);
+      return;
+    }
 
     if (path_mtu_discovery_)
       packet->set_ip_flags(ip4::Flags::DF);
