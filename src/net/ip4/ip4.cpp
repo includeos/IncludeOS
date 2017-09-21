@@ -118,7 +118,7 @@ namespace net {
     // Track incoming packet if conntrack is active
     Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
-    auto res = stack_.prerouting_chain()(*packet, stack_, ct);
+    auto res = prerouting_chain_(*packet, stack_, ct);
     if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
 
@@ -143,7 +143,7 @@ namespace net {
     // Confirm incoming packet if conntrack is active
     if(stack_.conntrack())
       stack_.conntrack()->confirm(*packet); // No need to set ct again
-    res = stack_.input_chain()(*packet, stack_, ct);
+    res = input_chain_(*packet, stack_, ct);
     if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
 
@@ -182,7 +182,7 @@ namespace net {
     /* OUTPUT */
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
-    auto res = stack_.output_chain()(*packet, stack_, ct);
+    auto res = output_chain_(*packet, stack_, ct);
     if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
     ship(std::move(packet));
@@ -206,7 +206,7 @@ namespace net {
     /* POSTROUTING */
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->confirm(*packet) : nullptr;
-    auto res = stack_.postrouting_chain()(*packet, stack_, ct);
+    auto res = postrouting_chain_(*packet, stack_, ct);
     if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
 
