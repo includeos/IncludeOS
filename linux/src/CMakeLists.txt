@@ -1,0 +1,12 @@
+
+set(SOURCES
+    arch.cpp
+    main.cpp
+    os.cpp
+    drivers/usernet.cpp
+    drivers/tap_driver.cpp
+    drivers/memdisk.cpp
+  )
+
+add_library(linuxrt STATIC ${SOURCES})
+install(TARGETS linuxrt DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos/linux)

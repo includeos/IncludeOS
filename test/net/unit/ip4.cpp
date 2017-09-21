@@ -85,7 +85,6 @@ void ip_drop(net::Packet_ptr, net::IP4::Direction dir, net::IP4::Drop_reason rea
   }                                                     \
 
 
-
 int sections = 0;
 
 using namespace net;
@@ -192,6 +191,27 @@ CASE("IP4 is still a thing")
       ip_pckt->make_flight_ready();
 
       EXPECT_DROP(std::move(ip_pckt), Direction::Upstream, Drop_reason::Bad_source);
+
+      MYINFO("Section %i done", ++sections);
+    }
+
+    SECTION("IP packets with bad source address gets dropped") {
+
+      // Martian packet gets dropped
+      auto ip_pckt = inet.create_ip_packet(Protocol::UDP);
+      ip_pckt->set_ip_src({192,168,1,100});
+      ip_pckt->make_flight_ready();
+
+      // we're not allowed to transmit IP packets without payload
+      ip_pckt->set_ip_data_length(20);
+
+      {
+        auto dropcount = ip_packets_dropped;
+        inet.ip_obj().transmit(std::move(ip_pckt));
+        EXPECT(ip_packets_dropped == dropcount + 1);
+        EXPECT(last_drop_direction == IP4::Direction::Downstream);
+        EXPECT(last_drop_reason == IP4::Drop_reason::Bad_source);
+      }
 
       MYINFO("Section %i done", ++sections);
     }

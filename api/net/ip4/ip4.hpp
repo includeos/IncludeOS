@@ -20,7 +20,9 @@
 
 #include "addr.hpp"
 #include "header.hpp"
+#include "packet_ip4.hpp"
 #include <common>
+#include <net/netfilter.hpp>
 #include <net/inet.hpp>
 #include <rtc>
 #include <util/timer.hpp>
@@ -28,8 +30,6 @@
 #include <unordered_map>
 
 namespace net {
-
-  class PacketIP4;
 
   /** IP4 layer */
   class IP4 {
@@ -171,6 +171,38 @@ namespace net {
       return stack_.ip_addr();
     }
 
+    /**
+     * @brief      Determines if the packet is for me (this host).
+     *
+     * @param[in]  dst   The destination
+     *
+     * @return     True if for me, False otherwise.
+     */
+    bool is_for_me(ip4::Addr dst) const;
+
+    ///
+    /// PACKET FILTERING
+    ///
+
+    /**
+     * Packet filtering hooks for firewall, NAT, connection tracking etc.
+     **/
+
+    /** Packets pass through prerouting chain before routing decision */
+    Filter_chain<IP4>& prerouting_chain()
+    { return prerouting_chain_; }
+
+    /** Packets pass through postrouting chain after routing decision */
+    Filter_chain<IP4>& postrouting_chain()
+    { return postrouting_chain_; }
+
+    /** Packets pass through input chain before hitting protocol handlers */
+    Filter_chain<IP4>& input_chain()
+    { return input_chain_; }
+
+    /** Packets pass through output chain after exiting protocol handlers */
+    Filter_chain<IP4>& output_chain()
+    { return output_chain_; }
 
     /**
      * Stats getters
@@ -434,6 +466,12 @@ namespace net {
 
     /** Packet forwarding  */
     Stack::Forward_delg forward_packet_;
+
+    // Filter chains
+    Filter_chain<IP4> prerouting_chain_{"Prerouting", {}};
+    Filter_chain<IP4> postrouting_chain_{"Postrouting", {}};
+    Filter_chain<IP4> input_chain_{"Input", {}};
+    Filter_chain<IP4> output_chain_{"Output", {}};
 
     /** All dropped packets go here */
     drop_handler drop_handler_;

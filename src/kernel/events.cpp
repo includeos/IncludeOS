@@ -18,7 +18,6 @@
 #include <kernel/events.hpp>
 #include <cassert>
 #include <statman>
-#include <kprint>
 #include <smp>
 //#define DEBUG_SMP
 
@@ -41,6 +40,7 @@ Events& Events::get()
 void Events::trigger_event(uint8_t evt)
 {
   event_pend.atomic_set(evt);
+  // increment events received
   received_array[evt]++;
 }
 
@@ -67,11 +67,6 @@ void Events::subscribe(uint8_t evt, event_callback func)
   // Mark as subscribed to
   event_subs.atomic_set(evt);
 
-  // Create stat
-  Stat& subscribed = Statman::get().create(Stat::UINT64,
-      "cpu" + std::to_string(SMP::cpu_id()) + ".irq" + std::to_string(evt));
-  handled_array[evt] = &subscribed.get_uint64();
-
   // Set callback for event
   callbacks[evt] = func;
 #ifdef DEBUG_SMP
@@ -85,10 +80,6 @@ void Events::unsubscribe(uint8_t evt)
 {
   event_subs.atomic_reset(evt);
   callbacks[evt] = nullptr;
-  // also free stat
-  if (handled_array[evt]) {
-    Statman::get().free(handled_array[evt]);
-  }
 }
 
 void Events::process_events()
@@ -114,9 +105,8 @@ void Events::process_events()
 #endif
       callbacks[intr]();
 
-      // increase stat counter, if it exists
-      if (handled_array[intr])
-          (*handled_array[intr])++;
+      // increment events handled
+      handled_array[intr]++;
 
       event_todo.reset(intr);
       intr = event_todo.first_set();
