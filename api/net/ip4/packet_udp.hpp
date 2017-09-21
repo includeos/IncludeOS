@@ -19,6 +19,7 @@
 
 #include "udp.hpp"
 #include "packet_ip4.hpp"
+#include <net/socket.hpp>
 #include <cassert>
 
 namespace net
@@ -58,6 +59,12 @@ namespace net
     {
       return htons(header().dport);
     }
+
+    Socket source() const
+    { return Socket{ip_src(), src_port()}; }
+
+    Socket destination() const
+    { return Socket{ip_dst(), dst_port()}; }
 
     uint16_t length() const noexcept
     {
