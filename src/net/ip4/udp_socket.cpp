@@ -40,8 +40,8 @@ namespace net
     assert(p->data_length() == length);
   }
 
-  void UDPSocket::internal_read(UDP::Packet_ptr udp)
-  { on_read_handler(udp->ip_src(), udp->src_port(), (const char*) udp->data(), udp->data_length()); }
+  void UDPSocket::internal_read(const PacketUDP& udp)
+  { on_read_handler(udp.ip_src(), udp.src_port(), (const char*) udp.data(), udp.data_length()); }
 
   void UDPSocket::sendto(
      addr_t destIP,

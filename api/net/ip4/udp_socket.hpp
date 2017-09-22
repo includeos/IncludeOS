@@ -78,7 +78,7 @@ namespace net
 
   private:
     void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
-    void internal_read(UDP::Packet_ptr);
+    void internal_read(const PacketUDP&);
 
     UDP&    udp_;
     Socket  socket_;

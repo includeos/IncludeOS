@@ -85,6 +85,9 @@ namespace net
       return ip_data_ptr() + sizeof(UDP::header);
     }
 
+    const Byte* data() const
+    { return ip_data_ptr() + sizeof(UDP::header); }
+
     Byte* begin()
     {
       return data();

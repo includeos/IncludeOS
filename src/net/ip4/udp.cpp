@@ -51,7 +51,7 @@ namespace net {
     if (it != sockets_.end()) {
       PRINT("<%s> UDP found listener on %s\n",
               stack_.ifname().c_str(), udp_packet->destination().to_string().c_str());
-      it->second.internal_read(std::move(udp_packet));
+      it->second.internal_read(*udp_packet);
       return;
     }
 
@@ -61,15 +61,17 @@ namespace net {
 
     if(is_bcast) {
       auto dport = udp_packet->dst_port();
-      auto it = std::find_if(sockets_.begin(), sockets_.end(), [dport](const auto& pair)->bool {
-        return pair.first.port() == dport;
-      });
-      if(it != sockets_.end()) {
-        PRINT("<%s> UDP found listener on BROADCAST %s\n",
-              stack_.ifname().c_str(), udp_packet->destination().to_string().c_str());
-        it->second.internal_read(std::move(udp_packet));
-        return;
+      PRINT("<%s> UDP received broadcast on port %d\n", stack_.ifname().c_str(), dport);
+      for(auto& pair : sockets_)
+      {
+        if(pair.first.port() == dport)
+        {
+          PRINT("<%s> UDP found broadcast receiver: %s\n",
+              stack_.ifname().c_str(), pair.first.to_string().c_str());
+          pair.second.internal_read(*udp_packet);
+        }
       }
+      return;
     }
 
     PRINT("<%s> UDP: nobody listening on %u. Drop!\n",
