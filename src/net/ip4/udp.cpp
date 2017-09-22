@@ -15,7 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG
+//#define UDP_DEBUG 1
+#ifdef UDP_DEBUG
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
 #include <common>
 #include <net/ip4/udp.hpp>
 #include <net/util.hpp>
@@ -36,14 +42,14 @@ namespace net {
   {
     auto udp_packet = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
 
-    debug("<%s> UDP", stack_.ifname().c_str());
+    PRINT("<%s> UDP", stack_.ifname().c_str());
 
-    debug("\t Source port: %u, Dest. Port: %u Length: %u\n",
+    PRINT("\t Source port: %u, Dest. Port: %u Length: %u\n",
           udp_packet->src_port(), udp_packet->dst_port(), udp_packet->length());
 
     auto it = find(udp_packet->destination());
     if (it != sockets_.end()) {
-      debug("<%s> UDP found listener on %s\n",
+      PRINT("<%s> UDP found listener on %s\n",
               stack_.ifname().c_str(), udp_packet->destination().to_string().c_str());
       it->second.internal_read(std::move(udp_packet));
       return;
@@ -59,14 +65,14 @@ namespace net {
         return pair.first.port() == dport;
       });
       if(it != sockets_.end()) {
-        debug("<%s> UDP found listener on BROADCAST %s\n",
+        PRINT("<%s> UDP found listener on BROADCAST %s\n",
               stack_.ifname().c_str(), udp_packet->destination().to_string().c_str());
         it->second.internal_read(std::move(udp_packet));
         return;
       }
     }
 
-    debug("<%s> UDP: nobody listening on %u. Drop!\n",
+    PRINT("<%s> UDP: nobody listening on %u. Drop!\n",
             stack_.ifname().c_str(), udp_packet->dst_port());
 
     // Sending ICMP error message of type Destination Unreachable and code PORT
@@ -153,13 +159,13 @@ namespace net {
 
   void UDP::close(const Socket socket)
   {
-    debug("Closed socket %s\n", socket.to_string().c_str());
+    PRINT("Closed socket %s\n", socket.to_string().c_str());
     sockets_.erase(socket);
   }
 
   void UDP::transmit(UDP::Packet_ptr udp)
   {
-    debug("<UDP> Transmitting %u bytes (data=%u) from %s to %s:%i\n",
+    PRINT("<UDP> Transmitting %u bytes (data=%u) from %s to %s:%i\n",
            udp->length(), udp->data_length(),
            udp->ip_src().str().c_str(),
            udp->ip_dst().str().c_str(), udp->dst_port());
@@ -177,7 +183,7 @@ namespace net {
   }
 
   void UDP::flush_expired() {
-    debug("<UDP> Flushing expired error callbacks\n");
+    PRINT("<UDP> Flushing expired error callbacks\n");
 
     for (auto& err : error_callbacks_) {
       if (err.second.expired())
@@ -249,7 +255,7 @@ namespace net {
   {
     UDP::Packet_ptr chain_head = nullptr;
 
-    debug("<%s> UDP: %i bytes to write, need %i packets \n",
+    PRINT("<%s> UDP: %i bytes to write, need %i packets \n",
           udp.stack().ifname().c_str(),
           remaining(),
           remaining() / udp.max_datagram_size() + (remaining() % udp.max_datagram_size() ? 1 : 0));
