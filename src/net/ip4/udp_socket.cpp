@@ -21,8 +21,8 @@
 
 namespace net
 {
-  UDPSocket::UDPSocket(UDP& udp_instance, port_t port)
-    : udp_(udp_instance), l_port(port)
+  UDPSocket::UDPSocket(UDP& udp_instance, Socket socket)
+    : udp_{udp_instance}, socket_{socket}
   {}
 
   void UDPSocket::packet_init(
@@ -32,7 +32,7 @@ namespace net
       port_t port,
       uint16_t length)
   {
-    p->init(this->l_port, port);
+    p->init(this->local_port(), port);
     p->set_ip_src(srcIP);
     p->set_ip_dst(destIP);
     p->set_data_length(length);
@@ -54,7 +54,7 @@ namespace net
     if (UNLIKELY(length == 0)) return;
     udp_.sendq.emplace_back(
        (const uint8_t*) buffer, length, cb, ecb, this->udp_,
-       local_addr(), this->l_port, destIP, port);
+       local_addr(), this->local_port(), destIP, port);
 
     // UDP packets are meant to be sent immediately, so try flushing
     udp_.flush();
@@ -71,7 +71,7 @@ namespace net
     if (UNLIKELY(length == 0)) return;
     udp_.sendq.emplace_back(
          (const uint8_t*) buffer, length, cb, ecb, this->udp_,
-         srcIP, this->l_port, IP4::ADDR_BCAST, port);
+         srcIP, this->local_port(), IP4::ADDR_BCAST, port);
 
     // UDP packets are meant to be sent immediately, so try flushing
     udp_.flush();

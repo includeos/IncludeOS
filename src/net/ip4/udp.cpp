@@ -27,8 +27,7 @@ namespace net {
   UDP::UDP(Stack& inet)
     : network_layer_out_{[] (net::Packet_ptr) {}},
       stack_(inet),
-      ports_{},
-      current_port_{new_ephemeral_port()}
+      ports_(inet.udp_ports())
   {
     inet.on_transmit_queue_available({this, &UDP::process_sendq});
   }
@@ -42,12 +41,29 @@ namespace net {
     debug("\t Source port: %u, Dest. Port: %u Length: %u\n",
           udp_packet->src_port(), udp_packet->dst_port(), udp_packet->length());
 
-    auto it = ports_.find(udp_packet->dst_port());
-    if (LIKELY(it != ports_.end())) {
-      debug("<%s> UDP found listener on port %u\n",
-              stack_.ifname().c_str(), udp_packet->dst_port());
+    auto it = find(udp_packet->destination());
+    if (it != sockets_.end()) {
+      debug("<%s> UDP found listener on %s\n",
+              stack_.ifname().c_str(), udp_packet->destination().to_string().c_str());
       it->second.internal_read(std::move(udp_packet));
       return;
+    }
+
+    // No destination found, check if broadcast
+    const auto dst_ip = udp_packet->ip_dst();
+    const bool is_bcast = (dst_ip == IP4::ADDR_BCAST or dst_ip == stack_.broadcast_addr());
+
+    if(is_bcast) {
+      auto dport = udp_packet->dst_port();
+      auto it = std::find_if(sockets_.begin(), sockets_.end(), [dport](const auto& pair)->bool {
+        return pair.first.port() == dport;
+      });
+      if(it != sockets_.end()) {
+        debug("<%s> UDP found listener on BROADCAST %s\n",
+              stack_.ifname().c_str(), udp_packet->destination().to_string().c_str());
+        it->second.internal_read(std::move(udp_packet));
+        return;
+      }
     }
 
     debug("<%s> UDP: nobody listening on %u. Drop!\n",
@@ -77,48 +93,68 @@ namespace net {
     }
   }
 
-  UDPSocket& UDP::bind(UDP::port_t port)
+  UDPSocket& UDP::bind(const Socket socket)
   {
-    debug("<%s> UDP bind to port %d\n", stack_.ifname().c_str(), port);
-    /// bind(0) == bind()
-    if (port == 0) return bind();
-    /// ... !!!
-    auto it = ports_.find(port);
-    if (LIKELY(it == ports_.end())) {
-      // create new socket
-      auto res = ports_.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(port),
-            std::forward_as_tuple(*this, port));
-      it = res.first;
-    } else {
-      throw UDP::Port_in_use_exception(it->first);
-    }
-    return it->second;
+    const auto addr = socket.address();
+    const auto port = socket.port();
+
+    if(UNLIKELY( port == 0))
+      return bind(addr);
+
+    if(UNLIKELY( not stack_.is_valid_source(addr) ))
+      throw UDP_error{"Cannot bind to address: " + addr.to_string()};
+
+    auto& port_util = ports_[addr];
+
+    if(UNLIKELY( port_util.is_bound(port) ))
+      throw Port_in_use_exception{port};
+
+    debug("<%s> UDP bind to %s\n", stack_.ifname().c_str(), socket.to_string().c_str());
+
+    auto it = sockets_.emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(socket),
+      std::forward_as_tuple(*this, socket));
+
+    Ensures(it.second);
+
+    port_util.bind(port);
+
+    return it.first->second;
   }
 
-  UDPSocket& UDP::bind()
+  UDPSocket& UDP::bind(const ip4::Addr addr)
   {
-    if (UNLIKELY(ports_.size() >= (port_ranges::DYNAMIC_END - port_ranges::DYNAMIC_START)))
-      throw std::runtime_error("UPD Socket: All ports taken!");
+    if(UNLIKELY( not stack_.is_valid_source(addr) ))
+      throw UDP_error{"Cannot bind to address: " + addr.to_string()};
 
-    while (ports_.find(++current_port_) != ports_.end())
-      // prevent automatic ports under 1024
-      if (current_port_  == port_ranges::DYNAMIC_END) current_port_ = port_ranges::DYNAMIC_START;
+    auto& port_util = ports_[addr];
+    const auto port = port_util.get_next_ephemeral();
 
-    return bind(current_port_);
+    Socket socket{addr, port};
+
+    auto it = sockets_.emplace(
+      std::piecewise_construct,
+      std::forward_as_tuple(socket),
+      std::forward_as_tuple(*this, socket));
+
+    Ensures(it.second);
+
+    // we know the port is not bound, else the above would throw
+    port_util.bind(port);
+
+    return it.first->second;
   }
 
-  bool UDP::is_bound(UDP::port_t port)
+  bool UDP::is_bound(const Socket socket) const
   {
-    return ports_.find(port) != ports_.end();
+    return sockets_.find(socket) != sockets_.end();
   }
 
-  void UDP::close(UDP::port_t port)
+  void UDP::close(const Socket socket)
   {
-    debug("Closed port %u\n", port);
-    if (is_bound(port))
-      ports_.erase(port);
+    debug("Closed socket %s\n", socket.to_string().c_str());
+    sockets_.erase(socket);
   }
 
   void UDP::transmit(UDP::Packet_ptr udp)

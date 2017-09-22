@@ -36,7 +36,7 @@ namespace net
     typedef UDP::error_handler error_handler;
 
     // constructors
-    UDPSocket(UDP&, port_t port);
+    UDPSocket(UDP&, Socket socket);
     UDPSocket(const UDPSocket&) = delete;
     // ^ DON'T USE THESE. We could create our own allocators just to prevent
     // you from creating sockets, but then everyone is wasting time.
@@ -58,17 +58,20 @@ namespace net
                error_handler ecb = nullptr);
 
     void close()
-    { udp_.close(l_port); }
+    { udp_.close(socket_); }
 
     void join(multicast_group_addr);
     void leave(multicast_group_addr);
 
     // stuff
     addr_t local_addr() const
-    { return udp_.local_ip(); }
+    { return socket_.address(); }
 
     port_t local_port() const
-    { return l_port; }
+    { return socket_.port(); }
+
+    const Socket& local() const
+    { return socket_; }
 
     UDP& udp()
     { return udp_; }
@@ -77,8 +80,8 @@ namespace net
     void packet_init(UDP::Packet_ptr, addr_t, addr_t, port_t, uint16_t);
     void internal_read(UDP::Packet_ptr);
 
-    UDP& udp_;
-    port_t l_port;
+    UDP&    udp_;
+    Socket  socket_;
     recvfrom_handler on_read_handler =
       [] (addr_t, port_t, const char*, size_t) {};
 

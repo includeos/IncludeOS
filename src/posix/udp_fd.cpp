@@ -72,7 +72,7 @@ UDP_FD::~UDP_FD()
 {
   // shutdown underlying socket, makes sure no callbacks are called on dead fd
   if(this->sock)
-    sock->udp().close(sock->local_port());
+    sock->close();
 }
 int UDP_FD::read(void* buffer, size_t len)
 {
