@@ -62,13 +62,16 @@ namespace net {
     if(is_bcast) {
       auto dport = udp_packet->dst_port();
       PRINT("<%s> UDP received broadcast on port %d\n", stack_.ifname().c_str(), dport);
-      for(auto& pair : sockets_)
+
+      for(auto it = sockets_.begin(); it != sockets_.end();)
       {
-        if(pair.first.port() == dport)
+        auto current = it++; // internal_read() may result in close,
+                             // this is to avoid iterator invalidation
+        if(current->first.port() == dport)
         {
           PRINT("<%s> UDP found broadcast receiver: %s\n",
-              stack_.ifname().c_str(), pair.first.to_string().c_str());
-          pair.second.internal_read(*udp_packet);
+              stack_.ifname().c_str(), current->first.to_string().c_str());
+          current->second.internal_read(*udp_packet);
         }
       }
       return;
