@@ -137,6 +137,9 @@ namespace net {
 
     bool is_bound(const Socket) const;
 
+    bool is_bound(const port_t port) const
+    { return is_bound({stack_.ip_addr(), port}); }
+
     /** Close a socket **/
     void close(const Socket socket);
 
