@@ -337,7 +337,7 @@ namespace net {
       return ip_addr();
     }
 
-    bool is_valid_source(IP4::addr src) override
+    bool is_valid_source(IP4::addr src) const override
     { return src == ip_addr() or is_loopback(src); }
 
     virtual std::shared_ptr<Conntrack>& conntrack() override

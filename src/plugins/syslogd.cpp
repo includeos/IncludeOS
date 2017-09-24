@@ -43,7 +43,7 @@ void Syslog_facility::syslog(const std::string& log_message) {
 
 Syslog_facility::~Syslog_facility() {
   if (sock_)
-    sock_->udp().close(sock_->local_port());
+    sock_->close();
 }
 
 void Syslog_facility::open_socket() {
@@ -53,7 +53,7 @@ void Syslog_facility::open_socket() {
 
 void Syslog_facility::close_socket() {
 	if (sock_) {
-    sock_->udp().close(sock_->local_port());
+    sock_->close();
     sock_ = nullptr;
 	}
 }

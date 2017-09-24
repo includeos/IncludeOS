@@ -35,6 +35,11 @@ namespace net {
   class PacketUDP;
   class UDPSocket;
 
+  struct UDP_error : public std::runtime_error {
+    using base = std::runtime_error;
+    using base::base;
+  };
+
   /** Basic UDP support. @todo Implement UDP sockets.  */
   class UDP {
   public:
@@ -43,6 +48,8 @@ namespace net {
 
     using Packet_ptr    = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
     using Stack         = IP4::Stack;
+
+    using Sockets       = std::map<Socket, UDPSocket>;
 
     typedef delegate<void()> sendto_handler;
     typedef delegate<void(const Error&)> error_handler;
@@ -117,15 +124,24 @@ namespace net {
     void transmit(UDP::Packet_ptr udp);
 
     //! @param port local port
-    UDPSocket& bind(port_t port);
+    UDPSocket& bind(port_t port)
+    { return bind({stack_.ip_addr(), port}); }
+
+    UDPSocket& bind(const Socket socket);
 
     //! returns a new UDP socket bound to a random port
-    UDPSocket& bind();
+    UDPSocket& bind()
+    { return bind(stack_.ip_addr()); }
 
-    bool is_bound(port_t port);
+    UDPSocket& bind(const ip4::Addr addr);
 
-    /** Close a port **/
-    void close(port_t port);
+    bool is_bound(const Socket) const;
+
+    bool is_bound(const port_t port) const
+    { return is_bound({stack_.ip_addr(), port}); }
+
+    /** Close a socket **/
+    void close(const Socket socket);
 
     //! construct this UDP module with @inet
     UDP(Stack& inet);
@@ -145,19 +161,17 @@ namespace net {
     uint16_t max_datagram_size() noexcept
     { return stack().ip_obj().MDDS() - sizeof(header); }
 
-    class Port_in_use_exception : public std::exception {
+    class Port_in_use_exception : public UDP_error {
     public:
       Port_in_use_exception(UDP::port_t p)
-        : port_(p) {}
+        : UDP_error{"UDP port already in use: " + std::to_string(p)},
+          port_(p) {}
 
-      virtual const char* what() const noexcept
-      { return "UDP port already in use"; }
-
-      UDP::port_t port()
+      UDP::port_t port() const
       { return port_; }
 
     private:
-      UDP::port_t port_;
+      const UDP::port_t port_;
     };
 
   private:
@@ -166,11 +180,24 @@ namespace net {
     std::chrono::minutes        flush_interval_{5};
     downstream                  network_layer_out_;
     Stack&                      stack_;
-    std::map<port_t, UDPSocket> ports_;
-    port_t                      current_port_;
+    Sockets                     sockets_;
+    Stack::Port_utils&          ports_;
 
     // the async send queue
     std::deque<WriteBuffer> sendq;
+
+
+    Sockets::iterator find(const Socket socket)
+    {
+      Sockets::iterator it = sockets_.find(socket);
+      return it;
+    }
+
+    Sockets::const_iterator cfind(const Socket socket) const
+    {
+      Sockets::const_iterator it = sockets_.find(socket);
+      return it;
+    }
 
     /** Error entries are just error callbacks and timestamps */
     class Error_entry {

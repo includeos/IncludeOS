@@ -118,7 +118,7 @@ namespace net {
     virtual IP_addr get_source_addr(IP_addr dest) = 0;
 
     /** Determine if an IP address is a valid source address for this stack */
-    virtual bool is_valid_source(IP_addr) = 0;
+    virtual bool is_valid_source(IP_addr) const = 0;
 
 
     /**
