@@ -26,8 +26,7 @@ namespace net {
 /**
  * An IP address and port
  */
-class Socket {
-public:
+union Socket {
 
   using Address = ip4::Addr;
   using port_t = uint16_t;
@@ -56,6 +55,15 @@ public:
     : address_{address}, port_{port}
   {}
 
+  Socket(const Socket& other) noexcept
+   : data_{other.data_} {}
+
+  Socket& operator=(const Socket& other) noexcept
+  {
+    data_ = other.data_;
+    return *this;
+  }
+
   /**
    * Get the socket's network address
    *
@@ -64,9 +72,6 @@ public:
   constexpr Address address() const noexcept
   { return address_; }
 
-  void set_address(const Address address) noexcept
-  { address_ = address; }
-
   /**
    * Get the socket's port value
    *
@@ -74,9 +79,6 @@ public:
    */
   constexpr port_t port() const noexcept
   { return port_; }
-
-  void set_port(const port_t port) noexcept
-  { port_ = port; }
 
   /**
    * Get a string representation of this class
@@ -104,8 +106,7 @@ public:
    */
   constexpr bool operator==(const Socket& other) const noexcept
   {
-    return (address() == other.address())
-       and (port() == other.port());
+    return data_ == other.data_;
   }
 
   /**
@@ -147,10 +148,16 @@ public:
   { return not (*this < other); }
 
 private:
-  Address address_;
-  port_t  port_;
+  struct {
+    Address   address_;
+    port_t    port_;
+    uint16_t  padding{0};
+  };
+  uint64_t data_;
 
 }; //< class Socket
+
+static_assert(sizeof(Socket) == 8, "Socket not 8 byte");
 
 /**
  * @brief      A pair of Sockets

@@ -94,8 +94,8 @@ void Service::start()
   };
 
   INFO("NAT Test", "Enable MASQUERADE on eth1");
-  eth1.prerouting_chain().chain.push_back(demasq);
-  eth1.postrouting_chain().chain.push_back(masq);
+  eth1.ip_obj().prerouting_chain().chain.push_back(demasq);
+  eth1.ip_obj().postrouting_chain().chain.push_back(masq);
 
   // Open TCP 80 on internet
   internet_host.tcp().listen(80, [] (auto conn)
@@ -154,8 +154,8 @@ void Service::start()
     return Filter_verdict::ACCEPT;
   };
 
-  eth0.prerouting_chain().chain.push_back(dnat_rule);
-  eth0.postrouting_chain().chain.push_back(snat_translate);
+  eth0.ip_obj().prerouting_chain().chain.push_back(dnat_rule);
+  eth0.ip_obj().postrouting_chain().chain.push_back(snat_translate);
 
   server.tcp().listen(DNAT_PORT, [] (auto conn)
   {

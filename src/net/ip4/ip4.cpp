@@ -87,6 +87,22 @@ namespace net {
     return packet;
   }
 
+  /*
+   * RFC 1122, p. 30
+   * An incoming datagram is destined
+     for the host if the datagram's destination address field is:
+     (1)  (one of) the host's IP address(es); or
+     (2)  an IP broadcast address valid for the connected
+          network; or
+     (3)  the address for a multicast group of which the host is
+          a member on the incoming physical interface.
+  */
+  bool IP4::is_for_me(ip4::Addr dst) const
+  {
+    return stack_.is_valid_source(dst)
+      or (dst | stack_.netmask()) == ADDR_BCAST
+      or local_ip() == ADDR_ANY;
+  }
 
   void IP4::receive(Packet_ptr pckt)
   {
@@ -118,16 +134,12 @@ namespace net {
     // Track incoming packet if conntrack is active
     Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
-    auto res = stack_.prerouting_chain()(*packet, stack_, ct);
+    auto res = prerouting_chain_(*packet, stack_, ct);
     if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
-    if (UNLIKELY(packet->ip_dst() != local_ip()
-                 and (packet->ip_dst() | stack_.netmask()) != ADDR_BCAST
-                 and local_ip() != ADDR_ANY
-                 and not stack_.is_loopback(packet->ip_dst()))) {
-
+    if(not is_for_me(packet->ip_dst())) {
       if (forward_packet_) {
         forward_packet_(stack_, std::move(packet));
         PRINT("Packet forwarded \n");
@@ -143,7 +155,7 @@ namespace net {
     // Confirm incoming packet if conntrack is active
     if(stack_.conntrack())
       stack_.conntrack()->confirm(*packet); // No need to set ct again
-    res = stack_.input_chain()(*packet, stack_, ct);
+    res = input_chain_(*packet, stack_, ct);
     if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
 
@@ -174,6 +186,17 @@ namespace net {
 
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
+    /*
+     * RFC 1122 p. 30
+     * When a host sends any datagram, the IP source address MUST
+       be one of its own IP addresses (but not a broadcast or
+       multicast address).
+    */
+    if (UNLIKELY(not stack_.is_valid_source(packet->ip_src()))) {
+      drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_source);
+      return;
+    }
+
     if (path_mtu_discovery_)
       packet->set_ip_flags(ip4::Flags::DF);
 
@@ -182,7 +205,7 @@ namespace net {
     /* OUTPUT */
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
-    auto res = stack_.output_chain()(*packet, stack_, ct);
+    auto res = output_chain_(*packet, stack_, ct);
     if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
     ship(std::move(packet));
@@ -206,7 +229,7 @@ namespace net {
     /* POSTROUTING */
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->confirm(*packet) : nullptr;
-    auto res = stack_.postrouting_chain()(*packet, stack_, ct);
+    auto res = postrouting_chain_(*packet, stack_, ct);
     if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
 

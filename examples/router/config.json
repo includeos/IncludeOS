@@ -1,0 +1,33 @@
+{
+  "net" : [
+    {
+      "iface": 0,
+      "config": "static",
+      "address": "10.38.0.1",
+      "netmask": "255.255.255.0",
+      "gateway": "10.38.0.254"
+    },
+    {
+      "iface": 1,
+      "config": "static",
+      "address": "10.39.0.1",
+      "netmask": "255.255.255.0",
+      "gateway": "10.39.0.254"
+    }
+
+  ],
+  "router" : [
+    [
+      {
+        "address": "10.38.0.0",
+        "netmask": "255.255.255.0",
+        "iface"  : 0
+      },
+      {
+        "address": "10.39.0.0",
+        "netmask": "255.255.255.0",
+        "iface"  : 1
+      }
+    ]
+  ]
+}
