@@ -92,6 +92,7 @@ private:
   void enable_intr(uint8_t idx) noexcept;
   void disable_intr(uint8_t idx) noexcept;
 
+  inline int  tx_flush_diff() const noexcept;
   inline int  tx_tokens_free() const noexcept;
   inline bool can_transmit() const noexcept;
   void transmit_data(uint8_t* data, uint16_t);
@@ -103,6 +104,7 @@ private:
     uint32_t producers  = 0;
     uint32_t prod_count = 0;
     uint32_t consumers  = 0;
+    uint32_t flushvalue = 0;
   };
   struct rxring_state {
     uint8_t* buffers[NUM_RX_DESC];
