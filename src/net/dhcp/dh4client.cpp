@@ -72,7 +72,8 @@ namespace net {
     this->progress = 0;
     this->retries  = NUM_RETRIES;
     // close UDP socket
-    stack.udp().close(DHCP_CLIENT_PORT);
+    Expects(this->socket != nullptr);
+    this->socket->close();
     this->socket = nullptr;
     // call on_config with timeout = true
     for(auto& handler : this->config_handlers_)

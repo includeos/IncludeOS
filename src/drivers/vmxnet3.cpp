@@ -20,7 +20,6 @@
 #include "vmxnet3_queues.hpp"
 
 #include <kernel/events.hpp>
-#include <timers>
 #include <smp>
 #include <info>
 #include <cassert>
@@ -213,6 +212,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   shared.misc.version         = VMXNET3_VERSION_MAGIC;
   shared.misc.version_support     = 1;
   shared.misc.upt_version_support = 1;
+  shared.misc.upt_features        = UPT1_F_RXVLAN;
   shared.misc.driver_data_address = (uintptr_t) &dma;
   shared.misc.queue_desc_address  = (uintptr_t) &dma->queues;
   shared.misc.driver_data_len     = sizeof(vmxnet3_dma);
@@ -223,7 +223,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   shared.interrupt.mask_mode = VMXNET3_IT_AUTO | (VMXNET3_IMM_AUTO << 2);
   shared.interrupt.num_intrs = 2 + NUM_RX_QUEUES;
   shared.interrupt.event_intr_index = 0;
-  memset(shared.interrupt.moderation_level, 0, VMXNET3_MAX_INTRS);
+  memset(shared.interrupt.moderation_level, UPT1_IML_ADAPTIVE, VMXNET3_MAX_INTRS);
   shared.interrupt.control   = 0x1; // disable all
   shared.rx_filter.mode =
       VMXNET3_RXM_UCAST | VMXNET3_RXM_BCAST | VMXNET3_RXM_ALL_MULTI;
@@ -331,9 +331,7 @@ void vmxnet3::disable_intr(uint8_t idx) noexcept
 
 void vmxnet3::refill(rxring_state& rxq)
 {
-  bool added_buffers = false;
-  auto old_value = rxq.producers;
-
+  bool added_buffers = (rxq.prod_count < VMXNET3_RX_FILL);
   while (rxq.prod_count < VMXNET3_RX_FILL)
   {
     size_t i = rxq.producers % vmxnet3::NUM_RX_DESC;
@@ -350,10 +348,8 @@ void vmxnet3::refill(rxring_state& rxq)
     desc.flags   = packet_len() | generation;
     rxq.prod_count++;
     rxq.producers++;
-
-    added_buffers = true;
   }
-  if (added_buffers && old_value != rxq.producers) {
+  if (added_buffers) {
     // send count to NIC
     mmio_write32(this->ptbase + VMXNET3_PT_RXPROD1 + 0x200 * rxq.index,
                  rxq.producers % vmxnet3::NUM_RX_DESC);
@@ -395,15 +391,18 @@ void vmxnet3::msix_evt_handler()
 }
 void vmxnet3::msix_xmit_handler()
 {
-  if (this->transmit_handler()) this->poll();
+  this->disable_intr(1);
+  this->transmit_handler();
+  this->enable_intr(1);
 }
 void vmxnet3::msix_recv_handler()
 {
-  bool recv = false;
   for (int q = 0; q < NUM_RX_QUEUES; q++)
-      recv = recv or this->receive_handler(q);
-  // try polling for even more data
-  if (recv) this->poll();
+  {
+      this->disable_intr(2 + q);
+      this->receive_handler(q);
+      this->enable_intr(2 + q);
+  }
 }
 
 bool vmxnet3::transmit_handler()
@@ -434,6 +433,7 @@ bool vmxnet3::transmit_handler()
     transmitted = true;
   }
   // if we can still send more, message network stack
+  //printf("There are now %d tokens free\n", tx_tokens_free());
   if (this->can_transmit()) {
     auto tok = tx_tokens_free();
     transmit_queue_available_event_(tok);
@@ -465,14 +465,10 @@ bool vmxnet3::receive_handler(const int Q)
 
     // handle_magic()
     Link::receive(std::move(packet));
-
-    // emergency refill when really empty
-    if (rx[Q].prod_count < VMXNET3_RX_FILL / 2)
-        this->refill(rx[Q]);
-
     received = true;
   }
-  this->refill(rx[Q]);
+  // refill always
+  if (received) this->refill(rx[Q]);
   return received;
 }
 
@@ -502,6 +498,10 @@ void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
     }
   }
 }
+inline int  vmxnet3::tx_flush_diff() const noexcept
+{
+  return tx.producers - tx.flushvalue;
+}
 inline int  vmxnet3::tx_tokens_free() const noexcept
 {
   return VMXNET3_TX_FILL - (tx.producers - tx.consumers);
@@ -530,8 +530,13 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
 
 void vmxnet3::flush()
 {
-  auto idx = tx.producers % vmxnet3::NUM_TX_DESC;
-  mmio_write32(ptbase + VMXNET3_PT_TXPROD, idx);
+  if (tx_flush_diff() > 0)
+  {
+
+    auto idx = tx.producers % vmxnet3::NUM_TX_DESC;
+    mmio_write32(ptbase + VMXNET3_PT_TXPROD, idx);
+    tx.flushvalue = tx.producers;
+  }
 }
 
 void vmxnet3::handle_deferred()
@@ -549,29 +554,21 @@ void vmxnet3::poll()
   if (transmit_queue_available_event_ == nullptr) return;
   if (this->already_polling) return;
   this->already_polling = true;
-  //static int pcounter = 0;
-  //printf("Entering poll mode %d\n", ++pcounter);
-  const int POLL_TIMES = 128;
-  int tcounter = 0;
-  while (tcounter < POLL_TIMES)
-  {
-    bool traffic = false;
-    // receive
+
+  bool work;
+  do {
+    work = false;
     for (int q = 0; q < NUM_RX_QUEUES; q++)
-        traffic = traffic or receive_handler(q);
+        work |= receive_handler(q);
     // transmit
-    traffic = traffic or transmit_handler();
+    work |= transmit_handler();
     // immediately flush when possible
     if (this->deferred_kick) {
         this->deferred_kick = false;
         this->flush();
     }
-    if (traffic == false) {
-      tcounter++;
-    }
-    else tcounter = 0;
-  };
-  //printf("Exiting poll mode %d\n", pcounter);
+  } while (work);
+
   this->already_polling = false;
 }
 
