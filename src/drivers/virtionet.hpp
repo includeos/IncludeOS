@@ -214,11 +214,8 @@ private:
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
 
-  /** Add packet to buffer chain */
-  void add_to_tx_buffer(net::Packet_ptr pckt);
-
-  /** Add packet chain to virtio queue */
-  void enqueue(net::Packet* pckt);
+  /** Add packet to transmit ring */
+  void enqueue_tx(net::Packet* pckt);
 
   /** Handle device IRQ.
       Will look for config changes and service RX/TX queues as necessary.*/
@@ -238,7 +235,7 @@ private:
   bool deferred_kick = false;
   static void handle_deferred_devices();
 
-  net::Packet_ptr transmit_queue_ {nullptr};
+  net::Packet_ptr transmit_queue = nullptr;
 };
 
 #endif
