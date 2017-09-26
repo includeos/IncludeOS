@@ -13,7 +13,7 @@ then
 elif [ $# -eq 3 ]
 then
   BRIDGE=$1
-  NEMASK=$2
+  NETMASK=$2
   GATEWAY=$3
 else
   me=`basename "$0"`
