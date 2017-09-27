@@ -26,7 +26,6 @@ else()
   set(DRIVERS
     virtionet
     vmxnet3
-    #boot_logger
   )
 endif()
 
