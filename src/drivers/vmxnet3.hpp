@@ -28,7 +28,6 @@ class vmxnet3 : public net::Link_layer<net::Ethernet>
 public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
-  static const int ETH_FRAME_LEN = 1514;
   static const int DRIVER_OFFSET = 2;
   static const int NUM_RX_QUEUES = 1;
   static const int NUM_TX_DESC   = 512;
@@ -51,9 +50,8 @@ public:
     return 1500;
   }
 
-  uint16_t packet_len() const noexcept
-  {
-    return ETH_FRAME_LEN;
+  uint16_t packet_len() const noexcept {
+    return sizeof(net::ethernet::Header) + MTU();
   }
 
   net::downstream create_physical_downstream()

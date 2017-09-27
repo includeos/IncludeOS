@@ -836,6 +836,7 @@ void Connection::timewait_restart() {
 void Connection::send_ack() {
   auto packet = outgoing_packet();
   packet->set_flag(ACK);
+  this->dack_ = 0;
   transmit(std::move(packet));
 }
 
