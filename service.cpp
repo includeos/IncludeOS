@@ -21,7 +21,6 @@
 #include <profile>
 #include <cstdio>
 
-using namespace net;
 using namespace net::tcp;
 
 std::unique_ptr<Chunk> blob;
@@ -33,6 +32,7 @@ uint32_t  winsize{8192};
 uint8_t   wscale{5};
 bool      timestamps{true};
 std::chrono::milliseconds dack{40};
+uint64_t  ts = 0;
 
 struct activity {
   void reset() {
@@ -57,8 +57,6 @@ void recv(size_t len)
 {
   received += len;
 }
-
-uint64_t ts{0};
 
 void start_measure()
 {
@@ -95,16 +93,10 @@ void Service::ready()
   StackSampler::begin();
   StackSampler::set_mode(StackSampler::MODE_DUMMY);
 
-  auto& inet = Inet4::ifconfig();
-  inet.network_config(
-      {  10, 0,  0, 42 },  // IP
-      { 255,255,255, 0 },  // Netmask
-      {  10, 0,  0,  1 },  // Gateway
-      {  10, 0,  0,  1 }); // DNS
-
   blob = std::make_unique<Chunk>(SIZE);
 
-  static auto& tcp = inet.tcp();
+  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& tcp = inet.tcp();
   tcp.set_DACK(dack); // default
   tcp.set_MSL(std::chrono::seconds(3));
 
