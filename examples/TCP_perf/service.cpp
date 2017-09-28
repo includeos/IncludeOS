@@ -23,7 +23,6 @@
 
 using namespace net::tcp;
 
-std::unique_ptr<Chunk> blob;
 uint32_t  SIZE = 1024*1024*512;
 uint64_t  packets_rx{0};
 uint64_t  packets_tx{0};
@@ -93,7 +92,8 @@ void Service::ready()
   StackSampler::begin();
   StackSampler::set_mode(StackSampler::MODE_DUMMY);
 
-  blob = std::make_unique<Chunk>(SIZE);
+  static auto blob = net::tcp::new_shared_buffer(SIZE);
+  blob->resize(SIZE);
 
   auto& inet = net::Super_stack::get<net::IP4>(0);
   auto& tcp = inet.tcp();
@@ -118,7 +118,7 @@ void Service::ready()
     {
       recv(n);
     });
-    conn->write(*blob);
+    conn->write(blob);
     conn->close();
   });
 
@@ -142,9 +142,9 @@ void Service::ready()
 
       stop_measure();
     });
-    conn->on_read(16384, [] (buffer_t, size_t n)
+    conn->on_read(16384, [] (buffer_t buf)
     {
-      recv(n);
+      recv(buf->size());
     });
   });
 }

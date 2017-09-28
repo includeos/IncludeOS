@@ -45,17 +45,11 @@ inline Connection& Connection::_on_cleanup(CleanupCallback cb) {
 }
 
 inline void Connection::write(const void* buf, size_t n) {
-  auto buffer = new_shared_buffer(n);
-  memcpy(buffer.get(), buf, n);
-  write(Chunk{std::move(buffer), n});
-}
-
-inline void Connection::write(buffer_t buffer, size_t n) {
-  write(Chunk{std::move(buffer), n});
+  this->write(buffer_t(new std::vector<uint8_t>((uint8_t*) buf, (uint8_t*) buf + n)));
 }
 
 inline void Connection::write(const std::string& str) {
-  write(str.data(), str.size());
+  this->write(str.data(), str.size());
 }
 
 inline void Connection::abort() {

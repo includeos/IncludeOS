@@ -22,9 +22,11 @@
 
 using namespace net::tcp;
 
-Chunk create_write_request(size_t size)
+inline static auto create_write_request(size_t size)
 {
-  return Chunk{size};
+  auto buf = new_shared_buffer(size);
+  buf->resize(size);
+  return buf;
 }
 
 CASE("Creating a WriteQueue and operate it")
@@ -136,7 +138,7 @@ CASE("Creating a WriteQueue and operate it")
       const uint32_t N = 5;
       const uint32_t len = 1000;
 
-      std::vector<Chunk> reqs;
+      std::vector<net::tcp::buffer_t> reqs;
       for(int i = 0; i < N; i++) {
         reqs.emplace_back(create_write_request(len));
         wq.push_back(reqs[i]);

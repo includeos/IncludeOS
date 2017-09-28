@@ -90,8 +90,9 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
           ->on_connect([](tcp::Connection_ptr conn)
           {
             CHECKSERT(conn != nullptr, "Connected");
-            conn->on_read(1024, [](tcp::buffer_t, size_t n) {
-                CHECK(n > 0, "Received a response");
+            conn->on_read(1024,
+              [](tcp::buffer_t buf) {
+                CHECK(buf->size() > 0, "Received a response");
               });
           });
       }
@@ -106,9 +107,11 @@ void OUTGOING_TEST(Socket outgoing) {
   Inet4::stack<0>().tcp().connect(outgoing, [](tcp::Connection_ptr conn)
   {
     CHECKSERT(conn != nullptr, "Connection successfully established.");
-    conn->on_read(small.size(), [](tcp::buffer_t buffer, size_t n)
+    conn->on_read(small.size(),
+    [](tcp::buffer_t buffer)
     {
-      CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
+      const std::string str((char*)buffer->data(), buffer->size());
+      CHECKSERT(str == small, "Received SMALL");
     });
 
     conn->write(small);
@@ -174,8 +177,8 @@ void Service::start()
 
   tcp.listen(TEST1).on_connect([](tcp::Connection_ptr conn) {
       INFO("Test 1", "SMALL string (%u)", small.size());
-      conn->on_read(small.size(), [conn](tcp::buffer_t buffer, size_t n) {
-          CHECKSERT(std::string((char*)buffer.get(), n) == small, "Received SMALL");
+      conn->on_read(small.size(), [conn](tcp::buffer_t buffer) {
+          CHECKSERT(std::string((char*)buffer->data(), buffer->size()) == small, "Received SMALL");
           INFO("Test 1", "Succeeded, TEST2");
           conn->close();
         });
@@ -194,9 +197,9 @@ void Service::start()
       INFO("Test 2", "BIG string (%u)", big.size());
       auto response = std::make_shared<std::string>();
       conn->on_read(big.size(),
-      [response, conn] (tcp::buffer_t buffer, size_t n)
+      [response, conn] (tcp::buffer_t buffer)
         {
-          response->append(std::string{(char*)buffer.get(), n});
+          response->append(std::string{(char*)buffer->data(), buffer->size()});
           if(response->size() == big.size()) {
             CHECKSERT((*response == big), "Received BIG");
             INFO("Test 2", "Succeeded, TEST3");
@@ -212,9 +215,10 @@ void Service::start()
   tcp.listen(TEST3).on_connect([](tcp::Connection_ptr conn) {
       INFO("Test 3", "HUGE string (%u)", huge.size());
       auto temp = std::make_shared<Buffer>(huge.size());
-      conn->on_read(16384, [temp, conn](tcp::buffer_t buffer, size_t n) {
-          memcpy(temp->data + temp->written, buffer.get(), n);
-          temp->written += n;
+      conn->on_read(16384,
+        [temp, conn] (tcp::buffer_t buffer) {
+          memcpy(temp->data + temp->written, buffer->data(), buffer->size());
+          temp->written += buffer->size();
           // when all expected data is read
           if(temp->written == huge.size()) {
             bool OK = (temp->str() == huge);
@@ -224,7 +228,7 @@ void Service::start()
         });
       auto half = huge.size() / 2;
       conn->on_write([half](size_t n) {
-        CHECKSERT(n == half, "Wrote half HUGE (%u bytes)", n);
+        CHECKSERT(n == half, "Wrote half HUGE (%lu bytes)", n);
       });
       conn->write(huge.data(), half);
       conn->write(huge.data()+half, half);
