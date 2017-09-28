@@ -104,15 +104,15 @@ Waiting::Waiting(tcp_ptr incoming)
   // queue incoming data from clients not yet
   // assigned to a node
   conn->on_read(READQ_PER_CLIENT,
-  [this] (auto buf, size_t len) {
+  [this] (auto buf) {
     // prevent buffer bloat attack
-    total += len;
-    if (total > MAX_READQ_PER_NODE) {
+    this->total += buf->size();
+    if (this->total > MAX_READQ_PER_NODE) {
       conn->abort();
     }
     else {
-      LBOUT("*** Queued %lu bytes\n", len);
-      readq.emplace_back(buf, len);
+      LBOUT("*** Queued %lu bytes\n", buf->size());
+      readq.push_back(buf);
     }
   });
 }
@@ -150,9 +150,9 @@ bool Nodes::assign(tcp_ptr conn, queue_vector_t& readq)
             iterator, outgoing->to_string().c_str());
       this->create_session(not readq.empty(), conn, outgoing);
       // flush readq
-      for (auto& buffer : readq) {
-        LBOUT("*** Flushing %lu bytes\n", buffer.second);
-        outgoing->write(std::move(buffer.first), buffer.second);
+      for (auto buffer : readq) {
+        LBOUT("*** Flushing %lu bytes\n", buffer->size());
+        outgoing->write(buffer);
       }
       return true;
     }
@@ -357,10 +357,10 @@ Session::Session(Nodes& n, int idx, bool talk, tcp_ptr inc, tcp_ptr out)
       this->timeout(nodes);
   });
   incoming->on_read(READQ_PER_CLIENT,
-  [this] (auto buf, size_t len) {
+  [this] (auto buf) {
       assert(this->is_alive());
       this->handle_timeout();
-      this->outgoing->write(std::move(buf), len);
+      this->outgoing->write(buf);
   });
   incoming->on_disconnect(
   [&nodes = n, idx] (auto conn, auto /*reason*/) mutable {
@@ -368,10 +368,10 @@ Session::Session(Nodes& n, int idx, bool talk, tcp_ptr inc, tcp_ptr out)
       conn->close();
   });
   outgoing->on_read(READQ_FOR_NODES,
-  [this] (auto buf, size_t len) {
+  [this] (auto buf) {
       assert(this->is_alive());
       this->handle_timeout();
-      this->incoming->write(std::move(buf), len);
+      this->incoming->write(buf);
   });
   outgoing->on_disconnect(
   [&nodes = n, idx] (auto conn, auto /*reason*/) mutable {

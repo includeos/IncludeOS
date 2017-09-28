@@ -71,8 +71,8 @@ void Waiting::serialize(liu::Storage& store)
 {
   store.add_connection(10, this->conn);
   store.add_int(11, (int) readq.size());
-  for (auto& item : readq) {
-    store.add_buffer(12, item.first.get(), item.second);
+  for (auto buffer : readq) {
+    store.add_buffer(12, buffer->data(), buffer->size());
   }
   store.put_marker(10);
 }
@@ -84,8 +84,8 @@ Waiting::Waiting(liu::Restore& store, net::TCP& stack)
   {
     auto buf = store.as_buffer(); store.go_next();
     auto sbuf = net::tcp::new_shared_buffer(buf.size());
-    memcpy(sbuf.get(), buf.data(), buf.size());
-    readq.emplace_back(std::move(sbuf), buf.size());
+    std::copy(buf.data(), buf.data() + buf.size(), std::back_inserter(*sbuf));
+    readq.push_back(sbuf);
   }
   store.pop_marker(10);
 }

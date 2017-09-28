@@ -16,7 +16,7 @@
 #include <liveupdate>
 typedef net::Inet<net::IP4> netstack_t;
 typedef net::tcp::Connection_ptr tcp_ptr;
-typedef std::vector< std::pair<net::tcp::buffer_t, size_t> > queue_vector_t;
+typedef std::vector<net::tcp::buffer_t> queue_vector_t;
 typedef delegate<void()> pool_signal_t;
 
 struct Waiting {
