@@ -49,7 +49,7 @@ namespace http {
     size_t            idx_;
     RTC::timestamp_t  idle_since_;
 
-    void recv_request(buffer_t buf, size_t len);
+    void recv_request(buffer_t);
 
     void end_request(status_t code = http::OK);
 

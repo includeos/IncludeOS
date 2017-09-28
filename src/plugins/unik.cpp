@@ -82,8 +82,8 @@ void unik::Client::register_instance(net::Inet<net::IP4>& inet, const net::UDP::
           unik->write(http_request.c_str(), http_request.size());
 
           // Expect a response with meta data (which we ignore)
-          unik->on_read(1024, [&http](auto buf, size_t n) {
-              std::string response((char*)buf.get(), n);
+          unik->on_read(1024, [&http](auto buf) {
+              std::string response((char*) buf->data(), buf->size());
               INFO("Unik client", "Unik reply: %s \n", response.c_str());
 
               if (response.find("200 OK") != std::string::npos) {

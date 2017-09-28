@@ -59,17 +59,15 @@ public:
   int     setsockopt(int, int, const void *, socklen_t) override;
 
   struct Message {
-    explicit Message(const in_addr_t addr, const in_port_t port,
-      std::unique_ptr<char>&& buf, const size_t length)
-      : data(std::move(buf)), len(length)
+    Message(const in_addr_t addr, const in_port_t port, net::tcp::buffer_t buf)
+      : buffer(std::move(buf))
     {
       src.sin_family      = AF_INET;
       src.sin_port        = port;
       src.sin_addr.s_addr = addr;
     }
     struct sockaddr_in    src;
-    std::unique_ptr<char> data;
-    size_t                len;
+    net::tcp::buffer_t    buffer;
   };
 
   on_read_func   get_default_read_func()   override;

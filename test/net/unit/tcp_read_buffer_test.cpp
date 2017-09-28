@@ -71,7 +71,7 @@ CASE("Filling a hole")
 
   std::string compare = str1+str2+str3;
 
-  EXPECT(std::memcmp(buf.buffer().get(), compare.data(), compare.size()) == 0);
+  EXPECT(std::memcmp(buf.buffer()->data(), compare.data(), compare.size()) == 0);
 
   EXPECT(not buf.at_end());
 

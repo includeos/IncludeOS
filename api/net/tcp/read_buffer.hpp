@@ -61,7 +61,7 @@ public:
    *
    * @return     A referene to the internal shared buffer
    */
-  buffer_t& buffer()
+  buffer_t buffer()
   { return buf; }
 
   /**
@@ -78,7 +78,7 @@ public:
    * @return     The capacity
    */
   size_t capacity() const
-  { return cap; }
+  { return buf->capacity(); }
 
   /**
    * @brief      How far into the internal buffer data has been written.
@@ -87,7 +87,7 @@ public:
    * @return     Where data ends
    */
   size_t size() const
-  { return head; }
+  { return buf->size(); }
 
   /**
    * @brief      The amount of bytes missing in the internal buffer (holes).
@@ -103,7 +103,7 @@ public:
    * @return     Whether size has reached the end of the buffer
    */
   bool at_end() const
-  { return static_cast<size_t>(head) == cap; }
+  { return size() == capacity(); }
 
   /**
    * @brief      Determines if the buffer is ready "for delivery".
@@ -138,9 +138,7 @@ public:
 
 private:
   buffer_t        buf;
-  const size_t    cap;
   seq_t           start;
-  int32_t         head; // current position in the buffer (only advances forward)
   int32_t         hole; // number of bytes missing
   bool            push_seen{false};
 

@@ -128,8 +128,8 @@ size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) 
     {
       auto buffer = std::move(buf.buffer());
 
-      if(read_request->callback)
-        read_request->callback(buffer, buf.size());
+      if (read_request->callback)
+          read_request->callback(buffer);
     }
 
     n -= read; // subtract amount of data left to insert
@@ -141,9 +141,9 @@ size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) 
 }
 
 
-void Connection::write(Chunk buffer)
+void Connection::write(buffer_t buffer)
 {
-  if (UNLIKELY(buffer.size() == 0)) {
+  if (UNLIKELY(buffer->size() == 0)) {
     throw TCP_error("Can't write zero bytes to TCP stream");
   }
 
@@ -675,7 +675,7 @@ void Connection::retransmit() {
     auto& buf = writeq.una();
     debug2("<Connection::retransmit> With data (wq.sz=%u) buf.unacked=%u\n",
       writeq.size(), buf.length() - buf.acknowledged);
-    fill_packet(*packet, buf.data() + writeq.acked(), buf.length() - writeq.acked());
+    fill_packet(*packet, buf->data() + writeq.acked(), buf->size() - writeq.acked());
   }
   rtx_attempt_++;
   packet->set_seq(cb.SND.UNA);
