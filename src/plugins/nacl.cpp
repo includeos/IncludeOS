@@ -16,7 +16,8 @@
 // limitations under the License.
 
 #include <os>
-#include "nacl_content.cpp"
+
+extern void register_plugin_nacl();
 
 __attribute__((constructor))
 void register_nacl() {

@@ -16,4 +16,7 @@ add_dependencies(example PrecompiledLibraries)
 add_library(autoconf STATIC autoconf.cpp)
 add_dependencies(autoconf PrecompiledLibraries)
 
-install(TARGETS syslogd unik example autoconf DESTINATION includeos/${ARCH}/plugins)
+add_library(nacl STATIC nacl.cpp)
+add_dependencies(nacl PrecompiledLibraries)
+
+install(TARGETS syslogd unik example autoconf nacl DESTINATION includeos/${ARCH}/plugins)
