@@ -20,6 +20,7 @@
 
 #include "addr.hpp"
 #include "header.hpp"
+#include "cidr.hpp"
 #include "packet_ip4.hpp"
 #include <common>
 #include <net/netfilter.hpp>
@@ -57,6 +58,7 @@ namespace net {
 
     using Stack = Inet<IP4>;
     using addr = ip4::Addr;
+    using cidr = ip4::Cidr;
     using header = ip4::Header;
     using IP_packet = PacketIP4;
     using IP_packet_ptr = std::unique_ptr<IP_packet>;
