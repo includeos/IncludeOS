@@ -118,23 +118,23 @@ size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) 
 
   while(n)
   {
-    // if the buffer has been "stolen" (sent to user), renew it
-    if (buf.buffer() == nullptr) buf.renew(seq);
-
     auto read = buf.insert(seq, data + received, n, PUSH);
-
-    // deliver if finished for delivery
-    if(buf.is_ready())
-    {
-      auto buffer = std::move(buf.buffer());
-
-      if (read_request->callback)
-          read_request->callback(buffer);
-    }
 
     n -= read; // subtract amount of data left to insert
     received += read; // add to the total recieved
     seq += read; // advance the sequence number
+
+    // deliver if finished for delivery
+    if(buf.is_ready())
+    {
+      auto buffer = buf.buffer();
+
+      if (read_request->callback)
+          read_request->callback(buffer);
+
+      // if the buffer is in use, create a new one
+      if (!buf.buffer().unique()) buf.renew(seq);
+    }
   }
 
   return received;

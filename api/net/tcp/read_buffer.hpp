@@ -40,7 +40,7 @@ public:
    * @param[in]  capacity  The capacity of the buffer
    * @param[in]  seq       The sequence number to start on
    */
-  Read_buffer(const size_t capacity, const seq_t seq);
+  Read_buffer(const size_t capacity, const seq_t start);
 
   /**
    * @brief      Insert data into the buffer relative to the sequence number.
@@ -59,7 +59,7 @@ public:
   /**
    * @brief      Exposes the internal buffer
    *
-   * @return     A referene to the internal shared buffer
+   * @return     A reference to the internal shared buffer
    */
   buffer_t buffer()
   { return buf; }
@@ -67,7 +67,7 @@ public:
   /**
    * @brief      Exposes the internal buffer (read only)
    *
-   * @return     A const referene to the internal shared buffer
+   * @return     A const reference to the internal shared buffer
    */
   const buffer_t& buffer() const
   { return buf; }
@@ -77,7 +77,7 @@ public:
    *
    * @return     The capacity
    */
-  size_t capacity() const
+  size_t capacity() const noexcept
   { return buf->capacity(); }
 
   /**
@@ -86,7 +86,7 @@ public:
    *
    * @return     Where data ends
    */
-  size_t size() const
+  size_t size() const noexcept
   { return buf->size(); }
 
   /**
@@ -94,7 +94,7 @@ public:
    *
    * @return     Bytes missing as holes in the buffer
    */
-  size_t missing() const
+  size_t missing() const noexcept
   { return hole; }
 
   /**
@@ -102,7 +102,7 @@ public:
    *
    * @return     Whether size has reached the end of the buffer
    */
-  bool at_end() const
+  bool at_end() const noexcept
   { return size() == capacity(); }
 
   /**
@@ -112,7 +112,7 @@ public:
    *
    * @return     True if ready, False otherwise.
    */
-  bool is_ready() const
+  bool is_ready() const noexcept
   { return (push_seen or at_end()) and hole == 0; }
 
   /**

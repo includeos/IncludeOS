@@ -32,7 +32,6 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
 
   // get the relative sequence number (the diff)
   size_t rel = seq - start;
-  if (rel >= capacity()) printf("Suspicious rel: %ld vs cap %ld\n", rel, capacity());
   assert(rel < capacity() && "No point trying to write at or above the end");
 
   // avoid writing above size by shrinking len
