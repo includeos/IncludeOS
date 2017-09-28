@@ -132,8 +132,8 @@ size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) 
       if (read_request->callback)
           read_request->callback(buffer);
 
-      // if the buffer is in use, create a new one
-      if (!buf.buffer().unique()) buf.renew(seq);
+      // reset/clear readbuffer (new sequence start)
+      buf.reset(seq);
     }
   }
 

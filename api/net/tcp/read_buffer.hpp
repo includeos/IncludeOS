@@ -116,12 +116,12 @@ public:
   { return (push_seen or at_end()) and hole == 0; }
 
   /**
-   * @brief      Renew the buffer by reseting all the values and
-   *             allocate a new internal buffer.
+   * @brief      Reset this buffer, initialize it for a new sequence start.
+   *             Creates a new internal buffer ONLY IF the buffer isn't unique.
    *
-   * @param[in]  seq   The starting sequence number
+   * @param[in]  seq   The new starting sequence number
    */
-  void renew(const seq_t seq);
+  void reset(const seq_t start);
 
   /**
    * @brief      Sets the starting sequence number.

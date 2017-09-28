@@ -139,7 +139,7 @@ CASE("Renewing the buffer")
   auto buffer = buf.buffer();
   EXPECT(buffer.use_count() == 2);
 
-  buf.renew(SEQ);
+  buf.reset(SEQ);
 
   EXPECT(buf.capacity() == BUFSZ);
   EXPECT(buf.size() == 0);

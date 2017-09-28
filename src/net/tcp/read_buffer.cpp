@@ -55,7 +55,7 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
   return len;
 }
 
-void Read_buffer::renew(const seq_t seq)
+void Read_buffer::reset(const seq_t seq)
 {
   start = seq;
   hole = 0;
