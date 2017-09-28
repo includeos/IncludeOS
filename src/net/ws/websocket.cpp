@@ -191,7 +191,7 @@ void WebSocket::read_data(net::tcp::buffer_t buf)
   // silently ignore data from reset connection
   if (this->stream == nullptr) return;
 
-  char* data = reinterpret_cast<char*>(buf.get());
+  char* data = (char*) buf->data();
   // parse message
 
   size_t len = buf->size();

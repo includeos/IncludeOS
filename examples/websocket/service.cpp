@@ -67,7 +67,8 @@ void Service::start()
   // Retreive the HTML page from the disk
   auto file = disk.fs().read_file("/index.html");
   Expects(file.is_valid());
-  Chunk html{file.data(), file.size()};
+  net::tcp::buffer_t html(
+      new std::vector<uint8_t> (file.data(), file.data() + file.size()));
 
   // Create a HTTP Server and setup request handling
   server = std::make_unique<http::Server>(inet.tcp());
