@@ -221,7 +221,7 @@ TCP_FD::on_except_func TCP_FD::get_default_except_func()
 
 void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer)
 {
-  if (readq.free_space() < (int) buffer->size()) {
+  if (readq.free_space() < (ssize_t) buffer->size()) {
     // make room for data
     int needed = buffer->size() - readq.free_space();
     int discarded = readq.discard(needed);
@@ -229,7 +229,7 @@ void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer)
   }
   // add data to ringbuffer
   int written = readq.write(buffer.get(), buffer->size());
-  assert(written == buffer->size());
+  assert(written == (ssize_t) buffer->size());
 }
 void TCP_FD_Conn::set_default_read()
 {
