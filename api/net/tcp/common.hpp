@@ -63,7 +63,7 @@ namespace net {
      */
     inline buffer_t new_shared_buffer(size_t capacity)
     {
-      auto buf = buffer_t(new std::vector<uint8_t>());
+      auto buf = std::make_shared<std::vector<uint8_t>> ();
       buf->reserve(capacity);
       return buf;
     }

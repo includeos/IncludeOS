@@ -60,8 +60,7 @@ void Read_buffer::reset(const seq_t seq)
   start = seq;
   hole = 0;
   push_seen = false;
-  if (buf.unique()) buf->clear();
-  else buf = new_shared_buffer(buf->capacity());
+  buf = new_shared_buffer(buf->capacity());
 }
 
 __attribute__((weak))
