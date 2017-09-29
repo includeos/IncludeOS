@@ -5,4 +5,4 @@ cmake ..
 make -j4
 popd
 sudo mknod /dev/net/tap c 10 200
-sudo ./build/demo_example
+sudo ./build/linux_demo
