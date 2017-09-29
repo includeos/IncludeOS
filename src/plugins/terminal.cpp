@@ -15,66 +15,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <kernel/terminal.hpp>
-#include <net/inet4>
-
-#include <vector>
-#include <serial>
+#include "terminal.hpp"
+#include <kernel/os.hpp>
 #include <cstdio>
+#include <deque>
 
-Terminal::Terminal()
-  : iac(false), newline(false), subcmd(0)
+Terminal::Terminal(net::Stream_ptr csock)
+  : stream(std::move(csock))
 {
   add_basic_commands();
-}
 
-Terminal::Terminal(Connection_ptr csock)
-  : Terminal()
-{
-  csock->on_read(1024, [this](auto buffer) {
+  stream->on_read(1024, [this](auto buffer) {
     this->read((char*) buffer->data(), buffer->size());
   });
 
-  on_write =
-  [csock] (const char* buffer, size_t len) {
-    csock->write(buffer, len);
-  };
-
-  on_exit =
-  [csock] {
-    csock->close();
-  };
-  // after setting up everything, show introduction
-  intro();
-}
-
-Terminal::Terminal(hw::Serial& serial)
-  : Terminal()
-{
-  serial.on_data(
-  [this, &serial] (char c)
-  {
-    this->read(&c, 1);
-    if (c == CR) {
-      c = LF;
-      this->read(&c, 1);
-    }
-    else {
-      serial.write(c);
-    }
-  });
-
-  on_write =
-    [&serial] (const char* buffer, size_t len)
-    {
-      for (size_t i = 0; i < len; i++)
-        serial.write(buffer[i]);
-    };
-
-  on_exit =
-    [] {
-    // do nothing
-  };
   // after setting up everything, show introduction
   intro();
 }
@@ -238,14 +192,14 @@ void Terminal::add_basic_commands()
   add("exit", "Close the terminal",
   [this] (const std::vector<std::string>&) -> int
   {
-    this->on_exit();
+    stream->close();
     return 0;
   });
 
 }
 void Terminal::intro()
 {
-  std::string banana =
+  const std::string banana =
     R"baaa(
      ____                           ___
     |  _ \  ___              _   _.' _ `.
@@ -261,14 +215,53 @@ void Terminal::intro()
      "-:;::;:;:      ':;::;:''     ;.-'
          ""`---...________...---'""
 
-> Banana Terminal v1 <
+> Banana Terminal v2 <
 )baaa";
 
-  write("%s", banana.c_str());
+  stream->write(banana);
   prompt();
 }
 
 void Terminal::prompt()
 {
-  write("%s", "$ ");
+  stream->write("$ ");
+}
+
+#include <rapidjson/document.h>
+#include <config>
+#include <info>
+#include <net/inet4>
+void Terminal::initialize()
+{
+  rapidjson::Document doc;
+  doc.Parse(Config::get().data());
+
+  if (doc.IsObject() == false || doc.HasMember("terminal") == false)
+      throw std::runtime_error("Missing terminal configuration");
+
+  const auto& obj = doc["terminal"];
+  // terminal network interface
+  const int TERM_NET  = obj["iface"].GetInt();
+  // terminal TCP port
+  const int TERM_PORT = obj["port"].GetUint();
+  auto& inet = net::Super_stack::get<net::IP4>(TERM_NET);
+  inet.tcp().listen(TERM_PORT,
+    [] (auto conn) {
+      static int counter = 0;
+      static std::unordered_map<int, Terminal> terms;
+      terms.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(counter),
+                    std::forward_as_tuple(net::Stream_ptr{new net::tcp::Connection::Stream(conn)}));
+      auto idx = counter++;
+      conn->on_close(
+      [idx] () {
+        terms.erase(idx);
+      });
+    });
+  INFO("Terminal", "Listening on port %u", TERM_PORT);
+}
+
+__attribute__((constructor))
+static void feijfeifjeifjeijfei() {
+  OS::register_plugin(Terminal::initialize, "Terminal plugin");
 }
