@@ -28,24 +28,25 @@ Inet<IP4>& Super_stack::get<IP4>(int N)
   if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
     throw Stack_not_found{"No IP4 stack found for [" + std::to_string(N) + "] (missing driver?)"};
 
-  if (inet().ip4_stacks_[N])
-      return *inet().ip4_stacks_[N];
+  auto& ip4_stack = inet().ip4_stacks_.at(N);
+  if (ip4_stack)
+      return *ip4_stack;
 
   // create network stack
-  auto& nic = hw::Devices::devices<hw::Nic>()[N];
+  auto& nic = hw::Devices::get<hw::Nic>(N);
 
   INFO("Network", "Creating stack for %s on %s",
-        nic->driver_name(), nic->device_name().c_str());
+        nic.driver_name(), nic.device_name().c_str());
 
-  switch(nic->proto()) {
+  switch(nic.proto()) {
   case hw::Nic::Proto::ETH:
-      inet().ip4_stacks_[N].reset(new Inet4(*nic));
+      ip4_stack.reset(new Inet4(nic));
       // ip6_stacks come here I guess
       break;
   default:
       break;
   }
-  return *inet().ip4_stacks_[N];
+  return *ip4_stack;
 }
 
 Super_stack::Super_stack()

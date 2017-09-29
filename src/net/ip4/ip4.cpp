@@ -151,6 +151,8 @@ namespace net {
       return;
     }
 
+    PRINT("* Packet was for me\n");
+
     /* INPUT */
     // Confirm incoming packet if conntrack is active
     if(stack_.conntrack())
@@ -236,7 +238,13 @@ namespace net {
     if (next_hop == 0) {
       if (UNLIKELY(packet->ip_dst() == IP4::ADDR_BCAST)) {
         next_hop = IP4::ADDR_BCAST;
-      } else {
+      }
+      else {
+        if(UNLIKELY(stack_.gateway() == 0)) {
+          PRINT("<IP4> Cannot calculate next_hop when gateway == 0.0.0.0\n");
+          drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
+          return;
+        }
         // Create local and target subnets
         addr target = packet->ip_dst()  & stack_.netmask();
         addr local  = stack_.ip_addr() & stack_.netmask();
