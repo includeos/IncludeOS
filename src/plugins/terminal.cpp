@@ -242,9 +242,9 @@ void Terminal::initialize()
   const auto& obj = doc["terminal"];
   // terminal network interface
   const int TERM_NET  = obj["iface"].GetInt();
+  auto& inet = net::Super_stack::get<net::IP4>(TERM_NET);
   // terminal TCP port
   const int TERM_PORT = obj["port"].GetUint();
-  auto& inet = net::Super_stack::get<net::IP4>(TERM_NET);
   inet.tcp().listen(TERM_PORT,
     [] (auto conn) {
       static int counter = 0;
