@@ -1,0 +1,7 @@
+{
+  "description" : "VM with interface for testing LiveUpdate",
+  "net" : [
+    {"device" : "virtio"}
+  ],
+  "mem" : 48
+}

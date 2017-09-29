@@ -16,27 +16,16 @@
 // limitations under the License.
 
 #pragma once
-#ifndef TERMINAL_PLUGIN_HPP
-#define TERMINAL_PLUGIN_HPP
+#ifndef API_KERNEL_TERMINAL_HPP
+#define API_KERNEL_TERMINAL_HPP
 
+#include <terminal>
 #include <net/stream.hpp>
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
 
-struct Command
-{
-  using main_func = delegate<int(const std::vector<std::string>&)>;
-
-  Command(const std::string& descr, main_func func)
-    : desc(descr), main(func) {}
-
-  std::string desc;
-  main_func   main;
-};
-
-class Terminal
-{
+class Terminal {
 public:
   using Connection_ptr = std::shared_ptr<net::Stream_ptr>;
   enum {
@@ -50,17 +39,7 @@ public:
     CR   = 13
   };
 
-  static void initialize();
   Terminal(net::Stream_ptr);
-
-  template <typename... Args>
-  void add(const std::string& command,
-           Args&&... args)
-  {
-    commands.emplace(std::piecewise_construct,
-                     std::forward_as_tuple(command),
-                     std::forward_as_tuple(args...));
-  }
 
   template <typename... Args>
   void write(const char* str, Args&&... args)
@@ -70,13 +49,16 @@ public:
 
     stream->write(buffer, bytes);
   }
+  int  exec(const std::string& cmd);
+  void close();
+
+  static void register_program(std::string name, TerminalProgram);
 
 private:
   void command(uint8_t cmd);
   void option(uint8_t option, uint8_t cmd);
   void read(const char* buf, size_t len);
-  void run(const std::string& cmd);
-  void add_basic_commands();
+  void register_basic_commands();
   void intro();
   void prompt();
 
@@ -85,7 +67,6 @@ private:
   bool    newline = false;
   uint8_t subcmd  = 0;
   std::string buffer;
-  std::unordered_map<std::string, Command> commands;
 };
 
 #endif

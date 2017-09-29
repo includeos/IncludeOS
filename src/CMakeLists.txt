@@ -26,8 +26,7 @@ set(OS_OBJECTS
   kernel/events.cpp kernel/memmap.cpp kernel/pci_manager.cpp
   kernel/heap.cpp kernel/service_stub.cpp kernel/elf.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm
-  kernel/fiber.cpp kernel/tls.cpp
-  kernel/profile.cpp
+  kernel/fiber.cpp kernel/tls.cpp kernel/profile.cpp kernel/terminal.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   kernel/solo5_manager.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
