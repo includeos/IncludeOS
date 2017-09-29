@@ -144,8 +144,6 @@ set(OS_SOURCES
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
-  ${SRC}/kernel/terminal.cpp
-  ${SRC}/kernel/terminal_disk.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp

@@ -5,10 +5,10 @@ endif()
 project (service C CXX)
 
 # Human-readable name of your service
-set(SERVICE_NAME "IncludeOS demo example")
+set(SERVICE_NAME "Linux userspace demo")
 
 # Name of your service binary
-set(BINARY       "demo_example")
+set(BINARY       "linux_demo")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
