@@ -141,7 +141,7 @@ public:
   size_t frame_offset_device() override
   { return sizeof(virtio_net_hdr); };
 
-  net::downstream create_physical_downstream()
+  net::downstream create_physical_downstream() override
   { return {this, &VirtioNet::transmit}; }
 
 
@@ -239,6 +239,7 @@ private:
   static void handle_deferred_devices();
 
   net::Packet_ptr transmit_queue_ {nullptr};
+  net::BufferStore bufstore_;
 };
 
 #endif

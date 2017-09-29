@@ -53,9 +53,11 @@ namespace hw {
 
     /** Implemented by the underlying (link) driver */
     virtual downstream create_link_downstream() = 0;
+    virtual net::downstream create_physical_downstream() = 0;
     virtual void set_ip4_upstream(upstream handler) = 0;
     virtual void set_ip6_upstream(upstream handler) = 0;
     virtual void set_arp_upstream(upstream handler) = 0;
+    virtual void set_vlan_upstream(upstream handler) = 0;
 
     net::BufferStore& bufstore() noexcept
     { return bufstore_; }
@@ -110,8 +112,8 @@ namespace hw {
      *
      *  Constructed by the actual Nic Driver
      */
-    Nic(uint32_t bufstore_packets, uint16_t bufsz)
-      : bufstore_{ bufstore_packets, bufsz }
+    Nic(net::BufferStore& bufstore)
+      : bufstore_{bufstore}
     {
       static int id_counter = 0;
       N = id_counter++;
@@ -120,7 +122,7 @@ namespace hw {
     net::transmit_avail_delg transmit_queue_available_event_ = nullptr;
 
   private:
-    net::BufferStore bufstore_;
+    net::BufferStore& bufstore_;
     int N;
     friend class Devices;
   };

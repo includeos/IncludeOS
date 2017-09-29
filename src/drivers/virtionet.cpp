@@ -61,12 +61,12 @@ void VirtioNet::get_config() {
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
-    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()},
-        256u, 2048 /* 256x half-page buffers */),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, bufstore_),
     packets_rx_{Statman::get().create(Stat::UINT64,
                 device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64,
-                device_name() + ".packets_tx").get_uint64()}
+                device_name() + ".packets_tx").get_uint64()},
+    bufstore_{256u, 2048 /* 256x half-page buffers */}
 {
   INFO("VirtioNet", "Driver initializing");
 

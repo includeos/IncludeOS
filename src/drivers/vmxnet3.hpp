@@ -56,7 +56,7 @@ public:
     return ETH_FRAME_LEN;
   }
 
-  net::downstream create_physical_downstream()
+  net::downstream create_physical_downstream() override
   { return {this, &vmxnet3::transmit}; }
 
   net::Packet_ptr create_packet(int) override;
@@ -139,4 +139,5 @@ private:
   static void handle_deferred();
   // sendq as packet chain
   net::Packet_ptr sendq = nullptr;
+  net::BufferStore bufstore_;
 };

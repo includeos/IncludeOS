@@ -15,7 +15,7 @@ public:
   using upstream    = hw::Nic::upstream;
   using downstream_link  = hw::Nic::downstream;
 public:
-  explicit Link_layer(Protocol&& protocol, uint32_t bufstore_sz, uint16_t bufsz);
+  explicit Link_layer(Protocol&& protocol, BufferStore& bufstore);
 
   std::string device_name() const override {
     return link_.link_name();
@@ -32,6 +32,9 @@ public:
 
   void set_arp_upstream(upstream handler) override
   { link_.set_arp_upstream(handler); }
+
+  void set_vlan_upstream(upstream handler) override
+  { link_.set_vlan_upstream(handler); }
 
   /** Number of bytes in a frame needed by the device itself **/
   virtual size_t frame_offset_device() override
@@ -65,8 +68,8 @@ private:
 };
 
 template <class Protocol>
-Link_layer<Protocol>::Link_layer(Protocol&& protocol, uint32_t bufstore_packets, uint16_t bufsz)
-  : hw::Nic(bufstore_packets, bufsz),
+Link_layer<Protocol>::Link_layer(Protocol&& protocol, BufferStore& bufstore)
+  : hw::Nic(bufstore),
     link_{std::forward<Protocol>(protocol)}
 {
 }
