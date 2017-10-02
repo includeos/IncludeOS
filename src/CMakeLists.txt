@@ -39,13 +39,14 @@ set(OS_OBJECTS
   hw/ide.cpp hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp
   hw/cmos.cpp hw/block_device.cpp hw/msi.cpp hw/pci_msi.cpp
   virtio/virtio.cpp virtio/virtio_queue.cpp
-  net/ethernet/ethernet.cpp net/inet_common.cpp net/ip4/arp.cpp net/ip4/ip4.cpp
+  net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp
+  net/inet_common.cpp net/ip4/arp.cpp net/ip4/ip4.cpp
   net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
   net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp net/tcp/read_buffer.cpp
   net/ip4/icmp4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet4.cpp
-  net/super_stack.cpp net/configure.cpp net/conntrack.cpp
+  net/super_stack.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
   net/http/mime_types.cpp net/http/cookie.cpp net/http/secure_server.cpp
