@@ -127,8 +127,7 @@ void IrcServer::user_bcast(clindex_t idx, const std::string& from, uint16_t tk, 
 void IrcServer::user_bcast(clindex_t idx, const char* buffer, size_t len)
 {
   // we might save some memory by trying to use a shared buffer
-  auto netbuff = std::shared_ptr<uint8_t> (new uint8_t[len]);
-  memcpy(netbuff.get(), buffer, len);
+  auto netbuff = std::make_shared<std::vector<uint8_t>> (buffer, buffer + len);
 
   std::set<clindex_t> uset;
   // add user
@@ -142,7 +141,7 @@ void IrcServer::user_bcast(clindex_t idx, const char* buffer, size_t len)
   }
   // broadcast message
   for (auto cl : uset)
-      clients.get(cl).send_buffer(netbuff, len);
+      clients.get(cl).send_buffer(netbuff);
 }
 
 void IrcServer::user_bcast_butone(clindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
@@ -156,8 +155,7 @@ void IrcServer::user_bcast_butone(clindex_t idx, const std::string& from, uint16
 void IrcServer::user_bcast_butone(clindex_t idx, const char* buffer, size_t len)
 {
   // we might save some memory by trying to use a shared buffer
-  auto netbuff = std::shared_ptr<uint8_t> (new uint8_t[len]);
-  memcpy(netbuff.get(), buffer, len);
+  auto netbuff = std::make_shared<std::vector<uint8_t>> (buffer, buffer + len);
 
   std::set<clindex_t> uset;
   // for each channel user is in
@@ -171,7 +169,7 @@ void IrcServer::user_bcast_butone(clindex_t idx, const char* buffer, size_t len)
   uset.erase(idx);
   // broadcast message
   for (auto cl : uset)
-      clients.get(cl).send_buffer(netbuff, len);
+      clients.get(cl).send_buffer(netbuff);
 }
 
 bool IrcServer::accept_remote_server(const std::string& name, const std::string& pass) const noexcept

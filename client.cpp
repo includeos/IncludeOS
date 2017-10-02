@@ -14,7 +14,7 @@ Client::Client(clindex_t s, IrcServer& sref)
 
 std::string Client::token() const
 {
-  static const char* base64_chars = 
+  static const char* base64_chars =
              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
              "abcdefghijklmnopqrstuvwxyz"
              "0123456789+/";
@@ -67,12 +67,12 @@ void Client::assign_socket_dg()
 {
   // set up callbacks
   conn->on_read(128,
-  [srv = &server, idx = self] (auto buffer, size_t len)
+  [srv = &server, idx = self] (auto buffer)
   {
     /// NOTE: the underlying array can move around,
     /// so we have to retrieve the address each time
     auto& client = srv->clients.get(idx);
-    client.read(buffer.get(), len);
+    client.read(buffer->data(), buffer->size());
   });
 
   conn->on_close(
@@ -114,7 +114,7 @@ void Client::split_message(const std::string& msg)
 {
   volatile ScopedProfiler profile;
   // in case splitter is bad
-  SET_CRASH_CONTEXT("Client::split_message():\n'%.*s'", msg.size(), msg.c_str());
+  SET_CRASH_CONTEXT("Client::split_message():\n'%.*s'", (int) msg.size(), msg.c_str());
 
   auto vec = ircsplit(msg);
 
@@ -187,13 +187,13 @@ void Client::send_raw(const char* buff, size_t len)
   conn->write(buff, len);
   //++counter;
 }
-void Client::send_buffer(net::tcp::buffer_t buff, size_t len)
+void Client::send_buffer(net::tcp::buffer_t buff)
 {
   if (!conn->is_connected()) {
     //printf("!! Skipped dead connection: %s\n", conn->state().to_string().c_str());
     return;
   }
-  conn->write(buff, len);
+  conn->write(buff);
 }
 
 

@@ -87,9 +87,9 @@ void print_heap_info()
   auto heap_usage = OS::heap_usage();
   intptr_t heap_size = heap_end - heap_begin;
   last = heap_size - last;
-  printf("Heap begin  %#x  size %u Kb\n",     heap_begin, heap_size / 1024);
-  printf("Heap end    %#x  diff %u (%d Kb)\n", heap_end,  last, last / 1024);
-  printf("Heap usage  %u kB\n", heap_usage / 1024);
+  printf("Heap begin  %#lx  size %lu Kb\n",     heap_begin, heap_size / 1024);
+  printf("Heap end    %#lx  diff %lu (%ld Kb)\n", heap_end,  last, last / 1024);
+  printf("Heap usage  %lu kB\n", heap_usage / 1024);
   last = (int32_t) heap_size;
 }
 
@@ -119,7 +119,7 @@ void print_stats(int)
   // client and channel stats
   auto& inet = net::Inet4::stack<0>();
 
-  printf("Syns: %u  Conns: %u  Users: %u  RAM: %u bytes Chans: %u\n",
+  printf("Syns: %u  Conns: %lu  Users: %u  RAM: %lu bytes Chans: %u\n",
          ircd->get_counter(STAT_TOTAL_CONNS),
          inet.tcp().active_connections(),
          ircd->get_counter(STAT_LOCAL_USERS),

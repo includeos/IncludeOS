@@ -76,7 +76,7 @@ public:
   void send(uint16_t numeric, std::string text);
   // send the string as-is
   void send_raw(const char* buff, size_t len);
-  void send_buffer(net::tcp::buffer_t buff, size_t len);
+  void send_buffer(net::tcp::buffer_t buff);
 
   const std::string& nick() const noexcept {
     return nick_;

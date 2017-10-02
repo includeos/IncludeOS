@@ -9,8 +9,8 @@ static const uint8_t REGIS_SERV = 2;
 static const uint8_t REGIS_PASS = 4;
 
 Server::Server(sindex_t idx, IrcServer& srv)
-  : self(idx), regis(REGIS_DEAD), 
-    token_(0), near_link_(0), hops_(0), 
+  : self(idx), regis(REGIS_DEAD),
+    token_(0), near_link_(0), hops_(0),
     boot_time_(0), link_time_(0),
     server(srv) {}
 
@@ -37,7 +37,7 @@ void Server::connect(Connection conn, std::string name, std::string pass)
   this->conn  = conn;
   this->remote_links.clear();
   setup_dg();
-  
+
   conn->on_connect(
   [ircd = &server, id = get_id()] (auto conn) {
     /// introduce ourselves
@@ -51,9 +51,9 @@ void Server::setup_dg()
 {
   /// wait for acceptance ...
   conn->on_read(512,
-  [ircd = &server, id = get_id()] (auto buf, size_t len) {
+  [ircd = &server, id = get_id()] (auto buf) {
     auto& srv = ircd->servers.get(id);
-    srv.readq.read(buf.get(), len, {srv, &Server::split_message});
+    srv.readq.read(buf->data(), buf->size(), {srv, &Server::split_message});
   });
 }
 void Server::split_message(const std::string& text)

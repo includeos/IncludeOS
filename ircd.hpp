@@ -205,7 +205,7 @@ public:
       printf(" %s\n", cl.get_conn()->state().to_string().c_str());
       if (cl.get_conn()->sendq_size()) hmm++;
     }
-    printf("HMM: %d  TOTAL: %u\n", hmm, clients.size());
+    printf("HMM: %d  TOTAL: %lu\n", hmm, clients.size());
   }
 
   // network stack

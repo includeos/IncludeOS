@@ -182,7 +182,7 @@ void Channel::send_names(Client& client)
   std::string list;
   list.reserve(256);
   int restart = 0;
-  
+
   for (auto idx : clients_)
   {
     if (restart == 0) {
@@ -198,7 +198,7 @@ void Channel::send_names(Client& client)
       list.append(" " + std::to_string(RPL_NAMREPLY) + " ");
       list.append(client.nick() + " = " + this->name() + " :");
     }
-    
+
     char symb = listed_symb(idx);
     if (symb) list.append(&symb, 1);
     list.append(server.clients.get(idx).nick());
@@ -207,9 +207,9 @@ void Channel::send_names(Client& client)
   }
   list.append("\r\n");
   client.send_raw(list.data(), list.size());
-  
+
   int len = snprintf((char*) list.data(), list.capacity(),
-        ":%s %03u %s :End of NAMES list\r\n", 
+        ":%s %03u %s :End of NAMES list\r\n",
         server.name().c_str(),  RPL_ENDOFNAMES,  name().c_str());
   client.send_raw(list.data(), len);
 }
@@ -224,22 +224,20 @@ void Channel::bcast(const std::string& from, uint16_t tk, const std::string& msg
 
 void Channel::bcast(const char* buff, size_t len)
 {
-  auto sbuf = net::tcp::new_shared_buffer(len);
-  memcpy(sbuf.get(), buff, len);
-  
+  auto sbuf = std::make_shared<std::vector<uint8_t>> (buff, buff + len);
+
   // broadcast to all users in channel
   for (auto cl : clients()) {
-      server.clients.get(cl).send_buffer(sbuf, len);
+      server.clients.get(cl).send_buffer(sbuf);
   }
 }
 void Channel::bcast_butone(clindex_t src, const char* buff, size_t len)
 {
-  auto sbuf = net::tcp::new_shared_buffer(len);
-  memcpy(sbuf.get(), buff, len);
-  
+  auto sbuf = std::make_shared<std::vector<uint8_t>> (buff, buff + len);
+
   // broadcast to all users in channel except source
   for (auto cl : clients())
   if (LIKELY(cl != src)) {
-      server.clients.get(cl).send_buffer(sbuf, len);
+      server.clients.get(cl).send_buffer(sbuf);
   }
 }
