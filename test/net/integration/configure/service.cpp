@@ -27,27 +27,27 @@ void Service::start()
   CHECKSERT(stacks.size() == 6, "There are 6 interfaces");
 
   INFO("Test", "Verify eth0");
-  CHECKSERT(stacks[0] != nullptr, "eth0 is initialized");
+  CHECKSERT(stacks[0][0] != nullptr, "eth0 is initialized");
 
-  auto& eth0 = *stacks[0];
+  auto& eth0 = *stacks[0][0];
   CHECKSERT(eth0.ip_addr() == ip4::Addr(10,0,0,42), "IP address is 10.0.0.42");
   CHECKSERT(eth0.netmask() == ip4::Addr(255,255,255,0), "Netmask is 255.255.255.0");
   CHECKSERT(eth0.gateway() == ip4::Addr(10,0,0,1), "Gateway is 10.0.0.1");
   CHECKSERT(eth0.dns_addr() == eth0.gateway(), "DNS addr is same as gateway");
 
   INFO("Test", "Verify eth1");
-  CHECKSERT(stacks[1] != nullptr, "eth1 is initialized");
+  CHECKSERT(stacks[1][0] != nullptr, "eth1 is initialized");
 
-  auto& eth1 = *stacks[1];
+  auto& eth1 = *stacks[1][0];
   CHECKSERT(eth1.ip_addr() == ip4::Addr(10,0,0,43), "IP address is 10.0.0.43");
   CHECKSERT(eth1.netmask() == ip4::Addr(255,255,255,0), "Netmask is 255.255.255.0");
   CHECKSERT(eth1.gateway() == ip4::Addr(10,0,0,1), "Gateway is 10.0.0.1");
   CHECKSERT(eth1.dns_addr() == ip4::Addr(8,8,8,8), "DNS addr is 8.8.8.8");
 
   INFO("Test", "Verify eth2");
-  CHECKSERT(stacks[2] != nullptr, "eth2 is initialized");
+  CHECKSERT(stacks[2][0] != nullptr, "eth2 is initialized");
 
-  auto& eth2 = *stacks[2];
+  auto& eth2 = *stacks[2][0];
   static const ip4::Addr EMPTY{0};
   CHECKSERT(eth2.ip_addr() == EMPTY, "IP address is 0.0.0.0");
   CHECKSERT(eth2.netmask() == EMPTY, "Netmask is 0.0.0.0");
@@ -55,12 +55,12 @@ void Service::start()
   CHECKSERT(eth2.dns_addr() == EMPTY, "DNS addr is 0.0.0.0");
 
   INFO("Test", "Verify eth3");
-  CHECKSERT(stacks[3] != nullptr, "eth3 is initialized (but waiting for DHCP)");
+  CHECKSERT(stacks[3][0] != nullptr, "eth3 is initialized (but waiting for DHCP)");
 
   INFO("Test", "Verify eth4");
-  CHECKSERT(stacks[4] == nullptr, "eth4 is uninitialized");
+  CHECKSERT(stacks[4][0] == nullptr, "eth4 is uninitialized");
 
-  auto& eth5 = *stacks[5];
+  auto& eth5 = *stacks[5][0];
   auto verify_eth5 = [](auto& eth5) {
     INFO("Test", "Verify eth5");
     CHECKSERT(eth5.ip_addr() != EMPTY, "IP not empty (%s)", eth5.ip_addr().str().c_str());
