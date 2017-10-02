@@ -150,7 +150,6 @@ namespace net {
       if(not vlan_upstream_)
         packets_dropped_++;
       else {
-        pckt->increment_layer_begin(sizeof(header) - sizeof(Ethertype));
         vlan_upstream_(std::move(pckt));
       }
       break;
