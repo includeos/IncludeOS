@@ -78,11 +78,8 @@ CASE("Creating and using a router and routing table")
   EXPECT(sorted.size() == tbl.size());
   EXPECT(filtered.size() == 2u);
 
-  // Provide a (empty) set of interfaces
-  std::vector<std::unique_ptr<Inet<net::IP4>>> ifaces{};
-
   // Construct router object
-  Router<IP4> router(ifaces, tbl);
+  Router<IP4> router(tbl);
 
   // Check for route to a couple of IP's
   EXPECT(router.route_check({10,42,42,5}));

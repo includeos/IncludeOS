@@ -71,7 +71,7 @@ void Service::start()
     {{192, 1, 0, 0 }, { 255, 255, 255, 0}, {192, 1, 0, 1}, eth1 , 1 }
   };
 
-  router = std::make_unique<Router<IP4>>(Super_stack::inet().ip4_stacks(), routing_table);
+  router = std::make_unique<Router<IP4>>(routing_table);
   eth0.ip_obj().set_packet_forwarding(ip_forward);
   eth1.ip_obj().set_packet_forwarding(ip_forward);
 
