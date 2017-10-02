@@ -223,7 +223,7 @@ void IrcServer::sbcast(const std::string& msg)
 }
 void IrcServer::sbcast_butone(sindex_t origin, const std::string& msg)
 {
-  for (size_t id = 0; id < servers.size(); id++)
+  for (sindex_t id = 0; id < (sindex_t) servers.size(); id++)
   {
     if (id == origin) continue;
     // send message to all local servers

@@ -13,9 +13,22 @@ set(BINARY       "IRCd")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  channel.cpp     client.cpp      client_new.cpp   modes.cpp    test.cpp     transform.cpp
-  client_commands.cpp             client_send.cpp  ircd.cpp     ircsplit.cpp readq.cpp
-  restore.cpp     service.cpp     server.cpp       server_commands.cpp       timeout.cpp
+  service.cpp
+  ircd/channel.cpp
+  ircd/client.cpp
+  ircd/client_commands.cpp
+  ircd/client_new.cpp
+  ircd/client_send.cpp
+  ircd/ircd.cpp
+  ircd/ircsplit.cpp
+  ircd/modes.cpp
+  ircd/readq.cpp
+  ircd/restore.cpp
+  ircd/server.cpp
+  ircd/server_commands.cpp
+  ircd/test.cpp
+  ircd/timeout.cpp
+  ircd/transform.cpp
   )
 
 # To add your own include paths:
@@ -37,4 +50,4 @@ set(LIBRARIES libliveupdate.a)
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
 # Uncomment this to build vanilla:
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")

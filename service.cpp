@@ -21,13 +21,11 @@
 #define USE_STACK_SAMPLING
 #define PERIOD_SECS    4
 
-static uint16_t    srv_id   = 0;
-static std::string srv_name = "irc.includeos.org";
-static std::string srv_netw = "IncludeNet";
-#include "ircd.hpp"
-IrcServer* ircd = nullptr;
-
-extern "C" void kernel_sanity_checks();
+static const uint16_t    srv_id   = 0;
+static const std::string srv_name = "irc.includeos.org";
+static const std::string srv_netw = "IncludeNet";
+#include "ircd/ircd.hpp"
+static std::unique_ptr<IrcServer> ircd = nullptr;
 
 void Service::start()
 {
@@ -39,8 +37,7 @@ void Service::start()
   printf("*** %s starting up...\n", srv_name.c_str());
 
   IrcServer::init();
-  ircd =
-  new IrcServer(inet, 6667, 7000, srv_id, srv_name, srv_netw,
+  ircd.reset(new IrcServer(inet, 6667, 7000, srv_id, srv_name, srv_netw,
   [] () -> const std::string& {
     static const std::string motd = R"M0TDT3XT(
               .-') _                               _ .-') _     ('-.                       .-')
@@ -56,7 +53,7 @@ void Service::start()
 Rewritten clients, channels and servers to use perf_array! Hope nothing broke...
 )M0TDT3XT";
     return motd;
-  });
+  }));
 
   //ircd->add_remote_server(
   //    {"irc.other.net", "password123", {46,31,184,184}, 7000});
