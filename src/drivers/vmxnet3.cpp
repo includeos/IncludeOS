@@ -435,7 +435,7 @@ bool vmxnet3::transmit_handler()
   //printf("There are now %d tokens free\n", tx_tokens_free());
   if (this->can_transmit()) {
     auto tok = tx_tokens_free();
-    transmit_queue_available_event_(tok);
+    transmit_queue_available_event(tok);
     if (tx_tokens_free() != tok) transmitted = true;
   }
   return transmitted;
@@ -550,7 +550,7 @@ void vmxnet3::handle_deferred()
 
 void vmxnet3::poll()
 {
-  if (transmit_queue_available_event_ == nullptr) return;
+  if (tqa_events_.empty()) return;
   if (this->already_polling) return;
   this->already_polling = true;
 

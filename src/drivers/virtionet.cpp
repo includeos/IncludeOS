@@ -263,7 +263,7 @@ void VirtioNet::msix_xmit_handler()
 
     // If we now emptied the buffer, offer packets to stack
     if (transmit_queue == nullptr && tx_q.num_free() > 1) {
-      transmit_queue_available_event_(tx_q.num_free() / 2);
+      transmit_queue_available_event(tx_q.num_free() / 2);
     }
   }
 }

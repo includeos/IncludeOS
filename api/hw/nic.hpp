@@ -83,8 +83,8 @@ namespace hw {
     virtual net::Packet_ptr create_packet(int layer_begin) = 0;
 
     /** Subscribe to event for when there is more room in the tx queue */
-    void on_transmit_queue_available(net::transmit_avail_delg del)
-    { transmit_queue_available_event_ = del; }
+    virtual void on_transmit_queue_available(net::transmit_avail_delg del)
+    { tqa_events_.push_back(del); }
 
     virtual size_t transmit_queue_available() = 0;
 
@@ -119,7 +119,25 @@ namespace hw {
       N = id_counter++;
     }
 
-    net::transmit_avail_delg transmit_queue_available_event_ = nullptr;
+    std::vector<net::transmit_avail_delg> tqa_events_;
+
+    void transmit_queue_available_event(size_t packets)
+    {
+      // divide up fairly
+      size_t div = packets / tqa_events_.size();
+
+      // give each handler a chance to take
+      for (auto& del : tqa_events_)
+        del(div);
+
+      // hand out remaining
+      for (auto& del : tqa_events_) {
+        div = transmit_queue_available();
+        if (!div) break;
+        // give as much as possible
+        del(div);
+      }
+    }
 
   private:
     net::BufferStore& bufstore_;

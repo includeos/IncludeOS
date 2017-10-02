@@ -70,6 +70,9 @@ public:
   net::Packet_ptr create_packet(int layer_begin) override
   { return link_.create_packet(layer_begin); }
 
+  void on_transmit_queue_available(net::transmit_avail_delg del) override
+  { link_.on_transmit_queue_available(del); }
+
   size_t transmit_queue_available() override
   { return link_.transmit_queue_available(); }
 
