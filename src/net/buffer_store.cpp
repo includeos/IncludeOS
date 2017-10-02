@@ -15,14 +15,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(__MACH__)
+#include <malloc.h>
+#else
+#include <cstddef>
+extern void *memalign(size_t, size_t);
+#endif
 #include <net/buffer_store.hpp>
 #include <kernel/syscalls.hpp>
 #include <common>
 #include <cassert>
 #include <smp>
 #include <cstddef>
-extern "C" void* memalign(size_t, size_t);
-extern "C" void  free(void*);
 //#define DEBUG_RELEASE
 //#define DEBUG_RETRIEVE
 //#define DEBUG_BUFSTORE
