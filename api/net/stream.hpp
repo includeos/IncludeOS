@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <delegate>
-#include <util/chunk.hpp>
+#include <vector>
 #include <net/socket.hpp>
 
 namespace net {
@@ -33,7 +33,7 @@ namespace net {
    */
   class Stream {
   public:
-    using buffer_t = std::shared_ptr<uint8_t>;
+    using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
     using ptr      = Stream_ptr;
 
     /** Called when the stream is ready to be used. */
@@ -46,7 +46,7 @@ namespace net {
     virtual void on_connect(ConnectCallback cb) = 0;
 
     /** Called with a shared buffer and the length of the data when received. */
-    using ReadCallback = delegate<void(buffer_t, size_t)>;
+    using ReadCallback = delegate<void(buffer_t)>;
     /**
      * @brief      Event when data is received.
      *
@@ -82,19 +82,12 @@ namespace net {
     virtual void write(const void* buf, size_t n) = 0;
 
     /**
-     * @brief      Async write of a chunk.
-     *
-     * @param[in]  c     A chunk
-     */
-    virtual void write(Chunk c) = 0;
-
-    /**
      * @brief      Async write of a shared buffer with a length.
      *
      * @param[in]  buffer  shared buffer
      * @param[in]  n       length
      */
-    virtual void write(buffer_t buf, size_t n) = 0;
+    virtual void write(buffer_t buf) = 0;
 
     /**
      * @brief      Async write of a string.

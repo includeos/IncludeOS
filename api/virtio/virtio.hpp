@@ -273,10 +273,6 @@ public:
       return _size;
     }
 
-    /** Inject a packet filter delegate the last possible point downstream */
-    inline void on_exit_to_physical(delegate<void(net::Packet_ptr)> dlg)
-    { on_exit_to_physical_ = dlg; };
-
   private:
     /** Initialize the queue buffer */
     void init_queue(int size, char* buf);
@@ -295,8 +291,6 @@ public:
     uint16_t _desc_in_flight = 0; // Entries in _queue_desc currently in use
     uint16_t _last_used_idx = 0; // Last known value of _queue.used->idx
     uint16_t _pci_index = 0; // Queue nr.
-
-    delegate<void(net::Packet_ptr p)> on_exit_to_physical_ {};
   };
 
 

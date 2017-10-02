@@ -51,12 +51,12 @@ void Service::start()
     // read async with a buffer size of 1024 bytes
     // define what to do when data is read
     conn->on_read(1024,
-    [conn] (auto buf, size_t n)
+    [conn] (auto buf)
     {
-      printf("<Service> @on_read: %lu bytes received.\n", n);
+      printf("<Service> @on_read: %lu bytes received.\n", buf->size());
       try
       {
-        std::string data{(const char*)buf.get(), n};
+        const std::string data((const char*) buf->data(), buf->size());
         // try to parse the request
         http::Request req{data};
 

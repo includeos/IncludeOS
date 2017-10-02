@@ -40,7 +40,7 @@ public:
    * @param[in]  capacity  The capacity of the buffer
    * @param[in]  seq       The sequence number to start on
    */
-  Read_buffer(const size_t capacity, const seq_t seq);
+  Read_buffer(const size_t capacity, const seq_t start);
 
   /**
    * @brief      Insert data into the buffer relative to the sequence number.
@@ -59,15 +59,15 @@ public:
   /**
    * @brief      Exposes the internal buffer
    *
-   * @return     A referene to the internal shared buffer
+   * @return     A reference to the internal shared buffer
    */
-  buffer_t& buffer()
+  buffer_t buffer()
   { return buf; }
 
   /**
    * @brief      Exposes the internal buffer (read only)
    *
-   * @return     A const referene to the internal shared buffer
+   * @return     A const reference to the internal shared buffer
    */
   const buffer_t& buffer() const
   { return buf; }
@@ -77,8 +77,8 @@ public:
    *
    * @return     The capacity
    */
-  size_t capacity() const
-  { return cap; }
+  size_t capacity() const noexcept
+  { return buf->capacity(); }
 
   /**
    * @brief      How far into the internal buffer data has been written.
@@ -86,15 +86,15 @@ public:
    *
    * @return     Where data ends
    */
-  size_t size() const
-  { return head; }
+  size_t size() const noexcept
+  { return buf->size(); }
 
   /**
    * @brief      The amount of bytes missing in the internal buffer (holes).
    *
    * @return     Bytes missing as holes in the buffer
    */
-  size_t missing() const
+  size_t missing() const noexcept
   { return hole; }
 
   /**
@@ -102,8 +102,8 @@ public:
    *
    * @return     Whether size has reached the end of the buffer
    */
-  bool at_end() const
-  { return static_cast<size_t>(head) == cap; }
+  bool at_end() const noexcept
+  { return size() == capacity(); }
 
   /**
    * @brief      Determines if the buffer is ready "for delivery".
@@ -112,16 +112,16 @@ public:
    *
    * @return     True if ready, False otherwise.
    */
-  bool is_ready() const
+  bool is_ready() const noexcept
   { return (push_seen or at_end()) and hole == 0; }
 
   /**
-   * @brief      Renew the buffer by reseting all the values and
-   *             allocate a new internal buffer.
+   * @brief      Reset this buffer, initialize it for a new sequence start.
+   *             Creates a new internal buffer ONLY IF the buffer isn't unique.
    *
-   * @param[in]  seq   The starting sequence number
+   * @param[in]  seq   The new starting sequence number
    */
-  void renew(const seq_t seq);
+  void reset(const seq_t start);
 
   /**
    * @brief      Sets the starting sequence number.
@@ -138,9 +138,7 @@ public:
 
 private:
   buffer_t        buf;
-  const size_t    cap;
   seq_t           start;
-  int32_t         head; // current position in the buffer (only advances forward)
   int32_t         hole; // number of bytes missing
   bool            push_seen{false};
 

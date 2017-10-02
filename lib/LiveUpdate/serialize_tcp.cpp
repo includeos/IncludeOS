@@ -63,10 +63,10 @@ int8_t serialized_tcp::to_state(Connection::State* state) const
 struct read_buffer
 {
   uint32_t  seq;
-  size_t    cap = 0;
   int32_t   head;
   int32_t   hole;
   bool      push;
+  size_t    capacity;
 
   size_t size() const noexcept {
     return head;
@@ -109,12 +109,13 @@ int Write_queue::deserialize_from(void* addr)
     // header
     len += sizeof(write_buffer);
 
-    /// insert into write queue
-    this->q.emplace_back(current->length);
+    // insert shared buffer into write queue
+    this->q.emplace_back(new std::vector<uint8_t> ());
 
     // copy data
-    auto& chunk = this->q.back();
-    memcpy(chunk.data(), &writeq->vla[len], current->length);
+    auto wbuf = this->q.back();
+    auto* source = &writeq->vla[len];
+    std::copy(source, source + current->length, std::back_inserter(*wbuf));
     len += current->length;
   }
   return sizeof(serialized_writeq) + len;
@@ -124,13 +125,13 @@ int Read_buffer::deserialize_from(void* addr)
 {
   const auto& readq = *reinterpret_cast<read_buffer*>(addr);
 
-  // start (seq) and cap is already set in the construction of the Read_buffer
-  this->head      = readq.head;
+  // start (seq) and capacity is set in constructor
   this->hole      = readq.hole;
   this->push_seen = readq.push;
 
-  if(readq.size() > 0)
-    std::copy(readq.vla, readq.vla + readq.size(), this->buffer().get());
+  if(readq.size() > 0) {
+    std::copy(readq.vla, readq.vla + readq.size(), std::back_inserter(*buffer()));
+  }
 
   return sizeof(read_buffer) + readq.size();
 }
@@ -173,9 +174,9 @@ void Connection::deserialize_from(void* addr)
 
   /// restore read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
-  if(readq->cap)
+  if (readq->capacity)
   {
-    read_request = std::make_unique<ReadRequest>(readq->cap, readq->seq, nullptr);
+    read_request = std::make_unique<ReadRequest>(readq->capacity, readq->seq, nullptr);
     read_request->buffer.deserialize_from(readq);
   }
 
@@ -206,16 +207,16 @@ int  Write_queue::serialize_to(void* addr) const
   writeq->buffers = this->q.size();
 
   int len = 0;
-  for (auto& chunk : this->q)
+  for (auto& wbuf : this->q)
   {
     auto* current = (write_buffer*) &writeq->vla[len];
 
     // header
-    current->length = chunk.size();
+    current->length = wbuf->size();
     len += sizeof(write_buffer);
 
     // data
-    memcpy(&writeq->vla[len], chunk.data(), current->length);
+    memcpy(&writeq->vla[len], wbuf->data(), current->length);
     len += current->length;
   }
   return sizeof(serialized_writeq) + len;
@@ -225,13 +226,11 @@ int Read_buffer::serialize_to(void* addr) const
 {
   auto& readbuf = *reinterpret_cast<read_buffer*>(addr);
 
-  readbuf.cap   = this->cap;
   readbuf.seq   = this->start;
-  readbuf.head  = this->head;
   readbuf.hole  = this->hole;
   readbuf.push  = this->push_seen;
 
-  std::copy(this->buf.get(), this->buf.get() + this->size(), readbuf.vla);
+  std::copy(this->buf->begin(), this->buf->end(), readbuf.vla);
 
   return sizeof(read_buffer) + this->size();
 }

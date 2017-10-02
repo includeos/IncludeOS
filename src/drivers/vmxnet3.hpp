@@ -28,7 +28,6 @@ class vmxnet3 : public net::Link_layer<net::Ethernet>
 public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
-  static const int ETH_FRAME_LEN = 1514;
   static const int DRIVER_OFFSET = 2;
   static const int NUM_RX_QUEUES = 1;
   static const int NUM_TX_DESC   = 512;
@@ -51,9 +50,8 @@ public:
     return 1500;
   }
 
-  uint16_t packet_len() const noexcept
-  {
-    return ETH_FRAME_LEN;
+  uint16_t packet_len() const noexcept {
+    return sizeof(net::ethernet::Header) + MTU();
   }
 
   net::downstream create_physical_downstream() override
@@ -92,6 +90,7 @@ private:
   void enable_intr(uint8_t idx) noexcept;
   void disable_intr(uint8_t idx) noexcept;
 
+  inline int  tx_flush_diff() const noexcept;
   inline int  tx_tokens_free() const noexcept;
   inline bool can_transmit() const noexcept;
   void transmit_data(uint8_t* data, uint16_t);
@@ -103,6 +102,7 @@ private:
     uint32_t producers  = 0;
     uint32_t prod_count = 0;
     uint32_t consumers  = 0;
+    uint32_t flushvalue = 0;
   };
   struct rxring_state {
     uint8_t* buffers[NUM_RX_DESC];

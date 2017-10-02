@@ -79,6 +79,22 @@ if (EXISTS ${CMAKE_SOURCE_DIR}/config.json)
 endif()
 
 #
+# NACL.TXT
+#
+
+if (EXISTS ${CMAKE_SOURCE_DIR}/nacl.txt)
+  add_custom_command(
+     OUTPUT nacl_content.cpp
+     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | python $ENV{HOME}/oxling/NaClv4/NaClv4.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
+     DEPENDS ${CMAKE_SOURCE_DIR}/nacl.txt
+   )
+   add_library(nacl_content STATIC nacl_content.cpp)
+   set_target_properties(nacl_content PROPERTIES LINKER_LANGUAGE CXX)
+   target_link_libraries(service --whole-archive nacl_content --no-whole-archive)
+   set(PLUGINS ${PLUGINS} nacl)
+endif()
+
+#
 # DRIVERS / PLUGINS - support for parent cmake list specification
 #
 

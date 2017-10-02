@@ -110,10 +110,10 @@ void Service::start(const std::string&)
   });
 */
   server_mem.on_connect([] (net::tcp::Connection_ptr conn) {
-      conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
-          TCP_BYTES_RECV += n;
+      conn->on_read(1024, [conn](net::tcp::buffer_t buf) {
+          TCP_BYTES_RECV += buf->size();
           // create string from buffer
-          std::string received { (char*)buf.get(), n };
+          std::string received { (char*) buf->data(), buf->size() };
           auto reply = std::to_string(OS::heap_usage())+"\n";
           // Send the first packet, and then wait for ARP
           printf("TCP Mem: Reporting memory size as %s bytes\n", reply.c_str());
@@ -134,10 +134,10 @@ void Service::start(const std::string&)
   server.on_connect([] (net::tcp::Connection_ptr conn) {
         // read async with a buffer size of 1024 bytes
         // define what to do when data is read
-        conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n) {
-            TCP_BYTES_RECV += n;
+        conn->on_read(1024, [conn](net::tcp::buffer_t buf) {
+            TCP_BYTES_RECV += buf->size();
             // create string from buffer
-            std::string data { (char*)buf.get(), n };
+            std::string data { (char*) buf->data(), buf->size() };
 
             if (data.find("GET / ") != std::string::npos) {
 

@@ -104,9 +104,9 @@ void Service::start()
     CHECKSERT(conn->remote().address() == eth1.ip_addr(),
       "Received connection from (what appears to be) my gateway - %s", conn->remote().to_string().c_str());
 
-    conn->on_read(1024, [](auto buf, auto n)
+    conn->on_read(1024, [](auto buf)
     {
-      const auto str = std::string{reinterpret_cast<const char*>(buf.get()), n};
+      const auto str = std::string{(const char*) buf->data(), buf->size()};
       CHECKSERT(str == "Testing MASQ", "Data from laptop is received - \"%s\"", str.c_str());
 
       test_finished();
@@ -163,9 +163,9 @@ void Service::start()
     CHECKSERT(conn->remote().address() != eth1.ip_addr(),
       "Received non SNAT connection - %s", conn->remote().to_string().c_str());
 
-    conn->on_read(1024, [conn](auto buf, auto n)
+    conn->on_read(1024, [conn](auto buf)
     {
-      const auto str = std::string{reinterpret_cast<const char*>(buf.get()), n};
+      const auto str = std::string{(const char*) buf->data(), buf->size()};
       CHECKSERT(str == "Testing DNAT", "Data from laptop is received - \"%s\"", str.c_str());
 
       test_finished();
