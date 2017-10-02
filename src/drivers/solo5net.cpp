@@ -34,10 +34,10 @@ using namespace net;
 const char* Solo5Net::driver_name() const { return "Solo5Net"; }
 
 Solo5Net::Solo5Net()
-  : Link(Link_protocol{{this, &Solo5Net::transmit}, mac()},
-         NUM_BUFFERS, 2048u), // don't change this
+  : Link(Link_protocol{{this, &Solo5Net::transmit}, mac()}, bufstore_),
     packets_rx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_rx").get_uint64()},
-    packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()}
+    packets_tx_{Statman::get().create(Stat::UINT64, device_name() + ".packets_tx").get_uint64()},
+    bufstore_{NUM_BUFFERS, 2048u} // don't change this
 {
   INFO("Solo5Net", "Driver initializing");
   mac_addr = MAC::Addr(solo5_net_mac_str());

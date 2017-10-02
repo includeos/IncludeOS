@@ -92,6 +92,8 @@ private:
   uint64_t& packets_rx_;
   uint64_t& packets_tx_;
 
+  net::BufferStore bufstore_;
+
 };
 
 #endif
