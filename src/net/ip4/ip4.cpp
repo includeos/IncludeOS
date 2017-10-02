@@ -240,11 +240,6 @@ namespace net {
         next_hop = IP4::ADDR_BCAST;
       }
       else {
-        if(UNLIKELY(stack_.gateway() == 0)) {
-          PRINT("<IP4> Cannot calculate next_hop when gateway == 0.0.0.0\n");
-          drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
-          return;
-        }
         // Create local and target subnets
         addr target = packet->ip_dst()  & stack_.netmask();
         addr local  = stack_.ip_addr() & stack_.netmask();
@@ -258,6 +253,13 @@ namespace net {
               stack_.ip_addr().str().c_str(),
               stack_.gateway().str().c_str(),
               next_hop.str().c_str());
+
+        if(UNLIKELY(next_hop == 0)) {
+          PRINT("<IP4> Next_hop calculated to 0 (gateway == %s), dropping\n",
+            stack_.gateway().str().c_str());
+          drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
+          return;
+        }
       }
     }
 
