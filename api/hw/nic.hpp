@@ -53,8 +53,8 @@ namespace hw {
 
     /** Implemented by the underlying (link) driver */
     virtual downstream create_link_downstream() = 0;
-    virtual void set_ip4_upstream(upstream handler) = 0;
-    virtual void set_ip6_upstream(upstream handler) = 0;
+    virtual void set_ip4_upstream(net::upstream_ip handler) = 0;
+    virtual void set_ip6_upstream(net::upstream_ip handler) = 0;
     virtual void set_arp_upstream(upstream handler) = 0;
 
     net::BufferStore& bufstore() noexcept

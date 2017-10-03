@@ -32,6 +32,9 @@ namespace net {
   static void ignore(net::Packet_ptr) noexcept {
     debug("<Ethernet upstream> Ignoring data (no real upstream)\n");
   }
+  static void ignore_ip(net::Packet_ptr, const bool) noexcept {
+    debug("<Ethernet upstream_ip> Ignoring data (no real upstream)\n");
+  }
   static int eth_name_idx = 0;
 
   Ethernet::Ethernet(
@@ -47,8 +50,8 @@ namespace net {
                 link_name() + ".ethernet.packets_dropped").get_uint32()},
     trailer_packets_dropped_{Statman::get().create(Stat::UINT32,
                 link_name() + ".ethernet.trailer_packets_dropped").get_uint32()},
-    ip4_upstream_{ignore},
-    ip6_upstream_{ignore},
+    ip4_upstream_{ignore_ip},
+    ip6_upstream_{ignore_ip},
     arp_upstream_{ignore},
     physical_downstream_(physical_downstream)
   {}
@@ -122,13 +125,13 @@ namespace net {
     case Ethertype::IP4:
       debug2("IPv4 packet\n");
       pckt->increment_layer_begin(sizeof(header));
-      ip4_upstream_(std::move(pckt));
+      ip4_upstream_(std::move(pckt), eth->dest() == MAC::BROADCAST);
       break;
 
     case Ethertype::IP6:
       debug2("IPv6 packet\n");
       pckt->increment_layer_begin(sizeof(header));
-      ip6_upstream_(std::move(pckt));
+      ip6_upstream_(std::move(pckt), eth->dest() == MAC::BROADCAST);
       break;
 
     case Ethertype::ARP:

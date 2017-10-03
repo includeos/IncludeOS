@@ -104,24 +104,25 @@ namespace net {
       or local_ip() == ADDR_ANY;
   }
 
-  void IP4::receive(Packet_ptr pckt)
+  void IP4::receive(Packet_ptr pckt, const bool link_bcast)
   {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
-    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x\n",
+    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x LinkBcast: %d ",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
-           (int) packet->ip_protocol());
+           (int) packet->ip_protocol(),
+           link_bcast);
     switch (packet->ip_protocol()) {
     case Protocol::ICMPv4:
-       PRINT("\t Type: ICMP\n"); break;
+       PRINT("Type: ICMP\n"); break;
     case Protocol::UDP:
-       PRINT("\t Type: UDP\n"); break;
+       PRINT("Type: UDP\n"); break;
     case Protocol::TCP:
-       PRINT("\t Type: TCP\n"); break;
+       PRINT("Type: TCP\n"); break;
     default:
-       PRINT("\t Type: UNKNOWN %hhu. Dropping. \n", packet->ip_protocol());
+       PRINT("Type: UNKNOWN %hhu. Dropping. \n", packet->ip_protocol());
     }
 
     // Stat increment packets received
@@ -218,7 +219,7 @@ namespace net {
     // Send loopback packets right back
     if (UNLIKELY(stack_.is_loopback(packet->ip_dst()))) {
       PRINT("<IP4> Destination address is loopback \n");
-      IP4::receive(std::move(packet));
+      IP4::receive(std::move(packet), false);
       return;
     }
 
