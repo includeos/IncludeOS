@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#define IRC_SERVER_VERSION    "v0.2"
+#define IRC_SERVER_VERSION    "0.3"
 
 #define READQ_MAX             512
 

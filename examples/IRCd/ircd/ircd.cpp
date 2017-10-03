@@ -1,6 +1,7 @@
 #include "ircd.hpp"
 #include "tokens.hpp"
 #include <algorithm>
+#include <info>
 #include <set>
 #include <timers>
 
@@ -10,29 +11,32 @@ void IrcServer::init()
 {
   Client::init();
   Server::init();
-}
-
-IrcServer::IrcServer(
-    Network& inet_,
-    const uint16_t cl_port,
-    const uint16_t sv_port,
-    const uint16_t Id,
-    const std::string& name,
-    const std::string& netw,
-    const motd_func_t& mfunc)
-    : inet(inet_), server_name(name), network_name(netw), motd_func(mfunc), id(Id)
-{
   // initialize lookup tables
   extern void transform_init();
   transform_init();
+}
+
+IrcServer::IrcServer(
+    Network& client_inet,
+    const uint16_t cl_port,
+    Network& server_inet,
+    const uint16_t sv_port,
+    const uint16_t Id,
+    const std::string& name,
+    const std::string& netw)
+    : cli_inet(client_inet),
+      srv_inet(server_inet),
+      srv_id(Id), server_name(name), network_name(netw)
+{
+  INFO("IRC", "Starting %s on %s", name.c_str(), netw.c_str());
+  IrcServer::init();
 
   // timeout for clients and servers
   using namespace std::chrono;
   Timers::periodic(10s, 5s, {this, &IrcServer::timeout_handler});
 
-  auto& tcp = inet.tcp();
   // client listener (although IRC servers usually have many ports open)
-  tcp.listen(cl_port).on_connect(
+  client_stack().tcp().listen(cl_port,
   [this] (auto csock)
   {
     // one more connection in total
@@ -50,10 +54,11 @@ IrcServer::IrcServer(
     // make sure crucial fields are reset properly
     client.reset_to(csock);
   });
-  printf("*** Accepting clients on port %u\n", cl_port);
+  INFO2("Accepting clients on %s port %u",
+        client_stack().ifname().c_str(), cl_port);
 
   // server listener
-  tcp.listen(sv_port).on_connect(
+  server_stack().tcp().listen(sv_port,
   [this] (auto ssock)
   {
     // one more connection in total
@@ -70,16 +75,22 @@ IrcServer::IrcServer(
     auto& srv = servers.create(*this);
     srv.connect(ssock);
   });
-  printf("*** Accepting servers on port %u\n", sv_port);
+  INFO2("Accepting servers on %s port %u",
+        server_stack().ifname().c_str(), sv_port);
 
   /// LiveUpdate ///
   if (this->init_liveupdate() == false)
   {
     // set timestamp for when the server was started
     this->created_ts = create_timestamp();
-    this->created_string = std::string(ctime(&created_ts));
+    char str[100];
+    int len = strftime(str, sizeof(str), "%A %c", localtime(&created_ts));
+    this->created_string = std::string(str, len);
     this->cheapstamp = this->created_ts;
   }
+  INFO2("Server started on %s", created_string.c_str());
+  INFO2("Version " IRC_SERVER_VERSION);
+  INFO("IRC", "Server open");
 }
 
 void IrcServer::new_registered_client()
@@ -192,7 +203,7 @@ void IrcServer::call_remote_servers()
             remote.sname.c_str(),
             remote.address.to_string().c_str(),
             remote.port);
-      auto conn = inet.tcp().connect({remote.address, remote.port});
+      auto conn = server_stack().tcp().connect({remote.address, remote.port});
       auto& srv = servers.create(*this, remote.sname);
       srv.connect(conn, remote.sname, remote.spass);
     }

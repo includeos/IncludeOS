@@ -14,6 +14,7 @@ set(BINARY       "IRCd")
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
+  autoconf.cpp
   ircd/channel.cpp
   ircd/client.cpp
   ircd/client_commands.cpp

@@ -1,7 +1,6 @@
 #pragma once
 #include <net/inet4>
 #include <rtc>
-#include <map>
 #include <vector>
 #include <liveupdate>
 
@@ -38,13 +37,13 @@ public:
   typedef std::function<const std::string&()> motd_func_t;
 
   IrcServer(
-      Network& inet,
+      Network& cli_inet,
       uint16_t client_port,
+      Network& srv_inet,
       uint16_t server_port,
       uint16_t id,
       const std::string& name,
-      const std::string& network,
-      const motd_func_t&);
+      const std::string& network);
 
   const std::string& name() const noexcept {
     return server_name;
@@ -52,12 +51,13 @@ public:
   const std::string& network() const noexcept {
     return network_name;
   }
-  std::string version() const noexcept
-  {
+  std::string version() const noexcept {
     return IRC_SERVER_VERSION;
   }
-  const std::string& get_motd() const noexcept
-  {
+  void set_motd(motd_func_t func) noexcept {
+    this->motd_func = std::move(func);
+  }
+  const std::string& get_motd() const noexcept {
     return motd_func();
   }
   // date server was created
@@ -70,10 +70,10 @@ public:
   }
   // server id / token
   uint8_t server_id() const noexcept {
-    return this->id;
+    return this->srv_id;
   }
   char token() const noexcept {
-    return 'A' + this->id;
+    return 'A' + this->srv_id;
   }
 
   /// clients
@@ -208,10 +208,11 @@ public:
     printf("HMM: %d  TOTAL: %lu\n", hmm, clients.size());
   }
 
-  // network stack
-  Network& get_stack() noexcept { return inet; }
+  Network& client_stack() noexcept { return cli_inet; }
+  Network& server_stack() noexcept { return srv_inet; }
 
   static void init();
+  static std::unique_ptr<IrcServer> from_config();
 private:
   size_t to_current = 0;
   void  timeout_handler(int);
@@ -220,15 +221,16 @@ private:
   void serialize(liu::Storage& storage, const liu::buffer_t*);
   void deserialize(liu::Restore& thing);
 
-  Network&    inet;
+  Network&    cli_inet;
+  Network&    srv_inet;
+  uint16_t    srv_id = 0;
   std::string server_name;
   std::string network_name;
 
   // server callbacks
-  motd_func_t motd_func;
+  motd_func_t motd_func = nullptr;
 
   // network
-  uint16_t id;
   std::vector<RemoteServer> remote_server_list;
 
   // performance stuff

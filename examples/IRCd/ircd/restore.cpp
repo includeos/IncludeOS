@@ -186,7 +186,7 @@ void Client::deserialize(Restore& thing)
   server_id = thing.as_int(); thing.go_next();
   umodes_   = thing.as_int(); thing.go_next();
   // TCP connection
-  conn = thing.as_tcp_connection(server.get_stack().tcp());
+  conn = thing.as_tcp_connection(server.client_stack().tcp());
   thing.go_next();
   // timeout
   to_stamp = thing.as_type<long> (); thing.go_next();

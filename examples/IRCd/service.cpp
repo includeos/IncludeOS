@@ -21,24 +21,14 @@
 #define USE_STACK_SAMPLING
 #define PERIOD_SECS    4
 
-static const uint16_t    srv_id   = 0;
-static const std::string srv_name = "irc.includeos.org";
-static const std::string srv_netw = "IncludeNet";
 #include "ircd/ircd.hpp"
 static std::unique_ptr<IrcServer> ircd = nullptr;
 
 void Service::start()
 {
-  //  server_id  = 2;
-  //  servername = "irc.other.org";
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  ircd = IrcServer::from_config();
 
-  // show that we are starting :)
-  printf("*** %s starting up...\n", srv_name.c_str());
-
-  IrcServer::init();
-  ircd.reset(new IrcServer(inet, 6667, 7000, srv_id, srv_name, srv_netw,
-  [] () -> const std::string& {
+  ircd->set_motd([] () -> const std::string& {
     static const std::string motd = R"M0TDT3XT(
               .-') _                               _ .-') _     ('-.                       .-')
              ( OO ) )                             ( (  OO) )  _(  OO)                     ( OO ).
@@ -49,19 +39,16 @@ void Service::start()
  ,|  |_.'|  |\    | ||  |`-'|(|  '---.'|  | | `-' /|  |   / : |  .--'         \ |  | |  |.-._)   \
 (_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       /
   `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'
-
-Rewritten clients, channels and servers to use perf_array! Hope nothing broke...
 )M0TDT3XT";
     return motd;
-  }));
+  });
+  // motd spam
+  //printf("%s\n", ircd->get_motd().c_str());
 
   //ircd->add_remote_server(
   //    {"irc.other.net", "password123", {46,31,184,184}, 7000});
   //ircd->add_remote_server(
   //    {"irc.includeos.org", "password123", {195,159,159,10}, 7000});
-
-  //printf("%s\n", ircd->get_motd().c_str());
-  printf("This is server version " IRC_SERVER_VERSION "\n");
 }
 
 #include <ctime>
@@ -139,8 +126,6 @@ void print_stats(int)
 
 void Service::ready()
 {
-  // .. and done
-  printf("*** IRC SERVICE STARTED ***\n");
   // connect to all known remote servers
   //ircd->call_remote_servers();
 #ifdef USE_STACK_SAMPLING
