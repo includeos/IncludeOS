@@ -56,7 +56,7 @@ namespace http {
 
     void send_request(const size_t bufsize);
 
-    void recv_response(buffer_t buf, size_t len);
+    void recv_response(buffer_t buf);
 
     void end_response(Error err = Error::NONE);
 

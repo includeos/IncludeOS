@@ -186,32 +186,30 @@ void WebSocket::connect(
     WS_client_connector::create_response_handler(std::move(callback), std::move(key)));
 }
 
-void WebSocket::read_data(net::tcp::buffer_t buf, size_t len)
+void WebSocket::read_data(net::tcp::buffer_t buf)
 {
   // silently ignore data from reset connection
   if (this->stream == nullptr) return;
 
-  char* data = reinterpret_cast<char*>(buf.get());
+  char* data = (char*) buf->data();
   // parse message
 
-
-
+  size_t len = buf->size();
   while (len) {
     if (message != nullptr)
-      {
-        len -= message->add(data, len);
-      }
+    {
+      len -= message->add(data, len);
+    }
     // create new message
     else
-      {
-        len -= create_message(data, len);
-      }
+    {
+      len -= create_message(data, len);
+    }
 
     if(message->is_complete()) {
       finalize_message();
     }
   }
-
 }
 
 size_t WebSocket::create_message(char* buf, size_t len){
@@ -290,7 +288,7 @@ void WebSocket::finalize_message() {
   case op_code::PONG:
     break;
   default:
-    printf("Unknown opcode: %hhu\n", hdr.opcode());
+    printf("Unknown opcode: %d\n", (int) hdr.opcode());
     break;
   }
   message.reset();
@@ -323,28 +321,28 @@ void WebSocket::write(const char* buffer, size_t len, op_code code)
     return;
   }
 
-  Expects(code == op_code::TEXT or code == op_code::BINARY
+  Expects((code == op_code::TEXT or code == op_code::BINARY)
     && "Write currently only supports TEXT or BINARY");
 
   // allocate header and data at the same time
-  auto buf = net::tcp::buffer_t(new uint8_t[WS_HEADER_MAXLEN + len]);
+  auto buf = net::tcp::buffer_t(new std::vector<uint8_t> (WS_HEADER_MAXLEN + len));
   // fill header
-  int  header_len = make_header((char*) buf.get(), len, code, clientside);
+  int  header_len = make_header((char*) buf->data(), len, code, clientside);
   // get data offset & fill in data into buffer
-  char* data_ptr = (char*) buf.get() + header_len;
-  memcpy(data_ptr, buffer, len);
+  std::copy(buffer, buffer + len, (char*) &buf->at(header_len));
   // for client-side we have to mask the data
   if (clientside)
   {
     // mask data to server
-    auto& hdr = *(ws_header*) buf.get();
+    auto& hdr = *(ws_header*) buf->data();
     assert(hdr.is_masked());
     hdr.masking_algorithm();
   }
   /// send everything as shared buffer
-  this->stream->write(buf, header_len + len);
+  buf->resize(header_len + len);
+  this->stream->write(buf);
 }
-void WebSocket::write(net::tcp::buffer_t buffer, size_t len, op_code code)
+void WebSocket::write(net::tcp::buffer_t buffer, op_code code)
 {
   if (UNLIKELY(this->stream == nullptr)) {
     failure("write: Already closed");
@@ -359,16 +357,16 @@ void WebSocket::write(net::tcp::buffer_t buffer, size_t len, op_code code)
     return;
   }
 
-  Expects(code == op_code::TEXT or code == op_code::BINARY
+  Expects((code == op_code::TEXT or code == op_code::BINARY)
     && "Write currently only supports TEXT or BINARY");
 
   /// write header
   char header[WS_HEADER_MAXLEN];
-  int  header_len = make_header(header, len, code, false);
+  int  header_len = make_header(header, buffer->size(), code, false);
   assert(header_len < WS_HEADER_MAXLEN);
   this->stream->write(header, header_len);
   /// write shared buffer
-  this->stream->write(buffer, len);
+  this->stream->write(buffer);
 }
 bool WebSocket::write_opcode(op_code code, const char* buffer, size_t datalen)
 {

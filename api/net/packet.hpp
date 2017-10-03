@@ -141,7 +141,7 @@ namespace net
     { return std::move(chain_); }
 
 
-    // override delete to do nothing
+    // delete: release data back to buffer store
     static void operator delete (void* data) {
       auto* pk = (Packet*) data;
       assert(pk->bufstore_);
@@ -149,8 +149,8 @@ namespace net
     }
 
   private:
-    Packet_ptr chain_ {nullptr};
-    Packet*    last_  {nullptr};
+    Packet_ptr chain_ = nullptr;
+    Packet*    last_  = nullptr;
 
     /** Set layer begin, e.g. view the packet from another layer */
     void set_layer_begin(Byte_ptr loc)
@@ -169,7 +169,6 @@ namespace net
     Packet& operator=(Packet) = delete;
     Packet operator=(Packet&&) = delete;
 
-    // const uint16_t     capacity_;
     Byte_ptr              layer_begin_;
     Byte_ptr              data_end_;
     const Byte* const     buffer_end_;

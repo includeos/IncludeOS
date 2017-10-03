@@ -100,7 +100,6 @@ set(TEST_SOURCES
   ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/util/unit/base64.cpp
   ${TEST}/util/unit/sha1.cpp
-  ${TEST}/util/unit/chunk_test.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
   ${TEST}/util/unit/fixed_queue.cpp
@@ -145,8 +144,6 @@ set(OS_SOURCES
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
-  ${SRC}/kernel/terminal.cpp
-  ${SRC}/kernel/terminal_disk.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp

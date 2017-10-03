@@ -15,21 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#undef  NO_DEBUG
-#define DEBUG
-#if !defined(__MACH__)
-#include <malloc.h>
-#else
-#include <cstddef>
-extern void *memalign(size_t, size_t);
-#endif
 #include <net/buffer_store.hpp>
 #include <kernel/syscalls.hpp>
 #include <common>
 #include <cassert>
 #include <smp>
+#include <cstddef>
+extern "C" void* memalign(size_t, size_t);
+extern "C" void  free(void*);
 //#define DEBUG_RELEASE
 //#define DEBUG_RETRIEVE
+//#define DEBUG_BUFSTORE
 
 #define PAGE_SIZE     0x1000
 #define ENABLE_BUFFERSTORE_CHAIN
@@ -45,6 +41,12 @@ extern void *memalign(size_t, size_t);
 #define BSD_GET(fmt, ...) printf(fmt, ##__VA_ARGS__);
 #else
 #define BSD_GET(fmt, ...)  /** fmt **/
+#endif
+
+#ifdef DEBUG_BUFSTORE
+#define BSD_BUF(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#else
+#define BSD_BUF(fmt, ...)  /** fmt **/
 #endif
 
 namespace net {
@@ -126,7 +128,7 @@ namespace net {
         if (!parent->available_.empty()) return parent;
     }
     parent->next_ = new BufferStore(local_buffers(), bufsize());
-    BSD_GET("<BufferStore> Allocating %lu new buffers (%lu total)",
+    BSD_BUF("<BufferStore> Allocating %lu new buffers (%lu total)",
             local_buffers(), total_buffers());
     return parent->next_;
 #else

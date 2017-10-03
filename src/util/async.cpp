@@ -16,11 +16,8 @@
 // limitations under the License.
 
 #include <async>
-
+#include <common>
 #include <memory>
-
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
 
 inline unsigned roundup(unsigned n, unsigned div) {
   return (n + div - 1) / div;
@@ -39,18 +36,18 @@ void Async::upload_file(
             next_func    next) mutable
   {
     // temp
-    stream.on_write(net::tcp::Connection::WriteCallback::make_packed(
+    stream.on_write(
+      net::tcp::Connection::WriteCallback::make_packed(
       [length, next] (size_t n) {
 
         // if all data written, go to next chunk
         debug("<Async::upload_file> %u / %u\n", n, length);
         next(n == length);
-
       })
     );
 
     // write chunk to TCP connection
-    stream.write(buffer, length);
+    stream.write(buffer.get(), length);
 
   }, callback, CHUNK_SIZE);
 }
@@ -104,7 +101,7 @@ void Async::disk_transfer(
           [next, pos, callback] (bool good)
           {
             // if the write succeeded, call next
-            if (likely(good))
+            if (LIKELY(good))
               (*next)(pos+1);
             else
               // otherwise, fail

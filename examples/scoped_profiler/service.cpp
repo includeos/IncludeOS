@@ -40,23 +40,16 @@ std::string create_html_response(const std::string& message)
 void Service::start()
 {
   // DHCP on interface 0
-  auto& inet = net::Inet4::ifconfig<0>(10.0);
-
-  // static IP in case DHCP fails
-  net::Inet4::ifconfig(
-    { 10,0,0,42 },      // IP
-    { 255,255,255,0 },  // Netmask
-    { 10,0,0,1 },       // Gateway
-    { 8,8,8,8 });       // DNS
+  auto& inet = net::Super_stack::get<net::IP4>(0);
 
   // Set up a TCP server on port 80
   auto& server = inet.tcp().listen(80);
 
   server.on_connect([](auto conn)
   {
-    conn->on_read(1024, [conn](net::tcp::buffer_t buf, size_t n)
+    conn->on_read(1024, [conn](net::tcp::buffer_t buf)
     {
-      auto data = std::string(reinterpret_cast<char*>(buf.get()), n);
+      std::string data(reinterpret_cast<char*>(buf->data()), buf->size());
       if (data.find("GET /profile ") != std::string::npos)
       {
         auto profile_statistics = ScopedProfiler::get_statistics();

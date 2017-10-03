@@ -1,4 +1,9 @@
-### IncludeOS Demo Service
+### IncludeOS demo in Linux Userspace
+
+Build and install the linux userspace library first, from the linux folder:
+```
+mkdir -p build && pushd build && cmake .. -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX && make -j4 install && popd
+```
 
 Build with cmake & make, then run:
 ```

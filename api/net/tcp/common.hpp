@@ -53,16 +53,20 @@ namespace net {
     using seq_t = uint32_t;
 
     /** A shared buffer pointer */
-    using buffer_t = std::shared_ptr<uint8_t>;
+    using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
 
     /**
-     * @brief Creates a shared buffer with a given length
+     * @brief Creates a shared buffer with a given capacity
      *
-     * @param length buffer length
-     * @return a newly created buffer_t
+     * @param capacity intended buffer capacity
+     * @return a new shared vector
      */
-    inline buffer_t new_shared_buffer(uint64_t length)
-    { return buffer_t(new uint8_t[length], std::default_delete<uint8_t[]>()); }
+    inline buffer_t new_shared_buffer(size_t capacity)
+    {
+      auto buf = std::make_shared<std::vector<uint8_t>> ();
+      buf->reserve(capacity);
+      return buf;
+    }
 
     class Packet;
     using Packet_ptr = std::unique_ptr<Packet>;

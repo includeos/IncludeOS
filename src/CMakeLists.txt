@@ -1,5 +1,5 @@
 #
-#
+# CMake script for the OS library
 #
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
@@ -20,16 +20,13 @@ include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 include_directories(${BOTAN_DIR})
 
 
-# TODO: i wanted to use a glob, but then found out that not everything is included
 set(OS_OBJECTS
   kernel/multiboot.cpp
   kernel/syscalls.cpp kernel/os.cpp kernel/cpuid.cpp
   kernel/events.cpp kernel/memmap.cpp kernel/pci_manager.cpp
-  kernel/heap.cpp kernel/service_stub.cpp
-  kernel/elf.cpp kernel/terminal.cpp kernel/terminal_disk.cpp
+  kernel/heap.cpp kernel/service_stub.cpp kernel/elf.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm
-  kernel/fiber.cpp kernel/tls.cpp
-  kernel/profile.cpp
+  kernel/fiber.cpp kernel/tls.cpp kernel/profile.cpp kernel/terminal.cpp
   kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp kernel/rdrand.cpp
   kernel/solo5_manager.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
@@ -73,10 +70,6 @@ add_subdirectory(platform/x86_solo5)
 endif(WITH_SOLO5)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
-
-# add_dependencies(arch/${ARCH} PrecompiledLibraries)
-# add_dependencies(drivers PrecompiledLibraries)
-# add_dependencies(plugins PrecompiledLibraries)
 
 
 install(TARGETS os DESTINATION includeos/${ARCH}/lib)

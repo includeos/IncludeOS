@@ -184,7 +184,7 @@ public:
   create_response_handler(Connect_handler on_connect, std::string key);
 
   void write(const char* buffer, size_t len, op_code = op_code::TEXT);
-  void write(net::tcp::buffer_t, size_t len, op_code = op_code::TEXT);
+  void write(net::tcp::buffer_t, op_code = op_code::TEXT);
 
   void write(const std::string& text)
   {
@@ -235,7 +235,7 @@ private:
   WebSocket(const WebSocket&) = delete;
   WebSocket& operator= (const WebSocket&) = delete;
   WebSocket& operator= (WebSocket&&) = delete;
-  void read_data(net::tcp::buffer_t, size_t);
+  void read_data(net::tcp::buffer_t);
   bool write_opcode(op_code code, const char*, size_t);
   void failure(const std::string&);
   void tcp_closed();
