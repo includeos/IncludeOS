@@ -17,7 +17,6 @@
 
 #include <net/http/client_connection.hpp>
 #include <net/http/client.hpp>
-
 #include <debug>
 
 namespace http {
@@ -65,7 +64,7 @@ namespace http {
       return;
     }
 
-    const auto data = std::string{(char*) buf->data(), buf->size()};
+    const std::string data{(char*) buf->data(), buf->size()};
 
     // restart timer since we got data
     if(timer_.is_running())
