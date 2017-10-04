@@ -1,6 +1,7 @@
 #pragma once
 
 #include <net/tcp/connection.hpp>
+#include <util/timer.hpp>
 #include <cstdint>
 #include <string>
 #include <list>
@@ -70,7 +71,7 @@ public:
     this->umodes_ &= ~mask;
   }
 
-  void read(uint8_t* buffer, size_t len);
+  void read(net::tcp::buffer_t);
   void send_from(const std::string& from, const std::string& text);
   void send_from(const std::string& from, uint16_t numeric, const std::string& text);
   void send(uint16_t numeric, std::string text);
@@ -128,18 +129,11 @@ public:
   // tell everyone this client has quit
   void propagate_quit(const char*, int len);
 
-  long get_timeout_ts() const noexcept {
-    return to_stamp;
-  }
-
   void set_vhost(const std::string& new_vhost)
   {
     this->host_ = new_vhost;
   }
 
-  void set_to_stamp(long new_tos) noexcept {
-    to_stamp = new_tos;
-  }
   void set_warned(bool warned) noexcept {
     if (warned) regis |= WARNED_BIT;
     else        regis &= ~WARNED_BIT;
@@ -180,16 +174,18 @@ private:
   void split_message(const std::string&);
   void handle_new(const std::vector<std::string>&);
   void handle_cmd(const std::vector<std::string>&);
+  void restart_timeout();
+  void handle_timeout();
 
   clindex_t   self;
   clindex_t   remote_id;
   uint8_t     regis;
   uint8_t     server_id;
   uint16_t    umodes_;
+  Timer       to_timer;
 
   IrcServer&  server;
   Connection  conn;
-  long        to_stamp;
 
   std::string nick_;
   std::string user_;

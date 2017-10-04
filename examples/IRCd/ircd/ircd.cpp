@@ -31,10 +31,6 @@ IrcServer::IrcServer(
   INFO("IRC", "Starting %s on %s", name.c_str(), netw.c_str());
   IrcServer::init();
 
-  // timeout for clients and servers
-  using namespace std::chrono;
-  Timers::periodic(10s, 5s, {this, &IrcServer::timeout_handler});
-
   // client listener (although IRC servers usually have many ports open)
   client_stack().tcp().listen(cl_port,
   [this] (auto csock)

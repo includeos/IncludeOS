@@ -20,6 +20,7 @@ set(SOURCES
   ircd/client_commands.cpp
   ircd/client_new.cpp
   ircd/client_send.cpp
+  ircd/client_timeout.cpp
   ircd/ircd.cpp
   ircd/ircsplit.cpp
   ircd/modes.cpp
@@ -29,7 +30,6 @@ set(SOURCES
   ircd/server.cpp
   ircd/server_commands.cpp
   ircd/test.cpp
-  ircd/timeout.cpp
   ircd/transform.cpp
   )
 

@@ -146,7 +146,6 @@ void Client::serialize_to(Storage& storage)
   uint16_t    umodes_;
   IrcServer&  server;
   Connection  conn;
-  long        to_stamp;
 
   std::string nick_;
   std::string user_;
@@ -163,8 +162,6 @@ void Client::serialize_to(Storage& storage)
   storage.add_int       (53, umodes_);
   // Connection
   storage.add_connection(54, conn);
-  // timeout ts
-  storage.add<long>     (55, to_stamp);
   // N U H
   storage.add_string    (56, nick_);
   storage.add_string    (57, user_);
@@ -175,7 +172,6 @@ void Client::serialize_to(Storage& storage)
   storage.add_vector<chindex_t> (59, chans);
   // readq
   storage.add_string(60, readq.get());
-
 }
 void Client::deserialize(Restore& thing)
 {
@@ -188,8 +184,6 @@ void Client::deserialize(Restore& thing)
   // TCP connection
   conn = thing.as_tcp_connection(server.client_stack().tcp());
   thing.go_next();
-  // timeout
-  to_stamp = thing.as_type<long> (); thing.go_next();
   // N U H
   nick_ = thing.as_string(); thing.go_next();
   user_ = thing.as_string(); thing.go_next();
@@ -200,6 +194,8 @@ void Client::deserialize(Restore& thing)
   thing.go_next();
   // readq
   readq.set(thing.as_string()); thing.go_next();
+  // restart timeout timer
+  this->restart_timeout();
 }
 
 void Channel::serialize_to(Storage& storage)

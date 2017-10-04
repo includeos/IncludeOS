@@ -1,4 +1,4 @@
-#pragma once
+pragma once
 #include <net/inet4>
 #include <rtc>
 #include <vector>
@@ -161,19 +161,19 @@ public:
   }
 
   constexpr static
-  uint16_t ping_timeout() noexcept {
-    return 120;
+  std::chrono::seconds ping_timeout() noexcept {
+    return std::chrono::seconds(60);
   }
   constexpr static
-  uint16_t short_ping_timeout() noexcept {
-    return 20;
+  std::chrono::seconds short_ping_timeout() noexcept {
+    return std::chrono::seconds(5);
   }
 
   size_t clis() const noexcept {
     return clients.size();
   }
   size_t club() const noexcept {
-    size_t sum = clients.capacity() * sizeof(Client);
+    size_t sum = clients.size() * sizeof(Client);
     for (auto& cl : clients) {
       sum += cl.club();
     }
@@ -183,10 +183,6 @@ public:
   // create a now() timestamp
   long create_timestamp() const noexcept {
     return RTC::now();
-  }
-  // imprecise timestamp
-  long get_cheapstamp() const noexcept {
-    return cheapstamp;
   }
 
   void print_stuff() {
@@ -215,7 +211,6 @@ public:
   static std::unique_ptr<IrcServer> from_config();
 private:
   size_t to_current = 0;
-  void  timeout_handler(int);
   bool  init_liveupdate();
   // liveupdate serialization
   void serialize(liu::Storage& storage, const liu::buffer_t*);

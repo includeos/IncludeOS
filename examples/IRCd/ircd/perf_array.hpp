@@ -1,16 +1,17 @@
 #pragma once
 #include "common.hpp"
 #include "ciless.hpp"
+#include <deque>
 
 class IrcServer;
 
 template <typename T, typename IDX>
 struct perf_array
 {
-  using typevec = std::vector<T>;
+  using typevec = std::deque<T>;
   using iterator       = typename typevec::iterator;
   using const_iterator = typename typevec::const_iterator;
-  
+
   // generate new id
   T& create(IrcServer&);
   // create and hash
@@ -21,35 +22,32 @@ struct perf_array
   T& get(IDX idx) {
     return tvec.at(idx);
   }
-  
+
   IDX find(const std::string&) const;
-  
+
   bool   empty() const noexcept {
     return tvec.empty();
   }
   size_t size() const noexcept {
     return tvec.size();
   }
-  size_t capacity() const noexcept {
-    return tvec.capacity();
-  }
-  
+
   void free(T& object);
-  
+
   // T iterators
-  iterator begin() {
+  auto begin() {
     return tvec.begin();
   }
-  const_iterator begin() const {
-    return tvec.begin();
+  auto begin() const {
+    return tvec.cbegin();
   }
-  iterator end() {
+  auto end() {
     return tvec.end();
   }
-  const_iterator end() const {
-    return tvec.end();
+  auto end() const {
+    return tvec.cend();
   }
-  
+
   // hash map
   auto& hash_map() noexcept {
     return h_map;
@@ -66,9 +64,9 @@ struct perf_array
   {
     h_map.erase(value);
   }
-  
+
 private:
-  std::vector<T>   tvec;
+  typevec          tvec;
   std::vector<IDX> free_idx;
   std::map<std::string, IDX, ci_less> h_map;
 };

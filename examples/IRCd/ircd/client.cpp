@@ -41,7 +41,6 @@ void Client::reset_to(Connection conn)
   this->umodes_   = default_user_modes();
   this->remote_id = NO_SUCH_CLIENT;
   this->conn      = conn;
-  this->to_stamp  = server.create_timestamp();
   this->readq.clear();
   // assign correct delegates
   this->assign_socket_dg();
@@ -66,28 +65,19 @@ void Client::reset_to(clindex_t uid, sindex_t sid, clindex_t rid,
 void Client::assign_socket_dg()
 {
   // set up callbacks
-  conn->on_read(128,
-  [srv = &server, idx = self] (auto buffer)
-  {
-    /// NOTE: the underlying array can move around,
-    /// so we have to retrieve the address each time
-    auto& client = srv->clients.get(idx);
-    client.read(buffer->data(), buffer->size());
-  });
+  conn->on_read(128, {this, &Client::read});
 
   conn->on_close(
-  [srv = &server, idx = self] {
-    // for the case where the client has not voluntarily quit,
-    auto& client = srv->clients.get(idx);
-    //assert(client.is_alive());
-    if (UNLIKELY(!client.is_alive())) return;
+  [this] {
+    //assert(this->is_alive());
+    if (UNLIKELY(!this->is_alive())) return;
     // tell everyone that he just disconnected
     char buff[128];
     int len = snprintf(buff, sizeof(buff),
-              ":%s QUIT :%s\r\n", client.nickuserhost().c_str(), "Connection closed");
-    client.propagate_quit(buff, len);
+              ":%s QUIT :%s\r\n", this->nickuserhost().c_str(), "Connection closed");
+    this->propagate_quit(buff, len);
     // force-free resources
-    client.disable();
+    this->disable();
   });
 }
 
@@ -98,6 +88,8 @@ void Client::disable()
   server.free_client(*this);
   // reset registration status
   regis = 0;
+  // stop timeout timer
+  this->to_timer.stop();
   // free memory properly
   this->nick_.clear();
   this->nick_.shrink_to_fit();
@@ -135,8 +127,8 @@ void Client::split_message(const std::string& msg)
 #endif
 
   // reset timeout now that we got data
-  set_warned(false);
-  to_stamp = server.get_cheapstamp();
+  this->set_warned(false);
+  this->restart_timeout();
 
   if (this->is_reg())
       handle_cmd(vec);
@@ -144,10 +136,11 @@ void Client::split_message(const std::string& msg)
       handle_new(vec);
 }
 
-void Client::read(uint8_t* buf, size_t len)
+void Client::read(net::tcp::buffer_t buffer)
 {
   volatile ScopedProfiler profile;
-  if (readq.read(buf, len, {this, &Client::split_message}) == false)
+  if (readq.read(buffer->data(), buffer->size(), 
+      {this, &Client::split_message}) == false)
   {
     kill(false, "Max readq exceeded");
   }
