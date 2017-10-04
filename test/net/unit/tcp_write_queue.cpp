@@ -20,13 +20,12 @@
 
 #include <vector>
 
+using namespace net;
 using namespace net::tcp;
 
 inline static auto create_write_request(size_t size)
 {
-  auto buf = new_shared_buffer(size);
-  buf->resize(size);
-  return buf;
+  return tcp::construct_buffer(size);
 }
 
 CASE("Creating a WriteQueue and operate it")
