@@ -83,9 +83,7 @@ Waiting::Waiting(liu::Restore& store, net::TCP& stack)
   for (int i = 0; i < qsize; i++)
   {
     auto buf = store.as_buffer(); store.go_next();
-    auto sbuf = net::tcp::new_shared_buffer(buf.size());
-    std::copy(buf.data(), buf.data() + buf.size(), std::back_inserter(*sbuf));
-    readq.push_back(sbuf);
+    readq.push_back(net::tcp::construct_buffer(buf.begin(), buf.end()));
   }
   store.pop_marker(10);
 }
