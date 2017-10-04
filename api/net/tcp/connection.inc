@@ -45,7 +45,7 @@ inline Connection& Connection::_on_cleanup(CleanupCallback cb) {
 }
 
 inline void Connection::write(const void* buf, size_t n) {
-  this->write(std::make_shared<std::vector<uint8_t>> ((uint8_t*) buf, (uint8_t*) buf + n));
+  this->write(tcp::construct_buffer((uint8_t*) buf, (uint8_t*) buf + n));
 }
 
 inline void Connection::write(const std::string& str) {

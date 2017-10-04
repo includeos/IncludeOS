@@ -92,8 +92,7 @@ void Service::ready()
   StackSampler::begin();
   StackSampler::set_mode(StackSampler::MODE_DUMMY);
 
-  static auto blob = net::tcp::new_shared_buffer(SIZE);
-  blob->resize(SIZE);
+  static auto blob = net::tcp::construct_buffer(SIZE);
 
   auto& inet = net::Super_stack::get<net::IP4>(0);
   auto& tcp = inet.tcp();

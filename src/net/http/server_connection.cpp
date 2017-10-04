@@ -17,7 +17,6 @@
 
 #include <net/http/server_connection.hpp>
 #include <net/http/server.hpp>
-#include <debug>
 
 namespace http {
 
@@ -45,7 +44,7 @@ namespace http {
       return;
     }
 
-    const auto data = std::string{(char*) buf->data(), buf->size()};
+    const std::string data{(char*) buf->data(), buf->size()};
 
     // create response if not exist
     if(req_ == nullptr)
