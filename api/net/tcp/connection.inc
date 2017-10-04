@@ -10,7 +10,12 @@ inline Connection& Connection::on_connect(ConnectCallback cb) {
 
 inline Connection& Connection::on_read(size_t recv_bufsz, ReadCallback cb)
 {
-  read_request = std::make_unique<ReadRequest>(recv_bufsz, seq_t(this->cb.RCV.NXT), cb);
+  if(not read_request) {
+    read_request = std::make_unique<ReadRequest>(recv_bufsz, seq_t(this->cb.RCV.NXT), cb);
+  } else {
+    read_request->buffer.reset(seq_t(this->cb.RCV.NXT), recv_bufsz);
+    read_request->callback = cb;
+  }
   return *this;
 }
 
@@ -36,6 +41,12 @@ inline Connection& Connection::on_rtx_timeout(RtxTimeoutCallback cb) {
 
 inline Connection& Connection::on_close(CloseCallback cb) {
   on_close_ = cb;
+  return *this;
+}
+
+inline Connection& Connection::set_on_read_callback(ReadCallback cb) {
+  Expects(read_request != nullptr && "on_read hasn't been called before.");
+  read_request->callback = cb;
   return *this;
 }
 
