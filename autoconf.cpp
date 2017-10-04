@@ -7,10 +7,10 @@ Balancer* Balancer::from_config()
   rapidjson::Document doc;
   doc.Parse(Config::get().data());
 
-  if (doc.IsObject() == false || doc.HasMember("load-balancer") == false)
+  if (doc.IsObject() == false || doc.HasMember("load_balancer") == false)
       throw std::runtime_error("Missing or invalid configuration");
 
-  const auto& obj = doc["load-balancer"];
+  const auto& obj = doc["load_balancer"];
 
   auto& clients = obj["clients"];
   // client network interface
