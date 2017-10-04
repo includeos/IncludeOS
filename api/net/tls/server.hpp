@@ -132,11 +132,8 @@ protected:
 
   void tls_record_received(uint64_t, const uint8_t buf[], size_t buf_len) override
   {
-    if (o_read)
-    {
-      auto buffff = net::tcp::new_shared_buffer(buf_len);
-      std::copy(buf, buf + buf_len, std::back_inserter(*buffff));
-      o_read(buffff);
+    if (o_read) {
+      o_read(tcp::construct_buffer(buf, buf + buf_len));
     }
   }
 

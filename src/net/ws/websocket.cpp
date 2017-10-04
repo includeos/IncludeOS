@@ -325,11 +325,12 @@ void WebSocket::write(const char* buffer, size_t len, op_code code)
     && "Write currently only supports TEXT or BINARY");
 
   // allocate header and data at the same time
-  auto buf = net::tcp::buffer_t(new std::vector<uint8_t> (WS_HEADER_MAXLEN + len));
+  auto buf = tcp::construct_buffer(WS_HEADER_MAXLEN + len);
   // fill header
   int  header_len = make_header((char*) buf->data(), len, code, clientside);
+  buf->resize(header_len);
   // get data offset & fill in data into buffer
-  std::copy(buffer, buffer + len, (char*) &buf->at(header_len));
+  std::copy(buffer, buffer + len, std::back_inserter(*buf));
   // for client-side we have to mask the data
   if (clientside)
   {
@@ -339,7 +340,6 @@ void WebSocket::write(const char* buffer, size_t len, op_code code)
     hdr.masking_algorithm();
   }
   /// send everything as shared buffer
-  buf->resize(header_len + len);
   this->stream->write(buf);
 }
 void WebSocket::write(net::tcp::buffer_t buffer, op_code code)
@@ -363,7 +363,7 @@ void WebSocket::write(net::tcp::buffer_t buffer, op_code code)
   /// write header
   char header[WS_HEADER_MAXLEN];
   int  header_len = make_header(header, buffer->size(), code, false);
-  assert(header_len < WS_HEADER_MAXLEN);
+  assert(header_len <= WS_HEADER_MAXLEN);
   this->stream->write(header, header_len);
   /// write shared buffer
   this->stream->write(buffer);
@@ -398,11 +398,11 @@ WebSocket::WebSocket(net::Stream_ptr stream_ptr, bool client)
 
 WebSocket::WebSocket(WebSocket&& other)
 {
-  other.on_close = std::move(on_close);
-  other.on_error = std::move(on_error);
-  other.on_read  = std::move(on_read);
-  other.stream   = std::move(stream);
-  other.clientside = clientside;
+  on_close = std::move(other.on_close);
+  on_error = std::move(other.on_error);
+  on_read  = std::move(other.on_read);
+  stream   = std::move(other.stream);
+  clientside = other.clientside;
 }
 WebSocket::~WebSocket()
 {

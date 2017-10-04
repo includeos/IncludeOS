@@ -228,7 +228,7 @@ void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer)
     assert(discarded == needed);
   }
   // add data to ringbuffer
-  int written = readq.write(buffer.get(), buffer->size());
+  int written = readq.write(buffer->data(), buffer->size());
   assert(written == (ssize_t) buffer->size());
 }
 void TCP_FD_Conn::set_default_read()

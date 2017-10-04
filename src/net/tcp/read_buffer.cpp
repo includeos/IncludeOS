@@ -21,9 +21,11 @@ namespace net {
 namespace tcp {
 
 Read_buffer::Read_buffer(const size_t capacity, const seq_t seq)
-  : buf(new_shared_buffer(capacity)),
+  : buf(tcp::construct_buffer()),
     start{seq}, hole{0}
-{}
+{
+  buf->reserve(capacity);
+}
 
 size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, bool push)
 {
@@ -57,10 +59,41 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
 
 void Read_buffer::reset(const seq_t seq)
 {
+  this->reset(seq, buf->capacity());
+}
+
+void Read_buffer::reset(const seq_t seq, const size_t capacity)
+{
   start = seq;
   hole = 0;
   push_seen = false;
-  buf = new_shared_buffer(buf->capacity());
+  reset_buffer_if_needed(capacity);
+}
+
+void Read_buffer::reset_buffer_if_needed(const size_t capacity)
+{
+  // lets not mess when sharing the buffer
+  if(not buf.unique())
+  {
+    buf = tcp::construct_buffer();
+    buf->reserve(capacity);
+    return;
+  }
+  // from here on the buffer is ours only
+  const auto bufcap = buf->capacity();
+  if(UNLIKELY(capacity > bufcap)) // increase the cap is fine
+  {
+    buf->reserve(capacity);
+  }
+  else if(UNLIKELY(capacity < bufcap)) // decreasing the cap is trickier
+  {
+    // create a new one for simplicty
+    buf = tcp::construct_buffer();
+    buf->reserve(capacity);
+    return;
+  }
+
+  buf->clear();
 }
 
 __attribute__((weak))
