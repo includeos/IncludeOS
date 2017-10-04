@@ -30,7 +30,7 @@
     "reboot": false
   },
 
-  "load-balancer" : {
+  "load_balancer" : {
     "created" : "2017-04-07T13:37:00Z",
     "clients" : {
       "iface" : 1,
