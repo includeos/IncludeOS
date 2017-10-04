@@ -21,9 +21,11 @@ namespace net {
 namespace tcp {
 
 Read_buffer::Read_buffer(const size_t capacity, const seq_t seq)
-  : buf(new_shared_buffer(capacity)),
+  : buf(tcp::construct_buffer()),
     start{seq}, hole{0}
-{}
+{
+  buf->reserve(capacity);
+}
 
 size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, bool push)
 {
@@ -60,7 +62,15 @@ void Read_buffer::reset(const seq_t seq)
   start = seq;
   hole = 0;
   push_seen = false;
-  buf = new_shared_buffer(buf->capacity());
+  // avoid reallocating buffer if its unique
+  if (buf.unique()) {
+    buf->clear();
+  }
+  else {
+    auto old_capacity = capacity();
+    buf = tcp::construct_buffer();
+    buf->reserve(old_capacity);
+  }
 }
 
 __attribute__((weak))

@@ -55,17 +55,10 @@ namespace net {
     /** A shared buffer pointer */
     using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
 
-    /**
-     * @brief Creates a shared buffer with a given capacity
-     *
-     * @param capacity intended buffer capacity
-     * @return a new shared vector
-     */
-    inline buffer_t new_shared_buffer(size_t capacity)
-    {
-      auto buf = std::make_shared<std::vector<uint8_t>> ();
-      buf->reserve(capacity);
-      return buf;
+    /** Construct a shared vector used in TCP **/
+    template <typename... Args>
+    buffer_t construct_buffer(Args&&... args) {
+      return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
     }
 
     class Packet;
