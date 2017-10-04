@@ -25,7 +25,7 @@ ircsplit(const std::string& text, std::string& source)
     x = text.find(' ', p+1);
     size_t y = text.find(':', x+1); // find last param
 
-    if (y == x+1)
+    if (x != std::string::npos && y == x+1)
     {
       // single argument
       retv.emplace_back(&text[p], x-p);
@@ -45,7 +45,7 @@ ircsplit(const std::string& text, std::string& source)
     p = x+1;
 
   } while (x != std::string::npos);
-  
+
   return retv;
 }
 
@@ -63,7 +63,7 @@ ircsplit(const std::string& text)
     x = text.find(' ', p+1);
     size_t y = text.find(':', x+1); // find last param
 
-    if (y == x+1)
+    if (x != std::string::npos && y == x+1)
     {
       // single argument
       retv.emplace_back(&text[p], x-p);
@@ -83,6 +83,6 @@ ircsplit(const std::string& text)
     p = x+1;
 
   } while (x != std::string::npos);
-  
+
   return retv;
 }

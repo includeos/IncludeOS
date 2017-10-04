@@ -25,6 +25,7 @@ set(SOURCES
   ircd/modes.cpp
   ircd/readq.cpp
   ircd/restore.cpp
+  ircd/selftest.cpp
   ircd/server.cpp
   ircd/server_commands.cpp
   ircd/test.cpp

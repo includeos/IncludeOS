@@ -26,6 +26,9 @@ static std::unique_ptr<IrcServer> ircd = nullptr;
 
 void Service::start()
 {
+  // run a small self-test to verify parser is sane
+  extern void selftest(); selftest();
+  
   ircd = IrcServer::from_config();
 
   ircd->set_motd([] () -> const std::string& {
