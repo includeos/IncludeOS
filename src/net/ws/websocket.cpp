@@ -398,11 +398,11 @@ WebSocket::WebSocket(net::Stream_ptr stream_ptr, bool client)
 
 WebSocket::WebSocket(WebSocket&& other)
 {
-  other.on_close = std::move(on_close);
-  other.on_error = std::move(on_error);
-  other.on_read  = std::move(on_read);
-  other.stream   = std::move(stream);
-  other.clientside = clientside;
+  on_close = std::move(other.on_close);
+  on_error = std::move(other.on_error);
+  on_read  = std::move(other.on_read);
+  stream   = std::move(other.stream);
+  clientside = other.clientside;
 }
 WebSocket::~WebSocket()
 {
