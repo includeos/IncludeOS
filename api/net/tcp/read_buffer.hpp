@@ -117,11 +117,19 @@ public:
 
   /**
    * @brief      Reset this buffer, initialize it for a new sequence start.
-   *             Creates a new internal buffer ONLY IF the buffer isn't unique.
+   *             Creates a new internal buffer ONLY IF needed.
    *
    * @param[in]  seq   The new starting sequence number
    */
   void reset(const seq_t start);
+
+  /**
+   * @brief      Reset the buffer as reset(seq_t), but with a given capacity.
+   *
+   * @param[in]  start     The start
+   * @param[in]  capacity  The capacity
+   */
+  void reset(const seq_t start, const size_t capacity);
 
   /**
    * @brief      Sets the starting sequence number.
@@ -141,6 +149,14 @@ private:
   seq_t           start;
   int32_t         hole; // number of bytes missing
   bool            push_seen{false};
+
+  /**
+   * @brief      Reset the buffer if either non-unique or
+   *             a decrease of the current capacity.
+   *
+   * @param[in]  capacity  The capacity
+   */
+  void reset_buffer_if_needed(const size_t capacity);
 
 }; // < class Read_buffer
 

@@ -115,7 +115,7 @@ CASE("Filling the buffer")
   EXPECT(SEQ - SEQ_START == buf.capacity());
 }
 
-CASE("Renewing the buffer")
+CASE("Reseting the buffer")
 {
   using namespace net::tcp;
   const seq_t SEQ_START = 322;
@@ -147,5 +147,22 @@ CASE("Renewing the buffer")
   EXPECT(not buf.is_ready());
   EXPECT(not buf.at_end());
 
+  // not unique means new buffer
   EXPECT(buffer.unique());
+  EXPECT(buf.buffer() != buffer);
+
+  // no copy means same buffer
+  auto* ptr = buf.buffer().get();
+  buf.reset(SEQ);
+  EXPECT(buf.buffer().get() == ptr);
+
+  // increasing the cap means same buffer
+  ptr = buf.buffer().get();
+  buf.reset(SEQ, BUFSZ*2);
+  EXPECT(buf.buffer().get() == ptr);
+
+  // decreasing the cap means new buffer
+  ptr = buf.buffer().get();
+  buf.reset(SEQ, BUFSZ/2);
+  EXPECT(buf.buffer().get() != ptr);
 }
