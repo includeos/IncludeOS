@@ -104,7 +104,6 @@ void Client::disable()
 #include <kernel/syscalls.hpp>
 void Client::split_message(const std::string& msg)
 {
-  volatile ScopedProfiler profile;
   // in case splitter is bad
   SET_CRASH_CONTEXT("Client::split_message():\n'%.*s'", (int) msg.size(), msg.c_str());
 
@@ -138,8 +137,7 @@ void Client::split_message(const std::string& msg)
 
 void Client::read(net::tcp::buffer_t buffer)
 {
-  volatile ScopedProfiler profile;
-  if (readq.read(buffer->data(), buffer->size(), 
+  if (readq.read(buffer->data(), buffer->size(),
       {this, &Client::split_message}) == false)
   {
     kill(false, "Max readq exceeded");
