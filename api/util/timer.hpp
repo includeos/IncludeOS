@@ -45,8 +45,16 @@ public:
    */
   Timer(handler_t on_timeout)
     : id_{Timers::UNUSED_ID},
-      on_timeout_{on_timeout}
-  {}
+      on_timeout_{on_timeout}  {}
+
+  /** Move constructor, which stops the other timer and takes over **/
+  Timer(Timer&& other)
+    : id_{other.id_},
+      on_timeout_{std::move(other.on_timeout_)}
+  {
+    // the other timer is now "stopped"
+    other.id_ = Timers::UNUSED_ID;
+  }
 
   /**
    * @brief Start the timer with a timeout duration
@@ -104,7 +112,6 @@ public:
 
   /** Delete copy and move */
   Timer(const Timer&)             = delete;
-  Timer(Timer&&)                  = delete;
   Timer& operator=(const Timer&)  = delete;
   Timer& operator=(Timer&&)       = delete;
 
