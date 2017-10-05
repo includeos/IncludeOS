@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define VLAN_DEBUG 1
+//#define VLAN_DEBUG 1
 #ifdef VLAN_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else

@@ -98,7 +98,7 @@ namespace net {
     { return stack_.MTU(); }
 
     /** Upstream: Input from link layer */
-    void receive(Packet_ptr);
+    void receive(Packet_ptr, const bool link_bcast);
 
 
     //

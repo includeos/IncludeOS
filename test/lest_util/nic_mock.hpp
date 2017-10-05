@@ -47,10 +47,10 @@ public:
   net::downstream create_physical_downstream() override
   { return transmit_to_physical_; }
 
-  void set_ip4_upstream(upstream handler) override
+  void set_ip4_upstream(net::upstream_ip handler) override
   { ip4_handler_ = handler; }
 
-  void set_ip6_upstream(upstream handler) override
+  void set_ip6_upstream(net::upstream_ip handler) override
   { ip6_handler_ = handler; }
 
   void set_arp_upstream(upstream handler) override
@@ -131,7 +131,7 @@ public:
 
     if(ip4_handler_) {
       NIC_INFO("pushing packet to IP4");
-      ip4_handler_(std::move(ptr));
+      ip4_handler_(std::move(ptr), false);
     } else {
       NIC_INFO("nowhere to push packet. Drop.");
     }
@@ -142,8 +142,8 @@ public:
 
 private:
   net::BufferStore bufstore_;
-  upstream ip4_handler_ = nullptr;
-  upstream ip6_handler_ = nullptr;
+  net::upstream_ip ip4_handler_ = nullptr;
+  net::upstream_ip ip6_handler_ = nullptr;
   upstream arp_handler_ = nullptr;
   upstream vlan_handler_ = nullptr;
   downstream transmit_to_link_ = downstream{this, &Nic_mock::transmit_link};

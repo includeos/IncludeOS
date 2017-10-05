@@ -53,15 +53,15 @@ namespace net {
     void receive(Packet_ptr);
 
     /** Delegate upstream IPv4 upstream. */
-    void set_ip4_upstream(upstream del)
+    void set_ip4_upstream(upstream_ip del)
     { ip4_upstream_ = del; }
 
     /** Delegate upstream IPv4 upstream. */
-    upstream& ip4_upstream()
+    upstream_ip& ip4_upstream()
     { return ip4_upstream_; }
 
     /** Delegate upstream IPv6 upstream. */
-    void set_ip6_upstream(upstream del)
+    void set_ip6_upstream(upstream_ip del)
     { ip6_upstream_ = del; };
 
     /** Delegate upstream ARP upstream. */
@@ -119,8 +119,8 @@ namespace net {
     uint32_t& trailer_packets_dropped_;
 
     /** Upstream OUTPUT connections */
-    upstream ip4_upstream_ = nullptr;
-    upstream ip6_upstream_ = nullptr;
+    upstream_ip ip4_upstream_ = nullptr;
+    upstream_ip ip6_upstream_ = nullptr;
     upstream arp_upstream_ = nullptr;
     upstream vlan_upstream_ = nullptr;
 

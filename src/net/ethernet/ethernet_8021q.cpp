@@ -42,13 +42,13 @@ void Ethernet_8021Q::receive(Packet_ptr pkt)
   case Ethertype::IP4:
     PRINT("IPv4 packet\n");
     pkt->increment_layer_begin(header_size());
-    ip4_upstream_(std::move(pkt));
+    ip4_upstream_(std::move(pkt), vlan.dest == MAC::BROADCAST);
     break;
 
   case Ethertype::IP6:
     PRINT("IPv6 packet\n");
     pkt->increment_layer_begin(header_size());
-    ip6_upstream_(std::move(pkt));
+    ip6_upstream_(std::move(pkt), vlan.dest == MAC::BROADCAST);
     break;
 
   case Ethertype::ARP:

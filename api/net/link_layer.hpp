@@ -39,10 +39,10 @@ public:
   downstream_link create_link_downstream() override
   { return {link_, &Protocol::transmit}; }
 
-  void set_ip4_upstream(upstream handler) override
+  void set_ip4_upstream(upstream_ip handler) override
   { link_.set_ip4_upstream(handler); }
 
-  void set_ip6_upstream(upstream handler) override
+  void set_ip6_upstream(upstream_ip handler) override
   { link_.set_ip6_upstream(handler); }
 
   void set_arp_upstream(upstream handler) override

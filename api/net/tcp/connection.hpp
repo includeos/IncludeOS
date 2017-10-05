@@ -162,6 +162,16 @@ public:
    */
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
+  /**
+   * @brief      Only change the on_read callback without touching the buffer.
+   *             Only useful in special cases. Assumes on_read has been called.
+   *
+   * @param[in]  callback  The callback
+   *
+   * @return     This connection
+   */
+  inline Connection&            set_on_read_callback(ReadCallback callback);
+
 
   /**
    * @brief      Async write of a shared buffer with a length.
