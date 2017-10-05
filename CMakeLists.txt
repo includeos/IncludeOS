@@ -208,6 +208,12 @@ if(libuplink)
   add_subdirectory(lib/uplink)
 endif(libuplink)
 
+option(libmender "Build and install mender client" ON)
+if(libmender)
+  set(libliveupdate ON) # dependent
+  add_subdirectory(lib/mender)
+endif(libmender)
+
 option(libliveupdate "Build and install LiveUpdate" ON)
 if(libliveupdate)
   add_subdirectory(lib/LiveUpdate)

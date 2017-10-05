@@ -34,7 +34,7 @@ namespace mender {
 
     // Print and add
 
-    MENDER_INFO("Artifact", "Parsing data as mender arifact (%u bytes)", data_.size());
+    MENDER_INFO("Artifact", "Parsing data as mender arifact (%u bytes)", (uint32_t)data_.size());
     artifact_ = reader_.read_uncompressed(data_.data(), data_.size());
 
     auto& elements = artifact_.elements();

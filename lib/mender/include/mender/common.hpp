@@ -27,6 +27,7 @@
 #include <fs/disk.hpp>
 #include <botan/secmem.h>
 
+//#define VERBOSE_MENDER 1
 // Informational prints
 #ifdef VERBOSE_MENDER
   #define MENDER_INFO(FROM, TEXT, ...) printf("%13s ] " TEXT "\n", "[ " FROM, ##__VA_ARGS__)
