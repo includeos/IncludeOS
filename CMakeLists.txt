@@ -7,9 +7,9 @@ endif()
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
-project(mender_client)
+project(mender)
 
-set(LIBRARY_NAME "mender_client")
+set(LIBRARY_NAME "mender")
 
 set(SOURCES
   src/artifact.cpp
@@ -21,14 +21,14 @@ set(SOURCES
 
 # Necessary includes to build your library
 set(LOCAL_INCLUDES
-  "include/mender"
+  "include"
   # Assumes liveupdate is installed in your IncludeOS installation
   )
 
 # include library build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/library.cmake)
 
-option(verbose OFF)
+option(verbose ON)
 if(verbose)
   target_compile_definitions(${LIBRARY_NAME} PRIVATE VERBOSE_MENDER=1)
 endif(verbose)

@@ -33,9 +33,6 @@ net::Socket MENDER_SERVER{{10,0,0,1}, 8090};
 // Current running version (artifact_name)
 std::string ARTIFACT{"example"};
 
-// Where LiveUpdate will happen
-void* UPDATE_LOC = (void*) 0x5000000; // at 80mb
-
 // The mender client
 std::unique_ptr<mender::Client> client;
 
@@ -55,7 +52,7 @@ void Service::ready()
   );
 
   // Mender client currently only supports sync disks (memdisk)
-  auto disk = fs::new_shared_memdisk();
+  auto disk = fs::shared_memdisk();
   disk->init_fs([](auto err, auto&) {
     assert(!err && "Could not init FS."); // dont have to panic, can just generate key (but not store..)
   });
@@ -64,7 +61,7 @@ void Service::ready()
   // Create Keystore
   auto ks = std::make_unique<Keystore>(disk, "pk.txt"); // <- load key from "pk.txt"
   //auto ks = std::make_unique<Keystore>(); // <- generates key
-  
+
   printf("Link: %s\n", inet.link_addr().to_string().c_str());
 
   // Create the client
@@ -72,7 +69,7 @@ void Service::ready()
     // Auth_manager(Keystore, identity (jsonstr), seqno)
     Auth_manager{std::move(ks), mac_identity(inet.link_addr())},
     // Device(update_loc, current artifact)
-    Device{UPDATE_LOC, ARTIFACT},
+    Device{ARTIFACT},
     // TCP instance for HTTP client creation and mender server endpoint
     inet.tcp(), MENDER_SERVER);
 

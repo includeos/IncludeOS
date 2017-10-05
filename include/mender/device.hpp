@@ -26,21 +26,16 @@ namespace mender {
 
   class Device {
   public:
-    Device(void* update_loc, Inventory::Data_set inv)
-      : update_loc_(update_loc),
-        inventory_(std::move(inv))
+    Device(Inventory::Data_set inv)
+      : inventory_(std::move(inv))
     {
-      Expects(update_loc != nullptr);
       Expects(not inventory_.value("artifact_name").empty());
       Expects(not inventory_.value("device_type").empty());
     }
 
-    Device(void* update_loc, std::string artifact_name)
-      : Device(update_loc, {{"artifact_name", artifact_name}, {"device_type", "includeos"}})
+    Device(std::string artifact_name)
+      : Device({{"artifact_name", artifact_name}, {"device_type", "includeos"}})
     {}
-
-    void* update_loc() const
-    { return update_loc_; }
 
     Inventory& inventory()
     { return inventory_; }
@@ -49,7 +44,6 @@ namespace mender {
     { return inventory_[key]; }
 
   private:
-    void* update_loc_ = nullptr;
     Inventory inventory_;
   }; // < class Device
 

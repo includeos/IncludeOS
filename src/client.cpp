@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../include/mender/client.hpp"
-#include "../include/mender/artifact.hpp"
+#include <mender/client.hpp>
+#include <mender/artifact.hpp>
+
 #include <botan/base64.h>
 #include <rapidjson/document.h>
 #include <rtc> // RTC::now()
@@ -35,6 +36,7 @@ namespace mender {
       on_state_resume_(nullptr)
   {
     MENDER_INFO("Client", "Client created");
+    liu::LiveUpdate::register_partition("mender", {this, &Client::store_state});
   }
 
   Client::Client(Auth_manager&& man, Device&& dev, net::TCP& tcp, net::Socket socket)
@@ -49,14 +51,15 @@ namespace mender {
       on_state_resume_(nullptr)
   {
     MENDER_INFO("Client", "Client created");
+    liu::LiveUpdate::register_partition("mender", {this, &Client::store_state});
   }
 
   void Client::boot()
   {
-    if(liu::LiveUpdate::is_resumable(device_.update_loc()))
+    if(liu::LiveUpdate::is_resumable())
     {
       MENDER_INFO("Client", "Found resumable state, try restoring...");
-      auto success = liu::LiveUpdate::resume(device_.update_loc(), {this, &Client::load_state});
+      auto success = liu::LiveUpdate::resume("mender", {this, &Client::load_state});
       if(!success)
         MENDER_INFO2("Failed.");
     }
@@ -127,7 +130,7 @@ namespace mender {
     {
       if(is_valid_response(*res))
       {
-        MENDER_INFO("Client", "Valid Response (payload %u bytes)", res->body().size());
+        MENDER_INFO("Client", "Valid Response (payload %u bytes)", (uint32_t)res->body().size());
       }
       else
       {
@@ -188,7 +191,7 @@ namespace mender {
       res = std::move(context_.response);
 
     auto uri = parse_update_uri(*res);
-    MENDER_INFO("Client", "Fetching update from: %s", uri.str().c_str());
+    MENDER_INFO("Client", "Fetching update from: %s", uri.to_string().c_str());
 
     using namespace http;
 
@@ -260,10 +263,11 @@ namespace mender {
 
     httpclient_.release();
 
-    liu::LiveUpdate::begin(device_.update_loc(), {(const char*) e.content(), static_cast<int>(e.size())}, {this, &Client::store_state});
+    const char* content = reinterpret_cast<const char*>(e.content());
+    liu::LiveUpdate::exec(liu::buffer_t{content, content + e.size()});
   }
 
-  void Client::store_state(liu::Storage& store, liu::buffer_len)
+  void Client::store_state(liu::Storage& store, const liu::buffer_t*)
   {
     liu::Storage::uid id = 0;
 

@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../include/mender/state.hpp"
-#include "../include/mender/client.hpp"
+#include <mender/state.hpp>
+#include <mender/client.hpp>
+
 #include <timers>
 
 using namespace mender;
@@ -62,7 +63,7 @@ State::Result Auth_wait::handle(Client& cli, Context& ctx)
 
         // increase up to 60 seconds
         if(ctx.delay < 60)
-          ctx.delay++;
+          ctx.delay += 5;
 
         MENDER_INFO2("Delay increased: %d", ctx.delay);
         set_state<Init>(cli);
@@ -107,7 +108,7 @@ State::Result Update_check::handle(Client& cli, Context& ctx)
         return AWAIT_EVENT;
 
       case 204: // no update found
-        ctx.delay = 10; // Ask again every 10th second
+        ctx.delay = cli.update_poll_interval.count(); // Ask again every n second
         MENDER_INFO2("No update, delay asking again.");
         set_state<Authorized>(cli);
         return DELAYED_NEXT;
@@ -135,7 +136,7 @@ State::Result Update_fetch::handle(Client& cli, Context& ctx)
     switch(ctx.response->status_code())
     {
       case 200: // Update fetched! prepare for install
-        MENDER_INFO("Update_fetch", "Update downloaded (%u bytes)", ctx.response->body().size());
+        MENDER_INFO("Update_fetch", "Update downloaded (%u bytes)", (uint32_t)ctx.response->body().size());
         cli.install_update(std::move(ctx.response));
         return AWAIT_EVENT;
 

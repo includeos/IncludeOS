@@ -27,7 +27,7 @@
 #include <timers>
 #include "state.hpp"
 #include "device.hpp"
-#include <liveupdate.hpp>
+#include <liveupdate>
 
 namespace mender {
 
@@ -39,6 +39,8 @@ namespace mender {
     using On_resume = delegate<void(liu::Restore&)>;
 
   public:
+    std::chrono::seconds update_poll_interval{10};
+
     Client(Auth_manager&&, Device&&, net::TCP&, const std::string& server, const uint16_t port = 0);
     Client(Auth_manager&&, Device&&, net::TCP&, net::Socket);
 
@@ -135,7 +137,7 @@ namespace mender {
 
     http::URI parse_update_uri(http::Response& res);
 
-    void store_state(liu::Storage&, liu::buffer_len);
+    void store_state(liu::Storage&, const liu::buffer_t*);
 
     void load_state(liu::Restore&);
 

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../include/mender/auth_manager.hpp"
+#include <mender/auth_manager.hpp>
 
 namespace mender {
 
@@ -36,7 +36,7 @@ namespace mender {
     authd.id_data       = this->id_data_;
     authd.pubkey        = this->keystore_->public_PEM();
     authd.tenant_token  = this->tenant_token_;
-    
+
     // Get serialized bytes
     const auto reqdata = authd.serialized_bytes();
 

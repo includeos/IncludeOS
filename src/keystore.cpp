@@ -15,7 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "../include/mender/keystore.hpp"
+#include <mender/keystore.hpp>
+
 #include <botan/x509cert.h>
 #include <botan/data_src.h>
 #include <botan/pkcs8.h>
