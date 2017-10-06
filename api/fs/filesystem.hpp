@@ -28,7 +28,7 @@ namespace fs {
 
   struct File_system {
     /** Get unique (per device type) device id for underlying device.*/
-    virtual Device_id device_id() = 0;
+    virtual int device_id() const noexcept = 0;
 
     /** Print subtree from given path */
     error_t print_subtree(const std::string& path);

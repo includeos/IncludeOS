@@ -44,9 +44,6 @@ namespace fs {
   /** Pointer types **/
   using Path_ptr = std::shared_ptr<Path>;
 
-  /** ID types **/
-  using Device_id = hw::Block_device::Device_id;
-
   /** Entity types for dirents **/
   enum Enttype {
     FILE,
@@ -196,9 +193,9 @@ namespace fs {
     error_t  error;
     dirvec_t entries;
     auto begin() { return entries->begin(); }
-    auto end() { return entries->end(); }
-    auto cbegin() { return entries->cbegin(); }
-    auto cend() { return entries->cend(); }
+    auto end()   { return entries->end(); }
+    auto cbegin() const { return entries->cbegin(); }
+    auto cend()   const { return entries->cend(); }
   };
 
 } //< fs

@@ -20,31 +20,27 @@
 #define FS_DISK_HPP
 
 #include "common.hpp"
-#include <fs/filesystem.hpp>
-#include <fs/dirent.hpp>
-#include <hw/block_device.hpp>
+#include "dirent.hpp"
+#include "filesystem.hpp"
+#include "partition.hpp"
 #include <common>
-
+#include <hw/block_device.hpp>
 #include <deque>
 #include <vector>
-#include <functional>
 
-namespace fs {
-
+namespace fs
+{
   /**
    * Class to initialize file systems on block devices / partitions
    **/
   class Disk {
   public:
-
     class Err_not_mounted : public std::runtime_error {
       using runtime_error::runtime_error;
     };
 
-    struct Partition;
-    using on_parts_func = delegate<void(fs::error_t, std::vector<Partition>&)>;
     using on_init_func  = delegate<void(fs::error_t, File_system&)>;
-    using lba_t = uint32_t;
+    using on_parts_func = delegate<void(fs::error_t, std::vector<fs::Partition>&)>;
 
     enum partition_t {
       MBR = 0, //< Master Boot Record (0)
@@ -54,41 +50,16 @@ namespace fs {
       VBR4,
     };
 
-    struct Partition {
-      explicit Partition(const uint8_t  fl,  const uint8_t  Id,
-                         const uint32_t LBA, const uint32_t sz) noexcept
-      : flags     {fl},
-        id        {Id},
-        lba_begin {LBA},
-        sectors   {sz}
-      {}
-
-      uint8_t  flags;
-      uint8_t  id;
-      uint32_t lba_begin;
-      uint32_t sectors;
-
-      // true if the partition has boot code / is bootable
-      bool is_boot() const noexcept
-      { return flags & 0x1; }
-
-      // human-readable name of partition id
-      std::string name() const;
-
-      // logical block address of beginning of partition
-      uint32_t lba() const
-      { return lba_begin; }
-
-    }; //< struct Partition
-
-    //************** disk functions **************//
-
     // construct a disk with a given block-device
     explicit Disk(hw::Block_device&);
 
-    // returns the device the disk is using
-    hw::Block_device& dev() noexcept
-    { return device; }
+    std::string name() const {
+      return device.device_name();
+    }
+
+    auto device_id() const {
+      return device.id();
+    }
 
     // Returns true if the disk has no sectors
     bool empty() const noexcept
@@ -111,24 +82,12 @@ namespace fs {
       internal_init(part, func);
     }
 
-    std::string name() {
-      return device.device_name();
-    }
-
-    auto device_id() {
-      return device.id();
-    }
-
-    // Creates a vector of the partitions on disk (see: on_parts_func)
-    // Note: No file system needs to be initialized beforehand
-    void partitions(on_parts_func func);
-
     // returns true if a filesystem is initialized
     bool fs_ready() const noexcept
-    { return (bool) filesys; }
+    { return filesys != nullptr; }
 
-    // Returns a reference to a mounted filesystem
-    // If no filesystem is mounted, the results are undefined
+    // Returns a reference to an initialized filesystem
+    // If no filesystem is initialized it will throw an error
     File_system& fs() noexcept
     {
       if(UNLIKELY(not fs_ready()))
@@ -137,6 +96,14 @@ namespace fs {
       }
       return *filesys;
     }
+
+    // Creates a vector of the partitions on disk (see: on_parts_func)
+    // Note: No file system needs to be initialized beforehand
+    void partitions(on_parts_func func);
+
+    // returns the device the disk is using
+    hw::Block_device& dev() noexcept
+    { return device; }
 
   private:
     void internal_init(partition_t part, on_init_func func);

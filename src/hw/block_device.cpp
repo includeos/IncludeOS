@@ -19,9 +19,4 @@
 
 namespace hw
 {
-  Block_device::Block_device()
-  {
-    static int counter = 0;
-    id_ = counter++;
-  }
 }
