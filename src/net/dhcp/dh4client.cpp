@@ -15,7 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
+//#define DHCP_DEBUG 1
+#ifdef DHCP_DEBUG
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
 #include <info>
 #define MYINFO(X,...) INFO("DHCPv4",X,##__VA_ARGS__)
 
@@ -78,6 +84,8 @@ namespace net {
     // call on_config with timeout = true
     for(auto& handler : this->config_handlers_)
         handler(timed_out);
+
+    if(timeout_timer_.is_running()) timeout_timer_.stop();
   }
 
   void DHClient::negotiate(uint32_t timeout_secs)
@@ -96,7 +104,7 @@ namespace net {
     this->xid |= (rand() & 0xffff) << 16;
     assert(this->xid != 0);
 
-    debug("Negotiating IP-address for %s (xid=%u)\n", stack.ifname().c_str(), xid);
+    PRINT("Negotiating IP-address for %s (xid=%u)\n", stack.ifname().c_str(), xid);
 
     assert(this->socket == nullptr);
     this->socket = &stack.udp().bind(DHCP_CLIENT_PORT);
@@ -140,7 +148,7 @@ namespace net {
       {
         // we have got a DHCP Offer
         (void) addr;
-        debug("Received possible DHCP OFFER from %s\n",
+        PRINT("Received possible DHCP OFFER from %s\n",
                addr.str().c_str());
         this->offer(data, len);
       }
@@ -164,7 +172,7 @@ namespace net {
       if (UNLIKELY(msg_opt->type() != message_type::OFFER)) return;
 
       // verify that the type is indeed DHCPOFFER
-      debug("Got DHCP message type OFFER (%d)\n",
+      PRINT("Got DHCP message type OFFER (%d)\n",
             static_cast<uint8_t>(msg_opt->type()));
     }
     // ignore message when DHCP message type is missing
@@ -260,12 +268,12 @@ namespace net {
     {
       const auto* addr = server_id->addr<ip4::Addr>();
       msg.add_option<option::server_identifier>(addr);
-      debug("Server IP set to %s\n", addr->to_string().c_str());
+      PRINT("Server IP set to %s\n", addr->to_string().c_str());
     }
     else
     {
       msg.add_option<option::server_identifier>(&this->router);
-      debug("Server IP set to gateway (%s)\n", this->router.to_string().c_str());
+      PRINT("Server IP set to gateway (%s)\n", this->router.to_string().c_str());
     }
 
     // DHCP Requested Address
@@ -283,13 +291,14 @@ namespace net {
     assert(this->socket);
     // set our onRead function to point to a hopeful DHCP ACK!
     socket->on_read(
-    [this] (IP4::addr, UDP::port_t port,
+    [this] (IP4::addr addr, UDP::port_t port,
           const char* data, size_t len)
     {
       if (port == DHCP_SERVER_PORT)
       {
+        (void) addr;
         // we have hopefully got a DHCP Ack
-        debug("\tReceived DHCP ACK from %s:%d\n",
+        PRINT("\tReceived DHCP ACK from %s:%d\n",
           addr.str().c_str(), DHCP_SERVER_PORT);
         this->acknowledge(data, len);
       }
@@ -313,28 +322,27 @@ namespace net {
       if (UNLIKELY(msg_opt->type() != message_type::ACK)) return;
 
       // verify that the type is indeed DHCPOFFER
-      debug("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
+      PRINT("\tFound DHCP message type %d  (DHCP Ack = %d)\n",
             static_cast<uint8_t>(msg_opt->type()), message_type::ACK);
     }
     // ignore message when DHCP message type is missing
     else return;
 
-    debug("Server acknowledged our request!");
-    debug("IP ADDRESS: \t%s", this->ipaddr.str().c_str());
-    debug("SUBNET MASK: \t%s", this->netmask.str().c_str());
-    debug("LEASE TIME: \t%u mins", this->lease_time / 60);
-    debug("GATEWAY: \t%s", this->router.str().c_str());
-    debug("DNS SERVER: \t%s", this->dns_server.str().c_str());
+    PRINT("Server acknowledged our request!\n");
+    PRINT("IP ADDRESS: \t%s\n", this->ipaddr.str().c_str());
+    PRINT("SUBNET MASK: \t%s\n", this->netmask.str().c_str());
+    PRINT("LEASE TIME: \t%u mins\n", this->lease_time / 60);
+    PRINT("GATEWAY: \t%s\n", this->router.str().c_str());
+    PRINT("DNS SERVER: \t%s\n", this->dns_server.str().c_str());
 
     // configure our network stack
     stack.network_config(this->ipaddr, this->netmask,
                          this->router, this->dns_server);
     if(not domain_name.empty())
     {
-      debug("DOMAIN NAME: \t%s", this->domain_name.c_str());
+      PRINT("DOMAIN NAME: \t%s\n", this->domain_name.c_str());
       stack.set_domain_name(domain_name);
     }
-    debug("\n");
     // did not time out!
     end_negotiation(false);
   }

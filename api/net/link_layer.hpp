@@ -1,4 +1,19 @@
-
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 #pragma once
 #ifndef NET_LINK_LAYER_HPP
@@ -15,7 +30,7 @@ public:
   using upstream    = hw::Nic::upstream;
   using downstream_link  = hw::Nic::downstream;
 public:
-  explicit Link_layer(Protocol&& protocol, uint32_t bufstore_sz, uint16_t bufsz);
+  explicit Link_layer(Protocol&& protocol, BufferStore& bufstore);
 
   std::string device_name() const override {
     return link_.link_name();
@@ -32,6 +47,9 @@ public:
 
   void set_arp_upstream(upstream handler) override
   { link_.set_arp_upstream(handler); }
+
+  void set_vlan_upstream(upstream handler) override
+  { link_.set_vlan_upstream(handler); }
 
   /** Number of bytes in a frame needed by the device itself **/
   virtual size_t frame_offset_device() override
@@ -65,8 +83,8 @@ private:
 };
 
 template <class Protocol>
-Link_layer<Protocol>::Link_layer(Protocol&& protocol, uint32_t bufstore_packets, uint16_t bufsz)
-  : hw::Nic(bufstore_packets, bufsz),
+Link_layer<Protocol>::Link_layer(Protocol&& protocol, BufferStore& bufstore)
+  : hw::Nic(bufstore),
     link_{std::forward<Protocol>(protocol)}
 {
 }

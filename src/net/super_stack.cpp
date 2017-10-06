@@ -23,29 +23,70 @@ namespace net
 
 // Specialization for IP4
 template <>
+Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic, int N, int sub)
+{
+  INFO("Network", "Creating stack for %s on %s",
+        nic.driver_name(), nic.device_name().c_str());
+
+  auto& stacks = inet().ip4_stacks_.at(N);
+
+  auto it = stacks.find(sub);
+  if(it != stacks.end() and it->second != nullptr) {
+    throw Super_stack_err{"Stack already exists ["
+      + std::to_string(N) + "," + std::to_string(sub) + "]"};
+  }
+
+  auto inet = [&nic]()->auto {
+    switch(nic.proto()) {
+    case hw::Nic::Proto::ETH:
+      return std::make_unique<Inet4>(nic);
+    default:
+      throw Super_stack_err{"Nic not supported"};
+    }
+  }();
+
+  Ensures(inet != nullptr);
+
+  stacks[sub] = std::move(inet);
+
+  return *stacks[sub];
+}
+
+// Specialization for IP4
+template <>
 Inet<IP4>& Super_stack::get<IP4>(int N)
 {
   if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
     throw Stack_not_found{"No IP4 stack found for [" + std::to_string(N) + "] (missing driver?)"};
 
-  if (inet().ip4_stacks_[N])
-      return *inet().ip4_stacks_[N];
+  auto& stacks = inet().ip4_stacks_.at(N);
+
+  if(stacks[0] != nullptr)
+    return *stacks[0];
 
   // create network stack
-  auto& nic = hw::Devices::devices<hw::Nic>()[N];
+  auto& nic = hw::Devices::get<hw::Nic>(N);
+  return inet().create<IP4>(nic, N, 0);
+}
 
-  INFO("Network", "Creating stack for %s on %s",
-        nic->driver_name(), nic->device_name().c_str());
+// Specialization for IP4
+template <>
+Inet<IP4>& Super_stack::get<IP4>(int N, int sub)
+{
+  if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
+    throw Stack_not_found{"No IP4 stack found for [" + std::to_string(N) + "] (missing driver?)"};
 
-  switch(nic->proto()) {
-  case hw::Nic::Proto::ETH:
-      inet().ip4_stacks_[N].reset(new Inet4(*nic));
-      // ip6_stacks come here I guess
-      break;
-  default:
-      break;
+  auto& stacks = inet().ip4_stacks_.at(N);
+
+  auto it = stacks.find(sub);
+
+  if(it != stacks.end()) {
+    Expects(it->second != nullptr && "Creating empty subinterfaces doesn't make sense");
+    return *it->second;
   }
-  return *inet().ip4_stacks_[N];
+
+  throw Stack_not_found{"Stack not found ["
+      + std::to_string(N) + "," + std::to_string(sub) + "]"};
 }
 
 Super_stack::Super_stack()
@@ -53,8 +94,10 @@ Super_stack::Super_stack()
   if (hw::Devices::devices<hw::Nic>().empty())
     INFO("Network", "No registered network interfaces found");
 
-  for (size_t i = 0; i < hw::Devices::devices<hw::Nic>().size(); i++)
-    ip4_stacks_.push_back(nullptr);
+  for (size_t i = 0; i < hw::Devices::devices<hw::Nic>().size(); i++) {
+    ip4_stacks_.emplace_back(Stacks<IP4>{});
+    ip4_stacks_.back()[0] = nullptr;
+  }
 }
 
 }

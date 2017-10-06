@@ -61,12 +61,12 @@ void VirtioNet::get_config() {
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
-    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()},
-        300u, 2048 /* 300 half-page buffers */),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, bufstore_),
     packets_rx_{Statman::get().create(Stat::UINT64,
                 device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64,
-                device_name() + ".packets_tx").get_uint64()}
+                device_name() + ".packets_tx").get_uint64()},
+    bufstore_{300u, 2048 /* 300 half-page buffers */}
 {
   INFO("VirtioNet", "Driver initializing");
 
@@ -263,7 +263,7 @@ void VirtioNet::msix_xmit_handler()
 
     // If we now emptied the buffer, offer packets to stack
     if (transmit_queue == nullptr && tx_q.num_free() > 1) {
-      transmit_queue_available_event_(tx_q.num_free() / 2);
+      transmit_queue_available_event(tx_q.num_free() / 2);
     }
   }
 }

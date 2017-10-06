@@ -108,9 +108,8 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 }
 
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
-    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()},
-         1024, 2048 /* half-page buffer size */),
-    pcidev(d)
+    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, bufstore_),
+    pcidev(d), bufstore_{1024, 2048 /* half-page buffer size */}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
@@ -436,7 +435,7 @@ bool vmxnet3::transmit_handler()
   //printf("There are now %d tokens free\n", tx_tokens_free());
   if (this->can_transmit()) {
     auto tok = tx_tokens_free();
-    transmit_queue_available_event_(tok);
+    transmit_queue_available_event(tok);
     if (tx_tokens_free() != tok) transmitted = true;
   }
   return transmitted;
@@ -551,7 +550,7 @@ void vmxnet3::handle_deferred()
 
 void vmxnet3::poll()
 {
-  if (transmit_queue_available_event_ == nullptr) return;
+  if (tqa_events_.empty()) return;
   if (this->already_polling) return;
   this->already_polling = true;
 

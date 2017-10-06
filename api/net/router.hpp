@@ -157,8 +157,8 @@ namespace net {
 
 
     /** Construct a router over a set of interfaces **/
-    Router(Interfaces& ifaces, Routing_table tbl = {})
-      : networks_{ifaces}, routing_table_{tbl}
+    Router(Routing_table tbl = {})
+      : routing_table_{tbl}
     {  }
 
     void set_routing_table(Routing_table tbl) {
@@ -166,7 +166,6 @@ namespace net {
     };
 
   private:
-    Interfaces& networks_;
     Routing_table routing_table_;
 
   }; // < class Router

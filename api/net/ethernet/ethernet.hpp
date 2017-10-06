@@ -71,6 +71,14 @@ namespace net {
     upstream& arp_upstream()
     { return arp_upstream_; }
 
+    /**
+     * @brief      Sets the vlan upstream.
+     *
+     * @param[in]  del   The upstream delegate
+     */
+    void set_vlan_upstream(upstream del)
+    { vlan_upstream_ = del; }
+
     /** Delegate downstream */
     void set_physical_downstream(downstream del)
     { physical_downstream_ = del; }
@@ -100,7 +108,7 @@ namespace net {
     uint32_t get_trailer_packets_dropped()
     { return trailer_packets_dropped_; }
 
-  private:
+  protected:
     const addr& mac_;
     int   ethernet_idx;
 
@@ -114,6 +122,7 @@ namespace net {
     upstream_ip ip4_upstream_ = nullptr;
     upstream_ip ip6_upstream_ = nullptr;
     upstream arp_upstream_ = nullptr;
+    upstream vlan_upstream_ = nullptr;
 
     /** Downstream OUTPUT connection */
     downstream physical_downstream_ = [](Packet_ptr){};

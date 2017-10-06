@@ -378,17 +378,15 @@ namespace uplink {
 
     auto& stacks = net::Super_stack::inet().ip4_stacks();
     for(const auto& stack : stacks) {
-      serialize_stack(writer, stack);
+      for(const auto& pair : stack)
+        serialize_stack(writer, pair.second);
     }
 
     writer.EndArray();
 
-
-
     writer.EndObject();
 
     std::string str = buf.GetString();
-
 
     MYINFO("%s", str.c_str());
 
