@@ -297,7 +297,7 @@ namespace fs {
   /** Entry point for global VFS_entry tree **/
   struct VFS {
 
-    using Disk_id = hw::Block_device::Device_id;
+    using Disk_id  = int;
     using Disk_key = Disk_id;
     using Disk_map = std::map<Disk_key, fs::Disk_ptr>;
     using Path_str = std::string;

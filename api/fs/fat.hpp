@@ -36,7 +36,7 @@ namespace fs
     /// ----------------------------------------------------- ///
     void init(uint64_t lba, uint64_t size, on_init_func on_init) override;
 
-    fs::Device_id device_id() override {
+    int device_id() const noexcept override {
       return device.id();
     }
 

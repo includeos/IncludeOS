@@ -34,7 +34,7 @@ namespace fs {
       hw::Block_device::on_read_func::make_packed(
       [this, func] (hw::Block_device::buffer_t data)
       {
-        std::vector<Partition> parts;
+        std::vector<fs::Partition> parts;
 
         if (!data) {
           func({ error_t::E_IO, "Unable to read MBR"}, parts);
@@ -155,7 +155,7 @@ namespace fs {
     }
   }
 
-  std::string Disk::Partition::name() const {
+  std::string Partition::name() const {
     return MBR::id_to_name(id);
   }
 
