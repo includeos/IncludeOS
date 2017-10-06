@@ -47,7 +47,7 @@ void Async::upload_file(
     );
 
     // write chunk to TCP connection
-    stream.write(buffer.get(), length);
+    stream.write(buffer);
 
   }, callback, CHUNK_SIZE);
 }
