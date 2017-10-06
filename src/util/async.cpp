@@ -32,9 +32,9 @@ void Async::upload_file(
 {
   disk_transfer(disk, ent,
   [stream] (fs::buffer_t buffer,
-            size_t       length,
             next_func    next) mutable
   {
+    auto length = buffer->size();
     // temp
     stream.on_write(
       net::tcp::Connection::WriteCallback::make_packed(
@@ -83,10 +83,9 @@ void Async::disk_transfer(
       fs::on_read_func::make_packed(
       [next, pos, write_func, callback, CHUNK_SIZE] (
           fs::error_t  err,
-          fs::buffer_t buffer,
-          uint64_t     length)
+          fs::buffer_t buffer)
       {
-        debug("<Async> len=%llu\n",length);
+        debug("<Async> len=%lu\n", buffer->size());
         if (err) {
           printf("%s\n", err.to_string().c_str());
           callback(err, false);
@@ -96,7 +95,6 @@ void Async::disk_transfer(
         // call write callback with data
         write_func(
           buffer,
-          length,
           next_func::make_packed(
           [next, pos, callback] (bool good)
           {

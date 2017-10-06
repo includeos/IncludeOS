@@ -34,7 +34,7 @@ public:
 
   typedef delegate<void(bool)> next_func;
   typedef delegate<void(fs::error_t, bool)> on_after_func;
-  typedef delegate<void(fs::buffer_t, size_t, next_func)> on_write_func;
+  typedef delegate<void(fs::buffer_t, next_func)> on_write_func;
 
   static void upload_file(
       Disk,

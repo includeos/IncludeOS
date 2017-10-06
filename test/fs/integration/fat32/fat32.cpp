@@ -60,12 +60,12 @@ void test2()
     });
 
     fs.read_file(shallow_banana,
-    [] (fs::error_t err, fs::buffer_t buf, uint64_t len)
+    [] (fs::error_t err, fs::buffer_t buf)
     {
       INFO("FAT32", "Read file");
       CHECKSERT(not err, "read_file: Read %s asynchronously", shallow_banana.c_str());
       printf("%s\n", internal_banana.c_str());
-      std::string banana((char*) buf.get(), len);
+      std::string banana((const char*) buf->data(), buf->size());
       CHECKSERT(banana == internal_banana, "Correct shallow banana");
       is_done();
     });
@@ -83,12 +83,12 @@ void test2()
 
       // asynch file reading test
       fs.read(ent, 0, ent.size(),
-      [] (fs::error_t err, fs::buffer_t buf, uint64_t len)
+      [] (fs::error_t err, fs::buffer_t buf)
       {
         INFO("FAT32", "Read inside stat");
         CHECKSERT(not err, "read: Read %s asynchronously", deep_banana.c_str());
 
-        std::string banana((char*) buf.get(), len);
+        std::string banana((const char*) buf->data(), buf->size());
         CHECKSERT(banana == internal_banana, "Correct deep fried banana");
         is_done();
       });

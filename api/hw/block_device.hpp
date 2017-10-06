@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <delegate>
 #include <memory>
+#include <vector>
 
 namespace hw {
 
@@ -30,9 +31,9 @@ namespace hw {
  */
 class Block_device {
 public:
-  using block_t      = uint64_t;                 //< Representation for a device's block size
-  using buffer_t     = std::shared_ptr<uint8_t>; //< Representation for a block device's buffer
-  using on_read_func = delegate<void(buffer_t)>; //< Delegate for result of reading from a block device
+  using block_t      = uint64_t;
+  using buffer_t     = std::shared_ptr<std::vector<uint8_t>>;
+  using on_read_func = delegate<void(buffer_t)>;
 
   /**
    * Method to get the type of device

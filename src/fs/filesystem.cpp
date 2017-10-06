@@ -46,10 +46,10 @@ namespace fs
       [this, on_read, path](error_t err, const Dirent& ent)
       {
         if(UNLIKELY(err))
-          return on_read(err, nullptr, 0);
+          return on_read(err, nullptr);
 
         if(UNLIKELY(!ent.is_file()))
-          return on_read({error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0);
+          return on_read({error_t::E_NOTFILE, path + " is not a file"}, nullptr);
 
         read(ent, 0, ent.size(), on_read);
       })
@@ -60,15 +60,15 @@ namespace fs
       auto ent = stat(path);
 
       if(UNLIKELY(!ent.is_valid()))
-        return {{error_t::E_NOENT, path + " not found"}, nullptr, 0};
+        return {{error_t::E_NOENT, path + " not found"}, nullptr};
 
       if(UNLIKELY(!ent.is_file()))
-        return {{error_t::E_NOTFILE, path + " is not a file"}, nullptr, 0};
+        return {{error_t::E_NOTFILE, path + " is not a file"}, nullptr};
 
       return read(ent, 0, ent.size());
   }
 
-  static error_t print_subtree(dirvec_t entries, int depth)
+  static error_t print_subtree(Dirvec_ptr entries, int depth)
   {
     int indent = depth * 3;
     for (auto entry : *entries)
