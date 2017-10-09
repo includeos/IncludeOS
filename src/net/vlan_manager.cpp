@@ -27,6 +27,24 @@
 
 namespace net {
 
+
+VLAN_manager& VLAN_manager::get(int N)
+{
+  static std::map<int, std::unique_ptr<VLAN_manager>> managers;
+  auto it = managers.find(N);
+  if(it != managers.end())
+  {
+    return *it->second;
+  }
+  else
+  {
+    auto ptr = std::unique_ptr<VLAN_manager>(new VLAN_manager);
+    auto ok = managers.emplace(N, std::move(ptr));
+    Expects(ok.second);
+    return *ok.first->second;
+  }
+}
+
 VLAN_manager::VLAN_interface& VLAN_manager::add(hw::Nic& link, const int id)
 {
   Expects(id > 0 and id <= 4096 && "Outside VID range (1-4096)");
