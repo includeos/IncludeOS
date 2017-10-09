@@ -9,7 +9,6 @@ then
   BRIDGE=bridge43
   NETMASK=255.255.0.0
   GATEWAY=10.0.0.1
-
 elif [ $# -eq 3 ]
 then
   BRIDGE=$1
@@ -21,7 +20,15 @@ else
   exit 1
 fi
 
-echo "    Creating bridge $BRIDGE, netmask $NETMASK, gateway $GATEWAY "
+# override bridge name based on ENV
+
+if [ -n $INCLUDEOS_BRIDGE ]
+then
+    BRIDGE=$INCLUDEOS_BRIDGE
+fi
+
+
+echo "    Creating bridge $BRIDGE ($INCLUDEOS_BRIDGE), netmask $NETMASK, gateway $GATEWAY "
 
 # Håreks cool hack:
 # - First two bytes is fixed to "c001" because it's cool

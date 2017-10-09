@@ -42,8 +42,11 @@ parser.add_argument("-b", "--build", dest="build", action="store_true", default=
 parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=False,
                     help="Verbose output when building")
 
-parser.add_argument("--create-bridge", dest="bridge", action="store_true",
-                    help="Create bridge43, used in local testing when TAP devices are supported")
+parser.add_argument("--bridge", dest="bridge", action="store", type=str, default="bridge43", metavar="BRIDGE",
+					help="Specify the name of the bridge to use. Default is bridge43.")
+
+parser.add_argument("--create-bridge", dest="create_bridge", action="store_true",
+                    help="Create a bridge, used in local testing when TAP devices are supported.")
 
 parser.add_argument("-g", "--grub", dest="grub", action="store_true",
                     help="Create image with GRUB bootloader that will boot provided binary")
@@ -127,7 +130,11 @@ if args.clean:
     vm.clean()
 
 if args.bridge:
-    print INFO, "Creating bridge"
+	print INFO, "Override default bridge - ", args.bridge
+	os.environ["INCLUDEOS_BRIDGE"] = args.bridge
+
+if args.create_bridge:
+    print INFO, "Creating bridge ", args.bridge # Note we pick this up through ENV if set.
     subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/create_bridge.sh", shell=True)
 
 # If the binary name is a folder, such as ".", build the service
