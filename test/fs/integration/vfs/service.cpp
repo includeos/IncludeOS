@@ -361,12 +361,12 @@ void Service::start(const std::string&)
 
               INFO("VFS_test", "File found. Reading \n");
 
-              dir.read([](auto err, auto buf, auto size){
+              dir.read([](auto err, auto buf){
 
                   if (err)
                     panic("Errror reading file contents \n");
 
-                  std::string res((char*)buf.get(), size);
+                  std::string res((char*)buf->data(), buf->size());
 
                   std::cout << "Our overlords likeness: \n\n " << res;
                   INFO("VFS_test", "SUCCESS");

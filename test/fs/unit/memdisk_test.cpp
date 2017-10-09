@@ -30,15 +30,13 @@ CASE("memdisk properties")
   EXPECT(disk.dev().driver_name() == "MemDisk");
   bool enumerated_partitions {false};
 
-  fs::Disk::on_parts_func part_fn = [&enumerated_partitions, &lest_env]
-  (fs::error_t err, std::vector<fs::Disk::Partition>& partitions)
-  {
-    if (!err) {
+  disk.partitions(
+    [&enumerated_partitions, &lest_env]
+    (auto err, auto& partitions)
+    {
+      EXPECT(!err);
       enumerated_partitions = true;
       EXPECT(partitions.size() == 4u); // 4 is default number
-    }
-  };
-
-  disk.partitions(part_fn);
+    });
   EXPECT(enumerated_partitions == true);
 }

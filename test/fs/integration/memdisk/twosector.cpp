@@ -38,12 +38,12 @@ void Service::start(const std::string&)
   CHECKSERT(!!buf, "Buffer for sector 0 is valid");
 
   // convert to text (before reading sector 2)
-  std::string text((const char*) buf.get(), disk->dev().block_size());
+  std::string text((const char*) buf->data(), buf->size());
 
   // read another block
   buf = disk->dev().read_sync(1);
   // verify nothing bad happened
-  CHECKSERT(!!buf, "Buffer for sector 1 is valid");
+  CHECKSERT(buf != nullptr, "Buffer for sector 1 is valid");
 
   // verify that the sector contents matches the test string
   // NOTE: the 3 first characters are non-text 0xBFBBEF
@@ -53,8 +53,8 @@ void Service::start(const std::string&)
 
   // verify that reading outside of disk returns a 0x0 pointer
   buf = disk->dev().read_sync(disk->dev().size());
-  CHECKSERT(!buf, "Buffer outside of disk range (sector=%llu) is 0x0",
-        disk->dev().size());
+  CHECKSERT(buf == nullptr, "Buffer outside of disk range (sector=%llu) is 0x0",
+            disk->dev().size());
 
   INFO("MemDisk", "SUCCESS");
 }

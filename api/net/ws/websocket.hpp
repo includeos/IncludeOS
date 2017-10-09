@@ -23,7 +23,9 @@
 
 #include <net/http/server.hpp>
 #include <net/http/client.hpp>
+#include <memory>
 #include <stdexcept>
+#include <vector>
 
 namespace net {
 
@@ -36,8 +38,8 @@ class WebSocket {
 public:
   class Message {
   public:
-    using Data = std::vector<char>;
-    using Data_it = Data::iterator;
+    using Data     = std::vector<uint8_t>;
+    using Data_it  = Data::iterator;
     using Data_cit = Data::const_iterator;
 
   public:
@@ -75,21 +77,25 @@ public:
     Data_cit cend() const noexcept
     { return data_.end(); }
 
+    std::string as_text() const
+    { return std::string((const char*) data(), size()); }
+
+    auto as_shared_vector() const {
+      return std::make_shared<std::vector<uint8_t>> (cbegin(), cend());
+    }
+
+    const char* data() const noexcept
+    { return (const char*) data_.data() + header().header_length(); }
+
+    char* data() noexcept
+    { return (char*) data_.data() + header().header_length(); }
+
     size_t add(const char* data, size_t len)
     {
       size_t insert_size = std::min(data_.capacity() - data_.size(), len);
       data_.insert(data_.end(), data, data + insert_size);
       return insert_size;
     }
-
-    const char* data() const noexcept
-    { return data_.data() + header().header_length(); }
-
-    char* data() noexcept
-    { return data_.data() + header().header_length(); }
-
-    std::string as_text() const
-    { return std::string(cbegin(), cend()); }
 
     bool is_complete() const noexcept
     { return header().data_length() == (data_.size() - header().header_length()); }
@@ -98,7 +104,7 @@ public:
     { if (_header().is_masked()) _header().masking_algorithm(); }
 
   private:
-    std::vector<char> data_;
+    Data data_;
 
     ws_header& _header()
     { return *(reinterpret_cast<ws_header*>(data_.data())); }

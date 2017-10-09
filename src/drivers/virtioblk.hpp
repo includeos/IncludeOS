@@ -102,10 +102,11 @@ private:
   {
     uint8_t      sector[512];
   };
+  typedef delegate<void(uint8_t*)> request_handler_t;
   struct blk_resp_t
   {
-    uint8_t      status;
-    on_read_func handler;
+    uint8_t           status;
+    request_handler_t handler;
   };
 
   struct request_t
@@ -114,7 +115,7 @@ private:
     blk_io_t      io;
     blk_resp_t    resp;
 
-    request_t(uint64_t blk, on_read_func cb);
+    request_t(uint64_t blk, request_handler_t cb);
   };
 
   /** Get virtio PCI config. @see Virtio::get_config.*/

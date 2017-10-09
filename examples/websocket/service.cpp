@@ -36,9 +36,8 @@ void handle_ws(net::WebSocket_ptr ws)
   ws->write(ws->to_string());
   // Setup echo reply
   ws->on_read = [ws = ws.get()](auto msg) {
-    auto str = msg->as_text();
-    printf("WS Recv: %s\n", str.c_str());
-    ws->write(str);
+    printf("WS Recv: %s\n", msg->as_text().c_str());
+    ws->write(msg->as_shared_vector());
   };
 
   websockets[idx] = std::move(ws);

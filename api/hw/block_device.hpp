@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <delegate>
 #include <memory>
+#include <vector>
 
 namespace hw {
 
@@ -30,10 +31,9 @@ namespace hw {
  */
 class Block_device {
 public:
-  using block_t      = uint64_t;                 //< Representation for a device's block size
-  using buffer_t     = std::shared_ptr<uint8_t>; //< Representation for a block device's buffer
-  using Device_id    = int32_t;                  //< Representation for a block device's identifier
-  using on_read_func = delegate<void(buffer_t)>; //< Delegate for result of reading from a block device
+  using block_t      = uint64_t;
+  using buffer_t     = std::shared_ptr<std::vector<uint8_t>>;
+  using on_read_func = delegate<void(buffer_t)>;
 
   /**
    * Method to get the type of device
@@ -55,7 +55,7 @@ public:
    *
    * @return The device's identifier
    */
-  Device_id id() const noexcept
+  int id() const noexcept
   { return id_; }
 
   /**
@@ -148,14 +148,15 @@ public:
    */
   virtual void deactivate() = 0;
 
-  /**
-   * Default destructor
-   */
   virtual ~Block_device() noexcept = default;
 protected:
-  Block_device();
+  Block_device() noexcept
+  {
+    static int counter = 0;
+    id_ = counter++;
+  }
 private:
-  Device_id id_;
+  int id_;
 }; //< class Block_device
 
 } //< namespace hw

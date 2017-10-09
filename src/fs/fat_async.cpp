@@ -1,15 +1,29 @@
-//#define DEBUG
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <fs/fat.hpp>
 
 #include <cassert>
 #include <fs/path.hpp>
-#include <debug>
-
 #include <cstring>
 #include <memory>
 
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
+//#define FS_PRINT(fmt, ...)  printf(fmt, ##__VA_ARGS__)
+#define FS_PRINT(fmt, ...)  /** **/
 
 inline size_t roundup(size_t n, size_t multiple)
 {
@@ -19,8 +33,8 @@ inline size_t roundup(size_t n, size_t multiple)
 namespace fs
 {
   void FAT::int_ls(
-     uint32_t sector,
-     dirvec_t dirents,
+     uint32_t   sector,
+     Dirvec_ptr dirents,
      on_internal_ls_func callback)
   {
     // list contents of meme sector by sector
@@ -31,21 +45,21 @@ namespace fs
     *next = next_func_t::make_packed(
     [this, sector, callback, dirents, weak_next] (uint32_t sector)
     {
-      debug("int_ls: sec=%u\n", sector);
+      FS_PRINT("int_ls: sec=%u\n", sector);
       auto next = weak_next.lock();
       device.read(
         sector,
         hw::Block_device::on_read_func::make_packed(
         [this, sector, callback, dirents, next] (buffer_t data)
         {
-          if (!data) {
+          if (data == nullptr) {
             // could not read sector
             callback({ error_t::E_IO, "Unable to read directory" }, dirents);
             return;
           }
 
           // parse entries in sector
-          bool done = int_dirent(sector, data.get(), *dirents);
+          bool done = int_dirent(sector, data->data(), *dirents);
           if (done)
             // execute callback
             callback(no_error, dirents);
@@ -72,7 +86,6 @@ namespace fs
     *next = next_func_t::make_packed(
     [this, path, weak_next, callback] (uint32_t cluster)
     {
-
       if (path->empty()) {
         // attempt to read directory
         uint32_t S = this->cl_to_sector(cluster);
@@ -82,7 +95,7 @@ namespace fs
 
         int_ls(S, dirents,
         on_internal_ls_func::make_packed(
-          [callback] (error_t error, dirvec_t ents)
+          [callback] (error_t error, Dirvec_ptr ents)
           { callback(error, ents);}
         ));
 
@@ -94,7 +107,7 @@ namespace fs
       path->pop_front();
 
       uint32_t S = this->cl_to_sector(cluster);
-      debug("Current target: %s on cluster %u (sector %u)\n", name.c_str(), cluster, S);
+      FS_PRINT("Current target: %s on cluster %u (sector %u)\n", name.c_str(), cluster, S);
 
       // result allocated on heap
       auto dirents = std::make_shared<std::vector<Dirent>> ();
@@ -105,11 +118,11 @@ namespace fs
         S,
         dirents,
         on_internal_ls_func::make_packed(
-        [name, dirents, next, callback] (error_t err, dirvec_t ents)
+        [name, dirents, next, callback] (error_t err, Dirvec_ptr ents)
         {
-          if (unlikely(err))
+          if (UNLIKELY(err))
           {
-            debug("Could not find: %s\n", name.c_str());
+            FS_PRINT("Could not find: %s\n", name.c_str());
             callback(err, dirents);
             return;
           }
@@ -117,12 +130,12 @@ namespace fs
           // look for name in directory
           for (auto& e : *ents)
           {
-            if (unlikely(e.name() == name))
+            if (UNLIKELY(e.name() == name))
             {
               // go to this directory, unless its the last name
-              debug("Found match for %s", name.c_str());
+              FS_PRINT("Found match for %s", name.c_str());
               // enter the matching directory
-              debug("\t\t cluster: %llu\n", e.block);
+              FS_PRINT("\t\t cluster: %lu\n", e.block());
               // only follow directories
               if (e.type() == DIR)
                 (*next)(e.block());
@@ -132,7 +145,7 @@ namespace fs
             }
           } // for (ents)
 
-          debug("NO MATCH for %s\n", name.c_str());
+          FS_PRINT("NO MATCH for %s\n", name.c_str());
           callback({ error_t::E_NOENT, name }, dirents);
         })
       );
@@ -167,7 +180,7 @@ namespace fs
   {
     // when n=0 roundup() will return an invalid value
     if (n == 0) {
-      callback({ error_t::E_IO, "Zero read length" }, buffer_t(), 0);
+      callback({ error_t::E_IO, "Zero read length" }, nullptr);
       return;
     }
     // bounds check the read position and length
@@ -189,20 +202,22 @@ namespace fs
       {
         if (!data) {
           // general I/O error occurred
-          debug("Failed to read sector %u for read()", sector);
-          callback({ error_t::E_IO, "Unable to read file" }, buffer_t(), 0);
+          callback({ error_t::E_IO, "Unable to read file" }, nullptr);
           return;
         }
 
         // when the offset is non-zero we aren't on a sector boundary
         if (internal_ofs != 0) {
-          // so, we need to copy offset data to data buffer
-          auto* result = new uint8_t[n];
-          memcpy(result, data.get() + internal_ofs, n);
-          data = buffer_t(result, std::default_delete<uint8_t[]>());
+          // so, we need to create new buffer with offset data
+          data = construct_buffer(data->begin() + internal_ofs, data->begin() + internal_ofs + n);
+        }
+        else {
+          // when not offset all we have to do is resize the buffer down from
+          // a sector size multiple to its given length
+          data->resize(n);
         }
 
-        callback(no_error, data, n);
+        callback(no_error, data);
       })
     );
   }
@@ -210,14 +225,14 @@ namespace fs
   void FAT::stat(Path_ptr path, on_stat_func func, const Dirent* const start)
   {
     // manual lookup
-    if (unlikely(path->empty())) {
+    if (UNLIKELY(path->empty())) {
       // root doesn't have any stat anyways
       // Note: could use ATTR_VOLUME_ID in FAT
       func({ error_t::E_NOENT, "Cannot stat root" }, Dirent(this, INVALID_ENTITY, path->to_string()));
       return;
     }
 
-    debug("stat: %s\n", path->back().c_str());
+    FS_PRINT("stat: %s\n", path->back().c_str());
     // extract file we are looking for
     std::string filename = path->back();
     path->pop_back();
@@ -225,9 +240,9 @@ namespace fs
     traverse(
       path,
       cluster_func::make_packed(
-      [this, filename, func] (error_t error, dirvec_t dirents)
+      [this, filename, func] (error_t error, Dirvec_ptr dirents)
       {
-        if (unlikely(error)) {
+        if (UNLIKELY(error)) {
           // no path, no file!
           func(error, Dirent(this, INVALID_ENTITY, filename));
           return;
@@ -235,7 +250,7 @@ namespace fs
 
         // find the matching filename in directory
         for (auto& e : *dirents) {
-          if (unlikely(e.name() == filename)) {
+          if (UNLIKELY(e.name() == filename)) {
             // return this dir entry
             func(no_error, e);
             return;
@@ -254,7 +269,7 @@ namespace fs
     // cache lookup
     auto it = stat_cache.find(strpath);
     if (it != stat_cache.end()) {
-      debug("used cached stat for %s\n", strpath.c_str());
+      FS_PRINT("used cached stat for %s\n", strpath.c_str());
       func(no_error, it->second);
       return;
     }
