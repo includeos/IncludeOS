@@ -258,7 +258,7 @@ void VirtioNet::msix_xmit_handler()
     if (transmit_queue != nullptr) {
       auto tx = packets_tx_;
       transmit(std::move(transmit_queue));
-      printf("[virtionet] %ld transmit queue\n", packets_tx_ - tx);
+      //printf("[virtionet] %ld transmit queue\n", packets_tx_ - tx);
     }
 
     // If we now emptied the buffer, offer packets to stack
