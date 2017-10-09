@@ -29,6 +29,24 @@ public:
   /**
    * @brief      Constructor
    *
+   * Create an IPv4 cidr object to represent the cidr <address/mask>,
+   * f.ex. 10.0.0.0/24
+   *
+   * @param[in]  address  IPv4 address
+   * @param[in]  mask     A number between 0 and 32, representing the number
+   *                        of leading 1 bits in the netmask, f.ex.:
+   *                        32 represents the netmask 255.255.255.255
+   *                        24 represents the netmask 255.255.255.0
+   */
+  constexpr Cidr(const Addr address, const uint8_t mask) noexcept
+  : from_{calc_from(address, mask)}, to_{calc_to(address, mask)}
+  {
+    Expects(mask >= 0 and mask <= 32);
+  }
+
+  /**
+   * @brief      Constructor
+   *
    * Create an IPv4 cidr object to represent the cidr <p1.p2.p3.p4/mask>
    *
    * @param[in]  p1    The first part of the IPv4 cidr
@@ -42,18 +60,8 @@ public:
    */
   constexpr Cidr(const uint8_t p1, const uint8_t p2, const uint8_t p3, const uint8_t p4,
     const uint8_t mask) noexcept
-  {
-    Expects(mask >= 0 and mask <= 32);
-
-    const uint32_t ip_whole = Addr{p1,p2,p3,p4}.whole;
-    const uint32_t ip_mask = net::ntohl((0xFFFFFFFFUL << (32 - mask)) & 0xFFFFFFFFUL);
-
-    const uint32_t from_ip = ip_whole & ip_mask;
-    const uint32_t to_ip = from_ip | ~ip_mask;
-
-    from_ = Addr{from_ip};
-    to_ = Addr{to_ip};
-  }
+  : Cidr{{p1,p2,p3,p4}, mask}
+  {}
 
   bool contains(Addr ip) const noexcept {
     return ip >= from_ and ip <= to_;
@@ -68,8 +76,19 @@ public:
   }
 
 private:
-  Addr from_; // network address
-  Addr to_;   // broadcast address
+  constexpr Addr calc_from(const Addr address, const uint8_t mask) {
+    const uint32_t ip_mask = net::ntohl((0xFFFFFFFFUL << (32 - mask)) & 0xFFFFFFFFUL);
+    return {address.whole & ip_mask};
+  }
+
+  constexpr Addr calc_to(const Addr address, const uint8_t mask) {
+    const uint32_t ip_mask = net::ntohl((0xFFFFFFFFUL << (32 - mask)) & 0xFFFFFFFFUL);
+    const uint32_t from_ip = address.whole & ip_mask;
+    return {from_ip | ~ip_mask};
+  }
+
+  const Addr from_; // network address
+  const Addr to_;   // broadcast address
 }; //< class Cidr
 
 } //< namespace ip4
