@@ -25,32 +25,45 @@ namespace ip4 {
 
 class Cidr {
 public:
-  Cidr(uint8_t p1, uint8_t p2, uint8_t p3, uint8_t p4, uint8_t mask)
-  {
-    uint32_t ip_whole = Addr{p1,p2,p3,p4}.whole;
-    uint32_t ip_mask = net::ntohl((0xFFFFFFFFUL << (32 - mask)) & 0xFFFFFFFFUL);
 
-    uint32_t from_ip = ip_whole & ip_mask;
-    uint32_t to_ip = from_ip | ~ip_mask;
+  /**
+   * @brief      Constructor
+   *
+   * Create an IPv4 cidr object to represent the cidr <p1.p2.p3.p4/mask>
+   *
+   * @param[in]  p1    The first part of the IPv4 cidr
+   * @param[in]  p2    The second part of the IPv4 cidr
+   * @param[in]  p3    The third part of the IPv4 cidr
+   * @param[in]  p4    The fourth part of the IPv4 cidr
+   * @param[in]  mask  A number between 0 and 32, representing the number
+   *                    of leading 1 bits in the netmask, f.ex.:
+   *                    32 represents the netmask 255.255.255.255
+   *                    24 represents the netmask 255.255.255.0
+   */
+  constexpr Cidr(const uint8_t p1, const uint8_t p2, const uint8_t p3, const uint8_t p4,
+    const uint8_t mask) noexcept
+  {
+    Expects(mask >= 0 and mask <= 32);
+
+    const uint32_t ip_whole = Addr{p1,p2,p3,p4}.whole;
+    const uint32_t ip_mask = net::ntohl((0xFFFFFFFFUL << (32 - mask)) & 0xFFFFFFFFUL);
+
+    const uint32_t from_ip = ip_whole & ip_mask;
+    const uint32_t to_ip = from_ip | ~ip_mask;
 
     from_ = Addr{from_ip};
     to_ = Addr{to_ip};
   }
 
-  // Possibly not necessary
-  Cidr(Addr from, Addr to)
-  : from_{from}, to_{to}
-  {}
-
-  bool contains(Addr ip) {
+  bool contains(Addr ip) const noexcept {
     return ip >= from_ and ip <= to_;
   }
 
-  Addr from() {
+  Addr from() const noexcept {
     return from_;
   }
 
-  Addr to() {
+  Addr to() const noexcept {
     return to_;
   }
 
