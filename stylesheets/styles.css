@@ -2,9 +2,9 @@
 
 body {
   padding:50px;
-  font:14px/1.5 Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  color:#777;
-  font-weight:300;
+  font:16px/1.5 Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Display a fallback font-face while the Lato font loads */
+  font-display: fallback;
 }
 
 h1, h2, h3, h4, h5, h6 {
