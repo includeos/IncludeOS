@@ -16,40 +16,40 @@
 // limitations under the License.
 
 #pragma once
-#ifndef UTIL_ASYNC_HPP
-#define UTIL_ASYNC_HPP
+#ifndef FS_PARTITION_HPP
+#define FS_PARTITION_HPP
 
-#include <net/inet4.hpp>
-#include <net/tcp/connection.hpp>
-#include <fs/disk.hpp>
+#include <cstdint>
 
-class Async
+namespace fs
 {
-public:
-  static const size_t PAYLOAD_SIZE = 64000;
+  struct Partition {
+    explicit Partition(const uint8_t  fl,  const uint8_t  Id,
+                       const uint32_t LBA, const uint32_t sz) noexcept
+    : flags     {fl},
+      id        {Id},
+      lba_begin {LBA},
+      sectors   {sz}
+    {}
 
-  using Stream  = net::tcp::Connection::Stream;
-  using Disk    = fs::Disk_ptr;
-  using Dirent  = fs::Dirent;
+    uint8_t  flags;
+    uint8_t  id;
+    uint32_t lba_begin;
+    uint32_t sectors;
 
-  typedef delegate<void(bool)> next_func;
-  typedef delegate<void(fs::error_t, bool)> on_after_func;
-  typedef delegate<void(fs::buffer_t, next_func)> on_write_func;
+    // true if the partition has boot code / is bootable
+    bool is_boot() const noexcept
+    { return flags & 0x1; }
 
-  static void upload_file(
-      Disk,
-      const Dirent&,
-      Stream&,
-      on_after_func,
-      size_t = PAYLOAD_SIZE);
+    // human-readable name of partition id
+    std::string name() const;
 
-  static void disk_transfer(
-      Disk,
-      const Dirent&,
-      on_write_func,
-      on_after_func,
-      size_t = PAYLOAD_SIZE);
+    // logical block address of beginning of partition
+    uint32_t lba() const
+    { return lba_begin; }
 
-};
+  }; //< struct Partition
+
+}
 
 #endif

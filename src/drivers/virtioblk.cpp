@@ -3,6 +3,7 @@
 #include "virtioblk.hpp"
 
 #include <kernel/events.hpp>
+#include <fs/common.hpp>
 #include <hw/pci.hpp>
 #include <cassert>
 #include <stdlib.h>
@@ -144,10 +145,10 @@ void VirtioBlk::irq_handler() {
     get_config();
     //debug("\t             New status: 0x%x \n", config.status);
   }
-
 }
 
-void VirtioBlk::handle(request_t* hdr) {
+void VirtioBlk::handle(request_t* hdr)
+{
   // check request response
   blk_resp_t& resp = hdr->resp;
   // only call handler with data when the request was fullfilled
@@ -155,22 +156,20 @@ void VirtioBlk::handle(request_t* hdr) {
   //      resp.status, hdr->hdr.sector, resp.handler.get_ptr(), hdr->io.sector);
 
   if (resp.status == 0) {
-    // give the whole request to user:
     // packaged as buffer, but deleted as request
-    auto buf = buffer_t(hdr->io.sector, [] (uint8_t* buffer) {
-      delete (request_t*) (buffer -  sizeof(scsi_header_t));
-    });
-    // call handler with buffer only as size is implicit
-    resp.handler(buf);
+    resp.handler(hdr->io.sector);
   }
   else {
     // return empty shared ptr
-    resp.handler(buffer_t());
+    resp.handler(nullptr);
   }
+
+  // delete request
+  delete hdr;
 }
 
-void VirtioBlk::service_RX() {
-
+void VirtioBlk::service_RX()
+{
   req.disable_interrupts();
   while (req.new_incoming())
   {
@@ -219,7 +218,15 @@ void VirtioBlk::shipit(request_t* vbr) {
 
 void VirtioBlk::read (block_t blk, on_read_func func) {
   // Virtio Std. § 5.1.6.3
-  auto* vbr = new request_t(blk, func);
+  auto* vbr = new request_t(blk,
+    request_handler_t::make_packed(
+    [this, func] (uint8_t* data) {
+      if (data != nullptr)
+        func(fs::construct_buffer(data, data + block_size()));
+      else
+        func(nullptr);
+    }));
+
   if (free_space()) {
     shipit(vbr);
     req.kick();
@@ -228,11 +235,11 @@ void VirtioBlk::read (block_t blk, on_read_func func) {
     jobs.push_back(vbr);
   }
 }
-void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
-
+void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func)
+{
   // create big buffer for collecting all the disk data
-  buffer_t bigbuf { new uint8_t[block_size() * cnt], std::default_delete<uint8_t[]>() };
-  // (initialized) boolean array of partial jobs
+  auto bigbuf = fs::construct_buffer(block_size() * cnt);
+  // number of reads left
   auto results = std::make_shared<size_t> (cnt);
   bool shipped = false;
   //printf("virtioblk: Enqueue blk %llu cnt %u\n", blk, cnt);
@@ -243,18 +250,18 @@ void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
     // create a special request where we collect all the data
     auto* vbr = new request_t(
       blk + i,
-      on_read_func::make_packed(
-      [this, i, func, results, bigbuf] (buffer_t buffer) {
+      request_handler_t::make_packed(
+      [this, i, func, results, bigbuf] (uint8_t* data) {
         // if the job was already completed, return early
         if (*results == 0) {
           printf("Job cancelled? results == 0,  blk=%u\n", i);
           return;
         }
         // validate partial result
-        if (buffer) {
+        if (data != nullptr) {
           *results -= 1;
           // copy partial block
-          memcpy(bigbuf.get() + i * block_size(), buffer.get(), block_size());
+          memcpy(bigbuf->data() + i * block_size(), data, block_size());
           // check if we have all blocks
           if (*results == 0) {
             // finally, call user-provided callback
@@ -266,7 +273,7 @@ void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
           // if the partial result failed, cancel all
           *results = 0;
           // callback with no data
-          func(buffer_t());
+          func(nullptr);
         }
       })
     );
@@ -283,7 +290,7 @@ void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func) {
   if (shipped) req.kick();
 }
 
-VirtioBlk::request_t::request_t(uint64_t blk, on_read_func cb)
+VirtioBlk::request_t::request_t(uint64_t blk, request_handler_t cb)
 {
   hdr.type   = VIRTIO_BLK_T_IN;
   hdr.ioprio = 0; // reserved

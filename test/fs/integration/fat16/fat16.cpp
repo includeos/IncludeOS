@@ -40,6 +40,9 @@ void Service::start(const std::string&)
   disk->init_fs(
   [] (fs::error_t err, auto& fs)
   {
+    if (err) {
+      printf("Init error: %s\n", err.to_string().c_str());
+    }
     CHECKSERT(!err, "Filesystem auto-initialized");
 
     printf("\t\t%s filesystem\n", fs.name().c_str());
@@ -52,7 +55,6 @@ void Service::start(const std::string&)
     auto& e = list.entries->at(2);
     CHECKSERT(e.is_file(), "Ent is a file");
     CHECKSERT(e.name() == "banana.txt", "Ents name is 'banana.txt'");
-
   });
   // re-init on MBR (sigh)
   disk->init_fs(disk->MBR,
@@ -67,13 +69,15 @@ void Service::start(const std::string&)
     CHECKSERT(!ent.is_dir(), "Entity is not directory");
     CHECKSERT(ent.name() == "banana.txt", "Name is 'banana.txt'");
 
-    printf("%s\n", internal_banana.c_str());
+    printf("Original banana (%ld bytes):\n%s\n",
+            internal_banana.size(), internal_banana.c_str());
 
     // try reading banana-file
     auto buf = fs.read(ent, 0, ent.size());
     CHECKSERT(!buf.error(), "No error reading file");
 
     auto banana = buf.to_string();
+    printf("New banana (%ld bytes):\n%s\n", banana.size(), banana.c_str());
 
     CHECKSERT(banana == internal_banana, "Correct banana #1");
 

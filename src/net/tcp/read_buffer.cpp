@@ -20,9 +20,9 @@
 namespace net {
 namespace tcp {
 
-Read_buffer::Read_buffer(const size_t capacity, const seq_t seq)
+Read_buffer::Read_buffer(const size_t capacity, const seq_t startv)
   : buf(tcp::construct_buffer()),
-    start{seq}, hole{0}
+    start{startv}, hole{0}
 {
   buf->reserve(capacity);
 }
@@ -30,7 +30,6 @@ Read_buffer::Read_buffer(const size_t capacity, const seq_t seq)
 size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, bool push)
 {
   assert(buf != nullptr && "Buffer seems to be stolen, make sure to renew()");
-  assert(seq >= start && "The sequence number cannot be before start");
 
   // get the relative sequence number (the diff)
   size_t rel = seq - start;
@@ -45,8 +44,7 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
 
   // add data to the buffer at the relative position
   if (rel == buf->size()) {
-    std::copy(data, data + len, std::back_inserter(*buf));
-    assert(buf->size() >= len);
+    buf->insert(buf->end(), data, data + len);
   }
   else {
     if (rel + len > buf->size()) buf->resize(rel + len);

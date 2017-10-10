@@ -24,6 +24,7 @@
 
 #include <kernel/events.hpp>
 #include <kernel/syscalls.hpp>
+#include <fs/common.hpp>
 #include <hw/ioport.hpp>
 
 #define IDE_DATA        0x1F0
@@ -108,12 +109,12 @@ namespace hw {
 }
 
   struct ide_irq {
-    ide_irq(uint8_t* buff, IDE::on_read_func call)
+    ide_irq(IDE::buffer_t buff, IDE::on_read_func call)
       : buffer(buff)
       , callback(call)
     {}
 
-    uint8_t*          buffer;   // Reading buffer
+    IDE::buffer_t     buffer;   // Reading buffer
     IDE::on_read_func callback; // IRQ callback
   };
 
@@ -124,7 +125,7 @@ namespace hw {
   void IDE::read(block_t blk, on_read_func callback) {
     if (blk >= _nb_blk) {
       // avoid reading past the disk boundaries
-      callback(buffer_t());
+      callback(nullptr);
       return;
     }
 
@@ -160,7 +161,7 @@ namespace hw {
   {
     if (blk >= _nb_blk) {
       // avoid reading past the disk boundaries
-      return buffer_t();
+      return nullptr;
     }
 
     set_irq_mode(false);
@@ -169,23 +170,21 @@ namespace hw {
     set_blocknum(blk);
     set_command(IDE_CMD_READ);
 
-    auto* buffer = new uint8_t[block_size()];
+    auto buffer = fs::construct_buffer(block_size());
 
     wait_status_flags(IDE_DRDY, false);
 
-    uint16_t* wptr = (uint16_t*) buffer;
-    uint16_t* wend = (uint16_t*)&buffer[block_size()];
-    while (wptr < wend)
-      *(wptr++) = inw(IDE_DATA);
+    auto* data = (uint16_t*) buffer->data();
+    for (size_t i = 0; i < block_size() / 2; i++)
+        data[i] = inw(IDE_DATA);
 
-    // return a shared_ptr wrapper for the buffer
-    return buffer_t(buffer, std::default_delete<uint8_t[]>());
+    return buffer;
   }
   IDE::buffer_t IDE::read_sync(block_t blk, size_t cnt) {
     (void) blk;
     (void) cnt;
     // not yet implemented
-    return buffer_t();
+    return nullptr;
   }
 
   void IDE::wait_status_busy() noexcept {
@@ -249,11 +248,11 @@ namespace hw {
       return;
     }
 
-    uint8_t* buffer = new uint8_t[IDE_BLKSZ];
+    auto buffer = fs::construct_buffer(IDE_BLKSZ);
 
     IDE::wait_status_flags(IDE_DRDY, false);
 
-    uint16_t* wptr = (uint16_t*) buffer;
+    uint16_t* wptr = (uint16_t*) buffer->data();
 
     for (IDE::block_t i = 0; i < IDE_BLKSZ / sizeof (uint16_t); ++i)
       wptr[i] = inw(IDE_DATA);
@@ -267,7 +266,7 @@ namespace hw {
   void IDE::callback_wrapper()
   {
     IDE::on_read_func callback = _ide_irqs.front().callback;
-    callback(IDE::buffer_t(_ide_irqs.front().buffer, std::default_delete<uint8_t[]>()));
+    callback(_ide_irqs.front().buffer);
     _ide_irqs.pop_front();
   }
 
