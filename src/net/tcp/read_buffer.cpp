@@ -44,8 +44,7 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
 
   // add data to the buffer at the relative position
   if (rel == buf->size()) {
-    std::copy(data, data + len, std::back_inserter(*buf));
-    assert(buf->size() >= len);
+    buf->insert(buf->end(), data, data + len);
   }
   else {
     if (rel + len > buf->size()) buf->resize(rel + len);

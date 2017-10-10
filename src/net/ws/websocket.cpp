@@ -318,7 +318,7 @@ static Stream::buffer_t create_wsmsg(size_t len, op_code code, bool client)
   return buffer;
 }
 
-void WebSocket::write(const char* buffer, size_t len, op_code code)
+void WebSocket::write(const char* data, size_t len, op_code code)
 {
   if (UNLIKELY(this->stream == nullptr)) {
     failure("write: Already closed");
@@ -330,12 +330,12 @@ void WebSocket::write(const char* buffer, size_t len, op_code code)
   }
 
   Expects((code == op_code::TEXT or code == op_code::BINARY)
-    && "Write currently only supports TEXT or BINARY");
+      && "Write currently only supports TEXT or BINARY");
 
   // fill header
   auto buf = create_wsmsg(len, code, clientside);
   // get data offset & fill in data into buffer
-  std::copy(buffer, buffer + len, std::back_inserter(*buf));
+  buf->insert(buf->end(), data, data + len);
   // for client-side we have to mask the data
   if (clientside)
   {
