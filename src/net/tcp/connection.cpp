@@ -127,12 +127,9 @@ size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) 
     // deliver if finished for delivery
     if(buf.is_ready())
     {
-      auto buffer = buf.buffer();
-
       if (read_request->callback)
-          read_request->callback(std::move(buffer));
+          read_request->callback(buf.buffer());
 
-      buffer = nullptr;
       // reset/clear readbuffer (new sequence start)
       buf.reset(seq);
     }
