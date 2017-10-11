@@ -16,8 +16,6 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <net/ip4/addr.hpp>
-#include <net/ip4/ip4.hpp>
 #include <net/ip4/cidr.hpp>
 
 using namespace net::ip4;
