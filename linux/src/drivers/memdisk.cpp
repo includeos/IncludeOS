@@ -28,13 +28,4 @@ buffer_t MemDisk::read_sync(block_t blk, size_t cnt)
 
 void MemDisk::deactivate() {}
 
-}
-
-namespace hw {
-
-  Block_device::Block_device()
-  {
-
-  }
-
-}
+} // fs

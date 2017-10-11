@@ -34,7 +34,7 @@ public:
   size_t frame_offset_device() override
   { return sizeof(driver_hdr); };
 
-  net::downstream create_physical_downstream()
+  net::downstream create_physical_downstream() override
   { return {this, &UserNet::transmit}; }
 
   /** the function called from transmit() **/
@@ -67,5 +67,6 @@ public:
   }__attribute__((packed));
 
 private:
+  net::BufferStore buffer_store;
   forward_t transmit_forward_func;
 };

@@ -3,8 +3,8 @@
 constexpr MAC::Addr UserNet::MAC_ADDRESS;
 
 UserNet::UserNet()
-  : Link(Link_protocol{{this, &UserNet::transmit}, mac()},
-    256u, 2048 /* 256x half-page buffers */)
+  : Link(Link_protocol{{this, &UserNet::transmit}, mac()}, buffer_store),
+    buffer_store(256u, 2048 /* 256x half-page buffers */)
 {
 
 }
