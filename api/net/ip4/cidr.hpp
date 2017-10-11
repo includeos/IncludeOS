@@ -23,6 +23,15 @@
 namespace net {
 namespace ip4 {
 
+/**
+ * This type is thrown when creating an instance of Cidr
+ * with a std::string that doesn't represent a valid IPv4
+ * cidr
+ */
+struct Invalid_cidr : public std::runtime_error {
+  using runtime_error::runtime_error;
+}; //< struct Invalid_cidr
+
 class Cidr {
 public:
 
@@ -63,6 +72,17 @@ public:
   : Cidr{{p1,p2,p3,p4}, mask}
   {}
 
+  /**
+   * @brief      Constructor
+   *
+   * Create an IPv4 cidr object to represent the cidr
+   *
+   * @param[in]  cidr  The cidr, f.ex. "10.0.0.0/24" ("10.0.0.5/24" is f.ex. also valid)
+   */
+  Cidr(const std::string& cidr)
+  : Cidr{get_addr(cidr), get_mask(cidr)}
+  {}
+
   bool contains(Addr ip) const noexcept {
     return ip >= from_ and ip <= to_;
   }
@@ -77,14 +97,35 @@ public:
 
 private:
   constexpr Addr calc_from(const Addr address, const uint8_t mask) {
-    const uint32_t ip_mask = net::ntohl((0xFFFFFFFFUL << (32 - mask)) & 0xFFFFFFFFUL);
+    const uint32_t ip_mask = ntohl((0xFFFFFFFFUL << (32 - mask)) & 0xFFFFFFFFUL);
     return {address.whole & ip_mask};
   }
 
   constexpr Addr calc_to(const Addr address, const uint8_t mask) {
-    const uint32_t ip_mask = net::ntohl((0xFFFFFFFFUL << (32 - mask)) & 0xFFFFFFFFUL);
-    const uint32_t from_ip = address.whole & ip_mask;
-    return {from_ip | ~ip_mask};
+    const uint32_t ip_mask = ntohl((0xFFFFFFFFUL << (32 - mask)) & 0xFFFFFFFFUL);
+    return {(address.whole & ip_mask) | ~ip_mask};
+  }
+
+  Addr get_addr(const std::string& cidr) {
+    return {cidr.substr(0, cidr.find("/"))};
+  }
+
+  uint8_t get_mask(const std::string& cidr) {
+    const size_t found = cidr.find('/');
+
+    if (UNLIKELY(found == std::string::npos))
+      throw Invalid_cidr("Missing slash in " + cidr);
+    if (UNLIKELY(found >= cidr.length() - 1))
+      throw Invalid_cidr("Missing mask after slash in " + cidr);
+
+    const char* mask = cidr.substr(found + 1).c_str(); // Getting past the '/'
+    int val = 0;
+    while (*mask) {
+      Expects(std::isdigit((int) *mask));
+      val = (val * 10) + (*mask++ - '0');
+    }
+    Expects(val >= 0 and val <= 32);
+    return (uint8_t) val;
   }
 
   const Addr from_; // network address
