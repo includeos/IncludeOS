@@ -18,6 +18,7 @@
 #include <tcp_fd.hpp>
 #include <fd_map.hpp>
 #include <kernel/os.hpp>
+#include <errno.h>
 
 using namespace net;
 

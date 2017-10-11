@@ -896,21 +896,13 @@ void Connection::clean_up() {
 }
 
 std::string Connection::TCB::to_string() const {
-  ostringstream os;
-  os << "SND"
-     << " .UNA = " << SND.UNA
-     << " .NXT = " << SND.NXT
-     << " .WND = " << SND.WND
-     << " .UP = " << SND.UP
-     << " .WL1 = " << SND.WL1
-     << " .WL2 = " << SND.WL2
-     << " ISS = " << ISS
-     << "\n RCV"
-     << " .NXT = " << RCV.NXT
-     << " .WND = " << RCV.WND
-     << " .UP = " << RCV.UP
-     << " IRS = " << IRS;
-  return os.str();
+  char buffer[512];
+  int len = snprintf(buffer, sizeof(buffer),
+      "SND .UNA:%u .NXT:%u .WND:%u .UP:%u .WL1:%u .WL2:%u  ISS:%u\n"
+      "RCV .NXT:%u .WND:%u .UP:%u  IRS=%u",
+      SND.UNA, SND.NXT, SND.WND, SND.UP, SND.WL1, SND.WL2, ISS,
+      RCV.NXT, RCV.WND, RCV.UP, IRS);
+  return std::string(buffer, len);
 }
 
 void Connection::parse_options(const Packet& packet) {

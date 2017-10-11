@@ -23,15 +23,11 @@
 #include "../packet.hpp"
 #include "../util.hpp"
 
-#include <debug>
-
-#include <iostream>
 #include <string>
 #include <map>
 #include <x86intrin.h>
-
-#include <stdint.h>
-#include <assert.h>
+#include <cstdint>
+#include <cassert>
 
 namespace net
 {
@@ -307,11 +303,6 @@ namespace net
     /** Upstream delegates */
     std::map<uint8_t, upstream> proto_handlers;
   };
-
-  inline std::ostream& operator<< (std::ostream& out, const IP6::addr& ip)
-  {
-    return out << ip.str();
-  }
 
 } // namespace net
 

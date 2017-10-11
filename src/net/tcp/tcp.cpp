@@ -247,22 +247,20 @@ uint16_t TCP::checksum(const tcp::Packet& packet)
 // Format: [Protocol][Recv][Send][Local][Remote][State]
 string TCP::to_string() const {
   // Write all connections in a cute list.
-  stringstream ss;
-  ss << "LISTENERS:\n" << "Local\t" << "Queued\n";
+  std::string str = "LISTENERS:\nLocal\tQueued\n";
   for(auto& listen_it : listeners_) {
     auto& l = listen_it.second;
-    ss << l->local().to_string() << "\t" << l->syn_queue_size() << "\n";
+    str += l->local().to_string() + "\t" + std::to_string(l->syn_queue_size()) + "\n";
   }
-  ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
+  str +=
+  "\nCONNECTIONS:\nProto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
   for(auto& con_it : connections_) {
     auto& c = *(con_it.second);
-    ss << "tcp4\t"
-       << " " << "\t" << " " << "\t"
-       << " " << "\t" << " " << "\t"
-       << c.local().to_string() << "\t\t" << c.remote().to_string() << "\t\t"
-       << c.state().to_string() << "\n";
+    str += "tcp4\t \t \t \t \t"
+        + c.local().to_string() + "\t\t" + c.remote().to_string() + "\t\t"
+        + c.state().to_string() + "\n";
   }
-  return ss.str();
+  return str;
 }
 
 void TCP::error_report(const Error& err, Socket dest) {

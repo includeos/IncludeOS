@@ -18,10 +18,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <fd_map.hpp>
-#include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <fs/vfs.hpp>
 #include <file_fd.hpp>
+#include <errno.h>
 
 static const int rng_fd       {998}; // temp
 

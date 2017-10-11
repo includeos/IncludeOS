@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <util/logger.hpp>
-#include <sstream>
 #include <common>
 
 Logger::Logger(Log& log, Log::index_type pos)
