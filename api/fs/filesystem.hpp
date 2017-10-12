@@ -27,8 +27,8 @@ namespace fs {
   struct Dirent;
 
   struct File_system {
-    /** Get unique (per device type) device id for underlying device.*/
-    virtual Device_id device_id() = 0;
+    /** Get unique id for underlying device */
+    virtual int device_id() const noexcept = 0;
 
     /** Print subtree from given path */
     error_t print_subtree(const std::string& path);
@@ -65,7 +65,6 @@ namespace fs {
     template <typename P = Path>
     inline Dirent stat(P, const Dirent* const = nullptr);
 
-
     /** Cached async stat */
     virtual void cstat(const std::string& pathstr, on_stat_func) = 0;
 
@@ -78,13 +77,6 @@ namespace fs {
     /** Default destructor */
     virtual ~File_system() noexcept = default;
   }; //< class File_system
-
-  // simplify initializing shared vector
-  inline dirvec_t new_shared_vector()
-  {
-    return std::make_shared<dirvector> ();
-  }
-
 
 } //< namespace fs
 
@@ -104,7 +96,6 @@ namespace fs {
   Dirent File_system::stat(P pathstr, const Dirent* const dir) {
     return stat(Path{pathstr}, dir);
   }
-
 
 } //< namespace fs
 

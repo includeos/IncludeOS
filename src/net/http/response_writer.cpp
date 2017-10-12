@@ -35,11 +35,11 @@ namespace http {
     connection_.stream()->write(std::move(data));
   }
 
-  void Response_writer::write(Chunk chunk)
+  void Response_writer::write(net::tcp::buffer_t buffer)
   {
-    pre_write(chunk.length());
+    pre_write(buffer->size());
 
-    connection_.stream()->write(std::move(chunk));
+    connection_.stream()->write(std::move(buffer));
   }
 
   void Response_writer::pre_write(size_t len)

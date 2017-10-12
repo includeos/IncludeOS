@@ -18,10 +18,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <fd_map.hpp>
-#include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <fs/vfs.hpp>
 #include <file_fd.hpp>
+#include <errno.h>
 
 static const int rng_fd       {998}; // temp
 
@@ -113,7 +113,7 @@ int write(int fd, const void* ptr, size_t len)
 // read value of a symbolic link (which we don't have)
 ssize_t readlink(const char* path, char*, size_t bufsiz)
 {
-  printf("readlink(%s, bufsize=%u)\n", path, bufsiz);
+  printf("readlink(%s, bufsize=%zu)\n", path, bufsiz);
   return 0;
 }
 

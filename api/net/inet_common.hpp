@@ -45,6 +45,7 @@ namespace net {
   using downstream = delegate<void(Packet_ptr)>;
   using downstream_link = delegate<void(Packet_ptr, MAC::Addr, Ethertype)>;
   using upstream = downstream;
+  using upstream_ip = delegate<void(Packet_ptr, const bool link_bcast)>;
 
   // Delegate for signalling available buffers in device transmit queue
   using transmit_avail_delg = delegate<void(size_t)>;

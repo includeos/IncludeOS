@@ -27,7 +27,6 @@
 #include <memory>
 #include <stdexcept>
 #include <typeinfo>
-#include <iostream>
 
 // Demangle
 extern "C" char* __cxa_demangle(const char* mangled_name,
@@ -153,12 +152,12 @@ namespace fs {
 
     void print_tree(std::string tabs = "" ) const {
 
-      std::cout << tabs << "-- " << name_;
+      printf("%s-- %s", tabs.c_str(), name_.c_str());
 
       if (obj_)
-        std::cout << " (" << type_name(20) << ") \n";
+        printf(" (%s)\n", type_name(20).c_str());
       else
-        std::cout << "\n";
+        printf("\n");
 
       for (auto&& it = children_.begin(); it != children_.end(); it++) {
         auto& node = *(it->get());
@@ -297,7 +296,7 @@ namespace fs {
   /** Entry point for global VFS_entry tree **/
   struct VFS {
 
-    using Disk_id = hw::Block_device::Device_id;
+    using Disk_id  = int;
     using Disk_key = Disk_id;
     using Disk_map = std::map<Disk_key, fs::Disk_ptr>;
     using Path_str = std::string;

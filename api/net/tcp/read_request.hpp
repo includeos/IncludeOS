@@ -26,7 +26,7 @@ namespace net {
 namespace tcp {
 
 struct ReadRequest {
-  using ReadCallback = delegate<void(buffer_t, size_t)>;
+  using ReadCallback = delegate<void(buffer_t)>;
 
   Read_buffer buffer;
   ReadCallback callback;

@@ -24,7 +24,7 @@
 struct serialized_tcp
 {
   // has to match with tcp::Connection::VERSION
-  static const int VERSION = 1;
+  static const int VERSION = 2;
 
   typedef net::tcp::Connection Connection;
   typedef net::tcp::port_t     port_t;

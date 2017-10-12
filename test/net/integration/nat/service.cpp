@@ -71,7 +71,7 @@ void Service::start()
     {{192, 1, 0, 0 }, { 255, 255, 255, 0}, {192, 1, 0, 1}, eth1 , 1 }
   };
 
-  router = std::make_unique<Router<IP4>>(Super_stack::inet().ip4_stacks(), routing_table);
+  router = std::make_unique<Router<IP4>>(routing_table);
   eth0.ip_obj().set_packet_forwarding(ip_forward);
   eth1.ip_obj().set_packet_forwarding(ip_forward);
 
@@ -104,9 +104,9 @@ void Service::start()
     CHECKSERT(conn->remote().address() == eth1.ip_addr(),
       "Received connection from (what appears to be) my gateway - %s", conn->remote().to_string().c_str());
 
-    conn->on_read(1024, [](auto buf, auto n)
+    conn->on_read(1024, [](auto buf)
     {
-      const auto str = std::string{reinterpret_cast<const char*>(buf.get()), n};
+      const auto str = std::string{(const char*) buf->data(), buf->size()};
       CHECKSERT(str == "Testing MASQ", "Data from laptop is received - \"%s\"", str.c_str());
 
       test_finished();
@@ -163,9 +163,9 @@ void Service::start()
     CHECKSERT(conn->remote().address() != eth1.ip_addr(),
       "Received non SNAT connection - %s", conn->remote().to_string().c_str());
 
-    conn->on_read(1024, [conn](auto buf, auto n)
+    conn->on_read(1024, [conn](auto buf)
     {
-      const auto str = std::string{reinterpret_cast<const char*>(buf.get()), n};
+      const auto str = std::string{(const char*) buf->data(), buf->size()};
       CHECKSERT(str == "Testing DNAT", "Data from laptop is received - \"%s\"", str.c_str());
 
       test_finished();

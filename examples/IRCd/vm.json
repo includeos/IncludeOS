@@ -1,0 +1,5 @@
+{
+  "image" : "IRCd",
+  "net" : [{"device" : "vmxnet3"}],
+  "mem" : 1024
+}

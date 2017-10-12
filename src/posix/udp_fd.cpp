@@ -17,6 +17,7 @@
 
 #include <udp_fd.hpp>
 #include <kernel/os.hpp> // OS::block()
+#include <errno.h>
 
 // return the "currently selected" networking stack
 static net::Inet<net::IP4>& net_stack() {
@@ -34,10 +35,9 @@ void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t addr,
   // only recv to buffer if not full
   if(buffer_.size() < max_buffer_msgs()) {
     // copy data into to-be Message buffer
-    auto data = std::unique_ptr<char>(new char[len]);
-    memcpy(data.get(), buf, len);
+    auto buff = net::tcp::buffer_t(new std::vector<uint8_t> (buf, buf + len));
     // emplace the message in buffer
-    buffer_.emplace_back(htonl(addr.whole), htons(port), std::move(data), len);
+    buffer_.emplace_back(htonl(addr.whole), htons(port), std::move(buff));
   }
 }
 
@@ -47,11 +47,10 @@ int UDP_FD::read_from_buffer(void* buffer, size_t len, int flags,
   assert(!buffer_.empty() && "Trying to read from empty buffer");
 
   auto& msg = buffer_.front();
-  auto& data = msg.data;
+  auto& mbuf = msg.buffer;
 
-  int bytes = std::min(len, msg.len);
-
-  memcpy(buffer, data.get(), bytes);
+  int bytes = std::min(len, mbuf->size());
+  memcpy(buffer, mbuf->data(), bytes);
 
   if(address != nullptr) {
     memcpy(address, &msg.src, std::min(*address_len, (uint32_t) sizeof(struct sockaddr_in)));
@@ -72,7 +71,7 @@ UDP_FD::~UDP_FD()
 {
   // shutdown underlying socket, makes sure no callbacks are called on dead fd
   if(this->sock)
-    sock->udp().close(sock->local_port());
+    sock->close();
 }
 int UDP_FD::read(void* buffer, size_t len)
 {
@@ -364,7 +363,7 @@ int UDP_FD::setsockopt(int level, int option_name,
 
 UDP_FD::on_read_func UDP_FD::get_default_read_func()
 {
-  return [] (net::tcp::buffer_t, size_t) {};
+  return [] (net::tcp::buffer_t) {};
 }
 UDP_FD::on_write_func UDP_FD::get_default_write_func()
 {

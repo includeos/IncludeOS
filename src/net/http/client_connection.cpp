@@ -17,7 +17,6 @@
 
 #include <net/http/client_connection.hpp>
 #include <net/http/client.hpp>
-
 #include <debug>
 
 namespace http {
@@ -58,14 +57,14 @@ namespace http {
     stream_->write(req_->to_string());
   }
 
-  void Client_connection::recv_response(buffer_t buf, size_t len)
+  void Client_connection::recv_response(buffer_t buf)
   {
-    if(len == 0) {
+    if (buf->empty()) {
       end_response({Error::NO_REPLY});
       return;
     }
 
-    const auto data = std::string{(char*)buf.get(), len};
+    const std::string data{(char*) buf->data(), buf->size()};
 
     // restart timer since we got data
     if(timer_.is_running())

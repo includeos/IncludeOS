@@ -26,7 +26,7 @@
 
 using namespace std::chrono;
 
-std::string HTML_RESPONSE()
+static std::string HTML_RESPONSE()
 {
   const int color = rand();
 
@@ -48,22 +48,17 @@ std::string HTML_RESPONSE()
   return stream.str();
 }
 
-http::Response handle_request(const http::Request& req)
+static http::Response handle_request(const http::Request& req)
 {
-  printf("<Service> Request:\n%s\n", req.to_string().c_str());
-
   http::Response res;
-
   auto& header = res.header();
-
-  header.set_field(http::header::Server, "IncludeOS/0.10");
+  header.set_field(http::header::Server, "IncludeOS/0.12");
 
   // GET /
   if(req.method() == http::GET && req.uri().to_string() == "/")
   {
     // add HTML response
     res.add_body(HTML_RESPONSE());
-
     // set Content type and length
     header.set_field(http::header::Content_Type, "text/html; charset=UTF-8");
     header.set_field(http::header::Content_Length, std::to_string(res.body().to_string().size()));
@@ -75,15 +70,17 @@ http::Response handle_request(const http::Request& req)
   }
 
   header.set_field(http::header::Connection, "close");
-
   return res;
 }
 
 void Service::start()
 {
-  // Get the first IP stack
-  // It should have configuration from config.json
+  extern void create_network_device(int N, const char* route, const char* ip);
+  create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+
+  // Get the first IP stack configured from config.json
   auto& inet = net::Super_stack::get<net::IP4>(0);
+  inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
 
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,
@@ -98,36 +95,26 @@ void Service::start()
   server.on_connect(
   [] (net::tcp::Connection_ptr conn) {
     printf("<Service> @on_connect: Connection %s successfully established.\n",
-      conn->remote().to_string().c_str());
+            conn->remote().to_string().c_str());
     // read async with a buffer size of 1024 bytes
     // define what to do when data is read
     conn->on_read(1024,
-    [conn] (net::tcp::buffer_t buf, size_t n)
+    [conn] (auto buf)
     {
-      printf("<Service> @on_read: %u bytes received.\n", n);
-      try
-      {
-        std::string data{(const char*)buf.get(), n};
+      try {
+        const std::string data((const char*) buf->data(), buf->size());
         // try to parse the request
         http::Request req{data};
 
         // handle the request, getting a matching response
-        auto res = handle_request(req);
-
-        printf("<Service> Responding with %u %s.\n",
-          res.status_code(), http::code_description(res.status_code()).to_string().c_str());
-
-        conn->write(res);
+        conn->write(handle_request(req));
       }
       catch(const std::exception& e)
       {
         printf("<Service> Unable to parse request:\n%s\n", e.what());
       }
     });
-    conn->on_write([](size_t written) {
-      printf("<Service> @on_write: %u bytes written.\n", written);
-    });
   });
 
-  printf("*** Basic demo service started ***\n");
+  printf("*** Linux userspace library demo started ***\n");
 }

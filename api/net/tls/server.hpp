@@ -70,13 +70,9 @@ public:
   {
     this->write(str.data(), str.size());
   }
-  void write(Chunk ch) override
+  void write(buffer_t buf) override
   {
-    m_tls.send(ch.data(), ch.size());
-  }
-  void write(buffer_t buf, size_t n) override
-  {
-    m_tls.send(buf.get(), n);
+    m_tls.send(buf->data(), buf->size());
   }
 
   std::string to_string() const override {
@@ -92,11 +88,11 @@ public:
   }
 
 protected:
-  void tls_read(buffer_t buf, const size_t n)
+  void tls_read(buffer_t buf)
   {
     try
     {
-      int rem = m_tls.received_data(buf.get(), n);
+      int rem = m_tls.received_data(buf->data(), buf->size());
       (void) rem;
       //printf("Finished processing (rem: %u)\n", rem);
     }
@@ -136,12 +132,8 @@ protected:
 
   void tls_record_received(uint64_t, const uint8_t buf[], size_t buf_len) override
   {
-    if (o_read)
-    {
-      auto buffff = std::shared_ptr<uint8_t> (new uint8_t[buf_len]);
-      memcpy(buffff.get(), buf, buf_len);
-
-      o_read(buffff, buf_len);
+    if (o_read) {
+      o_read(tcp::construct_buffer(buf, buf + buf_len));
     }
   }
 

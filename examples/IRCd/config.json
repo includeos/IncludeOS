@@ -1,0 +1,29 @@
+{
+  "net" : [
+    {
+      "iface": 0,
+      "config": "dhcp-with-fallback",
+      "address": "10.0.0.42",
+      "netmask": "255.255.255.0",
+      "gateway": "10.0.0.1"
+    }
+  ],
+
+  "uplink": {
+    "iface": 0,
+    "url": "10.20.17.12:9090",
+    "token": "kappa123",
+    "reboot": true
+  },
+
+  "ircd": {
+    "client_iface": 0,
+    "client_port": 6667,
+    "server_iface": 0,
+    "server_port": 7000,
+    "server_id": 0,
+    "server_name": "irc.includeos.org",
+    "server_netw": "IncludeNet"
+  }
+
+}

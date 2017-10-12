@@ -164,7 +164,7 @@ uint32_t storage_header::generate_checksum() noexcept
 
 void storage_header::try_zero() noexcept
 {
-  for (int p = 0; p < partitions; p++) {
+  for (uint32_t p = 0; p < partitions; p++) {
     auto& part = ptable.at(p);
     if (part.length != 0 && part.name[0] != 0) return;
   }

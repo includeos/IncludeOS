@@ -58,7 +58,7 @@ void Service::start(const std::string&)
 
       // go through directory entries
       for (auto& e : *ents) {
-        printf("%s: %s\t of size %llu bytes (CL: %llu)\n",
+        printf("%s: %s\t of size %lu bytes (CL: %lu)\n",
                e.type_string().c_str(), e.name().c_str(), e.size(), e.block());
 
         if (e.is_file()) {
@@ -68,14 +68,14 @@ void Service::start(const std::string&)
             0,
             e.size(),
             [e_name = e.name()]
-            (fs::error_t err, fs::buffer_t buffer, size_t len)
+            (fs::error_t err, fs::buffer_t buffer)
             {
               if (err) {
                 printf("Failed to read %s!\n", e_name.c_str());
                 panic("read() failed");
               }
 
-              std::string contents((const char*) buffer.get(), len);
+              std::string contents((const char*) buffer->data(), buffer->size());
               printf("[%s contents]:\n%s\nEOF\n\n",
                      e_name.c_str(), contents.c_str());
               // ---

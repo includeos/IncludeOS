@@ -17,6 +17,7 @@
 
 //#include <net/http/tls_server.hpp>
 #include <net/http/secure_server.hpp>
+#include <botan/data_src.h>
 #include <botan/system_rng.h>
 #include <botan/pkcs8.h>
 

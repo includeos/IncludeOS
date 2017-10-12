@@ -41,18 +41,23 @@ public:
   virtual uint16_t MTU() const noexcept override
   { return 1500; }
 
-
   downstream create_link_downstream() override
   { return transmit_to_link_; };
 
-  void set_ip4_upstream(upstream handler) override
+  net::downstream create_physical_downstream() override
+  { return transmit_to_physical_; }
+
+  void set_ip4_upstream(net::upstream_ip handler) override
   { ip4_handler_ = handler; }
 
-  void set_ip6_upstream(upstream handler) override
+  void set_ip6_upstream(net::upstream_ip handler) override
   { ip6_handler_ = handler; }
 
   void set_arp_upstream(upstream handler) override
   { arp_handler_ = handler; }
+
+  void set_vlan_upstream(upstream handler) override
+  { vlan_handler_ = handler; }
 
   /** Number of bytes in a frame needed by the device itself **/
   size_t frame_offset_device() override
@@ -102,7 +107,7 @@ public:
   //
 
   ~Nic_mock() {}
-  Nic_mock() : Nic(256, 2048) {}
+  Nic_mock() : Nic(bufstore_), bufstore_{256u, 2048} {}
 
   // Public data members (ahem)
   MAC::Addr mac_ = {0xc0,0x00,0x01,0x70,0x00,0x01};
@@ -111,7 +116,12 @@ public:
 
   std::vector<net::Packet_ptr> tx_queue_;
 
-  void transmit(net::Packet_ptr, MAC::Addr, net::Ethertype)
+  void transmit_link(net::Packet_ptr pkt, MAC::Addr, net::Ethertype)
+  {
+    transmit_to_physical_(std::move(pkt));
+  }
+
+  void transmit(net::Packet_ptr pkt)
   {
     NIC_INFO("transimtting packet");
     //tx_queue_.emplace_back(std::move(ptr));
@@ -121,7 +131,7 @@ public:
 
     if(ip4_handler_) {
       NIC_INFO("pushing packet to IP4");
-      ip4_handler_(std::move(ptr));
+      ip4_handler_(std::move(ptr), false);
     } else {
       NIC_INFO("nowhere to push packet. Drop.");
     }
@@ -131,11 +141,13 @@ public:
   void poll() override {}
 
 private:
-
-  upstream ip4_handler_ = nullptr;
-  upstream ip6_handler_ = nullptr;
+  net::BufferStore bufstore_;
+  net::upstream_ip ip4_handler_ = nullptr;
+  net::upstream_ip ip6_handler_ = nullptr;
   upstream arp_handler_ = nullptr;
-  downstream transmit_to_link_ = downstream{this, &Nic_mock::transmit};
+  upstream vlan_handler_ = nullptr;
+  downstream transmit_to_link_ = downstream{this, &Nic_mock::transmit_link};
+  net::downstream transmit_to_physical_{this, &Nic_mock::transmit};
   bool link_up_ = true;
   uint64_t packets_rx_ = 0;
   uint64_t packets_tx_ = 0;

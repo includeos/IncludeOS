@@ -41,7 +41,7 @@ Inet4::Inet4(hw::Nic& nic)
 
   /** Upstream delegates */
   auto arp_bottom(upstream{arp_, &Arp::receive});
-  auto ip4_bottom(upstream{ip4_, &IP4::receive});
+  auto ip4_bottom(upstream_ip{ip4_, &IP4::receive});
   auto icmp4_bottom(upstream{icmp_, &ICMPv4::receive});
   auto udp4_bottom(upstream{udp_, &UDP::receive});
   auto tcp_bottom(upstream{tcp_, &TCP::receive});
@@ -102,23 +102,21 @@ void Inet4::error_report(Error& err, Packet_ptr orig_pckt) {
   bool too_big = false;
 
   // Get the destination to the original packet
-  Socket dest;
-  switch (pckt_ip4->ip_protocol()) {
-    case Protocol::UDP: {
-      auto pckt_udp = static_unique_ptr_cast<PacketUDP>(std::move(pckt_ip4));
-      dest.set_address(pckt_udp->ip_dst());
-      dest.set_port(pckt_udp->dst_port());
-      break;
+  Socket dest = [](const PacketIP4& pkt)->Socket {
+    switch (pkt.ip_protocol()) {
+      case Protocol::UDP: {
+        const auto& udp = static_cast<const PacketUDP&>(pkt);
+        return udp.destination();
+      }
+      case Protocol::TCP: {
+        const auto& tcp = static_cast<const tcp::Packet&>(pkt);
+        return tcp.destination();
+      }
+      default:
+        return {};
     }
-    case Protocol::TCP: {
-      auto pckt_tcp = static_unique_ptr_cast<tcp::Packet>(std::move(pckt_ip4));
-      dest.set_address(pckt_tcp->ip_dst());
-      dest.set_port(pckt_tcp->dst_port());
-      break;
-    }
-    default:
-      return;
-  }
+  }(*pckt_ip4);
+
 
   if (err.is_icmp()) {
     auto* icmp_err = dynamic_cast<ICMP_error*>(&err);

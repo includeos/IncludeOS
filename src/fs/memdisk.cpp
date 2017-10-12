@@ -19,6 +19,7 @@
 #include <cstring>
 
 #include <common>
+#include <fs/common.hpp>
 #include <fs/memdisk.hpp>
 #include <statman>
 
@@ -47,12 +48,9 @@ namespace fs {
     auto sector_loc = image_start_ + blk * block_size();
     // Disallow reading memory past disk image
     if (UNLIKELY(sector_loc >= image_end_))
-      return buffer_t{};
+        return nullptr;
 
-    auto buffer = new uint8_t[block_size()];
-    memcpy(buffer, sector_loc, block_size());
-
-    return buffer_t{buffer, std::default_delete<uint8_t[]>()};
+    return fs::construct_buffer(sector_loc, sector_loc + block_size());
   }
 
   MemDisk::buffer_t MemDisk::read_sync(block_t blk, size_t cnt)
@@ -64,12 +62,9 @@ namespace fs {
 
     // Disallow reading memory past disk image
     if (UNLIKELY(end_loc > image_end_))
-      return buffer_t{};
+      return nullptr;
 
-    auto buffer = new uint8_t[cnt * block_size()];
-    memcpy(buffer, start_loc, cnt * block_size());
-
-    return buffer_t{buffer, std::default_delete<uint8_t[]>()};
+    return fs::construct_buffer(start_loc, end_loc);
   }
 
   MemDisk::block_t MemDisk::size() const noexcept {
@@ -78,8 +73,6 @@ namespace fs {
     return (image_end_ - image_start_) / block_size();
   }
 
-  void MemDisk::deactivate() {
-
-  }
+  void MemDisk::deactivate() {}
 
 } //< namespace fs

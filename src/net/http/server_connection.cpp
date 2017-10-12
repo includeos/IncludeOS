@@ -17,7 +17,6 @@
 
 #include <net/http/server_connection.hpp>
 #include <net/http/server.hpp>
-#include <debug>
 
 namespace http {
 
@@ -38,14 +37,14 @@ namespace http {
     stream_->write(res->to_string());
   }
 
-  void Server_connection::recv_request(buffer_t buf, size_t len)
+  void Server_connection::recv_request(buffer_t buf)
   {
-    if(len == 0) {
+    if (buf->empty()) {
       //end_response({Error::NO_REPLY});
       return;
     }
 
-    const auto data = std::string{(char*)buf.get(), len};
+    const std::string data{(char*) buf->data(), buf->size()};
 
     // create response if not exist
     if(req_ == nullptr)
@@ -105,6 +104,3 @@ namespace http {
   }
 
 }
-
-
-

@@ -68,11 +68,7 @@ namespace http {
      *
      * @param[in]  chunk  a chunk of shared data
      */
-    void write(Chunk chunk);
-
-    // overload for chunk
-    void write(buffer_t buf, size_t len)
-    { write(Chunk{buf, len}); }
+    void write(net::tcp::buffer_t buffer);
 
     /**
      * @brief      Writes the status line + header to the underlying connection

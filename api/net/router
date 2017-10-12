@@ -75,18 +75,15 @@ namespace net {
   }
 
   static std::unique_ptr<Router<IP4>>
-  create_router_from_config(Router<IP4>::Interfaces& ifaces,
-                int N = 0)
+  create_router_from_config(int N = 0)
   {
-    return std::make_unique<Router<IP4>>(
-      ifaces, load_routing_table_from_cfg(N));
+    return std::make_unique<Router<IP4>>(load_routing_table_from_cfg(N));
   }
 
   template <int N = 0>
   static Router<IP4>& get_router()
   {
-    static auto router = create_router_from_config(
-      Super_stack::inet().ip4_stacks(), N);
+    static auto router = create_router_from_config(N);
     return *router;
   }
 

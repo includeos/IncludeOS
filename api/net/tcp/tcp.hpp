@@ -607,7 +607,7 @@ namespace net {
      * @return     True if valid source, False otherwise.
      */
     bool is_valid_source(const tcp::Address addr) const noexcept
-    { return addr == address() or addr == 0; /* temp */ }
+    { return addr == 0 or inet_.is_valid_source(addr); }
 
     /**
      * @brief      Try to find the listener bound to socket.

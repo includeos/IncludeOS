@@ -18,6 +18,7 @@
 #include <tcp_fd.hpp>
 #include <fd_map.hpp>
 #include <kernel/os.hpp>
+#include <errno.h>
 
 using namespace net;
 
@@ -202,7 +203,7 @@ TCP_FD::on_read_func TCP_FD::get_default_read_func()
   }
   if (ld) {
     return
-    [this] (net::tcp::buffer_t, size_t) {
+    [this] (net::tcp::buffer_t) {
       // what to do here?
     };
   }
@@ -219,17 +220,17 @@ TCP_FD::on_except_func TCP_FD::get_default_except_func()
 
 /// socket as connection
 
-void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer, size_t len)
+void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer)
 {
-  if (readq.free_space() < (int) len) {
+  if (readq.free_space() < (ssize_t) buffer->size()) {
     // make room for data
-    int needed = len - readq.free_space();
+    int needed = buffer->size() - readq.free_space();
     int discarded = readq.discard(needed);
     assert(discarded == needed);
   }
   // add data to ringbuffer
-  int written = readq.write(buffer.get(), len);
-  assert(written = len);
+  int written = readq.write(buffer->data(), buffer->size());
+  assert(written == (ssize_t) buffer->size());
 }
 void TCP_FD_Conn::set_default_read()
 {
@@ -244,7 +245,6 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
   }
 
   bool written = false;
-
   conn->on_write([&written] (bool) { written = true; }); // temp
 
   conn->write(data, len);
@@ -256,7 +256,6 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
   }
 
   conn->on_write(nullptr); // temp
-
   return len;
 }
 ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
@@ -272,15 +271,17 @@ ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
   if (bytes) return bytes;
 
   bool done = false;
+  bytes = 0;
+
   // block and wait for more
   conn->on_read(len,
-  [&done, &bytes, dest] (auto buffer, size_t len) {
+  [&done, &bytes, dest] (auto buffer) {
     // copy the data itself
-    if (len)
-        memcpy(dest, buffer.get(), len);
+    if (buffer->size() > 0)
+        memcpy(dest, buffer->data(), buffer->size());
     // we are done
     done  = true;
-    bytes = len;
+    bytes = buffer->size();
   });
 
   // BLOCK HERE

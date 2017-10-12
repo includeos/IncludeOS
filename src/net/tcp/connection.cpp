@@ -118,32 +118,30 @@ size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) 
 
   while(n)
   {
-    // if the buffer has been "stolen" (sent to user), renew it
-    if (buf.buffer() == nullptr) buf.renew(seq);
-
     auto read = buf.insert(seq, data + received, n, PUSH);
-
-    // deliver if finished for delivery
-    if(buf.is_ready())
-    {
-      auto buffer = std::move(buf.buffer());
-
-      if(read_request->callback)
-        read_request->callback(buffer, buf.size());
-    }
 
     n -= read; // subtract amount of data left to insert
     received += read; // add to the total recieved
     seq += read; // advance the sequence number
+
+    // deliver if finished for delivery
+    if(buf.is_ready())
+    {
+      if (read_request->callback)
+          read_request->callback(buf.buffer());
+
+      // reset/clear readbuffer (new sequence start)
+      buf.reset(seq);
+    }
   }
 
   return received;
 }
 
 
-void Connection::write(Chunk buffer)
+void Connection::write(buffer_t buffer)
 {
-  if (UNLIKELY(buffer.size() == 0)) {
+  if (UNLIKELY(buffer->size() == 0)) {
     throw TCP_error("Can't write zero bytes to TCP stream");
   }
 
@@ -675,7 +673,7 @@ void Connection::retransmit() {
     auto& buf = writeq.una();
     debug2("<Connection::retransmit> With data (wq.sz=%u) buf.unacked=%u\n",
       writeq.size(), buf.length() - buf.acknowledged);
-    fill_packet(*packet, buf.data() + writeq.acked(), buf.length() - writeq.acked());
+    fill_packet(*packet, buf->data() + writeq.acked(), buf->size() - writeq.acked());
   }
   rtx_attempt_++;
   packet->set_seq(cb.SND.UNA);
@@ -836,6 +834,7 @@ void Connection::timewait_restart() {
 void Connection::send_ack() {
   auto packet = outgoing_packet();
   packet->set_flag(ACK);
+  this->dack_ = 0;
   transmit(std::move(packet));
 }
 
@@ -897,21 +896,13 @@ void Connection::clean_up() {
 }
 
 std::string Connection::TCB::to_string() const {
-  ostringstream os;
-  os << "SND"
-     << " .UNA = " << SND.UNA
-     << " .NXT = " << SND.NXT
-     << " .WND = " << SND.WND
-     << " .UP = " << SND.UP
-     << " .WL1 = " << SND.WL1
-     << " .WL2 = " << SND.WL2
-     << " ISS = " << ISS
-     << "\n RCV"
-     << " .NXT = " << RCV.NXT
-     << " .WND = " << RCV.WND
-     << " .UP = " << RCV.UP
-     << " IRS = " << IRS;
-  return os.str();
+  char buffer[512];
+  int len = snprintf(buffer, sizeof(buffer),
+      "SND .UNA:%u .NXT:%u .WND:%u .UP:%u .WL1:%u .WL2:%u  ISS:%u\n"
+      "RCV .NXT:%u .WND:%u .UP:%u  IRS=%u",
+      SND.UNA, SND.NXT, SND.WND, SND.UP, SND.WL1, SND.WL2, ISS,
+      RCV.NXT, RCV.WND, RCV.UP, IRS);
+  return std::string(buffer, len);
 }
 
 void Connection::parse_options(const Packet& packet) {
