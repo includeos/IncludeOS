@@ -80,7 +80,12 @@ void Read_buffer::reset_buffer_if_needed(const size_t capacity)
   // from here on the buffer is ours only
   buf->clear();
   const auto bufcap = buf->capacity();
-  if (UNLIKELY(capacity != bufcap))
+  if (UNLIKELY(capacity < bufcap))
+  {
+    buf->shrink_to_fit();
+    buf->reserve(capacity);
+  }
+  else if (UNLIKELY(capacity != bufcap))
   {
     buf->reserve(capacity);
   }
