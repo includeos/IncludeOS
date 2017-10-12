@@ -51,8 +51,15 @@ namespace hw {
 
     virtual uint16_t MTU() const noexcept = 0;
 
-    /** Implemented by the underlying (link) driver */
+    /** Downstream delegate factory */
     virtual downstream create_link_downstream() = 0;
+
+    /** Protocol handler getters **/
+    virtual upstream& ip4_upstream() = 0;
+    virtual upstream& ip6_upstream() = 0;
+    virtual upstream& arp_upstream() = 0;
+
+    /** Protocol handler setters */
     virtual void set_ip4_upstream(upstream handler) = 0;
     virtual void set_ip6_upstream(upstream handler) = 0;
     virtual void set_arp_upstream(upstream handler) = 0;
