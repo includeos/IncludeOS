@@ -62,35 +62,35 @@ CASE("SACK List Array implementation [RFC 2018]")
          8500         5000     5500       9000
   */
   List<Array_list<9>> sack_list;
-  Entries entries;
+  Ack_result res;
 
   // 5000     5500       6000
-  entries = sack_list.recv_out_of_order(5500, 500);
-  EXPECT(entries == expected({5500,6000}));
+  res = sack_list.recv_out_of_order(5500, 500);
+  EXPECT(res.entries == expected({5500,6000}));
 
   // 5000     5500       6500
-  entries = sack_list.recv_out_of_order(6000, 500);
-  EXPECT(entries == expected({5500,6500}));
+  res = sack_list.recv_out_of_order(6000, 500);
+  EXPECT(res.entries == expected({5500,6500}));
 
   // 5000     5500       7000
-  entries = sack_list.recv_out_of_order(6500, 500);
-  EXPECT(entries == expected({5500,7000}));
+  res = sack_list.recv_out_of_order(6500, 500);
+  EXPECT(res.entries == expected({5500,7000}));
 
   // 5000     5500       7500
-  entries = sack_list.recv_out_of_order(7000,500);
-  EXPECT(entries == expected({5500,7500}));
+  res = sack_list.recv_out_of_order(7000,500);
+  EXPECT(res.entries == expected({5500,7500}));
 
   // 5000     5500       8000
-  entries = sack_list.recv_out_of_order(7500,500);
-  EXPECT(entries == expected({5500,8000}));
+  res = sack_list.recv_out_of_order(7500,500);
+  EXPECT(res.entries == expected({5500,8000}));
 
   // 5000     5500       8500
-  entries = sack_list.recv_out_of_order(8000,500);
-  EXPECT(entries == expected({5500,8500}));
+  res = sack_list.recv_out_of_order(8000,500);
+  EXPECT(res.entries == expected({5500,8500}));
 
   // 5000     5500       9000
-  entries = sack_list.recv_out_of_order(8500,500);
-  EXPECT(entries == expected({5500, 9000}));
+  res = sack_list.recv_out_of_order(8500,500);
+  EXPECT(res.entries == expected({5500, 9000}));
 
 
   /*
@@ -117,16 +117,16 @@ CASE("SACK List Array implementation [RFC 2018]")
   sack_list = List<Array_list<9>>();
 
   // 5500    6000   6500
-  entries = sack_list.recv_out_of_order(6000, 500);
-  EXPECT(entries == expected({6000,6500}));
+  res = sack_list.recv_out_of_order(6000, 500);
+  EXPECT(res.entries == expected({6000,6500}));
 
   // 5500    7000   7500   6000   6500
-  entries = sack_list.recv_out_of_order(7000, 500);
-  EXPECT(entries == expected({7000,7500}, {6000,6500}));
+  res = sack_list.recv_out_of_order(7000, 500);
+  EXPECT(res.entries == expected({7000,7500}, {6000,6500}));
 
   // 5500    8000   8500   7000   7500   6000   6500
-  entries = sack_list.recv_out_of_order(8000, 500);
-  EXPECT(entries == expected({8000,8500}, {7000,7500}, {6000,6500}));
+  res = sack_list.recv_out_of_order(8000, 500);
+  EXPECT(res.entries == expected({8000,8500}, {7000,7500}, {6000,6500}));
 
   /*
     Suppose at this point, the 4th packet is received out of order.
@@ -146,12 +146,12 @@ CASE("SACK List Array implementation [RFC 2018]")
   for(auto& b : sack_list.impl.blocks)
     std::cout << b << "\n";
   // 6000   7500   8000   8500
-  entries = sack_list.recv_out_of_order(6500, 500);
+  res = sack_list.recv_out_of_order(6500, 500);
 
   for(auto& b : sack_list.impl.blocks)
     std::cout << b << "\n";
 
-  EXPECT(entries == expected({6000,7500}, {8000,8500}));
+  EXPECT(res.entries == expected({6000,7500}, {8000,8500}));
 
   /*
     Suppose at this point, the 2nd segment is received.  The data
@@ -167,7 +167,60 @@ CASE("SACK List Array implementation [RFC 2018]")
   for(auto& b : sack_list.impl.blocks)
     std::cout << b << "\n";
   EXPECT(result.entries == expected({8000,8500}));
-  EXPECT(result.bytes_freed == 7500-6000);
+  EXPECT(result.bytes == 7500-6000);
 
 }
 
+CASE("SACK block list is full")
+{
+
+  using namespace net::tcp::sack;
+
+  constexpr int list_size = 9;
+  List<Array_list<list_size>> sack_list;
+  Ack_result res;
+
+
+  uint32_t seq = 1000;
+  int incr = 1000;
+  int blksz = 500;
+  for (int i = 0; i < list_size; i++){
+
+    // Fill with a 100b hole from previous entry
+    res = sack_list.recv_out_of_order(seq, blksz);
+    seq += incr;
+  }
+
+  // Fully populated sack list
+  EXPECT(res.entries == expected({seq - incr, (seq - incr ) +  blksz},
+                                 {seq - incr * 2, (seq - incr * 2) + blksz  },
+                                 {seq - incr * 3, (seq - incr * 3) + blksz } ));
+
+  std::cout << "Fully populated SACK list:  \n"
+            << res.entries << "\n";
+
+  EXPECT(res.bytes == blksz);
+
+  // Try adding one more
+  res = sack_list.recv_out_of_order(seq, blksz);
+
+  // We should now get the same
+  EXPECT(res.entries == expected({seq - incr, (seq - incr ) +  blksz},
+                                 {seq - incr * 2, (seq - incr * 2) + blksz  },
+                                 {seq - incr * 3, (seq - incr * 3) + blksz } ));
+
+  EXPECT(res.bytes == 0);
+
+  // Add a block that connects to the end, which should free up one spot
+  res = sack_list.recv_out_of_order(seq - incr + blksz, blksz);
+  EXPECT(res.bytes == blksz);
+
+  // Last block should now be larger
+  EXPECT(res.entries == expected({seq - incr, seq  +  blksz},
+                                 {seq - incr * 2, (seq - incr * 2) + blksz  },
+                                 {seq - incr * 3, (seq - incr * 3) + blksz } ));
+
+
+  // Add a block that connects two blocks, which should free up one spot
+
+}
