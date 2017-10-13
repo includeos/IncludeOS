@@ -52,13 +52,21 @@ namespace net {
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
     void receive(Packet_ptr);
 
+
+    /** Protocol handler getters */
+    upstream_ip& ip4_upstream()
+    { return ip4_upstream_; }
+
+    upstream_ip& ip6_upstream()
+    { return ip6_upstream_; }
+
+    upstream& arp_upstream()
+    { return arp_upstream_; }
+
+
     /** Delegate upstream IPv4 upstream. */
     void set_ip4_upstream(upstream_ip del)
     { ip4_upstream_ = del; }
-
-    /** Delegate upstream IPv4 upstream. */
-    upstream_ip& ip4_upstream()
-    { return ip4_upstream_; }
 
     /** Delegate upstream IPv6 upstream. */
     void set_ip6_upstream(upstream_ip del)
@@ -68,8 +76,6 @@ namespace net {
     void set_arp_upstream(upstream del)
     { arp_upstream_ = del; }
 
-    upstream& arp_upstream()
-    { return arp_upstream_; }
 
     /**
      * @brief      Sets the vlan upstream.
