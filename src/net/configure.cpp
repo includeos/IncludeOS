@@ -29,6 +29,8 @@ using Addresses = std::vector<ip4::Addr>;
 template <typename T>
 Addresses parse_iface(T& obj)
 {
+  if(not obj.HasMember("address") and not obj.HasMember("netmask"))
+    return {};
   Expects(obj.HasMember("address"));
   Expects(obj.HasMember("netmask"));
 
@@ -43,8 +45,10 @@ Addresses parse_iface(T& obj)
 
 inline void config_stack(Inet<IP4>& stack, const Addresses& addrs)
 {
-  if(addrs.empty())
+  if(addrs.empty()) {
+    MYINFO("! WARNING: No config for stack %s", stack.ifname().c_str());
     return;
+  }
 
   Expects((addrs.size() > 2 and addrs.size() < 5)
     && "A network config needs to be between 3 and 4 addresses");
@@ -75,8 +79,10 @@ void configure(const rapidjson::Value& net)
     auto& stack = Super_stack::get<IP4>(N);
 
     // if config is not set, just ignore
-    if(not val.HasMember("config"))
+    if(not val.HasMember("config")) {
+      MYINFO("NOTE: Config method not set, ignoring");
       continue;
+    }
 
     std::string method = val["config"].GetString();
 
