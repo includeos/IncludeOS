@@ -1,12 +1,20 @@
 #include "usernet.hpp"
+#include <hw/devices.hpp>
 
 constexpr MAC::Addr UserNet::MAC_ADDRESS;
 
-UserNet::UserNet()
+UserNet::UserNet(const uint16_t mtu)
   : Link(Link_protocol{{this, &UserNet::transmit}, mac()}, buffer_store),
-    buffer_store(256u, 2048 /* 256x half-page buffers */)
-{
+    mtu_value(mtu), buffer_store(256u, 128 + mtu) {}
 
+UserNet& UserNet::create(const uint16_t mtu)
+{
+  // the IncludeOS packet communicator
+  auto* usernet = new UserNet(mtu);
+  // register driver for superstack
+  auto driver = std::unique_ptr<hw::Nic> (usernet);
+  hw::Devices::register_device<hw::Nic> (std::move(driver));
+  return *usernet;
 }
 
 size_t UserNet::transmit_queue_available()
