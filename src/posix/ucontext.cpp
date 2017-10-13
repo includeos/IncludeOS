@@ -1,5 +1,6 @@
 #include <kernel/os.hpp>
 #include <posix/ucontext.h>
+#include <errno.h>
 
 // default successor context
 static ucontext_t default_successor_context;

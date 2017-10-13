@@ -15,8 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sstream>
-
 #include <gsl/gsl_assert>
 #include <net/tcp/listener.hpp>
 #include <net/tcp/tcp.hpp>
@@ -147,11 +145,12 @@ void Listener::close() {
  */
 
 std::string Listener::to_string() const {
-  std::stringstream ss;
-  ss << "[ " << local_.to_string() << " ] " << " SynQueue ( " <<  syn_queue_.size() << " ) ";
-
+  char buffer[256];
+  int len = snprintf(buffer, sizeof(buffer),
+          "[%s] SynQueue (%ld) ", local_.to_string().c_str(), syn_queue_.size());
+  std::string str(buffer, len);
+  // add syn queue
   for(auto& conn : syn_queue_)
-    ss << "\n\t" << conn->to_string();
-
-  return ss.str();
+      str += "\n\t" + conn->to_string();
+  return str;
 }

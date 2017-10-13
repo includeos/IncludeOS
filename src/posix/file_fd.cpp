@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <file_fd.hpp>
-#include <os>
+#include <errno.h>
 
 int File_FD::read(void* p, size_t n) {
   auto buf = ent_.read(offset_, n);

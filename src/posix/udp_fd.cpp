@@ -17,6 +17,7 @@
 
 #include <udp_fd.hpp>
 #include <kernel/os.hpp> // OS::block()
+#include <errno.h>
 
 // return the "currently selected" networking stack
 static net::Inet<net::IP4>& net_stack() {

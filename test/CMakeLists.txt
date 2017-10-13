@@ -128,7 +128,6 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
-  ${SRC}/hw/block_device.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp

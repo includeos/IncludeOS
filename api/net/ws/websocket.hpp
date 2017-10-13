@@ -53,7 +53,7 @@ public:
     {
       data_.reserve(header.reported_length());
       const char* hdr = reinterpret_cast<const char*>(&header);
-      std::copy(hdr, hdr + header.header_length(), std::back_inserter(data_));
+      data_.insert(data_.begin(), hdr, hdr + header.header_length());
     }
 
     const ws_header& header() const noexcept

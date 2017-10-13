@@ -20,9 +20,6 @@
 #include <string>
 #include <cerrno>
 
-// Remove
-#include <iostream>
-
 namespace fs
 {
   static const char PATH_SEPARATOR = '/';
@@ -49,7 +46,6 @@ namespace fs
   std::string Path::to_string() const
   {
     // build path
-    //std::stringstream ss;
     std::string ss;
     for (const auto& p : this->stk)
       {

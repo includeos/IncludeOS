@@ -20,9 +20,9 @@
 namespace net {
 namespace tcp {
 
-Read_buffer::Read_buffer(const size_t capacity, const seq_t seq)
+Read_buffer::Read_buffer(const size_t capacity, const seq_t startv)
   : buf(tcp::construct_buffer()),
-    start{seq}, hole{0}
+    start{startv}, hole{0}
 {
   buf->reserve(capacity);
 }
@@ -30,7 +30,6 @@ Read_buffer::Read_buffer(const size_t capacity, const seq_t seq)
 size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, bool push)
 {
   assert(buf != nullptr && "Buffer seems to be stolen, make sure to renew()");
-  assert(seq >= start && "The sequence number cannot be before start");
 
   // get the relative sequence number (the diff)
   size_t rel = seq - start;
@@ -45,12 +44,11 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
 
   // add data to the buffer at the relative position
   if (rel == buf->size()) {
-    std::copy(data, data + len, std::back_inserter(*buf));
-    assert(buf->size() >= len);
+    buf->insert(buf->end(), data, data + len);
   }
   else {
     if (rel + len > buf->size()) buf->resize(rel + len);
-    std::copy(data, data + len, &buf->at(rel));
+    __builtin_memcpy(buf->data() + rel, data, len);
   }
 
   if (push) push_seen = true;
@@ -73,27 +71,24 @@ void Read_buffer::reset(const seq_t seq, const size_t capacity)
 void Read_buffer::reset_buffer_if_needed(const size_t capacity)
 {
   // lets not mess when sharing the buffer
-  if(not buf.unique())
+  if (buf.use_count() != 1)
   {
     buf = tcp::construct_buffer();
     buf->reserve(capacity);
     return;
   }
   // from here on the buffer is ours only
-  const auto bufcap = buf->capacity();
-  if(UNLIKELY(capacity > bufcap)) // increase the cap is fine
-  {
-    buf->reserve(capacity);
-  }
-  else if(UNLIKELY(capacity < bufcap)) // decreasing the cap is trickier
-  {
-    // create a new one for simplicty
-    buf = tcp::construct_buffer();
-    buf->reserve(capacity);
-    return;
-  }
-
   buf->clear();
+  const auto bufcap = buf->capacity();
+  if (UNLIKELY(capacity < bufcap))
+  {
+    buf->shrink_to_fit();
+    buf->reserve(capacity);
+  }
+  else if (UNLIKELY(capacity != bufcap))
+  {
+    buf->reserve(capacity);
+  }
 }
 
 __attribute__((weak))
