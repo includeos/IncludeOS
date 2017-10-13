@@ -15,8 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #define DEBUG
-// #define DEBUG2
+//#undef NO_DEBUG
+#define DEBUG
+#define DEBUG2
 
 #include <net/tcp/tcp.hpp>
 #include <net/inet_common.hpp> // checksum
@@ -27,7 +28,7 @@ using namespace std;
 using namespace net;
 using namespace net::tcp;
 
-TCP::TCP(IPStack& inet) :
+TCP::TCP(IPStack& inet, bool smp_enable) :
   inet_{inet},
   listeners_(),
   connections_(),
@@ -37,45 +38,45 @@ TCP::TCP(IPStack& inet) :
   wscale_{default_window_scaling},      // 5
   timestamps_{default_timestamps},      // true
   dack_timeout_{default_dack_timeout},  // 40ms
-  max_syn_backlog_{default_max_syn_backlog}, // 64
-  bytes_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_rx").get_uint64()},
-  bytes_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.bytes_tx").get_uint64()},
-  packets_rx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_rx").get_uint64()},
-  packets_tx_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.packets_tx").get_uint64()},
-  incoming_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.incoming_connections").get_uint64()},
-  outgoing_connections_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.outgoing_connections").get_uint64()},
-  connection_attempts_{Statman::get().create(Stat::UINT64, inet.ifname() + ".tcp.connection_attempts").get_uint64()},
-  packets_dropped_{Statman::get().create(Stat::UINT32, inet.ifname() + ".tcp.packets_dropped").get_uint32()}
+  max_syn_backlog_{default_max_syn_backlog} // 64
 {
   Expects(wscale_ <= 14 && "WScale factor cannot exceed 14");
   Expects(win_size_ <= 0x40000000 && "Invalid size");
 
-  inet.on_transmit_queue_available({this, &TCP::process_writeq});
+  this->cpu_id = SMP::cpu_id();
+  this->smp_enabled = smp_enable;
+  std::string stat_prefix;
+  if (this->smp_enabled == false)
+  {
+    inet.on_transmit_queue_available({this, &TCP::process_writeq});
+    stat_prefix = inet.ifname();
+  }
+  else
+  {
+    SMP::global_lock();
+    inet.on_transmit_queue_available({this, &TCP::smp_process_writeq});
+    SMP::global_unlock();
+    stat_prefix = inet.ifname() + ".cpu" + std::to_string(this->cpu_id);
+  }
+  bytes_rx_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.rx").get_uint64();
+  bytes_tx_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.tx").get_uint64();
+  packets_rx_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.packets_rx").get_uint64();
+  packets_tx_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.packets_tx").get_uint64();
+  incoming_connections_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.conn_incoming").get_uint64();
+  outgoing_connections_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.conn_outgoing").get_uint64();
+  connection_attempts_ = &Statman::get().create(Stat::UINT64, stat_prefix + ".tcp.conn_attempts").get_uint64();
+  packets_dropped_ = &Statman::get().create(Stat::UINT32, stat_prefix + ".tcp.dropped").get_uint32();
 }
 
-
-TCP::Port_util::Port_util()
-  : ports{},
-    ephemeral_(new_ephemeral_port()),
-    eph_count(0)
+void TCP::smp_process_writeq(size_t packets)
 {
-  ports.set(port_ranges::DYNAMIC_END);
-}
-
-void TCP::Port_util::increment_ephemeral()
-{
-  if(UNLIKELY(! has_free_ephemeral() ))
-    throw TCP_error{"All ephemeral ports are taken"};
-
-  ephemeral_++;
-
-  if(UNLIKELY(ephemeral_ == port_ranges::DYNAMIC_END))
-    ephemeral_ = port_ranges::DYNAMIC_START;
-
-  // TODO: Avoid wrap around, increment ephemeral to next free port.
-  // while(is_bound(ephemeral_)) ++ephemeral_; // worst case is like 16k iterations :D
-  // need a solution that checks each word of the subset (the dynamic range)
-  Ensures(is_bound(ephemeral_) == false && "Hoped I wouldn't see the day..."); // this may happen...
+  assert(SMP::cpu_id() == 0);
+  assert(this->cpu_id != 0);
+  SMP::add_task(
+  [this, packets] () {
+    this->process_writeq(packets);
+  }, this->cpu_id);
+  SMP::signal(this->cpu_id);
 }
 
 /*
@@ -96,7 +97,7 @@ Listener& TCP::listen(Socket socket, ConnectCallback cb)
   auto& listener = listeners_.emplace(socket,
     std::make_unique<tcp::Listener>(*this, socket, std::move(cb))
     ).first->second;
-  debug("<TCP::listen> Bound to socket %s \n", socket.to_string());
+  debug("<TCP::listen> Bound to socket %s \n", socket.to_string().c_str());
   return *listener;
 }
 
@@ -160,23 +161,38 @@ void TCP::insert_connection(Connection_ptr conn)
 
 void TCP::receive(net::Packet_ptr packet_ptr) {
   // Stat increment packets received
-  packets_rx_++;
+  (*packets_rx_)++;
+  assert(get_cpuid() == SMP::cpu_id());
 
   // Translate into a TCP::Packet. This will be used inside the TCP-scope.
   auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
+
+  // validate some unlikely but invalid packet properties
+  if (UNLIKELY(packet->src_port() == 0)) {
+    drop(*packet);
+    return;
+  }
+
   const auto dest = packet->destination();
   debug2("<TCP::receive> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), dest.to_string().c_str());
 
   // Validate checksum
   if (UNLIKELY(checksum(*packet) != 0)) {
-    debug("<TCP::receive> TCP Packet Checksum != 0 \n");
+    debug("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
+          checksum(*packet), 0x0);
     drop(*packet);
     return;
   }
 
   // Stat increment bytes received
-  bytes_rx_ += packet->tcp_data_length();
+  (*bytes_rx_) += packet->tcp_data_length();
+
+  // Redirect packet to custom function
+  if (packet_rerouter) {
+    packet_rerouter(std::move(packet));
+    return;
+  }
 
   const Connection::Tuple tuple { dest, packet->source() };
 
@@ -211,7 +227,7 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
 
 uint16_t TCP::checksum(const tcp::Packet& packet)
 {
-  short length = packet.tcp_length();
+  uint16_t length = packet.tcp_length();
   // Compute sum of pseudo-header
   uint32_t sum =
         (packet.ip_src().whole >> 16)
@@ -248,8 +264,83 @@ string TCP::to_string() const {
   return ss.str();
 }
 
-void TCP::error_report(Error& /* err */, Socket /* dest */) {
-  // TODO
+void TCP::error_report(const Error& err, Socket dest) {
+  if (err.is_icmp()) {
+    auto* icmp_err = dynamic_cast<const ICMP_error*>(&err);
+
+    if (network().path_mtu_discovery() and icmp_err->is_too_big() and
+      icmp_err->pmtu() >= network().minimum_MTU()) {
+
+      /*
+      Note RFC 1191 p. 14:
+      TCP performance can be reduced if the sender’s maximum window size is not an exact multiple of
+      the segment size in use (this is not the congestion window size, which is always a multiple of
+      the segment size).  In many system (such as those derived from 4.2BSD), the segment size is often
+      set to 1024 octets, and the maximum window size (the "send space") is usually a multiple of 1024
+      octets, so the proper relationship holds by default.
+      If PMTU Discovery is used, however, the segment size may not be a submultiple of the send space,
+      and it may change during a connection; this means that the TCP layer may need to change the transmission
+      window size when PMTU Discovery changes the PMTU value. The maximum window size should be set to the
+      greatest multiple of the segment size (PMTU - 40) that is less than or equal to the sender’s buffer
+      space size.
+      */
+
+      // Find all connections sending to this destination
+      // Notify the TCP Connection that the sent packet has been dropped and needs to be retransmitted
+      for (auto& conn_entry : connections_) {
+        if (conn_entry.first.second == dest) {
+          /*
+          Note: One MUST not retransmit in response to every Datagram Too Big message, since
+          a burst of several oversized segments will give rise to several such messages and hence
+          several retransmissions of the same data. If the new estimated PMTU is still wrong, the
+          process repeats, and there is an exponential growth in the number of superfluous segments
+          sent. This means that the TCP layer must be able to recongnize when a Datagram Too Big
+          message actually decreases the PMTU that it has already used to send a datagram on the
+          given connection, and should ignore any other notifications.
+          */
+
+          // PMTU is maximum transmission unit including the size of the IP header, while SMSS is
+          // minus the size of the IP header and minus the size of the TCP header
+          auto new_smss = icmp_err->pmtu() - sizeof(ip4::Header) - sizeof(tcp::Header);
+
+          if (conn_entry.second->SMSS() > new_smss) {
+            conn_entry.second->set_SMSS(new_smss);
+
+            // TODO Check that this works as expected:
+            // Unlike a retransmission caused by a TCP retransmission timeout, a retransmission
+            // caused by a Datagram Too Big message should not change the congestion window.
+            // It should, however, trigger the slow-start mechanism (i.e., only one segment should
+            // be retransmitted until acknowledgements begin to arrive again)
+
+            // And retransmit latest packet that hasn't received an ACK
+            // Note: Only retransmit in response to an ICMP Datagram Too Big message
+
+            // Note:
+            // Check if it is necessary to call reduce_ssthresh() (slow start)
+            conn_entry.second->reduce_ssthresh();
+            conn_entry.second->retransmit();
+          }
+        }
+      }
+
+      // return;
+    }
+  }
+
+  // TODO - Regular error reporting
+
+}
+
+void TCP::reset_pmtu(Socket dest, IP4::PMTU pmtu) {
+  if (UNLIKELY(not network().path_mtu_discovery() or pmtu < network().minimum_MTU()))
+    return;
+
+  // Find all connections sending to this destination and update their SMSS value
+  // based on the new increased pmtu
+  for (auto& conn_entry : connections_) {
+    if (conn_entry.first.second == dest)
+      conn_entry.second->set_SMSS(pmtu - sizeof(ip4::Header) - sizeof(tcp::Header));
+  }
 }
 
 void TCP::transmit(tcp::Packet_ptr packet) {
@@ -258,8 +349,8 @@ void TCP::transmit(tcp::Packet_ptr packet) {
   debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
 
   // Stat increment bytes transmitted and packets transmitted
-  bytes_tx_ += packet->tcp_data_length();
-  packets_tx_++;
+  (*bytes_tx_) += packet->tcp_data_length();
+  (*packets_tx_)++;
 
   _network_layer_out(std::move(packet));
 }
@@ -297,7 +388,7 @@ uint32_t TCP::get_ts_value() const
 
 void TCP::drop(const tcp::Packet&) {
   // Stat increment packets dropped
-  packets_dropped_++;
+  (*packets_dropped_)++;
   debug("<TCP::drop> Packet dropped\n");
 }
 
@@ -355,7 +446,7 @@ bool TCP::unbind(const Socket socket)
 
 void TCP::add_connection(tcp::Connection_ptr conn) {
   // Stat increment number of incoming connections
-  incoming_connections_++;
+  (*incoming_connections_)++;
 
   debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
   conn->_on_cleanup({this, &TCP::close_connection});
@@ -365,7 +456,7 @@ void TCP::add_connection(tcp::Connection_ptr conn) {
 Connection_ptr TCP::create_connection(Socket local, Socket remote, ConnectCallback cb)
 {
   // Stat increment number of outgoing connections
-  outgoing_connections_++;
+  (*outgoing_connections_)++;
 
   auto& conn = (connections_.emplace(
       Connection::Tuple{ local, remote },
@@ -385,26 +476,38 @@ void TCP::process_writeq(size_t packets) {
     // remove from writeq
     writeq.pop_front();
     conn->set_queued(false);
-    // ...
+    // packets taken in as reference
     conn->offer(packets);
   }
 }
 
 void TCP::request_offer(Connection& conn) {
+  SMP::global_lock();
   auto packets = inet_.transmit_queue_available();
+  SMP::global_unlock();
 
   debug2("<TCP::request_offer> %s requestin offer: uw=%u rem=%u\n",
     conn.to_string().c_str(), conn.usable_window(), conn.sendq_remaining());
 
+  // Note: Must be called even if packets is 0
+  // because the connectoin is responsible for requeuing itself (see Connection::offer)
   conn.offer(packets);
 }
 
-void TCP::queue_offer(Connection_ptr conn)
+
+void TCP::queue_offer(Connection& conn)
 {
-  if(not conn->is_queued() and conn->can_send())
+  if(not conn.is_queued() and conn.can_send())
   {
-    debug("<TCP::queue_offer> %s queued\n", conn->to_string().c_str());
-    writeq.push_back(conn);
-    conn->set_queued(true);
+    try {
+      debug("<TCP::queue_offer> %s queued\n", conn.to_string().c_str());
+      writeq.push_back(conn.retrieve_shared());
+      conn.set_queued(true);
+    }
+    catch (std::exception& e) {
+      printf("ERROR: Could not find connection for %p: %s\n",
+            &conn, conn.to_string().c_str());
+      throw;
+    }
   }
 }

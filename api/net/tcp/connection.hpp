@@ -44,7 +44,7 @@ namespace tcp {
   Receives and handle TCP::Packet.
   Transist between many states.
 */
-class Connection : public std::enable_shared_from_this<Connection> {
+class Connection {
   friend class net::TCP;
   friend class Listener;
 
@@ -388,6 +388,8 @@ public:
     virtual bool is_closed() const noexcept override
     { return tcp->is_closed(); };
 
+    int get_cpuid() const noexcept override;
+
     virtual ~Stream() {}
 
   protected:
@@ -474,7 +476,7 @@ public:
    * @return bytes not yet read
    */
   size_t readq_size() const
-  { return read_request.buffer.size(); }
+  { return (read_request) ? read_request->buffer.size() : 0; }
 
   /**
    * @brief Total number of bytes in send queue
@@ -638,9 +640,6 @@ public:
     /** Write to a Connection [SEND] */
     virtual size_t send(Connection&, WriteBuffer&);
 
-    /** Read from a Connection [RECEIVE] */
-    virtual void receive(Connection&, ReadBuffer&&);
-
     /** Close a Connection [CLOSE] */
     virtual void close(Connection&);
 
@@ -773,6 +772,7 @@ public:
    * @param[in]  callback    The connection callback
    */
   Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback = nullptr);
+  ~Connection();
 
   Connection(const Connection&)             = delete;
   Connection(Connection&&)                  = delete;
@@ -799,16 +799,12 @@ public:
   // ???
   void deserialize_from(void*);
   int  serialize_to(void*) const;
+  static const int VERSION = 1;
 
   /**
    * @brief      Reset all callbacks back to default
    */
   void reset_callbacks();
-
-  /**
-   * @brief      Destroys the object, releasing resources.
-   */
-  ~Connection();
 
 private:
   /** "Parent" for Connection. */
@@ -827,7 +823,7 @@ private:
   TCB cb;
 
   /** The given read request */
-  ReadRequest read_request;
+  std::unique_ptr<ReadRequest> read_request;
 
   /** Queue for write requests to process */
   Write_queue writeq;
@@ -875,6 +871,12 @@ private:
   uint8_t  dack_{0};
   seq_t    last_ack_sent_;
 
+  /**
+   *  The size of the largest segment that the sender can transmit
+   *  Updated by the Path MTU Discovery process (RFC 1191)
+   */
+  uint16_t smss_;
+
   /** RFC 3522 - The Eifel Detection Algorithm for TCP */
   //int16_t spurious_recovery = 0;
   //static constexpr int8_t SPUR_TO {1};
@@ -884,6 +886,10 @@ private:
   //static constexpr int8_t LATE_SPUR_TO {1};
   //RTTM::seconds SRTT_prev{1.0f};
   //RTTM::seconds RTTVAR_prev{1.0f};
+
+  // Retrieve the associated shared_ptr for a connection, if it exists
+  // Throws out_of_range if it doesn't
+  Connection_ptr retrieve_shared();
 
   /// --- CALLBACKS --- ///
 
@@ -903,43 +909,9 @@ private:
   /// --- READING --- ///
 
   /*
-    Read asynchronous from a remote.
-    Create n sized internal read buffer and callback for when data is received.
-    Callback will be called until overwritten with a new read() or connection closes.
-    Buffer is cleared for data after every reset.
-  */
-  void read(size_t n, ReadCallback callback) {
-    read({new_shared_buffer(n), n}, callback);
-  }
-
-  /*
-    Assign the connections receive buffer and callback for when data is received.
-    Works as read(size_t, ReadCallback);
-  */
-  void read(buffer_t buffer, size_t n, ReadCallback callback)
-  { read({buffer, n}, callback); }
-
-  void read(ReadBuffer&& buffer, ReadCallback callback);
-
-  /*
-    Assign the read request (read buffer)
-  */
-  void receive(ReadBuffer&& buffer)
-  { read_request = {buffer}; }
-
-  /*
     Receive data into the current read requests buffer.
   */
-  size_t receive(const uint8_t* data, size_t n, bool PUSH);
-
-  /*
-    Copy data into the ReadBuffer
-  */
-  size_t receive(ReadBuffer& buf, const uint8_t* data, size_t n) {
-    auto received = std::min(n, buf.remaining);
-    memcpy(buf.pos(), data, received); // Can we use move?
-    return received;
-  }
+  size_t receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH);
 
   /*
     Remote is closing, no more data will be received.
@@ -985,6 +957,18 @@ private:
   { queued_ = queued; }
 
   /**
+   * @brief      Sets the size of the largest segment that the sender can transmit
+   *             Updated through the Path MTU Discovery process (RFC 1191) when TCP
+   *             gets a notification about an updated PMTU value for this connection
+   *             Set in TCP if Path MTU Discovery is enabled
+   *
+   * @param[in]  smss  The new SMSS (The PMTU value minus the size of the IP4 header and
+   *                   the size of the TCP header)
+   */
+  void set_SMSS(uint16_t smss) noexcept
+  { smss_ = smss; }
+
+  /**
    * @brief      Sends an acknowledgement.
    */
   void send_ack();
@@ -992,14 +976,10 @@ private:
   /*
     Invoke/signal the diffrent TCP events.
   */
-  void signal_connect(const bool success = true)
-  {
-    if(on_connect_)
-      (success) ? on_connect_(shared_from_this()) : on_connect_(nullptr);
-  }
+  void signal_connect(const bool success = true);
 
   void signal_disconnect(Disconnect::Reason&& reason)
-  { on_disconnect_(shared_from_this(), Disconnect{reason}); }
+  { on_disconnect_(retrieve_shared(), Disconnect{reason}); }
 
   void signal_packet_dropped(const Packet& packet, Drop_reason reason)
   { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
@@ -1029,14 +1009,13 @@ private:
   static seq_t generate_iss();
 
   /*
-
     SND.UNA + SND.WND - SND.NXT
     SND.UNA + WINDOW - SND.NXT
   */
   uint32_t usable_window() const noexcept
   {
     const auto x = (int64_t)send_window() - (int64_t)flight_size();
-    return (uint32_t) std::max(0ll, x);
+    return (uint32_t) std::max((decltype(x)) 0, x);
   }
 
   uint32_t send_window() const noexcept
@@ -1171,7 +1150,9 @@ private:
    *
    * @return     SMSS
    */
-  uint16_t SMSS() const noexcept;
+  uint16_t SMSS() const noexcept {
+    return smss_; // Updated by Path MTU Discovery process
+  }
 
   /**
    * @brief      Receiver Maximum Segment Size

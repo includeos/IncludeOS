@@ -5,8 +5,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 
-# Use toolchain (if needed)
-set(CMAKE_TOOLCHAIN_FILE $ENV{INCLUDEOS_PREFIX}/includeos/i686-elf-toolchain.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
 # Name of your project
 project (libseed)
@@ -36,7 +35,7 @@ if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 # Where to install library
-install(TARGETS ${LIBRARY_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(TARGETS ${LIBRARY_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/${ARCH}/lib)
 
 # Where to install library headers
 # NOTE: There is a difference between installing a list of files and a directory

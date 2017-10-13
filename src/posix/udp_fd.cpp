@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <udp_fd.hpp>
-#include <kernel/irq_manager.hpp>
 #include <kernel/os.hpp> // OS::block()
 
 // return the "currently selected" networking stack
@@ -55,7 +54,7 @@ int UDP_FD::read_from_buffer(void* buffer, size_t len, int flags,
   memcpy(buffer, data.get(), bytes);
 
   if(address != nullptr) {
-    memcpy(address, &msg.src, std::min(*address_len, sizeof(struct sockaddr_in)));
+    memcpy(address, &msg.src, std::min(*address_len, (uint32_t) sizeof(struct sockaddr_in)));
     *address_len = sizeof(struct sockaddr_in);
   }
 

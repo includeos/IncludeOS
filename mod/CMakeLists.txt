@@ -1,9 +1,7 @@
-set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
-enable_language(ASM_NASM)
-
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
 include_directories(${NEWLIB_INCLUDE_DIR})
+include_directories(${SOLO5_INCLUDE_DIR})
 include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
 
@@ -18,5 +16,5 @@ set(MOD_OBJECTS
 
 add_library(osdeps STATIC ${MOD_OBJECTS})
 
-install(TARGETS osdeps DESTINATION includeos/lib)
+install(TARGETS osdeps DESTINATION includeos/${ARCH}/lib)
 add_dependencies(osdeps PrecompiledLibraries)

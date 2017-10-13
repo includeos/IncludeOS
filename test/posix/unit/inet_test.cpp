@@ -87,5 +87,5 @@ CASE("IPv4 address manipulation - pointer to addr")
 
   // Unsupported IP4 format
   res = inet_pton(AF_INET, "255.255.0", &addr);
-  EXPECT(res == 0);
+  EXPECT(res == 1);
 }

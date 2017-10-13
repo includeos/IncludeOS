@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,25 +43,25 @@ namespace net {
     std::string ifname() const override
     { return nic_.device_name(); }
 
-    MAC::Addr link_addr() override
+    MAC::Addr link_addr() const override
     { return nic_.mac(); }
 
     hw::Nic& nic() override
     { return nic_; }
 
-    IP4::addr ip_addr() override
+    IP4::addr ip_addr() const override
     { return ip4_addr_; }
 
-    IP4::addr netmask() override
+    IP4::addr netmask() const override
     { return netmask_; }
 
-    IP4::addr gateway() override
+    IP4::addr gateway() const override
     { return gateway_; }
 
-    IP4::addr dns_addr() override
+    IP4::addr dns_addr() const override
     { return dns_server_; }
 
-    IP4::addr broadcast_addr() override
+    IP4::addr broadcast_addr() const override
     { return ip4_addr_ | ( ~ netmask_); }
 
     IP4& ip_obj() override
@@ -89,15 +89,47 @@ namespace net {
     auto dhclient() { return dhcp_;  }
 
     /**
+     * @brief      Disable or enable Path MTU Discovery (enabled by default)
+     *             RFC 1191
+     *             If enabled, it sets the Don't Fragment flag on each IP4 packet
+     *             TCP and UDP acts based on this being enabled or not
+     *
+     * @param[in]  on    Enables Path MTU Discovery if true, disables if false
+     * @param[in]  aged  Number of minutes that indicate that a PMTU value
+     *                   has grown stale and should be reset/increased
+     *                   This could be set to "infinity" (PMTU should never be
+     *                   increased) by setting the value to IP4::INFINITY
+     */
+    void set_path_mtu_discovery(bool on, uint16_t aged = 10) override
+    { ip4_.set_path_mtu_discovery(on, aged); }
+
+    /**
+     * @brief      Triggered by IP when a Path MTU value has grown stale and the value
+     *             is reset (increased) to check if the PMTU for the path could have increased
+     *             This is NOT a change in the Path MTU in response to receiving an ICMP Too Big message
+     *             and no retransmission of packets should take place
+     *
+     * @param[in]  dest  The destination/path
+     * @param[in]  pmtu  The reset PMTU value
+     */
+    void reset_pmtu(Socket dest, IP4::PMTU pmtu) override
+    { tcp_.reset_pmtu(dest, pmtu); /* Maybe later: udp_.reset_pmtu(dest, pmtu);*/ }
+
+    /**
      *  Error reporting
-     *  Incl. ICMP error report in accordance with RFC 1122
-     *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
+     *
+     *  Including ICMP error report in accordance with RFC 1122 and handling of ICMP
+     *  too big messages in accordance with RFC 1191, 1981 and 4821 (Path MTU Discovery
+     *  and Packetization Layer Path MTU Discovery)
+     *
+     *  Forwards errors to the transport layer (UDP and TCP)
     */
     void error_report(Error& err, Packet_ptr orig_pckt) override;
 
     /**
      * Set the forwarding delegate used by this stack.
      * If set it will get all incoming packets not intended for this stack.
+     * NOTE: This delegate is expected to call the forward chain
      */
     void set_forward_delg(Forward_delg fwd) override {
       ip4_.set_packet_forwarding(fwd);
@@ -127,7 +159,9 @@ namespace net {
     IP4::IP_packet_ptr create_ip_packet(Protocol proto) override {
       auto raw = nic_.create_packet(nic_.frame_offset_link());
       auto ip_packet = static_unique_ptr_cast<IP4::IP_packet>(std::move(raw));
+
       ip_packet->init(proto);
+
       return ip_packet;
     }
 
@@ -143,17 +177,25 @@ namespace net {
      * name @hostname was not found. Note: Test with INADDR_ANY for a 0-address.
      **/
     void resolve(const std::string& hostname,
-                 resolve_func<IP4>  func) override
+                 resolve_func<IP4>  func,
+                 bool               force = false) override
     {
-      dns_.resolve(this->dns_server_, hostname, func);
+      dns_.resolve(this->dns_server_, hostname, func, force);
     }
 
     void resolve(const std::string& hostname,
                   IP4::addr         server,
-                  resolve_func<IP4> func) override
+                  resolve_func<IP4> func,
+                  bool              force = false) override
     {
-      dns_.resolve(server, hostname, func);
+      dns_.resolve(server, hostname, func, force);
     }
+
+    void set_domain_name(std::string domain_name) override
+    { this->domain_name_ = std::move(domain_name); }
+
+    const std::string& domain_name() const override
+    { return this->domain_name_; }
 
     void set_gateway(IP4::addr gateway) override
     {
@@ -175,10 +217,17 @@ namespace net {
      */
     void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) override;
 
-    // handler called after the network successfully, or
-    // unsuccessfully negotiated with DHCP-server
-    // the timeout parameter indicates whether dhcp negotitation failed
-    void on_config(dhcp_timeout_func handler);
+    bool is_configured() const override
+    {
+      return ip4_addr_ != 0;
+    }
+
+    // handler called after the network is configured,
+    // either by DHCP or static network configuration
+    void on_config(on_configured_func handler) override
+    {
+      configured_handlers_.push_back(handler);
+    }
 
     /** We don't want to copy or move an IP-stack. It's tied to a device. */
     Inet4(Inet4&) = delete;
@@ -186,19 +235,10 @@ namespace net {
     Inet4& operator=(Inet4) = delete;
     Inet4 operator=(Inet4&&) = delete;
 
-    virtual void
-    network_config(IP4::addr addr, IP4::addr nmask, IP4::addr gateway, IP4::addr dns = IP4::ADDR_ANY) override
-    {
-      this->ip4_addr_  = addr;
-      this->netmask_   = nmask;
-      this->gateway_    = gateway;
-      this->dns_server_ = (dns == IP4::ADDR_ANY) ? gateway : dns;
-      INFO("Inet4", "Network configured");
-      INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
-      INFO2("Netmask: \t%s", netmask_.str().c_str());
-      INFO2("Gateway: \t%s", gateway_.str().c_str());
-      INFO2("DNS Server: \t%s", dns_server_.str().c_str());
-    }
+    void network_config(IP4::addr addr,
+                        IP4::addr nmask,
+                        IP4::addr gateway,
+                        IP4::addr dns = IP4::ADDR_ANY) override;
 
     virtual void
     reset_config() override
@@ -220,6 +260,9 @@ namespace net {
 
     size_t buffers_available() override {
       return nic_.buffers_available();
+    }
+    size_t buffers_total() override {
+      return nic_.buffers_total();
     }
 
     void force_start_send_queues() override;
@@ -297,6 +340,26 @@ namespace net {
     bool is_valid_source(IP4::addr src) override
     { return is_loopback(src) or src == ip_addr(); }
 
+    /** Packets pass through prerouting chain before routing decision */
+    virtual Filter_chain& prerouting_chain() override
+    { return prerouting_chain_; }
+
+    /** Packets pass through postrouting chain after routing decision */
+    virtual Filter_chain& postrouting_chain() override
+    { return postrouting_chain_; }
+
+    /** Packets pass through postrouting chain after routing decision */
+    virtual Filter_chain& forward_chain() override
+    { return forward_chain_; }
+
+    /** Packets pass through input chain before hitting protocol handlers */
+    virtual Filter_chain& input_chain() override
+    { return input_chain_; }
+
+    /** Packets pass through output chain after exiting protocol handlers */
+    virtual Filter_chain& output_chain() override
+    { return output_chain_; }
+
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
 
@@ -321,10 +384,20 @@ namespace net {
     UDP    udp_;
     TCP    tcp_;
 
+    // Filter chains
+    Filter_chain prerouting_chain_{"Prerouting", {}};
+    Filter_chain postrouting_chain_{"Postrouting", {}};
+    Filter_chain input_chain_{"Input", {}};
+    Filter_chain output_chain_{"Output", {}};
+    Filter_chain forward_chain_{"Forward", {}};
+
     // we need this to store the cache per-stack
     DNSClient dns_;
+    std::string domain_name_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
+
+    std::vector<on_configured_func> configured_handlers_;
 
     int   cpu_id;
     const uint16_t MTU_;

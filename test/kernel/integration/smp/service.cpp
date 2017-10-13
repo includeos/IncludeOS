@@ -19,14 +19,14 @@
 #include <cassert>
 #include <smp>
 #include <timers>
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 
 static int irq_times = 0;
 
 struct alignas(SMP_ALIGN) per_cpu_test
 {
   int value;
-  
+
 };
 static SMP_ARRAY<per_cpu_test> testing;
 
@@ -49,11 +49,11 @@ void smp_advanced_test()
     // value matches the CPU id.. just as a test
     if (PER_CPU(testing).value == SMP::cpu_id())
         __sync_fetch_and_or(&job, 1 << i);
-  }, 
+  },
   [i] {
     // job completion
     completed++;
-    
+
     if (completed == TASKS) {
       SMP::global_lock();
       printf("All jobs are done now, compl = %d\n", completed);
@@ -65,10 +65,10 @@ void smp_advanced_test()
     }
     volatile void* test = calloc(4, 128u);
     assert(test);
-    asm volatile("nop" : : : "memory");
+    __sw_barrier();
     test = realloc((void*) test, 128u);
     assert(test);
-    asm volatile("nop" : : : "memory");
+    __sw_barrier();
     free((void*) test);
   });
 
@@ -82,7 +82,7 @@ void smp_advanced_test()
       SMP::global_lock();
       printf("This is timer from a CPU core\n");
       times++;
-      
+
       if (times     == SMP::cpu_count()-1
        && irq_times == SMP::cpu_count()-1) {
         printf("SUCCESS!\n");
@@ -111,7 +111,7 @@ static void random_irq_handler()
 static const uint8_t IRQ = 110;
 void SMP::init_task()
 {
-  IRQ_manager::get().subscribe(IRQ, random_irq_handler);
+  Events::get().subscribe(IRQ, random_irq_handler);
 }
 
 void Service::start()

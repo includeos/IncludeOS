@@ -15,12 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sstream>
-
 #include <os>
-#include <rtc>
 #include <acorn>
-#include <profile>
 
 using namespace std;
 using namespace acorn;
@@ -37,55 +33,32 @@ std::unique_ptr<Logger> logger_;
 
 Disk_ptr disk;
 
-#include <time.h>
-
 #include <isotime>
-// Get current date/time, format is [YYYY-MM-DDTHH:mm:ssZ]
-const std::string timestamp()
-{ return "[" + isotime::now() + "] "; }
-
 #include <net/inet4>
 
-void Service::start(const std::string&) {
-
+static void start_acorn(net::Inet<net::IP4>& inet)
+{
   /** SETUP LOGGER */
-  char* buffer = (char*)malloc(1024*16);
-  static gsl::span<char> spanerino{buffer, 1024*16};
+  const int LOGBUFFER_LEN = 1024*16;
+  static gsl::span<char> spanerino{new char[LOGBUFFER_LEN], LOGBUFFER_LEN};
   logger_ = std::make_unique<Logger>(spanerino);
   logger_->flush();
   logger_->log("LUL\n");
 
-  OS::add_stdout([] (const char* data, size_t len) {
+  OS::add_stdout(
+  [] (const char* data, size_t len) {
     // append timestamp
-    auto entry = timestamp() + std::string{data, len};
+    auto entry = "[" + isotime::now() + "]" + std::string{data, len};
     logger_->log(entry);
   });
 
-  disk = fs::new_shared_memdisk();
+  disk = fs::shared_memdisk();
 
-  // mount the main partition in the Master Boot Record
+  // init the first legit partition/filesystem
   disk->init_fs(
-  [](fs::error_t err, auto& fs)
+  [&inet] (fs::error_t err, auto& fs)
   {
-      if (err)  panic("Could not mount filesystem, retreating...\n");
-
-      /** IP STACK SETUP **/
-      // Bring up IPv4 stack on network interface 0
-      auto& stack = net::Inet4::ifconfig(5.0, [](bool timeout) {
-          printf("DHCP Resolution %s.\n", timeout?"failed":"succeeded");
-
-          if (timeout) {
-
-            /**
-             * Default Manual config. Can only be done after timeout to work
-             * with DHCP offers going to unicast IP (e.g. in GCE)
-             **/
-            net::Inet4::stack().network_config({ 10,0,0,42 },     // IP
-                                               { 255,255,255,0 }, // Netmask
-                                               { 10,0,0,1 },      // Gateway
-                                               { 8,8,8,8 });      // DNS
-          }
-        });
+      if (err) panic("Could not mount filesystem...\n");
 
       // only works with synchronous disks (memdisk)
       list_static_content(disk);
@@ -112,10 +85,8 @@ void Service::start(const std::string&) {
 
       // setup users bucket
       users = std::make_shared<UserBucket>();
-
       users->spawn();
       users->spawn();
-
 
       /** ROUTES SETUP **/
       using namespace mana;
@@ -137,8 +108,8 @@ void Service::start(const std::string&) {
       dashboard_->add(dashboard::Status::instance());
       // Construct component
       dashboard_->construct<dashboard::Statman>(Statman::get());
-      dashboard_->construct<dashboard::TCP>(stack.tcp());
-      dashboard_->construct<dashboard::CPUsage>(0ms, 500ms);
+      dashboard_->construct<dashboard::TCP>(inet.tcp());
+      dashboard_->construct<dashboard::CPUsage>();
       dashboard_->construct<dashboard::Logger>(*logger_, static_cast<size_t>(50));
 
       // Add Dashboard routes to "/api/dashboard"
@@ -162,14 +133,11 @@ void Service::start(const std::string&) {
           }
         });
       });
-
       INFO("Router", "Registered routes:\n%s", router.to_string().c_str());
 
 
       /** SERVER SETUP **/
-
-      // initialize server
-      server_ = std::make_unique<Server>(stack.tcp());
+      server_ = std::make_unique<Server>(inet.tcp());
       // set routes and start listening
       server_->set_routes(router).listen(80);
 
@@ -191,4 +159,17 @@ void Service::start(const std::string&) {
       server_->use(cookie_parser);
 
     }); // < disk
+
+}
+
+void Service::start()
+{
+  auto& inet = net::Super_stack::get<net::IP4>(0);
+  if (not inet.is_configured())
+  {
+    inet.on_config(start_acorn);
+  }
+  else {
+    start_acorn(inet);
+  }
 }

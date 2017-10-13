@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//#undef NO_DEBUG
 #define DEBUG // Allow debugging
 #define DEBUG2 // Allow debug lvl 2
 
@@ -33,9 +34,7 @@ namespace net {
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
-  stack_            {inet},
-  upstream_filter_  {this, &IP4::filter_upstream},
-  downstream_filter_{this, &IP4::filter_downstream}
+  stack_            {inet}
   {}
 
 
@@ -49,7 +48,7 @@ namespace net {
   }
 
 
-  IP4::IP_packet_ptr IP4::filter_upstream(IP4::IP_packet_ptr packet)
+  IP4::IP_packet_ptr IP4::drop_invalid_in(IP4::IP_packet_ptr packet)
   {
     IP4::Direction up = IP4::Direction::Upstream;
 
@@ -72,7 +71,7 @@ namespace net {
   }
 
 
-  IP4::IP_packet_ptr IP4::filter_downstream(IP4::IP_packet_ptr packet)
+  IP4::IP_packet_ptr IP4::drop_invalid_out(IP4::IP_packet_ptr packet)
   {
     // RFC-1122 3.2.1.7, MUST NOT send packet with TTL of 0
     if (packet->ip_ttl() == 0)
@@ -95,13 +94,18 @@ namespace net {
     debug2("\t* Source IP: %s Dest.IP: %s Type: 0x%x\n",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
-           packet->ip_protocol());
+           (int) packet->ip_protocol());
 
 
     // Stat increment packets received
     packets_rx_++;
 
-    packet = upstream_filter_(std::move(packet));
+
+    packet = drop_invalid_in(std::move(packet));
+    if (UNLIKELY(packet == nullptr)) return;
+
+    // Enter prerouting chain
+    packet = stack_.prerouting_chain()(std::move(packet), stack_);
     if (UNLIKELY(packet == nullptr)) return;
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
@@ -120,6 +124,9 @@ namespace net {
 
       return;
     }
+
+    packet = stack_.input_chain()(std::move(packet), stack_);
+    if (UNLIKELY(packet == nullptr)) return;
 
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {
@@ -151,56 +158,193 @@ namespace net {
   void IP4::transmit(Packet_ptr pckt) {
     assert((size_t)pckt->size() > sizeof(header));
 
-    auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+    auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
-    ip4_pckt->make_flight_ready();
+    if (path_mtu_discovery_)
+      packet->set_ip_flags(ip4::Flags::DF);
 
-    ship(std::move(ip4_pckt));
+    packet->make_flight_ready();
+
+    packet = stack_.output_chain()(std::move(packet), stack_);
+    if (UNLIKELY(packet == nullptr)) return;
+
+    ship(std::move(packet));
   }
 
-  void IP4::ship(Packet_ptr pckt)
+  void IP4::ship(Packet_ptr pckt, addr next_hop)
   {
-    auto ip4_pckt = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
+    auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
     // Send loopback packets right back
-    if (UNLIKELY(stack_.is_loopback(ip4_pckt->ip_dst()))) {
+    if (UNLIKELY(stack_.is_loopback(packet->ip_dst()))) {
       debug("<IP4> Destination address is loopback \n");
-      IP4::receive(std::move(ip4_pckt));
+      IP4::receive(std::move(packet));
       return;
     }
 
-    addr next_hop;
-
-    if (ip4_pckt->ip_dst() != IP4::ADDR_BCAST)
-    {
-      // Create local and target subnets
-      addr target = ip4_pckt->ip_dst()  & stack_.netmask();
-      addr local  = stack_.ip_addr() & stack_.netmask();
-
-      // Compare subnets to know where to send packet
-      next_hop = target == local ? ip4_pckt->ip_dst() : stack_.gateway();
-
-      debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
-          ip4_pckt->ip_dst().str().c_str(),
-          stack_.netmask().str().c_str(),
-          stack_.ip_addr().str().c_str(),
-          stack_.gateway().str().c_str(),
-          next_hop.str().c_str());
-
-    } else {
-      next_hop = IP4::ADDR_BCAST;
-    }
-
     // Filter illegal egress packets
-    ip4_pckt = upstream_filter_(std::move(ip4_pckt));
-    if (ip4_pckt == nullptr) return;
+    packet = drop_invalid_out(std::move(packet));
+    if (packet == nullptr) return;
+
+    packet = stack_.postrouting_chain()(std::move(packet), stack_);
+    if (UNLIKELY(packet == nullptr)) return;
+
+
+    if (next_hop == 0) {
+      if (UNLIKELY(packet->ip_dst() == IP4::ADDR_BCAST)) {
+        next_hop = IP4::ADDR_BCAST;
+      } else {
+        // Create local and target subnets
+        addr target = packet->ip_dst()  & stack_.netmask();
+        addr local  = stack_.ip_addr() & stack_.netmask();
+
+        // Compare subnets to know where to send packet
+        next_hop = target == local ? packet->ip_dst() : stack_.gateway();
+
+        debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+              packet->ip_dst().str().c_str(),
+              stack_.netmask().str().c_str(),
+              stack_.ip_addr().str().c_str(),
+              stack_.gateway().str().c_str(),
+              next_hop.str().c_str());
+      }
+    }
 
     // Stat increment packets transmitted
     packets_tx_++;
 
-    debug("<IP4> Transmitting packet, layer begin: buf + %i\n", ip4_pckt->layer_begin() - ip4_pckt->buf());
+    debug("<IP4> Transmitting packet, layer begin: buf + %li\n", packet->layer_begin() - packet->buf());
 
-    linklayer_out_(std::move(ip4_pckt), next_hop);
+    linklayer_out_(std::move(packet), next_hop);
+  }
+
+  void IP4::set_path_mtu_discovery(bool on, uint16_t aged) noexcept {
+    path_mtu_discovery_ = on;
+
+    if (aged != 10)
+      pmtu_aged_ = aged;
+
+    if (not on and pmtu_timer_.is_running()) {
+      pmtu_timer_.stop();
+      paths_.clear();
+    }
+  }
+
+  void IP4::update_path(Socket dest, PMTU new_pmtu, bool received_too_big,
+    uint16_t total_length, uint8_t header_length) {
+
+    if (UNLIKELY(not path_mtu_discovery_ or dest.address() == IP4::ADDR_ANY or (new_pmtu > 0 and new_pmtu < minimum_MTU())))
+      return;
+
+    if (UNLIKELY(dest.address().is_multicast())) {
+      // TODO RFC4821 p. 12
+
+    }
+
+    // If an entry for this destination already exists, update the Path MTU value, but only if
+    // the value is smaller than the existing one
+    auto it = paths_.find(dest);
+
+    if (it != paths_.end()) {
+      // If a router returns a next hop MTU value of zero: Try to discover the correct MTU value from the Total Length field
+      if (UNLIKELY(new_pmtu == 0 and total_length not_eq 0))
+        new_pmtu = pmtu_from_total_length(total_length, header_length, it->second.pmtu());
+
+      if (new_pmtu < it->second.pmtu())
+        it->second.set_pmtu(new_pmtu, received_too_big);
+    } else {
+      // If a router returns a next hop MTU value of zero: Try to discover the correct MTU value from the Total Length field
+      if (UNLIKELY(new_pmtu == 0 and total_length not_eq 0))
+        new_pmtu = pmtu_from_total_length(total_length, header_length, default_PMTU());
+
+      // Add to paths_ if the entry doesn't exist
+      // Initially, the PMTU value for a path is assumed to be the (known) MTU of the first-hop link
+      // TODO PMTU: Maybe reset value according to the plateau table instead of default_PMTU()
+      paths_.emplace(dest, PMTU_entry{new_pmtu, default_PMTU(), received_too_big});
+
+      // Start the stale pmtu timer if it is not already running
+      if (UNLIKELY(not pmtu_timer_.is_running()))
+        pmtu_timer_.start(pmtu_timer_interval_);  // interval in seconds
+    }
+  }
+
+  void IP4::remove_path(Socket dest) {
+    auto it = paths_.find(dest);
+
+    if (it != paths_.end())
+      paths_.erase(it);
+  }
+
+  IP4::PMTU IP4::pmtu(Socket dest) const {
+    auto it = paths_.find(dest);
+
+    if (it != paths_.end())
+      return it->second.pmtu();
+
+    return 0;
+  }
+
+  RTC::timestamp_t IP4::pmtu_timestamp(Socket dest) const {
+    auto it = paths_.find(dest);
+
+    if (it != paths_.end())
+      return it->second.timestamp();
+
+    return 0;
+  }
+
+  IP4::PMTU IP4::pmtu_from_total_length(uint16_t total_length, uint8_t header_length, PMTU current) {
+    /*
+      RFC 1191 p. 8:
+      Note: routers based on implementations derived from 4.2BSD Unix send an incorrect value
+      for the Total Length of the original IP datagram. The value sent by these routers is the
+      sum of the original Total Length and the original Header Length (expressed in octets).
+      Since it is impossible for the host receiving such a Datagram Too Big message to know if it
+      sent by one of these routers, the host must be conservative and assume that it is.
+      If the Total Length field returned is not less than the current PMTU estimate, it must be
+      reduced by 4 times the value of the returned Header Length field.
+    */
+    const uint16_t quad = header_length * 4;
+
+    if (total_length >= current and total_length >= (quad + (PMTU) PMTU_plateau::ONE))
+      total_length -= quad;
+
+    return total_length;
+  }
+
+  void IP4::reset_stale_paths() {
+    if (UNLIKELY(not path_mtu_discovery_)) {
+      paths_.clear();
+
+      if (pmtu_timer_.is_running())
+        pmtu_timer_.stop();
+
+      return;
+    }
+
+    if (UNLIKELY(pmtu_aged_ == PMTU_INFINITY)) {
+      // Then the PMTU values should never be increased and there's no need for the timer
+      pmtu_timer_.stop();
+      return;
+    }
+
+    auto rtc_aged = (RTC::timestamp_t) pmtu_aged_;  // cast from uint16_t to int64_t (RTC::timestamp_t)
+    rtc_aged = rtc_aged * 60; // from minutes to seconds
+
+    for (auto it = paths_.begin(); it != paths_.end(); ++it) {
+      /*
+        If the timestamp of the PMTU_entry is not "reserved" and is older than the timout interval
+        (default set to 10 minutes), then the PMTU can be increased/reset to see if the PMTU has
+        increased since the last decrease over 10 minutes ago
+      */
+
+      if (it->second.timestamp() != 0 and RTC::time_since_boot() > rtc_aged and
+        it->second.timestamp() < (RTC::time_since_boot() - rtc_aged))
+      {
+        stack_.reset_pmtu(it->first, it->second.pmtu());
+        paths_.erase(it); // Optional, if keep the entry in the map: it->second.reset_pmtu();
+      }
+    }
   }
 
 } //< namespace net

@@ -22,7 +22,7 @@
 
 #include <hw/ide.hpp>
 
-#include <kernel/irq_manager.hpp>
+#include <kernel/events.hpp>
 #include <kernel/syscalls.hpp>
 #include <hw/ioport.hpp>
 
@@ -47,7 +47,7 @@
 #define IDE_IRQN     14
 #define IDE_BLKSZ    512
 
-#define IDE_VENDOR_ID   PCI_Device::VENDOR_INTEL
+#define IDE_VENDOR_ID   PCI::VENDOR_INTEL
 #define IDE_PRODUCT_ID  0x7010
 
 #define IDE_TIMEOUT 2048
@@ -272,9 +272,7 @@ namespace hw {
   }
 
   void IDE::enable_irq_handler() {
-    auto del(delegate<void()>{this, &IDE::callback_wrapper});
-    IRQ_manager::get().subscribe(IDE_IRQN, del);
-    //IRQ_manager::cpu(0).set_irq_handler(IDE_IRQN + 32, ide_irq_entry);
+    Events::get().subscribe(IDE_IRQN, {this, &IDE::callback_wrapper});
   }
 
 } //< namespace hw

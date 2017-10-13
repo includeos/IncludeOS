@@ -82,7 +82,7 @@ void Syslog::syslog(const int priority, const char* buf) {
  	message += std::string{timebuf} + " ";
 
  	// Fourth: App-name
- 	message += Service::binary_name();
+ 	message += std::string(Service::binary_name());
 
  	// Fifth: Add ident if is set (through openlog)
  	if (fac_->ident_is_set())

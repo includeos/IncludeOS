@@ -19,7 +19,7 @@
 #define KERNEL_OS_HPP
 
 #include <common>
-#include <arch>
+#include <arch.hpp>
 #include <kernel/memmap.hpp>
 #include <kernel/rtc.hpp>
 #include <hertz>
@@ -27,6 +27,7 @@
 #include <sstream>
 #include <vector>
 #include <boot/multiboot.h>
+#include <util/fixedvec.hpp>
 
 /**
  *  The entrypoint for OS services
@@ -40,11 +41,17 @@ public:
   using Span_mods = gsl::span<multiboot_module_t>;
 
   /**
-   * Returns the version of the OS from when
-   * the service was built.
-  **/
+   * Returns the OS version string
+   **/
   static const std::string& version() noexcept
-  { return version_field; }
+  { return version_str_; }
+
+  /**
+   * Returns the CPU architecture for which the OS was built
+   **/
+  static const std::string& arch() noexcept
+  { return arch_str_; }
+
 
   /**
    *  Returns the commandline arguments provided,
@@ -52,25 +59,27 @@ public:
    *  other mechanisms. The first argument is always
    *  the binary name.
   **/
-  static const std::string& cmdline_args() noexcept;
+  static const char* cmdline_args() noexcept;
 
   /** Clock cycles since boot. */
   static uint64_t cycles_since_boot() {
     return __arch_cpu_cycles();
   }
   /** micro seconds since boot */
-  static int64_t micros_since_boot() {
-    return cycles_since_boot() / cpu_freq().count();
-  }
+  static int64_t micros_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
-  static RTC::timestamp_t boot_timestamp()
-  { return RTC::boot_timestamp(); }
+  static RTC::timestamp_t boot_timestamp();
 
   /** Uptime in whole seconds. */
-  static RTC::timestamp_t uptime() {
-    return RTC::time_since_boot();
-  }
+  static RTC::timestamp_t uptime();
+
+  /** Time spent sleeping (halt) in cycles */
+  static uint64_t cycles_asleep() noexcept;
+
+  /** Time spent sleeping (halt) in micros */
+  static uint64_t micros_asleep() noexcept;
+
 
   static MHz cpu_freq() noexcept
   { return cpu_mhz_; }
@@ -98,7 +107,7 @@ public:
   /**
    *  Returns true when the OS will still be running, and not shutting down.
    */
-  static bool is_running() {
+  static bool is_running() noexcept {
     return power_;
   }
 
@@ -106,9 +115,14 @@ public:
    *  Returns true when the OS has passed the boot sequence, and
    *  is at least processing plugins and about to call Service::start
    */
-  static bool is_booted() {
+  static bool is_booted() noexcept {
     return boot_sequence_passed_;
   }
+
+  /**
+   *  Returns true when the OS is currently panicking
+   */
+  static bool is_panicking() noexcept;
 
   /**
    * Sometimes the OS just has a bad day and crashes
@@ -118,22 +132,24 @@ public:
    * This handler can thus be used to, for example, automatically
    * have the OS restart on any crash.
   **/
-  typedef void (*on_panic_func) ();
+  typedef void (*on_panic_func) (const char*);
   static void on_panic(on_panic_func);
 
   /**
    *  Write data to standard out callbacks
    */
-  static size_t print(const char* ptr, const size_t len);
+  static void print(const char* ptr, const size_t len);
 
   /**
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
+
   /**
-   *  Add "default" serial port output
-  **/
-  static void add_stdout_default_serial();
+   *  The default output method preferred by each platform
+   *  Directly writes the string to its output mechanism
+   **/
+  static void default_stdout(const char*, size_t);
 
   /** Memory page helpers */
   static constexpr uint32_t page_size() noexcept {
@@ -165,15 +181,12 @@ public:
   static uintptr_t heap_max() noexcept;
 
   /** The end of usable memory **/
-  static inline uintptr_t memory_end(){
+  static uintptr_t memory_end() noexcept {
     return memory_end_;
   }
 
-  /** time spent sleeping (halt) in cycles */
-  static uint64_t get_cycles_halt() noexcept;
-
-  /** total time spent in cycles */
-  static uint64_t get_cycles_total() noexcept;
+  /** Returns the automatic location set aside for storing system and program state **/
+  static void* liveupdate_storage_area() noexcept;
 
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
@@ -183,6 +196,9 @@ public:
     static  Memory_map memmap {};
     return memmap;
   }
+
+  /** Get "kernel modules", provided by multiboot */
+  static Span_mods modules();
 
   /**
    * Register a custom initialization function. The provided delegate is
@@ -194,6 +210,7 @@ public:
   **/
   static void register_plugin(Plugin delg, const char* name);
 
+
   /**
    * Block for a while, e.g. until the next round in the event loop
    **/
@@ -203,29 +220,19 @@ public:
   /** The main event loop. Check interrupts, timers etc., and do callbacks. */
   static void event_loop();
 
-  /** Start the OS.  @todo Should be `init()` - and not accessible from ABI */
+  /** Initialize platform, devices etc. */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
-  /** Get "kernel modules", provided by multiboot */
-  static Span_mods modules() {
+  static void start(char *cmdline, uintptr_t mem_size);
 
-    if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS) {
-
-      Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
-
-      return Span_mods{
-        reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),
-          static_cast<int>(bootinfo_->mods_count) };
-
-    }
-
-    return nullptr;
-  }
+  /** Initialize common subsystems, call Service::start */
+  static void post_start();
 
 private:
-
   /** Process multiboot info. Called by 'start' if multibooted **/
-  static void multiboot(uint32_t boot_magic, uint32_t boot_addr);
+  static void multiboot(uint32_t boot_addr);
+
+  static multiboot_info_t* bootinfo();
 
   /** Boot with no multiboot params */
   static void legacy_boot();
@@ -243,19 +250,22 @@ private:
     const char* name_;
   };
 
+  using Plugin_vec = fixedvector<Plugin_struct, 16>;
+
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;
   static bool boot_sequence_passed_;
   static MHz cpu_mhz_;
-  static std::string version_field;
-  static std::vector<Plugin_struct> plugins_;
-  static uintptr_t low_memory_size_;
-  static uintptr_t high_memory_size_;
+
+  static RTC::timestamp_t booted_at_;
+  static uintptr_t liveupdate_loc_;
+  static std::string version_str_;
+  static std::string arch_str_;
+  static Plugin_vec plugins_;
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
-  static multiboot_info_t* bootinfo_;
-  static std::string cmdline;
+  static const char* cmdline;
 
   // Prohibit copy and move operations
   OS(OS&)  = delete;
@@ -266,7 +276,21 @@ private:
   // Prohibit construction
   OS() = delete;
 
-  friend void __arch_init();
+  friend void __platform_init();
 }; //< OS
+
+inline OS::Span_mods OS::modules()
+{
+  auto* bootinfo_ = bootinfo();
+  if (bootinfo_ and bootinfo_->flags & MULTIBOOT_INFO_MODS and bootinfo_->mods_count) {
+
+    Expects(bootinfo_->mods_count < std::numeric_limits<int>::max());
+
+    return Span_mods{
+      reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),
+        static_cast<int>(bootinfo_->mods_count) };
+  }
+  return nullptr;
+}
 
 #endif //< KERNEL_OS_HPP

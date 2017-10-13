@@ -26,7 +26,7 @@ const uint64_t SIZE = 256000;
 void Service::start(const std::string&)
 {
   INFO("MemDisk", "Running tests for MemDisk");
-  auto disk = fs::new_shared_memdisk();
+  auto disk = fs::shared_memdisk();
   CHECKSERT(disk, "Created shared memdisk");
 
   CHECKSERT(not disk->empty(), "Disk is not empty");

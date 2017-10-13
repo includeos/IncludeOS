@@ -37,10 +37,17 @@ namespace net {
     using addr = MAC::Addr;
 
     /** Constructor */
-    explicit Ethernet(downstream physical_downstream, const addr& mac) noexcept;
+    explicit Ethernet(
+          downstream physical_downstream,
+          const addr& mac) noexcept;
 
     using header  = ethernet::Header;
     using trailer = ethernet::trailer_t;
+
+    // The link-layer decices the devices name due to construction order
+    std::string link_name() const {
+      return "eth" + std::to_string(ethernet_idx);
+    }
 
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
     void receive(Packet_ptr);
@@ -95,6 +102,7 @@ namespace net {
 
   private:
     const addr& mac_;
+    int   ethernet_idx;
 
     /** Stats */
     uint64_t& packets_rx_;

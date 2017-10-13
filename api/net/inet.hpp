@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@
 
 #include <chrono>
 #include <unordered_set>
-
+#include <list>
 #include <net/inet_common.hpp>
 #include <hw/mac_addr.hpp>
 #include <hw/nic.hpp>
@@ -45,27 +45,28 @@ namespace net {
     using IP_packet_factory = delegate<typename IPV::IP_packet_ptr(Protocol)>;
 
     template <typename IPv>
-    using resolve_func = delegate<void(typename IPv::addr, Error&)>;
+    using resolve_func = delegate<void(typename IPv::addr, const Error&)>;
     using Vip_list = std::unordered_set<typename IPV::addr>;
+
 
     ///
     /// NETWORK CONFIGURATION
     ///
 
     /** Get IP address of this interface **/
-    virtual typename IPV::addr ip_addr()        = 0;
+    virtual typename IPV::addr ip_addr() const = 0;
 
     /** Get netmask of this interface **/
-    virtual typename IPV::addr netmask()        = 0;
+    virtual typename IPV::addr netmask() const = 0;
 
     /** Get default gateway for this interface **/
-    virtual typename IPV::addr gateway()        = 0;
+    virtual typename IPV::addr gateway() const = 0;
 
     /** Get default dns for this interface **/
-    virtual typename IPV::addr dns_addr()       = 0;
+    virtual typename IPV::addr dns_addr() const = 0;
 
     /** Get broadcast address for this interface **/
-    virtual typename IPV::addr broadcast_addr() = 0;
+    virtual typename IPV::addr broadcast_addr() const = 0;
 
    /** Set default gateway for this interface */
     virtual void set_gateway(typename IPV::addr server) = 0;
@@ -87,6 +88,13 @@ namespace net {
     /** Use DHCP to configure this interface */
     virtual void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr) = 0;
 
+    virtual bool is_configured() const = 0;
+
+    using on_configured_func = delegate<void(Stack&)>;
+
+    /** Assign callback to when the stack has been configured */
+    virtual void on_config(on_configured_func handler) = 0;
+
     /** Get a list of virtual IP4 addresses assigned to this interface */
     virtual const Vip_list virtual_ips() const = 0;
 
@@ -107,6 +115,55 @@ namespace net {
 
 
     ///
+    /// PACKET FILTERING
+    ///
+
+    using Packetfilter = delegate<typename IPV::IP_packet_ptr(typename IPV::IP_packet_ptr, const Stack&)>;
+
+    struct Filter_chain {
+      std::list<Packetfilter> chain;
+      const char* name;
+
+      typename IPV::IP_packet_ptr operator()(typename IPV::IP_packet_ptr pckt, const Stack& stack) {
+        int i = 0;
+        for (auto filter : chain) {
+          i++;
+          pckt = filter(std::move(pckt), stack);
+          if (pckt == nullptr) {
+            debug("Packet dropped in %s chain, filter %i \n", name, i);
+            // do some logging
+            return nullptr;
+          }
+        }
+        return pckt;
+      }
+
+      Filter_chain(const char* chain_name, std::initializer_list<Packetfilter> filters)
+        : chain(filters), name{chain_name}
+      {}
+    };
+
+    /**
+     * Packet filtering hooks for firewall, NAT, connection tracking etc.
+     **/
+
+    /** Packets pass through prerouting chain before routing decision */
+    virtual Filter_chain& prerouting_chain() = 0;
+
+    /** Packets pass through postrouting chain after routing decision */
+    virtual Filter_chain& postrouting_chain() = 0;
+
+    /** Packets pass through forward chain by forwarder, if enabled */
+    virtual Filter_chain& forward_chain() = 0;
+
+    /** Packets pass through input chain before hitting protocol handlers */
+    virtual Filter_chain& input_chain() = 0;
+
+    /** Packets pass through output chain after exiting protocol handlers */
+    virtual Filter_chain& output_chain() = 0;
+
+
+    ///
     /// PROTOCOL OBJECTS
     ///
 
@@ -122,22 +179,66 @@ namespace net {
     /** Get the ICMP protocol object for this interface */
     virtual ICMPv4& icmp() = 0;
 
+
+    ///
+    /// PATH MTU DISCOVERY
+    /// PACKETIZATION LAYER PATH MTU DISCOVERY
+    /// ERROR REPORTING
+    /// Communication from ICMP and IP to UDP and TCP
+    ///
+
+    /**
+     * @brief      Disable or enable Path MTU Discovery (enabled by default)
+     *             RFC 1191
+     *             If enabled, it sets the Don't Fragment flag on each IP4 packet
+     *             TCP and UDP acts based on this being enabled or not
+     *
+     * @param[in]  on    Enables Path MTU Discovery if true, disables if false
+     * @param[in]  aged  Number of minutes that indicate that a PMTU value
+     *                   has grown stale and should be reset/increased
+     *                   This could be set to "infinity" (PMTU should never be
+     *                   increased) by setting the value to IP4::INFINITY
+     */
+    virtual void set_path_mtu_discovery(bool on, uint16_t aged = 10) = 0;
+
+    /**
+     * @brief      Triggered by IP when a Path MTU value has grown stale and the value
+     *             is reset (increased) to check if the PMTU for the path could have increased
+     *             This is NOT a change in the Path MTU in response to receiving an ICMP Too Big message
+     *             and no retransmission of packets should take place
+     *
+     * @param[in]  dest  The destination/path
+     * @param[in]  pmtu  The reset PMTU value
+     */
+    virtual void reset_pmtu(Socket dest, typename IPV::PMTU pmtu) = 0;
+
     /**
      *  Error reporting
-     *  Incl. ICMP error report in accordance with RFC 1122
-     *  An ICMP error message has been received - forward to transport layer (UDP or TCP)
+     *
+     *  Including ICMP error report in accordance with RFC 1122 and handling of ICMP
+     *  too big messages in accordance with RFC 1191, 1981 and 4821 (Path MTU Discovery
+     *  and Packetization Layer Path MTU Discovery)
+     *
+     *  Forwards errors to the transport layer (UDP and TCP)
     */
     virtual void error_report(Error& err, Packet_ptr orig_pckt) = 0;
-
-
 
     ///
     /// DNS
     ///
 
     /** DNS resolution */
-    virtual void resolve(const std::string& hostname, resolve_func<IPV> func) = 0;
-    virtual void resolve(const std::string& hostname, typename IPV::addr server, resolve_func<IPV> func) = 0;
+    virtual void resolve(const std::string& hostname,
+                         resolve_func<IPV>  func,
+                         bool               force = false) = 0;
+    virtual void resolve(const std::string& hostname,
+                         typename IPV::addr server,
+                         resolve_func<IPV>  func,
+                         bool               force = false) = 0;
+
+    virtual void set_domain_name(std::string domain_name) = 0;
+
+    virtual const std::string& domain_name() const = 0;
 
     ///
     /// LINK LAYER
@@ -150,7 +251,7 @@ namespace net {
     virtual std::string ifname() const = 0;
 
     /** Get linklayer address for this interface **/
-    virtual MAC::Addr link_addr() = 0;
+    virtual MAC::Addr link_addr() const = 0;
 
     /** Add cache entry to the link / IP address cache */
     virtual void cache_link_addr(typename IPV::addr, MAC::Addr) = 0;
@@ -166,7 +267,9 @@ namespace net {
     /// ROUTING
     ///
 
-    /** Set an IP forwarding delegate. E.g. used to enable routing */
+    /** Set an IP forwarding delegate. E.g. used to enable routing.
+     *  NOTE: The packet forwarder is expected to call the forward_chain
+     **/
     virtual void set_forward_delg(Forward_delg) = 0;
 
     /** Assign boolean function to determine if we have route to a given IP */
@@ -200,6 +303,9 @@ namespace net {
 
     /** Number of buffers available in the bufstore */
     virtual size_t buffers_available() = 0;
+
+    /** Number of total buffers in the bufstore */
+    virtual size_t buffers_total() = 0;
 
     /** Start TCP (e.g. after system suspension). */
     virtual void force_start_send_queues() = 0;

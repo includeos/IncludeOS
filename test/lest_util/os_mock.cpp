@@ -33,24 +33,24 @@ void* aligned_alloc(size_t alignment, size_t size) {
 #include <util/statman.hpp>
 Statman& Statman::get() {
   static uintptr_t start {0};
+  static const size_t memsize = 0x100000;
   if (!start) {
-    start = (uintptr_t) malloc(65536);
+    start = (uintptr_t) malloc(memsize);
   }
-  static Statman statman_{start, 8192};
+  static Statman statman_{start, memsize / sizeof(Stat)};
   return statman_;
 }
 
+/// RTC ///
 #include <rtc>
 RTC::timestamp_t RTC::booted_at = 0;
 
+void RTC::init() {}
 RTC::timestamp_t RTC::now() {
-  return 0;
+  return time(0);
 }
 
-void RTC::init() {
-  return;
-}
-
+/// TIMERS ///
 #include <kernel/timers.hpp>
 void Timers::timers_handler() {
   return;
@@ -72,19 +72,34 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
   return 0;
 }
 
-#include <os>
-void OS::resume_softreset(intptr_t) {
-  return;
-}
+#include <service>
+const char* service_binary_name__ = "Service binary name";
+const char* service_name__        = "Service name";
 
+
+#include <kernel/os.hpp>
+void OS::start(unsigned, unsigned) {
+}
+void OS::default_stdout(const char*, size_t) {
+}
+void OS::event_loop() {
+}
+void OS::block() {
+}
+int64_t OS::micros_since_boot() noexcept {
+  return 0;
+}
+void OS::resume_softreset(intptr_t) {
+}
 bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
 
-void OS::multiboot(unsigned, unsigned) {}
+void OS::multiboot(unsigned) {}
 
 extern "C" {
 
+/// Kernel ///
   char _binary_apic_boot_bin_end;
   char _binary_apic_boot_bin_start;
   char _ELF_START_;
@@ -93,109 +108,70 @@ extern "C" {
   uintptr_t _LOAD_START_;
   uintptr_t _LOAD_END_;
   uintptr_t _BSS_END_;
-  uintptr_t _MAX_MEM_MIB_;
-#ifdef __MACH__
-  uintptr_t _start;
-#endif
-  uintptr_t _end;
 
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
   }
 
-  void _init_c_runtime() {
-    return;
-  }
-  void _init_bss() {
-    return;
-  }
-  void _init_heap(uintptr_t) {
-    return;
-  }
-
+/// C ABI ///
+  void _init_c_runtime() {}
+  void _init_bss() {}
+  void _init_heap(uintptr_t) {}
 
 #ifdef __MACH__
-  void _init() {
-    return;
-  }
+  void _init() {}
 #endif
 
-  void modern_interrupt_handler() {
-    return;
-  }
+  void __libc_init_array () {}
 
-  void unused_interrupt_handler() {
-    return;
-  }
-
-  void spurious_intr() {
-    return;
-  }
-
-  void lapic_send_eoi() {
-    return;
-  }
-
-  void lapic_irq_entry() {
-    return;
-  }
-
-  void get_cpu_id() {
-    return;
-  }
-
-  void cpu_sampling_irq_entry() {
-    return;
-  }
-
-  void __init_sanity_checks() noexcept {}
-
-  uintptr_t _multiboot_free_begin(uintptr_t boot_addr) {
+  uintptr_t _multiboot_free_begin(uintptr_t) {
     return 0;
-  };
-
-  uintptr_t _move_symbols(uintptr_t loc) {
+  }
+  uintptr_t _move_symbols(uintptr_t) {
     return 0;
-  };
-
-  void kernel_sanity_checks() {}
-
-  void reboot_os() {
-    return;
   }
 
+  /// malloc ///
   struct mallinfo { int x; };
   struct mallinfo mallinfo() {
     return {0};
   }
-
-  void malloc_trim() {
-    return;
-  }
-
-  static char __printbuf[4096];
+  void malloc_trim() {}
 
   __attribute__((weak))
+  void __init_serial1 () {}
+  __attribute__((weak))
   void __serial_print1(const char* cstr) {
-    snprintf(__printbuf, 4096, "%s", cstr);
+    static char __printbuf[4096];
+    snprintf(__printbuf, sizeof(__printbuf), "%s", cstr);
   }
 
 
 } // ~ extern "C"
 
+/// platform ///
+void* __multiboot_addr;
+
+void __platform_init() {}
+extern "C" void __init_sanity_checks() {}
+extern "C" void kernel_sanity_checks() {}
+
 /// arch ///
-void __arch_init() {}
 void __arch_poweroff() {}
 void __arch_reboot() {}
+void __arch_subscribe_irq(uint8_t) {}
 void __arch_enable_legacy_irq(uint8_t) {}
 void __arch_disable_legacy_irq(uint8_t) {}
 
+/// smp ///
 #include <smp>
 int SMP::cpu_id() noexcept {
   return 0;
 }
 void SMP::global_lock() noexcept {}
 void SMP::global_unlock() noexcept {}
+void SMP::add_task(SMP::task_func func, int) { func(); }
+void SMP::signal(int) {}
 
 extern "C"
 void (*current_eoi_mechanism) () = nullptr;
@@ -209,18 +185,8 @@ namespace x86 {
 
 #ifndef ARCH_X86
 bool rdrand32(uint32_t* result) {
+  *result = rand();
   return true;
 }
-#include <kernel/cpuid.hpp>
-bool CPUID::has_feature(Feature f) {
-  return true;
-}
-#include <kernel/irq_manager.hpp>
-IRQ_manager& IRQ_manager::get() {
-  static IRQ_manager m;
-  return m;
-}
-void IRQ_manager::process_interrupts() {
-  return;
-}
+
 #endif

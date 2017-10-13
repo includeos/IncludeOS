@@ -10,10 +10,11 @@
 File::File(const char* path)
 {
   this->name = std::string(path);
-  
+
   FILE* f = fopen(path, "rb");
-  assert(f);
-  
+  if (f == nullptr)
+    throw std::runtime_error("diskbuilder: Could not open file " + std::string(path));
+
   fseek(f, 0, SEEK_END);
   this->size = ftell(f);
   rewind(f);
@@ -25,7 +26,7 @@ File::File(const char* path)
 Dir::Dir(const char* path)
 {
   this->name = std::string(path);
-  
+
   /// ... ///
 }
 
@@ -37,7 +38,7 @@ void Dir::print(int level) const
     printf("[%u entries] %s\n",
           d.sectors_used(),
           d.name.c_str());
-    
+
     d.print(level + 1);
   }
   for (const File& f : files)
@@ -53,13 +54,13 @@ void Dir::print(int level) const
 uint32_t Dir::sectors_used() const
 {
   uint32_t cnt = this->size_helper;
-  
+
   for (const auto& dir : subs)
       cnt += dir.sectors_used();
-  
+
   for (const auto& file : files)
       cnt += file.sectors_used();
-  
+
   return cnt;
 }
 
@@ -77,10 +78,10 @@ void FileSys::add_dir(Dir& dvec)
   getcwd(cwd_buffer, sizeof(cwd_buffer));
   strcat(cwd_buffer, "/");
   strcat(cwd_buffer, dvec.name.c_str());
-  
+
   //printf("*** Entering %s...\n", cwd_buffer);
   chdir(cwd_buffer);
-  
+
   auto* dir = opendir(cwd_buffer);
   if (dir == nullptr)
   {
@@ -92,13 +93,17 @@ void FileSys::add_dir(Dir& dvec)
   {
     std::string name(ent->d_name);
     if (name == ".." || name == ".") continue;
-    
+
     if (ent->d_type == DT_DIR) {
       auto& d = dvec.add_dir(ent->d_name);
       add_dir(d);
     }
     else {
-      dvec.add_file(ent->d_name);
+      try {
+          dvec.add_file(ent->d_name);
+      } catch (std::exception& e) {
+          fprintf(stderr, "%s\n", e.what());
+      }
     }
   }
   // pop work dir

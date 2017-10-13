@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <os>
+#include <cstdint>
 #include <util/elf_binary.hpp>
 #include <util/sha1.hpp>
 
@@ -23,7 +24,8 @@ bool verb = true;
 
 #define MYINFO(X,...) INFO("Service", X, ##__VA_ARGS__)
 
-extern "C" void hotswap(const char* base, int len, char* dest, void* start);
+extern "C" void hotswap(const char* base, int len, char* dest, void* start,
+                        uintptr_t magic, uintptr_t bootinfo);
 
 void Service::start(const std::string& args)
 {
@@ -55,16 +57,23 @@ void Service::start(const std::string& args)
   multiboot_module_t binary = mods[1];
 
   MYINFO("Verifying mod2 as ELF binary");
-  Elf_binary elf ({(char*)binary.mod_start, (int)(binary.mod_end - binary.mod_start)});
+  Elf_binary<Elf64> elf ({(char*)binary.mod_start,
+        (int)(binary.mod_end - binary.mod_start)});
+
+  void* hotswap_addr = (void*)0x100000;
 
   MYINFO("Moving hotswap function (now at %p)", &hotswap);
-  memcpy((void*)0x8000, (void*)&hotswap, 1024);
+  memcpy(hotswap_addr, (void*)&hotswap, 1024);
 
-  MYINFO("Preparing for jump to %s", (char*)binary.cmdline);
+  extern uintptr_t __multiboot_magic;
+  extern uintptr_t __multiboot_addr;
+  MYINFO("Preparing for jump to %s. Multiboot magic: 0x%x, addr 0x%x",
+         (char*)binary.cmdline, __multiboot_magic, __multiboot_addr);
 
-  char* base  = (char*)binary.mod_start;
+  auto load_offs = elf.program_headers()[0].p_offset;
+  char* base  = (char*)binary.mod_start + load_offs;
   int len = (int)(binary.mod_end - binary.mod_start);
-  char* dest = (char*)0x100000;
+  char* dest = (char*)0xA00000;
   void* start = (void*)elf.entry();
 
   SHA1 sha;
@@ -78,7 +87,7 @@ void Service::start(const std::string& args)
   MYINFO("Disabling interrupts and calling hotswap...");
 
   asm("cli");
-  ((decltype(&hotswap))0x8000)(base, len, dest, start);
+  ((decltype(&hotswap))hotswap_addr)(base, len, dest, start, __multiboot_magic, __multiboot_addr);
 
   panic("Should have jumped\n");
 

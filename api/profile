@@ -24,6 +24,7 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <arch.hpp>
 
 struct Sample {
   uint32_t    samp; // samples
@@ -38,10 +39,10 @@ struct StackSampler
   static void begin();
 
   // total number of waking samples taken
-  static uint64_t samples_total();
+  static uint64_t samples_total() noexcept;
 
   // total number of samples taken while asleep
-  static uint64_t samples_asleep();
+  static uint64_t samples_asleep() noexcept;
 
   // retrieve N top results/hotspots
   static std::vector<Sample> results(int N);
@@ -56,6 +57,7 @@ struct StackSampler
   enum mode_t {
     MODE_CURRENT,
     MODE_CALLER,
+    MODE_DUMMY
   };
 
   // set sampling mode
@@ -90,9 +92,9 @@ class ScopedProfiler
   {
     record();
     // memory clobbered make sure ScopedProfilers aren't moved around
-    asm volatile("" : : : "memory");
+    __sw_barrier();
   }
-  
+
   void record();
   ~ScopedProfiler();
 

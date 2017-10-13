@@ -19,11 +19,10 @@
 #ifndef NET_IP4_ADDR_HPP
 #define NET_IP4_ADDR_HPP
 
-#include <regex>
-#include <string>
-
 #include <common>
 #include <net/util.hpp>
+#include <cstdlib>
+#include <string>
 
 namespace net {
 namespace ip4 {
@@ -98,33 +97,38 @@ struct Addr {
    *  IIf the {std::string} object doesn't representing a valid IPv4
    *  address
    */
-  template<typename = void>
-  Addr(const std::string& ipv4_addr)
+  Addr(const std::string& str)
   {
-    if (not (ipv4_addr.size() >= 7 && ipv4_addr.size() <= 15)) { //< [7, 15] minimum and maximum address length
-      throw Invalid_address{ipv4_addr + " is not a valid IP"};
-    }
-
-    const static std::regex ipv4_address_pattern
+    int value[4] = {0};
+    int index = 0;
+    bool length_error = true;
+    const char* ptr  = str.c_str();
+    while (*ptr)
     {
-      "^\\s*(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
-        "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
-        "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\."
-        "(25[0–5]|2[0–4]\\d|[01]?\\d\\d?)\\s*$"
-    };
-
-    std::smatch ipv4_parts;
-
-    if (not std::regex_match(ipv4_addr, ipv4_parts, ipv4_address_pattern)) {
-      throw Invalid_address{ipv4_addr + " is not a valid IP"};
+      if (std::isdigit((int) *ptr))
+      {
+        value[index] *= 10;
+        value[index] += *ptr - '0';
+        if (value[index] & 0xFFFFFF00) {
+          throw Invalid_address("Out-of-range byte values in " + str);
+        }
+        length_error = false;
+      } else {
+        if (*ptr == '.') {
+          if (++index > 3)
+              throw Invalid_address("Too many dots in " + str);
+          length_error = true;
+        }
+        else {
+          throw Invalid_address("Unexpected characters in " + str);
+        }
+      }
+      ptr++;
     }
-
-    const auto p1 = static_cast<uint8_t>(std::stoi(ipv4_parts[1]));
-    const auto p2 = static_cast<uint8_t>(std::stoi(ipv4_parts[2]));
-    const auto p3 = static_cast<uint8_t>(std::stoi(ipv4_parts[3]));
-    const auto p4 = static_cast<uint8_t>(std::stoi(ipv4_parts[4]));
-
-    whole = p1 | (p2 << 8) | (p3 << 16) | (p4 << 24);
+    if (length_error) {
+      throw Invalid_address("Missing byte value at end of " + str);
+    }
+    this->whole = value[0] | (value[1] << 8) | (value[2] << 16) | (value[3] << 24);
   }
 
   /**
@@ -213,6 +217,30 @@ struct Addr {
   { return ntohl(whole) < ntohl(raw_addr); }
 
   /**
+   * Operator to check for less-than-or-equal relationship
+   *
+   * @param other
+   *  The IPv4 address object to check for less-than-or-equal relationship
+   *
+   * @return true if this object is less-than-or-equal to other, false otherwise
+   */
+  constexpr bool operator<=(const Addr other) const noexcept
+  { return (*this < other or *this == other); }
+
+  /**
+   * Operator to check for less-than-or-equal relationship
+   *
+   * @param raw_addr
+   *  The 32-bit value to check for less-than-or-equal relationship
+   *
+   * @return true if this object is less-than-or-equal to raw_addr, false otherwise
+   *
+   * @note The 32-bit value must be in network byte order
+   */
+  constexpr bool operator<=(const uint32_t raw_addr) const noexcept
+  { return (*this < raw_addr or *this == raw_addr); }
+
+  /**
    * Operator to check for greater-than relationship
    *
    * @param other
@@ -221,7 +249,7 @@ struct Addr {
    * @return true if this object is greater-than other, false otherwise
    */
   constexpr bool operator>(const Addr other) const noexcept
-  { return not (*this < other); }
+  { return not (*this <= other); }
 
   /**
    * Operator to check for greater-than relationship
@@ -234,7 +262,31 @@ struct Addr {
    * @note The 32-bit value must be in network byte order
    */
   constexpr bool operator>(const uint32_t raw_addr) const noexcept
-  { return not (*this < raw_addr); }
+  { return not (*this <= raw_addr); }
+
+  /**
+   * Operator to check for greater-than-or-equal relationship
+   *
+   * @param other
+   *  The IPv4 address object to check for greater-than-or-equal relationship
+   *
+   * @return true if this object is greater-than-or-equal to other, false otherwise
+   */
+  constexpr bool operator>=(const Addr other) const noexcept
+  { return (*this > other or *this == other); }
+
+  /**
+   * Operator to check for greater-than-or-equal relationship
+   *
+   * @param raw_addr
+   *  The 32-bit value to check for greater-than-or-equal relationship
+   *
+   * @return true if this object is greater-than-or-equal to raw_addr, false otherwise
+   *
+   * @note The 32-bit value must be in network byte order
+   */
+  constexpr bool operator>=(const uint32_t raw_addr) const noexcept
+  { return (*this > raw_addr or *this == raw_addr); }
 
   /**
    * Operator to perform a bitwise-and operation on the given

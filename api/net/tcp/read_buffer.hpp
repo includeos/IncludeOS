@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,66 +19,132 @@
 #ifndef NET_TCP_READ_BUFFER_HPP
 #define NET_TCP_READ_BUFFER_HPP
 
-#include <cassert>
-
 #include "common.hpp" // buffer_t
 
 namespace net {
 namespace tcp {
 
-/*
-  Wrapper around a buffer that receives data.
-*/
-struct ReadBuffer {
-  buffer_t buffer;
-  size_t remaining;
-  size_t offset;
+/**
+ * @brief      A TCP read buffer, used for adding incoming data
+ *             into a specific place in a buffer based on sequence number.
+ *
+ *             Supports hole in the sequence space, but do NOT support
+ *             duplicate/overlapping sequences (this is the responsible
+ *             of the TCP implementation)
+ */
+class Read_buffer {
+public:
+  /**
+   * @brief      Construct a read buffer.
+   *
+   * @param[in]  capacity  The capacity of the buffer
+   * @param[in]  seq       The sequence number to start on
+   */
+  Read_buffer(const size_t capacity, const seq_t seq);
 
-  ReadBuffer(buffer_t buf, size_t length, size_t offs = 0)
-    : buffer(buf), remaining(length-offs), offset(offs) {}
+  /**
+   * @brief      Insert data into the buffer relative to the sequence number.
+   *
+   * @warning    Duplicate/overlapping sequences WILL break the buffer.
+   *
+   * @param[in]  seq   The sequence number the data starts on
+   * @param[in]  data  The data
+   * @param[in]  len   The length of the data
+   * @param[in]  push  Whether push or not
+   *
+   * @return     Bytes inserted
+   */
+  size_t insert(const seq_t seq, const uint8_t* data, size_t len, bool push = false);
 
-  inline size_t capacity() const
-  { return remaining + offset; }
+  /**
+   * @brief      Exposes the internal buffer
+   *
+   * @return     A referene to the internal shared buffer
+   */
+  buffer_t& buffer()
+  { return buf; }
 
-  inline bool empty() const
-  { return offset == 0; }
+  /**
+   * @brief      Exposes the internal buffer (read only)
+   *
+   * @return     A const referene to the internal shared buffer
+   */
+  const buffer_t& buffer() const
+  { return buf; }
 
-  inline bool full() const
-  { return remaining == 0; }
+  /**
+   * @brief      The capacity of the internal buffer
+   *
+   * @return     The capacity
+   */
+  size_t capacity() const
+  { return cap; }
 
-  inline size_t size() const
-  { return offset; }
+  /**
+   * @brief      How far into the internal buffer data has been written.
+   *             (Do not account for holes)
+   *
+   * @return     Where data ends
+   */
+  size_t size() const
+  { return head; }
 
-  inline uint8_t* begin() const
-  { return buffer.get(); }
+  /**
+   * @brief      The amount of bytes missing in the internal buffer (holes).
+   *
+   * @return     Bytes missing as holes in the buffer
+   */
+  size_t missing() const
+  { return hole; }
 
-  inline uint8_t* pos() const
-  { return buffer.get() + offset; }
+  /**
+   * @brief      Whether size has reached the end of the buffer
+   *
+   * @return     Whether size has reached the end of the buffer
+   */
+  bool at_end() const
+  { return static_cast<size_t>(head) == cap; }
 
-  inline uint8_t* end() const
-  { return buffer.get() + capacity(); }
+  /**
+   * @brief      Determines if the buffer is ready "for delivery".
+   *             When there is no holes, and either PUSH has been seen
+   *             or the buffer is full.
+   *
+   * @return     True if ready, False otherwise.
+   */
+  bool is_ready() const
+  { return (push_seen or at_end()) and hole == 0; }
 
-  size_t advance(size_t length) {
-    assert(length <= remaining);
-    offset += length;
-    remaining -= length;
-    return length;
-  }
+  /**
+   * @brief      Renew the buffer by reseting all the values and
+   *             allocate a new internal buffer.
+   *
+   * @param[in]  seq   The starting sequence number
+   */
+  void renew(const seq_t seq);
 
-  void clear() {
-    remaining = capacity();
-    offset = 0;
-    buffer = nullptr;
-  }
+  /**
+   * @brief      Sets the starting sequence number.
+   *             Should not be messed with.
+   *
+   * @param[in]  seq   The sequence number
+   */
+  void set_start(const seq_t seq)
+  { start = seq; }
 
-  /*
-    Renews the ReadBuffer by assigning a new buffer_t, releasing ownership
-  */
-  void renew() {
-    clear();
-    buffer = new_shared_buffer(remaining);
-  }
-}; // < ReadBuffer
+
+  int deserialize_from(void*);
+  int serialize_to(void*) const;
+
+private:
+  buffer_t        buf;
+  const size_t    cap;
+  seq_t           start;
+  int32_t         head; // current position in the buffer (only advances forward)
+  int32_t         hole; // number of bytes missing
+  bool            push_seen{false};
+
+}; // < class Read_buffer
 
 } // < namespace tcp
 } // < namespace net

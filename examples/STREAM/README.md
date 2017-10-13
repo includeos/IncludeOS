@@ -1,11 +1,8 @@
 ### STREAM: Sustainable Memory Bandwidth in High Performance Computers
 
+Using Qemu and the IncludeOS boot program:
 ```
-mkdir build
-cd build
-cmake ..
-make
-../run.sh stream_example
+boot .
 ```
 
 Output should show estimated memory bandwidth inside virtual machine.

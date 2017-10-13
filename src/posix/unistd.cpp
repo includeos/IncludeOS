@@ -93,7 +93,8 @@ int read(int fd, void* buf, size_t len)
 int write(int fd, const void* ptr, size_t len)
 {
   if (fd < 4) {
-    return OS::print((const char*) ptr, len);
+    OS::print((const char*) ptr, len);
+    return len;
   }
   else if (fd == rng_fd) {
     rng_absorb(ptr, len);
@@ -163,14 +164,12 @@ int isatty(int fd) {
   }
 }
 
-#include <kernel/irq_manager.hpp>
 #include <kernel/rtc.hpp>
 unsigned int sleep(unsigned int seconds)
 {
   int64_t now  = RTC::now();
   int64_t done = now + seconds;
-  while (true) {
-    if (now >= done) break;
+  while (now < done) {
     OS::block();
     now = RTC::now();
   }

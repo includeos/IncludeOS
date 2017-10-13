@@ -97,7 +97,7 @@ namespace http {
         cb{move(cb)},
         opt{move(options)}
       ]
-        (net::ip4::Addr ip, net::Error&)
+        (net::ip4::Addr ip, const net::Error&)
       {
         // Host resolved
         if (ip != 0)
@@ -138,43 +138,65 @@ namespace http {
   void Client::request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
   {
     using namespace std;
-    tcp_.stack().resolve(
-      url.host().to_string(),
-      ResolveCallback::make_packed(
-      [
-        this,
-        method,
-        url{move(url)},
-        hfields{move(hfields)},
-        data{move(data)},
-        cb{move(cb)},
-        opt{move(options)}
-      ] (auto ip, net::Error&)
-      {
-        // Host resolved
-        if(ip != 0)
+    if (url.host_is_ip4())
+    {
+      std::string host = url.host().to_string();
+      auto ip = net::ip4::Addr(host);
+      // setup request with method and headers
+      auto req = create_request(method);
+      *req << hfields;
+
+      // Set Host and URI path
+      populate_from_url(*req, url);
+
+      // Add data and content length
+      this->add_data(*req, data);
+
+      // Default to port 80 if non given
+      const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
+
+      send(move(req), {ip, port}, move(cb), move(options));
+    }
+    else
+    {
+      tcp_.stack().resolve(
+        url.host().to_string(),
+        ResolveCallback::make_packed(
+        [
+          this,
+          method,
+          url{move(url)},
+          hfields{move(hfields)},
+          data{move(data)},
+          cb{move(cb)},
+          opt{move(options)}
+        ] (auto ip, const net::Error&)
         {
-          // setup request with method and headers
-          auto req = this->create_request(method);
-          *req << hfields;
+          // Host resolved
+          if(ip != 0)
+          {
+            // setup request with method and headers
+            auto req = this->create_request(method);
+            *req << hfields;
 
-          // Set Host & path from url
-          this->populate_from_url(*req, url);
+            // Set Host & path from url
+            this->populate_from_url(*req, url);
 
-          // Add data and content length
-          this->add_data(*req, data);
+            // Add data and content length
+            this->add_data(*req, data);
 
-          // Default to port 80 if non given
-          const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
+            // Default to port 80 if non given
+            const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-          this->send(move(req), {ip, port}, move(cb), move(opt));
-        }
-        else
-        {
-          cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
-        }
-      })
-    );
+            this->send(move(req), {ip, port}, move(cb), move(opt));
+          }
+          else
+          {
+            cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
+          }
+        })
+      );
+    }
   }
 
   void Client::request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options)

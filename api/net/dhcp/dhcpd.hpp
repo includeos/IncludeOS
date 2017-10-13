@@ -19,7 +19,7 @@
 #ifndef NET_DHCP_DHCPD_HPP
 #define NET_DHCP_DHCPD_HPP
 
-#include <net/dhcp/dhcp4.hpp>
+#include <net/dhcp/message.hpp>
 #include <net/dhcp/record.hpp>  // Status and Record
 #include <net/ip4/udp.hpp>
 #include <map>
@@ -42,7 +42,7 @@ namespace dhcp {
       uint32_t lease = DEFAULT_LEASE, uint32_t max_lease = DEFAULT_MAX_LEASE, uint8_t pending = DEFAULT_PENDING);
 
     ~DHCPD() {
-      socket_.udp().close(socket_.local_port());
+      socket_.close();
     }
 
     void add_record(const Record& record)
@@ -136,75 +136,26 @@ namespace dhcp {
 
     void listen();
 
-    void resolve(const dhcp_packet_t* msg, const dhcp_option_t* opts);
-    void handle_request(const dhcp_packet_t* msg, const dhcp_option_t* opts);
-    void verify_or_extend_lease(const dhcp_packet_t* msg, const dhcp_option_t* opts);
-    void offer(const dhcp_packet_t* msg, const dhcp_option_t* opts);
-    void inform_ack(const dhcp_packet_t* msg);
-    void request_ack(const dhcp_packet_t* msg, const dhcp_option_t* opts);
-    void nak(const dhcp_packet_t* msg);
+    void resolve(const Message* msg);
+    void handle_request(const Message* msg);
+    void verify_or_extend_lease(const Message* msg);
+    void offer(const Message* msg);
+    void inform_ack(const Message* msg);
+    void request_ack(const Message* msg);
+    void nak(const Message* msg);
 
-    bool valid_options(const dhcp_option_t* opts) const;
-    Record::byte_seq get_client_id(const uint8_t* chaddr, const dhcp_option_t* opts) const;
-    IP4::addr get_requested_ip_in_opts(const dhcp_option_t* opts) const;
-    IP4::addr get_remote_netmask(const dhcp_option_t* opts) const;
-    void add_server_id(dhcp_option_t* opts);
+    bool valid_options(const Message* msg) const;
+    Record::byte_seq get_client_id(const Message* msg) const;
+    IP4::addr get_requested_ip_in_opts(const Message* msg) const;
+    IP4::addr get_remote_netmask(const Message* msg) const;
     IP4::addr inc_addr(IP4::addr ip) const
     { return IP4::addr{htonl(ntohl(ip.whole) + 1)}; }
-    bool on_correct_network(IP4::addr giaddr, const dhcp_option_t* opts) const;
+    bool on_correct_network(const Message* msg) const;
 
     void clear_offered_ip(IP4::addr ip);
     void clear_offered_ips();
 
-    void print(const dhcp_packet_t* /* msg */, const dhcp_option_t* opts) {
-      debug("Printing:\n");
-
-      debug("OP: %u\n", msg->op);
-      debug("HTYPE: %u\n", msg->htype);
-      debug("HLEN: %u\n", msg->hlen);
-      debug("HOPS: %u\n", msg->hops);
-      debug("XID: %u\n", msg->xid);
-      debug("SECS: %u\n", msg->secs);
-      debug("FLAGS: %u\n", msg->flags);
-      debug("CIADDR (IP4::addr): %s\n", msg->ciaddr.to_string().c_str());
-      debug("YIADDR (IP4::addr): %s\n", msg->yiaddr.to_string().c_str());
-      debug("SIADDR (IP4::addr): %s\n", msg->siaddr.to_string().c_str());
-      debug("GIADDR (IP4::addr): %s\n", msg->giaddr.to_string().c_str());
-
-      debug("\nCHADDR:\n");
-      for (int i = 0; i < dhcp_packet_t::CHADDR_LEN; i++)
-        debug("%u ", msg->chaddr[i]);
-      debug("\n");
-
-      debug("\nSNAME:\n");
-      for (int i = 0; i < dhcp_packet_t::SNAME_LEN; i++)
-        debug("%u ", msg->sname[i]);
-      debug("\n");
-
-      debug("\nFILE:\n");
-      for (int i = 0; i < dhcp_packet_t::FILE_LEN; i++)
-        debug("%u ", msg->file[i]);
-      debug("\n");
-
-      debug("\nMAGIC:\n");
-      for (int i = 0; i < 4; i++)
-        debug("%u ", msg->magic[i]);
-      debug("\n");
-
-      // Opts
-
-      while(opts->code != DHO_END) {
-        debug("\nOptions->code: %d\n", opts->code);
-        debug("\nOptions->length: %d\n", opts->length);
-
-        debug("\nOptions->val: ");
-        for (size_t i = 0; i < opts->length; i++)
-          debug("%d ", opts->val[i]);
-        debug("\n");
-
-        opts = (const dhcp_option_t*) (((const uint8_t*) opts) + 2 + opts->length);
-      }
-    }
+    void print(const Message* msg) const;
   };
 
 } // < namespace dhcp

@@ -20,84 +20,22 @@
 #ifndef API_SMP_HEADER
 #define API_SMP_HEADER
 
-#include "arch"
 #include <delegate>
-
-#define INCLUDEOS_SINGLE_THREADED
+#include <smp_utils>
 
 #ifdef INCLUDEOS_SINGLE_THREADED
 #define SMP_MAX_CORES   1
 #else
-#define SMP_MAX_CORES   16
+#define SMP_MAX_CORES   32
 #endif
 
 #define SMP_ALIGN       64
 
-/// x86-related locking stuff ///
-#ifdef ARCH_X86
-// Intel 3a  8.10.6.7: 128-byte boundary
-typedef volatile int spinlock_t __attribute__((aligned(128)));
-
-#ifdef INCLUDEOS_SINGLE_THREADED
-inline void lock(spinlock_t&) {}
-inline void unlock(spinlock_t&) {}
-#else
-inline void lock(spinlock_t& lock) {
-  while (__sync_lock_test_and_set(&lock, 1)) {
-    while (lock) asm("pause");
-  }
-}
-inline void unlock(spinlock_t& lock) {
-  __sync_synchronize(); // barrier
-  lock = 0;
-}
-#endif
-
-struct minimal_barrier_t
-{
-  void inc()
-  {
-    __sync_fetch_and_add(&val, 1);
-  }
-
-  void spin_wait(int max)
-  {
-    asm("mfence");
-    while (this->val < max) {
-      asm("pause; nop;");
-    }
-  }
-
-  void reset(int val)
-  {
-    asm volatile("mfence");
-    this->val = val;
-  }
-
-private:
-  volatile int val = 0;
-};
-
-#include <array>
-#ifdef INCLUDEOS_SINGLE_THREADED
-template <typename T, size_t N>
-inline T& per_cpu_help(std::array<T, N>& array)
-{
-  return array[0];
-}
-#else
-template <typename T, size_t N>
-inline T& per_cpu_help(std::array<T, N>& array)
-{
-  unsigned cpuid;
-  asm volatile("movl %%fs:(0x0), %0" : "=r" (cpuid));
-  return array.at(cpuid);
-}
-#endif
-#endif
-
 template <typename T>
 using SMP_ARRAY = std::array<T, SMP_MAX_CORES>;
+
+// access a std::array of T by current CPU id
+#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, SMP_MAX_CORES>(x))
 
 class SMP {
 public:
@@ -116,11 +54,15 @@ public:
   // execute @func on another CPU core
   // call @done back on main CPU when task returns
   // use signal() to broadcast work should begin
-  static void add_task(task_func func, done_func done);
-  static void add_task(task_func func);
+  static void add_task(task_func func, done_func done, int cpu = 0);
+  static void add_task(task_func func, int cpu = 0);
+  // execute a function on the main cpu
+  static void add_bsp_task(done_func func);
 
   // call this to signal that tasks are queued up
-  static void signal();
+  // if cpu == 0, broadcast signal to all
+  static void signal(int cpu = 0);
+  static void signal_bsp();
 
   // trigger interrupt on specified CPU
   static void unicast(int cpu, uint8_t intr);
@@ -132,17 +74,41 @@ public:
   static void global_unlock() noexcept;
 };
 
-// access a std::array of structs indexed by current CPU id
-#ifdef INCLUDEOS_SINGLE_THREADED
-#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, 1>(x))
+#define SMP_DEBUG 1
+
+// SMP serialized print helpers
+#define SMP_ALWAYS_PRINT(fmt, ...) \
+    SMP::global_lock();     \
+    printf(fmt, ##__VA_ARGS__); \
+    SMP::global_unlock();
+
+#ifdef SMP_DEBUG
+#define SMP_PRINT(fmt, ...) SMP_ALWAYS_PRINT(fmt, ##__VA_ARGS__)
 #else
-#define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, x.size()>(x))
+#define SMP_PRINT(fmt, ...) /** fmt **/
 #endif
 
-#ifndef ARCH_X86
-typedef int spinlock_t;
-inline void lock(spinlock_t&) {}
-inline void unlock(spinlock_t&) {}
+#include <array>
+#ifdef INCLUDEOS_SINGLE_THREADED
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  return array[0];
+}
+#else
+template <typename T, size_t N>
+inline T& per_cpu_help(std::array<T, N>& array)
+{
+  unsigned cpuid;
+#ifdef ARCH_x86_64
+  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
+#elif defined(ARCH_i686)
+  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
+#else
+  #error "Implement me?"
+#endif
+  return array.at(cpuid);
+}
 #endif
 
 #endif

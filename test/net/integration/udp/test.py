@@ -16,10 +16,11 @@ vm = vmrunner.vms[0]
 
 def UDP_test(trigger_line):
   print "<Test.py> Performing UDP tests"
-  HOST, PORT = "10.0.0.45", 4242
+  HOST, PORT = "10.0.0.55", 4242
   sock = socket.socket
   # SOCK_DGRAM is the socket type to use for UDP sockets
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
   # NOTE: This is necessary for the test to exit after the VM has
   # been shut down due to a VM timeout

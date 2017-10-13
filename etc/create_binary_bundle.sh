@@ -1,5 +1,5 @@
 #! /bin/bash
-. ./set_traps.sh
+. $INCLUDEOS_SRC/etc/set_traps.sh
 
 # Paths
 export INCLUDEOS_SRC=${INCLUDEOS_SRC:-~/IncludeOS}
@@ -8,8 +8,10 @@ export TEMP_INSTALL_DIR=${TEMP_INSTALL_DIR:-$BUILD_DIR/IncludeOS_TEMP_install}	#
 export PATH="$TEMP_INSTALL_DIR/bin:$PATH"
 
 # Build options
-export TARGET=i686-elf	# Configure target
-export num_jobs=${num_jobs:-"-j"}	# Specify number of build jobs
+export ARCH=${ARCH:-i686} # CPU architecture. Alternatively x86_64
+export BUNDLE_ARCHES=${BUNDLE_ARCHES:-i686 x86_64}
+export TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
+export num_jobs=${num_jobs:--j}	# Specify number of build jobs
 
 # Version numbers
 export binutils_version=${binutils_version:-2.28}		# ftp://ftp.gnu.org/gnu/binutils
@@ -17,7 +19,8 @@ export newlib_version=${newlib_version:-2.5.0.20170323}			# ftp://sourceware.org
 #export newlib_version=${newlib_version:-2.5.0}			# ftp://sourceware.org/pub/newlib
 export gcc_version=${gcc_version:-6.3.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
 export clang_version=${clang_version:-3.9}				# http://releases.llvm.org/
-export LLVM_TAG=${LLVM_TAG:-RELEASE_381/final}			# http://llvm.org/svn/llvm-project/llvm/tags
+export LLVM_TAG=${LLVM_TAG:-RELEASE_391/final}			# http://llvm.org/svn/llvm-project/llvm/tags
+export llvm_branch=${llvm_branch:-release_39}
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
@@ -57,6 +60,7 @@ if [ ! -z $do_packages ]; then
   sudo apt-get install -y $DEPS_BUILD
 fi
 
+
 # Print currently set install options
 printf "\n\n>>> Bundle will be created with the following options:\n\n"
 printf "    %-25s %-25s %s\n"\
@@ -68,6 +72,7 @@ printf "    %-25s %-25s %s\n"\
 	   "gcc_version" "gcc version" "$gcc_version"\
 	   "clang_version" "clang version" "$clang_version"\
 	   "LLVM_TAG" "LLVM version" "$LLVM_TAG"\
+     "BUNDLE_ARCHES" "Build for CPU arches" "$BUNDLE_ARCHES"\
 
 # Give user option to evaluate install options
 if tty -s && [ $install_yes -eq 0 ]; then
@@ -86,31 +91,7 @@ fi
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
-# Build all sources
-if [ ! -z $do_binutils ]; then
-    echo -e "\n\n >>> GETTING / BUILDING binutils (Required for libgcc / unwind / crt) \n"
-    $INCLUDEOS_SRC/etc/build_binutils.sh
-fi
 
-if [ ! -z $do_gcc ]; then
-    echo -e "\n\n >>> GETTING / BUILDING GCC COMPILER (Required for libgcc / unwind / crt) \n"
-    $INCLUDEOS_SRC/etc/build_gcc.sh
-fi
-
-if [ ! -z $do_newlib ]; then
-    echo -e "\n\n >>> GETTING / BUILDING NEWLIB \n"
-    $INCLUDEOS_SRC/etc/build_newlib.sh
-fi
-
-if [ ! -z $do_llvm ]; then
-    echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
-    $INCLUDEOS_SRC/etc/build_llvm32.sh
-fi
-
-#
-# Create the actual bundle
-#
-# Zip-file name
 pushd $INCLUDEOS_SRC
 tag=`git describe --abbrev=0`
 filename_tag=`echo $tag | tr . -`
@@ -118,53 +99,91 @@ popd
 
 # Where to place the installation bundle
 DIR_NAME="IncludeOS_dependencies"
-export BUNDLE_DIR=${BUNDLE_DIR:-~/$DIR_NAME}
-
-echo ">>> Creating Installation Bundle as $BUNDLE_DIR"
-
 OUTFILE="${DIR_NAME}_$filename_tag.tar.gz"
+BUNDLE_PATH=${BUNDLE_PATH:-~}
 
-newlib=$TEMP_INSTALL_DIR/i686-elf/lib
-llvm=$BUILD_DIR/build_llvm
+function do_build {
+  echo -e "\n\n >>> Building bundle for ${ARCH} \n"
+  # Build all sources
+  if [ ! -z $do_binutils ]; then
+    echo -e "\n\n >>> GETTING / BUILDING binutils (Required for libgcc / unwind / crt) \n"
+    $INCLUDEOS_SRC/etc/build_binutils.sh
+  fi
 
-# Libraries
-libc=$newlib/libc.a
-libm=$newlib/libm.a
-libg=$newlib/libg.a
-libcpp=$llvm/lib/libc++.a
-libcppabi=$llvm/lib/libc++abi.a
+  if [ ! -z $do_gcc ]; then
+    echo -e "\n\n >>> GETTING / BUILDING GCC COMPILER (Required for libgcc / unwind / crt) \n"
+    $INCLUDEOS_SRC/etc/build_gcc.sh
+  fi
 
-GPP=$TEMP_INSTALL_DIR/bin/i686-elf-g++
-GCC_VER=`$GPP -dumpversion`
-libgcc=$TEMP_INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/libgcc.a
+  if [ ! -z $do_newlib ]; then
+    echo -e "\n\n >>> GETTING / BUILDING NEWLIB \n"
+    $INCLUDEOS_SRC/etc/build_newlib.sh
+  fi
 
-# Includes
-include_newlib=$TEMP_INSTALL_DIR/i686-elf/include
-include_libcxx=$llvm/include/c++/v1
+  if [ ! -z $do_llvm ]; then
+    echo -e "\n\n >>> GETTING / BUILDING llvm / libc++ \n"
+    $INCLUDEOS_SRC/etc/build_llvm.sh
+  fi
 
-# Make directory-tree
-mkdir -p $BUNDLE_DIR
-mkdir -p $BUNDLE_DIR/newlib
-mkdir -p $BUNDLE_DIR/libcxx
-mkdir -p $BUNDLE_DIR/crt
-mkdir -p $BUNDLE_DIR/libgcc
+  #
+  # Create the actual bundle
+  #
 
-# Copy binaries
-cp $libcpp $BUNDLE_DIR/libcxx/
-cp $libcppabi $BUNDLE_DIR/libcxx/
-cp $libm $BUNDLE_DIR/newlib/
-cp $libc $BUNDLE_DIR/newlib/
-cp $libg $BUNDLE_DIR/newlib/
-cp $libgcc $BUNDLE_DIR/libgcc/
-cp $TEMP_INSTALL_DIR/lib/gcc/i686-elf/$GCC_VER/crt*.o $BUNDLE_DIR/crt/
 
-# Copy includes
-cp -r $include_newlib $BUNDLE_DIR/newlib/
-cp -r $include_libcxx $BUNDLE_DIR/libcxx/include
+  BUNDLE_DIR=$BUNDLE_PATH/$DIR_NAME
+  BUNDLE_LOC=${BUNDLE_DIR}/$ARCH
+
+  echo ">>> Creating Installation Bundle as $BUNDLE_LOC"
+
+  newlib=$TEMP_INSTALL_DIR/$TARGET/lib
+  llvm=$BUILD_DIR/build_llvm
+
+  # Libraries
+  libc=$newlib/libc.a
+  libm=$newlib/libm.a
+  libg=$newlib/libg.a
+  libcpp=$llvm/lib/libc++.a
+  libcppabi=$llvm/lib/libc++abi.a
+
+  GPP=$TEMP_INSTALL_DIR/bin/$TARGET-g++
+  GCC_VER=`$GPP -dumpversion`
+  libgcc=$TEMP_INSTALL_DIR/lib/gcc/$TARGET/$GCC_VER/libgcc.a
+
+  # Includes
+  include_newlib=$TEMP_INSTALL_DIR/$TARGET/include
+  include_libcxx=$llvm/include/c++/v1
+
+  # Make directory-tree
+  mkdir -p $BUNDLE_LOC
+  mkdir -p $BUNDLE_LOC/newlib
+  mkdir -p $BUNDLE_LOC/libcxx
+  mkdir -p $BUNDLE_LOC/crt
+  mkdir -p $BUNDLE_LOC/libgcc
+
+  # Copy binaries
+  cp $libcpp $BUNDLE_LOC/libcxx/
+  cp $libcppabi $BUNDLE_LOC/libcxx/
+  cp $libm $BUNDLE_LOC/newlib/
+  cp $libc $BUNDLE_LOC/newlib/
+  cp $libg $BUNDLE_LOC/newlib/
+  cp $libgcc $BUNDLE_LOC/libgcc/
+  cp $TEMP_INSTALL_DIR/lib/gcc/$TARGET/$GCC_VER/crt*.o $BUNDLE_LOC/crt/
+
+  # Copy includes
+  cp -r $include_newlib $BUNDLE_LOC/newlib/
+  cp -r $include_libcxx $BUNDLE_LOC/libcxx/include
+}
+
+for B_ARCH in $BUNDLE_ARCHES
+do
+  export ARCH=$B_ARCH
+  export TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
+  do_build
+done
 
 # Zip it
-tar -czvf $OUTFILE --directory=$BUNDLE_DIR/../ $DIR_NAME
+tar -czvf $OUTFILE --directory=$BUNDLE_PATH $DIR_NAME
 
-echo ">>> IncludeOS Installation Bundle created as $INSTALL_DIR and gzipped into $OUTFILE"
+echo ">>> IncludeOS Installation Bundle created as $BUNDLE_PATH/$OUTFILE"
 
 trap - EXIT

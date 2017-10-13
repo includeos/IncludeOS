@@ -21,17 +21,20 @@
 
 using namespace net;
 #define BUFFER_CNT 128
-static BufferStore bufstore(BUFFER_CNT, 2048);
+#define BUFSIZE 2048
+
+static BufferStore bufstore(BUFFER_CNT, BUFSIZE);
 
 extern "C" __attribute__((weak))
 void panic(const char*) { throw std::runtime_error("panic()"); }
 
 CASE("Create empty packet")
 {
-  auto* buffer = new char[sizeof(Packet)];
-  new (buffer) Packet(0, 0, 0, nullptr);
-  
-  auto* packet = (Packet*) buffer;
+  auto buffer = bufstore.get_buffer();
+  auto* ptr = (net::Packet*) buffer.addr;
+  new (ptr) net::Packet(0, 0, 0, buffer.bufstore);
+  net::Packet_ptr packet(ptr);
+
   // everything is zero
   EXPECT(packet->size() == 0);
   EXPECT(packet->capacity() == 0);
@@ -44,7 +47,7 @@ CASE("Create empty packet")
 #define DRIVER_OFFSET    12
 #define PACKET_CAPA    1012
 
-Packet_ptr create_packet() noexcept
+static Packet_ptr create_packet() noexcept
 {
   auto buffer = bufstore.get_buffer();
   auto* ptr = (net::Packet*) buffer.addr;
@@ -55,7 +58,7 @@ Packet_ptr create_packet() noexcept
 CASE("Create packet from buffer store buffer")
 {
   auto packet = create_packet();
-  
+
   EXPECT(packet->size() == 0);
   EXPECT(packet->capacity() == PACKET_CAPA);
   EXPECT(packet->bufsize() == DRIVER_OFFSET + PACKET_CAPA);
@@ -66,7 +69,7 @@ CASE("Increment layer in packet")
 {
   auto packet = create_packet();
   packet->increment_layer_begin(24);
-  
+
   EXPECT(packet->size() == 0);
   EXPECT(packet->capacity() == PACKET_CAPA - 24);
   EXPECT(packet->bufsize() == DRIVER_OFFSET + PACKET_CAPA);
@@ -77,10 +80,10 @@ CASE("Fill packet with data")
 {
   auto packet = create_packet();
   packet->increment_layer_begin(24);
-  
+
   while (packet->size() < packet->capacity())
       packet->increment_data_end(1);
-  
+
   EXPECT(packet->size() == packet->capacity());
   EXPECT(packet->capacity() == PACKET_CAPA - 24);
 }
@@ -91,7 +94,7 @@ CASE("Fill packet with data, increment layer")
   packet->increment_layer_begin(24);
   packet->increment_data_end(24);
   packet->increment_layer_begin(24);
-  
+
   EXPECT(packet->size() == 0);
   EXPECT(packet->capacity() == PACKET_CAPA - 24 * 2);
 
@@ -99,7 +102,7 @@ CASE("Fill packet with data, increment layer")
 
   EXPECT(packet->size() == 24);
   EXPECT(packet->capacity() == PACKET_CAPA - 24 * 2);
-  
+
   // decrement layer, make sure size remains
   packet->increment_layer_begin(-24);
   EXPECT(packet->size() == 24*2);

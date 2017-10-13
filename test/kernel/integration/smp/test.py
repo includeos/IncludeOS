@@ -11,3 +11,4 @@ from vmrunner import vmrunner
 
 vm = vmrunner.vms[0];
 vm.cmake().boot(20).clean()
+#vm.cmake(["-Dsingle_threaded=OFF"]).boot(20).clean()

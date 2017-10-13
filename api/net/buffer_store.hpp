@@ -48,6 +48,9 @@ namespace net
     buffer_t get_buffer();
     void release(void*);
 
+    size_t local_buffers() const noexcept
+    { return poolsize_ / bufsize_; }
+
     /** Get size of a buffer **/
     size_t bufsize() const noexcept
     { return bufsize_; }
@@ -56,20 +59,24 @@ namespace net
     { return poolsize_; }
 
     /** Check if a buffer belongs here */
-    bool is_from_pool(uint8_t* addr) const noexcept
-    { return addr >= pool_begin() and addr < pool_end(); }
+    bool is_from_pool(uint8_t* addr) const noexcept;
 
     /** Check if an address is the start of a buffer */
     bool is_buffer(uint8_t* addr) const noexcept
     { return (addr - pool_) % bufsize_ == 0; }
 
-    size_t available() const noexcept
-    { return available_.size(); }
+    size_t available() const noexcept;
+
+    size_t total_buffers() const noexcept;
 
     /** move this bufferstore to the current CPU **/
     void move_to_this_cpu() noexcept;
 
   private:
+    bool is_from_this_pool(uint8_t* addr) const noexcept {
+      return (addr >= this->pool_begin()
+          and addr <  this->pool_end());
+    }
     uint8_t* pool_begin() const noexcept {
       return pool_;
     }
@@ -86,11 +93,10 @@ namespace net
     uint8_t*             pool_;
     std::vector<uint8_t*> available_;
     BufferStore*         next_;
-    int                  cpu;
-    static bool          smp_enabled_;
+    int                  index;
 #ifndef INCLUDEOS_SINGLE_THREADED
     // has strict alignment reqs, so put at end
-    spinlock_t           plock;
+    spinlock_t           plock = 0;
 #endif
     BufferStore(BufferStore&)  = delete;
     BufferStore(BufferStore&&) = delete;

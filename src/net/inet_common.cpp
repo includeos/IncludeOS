@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,6 +23,11 @@ uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
 {
   const char* buffer = (const char*) data;
   int64_t sum = tsum;
+  // align 2-byte misaligned buffer
+  if ((uintptr_t) buffer & 2) {
+    sum += *(uint16_t*) buffer;
+    length -= 2; buffer += 2;
+  }
   // unrolled 32 bytes at once
   while (length >= 32)
   {
@@ -66,6 +71,36 @@ uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
   if (a16 < b16) a16++;
   // return 2s complement
   return ~a16;
+}
+
+// Taken from https://tools.ietf.org/html/rfc3022#page-9
+void checksum_adjust(uint8_t* chksum, const void* odata,
+   int olen, const void* ndata, int nlen)
+{
+  Expects(olen % 2 == 0 and nlen % 2 == 0);
+
+  const auto* optr = reinterpret_cast<const uint8_t*>(odata);
+  const auto* nptr = reinterpret_cast<const uint8_t*>(ndata);
+
+  int32_t x, o32, n32;
+  x=chksum[0]*256+chksum[1];
+  x=~x & 0xFFFF;
+  while (olen)
+  {
+    o32=optr[0]*256+optr[1]; optr+=2;
+    x-=o32 & 0xffff;
+    if (x<=0) { x--; x&=0xffff; }
+    olen-=2;
+  }
+  while (nlen)
+  {
+    n32=nptr[0]*256+nptr[1]; nptr+=2;
+    x+=n32 & 0xffff;
+    if (x & 0x10000) { x++; x&=0xffff; }
+    nlen-=2;
+  }
+  x=~x & 0xFFFF;
+  chksum[0]=x/256; chksum[1]=x & 0xff;
 }
 
 } //< namespace net

@@ -15,100 +15,117 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 #include <os>
 #include <kprint>
 #include <boot/multiboot.h>
 
+//#define DEBUG
+#if defined(DEBUG)
+#define debug(X,...)  kprintf(X,##__VA_ARGS__);
+#else
+#define debug(X,...)
+#endif
+
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
-extern "C" {
+extern uintptr_t _end;
+extern "C" uintptr_t _multiboot_free_begin(uintptr_t);
 
-  extern uintptr_t _end;
-
-  // Deterimine the end of multiboot provided data
-  // (e.g. multiboot's data area as offset to the _end symbol)
-  uintptr_t _multiboot_free_begin(uintptr_t boot_addr){
-
-    multiboot_info_t* bootinfo = (multiboot_info_t*) boot_addr;
-    uintptr_t multi_end = reinterpret_cast<uintptr_t>(&_end);
-
-    if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE
-        and bootinfo->cmdline > multi_end) {
-
-      debug("* Multiboot cmdline @ 0x%x: %s \n", bootinfo->cmdline, (char*)bootinfo->cmdline);
-
-      // Set free begin to after the cmdline string
-      multi_end = bootinfo->cmdline +
-        strlen(reinterpret_cast<const char*>(bootinfo->cmdline)) + 1;
-    }
-
-    debug("* Multiboot end: 0x%x \n", multi_end);
-
-
-    if (not bootinfo->mods_count)
-      return multi_end;
-
-    multiboot_module_t* mods_list =  (multiboot_module_t*)bootinfo->mods_addr;
-    debug("* Module list @ %p \n",mods_list);
-
-    for (multiboot_module_t* mod = mods_list;
-         mod < mods_list + bootinfo->mods_count;
-         mod ++) {
-
-      debug("\t * Module @ %p \n", (void*)mod->mod_start);
-      debug("\t * Args: %s \n ", (char*)mod->cmdline);
-      debug("\t * End: %p \n ", (char*)mod->mod_end);
-
-      if (mod->mod_end > multi_end)
-        multi_end = mod->mod_end;
-
-    }
-
-    debug("* Multiboot end: 0x%x \n", multi_end);
-    return multi_end;
-  }
+multiboot_info_t* OS::bootinfo()
+{
+  // NOTE: the address is 32-bit and not a pointer
+  extern uint32_t __multiboot_addr;
+  return (multiboot_info_t*) (uintptr_t) __multiboot_addr;
 }
 
-void OS::multiboot(uint32_t boot_magic, uint32_t boot_addr){
-  MYINFO("Booted with multiboot");
+// Deterimine the end of multiboot provided data
+// (e.g. multiboot's data area as offset to the _end symbol)
+uintptr_t _multiboot_free_begin(uintptr_t boot_addr)
+{
+  multiboot_info_t* bootinfo = (multiboot_info_t*) boot_addr;
+  uintptr_t multi_end = reinterpret_cast<uintptr_t>(&_end);
 
-  INFO2("* magic value: 0x%x Multiboot info at 0x%x", boot_magic, boot_addr);
-  bootinfo_ = (multiboot_info_t*) boot_addr;
+  debug("* Multiboot begin: 0x%x \n", bootinfo);
+  if (bootinfo->flags & MULTIBOOT_INFO_CMDLINE
+      and bootinfo->cmdline > multi_end)
+  {
+    debug("* Multiboot cmdline @ 0x%x: %s \n", bootinfo->cmdline, (char*)bootinfo->cmdline);
+    // We can't use a cmdline that's either insde our ELF or pre-ELF area
+    Expects(bootinfo->cmdline > multi_end
+            or bootinfo->cmdline < 0x100000);
 
-  if (! bootinfo_->flags & MULTIBOOT_INFO_MEMORY) {
-    INFO2("* No memory info provided in multiboot info");
-    return;
+    if (bootinfo->cmdline > multi_end) {
+      auto* cmdline_ptr = (const char*) (uintptr_t) bootinfo->cmdline;
+      // Set free begin to after the cmdline string
+      multi_end = bootinfo->cmdline + strlen(cmdline_ptr) + 1;
+    }
   }
 
-  uint32_t mem_low_start = 0;
-  uint32_t mem_low_end = (bootinfo_->mem_lower * 1024) - 1;
-  uint32_t mem_low_kb = bootinfo_->mem_lower;
-  uint32_t mem_high_start = 0x100000;
-  uint32_t mem_high_end = mem_high_start + (bootinfo_->mem_upper * 1024) - 1;
-  uint32_t mem_high_kb = bootinfo_->mem_upper;
+  debug("* Multiboot end: 0x%x \n", multi_end);
+  if (bootinfo->mods_count == 0)
+      return multi_end;
 
-  OS::low_memory_size_ = mem_low_kb * 1024;
-  OS::high_memory_size_ = mem_high_kb * 1024;
-  OS::memory_end_ = high_memory_size_ + mem_high_start;
+  multiboot_module_t* mods_list =  (multiboot_module_t*)bootinfo->mods_addr;
+  debug("* Module list @ %p \n",mods_list);
 
-  INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
-  INFO2("\t 0x%08x - 0x%08x (%i Kib)",
-        mem_low_start, mem_low_end, mem_low_kb);
-  INFO2("\t 0x%08x - 0x%08x (%i Kib)",
-        mem_high_start, mem_high_end, mem_high_kb);
-  INFO2("");
+  for (multiboot_module_t* mod = mods_list;
+       mod < mods_list + bootinfo->mods_count;
+       mod ++) {
+
+    debug("\t * Module @ %#x \n", mod->mod_start);
+    debug("\t * Args: %s \n ", (char*) (uintptr_t) mod->cmdline);
+    debug("\t * End: %#x \n ", mod->mod_end);
+
+    if (mod->mod_end > multi_end)
+      multi_end = mod->mod_end;
+
+  }
+
+  debug("* Multiboot end: 0x%x \n", multi_end);
+  return multi_end;
+}
+
+void OS::multiboot(uint32_t boot_addr)
+{
+  MYINFO("Booted with multiboot");
+  auto* bootinfo_ = bootinfo();
+  INFO2("* Boot flags: %#x", bootinfo_->flags);
+
+  if (bootinfo_->flags & MULTIBOOT_INFO_MEMORY) {
+    uint32_t mem_low_start = 0;
+    uint32_t mem_low_end = (bootinfo_->mem_lower * 1024) - 1;
+    uint32_t mem_low_kb = bootinfo_->mem_lower;
+    uint32_t mem_high_start = 0x100000;
+    uint32_t mem_high_end = mem_high_start + (bootinfo_->mem_upper * 1024) - 1;
+    uint32_t mem_high_kb = bootinfo_->mem_upper;
+
+    OS::memory_end_ = mem_high_end;
+
+    INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
+    INFO2("\t 0x%08x - 0x%08x (%i Kib)",
+          mem_low_start, mem_low_end, mem_low_kb);
+    INFO2("\t 0x%08x - 0x%08x (%i Kib)",
+          mem_high_start, mem_high_end, mem_high_kb);
+    INFO2("");
+  }
+  else {
+    INFO2("No memory information from multiboot");
+  }
 
   if (bootinfo_->flags & MULTIBOOT_INFO_CMDLINE) {
     INFO2("* Booted with parameters @ 0x%x: %s", bootinfo_->cmdline,
           reinterpret_cast<const char*>(bootinfo_->cmdline));
-    cmdline = reinterpret_cast<const char*>(bootinfo_->cmdline);
+    OS::cmdline = reinterpret_cast<const char*>(bootinfo_->cmdline);
   }
 
   if (bootinfo_->flags & MULTIBOOT_INFO_MEM_MAP) {
     INFO2("* Multiboot provided memory map  (%i entries @ %p)",
           bootinfo_->mmap_length / sizeof(multiboot_memory_map_t), (void*)bootinfo_->mmap_addr);
-    gsl::span<multiboot_memory_map_t> mmap { reinterpret_cast<multiboot_memory_map_t*>(bootinfo_->mmap_addr),
-        (int)(bootinfo_->mmap_length / sizeof(multiboot_memory_map_t))};
+    gsl::span<multiboot_memory_map_t> mmap {
+        reinterpret_cast<multiboot_memory_map_t*>(bootinfo_->mmap_addr),
+        (int)(bootinfo_->mmap_length / sizeof(multiboot_memory_map_t))
+      };
 
     for (auto map : mmap) {
       const char* str_type = map.type & MULTIBOOT_MEMORY_AVAILABLE ? "FREE" : "RESERVED";

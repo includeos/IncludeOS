@@ -39,9 +39,13 @@ src/compile_commands.json
 /examples/demo_service/IncludeOS_Demo_Service
 /seed/My_Service
 
-build
+build/
+build_i686/
+build_x86_64/
 
 # cmake related
 CMakeFiles*
 CMakeCache*
 cmake_install.cmake
+
+dummy.disk

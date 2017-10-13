@@ -79,21 +79,12 @@ http::Response handle_request(const http::Request& req)
   return res;
 }
 
-void Service::start(const std::string&)
+void Service::start()
 {
-  // DHCP on interface 0
-  printf("*** Waiting up to 10 sec. for DHCP... ***\n");
-  auto& inet = net::Inet4::ifconfig(5.0, [](bool timeout) {
-    if (timeout) {
-      printf("*** Falling back to static network config ***\n");
-      // static IP in case DHCP fails
-      net::Inet4::stack().network_config(
-        { 10,0,0,42 },     // IP
-        { 255,255,255,0 }, // Netmask
-        { 10,0,0,1 },      // Gateway
-        { 10,0,0,1 });     // DNS
-    }
-  });
+  // Get the first IP stack
+  // It should have configuration from config.json
+  auto& inet = net::Super_stack::get<net::IP4>(0);
+
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,
   [&inet] (uint32_t) {

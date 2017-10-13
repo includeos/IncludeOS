@@ -19,12 +19,9 @@
 // #define NO_INFO
 
 #include <os>
-#include <kernel/irq_manager.hpp>
-#include <list>
 #include <net/inet4>
 #include <net/router.hpp>
 #include <timers>
-#include <profile>
 
 #define USE_STACK_SAMPLING
 
@@ -66,7 +63,7 @@ void ip_forward (Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
     return;
   }
 
-  debug("ip_fwd %s transmitting packet to %s", ifname, route->ifname().c_str());
+  debug("[ ip_fwd ] %s transmitting packet to %s",stack.ifname().c_str(), route->ifname().c_str());
   route->ip_obj().ship(std::move(pckt));
 }
 

@@ -57,16 +57,11 @@ namespace net
     {
       Expects(offs_layer_begin >= 0 and
               buf() + offs_layer_begin <= buffer_end() and
-              data_end() <= buffer_end());
+              data_end() <= buffer_end() and
+              bufstore != nullptr);
     }
-
-    ~Packet()
-    {
-      if (bufstore_)
-          bufstore_->release(this);
-      else
-          delete[] (Byte_ptr) this;
-    }
+    // no-op destructor, see delete
+    ~Packet() {}
 
     /** Get the buffer */
     Byte_ptr buf() noexcept
@@ -93,10 +88,11 @@ namespace net
     int size() const noexcept
     { return data_end_ - layer_begin_; }
 
-    /** Get the total size of data portion, >= size() and MTU-like */
+    /** Get the total size of current layers data portion, >= size() and MTU-like */
     int capacity() const noexcept
     { return buffer_end_ - layer_begin_; }
 
+    /** Returns the total packet data capacity, irrespective of layer */
     int bufsize() const noexcept
     { return buffer_end() - buf(); }
 
@@ -146,7 +142,11 @@ namespace net
 
 
     // override delete to do nothing
-    static void operator delete (void*) {}
+    static void operator delete (void* data) {
+      auto* pk = (Packet*) data;
+      assert(pk->bufstore_);
+      pk->bufstore_->release(data);
+    }
 
   private:
     Packet_ptr chain_ {nullptr};
@@ -163,23 +163,9 @@ namespace net
     }
 
 
-    /** Default constructor Deleted. See Packet(Packet&). */
     Packet() = delete;
-
-    /**
-     *  Delete copy and move because we want Packets and buffers to be 1 to 1
-     *
-     *  (Well, we really deleted this to avoid accidental copying)
-     *
-     *  The idea is to use Packet_ptr (i.e. shared_ptr<Packet>) for passing packets.
-     *
-     *  @todo Add an explicit way to copy packets.
-     */
     Packet(Packet&) = delete;
     Packet(Packet&&) = delete;
-
-
-    /** Delete copy and move assignment operators. See Packet(Packet&). */
     Packet& operator=(Packet) = delete;
     Packet operator=(Packet&&) = delete;
 

@@ -19,19 +19,19 @@
 #ifndef NET_DHCP_DH4CLIENT_HPP
 #define NET_DHCP_DH4CLIENT_HPP
 
-#include <timers>
-#include "../packet.hpp"
-#include <net/ip4/ip4.hpp>
-#include <net/inet.hpp>
 #include "dhcp4.hpp"
+#include "options.hpp"
 
-namespace net
-{
-  class UDPSocket;
+#include <util/timer.hpp>
+#include <net/ip4/udp.hpp>
+
+namespace net {
 
   class DHClient
   {
   public:
+    static const int NUM_RETRIES = 5;
+
     using Stack = IP4::Stack;
     using config_func = delegate<void(bool)>;
 
@@ -46,24 +46,28 @@ namespace net
     // timeout is true if the negotiation timed out
     void on_config(config_func handler);
 
-    // disable or enable console spam
-    void set_silent(bool sil) noexcept
-    { this->console_spam = !sil; }
-
   private:
-    void offer(UDPSocket&, const char* data, size_t len);
-    void request(UDPSocket&, const dhcp_option_t* server_id);   // --> acknowledge
+    void send_first();
+    void offer(const char* data, size_t len);
+    void request(const dhcp::option::server_identifier* server_id);   // --> acknowledge
     void acknowledge(const char* data, size_t len);
 
+    void restart_negotation();
+    void end_negotiation(bool);
+
     Stack& stack;
-    uint32_t     xid;
+    uint32_t     xid = 0;
     IP4::addr    ipaddr, netmask, router, dns_server;
+    std::string  domain_name;
     uint32_t     lease_time;
     std::vector<config_func> config_handlers_;
-    Timers::id_t timeout;
-    bool         console_spam;
-    bool         in_progress;
+    int          retries  = 0;
+    int          progress = 0;
+    Timer        timeout_timer_;
+    std::chrono::milliseconds timeout;
+    UDPSocket* socket = nullptr;
   };
+
 }
 
 #endif

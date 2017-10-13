@@ -1,0 +1,36 @@
+{
+  "net": [
+    {
+      "iface": 0,
+      "config":  "static",
+      "address": "10.0.0.42",
+      "netmask": "255.255.255.0",
+      "gateway": "10.0.0.1"
+    },
+    {
+      "iface": 1,
+      "config":  "static",
+      "address": "10.0.0.43",
+      "netmask": "255.255.255.0",
+      "gateway": "10.0.0.1",
+      "dns":     "8.8.8.8"
+    },
+    {
+      "iface": 2,
+      "config": "none"
+    },
+    {
+      "iface": 3,
+      "config": "dhcp",
+      "timeout": 5.0
+    },
+    {
+      "iface": 5,
+      "config": "dhcp-with-fallback",
+      "timeout": 10,
+      "address": "10.0.0.44",
+      "netmask": "255.255.255.0",
+      "gateway": "10.0.0.1"
+    }
+  ]
+}

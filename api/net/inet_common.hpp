@@ -25,6 +25,10 @@
 #include <hw/mac_addr.hpp>
 #include <net/ethernet/ethertype.hpp>
 #include <net/ip4/icmp4_common.hpp>
+#include <net/socket.hpp>
+
+#include <net/error.hpp>
+#include <net/ip4/icmp_error.hpp>
 
 namespace net {
   // Packet must be forward declared to avoid circular dependency
@@ -53,6 +57,38 @@ namespace net {
     return checksum(0, data, len);
   }
 
+  /**
+   * @brief      Adjust the checksum according to the difference between old and new data.
+   *
+   * @note       Only supports even offsets (length needs to be even)
+   *             See: https://tools.ietf.org/html/rfc3022#page-9 (4.2) Checksum Adjustment
+   *
+   * @param      chksum  Pointer to the checksum to adjust
+   * @param      odata   The old data
+   * @param[in]  olen    The length of the old data
+   * @param      ndata   The new data
+   * @param[in]  nlen    The length of the new data
+   */
+  void checksum_adjust(uint8_t* chksum, const void* odata,
+                       int olen, const void* ndata, int nlen);
+
+  /**
+   * @brief      Helper function for adjusting checksum when only an object is changed,
+   *             e.g. IP address in a packet header
+   *
+   * @param      chksum   Pointer to the checksum to adjust
+   * @param[in]  old_obj  The old object
+   * @param[in]  new_obj  The new object
+   *
+   * @tparam     T        The type of object
+   */
+  template <typename T>
+  void checksum_adjust(uint16_t* chksum, const T* old_obj, const T* new_obj)
+  {
+    static_assert(sizeof(T) % 2 == 0, "Checksum adjust only supports even lengths");
+    checksum_adjust(reinterpret_cast<uint8_t*>(chksum), old_obj, sizeof(T), new_obj, sizeof(T));
+  }
+
   // View a packet differently based on context
   template <typename T, typename Packet>
   inline auto view_packet_as(Packet packet) noexcept {
@@ -66,93 +102,6 @@ namespace net {
       return std::unique_ptr<Derived>(d);
   }
 
-  /**
-   *  General Error class for the OS
-   *  ICMP_error f.ex. inherits from this class
-   */
-  class Error {
-  public:
-
-    enum class Type : uint8_t {
-      no_error,
-      general_IO,
-      ifdown,
-      ICMP
-      // Add more as needed
-    };
-
-    Error() = default;
-
-    Error(Type t, const char* msg)
-      : t_{t}, msg_{msg}
-    {}
-
-    virtual ~Error() = default;
-
-    Type type()
-    { return t_; }
-
-    operator bool() const noexcept
-    { return t_ != Type::no_error; }
-
-    bool is_icmp() const noexcept
-    { return t_ == Type::ICMP; }
-
-    virtual const char* what() const noexcept
-    { return msg_; }
-
-  private:
-    Type t_{Type::no_error};
-    const char* msg_{"No error"};
-
-  };  // < class Error
-
-
-  /**
-   *  An object of this error class is sent to UDP and TCP (via Inet) when an ICMP error message
-   *  is received in ICMPv4::receive
-   */
-  class ICMP_error : public Error {
-
-  public:
-    using ICMP_type = icmp4::Type;
-    using ICMP_code = uint8_t;    // Codes in icmp4_common.hpp in namespace icmp4::code
-                                  // icmp4::code::Dest_unreachable::PORT f.ex.
-
-    ICMP_error()
-      : Error{}
-    {}
-
-    ICMP_error(ICMP_type icmp_type, ICMP_code icmp_code)
-      : Error{Error::Type::ICMP, "ICMP error message received"},
-        icmp_type_{icmp_type}, icmp_code_{icmp_code}
-    {}
-
-    ICMP_type icmp_type() const noexcept
-    { return icmp_type_; }
-
-    std::string icmp_type_str() const
-    { return icmp4::get_type_string(icmp_type_); }
-
-    void set_icmp_type(ICMP_type icmp_type)
-    { icmp_type_ = icmp_type; }
-
-    ICMP_code icmp_code() const noexcept
-    { return icmp_code_; }
-
-    std::string icmp_code_str() const
-    { return icmp4::get_code_string(icmp_type_, icmp_code_); }
-
-    void set_icmp_code(ICMP_code icmp_code)
-    { icmp_code_ = icmp_code; }
-
-  private:
-    ICMP_type icmp_type_{ICMP_type::NO_ERROR};
-    ICMP_code icmp_code_{0};
-
-  };  // < class ICMP_error
-
-
   /* RFC 6335 - IANA */
   namespace port_ranges
   {
@@ -161,10 +110,10 @@ namespace net {
     static constexpr uint16_t USER_START    {1024};
     static constexpr uint16_t USER_END      {49151};
     static constexpr uint16_t DYNAMIC_START {49152};
-    static constexpr uint16_t DYNAMIC_END   {65535}; // 65535 should never be assigned
+    static constexpr uint16_t DYNAMIC_END   {65535};
 
     static constexpr bool is_dynamic(const uint16_t port) noexcept
-    { return port > USER_END; }
+    { return port >= DYNAMIC_START; }
   }
 
   /**

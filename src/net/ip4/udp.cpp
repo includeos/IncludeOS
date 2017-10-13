@@ -56,19 +56,20 @@ namespace net {
     // Sending ICMP error message of type Destination Unreachable and code PORT
     // But only if the destination IP address is not broadcast or multicast
     auto ip4_packet = static_unique_ptr_cast<PacketIP4>(std::move(udp_packet));
-    if (ip4_packet->ip_dst() != stack_.broadcast_addr() and ip4_packet->ip_dst() != IP4::ADDR_BCAST and
-      not ip4_packet->ip_dst().is_multicast())
-    {
-      stack_.icmp().destination_unreachable(std::move(ip4_packet), icmp4::code::Dest_unreachable::PORT);
-    }
+    stack_.icmp().destination_unreachable(std::move(ip4_packet), icmp4::code::Dest_unreachable::PORT);
   }
 
-  void UDP::error_report(Error& err, Socket dest) {
+  void UDP::error_report(const Error& err, Socket dest) {
     // If err is an ICMP error message:
     // Report to application layer that got an ICMP error message of type and code (reason and subreason)
 
-    // Find callback with this destination address and port, and call it with the incoming err
-    auto it = error_callbacks_.find(Socket{dest.address(), dest.port()});
+    // Find callback with this destination (address and port), and call it with the incoming err
+    // If the error f.ex. is an ICMP_error of type Destination Unreachable and code Fragmentation Needed,
+    // the err object contains the Path MTU so the user can get a hold of it in the application layer
+    // and choose to retransmit or not (the packet has been dropped by a node somewhere along the
+    // path to the receiver because the Don't Fragment bit was set on the packet and the packet was
+    // larger than the node's MTU value)
+    auto it = error_callbacks_.find(dest);
 
     if (it != error_callbacks_.end()) {
       it->second.callback(err);
@@ -140,7 +141,7 @@ namespace net {
   }
 
   void UDP::flush_expired() {
-    INFO("UDP", "Flushing expired error callbacks");
+    debug("<UDP> Flushing expired error callbacks\n");
 
     for (auto& err : error_callbacks_) {
       if (err.second.expired())

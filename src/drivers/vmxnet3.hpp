@@ -52,8 +52,8 @@ public:
   }
 
   uint16_t packet_len() const noexcept
-  {        // ethernet + vlan + fcs
-    return ETH_FRAME_LEN + 4 + 4;
+  {
+    return sizeof(net::ethernet::Header) + MTU();
   }
 
   net::downstream create_physical_downstream()
@@ -72,9 +72,13 @@ public:
     return tx_tokens_free();
   }
 
+  void flush() override;
+
   void deactivate() override;
 
   void move_to_this_cpu() override;
+
+  void poll() override {}
 
 private:
   void msix_evt_handler();
@@ -83,17 +87,17 @@ private:
   void enable_intr(uint8_t idx) noexcept;
   void disable_intr(uint8_t idx) noexcept;
 
-  int  tx_tokens_free() const noexcept;
-  bool can_transmit() const noexcept;
+  inline int  tx_tokens_free() const noexcept;
+  inline bool can_transmit() const noexcept;
   void transmit_data(uint8_t* data, uint16_t);
   net::Packet_ptr recv_packet(uint8_t* data, uint16_t);
 
   // tx/rx ring state
   struct ring_stuff {
     uint8_t* buffers[NUM_TX_DESC];
-    int producers  = 0;
-    int prod_count = 0;
-    int consumers  = 0;
+    uint32_t producers  = 0;
+    uint32_t prod_count = 0;
+    uint32_t consumers  = 0;
   };
   struct rxring_state {
     uint8_t* buffers[NUM_RX_DESC];
@@ -101,9 +105,9 @@ private:
     vmxnet3_rx_desc* desc1 = nullptr;
     vmxnet3_rx_comp* comp  = nullptr;
     int index = 0;
-    int producers  = 0;
-    int prod_count = 0;
-    int consumers  = 0;
+    uint32_t producers  = 0;
+    uint32_t prod_count = 0;
+    uint32_t consumers  = 0;
   };
   void refill(rxring_state&);
 
@@ -116,10 +120,10 @@ private:
 
   hw::PCI_Device& pcidev;
   std::vector<uint8_t> irqs;
-  uintptr_t       iobase;
-  uintptr_t       ptbase;
-  MAC::Addr    hw_addr;
-  vmxnet3_dma*    dma;
+  uintptr_t     iobase;
+  uintptr_t     ptbase;
+  MAC::Addr     hw_addr;
+  vmxnet3_dma*  dma;
 
   ring_stuff tx;
   rxring_state rx[NUM_RX_QUEUES];

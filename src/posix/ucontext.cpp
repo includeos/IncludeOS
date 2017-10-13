@@ -71,6 +71,8 @@ void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...) {
   va_start(args, argc);
 
   prepare_context_stack(ucp, ucp->uc_link, argc, args);
+
+  va_end(args);
 }
 
 int swapcontext(ucontext_t *oucp, ucontext_t *ucp)

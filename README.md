@@ -1,10 +1,6 @@
 ![IncludeOS Logo](./doc/logo.png)
 ================================================
 
-**Update**: Check out [Acorn](examples/acorn/), the innovative web server appliance we [demoed at CppCon](https://www.youtube.com/watch?v=t4etEwG2_LY). Built using [Mana](lib/mana/), the new C++ Web Application Framework for IncludeOS.
-
-A *live demo* of Acorn can be found at [acorn2.unofficial.includeos.io](http://acorn2.unofficial.includeos.io) (sporadically unavailable)
-
 **IncludeOS** is an includable, minimal [unikernel](https://en.wikipedia.org/wiki/Unikernel) operating system for C++ services running in the cloud. Starting a program with `#include <os>` will literally include a tiny operating system into your service during link-time.
 
 The build system will:
@@ -24,8 +20,8 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 
 |        | Build from bundle | Integration tests |
 |--------|-------------------|-------------------|
-| Master | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_master_bundle)](https://jenkins.includeos.org/job/shield_master_bundle/) |  Coming soon |
-| Dev    | [![Build Status](https://jenkins.includeos.org/buildStatus/icon?job=shield_dev_bundle)](https://jenkins.includeos.org/job/shield_dev_bundle/)      | [![Jenkins tests](https://img.shields.io/jenkins/t/https/jenkins.includeos.org/shield_dev_integration_tests.svg)](https://jenkins.includeos.org/job/shield_dev_integration_tests/) |
+| Master | [![Build Status](https://img.shields.io/jenkins/s/https/jenkins.includeos.org/shield_master_bundle.svg)](https://jenkins.includeos.org/job/shield_master_bundle/) |  Coming soon |
+| Dev    | [![Build Status](https://img.shields.io/jenkins/s/https/jenkins.includeos.org/shield_dev_bundle.svg)](https://jenkins.includeos.org/job/shield_dev_bundle/)      | [![Jenkins tests](https://img.shields.io/jenkins/t/https/jenkins.includeos.org/shield_dev_integration_tests.svg)](https://jenkins.includeos.org/job/shield_dev_integration_tests/) |
 
 ### Key features
 
@@ -48,14 +44,12 @@ A longer list of features and limitations is on the [wiki feature list](https://
 
 By default the project is installed to /usr/local/includeos.
 
-However, it is recommended to choose a custom location as well as select the compiler we want clang to find.
+However, it is recommended to choose a custom location as well as select the compiler we want clang to find. In this document we assume you install IncludeOS in your home directory, in the folder ~/includeos.
 
-To do this we can edit ~/.bashrc (in the home folder), adding these lines at the end of the file:
+To do this we can edit ~/.bash_profile (mac os) or ~/.bashrc (linux), adding these lines at the end of the file:
 
 ```
-    export CC=/usr/bin/clang-3.8
-    export CXX=/usr/bin/clang++-3.8
-    export INCLUDEOS_PREFIX=<HOME FOLDER>/includeos
+    export INCLUDEOS_PREFIX=~/includeos/
     export PATH=$PATH:$INCLUDEOS_PREFIX/bin
 ```
 
@@ -63,7 +57,9 @@ This will also crucially make the boot program visible globally, so that you can
 
 ### Install libraries
 
-**NOTE:** The script will install packages and create a network bridge.
+If you want to install IncludeOS on Mac OS you'll need a working installation of [brew] so the install script can install its dependencies.
+
+**NOTE:** The script will install packages.
 
 ```
     $ git clone https://github.com/hioa-cs/IncludeOS
@@ -85,19 +81,20 @@ Configuration of your IncludeOS installation can be done inside `build/` with `c
 
 ### Testing the installation
 
-A successful setup enables you to build and run a virtual machine. Running:
+A successful setup enables you to build and run a virtual machine. There are a few demonstration services in the source folder. If you look in the `examples/` folder you see these. If you enter `demo_service` and type `boot --create-bridge .` this script will build the service and boot it using [qemu].
 
 ```
-    $ ./test.sh
+    $ cd examples/demo_service
+    $ boot --create-bridge .
 ```
 
-will build and run [this example service](./examples/demo_service/service.cpp).
+will build and run [this example service](./examples/demo_service/service.cpp). You can visit the service on [http://10.0.0.42/](http://10.0.0.42/).
 
 More information is [available on the wiki](https://github.com/hioa-cs/IncludeOS/wiki/Testing-the-example-service).
 
 ### Writing your first service
 
-1. Copy the [./seed/service](./seed/service) directory to a convenient location like `~/your_service`. Then, just start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service/service.cpp) (Very simple example provided). This function will be called once the OS is up and running.
+1. Copy the [./seed/service](./seed/service) directory to a convenient location like `~/your_service`. Then, just start implementing the `Service::start` function in the `Service` class, located in [your_service/service.cpp](./seed/service/service.cpp) (very simple example provided). This function will be called once the OS is up and running.
 2. Update the [CMakeLists.txt](./seed/service/CMakeLists.txt) to specify the name of your project, enable any needed drivers or plugins, etc.
 
 **Example:**
@@ -130,3 +127,7 @@ We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://g
 We're trying to grow a Wiki, and some questions might already be answered here in the [FAQ](https://github.com/hioa-cs/IncludeOS/wiki/FAQ).
 
 See the [Wiki front page](https://github.com/hioa-cs/IncludeOS/wiki) for a complete introduction, system overview, and more detailed guides.
+
+
+[brew]: https://brew.sh/
+[qemu]: https://www.qemu.org/

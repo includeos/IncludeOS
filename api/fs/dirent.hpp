@@ -38,6 +38,7 @@ namespace fs {
         size_{sz}, attrib_ {attr},
         modif {modt}
     {}
+    Dirent(const Dirent&) noexcept;
 
     Enttype type() const noexcept
     { return ftype; }

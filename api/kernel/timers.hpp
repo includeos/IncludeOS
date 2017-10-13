@@ -38,12 +38,20 @@ public:
   /// returns a timer id
   static id_t oneshot(duration_t when, handler_t);
   /// create a periodic timer that begins @when and repeats every @period
+  static id_t periodic(duration_t period, handler_t);
   static id_t periodic(duration_t when, duration_t period, handler_t);
   // un-schedule timer, and free it
   static void stop(id_t);
 
   /// returns the number of current, active timers
   static size_t active();
+  /// returns the number of existing timers
+  static size_t existing();
+  /// returns the number of free timers
+  static size_t free();
+
+  /// NOTE: All above operations operate on the current CPU
+  /// NOTE: There is a separate timer system on each active CPU
 
   /// initialization
   typedef delegate<void(duration_t)> start_func_t;
@@ -64,6 +72,11 @@ public:
 inline Timers::id_t Timers::oneshot(duration_t when, handler_t handler)
 {
   return periodic(when, std::chrono::milliseconds(0), handler);
+}
+
+inline Timers::id_t Timers::periodic(duration_t period, handler_t handler)
+{
+  return periodic(period, period, handler);
 }
 
 #endif

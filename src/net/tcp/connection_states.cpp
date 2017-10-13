@@ -123,8 +123,11 @@ bool Connection::State::check_seq(Connection& tcp, const Packet& in)
   if( in.seq() == tcb.RCV.NXT ) {
     goto acceptable;
   }
+  /// TODO: FIXME: reordering issues solved by this
+  else goto unacceptable;
+
   // #2
-  else if( tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND ) {
+  if( tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND ) {
     goto acceptable;
   }
   // #3 (INVALID)
@@ -344,8 +347,8 @@ void Connection::State::process_segment(Connection& tcp, Packet& in) {
   debug("<Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
   tcb.RCV.NXT += length;
   const auto snd_nxt = tcb.SND.NXT;
-  if(tcp.read_request.buffer.capacity()) {
-    auto received = tcp.receive((uint8_t*)in.tcp_data(), in.tcp_data_length(), in.isset(PSH));
+  if(tcp.read_request and tcp.read_request->buffer.capacity()) {
+    auto received = tcp.receive(in.seq(), in.tcp_data(), in.tcp_data_length(), in.isset(PSH));
     Ensures(received == length);
   }
 
@@ -427,7 +430,7 @@ void Connection::State::process_fin(Connection& tcp, const Packet& in) {
   //tcb.RCV.NXT += fin;
   const auto snd_nxt = tcb.SND.NXT;
   // empty the read buffer
-  if(!tcp.read_request.buffer.empty())
+  if(tcp.read_request and tcp.read_request->buffer.buffer())
     tcp.receive_disconnect();
   // signal disconnect to the user
   tcp.signal_disconnect(Disconnect::CLOSING);
@@ -632,35 +635,6 @@ size_t Connection::Established::send(Connection&, WriteBuffer&) {
 size_t Connection::CloseWait::send(Connection&, WriteBuffer&) {
 
   return 0;
-}
-
-/////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////
-/*
-  RECEIVE
-*/
-/////////////////////////////////////////////////////////////////////
-
-void Connection::State::receive(Connection&, ReadBuffer&&) {
-  throw TCPException{"Connection closing."};
-}
-
-void Connection::Established::receive(Connection& tcp, ReadBuffer&& buffer) {
-  tcp.receive(std::forward<ReadBuffer>(buffer));
-}
-
-void Connection::FinWait1::receive(Connection& tcp, ReadBuffer&& buffer) {
-  tcp.receive(std::forward<ReadBuffer>(buffer));
-}
-
-void Connection::FinWait2::receive(Connection& tcp, ReadBuffer&& buffer) {
-  tcp.receive(std::forward<ReadBuffer>(buffer));
-}
-
-void Connection::CloseWait::receive(Connection& tcp, ReadBuffer&& buffer) {
-  tcp.receive(std::forward<ReadBuffer>(buffer));
 }
 
 /////////////////////////////////////////////////////////////////////

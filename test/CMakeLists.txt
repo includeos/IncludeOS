@@ -11,13 +11,16 @@ option(GENERATE_SUPPORT_FILES "Generate external files required by some tests (e
 option(EXTRA_TESTS "Build extra test" OFF)
 
 if ("${ARCH}" STREQUAL "")
-  set (ARCH "ARCH_X86")
+  message(STATUS "CMake detected host arch: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+  set (ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
 endif("${ARCH}" STREQUAL "")
+message(STATUS "Building for arch ${ARCH}")
 
-add_definitions(-D${ARCH})
+add_definitions(-DARCH_${ARCH})
+add_definitions(-DARCH="${ARCH}")
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_C_FLAGS "-m32 -g -O0 -std=c11 -Wall -Wextra")
+set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
 if(INFO)
@@ -29,10 +32,10 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-m32 -g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
-  set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../)
+  set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 endif()
 
 set(SRC ${INCLUDEOS_ROOT}/src)
@@ -66,9 +69,12 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
+  ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cookie_test.cpp
+  ${TEST}/net/unit/dhcp_message_test.cpp
   ${TEST}/net/unit/dns_test.cpp
+  ${TEST}/net/unit/error.cpp
   ${TEST}/net/unit/http_header_test.cpp
   ${TEST}/net/unit/http_status_codes_test.cpp
   ${TEST}/net/unit/http_method_test.cpp
@@ -80,8 +86,11 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/packets.cpp
+  ${TEST}/net/unit/path_mtu_discovery.cpp
+  ${TEST}/net/unit/port_util_test.cpp
   ${TEST}/net/unit/socket.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
+  ${TEST}/net/unit/tcp_read_buffer_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/net/unit/router.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
@@ -109,6 +118,7 @@ set(TEST_SOURCES
 
 set(OS_SOURCES
   ${SRC}/fs/disk.cpp
+  ${SRC}/fs/dirent.cpp
   ${SRC}/fs/fat.cpp
   ${SRC}/fs/fat_async.cpp
   ${SRC}/fs/fat_sync.cpp
@@ -122,17 +132,13 @@ set(OS_SOURCES
   ${SRC}/hw/pci_msi.cpp
   ${SRC}/hw/ps2.cpp
   ${SRC}/hw/serial.cpp
-  ${SRC}/kernel/block.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
-  ${SRC}/kernel/irq_manager.cpp
-  ${SRC}/kernel/kernel_start.cpp
-  ${SRC}/kernel/main_call.cpp
+  ${SRC}/kernel/events.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
   ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
-  ${SRC}/kernel/rdrand.cpp
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
@@ -167,6 +173,7 @@ set(OS_SOURCES
   ${SRC}/net/tcp/listener.cpp
   ${SRC}/net/tcp/rttm.cpp
   ${SRC}/net/tcp/tcp.cpp
+  ${SRC}/net/tcp/read_buffer.cpp
   ${SRC}/net/tcp/write_queue.cpp
   ${SRC}/posix/fcntl.cpp
   ${SRC}/posix/fd.cpp

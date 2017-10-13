@@ -31,6 +31,9 @@ public:
   const char* driver_name() const override
   { return "Mock driver"; }
 
+  std::string device_name() const override
+  { return "Mock device name"; }
+
   /** The mac address. */
   const MAC::Addr& mac() const noexcept override
   { return mac_; }
@@ -123,6 +126,9 @@ public:
       NIC_INFO("nowhere to push packet. Drop.");
     }
   }
+
+  void flush() override {}
+  void poll() override {}
 
 private:
 
