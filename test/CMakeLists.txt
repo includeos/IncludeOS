@@ -72,6 +72,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
+  ${TEST}/net/unit/cidr.cpp
   ${TEST}/net/unit/conntrack_test.cpp
   ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/net/unit/dhcp_message_test.cpp

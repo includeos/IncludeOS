@@ -40,7 +40,7 @@ struct VLAN_header {
   { return ntohs(this->tci) & 0xFFF; }
 
   void set_vid(int id)
-  { tci = htons(id) & 0xFFF; }
+  { tci = htons(id & 0xFFF); }
 
 }__attribute__((packed));
 

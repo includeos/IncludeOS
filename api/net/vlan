@@ -27,33 +27,51 @@
 namespace net {
 
 template <typename T>
-void setup_vlan_stack(const T& obj)
+void parse_vlan_entry(const T& net)
 {
-  Expects(obj.HasMember("iface"));
-  Expects(obj.HasMember("id"));
+  Expects(net.HasMember("iface"));
 
   // Get the index (nic) the VLAN should be place upon
-  auto iface = obj["iface"].GetInt();
+  auto iface = net["iface"].GetInt();
   auto& nic = Super_stack::get<IP4>(iface).nic();
 
-  // Get the VLAN id
-  auto id = obj["id"].GetInt();
-  // Create VLAN Nic on the physical Nic with VLAN id
-  auto& vif = VLAN_manager::get().add(nic, id);
+  Expects(net.HasMember("vlan")
+    && "VLAN config not found (\"vlan\")");
 
-  // Create stack on VLAN Nic [iface, id]
-  auto& stack = Super_stack::inet().create<IP4>(vif, iface, id);
+  auto& vlan = net["vlan"];
 
-  // Configure the network stack
-  Expects(obj.HasMember("address"));
-  Expects(obj.HasMember("netmask"));
+  Expects(vlan.IsArray()
+    && "Malformed vlan config (not an array)");
 
-  ip4::Addr address{obj["address"].GetString()};
-  ip4::Addr netmask{obj["netmask"].GetString()};
-  ip4::Addr gateway = (obj.HasMember("gateway"))
-      ? ip4::Addr{obj["gateway"].GetString()} : 0;
+  auto vlans = vlan.GetArray();
 
-  stack.network_config(address, netmask, gateway);
+  auto& manager = VLAN_manager::get(iface);
+
+  INFO2("Found %i entries for %s, creating stacks...", vlans.Size(), nic.device_name().c_str());
+  for(auto& entry : vlans)
+  {
+    Expects(entry.HasMember("id") && "Missing VLAN ID");
+
+    // Get the VLAN id
+    auto id = entry["id"].GetInt();
+
+    // Create VLAN Nic on the physical Nic with VLAN id
+    auto& vif = manager.add(nic, id);
+
+    // Create stack on VLAN Nic [iface, id]
+    auto& stack = Super_stack::inet().create<IP4>(vif, iface, id);
+
+    // Configure the network stack
+    Expects(entry.HasMember("address"));
+    Expects(entry.HasMember("netmask"));
+
+    ip4::Addr address{entry["address"].GetString()};
+    ip4::Addr netmask{entry["netmask"].GetString()};
+    ip4::Addr gateway = (entry.HasMember("gateway"))
+        ? ip4::Addr{entry["gateway"].GetString()} : 0;
+
+    stack.network_config(address, netmask, gateway);
+  }
 }
 
 void setup_vlans()
@@ -70,18 +88,19 @@ void setup_vlans()
   Expects(doc.IsObject()
     && "Malformed config (not an object)");
 
-  Expects(doc.HasMember("vlan")
-    && "VLAN config not found (\"vlan\")");
+  Expects(doc.HasMember("net")
+    && "Net config not found (\"net\")");
 
-  auto& vlan = doc["vlan"];
-  Expects(vlan.IsArray()
-    && "Malformed vlan config (not an array)");
+  auto& net = doc["net"];
 
-  auto vlans = vlan.GetArray();
+  Expects(net.IsArray()
+    && "Malformed net config (not an array)");
 
-  INFO2("Found %i VLAN entries", vlans.Size());
-  for(auto& entry : vlans)
-    setup_vlan_stack(entry);
+  auto net_arr = net.GetArray();
+  for(auto& entry : net_arr) {
+    if(entry.HasMember("vlan"))
+      parse_vlan_entry(entry);
+  }
 
   INFO("VLAN setup", "Setup complete");
 }

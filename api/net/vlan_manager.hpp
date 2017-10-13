@@ -33,11 +33,15 @@ class VLAN_manager {
 public:
   using VLAN_interface = Vif<Ethernet_8021Q>;
 
-  static VLAN_manager& get()
-  {
-    static VLAN_manager man;
-    return man;
-  }
+  /**
+   * @brief      Returns a VLAN manager with the given index.
+   *             Construct it if it do not already exist.
+   *
+   * @param[in]  N     Index
+   *
+   * @return     A VLAN Manager
+   */
+  static VLAN_manager& get(int N);
 
   /**
    * @brief      Add a VLAN interface on the given (physical) link
