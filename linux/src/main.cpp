@@ -25,7 +25,7 @@ void create_network_device(int N, const char* route, const char* ip)
     [tap] (net::Packet_ptr packet) {
       tap->write(packet->layer_begin(), packet->size());
     });
-  tap->on_read({usernet, &UserNet::write});
+  tap->on_read({usernet, &UserNet::receive});
 }
 
 int main(void)

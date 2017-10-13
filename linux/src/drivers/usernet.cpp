@@ -19,12 +19,12 @@ void UserNet::transmit(net::Packet_ptr packet)
   assert(transmit_forward_func);
   transmit_forward_func(std::move(packet));
 }
-void UserNet::feed(net::Packet_ptr packet)
+void UserNet::receive(net::Packet_ptr packet)
 {
   // wrap in packet, pass to Link-layer
   Link::receive( std::move(packet) );
 }
-void UserNet::feed(void* data, net::BufferStore* bufstore)
+void UserNet::receive(void* data, net::BufferStore* bufstore)
 {
   // wrap in packet, pass to Link-layer
   driver_hdr& driver = *(driver_hdr*) data;
@@ -39,7 +39,7 @@ void UserNet::feed(void* data, net::BufferStore* bufstore)
 
   Link::receive(net::Packet_ptr(ptr));
 }
-void UserNet::write(const void* data, int len)
+void UserNet::receive(const void* data, int len)
 {
   assert(len >= 0);
   auto buffer = bufstore().get_buffer();
