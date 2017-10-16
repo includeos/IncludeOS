@@ -10,3 +10,4 @@ set(SOURCES
 
 add_library(linuxrt STATIC ${SOURCES})
 install(TARGETS linuxrt DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos/linux)
+install(FILES drivers/usernet.hpp DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos/linux/drivers)

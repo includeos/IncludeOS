@@ -2,6 +2,7 @@
 
 #include "apic.hpp"
 #include "apic_timer.hpp"
+#include "clocks.hpp"
 #include "idt.hpp"
 #include <kernel/events.hpp>
 #include <kernel/os.hpp>
@@ -94,6 +95,8 @@ void revenant_main(int cpu)
   asm volatile("sti");
   // init timer system
   APIC_Timer::init();
+  // initialize clocks
+  Clocks::init();
   // subscribe to task and timer interrupts
   Events::get().subscribe(0, revenant_task_handler);
   Events::get().subscribe(1, APIC_Timer::start_timers);

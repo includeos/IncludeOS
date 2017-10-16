@@ -2,6 +2,7 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/epoll.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #include <fcntl.h>
@@ -113,37 +114,54 @@ TAP_driver::TAP_driver(const char* devname,
       printf("[TAP] ERROR when setting addr for if\n");
       std::abort();
   }
+
+  // setup epoll() functionality
+  if ((this->epoll_fd = epoll_create(1)) < 0)
+  {
+    printf("[TAP] ERROR when creating epoll fd\n");
+    std::abort();
+  }
+
+  epoll_ptr = new epoll_event;
+  memset(epoll_ptr, 0, sizeof(epoll_event));
+  epoll_ptr->events = EPOLLIN;
+  epoll_ptr->data.fd = this->tun_fd;
+  if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, this->tun_fd, epoll_ptr) < 0)
+  {
+    printf("[TAP] ERROR when adding tap to epoll event\n");
+    std::abort();
+  }
 }
 
 TAP_driver::~TAP_driver()
 {
-  close (tun_fd);
+  close (this->tun_fd);
+  close (this->epoll_fd);
+}
+
+void TAP_driver::wait()
+{
+  const int MAX_EVENTS = 1;
+  int ready = epoll_wait(this->epoll_fd, this->epoll_ptr, MAX_EVENTS, -1);
+  if (ready < 0) {
+    if (errno == EINTR) return;
+    printf("[TAP] ERROR when waiting for epoll event\n");
+    std::abort();
+  }
+  if (epoll_ptr->events & EPOLLIN)
+  {
+    char buffer[1600];
+    int len = this->read(buffer, sizeof(buffer));
+    // on_read callback
+    this->on_read(buffer, len);
+  }
 }
 
 void TAP_driver::wait(TAPVEC& tap_devices)
 {
-  fd_set readset;
-  int    result;
-  do {
-     FD_ZERO(&readset);
-     for (auto& tapd : tap_devices)
-        FD_SET(tapd.get().get_fd(), &readset);
-     result = select(tap_devices.back().get().get_fd() + 1, &readset, NULL, NULL, NULL);
-  } while (result == -1 && errno == EINTR);
-
-  if (result > 0) {
-    for (auto& tapd : tap_devices)
-    {
-     if (FD_ISSET(tapd.get().get_fd(), &readset)) {
-       char buffer[1600];
-       int len = tapd.get().read(buffer, sizeof(buffer));
-       // on_read callback
-       tapd.get().on_read(buffer, len);
-     }
-    }
-  }
-  else if (result < 0) {
-     /* An error ocurred, just print it to stdout */
-     printf("Error on select(): %s\n", strerror(errno));
+  for (auto& tapref : tap_devices)
+  {
+    auto& tapdev = tapref.get();
+    tapdev.wait();
   }
 }

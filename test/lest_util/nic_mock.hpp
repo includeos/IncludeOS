@@ -47,14 +47,26 @@ public:
   net::downstream create_physical_downstream() override
   { return transmit_to_physical_; }
 
-  void set_ip4_upstream(net::upstream_ip handler) override
-  { ip4_handler_ = handler; }
+  net::upstream_ip& ip4_upstream() override {
+    return ip4_handler_;
+  }
+  void set_ip4_upstream(net::upstream_ip handler) override {
+    ip4_handler_ = handler;
+  }
 
-  void set_ip6_upstream(net::upstream_ip handler) override
-  { ip6_handler_ = handler; }
+  net::upstream_ip& ip6_upstream() override {
+    return ip6_handler_;
+  }
+  void set_ip6_upstream(net::upstream_ip handler) override {
+    ip6_handler_ = handler;
+  }
 
-  void set_arp_upstream(upstream handler) override
-  { arp_handler_ = handler; }
+  net::upstream& arp_upstream() override {
+    return arp_handler_;
+  }
+  void set_arp_upstream(upstream handler) override {
+    arp_handler_ = handler;
+  }
 
   void set_vlan_upstream(upstream handler) override
   { vlan_handler_ = handler; }

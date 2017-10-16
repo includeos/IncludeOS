@@ -1,8 +1,8 @@
-#include <hw/cmos.hpp>
+#include "cmos.hpp"
+#include "acpi.hpp"
 #include <statman>
-#include "../platform/x86_pc/acpi.hpp"
 
-using namespace hw;
+using namespace x86;
 uint8_t   CMOS::reg_b_value = 0;
 uint32_t* CMOS::now_called  = nullptr;
 
