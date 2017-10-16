@@ -16,9 +16,9 @@
 // limitations under the License.
 
 #include "cmos_clock.hpp"
+#include "cmos.hpp"
 #include <kernel/timers.hpp>
 #include <kernel/os.hpp>
-#include <hw/cmos.hpp>
 #include <hertz>
 
 namespace x86
@@ -29,14 +29,14 @@ namespace x86
   void CMOS_clock::init()
   {
     using namespace std::chrono;
-    current_time  = hw::CMOS::now().to_epoch();
+    current_time  = CMOS::now().to_epoch();
     current_ticks = OS::cycles_since_boot();
 
     INFO("CMOS", "Enabling regular clock sync for CMOS clock");
     // every minute recalibrate
     Timers::periodic(seconds(60), seconds(60),
       [] (Timers::id_t) {
-        current_time  = hw::CMOS::now().to_epoch();
+        current_time  = CMOS::now().to_epoch();
         current_ticks = OS::cycles_since_boot();
       });
   }

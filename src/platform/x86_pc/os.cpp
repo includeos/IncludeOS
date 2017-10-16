@@ -19,7 +19,6 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <boot/multiboot.h>
-#include <hw/cmos.hpp>
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
 #include <kprint>
@@ -27,6 +26,7 @@
 #include <statman>
 #include <cstdio>
 #include <cinttypes>
+#include "cmos.hpp"
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -194,7 +194,7 @@ void OS::event_loop()
 void OS::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
-  auto mem = hw::CMOS::meminfo();
+  auto mem = x86::CMOS::meminfo();
   if (OS::memory_end_ == 0)
   {
     //uintptr_t low_memory_size = mem.base.total * 1024;

@@ -6,6 +6,7 @@ set(X86_PC_OBJECTS
   os.cpp
   block.cpp
   clocks.cpp
+  cmos.cpp
   cmos_clock.cpp
   gdt.cpp
   acpi.cpp
@@ -22,8 +23,8 @@ set(X86_PC_OBJECTS
   sanity_checks.cpp
   idt.cpp
   ### KVM features ###
-  #../kvm/kvmclock.cpp
-  #../kvm/pv_eoi.cpp
+  ../kvm/kvmclock.cpp
+  ../kvm/pv_eoi.cpp
   )
 
 add_custom_command(
