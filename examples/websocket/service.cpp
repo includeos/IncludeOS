@@ -40,13 +40,12 @@ void handle_ws(net::WebSocket_ptr ws)
     printf("WS Recv: %s\n", str.c_str());
     ws->write(str);
   };
-
-  websockets[idx] = std::move(ws);
+  ws->on_close = [ws = ws.get()](auto code) {
   // Notify on close
-  websockets[idx]->on_close = [key = idx](auto code) {
-    printf("WS Closing (%u) %s\n", code, websockets[key]->to_string().c_str());
+    printf("WS Closing (%u) %s\n", code, ws->to_string().c_str());
   };
-  idx++;
+
+  websockets[idx++] = std::move(ws);
 }
 
 #include <net/http/server.hpp>
