@@ -14,7 +14,9 @@ void __platform_init()
 }
 
 // not supported!
-int64_t __arch_now() { return 0; }
+int64_t __arch_time_now() noexcept {
+  return 0;
+}
 
 void __arch_reboot(){}
 void __arch_enable_legacy_irq(unsigned char){}
