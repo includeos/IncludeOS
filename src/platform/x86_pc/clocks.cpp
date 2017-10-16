@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include "clocks.hpp"
-//#include "../kvm/kvmclock.hpp"
+#include "../kvm/kvmclock.hpp"
 #include "cmos_clock.hpp"
 #include <kernel/cpuid.hpp>
 #include <arch.hpp>
