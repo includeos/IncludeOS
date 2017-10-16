@@ -18,6 +18,7 @@
 #include "acpi.hpp"
 #include "apic.hpp"
 #include "apic_timer.hpp"
+#include "clocks.hpp"
 #include "gdt.hpp"
 #include "idt.hpp"
 #include "pit.hpp"
@@ -115,6 +116,10 @@ void __platform_init()
   // Initialize APIC timers and timer systems
   // Deferred call to Service::ready() when calibration is complete
   APIC_Timer::calibrate();
+
+  // Setup kernel clocks
+  MYINFO("Setting up kernel clock sources");
+  Clocks::init();
 
   // Initialize PCI devices
   PCI_manager::init();

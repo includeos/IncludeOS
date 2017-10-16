@@ -5,6 +5,8 @@ set(X86_PC_OBJECTS
   platform.cpp
   os.cpp
   block.cpp
+  clocks.cpp
+  cmos_clock.cpp
   gdt.cpp
   acpi.cpp
   ioapic.cpp
@@ -19,6 +21,9 @@ set(X86_PC_OBJECTS
   softreset.cpp
   sanity_checks.cpp
   idt.cpp
+  ### KVM features ###
+  #../kvm/kvmclock.cpp
+  #../kvm/pv_eoi.cpp
   )
 
 add_custom_command(
