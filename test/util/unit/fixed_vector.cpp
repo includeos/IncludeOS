@@ -98,7 +98,7 @@ CASE("Adding elements increases size")
   {
     for (int i = 0; i < fv.capacity(); i++) {
       EXPECT(fv.size() == i);
-      fv.emplace(5, 6);
+      fv.emplace_back(5, 6);
       EXPECT(fv.size() == i + 1);
       // verify POD too
       EXPECT(fv[i].a == 5);
