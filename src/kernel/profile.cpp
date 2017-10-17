@@ -21,7 +21,7 @@
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/os.hpp>
-#include <util/fixedvec.hpp>
+#include <util/fixed_vector.hpp>
 #include <unordered_map>
 #include <cassert>
 #include <algorithm>
@@ -39,8 +39,8 @@ extern char _irq_cb_return_location;
 typedef uint32_t func_sample;
 struct Sampler
 {
-  fixedvector<uintptr_t, BUFFER_COUNT>* samplerq;
-  fixedvector<uintptr_t, BUFFER_COUNT>* transferq;
+  Fixed_vector<uintptr_t, BUFFER_COUNT>* samplerq;
+  Fixed_vector<uintptr_t, BUFFER_COUNT>* transferq;
   std::unordered_map<uintptr_t, func_sample> dict;
   uint64_t total  = 0;
   uint64_t asleep = 0;
@@ -66,9 +66,9 @@ struct Sampler
     // need free space to take more samples
     if (samplerq->free_capacity()) {
       if (mode == StackSampler::MODE_CURRENT)
-          samplerq->add((uintptr_t) current);
+          samplerq->push_back((uintptr_t) current);
       else if (mode == StackSampler::MODE_CALLER)
-          samplerq->add((uintptr_t) __builtin_return_address(2));
+          samplerq->push_back((uintptr_t) __builtin_return_address(2));
     }
     // return when its not our turn
     if (lockless) return;

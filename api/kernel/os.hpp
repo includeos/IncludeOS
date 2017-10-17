@@ -27,7 +27,7 @@
 #include <sstream>
 #include <vector>
 #include <boot/multiboot.h>
-#include <util/fixedvec.hpp>
+#include <util/fixed_vector.hpp>
 
 /**
  *  The entrypoint for OS services
@@ -250,7 +250,7 @@ private:
     const char* name_;
   };
 
-  using Plugin_vec = fixedvector<Plugin_struct, 16>;
+  using Plugin_vec = Fixed_vector<Plugin_struct, 16>;
 
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;

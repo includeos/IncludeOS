@@ -22,17 +22,17 @@
 #include <kernel/pci_manager.hpp>
 #include <hw/devices.hpp>
 #include <hw/pci_device.hpp>
-#include <util/fixedvec.hpp>
+#include <util/fixed_vector.hpp>
 
 static const int ELEMENTS = 16;
 
 template <typename Driver>
 using Driver_entry = std::pair<uint32_t, Driver>;
 template <typename Driver>
-using fixed_factory_t = fixedvector<Driver_entry<Driver>, ELEMENTS>;
+using fixed_factory_t = Fixed_vector<Driver_entry<Driver>, ELEMENTS>;
 
 // PCI devices
-fixedvector<hw::PCI_Device, ELEMENTS> devices_(Fixedvector_Init::UNINIT);
+Fixed_vector<hw::PCI_Device, ELEMENTS> devices_(Fixedvector_Init::UNINIT);
 
 // driver factories
 fixed_factory_t<PCI_manager::NIC_driver> nic_fact(Fixedvector_Init::UNINIT);
@@ -89,13 +89,13 @@ void PCI_manager::scan_bus(int bus)
       switch (devclass.classcode) {
       case PCI::STORAGE:
         {
-          auto& stored_dev = devices_.emplace(pci_addr, id, devclass.reg);
+          auto& stored_dev = devices_.emplace_back(pci_addr, id, devclass.reg);
           registered = register_device<BLK_driver, hw::Block_device>(stored_dev, blk_fact);
         }
         break;
       case PCI::NIC:
         {
-          auto& stored_dev = devices_.emplace(pci_addr, id, devclass.reg);
+          auto& stored_dev = devices_.emplace_back(pci_addr, id, devclass.reg);
           registered = register_device<NIC_driver, hw::Nic>(stored_dev, nic_fact);
         }
         break;
@@ -138,9 +138,9 @@ inline uint32_t driver_id(uint16_t vendor, uint16_t prod) {
 
 void PCI_manager::register_nic(uint16_t vendor, uint16_t prod, NIC_driver factory)
 {
-  nic_fact.emplace(driver_id(vendor, prod), factory);
+  nic_fact.emplace_back(driver_id(vendor, prod), factory);
 }
 void PCI_manager::register_blk(uint16_t vendor, uint16_t prod, BLK_driver factory)
 {
-  blk_fact.emplace(driver_id(vendor, prod), factory);
+  blk_fact.emplace_back(driver_id(vendor, prod), factory);
 }
