@@ -37,13 +37,6 @@ Events& Events::get()
   return PER_CPU(managers);
 }
 
-void Events::trigger_event(uint8_t evt)
-{
-  event_pend.atomic_set(evt);
-  // increment events received
-  received_array[evt]++;
-}
-
 void Events::init_local()
 {
   // prevent legacy IRQs from being free for taking
