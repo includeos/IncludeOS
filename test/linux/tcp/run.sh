@@ -4,7 +4,7 @@ set -e
 
 export GPROF="OFF"
 
-export num_jobs=${num_jobs:-j4}
+export num_jobs=${num_jobs:--j4}
 
 function make_linux(){
   pushd $INCLUDEOS_SRC/linux/build
