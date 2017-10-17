@@ -36,7 +36,7 @@ public:
   void unsubscribe(uint8_t evt);
 
   // register event for deferred processing
-  void trigger_event(uint8_t evt);
+  inline void trigger_event(uint8_t evt);
 
   /**
    * Get per-cpu instance
@@ -72,5 +72,12 @@ private:
   Fixed_bitmap<NUM_EVENTS>  event_pend;
   Fixed_bitmap<NUM_EVENTS>  event_todo;
 };
+
+inline void Events::trigger_event(const uint8_t evt)
+{
+  event_pend.atomic_set(evt);
+  // increment events received
+  received_array[evt]++;
+}
 
 #endif //< KERNEL_EVENTS_HPP
