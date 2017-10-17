@@ -68,7 +68,6 @@ uintptr_t OS::heap_usage() noexcept {
 #include <kernel/rtc.hpp>
 #include <time.h>
 RTC::timestamp_t RTC::booted_at = time(0);
-RTC::timestamp_t RTC::now() { return time(0); }
 RTC::timestamp_t OS::boot_timestamp() {
   return RTC::boot_timestamp();
 }

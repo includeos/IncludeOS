@@ -1,4 +1,3 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -16,36 +15,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef KERNEL_RTC_HPP
-#define KERNEL_RTC_HPP
-
-#include <cstdint>
+#include "clocks.hpp"
+#include "../kvm/kvmclock.hpp"
+#include "cmos_clock.hpp"
+#include <kernel/cpuid.hpp>
 #include <arch.hpp>
+#include <delegate>
+#include <info>
+#include <smp>
 
-class RTC
+typedef delegate<int64_t()> system_time_t;
+static SMP_ARRAY<system_time_t> vcpu_clock = {{nullptr}};
+
+namespace x86
 {
-public:
-  using timestamp_t = int64_t;
-
-  /// returns a 64-bit unix timestamp of the current time
-  static timestamp_t now() { return __arch_time_now(); }
-
-  /// returns a 64-bit unix timestamp for when the OS was booted
-  static timestamp_t boot_timestamp() {
-    return booted_at;
+  void Clocks::init()
+  {
+    if (false) //CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
+    {
+      printf("--> KVM clock\n");
+    }
+    else
+    {
+      // fallback with CMOS
+      if (SMP::cpu_id() == 0) CMOS_clock::init();
+      PER_CPU(vcpu_clock) = {&CMOS_clock::system_time};
+    }
   }
+}
 
-  /// returns system uptime in seconds
-  static timestamp_t time_since_boot() {
-    return now() - boot_timestamp();
-  }
-
-  /// start time auto-calibration process
-  static void init();
-
-private:
-  static timestamp_t booted_at;
-};
-
-#endif
+int64_t __arch_time_now() noexcept
+{
+  return PER_CPU(vcpu_clock)();
+}

@@ -44,30 +44,14 @@ Statman& Statman::get() {
 /// RTC ///
 #include <rtc>
 RTC::timestamp_t RTC::booted_at = 0;
-
 void RTC::init() {}
-RTC::timestamp_t RTC::now() {
-  return time(0);
-}
 
 /// TIMERS ///
 #include <kernel/timers.hpp>
-void Timers::timers_handler() {
-  return;
-}
-
-void Timers::ready() {
-  return;
-}
-
-void Timers::stop(int) {
-  return;
-}
-
-void Timers::init(const start_func_t&, const stop_func_t&) {
-  return;
-}
-
+void Timers::timers_handler() {}
+void Timers::ready() {}
+void Timers::stop(int) {}
+void Timers::init(const start_func_t&, const stop_func_t&) {}
 Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
   return 0;
 }
@@ -76,21 +60,15 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
 const char* service_binary_name__ = "Service binary name";
 const char* service_name__        = "Service name";
 
-
 #include <kernel/os.hpp>
-void OS::start(unsigned, unsigned) {
-}
-void OS::default_stdout(const char*, size_t) {
-}
-void OS::event_loop() {
-}
-void OS::block() {
-}
+void OS::start(unsigned, unsigned) {}
+void OS::default_stdout(const char*, size_t) {}
+void OS::event_loop() {}
+void OS::block() {}
 int64_t OS::micros_since_boot() noexcept {
   return 0;
 }
-void OS::resume_softreset(intptr_t) {
-}
+void OS::resume_softreset(intptr_t) {}
 bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
@@ -162,6 +140,10 @@ void __arch_reboot() {}
 void __arch_subscribe_irq(uint8_t) {}
 void __arch_enable_legacy_irq(uint8_t) {}
 void __arch_disable_legacy_irq(uint8_t) {}
+
+int64_t __arch_time_now() noexcept {
+  return 0;
+}
 
 /// smp ///
 #include <smp>
