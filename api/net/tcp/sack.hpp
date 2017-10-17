@@ -17,7 +17,6 @@
 
 #include <cstdint>
 #include <array>
-#include <iostream>
 #include <common>
 
 using seq_t = uint32_t;
@@ -175,7 +174,7 @@ public:
       update = get_free();
       if (not update) {
         // TODO: return older sack list
-        std::cout << "No free blocks left \n";
+        printf("No free blocks left\n");
       } else {
         *update = inc;
       }

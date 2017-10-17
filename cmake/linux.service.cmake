@@ -24,6 +24,7 @@ include_directories(${LOCAL_INCLUDES})
 include_directories(${IOSPATH}/x86_64/include)
 include_directories(${IOSPATH}/api)
 include_directories(${IOSPATH}/include)
+include_directories(${IOSPATH}/linux)
 include_directories(${IOSPATH}/../include)
 
 

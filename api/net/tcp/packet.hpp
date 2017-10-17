@@ -26,8 +26,6 @@
 #include "common.hpp" // constants, seq_t
 #include "headers.hpp"
 
-#include <sstream> // ostringstream
-
 inline unsigned round_up(unsigned n, unsigned div) {
   Expects(div > 0);
   return (n + div - 1) / div;
@@ -313,12 +311,14 @@ Socket source() const
   { return has_tcp_data() or isset(SYN) or isset(FIN); }
 
   std::string to_string() const {
-    std::ostringstream os;
-    os << "[ S:" << source().to_string() << " D:" <<  destination().to_string()
-       << " SEQ:" << seq() << " ACK:" << ack()
-       << " HEAD-LEN:" << (int)tcp_header_length() << " OPT-LEN:" << (int)tcp_options_length() << " DATA-LEN:" << tcp_data_length()
-       << " WIN:" << win() << " FLAGS:" << tcp_header().offset_flags.flags  << " ]";
-    return os.str();
+    char buffer[512];
+    int len = snprintf(buffer, sizeof(buffer),
+          "[ S:%s D:%s SEQ:%u ACK:%u HEAD-LEN:%d OPT-LEN:%d DATA-LEN:%d"
+          " WIN:%u FLAGS:%#x ]",
+          source().to_string().c_str(), destination().to_string().c_str(),
+          seq(), ack(), tcp_header_length(), tcp_options_length(),
+          tcp_data_length(), win(), tcp_header().offset_flags.flags);
+    return std::string(buffer, len);
   }
 
 

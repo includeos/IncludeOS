@@ -31,11 +31,12 @@ using Driver_entry = std::pair<uint32_t, Driver>;
 template <typename Driver>
 using fixed_factory_t = Fixed_vector<Driver_entry<Driver>, ELEMENTS>;
 
-// PCI devices
+static // PCI devices
 Fixed_vector<hw::PCI_Device, ELEMENTS> devices_(Fixedvector_Init::UNINIT);
-
 // driver factories
+static
 fixed_factory_t<PCI_manager::NIC_driver> nic_fact(Fixedvector_Init::UNINIT);
+static
 fixed_factory_t<PCI_manager::BLK_driver> blk_fact(Fixedvector_Init::UNINIT);
 
 template <typename Factory, typename Class>

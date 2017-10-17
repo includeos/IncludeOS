@@ -56,7 +56,7 @@ public:
     return sizeof(net::ethernet::Header) + MTU();
   }
 
-  net::downstream create_physical_downstream()
+  net::downstream create_physical_downstream() override
   { return {this, &Solo5Net::transmit}; }
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/

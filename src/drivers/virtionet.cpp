@@ -218,7 +218,8 @@ void VirtioNet::msix_recv_handler()
   auto rx = packets_rx_;
   rx_q.disable_interrupts();
   // handle incoming packets as long as bufstore has available buffers
-  while (rx_q.new_incoming())
+  int max = 128;
+  while (rx_q.new_incoming() && max-- > 0)
   {
     auto res = rx_q.dequeue();
     VDBG_RX("[virtionet] Recv %u bytes\n", (uint32_t) res.size());

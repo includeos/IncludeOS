@@ -15,8 +15,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <hw/block_device.hpp>
+#include "clocks.hpp"
+#include "../kvm/kvmclock.hpp"
+#include "cmos_clock.hpp"
+#include <kernel/cpuid.hpp>
+#include <arch.hpp>
+#include <delegate>
+#include <info>
+#include <smp>
 
-namespace hw
+typedef delegate<int64_t()> system_time_t;
+static SMP_ARRAY<system_time_t> vcpu_clock = {{nullptr}};
+
+namespace x86
 {
+  void Clocks::init()
+  {
+    if (false) //CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
+    {
+      printf("--> KVM clock\n");
+    }
+    else
+    {
+      // fallback with CMOS
+      if (SMP::cpu_id() == 0) CMOS_clock::init();
+      PER_CPU(vcpu_clock) = {&CMOS_clock::system_time};
+    }
+  }
+}
+
+int64_t __arch_time_now() noexcept
+{
+  return PER_CPU(vcpu_clock)();
 }

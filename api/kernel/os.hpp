@@ -24,10 +24,8 @@
 #include <kernel/rtc.hpp>
 #include <hertz>
 #include <string>
-#include <sstream>
 #include <vector>
 #include <boot/multiboot.h>
-#include <util/fixed_vector.hpp>
 
 /**
  *  The entrypoint for OS services
@@ -37,8 +35,8 @@
 class OS {
 public:
   using print_func  = delegate<void(const char*, size_t)>;
-  using Plugin = delegate<void()>;
-  using Span_mods = gsl::span<multiboot_module_t>;
+  using Plugin      = delegate<void()>;
+  using Span_mods   = gsl::span<multiboot_module_t>;
 
   /**
    * Returns the OS version string
@@ -241,17 +239,6 @@ private:
   static bool is_softreset_magic(uint32_t value);
   static void resume_softreset(intptr_t boot_addr);
 
-  struct Plugin_struct {
-    Plugin_struct(Plugin f, const char* n)
-      : func_{f}, name_{n}
-    {}
-
-    Plugin func_;
-    const char* name_;
-  };
-
-  using Plugin_vec = Fixed_vector<Plugin_struct, 16>;
-
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;
   static bool boot_sequence_passed_;
@@ -261,7 +248,6 @@ private:
   static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
-  static Plugin_vec plugins_;
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;

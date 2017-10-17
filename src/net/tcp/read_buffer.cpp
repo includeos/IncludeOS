@@ -48,7 +48,7 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
   }
   else {
     if (rel + len > buf->size()) buf->resize(rel + len);
-    std::copy(data, data + len, &buf->at(rel));
+    __builtin_memcpy(buf->data() + rel, data, len);
   }
 
   if (push) push_seen = true;
@@ -71,27 +71,24 @@ void Read_buffer::reset(const seq_t seq, const size_t capacity)
 void Read_buffer::reset_buffer_if_needed(const size_t capacity)
 {
   // lets not mess when sharing the buffer
-  if(not buf.unique())
+  if (buf.use_count() != 1)
   {
     buf = tcp::construct_buffer();
     buf->reserve(capacity);
     return;
   }
   // from here on the buffer is ours only
-  const auto bufcap = buf->capacity();
-  if(UNLIKELY(capacity > bufcap)) // increase the cap is fine
-  {
-    buf->reserve(capacity);
-  }
-  else if(UNLIKELY(capacity < bufcap)) // decreasing the cap is trickier
-  {
-    // create a new one for simplicty
-    buf = tcp::construct_buffer();
-    buf->reserve(capacity);
-    return;
-  }
-
   buf->clear();
+  const auto bufcap = buf->capacity();
+  if (UNLIKELY(capacity < bufcap))
+  {
+    buf->shrink_to_fit();
+    buf->reserve(capacity);
+  }
+  else if (UNLIKELY(capacity != bufcap))
+  {
+    buf->reserve(capacity);
+  }
 }
 
 __attribute__((weak))

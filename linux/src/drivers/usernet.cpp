@@ -1,12 +1,20 @@
 #include "usernet.hpp"
+#include <hw/devices.hpp>
 
 constexpr MAC::Addr UserNet::MAC_ADDRESS;
 
-UserNet::UserNet()
-  : Link(Link_protocol{{this, &UserNet::transmit}, mac()},
-    256u, 2048 /* 256x half-page buffers */)
-{
+UserNet::UserNet(const uint16_t mtu)
+  : Link(Link_protocol{{this, &UserNet::transmit}, mac()}, buffer_store),
+    mtu_value(mtu), buffer_store(256u, 128 + mtu) {}
 
+UserNet& UserNet::create(const uint16_t mtu)
+{
+  // the IncludeOS packet communicator
+  auto* usernet = new UserNet(mtu);
+  // register driver for superstack
+  auto driver = std::unique_ptr<hw::Nic> (usernet);
+  hw::Devices::register_device<hw::Nic> (std::move(driver));
+  return *usernet;
 }
 
 size_t UserNet::transmit_queue_available()
@@ -19,12 +27,12 @@ void UserNet::transmit(net::Packet_ptr packet)
   assert(transmit_forward_func);
   transmit_forward_func(std::move(packet));
 }
-void UserNet::feed(net::Packet_ptr packet)
+void UserNet::receive(net::Packet_ptr packet)
 {
   // wrap in packet, pass to Link-layer
   Link::receive( std::move(packet) );
 }
-void UserNet::feed(void* data, net::BufferStore* bufstore)
+void UserNet::receive(void* data, net::BufferStore* bufstore)
 {
   // wrap in packet, pass to Link-layer
   driver_hdr& driver = *(driver_hdr*) data;
@@ -39,7 +47,7 @@ void UserNet::feed(void* data, net::BufferStore* bufstore)
 
   Link::receive(net::Packet_ptr(ptr));
 }
-void UserNet::write(const void* data, int len)
+void UserNet::receive(const void* data, int len)
 {
   assert(len >= 0);
   auto buffer = bufstore().get_buffer();

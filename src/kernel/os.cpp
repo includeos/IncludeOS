@@ -23,6 +23,7 @@
 #include <service>
 #include <cstdio>
 #include <cinttypes>
+#include <util/fixed_vector.hpp>
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -56,7 +57,13 @@ using Print_vec = Fixed_vector<OS::print_func, 8>;
 static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
 
 // Plugins
-OS::Plugin_vec OS::plugins_(Fixedvector_Init::UNINIT);
+struct Plugin_desc {
+  Plugin_desc(OS::Plugin f, const char* n) : func{f}, name{n} {}
+
+  OS::Plugin  func;
+  const char* name;
+};
+static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
 
 // OS version
 std::string OS::version_str_ = OS_VERSION;
@@ -74,7 +81,7 @@ const char* OS::cmdline_args() noexcept {
 
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
-  plugins_.emplace_back(delg, name);
+  plugins.emplace_back(delg, name);
 }
 
 void OS::reboot()
@@ -112,10 +119,10 @@ void OS::post_start()
   OS::boot_sequence_passed_ = true;
 
   PROFILE("Plugins init");
-  for (auto plugin : plugins_) {
-    INFO2("* Initializing %s", plugin.name_);
-    try{
-      plugin.func_();
+  for (auto plugin : plugins) {
+    INFO2("* Initializing %s", plugin.name);
+    try {
+      plugin.func();
     } catch(std::exception& e){
       MYINFO("Exception thrown when initializing plugin: %s", e.what());
     } catch(...){
