@@ -16,6 +16,8 @@
 // limitations under the License.
 
 #include <net/inet_common.hpp>
+#include <immintrin.h>
+#include <x86intrin.h>
 
 namespace net {
 
@@ -23,12 +25,49 @@ uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
 {
   const char* buffer = (const char*) data;
   int64_t sum = tsum;
-  // align 2-byte misaligned buffer
-  if ((uintptr_t) buffer & 2) {
-    sum += *(uint16_t*) buffer;
-    length -= 2; buffer += 2;
+
+  // VEX-align buffer
+  while (((uintptr_t) buffer & 15) && length >= 4) {
+    sum += *(uint32_t*) buffer;
+    length -= 4; buffer += 4;
   }
-  // unrolled 32 bytes at once
+
+#ifdef __AVX2__
+  // run 4 32-bit adds in parallell
+  union vec4 {
+    __m256i  mm;
+    int64_t  epi64[4];
+  };
+  vec4 vsum; vsum.mm = _mm256_set1_epi32(0);
+  while (length >= 64)
+  {
+    __m128i tmp1 = _mm_load_si128((__m128i*) (buffer + 0));
+    __m128i tmp2 = _mm_load_si128((__m128i*) (buffer + 16));
+    __m128i tmp3 = _mm_load_si128((__m128i*) (buffer + 32));
+    __m128i tmp4 = _mm_load_si128((__m128i*) (buffer + 48));
+
+    // unpack 16x 32-bit values
+    __m256i epi64_1 = _mm256_cvtepu32_epi64(tmp1);
+    __m256i epi64_2 = _mm256_cvtepu32_epi64(tmp2);
+    __m256i epi64_3 = _mm256_cvtepu32_epi64(tmp3);
+    __m256i epi64_4 = _mm256_cvtepu32_epi64(tmp4);
+
+    // sum 16x 32-bit values
+    vsum.mm = _mm256_add_epi64(vsum.mm, epi64_1);
+    vsum.mm = _mm256_add_epi64(vsum.mm, epi64_2);
+    vsum.mm = _mm256_add_epi64(vsum.mm, epi64_3);
+    vsum.mm = _mm256_add_epi64(vsum.mm, epi64_4);
+
+    length -= 64; buffer += 64;
+  }
+  // horizontal add
+  sum += vsum.epi64[0];
+  sum += vsum.epi64[1];
+  sum += vsum.epi64[2];
+  sum += vsum.epi64[3];
+#endif
+
+  // unrolled 8 32-bit adds
   while (length >= 32)
   {
     auto* v = (uint32_t*) buffer;
@@ -42,6 +81,7 @@ uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
     sum += v[7];
     length -= 32; buffer += 32;
   }
+
   while (length >= 4)
   {
     auto v = *(uint32_t*) buffer;

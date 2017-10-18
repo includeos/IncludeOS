@@ -29,7 +29,7 @@ extern void *memalign(size_t, size_t);
 #include <cstddef>
 //#define DEBUG_RELEASE
 //#define DEBUG_RETRIEVE
-#define DEBUG_BUFSTORE
+//#define DEBUG_BUFSTORE
 
 #define PAGE_SIZE     0x1000
 #define ENABLE_BUFFERSTORE_CHAIN
