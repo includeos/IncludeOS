@@ -197,14 +197,14 @@ namespace x86 {
                          ICR_ALL_EXCLUDING_SELF | ICR_ASSERT | vector);
     }
 
-    void timer_init() noexcept override
+    void timer_init(const uint8_t timer_intr) noexcept override
     {
       static const uint32_t TIMER_ONESHOT = 0x0;
       // decrement every other tick
       write(x2APIC_TMRDIV, 0x1);
       // start in one-shot mode and set the interrupt vector
       // but also disable interrupts
-      write(x2APIC_LVT_TMR, TIMER_ONESHOT | (32+LAPIC_IRQ_TIMER) | INTR_MASK);
+      write(x2APIC_LVT_TMR, TIMER_ONESHOT | (32+timer_intr) | INTR_MASK);
     }
     void timer_begin(uint32_t value) noexcept override
     {
