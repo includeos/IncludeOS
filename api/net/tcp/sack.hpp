@@ -93,7 +93,7 @@ using Entries = std::array<Block,3>;
 
 struct Ack_result {
   Entries   entries;
-  uint32_t  bytes_freed;
+  uint32_t  bytes;
 };
 
 
@@ -101,7 +101,7 @@ template <typename List_impl>
 class List {
 public:
 
-  Entries recv_out_of_order(seq_t seq, size_t len)
+  Ack_result recv_out_of_order(seq_t seq, size_t len)
   {
     return impl.recv_out_of_order(seq, len);
   }
@@ -120,7 +120,7 @@ class Array_list {
 public:
   static_assert(N <= 32 && N > 0, "N wrong sized - optimized for small N");
 
-  Entries recv_out_of_order(seq_t seq, uint32_t len)
+  Ack_result recv_out_of_order(seq_t seq, uint32_t len)
   {
     Block inc{seq, seq+len};
 
@@ -173,15 +173,14 @@ public:
     } else {
       update = get_free();
       if (not update) {
-        // TODO: return older sack list
-        printf("No free blocks left\n");
+        return {recent_entries(), 0};
       } else {
         *update = inc;
       }
     }
 
     update_latest(update);
-    return recent_entries();
+    return {recent_entries(), len};
   }
 
   Ack_result new_valid_ack(seq_t seq)
