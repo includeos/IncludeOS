@@ -11,6 +11,7 @@ import validate_vm
 import signal
 import psutil
 import magic
+from shutil import copyfile
 
 from prettify import color
 
@@ -609,6 +610,12 @@ class vm:
         print INFO, "Building with cmake (%s)" % args
         # install dir:
         INSTDIR = os.getcwd()
+
+        if not os.path.isfile("CMakeLists.txt"):
+            # No makefile present. Copy the one from seed, inform user and pray.
+            # copyfile will throw errors if it encounters any.
+            copyfile(INCLUDEOS_HOME + "/includeos/seed/service/CMakeLists.txt", "CMakeLists.txt")
+            print INFO, "No CMakeList.txt present. File copied from seed. Please adapt to your needs."
 
         # create build directory
         try:
