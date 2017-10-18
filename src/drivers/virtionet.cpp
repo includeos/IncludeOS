@@ -140,7 +140,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 
   for (int i = 0; i < rx_q.size() / 2; i++) {
       auto buf = bufstore().get_buffer();
-      assert(bufstore().is_from_pool(buf.addr));
+      assert(bufstore().is_from_this_pool(buf.addr));
       add_receive_buffer(buf.addr);
   }
 
