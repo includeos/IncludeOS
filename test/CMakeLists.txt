@@ -103,6 +103,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/sha1.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
+  ${TEST}/util/unit/fixed_list_alloc_test.cpp
   ${TEST}/util/unit/fixed_queue.cpp
   ${TEST}/util/unit/fixed_vector.cpp
   ${TEST}/util/unit/isotime.cpp
