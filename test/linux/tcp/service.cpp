@@ -16,16 +16,15 @@
 // limitations under the License.
 
 #include <cmath> // rand()
-#include <sstream>
-
 #include <os>
 #include <hw/devices.hpp>
 #include <kernel/events.hpp>
 #include <drivers/usernet.hpp>
 #include <net/inet4>
 
+static const size_t CHUNK_SIZE = 1024 * 1024;
+static const size_t NUM_CHUNKS = 2048;
 
-using namespace std::chrono;
 
 inline UserNet& create_nic(){
   // the IncludeOS packet communicator
@@ -36,11 +35,6 @@ inline UserNet& create_nic(){
 
   return *usernet;
 }
-
-const int chunksize = 1024 * 1024;
-const int num_chunks = 512;
-
-
 
 class Async_device {
 public:
@@ -71,24 +65,18 @@ private:
   int event_id = 0;
   std::deque<net::Packet_ptr> queue;
 };
-
-
-std::unique_ptr<Async_device> dev1;
-std::unique_ptr<Async_device> dev2;
+static std::unique_ptr<Async_device> dev1;
+static std::unique_ptr<Async_device> dev2;
 
 using namespace std::chrono;
-milliseconds time_start;
+static milliseconds time_start;
 
-inline auto now() {
+static inline auto now() {
   return duration_cast< milliseconds >(system_clock::now().time_since_epoch());
 }
 
-
-
 void Service::start()
 {
-
-
   // Create some pure userspace Nic's
   auto& nic1 = create_nic();
   auto& nic2 = create_nic();
@@ -112,24 +100,24 @@ void Service::start()
 
   // Set up a TCP server on port 80
   auto& server = inet_server.tcp().listen(80);
-
-  auto buf =  net::tcp::construct_buffer(chunksize);
+  // the shared buffer
+  auto buf = net::tcp::construct_buffer(CHUNK_SIZE);
 
   // Add a TCP connection handler
   server.on_connect(
   [] (net::tcp::Connection_ptr conn) {
 
-    conn->on_read(chunksize, [conn] (auto buf) {
+    conn->on_read(CHUNK_SIZE, [conn] (auto buf) {
         static size_t count_bytes = 0;
 
-        //printf("chunksize: %zu \n", buf->size());
-        assert(buf->size() <= chunksize);
+        //printf("CHUNK_SIZE: %zu \n", buf->size());
+        assert(buf->size() <= CHUNK_SIZE);
         count_bytes += buf->size();
 
-        if (count_bytes >= num_chunks * chunksize) {
+        if (count_bytes >= NUM_CHUNKS * CHUNK_SIZE) {
 
           auto timediff = now() - time_start;
-          assert(count_bytes == num_chunks * chunksize);
+          assert(count_bytes == NUM_CHUNKS * CHUNK_SIZE);
 
           double time_sec = timediff.count()/1000.0;
           double mbps = ((count_bytes * 8) / (1024.0 * 1024.0)) / time_sec;
@@ -149,7 +137,7 @@ void Service::start()
       if (not conn)
         std::abort();
 
-      for (int i = 0; i < num_chunks; i++)
+      for (int i = 0; i < NUM_CHUNKS; i++)
         conn->write(buf);
 
     });
