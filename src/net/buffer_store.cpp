@@ -108,21 +108,6 @@ namespace net {
     return total;
   }
 
-  bool BufferStore::is_from_pool(uint8_t* addr) const noexcept
-  {
-    auto* current = this;
-    if (addr >= current->pool_begin() and
-        addr < current->pool_end()) return true;
-#ifdef ENABLE_BUFFERSTORE_CHAIN
-    while (current->next_ != nullptr) {
-        current = current->next_;
-        if (addr >= current->pool_begin() and
-            addr < current->pool_end()) return true;
-    }
-#endif
-    return false;
-  }
-
   BufferStore* BufferStore::get_next_bufstore()
   {
 #ifdef ENABLE_BUFFERSTORE_CHAIN
@@ -175,7 +160,7 @@ namespace net {
     return buffer;
   }
 
-  void BufferStore::release(void* addr)
+  void BufferStore::release_internal(void* addr)
   {
     auto* buff = (uint8_t*) addr;
     BSD_RELEASE("%d: Release %p -> ", this->index, buff);
@@ -183,18 +168,11 @@ namespace net {
 #ifndef INCLUDEOS_SINGLE_THREADED
     scoped_spinlock spinlock(plock);
 #endif
-    // expensive: is_buffer(buff)
-    if (LIKELY(is_from_pool(buff))) {
-      available_.push_back(buff);
-      BSD_RELEASE("released (avail=%lu / %lu)\n",
-                  available(), total_buffers());
-      return;
-    }
 #ifdef ENABLE_BUFFERSTORE_CHAIN
     // try to release buffer on linked bufferstore
     BufferStore* ptr = next_;
     while (ptr != nullptr) {
-      if (ptr->is_from_pool(buff)) {
+      if (ptr->is_from_this_pool(buff)) {
         BSD_RELEASE("released on other bufferstore\n");
         ptr->release_directly(buff);
         return;

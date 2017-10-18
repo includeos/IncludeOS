@@ -19,6 +19,7 @@
 #ifndef NET_BUFFER_STORE_HPP
 #define NET_BUFFER_STORE_HPP
 
+#include <common>
 #include <stdexcept>
 #include <vector>
 #include <smp>
@@ -41,12 +42,12 @@ namespace net
       uint8_t*     addr;
     };
 
-    BufferStore() = delete;
     BufferStore(size_t num, size_t bufsize);
     ~BufferStore();
 
     buffer_t get_buffer();
-    void release(void*);
+
+    inline void release(void*);
 
     size_t local_buffers() const noexcept
     { return poolsize_ / bufsize_; }
@@ -59,7 +60,10 @@ namespace net
     { return poolsize_; }
 
     /** Check if a buffer belongs here */
-    bool is_from_pool(uint8_t* addr) const noexcept;
+    bool is_from_this_pool(uint8_t* addr) const noexcept {
+      return (addr >= this->pool_begin()
+          and addr <  this->pool_end());
+    }
 
     /** Check if an address is the start of a buffer */
     bool is_buffer(uint8_t* addr) const noexcept
@@ -73,10 +77,6 @@ namespace net
     void move_to_this_cpu() noexcept;
 
   private:
-    bool is_from_this_pool(uint8_t* addr) const noexcept {
-      return (addr >= this->pool_begin()
-          and addr <  this->pool_end());
-    }
     uint8_t* pool_begin() const noexcept {
       return pool_;
     }
@@ -87,6 +87,7 @@ namespace net
     BufferStore* get_next_bufstore();
     inline buffer_t get_buffer_directly() noexcept;
     inline void     release_directly(uint8_t*);
+    void release_internal(void*);
 
     size_t               poolsize_;
     size_t               bufsize_;
@@ -103,6 +104,22 @@ namespace net
     BufferStore& operator=(BufferStore&)  = delete;
     BufferStore  operator=(BufferStore&&) = delete;
   };
+
+  inline void BufferStore::release(void* addr)
+  {
+    auto* buff = (uint8_t*) addr;
+    // try to release directly into pool
+    if (LIKELY(is_from_this_pool(buff))) {
+#ifndef INCLUDEOS_SINGLE_THREADED
+      scoped_spinlock spinlock(this->plock);
+#endif
+      available_.push_back(buff);
+      return;
+    }
+    // release via chained stores
+    release_internal(addr);
+  }
+
 } //< net
 
 #endif //< NET_BUFFER_STORE_HPP

@@ -9,7 +9,20 @@ string(STRIP ${OS_VERSION} OS_VERSION)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -march=native -Wall -Wextra")
+
+option(GPROF "Enable profiling with gprof" OFF)
+option(SANITIZE "Enable undefined- and address sanitizers" OFF)
+
+
+if(GPROF)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+endif()
+
+if(SANITIZE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address")
+endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
 
 add_definitions(-DARCH="x86_64" -DARCH_x86_64)

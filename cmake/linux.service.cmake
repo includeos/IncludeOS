@@ -4,10 +4,20 @@
 
 #set(CMAKE_CXX_COMPILER "clang++-4.0")
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -march=native -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address")
 
-#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -march=native -Wall -Wextra")
+
+option(GPROF "Enable profiling with gprof" OFF)
+option(SANITIZE "Enable undefined- and address sanitizers" OFF)
+
+
+if(GPROF)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+endif()
+
+if(SANITIZE)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address")
+endif()
 
 add_definitions(-DARCH="x86_64" -DARCH_x86_64)
 add_definitions(-DOS_TERMINATE_ON_CONTRACT_VIOLATION)
@@ -26,7 +36,6 @@ include_directories(${IOSPATH}/api)
 include_directories(${IOSPATH}/include)
 include_directories(${IOSPATH}/linux)
 include_directories(${IOSPATH}/../include)
-
 
 set(LPATH $ENV{INCLUDEOS_PREFIX}/includeos/linux)
 
