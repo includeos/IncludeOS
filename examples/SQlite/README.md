@@ -1,4 +1,6 @@
-### STREAM: Sustainable Memory Bandwidth in High Performance Computers
+### SQlite3 demo with C++11 wrapper library
+
+Setup pre-requisites with ./setup.sh.
 
 Using Qemu and the IncludeOS boot program:
 ```

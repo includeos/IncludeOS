@@ -36,6 +36,7 @@ do
   cd $dir
   BASE=`basename $dir`
   echo -e "\n\n>>> Now making $BASE"
+  git submodule update --init --recursive
   mkdir -p build
   pushd build
   rm -rf *
