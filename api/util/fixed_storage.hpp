@@ -48,13 +48,11 @@ public:
   static constexpr std::size_t buffer_size() noexcept
   { return N * aligned_size(); }
 
-  struct alignas(alignment) aligned_array : public std::array<char, buffer_size()> {};
-  using storage_type = aligned_array;
 
 private:
-  storage_type            buf_;
+  alignas(alignment) std::array<char, buffer_size()> buf_;
   /** Available addresses */
-  Fixed_vector<char*, N>  free_;
+  Fixed_vector<char*, N> free_;
 
 public:
   Fixed_storage() noexcept;
@@ -85,8 +83,8 @@ private:
 template <typename T, std::size_t N, std::size_t alignment>
 Fixed_storage<T, N, alignment>::Fixed_storage() noexcept
 {
-  printf("Fixed_storage<%s, %u, %u> aligned_size: %u\n",
-    typeid(T).name(), N, alignment, aligned_size());
+  //printf("Fixed_storage<%s, %u, %u> aligned_size: %u\n",
+  //  typeid(T).name(), N, alignment, aligned_size());
   reset();
 }
 

@@ -24,6 +24,9 @@ struct Block {
 
   Block(size_t i)
     : id{i} {}
+
+  bool operator==(const Block& other) const
+  { return id == other.id; }
 };
 
 template <std::size_t N>
@@ -50,6 +53,11 @@ CASE("Using Fixed_list_alloc")
   EXPECT_THROWS_AS(list.emplace_front(322), Fixed_storage_error);
 
   EXPECT(list.size() == N);
+
+  auto it = std::find(list.begin(), list.end(), Block{3});
+  list.splice(list.begin(), list, it);
+
+  EXPECT(list.begin() == it);
 
   for(int i = 0; i < N; i++)
     list.pop_back();

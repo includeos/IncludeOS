@@ -55,11 +55,8 @@ public:
   Fixed_list_alloc(const Fixed_list_alloc&) = delete;
   Fixed_list_alloc& operator=(const Fixed_list_alloc&) = delete;
 
-  storage_type& storage() noexcept
-  { return store_; }
-
-  template <class _Up> struct rebind {
-    using other = Fixed_list_alloc<_Up, N, alignment>;
+  template <class U> struct rebind {
+    using other = Fixed_list_alloc<U, N, alignment>;
   };
 
   T* allocate(std::size_t n)
@@ -92,7 +89,7 @@ template <class T, std::size_t N, std::size_t A1,
 inline bool operator==(const Fixed_list_alloc<T, N, A1>& x,
                        const Fixed_list_alloc<U, M, A2>& y) noexcept
 {
-  return false; // prevent deallocating eachothers resources
+  return x == y;
 }
 
 template <class T, std::size_t N, std::size_t A1,
