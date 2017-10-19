@@ -20,7 +20,7 @@
 
 #include <delegate>
 #include <array>
-#include <vector>
+#include <deque>
 #include <smp>
 
 #define IRQ_BASE    32
@@ -74,7 +74,9 @@ private:
 
   std::array<bool, NUM_EVENTS>  event_subs;
   std::array<bool, NUM_EVENTS>  event_pend;
-  std::vector<uint8_t> sublist;
+  // using deque because vector resize causes invalidation of ranged for
+  // when something subscribes during processing of events
+  std::deque<uint8_t> sublist;
 };
 
 inline void Events::trigger_event(const uint8_t evt)
