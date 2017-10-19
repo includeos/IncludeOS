@@ -72,8 +72,15 @@ int munmap(void* addr, size_t length)
   return -1;
 }
 
+void *mremap(void *old_address, size_t old_size,
+             size_t new_size, int flags, ... /* void *new_address */)
+{
+  printf("mremap(%p, %lu, %lu, %#x)\n", old_address, old_size, new_size, flags);
+  return 0;
+}
+
 int mprotect(void *addr, size_t len, int prot)
 {
-  printf("mprotect %p:%u with flags %#x\n", addr, len, prot);
+  printf("mprotect(%p, %lu, %#x)\n", addr, len, prot);
   return 0;
 }
