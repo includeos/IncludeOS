@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <array>
 #include <common>
+#include <util/fixed_list_alloc.hpp>
+#include <list>
 
 using seq_t = uint32_t;
 
@@ -42,9 +44,6 @@ struct Block {
     uint64_t whole = 0;
   };
 
-  Block* older = nullptr;
-  Block* newer = nullptr;
-
   bool operator==(const Block& other) const noexcept
   { return start == other.start and end == other.end; }
 
@@ -53,33 +52,14 @@ struct Block {
 
   //int32_t precedes (const Block& other) const
 
-  bool connect_start(const Block& other) const noexcept
+  bool connects_start(const Block& other) const noexcept
   { return other.end == start; }
 
-  bool connect_end(const Block& other) const noexcept
+  bool connects_end(const Block& other) const noexcept
   { return other.start == end; }
 
   Block& operator=(uint64_t whole)
   { this->whole = whole; return *this; }
-
-
-  void free() {
-    detach();
-    whole = 0;
-    older = nullptr;
-    newer = nullptr;
-  }
-
-  void detach() {
-    if (newer)
-      newer->older = older;
-    if (older)
-      older->newer = newer;
-
-    older = nullptr;
-    newer = nullptr;
-  }
-
 
 }__attribute__((packed));
 
@@ -116,146 +96,105 @@ public:
 };
 
 template <int N = 3>
-class Array_list {
+class Fixed_list {
 public:
+  static auto constexpr size = N;
+  using List          = std::list<Block, Fixed_list_alloc<Block, N>>;
+  using List_iterator = typename List::iterator;
+
   static_assert(N <= 32 && N > 0, "N wrong sized - optimized for small N");
 
   Ack_result recv_out_of_order(seq_t seq, uint32_t len)
   {
     Block inc{seq, seq+len};
 
-    Block* connected_end = nullptr;
-    Block* connected_start = nullptr;
-    Block* current = latest_;
+    auto connected_end    = blocks.end();
+    auto connected_start  = blocks.end();
 
-    while (current) {
+    for(auto it = blocks.begin(); it != blocks.end(); it++)
+    {
+      Expects(not it->empty());
 
-      Expects(not current->empty());
-
-      if (current->connect_end(inc))
+      if (it->connects_end(inc))
       {
-        connected_end = current;
+        connected_end = it;
       }
-      else if (current->connect_start(inc))
+      else if (it->connects_start(inc))
       {
-        connected_start = current;
+        connected_start = it;
       }
 
-      if (connected_start and connected_end)
+      // if we connected to two nodes, no point in looking for more
+      if (connected_start != blocks.end() and connected_end != blocks.end())
         break;
-
-      current = current->older;
-
     }
 
-    Block* update = nullptr;
-
-    // Connectes to two blocks, e.g. fill a hole
-    if (connected_end) {
-
-      update = connected_end;
-      update->detach();
-      update->end = inc.end;
+    if (connected_end != blocks.end()) // Connectes to two blocks, e.g. fill a hole
+    {
+      connected_end->end = inc.end;
 
       // It also connects to a start
-      if(connected_start)
+      if (connected_start != blocks.end())
       {
-        update->end = connected_start->end;
-        connected_start->free();
+        connected_end->end = connected_start->end;
+        blocks.erase(connected_start);
       }
 
-      // Connected only to an end
-    } else if (connected_start) {
-      update = connected_start;
-      update->start = inc.start;
-      update->detach();
-      // No connection - new entry
-    } else {
-      update = get_free();
-      if (not update) {
+      move_to_front(connected_end);
+    }
+    else if (connected_start != blocks.end()) // Connected only to an start
+    {
+      connected_start->start = inc.start;
+      move_to_front(connected_start);
+    }
+    else // No connection - new entry
+    {
+      Expects(blocks.size() <= size);
+
+      if(UNLIKELY(blocks.size() == size))
         return {recent_entries(), 0};
-      } else {
-        *update = inc;
-      }
+
+      blocks.push_front(inc);
     }
 
-    update_latest(update);
     return {recent_entries(), len};
   }
 
   Ack_result new_valid_ack(seq_t seq)
   {
-    Block* current = latest_;
     uint32_t bytes_freed = 0;
 
-    while (current) {
-
-      if (current->start == seq) {
-        bytes_freed = current->size();
-
-        if (latest_ == current)
-          latest_ = current->older;
-        current->free();
-
+    for(auto it = blocks.begin(); it != blocks.end(); it++)
+    {
+      if (it->start == seq)
+      {
+        bytes_freed = it->size();
+        blocks.erase(it);
         break;
       }
-
-      current = current->older;
-
     };
 
     return {recent_entries(), bytes_freed};
   }
 
-  void update_latest(Block* blk)
+  void move_to_front(List_iterator it)
   {
-    Expects(blk);
-    Expects(!blk->empty());
-
-    if (blk == latest_)
-      return;
-
-    blk->older = latest_;
-    blk->newer = nullptr;
-
-    if (latest_)
-      latest_->newer = blk;
-
-    latest_ = blk;
-    Ensures(latest_);
-    Ensures(latest_ != latest_->newer);
-    Ensures(latest_ != latest_->older);
-  }
-
-
-  Block* get_free() {
-
-    // TODO: Optimize.
-    for (auto& block : blocks)
-      if (block.empty())
-        return &block;
-
-    return nullptr;
+    if(it != blocks.begin())
+      blocks.splice(blocks.begin(), blocks, it);
   }
 
   Entries recent_entries() const
   {
-
     Entries ret;
     int i = 0;
-    Block* current = latest_;
 
-    while (current and i < ret.size()) {
-      ret[i++] = *current;
-      current = current->older;
-    }
+    for(auto it = blocks.begin(); it != blocks.end() and i < ret.size(); it++)
+      ret[i++] = *it;
 
     return ret;
   }
 
-  std::array<Block, N> blocks;
-
-  Block* latest_ = nullptr;
+  List blocks;
 
 };
 

@@ -61,7 +61,8 @@ CASE("SACK List Array implementation [RFC 2018]")
          8000         5000     5500       8500
          8500         5000     5500       9000
   */
-  List<Array_list<9>> sack_list;
+  using Sack_list = List<Fixed_list<9>>;
+  Sack_list sack_list;
   Ack_result res;
 
   // 5000     5500       6000
@@ -114,7 +115,7 @@ CASE("SACK List Array implementation [RFC 2018]")
         8000       5500    8000   8500   7000   7500   6000   6500
         8500       (lost)
   */
-  sack_list = List<Array_list<9>>();
+  sack_list = Sack_list();
 
   // 5500    6000   6500
   res = sack_list.recv_out_of_order(6000, 500);
@@ -177,7 +178,8 @@ CASE("SACK block list is full")
   using namespace net::tcp::sack;
 
   constexpr int list_size = 9;
-  List<Array_list<list_size>> sack_list;
+  using Sack_list = List<Fixed_list<list_size>>;
+  Sack_list sack_list;
   Ack_result res;
 
 
@@ -216,8 +218,8 @@ CASE("SACK block list is full")
   EXPECT(res.bytes == blksz);
 
   // Last block should now be larger
-  EXPECT(res.entries == expected({seq - incr, seq  +  blksz},
-                                 {seq - incr * 2, (seq - incr * 2) + blksz  },
+  EXPECT(res.entries == expected({seq - incr, (seq - incr ) + blksz + blksz },
+                                 {seq - incr * 2, (seq - incr * 2) + blksz },
                                  {seq - incr * 3, (seq - incr * 3) + blksz } ));
 
 
