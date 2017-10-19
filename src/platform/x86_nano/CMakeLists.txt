@@ -1,17 +1,7 @@
 
 set(PLATFORM_OBJECTS
   ../x86_pc/start.asm
-  ../x86_pc/acpi.cpp
-  ../x86_pc/apic.cpp
-  ../x86_pc/apic_timer.cpp
-  ../x86_pc/ioapic.cpp
-  ../x86_pc/pit.cpp
-  ../x86_pc/cpu_freq_sampling.cpp
   ../x86_pc/serial1.cpp
-  ../x86_pc/os.cpp
-  ../x86_pc/block.cpp
-  ../x86_pc/softreset.cpp
-  ../x86_pc/sanity_checks.cpp
   ../x86_pc/idt.cpp
   platform.cpp
   kernel_start.cpp
