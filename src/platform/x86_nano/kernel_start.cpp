@@ -26,7 +26,6 @@ extern  void __platform_init();
 extern "C" {
   void __init_serial1();
   void __init_sanity_checks();
-  void kernel_sanity_checks();
   uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_bss();
@@ -42,9 +41,6 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 {
   // Initialize serial port 1
   __init_serial1();
-
-  // generate checksums of read-only areas etc.
-  __init_sanity_checks();
 
   // Determine where free memory starts
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
@@ -78,9 +74,6 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 
   // Start the service
   Service::start();
-
-  // verify certain read-only sections in memory
-  kernel_sanity_checks();
 
   __arch_poweroff();
 }
