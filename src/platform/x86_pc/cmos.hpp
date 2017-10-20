@@ -20,7 +20,7 @@
 
 #include <hw/ioport.hpp>
 
-namespace hw
+namespace x86
 {
   /** Functions / classes for x86 CMOS / RTC interaction */
   class CMOS {

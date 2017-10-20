@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+struct epoll_event;
+
 struct TAP_driver
 {
   typedef std::vector<std::reference_wrapper<TAP_driver>> TAPVEC;
@@ -14,6 +16,8 @@ struct TAP_driver
   void on_read(const char* buffer, int len) {
     if (o_read) o_read(buffer, len);
   }
+
+  void wait();
 
   int get_fd() const { return tun_fd; }
   int read (char *buf, int len);
@@ -29,6 +33,9 @@ private:
   int alloc_tun();
 
   int tun_fd;
-  on_read_func o_read;
+  on_read_func o_read = nullptr;
   const char* dev = nullptr;
+
+  int epoll_fd = -1;
+  epoll_event* epoll_ptr = nullptr;
 };

@@ -42,8 +42,8 @@ namespace x86
 
   struct alignas(SMP_ALIGN) timer_data
   {
+    int  intr;
     bool intr_enabled = false;
-
   };
   static std::array<timer_data, SMP_MAX_CORES> timerdata;
 
@@ -56,19 +56,18 @@ namespace x86
         oneshot, // timer start function
         stop);   // timer stop function
 
+    // set interrupt handler
+    PER_CPU(timerdata).intr =
+        Events::get().subscribe(Timers::timers_handler);
     // initialize local APIC timer
-    APIC::get().timer_init();
+    APIC::get().timer_init(PER_CPU(timerdata).intr);
   }
   void APIC_Timer::calibrate()
   {
     init();
 
     if (ticks_per_micro != 0) {
-      // make sure timers are delay-initalized
-      const auto irq = LAPIC_IRQ_TIMER;
-      Events::get().subscribe(irq, start_timers);
-      // soft-trigger IRQ immediately
-      Events::get().trigger_event(irq);
+      start_timers();
       return;
     }
 
@@ -112,11 +111,8 @@ namespace x86
   void APIC_Timer::start_timers() noexcept
   {
     assert(ready());
-    // set interrupt handler
-    Events::get().subscribe(LAPIC_IRQ_TIMER, Timers::timers_handler);
     // delay-start all timers
-    auto irq = Events::get().subscribe(Timers::ready);
-    Events::get().trigger_event(irq);
+    Events::get().defer(Timers::ready);
   }
 
   bool APIC_Timer::ready() noexcept
