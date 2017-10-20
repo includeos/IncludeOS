@@ -50,7 +50,11 @@ struct Block {
   uint32_t size() const noexcept { return end - start; }
   bool empty () const noexcept { return whole == 0; }
 
-  //int32_t precedes (const Block& other) const
+  bool contains(const seq_t seq) const noexcept
+  {
+    return static_cast<int32_t>(seq - start) >= 0 and
+           static_cast<int32_t>(seq - end) <= 0;
+  }
 
   bool connects_start(const Block& other) const noexcept
   { return other.end == start; }
@@ -76,23 +80,22 @@ struct Ack_result {
   uint32_t  bytes;
 };
 
-
 template <typename List_impl>
 class List {
 public:
+  List() = default;
+
+  List(List_impl&& args)
+    : impl{std::forward(args)}
+  {}
 
   Ack_result recv_out_of_order(seq_t seq, size_t len)
-  {
-    return impl.recv_out_of_order(seq, len);
-  }
+  { return impl.recv_out_of_order(seq, len); }
 
   Ack_result new_valid_ack(seq_t end)
-  {
-    return impl.new_valid_ack(end);
-  }
+  { return impl.new_valid_ack(end); }
 
   List_impl impl;
-
 };
 
 template <int N = 3>

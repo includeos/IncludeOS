@@ -34,7 +34,32 @@ net::tcp::sack::Entries expected(
   return {{first, second, third}};
 }
 
-CASE("SACK List Array implementation [RFC 2018]")
+CASE("Block test")
+{
+  using namespace net::tcp::sack;
+  seq_t start {0};
+  seq_t end   {1500};
+  Block block{start, end};
+
+  EXPECT(block.size() == 1500);
+  EXPECT(not block.empty());
+  EXPECT(block.contains(1000));
+  EXPECT(not block.contains(2000));
+
+  block.start -= 1000;
+  EXPECT(block.size() == 2500);
+  EXPECT(block.contains(1000));
+  EXPECT(block.contains(-500));
+
+  block.end -= 1500;
+  EXPECT(block.size() == 1000);
+  EXPECT(not block.contains(1000));
+  EXPECT(block.contains(0));
+  EXPECT(block.contains(-500));
+  EXPECT(block.contains(-1000));
+}
+
+CASE("SACK Fixed List implementation [RFC 2018]")
 {
   using namespace std;
   using namespace net::tcp::sack;
@@ -93,7 +118,6 @@ CASE("SACK List Array implementation [RFC 2018]")
   res = sack_list.recv_out_of_order(8500,500);
   EXPECT(res.entries == expected({5500, 9000}));
 
-
   /*
     Case 3:  The 2nd, 4th, 6th, and 8th (last) segments are
     dropped.
@@ -144,13 +168,8 @@ CASE("SACK List Array implementation [RFC 2018]")
         6500       5500    6000   7500   8000   8500
   */
 
-  for(auto& b : sack_list.impl.blocks)
-    std::cout << b << "\n";
   // 6000   7500   8000   8500
   res = sack_list.recv_out_of_order(6500, 500);
-
-  for(auto& b : sack_list.impl.blocks)
-    std::cout << b << "\n";
 
   EXPECT(res.entries == expected({6000,7500}, {8000,8500}));
 
@@ -164,12 +183,27 @@ CASE("SACK List Array implementation [RFC 2018]")
 
         5500       7500    8000   8500
   */
-  auto result = sack_list.new_valid_ack(5500 + 500);
-  for(auto& b : sack_list.impl.blocks)
-    std::cout << b << "\n";
-  EXPECT(result.entries == expected({8000,8500}));
-  EXPECT(result.bytes == 7500-6000);
+  res = sack_list.new_valid_ack(5500 + 500);
 
+  EXPECT(res.entries == expected({8000,8500}));
+  EXPECT(res.bytes == 7500-6000);
+
+
+  // Create a hole which connects both ends and fill the hole
+  sack_list = Sack_list();
+
+  res = sack_list.recv_out_of_order(5500, 500);
+  EXPECT(res.entries == expected({5500,6000}));
+
+  res = sack_list.recv_out_of_order(6500, 500);
+  EXPECT(res.entries == expected({6500,7000}, {5500,6000}));
+
+  res = sack_list.recv_out_of_order(6000, 500);
+  EXPECT(res.entries == expected({5500,7000}));
+
+  res = sack_list.new_valid_ack(5500);
+  EXPECT(res.entries == expected());
+  EXPECT(res.bytes == 1500);
 }
 
 CASE("SACK block list is full")
@@ -198,9 +232,6 @@ CASE("SACK block list is full")
                                  {seq - incr * 2, (seq - incr * 2) + blksz  },
                                  {seq - incr * 3, (seq - incr * 3) + blksz } ));
 
-  std::cout << "Fully populated SACK list:  \n"
-            << res.entries << "\n";
-
   EXPECT(res.bytes == blksz);
 
   // Try adding one more
@@ -211,6 +242,7 @@ CASE("SACK block list is full")
                                  {seq - incr * 2, (seq - incr * 2) + blksz  },
                                  {seq - incr * 3, (seq - incr * 3) + blksz } ));
 
+  // Nothing inserted
   EXPECT(res.bytes == 0);
 
   // Add a block that connects to the end, which should free up one spot
