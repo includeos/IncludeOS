@@ -15,6 +15,9 @@ public:
   using Link_protocol = Link::Protocol;
   static constexpr MAC::Addr MAC_ADDRESS = {1, 2, 3, 4, 5, 6};
 
+  UserNet& create(const uint16_t MTU);
+  UserNet(const uint16_t MTU);
+
   const char* driver_name() const override {
     return "UserNet";
   }
@@ -23,7 +26,7 @@ public:
   { return MAC_ADDRESS; }
 
   uint16_t MTU() const noexcept override
-  { return 1500; }
+  { return this->mtu_value; }
 
   uint16_t packet_len() const noexcept {
     return Link::Protocol::header_size() + MTU();
@@ -47,9 +50,9 @@ public:
   void transmit(net::Packet_ptr);
 
   /** packets coming in from network **/
-  void feed(void*, net::BufferStore* = nullptr);
-  void feed(net::Packet_ptr);
-  void write(const void* data, int len);
+  void receive(void*, net::BufferStore* = nullptr);
+  void receive(net::Packet_ptr);
+  void receive(const void* data, int len);
 
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override;
@@ -59,14 +62,13 @@ public:
   void flush() override {}
   void poll() override {}
 
-  UserNet();
-
   struct driver_hdr {
     uint32_t len;
     uint16_t padding;
   }__attribute__((packed));
 
 private:
+  const uint16_t mtu_value;
   net::BufferStore buffer_store;
   forward_t transmit_forward_func;
 };

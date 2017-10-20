@@ -16,7 +16,7 @@ void create_network_device(int N, const char* route, const char* ip)
             ("tap" + std::to_string(N)).c_str(), route, ip);
   tap_devices.push_back(*tap);
   // the IncludeOS packet communicator
-  auto* usernet = new UserNet();
+  auto* usernet = new UserNet(1500);
   // register driver for superstack
   auto driver = std::unique_ptr<hw::Nic> (usernet);
   hw::Devices::register_device<hw::Nic> (std::move(driver));
@@ -25,7 +25,7 @@ void create_network_device(int N, const char* route, const char* ip)
     [tap] (net::Packet_ptr packet) {
       tap->write(packet->layer_begin(), packet->size());
     });
-  tap->on_read({usernet, &UserNet::write});
+  tap->on_read({usernet, &UserNet::receive});
 }
 
 int main(void)

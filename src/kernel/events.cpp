@@ -16,12 +16,13 @@
 // limitations under the License.
 
 #include <kernel/events.hpp>
+#include <algorithm>
 #include <cassert>
 #include <statman>
 #include <smp>
 //#define DEBUG_SMP
 
-static std::array<Events, SMP_MAX_CORES> managers;
+static SMP_ARRAY<Events> managers;
 
 Events& Events::get(int cpuid)
 {
@@ -37,80 +38,94 @@ Events& Events::get()
   return PER_CPU(managers);
 }
 
-void Events::trigger_event(uint8_t evt)
-{
-  event_pend.atomic_set(evt);
-  // increment events received
-  received_array[evt]++;
-}
-
 void Events::init_local()
 {
+  std::memset(event_subs.data(), 0, sizeof(event_subs));
+  std::memset(event_pend.data(), 0, sizeof(event_pend));
   // prevent legacy IRQs from being free for taking
-  for (uint8_t id = 0; id < 32; id++)
-      event_subs.set(id);
+  for (int evt = 0; evt < 32; evt++)
+      event_subs[evt] = true;
 }
 
 uint8_t Events::subscribe(event_callback func)
 {
-  auto evt = event_subs.first_free();
-  subscribe(evt, func);
-  return evt;
+  for (int evt = 32; evt < NUM_EVENTS; evt++) {
+    if (event_subs[evt] == false) {
+      subscribe(evt, func);
+      return evt;
+    }
+  }
+  throw std::out_of_range("No more free events");
 }
 void Events::subscribe(uint8_t evt, event_callback func)
 {
-  assert(evt < NUM_EVENTS);
-
   // enable IRQ in hardware
   __arch_subscribe_irq(evt);
 
   // Mark as subscribed to
-  event_subs.atomic_set(evt);
-
-  // Set callback for event
+  event_subs[evt] = true;
+  // Set (new) callback for event
   callbacks[evt] = func;
+  // add to sublist if not there already
+  auto it = std::find(sublist.begin(), sublist.end(), evt);
+  if (it == sublist.end())
+  {
+    sublist.push_back(evt);
 #ifdef DEBUG_SMP
-  SMP::global_lock();
-  printf("Subscribed to intr=%u irq=%u on cpu %d\n",
-         IRQ_BASE + evt, evt, SMP::cpu_id());
-  SMP::global_unlock();
+    SMP::global_lock();
+    printf("Subscribed to intr=%u irq=%u on cpu %d\n",
+           IRQ_BASE + evt, evt, SMP::cpu_id());
+    SMP::global_unlock();
 #endif
+  }
 }
 void Events::unsubscribe(uint8_t evt)
 {
-  event_subs.atomic_reset(evt);
+  event_subs[evt] = false;
   callbacks[evt] = nullptr;
+  for (auto it = sublist.begin(); it != sublist.end(); ++it) {
+    if (*it == evt) {
+      sublist.erase(it); return;
+    }
+  }
+  throw std::out_of_range("Event was not in sublist?");
+}
+
+void Events::defer(event_callback cb)
+{
+  auto ev = subscribe(nullptr);
+  subscribe(ev, event_callback::make_packed(
+    [this, ev, cb] () {
+      unsubscribe(ev);
+      cb();
+    }));
+  // and trigger it once
+  event_pend[ev] = true;
 }
 
 void Events::process_events()
 {
-  while (true)
-  {
-    // event bits that are both pending and subscribed to
-    event_todo.set_from_and(event_subs, event_pend);
+  bool handled_any;
+  do {
+    handled_any = false;
 
-    int intr = event_todo.first_set();
-    if (intr == -1) break;
-
-    do {
-      // reset pending before running handler
-      event_pend.atomic_reset(intr);
-      // sub and call handler
+    for (const uint8_t intr : sublist)
+    if (event_pend[intr])
+    {
+      event_pend[intr] = false;
+      // call handler
 #ifdef DEBUG_SMP
-      SMP::global_lock();
-      if (intr != 0)
-      printf("[cpu%d] Calling handler for intr=%u irq=%u\n",
-             SMP::cpu_id(), IRQ_BASE + intr, intr);
-      SMP::global_unlock();
+      if (intr != 0) {
+        SMP::global_lock();
+        printf("[cpu%d] Calling handler for intr=%u irq=%u\n",
+                SMP::cpu_id(), IRQ_BASE + intr, intr);
+        SMP::global_unlock();
+      }
 #endif
       callbacks[intr]();
-
       // increment events handled
       handled_array[intr]++;
-
-      event_todo.reset(intr);
-      intr = event_todo.first_set();
+      handled_any = true;
     }
-    while (intr != -1);
-  }
+  } while (handled_any);
 }

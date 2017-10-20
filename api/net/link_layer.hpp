@@ -39,6 +39,15 @@ public:
   downstream_link create_link_downstream() override
   { return {link_, &Protocol::transmit}; }
 
+  net::upstream_ip& ip4_upstream() override
+  { return link_.ip4_upstream(); }
+
+  net::upstream_ip& ip6_upstream() override
+  { return link_.ip6_upstream(); }
+
+  upstream& arp_upstream() override
+  { return link_.arp_upstream(); }
+
   void set_ip4_upstream(upstream_ip handler) override
   { link_.set_ip4_upstream(handler); }
 
