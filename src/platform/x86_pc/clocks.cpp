@@ -25,7 +25,7 @@
 #include <smp>
 
 typedef delegate<int64_t()> system_time_t;
-static SMP_ARRAY<system_time_t> vcpu_clock = {{nullptr}};
+static SMP_ARRAY<system_time_t> vcpu_clock;
 
 namespace x86
 {
