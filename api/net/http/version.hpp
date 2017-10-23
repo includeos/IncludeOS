@@ -19,6 +19,10 @@
 #define HTTP_VERSION_HPP
 
 #include <sstream>
+#ifdef __GNUC__
+#undef major
+#undef minor
+#endif
 
 namespace http {
 
