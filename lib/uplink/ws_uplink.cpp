@@ -254,7 +254,8 @@ namespace uplink {
 
     ws_->close();
     // do the update
-    Timers::oneshot(std::chrono::milliseconds(10), [this, buffer] (auto) {
+    Timers::oneshot(std::chrono::milliseconds(10),
+    [buffer] (auto) {
       liu::LiveUpdate::exec(buffer);
     });
   }
