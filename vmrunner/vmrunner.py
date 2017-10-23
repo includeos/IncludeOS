@@ -611,7 +611,7 @@ class vm:
         # install dir:
         INSTDIR = os.getcwd()
 
-        if not os.path.isfile("CMakeLists.txt"):
+        if (not os.path.isfile("CMakeLists.txt") and os.path.isfile("service.cpp")):
             # No makefile present. Copy the one from seed, inform user and pray.
             # copyfile will throw errors if it encounters any.
             copyfile(INCLUDEOS_HOME + "/includeos/seed/service/CMakeLists.txt", "CMakeLists.txt")
