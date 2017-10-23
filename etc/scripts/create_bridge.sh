@@ -21,7 +21,7 @@ else
   exit 1
 fi
 
-if [ -n $INCLUDEOS_BRIDGE ]; then
+if [ -n "$INCLUDEOS_BRIDGE" ]; then
      BRIDGE=$INCLUDEOS_BRIDGE
 fi
 
