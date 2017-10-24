@@ -20,10 +20,10 @@
 
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
-#include <util/fixedvec.hpp>
 #include <service>
 #include <cstdio>
 #include <cinttypes>
+#include <util/fixed_vector.hpp>
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -53,7 +53,7 @@ uintptr_t OS::heap_max_ = (uintptr_t) -1;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // stdout redirection
-using Print_vec = fixedvector<OS::print_func, 8>;
+using Print_vec = Fixed_vector<OS::print_func, 8>;
 static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
 
 // Plugins
@@ -63,7 +63,7 @@ struct Plugin_desc {
   OS::Plugin  func;
   const char* name;
 };
-static fixedvector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
+static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
 
 // OS version
 std::string OS::version_str_ = OS_VERSION;
@@ -81,7 +81,7 @@ const char* OS::cmdline_args() noexcept {
 
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
-  plugins.emplace(delg, name);
+  plugins.emplace_back(delg, name);
 }
 
 void OS::reboot()
@@ -144,7 +144,7 @@ void OS::post_start()
 
 void OS::add_stdout(OS::print_func func)
 {
-  os_print_handlers.add(func);
+  os_print_handlers.push_back(func);
 }
 __attribute__((weak))
 bool os_enable_boot_logging = false;

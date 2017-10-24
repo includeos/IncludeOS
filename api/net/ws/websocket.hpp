@@ -42,72 +42,70 @@ public:
     using Data_it  = Data::iterator;
     using Data_cit = Data::const_iterator;
 
-  public:
-    Message(const char* data, size_t len)
-      : data_{data, data + len}
-    {
-      data_.reserve(header().reported_length());
+    auto as_shared_vector() const {
+      return std::make_shared<std::vector<uint8_t>> (cbegin(), cend());
+    }
+    auto extract_shared_vector() {
+      return std::make_shared<std::vector<uint8_t>> (std::move(data_));
     }
 
-    Message(ws_header&& header)
-    {
-      data_.reserve(header.reported_length());
-      const char* hdr = reinterpret_cast<const char*>(&header);
-      data_.insert(data_.begin(), hdr, hdr + header.header_length());
-    }
+    std::string as_text() const
+    { return std::string(data(), size()); }
 
-    const ws_header& header() const noexcept
-    { return *(reinterpret_cast<const ws_header*>(data_.data())); }
-
-    op_code opcode() const noexcept
-    { return header().opcode(); }
-
-    auto size() const noexcept
-    { return header().data_length(); }
+    size_t size() const noexcept
+    { return data_.size(); }
 
     Data_it begin() noexcept
-    { return data_.begin() + header().header_length(); }
+    { return data_.begin(); }
 
     Data_it end() noexcept
     { return data_.end(); }
 
     Data_cit cbegin() const noexcept
-    { return data_.begin() + header().header_length(); }
+    { return data_.begin(); }
 
     Data_cit cend() const noexcept
     { return data_.end(); }
 
-    std::string as_text() const
-    { return std::string((const char*) data(), size()); }
-
-    auto as_shared_vector() const {
-      return std::make_shared<std::vector<uint8_t>> (cbegin(), cend());
-    }
-
     const char* data() const noexcept
-    { return (const char*) data_.data() + header().header_length(); }
+    { return (const char*) data_.data(); }
 
     char* data() noexcept
-    { return (char*) data_.data() + header().header_length(); }
+    { return (char*) data_.data(); }
 
-    size_t add(const char* data, size_t len)
+    Message(const uint8_t* data, size_t len)
     {
-      size_t insert_size = std::min(data_.capacity() - data_.size(), len);
-      data_.insert(data_.end(), data, data + insert_size);
-      return insert_size;
+      this->append(data, len);
     }
 
+    size_t append(const uint8_t* data, size_t len);
+
     bool is_complete() const noexcept
-    { return header().data_length() == (data_.size() - header().header_length()); }
+    { return header_complete() && data_.size() == header().data_length(); }
+
+    const ws_header& header() const noexcept
+    { return *(ws_header*) header_.data(); }
+
+    op_code opcode() const noexcept
+    { return header().opcode(); }
 
     void unmask() noexcept
-    { if (_header().is_masked()) _header().masking_algorithm(); }
+    {
+      if (header().is_masked())
+          writable_header().masking_algorithm(this->data());
+    }
 
   private:
     Data data_;
+    std::array<uint8_t, 15> header_;
+    uint8_t header_length = 0;
 
-    ws_header& _header()
-    { return *(reinterpret_cast<ws_header*>(data_.data())); }
+    inline bool header_complete() const noexcept {
+      return header_length >= 2 && header_length >= header().header_length();
+    }
+
+    ws_header& writable_header()
+    { return *(ws_header*) header_.data(); }
 
   }; // < class Message
 
@@ -245,7 +243,7 @@ private:
   bool write_opcode(op_code code, const char*, size_t);
   void failure(const std::string&);
   void tcp_closed();
-  size_t create_message(char*, size_t len);
+  size_t create_message(const uint8_t*, size_t len);
   void finalize_message();
   void reset();
 };

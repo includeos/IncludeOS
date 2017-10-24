@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef UTIL_FIXEDVEC_HPP
-#define UTIL_FIXEDVEC_HPP
+#ifndef UTIL_FIXED_VECTOR_HPP
+#define UTIL_FIXED_VECTOR_HPP
 
 /**
  * High performance no-heap fixed vector
@@ -33,26 +33,26 @@ enum class Fixedvector_Init {
 };
 
 template <typename T, int N>
-struct fixedvector {
-  fixedvector() : count(0) {}
-  fixedvector(Fixedvector_Init) {}
+struct Fixed_vector {
+  Fixed_vector() : count(0) {}
+  Fixed_vector(Fixedvector_Init) {}
 
   // add existing
-  T& add(const T& e) noexcept {
+  T& push_back(const T& e) noexcept {
     assert(count < N);
     (*this)[count] = e;
     return (*this)[count++];
   }
   // construct into
   template <typename... Args>
-  T& emplace(Args&&... args) noexcept {
+  T& emplace_back(Args&&... args) noexcept {
     assert(count < N);
     new (&element[count]) T(args...);
     return (*this)[count++];
   }
 
   // pop back and return last element
-  T pop() {
+  T pop_back() {
     return (*this)[--count];
   }
   // clear whole thing
@@ -80,6 +80,11 @@ struct fixedvector {
   }
   T* end() noexcept {
     return (T*) &element[count];
+  }
+
+  T& back() noexcept {
+    assert(not empty());
+    return (T&)element[count-1];
   }
 
   constexpr int capacity() const noexcept {
