@@ -44,6 +44,12 @@ struct Block {
     uint64_t whole = 0;
   };
 
+  void swap_endian() noexcept
+  {
+    start = htonl(start);
+    end   = htonl(end);
+  }
+
   bool operator==(const Block& other) const noexcept
   { return start == other.start and end == other.end; }
 
@@ -79,7 +85,7 @@ std::ostream& operator<<(std::ostream& out, const Block& b) {
   return out;
 }
 
-using Entries = std::array<Block,3>;
+using Entries = Fixed_vector<Block,3>;
 
 struct Ack_result {
   Entries   entries;
@@ -117,8 +123,6 @@ connects_to(Iterator first, Iterator last, const Connectable& value)
   Connect_result<Iterator> connected{last, last};
   for (; first != last; ++first)
   {
-    Expects(not first->empty());
-
     if (first->connects_end(value))
     {
       connected.end = first;
@@ -207,8 +211,8 @@ public:
     Entries ret;
     int i = 0;
 
-    for(auto it = blocks.begin(); it != blocks.end() and i < ret.size(); it++)
-      ret[i++] = *it;
+    for(auto it = blocks.begin(); it != blocks.end() and ret.size() < ret.capacity(); it++)
+      ret.push_back(*it);
 
     return ret;
   }

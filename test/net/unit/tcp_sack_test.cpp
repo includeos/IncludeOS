@@ -26,12 +26,9 @@ std::ostream& operator<< (std::ostream& out, const net::tcp::sack::Entries& ent)
   return out;
 }
 
-net::tcp::sack::Entries expected(
-  net::tcp::sack::Block first = net::tcp::sack::Block(),
-  net::tcp::sack::Block second = net::tcp::sack::Block(),
-  net::tcp::sack::Block third = net::tcp::sack::Block())
+net::tcp::sack::Entries expected(std::initializer_list<net::tcp::sack::Block> blocks)
 {
-  return {{first, second, third}};
+  return {blocks};
 }
 
 #include <limits>
@@ -91,6 +88,12 @@ CASE("Block test")
   EXPECT(not blk_lesser.precedes(1800));
   EXPECT(blk_lesser.precedes(2000));
   EXPECT(blk_lesser.precedes(4000));
+
+  // NOTE: Invalidates the block
+  block = Block{1500, 2000};
+  block.swap_endian();
+  EXPECT(block.start == htonl(1500));
+  EXPECT(block.end   == htonl(2000));
 }
 
 CASE("SACK Fixed List implementation [RFC 2018]")
@@ -126,31 +129,31 @@ CASE("SACK Fixed List implementation [RFC 2018]")
 
   // 5000     5500       6000
   res = sack_list.recv_out_of_order(5500, 500);
-  EXPECT(res.entries == expected({5500,6000}));
+  EXPECT(res.entries == expected({{5500,6000}}));
 
   // 5000     5500       6500
   res = sack_list.recv_out_of_order(6000, 500);
-  EXPECT(res.entries == expected({5500,6500}));
+  EXPECT(res.entries == expected({{5500,6500}}));
 
   // 5000     5500       7000
   res = sack_list.recv_out_of_order(6500, 500);
-  EXPECT(res.entries == expected({5500,7000}));
+  EXPECT(res.entries == expected({{5500,7000}}));
 
   // 5000     5500       7500
   res = sack_list.recv_out_of_order(7000,500);
-  EXPECT(res.entries == expected({5500,7500}));
+  EXPECT(res.entries == expected({{5500,7500}}));
 
   // 5000     5500       8000
   res = sack_list.recv_out_of_order(7500,500);
-  EXPECT(res.entries == expected({5500,8000}));
+  EXPECT(res.entries == expected({{5500,8000}}));
 
   // 5000     5500       8500
   res = sack_list.recv_out_of_order(8000,500);
-  EXPECT(res.entries == expected({5500,8500}));
+  EXPECT(res.entries == expected({{5500,8500}}));
 
   // 5000     5500       9000
   res = sack_list.recv_out_of_order(8500,500);
-  EXPECT(res.entries == expected({5500, 9000}));
+  EXPECT(res.entries == expected({{5500, 9000}}));
 
   /*
     Case 3:  The 2nd, 4th, 6th, and 8th (last) segments are
@@ -177,15 +180,15 @@ CASE("SACK Fixed List implementation [RFC 2018]")
 
   // 5500    6000   6500
   res = sack_list.recv_out_of_order(6000, 500);
-  EXPECT(res.entries == expected({6000,6500}));
+  EXPECT(res.entries == expected({{6000,6500}}));
 
   // 5500    7000   7500   6000   6500
   res = sack_list.recv_out_of_order(7000, 500);
-  EXPECT(res.entries == expected({7000,7500}, {6000,6500}));
+  EXPECT(res.entries == expected({{7000,7500}, {6000,6500}}));
 
   // 5500    8000   8500   7000   7500   6000   6500
   res = sack_list.recv_out_of_order(8000, 500);
-  EXPECT(res.entries == expected({8000,8500}, {7000,7500}, {6000,6500}));
+  EXPECT(res.entries == expected({{8000,8500}, {7000,7500}, {6000,6500}}));
 
   /*
     Suppose at this point, the 4th packet is received out of order.
@@ -205,7 +208,7 @@ CASE("SACK Fixed List implementation [RFC 2018]")
   // 6000   7500   8000   8500
   res = sack_list.recv_out_of_order(6500, 500);
 
-  EXPECT(res.entries == expected({6000,7500}, {8000,8500}));
+  EXPECT(res.entries == expected({{6000,7500}, {8000,8500}}));
 
   /*
     Suppose at this point, the 2nd segment is received.  The data
@@ -219,7 +222,7 @@ CASE("SACK Fixed List implementation [RFC 2018]")
   */
   res = sack_list.new_valid_ack(5500 + 500);
 
-  EXPECT(res.entries == expected({8000,8500}));
+  EXPECT(res.entries == expected({{8000,8500}}));
   EXPECT(res.bytes == 7500-6000);
 
 
@@ -227,16 +230,16 @@ CASE("SACK Fixed List implementation [RFC 2018]")
   sack_list = Sack_list();
 
   res = sack_list.recv_out_of_order(5500, 500);
-  EXPECT(res.entries == expected({5500,6000}));
+  EXPECT(res.entries == expected({{5500,6000}}));
 
   res = sack_list.recv_out_of_order(6500, 500);
-  EXPECT(res.entries == expected({6500,7000}, {5500,6000}));
+  EXPECT(res.entries == expected({{6500,7000}, {5500,6000}}));
 
   res = sack_list.recv_out_of_order(6000, 500);
-  EXPECT(res.entries == expected({5500,7000}));
+  EXPECT(res.entries == expected({{5500,7000}}));
 
   res = sack_list.new_valid_ack(5500);
-  EXPECT(res.entries == expected());
+  EXPECT(res.entries == expected({}));
   EXPECT(res.bytes == 1500);
 }
 
@@ -262,9 +265,9 @@ CASE("SACK block list is full")
   }
 
   // Fully populated sack list
-  EXPECT(res.entries == expected({seq - incr, (seq - incr ) +  blksz},
+  EXPECT(res.entries == expected({{seq - incr, (seq - incr ) +  blksz},
                                  {seq - incr * 2, (seq - incr * 2) + blksz  },
-                                 {seq - incr * 3, (seq - incr * 3) + blksz } ));
+                                 {seq - incr * 3, (seq - incr * 3) + blksz } }));
 
   EXPECT(res.bytes == blksz);
 
@@ -272,9 +275,9 @@ CASE("SACK block list is full")
   res = sack_list.recv_out_of_order(seq, blksz);
 
   // We should now get the same
-  EXPECT(res.entries == expected({seq - incr, (seq - incr ) +  blksz},
+  EXPECT(res.entries == expected({{seq - incr, (seq - incr ) +  blksz},
                                  {seq - incr * 2, (seq - incr * 2) + blksz  },
-                                 {seq - incr * 3, (seq - incr * 3) + blksz } ));
+                                 {seq - incr * 3, (seq - incr * 3) + blksz } }));
 
   // Nothing inserted
   EXPECT(res.bytes == 0);
@@ -284,9 +287,9 @@ CASE("SACK block list is full")
   EXPECT(res.bytes == blksz);
 
   // Last block should now be larger
-  EXPECT(res.entries == expected({seq - incr, (seq - incr ) + blksz + blksz },
+  EXPECT(res.entries == expected({{seq - incr, (seq - incr ) + blksz + blksz },
                                  {seq - incr * 2, (seq - incr * 2) + blksz },
-                                 {seq - incr * 3, (seq - incr * 3) + blksz } ));
+                                 {seq - incr * 3, (seq - incr * 3) + blksz } }));
 
 
   // Add a block that connects two blocks, which should free up one spot
