@@ -42,8 +42,8 @@ public:
     using Data_it  = Data::iterator;
     using Data_cit = Data::const_iterator;
 
-    auto as_shared_vector() const {
-      return std::make_shared<std::vector<uint8_t>> (cbegin(), cend());
+    auto extract_vector() noexcept {
+      return std::move(data_);
     }
     auto extract_shared_vector() {
       return std::make_shared<std::vector<uint8_t>> (std::move(data_));
@@ -75,6 +75,18 @@ public:
 
     Message(const uint8_t* data, size_t len)
     {
+      const auto* wsh = (ws_header*) data;
+      // setup initial header
+      const size_t hdr_bytes = std::min((size_t) wsh->header_length(), len);
+      std::memcpy(header_.data(), data, hdr_bytes);
+      this->header_length = hdr_bytes;
+      // move forward in buffer
+      data += hdr_bytes; len -= hdr_bytes;
+      // if the header became complete, reserve data
+      if (this->header_complete()) {
+        data_.reserve(header().data_length());
+      }
+      // append any remaining data
       this->append(data, len);
     }
 
