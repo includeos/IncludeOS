@@ -84,7 +84,7 @@ public:
   uint16_t tcp_checksum() const noexcept
   { return tcp_header().checksum; }
 
-Socket source() const
+  Socket source() const
   { return Socket{ip_src(), src_port()}; }
 
   Socket destination() const
@@ -240,7 +240,7 @@ Socket source() const
 
   /**
    * @brief      Adds a tcp option aligned.
-   *             Assumes the user knows what he's doing.
+   *             Assumes the user knows what she/he is doing.
    *
    * @tparam     T          An aligned TCP option
    * @tparam     Args       construction args to option T
