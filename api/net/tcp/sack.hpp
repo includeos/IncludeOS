@@ -56,6 +56,12 @@ struct Block {
            static_cast<int32_t>(seq - end) <= 0;
   }
 
+  bool precedes(const seq_t seq) const noexcept
+  { return static_cast<int32_t>(end - seq) <= 0; }
+
+  bool precedes(const seq_t seq, const Block& other) const noexcept
+  { return (start - seq) < (other.start - seq); }
+
   bool connects_start(const Block& other) const noexcept
   { return other.end == start; }
 
@@ -89,14 +95,45 @@ public:
     : impl{std::forward(args)}
   {}
 
-  Ack_result recv_out_of_order(seq_t seq, size_t len)
-  { return impl.recv_out_of_order(seq, len); }
+  Ack_result recv_out_of_order(const seq_t seq, const size_t len)
+  { return impl.recv_out_of_order({seq, static_cast<seq_t>(seq+len)}); }
 
-  Ack_result new_valid_ack(seq_t end)
+  Ack_result new_valid_ack(const seq_t end)
   { return impl.new_valid_ack(end); }
 
   List_impl impl;
 };
+
+template <typename Iterator>
+struct Connect_result {
+  Iterator end;
+  Iterator start;
+};
+
+template <typename Iterator, typename Connectable>
+Connect_result<Iterator>
+connects_to(Iterator first, Iterator last, const Connectable& value)
+{
+  Connect_result<Iterator> connected{last, last};
+  for (; first != last; ++first)
+  {
+    Expects(not first->empty());
+
+    if (first->connects_end(value))
+    {
+      connected.end = first;
+    }
+    else if (first->connects_start(value))
+    {
+      connected.start = first;
+    }
+
+    // if we connected to two nodes, no point in looking for more
+    if (connected.start != last and connected.end != last)
+      break;
+  }
+  return connected;
+}
 
 template <int N = 3>
 class Fixed_list {
@@ -107,48 +144,27 @@ public:
 
   static_assert(N <= 32 && N > 0, "N wrong sized - optimized for small N");
 
-  Ack_result recv_out_of_order(seq_t seq, uint32_t len)
+  Ack_result recv_out_of_order(Block blk)
   {
-    Block inc{seq, seq+len};
+    auto connected = connects_to(blocks.begin(), blocks.end(), blk);
 
-    auto connected_end    = blocks.end();
-    auto connected_start  = blocks.end();
-
-    for(auto it = blocks.begin(); it != blocks.end(); it++)
+    if (connected.end != blocks.end()) // Connectes to an end
     {
-      Expects(not it->empty());
+      connected.end->end = blk.end;
 
-      if (it->connects_end(inc))
+      // It also connects to a start, e.g. fills a hole
+      if (connected.start != blocks.end())
       {
-        connected_end = it;
-      }
-      else if (it->connects_start(inc))
-      {
-        connected_start = it;
+        connected.end->end = connected.start->end;
+        blocks.erase(connected.start);
       }
 
-      // if we connected to two nodes, no point in looking for more
-      if (connected_start != blocks.end() and connected_end != blocks.end())
-        break;
+      move_to_front(connected.end);
     }
-
-    if (connected_end != blocks.end()) // Connectes to two blocks, e.g. fill a hole
+    else if (connected.start != blocks.end()) // Connected only to an start
     {
-      connected_end->end = inc.end;
-
-      // It also connects to a start
-      if (connected_start != blocks.end())
-      {
-        connected_end->end = connected_start->end;
-        blocks.erase(connected_start);
-      }
-
-      move_to_front(connected_end);
-    }
-    else if (connected_start != blocks.end()) // Connected only to an start
-    {
-      connected_start->start = inc.start;
-      move_to_front(connected_start);
+      connected.start->start = blk.start;
+      move_to_front(connected.start);
     }
     else // No connection - new entry
     {
@@ -157,13 +173,13 @@ public:
       if(UNLIKELY(blocks.size() == size))
         return {recent_entries(), 0};
 
-      blocks.push_front(inc);
+      blocks.push_front(blk);
     }
 
-    return {recent_entries(), len};
+    return {recent_entries(), blk.size()};
   }
 
-  Ack_result new_valid_ack(seq_t seq)
+  Ack_result new_valid_ack(const seq_t seq)
   {
     uint32_t bytes_freed = 0;
 
@@ -175,7 +191,7 @@ public:
         blocks.erase(it);
         break;
       }
-    };
+    }
 
     return {recent_entries(), bytes_freed};
   }
@@ -199,6 +215,90 @@ public:
 
   List blocks;
 
+};
+
+// SCOREBOARD stuff
+
+template <typename Scoreboard_impl>
+class Scoreboard {
+public:
+  void recv_sack(const seq_t current, Block blk)
+  { return impl.recv_sack(current, blk); }
+
+  void recv_sack(const seq_t current, seq_t start, seq_t end)
+  { return recv_sack(current, {start, end}); }
+
+  void new_valid_ack(const seq_t seq)
+  { return impl.new_valid_ack(seq); }
+
+  void clear()
+  { impl.clear(); }
+
+  Scoreboard_impl impl;
+};
+
+template <int N = 3>
+class Scoreboard_list {
+public:
+  static auto constexpr size = N;
+  using List          = std::list<Block, Fixed_list_alloc<Block, N>>;
+  using List_iterator = typename List::iterator;
+
+  void recv_sack(const seq_t current, Block blk)
+  {
+    auto connected = connects_to(blocks.begin(), blocks.end(), blk);
+
+    if (connected.end != blocks.end()) // Connectes to an end
+    {
+      connected.end->end = blk.end;
+
+      // It also connects to a start, e.g. fills a hole
+      if (connected.start != blocks.end())
+      {
+        connected.end->end = connected.start->end;
+        blocks.erase(connected.start);
+      }
+    }
+    else if (connected.start != blocks.end()) // Connected only to an start
+    {
+      connected.start->start = blk.start;
+    }
+    else // No connection - new entry
+    {
+      insert(current, blk);
+    }
+  }
+
+  void new_valid_ack(const seq_t seq)
+  {
+    for(auto it = blocks.begin(); it != blocks.end(); )
+    {
+      auto tmp = it++;
+
+      if (tmp->precedes(seq))
+        blocks.erase(tmp);
+    }
+  }
+
+  void clear()
+  { blocks.clear(); }
+
+  void insert(const seq_t current, Block blk)
+  {
+    Expects(blocks.size() <= size);
+
+    if(UNLIKELY(blocks.size() == size))
+      return;
+
+    auto it = std::find_if(blocks.begin(), blocks.end(),
+      [&](const auto& block) {
+        return blk.precedes(current, block);
+    });
+
+    blocks.insert(it, blk);
+  }
+
+  List blocks;
 };
 
 } // < namespace sack

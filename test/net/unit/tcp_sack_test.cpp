@@ -34,6 +34,7 @@ net::tcp::sack::Entries expected(
   return {{first, second, third}};
 }
 
+#include <limits>
 CASE("Block test")
 {
   using namespace net::tcp::sack;
@@ -57,6 +58,39 @@ CASE("Block test")
   EXPECT(block.contains(0));
   EXPECT(block.contains(-500));
   EXPECT(block.contains(-1000));
+
+  const uint32_t max_uint = std::numeric_limits<uint32_t>::max();
+  block.start = max_uint - 10;
+  block.end   = 10;
+  EXPECT(block.contains(max_uint));
+  EXPECT(block.contains(5));
+
+  block.start = max_uint;
+  block.end   = max_uint / 2 + 1;
+  EXPECT(block.size() > max_uint / 2);
+  // < breaks apart when size() > max_uint/2
+  EXPECT(not block.contains(max_uint / 2));
+
+  block.start = max_uint;
+  block.end   = max_uint / 2 - 1;
+  EXPECT(block.size() == max_uint / 2);
+  EXPECT(block.contains(max_uint / 2 - 1));
+
+
+  const seq_t seq = 1000;
+  Block blk_lesser{1500,2000};
+  Block blk_greater{2500,3000};
+  Block blk_greater2{0,1000};
+
+  EXPECT(blk_lesser.precedes(seq, blk_greater));
+  EXPECT(blk_lesser.precedes(seq, blk_greater2));
+  EXPECT(blk_greater.precedes(seq, blk_greater2));
+
+  EXPECT(not blk_lesser.precedes(seq));
+  EXPECT(not blk_lesser.precedes(1500));
+  EXPECT(not blk_lesser.precedes(1800));
+  EXPECT(blk_lesser.precedes(2000));
+  EXPECT(blk_lesser.precedes(4000));
 }
 
 CASE("SACK Fixed List implementation [RFC 2018]")
@@ -257,4 +291,97 @@ CASE("SACK block list is full")
 
   // Add a block that connects two blocks, which should free up one spot
 
+}
+
+CASE("SACK Scoreboard - recv SACK")
+{
+  using namespace net::tcp::sack;
+  using Sack_scoreboard = Scoreboard<Scoreboard_list<9>>;
+
+  Sack_scoreboard scoreboard;
+  const seq_t current = 1000;
+  auto& blocks = scoreboard.impl.blocks;
+  auto it = blocks.end();
+  EXPECT(blocks.empty());
+
+  scoreboard.recv_sack(current, 1500, 2000);
+  EXPECT(blocks.size() == 1);
+
+  scoreboard.recv_sack(current, 3500, 4000);
+  EXPECT(blocks.size() == 2);
+
+  it = blocks.begin();
+  EXPECT(*it == Block(1500,2000));
+  it++;
+  EXPECT(*it == Block(3500,4000));
+
+  scoreboard.recv_sack(current, 2500, 3000);
+  EXPECT(blocks.size() == 3);
+
+  it = blocks.begin();
+  EXPECT(*it == Block(1500,2000));
+  it++;
+  EXPECT(*it == Block(2500, 3000));
+  it++;
+  EXPECT(*it == Block(3500, 4000));
+
+  scoreboard.recv_sack(current, 2000, 2500);
+  EXPECT(blocks.size() == 2);
+
+  it = blocks.begin();
+  EXPECT(*it == Block(1500,3000));
+  it++;
+  EXPECT(*it == Block(3500,4000));
+
+  scoreboard.recv_sack(current, 3000, 3500);
+  EXPECT(blocks.size() == 1);
+
+  it = blocks.begin();
+  EXPECT(*it == Block(1500,4000));
+
+  scoreboard.clear();
+
+  EXPECT(blocks.empty());
+}
+
+CASE("SACK Scoreboard - new valid ACK")
+{
+  using namespace net::tcp::sack;
+  using Sack_scoreboard = Scoreboard<Scoreboard_list<9>>;
+
+  Sack_scoreboard scoreboard;
+  const seq_t current = 1000;
+  auto& blocks = scoreboard.impl.blocks;
+  auto it = blocks.end();
+  EXPECT(blocks.empty());
+
+  scoreboard.recv_sack(current, 1500, 2000);
+  scoreboard.recv_sack(current, 2500, 3000);
+  scoreboard.recv_sack(current, 3500, 4000);
+
+  scoreboard.new_valid_ack(1000);
+  EXPECT(blocks.size() == 3);
+
+  it = blocks.begin();
+  EXPECT(*it == Block(1500,2000));
+  it++;
+  EXPECT(*it == Block(2500,3000));
+  it++;
+  EXPECT(*it == Block(3500,4000));
+
+  scoreboard.new_valid_ack(2000);
+  EXPECT(blocks.size() == 2);
+
+  it = blocks.begin();
+  EXPECT(*it == Block(2500,3000));
+  it++;
+  EXPECT(*it == Block(3500,4000));
+
+  scoreboard.new_valid_ack(4000);
+  EXPECT(blocks.empty());
+}
+
+CASE("SACK Scoreboard - partial ACK")
+{
+  // Currently not supported (don't know if needed, yet)
 }
