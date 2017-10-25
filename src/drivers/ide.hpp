@@ -24,6 +24,7 @@
 #include <deque>
 #include <memory>
 #include <string>
+#include <cassert>
 
 namespace hw {
   class PCI_Device;
@@ -66,6 +67,10 @@ public:
   virtual buffer_t read_sync(block_t blk) override;
   virtual buffer_t read_sync(block_t blk, size_t cnt) override;
 
+  // special write functionality
+  void write(block_t blk, buffer_t, on_write_func) override;
+  bool write_sync(block_t blk, buffer_t) override;
+
   virtual block_t size() const noexcept override
   { return this->num_blocks; }
 
@@ -90,33 +95,11 @@ private:
   static void set_blocknum(block_t blk) noexcept;
   static void set_command(const uint16_t command) noexcept;
 
-  typedef std::array<uint16_t, SECTOR_ARRAY> ide_read_array_t;
-  uint8_t         drive_id;
-  uint32_t        pci_iobase = 0;
-  block_t         num_blocks = 0;
+  uint8_t    drive_id;
+  uint32_t   pci_iobase = 0;
+  block_t    num_blocks = 0;
 
-  struct readq_item {
-    readq_item(uint8_t id, block_t blk, uint32_t cnt, on_read_func call)
-      : drive_id(id), sector(blk), total(cnt), callback(std::move(call))
-    {
-      buffer = std::make_shared<std::vector<uint8_t>> (total * IDE::SECTOR_SIZE);
-    }
-
-    uint8_t* current() {
-      return &buffer->at(position * IDE::SECTOR_SIZE);
-    }
-    bool done() const noexcept { return position == total; }
-
-    uint8_t      drive_id;
-    block_t      sector;
-    uint32_t     position = 0;
-    uint32_t     total;
-    buffer_t     buffer;
-    on_read_func callback;
-  };
-  static std::deque<readq_item> read_queue;
-
-  static void begin_reading();
+  static void work_begin_next();
   static void irq_handler();
 }; //< class IDE
 

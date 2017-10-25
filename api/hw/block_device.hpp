@@ -31,9 +31,10 @@ namespace hw {
  */
 class Block_device {
 public:
-  using block_t      = uint64_t;
-  using buffer_t     = std::shared_ptr<std::vector<uint8_t>>;
-  using on_read_func = delegate<void(buffer_t)>;
+  using block_t       = uint64_t;
+  using buffer_t      = std::shared_ptr<std::vector<uint8_t>>;
+  using on_read_func  = delegate<void(buffer_t)>;
+  using on_write_func = delegate<void(bool error)>;
 
   /**
    * Method to get the type of device
@@ -142,6 +143,14 @@ public:
    * @return A buffer containing the data or nullptr if an error occurred
    */
   virtual buffer_t read_sync(block_t blk, size_t count) = 0;
+
+  /**
+   * Write blocks of data to device, IF specially supported
+   * This functionality is not enabled by default, nor always supported
+  **/
+  virtual void write(block_t blk, buffer_t, on_write_func) = 0;
+  
+  virtual bool write_sync(block_t blk, buffer_t) = 0;
 
   /**
    * Method to deactivate the block device

@@ -26,7 +26,6 @@
 #include <kernel/events.hpp>
 #include <fs/common.hpp>
 #include <arch.hpp>
-#include <cassert>
 
 //#define IDE_DEBUG
 #ifdef IDE_DEBUG
@@ -86,7 +85,54 @@
 
 const int IDE::SECTOR_SIZE;
 const int IDE::SECTOR_ARRAY;
-std::deque<IDE::readq_item> IDE::read_queue;
+
+struct workq_item
+{
+  using block_t = IDE::block_t;
+  using buffer_t = IDE::buffer_t;
+
+#ifdef IDE_ENABLE_READ
+  using on_read_func = IDE::on_read_func;
+  // read
+  workq_item(uint8_t id, block_t blk, uint32_t cnt, on_read_func call)
+    : drive_id(id), read(true), sector(blk), total(cnt), readcall(std::move(call))
+  {
+    buffer = std::make_shared<std::vector<uint8_t>> (total * IDE::SECTOR_SIZE);
+  }
+#endif
+#ifdef IDE_ENABLE_WRITE
+  using on_write_func = IDE::on_write_func;
+  // write
+  workq_item(uint8_t id, block_t blk, buffer_t buf, on_write_func call)
+    : drive_id(id), read(false), sector(blk), buffer(buf), writecall(std::move(call))
+  {
+    assert(buffer->size() % IDE::SECTOR_SIZE == 0);
+    total = buffer->size() / IDE::SECTOR_SIZE;
+  }
+#endif
+  ~workq_item() {}
+
+  uint8_t* current() {
+    return &buffer->at(position * IDE::SECTOR_SIZE);
+  }
+  bool done() const noexcept { return position == total; }
+
+  uint8_t      drive_id;
+  bool         read;
+  block_t      sector;
+  uint32_t     position = 0;
+  uint32_t     total;
+  buffer_t     buffer;
+  union {
+#ifdef IDE_ENABLE_READ
+    on_read_func  readcall;
+#endif
+#ifdef IDE_ENABLE_WRITE
+    on_write_func writecall;
+#endif
+  };
+};
+static std::deque<workq_item> work_queue;
 
 IDE::IDE(hw::PCI_Device& pcidev, selector_t sel)
   : drive_id {(uint8_t) sel}
@@ -121,7 +167,7 @@ IDE::IDE(hw::PCI_Device& pcidev, selector_t sel)
   wait_status_flags(IDE_DRDY, false);
 
   // read device capabilities
-  ide_read_array_t read_array;
+  std::array<uint16_t, SECTOR_ARRAY> read_array;
   for (int i = 0; i < IDE::SECTOR_ARRAY; i++) {
     read_array[i] = hw::inw(IDE_DATA);
   }
@@ -135,6 +181,7 @@ IDE::IDE(hw::PCI_Device& pcidev, selector_t sel)
   { // 28-bits CHS (MAX_LBA)
     this->num_blocks = (read_array[61] << 16) | read_array[60];
   }
+  INFO("IDE", "%u sectors (%lu bytes)", num_blocks, num_blocks * IDE::SECTOR_SIZE);
   INFO("IDE", "Initialization complete");
 }
 
@@ -148,9 +195,10 @@ void IDE::read(block_t blk, on_read_func callback)
   IDBG("IDE: Read called on %lu\n", blk);
 
 #ifdef IDE_ENABLE_READ
-  read_queue.emplace_back(drive_id, blk, 1, callback);
-  if (read_queue.size() == 1) begin_reading();
+  work_queue.emplace_back(drive_id, blk, 1, callback);
+  if (work_queue.size() == 1) work_begin_next();
 #else
+  (void) blk;
   callback(nullptr);
 #endif
 }
@@ -165,9 +213,11 @@ void IDE::read(block_t blk, size_t count, on_read_func callback)
   IDBG("IDE: Read called on %lu + %lu\n", blk, count);
 
 #ifdef IDE_ENABLE_READ
-  read_queue.emplace_back(drive_id, blk, count, callback);
-  if (read_queue.size() == 1) begin_reading();
+  work_queue.emplace_back(drive_id, blk, count, callback);
+  if (work_queue.size() == 1) work_begin_next();
 #else
+  (void) blk;
+  (void) count;
   callback(nullptr);
 #endif
 }
@@ -190,7 +240,7 @@ IDE::buffer_t IDE::read_sync(block_t blk)
   wait_status_flags(IDE_DRDY, false);
 
   auto* data = (uint16_t*) buffer->data();
-  for (size_t i = 0; i < IDE::SECTOR_SIZE / 2; i++)
+  for (size_t i = 0; i < IDE::SECTOR_ARRAY; i++)
       data[i] = hw::inw(IDE_DATA);
   return buffer;
 #else
@@ -203,6 +253,52 @@ IDE::buffer_t IDE::read_sync(block_t blk, size_t cnt)
   (void) cnt;
   // not yet implemented
   return nullptr;
+}
+
+void IDE::write(block_t blk, buffer_t buffer, on_write_func callback)
+{
+#ifdef IDE_ENABLE_WRITE
+  // avoid writing past the disk boundaries
+  if (blk + buffer->size() / block_size() > this->num_blocks) {
+    callback(true);
+    return;
+  }
+  IDBG("IDE: Write called on %lu (%lu bytes)\n", blk, buffer->size());
+
+  work_queue.emplace_back(drive_id, blk, buffer, callback);
+  if (work_queue.size() == 1) work_begin_next();
+#else
+  (void) blk;
+  (void) buffer;
+  callback(true);
+#endif
+}
+bool IDE::write_sync(block_t blk, buffer_t buffer)
+{
+#ifdef IDE_ENABLE_WRITE
+  // avoid writing past the disk boundaries
+  if (blk + buffer->size() / block_size() > this->num_blocks) {
+    return true;
+  }
+  IDBG("IDE: Write called on %lu (%lu bytes)\n", blk, buffer->size());
+
+  const uint32_t total = buffer->size() / block_size();
+  set_irq_mode(false);
+  set_drive(0xE0 | this->drive_id | ((blk >> 24) & 0x0F));
+  set_nbsectors(total);
+  set_blocknum(blk);
+  set_command(IDE_CMD_WRITE);
+
+  auto* data = (uint16_t*) buffer->data();
+  for (size_t i = 0; i < total * IDE::SECTOR_ARRAY; i++)
+      hw::outw(IDE_DATA, data[i]);
+  return false;
+
+#else
+  (void) blk;
+  (void) buffer;
+  return true;
+#endif
 }
 
 void IDE::spinwait_status_busy() noexcept {
@@ -271,47 +367,85 @@ void IDE::set_irq_mode(const bool on) noexcept {
   hw::outb(IDE_CTRL_IRQ, on ? 0 : 1);
 }
 
-void IDE::begin_reading()
+void IDE::work_begin_next()
 {
-  assert(!read_queue.empty());
-  auto& item = read_queue.front();
+  if (work_queue.empty()) return;
+  auto& item = work_queue.front();
   assert(item.position == 0);
 
   set_irq_mode(true);
   set_drive(0xE0 | item.drive_id | ((item.sector >> 24) & 0x0F));
-  set_nbsectors(item.total);
-  set_blocknum(item.sector);
-  set_command(IDE_CMD_READ);
+#ifdef IDE_ENABLE_READ
+  if (item.read) {
+    set_nbsectors(item.total);
+    set_blocknum(item.sector);
+    set_command(IDE_CMD_READ);
+  }
+#endif
+#ifdef IDE_ENABLE_WRITE
+  if (item.read == false) {
+    set_nbsectors(item.total);
+    set_blocknum(item.sector);
+    set_command(IDE_CMD_WRITE);
+  }
+#endif
 }
 void IDE::irq_handler()
 {
-  while (not read_queue.empty())
+  while (not work_queue.empty())
   {
-    auto& item = read_queue.front();
+    auto& item = work_queue.front();
     wait_status_flags(IDE_DRDY, false);
 
-    IDBG("IDE: Working on %u / %u\n", item.position, item.total);
-    // read to current position
-    auto* wptr = (uint16_t*) item.current();
-    for (block_t i = 0; i < IDE::SECTOR_ARRAY; i++)
-        wptr[i] = hw::inw(IDE_DATA);
-
-    // go to next position
-    item.position++;
-    // if the read is done, shipit
-    if (item.done())
+#ifdef IDE_ENABLE_READ
+    if (item.read)
     {
-      auto buffer = std::move(item.buffer);
-      auto callback = std::move(item.callback);
-      read_queue.pop_front();
-      // shipit
-      callback(std::move(buffer));
-      // queue next job, if any
-      if (read_queue.empty() == false)
-      {
-        begin_reading();
+      // read operation
+      IDBG("IDE: Reading %u / %u\n", item.position, item.total);
+      // read to current position
+      auto* wptr = (uint16_t*) item.current();
+      for (block_t i = 0; i < IDE::SECTOR_ARRAY; i++) {
+          wptr[i] = hw::inw(IDE_DATA);
       }
+      // go to next position
+      item.position++;
+      // if the read is done, shipit
+      if (item.done())
+      {
+        auto buffer = std::move(item.buffer);
+        auto callback = std::move(item.readcall);
+        work_queue.pop_front();
+        // shipit
+        callback(std::move(buffer));
+        // queue next job, if any
+        work_begin_next();
+      } // done
+    } // read
+#endif
+#ifdef IDE_ENABLE_WRITE
+    if (item.read == false)
+    {
+      // write operation
+      IDBG("IDE: Writing %u / %u\n", item.position, item.total);
+      // write from current position
+      auto* wptr = (uint16_t*) item.current();
+      for (block_t i = 0; i < IDE::SECTOR_ARRAY; i++) {
+          hw::outw(IDE_DATA, wptr[i]);
+      }
+      // go to next position
+      item.position++;
+      // if the read is done, shipit
+      if (item.done())
+      {
+        auto callback = std::move(item.writecall);
+        work_queue.pop_front();
+        // shipit
+        callback(false);
+        // queue next job, if any
+        work_begin_next();
+      } // done
     }
+#endif
   } // queue
 }
 
