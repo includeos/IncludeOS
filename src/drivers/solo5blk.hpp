@@ -63,7 +63,12 @@ public:
   buffer_t read_sync(block_t) override; // stays
   buffer_t read_sync(block_t, size_t) override; // stays
 
-  virtual block_t size() const noexcept override;
+  // not supported
+  void write(block_t, buffer_t, on_write_func callback) override {
+    callback(true);
+  }
+
+  block_t size() const noexcept override;
 
   void deactivate() override; // stays
 

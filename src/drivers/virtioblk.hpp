@@ -49,6 +49,10 @@ public:
     return SECTOR_SIZE; // some multiple of sector size
   }
 
+  block_t size() const noexcept override {
+    return config.capacity;
+  }
+
   // read @blk from disk, call func with buffer when done
   void read(block_t blk, on_read_func func) override;
   // read @blk + @cnt from disk, call func with buffer when done
@@ -62,8 +66,9 @@ public:
     return buffer_t();
   }
 
-  block_t size() const noexcept override {
-    return config.capacity;
+  // not supported
+  void write(block_t, buffer_t, on_write_func callback) override {
+    callback(true);
   }
 
   void deactivate() override;
