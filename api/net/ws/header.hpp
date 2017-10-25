@@ -130,18 +130,13 @@ namespace net {
     char* data() noexcept {
       return &vla[data_offset()];
     }
-    void masking_algorithm()
+    void masking_algorithm(char* ptr)
     {
-      char* ptr  = data();
       const char* mask = keymask();
       for (size_t i = 0; i < data_length(); i++)
       {
         ptr[i] = ptr[i] xor mask[i & 3];
       }
-    }
-
-    size_t reported_length() const noexcept {
-      return header_length() + data_length();
     }
 
     char vla[0];

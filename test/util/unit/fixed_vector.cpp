@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <util/fixedvec.hpp>
+#include <util/fixed_vector.hpp>
 
 /// notes:
 /// given that fixed vector is a template class, even with templated size
@@ -35,39 +35,39 @@ struct POD
 
 CASE("A new fixed vector of type int is empty")
 {
-  fixedvector<POD, 10> fv;
+  Fixed_vector<POD, 10> fv;
 
   EXPECT(fv.empty());
   EXPECT(fv.size() == 0);
 }
 CASE("A new fixed vector has a sane capacity")
 {
-  fixedvector<POD, 10> fv;
+  Fixed_vector<POD, 10> fv;
 
   EXPECT(fv.capacity() == 10);
   EXPECT(fv.free_capacity());
 }
 CASE("Adding elements normally")
 {
-  fixedvector<POD, 10> fv;
+  Fixed_vector<POD, 10> fv;
 
   POD pod(1, 2);
-  fv.add(pod);
+  fv.push_back(pod);
   EXPECT(fv.size() == 1);
-  fv.add(pod);
+  fv.push_back(pod);
   EXPECT(fv.size() == 2);
   EXPECT(fv.free_capacity());
 }
 CASE("Adding elements by emplacing")
 {
-  fixedvector<POD, 10> fv;
+  Fixed_vector<POD, 10> fv;
 
-  fv.emplace(1, 2);
+  fv.emplace_back(1, 2);
   EXPECT(fv.size() == 1);
   EXPECT(fv[0].a == 1);
   EXPECT(fv[0].b == 2);
 
-  fv.emplace(10, 20);
+  fv.emplace_back(10, 20);
   EXPECT(fv.size() == 2);
   EXPECT(fv[1].a == 10);
   EXPECT(fv[1].b == 20);
@@ -76,12 +76,12 @@ CASE("Adding elements by emplacing")
 }
 CASE("Clearing a fixed vector")
 {
-  fixedvector<POD, 10> fv;
+  Fixed_vector<POD, 10> fv;
 
   for (int N = 0; N < 2; N++)
   {
     for (int i = 0; i < fv.capacity(); i++)
-      fv.emplace(5, 6);
+      fv.emplace_back(5, 6);
 
     EXPECT(fv.free_capacity() == false);
     fv.clear();
@@ -92,13 +92,13 @@ CASE("Clearing a fixed vector")
 }
 CASE("Adding elements increases size")
 {
-  fixedvector<POD, 10> fv;
+  Fixed_vector<POD, 10> fv;
 
   for (int N = 0; N < 2; N++)
   {
     for (int i = 0; i < fv.capacity(); i++) {
       EXPECT(fv.size() == i);
-      fv.emplace(5, 6);
+      fv.emplace_back(5, 6);
       EXPECT(fv.size() == i + 1);
       // verify POD too
       EXPECT(fv[i].a == 5);
@@ -110,14 +110,14 @@ CASE("Adding elements increases size")
 }
 CASE("A cloned fixed vector matches bit for bit")
 {
-  fixedvector<POD, 10> fv1;
-  fixedvector<POD, 10> fv2;
+  Fixed_vector<POD, 10> fv1;
+  Fixed_vector<POD, 10> fv2;
 
   EXPECT(fv1.capacity() == fv2.capacity());
 
   for (int i = 0; i < fv1.capacity(); i++) {
     EXPECT(fv1.size() == i);
-    fv1.emplace(5, 6);
+    fv1.emplace_back(5, 6);
     EXPECT(fv1.size() == i + 1);
   }
   EXPECT(fv1.free_capacity() == false);

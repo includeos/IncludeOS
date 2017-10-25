@@ -21,23 +21,23 @@
 
 #include <kernel/solo5_manager.hpp>
 #include <stdexcept>
-#include <util/fixedvec.hpp>
+#include <util/fixed_vector.hpp>
 
 static const int ELEMENTS = 4;
 using namespace hw;
 using Nic_ptr = std::unique_ptr<hw::Nic>;
 using Blk_ptr = std::unique_ptr<hw::Block_device>;
 
-fixedvector<delegate<Nic_ptr()>, ELEMENTS> nics(Fixedvector_Init::UNINIT);
-fixedvector<delegate<Blk_ptr()>, ELEMENTS> blks(Fixedvector_Init::UNINIT);
+Fixed_vector<delegate<Nic_ptr()>, ELEMENTS> nics(Fixedvector_Init::UNINIT);
+Fixed_vector<delegate<Blk_ptr()>, ELEMENTS> blks(Fixedvector_Init::UNINIT);
 
 void Solo5_manager::register_net(delegate<Nic_ptr()> func)
 {
-  nics.add(func);
+  nics.push_back(func);
 }
 void Solo5_manager::register_blk(delegate<Blk_ptr()> func)
 {
-  blks.add(func);
+  blks.push_back(func);
 }
 
 void Solo5_manager::init() {

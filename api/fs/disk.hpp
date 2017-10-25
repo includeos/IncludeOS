@@ -88,7 +88,7 @@ namespace fs
 
     // Returns a reference to an initialized filesystem
     // If no filesystem is initialized it will throw an error
-    File_system& fs() noexcept
+    File_system& fs()
     {
       if(UNLIKELY(not fs_ready()))
       {

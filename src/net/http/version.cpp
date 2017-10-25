@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdlib>
 #include <net/http/version.hpp>
 
 namespace http {
@@ -47,48 +48,45 @@ void Version::set_minor(const unsigned minor) noexcept {
 
 ///////////////////////////////////////////////////////////////////////////////
 std::string Version::to_string() const {
-  return *this;
+  char http_ver[12];
+  snprintf(http_ver, sizeof(http_ver), "%s%u.%u", "HTTP/", major_, minor_);
+  return http_ver;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Version::operator std::string () const {
-  std::ostringstream ver_data;
-  //----------------------------
-  ver_data << "HTTP/" << major_
-           << "."     << minor_;
- //-----------------------------
-  return ver_data.str();
+Version::operator std::string() const {
+  return to_string();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool operator == (const Version& lhs, const Version& rhs) noexcept {
+bool operator==(const Version& lhs, const Version& rhs) noexcept {
   return lhs.major() == rhs.major()
          and
          lhs.minor() == rhs.minor();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool operator != (const Version& lhs, const Version& rhs) noexcept {
+bool operator!=(const Version& lhs, const Version& rhs) noexcept {
   return not (lhs == rhs);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool operator < (const Version& lhs, const Version& rhs) noexcept {
+bool operator<(const Version& lhs, const Version& rhs) noexcept {
   return (lhs.major() == rhs.major()) ? (lhs.minor() < rhs.minor()) : (lhs.major() < rhs.major());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool operator > (const Version& lhs, const Version& rhs) noexcept {
+bool operator>(const Version& lhs, const Version& rhs) noexcept {
   return (lhs.major() == rhs.major()) ? (lhs.minor() > rhs.minor()) : (lhs.major() > rhs.major());
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool operator <= (const Version& lhs, const Version& rhs) noexcept {
+bool operator<=(const Version& lhs, const Version& rhs) noexcept {
   return (lhs < rhs) or (lhs == rhs);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-bool operator >= (const Version& lhs, const Version& rhs) noexcept {
+bool operator>=(const Version& lhs, const Version& rhs) noexcept {
   return (lhs > rhs) or (lhs == rhs);
 }
 
