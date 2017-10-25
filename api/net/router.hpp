@@ -159,7 +159,11 @@ namespace net {
     /** Construct a router over a set of interfaces **/
     Router(Routing_table tbl = {})
       : routing_table_{tbl}
-    {  }
+    {
+      INFO("Router", "Router created with %lu routes", tbl.size());
+      for(auto& route : routing_table_)
+        INFO2("%s", route.to_string().c_str());
+    }
 
     void set_routing_table(Routing_table tbl) {
       routing_table_ = tbl;

@@ -67,10 +67,6 @@ namespace net {
     for(auto& route : routes)
       table.emplace_back(parse_route(route));
 
-    INFO("Routeconf", "Parsed %lu routes:", table.size());
-    for(auto& route : table)
-      INFO2("%s", route.to_string().c_str());
-
     return table;
   }
 
