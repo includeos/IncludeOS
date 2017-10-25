@@ -20,6 +20,14 @@
 
 #include <net/inet.hpp>
 
+//#define ROUTER_DEBUG 1
+#ifdef ROUTER_DEBUG
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
+
 namespace net {
 
   template <class IPV>
@@ -128,6 +136,12 @@ namespace net {
       return get_first_interface(dest) != nullptr;
     }
 
+    /** Get default route **/
+    Route<IPV>& default_route()
+    {
+      Expects(not routing_table_.empty());
+      return routing_table_.front();
+    }
 
     /**
      * Get all routes for a certain IP
@@ -183,7 +197,7 @@ namespace net {
 
     if(pckt->ip_ttl() == 0)
     {
-      INFO("Router", "TTL equals 0 - dropping");
+      PRINT("Router", "TTL equals 0 - dropping");
       return;
     }
 
@@ -193,7 +207,8 @@ namespace net {
     auto* route = get_first_route(dest);
 
     if (not route) {
-      INFO("Router", "No route found for %s - dropping", dest.to_string().c_str());
+      PRINT("Router", "No route found for %s - DEFAULT route", dest.to_string().c_str());
+      default_route().forward(std::move(pckt));
       return;
     }
     (void) source;
