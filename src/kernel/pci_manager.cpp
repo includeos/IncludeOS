@@ -64,40 +64,30 @@ PCI_manager::Device_vector PCI_manager::devices () {
   return device_vec;
 }
 
-void PCI_manager::pre_init()
-{
-  devices_.clear();
-  nic_fact.clear();
-  blk_fact.clear();
-}
-
-void PCI_manager::scan_bus(int bus)
+void PCI_manager::scan_bus(const uint8_t classcode, const int bus)
 {
   for (uint16_t device = 0; device < 255; ++device)
   {
-    uint16_t pci_addr = bus * 256 + device;
-    uint32_t id =
-        hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_VENDOR);
+    const uint16_t pci_addr = bus * 256 + device;
+    const uint32_t id = hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_VENDOR);
 
     if (id != PCI::WTF)
     {
       hw::PCI_Device::class_revision_t devclass;
-      devclass.reg =
-              hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
+      devclass.reg = hw::PCI_Device::read_dword(pci_addr, PCI::CONFIG_CLASS_REV);
 
-      bool registered = false;
       // translate classcode to device and register
       switch (devclass.classcode) {
       case PCI::STORAGE:
-        {
+        if (classcode == PCI::STORAGE) {
           auto& stored_dev = devices_.emplace_back(pci_addr, id, devclass.reg);
-          registered = register_device<BLK_driver, hw::Block_device>(stored_dev, blk_fact);
+          register_device<BLK_driver, hw::Block_device>(stored_dev, blk_fact);
         }
         break;
       case PCI::NIC:
-        {
+        if (classcode == PCI::NIC) {
           auto& stored_dev = devices_.emplace_back(pci_addr, id, devclass.reg);
-          registered = register_device<NIC_driver, hw::Nic>(stored_dev, nic_fact);
+          register_device<NIC_driver, hw::Nic>(stored_dev, nic_fact);
         }
         break;
       case PCI::BRIDGE:
@@ -105,18 +95,17 @@ void PCI_manager::scan_bus(int bus)
         if (devclass.subclass == 0x4) {
           uint16_t buses =
             hw::PCI_Device::read_dword(pci_addr, 0x18);
-          scan_bus(buses >> 8); // secondary is bits 8-15
+          scan_bus(classcode, buses >> 8); // secondary is bits 8-15
         }
         break;
       default:
           break;
       }
-      debug("Device %s", registered ? "registed" : "not registered");
     }
   }
 }
 
-void PCI_manager::init()
+void PCI_manager::init(const uint8_t classcode)
 {
   INFO("PCI Manager", "Probing PCI bus");
 
@@ -124,7 +113,7 @@ void PCI_manager::init()
    * Probe the PCI buses
    * Starting with the first bus
   **/
-  scan_bus(0);
+  scan_bus(classcode, 0);
 
   // Pretty printing, end of device tree
   // @todo should probably be moved, or optionally non-printed

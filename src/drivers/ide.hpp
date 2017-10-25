@@ -69,6 +69,7 @@ public:
 
   // special write functionality
   void write(block_t blk, buffer_t, on_write_func) override;
+  bool write_sync(block_t blk, buffer_t) override;
 
   virtual block_t size() const noexcept override
   { return this->num_blocks; }

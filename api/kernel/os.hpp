@@ -117,6 +117,10 @@ public:
     return boot_sequence_passed_;
   }
 
+  static bool block_drivers_ready() noexcept {
+    return m_block_drivers_ready;
+  }
+
   /**
    *  Returns true when the OS is currently panicking
    */
@@ -242,6 +246,7 @@ private:
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;
   static bool boot_sequence_passed_;
+  static bool m_block_drivers_ready;
   static MHz cpu_mhz_;
 
   static RTC::timestamp_t booted_at_;

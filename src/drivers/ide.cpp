@@ -181,6 +181,7 @@ IDE::IDE(hw::PCI_Device& pcidev, selector_t sel)
   { // 28-bits CHS (MAX_LBA)
     this->num_blocks = (read_array[61] << 16) | read_array[60];
   }
+  INFO("IDE", "%u sectors (%lu bytes)", num_blocks, num_blocks * IDE::SECTOR_SIZE);
   INFO("IDE", "Initialization complete");
 }
 
@@ -197,6 +198,7 @@ void IDE::read(block_t blk, on_read_func callback)
   work_queue.emplace_back(drive_id, blk, 1, callback);
   if (work_queue.size() == 1) work_begin_next();
 #else
+  (void) blk;
   callback(nullptr);
 #endif
 }
@@ -214,6 +216,8 @@ void IDE::read(block_t blk, size_t count, on_read_func callback)
   work_queue.emplace_back(drive_id, blk, count, callback);
   if (work_queue.size() == 1) work_begin_next();
 #else
+  (void) blk;
+  (void) count;
   callback(nullptr);
 #endif
 }
@@ -236,7 +240,7 @@ IDE::buffer_t IDE::read_sync(block_t blk)
   wait_status_flags(IDE_DRDY, false);
 
   auto* data = (uint16_t*) buffer->data();
-  for (size_t i = 0; i < IDE::SECTOR_SIZE / 2; i++)
+  for (size_t i = 0; i < IDE::SECTOR_ARRAY; i++)
       data[i] = hw::inw(IDE_DATA);
   return buffer;
 #else
@@ -255,7 +259,7 @@ void IDE::write(block_t blk, buffer_t buffer, on_write_func callback)
 {
 #ifdef IDE_ENABLE_WRITE
   // avoid writing past the disk boundaries
-  if (blk + buffer->size() / block_size() >= this->num_blocks) {
+  if (blk + buffer->size() / block_size() > this->num_blocks) {
     callback(true);
     return;
   }
@@ -264,7 +268,36 @@ void IDE::write(block_t blk, buffer_t buffer, on_write_func callback)
   work_queue.emplace_back(drive_id, blk, buffer, callback);
   if (work_queue.size() == 1) work_begin_next();
 #else
+  (void) blk;
+  (void) buffer;
   callback(true);
+#endif
+}
+bool IDE::write_sync(block_t blk, buffer_t buffer)
+{
+#ifdef IDE_ENABLE_WRITE
+  // avoid writing past the disk boundaries
+  if (blk + buffer->size() / block_size() > this->num_blocks) {
+    return true;
+  }
+  IDBG("IDE: Write called on %lu (%lu bytes)\n", blk, buffer->size());
+
+  const uint32_t total = buffer->size() / block_size();
+  set_irq_mode(false);
+  set_drive(0xE0 | this->drive_id | ((blk >> 24) & 0x0F));
+  set_nbsectors(total);
+  set_blocknum(blk);
+  set_command(IDE_CMD_WRITE);
+
+  auto* data = (uint16_t*) buffer->data();
+  for (size_t i = 0; i < total * IDE::SECTOR_ARRAY; i++)
+      hw::outw(IDE_DATA, data[i]);
+  return false;
+
+#else
+  (void) blk;
+  (void) buffer;
+  return true;
 #endif
 }
 

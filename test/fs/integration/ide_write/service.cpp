@@ -32,9 +32,17 @@ void Service::start()
 
   static auto writebuf = fs::construct_buffer(1024);
   strncpy((char*) writebuf->data(), internal_banana.c_str(), writebuf->size());
+
+  bool error = device.write_sync(0, writebuf);
+  CHECKSERT(error == false, "Sync write success");
+  printf("SUCCESS\n");
+  return;
+
   device.write(0, writebuf,
   [] (const bool error) {
-    CHECKSERT(!error, "Write success");
+    CHECKSERT(!error, "Async write success");
     printf("SUCCESS\n");
   });
+
+
 }
