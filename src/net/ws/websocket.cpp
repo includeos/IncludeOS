@@ -214,31 +214,16 @@ void WebSocket::read_data(net::tcp::buffer_t buf)
 size_t WebSocket::Message::append(const uint8_t* data, size_t len)
 {
   size_t total = 0;
-  if (this->header_length == 0 || this->header_complete() == false)
+  // more partial header
+  if (UNLIKELY(this->header_complete() == false))
   {
-    // setup initial header
-    if (this->header_length == 0)
-    {
-      const auto* wsh = (ws_header*) data;
-      // create initial header
-      auto hdr_bytes = std::min(wsh->header_length(), (uint16_t) len);
-      memcpy(header_.data(), data, hdr_bytes);
-      this->header_length = hdr_bytes;
-      // move forward in buffer
-      data += hdr_bytes; len -= hdr_bytes; total += hdr_bytes;
-    }
-    // more partial header
-    else if (this->header_complete() == false)
-    {
-      auto hdr_bytes = std::min(header().header_length() - this->header_length, (int) len);
-      memcpy(&header_[this->header_length], data, hdr_bytes);
-      this->header_length += hdr_bytes;
-      // move forward in buffer
-      data += hdr_bytes; len -= hdr_bytes; total += hdr_bytes;
-    }
+    auto hdr_bytes = std::min(header().header_length() - this->header_length, (int) len);
+    memcpy(&header_[this->header_length], data, hdr_bytes);
+    this->header_length += hdr_bytes;
+    // move forward in buffer
+    data += hdr_bytes; len -= hdr_bytes; total += hdr_bytes;
     // if the header became complete, reserve data
-    if (this->header_complete())
-    {
+    if (this->header_complete()) {
       data_.reserve(header().data_length());
     }
   }
@@ -280,7 +265,7 @@ size_t WebSocket::create_message(const uint8_t* buf, size_t len)
     hdr.data_length(), hdr.data_offset());
   */
 
-  /// unmask data (if masked)
+  // discard invalid messages
   if (hdr.is_masked()) {
     if (clientside == true) {
       failure("Read masked message from server");
