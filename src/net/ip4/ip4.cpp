@@ -140,7 +140,7 @@ namespace net {
 
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
-    if(not stack_.is_valid_source(packet->ip_dst())) {
+    if(not is_for_me(packet->ip_dst())) {
       if (forward_packet_) {
         forward_packet_(stack_, std::move(packet));
         PRINT("Packet forwarded \n");
@@ -225,7 +225,7 @@ namespace net {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
     // Send loopback packets right back
-    if (UNLIKELY(is_for_me(packet->ip_dst()))) {
+    if (UNLIKELY(stack_.is_valid_source(packet->ip_dst()))) {
       PRINT("<IP4> Destination address is loopback \n");
       IP4::receive(std::move(packet), false);
       return;
