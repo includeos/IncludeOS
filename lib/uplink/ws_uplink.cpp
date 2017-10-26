@@ -294,6 +294,11 @@ namespace uplink {
       config_.reboot = cfg["reboot"].GetBool();
     }
 
+    if(cfg.HasMember("ws_logging"))
+    {
+      config_.ws_logging = cfg["ws_logging"].GetBool();
+    }
+
   }
 
   template <typename Writer, typename Stack_ptr>
@@ -435,7 +440,7 @@ namespace uplink {
 
   void WS_uplink::send_log(const char* data, size_t len)
   {
-    if(is_online() and ws_->get_connection()->is_writable())
+    if(is_online() and ws_->get_connection()->is_writable() and config_.ws_logging)
     {
       send_message(Transport_code::LOG, data, len);
     }
@@ -450,7 +455,8 @@ namespace uplink {
   {
     if(not logbuf_.empty())
     {
-      send_message(Transport_code::LOG, logbuf_.data(), logbuf_.size());
+      if(config_.ws_logging)
+        send_message(Transport_code::LOG, logbuf_.data(), logbuf_.size());
       logbuf_.clear();
     }
   }
