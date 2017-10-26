@@ -52,7 +52,7 @@ public:
   */
   void push_back(buffer_t wr) {
     debug2("<WriteQueue> Inserted WR: size=%u, current=%u, size=%u\n",
-      (uint32_t) wr.length(), current_, (uint32_t) size());
+      (uint32_t) wr->size(), current_, (uint32_t) size());
     q.push_back(std::move(wr));
   }
 

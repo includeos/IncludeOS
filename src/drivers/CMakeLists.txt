@@ -4,6 +4,14 @@
 # e.g. several network drivers, which will result in conflicting symbols
 #
 # ...There are probably nicer solutions, so please PR if you know them.
+
+add_library(ide_readwrite STATIC ide.cpp)
+set_target_properties(ide_readwrite PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ -DIDE_ENABLE_WRITE")
+add_library(ide_readonly STATIC ide.cpp)
+set_target_properties(ide_readonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ")
+add_library(ide_writeonly STATIC ide.cpp)
+set_target_properties(ide_writeonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_WRITE")
+
 add_library(virtioblk STATIC virtioblk.cpp)
 add_dependencies(virtioblk PrecompiledLibraries)
 
@@ -19,14 +27,18 @@ add_dependencies(heap_debugging PrecompiledLibraries)
 add_library(boot_logger STATIC bootlog.cpp)
 add_dependencies(boot_logger PrecompiledLibraries)
 
+add_library(disk_logger STATIC "disk_logger.cpp")
+add_dependencies(disk_logger PrecompiledLibraries)
+
 add_library(vga_output STATIC vgaout.cpp)
 add_dependencies(vga_output PrecompiledLibraries)
 
 install(TARGETS
+    ide_readwrite ide_readonly ide_writeonly
     virtionet virtioblk
     vmxnet3
     heap_debugging
-    boot_logger vga_output
+    boot_logger disk_logger vga_output
     DESTINATION includeos/${ARCH}/drivers)
 
 if(WITH_SOLO5)
