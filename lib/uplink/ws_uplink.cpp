@@ -43,7 +43,8 @@ namespace uplink {
 
   WS_uplink::WS_uplink(net::Inet<net::IP4>& inet)
     : inet_{inet}, id_{inet.link_addr().to_string()},
-      parser_({this, &WS_uplink::handle_transport})
+      parser_({this, &WS_uplink::handle_transport}),
+      heartbeat_timer({this, &WS_uplink::heartbeat})
   {
     OS::add_stdout({this, &WS_uplink::send_log});
 
@@ -187,12 +188,38 @@ namespace uplink {
     send_ident();
 
     send_uplink();
+
+    ws_->on_ping = {this, &WS_uplink::handle_ping};
+    ws_->on_pong_timeout = {this, &WS_uplink::handle_pong_timeout};
+
+    heartbeat_timer.start(std::chrono::seconds(10));
+    last_ping = RTC::now();
   }
 
   void WS_uplink::handle_ws_close(uint16_t code)
   {
     (void) code;
     auth();
+  }
+
+  bool WS_uplink::handle_ping(const char*, size_t)
+  {
+    last_ping = RTC::now();
+    return true;
+  }
+
+  void WS_uplink::handle_pong_timeout(net::WebSocket&)
+  {
+    MYINFO("! Pong timeout");
+    ws_->close();
+  }
+
+  void WS_uplink::heartbeat()
+  {
+    if(last_ping < RTC::now() - 9)
+      ws_->ping(std::chrono::seconds(5));
+
+    heartbeat_timer.start(std::chrono::seconds(10));
   }
 
   void WS_uplink::parse_transport(net::WebSocket::Message_ptr msg)
