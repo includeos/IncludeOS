@@ -44,6 +44,9 @@ namespace net {
     static constexpr uint16_t H_ptype_ip4 {0x0008};
     static constexpr uint16_t H_hlen_plen {0x0406};
 
+    /** Number of resolution retries **/
+    static constexpr int arp_retries = 3;
+
     /** Constructor */
     explicit Arp(Stack&) noexcept;
 
@@ -132,8 +135,17 @@ namespace net {
       RTC::timestamp_t timestamp_;
     }; //< struct Cache_entry
 
+    struct Queue_entry {
+      Packet_ptr pckt;
+      int tries_remaining = arp_retries;
+
+      Queue_entry(Packet_ptr p)
+        : pckt{std::move(p)}
+      {}
+    };
+
     using Cache       = std::unordered_map<IP4::addr, Cache_entry>;
-    using PacketQueue = std::unordered_map<IP4::addr, Packet_ptr>;
+    using PacketQueue = std::unordered_map<IP4::addr, Queue_entry>;
 
 
     /** Stats */

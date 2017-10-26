@@ -52,7 +52,7 @@ namespace net {
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr, const Error&)>;
 
-    using Vip_list    = std::unordered_set<IP_addr>;
+    using Vip_list    = std::vector<IP_addr>;
     using Port_utils  = std::map<IP_addr, Port_util>;
 
 
