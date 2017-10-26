@@ -134,6 +134,12 @@ public:
   typedef delegate<void(uint16_t)>    close_func;
   // error (reason)
   typedef delegate<void(std::string)> error_func;
+  // ping (return value is whether to return pong or not, default yes)
+  typedef delegate<bool(const char* data, size_t len)> ping_func;
+  // pong recv
+  typedef delegate<void(const char* data, size_t len)> pong_func;
+  // if a ping resulted in a timeout
+  typedef delegate<void(WebSocket& ws)> pong_timeout_func;
 
   /**
    * @brief      Upgrade a HTTP Request to a WebSocket connection.
@@ -207,6 +213,16 @@ public:
     write(text.c_str(), text.size(), op_code::TEXT);
   }
 
+  void ping(const char* buffer, size_t len, Timer::duration_t timeout)
+  {
+    ping_timer.start(timeout);
+    write_opcode(op_code::PING, buffer, len);
+  }
+  void ping(Timer::duration_t timeout)
+  { ping(nullptr, 0, timeout); }
+
+  //void ping(net::tcp::buffer_t, Timer::duration_t timeout);
+
   // close the websocket
   void close();
 
@@ -214,6 +230,9 @@ public:
   close_func   on_close = nullptr;
   error_func   on_error = nullptr;
   read_func    on_read  = nullptr;
+  ping_func    on_ping  = {this, &WebSocket::default_on_ping};
+  pong_func    on_pong  = nullptr;
+  pong_timeout_func on_pong_timeout = nullptr;
 
   bool is_alive() const noexcept {
     return this->stream != nullptr;
@@ -245,6 +264,7 @@ public:
 
 private:
   net::Stream_ptr stream;
+  Timer ping_timer{{this, &WebSocket::pong_timeout}};
   Message_ptr message;
   bool clientside;
 
@@ -258,6 +278,17 @@ private:
   size_t create_message(const uint8_t*, size_t len);
   void finalize_message();
   void reset();
+
+  bool default_on_ping(const char*, size_t)
+  { return true; }
+
+  void pong_timeout()
+  {
+    if (on_pong_timeout)
+      on_pong_timeout(*this);
+    else
+      this->close();
+  }
 };
 using WebSocket_ptr = WebSocket::WebSocket_ptr;
 
