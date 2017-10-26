@@ -140,7 +140,7 @@ namespace net {
 
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
-    if(not is_for_me(packet->ip_dst())) {
+    if(not stack_.is_valid_source(packet->ip_dst())) {
       if (forward_packet_) {
         forward_packet_(stack_, std::move(packet));
         PRINT("Packet forwarded \n");
