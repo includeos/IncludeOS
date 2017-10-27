@@ -30,6 +30,9 @@ add_dependencies(boot_logger PrecompiledLibraries)
 add_library(disk_logger STATIC "disk_logger.cpp")
 add_dependencies(disk_logger PrecompiledLibraries)
 
+add_library(disklog_reader STATIC "disklog_reader.cpp")
+add_dependencies(disklog_reader PrecompiledLibraries)
+
 add_library(vga_output STATIC vgaout.cpp)
 add_dependencies(vga_output PrecompiledLibraries)
 
@@ -38,7 +41,8 @@ install(TARGETS
     virtionet virtioblk
     vmxnet3
     heap_debugging
-    boot_logger disk_logger vga_output
+    boot_logger disk_logger disklog_reader
+    vga_output
     DESTINATION includeos/${ARCH}/drivers)
 
 if(WITH_SOLO5)

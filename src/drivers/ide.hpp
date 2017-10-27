@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef HW_IDE_HPP
-#define HW_IDE_HPP
+#ifndef DRIVERS_IDE_HPP
+#define DRIVERS_IDE_HPP
 
 #include <hw/block_device.hpp>
 #include <array>
@@ -103,4 +103,4 @@ private:
   static void irq_handler();
 }; //< class IDE
 
-#endif //< HW_IDE_HPP
+#endif
