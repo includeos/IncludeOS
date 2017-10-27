@@ -34,6 +34,9 @@ class WS_uplink {
 public:
   static const std::string UPLINK_CFG_FILE;
 
+  static constexpr auto heartbeat_interval = 10s;
+  static constexpr auto heartbeat_retries  = 3;
+
   struct Config
   {
     std::string url;
@@ -87,6 +90,7 @@ private:
 
   Timer retry_timer;
   uint8_t retry_backoff = 0;
+  uint8_t heart_retries_left = heartbeat_retries;
 
   std::vector<char> logbuf_;
 
@@ -111,7 +115,10 @@ private:
 
   bool handle_ping(const char*, size_t);
   void handle_pong_timeout(net::WebSocket&);
-  void heartbeat();
+
+  bool missing_heartbeat()
+  { return last_ping < RTC::now() - heartbeat_interval.count(); }
+  void on_heartbeat_timer();
 
   void parse_transport(net::WebSocket::Message_ptr msg);
 

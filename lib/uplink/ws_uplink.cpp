@@ -40,11 +40,12 @@
 namespace uplink {
 
   const std::string WS_uplink::UPLINK_CFG_FILE{"config.json"};
+  constexpr std::chrono::seconds WS_uplink::heartbeat_interval;
 
   WS_uplink::WS_uplink(net::Inet<net::IP4>& inet)
     : inet_{inet}, id_{inet.link_addr().to_string()},
       parser_({this, &WS_uplink::handle_transport}),
-      heartbeat_timer({this, &WS_uplink::heartbeat})
+      heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
     OS::add_stdout({this, &WS_uplink::send_log});
 
@@ -192,8 +193,9 @@ namespace uplink {
     ws_->on_ping = {this, &WS_uplink::handle_ping};
     ws_->on_pong_timeout = {this, &WS_uplink::handle_pong_timeout};
 
-    heartbeat_timer.start(std::chrono::seconds(10));
+    heart_retries_left = heartbeat_retries;
     last_ping = RTC::now();
+    heartbeat_timer.start(std::chrono::seconds(10));
   }
 
   void WS_uplink::handle_ws_close(uint16_t code)
@@ -210,14 +212,37 @@ namespace uplink {
 
   void WS_uplink::handle_pong_timeout(net::WebSocket&)
   {
-    MYINFO("! Pong timeout");
-    ws_->close();
+    heart_retries_left--;
+    MYINFO("! Pong timeout. Retries left %i", heart_retries_left);
   }
 
-  void WS_uplink::heartbeat()
+  void WS_uplink::on_heartbeat_timer()
   {
-    if(last_ping < RTC::now() - 9)
-      ws_->ping(std::chrono::seconds(5));
+
+    if (not is_online()) {
+      MYINFO("Can't heartbeat on closed conection. ");
+      return;
+    }
+
+    if(missing_heartbeat())
+    {
+      if (not heart_retries_left)
+      {
+        MYINFO("No reply after %i pings. Reauth.", heartbeat_retries);
+        ws_->close();
+        auth();
+        return;
+      }
+
+      auto ping_ok = ws_->ping(std::chrono::seconds(5));
+
+      if (not ping_ok)
+      {
+        MYINFO("Heartbeat pinging failed. Reauth.");
+        auth();
+        return;
+      }
+    }
 
     heartbeat_timer.start(std::chrono::seconds(10));
   }
