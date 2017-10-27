@@ -28,7 +28,7 @@ std::unique_ptr<nat::NAPT> natty;
 
 void test_finished() {
   static int i = 0;
-  if (++i == 3) printf("SUCCESS\n");
+  if (++i == 6) printf("SUCCESS\n");
 }
 
 void ip_forward(Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
@@ -67,13 +67,13 @@ void Service::start()
 
   INFO("NAT Test", "Setup routing between eth0 and eth1");
   Router<IP4>::Routing_table routing_table{
-    {{10, 1, 0, 0 }, { 255, 255, 0, 0}, {10, 1, 0, 1}, eth0 , 1 },
-    {{192, 1, 0, 0 }, { 255, 255, 255, 0}, {192, 1, 0, 1}, eth1 , 1 }
+    {{10, 1, 0, 0 }, { 255, 255, 0, 0}, 0, eth0 , 1 },
+    {{192, 1, 0, 0 }, { 255, 255, 255, 0}, 0, eth1 , 1 }
   };
 
   router = std::make_unique<Router<IP4>>(routing_table);
-  eth0.ip_obj().set_packet_forwarding(ip_forward);
-  eth1.ip_obj().set_packet_forwarding(ip_forward);
+  eth0.ip_obj().set_packet_forwarding(router->forward_delg());
+  eth1.ip_obj().set_packet_forwarding(router->forward_delg());
 
   // Setup Conntracker
   INFO("NAT Test", "Enable Conntrack on eth0 and eth1");
@@ -133,8 +133,8 @@ void Service::start()
   // DNAT all TCP on dst_port==DNAT_PORT to SERVER
   auto dnat_rule = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto
   {
-    if(not stack.is_valid_source(pkt.ip_dst())) // this is not for me
-      return Filter_verdict::ACCEPT; // i'm still a gateway tho..
+    if(not entry)
+      return Filter_verdict::DROP;
 
     if(pkt.ip_protocol() == Protocol::TCP)
     {
@@ -193,4 +193,19 @@ void Service::start()
 
     conn->write("Testing DNAT");
   });
+
+  laptop1.icmp().ping(eth0.ip_addr(), [](auto reply) {
+    CHECKSERT(reply, "Got ping reply from %s", eth0.ip_addr().to_string().c_str());
+    test_finished();
+  }, 1);
+
+  laptop1.icmp().ping(eth1.ip_addr(), [](auto reply) {
+    CHECKSERT(reply, "Got ping reply from %s", eth1.ip_addr().to_string().c_str());
+    test_finished();
+  }, 2);
+
+  laptop1.icmp().ping(internet_host.ip_addr(), [](auto reply) {
+    CHECKSERT(reply, "Got ping reply from %s", internet_host.ip_addr().to_string().c_str());
+    test_finished();
+  }, 3);
 }
