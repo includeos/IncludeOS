@@ -16,10 +16,11 @@
 // limitations under the License.
 
 #pragma once
-#ifndef SYS_SIGNAL_H
-#define SYS_SIGNAL_H
 
 #include_next <signal.h>
+
+#ifndef _SYS_SIGNAL_H // newlib compatible guard
+#define _SYS_SIGNAL_H
 
 #ifdef __cplusplus
 extern "C" {
