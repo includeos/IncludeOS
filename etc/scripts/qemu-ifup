@@ -10,7 +10,11 @@
 
 
 # The name of the bridge VM's are added to
-BRIDGE=bridge43
+if [ -n "$INCLUDEOS_BRIDGE" ]; then
+    BRIDGE=$INCLUDEOS_BRIDGE
+else    
+    BRIDGE="bridge43"
+fi
 
 # ==============================================================================
 # Bringing up the bridge:
