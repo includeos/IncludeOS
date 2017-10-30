@@ -213,13 +213,13 @@ public:
     write(text.c_str(), text.size(), op_code::TEXT);
   }
 
-  void ping(const char* buffer, size_t len, Timer::duration_t timeout)
+  bool ping(const char* buffer, size_t len, Timer::duration_t timeout)
   {
     ping_timer.start(timeout);
-    write_opcode(op_code::PING, buffer, len);
+    return write_opcode(op_code::PING, buffer, len);
   }
-  void ping(Timer::duration_t timeout)
-  { ping(nullptr, 0, timeout); }
+  bool ping(Timer::duration_t timeout)
+  { return ping(nullptr, 0, timeout); }
 
   //void ping(net::tcp::buffer_t, Timer::duration_t timeout);
 

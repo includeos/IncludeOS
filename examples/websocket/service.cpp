@@ -40,13 +40,12 @@ void handle_ws(net::WebSocket_ptr ws)
     // Extracting the data from the message is performant
     ws->write(msg->extract_shared_vector());
   };
-
-  websockets[idx] = std::move(ws);
+  ws->on_close = [ws = ws.get()](auto code) {
   // Notify on close
-  websockets[idx]->on_close = [key = idx](auto code) {
-    printf("WS Closing (%u) %s\n", code, websockets[key]->to_string().c_str());
+    printf("WS Closing (%u) %s\n", code, ws->to_string().c_str());
   };
-  idx++;
+
+  websockets[idx++] = std::move(ws);
 }
 
 #include <net/http/server.hpp>
