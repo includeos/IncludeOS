@@ -39,6 +39,7 @@ public:
     std::string url;
     std::string token;
     bool        reboot = true;
+    bool        ws_logging = true;
   };
 
   WS_uplink(net::Inet<net::IP4>&);
@@ -89,6 +90,9 @@ private:
 
   std::vector<char> logbuf_;
 
+  Timer heartbeat_timer;
+  int64_t last_ping;
+
   void inject_token(http::Request& req, http::Client::Options&, const http::Client::Host)
   {
     if (not token_.empty())
@@ -104,6 +108,10 @@ private:
   void establish_ws(net::WebSocket_ptr ws);
 
   void handle_ws_close(uint16_t code);
+
+  bool handle_ping(const char*, size_t);
+  void handle_pong_timeout(net::WebSocket&);
+  void heartbeat();
 
   void parse_transport(net::WebSocket::Message_ptr msg);
 

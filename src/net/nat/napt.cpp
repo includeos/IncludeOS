@@ -113,6 +113,8 @@ void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr ent
       // Get the TCP ports for the given stack
       auto& ports = inet.tcp_ports()[ip];
       auto socket = masq(entry, ip, ports);
+      NATDBG("<NAPT> MASQ: %s => %s\n",
+        entry->to_string().c_str(), socket.to_string().c_str());
       // static source nat
       tcp_snat(pkt, socket);
       break;
@@ -123,6 +125,8 @@ void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr ent
       // Get the UDP ports for the given stack
       auto& ports = inet.udp_ports()[ip];
       auto socket = masq(entry, ip, ports);
+      NATDBG("<NAPT> MASQ: %s => %s\n",
+        entry->to_string().c_str(), socket.to_string().c_str());
       // static source nat
       udp_snat(pkt, socket);
       break;
@@ -137,6 +141,8 @@ void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr ent
         auto masq_sock = Socket{ip, entry->second.dst.port()};
         conntrack->update_entry(Protocol::ICMPv4, entry->second, {entry->second.src, masq_sock});
       }
+      NATDBG("<NAPT> MASQ: %s => %s\n",
+        entry->to_string().c_str(), entry->second.dst.to_string().c_str());
       // static source nat
       icmp_snat(pkt, entry->second.dst.address());
       break;
@@ -152,9 +158,14 @@ void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack&, Conntrack::Entry_ptr 
   // unknown protocols aren't tracked, so exit
   if (UNLIKELY(entry == nullptr)) return;
 
+  NATDBG("<NAPT> DEMASQ BEFORE IS_SNAT: %s\n",
+        entry->to_string().c_str());
+
   if(not is_snat(entry))
     return;
 
+  NATDBG("<NAPT> DEMASQ: %s => %s\n",
+        entry->to_string().c_str(), entry->first.src.to_string().c_str());
   switch(pkt.ip_protocol())
   {
     case Protocol::TCP:
