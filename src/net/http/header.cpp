@@ -117,17 +117,4 @@ Header::Const_iterator Header::find(util::csview field) const noexcept {
     });
 }
 
-///////////////////////////////////////////////////////////////////////////////
-std::ostream& operator << (std::ostream& output_device, const Header& header) {
-  if (not header.is_empty()) {
-    for (const auto field : header.fields_) {
-      output_device << field.first  << ": "
-                    << field.second << "\r\n";
-    }
-    //-----------------------------------
-    output_device << "\r\n";
-  }
-  return output_device;
-}
-
 } //< namespace http
