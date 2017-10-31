@@ -205,8 +205,22 @@ private:
   /// The format is as follows:
   /// field : value "\r\n"
   ///
-  friend std::ostream& operator << (std::ostream&, const Header&);
+  template<typename Char, typename Char_traits>
+  friend std::basic_ostream<Char, Char_traits>& operator<<(std::basic_ostream<Char, Char_traits>& output_device, const Header& header);
 }; //< class Header
+
+template<typename Char, typename Char_traits>
+std::basic_ostream<Char, Char_traits>& operator<<(std::basic_ostream<Char, Char_traits>& output_device, const Header& header) {
+  if (not header.is_empty()) {
+    for (const auto field : header.fields_) {
+      output_device << field.first  << ": "
+                    << field.second << "\r\n";
+    }
+    //-----------------------------------
+    output_device << "\r\n";
+  }
+  return output_device;
+}
 
 } //< namespace http
 

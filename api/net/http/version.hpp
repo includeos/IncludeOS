@@ -151,7 +151,8 @@ bool operator>=(const Version& lhs, const Version& rhs) noexcept;
 /**--v----------- Implementation Details -----------v--**/
 
 ///////////////////////////////////////////////////////////////////////////////
-inline std::ostream& operator<<(std::ostream& output_device, const Version& version) {
+template<typename Char, typename Char_traits>
+inline std::basic_ostream<Char, Char_traits>& operator<<(std::basic_ostream<Char, Char_traits>& output_device, const Version& version) {
   return output_device << version.to_string();
 }
 
