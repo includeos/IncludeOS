@@ -55,11 +55,26 @@ static_assert(sizeof(void*) == 8, "Pointer must match arch");
 #undef Expects
 #undef Ensures
 
-#define Expects(cond) \
+#if defined(INCLUDEOS_SINGLE_THREADED)
+#define Expects(cond)                               \
   assert(LIKELY(cond) && "OS: Precondition failed")
 
 #define Ensures(cond) \
   assert(LIKELY(cond) && "OS: Postcondition failed")
+#else
+#include <smp>
+
+#define Expects(cond)                               \
+  SMP::global_lock();                               \
+  assert(LIKELY(cond) && "OS: Precondition failed");  \
+  SMP::global_unlock();                             \
+
+#define Ensures(cond) \
+  SMP::global_lock();                                \
+  assert(LIKELY(cond) && "OS: Postcondition failed"); \
+  SMP::global_unlock();                              \
+
+#endif //< defined(INCLUDEOS_SINGLE_THREADED)
 
 #endif //< defined(OS_TERMINATE_ON_CONTRACT_VIOLATION)
 
