@@ -47,15 +47,13 @@ typedef struct {} pthread_condattr_t;
 typedef struct {} pthread_mutexattr_t;
 typedef struct {} pthread_rwlock_t;
 typedef struct {} pthread_rwlockattr_t;
-typedef struct {} pthread_spinlock_t;
 typedef struct {} pthread_once_t;
 
 typedef volatile int spinlock_t __attribute__((aligned(128)));
-typedef struct {
-  spinlock_t spinlock;
-} pthread_mutex_t;
+#endif // Newlib variants
 
-#endif
+
+typedef struct {} pthread_spinlock_t;
 
 int pthread_cond_broadcast(pthread_cond_t* cond);
 int pthread_cond_signal(pthread_cond_t* cond);

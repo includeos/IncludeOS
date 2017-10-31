@@ -15,26 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
+#include <malloc.h>
+#include <errno.h>
 
-#include_next <sched.h>
+extern "C" {
+int posix_memalign(void **memptr, size_t alignment, size_t size) {
 
-#ifndef _SYS_SCHED_H_ // newlib compatible guard
-#define _SYS_SCHED_H_
+  if (alignment < sizeof(void*))
+    return EINVAL;
 
+  auto ptr =  memalign(alignment, size);
 
-#include <sys/types.h>
+  if (! ptr)
+    return errno;
 
-typedef struct {
-  int sched_priority;
-} sched_param;
-
-#endif
-
-
-#ifndef SYS_SCHED_H
-#define SYS_SCHED_H
-
-extern int sched_yield();
-
-#endif
+  *memptr = ptr;
+  return 0;
+};
+}
