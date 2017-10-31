@@ -25,6 +25,7 @@
 
 // Newlib needs this switch to enable clock_gettime etc.
 #define _POSIX_TIMERS 1
+#define _GNU_SOURCE // Provides newest _POSIX_C_SOURCE from newlib
 #define _POSIX_MONOTONIC_CLOCK 1
 
 // Enable newlib multibyte support
