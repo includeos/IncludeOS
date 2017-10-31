@@ -19,7 +19,7 @@ endif()
 option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "Strip symbols to further reduce size" OFF)
-option(single_threaded "Compile without SMP support" ON)
+option(threading "Compile threading and SMP support" OFF)
 option (undefined_san "Enable undefined-behavior sanitizer" OFF)
 
 # arch and platform defines
@@ -33,8 +33,9 @@ add_definitions(-DARCH="${ARCH}")
 add_definitions(-DPLATFORM="${PLATFORM}")
 add_definitions(-DPLATFORM_${PLATFORM})
 
-if (single_threaded)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+if (NOT threading)
+  add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
 endif()
 
 # include toolchain for arch
