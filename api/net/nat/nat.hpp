@@ -25,39 +25,35 @@
 namespace net {
 namespace nat {
 
-/**
- * @brief      Source NAT
- *
- * @param      pkt         The packet
- * @param[in]  src_socket  The source socket
- */
-void snat(IP4::IP_packet& pkt, Socket src_socket);
-
+/* TCP Source NAT */
 void tcp_snat(IP4::IP_packet& pkt, Socket new_sock);
-
+void tcp_snat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
+void tcp_snat(IP4::IP_packet& pkt, const uint16_t new_port);
+/* UDP Source NAT */
 void udp_snat(IP4::IP_packet& pkt, Socket new_sock);
-
+void udp_snat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
+void udp_snat(IP4::IP_packet& pkt, const uint16_t new_port);
+/* ICMP Source NAT */
 void icmp_snat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
+/* IP4 Source NAT (depending on specified protocol) */
+void snat(IP4::IP_packet& pkt, Socket src_socket);
+void snat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
+void snat(IP4::IP_packet& pkt, const uint16_t new_port);
 
-/**
- * @brief      Destination NAT
- *
- * @param      pkt         The packet
- * @param[in]  dst_socket  The destination socket
- */
-void dnat(IP4::IP_packet& pkt, Socket dst_socket);
-void dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
-void dnat(IP4::IP_packet& pkt, const uint16_t new_port);
-
+/* TCP Destination NAT */
 void tcp_dnat(IP4::IP_packet& pkt, Socket new_sock);
 void tcp_dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
 void tcp_dnat(IP4::IP_packet& pkt, const uint16_t new_port);
-
+/* UDP Destination NAT */
 void udp_dnat(IP4::IP_packet& pkt, Socket new_sock);
 void udp_dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
 void udp_dnat(IP4::IP_packet& pkt, const uint16_t new_port);
-
+/* ICMP Destination NAT */
 void icmp_dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
+/* IP4 Destination NAT (depending on specified protocol) */
+void dnat(IP4::IP_packet& pkt, Socket dst_socket);
+void dnat(IP4::IP_packet& pkt, const ip4::Addr new_addr);
+void dnat(IP4::IP_packet& pkt, const uint16_t new_port);
 
 }
 }

@@ -58,7 +58,11 @@ public:
   void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const Socket sock);
   void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const ip4::Addr addr);
   void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const uint16_t port);
+  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr);
 
+  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const Socket sock);
+  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const ip4::Addr addr);
+  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const uint16_t port);
   void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr);
 
 private:

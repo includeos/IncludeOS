@@ -225,7 +225,7 @@ namespace net {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
     // Send loopback packets right back
-    if (UNLIKELY(is_for_me(packet->ip_dst()))) {
+    if (UNLIKELY(stack_.is_valid_source(packet->ip_dst()))) {
       PRINT("<IP4> Destination address is loopback \n");
       IP4::receive(std::move(packet), false);
       return;
