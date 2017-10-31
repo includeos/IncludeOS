@@ -27,13 +27,18 @@
 #include <cstdint>
 #include <cstring>
 #include <cassert>
+#include <type_traits>
+#include <iterator>
 
 enum class Fixedvector_Init {
   UNINIT
 };
 
 template <typename T, int N>
-struct Fixed_vector {
+class Fixed_vector {
+public:
+  using iterator = T*;
+
   Fixed_vector() : count(0) {}
   Fixed_vector(Fixedvector_Init) {}
 
@@ -51,6 +56,21 @@ struct Fixed_vector {
     return (*this)[count++];
   }
 
+  template <class InputIt>
+  void insert(iterator pos, InputIt first, InputIt last)
+  {
+    assert(begin() <= pos and pos <= end() && "pos do not belong to this vector");
+    auto len = std::distance(first, last);
+    assert((pos + len) < (end() + remaining()) && "not enough room in vector");
+
+    // update count
+    if(pos + len >= end())
+      count += (len - (end() - pos));
+
+    while(first != last)
+      *(pos++) = *(first++);
+  }
+
   // pop back and return last element
   T pop_back() {
     return (*this)[--count];
@@ -66,6 +86,9 @@ struct Fixed_vector {
   uint32_t size() const noexcept {
     return count;
   }
+
+  uint32_t remaining() const noexcept
+  { return capacity() - size(); }
 
   T& operator[] (uint32_t i) noexcept {
     return *(T*) (element + i);
