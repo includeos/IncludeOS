@@ -265,7 +265,8 @@ inline Request_ptr make_request(std::string request) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-inline std::ostream& operator << (std::ostream& output_device, const Request& req) {
+template<typename Char, typename Char_traits>
+inline std::basic_ostream<Char, Char_traits>& operator<<(std::basic_ostream<Char, Char_traits>& output_device, const Request& req) {
   return output_device << req.to_string();
 }
 

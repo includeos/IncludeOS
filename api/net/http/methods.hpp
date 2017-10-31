@@ -122,7 +122,8 @@ namespace http {
   ///
   /// @return Reference to the specified output device
   ///
-  inline std::ostream& operator << (std::ostream& output_device, const Method m) {
+  template<typename Char, typename Char_traits>
+  inline std::basic_ostream<Char, Char_traits>& operator<<(std::basic_ostream<Char, Char_traits>& output_device, const Method m) {
     return output_device << http::method::str(m);
   }
 
