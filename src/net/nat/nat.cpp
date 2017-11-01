@@ -224,7 +224,7 @@ void udp_snat(PacketIP4& p, const ip4::Addr new_addr)
   // recalc udp addr csum
   recalc_udp_addr(pkt, pkt.ip_src(), new_addr);
   // change destination address
-  pkt.set_ip_dst(new_addr);
+  pkt.set_ip_src(new_addr);
 }
 
 void udp_snat(PacketIP4& p, const uint16_t new_port)

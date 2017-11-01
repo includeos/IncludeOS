@@ -104,3 +104,82 @@ CASE("TCP NAT verifying rewrite and checksum")
   EXPECT(tcp->compute_ip_checksum() == 0);
 }
 
+CASE("UDP NAT verifying rewrite")
+{
+  // Socket
+  const Socket src{{10,0,0,42},80};
+  const Socket dst{{10,0,0,43},32222};
+  auto udp = create_udp_packet_init(src, dst);
+  EXPECT(udp->source() == src);
+  EXPECT(udp->destination() == dst);
+
+  // Update checksum
+  udp->set_ip_checksum();
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // DNAT Socket
+  dnat(*udp, src);
+  EXPECT(udp->source() == src);
+  EXPECT(udp->destination() == src);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // revert
+  dnat(*udp, dst);
+  EXPECT(udp->source() == src);
+  EXPECT(udp->destination() == dst);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // SNAT Socket
+  snat(*udp, dst);
+  EXPECT(udp->source() == dst);
+  EXPECT(udp->destination() == dst);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // revert
+  snat(*udp, src);
+  EXPECT(udp->source() == src);
+  EXPECT(udp->destination() == dst);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // Address
+  const ip4::Addr dst_addr{10,10,10,10};
+  const ip4::Addr src_addr{10,0,0,1};
+
+  // DNAT Addr
+  dnat(*udp, dst_addr);
+  EXPECT(udp->ip_dst() == dst_addr);
+  EXPECT(udp->dst_port() == dst.port());
+  EXPECT(udp->source() == src);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // SNAT Addr
+  snat(*udp, src_addr);
+  EXPECT(udp->ip_src() == src_addr);
+  EXPECT(udp->src_port() == src.port());
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // Port
+  const uint16_t dst_port{12345};
+  const uint16_t src_port{6789};
+
+  // DNAT port
+  dnat(*udp, dst_port);
+  EXPECT(udp->ip_dst() == dst_addr);
+  EXPECT(udp->dst_port() == dst_port);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // SNAT port
+  snat(*udp, src_port);
+  EXPECT(udp->ip_src() == src_addr);
+  EXPECT(udp->src_port() == src_port);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+}
+

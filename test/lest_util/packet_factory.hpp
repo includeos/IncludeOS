@@ -75,4 +75,16 @@ static std::unique_ptr<net::tcp::Packet> create_tcp_packet_init(Socket src, Sock
   return tcp;
 }
 
+#include <net/ip4/packet_udp.hpp>
+static std::unique_ptr<net::PacketUDP> create_udp_packet_init(Socket src, Socket dst) noexcept
+{
+  auto ip4 = create_ip4_packet();
+  ip4->init(Protocol::UDP);
+  auto udp = net::static_unique_ptr_cast<net::PacketUDP> (std::move(ip4));
+  udp->init(src.port(), dst.port());
+  udp->set_ip_src(src.address());
+  udp->set_ip_dst(dst.address());
+  return udp;
+}
+
 #endif
