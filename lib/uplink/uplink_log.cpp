@@ -18,6 +18,8 @@
 #include "log.hpp"
 #include <os>
 
+// Initialize the log at OS start (global constructor)
+// and hook it up to OS stdout.
 struct Autoreg_log {
   Autoreg_log() {
     auto& log = uplink::Log::get();
