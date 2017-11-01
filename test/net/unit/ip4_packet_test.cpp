@@ -16,34 +16,24 @@
 // limitations under the License.
 
 #include <packet_factory.hpp>
-#include <net/ip4/packet_ip4.hpp>
 #include <common.cxx>
 
 using namespace net;
 
-static std::unique_ptr<PacketIP4> create_ip4_packet() noexcept
-{
-  auto pkt = create_packet();
-  pkt->increment_layer_begin(sizeof(ethernet::Header));
-  // IP4 Packet
-  auto ip4 = net::static_unique_ptr_cast<PacketIP4> (std::move(pkt));
-  ip4->init();
-  return ip4;
-}
-
 CASE("IP4 Packet TTL")
 {
   auto ip4 = create_ip4_packet();
+  ip4->init();
 
   ip4->set_ip_checksum();
 
   const auto DEFAULT_TTL = PacketIP4::DEFAULT_TTL;
 
   EXPECT(ip4->ip_ttl() == DEFAULT_TTL);
-  EXPECT(ip4->compute_checksum() == 0);
+  EXPECT(ip4->compute_ip_checksum() == 0);
 
   ip4->decrement_ttl();
 
   EXPECT(ip4->ip_ttl() == DEFAULT_TTL-1);
-  EXPECT(ip4->compute_checksum() == 0);
+  EXPECT(ip4->compute_ip_checksum() == 0);
 }

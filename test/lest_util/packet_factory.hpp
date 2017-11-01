@@ -29,6 +29,7 @@
 #define PHYS_OFFSET     0
 #define PACKET_CAPA  1514
 
+using namespace net;
 static net::Packet_ptr create_packet() noexcept
 {
   static net::BufferStore bufstore(BUFFER_CNT, BUFFER_SIZE);
@@ -36,6 +37,42 @@ static net::Packet_ptr create_packet() noexcept
   auto* ptr = (net::Packet*) buffer.addr;
   new (ptr) net::Packet(PHYS_OFFSET, 0, PHYS_OFFSET + PACKET_CAPA, buffer.bufstore);
   return net::Packet_ptr(ptr);
+}
+
+#include <net/ip4/packet_ip4.hpp>
+static std::unique_ptr<net::PacketIP4> create_ip4_packet() noexcept
+{
+  auto pkt = create_packet();
+  pkt->increment_layer_begin(sizeof(net::ethernet::Header));
+  // IP4 Packet
+  auto ip4 = net::static_unique_ptr_cast<net::PacketIP4> (std::move(pkt));
+  return ip4;
+}
+
+static std::unique_ptr<net::PacketIP4> create_ip4_packet_init(ip4::Addr src, ip4::Addr dst) noexcept
+{
+  auto ip4 = create_ip4_packet();
+  ip4->init();
+  ip4->set_ip_src(src);
+  ip4->set_ip_dst(dst);
+  return ip4;
+}
+
+#include <net/tcp/packet.hpp>
+static std::unique_ptr<net::tcp::Packet> create_tcp_packet() noexcept
+{
+  auto ip4 = create_ip4_packet();
+  auto tcp = net::static_unique_ptr_cast<net::tcp::Packet> (std::move(ip4));
+  return tcp;
+}
+
+static std::unique_ptr<net::tcp::Packet> create_tcp_packet_init(Socket src, Socket dst) noexcept
+{
+  auto tcp = create_tcp_packet();
+  tcp->init();
+  tcp->set_source(src);
+  tcp->set_destination(dst);
+  return tcp;
 }
 
 #endif

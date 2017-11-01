@@ -179,9 +179,9 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
         packet->source().to_string().c_str(), dest.to_string().c_str());
 
   // Validate checksum
-  if (UNLIKELY(tcp::calculate_checksum(*packet) != 0)) {
+  if (UNLIKELY(packet->compute_tcp_checksum() != 0)) {
     debug("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
-          tcp::calculate_checksum(*packet), 0x0);
+          packet->compute_tcp_checksum(), 0x0);
     drop(*packet);
     return;
   }

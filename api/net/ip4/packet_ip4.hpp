@@ -108,7 +108,7 @@ namespace net {
     { return capacity() - ip_header_length(); }
 
     /** Compute IP header checksum on header as-is */
-    uint16_t compute_checksum() noexcept
+    uint16_t compute_ip_checksum() noexcept
     { return net::checksum(&ip_header(), ip_header_length()); };
 
 

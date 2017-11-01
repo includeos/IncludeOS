@@ -126,8 +126,11 @@ public:
 
   void set_tcp_checksum() noexcept {
     tcp_header().checksum = 0;
-    set_tcp_checksum(tcp::calculate_checksum(*this));
+    set_tcp_checksum(compute_tcp_checksum());
   }
+
+  uint16_t compute_tcp_checksum() noexcept
+  { return tcp::calculate_checksum(*this); };
 
 
   Packet& set_source(const Socket& src) {
