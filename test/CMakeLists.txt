@@ -162,7 +162,7 @@ set(OS_SOURCES
   ${SRC}/net/http/status_codes.cpp
   ${SRC}/net/http/time.cpp
   ${SRC}/net/http/version.cpp
-  ${SRC}/net/inet_common.cpp
+  ${SRC}/net/checksum.cpp
   ${SRC}/net/inet4.cpp
   ${SRC}/net/ip4/arp.cpp
   ${SRC}/net/ip4/icmp4.cpp
@@ -170,6 +170,7 @@ set(OS_SOURCES
   ${SRC}/net/ip4/udp.cpp
   ${SRC}/net/ip4/udp_socket.cpp
   ${SRC}/net/dhcp/dh4client.cpp
+  ${SRC}/net/nat/nat.cpp
   ${SRC}/net/tcp/connection.cpp
   ${SRC}/net/tcp/connection_states.cpp
   ${SRC}/net/tcp/listener.cpp
