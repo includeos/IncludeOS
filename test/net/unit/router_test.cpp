@@ -29,6 +29,34 @@ Inet<IP4>* eth2 = (Inet<IP4>*) 2;
 Inet<IP4>* eth3 = (Inet<IP4>*) 3;
 Inet<IP4>* eth4 = (Inet<IP4>*) 4;
 
+CASE("Testing Route functionality")
+{
+  const Route<IP4> r1{{10, 42, 42, 0 }, { 255, 255, 255, 0}, {10, 42, 42, 2}, *eth1 , 2 };
+  const Route<IP4> r2{{10, 42, 0, 0 }, { 255, 255, 0, 0}, {10, 42, 42, 3}, *eth2 , 1 };
+  const Route<IP4> r3{{0}, {0}, {10, 0, 0, 1}, *eth3 , 1 };
+
+  // Matches
+  EXPECT(r1.match({10,42,42,1}) == eth1);
+  EXPECT(r1.match({10,42,43,1}) == nullptr);
+
+  EXPECT(r2.match({10,42,43,1}) == eth2);
+  EXPECT(r2.match({10,43,0,1}) == nullptr);
+
+  // Eats it all
+  EXPECT(r3.match({10,42,42,1}) != nullptr);
+  EXPECT(r3.match({10,42,43,1}) != nullptr);
+  EXPECT(r3.match({192,168,1,100}) != nullptr);
+
+  // Operators
+  EXPECT(not (r1 == r2));
+  EXPECT(r2 < r1);
+
+  // Nexthop
+  EXPECT(r2.nexthop({10,42,42,1}) == ip4::Addr(10,42,42,1)); // == ip
+  EXPECT(r2.nexthop({10,42,43,1}) == ip4::Addr(10,42,43,1)); // == ip
+  EXPECT(r2.nexthop({10,43,43,1}) == ip4::Addr(10,42,42,3)); // == nexthop
+  EXPECT(r3.nexthop({10,43,43,1}) == ip4::Addr(10,0,0,1)); // == nexthop
+}
 
 CASE("Creating and matching against routes")
 {
@@ -94,12 +122,38 @@ CASE("Creating and using a router and routing table")
   auto route = router.get_cheapest_route({10,42,42,10});
   EXPECT((route->nexthop() == IP4::addr{10,42,42,2} and route->interface() == eth1));
 
+  // Getting the most specific route should hit the most specific one (duh)
+  route = router.get_most_specific_route({10,42,42,10});
+
+  EXPECT(route != nullptr);
+  EXPECT(route->nexthop() == IP4::addr(10,42,42,2));
+
   // Change the routing table
   router.set_routing_table( {{{10, 42, 43, 0 }, { 255, 255, 255, 0}, {10, 42, 42, 2}, *eth1 , 2 }} );
 
   // Now there's no cheapest route
   EXPECT(not router.get_cheapest_route({10,42,42,10}));
 
+}
 
+CASE("Testing default gateway route")
+{
+  const ip4::Addr gateway{10,0,0,1};
+  Router<IP4>::Routing_table tbl{
+    {{10, 42, 42, 0 }, { 255, 255, 255, 0}, {10, 42, 42, 2}, *eth1 , 2 },
+    {{10, 42,  0, 0 }, { 255, 255,   0, 0}, {10, 42, 42, 3}, *eth2 , 2 },
+    {{0}, {0}, gateway, *eth1}
+  };
+
+  Router<IP4> router(tbl);
+
+  auto route = router.get_most_specific_route({10,42,42,10});
+  EXPECT(route->nexthop() == IP4::addr(10,42,42,2));
+
+  route = router.get_most_specific_route({10,42,43,10});
+  EXPECT(route->nexthop() == IP4::addr(10,42,42,3));
+
+  route = router.get_most_specific_route({10,43,42,10});
+  EXPECT(route->nexthop() == IP4::addr(10,0,0,1));
 
 }

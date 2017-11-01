@@ -47,9 +47,8 @@ namespace net {
     Addr nexthop() const noexcept
     { return nexthop_; }
 
-     Addr nexthop(Addr ip) noexcept
+    Addr nexthop(Addr ip) const noexcept
     {
-
       if (net_ == 0)
         return nexthop_;
 
@@ -68,10 +67,10 @@ namespace net {
     Stack_ptr match(typename IPV::addr dest) const noexcept
     { return (dest & netmask_) == net_ ? iface_ : nullptr; }
 
-    bool operator<(const Route& b) const
+    bool operator<(const Route& b) const noexcept
     { return cost() < b.cost(); }
 
-    bool operator==(const Route& b) const
+    bool operator==(const Route& b) const noexcept
     {
       return net_ == b.net() and
         netmask_ == b.netmask() and
