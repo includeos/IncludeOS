@@ -310,7 +310,7 @@ inline void recalc_tcp_sock(tcp::Packet& pkt, Socket osock, Socket nsock)
   auto new_port = htons(nsock.port());
   checksum_adjust<uint16_t>(&tcp_sum, &old_port, &new_port);
   // set the new sum
-  pkt.set_checksum(tcp_sum);
+  pkt.set_tcp_checksum(tcp_sum);
 }
 
 inline void recalc_tcp_addr(tcp::Packet& pkt, ip4::Addr old_addr, ip4::Addr new_addr)
@@ -320,7 +320,7 @@ inline void recalc_tcp_addr(tcp::Packet& pkt, ip4::Addr old_addr, ip4::Addr new_
   // recalc tcp address part
   auto tcp_sum = pkt.tcp_checksum();
   checksum_adjust(&tcp_sum, &old_addr, &new_addr);
-  pkt.set_checksum(tcp_sum);
+  pkt.set_tcp_checksum(tcp_sum);
 }
 
 inline void recalc_tcp_port(tcp::Packet& pkt, uint16_t old_port, uint16_t new_port)
@@ -331,7 +331,7 @@ inline void recalc_tcp_port(tcp::Packet& pkt, uint16_t old_port, uint16_t new_po
   // update TCP csum
   auto tcp_sum  = pkt.tcp_checksum();
   checksum_adjust<uint16_t>(&tcp_sum, &old_port, &new_port);
-  pkt.set_checksum(tcp_sum);
+  pkt.set_tcp_checksum(tcp_sum);
 }
 
 inline void recalc_udp_sock(PacketUDP& pkt, Socket osock, Socket nsock)

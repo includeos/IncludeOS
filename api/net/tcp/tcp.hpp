@@ -186,15 +186,6 @@ namespace net {
     { _network_layer_out = del; }
 
     /**
-     * @brief      Computes the TCP checksum of a segment
-     *
-     * @param[in]  <unnamed>  a TCP Segment
-     *
-     * @return     The checksum of the TCP segment
-     */
-    static uint16_t checksum(const tcp::Packet&);
-
-    /**
      * @brief      Returns a collection of the listeners for this instance.
      *
      * @return     A collection of Listeners

@@ -179,9 +179,9 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
         packet->source().to_string().c_str(), dest.to_string().c_str());
 
   // Validate checksum
-  if (UNLIKELY(checksum(*packet) != 0)) {
+  if (UNLIKELY(tcp::calculate_checksum(*packet) != 0)) {
     debug("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
-          checksum(*packet), 0x0);
+          tcp::calculate_checksum(*packet), 0x0);
     drop(*packet);
     return;
   }
@@ -224,23 +224,6 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
   send_reset(*packet);
 
   drop(*packet);
-}
-
-uint16_t TCP::checksum(const tcp::Packet& packet)
-{
-  uint16_t length = packet.tcp_length();
-  // Compute sum of pseudo-header
-  uint32_t sum =
-        (packet.ip_src().whole >> 16)
-      + (packet.ip_src().whole & 0xffff)
-      + (packet.ip_dst().whole >> 16)
-      + (packet.ip_dst().whole & 0xffff)
-      + (static_cast<uint8_t>(Protocol::TCP) << 8)
-      + htons(length);
-
-  // Compute sum of header and data
-  const char* buffer = (char*) &packet.tcp_header();
-  return net::checksum(sum, buffer, length);
 }
 
 // Show all connections for TCP as a string.
@@ -344,7 +327,7 @@ void TCP::reset_pmtu(Socket dest, IP4::PMTU pmtu) {
 
 void TCP::transmit(tcp::Packet_ptr packet) {
   // Generate checksum.
-  packet->set_checksum(TCP::checksum(*packet));
+  packet->set_tcp_checksum();
   debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
 
   // Stat increment bytes transmitted and packets transmitted
