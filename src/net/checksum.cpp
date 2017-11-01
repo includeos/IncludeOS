@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/inet_common.hpp>
+#include <net/checksum.hpp>
 #include <immintrin.h>
 #include <x86intrin.h>
+#include <cassert>
 
 namespace net {
 
@@ -117,7 +118,7 @@ uint16_t checksum(uint32_t tsum, const void* data, size_t length) noexcept
 void checksum_adjust(uint8_t* chksum, const void* odata,
    int olen, const void* ndata, int nlen)
 {
-  Expects(olen % 2 == 0 and nlen % 2 == 0);
+  assert(olen % 2 == 0 and nlen % 2 == 0);
 
   const auto* optr = reinterpret_cast<const uint8_t*>(odata);
   const auto* nptr = reinterpret_cast<const uint8_t*>(ndata);
