@@ -76,6 +76,11 @@ CASE("VFS entries can contain arbitrary objects")
   Person bjarne = e.obj<Person>();
   EXPECT(bjarne.isBjarne() == true);
   EXPECT_THROWS(e.obj<std::string>());
+  // constness is checked
+  const Person q {"Dennis", 70};
+  fs::VFS_entry f(q, "inspiration", "duh^2");
+  EXPECT_THROWS_AS(Person z = f.obj<Person>(), fs::Err_bad_cast);
+  EXPECT_NO_THROW(const Person z = f.obj<const Person>());
 }
 
 CASE("VFS can mount entries in a tree")
