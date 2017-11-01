@@ -53,6 +53,13 @@ CASE("VFS entries can return type info as string")
   EXPECT(pos != std::string::npos);
 }
 
+CASE("maximum type_name() length can be specified")
+{
+  fs::VFS_entry e("some_entry", "with_description");
+  auto info = e.type_name(3);
+  EXPECT(info.length() == 3u);
+}
+
 CASE("VFS entries can return their number of children")
 {
   fs::VFS_entry e("entry", "description");
