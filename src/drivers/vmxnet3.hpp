@@ -47,7 +47,7 @@ public:
   }
 
   uint16_t MTU() const noexcept override {
-    return 1496;
+    return 1500;
   }
 
   uint16_t packet_len() const noexcept {
