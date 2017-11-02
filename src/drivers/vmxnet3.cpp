@@ -573,7 +573,11 @@ void vmxnet3::poll()
 
 void vmxnet3::deactivate()
 {
-  assert(0);
+  // disable all queues
+  this->disable_intr(0);
+  this->disable_intr(1);
+  for (int q = 0; q < NUM_RX_QUEUES; q++)
+    this->disable_intr(2 + q);
 }
 
 void vmxnet3::move_to_this_cpu()
