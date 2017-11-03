@@ -33,10 +33,6 @@ add_definitions(-DARCH="${ARCH}")
 add_definitions(-DPLATFORM="${PLATFORM}")
 add_definitions(-DPLATFORM_${PLATFORM})
 
-if (NOT threading)
-  add_definitions(-DINCLUDEOS_SINGLE_THREADED)
-  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
-endif()
 
 # include toolchain for arch
 include($ENV{INCLUDEOS_PREFIX}/includeos/${ARCH}-elf-toolchain.cmake)
