@@ -32,6 +32,15 @@ else()
 endif()
 enable_language(ASM_NASM)
 
+if (NOT threading)
+  add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
+  message(STATUS "Building without threading / SMP")
+else()
+  message(STATUS "Building with threading / SMP")
+endif()
+
+
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
