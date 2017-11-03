@@ -28,17 +28,6 @@ thread_local Fiber* Fiber::main_ = nullptr;
 thread_local Fiber* Fiber::current_ = nullptr;
 std::atomic<int> Fiber::next_id_{0};
 
-inline void* get_rsp() {
-  void* stack = 0;
-#if defined(ARCH_x86_64)
-  asm volatile ("mov %%rsp, %0" :"=r"(stack));
-#elif defined(ARCH_i686)
-  asm volatile ("mov %%esp, %0" :"=r"(stack));
-#endif
-  return stack;
-};
-
-
 extern "C" {
   void __fiber_jumpstart(volatile void* th_stack, volatile Fiber* f, volatile void* parent_stack);
   void __fiber_yield(volatile void* stack, volatile void* parent_stack);
