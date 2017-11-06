@@ -91,6 +91,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/ip4_packet_test.cpp
   ${TEST}/net/unit/nat_test.cpp
+  ${TEST}/net/unit/napt_test.cpp
   ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
@@ -172,6 +173,7 @@ set(OS_SOURCES
   ${SRC}/net/ip4/udp_socket.cpp
   ${SRC}/net/dhcp/dh4client.cpp
   ${SRC}/net/nat/nat.cpp
+  ${SRC}/net/nat/napt.cpp
   ${SRC}/net/tcp/connection.cpp
   ${SRC}/net/tcp/connection_states.cpp
   ${SRC}/net/tcp/listener.cpp

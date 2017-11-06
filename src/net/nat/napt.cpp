@@ -313,7 +313,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.to_string().c_str());
-        tcp_snat(p, entry->first.src); // TODO: currently rewrites full socket
+        tcp_dnat(p, entry->first.src); // TODO: currently rewrites full socket
       }
       return;
     }
@@ -323,7 +323,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.to_string().c_str());
-        udp_snat(p, entry->first.src); // TODO: currently rewrites full socket
+        udp_dnat(p, entry->first.src); // TODO: currently rewrites full socket
       }
       return;
     }
@@ -333,7 +333,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.address().to_string().c_str());
-        icmp_snat(p, entry->first.src.address());
+        icmp_dnat(p, entry->first.src.address());
       }
       return;
     }
@@ -456,7 +456,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.to_string().c_str());
-        udp_dnat(p, entry->first.dst); // TODO: currently rewrites full socket
+        udp_snat(p, entry->first.dst); // TODO: currently rewrites full socket
       }
       return;
     }
