@@ -19,7 +19,8 @@ endif()
 option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "Strip symbols to further reduce size" OFF)
-option(threading "Compile threading and SMP support" OFF)
+option(threading "Compile with threading and SMP support" OFF)
+option(coroutines "Compile with coroutines TS support" OFF)
 
 # arch and platform defines
 message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
