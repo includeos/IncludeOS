@@ -183,3 +183,58 @@ CASE("UDP NAT verifying rewrite")
   EXPECT(udp->compute_ip_checksum() == 0);
 }
 
+#include <net/ip4/packet_icmp4.hpp>
+
+CASE("ICMP NAT verifying rewrite")
+{
+  const ip4::Addr src{10,0,0,42};
+  const ip4::Addr dst{10,0,0,43};
+  auto icmp = icmp4::Packet(create_ip4_packet_init(src, dst));
+
+  auto& ip4 = icmp.ip();
+  ip4.set_protocol(Protocol::ICMPv4);
+  ip4.set_ip_checksum();
+
+  EXPECT(ip4.compute_ip_checksum() == 0);
+
+  EXPECT(ip4.ip_src() == src);
+  EXPECT(ip4.ip_dst() == dst);
+
+  // DNAT Addr
+  dnat(ip4, src);
+  EXPECT(ip4.ip_src() == src);
+  EXPECT(ip4.ip_dst() == src);
+  EXPECT(ip4.compute_ip_checksum() == 0);
+
+  // SNAT Addr
+  snat(ip4, dst);
+  EXPECT(ip4.ip_src() == dst);
+  EXPECT(ip4.ip_dst() == src);
+  EXPECT(ip4.compute_ip_checksum() == 0);
+
+  const Socket sock{{10,10,10,10},80};
+  // Socket does nothing (unsupported)
+  dnat(ip4, sock);
+  EXPECT(ip4.ip_src() == dst);
+  EXPECT(ip4.ip_dst() == src);
+  EXPECT(ip4.compute_ip_checksum() == 0);
+
+  snat(ip4, sock);
+  EXPECT(ip4.ip_src() == dst);
+  EXPECT(ip4.ip_dst() == src);
+  EXPECT(ip4.compute_ip_checksum() == 0);
+
+  // Port does nothing (unsupported)
+  const auto csum = ip4.ip_checksum();
+  dnat(ip4, sock.port());
+  EXPECT(ip4.ip_src() == dst);
+  EXPECT(ip4.ip_dst() == src);
+  EXPECT(ip4.ip_checksum() == csum);
+
+  snat(ip4, sock.port());
+  EXPECT(ip4.ip_src() == dst);
+  EXPECT(ip4.ip_dst() == src);
+  EXPECT(ip4.ip_checksum() == csum);
+
+}
+
