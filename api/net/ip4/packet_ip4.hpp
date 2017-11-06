@@ -176,7 +176,7 @@ namespace net {
       Expects(ip_ttl() != 0);
       ip_header().ttl--;
       // RFC 1141 p. 1
-      uint16_t sum = ntohs(ip_header().check) + 0x100; // increment checksum high byte
+      uint16_t sum = ntohs(ip_header().check + htons(0x100)); // increment checksum high byte
       ip_header().check = htons(sum + (sum>>16)); // add carry
     }
 
