@@ -40,6 +40,9 @@ else()
   message(STATUS "Building with threading / SMP")
 endif()
 
+if (coroutines)
+  set(CAPABS "${CAPABS} -fcoroutines-ts ")
+endif()
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
@@ -62,11 +65,11 @@ if (undefined_san)
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++14")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++17")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -std=c++14 ")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -std=c++17 ")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
