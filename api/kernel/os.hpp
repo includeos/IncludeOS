@@ -277,6 +277,10 @@ private:
   friend void __platform_init();
 }; //< OS
 
+inline bool OS::is_live_updated() noexcept {
+  return OS::m_is_live_updated;
+}
+
 inline OS::Span_mods OS::modules()
 {
   auto* bootinfo_ = bootinfo();
