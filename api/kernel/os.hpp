@@ -187,6 +187,12 @@ public:
     return memory_end_;
   }
 
+  /**
+   *  Returns true when the current OS comes from a live update,
+   *  as opposed to booting from either a rollback or a normal boot
+   */
+  static bool is_live_updated() noexcept;
+
   /** Returns the automatic location set aside for storing system and program state **/
   static void* liveupdate_storage_area() noexcept;
 
@@ -246,6 +252,7 @@ private:
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;
   static bool boot_sequence_passed_;
+  static bool m_is_live_updated;
   static bool m_block_drivers_ready;
   static MHz cpu_mhz_;
 
