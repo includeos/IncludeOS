@@ -90,6 +90,8 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/ip4_packet_test.cpp
+  ${TEST}/net/unit/nat_test.cpp
+  ${TEST}/net/unit/napt_test.cpp
   ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
@@ -97,7 +99,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
-  ${TEST}/net/unit/router.cpp
+  ${TEST}/net/unit/router_test.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/util/unit/base64.cpp
@@ -162,7 +164,7 @@ set(OS_SOURCES
   ${SRC}/net/http/status_codes.cpp
   ${SRC}/net/http/time.cpp
   ${SRC}/net/http/version.cpp
-  ${SRC}/net/inet_common.cpp
+  ${SRC}/net/checksum.cpp
   ${SRC}/net/inet4.cpp
   ${SRC}/net/ip4/arp.cpp
   ${SRC}/net/ip4/icmp4.cpp
@@ -170,6 +172,8 @@ set(OS_SOURCES
   ${SRC}/net/ip4/udp.cpp
   ${SRC}/net/ip4/udp_socket.cpp
   ${SRC}/net/dhcp/dh4client.cpp
+  ${SRC}/net/nat/nat.cpp
+  ${SRC}/net/nat/napt.cpp
   ${SRC}/net/tcp/connection.cpp
   ${SRC}/net/tcp/connection_states.cpp
   ${SRC}/net/tcp/listener.cpp

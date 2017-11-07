@@ -186,6 +186,22 @@ public:
   void remove_expired();
 
   /**
+   * @brief      Number of entries currently tracked.
+   *
+   * @return     Number of entries.
+   */
+  size_t number_of_entries() const noexcept
+  { return entries.size(); }
+
+  /**
+   * @brief      Call reserve on the underlying unordered_map
+   *
+   * @param[in]  count  The count
+   */
+  void reserve(size_t count)
+  { entries.reserve(count); }
+
+  /**
    * @brief      A very simple and unreliable way for tracking quintuples.
    *
    * @param[in]  quad   The quad
@@ -215,8 +231,21 @@ public:
    */
   static Quadruple get_quadruple_icmp(const PacketIP4& pkt);
 
-
+  /**
+   * @brief      Construct a Conntrack with unlimited maximum entries.
+   */
   Conntrack();
+
+  /**
+   * @brief      Construct a Conntrack with a given limit of entries.
+   *
+   * @param[in]  max_entries  The maximum number of entries
+   */
+  Conntrack(size_t max_entries);
+
+  /** Maximum number of conntrack entries. */
+  // 0 means unlimited. Every new connection result in 2 entries.
+  size_t maximum_entries;
 
   using Timeout_duration = std::chrono::seconds;
   /** How often the flush timer should fire */

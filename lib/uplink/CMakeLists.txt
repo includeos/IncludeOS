@@ -25,3 +25,6 @@ set(SOURCES
 add_library(${LIBRARY_NAME} STATIC ${SOURCES})
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION includeos/${ARCH}/plugins)
+
+add_library(uplink_log STATIC uplink_log.cpp)
+install(TARGETS uplink_log DESTINATION includeos/${ARCH}/drivers)

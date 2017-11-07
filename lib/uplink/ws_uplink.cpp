@@ -36,6 +36,7 @@
 #include <kernel/cpuid.hpp>
 #include <statman>
 #include <config>
+#include "log.hpp"
 
 namespace uplink {
 
@@ -47,7 +48,7 @@ namespace uplink {
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
-    OS::add_stdout({this, &WS_uplink::send_log});
+    Log::get().set_flush_handler({this, &WS_uplink::send_log});
 
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
 
@@ -492,7 +493,10 @@ namespace uplink {
 
   void WS_uplink::send_log(const char* data, size_t len)
   {
-    if(is_online() and ws_->get_connection()->is_writable() and config_.ws_logging)
+    if(not config_.ws_logging)
+      return;
+
+    if(is_online() and ws_->get_connection()->is_writable())
     {
       send_message(Transport_code::LOG, data, len);
     }
@@ -508,8 +512,11 @@ namespace uplink {
     if(not logbuf_.empty())
     {
       if(config_.ws_logging)
+      {
         send_message(Transport_code::LOG, logbuf_.data(), logbuf_.size());
+      }
       logbuf_.clear();
+      logbuf_.shrink_to_fit();
     }
   }
 

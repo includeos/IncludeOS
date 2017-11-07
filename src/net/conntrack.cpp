@@ -92,9 +92,15 @@ Conntrack::Entry* dumb_in(Conntrack& ct, Quadruple q, const PacketIP4& pkt)
 { return  ct.simple_track_in(std::move(q), pkt.ip_protocol()); }
 
 Conntrack::Conntrack()
- : tcp_in{&dumb_in},
-   flush_timer({this, &Conntrack::on_timeout})
+ : Conntrack(0)
 {}
+
+Conntrack::Conntrack(size_t max_entries)
+ : maximum_entries{max_entries},
+   tcp_in{&dumb_in},
+   flush_timer({this, &Conntrack::on_timeout})
+{
+}
 
 Conntrack::Entry* Conntrack::get(const PacketIP4& pkt) const
 {
@@ -215,6 +221,15 @@ Conntrack::Entry* Conntrack::confirm(Quadruple quad, const Protocol proto)
 Conntrack::Entry* Conntrack::add_entry(
   const Quadruple& quad, const Protocol proto)
 {
+  // Return nullptr if conntrack is full
+  if(UNLIKELY(maximum_entries != 0 and
+    entries.size() + 2 > maximum_entries))
+  {
+    CTDBG("<Conntrack> Limit reached (limit=%lu sz=%lu)\n",
+      maximum_entries, entries.size());
+    return nullptr;
+  }
+
   if(not flush_timer.is_running())
     flush_timer.start(timeout_interval);
 

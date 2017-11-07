@@ -126,3 +126,36 @@ CASE("Testing Conntrack update entry")
   EXPECT(entry->first == quad);
   EXPECT(entry->second == new_quad);
 }
+
+CASE("Testing Conntrack limit")
+{
+  using namespace net;
+  Socket src{{10,0,0,42}, 80};
+  Socket dst{{10,0,0,1}, 1337};
+  Quadruple quad{src, dst};
+  // Reversed quadruple
+  Quadruple rquad = quad; rquad.swap();
+
+  const size_t limit{2};
+
+  Conntrack ct(limit);
+  Conntrack::Entry* entry = nullptr;
+
+  // OK
+  entry = ct.simple_track_in(quad, Protocol::UDP);
+  EXPECT(entry != nullptr);
+  EXPECT(ct.number_of_entries() == 2);
+
+  // Conntrack is full
+  entry = ct.simple_track_in(quad, Protocol::TCP);
+  EXPECT(entry == nullptr);
+  EXPECT(ct.number_of_entries() == 2);
+
+  // Set unlimited number of entries
+  ct.maximum_entries = 0;
+
+  // Can now track TCP
+  entry = ct.simple_track_in(quad, Protocol::TCP);
+  EXPECT(entry != nullptr);
+  EXPECT(ct.number_of_entries() == 4);
+}

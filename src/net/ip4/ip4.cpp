@@ -60,7 +60,7 @@ namespace net {
       return drop(std::move(packet), up, Drop_reason::Wrong_version);
 
     // RFC-1122 3.2.1.2, Verify IP checksum, silently discard bad dgram
-    if (UNLIKELY(packet->compute_checksum() != 0))
+    if (UNLIKELY(packet->compute_ip_checksum() != 0))
       return drop(std::move(packet), up, Drop_reason::Wrong_checksum);
 
     // RFC-1122 3.2.1.3, Silently discard datagram with bad src addr
