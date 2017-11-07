@@ -405,8 +405,8 @@ void VirtioNet::deactivate()
   ctrl_q.disable_interrupts();
 
   /// mask off MSI-X vectors
-  if (has_msix())
-      deactivate_msix();
+  //if (has_msix())
+  //    deactivate_msix();
 }
 
 void VirtioNet::move_to_this_cpu()
