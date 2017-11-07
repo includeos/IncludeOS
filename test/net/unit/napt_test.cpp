@@ -24,9 +24,6 @@
 using namespace net;
 using namespace net::nat;
 
-//Nic_mock nic;
-//Inet4 inet{nic};
-
 static Conntrack::Entry* get_entry(Conntrack& ct, const PacketIP4& pkt)
 {
   auto* entry = ct.in(pkt);
@@ -42,7 +39,14 @@ static tcp::Packet_ptr tcp_packet(Socket src, Socket dst)
   return tcp;
 }
 
-CASE("TCP NAPT DNAT")
+static std::unique_ptr<net::PacketUDP> udp_packet(Socket src, Socket dst)
+{
+  auto udp = create_udp_packet_init(src, dst);
+  udp->set_ip_checksum();
+  return udp;
+}
+
+CASE("NAPT DNAT")
 {
   auto conntrack = std::make_shared<Conntrack>();
   NAPT napt{conntrack};
@@ -51,6 +55,7 @@ CASE("TCP NAPT DNAT")
   const Socket dst{{10,0,0,42},80};
   const Socket target{{10,0,0,43}, 8080};
 
+  // TCP
   // Request
   auto tcp = tcp_packet(src, dst);
   auto* entry = get_entry(*conntrack, *tcp);
@@ -70,9 +75,31 @@ CASE("TCP NAPT DNAT")
   EXPECT(tcp->destination() == src);
   EXPECT(tcp->compute_tcp_checksum() == 0);
   EXPECT(tcp->compute_ip_checksum() == 0);
+
+  // UDP
+  // Request
+  auto udp = udp_packet(src, dst);
+  entry = get_entry(*conntrack, *udp);
+  napt.dnat(*udp, entry, target);
+
+  EXPECT(udp->source() == src);
+  EXPECT(udp->destination() == target);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // Reply
+  udp = udp_packet(target, src);
+  entry = get_entry(*conntrack, *udp);
+  napt.snat(*udp, entry);
+
+  EXPECT(udp->source() == dst);
+  EXPECT(udp->destination() == src);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
 }
 
-CASE("TCP NAPT SNAT")
+CASE("NAPT SNAT")
 {
   auto conntrack = std::make_shared<Conntrack>();
   NAPT napt{conntrack};
@@ -81,6 +108,7 @@ CASE("TCP NAPT SNAT")
   const Socket dst{{10,0,0,42},80};
   const ip4::Addr new_src{10,0,0,10};
 
+  // TCP
   // Request
   auto tcp = tcp_packet(src, dst);
   auto* entry = get_entry(*conntrack, *tcp);
@@ -102,4 +130,74 @@ CASE("TCP NAPT SNAT")
   EXPECT(tcp->destination() == src);
   EXPECT(tcp->compute_tcp_checksum() == 0);
   EXPECT(tcp->compute_ip_checksum() == 0);
+
+  // UDP
+  // Request
+  auto udp = udp_packet(src, dst);
+  entry = get_entry(*conntrack, *udp);
+  EXPECT(entry != nullptr);
+  napt.snat(*udp, entry, new_src);
+
+  EXPECT(udp->source() == Socket(new_src, src.port()));
+  EXPECT(udp->destination() == dst);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+
+  // Reply
+  udp = udp_packet(dst, Socket{new_src, src.port()});
+  entry = get_entry(*conntrack, *udp);
+  EXPECT(entry != nullptr);
+  napt.dnat(*udp, entry);
+
+  EXPECT(udp->source() == dst);
+  EXPECT(udp->destination() == src);
+
+  EXPECT(udp->compute_ip_checksum() == 0);
+}
+
+CASE("NAPT MASQUERADE")
+{
+  auto conntrack = std::make_shared<Conntrack>();
+  NAPT napt{conntrack};
+
+  Nic_mock nic;
+  Inet4 inet{nic};
+  inet.network_config({10,0,0,40},{255,255,255,0}, 0);
+
+  const Socket src{{10,0,0,1}, 32222};
+  const Socket dst{{10,0,0,42},80};
+
+  // TCP
+  // Request
+  auto tcp = tcp_packet(src, dst);
+  auto* entry = get_entry(*conntrack, *tcp);
+  EXPECT(entry != nullptr);
+
+  napt.masquerade(*tcp, inet, entry);
+  EXPECT(tcp->ip_src() == inet.ip_addr());
+  EXPECT(tcp->destination() == dst);
+  EXPECT(tcp->compute_tcp_checksum() == 0);
+  EXPECT(tcp->compute_ip_checksum() == 0);
+
+  // Port is bound
+  auto& tcp_ports = inet.tcp_ports()[inet.ip_addr()];
+  EXPECT(tcp_ports.is_bound(tcp->src_port()));
+
+  // Reply
+  auto new_src = tcp->source();
+  tcp = tcp_packet(dst, new_src);
+  entry = get_entry(*conntrack, *tcp);
+  EXPECT(entry != nullptr);
+
+  napt.demasquerade(*tcp, inet, entry);
+  EXPECT(tcp->destination() == src);
+  EXPECT(tcp->compute_tcp_checksum() == 0);
+  EXPECT(tcp->compute_ip_checksum() == 0);
+
+  // Pretend the entry has timedout
+  entry->timeout = RTC::now();
+  conntrack->remove_expired();
+  // Verify that port has been unbound
+  EXPECT(not tcp_ports.is_bound(new_src.port()));
+
 }
