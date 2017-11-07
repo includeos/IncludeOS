@@ -73,7 +73,7 @@ namespace uplink {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
     Expects(not config_.url.empty());
 
-    if(liu::LiveUpdate::is_resumable())
+    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
     {
       MYINFO("Found resumable state, try restoring...");
       liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
