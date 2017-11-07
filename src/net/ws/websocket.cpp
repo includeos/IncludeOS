@@ -308,9 +308,13 @@ void WebSocket::finalize_message()
     this->close();
     break;
   case op_code::PING:
-    write_opcode(op_code::PONG, hdr.data(), hdr.data_length());
+    if (on_ping(hdr.data(), hdr.data_length())) // if return true, pong back
+      write_opcode(op_code::PONG, hdr.data(), hdr.data_length());
     break;
   case op_code::PONG:
+    ping_timer.stop();
+    if (on_pong != nullptr)
+      on_pong(hdr.data(), hdr.data_length());
     break;
   default:
     //printf("Unknown opcode: %d\n", (int) hdr.opcode());
@@ -428,8 +432,13 @@ WebSocket::WebSocket(WebSocket&& other)
   on_close = std::move(other.on_close);
   on_error = std::move(other.on_error);
   on_read  = std::move(other.on_read);
+  on_ping  = std::move(other.on_ping);
+  on_pong  = std::move(other.on_pong);
+  on_pong_timeout = std::move(other.on_pong_timeout);
+
   stream   = std::move(other.stream);
   clientside = other.clientside;
+  other.ping_timer.stop(); // ..
 }
 WebSocket::~WebSocket()
 {
@@ -452,6 +461,10 @@ void WebSocket::reset()
   this->on_close = nullptr;
   this->on_error = nullptr;
   this->on_read  = nullptr;
+  this->on_ping  = nullptr;
+  this->on_pong  = nullptr;
+  this->on_pong_timeout = nullptr;
+  ping_timer.stop();
   stream->reset_callbacks();
   stream->close();
   stream = nullptr;

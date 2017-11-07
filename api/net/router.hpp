@@ -20,6 +20,14 @@
 
 #include <net/inet.hpp>
 
+//#define ROUTER_DEBUG 1
+#ifdef ROUTER_DEBUG
+#define PRINT(fmt, ...) printf("<Router> " fmt "\n", ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
+
 namespace net {
 
   template <class IPV>
@@ -38,6 +46,18 @@ namespace net {
 
     Addr nexthop() const noexcept
     { return nexthop_; }
+
+     Addr nexthop(Addr ip) noexcept
+    {
+
+      if (net_ == 0)
+        return nexthop_;
+
+      if ((ip & netmask_) == net_ )
+        return ip;
+
+      return nexthop_;
+    }
 
     int cost() const noexcept
     { return cost_; }
@@ -59,8 +79,13 @@ namespace net {
         iface_ == b.interface();
     }
 
-    void forward(typename IPV::IP_packet_ptr pckt)
-    { iface_->ip_obj().ship(std::move(pckt), nexthop_); }
+    void ship(typename IPV::IP_packet_ptr pckt, Addr nexthop) {
+      iface_->ip_obj().ship(std::move(pckt), nexthop);
+    }
+
+    void ship(typename IPV::IP_packet_ptr pckt) {
+      ship(std::move(pckt), nexthop(pckt->ip_dst()));
+    }
 
     Route(Addr net, Netmask mask, Addr nexthop, Stack& iface, int cost = 100)
       : net_{net}, netmask_{mask}, nexthop_{nexthop}, iface_{&iface}, cost_{cost}
@@ -114,14 +139,14 @@ namespace net {
       }
 
       return nullptr;
-    };
+    }
 
     /** Get any interface route for a certain IP **/
     Stack_ptr get_first_interface(Addr dest) {
       auto route = get_first_route(dest);
       if (route) return route->interface();
       return nullptr;
-    };
+    }
 
     /** Check if there exists a route for a given IP **/
     bool route_check(typename IPV::addr dest){
@@ -156,10 +181,37 @@ namespace net {
     };
 
 
+
+    /**
+     * Get most specific route for a certain IP
+     * (e.g. the route with the largest netmask)
+     * @todo : Optimize!
+     **/
+    Route<IPV>* get_most_specific_route(typename IPV::addr dest)
+    {
+      Route<IPV>* match = nullptr;
+      for (auto& route : routing_table_)
+        {
+          if (route.match(dest)) {
+            if (match) {
+              match = route.netmask() > match->netmask() ? &route : match;
+            } else {
+              match = &route;
+            }
+          }
+        }
+      return match;
+    }
+
+
     /** Construct a router over a set of interfaces **/
     Router(Routing_table tbl = {})
       : routing_table_{tbl}
-    {  }
+    {
+      INFO("Router", "Router created with %lu routes", tbl.size());
+      for(auto& route : routing_table_)
+        INFO2("%s", route.to_string().c_str());
+    }
 
     void set_routing_table(Routing_table tbl) {
       routing_table_ = tbl;
@@ -177,28 +229,28 @@ namespace net {
 namespace net {
 
   template <typename IPV>
-  inline void Router<IPV>::forward(Stack& source, typename IPV::IP_packet_ptr pckt)
+  inline void Router<IPV>::forward(Stack&, typename IPV::IP_packet_ptr pckt)
   {
     Expects(pckt);
 
     if(pckt->ip_ttl() == 0)
     {
-      INFO("Router", "TTL equals 0 - dropping");
+      PRINT("TTL equals 0 - dropping");
       return;
     }
 
     pckt->decrement_ttl();
 
     const auto dest = pckt->ip_dst();
-    auto* route = get_first_route(dest);
+    auto* route = get_most_specific_route(dest);
 
     if (not route) {
-      INFO("Router", "No route found for %s - dropping", dest.to_string().c_str());
+      PRINT("No route found for %s DROP", dest.to_string().c_str());
       return;
     }
-    (void) source;
-    debug("<Router> %s transmitting packet to %s",stack.ifname().c_str(), route->interface()->ifname().c_str());
-    route->forward(std::move(pckt));
+
+    PRINT("Found route: %s", route->to_string().c_str());
+    route->ship(std::move(pckt));
   }
 
 } //< namespace net

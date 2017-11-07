@@ -79,6 +79,22 @@ if (EXISTS ${CMAKE_SOURCE_DIR}/config.json)
 endif()
 
 #
+# DRIVERS / PLUGINS - support for parent cmake list specification
+#
+
+# Add extra drivers defined from command line
+set(DRIVERS ${DRIVERS} ${EXTRA_DRIVERS})
+if(DRIVERS)
+  list(REMOVE_DUPLICATES DRIVERS) # Remove duplicate drivers
+endif()
+# Add extra plugins defined from command line
+set(PLUGINS ${PLUGINS} ${EXTRA_PLUGINS})
+if(PLUGINS)
+  list(REMOVE_DUPLICATES PLUGINS) # Remove duplicate plugins
+endif()
+
+
+#
 # NACL.TXT
 #
 
@@ -94,20 +110,6 @@ if (EXISTS ${CMAKE_SOURCE_DIR}/nacl.txt)
    set(PLUGINS ${PLUGINS} nacl)
 endif()
 
-#
-# DRIVERS / PLUGINS - support for parent cmake list specification
-#
-
-# Add extra drivers defined from command line
-set(DRIVERS ${DRIVERS} ${EXTRA_DRIVERS})
-if(DRIVERS)
-  list(REMOVE_DUPLICATES DRIVERS) # Remove duplicate drivers
-endif()
-# Add extra plugins defined from command line
-set(PLUGINS ${PLUGINS} ${EXTRA_PLUGINS})
-if(PLUGINS)
-  list(REMOVE_DUPLICATES PLUGINS) # Remove duplicate plugins
-endif()
 
 # Function:
 # Add plugin / driver as library, set link options

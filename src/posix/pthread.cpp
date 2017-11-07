@@ -18,10 +18,11 @@
 #include <pthread.h>
 #include <cstdio>
 #include <smp>
-
-/*
 #include <fiber>
 #include <unordered_map>
+#include <vector>
+#include <time.h>
+
 std::unordered_map<pthread_t, Fiber> fibers;
 
 int pthread_create(pthread_t* th, const pthread_attr_t* attr, void *(*func)(void *), void* args) {
@@ -37,11 +38,10 @@ int pthread_create(pthread_t* th, const pthread_attr_t* attr, void *(*func)(void
 }
 
 int pthread_join(pthread_t thread, void **value_ptr) {
-  void* retval = fibers[thread].ret<void*>();
-  *value_ptr = retval;
+  *value_ptr = fibers[thread].ret<void*>();
   return 0;
 }
-*/
+
 
 int sched_yield()
 {
@@ -53,16 +53,7 @@ pthread_t pthread_self()
 {
   return tself;
 }
-int pthread_create(pthread_t* th, const pthread_attr_t *, void *(*)(void *), void *)
-{
-  printf("pthread_create: %p\n", th);
-  return 0;
-}
-int pthread_join(pthread_t th, void **)
-{
-  printf("pthread_join %d\n", th);
-  return 0;
-}
+
 int pthread_detach(pthread_t th)
 {
   printf("pthread_detach %d\n", th);
@@ -144,7 +135,7 @@ int pthread_cond_destroy(pthread_cond_t *cond)
   return 0;
 }
 
-#include <vector>
+
 std::vector<const void*> key_vec;
 spinlock_t             key_lock = 0;
 
@@ -185,8 +176,6 @@ int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
   return 0;
 }
 
-
-#include <time.h>
 extern "C"
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {

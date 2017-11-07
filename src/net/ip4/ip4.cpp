@@ -211,6 +211,12 @@ namespace net {
     auto res = output_chain_(*packet, stack_, ct);
     if (UNLIKELY(res == Filter_verdict::DROP)) return;
 
+
+    if (forward_packet_) {
+      forward_packet_(stack_, std::move(packet));
+      return;
+    }
+
     ship(std::move(packet));
   }
 
@@ -219,7 +225,7 @@ namespace net {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
     // Send loopback packets right back
-    if (UNLIKELY(stack_.is_loopback(packet->ip_dst()))) {
+    if (UNLIKELY(stack_.is_valid_source(packet->ip_dst()))) {
       PRINT("<IP4> Destination address is loopback \n");
       IP4::receive(std::move(packet), false);
       return;

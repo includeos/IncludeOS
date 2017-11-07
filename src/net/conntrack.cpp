@@ -143,7 +143,7 @@ Quadruple Conntrack::get_quadruple_icmp(const PacketIP4& pkt)
   };
 
   // not sure if sufficent
-  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->type_code;
+  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->id;
 
   return {{pkt.ip_src(), id}, {pkt.ip_dst(), id}};
 }
