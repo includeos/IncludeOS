@@ -442,7 +442,7 @@ bool vmxnet3::transmit_handler()
 }
 bool vmxnet3::receive_handler(const int Q)
 {
-  bool received = false;
+  std::vector<net::Packet_ptr> recvq;
   while (true)
   {
     uint32_t idx = rx[Q].consumers % VMXNET3_NUM_RX_COMP;
@@ -459,16 +459,18 @@ bool vmxnet3::receive_handler(const int Q)
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
     // get buffer and construct packet
     assert(rx[Q].buffers[desc] != nullptr);
-    auto packet = recv_packet(rx[Q].buffers[desc], len);
+    recvq.push_back(recv_packet(rx[Q].buffers[desc], len));
     rx[Q].buffers[desc] = nullptr;
-
-    // handle_magic()
-    Link::receive(std::move(packet));
-    received = true;
   }
   // refill always
-  if (received) this->refill(rx[Q]);
-  return received;
+  if (!recvq.empty()) {
+    this->refill(rx[Q]);
+    // handle_magic()
+    for (auto& pckt : recvq) {
+      Link::receive(std::move(pckt));
+    }
+  }
+  return recvq.empty() == false;
 }
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
@@ -573,7 +575,11 @@ void vmxnet3::poll()
 
 void vmxnet3::deactivate()
 {
-  assert(0);
+  // disable all queues
+  this->disable_intr(0);
+  this->disable_intr(1);
+  for (int q = 0; q < NUM_RX_QUEUES; q++)
+    this->disable_intr(2 + q);
 }
 
 void vmxnet3::move_to_this_cpu()

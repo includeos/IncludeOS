@@ -39,7 +39,7 @@ void setup_uplink()
 
     uplink = std::make_unique<WS_uplink>(en0);
 
-    OS::on_panic(uplink::on_panic);
+    //OS::on_panic(uplink::on_panic);
 
   }catch(const std::exception& e) {
     MYINFO("Uplink initialization failed: %s ", e.what());

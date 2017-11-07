@@ -20,14 +20,8 @@
 #include <fs/common.hpp>
 #include <rtc>
 
-struct log_structure
-{
-  int64_t  timestamp;
-  uint32_t length;
-  uint32_t max_length; // don't initialize
+#include "disk_logger.hpp"
 
-  char vla[0];
-};
 static log_structure header;
 static fs::buffer_t  logbuffer;
 static uint32_t position = 0;
@@ -39,8 +33,9 @@ extern "C" void __serial_print(const char*, size_t);
 static void write_all()
 {
   try {
-    auto& device = hw::Devices::drive(0);
-    bool error = device.write_sync(0, logbuffer);
+    auto& device = hw::Devices::drive(DISK_NO);
+    const auto sector = disklogger_start_sector(device);
+    const bool error = device.write_sync(sector, logbuffer);
     if (error) {
       __serial_print1("IDE::write_sync failed! Missing or wrong driver?\n");
     }
@@ -53,7 +48,7 @@ static void disk_logger_write(const char* data, size_t len)
 {
   if (position + len > header.max_length) {
     position = sizeof(log_structure);
-    header.length = header.max_length;
+    //header.length = header.max_length;
   }
   __builtin_memcpy(&(*logbuffer)[position], data, len);
   position += len;
@@ -80,7 +75,7 @@ static void disk_logger_write(const char* data, size_t len)
 __attribute__((constructor))
 static void enable_disk_logger()
 {
-  logbuffer = fs::construct_buffer(2048);
+  logbuffer = fs::construct_buffer(DISKLOG_SIZE);
   position = sizeof(log_structure);
   header.max_length = logbuffer->capacity();
   OS::add_stdout(disk_logger_write);

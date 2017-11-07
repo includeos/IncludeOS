@@ -49,6 +49,7 @@ void OS::resume_softreset(intptr_t addr)
   OS::memory_end_     = data->high_mem;
   OS::cpu_mhz_        = data->cpu_freq;
   x86::apic_timer_set_ticks(data->apic_ticks);
+  OS::m_is_live_updated = true;
 
   /// call service-specific softreset handler
   softreset_service_handler((void*) data->extra, data->extra_len);
