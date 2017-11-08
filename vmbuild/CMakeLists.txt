@@ -6,7 +6,7 @@ project (vmbuilder)
 set(SOURCES vmbuild.cpp)
 set(ELF_SYMS_SOURCES elf_syms.cpp)
 
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -O3")
+set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -O2 -g")
 
 # TODO: write scripts that automatically find include directories
 include_directories(. ./../mod/GSL/)
