@@ -8,12 +8,18 @@ execute_process(COMMAND git describe --dirty
 string(STRIP ${OS_VERSION} OS_VERSION)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -march=native -Wall -Wextra")
+set(COMMON "-g -O2 -march=native -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 
 option(GPROF "Enable profiling with gprof" OFF)
 option(SANITIZE "Enable undefined- and address sanitizers" OFF)
+option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
 
+if (ENABLE_LTO)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
+  set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
+endif()
 
 if(GPROF)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
@@ -30,6 +36,7 @@ add_definitions(-DOS_TERMINATE_ON_CONTRACT_VIOLATION)
 add_definitions(-DARP_PASSTHROUGH)
 add_definitions(-DNO_DEBUG)
 add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+add_definitions(-DUSERSPACE_LINUX)
 
 include_directories(../api)
 include_directories(../mod)

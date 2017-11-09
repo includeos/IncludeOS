@@ -2,9 +2,9 @@ set(IOS ${CMAKE_SOURCE_DIR}/..)
 
 set(NET_SOURCES
   ${IOS}/src/net/buffer_store.cpp
+  ${IOS}/src/net/checksum.cpp
   ${IOS}/src/net/super_stack.cpp
   ${IOS}/src/net/inet4.cpp
-  ${IOS}/src/net/inet_common.cpp
 
   ${IOS}/src/net/ethernet/ethernet.cpp
   ${IOS}/src/net/ip4/arp.cpp
