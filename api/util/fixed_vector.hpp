@@ -56,12 +56,21 @@ public:
     return (*this)[count++];
   }
 
+  /**
+   * @brief      Insert a range in the vector, replacing content if pos != end
+   *
+   * @param[in]  pos      The position
+   * @param[in]  first    The first
+   * @param[in]  last     The last
+   *
+   * @tparam     InputIt  { description }
+   */
   template <class InputIt>
-  void insert(iterator pos, InputIt first, InputIt last)
+  void insert_replace(iterator pos, InputIt first, InputIt last)
   {
     assert(begin() <= pos and pos <= end() && "pos do not belong to this vector");
     auto len = std::distance(first, last);
-    assert((pos + len) < (end() + remaining()) && "not enough room in vector");
+    assert((pos + len) <= (end() + remaining()) && "not enough room in vector");
 
     // update count
     if(pos + len >= end())
