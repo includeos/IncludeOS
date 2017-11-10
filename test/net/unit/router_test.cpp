@@ -157,3 +157,89 @@ CASE("Testing default gateway route")
   EXPECT(route->nexthop() == IP4::addr(10,0,0,1));
 
 }
+
+#include <nic_mock.hpp>
+#include <packet_factory.hpp>
+#include <net/inet4>
+
+CASE("Actual routing verifying TTL")
+{
+  Nic_mock nic1;
+  Inet4 inet1{nic1};
+  inet1.network_config({10,0,1,1},{255,255,255,0}, 0);
+
+  Nic_mock nic2;
+  Inet4 inet2{nic2};
+  inet2.network_config({10,0,2,1},{255,255,255,0}, 0);
+
+  Router<IP4>::Routing_table tbl{
+    {{10, 0, 1, 0}, {255, 255, 255, 0}, {0}, inet1 , 1 },
+    {{10, 0, 2, 0}, {255, 255, 255, 0}, {0}, inet2 , 1 }
+  };
+
+  Router<IP4> router(tbl);
+
+  inet1.set_forward_delg(router.forward_delg());
+  inet2.set_forward_delg(router.forward_delg());
+
+  const Socket src{{10,0,1,10}, 32222};
+  const Socket dst{{10,0,2,10}, 80};
+  const uint8_t DEFAULT_TTL = PacketIP4::DEFAULT_TTL;
+
+  // Here we gonna receive the ICMP TTL Exceeded ONCE
+  static int time_exceeded_count = 0;
+  inet1.ip_obj().set_linklayer_out([&](auto pckt, auto ip) {
+    auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
+    EXPECT(packet->ip_protocol() == Protocol::ICMPv4);
+    EXPECT(packet->ip_ttl() == DEFAULT_TTL);
+
+    auto icmp = icmp4::Packet(std::move(packet));
+    ICMP_error err{icmp.type(), icmp.code()};
+    EXPECT(err.icmp_type() == icmp4::Type::TIME_EXCEEDED);
+    EXPECT(err.icmp_code() == static_cast<uint8_t>(icmp4::code::Time_exceeded::TTL));
+
+    time_exceeded_count++;
+  });
+
+  // Here we gonna receive a TCP Packet ONCE
+  static int tcp_packet_recv = 0;
+  inet2.ip_obj().set_linklayer_out([&](auto pckt, auto ip) {
+    auto packet = static_unique_ptr_cast<tcp::Packet>(std::move(pckt));
+    EXPECT(packet->source() == src);
+    EXPECT(packet->destination() == dst);
+    EXPECT(packet->ip_ttl() == DEFAULT_TTL-1);
+
+    tcp_packet_recv++;
+  });
+
+  // Here we gonna receive a ICMP TTL Exceeded
+  auto tcp = create_tcp_packet_init(src, dst);
+  tcp->set_ip_ttl(0);
+  tcp->set_ip_checksum();
+  tcp->set_tcp_checksum();
+  inet1.ip_obj().receive(std::move(tcp), false);
+  EXPECT(time_exceeded_count == 1);
+  EXPECT(tcp_packet_recv == 0);
+
+  // without send_time_exceeded
+  router.send_time_exceeded = false;
+  tcp = create_tcp_packet_init(src, dst);
+  tcp->set_ip_ttl(0);
+  tcp->set_ip_checksum();
+  tcp->set_tcp_checksum();
+  // this one simply gets dropped (not another ICMP)
+  inet1.ip_obj().receive(std::move(tcp), false);
+  EXPECT(time_exceeded_count == 1);
+  EXPECT(tcp_packet_recv == 0);
+
+  // Ok this one is actual legit (default TTL)
+  router.send_time_exceeded = true;
+  tcp = create_tcp_packet_init(src, dst);
+  tcp->set_ip_ttl(DEFAULT_TTL);
+  tcp->set_ip_checksum();
+  tcp->set_tcp_checksum();
+  inet1.ip_obj().receive(std::move(tcp), false);
+  EXPECT(time_exceeded_count == 1);
+  EXPECT(tcp_packet_recv == 1);
+
+}
