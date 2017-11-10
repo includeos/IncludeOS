@@ -228,6 +228,7 @@ namespace net {
 } //< namespace net
 
 #include <net/ip4/packet_ip4.hpp>
+#include <net/ip4/icmp4.hpp>
 
 namespace net {
 
