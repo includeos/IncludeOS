@@ -142,10 +142,10 @@ namespace net {
     // Drop / forward if my ip address doesn't match dest. or broadcast
     if(not is_for_me(packet->ip_dst())) {
       if (forward_packet_) {
+        PRINT("Forwarding packet \n");
         forward_packet_(stack_, std::move(packet));
-        PRINT("Packet forwarded \n");
       } else {
-        PRINT("Packet dropped \n");
+        PRINT("Dropping packet \n");
         drop(std::move(packet), Direction::Upstream, Drop_reason::Bad_destination);
       }
 

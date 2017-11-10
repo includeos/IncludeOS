@@ -83,7 +83,8 @@ namespace net {
     }
 
     void ship(typename IPV::IP_packet_ptr pckt) {
-      ship(std::move(pckt), nexthop(pckt->ip_dst()));
+      auto next = nexthop(pckt->ip_dst());
+      ship(std::move(pckt), next);
     }
 
     Route(Addr net, Netmask mask, Addr nexthop, Stack& iface, int cost = 100)
@@ -216,6 +217,9 @@ namespace net {
       routing_table_ = tbl;
     };
 
+    /** Whether to send ICMP Time Exceeded when TTL is zero */
+    bool send_time_exceeded = true;
+
   private:
     Routing_table routing_table_;
 
@@ -228,17 +232,22 @@ namespace net {
 namespace net {
 
   template <typename IPV>
-  inline void Router<IPV>::forward(Stack&, typename IPV::IP_packet_ptr pckt)
+  inline void Router<IPV>::forward(Stack& stack, typename IPV::IP_packet_ptr pckt)
   {
     Expects(pckt);
 
     if(pckt->ip_ttl() == 0)
     {
       PRINT("TTL equals 0 - dropping");
+      if(this->send_time_exceeded == true and not pckt->ip_dst().is_multicast())
+        stack.icmp().time_exceeded(std::move(pckt), icmp4::code::Time_exceeded::TTL);
       return;
     }
 
-    pckt->decrement_ttl();
+    // When the packet originates from our host, it still passes forward
+    // We add this check to prevent decrementing TTL for "none routed" packets. Hmm.
+    if(UNLIKELY(not stack.is_valid_source(pckt->ip_src())))
+      pckt->decrement_ttl();
 
     const auto dest = pckt->ip_dst();
     auto* route = get_most_specific_route(dest);
