@@ -35,7 +35,7 @@ namespace uplink {
 class Log {
 public:
   // Log capacity, all data beyond the cap will be discarded.
-  static size_t constexpr capacity = 1024*8;
+  static size_t constexpr capacity = 1024*16;
 
   using Flush_handler = delegate<void(const char*, size_t)>;
   using Internal_log  = Fixed_vector<char, capacity>;
