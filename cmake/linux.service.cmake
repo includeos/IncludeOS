@@ -2,14 +2,19 @@
 #   Linux Userspace CMake script   #
 ####################################
 
-#set(CMAKE_CXX_COMPILER "clang++-4.0")
 set(CMAKE_CXX_STANDARD 14)
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -march=native -Wall -Wextra")
+set(COMMON "-g -O2 -march=native -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 
 option(GPROF "Enable profiling with gprof" OFF)
 option(SANITIZE "Enable undefined- and address sanitizers" OFF)
+option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
 
+if (ENABLE_LTO)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin -fuse-ld=lld-5.0")
+  set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin -fuse-ld=lld-5.0")
+endif()
 
 if(GPROF)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
@@ -26,6 +31,7 @@ add_definitions(-DNO_DEBUG)
 add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 add_definitions(-DSERVICE=\"\\\"${BINARY}\\\"\")
 add_definitions(-DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\")
+add_definitions(-DUSERSPACE_LINUX)
 
 set(IOSPATH $ENV{INCLUDEOS_PREFIX}/includeos)
 
