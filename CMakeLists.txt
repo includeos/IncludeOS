@@ -219,6 +219,12 @@ if(libliveupdate)
   add_subdirectory(lib/LiveUpdate)
 endif(libliveupdate)
 
+option(libprotobuf "Build and install Google's protobuf runtime library" OFF)
+if(libprotobuf)
+  init_submodule(lib/protobuf)
+  add_subdirectory(lib/protobuf)
+endif(libprotobuf)
+
 #
 # Installation
 #

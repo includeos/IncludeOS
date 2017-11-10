@@ -20,3 +20,6 @@
 [submodule "examples/SQlite/libsl3"]
 	path = examples/SQlite/libsl3
 	url = https://github.com/fwsGonzo/libsl3.git
+[submodule "lib/protobuf"]
+	path = lib/protobuf
+	url = https://github.com/RicoAntonioFelix/protobuf.git
