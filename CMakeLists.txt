@@ -23,6 +23,7 @@ set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
 
 project (includeos C CXX)
 
+set(INC ${CMAKE_INSTALL_PREFIX}/includeos/include)
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
 set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
 set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
@@ -48,6 +49,10 @@ else()
 endif(cpu_feat_vanilla)
 
 option(single_threaded "Compile without SMP support" ON)
+
+option(silent "Disable most output during OS boot" OFF)
+
+option (undefined_san "Enable undefined-behavior sanitizer" OFF)
 
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
@@ -79,8 +84,7 @@ init_submodule(mod/GSL)
 init_submodule(mod/http-parser)
 init_submodule(mod/uzlib)
 init_submodule(mod/rapidjson)
-
-install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
+init_submodule(NaCl)
 
 # set optimization level
 set(OPTIMIZE "-O2")
@@ -102,13 +106,17 @@ if(debug-info OR debug-all)
 	set(CAPABS "${CAPABS} -UNO_DEBUG")
 endif(debug-info OR debug-all)
 
-option(silent OFF)
 if(silent)
 	set(CAPABS "${CAPABS} -DNO-INFO=1")
 endif(silent)
 
 # Append optimization level
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
+
+# Append sanitizers
+if (undefined_san)
+  set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
+endif()
 
 # object format needs to be set BEFORE enabling ASM
 # see: https://cmake.org/Bug/bug_relationship_graph.php?bug_id=13166
@@ -143,6 +151,8 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 # Botan Crypto & TLS
 # Note: Include order matters!
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nacl.cmake)
 
 #
 # Subprojects
@@ -179,10 +189,9 @@ endif(diskbuilder)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
-	add_subdirectory(examples)
+  set(libprotobuf ON) # dependent
+  add_subdirectory(examples)
 endif(examples)
-
-install(DIRECTORY api/ DESTINATION includeos/api)
 
 option(tests "Build unit tests in /test and install lest test framework" OFF)
 if(tests)
@@ -197,6 +206,9 @@ if(tests)
   #add_subdirectory(test)
 endif(tests)
 
+#
+# Libraries
+#
 option(libmana "Build and install mana web application framework library" ON)
 if(libmana)
   add_subdirectory(lib/mana)
@@ -219,7 +231,12 @@ if(libliveupdate)
   add_subdirectory(lib/LiveUpdate)
 endif(libliveupdate)
 
-option(libprotobuf "Build and install Google's protobuf runtime library" OFF)
+option(libmicroLB "Build and install microLB" ON)
+if(libmicroLB)
+  add_subdirectory(lib/microLB)
+endif()
+
+option(libprotobuf "Build and install Google's protobuf runtime library" ON)
 if(libprotobuf)
   init_submodule(lib/protobuf)
   add_subdirectory(lib/protobuf)
@@ -261,7 +278,9 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
   DESTINATION includeos/scripts)
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod/GSL/gsl DESTINATION include)
+install(DIRECTORY api/ DESTINATION includeos/api)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod/GSL/gsl DESTINATION includeos/include)
+install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 
 set(CPACK_GENERATOR "TGZ;DEB")
 set(CPACK_PACKAGE_VERSION ${OS_VERSION})
