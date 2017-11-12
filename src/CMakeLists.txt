@@ -3,7 +3,7 @@
 #
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
-if (single_threaded)
+if (NOT threading)
 add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 endif()
 
@@ -56,7 +56,7 @@ set(OS_OBJECTS
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm posix/file_fd.cpp posix/dlfcn.cpp
   posix/sys/stat.cpp posix/sys/ioctl.cpp posix/ftw.cpp posix/utime.cpp posix/math.cpp
-  posix/pwd.cpp posix/pthread.cpp)
+  posix/pwd.cpp posix/pthread.cpp posix/stdlib.cpp)
 
 add_library(os STATIC ${OS_OBJECTS})
 add_dependencies(os PrecompiledLibraries botan)

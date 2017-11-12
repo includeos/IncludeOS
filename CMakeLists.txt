@@ -47,7 +47,7 @@ else()
   set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
 endif(cpu_feat_vanilla)
 
-option(single_threaded "Compile without SMP support" ON)
+option(threading "Compile with SMP/threading support" OFF)
 
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
@@ -57,8 +57,7 @@ set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_P
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
-# * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE")
+set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION ")
 
 set(WARNS "-Wall -Wextra")
 
@@ -124,14 +123,20 @@ endif()
 
 enable_language(ASM_NASM)
 
+
+if (NOT threading)
+  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
+endif()
+
+
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
   set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 endif()
 
