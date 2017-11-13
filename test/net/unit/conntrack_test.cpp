@@ -40,8 +40,8 @@ CASE("Testing Conntrack flow")
   // It should now have state NEW
   EXPECT(entry->state == Conntrack::State::UNCONFIRMED);
   EXPECT(entry->proto == proto);
-  // The timeout should be set to "timeout_unconfirmed"
-  EXPECT(entry->timeout == RTC::now() + ct.timeout_unconfirmed.count());
+  // The timeout should be set to "timeout.unconfirmed"
+  EXPECT(entry->timeout == RTC::now() + ct.timeout.unconfirmed.udp.count());
   // It's quad values should be set to quad and rquad
   EXPECT(entry->first == quad);
   EXPECT(entry->second == rquad);
@@ -53,8 +53,8 @@ CASE("Testing Conntrack flow")
   EXPECT(ct.confirm(quad, proto) == entry);
   EXPECT(entry->state == Conntrack::State::NEW);
 
-  // The timeout should now be updated to "timeout_new" when confirmed
-  EXPECT(entry->timeout == RTC::now() + ct.timeout_new.count());
+  // The timeout should now be updated to "timeout.confirmed" when confirmed
+  EXPECT(entry->timeout == RTC::now() + ct.timeout.confirmed.udp.count());
 
   // Confirming it again wont have any effect
   EXPECT(ct.confirm(quad, proto) != nullptr);
@@ -70,8 +70,8 @@ CASE("Testing Conntrack flow")
 
   // The entry should now be ESTABLISHED due to seen traffic both ways
   EXPECT(entry->state == Conntrack::State::ESTABLISHED);
-  // The timeout should be set to "timeout_established"
-  EXPECT(entry->timeout == RTC::now() + ct.timeout_established.count());
+  // The timeout should be set to "timeout.established"
+  EXPECT(entry->timeout == RTC::now() + ct.timeout.established.udp.count());
 
   // Setup a custom on_close event
   bool closed = false;

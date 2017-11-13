@@ -83,7 +83,7 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
     CTDBG("<Conntrack> Assuming ESTABLISHED\n");
   }
 
-  update_timeout(*entry, (entry->state == State::ESTABLISHED) ? timeout_established : timeout_new);
+  update_timeout(*entry, (entry->state == State::ESTABLISHED) ? timeout.established : timeout.confirmed);
 
   return entry;
 }
@@ -212,7 +212,7 @@ Conntrack::Entry* Conntrack::confirm(Quadruple quad, const Protocol proto)
   {
     CTDBG("<Conntrack> Confirming %s\n", entry->to_string().c_str());
     entry->state = State::NEW;
-    update_timeout(*entry, timeout_new);
+    update_timeout(*entry, timeout.confirmed);
   }
 
   return entry;
@@ -231,7 +231,7 @@ Conntrack::Entry* Conntrack::add_entry(
   }
 
   if(not flush_timer.is_running())
-    flush_timer.start(timeout_interval);
+    flush_timer.start(flush_interval);
 
   // we dont check if it's already exists
   // because it should be called from in()
@@ -249,7 +249,7 @@ Conntrack::Entry* Conntrack::add_entry(
 
   CTDBG("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
 
-  update_timeout(*entry, timeout_unconfirmed);
+  update_timeout(*entry, timeout.unconfirmed);
 
   return entry.get();
 }
@@ -300,19 +300,10 @@ void Conntrack::remove_expired()
       ++it;
     }
     else {
-      if(it->second.unique() && on_close)
-        on_close(it->second.get());
-
       CTDBG("<Conntrack> Erasing %s\n", it->second->to_string().c_str());
-      entries.erase(it++);
+      it = entries.erase(it);
     }
   }
-}
-
-void Conntrack::update_timeout(Entry& ent, Timeout_duration dur)
-{
-  ent.timeout = RTC::now() + dur.count();
-  //CTDBG("<Conntrack> Timeout updated with %llu secs\n", dur.count());
 }
 
 void Conntrack::on_timeout()
@@ -320,7 +311,7 @@ void Conntrack::on_timeout()
   remove_expired();
 
   if(not entries.empty())
-    flush_timer.restart(timeout_interval);
+    flush_timer.restart(flush_interval);
 }
 
 

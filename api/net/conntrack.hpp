@@ -108,8 +108,41 @@ public:
 
   };
 
-public:
+  using Timeout_duration = std::chrono::seconds;
+  struct Timeout_settings {
+    Timeout_duration tcp;
+    Timeout_duration udp;
+    Timeout_duration icmp;
 
+    Timeout_duration get(const Protocol proto) const noexcept
+    {
+      switch(proto) {
+        case Protocol::TCP: return tcp;
+        case Protocol::UDP: return udp;
+        case Protocol::ICMPv4: return icmp;
+        default: return Timeout_duration{0};
+      }
+    }
+  };
+
+public:
+  /** Maximum number of conntrack entries. */
+  // 0 means unlimited. Every new connection result in 2 entries.
+  size_t maximum_entries;
+
+  struct {
+    Timeout_settings unconfirmed{ .tcp  = Timeout_duration{10},
+                                  .udp  = Timeout_duration{10},
+                                  .icmp = Timeout_duration{10}};
+
+    Timeout_settings confirmed  { .tcp  = Timeout_duration{30},
+                                  .udp  = Timeout_duration{10},
+                                  .icmp = Timeout_duration{10}};
+
+    Timeout_settings established{ .tcp  = Timeout_duration{300},
+                                  .udp  = Timeout_duration{10},
+                                  .icmp = Timeout_duration{10}};
+  } timeout;
   /**
    * @brief      Find the entry for the given packet
    *
@@ -243,36 +276,27 @@ public:
    */
   Conntrack(size_t max_entries);
 
-  /** Maximum number of conntrack entries. */
-  // 0 means unlimited. Every new connection result in 2 entries.
-  size_t maximum_entries;
-
-  using Timeout_duration = std::chrono::seconds;
   /** How often the flush timer should fire */
-  Timeout_duration timeout_interval {10};
-
-  /** Timeout for a unconfirmed entry */
-  Timeout_duration timeout_unconfirmed  {10};
-  /** Timeout for a new entry */
-  Timeout_duration timeout_new          {30};
-  /** Timeout for a established entry */
-  Timeout_duration timeout_established  {180};
+  std::chrono::seconds flush_interval {10};
 
   /** Custom TCP handler can (and should) be added here */
   Packet_tracker tcp_in;
-
-  Entry_handler on_close; // single for now
 
 private:
   using Entry_table = std::unordered_map<Quintuple, std::shared_ptr<Entry>, Quintuple_hasher>;
   Entry_table entries;
   Timer       flush_timer;
 
-  void update_timeout(Entry& ent, Timeout_duration dur);
+  inline void update_timeout(Entry& ent, const Timeout_settings& timeouts);
 
   void on_timeout();
 
 };
+
+inline void Conntrack::update_timeout(Entry& ent, const Timeout_settings& timeouts)
+{
+  ent.timeout = RTC::now() + timeouts.get(ent.proto).count();
+}
 
 }
 
