@@ -3,6 +3,7 @@ set(SOURCES
     arch.cpp
     main.cpp
     os.cpp
+    profile.cpp
     drivers/usernet.cpp
     drivers/tap_driver.cpp
     drivers/memdisk.cpp
