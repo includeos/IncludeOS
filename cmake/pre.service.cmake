@@ -20,6 +20,7 @@ option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "Strip symbols to further reduce size" OFF)
 option(single_threaded "Compile without SMP support" ON)
+option (undefined_san "Enable undefined-behavior sanitizer" OFF)
 
 # arch and platform defines
 message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")

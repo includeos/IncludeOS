@@ -15,41 +15,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <malloc.h>
+#include <cstdlib>
+#include <cstdio>
+#include <kernel/syscalls.hpp>
 
-extern "C" void panic(const char*) __attribute__((noreturn));
-
-
-void __default_quick_exit(){
-  panic("\n>>> Quick exit, default route \n");
+void __default_quick_exit() {
+  panic(">>> Quick exit, default route");
 }
 
-
 // According to the standard this should probably be a list or vector.
-static void (*__quick_exit_func)(void) = __default_quick_exit;
+static void (*__quick_exit_func)() = __default_quick_exit;
 
-int at_quick_exit (void (*func)(void)){
+int at_quick_exit (void (*func)())
+{
   // Append to the ist
   __quick_exit_func = func;
   return 0;
-};
+}
 
-
-
-_Noreturn void quick_exit (int status){
-
+__attribute__((noreturn))
+void quick_exit (int status)
+{
   // Call the exit-function(s) and then _Exit
   __quick_exit_func();
 
-
   printf("\n>>> EXIT_%s (%i) \n",status==0 ? "SUCCESS" : "FAILURE",status);
-
 
   // Well.
   panic("Quick exit called. ");
 
   // ...we could actually return to the OS. Like, if we want to stay responsive, answer ping etc.
   // How to clean up the stack? Do we even need to?
-};
+}

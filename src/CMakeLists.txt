@@ -61,6 +61,10 @@ set(OS_OBJECTS
 add_library(os STATIC ${OS_OBJECTS})
 add_dependencies(os PrecompiledLibraries botan)
 
+# disable sanitizers on c_abi and cxx_abi, etc.
+set_source_files_properties(crt/c_abi.c PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
+set_source_files_properties(crt/cxx_abi.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
+
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)
 add_subdirectory(platform/x86_nano)
