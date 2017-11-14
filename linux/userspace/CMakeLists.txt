@@ -9,6 +9,7 @@ set(NET_SOURCES
   ${IOS}/src/net/ethernet/ethernet.cpp
   ${IOS}/src/net/ip4/arp.cpp
   ${IOS}/src/net/ip4/ip4.cpp
+  ${IOS}/src/net/ip4/reassembly.cpp
 
   ${IOS}/src/net/tcp/tcp.cpp
   ${IOS}/src/net/tcp/connection.cpp

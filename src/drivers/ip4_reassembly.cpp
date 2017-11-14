@@ -211,10 +211,13 @@ namespace net
     // some basic validation
     if (UNLIKELY(packet->ip_data_length() == 0)) return nullptr;
     if (UNLIKELY(packet->ip_src() == IP4::ADDR_ANY)) return nullptr;
-    // non-last fragments should have length mult of 8
+    // non-last fragments ...
     if (packet->ip_flags() == ip4::Flags::MF)
     {
+      // must have length mult of 8
       if (UNLIKELY(packet->ip_data_length() % 8 != 0)) return nullptr;
+      // should be at least 400 octets long
+      if (UNLIKELY(packet->ip_data_length() < 400)) return nullptr;
     }
     // create timestamp used for timeouts
     RTC::timestamp_t now = RTC::now();
