@@ -57,8 +57,7 @@ namespace net
     {
       Expects(offs_layer_begin >= 0 and
               buf() + offs_layer_begin <= buffer_end() and
-              data_end() <= buffer_end() and
-              bufstore != nullptr);
+              data_end() <= buffer_end());
     }
     // no-op destructor, see delete
     ~Packet() {}
@@ -142,10 +141,13 @@ namespace net
 
 
     // delete: release data back to buffer store
+    // alternatively, free array of bytes if no bufferstore was set
     static void operator delete (void* data) {
       auto* pk = (Packet*) data;
-      assert(pk->bufstore_);
-      pk->bufstore_->release(data);
+      if (pk->bufstore_)
+        pk->bufstore_->release(data);
+      else
+        delete[] (uint8_t*) data;
     }
 
   private:
