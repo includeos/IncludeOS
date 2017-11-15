@@ -84,13 +84,15 @@ void Service::start()
   // Setup NAT (Masquerade)
   natty = std::make_unique<nat::NAPT>(ct);
 
-  auto masq = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto {
-    natty->masquerade(pkt, stack, entry);
-    return Filter_verdict::ACCEPT;
+  auto masq = [](IP4::IP_packet_ptr pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
+  {
+    natty->masquerade(*pkt, stack, entry);
+    return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
-  auto demasq = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto {
-    natty->demasquerade(pkt, stack, entry);
-    return Filter_verdict::ACCEPT;
+  auto demasq = [](IP4::IP_packet_ptr pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
+  {
+    natty->demasquerade(*pkt, stack, entry);
+    return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
 
   INFO("NAT Test", "Enable MASQUERADE on eth1");
@@ -131,27 +133,27 @@ void Service::start()
   static const uint16_t DNAT_PORT{3389};
   static const uint16_t DNAT_PORT2{8933};
   // DNAT all TCP on dst_port==DNAT_PORT to SERVER
-  auto dnat_rule = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto
+  auto dnat_rule = [](IP4::IP_packet_ptr pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
   {
     if(not entry)
-      return Filter_verdict::DROP;
+      return {std::move(pkt), Filter_verdict_type::DROP};
 
-    if(pkt.ip_protocol() == Protocol::TCP)
+    if(pkt->ip_protocol() == Protocol::TCP)
     {
-      auto& tcp = static_cast<tcp::Packet&>(pkt);
+      auto& tcp = static_cast<tcp::Packet&>(*pkt);
 
       if(tcp.dst_port() == DNAT_PORT)
-        natty->dnat(pkt, entry, SERVER);
+        natty->dnat(*pkt, entry, SERVER);
       else if(tcp.dst_port() == DNAT_PORT2)
-        natty->dnat(pkt, entry, {SERVER, DNAT_PORT});
+        natty->dnat(*pkt, entry, {SERVER, DNAT_PORT});
     }
-    return Filter_verdict::ACCEPT;
+    return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
   // SNAT all packets that comes in return that has been DNAT
-  auto snat_translate = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto
+  auto snat_translate = [](IP4::IP_packet_ptr pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
   {
-    natty->snat(pkt, entry);
-    return Filter_verdict::ACCEPT;
+    natty->snat(*pkt, entry);
+    return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
 
   eth0.ip_obj().prerouting_chain().chain.push_back(dnat_rule);
