@@ -31,7 +31,7 @@ void test_finished() {
   if (++i == 6) printf("SUCCESS\n");
 }
 
-void ip_forward(Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
+void ip_forward(IP4::IP_packet_ptr pckt, Inet<IP4>& stack, Conntrack::Entry_ptr) {
   // Packet could have been erroneously moved prior to this call
   if (not pckt)
     return;

@@ -142,15 +142,20 @@ namespace net {
     packet = res.release();
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
-    if(not is_for_me(packet->ip_dst())) {
-      if (forward_packet_) {
-        PRINT("Forwarding packet \n");
-        forward_packet_(stack_, std::move(packet));
-      } else {
+    if(not is_for_me(packet->ip_dst()))
+    {
+      // Forwarding disabled
+      if (not forward_packet_)
+      {
         PRINT("Dropping packet \n");
         drop(std::move(packet), Direction::Upstream, Drop_reason::Bad_destination);
       }
-
+      // Forwarding enabled
+      else
+      {
+        PRINT("Forwarding packet \n");
+        forward_packet_(std::move(packet), stack_, ct);
+      }
       return;
     }
 
@@ -220,7 +225,7 @@ namespace net {
 
 
     if (forward_packet_) {
-      forward_packet_(stack_, std::move(packet));
+      forward_packet_(std::move(packet), stack_, ct);
       return;
     }
 
