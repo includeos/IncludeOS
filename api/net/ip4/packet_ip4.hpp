@@ -74,7 +74,7 @@ namespace net {
 
     /** Get Fragment offset field */
     uint16_t ip_frag_offs() const noexcept
-    { return ntohs(ip_header().frag_off_flags) & 0xe; }
+    { return ntohs(ip_header().frag_off_flags) & 0x1fff; }
 
     /** Get Time-To-Live field */
     uint8_t ip_ttl() const noexcept

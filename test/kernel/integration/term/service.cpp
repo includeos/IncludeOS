@@ -42,7 +42,7 @@ void Service::start()
   [] (auto client) {
     // create terminal with open TCP connection
     static std::unique_ptr<Terminal> term = nullptr;
-    term = std::make_unique<Terminal> (net::Stream_ptr{new net::tcp::Connection::Stream(client)});
+    term = std::make_unique<Terminal> (client);
   });
   INFO("TERM", "Connect to terminal with $ telnet %s ",
                 inet.ip_addr().str().c_str());
