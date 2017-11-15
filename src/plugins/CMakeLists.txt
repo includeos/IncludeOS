@@ -16,7 +16,19 @@ add_dependencies(autoconf PrecompiledLibraries)
 add_library(terminal STATIC terminal.cpp)
 add_dependencies(terminal PrecompiledLibraries)
 
+add_library(terminal_liu STATIC terminal.cpp)
+set_target_properties(terminal_liu PROPERTIES COMPILE_FLAGS "-DUSE_LIVEUPDATE")
+add_dependencies(terminal_liu PrecompiledLibraries)
+
 add_library(nacl STATIC nacl.cpp)
 add_dependencies(nacl PrecompiledLibraries)
 
-install(TARGETS syslogd unik example autoconf terminal nacl DESTINATION includeos/${ARCH}/plugins)
+install(TARGETS
+    syslogd
+    unik
+    example
+    autoconf
+    terminal
+    terminal_liu
+    nacl
+  DESTINATION includeos/${ARCH}/plugins)

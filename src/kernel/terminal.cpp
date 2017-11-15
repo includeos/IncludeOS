@@ -29,7 +29,7 @@ void Terminal::register_program(std::string name, TerminalProgram program)
           std::forward_as_tuple(program.desc, std::move(program.main)));
 }
 
-Terminal::Terminal(net::Stream_ptr csock)
+Terminal::Terminal(Connection_ptr csock)
   : stream(std::move(csock))
 {
   register_basic_commands();
