@@ -62,11 +62,12 @@ void VirtioNet::get_config() {
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
     Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, bufstore_),
+    m_pcidev(d),
+    bufstore_{300u, 2048 /* 300 half-page buffers */},
     packets_rx_{Statman::get().create(Stat::UINT64,
                 device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64,
-                device_name() + ".packets_tx").get_uint64()},
-    bufstore_{300u, 2048 /* 300 half-page buffers */}
+                device_name() + ".packets_tx").get_uint64()}
 {
   INFO("VirtioNet", "Driver initializing");
 
@@ -257,7 +258,7 @@ void VirtioNet::msix_xmit_handler()
 
     // transmit as much as possible from the buffer
     if (transmit_queue != nullptr) {
-      auto tx = packets_tx_;
+      //auto tx = packets_tx_;
       transmit(std::move(transmit_queue));
       //printf("[virtionet] %ld transmit queue\n", packets_tx_ - tx);
     }
@@ -404,9 +405,8 @@ void VirtioNet::deactivate()
   tx_q.disable_interrupts();
   ctrl_q.disable_interrupts();
 
-  /// mask off MSI-X vectors
-  //if (has_msix())
-  //    deactivate_msix();
+  // deactivate underlying PCI device
+  m_pcidev.deactivate();
 }
 
 void VirtioNet::move_to_this_cpu()
