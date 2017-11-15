@@ -23,6 +23,7 @@ set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
 
 project (includeos C CXX)
 
+set(INC ${CMAKE_INSTALL_PREFIX}/includeos/include)
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
 set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
 set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
@@ -269,7 +270,7 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
   DESTINATION includeos/scripts)
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod/GSL/gsl DESTINATION include)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod/GSL/gsl DESTINATION includeos/include)
 
 set(CPACK_GENERATOR "TGZ;DEB")
 set(CPACK_PACKAGE_VERSION ${OS_VERSION})
