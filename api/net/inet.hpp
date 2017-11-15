@@ -45,7 +45,7 @@ namespace net {
     using IP_packet_ptr = typename IPV::IP_packet_ptr;
     using IP_addr       = typename IPV::addr;
 
-    using Forward_delg  = delegate<void(Stack& source, IP_packet_ptr)>;
+    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using Route_checker = delegate<bool(IP_addr)>;
     using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
 

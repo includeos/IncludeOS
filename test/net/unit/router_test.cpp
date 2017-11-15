@@ -242,4 +242,26 @@ CASE("Actual routing verifying TTL")
   EXPECT(time_exceeded_count == 1);
   EXPECT(tcp_packet_recv == 1);
 
+  // Test the forward chain as well
+  // Accept the first one
+  router.forward_chain.chain.push_back([](auto pkt, auto&, const auto*)->auto {
+    return Filter_verdict<IP4>{std::move(pkt), Filter_verdict_type::ACCEPT};
+  });
+
+  tcp = create_tcp_packet_init(src, dst);
+  tcp->set_ip_checksum();
+  tcp->set_tcp_checksum();
+  inet1.ip_obj().receive(std::move(tcp), false);
+  EXPECT(tcp_packet_recv == 2);
+
+  // Lets drop the next one
+  router.forward_chain.chain.push_back([](auto pkt, auto&, const auto*)->auto {
+    return Filter_verdict<IP4>{std::move(pkt), Filter_verdict_type::DROP};
+  });
+
+  tcp = create_tcp_packet_init(src, dst);
+  tcp->set_ip_checksum();
+  tcp->set_tcp_checksum();
+  inet1.ip_obj().receive(std::move(tcp), false);
+  EXPECT(tcp_packet_recv == 2);
 }

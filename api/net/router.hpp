@@ -19,6 +19,7 @@
 #define NET_ROUTER_HPP
 
 #include <net/inet.hpp>
+#include <net/netfilter.hpp>
 
 //#define ROUTER_DEBUG 1
 #ifdef ROUTER_DEBUG
@@ -120,7 +121,7 @@ namespace net {
     /**
      * Forward an IP packet according to local policy / routing table.
      **/
-    inline void forward(Stack& source, typename IPV::IP_packet_ptr pckt);
+    inline void forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct);
 
     /**
      * Get forwarding delegate
@@ -220,6 +221,9 @@ namespace net {
     /** Whether to send ICMP Time Exceeded when TTL is zero */
     bool send_time_exceeded = true;
 
+    /** Packets pass through forward chain before being forwarded */
+    Filter_chain<IPV> forward_chain{"Forward", {}};
+
   private:
     Routing_table routing_table_;
 
@@ -233,13 +237,15 @@ namespace net {
 namespace net {
 
   template <typename IPV>
-  inline void Router<IPV>::forward(Stack& stack, typename IPV::IP_packet_ptr pckt)
+  inline void Router<IPV>::forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct)
   {
     Expects(pckt);
 
+    // Do not forward packets when TTL is 0
     if(pckt->ip_ttl() == 0)
     {
       PRINT("TTL equals 0 - dropping");
+      // Send ICMP Time Exceeded if on. RFC 1812, page 84
       if(this->send_time_exceeded == true and not pckt->ip_dst().is_multicast())
         stack.icmp().time_exceeded(std::move(pckt), icmp4::code::Time_exceeded::TTL);
       return;
@@ -247,19 +253,31 @@ namespace net {
 
     // When the packet originates from our host, it still passes forward
     // We add this check to prevent decrementing TTL for "none routed" packets. Hmm.
-    if(UNLIKELY(not stack.is_valid_source(pckt->ip_src())))
+    const bool should_decrement_ttl = not stack.is_valid_source(pckt->ip_src());
+    if(should_decrement_ttl)
       pckt->decrement_ttl();
 
+
+    // Call the forward chain
+    auto res = forward_chain(std::move(pckt), stack, ct);
+    if (res == Filter_verdict_type::DROP) return;
+
+    Ensures(res.packet != nullptr);
+    pckt = res.release();
+
+    // Look for a route
     const auto dest = pckt->ip_dst();
     auto* route = get_most_specific_route(dest);
 
-    if (not route) {
+    if(route) {
+      PRINT("Found route: %s", route->to_string().c_str());
+      route->ship(std::move(pckt));
+      return;
+    }
+    else {
       PRINT("No route found for %s DROP", dest.to_string().c_str());
       return;
     }
-
-    PRINT("Found route: %s", route->to_string().c_str());
-    route->ship(std::move(pckt));
   }
 
 } //< namespace net
