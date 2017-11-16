@@ -222,6 +222,9 @@ namespace net {
     /**  Drop outgoing packets invalid according to RFC */
     IP_packet_ptr drop_invalid_out(IP_packet_ptr packet);
 
+    /**  Reassemble fragments into a coherent heap-allocated packet **/
+    IP_packet_ptr reassemble(IP_packet_ptr packet);
+
     /**
      *  Path MTU Discovery (and Packetization Layered Path MTU Discovery) related methods
      */

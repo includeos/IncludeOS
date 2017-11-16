@@ -20,14 +20,14 @@
 #define API_KERNEL_TERMINAL_HPP
 
 #include <terminal>
-#include <net/stream.hpp>
+#include <net/inet4>
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
 
 class Terminal {
 public:
-  using Connection_ptr = std::shared_ptr<net::Stream_ptr>;
+  using Connection_ptr = net::tcp::Connection_ptr;
   enum {
     NUL  = 0,
     BELL = 7,
@@ -39,7 +39,7 @@ public:
     CR   = 13
   };
 
-  Terminal(net::Stream_ptr);
+  Terminal(Connection_ptr);
 
   template <typename... Args>
   void write(const char* str, Args&&... args)
@@ -49,10 +49,15 @@ public:
 
     stream->write(buffer, bytes);
   }
+  void prompt();
   int  exec(const std::string& cmd);
   void close();
 
   static void register_program(std::string name, TerminalProgram);
+
+  auto get_stream() {
+    return stream;
+  }
 
 private:
   void command(uint8_t cmd);
@@ -60,9 +65,8 @@ private:
   void read(const char* buf, size_t len);
   void register_basic_commands();
   void intro();
-  void prompt();
 
-  net::Stream_ptr stream;
+  Connection_ptr stream;
   bool    iac     = false;
   bool    newline = false;
   uint8_t subcmd  = 0;

@@ -23,6 +23,7 @@ set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
 
 project (includeos C CXX)
 
+set(INC ${CMAKE_INSTALL_PREFIX}/includeos/include)
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
 set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
 set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
@@ -48,6 +49,10 @@ else()
 endif(cpu_feat_vanilla)
 
 option(single_threaded "Compile without SMP support" ON)
+
+option(silent "Disable most output during OS boot" OFF)
+
+option (undefined_san "Enable undefined-behavior sanitizer" OFF)
 
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
@@ -102,13 +107,17 @@ if(debug-info OR debug-all)
 	set(CAPABS "${CAPABS} -UNO_DEBUG")
 endif(debug-info OR debug-all)
 
-option(silent OFF)
 if(silent)
 	set(CAPABS "${CAPABS} -DNO-INFO=1")
 endif(silent)
 
 # Append optimization level
 set(CAPABS "${CAPABS} ${OPTIMIZE}")
+
+# Append sanitizers
+if (undefined_san)
+  set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
+endif()
 
 # object format needs to be set BEFORE enabling ASM
 # see: https://cmake.org/Bug/bug_relationship_graph.php?bug_id=13166
@@ -261,7 +270,7 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
   DESTINATION includeos/scripts)
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod/GSL/gsl DESTINATION include)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod/GSL/gsl DESTINATION includeos/include)
 
 set(CPACK_GENERATOR "TGZ;DEB")
 set(CPACK_PACKAGE_VERSION ${OS_VERSION})

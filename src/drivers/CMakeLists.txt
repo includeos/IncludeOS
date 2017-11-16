@@ -7,10 +7,13 @@
 
 add_library(ide_readwrite STATIC ide.cpp)
 set_target_properties(ide_readwrite PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ -DIDE_ENABLE_WRITE")
+add_dependencies(ide_readwrite PrecompiledLibraries)
 add_library(ide_readonly STATIC ide.cpp)
 set_target_properties(ide_readonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ")
+add_dependencies(ide_readonly PrecompiledLibraries)
 add_library(ide_writeonly STATIC ide.cpp)
 set_target_properties(ide_writeonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_WRITE")
+add_dependencies(ide_writeonly PrecompiledLibraries)
 
 add_library(virtioblk STATIC virtioblk.cpp)
 add_dependencies(virtioblk PrecompiledLibraries)
@@ -20,6 +23,9 @@ add_dependencies(virtionet PrecompiledLibraries)
 
 add_library(vmxnet3 STATIC vmxnet3.cpp)
 add_dependencies(vmxnet3 PrecompiledLibraries)
+
+add_library(ip4_reassembly STATIC "ip4_reassembly.cpp")
+add_dependencies(ip4_reassembly PrecompiledLibraries)
 
 add_library(heap_debugging STATIC heap_debugging.cpp)
 add_dependencies(heap_debugging PrecompiledLibraries)
@@ -40,6 +46,7 @@ install(TARGETS
     ide_readwrite ide_readonly ide_writeonly
     virtionet virtioblk
     vmxnet3
+    ip4_reassembly
     heap_debugging
     boot_logger disk_logger disklog_reader
     vga_output
