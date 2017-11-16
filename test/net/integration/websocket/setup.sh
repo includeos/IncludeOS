@@ -1,2 +1,3 @@
 #!/bin/bash
-pip install --user ws4py
+set -e
+sudo pip install ws4py
