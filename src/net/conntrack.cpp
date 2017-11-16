@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/conntrack.hpp>
+#include <set>
 
 //#define CT_DEBUG 1
 #ifdef CT_DEBUG
@@ -312,6 +313,95 @@ void Conntrack::on_timeout()
 
   if(not entries.empty())
     flush_timer.restart(flush_interval);
+}
+
+int Conntrack::Entry::deserialize_from(void* addr)
+{
+  auto& entry = *reinterpret_cast<Entry*>(addr);
+  this->first   = entry.first;
+  this->second  = entry.second;
+  this->timeout = entry.timeout;
+  this->proto   = entry.proto;
+  this->state   = entry.state;
+  return sizeof(Entry) - sizeof(on_close);
+}
+
+int Conntrack::Entry::serialize_to(void* addr) const
+{
+  auto& entry = *reinterpret_cast<Entry*>(addr);
+  entry.first   = this->first;
+  entry.second  = this->second;
+  entry.timeout = this->timeout;
+  entry.proto   = this->proto;
+  entry.state   = this->state;
+  return sizeof(Entry) - sizeof(on_close);
+}
+
+int Conntrack::deserialize_from(void* addr)
+{
+  Expects(entries.empty());
+  auto* buffer = reinterpret_cast<uint8_t*>(addr);
+
+  const auto size = *reinterpret_cast<size_t*>(buffer);
+  buffer += sizeof(size_t);
+
+  for(auto i = size; i > 0; i--)
+  {
+    // create the entry
+    auto entry = std::make_shared<Entry>();
+    buffer += entry->deserialize_from(buffer);
+
+    entries.emplace(std::piecewise_construct,
+      std::forward_as_tuple(entry->first, entry->proto),
+      std::forward_as_tuple(entry));
+
+    entries.emplace(std::piecewise_construct,
+      std::forward_as_tuple(entry->second, entry->proto),
+      std::forward_as_tuple(entry));
+  }
+
+  Ensures(entries.size() == size * 2);
+
+  return buffer - reinterpret_cast<uint8_t*>(addr);
+}
+
+int Conntrack::serialize_to(void* addr) const
+{
+  int unserialized = 0;
+  auto* buffer = reinterpret_cast<uint8_t*>(addr);
+
+  // Since each entry is stored twice in the map,
+  // we iterate and put it in a set if not already there
+  std::set<Entry*> to_serialize;
+  for(auto& i : entries)
+  {
+    auto* ent = i.second.get();
+
+    // We cannot restore delegates, so just ignore
+    // the ones with close handler set
+    if(ent->on_close != nullptr) {
+      unserialized++;
+      continue;
+    }
+    // If not in set, add
+    if(to_serialize.find(ent) == to_serialize.end())
+      to_serialize.emplace(ent);
+  }
+
+  // Serialize number of entries
+  size_t size = to_serialize.size();
+  std::memcpy(buffer, &size, sizeof(size));
+  buffer += sizeof(size);
+
+  // Serialize each entry
+  for(auto& ent : to_serialize)
+    buffer += ent->serialize_to(buffer);
+
+  if(unserialized > 0)
+    INFO("Conntrack", "%i entries not serialized\n", unserialized);
+
+  // Return the difference between the buffer
+  return buffer - reinterpret_cast<uint8_t*>(addr);
 }
 
 

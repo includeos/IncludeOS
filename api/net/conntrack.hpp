@@ -99,12 +99,17 @@ public:
         proto(p), state(State::UNCONFIRMED), on_close(nullptr)
     {}
 
+    Entry() = default;
+
     bool is_mirrored() const noexcept
     { return first.src == second.dst and first.dst == second.src; }
 
     std::string to_string() const;
 
     ~Entry();
+
+    int deserialize_from(void*);
+    int serialize_to(void*) const;
 
   };
 
@@ -281,6 +286,9 @@ public:
 
   /** Custom TCP handler can (and should) be added here */
   Packet_tracker tcp_in;
+
+  int deserialize_from(void*);
+  int serialize_to(void*) const;
 
 private:
   using Entry_table = std::unordered_map<Quintuple, std::shared_ptr<Entry>, Quintuple_hasher>;
