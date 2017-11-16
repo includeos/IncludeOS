@@ -159,3 +159,51 @@ CASE("Testing Conntrack limit")
   EXPECT(entry != nullptr);
   EXPECT(ct.number_of_entries() == 4);
 }
+
+CASE("Testing Conntrack serialization")
+{
+  using namespace net;
+  Socket src{{10,0,0,42}, 80};
+  Socket dst{{10,0,0,1}, 1337};
+  Quadruple quad{src, dst};
+  // Reversed quadruple
+  Quadruple rquad = quad; rquad.swap();
+
+  auto ct = std::make_unique<Conntrack>();
+
+  ct->simple_track_in(quad, Protocol::TCP);
+  auto* confirmed = ct->confirm(quad, Protocol::TCP);
+  EXPECT(confirmed->state == Conntrack::State::NEW);
+
+  auto* unconfirmed = ct->simple_track_in(quad, Protocol::UDP);
+  EXPECT(unconfirmed->state == Conntrack::State::UNCONFIRMED);
+
+  // This one aint gonna be serialized
+
+  auto* with_close_handler = ct->simple_track_in(rquad, Protocol::ICMPv4);
+  with_close_handler->on_close = [](auto* ent) { ent->state; };
+
+  EXPECT(ct->number_of_entries() == 6);
+
+  // Serialize
+  std::array<uint8_t, 1024> buffer;
+  const auto written = ct->serialize_to(buffer.data());
+
+  // Deserialize
+  ct.reset(new Conntrack());
+  EXPECT(written == ct->deserialize_from(buffer.data()));
+
+  auto* entry = ct->get(quad, Protocol::TCP);
+  EXPECT(entry != nullptr);
+  EXPECT(entry->first == quad);
+  EXPECT(entry->second == rquad);
+  EXPECT(entry->state == Conntrack::State::NEW);
+
+  entry = ct->get(quad, Protocol::UDP);
+  EXPECT(entry != nullptr);
+  EXPECT(entry->first == quad);
+  EXPECT(entry->second == rquad);
+  EXPECT(entry->state == Conntrack::State::UNCONFIRMED);
+
+  EXPECT(ct->number_of_entries() == 4);
+}
