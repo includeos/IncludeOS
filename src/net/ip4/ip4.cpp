@@ -135,20 +135,27 @@ namespace net {
     // Track incoming packet if conntrack is active
     Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
-    auto res = prerouting_chain_(*packet, stack_, ct);
-    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+    auto res = prerouting_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
-    if(not is_for_me(packet->ip_dst())) {
-      if (forward_packet_) {
-        forward_packet_(stack_, std::move(packet));
-        PRINT("Packet forwarded \n");
-      } else {
-        PRINT("Packet dropped \n");
+    if(not is_for_me(packet->ip_dst()))
+    {
+      // Forwarding disabled
+      if (not forward_packet_)
+      {
+        PRINT("Dropping packet \n");
         drop(std::move(packet), Direction::Upstream, Drop_reason::Bad_destination);
       }
-
+      // Forwarding enabled
+      else
+      {
+        PRINT("Forwarding packet \n");
+        forward_packet_(std::move(packet), stack_, ct);
+      }
       return;
     }
 
@@ -166,9 +173,11 @@ namespace net {
     // Confirm incoming packet if conntrack is active
     if(stack_.conntrack())
       stack_.conntrack()->confirm(*packet); // No need to set ct again
-    res = input_chain_(*packet, stack_, ct);
-    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+    res = input_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {
@@ -216,12 +225,15 @@ namespace net {
     /* OUTPUT */
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
-    auto res = output_chain_(*packet, stack_, ct);
-    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+    auto res = output_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
 
     if (forward_packet_) {
-      forward_packet_(stack_, std::move(packet));
+      forward_packet_(std::move(packet), stack_, ct);
       return;
     }
 
@@ -246,9 +258,11 @@ namespace net {
     /* POSTROUTING */
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->confirm(*packet) : nullptr;
-    auto res = postrouting_chain_(*packet, stack_, ct);
-    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+    auto res = postrouting_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
     if (next_hop == 0) {
       if (UNLIKELY(packet->ip_dst() == IP4::ADDR_BCAST)) {

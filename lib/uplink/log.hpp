@@ -35,7 +35,7 @@ namespace uplink {
 class Log {
 public:
   // Log capacity, all data beyond the cap will be discarded.
-  static size_t constexpr capacity = 1024*8;
+  static size_t constexpr capacity = 1024*16;
 
   using Flush_handler = delegate<void(const char*, size_t)>;
   using Internal_log  = Fixed_vector<char, capacity>;
@@ -59,7 +59,8 @@ public:
     {
       // make sure we dont exceed the fixed vec buffer
       len = std::min(len, static_cast<size_t>(log_.remaining()));
-      log_.insert(log_.end(), data, data+len);
+      if(len > 0)
+        log_.insert_replace(log_.end(), data, data+len);
 
       // if we havent already queued a flush, do it
       // note: OS need to be booted for Events to work

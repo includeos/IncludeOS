@@ -25,29 +25,76 @@
 
 namespace net {
 
-enum class Filter_verdict {
+enum class Filter_verdict_type : uint8_t {
   ACCEPT,
   DROP
+};
+
+/**
+ * @brief      A verdict returned from a filter on what to do
+ *             with the containing packet.
+ *
+ * @tparam     IPV   IP Version (4 or 6)
+ */
+template <typename IPV>
+struct Filter_verdict
+{
+  using IP_packet_ptr = typename IPV::IP_packet_ptr;
+
+  Filter_verdict(IP_packet_ptr pkt, const Filter_verdict_type verd) noexcept
+    : packet{std::move(pkt)}, verdict{verd}
+  {}
+
+  Filter_verdict() noexcept
+    : Filter_verdict(nullptr, Filter_verdict_type::DROP)
+  {}
+
+  IP_packet_ptr       packet;
+  Filter_verdict_type verdict;
+
+  operator Filter_verdict_type() const noexcept
+  { return verdict; }
+
+  /**
+   * @brief      Release the packet, giving away ownership.
+   *
+   * @return     The packet ptr
+   */
+  IP_packet_ptr release()
+  { return std::move(packet); }
 };
 
 template <typename IPV>
 struct Inet;
 
 template <typename IPV>
-using Packetfilter = delegate<Filter_verdict(typename IPV::IP_packet&, Inet<IPV>&, Conntrack::Entry_ptr)>;
+using Packetfilter =
+  delegate<Filter_verdict<IPV>(typename IPV::IP_packet_ptr, Inet<IPV>&, Conntrack::Entry_ptr)>;
 
+/**
+ * @brief      A filter chain consisting of a list of packet filters.
+ *
+ * @tparam     IPV   IP Version (4 or 6)
+ */
 template <typename IPV>
-struct Filter_chain {
+struct Filter_chain
+{
+  using IP_packet_ptr = typename IPV::IP_packet_ptr;
+
   std::list<Packetfilter<IPV>> chain;
   const char* name;
 
-  Filter_verdict operator()(typename IPV::IP_packet& pckt, Inet<IPV>& stack, Conntrack::Entry_ptr ct) {
-    auto verdict = Filter_verdict::ACCEPT;
+  /**
+   *  Execute the chain
+   */
+  Filter_verdict<IPV> operator()(IP_packet_ptr pckt, Inet<IPV>& stack, Conntrack::Entry_ptr ct)
+  {
+    Filter_verdict<IPV> verdict{std::move(pckt), Filter_verdict_type::ACCEPT};
     int i = 0;
-    for (auto filter : chain) {
+    for (auto& filter : chain) {
       i++;
-      verdict = filter(pckt, stack, ct);
-      if(verdict == Filter_verdict::DROP) {
+      verdict = filter(verdict.release(), stack, ct);
+      if(verdict == Filter_verdict_type::DROP) {
         debug("Packet dropped in %s chain, filter %i \n", name, i);
         break;
       }

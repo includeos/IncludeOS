@@ -38,6 +38,9 @@ using Request_ptr = std::unique_ptr<Request>;
 class Response;
 using Response_ptr = std::unique_ptr<Response>;
 
+class Server;
+using Server_ptr = std::unique_ptr<Server>;
+
 } //< namespace http
 
 #endif //< HTTP_COMMON_HPP

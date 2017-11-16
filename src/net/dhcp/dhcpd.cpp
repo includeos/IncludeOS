@@ -132,7 +132,7 @@ void DHCPD::resolve(const Message* msg) {
   }
 
   const auto cid = get_client_id(msg);
-  if (cid.empty() or std::all_of(cid.begin(), cid.end(), [] (int i) { return i == 0; })) {
+  if (std::all_of(cid.begin(), cid.end(), [] (int i) { return i == 0; })) {
     debug("Invalid client id\n");
     return;
   }
