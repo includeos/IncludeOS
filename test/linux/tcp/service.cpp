@@ -21,50 +21,11 @@
 #include <kernel/events.hpp>
 #include <drivers/usernet.hpp>
 #include <net/inet4>
+#include "../router/async_device.hpp"
 
 static const size_t CHUNK_SIZE = 1024 * 1024;
 static const size_t NUM_CHUNKS = 2048;
 
-
-inline UserNet& create_nic(){
-  // the IncludeOS packet communicator
-  auto* usernet = new UserNet(1504);
-  // register driver for superstack
-  auto driver = std::unique_ptr<hw::Nic> (usernet);
-  hw::Devices::register_device<hw::Nic> (std::move(driver));
-
-  return *usernet;
-}
-
-class Async_device {
-public:
-  using delg = delegate<void(net::Packet_ptr)>;
-
-  void transmit(net::Packet_ptr pckt) {
-
-  };
-
-  void receive(net::Packet_ptr pckt) {
-    queue.push_back(std::move(pckt));
-    Events::get().trigger_event(event_id);
-  };
-
-  Async_device (delegate<void(net::Packet_ptr)> dr)
-    : driver_receive(dr)
-  {
-    event_id = Events::get().subscribe([this]{
-        while(! queue.empty()) {
-          this->driver_receive(std::move(queue.front()));
-          queue.pop_front();
-        }
-      });
-  }
-
-private:
-  delegate<void(net::Packet_ptr)> driver_receive;
-  int event_id = 0;
-  std::deque<net::Packet_ptr> queue;
-};
 static std::unique_ptr<Async_device> dev1;
 static std::unique_ptr<Async_device> dev2;
 
@@ -78,8 +39,8 @@ static inline auto now() {
 void Service::start()
 {
   // Create some pure userspace Nic's
-  auto& nic1 = create_nic();
-  auto& nic2 = create_nic();
+  auto& nic1 = UserNet::create(1500);
+  auto& nic2 = UserNet::create(1500);
 
   delegate<void(net::Packet_ptr)> delg1 {&nic1, &UserNet::receive};
   delegate<void(net::Packet_ptr)> delg2 {&nic2, &UserNet::receive};
