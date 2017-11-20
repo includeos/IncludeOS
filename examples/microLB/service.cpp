@@ -17,7 +17,7 @@
 
 #include <os>
 #include <profile>
-#include "microlb/balancer.hpp"
+#include <microLB>
 static void print_stats(int);
 #define STATS_PERIOD  5s
 

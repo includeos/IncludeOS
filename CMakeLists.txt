@@ -228,6 +228,11 @@ if(libliveupdate)
   add_subdirectory(lib/LiveUpdate)
 endif(libliveupdate)
 
+option(libmicroLB "Build and install microLB" ON)
+if(libmicroLB)
+  add_subdirectory(lib/microLB)
+endif()
+
 option(libprotobuf "Build and install Google's protobuf runtime library" OFF)
 if(libprotobuf)
   init_submodule(lib/protobuf)
