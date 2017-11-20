@@ -14,9 +14,6 @@ set(BINARY       "microlb")
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
-  microlb/balancer.cpp
-  microlb/autoconf.cpp
-  microlb/serialize.cpp
   )
 
 # DRIVERS / PLUGINS:
@@ -33,6 +30,7 @@ set(PLUGINS
 # STATIC LIBRARIES:
 set(LIBRARIES
   libliveupdate.a
+  libmicrolb.a
   )
 
 
