@@ -19,18 +19,16 @@ set(SOURCES
 # DRIVERS / PLUGINS:
 set(DRIVERS
   virtionet
-  vmxnet3
   #vga_output
   )
 
 set(PLUGINS
-  uplink
   )
 
 # STATIC LIBRARIES:
 set(LIBRARIES
-  libliveupdate.a
   libmicrolb.a
+  libliveupdate.a
   )
 
 

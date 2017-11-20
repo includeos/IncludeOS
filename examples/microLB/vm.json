@@ -1,9 +1,9 @@
 {
   "description" : "VM with 3 interfaces for load balancing",
   "net" : [
-    {"device" : "vmxnet3"},
-    {"device" : "vmxnet3"},
-    {"device" : "vmxnet3"}
+    {"device" : "virtio"},
+    {"device" : "virtio"},
+    {"device" : "virtio"}
   ],
   "mem" : 512
 }

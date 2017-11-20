@@ -3,19 +3,12 @@
     {
       "iface": 0,
       "config": "static",
-      "address": "10.0.0.42",
-      "netmask": "255.255.255.0",
-      "gateway": "10.0.0.1"
-    },
-    {
-      "iface": 1,
-      "config": "static",
       "address": "10.0.0.43",
       "netmask": "255.255.255.0",
       "gateway": "10.0.0.1"
     },
     {
-      "iface": 2,
+      "iface": 1,
       "config": "static",
       "address": "10.0.0.44",
       "netmask": "255.255.255.0",
@@ -23,22 +16,15 @@
     }
   ],
 
-  "uplink": {
-    "iface": 0,
-    "url": "10.0.0.1:9090",
-    "token": "kappa123",
-    "reboot": false
-  },
-
   "load_balancer" : {
     "clients" : {
-      "iface" : 1,
+      "iface" : 0,
       "port" : 80,
       "waitq_limit"   : 1000,
       "session_limit" : 1000
     },
     "nodes" : {
-      "iface" : 2,
+      "iface" : 1,
       "algo" : "round_robin",
       "list" : [
         ["10.0.0.1", 6001],
