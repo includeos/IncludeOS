@@ -186,8 +186,9 @@ CASE("Testing Conntrack serialization")
   EXPECT(ct->number_of_entries() == 6);
 
   // Serialize
-  std::array<uint8_t, 1024> buffer;
-  const auto written = ct->serialize_to(buffer.data());
+  std::vector<char> buffer;
+  ct->serialize_to(buffer);
+  const auto written = buffer.size();
 
   // Deserialize
   ct.reset(new Conntrack());

@@ -326,15 +326,11 @@ int Conntrack::Entry::deserialize_from(void* addr)
   return sizeof(Entry) - sizeof(on_close);
 }
 
-int Conntrack::Entry::serialize_to(void* addr) const
+void Conntrack::Entry::serialize_to(std::vector<char>& buf) const
 {
-  auto& entry = *reinterpret_cast<Entry*>(addr);
-  entry.first   = this->first;
-  entry.second  = this->second;
-  entry.timeout = this->timeout;
-  entry.proto   = this->proto;
-  entry.state   = this->state;
-  return sizeof(Entry) - sizeof(on_close);
+  const size_t size = sizeof(Entry) - sizeof(on_close);
+  const auto* ptr = reinterpret_cast<const char*>(this);
+  buf.insert(buf.end(), ptr, ptr + size);
 }
 
 int Conntrack::deserialize_from(void* addr)
@@ -365,10 +361,9 @@ int Conntrack::deserialize_from(void* addr)
   return buffer - reinterpret_cast<uint8_t*>(addr);
 }
 
-int Conntrack::serialize_to(void* addr) const
+void Conntrack::serialize_to(std::vector<char>& buf) const
 {
   int unserialized = 0;
-  auto* buffer = reinterpret_cast<uint8_t*>(addr);
 
   // Since each entry is stored twice in the map,
   // we iterate and put it in a set if not already there
@@ -390,18 +385,18 @@ int Conntrack::serialize_to(void* addr) const
 
   // Serialize number of entries
   size_t size = to_serialize.size();
-  std::memcpy(buffer, &size, sizeof(size));
-  buffer += sizeof(size);
+  const auto* size_ptr = reinterpret_cast<const char*>(&size);
 
+  const auto expected_buf_size = sizeof(size) + (size * (sizeof(Entry) - sizeof(Entry_handler)));
+  buf.reserve(expected_buf_size);
+
+  buf.insert(buf.end(), size_ptr, size_ptr + sizeof(size));
   // Serialize each entry
   for(auto& ent : to_serialize)
-    buffer += ent->serialize_to(buffer);
+    ent->serialize_to(buf);
 
   if(unserialized > 0)
     INFO("Conntrack", "%i entries not serialized\n", unserialized);
-
-  // Return the difference between the buffer
-  return buffer - reinterpret_cast<uint8_t*>(addr);
 }
 
 
