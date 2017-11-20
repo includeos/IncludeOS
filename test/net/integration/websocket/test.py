@@ -26,7 +26,6 @@ class DummyClient(WebSocketClient):
             self.close(reason='Bye bye')
 
 def startBenchmark(line):
-    subprocess.call(["../setup.sh"])
     try:
         ws = DummyClient('ws://10.0.0.42:8000/', protocols=['http-only', 'chat'])
         ws.connect()
