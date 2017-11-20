@@ -139,13 +139,14 @@ namespace microLB
       // look for next active node up to *size* times
       for (size_t i = 0; i < nodes.size(); i++)
       {
+        int iter = conn_iterator;
         conn_iterator = (conn_iterator + 1) % nodes.size();
-        if (nodes[conn_iterator].is_active()) break;
-      }
-      // only connect if node is determined active, to prevent
-      // building up connect attempts on just one node
-      if (nodes[conn_iterator].is_active()) {
-        nodes[conn_iterator].connect();
+        // if the node is active, connect immediately
+        bool is_active = nodes[iter].is_active();
+        if (is_active) {
+          nodes[iter].connect();
+          break;
+        }
       }
     }
   }
@@ -161,7 +162,7 @@ namespace microLB
       {
         assert(outgoing->is_connected());
         LBOUT("Assigning client to node %d (%s)\n",
-              iterator, outgoing->to_string().c_str());
+              algo_iterator, outgoing->to_string().c_str());
         this->create_session(not readq.empty(), conn, outgoing);
         // flush readq
         for (auto buffer : readq) {
