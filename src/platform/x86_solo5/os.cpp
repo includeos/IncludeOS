@@ -43,6 +43,12 @@ void solo5_poweroff()
   for(;;);
 }
 
+// returns wall clock time in nanoseconds since the UNIX epoch
+int64_t __arch_time_now() noexcept
+{
+  return solo5_clock_wall();
+}
+
 RTC::timestamp_t OS::boot_timestamp()
 {
   return booted_at_;

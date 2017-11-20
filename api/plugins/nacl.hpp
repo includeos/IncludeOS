@@ -23,7 +23,7 @@
 namespace nacl {
   class Filter {
   public:
-    virtual net::Filter_verdict operator()(net::IP4::IP_packet& pckt, net::Inet<net::IP4>& stack, net::Conntrack::Entry_ptr ct_entry) = 0;
+    virtual net::Filter_verdict<net::IP4> operator()(net::IP4::IP_packet_ptr pckt, net::Inet<net::IP4>& stack, net::Conntrack::Entry_ptr ct_entry) = 0;
   };
 }
 

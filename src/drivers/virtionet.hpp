@@ -169,10 +169,7 @@ public:
   void poll() override;
 
 private:
-
-  /** Stats */
-  uint64_t& packets_rx_;
-  uint64_t& packets_tx_;
+  hw::PCI_Device& m_pcidev;
 
   struct virtio_net_hdr {
     uint8_t flags;
@@ -238,6 +235,9 @@ private:
   net::Packet_ptr transmit_queue = nullptr;
   net::BufferStore bufstore_;
 
+  /** Stats */
+  uint64_t& packets_rx_;
+  uint64_t& packets_tx_;
 };
 
 #endif

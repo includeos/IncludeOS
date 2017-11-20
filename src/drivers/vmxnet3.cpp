@@ -109,7 +109,7 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, bufstore_),
-    pcidev(d), bufstore_{1024, 2048 /* half-page buffer size */}
+    m_pcidev(d), bufstore_{1024, 2048 /* half-page buffer size */}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
@@ -580,18 +580,21 @@ void vmxnet3::deactivate()
   this->disable_intr(1);
   for (int q = 0; q < NUM_RX_QUEUES; q++)
     this->disable_intr(2 + q);
+
+  // deactivate underlying PCI device
+  m_pcidev.deactivate();
 }
 
 void vmxnet3::move_to_this_cpu()
 {
   bufstore().move_to_this_cpu();
 
-  if (pcidev.has_msix())
+  if (m_pcidev.has_msix())
   {
     for (size_t i = 0; i < irqs.size(); i++)
     {
       this->irqs[i] = Events::get().subscribe(nullptr);
-      pcidev.rebalance_msix_vector(i, SMP::cpu_id(), IRQ_BASE + this->irqs[i]);
+      m_pcidev.rebalance_msix_vector(i, SMP::cpu_id(), IRQ_BASE + this->irqs[i]);
     }
   }
 }

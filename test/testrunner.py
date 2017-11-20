@@ -138,6 +138,10 @@ class Test:
         if self.clean:
             self.clean_test()
 
+        # execute setup.sh if it exists
+        if os.path.isfile('setup.sh'):
+            subprocess.call(['./setup.sh'])
+        # start test
         logfile_stdout = open('log_stdout.log', 'w')
         logfile_stderr = open('log_stderr.log', 'w')
         self.proc_ = subprocess.Popen(self.command_, shell=False,
