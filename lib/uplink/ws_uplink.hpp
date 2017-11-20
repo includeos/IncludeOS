@@ -130,6 +130,10 @@ private:
 
   void restore(liu::Restore& store);
 
+  void store_conntrack(liu::Storage& store, const liu::buffer_t*);
+
+  void restore_conntrack(liu::Restore& store);
+
 }; // < class WS_uplink
 
 

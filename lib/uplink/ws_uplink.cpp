@@ -51,6 +51,7 @@ namespace uplink {
     Log::get().set_flush_handler({this, &WS_uplink::send_log});
 
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
+    liu::LiveUpdate::register_partition("conntrack", {this, &WS_uplink::store_conntrack});
 
     read_config();
     CHECK(config_.reboot, "Reboot on panic");
@@ -78,6 +79,7 @@ namespace uplink {
     {
       MYINFO("Found resumable state, try restoring...");
       liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
+      liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
     }
 
     client_ = std::make_unique<http::Client>(inet.tcp(),
@@ -560,6 +562,41 @@ namespace uplink {
     std::string str = buf.GetString();
 
     send_message(Transport_code::STATS, str.data(), str.size());
+  }
+
+  std::shared_ptr<net::Conntrack> get_first_conntrack()
+  {
+    for(auto& stacks : net::Super_stack::inet().ip4_stacks()) {
+      for(auto& stack : stacks)
+      {
+        if(stack.second != nullptr and stack.second->conntrack() != nullptr)
+          return stack.second->conntrack();
+      }
+    }
+    return nullptr;
+  }
+
+  void WS_uplink::store_conntrack(liu::Storage& store, const liu::buffer_t*)
+  {
+    // NOTE: Only support serializing one conntrack atm
+    auto ct = get_first_conntrack();
+    if(not ct)
+      return;
+
+    liu::buffer_t buf;
+    ct->serialize_to(buf);
+    store.add_buffer(0, buf);
+  }
+
+  void WS_uplink::restore_conntrack(liu::Restore& store)
+  {
+    // NOTE: Only support deserializing one conntrack atm
+    auto ct = get_first_conntrack();
+    if(not ct)
+      return;
+
+    auto buf = store.as_buffer();
+    ct->deserialize_from(buf.data());
   }
 
 }
