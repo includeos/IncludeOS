@@ -335,7 +335,7 @@ void Conntrack::Entry::serialize_to(std::vector<char>& buf) const
 
 int Conntrack::deserialize_from(void* addr)
 {
-  Expects(entries.empty());
+  const auto prev_size = entries.size();
   auto* buffer = reinterpret_cast<uint8_t*>(addr);
 
   const auto size = *reinterpret_cast<size_t*>(buffer);
@@ -356,7 +356,7 @@ int Conntrack::deserialize_from(void* addr)
       std::forward_as_tuple(entry));
   }
 
-  Ensures(entries.size() == size * 2);
+  Ensures(entries.size() - prev_size == size * 2);
 
   return buffer - reinterpret_cast<uint8_t*>(addr);
 }
