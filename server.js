@@ -16,7 +16,7 @@ var stringToColour = function(str) {
 //We need a function which handles requests and send response
 function handleRequest(request, response){
   response.setTimeout(500);
-  var addr = request.connection.localAddress;
+  var addr = request.connection.localPort;
   var bgcolor = stringToColour(addr + "42");
   var body = '<h1>'+ addr +'</h1><br/>' + 'Link established with IP <strong>' + addr + '</strong>';
   var page = "<html><head></head><body bgcolor=\""+ bgcolor +"\">" + body + "</body></html>";
