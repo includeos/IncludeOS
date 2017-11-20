@@ -85,8 +85,6 @@ init_submodule(mod/http-parser)
 init_submodule(mod/uzlib)
 init_submodule(mod/rapidjson)
 
-install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
-
 # set optimization level
 set(OPTIMIZE "-O2")
 
@@ -191,8 +189,6 @@ if(examples)
 	add_subdirectory(examples)
 endif(examples)
 
-install(DIRECTORY api/ DESTINATION includeos/api)
-
 option(tests "Build unit tests in /test and install lest test framework" OFF)
 if(tests)
   init_submodule(test/lest)
@@ -206,6 +202,9 @@ if(tests)
   #add_subdirectory(test)
 endif(tests)
 
+#
+# Libraries
+#
 option(libmana "Build and install mana web application framework library" ON)
 if(libmana)
   add_subdirectory(lib/mana)
@@ -275,7 +274,9 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
   DESTINATION includeos/scripts)
 
+install(DIRECTORY api/ DESTINATION includeos/api)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod/GSL/gsl DESTINATION includeos/include)
+install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 
 set(CPACK_GENERATOR "TGZ;DEB")
 set(CPACK_PACKAGE_VERSION ${OS_VERSION})
