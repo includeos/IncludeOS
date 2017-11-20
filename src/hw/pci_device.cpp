@@ -268,4 +268,10 @@ namespace hw {
     }
   }
 
+  void PCI_Device::deactivate()
+  {
+    // disables device (except for configuration)
+    write_dword(PCI_CMD_REG, 0);
+  }
+
 } //< namespace hw
