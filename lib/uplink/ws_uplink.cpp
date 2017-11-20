@@ -51,10 +51,13 @@ namespace uplink {
     Log::get().set_flush_handler({this, &WS_uplink::send_log});
 
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
-    liu::LiveUpdate::register_partition("conntrack", {this, &WS_uplink::store_conntrack});
 
     read_config();
     CHECK(config_.reboot, "Reboot on panic");
+
+    CHECK(config_.serialize_ct, "Serialize Conntrack");
+    if(config_.serialize_ct)
+      liu::LiveUpdate::register_partition("conntrack", {this, &WS_uplink::store_conntrack});
 
     if(inet_.is_configured())
     {
@@ -79,7 +82,9 @@ namespace uplink {
     {
       MYINFO("Found resumable state, try restoring...");
       liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
-      liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
+
+      if(liu::LiveUpdate::partition_exists("conntrack"))
+        liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
     }
 
     client_ = std::make_unique<http::Client>(inet.tcp(),
@@ -349,9 +354,16 @@ namespace uplink {
       config_.reboot = cfg["reboot"].GetBool();
     }
 
+    // Log over websocket (optional)
     if(cfg.HasMember("ws_logging"))
     {
       config_.ws_logging = cfg["ws_logging"].GetBool();
+    }
+
+    // Serialize conntrack
+    if(cfg.HasMember("serialize_ct"))
+    {
+      config_.serialize_ct = cfg["serialize_ct"].GetBool();
     }
 
   }

@@ -41,8 +41,9 @@ public:
   {
     std::string url;
     std::string token;
-    bool        reboot = true;
-    bool        ws_logging = true;
+    bool        reboot        = true;
+    bool        ws_logging    = true;
+    bool        serialize_ct  = false;
   };
 
   WS_uplink(net::Inet<net::IP4>&);
