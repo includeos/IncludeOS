@@ -17,15 +17,15 @@
 
 #include <os>
 #include <profile>
-#include "balancer.hpp"
+#include "microlb/balancer.hpp"
 static void print_stats(int);
 #define STATS_PERIOD  5s
 
-static Balancer* balancer = nullptr;
+static microLB::Balancer* balancer = nullptr;
 
 void Service::start()
 {
-  balancer = Balancer::from_config();
+  balancer = microLB::Balancer::from_config();
 
   Timers::periodic(1s, STATS_PERIOD, print_stats);
   StackSampler::begin();
