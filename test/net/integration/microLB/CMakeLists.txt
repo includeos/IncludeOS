@@ -19,7 +19,6 @@ set(SOURCES
 # DRIVERS / PLUGINS:
 set(DRIVERS
   virtionet
-  #vga_output
   )
 
 set(PLUGINS

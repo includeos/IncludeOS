@@ -20,5 +20,5 @@ target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/mod/rapidjson/includ
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/mod/GSL/)
 
 install(TARGETS microlb DESTINATION includeos/${ARCH}/lib)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/microlb/balancer.hpp DESTINATION includeos/include/microlb)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/microlb/balancer.hpp DESTINATION includeos/include/micro_lb)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/microLB DESTINATION includeos/include)
