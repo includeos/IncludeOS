@@ -405,8 +405,8 @@ void VirtioNet::deactivate()
   tx_q.disable_interrupts();
   ctrl_q.disable_interrupts();
 
-  // deactivate underlying PCI device
-  m_pcidev.deactivate();
+  // reset device
+  this->Virtio::reset();
 }
 
 void VirtioNet::move_to_this_cpu()
