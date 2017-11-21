@@ -17,9 +17,10 @@ def validateRequest(expected = ""):
     #print (response.content)
     return (response.content) == expected
 
+# start nodeJS
+pro = subprocess.Popen(["node", "server.js"], stdout=subprocess.PIPE)
+
 def startBenchmark(line):
-    # start nodeJS
-    pro = subprocess.Popen(["node", "../server.js"], stdout=subprocess.PIPE)
     assert validateRequest("6001")
     assert validateRequest("6002")
     assert validateRequest("6003")
