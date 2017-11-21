@@ -581,8 +581,8 @@ void vmxnet3::deactivate()
   for (int q = 0; q < NUM_RX_QUEUES; q++)
     this->disable_intr(2 + q);
 
-  // deactivate underlying PCI device
-  m_pcidev.deactivate();
+  // reset this device
+  this->reset();
 }
 
 void vmxnet3::move_to_this_cpu()

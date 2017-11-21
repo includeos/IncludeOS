@@ -304,9 +304,8 @@ void VirtioBlk::deactivate()
   /// disable interrupts on virtio queues
   req.disable_interrupts();
 
-  /// mask off MSI-X vectors
-  if (has_msix())
-      deactivate_msix();
+  /// reset device
+  this->Virtio::reset();
 }
 
 #include <kernel/pci_manager.hpp>
