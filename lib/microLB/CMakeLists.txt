@@ -5,9 +5,9 @@ add_definitions(-DARCH="${ARCH}")
 
 # microLB static library
 add_library(microlb STATIC
-    microlb/autoconf.cpp
-    microlb/balancer.cpp
-    microlb/serialize.cpp
+    micro_lb/autoconf.cpp
+    micro_lb/balancer.cpp
+    micro_lb/serialize.cpp
   )
 
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api/posix)
@@ -20,5 +20,5 @@ target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/mod/rapidjson/includ
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/mod/GSL/)
 
 install(TARGETS microlb DESTINATION includeos/${ARCH}/lib)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/microlb/balancer.hpp DESTINATION includeos/include/micro_lb)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/micro_lb/balancer.hpp DESTINATION includeos/include/micro_lb)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/microLB DESTINATION includeos/include)
