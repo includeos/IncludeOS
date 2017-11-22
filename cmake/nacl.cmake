@@ -3,7 +3,7 @@ include(ExternalProject)
 set(NACL_HASH 653b85599705c7932ffd762bd4884fb1)
 ExternalProject_Add(nacl_bin
   PREFIX nacl_bin
-  URL https://github.com/includeos/NaCl/releases/download/0.1.0/nacl_bin.tar.gz
+  URL https://github.com/includeos/NaCl/releases/download/v0.1.0/nacl_bin.tar.gz
   URL_HASH MD5=${NACL_HASH}
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
