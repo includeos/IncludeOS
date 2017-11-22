@@ -15,7 +15,7 @@ INSTALLED_CLANG=0
 
 # NaCl
 PIP_MODS_NACL="pystache antlr4-python2-runtime"
-PYTHON_DEPENDENCIES=$PYTHON_DEPENDENCIES $PIP_MODS_NACL
+PYTHON_DEPENDENCIES="$PYTHON_DEPENDENCIES $PIP_MODS_NACL"
 
 ############################################################
 # COMMAND LINE PROPERTIES:
