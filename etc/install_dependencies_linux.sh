@@ -13,6 +13,10 @@ PYTHON_DEPENDENCIES="jsonschema psutil junit-xml filemagic"
 INSTALLED_PIP=0
 INSTALLED_CLANG=0
 
+# NaCl
+PIP_MODS_NACL="pystache antlr4-python2-runtime"
+PYTHON_DEPENDENCIES="$PYTHON_DEPENDENCIES $PIP_MODS_NACL"
+
 ############################################################
 # COMMAND LINE PROPERTIES:
 ############################################################

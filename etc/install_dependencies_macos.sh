@@ -19,6 +19,10 @@ INSTALLED_SYMLINKING=0
 ALL_DEPENDENCIES="llvm38 nasm cmake jq qemu Caskroom/cask/tuntap libmagic"
 PIP_MODS="jsonschema psutil filemagic"
 
+# NaCl
+PIP_MODS_NACL="pystache antlr4-python2-runtime"
+PIP_MODS="$PIP_MODS $PIP_MODS_NACL"
+
 ############################################################
 # COMMAND LINE PROPERTIES:
 ############################################################
@@ -159,7 +163,7 @@ if [ $INSTALLED_PIP -eq 1 ]; then
 		INSTALLED_PIP_PACKAGES=0
 		if [[ $CHECK_ONLY -eq 0 ]]; then
 			echo ">>> Installing: $PIP_MODS_TO_INSTALL"
-			sudo -H pip install ${PIP_MODS_TO_INSTALL[*]}
+			pip install --user ${PIP_MODS_TO_INSTALL[*]}
 			INSTALLED_PIP_PACKAGES=1
 		fi
 	else

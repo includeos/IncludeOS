@@ -106,7 +106,7 @@ endif()
 if (EXISTS ${CMAKE_SOURCE_DIR}/nacl.txt)
   add_custom_command(
      OUTPUT nacl_content.cpp
-     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | python $ENV{HOME}/NaCl/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
+     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | python ${INSTALL_LOC}/nacl/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
      DEPENDS ${CMAKE_SOURCE_DIR}/nacl.txt
    )
    add_library(nacl_content STATIC nacl_content.cpp)

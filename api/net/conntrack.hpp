@@ -109,7 +109,7 @@ public:
     ~Entry();
 
     int deserialize_from(void*);
-    int serialize_to(void*) const;
+    void serialize_to(std::vector<char>&) const;
 
   };
 
@@ -288,7 +288,7 @@ public:
   Packet_tracker tcp_in;
 
   int deserialize_from(void*);
-  int serialize_to(void*) const;
+  void serialize_to(std::vector<char>&) const;
 
 private:
   using Entry_table = std::unordered_map<Quintuple, std::shared_ptr<Entry>, Quintuple_hasher>;

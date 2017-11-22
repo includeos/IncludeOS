@@ -23,3 +23,6 @@
 [submodule "lib/protobuf"]
 	path = lib/protobuf
 	url = https://github.com/RicoAntonioFelix/protobuf.git
+[submodule "NaCl"]
+	path = NaCl
+	url = https://github.com/includeos/NaCl.git
