@@ -79,13 +79,13 @@ namespace net {
         iface_ == b.interface();
     }
 
-    void ship(typename IPV::IP_packet_ptr pckt, Addr nexthop) {
-      iface_->ip_obj().ship(std::move(pckt), nexthop);
+    void ship(typename IPV::IP_packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
+      iface_->ip_obj().ship(std::move(pckt), nexthop, ct);
     }
 
-    void ship(typename IPV::IP_packet_ptr pckt) {
+    void ship(typename IPV::IP_packet_ptr pckt, Conntrack::Entry_ptr ct) {
       auto next = nexthop(pckt->ip_dst());
-      ship(std::move(pckt), next);
+      ship(std::move(pckt), next, ct);
     }
 
     Route(Addr net, Netmask mask, Addr nexthop, Stack& iface, int cost = 100)
@@ -271,7 +271,7 @@ namespace net {
 
     if(route) {
       PRINT("Found route: %s", route->to_string().c_str());
-      route->ship(std::move(pckt));
+      route->ship(std::move(pckt), ct);
       return;
     }
     else {
