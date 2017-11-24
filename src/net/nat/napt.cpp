@@ -309,7 +309,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
   {
     case Protocol::TCP:
     {
-      if(Conntrack::get_quadruple(p) == entry->second) // assume reply
+      if(Conntrack::get_quadruple(p).dst == entry->second.dst) // assume reply
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.to_string().c_str());
@@ -319,7 +319,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
     }
     case Protocol::UDP:
     {
-      if(Conntrack::get_quadruple(p) == entry->second) // assume reply
+      if(Conntrack::get_quadruple(p).dst == entry->second.dst) // assume reply
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.to_string().c_str());
@@ -329,7 +329,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
     }
     case Protocol::ICMPv4:
     {
-      if(Conntrack::get_quadruple_icmp(p) == entry->second) // assume reply
+      if(Conntrack::get_quadruple_icmp(p).dst == entry->second.dst) // assume reply
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.address().to_string().c_str());
@@ -442,7 +442,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
   {
     case Protocol::TCP:
     {
-      if(Conntrack::get_quadruple(p) == entry->second) // assume reply
+      if(Conntrack::get_quadruple(p).src == entry->second.src) // assume reply
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.to_string().c_str());
@@ -452,7 +452,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
     }
     case Protocol::UDP:
     {
-      if(Conntrack::get_quadruple(p) == entry->second) // assume reply
+      if(Conntrack::get_quadruple(p).src == entry->second.src) // assume reply
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.to_string().c_str());
@@ -462,7 +462,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
     }
     case Protocol::ICMPv4:
     {
-      if(Conntrack::get_quadruple_icmp(p) == entry->second) // assume reply
+      if(Conntrack::get_quadruple_icmp(p).src == entry->second.src) // assume reply
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.address().to_string().c_str());
