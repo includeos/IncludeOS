@@ -9,7 +9,8 @@ Iface eth1 {
     index: 1,
     address: 10.0.2.1,
     netmask: 255.255.255.0,
-    prerouting: [deny_all]
+    prerouting: [deny_all],
+    postrouting: [my_snat]
 }
 
 Iface host1 {
@@ -39,10 +40,26 @@ Gateway gw [
     }
 ]
 
+Filter::IP my_postrouting {
+  log("POST(eth0) ", ip.saddr, " ", ip.daddr, "\n")
+  accept
+}
+
 Nat::TCP my_dnat {
-    if (ip.daddr == eth0.address and tcp.dport == 5001) {
+    if (ip.daddr == eth0.address) {
+      if (tcp.dport == 5001) {
         dnat(host2.address, 5000)
+      }
+      if (tcp.dport == 1337) {
+        dnat(host2.address)
+      }
     }
+}
+
+NAT::TCP my_snat {
+  if (tcp.dport == 1337) {
+    snat(eth1.address)
+  }
 }
 
 Filter::IP my_fw {
@@ -51,7 +68,7 @@ Filter::IP my_fw {
     }
 
     Filter::TCP {
-        if (ip.daddr == host2.address and tcp.dport == 5000) {
+        if (ip.daddr == host2.address) {
             accept
         }
     }
