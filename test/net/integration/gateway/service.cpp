@@ -25,7 +25,7 @@ int flood_pongs = 0;
 
 void verify() {
   static int i = 0;
-  if (++i == 7) printf("SUCCESS\n");
+  if (++i == 8) printf("SUCCESS\n");
 }
 
 void Service::start()
@@ -78,6 +78,14 @@ void Service::start()
   INFO("TCP", "host1 => eth0 (%s:%i)", eth0.ip_addr().to_string().c_str(), 5001);
   host1.tcp().connect({eth0.ip_addr(), 5001}, [](auto conn) {
     CHECKSERT(conn, "Connection established with %s:%i", eth0.ip_addr().to_string().c_str(), 5001);
+    verify();
+  });
+
+  INFO("TCP", "host2 => listen:1337");
+  host2.tcp().listen(1337, [](auto) {});
+  INFO("TCP", "host1 => eth0 (%s:%i)", eth0.ip_addr().to_string().c_str(), 1337);
+  host1.tcp().connect({eth0.ip_addr(), 1337}, [](auto conn) {
+    CHECKSERT(conn, "Connection established with %s:%i", eth0.ip_addr().to_string().c_str(), 1337);
     verify();
   });
 

@@ -162,7 +162,7 @@ namespace net {
     PRINT("* Packet was for me (flags=%x)\n", (int) packet->ip_flags());
 
     // if the MF bit is set or fragment offset is non-zero, go to reassembly
-    if (UNLIKELY(packet->ip_flags() == ip4::Flags::MF 
+    if (UNLIKELY(packet->ip_flags() == ip4::Flags::MF
               || packet->ip_frag_offs() != 0))
     {
       packet = this->reassemble(std::move(packet));
@@ -171,6 +171,11 @@ namespace net {
 
     /* INPUT */
     // Confirm incoming packet if conntrack is active
+    auto& conntrack = stack_.conntrack();
+    if(conntrack) {
+      ct = (ct != nullptr) ?
+        conntrack->confirm(ct->second, ct->proto) : conntrack->confirm(*packet);
+    }
     if(stack_.conntrack())
       stack_.conntrack()->confirm(*packet); // No need to set ct again
     res = input_chain_(std::move(packet), stack_, ct);
@@ -237,10 +242,10 @@ namespace net {
       return;
     }
 
-    ship(std::move(packet));
+    ship(std::move(packet), 0, ct);
   }
 
-  void IP4::ship(Packet_ptr pckt, addr next_hop)
+  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
@@ -256,8 +261,11 @@ namespace net {
     if (packet == nullptr) return;
 
     /* POSTROUTING */
-    Conntrack::Entry_ptr ct =
-      (stack_.conntrack()) ? stack_.conntrack()->confirm(*packet) : nullptr;
+    auto& conntrack = stack_.conntrack();
+    if(conntrack) {
+      ct = (ct != nullptr) ?
+        conntrack->confirm(ct->first, ct->proto) : conntrack->confirm(*packet);
+    }
     auto res = postrouting_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
