@@ -140,6 +140,16 @@ void *__rawmemchr (const void *s, int c)
 {
   return strchr((const char*) s, c);
 }
+const unsigned short** __ctype_b_loc()
+{
+  printf("__ctype_b_loc() called\n");
+  return NULL;
+}
+int32_t** __ctype_tolower_loc()
+{
+  printf("__ctype_tolower_loc() called\n");
+  return NULL;
+}
 
 /// assert() interface of ISO POSIX (2003)
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function)
@@ -159,6 +169,17 @@ int sched_yield(void)
   // errno is set appropriately.
   //errno = ...;
   return -1;
+}
+
+void* __memcpy_chk(void* dest, const void* src, size_t len, size_t destlen)
+{
+  assert (len > destlen);
+  return memcpy(dest, src, len);
+}
+void * __memset_chk(void* dest, int c, size_t len, size_t destlen)
+{
+  assert (len > destlen);
+  return memset(dest, c, len);
 }
 
 void *aligned_alloc(size_t alignment, size_t size)

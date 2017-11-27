@@ -21,8 +21,16 @@
 #include <tcp_fd.hpp>
 #include <udp_fd.hpp>
 
+#define POSIX_STRACE
+#ifdef POSIX_STRACE
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
 int socket(int domain, int type, int protocol)
 {
+  PRINT("socket(%d, %d, %d)\n", domain, type, protocol);
   // disallow strange domains, like ALG
   if (domain < 0 || domain > AF_INET6) { errno = EAFNOSUPPORT; return -1; }
   // disallow RAW etc
@@ -46,6 +54,7 @@ int socket(int domain, int type, int protocol)
 
 int connect(int socket, const struct sockaddr *address, socklen_t len)
 {
+  PRINT("connect(%d, %p, %d)\n", socket, address, len);
   try {
     auto& fd = FD_map::_get(socket);
     return fd.connect(address, len);
@@ -57,6 +66,7 @@ int connect(int socket, const struct sockaddr *address, socklen_t len)
 
 ssize_t send(int socket, const void *message, size_t len, int fmt)
 {
+  PRINT("send(%d, %p, %lu, %d)\n", socket, message, len, fmt);
   try {
     auto& fd = FD_map::_get(socket);
     return fd.send(message, len, fmt);
@@ -68,6 +78,7 @@ ssize_t send(int socket, const void *message, size_t len, int fmt)
 ssize_t sendto(int socket, const void *message, size_t len, int flags,
   const struct sockaddr *dest_addr, socklen_t dest_len)
 {
+  PRINT("sendto(%d, %p, %lu, %d, %p, %d)\n", socket, message, len, flags, dest_addr, dest_len);
   try {
     auto& fd = FD_map::_get(socket);
     return fd.sendto(message, len, flags, dest_addr, dest_len);
@@ -78,6 +89,7 @@ ssize_t sendto(int socket, const void *message, size_t len, int flags,
 }
 ssize_t recv(int socket, void *buffer, size_t length, int flags)
 {
+  PRINT("recv(%d, %p, %lu, %d)\n", socket, buffer, length, flags);
   try {
     auto& fd = FD_map::_get(socket);
     return fd.recv(buffer, length, flags);
@@ -99,6 +111,7 @@ ssize_t recvfrom(int socket, void *buffer, size_t length,
 }
 int listen(int socket, int backlog)
 {
+  PRINT("listen(%d, %d)\n", socket, backlog);
   try {
     auto& fd = FD_map::_get(socket);
     return fd.listen(backlog);
@@ -109,6 +122,7 @@ int listen(int socket, int backlog)
 }
 int accept(int socket, struct sockaddr *address, socklen_t *len)
 {
+  PRINT("accept(%d, %p, %d)\n", socket, address, *len);
   try {
     auto& fd = FD_map::_get(socket);
     return fd.accept(address, len);
@@ -119,6 +133,7 @@ int accept(int socket, struct sockaddr *address, socklen_t *len)
 }
 int bind(int socket, const struct sockaddr* address, socklen_t len)
 {
+  PRINT("bind(%d, %p, %d)\n", socket, address, len);
   try {
     auto& fd = FD_map::_get(socket);
     return fd.bind(address, len);
@@ -128,8 +143,10 @@ int bind(int socket, const struct sockaddr* address, socklen_t len)
   }
 }
 int getsockopt(int socket, int level, int option_name,
-  void *option_value, socklen_t *option_len)
+               void *option_value, socklen_t *option_len)
 {
+  PRINT("getsockopt(%d, %d, %d, %p, %d)\n", socket, level,
+        option_name, option_value, option_len);
   try {
     auto& fd = FD_map::_get(socket);
     return fd.getsockopt(level, option_name, option_value, option_len);
@@ -139,11 +156,24 @@ int getsockopt(int socket, int level, int option_name,
   }
 }
 int setsockopt(int socket, int level, int option_name,
-  const void *option_value, socklen_t option_len)
+               const void *option_value, socklen_t option_len)
 {
+  PRINT("setsockopt(%d, %d, %d, %p, %d)\n", socket, level,
+        option_name, option_value, option_len);
   try {
     auto& fd = FD_map::_get(socket);
     return fd.setsockopt(level, option_name, option_value, option_len);
+  } catch (const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
+int shutdown(int socket, int how)
+{
+  PRINT("shutdown(%d, %d)\n", socket, how);
+  try {
+    auto& fd = FD_map::_get(socket);
+    return fd.shutdown(how);
   } catch (const FD_not_found&) {
     errno = EBADF;
     return -1;

@@ -225,3 +225,21 @@ int fstat(int, struct stat* st) {
   st->st_mode = S_IFCHR;
   return 0;
 }
+
+extern "C"
+int __xstat(int ver, const char * path, struct stat * stat_buf)
+{
+
+}
+
+extern "C"
+int __lxstat(int ver, const char * path, struct stat * stat_buf)
+{
+
+}
+
+extern "C"
+int __fxstat(int ver, int fildes, struct stat * stat_buf)
+{
+  
+}
