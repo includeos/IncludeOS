@@ -113,7 +113,7 @@ int init_ssl(const std::string& dest_url)
 * ---------------------------------------------------------- */
 int create_socket(std::string url, BIO *out)
 {
-  net::IP4::addr addr("173.194.222.105");
+  net::IP4::addr addr("10.0.0.1");
   const uint16_t port = 443;
   /* ---------------------------------------------------------- *
    * create the basic TCP socket                                *

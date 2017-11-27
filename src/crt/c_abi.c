@@ -140,16 +140,6 @@ void *__rawmemchr (const void *s, int c)
 {
   return strchr((const char*) s, c);
 }
-const unsigned short** __ctype_b_loc()
-{
-  printf("__ctype_b_loc() called\n");
-  return NULL;
-}
-int32_t** __ctype_tolower_loc()
-{
-  printf("__ctype_tolower_loc() called\n");
-  return NULL;
-}
 
 /// assert() interface of ISO POSIX (2003)
 void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function)
