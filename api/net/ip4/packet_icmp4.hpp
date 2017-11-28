@@ -132,7 +132,7 @@ namespace icmp4 {
     }
 
     /** Release packet pointer **/
-    Packet_ptr release()
+    IP4::IP_packet_ptr release()
     { return std::move(pckt_); }
 
   private:

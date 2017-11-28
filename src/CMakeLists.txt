@@ -33,10 +33,10 @@ set(OS_OBJECTS
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp
   crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
-  hw/ide.cpp hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp
+  hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp
   hw/msi.cpp hw/pci_msi.cpp virtio/virtio.cpp virtio/virtio_queue.cpp
   net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp
-  net/inet_common.cpp net/ip4/arp.cpp net/ip4/ip4.cpp
+  net/checksum.cpp net/ip4/arp.cpp net/ip4/ip4.cpp net/ip4/reassembly.cpp
   net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
   net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp net/tcp/read_buffer.cpp
   net/ip4/icmp4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
@@ -54,12 +54,16 @@ set(OS_OBJECTS
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
-  posix/ucontext.cpp posix/ucontext_asm.asm
-  posix/sys/stat.cpp posix/ftw.cpp posix/file_fd.cpp posix/dlfcn.cpp
+  posix/ucontext.cpp posix/ucontext_asm.asm posix/file_fd.cpp posix/dlfcn.cpp
+  posix/sys/stat.cpp posix/sys/ioctl.cpp posix/ftw.cpp posix/utime.cpp posix/math.cpp
   posix/pwd.cpp posix/pthread.cpp)
 
 add_library(os STATIC ${OS_OBJECTS})
 add_dependencies(os PrecompiledLibraries botan)
+
+# disable sanitizers on c_abi and cxx_abi, etc.
+set_source_files_properties(crt/c_abi.c PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
+set_source_files_properties(crt/cxx_abi.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)

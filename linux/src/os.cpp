@@ -3,6 +3,7 @@
 #include <kernel/service.hpp>
 #include <kernel/timers.hpp>
 #include <sys/time.h>
+#include <sched.h>
 int64_t OS::micros_since_boot() noexcept
 {
   struct timeval tv;

@@ -47,7 +47,7 @@ public:
   }
 
   uint16_t MTU() const noexcept override {
-    return 1496;
+    return 1500;
   }
 
   uint16_t packet_len() const noexcept {
@@ -123,7 +123,7 @@ private:
   void     retrieve_hwaddr();
   void     set_hwaddr(MAC::Addr&);
 
-  hw::PCI_Device& pcidev;
+  hw::PCI_Device& m_pcidev;
   std::vector<uint8_t> irqs;
   uintptr_t     iobase = 0;
   uintptr_t     ptbase = 0;

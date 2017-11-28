@@ -74,7 +74,7 @@ namespace net {
 
     /** Get Fragment offset field */
     uint16_t ip_frag_offs() const noexcept
-    { return ntohs(ip_header().frag_off_flags) & 0xe; }
+    { return ntohs(ip_header().frag_off_flags) & 0x1fff; }
 
     /** Get Time-To-Live field */
     uint8_t ip_ttl() const noexcept
@@ -108,7 +108,7 @@ namespace net {
     { return capacity() - ip_header_length(); }
 
     /** Compute IP header checksum on header as-is */
-    uint16_t compute_checksum() noexcept
+    uint16_t compute_ip_checksum() noexcept
     { return net::checksum(&ip_header(), ip_header_length()); };
 
 
@@ -176,7 +176,7 @@ namespace net {
       Expects(ip_ttl() != 0);
       ip_header().ttl--;
       // RFC 1141 p. 1
-      uint16_t sum = ntohs(ip_header().check) + 0x100; // increment checksum high byte
+      uint16_t sum = ntohs(ip_header().check + htons(0x100)); // increment checksum high byte
       ip_header().check = htons(sum + (sum>>16)); // add carry
     }
 

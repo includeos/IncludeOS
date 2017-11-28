@@ -73,6 +73,65 @@ CASE("Adding elements by emplacing")
   EXPECT(fv[1].b == 20);
 
   EXPECT(fv.free_capacity());
+  EXPECT(fv.remaining() == 8);
+}
+CASE("Adding elements by insert_replace")
+{
+  Fixed_vector<POD, 10> fv;
+
+  std::vector<POD> vec{{1,2},{10,20},{100,200}};
+
+  fv.insert_replace(fv.begin(), vec.begin(), vec.end());
+  EXPECT(fv.size() == 3);
+  EXPECT(fv[0].a == 1);
+  EXPECT(fv[0].b == 2);
+  EXPECT(fv[1].a == 10);
+  EXPECT(fv[1].b == 20);
+  EXPECT(fv[2].a == 100);
+  EXPECT(fv[2].b == 200);
+
+  fv.insert_replace(fv.end(), vec.begin(), vec.end());
+  EXPECT(fv.size() == 6);
+  EXPECT(fv[3].a == 1);
+  EXPECT(fv[3].b == 2);
+  EXPECT(fv[4].a == 10);
+  EXPECT(fv[4].b == 20);
+  EXPECT(fv[5].a == 100);
+  EXPECT(fv[5].b == 200);
+
+  std::vector<POD> vec2{{3,4},{30,40},{300,400},{5,6},{50,60},{500,600}};
+  fv.insert_replace(fv.begin(), vec2.begin(), vec2.begin() + 3);
+  EXPECT(fv.size() == 6);
+
+  EXPECT(fv[0].a == 3);
+  EXPECT(fv[0].b == 4);
+  EXPECT(fv[1].a == 30);
+  EXPECT(fv[1].b == 40);
+  EXPECT(fv[2].a == 300);
+  EXPECT(fv[2].b == 400);
+
+  EXPECT(fv[3].a == 1);
+  EXPECT(fv[3].b == 2);
+  EXPECT(fv[4].a == 10);
+  EXPECT(fv[4].b == 20);
+  EXPECT(fv[5].a == 100);
+  EXPECT(fv[5].b == 200);
+  EXPECT(fv.remaining() == 4);
+
+  fv.insert_replace(fv.begin() + 3, vec2.begin() + 3, vec2.end());
+  EXPECT(fv[3].a == 5);
+  EXPECT(fv[3].b == 6);
+  EXPECT(fv[4].a == 50);
+  EXPECT(fv[4].b == 60);
+  EXPECT(fv[5].a == 500);
+  EXPECT(fv[5].b == 600);
+
+  EXPECT(fv.size() == 6);
+
+  fv.insert_replace(fv.end(), vec2.begin(), vec2.begin() + fv.remaining());
+  EXPECT(fv.size() == 10);
+  EXPECT(fv.remaining() == 0);
+
 }
 CASE("Clearing a fixed vector")
 {

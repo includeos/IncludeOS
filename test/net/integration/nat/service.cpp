@@ -28,10 +28,10 @@ std::unique_ptr<nat::NAPT> natty;
 
 void test_finished() {
   static int i = 0;
-  if (++i == 3) printf("SUCCESS\n");
+  if (++i == 6) printf("SUCCESS\n");
 }
 
-void ip_forward(Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
+void ip_forward(IP4::IP_packet_ptr pckt, Inet<IP4>& stack, Conntrack::Entry_ptr) {
   // Packet could have been erroneously moved prior to this call
   if (not pckt)
     return;
@@ -67,13 +67,13 @@ void Service::start()
 
   INFO("NAT Test", "Setup routing between eth0 and eth1");
   Router<IP4>::Routing_table routing_table{
-    {{10, 1, 0, 0 }, { 255, 255, 0, 0}, {10, 1, 0, 1}, eth0 , 1 },
-    {{192, 1, 0, 0 }, { 255, 255, 255, 0}, {192, 1, 0, 1}, eth1 , 1 }
+    {{10, 1, 0, 0 }, { 255, 255, 0, 0}, 0, eth0 , 1 },
+    {{192, 1, 0, 0 }, { 255, 255, 255, 0}, 0, eth1 , 1 }
   };
 
   router = std::make_unique<Router<IP4>>(routing_table);
-  eth0.ip_obj().set_packet_forwarding(ip_forward);
-  eth1.ip_obj().set_packet_forwarding(ip_forward);
+  eth0.ip_obj().set_packet_forwarding(router->forward_delg());
+  eth1.ip_obj().set_packet_forwarding(router->forward_delg());
 
   // Setup Conntracker
   INFO("NAT Test", "Enable Conntrack on eth0 and eth1");
@@ -84,13 +84,15 @@ void Service::start()
   // Setup NAT (Masquerade)
   natty = std::make_unique<nat::NAPT>(ct);
 
-  auto masq = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto {
-    natty->masquerade(pkt, stack, entry);
-    return Filter_verdict::ACCEPT;
+  auto masq = [](IP4::IP_packet_ptr pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
+  {
+    natty->masquerade(*pkt, stack, entry);
+    return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
-  auto demasq = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto {
-    natty->demasquerade(pkt, stack, entry);
-    return Filter_verdict::ACCEPT;
+  auto demasq = [](IP4::IP_packet_ptr pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
+  {
+    natty->demasquerade(*pkt, stack, entry);
+    return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
 
   INFO("NAT Test", "Enable MASQUERADE on eth1");
@@ -131,27 +133,27 @@ void Service::start()
   static const uint16_t DNAT_PORT{3389};
   static const uint16_t DNAT_PORT2{8933};
   // DNAT all TCP on dst_port==DNAT_PORT to SERVER
-  auto dnat_rule = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto
+  auto dnat_rule = [](IP4::IP_packet_ptr pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
   {
-    if(not stack.is_valid_source(pkt.ip_dst())) // this is not for me
-      return Filter_verdict::ACCEPT; // i'm still a gateway tho..
+    if(not entry)
+      return {std::move(pkt), Filter_verdict_type::DROP};
 
-    if(pkt.ip_protocol() == Protocol::TCP)
+    if(pkt->ip_protocol() == Protocol::TCP)
     {
-      auto& tcp = static_cast<tcp::Packet&>(pkt);
+      auto& tcp = static_cast<tcp::Packet&>(*pkt);
 
       if(tcp.dst_port() == DNAT_PORT)
-        natty->dnat(pkt, entry, SERVER);
+        natty->dnat(*pkt, entry, SERVER);
       else if(tcp.dst_port() == DNAT_PORT2)
-        natty->dnat(pkt, entry, {SERVER, DNAT_PORT});
+        natty->dnat(*pkt, entry, {SERVER, DNAT_PORT});
     }
-    return Filter_verdict::ACCEPT;
+    return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
   // SNAT all packets that comes in return that has been DNAT
-  auto snat_translate = [](IP4::IP_packet& pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->auto
+  auto snat_translate = [](IP4::IP_packet_ptr pkt, Inet<IP4>& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
   {
-    natty->snat(pkt, entry);
-    return Filter_verdict::ACCEPT;
+    natty->snat(*pkt, entry);
+    return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
 
   eth0.ip_obj().prerouting_chain().chain.push_back(dnat_rule);
@@ -193,4 +195,19 @@ void Service::start()
 
     conn->write("Testing DNAT");
   });
+
+  laptop1.icmp().ping(eth0.ip_addr(), [](auto reply) {
+    CHECKSERT(reply, "Got ping reply from %s", eth0.ip_addr().to_string().c_str());
+    test_finished();
+  }, 1);
+
+  laptop1.icmp().ping(eth1.ip_addr(), [](auto reply) {
+    CHECKSERT(reply, "Got ping reply from %s", eth1.ip_addr().to_string().c_str());
+    test_finished();
+  }, 2);
+
+  laptop1.icmp().ping(internet_host.ip_addr(), [](auto reply) {
+    CHECKSERT(reply, "Got ping reply from %s", internet_host.ip_addr().to_string().c_str());
+    test_finished();
+  }, 3);
 }

@@ -19,7 +19,6 @@
 #define NET_INET4_HPP
 
 #include <vector>
-#include <unordered_set>
 
 #include "inet.hpp"
 #include "ip4/arp.hpp"
@@ -38,7 +37,7 @@ namespace net {
   class Inet4 : public Inet<IP4>{
   public:
 
-    using Vip4_list = std::unordered_set<IP4::addr>;
+    using Vip4_list = Vip_list;
 
     std::string ifname() const override
     { return nic_.device_name(); }
@@ -309,7 +308,7 @@ namespace net {
     bool is_loopback(IP4::addr a) const override
     {
       return a.is_loopback()
-        or vip4s_.find(a) != vip4s_.end();
+        or std::find( vip4s_.begin(), vip4s_.end(), a) != vip4s_.end();
     }
 
     /** Add IP4 address as virtual loopback */
@@ -317,13 +316,17 @@ namespace net {
     {
       if (not is_loopback(a)) {
         INFO("Inet4", "Adding virtual IP address %s", a.to_string().c_str());
-        vip4s_.emplace(a);
+        vip4s_.emplace_back(a);
       }
     }
 
     /** Add IP4 address as virtual loopback */
     void remove_vip(IP4::addr a) override
-    { vip4s_.erase(a); }
+    {
+      auto it = std::find(vip4s_.begin(), vip4s_.end(), a);
+      if (it != vip4s_.end())
+        vip4s_.erase(it);
+    }
 
     IP4::addr get_source_addr(IP4::addr dest) override
     {

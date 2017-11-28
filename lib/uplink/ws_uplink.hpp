@@ -34,11 +34,16 @@ class WS_uplink {
 public:
   static const std::string UPLINK_CFG_FILE;
 
+  static constexpr auto heartbeat_interval = 10s;
+  static constexpr auto heartbeat_retries  = 3;
+
   struct Config
   {
     std::string url;
     std::string token;
-    bool        reboot = true;
+    bool        reboot        = true;
+    bool        ws_logging    = true;
+    bool        serialize_ct  = false;
   };
 
   WS_uplink(net::Inet<net::IP4>&);
@@ -86,8 +91,12 @@ private:
 
   Timer retry_timer;
   uint8_t retry_backoff = 0;
+  uint8_t heart_retries_left = heartbeat_retries;
 
   std::vector<char> logbuf_;
+
+  Timer heartbeat_timer;
+  int64_t last_ping;
 
   void inject_token(http::Request& req, http::Client::Options&, const http::Client::Host)
   {
@@ -105,6 +114,13 @@ private:
 
   void handle_ws_close(uint16_t code);
 
+  bool handle_ping(const char*, size_t);
+  void handle_pong_timeout(net::WebSocket&);
+
+  bool missing_heartbeat()
+  { return last_ping < RTC::now() - heartbeat_interval.count(); }
+  void on_heartbeat_timer();
+
   void parse_transport(net::WebSocket::Message_ptr msg);
 
   void read_config();
@@ -114,6 +130,10 @@ private:
   void store(liu::Storage& store, const liu::buffer_t*);
 
   void restore(liu::Restore& store);
+
+  void store_conntrack(liu::Storage& store, const liu::buffer_t*);
+
+  void restore_conntrack(liu::Restore& store);
 
 }; // < class WS_uplink
 

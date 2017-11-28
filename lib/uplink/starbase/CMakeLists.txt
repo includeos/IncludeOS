@@ -41,7 +41,9 @@ set(SOURCES
 set(DRIVERS
   virtionet
   vmxnet3
+  uplink_log
   vga_output
+  boot_logger
   )
 
 set(PLUGINS

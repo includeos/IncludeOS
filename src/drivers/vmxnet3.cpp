@@ -109,7 +109,7 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 
 vmxnet3::vmxnet3(hw::PCI_Device& d) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, bufstore_),
-    pcidev(d), bufstore_{1024, 2048 /* half-page buffer size */}
+    m_pcidev(d), bufstore_{1024, 2048 /* half-page buffer size */}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
@@ -442,7 +442,7 @@ bool vmxnet3::transmit_handler()
 }
 bool vmxnet3::receive_handler(const int Q)
 {
-  bool received = false;
+  std::vector<net::Packet_ptr> recvq;
   while (true)
   {
     uint32_t idx = rx[Q].consumers % VMXNET3_NUM_RX_COMP;
@@ -459,16 +459,18 @@ bool vmxnet3::receive_handler(const int Q)
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
     // get buffer and construct packet
     assert(rx[Q].buffers[desc] != nullptr);
-    auto packet = recv_packet(rx[Q].buffers[desc], len);
+    recvq.push_back(recv_packet(rx[Q].buffers[desc], len));
     rx[Q].buffers[desc] = nullptr;
-
-    // handle_magic()
-    Link::receive(std::move(packet));
-    received = true;
   }
   // refill always
-  if (received) this->refill(rx[Q]);
-  return received;
+  if (!recvq.empty()) {
+    this->refill(rx[Q]);
+    // handle_magic()
+    for (auto& pckt : recvq) {
+      Link::receive(std::move(pckt));
+    }
+  }
+  return recvq.empty() == false;
 }
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
@@ -573,19 +575,26 @@ void vmxnet3::poll()
 
 void vmxnet3::deactivate()
 {
-  assert(0);
+  // disable all queues
+  this->disable_intr(0);
+  this->disable_intr(1);
+  for (int q = 0; q < NUM_RX_QUEUES; q++)
+    this->disable_intr(2 + q);
+
+  // reset this device
+  this->reset();
 }
 
 void vmxnet3::move_to_this_cpu()
 {
   bufstore().move_to_this_cpu();
 
-  if (pcidev.has_msix())
+  if (m_pcidev.has_msix())
   {
     for (size_t i = 0; i < irqs.size(); i++)
     {
       this->irqs[i] = Events::get().subscribe(nullptr);
-      pcidev.rebalance_msix_vector(i, SMP::cpu_id(), IRQ_BASE + this->irqs[i]);
+      m_pcidev.rebalance_msix_vector(i, SMP::cpu_id(), IRQ_BASE + this->irqs[i]);
     }
   }
 }

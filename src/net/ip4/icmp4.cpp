@@ -53,7 +53,7 @@ namespace net {
 
     switch(req.type()) {
     case (ICMP_type::ECHO):
-      debug("<ICMP> PING from %s\n", req.ip().src().ip_str().c_str());
+      debug("<ICMP> PING from %s\n", req.ip().ip_src().to_string().c_str());
       ping_reply(req);
       break;
     case (ICMP_type::ECHO_REPLY):
@@ -254,6 +254,13 @@ namespace net {
     // Provision new IP4-packet
     icmp4::Packet res(inet_.ip_packet_factory());
 
+    // drop if the packet is too small
+    if (res.ip().capacity() < res.ip().ip_header_length() + res.header_size() + req.payload().size())
+    {
+      printf("WARNING: Network MTU too small for ICMP response, dropping\n");
+      return;
+    }
+
     // Populate response IP header
     res.ip().set_ip_src(inet_.ip_addr());
     res.ip().set_ip_dst(req.ip().ip_src());
@@ -265,7 +272,8 @@ namespace net {
     res.set_id(req.id());
     res.set_sequence(req.sequence());
 
-    debug("<ICMP> Transmitting answer to %s\n", res.ip().dst().str().c_str());
+    debug("<ICMP> Transmitting answer to %s\n",
+          res.ip().ip_dst().str().c_str());
 
     // Payload
     res.set_payload(req.payload());

@@ -21,6 +21,7 @@
 
 #include <net/ip4/addr.hpp>
 #include <net/packet.hpp>
+#include <net/checksum.hpp>
 #include <chrono>
 
 namespace net {
@@ -66,6 +67,25 @@ namespace net {
 
     class Connection;
     using Connection_ptr = std::shared_ptr<Connection>;
+
+    template <typename Tcp_packet>
+    uint16_t calculate_checksum(const Tcp_packet& packet)
+    {
+      constexpr uint8_t Proto_TCP = 6; // avoid including inet_common
+      uint16_t length = packet.tcp_length();
+      // Compute sum of pseudo-header
+      uint32_t sum =
+            (packet.ip_src().whole >> 16)
+          + (packet.ip_src().whole & 0xffff)
+          + (packet.ip_dst().whole >> 16)
+          + (packet.ip_dst().whole & 0xffff)
+          + (Proto_TCP << 8)
+          + htons(length);
+
+      // Compute sum of header and data
+      const char* buffer = (char*) &packet.tcp_header();
+      return net::checksum(sum, buffer, length);
+    }
 
   } // < namespace tcp
 } // < namespace net

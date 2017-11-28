@@ -181,7 +181,7 @@ void Inet4::network_config(IP4::addr addr,
   this->netmask_    = nmask;
   this->gateway_    = gateway;
   this->dns_server_ = (dns == IP4::ADDR_ANY) ? gateway : dns;
-  INFO("Inet4", "Network configured");
+  INFO("Inet4", "Network configured (%s)", nic_.mac().to_string().c_str());
   INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
   INFO2("Netmask: \t%s", netmask_.str().c_str());
   INFO2("Gateway: \t%s", gateway_.str().c_str());

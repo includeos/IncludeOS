@@ -15,18 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cmath> // rand()
-#include <sstream>
-
 #include <os>
 #include <net/inet4>
 #include <timers>
-#include <net/http/request.hpp>
-#include <net/http/response.hpp>
 #include "liu.hpp"
-
-using namespace std::chrono;
-http::Response handle_request(const http::Request& req);
 
 void Service::start()
 {
@@ -34,52 +26,11 @@ void Service::start()
   auto& inet = net::Super_stack::get<net::IP4>(0);
 
   // Print some useful netstats every 30 secs
+  using namespace std::chrono;
   Timers::periodic(5s, 30s,
   [&inet] (uint32_t) {
     printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
 
-  // Set up a TCP server on port 80
-  auto& server = inet.tcp().listen(80);
-
-  // Add a TCP connection handler - here a hardcoded HTTP-service
-  server.on_connect(
-  [] (auto conn)
-  {
-    printf("<Service> @on_connect: Connection %s successfully established.\n",
-            conn->remote().to_string().c_str());
-    // read async with a buffer size of 1024 bytes
-    // define what to do when data is read
-    conn->on_read(1024,
-    [conn] (auto buf)
-    {
-      printf("<Service> @on_read: %lu bytes received.\n", buf->size());
-      try
-      {
-        const std::string data((const char*) buf->data(), buf->size());
-        // try to parse the request
-        http::Request req{data};
-
-        // handle the request, getting a matching response
-        auto res = handle_request(req);
-
-        printf("<Service> Responding with %u %s.\n",
-          res.status_code(), http::code_description(res.status_code()).to_string().c_str());
-
-        conn->write(res);
-      }
-      catch(const std::exception& e)
-      {
-        printf("<Service> Unable to parse request:\n%s\n", e.what());
-      }
-    });
-  });
-
-  if (liu::LiveUpdate::is_resumable() == false)
-  {
-    setup_liveupdate_server(inet, 666, nullptr);
-  }
-  else {
-    printf("System live updated!\n");
-  }
+  setup_liveupdate_server(inet, 666, nullptr);
 }

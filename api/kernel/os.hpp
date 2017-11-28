@@ -117,6 +117,10 @@ public:
     return boot_sequence_passed_;
   }
 
+  static bool block_drivers_ready() noexcept {
+    return m_block_drivers_ready;
+  }
+
   /**
    *  Returns true when the OS is currently panicking
    */
@@ -183,6 +187,12 @@ public:
     return memory_end_;
   }
 
+  /**
+   *  Returns true when the current OS comes from a live update,
+   *  as opposed to booting from either a rollback or a normal boot
+   */
+  static bool is_live_updated() noexcept;
+
   /** Returns the automatic location set aside for storing system and program state **/
   static void* liveupdate_storage_area() noexcept;
 
@@ -242,6 +252,8 @@ private:
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;
   static bool boot_sequence_passed_;
+  static bool m_is_live_updated;
+  static bool m_block_drivers_ready;
   static MHz cpu_mhz_;
 
   static RTC::timestamp_t booted_at_;
@@ -264,6 +276,10 @@ private:
 
   friend void __platform_init();
 }; //< OS
+
+inline bool OS::is_live_updated() noexcept {
+  return OS::m_is_live_updated;
+}
 
 inline OS::Span_mods OS::modules()
 {

@@ -10,7 +10,6 @@ project (test_fat16)
 
 set(SERVICE_NAME "FAT16 test")
 set(BINARY       "test_fat16")
-set(MAX_MEM 128)
 set(SOURCES
     fat16.cpp
   )

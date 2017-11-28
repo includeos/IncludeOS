@@ -367,6 +367,10 @@ uid_t getuid() {
   return 0;
 }
 
+uid_t geteuid() {
+  return 0;
+}
+
 gid_t getgid() {
   return 0;
 }

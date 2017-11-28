@@ -36,21 +36,28 @@
 #include <kernel/cpuid.hpp>
 #include <statman>
 #include <config>
+#include "log.hpp"
 
 namespace uplink {
 
   const std::string WS_uplink::UPLINK_CFG_FILE{"config.json"};
+  constexpr std::chrono::seconds WS_uplink::heartbeat_interval;
 
   WS_uplink::WS_uplink(net::Inet<net::IP4>& inet)
     : inet_{inet}, id_{inet.link_addr().to_string()},
-      parser_({this, &WS_uplink::handle_transport})
+      parser_({this, &WS_uplink::handle_transport}),
+      heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
-    OS::add_stdout({this, &WS_uplink::send_log});
+    Log::get().set_flush_handler({this, &WS_uplink::send_log});
 
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
 
     read_config();
     CHECK(config_.reboot, "Reboot on panic");
+
+    CHECK(config_.serialize_ct, "Serialize Conntrack");
+    if(config_.serialize_ct)
+      liu::LiveUpdate::register_partition("conntrack", {this, &WS_uplink::store_conntrack});
 
     if(inet_.is_configured())
     {
@@ -71,10 +78,13 @@ namespace uplink {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
     Expects(not config_.url.empty());
 
-    if(liu::LiveUpdate::is_resumable())
+    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
     {
       MYINFO("Found resumable state, try restoring...");
       liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
+
+      if(liu::LiveUpdate::partition_exists("conntrack"))
+        liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
     }
 
     client_ = std::make_unique<http::Client>(inet.tcp(),
@@ -187,12 +197,62 @@ namespace uplink {
     send_ident();
 
     send_uplink();
+
+    ws_->on_ping = {this, &WS_uplink::handle_ping};
+    ws_->on_pong_timeout = {this, &WS_uplink::handle_pong_timeout};
+
+    heart_retries_left = heartbeat_retries;
+    last_ping = RTC::now();
+    heartbeat_timer.start(std::chrono::seconds(10));
   }
 
   void WS_uplink::handle_ws_close(uint16_t code)
   {
     (void) code;
     auth();
+  }
+
+  bool WS_uplink::handle_ping(const char*, size_t)
+  {
+    last_ping = RTC::now();
+    return true;
+  }
+
+  void WS_uplink::handle_pong_timeout(net::WebSocket&)
+  {
+    heart_retries_left--;
+    MYINFO("! Pong timeout. Retries left %i", heart_retries_left);
+  }
+
+  void WS_uplink::on_heartbeat_timer()
+  {
+
+    if (not is_online()) {
+      MYINFO("Can't heartbeat on closed conection. ");
+      return;
+    }
+
+    if(missing_heartbeat())
+    {
+      if (not heart_retries_left)
+      {
+        MYINFO("No reply after %i pings. Reauth.", heartbeat_retries);
+        ws_->close();
+        auth();
+        return;
+      }
+
+      auto ping_ok = ws_->ping(std::chrono::seconds(5));
+
+      if (not ping_ok)
+      {
+        MYINFO("Heartbeat pinging failed. Reauth.");
+        auth();
+        return;
+      }
+    }
+
+    heartbeat_timer.start(std::chrono::seconds(10));
   }
 
   void WS_uplink::parse_transport(net::WebSocket::Message_ptr msg)
@@ -254,7 +314,8 @@ namespace uplink {
 
     ws_->close();
     // do the update
-    Timers::oneshot(std::chrono::milliseconds(10), [this, buffer] (auto) {
+    Timers::oneshot(std::chrono::milliseconds(10),
+    [buffer] (auto) {
       liu::LiveUpdate::exec(buffer);
     });
   }
@@ -291,6 +352,18 @@ namespace uplink {
     if(cfg.HasMember("reboot"))
     {
       config_.reboot = cfg["reboot"].GetBool();
+    }
+
+    // Log over websocket (optional)
+    if(cfg.HasMember("ws_logging"))
+    {
+      config_.ws_logging = cfg["ws_logging"].GetBool();
+    }
+
+    // Serialize conntrack
+    if(cfg.HasMember("serialize_ct"))
+    {
+      config_.serialize_ct = cfg["serialize_ct"].GetBool();
     }
 
   }
@@ -434,6 +507,9 @@ namespace uplink {
 
   void WS_uplink::send_log(const char* data, size_t len)
   {
+    if(not config_.ws_logging)
+      return;
+
     if(is_online() and ws_->get_connection()->is_writable())
     {
       send_message(Transport_code::LOG, data, len);
@@ -449,8 +525,12 @@ namespace uplink {
   {
     if(not logbuf_.empty())
     {
-      send_message(Transport_code::LOG, logbuf_.data(), logbuf_.size());
+      if(config_.ws_logging)
+      {
+        send_message(Transport_code::LOG, logbuf_.data(), logbuf_.size());
+      }
       logbuf_.clear();
+      logbuf_.shrink_to_fit();
     }
   }
 
@@ -494,6 +574,41 @@ namespace uplink {
     std::string str = buf.GetString();
 
     send_message(Transport_code::STATS, str.data(), str.size());
+  }
+
+  std::shared_ptr<net::Conntrack> get_first_conntrack()
+  {
+    for(auto& stacks : net::Super_stack::inet().ip4_stacks()) {
+      for(auto& stack : stacks)
+      {
+        if(stack.second != nullptr and stack.second->conntrack() != nullptr)
+          return stack.second->conntrack();
+      }
+    }
+    return nullptr;
+  }
+
+  void WS_uplink::store_conntrack(liu::Storage& store, const liu::buffer_t*)
+  {
+    // NOTE: Only support serializing one conntrack atm
+    auto ct = get_first_conntrack();
+    if(not ct)
+      return;
+
+    liu::buffer_t buf;
+    ct->serialize_to(buf);
+    store.add_buffer(0, buf);
+  }
+
+  void WS_uplink::restore_conntrack(liu::Restore& store)
+  {
+    // NOTE: Only support deserializing one conntrack atm
+    auto ct = get_first_conntrack();
+    if(not ct)
+      return;
+
+    auto buf = store.as_buffer();
+    ct->deserialize_from(buf.data());
   }
 
 }

@@ -33,7 +33,7 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-g -O0 -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
@@ -66,6 +66,7 @@ set(TEST_SOURCES
   ${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
+  ${TEST}/kernel/unit/events_test.cpp
   ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/os_test.cpp
@@ -89,6 +90,8 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/ip4_packet_test.cpp
+  ${TEST}/net/unit/nat_test.cpp
+  ${TEST}/net/unit/napt_test.cpp
   ${TEST}/net/unit/packets.cpp
   ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
@@ -96,7 +99,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
-  ${TEST}/net/unit/router.cpp
+  ${TEST}/net/unit/router_test.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/util/unit/base64.cpp
@@ -162,14 +165,17 @@ set(OS_SOURCES
   ${SRC}/net/http/status_codes.cpp
   ${SRC}/net/http/time.cpp
   ${SRC}/net/http/version.cpp
-  ${SRC}/net/inet_common.cpp
+  ${SRC}/net/checksum.cpp
   ${SRC}/net/inet4.cpp
   ${SRC}/net/ip4/arp.cpp
   ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
+  ${SRC}/net/ip4/reassembly.cpp
   ${SRC}/net/ip4/udp.cpp
   ${SRC}/net/ip4/udp_socket.cpp
   ${SRC}/net/dhcp/dh4client.cpp
+  ${SRC}/net/nat/nat.cpp
+  ${SRC}/net/nat/napt.cpp
   ${SRC}/net/tcp/connection.cpp
   ${SRC}/net/tcp/connection_states.cpp
   ${SRC}/net/tcp/listener.cpp

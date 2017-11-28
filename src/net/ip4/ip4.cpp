@@ -60,7 +60,7 @@ namespace net {
       return drop(std::move(packet), up, Drop_reason::Wrong_version);
 
     // RFC-1122 3.2.1.2, Verify IP checksum, silently discard bad dgram
-    if (UNLIKELY(packet->compute_checksum() != 0))
+    if (UNLIKELY(packet->compute_ip_checksum() != 0))
       return drop(std::move(packet), up, Drop_reason::Wrong_checksum);
 
     // RFC-1122 3.2.1.3, Silently discard datagram with bad src addr
@@ -135,32 +135,54 @@ namespace net {
     // Track incoming packet if conntrack is active
     Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
-    auto res = prerouting_chain_(*packet, stack_, ct);
-    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+    auto res = prerouting_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
-    if(not is_for_me(packet->ip_dst())) {
-      if (forward_packet_) {
-        forward_packet_(stack_, std::move(packet));
-        PRINT("Packet forwarded \n");
-      } else {
-        PRINT("Packet dropped \n");
+    if(not is_for_me(packet->ip_dst()))
+    {
+      // Forwarding disabled
+      if (not forward_packet_)
+      {
+        PRINT("Dropping packet \n");
         drop(std::move(packet), Direction::Upstream, Drop_reason::Bad_destination);
       }
-
+      // Forwarding enabled
+      else
+      {
+        PRINT("Forwarding packet \n");
+        forward_packet_(std::move(packet), stack_, ct);
+      }
       return;
     }
 
-    PRINT("* Packet was for me\n");
+    PRINT("* Packet was for me (flags=%x)\n", (int) packet->ip_flags());
+
+    // if the MF bit is set or fragment offset is non-zero, go to reassembly
+    if (UNLIKELY(packet->ip_flags() == ip4::Flags::MF
+              || packet->ip_frag_offs() != 0))
+    {
+      packet = this->reassemble(std::move(packet));
+      if (packet == nullptr) return;
+    }
 
     /* INPUT */
     // Confirm incoming packet if conntrack is active
+    auto& conntrack = stack_.conntrack();
+    if(conntrack) {
+      ct = (ct != nullptr) ?
+        conntrack->confirm(ct->second, ct->proto) : conntrack->confirm(*packet);
+    }
     if(stack_.conntrack())
       stack_.conntrack()->confirm(*packet); // No need to set ct again
-    res = input_chain_(*packet, stack_, ct);
-    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+    res = input_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {
@@ -208,18 +230,27 @@ namespace net {
     /* OUTPUT */
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
-    auto res = output_chain_(*packet, stack_, ct);
-    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+    auto res = output_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
-    ship(std::move(packet));
+    Ensures(res.packet != nullptr);
+    packet = res.release();
+
+
+    if (forward_packet_) {
+      forward_packet_(std::move(packet), stack_, ct);
+      return;
+    }
+
+    ship(std::move(packet), 0, ct);
   }
 
-  void IP4::ship(Packet_ptr pckt, addr next_hop)
+  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
     // Send loopback packets right back
-    if (UNLIKELY(stack_.is_loopback(packet->ip_dst()))) {
+    if (UNLIKELY(stack_.is_valid_source(packet->ip_dst()))) {
       PRINT("<IP4> Destination address is loopback \n");
       IP4::receive(std::move(packet), false);
       return;
@@ -230,11 +261,16 @@ namespace net {
     if (packet == nullptr) return;
 
     /* POSTROUTING */
-    Conntrack::Entry_ptr ct =
-      (stack_.conntrack()) ? stack_.conntrack()->confirm(*packet) : nullptr;
-    auto res = postrouting_chain_(*packet, stack_, ct);
-    if (UNLIKELY(res == Filter_verdict::DROP)) return;
+    auto& conntrack = stack_.conntrack();
+    if(conntrack) {
+      ct = (ct != nullptr) ?
+        conntrack->confirm(ct->first, ct->proto) : conntrack->confirm(*packet);
+    }
+    auto res = postrouting_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
     if (next_hop == 0) {
       if (UNLIKELY(packet->ip_dst() == IP4::ADDR_BCAST)) {

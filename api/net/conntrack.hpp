@@ -99,6 +99,8 @@ public:
         proto(p), state(State::UNCONFIRMED), on_close(nullptr)
     {}
 
+    Entry() = default;
+
     bool is_mirrored() const noexcept
     { return first.src == second.dst and first.dst == second.src; }
 
@@ -106,10 +108,46 @@ public:
 
     ~Entry();
 
+    int deserialize_from(void*);
+    void serialize_to(std::vector<char>&) const;
+
+  };
+
+  using Timeout_duration = std::chrono::seconds;
+  struct Timeout_settings {
+    Timeout_duration tcp;
+    Timeout_duration udp;
+    Timeout_duration icmp;
+
+    Timeout_duration get(const Protocol proto) const noexcept
+    {
+      switch(proto) {
+        case Protocol::TCP: return tcp;
+        case Protocol::UDP: return udp;
+        case Protocol::ICMPv4: return icmp;
+        default: return Timeout_duration{0};
+      }
+    }
   };
 
 public:
+  /** Maximum number of conntrack entries. */
+  // 0 means unlimited. Every new connection result in 2 entries.
+  size_t maximum_entries;
 
+  struct {
+    Timeout_settings unconfirmed{ .tcp  = Timeout_duration{10},
+                                  .udp  = Timeout_duration{10},
+                                  .icmp = Timeout_duration{10}};
+
+    Timeout_settings confirmed  { .tcp  = Timeout_duration{30},
+                                  .udp  = Timeout_duration{10},
+                                  .icmp = Timeout_duration{10}};
+
+    Timeout_settings established{ .tcp  = Timeout_duration{300},
+                                  .udp  = Timeout_duration{10},
+                                  .icmp = Timeout_duration{10}};
+  } timeout;
   /**
    * @brief      Find the entry for the given packet
    *
@@ -186,6 +224,22 @@ public:
   void remove_expired();
 
   /**
+   * @brief      Number of entries currently tracked.
+   *
+   * @return     Number of entries.
+   */
+  size_t number_of_entries() const noexcept
+  { return entries.size(); }
+
+  /**
+   * @brief      Call reserve on the underlying unordered_map
+   *
+   * @param[in]  count  The count
+   */
+  void reserve(size_t count)
+  { entries.reserve(count); }
+
+  /**
    * @brief      A very simple and unreliable way for tracking quintuples.
    *
    * @param[in]  quad   The quad
@@ -215,35 +269,42 @@ public:
    */
   static Quadruple get_quadruple_icmp(const PacketIP4& pkt);
 
-
+  /**
+   * @brief      Construct a Conntrack with unlimited maximum entries.
+   */
   Conntrack();
 
-  using Timeout_duration = std::chrono::seconds;
-  /** How often the flush timer should fire */
-  Timeout_duration timeout_interval {10};
+  /**
+   * @brief      Construct a Conntrack with a given limit of entries.
+   *
+   * @param[in]  max_entries  The maximum number of entries
+   */
+  Conntrack(size_t max_entries);
 
-  /** Timeout for a unconfirmed entry */
-  Timeout_duration timeout_unconfirmed  {10};
-  /** Timeout for a new entry */
-  Timeout_duration timeout_new          {30};
-  /** Timeout for a established entry */
-  Timeout_duration timeout_established  {180};
+  /** How often the flush timer should fire */
+  std::chrono::seconds flush_interval {10};
 
   /** Custom TCP handler can (and should) be added here */
   Packet_tracker tcp_in;
 
-  Entry_handler on_close; // single for now
+  int deserialize_from(void*);
+  void serialize_to(std::vector<char>&) const;
 
 private:
   using Entry_table = std::unordered_map<Quintuple, std::shared_ptr<Entry>, Quintuple_hasher>;
   Entry_table entries;
   Timer       flush_timer;
 
-  void update_timeout(Entry& ent, Timeout_duration dur);
+  inline void update_timeout(Entry& ent, const Timeout_settings& timeouts);
 
   void on_timeout();
 
 };
+
+inline void Conntrack::update_timeout(Entry& ent, const Timeout_settings& timeouts)
+{
+  ent.timeout = RTC::now() + timeouts.get(ent.proto).count();
+}
 
 }
 

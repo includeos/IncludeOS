@@ -119,10 +119,19 @@ public:
     return *this;
   }
 
-  Packet& set_checksum(uint16_t checksum) {
+  Packet& set_tcp_checksum(uint16_t checksum) noexcept {
     tcp_header().checksum = checksum;
     return *this;
   }
+
+  void set_tcp_checksum() noexcept {
+    tcp_header().checksum = 0;
+    set_tcp_checksum(compute_tcp_checksum());
+  }
+
+  uint16_t compute_tcp_checksum() noexcept
+  { return tcp::calculate_checksum(*this); };
+
 
   Packet& set_source(const Socket& src) {
     set_ip_src(src.address()); // PacketIP4::set_src

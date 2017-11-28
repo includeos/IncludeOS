@@ -55,7 +55,7 @@ namespace net {
     auto waiting = waiting_packets_.find(hdr->sipaddr);
     if (waiting != waiting_packets_.end()) {
       PRINT("<Arp> Had a packet waiting for this IP. Sending\n");
-      transmit(std::move(waiting->second), hdr->sipaddr);
+      transmit(std::move(waiting->second.pckt), hdr->sipaddr);
       waiting_packets_.erase(waiting);
     }
 
@@ -191,17 +191,17 @@ namespace net {
 
     PRINT("<Arp> resolve timer doing sweep\n");
 
-    if (waiting_packets_.empty()) {
-      debug("<Arp> Noting to do - stopping resolve timer\n");
-      resolve_timer_.stop();
-      return;
+    for (auto it =waiting_packets_.begin(); it != waiting_packets_.end();){
+      if (it->second.tries_remaining--) {
+        arp_resolver_(it->first);
+        it++;
+      } else {
+        it = waiting_packets_.erase(it);
+      }
     }
 
-    for (auto& packet_it : waiting_packets_) {
-      arp_resolver_(packet_it.first);
-    }
-
-    resolve_timer_.start(1s);
+    if (not waiting_packets_.empty())
+      resolve_timer_.start(1s);
 
   }
 
@@ -211,10 +211,10 @@ namespace net {
     PRINT("<ARP await> Waiting for resolution of %s\n", next_hop.str().c_str());
     if (queue != waiting_packets_.end()) {
       PRINT("\t * Packets already queueing for this IP\n");
-      queue->second->chain(std::move(pckt));
+      queue->second.pckt->chain(std::move(pckt));
     } else {
       PRINT("\t *This is the first packet going to that IP\n");
-      waiting_packets_.emplace(std::make_pair(next_hop, std::move(pckt)));
+      waiting_packets_.emplace(std::make_pair(next_hop, Queue_entry{std::move(pckt)}));
 
       // Try resolution immediately
       arp_resolver_(next_hop);

@@ -19,7 +19,8 @@
 #define KERNEL_EVENTS_HPP
 
 #include <delegate>
-#include <util/fixed_bitmap.hpp>
+#include <array>
+#include <deque>
 #include <smp>
 
 #define IRQ_BASE    32
@@ -29,14 +30,17 @@ public:
   typedef void (*intr_func) ();
   using event_callback = delegate<void()>;
 
-  static const size_t  NUM_EVENTS = 128;
+  static const int  NUM_EVENTS = 128;
 
   uint8_t subscribe(event_callback);
   void subscribe(uint8_t evt, event_callback);
   void unsubscribe(uint8_t evt);
 
   // register event for deferred processing
-  void trigger_event(uint8_t evt);
+  inline void trigger_event(uint8_t evt);
+
+  // call event once, at a later time
+  void defer(event_callback);
 
   /**
    * Get per-cpu instance
@@ -68,9 +72,18 @@ private:
   std::array<uint64_t, NUM_EVENTS> received_array;
   std::array<uint64_t, NUM_EVENTS> handled_array;
 
-  Fixed_bitmap<NUM_EVENTS>  event_subs;
-  Fixed_bitmap<NUM_EVENTS>  event_pend;
-  Fixed_bitmap<NUM_EVENTS>  event_todo;
+  std::array<bool, NUM_EVENTS>  event_subs;
+  std::array<bool, NUM_EVENTS>  event_pend;
+  // using deque because vector resize causes invalidation of ranged for
+  // when something subscribes during processing of events
+  std::deque<uint8_t> sublist;
 };
+
+inline void Events::trigger_event(const uint8_t evt)
+{
+  event_pend[evt] = true;
+  // increment events received
+  received_array[evt]++;
+}
 
 #endif //< KERNEL_EVENTS_HPP

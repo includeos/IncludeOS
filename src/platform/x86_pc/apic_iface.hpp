@@ -20,7 +20,7 @@
 #define X86_APIC_IFACE_HPP
 
 namespace x86 {
-  
+
   class IApic {
   public:
     virtual uint32_t read (uint32_t reg) noexcept = 0;
@@ -47,7 +47,7 @@ namespace x86 {
     virtual void send_bsp_intr() noexcept = 0;
     virtual void bcast_ipi(uint8_t vector) noexcept = 0;
 
-    virtual void     timer_init() = 0;
+    virtual void     timer_init(const uint8_t) = 0;
     virtual void     timer_begin(uint32_t) noexcept = 0;
     virtual uint32_t timer_diff() noexcept = 0;
     virtual void     timer_interrupt(bool) noexcept = 0;
