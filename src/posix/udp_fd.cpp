@@ -111,6 +111,7 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
   {
     this->sock = (port) ? &udp.bind(ntohs(port)) : &udp.bind();
     set_default_recv();
+    PRINT("UDP: bind(%s)\n", sock->local().to_string().c_str());
     return 0;
   }
   catch(const net::UDP::Port_in_use_exception&)
@@ -157,6 +158,7 @@ ssize_t UDP_FD::send(const void* message, size_t len, int flags)
     errno = EDESTADDRREQ;
     return -1;
   }
+  PRINT("UDP: send(%lu, %x)\n", len, flags);
 
   return sendto(message, len, flags, (struct sockaddr*)&peer_, sizeof(peer_));
 }
@@ -194,6 +196,7 @@ ssize_t UDP_FD::sendto(const void* message, size_t len, int,
 }
 ssize_t UDP_FD::recv(void* buffer, size_t len, int flags)
 {
+  PRINT("UDP: recv(%lu, %x)\n", len, flags);
   return recvfrom(buffer, len, flags, nullptr, 0);
 }
 ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
@@ -258,6 +261,7 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
 int UDP_FD::getsockopt(int level, int option_name,
   void *option_value, socklen_t *option_len)
 {
+  PRINT("UDP: getsockopt(%d, %d)\n", level, option_name);
   if(level != SOL_SOCKET)
     return -1;
 
@@ -331,6 +335,7 @@ int UDP_FD::getsockopt(int level, int option_name,
 int UDP_FD::setsockopt(int level, int option_name,
   const void *option_value, socklen_t option_len)
 {
+  PRINT("UDP: setsockopt(%d, %d, ... %d)\n", level, option_name, option_len);
   if(level != SOL_SOCKET)
     return -1;
 
