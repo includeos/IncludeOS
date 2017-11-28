@@ -985,6 +985,25 @@ void Connection::parse_options(const Packet& packet) {
       break;
     }
 
+    case Option::SACK_PERM:
+    {
+      printf("<Connection::parse_options@SACK_PERM>\n");
+
+      if(UNLIKELY(option->length != sizeof(Option::opt_sack_perm)))
+          throw TCPBadOptionException{Option::SACK_PERM, "length != 2"};
+
+      if(UNLIKELY(!packet.isset(SYN)))
+        throw TCPBadOptionException{Option::SACK_PERM, "Non-SYN packet"};
+
+      if(host_.uses_SACK())
+      {
+        sack_perm = true;
+      }
+
+      opt += option->length;
+      break;
+    }
+
     default:
       opt += option->length;
       break;
@@ -1013,6 +1032,11 @@ void Connection::add_option(Option::Kind kind, Packet& packet) {
     packet.add_tcp_option<Option::opt_ts>(host_.get_ts_value(), ts_ecr);
     break;
   }
+
+  case Option::SACK_PERM: {
+    packet.add_tcp_option<Option::opt_sack_perm>();
+    break;
+  }
   default:
     break;
   }
@@ -1036,6 +1060,11 @@ bool Connection::uses_window_scaling() const noexcept
 bool Connection::uses_timestamps() const noexcept
 {
   return host_.uses_timestamps();
+}
+
+bool Connection::uses_SACK() const noexcept
+{
+  return host_.uses_SACK();
 }
 
 void Connection::drop(const Packet& packet, Drop_reason reason)

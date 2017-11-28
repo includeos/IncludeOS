@@ -541,6 +541,11 @@ void Connection::Closed::open(Connection& tcp, bool active) {
         tcp.add_option(Option::TS, *packet);
       }
 
+      if(tcp.uses_SACK())
+      {
+        tcp.add_option(Option::SACK_PERM, *packet);
+      }
+
       tcb.SND.UNA = tcb.ISS;
       tcb.SND.NXT = tcb.ISS+1;
       tcp.transmit(std::move(packet));
@@ -826,6 +831,12 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
     {
       tcp.add_option(Option::WS, *packet);
       packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
+    }
+
+    // SACK permitted
+    if(tcp.sack_perm == true)
+    {
+      tcp.add_option(Option::SACK_PERM, *packet);
     }
 
     tcp.transmit(std::move(packet));

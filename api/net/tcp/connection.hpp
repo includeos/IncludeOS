@@ -846,6 +846,9 @@ private:
   /** State if connection is in TCP write queue or not. */
   bool queued_;
 
+  /** If SACK is permitted (option has been seen from peer) */
+  bool sack_perm = false;
+
   /** Congestion control */
   // is fast recovery state
   bool fast_recovery_ = false;
@@ -1020,6 +1023,8 @@ private:
   bool uses_window_scaling() const noexcept;
 
   bool uses_timestamps() const noexcept;
+
+  bool uses_SACK() const noexcept;
 
   /// --- INCOMING / TRANSMISSION --- ///
   /*
