@@ -40,4 +40,8 @@ public:
   virtual on_except_func get_default_except_func() = 0;
 };
 
+struct sockaddr;
+typedef uint32_t socklen_t;
+extern bool validate_sockaddr_in(const struct sockaddr*, socklen_t);
+
 #endif

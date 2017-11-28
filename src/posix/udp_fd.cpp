@@ -19,6 +19,13 @@
 #include <kernel/os.hpp> // OS::block()
 #include <errno.h>
 
+#define POSIX_STRACE
+#ifdef POSIX_STRACE
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
 // return the "currently selected" networking stack
 static net::Inet<net::IP4>& net_stack() {
   return net::Inet4::stack<> ();
@@ -114,8 +121,7 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
 }
 int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
-  // The specified address is not a valid address for the address family of the specified socket.
-  if(UNLIKELY(address_len != sizeof(struct sockaddr_in))) {
+  if (UNLIKELY(!validate_sockaddr_in(address, address_len))) {
     errno = EINVAL;
     return -1;
   }
@@ -139,6 +145,9 @@ int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
     peer_.sin_addr   = addr.sin_addr;
     peer_.sin_port   = addr.sin_port;
   }
+  PRINT("UDP: connect(%s:%u)\n",
+        net::IP4::addr(peer_.sin_addr.s_addr).to_string().c_str(),
+        htons(peer_.sin_port));
 
   return 0;
 }

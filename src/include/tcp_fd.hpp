@@ -84,6 +84,8 @@ struct TCP_FD_Conn
   int     close();
   int     shutdown(int);
 
+  std::string to_string() const { return conn->to_string(); }
+
   net::tcp::Connection_ptr conn;
   RingBuffer readq;
 };
@@ -98,6 +100,8 @@ struct TCP_FD_Listen
   int listen(int);
   int accept(struct sockaddr *__restrict__, socklen_t *__restrict__);
   int shutdown(int);
+
+  std::string to_string() const { return listener.to_string(); }
 
   net::tcp::Listener& listener;
   std::deque<net::tcp::Connection_ptr> connq;

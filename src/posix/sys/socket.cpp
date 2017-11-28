@@ -179,3 +179,14 @@ int shutdown(int socket, int how)
     return -1;
   }
 }
+
+bool validate_sockaddr_in(const struct sockaddr* address, socklen_t len)
+{
+  // The specified address is not a valid address for the address family of the specified socket.
+  if (UNLIKELY(len < sizeof(struct sockaddr_in))) {
+    PRINT("sockaddr_in length too short: %u vs %lu\n", len, sizeof(struct sockaddr_in));
+    return false;
+  }
+
+  return true;
+}

@@ -57,7 +57,7 @@ set(OS_OBJECTS
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm posix/file_fd.cpp posix/dlfcn.cpp
   posix/sys/stat.cpp posix/sys/ioctl.cpp posix/ftw.cpp posix/utime.cpp posix/math.cpp
-  posix/pwd.cpp posix/pthread.cpp
+  posix/pwd.cpp posix/pthread.cpp posix/poll.cpp
   posix/signal.cpp posix/stdio.cpp posix/dirent.cpp posix/termios.cpp)
 
 add_library(os STATIC ${OS_OBJECTS})
