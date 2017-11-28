@@ -19,6 +19,8 @@
 
 int create_socket(std::string, BIO*);
 
+// https://github.com/darrenjs/openssl_examples
+
 int init_ssl(const std::string& dest_url)
 {
   SSL_load_error_strings();
@@ -29,16 +31,17 @@ int init_ssl(const std::string& dest_url)
   auto* certbio = BIO_new(BIO_s_file());
   auto* outbio  = BIO_new_fp(stdout, BIO_NOCLOSE);
 
+  printf("1. init_ssl()\n");
   if (SSL_library_init() < 0) {
       BIO_printf(outbio, "Could not initialize the OpenSSL library !\n");
   }
-  printf("init_ssl() done\n");
 
   auto method = SSLv23_client_method();
 
   /* ---------------------------------------------------------- *
    * Try to create a new SSL context                            *
    * ---------------------------------------------------------- */
+  printf("2. SSL context\n");
   auto* ctx = SSL_CTX_new(method);
   if (ctx == NULL) {
     BIO_printf(outbio, "Unable to create a new SSL context structure.\n");
@@ -47,16 +50,18 @@ int init_ssl(const std::string& dest_url)
   /* ---------------------------------------------------------- *
    * Disabling SSLv2 will leave v3 and TSLv1 for negotiation    *
    * ---------------------------------------------------------- */
-  SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2);
+  SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
 
   /* ---------------------------------------------------------- *
    * Create new SSL connection state object                     *
    * ---------------------------------------------------------- */
+  printf("3. SSL state object\n");
   auto* ssl = SSL_new(ctx);
 
   /* ---------------------------------------------------------- *
    * Make the underlying TCP socket connection                  *
    * ---------------------------------------------------------- */
+  printf("4. Create TCP socket\n");
   int server = create_socket(dest_url, outbio);
   if (server != 0) {
     BIO_printf(outbio, "Successfully made the TCP connection to: %s.\n", dest_url.c_str());
@@ -65,11 +70,13 @@ int init_ssl(const std::string& dest_url)
   /* ---------------------------------------------------------- *
    * Attach the SSL session to the socket descriptor            *
    * ---------------------------------------------------------- */
+  printf("5. Attach to socket\n");
   SSL_set_fd(ssl, server);
 
   /* ---------------------------------------------------------- *
    * Try to SSL-connect here, returns 1 for success             *
    * ---------------------------------------------------------- */
+  printf("6. TLS handshake\n");
   if (SSL_connect(ssl) != 1)
     BIO_printf(outbio, "Error: Could not build a SSL session to: %s.\n", dest_url.c_str());
   else
