@@ -1,145 +1,99 @@
-#include <sys/socket.h>
-//#include <resolv.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <string.h>
-#include <unistd.h>
+#include "tls_stream.hpp"
+#include <memdisk>
+#define LOAD_FROM_MEMDISK
 
-#include <openssl/bio.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
-#include <openssl/x509.h>
-#include <openssl/x509_vfy.h>
-#include <cassert>
-#include <cstdio>
-#include <string>
-#include <net/inet4>
+// https://gist.github.com/darrenjs/4645f115d10aa4b5cebf57483ec82eca
+inline void handle_error(const char* file, int lineno, const char* msg) {
+  fprintf(stderr, "** %s:%i %s\n", file, lineno, msg);
+  ERR_print_errors_fp(stderr);
+  exit(1);
+}
+#define int_error(msg) handle_error(__FILE__, __LINE__, msg)
 
-int create_socket(std::string, BIO*);
-
-// https://github.com/darrenjs/openssl_examples
-
-int init_ssl(const std::string& dest_url)
+void tls_load_from_memory(SSL_CTX* ctx,
+                          fs::Buffer cert_buffer,
+                          fs::Buffer key_buffer)
 {
-  SSL_load_error_strings();
+  auto* cbio = BIO_new_mem_buf(cert_buffer.data(), cert_buffer.size());
+  auto* cert = PEM_read_bio_X509(cbio, NULL, 0, NULL);
+  assert(cert != NULL);
+  SSL_CTX_use_certificate(ctx, cert);
+  BIO_free(cbio);
+
+  auto* kbio = BIO_new_mem_buf(key_buffer.data(), key_buffer.size());
+  auto* key = PEM_read_bio_RSAPrivateKey(kbio, NULL, 0, NULL);
+  assert(key != NULL);
+  SSL_CTX_use_RSAPrivateKey(ctx, key);
+  BIO_free(kbio);
+}
+
+SSL_CTX* tls_init_server(const char* cert_file, const char* key_file)
+{
+  printf("Initialising OpenSSL\n");
+
+  /* SSL library initialisation */
+  SSL_library_init();
   OpenSSL_add_all_algorithms();
+  SSL_load_error_strings();
   ERR_load_BIO_strings();
   ERR_load_crypto_strings();
 
-  auto* certbio = BIO_new(BIO_s_file());
-  auto* outbio  = BIO_new_fp(stdout, BIO_NOCLOSE);
+  /* create the SSL server context */
+  auto* ctx = SSL_CTX_new(SSLv23_server_method());
+  if (!ctx) throw std::runtime_error("SSL_CTX_new()");
 
-  printf("1. init_ssl()\n");
-  if (SSL_library_init() < 0) {
-      BIO_printf(outbio, "Could not initialize the OpenSSL library !\n");
-  }
+#ifdef LOAD_FROM_MEMDISK
+  auto& filesys = fs::memdisk().fs();
+  // load CA certificate
+  auto ca_cert_buffer = filesys.read_file(cert_file);
+  // load CA private key
+  auto ca_key_buffer  = filesys.read_file(key_file);
+  // use in SSL CTX
+  tls_load_from_memory(ctx, ca_cert_buffer, ca_key_buffer);
+#else
+  /* Load certificate and private key files, and check consistency  */
+  int err;
+  err = SSL_CTX_use_certificate_file(ctx, cert_file,  SSL_FILETYPE_PEM);
+  if (err != 1)
+    int_error("SSL_CTX_use_certificate_file failed");
 
-  auto method = SSLv23_client_method();
+  /* Indicate the key file to be used */
+  err = SSL_CTX_use_PrivateKey_file(ctx, key_file, SSL_FILETYPE_PEM);
+  if (err != 1)
+    int_error("SSL_CTX_use_PrivateKey_file failed");
+#endif
 
-  /* ---------------------------------------------------------- *
-   * Try to create a new SSL context                            *
-   * ---------------------------------------------------------- */
-  printf("2. SSL context\n");
-  auto* ctx = SSL_CTX_new(method);
-  if (ctx == NULL) {
-    BIO_printf(outbio, "Unable to create a new SSL context structure.\n");
-  }
+  /* Make sure the key and certificate file match. */
+  if (SSL_CTX_check_private_key(ctx) != 1)
+    int_error("SSL_CTX_check_private_key failed");
 
-  /* ---------------------------------------------------------- *
-   * Disabling SSLv2 will leave v3 and TSLv1 for negotiation    *
-   * ---------------------------------------------------------- */
-  SSL_CTX_set_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
-
-  /* ---------------------------------------------------------- *
-   * Create new SSL connection state object                     *
-   * ---------------------------------------------------------- */
-  printf("3. SSL state object\n");
-  auto* ssl = SSL_new(ctx);
-
-  /* ---------------------------------------------------------- *
-   * Make the underlying TCP socket connection                  *
-   * ---------------------------------------------------------- */
-  printf("4. Create TCP socket\n");
-  int server = create_socket(dest_url, outbio);
-  if (server != 0) {
-    BIO_printf(outbio, "Successfully made the TCP connection to: %s.\n", dest_url.c_str());
-  }
-
-  /* ---------------------------------------------------------- *
-   * Attach the SSL session to the socket descriptor            *
-   * ---------------------------------------------------------- */
-  printf("5. Attach to socket\n");
-  SSL_set_fd(ssl, server);
-
-  /* ---------------------------------------------------------- *
-   * Try to SSL-connect here, returns 1 for success             *
-   * ---------------------------------------------------------- */
-  printf("6. TLS handshake\n");
-  if (SSL_connect(ssl) != 1)
-    BIO_printf(outbio, "Error: Could not build a SSL session to: %s.\n", dest_url.c_str());
-  else
-    BIO_printf(outbio, "Successfully enabled SSL/TLS session to: %s.\n", dest_url.c_str());
-
-  /* ---------------------------------------------------------- *
-   * Get the remote certificate into the X509 structure         *
-   * ---------------------------------------------------------- */
-  auto* cert = SSL_get_peer_certificate(ssl);
-  if (cert == NULL)
-    BIO_printf(outbio, "Error: Could not get a certificate from: %s.\n", dest_url.c_str());
-  else
-    BIO_printf(outbio, "Retrieved the server's certificate from: %s.\n", dest_url.c_str());
-
-  /* ---------------------------------------------------------- *
-   * extract various certificate information                    *
-   * -----------------------------------------------------------*/
-  auto* certname = X509_NAME_new();
-  certname = X509_get_subject_name(cert);
-
-  /* ---------------------------------------------------------- *
-   * display the cert subject here                              *
-   * -----------------------------------------------------------*/
-  BIO_printf(outbio, "Displaying the certificate subject data:\n");
-  X509_NAME_print_ex(outbio, certname, 0, 0);
-  BIO_printf(outbio, "\n");
-
-  /* ---------------------------------------------------------- *
-   * Free the structures we don't need anymore                  *
-   * -----------------------------------------------------------*/
-  SSL_free(ssl);
-  close(server);
-  X509_free(cert);
-  SSL_CTX_free(ctx);
-  BIO_printf(outbio, "Finished SSL/TLS connection with server: %s.\n", dest_url.c_str());
-  return 0;
+  /* Recommended to avoid SSLv2 & SSLv3 */
+  SSL_CTX_set_options(ctx, SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3);
+  return ctx;
 }
 
-/* ---------------------------------------------------------- *
-* create_socket() creates the socket & TCP-connect to server *
-* ---------------------------------------------------------- */
-int create_socket(std::string url, BIO *out)
+void openssl_server_test()
 {
-  net::IP4::addr addr("10.0.0.1");
-  const uint16_t port = 443;
-  /* ---------------------------------------------------------- *
-   * create the basic TCP socket                                *
-   * ---------------------------------------------------------- */
-  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  fs::memdisk().init_fs(
+  [] (auto err, auto&) {
+    assert(!err);
+    auto* ctx = tls_init_server("/test.pem", "/test.key");
+    assert(ctx);
 
-  struct sockaddr_in dest_addr;
-  dest_addr.sin_family=AF_INET;
-  dest_addr.sin_port=htons(port);
-  dest_addr.sin_addr.s_addr = addr.whole;
+    auto& inet = net::Super_stack::get<net::IP4>(0);
+    auto& server = inet.tcp().listen(443);
+    server.on_connect(
+      [ctx] (auto conn) {
+        printf("Connected to %s\n", conn->to_string().c_str());
+        auto tcp_stream = std::make_unique<net::tcp::Connection::Stream> (conn);
+        auto* tls = new TLS_stream(ctx, std::move(tcp_stream));
+        tls->on_read =
+        [tls] (auto buffer) {
+          printf("On_read: %.*s\n", (int) buffer->size(), buffer->data());
+          tls->write("Hello world!\n\n");
+        };
+      });
+    printf("Listening on 443\n");
+  });
 
-  /* ---------------------------------------------------------- *
-   * Try to make the host connect here                          *
-   * ---------------------------------------------------------- */
-  if ( connect(sockfd, (struct sockaddr *) &dest_addr,
-                              sizeof(struct sockaddr)) == -1 ) {
-    BIO_printf(out, "Error: Cannot connect to host %s:%d.\n",
-               addr.to_string().c_str(), port);
-  }
-
-  return sockfd;
 }
