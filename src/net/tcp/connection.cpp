@@ -663,22 +663,54 @@ void Connection::rtx_ack(const seq_t ack) {
 void Connection::recv_data(const Packet& in)
 {
   Expects(in.has_tcp_data());
+
   const auto length = in.tcp_data_length();
-  cb.RCV.NXT += length;
-  const auto snd_nxt = cb.SND.NXT;
-  if(read_request and read_request->buffer.capacity()) {
-    auto received = receive(in.seq(), in.tcp_data(), in.tcp_data_length(), in.isset(PSH));
-    Ensures(received == length);
-  }
 
-  // [RFC 5681]
-  //tcb.SND.cwnd += std::min(length, tcp.SMSS());
-
-  // user callback didnt result in transmitting an ACK
-  if (cb.SND.NXT == snd_nxt)
+  // The packet we expect
+  if(cb.RCV.NXT == in.seq())
   {
-    ack_data();
+    // If we had packet loss before (and SACK is on)
+    // we need to clear up among the blocks
+    // and increase the total amount of bytes acked
+    if(UNLIKELY(sack_list))
+    {
+      auto res = sack_list->new_valid_ack(in.seq());
+      cb.RCV.NXT += res.bytes;
+    }
+
+    cb.RCV.NXT += length;
   }
+  // Packet out of order
+  else
+  {
+    // We know that out of order packets wouldnt reach here
+    // without SACK being permitted
+    Expects(sack_perm);
+
+    printf("<Connection::recv_data> Out-of-order: RCV.NXT=%u SEQ=%u\n",
+      cb.RCV.NXT, in.seq());
+
+    // The SACK list is initated on the first out of order packet
+    if(not sack_list)
+      sack_list = std::make_unique<Sack_list>();
+
+    auto res = sack_list->recv_out_of_order(in.seq(), length);
+  }
+
+  // Keep track if a packet is being sent during the async read callback
+  const auto snd_nxt = cb.SND.NXT;
+
+  if(read_request and read_request->buffer.capacity())
+  {
+    auto recv = receive(in.seq(), in.tcp_data(), length, in.isset(PSH));
+    Ensures(recv == length);
+  }
+
+  // User callback didnt result in transmitting an ACK
+  if(cb.SND.NXT == snd_nxt)
+    ack_data();
+
+  // [RFC 5681] ???
 }
 
 void Connection::ack_data()

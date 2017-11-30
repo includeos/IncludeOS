@@ -14,12 +14,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#pragma once
+#ifndef NET_TCP_SACK_HPP
+#define NET_TCP_SACK_HPP
 
 #include <cstdint>
 #include <array>
 #include <common>
 #include <util/fixed_list_alloc.hpp>
 #include <list>
+#include <ostream>
 
 using seq_t = uint32_t;
 
@@ -80,7 +84,7 @@ struct Block {
 }__attribute__((packed));
 
 // Print for Block
-std::ostream& operator<<(std::ostream& out, const Block& b) {
+inline std::ostream& operator<<(std::ostream& out, const Block& b) {
   out << "[" << b.start << " => " << b.end << "]";
   return out;
 }
@@ -106,6 +110,9 @@ public:
 
   Ack_result new_valid_ack(const seq_t end)
   { return impl.new_valid_ack(end); }
+
+  size_t size() const noexcept
+  { return impl.size(); }
 
   List_impl impl;
 };
@@ -142,7 +149,7 @@ connects_to(Iterator first, Iterator last, const Connectable& value)
 template <int N = 3>
 class Fixed_list {
 public:
-  static auto constexpr size = N;
+  static auto constexpr capacity = N;
   using List          = std::list<Block, Fixed_list_alloc<Block, N>>;
   using List_iterator = typename List::iterator;
 
@@ -172,9 +179,9 @@ public:
     }
     else // No connection - new entry
     {
-      Expects(blocks.size() <= size);
+      Expects(blocks.size() <= capacity);
 
-      if(UNLIKELY(blocks.size() == size))
+      if(UNLIKELY(blocks.size() == capacity))
         return {recent_entries(), 0};
 
       blocks.push_front(blk);
@@ -200,6 +207,9 @@ public:
     return {recent_entries(), bytes_freed};
   }
 
+  size_t size() const noexcept
+  { return blocks.size(); }
+
   void move_to_front(List_iterator it)
   {
     if(it != blocks.begin())
@@ -209,8 +219,6 @@ public:
   Entries recent_entries() const
   {
     Entries ret;
-    int i = 0;
-
     for(auto it = blocks.begin(); it != blocks.end() and ret.size() < ret.capacity(); it++)
       ret.push_back(*it);
 
@@ -308,3 +316,5 @@ public:
 } // < namespace sack
 } // < namespace tcp
 } // < namespace net
+
+#endif

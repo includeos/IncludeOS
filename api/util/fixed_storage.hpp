@@ -106,7 +106,7 @@ char* Fixed_storage<T, N, alignment>::allocate(std::size_t n)
 }
 
 template <typename T, std::size_t N, std::size_t alignment>
-void Fixed_storage<T, N, alignment>::deallocate(char* p, std::size_t n) noexcept
+void Fixed_storage<T, N, alignment>::deallocate(char* p, std::size_t) noexcept
 {
   Expects(pointer_in_buffer(p) &&
     "Trying to deallocate pointer outside my buffer");

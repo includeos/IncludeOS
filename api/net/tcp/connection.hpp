@@ -25,6 +25,7 @@
 #include "rttm.hpp"
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
+#include "sack.hpp"
 
 #include <net/socket.hpp>
 #include <delegate>
@@ -844,6 +845,8 @@ private:
   /** State if connection is in TCP write queue or not. */
   bool queued_;
 
+  using Sack_list = sack::List<sack::Fixed_list<9>>;
+  std::unique_ptr<Sack_list> sack_list;
   /** If SACK is permitted (option has been seen from peer) */
   bool sack_perm = false;
 
