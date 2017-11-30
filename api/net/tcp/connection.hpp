@@ -671,8 +671,6 @@ public:
 
     virtual bool check_ack(Connection&, const Packet&);
 
-    virtual void process_segment(Connection&, Packet&);
-
     virtual void process_fin(Connection&, const Packet&);
 
     virtual void send_reset(Connection&);
@@ -1037,6 +1035,13 @@ private:
     - TCB update, Congestion control handling, RTT calculation and RT handling.
   */
   bool handle_ack(const Packet&);
+
+  /**
+   * @brief      Receive data from an incoming packet containing data.
+   *
+   * @param[in]  in  TCP Packet containing payload
+   */
+  void recv_data(const Packet& in);
 
   /**
    * @brief      Determines if the incoming segment is a legit window update.

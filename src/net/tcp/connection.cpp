@@ -629,6 +629,85 @@ void Connection::rtx_ack(const seq_t ack) {
   //  x-rtx_q.size(), rtx_q.size());
 }
 
+/*
+  7. Process the segment text
+
+  If a packet has data, process the data.
+
+  [RFC 793] Page 74:
+
+  Once in the ESTABLISHED state, it is possible to deliver segment
+  text to user RECEIVE buffers.  Text from segments can be moved
+  into buffers until either the buffer is full or the segment is
+  empty.  If the segment empties and carries an PUSH flag, then
+  the user is informed, when the buffer is returned, that a PUSH
+  has been received.
+
+  When the TCP takes responsibility for delivering the data to the
+  user it must also acknowledge the receipt of the data.
+
+  Once the TCP takes responsibility for the data it advances
+  RCV.NXT over the data accepted, and adjusts RCV.WND as
+  apporopriate to the current buffer availability.  The total of
+  RCV.NXT and RCV.WND should not be reduced.
+
+  Please note the window management suggestions in section 3.7.
+
+  Send an acknowledgment of the form:
+
+  <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
+
+  This acknowledgment should be piggybacked on a segment being
+  transmitted if possible without incurring undue delay.
+*/
+void Connection::recv_data(const Packet& in)
+{
+  Expects(in.has_tcp_data());
+  const auto length = in.tcp_data_length();
+  cb.RCV.NXT += length;
+  const auto snd_nxt = cb.SND.NXT;
+  if(read_request and read_request->buffer.capacity()) {
+    auto received = receive(in.seq(), in.tcp_data(), in.tcp_data_length(), in.isset(PSH));
+    Ensures(received == length);
+  }
+
+  // [RFC 5681]
+  //tcb.SND.cwnd += std::min(length, tcp.SMSS());
+
+  // user callback didnt result in transmitting an ACK
+  if (cb.SND.NXT == snd_nxt)
+  {
+    // ACK by trying to send more
+    if (can_send())
+    {
+      writeq_push();
+      // nothing got sent
+      if (cb.SND.NXT == snd_nxt)
+      {
+        send_ack();
+      }
+      // something got sent
+      else
+      {
+        dack_ = 0;
+      }
+    }
+    // else regular ACK
+    else
+    {
+      if (use_dack() and dack_ == 0)
+      {
+        start_dack();
+      }
+      else
+      {
+        stop_dack();
+        send_ack();
+      }
+    }
+  }
+}
+
 void Connection::take_rtt_measure(const Packet& packet)
 {
   if(cb.SND.TS_OK)
