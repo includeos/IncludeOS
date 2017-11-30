@@ -677,33 +677,39 @@ void Connection::recv_data(const Packet& in)
   // user callback didnt result in transmitting an ACK
   if (cb.SND.NXT == snd_nxt)
   {
-    // ACK by trying to send more
-    if (can_send())
+    ack_data();
+  }
+}
+
+void Connection::ack_data()
+{
+  const auto snd_nxt = cb.SND.NXT;
+  // ACK by trying to send more
+  if (can_send())
+  {
+    writeq_push();
+    // nothing got sent
+    if (cb.SND.NXT == snd_nxt)
     {
-      writeq_push();
-      // nothing got sent
-      if (cb.SND.NXT == snd_nxt)
-      {
-        send_ack();
-      }
-      // something got sent
-      else
-      {
-        dack_ = 0;
-      }
+      send_ack();
     }
-    // else regular ACK
+    // something got sent
     else
     {
-      if (use_dack() and dack_ == 0)
-      {
-        start_dack();
-      }
-      else
-      {
-        stop_dack();
-        send_ack();
-      }
+      dack_ = 0;
+    }
+  }
+  // else regular ACK
+  else
+  {
+    if (use_dack() and dack_ == 0)
+    {
+      start_dack();
+    }
+    else
+    {
+      stop_dack();
+      send_ack();
     }
   }
 }

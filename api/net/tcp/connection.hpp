@@ -1044,6 +1044,13 @@ private:
   void recv_data(const Packet& in);
 
   /**
+   * @brief      Acknowledge incoming data. This is done by:
+   *             - Trying to send data if possible (can send)
+   *             - If not, regular ACK (use DACK if enabled)
+   */
+  void ack_data();
+
+  /**
    * @brief      Determines if the incoming segment is a legit window update.
    *
    * @param[in]  in    TCP Segment
