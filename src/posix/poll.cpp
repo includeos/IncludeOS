@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <fd_map.hpp>
 #include <tcp_fd.hpp>
+#include <posix_strace.hpp>
 
 #define POLLIN		0x0001
 #define POLLPRI		0x0002
@@ -20,8 +21,13 @@ typedef unsigned long nfds_t;
 extern "C"
 int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {
-  return 0;
-  printf("poll(%p, %lu, %d)\n", fds, nfds, timeout);
+  PRINT("poll(%p, %lu, %d)\n", fds, nfds, timeout);
+  if (nfds == 1 && fds[0].fd == 4)
+  {
+    //PRINT("poll on random device\n");
+    fds[0].revents = fds[0].events;
+    return 1;
+  }
 
   if (fds == nullptr) return -1;
   if (timeout < 0) return -1;

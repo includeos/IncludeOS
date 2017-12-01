@@ -20,13 +20,7 @@
 #include <fd_map.hpp>
 #include <tcp_fd.hpp>
 #include <udp_fd.hpp>
-
-#define POSIX_STRACE
-#ifdef POSIX_STRACE
-#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
-#else
-#define PRINT(fmt, ...) /* fmt */
-#endif
+#include <posix_strace.hpp>
 
 int socket(int domain, int type, int protocol)
 {

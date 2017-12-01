@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <cstdio>
+#include <posix_strace.hpp>
 
 struct DIR
 {
@@ -20,19 +21,20 @@ struct dirent {
 extern "C"
 DIR* opendir(const char *dirname)
 {
-  printf("opendir(%s)\n", dirname);
+  PRINT("opendir(%s) = -1\n", dirname);
   errno = ENOENT;
   return nullptr;
 }
 extern "C"
 struct dirent* readdir(DIR *dirp)
 {
-  printf("readdir(%p)\n", dirp);
+  PRINT("readdir(%p) = -1\n", dirp);
   errno = EINVAL;
   return nullptr;
 }
 extern "C"
 int closedir(DIR *dirp)
 {
+  PRINT("closedir(%p) = 0\n", dirp);
   return 0;
 }

@@ -5,6 +5,7 @@
 #include <tcp_fd.hpp>
 #include <list>
 #include <kernel/os.hpp> // OS::block()
+#include <posix_strace.hpp>
 
 static struct {
   typedef std::pair<int, TCP_FD&> listpair;
@@ -57,6 +58,7 @@ int  select(int max_fd,
             fd_set *__restrict__ excepts,
             struct timeval *__restrict__ tv)
 {
+  PRINT("select(%d, %p, %p, %p)\n", max_fd, reads, writes, excepts);
   // monitor file descriptors given in read, write and exceptional fd sets
   int mon_read = -1;
   int mon_send = -1;
@@ -158,6 +160,7 @@ int  pselect(int max_fd,
              const struct timespec *__restrict__ ts,
              const sigset_t *__restrict__)
 {
+  PRINT("pselect(%d, %p, %p, %p)\n", max_fd, reads, writes, excepts);
   struct timeval tv;
   tv.tv_sec  = ts->tv_sec;
   tv.tv_usec = ts->tv_nsec / 1000;

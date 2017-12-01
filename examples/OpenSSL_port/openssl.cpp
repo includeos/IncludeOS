@@ -1,4 +1,5 @@
 #include "tls_stream.hpp"
+#include <openssl/rand.h>
 #include <memdisk>
 #define LOAD_FROM_MEMDISK
 
@@ -39,7 +40,8 @@ SSL_CTX* tls_init_server(const char* cert_file, const char* key_file)
   ERR_load_crypto_strings();
 
   /* create the SSL server context */
-  auto* ctx = SSL_CTX_new(SSLv23_server_method());
+  auto meth = TLSv1_2_server_method();
+  auto* ctx = SSL_CTX_new(meth);
   if (!ctx) throw std::runtime_error("SSL_CTX_new()");
 
 #ifdef LOAD_FROM_MEMDISK
@@ -72,6 +74,20 @@ SSL_CTX* tls_init_server(const char* cert_file, const char* key_file)
   return ctx;
 }
 
+void openssl_verify_rng()
+{
+  auto* rm = RAND_get_rand_method();
+  if (rm == RAND_SSLeay())
+  {
+      printf("Using default generator\n");
+  }
+  RAND_poll();
+  int random_value = 0;
+  int rc = RAND_bytes((uint8_t*) &random_value, sizeof(random_value));
+  assert(rc == 0 || rc == 1);
+  printf("Random returned %d\n", random_value);
+}
+
 void openssl_server_test()
 {
   fs::memdisk().init_fs(
@@ -79,6 +95,19 @@ void openssl_server_test()
     assert(!err);
     auto* ctx = tls_init_server("/test.pem", "/test.key");
     assert(ctx);
+    printf("Done initializing OpenSSL context\n");
+    int error = ERR_get_error();
+    printf("Status: %d\n", error);
+    assert(error == SSL_ERROR_NONE);
+
+    /** VERIFY RNG **/
+    openssl_verify_rng();
+    /** VERIFY RNG **/
+    error = ERR_get_error();
+    if (error) {
+      printf("Status: %s\n", ERR_error_string(error, nullptr));
+      assert(error == 0);
+    }
 
     auto& inet = net::Super_stack::get<net::IP4>(0);
     auto& server = inet.tcp().listen(443);

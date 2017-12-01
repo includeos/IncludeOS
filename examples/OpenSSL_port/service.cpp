@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
+#include <service>
 #include <net/inet4>
 #include <timers>
 
@@ -24,14 +24,11 @@ void Service::start()
   extern void openssl_server_test();
   openssl_server_test();
 
-  // Get the first IP stack
-  // It should have configuration from config.json
-  auto& inet = net::Super_stack::get<net::IP4>(0);
-
   // Print some useful netstats every 30 secs
   using namespace std::chrono;
   Timers::periodic(5s, 30s,
-  [&inet] (uint32_t) {
+  [] (uint32_t) {
+    auto& inet = net::Super_stack::get<net::IP4>(0);
     printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
 
