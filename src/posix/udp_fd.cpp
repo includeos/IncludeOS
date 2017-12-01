@@ -215,7 +215,6 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
   // Else make a blocking receive
   else
   {
-    return 0;
     int bytes = 0;
     bool done = false;
 

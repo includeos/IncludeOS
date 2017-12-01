@@ -162,7 +162,9 @@ inline void TLS_stream::close()
 inline TLS_stream::status_t TLS_stream::status(int n) const noexcept
 {
   int error = SSL_get_error(this->m_ssl, n);
-  printf("Status: %d\n", error);
+  if (error) {
+    printf("Status: %s\n", ERR_error_string(error, nullptr));
+  }
   switch (error)
   {
   case SSL_ERROR_NONE:
