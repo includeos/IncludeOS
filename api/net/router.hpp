@@ -50,10 +50,8 @@ namespace net {
 
     Addr nexthop(Addr ip) const noexcept
     {
-      if (net_ == 0)
-        return nexthop_;
-
-      if ((ip & netmask_) == net_ )
+      // No need to go via nexthop if IP is on the same net as interface
+      if ((ip & iface_->netmask()) == (iface_->ip_addr() & iface_->netmask()))
         return ip;
 
       return nexthop_;
@@ -90,7 +88,9 @@ namespace net {
 
     Route(Addr net, Netmask mask, Addr nexthop, Stack& iface, int cost = 100)
       : net_{net}, netmask_{mask}, nexthop_{nexthop}, iface_{&iface}, cost_{cost}
-    {}
+    {
+      Expects(iface_ != nullptr);
+    }
 
     std::string to_string() const
     {

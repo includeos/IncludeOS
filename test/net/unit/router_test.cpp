@@ -50,12 +50,6 @@ CASE("Testing Route functionality")
   // Operators
   EXPECT(not (r1 == r2));
   EXPECT(r2 < r1);
-
-  // Nexthop
-  EXPECT(r2.nexthop({10,42,42,1}) == ip4::Addr(10,42,42,1)); // == ip
-  EXPECT(r2.nexthop({10,42,43,1}) == ip4::Addr(10,42,43,1)); // == ip
-  EXPECT(r2.nexthop({10,43,43,1}) == ip4::Addr(10,42,42,3)); // == nexthop
-  EXPECT(r3.nexthop({10,43,43,1}) == ip4::Addr(10,0,0,1)); // == nexthop
 }
 
 CASE("Creating and matching against routes")
@@ -265,3 +259,39 @@ CASE("Actual routing verifying TTL")
   inet1.ip_obj().receive(std::move(tcp), false);
   EXPECT(tcp_packet_recv == 2);
 }
+
+CASE("Calculate Route nexthop")
+{
+  Nic_mock nic1;
+  Inet4 inet1{nic1};
+  inet1.network_config({10, 0, 2, 1}, {255, 255, 255, 0}, 0);
+
+  // Net for inet1 without nexthop
+  const Route<IP4> r1{{10, 0, 2, 0}, {255, 255, 0, 0}, 0, inet1};
+  // Matches route and interfaces net, can be sent directly
+  EXPECT(r1.nexthop({10,0,2,20}) == ip4::Addr(10,0,2,20)); // == ip
+  // Matches routes net, but not the interface's net, need to go via nexthop
+  EXPECT(r1.nexthop({10,0,1,20}) == 0); // == nexthop
+  // Outside routes net (and it doesnt match the route...), need to go via nexthop
+  EXPECT(r1.nexthop({10,1,0,20}) == 0); // == nexthop
+
+  // Alias net for inet1 with nexthop to nearby router
+  const Route<IP4> r2{{10, 0, 6, 0}, {255, 255, 255, 0}, {10, 0, 2, 10}, inet1};
+  // Matches routes net, but not the interface's net, need to go via nexthop
+  EXPECT(r2.nexthop({10,0,6,20}) == ip4::Addr(10,0,2,10)); // == nexthop
+  // Ok, this is really weird because you will never ask for nexthop on this route
+  // (but interface will match)..
+  EXPECT(r2.nexthop({10,0,2,20}) == ip4::Addr(10,0,2,20)); // == ip
+
+  Nic_mock nic2;
+  Inet4 inet2{nic2};
+  inet2.network_config({10, 0, 1, 1}, {255, 255, 255, 0}, 0);
+
+  // Default route
+  const Route<IP4> r3{{0,0,0,0}, {0,0,0,0}, {10, 0, 1, 1}, inet2};
+  // Matches routes net (duh), but not the interface, go via nexthop
+  EXPECT(r3.nexthop({10,0,2,10})  == ip4::Addr(10,0,1,1)); // == nexthop
+  // Matches routes net (duh), and can be sent directly
+  EXPECT(r3.nexthop({10,0,1,10})  == ip4::Addr(10,0,1,10)); // == ip
+}
+
