@@ -32,9 +32,9 @@ private:
   int  tls_perform_stream_write();
 
   Stream_ptr m_transport = nullptr;
-  SSL*       m_ssl    = nullptr;
-  BIO*       m_bio_rd = nullptr;
-  BIO*       m_bio_wr = nullptr;
+  SSL*  m_ssl    = nullptr;
+  BIO*  m_bio_rd = nullptr;
+  BIO*  m_bio_wr = nullptr;
 };
 
 inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t)
@@ -42,9 +42,9 @@ inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t)
 {
   this->m_bio_rd = BIO_new(BIO_s_mem());
   this->m_bio_wr = BIO_new(BIO_s_mem());
+  assert(ERR_get_error() == 0 && "Initializing BIOs");
   this->m_ssl = SSL_new(ctx);
   assert(this->m_ssl != nullptr);
-  assert(status(0) == 0 && "Initializing SSL");
   // TLS server-mode
   SSL_set_accept_state(this->m_ssl);
   SSL_set_bio(this->m_ssl, this->m_bio_rd, this->m_bio_wr);
@@ -92,8 +92,11 @@ inline void TLS_stream::tls_read(buffer_t buffer)
     // if we aren't finished initializing session
     if (UNLIKELY(!SSL_is_init_finished(this->m_ssl)))
     {
+      printf("Calling SSL_accept\n");
       int num = SSL_accept(this->m_ssl);
+      printf("SSL_accept = %d\n", num);
       auto status = this->status(num);
+
       // OpenSSL wants to write
       if (status == STATUS_WANT_IO)
       {
@@ -139,6 +142,7 @@ inline void TLS_stream::tls_read(buffer_t buffer)
 
 inline int TLS_stream::tls_perform_stream_write()
 {
+  printf("Performing stream write\n");
   char buffer[8192];
   int n = BIO_read(this->m_bio_wr, buffer, sizeof(buffer));
   if (UNLIKELY(n < 0)) {
@@ -150,6 +154,7 @@ inline int TLS_stream::tls_perform_stream_write()
     this->close();
     return -1;
   }
+  printf("Writing %d bytes\n", n);
   m_transport->write(buffer, n);
   return n;
 }

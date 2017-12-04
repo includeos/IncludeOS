@@ -1,4 +1,5 @@
 #pragma once
+#include <stdio.h>
 
 #define POSIX_STRACE
 #ifdef POSIX_STRACE

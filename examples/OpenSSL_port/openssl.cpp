@@ -28,21 +28,26 @@ void tls_load_from_memory(SSL_CTX* ctx,
   BIO_free(kbio);
 }
 
-SSL_CTX* tls_init_server(const char* cert_file, const char* key_file)
+void openssl_init()
 {
   printf("Initialising OpenSSL\n");
-
   /* SSL library initialisation */
   SSL_library_init();
   OpenSSL_add_all_algorithms();
   SSL_load_error_strings();
   ERR_load_BIO_strings();
   ERR_load_crypto_strings();
+}
 
+SSL_CTX* tls_init_server(const char* cert_file, const char* key_file)
+{
   /* create the SSL server context */
-  auto meth = TLSv1_2_server_method();
+  auto meth = TLSv1_1_server_method();
   auto* ctx = SSL_CTX_new(meth);
   if (!ctx) throw std::runtime_error("SSL_CTX_new()");
+
+  int res = SSL_CTX_set_cipher_list(ctx, "AES256-SHA");
+  assert(res == 1);
 
 #ifdef LOAD_FROM_MEMDISK
   auto& filesys = fs::memdisk().fs();
@@ -74,6 +79,26 @@ SSL_CTX* tls_init_server(const char* cert_file, const char* key_file)
   return ctx;
 }
 
+#include <kernel/rng.hpp>
+void openssl_setup_rng()
+{
+  RAND_METHOD ios_rand {
+    NULL,
+    [] (unsigned char* buf, int num) -> int {
+      rng_extract(buf, num);
+      return 1;
+    },
+    NULL,
+    [] (const void* buf, int num, double entropy) {
+      rng_absorb(buf, num);
+    },
+    NULL,
+    [] (void) -> int {
+      return 1;
+    }
+  };
+  RAND_set_rand_method(&ios_rand);
+}
 void openssl_verify_rng()
 {
   auto* rm = RAND_get_rand_method();
@@ -93,6 +118,14 @@ void openssl_server_test()
   fs::memdisk().init_fs(
   [] (auto err, auto&) {
     assert(!err);
+
+    /** INIT OPENSSL **/
+    openssl_init();
+    /** SETUP CUSTOM RNG **/
+    openssl_setup_rng();
+    /** VERIFY RNG **/
+    openssl_verify_rng();
+
     auto* ctx = tls_init_server("/test.pem", "/test.key");
     assert(ctx);
     printf("Done initializing OpenSSL context\n");
@@ -100,9 +133,6 @@ void openssl_server_test()
     printf("Status: %d\n", error);
     assert(error == SSL_ERROR_NONE);
 
-    /** VERIFY RNG **/
-    openssl_verify_rng();
-    /** VERIFY RNG **/
     error = ERR_get_error();
     if (error) {
       printf("Status: %s\n", ERR_error_string(error, nullptr));
