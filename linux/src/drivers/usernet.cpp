@@ -50,14 +50,14 @@ void UserNet::receive(void* data, net::BufferStore* bufstore)
 void UserNet::receive(const void* data, int len)
 {
   assert(len >= 0);
-  auto buffer = bufstore().get_buffer();
+  auto* buffer = new uint8_t[buffer_store.bufsize()];
   // wrap in packet, pass to Link-layer
-  auto* ptr = (net::Packet*) buffer.addr;
+  auto* ptr = (net::Packet*) buffer;
   new (ptr) net::Packet(
       sizeof(driver_hdr),
       len,
       sizeof(driver_hdr) + packet_len(),
-      buffer.bufstore);
+      nullptr);
   // copy data over
   memcpy(ptr->layer_begin(), data, len);
   // send to network stack
@@ -67,14 +67,14 @@ void UserNet::receive(const void* data, int len)
 // create new packet from nothing
 net::Packet_ptr UserNet::create_packet(int link_offset)
 {
-  auto  buffer = bufstore().get_buffer();
-  auto* ptr    = (net::Packet*) buffer.addr;
+  auto* buffer = new uint8_t[buffer_store.bufsize()];
+  auto* ptr    = (net::Packet*) buffer;
 
   new (ptr) net::Packet(
         sizeof(driver_hdr) + link_offset,
         0,
         sizeof(driver_hdr) + packet_len(),
-        buffer.bufstore);
+        nullptr);
 
   return net::Packet_ptr(ptr);
 }

@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/conntrack.hpp>
+#include <set>
 
 //#define CT_DEBUG 1
 #ifdef CT_DEBUG
@@ -83,7 +84,7 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
     CTDBG("<Conntrack> Assuming ESTABLISHED\n");
   }
 
-  update_timeout(*entry, (entry->state == State::ESTABLISHED) ? timeout_established : timeout_new);
+  update_timeout(*entry, (entry->state == State::ESTABLISHED) ? timeout.established : timeout.confirmed);
 
   return entry;
 }
@@ -212,7 +213,7 @@ Conntrack::Entry* Conntrack::confirm(Quadruple quad, const Protocol proto)
   {
     CTDBG("<Conntrack> Confirming %s\n", entry->to_string().c_str());
     entry->state = State::NEW;
-    update_timeout(*entry, timeout_new);
+    update_timeout(*entry, timeout.confirmed);
   }
 
   return entry;
@@ -231,7 +232,7 @@ Conntrack::Entry* Conntrack::add_entry(
   }
 
   if(not flush_timer.is_running())
-    flush_timer.start(timeout_interval);
+    flush_timer.start(flush_interval);
 
   // we dont check if it's already exists
   // because it should be called from in()
@@ -249,7 +250,7 @@ Conntrack::Entry* Conntrack::add_entry(
 
   CTDBG("<Conntrack> Entry added: %s\n", entry->to_string().c_str());
 
-  update_timeout(*entry, timeout_unconfirmed);
+  update_timeout(*entry, timeout.unconfirmed);
 
   return entry.get();
 }
@@ -300,19 +301,10 @@ void Conntrack::remove_expired()
       ++it;
     }
     else {
-      if(it->second.unique() && on_close)
-        on_close(it->second.get());
-
       CTDBG("<Conntrack> Erasing %s\n", it->second->to_string().c_str());
-      entries.erase(it++);
+      it = entries.erase(it);
     }
   }
-}
-
-void Conntrack::update_timeout(Entry& ent, Timeout_duration dur)
-{
-  ent.timeout = RTC::now() + dur.count();
-  //CTDBG("<Conntrack> Timeout updated with %llu secs\n", dur.count());
 }
 
 void Conntrack::on_timeout()
@@ -320,7 +312,91 @@ void Conntrack::on_timeout()
   remove_expired();
 
   if(not entries.empty())
-    flush_timer.restart(timeout_interval);
+    flush_timer.restart(flush_interval);
+}
+
+int Conntrack::Entry::deserialize_from(void* addr)
+{
+  auto& entry = *reinterpret_cast<Entry*>(addr);
+  this->first   = entry.first;
+  this->second  = entry.second;
+  this->timeout = entry.timeout;
+  this->proto   = entry.proto;
+  this->state   = entry.state;
+  return sizeof(Entry) - sizeof(on_close);
+}
+
+void Conntrack::Entry::serialize_to(std::vector<char>& buf) const
+{
+  const size_t size = sizeof(Entry) - sizeof(on_close);
+  const auto* ptr = reinterpret_cast<const char*>(this);
+  buf.insert(buf.end(), ptr, ptr + size);
+}
+
+int Conntrack::deserialize_from(void* addr)
+{
+  const auto prev_size = entries.size();
+  auto* buffer = reinterpret_cast<uint8_t*>(addr);
+
+  const auto size = *reinterpret_cast<size_t*>(buffer);
+  buffer += sizeof(size_t);
+
+  for(auto i = size; i > 0; i--)
+  {
+    // create the entry
+    auto entry = std::make_shared<Entry>();
+    buffer += entry->deserialize_from(buffer);
+
+    entries.emplace(std::piecewise_construct,
+      std::forward_as_tuple(entry->first, entry->proto),
+      std::forward_as_tuple(entry));
+
+    entries.emplace(std::piecewise_construct,
+      std::forward_as_tuple(entry->second, entry->proto),
+      std::forward_as_tuple(entry));
+  }
+
+  Ensures(entries.size() - prev_size == size * 2);
+
+  return buffer - reinterpret_cast<uint8_t*>(addr);
+}
+
+void Conntrack::serialize_to(std::vector<char>& buf) const
+{
+  int unserialized = 0;
+
+  // Since each entry is stored twice in the map,
+  // we iterate and put it in a set if not already there
+  std::set<Entry*> to_serialize;
+  for(auto& i : entries)
+  {
+    auto* ent = i.second.get();
+
+    // We cannot restore delegates, so just ignore
+    // the ones with close handler set
+    if(ent->on_close != nullptr) {
+      unserialized++;
+      continue;
+    }
+    // If not in set, add
+    if(to_serialize.find(ent) == to_serialize.end())
+      to_serialize.emplace(ent);
+  }
+
+  // Serialize number of entries
+  size_t size = to_serialize.size();
+  const auto* size_ptr = reinterpret_cast<const char*>(&size);
+
+  const auto expected_buf_size = sizeof(size) + (size * (sizeof(Entry) - sizeof(Entry_handler)));
+  buf.reserve(expected_buf_size);
+
+  buf.insert(buf.end(), size_ptr, size_ptr + sizeof(size));
+  // Serialize each entry
+  for(auto& ent : to_serialize)
+    ent->serialize_to(buf);
+
+  if(unserialized > 0)
+    INFO("Conntrack", "%i entries not serialized\n", unserialized);
 }
 
 

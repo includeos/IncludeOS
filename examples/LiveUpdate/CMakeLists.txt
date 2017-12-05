@@ -15,7 +15,7 @@ set(BINARY       "liveupdate")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp  response.cpp
+  service.cpp
   )
 
 # DRIVERS / PLUGINS:
@@ -25,6 +25,7 @@ set(DRIVERS
 
 set(PLUGINS
     autoconf
+    terminal_liu
   )
 
 set(LIBRARIES

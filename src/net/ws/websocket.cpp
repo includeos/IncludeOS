@@ -423,7 +423,7 @@ WebSocket::WebSocket(net::Stream_ptr stream_ptr, bool client)
   : stream(std::move(stream_ptr)), clientside(client)
 {
   assert(stream != nullptr);
-  this->stream->on_read(16384, {this, &WebSocket::read_data});
+  this->stream->on_read(8*1024, {this, &WebSocket::read_data});
   this->stream->on_close({this, &WebSocket::tcp_closed});
 }
 

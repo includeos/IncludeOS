@@ -63,8 +63,8 @@ namespace fs {
     void deactivate() override;
 
   private:
-    const char* const image_start_;
-    const char* const image_end_;
+    const char* image_start_;
+    const char* image_end_;
 
     uint64_t& stat_read;
   }; //< class MemDisk

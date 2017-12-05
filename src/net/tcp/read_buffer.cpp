@@ -70,7 +70,7 @@ void Read_buffer::reset(const seq_t seq, const size_t capacity)
 
 void Read_buffer::reset_buffer_if_needed(const size_t capacity)
 {
-  // lets not mess when sharing the buffer
+  // if the buffer isnt unique, create a new one
   if (buf.use_count() != 1)
   {
     buf = tcp::construct_buffer();

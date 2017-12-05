@@ -9,6 +9,7 @@ set(NET_SOURCES
   ${IOS}/src/net/ethernet/ethernet.cpp
   ${IOS}/src/net/ip4/arp.cpp
   ${IOS}/src/net/ip4/ip4.cpp
+  ${IOS}/src/net/ip4/reassembly.cpp
 
   ${IOS}/src/net/tcp/tcp.cpp
   ${IOS}/src/net/tcp/connection.cpp
@@ -45,9 +46,12 @@ set(NET_SOURCES
   ${IOS}/src/net/http/server_connection.cpp
   ${IOS}/src/net/http/server.cpp
   ${IOS}/src/net/http/response_writer.cpp
-  #${IOS}/src/net/http/secure_server.cpp
   ${IOS}/src/net/ws/websocket.cpp
 )
+if (CUSTOM_BOTAN)
+  set(NET_SOURCES ${NET_SOURCES}
+      "${IOS}/src/net/http/secure_server.cpp")
+endif()
 
 set(OS_SOURCES
     ${IOS}/src/fs/dirent.cpp

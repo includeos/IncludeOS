@@ -1,0 +1,9 @@
+{
+  "description" : "VM with 3 interfaces for load balancing",
+  "net" : [
+    {"device" : "virtio"},
+    {"device" : "virtio"},
+    {"device" : "virtio"}
+  ],
+  "mem" : 512
+}

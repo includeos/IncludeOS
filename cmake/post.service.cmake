@@ -47,6 +47,11 @@ if (debug)
   set(CAPABS "${CAPABS} -g")
 endif()
 
+# Append sanitizers
+if (undefined_san)
+  set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
+endif()
+
 if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
@@ -101,7 +106,7 @@ endif()
 if (EXISTS ${CMAKE_SOURCE_DIR}/nacl.txt)
   add_custom_command(
      OUTPUT nacl_content.cpp
-     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | python $ENV{HOME}/NaCl/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
+     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | python ${INSTALL_LOC}/nacl/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
      DEPENDS ${CMAKE_SOURCE_DIR}/nacl.txt
    )
    add_library(nacl_content STATIC nacl_content.cpp)

@@ -3,6 +3,7 @@
 static const uint16_t port = 0x3F8; // Serial 1
 
 extern "C"
+__attribute__((no_sanitize("all")))
 void __init_serial1()
 {
   // properly initialize serial port
@@ -15,6 +16,7 @@ void __init_serial1()
 }
 
 extern "C"
+__attribute__((no_sanitize("all")))
 void __serial_print1(const char* cstr)
 {
   while (*cstr) {

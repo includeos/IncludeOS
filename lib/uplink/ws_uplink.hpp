@@ -41,8 +41,9 @@ public:
   {
     std::string url;
     std::string token;
-    bool        reboot = true;
-    bool        ws_logging = true;
+    bool        reboot        = true;
+    bool        ws_logging    = true;
+    bool        serialize_ct  = false;
   };
 
   WS_uplink(net::Inet<net::IP4>&);
@@ -129,6 +130,10 @@ private:
   void store(liu::Storage& store, const liu::buffer_t*);
 
   void restore(liu::Restore& store);
+
+  void store_conntrack(liu::Storage& store, const liu::buffer_t*);
+
+  void restore_conntrack(liu::Restore& store);
 
 }; // < class WS_uplink
 

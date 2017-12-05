@@ -236,6 +236,7 @@ if(libmicroLB)
   add_subdirectory(lib/microLB)
 endif()
 
+
 option(libprotobuf "Build and install Google's protobuf runtime library" ON)
 if(libprotobuf)
   init_submodule(lib/protobuf)

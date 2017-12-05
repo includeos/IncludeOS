@@ -15,6 +15,7 @@ set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 option(GPROF "Enable profiling with gprof" OFF)
 option(SANITIZE "Enable undefined- and address sanitizers" OFF)
 option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
+option(CUSTOM_BOTAN "Enable building with a local Botan" OFF)
 
 if (ENABLE_LTO)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
@@ -27,6 +28,10 @@ endif()
 
 if(SANITIZE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address")
+endif()
+
+if(CUSTOM_BOTAN)
+  include_directories("/usr/local/botan/include/botan-2")
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOS_VERSION=\\\"${OS_VERSION}\\\"")

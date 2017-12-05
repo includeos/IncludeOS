@@ -10,6 +10,7 @@ set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 option(GPROF "Enable profiling with gprof" OFF)
 option(SANITIZE "Enable undefined- and address sanitizers" OFF)
 option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
+option(CUSTOM_BOTAN "Enable building with a local Botan" OFF)
 
 if (ENABLE_LTO)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin -fuse-ld=lld-5.0")
@@ -22,6 +23,10 @@ endif()
 
 if(SANITIZE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address")
+endif()
+
+if(CUSTOM_BOTAN)
+  include_directories("/usr/local/botan/include/botan-2")
 endif()
 
 add_definitions(-DARCH="x86_64" -DARCH_x86_64)
@@ -59,4 +64,9 @@ set_target_properties(http_parser PROPERTIES IMPORTED_LOCATION ${LPATH}/libhttp_
 
 add_executable(service ${SOURCES} ${IOSPATH}/src/service_name.cpp)
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
+
+if (CUSTOM_BOTAN)
+  target_link_libraries(service /usr/local/botan/lib/libbotan-2.a -ldl -pthread)
+endif()
+target_link_libraries(service ${EXTRA_LIBS})
 target_link_libraries(service includeos linuxrt includeos http_parser rt)
