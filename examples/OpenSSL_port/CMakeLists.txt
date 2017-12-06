@@ -23,8 +23,10 @@ set(SOURCES
 set(LOCAL_INCLUDES . /home/gonzo/github/openssl/include)
 
 set(LIBRARIES
-    /home/gonzo/github/openssl/libssl.a
-    /home/gonzo/github/openssl/libcrypto.a
+    #/home/gonzo/github/openssl/libssl.a
+    #/home/gonzo/github/openssl/libcrypto.a
+    /usr/lib/x86_64-linux-gnu/libssl.a
+    /usr/lib/x86_64-linux-gnu/libcrypto.a
   )
 
 # DRIVERS / PLUGINS:

@@ -45,6 +45,9 @@ inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t)
   assert(ERR_get_error() == 0 && "Initializing BIOs");
   this->m_ssl = SSL_new(ctx);
   assert(this->m_ssl != nullptr);
+  assert(ERR_get_error() == 0 && "Initializing SSL");
+  extern void openssl_setup_rng();
+  //openssl_setup_rng();
   // TLS server-mode
   SSL_set_accept_state(this->m_ssl);
   SSL_set_bio(this->m_ssl, this->m_bio_rd, this->m_bio_wr);
@@ -74,7 +77,6 @@ inline void TLS_stream::write(const std::string& str)
 
 inline void TLS_stream::tls_read(buffer_t buffer)
 {
-  printf("tls_read %lu\n", buffer->size());
   uint8_t* buf = buffer->data();
   int      len = buffer->size();
 
@@ -86,6 +88,7 @@ inline void TLS_stream::tls_read(buffer_t buffer)
       this->close();
       return;
     }
+    printf("tls_read %d\n", n);
     buf += n;
     len -= n;
 
@@ -94,8 +97,8 @@ inline void TLS_stream::tls_read(buffer_t buffer)
     {
       printf("Calling SSL_accept\n");
       int num = SSL_accept(this->m_ssl);
-      printf("SSL_accept = %d\n", num);
       auto status = this->status(num);
+      printf("SSL_accept = %d, status = %d\n", num, status);
 
       // OpenSSL wants to write
       if (status == STATUS_WANT_IO)
@@ -113,6 +116,7 @@ inline void TLS_stream::tls_read(buffer_t buffer)
     }
 
     // read decrypted data
+    printf("Read decrypted data\n");
     do {
       int  len = SSL_pending(this->m_ssl);
       if (len == 0) break;
@@ -145,12 +149,14 @@ inline int TLS_stream::tls_perform_stream_write()
   printf("Performing stream write\n");
   char buffer[8192];
   int n = BIO_read(this->m_bio_wr, buffer, sizeof(buffer));
+  printf("BIO_read: %d\n", n);
   if (UNLIKELY(n < 0)) {
     this->close();
     return n;
   }
   else if (UNLIKELY(!BIO_should_retry(this->m_bio_wr)))
   {
+    printf("Failed, closing\n");
     this->close();
     return -1;
   }
@@ -168,6 +174,7 @@ inline TLS_stream::status_t TLS_stream::status(int n) const noexcept
 {
   int error = SSL_get_error(this->m_ssl, n);
   if (error) {
+    ERR_print_errors_fp(stderr);
     printf("Status: %s\n", ERR_error_string(error, nullptr));
   }
   switch (error)

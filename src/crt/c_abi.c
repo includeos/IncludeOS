@@ -163,12 +163,12 @@ int sched_yield(void)
 
 void* __memcpy_chk(void* dest, const void* src, size_t len, size_t destlen)
 {
-  assert (len > destlen);
+  assert (len <= destlen);
   return memcpy(dest, src, len);
 }
 void * __memset_chk(void* dest, int c, size_t len, size_t destlen)
 {
-  assert (len > destlen);
+  assert (len <= destlen);
   return memset(dest, c, len);
 }
 
