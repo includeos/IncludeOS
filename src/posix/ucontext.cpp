@@ -1,6 +1,7 @@
-#include <kernel/os.hpp>
+#include <service>
 #include <posix/ucontext.h>
 #include <errno.h>
+#include <posix_strace.hpp>
 
 // default successor context
 static ucontext_t default_successor_context;
@@ -10,11 +11,12 @@ extern "C" void restore_context_stack();
 __attribute__((constructor))
 void initialize_default_successor_context()
 {
-  INFO("Kernel", "Creating a default successor return context");
+  static const int DEFAULT_SIZE = 1024;
   default_successor_context.uc_link = nullptr;
   // create a stack for the context
-  default_successor_context.uc_stack.ss_sp = (new char[1024] + 1024);
-  default_successor_context.uc_stack.ss_size = 1024;
+  auto* stack = new char[DEFAULT_SIZE];
+  default_successor_context.uc_stack.ss_sp = stack + DEFAULT_SIZE;
+  default_successor_context.uc_stack.ss_size = DEFAULT_SIZE;
   makecontext(&default_successor_context,
               [](){ Service::stop(); },
               0);
@@ -51,9 +53,11 @@ static void prepare_context_stack(ucontext_t *ucp, ucontext_t *successor_context
 
 extern "C" {
 
-void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...) {
+void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...)
+{
   if (ucp == nullptr || func == nullptr || argc < 0) {
     errno = EINVAL;
+    PRINT("makecontext(%p, %p, %d, ...) = -1\n", ucp, func, argc);
     return;
   }
 
@@ -61,6 +65,7 @@ void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...) {
       || ucp->uc_stack.ss_size > ucontext_t::MAX_STACK_SIZE) {
 
     errno = EINVAL;
+    PRINT("makecontext(%p, %p, %d, ...) = -1\n", ucp, func, argc);
     return;
   }
 
@@ -74,6 +79,7 @@ void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...) {
   prepare_context_stack(ucp, ucp->uc_link, argc, args);
 
   va_end(args);
+  PRINT("makecontext(%p, %p, %d, ...) = 0\n", ucp, func, argc);
 }
 
 int swapcontext(ucontext_t *oucp, ucontext_t *ucp)

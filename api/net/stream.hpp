@@ -126,13 +126,6 @@ namespace net {
     virtual Socket remote() const = 0;
 
     /**
-     * @brief      Returns the local port.
-     *
-     * @return     A TCP port
-     */
-    virtual uint16_t local_port() const = 0;
-
-    /**
      * @brief      Returns a string representation of the stream.
      *
      * @return     String representation of the stream.

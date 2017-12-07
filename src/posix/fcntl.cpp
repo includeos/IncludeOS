@@ -19,13 +19,17 @@
 #include <fd_map.hpp>
 #include <cstdarg>
 #include <errno.h>
+#include <posix_strace.hpp>
 
-int  creat(const char *, mode_t)
+int  creat(const char* filename, mode_t mode)
 {
+  PRINT("creat(%s, %x) = -1\n", filename, mode);
+  errno = EINVAL;
   return -1;
 }
 int fcntl(int fd, int cmd, ... /* arg */ )
 {
+  PRINT("fcntl(%d, %d, ...)\n", fd, cmd);
   try {
     auto& desc = FD_map::_get(fd);
     va_list va;
@@ -40,11 +44,13 @@ int fcntl(int fd, int cmd, ... /* arg */ )
   }
 }
 
-int  posix_fadvise(int, off_t, off_t, int)
+int  posix_fadvise(int fd, off_t, off_t, int)
 {
+  PRINT("posix_fadvise(%d) = -1\n", fd);
   return -1;
 }
-int  posix_fallocate(int, off_t, off_t)
+int  posix_fallocate(int fd, off_t, off_t)
 {
+  PRINT("opendir(%d) = -1\n", fd);
   return -1;
 }

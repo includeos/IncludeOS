@@ -20,6 +20,13 @@
 #include <kernel/os.hpp>
 #include <errno.h>
 
+#define POSIX_STRACE
+#ifdef POSIX_STRACE
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
 using namespace net;
 
 // return the "currently selected" networking stack
@@ -40,12 +47,14 @@ int TCP_FD::close()
 {
   // connection
   if (this->cd) {
+    PRINT("TCP: close(%s)\n", cd->to_string().c_str());
     int ret = cd->close();
     delete cd; cd = nullptr;
     return ret;
   }
   // listener
   if (this->ld) {
+    PRINT("TCP: close(%s)\n", ld->to_string().c_str());
     int ret = ld->close();
     delete ld; ld = nullptr;
     return ret;
@@ -57,11 +66,13 @@ int TCP_FD::close()
 int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
   if (is_listener()) {
+    PRINT("TCP: connect(%s) failed\n", ld->to_string().c_str());
     // already listening on port
     errno = EINVAL;
     return -1;
   }
   if (this->cd) {
+    PRINT("TCP: connect(%s) failed\n", cd->to_string().c_str());
     // if its straight-up connected, return that
     if (cd->conn->is_connected()) {
       errno = EISCONN;
@@ -83,7 +94,8 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
   auto addr = ip4::Addr(inaddr->sin_addr.s_addr);
   auto port = ::htons(inaddr->sin_port);
 
-  printf("[*] connecting to %s:%u...\n", addr.to_string().c_str(), port);
+  PRINT("TCP: connect(%s:%u)\n", addr.to_string().c_str(), port);
+
   auto outgoing = net_stack().tcp().connect({addr, port});
   // O_NONBLOCK is set for the file descriptor for the socket and the connection
   // cannot be immediately established; the connection shall be established asynchronously.
