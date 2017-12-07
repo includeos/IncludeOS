@@ -1,5 +1,4 @@
 #include "tls_stream.hpp"
-#include <openssl/rand.h>
 #include <memdisk>
 #define LOAD_FROM_MEMDISK
 
@@ -30,7 +29,6 @@ void tls_load_from_memory(SSL_CTX* ctx,
 
 void openssl_init()
 {
-  printf("Initialising OpenSSL\n");
   /* SSL library initialisation */
   SSL_library_init();
   OpenSSL_add_all_algorithms();
@@ -76,59 +74,17 @@ SSL_CTX* tls_init_server(const char* cert_file, const char* key_file)
 
   /* Recommended to avoid SSLv2 & SSLv3 */
   SSL_CTX_set_options(ctx, SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3);
+
+  int error = ERR_get_error();
+  if (error) {
+    printf("Status: %s\n", ERR_error_string(error, nullptr));
+  }
+  assert(error == SSL_ERROR_NONE);
   return ctx;
 }
 
-#include <kernel/rng.hpp>
-extern "C" void ios_rand_seed(const void* buf, int num)
-{
-  printf("RAND_seed called\n");
-  rng_absorb(buf, num);
-}
-extern "C" int ios_rand_bytes(unsigned char* buf, int num)
-{
-  rng_extract(buf, num);
-  return 1;
-}
-extern "C" void ios_rand_cleanup()
-{
-  /** do nothing **/
-}
-extern "C" void ios_rand_add(const void* buf, int num, double)
-{
-  printf("ios_rand_add %p:%d\n", buf, num);
-  rng_absorb(buf, num);
-}
-extern "C" int ios_rand_pseudorand(unsigned char* buf, int num)
-{
-  rng_absorb(buf, num);
-  return 1;
-}
-extern "C" int ios_rand_status()
-{
-  return 1;
-}
-
-void openssl_setup_rng()
-{
-  RAND_METHOD ios_rand {
-    ios_rand_seed,
-    ios_rand_bytes,
-    ios_rand_cleanup,
-    ios_rand_add,
-    ios_rand_pseudorand,
-    ios_rand_status
-  };
-  RAND_set_rand_method(&ios_rand);
-}
-void openssl_verify_rng()
-{
-  auto* rm = RAND_get_rand_method();
-  int random_value = 0;
-  int rc = RAND_bytes((uint8_t*) &random_value, sizeof(random_value));
-  assert(rc == 0 || rc == 1);
-  printf("Random returned %d\n", random_value);
-}
+extern void openssl_setup_rng();
+extern void openssl_verify_rng();
 
 void openssl_server_test()
 {
@@ -144,32 +100,33 @@ void openssl_server_test()
     openssl_verify_rng();
 
     auto* ctx = tls_init_server("/test.pem", "/test.key");
-    assert(ctx);
-    printf("Done initializing OpenSSL context\n");
-    int error = ERR_get_error();
-    printf("Status: %d\n", error);
-    assert(error == SSL_ERROR_NONE);
-
-    error = ERR_get_error();
-    if (error) {
-      printf("Status: %s\n", ERR_error_string(error, nullptr));
-      assert(error == 0);
-    }
 
     auto& inet = net::Super_stack::get<net::IP4>(0);
     auto& server = inet.tcp().listen(443);
     server.on_connect(
-      [ctx] (auto conn) {
+      [ctx] (auto conn)
+      {
         printf("Connected to %s\n", conn->to_string().c_str());
         auto tcp_stream = std::make_unique<net::tcp::Connection::Stream> (conn);
+
         auto* tls = new TLS_stream(ctx, std::move(tcp_stream));
-        tls->on_read =
-        [tls] (auto buffer) {
-          printf("On_read: %.*s\n", (int) buffer->size(), buffer->data());
-          tls->write("Hello world!\n\n");
+        tls->on_connect =
+        [tls] () {
+          // TLS handshake success
+          tls->on_read =
+          [tls] (auto buffer)
+          {
+            printf("On_read: %.*s\n", (int) buffer->size(), buffer->data());
+            tls->write("Hello world!\n\n");
+            tls->close();
+          };
+        };
+        tls->on_close =
+        [tls] () {
+          printf("Stream %s closed!\n", tls->to_string().c_str());
         };
       });
-    printf("Listening on 443\n");
+    printf("Listening on port 443\n");
   });
 
 }

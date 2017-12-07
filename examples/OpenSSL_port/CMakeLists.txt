@@ -8,23 +8,22 @@ include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 project (demo_service)
 
 # Human-readable name of your service
-set(SERVICE_NAME "IncludeOS minimal example")
+set(SERVICE_NAME "IncludeOS OpenSSL example")
 
 # Name of your service binary
-set(BINARY       "IncludeOS_example")
+set(BINARY       "openssl_example")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp # ...add more here
-  openssl.cpp
+    service.cpp
+    openssl.cpp
+    openssl_rand.cpp
   )
 
 # To add your own include paths:
 set(LOCAL_INCLUDES . /home/gonzo/github/openssl/include)
 
 set(LIBRARIES
-    #/home/gonzo/github/openssl/libssl.a
-    #/home/gonzo/github/openssl/libcrypto.a
     /usr/lib/x86_64-linux-gnu/libssl.a
     /usr/lib/x86_64-linux-gnu/libcrypto.a
   )

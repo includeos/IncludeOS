@@ -31,6 +31,4 @@ void Service::start()
     auto& inet = net::Super_stack::get<net::IP4>(0);
     printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
-
-  printf("*** Basic demo service started ***\n");
 }

@@ -16,6 +16,7 @@ struct TLS_stream //: public net::Stream
   };
 
   TLS_stream(SSL_CTX* ctx, Stream_ptr t);
+  virtual ~TLS_stream();
 
   void write(buffer_t buffer);
   void write(const std::string& str);
@@ -27,9 +28,12 @@ struct TLS_stream //: public net::Stream
 
   status_t status(int n) const noexcept;
 
+  std::string to_string() const;
+
 private:
   void tls_read(buffer_t);
   int  tls_perform_stream_write();
+  void close_callback_once();
 
   Stream_ptr m_transport = nullptr;
   SSL*  m_ssl    = nullptr;
@@ -46,13 +50,20 @@ inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t)
   this->m_ssl = SSL_new(ctx);
   assert(this->m_ssl != nullptr);
   assert(ERR_get_error() == 0 && "Initializing SSL");
-  extern void openssl_setup_rng();
+  //extern void openssl_setup_rng();
   //openssl_setup_rng();
   // TLS server-mode
   SSL_set_accept_state(this->m_ssl);
   SSL_set_bio(this->m_ssl, this->m_bio_rd, this->m_bio_wr);
   // callbacks
   m_transport->on_read(8192, {this, &TLS_stream::tls_read});
+  m_transport->on_close({this, &TLS_stream::close_callback_once});
+}
+inline TLS_stream::~TLS_stream()
+{
+  BIO_free(this->m_bio_rd);
+  BIO_free(this->m_bio_wr);
+  SSL_free(this->m_ssl);
 }
 
 inline void TLS_stream::write(buffer_t buffer)
@@ -84,21 +95,17 @@ inline void TLS_stream::tls_read(buffer_t buffer)
   {
     int n = BIO_write(this->m_bio_rd, buf, len);
     if (UNLIKELY(n < 0)) {
-      printf("BIO_write(1) failed\n");
       this->close();
       return;
     }
-    printf("tls_read %d\n", n);
     buf += n;
     len -= n;
 
     // if we aren't finished initializing session
     if (UNLIKELY(!SSL_is_init_finished(this->m_ssl)))
     {
-      printf("Calling SSL_accept\n");
       int num = SSL_accept(this->m_ssl);
       auto status = this->status(num);
-      printf("SSL_accept = %d, status = %d\n", num, status);
 
       // OpenSSL wants to write
       if (status == STATUS_WANT_IO)
@@ -107,28 +114,31 @@ inline void TLS_stream::tls_read(buffer_t buffer)
       }
       else if (status == STATUS_FAIL)
       {
-        printf("SSL_accept failed\n");
         this->close();
         return;
       }
       // nothing more to do if still not finished
       if (!SSL_is_init_finished(this->m_ssl)) return;
+      // handshake success
+      if (this->on_connect) this->on_connect();
     }
 
     // read decrypted data
-    printf("Read decrypted data\n");
     do {
-      int  len = SSL_pending(this->m_ssl);
-      if (len == 0) break;
-      auto buf = net::tcp::construct_buffer(len);
+      auto buf = net::tcp::construct_buffer(8192);
       n = SSL_read(this->m_ssl, buf->data(), buf->size());
       if (n > 0) {
         buf->resize(n);
-        this->on_read(std::move(buf));
+        if (this->on_read) this->on_read(std::move(buf));
       }
     } while (n > 0);
+    // this goes here?
+    if (UNLIKELY(m_transport->is_closing() || m_transport->is_closed())) {
+        this->close_callback_once();
+        return;
+    }
 
-    auto status = this->status(len);
+    auto status = this->status(n);
     // did peer request stream renegotiation?
     if (status == STATUS_WANT_IO)
     {
@@ -146,37 +156,38 @@ inline void TLS_stream::tls_read(buffer_t buffer)
 
 inline int TLS_stream::tls_perform_stream_write()
 {
-  printf("Performing stream write\n");
   char buffer[8192];
   int n = BIO_read(this->m_bio_wr, buffer, sizeof(buffer));
-  printf("BIO_read: %d\n", n);
-  if (UNLIKELY(n < 0)) {
-    this->close();
+  if (LIKELY(n > 0))
+  {
+    m_transport->write(buffer, n);
     return n;
   }
   else if (UNLIKELY(!BIO_should_retry(this->m_bio_wr)))
   {
-    printf("Failed, closing\n");
     this->close();
     return -1;
   }
-  printf("Writing %d bytes\n", n);
-  m_transport->write(buffer, n);
-  return n;
+  return 0;
 }
 
 inline void TLS_stream::close()
 {
   m_transport->close();
 }
+inline void TLS_stream::close_callback_once()
+{
+  auto func = std::move(this->on_close);
+  this->on_close = nullptr; // FIXME: this is a bug in delegate
+  if (func) func();
+  // free captured resources
+  this->on_connect = nullptr;
+  this->on_read = nullptr;
+}
 
 inline TLS_stream::status_t TLS_stream::status(int n) const noexcept
 {
   int error = SSL_get_error(this->m_ssl, n);
-  if (error) {
-    ERR_print_errors_fp(stderr);
-    printf("Status: %s\n", ERR_error_string(error, nullptr));
-  }
   switch (error)
   {
   case SSL_ERROR_NONE:
@@ -187,4 +198,8 @@ inline TLS_stream::status_t TLS_stream::status(int n) const noexcept
   default:
       return STATUS_FAIL;
   }
+}
+
+inline std::string TLS_stream::to_string() const {
+  return m_transport->to_string();
 }
