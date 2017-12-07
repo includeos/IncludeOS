@@ -110,21 +110,21 @@ void openssl_server_test()
         auto tcp_stream = std::make_unique<net::tcp::Connection::Stream> (conn);
 
         auto* tls = new TLS_stream(ctx, std::move(tcp_stream));
-        tls->on_connect =
-        [tls] () {
+        tls->on_connect(
+        [] (auto& stream) {
           // TLS handshake success
-          tls->on_read =
-          [tls] (auto buffer)
+          stream.on_read(8192,
+          [&stream] (auto buffer)
           {
             printf("On_read: %.*s\n", (int) buffer->size(), buffer->data());
-            tls->write("Hello world!\n\n");
-            tls->close();
-          };
-        };
-        tls->on_close =
+            stream.write("Hello world!\n\n");
+            stream.close();
+          });
+        });
+        tls->on_close(
         [tls] () {
-          printf("Stream %s closed!\n", tls->to_string().c_str());
-        };
+            printf("Stream %s closed!\n", tls->to_string().c_str());
+        });
       });
     printf("Listening on port 443\n");
   });

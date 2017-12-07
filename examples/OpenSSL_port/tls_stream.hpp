@@ -4,41 +4,87 @@
 #include <openssl/ssl.h>
 #include <net/inet4>
 
-struct TLS_stream //: public net::Stream
+struct TLS_stream : public net::Stream
 {
   using Stream_ptr = net::Stream_ptr;
-  using buffer_t = net::Stream::buffer_t;
+
+  TLS_stream(SSL_CTX* ctx, Stream_ptr t);
+  virtual ~TLS_stream();
+
+  void write(buffer_t buffer) override;
+  void write(const std::string&) override;
+  void write(const void* buf, size_t n) override;
+  void close() override;
+  void abort() override;
+  void reset_callbacks() override;
+
+  net::Socket local() const override {
+    return m_transport->local();
+  }
+  net::Socket remote() const override {
+    return m_transport->remote();
+  }
+  std::string to_string() const override {
+    return m_transport->to_string();
+  }
+
+  void on_connect(ConnectCallback cb) override {
+    m_on_connect = std::move(cb);
+  }
+  void on_read(size_t n, ReadCallback cb) override {
+    m_on_read = std::move(cb);
+  }
+  void on_close(CloseCallback cb) override {
+    m_on_close = std::move(cb);
+  }
+  void on_write(WriteCallback cb) override {
+    m_on_write = std::move(cb);
+  }
+
+  bool is_connected() const noexcept override {
+    return handshake_completed() && m_transport->is_connected();
+  }
+  bool is_writable() const noexcept override {
+    return is_connected() && m_transport->is_writable();
+  }
+  bool is_readable() const noexcept override {
+    return m_transport->is_readable();
+  }
+  bool is_closing() const noexcept override {
+    return m_transport->is_closing();
+  }
+  bool is_closed() const noexcept override {
+    return m_transport->is_closed();
+  }
+
+  int get_cpuid() const noexcept override {
+    return 0;
+  }
+  uint16_t local_port() const override {
+    return m_transport->local_port();
+  }
+
+private:
+  void tls_read(buffer_t);
+  int  tls_perform_stream_write();
+  void close_callback_once();
+  bool handshake_completed() const noexcept;
 
   enum status_t {
     STATUS_OK,
     STATUS_WANT_IO,
     STATUS_FAIL
   };
-
-  TLS_stream(SSL_CTX* ctx, Stream_ptr t);
-  virtual ~TLS_stream();
-
-  void write(buffer_t buffer);
-  void write(const std::string& str);
-  void close();
-
-  delegate<void()>         on_connect = nullptr;
-  delegate<void(buffer_t)> on_read    = nullptr;
-  delegate<void()>         on_close   = nullptr;
-
   status_t status(int n) const noexcept;
-
-  std::string to_string() const;
-
-private:
-  void tls_read(buffer_t);
-  int  tls_perform_stream_write();
-  void close_callback_once();
 
   Stream_ptr m_transport = nullptr;
   SSL*  m_ssl    = nullptr;
   BIO*  m_bio_rd = nullptr;
   BIO*  m_bio_wr = nullptr;
+  ConnectCallback  m_on_connect = nullptr;
+  ReadCallback     m_on_read    = nullptr;
+  WriteCallback    m_on_write   = nullptr;
+  CloseCallback    m_on_close   = nullptr;
 };
 
 inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t)
@@ -55,7 +101,7 @@ inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t)
   // TLS server-mode
   SSL_set_accept_state(this->m_ssl);
   SSL_set_bio(this->m_ssl, this->m_bio_rd, this->m_bio_wr);
-  // callbacks
+  // always-on callbacks
   m_transport->on_read(8192, {this, &TLS_stream::tls_read});
   m_transport->on_close({this, &TLS_stream::close_callback_once});
 }
@@ -68,7 +114,7 @@ inline TLS_stream::~TLS_stream()
 
 inline void TLS_stream::write(buffer_t buffer)
 {
-  assert(SSL_is_init_finished(this->m_ssl));
+  assert(this->is_connected());
 
   int n = SSL_write(this->m_ssl, buffer->data(), buffer->size());
   auto status = this->status(n);
@@ -84,6 +130,11 @@ inline void TLS_stream::write(buffer_t buffer)
 inline void TLS_stream::write(const std::string& str)
 {
   write(net::tcp::construct_buffer(str.data(), str.data() + str.size()));
+}
+inline void TLS_stream::write(const void* data, const size_t len)
+{
+  auto* buf = static_cast<const uint8_t*> (data);
+  write(net::tcp::construct_buffer(buf, buf + len));
 }
 
 inline void TLS_stream::tls_read(buffer_t buffer)
@@ -102,7 +153,7 @@ inline void TLS_stream::tls_read(buffer_t buffer)
     len -= n;
 
     // if we aren't finished initializing session
-    if (UNLIKELY(!SSL_is_init_finished(this->m_ssl)))
+    if (UNLIKELY(!handshake_completed()))
     {
       int num = SSL_accept(this->m_ssl);
       auto status = this->status(num);
@@ -118,9 +169,9 @@ inline void TLS_stream::tls_read(buffer_t buffer)
         return;
       }
       // nothing more to do if still not finished
-      if (!SSL_is_init_finished(this->m_ssl)) return;
+      if (handshake_completed() == false) return;
       // handshake success
-      if (this->on_connect) this->on_connect();
+      if (m_on_connect) m_on_connect(*this);
     }
 
     // read decrypted data
@@ -129,11 +180,11 @@ inline void TLS_stream::tls_read(buffer_t buffer)
       n = SSL_read(this->m_ssl, buf->data(), buf->size());
       if (n > 0) {
         buf->resize(n);
-        if (this->on_read) this->on_read(std::move(buf));
+        if (m_on_read) m_on_read(std::move(buf));
       }
     } while (n > 0);
     // this goes here?
-    if (UNLIKELY(m_transport->is_closing() || m_transport->is_closed())) {
+    if (UNLIKELY(this->is_closing() || this->is_closed())) {
         this->close_callback_once();
         return;
     }
@@ -161,6 +212,7 @@ inline int TLS_stream::tls_perform_stream_write()
   if (LIKELY(n > 0))
   {
     m_transport->write(buffer, n);
+    if (m_on_write) m_on_write(n);
     return n;
   }
   else if (UNLIKELY(!BIO_should_retry(this->m_bio_wr)))
@@ -175,16 +227,30 @@ inline void TLS_stream::close()
 {
   m_transport->close();
 }
+inline void TLS_stream::abort()
+{
+  m_transport->abort();
+  this->reset_callbacks();
+}
 inline void TLS_stream::close_callback_once()
 {
-  auto func = std::move(this->on_close);
-  this->on_close = nullptr; // FIXME: this is a bug in delegate
+  auto func = std::move(m_on_close);
+  m_on_close = nullptr; // FIXME: this is a bug in delegate
   if (func) func();
   // free captured resources
-  this->on_connect = nullptr;
-  this->on_read = nullptr;
+  this->reset_callbacks();
+}
+inline void TLS_stream::reset_callbacks()
+{
+  this->m_on_close = nullptr;
+  this->m_on_connect = nullptr;
+  this->m_on_read = nullptr;
 }
 
+inline bool TLS_stream::handshake_completed() const noexcept
+{
+  return SSL_is_init_finished(this->m_ssl);
+}
 inline TLS_stream::status_t TLS_stream::status(int n) const noexcept
 {
   int error = SSL_get_error(this->m_ssl, n);
@@ -198,8 +264,4 @@ inline TLS_stream::status_t TLS_stream::status(int n) const noexcept
   default:
       return STATUS_FAIL;
   }
-}
-
-inline std::string TLS_stream::to_string() const {
-  return m_transport->to_string();
 }
