@@ -104,7 +104,8 @@ NAPT::NAPT(std::shared_ptr<Conntrack> ct)
 
 void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr entry)
 {
-  Expects(entry);
+  if (UNLIKELY(entry == nullptr)) return;
+
   const auto ip = inet.ip_addr();
   switch(pkt.ip_protocol())
   {
@@ -211,7 +212,8 @@ Socket NAPT::masq(Conntrack::Entry_ptr entry, const ip4::Addr addr, Port_util& p
 
 void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const Socket socket)
 {
-  Expects(entry);
+  if (UNLIKELY(entry == nullptr)) return;
+
   NATDBG("<NAPT> DNAT: %s => %s\n",
         entry->to_string().c_str(), socket.to_string().c_str());
 
@@ -242,7 +244,8 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const Socket sock
 
 void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const ip4::Addr addr)
 {
-  Expects(entry);
+  if (UNLIKELY(entry == nullptr)) return;
+
   NATDBG("<NAPT> DNAT: %s => addr %s\n",
         entry->to_string().c_str(), addr.to_string().c_str());
 
@@ -271,7 +274,8 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const ip4::Addr a
 
 void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const uint16_t port)
 {
-  Expects(entry);
+  if (UNLIKELY(entry == nullptr)) return;
+
   NATDBG("<NAPT> DNAT: %s => port %d\n",
         entry->to_string().c_str(), port);
 
@@ -300,7 +304,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const uint16_t po
 
 void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
 {
-  Expects(entry);
+  if (UNLIKELY(entry == nullptr)) return;
 
   if(not is_snat(entry)) // The entry has not been SNAT
     return;
@@ -344,7 +348,8 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
 
 void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const Socket socket)
 {
-  Expects(entry);
+  if (UNLIKELY(entry == nullptr)) return;
+
   NATDBG("<NAPT> SNAT: %s => %s\n",
         entry->to_string().c_str(), socket.to_string().c_str());
 
@@ -375,7 +380,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const Socket sock
 
 void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const ip4::Addr addr)
 {
-  Expects(entry);
+  if (UNLIKELY(entry == nullptr)) return;
   NATDBG("<NAPT> SNAT: %s => addr %s\n",
         entry->to_string().c_str(), addr.to_string().c_str());
 
@@ -404,7 +409,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const ip4::Addr a
 
 void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const uint16_t port)
 {
-  Expects(entry);
+  if (UNLIKELY(entry == nullptr)) return;
   NATDBG("<NAPT> SNAT: %s => port %d\n",
         entry->to_string().c_str(), port);
 
@@ -433,7 +438,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const uint16_t po
 
 void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
 {
-  Expects(entry);
+  if (UNLIKELY(entry == nullptr)) return;
 
   if(not is_dnat(entry)) // The entry has not been DNAT
     return;

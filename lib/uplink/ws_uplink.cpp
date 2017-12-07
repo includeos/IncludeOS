@@ -536,6 +536,7 @@ namespace uplink {
 
   void WS_uplink::panic(const char* why){
     MYINFO("WS_uplink sending panic\n");
+    Log::get().flush();
     send_message(Transport_code::PANIC, why, strlen(why));
     ws_->close();
     inet_.nic().flush();
