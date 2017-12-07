@@ -21,7 +21,7 @@ set(SOURCES
   )
 
 # To add your own include paths:
-set(LOCAL_INCLUDES . /home/gonzo/github/openssl/include)
+set(LOCAL_INCLUDES . include)
 
 set(LIBRARIES
     /usr/lib/x86_64-linux-gnu/libssl.a
