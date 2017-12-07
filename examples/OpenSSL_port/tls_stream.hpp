@@ -58,10 +58,7 @@ struct TLS_stream : public net::Stream
   }
 
   int get_cpuid() const noexcept override {
-    return 0;
-  }
-  uint16_t local_port() const override {
-    return m_transport->local_port();
+    return m_transport->get_cpuid();
   }
 
 private:

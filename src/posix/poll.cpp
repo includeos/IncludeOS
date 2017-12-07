@@ -1,4 +1,3 @@
-#define _GNU_SOURCE         /* See feature_test_macros(7) */
 #include <signal.h>
 #include <fd_map.hpp>
 #include <tcp_fd.hpp>
@@ -34,7 +33,7 @@ int poll(struct pollfd *fds, nfds_t nfds, int timeout)
 
   bool still_waiting = true;
   do {
-    for (int i = 0; i < nfds; i++)
+    for (unsigned i = 0; i < nfds; i++)
     {
       auto& pfd = fds[i];
       printf("polling %d for events %d\n", pfd.fd, pfd.events);
