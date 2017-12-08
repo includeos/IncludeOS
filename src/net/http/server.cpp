@@ -37,7 +37,7 @@ namespace http {
 
   void Server::listen(uint16_t port)
   {
-    Expects(on_request_ != nullptr);
+    assert(on_request_ != nullptr && "You must set 'on_request' on the server to receive requests!");
 
     bind(port);
 
