@@ -26,7 +26,7 @@ inline unsigned roundup(unsigned n, unsigned div) {
 void Async::upload_file(
     Disk          disk,
     const Dirent& ent,
-    Stream&       stream,
+    Stream*       stream,
     on_after_func callback,
     const size_t  CHUNK_SIZE)
 {
@@ -36,7 +36,7 @@ void Async::upload_file(
   {
     auto length = buffer->size();
     // temp
-    stream.on_write(
+    stream->on_write(
       net::tcp::Connection::WriteCallback::make_packed(
       [length, next] (size_t n) {
 
@@ -47,7 +47,7 @@ void Async::upload_file(
     );
 
     // write chunk to TCP connection
-    stream.write(buffer);
+    stream->write(buffer);
 
   }, callback, CHUNK_SIZE);
 }
