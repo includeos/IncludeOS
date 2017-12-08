@@ -43,7 +43,7 @@ namespace http {
     inline explicit Connection() noexcept;
 
     net::tcp::port_t local_port() const noexcept
-    { return (stream_) ? stream_->local_port() : 0; }
+    { return (stream_) ? stream_->local().port() : 0; }
 
     Peer peer() const noexcept
     { return peer_; }

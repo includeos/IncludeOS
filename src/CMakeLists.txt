@@ -32,7 +32,8 @@ set(OS_OBJECTS
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp
-  crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
+  crt/c_abi.c crt/ctype_b_loc.c crt/ctype_tolower_loc.c crt/string.c
+  crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp
   hw/msi.cpp hw/pci_msi.cpp virtio/virtio.cpp virtio/virtio_queue.cpp
   net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp
@@ -56,7 +57,8 @@ set(OS_OBJECTS
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm posix/file_fd.cpp posix/dlfcn.cpp
   posix/sys/stat.cpp posix/sys/ioctl.cpp posix/ftw.cpp posix/utime.cpp posix/math.cpp
-  posix/pwd.cpp posix/pthread.cpp)
+  posix/pwd.cpp posix/pthread.cpp posix/poll.cpp
+  posix/signal.cpp posix/stdio.cpp posix/dirent.cpp posix/termios.cpp)
 
 add_library(os STATIC ${OS_OBJECTS})
 add_dependencies(os PrecompiledLibraries botan)
