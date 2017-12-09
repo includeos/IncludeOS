@@ -18,11 +18,21 @@
 #include <service>
 #include <net/inet4>
 #include <timers>
+#include "openssl_server.hpp"
+extern http::Response_ptr handle_request(const http::Request&);
 
 void Service::start()
 {
-  extern void openssl_server_test();
-  openssl_server_test();
+  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto* server = new http::OpenSSL_server("/test.pem", "/test.key", inet.tcp());
+
+  server->on_request(
+    [] (auto request, auto response_writer) {
+      response_writer->set_response(handle_request(*request));
+      response_writer->write();
+    });
+
+  server->listen(443);
 
   // Print some useful netstats every 30 secs
   using namespace std::chrono;

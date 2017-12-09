@@ -16,8 +16,9 @@ set(BINARY       "openssl_example")
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
     service.cpp
-    openssl.cpp
-    openssl_rand.cpp
+    openssl_init.cpp
+    openssl_server.cpp
+    ../TLS_server/http.cpp
   )
 
 # To add your own include paths:
