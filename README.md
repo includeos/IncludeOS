@@ -125,3 +125,6 @@ We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://g
 
 [brew]: https://brew.sh/
 [qemu]: https://www.qemu.org/
+
+## Security contact
+If you discover a security issue in IncludeOS please avoid the public issue tracker. Instead send an email to security@includeos.org. For more information and encryption please refer to the [documentation](http://includeos.readthedocs.io/en/latest/Security.html).
