@@ -207,15 +207,21 @@ namespace openssl
 
   inline int TLS_stream::tls_perform_stream_write()
   {
-    char buffer[8192];
-    int n = BIO_read(this->m_bio_wr, buffer, sizeof(buffer));
-    if (LIKELY(n > 0))
+    size_t pending = BIO_ctrl_pending(this->m_bio_wr);
+    //printf("pending: %lu\n", pending);
+    if (pending > 0)
     {
-      m_transport->write(buffer, n);
+      auto buffer = net::tcp::construct_buffer(pending);
+      int n = BIO_read(this->m_bio_wr, buffer->data(), buffer->size());
+      assert(n == pending);
+      m_transport->write(buffer);
       if (m_on_write) m_on_write(n);
       return n;
     }
-    else if (UNLIKELY(!BIO_should_retry(this->m_bio_wr)))
+    else {
+      BIO_read(this->m_bio_wr, nullptr, 0);
+    }
+    if (!BIO_should_retry(this->m_bio_wr))
     {
       this->close();
       return -1;
