@@ -80,6 +80,9 @@ struct LiveUpdate
   // Can throw lots of standard exceptions
   static bool resume(std::string key, resume_func handler);
 
+  // Check whether a partition named @key exists at default update location.
+  static bool partition_exists(const std::string& key) noexcept;
+
   // When explicitly resuming from heap, heap overrun checks are disabled
   static void resume_from_heap(void* location, std::string key, resume_func);
 

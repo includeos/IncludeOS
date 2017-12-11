@@ -1,0 +1,96 @@
+Iface eth0 {
+    index: 0,
+    address: 10.0.1.1,
+    netmask: 255.255.255.0,
+    prerouting: [my_dnat, my_fw]
+}
+
+Iface eth1 {
+    index: 1,
+    address: 10.0.2.1,
+    netmask: 255.255.255.0,
+    prerouting: [deny_all],
+    postrouting: [my_snat]
+}
+
+Iface host1 {
+    index: 2,
+    address: 10.0.1.10,
+    netmask: 255.255.255.0,
+    gateway: eth0.address
+}
+
+Iface host2 {
+    index: 3,
+    address: 10.0.2.10,
+    netmask: 255.255.255.0,
+    gateway: eth1.address
+}
+
+Gateway gw [
+    {
+        net: 10.0.1.0,
+        netmask: 255.255.255.0,
+        iface: eth0
+    },
+    {
+        net: 10.0.2.0,
+        netmask: 255.255.255.0,
+        iface: eth1
+    }
+]
+
+Filter::IP my_postrouting {
+  log("POST(eth0) ", ip.saddr, " ", ip.daddr, "\n")
+  accept
+}
+
+Nat::TCP my_dnat {
+    if (ip.daddr == eth0.address) {
+      if (tcp.dport == 5001) {
+        dnat(host2.address, 5000)
+      }
+      if (tcp.dport == 1337) {
+        dnat(host2.address)
+      }
+    }
+}
+
+NAT::TCP my_snat {
+  if (tcp.dport == 1337) {
+    snat(eth1.address)
+  }
+}
+
+Filter::IP my_fw {
+    if (ct.state == established) {
+        accept
+    }
+
+    Filter::TCP {
+        if (ip.daddr == host2.address) {
+            accept
+        }
+    }
+
+    Filter::ICMP {
+        accept
+    }
+
+    drop
+}
+
+Filter::IP deny_all {
+    if (ct.state == established) {
+        accept
+    }
+
+    // Allow outgoing ping
+    Filter::ICMP {
+        if(icmp.type == echo-request) {
+            accept
+        }
+    }
+
+    drop
+}

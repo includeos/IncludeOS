@@ -159,7 +159,7 @@ namespace net {
      *  Source IP *can* be set - if it's not, IP4 will set it
      */
     void transmit(Packet_ptr);
-    void ship(Packet_ptr, addr next_hop = 0);
+    void ship(Packet_ptr, addr next_hop = 0, Conntrack::Entry_ptr ct = nullptr);
 
 
     /**

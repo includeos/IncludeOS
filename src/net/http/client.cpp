@@ -260,7 +260,7 @@ namespace http {
     }
 
     // no non-occupied connections, emplace a new one
-    cset.push_back(std::make_unique<Client_connection>(*this, std::make_unique<Connection::Stream>(tcp_.connect(host))));
+    cset.push_back(std::make_unique<Client_connection>(*this, std::make_unique<net::tcp::Connection::Stream>(tcp_.connect(host))));
     return *cset.back();
   }
 

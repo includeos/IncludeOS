@@ -84,6 +84,7 @@ init_submodule(mod/GSL)
 init_submodule(mod/http-parser)
 init_submodule(mod/uzlib)
 init_submodule(mod/rapidjson)
+init_submodule(NaCl)
 
 # set optimization level
 set(OPTIMIZE "-O2")
@@ -150,6 +151,8 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 # Botan Crypto & TLS
 # Note: Include order matters!
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nacl.cmake)
 
 #
 # Subprojects

@@ -50,10 +50,8 @@ namespace net {
 
     Addr nexthop(Addr ip) const noexcept
     {
-      if (net_ == 0)
-        return nexthop_;
-
-      if ((ip & netmask_) == net_ )
+      // No need to go via nexthop if IP is on the same net as interface
+      if ((ip & iface_->netmask()) == (iface_->ip_addr() & iface_->netmask()))
         return ip;
 
       return nexthop_;
@@ -79,18 +77,20 @@ namespace net {
         iface_ == b.interface();
     }
 
-    void ship(typename IPV::IP_packet_ptr pckt, Addr nexthop) {
-      iface_->ip_obj().ship(std::move(pckt), nexthop);
+    void ship(typename IPV::IP_packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
+      iface_->ip_obj().ship(std::move(pckt), nexthop, ct);
     }
 
-    void ship(typename IPV::IP_packet_ptr pckt) {
+    void ship(typename IPV::IP_packet_ptr pckt, Conntrack::Entry_ptr ct) {
       auto next = nexthop(pckt->ip_dst());
-      ship(std::move(pckt), next);
+      ship(std::move(pckt), next, ct);
     }
 
     Route(Addr net, Netmask mask, Addr nexthop, Stack& iface, int cost = 100)
       : net_{net}, netmask_{mask}, nexthop_{nexthop}, iface_{&iface}, cost_{cost}
-    {}
+    {
+      Expects(iface_ != nullptr);
+    }
 
     std::string to_string() const
     {
@@ -271,7 +271,7 @@ namespace net {
 
     if(route) {
       PRINT("Found route: %s", route->to_string().c_str());
-      route->ship(std::move(pckt));
+      route->ship(std::move(pckt), ct);
       return;
     }
     else {
