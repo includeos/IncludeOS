@@ -106,14 +106,15 @@ namespace openssl
   }
   inline TLS_stream::~TLS_stream()
   {
-    BIO_free(this->m_bio_rd);
-    BIO_free(this->m_bio_wr);
     SSL_free(this->m_ssl);
   }
 
   inline void TLS_stream::write(buffer_t buffer)
   {
-    assert(this->is_connected());
+    if (UNLIKELY(this->is_connected() == false)) {
+      printf("TLS_stream::write() called on closed stream\n");
+      return;
+    }
 
     int n = SSL_write(this->m_ssl, buffer->data(), buffer->size());
     auto status = this->status(n);
@@ -184,7 +185,7 @@ namespace openssl
       } while (n > 0);
       // this goes here?
       if (UNLIKELY(this->is_closing() || this->is_closed())) {
-          this->close_callback_once();
+          //this->close_callback_once();
           return;
       }
 
@@ -234,16 +235,16 @@ namespace openssl
   inline void TLS_stream::close_callback_once()
   {
     auto func = std::move(m_on_close);
-    m_on_close = nullptr; // FIXME: this is a bug in delegate
-    if (func) func();
     // free captured resources
     this->reset_callbacks();
+    if (func) func();
   }
   inline void TLS_stream::reset_callbacks()
   {
     this->m_on_close = nullptr;
     this->m_on_connect = nullptr;
-    this->m_on_read = nullptr;
+    this->m_on_read  = nullptr;
+    this->m_on_write = nullptr;
   }
 
   inline bool TLS_stream::handshake_completed() const noexcept

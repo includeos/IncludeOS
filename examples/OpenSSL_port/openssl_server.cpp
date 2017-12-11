@@ -118,9 +118,10 @@ namespace http
 
     // this is ok due to the created Server_connection inside
     // connect assigns a new on_close
-    ptr->on_close([ptr] {
-      delete ptr;
-    });
+    ptr->on_close(
+      [ptr] {
+        delete ptr;
+      });
   }
 
 } // http

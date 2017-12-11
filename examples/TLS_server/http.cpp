@@ -29,8 +29,6 @@ std::string HTML_RESPONSE()
 
 http::Response_ptr handle_request(const http::Request& req)
 {
-  printf("<Service> Request:\n%s\n", req.to_string().c_str());
-
   auto res = std::make_unique<http::Response> ();
   auto& header = res->header();
 
