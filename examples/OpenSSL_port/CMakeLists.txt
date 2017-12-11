@@ -16,17 +16,7 @@ set(BINARY       "openssl_example")
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
     service.cpp
-    openssl_init.cpp
-    openssl_server.cpp
     ../TLS_server/http.cpp
-  )
-
-# To add your own include paths:
-set(LOCAL_INCLUDES . include)
-
-set(LIBRARIES
-    /usr/lib/x86_64-linux-gnu/libssl.a
-    /usr/lib/x86_64-linux-gnu/libcrypto.a
   )
 
 # DRIVERS / PLUGINS:

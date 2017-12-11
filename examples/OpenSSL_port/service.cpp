@@ -18,7 +18,7 @@
 #include <service>
 #include <net/inet4>
 #include <timers>
-#include "openssl_server.hpp"
+#include <net/openssl/server.hpp>
 extern http::Response_ptr handle_request(const http::Request&);
 
 void Service::start()

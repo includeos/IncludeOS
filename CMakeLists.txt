@@ -151,6 +151,8 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
 # Botan Crypto & TLS
 # Note: Include order matters!
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
+# OpenSSL libssl/libcrypto
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/openssl.cmake)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nacl.cmake)
 

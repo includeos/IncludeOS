@@ -1,6 +1,6 @@
-#include "openssl_server.hpp"
-#include "tls_stream.hpp"
-#include "openssl_init.hpp"
+#include <net/openssl/server.hpp>
+#include <net/openssl/init.hpp>
+#include <net/openssl/tls_stream.hpp>
 #include <memdisk>
 #define LOAD_FROM_MEMDISK
 
