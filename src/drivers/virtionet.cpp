@@ -58,18 +58,20 @@ using namespace net;
 void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
 }
+#define VNET_TOT_BUFFERS() (48 + (queue_size(0) + queue_size(1)) / 2)
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
     Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, bufstore_),
     m_pcidev(d),
-    bufstore_{300u, 2048 /* 300 half-page buffers */},
+    bufstore_{VNET_TOT_BUFFERS(), 2048 /* half-page buffers */},
     packets_rx_{Statman::get().create(Stat::UINT64,
                 device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64,
                 device_name() + ".packets_tx").get_uint64()}
 {
   INFO("VirtioNet", "Driver initializing");
+#undef VNET_TOT_BUFFERS
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)

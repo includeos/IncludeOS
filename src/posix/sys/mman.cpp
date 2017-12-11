@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cerrno>
 #include <map>
+#include <posix_strace.hpp>
 
 struct mmap_entry_t
 {
@@ -22,7 +23,8 @@ void* mmap(void* addr, size_t length,
            int  prot,  int flags,
            int  fd,    off_t offset)
 {
-  printf("mmap called with len=%u bytes\n", length);
+  PRINT("mmap(%p, %lu, %d, %d, %d, %lu)\n",
+        addr, length, prot, flags, fd, offset);
 
   // invalid or misaligned length
   if (length == 0 || (length & 4095) != 0)
@@ -57,6 +59,7 @@ void* mmap(void* addr, size_t length,
 
 int munmap(void* addr, size_t length)
 {
+  PRINT("munmap(%p, %lu)\n", addr, length);
   auto it = _mmap_entries.find(addr);
   if (it != _mmap_entries.end())
   {
@@ -75,12 +78,12 @@ int munmap(void* addr, size_t length)
 void *mremap(void *old_address, size_t old_size,
              size_t new_size, int flags, ... /* void *new_address */)
 {
-  printf("mremap(%p, %lu, %lu, %#x)\n", old_address, old_size, new_size, flags);
+  PRINT("mremap(%p, %lu, %lu, %#x)\n", old_address, old_size, new_size, flags);
   return 0;
 }
 
 int mprotect(void *addr, size_t len, int prot)
 {
-  printf("mprotect(%p, %lu, %#x)\n", addr, len, prot);
+  PRINT("mprotect(%p, %lu, %#x)\n", addr, len, prot);
   return 0;
 }

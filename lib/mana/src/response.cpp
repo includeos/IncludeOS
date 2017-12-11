@@ -53,7 +53,7 @@ void Response::send_file(const File& file)
   reswriter_->write_header(http::OK);
 
   /* Send file over connection */
-  auto& stream = *reswriter_->connection().stream();
+  auto* stream = reswriter_->connection().stream().get();
   #ifdef VERBOSE_WEBSERVER
   printf("<Response> Sending file: %s (%llu B).\n",
     entry.name().c_str(), entry.size());
@@ -73,17 +73,17 @@ void Response::send_file(const File& file)
       if(good) {
         #ifdef VERBOSE_WEBSERVER
         printf("<Response> Success sending %s => %s\n",
-          entry.name().c_str(), stream.remote().to_string().c_str());
+          entry.name().c_str(), stream->remote().to_string().c_str());
         #endif
       }
       else {
         printf("<Response> Error sending %s => %s [%s]\n",
-          entry.name().c_str(), stream.remote().to_string().c_str(),
-          stream.is_closing() ? "Connection closing" : err.to_string().c_str());
+          entry.name().c_str(), stream->remote().to_string().c_str(),
+          stream->is_closing() ? "Connection closing" : err.to_string().c_str());
       }
       // remove on_write triggering for other
       // writes on the same connection
-      stream.on_write(nullptr);
+      stream->on_write(nullptr);
     })
   );
 }

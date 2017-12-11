@@ -18,7 +18,12 @@ include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 include_directories(${BOTAN_DIR})
-
+include_directories(${OPENSSL_DIR})
+include_directories(${OPENSSL_DIR}/include)
+if(${ARCH} STREQUAL "x86_64")
+  set(OPENSSL_MODULES net/openssl/init.cpp net/openssl/server.cpp)
+  set(OPENSSL_LIBS    openssl_ssl openssl_crypto)
+endif()
 
 set(OS_OBJECTS
   kernel/multiboot.cpp
@@ -32,7 +37,8 @@ set(OS_OBJECTS
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp
-  crt/c_abi.c crt/string.c crt/quick_exit.cpp crt/cxx_abi.cpp
+  crt/c_abi.c crt/ctype_b_loc.c crt/ctype_tolower_loc.c crt/string.c
+  crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp
   hw/msi.cpp hw/pci_msi.cpp virtio/virtio.cpp virtio/virtio_queue.cpp
   net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp
@@ -48,7 +54,7 @@ set(OS_OBJECTS
   net/http/mime_types.cpp net/http/cookie.cpp net/http/secure_server.cpp
   net/http/client_connection.cpp net/http/client.cpp
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
-  net/ws/websocket.cpp
+  net/ws/websocket.cpp ${OPENSSL_MODULES}
   net/nat/nat.cpp net/nat/napt.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
@@ -56,10 +62,11 @@ set(OS_OBJECTS
   posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
   posix/ucontext.cpp posix/ucontext_asm.asm posix/file_fd.cpp posix/dlfcn.cpp
   posix/sys/stat.cpp posix/sys/ioctl.cpp posix/ftw.cpp posix/utime.cpp posix/math.cpp
-  posix/pwd.cpp posix/pthread.cpp)
+  posix/pwd.cpp posix/pthread.cpp posix/poll.cpp
+  posix/signal.cpp posix/stdio.cpp posix/dirent.cpp posix/termios.cpp)
 
 add_library(os STATIC ${OS_OBJECTS})
-add_dependencies(os PrecompiledLibraries botan)
+add_dependencies(os PrecompiledLibraries botan ${OPENSSL_LIBS})
 
 # disable sanitizers on c_abi and cxx_abi, etc.
 set_source_files_properties(crt/c_abi.c PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
