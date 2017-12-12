@@ -5,7 +5,7 @@
 ARCH=${ARCH:-x86_64} # CPU architecture. Alternatively x86_64
 TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
 
-newlib_inc=$TEMP_INSTALL_DIR/$TARGET/include	# path for newlib headers
+musl_inc=$TEMP_INSTALL_DIR/$TARGET/include	# path for newlib headers
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
 libcxx_inc=$BUILD_DIR/llvm/projects/libcxx/include
 libcxxabi_inc=$BUILD_DIR/llvm/projects/libcxxabi/include
@@ -19,7 +19,7 @@ download_llvm=${download_llvm:-"1"}	# This should be more dynamic
 
 if [ ! -z $download_llvm ]; then
     # Clone LLVM
-    git clone -b $llvm_branch git@github.com:llvm-mirror/llvm.git || true
+    git clone -b $llvm_branch https://github.com/llvm-mirror/llvm.git || true
     #svn co http://llvm.org/svn/llvm-project/llvm/tags/$LLVM_TAG llvm
 
     # Clone libc++, libc++abi, and some extra stuff (recommended / required for clang)
@@ -27,19 +27,19 @@ if [ ! -z $download_llvm ]; then
     git checkout $llvm_branch
 
     # Compiler-rt
-    git clone -b $llvm_branch git@github.com:llvm-mirror/compiler-rt.git || true
+    git clone -b $llvm_branch https://github.com/llvm-mirror/compiler-rt.git || true
     #svn co http://llvm.org/svn/llvm-project/compiler-rt/tags/$LLVM_TAG compiler-rt
 
     # libc++abi
-    git clone -b $llvm_branch git@github.com:llvm-mirror/libcxxabi.git || true
+    git clone -b $llvm_branch https://github.com/llvm-mirror/libcxxabi.git || true
     #svn co http://llvm.org/svn/llvm-project/libcxxabi/tags/$LLVM_TAG libcxxabi
 
     # libc++
-    git clone -b $llvm_branch git@github.com:llvm-mirror/libcxx.git || true
+    git clone -b $llvm_branch https://github.com/llvm-mirror/libcxx.git || true
     #svn co http://llvm.org/svn/llvm-project/libcxx/tags/$LLVM_TAG libcxx
 
     # libunwind
-    git clone -b $llvm_branch git@github.com:llvm-mirror/libunwind.git || true
+    git clone -b $llvm_branch https://github.com/llvm-mirror/libunwind.git || true
     #svn co http://llvm.org/svn/llvm-project/libunwind/tags/$LLVM_TAG libunwind
 
     # Back to start
@@ -64,7 +64,7 @@ fi
 
 
 TRIPLE=$ARCH-pc-linux-elf
-CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse"
+CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse -D_LIBCPP_HAS_MUSL_LIBC"
 
 # CMAKE configure step
 #
@@ -75,31 +75,34 @@ CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse"
 
 echo "Building LLVM for $TRIPLE"
 
-
+     # -DCMAKE_C_COMPILER=clang-$clang_version \
+     # -DCMAKE_CXX_COMPILER=clang++-$clang_version \
 cmake -GNinja $OPTS  \
-      -DCMAKE_CXX_FLAGS="$CXX_FLAGS -I$IncludeOS_posix -I$libcxxabi_inc -I$libcxx_inc -I$newlib_inc " $BUILD_DIR/llvm \
+      -DCMAKE_CXX_FLAGS="$CXX_FLAGS -I$IncludeOS_posix -I$libcxxabi_inc -I$libcxx_inc -I$musl_inc " $BUILD_DIR/llvm \
       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
       -DBUILD_SHARED_LIBS=OFF \
-      -DCMAKE_C_COMPILER=clang-$clang_version \
-      -DCMAKE_CXX_COMPILER=clang++-$clang_version \
       -DTARGET_TRIPLE=$TRIPLE \
       -DLLVM_BUILD_32_BITS=OFF \
       -DLLVM_INCLUDE_TESTS=OFF \
-      -DLLVM_ENABLE_THREADS=OFF \
+      -DLLVM_ENABLE_THREADS=ON \
       -DLLVM_DEFAULT_TARGET_TRIPLE=$TRIPLE \
       -DLIBCXX_ENABLE_SHARED=OFF \
-      -DLIBCXX_ENABLE_THREADS=OFF \
+      -DLIBCXX_ENABLE_THREADS=ON \
       -DLIBCXX_TARGET_TRIPLE=$TRIPLE \
       -DLIBCXX_BUILD_32_BITS=OFF \
       -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
       -DLIBCXX_CXX_ABI=libcxxabi \
       -DLIBCXXABI_TARGET_TRIPLE=$TRIPLE \
       -DLIBCXXABI_ENABLE_THREADS=ON \
-      -DLIBCXXABI_HAS_PTHREAD_API=ON
+      -DLIBCXXABI_HAS_PTHREAD_API=ON \
+      -DLIBCXXABI_USE_LLVM_UNWINDER=ON \
+      -DLIBUNWIND_TARGET_TRIPLE=$TRIPLE \
+      -DLIBUNWIND_ENABLE_SHARED=OFF
 
 
 # MAKE
 ninja libc++abi.a
+
 ninja libc++.a
 
 popd
