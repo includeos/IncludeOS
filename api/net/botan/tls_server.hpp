@@ -24,42 +24,41 @@
 #include <botan/tls_server.h>
 #include <botan/tls_callbacks.h>
 #include <net/tcp/connection.hpp>
-#include <net/tls/credman.hpp>
+#include <net/botan/credman.hpp>
 
 namespace net
 {
-namespace tls
+namespace botan
 {
-class Server : public Botan::TLS::Callbacks, public tcp::Stream
+class Server : public Botan::TLS::Callbacks, public net::Stream
 {
 public:
-  using Connection_ptr = tcp::Connection_ptr;
-
-  Server(Connection_ptr remote,
+  Server(net::Stream_ptr remote,
          Botan::RandomNumberGenerator& rng,
          Botan::Credentials_Manager& credman)
-  : tcp::Stream{remote},
-    m_creds(credman),
-    m_session_manager(),
-    m_tls(*this, m_session_manager, m_creds, m_policy, rng)
+  : m_creds{credman},
+    m_session_manager{},
+    m_tls{*this, m_session_manager, m_creds, m_policy, rng},
+    m_transport{std::move(remote)}
   {
-    assert(tcp->is_connected());
+    assert(m_transport->is_connected());
     // default read callback
-    tcp->on_read(4096, {this, &Server::tls_read});
+    m_transport->on_read(4096, {this, &Server::tls_read});
   }
 
   void on_read(size_t bs, ReadCallback cb) override
   {
-    tcp->on_read(bs, {this, &Server::tls_read});
-    this->o_read = cb;
+    m_transport->on_read(bs, {this, &Server::tls_read});
+    this->m_on_read = cb;
   }
-  void on_write(WriteCallback cb) override
-  {
-    this->o_write = cb;
+  void on_write(WriteCallback cb) override {
+    this->m_on_write = cb;
   }
-  void on_connect(ConnectCallback cb) override
-  {
-    this->o_connect = cb;
+  void on_connect(ConnectCallback cb) override {
+    this->m_on_connect = cb;
+  }
+  void on_close(CloseCallback cb) override {
+    this->m_on_close = cb;
   }
 
   void write(const void* buf, size_t n) override
@@ -75,16 +74,49 @@ public:
     m_tls.send(buf->data(), buf->size());
   }
 
-  std::string to_string() const override {
-    return tcp->to_string();
+  void close() override {
+    m_transport->close();
   }
-
+  void abort() override {
+    m_transport->abort();
+  }
   void reset_callbacks() override
   {
-    o_connect = nullptr;
-    o_read  = nullptr;
-    o_write = nullptr;
-    tcp->reset_callbacks();
+    m_on_read  = nullptr;
+    m_on_write = nullptr;
+    m_on_connect = nullptr;
+    m_on_close = nullptr;
+    m_transport->reset_callbacks();
+  }
+
+  net::Socket local() const override {
+    return m_transport->local();
+  }
+  net::Socket remote() const override {
+    return m_transport->remote();
+  }
+  std::string to_string() const override {
+    return m_transport->to_string();
+  }
+
+  bool is_connected() const noexcept override {
+    return m_transport->is_connected();
+  }
+  bool is_writable() const noexcept override {
+    return m_tls.is_active();
+  }
+  bool is_readable() const noexcept override {
+    return m_transport->is_readable();
+  }
+  bool is_closing() const noexcept override {
+    return m_transport->is_closing();
+  }
+  bool is_closed() const noexcept override {
+    return m_tls.is_closed() || m_transport->is_closed();
+  }
+
+  int get_cpuid() const noexcept override {
+    return m_transport->get_cpuid();
   }
 
 protected:
@@ -127,31 +159,34 @@ protected:
 
   void tls_emit_data(const uint8_t buf[], size_t len) override
   {
-    tcp->write(buf, len);
+    m_transport->write(buf, len);
+    if (m_on_write) m_on_write(len);
   }
 
   void tls_record_received(uint64_t, const uint8_t buf[], size_t buf_len) override
   {
-    if (o_read) {
-      o_read(tcp::construct_buffer(buf, buf + buf_len));
+    if (m_on_read) {
+      m_on_read(tcp::construct_buffer(buf, buf + buf_len));
     }
   }
 
   void tls_session_activated() override
   {
-    if (o_connect) o_connect(*this);
+    if (m_on_connect) m_on_connect(*this);
   }
 
 private:
-  Stream::ReadCallback    o_read;
-  Stream::WriteCallback   o_write;
-  Stream::ConnectCallback o_connect;
+  Stream::ReadCallback    m_on_read = nullptr;
+  Stream::WriteCallback   m_on_write = nullptr;
+  Stream::ConnectCallback m_on_connect = nullptr;
+  Stream::CloseCallback   m_on_close = nullptr;
 
   Botan::Credentials_Manager&   m_creds;
   Botan::TLS::Strict_Policy     m_policy;
   Botan::TLS::Session_Manager_Noop m_session_manager;
 
   Botan::TLS::Server m_tls;
+  net::Stream_ptr    m_transport = nullptr;
 };
 
 } // tls

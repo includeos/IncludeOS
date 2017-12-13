@@ -176,10 +176,10 @@ namespace openssl
 
       // read decrypted data
       do {
-        auto buf = net::tcp::construct_buffer(8192);
-        n = SSL_read(this->m_ssl, buf->data(), buf->size());
+        char temp[8192];
+        n = SSL_read(this->m_ssl, temp, sizeof(temp));
         if (n > 0) {
-          buf->resize(n);
+          auto buf = net::tcp::construct_buffer(temp, temp + n);
           if (m_on_read) m_on_read(std::move(buf));
         }
       } while (n > 0);
@@ -207,8 +207,8 @@ namespace openssl
 
   inline int TLS_stream::tls_perform_stream_write()
   {
-    size_t pending = BIO_ctrl_pending(this->m_bio_wr);
-    //printf("pending: %lu\n", pending);
+    int pending = BIO_ctrl_pending(this->m_bio_wr);
+    //printf("pending: %d\n", pending);
     if (pending > 0)
     {
       auto buffer = net::tcp::construct_buffer(pending);

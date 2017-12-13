@@ -1,4 +1,4 @@
-#include <net/openssl/server.hpp>
+#include <net/https/openssl_server.hpp>
 #include <net/openssl/init.hpp>
 #include <net/openssl/tls_stream.hpp>
 #include <memdisk>
@@ -93,6 +93,7 @@ namespace http
     openssl::verify_rng();
 
     this->m_ctx = tls_init_server(certif.c_str(), key.c_str());
+    assert(ERR_get_error() == 0);
   }
   OpenSSL_server::~OpenSSL_server()
   {
@@ -107,21 +108,8 @@ namespace http
 
   void OpenSSL_server::on_connect(TCP_conn conn)
   {
-    auto* ptr = new openssl::TLS_stream((SSL_CTX*) m_ctx, std::make_unique<net::tcp::Connection::Stream>(std::move(conn)));
-
-    ptr->on_connect(
-    [this, ptr] (net::Stream&)
-    {
-      // create and pass TLS socket
-      connect(std::unique_ptr<openssl::TLS_stream>(ptr));
-    });
-
-    // this is ok due to the created Server_connection inside
-    // connect assigns a new on_close
-    ptr->on_close(
-      [ptr] {
-        delete ptr;
-      });
+    connect(
+      std::make_unique<openssl::TLS_stream> ((SSL_CTX*) m_ctx, std::make_unique<net::tcp::Connection::Stream>(std::move(conn)))
+    );
   }
-
 } // http
