@@ -71,20 +71,11 @@ namespace http
 
   void Secure_server::on_connect(TCP_conn conn)
   {
-    auto* ptr = new net::tls::Server(std::move(conn), rng, *credman);
-
-    ptr->on_connect(
-    [this, ptr] (net::Stream&)
-    {
-      // create and pass TLS socket
-      connect(std::unique_ptr<net::tls::Server>(ptr));
-    });
-
-    // this is ok due to the created Server_connection inside
-    // connect assigns a new on_close
-    ptr->on_close([ptr] {
-      delete ptr;
-    });
+    connect(
+      std::make_unique<net::tls::Server> (
+        std::make_unique<net::tcp::Connection::Stream>(
+          std::move(conn)), rng, *credman)
+    );
   }
 
 }
