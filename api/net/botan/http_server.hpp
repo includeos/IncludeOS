@@ -16,19 +16,19 @@
 // limitations under the License.
 
 #pragma once
-#ifndef NET_HTTP_SECURE_SERVER_HPP
-#define NET_HTTP_SECURE_SERVER_HPP
+#ifndef NET_BOTAN_HTTP_SERVER_HPP
+#define NET_BOTAN_HTTP_SERVER_HPP
 
 #include <net/http/server.hpp>
 #include <fs/dirent.hpp>
-#include <net/tls/server.hpp>
+#include <net/botan/tls_server.hpp>
 
 namespace http {
 
 /**
  * @brief      A secure HTTPS server.
  */
-class Secure_server : public http::Server
+class Botan_server : public http::Server
 {
 public:
   /**
@@ -44,7 +44,7 @@ public:
    * @tparam     Server_args  Construct arguments to HTTP Server
    */
   template <typename... Server_args>
-  inline Secure_server(
+  inline Botan_server(
       const std::string& name,
       fs::Dirent& ca_key,
       fs::Dirent& ca_cert,
@@ -63,7 +63,7 @@ public:
    * @tparam     Server_args  Server_args  Construct arguments to HTTP Server
    */
   template <typename... Server_args>
-  inline Secure_server(
+  inline Botan_server(
       Botan::Credentials_Manager*   in_credman,
       Botan::RandomNumberGenerator& in_rng,
       net::TCP& tcp,
@@ -108,10 +108,10 @@ private:
    */
   static Botan::RandomNumberGenerator& get_rng();
 
-}; // < class Secure_server
+}; // < class Botan_server
 
 template <typename... Server_args>
-inline Secure_server::Secure_server(
+inline Botan_server::Botan_server(
     const std::string& name,
     fs::Dirent& ca_key,
     fs::Dirent& ca_cert,
@@ -125,7 +125,7 @@ inline Secure_server::Secure_server(
 }
 
 template <typename... Server_args>
-inline Secure_server::Secure_server(
+inline Botan_server::Botan_server(
     Botan::Credentials_Manager*   in_credman,
     Botan::RandomNumberGenerator& in_rng,
     net::TCP& tcp,

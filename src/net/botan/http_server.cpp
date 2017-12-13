@@ -15,8 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#include <net/http/tls_server.hpp>
-#include <net/http/secure_server.hpp>
+#include <net/botan/http_server.hpp>
 #include <botan/data_src.h>
 #include <botan/system_rng.h>
 #include <botan/pkcs8.h>
@@ -33,12 +32,12 @@ inline std::unique_ptr<Botan::Private_Key> read_pkey(fs::Dirent& key_file)
 namespace http
 {
 
-  Botan::RandomNumberGenerator& Secure_server::get_rng()
+  Botan::RandomNumberGenerator& Botan_server::get_rng()
   {
     return ::get_rng();
   }
 
-  void Secure_server::load_credentials(
+  void Botan_server::load_credentials(
     const std::string& server_name,
     fs::Dirent& file_ca_key,
     fs::Dirent& file_ca_cert,
@@ -63,13 +62,13 @@ namespace http
     this->credman.reset(credman);
   }
 
-  void Secure_server::bind(const uint16_t port)
+  void Botan_server::bind(const uint16_t port)
   {
-    tcp_.listen(port, {this, &Secure_server::on_connect});
+    tcp_.listen(port, {this, &Botan_server::on_connect});
     INFO("HTTPS Server", "Listening on port %u", port);
   }
 
-  void Secure_server::on_connect(TCP_conn conn)
+  void Botan_server::on_connect(TCP_conn conn)
   {
     connect(
       std::make_unique<net::tls::Server> (

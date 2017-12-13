@@ -22,7 +22,7 @@
 
 #include "net/http/response.hpp"
 #include "net/http/request.hpp"
-#include "net/http/secure_server.hpp"
+#include "net/botan/http_server.hpp"
 #include "net/openssl/server.hpp"
 
 #endif

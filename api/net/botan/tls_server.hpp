@@ -24,7 +24,7 @@
 #include <botan/tls_server.h>
 #include <botan/tls_callbacks.h>
 #include <net/tcp/connection.hpp>
-#include <net/tls/credman.hpp>
+#include <net/botan/credman.hpp>
 
 namespace net
 {
