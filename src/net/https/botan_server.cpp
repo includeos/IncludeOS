@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/botan/http_server.hpp>
+#include <net/https/botan_server.hpp>
 #include <botan/data_src.h>
 #include <botan/system_rng.h>
 #include <botan/pkcs8.h>
@@ -31,7 +31,6 @@ inline std::unique_ptr<Botan::Private_Key> read_pkey(fs::Dirent& key_file)
 
 namespace http
 {
-
   Botan::RandomNumberGenerator& Botan_server::get_rng()
   {
     return ::get_rng();
@@ -71,7 +70,7 @@ namespace http
   void Botan_server::on_connect(TCP_conn conn)
   {
     connect(
-      std::make_unique<net::tls::Server> (
+      std::make_unique<net::botan::Server> (
         std::make_unique<net::tcp::Connection::Stream>(
           std::move(conn)), rng, *credman)
     );

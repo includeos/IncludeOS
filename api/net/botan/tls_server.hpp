@@ -28,7 +28,7 @@
 
 namespace net
 {
-namespace tls
+namespace botan
 {
 class Server : public Botan::TLS::Callbacks, public net::Stream
 {

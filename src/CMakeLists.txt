@@ -21,9 +21,10 @@ include_directories(${BOTAN_DIR})
 include_directories(${OPENSSL_DIR})
 include_directories(${OPENSSL_DIR}/include)
 if(${ARCH} STREQUAL "x86_64")
-  set(OPENSSL_MODULES net/openssl/init.cpp net/openssl/server.cpp)
+  set(OPENSSL_MODULES "net/openssl/init.cpp" "net/https/openssl_server.cpp")
   set(OPENSSL_LIBS    openssl_ssl openssl_crypto)
 endif()
+set(BOTAN_MODULES "net/https/botan_server.cpp")
 
 set(OS_OBJECTS
   kernel/multiboot.cpp
@@ -51,10 +52,10 @@ set(OS_OBJECTS
   net/super_stack.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
-  net/http/mime_types.cpp net/http/cookie.cpp net/botan/http_server.cpp
+  net/http/mime_types.cpp net/http/cookie.cpp
   net/http/client_connection.cpp net/http/client.cpp
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
-  net/ws/websocket.cpp ${OPENSSL_MODULES}
+  net/ws/websocket.cpp ${OPENSSL_MODULES} ${BOTAN_MODULES}
   net/nat/nat.cpp net/nat/napt.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp

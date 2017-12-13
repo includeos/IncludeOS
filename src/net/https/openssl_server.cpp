@@ -1,4 +1,4 @@
-#include <net/openssl/server.hpp>
+#include <net/https/openssl_server.hpp>
 #include <net/openssl/init.hpp>
 #include <net/openssl/tls_stream.hpp>
 #include <memdisk>
@@ -93,6 +93,7 @@ namespace http
     openssl::verify_rng();
 
     this->m_ctx = tls_init_server(certif.c_str(), key.c_str());
+    assert(ERR_get_error() == 0);
   }
   OpenSSL_server::~OpenSSL_server()
   {
