@@ -32,7 +32,7 @@ struct APIC_Timer
 
   static bool ready() noexcept;
 
-  static void oneshot(std::chrono::microseconds) noexcept;
+  static void oneshot(std::chrono::nanoseconds) noexcept;
   static void stop() noexcept;
 };
 

@@ -24,6 +24,7 @@ namespace x86
   struct CMOS_clock
   {
     static void init();
-    static int64_t system_time();
+    static uint64_t system_time();
+    static uint64_t wall_clock();
   };
 }

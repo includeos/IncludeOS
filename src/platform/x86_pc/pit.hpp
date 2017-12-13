@@ -85,9 +85,9 @@ namespace x86
     Mode     current_mode_ = NONE;
 
     // Timer handler & expiration timestamp
-    timeout_handler           handler = nullptr;
-    timeout_handler           forev_handler = nullptr;
-    std::chrono::milliseconds expiration;
+    timeout_handler          handler = nullptr;
+    timeout_handler          forev_handler = nullptr;
+    std::chrono::nanoseconds expiration;
 
     // Access mode bits are bits 4- and 5 in the Mode register
     enum AccessMode { LATCH_COUNT = 0x0, LO_ONLY=0x10, HI_ONLY=0x20, LO_HI=0x30 };

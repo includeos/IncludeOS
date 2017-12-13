@@ -24,27 +24,39 @@
 #include <info>
 #include <smp>
 
-typedef delegate<int64_t()> system_time_t;
-static SMP_ARRAY<system_time_t> vcpu_clock;
+struct sysclock_t
+{
+  typedef delegate<uint64_t()> system_time_t;
+  system_time_t system_time = nullptr;
+  system_time_t wall_time   = nullptr;
+};
+static SMP_ARRAY<sysclock_t> vcpu_clock;
 
 namespace x86
 {
   void Clocks::init()
   {
-    if (false) //CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
+    if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
     {
-      printf("--> KVM clock\n");
+      KVM_clock::init();
+      PER_CPU(vcpu_clock).system_time = {&KVM_clock::system_time};
+      PER_CPU(vcpu_clock).wall_time   = {&KVM_clock::wall_clock};
     }
     else
     {
       // fallback with CMOS
       if (SMP::cpu_id() == 0) CMOS_clock::init();
-      PER_CPU(vcpu_clock) = {&CMOS_clock::system_time};
+      PER_CPU(vcpu_clock).system_time = {&CMOS_clock::system_time};
+      PER_CPU(vcpu_clock).wall_time   = {&CMOS_clock::wall_clock};
     }
   }
 }
 
-int64_t __arch_time_now() noexcept
+uint64_t __arch_system_time() noexcept
 {
-  return PER_CPU(vcpu_clock)();
+  return PER_CPU(vcpu_clock).system_time();
+}
+uint64_t __arch_wall_clock() noexcept
+{
+  return PER_CPU(vcpu_clock).wall_time();
 }

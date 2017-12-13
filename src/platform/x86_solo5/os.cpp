@@ -44,7 +44,11 @@ void solo5_poweroff()
 }
 
 // returns wall clock time in nanoseconds since the UNIX epoch
-int64_t __arch_time_now() noexcept
+uint64_t __arch_system_time() noexcept
+{
+  return solo5_clock_wall();
+}
+uint64_t __arch_wall_clock() noexcept
 {
   return solo5_clock_wall();
 }
@@ -58,8 +62,8 @@ RTC::timestamp_t OS::boot_timestamp()
 uint64_t OS::cycles_asleep() noexcept {
   return os_cycles_hlt;
 }
-uint64_t OS::micros_asleep() noexcept {
-  return os_cycles_hlt / 1000;
+uint64_t OS::nanos_asleep() noexcept {
+  return os_cycles_hlt;
 }
 
 // uptime in nanoseconds
@@ -67,8 +71,8 @@ RTC::timestamp_t OS::uptime()
 {
   return solo5_clock_monotonic() - booted_at_;
 }
-int64_t OS::micros_since_boot() noexcept {
-  return uptime() / 1000;
+uint64_t OS::nanos_since_boot() noexcept {
+  return uptime();
 }
 
 void OS::default_stdout(const char* str, const size_t len)
@@ -141,7 +145,7 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   // We don't need a start or stop function in solo5.
   Timers::init(
     // timer start function
-    [] (std::chrono::microseconds) {},
+    [] (auto) {},
     // timer stop function
     [] () {});
 

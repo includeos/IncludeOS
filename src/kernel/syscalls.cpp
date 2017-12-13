@@ -99,8 +99,9 @@ int wait(int*) {
 }
 
 int gettimeofday(struct timeval* p, void*) {
-  p->tv_sec  = RTC::now();
-  p->tv_usec = 0;
+  uint64_t ts = RTC::now();
+  p->tv_sec  = ts / 1000000000ull;
+  p->tv_usec = (ts % 1000000000ull) / 1000;
   return 0;
 }
 

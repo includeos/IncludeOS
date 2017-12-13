@@ -37,7 +37,9 @@ extern void __arch_preempt_forever(void(*)());
 
 inline void __arch_hw_barrier() noexcept;
 inline void __sw_barrier() noexcept;
-extern int64_t  __arch_time_now() noexcept;
+
+extern uint64_t __arch_system_time() noexcept;
+extern uint64_t __arch_wall_clock() noexcept;
 inline uint64_t __arch_cpu_cycles() noexcept;
 
 

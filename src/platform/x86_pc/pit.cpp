@@ -71,9 +71,9 @@ namespace x86
     return freq;
   }
 
-  static inline milliseconds now() noexcept
+  static inline auto now() noexcept
   {
-    return duration_cast<milliseconds> (microseconds(OS::micros_since_boot()));
+    return duration_cast<nanoseconds> (nanoseconds(OS::nanos_since_boot()));
   }
 
   void PIT::oneshot(milliseconds timeval, timeout_handler handler)

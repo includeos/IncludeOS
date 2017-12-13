@@ -14,9 +14,9 @@ typedef Timers::handler_t  handler_t;
 
 /// time functions ///
 
-static inline std::chrono::microseconds now() noexcept
+static inline auto now() noexcept
 {
-  return microseconds(OS::micros_since_boot());
+  return nanoseconds(OS::nanos_since_boot());
 }
 
 /// internal timer ///

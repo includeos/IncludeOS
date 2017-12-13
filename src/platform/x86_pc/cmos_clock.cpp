@@ -23,7 +23,7 @@
 
 namespace x86
 {
-  static int64_t  current_time;
+  static uint64_t current_time;
   static uint64_t current_ticks;
 
   void CMOS_clock::init()
@@ -41,11 +41,15 @@ namespace x86
       });
   }
 
-  int64_t CMOS_clock::system_time()
+  uint64_t CMOS_clock::system_time()
   {
     auto ticks = OS::cycles_since_boot() - current_ticks;
-    auto diff  = ticks / Hz(MHz(OS::cpu_freq())).count();
+    auto diff  = (double) ticks / Hz(MHz(OS::cpu_freq())).count();
 
-    return current_time + diff;
+    return (current_time + diff) * 1000000000ull;
+  }
+  uint64_t CMOS_clock::wall_clock()
+  {
+    return system_time();
   }
 }

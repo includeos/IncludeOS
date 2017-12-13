@@ -26,10 +26,10 @@
 class RTC
 {
 public:
-  using timestamp_t = int64_t;
+  using timestamp_t = uint64_t;
 
   /// returns a 64-bit unix timestamp of the current time
-  static timestamp_t now() { return __arch_time_now(); }
+  static timestamp_t now() { return __arch_system_time(); }
 
   /// returns a 64-bit unix timestamp for when the OS was booted
   static timestamp_t boot_timestamp() {

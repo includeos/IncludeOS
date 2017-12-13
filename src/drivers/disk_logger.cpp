@@ -59,7 +59,7 @@ static void disk_logger_write(const char* data, size_t len)
     header.timestamp = RTC::now();
   }
   else {
-    header.timestamp = OS::micros_since_boot() / 1000000;
+    header.timestamp = OS::nanos_since_boot() / 1000000000ull;
   }
   __builtin_memcpy(logbuffer->data(), &header, sizeof(log_structure));
 

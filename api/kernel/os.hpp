@@ -63,8 +63,8 @@ public:
   static uint64_t cycles_since_boot() {
     return __arch_cpu_cycles();
   }
-  /** micro seconds since boot */
-  static int64_t micros_since_boot() noexcept;
+  /** Nanoseconds since boot */
+  static uint64_t nanos_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
   static RTC::timestamp_t boot_timestamp();
@@ -75,8 +75,8 @@ public:
   /** Time spent sleeping (halt) in cycles */
   static uint64_t cycles_asleep() noexcept;
 
-  /** Time spent sleeping (halt) in micros */
-  static uint64_t micros_asleep() noexcept;
+  /** Time spent sleeping (halt) in nanoseconds */
+  static uint64_t nanos_asleep() noexcept;
 
 
   static MHz cpu_freq() noexcept
