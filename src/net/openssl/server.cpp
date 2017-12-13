@@ -107,21 +107,8 @@ namespace http
 
   void OpenSSL_server::on_connect(TCP_conn conn)
   {
-    auto* ptr = new openssl::TLS_stream((SSL_CTX*) m_ctx, std::make_unique<net::tcp::Connection::Stream>(std::move(conn)));
-
-    ptr->on_connect(
-    [this, ptr] (net::Stream&)
-    {
-      // create and pass TLS socket
-      connect(std::unique_ptr<openssl::TLS_stream>(ptr));
-    });
-
-    // this is ok due to the created Server_connection inside
-    // connect assigns a new on_close
-    ptr->on_close(
-      [ptr] {
-        delete ptr;
-      });
+    connect(
+      std::make_unique<openssl::TLS_stream> ((SSL_CTX*) m_ctx, std::make_unique<net::tcp::Connection::Stream>(std::move(conn)))
+    );
   }
-
 } // http
