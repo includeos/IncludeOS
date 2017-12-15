@@ -1,7 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2015-2017 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,8 +21,7 @@
 #define PLUGINS_SYSLOGD_HPP
 
 /*
-	Implementation of weak functions declared in util/syslog_facility.hpp and util/syslogd.hpp
-	is in this header's corresponding cpp-file
-*/
+ *  Plugin registration in src/plugins/syslogd.cpp
+ */
 
 #endif

@@ -1,8 +1,6 @@
-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2015-2017 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,9 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Weak default printf
-// Plugin UDP
-
 #pragma once
 #ifndef UTIL_SYSLOGD_HPP
 #define UTIL_SYSLOGD_HPP
@@ -27,15 +22,17 @@
 #include <string>
 #include <regex>
 
-#include <syslog.h>             // POSIX symbolic constants
+#include <syslog.h> // POSIX symbolic constants
 #include "syslog_facility.hpp"
 
 const int BUFLEN = 2048;
-const int TIMELEN = 32;
 
 class Syslog {
-
 public:
+  static void set_facility(std::unique_ptr<Syslog_facility> facility) {
+    fac_ = std::move(facility);
+  }
+
   static void settings(const net::UDP::addr_t dest_ip, const net::UDP::port_t dest_port) {
     fac_->settings(dest_ip, dest_port);
   }
@@ -64,13 +61,10 @@ public:
   // va_list arguments (POSIX)
   static void syslog(int priority, const char* message, va_list args);
 
-  __attribute__((weak))
   static void syslog(int priority, const char* buf);
 
-  __attribute__((weak))
   static void openlog(const char* ident, int logopt, int facility);
 
-  __attribute__((weak))
   static void closelog();
 
   static bool valid_priority(int priority) noexcept {
@@ -88,6 +82,7 @@ public:
 
 private:
   static std::unique_ptr<Syslog_facility> fac_;
-};
+
+}; // < Syslog
 
 #endif
