@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include <util/syslog_facility.hpp>
+#include <net/inet4.hpp>
 #include <unistd.h> // getpid
 #include <ctime>
 
@@ -30,6 +31,23 @@ void Syslog_udp::syslog(const std::string& log_message) {
     std::cerr << log_message.c_str() << '\n';
 
   send_udp_data(log_message);
+}
+
+void Syslog_udp::open_socket() {
+  if (sock_ == nullptr)
+    sock_ = &net::Inet4::stack<>().udp().bind();
+}
+
+void Syslog_udp::close_socket() {
+  if (sock_) {
+    sock_->close();
+    sock_ = nullptr;
+  }
+}
+
+void Syslog_udp::send_udp_data(const std::string& data) {
+  open_socket();
+  sock_->sendto( ip_, port_, data.c_str(), data.size() );
 }
 
 std::string Syslog_udp::build_message_prefix(const std::string& binary_name) {
@@ -62,6 +80,11 @@ std::string Syslog_udp::build_message_prefix(const std::string& binary_name) {
     message += std::string{ident()} + " ";
 
   return message;
+}
+
+Syslog_udp::~Syslog_udp() {
+  if (sock_)
+    sock_->close();
 }
 
 // < Syslog_udp (plugin)

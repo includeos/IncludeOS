@@ -25,8 +25,8 @@
 #include <string>
 #include <map>
 
-#include <syslog.h>		// POSIX symbolic constants
-#include <net/inet4>	// For private attribute UDPSocket* in Syslog_udp
+#include <syslog.h>         // POSIX symbolic constants
+#include <net/ip4/udp_socket.hpp>  // For private attribute UDPSocket* in Syslog_udp
 
 const int MUL_VAL = 8;
 const std::map<int, std::string> pri_colors = {
@@ -162,32 +162,18 @@ public:
 
   void syslog(const std::string& log_message);
 
-  void open_socket() {
-    if (sock_ == nullptr)
-      sock_ = &net::Inet4::stack<>().udp().bind();
-  }
+  void open_socket();
 
-  void close_socket() {
-    if (sock_) {
-      sock_->close();
-      sock_ = nullptr;
-    }
-  }
+  void close_socket();
 
-  void send_udp_data(const std::string& data) {
-    open_socket();
-    sock_->sendto( ip_, port_, data.c_str(), data.size() );
-  }
+  void send_udp_data(const std::string& data);
 
   std::string build_message_prefix(const std::string& binary_name);
 
   Syslog_udp() : Syslog_facility() {}
   Syslog_udp(const char* ident, int facility) : Syslog_facility(ident, facility) {}
 
-  ~Syslog_udp() {
-    if (sock_)
-      sock_->close();
-  }
+  ~Syslog_udp();
 
 private:
   net::UDP::addr_t ip_{0};
