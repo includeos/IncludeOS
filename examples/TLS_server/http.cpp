@@ -29,7 +29,7 @@ std::string HTML_RESPONSE()
 
 http::Response_ptr handle_request(const http::Request& req)
 {
-  auto res = std::make_unique<http::Response> ();
+  auto res = http::make_response();
   auto& header = res->header();
 
   header.set_field(http::header::Server, "IncludeOS/0.12");
