@@ -175,6 +175,7 @@ set(OS_SOURCES
   ${SRC}/net/dhcp/dh4client.cpp
   ${SRC}/net/nat/nat.cpp
   ${SRC}/net/nat/napt.cpp
+  ${SRC}/net/super_stack.cpp
   ${SRC}/net/tcp/connection.cpp
   ${SRC}/net/tcp/connection_states.cpp
   ${SRC}/net/tcp/listener.cpp
