@@ -36,7 +36,7 @@ public:
   int     read(void*, size_t) override;
   int     write(const void*, size_t) override;
   int     close() override;
-  
+
   /** SOCKET */
   int     bind(const struct sockaddr *, socklen_t) override;
   int     listen(int) override;
@@ -45,7 +45,7 @@ public:
 
   ssize_t send(const void *, size_t, int fl) override;
   ssize_t recv(void*, size_t, int fl) override;
-  
+
   int     shutdown(int) override;
 
   bool is_listener() const noexcept {
@@ -61,29 +61,31 @@ public:
   on_read_func   get_default_read_func()   override;
   on_write_func  get_default_write_func()  override;
   on_except_func get_default_except_func() override;
-  
+
   ~TCP_FD() {}
 private:
   TCP_FD_Conn*   cd = nullptr;
   TCP_FD_Listen* ld = nullptr;
-  
+
   friend struct TCP_FD_Listen;
 };
 
 struct TCP_FD_Conn
 {
   TCP_FD_Conn(net::tcp::Connection_ptr c)
-    : conn(c), readq(16484)
+    : conn(c), readq(16384)
   {}
-  
-  void recv_to_ringbuffer(net::tcp::buffer_t, size_t);
+
+  void recv_to_ringbuffer(net::tcp::buffer_t);
   void set_default_read();
-  
+
   ssize_t send(const void *, size_t, int fl);
   ssize_t recv(void*, size_t, int fl);
   int     close();
   int     shutdown(int);
-  
+
+  std::string to_string() const { return conn->to_string(); }
+
   net::tcp::Connection_ptr conn;
   RingBuffer readq;
 };
@@ -93,12 +95,14 @@ struct TCP_FD_Listen
   TCP_FD_Listen(net::tcp::Listener& l)
     : listener(l)
   {}
-  
+
   int close();
   int listen(int);
   int accept(struct sockaddr *__restrict__, socklen_t *__restrict__);
   int shutdown(int);
-  
+
+  std::string to_string() const { return listener.to_string(); }
+
   net::tcp::Listener& listener;
   std::deque<net::tcp::Connection_ptr> connq;
 };

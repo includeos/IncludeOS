@@ -21,9 +21,10 @@
 
 #include <memory>
 #include <string>
-#include <delegate>
 #include <vector>
 #include "path.hpp"
+#include <common>
+#include <delegate>
 #include <hw/block_device.hpp>
 
 namespace fs {
@@ -32,20 +33,22 @@ namespace fs {
   struct File_system;
 
   /**
-   * @brief Type used as a building block to represent buffers
-   * within the filesystem subsystem
+   * @brief Shared vector used as a buffer within the filesystem subsystem
    */
-  using buffer_t = std::shared_ptr<uint8_t>;
+  using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
+
+  /** Construct a shared vector **/
+  template <typename... Args>
+  buffer_t construct_buffer(Args&&... args) {
+    return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
+  }
 
   /** Container types **/
-  using dirvector = std::vector<Dirent>;
-  using dirvec_t  = std::shared_ptr<dirvector>;
+  using dirvector  = std::vector<Dirent>;
+  using Dirvec_ptr = std::shared_ptr<dirvector>;
 
   /** Pointer types **/
   using Path_ptr = std::shared_ptr<Path>;
-
-  /** ID types **/
-  using Device_id = hw::Block_device::Device_id;
 
   /** Entity types for dirents **/
   enum Enttype {
@@ -126,11 +129,8 @@ namespace fs {
    */
   struct Buffer
   {
-    Buffer(const error_t& e, buffer_t b, const uint64_t l)
-      : err_    {e}
-      , buffer_ {b}
-      , len_    {l}
-    {}
+    Buffer(const error_t& e, buffer_t b)
+      : err_    {e}, buffer_ {b} {}
 
     /**
      * @brief Check if an object of this type is in a valid
@@ -156,8 +156,10 @@ namespace fs {
      *
      * @return The starting address of the underlying data buffer
      */
+    const uint8_t* data() const noexcept
+    { return buffer_->data(); }
     uint8_t* data() noexcept
-    { return buffer_.get(); }
+    { return buffer_->data(); }
 
     /**
      * @brief Get the size/length of the buffer
@@ -165,7 +167,10 @@ namespace fs {
      * @return The size/length of the buffer
      */
     size_t   size() const noexcept
-    { return len_; }
+    {
+      if (UNLIKELY(buffer_ == nullptr)) return 0;
+      return buffer_->size();
+    }
 
     /**
      * @brief Get a {std::string} representation of this type
@@ -173,12 +178,11 @@ namespace fs {
      * @return A {std::string} representation of this type
      */
     std::string to_string() const noexcept
-    { return std::string{reinterpret_cast<char*>(buffer_.get()), size()}; }
+    { return std::string{(const char*) data(), size()}; }
 
   private:
     error_t  err_;
     buffer_t buffer_;
-    uint64_t len_;
   }; //< struct Buffer
 
   /** @var no_error: Always returns boolean false when used in expressions */
@@ -186,19 +190,18 @@ namespace fs {
 
   /** Async function types **/
   using on_init_func  = delegate<void(error_t, File_system&)>;
-  using on_ls_func    = delegate<void(error_t, dirvec_t)>;
-  using on_read_func  = delegate<void(error_t, buffer_t, uint64_t)>;
+  using on_ls_func    = delegate<void(error_t, Dirvec_ptr)>;
+  using on_read_func  = delegate<void(error_t, buffer_t)>;
   using on_stat_func  = delegate<void(error_t, Dirent)>;
-
 
   struct List
   {
-    error_t  error;
-    dirvec_t entries;
+    error_t    error;
+    Dirvec_ptr entries;
     auto begin() { return entries->begin(); }
-    auto end() { return entries->end(); }
-    auto cbegin() { return entries->cbegin(); }
-    auto cend() { return entries->cend(); }
+    auto end()   { return entries->end(); }
+    auto cbegin() const { return entries->cbegin(); }
+    auto cend()   const { return entries->cend(); }
   };
 
 } //< fs

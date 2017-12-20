@@ -18,6 +18,14 @@
 #include <tcp_fd.hpp>
 #include <fd_map.hpp>
 #include <kernel/os.hpp>
+#include <errno.h>
+
+#define POSIX_STRACE
+#ifdef POSIX_STRACE
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
 
 using namespace net;
 
@@ -39,12 +47,14 @@ int TCP_FD::close()
 {
   // connection
   if (this->cd) {
+    PRINT("TCP: close(%s)\n", cd->to_string().c_str());
     int ret = cd->close();
     delete cd; cd = nullptr;
     return ret;
   }
   // listener
   if (this->ld) {
+    PRINT("TCP: close(%s)\n", ld->to_string().c_str());
     int ret = ld->close();
     delete ld; ld = nullptr;
     return ret;
@@ -56,11 +66,13 @@ int TCP_FD::close()
 int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
   if (is_listener()) {
+    PRINT("TCP: connect(%s) failed\n", ld->to_string().c_str());
     // already listening on port
     errno = EINVAL;
     return -1;
   }
   if (this->cd) {
+    PRINT("TCP: connect(%s) failed\n", cd->to_string().c_str());
     // if its straight-up connected, return that
     if (cd->conn->is_connected()) {
       errno = EISCONN;
@@ -82,7 +94,8 @@ int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
   auto addr = ip4::Addr(inaddr->sin_addr.s_addr);
   auto port = ::htons(inaddr->sin_port);
 
-  printf("[*] connecting to %s:%u...\n", addr.to_string().c_str(), port);
+  PRINT("TCP: connect(%s:%u)\n", addr.to_string().c_str(), port);
+
   auto outgoing = net_stack().tcp().connect({addr, port});
   // O_NONBLOCK is set for the file descriptor for the socket and the connection
   // cannot be immediately established; the connection shall be established asynchronously.
@@ -202,7 +215,7 @@ TCP_FD::on_read_func TCP_FD::get_default_read_func()
   }
   if (ld) {
     return
-    [this] (net::tcp::buffer_t, size_t) {
+    [this] (net::tcp::buffer_t) {
       // what to do here?
     };
   }
@@ -219,17 +232,17 @@ TCP_FD::on_except_func TCP_FD::get_default_except_func()
 
 /// socket as connection
 
-void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer, size_t len)
+void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer)
 {
-  if (readq.free_space() < (int) len) {
+  if (readq.free_space() < (ssize_t) buffer->size()) {
     // make room for data
-    int needed = len - readq.free_space();
+    int needed = buffer->size() - readq.free_space();
     int discarded = readq.discard(needed);
     assert(discarded == needed);
   }
   // add data to ringbuffer
-  int written = readq.write(buffer.get(), len);
-  assert(written = len);
+  int written = readq.write(buffer->data(), buffer->size());
+  assert(written == (ssize_t) buffer->size());
 }
 void TCP_FD_Conn::set_default_read()
 {
@@ -244,7 +257,6 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
   }
 
   bool written = false;
-
   conn->on_write([&written] (bool) { written = true; }); // temp
 
   conn->write(data, len);
@@ -256,7 +268,6 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
   }
 
   conn->on_write(nullptr); // temp
-
   return len;
 }
 ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
@@ -272,15 +283,17 @@ ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
   if (bytes) return bytes;
 
   bool done = false;
+  bytes = 0;
+
   // block and wait for more
   conn->on_read(len,
-  [&done, &bytes, dest] (auto buffer, size_t len) {
+  [&done, &bytes, dest] (auto buffer) {
     // copy the data itself
-    if (len)
-        memcpy(dest, buffer.get(), len);
+    if (buffer->size() > 0)
+        memcpy(dest, buffer->data(), buffer->size());
     // we are done
     done  = true;
-    bytes = len;
+    bytes = buffer->size();
   });
 
   // BLOCK HERE

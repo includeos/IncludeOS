@@ -20,7 +20,7 @@
 #include <net/super_stack.hpp>
 #include <info>
 
-#define MYINFO(X,...) INFO("Network configure",X,##__VA_ARGS__)
+#define MYINFO(X,...) INFO("Netconf",X,##__VA_ARGS__)
 
 namespace net {
 
@@ -29,13 +29,14 @@ using Addresses = std::vector<ip4::Addr>;
 template <typename T>
 Addresses parse_iface(T& obj)
 {
+  if(not obj.HasMember("address") and not obj.HasMember("netmask"))
+    return {};
   Expects(obj.HasMember("address"));
   Expects(obj.HasMember("netmask"));
-  Expects(obj.HasMember("gateway"));
 
   ip4::Addr address{obj["address"].GetString()};
   ip4::Addr netmask{obj["netmask"].GetString()};
-  ip4::Addr gateway{obj["gateway"].GetString()};
+  ip4::Addr gateway = (obj.HasMember("gateway")) ? ip4::Addr{obj["gateway"].GetString()} : 0;
   ip4::Addr dns = (not obj.HasMember("dns")) ? gateway : ip4::Addr{obj["dns"].GetString()};
 
   Addresses addresses{address, netmask, gateway, dns};
@@ -44,8 +45,10 @@ Addresses parse_iface(T& obj)
 
 inline void config_stack(Inet<IP4>& stack, const Addresses& addrs)
 {
-  if(addrs.empty())
+  if(addrs.empty()) {
+    MYINFO("! WARNING: No config for stack %s", stack.ifname().c_str());
     return;
+  }
 
   Expects((addrs.size() > 2 and addrs.size() < 5)
     && "A network config needs to be between 3 and 4 addresses");
@@ -76,8 +79,10 @@ void configure(const rapidjson::Value& net)
     auto& stack = Super_stack::get<IP4>(N);
 
     // if config is not set, just ignore
-    if(not val.HasMember("config"))
+    if(not val.HasMember("config")) {
+      MYINFO("NOTE: Config method not set, ignoring");
       continue;
+    }
 
     std::string method = val["config"].GetString();
 

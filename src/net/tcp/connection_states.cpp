@@ -18,7 +18,6 @@
 #include <gsl/gsl_assert> // Ensures/Expects
 #include <net/tcp/connection_states.hpp>
 #include <net/tcp/packet.hpp>
-#include <sstream>
 
 using namespace net::tcp;
 using namespace std;

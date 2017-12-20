@@ -19,7 +19,6 @@
 #define NET_INET4_HPP
 
 #include <vector>
-#include <unordered_set>
 
 #include "inet.hpp"
 #include "ip4/arp.hpp"
@@ -38,7 +37,7 @@ namespace net {
   class Inet4 : public Inet<IP4>{
   public:
 
-    using Vip4_list = std::unordered_set<IP4::addr>;
+    using Vip4_list = Vip_list;
 
     std::string ifname() const override
     { return nic_.device_name(); }
@@ -309,7 +308,7 @@ namespace net {
     bool is_loopback(IP4::addr a) const override
     {
       return a.is_loopback()
-        or vip4s_.find(a) != vip4s_.end();
+        or std::find( vip4s_.begin(), vip4s_.end(), a) != vip4s_.end();
     }
 
     /** Add IP4 address as virtual loopback */
@@ -317,13 +316,17 @@ namespace net {
     {
       if (not is_loopback(a)) {
         INFO("Inet4", "Adding virtual IP address %s", a.to_string().c_str());
-        vip4s_.emplace(a);
+        vip4s_.emplace_back(a);
       }
     }
 
     /** Add IP4 address as virtual loopback */
     void remove_vip(IP4::addr a) override
-    { vip4s_.erase(a); }
+    {
+      auto it = std::find(vip4s_.begin(), vip4s_.end(), a);
+      if (it != vip4s_.end())
+        vip4s_.erase(it);
+    }
 
     IP4::addr get_source_addr(IP4::addr dest) override
     {
@@ -337,28 +340,22 @@ namespace net {
       return ip_addr();
     }
 
-    bool is_valid_source(IP4::addr src) override
-    { return is_loopback(src) or src == ip_addr(); }
+    bool is_valid_source(IP4::addr src) const override
+    { return src == ip_addr() or is_loopback(src); }
 
-    /** Packets pass through prerouting chain before routing decision */
-    virtual Filter_chain& prerouting_chain() override
-    { return prerouting_chain_; }
+    virtual std::shared_ptr<Conntrack>& conntrack() override
+    { return conntrack_; }
 
-    /** Packets pass through postrouting chain after routing decision */
-    virtual Filter_chain& postrouting_chain() override
-    { return postrouting_chain_; }
+    virtual const std::shared_ptr<Conntrack>& conntrack() const override
+    { return conntrack_; }
 
-    /** Packets pass through postrouting chain after routing decision */
-    virtual Filter_chain& forward_chain() override
-    { return forward_chain_; }
+    virtual void enable_conntrack(std::shared_ptr<Conntrack> ct) override;
 
-    /** Packets pass through input chain before hitting protocol handlers */
-    virtual Filter_chain& input_chain() override
-    { return input_chain_; }
+    virtual Port_utils& tcp_ports() override
+    { return tcp_ports_; }
 
-    /** Packets pass through output chain after exiting protocol handlers */
-    virtual Filter_chain& output_chain() override
-    { return output_chain_; }
+    virtual Port_utils& udp_ports() override
+    { return udp_ports_; }
 
     /** Initialize with ANY_ADDR */
     Inet4(hw::Nic& nic);
@@ -384,12 +381,10 @@ namespace net {
     UDP    udp_;
     TCP    tcp_;
 
-    // Filter chains
-    Filter_chain prerouting_chain_{"Prerouting", {}};
-    Filter_chain postrouting_chain_{"Postrouting", {}};
-    Filter_chain input_chain_{"Input", {}};
-    Filter_chain output_chain_{"Output", {}};
-    Filter_chain forward_chain_{"Forward", {}};
+    Port_utils tcp_ports_;
+    Port_utils udp_ports_;
+
+    std::shared_ptr<Conntrack> conntrack_;
 
     // we need this to store the cache per-stack
     DNSClient dns_;

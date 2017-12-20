@@ -51,11 +51,20 @@ namespace hw {
 
     virtual uint16_t MTU() const noexcept = 0;
 
-    /** Implemented by the underlying (link) driver */
+    /** Downstream delegate factory */
     virtual downstream create_link_downstream() = 0;
-    virtual void set_ip4_upstream(upstream handler) = 0;
-    virtual void set_ip6_upstream(upstream handler) = 0;
+
+    /** Protocol handler getters **/
+    virtual net::upstream_ip& ip4_upstream() = 0;
+    virtual net::upstream_ip& ip6_upstream() = 0;
+    virtual upstream& arp_upstream() = 0;
+
+    /** Protocol handler setters */
+    virtual net::downstream create_physical_downstream() = 0;
+    virtual void set_ip4_upstream(net::upstream_ip handler) = 0;
+    virtual void set_ip6_upstream(net::upstream_ip handler) = 0;
     virtual void set_arp_upstream(upstream handler) = 0;
+    virtual void set_vlan_upstream(upstream handler) = 0;
 
     net::BufferStore& bufstore() noexcept
     { return bufstore_; }
@@ -81,8 +90,8 @@ namespace hw {
     virtual net::Packet_ptr create_packet(int layer_begin) = 0;
 
     /** Subscribe to event for when there is more room in the tx queue */
-    void on_transmit_queue_available(net::transmit_avail_delg del)
-    { transmit_queue_available_event_ = del; }
+    virtual void on_transmit_queue_available(net::transmit_avail_delg del)
+    { tqa_events_.push_back(del); }
 
     virtual size_t transmit_queue_available() = 0;
 
@@ -110,21 +119,37 @@ namespace hw {
      *
      *  Constructed by the actual Nic Driver
      */
-    Nic(uint32_t bufstore_packets, uint16_t bufsz)
-      : bufstore_{ bufstore_packets, bufsz }
+    Nic(net::BufferStore& bufstore)
+      : bufstore_{bufstore}
     {
       static int id_counter = 0;
       N = id_counter++;
     }
 
-    friend class Devices;
+    std::vector<net::transmit_avail_delg> tqa_events_;
 
-    net::transmit_avail_delg transmit_queue_available_event_ =
-      [](auto) { assert(0 && "<NIC> Transmit queue available delegate is not set!"); };
+    void transmit_queue_available_event(size_t packets)
+    {
+      // divide up fairly
+      size_t div = packets / tqa_events_.size();
+
+      // give each handler a chance to take
+      for (auto& del : tqa_events_)
+        del(div);
+
+      // hand out remaining
+      for (auto& del : tqa_events_) {
+        div = transmit_queue_available();
+        if (!div) break;
+        // give as much as possible
+        del(div);
+      }
+    }
 
   private:
-    net::BufferStore bufstore_;
+    net::BufferStore& bufstore_;
     int N;
+    friend class Devices;
   };
 
 } //< namespace hw

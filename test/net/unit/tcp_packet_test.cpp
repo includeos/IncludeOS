@@ -15,10 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <packet_factory.hpp>
 #include <net/tcp/packet.hpp>
-#include <net/ethernet/header.hpp>
-#include <net/buffer_store.hpp>
-#include <net/packet.hpp>
 #include <common.cxx>
 
 using namespace std::string_literals;
@@ -44,33 +42,11 @@ CASE("round_up expects div to be greater than 0")
 }
 
 using namespace net;
-#define BUFFER_CNT   128
-#define BUFFER_SIZE 2048
-static BufferStore bufstore(BUFFER_CNT, BUFFER_SIZE);
-
-#define PHYS_OFFSET     0
-#define PACKET_CAPA  1514
-
-static Packet_ptr create_packet() noexcept
-{
-  auto buffer = bufstore.get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
-  new (ptr) net::Packet(PHYS_OFFSET, 0, PHYS_OFFSET + PACKET_CAPA, buffer.bufstore);
-  return net::Packet_ptr(ptr);
-}
-static tcp::Packet_ptr create_tcp_packet() noexcept
-{
-  auto pkt = create_packet();
-  pkt->increment_layer_begin(sizeof(net::ethernet::Header));
-  /// TCP stuff
-  auto tcp = static_unique_ptr_cast<tcp::Packet> (std::move(pkt));
-  tcp->init();
-  return tcp;
-}
 
 CASE("Empty TCP packet")
 {
   auto tcp = create_tcp_packet();
+  tcp->init();
   EXPECT(tcp->size() == 40);
   EXPECT(tcp->ip_capacity() == 1480);
   EXPECT(tcp->ip_header_length() == 20);
@@ -86,6 +62,7 @@ CASE("Empty TCP packet")
 CASE("Fill 1 byte")
 {
   auto tcp = create_tcp_packet();
+  tcp->init();
   EXPECT(tcp->fill((const uint8_t*) "data", 1) == 1);
 
   EXPECT(tcp->size() == 41);
@@ -106,6 +83,7 @@ CASE("Fill too many bytes")
   strcpy((char*) buffer, "data here!");
 
   auto tcp = create_tcp_packet();
+  tcp->init();
   EXPECT(tcp->fill(buffer, sizeof(buffer)) == 1460);
   // packet should be full now
   EXPECT(tcp->fill(buffer, sizeof(buffer)) == 0);
@@ -127,6 +105,7 @@ struct Optijohn {
 CASE("Add 1 option")
 {
   auto tcp = create_tcp_packet();
+  tcp->init();
   tcp->add_tcp_option<Optijohn>(1);
 
   EXPECT(tcp->size() == 44);
@@ -144,6 +123,7 @@ CASE("Add 1 option")
 CASE("Add too many options")
 {
   auto tcp = create_tcp_packet();
+  tcp->init();
   for (int i = 0; i < 10; i++)
       tcp->add_tcp_option<Optijohn>(i);
 
@@ -164,6 +144,7 @@ CASE("Add too many options")
 CASE("TCP header flags")
 {
   auto tcp = create_tcp_packet();
+  tcp->init();
   using namespace net::tcp;
 
   EXPECT(tcp->isset(SYN) == false);
@@ -191,6 +172,7 @@ CASE("TCP header flags")
 CASE("TCP header source and dest")
 {
   auto tcp = create_tcp_packet();
+  tcp->init();
 
   tcp->set_source({{10,0,0,1}, 666});
   tcp->set_destination({{10,0,0,2}, 667});
@@ -199,4 +181,23 @@ CASE("TCP header source and dest")
   EXPECT(tcp->source().port()    == 666);
   EXPECT(tcp->destination().address() == ip4::Addr(10,0,0,2));
   EXPECT(tcp->destination().port()    == 667);
+}
+
+CASE("TCP checksum")
+{
+  auto tcp = create_tcp_packet();
+  tcp->init();
+
+  tcp->set_source({{10,0,0,1}, 666});
+  tcp->set_destination({{10,0,0,2}, 667});
+
+  tcp->set_tcp_checksum();
+  EXPECT(tcp->compute_tcp_checksum() == 0);
+
+  tcp->set_src_port(322);
+  EXPECT(tcp->src_port() == 322);
+  EXPECT(tcp->compute_tcp_checksum() != 0);
+
+  tcp->set_tcp_checksum();
+  EXPECT(tcp->compute_tcp_checksum() == 0);
 }

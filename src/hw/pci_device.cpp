@@ -22,7 +22,6 @@
 #include <hw/pci_device.hpp>
 #include <kernel/syscalls.hpp>
 #include <hw/msi.hpp>
-#include <sstream>
 
 /* PCI Register Config Space */
 #define PCI_DEV_VEND_REG	0x00	/* for the 32 bit read of dev/vend */
@@ -267,6 +266,12 @@ namespace hw {
       // go to next cap
       offset = cap.next;
     }
+  }
+
+  void PCI_Device::deactivate()
+  {
+    // disables device (except for configuration)
+    write_dword(PCI_CMD_REG, 0);
   }
 
 } //< namespace hw

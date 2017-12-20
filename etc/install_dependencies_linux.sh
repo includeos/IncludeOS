@@ -6,12 +6,16 @@
 # OPTIONS:
 ############################################################
 
-BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip g++-multilib"
+BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip g++-multilib gcc"
 [ ! -z "$CC" ] && { CLANG_VERSION=${CC: -3}; } || CLANG_VERSION="3.8"
 TEST_DEPENDENCIES="g++"
 PYTHON_DEPENDENCIES="jsonschema psutil junit-xml filemagic"
 INSTALLED_PIP=0
 INSTALLED_CLANG=0
+
+# NaCl
+PIP_MODS_NACL="pystache antlr4-python2-runtime"
+PYTHON_DEPENDENCIES="$PYTHON_DEPENDENCIES $PIP_MODS_NACL"
 
 ############################################################
 # COMMAND LINE PROPERTIES:

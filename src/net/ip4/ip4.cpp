@@ -15,9 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#undef NO_DEBUG
-#define DEBUG // Allow debugging
-#define DEBUG2 // Allow debug lvl 2
+//#define IP_DEBUG 1
+#ifdef IP_DEBUG
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
 
 #include <net/ip4/ip4.hpp>
 #include <net/ip4/packet_ip4.hpp>
@@ -57,7 +60,7 @@ namespace net {
       return drop(std::move(packet), up, Drop_reason::Wrong_version);
 
     // RFC-1122 3.2.1.2, Verify IP checksum, silently discard bad dgram
-    if (UNLIKELY(packet->compute_checksum() != 0))
+    if (UNLIKELY(packet->compute_ip_checksum() != 0))
       return drop(std::move(packet), up, Drop_reason::Wrong_checksum);
 
     // RFC-1122 3.2.1.3, Silently discard datagram with bad src addr
@@ -84,68 +87,116 @@ namespace net {
     return packet;
   }
 
+  /*
+   * RFC 1122, p. 30
+   * An incoming datagram is destined
+     for the host if the datagram's destination address field is:
+     (1)  (one of) the host's IP address(es); or
+     (2)  an IP broadcast address valid for the connected
+          network; or
+     (3)  the address for a multicast group of which the host is
+          a member on the incoming physical interface.
+  */
+  bool IP4::is_for_me(ip4::Addr dst) const
+  {
+    return stack_.is_valid_source(dst)
+      or (dst | stack_.netmask()) == ADDR_BCAST
+      or local_ip() == ADDR_ANY;
+  }
 
-  void IP4::receive(Packet_ptr pckt)
+  void IP4::receive(Packet_ptr pckt, const bool link_bcast)
   {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
-    debug("<IP4> received packet \n");
-    debug2("\t* Source IP: %s Dest.IP: %s Type: 0x%x\n",
+    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x LinkBcast: %d ",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
-           (int) packet->ip_protocol());
-
+           (int) packet->ip_protocol(),
+           link_bcast);
+    switch (packet->ip_protocol()) {
+    case Protocol::ICMPv4:
+       PRINT("Type: ICMP\n"); break;
+    case Protocol::UDP:
+       PRINT("Type: UDP\n"); break;
+    case Protocol::TCP:
+       PRINT("Type: TCP\n"); break;
+    default:
+       PRINT("Type: UNKNOWN %hhu. Dropping. \n", packet->ip_protocol());
+    }
 
     // Stat increment packets received
     packets_rx_++;
 
-
     packet = drop_invalid_in(std::move(packet));
     if (UNLIKELY(packet == nullptr)) return;
 
-    // Enter prerouting chain
-    packet = stack_.prerouting_chain()(std::move(packet), stack_);
-    if (UNLIKELY(packet == nullptr)) return;
+    /* PREROUTING */
+    // Track incoming packet if conntrack is active
+    Conntrack::Entry_ptr ct = (stack_.conntrack())
+      ? stack_.conntrack()->in(*packet) : nullptr;
+    auto res = prerouting_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
     // Drop / forward if my ip address doesn't match dest. or broadcast
-    if (UNLIKELY(packet->ip_dst() != local_ip()
-                 and (packet->ip_dst() | stack_.netmask()) != ADDR_BCAST
-                 and local_ip() != ADDR_ANY
-                 and not stack_.is_loopback(packet->ip_dst()))) {
-
-      if (forward_packet_) {
-        forward_packet_(stack_, std::move(packet));
-        debug("Packet forwarded \n");
-      } else {
-        debug("Packet dropped \n");
+    if(not is_for_me(packet->ip_dst()))
+    {
+      // Forwarding disabled
+      if (not forward_packet_)
+      {
+        PRINT("Dropping packet \n");
         drop(std::move(packet), Direction::Upstream, Drop_reason::Bad_destination);
       }
-
+      // Forwarding enabled
+      else
+      {
+        PRINT("Forwarding packet \n");
+        forward_packet_(std::move(packet), stack_, ct);
+      }
       return;
     }
 
-    packet = stack_.input_chain()(std::move(packet), stack_);
-    if (UNLIKELY(packet == nullptr)) return;
+    PRINT("* Packet was for me (flags=%x)\n", (int) packet->ip_flags());
+
+    // if the MF bit is set or fragment offset is non-zero, go to reassembly
+    if (UNLIKELY(packet->ip_flags() == ip4::Flags::MF
+              || packet->ip_frag_offs() != 0))
+    {
+      packet = this->reassemble(std::move(packet));
+      if (packet == nullptr) return;
+    }
+
+    /* INPUT */
+    // Confirm incoming packet if conntrack is active
+    auto& conntrack = stack_.conntrack();
+    if(conntrack) {
+      ct = (ct != nullptr) ?
+        conntrack->confirm(ct->second, ct->proto) : conntrack->confirm(*packet);
+    }
+    if(stack_.conntrack())
+      stack_.conntrack()->confirm(*packet); // No need to set ct again
+    res = input_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {
     case Protocol::ICMPv4:
-      debug2("\t Type: ICMP\n");
       icmp_handler_(std::move(packet));
       break;
     case Protocol::UDP:
-      debug2("\t Type: UDP\n");
       udp_handler_(std::move(packet));
       break;
     case Protocol::TCP:
       tcp_handler_(std::move(packet));
-      debug2("\t Type: TCP\n");
       break;
 
     default:
-      debug("\t Type: UNKNOWN %hhu. Dropping. \n", packet->ip_protocol());
-
       // Send ICMP error of type Destination Unreachable and code PROTOCOL
       // @note: If dest. is broadcast or multicast it should be dropped by now
       stack_.icmp().destination_unreachable(std::move(packet), icmp4::code::Dest_unreachable::PROTOCOL);
@@ -160,25 +211,48 @@ namespace net {
 
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
+    /*
+     * RFC 1122 p. 30
+     * When a host sends any datagram, the IP source address MUST
+       be one of its own IP addresses (but not a broadcast or
+       multicast address).
+    */
+    if (UNLIKELY(not stack_.is_valid_source(packet->ip_src()))) {
+      drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_source);
+      return;
+    }
+
     if (path_mtu_discovery_)
       packet->set_ip_flags(ip4::Flags::DF);
 
     packet->make_flight_ready();
 
-    packet = stack_.output_chain()(std::move(packet), stack_);
-    if (UNLIKELY(packet == nullptr)) return;
+    /* OUTPUT */
+    Conntrack::Entry_ptr ct =
+      (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
+    auto res = output_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
-    ship(std::move(packet));
+    Ensures(res.packet != nullptr);
+    packet = res.release();
+
+
+    if (forward_packet_) {
+      forward_packet_(std::move(packet), stack_, ct);
+      return;
+    }
+
+    ship(std::move(packet), 0, ct);
   }
 
-  void IP4::ship(Packet_ptr pckt, addr next_hop)
+  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
     // Send loopback packets right back
-    if (UNLIKELY(stack_.is_loopback(packet->ip_dst()))) {
-      debug("<IP4> Destination address is loopback \n");
-      IP4::receive(std::move(packet));
+    if (UNLIKELY(stack_.is_valid_source(packet->ip_dst()))) {
+      PRINT("<IP4> Destination address is loopback \n");
+      IP4::receive(std::move(packet), false);
       return;
     }
 
@@ -186,14 +260,23 @@ namespace net {
     packet = drop_invalid_out(std::move(packet));
     if (packet == nullptr) return;
 
-    packet = stack_.postrouting_chain()(std::move(packet), stack_);
-    if (UNLIKELY(packet == nullptr)) return;
+    /* POSTROUTING */
+    auto& conntrack = stack_.conntrack();
+    if(conntrack) {
+      ct = (ct != nullptr) ?
+        conntrack->confirm(ct->first, ct->proto) : conntrack->confirm(*packet);
+    }
+    auto res = postrouting_chain_(std::move(packet), stack_, ct);
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
+    Ensures(res.packet != nullptr);
+    packet = res.release();
 
     if (next_hop == 0) {
       if (UNLIKELY(packet->ip_dst() == IP4::ADDR_BCAST)) {
         next_hop = IP4::ADDR_BCAST;
-      } else {
+      }
+      else {
         // Create local and target subnets
         addr target = packet->ip_dst()  & stack_.netmask();
         addr local  = stack_.ip_addr() & stack_.netmask();
@@ -201,19 +284,26 @@ namespace net {
         // Compare subnets to know where to send packet
         next_hop = target == local ? packet->ip_dst() : stack_.gateway();
 
-        debug("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+        PRINT("<IP4 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
               packet->ip_dst().str().c_str(),
               stack_.netmask().str().c_str(),
               stack_.ip_addr().str().c_str(),
               stack_.gateway().str().c_str(),
               next_hop.str().c_str());
+
+        if(UNLIKELY(next_hop == 0)) {
+          PRINT("<IP4> Next_hop calculated to 0 (gateway == %s), dropping\n",
+            stack_.gateway().str().c_str());
+          drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
+          return;
+        }
       }
     }
 
     // Stat increment packets transmitted
     packets_tx_++;
 
-    debug("<IP4> Transmitting packet, layer begin: buf + %li\n", packet->layer_begin() - packet->buf());
+    PRINT("<IP4> Transmitting packet, layer begin: buf + %li\n", packet->layer_begin() - packet->buf());
 
     linklayer_out_(std::move(packet), next_hop);
   }

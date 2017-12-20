@@ -37,7 +37,7 @@ struct Stats_exception : public std::runtime_error {
 
 class Stat {
 public:
-  static const int MAX_NAME_LEN = 47;
+  static const int MAX_NAME_LEN = 46;
 
   enum Stat_type: uint8_t
   {

@@ -1,9 +1,6 @@
-# Add drivers as libraries
 #
-# Note: we can't have all the drivers in the same library as we'll want
-# e.g. several network drivers, which will result in conflicting symbols
+# Build and install plugins as libraries
 #
-# ...There are probably nicer solutions, so please PR if you know them.
 add_library(syslogd STATIC syslogd.cpp)
 add_dependencies(syslogd PrecompiledLibraries)
 
@@ -16,4 +13,22 @@ add_dependencies(example PrecompiledLibraries)
 add_library(autoconf STATIC autoconf.cpp)
 add_dependencies(autoconf PrecompiledLibraries)
 
-install(TARGETS syslogd unik example autoconf DESTINATION includeos/${ARCH}/plugins)
+add_library(terminal STATIC terminal.cpp)
+add_dependencies(terminal PrecompiledLibraries)
+
+add_library(terminal_liu STATIC terminal.cpp)
+set_target_properties(terminal_liu PROPERTIES COMPILE_FLAGS "-DUSE_LIVEUPDATE")
+add_dependencies(terminal_liu PrecompiledLibraries)
+
+add_library(nacl STATIC nacl.cpp)
+add_dependencies(nacl PrecompiledLibraries)
+
+install(TARGETS
+    syslogd
+    unik
+    example
+    autoconf
+    terminal
+    terminal_liu
+    nacl
+  DESTINATION includeos/${ARCH}/plugins)

@@ -141,7 +141,7 @@ public:
   size_t frame_offset_device() override
   { return sizeof(virtio_net_hdr); };
 
-  net::downstream create_physical_downstream()
+  net::downstream create_physical_downstream() override
   { return {this, &VirtioNet::transmit}; }
 
 
@@ -169,10 +169,7 @@ public:
   void poll() override;
 
 private:
-
-  /** Stats */
-  uint64_t& packets_rx_;
-  uint64_t& packets_tx_;
+  hw::PCI_Device& m_pcidev;
 
   struct virtio_net_hdr {
     uint8_t flags;
@@ -214,11 +211,8 @@ private:
   /** Get virtio PCI config. @see Virtio::get_config.*/
   void get_config();
 
-  /** Add packet to buffer chain */
-  void add_to_tx_buffer(net::Packet_ptr pckt);
-
-  /** Add packet chain to virtio queue */
-  void enqueue(net::Packet* pckt);
+  /** Add packet to transmit ring */
+  void enqueue_tx(net::Packet* pckt);
 
   /** Handle device IRQ.
       Will look for config changes and service RX/TX queues as necessary.*/
@@ -238,7 +232,12 @@ private:
   bool deferred_kick = false;
   static void handle_deferred_devices();
 
-  net::Packet_ptr transmit_queue_ {nullptr};
+  net::Packet_ptr transmit_queue = nullptr;
+  net::BufferStore bufstore_;
+
+  /** Stats */
+  uint64_t& packets_rx_;
+  uint64_t& packets_tx_;
 };
 
 #endif

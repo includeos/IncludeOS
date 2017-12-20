@@ -21,9 +21,9 @@
 
 #include <map>
 #include <net/port_util.hpp>
+#include <net/conntrack.hpp>
 #include <net/inet>
-#include <net/tcp/tcp.hpp>
-#include <net/tcp/connection_tracker.hpp>
+#include <net/ip4/ip4.hpp>
 
 namespace net {
 namespace nat {
@@ -34,68 +34,50 @@ namespace nat {
 class NAPT {
 public:
   using Stack = Inet<IP4>;
-  using Translation_table = std::map<uint16_t, Socket>;
 
 public:
 
-  NAPT() {
-    tcp_tracker.on_close = {this, &NAPT::conn_close};
-  }
+  NAPT(std::shared_ptr<Conntrack> ct);
 
-  // NAT
-  IP4::IP_packet_ptr nat(IP4::IP_packet_ptr pkt, const Stack& inet);
+  /**
+   * @brief      Masquerade a packet, changing it's source
+   *
+   * @param      pkt   The packet
+   * @param[in]  inet  The inet
+   */
+  void masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr);
 
-  // Replace source socket with external (this) address and random port
-  IP4::IP_packet_ptr snat(IP4::IP_packet_ptr pkt, const Stack& inet);
+  /**
+   * @brief      Demasquerade a packet, restoring it's destination
+   *
+   * @param      pkt   The packet
+   * @param[in]  inet  The inet
+   */
+  void demasquerade(IP4::IP_packet& pkt, const Stack& inet, Conntrack::Entry_ptr);
 
-  // Replace source address with external address from table
-  IP4::IP_packet_ptr dnat(IP4::IP_packet_ptr pkt, const Stack& inet);
+  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const Socket sock);
+  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const ip4::Addr addr);
+  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const uint16_t port);
+  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr);
 
-  void add_entry(uint16_t port, Socket sock)
-  {
-    // Bind the port
-    tcp_ports.bind(port);
-    // Add the entry
-    tcp_trans.emplace(port, sock);
-
-    //printf("NAT entry: %s => %u\n", sock.to_string().c_str(), port);
-  }
-
-  void remove_entry(Socket socket)
-  {
-    auto it = std::find_if(tcp_trans.begin(), tcp_trans.end(),
-      [socket] (auto& ent) {
-        return ent.second == socket;
-      });
-
-    if(it != tcp_trans.end())
-    {
-      tcp_ports.unbind(it->first);
-      tcp_trans.erase(it);
-    }
-  }
-
-  void conn_close(const tcp::Connection_tracker::Tuple& tuple)
-  {
-    remove_entry(tuple.first);
-  }
+  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const Socket sock);
+  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const ip4::Addr addr);
+  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const uint16_t port);
+  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr);
 
 private:
-  Port_util tcp_ports;
-  Port_util udp_ports;
+  std::shared_ptr<Conntrack> conntrack;
 
-  Translation_table tcp_trans;
-  Translation_table udp_trans;
-
-  tcp::Connection_tracker tcp_tracker;
-
-  // Source NAT
-  void snat(tcp::Packet& pkt, ip4::Addr src_ip);
-
-  // Destination NAT
-  void dnat(tcp::Packet& pkt);
-
-  void recalculate_checksum(tcp::Packet& pkt, Socket osock, Socket nsock);
+  /**
+   * @brief      If not already updated, bind to a ephemeral port and update the entry.
+   *
+   * @param[in]  entry  The entry
+   * @param[in]  addr   The address
+   * @param      ports  The ports
+   *
+   * @return     The socket used for SNAT
+   */
+  Socket masq(Conntrack::Entry_ptr entry, const ip4::Addr addr, Port_util& ports);
 
 }; // < class NAPT
 

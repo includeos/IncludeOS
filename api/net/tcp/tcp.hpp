@@ -29,7 +29,7 @@
 #include <deque>  // writeq
 #include <net/inet.hpp>
 #include <net/socket.hpp>
-#include <net/port_util.hpp>
+#include <net/ip4/ip4.hpp>
 
 namespace net {
 
@@ -54,7 +54,6 @@ namespace net {
   private:
     using Listeners       = std::map<Socket, std::unique_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
-    using Port_lists      = std::map<tcp::Address, Port_util>;
 
   public:
     /////// TCP Stuff - Relevant to the protocol /////
@@ -185,15 +184,6 @@ namespace net {
      */
     void set_network_out(downstream del)
     { _network_layer_out = del; }
-
-    /**
-     * @brief      Computes the TCP checksum of a segment
-     *
-     * @param[in]  <unnamed>  a TCP Segment
-     *
-     * @return     The checksum of the TCP segment
-     */
-    static uint16_t checksum(const tcp::Packet&);
 
     /**
      * @brief      Returns a collection of the listeners for this instance.
@@ -471,7 +461,7 @@ namespace net {
     Listeners     listeners_;
     Connections   connections_;
 
-    Port_lists    ports_;
+    IPStack::Port_utils& ports_;
 
     downstream  _network_layer_out;
 
@@ -608,7 +598,7 @@ namespace net {
      * @return     True if valid source, False otherwise.
      */
     bool is_valid_source(const tcp::Address addr) const noexcept
-    { return addr == address() or addr == 0; /* temp */ }
+    { return addr == 0 or inet_.is_valid_source(addr); }
 
     /**
      * @brief      Try to find the listener bound to socket.

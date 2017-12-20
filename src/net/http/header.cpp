@@ -110,24 +110,9 @@ Header::Const_iterator Header::find(util::csview field) const noexcept {
   //-----------------------------------
   return
     std::find_if(fields_.cbegin(), fields_.cend(), [&field](const auto _) {
-      return (_.first.length() == field.length())
-        and std::equal(_.first.data(), _.first.data() + _.first.length(), field.data(), [](const auto a, const auto b) {
-          return std::tolower(a) == std::tolower(b);
-        });
+      return std::equal(_.first.cbegin(), _.first.cend(), field.cbegin(), field.cend(),
+        [](const auto a, const auto b) { return std::tolower(a) == std::tolower(b); });
     });
-}
-
-///////////////////////////////////////////////////////////////////////////////
-std::ostream& operator << (std::ostream& output_device, const Header& header) {
-  if (not header.is_empty()) {
-    for (const auto field : header.fields_) {
-      output_device << field.first  << ": "
-                    << field.second << "\r\n";
-    }
-    //-----------------------------------
-    output_device << "\r\n";
-  }
-  return output_device;
 }
 
 } //< namespace http

@@ -1,0 +1,110 @@
+//-*- C++ -*-
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#pragma once
+#ifndef NET_VLAN_API
+#define NET_VLAN_API
+
+#include <net/vlan_manager.hpp>
+#include <net/super_stack.hpp>
+#include <config>
+#include <rapidjson/document.h>
+
+namespace net {
+
+template <typename T>
+void parse_vlan_entry(const T& net)
+{
+  Expects(net.HasMember("iface"));
+
+  // Get the index (nic) the VLAN should be place upon
+  auto iface = net["iface"].GetInt();
+  auto& nic = Super_stack::get<IP4>(iface).nic();
+
+  Expects(net.HasMember("vlan")
+    && "VLAN config not found (\"vlan\")");
+
+  auto& vlan = net["vlan"];
+
+  Expects(vlan.IsArray()
+    && "Malformed vlan config (not an array)");
+
+  auto vlans = vlan.GetArray();
+
+  auto& manager = VLAN_manager::get(iface);
+
+  INFO2("Found %i entries for %s, creating stacks...", vlans.Size(), nic.device_name().c_str());
+  for(auto& entry : vlans)
+  {
+    Expects(entry.HasMember("id") && "Missing VLAN ID");
+
+    // Get the VLAN id
+    auto id = entry["id"].GetInt();
+
+    // Create VLAN Nic on the physical Nic with VLAN id
+    auto& vif = manager.add(nic, id);
+
+    // Create stack on VLAN Nic [iface, id]
+    auto& stack = Super_stack::inet().create<IP4>(vif, iface, id);
+
+    // Configure the network stack
+    Expects(entry.HasMember("address"));
+    Expects(entry.HasMember("netmask"));
+
+    ip4::Addr address{entry["address"].GetString()};
+    ip4::Addr netmask{entry["netmask"].GetString()};
+    ip4::Addr gateway = (entry.HasMember("gateway"))
+        ? ip4::Addr{entry["gateway"].GetString()} : 0;
+
+    stack.network_config(address, netmask, gateway);
+  }
+}
+
+void setup_vlans()
+{
+  const auto& cfg = Config::get();
+  INFO("VLAN setup", "Reading VLAN config...");
+
+  Expects(not cfg.empty()
+    && "No config found");
+
+  rapidjson::Document doc;
+  doc.Parse(cfg.data());
+
+  Expects(doc.IsObject()
+    && "Malformed config (not an object)");
+
+  Expects(doc.HasMember("net")
+    && "Net config not found (\"net\")");
+
+  auto& net = doc["net"];
+
+  Expects(net.IsArray()
+    && "Malformed net config (not an array)");
+
+  auto net_arr = net.GetArray();
+  for(auto& entry : net_arr) {
+    if(entry.HasMember("vlan"))
+      parse_vlan_entry(entry);
+  }
+
+  INFO("VLAN setup", "Setup complete");
+}
+
+} //< namespace net
+
+#endif

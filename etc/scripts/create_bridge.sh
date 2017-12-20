@@ -7,18 +7,22 @@ if [ $# -eq 0 ]
 then
   echo "    Using default settings "
   BRIDGE=bridge43
-  NETMASK=255.255.0.0
+  NETMASK=255.255.255.0
   GATEWAY=10.0.0.1
 
 elif [ $# -eq 3 ]
 then
   BRIDGE=$1
-  NEMASK=$2
+  NETMASK=$2
   GATEWAY=$3
 else
   me=`basename "$0"`
   echo "Usage: $me [name netmask gateway]"
   exit 1
+fi
+
+if [ -n "$INCLUDEOS_BRIDGE" ]; then
+     BRIDGE=$INCLUDEOS_BRIDGE
 fi
 
 echo "    Creating bridge $BRIDGE, netmask $NETMASK, gateway $GATEWAY "

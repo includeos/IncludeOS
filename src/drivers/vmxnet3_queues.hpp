@@ -20,6 +20,10 @@
 
 /** Maximum number of interrupts */
 #define VMXNET3_MAX_INTRS 25
+/** Adaptive Interrupt Moderation */
+#define UPT1_IML_ADAPTIVE 0x8
+/** VLAN tag stripping feature */
+#define UPT1_F_RXVLAN     0x4
 
 #define GOS_TYPE_LINUX    1
 #define GOS_BITS_32_BITS  1
@@ -291,5 +295,5 @@ struct vmxnet3_queues {
   /** Transmit queue descriptor(s) */
   struct vmxnet3_tx_queue tx;
   /** Receive queue descriptor(s) */
-  struct vmxnet3_rx_queue rx[1];
+  struct vmxnet3_rx_queue rx[vmxnet3::NUM_RX_QUEUES];
 } __attribute__ ((packed));

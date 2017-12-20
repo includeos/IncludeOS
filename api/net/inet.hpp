@@ -20,10 +20,12 @@
 
 #include <chrono>
 #include <unordered_set>
-#include <list>
 #include <net/inet_common.hpp>
 #include <hw/mac_addr.hpp>
 #include <hw/nic.hpp>
+#include <map>
+#include <net/port_util.hpp>
+#include "conntrack.hpp"
 
 namespace net {
 
@@ -39,14 +41,19 @@ namespace net {
    **/
   template <typename IPV>
   struct Inet {
-    using Stack = Inet<IPV>;
-    using Forward_delg = delegate<void(Stack& source, typename IPV::IP_packet_ptr)>;
-    using Route_checker = delegate<bool(typename IPV::addr)>;
-    using IP_packet_factory = delegate<typename IPV::IP_packet_ptr(Protocol)>;
+    using Stack         = Inet<IPV>;
+    using IP_packet_ptr = typename IPV::IP_packet_ptr;
+    using IP_addr       = typename IPV::addr;
+
+    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
+    using Route_checker = delegate<bool(IP_addr)>;
+    using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
 
     template <typename IPv>
     using resolve_func = delegate<void(typename IPv::addr, const Error&)>;
-    using Vip_list = std::unordered_set<typename IPV::addr>;
+
+    using Vip_list    = std::vector<IP_addr>;
+    using Port_utils  = std::map<IP_addr, Port_util>;
 
 
     ///
@@ -54,31 +61,31 @@ namespace net {
     ///
 
     /** Get IP address of this interface **/
-    virtual typename IPV::addr ip_addr() const = 0;
+    virtual IP_addr ip_addr() const = 0;
 
     /** Get netmask of this interface **/
-    virtual typename IPV::addr netmask() const = 0;
+    virtual IP_addr netmask() const = 0;
 
     /** Get default gateway for this interface **/
-    virtual typename IPV::addr gateway() const = 0;
+    virtual IP_addr gateway() const = 0;
 
     /** Get default dns for this interface **/
-    virtual typename IPV::addr dns_addr() const = 0;
+    virtual IP_addr dns_addr() const = 0;
 
     /** Get broadcast address for this interface **/
-    virtual typename IPV::addr broadcast_addr() const = 0;
+    virtual IP_addr broadcast_addr() const = 0;
 
    /** Set default gateway for this interface */
-    virtual void set_gateway(typename IPV::addr server) = 0;
+    virtual void set_gateway(IP_addr server) = 0;
 
     /** Set DNS server for this interface */
-    virtual void set_dns_server(typename IPV::addr server) = 0;
+    virtual void set_dns_server(IP_addr server) = 0;
 
     /** Configure network for this interface */
-    virtual void network_config(typename IPV::addr ip,
-                                typename IPV::addr nmask,
-                                typename IPV::addr gateway,
-                                typename IPV::addr dnssrv = IPV::ADDR_ANY) = 0;
+    virtual void network_config(IP_addr ip,
+                                IP_addr nmask,
+                                IP_addr gateway,
+                                IP_addr dnssrv = IPV::ADDR_ANY) = 0;
 
     /** Reset network configuration for this interface */
     virtual void reset_config() = 0;
@@ -99,68 +106,36 @@ namespace net {
     virtual const Vip_list virtual_ips() const = 0;
 
     /** Check if an IP is a (possibly virtual) loopback address */
-    virtual bool is_loopback(typename IPV::addr a) const = 0;
+    virtual bool is_loopback(IP_addr a) const = 0;
 
     /** Add an IP address as a virtual loopback IP */
-    virtual void add_vip(typename IPV::addr a) = 0;
+    virtual void add_vip(IP_addr a) = 0;
 
     /** Remove an IP address from the virtual loopback IP list */
-    virtual void remove_vip(typename IPV::addr a) = 0;
+    virtual void remove_vip(IP_addr a) = 0;
 
     /** Determine the appropriate source address for a destination. */
-    virtual typename IPV::addr get_source_addr(typename IPV::addr dest) = 0;
+    virtual IP_addr get_source_addr(IP_addr dest) = 0;
 
     /** Determine if an IP address is a valid source address for this stack */
-    virtual bool is_valid_source(typename IPV::addr) = 0;
+    virtual bool is_valid_source(IP_addr) const = 0;
 
-
-    ///
-    /// PACKET FILTERING
-    ///
-
-    using Packetfilter = delegate<typename IPV::IP_packet_ptr(typename IPV::IP_packet_ptr, const Stack&)>;
-
-    struct Filter_chain {
-      std::list<Packetfilter> chain;
-      const char* name;
-
-      typename IPV::IP_packet_ptr operator()(typename IPV::IP_packet_ptr pckt, const Stack& stack) {
-        int i = 0;
-        for (auto filter : chain) {
-          i++;
-          pckt = filter(std::move(pckt), stack);
-          if (pckt == nullptr) {
-            debug("Packet dropped in %s chain, filter %i \n", name, i);
-            // do some logging
-            return nullptr;
-          }
-        }
-        return pckt;
-      }
-
-      Filter_chain(const char* chain_name, std::initializer_list<Packetfilter> filters)
-        : chain(filters), name{chain_name}
-      {}
-    };
 
     /**
-     * Packet filtering hooks for firewall, NAT, connection tracking etc.
-     **/
+     * @brief      Get the active conntrack for this stack.
+     *
+     * @return     The conntrack for this stack, nullptr if none.
+     */
+    virtual std::shared_ptr<Conntrack>& conntrack() = 0;
+    virtual const std::shared_ptr<Conntrack>& conntrack() const = 0;
 
-    /** Packets pass through prerouting chain before routing decision */
-    virtual Filter_chain& prerouting_chain() = 0;
-
-    /** Packets pass through postrouting chain after routing decision */
-    virtual Filter_chain& postrouting_chain() = 0;
-
-    /** Packets pass through forward chain by forwarder, if enabled */
-    virtual Filter_chain& forward_chain() = 0;
-
-    /** Packets pass through input chain before hitting protocol handlers */
-    virtual Filter_chain& input_chain() = 0;
-
-    /** Packets pass through output chain after exiting protocol handlers */
-    virtual Filter_chain& output_chain() = 0;
+    /**
+     * @brief      Enables the conntrack for this stack,
+     *             setting up the necessary hooks.
+     *
+     * @param      <unnamed>  The conntrack to assign to this stack.
+     */
+    virtual void enable_conntrack(std::shared_ptr<Conntrack>) = 0;
 
 
     ///
@@ -179,6 +154,8 @@ namespace net {
     /** Get the ICMP protocol object for this interface */
     virtual ICMPv4& icmp() = 0;
 
+    virtual Port_utils& tcp_ports() = 0;
+    virtual Port_utils& udp_ports() = 0;
 
     ///
     /// PATH MTU DISCOVERY
@@ -232,7 +209,7 @@ namespace net {
                          resolve_func<IPV>  func,
                          bool               force = false) = 0;
     virtual void resolve(const std::string& hostname,
-                         typename IPV::addr server,
+                         IP_addr            server,
                          resolve_func<IPV>  func,
                          bool               force = false) = 0;
 
@@ -254,7 +231,7 @@ namespace net {
     virtual MAC::Addr link_addr() const = 0;
 
     /** Add cache entry to the link / IP address cache */
-    virtual void cache_link_addr(typename IPV::addr, MAC::Addr) = 0;
+    virtual void cache_link_addr(IP_addr, MAC::Addr) = 0;
 
     /** Flush  link / IP address cache */
     virtual void flush_link_cache() = 0;
@@ -293,7 +270,7 @@ namespace net {
     virtual IP_packet_factory ip_packet_factory() = 0;
 
     /** Provision empty IP packet **/
-    virtual typename IPV::IP_packet_ptr create_ip_packet(Protocol) = 0;
+    virtual IP_packet_ptr create_ip_packet(Protocol) = 0;
 
     /** Event triggered when there are available buffers in the transmit queue */
     virtual void on_transmit_queue_available(transmit_avail_delg del) = 0;

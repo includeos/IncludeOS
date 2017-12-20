@@ -16,8 +16,7 @@ static const char* elf_offset(int o) noexcept {
 static char* pruned_location = nullptr;
 static const char* syms_file = "_elf_symbols.bin";
 
-static int prune_elf64_symbols(char*);
-static int prune_elf32_symbols(char*);
+static int prune_elf_symbols(char*);
 
 int main(int argc, const char** args)
 {
@@ -44,15 +43,8 @@ int main(int argc, const char** args)
   int pruned_size = 0;
   fprintf(stderr, "%s: Pruning ELF symbols \n", args[0]);
 
-  // validate symbols
-if (arch == "x86_64")
-{
-  pruned_size = prune_elf64_symbols(fdata);
-}
-else
-{
-  pruned_size = prune_elf32_symbols(fdata);
-}
+  pruned_size = prune_elf_symbols(fdata);
+  // validate size
   assert(pruned_size != 0);
 
   // write symbols to binary file
@@ -201,4 +193,19 @@ static int prune_elf64_symbols(char* location)
 {
   elf_header_location = location;
   return prune_elf_symbols<64, Elf64_Ehdr, Elf64_Shdr, Elf64_Sym> ();
+}
+
+static int prune_elf_symbols(char* location)
+{
+  auto* hdr = (Elf32_Ehdr*) location;
+  assert(hdr->e_ident[EI_MAG0] == ELFMAG0);
+  assert(hdr->e_ident[EI_MAG1] == ELFMAG1);
+  assert(hdr->e_ident[EI_MAG2] == ELFMAG2);
+  assert(hdr->e_ident[EI_MAG3] == ELFMAG3);
+
+  if (hdr->e_ident[EI_CLASS] == ELFCLASS32)
+      return prune_elf32_symbols(location);
+  else if (hdr->e_ident[EI_CLASS] == ELFCLASS64)
+      return prune_elf64_symbols(location);
+  assert(0 && "Unknown ELF class");
 }

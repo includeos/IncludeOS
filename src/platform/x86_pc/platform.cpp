@@ -18,6 +18,7 @@
 #include "acpi.hpp"
 #include "apic.hpp"
 #include "apic_timer.hpp"
+#include "clocks.hpp"
 #include "gdt.hpp"
 #include "idt.hpp"
 #include "pit.hpp"
@@ -26,6 +27,7 @@
 #include <kernel/pci_manager.hpp>
 #include <kernel/os.hpp>
 #include <hw/devices.hpp>
+#include <hw/pci_device.hpp>
 #include <info>
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
 
@@ -116,8 +118,15 @@ void __platform_init()
   // Deferred call to Service::ready() when calibration is complete
   APIC_Timer::calibrate();
 
-  // Initialize PCI devices
-  PCI_manager::init();
+  // Setup kernel clocks
+  MYINFO("Setting up kernel clock sources");
+  Clocks::init();
+
+  // Initialize storage devices
+  PCI_manager::init(PCI::STORAGE);
+  OS::m_block_drivers_ready = true;
+  // Initialize network devices
+  PCI_manager::init(PCI::NIC);
 
   // Print registered devices
   hw::Devices::print_devices();

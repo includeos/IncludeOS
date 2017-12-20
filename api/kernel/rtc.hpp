@@ -21,6 +21,7 @@
 #define KERNEL_RTC_HPP
 
 #include <cstdint>
+#include <arch.hpp>
 
 class RTC
 {
@@ -28,7 +29,7 @@ public:
   using timestamp_t = int64_t;
 
   /// returns a 64-bit unix timestamp of the current time
-  static timestamp_t now();
+  static timestamp_t now() { return __arch_time_now(); }
 
   /// returns a 64-bit unix timestamp for when the OS was booted
   static timestamp_t boot_timestamp() {
@@ -45,8 +46,6 @@ public:
 
 private:
   static timestamp_t booted_at;
-  static timestamp_t current_time;
-  static uint64_t    current_ticks;
 };
 
 #endif

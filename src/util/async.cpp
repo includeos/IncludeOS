@@ -16,11 +16,8 @@
 // limitations under the License.
 
 #include <async>
-
+#include <common>
 #include <memory>
-
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
 
 inline unsigned roundup(unsigned n, unsigned div) {
   return (n + div - 1) / div;
@@ -29,28 +26,28 @@ inline unsigned roundup(unsigned n, unsigned div) {
 void Async::upload_file(
     Disk          disk,
     const Dirent& ent,
-    Stream&       stream,
+    Stream*       stream,
     on_after_func callback,
     const size_t  CHUNK_SIZE)
 {
   disk_transfer(disk, ent,
   [stream] (fs::buffer_t buffer,
-            size_t       length,
             next_func    next) mutable
   {
+    auto length = buffer->size();
     // temp
-    stream.on_write(net::tcp::Connection::WriteCallback::make_packed(
+    stream->on_write(
+      net::tcp::Connection::WriteCallback::make_packed(
       [length, next] (size_t n) {
 
         // if all data written, go to next chunk
         debug("<Async::upload_file> %u / %u\n", n, length);
         next(n == length);
-
       })
     );
 
     // write chunk to TCP connection
-    stream.write(buffer, length);
+    stream->write(buffer);
 
   }, callback, CHUNK_SIZE);
 }
@@ -86,10 +83,9 @@ void Async::disk_transfer(
       fs::on_read_func::make_packed(
       [next, pos, write_func, callback, CHUNK_SIZE] (
           fs::error_t  err,
-          fs::buffer_t buffer,
-          uint64_t     length)
+          fs::buffer_t buffer)
       {
-        debug("<Async> len=%llu\n",length);
+        debug("<Async> len=%lu\n", buffer->size());
         if (err) {
           printf("%s\n", err.to_string().c_str());
           callback(err, false);
@@ -99,12 +95,11 @@ void Async::disk_transfer(
         // call write callback with data
         write_func(
           buffer,
-          length,
           next_func::make_packed(
           [next, pos, callback] (bool good)
           {
             // if the write succeeded, call next
-            if (likely(good))
+            if (LIKELY(good))
               (*next)(pos+1);
             else
               // otherwise, fail

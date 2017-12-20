@@ -18,6 +18,7 @@
 #include <string>
 #include <ftw.h>
 #include <fs/vfs.hpp>
+#include <errno.h>
 #include <memdisk>
 
 extern const std::string& cwd_ref();

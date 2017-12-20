@@ -71,7 +71,7 @@ CASE("Filling a hole")
 
   std::string compare = str1+str2+str3;
 
-  EXPECT(std::memcmp(buf.buffer().get(), compare.data(), compare.size()) == 0);
+  EXPECT(std::memcmp(buf.buffer()->data(), compare.data(), compare.size()) == 0);
 
   EXPECT(not buf.at_end());
 
@@ -115,7 +115,7 @@ CASE("Filling the buffer")
   EXPECT(SEQ - SEQ_START == buf.capacity());
 }
 
-CASE("Renewing the buffer")
+CASE("Reseting the buffer")
 {
   using namespace net::tcp;
   const seq_t SEQ_START = 322;
@@ -139,7 +139,7 @@ CASE("Renewing the buffer")
   auto buffer = buf.buffer();
   EXPECT(buffer.use_count() == 2);
 
-  buf.renew(SEQ);
+  buf.reset(SEQ);
 
   EXPECT(buf.capacity() == BUFSZ);
   EXPECT(buf.size() == 0);
@@ -147,5 +147,25 @@ CASE("Renewing the buffer")
   EXPECT(not buf.is_ready());
   EXPECT(not buf.at_end());
 
+  // not unique means new buffer
   EXPECT(buffer.unique());
+  EXPECT(buf.buffer() != buffer);
+
+  // no copy means same buffer
+  auto* ptr = buf.buffer().get();
+  buf.reset(SEQ);
+  EXPECT(buf.buffer().get() == ptr);
+
+  // increasing the cap means same buffer
+  ptr = buf.buffer().get();
+  auto* data = buf.buffer()->data();
+  buf.reset(SEQ, BUFSZ*2);
+  EXPECT(buf.buffer().get() == ptr);
+  // but not same data
+  EXPECT(buf.buffer()->data() != data);
+
+  // decreasing the cap also means new data
+  data = buf.buffer()->data();
+  buf.reset(SEQ, BUFSZ/2);
+  EXPECT(buf.buffer()->data() != data);
 }

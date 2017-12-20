@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <gsl/span>
 #include <net/ip4/packet_ip4.hpp>
+#include <net/ip4/ip4.hpp> // please remove me
 
 namespace net {
 namespace icmp4 {
@@ -131,7 +132,7 @@ namespace icmp4 {
     }
 
     /** Release packet pointer **/
-    Packet_ptr release()
+    IP4::IP_packet_ptr release()
     { return std::move(pckt_); }
 
   private:

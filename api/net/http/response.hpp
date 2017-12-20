@@ -207,7 +207,8 @@ inline Response_ptr make_response(std::string response) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-inline std::ostream& operator << (std::ostream& output_device, const Response& res) {
+template<typename Char, typename Char_traits>
+inline std::basic_ostream<Char, Char_traits>& operator<<(std::basic_ostream<Char, Char_traits>& output_device, const Response& res) {
   return output_device << res.to_string();
 }
 

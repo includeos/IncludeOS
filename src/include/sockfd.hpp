@@ -28,16 +28,20 @@ public:
   explicit SockFD(const int id)
       : FD(id)
   {}
-  
+
   bool is_socket() override { return true; }
-  
-  typedef delegate<void(net::tcp::buffer_t, size_t)> on_read_func;
+
+  typedef delegate<void(net::tcp::buffer_t)> on_read_func;
   typedef delegate<void()> on_write_func;
   typedef delegate<void()> on_except_func;
-  
+
   virtual on_read_func   get_default_read_func()   = 0;
   virtual on_write_func  get_default_write_func()  = 0;
   virtual on_except_func get_default_except_func() = 0;
 };
+
+struct sockaddr;
+typedef uint32_t socklen_t;
+extern bool validate_sockaddr_in(const struct sockaddr*, socklen_t);
 
 #endif

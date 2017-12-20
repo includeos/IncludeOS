@@ -17,24 +17,31 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include <fd_map.hpp>
-#include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <fs/vfs.hpp>
 #include <file_fd.hpp>
+#include <errno.h>
+#include <posix_strace.hpp>
 
-static const int rng_fd       {998}; // temp
+static const int RNG_FD = 4;
 
-int open(const char* s, int, ...)
+int open(const char* s, int oflag, ...)
 {
+  //const bool NON_BLOCKING = (oflag & 04000) != 0;
+
   if(strcmp(s, "/dev/random") == 0 || strcmp(s, "/dev/urandom") == 0) {
-    return rng_fd;
+    PRINT("open(%s, %d) = %d\n", s, oflag, RNG_FD);
+    return RNG_FD;
   }
   if (s == nullptr) {
+    PRINT("open(%s, %d) = %d\n", s, oflag, -1);
     errno = EFAULT;
     return -1;
   }
-  if (strcmp(s, "") == 0) {
+  if (s[0] == 0) {
+    PRINT("open(%s, %d) = %d\n", s, oflag, -1);
     errno = ENOENT;
     return -1;
   }
@@ -43,20 +50,22 @@ int open(const char* s, int, ...)
     if (ent.is_valid())
     {
       auto& fd = FD_map::_open<File_FD>(ent);
+      PRINT("open(%s, %d) = %d\n", s, oflag, fd.get_id());
       return fd.get_id();
     }
     errno = ENOENT;
-    return -1;
   }
   catch (...) {
     errno = ENOENT;
-    return -1;
   }
+  PRINT("open(%s, %d) = %d\n", s, oflag, -1);
+  return -1;
 }
 
 int close(int fd)
 {
-  if(fd == rng_fd) {
+  PRINT("close(%d)\n", fd);
+  if(fd == RNG_FD) {
     return 0;
   }
   try {
@@ -71,11 +80,12 @@ int close(int fd)
 
 int read(int fd, void* buf, size_t len)
 {
+  PRINT("read(%d, %p, %lu)\n", fd, buf, len);
   if (buf == nullptr) {
     errno = EFAULT;
     return -1;
   }
-  if(fd == rng_fd) {
+  if(fd == RNG_FD) {
     rng_extract(buf, len);
     return len;
   }
@@ -96,7 +106,8 @@ int write(int fd, const void* ptr, size_t len)
     OS::print((const char*) ptr, len);
     return len;
   }
-  else if (fd == rng_fd) {
+  PRINT("write(%d, %p, %lu)\n", fd, ptr, len);
+  if (fd == RNG_FD) {
     rng_absorb(ptr, len);
     return len;
   }
@@ -113,12 +124,14 @@ int write(int fd, const void* ptr, size_t len)
 // read value of a symbolic link (which we don't have)
 ssize_t readlink(const char* path, char*, size_t bufsiz)
 {
-  printf("readlink(%s, bufsize=%u)\n", path, bufsiz);
-  return 0;
+  PRINT("readlink(%s, %lu) == -1\n", path, bufsiz);
+  errno = EBADF;
+  return -1;
 }
 
 int fsync(int fildes)
 {
+  PRINT("fsync(%d)\n", fildes);
   try {
     (void) fildes;
     //auto& fd = FD_map::_get(fildes);
@@ -131,12 +144,15 @@ int fsync(int fildes)
   }
 }
 
-int fchown(int, uid_t, gid_t)
+int fchown(int fd, uid_t, gid_t)
 {
+  PRINT("fchown(%d)\n", fd);
   return -1;
 }
 
-off_t lseek(int fd, off_t offset, int whence) {
+off_t lseek(int fd, off_t offset, int whence)
+{
+  PRINT("lseek(%d, %lu, %d)\n", fd, offset, whence);
   try {
     auto& fildes = FD_map::_get(fd);
     return fildes.lseek(offset, whence);
@@ -147,11 +163,13 @@ off_t lseek(int fd, off_t offset, int whence) {
   }
 }
 
-int isatty(int fd) {
+int isatty(int fd)
+{
   if (fd == 1 || fd == 2 || fd == 3) {
-    debug("SYSCALL ISATTY Dummy returning 1");
+    PRINT("isatty(%d) = %d\n", fd, 1);
     return 1;
   }
+  PRINT("isatty(%d) = %d\n", fd, 0);
   try {
     auto& fildes = FD_map::_get(fd);
     (void) fildes;
@@ -167,6 +185,7 @@ int isatty(int fd) {
 #include <kernel/rtc.hpp>
 unsigned int sleep(unsigned int seconds)
 {
+  PRINT("sleep(%u) = %d\n", seconds, 0);
   int64_t now  = RTC::now();
   int64_t done = now + seconds;
   while (now < done) {
@@ -184,6 +203,7 @@ int chdir(const char *path)
 // todo: handle relative path
 // todo: handle ..
 {
+  PRINT("chdir(%s) = %d\n", path, -1);
   if (not path or strlen(path) < 1)
   {
     errno = ENOENT;
@@ -250,15 +270,19 @@ char *getcwd(char *buf, size_t size)
 
 int ftruncate(int fd, off_t length)
 {
+  PRINT("ftruncate(%d, %lu) = %d\n", fd, length, 1);
   (void) fd;
   (void) length;
   // TODO: needs writable filesystem
-  return EBADF;
+  errno = EBADF;
+  return -1;
 }
 
 #include <limits.h>
 #include <sys/resource.h>
-long sysconf(int name) {
+long sysconf(int name)
+{
+  PRINT("sysconf(%d)\n", name);
   // for indeterminate limits, return -1, *don't* set errno
   switch (name) {
     case _SC_AIO_LISTIO_MAX:
@@ -364,14 +388,22 @@ long sysconf(int name) {
 }
 
 uid_t getuid() {
+  PRINT("getuid() == 0\n");
+  return 0;
+}
+
+uid_t geteuid() {
+  PRINT("geteuid() == 0\n");
   return 0;
 }
 
 gid_t getgid() {
+  PRINT("getgid() == 0\n");
   return 0;
 }
 
 long fpathconf(int fd, int name) {
+  PRINT("fpathconf(%d, %d)\n", fd, name);
   try {
     auto& fildes = FD_map::_get(fd);
     (void) fildes;
@@ -408,6 +440,7 @@ long fpathconf(int fd, int name) {
 }
 
 long pathconf(const char *path, int name) {
+  PRINT("pathconf(%s, %d)\n", path, name);
   int fd = open(path, O_RDONLY);
   if (fd == -1) {
     errno = ENOENT;

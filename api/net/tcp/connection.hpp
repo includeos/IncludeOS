@@ -80,7 +80,7 @@ public:
   inline Connection&            on_connect(ConnectCallback callback);
 
   /** Called with a shared buffer and the length of the data when received. */
-  using ReadCallback            = delegate<void(buffer_t, size_t)>;
+  using ReadCallback            = delegate<void(buffer_t)>;
   /**
    * @brief      Event when incoming data is received by the connection.
    *             The recv_bufsz determines the size of the receive buffer.
@@ -126,7 +126,7 @@ public:
   /** Called with the number of bytes written. */
   using WriteCallback           = delegate<void(size_t)>;
   /**
-   * @brief      Event when a connection has finished sending a write request (chunk).
+   * @brief      Event when a connection has finished sending a write request.
    *             This event does not tell if the data has been received by the peer,
    *             only that it has been transmitted.
    *             This can also be called with the amount written by the current request
@@ -162,23 +162,25 @@ public:
    */
   inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
+  /**
+   * @brief      Only change the on_read callback without touching the buffer.
+   *             Only useful in special cases. Assumes on_read has been called.
+   *
+   * @param[in]  callback  The callback
+   *
+   * @return     This connection
+   */
+  inline Connection&            set_on_read_callback(ReadCallback callback);
+
 
   /**
    * @brief      Async write of a shared buffer with a length.
    *             Avoids any copy of the data into the internal buffer.
-   *             Calls write(Chunk c).
    *
    * @param[in]  buffer  shared buffer
    * @param[in]  n       length
    */
-  inline void write(buffer_t buffer, size_t n);
-
-  /**
-   * @brief      Async write of a chunk.
-   *
-   * @param[in]  c     A chunk
-   */
-  void write(Chunk c);
+  void write(buffer_t buffer);
 
   /**
    * @brief      Async write of a data with a length.
@@ -272,22 +274,13 @@ public:
     { tcp->write(buf, n); }
 
     /**
-     * @brief      Async write of a chunk.
-     *
-     * @param[in]  c     A chunk
-     */
-    virtual void write(Chunk c) override
-    { tcp->write(c); }
-
-    /**
      * @brief      Async write of a shared buffer with a length.
-     *             Calls write(Chunk c).
      *
      * @param[in]  buffer  shared buffer
      * @param[in]  n       length
      */
-    virtual void write(buffer_t buf, size_t n) override
-    { tcp->write(buf, n); }
+    virtual void write(buffer_t buffer) override
+    { tcp->write(buffer); }
 
     /**
      * @brief      Async write of a string.
@@ -331,14 +324,6 @@ public:
      */
     Socket remote() const override
     { return tcp->remote(); }
-
-    /**
-     * @brief      Returns the local port.
-     *
-     * @return     A TCP port
-     */
-    uint16_t local_port() const override
-    { return tcp->local_port(); }
 
     /**
      * @brief      Returns a string representation of the stream.
@@ -799,7 +784,7 @@ public:
   // ???
   void deserialize_from(void*);
   int  serialize_to(void*) const;
-  static const int VERSION = 1;
+  static const int VERSION = 2;
 
   /**
    * @brief      Reset all callbacks back to default

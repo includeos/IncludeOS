@@ -16,7 +16,8 @@
 // limitations under the License.
 
 #include <file_fd.hpp>
-#include <os>
+#include <errno.h>
+#include <posix_strace.hpp>
 
 int File_FD::read(void* p, size_t n) {
   auto buf = ent_.read(offset_, n);
@@ -33,8 +34,10 @@ int File_FD::close() {
   return 0;
 }
 
-int File_FD::lseek(off_t offset, int whence) {
+int File_FD::lseek(off_t offset, int whence)
+{
   if ((whence != SEEK_SET) && (whence != SEEK_CUR) && (whence != SEEK_END)) {
+    PRINT("lseek(%lu, %d) == %d\n", offset, whence, -1);
     errno = EINVAL;
     return -1;
   }
@@ -49,11 +52,8 @@ int File_FD::lseek(off_t offset, int whence) {
     const off_t end = ent_.size();
     calculated_offset = end + offset;
   }
-  if (calculated_offset < 0) {
-    INFO("lseek", "offset would be negative, resetting to 0\n");
-    calculated_offset = 0;
-  }
-  Ensures(calculated_offset >= 0);
+  if (calculated_offset < 0) calculated_offset = 0;
   offset_ = calculated_offset;
+  PRINT("lseek(%lu, %d) == %d\n", offset, whence, offset_);
   return offset_;
 }

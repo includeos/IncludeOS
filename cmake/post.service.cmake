@@ -47,6 +47,11 @@ if (debug)
   set(CAPABS "${CAPABS} -g")
 endif()
 
+# Append sanitizers
+if (undefined_san)
+  set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
+endif()
+
 if (CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
@@ -92,6 +97,24 @@ set(PLUGINS ${PLUGINS} ${EXTRA_PLUGINS})
 if(PLUGINS)
   list(REMOVE_DUPLICATES PLUGINS) # Remove duplicate plugins
 endif()
+
+
+#
+# NACL.TXT
+#
+
+if (EXISTS ${CMAKE_SOURCE_DIR}/nacl.txt)
+  add_custom_command(
+     OUTPUT nacl_content.cpp
+     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | python ${INSTALL_LOC}/nacl/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
+     DEPENDS ${CMAKE_SOURCE_DIR}/nacl.txt
+   )
+   add_library(nacl_content STATIC nacl_content.cpp)
+   set_target_properties(nacl_content PROPERTIES LINKER_LANGUAGE CXX)
+   target_link_libraries(service --whole-archive nacl_content --no-whole-archive)
+   set(PLUGINS ${PLUGINS} nacl)
+endif()
+
 
 # Function:
 # Add plugin / driver as library, set link options
@@ -256,6 +279,17 @@ add_library(libbotan STATIC IMPORTED)
 set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libbotan-2.a)
 
+if(${ARCH} STREQUAL "x86_64")
+  add_library(libssl STATIC IMPORTED)
+  set_target_properties(libssl PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(libssl PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libssl.a)
+
+  add_library(libcrypto STATIC IMPORTED)
+  set_target_properties(libcrypto PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(libcrypto PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrypto.a)
+  set(OPENSSL_LIBS libssl libcrypto)
+endif()
+
 add_library(libosdeps STATIC IMPORTED)
 set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libosdeps.a)
@@ -379,6 +413,7 @@ endif()
 target_link_libraries(service
   libos
   libbotan
+  ${OPENSSL_LIBS}
   libosdeps
 
   libplatform

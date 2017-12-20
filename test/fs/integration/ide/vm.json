@@ -1,0 +1,10 @@
+{
+  "image"   : "test_ide.img",
+  "drives"  : [{
+    "file" : "../my.disk",
+    "type" : "ide",
+    "format" : "raw",
+    "media" : "disk"
+  }],
+  "intrusive" : "True"
+}

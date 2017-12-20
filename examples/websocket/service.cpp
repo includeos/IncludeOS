@@ -35,10 +35,10 @@ void handle_ws(net::WebSocket_ptr ws)
   ws->write("Welcome");
   ws->write(ws->to_string());
   // Setup echo reply
-  ws->on_read = [ws = ws.get()](auto msg) {
-    auto str = msg->as_text();
-    printf("WS Recv: %s\n", str.c_str());
-    ws->write(str);
+  ws->on_read = [ws = ws.get()] (auto msg) {
+    printf("WS Recv: %s\n", msg->as_text().c_str());
+    // Extracting the data from the message is performant
+    ws->write(msg->extract_shared_vector());
   };
   ws->on_close = [ws = ws.get()](auto code) {
   // Notify on close
@@ -66,7 +66,8 @@ void Service::start()
   // Retreive the HTML page from the disk
   auto file = disk.fs().read_file("/index.html");
   Expects(file.is_valid());
-  Chunk html{file.data(), file.size()};
+  net::tcp::buffer_t html(
+      new std::vector<uint8_t> (file.data(), file.data() + file.size()));
 
   // Create a HTTP Server and setup request handling
   server = std::make_unique<http::Server>(inet.tcp());

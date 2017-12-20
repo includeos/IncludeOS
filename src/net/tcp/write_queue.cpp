@@ -20,13 +20,11 @@
 using namespace net::tcp;
 
 Write_queue::Write_queue(WriteCallback cb)
-  : q(),
-    current_(0),
+  : current_(0),
     offset_(0),
     acked_(0),
     on_write_(cb)
-{
-}
+{}
 
 void Write_queue::advance(size_t bytes)
 {
@@ -35,18 +33,18 @@ void Write_queue::advance(size_t bytes)
   offset_ += bytes;
 
   debug2("<WriteQueue> Advance: bytes=%u off=%u rem=%u\n",
-    bytes, offset_, (buf.length() - offset_));
+    bytes, offset_, (buf->size() - offset_));
 
-  if(offset_ == buf.length())
+  if(offset_ == buf->size())
   {
     current_++;
     offset_ = 0;
 
     if(on_write_)
-      on_write_(buf.length());
+      on_write_(buf->size());
 
     debug("<WriteQueue> Advance: Done (%u) current++ [%u] sz=%u\n",
-      buf.length(), current_, q.size());
+      buf->size(), current_, q.size());
   }
 }
 
@@ -56,9 +54,9 @@ void Write_queue::acknowledge(size_t bytes)
   while(bytes and !q.empty())
   {
     auto& buf = una();
-    Expects(buf.length() >= acked_);
+    assert(buf->size() >= acked_);
     // remaining
-    const auto rem = buf.length() - acked_;
+    const auto rem = buf->size() - acked_;
 
     // if everything or more is acked
     if(bytes >= rem)
@@ -96,10 +94,10 @@ uint32_t Write_queue::bytes_remaining() const
 {
   if(current_ >= q.size()) return 0;
 
-  uint32_t n = nxt().length() - offset_;
+  uint32_t n = nxt()->size() - offset_;
 
   for(auto i = current_ + 1; i < q.size(); ++i)
-    n += q.at(i).length();
+    n += q.at(i)->size();
 
   return n;
 }
@@ -108,10 +106,10 @@ uint32_t Write_queue::bytes_unacknowledged() const
 {
   if(q.empty()) return 0;
 
-  uint32_t n = una().length() - acked_;
+  uint32_t n = una()->size() - acked_;
 
   for(uint32_t i = 1; i < q.size(); ++i)
-    n += q.at(i).length();
+    n += q.at(i)->size();
 
   return n;
 }

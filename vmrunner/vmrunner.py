@@ -11,6 +11,7 @@ import validate_vm
 import signal
 import psutil
 import magic
+from shutil import copyfile
 
 from prettify import color
 
@@ -214,6 +215,7 @@ class qemu(hypervisor):
 
     def net_arg(self, backend, device, if_name = "net0", mac = None, bridge = None):
         qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
+        qemu_ifdown = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifdown"
 
         # FIXME: this needs to get removed, e.g. fetched from the schema
         names = {"virtio" : "virtio-net", "vmxnet" : "vmxnet3", "vmxnet3" : "vmxnet3"}
@@ -227,7 +229,7 @@ class qemu(hypervisor):
         if backend == "tap":
             if self._kvm_present:
                 netdev += ",vhost=on"
-            netdev += ",script=" + qemu_ifup
+            netdev += ",script=" + qemu_ifup + ",downscript=" + qemu_ifdown
 
         if bridge:
             netdev = "bridge,id=" + if_name + ",br=" + bridge
@@ -375,8 +377,8 @@ class qemu(hypervisor):
             vga_arg = ["-vga", str(self._config["vga"])]
 
         # TODO: sudo is only required for tap networking and kvm. Check for those.
-        command = ["sudo", "qemu-system-x86_64"]
-        if self._kvm_present: command.extend(["--enable-kvm", "-cpu", "host"])
+        command = ["sudo", "--preserve-env", "qemu-system-x86_64"]
+        if self._kvm_present: command.extend(["--enable-kvm"])
 
         command += kernel_args
 
@@ -609,6 +611,12 @@ class vm:
         print INFO, "Building with cmake (%s)" % args
         # install dir:
         INSTDIR = os.getcwd()
+
+        if (not os.path.isfile("CMakeLists.txt") and os.path.isfile("service.cpp")):
+            # No makefile present. Copy the one from seed, inform user and pray.
+            # copyfile will throw errors if it encounters any.
+            copyfile(INCLUDEOS_HOME + "/includeos/seed/service/CMakeLists.txt", "CMakeLists.txt")
+            print INFO, "No CMakeList.txt present. File copied from seed. Please adapt to your needs."
 
         # create build directory
         try:

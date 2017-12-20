@@ -22,9 +22,9 @@ void server(net::Inet<net::IP4>& inet,
 
     // retrieve binary
     conn->on_read(9000,
-    [conn, buffer] (net::tcp::buffer_t buf, size_t n)
+    [conn, buffer] (auto buf)
     {
-      buffer->insert(buffer->end(), buf.get(), buf.get() + n);
+      buffer->insert(buffer->end(), buf->begin(), buf->end());
     })
     .on_disconnect(
     net::tcp::Connection::DisconnectCallback::make_packed(

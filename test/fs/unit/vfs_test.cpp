@@ -53,6 +53,13 @@ CASE("VFS entries can return type info as string")
   EXPECT(pos != std::string::npos);
 }
 
+CASE("maximum type_name() length can be specified")
+{
+  fs::VFS_entry e("some_entry", "with_description");
+  auto info = e.type_name(3);
+  EXPECT(info.length() == 3u);
+}
+
 CASE("VFS entries can return their number of children")
 {
   fs::VFS_entry e("entry", "description");
@@ -69,6 +76,11 @@ CASE("VFS entries can contain arbitrary objects")
   Person bjarne = e.obj<Person>();
   EXPECT(bjarne.isBjarne() == true);
   EXPECT_THROWS(e.obj<std::string>());
+  // constness is checked
+  const Person q {"Dennis", 70};
+  fs::VFS_entry f(q, "inspiration", "duh^2");
+  EXPECT_THROWS_AS(Person z = f.obj<Person>(), fs::Err_bad_cast);
+  EXPECT_NO_THROW(const Person z = f.obj<const Person>());
 }
 
 CASE("VFS can mount entries in a tree")

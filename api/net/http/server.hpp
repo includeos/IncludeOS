@@ -120,7 +120,7 @@ namespace http {
      * @param[in]  conn  The TCP connection
      */
     virtual void on_connect(TCP_conn conn)
-    { connect(std::make_unique<Connection::Stream>(std::move(conn))); }
+    { connect(std::make_unique<net::tcp::Connection::Stream>(std::move(conn))); }
 
     /**
      * @brief      Connect the stream to the server.
@@ -169,6 +169,32 @@ namespace http {
     void receive(Request_ptr, status_t code, Server_connection&);
 
   }; // < class Server
+
+  /**
+   * Helper function to create an HTTP server on a given TCP instance
+   *
+   * @param tcp
+   *   The tcp instance (interface)
+   *
+   * @param handler
+   *   The handler to be invoked when a request is received (optional)
+   *
+   * @param timeout
+   *   The duration for how long a connection can be idle (0 = no timeout)
+   *
+   * Usage example:
+   * @code
+   *   auto& inet = net::Inet4::stack<0>();
+   *   Expects(inet.is_configured());
+   *   auto server = http::make_server(inet.tcp());
+   *   server->on_request([](auto req, auto rw){...});
+   *   server->listen(80);
+   * @endcode
+   */
+  template<typename = void>
+  inline Server_ptr make_server(Server::TCP& tcp, Server::Request_handler handler = nullptr, Server::idle_duration timeout = Server::DEFAULT_IDLE_TIMEOUT) {
+    return std::make_unique<Server>(tcp, handler, timeout);
+  }
 
 } // < namespace http
 

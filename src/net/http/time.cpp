@@ -25,9 +25,10 @@ std::string from_time_t(const std::time_t time_) {
   auto tm = std::gmtime(&time_);
 
   if (tm) {
-    std::ostringstream output;
-    output << std::put_time(tm, "%a, %d %b %Y %H:%M:%S %Z");
-    return output.str();
+    char buffer[64];
+    size_t len = std::strftime(buffer, sizeof(buffer),
+                               "%a, %d %b %Y %H:%M:%S %Z", tm);
+    return std::string(buffer, len);
   }
 
   return std::string{};

@@ -52,24 +52,38 @@ namespace net {
     /** Bottom upstream input, "Bottom up". Handle raw ethernet buffer. */
     void receive(Packet_ptr);
 
-    /** Delegate upstream IPv4 upstream. */
-    void set_ip4_upstream(upstream del)
-    { ip4_upstream_ = del; }
 
-    /** Delegate upstream IPv4 upstream. */
-    upstream& ip4_upstream()
+    /** Protocol handler getters */
+    upstream_ip& ip4_upstream()
     { return ip4_upstream_; }
 
+    upstream_ip& ip6_upstream()
+    { return ip6_upstream_; }
+
+    upstream& arp_upstream()
+    { return arp_upstream_; }
+
+
+    /** Delegate upstream IPv4 upstream. */
+    void set_ip4_upstream(upstream_ip del)
+    { ip4_upstream_ = del; }
+
     /** Delegate upstream IPv6 upstream. */
-    void set_ip6_upstream(upstream del)
+    void set_ip6_upstream(upstream_ip del)
     { ip6_upstream_ = del; };
 
     /** Delegate upstream ARP upstream. */
     void set_arp_upstream(upstream del)
     { arp_upstream_ = del; }
 
-    upstream& arp_upstream()
-    { return arp_upstream_; }
+
+    /**
+     * @brief      Sets the vlan upstream.
+     *
+     * @param[in]  del   The upstream delegate
+     */
+    void set_vlan_upstream(upstream del)
+    { vlan_upstream_ = del; }
 
     /** Delegate downstream */
     void set_physical_downstream(downstream del)
@@ -100,7 +114,7 @@ namespace net {
     uint32_t get_trailer_packets_dropped()
     { return trailer_packets_dropped_; }
 
-  private:
+  protected:
     const addr& mac_;
     int   ethernet_idx;
 
@@ -111,9 +125,10 @@ namespace net {
     uint32_t& trailer_packets_dropped_;
 
     /** Upstream OUTPUT connections */
-    upstream ip4_upstream_ = nullptr;
-    upstream ip6_upstream_ = nullptr;
+    upstream_ip ip4_upstream_ = nullptr;
+    upstream_ip ip6_upstream_ = nullptr;
     upstream arp_upstream_ = nullptr;
+    upstream vlan_upstream_ = nullptr;
 
     /** Downstream OUTPUT connection */
     downstream physical_downstream_ = [](Packet_ptr){};

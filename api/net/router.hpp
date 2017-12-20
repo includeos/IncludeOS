@@ -18,8 +18,16 @@
 #ifndef NET_ROUTER_HPP
 #define NET_ROUTER_HPP
 
-#include <map>
 #include <net/inet.hpp>
+#include <net/netfilter.hpp>
+
+//#define ROUTER_DEBUG 1
+#ifdef ROUTER_DEBUG
+#define PRINT(fmt, ...) printf("<Router> " fmt "\n", ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
 
 namespace net {
 
@@ -37,8 +45,17 @@ namespace net {
     Netmask netmask() const noexcept
     { return netmask_; }
 
-    Addr gateway() const noexcept
-    { return gateway_; }
+    Addr nexthop() const noexcept
+    { return nexthop_; }
+
+    Addr nexthop(Addr ip) const noexcept
+    {
+      // No need to go via nexthop if IP is on the same net as interface
+      if ((ip & iface_->netmask()) == (iface_->ip_addr() & iface_->netmask()))
+        return ip;
+
+      return nexthop_;
+    }
 
     int cost() const noexcept
     { return cost_; }
@@ -49,10 +66,10 @@ namespace net {
     Stack_ptr match(typename IPV::addr dest) const noexcept
     { return (dest & netmask_) == net_ ? iface_ : nullptr; }
 
-    bool operator<(const Route& b) const
+    bool operator<(const Route& b) const noexcept
     { return cost() < b.cost(); }
 
-    bool operator==(const Route& b) const
+    bool operator==(const Route& b) const noexcept
     {
       return net_ == b.net() and
         netmask_ == b.netmask() and
@@ -60,14 +77,31 @@ namespace net {
         iface_ == b.interface();
     }
 
-    Route(Addr net, Netmask mask, Addr gateway, Stack& iface, int cost)
-      : net_{net}, netmask_{mask}, gateway_{gateway}, iface_{&iface}, cost_{cost}
-    {}
+    void ship(typename IPV::IP_packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
+      iface_->ip_obj().ship(std::move(pckt), nexthop, ct);
+    }
+
+    void ship(typename IPV::IP_packet_ptr pckt, Conntrack::Entry_ptr ct) {
+      auto next = nexthop(pckt->ip_dst());
+      ship(std::move(pckt), next, ct);
+    }
+
+    Route(Addr net, Netmask mask, Addr nexthop, Stack& iface, int cost = 100)
+      : net_{net}, netmask_{mask}, nexthop_{nexthop}, iface_{&iface}, cost_{cost}
+    {
+      Expects(iface_ != nullptr);
+    }
+
+    std::string to_string() const
+    {
+      return net_.str() + " " + netmask_.str() + " " + nexthop_.str()
+      + " " + iface_->ifname() + " " + std::to_string(cost_);
+    }
 
   private:
     Addr net_;
     Netmask netmask_;
-    Addr gateway_;
+    Addr nexthop_;
     Stack_ptr iface_;
     int cost_;
   };
@@ -76,28 +110,29 @@ namespace net {
   template<class IPV>
   struct Router {
 
-    using Stack   = typename Route<IPV>::Stack;
-    using Stack_ptr = typename Route<IPV>::Stack_ptr;
-    using Forward_delg = typename Inet<IPV>::Forward_delg;
-    using Addr    = typename IPV::addr;
-    using Interfaces = std::vector<std::unique_ptr<Stack>>;
+    using Stack         = typename Route<IPV>::Stack;
+    using Stack_ptr     = typename Route<IPV>::Stack_ptr;
+    using Forward_delg  = typename Inet<IPV>::Forward_delg;
+    using Addr          = typename IPV::addr;
+    using Packet_ptr    = typename IPV::IP_packet_ptr;
+    using Interfaces    = std::vector<std::unique_ptr<Stack>>;
     using Routing_table = std::vector<Route<IPV>>;
 
     /**
      * Forward an IP packet according to local policy / routing table.
      **/
-    void forward(Stack& source, typename IPV::IP_packet_ptr);
+    inline void forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct);
 
     /**
      * Get forwarding delegate
      * (And ensure forward signature Matches the signature of IP forwarding delegate.)
      **/
     Forward_delg forward_delg()
-    { return Forward_delg(*this, forward); }
+    { return {this, &Router<IPV>::forward}; }
 
 
     /** Get any interface route for a certain IP **/
-    Route<IPV>* get_first_route(typename IPV::addr dest) {
+    Route<IPV>* get_first_route(Addr dest) {
 
       for (auto&& route : routing_table_) {
         Stack_ptr match = route.match(dest);
@@ -105,14 +140,14 @@ namespace net {
       }
 
       return nullptr;
-    };
+    }
 
     /** Get any interface route for a certain IP **/
-    Stack_ptr get_first_interface(typename IPV::addr dest) {
+    Stack_ptr get_first_interface(Addr dest) {
       auto route = get_first_route(dest);
       if (route) return route->interface();
       return nullptr;
-    };
+    }
 
     /** Check if there exists a route for a given IP **/
     bool route_check(typename IPV::addr dest){
@@ -147,20 +182,103 @@ namespace net {
     };
 
 
+
+    /**
+     * Get most specific route for a certain IP
+     * (e.g. the route with the largest netmask)
+     * @todo : Optimize!
+     **/
+    Route<IPV>* get_most_specific_route(typename IPV::addr dest)
+    {
+      Route<IPV>* match = nullptr;
+      for (auto& route : routing_table_)
+        {
+          if (route.match(dest)) {
+            if (match) {
+              match = route.netmask() > match->netmask() ? &route : match;
+            } else {
+              match = &route;
+            }
+          }
+        }
+      return match;
+    }
+
+
     /** Construct a router over a set of interfaces **/
-    Router(Interfaces& ifaces, Routing_table tbl = {})
-      : networks_{ifaces}, routing_table_{tbl}
-    {  }
+    Router(Routing_table tbl = {})
+      : routing_table_{tbl}
+    {
+      INFO("Router", "Router created with %lu routes", tbl.size());
+      for(auto& route : routing_table_)
+        INFO2("%s", route.to_string().c_str());
+    }
 
     void set_routing_table(Routing_table tbl) {
       routing_table_ = tbl;
     };
 
+    /** Whether to send ICMP Time Exceeded when TTL is zero */
+    bool send_time_exceeded = true;
+
+    /** Packets pass through forward chain before being forwarded */
+    Filter_chain<IPV> forward_chain{"Forward", {}};
+
   private:
-    Interfaces& networks_;
     Routing_table routing_table_;
 
-  };
+  }; // < class Router
+
+} //< namespace net
+
+#include <net/ip4/packet_ip4.hpp>
+#include <net/ip4/icmp4.hpp>
+
+namespace net {
+
+  template <typename IPV>
+  inline void Router<IPV>::forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct)
+  {
+    Expects(pckt);
+
+    // Do not forward packets when TTL is 0
+    if(pckt->ip_ttl() == 0)
+    {
+      PRINT("TTL equals 0 - dropping");
+      // Send ICMP Time Exceeded if on. RFC 1812, page 84
+      if(this->send_time_exceeded == true and not pckt->ip_dst().is_multicast())
+        stack.icmp().time_exceeded(std::move(pckt), icmp4::code::Time_exceeded::TTL);
+      return;
+    }
+
+    // When the packet originates from our host, it still passes forward
+    // We add this check to prevent decrementing TTL for "none routed" packets. Hmm.
+    const bool should_decrement_ttl = not stack.is_valid_source(pckt->ip_src());
+    if(should_decrement_ttl)
+      pckt->decrement_ttl();
+
+
+    // Call the forward chain
+    auto res = forward_chain(std::move(pckt), stack, ct);
+    if (res == Filter_verdict_type::DROP) return;
+
+    Ensures(res.packet != nullptr);
+    pckt = res.release();
+
+    // Look for a route
+    const auto dest = pckt->ip_dst();
+    auto* route = get_most_specific_route(dest);
+
+    if(route) {
+      PRINT("Found route: %s", route->to_string().c_str());
+      route->ship(std::move(pckt), ct);
+      return;
+    }
+    else {
+      PRINT("No route found for %s DROP", dest.to_string().c_str());
+      return;
+    }
+  }
 
 } //< namespace net
 

@@ -32,6 +32,7 @@ TCP::TCP(IPStack& inet, bool smp_enable) :
   inet_{inet},
   listeners_(),
   connections_(),
+  ports_(inet.tcp_ports()),
   writeq(),
   max_seg_lifetime_{default_msl},       // 30s
   win_size_{default_ws_window_size},    // 8096*1024
@@ -178,9 +179,9 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
         packet->source().to_string().c_str(), dest.to_string().c_str());
 
   // Validate checksum
-  if (UNLIKELY(checksum(*packet) != 0)) {
+  if (UNLIKELY(packet->compute_tcp_checksum() != 0)) {
     debug("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
-          checksum(*packet), 0x0);
+          packet->compute_tcp_checksum(), 0x0);
     drop(*packet);
     return;
   }
@@ -225,43 +226,24 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
   drop(*packet);
 }
 
-uint16_t TCP::checksum(const tcp::Packet& packet)
-{
-  uint16_t length = packet.tcp_length();
-  // Compute sum of pseudo-header
-  uint32_t sum =
-        (packet.ip_src().whole >> 16)
-      + (packet.ip_src().whole & 0xffff)
-      + (packet.ip_dst().whole >> 16)
-      + (packet.ip_dst().whole & 0xffff)
-      + (static_cast<uint8_t>(Protocol::TCP) << 8)
-      + htons(length);
-
-  // Compute sum of header and data
-  const char* buffer = (char*) &packet.tcp_header();
-  return net::checksum(sum, buffer, length);
-}
-
 // Show all connections for TCP as a string.
 // Format: [Protocol][Recv][Send][Local][Remote][State]
 string TCP::to_string() const {
   // Write all connections in a cute list.
-  stringstream ss;
-  ss << "LISTENERS:\n" << "Local\t" << "Queued\n";
+  std::string str = "LISTENERS:\nLocal\tQueued\n";
   for(auto& listen_it : listeners_) {
     auto& l = listen_it.second;
-    ss << l->local().to_string() << "\t" << l->syn_queue_size() << "\n";
+    str += l->local().to_string() + "\t" + std::to_string(l->syn_queue_size()) + "\n";
   }
-  ss << "\nCONNECTIONS:\n" <<  "Proto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
+  str +=
+  "\nCONNECTIONS:\nProto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
   for(auto& con_it : connections_) {
     auto& c = *(con_it.second);
-    ss << "tcp4\t"
-       << " " << "\t" << " " << "\t"
-       << " " << "\t" << " " << "\t"
-       << c.local().to_string() << "\t\t" << c.remote().to_string() << "\t\t"
-       << c.state().to_string() << "\n";
+    str += "tcp4\t \t \t \t \t"
+        + c.local().to_string() + "\t\t" + c.remote().to_string() + "\t\t"
+        + c.state().to_string() + "\n";
   }
-  return ss.str();
+  return str;
 }
 
 void TCP::error_report(const Error& err, Socket dest) {
@@ -345,7 +327,7 @@ void TCP::reset_pmtu(Socket dest, IP4::PMTU pmtu) {
 
 void TCP::transmit(tcp::Packet_ptr packet) {
   // Generate checksum.
-  packet->set_checksum(TCP::checksum(*packet));
+  packet->set_tcp_checksum();
   debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
 
   // Stat increment bytes transmitted and packets transmitted

@@ -26,8 +26,6 @@
 #include "common.hpp" // constants, seq_t
 #include "headers.hpp"
 
-#include <sstream> // ostringstream
-
 inline unsigned round_up(unsigned n, unsigned div) {
   Expects(div > 0);
   return (n + div - 1) / div;
@@ -86,7 +84,7 @@ public:
   uint16_t tcp_checksum() const noexcept
   { return tcp_header().checksum; }
 
-Socket source() const
+  Socket source() const
   { return Socket{ip_src(), src_port()}; }
 
   Socket destination() const
@@ -121,10 +119,19 @@ Socket source() const
     return *this;
   }
 
-  Packet& set_checksum(uint16_t checksum) {
+  Packet& set_tcp_checksum(uint16_t checksum) noexcept {
     tcp_header().checksum = checksum;
     return *this;
   }
+
+  void set_tcp_checksum() noexcept {
+    tcp_header().checksum = 0;
+    set_tcp_checksum(compute_tcp_checksum());
+  }
+
+  uint16_t compute_tcp_checksum() noexcept
+  { return tcp::calculate_checksum(*this); };
+
 
   Packet& set_source(const Socket& src) {
     set_ip_src(src.address()); // PacketIP4::set_src
@@ -313,12 +320,14 @@ Socket source() const
   { return has_tcp_data() or isset(SYN) or isset(FIN); }
 
   std::string to_string() const {
-    std::ostringstream os;
-    os << "[ S:" << source().to_string() << " D:" <<  destination().to_string()
-       << " SEQ:" << seq() << " ACK:" << ack()
-       << " HEAD-LEN:" << (int)tcp_header_length() << " OPT-LEN:" << (int)tcp_options_length() << " DATA-LEN:" << tcp_data_length()
-       << " WIN:" << win() << " FLAGS:" << tcp_header().offset_flags.flags  << " ]";
-    return os.str();
+    char buffer[512];
+    int len = snprintf(buffer, sizeof(buffer),
+          "[ S:%s D:%s SEQ:%u ACK:%u HEAD-LEN:%d OPT-LEN:%d DATA-LEN:%d"
+          " WIN:%u FLAGS:%#x ]",
+          source().to_string().c_str(), destination().to_string().c_str(),
+          seq(), ack(), tcp_header_length(), tcp_options_length(),
+          tcp_data_length(), win(), tcp_header().offset_flags.flags);
+    return std::string(buffer, len);
   }
 
 

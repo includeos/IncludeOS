@@ -58,17 +58,20 @@ using namespace net;
 void VirtioNet::get_config() {
   Virtio::get_config(&_conf, _config_length);
 }
+#define VNET_TOT_BUFFERS() (48 + (queue_size(0) + queue_size(1)) / 2)
 
 VirtioNet::VirtioNet(hw::PCI_Device& d)
   : Virtio(d),
-    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()},
-        256u, 2048 /* 256x half-page buffers */),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, bufstore_),
+    m_pcidev(d),
+    bufstore_{VNET_TOT_BUFFERS(), 2048 /* half-page buffers */},
     packets_rx_{Statman::get().create(Stat::UINT64,
                 device_name() + ".packets_rx").get_uint64()},
     packets_tx_{Statman::get().create(Stat::UINT64,
                 device_name() + ".packets_tx").get_uint64()}
 {
   INFO("VirtioNet", "Driver initializing");
+#undef VNET_TOT_BUFFERS
 
   uint32_t needed_features = 0
     | (1 << VIRTIO_NET_F_MAC)
@@ -140,7 +143,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d)
 
   for (int i = 0; i < rx_q.size() / 2; i++) {
       auto buf = bufstore().get_buffer();
-      assert(bufstore().is_from_pool(buf.addr));
+      assert(bufstore().is_from_this_pool(buf.addr));
       add_receive_buffer(buf.addr);
   }
 
@@ -215,16 +218,16 @@ void VirtioNet::msix_conf_handler()
 }
 void VirtioNet::msix_recv_handler()
 {
-  int dequeued_rx = 0;
+  auto rx = packets_rx_;
   rx_q.disable_interrupts();
   // handle incoming packets as long as bufstore has available buffers
-  while (rx_q.new_incoming())
+  int max = 128;
+  while (rx_q.new_incoming() && max-- > 0)
   {
     auto res = rx_q.dequeue();
     VDBG_RX("[virtionet] Recv %u bytes\n", (uint32_t) res.size());
     Link::receive( recv_packet(res.data(), res.size()) );
 
-    dequeued_rx++;
     // Requeue a new buffer
     add_receive_buffer(bufstore().get_buffer().addr);
 
@@ -232,8 +235,7 @@ void VirtioNet::msix_recv_handler()
     packets_rx_++;
   }
   rx_q.enable_interrupts();
-  if (dequeued_rx)
-    rx_q.kick();
+  if (rx != packets_rx_) rx_q.kick();
 }
 void VirtioNet::msix_xmit_handler()
 {
@@ -243,28 +245,30 @@ void VirtioNet::msix_xmit_handler()
   while (tx_q.new_incoming())
   {
     auto res = tx_q.dequeue();
-
     // get packet offset, and call destructor
     auto* packet = (net::Packet*) (res.data() - sizeof(net::Packet));
     delete packet; // call deleter on Packet to release it
     dequeued_tx++;
   }
+  tx_q.enable_interrupts();
 
   // If we have a transmit queue, eat from it, otherwise let the stack know we
   // have increased transmit capacity
   if (dequeued_tx > 0)
   {
-    VDBG_TX("[virtionet] %d transmitted, tx_q is %p\n",
-            dequeued_tx, transmit_queue_.get());
+    VDBG_TX("[virtionet] %d transmitted\n", dequeued_tx);
 
     // transmit as much as possible from the buffer
-    if (transmit_queue_) {
-      transmit(std::move(transmit_queue_));
+    if (transmit_queue != nullptr) {
+      //auto tx = packets_tx_;
+      transmit(std::move(transmit_queue));
+      //printf("[virtionet] %ld transmit queue\n", packets_tx_ - tx);
     }
 
     // If we now emptied the buffer, offer packets to stack
-    if (!transmit_queue_ && tx_q.num_free() > 1)
-        transmit_queue_available_event_(tx_q.num_free() / 2);
+    if (transmit_queue == nullptr && tx_q.num_free() > 1) {
+      transmit_queue_available_event(tx_q.num_free() / 2);
+    }
   }
 }
 
@@ -316,71 +320,43 @@ VirtioNet::create_packet(int link_offset)
   return net::Packet_ptr(ptr);
 }
 
-void VirtioNet::add_to_tx_buffer(net::Packet_ptr pckt){
-  if (transmit_queue_)
-    transmit_queue_->chain(std::move(pckt));
+void VirtioNet::transmit(net::Packet_ptr pckt)
+{
+  assert(pckt != nullptr);
+  if (transmit_queue == nullptr)
+    transmit_queue = std::move(pckt);
   else
-    transmit_queue_ = std::move(pckt);
+    transmit_queue->chain(std::move(pckt));
 
-#ifdef VNET_DEBUG
-  int chain_length = 1;
-  auto* next = transmit_queue_->tail();
-  while (next) {
-    chain_length++;
-    next = next->tail();
-  }
-  VDBG_TX("Buffering, %d packets chained\n", chain_length);
-#endif
-}
-
-void VirtioNet::transmit(net::Packet_ptr pckt) {
-  /** @note We have to send a virtio header first, then the packet.
-
-      From Virtio std. §5.1.6.6:
-      "When using legacy interfaces, transitional drivers which have not
-      negotiated VIRTIO_F_ANY_LAYOUT MUST use a single descriptor for the struct
-      virtio_net_hdr on both transmit and receive, with the network data in the
-      following descriptors."
-
-      VirtualBox *does not* accept ANY_LAYOUT, while Qemu does, so this is to
-      support VirtualBox
-  */
-  int transmitted = 0;
-  net::Packet_ptr tail = std::move(pckt);
-
+  auto tx = this->packets_tx_;
   // Transmit all we can directly
-  while (tx_q.num_free() and tail != nullptr)
+  while (tx_q.num_free() > 1 and transmit_queue)
   {
     VDBG_TX("[virtionet] tx: %u tokens left in TX queue \n",
             tx_q.num_free());
     // next in line
-    auto next = tail->detach_tail();
-    // write data to network
+    auto next = transmit_queue->detach_tail();
     // explicitly release the data to prevent destructor being called
-    enqueue(tail.release());
-    tail = std::move(next);
-    transmitted++;
+    enqueue_tx(transmit_queue.release());
+    transmit_queue = std::move(next);
     // Stat increase packets transmitted
-    packets_tx_++;
+    this->packets_tx_++;
   }
 
-  if (LIKELY(transmitted)) {
+  if (tx != this->packets_tx_) {
 #ifdef NO_DEFERRED_KICK
-    tx_q.enable_interrupts();
     tx_q.kick();
 #else
-    begin_deferred_kick();
+    if (!deferred_kick) {
+      deferred_kick = true;
+      PER_CPU(deferred_devs).devs.push_back(this);
+      Events::get().trigger_event(PER_CPU(deferred_devs).irq);
+    }
 #endif
-  }
-
-  // Buffer the rest
-  if (UNLIKELY(tail)) {
-    VDBG_TX("[virtionet] tx: Buffering remaining tail..\n");
-    add_to_tx_buffer(std::move(tail));
   }
 }
 
-void VirtioNet::enqueue(net::Packet* pckt)
+void VirtioNet::enqueue_tx(net::Packet* pckt)
 {
   Expects(pckt->layer_begin() == pckt->buf() + sizeof(virtio_net_hdr));
   auto* hdr = pckt->buf();
@@ -396,16 +372,6 @@ void VirtioNet::enqueue(net::Packet* pckt)
   tx_q.enqueue(tokens);
 }
 
-void VirtioNet::begin_deferred_kick()
-{
-#ifndef NO_DEFERRED_KICK
-  if (!deferred_kick) {
-    deferred_kick = true;
-    PER_CPU(deferred_devs).devs.push_back(this);
-    Events::get().trigger_event(PER_CPU(deferred_devs).irq);
-  }
-#endif
-}
 void VirtioNet::handle_deferred_devices()
 {
 #ifndef NO_DEFERRED_KICK
@@ -414,7 +380,6 @@ void VirtioNet::handle_deferred_devices()
   {
     dev->deferred_kick = false;
     // kick transmitq
-    dev->tx_q.enable_interrupts();
     dev->tx_q.kick();
   }
   PER_CPU(deferred_devs).devs.clear();
@@ -423,7 +388,15 @@ void VirtioNet::handle_deferred_devices()
 
 void VirtioNet::poll()
 {
-  
+  msix_recv_handler();
+  msix_xmit_handler();
+  // flush transmit_q immediately
+  if (this->deferred_kick)
+  {
+    this->deferred_kick = false;
+    this->tx_q.enable_interrupts();
+    this->tx_q.kick();
+  }
 }
 
 void VirtioNet::deactivate()
@@ -434,9 +407,8 @@ void VirtioNet::deactivate()
   tx_q.disable_interrupts();
   ctrl_q.disable_interrupts();
 
-  /// mask off MSI-X vectors
-  if (has_msix())
-      deactivate_msix();
+  // reset device
+  this->Virtio::reset();
 }
 
 void VirtioNet::move_to_this_cpu()

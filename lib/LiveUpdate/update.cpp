@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <unistd.h>
 #include <util/elf.h>
+#include <unordered_map>
 #include "storage.hpp"
 #include <kernel/os.hpp>
 #include <hw/devices.hpp>
@@ -198,9 +199,9 @@ void LiveUpdate::exec(const buffer_t& blob)
 
   // 2. flush all devices with flush() interface
   hw::Devices::flush_all();
-  // 3. deactivate all PCI devices and mask all MSI-X vectors
+  // 3. deactivate all devices (eg. mask all MSI-X vectors)
   // NOTE: there are some nasty side effects from calling this
-  //hw::Devices::deactivate_all();
+  hw::Devices::deactivate_all();
 
   // store soft-resetting stuff
 #ifdef PLATFORM_x86_solo5

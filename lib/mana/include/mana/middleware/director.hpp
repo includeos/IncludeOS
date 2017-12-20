@@ -35,7 +35,7 @@ class Director : public Middleware {
 private:
   using SharedDisk = fs::Disk_ptr;
   using Entry = fs::Dirent;
-  using Entries = fs::dirvec_t;
+  using Entries = fs::Dirvec_ptr;
 
 public:
 

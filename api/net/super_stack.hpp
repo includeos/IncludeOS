@@ -22,20 +22,32 @@
 #include <net/ip4/ip4.hpp>
 #include "inet.hpp"
 #include <vector>
+#include <map>
 #include <stdexcept>
 
 namespace net {
 
-class Stack_not_found : public std::runtime_error
-{
+struct Super_stack_err : public std::runtime_error {
   using base = std::runtime_error;
   using base::base;
 };
 
+struct Stack_not_found : public Super_stack_err
+{
+  using Super_stack_err::Super_stack_err;
+};
+
 class Super_stack {
 public:
+  template <typename IPV>
+  using Inet_ptr = std::unique_ptr<Inet<IPV>>;
+  template <typename IPV>
+  using Stacks = std::map<int, Inet_ptr<IPV>>;
+  template <typename IPV>
+  using Stack_collection = std::vector<Stacks<IPV>>;
+
   using IP4_stack = Inet<IP4>;
-  using IP4_stacks = std::vector<std::unique_ptr<IP4_stack>>;
+  using IP4_stacks = Stack_collection<IP4>;
 
 public:
   static Super_stack& inet()
@@ -46,6 +58,12 @@ public:
 
   template <typename IPV>
   static Inet<IPV>& get(int N);
+
+  template <typename IPV>
+  static Inet<IPV>& get(int N, int sub);
+
+  template <typename IPV>
+  Inet<IPV>& create(hw::Nic& nic, int N, int sub);
 
   IP4_stacks& ip4_stacks()
   { return ip4_stacks_; }

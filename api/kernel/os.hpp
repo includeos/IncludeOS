@@ -24,10 +24,8 @@
 #include <kernel/rtc.hpp>
 #include <hertz>
 #include <string>
-#include <sstream>
 #include <vector>
 #include <boot/multiboot.h>
-#include <util/fixedvec.hpp>
 
 /**
  *  The entrypoint for OS services
@@ -37,8 +35,8 @@
 class OS {
 public:
   using print_func  = delegate<void(const char*, size_t)>;
-  using Plugin = delegate<void()>;
-  using Span_mods = gsl::span<multiboot_module_t>;
+  using Plugin      = delegate<void()>;
+  using Span_mods   = gsl::span<multiboot_module_t>;
 
   /**
    * Returns the OS version string
@@ -119,6 +117,10 @@ public:
     return boot_sequence_passed_;
   }
 
+  static bool block_drivers_ready() noexcept {
+    return m_block_drivers_ready;
+  }
+
   /**
    *  Returns true when the OS is currently panicking
    */
@@ -185,6 +187,12 @@ public:
     return memory_end_;
   }
 
+  /**
+   *  Returns true when the current OS comes from a live update,
+   *  as opposed to booting from either a rollback or a normal boot
+   */
+  static bool is_live_updated() noexcept;
+
   /** Returns the automatic location set aside for storing system and program state **/
   static void* liveupdate_storage_area() noexcept;
 
@@ -241,27 +249,17 @@ private:
   static bool is_softreset_magic(uint32_t value);
   static void resume_softreset(intptr_t boot_addr);
 
-  struct Plugin_struct {
-    Plugin_struct(Plugin f, const char* n)
-      : func_{f}, name_{n}
-    {}
-
-    Plugin func_;
-    const char* name_;
-  };
-
-  using Plugin_vec = fixedvector<Plugin_struct, 16>;
-
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;
   static bool boot_sequence_passed_;
+  static bool m_is_live_updated;
+  static bool m_block_drivers_ready;
   static MHz cpu_mhz_;
 
   static RTC::timestamp_t booted_at_;
   static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
-  static Plugin_vec plugins_;
   static uintptr_t memory_end_;
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
@@ -278,6 +276,10 @@ private:
 
   friend void __platform_init();
 }; //< OS
+
+inline bool OS::is_live_updated() noexcept {
+  return OS::m_is_live_updated;
+}
 
 inline OS::Span_mods OS::modules()
 {

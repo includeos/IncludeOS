@@ -29,7 +29,7 @@ namespace http {
 
   class Connection {
   public:
-    using Stream        = net::tcp::Connection::Stream;
+    using Stream        = net::Stream;
     using Stream_ptr    = std::unique_ptr<Stream>;
     using Peer          = net::Socket;
     using buffer_t      = net::tcp::buffer_t;
@@ -43,7 +43,7 @@ namespace http {
     inline explicit Connection() noexcept;
 
     net::tcp::port_t local_port() const noexcept
-    { return (stream_) ? stream_->local_port() : 0; }
+    { return (stream_) ? stream_->local().port() : 0; }
 
     Peer peer() const noexcept
     { return peer_; }
@@ -121,7 +121,7 @@ namespace http {
 
   template <typename TCP>
   Connection::Connection(TCP& tcp, Peer addr)
-    : Connection(std::make_unique<Stream>(tcp.connect(addr)))
+    : Connection(std::make_unique<net::tcp::Connection::Stream>(tcp.connect(addr)))
   {
   }
 

@@ -26,8 +26,7 @@ namespace net {
 /**
  * An IP address and port
  */
-class Socket {
-public:
+union Socket {
 
   using Address = ip4::Addr;
   using port_t = uint16_t;
@@ -38,8 +37,7 @@ public:
    * Intialize an empty socket <0.0.0.0:0>
    */
   constexpr Socket() noexcept
-    : address_{}, port_{}
-  {}
+    : sock_(0, 0) {}
 
   /**
    * Constructor
@@ -53,8 +51,16 @@ public:
    *  The port associated with the process
    */
   constexpr Socket(const Address address, const port_t port) noexcept
-    : address_{address}, port_{port}
-  {}
+    : sock_(address, port) {}
+
+  Socket(const Socket& other) noexcept
+   : data_{other.data_} {}
+
+  Socket& operator=(const Socket& other) noexcept
+  {
+    data_ = other.data_;
+    return *this;
+  }
 
   /**
    * Get the socket's network address
@@ -62,10 +68,7 @@ public:
    * @return The socket's network address
    */
   constexpr Address address() const noexcept
-  { return address_; }
-
-  void set_address(const Address address) noexcept
-  { address_ = address; }
+  { return sock_.address; }
 
   /**
    * Get the socket's port value
@@ -73,10 +76,7 @@ public:
    * @return The socket's port value
    */
   constexpr port_t port() const noexcept
-  { return port_; }
-
-  void set_port(const port_t port) noexcept
-  { port_ = port; }
+  { return sock_.port; }
 
   /**
    * Get a string representation of this class
@@ -84,7 +84,7 @@ public:
    * @return A string representation of this class
    */
   std::string to_string() const
-  { return address_.str() + ":" + std::to_string(port_); }
+  { return address().str() + ":" + std::to_string(port()); }
 
   /**
    * Check if this socket is empty <0.0.0.0:0>
@@ -92,7 +92,7 @@ public:
    * @return true if this socket is empty, false otherwise
    */
   constexpr bool is_empty() const noexcept
-  { return (address_ == 0) and (port_ == 0); }
+  { return (address() == 0) and (port() == 0); }
 
   /**
    * Operator to check for equality relationship
@@ -104,8 +104,7 @@ public:
    */
   constexpr bool operator==(const Socket& other) const noexcept
   {
-    return (address() == other.address())
-       and (port() == other.port());
+    return data_ == other.data_;
   }
 
   /**
@@ -147,38 +146,54 @@ public:
   { return not (*this < other); }
 
 private:
-  Address address_;
-  port_t  port_;
+  struct Sock {
+    constexpr Sock(Address a, port_t p) : address(a), port(p), padding(0) {}
+    Address   address;
+    port_t    port;
+    uint16_t  padding;
+  } sock_;
+  uint64_t data_;
 
 }; //< class Socket
 
-class Quadruple {
+static_assert(sizeof(Socket) == 8, "Socket not 8 byte");
 
-public:
-  constexpr Quadruple() noexcept
-    : source_{}, destination_{}
+/**
+ * @brief      A pair of Sockets
+ */
+struct Quadruple {
+  Socket src;
+  Socket dst;
+
+  Quadruple() = default;
+  Quadruple(Socket s, Socket d)
+    : src(std::move(s)), dst(std::move(d))
   {}
 
-  constexpr Quadruple(const Socket source, const Socket destination) noexcept
-    : source_{source}, destination_{destination}
-  {}
+  bool operator==(const Quadruple& other) const noexcept
+  { return src == other.src and dst == other.dst; }
 
-  constexpr Quadruple(const Socket::Address src_address, const Socket::port_t src_port,
-    const Socket::Address dst_address, const Socket::port_t dst_port) noexcept
-    : source_{src_address, src_port}, destination_{dst_address, dst_port}
-  {}
+  bool operator!=(const Quadruple& other) const noexcept
+  { return not (*this == other); }
 
-  const Socket& source() const noexcept
-  { return source_; }
+  bool operator<(const Quadruple& other) const noexcept
+  { return src < other.src or (src == other.src and dst < other.dst); }
 
-  const Socket& destination() const noexcept
-  { return destination_; }
+  bool operator>(const Quadruple& other) const noexcept
+  { return src > other.src or (src == other.src and dst > other.dst); }
 
-private:
-  Socket source_;
-  Socket destination_;
+  bool is_reverse(const Quadruple& other) const noexcept
+  { return src == other.dst and dst == other.src; }
 
-};  //< class Quadruple
+  Quadruple& swap() {
+    std::swap(src, dst);
+    return *this;
+  }
+
+  std::string to_string() const
+  { return src.to_string() + " " + dst.to_string(); }
+
+}; //< struct Quadruple
 
 } //< namespace net
 
@@ -189,6 +204,16 @@ namespace std {
     size_t operator () (const net::Socket& key) const noexcept {
       const auto h1 = std::hash<net::Socket::Address>{}(key.address());
       const auto h2 = std::hash<net::Socket::port_t>{}(key.port());
+      return h1 ^ h2;
+    }
+  };
+
+  template<>
+  struct hash<net::Quadruple> {
+  public:
+    size_t operator () (const net::Quadruple& key) const noexcept {
+      const auto h1 = std::hash<net::Socket>{}(key.src);
+      const auto h2 = std::hash<net::Socket>{}(key.dst);
       return h1 ^ h2;
     }
   };

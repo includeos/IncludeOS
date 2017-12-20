@@ -34,7 +34,7 @@ namespace fs {
       hw::Block_device::on_read_func::make_packed(
       [this, func] (hw::Block_device::buffer_t data)
       {
-        std::vector<Partition> parts;
+        std::vector<fs::Partition> parts;
 
         if (!data) {
           func({ error_t::E_IO, "Unable to read MBR"}, parts);
@@ -42,7 +42,7 @@ namespace fs {
         }
 
         // First sector is the Master Boot Record
-        auto* mbr =(MBR::mbr*) data.get();
+        auto* mbr =(MBR::mbr*) data->data();
 
         for (int i {0}; i < 4; ++i) {
           // all the partitions are offsets to potential Volume Boot Records
@@ -72,7 +72,7 @@ namespace fs {
         }
 
         // auto-detect FAT on MBR:
-        auto* mbr = (MBR::mbr*) data.get();
+        auto* mbr = (MBR::mbr*) data->data();
         MBR::BPB* bpb = mbr->bpb();
 
         if (bpb->bytes_per_sector >= 512
@@ -140,7 +140,7 @@ namespace fs {
             return;
           }
 
-          auto* mbr = (MBR::mbr*) data.get();
+          auto* mbr = (MBR::mbr*) data->data();
           auto pint = (int) part - 1;
 
           auto lba_base = mbr->part[pint].lba_begin;
@@ -155,7 +155,7 @@ namespace fs {
     }
   }
 
-  std::string Disk::Partition::name() const {
+  std::string Partition::name() const {
     return MBR::id_to_name(id);
   }
 

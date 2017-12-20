@@ -21,6 +21,7 @@
 
 #include <net/ip4/addr.hpp>
 #include <net/packet.hpp>
+#include <net/checksum.hpp>
 #include <chrono>
 
 namespace net {
@@ -53,22 +54,38 @@ namespace net {
     using seq_t = uint32_t;
 
     /** A shared buffer pointer */
-    using buffer_t = std::shared_ptr<uint8_t>;
+    using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
 
-    /**
-     * @brief Creates a shared buffer with a given length
-     *
-     * @param length buffer length
-     * @return a newly created buffer_t
-     */
-    inline buffer_t new_shared_buffer(uint64_t length)
-    { return buffer_t(new uint8_t[length], std::default_delete<uint8_t[]>()); }
+    /** Construct a shared vector used in TCP **/
+    template <typename... Args>
+    buffer_t construct_buffer(Args&&... args) {
+      return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
+    }
 
     class Packet;
     using Packet_ptr = std::unique_ptr<Packet>;
 
     class Connection;
     using Connection_ptr = std::shared_ptr<Connection>;
+
+    template <typename Tcp_packet>
+    uint16_t calculate_checksum(const Tcp_packet& packet)
+    {
+      constexpr uint8_t Proto_TCP = 6; // avoid including inet_common
+      uint16_t length = packet.tcp_length();
+      // Compute sum of pseudo-header
+      uint32_t sum =
+            (packet.ip_src().whole >> 16)
+          + (packet.ip_src().whole & 0xffff)
+          + (packet.ip_dst().whole >> 16)
+          + (packet.ip_dst().whole & 0xffff)
+          + (Proto_TCP << 8)
+          + htons(length);
+
+      // Compute sum of header and data
+      const char* buffer = (char*) &packet.tcp_header();
+      return net::checksum(sum, buffer, length);
+    }
 
   } // < namespace tcp
 } // < namespace net

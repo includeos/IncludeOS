@@ -34,8 +34,6 @@ namespace net {
     PONG      = 10
   }; // < op_code
 
-  static constexpr uint8_t WS_HEADER_MAXLEN{16};
-
   struct ws_header
   {
     uint16_t bits;
@@ -115,7 +113,16 @@ namespace net {
     }
 
     uint16_t header_length() const noexcept
-    { return sizeof(ws_header) + data_offset(); }
+    {
+      return sizeof(ws_header) + data_offset();
+    }
+    static size_t header_length(size_t len, bool client) noexcept
+    {
+      size_t ofs = sizeof(ws_header) + (client ? 4 : 0);
+      if (len > 65535) return ofs + 8;
+      if (len > 125)   return ofs + 2;
+      return ofs;
+    }
 
     const char* data() const noexcept {
       return &vla[data_offset()];
@@ -123,18 +130,13 @@ namespace net {
     char* data() noexcept {
       return &vla[data_offset()];
     }
-    void masking_algorithm()
+    void masking_algorithm(char* ptr)
     {
-      char* ptr  = data();
       const char* mask = keymask();
       for (size_t i = 0; i < data_length(); i++)
       {
         ptr[i] = ptr[i] xor mask[i & 3];
       }
-    }
-
-    size_t reported_length() const noexcept {
-      return header_length() + data_length();
     }
 
     char vla[0];

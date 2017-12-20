@@ -16,131 +16,468 @@
 // limitations under the License.
 
 #include <net/nat/napt.hpp>
+#include <net/nat/nat.hpp>
+
+//#define NAPT_DEBUG 1
+#ifdef NAPT_DEBUG
+#define NATDBG(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define NATDBG(fmt, ...) /* fmt */
+#endif
 
 namespace net {
 namespace nat {
 
-IP4::IP_packet_ptr NAPT::nat(IP4::IP_packet_ptr pkt, const Stack& inet)
+inline bool is_snat(const Conntrack::Entry_ptr entry)
+{ return entry->first.src != entry->second.dst; }
+
+inline bool is_dnat(const Conntrack::Entry_ptr entry)
+{ return entry->first.dst != entry->second.src; }
+
+// Helpers to update the entry (if needed)
+inline void update_dnat(Conntrack& ct, Conntrack::Entry_ptr entry, Socket socket)
 {
-  if(pkt->ip_dst() != inet.ip_addr())
-  {
-    pkt = snat(std::move(pkt), inet);
-  }
-  else
-  {
-    pkt = dnat(std::move(pkt), inet);
-  }
-
-  return pkt;
-}
-
-// Replace source socket with external (this) address and random port
-IP4::IP_packet_ptr NAPT::snat(IP4::IP_packet_ptr pkt, const Stack& inet)
-{
-  // Early return if the packet is for me
-  if(UNLIKELY(pkt->ip_dst() == inet.ip_addr()))
-    return pkt;
-
-  if(pkt->ip_protocol() == Protocol::TCP)
-  {
-    snat(*static_cast<tcp::Packet*>(pkt.get()), inet.ip_addr());
-  }
-
-  return pkt;
-}
-
-// Replace source address with external address from table
-IP4::IP_packet_ptr NAPT::dnat(IP4::IP_packet_ptr pkt, const Stack& inet)
-{
-  // Early return if the packet isn't for me
-  if(UNLIKELY(pkt->ip_dst() != inet.ip_addr()))
-    return pkt;
-
-  if(pkt->ip_protocol() == Protocol::TCP)
-  {
-    dnat(*static_cast<tcp::Packet*>(pkt.get()));
-  }
-
-  return pkt;
-}
-
-void NAPT::snat(tcp::Packet& pkt, ip4::Addr src_ip)
-{
-  tcp_tracker.incoming(pkt);
-  // Get the Socket
-  Socket socket = pkt.source();
-
-  // Is there an entry?
-  auto it = std::find_if(tcp_trans.begin(), tcp_trans.end(),
-    [socket] (auto& ent) {
-      return ent.second == socket;
+  if(entry->second.src != socket) {
+    ct.update_entry(entry->proto, entry->second, {
+      socket, // replace return socket
+      entry->second.dst
     });
-
-  // If there already is an entry
-  if(it != tcp_trans.end())
-  {
-    // Replace the source port with the already translated one
-    pkt.set_src_port(it->first);
-  }
-  // If not
-  else
-  {
-    // Generate a new port
-    auto port = tcp_ports.get_next_ephemeral();
-
-    // Replace the source port
-    pkt.set_src_port(port);
-
-    add_entry(port, socket);
-  }
-
-  // At last, replace the source address
-  pkt.set_ip_src(src_ip);
-
-  debug2("SNAT %s => %s\n", socket.to_string().c_str(), pkt.source().to_string().c_str());
-
-  // Recalculate checksum
-  recalculate_checksum(pkt, socket, pkt.source());
-}
-
-void NAPT::dnat(tcp::Packet& pkt)
-{
-  auto orgsock = pkt.destination();
-
-  // Is there an entry?
-  auto it = tcp_trans.find(orgsock.port());
-
-  // If there already is an entry
-  if(it != tcp_trans.end())
-  {
-    // Get the Socket
-    auto socket = it->second;
-    debug2("DNAT %s => %s\n", orgsock.to_string().c_str(), socket.to_string().c_str());
-    // Replace the destination port with the original one
-    pkt.set_destination(socket);
-
-    // Recalculate checksum
-    recalculate_checksum(pkt, orgsock, socket);
-
-    tcp_tracker.outgoing(pkt);
   }
 }
 
-void NAPT::recalculate_checksum(tcp::Packet& pkt, Socket osock, Socket nsock)
+inline void update_dnat(Conntrack& ct, Conntrack::Entry_ptr entry, ip4::Addr addr)
 {
-  auto old_addr = osock.address();
-  auto new_addr = nsock.address();
-  auto old_port = htons(osock.port());
-  auto new_port = htons(nsock.port());
+  if(entry->second.src.address() != addr) {
+    ct.update_entry(entry->proto, entry->second, {
+      {addr, entry->second.src.port()}, // change return addr but keep port
+      entry->second.dst
+    });
+  }
+}
 
-  auto ip_sum = pkt.ip_checksum();
-  checksum_adjust(&ip_sum, &old_addr, &new_addr);
-  pkt.set_ip_checksum(ip_sum);
+inline void update_dnat(Conntrack& ct, Conntrack::Entry_ptr entry, uint16_t port)
+{
+  if(entry->second.src.port() != port) {
+    ct.update_entry(entry->proto, entry->second, {
+      {entry->second.src.address(), port}, // keep return address but change port
+      entry->second.dst
+    });
+  }
+}
 
-  auto tcp_sum = pkt.tcp_checksum();
-  checksum_adjust(&tcp_sum, &old_addr, &new_addr);
-  checksum_adjust<uint16_t>(&tcp_sum, &old_port, &new_port);
-  pkt.set_checksum(tcp_sum);
+inline void update_snat(Conntrack& ct, Conntrack::Entry_ptr entry, Socket socket)
+{
+  if(entry->second.dst != socket) {
+    ct.update_entry(entry->proto, entry->second, {
+      entry->second.src,
+      socket // replace dst socket
+    });
+  }
+}
+
+inline void update_snat(Conntrack& ct, Conntrack::Entry_ptr entry, ip4::Addr addr)
+{
+  if(entry->second.dst.address() != addr) {
+    ct.update_entry(entry->proto, entry->second, {
+      entry->second.src,
+      {addr, entry->second.dst.port()} // change dst address but keep port
+    });
+  }
+}
+
+inline void update_snat(Conntrack& ct, Conntrack::Entry_ptr entry, uint16_t port)
+{
+  if(entry->second.dst.port() != port) {
+    ct.update_entry(entry->proto, entry->second, {
+      entry->second.src,
+      {entry->second.dst.address(), port} // keep dst address but change port
+    });
+  }
+}
+
+
+NAPT::NAPT(std::shared_ptr<Conntrack> ct)
+  : conntrack(std::move(ct))
+{
+  Expects(conntrack != nullptr);
+}
+
+void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr entry)
+{
+  if (UNLIKELY(entry == nullptr)) return;
+
+  const auto ip = inet.ip_addr();
+  switch(pkt.ip_protocol())
+  {
+    case Protocol::TCP:
+    {
+      // Get the TCP ports for the given stack
+      auto& ports = inet.tcp_ports()[ip];
+      auto socket = masq(entry, ip, ports);
+      NATDBG("<NAPT> MASQ: %s => %s\n",
+        entry->to_string().c_str(), socket.to_string().c_str());
+      // static source nat
+      tcp_snat(pkt, socket);
+      break;
+    }
+
+    case Protocol::UDP:
+    {
+      // Get the UDP ports for the given stack
+      auto& ports = inet.udp_ports()[ip];
+      auto socket = masq(entry, ip, ports);
+      NATDBG("<NAPT> MASQ: %s => %s\n",
+        entry->to_string().c_str(), socket.to_string().c_str());
+      // static source nat
+      udp_snat(pkt, socket);
+      break;
+    }
+
+    case Protocol::ICMPv4:
+    {
+      // If the entry is mirrored, it's not masked yet
+      if(not is_snat(entry))
+      {
+        // Update the entry to have the new socket as second (keep port)
+        auto masq_sock = Socket{ip, entry->second.dst.port()};
+        conntrack->update_entry(Protocol::ICMPv4, entry->second, {entry->second.src, masq_sock});
+      }
+      NATDBG("<NAPT> MASQ: %s => %s\n",
+        entry->to_string().c_str(), entry->second.dst.to_string().c_str());
+      // static source nat
+      icmp_snat(pkt, entry->second.dst.address());
+      break;
+    }
+
+    default:
+      break;
+  }
+}
+
+void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack&, Conntrack::Entry_ptr entry)
+{
+  // unknown protocols aren't tracked, so exit
+  if (UNLIKELY(entry == nullptr)) return;
+
+  NATDBG("<NAPT> DEMASQ BEFORE IS_SNAT: %s\n",
+        entry->to_string().c_str());
+
+  if(not is_snat(entry))
+    return;
+
+  NATDBG("<NAPT> DEMASQ: %s => %s\n",
+        entry->to_string().c_str(), entry->first.src.to_string().c_str());
+  switch(pkt.ip_protocol())
+  {
+    case Protocol::TCP:
+      tcp_dnat(pkt, entry->first.src);
+      break;
+
+    case Protocol::UDP:
+      udp_dnat(pkt, entry->first.src);
+      break;
+
+    case Protocol::ICMPv4:
+      icmp_dnat(pkt, entry->first.src.address());
+      break;
+
+    default:
+      break;
+  }
+}
+
+Socket NAPT::masq(Conntrack::Entry_ptr entry, const ip4::Addr addr, Port_util& ports)
+{
+  Expects(entry->proto != Protocol::ICMPv4);
+
+  // If the entry is mirrored, it's not masked yet
+  if(not is_snat(entry))
+  {
+    // Generate a new eph port and bind it
+    auto port = ports.get_next_ephemeral();
+    ports.bind(port);
+
+    // Update the entry to have the new socket as second
+    auto masq_sock = Socket{addr, port};
+    auto updated = conntrack->update_entry(
+      entry->proto, entry->second, {entry->second.src, masq_sock});
+
+    // Setup to unbind port on entry close
+    auto on_close = [&ports, port](Conntrack::Entry_ptr){ ports.unbind(port); };
+    updated->on_close = on_close;
+  }
+
+  return entry->second.dst;
+}
+
+void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const Socket socket)
+{
+  if (UNLIKELY(entry == nullptr)) return;
+
+  NATDBG("<NAPT> DNAT: %s => %s\n",
+        entry->to_string().c_str(), socket.to_string().c_str());
+
+  const auto proto = p.ip_protocol();
+  switch(proto)
+  {
+    case Protocol::TCP:
+    {
+      update_dnat(*conntrack, entry, socket);
+      tcp_dnat(p, socket);
+      return;
+    }
+    case Protocol::UDP:
+    {
+      update_dnat(*conntrack, entry, socket);
+      udp_dnat(p, socket);
+      return;
+    }
+    case Protocol::ICMPv4:
+    {
+      // do not support Socket
+      return;
+    }
+    default:
+      return;
+  }
+}
+
+void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const ip4::Addr addr)
+{
+  if (UNLIKELY(entry == nullptr)) return;
+
+  NATDBG("<NAPT> DNAT: %s => addr %s\n",
+        entry->to_string().c_str(), addr.to_string().c_str());
+
+  const auto proto = p.ip_protocol();
+
+  update_dnat(*conntrack, entry, addr);
+
+  switch(proto)
+  {
+    case Protocol::TCP:
+      tcp_dnat(p, addr);
+      return;
+
+    case Protocol::UDP:
+      udp_dnat(p, addr);
+      return;
+
+    case Protocol::ICMPv4:
+      icmp_dnat(p, addr);
+      return;
+
+    default:
+      return;
+  }
+}
+
+void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const uint16_t port)
+{
+  if (UNLIKELY(entry == nullptr)) return;
+
+  NATDBG("<NAPT> DNAT: %s => port %d\n",
+        entry->to_string().c_str(), port);
+
+  const auto proto = p.ip_protocol();
+
+  update_dnat(*conntrack, entry, port);
+
+  switch(proto)
+  {
+    case Protocol::TCP:
+      tcp_dnat(p, port);
+      return;
+
+    case Protocol::UDP:
+      udp_dnat(p, port);
+      return;
+
+    case Protocol::ICMPv4:
+      // port not supported
+      return;
+
+    default:
+      return;
+  }
+}
+
+void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
+{
+  if (UNLIKELY(entry == nullptr)) return;
+
+  if(not is_snat(entry)) // The entry has not been SNAT
+    return;
+
+  switch(p.ip_protocol())
+  {
+    case Protocol::TCP:
+    {
+      if(Conntrack::get_quadruple(p).dst == entry->second.dst) // assume reply
+      {
+        NATDBG("<NAPT> Found DNAT target: %s => %s\n",
+          entry->to_string().c_str(), entry->first.src.to_string().c_str());
+        tcp_dnat(p, entry->first.src); // TODO: currently rewrites full socket
+      }
+      return;
+    }
+    case Protocol::UDP:
+    {
+      if(Conntrack::get_quadruple(p).dst == entry->second.dst) // assume reply
+      {
+        NATDBG("<NAPT> Found DNAT target: %s => %s\n",
+          entry->to_string().c_str(), entry->first.src.to_string().c_str());
+        udp_dnat(p, entry->first.src); // TODO: currently rewrites full socket
+      }
+      return;
+    }
+    case Protocol::ICMPv4:
+    {
+      if(Conntrack::get_quadruple_icmp(p).dst == entry->second.dst) // assume reply
+      {
+        NATDBG("<NAPT> Found DNAT target: %s => %s\n",
+          entry->to_string().c_str(), entry->first.src.address().to_string().c_str());
+        icmp_dnat(p, entry->first.src.address());
+      }
+      return;
+    }
+    default:
+      return;
+  }
+}
+
+void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const Socket socket)
+{
+  if (UNLIKELY(entry == nullptr)) return;
+
+  NATDBG("<NAPT> SNAT: %s => %s\n",
+        entry->to_string().c_str(), socket.to_string().c_str());
+
+  const auto proto = p.ip_protocol();
+  switch(proto)
+  {
+    case Protocol::TCP:
+    {
+      update_snat(*conntrack, entry, socket);
+      tcp_snat(p, socket);
+      return;
+    }
+    case Protocol::UDP:
+    {
+      update_snat(*conntrack, entry, socket);
+      udp_snat(p, socket);
+      return;
+    }
+    case Protocol::ICMPv4:
+    {
+      // do not support Socket
+      return;
+    }
+    default:
+      return;
+  }
+}
+
+void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const ip4::Addr addr)
+{
+  if (UNLIKELY(entry == nullptr)) return;
+  NATDBG("<NAPT> SNAT: %s => addr %s\n",
+        entry->to_string().c_str(), addr.to_string().c_str());
+
+  const auto proto = p.ip_protocol();
+
+  update_snat(*conntrack, entry, addr);
+
+  switch(proto)
+  {
+    case Protocol::TCP:
+      tcp_snat(p, addr);
+      return;
+
+    case Protocol::UDP:
+      udp_snat(p, addr);
+      return;
+
+    case Protocol::ICMPv4:
+      icmp_snat(p, addr);
+      return;
+
+    default:
+      return;
+  }
+}
+
+void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const uint16_t port)
+{
+  if (UNLIKELY(entry == nullptr)) return;
+  NATDBG("<NAPT> SNAT: %s => port %d\n",
+        entry->to_string().c_str(), port);
+
+  const auto proto = p.ip_protocol();
+
+  update_snat(*conntrack, entry, port);
+
+  switch(proto)
+  {
+    case Protocol::TCP:
+      tcp_snat(p, port);
+      return;
+
+    case Protocol::UDP:
+      udp_snat(p, port);
+      return;
+
+    case Protocol::ICMPv4:
+      // port not supported
+      return;
+
+    default:
+      return;
+  }
+}
+
+void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
+{
+  if (UNLIKELY(entry == nullptr)) return;
+
+  if(not is_dnat(entry)) // The entry has not been DNAT
+    return;
+
+  switch(p.ip_protocol())
+  {
+    case Protocol::TCP:
+    {
+      if(Conntrack::get_quadruple(p).src == entry->second.src) // assume reply
+      {
+        NATDBG("<NAPT> Found SNAT target: %s => %s\n",
+          entry->to_string().c_str(), entry->first.dst.to_string().c_str());
+        tcp_snat(p, entry->first.dst); // TODO: currently rewrites full socket
+      }
+      return;
+    }
+    case Protocol::UDP:
+    {
+      if(Conntrack::get_quadruple(p).src == entry->second.src) // assume reply
+      {
+        NATDBG("<NAPT> Found SNAT target: %s => %s\n",
+          entry->to_string().c_str(), entry->first.dst.to_string().c_str());
+        udp_snat(p, entry->first.dst); // TODO: currently rewrites full socket
+      }
+      return;
+    }
+    case Protocol::ICMPv4:
+    {
+      if(Conntrack::get_quadruple_icmp(p).src == entry->second.src) // assume reply
+      {
+        NATDBG("<NAPT> Found SNAT target: %s => %s\n",
+          entry->to_string().c_str(), entry->first.dst.address().to_string().c_str());
+        icmp_snat(p, entry->first.dst.address());
+      }
+      return;
+    }
+    default:
+      return;
+  }
 }
 
 }

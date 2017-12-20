@@ -19,7 +19,7 @@
 //#define DEBUG2
 
 #include <kernel/elf.hpp>
-#include <util/fixedvec.hpp>
+#include <util/fixed_vector.hpp>
 #include <common>
 #include <cassert>
 #include <cstdlib>
@@ -55,8 +55,8 @@ struct allocation
 static int enable_debugging = 1;
 static int enable_debugging_verbose = 0;
 static int enable_buffer_protection = 1;
-static fixedvector<allocation,  65536> allocs;
-static fixedvector<allocation*, 65536> free_allocs;
+static Fixed_vector<allocation,  65536> allocs;
+static Fixed_vector<allocation*, 65536> free_allocs;
 
 // There is a chance of a buffer overrun where this exact value
 // is written, but the chance of that happening is minimal
@@ -135,7 +135,7 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
 
   if (enable_debugging) {
     if (!free_allocs.empty()) {
-      auto* x = free_allocs.pop();
+      auto* x = free_allocs.pop_back();
       new(x) allocation((char*) data, len,
                         __builtin_return_address(0),
                         __builtin_return_address(1),
@@ -143,7 +143,7 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
     } else if (!allocs.free_capacity()) {
       DPRINTF("[WARNING] Internal fixed vectors are FULL, expect bogus double free messages\n");
     } else {
-      allocs.emplace((char*) data, len,
+      allocs.emplace_back((char*) data, len,
                       __builtin_return_address(0),
                       __builtin_return_address(1),
                       __builtin_return_address(2));
@@ -218,7 +218,7 @@ inline static void deleted_ptr(void* ptr)
       // perfect match
       x->addr = nullptr;
       x->len  = 0;
-      free_allocs.add(x);
+      free_allocs.push_back(x);
     }
     else if (x->addr != ptr) {
       DPRINTF("[ERROR] Free on misaligned address: %p inside %p:%llu",

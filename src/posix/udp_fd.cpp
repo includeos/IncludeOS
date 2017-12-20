@@ -17,6 +17,14 @@
 
 #include <udp_fd.hpp>
 #include <kernel/os.hpp> // OS::block()
+#include <errno.h>
+
+#define POSIX_STRACE
+#ifdef POSIX_STRACE
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
 
 // return the "currently selected" networking stack
 static net::Inet<net::IP4>& net_stack() {
@@ -34,10 +42,9 @@ void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t addr,
   // only recv to buffer if not full
   if(buffer_.size() < max_buffer_msgs()) {
     // copy data into to-be Message buffer
-    auto data = std::unique_ptr<char>(new char[len]);
-    memcpy(data.get(), buf, len);
+    auto buff = net::tcp::buffer_t(new std::vector<uint8_t> (buf, buf + len));
     // emplace the message in buffer
-    buffer_.emplace_back(htonl(addr.whole), htons(port), std::move(data), len);
+    buffer_.emplace_back(htonl(addr.whole), htons(port), std::move(buff));
   }
 }
 
@@ -47,11 +54,10 @@ int UDP_FD::read_from_buffer(void* buffer, size_t len, int flags,
   assert(!buffer_.empty() && "Trying to read from empty buffer");
 
   auto& msg = buffer_.front();
-  auto& data = msg.data;
+  auto& mbuf = msg.buffer;
 
-  int bytes = std::min(len, msg.len);
-
-  memcpy(buffer, data.get(), bytes);
+  int bytes = std::min(len, mbuf->size());
+  memcpy(buffer, mbuf->data(), bytes);
 
   if(address != nullptr) {
     memcpy(address, &msg.src, std::min(*address_len, (uint32_t) sizeof(struct sockaddr_in)));
@@ -72,7 +78,7 @@ UDP_FD::~UDP_FD()
 {
   // shutdown underlying socket, makes sure no callbacks are called on dead fd
   if(this->sock)
-    sock->udp().close(sock->local_port());
+    sock->close();
 }
 int UDP_FD::read(void* buffer, size_t len)
 {
@@ -105,6 +111,7 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
   {
     this->sock = (port) ? &udp.bind(ntohs(port)) : &udp.bind();
     set_default_recv();
+    PRINT("UDP: bind(%s)\n", sock->local().to_string().c_str());
     return 0;
   }
   catch(const net::UDP::Port_in_use_exception&)
@@ -115,8 +122,7 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
 }
 int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
-  // The specified address is not a valid address for the address family of the specified socket.
-  if(UNLIKELY(address_len != sizeof(struct sockaddr_in))) {
+  if (UNLIKELY(!validate_sockaddr_in(address, address_len))) {
     errno = EINVAL;
     return -1;
   }
@@ -140,6 +146,9 @@ int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
     peer_.sin_addr   = addr.sin_addr;
     peer_.sin_port   = addr.sin_port;
   }
+  PRINT("UDP: connect(%s:%u)\n",
+        net::IP4::addr(peer_.sin_addr.s_addr).to_string().c_str(),
+        htons(peer_.sin_port));
 
   return 0;
 }
@@ -149,6 +158,7 @@ ssize_t UDP_FD::send(const void* message, size_t len, int flags)
     errno = EDESTADDRREQ;
     return -1;
   }
+  PRINT("UDP: send(%lu, %x)\n", len, flags);
 
   return sendto(message, len, flags, (struct sockaddr*)&peer_, sizeof(peer_));
 }
@@ -186,6 +196,7 @@ ssize_t UDP_FD::sendto(const void* message, size_t len, int,
 }
 ssize_t UDP_FD::recv(void* buffer, size_t len, int flags)
 {
+  PRINT("UDP: recv(%lu, %x)\n", len, flags);
   return recvfrom(buffer, len, flags, nullptr, 0);
 }
 ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
@@ -250,6 +261,7 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
 int UDP_FD::getsockopt(int level, int option_name,
   void *option_value, socklen_t *option_len)
 {
+  PRINT("UDP: getsockopt(%d, %d)\n", level, option_name);
   if(level != SOL_SOCKET)
     return -1;
 
@@ -323,6 +335,7 @@ int UDP_FD::getsockopt(int level, int option_name,
 int UDP_FD::setsockopt(int level, int option_name,
   const void *option_value, socklen_t option_len)
 {
+  PRINT("UDP: setsockopt(%d, %d, ... %d)\n", level, option_name, option_len);
   if(level != SOL_SOCKET)
     return -1;
 
@@ -364,7 +377,7 @@ int UDP_FD::setsockopt(int level, int option_name,
 
 UDP_FD::on_read_func UDP_FD::get_default_read_func()
 {
-  return [] (net::tcp::buffer_t, size_t) {};
+  return [] (net::tcp::buffer_t) {};
 }
 UDP_FD::on_write_func UDP_FD::get_default_write_func()
 {

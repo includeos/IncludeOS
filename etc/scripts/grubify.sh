@@ -98,7 +98,7 @@ function create_disk {
 function mount_loopback {
 
   # Find first available loopback device
-  LOOP=$(losetup -f)
+  LOOP=$(sudo losetup -f)
 
   echo -e ">>> Associating $LOOP with $DISK"
   # NOTE: To list used loopback devices do

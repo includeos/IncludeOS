@@ -49,6 +49,10 @@ public:
     return SECTOR_SIZE; // some multiple of sector size
   }
 
+  block_t size() const noexcept override {
+    return config.capacity;
+  }
+
   // read @blk from disk, call func with buffer when done
   void read(block_t blk, on_read_func func) override;
   // read @blk + @cnt from disk, call func with buffer when done
@@ -62,9 +66,11 @@ public:
     return buffer_t();
   }
 
-  block_t size() const noexcept override {
-    return config.capacity;
+  // not supported
+  void write(block_t, buffer_t, on_write_func callback) override {
+    callback(true);
   }
+  bool write_sync(block_t, buffer_t) override { return true; };
 
   void deactivate() override;
 
@@ -102,10 +108,11 @@ private:
   {
     uint8_t      sector[512];
   };
+  typedef delegate<void(uint8_t*)> request_handler_t;
   struct blk_resp_t
   {
-    uint8_t      status;
-    on_read_func handler;
+    uint8_t           status;
+    request_handler_t handler;
   };
 
   struct request_t
@@ -114,7 +121,7 @@ private:
     blk_io_t      io;
     blk_resp_t    resp;
 
-    request_t(uint64_t blk, on_read_func cb);
+    request_t(uint64_t blk, request_handler_t cb);
   };
 
   /** Get virtio PCI config. @see Virtio::get_config.*/
