@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <util/bitmask_ops.hpp>
+#include <util/bitops.hpp>
 
 enum class Flags : uint8_t {
   none = 0x0,

@@ -19,7 +19,7 @@
 #include "cmos.hpp"
 #include <kernel/timers.hpp>
 #include <kernel/os.hpp>
-#include <hertz>
+#include <util/units.hpp>
 
 namespace x86
 {
@@ -43,6 +43,7 @@ namespace x86
 
   int64_t CMOS_clock::system_time()
   {
+    using namespace util;
     auto ticks = OS::cycles_since_boot() - current_ticks;
     auto diff  = ticks / Hz(MHz(OS::cpu_freq())).count();
 

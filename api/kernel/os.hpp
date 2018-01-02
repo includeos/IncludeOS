@@ -22,7 +22,7 @@
 #include <arch.hpp>
 #include <kernel/memmap.hpp>
 #include <kernel/rtc.hpp>
-#include <hertz>
+#include <util/units.hpp>
 #include <string>
 #include <vector>
 #include <boot/multiboot.h>
@@ -34,6 +34,7 @@
  */
 class OS {
 public:
+
   using print_func  = delegate<void(const char*, size_t)>;
   using Plugin      = delegate<void()>;
   using Span_mods   = gsl::span<multiboot_module_t>;
@@ -79,7 +80,7 @@ public:
   static uint64_t micros_asleep() noexcept;
 
 
-  static MHz cpu_freq() noexcept
+  static util::MHz cpu_freq() noexcept
   { return cpu_mhz_; }
 
   /**
@@ -133,7 +134,18 @@ public:
    * unresponsive. After the handler is called, the OS goes to sleep.
    * This handler can thus be used to, for example, automatically
    * have the OS restart on any crash.
-  **/
+   **/
+  enum class Panic_action {
+    halt, reboot, shutdown
+  };
+
+  static Panic_action panic_action()
+  { return panic_action_; }
+
+
+  static void set_panic_action(Panic_action action)
+  { panic_action_ = action; }
+
   typedef void (*on_panic_func) (const char*);
   static void on_panic(on_panic_func);
 
@@ -254,7 +266,7 @@ private:
   static bool boot_sequence_passed_;
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
-  static MHz cpu_mhz_;
+  static util::MHz cpu_mhz_;
 
   static RTC::timestamp_t booted_at_;
   static uintptr_t liveupdate_loc_;
@@ -264,6 +276,7 @@ private:
   static uintptr_t heap_max_;
   static const uintptr_t elf_binary_size_;
   static const char* cmdline;
+  static Panic_action panic_action_;
 
   // Prohibit copy and move operations
   OS(OS&)  = delete;

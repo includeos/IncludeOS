@@ -20,7 +20,7 @@
 #define X86_PIT_HPP
 #include <delegate>
 #include <chrono>
-#include <hertz>
+#include <util/units.hpp>
 
 namespace x86
 {
@@ -28,6 +28,9 @@ namespace x86
    * Programmable Interval Timer
    *
   **/
+
+  using namespace util::literals;
+
   class PIT {
   public:
     using timeout_handler = delegate<void()>;
