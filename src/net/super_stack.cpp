@@ -17,6 +17,7 @@
 
 #include <hw/devices.hpp>
 #include <net/inet4.hpp>
+#include <hw/mac_addr.hpp>
 
 namespace net
 {
@@ -54,6 +55,36 @@ Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic, int N, int sub)
 
 // Specialization for IP4
 template <>
+Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic)
+{
+  INFO("Network", "Creating stack for %s on %s",
+        nic.driver_name(), nic.device_name().c_str());
+
+  auto inet_ = [&nic]()->auto {
+    switch(nic.proto()) {
+    case hw::Nic::Proto::ETH:
+      return std::make_unique<Inet4>(nic);
+    default:
+      throw Super_stack_err{"Nic not supported"};
+    }
+  }();
+
+  // Just take the first free one..
+  for(auto& stacks : inet().ip4_stacks_)
+  {
+    auto& stack = stacks[0];
+    if(stack == nullptr) {
+      stack = std::move(inet_);
+      return *stack;
+    }
+  }
+
+  // we should never reach this point
+  throw Super_stack_err{"There wasn't a free slot to create stack on Nic"};
+}
+
+// Specialization for IP4
+template <>
 Inet<IP4>& Super_stack::get<IP4>(int N)
 {
   if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
@@ -87,6 +118,36 @@ Inet<IP4>& Super_stack::get<IP4>(int N, int sub)
 
   throw Stack_not_found{"Stack not found ["
       + std::to_string(N) + "," + std::to_string(sub) + "]"};
+}
+
+// Specialization for IP4
+template <>
+Inet<IP4>& Super_stack::get<IP4>(const std::string& mac)
+{
+  MAC::Addr link_addr{mac.c_str()};
+  // Look for the stack with the same NIC
+  for(auto& stacks : inet().ip4_stacks_)
+  {
+    auto& stack = stacks[0];
+    if(stack == nullptr)
+      continue;
+    if(stack->link_addr() == link_addr)
+      return *stack;
+  }
+
+  // If no stack, find the NIC
+  auto& devs = hw::Devices::devices<hw::Nic>();
+  auto it = devs.begin();
+  for(; it != devs.end(); it++) {
+    if((*it)->mac() == link_addr)
+      break;
+  }
+  // If no NIC, no point looking more
+  if(it == devs.end())
+    throw Stack_not_found{"No NIC found with MAC address " + mac};
+
+  // If not found, create
+  return inet().create<IP4>(*(*it));
 }
 
 Super_stack::Super_stack()
