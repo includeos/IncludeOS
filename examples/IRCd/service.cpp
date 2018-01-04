@@ -139,4 +139,7 @@ void Service::ready()
 #endif
 
   Timers::periodic(seconds(1), seconds(PERIOD_SECS), print_stats);
+
+  // profiler statistics
+  printf("%s\n", ScopedProfiler::get_statistics(false).c_str());
 }
