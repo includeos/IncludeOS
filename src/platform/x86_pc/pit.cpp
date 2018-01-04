@@ -20,6 +20,7 @@
 #include <hw/ioport.hpp>
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
+#include <kernel/rtc.hpp>
 //#undef NO_DEBUG
 #define DEBUG
 #define DEBUG2
@@ -73,7 +74,7 @@ namespace x86
 
   static inline auto now() noexcept
   {
-    return duration_cast<nanoseconds> (nanoseconds(OS::nanos_since_boot()));
+    return duration_cast<nanoseconds> (nanoseconds(RTC::nanos_now()));
   }
 
   void PIT::oneshot(milliseconds timeval, timeout_handler handler)
@@ -87,7 +88,7 @@ namespace x86
     if (forever) {
       get().forev_handler = handler;
     } else {
-      get().expiration    = now() + timeval;
+      get().expiration    = now() + duration_cast<nanoseconds>(timeval);
       get().handler       = handler;
     }
   }

@@ -34,7 +34,7 @@ public:
   }
   /// returns a 64-bit unix timestamp of the current time
   static timestamp_t now() {
-    return nanos_now() / 1000000000ull;
+    return __arch_wall_clock().tv_sec;
   }
 
   /// returns a 64-bit unix timestamp for when the OS was booted

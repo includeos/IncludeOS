@@ -65,7 +65,7 @@ void OS::start(unsigned, unsigned) {}
 void OS::default_stdout(const char*, size_t) {}
 void OS::event_loop() {}
 void OS::block() {}
-int64_t OS::micros_since_boot() noexcept {
+uint64_t OS::nanos_since_boot() noexcept {
   return 0;
 }
 void OS::resume_softreset(intptr_t) {}
@@ -141,8 +141,12 @@ void __arch_subscribe_irq(uint8_t) {}
 void __arch_enable_legacy_irq(uint8_t) {}
 void __arch_disable_legacy_irq(uint8_t) {}
 
-int64_t __arch_time_now() noexcept {
+uint64_t __arch_system_time() noexcept {
   return 0;
+}
+#include <sys/time.h>
+timespec __arch_wall_clock() noexcept {
+  return timespec{0, 0};
 }
 
 /// smp ///

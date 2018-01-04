@@ -250,10 +250,9 @@ int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   return -1;
 }
 int gettimeofday(struct timeval* p, void*) {
-  uint64_t ts = RTC::nanos_now();
-  printf("gettimeofday called: %lu\n", ts);
-  p->tv_sec  = ts / 1000000000ull;
-  p->tv_usec = (ts % 1000000000ull) / 1000;
+  auto tval = __arch_wall_clock();
+  p->tv_sec  = tval.tv_sec;
+  p->tv_usec = tval.tv_nsec / 1000;
   return 0;
 }
 

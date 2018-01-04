@@ -79,8 +79,8 @@ public:
   static uint64_t nanos_asleep() noexcept;
 
 
-  static MHz cpu_freq() noexcept
-  { return cpu_mhz_; }
+  static auto cpu_freq() noexcept
+  { return cpu_khz_; }
 
   /**
    * Reboot operating system
@@ -256,7 +256,7 @@ private:
   static bool boot_sequence_passed_;
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
-  static MHz cpu_mhz_;
+  static KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;
   static std::string version_str_;

@@ -2,6 +2,7 @@
 
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
+#include <kernel/rtc.hpp>
 #include <service>
 #include <smp>
 #include <statman>
@@ -16,7 +17,7 @@ typedef Timers::handler_t  handler_t;
 
 static inline auto now() noexcept
 {
-  return nanoseconds(OS::nanos_since_boot());
+  return nanoseconds(RTC::nanos_now());
 }
 
 /// internal timer ///

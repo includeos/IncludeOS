@@ -4,10 +4,11 @@
 #include <kernel/timers.hpp>
 #include <sys/time.h>
 #include <sched.h>
-int64_t OS::nanos_since_boot() noexcept
+#include <ctime>
+uint64_t OS::nanos_since_boot() noexcept
 {
   struct timespec tv;
-  clock_gettime(&tv,NULL);
+  clock_gettime(CLOCK_REALTIME, &tv);
   return tv.tv_sec*(uint64_t)1000000000ull+tv.tv_nsec;
 }
 
@@ -69,9 +70,6 @@ uintptr_t OS::heap_usage() noexcept {
 #include <kernel/rtc.hpp>
 #include <time.h>
 RTC::timestamp_t RTC::booted_at = time(0);
-RTC::timestamp_t OS::boot_timestamp() {
-  return RTC::boot_timestamp();
-}
 
 #include <smp>
 int SMP::cpu_id() noexcept {

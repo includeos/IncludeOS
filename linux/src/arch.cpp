@@ -17,7 +17,7 @@ bool OS::is_panicking() noexcept
 
 void __arch_subscribe_irq(uint8_t) {}
 
-int64_t __arch_time_now() noexcept {
+uint64_t __arch_system_time() noexcept {
   return time(0);
 }
 

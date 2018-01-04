@@ -53,7 +53,7 @@ struct alignas(SMP_ALIGN) OS_CPU {
 static SMP_ARRAY<OS_CPU> os_per_cpu;
 
 uint64_t OS::nanos_since_boot() noexcept {
-  return cycles_since_boot() / cpu_freq().count();
+  return __arch_system_time();
 }
 
 uint64_t OS::cycles_asleep() noexcept {

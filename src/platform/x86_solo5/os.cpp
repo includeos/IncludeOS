@@ -46,9 +46,13 @@ uint64_t __arch_system_time() noexcept
 {
   return solo5_clock_wall();
 }
-uint64_t __arch_wall_clock() noexcept
+timespec __arch_wall_clock() noexcept
 {
-  return solo5_clock_wall();
+  uint64_t stamp = solo5_clock_wall();
+  timespec result;
+  result.tv_sec = stamp / 1000000000ul;
+  result.tv_nsec = stamp % 1000000000ul;
+  return result;
 }
 
 // actually uses nanoseconds (but its just a number)
@@ -125,7 +129,7 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   extern void __platform_init();
   __platform_init();
 
-  MYINFO("Booted at monotonic_ns=%lld walltime_ns=%lld",
+  MYINFO("Booted at monotonic_ns=%ld walltime_ns=%ld",
          solo5_clock_monotonic(), solo5_clock_wall());
 
   Solo5_manager::init();

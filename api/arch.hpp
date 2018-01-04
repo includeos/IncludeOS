@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cassert>
+#include <ctime>
 
 extern void __arch_init();
 extern void __arch_poweroff();
@@ -39,7 +40,7 @@ inline void __arch_hw_barrier() noexcept;
 inline void __sw_barrier() noexcept;
 
 extern uint64_t __arch_system_time() noexcept;
-extern uint64_t __arch_wall_clock() noexcept;
+extern timespec __arch_wall_clock() noexcept;
 inline uint64_t __arch_cpu_cycles() noexcept;
 
 

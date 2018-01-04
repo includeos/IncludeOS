@@ -16,10 +16,13 @@
 // limitations under the License.
 
 #pragma once
+#include <sys/time.h>
+#include <hertz>
 
 namespace x86
 {
   struct Clocks {
     static void init();
+    static KHz  get_khz();
   };
 }
