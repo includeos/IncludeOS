@@ -236,6 +236,8 @@ public:
   /** Initialize common subsystems, call Service::start */
   static void post_start();
 
+  static void install_cpu_frequency(MHz);
+
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
@@ -256,7 +258,6 @@ private:
   static bool m_block_drivers_ready;
   static MHz cpu_mhz_;
 
-  static RTC::timestamp_t booted_at_;
   static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
@@ -293,6 +294,15 @@ inline OS::Span_mods OS::modules()
         static_cast<int>(bootinfo_->mods_count) };
   }
   return nullptr;
+}
+
+inline RTC::timestamp_t OS::boot_timestamp()
+{
+  return RTC::boot_timestamp();
+}
+inline RTC::timestamp_t OS::uptime()
+{
+  return RTC::time_since_boot();
 }
 
 #endif //< KERNEL_OS_HPP

@@ -28,7 +28,7 @@ void Service::start()
 {
   // run a small self-test to verify parser is sane
   extern void selftest(); selftest();
-  
+
   ircd = IrcServer::from_config();
 
   ircd->set_motd([] () -> const std::string& {
@@ -55,6 +55,7 @@ void Service::start()
 }
 
 #include <ctime>
+#include <sys/time.h>
 std::string now()
 {
   auto  tnow = time(0);
@@ -138,4 +139,10 @@ void Service::ready()
 
   using namespace std::chrono;
   Timers::periodic(seconds(1), seconds(PERIOD_SECS), print_stats);
+  Timers::periodic(seconds(1), seconds(1),
+    [] (int) {
+      struct timeval tv;
+      gettimeofday(&tv, nullptr);
+      printf("Time: %ld secs %ld nanos\n", tv.tv_sec, tv.tv_usec);
+    });
 }

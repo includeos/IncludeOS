@@ -97,8 +97,8 @@ namespace x86
       // stop APIC timer
       APIC::get().timer_interrupt(false);
 
-      //printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n",
-      //       CALIBRATION_MS, diff, ticks_per_micro);
+      printf("* APIC timer: ticks %ums: %u\t 1mi: %u\n",
+             CALIBRATION_MS, diff, ticks_per_micro);
       start_timers();
 
       // with SMP, signal everyone else too (IRQ 1)

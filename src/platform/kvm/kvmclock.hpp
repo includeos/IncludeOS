@@ -6,4 +6,6 @@ struct KVM_clock
   static void init();
   static uint64_t system_time();
   static uint64_t wall_clock();
+
+  static uint64_t get_tsc_khz();
 };

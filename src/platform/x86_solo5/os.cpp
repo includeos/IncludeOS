@@ -35,8 +35,6 @@ extern uintptr_t _ELF_END_;
 #define PROFILE(name) /* name */
 #endif
 
-RTC::timestamp_t OS::booted_at_ {0};
-
 void solo5_poweroff()
 {
   __asm__ __volatile__("cli; hlt");
@@ -53,11 +51,6 @@ uint64_t __arch_wall_clock() noexcept
   return solo5_clock_wall();
 }
 
-RTC::timestamp_t OS::boot_timestamp()
-{
-  return booted_at_;
-}
-
 // actually uses nanoseconds (but its just a number)
 uint64_t OS::cycles_asleep() noexcept {
   return os_cycles_hlt;
@@ -66,13 +59,8 @@ uint64_t OS::nanos_asleep() noexcept {
   return os_cycles_hlt;
 }
 
-// uptime in nanoseconds
-RTC::timestamp_t OS::uptime()
-{
-  return solo5_clock_monotonic() - booted_at_;
-}
 uint64_t OS::nanos_since_boot() noexcept {
-  return uptime();
+  return solo5_clock_monotonic();
 }
 
 void OS::default_stdout(const char* str, const size_t len)

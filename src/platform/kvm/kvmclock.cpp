@@ -1,5 +1,6 @@
 #include "kvmclock.hpp"
 #include "../x86_pc/cpu.hpp"
+#include <kernel/os.hpp>
 #include <cstdio>
 #include <info>
 #include <smp>
@@ -32,12 +33,31 @@ void KVM_clock::init()
   //CPU::write_msr(MSR_KVM_WALL_CLOCK_NEW, wall_addr);
   auto vcpu_addr = (uintptr_t) &PER_CPU(vcpu_time);
   CPU::write_msr(MSR_KVM_SYSTEM_TIME_NEW, vcpu_addr | 1);
+
+
   INFO("KVM", "KVM clocks initialized");
+
+}
+
+uint64_t KVM_clock::get_tsc_khz()
+{
+  u64 pv_tsc_khz = 1000000ULL << 32;
+
+  do_div(pv_tsc_khz, src->tsc_to_system_mul);
+  if (src->tsc_shift < 0)
+  	pv_tsc_khz <<= -src->tsc_shift;
+  else
+  	pv_tsc_khz >>= src->tsc_shift;
+  return pv_tsc_khz;
 }
 
 uint64_t KVM_clock::system_time()
 {
   auto& vcpu = PER_CPU(vcpu_time);
+  printf("VCPU timestamp: %lu  vs  %lu\n",
+        vcpu.tsc_timestamp, __arch_cpu_cycles());
+  printf("TSC to system: %lu  shift: %hhd\n",
+        vcpu.tsc_to_system_mul, vcpu.tsc_shift);
   uint32_t version = 0;
   uint64_t time_ns = 0;
   do
@@ -56,6 +76,7 @@ uint64_t KVM_clock::system_time()
   }
   while ((vcpu.version & 0x1) || (version != vcpu.version));
 
+  printf("KVM_clock nanos: %lu\n", time_ns);
   return time_ns;
 }
 

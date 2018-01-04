@@ -98,13 +98,6 @@ int wait(int*) {
   return -1;
 }
 
-int gettimeofday(struct timeval* p, void*) {
-  uint64_t ts = RTC::now();
-  p->tv_sec  = ts / 1000000000ull;
-  p->tv_usec = (ts % 1000000000ull) / 1000;
-  return 0;
-}
-
 int kill(pid_t pid, int sig) THROW {
   SMP::global_lock();
   printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
@@ -247,11 +240,21 @@ typedef int clockid_t;
 // Basic second-resolution implementation - using CMOS directly for now.
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   if (clk_id == CLOCK_REALTIME) {
-    tp->tv_sec = RTC::now();
-    tp->tv_nsec = 0;
+    uint64_t ts = RTC::nanos_now();
+    printf("clock_gettime called: %lu\n", ts);
+    tp->tv_sec  = ts / 1000000000ull;
+    tp->tv_nsec = ts % 1000000000ull;
     return 0;
   }
+  printf("hmm clock_gettime called, -1\n");
   return -1;
+}
+int gettimeofday(struct timeval* p, void*) {
+  uint64_t ts = RTC::nanos_now();
+  printf("gettimeofday called: %lu\n", ts);
+  p->tv_sec  = ts / 1000000000ull;
+  p->tv_usec = (ts % 1000000000ull) / 1000;
+  return 0;
 }
 
 extern "C" void _init_syscalls();

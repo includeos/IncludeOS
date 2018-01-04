@@ -56,16 +56,6 @@ uint64_t OS::nanos_since_boot() noexcept {
   return cycles_since_boot() / cpu_freq().count();
 }
 
-RTC::timestamp_t OS::boot_timestamp()
-{
-  return RTC::boot_timestamp();
-}
-
-RTC::timestamp_t OS::uptime()
-{
-  return RTC::time_since_boot();
-}
-
 uint64_t OS::cycles_asleep() noexcept {
   return PER_CPU(os_per_cpu).cycles_hlt;
 }
