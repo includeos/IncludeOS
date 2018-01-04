@@ -29,14 +29,15 @@ static int repeat2 = 0;
 void test_timers()
 {
   INFO("Timers", "Testing one-shot timers");
-  assert(Timers::active() == 0);
+  static int BASE_TIMERS;
+  BASE_TIMERS = Timers::active();
 
   // 30 sec. - Test End
   Timers::oneshot(30s, [] (auto) {
       printf("One-shots fired: %i \n", one_shots);
       CHECKSERT(one_shots == 5, "5 one-shot-timers fired");
       CHECKSERT(repeat1 == 25 and repeat2 == 10, "1s. timer fired 25 times, 2s. timer fired 10 times");
-      CHECKSERT(Timers::active() == 0, "No more active timers");
+      CHECKSERT(Timers::active() == BASE_TIMERS+0, "No more active timers");
       INFO("Timers", "SUCCESS");
     });
 
@@ -103,7 +104,7 @@ void test_timers()
       // Make sure this timer iterator is valid
       Timers::stop(timer1s);
       // The current timer does not count towards the total active
-      CHECKSERT(Timers::active() == 1, "Only the last finish timer is left");
+      CHECKSERT(Timers::active() == BASE_TIMERS+1, "Only the last finish timer is left");
 
       Timers::oneshot(1s,
       [] (auto) {

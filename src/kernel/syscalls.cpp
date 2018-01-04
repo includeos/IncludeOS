@@ -23,7 +23,6 @@
 #include <sys/errno.h>
 #include <sys/stat.h>
 #include <kernel/os.hpp>
-#include <kernel/rtc.hpp>
 
 #include <statman>
 #include <kprint>
@@ -237,13 +236,10 @@ typedef int clockid_t;
 #define CLOCK_REALTIME 0
 #endif
 #endif
-// Basic second-resolution implementation - using CMOS directly for now.
+
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   if (clk_id == CLOCK_REALTIME) {
-    uint64_t ts = RTC::nanos_now();
-    printf("clock_gettime called: %lu\n", ts);
-    tp->tv_sec  = ts / 1000000000ull;
-    tp->tv_nsec = ts % 1000000000ull;
+    *tp = __arch_wall_clock();
     return 0;
   }
   printf("hmm clock_gettime called, -1\n");

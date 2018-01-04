@@ -20,7 +20,7 @@
 
 double mysecond()
 {
-  return OS::micros_since_boot() / 1000000.f;
+  return OS::nanos_since_boot() / 1.0e9;
 }
 
 void Service::start()
