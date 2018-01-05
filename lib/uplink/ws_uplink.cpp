@@ -108,7 +108,7 @@ namespace uplink {
     // calculate update time taken
     this->update_time_taken = store.as_type<uint64_t> (); store.go_next();
     this->update_time_taken = RTC::nanos_now() - this->update_time_taken;
-    printf("Update took %.3f millis\n", this->update_time_taken / 1.0e6);
+    MYINFO("Update took %.3f millis\n", this->update_time_taken / 1.0e6);
   }
 
   std::string WS_uplink::auth_data() const
@@ -377,6 +377,12 @@ namespace uplink {
     {
       writer.Key("binary");
       writer.String(binary_hash_);
+    }
+
+    if(update_time_taken > 0)
+    {
+      writer.Key("update_time_taken");
+      writer.Uint64(update_time_taken);
     }
 
     writer.Key("arch");
