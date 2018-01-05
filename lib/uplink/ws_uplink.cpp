@@ -48,6 +48,15 @@ namespace uplink {
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
+    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
+    {
+      MYINFO("Found resumable state, try restoring...");
+      liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
+
+      if(liu::LiveUpdate::partition_exists("conntrack"))
+        liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
+    }
+
     Log::get().set_flush_handler({this, &WS_uplink::send_log});
 
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
@@ -77,15 +86,6 @@ namespace uplink {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
     Expects(not config_.url.empty());
 
-    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
-    {
-      MYINFO("Found resumable state, try restoring...");
-      liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
-
-      if(liu::LiveUpdate::partition_exists("conntrack"))
-        liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
-    }
-
     client_ = std::make_unique<http::Client>(inet.tcp(),
       http::Client::Request_handler{this, &WS_uplink::inject_token});
 
@@ -108,7 +108,7 @@ namespace uplink {
     // calculate update time taken
     this->update_time_taken = store.as_type<uint64_t> (); store.go_next();
     this->update_time_taken = RTC::nanos_now() - this->update_time_taken;
-    MYINFO("Update took %.3f millis\n", this->update_time_taken / 1.0e6);
+    INFO2("Update took %.3f millis", this->update_time_taken / 1.0e6);
   }
 
   std::string WS_uplink::auth_data() const
