@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <cassert>
 #include <ctime>
+#include <string>
 
 extern void __arch_init();
 extern void __arch_poweroff();
@@ -57,5 +58,12 @@ inline void __sw_barrier() noexcept
 #else
 #error "Unsupported arch specified"
 #endif
+
+// retrieve system information
+struct arch_system_info_t
+{
+  std::string uuid;
+};
+const arch_system_info_t& __arch_system_info() noexcept;
 
 #endif
