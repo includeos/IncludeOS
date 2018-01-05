@@ -97,7 +97,7 @@ namespace uplink {
     // BINARY HASH
     store.add_string(0, binary_hash_);
     // nanos timestamp of when update begins
-    store.add<uint64_t> (1, RTC::nanos_now());
+    store.add<uint64_t> (1, OS::cycles_since_boot());
   }
 
   void WS_uplink::restore(liu::Restore& store)
@@ -105,9 +105,11 @@ namespace uplink {
     // BINARY HASH
     binary_hash_ = store.as_string(); store.go_next();
 
-    // calculate update time taken
-    this->update_time_taken = store.as_type<uint64_t> (); store.go_next();
-    this->update_time_taken = RTC::nanos_now() - this->update_time_taken;
+    // calculate update cycles taken
+    uint64_t cycles = store.as_type<uint64_t> (); store.go_next();
+    cycles = OS::cycles_since_boot() - cycles;
+    // cycles to nanos
+    this->update_time_taken = cycles / OS::cpu_freq().count() * 1000.0;
     INFO2("Update took %.3f millis", this->update_time_taken / 1.0e6);
   }
 
