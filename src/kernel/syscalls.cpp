@@ -23,7 +23,6 @@
 #include <sys/errno.h>
 #include <sys/stat.h>
 #include <kernel/os.hpp>
-#include <kernel/rtc.hpp>
 
 #include <statman>
 #include <kprint>
@@ -96,12 +95,6 @@ clock_t times(struct tms*) {
 int wait(int*) {
   debug((char*)"SYSCALL WAIT Dummy, returning -1");
   return -1;
-}
-
-int gettimeofday(struct timeval* p, void*) {
-  p->tv_sec  = RTC::now();
-  p->tv_usec = 0;
-  return 0;
 }
 
 int kill(pid_t pid, int sig) THROW {
@@ -243,14 +236,20 @@ typedef int clockid_t;
 #define CLOCK_REALTIME 0
 #endif
 #endif
-// Basic second-resolution implementation - using CMOS directly for now.
+
 int clock_gettime(clockid_t clk_id, struct timespec* tp) {
   if (clk_id == CLOCK_REALTIME) {
-    tp->tv_sec = RTC::now();
-    tp->tv_nsec = 0;
+    *tp = __arch_wall_clock();
     return 0;
   }
+  printf("hmm clock_gettime called, -1\n");
   return -1;
+}
+int gettimeofday(struct timeval* p, void*) {
+  auto tval = __arch_wall_clock();
+  p->tv_sec  = tval.tv_sec;
+  p->tv_usec = tval.tv_nsec / 1000;
+  return 0;
 }
 
 extern "C" void _init_syscalls();

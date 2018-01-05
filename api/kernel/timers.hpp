@@ -29,7 +29,7 @@ class Timers
 {
 public:
   using id_t       = int32_t;
-  using duration_t = std::chrono::microseconds;
+  using duration_t = std::chrono::nanoseconds;
   using handler_t  = delegate<void(id_t)>;
 
   static constexpr id_t UNUSED_ID = -1;

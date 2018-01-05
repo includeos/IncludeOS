@@ -21,7 +21,6 @@
 #include "clocks.hpp"
 #include "gdt.hpp"
 #include "idt.hpp"
-#include "pit.hpp"
 #include "smp.hpp"
 #include <kernel/events.hpp>
 #include <kernel/pci_manager.hpp>
@@ -31,7 +30,6 @@
 #include <info>
 #define MYINFO(X,...) INFO("x86", X, ##__VA_ARGS__)
 
-extern "C" uint16_t _cpu_sampling_freq_divider_;
 extern "C" char* get_cpu_esp();
 extern "C" void* get_cpu_ebp();
 #define _SENTINEL_VALUE_   0x123456789ABCDEF
@@ -101,26 +99,19 @@ void __platform_init()
   MYINFO("Enabling interrupts");
   asm volatile("sti");
 
-  // Estimate CPU frequency
-  MYINFO("Estimating CPU-frequency");
-  INFO2("|");
-  INFO2("+--(%d samples, %f sec. interval)", 18,
-        (x86::PIT::FREQUENCY / _cpu_sampling_freq_divider_).count());
-  INFO2("|");
+  // Setup kernel clocks
+  MYINFO("Setting up kernel clock sources");
+  Clocks::init();
 
   if (OS::cpu_freq().count() <= 0.0) {
-    OS::cpu_mhz_ = MHz(PIT::get().estimate_CPU_frequency());
+    OS::cpu_khz_ = Clocks::get_khz();
   }
-  INFO2("+--> %f MHz", OS::cpu_freq().count());
+  INFO2("+--> %f MHz", OS::cpu_freq().count() / 1000.0);
 
   // Note: CPU freq must be known before we can start timer system
   // Initialize APIC timers and timer systems
   // Deferred call to Service::ready() when calibration is complete
   APIC_Timer::calibrate();
-
-  // Setup kernel clocks
-  MYINFO("Setting up kernel clock sources");
-  Clocks::init();
 
   // Initialize storage devices
   PCI_manager::init(PCI::STORAGE);

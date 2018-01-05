@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <array>
 #include <unordered_map>
+#include <kprint>
 
 namespace std
 {
@@ -280,18 +281,18 @@ bool CPUID::is_amd_cpu() noexcept
 {
   auto result = cpuid(0, 0);
   return
-     memcmp(reinterpret_cast<char*>(&result.EBX), "htuA", 4) == 0
-  && memcmp(reinterpret_cast<char*>(&result.EDX), "itne", 4) == 0
-  && memcmp(reinterpret_cast<char*>(&result.ECX), "DMAc", 4) == 0;
+     memcmp((char*) &result.EBX, "Auth", 4) == 0
+  && memcmp((char*) &result.EDX, "enti", 4) == 0
+  && memcmp((char*) &result.ECX, "cAMD", 4) == 0;
 }
 
 bool CPUID::is_intel_cpu() noexcept
 {
   auto result = cpuid(0, 0);
   return
-     memcmp(reinterpret_cast<char*>(&result.EBX), "Genu", 4) == 0
-  && memcmp(reinterpret_cast<char*>(&result.EDX), "ineI", 4) == 0
-  && memcmp(reinterpret_cast<char*>(&result.ECX), "ntel", 4) == 0;
+     memcmp((char*) &result.EBX, "Genu", 4) == 0
+  && memcmp((char*) &result.EDX, "ineI", 4) == 0
+  && memcmp((char*) &result.ECX, "ntel", 4) == 0;
 }
 
 bool CPUID::has_feature(Feature f)

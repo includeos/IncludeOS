@@ -63,8 +63,8 @@ public:
   static uint64_t cycles_since_boot() {
     return __arch_cpu_cycles();
   }
-  /** micro seconds since boot */
-  static int64_t micros_since_boot() noexcept;
+  /** Nanoseconds since boot */
+  static uint64_t nanos_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
   static RTC::timestamp_t boot_timestamp();
@@ -75,12 +75,12 @@ public:
   /** Time spent sleeping (halt) in cycles */
   static uint64_t cycles_asleep() noexcept;
 
-  /** Time spent sleeping (halt) in micros */
-  static uint64_t micros_asleep() noexcept;
+  /** Time spent sleeping (halt) in nanoseconds */
+  static uint64_t nanos_asleep() noexcept;
 
 
-  static MHz cpu_freq() noexcept
-  { return cpu_mhz_; }
+  static auto cpu_freq() noexcept
+  { return cpu_khz_; }
 
   /**
    * Reboot operating system
@@ -236,6 +236,8 @@ public:
   /** Initialize common subsystems, call Service::start */
   static void post_start();
 
+  static void install_cpu_frequency(MHz);
+
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
@@ -254,9 +256,8 @@ private:
   static bool boot_sequence_passed_;
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
-  static MHz cpu_mhz_;
+  static KHz cpu_khz_;
 
-  static RTC::timestamp_t booted_at_;
   static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
@@ -293,6 +294,15 @@ inline OS::Span_mods OS::modules()
         static_cast<int>(bootinfo_->mods_count) };
   }
   return nullptr;
+}
+
+inline RTC::timestamp_t OS::boot_timestamp()
+{
+  return RTC::boot_timestamp();
+}
+inline RTC::timestamp_t OS::uptime()
+{
+  return RTC::time_since_boot();
 }
 
 #endif //< KERNEL_OS_HPP

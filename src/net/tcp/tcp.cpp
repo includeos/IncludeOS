@@ -22,7 +22,7 @@
 #include <net/tcp/tcp.hpp>
 #include <net/inet_common.hpp> // checksum
 #include <statman>
-#include <os> // micros_since_boot (get_ts_value)
+#include <os> // nanos_since_boot (get_ts_value)
 
 using namespace std;
 using namespace net;
@@ -365,7 +365,7 @@ seq_t TCP::generate_iss() {
 
 uint32_t TCP::get_ts_value() const
 {
-  return ((OS::micros_since_boot() >> 10) & 0xffffffff);
+  return ((OS::nanos_since_boot() / 1000000000ull) & 0xffffffff);
 }
 
 void TCP::drop(const tcp::Packet&) {

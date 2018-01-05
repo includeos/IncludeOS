@@ -118,7 +118,7 @@ class ScopedProfiler
    *  --------------------------------------------------------------------------------
    *
    */
-  static std::string get_statistics();
+  static std::string get_statistics(bool sorted = true);
 
  private:
   uint64_t tick_start;
@@ -132,6 +132,7 @@ class ScopedProfiler
     std::string function_name;
     unsigned    num_samples;
     uint64_t    cycles_average;
+    uint64_t    nanos_start;
   };
 
 

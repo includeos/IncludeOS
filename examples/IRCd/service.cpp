@@ -18,17 +18,19 @@
 #include <os>
 #include <profile>
 #include <timers>
+#include <sys/time.h>
 #define USE_STACK_SAMPLING
 #define PERIOD_SECS    4
 
 #include "ircd/ircd.hpp"
 static std::unique_ptr<IrcServer> ircd = nullptr;
+using namespace std::chrono;
 
 void Service::start()
 {
   // run a small self-test to verify parser is sane
   extern void selftest(); selftest();
-  
+
   ircd = IrcServer::from_config();
 
   ircd->set_motd([] () -> const std::string& {
@@ -136,6 +138,8 @@ void Service::ready()
   //StackSampler::set_mode(StackSampler::MODE_CALLER);
 #endif
 
-  using namespace std::chrono;
   Timers::periodic(seconds(1), seconds(PERIOD_SECS), print_stats);
+
+  // profiler statistics
+  printf("%s\n", ScopedProfiler::get_statistics(false).c_str());
 }

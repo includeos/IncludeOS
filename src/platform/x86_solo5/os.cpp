@@ -35,8 +35,6 @@ extern uintptr_t _ELF_END_;
 #define PROFILE(name) /* name */
 #endif
 
-RTC::timestamp_t OS::booted_at_ {0};
-
 void solo5_poweroff()
 {
   __asm__ __volatile__("cli; hlt");
@@ -44,31 +42,29 @@ void solo5_poweroff()
 }
 
 // returns wall clock time in nanoseconds since the UNIX epoch
-int64_t __arch_time_now() noexcept
+uint64_t __arch_system_time() noexcept
 {
   return solo5_clock_wall();
 }
-
-RTC::timestamp_t OS::boot_timestamp()
+timespec __arch_wall_clock() noexcept
 {
-  return booted_at_;
+  uint64_t stamp = solo5_clock_wall();
+  timespec result;
+  result.tv_sec = stamp / 1000000000ul;
+  result.tv_nsec = stamp % 1000000000ul;
+  return result;
 }
 
 // actually uses nanoseconds (but its just a number)
 uint64_t OS::cycles_asleep() noexcept {
   return os_cycles_hlt;
 }
-uint64_t OS::micros_asleep() noexcept {
-  return os_cycles_hlt / 1000;
+uint64_t OS::nanos_asleep() noexcept {
+  return os_cycles_hlt;
 }
 
-// uptime in nanoseconds
-RTC::timestamp_t OS::uptime()
-{
-  return solo5_clock_monotonic() - booted_at_;
-}
-int64_t OS::micros_since_boot() noexcept {
-  return uptime() / 1000;
+uint64_t OS::nanos_since_boot() noexcept {
+  return solo5_clock_monotonic();
 }
 
 void OS::default_stdout(const char* str, const size_t len)
@@ -133,7 +129,7 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   extern void __platform_init();
   __platform_init();
 
-  MYINFO("Booted at monotonic_ns=%lld walltime_ns=%lld",
+  MYINFO("Booted at monotonic_ns=%ld walltime_ns=%ld",
          solo5_clock_monotonic(), solo5_clock_wall());
 
   Solo5_manager::init();
@@ -141,7 +137,7 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   // We don't need a start or stop function in solo5.
   Timers::init(
     // timer start function
-    [] (std::chrono::microseconds) {},
+    [] (auto) {},
     // timer stop function
     [] () {});
 

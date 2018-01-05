@@ -4,11 +4,12 @@
 #include <kernel/timers.hpp>
 #include <sys/time.h>
 #include <sched.h>
-int64_t OS::micros_since_boot() noexcept
+#include <ctime>
+uint64_t OS::nanos_since_boot() noexcept
 {
-  struct timeval tv;
-  gettimeofday(&tv,NULL);
-  return tv.tv_sec*(uint64_t)1000000+tv.tv_usec;
+  struct timespec tv;
+  clock_gettime(CLOCK_REALTIME, &tv);
+  return tv.tv_sec*(uint64_t)1000000000ull+tv.tv_nsec;
 }
 
 void OS::event_loop()
@@ -69,9 +70,6 @@ uintptr_t OS::heap_usage() noexcept {
 #include <kernel/rtc.hpp>
 #include <time.h>
 RTC::timestamp_t RTC::booted_at = time(0);
-RTC::timestamp_t OS::boot_timestamp() {
-  return RTC::boot_timestamp();
-}
 
 #include <smp>
 int SMP::cpu_id() noexcept {
@@ -103,14 +101,14 @@ extern "C" void alarm_handler(int sig)
 {
   (void) sig;
 }
-static void begin_timer(std::chrono::microseconds usec)
+static void begin_timer(std::chrono::nanoseconds usec)
 {
   using namespace std::chrono;
   auto secs = duration_cast<seconds> (usec);
 
   struct itimerspec it;
   it.it_value.tv_sec  = secs.count();
-  it.it_value.tv_nsec = 1000 * (usec.count() - secs.count() * 1000000);
+  it.it_value.tv_nsec = usec.count() - secs.count() * 1000000000ull;
   timer_settime(timer_id, 0, &it, nullptr);
 }
 
