@@ -95,16 +95,21 @@ namespace uplink {
 
   void WS_uplink::store(liu::Storage& store, const liu::buffer_t*)
   {
-    liu::Storage::uid id = 0;
-
     // BINARY HASH
-    store.add_string(id++, binary_hash_);
+    store.add_string(0, binary_hash_);
+    // nanos timestamp of when update begins
+    store.add<uint64_t> (1, RTC::nanos_now());
   }
 
   void WS_uplink::restore(liu::Restore& store)
   {
     // BINARY HASH
     binary_hash_ = store.as_string(); store.go_next();
+
+    // calculate update time taken
+    this->update_time_taken = store.as_type<uint64_t> (); store.go_next();
+    this->update_time_taken = RTC::nanos_now() - this->update_time_taken;
+    printf("Update took %.3f millis\n", this->update_time_taken / 1.0e6);
   }
 
   std::string WS_uplink::auth_data() const
