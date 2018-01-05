@@ -45,7 +45,7 @@ namespace x86
       PER_CPU(vcpu_clock).system_time = {&KVM_clock::system_time};
       PER_CPU(vcpu_clock).wall_time   = {&KVM_clock::wall_clock};
       PER_CPU(vcpu_clock).tsc_khz     = {&KVM_clock::get_tsc_khz};
-      if (SMP::cpu_id() == 0) INFO("Kernel", "KVM PV clocks initialized");
+      if (SMP::cpu_id() == 0) INFO("x86", "KVM PV clocks initialized");
     }
     else
     {
@@ -55,7 +55,7 @@ namespace x86
       PER_CPU(vcpu_clock).tsc_khz     = {&CMOS_clock::get_tsc_khz};
       if (SMP::cpu_id() == 0) {
         CMOS_clock::init();
-        INFO("Kernel", "CMOS clock initialized");
+        INFO("x86", "CMOS clock initialized");
       }
     }
   }

@@ -28,6 +28,7 @@
 #include <liveupdate.hpp>
 #include <util/timer.hpp>
 #include <util/logger.hpp>
+#include <rtc>
 
 namespace uplink {
 
@@ -86,7 +87,9 @@ private:
   std::vector<char> logbuf_;
 
   Timer heartbeat_timer;
-  int64_t last_ping;
+  RTC::timestamp_t last_ping;
+
+  RTC::timestamp_t update_time_taken = 0;
 
   void inject_token(http::Request& req, http::Client::Options&, const http::Client::Host)
   {

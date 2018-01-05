@@ -21,6 +21,7 @@
 #include "clocks.hpp"
 #include "gdt.hpp"
 #include "idt.hpp"
+#include "smbios.hpp"
 #include "smp.hpp"
 #include <kernel/events.hpp>
 #include <kernel/pci_manager.hpp>
@@ -70,6 +71,9 @@ void __platform_init()
 {
   // read ACPI tables
   ACPI::init();
+
+  // read SMBIOS tables
+  SMBIOS::init();
 
   // setup APIC, APIC timer, SMP etc.
   APIC::init();

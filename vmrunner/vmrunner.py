@@ -349,6 +349,9 @@ class qemu(hypervisor):
         if "bios" in self._config:
             kernel_args.extend(["-bios", self._config["bios"]])
 
+        if "uuid" in self._config:
+            kernel_args.extend(["--uuid", str(self._config["uuid"])])
+
         if "smp" in self._config:
             kernel_args.extend(["-smp", str(self._config["smp"])])
 
