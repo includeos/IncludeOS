@@ -20,7 +20,10 @@ File::File(const char* path)
   rewind(f);
 
   this->data = std::unique_ptr<char[]> (new char[size], std::default_delete<char[]> ());
-  fread(this->data.get(), this->size, 1, f);
+  size_t actual = fread(this->data.get(), this->size, 1, f);
+  if (actual != 1) {
+    throw std::runtime_error("diskbuilder: Could not read from file " + std::string(path));
+  }
   fclose(f);
 }
 Dir::Dir(const char* path)
@@ -80,13 +83,18 @@ void FileSys::add_dir(Dir& dvec)
   strcat(cwd_buffer, dvec.name.c_str());
 
   //printf("*** Entering %s...\n", cwd_buffer);
-  chdir(cwd_buffer);
+  int res = chdir(cwd_buffer);
+  // throw immediately when unable to read directory
+  if (res < 0) {
+    fprintf(stderr, "Unable to enter directory %s\n", cwd_buffer);
+    throw std::runtime_error("Unable to enter directory " + std::string(cwd_buffer));
+  }
 
   auto* dir = opendir(cwd_buffer);
-  if (dir == nullptr)
-  {
-    printf("Could not open directory:\n-> %s\n", cwd_buffer);
-    return;
+  // throw immediately when unable to open directory
+  if (dir == nullptr) {
+    fprintf(stderr, "Unable to open directory %s\n", cwd_buffer);
+    throw std::runtime_error("Unable to open directory " + std::string(cwd_buffer));
   }
   struct dirent* ent;
   while ((ent = readdir(dir)) != nullptr)
@@ -107,7 +115,10 @@ void FileSys::add_dir(Dir& dvec)
     }
   }
   // pop work dir
-  chdir(pwd_buffer);
+  res = chdir(pwd_buffer);
+  if (res < 0) {
+    throw std::runtime_error("diskbuilder: Failed to return back to parent directory");
+  }
 }
 
 void FileSys::gather(const char* path)
