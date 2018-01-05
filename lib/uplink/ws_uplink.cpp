@@ -48,6 +48,15 @@ namespace uplink {
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
+    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
+    {
+      MYINFO("Found resumable state, try restoring...");
+      liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
+
+      if(liu::LiveUpdate::partition_exists("conntrack"))
+        liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
+    }
+
     Log::get().set_flush_handler({this, &WS_uplink::send_log});
 
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
@@ -77,15 +86,6 @@ namespace uplink {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
     Expects(not config_.url.empty());
 
-    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
-    {
-      MYINFO("Found resumable state, try restoring...");
-      liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
-
-      if(liu::LiveUpdate::partition_exists("conntrack"))
-        liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
-    }
-
     client_ = std::make_unique<http::Client>(inet.tcp(),
       http::Client::Request_handler{this, &WS_uplink::inject_token});
 
@@ -97,7 +97,7 @@ namespace uplink {
     // BINARY HASH
     store.add_string(0, binary_hash_);
     // nanos timestamp of when update begins
-    store.add<uint64_t> (1, RTC::nanos_now());
+    store.add<uint64_t> (1, OS::cycles_since_boot());
   }
 
   void WS_uplink::restore(liu::Restore& store)
@@ -105,10 +105,13 @@ namespace uplink {
     // BINARY HASH
     binary_hash_ = store.as_string(); store.go_next();
 
-    // calculate update time taken
-    this->update_time_taken = store.as_type<uint64_t> (); store.go_next();
-    this->update_time_taken = RTC::nanos_now() - this->update_time_taken;
-    MYINFO("Update took %.3f millis\n", this->update_time_taken / 1.0e6);
+    // calculate update cycles taken
+    uint64_t cycles = store.as_type<uint64_t> (); store.go_next();
+    cycles = OS::cycles_since_boot() - cycles;
+    // cycles to nanos
+    this->update_time_taken = cycles / (OS::cpu_freq().count() / 1.0e6);
+
+    INFO2("Update took %.3f millis", this->update_time_taken / 1.0e6);
   }
 
   std::string WS_uplink::auth_data() const
