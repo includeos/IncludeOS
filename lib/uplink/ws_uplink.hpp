@@ -20,6 +20,7 @@
 #define UPLINK_WS_UPLINK_HPP
 
 #include "transport.hpp"
+#include "config.hpp"
 
 #include <net/inet4>
 #include <net/http/client.hpp>
@@ -33,21 +34,10 @@ namespace uplink {
 
 class WS_uplink {
 public:
-  static const std::string UPLINK_CFG_FILE;
-
   static constexpr auto heartbeat_interval = 10s;
   static constexpr auto heartbeat_retries  = 3;
 
-  struct Config
-  {
-    std::string url;
-    std::string token;
-    bool        reboot        = true;
-    bool        ws_logging    = true;
-    bool        serialize_ct  = false;
-  };
-
-  WS_uplink(net::Inet<net::IP4>&);
+  WS_uplink(Config config);
 
   void start(net::Inet<net::IP4>&);
 
@@ -79,14 +69,14 @@ public:
   void panic(const char* why);
 
 private:
+  Config config_;
+
   net::Inet<net::IP4>&          inet_;
   std::unique_ptr<http::Client> client_;
   net::WebSocket_ptr            ws_;
   std::string                   id_;
   std::string                   token_;
   std::string                   binary_hash_;
-
-  Config config_;
 
   Transport_parser parser_;
 
@@ -125,10 +115,6 @@ private:
   void on_heartbeat_timer();
 
   void parse_transport(net::WebSocket::Message_ptr msg);
-
-  void read_config();
-
-  void parse_config(const std::string& cfg);
 
   void store(liu::Storage& store, const liu::buffer_t*);
 

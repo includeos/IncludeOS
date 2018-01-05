@@ -176,7 +176,7 @@ void Snake::game_loop()
 
 	Timers::oneshot(
 		std::chrono::milliseconds(_head_dir.x() == 0 ? 120 : 70),
-		[this](auto) { game_loop(); }
+		[this](auto) { this->game_loop(); }
 	);
 }
 

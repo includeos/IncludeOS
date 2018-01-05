@@ -20,7 +20,7 @@
 
 CASE("facility-related functions get/set facility, facility_name() returns facility name as string")
 {
-  Syslog_facility sf;
+  Syslog_print sf;
   // default created with LOG_USER
   EXPECT(sf.facility_name() == "USER");
   sf.set_facility(LOG_MAIL);
@@ -30,7 +30,7 @@ CASE("facility-related functions get/set facility, facility_name() returns facil
 
 CASE("ident-related functions get/set ident, returns whether ident is set")
 {
-  Syslog_facility sf;
+  Syslog_print sf;
   EXPECT(sf.ident_is_set() == false);
   sf.set_ident("foo");
   EXPECT(sf.ident_is_set() == true);
@@ -39,7 +39,7 @@ CASE("ident-related functions get/set ident, returns whether ident is set")
 
 CASE("priority-related functions get/set priority")
 {
-  Syslog_facility sf;
+  Syslog_print sf;
   sf.set_priority(LOG_CRIT);
   EXPECT_NOT(sf.priority() == LOG_INFO);
   EXPECT(sf.priority() == LOG_CRIT);
@@ -48,7 +48,7 @@ CASE("priority-related functions get/set priority")
 
 CASE("logopt-related functions get/set logopt")
 {
-  Syslog_facility sf("bar", LOG_INTERNAL);
+  Syslog_print sf("bar", LOG_INTERNAL);
   sf.set_logopt(LOG_NOWAIT);
   EXPECT_NOT(sf.logopt() == LOG_USER);
   EXPECT(sf.logopt() == (LOG_NOWAIT));

@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2018 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,15 +15,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Syslog plugin (UDP)
-
 #pragma once
-#ifndef PLUGINS_SYSLOGD_HPP
-#define PLUGINS_SYSLOGD_HPP
+#ifndef UPLINK_CONFIG_HPP
+#define UPLINK_CONFIG_HPP
 
-/*
-	Implementation of weak functions declared in util/syslog_facility.hpp and util/syslogd.hpp
-	is in this header's corresponding cpp-file
-*/
+#include <string>
+#include <net/inet>
+#include <net/ip4/ip4.hpp>
+
+namespace uplink {
+
+  struct Config
+  {
+    net::Inet<net::IP4>* inet;
+    std::string url;
+    std::string token;
+    bool        reboot        = true;
+    bool        ws_logging    = true;
+    bool        serialize_ct  = false;
+
+    static Config read();
+  };
+
+}
 
 #endif
