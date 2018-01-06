@@ -7,7 +7,7 @@ mkdir build
 cd build
 cmake ..
 make
-../run.sh snake_example
+boot snake_example
 ```
 
 Use arrow keys to change the snakes direction. Press spacebar to restart the game.

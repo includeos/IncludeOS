@@ -5,5 +5,5 @@ mkdir build
 cd build
 cmake ..
 make
-../run.sh tcp_example
+boot tcp_example
 ```
