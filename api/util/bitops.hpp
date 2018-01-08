@@ -112,6 +112,23 @@ struct enable_bitmask_ops<uintptr_t> {
 inline bool is_pow2(uintptr_t i)
 { return i && !(i & (i - 1)); }
 
+// Multiples of M required to cover x
+template <uintptr_t M>
+inline uintptr_t multip(uintptr_t x)
+{ return (M - 1 + x) / M; }
+
+inline uintptr_t multip(uintptr_t M, uintptr_t x)
+{return (M - 1 + x) / M; }
+
+// Round up to nearest multiple of M
+template <uintptr_t M>
+inline uintptr_t roundto(uintptr_t x)
+{ return multip<M>(x) * M; }
+
+inline uintptr_t roundto(uintptr_t M, uintptr_t x)
+{ return multip(M,x) * M; }
+
+
 } // ns bitops
 } // ns util
 
