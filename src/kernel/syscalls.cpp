@@ -74,6 +74,7 @@ void _exit(int status) {
   kprint("\n");
   SYSINFO("service exited with status %i", status);
   default_exit();
+  __builtin_unreachable();
 }
 
 void* sbrk(ptrdiff_t incr) {
@@ -103,6 +104,7 @@ int gettimeofday(struct timeval* p, void*) {
   p->tv_usec = 0;
   return 0;
 }
+
 
 int kill(pid_t pid, int sig) THROW {
   SMP::global_lock();
@@ -212,20 +214,36 @@ void double_fault(const char* why)
 
 void panic_epilogue(const char* why)
 {
-  // call custom on panic handler (if present)
-  if (panic_handler) panic_handler(why);
+  // Call custom on panic handler (if present).
+  if (panic_handler != nullptr) {
+    // Avoid recursion if the panic handler results in panic
+    auto final_action = panic_handler;
+    panic_handler = nullptr;
+    final_action(why);
+  }
 
-  #if defined(ARCH_x86)
-    SMP::global_lock();
-    // Signal End-Of-Transmission
-    kprint("\x04");
-    SMP::global_unlock();
+#if defined(ARCH_x86)
+  SMP::global_lock();
+  // Signal End-Of-Transmission
+  kprint("\x04");
+  SMP::global_unlock();
 
-    // .. if we return from the panic handler, go to permanent sleep
-    while (1) asm("cli; hlt");
-  #else
-    #warning "panic() handler not implemented for selected arch"
-  #endif
+#else
+#warning "panic() handler not implemented for selected arch"
+#endif
+
+  switch (OS::panic_action())
+  {
+  case OS::Panic_action::halt :
+    OS::halt();
+  case OS::Panic_action::shutdown :
+    extern void __arch_poweroff();
+    __arch_poweroff();
+  case OS::Panic_action::reboot :
+  default:
+    OS::reboot();
+  }
+
   __builtin_unreachable();
 }
 
