@@ -31,7 +31,7 @@ SECTIONS
    }
 
 
-  .text ALIGN(0x10):
+  .text ALIGN(0x1000):
   {
   PROVIDE( _TEXT_START_ = . );
     /* For solo5, although it's just used to print the mem layout. */
@@ -44,7 +44,7 @@ SECTIONS
   }
   PROVIDE( _TEXT_END_ = . );
 
-  .init ALIGN(0x10) : {
+  .init ALIGN(0x1000) : {
     _INIT_START_ = .;
     *(.init)
     _INIT_END_ = .;
