@@ -370,6 +370,10 @@ namespace uplink {
 
     writer.StartObject();
 
+    const auto& sysinfo = __arch_system_info();
+    writer.Key("uuid");
+    writer.String(sysinfo.uuid);
+
     writer.Key("version");
     writer.String(OS::version());
 
