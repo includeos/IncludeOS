@@ -133,6 +133,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Give the rest of physical memory to heap
   OS::heap_max_ = OS::memory_end_;
 
+  extern void __arch_init_paging();
+  __arch_init_paging();
+
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
@@ -145,8 +148,11 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 #elif defined(ARCH_i686)
   memmap.assign_range({0xA000, 0x9fbff, "Stack", "System main stack"});
 #endif
-  memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end - 1,
-        "ELF", "Your service binary including OS"});
+
+  /**
+   * TODO: Map binary parts using mem::map instead of assigning ranges directly
+   * e.g. the .text segment is now mapped individually by __arch_init_paging
+   */
 
   assert(::heap_begin != 0x0 and OS::heap_max_ != 0x0);
   // @note for security we don't want to expose this

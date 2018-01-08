@@ -73,11 +73,21 @@ bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
 
-void OS::multiboot(unsigned) {}
+void __x86_init_paging(void*){};
 
+__attribute__((constructor))
+void paging_test_init(){
+  extern uintptr_t __exec_begin;
+  extern uintptr_t __exec_end;
+  __exec_begin = 0xa00000;
+  __exec_end = 0xb0000b;
+}
+
+void OS::multiboot(unsigned) {}
 extern "C" {
 
 /// Kernel ///
+
   char _binary_apic_boot_bin_end;
   char _binary_apic_boot_bin_start;
   char _ELF_START_;
@@ -86,6 +96,8 @@ extern "C" {
   uintptr_t _LOAD_START_;
   uintptr_t _LOAD_END_;
   uintptr_t _BSS_END_;
+  uintptr_t _TEXT_START_;
+  uintptr_t _TEXT_END_;
 
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
