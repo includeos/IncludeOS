@@ -25,6 +25,9 @@ int64_t __arch_time_now() noexcept {
 }
 // not supported!
 void OS::block() {}
+
+void OS::halt() { asm ("hlt"); }
+
 // default to serial
 void OS::default_stdout(const char* str, const size_t len)
 {

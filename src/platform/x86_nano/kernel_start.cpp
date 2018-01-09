@@ -34,7 +34,12 @@ extern "C" {
   void _init_syscalls();
   void __libc_init_array();
   uintptr_t _end;
+  int __libc_start_main(int (*main)(int,char **,char **), int argc, char **argv);
+
+
 }
+
+
 
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)
@@ -55,20 +60,28 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   // Initialize zero-initialized vars
   _init_bss();
 
+  kprintf("Hello musl worldz!\n");
+
   // Initialize heap
   _init_heap(free_mem_begin);
+  kprintf("Initialized heap\n");
 
   //Initialize stack-unwinder, call global constructors etc.
   _init_c_runtime();
+  kprintf("C++ exceptions initialized\n");
 
   // Initialize system calls
   _init_syscalls();
 
   //Initialize stdout handlers
   OS::add_stdout(&OS::default_stdout);
+  kprintf("stdout added\n");
 
   // Call global ctors
-  __libc_init_array();
+  //__libc_init_array();
+
+  kprintf("Global ctors NOT called - calling printf\n");
+  printf("Hello world %s \n", "of musl");
 
   __platform_init();
 

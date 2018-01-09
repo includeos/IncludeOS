@@ -20,7 +20,6 @@
 #include <sys/time.h>
 #include <util/memstream.h>
 #include <stdio.h>
-#include <sys/reent.h>
 #include <malloc.h>
 #include <string.h>
 #include <kprint>
@@ -29,14 +28,7 @@
 void* heap_begin;
 void* heap_end;
 
-/// IMPLEMENTATION OF Newlib I/O:
-#undef stdin
-#undef stdout
-#undef stderr
-// instantiate the Unix standard streams
-__FILE* stdin;
-__FILE* stdout;
-__FILE* stderr;
+void* __dso_handle;
 
 // stack-protector guard
 const uintptr_t __stack_chk_guard = (uintptr_t) _STACK_GUARD_VALUE_;
@@ -47,6 +39,26 @@ void _init_bss()
   /// Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
   __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
+}
+
+extern void (*__preinit_array_start [])();
+extern void (*__preinit_array_end [])();
+extern void (*__init_array_start [])();
+extern void (*__init_array_end [])();
+
+void __libc_init_array() {
+  size_t count, i;
+
+  count = __preinit_array_end - __preinit_array_start;
+  for (i = 0; i < count; i++)
+    __preinit_array_start[i]();
+
+  kprintf("Initializing C constructors \n");
+  _init();
+  kprintf("Initializing C++ constructors \n");
+  count = __init_array_end - __init_array_start;
+  for (i = 0; i < count; i++)
+    __init_array_start[i]();
 }
 
 void _init_heap(uintptr_t free_mem_begin)
@@ -89,23 +101,29 @@ static void crt_sanity_checks()
 void _init_c_runtime()
 {
   /// initialize newlib I/O
-  _REENT_INIT_PTR(_REENT);
+  //  _REENT_INIT_PTR(_REENT);
   // Unix standard streams
+
+  /*
   stdin  = _REENT->_stdin;  // stdin  == 1
   stdout = _REENT->_stdout; // stdout == 2
   stderr = _REENT->_stderr; // stderr == 3
+  */
 
   /// initialize exceptions before we can run constructors
   extern char __eh_frame_start[];
   // Tell the stack unwinder where exception frames are located
   extern void __register_frame(void*);
-  __register_frame(&__eh_frame_start);
+  kprintf("Not registering frame... \n");
+  //__register_frame(&__eh_frame_start);
+  //kprintf("Registering frame OK \n");
 
   /// init ELF / backtrace functionality
   extern void _init_elf_parser();
   _init_elf_parser();
-
+  kprintf("Elf parser initialized \n");
   crt_sanity_checks();
+  kprintf("Sanity checks OK \n");
 }
 
 // stack-protector
@@ -130,25 +148,13 @@ int* __errno_location(void)
   return &errno;
 }
 
-#include <setjmp.h>
-int _setjmp(jmp_buf env)
-{
-  return setjmp(env);
-}
+
 // linux strchr variant (NOTE: not completely the same!)
 void *__rawmemchr (const void *s, int c)
 {
   return strchr((const char*) s, c);
 }
 
-/// assert() interface of ISO POSIX (2003)
-void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function)
-{
-  if (function)
-    printf("%s:%u  %s: Assertion %s failed.", file, line, function, assertion);
-  else
-    printf("%s:%u  Assertion %s failed.", file, line, assertion);
-}
 
 /// sched_yield() causes the calling thread to relinquish the CPU.  The
 ///               thread is moved to the end of the queue for its static priority

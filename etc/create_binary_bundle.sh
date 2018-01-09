@@ -97,7 +97,7 @@ popd
 # Where to place the installation bundle
 DIR_NAME="IncludeOS_dependencies"
 OUTFILE="${DIR_NAME}_$filename_tag.tar.gz"
-BUNDLE_PATH=${BUNDLE_PATH:-~}
+BUNDLE_PATH=${BUNDLE_PATH:-$BUILD_DIR}
 
 function do_build {
   echo -e "\n\n >>> Building bundle for ${ARCH} \n"
