@@ -20,11 +20,10 @@ extern kernel_start
 extern __multiboot_magic
 extern __multiboot_addr
 
-%define PAGE_SIZE          0x1000
 %define P4_TAB             0x1000
-%define P3_TAB             0x2000 ;; - 0x5fff
-%define P2_TAB           0x100000
-%define STACK_LOCATION   0x9ffff0
+%define P3_TAB             0x2000
+%define NUM_ENTRIES        4
+%define STACK_LOCATION   0x1ffff0
 
 [BITS 32]
 __arch_start:
@@ -36,7 +35,8 @@ __arch_start:
     ;; address for Page Map Level 4
     mov edi, P4_TAB
     mov cr3, edi
-    mov ecx, 0x3000 / 0x4
+    ;; clear out P4 and P3
+    mov ecx, 0x2000 / 0x4
     xor eax, eax       ; Nullify the A-register.
     rep stosd
 
@@ -44,30 +44,15 @@ __arch_start:
     mov edi, P4_TAB
     mov DWORD [edi], P3_TAB | 0x3 ;; present+write
 
-    ;; create 4x page directory pointer table entries
+    ;; create 4x 1GB mappings
+    mov ecx, NUM_ENTRIES
     mov edi, P3_TAB
-    mov ebx, P2_TAB | 0x3 ;; present + write
-    mov DWORD [edi], ebx
-    add edi, 8
-    add ebx, 0x1000
-    mov DWORD [edi], ebx
-    add edi, 8
-    add ebx, 0x1000
-    mov DWORD [edi], ebx
-    add edi, 8
-    add ebx, 0x1000
-    mov DWORD [edi], ebx
+    mov ebx, 0x0 | 0x3 | 1 << 7 ;; present + write + huge
 
-    ;; create page directory entries
-    mov ecx, 512*4    ;; num entries
-    mov edi, P2_TAB
-
-    ;; start at address 0x0
-    mov ebx, 0x0 | 0x3 | 1 << 7 ;; present+write + huge
 .ptd_loop:
     mov DWORD [edi], ebx     ;; Assign the physical adress to lower 32-bits
     mov DWORD [edi+4], 0x0   ;; Zero out the rest of the 64-bit  word
-    add ebx, 1 << 21         ;; 2MB increments
+    add ebx, 1 << 30         ;; 1GB increments
     add edi, 8
     loop .ptd_loop
 
