@@ -32,3 +32,8 @@ void __serial_print(const char* str, size_t len)
     hw::outb(port, str[i]);
   }
 }
+
+extern "C"
+void kprint(const char* c){
+  __serial_print1(c);
+}

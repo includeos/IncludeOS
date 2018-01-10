@@ -37,7 +37,7 @@
 #endif
 
 extern "C" void* get_cpu_esp();
-extern "C" void __libc_init_array();
+//extern "C" void __libc_init_array();
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -104,7 +104,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   // Call global ctors
   PROFILE("Global constructors");
-  __libc_init_array();
+  //__libc_init_array();
 
   // BOOT METHOD //
   PROFILE("Multiboot / legacy");

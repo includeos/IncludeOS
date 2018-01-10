@@ -19,7 +19,7 @@
 #ifndef TAR_HPP
 #define TAR_HPP
 
-#include <posix/tar.h>        // Our posix header has the Tar_header struct, which the newlib tar.h does not
+#include <tar.h>
 #include <tinf.h>             // From uzlib (mod)
 #include <util/crc32.hpp>
 #include <info>
@@ -32,6 +32,44 @@
 
 extern uint8_t _binary_input_bin_start;
 extern uintptr_t _binary_input_bin_size;
+
+#define LENGTH_NAME 100
+#define LENGTH_MODE 8
+#define LENGTH_UID 8
+#define LENGTH_GID 8
+#define LENGTH_SIZE 12
+#define LENGTH_MTIME 12
+#define LENGTH_CHECKSUM 8
+#define LENGTH_TYPEFLAG 1
+#define LENGTH_LINKNAME 100
+#define LENGTH_MAGIC 6
+#define LENGTH_VERSION 2
+#define LENGTH_UNAME 32
+#define LENGTH_GNAME 32
+#define LENGTH_DEVMAJOR 8
+#define LENGTH_DEVMINOR 8
+#define LENGTH_PREFIX 155
+#define LENGTH_PAD 12
+
+struct Tar_header {
+  char name[LENGTH_NAME];             // Name of header file entry
+  char mode[LENGTH_MODE];             // Permission and mode bits
+  char uid[LENGTH_UID];               // User ID of owner
+  char gid[LENGTH_GID];               // Group ID of owner
+  char size[LENGTH_SIZE];             // File size in bytes (octal base)
+  char mod_time[LENGTH_MTIME];        // Last modification time in numeric Unix time format (octal)
+  char checksum[LENGTH_CHECKSUM];     // Checksum for header record (6 digit octal number with leading zeroes)
+  char typeflag;                      // Type of header entry
+  char linkname[LENGTH_LINKNAME];     // Target name of link
+  char magic[LENGTH_MAGIC];           // Ustar indicator
+  char version[LENGTH_VERSION];       // Ustar version
+  char uname[LENGTH_UNAME];           // User name of owner
+  char gname[LENGTH_GNAME];           // Group name of owner
+  char devmajor[LENGTH_DEVMAJOR];     // Major number of character or block device
+  char devminor[LENGTH_DEVMINOR];     // Minor number of character or block device
+  char prefix[LENGTH_PREFIX];         // Prefix for file name
+  char pad[LENGTH_PAD];
+};
 
 namespace tar {
 

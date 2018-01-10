@@ -16,33 +16,17 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
-
-struct mallinfo {
-  int arena;    /* total space allocated from system */
-  int ordblks;  /* number of non-inuse chunks */
-  int smblks;   /* unused -- always zero */
-  int hblks;    /* number of mmapped regions */
-  int hblkhd;   /* total space in mmapped regions */
-  int usmblks;  /* unused -- always zero */
-  int fsmblks;  /* unused -- always zero */
-  int uordblks; /* total allocated space */
-  int fordblks; /* total non-inuse space */
-  int keepcost; /* top-most, releasable (via malloc_trim) space */
-};
-extern "C" struct mallinfo mallinfo();
-extern "C" void malloc_trim(size_t);
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 
 uintptr_t OS::heap_usage() noexcept
 {
-  struct mallinfo info = mallinfo();
-  return info.uordblks;
+  return ::heap_end;
 }
 
 void OS::heap_trim() noexcept
 {
-  malloc_trim(0);
+  //malloc_trim(0);
 }
 
 uintptr_t OS::heap_max() noexcept

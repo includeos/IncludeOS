@@ -12,7 +12,7 @@ add_library(microlb STATIC
 
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api/posix)
 target_include_directories(microlb PUBLIC ${LIBCXX_INCLUDE_DIR})
-target_include_directories(microlb PUBLIC ${NEWLIB_INCLUDE_DIR})
+target_include_directories(microlb PUBLIC ${MUSL_INCLUDE_DIR})
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/src/include)
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api)
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/lib/LiveUpdate)

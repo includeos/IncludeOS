@@ -24,7 +24,7 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
-#include <util/elf.h>
+#include <elf.h>
 #include <arch.hpp>
 
 #if __LP64__

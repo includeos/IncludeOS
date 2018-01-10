@@ -50,11 +50,13 @@ extern "C" {
 
 extern "C"
 void abort() {
+  kprintf("Abooooooring!\n");
   panic("abort() called");
 }
 extern "C"
 void abort_message(const char* fmt, ...)
 {
+  kprintf("Aboooooort message %s \n", fmt);
   char buffer[1024];
   va_list list;
   va_start(list, fmt);
