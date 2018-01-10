@@ -21,7 +21,7 @@ mkdir build
 cd build
 cmake ..
 make
-../run.sh scoped_profiler_example
+boot scoped_profiler_example
 ```
 
 Make something happen in the OS and then use wget or curl to `GET /profile` to see statistics:

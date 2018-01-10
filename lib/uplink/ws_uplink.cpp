@@ -109,7 +109,8 @@ namespace uplink {
     uint64_t cycles = store.as_type<uint64_t> (); store.go_next();
     cycles = OS::cycles_since_boot() - cycles;
     // cycles to nanos
-    this->update_time_taken = cycles / OS::cpu_freq().count() * 1000.0;
+    this->update_time_taken = cycles / (OS::cpu_freq().count() / 1.0e6);
+
     INFO2("Update took %.3f millis", this->update_time_taken / 1.0e6);
   }
 
@@ -368,6 +369,10 @@ namespace uplink {
     Writer<StringBuffer> writer{buf};
 
     writer.StartObject();
+
+    const auto& sysinfo = __arch_system_info();
+    writer.Key("uuid");
+    writer.String(sysinfo.uuid);
 
     writer.Key("version");
     writer.String(OS::version());

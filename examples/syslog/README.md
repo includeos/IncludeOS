@@ -21,5 +21,5 @@ mkdir build
 cd build
 cmake ..
 make
-../run.sh syslog_plugin_example
+boot syslog_plugin_example
 ```
