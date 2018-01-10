@@ -14,6 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define DEBUG_UNIT
+
 #include <common.cxx>
 #include <iostream>
 #include <kernel/memory.hpp>
@@ -25,7 +27,7 @@ using namespace util;
 CASE ("Using os::mem::Mapping class")
 {
 
-  mem::Mapping m;
+  mem::Map m;
 
   // Empty map is convertible to false
   EXPECT(!m);
@@ -52,8 +54,8 @@ CASE ("Using os::mem::Mapping class")
 CASE("os::mem::Mapping Addition")
 {
 
-  mem::Mapping m{}, n{};
-  const mem::Mapping zero{};
+  mem::Map m{}, n{};
+  const mem::Map zero{};
   EXPECT(!(m + n));
   EXPECT(m == n);
   EXPECT(m + n == m);
@@ -91,13 +93,13 @@ CASE("os::mem::Mapping Addition")
 
 }
 
-CASE ("Trying to map the 0 page")
+CASE ("os::mem - Trying to map the 0 page")
 {
-  mem::Mapping m;
+  mem::Map m;
   m.lin = 0;
   m.phys = 4_GiB;
   m.size = 42_KiB;
-  m.flags = mem::Access::Read;
+  m.flags = mem::Access::read;
 
   // Throw due to assert fail in map
   EXPECT_THROWS(mem::map(m, "Fail"));
@@ -109,34 +111,42 @@ CASE ("Trying to map the 0 page")
   EXPECT_THROWS(mem::map(m, "Fail"));
 }
 
-CASE ("Using mem::map and mem::unmap")
-{
-  extern void  __arch_init_paging();
-  extern void* __pml4;
-  if (__pml4 == nullptr)
-    __arch_init_paging();
+extern void  __arch_init_paging();
+extern void* __pml4;
 
+static void init_default_paging()
+{
+  if (__pml4 == nullptr) {
+    free(__pml4);
+    __arch_init_paging();
+  }
+}
+
+
+CASE ("os::mem Using map and unmap")
+{
+  init_default_paging();
   auto initial_entries = OS::memory_map().map();
 
   // Create a desired mapping
-  mem::Mapping m;
+  mem::Map m;
   m.lin = 5_GiB;
   m.phys = 4_GiB;
-  m.size = 42_KiB;
-  m.flags = mem::Access::Read;
+  m.size = 42_MiB;
+  m.flags = mem::Access::read;
   m.page_size = 4_KiB;
 
   // It shouldn't exist in the memory map
   auto key = OS::memory_map().in_range(m.lin);
   EXPECT(key == 0);
 
-  std::cout << "Using mem::map: Mapping " << Byte_r(m.size) << "\n";
   // Map it and verify
-  auto mapping = mem::map(m, "Unittest");
+  auto mapping = mem::map(m, "Unittest 1");
+
   EXPECT(mapping.lin == m.lin);
   EXPECT(mapping.phys == m.phys);
   EXPECT(mapping.flags == m.flags);
-  EXPECT(mapping.page_size == m.page_size);
+  EXPECT((mapping.page_size & m.page_size) != 0);
   EXPECT(OS::memory_map().map().size() == initial_entries.size() + 1);
 
   // Expect size is requested size rounded up to nearest page
@@ -147,22 +157,22 @@ CASE ("Using mem::map and mem::unmap")
   EXPECT(key == m.lin);
   auto& entry = OS::memory_map().at(key);
   EXPECT(entry.size() == m.size);
-  EXPECT(entry.name() == "Unittest");
+  EXPECT(entry.name() == "Unittest 1");
 
   // You can't map in the same range twice
-  EXPECT_THROWS(mem::map(m, "Unittest"));
+  EXPECT_THROWS(mem::map(m, "Unittest 2"));
   m.lin += 16_KiB;
-  EXPECT_THROWS(mem::map(m, "Unittest"));
+  EXPECT_THROWS(mem::map(m, "Unittest 3"));
 
   // You can still map above
-  m.lin += 28_KiB;
-  EXPECT(mem::map(m, "Unittest").size == roundto(m.page_size, m.size));
+  m.lin += m.size;
+  EXPECT(mem::map(m, "Unittest 4").size == roundto(m.page_size, m.size));
   EXPECT(mem::unmap(m.lin).size == roundto(m.page_size, m.size));
   EXPECT(OS::memory_map().map().size() == initial_entries.size() + 1);
 
   // You can still map below
-  m.lin -= (44_KiB + roundto<4_KiB>(m.size));
-  EXPECT(mem::map(m, "Unittest").size == roundto(m.page_size, m.size));
+  m.lin = 5_GiB - m.size;
+  EXPECT(mem::map(m, "Unittest 5").size == roundto(m.page_size, m.size));
   EXPECT(mem::unmap(m.lin).size == roundto(m.page_size, m.size));
   EXPECT(OS::memory_map().map().size() == initial_entries.size() + 1);
 
@@ -172,7 +182,7 @@ CASE ("Using mem::map and mem::unmap")
   auto un = mem::unmap(m.lin);
   EXPECT(un.lin == mapping.lin);
   EXPECT(un.phys == 0);
-  EXPECT(un.flags == mem::Access::None);
+  EXPECT(un.flags == mem::Access::none);
   EXPECT(un.size == mapping.size);
   key = OS::memory_map().in_range(m.lin);
   EXPECT(key == 0);
@@ -187,4 +197,52 @@ CASE ("Using mem::map and mem::unmap")
   EXPECT(mapping.flags == m.flags);
   EXPECT((mapping.page_size & m.page_size));
   EXPECT(mapping.size == roundto<4_KiB>(m.size));
+}
+
+
+CASE ("os::mem using protect and flags")
+{
+
+  init_default_paging();
+  EXPECT(__pml4 != nullptr);
+  mem::Map req = {6_GiB, 3_GiB, mem::Access::read, 15 * 4_KiB, 4_KiB};
+  auto previous_flags = mem::flags(req.lin);
+  mem::Map res = mem::map(req);
+  EXPECT(req == res);
+  EXPECT(mem::flags(req.lin) == mem::Access::read);
+  EXPECT(mem::active_page_size(req.lin) == 4_KiB);
+
+  auto page_below = req.lin - 4_KiB;
+  auto page_above = req.lin + 4_KiB;
+  mem::protect_page(page_below, mem::Access::none);
+  EXPECT(mem::flags(page_below) == mem::Access::none);
+  EXPECT(mem::active_page_size(page_below) == 2_MiB);
+
+  mem::protect_page(page_above, mem::Access::none);
+  EXPECT(mem::flags(page_above) == mem::Access::none);
+  EXPECT(mem::active_page_size(page_above) == 4_KiB);
+
+  // The original page is untouched
+  EXPECT(mem::flags(req.lin) == req.flags);
+
+  // Can't protect a range that isn't mapped
+  auto unmapped = 590_GiB;
+  EXPECT(mem::flags(unmapped) == mem::Access::none);
+  EXPECT_THROWS(mem::protect(unmapped, mem::Access::write | mem::Access::read));
+  EXPECT(mem::flags(unmapped) == mem::Access::none);
+
+  // You can still protect page
+  EXPECT(mem::active_page_size(unmapped) == 512_GiB);
+  auto rw = mem::Access::write | mem::Access::read;
+
+  // But a 512 GiB page can't be present without being mapped
+  EXPECT(mem::protect_page(unmapped, rw) == mem::Access::none);
+
+  mem::protect(req.lin, mem::Access::execute);
+  for (auto p = req.lin; p < req.lin + req.size; p += 4_KiB){
+    EXPECT(mem::active_page_size(p) == 4_KiB);
+    EXPECT(mem::flags(p) == (mem::Access::execute | mem::Access::read));
+  }
+
+  EXPECT(mem::flags(req.lin + req.size) == previous_flags);
 }

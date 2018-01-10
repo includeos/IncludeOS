@@ -25,6 +25,7 @@
 #include <kernel/memory.hpp>
 
 //#define DEBUG_X86_PAGING
+
 #ifdef DEBUG_X86_PAGING
 #undef debug
 #define debug(X, ...) printf("<%s @ 0x%lx>" X, pg_name(page_size), start_addr(), ##__VA_ARGS__)
@@ -403,6 +404,12 @@ public:
   Pflag set_flags(uintptr_t* entry, Pflag flags)
   {
     Expects(entry >= tbl_.begin() && entry < tbl_.end());
+
+    // Can only make pages and page dirs present. E.g. no unmapped PML4 entry.
+    if (has_flag(flags, Pflag::present)
+        and !is_page(*entry) and !is_page_dir(*entry))
+      return Pflag::none;
+
     *entry = addr_of(*entry) | (flags & allowed_flags);
     Ensures(flags_of(*entry) == (flags & allowed_flags));
     return flags_of(*entry);
@@ -435,12 +442,18 @@ public:
 
     Expects(ent != nullptr);
 
+    // Local mapping
     if (! is_page_dir(*ent)) {
+
+      if (! is_page(*ent))
+        return Pflag::none;
+
       set_flags(addr, flags);
       Ensures(flags_of(*ent) == flags);
       return flags_of(*ent);
     }
 
+    // Subdir mapping
     permit_flags(ent, flags);
     return page_dir(ent)->set_flags_r(addr, flags);
   }
@@ -479,7 +492,7 @@ public:
   {
     debug("<map_entry> %s\n", req.to_string().c_str());
     Expects(ent != nullptr);
-    Expects(within_range(*ent));
+    Expects(ent >= tbl_.begin() && ent < tbl_.end());
 
     *ent = req.phys;
     set_page_flags(ent, req.flags);
@@ -538,6 +551,7 @@ public:
     for (auto i = tbl_.begin() + indexof(req.lin); i != tbl_.end(); i++)
     {
       auto* ent = entry(req.lin + res.size);
+
       Map sub {req.lin + res.size, req.phys + res.size, req.flags, req.size - res.size};
       debug("<map_r> sub %s \n", sub.to_string().c_str());
       res += map_entry_r(ent, sub);

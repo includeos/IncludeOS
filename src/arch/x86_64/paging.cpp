@@ -146,6 +146,7 @@ Flags to_x86(os::mem::Access prot)
   return flags;
 }
 
+__attribute__((weak))
 void invalidate(void *pageaddr){
   asm volatile("invlpg (%0)" ::"r" (pageaddr) : "memory");
 }
@@ -169,7 +170,7 @@ Map_x86 to_x86(Map map){
 
 Access protect_page(uintptr_t linear, Access flags)
 {
-  debug("::protect 0x%lx, size %li \n", linear, size);
+  debug("::protect_page 0x%lx\n", linear);
   x86::paging::Flags xflags = x86::paging::to_x86(flags);
   auto f = __pml4->set_flags_r(linear, xflags);
   x86::paging::invalidate((void*)linear);
@@ -178,21 +179,26 @@ Access protect_page(uintptr_t linear, Access flags)
 
 Access protect(uintptr_t linear, Access flags)
 {
-  debug("::protect 0x%lx, size %li \n", linear, size);
+  debug("::protect 0x%lx \n", linear);
   x86::paging::Flags xflags = x86::paging::to_x86(flags);
 
-  auto key = OS::memory_map().in_range(lin);
+  auto key = OS::memory_map().in_range(linear);
+
   // Throws if entry wasn't previously mapped.
   auto map_ent = OS::memory_map().at(key);
 
+  debug("Found entry: %s\n", map_ent.to_string().c_str());
   int sz_prot = 0;
   x86::paging::Flags fl;
 
+  // TOOD: Optimize. No need to re-traverse for each page
+  //       set_flags_r should probably just take size.
   while (sz_prot < map_ent.size()){
     auto page = linear + sz_prot;
     auto psize = active_page_size(page);
+    debug("Protecting page 0x%lx", page);
     fl |= __pml4->set_flags_r(page, xflags);
-    sz_prot += page_size;
+    sz_prot += psize;
     x86::paging::invalidate((void*)linear);
   }
   return to_memflags(fl);

@@ -314,13 +314,13 @@ int main()
   auto mapped = mem::map(prot, "Protected test page");
   Expects(mapped && mapped == prot);
 
-  mem::protect((uint64_t)protected_page, 4_KiB, mem::Access::read | mem::Access::write);
+  mem::protect((uint64_t)protected_page, mem::Access::read | mem::Access::write);
 
 
   // Write-protect
   if (magic->reboots == 0) {
     protected_page[magic->i] = 'a';
-    mem::protect((uint64_t)protected_page, 4_KiB, mem::Access::read);
+    mem::protect((uint64_t)protected_page, mem::Access::read);
     Expects(protected_page[magic->i] == 'a');
     protected_page[magic->i] = 'b';
   }
@@ -335,7 +335,7 @@ int main()
     printf("\n%i WRITE protection PASSED\n", magic->reboots);
 
     // Read-protect (e.g. not present)
-    mem::protect((uint64_t)protected_page, 4_KiB, mem::Access::none);
+    mem::protect((uint64_t)protected_page, mem::Access::none);
     Expects(protected_page[magic->i] == 'b');
   }
 
@@ -348,7 +348,7 @@ int main()
     printf("\n%i READ protection PASSED\n", magic->reboots);
 
     // Execute protected page
-    mem::protect((uint64_t)protected_page, 4_KiB, mem::Access::read);
+    mem::protect((uint64_t)protected_page, mem::Access::read);
     ((void(*)())(&protected_page[magic->i]))();
   }
 

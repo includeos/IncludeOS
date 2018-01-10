@@ -18,6 +18,7 @@
 #ifdef __MACH__
 #include <stdlib.h>
 #include <stddef.h>
+#include <unistd.h>
 #include <gsl/gsl_assert>
 void* memalign(size_t alignment, size_t size) {
   void* ptr {nullptr};
@@ -65,6 +66,8 @@ void OS::start(unsigned, unsigned) {}
 void OS::default_stdout(const char*, size_t) {}
 void OS::event_loop() {}
 void OS::block() {}
+void OS::halt(){ pause(); }
+
 int64_t OS::micros_since_boot() noexcept {
   return 0;
 }
@@ -74,6 +77,10 @@ bool OS::is_softreset_magic(uint32_t) {
 }
 
 void __x86_init_paging(void*){};
+namespace x86 {
+namespace paging {
+  void invalidate(void* pageaddr){};
+}}
 
 __attribute__((constructor))
 void paging_test_init(){

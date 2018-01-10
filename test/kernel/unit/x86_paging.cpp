@@ -15,18 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define DEBUG_UNIT
+
 #include <common.cxx>
 #include <arch/x86_paging.hpp>
 #include <arch/x86_paging_utils.hpp>
 #include <kernel/memory.hpp>
-
-//#define DEBUG_x86_PAGING
-#ifdef DEBUG_x86_PAGING
-#define LINK printf("%s:%i: OK\n",__FILE__,__LINE__)
-#else
-#define LINK (void)
-#endif
-
 
 std::random_device randz;
 
@@ -51,12 +45,15 @@ std::vector<uint64_t> rands64()
   return rnd;
 }
 
+using namespace util::literals;
+using namespace util::bitops;
+
+
 // Random addresses to test for each PML
 const std::vector<uint64_t> rands = rands64<10>();
 
 CASE("PML4 Page_dir entry helpers") {
   using namespace x86::paging;
-  using namespace util::bitops;
   EXPECT(Pml4::is_page_aligned(0));
   EXPECT(not Pml4::is_page_aligned(4_KiB));
   EXPECT(not Pml4::is_page_aligned(2_MiB));
@@ -355,7 +352,24 @@ CASE("4-level x86_64 paging") {
   }
 }
 
-CASE ("Default paging setup")
+
+extern x86::paging::Pml4* __pml4;
+extern uintptr_t __exec_begin;
+extern uintptr_t __exec_end;
+
+void init_default_paging(){
+  __exec_begin = 0xa00000;
+  __exec_end   = 0xb0000b;
+
+  extern void __arch_init_paging();
+
+  // Initialize default paging (all except actually passing it to CPU)
+  if (__pml4 == nullptr) {
+    __arch_init_paging();
+  }
+}
+
+CASE ("Verify default paging setup")
 {
   SETUP("Initialize paging")
   {
@@ -364,18 +378,7 @@ CASE ("Default paging setup")
     using Flags = x86::paging::Flags;
     using Access = os::mem::Access;
 
-    extern x86::paging::Pml4* __pml4;
-    extern uintptr_t __exec_begin;
-    extern uintptr_t __exec_end;
-    __exec_begin = 0xa00000;
-    __exec_end   = 0xb0000b;
-    extern void __arch_init_paging();
-
-    // Initialize default paging (all except actually passing it to CPU)
-    if (__pml4 == nullptr) {
-      __arch_init_paging();
-    }
-
+    init_default_paging();
 
     SECTION("Verify page access")
     {
@@ -387,6 +390,8 @@ CASE ("Default paging setup")
       EXPECT(os::mem::active_page_size(__exec_begin) == 4_KiB);
       EXPECT(os::mem::flags(__exec_begin) == (Access::execute | Access::read));
       EXPECT(os::mem::flags(__exec_end)   == (Access::execute | Access::read));
+
+      printf("Protection after exec: 0x%lx\n", os::mem::flags(__exec_end + 4_KiB));
       EXPECT(os::mem::flags(__exec_end + 4_KiB) == (Access::read | Access::write));
 
       // Remaining address space is either read + write or not present
@@ -408,6 +413,7 @@ CASE ("Default paging setup")
       EXPECT(os::mem::flags(1024_TiB) == (Access::none));
 
     }
+
 
     SECTION("Try to break stuff")
     {
@@ -544,6 +550,61 @@ CASE ("Default paging setup")
 
       auto extra_pages = sum_pml3.pages_4k - rounded_pages;
       EXPECT(extra_pages == 0);
+
     }
   }
+}
+
+
+CASE ("Map various ranges")
+{
+  using Flags = x86::paging::Flags;
+  init_default_paging();
+
+  x86::paging::Map req;
+  x86::paging::Map res;
+
+  req = {5_GiB, 4_GiB, Flags::present, 2_MiB};
+  res = __pml4->map_r(req);
+  EXPECT(res.size == req.size);
+  EXPECT(res.lin  == req.lin);
+  EXPECT(res.phys  == req.phys);
+  EXPECT(has_flag(res.flags, req.flags));
+
+  req = {513_GiB, 4_GiB, Flags::present, 10_MiB};
+  res = __pml4->map_r(req);
+  EXPECT(res.size == req.size);
+  EXPECT(res.lin  == req.lin);
+  EXPECT(res.phys  == req.phys);
+  EXPECT(has_flag(res.flags, req.flags));
+
+  req = {590_GiB, 8_GiB, Flags::present, 100_MiB + 42_KiB};
+  res = __pml4->map_r(req);
+  EXPECT(res.size == roundto(4_KiB,req.size));
+  EXPECT(res.lin  == req.lin);
+  EXPECT(res.phys  == req.phys);
+  EXPECT(has_flag(res.flags, req.flags));
+
+  req = {680_GiB, 10_GiB, Flags::present, 100_GiB + 42_KiB};
+  res = __pml4->map_r(req);
+  EXPECT(res.size == roundto(4_KiB,req.size));
+  EXPECT(res.lin  == req.lin);
+  EXPECT(res.phys  == req.phys);
+  EXPECT(has_flag(res.flags, req.flags));
+
+  req = {790_GiB + 3_MiB + 4_KiB, 10_GiB + 2_MiB + 17_KiB, Flags::present, 100_MiB + 42_KiB};
+  res = __pml4->map_r(req);
+  EXPECT(res.size == roundto(4_KiB,req.size));
+  EXPECT(res.lin  == req.lin);
+  EXPECT(res.phys  == req.phys);
+  EXPECT(has_flag(res.flags, req.flags));
+
+  req = {120_TiB + 17_MiB + 4_KiB, 10_GiB + 2_MiB + 17_KiB, Flags::present, 11_MiB + 42_KiB};
+  res = __pml4->map_r(req);
+  EXPECT(res.size == roundto(4_KiB,req.size));
+  EXPECT(res.lin  == req.lin);
+  EXPECT(res.phys  == req.phys);
+  EXPECT(has_flag(res.flags, req.flags));
+
+
 }
