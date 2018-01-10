@@ -62,12 +62,6 @@ void kernel_sanity_checks()
     kprintf("CRC mismatch %#x vs %#x\n", crc_ro, new_ro);
     panic("Sanity checks: CRC of kernel read-only area failed");
   }
-  // verify that first page is zeroes only
-  for (volatile int* lowmem = NULL; lowmem < LOW_CHECK_SIZE; lowmem++)
-  if (UNLIKELY(*lowmem != 0)) {
-    kprintf("Memory at %p was not zeroed: %#x\n", lowmem, *lowmem);
-    panic("Sanity checks: Low-memory zero test");
-  }
 
   // verify that Elf symbols were not overwritten
   bool symbols_verified = Elf::verify_symbols();
