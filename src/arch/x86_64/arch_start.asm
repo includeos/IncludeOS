@@ -22,7 +22,7 @@ extern __multiboot_addr
 
 %define P4_TAB             0x1000
 %define P3_TAB             0x2000
-%define NUM_ENTRIES        4
+%define NUM_ENTRIES        512
 %define STACK_LOCATION   0x1ffff0
 
 [BITS 32]
@@ -44,15 +44,17 @@ __arch_start:
     mov edi, P4_TAB
     mov DWORD [edi], P3_TAB | 0x3 ;; present+write
 
-    ;; create 4x 1GB mappings
+    ;; create 512x 1GB mappings
     mov ecx, NUM_ENTRIES
     mov edi, P3_TAB
+    mov eax, 0x0
     mov ebx, 0x0 | 0x3 | 1 << 7 ;; present + write + huge
 
 .ptd_loop:
-    mov DWORD [edi], ebx     ;; Assign the physical adress to lower 32-bits
-    mov DWORD [edi+4], 0x0   ;; Zero out the rest of the 64-bit  word
+    mov DWORD [edi],   ebx   ;; Low word
+    mov DWORD [edi+4], eax   ;; High word
     add ebx, 1 << 30         ;; 1GB increments
+    adc eax, 0               ;; increment high word when CF set
     add edi, 8
     loop .ptd_loop
 
