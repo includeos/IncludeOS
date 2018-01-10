@@ -19,9 +19,9 @@
 #include "cmos.hpp"
 #include <kernel/timers.hpp>
 #include <kernel/os.hpp>
-#include <hertz>
 #include <info>
 #include "pit.hpp"
+#include <util/units.hpp>
 
 extern "C" uint16_t _cpu_sampling_freq_divider_;
 
@@ -54,6 +54,7 @@ namespace x86
   }
   timespec CMOS_clock::wall_clock()
   {
+    using namespace util;
     auto ticks = OS::cycles_since_boot() - current_ticks;
     auto diff  = (double) ticks / Hz(OS::cpu_freq()).count();
 

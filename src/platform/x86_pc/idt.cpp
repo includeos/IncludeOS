@@ -174,6 +174,8 @@ void __arch_unsubscribe_irq(uint8_t irq)
 
 /// CPU EXCEPTIONS ///
 
+#define PAGE_FAULT 14
+
 static const char* exception_names[] =
 {
   "Divide-by-zero Error",
@@ -210,7 +212,7 @@ static const char* exception_names[] =
   "Reserved"
 };
 
-static void cpu_dump_regs(uintptr_t* regs)
+void __cpu_dump_regs(uintptr_t* regs)
 {
 #if defined(ARCH_x86_64)
 # define RIP_REG 16
@@ -261,16 +263,56 @@ static void cpu_dump_regs(uintptr_t* regs)
 
 extern "C" void double_fault(const char*);
 
+void __page_fault(uintptr_t* regs, uint32_t code) {
+  const char* reason = "Protection violation";
+
+  if (not(code & 1))
+    reason = "Page not present";
+
+  kprintf("%s, trying to access 0x%lx\n", reason, regs[20]);
+
+  if (code & 2)
+    kprintf("Page write failed.\n");
+  else
+    kprintf("Page read failed.\n");
+
+
+  if (code & 4)
+    kprintf("Privileged page access from user space.\n");
+
+  if (code & 8)
+    kprintf("Found bit set in reserved field.\n");
+
+  if (code & 16)
+    kprintf("Instruction fetch. XD\n");
+
+  if (code & 32)
+    kprintf("Protection key violation.\n");
+
+  if (code & 0x8000)
+    kprintf("SGX access violation.\n");
+
+}
+
 extern "C"
-__attribute__((noreturn, optnone))
+__attribute__((noreturn optnone, weak))
 void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
 {
   cpu_enable_panicking();
   SMP::global_lock();
   kprintf("\n>>>> !!! CPU %u EXCEPTION !!! <<<<\n", SMP::cpu_id());
-  kprintf("    %s (%d)   EIP  %p   CODE %#x\n",
+  kprintf("%s (%d)   EIP  %p   CODE %#x\n",
           exception_names[error], error, (void*) regs[RIP_REG], code);
-  cpu_dump_regs(regs);
+
+  switch (error) {
+  case PAGE_FAULT:
+    {
+      __page_fault(regs, code);
+    }
+  }
+
+  __cpu_dump_regs(regs);
+
   SMP::global_unlock();
   // error message:
   char buffer[64];
@@ -284,5 +326,6 @@ void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
     // handle double faults differently
     double_fault(buffer);
   }
+
   __builtin_unreachable();
 }

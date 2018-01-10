@@ -467,6 +467,10 @@ public:
   const Map& map() const noexcept
   { return map_; }
 
+  void erase(Key k) {
+    map_.erase(k);
+  }
+
   /**
    * Operator to transform this class into its raw representation
    */
