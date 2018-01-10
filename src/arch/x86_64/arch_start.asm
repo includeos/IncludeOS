@@ -51,7 +51,6 @@ __arch_start:
     mov ebx, 0x0
 
 .ptd_loop:
-    ;;or eax, 0x3 | 1 << 7
     mov DWORD [edi],   eax   ;; Low word
     mov DWORD [edi+4], ebx   ;; High word
     add eax, 1 << 30         ;; 1GB increments
