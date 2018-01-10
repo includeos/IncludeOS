@@ -23,7 +23,7 @@ extern __multiboot_addr
 %define P4_TAB             0x1000
 %define P3_TAB             0x2000
 %define NUM_ENTRIES        512
-%define STACK_LOCATION   0x1ffff0
+%define STACK_LOCATION     0x9FBF0
 
 [BITS 32]
 __arch_start:
@@ -47,14 +47,15 @@ __arch_start:
     ;; create 512x 1GB mappings
     mov ecx, NUM_ENTRIES
     mov edi, P3_TAB
-    mov eax, 0x0
-    mov ebx, 0x0 | 0x3 | 1 << 7 ;; present + write + huge
+    mov eax, 0x0 | 0x3 | 1 << 7 ;; present + write + huge
+    mov ebx, 0x0
 
 .ptd_loop:
-    mov DWORD [edi],   ebx   ;; Low word
-    mov DWORD [edi+4], eax   ;; High word
-    add ebx, 1 << 30         ;; 1GB increments
-    adc eax, 0               ;; increment high word when CF set
+    ;;or eax, 0x3 | 1 << 7
+    mov DWORD [edi],   eax   ;; Low word
+    mov DWORD [edi+4], ebx   ;; High word
+    add eax, 1 << 30         ;; 1GB increments
+    adc ebx, 0               ;; increment high word when CF set
     add edi, 8
     loop .ptd_loop
 

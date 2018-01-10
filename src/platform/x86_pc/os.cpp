@@ -131,9 +131,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   memmap.assign_range({0x8000, 0xffff, "Statman", "Statistics"});
 #if defined(ARCH_x86_64)
   memmap.assign_range({0x1000, 0x6fff, "Pagetables", "System page tables"});
-  memmap.assign_range({0x100000, 0x1fffff, "Stack", "System main stack"});
+  memmap.assign_range({0x10000, 0x9fbff, "Stack", "System main stack"});
 #elif defined(ARCH_i686)
-  memmap.assign_range({0xA000, 0x9fbff, "Stack", "System main stack"});
+  memmap.assign_range({0x10000, 0x9fbff, "Stack", "System main stack"});
 #endif
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end - 1,
         "ELF", "Your service binary including OS"});
