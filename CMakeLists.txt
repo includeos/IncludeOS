@@ -173,7 +173,9 @@ if(vmbuild)
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
     BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+     -DMUSL_INCLUDE=${MUSL_INCLUDE_DIR} # Pass installation folder
+    DEPENDS PrecompiledLibraries
     )
 endif(vmbuild)
 
