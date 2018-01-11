@@ -75,8 +75,10 @@ void __arch_init_paging() {
                                            Flags::huge | Flags::no_exec);
 
   INFO2("* Adding 512 2MiB entries @ 0x0 -> 0x%llx", 1_GiB);
-  pml3_0->create_page_dir(0,Flags::present | Flags::writable |
+  for (int64_t addr = 0; addr < 16_GiB; addr += 1_GiB) {
+    pml3_0->create_page_dir(addr,Flags::present | Flags::writable |
                             Flags::huge | Flags::no_exec);
+  }
 
   INFO2("* Marking page 0 as not present");
   __pml4->map_r({0, 0, Flags::none, 4_KiB, 4_KiB});
