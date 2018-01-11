@@ -16,7 +16,9 @@ INSTALLED_PIP=0
 INSTALLED_PIP_PACKAGES=0
 INSTALLED_BINUTILS=0
 INSTALLED_SYMLINKING=0
-ALL_DEPENDENCIES="llvm38 nasm cmake jq qemu Caskroom/cask/tuntap libmagic"
+CLANG_VERSION=4
+BREW_LLVM="llvm@$CLANG_VERSION"
+ALL_DEPENDENCIES="$BREW_LLVM nasm cmake jq qemu Caskroom/cask/tuntap libmagic"
 PIP_MODS="jsonschema psutil filemagic"
 
 # NaCl
@@ -205,11 +207,14 @@ fi
 ############################################################
 
 if [[ $INSTALLED_BREW_PACKAGES -eq 1 ]]; then
-	mkdir -p $INCLUDEOS_BIN
-	SRC_CC=$(which clang-3.8)
+  mkdir -p $INCLUDEOS_BIN
+
+  CLANG_PATH=$(brew --prefix $BREW_LLVM)
+
+	SRC_CC=$CLANG_PATH/bin/clang
 	ln -sf $SRC_CC $INCLUDEOS_BIN/gcc
 
-	SRC_CXX=$(which clang++-3.8)
+	SRC_CXX=$CLANG_PATH/bin/clang++
 	ln -sf $SRC_CXX $INCLUDEOS_BIN/g++
 
 	SRC_NASM=$(which nasm)
