@@ -25,7 +25,7 @@
 #include <cstdlib>
 #include <sys/stat.h>
 #include <cassert>
-#include <musl/include/elf.h>
+#include <elf.h>
 
 #include "../api/boot/multiboot.h"
 

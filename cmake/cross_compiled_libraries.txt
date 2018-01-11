@@ -108,6 +108,9 @@ install(DIRECTORY ${MUSL_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/musl
 file(GLOB musl_libs ${MUSL_LIB_DIR}/*.a)
 file(GLOB musl_objs ${MUSL_LIB_DIR}/*.o)
 
+message(STATUS "Installing elf.h into ${CMAKE_INSTALL_PREFIX}/include")
+file(COPY ${MUSL_INCLUDE_DIR}/elf.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include/)
+
 install(FILES
   ${musl_libs}
   ${musl_objs}
