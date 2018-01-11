@@ -24,6 +24,8 @@ set(DRIVERS
   # virtionet   # Virtio networking
   # virtioblock # Virtio block device
   # ... Others from IncludeOS/src/drivers
+
+  #boot_logger   # Enable lots of logging from boot stage
   )
 
 set(PLUGINS

@@ -97,11 +97,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Stack: %p", get_cpu_esp());
   MYINFO("Boot magic: 0x%x, addr: 0x%x", boot_magic, boot_addr);
 
-  /// STATMAN ///
-  PROFILE("Statman");
-  /// initialize on page 7, 3 pages in size
-  Statman::get().init(0x6000, 0x3000);
-
   // Call global ctors
   PROFILE("Global constructors");
   __libc_init_array();
@@ -123,20 +118,26 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Give the rest of physical memory to heap
   OS::heap_max_ = OS::memory_end_;
 
+  // PAGING //
   extern void __arch_init_paging();
   __arch_init_paging();
+
+  /// STATMAN ///
+  PROFILE("Statman");
+  /// initialize on page 9, 8 pages in size
+  Statman::get().init(0x8000, 0x8000);
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
+  memmap.assign_range({0x8000, 0xffff, "Statman", "Statistics"});
 #if defined(ARCH_x86_64)
-  memmap.assign_range({0x100000, 0x8fffff, "Pagetables", "System page tables"});
-  memmap.assign_range({0x900000, 0x9fffff, "Stack", "System main stack"});
+  memmap.assign_range({0x1000, 0x6fff, "Pagetables", "System page tables"});
+  memmap.assign_range({0x10000, 0x9fbff, "Stack", "System main stack"});
 #elif defined(ARCH_i686)
-  memmap.assign_range({0xA000, 0x9fbff, "Stack", "System main stack"});
+  memmap.assign_range({0x10000, 0x9fbff, "Stack", "System main stack"});
 #endif
 
   /**

@@ -78,7 +78,7 @@ rock_bottom:
 
   ;; 32-bit stack base address at EBDA border
   ;; NOTE: Multiboot can use 9fc00 to 9ffff
-  mov esp, 0x9FC00
+  mov esp, 0x9FBF0
   mov ebp, esp
 
   ;; enable SSE before we enter C/C++ land
