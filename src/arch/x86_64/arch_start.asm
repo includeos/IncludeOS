@@ -22,7 +22,9 @@ extern __multiboot_addr
 
 %define P4_TAB             0x1000
 %define P3_TAB             0x2000
-%define NUM_ENTRIES        512
+%define P2_TAB             0x3000  ;; - 0x7fff
+%define NUM_P3_ENTRIES     5
+%define NUM_P2_ENTRIES     2560
 %define STACK_LOCATION     0x9FBF0
 
 [BITS 32]
@@ -44,19 +46,33 @@ __arch_start:
     mov edi, P4_TAB
     mov DWORD [edi], P3_TAB | 0x3 ;; present+write
 
-    ;; create 512x 1GB mappings
-    mov ecx, NUM_ENTRIES
+    ;; create 1GB mappings
+    mov ecx, NUM_P3_ENTRIES
     mov edi, P3_TAB
+    mov eax, P2_TAB | 0x3 ;; present + write
+    mov ebx, 0x0
+
+.p3_loop:
+    mov DWORD [edi],   eax   ;; Low word
+    mov DWORD [edi+4], ebx   ;; High word
+    add eax, 1 << 12         ;; page increments
+    adc ebx, 0               ;; increment high word when CF set
+    add edi, 8
+    loop .p3_loop
+
+    ;; create 2MB mappings
+    mov ecx, NUM_P2_ENTRIES
+    mov edi, P2_TAB
     mov eax, 0x0 | 0x3 | 1 << 7 ;; present + write + huge
     mov ebx, 0x0
 
-.ptd_loop:
+.p2_loop:
     mov DWORD [edi],   eax   ;; Low word
     mov DWORD [edi+4], ebx   ;; High word
-    add eax, 1 << 30         ;; 1GB increments
+    add eax, 1 << 21         ;; 2MB increments
     adc ebx, 0               ;; increment high word when CF set
     add edi, 8
-    loop .ptd_loop
+    loop .p2_loop
 
     ;; enable PAE
     mov eax, cr4
