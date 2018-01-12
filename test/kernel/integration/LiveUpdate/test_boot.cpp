@@ -1,5 +1,6 @@
 #include <kernel/os.hpp>
 #include <liveupdate>
+#include <timers>
 using namespace liu;
 
 static std::vector<int64_t> timestamps;
@@ -30,6 +31,9 @@ LiveUpdate::storage_func begin_test_boot()
 {
   if (LiveUpdate::resume("test", boot_resume_all))
   {
+    // OS must be able to tell it was live updated each time
+    assert(OS::is_live_updated());
+
     if (timestamps.size() >= 30)
     {
       // calculate median by sorting
@@ -43,8 +47,12 @@ LiveUpdate::storage_func begin_test_boot()
         printf("%lld\n", stamp);
       }
       */
-      printf("SUCCESS\n");
-      OS::shutdown();
+      printf("Verifying that timers are started...\n");
+      using namespace std::chrono;
+      Timers::oneshot(5ms,[] (int) {
+        printf("SUCCESS\n");
+        OS::shutdown();
+      });
     }
     else {
       // immediately liveupdate
