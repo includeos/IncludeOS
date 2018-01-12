@@ -108,8 +108,14 @@ install(DIRECTORY ${MUSL_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/musl
 file(GLOB musl_libs ${MUSL_LIB_DIR}/*.a)
 file(GLOB musl_objs ${MUSL_LIB_DIR}/*.o)
 
-message(STATUS "Installing elf.h into ${CMAKE_INSTALL_PREFIX}/include")
-file(COPY ${MUSL_INCLUDE_DIR}/elf.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include/)
+add_custom_command(TARGET PrecompiledLibraries POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E echo "Installed elf.h into ${CMAKE_INSTALL_PREFIX}/include"
+  )
+
+ExternalProject_Add_Step(PrecompiledLibraries copy_elf
+  COMMAND ${CMAKE_COMMAND} -E copy ${MUSL_INCLUDE_DIR}/elf.h ${CMAKE_INSTALL_PREFIX}/include/
+  DEPENDEES download
+  )
 
 install(FILES
   ${musl_libs}
