@@ -22,7 +22,7 @@
  * overwrite the currently running binary with a new one.
  */
 #include <cstdint>
-asm(".org 0x200000");
+asm(".org 0x8000");
 
 extern "C" void* __multiboot_magic;
 extern "C" void* __multiboot_addr;
