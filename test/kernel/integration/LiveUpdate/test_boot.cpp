@@ -31,6 +31,9 @@ LiveUpdate::storage_func begin_test_boot()
 {
   if (LiveUpdate::resume("test", boot_resume_all))
   {
+    // OS must be able to tell it was live updated each time
+    assert(OS::is_live_updated());
+
     if (timestamps.size() >= 30)
     {
       // calculate median by sorting
