@@ -60,7 +60,7 @@ void Service::start(const std::string& args)
   Elf_binary<Elf64> elf ({(char*)binary.mod_start,
         (int)(binary.mod_end - binary.mod_start)});
 
-  void* hotswap_addr = (void*)0x100000;
+  void* hotswap_addr = (void*)0x8000;
 
   MYINFO("Moving hotswap function (now at %p)", &hotswap);
   memcpy(hotswap_addr, (void*)&hotswap, 1024);
@@ -73,7 +73,7 @@ void Service::start(const std::string& args)
   auto load_offs = elf.program_headers()[0].p_offset;
   char* base  = (char*)binary.mod_start + load_offs;
   int len = (int)(binary.mod_end - binary.mod_start);
-  char* dest = (char*)0xA00000;
+  char* dest = (char*)0x100000;
   void* start = (void*)elf.entry();
 
   SHA1 sha;
