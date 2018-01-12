@@ -1,4 +1,5 @@
 #include <kernel/os.hpp>
+#include <kernel/syscalls.hpp>
 #include <liveupdate>
 #include <timers>
 using namespace liu;
@@ -8,7 +9,7 @@ static buffer_t bloberino;
 
 static void boot_save(Storage& storage, const buffer_t* blob)
 {
-  timestamps.push_back(OS::nanos_since_boot());
+  timestamps.push_back(OS::cycles_since_boot());
   storage.add_vector(0, timestamps);
   assert(blob != nullptr);
   storage.add_buffer(2, *blob);
@@ -18,9 +19,9 @@ static void boot_resume_all(Restore& thing)
   timestamps = thing.as_vector<int64_t>(); thing.go_next();
   // calculate time spent
   auto t1 = timestamps.back();
-  auto t2 = OS::nanos_since_boot();
+  auto t2 = OS::cycles_since_boot();
   // set final time
-  timestamps.back() = t2 - t1;
+  timestamps.back() = (t2 - t1) * 1.0e6 / OS::cpu_freq().count();
   // retrieve old blob
   bloberino = thing.as_buffer(); thing.go_next();
 
@@ -48,11 +49,12 @@ LiveUpdate::storage_func begin_test_boot()
       }
       */
       printf("Verifying that timers are started...\n");
+
       using namespace std::chrono;
       Timers::oneshot(5ms,[] (int) {
         printf("SUCCESS\n");
-        OS::shutdown();
       });
+      return nullptr;
     }
     else {
       // immediately liveupdate
