@@ -4,24 +4,24 @@
 #include <timers>
 using namespace liu;
 
-static std::vector<int64_t> timestamps;
+static std::vector<uint64_t> timestamps;
 static buffer_t bloberino;
 
 static void boot_save(Storage& storage, const buffer_t* blob)
 {
-  timestamps.push_back(OS::cycles_since_boot());
+  timestamps.push_back(OS::nanos_since_boot());
   storage.add_vector(0, timestamps);
   assert(blob != nullptr);
   storage.add_buffer(2, *blob);
 }
 static void boot_resume_all(Restore& thing)
 {
-  timestamps = thing.as_vector<int64_t>(); thing.go_next();
+  timestamps = thing.as_vector<uint64_t>(); thing.go_next();
   // calculate time spent
   auto t1 = timestamps.back();
-  auto t2 = OS::cycles_since_boot();
+  auto t2 = OS::nanos_since_boot();
   // set final time
-  timestamps.back() = (t2 - t1) * 1.0e6 / OS::cpu_freq().count();
+  timestamps.back() = t2 - t1;
   // retrieve old blob
   bloberino = thing.as_buffer(); thing.go_next();
 

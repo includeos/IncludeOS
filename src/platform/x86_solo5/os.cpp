@@ -1,6 +1,5 @@
 #include <os>
 
-#include <kprint>
 #include <info>
 #include <smp>
 #include <statman>
@@ -61,10 +60,6 @@ uint64_t OS::cycles_asleep() noexcept {
 }
 uint64_t OS::nanos_asleep() noexcept {
   return os_cycles_hlt;
-}
-
-uint64_t OS::nanos_since_boot() noexcept {
-  return solo5_clock_monotonic();
 }
 
 void OS::default_stdout(const char* str, const size_t len)
@@ -140,10 +135,6 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
     [] (auto) {},
     // timer stop function
     [] () {});
-
-  // Some tests are asserting there is at least one timer that is always ON
-  // (the RTC calibration timer). Let's fake some timer so those tests pass.
-  Timers::oneshot(std::chrono::hours(1000000), [] (auto) {});
 
   Timers::ready();
 }
