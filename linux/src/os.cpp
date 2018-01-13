@@ -5,11 +5,17 @@
 #include <sys/time.h>
 #include <sched.h>
 #include <ctime>
-uint64_t OS::nanos_since_boot() noexcept
+uint64_t __arch_system_time() noexcept
 {
   struct timespec tv;
   clock_gettime(CLOCK_REALTIME, &tv);
   return tv.tv_sec*(uint64_t)1000000000ull+tv.tv_nsec;
+}
+timespec __arch_wall_clock() noexcept
+{
+  struct timespec tv;
+  clock_gettime(CLOCK_REALTIME, &tv);
+  return tv;
 }
 
 void OS::event_loop()

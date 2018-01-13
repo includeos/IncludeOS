@@ -43,15 +43,15 @@ void Service::start(const std::string& args)
           mod.mod_start, mod.mod_end, mod.mod_end - mod.mod_start);
 
   // Verify module cmdlines
-  Expects(std::string((char*)mods[0].cmdline) == "../mod1.json");
-  Expects(std::string((char*)mods[1].cmdline) == "../seed loaded as module");
-  Expects(std::string((char*)mods[2].cmdline) == "../mod3.json");
+  Expects(std::string((char*) mods[0].cmdline) == "../mod1.json");
+  Expects(std::string((char*) mods[1].cmdline) == "../seed loaded as module");
+  Expects(std::string((char*) mods[2].cmdline) == "../mod3.json");
 
   // verify content of text modules
-  Expects(std::string((char*)mods[0].mod_start)
+  Expects(std::string((char*) mods[0].mod_start)
           == "{\"module1\" : \"JSON data\" }\n");
 
-  Expects(std::string((char*)mods[2].mod_start)
+  Expects(std::string((char*) mods[2].mod_start)
           == "{\"module3\" : \"More JSON data, for mod2 service\" }\n");
 
   multiboot_module_t binary = mods[1];
@@ -60,10 +60,10 @@ void Service::start(const std::string& args)
   Elf_binary<Elf64> elf ({(char*)binary.mod_start,
         (int)(binary.mod_end - binary.mod_start)});
 
-  void* hotswap_addr = (void*)0x8000;
+  void* hotswap_addr = (void*)0x2000;
 
   MYINFO("Moving hotswap function (now at %p)", &hotswap);
-  memcpy(hotswap_addr, (void*)&hotswap, 1024);
+  memcpy(hotswap_addr, (void*)&hotswap, 2048);
 
   extern uintptr_t __multiboot_magic;
   extern uintptr_t __multiboot_addr;
@@ -72,9 +72,9 @@ void Service::start(const std::string& args)
 
   auto load_offs = elf.program_headers()[0].p_offset;
   char* base  = (char*)binary.mod_start + load_offs;
-  int len = (int)(binary.mod_end - binary.mod_start);
-  char* dest = (char*)0x100000;
-  void* start = (void*)elf.entry();
+  int len     = int(binary.mod_end - binary.mod_start);
+  char* dest  = (char*) elf.program_headers()[0].p_paddr;
+  void* start = (void*) elf.entry();
 
   SHA1 sha;
   sha.update(base, len);
@@ -87,8 +87,7 @@ void Service::start(const std::string& args)
   MYINFO("Disabling interrupts and calling hotswap...");
 
   asm("cli");
-  ((decltype(&hotswap))hotswap_addr)(base, len, dest, start, __multiboot_magic, __multiboot_addr);
-
+  ((decltype(&hotswap))hotswap_addr)(base, len, dest, start, 0, 0);
+                        //__multiboot_magic, __multiboot_addr);
   panic("Should have jumped\n");
-
 }
