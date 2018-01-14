@@ -150,7 +150,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   for (const auto &i : memmap)
     INFO2("* %s",i.second.to_string().c_str());
 
-
   PROFILE("Platform init");
   extern void __platform_init();
   __platform_init();
