@@ -90,6 +90,8 @@ private:
   void recv_handler();
   bool can_transmit();
   void transmit_data(uint8_t*, uint16_t);
+  void xmit_kick();
+  static void do_deferred_xmit();
 
   hw::PCI_Device& m_pcidev;
   std::vector<uint8_t> irqs;
@@ -127,6 +129,7 @@ private:
   struct tx_t {
     tx_desc desc[NUM_TX_DESC];
     uint16_t current = 0;
+    bool deferred = false;
   } tx;
 
   // sendq as packet chain
