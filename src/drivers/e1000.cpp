@@ -216,6 +216,8 @@ void e1000::event_handler()
 
 void e1000::recv_handler()
 {
+  uint16_t old_idx = 0xffff;
+
   while (rx.desc[rx.current].status & 1)
   {
     auto& tk = rx.desc[rx.current];
@@ -229,10 +231,11 @@ void e1000::recv_handler()
     tk.addr = (uint64_t) this->new_rx_packet();
     tk.status = 0;
     // go to next index
-    uint16_t old_idx = rx.current;
+    old_idx = rx.current;
     rx.current = (rx.current + 1) % NUM_RX_DESC;
-    write_cmd(REG_RXDESCTAIL, old_idx);
   }
+  if (old_idx != 0xffff)
+    write_cmd(REG_RXDESCTAIL, old_idx);
 }
 
 void e1000::transmit(net::Packet_ptr pckt)
