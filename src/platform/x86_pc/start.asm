@@ -28,8 +28,8 @@ global __avx_enabled
 %define  MB_FLAGS   0x3  ;; ALIGN + MEMINFO
 
 ;; stack base address at EBDA border
-;; NOTE: Multiboot can use 9f800 to 9ffff
-%define  STACK_LOCATION     0x9F7F0
+;; NOTE: Multiboot can use 9d400 to 9ffff
+%define  STACK_LOCATION     0x9D3F0
 
 extern _MULTIBOOT_START_
 extern _LOAD_START_
