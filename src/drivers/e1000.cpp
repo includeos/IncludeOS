@@ -25,6 +25,9 @@
 #include <malloc.h>
 // loosely based on OSdev article http://wiki.osdev.org/Intel_Ethernet_i217
 
+static int deferred_event = 0;
+static std::vector<e1000*> deferred_devices;
+
 e1000::e1000(hw::PCI_Device& d) :
     Link(Link_protocol{{this, &e1000::transmit}, mac()}, bufstore_),
     m_pcidev(d), bufstore_{1024, 2048}
@@ -39,6 +42,11 @@ e1000::e1000(hw::PCI_Device& d) :
   Events::get().subscribe(this->m_irq, {this, &e1000::event_handler});
   __arch_enable_legacy_irq(this->m_irq);
   INFO2("Subscribed on IRQ %u", this->m_irq);
+
+  if (deferred_event == 0)
+  {
+    deferred_event = Events::get().subscribe(&e1000::do_deferred_xmit);
+  }
 
   // shared-memory & I/O address
   this->shm_base = d.get_bar(0);
@@ -225,7 +233,6 @@ void e1000::recv_handler()
     rx.current = (rx.current + 1) % NUM_RX_DESC;
     write_cmd(REG_RXDESCTAIL, old_idx);
   }
-
 }
 
 void e1000::transmit(net::Packet_ptr pckt)
@@ -265,12 +272,28 @@ void e1000::transmit_data(uint8_t* data, uint16_t length)
   tk.status = 0;
 
   tx.current = (tx.current + 1) % NUM_TX_DESC;
+  if (tx.deferred == false)
+  {
+    tx.deferred = true;
+    deferred_devices.push_back(this);
+    Events::get().trigger_event(deferred_event);
+  }
+}
+void e1000::xmit_kick()
+{
   write_cmd(REG_TXDESCTAIL, tx.current);
+  tx.deferred = false;
+}
+void e1000::do_deferred_xmit()
+{
+  for (auto& dev : deferred_devices)
+      dev->xmit_kick();
+  deferred_devices.clear();
 }
 
 void e1000::flush()
 {
-
+  this->transmit(std::move(sendq));
 }
 void e1000::poll()
 {
@@ -283,7 +306,7 @@ void e1000::deactivate()
 }
 void e1000::move_to_this_cpu()
 {
-
+  // TODO: implement me
 }
 
 #include <kernel/pci_manager.hpp>
@@ -294,5 +317,6 @@ static void register_func()
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x100E, &e1000::new_instance);
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x100F, &e1000::new_instance);
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x153A, &e1000::new_instance);
+  PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x1539, &e1000::new_instance);
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x10EA, &e1000::new_instance);
 }
