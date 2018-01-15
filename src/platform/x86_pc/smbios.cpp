@@ -20,6 +20,7 @@
 #include <cstring>
 #include <cstdio>
 #include <info>
+#include <kernel/os.hpp>
 
 namespace x86
 {
@@ -147,6 +148,11 @@ namespace x86
 
       hdr = hdr->next();
       if (hdr->type == 0) break;
+    }
+
+    // salvage operation for when no memory array found
+    if (sysinfo.physical_memory == 0) {
+      sysinfo.physical_memory = OS::memory_end()+1;
     }
   }
 
