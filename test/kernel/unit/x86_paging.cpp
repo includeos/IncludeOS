@@ -18,41 +18,15 @@
 #define DEBUG_UNIT
 
 #include <common.cxx>
+#include <os>
 #include <arch/x86_paging.hpp>
 #include <arch/x86_paging_utils.hpp>
 #include <kernel/memory.hpp>
+#include <cmath>
 
-std::random_device randz;
+using namespace util;
 
-uint64_t rand64(){
-  static std::mt19937_64 mt_rand(time(0));
-  return mt_rand();
-}
-
-template <int N>
-std::vector<uint64_t> rands64()
-{
-  static std::vector<uint64_t> rnd;
-
-  if (rnd.empty())
-  {
-    for (int i = 0; i < N; i++)
-    {
-      rnd.push_back(rand64());
-    }
-  }
-
-  return rnd;
-}
-
-using namespace util::literals;
-using namespace util::bitops;
-
-
-// Random addresses to test for each PML
-const std::vector<uint64_t> rands = rands64<10>();
-
-CASE("PML4 Page_dir entry helpers") {
+CASE("x86::paging: PML4 Page_dir entry helpers") {
   using namespace x86::paging;
   EXPECT(Pml4::is_page_aligned(0));
   EXPECT(not Pml4::is_page_aligned(4_KiB));
@@ -75,7 +49,7 @@ CASE("PML4 Page_dir entry helpers") {
   EXPECT(not Pml4::is_page(512_GiB | Flags::huge));
   EXPECT(not Pml4::is_page(512_GiB));
   EXPECT(not Pml4::is_page(0));
-  for (auto rnd : rands) {
+  for (auto rnd : test::random) {
     EXPECT(not Pml4::is_page(rnd));
   }
 
@@ -86,7 +60,7 @@ CASE("PML4 Page_dir entry helpers") {
   EXPECT(not Pml4::is_page_dir(0));
   EXPECT(not Pml4::is_page_dir(512_GiB));
   EXPECT(Pml4::is_page_dir(512_GiB | (uintptr_t)(Flags::pdir | Flags::present)));
-  for (auto rnd : rands) {
+  for (auto rnd : test::random) {
     if (Pml4::is_page_dir(rnd))
     {
       EXPECT((rnd & (uintptr_t)(Flags::pdir)));
@@ -97,11 +71,11 @@ CASE("PML4 Page_dir entry helpers") {
 
   auto fl1 = Flags::pdir | Flags::present;
   auto fl2 = Flags::all;
-  EXPECT((Pml4::flags_of(rands[0] | fl1) & fl1) == fl1);
-  EXPECT(Pml4::flags_of(rands[1] | fl2) == (Flags::all & ~Flags::huge));
+  EXPECT((Pml4::flags_of(test::random[0] | fl1) & fl1) == fl1);
+  EXPECT(Pml4::flags_of(test::random[1] | fl2) == (Flags::all & ~Flags::huge));
 }
 
-CASE("PML3 Page_dir entry helpers") {
+CASE("x86::paging: PML3 Page_dir entry helpers") {
   using namespace x86::paging;
   EXPECT(Pml3::is_page_aligned(0));
   EXPECT(not Pml3::is_page_aligned(4_KiB));
@@ -124,7 +98,7 @@ CASE("PML3 Page_dir entry helpers") {
   EXPECT(Pml3::addr_of(4_KiB + 17_b) == 4_KiB);
   EXPECT(Pml3::to_addr(4_KiB + 17_b) == (void*)4_KiB);
 
-  for (auto rnd : rands) {
+  for (auto rnd : test::random) {
     if (Pml3::is_page_dir(rnd))
     {
       EXPECT((rnd & (uintptr_t)(Flags::pdir)));
@@ -135,12 +109,12 @@ CASE("PML3 Page_dir entry helpers") {
 
   auto fl1 = Flags::pdir | Flags::present;
   auto fl2 = Flags::all;
-  EXPECT((Pml3::flags_of(rands[0] | fl1) & fl1) == fl1);
-  EXPECT(Pml3::flags_of(rands[1] | fl2) == Flags::all);
+  EXPECT((Pml3::flags_of(test::random[0] | fl1) & fl1) == fl1);
+  EXPECT(Pml3::flags_of(test::random[1] | fl2) == Flags::all);
 
 }
 
-CASE("PML2 Page_dir entry helpers") {
+CASE("x86::paging: PML2 Page_dir entry helpers") {
   using namespace x86::paging;
   EXPECT(Pml2::is_page_aligned(0));
   EXPECT(not Pml2::is_page_aligned(4_KiB));
@@ -163,7 +137,7 @@ CASE("PML2 Page_dir entry helpers") {
   EXPECT(Pml2::addr_of(4_KiB + 17_b) == 4_KiB);
   EXPECT(Pml2::to_addr(4_KiB + 17_b) == (void*)4_KiB);
 
-  for (auto rnd : rands) {
+  for (auto rnd : test::random) {
     if (Pml2::is_page_dir(rnd))
     {
       EXPECT((rnd & (uintptr_t)(Flags::pdir)));
@@ -174,12 +148,12 @@ CASE("PML2 Page_dir entry helpers") {
 
   auto fl1 = Flags::pdir | Flags::present;
   auto fl2 = Flags::all;
-  EXPECT((Pml2::flags_of(rands[0] | fl1) & fl1) == fl1);
-  EXPECT(Pml2::flags_of(rands[1] | fl2) == Flags::all);
+  EXPECT((Pml2::flags_of(test::random[0] | fl1) & fl1) == fl1);
+  EXPECT(Pml2::flags_of(test::random[1] | fl2) == Flags::all);
 
 }
 
-CASE("PML1 Page_dir entry helpers") {
+CASE("x86::paging: PML1 Page_dir entry helpers") {
   using namespace x86::paging;
   EXPECT(Pml1::is_page_aligned(0));
   EXPECT(Pml1::is_page_aligned(4_KiB));
@@ -191,7 +165,7 @@ CASE("PML1 Page_dir entry helpers") {
   // Every entry is a page in PML1 unless pdir is set
   // (alignment can't be required due to flags)
   EXPECT(Pml1::is_page(0));
-  for (auto rnd : rands) {
+  for (auto rnd : test::random) {
     EXPECT(Pml1::is_page(rnd & (uintptr_t)~Flags::pdir));
   }
   EXPECT(Pml1::is_page(4_KiB));
@@ -209,19 +183,19 @@ CASE("PML1 Page_dir entry helpers") {
 
   EXPECT(not Pml1::is_page_dir(0));
 
-  for (auto rnd : rands) {
+  for (auto rnd : test::random) {
     EXPECT(not Pml1::is_page_dir(rnd));
   }
 
   auto fl1 = Flags::pdir | Flags::present;
   auto fl2 = Flags::all;
-  EXPECT((Pml1::flags_of(rands[0] | fl1) & fl1) == Flags::present);
-  EXPECT(Pml1::flags_of(rands[1] | fl2) == (Flags::all & ~(Flags::pdir | Flags::huge)));
+  EXPECT((Pml1::flags_of(test::random[0] | fl1) & fl1) == Flags::present);
+  EXPECT(Pml1::flags_of(test::random[1] | fl2) == (Flags::all & ~(Flags::pdir | Flags::huge)));
 
 }
 
 
-CASE("4-level x86_64 paging") {
+CASE("x86::paging 4-level x86_64 paging") {
   SETUP ("Initializing page tables") {
     using namespace x86::paging;
     using Pflag = x86::paging::Flags;
@@ -259,8 +233,7 @@ CASE("4-level x86_64 paging") {
     {
 
       // Recursively map 1k page, creating tables as needed
-      auto map = __pml4->map_r({0, 1, Pflag::present, 1_MiB});
-
+      auto map = __pml4->map_r({0, 4_KiB, Pflag::present, 1_MiB});
 
       EXPECT(map);
       EXPECT(__pml4->at(0) != 0);
@@ -269,11 +242,11 @@ CASE("4-level x86_64 paging") {
       EXPECT(not m);
       EXPECT(m.page_count() == 0);
       m.lin       = 0;
-      m.phys      = 1;
+      m.phys      = 4_KiB;
       // NOTE: Execute is allowed by default on intel
-      m.flags     = Pflag::present;
-      m.size      = 1_MiB;
-      m.page_size = 4_KiB;
+      m.flags      = Pflag::present;
+      m.size       = 1_MiB;
+      m.page_sizes = 4_KiB;
 
       EXPECT(map == m);
 
@@ -322,7 +295,7 @@ CASE("4-level x86_64 paging") {
       m.phys      = phys;
       m.flags     = Pflag::present;
       m.size      = msize;
-      m.page_size = 2_MiB | 4_KiB;
+      m.page_sizes = 2_MiB | 4_KiB;
       EXPECT(map == m);
       EXPECT(map.size == msize);
       EXPECT(map.size < 1_GiB);
@@ -357,24 +330,125 @@ extern x86::paging::Pml4* __pml4;
 extern uintptr_t __exec_begin;
 extern uintptr_t __exec_end;
 
-void init_default_paging(){
-  __exec_begin = 0xa00000;
-  __exec_end   = 0xb0000b;
+void init_default_paging(uintptr_t exec_beg = 0xa00000, uintptr_t exec_end = 0xb0000b){
+  __exec_begin = exec_beg;
+  __exec_end   = exec_end;
 
   extern void __arch_init_paging();
 
   // Initialize default paging (all except actually passing it to CPU)
-  if (__pml4 == nullptr) {
-    __arch_init_paging();
+  if (__pml4 != nullptr) {
+    free(__pml4);
+    OS::memory_map().clear();
   }
+  __arch_init_paging();
 }
 
-CASE ("Verify default paging setup")
+
+CASE ("x86::paging Verify execute protection")
+{
+    using namespace util;
+    using Flags = x86::paging::Flags;
+    using Access = os::mem::Access;
+
+    init_default_paging(0xa00000, 0xc00000);
+    // 4KiB 0-page has no access
+    EXPECT(__pml4->active_page_size(0LU) == 4_KiB);
+    EXPECT(os::mem::active_page_size(0LU) == 4_KiB);
+    EXPECT(os::mem::flags(0) == Access::none);
+
+    auto flags = os::mem::flags(__exec_begin);
+
+    // .text segment has execute + read access up to next 4kb page
+    EXPECT(os::mem::flags(__exec_begin) == (Access::execute | Access::read));
+    EXPECT(os::mem::flags(__exec_end - 1)   == (Access::execute | Access::read));
+    EXPECT(os::mem::flags(__exec_end + 4_KiB) == (Access::read | Access::write));
+
+    for (int i = 0; i < 10; i++ ) {
+      auto exec_start = (rand() & ~0xfff);
+      auto exec_end = exec_start + rand() % 100_MiB;
+
+      init_default_paging(exec_start, exec_end);
+
+      // 4KiB 0-page has no access
+      EXPECT(os::mem::active_page_size(0LU) == 4_KiB);
+      EXPECT(os::mem::flags(0) == Access::none);
+
+      // .text segment has execute + read access up to next 4kb page
+      EXPECT(os::mem::flags(__exec_begin) == (Access::execute | Access::read));
+
+      EXPECT(os::mem::flags(__exec_end - 1)   == (Access::execute | Access::read));
+      EXPECT(os::mem::flags(__exec_end + 4_KiB) == (Access::read | Access::write));
+    }
+}
+
+CASE("x86::paging controlling page sizes"){
+  // Not all CPU's support e.g. 1 GiB pages.
+  using namespace util;
+  using namespace x86;
+
+  init_default_paging();
+
+  paging::Map req {42_MiB, 10_MiB, paging::Flags::present, 42_MiB, 4_KiB };
+  auto res = __pml4->map_r(req);
+  EXPECT(res);
+  EXPECT(res.page_sizes == 4_KiB);
+
+  req = {42_MiB, 10_MiB, paging::Flags::present, 42_MiB, 2_MiB };
+  res = __pml4->map_r(req);
+
+  // We can't get 2_MiB pages when 4k page dirs are already allocated here
+  // e.g. we never deallocate page tables with map_r
+  // TODO: implment another function to deallocate all page_dirs in a range
+  EXPECT(! res);
+
+  req = {42_MiB + 42_MiB, 10_MiB, paging::Flags::present, 42_MiB, 2_MiB };
+  res = __pml4->map_r(req);
+  EXPECT(__pml4->active_page_size(100_MiB) == 2_MiB);
+  EXPECT(res.page_sizes == 2_MiB);
+  EXPECT(res.size == req.size);
+  EXPECT((res.flags & req.flags) != paging::Flags::none);
+
+  // We can refine to smaller page sizes later (e.g. allocate more tables)
+  req = {42_MiB + 42_MiB, 10_MiB, paging::Flags::present, 42_MiB, 4_KiB };
+  res = __pml4->map_r(req);
+  EXPECT(res);
+  EXPECT(res.page_sizes == 4_KiB);
+  EXPECT(res.size == req.size);
+  EXPECT(__pml4->active_page_size(100_MiB) == 4_KiB);
+  EXPECT((res.flags & req.flags) != paging::Flags::none);
+
+  // We can't map a 1G page to 10Mb (alignment fail)
+  req = {42_GiB, 10_MiB, paging::Flags::present, 4_GiB, 1_GiB };
+  EXPECT_THROWS(__pml4->map_r(req));
+
+  req = {42_GiB, 10_GiB, paging::Flags::present, 4_GiB, 1_GiB };
+  res = __pml4->map_r(req);
+  EXPECT(res);
+  EXPECT(res.page_sizes == 1_GiB);
+  EXPECT(res.size == req.size);
+  EXPECT((res.flags & req.flags) != paging::Flags::none);
+
+  // We can't use 512Gb page sizes
+  req = {42_GiB, 10_GiB, paging::Flags::present, 4_GiB, 512_GiB };
+  EXPECT_THROWS(__pml4->map_r(req));
+
+  // Nor other unsupported page sizes
+  req = {42_GiB, 10_MiB, paging::Flags::present, 4_GiB, 3_KiB };
+  EXPECT_THROWS(__pml4->map_r(req));
+
+  /**
+   * NOTE: Page sizes of e.g. 12_KiB would be interpreted as 0x3000
+   * which has 0x1000 set. This would be treated as if 4k pages were requested
+   **/
+}
+
+CASE ("x86::paging Verify default paging setup")
 {
   SETUP("Initialize paging")
   {
-    using namespace util::literals;
-    using namespace util::bitops;
+    using namespace util;
+
     using Flags = x86::paging::Flags;
     using Access = os::mem::Access;
 
@@ -390,8 +464,6 @@ CASE ("Verify default paging setup")
       EXPECT(os::mem::active_page_size(__exec_begin) == 4_KiB);
       EXPECT(os::mem::flags(__exec_begin) == (Access::execute | Access::read));
       EXPECT(os::mem::flags(__exec_end)   == (Access::execute | Access::read));
-
-      printf("Protection after exec: 0x%lx\n", os::mem::flags(__exec_end + 4_KiB));
       EXPECT(os::mem::flags(__exec_end + 4_KiB) == (Access::read | Access::write));
 
       // Remaining address space is either read + write or not present
@@ -461,7 +533,7 @@ CASE ("Verify default paging setup")
 
       auto increment = 1_MiB + 44_KiB;
 
-      // Map non-aligned sizes
+      // Map 4k-aligned sizes
       auto addr = (rand() & ~(4_KiB -1));
       auto map = __pml4->map_r({addr, addr, Flags::present, increment});
 
@@ -472,6 +544,7 @@ CASE ("Verify default paging setup")
 
       // Allocate large amounts of page tables
       auto full_map = x86::paging::Map();
+      full_map.page_sizes = 4_KiB;
       for (auto i = 513_GiB; i < 514_GiB; i += increment)
         {
           auto map = __pml4->map_r({i, i, Flags::present, increment});
@@ -484,8 +557,8 @@ CASE ("Verify default paging setup")
       EXPECT(__pml4->entry_r(513_GiB) != nullptr);
       EXPECT(! __pml4->is_page_dir(*__pml4->entry_r(513_GiB)));
 
-      EXPECT(full_map.size == roundto(increment, 1_GiB));
-      EXPECT(full_map.page_size == 4_KiB);
+      EXPECT(full_map.size == bits::roundto(increment, 1_GiB));
+      EXPECT(full_map.page_sizes == 4_KiB);
 
       int page_dirs_found = 0;
       int kb_pages_found = 0;
@@ -542,7 +615,7 @@ CASE ("Verify default paging setup")
       EXPECT(sum_pml3.pages_1g == 0);
       EXPECT(sum_pml3.pages_2m == 0);
 
-      auto rounded = roundto(increment, 1_GiB);
+      auto rounded = bits::roundto(increment, 1_GiB);
       EXPECT(rounded % 4_KiB == 0);
 
       auto rounded_pages = rounded / 4_KiB;
@@ -580,28 +653,28 @@ CASE ("Map various ranges")
 
   req = {590_GiB, 8_GiB, Flags::present, 100_MiB + 42_KiB};
   res = __pml4->map_r(req);
-  EXPECT(res.size == roundto(4_KiB,req.size));
+  EXPECT(res.size == bits::roundto(4_KiB,req.size));
   EXPECT(res.lin  == req.lin);
   EXPECT(res.phys  == req.phys);
   EXPECT(has_flag(res.flags, req.flags));
 
   req = {680_GiB, 10_GiB, Flags::present, 100_GiB + 42_KiB};
   res = __pml4->map_r(req);
-  EXPECT(res.size == roundto(4_KiB,req.size));
+  EXPECT(res.size == bits::roundto(4_KiB,req.size));
   EXPECT(res.lin  == req.lin);
   EXPECT(res.phys  == req.phys);
   EXPECT(has_flag(res.flags, req.flags));
 
-  req = {790_GiB + 3_MiB + 4_KiB, 10_GiB + 2_MiB + 17_KiB, Flags::present, 100_MiB + 42_KiB};
+  req = {790_GiB + 3_MiB + 4_KiB, 10_GiB + 2_MiB + 16_KiB, Flags::present, 100_MiB + 42_KiB};
   res = __pml4->map_r(req);
-  EXPECT(res.size == roundto(4_KiB,req.size));
+  EXPECT(res.size == bits::roundto(4_KiB,req.size));
   EXPECT(res.lin  == req.lin);
   EXPECT(res.phys  == req.phys);
   EXPECT(has_flag(res.flags, req.flags));
 
-  req = {120_TiB + 17_MiB + 4_KiB, 10_GiB + 2_MiB + 17_KiB, Flags::present, 11_MiB + 42_KiB};
+  req = {120_TiB + 17_MiB + 4_KiB, 10_GiB + 2_MiB + 16_KiB, Flags::present, 11_MiB + 42_KiB};
   res = __pml4->map_r(req);
-  EXPECT(res.size == roundto(4_KiB,req.size));
+  EXPECT(res.size == bits::roundto(4_KiB,req.size));
   EXPECT(res.lin  == req.lin);
   EXPECT(res.phys  == req.phys);
   EXPECT(has_flag(res.flags, req.flags));

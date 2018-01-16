@@ -97,8 +97,10 @@ T* allocate_pdir(Args... a)
 /** x86_64 specific types for page directories **/
 struct x86_64 {
   using Flags = Flags;
-  static constexpr int min_pagesize = 4_KiB;
-  static constexpr int max_entries = 512;
+  static constexpr int min_pagesize     = 4_KiB;
+  static constexpr int table_size       = 512;
+  static constexpr int max_pagesize     = 1_GiB;
+  static constexpr uintptr_t max_memory = 512_GiB * 512;
 };
 
 }
@@ -207,8 +209,7 @@ public:
   using Subdir  = Sub;
   static constexpr uintptr_t page_size     = Psz;
   static constexpr uintptr_t min_pagesize  = Platform::min_pagesize;
-  static constexpr int       max_entries   = Platform::max_entries;
-  static constexpr uintptr_t range_size    = page_size * max_entries;
+  static constexpr uintptr_t range_size    = page_size * Platform::table_size;
   static constexpr Pflag     allowed_flags = Afl;
 
   constexpr size_t size() {
@@ -301,7 +302,6 @@ public:
     {
       return page_dir(entry_)->entry_r(addr);
     }
-
     return entry_;
   }
 
@@ -404,13 +404,18 @@ public:
   Pflag set_flags(uintptr_t* entry, Pflag flags)
   {
     Expects(entry >= tbl_.begin() && entry < tbl_.end());
+    auto new_entry = addr_of(*entry) | (flags & allowed_flags);
+    Expects(is_page_aligned(addr_of(new_entry)));
 
     // Can only make pages and page dirs present. E.g. no unmapped PML4 entry.
     if (has_flag(flags, Pflag::present)
-        and !is_page(*entry) and !is_page_dir(*entry))
+        and !is_page(new_entry) and !is_page_dir(new_entry))
+    {
+      debug("<set_flags> Can't set flags on non-aligned entry ");
       return Pflag::none;
+    }
 
-    *entry = addr_of(*entry) | (flags & allowed_flags);
+    *entry = new_entry;
     Ensures(flags_of(*entry) == (flags & allowed_flags));
     return flags_of(*entry);
   }
@@ -466,10 +471,13 @@ public:
    **/
   Map map(Map req)
   {
+    using namespace util;
     debug("<map> %s\n", req.to_string().c_str());
     auto offs = indexof(req.lin);
-    if (offs < 0)
+    if (offs < 0) {
+      debug("<map> Got invalid offset 0x%i for req. %s \n", offs, req.to_string().c_str());
       return Map();
+    }
 
     Map res {req.lin, req.phys, req.flags, 0, page_size};
 
@@ -483,7 +491,7 @@ public:
     }
 
     Ensures(res);
-    Ensures(os::mem::is_aligned<page_size>(res.size));
+    Ensures(bits::is_aligned<page_size>(res.size));
 
     return res;
   }
@@ -493,11 +501,15 @@ public:
     debug("<map_entry> %s\n", req.to_string().c_str());
     Expects(ent != nullptr);
     Expects(ent >= tbl_.begin() && ent < tbl_.end());
-
+    Expects(req);
     *ent = req.phys;
-    set_page_flags(ent, req.flags);
+    req.flags = set_page_flags(ent, req.flags);
     req.size = page_size;
-    req.page_size = page_size;
+    req.page_sizes = page_size;
+
+    if (addr_of(*ent) != req.phys)
+      debug("Couldn't set address: req. expected 0x%lx, got 0x%lx\n", req.phys, addr_of(*ent));
+    Ensures(addr_of(*ent) == req.phys);
     return req;
   }
 
@@ -506,17 +518,22 @@ public:
     Expects(ent != nullptr);
     Expects(within_range(req.lin));
 
-    if (!is_page_dir(*ent) && req.size >= page_size) {
+    // Map locally if all local requirements are met
+    if (!is_page_dir(*ent) and req.size >= page_size
+        and (req.page_sizes & page_size)
+        and is_page_aligned(req.lin) and is_page_aligned(req.phys)) {
+
       auto res = map_entry(ent, req);
       Ensures(res and res.size == page_size);
       return res;
     }
 
-    Ensures(req.size <= page_size or is_page_dir(*ent));
+    // If minimum requested page size was not smaller than this, fail
+    if (req.min_psize() >= page_size)
+      return Map();
 
     // Mapping via sub directory, creating subdir if needed
     if (!is_page_dir(*ent)) {
-      Ensures(req.size < page_size);
       auto aligned_addr = req.lin & ~(page_size - 1);
       create_page_dir(aligned_addr , flags_of(*ent));
     }
@@ -525,11 +542,29 @@ public:
     permit_flags(ent, req.flags);
 
     auto* pdir = page_dir(ent);
-    debug("<map_entry_r> Sub 0x%p want: %s\n",  pdir, req.to_string().c_str());
     Expects(pdir != nullptr);
+
+    debug("<map_entry_r> Sub 0x%p want: %s\n",  pdir, req.to_string().c_str());
+
     auto res = pdir->template map_r(req);
+
+    // We either get no result or a partial / correct one
+    if (res)
+    {
+      Ensures(res.size <= page_size);
+      Ensures((req.flags & res.flags) == req.flags);
+    }
+    else
+    {
+      // If result is empty we had page size constraints that couldn't be met
+      auto sub_psize = pdir->template page_size;
+      Ensures((req.page_sizes & page_size) == 0
+              or (pdir->template is_page_dir(req.lin) and (req.page_sizes & sub_psize))
+              or (sub_psize & req.page_sizes) == 0);
+    }
+
     debug("<map_entry_r> Sub 0x%p got: %s\n",  pdir, res.to_string().c_str());
-    Ensures(res and res.size <= page_size);
+
     return res;
   }
 
@@ -540,28 +575,39 @@ public:
    **/
   Map map_r(Map req)
   {
-
+    using namespace util;
     debug("<map_r> %s\n", req.to_string().c_str());
     Expects(req);
-    Expects(os::mem::is_aligned<min_pagesize>(req.lin));
+    Expects(bits::is_aligned<min_pagesize>(req.lin));
+    Expects(bits::is_aligned<min_pagesize>(req.phys));
+    Expects(bits::is_aligned(req.min_psize(), req.lin));
+    Expects(bits::is_aligned(req.min_psize(), req.phys));
+    Expects((req.page_sizes & os::mem::supported_page_sizes()) != 0);
+    Expects(req.lin < Platform::max_memory);
+    Expects(within_range(req.lin));
 
-    Map res;
+    Map res{};
 
-    //while (m.size < tot_size)
     for (auto i = tbl_.begin() + indexof(req.lin); i != tbl_.end(); i++)
     {
       auto* ent = entry(req.lin + res.size);
 
-      Map sub {req.lin + res.size, req.phys + res.size, req.flags, req.size - res.size};
-      debug("<map_r> sub %s \n", sub.to_string().c_str());
+      Map sub {req.lin + res.size, req.phys + res.size, req.flags,
+          req.size - res.size, req.page_sizes};
+
       res += map_entry_r(ent, sub);
+
+      if (! res)
+        return res;
 
       if (res.size >= req.size)
         break;
     }
 
-    //Ensures(res.size == roundto<4_KiB>(req.size));
-    Ensures(res and res.lin == req.lin and res.phys == req.phys);
+    Ensures(res);
+    Ensures((req.page_sizes & res.page_sizes) != 0);
+    Ensures(res.size <= util::bits::roundto<4_KiB>(req.size));
+    Ensures(res.lin == req.lin and res.phys == req.phys);
     return res;
   }
 
@@ -589,7 +635,7 @@ public:
 
 
 private:
-  std::array<uintptr_t, max_entries> tbl_ {};
+  std::array<uintptr_t, Platform::table_size> tbl_ {};
   const uintptr_t linear_addr_start_ = 0;
 };
 
@@ -671,8 +717,15 @@ inline Map Pml1::map_r(Map req)
   debug("<map_r> mapping 0x%lx -> 0x%lx, size %li \n", req.lin, req.phys, req.size);
   Expects(req);
 
-  if (req.size == 0)
+  if (req.size == 0) {
+    debug("<map> pml1 asked for 0 size: %s\n", req.to_string().c_str());
     return Map();
+  }
+
+  if ((req.page_sizes & page_size) == 0) {
+    debug("<map> pml1 asked for different page sizes: 0x%lx\n", req.page_sizes);
+    return Map();
+  }
 
   auto res = map(req);
   Expects(res.size);

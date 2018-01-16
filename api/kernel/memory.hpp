@@ -27,8 +27,10 @@
 #include <cstdlib>
 #include <sstream>
 
+
 namespace os {
 namespace mem {
+  using namespace util::literals;
 
   /** POSIX mprotect compliant access bits **/
   enum class Access : uint8_t {
@@ -37,6 +39,18 @@ namespace mem {
     write = 2,
     execute = 4
   };
+
+  /** Get bitfield with bit set for each supported page size */
+  uintptr_t supported_page_sizes();
+
+  /** Get the smallest supported page size */
+  uintptr_t min_psize();
+
+  /** Get the largest supported page size */
+  uintptr_t max_psize();
+
+  /** Determine if size is a supported page size */
+  bool supported_page_size(uintptr_t size);
 
   /** A-aligned allocation of T **/
   template <typename T, int A, typename... Args>
@@ -48,31 +62,45 @@ namespace mem {
     return new (ptr) T(a...);
   }
 
-  /** Determine if ptr is A-aligned **/
-  template <uintptr_t A>
-  bool is_aligned(uintptr_t ptr)
-  {
-    return (ptr & (A - 1)) == 0;
-  }
 
-  template <uintptr_t A>
-  bool is_aligned(void* ptr)
-  {
-    return is_aligned<A>(reinterpret_cast<uintptr_t>(ptr));
+  inline std::string page_sizes_str(size_t bits){
+
+    if (bits == 0) return "None";
+
+    std::stringstream out;
+    while (bits){
+      auto ps = 1 << (__builtin_ffsl(bits) - 1);
+      bits &= ~ps;
+      out << util::Byte_r(ps);
+      if (bits)
+        out << ", ";
+    }
+
+    return out.str();
   }
 
   template <typename Fl = Access>
   struct Mapping {
+
+    static const size_t any_size;
+
     uintptr_t lin {};
     uintptr_t phys {};
     Fl flags {};
     size_t size = 0;
-    size_t page_size = 4096;
+    size_t page_sizes = 0;
 
     Mapping() = default;
+    Mapping(uintptr_t linear, uintptr_t physical, Fl fl, size_t sz)
+      : lin{linear}, phys{physical}, flags{fl}, size{sz},
+        page_sizes{any_size} {}
+
+    Mapping(uintptr_t linear, uintptr_t physical, Fl fl, size_t sz, size_t psz)
+      : lin{linear}, phys{physical}, flags{fl}, size{sz}, page_sizes{psz}
+    {}
 
     operator bool() const noexcept
-    { return size != 0 && page_size !=0; }
+    { return size != 0 && page_sizes !=0; }
 
 
     bool operator==(const Mapping& rhs) const noexcept
@@ -80,7 +108,7 @@ namespace mem {
         && phys == rhs.phys
         && flags == rhs.flags
         && size == rhs.size
-        && page_size == rhs.page_size; }
+        && page_sizes == rhs.page_sizes; }
 
     bool operator!=(const Mapping& rhs) const noexcept
     { return ! *this == rhs; }
@@ -93,16 +121,31 @@ namespace mem {
     }
 
     size_t page_count() const noexcept
-    { return page_size ? (size + page_size - 1) / page_size : 0; }
+    { return page_sizes ? (size + page_sizes - 1) / page_sizes : 0; }
+
+    // Smallest page size in map
+    size_t min_psize() const noexcept
+    { return util::bits::keepfirst(page_sizes); }
+
+    // Largest page size in map
+    size_t lmax_psize() const noexcept
+    { return util::bits::keeplast(page_sizes); }
 
     std::string to_string() const
     {
       std::stringstream out;
       out << "0x" << std::hex << lin << "->" << phys
           << ", size: "<< util::Byte_r(size)
-          << std::dec << " ( " << page_count()
-          << " x " << util::Byte_r(page_size)  << " pages )"
           << " flags: 0x" << std::hex << (int)flags << std::dec;
+
+      if (util::bits::is_pow2(page_sizes)) {
+        out << std::dec << " ( " << page_count()
+            << " x " << util::Byte_r(page_sizes)  << " pages )";
+      } else {
+        out << " page sizes: " << page_sizes_str(page_sizes);
+      }
+
+
 
       return out.str();
     }
@@ -116,12 +159,9 @@ namespace mem {
 
   using Map = Mapping<>;
 
-  /**
-   * Map linear/virtual address to free physical memory, with flags access.
-   * If the address is already mapped the old mapping is overwritten
-   * but page directories preserved
-   */
-  Map map(uintptr_t linear, size_t len, Access flags);
+  class Memory_exception : public std::runtime_error
+  { using runtime_error::runtime_error; };
+
 
   /**
    * Map linear address to physical memory, according to provided Mapping.
@@ -175,7 +215,7 @@ namespace mem {
   Mapping<Fl> Mapping<Fl>::operator+(const Mapping& rhs) noexcept
   {
     using namespace util::bitops;
-    Mapping m;
+    Mapping res;
 
     if (! rhs) {
       return *this;
@@ -184,42 +224,35 @@ namespace mem {
     if (! *this)
       return rhs;
 
-    if (m == rhs)
-      return m;
+    if (res == rhs)
+      return res;
 
-    m.lin  = std::min(lin, rhs.lin);
-    m.phys = std::min(phys, rhs.phys);
+    res.lin  = std::min(lin, rhs.lin);
+    res.phys = std::min(phys, rhs.phys);
 
     // The mappings must have connecting ranges
     if ((rhs and rhs.lin + rhs.size != lin)
         and (*this and lin + size != rhs.lin))
     {
-      Ensures(!m);
-      return m;
+      Ensures(!res);
+      return res;
     }
 
-    m.page_size |= rhs.page_size;
+    res.page_sizes |= rhs.page_sizes;
 
     // The mappings can span several page sizes
-    if (page_size && page_size != rhs.page_size)
+    if (page_sizes && page_sizes != rhs.page_sizes)
     {
-      m.page_size |= page_size;
+      res.page_sizes |= page_sizes;
     }
 
-    // The mappings must have the same flags
-    if (flags != Fl::none && flags != rhs.flags)
-    {
-      Ensures(!m);
-      return m;
-    }
-
-    m.size = size + rhs.size;
-    m.flags = rhs.flags | flags;
+    res.size = size + rhs.size;
+    res.flags = flags & rhs.flags;
 
     if (rhs)
-      Ensures(m);
+      Ensures(res);
 
-    return m;
+    return res;
   }
 }}
 

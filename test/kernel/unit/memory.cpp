@@ -34,7 +34,7 @@ CASE ("Using os::mem::Mapping class")
 
   // Map with size and page size is convertible to true
   m.size = 100;
-  m.page_size = 4_KiB;
+  m.page_sizes = 4_KiB;
   EXPECT(m);
 
   // Correct page count is calculated
@@ -44,8 +44,8 @@ CASE ("Using os::mem::Mapping class")
 
   for (int i = 0; i < 10; i++) {
     m.size = rand();
-    auto cnt = (m.size / m.page_size)
-      + (m.size % m.page_size ? 1 : 0);
+    auto cnt = (m.size / m.page_sizes)
+      + (m.size % m.page_sizes ? 1 : 0);
     EXPECT(m.page_count() == cnt);
   }
 }
@@ -61,7 +61,7 @@ CASE("os::mem::Mapping Addition")
   EXPECT(m + n == m);
 
   m.size = 10;
-  m.page_size = 4_KiB;
+  m.page_sizes = 4_KiB;
 
   auto k = m + n;
   EXPECT(k.size == 10);
@@ -72,7 +72,7 @@ CASE("os::mem::Mapping Addition")
 
   // Adding non-contiguous linear address returns zero-map
   n.size = m.size;
-  n.page_size = m.page_size;
+  n.page_sizes = m.page_sizes;
   EXPECT(n + m == zero);
 
   // Adding maps with contiguous linear addressses result in added sizes
@@ -125,6 +125,8 @@ static void init_default_paging()
 
 CASE ("os::mem Using map and unmap")
 {
+  using namespace util;
+
   init_default_paging();
   auto initial_entries = OS::memory_map().map();
 
@@ -134,7 +136,7 @@ CASE ("os::mem Using map and unmap")
   m.phys = 4_GiB;
   m.size = 42_MiB;
   m.flags = mem::Access::read;
-  m.page_size = 4_KiB;
+  m.page_sizes = 4_KiB | 2_MiB;
 
   // It shouldn't exist in the memory map
   auto key = OS::memory_map().in_range(m.lin);
@@ -146,11 +148,11 @@ CASE ("os::mem Using map and unmap")
   EXPECT(mapping.lin == m.lin);
   EXPECT(mapping.phys == m.phys);
   EXPECT(mapping.flags == m.flags);
-  EXPECT((mapping.page_size & m.page_size) != 0);
+  EXPECT((mapping.page_sizes & m.page_sizes) != 0);
   EXPECT(OS::memory_map().map().size() == initial_entries.size() + 1);
 
   // Expect size is requested size rounded up to nearest page
-  EXPECT(mapping.size == roundto(m.page_size, m.size));
+  EXPECT(mapping.size == bits::roundto(4_KiB, m.size));
 
   // It should now exist in the OS memory map
   key = OS::memory_map().in_range(m.lin);
@@ -165,15 +167,15 @@ CASE ("os::mem Using map and unmap")
   EXPECT_THROWS(mem::map(m, "Unittest 3"));
 
   // You can still map above
-  m.lin += m.size;
-  EXPECT(mem::map(m, "Unittest 4").size == roundto(m.page_size, m.size));
-  EXPECT(mem::unmap(m.lin).size == roundto(m.page_size, m.size));
+  m.lin += bits::roundto(4_KiB, m.size);
+  EXPECT(mem::map(m, "Unittest 4").size == bits::roundto(4_KiB, m.size));
+  EXPECT(mem::unmap(m.lin).size == bits::roundto(4_KiB, m.size));
   EXPECT(OS::memory_map().map().size() == initial_entries.size() + 1);
 
   // You can still map below
-  m.lin = 5_GiB - m.size;
-  EXPECT(mem::map(m, "Unittest 5").size == roundto(m.page_size, m.size));
-  EXPECT(mem::unmap(m.lin).size == roundto(m.page_size, m.size));
+  m.lin = 5_GiB - bits::roundto(4_KiB, m.size);
+  EXPECT(mem::map(m, "Unittest 5").size == bits::roundto(4_KiB, m.size));
+  EXPECT(mem::unmap(m.lin).size == bits::roundto(4_KiB, m.size));
   EXPECT(OS::memory_map().map().size() == initial_entries.size() + 1);
 
   m.lin = 5_GiB;
@@ -189,19 +191,21 @@ CASE ("os::mem Using map and unmap")
 
   // Remap and verify
   m.size = 42_MiB + 42_b;
-  m.page_size = 2_MiB;
+  m.page_sizes = 2_MiB | 4_KiB;
 
   mapping = mem::map(m, "Unittest");
   EXPECT(mapping.lin == m.lin);
   EXPECT(mapping.phys == m.phys);
   EXPECT(mapping.flags == m.flags);
-  EXPECT((mapping.page_size & m.page_size));
-  EXPECT(mapping.size == roundto<4_KiB>(m.size));
+  EXPECT((mapping.page_sizes & m.page_sizes));
+  EXPECT(mapping.size == bits::roundto<4_KiB>(m.size));
 }
 
 
 CASE ("os::mem using protect and flags")
 {
+
+  using namespace util;
 
   init_default_paging();
   EXPECT(__pml4 != nullptr);
