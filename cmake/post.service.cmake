@@ -303,6 +303,10 @@ add_library(libosdeps STATIC IMPORTED)
 set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libosdeps.a)
 
+add_library(musl_syscalls STATIC IMPORTED)
+set_target_properties(musl_syscalls PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(musl_syscalls PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libmusl_syscalls.a)
+
 add_library(libcxx STATIC IMPORTED)
 add_library(cxxabi STATIC IMPORTED)
 add_library(libunwind STATIC IMPORTED)
@@ -456,6 +460,8 @@ target_link_libraries(service
   libunwind
   libcxx
   compiler_rt
+
+  musl_syscalls
 
   #--whole-archive crtn --no-whole-archive
   )
