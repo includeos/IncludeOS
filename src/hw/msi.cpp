@@ -122,10 +122,10 @@ namespace hw
     // get number of vectors we can get notifications from
     this->vector_cnt = (func & MSIX_TBL_SIZE) + 1;
 
-    if (vector_cnt > 32) {
+    if (vector_cnt > 2048) {
       printf("table addr: %p  pba addr: %p  vectors: %u\n",
               (void*) table_addr, (void*) pba_addr, vectors());
-      assert(vectors() <= 32 && "Unreasonably many MSI-X vectors");
+      assert(vectors() <= 2048 && "Unreasonably many MSI-X vectors");
     }
 
     // reset all entries

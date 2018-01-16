@@ -62,8 +62,34 @@ public:
   template <typename IPV>
   static Inet<IPV>& get(int N, int sub);
 
+  /**
+   * @brief      Get a stack by MAC addr.
+   *             Throws if no NIC with the given MAC exists.
+   *
+   * @param[in]  mac   The mac
+   *
+   * @tparam     IPV   IP version
+   *
+   * @return     A stack
+   */
+  template <typename IPV>
+  static Inet<IPV>& get(const std::string& mac);
+
   template <typename IPV>
   Inet<IPV>& create(hw::Nic& nic, int N, int sub);
+
+  /**
+   * @brief      Create a stack on the given Nic,
+   *             occupying the first free index.
+   *
+   * @param      nic   The nic
+   *
+   * @tparam     IPV   IP version
+   *
+   * @return     A stack
+   */
+  template <typename IPV>
+  Inet<IPV>& create(hw::Nic& nic);
 
   IP4_stacks& ip4_stacks()
   { return ip4_stacks_; }

@@ -3,7 +3,7 @@
 #include <util/crc32.hpp>
 
 #define SOFT_RESET_MAGIC    0xFEE1DEAD
-#define SOFT_RESET_LOCATION 0x7000
+#define SOFT_RESET_LOCATION 0x8200
 
 namespace x86 {
   extern uint32_t apic_timer_get_ticks() noexcept;
@@ -15,7 +15,7 @@ struct softreset_t
   uint32_t  checksum;
   uint64_t  liveupdate_loc;
   uint64_t  high_mem;
-  MHz       cpu_freq;
+  KHz       cpu_freq;
   uint32_t  apic_ticks;
   uint64_t  extra;
   uint32_t  extra_len;
@@ -47,7 +47,7 @@ void OS::resume_softreset(intptr_t addr)
   /// restore known values
   OS::liveupdate_loc_ = data->liveupdate_loc;
   OS::memory_end_     = data->high_mem;
-  OS::cpu_mhz_        = data->cpu_freq;
+  OS::cpu_khz_        = data->cpu_freq;
   x86::apic_timer_set_ticks(data->apic_ticks);
   OS::m_is_live_updated = true;
 

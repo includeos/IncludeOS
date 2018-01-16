@@ -77,6 +77,33 @@ namespace hw {
 #endif
   }
 
+  /** Receive a double-word from port.
+      @param port : The port number to receive from
+  */
+  static inline uint32_t inl(int port)
+  {
+    uint32_t ret;
+#if defined(ARCH_x86)
+    //asm volatile ("xorl %eax,%eax");
+    asm volatile ("inl %%dx,%%eax":"=a" (ret):"d"(port));
+#else
+#error "inw() not implemented for selected arch"
+#endif
+    return ret;
+  }
+
+  /** Send a double-word to port.
+      @param port : The port to send to
+      @param data : Double-word of data
+  */
+  static inline void outl(int port, uint32_t data) {
+#if defined(ARCH_x86)
+    asm volatile ("outl %%eax,%%dx"::"a" (data), "d"(port));
+#else
+#error "outw() not implemented for selected arch"
+#endif
+  }
+
 } //< namespace hw
 
 #endif // HW_IOPORT_HPP

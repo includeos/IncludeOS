@@ -15,19 +15,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <iostream>
+#pragma once
+#include <cstdint>
+#include <string>
+#include <arch.hpp>
 
-double mysecond()
+namespace x86
 {
-  return OS::nanos_since_boot() / 1.0e9;
-}
+  struct SMBIOS
+  {
+    static void init();
 
-void Service::start()
-{
-  // do the STREAM test here
-  printf("Running STREAM benchmark\n");
-  extern int main();
-  main();
-  OS::shutdown();
+    static inline
+    const arch_system_info_t& system_info() {
+      return sysinfo;
+    }
+
+  private:
+    static void parse(const char*);
+    static arch_system_info_t sysinfo;
+  };
 }

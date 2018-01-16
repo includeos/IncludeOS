@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2018 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,19 +15,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <iostream>
+#pragma once
+#ifndef UPLINK_CONFIG_HPP
+#define UPLINK_CONFIG_HPP
 
-double mysecond()
-{
-  return OS::nanos_since_boot() / 1.0e9;
+#include <string>
+#include <net/inet>
+#include <net/ip4/ip4.hpp>
+
+namespace uplink {
+
+  struct Config
+  {
+    net::Inet<net::IP4>* inet;
+    std::string url;
+    std::string token;
+    bool        reboot        = true;
+    bool        ws_logging    = true;
+    bool        serialize_ct  = false;
+
+    static Config read();
+  };
+
 }
 
-void Service::start()
-{
-  // do the STREAM test here
-  printf("Running STREAM benchmark\n");
-  extern int main();
-  main();
-  OS::shutdown();
-}
+#endif

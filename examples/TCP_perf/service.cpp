@@ -64,13 +64,13 @@ void start_measure()
   packets_tx  = Statman::get().get_by_name("eth0.ethernet.packets_tx").get_uint64();
   printf("<Settings> DACK: %lli ms WSIZE: %u WS: %u CALC_WIN: %u TS: %s\n",
     dack.count(), winsize, wscale, winsize << wscale, timestamps ? "ON" : "OFF");
-  ts          = OS::micros_since_boot();
+  ts          = OS::nanos_since_boot();
   activity_before.reset();
 }
 
 void stop_measure()
 {
-  auto diff   = OS::micros_since_boot() - ts;
+  auto diff   = OS::nanos_since_boot() - ts;
   activity_after.reset();
 
   StackSampler::print(15);
@@ -79,7 +79,7 @@ void stop_measure()
   packets_rx  = Statman::get().get_by_name("eth0.ethernet.packets_rx").get_uint64() - packets_rx;
   packets_tx  = Statman::get().get_by_name("eth0.ethernet.packets_tx").get_uint64() - packets_tx;
   printf("Packets RX [%llu] TX [%llu]\n", packets_rx, packets_tx);
-  double durs   = ((double)diff) / 1000 / 1000;
+  double durs   = (double) diff / 1000000000ULL;
   double mbits  = (received/(1024*1024)*8) / durs;
   printf("Duration: %.2fs - Payload: %lld/%u MB - %.2f MBit/s\n",
           durs, received/(1024*1024), SIZE/(1024*1024), mbits);

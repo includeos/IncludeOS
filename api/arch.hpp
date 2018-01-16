@@ -23,6 +23,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cassert>
+#include <ctime>
+#include <string>
 
 extern void __arch_init();
 extern void __arch_poweroff();
@@ -37,7 +39,9 @@ extern void __arch_preempt_forever(void(*)());
 
 inline void __arch_hw_barrier() noexcept;
 inline void __sw_barrier() noexcept;
-extern int64_t  __arch_time_now() noexcept;
+
+extern uint64_t __arch_system_time() noexcept;
+extern timespec __arch_wall_clock() noexcept;
 inline uint64_t __arch_cpu_cycles() noexcept;
 
 
@@ -54,5 +58,13 @@ inline void __sw_barrier() noexcept
 #else
 #error "Unsupported arch specified"
 #endif
+
+// retrieve system information
+struct arch_system_info_t
+{
+  std::string uuid;
+  uint64_t    physical_memory;
+};
+const arch_system_info_t& __arch_system_info() noexcept;
 
 #endif

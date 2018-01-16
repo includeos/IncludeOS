@@ -35,9 +35,9 @@ void setup_uplink()
   MYINFO("Setting up WS uplink");
 
   try {
-    auto& en0 = net::Super_stack::get<net::IP4>(0);
+    auto config = Config::read();
 
-    uplink = std::make_unique<WS_uplink>(en0);
+    uplink = std::make_unique<WS_uplink>(std::move(config));
 
     OS::on_panic(uplink::on_panic);
 

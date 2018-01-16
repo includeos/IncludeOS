@@ -39,20 +39,28 @@
 #include "log.hpp"
 
 namespace uplink {
-
-  const std::string WS_uplink::UPLINK_CFG_FILE{"config.json"};
   constexpr std::chrono::seconds WS_uplink::heartbeat_interval;
 
-  WS_uplink::WS_uplink(net::Inet<net::IP4>& inet)
-    : inet_{inet}, id_{inet.link_addr().to_string()},
+  WS_uplink::WS_uplink(Config config)
+    : config_{std::move(config)},
+      inet_{*config_.inet},
+      id_{inet_.link_addr().to_string()},
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
+    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
+    {
+      MYINFO("Found resumable state, try restoring...");
+      liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
+
+      if(liu::LiveUpdate::partition_exists("conntrack"))
+        liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
+    }
+
     Log::get().set_flush_handler({this, &WS_uplink::send_log});
 
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
 
-    read_config();
     CHECK(config_.reboot, "Reboot on panic");
 
     CHECK(config_.serialize_ct, "Serialize Conntrack");
@@ -61,7 +69,7 @@ namespace uplink {
 
     if(inet_.is_configured())
     {
-      start(inet);
+      start(inet_);
     }
     // if not, register on config event
     else
@@ -78,15 +86,6 @@ namespace uplink {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
     Expects(not config_.url.empty());
 
-    if(liu::LiveUpdate::is_resumable() && OS::is_live_updated())
-    {
-      MYINFO("Found resumable state, try restoring...");
-      liu::LiveUpdate::resume("uplink", {this, &WS_uplink::restore});
-
-      if(liu::LiveUpdate::partition_exists("conntrack"))
-        liu::LiveUpdate::resume("conntrack", {this, &WS_uplink::restore_conntrack});
-    }
-
     client_ = std::make_unique<http::Client>(inet.tcp(),
       http::Client::Request_handler{this, &WS_uplink::inject_token});
 
@@ -95,16 +94,22 @@ namespace uplink {
 
   void WS_uplink::store(liu::Storage& store, const liu::buffer_t*)
   {
-    liu::Storage::uid id = 0;
-
     // BINARY HASH
-    store.add_string(id++, binary_hash_);
+    store.add_string(0, binary_hash_);
+    // nanos timestamp of when update begins
+    store.add<uint64_t> (1, OS::nanos_since_boot());
   }
 
   void WS_uplink::restore(liu::Restore& store)
   {
     // BINARY HASH
     binary_hash_ = store.as_string(); store.go_next();
+
+    // calculate update cycles taken
+    uint64_t prev_nanos = store.as_type<uint64_t> (); store.go_next();
+    this->update_time_taken = OS::nanos_since_boot() - prev_nanos;
+
+    INFO2("Update took %.3f millis", this->update_time_taken / 1.0e6);
   }
 
   std::string WS_uplink::auth_data() const
@@ -320,54 +325,6 @@ namespace uplink {
     });
   }
 
-  void WS_uplink::read_config()
-  {
-    MYINFO("Reading uplink config");
-
-    const auto& cfg = ::Config::get();
-
-    Expects(not cfg.empty() && "Config is empty");
-
-    parse_config({cfg.data(), cfg.size()});
-  }
-
-  void WS_uplink::parse_config(const std::string& json)
-  {
-    using namespace rapidjson;
-    Document doc;
-    doc.Parse(json.data());
-
-    Expects(doc.IsObject() && "Malformed config");
-
-    Expects(doc.HasMember("uplink") && "Missing member \"uplink\"");
-
-    auto& cfg = doc["uplink"];
-
-    Expects(cfg.HasMember("url") && cfg.HasMember("token") && "Missing url or/and token");
-
-    config_.url   = cfg["url"].GetString();
-    config_.token = cfg["token"].GetString();
-
-    // Reboot on panic (optional)
-    if(cfg.HasMember("reboot"))
-    {
-      config_.reboot = cfg["reboot"].GetBool();
-    }
-
-    // Log over websocket (optional)
-    if(cfg.HasMember("ws_logging"))
-    {
-      config_.ws_logging = cfg["ws_logging"].GetBool();
-    }
-
-    // Serialize conntrack
-    if(cfg.HasMember("serialize_ct"))
-    {
-      config_.serialize_ct = cfg["serialize_ct"].GetBool();
-    }
-
-  }
-
   template <typename Writer, typename Stack_ptr>
   void serialize_stack(Writer& writer, const Stack_ptr& stack)
   {
@@ -411,6 +368,10 @@ namespace uplink {
 
     writer.StartObject();
 
+    const auto& sysinfo = __arch_system_info();
+    writer.Key("uuid");
+    writer.String(sysinfo.uuid);
+
     writer.Key("version");
     writer.String(OS::version());
 
@@ -423,8 +384,17 @@ namespace uplink {
       writer.String(binary_hash_);
     }
 
+    if(update_time_taken > 0)
+    {
+      writer.Key("update_time_taken");
+      writer.Uint64(update_time_taken);
+    }
+
     writer.Key("arch");
     writer.String(OS::arch());
+
+    writer.Key("physical_ram");
+    writer.Uint64(sysinfo.physical_memory);
 
     // CPU Features
     auto features = CPUID::detect_features_str();

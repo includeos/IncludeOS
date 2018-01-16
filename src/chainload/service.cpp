@@ -20,6 +20,7 @@
 #include <util/elf_binary.hpp>
 #include <service>
 #include <cstdint>
+#include <cstring>
 
 extern bool os_enable_boot_logging;
 
@@ -40,8 +41,10 @@ void promote_mod_to_kernel()
   Expects (bootinfo->mods_count);
   auto* mod =  (multiboot_module_t*)bootinfo->mods_addr;
 
-  // Set command line param to mod param
-  bootinfo->cmdline = mod->cmdline;
+  // Move commandline to a relatively safe area
+  const uintptr_t RELATIVELY_SAFE_AREA = 0x8000;
+  strcpy((char*) RELATIVELY_SAFE_AREA, (const char*) mod->cmdline);
+  bootinfo->cmdline = RELATIVELY_SAFE_AREA;
 
   // Subtract one module
   (bootinfo->mods_count)--;

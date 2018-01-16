@@ -23,10 +23,10 @@
 #include "smp.hpp"
 #include <kernel/cpuid.hpp>
 #include <kernel/events.hpp>
-#include <cstdlib>
-#include <debug>
 #include <kprint>
 #include <info>
+//#define ENABLE_KVM_PV_EOI
+//#define ENABLE_DYNAMIC_EOI
 
 namespace x86
 {
@@ -38,10 +38,9 @@ namespace x86
 
 extern "C" {
   // current selected EOI method
-  void (*current_eoi_mechanism)();
-  void (*current_intr_handler)();
-  // KVM para PV-EOI feature
-  void kvm_pv_eoi();
+  void (*current_eoi_mechanism)() = nullptr;
+  void (*real_eoi_mechanism)() = nullptr;
+  void (*current_intr_handler)()  = nullptr;
   // shortcut that avoids virtual call
   void x2apic_send_eoi() {
     x86::CPU::write_msr(x86::x2apic::BASE_MSR + x2APIC_EOI, 0);
@@ -52,18 +51,28 @@ extern "C" {
     uint8_t vector = x86::APIC::get_isr();
     //assert(vector >= IRQ_BASE && vector < 160);
     Events::get().trigger_event(vector - IRQ_BASE);
+#ifdef ENABLE_DYNAMIC_EOI
+    assert(current_eoi_mechanism != nullptr);
+    current_eoi_mechanism();
+#else
     lapic_send_eoi();
+#endif
   }
   void x2apic_intr_handler()
   {
     uint8_t vector = x86::x2apic::static_get_isr();
     //assert(vector >= IRQ_BASE && vector < 160);
     Events::get().trigger_event(vector - IRQ_BASE);
+#ifdef ENABLE_DYNAMIC_EOI
+    assert(current_eoi_mechanism != nullptr);
+    current_eoi_mechanism();
+#else
     x2apic_send_eoi();
+#endif
   }
 }
 
-void kvm_pv_eoi_init();
+extern void kvm_pv_eoi_init();
 
 namespace x86
 {
@@ -75,16 +84,19 @@ namespace x86
 
     if (CPUID::has_feature(CPUID::Feature::X2APIC)) {
         current_apic = &x2apic::get();
-        current_eoi_mechanism = x2apic_send_eoi;
+        real_eoi_mechanism = x2apic_send_eoi;
         current_intr_handler  = x2apic_intr_handler;
     } else {
         // an x86 PC without APIC is insane
         assert(CPUID::has_feature(CPUID::Feature::APIC)
             && "If this fails, the machine is insane");
         current_apic = &xapic::get();
-        current_eoi_mechanism = lapic_send_eoi;
+        real_eoi_mechanism = lapic_send_eoi;
         current_intr_handler  = xapic_intr_handler;
     }
+
+    if (current_eoi_mechanism == nullptr)
+        current_eoi_mechanism = real_eoi_mechanism;
 
     // enable xAPIC/x2APIC on this cpu
     current_apic->enable();
@@ -92,9 +104,11 @@ namespace x86
     // initialize I/O APICs
     IOAPIC::init(ACPI::get_ioapics());
 
+#ifdef ENABLE_KVM_PV_EOI
     // use KVMs paravirt EOI if supported
-    //if (CPUID::kvm_feature(KVM_FEATURE_PV_EOI))
-    //    kvm_pv_eoi_init();
+    if (CPUID::kvm_feature(KVM_FEATURE_PV_EOI))
+        kvm_pv_eoi_init();
+#endif
   }
 
   void APIC::enable_irq(uint8_t irq)
@@ -127,48 +141,5 @@ namespace x86
       }
     }
     IOAPIC::disable(irq);
-  }
-}
-
-// *** manual ***
-// http://choon.net/forum/read.php?21,1123399
-// https://www.kernel.org/doc/Documentation/virtual/kvm/cpuid.txt
-
-#define KVM_MSR_ENABLED        1
-#define MSR_KVM_PV_EOI_EN      0x4b564d04
-#define KVM_PV_EOI_BIT         0
-#define KVM_PV_EOI_MASK       (0x1 << KVM_PV_EOI_BIT)
-#define KVM_PV_EOI_ENABLED     KVM_PV_EOI_MASK
-#define KVM_PV_EOI_DISABLED    0x0
-
-__attribute__ ((aligned(4)))
-static volatile unsigned long kvm_exitless_eoi = KVM_PV_EOI_DISABLED;
-
-void kvm_pv_eoi()
-{
-  uint8_t reg;
-  asm("btr %2, %0; setc %1" : "+m"(kvm_exitless_eoi), "=rm"(reg) : "r"(0));
-  if (reg) {
-      kprintf("avoided\n");
-      return;
-  }
-  // fallback to normal x2APIC EOI
-  x2apic_send_eoi();
-}
-void kvm_pv_eoi_init()
-{
-  union {
-    uint32_t msr[2];
-    uint64_t whole;
-  } guest;
-  guest.whole = (uint64_t) &kvm_exitless_eoi;
-  guest.whole |= KVM_MSR_ENABLED;
-  x86::CPU::write_msr(MSR_KVM_PV_EOI_EN, guest.msr[0], guest.msr[1]);
-  // verify that the feature was enabled
-  uint64_t res = x86::CPU::read_msr(MSR_KVM_PV_EOI_EN);
-  if (res & 1) {
-    kprintf("* KVM paravirtual EOI enabled\n");
-    // set new EOI handler
-    current_eoi_mechanism = kvm_pv_eoi;
   }
 }

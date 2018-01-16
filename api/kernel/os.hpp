@@ -60,27 +60,26 @@ public:
   static const char* cmdline_args() noexcept;
 
   /** Clock cycles since boot. */
-  static uint64_t cycles_since_boot() {
-    return __arch_cpu_cycles();
-  }
-  /** micro seconds since boot */
-  static int64_t micros_since_boot() noexcept;
+  static uint64_t cycles_since_boot() noexcept;
+
+  /** Nanoseconds since boot converted from cycles */
+  static uint64_t nanos_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
-  static RTC::timestamp_t boot_timestamp();
+  static RTC::timestamp_t boot_timestamp() noexcept;
 
   /** Uptime in whole seconds. */
-  static RTC::timestamp_t uptime();
+  static RTC::timestamp_t uptime() noexcept;
 
   /** Time spent sleeping (halt) in cycles */
   static uint64_t cycles_asleep() noexcept;
 
-  /** Time spent sleeping (halt) in micros */
-  static uint64_t micros_asleep() noexcept;
+  /** Time spent sleeping (halt) in nanoseconds */
+  static uint64_t nanos_asleep() noexcept;
 
 
-  static MHz cpu_freq() noexcept
-  { return cpu_mhz_; }
+  static auto cpu_freq() noexcept
+  { return cpu_khz_; }
 
   /**
    * Reboot operating system
@@ -236,6 +235,8 @@ public:
   /** Initialize common subsystems, call Service::start */
   static void post_start();
 
+  static void install_cpu_frequency(MHz);
+
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
@@ -254,9 +255,8 @@ private:
   static bool boot_sequence_passed_;
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
-  static MHz cpu_mhz_;
+  static KHz cpu_khz_;
 
-  static RTC::timestamp_t booted_at_;
   static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
@@ -293,6 +293,24 @@ inline OS::Span_mods OS::modules()
         static_cast<int>(bootinfo_->mods_count) };
   }
   return nullptr;
+}
+
+inline uint64_t OS::cycles_since_boot() noexcept
+{
+  return __arch_cpu_cycles();
+}
+inline uint64_t OS::nanos_since_boot() noexcept
+{
+  return (cycles_since_boot() * 1e6) / cpu_freq().count();
+}
+
+inline RTC::timestamp_t OS::boot_timestamp() noexcept
+{
+  return RTC::boot_timestamp();
+}
+inline RTC::timestamp_t OS::uptime() noexcept
+{
+  return RTC::time_since_boot();
 }
 
 #endif //< KERNEL_OS_HPP
