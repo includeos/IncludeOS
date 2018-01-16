@@ -56,7 +56,6 @@ constexpr operator^(E lhs,F rhs){
   return static_cast<E>(static_cast<type>(lhs) ^ static_cast<type>(rhs));
 }
 
-
 template<typename E, typename F>
 constexpr typename std::enable_if<enable_bitmask_ops<E>::enable,E>::type
 operator|=(E& lhs,F rhs){
@@ -107,6 +106,13 @@ struct enable_bitmask_ops<uintptr_t> {
   using type = uintptr_t;
   static constexpr bool enable = true;
 };
+}
+
+namespace bits {
+
+//
+// Various bit operations
+//
 
 // Check for power of two
 inline bool is_pow2(uintptr_t i)
@@ -127,6 +133,60 @@ inline uintptr_t roundto(uintptr_t x)
 
 inline uintptr_t roundto(uintptr_t M, uintptr_t x)
 { return multip(M,x) * M; }
+
+// Determine if ptr is A-aligned
+template <uintptr_t A>
+bool is_aligned(uintptr_t ptr)
+{
+  return (ptr & (A - 1)) == 0;
+}
+
+template <uintptr_t A>
+bool is_aligned(void* ptr)
+{
+  return is_aligned<A>(reinterpret_cast<uintptr_t>(ptr));
+}
+
+inline bool is_aligned(uintptr_t A, uintptr_t ptr)
+{
+  return (ptr & (A - 1)) == 0;
+}
+
+// Number of bits per word
+constexpr int bitcnt()
+{ return sizeof(uintptr_t) * 8; }
+
+// Count leading zeroes
+inline uintptr_t clz(uintptr_t n){
+  return __builtin_clzl(n);
+}
+
+// Count trailing zeroes
+inline uintptr_t ctz(uintptr_t n){
+  return __builtin_ctzl(n);
+}
+
+// Find first bit set.
+inline uintptr_t ffs(uintptr_t n){
+  return __builtin_ffsl(n);
+}
+
+// Find last bit set. The integral part of log2(n).
+inline uintptr_t fls(uintptr_t n){
+  return (uintptr_t) bitcnt() - clz(n);
+}
+
+// Keep last set bit, clear the rest.
+inline uintptr_t keeplast(uintptr_t n)
+{ return 1LU << (fls(n) - 1); }
+
+// Keep first set bit, clear the rest.
+inline uintptr_t keepfirst(uintptr_t n)
+{ return 1LU << (ffs(n) - 1); }
+
+// Number of bits set in n
+inline uintptr_t popcount(uintptr_t n)
+{ return __builtin_popcountl(n); }
 
 
 } // ns bitops

@@ -17,6 +17,7 @@
 
 #include <common.cxx>
 #include <util/bitops.hpp>
+#include <cmath>
 
 enum class Flags : uint8_t {
   none = 0x0,
@@ -32,7 +33,7 @@ enum class Flags : uint8_t {
   all = a | b | c | d | e | f | g | h
 };
 
-using namespace util::bitops;
+using namespace util;
 
 // Enable bitmask ops for the Flags enum
 template<>
@@ -41,7 +42,7 @@ struct enable_bitmask_ops<Flags> {
   static constexpr bool enable = true;
 };
 
-CASE ("Using bitmask ops for an enum")
+CASE ("util::bitops: Using bitmask ops for an enum")
 {
 
   Flags f {};
@@ -86,7 +87,7 @@ struct enable_bitmask_ops<int> {
 };
 
 
-CASE ("Using bitmask ops an enum and an integral")
+CASE ("util::bitops: Using bitmask ops an enum and an integral")
 {
 
   Flags f { Flags::e };
@@ -98,4 +99,35 @@ CASE ("Using bitmask ops an enum and an integral")
   EXPECT((0x20 | f) == (0x10 | 0x20));
   EXPECT((0x20 ^ f) == (0x10 | 0x20));
 
+}
+
+
+CASE ("util::bitops: using various bit operations")
+{
+
+  EXPECT(__builtin_clzl(0) == 64);
+  EXPECT(__builtin_clzl(0x1000) == 51);
+
+  EXPECT(bits::keeplast(0x10110) == 0x10000);
+  EXPECT(bits::keeplast(0x1010001000010000) == 0x1000000000000000);
+  EXPECT(bits::keeplast(0x2010001000010000) == 0x2000000000000000);
+  EXPECT(bits::keeplast(0x8010001000010000) == 0x8000000000000000);
+  EXPECT(bits::keeplast(0x69a8e2d82a387f69) == 0x4000000000000000);
+
+  EXPECT(bits::keepfirst(0x8010001000010000) == 0x10000);
+  EXPECT(bits::keepfirst(0x10110) == 0x10);
+  EXPECT(bits::keepfirst(0x1010001000010000) == 0x10000);
+  EXPECT(bits::keepfirst(0x2010001000010000) == 0x10000);
+  EXPECT(bits::keepfirst(0x8010001000010000) == 0x10000);
+  EXPECT(bits::keepfirst(0x69a8e2d82a387f69) == 0x1);
+
+  EXPECT(bits::popcount(0x8010001000010000) == 4);
+
+  for (auto i : test::random){
+    EXPECT(bits::keeplast(i) == (1LLU << (uintptr_t)log2(i)));
+    EXPECT(bits::keeplast(i) == (uintptr_t)(pow(2,(uintptr_t)log2(i))));
+    EXPECT(bits::fls(i) - 1 == (uintptr_t)log2(i));
+    EXPECT(bits::keepfirst(i) == (1LLU << (__builtin_ffs(i) - 1)));
+    EXPECT(bits::popcount(i) == __builtin_popcountl(i));
+  }
 }
