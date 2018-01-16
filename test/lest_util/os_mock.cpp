@@ -15,10 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
 #ifdef __MACH__
 #include <stdlib.h>
 #include <stddef.h>
-#include <unistd.h>
 #include <gsl/gsl_assert>
 void* memalign(size_t alignment, size_t size) {
   void* ptr {nullptr};
@@ -66,8 +66,8 @@ void OS::start(unsigned, unsigned) {}
 void OS::default_stdout(const char*, size_t) {}
 void OS::event_loop() {}
 void OS::block() {}
-uint64_t OS::nanos_since_boot() noexcept {
 void OS::halt(){ pause(); }
+uint64_t OS::nanos_since_boot() noexcept {
   return 0;
 }
 void OS::resume_softreset(intptr_t) {}
@@ -104,6 +104,7 @@ extern "C" {
   uintptr_t _BSS_END_;
   uintptr_t _TEXT_START_;
   uintptr_t _TEXT_END_;
+  uintptr_t _EXEC_END_;
 
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
