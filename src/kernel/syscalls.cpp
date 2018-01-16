@@ -43,10 +43,10 @@ const char* panic_signature = "\x15\x07\t**** PANIC ****";
 
 char*   __env[1] {nullptr};
 char**  environ {__env};
-extern "C" {
-  uintptr_t heap_begin;
-  uintptr_t heap_end;
-}
+
+
+extern uintptr_t heap_begin;
+extern uintptr_t heap_end;
 
 extern "C"
 void abort() {
@@ -75,18 +75,6 @@ void _exit(int status) {
   kprint("\n");
   SYSINFO("service exited with status %i", status);
   default_exit();
-}
-
-void* sbrk(ptrdiff_t incr) {
-  /// NOTE:
-  /// sbrk gets called really early on, before everything else
-  if (UNLIKELY(heap_end + incr > OS::heap_max())) {
-    errno = ENOMEM;
-    return (void*)-1;
-  }
-  auto prev_heap_end = heap_end;
-  heap_end += incr;
-  return (void*) prev_heap_end;
 }
 
 clock_t times(struct tms*) {

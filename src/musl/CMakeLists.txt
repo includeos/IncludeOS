@@ -1,6 +1,10 @@
 
 set(MUSL_OBJECTS
-  futex.cpp
+  futex.cpp close.cpp lseek.cpp ioctl.cpp writev.cpp
+  write.cpp brk.cpp madvise.cpp mmap.cpp mremap.cpp munmap.cpp
+  lseek.cpp sched_getaffinity.cpp sysinfo.cpp prlimit64.cpp
+  getrlimit.cpp sched_yield.cpp set_robust_list.cpp
+  nanosleep.cpp open.cpp fstat.cpp clock_gettime.cpp gettimeofday.cpp
 )
 
 add_library(musl_syscalls STATIC ${MUSL_OBJECTS})
