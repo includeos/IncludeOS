@@ -67,9 +67,7 @@ void OS::default_stdout(const char*, size_t) {}
 void OS::event_loop() {}
 void OS::block() {}
 void OS::halt(){ pause(); }
-uint64_t OS::nanos_since_boot() noexcept {
-  return 0;
-}
+
 void OS::resume_softreset(intptr_t) {}
 bool OS::is_softreset_magic(uint32_t) {
   return true;

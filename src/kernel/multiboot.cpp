@@ -118,9 +118,9 @@ void OS::multiboot(uint32_t boot_addr)
   }
 
   if (bootinfo_->flags & MULTIBOOT_INFO_CMDLINE) {
-    INFO2("* Booted with parameters @ 0x%x: %s", bootinfo_->cmdline,
-          reinterpret_cast<const char*>(bootinfo_->cmdline));
-    OS::cmdline = reinterpret_cast<const char*>(bootinfo_->cmdline);
+    const auto* cmdline = (const char*) (uintptr_t) bootinfo_->cmdline;
+    INFO2("* Booted with parameters @ %p: %s", cmdline, cmdline);
+    OS::cmdline = strdup(cmdline);
   }
 
   if (bootinfo_->flags & MULTIBOOT_INFO_MEM_MAP) {

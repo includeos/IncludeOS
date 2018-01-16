@@ -61,17 +61,16 @@ public:
   static const char* cmdline_args() noexcept;
 
   /** Clock cycles since boot. */
-  static uint64_t cycles_since_boot() {
-    return __arch_cpu_cycles();
-  }
-  /** Nanoseconds since boot */
+  static uint64_t cycles_since_boot() noexcept;
+
+  /** Nanoseconds since boot converted from cycles */
   static uint64_t nanos_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
-  static RTC::timestamp_t boot_timestamp();
+  static RTC::timestamp_t boot_timestamp() noexcept;
 
   /** Uptime in whole seconds. */
-  static RTC::timestamp_t uptime();
+  static RTC::timestamp_t uptime() noexcept;
 
   /** Time spent sleeping (halt) in cycles */
   static uint64_t cycles_asleep() noexcept;
@@ -308,11 +307,20 @@ inline OS::Span_mods OS::modules()
   return nullptr;
 }
 
-inline RTC::timestamp_t OS::boot_timestamp()
+inline uint64_t OS::cycles_since_boot() noexcept
+{
+  return __arch_cpu_cycles();
+}
+inline uint64_t OS::nanos_since_boot() noexcept
+{
+  return (cycles_since_boot() * 1e6) / cpu_freq().count();
+}
+
+inline RTC::timestamp_t OS::boot_timestamp() noexcept
 {
   return RTC::boot_timestamp();
 }
-inline RTC::timestamp_t OS::uptime()
+inline RTC::timestamp_t OS::uptime() noexcept
 {
   return RTC::time_since_boot();
 }

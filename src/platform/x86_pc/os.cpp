@@ -52,15 +52,11 @@ struct alignas(SMP_ALIGN) OS_CPU {
 };
 static SMP_ARRAY<OS_CPU> os_per_cpu;
 
-uint64_t OS::nanos_since_boot() noexcept {
-  return __arch_system_time();
-}
-
 uint64_t OS::cycles_asleep() noexcept {
   return PER_CPU(os_per_cpu).cycles_hlt;
 }
 uint64_t OS::nanos_asleep() noexcept {
-  return PER_CPU(os_per_cpu).cycles_hlt / cpu_freq().count();
+  return (PER_CPU(os_per_cpu).cycles_hlt * 1e6) / cpu_freq().count();
 }
 
 __attribute__((noinline))
@@ -134,16 +130,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   memmap.assign_range({0x8000, 0xffff, "Statman"});
 #if defined(ARCH_x86_64)
-  memmap.assign_range({0x1000, 0x6fff, "Page tables"});
-  memmap.assign_range({0x10000, 0x9fbff, "Stack"});
-#elif defined(ARCH_i686)
-  memmap.assign_range({0x10000, 0x9fbff, "Stack"});
-#endif
-
   /**
    * TODO: Map binary parts using mem::map instead of assigning ranges directly
    * e.g. the .text segment is now mapped individually by __arch_init_paging
    */
+  memmap.assign_range({0x1000, 0x6fff, "Pagetables"});
+  memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
+#elif defined(ARCH_i686)
+  memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
+#endif
 
   assert(::heap_begin != 0x0 and OS::heap_max_ != 0x0);
   // @note for security we don't want to expose this
@@ -160,7 +155,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Virtual memory map");
   for (const auto &i : memmap)
     INFO2("%s",i.second.to_string().c_str());
-
 
   PROFILE("Platform init");
   extern void __platform_init();
