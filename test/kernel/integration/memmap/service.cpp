@@ -17,8 +17,12 @@
 
 #include <os>
 #include <lest/lest.hpp>
+#include <util/bitops.hpp>
 
 extern "C" uintptr_t heap_begin;
+extern "C" uintptr_t heap_end;
+
+using namespace util;
 
 const lest::test specification[] =
   {
@@ -47,24 +51,31 @@ const lest::test specification[] =
           {
             auto& heap = map.at(heap_begin);
             auto original_end = heap.addr_end();
+            EXPECT(original_end == OS::heap_max());
+            auto in_use_prior = bits::roundto(4_KiB, heap.bytes_in_use());
 
             EXPECT(heap.bytes_in_use() < heap.size());
 
             // Resize heap to have only 1 MB of free space
-            OS::resize_heap(heap.bytes_in_use() + 0x100000);
+            auto new_size = in_use_prior + 1_MiB;
+            OS::resize_heap(new_size);
 
-            EXPECT(heap.addr_end() < original_end);
+            EXPECT(heap.addr_end() == heap.addr_start() + in_use_prior + 1_MiB - 1);
+            EXPECT(heap.addr_end() == OS::heap_max() - 1);
 
             ptrdiff_t size = 1000;
-            map.assign_range({heap.addr_end() + 1, heap.addr_end() + size,
-                  "Custom", "A custom range next to the heap"});
+            map.assign_range({OS::heap_max(), OS::heap_max() + size - 1, "Custom"});
 
             for (auto i: map)
               std::cout << i.second.to_string() << "\n";
 
-            EXPECT_NOT(malloc(0x200000));
+            auto capacity = heap.addr_end() - heap.addr_start() + heap.bytes_in_use();
+            EXPECT(capacity > 1_MiB);
 
-            auto* buf = malloc(0xf0000);
+            EXPECT_NOT(malloc(2_MiB));
+
+            // Malloc might ask sbrk for more than it needs
+            auto* buf = malloc(500_KiB);
             EXPECT(buf);
           }
         }
