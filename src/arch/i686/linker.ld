@@ -46,7 +46,9 @@ SECTIONS
   }
 
   .fini ALIGN(0x10) : {
+    _FINI_START_ = .;
     *(.fini)
+    _FINI_END_ = .;
   }
 
   /* Global offset-table. For dynamic linking */
