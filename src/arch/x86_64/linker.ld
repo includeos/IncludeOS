@@ -120,7 +120,9 @@ SECTIONS
    PROVIDE_HIDDEN (__fini_array_end = .);
   }
 
-  .config ALIGN(0x8) : {
+  _EXEC_END_ = .;
+  _READONLY_START_ = .;
+  .config ALIGN(0x1000) : {
     _CONFIG_JSON_START_ = .;
     KEEP(*(.config))
     _CONFIG_JSON_END_ = .;
@@ -153,7 +155,7 @@ SECTIONS
   {
     *(.gcc_except_table)
   }
-
+  _READONLY_END_ = .;
   .data :
   {
     _DATA_START_ = .;
