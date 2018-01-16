@@ -101,6 +101,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Global constructors");
   __libc_init_array();
 
+  // PAGING //
+  extern void __arch_init_paging();
+  __arch_init_paging();
+
   // BOOT METHOD //
   PROFILE("Multiboot / legacy");
   OS::memory_end_ = 0;
@@ -118,10 +122,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Give the rest of physical memory to heap
   OS::heap_max_ = OS::memory_end_;
 
-  // PAGING //
-  extern void __arch_init_paging();
-  __arch_init_paging();
-
   /// STATMAN ///
   PROFILE("Statman");
   /// initialize on page 9, 8 pages in size
@@ -132,12 +132,12 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   auto& memmap = memory_map();
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x8000, 0xffff, "Statman", "Statistics"});
+  memmap.assign_range({0x8000, 0xffff, "Statman"});
 #if defined(ARCH_x86_64)
-  memmap.assign_range({0x1000, 0x6fff, "Pagetables", "System page tables"});
-  memmap.assign_range({0x10000, 0x9fbff, "Stack", "System main stack"});
+  memmap.assign_range({0x1000, 0x6fff, "Page tables"});
+  memmap.assign_range({0x10000, 0x9fbff, "Stack"});
 #elif defined(ARCH_i686)
-  memmap.assign_range({0x10000, 0x9fbff, "Stack", "System main stack"});
+  memmap.assign_range({0x10000, 0x9fbff, "Stack"});
 #endif
 
   /**
@@ -148,18 +148,18 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   assert(::heap_begin != 0x0 and OS::heap_max_ != 0x0);
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end, ::heap_begin - 1,
-        "Pre-heap", "Heap randomization area"});
+        "Pre-heap"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_);
 
   MYINFO("Assigning heap");
   memmap.assign_range({::heap_begin, heap_range_max_,
-        "Heap", "Dynamic memory", heap_usage });
+        "Dynamic memory", heap_usage });
 
-  MYINFO("Printing memory map");
+  MYINFO("Virtual memory map");
   for (const auto &i : memmap)
-    INFO2("* %s",i.second.to_string().c_str());
+    INFO2("%s",i.second.to_string().c_str());
 
 
   PROFILE("Platform init");
@@ -205,9 +205,9 @@ void OS::legacy_boot()
   auto& memmap = memory_map();
   // No guarantees without multiboot, but we assume standard memory layout
   memmap.assign_range({0x0009FC00, 0x0009FFFF,
-        "EBDA", "Extended BIOS data area"});
+        "EBDA"});
   memmap.assign_range({0x000A0000, 0x000FFFFF,
-        "VGA/ROM", "Memory mapped video memory"});
+        "VGA/ROM"});
 
   // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
   uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
@@ -221,14 +221,14 @@ void OS::legacy_boot()
   {
     INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
     memmap.assign_range({unavail_start, unavail_end,
-          "N/A", "Reserved / outside physical range" });
+          "N/A"});
     unavail_start = unavail_end + 1;
     interval = std::min(span_max, addr_max - unavail_start);
     // Increment might wrapped around
     if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
       INFO2("* Last chunk of memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, addr_max);
       memmap.assign_range({unavail_start, addr_max,
-            "N/A", "Reserved / outside physical range" });
+            "N/A"});
       break;
     }
 
