@@ -9,14 +9,13 @@ export PATH="$TEMP_INSTALL_DIR/bin:$PATH"
 
 # Build options
 export ARCH=${ARCH:-i686} # CPU architecture. Alternatively x86_64
-export BUNDLE_ARCHES=${BUNDLE_ARCHES:-x86_64}
+export BUNDLE_ARCHES=${BUNDLE_ARCHES:-"i686 x86_64"}
 export TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
 export num_jobs=${num_jobs:--j}	# Specify number of build jobs
 
 # Version numbers
 export binutils_version=${binutils_version:-2.29.1}		# ftp://ftp.gnu.org/gnu/binutils
 export newlib_version=${newlib_version:-2.5.0.20170922}			# ftp://sourceware.org/pub/newlib
-#export newlib_version=${newlib_version:-2.5.0}			# ftp://sourceware.org/pub/newlib
 export gcc_version=${gcc_version:-7.2.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
 export clang_version=${clang_version:-4.0}				# http://releases.llvm.org/
 export llvm_branch=${llvm_branch:-release_50}
