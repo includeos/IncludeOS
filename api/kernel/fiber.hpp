@@ -22,6 +22,10 @@
 #include <cstdio>
 #include <delegate>
 
+#ifndef INCLUDEOS_SINGLE_THREADED
+#include <atomic>
+#endif
+
 class Fiber;
 
 /** Bottom C++ stack frame for all fibers */
@@ -201,14 +205,27 @@ public:
   { return current_; }
 
   static int last_id()
-  { return next_id_.load(); }
+  {
+#if defined( INCLUDEOS_SINGLE_THREADED)
+    return next_id_;
+#else
+    return next_id_.load();
+#endif
+  }
 
 
 private:
 
+
+#if defined(INCLUDEOS_SINGLE_THREADED)
+  static Fiber* main_;
+  static Fiber* current_;
+  static int next_id_;
+#else
   static thread_local Fiber* main_;
   static thread_local Fiber* current_;
   static std::atomic<int> next_id_;
+#endif
 
   // Uniquely identify return target (yield / exit)
   // first stack frame and yield will use this to identify next stack
