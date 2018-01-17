@@ -44,6 +44,10 @@ void SMP::global_unlock() noexcept {}
 int SMP::cpu_id() noexcept { return 0; }
 int SMP::cpu_count() noexcept { return 1; }
 
+void OS::halt(){
+  asm("hlt");
+}
+
 
 // Support for the boot_logger plugin.
 __attribute__((weak))
