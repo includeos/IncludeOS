@@ -21,15 +21,11 @@
  * function copied to an otherwise unused place in memory so that we can
  * overwrite the currently running binary with a new one.
  */
-#include <cstdint>
-asm(".org 0x200000");
-
-extern "C" void* __multiboot_magic;
-extern "C" void* __multiboot_addr;
+asm(".org 0x2000");
 
 extern "C" __attribute__((noreturn))
-void hotswap(const char* base, int len, char* dest, void* start,
-             uintptr_t magic, uintptr_t bootinfo)
+void hotswap(const char* base, int len, char* dest,
+             void* start, void* magic, void* bootinfo)
 {
   // Copy binary to its destination
   for (int i = 0; i < len; i++)

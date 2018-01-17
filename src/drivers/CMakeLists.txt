@@ -24,6 +24,9 @@ add_dependencies(virtionet PrecompiledLibraries)
 add_library(vmxnet3 STATIC vmxnet3.cpp)
 add_dependencies(vmxnet3 PrecompiledLibraries)
 
+add_library(e1000 STATIC e1000.cpp)
+add_dependencies(e1000 PrecompiledLibraries)
+
 add_library(ip4_reassembly STATIC "ip4_reassembly.cpp")
 add_dependencies(ip4_reassembly PrecompiledLibraries)
 
@@ -45,7 +48,7 @@ add_dependencies(vga_output PrecompiledLibraries)
 install(TARGETS
     ide_readwrite ide_readonly ide_writeonly
     virtionet virtioblk
-    vmxnet3
+    vmxnet3 e1000
     ip4_reassembly
     heap_debugging
     boot_logger disk_logger disklog_reader

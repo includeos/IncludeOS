@@ -48,7 +48,7 @@ bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 bool  OS::m_is_live_updated     = false;
 bool  OS::m_block_drivers_ready = false;
-MHz   OS::cpu_mhz_ {-1};
+KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
 uintptr_t OS::memory_end_ = 0;
 uintptr_t OS::heap_max_ = (uintptr_t) -1;

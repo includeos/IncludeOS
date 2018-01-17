@@ -120,10 +120,10 @@ namespace x86
     return ticks_per_micro != 0;
   }
 
-  void APIC_Timer::oneshot(std::chrono::microseconds micros) noexcept
+  void APIC_Timer::oneshot(std::chrono::nanoseconds nanos) noexcept
   {
     // prevent overflow
-    uint64_t ticks = micros.count() * ticks_per_micro;
+    uint64_t ticks = nanos.count() / 1000 * ticks_per_micro;
     if (ticks > 0xFFFFFFFF) ticks = 0xFFFFFFFF;
 
     // set initial counter

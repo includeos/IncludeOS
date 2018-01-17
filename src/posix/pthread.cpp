@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <vector>
 #include <time.h>
+#include <posix_strace.hpp>
 
 std::unordered_map<pthread_t, Fiber> fibers;
 
@@ -69,6 +70,7 @@ int pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* attr)
 {
   if (mutex == nullptr) return 1;
   mutex->spinlock = 0;
+  return 0;
 }
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
@@ -161,10 +163,12 @@ int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
 
 int pthread_mutexattr_destroy(pthread_mutexattr_t *attr)
 {
+  PRINT("pthread_mutexattr_destroy(%p) = 0\n", attr);
   return 0;
 }
 int pthread_mutexattr_init(pthread_mutexattr_t *attr)
 {
+  PRINT("pthread_mutexattr_init(%p) = 0\n", attr);
   return 0;
 }
 int pthread_mutexattr_gettype(const pthread_mutexattr_t *__restrict attr, int *__restrict type)
@@ -179,5 +183,6 @@ int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type)
 extern "C"
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {
+  PRINT("nanosleep(%p, %p) = -1\n", req, rem);
   return -1;
 }

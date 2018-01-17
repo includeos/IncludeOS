@@ -52,25 +52,11 @@ struct alignas(SMP_ALIGN) OS_CPU {
 };
 static SMP_ARRAY<OS_CPU> os_per_cpu;
 
-int64_t OS::micros_since_boot() noexcept {
-  return cycles_since_boot() / cpu_freq().count();
-}
-
-RTC::timestamp_t OS::boot_timestamp()
-{
-  return RTC::boot_timestamp();
-}
-
-RTC::timestamp_t OS::uptime()
-{
-  return RTC::time_since_boot();
-}
-
 uint64_t OS::cycles_asleep() noexcept {
   return PER_CPU(os_per_cpu).cycles_hlt;
 }
-uint64_t OS::micros_asleep() noexcept {
-  return PER_CPU(os_per_cpu).cycles_hlt / cpu_freq().count();
+uint64_t OS::nanos_asleep() noexcept {
+  return (PER_CPU(os_per_cpu).cycles_hlt * 1e6) / cpu_freq().count();
 }
 
 __attribute__((noinline))
@@ -107,11 +93,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Stack: %p", get_cpu_esp());
   MYINFO("Boot magic: 0x%x, addr: 0x%x", boot_magic, boot_addr);
 
-  /// STATMAN ///
-  PROFILE("Statman");
-  /// initialize on page 7, 3 pages in size
-  Statman::get().init(0x6000, 0x3000);
-
   // Call global ctors
   PROFILE("Global constructors");
   __libc_init_array();
@@ -133,18 +114,24 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Give the rest of physical memory to heap
   OS::heap_max_ = OS::memory_end_;
 
+  /// STATMAN ///
+  PROFILE("Statman");
+  /// initialize on page 9, 8 pages in size
+  Statman::get().init(0x8000, 0x8000);
+
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
+  memmap.assign_range({0x8000, 0xffff, "Statman", "Statistics"});
 #if defined(ARCH_x86_64)
-  memmap.assign_range({0x100000, 0x8fffff, "Pagetables", "System page tables"});
-  memmap.assign_range({0x900000, 0x9fffff, "Stack", "System main stack"});
+  memmap.assign_range({0x1000, 0x6fff, "Pagetables", "System page tables"});
+  memmap.assign_range({0x10000, 0x9d3ff, "Stack", "System main stack"});
 #elif defined(ARCH_i686)
-  memmap.assign_range({0xA000, 0x9fbff, "Stack", "System main stack"});
+  memmap.assign_range({0x10000, 0x9d3ff, "Stack", "System main stack"});
 #endif
+  //memmap.assign_range({0x9d400, 0x9ffff, "Multiboot", "Multiboot reserved area"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end - 1,
         "ELF", "Your service binary including OS"});
 
@@ -163,7 +150,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Printing memory map");
   for (const auto &i : memmap)
     INFO2("* %s",i.second.to_string().c_str());
-
 
   PROFILE("Platform init");
   extern void __platform_init();

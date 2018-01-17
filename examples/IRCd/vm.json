@@ -1,5 +1,5 @@
 {
   "image" : "IRCd",
-  "net" : [{"device" : "vmxnet3"}],
+  "net" : [{"device" : "virtio"}],
   "mem" : 1024
 }

@@ -19,9 +19,11 @@
 #include <fcntl.h>
 #include <cstdarg>
 #include <errno.h>
+#include <posix_strace.hpp>
 
 int FD::fcntl(int cmd, va_list list)
 {
+  PRINT("fcntl(%d)\n", cmd);
   switch (cmd) {
   case F_GETFD:
       // return descriptor flags
@@ -44,13 +46,15 @@ int FD::fcntl(int cmd, va_list list)
       return -1;
   }
 }
-int FD::getsockopt(int, int, void *__restrict__, socklen_t *__restrict__)
+int FD::getsockopt(int fd, int, void *__restrict__, socklen_t *__restrict__)
 {
+  PRINT("getsockopt(%d) = -1\n", fd);
   errno = ENOTSOCK;
   return -1;
 }
-int FD::setsockopt(int, int, const void *, socklen_t)
+int FD::setsockopt(int fd, int, const void *, socklen_t)
 {
+  PRINT("setsockopt(%d) = -1\n", fd);
   errno = ENOTSOCK;
   return -1;
 }

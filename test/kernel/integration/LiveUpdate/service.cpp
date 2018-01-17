@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <service>
+#include <os>
 #include <net/inet4>
 #include <cstdio>
 #include "liu.hpp"
@@ -27,7 +27,7 @@ void Service::start()
 {
   auto func = begin_test_boot();
 
-  if (liu::LiveUpdate::is_resumable() == false)
+  if (OS::is_live_updated() == false)
   {
     auto& inet = net::Super_stack::get<net::IP4>(0);
     inet.network_config({10,0,0,49}, {255,255,255,0}, {10,0,0,1});

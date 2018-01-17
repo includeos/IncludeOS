@@ -40,6 +40,7 @@ set(LOCAL_INCLUDES "")
 set(DRIVERS
   virtionet
   vmxnet3
+  #boot_logger
   )
 
 set (PLUGINS

@@ -39,17 +39,8 @@ void Service::start()
   [] (auto err, auto&) {
     assert(!err);
   });
-  auto& filesys = fs::memdisk().fs();
-  // load CA certificate
-  auto ca_cert = filesys.stat("/test.der");
-  // load CA private key
-  auto ca_key  = filesys.stat("/test.key");
-  // load server private key
-  auto srv_key = filesys.stat("/server.key");
-
-  server = new http::Secure_server(
-        "blabla", ca_key, ca_cert, srv_key, inet.tcp());
-
+  server = new http::OpenSSL_server(
+        "/test.pem", "/test.key", inet.tcp());
 
   server->on_request(
     [] (auto request, auto response_writer) {

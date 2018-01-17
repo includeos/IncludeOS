@@ -50,7 +50,7 @@ set(NET_SOURCES
 )
 if (CUSTOM_BOTAN)
   set(NET_SOURCES ${NET_SOURCES}
-      "${IOS}/src/net/http/secure_server.cpp")
+      "${IOS}/src/net/https/botan_server.cpp")
 endif()
 
 set(OS_SOURCES

@@ -15,15 +15,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Syslog plugin (UDP)
-
 #pragma once
-#ifndef PLUGINS_SYSLOGD_HPP
-#define PLUGINS_SYSLOGD_HPP
+#include <cstdint>
+#include <string>
+#include <arch.hpp>
 
-/*
-	Implementation of weak functions declared in util/syslog_facility.hpp and util/syslogd.hpp
-	is in this header's corresponding cpp-file
-*/
+namespace x86
+{
+  struct SMBIOS
+  {
+    static void init();
 
-#endif
+    static inline
+    const arch_system_info_t& system_info() {
+      return sysinfo;
+    }
+
+  private:
+    static void parse(const char*);
+    static arch_system_info_t sysinfo;
+  };
+}

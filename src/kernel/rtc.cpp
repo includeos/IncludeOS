@@ -5,5 +5,5 @@ RTC::timestamp_t RTC::booted_at;
 void RTC::init()
 {
   // set boot timestamp
-  booted_at = __arch_time_now();
+  booted_at = now();
 }

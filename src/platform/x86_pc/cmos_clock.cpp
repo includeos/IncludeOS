@@ -20,10 +20,14 @@
 #include <kernel/timers.hpp>
 #include <kernel/os.hpp>
 #include <hertz>
+#include <info>
+#include "pit.hpp"
+
+extern "C" uint16_t _cpu_sampling_freq_divider_;
 
 namespace x86
 {
-  static int64_t  current_time;
+  static uint64_t current_time;
   static uint64_t current_ticks;
 
   void CMOS_clock::init()
@@ -41,11 +45,33 @@ namespace x86
       });
   }
 
-  int64_t CMOS_clock::system_time()
+  uint64_t CMOS_clock::system_time()
   {
     auto ticks = OS::cycles_since_boot() - current_ticks;
-    auto diff  = ticks / Hz(MHz(OS::cpu_freq())).count();
+    auto diff  = (double) ticks / Hz(OS::cpu_freq()).count();
 
-    return current_time + diff;
+    return (current_time + diff) * 1000000000ull;
+  }
+  timespec CMOS_clock::wall_clock()
+  {
+    auto ticks = OS::cycles_since_boot() - current_ticks;
+    auto diff  = (double) ticks / Hz(OS::cpu_freq()).count();
+
+    timespec tval;
+    tval.tv_sec  = current_time + time_t(diff);
+    tval.tv_nsec = diff * 1000000000ull;
+    return tval;
+  }
+
+  KHz CMOS_clock::get_tsc_khz()
+  {
+    // Estimate CPU frequency
+    INFO("CMOS", "Estimating CPU-frequency");
+    INFO2("|");
+    INFO2("+--(%d samples, %f sec. interval)", 18,
+          (x86::PIT::FREQUENCY / _cpu_sampling_freq_divider_).count());
+    INFO2("|");
+
+    return KHz(MHz(PIT::get().estimate_CPU_frequency()));
   }
 }

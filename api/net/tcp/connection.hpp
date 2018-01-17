@@ -327,14 +327,6 @@ public:
     { return tcp->remote(); }
 
     /**
-     * @brief      Returns the local port.
-     *
-     * @return     A TCP port
-     */
-    uint16_t local_port() const override
-    { return tcp->local_port(); }
-
-    /**
      * @brief      Returns a string representation of the stream.
      *
      * @return     String representation of the stream.

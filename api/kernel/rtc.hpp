@@ -26,10 +26,16 @@
 class RTC
 {
 public:
-  using timestamp_t = int64_t;
+  using timestamp_t = uint64_t;
 
+  /// a 64-bit nanosecond timestamp of the current time
+  static timestamp_t nanos_now() {
+    return __arch_system_time();
+  }
   /// returns a 64-bit unix timestamp of the current time
-  static timestamp_t now() { return __arch_time_now(); }
+  static timestamp_t now() {
+    return __arch_wall_clock().tv_sec;
+  }
 
   /// returns a 64-bit unix timestamp for when the OS was booted
   static timestamp_t boot_timestamp() {

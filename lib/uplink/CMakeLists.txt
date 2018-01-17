@@ -20,6 +20,7 @@ set(SOURCES
   transport.cpp
   ws_uplink.cpp
   register_plugin.cpp
+  config.cpp
   )
 
 add_library(${LIBRARY_NAME} STATIC ${SOURCES})

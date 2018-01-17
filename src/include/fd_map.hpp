@@ -70,15 +70,7 @@ public:
 
 private:
   std::map<id_t, std::unique_ptr<FD>> map_;
-
   FD_map() {}
-
-  id_t& counter()
-  {
-    static id_t counter_ = 3;
-    return counter_;
-  }
-
 };
 
 template <typename T, typename... Args>
@@ -87,7 +79,8 @@ T& FD_map::open(Args&&... args)
   static_assert(std::is_base_of<FD, T>::value,
     "Template argument is not a File Descriptor (FD)");
 
-  const auto id = counter()++;
+  static id_t counter = 5;
+  const auto id = counter++;
   auto* fd = new T(id, std::forward<Args>(args)...);
   map_.emplace(std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple(fd));
   return *fd;

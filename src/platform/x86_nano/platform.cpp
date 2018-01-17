@@ -20,8 +20,11 @@ void __platform_init()
 }
 
 // not supported!
-int64_t __arch_time_now() noexcept {
+uint64_t __arch_system_time() noexcept {
   return 0;
+}
+timespec __arch_wall_clock() noexcept {
+  return {0, 0};
 }
 // not supported!
 void OS::block() {}

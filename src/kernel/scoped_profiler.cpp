@@ -20,6 +20,7 @@
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/os.hpp>
+#include <kernel/rtc.hpp>
 #include <unordered_map>
 #include <cassert>
 #include <algorithm>
@@ -33,12 +34,12 @@ void ScopedProfiler::record()
   // Select which guard to use (this is only done once)
   if (UNLIKELY(guard == Guard::NOT_SELECTED))
   {
-    if (CPUID::is_intel_cpu() && CPUID::has_feature(CPUID::Feature::SSE2))
+    if (CPUID::is_intel_cpu())
     {
       debug2("ScopedProfiler selected guard LFENCE\n");
       guard = Guard::LFENCE;
     }
-    else if (CPUID::is_amd_cpu() && CPUID::has_feature(CPUID::Feature::SSE2))
+    else if (CPUID::is_amd_cpu())
     {
       debug2("ScopedProfiler selected guard MFENCE\n");
       guard = Guard::MFENCE;
@@ -89,10 +90,16 @@ ScopedProfiler::~ScopedProfiler()
                   : "=A" (tick));
   }
 
-  auto cycles = tick - tick_start;
+  uint64_t nanos_start = RTC::nanos_now();
+
+  static uint64_t base_nanos = 0;
+  if (base_nanos == 0) base_nanos = nanos_start;
+  nanos_start -= base_nanos;
+
+  uint64_t cycles = tick - tick_start;
   auto function_address = __builtin_return_address(0);
 
-  // Find an entry that matches this function_address, or an unused entry
+  // Find an entry that matches this function_address
   for (auto& entry : entries)
   {
     if (entry.function_address == function_address)
@@ -100,13 +107,16 @@ ScopedProfiler::~ScopedProfiler()
       // Update the entry
       entry.cycles_average = ((entry.cycles_average * entry.num_samples) + cycles) / (entry.num_samples + 1);
       entry.num_samples += 1;
-
       return;
     }
-    else if (entry.function_address == 0)
+  }
+  // Find an unused entry
+  for (auto& entry : entries)
+  {
+    if (entry.function_address == 0)
     {
       // Use this unused entry
-      char symbol_buffer[1024];
+      char symbol_buffer[4096];
       const auto symbols = Elf::safe_resolve_symbol(function_address,
                                                     symbol_buffer,
                                                     sizeof(symbol_buffer));
@@ -114,6 +124,7 @@ ScopedProfiler::~ScopedProfiler()
       entry.function_address = function_address;
       entry.function_name = symbols.name;
       entry.cycles_average = cycles;
+      entry.nanos_start = nanos_start;
       entry.num_samples = 1;
       return;
     }
@@ -124,12 +135,12 @@ ScopedProfiler::~ScopedProfiler()
   printf("[WARNING] There are too many ScopedProfilers in use\n");
 }
 
-std::string ScopedProfiler::get_statistics()
+std::string ScopedProfiler::get_statistics(bool sorted)
 {
   std::ostringstream ss;
 
   // Add header
-  ss << " CPU time (average) | Samples | Function Name \n";
+  ss << " First seen   | CPU time (avg) | Samples | Function Name \n";
   ss << "--------------------------------------------------------------------------------\n";
 
   // Calculate the number of used entries
@@ -145,22 +156,29 @@ std::string ScopedProfiler::get_statistics()
 
   if (num_entries > 0)
   {
-    // Sort on cycles_average (higher value first)
-    // Make sure to keep unused entries last (only sort used entries)
-    std::sort(entries.begin(), entries.begin() + num_entries, [](const Entry& a, const Entry& b)
+    if (sorted)
     {
-      return a.cycles_average > b.cycles_average;
-    });
+      // Sort on cycles_average (higher value first)
+      // Make sure to keep unused entries last (only sort used entries)
+      std::sort(entries.begin(), entries.begin() + num_entries, [](const Entry& a, const Entry& b)
+      {
+        return a.cycles_average > b.cycles_average;
+      });
+    }
 
     // Add each entry
     ss.setf(std::ios_base::fixed);
     for (auto i = 0u; i < num_entries; i++)
     {
       const auto& entry = entries[i];
-      double  div  = OS::cpu_freq().count() * 1000.0;
 
-      ss.width(16);
-      ss << entry.cycles_average / div << " ms | ";
+      double timst = entry.nanos_start / 1.0e6;
+      ss.width(10);
+      ss << timst << " ms | ";
+
+      double micros = entry.cycles_average / OS::cpu_freq().count();
+      ss.width(10);
+      ss << micros / 1000.0 << " ms | ";
 
       ss.width(7);
       ss << entry.num_samples << " | ";

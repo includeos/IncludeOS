@@ -36,7 +36,7 @@ IncludeOS is free software, with "no warranties or restrictions of any kind".
 * **Virtio and vmxnet3 Network drivers** with DMA. [Virtio](https://www.oasis-open.org/committees/tc_home.php?wg_abbrev=virtio) provides a highly efficient and widely supported I/O virtualization. vmxnet3 is the VMWare equivalent.
 * **A highly modular TCP/IP-stack**.
 
-A longer list of features and limitations is on the [wiki feature list](https://github.com/hioa-cs/IncludeOS/wiki/Features)
+A longer list of features and limitations can be found on our [documentation site](http://includeos.readthedocs.io/en/latest/Features.html).
 
 ## Getting started
 
@@ -90,7 +90,7 @@ A successful setup enables you to build and run a virtual machine. There are a f
 
 will build and run [this example service](./examples/demo_service/service.cpp). You can visit the service on [http://10.0.0.42/](http://10.0.0.42/).
 
-More information is [available on the wiki](https://github.com/hioa-cs/IncludeOS/wiki/Testing-the-example-service).
+More information is available on our [documentation site](http://includeos.readthedocs.io/en/latest/Getting-started.html#testing-the-example-service).
 
 ### Writing your first service
 
@@ -114,7 +114,7 @@ Take a look at the [examples](./examples) and the [tests](./test). These all sta
 
 ## Contributing to IncludeOS
 
-IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Gitter](https://gitter.im/hioa-cs/IncludeOS). Please read the [Guidelines for Contributing to IncludeOS](https://github.com/hioa-cs/IncludeOS/wiki/Contributing-to-IncludeOS).
+IncludeOS is being developed on GitHub. Create your own fork, send us a pull request, and [chat with us on Gitter](https://gitter.im/hioa-cs/IncludeOS). Please read the [Guidelines for Contributing to IncludeOS](http://includeos.readthedocs.io/en/latest/Contributing-to-IncludeOS.html).
 
 **Important: Send your pull requests to the `dev` branch**. It is ok if your pull requests come from your master branch.
 
@@ -125,3 +125,6 @@ We want to adhere as much as possible to the [ISO C++ Core Guidelines](https://g
 
 [brew]: https://brew.sh/
 [qemu]: https://www.qemu.org/
+
+## Security contact
+If you discover a security issue in IncludeOS please avoid the public issue tracker. Instead send an email to security@includeos.org. For more information and encryption please refer to the [documentation](http://includeos.readthedocs.io/en/latest/Security.html).

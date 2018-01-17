@@ -279,6 +279,17 @@ add_library(libbotan STATIC IMPORTED)
 set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libbotan-2.a)
 
+if(${ARCH} STREQUAL "x86_64")
+  add_library(libssl STATIC IMPORTED)
+  set_target_properties(libssl PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(libssl PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libssl.a)
+
+  add_library(libcrypto STATIC IMPORTED)
+  set_target_properties(libcrypto PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(libcrypto PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrypto.a)
+  set(OPENSSL_LIBS libssl libcrypto)
+endif()
+
 add_library(libosdeps STATIC IMPORTED)
 set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libosdeps.a)
@@ -402,6 +413,7 @@ endif()
 target_link_libraries(service
   libos
   libbotan
+  ${OPENSSL_LIBS}
   libosdeps
 
   libplatform

@@ -21,6 +21,7 @@ set(X86_PC_OBJECTS
   pic.cpp
   softreset.cpp
   sanity_checks.cpp
+  smbios.cpp
   idt.cpp
   ### KVM features ###
   ../kvm/kvmclock.cpp
