@@ -203,8 +203,14 @@ void double_fault(const char* why)
   panic_epilogue(why);
 }
 
+extern "C" __attribute__ ((weak))
+void panic_perform_inspection_procedure() {}
+
 void panic_epilogue(const char* why)
 {
+  // action that restores some system functionality intended for inspection
+  panic_perform_inspection_procedure();
+
   // call custom on panic handler (if present)
   if (panic_handler) panic_handler(why);
 
@@ -215,7 +221,7 @@ void panic_epilogue(const char* why)
     SMP::global_unlock();
 
     // .. if we return from the panic handler, go to permanent sleep
-    while (1) asm("cli; hlt");
+    while (1) OS::halt();
   #else
     #warning "panic() handler not implemented for selected arch"
   #endif
