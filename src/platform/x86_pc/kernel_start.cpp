@@ -19,6 +19,7 @@
 #include <kernel/cpuid.hpp>
 #include <boot/multiboot.h>
 #include <kprint>
+#include "musl_init.cpp"
 
 extern "C" {
   void __init_serial1();
@@ -28,7 +29,21 @@ extern "C" {
   //uintptr_t _move_symbols(uintptr_t loc);
 }
 
-int* kernel_main(int, char * *, char * *) {
+extern uintptr_t heap_begin;
+extern uintptr_t heap_end;
+
+void _init_heap(uintptr_t free_mem_begin)
+{
+  #define HEAP_ALIGNMENT   4095
+  // NOTE: Initialize the heap before exceptions
+  // cache-align heap, because its not aligned
+  heap_begin = free_mem_begin + HEAP_ALIGNMENT;
+  heap_begin = ((uintptr_t)heap_begin & ~HEAP_ALIGNMENT);
+  heap_end   = heap_begin;
+}
+
+int kernel_main(int, char * *, char * *) {
+  kprintf("kernel_main() !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   // Initialize early OS, platform and devices
   OS::start(0u,0u);
 
@@ -42,16 +57,10 @@ int* kernel_main(int, char * *, char * *) {
   OS::event_loop();
 }
 
-typedef struct
+void __init_tls(size_t* p)
 {
-  long int a_type;              /* Entry type */
-  union
-    {
-      long int a_val;           /* Integer value */
-      void *a_ptr;              /* Pointer value */
-      void (*a_fcn) (void);     /* Function pointer value */
-    } a_un;
-} auxv_t;
+  kprintf("init_tls(%p)\n", p);
+}
 
 extern "C"
 int __libc_start_main(int *(main) (int, char * *, char * *),
@@ -63,6 +72,8 @@ int __libc_start_main(int *(main) (int, char * *, char * *),
 
 extern "C" void _init();
 extern "C" void _fini();
+#include <kernel/auxvec.h>
+#include <kernel/service.hpp>
 
 extern "C"
 __attribute__((no_sanitize("all")))
@@ -86,6 +97,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   //free_mem_begin += _move_symbols(free_mem_begin);
 
   // TODO: set heap begin
+  _init_heap(free_mem_begin);
 
   extern char _INIT_START_;
   extern char _FINI_START_;
@@ -94,7 +106,43 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   void* rtld_fini = nullptr;
   void* stack_end = (void*) 0x10000;
 
-  __libc_start_main(kernel_main, 0, nullptr,
-      _init, _fini, [](){}, stack_end);
+  auxv_t aux[38];
+  int i = 0;
+  aux[i++].set_long(AT_PAGESZ, 4096);
+  aux[i++].set_long(AT_CLKTCK, 100);
+
+  aux[i++].set_long(AT_PHENT, 32);
+  aux[i++].set_ptr(AT_PHDR, 0x0);
+  aux[i++].set_long(AT_PHNUM, 0);
+  aux[i++].set_ptr(AT_BASE, nullptr);
+  aux[i++].set_long(AT_FLAGS, 0x0);
+  aux[i++].set_ptr(AT_ENTRY, (void*) &kernel_main);
+  aux[i++].set_long(AT_HWCAP, 0);
+
+  aux[i++].set_long(AT_UID, 0);
+  aux[i++].set_long(AT_EUID, 0);
+  aux[i++].set_long(AT_GID, 0);
+  aux[i++].set_long(AT_EGID, 0);
+  aux[i++].set_long(AT_SECURE, 1);
+
+  const char* plat = "x86_64";
+  aux[i++].set_ptr(AT_PLATFORM, plat);
+
+  aux[i++].set_long(AT_NULL, 0);
+
+  std::array<char*, 4 + 38> argv;
+  // arguments to "program"
+  argv[0] = (char*) Service::name();
+  argv[1] = 0x0;
+  int argc = 1;
+
+  // "environment" variables
+  argv[2] = "BLARGH=0";
+  argv[3] = 0x0;
+
+  memcpy(&argv[4], aux, sizeof(auxv_t) * 38);
+
+  // ubp_av = argv, irrelevant when argc = 0
+  hallo__libc_start_main(kernel_main, argc, argv.data());
 
 }

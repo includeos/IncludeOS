@@ -32,5 +32,28 @@
 
 #define AT_EXECFN  31 /* filename of program */
 
+typedef struct
+{
+  long int a_type;              /* Entry type */
+  union
+    {
+      long int a_val;           /* Integer value */
+      const void *a_ptr;        /* Pointer value */
+      void (*a_fcn) (void);     /* Function pointer value */
+    } a_un;
+
+  void set_long(long t, long v) {
+    a_type = t;
+    a_un.a_val = v;
+  }
+  void set_ptr(long t, const void* ptr) {
+    a_type = t;
+    a_un.a_ptr = ptr;
+  }
+  void set_func(long t, void (*fn)()) {
+    a_type = t;
+    a_un.a_fcn = fn;
+  }
+} auxv_t;
 
 #endif /* KERNEL_AUXVEC_H */

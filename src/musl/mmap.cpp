@@ -13,3 +13,13 @@ void* syscall_SYS_mmap(void *addr, size_t length, int prot, int flags,
     addr, length, prot, flags, fd, offset);
   return (void*)res;
 }
+
+extern "C"
+void* syscall_SYS_mmap2(void *addr, size_t length, int prot,
+                       int flags, int fd, off_t offset) {
+  uintptr_t res = heap_begin + current_pos;
+  current_pos += length;
+  STRACE("syscall mmap2: addr=%p len=%u prot=%d fl=%d fd=%d off=%d\n",
+         addr, length, prot, flags, fd, offset);
+  return (void*)res;
+}

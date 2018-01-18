@@ -1,6 +1,6 @@
 
 set(MUSL_OBJECTS
-  futex.cpp close.cpp lseek.cpp ioctl.cpp writev.cpp
+  futex.cpp close.cpp fcntl.cpp lseek.cpp ioctl.cpp writev.cpp
   write.cpp brk.cpp madvise.cpp mmap.cpp mremap.cpp munmap.cpp
   lseek.cpp sched_getaffinity.cpp sysinfo.cpp prlimit64.cpp
   getrlimit.cpp sched_yield.cpp set_robust_list.cpp
