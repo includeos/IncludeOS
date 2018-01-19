@@ -131,21 +131,24 @@ void OS::multiboot(uint32_t boot_addr)
         (int)(bootinfo_->mmap_length / sizeof(multiboot_memory_map_t))
       };
 
-    for (auto map : mmap) {
+    for (auto map : mmap)
+    {
       const char* str_type = map.type & MULTIBOOT_MEMORY_AVAILABLE ? "FREE" : "RESERVED";
+      const uintptr_t addr = map.addr;
+      const uintptr_t size = map.len;
       INFO2("  0x%010llx - 0x%010llx %s (%llu Kb.)",
-            map.addr, map.addr + map.len - 1, str_type, map.len / 1024 );
+            addr, addr + size - 1, str_type, size / 1024 );
 
       if (not (map.type & MULTIBOOT_MEMORY_AVAILABLE)) {
 
-        if (util::bits::is_aligned<4_KiB>(map.addr)){
-          os::mem::map({map.addr, map.addr, {os::mem::Access::read | os::mem::Access::write}, map.len}, "Reserved (Multiboot)");
+        if (util::bits::is_aligned<4_KiB>(map.addr)) {
+          os::mem::map({addr, addr, {os::mem::Access::read | os::mem::Access::write}, size},
+                       "Reserved (Multiboot)");
           continue;
         }
 
         // For non-aligned addresses, assign
-        memory_map().assign_range({static_cast<uintptr_t>(map.addr),
-              static_cast<uintptr_t>(map.addr + map.len - 1), "Reserved (Multiboot)"});
+        memory_map().assign_range({addr, addr + size - 1, "Reserved (Multiboot)"});
       }
       else
       {
@@ -153,7 +156,6 @@ void OS::multiboot(uint32_t boot_addr)
         //os::mem::map_avail({map.addr, map.addr, {os::mem::Access::read | os::mem::Access::write}, map.len}, "Reserved (Multiboot)");
       }
     }
-
     printf("\n");
   }
 
