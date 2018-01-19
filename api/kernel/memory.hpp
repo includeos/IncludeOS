@@ -19,14 +19,11 @@
 #ifndef KERNEL_MEMORY_HPP
 #define KERNEL_MEMORY_HPP
 
-#define DEBUG 1
-
 #include <common>
 #include <util/bitops.hpp>
 #include <util/units.hpp>
 #include <cstdlib>
 #include <sstream>
-
 
 namespace os {
 namespace mem {
