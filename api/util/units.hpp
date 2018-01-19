@@ -45,7 +45,7 @@ inline namespace literals
 
   constexpr auto operator"" _TiB ( int_t x )
   { return 1024_GiB *  x; }
-  
+
 
 
   /**
@@ -76,8 +76,8 @@ inline namespace literals
 
 /** String representation of bytes as KiB, MiB, GiB **/
 struct Byte_r {
-  Byte_r(uintptr_t b) : b_{b}{}
-  
+  Byte_r(uint64_t b) : b_{b}{}
+
   std::string to_string() const {
     char frep[20];
     double dbl = static_cast<double>(b_);
@@ -97,13 +97,13 @@ struct Byte_r {
       sprintf(frep, "%0.3f", dbl / 1_KiB);
       return std::string(frep) + "_KiB";
     }
-    
+
     return std::to_string(b_) + "_b";
   }
-  
-  uintptr_t b_{};
+
+  uint64_t b_{};
 };
-  
+
 inline std::ostream& operator <<(std::ostream& out, const Byte_r& b){
   return out << b.to_string();
 }
