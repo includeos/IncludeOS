@@ -61,9 +61,10 @@ public:
   void newline() noexcept;
 
   void set_cursor(uint8_t x, uint8_t y) noexcept;
+  size_t get_x();
+  size_t get_y();
 
-  void set_color(vga_color c)
-  { this->color = c; };
+  void set_color(vga_color c);
 
   static TextmodeVGA& get() {
     static TextmodeVGA vga;
@@ -83,5 +84,16 @@ private:
   uint8_t   color;
   uint16_t* buffer;
 };
+
+inline size_t TextmodeVGA::get_x() {
+  return this->column;
+}
+inline size_t TextmodeVGA::get_y() {
+  return this->row;
+}
+inline void TextmodeVGA::set_color(vga_color c)
+{
+  this->color = c;
+}
 
 #endif //< KERNEL_VGA_HPP

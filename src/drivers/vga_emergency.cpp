@@ -3,14 +3,11 @@
 #include <ringbuffer>
 #include <hw/ps2.hpp>
 
-static const int SUGGEST_READ_SIZE = 800;
-
 static RingBuffer emerg_buffer(1 << 17);
 static bool procedure_entered = false;
 static const char* read_position = nullptr;
 static const char* read_minpos = nullptr;
 static const char* read_maxpos = nullptr;
-static size_t read_size = 0;
 
 static void emergency_logging(const char* data, int length)
 {
@@ -24,27 +21,39 @@ static void emergency_logging(const char* data, int length)
 static inline
 const char* find_rev_nth(const char* ptr, const char* begin, int counter)
 {
+  int lc = 0;
   while (ptr > begin && counter > 0)
   {
-    if (*ptr-- == '\n') counter--;
+    if (*ptr == '\n' || lc == 80) {
+      counter--;
+      if (counter == 0) return ptr;
+      lc = 0;
+    }
+    ptr--; lc++;
   }
-  return ptr;
+  return std::max(ptr, begin);
 }
 static inline
 const char* find_nth(const char* ptr, const char* end, int counter)
 {
+  int lc = 0;
   while (ptr < end && counter > 0)
   {
-    if (*ptr++ == '\n') counter--;
+    if (*ptr == '\n' || lc == 80) {
+      counter--;
+      if (counter == 0) return ptr;
+      lc = 0;
+    }
+    ptr++; lc++;
   }
-  return ptr;
+  return std::min(ptr, end);
 }
-
 
 static void render_vga_text()
 {
   auto& vga = TextmodeVGA::get();
   vga.clear();
+
   auto* read_to = find_rev_nth(read_position, emerg_buffer.data(), 25);
   vga.write(read_to, read_position - read_to);
 }
@@ -60,10 +69,10 @@ void keyboard_emergency_handler()
   switch (key)
   {
   case KBM::VK_UP:
-      read_position = find_rev_nth(read_position, read_minpos, 2);
+      read_position = find_rev_nth(read_position-1, read_minpos, 1);
       break;
   case KBM::VK_DOWN:
-      read_position = find_nth(read_position, read_maxpos, 2);
+      read_position = find_nth(read_position+1, read_maxpos, 1);
       break;
   }
   // update
@@ -96,9 +105,8 @@ void panic_perform_inspection_procedure()
   auto* buffer = emerg_buffer.sequentialize();
 
   // set position and size
-  read_size = std::min(emerg_buffer.size(), SUGGEST_READ_SIZE);
   read_maxpos = buffer + emerg_buffer.size() - 1;
-  read_minpos = find_nth(buffer, read_maxpos, 21);
+  read_minpos = find_nth(buffer, read_maxpos, 25);
 
   read_position = read_maxpos;
   render_vga_text();
