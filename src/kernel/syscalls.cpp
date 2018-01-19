@@ -234,7 +234,7 @@ void panic_epilogue(const char* why)
   switch (OS::panic_action())
   {
   case OS::Panic_action::halt:
-    OS::halt();
+    while (1) OS::halt();
   case OS::Panic_action::shutdown:
     extern void __arch_poweroff();
     __arch_poweroff();

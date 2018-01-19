@@ -19,7 +19,7 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #ifndef PANIC_ACTION
-#define PANIC_ACTION shutdown
+#define PANIC_ACTION halt
 #endif
 
 #include <kernel/os.hpp>
