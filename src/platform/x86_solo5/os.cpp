@@ -99,23 +99,23 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   auto& memmap = memory_map();
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x500, 0x5fff, "solo5", "solo5"});
-  memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
-  memmap.assign_range({0xA000, 0x9fbff, "Stack", "Kernel / service main stack"});
+  memmap.assign_range({0x500, 0x5fff, "solo5"});
+  memmap.assign_range({0x6000, 0x8fff, "Statman"});
+  memmap.assign_range({0xA000, 0x9fbff, "Stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
-        "ELF", "Your service binary including OS"});
+        "ELF"});
 
   Expects(::heap_begin and heap_max_);
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
-        "Pre-heap", "Heap randomization area"});
+        "Pre-heap"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
 
   MYINFO("Assigning heap");
   memmap.assign_range({::heap_begin, heap_range_max_,
-        "Heap", "Dynamic memory", heap_usage });
+        "Dynamic memory", heap_usage });
 
   MYINFO("Printing memory map");
   for (const auto &i : memmap)

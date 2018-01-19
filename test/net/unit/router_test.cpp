@@ -29,7 +29,7 @@ Inet<IP4>* eth2 = (Inet<IP4>*) 2;
 Inet<IP4>* eth3 = (Inet<IP4>*) 3;
 Inet<IP4>* eth4 = (Inet<IP4>*) 4;
 
-CASE("Testing Route functionality")
+CASE("net::router: Testing Route functionality")
 {
   const Route<IP4> r1{{10, 42, 42, 0 }, { 255, 255, 255, 0}, {10, 42, 42, 2}, *eth1 , 2 };
   const Route<IP4> r2{{10, 42, 0, 0 }, { 255, 255, 0, 0}, {10, 42, 42, 3}, *eth2 , 1 };
@@ -52,7 +52,7 @@ CASE("Testing Route functionality")
   EXPECT(r2 < r1);
 }
 
-CASE("Creating and matching against routes")
+CASE("net::router: Creating and matching against routes")
 {
 
   Route<IP4> r1{{10, 42, 42, 0 }, { 255, 255, 255, 0}, {10, 42, 42, 2}, *eth1 , 1 };
@@ -76,7 +76,7 @@ CASE("Creating and matching against routes")
 }
 
 
-CASE("Creating and using a router and routing table")
+CASE("net::router: Creating and using a router and routing table")
 {
 
   Router<IP4>::Routing_table tbl{
@@ -130,7 +130,7 @@ CASE("Creating and using a router and routing table")
 
 }
 
-CASE("Testing default gateway route")
+CASE("net::router: Testing default gateway route")
 {
   const ip4::Addr gateway{10,0,0,1};
   Router<IP4>::Routing_table tbl{
@@ -139,8 +139,8 @@ CASE("Testing default gateway route")
     {{0}, {0}, gateway, *eth1}
   };
 
-  Router<IP4> router(tbl);
 
+  Router<IP4> router(tbl);
   auto route = router.get_most_specific_route({10,42,42,10});
   EXPECT(route->nexthop() == IP4::addr(10,42,42,2));
 
@@ -156,7 +156,7 @@ CASE("Testing default gateway route")
 #include <packet_factory.hpp>
 #include <net/inet4>
 
-CASE("Actual routing verifying TTL")
+CASE("net::router: Actual routing verifying TTL")
 {
   Nic_mock nic1;
   Inet4 inet1{nic1};
@@ -260,7 +260,7 @@ CASE("Actual routing verifying TTL")
   EXPECT(tcp_packet_recv == 2);
 }
 
-CASE("Calculate Route nexthop")
+CASE("net::router: Calculate Route nexthop")
 {
   Nic_mock nic1;
   Inet4 inet1{nic1};
@@ -294,4 +294,3 @@ CASE("Calculate Route nexthop")
   // Matches routes net (duh), and can be sent directly
   EXPECT(r3.nexthop({10,0,1,10})  == ip4::Addr(10,0,1,10)); // == ip
 }
-

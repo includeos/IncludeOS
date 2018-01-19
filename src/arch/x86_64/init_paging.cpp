@@ -1,7 +1,7 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2017 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#include <sys/time.h>
-#include <util/units.hpp>
-
-namespace x86
-{
-  struct Clocks {
-    static void init();
-    static util::KHz  get_khz();
-  };
+__attribute__((weak))
+extern void __x86_init_paging(void* pdir) {
+  asm volatile ("mov %%rax, %%cr3;" :: "a" (pdir));
 }
