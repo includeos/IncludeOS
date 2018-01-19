@@ -56,6 +56,7 @@ include_directories(
 set(LEST_UTIL
   ${TEST}/lest_util/lestmain.cxx
   ${TEST}/lest_util/os_mock.cpp
+  ${TEST}/lest_util/random.cpp
 )
 
 set(TEST_SOURCES
@@ -69,6 +70,8 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/events_test.cpp
   ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
+  ${TEST}/kernel/unit/memory.cpp
+  ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/net/unit/bufstore.cpp
@@ -121,6 +124,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslogd_test.cpp
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
+  ${TEST}/util/unit/bitops.cpp
 )
 
 set(OS_SOURCES
@@ -148,6 +152,7 @@ set(OS_SOURCES
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
+  ${SRC}/arch/x86_64/paging.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp

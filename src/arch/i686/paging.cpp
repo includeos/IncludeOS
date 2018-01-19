@@ -1,7 +1,7 @@
+// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2017 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#include <sys/time.h>
-#include <util/units.hpp>
+#include <arch.hpp>
+#include <kernel/memory.hpp>
 
-namespace x86
+void __arch_init_paging()
 {
-  struct Clocks {
-    static void init();
-    static util::KHz  get_khz();
-  };
+
+}
+
+namespace os {
+namespace mem {
+  Map map(Map m, const char* name) {
+    return {};
+  }
+
+  template <>
+  const size_t Mapping<os::mem::Access>::any_size = 4096;
+}
 }
