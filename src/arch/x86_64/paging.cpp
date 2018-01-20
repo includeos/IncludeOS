@@ -62,7 +62,7 @@ static void allow_executable();
 **/
 
 // The main page directory pointer
-Pml4* __pml4;
+static Pml4* __pml4;
 
 __attribute__((weak))
 void __arch_init_paging() {
@@ -112,7 +112,6 @@ namespace paging {
 
 Access to_memflags(Flags f)
 {
-
   Access prot = Access::none;
 
   if (! has_flag(f, Flags::present)) {
@@ -156,9 +155,7 @@ void invalidate(void *pageaddr){
   asm volatile("invlpg (%0)" ::"r" (pageaddr) : "memory");
 }
 
-}
-}
-
+}} // x86::paging
 
 namespace os {
 namespace mem {
@@ -244,7 +241,7 @@ Access flags(uintptr_t addr)
   return to_memflags(__pml4->flags_r(addr));
 }
 
-
+__attribute__((weak))
 Map map(Map m, const char* name)
 {
   using namespace x86::paging;
@@ -312,17 +309,15 @@ uintptr_t active_page_size(void* addr){
   return __pml4->active_page_size(reinterpret_cast<uintptr_t>(addr));
 }
 
-}
-}
-
-
-extern char _TEXT_START_;
-extern char _EXEC_END_;
-uintptr_t __exec_begin = (uintptr_t)&_TEXT_START_;
-uintptr_t __exec_end = (uintptr_t)&_EXEC_END_;
+}} // os::mem
 
 void allow_executable()
 {
+  extern char _TEXT_START_;
+  extern char _EXEC_END_;
+  const uintptr_t __exec_begin = (uintptr_t)&_TEXT_START_;
+  const uintptr_t __exec_end = (uintptr_t)&_EXEC_END_;
+
   INFO2("* Allowing execute on %p -> %p",
         (void*) __exec_begin, (void*)__exec_end);
 

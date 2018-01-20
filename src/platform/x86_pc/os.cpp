@@ -98,6 +98,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   __libc_init_array();
 
   // PAGING //
+  PROFILE("Enable paging");
   extern void __arch_init_paging();
   __arch_init_paging();
 
