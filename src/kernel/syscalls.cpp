@@ -147,7 +147,8 @@ void OS::on_panic(on_panic_func func)
 }
 
 extern "C" __attribute__((noreturn)) void panic_epilogue(const char*);
-
+extern "C" __attribute__ ((weak))
+void panic_perform_inspection_procedure() {}
 
 /**
  * panic:
@@ -191,6 +192,10 @@ asm("panic_begin:");
   fflush(stderr);
   SMP::global_unlock();
 
+  // action that restores some system functionality intended for inspection
+  // NB: Don't call this from double faults
+  panic_perform_inspection_procedure();
+
   panic_epilogue(why);
 }
 
@@ -205,14 +210,8 @@ void double_fault(const char* why)
   panic_epilogue(why);
 }
 
-extern "C" __attribute__ ((weak))
-void panic_perform_inspection_procedure() {}
-
 void panic_epilogue(const char* why)
 {
-  // action that restores some system functionality intended for inspection
-  panic_perform_inspection_procedure();
-
   // Call custom on panic handler (if present).
   if (panic_handler != nullptr) {
     // Avoid recursion if the panic handler results in panic
