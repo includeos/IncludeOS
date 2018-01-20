@@ -348,7 +348,6 @@ void init_default_paging(uintptr_t exec_beg = 0xa00000, uintptr_t exec_end = 0xb
 CASE ("x86::paging Verify execute protection")
 {
     using namespace util;
-    using Flags = x86::paging::Flags;
     using Access = os::mem::Access;
 
     init_default_paging(0xa00000, 0xc00000);

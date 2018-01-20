@@ -19,13 +19,6 @@
 #include <arch/x86_paging_utils.hpp>
 #include <kernel/cpuid.hpp>
 
-//#define DEBUG_X86_PAGING
-#ifdef DEBUG_X86_PAGING
-#undef debug
-#define debug(X, ...) printf("<x86 paging> " X "\n", ##__VA_ARGS__)
-#endif
-#define MYINFO(X,...) INFO("x86_64", X, ##__VA_ARGS__)
-
 template<>
 const size_t  x86::paging::Map::any_size { supported_page_sizes() };
 
@@ -71,8 +64,9 @@ static void allow_executable();
 // The main page directory pointer
 Pml4* __pml4;
 
+__attribute__((weak))
 void __arch_init_paging() {
-  MYINFO("Initializing paging");
+  INFO("x86_64", "Initializing paging");
   __pml4 = x86::paging::allocate_pdir<Pml4>();
   Expects(__pml4 != nullptr);
 
@@ -211,7 +205,7 @@ Map_x86 to_x86(Map map){
 
 Access protect_page(uintptr_t linear, Access flags)
 {
-  debug("::protect_page 0x%lx\n", linear);
+  PG_PRINT("::protect_page 0x%lx\n", linear);
   x86::paging::Flags xflags = x86::paging::to_x86(flags);
   auto f = __pml4->set_flags_r(linear, xflags);
   x86::paging::invalidate((void*)linear);
@@ -220,7 +214,7 @@ Access protect_page(uintptr_t linear, Access flags)
 
 Access protect(uintptr_t linear, Access flags)
 {
-  debug("::protect 0x%lx \n", linear);
+  PG_PRINT("::protect 0x%lx \n", linear);
   x86::paging::Flags xflags = x86::paging::to_x86(flags);
 
   auto key = OS::memory_map().in_range(linear);
@@ -228,7 +222,7 @@ Access protect(uintptr_t linear, Access flags)
   // Throws if entry wasn't previously mapped.
   auto map_ent = OS::memory_map().at(key);
 
-  debug("Found entry: %s\n", map_ent.to_string().c_str());
+  PG_PRINT("Found entry: %s\n", map_ent.to_string().c_str());
   int sz_prot = 0;
   x86::paging::Flags fl;
 
@@ -237,7 +231,7 @@ Access protect(uintptr_t linear, Access flags)
   while (sz_prot < map_ent.size()){
     auto page = linear + sz_prot;
     auto psize = active_page_size(page);
-    debug("Protecting page 0x%lx", page);
+    PG_PRINT("Protecting page 0x%lx", page);
     fl |= __pml4->set_flags_r(page, xflags);
     sz_prot += psize;
     x86::paging::invalidate((void*)linear);
@@ -280,8 +274,8 @@ Map map(Map m, const char* name)
 
   auto new_map = __pml4->map_r(to_x86(m));
   if (new_map) {
-    debug("Wants : %s size: %li", m.to_string().c_str(), m.size);
-    debug("Gets  : %s size: %li", new_map.to_string().c_str(), new_map.size);
+    PG_PRINT("Wants : %s size: %li", m.to_string().c_str(), m.size);
+    PG_PRINT("Gets  : %s size: %li", new_map.to_string().c_str(), new_map.size);
 
     // Size should match requested size rounded up to smallest requested page size
     Ensures(new_map.size == bits::roundto(m.min_psize(), m.size));

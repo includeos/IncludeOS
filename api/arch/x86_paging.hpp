@@ -27,8 +27,9 @@
 //#define DEBUG_X86_PAGING
 
 #ifdef DEBUG_X86_PAGING
-#undef debug
-#define debug(X, ...) printf("<%s @ 0x%lx>" X, pg_name(page_size), start_addr(), ##__VA_ARGS__)
+#define PG_PRINT(X, ...) printf("<%s @ 0x%lx>" X, pg_name(page_size), start_addr(), ##__VA_ARGS__)
+#else
+#define PG_PRINT(X, ...) /* X */
 #endif
 
 inline const char* pg_name(uintptr_t sz){
@@ -411,7 +412,7 @@ public:
     if (has_flag(flags, Pflag::present)
         and !is_page(new_entry) and !is_page_dir(new_entry))
     {
-      debug("<set_flags> Can't set flags on non-aligned entry ");
+      PG_PRINT("<set_flags> Can't set flags on non-aligned entry ");
       return Pflag::none;
     }
 
@@ -472,10 +473,10 @@ public:
   Map map(Map req)
   {
     using namespace util;
-    debug("<map> %s\n", req.to_string().c_str());
+    PG_PRINT("<map> %s\n", req.to_string().c_str());
     auto offs = indexof(req.lin);
     if (offs < 0) {
-      debug("<map> Got invalid offset 0x%i for req. %s \n", offs, req.to_string().c_str());
+      PG_PRINT("<map> Got invalid offset 0x%i for req. %s \n", offs, req.to_string().c_str());
       return Map();
     }
 
@@ -498,7 +499,7 @@ public:
 
   Map map_entry(uintptr_t* ent, Map req)
   {
-    debug("<map_entry> %s\n", req.to_string().c_str());
+    PG_PRINT("<map_entry> %s\n", req.to_string().c_str());
     Expects(ent != nullptr);
     Expects(ent >= tbl_.begin() && ent < tbl_.end());
     Expects(req);
@@ -508,7 +509,7 @@ public:
     req.page_sizes = page_size;
 
     if (addr_of(*ent) != req.phys)
-      debug("Couldn't set address: req. expected 0x%lx, got 0x%lx\n", req.phys, addr_of(*ent));
+      PG_PRINT("Couldn't set address: req. expected 0x%lx, got 0x%lx\n", req.phys, addr_of(*ent));
     Ensures(addr_of(*ent) == req.phys);
     return req;
   }
@@ -544,7 +545,7 @@ public:
     auto* pdir = page_dir(ent);
     Expects(pdir != nullptr);
 
-    debug("<map_entry_r> Sub 0x%p want: %s\n",  pdir, req.to_string().c_str());
+    PG_PRINT("<map_entry_r> Sub 0x%p want: %s\n",  pdir, req.to_string().c_str());
 
     auto res = pdir->template map_r(req);
 
@@ -563,7 +564,7 @@ public:
               or (sub_psize & req.page_sizes) == 0);
     }
 
-    debug("<map_entry_r> Sub 0x%p got: %s\n",  pdir, res.to_string().c_str());
+    PG_PRINT("<map_entry_r> Sub 0x%p got: %s\n",  pdir, res.to_string().c_str());
 
     return res;
   }
@@ -576,7 +577,7 @@ public:
   Map map_r(Map req)
   {
     using namespace util;
-    debug("<map_r> %s\n", req.to_string().c_str());
+    PG_PRINT("<map_r> %s\n", req.to_string().c_str());
     Expects(req);
     Expects(bits::is_aligned<min_pagesize>(req.lin));
     Expects(bits::is_aligned<min_pagesize>(req.phys));
@@ -714,16 +715,16 @@ inline  x86::paging::Summary Pml1::summary(){
 template <>
 inline Map Pml1::map_r(Map req)
 {
-  debug("<map_r> mapping 0x%lx -> 0x%lx, size %li \n", req.lin, req.phys, req.size);
+  PG_PRINT("<map_r> mapping 0x%lx -> 0x%lx, size %li \n", req.lin, req.phys, req.size);
   Expects(req);
 
   if (req.size == 0) {
-    debug("<map> pml1 asked for 0 size: %s\n", req.to_string().c_str());
+    PG_PRINT("<map> pml1 asked for 0 size: %s\n", req.to_string().c_str());
     return Map();
   }
 
   if ((req.page_sizes & page_size) == 0) {
-    debug("<map> pml1 asked for different page sizes: 0x%lx\n", req.page_sizes);
+    PG_PRINT("<map> pml1 asked for different page sizes: 0x%lx\n", req.page_sizes);
     return Map();
   }
 
