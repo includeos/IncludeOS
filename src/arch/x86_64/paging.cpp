@@ -62,7 +62,7 @@ static void allow_executable();
 **/
 
 // The main page directory pointer
-static Pml4* __pml4;
+Pml4* __pml4;
 
 __attribute__((weak))
 void __arch_init_paging() {
@@ -311,13 +311,14 @@ uintptr_t active_page_size(void* addr){
 
 }} // os::mem
 
+// must be public symbols because of a unittest...
+extern char _TEXT_START_;
+extern char _EXEC_END_;
+uintptr_t __exec_begin = (uintptr_t)&_TEXT_START_;
+uintptr_t __exec_end = (uintptr_t)&_EXEC_END_;
+
 void allow_executable()
 {
-  extern char _TEXT_START_;
-  extern char _EXEC_END_;
-  const uintptr_t __exec_begin = (uintptr_t)&_TEXT_START_;
-  const uintptr_t __exec_end = (uintptr_t)&_EXEC_END_;
-
   INFO2("* Allowing execute on %p -> %p",
         (void*) __exec_begin, (void*)__exec_end);
 

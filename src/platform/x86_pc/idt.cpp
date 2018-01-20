@@ -66,6 +66,7 @@ static void set_intr_entry(
   idt_entry->type_attr = attributes;
 #ifdef ARCH_x86_64
   idt_entry->ist       = ist;
+  idt_entry->zero2     = 0;
 #else
   (void) ist;
   idt_entry->zero      = 0;
@@ -118,6 +119,9 @@ extern "C" {
 
 void x86_IDT::init()
 {
+  // make sure its all zeroes
+  memset(&PER_CPU(idt).entry, 0, sizeof(x86_IDT::entry));
+
   set_exception_handler(0, __cpu_except_0);
   set_exception_handler(1, __cpu_except_1);
   set_exception_handler(2, __cpu_except_2);
@@ -291,7 +295,6 @@ void __page_fault(uintptr_t* regs, uint32_t code) {
 
   if (code & 0x8000)
     kprintf("SGX access violation.\n");
-
 }
 
 extern "C"
@@ -304,11 +307,8 @@ void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
   kprintf("%s (%d)   EIP  %p   CODE %#x\n",
           exception_names[error], error, (void*) regs[RIP_REG], code);
 
-  switch (error) {
-  case PAGE_FAULT:
-    {
-      __page_fault(regs, code);
-    }
+  if (error == PAGE_FAULT) {
+    __page_fault(regs, code);
   }
 
   __cpu_dump_regs(regs);
