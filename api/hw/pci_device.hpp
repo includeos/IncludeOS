@@ -234,6 +234,10 @@ struct msix_t;
     {
       return resources.at(id).start;
     }
+    bool validate_bar(uint8_t id) const noexcept
+    {
+      return id < resources.size();
+    }
 
     // @brief The 2-part ID retrieved from the device
     union vendor_product_t {
@@ -284,7 +288,7 @@ struct msix_t;
     int msi_cap();
     int msix_cap();
     // enable msix with intx disabled
-    uint8_t init_msix();
+    void init_msix();
   }; //< class PCI_Device
 
 } //< namespace hw

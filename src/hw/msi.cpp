@@ -93,6 +93,11 @@ namespace hw
     auto capbar_off = bar & ~MSIX_BIR_MASK;
     bar &= MSIX_BIR_MASK;
 
+    if (dev.validate_bar(bar) == false)
+    {
+      printf("PCI: Invalid BAR: %u\n", bar);
+      return 0;
+    }
     auto baroff = dev.get_bar(bar);
     assert(baroff != 0);
 
@@ -119,13 +124,18 @@ namespace hw
     // MSI-X table and pending bit array (PBA)
     this->table_addr = get_bar_paddr(cap + 4);
     this->pba_addr   = get_bar_paddr(cap + 8);
+
+    if (this->table_addr == 0) return;
+    if (this->pba_addr == 0) return;
+
     // get number of vectors we can get notifications from
     this->vector_cnt = (func & MSIX_TBL_SIZE) + 1;
 
     if (vector_cnt > 2048) {
       printf("table addr: %p  pba addr: %p  vectors: %u\n",
               (void*) table_addr, (void*) pba_addr, vectors());
-      assert(vectors() <= 2048 && "Unreasonably many MSI-X vectors");
+      printf("Unreasonably many MSI-X vectors!");
+      return;
     }
 
     // reset all entries

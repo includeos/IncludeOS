@@ -75,9 +75,11 @@ namespace hw {
     assert(0 && "No I/O resource present on device");
   }
 
-  void PCI_Device::probe_resources() noexcept {
+  void PCI_Device::probe_resources() noexcept
+  {
     //Find resources on this PCI device (scan the BAR's)
-    for (int bar = 0; bar < 6; ++bar) {
+    for (int bar = 0; bar < 6; ++bar)
+    {
       //Read the current BAR register
       uint32_t reg = PCI::CONFIG_BASE_ADDR_0 + (bar << 2);
       uint32_t value = read_dword(reg);
@@ -174,8 +176,7 @@ namespace hw {
 
     // enable MSI-x if its supported
     if (this->msix_cap()) {
-      int vectors = this->init_msix();
-      assert(vectors > 0);
+      this->init_msix();
     }
   }
 
