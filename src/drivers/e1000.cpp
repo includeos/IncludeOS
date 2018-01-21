@@ -134,13 +134,6 @@ e1000::e1000(hw::PCI_Device& d) :
   // GO!
   uint32_t flags = read_cmd(REG_RCTRL);
   write_cmd(REG_RCTRL, flags | RCTL_EN);
-  // verify device status
-  uint32_t status = read_cmd(REG_STATUS);
-  if (status != 0x80080783)
-  {
-    printf("Status: %x (should be: %x)\n", status, 0x80080783);
-    assert(status == 0x80080783);
-  }
 }
 
 uint32_t e1000::read_cmd(uint16_t cmd)
@@ -254,7 +247,7 @@ void e1000::event_handler()
 {
   uint32_t status = read_cmd(0xC0);
   // see: e1000_regs.h
-  printf("e1000: event %x received\n", status);
+  //printf("e1000: event %x received\n", status);
 
   // empty transmit queue
   if (status & 0x02)
