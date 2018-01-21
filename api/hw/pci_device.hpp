@@ -228,6 +228,8 @@ struct msix_t;
     }
     // deactivate msix (mask off vectors)
     void deactivate_msix();
+    // re-enable INTX in case it was disabled
+    void enable_intx();
 
     // resource handling
     uintptr_t get_bar(uint8_t id) const noexcept

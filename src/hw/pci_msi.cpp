@@ -38,6 +38,14 @@ namespace hw
     return caps[PCI_CAP_ID_MSIX];
   }
 
+  void PCI_Device::enable_intx()
+  {
+    auto cmd = read16(PCI_CMD_REG);
+    write16(PCI_CMD_REG, cmd & ~(1 << 10));
+    // delete msi-x
+    if (this->msix) delete this->msix;
+  }
+
   void PCI_Device::init_msix()
   {
     assert(this->msix == nullptr);

@@ -34,31 +34,19 @@ e1000::e1000(hw::PCI_Device& d) :
 {
   INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
 
-  if (d.has_msix() == false)
+  if (d.has_msix())
   {
-    // legacy IRQ from PCI
-    uint32_t value = d.read_dword(PCI::CONFIG_INTR);
-    uint8_t irq = value & 0xFF;
-    assert(irq != 0xFF);
-
-    Events::get().subscribe(irq, {this, &e1000::event_handler});
-    __arch_enable_legacy_irq(irq);
-    INFO2("Subscribed on IRQ %u", irq);
-    this->irqs.push_back(irq);
+    d.enable_intx();
   }
-  else
-  {
-    int msix_vectors = d.get_msix_vectors();
-    INFO2("Device has %d MSIX vectors", msix_vectors);
+  // legacy IRQ from PCI
+  uint32_t value = d.read_dword(PCI::CONFIG_INTR);
+  uint8_t irq = value & 0xFF;
+  assert(irq != 0xFF);
 
-    msix_vectors = std::min(msix_vectors, 3);
-    for (int i = 0; i < msix_vectors; i++)
-    {
-      auto irq = Events::get().subscribe({this, &e1000::event_handler});
-      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + irq);
-    }
-
-  }
+  Events::get().subscribe(irq, {this, &e1000::event_handler});
+  __arch_enable_legacy_irq(irq);
+  INFO2("Subscribed on IRQ %u", irq);
+  this->irqs.push_back(irq);
 
   if (deferred_event == 0)
   {
