@@ -173,11 +173,6 @@ namespace hw {
       // find BARs
       this->probe_resources();
     }
-
-    // enable MSI-x if its supported
-    if (this->msix_cap()) {
-      this->init_msix();
-    }
   }
 
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {

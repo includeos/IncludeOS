@@ -215,6 +215,9 @@ struct msix_t;
 
     void deactivate();
 
+    // enable INTX (in case it was disabled)
+    void enable_intx();
+
     // return max number of possible MSI-x vectors for this device
     // or, zero if MSI-x support is not enabled
     uint8_t get_msix_vectors();
@@ -228,8 +231,13 @@ struct msix_t;
     }
     // deactivate msix (mask off vectors)
     void deactivate_msix();
-    // re-enable INTX in case it was disabled
-    void enable_intx();
+    // MSI and MSI-X capabilities for this device
+    // the cap offsets and can also be used as boolean to determine
+    // device MSI/MSIX support
+    int msi_cap();
+    int msix_cap();
+    // enable msix (and disable intx)
+    void init_msix();
 
     // resource handling
     uintptr_t get_bar(uint8_t id) const noexcept
@@ -283,14 +291,6 @@ struct msix_t;
 
     // has msix support if not null
     msix_t*  msix = nullptr;
-
-    // MSI and MSI-X capabilities for this device
-    // the cap offsets and can also be used as boolean to determine
-    // device MSI/MSIX support
-    int msi_cap();
-    int msix_cap();
-    // enable msix with intx disabled
-    void init_msix();
   }; //< class PCI_Device
 
 } //< namespace hw

@@ -34,10 +34,6 @@ e1000::e1000(hw::PCI_Device& d) :
 {
   INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
 
-  if (d.has_msix())
-  {
-    d.enable_intx();
-  }
   // legacy IRQ from PCI
   uint32_t value = d.read_dword(PCI::CONFIG_INTR);
   uint8_t irq = value & 0xFF;
