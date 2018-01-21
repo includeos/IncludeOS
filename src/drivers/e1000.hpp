@@ -81,6 +81,9 @@ private:
   void link_up();
   void retrieve_hw_addr();
 
+  void     detect_eeprom();
+  uint32_t read_eeprom(uint8_t addr);
+
   uint32_t read_cmd(uint16_t cmd);
   void     write_cmd(uint16_t cmd, uint32_t val);
 
@@ -95,11 +98,11 @@ private:
 
   hw::PCI_Device& m_pcidev;
   std::vector<uint8_t> irqs;
+  bool         use_mmio = false;
+  bool         use_eeprom = false;
   uint16_t     io_base;
   uintptr_t    shm_base;
   MAC::Addr    hw_addr;
-
-  uint8_t m_irq;
 
   struct rx_desc
   {

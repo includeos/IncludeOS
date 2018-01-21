@@ -34,14 +34,31 @@ e1000::e1000(hw::PCI_Device& d) :
 {
   INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
 
-  // legacy IRQ from PCI
-  uint32_t value = d.read_dword(PCI::CONFIG_INTR);
-  this->m_irq = value & 0xFF;
-  assert(this->m_irq != 0xFF);
+  if (d.has_msix() == false)
+  {
+    // legacy IRQ from PCI
+    uint32_t value = d.read_dword(PCI::CONFIG_INTR);
+    uint8_t irq = value & 0xFF;
+    assert(irq != 0xFF);
 
-  Events::get().subscribe(this->m_irq, {this, &e1000::event_handler});
-  __arch_enable_legacy_irq(this->m_irq);
-  INFO2("Subscribed on IRQ %u", this->m_irq);
+    Events::get().subscribe(irq, {this, &e1000::event_handler});
+    __arch_enable_legacy_irq(irq);
+    INFO2("Subscribed on IRQ %u", irq);
+    this->irqs.push_back(irq);
+  }
+  else
+  {
+    int msix_vectors = d.get_msix_vectors();
+    INFO2("Device has %d MSIX vectors", msix_vectors);
+
+    msix_vectors = std::min(msix_vectors, 3);
+    for (int i = 0; i < msix_vectors; i++)
+    {
+      auto irq = Events::get().subscribe({this, &e1000::event_handler});
+      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + irq);
+    }
+
+  }
 
   if (deferred_event == 0)
   {
@@ -51,11 +68,16 @@ e1000::e1000(hw::PCI_Device& d) :
   // shared-memory & I/O address
   this->shm_base = d.get_bar(0);
   this->io_base = d.iobase();
+  this->use_mmio = this->shm_base != this->io_base;
 
   // initialize
   write_cmd(REG_CTRL, (1 << 26));
 
-  this->link_up();
+  // detect EEPROM
+  this->detect_eeprom();
+
+  // get MAC address
+  this->retrieve_hw_addr();
 
   // have to clear out the multicast filter, otherwise shit breaks
 	for(int i = 0; i < 128; i++)
@@ -106,34 +128,74 @@ e1000::e1000(hw::PCI_Device& d) :
 
   write_cmd(REG_TCTRL, (1 << 1) | (1 << 3));
 
-  // get MAC address
-  this->retrieve_hw_addr();
+  // set link up command
+  this->link_up();
 
   // GO!
   uint32_t flags = read_cmd(REG_RCTRL);
   write_cmd(REG_RCTRL, flags | RCTL_EN);
   // verify device status
-  assert(read_cmd(REG_STATUS) == 0x80080783);
+  uint32_t status = read_cmd(REG_STATUS);
+  if (status != 0x80080783)
+  {
+    printf("Status: %x (should be: %x)\n", status, 0x80080783);
+    assert(status == 0x80080783);
+  }
 }
 
 uint32_t e1000::read_cmd(uint16_t cmd)
 {
-  //hw::outl(this->io_base, cmd);
-  //return hw::inl(this->io_base + 4);
-  return *(volatile uint32_t*) (this->shm_base + cmd);
+  if (LIKELY(this->use_mmio))
+      return *(volatile uint32_t*) (this->shm_base + cmd);
+  hw::outl(this->io_base, cmd);
+  return hw::inl(this->io_base + 4);
 }
 void e1000::write_cmd(uint16_t cmd, uint32_t val)
 {
-  //hw::outl(this->io_base, cmd);
-  //hw::outl(this->io_base + 4, val);
-  *(volatile uint32_t*) (this->shm_base + cmd) = val;
+  if (LIKELY(this->use_mmio))
+      *(volatile uint32_t*) (this->shm_base + cmd) = val;
+  hw::outl(this->io_base, cmd);
+  hw::outl(this->io_base + 4, val);
 }
 
 void e1000::retrieve_hw_addr()
 {
-  auto* mac_src = (const char*) (this->shm_base + 0x5400);
-  memcpy(&this->hw_addr, mac_src, sizeof(hw_addr));
+  if (this->use_eeprom)
+  {
+    uint16_t* mac = &hw_addr.minor;
+    mac[0] = read_eeprom(0) & 0xFFFF;
+    mac[1] = read_eeprom(1) & 0xFFFF;
+    mac[2] = read_eeprom(2) & 0xFFFF;
+  }
+  else
+  {
+    auto* mac_src = (const char*) (this->shm_base + 0x5400);
+    memcpy(&this->hw_addr, mac_src, sizeof(hw_addr));
+  }
   INFO2("MAC address: %s", hw_addr.to_string().c_str());
+}
+
+void e1000::detect_eeprom()
+{
+  write_cmd(REG_EEPROM, 0x1);
+  for (int i = 0; i < 1000; i++)
+  {
+    uint32_t val = read_cmd(REG_EEPROM);
+    if (val & 0x10) {
+      this->use_eeprom = true;
+      return;
+    }
+  }
+}
+uint32_t e1000::read_eeprom(uint8_t addr)
+{
+	uint32_t tmp = 0;
+  if (this->use_eeprom)
+  {
+    write_cmd(REG_EEPROM, 1 | ((uint32_t)(addr) << 8));
+  	while (!((tmp = read_cmd(REG_EEPROM)) & (1 << 4)) );
+  }
+  return (tmp >> 16) & 0xFFFF;
 }
 
 void e1000::link_up()
@@ -141,8 +203,15 @@ void e1000::link_up()
   uint32_t flags = read_cmd(REG_CTRL);
   write_cmd(REG_CTRL, flags | ECTRL_SLU);
 
-  int success = (read_cmd(REG_STATUS) & (1 << 1)) != 0;
-  INFO("e1000", "Link up: %s", (success) ? "true" : "false");
+  uint32_t status = read_cmd(REG_STATUS);
+  int success = (status & (1 << 1)) != 0;
+  if (success == 0)
+      INFO("e1000", "Link NOT up");
+  else {
+    const char* spd = ((status >> 6) & 3) ? "1000Mb/s" : "100Mb/s";
+    const char* duplex = (status & 1) ? "Full Duplex" : "Half Duplex";
+    INFO("e1000", "Link up at %s %s", spd, duplex);
+  }
 }
 
 void e1000::intr_enable()
@@ -185,7 +254,7 @@ void e1000::event_handler()
 {
   uint32_t status = read_cmd(0xC0);
   // see: e1000_regs.h
-  //printf("e1000: event %x received\n", status);
+  printf("e1000: event %x received\n", status);
 
   // empty transmit queue
   if (status & 0x02)
