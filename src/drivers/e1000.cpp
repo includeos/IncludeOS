@@ -25,6 +25,13 @@
 #include <malloc.h>
 // loosely based on OSdev article http://wiki.osdev.org/Intel_Ethernet_i217
 
+static const uint32_t TXDW = 1 << 0; // transmit descr written back
+static const uint32_t TXQE = 1 << 1; // transmit queue empty
+static const uint32_t LSC  = 1 << 2; // link status change
+static const uint32_t RXDMTO= 1 << 4; // rx desc minimum tresh hit
+static const uint32_t RXO  = 1 << 6; // receiver (rx) overrun
+static const uint32_t RXTO = 1 << 7; // receive timer interrupt
+
 static int deferred_event = 0;
 static std::vector<e1000*> deferred_devices;
 
@@ -69,12 +76,17 @@ e1000::e1000(hw::PCI_Device& d) :
   for(int i = 0; i < 64; i++)
       write_cmd(0x4000 + i*4, 0);
 
-  /* Disables flow control */
+  // enable single MAC filter
+  init_filters();
+  set_filter(0, this->hw_addr);
+
+  // disables flow control
   write_cmd(0x0028, 0);
   write_cmd(0x002c, 0);
   write_cmd(0x0030, 0);
   write_cmd(0x0170, 0);
 
+  //this->intr_cause_clear();
   this->intr_enable();
 
   // initialize RX
@@ -88,13 +100,15 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(REG_RXDESCHI, 0);
   write_cmd(REG_RXDESCLEN, NUM_RX_DESC * sizeof(rx_desc));
   write_cmd(REG_RXDESCHEAD, 0);
-  write_cmd(REG_RXDESCTAIL, NUM_RX_DESC-1);
-
-#define BROADCAST_ENABLE  0x8000
-#define STRIP_ETH_CRC     0x4000000
-#define RX_BUFFER_2048    0x0
-  uint32_t rx_flags = RX_BUFFER_2048 | STRIP_ETH_CRC | BROADCAST_ENABLE
-            | (1 << 5) | (0 << 8) | (0 << 4) | (0 << 3) | ( 1 << 2);
+  write_cmd(REG_RXDESCTAIL, NUM_RX_DESC);
+  uint32_t rx_flags =
+        (1 << 1) // RX enable
+      //| (1 << 3) // unicast promisc enable
+      | (1 << 4) // multcast promisc enable
+      | (0 << 5) // discard jumbo packets
+      | (1 << 15) // broadcast accept mode
+      | (0 << 16) // 2048b recv buffers
+      | (1 << 26); // strip eth CRC
   write_cmd(REG_RCTRL, rx_flags);
 
   // initialize TX
@@ -110,7 +124,11 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(REG_TXDESCHEAD, 0);
   write_cmd(REG_TXDESCTAIL, NUM_TX_DESC);
 
+  // enable, PSP, 0xF coll tresh, 0x3F coll distance
+  //uint32_t tctrl = read_cmd(REG_TCTRL);
+  //write_cmd(REG_TCTRL, tctrl | (1 << 1) | (1 << 3));
   write_cmd(REG_TCTRL, (1 << 1) | (1 << 3));
+  //write_cmd(REG_TIPG, 0x702008); // p.202
 
   // set link up command
   this->link_up();
@@ -150,6 +168,31 @@ void e1000::retrieve_hw_addr()
     memcpy(&this->hw_addr, mac_src, sizeof(hw_addr));
   }
   INFO2("MAC address: %s", hw_addr.to_string().c_str());
+}
+
+void e1000::init_filters()
+{
+  uint64_t filters[16];
+  memset(filters, 0, sizeof(filters));
+  auto* scan = (uint32_t*) &filters[0];
+  for (int i = 0; i < 32; i++)
+  {
+    write_cmd(0x5400 + i*4, scan[i]);
+  }
+}
+void e1000::set_filter(int idx, MAC::Addr addr)
+{
+  assert(idx >= 0 && idx < 16);
+  uint64_t filter = construct_filter(addr);
+  for (int i = 0; i < 2; i++)
+    write_cmd(0x5400 + idx*8 + i*4, ((uint32_t*) &filter)[i]);
+}
+
+uint64_t e1000::construct_filter(MAC::Addr addr)
+{
+  uint64_t filter = 0;
+  memcpy(((char*) &filter), &addr, 6);
+  return filter | (1ull << 63);
 }
 
 void e1000::detect_eeprom()
@@ -193,9 +236,15 @@ void e1000::link_up()
 
 void e1000::intr_enable()
 {
-  write_cmd(REG_IMASK, 0x1F6DC);
-  write_cmd(REG_IMASK, 0xFF & ~4);
-  read_cmd(0xC0);
+  write_cmd(REG_IMASK, TXDW | TXQE | LSC | RXDMTO | RXO | RXTO);
+}
+void e1000::intr_disable()
+{
+  write_cmd(REG_IMC, TXDW | TXQE | LSC | RXDMTO | RXO | RXTO);
+}
+void e1000::intr_cause_clear()
+{
+  write_cmd(REG_ICRR, 0x5FD2F7);
 }
 
 net::Packet_ptr
@@ -231,10 +280,10 @@ void e1000::event_handler()
 {
   uint32_t status = read_cmd(0xC0);
   // see: e1000_regs.h
-  //printf("e1000: event %x received\n", status);
+  printf("e1000: event %x received\n", status);
 
   // empty transmit queue
-  if (status & 0x02)
+  if (status & TXQE)
   {
     //printf("tx queue empty!\n");
     if (sendq) {
@@ -245,19 +294,26 @@ void e1000::event_handler()
     }
   }
   // link status change
-  if (status & 0x04)
+  if (status & LSC)
   {
     this->link_up();
   }
-  if (status & 0x40)
+  if (status & RXDMTO)
   {
-    printf("rx overrun!\n");
+    printf("e1000: rx descriptor minimum treshold hit!\n");
+  }
+  if (status & RXO)
+  {
+    printf("e1000: rx overrun!\n");
   }
   // rx timer interrupt
-  if (status & 0x80)
+  if (status & RXTO)
   {
     recv_handler();
   }
+
+  // ready to handle more events
+  //this->intr_cause_clear();
 }
 
 void e1000::recv_handler()
@@ -269,7 +325,7 @@ void e1000::recv_handler()
     auto& tk = rx.desc[rx.current];
     auto* buf = (uint8_t*) tk.addr;
 
-    //printf("e1000: recv %u bytes\n", tk.length);
+    printf("e1000: recv %u bytes -> %p\n", tk.length, buf);
     auto pkt = recv_packet(buf, tk.length);
     Link_layer::receive(std::move(pkt));
 
@@ -314,11 +370,14 @@ void e1000::transmit_data(uint8_t* data, uint16_t length)
     auto* packet = (net::Packet*) (tk.addr - DRIVER_OFFSET - sizeof(net::Packet));
     delete packet; // call deleter on Packet to release it
   }
-  //printf("e1000: xmit %p -> %u bytes\n", data, length);
+  printf("e1000: xmit %p -> %u bytes\n", data, length);
   tk.addr   = (uint64_t) data;
   tk.length = length;
+  tk.cso    = 0;
   tk.cmd    = (1 << 3) | 0x3;
   tk.status = 0;
+  tk.css    = 0;
+  tk.special = 0;
 
   tx.current = (tx.current + 1) % NUM_TX_DESC;
   if (tx.deferred == false)

@@ -78,8 +78,13 @@ public:
 private:
   void intr_enable();
   void intr_disable();
+  void intr_cause_clear();
   void link_up();
   void retrieve_hw_addr();
+
+  void init_filters();
+  void set_filter(int, MAC::Addr);
+  uint64_t construct_filter(MAC::Addr);
 
   void     detect_eeprom();
   uint32_t read_eeprom(uint8_t addr);
