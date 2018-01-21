@@ -64,6 +64,9 @@ parser.add_argument("-j", "--config", dest="config", type = str, metavar = "PATH
 parser.add_argument('vm_location', action="store", type = str, default=".",
                     help="Location of the IncludeOS service binary, image or source")
 
+parser.add_argument("-d", "--debug", dest="debug", action="store_true",
+                    help="Start hypervisor in debug mode if available")
+
 parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 
 args = parser.parse_args()
@@ -162,6 +165,9 @@ if args.clean:
     print INFO, "Cleaning build"
     vm.clean()
 
+if (args.debug):
+    print INFO, "Booting in debug mode"
+
 if args.bridge:
     print INFO, "Creating bridge"
     subprocess.call(INCLUDEOS_PREFIX + "/includeos/scripts/create_bridge.sh", shell=True)
@@ -197,7 +203,7 @@ if (args.grub or args.grub_reuse):
 if (args.build): exit(0);
 
 if (not has_bootloader):
-    vm.boot(timeout = None, multiboot = True, kernel_args = " ".join(args.vmargs), image_name = image_name)
+    vm.boot(timeout = None, multiboot = True, debug = args.debug, kernel_args = " ".join(args.vmargs), image_name = image_name)
 else:
-    vm.boot(timeout = None, multiboot = False, kernel_args = None, image_name = image_name)
+    vm.boot(timeout = None, multiboot = False, debug = args.debug, kernel_args = None, image_name = image_name)
 exit(0);
