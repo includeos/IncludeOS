@@ -42,6 +42,7 @@ e1000::e1000(hw::PCI_Device& d) :
   INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
 
   // legacy IRQ from PCI
+  d.enable_intx();
   uint32_t value = d.read_dword(PCI::CONFIG_INTR);
   uint8_t irq = value & 0xFF;
   assert(irq != 0xFF);
@@ -58,8 +59,10 @@ e1000::e1000(hw::PCI_Device& d) :
 
   // shared-memory & I/O address
   this->shm_base = d.get_bar(0);
-  this->io_base = d.iobase();
-  this->use_mmio = this->shm_base != this->io_base;
+  this->use_mmio = this->shm_base > 0xFFFF;
+  if (this->use_mmio == false) {
+      this->io_base = d.iobase();
+  }
 
   // initialize
   write_cmd(REG_CTRL, (1 << 26));
@@ -421,10 +424,14 @@ void e1000::move_to_this_cpu()
 __attribute__((constructor))
 static void register_func()
 {
-  PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x109A, &e1000::new_instance);
+  // e1000
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x100E, &e1000::new_instance);
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x100F, &e1000::new_instance);
+  PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x109A, &e1000::new_instance);
+  PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x10EA, &e1000::new_instance);
+  // I217
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x153A, &e1000::new_instance);
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x1539, &e1000::new_instance);
-  PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x10EA, &e1000::new_instance);
+  // I219
+  PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x15B8, &e1000::new_instance);
 }
