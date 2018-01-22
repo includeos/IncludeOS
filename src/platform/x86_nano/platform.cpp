@@ -9,9 +9,10 @@ void (*current_intr_handler)() = nullptr;
 
 void __arch_poweroff()
 {
-  asm("cli; hlt;");
+  while (1) asm("cli; hlt;");
   __builtin_unreachable();
 }
+void OS::halt() { asm("hlt"); }
 
 void __platform_init()
 {

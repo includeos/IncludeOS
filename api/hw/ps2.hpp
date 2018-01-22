@@ -58,8 +58,6 @@ namespace hw
       VK_COUNT
     };
 
-    static void init();
-
     static void set_virtualkey_handler(on_virtualkey_func func) {
       get().on_virtualkey = func;
     }
@@ -69,14 +67,19 @@ namespace hw
       return kbm;
     }
 
+    static void init();
+    static uint8_t get_kbd_irq();
+    static int     get_kbd_vkey();
+    static uint8_t get_mouse_irq();
+
   private:
     KBM();
     int  mouse_x;
     int  mouse_y;
     bool mouse_button[4];
 
-    int transform_ascii(int vk);
-    int transform_vk(uint8_t scancode);
+    static int transform_vk(uint8_t scancode);
+    static int transform_ascii(int vk);
     void handle_mouse(uint8_t scancode);
 
     on_virtualkey_func on_virtualkey;
