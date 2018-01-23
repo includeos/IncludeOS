@@ -55,6 +55,12 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
   return len;
 }
 
+size_t Read_buffer::fits(const seq_t seq) const
+{
+  const auto rel = (seq - start);
+  return (rel < capacity()) ? (capacity() - rel) : 0;
+}
+
 void Read_buffer::reset(const seq_t seq)
 {
   this->reset(seq, buf->capacity());
