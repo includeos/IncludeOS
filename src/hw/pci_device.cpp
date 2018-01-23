@@ -122,23 +122,13 @@ namespace hw {
                          const uint32_t devclass)
       : pci_addr_{pci_addr}, device_id_{device_id}
   {
-    if (pci_addr == PCI::SOLO5_BLK_DUMMY_ADDR) {
-      // dummy ukvm/solo5 pci device
-      devtype_.reg = PCI::STORAGE;
-      devtype_.classcode = PCI::STORAGE; // mass storage
-    } else if (pci_addr == PCI::SOLO5_NET_DUMMY_ADDR) {
-      // dummy ukvm/solo5 pci device
-      devtype_.reg = PCI::NIC;
-      devtype_.classcode = PCI::NIC; // network device
-    } else {
-      // set master, mem and io flags
-      uint32_t cmd = read_dword(PCI_CMD_REG);
-      cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
-      write_dword(PCI_CMD_REG, cmd);
+    // set master, mem and io flags
+    uint32_t cmd = read_dword(PCI_CMD_REG);
+    cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
+    write_dword(PCI_CMD_REG, cmd);
 
-      // device class info is coming from pci manager to save a PCI read
-      this->devtype_.reg = devclass;
-    }
+    // device class info is coming from pci manager to save a PCI read
+    this->devtype_.reg = devclass;
 
     INFO2("|");
     switch (PCI::classcode(devtype_.classcode)) {
@@ -165,14 +155,10 @@ namespace hw {
     // bridges are different from other PCI devices
     if (classcode() == PCI::classcode::BRIDGE) return;
 
-    // if not a dummy ukvm/solo5 pci device
-    if (pci_addr != PCI::SOLO5_BLK_DUMMY_ADDR &&
-        pci_addr != PCI::SOLO5_NET_DUMMY_ADDR) {
-      // find and store capabilities
-      this->parse_capabilities();
-      // find BARs
-      this->probe_resources();
-    }
+    // find and store capabilities
+    this->parse_capabilities();
+    // find BARs
+    this->probe_resources();
   }
 
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {
