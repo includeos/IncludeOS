@@ -82,6 +82,8 @@ private:
   void link_up();
   void retrieve_hw_addr();
 
+  void wait_millis(int);
+
   void init_filters();
   void set_filter(int, MAC::Addr);
   uint64_t construct_filter(MAC::Addr);

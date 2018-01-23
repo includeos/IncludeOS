@@ -19,10 +19,12 @@
 #include "e1000_defs.hpp"
 #include <kernel/events.hpp>
 #include <kernel/timers.hpp>
+#include <kernel/os.hpp>
 #include <hw/ioport.hpp>
 #include <info>
 #include <cassert>
 //#define E1000_ENABLE_STATS
+//#define E1000_FAKE_EVENT_HANDLER
 
 static const uint32_t TXDW = 1 << 0; // transmit descr written back
 static const uint32_t TXQE = 1 << 1; // transmit queue empty
@@ -46,11 +48,17 @@ e1000::e1000(hw::PCI_Device& d) :
 {
   INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
 
+  if (d.msi_cap())
+  {
+    printf("legacy MSI capability detected\n");
+  }
   if (d.msix_cap())
   {
+    printf("MSI-X capability detected\n");
     d.init_msix();
     if (d.has_msix())
     {
+      printf("Initializing MSI-X...\n");
       #define IVAR_INT_ALLOC_VALID 0x8
       uint32_t ivar = 0;
       // rx queue
@@ -103,14 +111,15 @@ e1000::e1000(hw::PCI_Device& d) :
       this->io_base = d.iobase();
   }
 
-  // initialize
-  //write_cmd(REG_CTRL, (1 << 26));
-
   // detect EEPROM
   this->detect_eeprom();
 
   // get MAC address
   this->retrieve_hw_addr();
+
+  // SW reset device
+  write_cmd(REG_CTRL, (1 << 26));
+  wait_millis(1);
 
   // have to clear out the multicast filter, otherwise shit breaks
 	for(int i = 0; i < 128; i++)
@@ -127,6 +136,7 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(0x002c, 0);
   write_cmd(0x0030, 0);
   write_cmd(0x0170, 0);
+  write_cmd(REG_CTRL, read_cmd(REG_CTRL) & ~(1 << 30));
 
   // initialize RX
   for (int i = 0; i < NUM_RX_DESC; i++) {
@@ -141,12 +151,11 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(REG_RXDESCHEAD, 0);
   write_cmd(REG_RXDESCTAIL, NUM_RX_DESC);
   uint32_t rx_flags = 0
-      //| (1 << 3) // unicast promisc enable
-      | (1 << 4) // multcast promisc enable
-      | (0 << 5) // discard jumbo packets
-      | (1 << 15) // broadcast accept mode
-      | (0 << 16) // 2048b recv buffers
-      | (1 << 26); // strip eth CRC
+      //| RCTL_UPE // unicast promisc enable
+      | RCTL_MPE // multcast promisc enable
+      | RCTL_BAM // broadcast accept mode
+      | RCTL_BSIZE_2048 // 2048b recv buffers
+      | RCTL_SECRC; // strip eth CRC
   write_cmd(REG_RCTRL, rx_flags);
 
   // initialize TX
@@ -163,25 +172,23 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(REG_TXDESCTAIL, NUM_TX_DESC);
 
   // enable, PSP, 0xF coll tresh, 0x3F coll distance
-  //uint32_t tctrl = read_cmd(REG_TCTRL);
-  //write_cmd(REG_TCTRL, tctrl | (1 << 1) | (1 << 3));
-  write_cmd(REG_TCTRL, (1 << 1) | (1 << 3));
+  write_cmd(REG_TCTRL, read_cmd(REG_TCTRL) | (1 << 1) | (1 << 3));
   //write_cmd(REG_TIPG, 0x702008); // p.202
   write_cmd(REG_TIPG, (10 | (10 << 10) | (10 << 20)));
-
-  // set link up command
-  this->link_up();
 
   this->intr_cause_clear();
   this->intr_enable();
 
-  // GO!
-  uint32_t flags = read_cmd(REG_RCTRL);
-  write_cmd(REG_RCTRL, flags | RCTL_EN);
   // remove master disable bit
   write_cmd(REG_CTRL, read_cmd(REG_CTRL) & ~(1 << 2));
   // assert driver loaded (DRV_LOAD)
   write_cmd(REG_CTRL_EXT, read_cmd(REG_CTRL_EXT) | (1 << 28));
+
+  // set link up command
+  this->link_up();
+
+  // GO!
+  write_cmd(REG_RCTRL, read_cmd(REG_RCTRL) | RCTL_EN);
 
 #ifdef E1000_ENABLE_STATS
   Timers::periodic(std::chrono::seconds(2),
@@ -212,10 +219,26 @@ e1000::e1000(hw::PCI_Device& d) :
       printf("\n");
     });
 #endif
+#ifdef E1000_FAKE_EVENT_HANDLER
   Timers::periodic(std::chrono::milliseconds(1),
     [this] (int) {
       this->event_handler();
     });
+#endif
+}
+
+void e1000::wait_millis(int millis)
+{
+  bool done_waiting = false;
+  Timers::oneshot(std::chrono::milliseconds(millis),
+    [&done_waiting] (int) {
+      done_waiting = true;
+    });
+  Events::get().process_events();
+  while (done_waiting == false) {
+    OS::halt();
+    Events::get().process_events();
+  }
 }
 
 uint32_t e1000::read_cmd(uint16_t cmd)
@@ -300,8 +323,10 @@ uint32_t e1000::read_eeprom(uint8_t addr)
 
 void e1000::link_up()
 {
-  uint32_t flags = read_cmd(REG_CTRL);
-  write_cmd(REG_CTRL, flags | ECTRL_SLU);
+  // set link up CTRL.SLU
+  write_cmd(REG_CTRL, read_cmd(REG_CTRL) | ECTRL_SLU);
+
+  wait_millis(1);
 
   uint32_t status = read_cmd(REG_STATUS);
   int success = (status & (1 << 1)) != 0;
