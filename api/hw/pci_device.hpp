@@ -217,6 +217,8 @@ struct msix_t;
 
     // enable INTX (in case it was disabled)
     void enable_intx();
+    // returns true if interrupts can be asserted
+    bool intx_status();
 
     // return max number of possible MSI-x vectors for this device
     // or, zero if MSI-x support is not enabled

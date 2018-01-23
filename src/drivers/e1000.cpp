@@ -18,12 +18,11 @@
 #include "e1000.hpp"
 #include "e1000_defs.hpp"
 #include <kernel/events.hpp>
+#include <kernel/timers.hpp>
 #include <hw/ioport.hpp>
-#include <smp>
 #include <info>
 #include <cassert>
-#include <malloc.h>
-// loosely based on OSdev article http://wiki.osdev.org/Intel_Ethernet_i217
+//#define E1000_ENABLE_STATS
 
 static const uint32_t TXDW = 1 << 0; // transmit descr written back
 static const uint32_t TXQE = 1 << 1; // transmit queue empty
@@ -31,6 +30,12 @@ static const uint32_t LSC  = 1 << 2; // link status change
 static const uint32_t RXDMTO= 1 << 4; // rx desc minimum tresh hit
 static const uint32_t RXO  = 1 << 6; // receiver (rx) overrun
 static const uint32_t RXTO = 1 << 7; // receive timer interrupt
+
+#define E1000_ICR_INT_ASSERTED	0x80000000
+#define E1000_ICR_RXQ0		0x00100000	/* Rx Queue 0 Interrupt */
+#define E1000_ICR_RXQ1		0x00200000	/* Rx Queue 1 Interrupt */
+#define E1000_ICR_TXQ0		0x00400000	/* Tx Queue 0 Interrupt */
+#define E1000_ICR_TXQ1	  0x00800000	/* Tx Queue 1 Interrupt */
 
 static int deferred_event = 0;
 static std::vector<e1000*> deferred_devices;
@@ -41,16 +46,50 @@ e1000::e1000(hw::PCI_Device& d) :
 {
   INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
 
-  // legacy IRQ from PCI
-  d.enable_intx();
-  uint32_t value = d.read_dword(PCI::CONFIG_INTR);
-  uint8_t irq = value & 0xFF;
-  assert(irq != 0xFF);
+  if (d.msix_cap())
+  {
+    d.init_msix();
+    if (d.has_msix())
+    {
+      #define IVAR_INT_ALLOC_VALID 0x8
+      uint32_t ivar = 0;
+      // rx queue
+      uint8_t vec0 = Events::get().subscribe({this, &e1000::event_handler});
+      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec0);
+      ivar |= IVAR_INT_ALLOC_VALID | vec0;
 
-  Events::get().subscribe(irq, {this, &e1000::event_handler});
-  __arch_enable_legacy_irq(irq);
-  INFO2("Subscribed on IRQ %u", irq);
-  this->irqs.push_back(irq);
+      // tx queue
+      uint8_t vec1 = Events::get().subscribe({this, &e1000::event_handler});
+      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec1);
+      ivar |= (IVAR_INT_ALLOC_VALID | vec1) << 8;
+
+      // other causes
+      uint8_t vec2 = Events::get().subscribe({this, &e1000::event_handler});
+      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec2);
+      ivar |= (IVAR_INT_ALLOC_VALID | vec1) << 16;
+
+      // enable interrupts on every writeback
+      ivar |= 1 << 31;
+      write_cmd(REG_IVAR, ivar);
+
+      // enable PBA MSI-X support
+      write_cmd(REG_CTRL_EXT, read_cmd(REG_CTRL_EXT) | 0x80000000);
+    }
+  }
+  if (d.has_msix() == false)
+  {
+    // legacy IRQ from PCI
+    uint32_t value = d.read_dword(PCI::CONFIG_INTR);
+    uint8_t irq = value & 0xFF;
+    assert(irq != 0xFF);
+
+    __arch_enable_legacy_irq(irq);
+    Events::get().subscribe(irq, {this, &e1000::event_handler});
+    this->irqs.push_back(irq);
+
+    d.enable_intx();
+    //assert(d.intx_status() && "INTX must be active");
+  }
 
   if (deferred_event == 0)
   {
@@ -65,7 +104,7 @@ e1000::e1000(hw::PCI_Device& d) :
   }
 
   // initialize
-  write_cmd(REG_CTRL, (1 << 26));
+  //write_cmd(REG_CTRL, (1 << 26));
 
   // detect EEPROM
   this->detect_eeprom();
@@ -89,9 +128,6 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(0x0030, 0);
   write_cmd(0x0170, 0);
 
-  //this->intr_cause_clear();
-  this->intr_enable();
-
   // initialize RX
   for (int i = 0; i < NUM_RX_DESC; i++) {
     rx.desc[i].addr = (uint64_t) new_rx_packet();
@@ -104,8 +140,7 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(REG_RXDESCLEN, NUM_RX_DESC * sizeof(rx_desc));
   write_cmd(REG_RXDESCHEAD, 0);
   write_cmd(REG_RXDESCTAIL, NUM_RX_DESC);
-  uint32_t rx_flags =
-        (1 << 1) // RX enable
+  uint32_t rx_flags = 0
       //| (1 << 3) // unicast promisc enable
       | (1 << 4) // multcast promisc enable
       | (0 << 5) // discard jumbo packets
@@ -132,13 +167,55 @@ e1000::e1000(hw::PCI_Device& d) :
   //write_cmd(REG_TCTRL, tctrl | (1 << 1) | (1 << 3));
   write_cmd(REG_TCTRL, (1 << 1) | (1 << 3));
   //write_cmd(REG_TIPG, 0x702008); // p.202
+  write_cmd(REG_TIPG, (10 | (10 << 10) | (10 << 20)));
 
   // set link up command
   this->link_up();
 
+  this->intr_cause_clear();
+  this->intr_enable();
+
   // GO!
   uint32_t flags = read_cmd(REG_RCTRL);
   write_cmd(REG_RCTRL, flags | RCTL_EN);
+  // remove master disable bit
+  write_cmd(REG_CTRL, read_cmd(REG_CTRL) & ~(1 << 2));
+  // assert driver loaded (DRV_LOAD)
+  write_cmd(REG_CTRL_EXT, read_cmd(REG_CTRL_EXT) | (1 << 28));
+
+#ifdef E1000_ENABLE_STATS
+  Timers::periodic(std::chrono::seconds(2),
+    [this] (int) {
+      uint32_t stat = this->read_cmd(REG_STATUS);
+      printf("Full Duplex: %u\n", stat & (1 << 0));
+      printf("Link Up: %u\n", stat & (1 << 1));
+      printf("PHY powered off: %u\n", stat & (1 << 5));
+      printf("Transmission paused: %u\n", stat & (1 << 4));
+      printf("Read comp blocked: %u\n", stat & (1 << 8));
+      printf("LAN init done: %u\n", stat & (1 << 9));
+      printf("Master enable status: %u\n", stat & (1 << 19));
+      printf("\n");
+      uint64_t val;
+      val = this->read_cmd(0x40C0);
+      val |= (uint64_t) this->read_cmd(0x40C4) << 32;
+      printf("Octets received: %lu\n", val);
+      val = this->read_cmd(0x40C8);
+      val |= (uint64_t) this->read_cmd(0x40CC) << 32;
+      printf("Octets transmitted: %lu\n", val);
+      printf("Packets RX total: %u\n", this->read_cmd(0x40D0));
+      printf("Packets TX total: %u\n", this->read_cmd(0x40D4));
+      printf("Mcast TX count: %u\n", this->read_cmd(0x40F0));
+      printf("Bcast TX count: %u\n", this->read_cmd(0x40F4));
+      printf("Intr asserted: %u\n", this->read_cmd(0x4100));
+      printf("\n");
+      printf("Intr status: %x\n", this->read_cmd(REG_ICRR));
+      printf("\n");
+    });
+#endif
+  Timers::periodic(std::chrono::milliseconds(1),
+    [this] (int) {
+      this->event_handler();
+    });
 }
 
 uint32_t e1000::read_cmd(uint16_t cmd)
@@ -240,6 +317,9 @@ void e1000::link_up()
 void e1000::intr_enable()
 {
   write_cmd(REG_IMASK, TXDW | TXQE | LSC | RXDMTO | RXO | RXTO);
+  // enable interrupt auto-masking (IAME)
+  write_cmd(REG_CTRL_EXT, read_cmd(REG_CTRL_EXT) | (1 << 27));
+  //write_cmd(REG_ICRR, ~0);
 }
 void e1000::intr_disable()
 {
@@ -282,8 +362,9 @@ uintptr_t e1000::new_rx_packet()
 void e1000::event_handler()
 {
   uint32_t status = read_cmd(0xC0);
+  if (status == 0) return;
   // see: e1000_regs.h
-  printf("e1000: event %x received\n", status);
+  //printf("e1000: event %x received\n", status);
 
   // empty transmit queue
   if (status & TXQE)
@@ -316,7 +397,7 @@ void e1000::event_handler()
   }
 
   // ready to handle more events
-  //this->intr_cause_clear();
+  this->intr_cause_clear();
 }
 
 void e1000::recv_handler()

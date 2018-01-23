@@ -270,4 +270,17 @@ namespace hw {
     write_dword(PCI_CMD_REG, 0);
   }
 
+  void PCI_Device::enable_intx()
+  {
+    auto cmd = read16(PCI_CMD_REG);
+    write16(PCI_CMD_REG, cmd & ~(1 << 10));
+    // delete msi-x
+    if (this->msix) delete this->msix;
+  }
+  bool PCI_Device::intx_status()
+  {
+    auto stat = read16(PCI_STATUS_REG);
+    return stat & (1 << 3);
+  }
+
 } //< namespace hw
