@@ -119,6 +119,7 @@ vm = vmrunner.vm(config = config)
 
 # Don't listen to events needed by testrunner
 vm.on_success(lambda(x): None, do_exit = False)
+vm.on_panic(lambda(x): None, do_exit = False)
 
 file_extension = os.path.splitext(args.vm_location)[1]
 

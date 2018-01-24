@@ -75,15 +75,13 @@ void __platform_init()
   // read SMBIOS tables
   SMBIOS::init();
 
-  // setup APIC, APIC timer, SMP etc.
-  APIC::init();
-
+  // setup process tables
   INFO("x86", "Setting up TLS");
   initialize_tls_for_smp();
 
   // enable fs/gs for local APIC
   INFO("x86", "Setting up GDT, TLS, IST");
-  initialize_gdt_for_cpu(APIC::get().get_id());
+  initialize_gdt_for_cpu(0);
 #ifdef ARCH_x86_64
   // setup Interrupt Stack Table
   x86::ist_initialize_for_cpu(0, 0x9D3F0);
@@ -93,6 +91,9 @@ void __platform_init()
   INFO("x86", "Creating CPU exception handlers");
   x86::idt_initialize_for_cpu(0);
   Events::get(0).init_local();
+
+  // setup APIC, APIC timer, SMP etc.
+  APIC::init();
 
   // initialize and start registered APs found in ACPI-tables
 #ifndef INCLUDEOS_SINGLE_THREADED

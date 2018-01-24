@@ -84,7 +84,7 @@ void revenant_main(int cpu)
   // show we are online, and verify CPU ID is correct
   SMP::global_lock();
   auto stack = (uintptr_t) get_cpu_esp();
-  INFO2("AP %d started at %p", SMP::cpu_id(), this_stack);
+  INFO2("AP %d started at %p", SMP::cpu_id(), (void*) this_stack);
   SMP::global_unlock();
   assert(cpu == SMP::cpu_id());
   assert(stack >= this_stack_end && stack < this_stack);

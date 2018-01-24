@@ -231,7 +231,7 @@ namespace x86 {
               ioapic.id, ioapic.addr_base, ioapic.intr_base);
         }
         break;
-      case 2:
+      case 2: // interrupt source override
         {
           auto& redirect = *(override_t*) rec;
           overrides.push_back(redirect);
@@ -239,8 +239,16 @@ namespace x86 {
               redirect.bus_source, redirect.irq_source, redirect.global_intr);
         }
         break;
+      case 4: // non-maskable interrupts
+        {
+          auto& nmi = *(nmi_t*) rec;
+          nmis.push_back(nmi);
+          //INFO2("NMI for CPU %u (flags %x) on LINT %u",
+          //      nmi.cpu, nmi.flags, nmi.lint);
+          break;
+        }
       default:
-        debug("Unrecognized ACPI MADT type: %u\n", rec->type);
+        printf("Unrecognized ACPI MADT type: %u\n", rec->type);
       }
       // decrease length as we go
       len -= rec->length;
