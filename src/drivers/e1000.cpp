@@ -94,9 +94,6 @@ e1000::e1000(hw::PCI_Device& d) :
     __arch_enable_legacy_irq(irq);
     Events::get().subscribe(irq, {this, &e1000::event_handler});
     this->irqs.push_back(irq);
-
-    d.enable_intx();
-    //assert(d.intx_status() && "INTX must be active");
   }
 
   if (deferred_event == 0)

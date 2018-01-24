@@ -256,7 +256,7 @@ namespace hw {
     write_dword(PCI_CMD_REG, 0);
   }
 
-  void PCI_Device::enable_intx()
+  void PCI_Device::intx_enable()
   {
     auto cmd = read16(PCI_CMD_REG);
     write16(PCI_CMD_REG, cmd & ~(1 << 10));
