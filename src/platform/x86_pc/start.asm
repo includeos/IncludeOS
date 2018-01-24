@@ -27,6 +27,10 @@ global __avx_enabled
 %define  MB_MAGIC   0x1BADB002
 %define  MB_FLAGS   0x3  ;; ALIGN + MEMINFO
 
+;; stack base address at EBDA border
+;; NOTE: Multiboot can use 9d400 to 9ffff
+%define  STACK_LOCATION     0x9D3F0
+
 extern _MULTIBOOT_START_
 extern _LOAD_START_
 extern _LOAD_END_
@@ -76,9 +80,8 @@ rock_bottom:
   mov cx, 0x18 ;; GS segment
   mov gs, cx
 
-  ;; 32-bit stack base address at EBDA border
-  ;; NOTE: Multiboot can use 9fc00 to 9ffff
-  mov esp, 0x9FBF0
+  ;; 32-bit stack ptr
+  mov esp, STACK_LOCATION
   mov ebp, esp
 
   ;; enable SSE before we enter C/C++ land

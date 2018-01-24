@@ -45,8 +45,9 @@
 namespace hw
 {
   typedef void (*port_func)(uint8_t);
-  port_func keyboard_write;
-  port_func mouse_write;
+  static bool      ps2_initialized = false;
+  static port_func keyboard_write;
+  static port_func mouse_write;
 
   static inline void ps2_flush()
   {
@@ -139,12 +140,26 @@ namespace hw
     (void) scancode;
   }
 
-  KBM::KBM() {
-    this->on_virtualkey = [] (int) {};
-    this->on_mouse = [] (int,int,int) {};
+  uint8_t KBM::get_kbd_irq()
+  {
+    return (keyboard_write == write_port1) ? PORT1_IRQ : PORT2_IRQ;
   }
+  int KBM::get_kbd_vkey()
+  {
+    uint8_t byte = read_fast();
+    // transform to virtual key
+    return transform_vk(byte);
+  }
+  uint8_t KBM::get_mouse_irq()
+  {
+    return (keyboard_write == write_port1) ? PORT2_IRQ : PORT1_IRQ;
+  }
+
   void KBM::init()
   {
+    if (ps2_initialized) return;
+    ps2_initialized = true;
+
     // disable ports
     ctl_send(CMD_DISABLE_PORT1);
     ctl_send(CMD_DISABLE_PORT2);
@@ -203,27 +218,13 @@ namespace hw
     while (scanset == 0xFA) scanset = read_data();
 
     // route and enable interrupt handlers
-    const uint8_t KEYB_IRQ = (keyboard_write == write_port1) ? PORT1_IRQ : PORT2_IRQ;
-    const uint8_t MOUS_IRQ = (KEYB_IRQ == PORT1_IRQ) ? PORT2_IRQ : PORT1_IRQ;
+    const uint8_t KEYB_IRQ = get_kbd_irq();
+    const uint8_t MOUS_IRQ = get_mouse_irq();
     assert(KEYB_IRQ != MOUS_IRQ);
 
     // need to route IRQs from IO APIC to BSP LAPIC
     __arch_enable_legacy_irq(KEYB_IRQ);
     __arch_enable_legacy_irq(MOUS_IRQ);
-
-    Events::get().subscribe(KEYB_IRQ,
-    [KEYB_IRQ] {
-      uint8_t byte = read_fast();
-      // transform to virtual key
-      int key = get().transform_vk(byte);
-      // call handler
-      get().on_virtualkey(key);
-    });
-
-    Events::get().subscribe(MOUS_IRQ,
-    [MOUS_IRQ] {
-      get().handle_mouse(read_fast());
-    });
 
     /*
     // reset and enable keyboard
@@ -236,4 +237,30 @@ namespace hw
     //ctl_send(0x60, ctl_read(0x20) | 0x1 | 0x2);
     */
   }
+
+  KBM::KBM()
+  {
+    this->on_virtualkey = [] (int) {};
+    this->on_mouse = [] (int,int,int) {};
+
+    if (ps2_initialized == false) {
+      KBM::init();
+    }
+
+    const uint8_t KEYB_IRQ = get_kbd_irq();
+    const uint8_t MOUS_IRQ = get_mouse_irq();
+
+    Events::get().subscribe(KEYB_IRQ,
+    [] {
+      int key = KBM::get_kbd_vkey();
+      // call handler
+      get().on_virtualkey(key);
+    });
+
+    Events::get().subscribe(MOUS_IRQ,
+    [] {
+      get().handle_mouse(read_fast());
+    });
+  }
+
 }

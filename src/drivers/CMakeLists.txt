@@ -24,6 +24,9 @@ add_dependencies(virtionet PrecompiledLibraries)
 add_library(vmxnet3 STATIC vmxnet3.cpp)
 add_dependencies(vmxnet3 PrecompiledLibraries)
 
+add_library(e1000 STATIC e1000.cpp)
+add_dependencies(e1000 PrecompiledLibraries)
+
 add_library(ip4_reassembly STATIC "ip4_reassembly.cpp")
 add_dependencies(ip4_reassembly PrecompiledLibraries)
 
@@ -42,14 +45,17 @@ add_dependencies(disklog_reader PrecompiledLibraries)
 add_library(vga_output STATIC vgaout.cpp)
 add_dependencies(vga_output PrecompiledLibraries)
 
+add_library(vga_emergency STATIC vga_emergency.cpp)
+add_dependencies(vga_emergency PrecompiledLibraries)
+
 install(TARGETS
     ide_readwrite ide_readonly ide_writeonly
     virtionet virtioblk
-    vmxnet3
+    vmxnet3 e1000
     ip4_reassembly
     heap_debugging
     boot_logger disk_logger disklog_reader
-    vga_output
+    vga_output vga_emergency
     DESTINATION includeos/${ARCH}/drivers)
 
 if(WITH_SOLO5)

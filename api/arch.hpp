@@ -63,6 +63,7 @@ inline void __sw_barrier() noexcept
 struct arch_system_info_t
 {
   std::string uuid;
+  uint64_t    physical_memory;
 };
 const arch_system_info_t& __arch_system_info() noexcept;
 

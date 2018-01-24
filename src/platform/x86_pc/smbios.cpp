@@ -20,6 +20,7 @@
 #include <cstring>
 #include <cstdio>
 #include <info>
+#include <kernel/os.hpp>
 
 namespace x86
 {
@@ -78,6 +79,32 @@ namespace x86
     }
   };
 
+  struct PhysMemArray : public Header
+  {
+    struct bits_t
+    {
+      uint8_t location;
+      uint8_t use;
+      uint8_t error_corr_mtd;
+      uint32_t capacity32;
+      uint16_t mem_err_info_handle;
+      uint16_t num_slots;
+      uint64_t capacity64;
+
+    } __attribute__((packed));
+
+    const bits_t& info() const noexcept {
+      return *(bits_t*) &data[0];
+    }
+
+    uintptr_t capacity() const noexcept {
+      const auto& inf = info();
+      return (inf.capacity32 == 0x80000000)
+        ? inf.capacity64 : inf.capacity32 * 1024;
+    }
+
+  };
+
   void SMBIOS::parse(const char* mem)
   {
     auto* table = (const EntryPoint*) mem;
@@ -109,10 +136,23 @@ namespace x86
           INFO2("System UUID: %s", sysinfo.uuid.c_str());
         }
         break;
+      case 16:
+        {
+          const auto* array = (PhysMemArray*) hdr;
+          sysinfo.physical_memory = array->capacity();
+          INFO2("Physical memory array with %lu MB capacity",
+                sysinfo.physical_memory / (1024*1024));
+        }
+        break;
       }
 
       hdr = hdr->next();
       if (hdr->type == 0) break;
+    }
+
+    // salvage operation for when no memory array found
+    if (sysinfo.physical_memory == 0) {
+      sysinfo.physical_memory = OS::memory_end()+1;
     }
   }
 

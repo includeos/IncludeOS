@@ -86,7 +86,7 @@ void __platform_init()
   initialize_gdt_for_cpu(APIC::get().get_id());
 #ifdef ARCH_x86_64
   // setup Interrupt Stack Table
-  x86::ist_initialize_for_cpu(0, 0xA00000);
+  x86::ist_initialize_for_cpu(0, 0x9D3F0);
 #endif
 
   // IDT manager: Interrupt and exception handlers

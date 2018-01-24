@@ -393,6 +393,9 @@ namespace uplink {
     writer.Key("arch");
     writer.String(OS::arch());
 
+    writer.Key("physical_ram");
+    writer.Uint64(sysinfo.physical_memory);
+
     // CPU Features
     auto features = CPUID::detect_features_str();
     writer.Key("cpu_features");
