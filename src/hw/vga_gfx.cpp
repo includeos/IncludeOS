@@ -1,5 +1,6 @@
 #include <hw/vga_gfx.hpp>
 #include <hw/ioport.hpp>
+#include <x86intrin.h>
 #include <cassert>
 int   VGA_gfx::m_width  = 0;
 int   VGA_gfx::m_height = 0;
@@ -137,13 +138,13 @@ void VGA_gfx::set_mode(modes_t mode)
 
 void VGA_gfx::set_palette(const uint32_t colors[256])
 {
-  hw::outb(0x03C6, 0xff);
+  hw::outb(0x03c6, 0xff);
   hw::outb(0x03c8, 0x0);
   for (int c = 0; c < 256; c++)
   {
-    hw::outb(0x3c9, (colors[c] >>  0) & 0xFF);
-    hw::outb(0x3c9, (colors[c] >>  8) & 0xFF);
-    hw::outb(0x3c9, (colors[c] >> 16) & 0xFF);
+    hw::outb(0x3c9, (colors[c] >>  2) & 0x3F);
+    hw::outb(0x3c9, (colors[c] >> 10) & 0x3F);
+    hw::outb(0x3c9, (colors[c] >> 18) & 0x3F);
   }
 }
 
@@ -412,7 +413,21 @@ void VGA_gfx::apply_default_palette()
   VGA_gfx::set_palette(palette);
 }
 
-void VGA_gfx::clear()
+void VGA_gfx::clear(uint8_t clr)
 {
-  memset(address(), 0, size());
+  const auto addr = (__m128i*) VGA_gfx::address();
+  const auto end  = addr + VGA_gfx::size() / 16;
+  const auto tmp = _mm_set1_epi8(clr);
+
+  for (auto* imm = addr; imm < end; imm++)
+    _mm_stream_si128(imm, tmp);
+}
+void VGA_gfx::blit_from(const void* vsrc)
+{
+  const auto addr = (__m128i*) VGA_gfx::address();
+  const auto end  = addr + VGA_gfx::size() / 16;
+  const auto src = (__m128i*) vsrc;
+
+  for (intptr_t i = 0; i < end - addr; i++)
+    _mm_stream_si128(&addr[i], src[i]);
 }

@@ -16,7 +16,11 @@ struct VGA_gfx
 
   static void set_palette(const uint32_t colors[256]);
   static void apply_default_palette();
-  static void clear();
+
+  // clears screen fast with given color
+  static void clear(uint8_t color = 0);
+  // blits to screen from SSE-aligned backbuffer
+  static void blit_from(const void*);
 
   static inline void* address() noexcept
   {
@@ -26,7 +30,6 @@ struct VGA_gfx
   {
     return width() * height() * bits() / 8;
   }
-
 
 private:
   static void write_regs(uint8_t[]);
