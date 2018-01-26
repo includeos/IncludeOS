@@ -53,7 +53,7 @@ public:
   Elf_binary(Span data)
     : data_{data}
   {
-    validate();
+    Expects(is_ELF());
   }
 
   const Elf_header& elf_header() const;
