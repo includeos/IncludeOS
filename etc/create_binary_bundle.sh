@@ -16,13 +16,13 @@ export num_jobs=${num_jobs:--j}	# Specify number of build jobs
 # Version numbers
 export binutils_version=${binutils_version:-2.28} #ftp://ftp.gnu.org/gnu/binutils
 export musl_version=${musl_version:-v1.1.18}
-export clang_version=${clang_version:-3.9}				# http://releases.llvm.org/
-#export LLVM_TAG=${LLVM_TAG:-RELEASE_391/final}			# http://llvm.org/svn/llvm-project/llvm/tags
-export llvm_branch=${llvm_branch:-release_39}
+export clang_version=${clang_version:-4.0}				# http://releases.llvm.org/
+export llvm_branch=${llvm_branch:-release_40}
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
 [ ! -v do_musl ] && do_musl=1
+[ ! -v do_libunwind ] && do_libunwind=1;
 [ ! -v do_includeos ] &&  do_includeos=1
 [ ! -v do_llvm ] &&  do_llvm=1
 [ ! -v do_bridge ] &&  do_bridge=1
@@ -117,11 +117,10 @@ function do_build {
     $INCLUDEOS_SRC/etc/build_llvm.sh
   fi
 
+
   #
   # Create the actual bundle
   #
-
-
   BUNDLE_DIR=$BUNDLE_PATH/$DIR_NAME
   BUNDLE_LOC=${BUNDLE_DIR}/$ARCH
 
@@ -129,31 +128,47 @@ function do_build {
 
   musl=$TEMP_INSTALL_DIR/$TARGET/lib
   llvm=$BUILD_DIR/build_llvm
-
-
   libcpp=$llvm/lib/libc++.a
-  libcppabi=$llvm/lib/libc++abi.a
   libunwind=$llvm/lib/libunwind.a
+  libcppabi=$llvm/lib/libc++abi.a
 
   # Includes
   include_musl=$TEMP_INSTALL_DIR/$TARGET/include
   include_libcxx=$llvm/include/c++/v1
+  include_libunwind=$BUILD_DIR/llvm/projects/libunwind/include/
 
   # Make directory-tree
   mkdir -p $BUNDLE_LOC
   mkdir -p $BUNDLE_LOC/musl
   mkdir -p $BUNDLE_LOC/libcxx
-
+  mkdir -p $BUNDLE_LOC/libunwind
+  mkdir -p $BUNDLE_LOC/libunwind/include
 
   # Copy binaries
   cp $libcpp $BUNDLE_LOC/libcxx/
   cp $libcppabi $BUNDLE_LOC/libcxx/
-  cp $libunwind $BUNDLE_LOC/libcxx/
+  cp $libunwind $BUNDLE_LOC/libunwind/
   cp -r $musl $BUNDLE_LOC/musl/
 
   # Copy includes
   cp -r $include_musl $BUNDLE_LOC/musl/
   cp -r $include_libcxx $BUNDLE_LOC/libcxx/include
+  cp $include_libunwind/libunwind.h $BUNDLE_LOC/libunwind/include
+  cp $include_libunwind/__libunwind_config.h $BUNDLE_LOC/libunwind/include
+
+  if [ $ARCH == "i686" ]
+  then
+    crtbegin=`$CC -m32 --print-file-name crtbegin.o`
+    crtend=`$CC -m32 --print-file-name crtend.o`
+  else
+    crtbegin=`$CC --print-file-name crtbegin.o`
+    crtend=`$CC --print-file-name crtend.o`
+  fi
+
+  mkdir -p $BUNDLE_LOC/crt
+  cp $crtbegin $BUNDLE_LOC/crt/
+  cp $crtend $BUNDLE_LOC/crt/
+
 }
 
 for B_ARCH in $BUNDLE_ARCHES

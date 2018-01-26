@@ -8,6 +8,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
+set(INSTALL_LOC_LIBGCC $ENV{INCLUDEOS_PREFIX}/includeos)
 
 message(STATUS "Target CPU architecture ${ARCH}")
 set(TRIPLE "${ARCH}-pc-linux-elf")
@@ -33,18 +34,10 @@ endif()
 enable_language(ASM_NASM)
 
 
-# Find compiler-rt (LLVM's libgcc alternative)
-execute_process(COMMAND ${CMAKE_CXX_COMPILER}
-  -nostdlib -rtlib=compiler-rt -print-libgcc-file-name -target ${TRIPLE}
-  OUTPUT_VARIABLE compiler_rt_path OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-message(STATUS "Using compiler-rt at ${compiler_rt_path}")
-#set(compiler_rt_path "/usr/lib/llvm-4.0/bin/../lib/clang/4.0.0/lib/linux/libclang_rt.builtins-i686.a")
-
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} --rtlib=compiler-rt -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
+set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # Compiler optimization
@@ -224,7 +217,7 @@ include_directories(${LOCAL_INCLUDES})
 include_directories(${INSTALL_LOC}/api/posix)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
 include_directories(${INSTALL_LOC}/${ARCH}/include/musl)
-
+include_directories(${INSTALL_LOC}/${ARCH}/include/libunwind)
 if ("${PLATFORM}" STREQUAL "x86_solo5")
   include_directories(${INSTALL_LOC}/${ARCH}/include/solo5)
 endif()
@@ -261,16 +254,16 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
   set(PRE_BSS_SIZE  "--defsym PRE_BSS_AREA=0x200000")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_${ELF} -N --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE} ") #${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
+set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr  ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE} ${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
+set(CRTN "${INSTALL_LOC}/${ARCH}/lib/crtn.o")
+set(CRTEND "${INSTALL_LOC}/${ARCH}/lib/crtend.o")
+set(CRTI "${INSTALL_LOC}/${ARCH}/lib/crti.o")
 
-add_library(crti STATIC IMPORTED)
-set_target_properties(crti PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(crti PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrti.a)
-
-target_link_libraries(service --whole-archive crti --no-whole-archive)
+target_link_libraries(service ${CRTI})
+target_link_libraries(service ${CRT1})
 
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
@@ -310,17 +303,13 @@ set_target_properties(musl_syscalls PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/
 add_library(libcxx STATIC IMPORTED)
 add_library(cxxabi STATIC IMPORTED)
 add_library(libunwind STATIC IMPORTED)
-add_library(compiler_rt STATIC IMPORTED)
+
 set_target_properties(libcxx PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libc++.a)
 set_target_properties(cxxabi PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(cxxabi PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libc++abi.a)
 set_target_properties(libunwind PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libunwind PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libunwind.a)
-set_target_properties(compiler_rt PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(compiler_rt PROPERTIES IMPORTED_LOCATION ${compiler_rt_path})
-
-
 
 add_library(libc STATIC IMPORTED)
 set_target_properties(libc PROPERTIES LINKER_LANGUAGE C)
@@ -418,9 +407,10 @@ if(TARFILE)
   target_link_libraries(service --whole-archive tarfile --no-whole-archive)
 endif(TARFILE)
 
-add_library(crtn STATIC IMPORTED)
-set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(crtn PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrtn.a)
+#add_library(crtn STATIC IMPORTED)
+#set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)
+#set_target_properties(crtn PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrtn.a)
+
 
 if ("${PLATFORM}" STREQUAL "x86_solo5")
   target_link_libraries(service solo5 --whole-archive crtn --no-whole-archive)
@@ -459,11 +449,11 @@ target_link_libraries(service
   libpthread
   libunwind
   libcxx
-  compiler_rt
 
   musl_syscalls
 
-  #--whole-archive crtn --no-whole-archive
+  ${CRTEND}
+  ${CRTN}
   )
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
@@ -473,13 +463,15 @@ if (debug)
   set(STRIP_LV /bin/true)
 endif()
 
-add_custom_target(
-  pruned_elf_symbols ALL
-  COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
-  COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
-  COMMAND ${STRIP_LV}
-  DEPENDS service
-)
+if (NOT debug)
+  add_custom_target(
+    pruned_elf_symbols ALL
+    COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
+    COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
+    COMMAND ${STRIP_LV}
+    DEPENDS service
+    )
+endif()
 
 # create .img files too automatically
 add_custom_target(

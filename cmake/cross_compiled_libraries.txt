@@ -71,6 +71,8 @@ set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibra
 
 set(LIBCXX_INCLUDE_DIR ${PRECOMPILED_DIR}/libcxx/include/)
 set(LIBCXX_LIB_DIR ${PRECOMPILED_DIR}/libcxx/)
+set(LIBUNWIND_INCLUDE_DIR ${PRECOMPILED_DIR}/libunwind/include/)
+set(LIBUNWIND_LIB_DIR ${PRECOMPILED_DIR}/libunwind/)
 
 add_library(libcxx STATIC IMPORTED)
 add_library(libcxxabi STATIC IMPORTED)
@@ -80,12 +82,10 @@ add_dependencies(libcxx PrecompiledLibraries)
 add_dependencies(libcxxabi PrecompiledLibraries)
 set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++.a)
 set_target_properties(libcxxabi PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++abi.a)
-set_target_properties(libunwind PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libunwind.a)
+set_target_properties(libunwind PROPERTIES IMPORTED_LOCATION ${LIBUNWIND_LIB_DIR}/libunwind.a)
 
 set(MUSL_INCLUDE_DIR ${PRECOMPILED_DIR}/musl/include/)
 set(MUSL_LIB_DIR ${PRECOMPILED_DIR}/musl/lib)
-
-#set(LIBGCC_LIB_DIR ${PRECOMPILED_DIR}/libgcc/)
 
 add_library(libc STATIC IMPORTED)
 set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${MUSL_LIB_DIR}/libc.a)
@@ -100,6 +100,7 @@ set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
 
 # installation instructions
 install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libcxx)
+install(DIRECTORY ${LIBUNWIND_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libunwind)
 
 install(DIRECTORY ${MUSL_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/musl)
 
@@ -123,5 +124,5 @@ install(FILES
   ${musl_objs}
   ${LIBCXX_LIB_DIR}/libc++.a
   ${LIBCXX_LIB_DIR}/libc++abi.a
-  ${LIBCXX_LIB_DIR}/libunwind.a
+  ${LIBUNWIND_LIB_DIR}/libunwind.a
   DESTINATION includeos/${ARCH}/lib)
