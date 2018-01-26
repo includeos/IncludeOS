@@ -125,6 +125,7 @@ void __platform_init()
 
   // Print registered devices
   hw::Devices::print_devices();
+  kprintf("Platform init done \n");
 }
 
 void __arch_enable_legacy_irq(uint8_t irq)
@@ -186,7 +187,7 @@ namespace x86
     // should be at least 8-byte aligned
     assert((((uintptr_t) table) & 7) == 0);
 #ifdef ARCH_x86_64
-    GDT::set_fs(table); // TLS self-ptr in fs
+    //GDT::set_fs(table); // TLS self-ptr in fs
     GDT::set_gs(&table->cpuid); // PER_CPU on gs
 #else
     // initialize GDT for this core
@@ -199,7 +200,7 @@ namespace x86
     // load GDT and refresh segments
     GDT::reload_gdt(gdt);
     // enable per-cpu and per-thread
-    GDT::set_fs(fs);
+    //GDT::set_fs(fs);
     GDT::set_gs(gs);
 #endif
     // hardware barrier

@@ -49,15 +49,12 @@ struct GDT
   static void reload_gdt(GDT& base) noexcept;
 
 #if defined(ARCH_x86_64)
-#define MSR_FS_BASE 0xC0000100
-#define MSR_GS_BASE 0xC0000101
-#define MSR_GS_SWAP 0xC0000102
 
   static inline void set_fs(void* entry) noexcept {
-    CPU::write_msr(MSR_FS_BASE, (uintptr_t) entry);
+    CPU::write_msr(IA32_FS_BASE, (uintptr_t) entry);
   }
   static inline void set_gs(void* entry) noexcept {
-    CPU::write_msr(MSR_GS_BASE, (uintptr_t) entry);
+    CPU::write_msr(IA32_GS_BASE, (uintptr_t) entry);
   }
 #elif defined(ARCH_i686)
   static inline void set_fs(uint16_t entry) noexcept {
