@@ -9,8 +9,8 @@ void* syscall_SYS_mmap(void *addr, size_t length, int prot, int flags,
 {
   uintptr_t res = heap_begin + current_pos;
   current_pos += length;
-  STRACE("syscall mmap: addr=%p len=%u prot=%d fl=%d fd=%d off=%d\n",
-    addr, length, prot, flags, fd, offset);
+  STRACE("syscall mmap: addr=%p len=%u prot=%d fl=%d fd=%d off=%d res=%p\n",
+         addr, length, prot, flags, fd, offset, res);
   return (void*)res;
 }
 

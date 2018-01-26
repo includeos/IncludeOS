@@ -1,7 +1,10 @@
 #include "common.hpp"
 
 extern "C"
-long syscall_SYS_close() {
-  STUB("close");
+int syscall_SYS_close(int fd) {
+  STRACE("close fd=%i\n", fd);
+
+  if (!fd) return -1;
+
   return 0;
 }

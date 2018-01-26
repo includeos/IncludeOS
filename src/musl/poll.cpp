@@ -1,6 +1,8 @@
 #include "common.hpp"
 #include <poll.h>
 
+#warning stub
+
 extern "C"
 long syscall_SYS_poll(struct pollfd *fds, nfds_t nfds, int timeout)
 {

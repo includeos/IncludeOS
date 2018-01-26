@@ -2,6 +2,6 @@
 
 #include <kprint>
 
-#define STUB(X) kprintf("syscall %s called\n", X)
+#define STUB(X) kprintf("<stubtrace> stubbed syscall %s  called\n", X)
 
-#define STRACE(X, ...) kprintf(X, ##__VA_ARGS__)
+#define STRACE(X, ...) kprintf("<strace> " X, ##__VA_ARGS__)
