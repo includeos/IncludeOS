@@ -106,6 +106,9 @@ install(DIRECTORY ${MUSL_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/musl
 
 install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/${ARCH}/lib)
 
+set(CHAINLOAD_LOC ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/chainloader)
+install(FILES ${CHAINLOAD_LOC} DESTINATION includeos)
+
 file(GLOB musl_libs ${MUSL_LIB_DIR}/*.a)
 file(GLOB musl_objs ${MUSL_LIB_DIR}/*.o)
 
