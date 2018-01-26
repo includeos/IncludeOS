@@ -53,22 +53,6 @@ void abort() {
   kprintf("Abooooooring!\n");
   panic("abort() called");
 }
-extern "C"
-void abort_message(const char* fmt, ...)
-{
-  kprintf("Aboooooort message %s \n", fmt);
-  char buffer[1024];
-  va_list list;
-  va_start(list, fmt);
-  vsnprintf(buffer, sizeof(buffer), fmt, list);
-  va_end(list);
-#ifdef ARCH_x86_64
-  asm("movq %0, %%rdi" : : "r"(buffer));
-  asm("jmp panic_begin");
-#else
-  panic(buffer);
-#endif
-}
 
 void _exit(int status) {
   kprintf("%s",std::string(LINEWIDTH, '=').c_str());

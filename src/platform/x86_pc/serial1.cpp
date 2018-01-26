@@ -1,5 +1,5 @@
 #include <hw/serial.hpp>
-
+#include <stdarg.h>
 static const uint16_t port = 0x3F8; // Serial 1
 
 extern "C"
@@ -36,4 +36,14 @@ void __serial_print(const char* str, size_t len)
 extern "C"
 void kprint(const char* c){
   __serial_print1(c);
+}
+
+extern "C" void kprintf(const char* format, ...)
+{
+  char buf[8192];
+  va_list aptr;
+  va_start(aptr, format);
+  vsnprintf(buf, sizeof(buf), format, aptr);
+  __serial_print1(buf);
+  va_end(aptr);
 }
