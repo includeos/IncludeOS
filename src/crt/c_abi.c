@@ -98,25 +98,9 @@ static void crt_sanity_checks()
   assert(validate_heap_alignment);
 }
 
+
 void _init_c_runtime()
 {
-  /// initialize newlib I/O
-  //  _REENT_INIT_PTR(_REENT);
-  // Unix standard streams
-
-  /*
-  stdin  = _REENT->_stdin;  // stdin  == 1
-  stdout = _REENT->_stdout; // stdout == 2
-  stderr = _REENT->_stderr; // stderr == 3
-  */
-
-  /// initialize exceptions before we can run constructors
-  extern char __eh_frame_start[];
-  // Tell the stack unwinder where exception frames are located
-  extern void __register_frame(void*);
-  kprintf("Not registering frame... \n");
-  //__register_frame(&__eh_frame_start);
-  //kprintf("Registering frame OK \n");
 
   /// init ELF / backtrace functionality
   extern void _init_elf_parser();

@@ -8,15 +8,13 @@ set(ARCH_OBJECTS
   exceptions.asm
   interrupts.asm
   fiber_asm.asm
+  syscall_entry.asm
   ist.cpp
 )
 
 add_library(arch STATIC ${ARCH_OBJECTS})
-add_library(crti STATIC crti.asm)
-add_library(crtn STATIC crtn.asm)
-
 add_dependencies(arch PrecompiledLibraries)
-set_target_properties(crti crtn arch PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(arch PROPERTIES LINKER_LANGUAGE CXX)
 
-install(TARGETS crti crtn arch DESTINATION includeos/${ARCH}/lib)
+install(TARGETS arch DESTINATION includeos/${ARCH}/lib)
 install(FILES linker.ld DESTINATION includeos/${ARCH})

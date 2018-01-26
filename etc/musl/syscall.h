@@ -2,7 +2,6 @@
 #define _INTERNAL_SYSCALL_H
 
 #include <sys/syscall.h>
-//#include "syscall_arch.h"y
 #include "includeos_syscalls.h"
 
 
@@ -45,8 +44,8 @@ long __syscall_ret(unsigned long), __syscall(syscall_arg_t, ...),
 #define socketcall __socketcall
 #define socketcall_cp __socketcall_cp
 
-#define __syscall_cp syscall 
-#define syscall_cp syscall 
+#define __syscall_cp syscall
+#define syscall_cp syscall
 
 #define __socketcall(nm,a,b,c,d,e,f) socketcall_##nm			\
   ((long [6]){ (long)a, (long)b, (long)c, (long)d, (long)e, (long)f })
