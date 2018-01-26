@@ -16,22 +16,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 **/
+
 ENTRY(_start)
 
 SECTIONS
 {
-  PROVIDE ( _ELF_START_ = . + 0xA00000);
-  PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
-  . = _ELF_START_;
+  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0xa00000));
+  . = SEGMENT_START("text-segment", 0xa00000) + SIZEOF_HEADERS;
+
+  /* For convenience w. multiboot */
+  PROVIDE ( _ELF_START_ = __executable_start);
+  PROVIDE ( _LOAD_START_ = _ELF_START_ );
 
   .multiboot : {
-      PROVIDE(_MULTIBOOT_START_ = .);
+      PROVIDE(_MULTIBOOT_START_ = . );
       *(.multiboot)
    }
 
-
-  .text ALIGN(0x10):
+  .text ALIGN(0x1000):
   {
   PROVIDE( _TEXT_START_ = . );
     /* For solo5, although it's just used to print the mem layout. */
@@ -42,8 +45,8 @@ SECTIONS
     /* For solo5, although it's just used to print the mem layout. */
     _etext = .;
   }
-  PROVIDE( _TEXT_END_ = . );
 
+  PROVIDE( _TEXT_END_ = . );
   .init ALIGN(0x10) : {
     _INIT_START_ = .;
     *(.init)
@@ -122,14 +125,7 @@ SECTIONS
    PROVIDE_HIDDEN (__fini_array_end = .);
   }
 
-  .config ALIGN(0x8) : {
-    _CONFIG_JSON_START_ = .;
-    KEEP(*(.config))
-    _CONFIG_JSON_END_ = .;
-    BYTE(0);
-  }
-
-  .rodata :
+  .rodata ALIGN(0x1000):
   {
     _RODATA_START_ = .;
     *(.rodata*)
@@ -139,16 +135,23 @@ SECTIONS
     _erodata = .;
   }
 
-  /* For stack unwinding (exception handling)  */
-  .eh_frame_hdr ALIGN(0x8):
-  {
-    KEEP(*(.eh_frame_hdr*))
+  .config ALIGN(0x8) : {
+    _CONFIG_JSON_START_ = .;
+    KEEP(*(.config))
+    _CONFIG_JSON_END_ = .;
+    BYTE(0);
   }
-  .eh_frame ALIGN(0x8):
+
+  .eh_frame :
   {
     PROVIDE (__eh_frame_start = .);
     KEEP(*(.eh_frame))
-    LONG (0);
+    PROVIDE (__eh_frame_end = .);
+  }
+
+  .eh_frame_hdr :
+  {
+    KEEP(*(.eh_frame_hdr))
   }
 
   .gcc_except_table :
@@ -172,6 +175,7 @@ SECTIONS
     _TDATA_END_ = .;
     . = ALIGN(0x10);
   }
+
   .tbss :
   {
     _TBSS_START_ = .;
@@ -197,6 +201,7 @@ SECTIONS
 
   .bss ALIGN(0x1000) :
   {
+
     _BSS_START_ = .;
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
@@ -205,6 +210,7 @@ SECTIONS
   . = ALIGN(0x8);
 
   _end = .;
+
 
   PROVIDE (end = .);
   PROVIDE (_ELF_END_ = .);
