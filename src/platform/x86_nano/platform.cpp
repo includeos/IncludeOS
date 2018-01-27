@@ -12,7 +12,6 @@ void __arch_poweroff()
   while (1) asm("cli; hlt;");
   __builtin_unreachable();
 }
-void OS::halt() { asm("hlt"); }
 
 void __platform_init()
 {
