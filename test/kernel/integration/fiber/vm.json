@@ -1,1 +1,4 @@
-{"image" : "test_fiber.img" }
+{
+  "image" : "test_fiber.img",
+  "smp" : 16
+}

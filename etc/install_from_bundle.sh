@@ -55,6 +55,7 @@ pushd $INCLUDEOS_SRC/build_${ARCH}
 cmake $INCLUDEOS_SRC \
 	  -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX \
 	  -Dtests=$INCLUDEOS_ENABLE_TEST \
+    -Dthreading=$INCLUDEOS_THREADING \
 	  -DBUNDLE_LOC=$BUNDLE_LOC
 make PrecompiledLibraries
 make $num_jobs

@@ -97,7 +97,7 @@ T* allocate_pdir(Args... a)
 
 /** x86_64 specific types for page directories **/
 struct x86_64 {
-  using Flags = Flags;
+  using Flags = x86::paging::Flags;
   static constexpr int min_pagesize     = 4_KiB;
   static constexpr int table_size       = 512;
   static constexpr int max_pagesize     = 1_GiB;
