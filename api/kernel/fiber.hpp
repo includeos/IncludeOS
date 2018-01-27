@@ -218,14 +218,12 @@ private:
 
 
 #if defined(INCLUDEOS_SINGLE_THREADED)
-  static Fiber* main_;
-  static Fiber* current_;
   static int next_id_;
 #else
-  static thread_local Fiber* main_;
-  static thread_local Fiber* current_;
   static std::atomic<int> next_id_;
 #endif
+  static thread_local Fiber* main_;
+  static thread_local Fiber* current_;
 
   // Uniquely identify return target (yield / exit)
   // first stack frame and yield will use this to identify next stack

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-option(threading "" ON)
+if (DEFINED ENV{INCLUDEOS_THREADING})
+  option(threading "" ENV{INCLUDEOS_THREADING})
+endif()
 
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
@@ -19,8 +21,11 @@ set(BINARY       "test_fiber")
 set(MAX_MEM 128)
 set(SOURCES
   service.cpp
-  fiber_smp.cpp
   )
+
+if (threading)
+  set(SOURCES ${SOURCES} fiber_smp.cpp)
+endif()
 
 set(DRIVERS
   boot_logger

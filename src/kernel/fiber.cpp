@@ -24,16 +24,14 @@
 
 // Default location for previous stack. Asm will always save a pointer.
 #if defined(INCLUDEOS_SINGLE_THREADED)
-void* caller_stack_ = nullptr;
-Fiber* Fiber::main_ = nullptr;
-Fiber* Fiber::current_ = nullptr;
 int Fiber::next_id_{0};
 #else
+std::atomic<int> Fiber::next_id_{0};
+#endif
+
 thread_local void* caller_stack_ = nullptr;
 thread_local Fiber* Fiber::main_ = nullptr;
 thread_local Fiber* Fiber::current_ = nullptr;
-std::atomic<int> Fiber::next_id_{0};
-#endif
 
 extern "C" {
   void __fiber_jumpstart(volatile void* th_stack, volatile Fiber* f, volatile void* parent_stack);
