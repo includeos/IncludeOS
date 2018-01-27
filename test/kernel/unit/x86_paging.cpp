@@ -421,10 +421,10 @@ CASE("x86::paging controlling page sizes"){
   req = {42_GiB, 10_MiB, paging::Flags::present, 4_GiB, 1_GiB };
   EXPECT_THROWS(__pml4->map_r(req));
 
-  req = {42_GiB, 10_GiB, paging::Flags::present, 4_GiB, 1_GiB };
+  req = {42_GiB, 10_GiB, paging::Flags::present, 4_GiB, os::mem::max_psize() };
   res = __pml4->map_r(req);
   EXPECT(res);
-  EXPECT(res.page_sizes == 1_GiB);
+  EXPECT(res.page_sizes == os::mem::max_psize());
   EXPECT(res.size == req.size);
   EXPECT((res.flags & req.flags) != paging::Flags::none);
 
