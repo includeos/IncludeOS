@@ -30,6 +30,8 @@ set(TRIPLE ${ARCH}) #-pc-linux-elf
 set(DCMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(DCMAKE_C_COMPILER_TARGET ${TRIPLE})
 
+set(CPP_VERSION c++14)
+
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DPLATFORM="${PLATFORM}")
