@@ -35,6 +35,7 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
   size_t rel = seq - start;
   assert(rel < capacity() && "No point trying to write at or above the end");
 
+  //printf("seq=%u, start=%u, rel: %lu sz=%lu\n", seq, start, rel, size());
   // avoid writing above size by shrinking len
   len = std::min(capacity() - rel, len);
 
@@ -53,12 +54,6 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
 
   if (push) push_seen = true;
   return len;
-}
-
-size_t Read_buffer::fits(const seq_t seq) const
-{
-  const auto rel = (seq - start);
-  return (rel < capacity()) ? (capacity() - rel) : 0;
 }
 
 void Read_buffer::reset(const seq_t seq)
