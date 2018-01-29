@@ -36,7 +36,7 @@ static void riegfjeriugfjreiougf()
 
   settings.on_header_value = [](http_parser* parser, const char* at, size_t length) {
     auto res = reinterpret_cast<Response*>(parser->data);
-    res->header().set_field(res->private_field().to_string(), {at, length});
+    res->header().set_field(std::string(res->private_field()), {at, length});
     return 0;
   };
 

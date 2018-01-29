@@ -1,5 +1,6 @@
 #include "kvmclock.hpp"
 #include "../x86_pc/cpu.hpp"
+#include <util/units.hpp>
 #include <kernel/os.hpp>
 #include <cstdio>
 #include <info>
@@ -8,6 +9,7 @@
 #define MSR_KVM_WALL_CLOCK_NEW  0x4b564d00
 #define MSR_KVM_SYSTEM_TIME_NEW 0x4b564d01
 using namespace x86;
+using namespace util::literals;
 
 struct alignas(4096) pvclock_vcpu_time_info {
 	uint32_t version;

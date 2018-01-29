@@ -80,7 +80,8 @@ namespace x86
   {
     // disable the legacy 8259 PIC
     // by masking off all interrupts
-    PIC::set_intr_mask(0xFFFF);
+    PIC::init();
+    PIC::disable();
 
     if (CPUID::has_feature(CPUID::Feature::X2APIC)) {
         current_apic = &x2apic::get();

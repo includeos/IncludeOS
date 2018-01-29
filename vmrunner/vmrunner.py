@@ -37,6 +37,7 @@ chainloader = INCLUDEOS_HOME + "/includeos/chainloader"
 # (One default vm added at the end)
 vms = []
 
+panic_signature = "\\x15\\x07\\t\*\*\*\* PANIC \*\*\*\*"
 nametag = "<VMRunner>"
 INFO = color.INFO(nametag)
 VERB = bool(os.environ["VERBOSE"]) if "VERBOSE" in os.environ else False
@@ -482,7 +483,7 @@ class vm:
         self._on_panic =  self.panic
         self._on_timeout = self.timeout
         self._on_output = {
-            "\\x15\\x07\\t\*\*\*\* PANIC \*\*\*\*" : self._on_panic,
+            panic_signature : self._on_panic,
             "SUCCESS" : self._on_success }
 
         # Initialize hypervisor with config
@@ -581,8 +582,10 @@ class vm:
         else: self._on_output["SUCCESS"] = callback
         return self
 
-    def on_panic(self, callback):
-        self._on_output["PANIC"] = lambda(line) : [callback(line), self._on_panic(line)]
+    def on_panic(self, callback, do_exit = True):
+        if do_exit:
+            self._on_output[panic_signature] = lambda(line) : [callback(line), self._on_panic(line)]
+        else: self._on_output[panic_signature] = callback
         return self
 
     def on_timeout(self, callback):

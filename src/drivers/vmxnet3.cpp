@@ -114,8 +114,9 @@ vmxnet3::vmxnet3(hw::PCI_Device& d) :
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
 
-  if (d.has_msix())
+  if (d.msix_cap())
   {
+    d.init_msix();
     uint8_t msix_vectors = d.get_msix_vectors();
     INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
     assert(msix_vectors >= 3);

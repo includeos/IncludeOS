@@ -71,7 +71,7 @@ namespace http {
 
     if (url.host_is_ip4())
     {
-      std::string host = url.host().to_string();
+      std::string host(url.host());
       auto ip = net::ip4::Addr(host);
       // setup request with method and headers
       auto req = create_request(method);
@@ -87,7 +87,7 @@ namespace http {
     }
     else
     {
-      tcp_.stack().resolve(url.host().to_string(),
+      tcp_.stack().resolve(std::string(url.host()),
       ResolveCallback::make_packed(
       [
         this,
@@ -140,7 +140,7 @@ namespace http {
     using namespace std;
     if (url.host_is_ip4())
     {
-      std::string host = url.host().to_string();
+      std::string host(url.host());
       auto ip = net::ip4::Addr(host);
       // setup request with method and headers
       auto req = create_request(method);
@@ -160,7 +160,7 @@ namespace http {
     else
     {
       tcp_.stack().resolve(
-        url.host().to_string(),
+        std::string(url.host()),
         ResolveCallback::make_packed(
         [
           this,
@@ -237,8 +237,8 @@ namespace http {
     const auto port = url.port();
     req.header().set_field(header::Host,
       (port != 0xFFFF and port != 80) ?
-      url.host().to_string() + ":" + std::to_string(port)
-      : url.host().to_string()); // to_string madness
+      std::string(url.host()) + ":" + std::to_string(port)
+      : std::string(url.host())); // to_string madness
   }
 
   void Client::resolve(const std::string& host, ResolveCallback cb)

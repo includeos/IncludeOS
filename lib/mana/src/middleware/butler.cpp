@@ -42,7 +42,7 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
   }
 
   // get path
-  std::string path = req->uri().to_string();
+  std::string path(req->uri());
   // resolve extension
   auto ext = get_extension(path);
   // concatenate root with path, example: / => /public/
@@ -67,7 +67,7 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
         // we got an index, lets send it
         else {
           auto mime = http::ext_to_mime_type(this->get_extension(path));
-          res->header().set_field(http::header::Content_Type, mime.to_string());
+          res->header().set_field(http::header::Content_Type, std::string(mime));
           return res->send_file({disk_, entry});
         }
       })
@@ -103,7 +103,7 @@ void Butler::process(mana::Request_ptr req, mana::Response_ptr res, mana::Next n
           printf("<Butler> Found file: %s (%llu B)\n", entry.name().c_str(), entry.size());
           #endif
           auto mime = http::ext_to_mime_type(this->get_extension(path));
-          res->header().set_field(http::header::Content_Type, mime.to_string());
+          res->header().set_field(http::header::Content_Type, std::string(mime));
           res->send_file({disk_, entry});
           return;
         }

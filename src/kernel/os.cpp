@@ -18,6 +18,10 @@
 //#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
+#ifndef PANIC_ACTION
+#define PANIC_ACTION halt
+#endif
+
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <service>
@@ -32,6 +36,8 @@
 #else
 #define PROFILE(name) /* name */
 #endif
+
+using namespace util;
 
 extern "C" void* get_cpu_esp();
 extern uintptr_t heap_begin;
@@ -52,6 +58,7 @@ KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
 uintptr_t OS::memory_end_ = 0;
 uintptr_t OS::heap_max_ = (uintptr_t) -1;
+OS::Panic_action OS::panic_action_ = OS::Panic_action::PANIC_ACTION;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // stdout redirection
@@ -123,13 +130,7 @@ void OS::post_start()
   PROFILE("Plugins init");
   for (auto plugin : plugins) {
     INFO2("* Initializing %s", plugin.name);
-    try {
-      plugin.func();
-    } catch(std::exception& e){
-      MYINFO("Exception thrown when initializing plugin: %s", e.what());
-    } catch(...){
-      MYINFO("Unknown exception when initializing plugin");
-    }
+    plugin.func();
   }
 
   PROFILE("Service::start");

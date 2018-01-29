@@ -124,7 +124,7 @@ namespace fs {
 
     // Node ownership is handled by unique pointers
     // Object pointer is borrowed
-    ~VFS_entry() = default;
+    virtual ~VFS_entry() = default;
 
     /** Fetch the object mounted at this node, if any **/
     template <typename T>

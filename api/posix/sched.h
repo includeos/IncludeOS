@@ -16,10 +16,25 @@
 // limitations under the License.
 
 #pragma once
+
+#include_next <sched.h>
+
+#ifndef _SYS_SCHED_H_ // newlib compatible guard
+#define _SYS_SCHED_H_
+
+
 #include <sys/types.h>
 
 typedef struct {
   int sched_priority;
 } sched_param;
 
+#endif
+
+
+#ifndef SYS_SCHED_H
+#define SYS_SCHED_H
+
 extern int sched_yield();
+
+#endif

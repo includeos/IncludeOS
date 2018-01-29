@@ -52,10 +52,18 @@ namespace x86 {
       uint32_t  global_intr;
       uint16_t  flags;
     } __attribute__((packed));
+    struct nmi_t {
+      uint8_t   type;
+      uint8_t   length;
+      uint8_t   cpu;
+      uint16_t  flags;
+      uint8_t   lint;
+    } __attribute__((packed));
 
     typedef std::vector<LAPIC> lapic_list;
     typedef std::vector<IOAPIC> ioapic_list;
     typedef std::vector<override_t> override_list;
+    typedef std::vector<nmi_t>  nmi_list;
 
     static void init() {
       get().discover();
@@ -68,14 +76,17 @@ namespace x86 {
       return acpi;
     }
 
-    static const lapic_list& get_cpus() {
+    static const auto& get_cpus() {
       return get().lapics;
     }
-    static const ioapic_list& get_ioapics() {
+    static const auto& get_ioapics() {
       return get().ioapics;
     }
-    static const override_list& get_overrides() {
+    static const auto& get_overrides() {
       return get().overrides;
+    }
+    static const auto& get_nmis() {
+      return get().nmis;
     }
 
     uint8_t cmos_century() const noexcept {
@@ -99,6 +110,7 @@ namespace x86 {
     ioapic_list   ioapics;
     lapic_list    lapics;
     override_list overrides;
+    nmi_list      nmis;
 
     // shutdown related
     void acpi_shutdown();
