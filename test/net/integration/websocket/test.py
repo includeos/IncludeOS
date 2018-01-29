@@ -29,8 +29,8 @@ class DummyClient(WebSocketClient):
 def startBenchmark(line):
     print "<test.py> Starting WS benchmark"
     try:
-        ws = DummyClient('ws://10.0.0.42:8000/', protocols=['http-only', 'chat'])
         print "<test.py> WS-client connecting"
+        ws = DummyClient('ws://10.0.0.55:8000/', protocols=['http-only', 'chat'])
         ws.connect()
         print "<test.py> WS-client conneted, doing run_forever"
         ws.run_forever()

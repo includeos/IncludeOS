@@ -131,7 +131,7 @@ public:
   void set_attribute(std::shared_ptr<A>);
 
   std::string route_string() const
-  { return "@" + http::method::str(req_->method()).to_string() + ":" + req_->uri().path().to_string(); }
+  { return "@" + std::string(http::method::str(req_->method())) + ":" + std::string(req_->uri().path()); }
 
   void set_params(const Params& params) { params_ = params; }
 
