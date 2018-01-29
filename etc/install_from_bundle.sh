@@ -20,8 +20,8 @@ set -e
 : ${ARCH:=x86_64}
 
 # Try to find suitable compiler
-cc_list="clang-3.9 clang-3.8 clang-3.7 clang-3.6 clang"
-cxx_list="clang++-3.9 clang++-3.8 clang++-3.7 clang++-3.6 clang++"
+cc_list="clang-7.0 clang-6.0 clang-5.0 clang-4.0 clang-3.9 clang"
+cxx_list="clang++-7.0 clang++-6.0 clang++-5.0 clang++-4.0 clang++-3.9 clang++"
 
 compiler=""
 guess_compiler() {

@@ -250,8 +250,8 @@ fi
 
 printf "\n\n>>> IncludeOS installation Done!\n"
 printf "    %s\n" "To use IncludeOS set env variables for cmake to know your compiler, e.g.:"\
-	   '    export CC="clang-3.8"'\
-	   '    export CXX="clang++-3.8"'\
+	   '    export CC="clang-5.0"'\
+	   '    export CXX="clang++-5.0"'\
 	   ""\
 	   "Test your installation with ./test.sh"
 
