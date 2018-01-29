@@ -75,7 +75,7 @@ namespace http {
     {
       try
       {
-        const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
+        const unsigned conlen = std::stoul(std::string(header.value(header::Content_Length)));
         // risk buffering forever if no timeout
         if(conlen == req_->body().size())
         {

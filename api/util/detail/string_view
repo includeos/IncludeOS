@@ -20,11 +20,14 @@
 #ifndef UTIL_STRING_VIEW_HPP
 #define UTIL_STRING_VIEW_HPP
 
-#include <experimental/string_view>
+//#include <experimental/string_view>
+#include <string_view>
 
 namespace util {
-using sview  = std::experimental::string_view;
-using csview = const std::experimental::string_view;
+//using sview  = std::experimental::string_view;
+//using csview = const std::experimental::string_view;
+using sview  = std::string_view;
+using csview = const std::string_view;
 }
 
 #endif //< UTIL_STRING_VIEW_HPP
