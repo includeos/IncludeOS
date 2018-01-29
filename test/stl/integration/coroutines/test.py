@@ -7,4 +7,4 @@ includeos_src = os.environ.get('INCLUDEOS_SRC',
 sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
-vmrunner.vms[0].cmake().boot(40).clean()
+vmrunner.vms[0].cmake(['-Dcoroutines=ON']).boot(40).clean()
