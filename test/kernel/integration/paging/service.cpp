@@ -60,8 +60,9 @@ struct Magic {
 
 auto magic_loc = 42_TiB;
 Magic* magic = (Magic*)magic_loc;
-
+uintptr_t magic_phys_loc = 2_GiB;
 char* protected_page { (char*)5_GiB };
+uintptr_t protected_page_phys = 142_MiB;
 
 namespace util {
 inline namespace bitops {
@@ -270,7 +271,7 @@ void verify_magic() {
 
   printf("Verifying magic\n");
   magic = (Magic*)42_TiB;
-  Magic* magic_phys = (Magic*)2_GiB;
+  Magic* magic_phys = (Magic*)magic_phys_loc;
   auto m = __pml4->map_r({magic_loc, (uintptr_t)magic_phys,
         Pflag::writable | Pflag::present | Pflag::huge, 4_KiB});
   Expects(m);
@@ -410,9 +411,10 @@ int main()
 
   Expects(os::mem::active_page_size(0LU) == 4_KiB);
 
+
   os::mem::Map prot;
   prot.lin         = (uintptr_t) protected_page;
-  prot.phys        = (uintptr_t) protected_page;
+  prot.phys        = (uintptr_t) protected_page_phys;
   prot.size        = 4_KiB;
   prot.page_sizes  = 4_KiB;
   prot.flags       = mem::Access::read | mem::Access::write;
