@@ -62,6 +62,23 @@ Connection::~Connection()
   rtx_clear();
 }
 
+void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
+{
+  if(read_request == nullptr)
+  {
+    read_request = std::make_unique<Read_request>(recv_bufsz, seq_t(this->cb.RCV.NXT), cb);
+  }
+  // read request is already set, only reset if new size.
+  else
+  {
+    read_request->callback = cb;
+    // this will flush the current data to the user (if any)
+    read_request->reset(recv_bufsz, seq_t(this->cb.RCV.NXT));
+    // TODO: we should probably clear any SACK if it exists,
+    // due to reset() throwing away buffers
+  }
+}
+
 Connection_ptr Connection::retrieve_shared() {
   return host_.retrieve_shared(this);
 }
@@ -112,27 +129,15 @@ size_t Connection::receive(seq_t seq, const uint8_t* data, size_t n, bool PUSH) 
   // should not be called without an read request
   Expects(read_request);
   Expects(n > 0);
-
-  auto& buf = read_request->buffer;
   size_t received{0};
 
   while(n)
   {
-    auto read = buf.insert(seq, data + received, n, PUSH);
+    auto read = read_request->insert(seq, data + received, n, PUSH);
 
     n -= read; // subtract amount of data left to insert
     received += read; // add to the total recieved
     seq += read; // advance the sequence number
-
-    // deliver if finished for delivery
-    if(buf.is_ready())
-    {
-      if (read_request->callback)
-          read_request->callback(buf.buffer());
-
-      // reset/clear readbuffer (new sequence start)
-      buf.reset(seq);
-    }
   }
 
   return received;
@@ -266,7 +271,7 @@ void Connection::close() {
 }
 
 void Connection::receive_disconnect() {
-  Expects(read_request and read_request->buffer.buffer());
+  Expects(read_request and read_request->size());
 
   if(read_request->callback) {
     // TODO: consider adding back when SACK is complete
@@ -700,7 +705,7 @@ void Connection::recv_data(const Packet& in)
   // Keep track if a packet is being sent during the async read callback
   const auto snd_nxt = cb.SND.NXT;
 
-  if(read_request and read_request->buffer.capacity())
+  if(read_request)
   {
     auto recv = receive(in.seq(), in.tcp_data(), length, in.isset(PSH));
     Ensures(recv == length);
@@ -971,7 +976,7 @@ void Connection::signal_connect(const bool success)
   // if on read was set before we got a seq number,
   // update the starting sequence number for the read buffer
   if(read_request and success)
-    read_request->buffer.set_start(cb.RCV.NXT);
+    read_request->set_start(cb.RCV.NXT);
 
   if(on_connect_)
     (success) ? on_connect_(retrieve_shared()) : on_connect_(nullptr);

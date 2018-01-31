@@ -330,7 +330,7 @@ void Connection::State::process_fin(Connection& tcp, const Packet& in) {
   //tcb.RCV.NXT += fin;
   const auto snd_nxt = tcb.SND.NXT;
   // empty the read buffer
-  if(tcp.read_request and tcp.read_request->buffer.buffer())
+  if(tcp.read_request and tcp.read_request->size())
     tcp.receive_disconnect();
   // signal disconnect to the user
   tcp.signal_disconnect(Disconnect::CLOSING);

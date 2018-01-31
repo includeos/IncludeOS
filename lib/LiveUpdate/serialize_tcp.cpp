@@ -176,8 +176,8 @@ void Connection::deserialize_from(void* addr)
   auto* readq = (read_buffer*) &area->vla[writeq_len];
   if (readq->capacity)
   {
-    read_request = std::make_unique<ReadRequest>(readq->capacity, readq->seq, nullptr);
-    read_request->buffer.deserialize_from(readq);
+    read_request = std::make_unique<Read_request>(readq->capacity, readq->seq, nullptr);
+    read_request->front().deserialize_from(readq);
   }
 
   if (area->rtx_is_running) {
@@ -270,7 +270,7 @@ int Connection::serialize_to(void* addr) const
 
   /// serialize read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
-  int readq_len = (read_request) ? read_request->buffer.serialize_to(readq) : sizeof(read_buffer);
+  int readq_len = (read_request) ? read_request->front().serialize_to(readq) : sizeof(read_buffer);
 
   //printf("READ: %u  SEND: %u  REMAIN: %u  STATE: %s\n",
   //    readq_size(), sendq_size(), sendq_remaining(), cb.to_string().c_str());

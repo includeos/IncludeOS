@@ -99,6 +99,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/super_stack.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
+  ${TEST}/net/unit/tcp_read_request_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/net/unit/router_test.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
@@ -184,6 +185,7 @@ set(OS_SOURCES
   ${SRC}/net/tcp/rttm.cpp
   ${SRC}/net/tcp/tcp.cpp
   ${SRC}/net/tcp/read_buffer.cpp
+  ${SRC}/net/tcp/read_request.cpp
   ${SRC}/net/tcp/write_queue.cpp
   ${SRC}/posix/fcntl.cpp
   ${SRC}/posix/fd.cpp

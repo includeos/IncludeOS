@@ -462,7 +462,7 @@ public:
    * @return bytes not yet read
    */
   size_t readq_size() const
-  { return (read_request) ? read_request->buffer.size() : 0; }
+  { return (read_request) ? read_request->size() : 0; }
 
   /**
    * @brief Total number of bytes in send queue
@@ -807,7 +807,7 @@ private:
   TCB cb;
 
   /** The given read request */
-  std::unique_ptr<ReadRequest> read_request;
+  std::unique_ptr<Read_request> read_request;
 
   /** Queue for write requests to process */
   Write_queue writeq;
@@ -875,6 +875,14 @@ private:
   //static constexpr int8_t LATE_SPUR_TO {1};
   //RTTM::seconds SRTT_prev{1.0f};
   //RTTM::seconds RTTVAR_prev{1.0f};
+
+  /**
+   * @brief      Set the Read_request
+   *
+   * @param[in]  recv_bufsz  The receive bufsz
+   * @param[in]  cb          The read callback
+   */
+  void _on_read(size_t recv_bufsz, ReadCallback cb);
 
   // Retrieve the associated shared_ptr for a connection, if it exists
   // Throws out_of_range if it doesn't
