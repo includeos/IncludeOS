@@ -45,7 +45,8 @@ Filter::IP my_postrouting {
   accept
 }
 
-Nat::TCP my_dnat {
+Nat::IP my_dnat {
+  Nat::TCP {
     if (ip.daddr == eth0.address) {
       if (tcp.dport == 5001) {
         dnat(host2.address, 5000)
@@ -54,6 +55,13 @@ Nat::TCP my_dnat {
         dnat(host2.address)
       }
     }
+  }
+  Nat::UDP {
+    if (ip.daddr == eth0.address and udp.dport == 3333) {
+      //syslog(INFO, "UDP packet is DNATed from port ", udp.dport, " to port 4444")
+      dnat(4444)
+    }
+  }
 }
 
 NAT::TCP my_snat {
@@ -75,6 +83,10 @@ Filter::IP my_fw {
 
     Filter::ICMP {
         accept
+    }
+
+    Filter::UDP {
+      accept
     }
 
     drop

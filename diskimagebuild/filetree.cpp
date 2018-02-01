@@ -1,6 +1,7 @@
 #include "filetree.hpp"
 
 #include <cassert>
+#include <cerrno>
 #include <cstdio>
 #include <cstring>
 #include <libgen.h>
@@ -82,18 +83,17 @@ void FileSys::add_dir(Dir& dvec)
   strcat(cwd_buffer, "/");
   strcat(cwd_buffer, dvec.name.c_str());
 
-  //printf("*** Entering %s...\n", cwd_buffer);
   int res = chdir(cwd_buffer);
   // throw immediately when unable to read directory
   if (res < 0) {
-    fprintf(stderr, "Unable to enter directory %s\n", cwd_buffer);
+    fprintf(stderr, "Unable to enter directory %s: %s\n", cwd_buffer, strerror(errno));
     throw std::runtime_error("Unable to enter directory " + std::string(cwd_buffer));
   }
 
   auto* dir = opendir(cwd_buffer);
   // throw immediately when unable to open directory
   if (dir == nullptr) {
-    fprintf(stderr, "Unable to open directory %s\n", cwd_buffer);
+    fprintf(stderr, "Unable to open directory %s: %s\n", cwd_buffer, strerror(errno));
     throw std::runtime_error("Unable to open directory " + std::string(cwd_buffer));
   }
 
@@ -116,6 +116,7 @@ void FileSys::add_dir(Dir& dvec)
   // close directory before adding more folders and files
   res = closedir(dir);
   if (res < 0) {
+    fprintf(stderr, "Unable to close directory: %s\n", strerror(errno));
     throw std::runtime_error("diskbuilder: Failed to close directory");
   }
 
@@ -137,6 +138,7 @@ void FileSys::add_dir(Dir& dvec)
   // pop work dir
   res = chdir(pwd_buffer);
   if (res < 0) {
+    fprintf(stderr, "Unable to return to parent directory %s: %s\n", pwd_buffer, strerror(errno));
     throw std::runtime_error("diskbuilder: Failed to return back to parent directory");
   }
 }
