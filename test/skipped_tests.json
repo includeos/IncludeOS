@@ -4,5 +4,7 @@
   {"name": "net/integration/transmit",
    "reason": "The test suffers from UDP packet loss which is expected."},
   {"name": "posix/integration/ucontext",
-   "reason": "The test shows that ucontext is unrealiable, as is."}
+   "reason": "The test shows that ucontext is unrealiable, as is."},
+  {"name": "kernel/integration/context",
+   "reason": "context is only implemented for 32-bit."}
 ]

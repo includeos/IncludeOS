@@ -15,18 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <arch.hpp>
 #include <kernel/memory.hpp>
 #include <info>
 
 void __arch_init_paging()
 {
-  INFO("x86_64", "Paging disabled");
+  INFO("Kernel", "Paging disabled by driver");
 }
 
 namespace os {
 namespace mem {
-  Map map(Map m, const char* name) {
+  Map map(Map, const char*) {
     return {};
   }
+  template <>
+  const size_t Mapping<os::mem::Access>::any_size = 4096;
 }}

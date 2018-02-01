@@ -31,14 +31,14 @@ int open(const char* s, int oflag, ...)
 {
   //const bool NON_BLOCKING = (oflag & 04000) != 0;
 
-  if(strcmp(s, "/dev/random") == 0 || strcmp(s, "/dev/urandom") == 0) {
-    PRINT("open(%s, %d) = %d\n", s, oflag, RNG_FD);
-    return RNG_FD;
-  }
   if (s == nullptr) {
     PRINT("open(%s, %d) = %d\n", s, oflag, -1);
     errno = EFAULT;
     return -1;
+  }
+  if(strcmp(s, "/dev/random") == 0 || strcmp(s, "/dev/urandom") == 0) {
+    PRINT("open(%s, %d) = %d\n", s, oflag, RNG_FD);
+    return RNG_FD;
   }
   if (s[0] == 0) {
     PRINT("open(%s, %d) = %d\n", s, oflag, -1);

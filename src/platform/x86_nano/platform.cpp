@@ -12,7 +12,6 @@ void __arch_poweroff()
   while (1) asm("cli; hlt;");
   __builtin_unreachable();
 }
-void OS::halt() { asm("hlt"); }
 
 void __platform_init()
 {
@@ -44,6 +43,10 @@ void SMP::global_lock() noexcept {}
 void SMP::global_unlock() noexcept {}
 int SMP::cpu_id() noexcept { return 0; }
 int SMP::cpu_count() noexcept { return 1; }
+
+void OS::halt(){
+  asm("hlt");
+}
 
 
 // Support for the boot_logger plugin.

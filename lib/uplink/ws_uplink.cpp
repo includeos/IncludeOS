@@ -151,7 +151,7 @@ namespace uplink {
     retry_backoff = 0;
 
     MYINFO("Auth success (token received)");
-    token_ = res->body().to_string();
+    token_ = std::string(res->body());
 
     dock();
   }

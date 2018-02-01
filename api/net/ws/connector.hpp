@@ -82,7 +82,7 @@ public:
     if (on_accept_)
     {
       const bool accepted = on_accept_(writer->connection().peer(),
-                                     req->header().value("Origin").to_string());
+                                     std::string(req->header().value("Origin")));
       if (not accepted)
       {
         writer->write_header(http::Unauthorized);

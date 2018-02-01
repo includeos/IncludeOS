@@ -49,7 +49,6 @@ fi
   --enable-newlib-hw-fp \
   --disable-libgloss \
   --disable-multilib \
-  --disable-newlib-multithread \
   --disable-newlib-supplied-syscalls
 
 echo -e "\n\n >>> BUILDING NEWLIB \n\n"

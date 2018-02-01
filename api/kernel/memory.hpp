@@ -108,7 +108,7 @@ namespace mem {
         && page_sizes == rhs.page_sizes; }
 
     bool operator!=(const Mapping& rhs) const noexcept
-    { return ! *this == rhs; }
+    { return ! (*this == rhs); }
 
     inline Mapping operator+(const Mapping& rhs) noexcept;
 

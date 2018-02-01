@@ -42,7 +42,7 @@ http::Response_ptr handle_request(const http::Request& req)
 
     // set Content type and length
     header.set_field(http::header::Content_Type, "text/html; charset=UTF-8");
-    header.set_field(http::header::Content_Length, std::to_string(res->body().to_string().size()));
+    header.set_field(http::header::Content_Length, std::to_string(res->body().size()));
   }
   else
   {
