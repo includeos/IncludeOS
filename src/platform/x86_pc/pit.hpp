@@ -62,6 +62,9 @@ namespace x86
         @Note This is an asynchronous function.  */
     static double estimate_CPU_frequency();
 
+    /** Halt until PIT interrupt is triggered (one PIT cycle) **/
+    static void blocking_cycles(int cnt);
+
     /** Get the (single) instance. */
     static PIT& get() {
       static PIT instance_;

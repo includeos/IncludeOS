@@ -19,6 +19,7 @@
 #include "acpi.hpp"
 #include "apic.hpp"
 #include "apic_revenant.hpp"
+#include "pit.hpp"
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
 #include <malloc.h>
@@ -94,6 +95,8 @@ void init_SMP()
           cpu.cpu, cpu.id, cpu.flags);
     apic.ap_init(cpu.id);
   }
+  PIT::blocking_cycles(10);
+
   // start CPUs
   INFO("SMP", "Starting APs");
   for (const auto& cpu : ACPI::get_cpus())
@@ -101,8 +104,9 @@ void init_SMP()
     if (cpu.id == apic.get_id()) continue;
     // Send SIPI with start page at BOOTLOADER_LOCATION
     apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
-    apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
+    //apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
   }
+  PIT::blocking_cycles(1);
 
   // wait for all APs to start
   smp_main.boot_barrier.spin_wait(CPUcount);
