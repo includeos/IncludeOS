@@ -48,18 +48,29 @@ static_assert(sizeof(void*) == 8, "Pointer must match arch");
 /* the reason for termination.                      */
 #if defined(OS_TERMINATE_ON_CONTRACT_VIOLATION)
 
-#include <cassert>
-
-#define OS_STRINGIFY(x) #x
+#include <cstdlib>
 
 #undef Expects
 #undef Ensures
 
-#define Expects(cond) \
-  assert(LIKELY(cond) && "OS: Precondition failed")
+#ifndef INCLUDEOS_SINGLE_THREADED
+#include <smp>
+#endif
 
-#define Ensures(cond) \
-  assert(LIKELY(cond) && "OS: Postcondition failed")
+inline void __assert_fail(const char *expr, const char *file, int line, const char *func){
+#ifndef INCLUDEOS_SINGLE_THREADED
+  SMP::global_lock();
+#endif
+  fprintf(stderr, "%s:%i:%s %s \n",file, line, func, expr);
+  fflush(NULL);
+#ifndef INCLUDEOS_SINGLE_THREADED
+  SMP::global_unlock();
+#endif
+  exit(67);
+}
+
+#define Expects(x) ((void)((x) || (__assert_fail("Expects failed: "#x, __FILE__, __LINE__, __func__),0)))
+#define Ensures(x) ((void)((x) || (__assert_fail("Ensures failed: "#x, __FILE__, __LINE__, __func__),0)))
 
 #endif //< defined(OS_TERMINATE_ON_CONTRACT_VIOLATION)
 

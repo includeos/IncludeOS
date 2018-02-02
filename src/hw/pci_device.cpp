@@ -75,9 +75,11 @@ namespace hw {
     assert(0 && "No I/O resource present on device");
   }
 
-  void PCI_Device::probe_resources() noexcept {
+  void PCI_Device::probe_resources() noexcept
+  {
     //Find resources on this PCI device (scan the BAR's)
-    for (int bar = 0; bar < 6; ++bar) {
+    for (int bar = 0; bar < 6; ++bar)
+    {
       //Read the current BAR register
       uint32_t reg = PCI::CONFIG_BASE_ADDR_0 + (bar << 2);
       uint32_t value = read_dword(reg);
@@ -120,23 +122,13 @@ namespace hw {
                          const uint32_t devclass)
       : pci_addr_{pci_addr}, device_id_{device_id}
   {
-    if (pci_addr == PCI::SOLO5_BLK_DUMMY_ADDR) {
-      // dummy ukvm/solo5 pci device
-      devtype_.reg = PCI::STORAGE;
-      devtype_.classcode = PCI::STORAGE; // mass storage
-    } else if (pci_addr == PCI::SOLO5_NET_DUMMY_ADDR) {
-      // dummy ukvm/solo5 pci device
-      devtype_.reg = PCI::NIC;
-      devtype_.classcode = PCI::NIC; // network device
-    } else {
-      // set master, mem and io flags
-      uint32_t cmd = read_dword(PCI_CMD_REG);
-      cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
-      write_dword(PCI_CMD_REG, cmd);
+    // set master, mem and io flags
+    uint32_t cmd = read_dword(PCI_CMD_REG);
+    cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
+    write_dword(PCI_CMD_REG, cmd);
 
-      // device class info is coming from pci manager to save a PCI read
-      this->devtype_.reg = devclass;
-    }
+    // device class info is coming from pci manager to save a PCI read
+    this->devtype_.reg = devclass;
 
     INFO2("|");
     switch (PCI::classcode(devtype_.classcode)) {
@@ -163,20 +155,10 @@ namespace hw {
     // bridges are different from other PCI devices
     if (classcode() == PCI::classcode::BRIDGE) return;
 
-    // if not a dummy ukvm/solo5 pci device
-    if (pci_addr != PCI::SOLO5_BLK_DUMMY_ADDR &&
-        pci_addr != PCI::SOLO5_NET_DUMMY_ADDR) {
-      // find and store capabilities
-      this->parse_capabilities();
-      // find BARs
-      this->probe_resources();
-    }
-
-    // enable MSI-x if its supported
-    if (this->msix_cap()) {
-      int vectors = this->init_msix();
-      assert(vectors > 0);
-    }
+    // find and store capabilities
+    this->parse_capabilities();
+    // find BARs
+    this->probe_resources();
   }
 
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {
@@ -272,6 +254,19 @@ namespace hw {
   {
     // disables device (except for configuration)
     write_dword(PCI_CMD_REG, 0);
+  }
+
+  void PCI_Device::intx_enable()
+  {
+    auto cmd = read16(PCI_CMD_REG);
+    write16(PCI_CMD_REG, cmd & ~(1 << 10));
+    // delete msi-x
+    if (this->msix) delete this->msix;
+  }
+  bool PCI_Device::intx_status()
+  {
+    auto stat = read16(PCI_STATUS_REG);
+    return stat & (1 << 3);
   }
 
 } //< namespace hw

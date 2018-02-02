@@ -21,7 +21,7 @@
 
 int File_FD::read(void* p, size_t n) {
   auto buf = ent_.read(offset_, n);
-  memcpy(p, buf.data(), n);
+  memcpy(p, buf.data(), std::min(n, buf.size()));
   offset_ += buf.size();
   return buf.size();
 }

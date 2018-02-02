@@ -55,9 +55,6 @@ public:
    * @param name
    *   The name of the memory range
    *
-   * @param description
-   *   The description of the memory range
-   *
    * @param in_use_operation
    *   The operation to perform when bytes_in_use is called
    *
@@ -65,30 +62,7 @@ public:
    *   IIf (begin > end) or ((end - begin + 1) > max_size())
    */
   Fixed_memory_range(const uintptr_t begin, const uintptr_t end, const char* name,
-                     const std::string& description, In_use_delg in_use_operation);
-
-  /**
-   * Constructor
-   *
-   * @param begin
-   *   The beginning address of the memory range
-   *
-   * @param end
-   *   The end address of the memory range
-   *
-   * @param name
-   *   The name of the memory range
-   *
-   * @param description
-   *   The description of the memory range
-   *
-   * @throws Memory_range_exception
-   *   IIf (begin > end) or ((end - begin + 1) > max_size())
-   */
-  Fixed_memory_range(const uintptr_t begin, const uintptr_t end, const char* name,
-                     const std::string& description)
-    : Fixed_memory_range(begin, end, name, description, nullptr)
-  {}
+                     In_use_delg in_use_operation);
 
   /**
    * Constructor
@@ -106,26 +80,8 @@ public:
    *   IIf (begin > end) or ((end - begin + 1) > max_size())
    */
   Fixed_memory_range(const uintptr_t begin, const uintptr_t end, const char* name)
-    : Fixed_memory_range(begin, end, name, "N/A")
+    : Fixed_memory_range(begin, end, name, nullptr)
   {}
-
-  /**
-   * Constructor
-   *
-   * @param range
-   *   The memory range
-   *
-   * @param name
-   *   The name of the memory range
-   *
-   * @param description
-   *   The description of the memory range
-   *
-   * @throws Memory_range_exception
-   *   IIf (range.addr_start() > range.addr_end()) or
-   *       ((range.addr_end() - range.addr_start() + 1) > max_size())
-   */
-  Fixed_memory_range(Memory_range&& range, const char* name, const std::string& description);
 
   /**
    * Constructor
@@ -231,14 +187,6 @@ public:
    */
   const char* name() const noexcept
   { return name_; }
-
-  /**
-   * Get the description of the memory range
-   *
-   * @return The description of the memory range
-   */
-  const std::string& description() const noexcept
-  { return description_; }
 
   /**
    * The start address of the memory range
@@ -364,7 +312,6 @@ public:
 private:
   Memory_range range_;
   const char*  name_;
-  std::string  description_;
   In_use_delg  in_use_op_;
 }; //< class Fixed_memory_range
 
@@ -466,6 +413,14 @@ public:
    */
   const Map& map() const noexcept
   { return map_; }
+
+  void erase(Key k) {
+    map_.erase(k);
+  }
+
+  void clear() {
+    map_.clear();
+  }
 
   /**
    * Operator to transform this class into its raw representation

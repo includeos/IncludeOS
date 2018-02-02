@@ -31,7 +31,7 @@ SECTIONS
    }
 
 
-  .text ALIGN(0x10):
+  .text ALIGN(0x1000):
   {
   PROVIDE( _TEXT_START_ = . );
     /* For solo5, although it's just used to print the mem layout. */
@@ -44,7 +44,7 @@ SECTIONS
   }
   PROVIDE( _TEXT_END_ = . );
 
-  .init ALIGN(0x10) : {
+  .init ALIGN(0x1000) : {
     _INIT_START_ = .;
     *(.init)
     _INIT_END_ = .;
@@ -120,7 +120,9 @@ SECTIONS
    PROVIDE_HIDDEN (__fini_array_end = .);
   }
 
-  .config ALIGN(0x8) : {
+  _EXEC_END_ = .;
+  _READONLY_START_ = .;
+  .config ALIGN(0x1000) : {
     _CONFIG_JSON_START_ = .;
     KEEP(*(.config))
     _CONFIG_JSON_END_ = .;
@@ -153,7 +155,7 @@ SECTIONS
   {
     *(.gcc_except_table)
   }
-
+  _READONLY_END_ = .;
   .data :
   {
     _DATA_START_ = .;

@@ -1,6 +1,7 @@
 #include <os>
 #include <kprint>
 #include <util/crc32.hpp>
+using namespace util::literals;
 
 #define SOFT_RESET_MAGIC    0xFEE1DEAD
 #define SOFT_RESET_LOCATION 0x8200

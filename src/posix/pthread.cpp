@@ -69,28 +69,28 @@ int pthread_equal(pthread_t t1, pthread_t t2)
 int pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* attr)
 {
   if (mutex == nullptr) return 1;
-  mutex->spinlock = 0;
+  *mutex = 0;
   return 0;
 }
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
   if (mutex == nullptr) return 1;
-  lock(mutex->spinlock);
+  lock(*mutex);
   //SMP_PRINT("Spin locked %p\n", mutex);
   return 0;
 }
 int pthread_mutex_trylock(pthread_mutex_t *mutex)
 {
   if (mutex == nullptr) return 1;
-  if (mutex->spinlock) return 1;
-  lock(mutex->spinlock);
+  if (mutex) return 1;
+  lock(*mutex);
   return 0;
 }
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
   if (mutex == nullptr) return 1;
   //SMP_PRINT("Spin unlocked %p\n", mutex);
-  unlock(mutex->spinlock);
+  unlock(*mutex);
   return 0;
 }
 int pthread_mutex_destroy(pthread_mutex_t *mutex)

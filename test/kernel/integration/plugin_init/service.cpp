@@ -40,7 +40,7 @@ const lest::test specification[] =
       {
         EXPECT(f1_data == 0xf1);
         EXPECT(f2_data == 0xf2);
-        EXPECT(f3_data == 0xf417);
+        EXPECT(f3_data == 0xf3);
         EXPECT(my_plugin_functions == 3);
       }
     }

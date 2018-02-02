@@ -21,11 +21,10 @@
 #include <cstdio>
 #include <string>
 #include <regex>
+#include <stdarg.h>
 
 #include <syslog.h> // POSIX symbolic constants
 #include "syslog_facility.hpp"
-
-const int BUFLEN = 2048;
 
 class Syslog {
 public:
@@ -45,23 +44,11 @@ public:
     return fac_->port();
   }
 
-  // Parameter pack arguments
-  template <typename... Args>
-  static void syslog(int priority, const char* message, Args&&... args) {
-    // snprintf removes % if calling syslog with %m in addition to arguments
-    // Find %m here first and escape % if found
-    std::regex m_regex{"\\%m"};
-    std::string msg = std::regex_replace(message, m_regex, "%%m");
-
-    char buf[BUFLEN];
-    snprintf(buf, BUFLEN, msg.c_str(), args...);
-    syslog(priority, buf);
-  }
-
   // va_list arguments (POSIX)
   static void syslog(int priority, const char* message, va_list args);
 
-  static void syslog(int priority, const char* buf);
+  __attribute__ ((format (printf, 2, 3)))
+  static void syslog(int priority, const char* buf, ...);
 
   static void openlog(const char* ident, int logopt, int facility);
 

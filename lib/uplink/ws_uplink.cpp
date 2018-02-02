@@ -151,7 +151,7 @@ namespace uplink {
     retry_backoff = 0;
 
     MYINFO("Auth success (token received)");
-    token_ = res->body().to_string();
+    token_ = std::string(res->body());
 
     dock();
   }
@@ -316,12 +316,20 @@ namespace uplink {
     auto trans = Transport{Header{Transport_code::UPDATE, static_cast<uint32_t>(binary_hash_.size())}};
     trans.load_cargo(binary_hash_.data(), binary_hash_.size());
     ws_->write(trans.data().data(), trans.data().size());
-
     ws_->close();
+
     // do the update
     Timers::oneshot(std::chrono::milliseconds(10),
-    [buffer] (auto) {
-      liu::LiveUpdate::exec(buffer);
+    [this, copy = buffer] (int) {
+      try {
+        liu::LiveUpdate::exec(copy);
+      }
+      catch (std::exception& e) {
+        INFO2("LiveUpdate::exec() failed: %s\n", e.what());
+        liu::LiveUpdate::restore_environment();
+        // establish new connection
+        this->auth();
+      }
     });
   }
 

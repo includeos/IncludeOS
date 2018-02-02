@@ -16,13 +16,14 @@
 // limitations under the License.
 
 #include <sstream>
+#include <iomanip>
 #include <kernel/memmap.hpp>
+#include <util/units.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 Fixed_memory_range::Fixed_memory_range(const uintptr_t begin, const uintptr_t end, const char* name,
-                                       const std::string& description, In_use_delg in_use_operation)
+                                       In_use_delg in_use_operation)
   : name_{name}
-  , description_{description}
   , in_use_op_{in_use_operation}
 {
   if (begin > end) {
@@ -37,24 +38,15 @@ Fixed_memory_range::Fixed_memory_range(const uintptr_t begin, const uintptr_t en
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Fixed_memory_range::Fixed_memory_range(Memory_range&& range, const char* name, const std::string& description)
+Fixed_memory_range::Fixed_memory_range(Memory_range&& range, const char* name)
   : range_{std::move(range)}
   , name_{name}
-  , description_{description}
 {
   if (not is_valid_range(range_)) {
     throw Memory_range_exception{"The specified range is invalid"};
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-Fixed_memory_range::Fixed_memory_range(Memory_range&& range, const char* name)
-  : Fixed_memory_range(std::move(range), name, "N/A")
-{
-  if (not is_valid_range(range_)) {
-    throw Memory_range_exception{"The specified range is invalid"};
-  }
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 bool Fixed_memory_range::is_valid_range(const Memory_range& range) noexcept {
@@ -79,13 +71,26 @@ bool Fixed_memory_range::overlaps(const Fixed_memory_range& other) const noexcep
 ///////////////////////////////////////////////////////////////////////////////
 std::string Fixed_memory_range::to_string() const {
   std::stringstream out;
+  auto pct_used = (double(bytes_in_use()) / size()) * 100;
 
-  out << name_      << " "      << std::hex      << addr_start() << " - "
-      << addr_end() << " ("     << description_  << ", "
-      << std::dec   << bytes_in_use() << " / " << size() <<  " bytes used) ";
+  out << std::hex  << std::setfill('0')
+      << "0x"      << std::setw(10)     << addr_start()  << " - "
+      << "0x"      << std::setw(10)     << addr_end()    << ", "
+      << std::dec  << std::setfill(' ') << std::setw(11) << util::Byte_r(size())
+      << " (";
+
+  if (pct_used == 100 or pct_used < 0.001)
+    out << std::setprecision(1);
+  else
+    out << std::setprecision(3);
+
+  out << std::fixed << std::setw(6) << std::left
+      << pct_used << "%) "
+      <<  std::setw(25) << name_;
 
   return out.str();
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 Fixed_memory_range::operator std::string () const {
@@ -141,7 +146,7 @@ Fixed_memory_range& Memory_map::assign_range(Fixed_memory_range&& rng) {
 
   if (UNLIKELY(rng.overlaps(closest_match->second))) {
     throw Memory_range_exception{"Range '"+ std::string(rng.name())
-                                 + "' overlaps with the range above key "
+                                 + "' overlaps with the range above requested addr:  "
                                  + closest_match->second.to_string()};
   }
 
@@ -151,7 +156,7 @@ Fixed_memory_range& Memory_map::assign_range(Fixed_memory_range&& rng) {
 
     if (UNLIKELY(rng.overlaps(closest_match->second))) {
       throw Memory_range_exception("Range '"+ std::string(rng.name())
-                                   + "' overlaps with the range below key "
+                                   + "' overlaps with the range below requested addr: "
                                    + closest_match->second.to_string());
     }
   }

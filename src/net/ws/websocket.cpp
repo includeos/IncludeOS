@@ -58,13 +58,14 @@ WebSocket_ptr WebSocket::upgrade(http::Request& req, http::Response_writer& writ
 {
   // validate handshake
   auto view = req.header().value("Sec-WebSocket-Version");
-  if (view == nullptr || view != "13") {
+
+  if (view.empty() || view.compare("13") != 0) {
     writer.write_header(http::Bad_Request);
     return nullptr;
   }
 
   auto key = req.header().value("Sec-WebSocket-Key");
-  if (key == nullptr || key.size() < 16) {
+  if (key.empty() || key.size() < 16) {
     writer.write_header(http::Bad_Request);
     return nullptr;
   }
@@ -73,7 +74,7 @@ WebSocket_ptr WebSocket::upgrade(http::Request& req, http::Response_writer& writ
   auto& header = writer.header();
   header.set_field(http::header::Connection, "Upgrade");
   header.set_field(http::header::Upgrade,    "WebSocket");
-  header.set_field("Sec-WebSocket-Accept", encode_hash(key.to_string()));
+  header.set_field("Sec-WebSocket-Accept", encode_hash(std::string(key)));
   writer.write_header(http::Switching_Protocols);
 
   auto stream = writer.connection().release();
@@ -133,7 +134,7 @@ http::Server::Request_handler WebSocket::create_request_handler(
       if (on_accept)
       {
         const bool accepted = on_accept(writer->connection().peer(),
-                                       req->header().value("Origin").to_string());
+                                       std::string(req->header().value("Origin")));
         if (not accepted)
         {
           writer->write_header(http::Unauthorized);
@@ -171,7 +172,7 @@ void WebSocket::connect(
   // doesn't have to be extremely random, just random
   std::string key  = base64::encode(generate_key());
   http::Header_set ws_headers {
-      {"Host",       remote.to_string()},
+      {"Host",       std::string(remote)},
       {"Connection", "Upgrade"  },
       {"Upgrade",    "WebSocket"},
       {"Sec-WebSocket-Version", "13"},
