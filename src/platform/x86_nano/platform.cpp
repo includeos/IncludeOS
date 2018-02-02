@@ -4,6 +4,7 @@
 
 extern "C" void noop_eoi() {}
 extern "C" void cpu_sampling_irq_handler() {}
+extern "C" void blocking_cycle_irq_handler() {}
 void (*current_eoi_mechanism)() = noop_eoi;
 void (*current_intr_handler)() = nullptr;
 
