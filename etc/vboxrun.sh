@@ -79,7 +79,7 @@ else
     # Creating and registering the VM and adding a virtual IDE drive to it,
     # then attaching the hdd image.
     echo -e "\nCreating VM: $VMNAME ...\n"
-    $VB createvm --name "$VMNAME" --ostype "Other" --register
+    $VB createvm --name "$VMNAME" --ostype "Other_64" --register
     $VB storagectl "$VMNAME" --name "IDE Controller" --add ide --bootable on
     $VB storageattach "$VMNAME" --storagectl "IDE Controller" --port 0 --device 0 --type 'hdd' --medium "$targetLoc"
 

@@ -1,3 +1,4 @@
 {
-  "mem" : 256
+  "mem" : 256,
+  "cpu" : {"model": "host"}
 }
