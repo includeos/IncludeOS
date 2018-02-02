@@ -23,10 +23,12 @@
 #include <delegate>
 #include <smp_utils>
 
-#ifdef INCLUDEOS_SINGLE_THREADED
-#define SMP_MAX_CORES   1
-#else
-#define SMP_MAX_CORES   32
+#ifndef SMP_MAX_CORES
+# ifdef INCLUDEOS_SINGLE_THREADED
+#   define SMP_MAX_CORES   1
+# else
+#   define SMP_MAX_CORES   32
+# endif
 #endif
 
 #define SMP_ALIGN       64

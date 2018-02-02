@@ -95,14 +95,14 @@ void __platform_init()
   // setup APIC, APIC timer, SMP etc.
   APIC::init();
 
+  // enable interrupts
+  MYINFO("Enabling interrupts");
+  asm volatile("sti");
+
   // initialize and start registered APs found in ACPI-tables
 #ifndef INCLUDEOS_SINGLE_THREADED
   x86::init_SMP();
 #endif
-
-  // enable interrupts
-  MYINFO("Enabling interrupts");
-  asm volatile("sti");
 
   // Setup kernel clocks
   MYINFO("Setting up kernel clock sources");
