@@ -26,9 +26,9 @@ option(coroutines "Compile with coroutines TS support" OFF)
 
 # arch and platform defines
 message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
-set(TRIPLE ${ARCH}) #-pc-linux-elf
-set(DCMAKE_CXX_COMPILER_TARGET ${TRIPLE})
-set(DCMAKE_C_COMPILER_TARGET ${TRIPLE})
+set(TRIPLE "${ARCH}-pc-linux-elf")
+set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
+set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 set(CPP_VERSION c++17)
 
