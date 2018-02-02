@@ -21,19 +21,25 @@
 
 std::unique_ptr<Syslog_facility> Syslog::fac_ = std::make_unique<Syslog_print>();
 
-// va_list arguments (POSIX)
-void Syslog::syslog(const int priority, const char* message, va_list args) {
-  // vsnprintf removes % if calling syslog with %m in addition to arguments
-  // Find %m here first and escape % if found
-  std::regex m_regex{"\\%m"};
-  std::string msg = std::regex_replace(message, m_regex, "%%m");
-
-  char buf[BUFLEN];
-  vsnprintf(buf, BUFLEN, msg.c_str(), args);
-  syslog(priority, buf);
+void Syslog::syslog(const int priority, const char* fmt, ...)
+{
+  va_list list;
+  va_start(list, fmt);
+  syslog(priority, fmt, list);
+  va_end(list);
 }
 
-void Syslog::syslog(const int priority, const char* buf) {
+// va_list arguments (POSIX)
+void Syslog::syslog(const int priority, const char* fmt, va_list args)
+{
+  // snprintf removes % if calling syslog with %m in addition to arguments
+  // Find %m here first and escape % if found
+  std::regex m_regex{"\\%m"};
+  std::string msg = std::regex_replace(fmt, m_regex, "%%m");
+
+  char buf[2048];
+  vsnprintf(buf, sizeof(buf), msg.c_str(), args);
+
 	/*
   	All syslog-calls comes through here in the end, so
   	here we want to format the log-message with header and body
@@ -66,7 +72,6 @@ void Syslog::syslog(const int priority, const char* buf) {
 		added if needed.
 	*/
   // Handle %m (replace it with strerror(errno)) and add the message (buf)
-  std::regex m_regex{"\\%m"};
   message += std::regex_replace(buf, m_regex, strerror(errno));
 
  	/* Last: Send the log string */
