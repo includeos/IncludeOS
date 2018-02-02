@@ -9,10 +9,6 @@ endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
-message(STATUS "Target CPU architecture ${ARCH}")
-set(TRIPLE "${ARCH}-pc-linux-elf")
-set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
-set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 message(STATUS "Target triple ${TRIPLE}")
 
 # defines $CAPABS depending on installation
@@ -472,7 +468,3 @@ add_custom_target(
   COMMAND ${INSTALL_LOC}/bin/vmbuild ${BINARY} ${INSTALL_LOC}/${ARCH}/boot/bootloader
   DEPENDS service
 )
-
-# install binary directly to prefix (which should be service root)
-install(TARGETS service                                 DESTINATION ${CMAKE_INSTALL_PREFIX})
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${BINARY}.img DESTINATION ${CMAKE_INSTALL_PREFIX})

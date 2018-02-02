@@ -13,7 +13,8 @@ TMP_INSTALL_DIR="/tmp/IncludeOS_binutils_install"
 INSTALL_DIR=$INCLUDEOS_PREFIX/includeos/bin
 export ARCH=${ARCH:-x86_64} # CPU architecture. Alternatively i686
 export TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
-VERSION=2.28
+export PROGRAM_PREFIX=$ARCH-pc-linux-elf	# Configure target based on arch. Always ELF.
+VERSION=2.29.1
 BINUTILS="binutils-"$VERSION
 TARBALL=$BINUTILS".tar.gz"
 
@@ -43,7 +44,7 @@ pushd $BINUTILS
 # Configure & install
 mkdir -p $TMP_INSTALL_DIR
 echo -e "\n>> Configure for $TARGET to be installed in $TMP_INSTALL_DIR"
-./configure --program-prefix=$TARGET- --prefix=$TMP_INSTALL_DIR --target=$TARGET --enable-multilib --enable-ld=yes --disable-werror --enable-silent-rules
+./configure --program-prefix=$PROGRAM_PREFIX- --prefix=$TMP_INSTALL_DIR --target=$TARGET --enable-multilib --enable-ld=yes --disable-werror --enable-silent-rules
 
 echo -e "\n>> Start install"
 make -j4 V=0 --silent
@@ -57,7 +58,7 @@ cp $TMP_INSTALL_DIR/bin/* $INSTALL_DIR
 # Clean up
 popd	# Out of $BINUTILS
 echo -e "\n>> Cleaning up installation ..."
-rm -rf $BINUTILS $TARBALL 
+rm -rf $BINUTILS $TARBALL
 popd	# Out of $BUILD_DIR
 rm -r $BUILD_DIR
 rm -r $TMP_INSTALL_DIR
