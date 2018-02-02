@@ -39,4 +39,4 @@ add_definitions(-DPLATFORM_${PLATFORM})
 
 
 # include toolchain for arch
-include($ENV{INCLUDEOS_PREFIX}/includeos/${ARCH}-elf-toolchain.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/elf-toolchain.cmake)
