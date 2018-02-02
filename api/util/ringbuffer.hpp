@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,6 +20,7 @@
 
 #include <cstring>
 #include <cassert>
+#include <cstdio>
 
 class RingBuffer {
 public:
@@ -44,10 +45,10 @@ public:
 
     // check if we are going around the buffer ...
     int wrap = (end + length) - this->cap;
-    
+
     if (wrap > 0) {
-      memcpy(at_end() ,    data, wrap);
-      memcpy(this->buffer, data + wrap, length - wrap);
+      memcpy(at_end() ,    data, length - wrap);
+      memcpy(this->buffer, data + length - wrap, wrap);
     }
     else {
       memcpy(at_end(), data, length);
@@ -67,10 +68,10 @@ public:
 
     // check if we are going around the buffer ...
     int wrap = (start + length) - this->cap;
-    
+
     if (wrap > 0) {
-      memcpy(dest,        at_start(),   wrap);
-      memcpy(dest + wrap, this->buffer, length - wrap);
+      memcpy(dest,                 at_start(),   length - wrap);
+      memcpy(dest + length - wrap, this->buffer, wrap);
     } else {
       memcpy(dest, at_start(), length);
     }
@@ -96,7 +97,7 @@ public:
   int size() const noexcept {
     return used_space();
   }
-  
+
   int used_space() const noexcept {
     return this->used;
   }
@@ -109,6 +110,44 @@ public:
   }
   bool empty() const noexcept {
     return used_space() == 0;
+  }
+
+  // rotate buffer until it becomes sequential
+  const char* sequentialize()
+  {
+    // not optimized, but if we assume the buffer is always full,
+    // then there is no point in doing anything here
+    int count = 0;
+    int offset = 0;
+
+    while (count < size())
+    {
+      int index = offset;
+      const char tmp  = buffer[index];
+      int index2 = (start + index) % capacity();
+
+      while (index2 != offset)
+      {
+        buffer[index] = buffer[index2];
+        count++;
+
+        index = index2;
+        index2 = (start + index) % capacity();
+      }
+
+      buffer[index] = tmp;
+      count++;
+
+      offset++;
+    }
+    // update internals
+    this->start = 0;
+    this->end = size();
+    return this->buffer;
+  }
+
+  const char* data() const noexcept {
+    return this->buffer;
   }
 
 private:

@@ -21,7 +21,6 @@
 using namespace net;
 
 int pongs = 0;
-int flood_pongs = 0;
 
 void verify() {
   static int i = 0;
@@ -89,21 +88,12 @@ void Service::start()
     verify();
   });
 
-  Timers::oneshot(500ms, [](auto){
-    INFO("Ping flood", "host1 => host2 (%s)", host2.ip_addr().to_string().c_str());
-
-  for(int i = 1; i <= 128; ++i) {
-    host1.icmp().ping(host2.ip_addr(), [i = i](auto reply) {
-      //assert(reply);
-      if(reply)
-        ++flood_pongs;
-      else
-        printf("No pong %i\n", i);
-
-      if(flood_pongs == 128)
-        verify();
-    }, 10);
-  }
+  INFO("UDP", "eth0 => listen:4444");
+  eth0.udp().bind(4444).on_read([&](auto addr, auto, const char*, size_t) {
+    CHECKSERT(addr == eth1.ip_addr(), "Received UDP data from eth1");
+    verify();
   });
+  std::string udp_data{"yolo"};
+  eth1.udp().bind().sendto(eth0.ip_addr(), 3333, udp_data.data(), udp_data.size());
 
 }
