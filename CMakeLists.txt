@@ -19,7 +19,7 @@ message(STATUS "Target triple ${TRIPLE}")
 
 option(WITH_SOLO5 "Install with solo5 support" ON)
 
-set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
 
 project (includeos C CXX)
 
@@ -267,7 +267,7 @@ install(DIRECTORY vmrunner DESTINATION includeos)
 install(FILES vmrunner/${DEFAULT_VM} DESTINATION includeos/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
 
 # Install toolchain
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${ARCH}-elf-toolchain.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION includeos)
 
 # Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)
