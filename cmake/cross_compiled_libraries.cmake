@@ -96,7 +96,10 @@ add_dependencies(libm PrecompiledLibraries)
 set(CRTEND ${PRECOMPILED_DIR}/crt/crtend.o)
 set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
 
-# installation instructions
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libcxx)
 
 install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/newlib)
