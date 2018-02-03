@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.1.0)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
@@ -151,7 +151,7 @@ endif()
 # either download or cross-compile needed libraries
 #option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.cmake)
 
 # Botan Crypto & TLS
 # Note: Include order matters!
@@ -253,6 +253,7 @@ endif(libprotobuf)
 #
 # Installation
 #
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
 # Install cmake files
 install(FILES cmake/pre.service.cmake DESTINATION includeos)
