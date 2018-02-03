@@ -35,7 +35,7 @@ namespace fs
   void FAT::int_ls(
      uint32_t   sector,
      Dirvec_ptr dirents,
-     on_internal_ls_func callback)
+     on_internal_ls_func callback) const
   {
     // list contents of meme sector by sector
     typedef delegate<void(uint32_t)> next_func_t;
@@ -43,7 +43,7 @@ namespace fs
     auto next = std::make_shared<next_func_t> ();
     auto weak_next = std::weak_ptr<next_func_t>(next);
     *next = next_func_t::make_packed(
-    [this, sector, callback, dirents, weak_next] (uint32_t sector)
+    [this, callback, dirents, weak_next] (uint32_t sector)
     {
       FS_PRINT("int_ls: sec=%u\n", sector);
       auto next = weak_next.lock();
@@ -75,7 +75,7 @@ namespace fs
     (*next)(sector);
   }
 
-  void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback, const Dirent* const start)
+  void FAT::traverse(std::shared_ptr<Path> path, cluster_func callback, const Dirent* const start) const
   {
     // parse this path into a stack of memes
     typedef delegate<void(uint32_t)> next_func_t;
@@ -155,14 +155,14 @@ namespace fs
     (*next)(start ? start->block() : 0);
   }
 
-  void FAT::ls(const std::string& path, on_ls_func on_ls) {
+  void FAT::ls(const std::string& path, on_ls_func on_ls) const {
 
     // parse this path into a stack of names
     auto pstk = std::make_shared<Path> (path);
 
     traverse(pstk, on_ls);
   }
-  void FAT::ls(const Dirent& ent, on_ls_func on_ls)
+  void FAT::ls(const Dirent& ent, on_ls_func on_ls) const
   {
     auto dirents = std::make_shared<dirvector> ();
     // verify ent is a directory
@@ -176,7 +176,7 @@ namespace fs
     int_ls(S, dirents, on_ls);
   }
 
-  void FAT::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback)
+  void FAT::read(const Dirent& ent, uint64_t pos, uint64_t n, on_read_func callback) const
   {
     // when n=0 roundup() will return an invalid value
     if (n == 0) {
@@ -198,7 +198,7 @@ namespace fs
       this->cl_to_sector(ent.block()) + sector,
       nsect,
       hw::Block_device::on_read_func::make_packed(
-      [pos, n, callback, internal_ofs] (buffer_t data)
+      [n, callback, internal_ofs] (buffer_t data)
       {
         if (!data) {
           // general I/O error occurred
@@ -222,7 +222,7 @@ namespace fs
     );
   }
 
-  void FAT::stat(Path_ptr path, on_stat_func func, const Dirent* const start)
+  void FAT::stat(Path_ptr path, on_stat_func func, const Dirent* const start) const
   {
     // manual lookup
     if (UNLIKELY(path->empty())) {
