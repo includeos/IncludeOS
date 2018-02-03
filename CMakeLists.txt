@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.1.0)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
@@ -19,7 +19,7 @@ message(STATUS "Target triple ${TRIPLE}")
 
 option(WITH_SOLO5 "Install with solo5 support" ON)
 
-set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
 
 project (includeos C CXX)
 
@@ -151,7 +151,7 @@ endif()
 # either download or cross-compile needed libraries
 #option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.cmake)
 
 # Botan Crypto & TLS
 # Note: Include order matters!
@@ -253,6 +253,7 @@ endif(libprotobuf)
 #
 # Installation
 #
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
 # Install cmake files
 install(FILES cmake/pre.service.cmake DESTINATION includeos)
@@ -266,7 +267,7 @@ install(DIRECTORY vmrunner DESTINATION includeos)
 install(FILES vmrunner/${DEFAULT_VM} DESTINATION includeos/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
 
 # Install toolchain
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${ARCH}-elf-toolchain.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION includeos)
 
 # Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)
