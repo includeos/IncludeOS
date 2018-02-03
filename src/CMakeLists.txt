@@ -82,7 +82,10 @@ endif(WITH_SOLO5)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
 
-
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(TARGETS os DESTINATION includeos/${ARCH}/lib)
 
 install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk

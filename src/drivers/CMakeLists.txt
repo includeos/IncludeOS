@@ -51,6 +51,11 @@ add_dependencies(vga_output PrecompiledLibraries)
 add_library(vga_emergency STATIC vga_emergency.cpp)
 add_dependencies(vga_emergency PrecompiledLibraries)
 
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
+
 install(TARGETS
     disable_paging
     ide_readwrite ide_readonly ide_writeonly
