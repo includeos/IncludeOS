@@ -23,6 +23,11 @@ add_dependencies(terminal_liu PrecompiledLibraries)
 add_library(nacl STATIC nacl.cpp)
 add_dependencies(nacl PrecompiledLibraries)
 
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
+
 install(TARGETS
     syslogd
     unik
