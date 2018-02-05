@@ -89,7 +89,7 @@ init_submodule(NaCl)
 set(OPTIMIZE "-O2")
 
 if(debug OR debug-info OR debug-all)
-	set(OTPIMIZE "-O0")
+	set(OPTIMIZE "-O0")
 endif(debug OR debug-info OR debug-all)
 
 if(minimal)
