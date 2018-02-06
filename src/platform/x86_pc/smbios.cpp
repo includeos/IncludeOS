@@ -127,7 +127,7 @@ namespace x86
         {
           char uuid[33];
           snprintf(uuid, sizeof(uuid),
-                  "%08x%08x-%08x%08x",
+                  "%08x%08x%08x%08x",
                   *(uint32_t*) &hdr->data[4],
                   *(uint32_t*) &hdr->data[8],
                   *(uint32_t*) &hdr->data[12],

@@ -58,13 +58,6 @@ add_dependencies(ukvm-bin solo5_repo)
 add_dependencies(PrecompiledLibraries solo5)
 add_dependencies(PrecompiledLibraries ukvm-bin)
 
-# Only x86_64 supported at the moment
-if ("${ARCH}" STREQUAL "x86_64")
-  install(FILES ${SOLO5_REPO_DIR}/kernel/ukvm/solo5.o ${SOLO5_REPO_DIR}/ukvm/ukvm-bin DESTINATION includeos/${ARCH}/lib)
-endif()
-
-install(FILES ${SOLO5_INCLUDE_DIR}/solo5.h DESTINATION includeos/${ARCH}/include)
-
 endif (WITH_SOLO5)
 
 set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/${ARCH})
@@ -98,7 +91,10 @@ add_dependencies(libm PrecompiledLibraries)
 set(CRTEND ${PRECOMPILED_DIR}/crt/crtend.o)
 set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
 
-# installation instructions
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libcxx)
 install(DIRECTORY ${LIBUNWIND_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libunwind)
 
@@ -129,3 +125,12 @@ install(FILES
   ${LIBCXX_LIB_DIR}/libc++abi.a
   ${LIBUNWIND_LIB_DIR}/libunwind.a
   DESTINATION includeos/${ARCH}/lib)
+
+if (WITH_SOLO5)
+# Only x86_64 supported at the moment
+if ("${ARCH}" STREQUAL "x86_64")
+  install(FILES ${SOLO5_REPO_DIR}/kernel/ukvm/solo5.o ${SOLO5_REPO_DIR}/ukvm/ukvm-bin DESTINATION includeos/${ARCH}/lib)
+endif()
+
+install(FILES ${SOLO5_INCLUDE_DIR}/solo5.h DESTINATION includeos/${ARCH}/include)
+endif(WITH_SOLO5)

@@ -43,8 +43,9 @@ long FileSys::write(FILE* file)
   strcpy(BPB->volume_label, "IncludeOS");
   strcpy(BPB->system_id,    "FAT32");
 
-  for (int i = 0; i < 4*sizeof(fs::MBR::partition); i++)
+  for (decltype(sizeof(fs::MBR::partition)) i = 0, e = 4*sizeof(fs::MBR::partition); i < e; ++i) {
     ((char*) mbr->part)[i] = 0;
+  }
 
   // write root and other entries recursively
   long root_pos = SECT_SIZE * 3; // Note: roots parent is itself :)
@@ -73,7 +74,7 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
 
   // create checksum of "shortname"
   unsigned char csum = 0;
-  for (int i = 0; i < SHORTNAME_LEN; i++)
+  for (decltype(SHORTNAME_LEN) i = 0; i < SHORTNAME_LEN; ++i)
   {
     csum = (csum >> 1) + ((csum & 1) << 7); // rotate
     csum += name[i];                        // next byte
@@ -86,14 +87,15 @@ std::vector<cl_dir> create_longname(std::string name, uint8_t enttype)
     int rem = LONG_CHARS_PER_ENTRY - (name.size() % LONG_CHARS_PER_ENTRY);
     name.resize(name.size() + rem);
     // fill rest with spaces
-    for (int i = name.size() - rem; i < name.size(); i++)
+    for (decltype(name.size()) i = (name.size() - rem), e = name.size(); i < e; ++i) {
       name[i] = 0x0;
+    }
   }
   // number of entries needed for this longname
   int entmax = name.size() / LONG_CHARS_PER_ENTRY;
 
   // create entries filling as we go
-  int current = 0;
+  decltype(name.size()) current = 0;
 
   for (int i = 1; i <= entmax; i++)
   {
@@ -144,11 +146,12 @@ cl_dir create_entry(const std::string& name, uint8_t attr, uint32_t size)
 {
   cl_dir ent;
   ent.shortname[0] = name[0];
-  int nlen = std::min(name.size(), SHORTNAME_LEN);
+  decltype(name.size()) nlen = std::min(name.size(), SHORTNAME_LEN);
   memcpy((char*) ent.shortname, name.data(), nlen);
   // fill rest with spaces
-  for (int i = nlen; i < SHORTNAME_LEN; i++)
+  for (decltype(SHORTNAME_LEN) i = nlen; i < SHORTNAME_LEN; ++i) {
     ent.shortname[i] = 32;
+  }
   ent.attrib = attr;
   ent.cluster_hi = 0; /// SET THIS
   ent.cluster_lo = 0; /// SET THIS
@@ -268,7 +271,7 @@ long Dir::write(FileSys& fsys, FILE* file, long pos, long parent)
   /// write all the entries for this directory to file
   fseek(file, pos, SEEK_SET);
   int count = fwrite(ents.data(), sizeof(cl_dir), ents.size(), file);
-  assert(count == ents.size());
+  assert(count == static_cast<int>(ents.size()));
 
   return newpos;
 }

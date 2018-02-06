@@ -26,9 +26,6 @@ extern __multiboot_addr
 %define P2_TAB                  0x100000
 %define STACK_LOCATION          0x9D3F0
 
-%define EFER.LME                0x100
-%define EFER.SCE                0x1
-
 %define IA32_EFER               0xC0000080
 %define IA32_STAR               0xC0000081
 %define IA32_LSTAR              0xc0000082
@@ -39,6 +36,19 @@ extern __multiboot_addr
 
 %define NUM_P3_ENTRIES     5
 %define NUM_P2_ENTRIES     2560
+
+;; CR0 paging enable bit
+%define PAGING_ENABLE 0x80000000
+;; CR0 Supervisor write-protect enable
+%define SUPER_WP_ENABLE 0x10000
+
+;; Extended Feature Enable Register (MSR)
+%define IA32_EFER_MSR 0xC0000080
+;; EFER Longmode bit
+%define LONGMODE_ENABLE 0x100
+;; EFER Execute Disable bit
+%define NX_ENABLE 0x800
+
 
 [BITS 32]
 __arch_start:
@@ -93,14 +103,14 @@ __arch_start:
     mov cr4, eax
 
     ;; enable long mode
-    mov ecx, IA32_EFER          ; EFER MSR
+    mov ecx, IA32_EFER_MSR
     rdmsr
-    or  eax, EFER.LME | EFER.SCE              ; Long M
+    or  eax, (LONGMODE_ENABLE | NX_ENABLE)
     wrmsr
 
     ;; enable paging
     mov eax, cr0                 ; Set the A-register to control register 0.
-    or  eax, 1 << 31
+    or  eax, (PAGING_ENABLE | SUPER_WP_ENABLE)
     mov cr0, eax                 ; Set control register 0 to the A-register.
 
     ;; load 64-bit GDT

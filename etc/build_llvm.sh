@@ -5,6 +5,7 @@
 ARCH=${ARCH:-x86_64} # CPU architecture. Alternatively x86_64
 TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
 BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build/build_llvm}
+INCLUDEOS_THREADING=${INCLUDEOS_THREADING:-ON}
 
 musl_inc=$TEMP_INSTALL_DIR/$TARGET/include	# path for newlib headers
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
@@ -28,7 +29,7 @@ if [ ! -z $download_llvm ]; then
     git checkout $llvm_branch
 
     # Compiler-rt
-    git clone -b $llvm_branch https://github.com/llvm-mirror/compiler-rt.git || true
+    # git clone -b $llvm_branch https://github.com/llvm-mirror/compiler-rt.git || true
     #svn co http://llvm.org/svn/llvm-project/compiler-rt/tags/$LLVM_TAG compiler-rt
 
     # libc++abi
@@ -82,20 +83,21 @@ cmake -GNinja $OPTS  \
       -DCMAKE_INSTALL_PREFIX=$BUILD_DIR/IncludeOS_TEMP_install \
       -DBUILD_SHARED_LIBS=OFF \
       -DTARGET_TRIPLE=$TRIPLE \
-      -DLLVM_BUILD_32_BITS=OFF \
       -DLLVM_INCLUDE_TESTS=OFF \
       -DLLVM_ENABLE_THREADS=$threading \
       -DLLVM_DEFAULT_TARGET_TRIPLE=$TRIPLE \
+      -DLIBCXX_ENABLE_STATIC=ON \
       -DLIBCXX_ENABLE_SHARED=OFF \
       -DLIBCXX_ENABLE_THREADS=$threading \
       -DLIBCXX_TARGET_TRIPLE=$TRIPLE \
-      -DLIBCXX_BUILD_32_BITS=OFF \
       -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
       -DLIBCXX_CXX_ABI=libcxxabi \
       -DLIBCXXABI_TARGET_TRIPLE=$TRIPLE \
       -DLIBCXXABI_ENABLE_THREADS=$threading \
       -DLIBCXXABI_HAS_PTHREAD_API=$threading \
       -DLIBCXXABI_USE_LLVM_UNWINDER=ON \
+      -DLIBCXXABI_ENABLE_STATIC_UNWINDER=ON \
+      -DLIBCXX_CXX_ABI_LIBRARY_PATH=$BUILD_DIR/build_llvm/lib/ \
       -DLIBUNWIND_TARGET_TRIPLE=$TRIPLE \
       -DLIBUNWIND_ENABLE_SHARED=OFF
 

@@ -32,7 +32,7 @@ void Parsley::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next
 
     // Access the document and parse the body
     try {
-      json->doc().Parse(req->source().body().to_string().c_str());
+      json->doc().Parse(req->source().body().data());
       #ifdef VERBOSE_WEBSERVER
       printf("<Parsley> Parsed JSON data.\n");
       #endif

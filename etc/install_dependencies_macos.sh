@@ -10,13 +10,14 @@ export INCLUDEOS_SRC=${INCLUDEOS_SRC:-"~/IncludeOS"}
 export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-"/usr/local"}
 export INCLUDEOS_BIN=$INCLUDEOS_PREFIX/includeos/bin # Where to link stuff
 
+TARGET_TRIPLE=$ARCH-pc-linux-elf
 INSTALLED_BREW=0
 INSTALLED_BREW_PACKAGES=0
 INSTALLED_PIP=0
 INSTALLED_PIP_PACKAGES=0
 INSTALLED_BINUTILS=0
 INSTALLED_SYMLINKING=0
-CLANG_VERSION=4
+CLANG_VERSION=5
 BREW_LLVM="llvm@$CLANG_VERSION"
 ALL_DEPENDENCIES="$BREW_LLVM nasm cmake jq qemu Caskroom/cask/tuntap libmagic"
 PIP_MODS="jsonschema psutil filemagic"
@@ -179,7 +180,7 @@ fi
 ############################################################
 
 # Check if binutils is installed, if not it will be built and installed
-BINUTILS_BIN="$INCLUDEOS_PREFIX/includeos/bin/$ARCH-elf-"
+BINUTILS_BIN="$INCLUDEOS_PREFIX/includeos/bin/$TARGET_TRIPLE-"
 LD_INC=$BINUTILS_BIN"ld"
 AR_INC=$BINUTILS_BIN"ar"
 OBJCOPY_INC=$BINUTILS_BIN"objcopy"

@@ -80,7 +80,8 @@ namespace x86
   {
     // disable the legacy 8259 PIC
     // by masking off all interrupts
-    PIC::set_intr_mask(0xFFFF);
+    PIC::init();
+    PIC::disable();
 
     if (CPUID::has_feature(CPUID::Feature::X2APIC)) {
         current_apic = &x2apic::get();
@@ -119,13 +120,19 @@ namespace x86
       // NOTE: @bus_source is the IOAPIC number
       if (redir.irq_source == irq)
       {
-        INFO2("Enabled redirected IRQ %u -> %u on lapic %u",
-            redir.irq_source, redir.global_intr, get().get_id());
+        if (OS::is_panicking() == false)
+        {
+          INFO2("Enabled redirected IRQ %u -> %u on lapic %u",
+              redir.irq_source, redir.global_intr, get().get_id());
+        }
         IOAPIC::enable(redir.global_intr, irq, get().get_id());
         return;
       }
     }
-    INFO2("Enabled non-redirected IRQ %u on LAPIC %u", irq, get().get_id());
+    if (OS::is_panicking() == false)
+    {
+      INFO2("Enabled non-redirected IRQ %u on LAPIC %u", irq, get().get_id());
+    }
     IOAPIC::enable(irq, irq, get().get_id());
   }
   void APIC::disable_irq(uint8_t irq)

@@ -42,7 +42,7 @@ static void _GFRGRGRgegerjiuo_()
 
   settings.on_header_value = [](http_parser* parser, const char* at, size_t length) {
     auto req = reinterpret_cast<Request*>(parser->data);
-    req->header().set_field(req->private_field().to_string(), {at, length});
+    req->header().set_field(std::string(req->private_field()), {at, length});
     return 0;
   };
 

@@ -54,6 +54,7 @@ void _exit(int status) {
   kprint("\n");
   SYSINFO("service exited with status %i", status);
   default_exit();
+  __builtin_unreachable();
 }
 
 clock_t times(struct tms*) {
@@ -65,6 +66,7 @@ int wait(int*) {
   debug((char*)"SYSCALL WAIT Dummy, returning -1");
   return -1;
 }
+
 
 int kill(pid_t pid, int sig) THROW {
   SMP::global_lock();
@@ -114,7 +116,8 @@ void OS::on_panic(on_panic_func func)
 }
 
 extern "C" __attribute__((noreturn)) void panic_epilogue(const char*);
-
+extern "C" __attribute__ ((weak))
+void panic_perform_inspection_procedure() {}
 
 /**
  * panic:
@@ -158,6 +161,10 @@ asm("panic_begin:");
   fflush(stderr);
   SMP::global_unlock();
 
+  // action that restores some system functionality intended for inspection
+  // NB: Don't call this from double faults
+  panic_perform_inspection_procedure();
+
   panic_epilogue(why);
 }
 
@@ -174,20 +181,36 @@ void double_fault(const char* why)
 
 void panic_epilogue(const char* why)
 {
-  // call custom on panic handler (if present)
-  if (panic_handler) panic_handler(why);
+  // Call custom on panic handler (if present).
+  if (panic_handler != nullptr) {
+    // Avoid recursion if the panic handler results in panic
+    auto final_action = panic_handler;
+    panic_handler = nullptr;
+    final_action(why);
+  }
 
-  #if defined(ARCH_x86)
-    SMP::global_lock();
-    // Signal End-Of-Transmission
-    kprint("\x04");
-    SMP::global_unlock();
+#if defined(ARCH_x86)
+  SMP::global_lock();
+  // Signal End-Of-Transmission
+  kprint("\x04");
+  SMP::global_unlock();
 
-    // .. if we return from the panic handler, go to permanent sleep
-    while (1) asm("cli; hlt");
-  #else
-    #warning "panic() handler not implemented for selected arch"
-  #endif
+#else
+#warning "panic() handler not implemented for selected arch"
+#endif
+
+  switch (OS::panic_action())
+  {
+  case OS::Panic_action::halt:
+    while (1) OS::halt();
+  case OS::Panic_action::shutdown:
+    extern void __arch_poweroff();
+    __arch_poweroff();
+  case OS::Panic_action::reboot:
+  default:
+    OS::reboot();
+  }
+
   __builtin_unreachable();
 }
 

@@ -62,9 +62,6 @@ public:
       writer.Key("in_use");
       writer.Uint(entry.bytes_in_use());
 
-      writer.Key("description");
-      writer.String(entry.description());
-
       writer.EndObject();
     }
     writer.EndArray();
@@ -79,7 +76,3 @@ private:
 } // < namespace mana
 
 #endif
-
-
-
-

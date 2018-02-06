@@ -15,4 +15,10 @@ include_directories(${INCLUDE_PATH}/include)
 add_executable(vmbuild ${SOURCES})
 add_executable(elf_syms ${ELF_SYMS_SOURCES})
 
+
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
+
 install(TARGETS vmbuild elf_syms DESTINATION ${CMAKE_INSTALL_PREFIX})

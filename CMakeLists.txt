@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.1.0)
 
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
@@ -19,7 +19,7 @@ message(STATUS "Target triple ${TRIPLE}")
 
 option(WITH_SOLO5 "Install with solo5 support" ON)
 
-set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/${ARCH}-elf-toolchain.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
 
 project (includeos C CXX)
 
@@ -48,7 +48,7 @@ else()
   set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
 endif(cpu_feat_vanilla)
 
-option(single_threaded "Compile without SMP support" ON)
+option(threading "Compile with SMP/threading support" OFF)
 
 option(silent "Disable most output during OS boot" OFF)
 
@@ -63,7 +63,6 @@ set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_P
 # * NO_DEBUG disables output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE")
-
 set(WARNS "-Wall -Wextra")
 
 # configure options
@@ -89,7 +88,7 @@ init_submodule(NaCl)
 set(OPTIMIZE "-O2")
 
 if(debug OR debug-info OR debug-all)
-	set(OTPIMIZE "-O0")
+	set(OPTIMIZE "-O0")
 endif(debug OR debug-info OR debug-all)
 
 if(minimal)
@@ -131,21 +130,27 @@ endif()
 
 enable_language(ASM_NASM)
 
+
+if (NOT threading)
+  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
+endif()
+
+
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
   set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  -D_LIBCPP_HAS_NO_THREADS=1 -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 endif()
 
 # either download or cross-compile needed libraries
 #option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
 set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.txt)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.cmake)
 
 # Botan Crypto & TLS
 # Note: Include order matters!
@@ -249,6 +254,7 @@ endif(libprotobuf)
 #
 # Installation
 #
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
 # Install cmake files
 install(FILES cmake/pre.service.cmake DESTINATION includeos)
@@ -262,7 +268,7 @@ install(DIRECTORY vmrunner DESTINATION includeos)
 install(FILES vmrunner/${DEFAULT_VM} DESTINATION includeos/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
 
 # Install toolchain
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${ARCH}-elf-toolchain.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION includeos)
 
 # Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)

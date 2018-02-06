@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
 #ifdef __MACH__
 #include <stdlib.h>
 #include <stddef.h>
@@ -65,16 +66,31 @@ void OS::start(unsigned, unsigned) {}
 void OS::default_stdout(const char*, size_t) {}
 void OS::event_loop() {}
 void OS::block() {}
+void OS::halt() {}
 void OS::resume_softreset(intptr_t) {}
 bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
 
-void OS::multiboot(unsigned) {}
+void __x86_init_paging(void*){};
+namespace x86 {
+namespace paging {
+  void invalidate(void* pageaddr){};
+}}
 
+__attribute__((constructor))
+void paging_test_init(){
+  extern uintptr_t __exec_begin;
+  extern uintptr_t __exec_end;
+  __exec_begin = 0xa00000;
+  __exec_end = 0xb0000b;
+}
+
+void OS::multiboot(unsigned) {}
 extern "C" {
 
 /// Kernel ///
+
   char _binary_apic_boot_bin_end;
   char _binary_apic_boot_bin_start;
   char _ELF_START_;
@@ -83,24 +99,13 @@ extern "C" {
   uintptr_t _LOAD_START_;
   uintptr_t _LOAD_END_;
   uintptr_t _BSS_END_;
+  uintptr_t _TEXT_START_;
+  uintptr_t _TEXT_END_;
+  uintptr_t _EXEC_END_;
 
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
   }
-
-  void kprintf(const char* format, ...){
-    va_list args;
-    va_start (args, format);
-    vprintf (format, args);
-    va_end (args);
-  }
-
-  void kprint(const char* str){
-    printf(str);
-  }
-
-  void* heap_end;
-  void* heap_begin;
 
 /// C ABI ///
   void _init_c_runtime() {}

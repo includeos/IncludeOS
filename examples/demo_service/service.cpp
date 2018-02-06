@@ -66,7 +66,7 @@ http::Response handle_request(const http::Request& req)
 
     // set Content type and length
     header.set_field(http::header::Content_Type, "text/html; charset=UTF-8");
-    header.set_field(http::header::Content_Length, std::to_string(res.body().to_string().size()));
+    header.set_field(http::header::Content_Length, std::to_string(res.body().size()));
   }
   else
   {
@@ -104,7 +104,7 @@ void Service::start()
     conn->on_read(1024,
     [conn] (auto buf)
     {
-      printf("<Service> @on_read: %u bytes received.\n", buf->size());
+      printf("<Service> @on_read: %lu bytes received.\n", buf->size());
       try
       {
         const std::string data((const char*) buf->data(), buf->size());
@@ -115,7 +115,7 @@ void Service::start()
         auto res = handle_request(req);
 
         printf("<Service> Responding with %u %s.\n",
-          res.status_code(), http::code_description(res.status_code()).to_string().c_str());
+          res.status_code(), http::code_description(res.status_code()).data());
 
         conn->write(res);
       }
@@ -125,7 +125,7 @@ void Service::start()
       }
     });
     conn->on_write([](size_t written) {
-      printf("<Service> @on_write: %u bytes written.\n", written);
+      printf("<Service> @on_write: %lu bytes written.\n", written);
     });
   });
 

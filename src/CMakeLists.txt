@@ -3,7 +3,7 @@
 #
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
-if (single_threaded)
+if (NOT threading)
 add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 endif()
 
@@ -40,7 +40,7 @@ set(OS_OBJECTS
   util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp
   crt/ctype_b_loc.c crt/ctype_tolower_loc.c crt/string.c
   crt/quick_exit.cpp crt/cxx_abi.cpp
-  hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp
+  hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp hw/vga_gfx.cpp
   hw/msi.cpp hw/pci_msi.cpp virtio/virtio.cpp virtio/virtio_queue.cpp
   net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp
   net/checksum.cpp net/ip4/arp.cpp net/ip4/ip4.cpp net/ip4/reassembly.cpp
@@ -80,7 +80,10 @@ add_subdirectory(plugins)
 # Add musl
 add_subdirectory(musl)
 
-
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(TARGETS os DESTINATION includeos/${ARCH}/lib)
 
 install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk

@@ -1,2 +1,2 @@
-set(CAPABS "-mavx -maes -mfma -mfpmath=sse")
-message(STATUS "Using extended CPU features: AVX, AES, FMA. CAPABS = ${CAPABS}")
+set(CAPABS "-mavx2 -maes -mfpmath=sse")
+message(STATUS "Using native CPU features. CAPABS = ${CAPABS}")

@@ -10,6 +10,8 @@ set(ARCH_OBJECTS
   fiber_asm.asm
   syscall_entry.asm
   ist.cpp
+  paging.cpp
+  init_paging.cpp
 )
 
 add_library(arch STATIC ${ARCH_OBJECTS})

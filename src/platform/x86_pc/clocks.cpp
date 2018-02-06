@@ -18,11 +18,14 @@
 #include "clocks.hpp"
 #include "../kvm/kvmclock.hpp"
 #include "cmos_clock.hpp"
+#include <util/units.hpp>
 #include <kernel/cpuid.hpp>
 #include <arch.hpp>
 #include <delegate>
 #include <info>
 #include <smp>
+
+using namespace util::literals;
 
 struct sysclock_t
 {
@@ -37,6 +40,7 @@ static SMP_ARRAY<sysclock_t> vcpu_clock;
 
 namespace x86
 {
+
   void Clocks::init()
   {
     if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))

@@ -21,7 +21,6 @@ ENTRY(_start)
 
 SECTIONS
 {
-
   PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x100000));
   . = SEGMENT_START("text-segment", 0x100000) + SIZEOF_HEADERS;
 
@@ -125,7 +124,16 @@ SECTIONS
    PROVIDE_HIDDEN (__fini_array_end = .);
   }
 
-  .rodata ALIGN(0x1000):
+  _EXEC_END_ = .;
+  _READONLY_START_ = .;
+  .config ALIGN(0x1000) : {
+    _CONFIG_JSON_START_ = .;
+    KEEP(*(.config))
+    _CONFIG_JSON_END_ = .;
+    BYTE(0);
+  }
+
+  .rodata :
   {
     _RODATA_START_ = .;
     *(.rodata*)
@@ -158,7 +166,7 @@ SECTIONS
   {
     *(.gcc_except_table)
   }
-
+  _READONLY_END_ = .;
   .data :
   {
     _DATA_START_ = .;

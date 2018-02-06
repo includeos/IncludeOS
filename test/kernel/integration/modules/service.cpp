@@ -44,7 +44,7 @@ void Service::start(const std::string& args)
 
   // Verify module cmdlines
   Expects(std::string((char*) mods[0].cmdline) == "../mod1.json");
-  Expects(std::string((char*) mods[1].cmdline) == "../seed loaded as module");
+  Expects(std::string((char*) mods[1].cmdline) == "seed loaded as module");
   Expects(std::string((char*) mods[2].cmdline) == "../mod3.json");
 
   // verify content of text modules

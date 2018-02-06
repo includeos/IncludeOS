@@ -86,7 +86,7 @@ void Service::start()
 {
   auto& inet = net::Inet4::ifconfig<>(0);
   inet.network_config(
-      {  10, 0,  0, 42 },  // IP
+      {  10, 0,  0, 54 },  // IP
       { 255,255,255, 0 },  // Netmask
       {  10, 0,  0,  1 },  // Gateway
       {  10, 0,  0,  1 }); // DNS

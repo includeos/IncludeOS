@@ -41,11 +41,27 @@
 /*  5. Absolutely no warranty is expressed or implied.                   */
 /*-----------------------------------------------------------------------*/
 # include <stdio.h>
+# include <stdlib.h>
 # include <unistd.h>
 # include <math.h>
 # include <float.h>
 # include <limits.h>
 # include <sys/time.h>
+# include <stdint.h>
+#define BAREMETAL
+
+inline uint64_t tsc() {
+
+	uint64_t high = 0, low = 0;
+	asm __volatile__(
+		"rdtscp;"
+		: "=d" (high), "=a" (low)
+		:
+		: "rcx"
+	);
+
+	return ((high << 32) | low);
+}
 
 /*-----------------------------------------------------------------------
  * INSTRUCTIONS:
@@ -103,13 +119,8 @@
  *      NTIMES can also be set on the compile line without changing the source
  *         code using, for example, "-DNTIMES=7".
  */
-#ifdef NTIMES
-#if NTIMES<=1
-#   define NTIMES	10
-#endif
-#endif
 #ifndef NTIMES
-#   define NTIMES	10
+#   define NTIMES	100000
 #endif
 
 /*  Users are allowed to modify the "OFFSET" variable, which *may* change the
@@ -173,25 +184,32 @@
 # endif
 
 #ifndef STREAM_TYPE
-#define STREAM_TYPE double
+#define STREAM_TYPE uint64_t
+#endif
+
+#ifndef PKT_SIZE
+#define PKT_SIZE 2500
 #endif
 
 static STREAM_TYPE	a[STREAM_ARRAY_SIZE+OFFSET],
 			b[STREAM_ARRAY_SIZE+OFFSET],
 			c[STREAM_ARRAY_SIZE+OFFSET];
 
-static double	avgtime[4] = {0}, maxtime[4] = {0},
-		mintime[4] = {FLT_MAX,FLT_MAX,FLT_MAX,FLT_MAX};
+static uint8_t pkt_src[PKT_SIZE];
+static uint8_t pkt_dst[PKT_SIZE];
 
-static const char	*label[4] =
-  {"Copy:      ", "Scale:     ",
-   "Add:       ", "Triad:     "};
+static double	avgcycles[5] = {0}, maxcycles[5] = {0},
+		mincycles[5] = {FLT_MAX,FLT_MAX,FLT_MAX,FLT_MAX,FLT_MAX};
 
-static double	bytes[4] = {
+static char	*label[5] = {"Copy:    ", "Scale:   ",
+    "Add:     ", "Triad:   ", "Pkt Copy: "};
+
+static double bytes[5] = {
     2 * sizeof(STREAM_TYPE) * STREAM_ARRAY_SIZE,
     2 * sizeof(STREAM_TYPE) * STREAM_ARRAY_SIZE,
     3 * sizeof(STREAM_TYPE) * STREAM_ARRAY_SIZE,
-    3 * sizeof(STREAM_TYPE) * STREAM_ARRAY_SIZE
+    3 * sizeof(STREAM_TYPE) * STREAM_ARRAY_SIZE,
+    PKT_SIZE
     };
 
 extern double mysecond();
@@ -205,16 +223,49 @@ extern void tuned_STREAM_Triad(STREAM_TYPE scalar);
 #ifdef _OPENMP
 extern int omp_get_num_threads();
 #endif
-int
-main()
+
+#ifndef BAREMETAL
+inline void vmcall__start_bench()
 {
-    int     checktick(void);
-    int			quantum;
+	const unsigned int VMCALL_START_BENCH = 0x6000;
+	struct vmcall_registers_t regs;
+	regs.r00 = VMCALL_EVENT;
+	regs.r01 = VMCALL_MAGIC_NUMBER;
+	regs.r02 = VMCALL_START_BENCH;
+
+	_vmcall_event(&regs);
+}
+
+struct vmbench_data {
+	uint64_t exit_count;
+	uint64_t tsc_freq_hz;
+};
+
+inline void vmcall__stop_bench(struct vmbench_data *data)
+{
+	const unsigned int VMCALL_STOP_BENCH = 0x7000;
+	struct vmcall_registers_t regs;
+	regs.r00 = VMCALL_EVENT;
+	regs.r01 = VMCALL_MAGIC_NUMBER;
+	regs.r02 = VMCALL_STOP_BENCH;
+
+	_vmcall_event(&regs);
+
+	data->exit_count = regs.r01;
+	data->tsc_freq_hz = regs.r02;
+}
+#endif
+
+int stream_main()
+{
+    int			quantum, checktick();
     int			BytesPerWord;
     int			k;
-    ssize_t		j;
+    size_t		j;
     STREAM_TYPE		scalar;
-    double		t, times[4][NTIMES];
+    uint64_t* cycles[5];
+    for (int i = 0; i < 5; i++)
+        cycles[i] = new uint64_t[NTIMES];
 
     /* --- SETUP --- determine precision and check timing --- */
 
@@ -222,8 +273,7 @@ main()
     printf("STREAM version $Revision: 5.10 $\n");
     printf(HLINE);
     BytesPerWord = sizeof(STREAM_TYPE);
-    printf("This system uses %d bytes per array element.\n",
-	BytesPerWord);
+    printf("This system uses %d bytes per array element.\n", BytesPerWord);
 
     printf(HLINE);
 #ifdef N
@@ -242,8 +292,8 @@ main()
 	(3.0 * BytesPerWord) * ( (double) STREAM_ARRAY_SIZE / 1024.0/1024.),
 	(3.0 * BytesPerWord) * ( (double) STREAM_ARRAY_SIZE / 1024.0/1024./1024.));
     printf("Each kernel will be executed %d times.\n", NTIMES);
-    printf(" The *best* time for each kernel (excluding the first iteration)\n");
-    printf(" will be used to compute the reported bandwidth.\n");
+    //printf(" The *best* time for each kernel (excluding the first iteration)\n");
+    //printf(" will be used to compute the reported bandwidth.\n");
 
 #ifdef _OPENMP
     printf(HLINE);
@@ -265,119 +315,171 @@ main()
     printf ("Number of Threads counted = %i\n",k);
 #endif
 
-    /* Get initial value for system clock. */
 #pragma omp parallel for
     for (j=0; j<STREAM_ARRAY_SIZE; j++) {
-	    a[j] = 1.0;
-	    b[j] = 2.0;
-	    c[j] = 0.0;
+	    a[j] = 1 + j;
+	    b[j] = 2 + j;
+	    c[j] = 0 + j;
 	}
 
-    printf(HLINE);
-
-    if  ( (quantum = checktick()) >= 1)
-	printf("Your clock granularity/precision appears to be "
-	    "%d microseconds.\n", quantum);
-    else {
-	printf("Your clock granularity appears to be "
-	    "less than one microsecond.\n");
-	quantum = 1;
+    for (j = 0; j < PKT_SIZE; j++) {
+	    pkt_src[j] = j;
     }
 
-    t = mysecond();
-#pragma omp parallel for
-    for (j = 0; j < STREAM_ARRAY_SIZE; j++)
-		a[j] = 2.0E0 * a[j];
-    t = 1.0E6 * (mysecond() - t);
-
-    printf("Each test below will take on the order"
-	" of %d microseconds.\n", (int) t  );
-    printf("   (= %d clock ticks)\n", (int) (t/quantum) );
-    printf("Increase the size of the arrays if this shows that\n");
-    printf("you are not getting at least 20 clock ticks per test.\n");
-
     printf(HLINE);
 
-    printf("WARNING -- The above is only a rough guideline.\n");
-    printf("For best results, please be sure you know the\n");
-    printf("precision of your system timer.\n");
-    printf(HLINE);
+    //if  ( (quantum = checktick()) >= 1)
+    //    printf("Your clock granularity/precision appears to be "
+    //        "%d microseconds.\n", quantum);
+    //else {
+    //    printf("Your clock granularity appears to be "
+    //        "less than one microsecond.\n");
+    //    quantum = 1;
+    //}
+
+    //t = mysecond();
+//#pragma omp parallel for
+    //for (j = 0; j < STREAM_ARRAY_SIZE; j++)
+    //    	a[j] = 2.0E0 * a[j];
+    //t = 1.0E6 * (mysecond() - t);
+
+    //printf("Each test below will take on the order"
+    //    " of %d microseconds.\n", (int) t  );
+    //printf("   (= %d clock ticks)\n", (int) (t/quantum) );
+    //printf("Increase the size of the arrays if this shows that\n");
+    //printf("you are not getting at least 20 clock ticks per test.\n");
+
+    //printf(HLINE);
+
+    //printf("WARNING -- The above is only a rough guideline.\n");
+    //printf("For best results, please be sure you know the\n");
+    //printf("precision of your system timer.\n");
+    //printf(HLINE);
 
     /*	--- MAIN LOOP --- repeat test cases NTIMES times --- */
+
+    /* vmcall into bareflank to start counting exits */
+#ifndef BAREMETAL
+    vmcall__start_bench();
+#endif
 
     scalar = 3.0;
     for (k=0; k<NTIMES; k++)
 	{
-	times[0][k] = mysecond();
-#ifdef TUNED
-        tuned_STREAM_Copy();
-#else
-#pragma omp parallel for
+	cycles[0][k] = tsc();
 	for (j=0; j<STREAM_ARRAY_SIZE; j++)
 	    c[j] = a[j];
-#endif
-	times[0][k] = mysecond() - times[0][k];
+	cycles[0][k] = tsc() - cycles[0][k];
 
-	times[1][k] = mysecond();
-#ifdef TUNED
-        tuned_STREAM_Scale(scalar);
-#else
-#pragma omp parallel for
-	for (j=0; j<STREAM_ARRAY_SIZE; j++)
-	    b[j] = scalar*c[j];
-#endif
-	times[1][k] = mysecond() - times[1][k];
+//	cycles[1][k] = tsc();
+//#ifdef TUNED
+//        tuned_STREAM_Scale(scalar);
+//#else
+//#pragma omp parallel for
+//	for (j=0; j<STREAM_ARRAY_SIZE; j++)
+//	    b[j] = scalar*c[j];
+//#endif
+//	cycles[1][k] = tsc() - cycles[1][k];
+//
+//	cycles[2][k] = tsc();
+//#ifdef TUNED
+//        tuned_STREAM_Add();
+//#else
+//#pragma omp parallel for
+//	for (j=0; j<STREAM_ARRAY_SIZE; j++)
+//	    c[j] = a[j]+b[j];
+//#endif
+//	cycles[2][k] = tsc() - cycles[2][k];
+//
+//	cycles[3][k] = tsc();
+//#ifdef TUNED
+//        tuned_STREAM_Triad(scalar);
+//#else
+//#pragma omp parallel for
+//	for (j=0; j<STREAM_ARRAY_SIZE; j++)
+//	    a[j] = b[j]+scalar*c[j];
+//#endif
+//	cycles[3][k] = tsc() - cycles[3][k];
 
-	times[2][k] = mysecond();
-#ifdef TUNED
-        tuned_STREAM_Add();
-#else
-#pragma omp parallel for
-	for (j=0; j<STREAM_ARRAY_SIZE; j++)
-	    c[j] = a[j]+b[j];
-#endif
-	times[2][k] = mysecond() - times[2][k];
+	cycles[4][k] = tsc();
+	for (j = 0; j < PKT_SIZE; j++) {
+	    pkt_dst[j] = pkt_src[j];
+	}
+	cycles[4][k] = tsc() - cycles[4][k];
 
-	times[3][k] = mysecond();
-#ifdef TUNED
-        tuned_STREAM_Triad(scalar);
-#else
-#pragma omp parallel for
-	for (j=0; j<STREAM_ARRAY_SIZE; j++)
-	    a[j] = b[j]+scalar*c[j];
-#endif
-	times[3][k] = mysecond() - times[3][k];
 	}
 
-    /*	--- SUMMARY --- */
+#ifndef BAREMETAL
+    struct vmbench_data data;
+    vmcall__stop_bench(&data);
+    printf("Total exits during bench: %lu\n", data.exit_count);
+#endif
 
-    for (k=1; k<NTIMES; k++) /* note -- skip first iteration */
-	{
-	for (j=0; j<4; j++)
-	    {
-	    avgtime[j] = avgtime[j] + times[j][k];
-	    mintime[j] = MIN(mintime[j], times[j][k]);
-	    maxtime[j] = MAX(maxtime[j], times[j][k]);
-	    }
-	}
+    FILE* stream_data = stdout;
+    FILE* packet_data = stdout;
 
-    printf("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
-    for (j=0; j<4; j++) {
-		avgtime[j] = avgtime[j]/(double)(NTIMES-1);
+    uint64_t sample_size = NTIMES - 1;
+    uint64_t bytes = sizeof(STREAM_TYPE) * STREAM_ARRAY_SIZE;
 
-		printf("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[j],
-	       1.0E-06 * bytes[j]/mintime[j],
-	       avgtime[j],
-	       mintime[j],
-	       maxtime[j]);
+    fprintf(stream_data, "STREAM COPY\n");
+#ifndef BAREMETAL
+    fprintf(stream_data, "TSC frequency: %.2f GHz\n", (double)data.tsc_freq_hz / 1.0e9);
+#endif
+    fprintf(stream_data, "Array size: %.2f MB\n", (double)bytes / 1024.0 / 1024.0);
+    fprintf(stream_data, "Sample size: %lu\n", sample_size);
+    fprintf(stream_data, "Sample data (cycle count):\n");
+    for (k = 1; k < NTIMES; ++k) {
+	    fprintf(stream_data, "stream %lu\n", cycles[0][k]);
     }
-    printf(HLINE);
 
-    /* --- Check Results --- */
-    checkSTREAMresults();
-    printf(HLINE);
+    bytes = PKT_SIZE;
+    fprintf(packet_data, "PACKET COPY\n");
+#ifndef BAREMETAL
+    fprintf(packet_data, "TSC frequency: %.2f GHz\n", (double)data.tsc_freq_hz / 1.0e9);
+#endif
+    fprintf(packet_data, "Array size: %lu bytes\n", bytes);
+    fprintf(packet_data, "Sample size: %lu\n", sample_size);
+    fprintf(packet_data, "Sample data (cycle count):\n");
+    for (k = 1; k < NTIMES; ++k) {
+	    fprintf(packet_data, "packet %lu\n", cycles[4][k]);
+    }
 
     return 0;
+//
+//    /*	--- SUMMARY --- */
+//
+//    for (k=1; k<NTIMES; k++) /* note -- skip first iteration */
+//	{
+//	for (j=0; j<5; j++)
+//	    {
+//	    avgcycles[j] = avgcycles[j] + cycles[j][k];
+//	    mincycles[j] = MIN(mincycles[j], cycles[j][k]);
+//	    maxcycles[j] = MAX(maxcycles[j], cycles[j][k]);
+//	    }
+//	}
+//
+//    for (j=0; j<5; j++) {
+//        avgcycles[j] = avgcycles[j] / (double)(NTIMES - 1);
+//    }
+//
+//    printf("Op  Avg BW (MB/s)   Avg time (us)       Min time (us)      Max time (us)\n");
+//    for (j=0; j<5; j++) {
+//        printf("%s%12.1f  %11.9f  %11.9f  %11.9f\n",
+//		label[j],
+//		(1.0E-06 * bytes[j]) / (avgcycles[j] * cycle_time),
+//		(avgcycles[j] * cycle_time * 1.0E6),
+//		(mincycles[j] * cycle_time * 1.0E6),
+//		(maxcycles[j] * cycle_time * 1.0E6)
+//	);
+//    }
+//
+//    printf(HLINE);
+//
+//    /* --- Check Results --- */
+//    //checkSTREAMresults();
+//    //printf(HLINE);
+//
+//    return 0;
 }
 
 # define	M	20
@@ -466,7 +568,7 @@ void checkSTREAMresults ()
 		epsilon = 1.e-13;
 	}
 	else {
-		printf("WEIRD: sizeof(STREAM_TYPE) = %zu\n", sizeof(STREAM_TYPE));
+		printf("WEIRD: sizeof(STREAM_TYPE) = %lu\n",sizeof(STREAM_TYPE));
 		epsilon = 1.e-6;
 	}
 
