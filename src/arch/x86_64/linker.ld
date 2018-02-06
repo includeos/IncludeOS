@@ -22,8 +22,8 @@ ENTRY(_start)
 SECTIONS
 {
 
-  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0xa00000));
-  . = SEGMENT_START("text-segment", 0xa00000) + SIZEOF_HEADERS;
+  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x100000));
+  . = SEGMENT_START("text-segment", 0x100000) + SIZEOF_HEADERS;
 
   /* For convenience w. multiboot */
   PROVIDE ( _ELF_START_ = __executable_start);

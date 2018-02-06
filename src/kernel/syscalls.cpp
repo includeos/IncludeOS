@@ -48,11 +48,6 @@ char**  environ {__env};
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 
-extern "C"
-void abort() {
-  kprintf("Abooooooring!\n");
-  panic("abort() called");
-}
 
 void _exit(int status) {
   kprintf("%s",std::string(LINEWIDTH, '=').c_str());

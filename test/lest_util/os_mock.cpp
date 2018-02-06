@@ -65,9 +65,6 @@ void OS::start(unsigned, unsigned) {}
 void OS::default_stdout(const char*, size_t) {}
 void OS::event_loop() {}
 void OS::block() {}
-uint64_t OS::nanos_since_boot() noexcept {
-  return 0;
-}
 void OS::resume_softreset(intptr_t) {}
 bool OS::is_softreset_magic(uint32_t) {
   return true;
@@ -90,6 +87,20 @@ extern "C" {
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
   }
+
+  void kprintf(const char* format, ...){
+    va_list args;
+    va_start (args, format);
+    vprintf (format, args);
+    va_end (args);
+  }
+
+  void kprint(const char* str){
+    printf(str);
+  }
+
+  void* heap_end;
+  void* heap_begin;
 
 /// C ABI ///
   void _init_c_runtime() {}

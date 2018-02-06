@@ -383,13 +383,16 @@ class qemu(hypervisor):
         if "vga" in self._config:
             vga_arg = ["-vga", str(self._config["vga"])]
 
+        pci_arg = []
+        if "vfio" in self._config:
+            pci_arg = ["-device", "vfio-pci,host=" + self._config["vfio"]]
+
         # TODO: sudo is only required for tap networking and kvm. Check for those.
         command = ["sudo", "--preserve-env", "qemu-system-x86_64"]
         if self._kvm_present: command.extend(["--enable-kvm"])
 
         command += kernel_args
-
-        command += disk_args + debug_args + net_args + mem_arg + vga_arg + mod_args
+        command += disk_args + debug_args +net_args + mem_arg + vga_arg + pci_arg + mod_args
 
         #command_str = " ".join(command)
         #command_str.encode('ascii','ignore')

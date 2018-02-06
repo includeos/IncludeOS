@@ -14,7 +14,6 @@ MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
 
 set(SERVICE_NAME "Kernel modules test")
 set(BINARY       "test_mods")
-set(MAX_MEM 128)
 set(SOURCES
     service.cpp hotswap.cpp
   )

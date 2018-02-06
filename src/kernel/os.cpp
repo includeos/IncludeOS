@@ -51,7 +51,7 @@ bool  OS::m_block_drivers_ready = false;
 KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
 uintptr_t OS::memory_end_ = 0;
-uintptr_t OS::heap_max_ = (uintptr_t) -1;
+uintptr_t OS::heap_max_ = (uintptr_t)0xffffffffffff;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // stdout redirection

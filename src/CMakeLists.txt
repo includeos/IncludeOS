@@ -71,7 +71,6 @@ set_source_files_properties(crt/cxx_abi.cpp PROPERTIES COMPILE_FLAGS "-fno-sanit
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)
 add_subdirectory(platform/x86_nano)
-add_subdirectory(platform/x86_linux)
 if(WITH_SOLO5)
 add_subdirectory(platform/x86_solo5)
 endif(WITH_SOLO5)

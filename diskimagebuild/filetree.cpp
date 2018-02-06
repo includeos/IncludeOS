@@ -96,6 +96,10 @@ void FileSys::add_dir(Dir& dvec)
     fprintf(stderr, "Unable to open directory %s\n", cwd_buffer);
     throw std::runtime_error("Unable to open directory " + std::string(cwd_buffer));
   }
+
+  std::vector<std::string> sub_dirs;
+  std::vector<std::string> sub_files;
+
   struct dirent* ent;
   while ((ent = readdir(dir)) != nullptr)
   {
@@ -103,17 +107,33 @@ void FileSys::add_dir(Dir& dvec)
     if (name == ".." || name == ".") continue;
 
     if (ent->d_type == DT_DIR) {
-      auto& d = dvec.add_dir(ent->d_name);
-      add_dir(d);
+      sub_dirs.push_back(std::move(name));
     }
     else {
-      try {
-          dvec.add_file(ent->d_name);
-      } catch (std::exception& e) {
-          fprintf(stderr, "%s\n", e.what());
-      }
+      sub_files.push_back(std::move(name));
     }
   }
+  // close directory before adding more folders and files
+  res = closedir(dir);
+  if (res < 0) {
+    throw std::runtime_error("diskbuilder: Failed to close directory");
+  }
+
+  // add sub directories
+  for (const auto& dirname : sub_dirs) {
+    auto& d = dvec.add_dir(dirname.c_str());
+    add_dir(d);
+  }
+  // add files in current directory
+  for (const auto& filename : sub_files)
+  {
+    try {
+        dvec.add_file(filename.c_str());
+    } catch (std::exception& e) {
+        fprintf(stderr, "%s\n", e.what());
+    }
+  }
+
   // pop work dir
   res = chdir(pwd_buffer);
   if (res < 0) {

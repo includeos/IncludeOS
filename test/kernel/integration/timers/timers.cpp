@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <stdio.h>
+#include <cstdio>
 #include <cassert>
 #include <timers>
 
@@ -28,8 +28,9 @@ static int repeat2 = 0;
 
 void test_timers()
 {
-  INFO("Timers", "Testing one-shot timers");
-  static int BASE_TIMERS;
+  INFO("Timers", "Testing kernel timers");
+  // a calibration timer is active on bare metal and in emulated environments
+  static size_t BASE_TIMERS;
   BASE_TIMERS = Timers::active();
 
   // 30 sec. - Test End

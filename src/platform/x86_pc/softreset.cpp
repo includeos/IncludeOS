@@ -3,7 +3,7 @@
 #include <util/crc32.hpp>
 
 #define SOFT_RESET_MAGIC    0xFEE1DEAD
-#define SOFT_RESET_LOCATION 0x7000
+#define SOFT_RESET_LOCATION 0x8200
 
 namespace x86 {
   extern uint32_t apic_timer_get_ticks() noexcept;

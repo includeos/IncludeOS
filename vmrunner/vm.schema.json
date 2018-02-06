@@ -99,6 +99,11 @@
     "vga" : {
       "description" : "Enable VGA screen",
       "enum" : ["std", "cirrus", "vmware", "qxl", "xenfb", "tcx", "cg3", "virtio", "none"]
+    },
+
+    "vfio" : {
+      "description" : "VFIO PCI-passthrough on device",
+      "type" : "string"
     }
   }
 

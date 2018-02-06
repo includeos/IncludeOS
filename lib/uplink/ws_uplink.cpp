@@ -97,7 +97,7 @@ namespace uplink {
     // BINARY HASH
     store.add_string(0, binary_hash_);
     // nanos timestamp of when update begins
-    store.add<uint64_t> (1, OS::cycles_since_boot());
+    store.add<uint64_t> (1, OS::nanos_since_boot());
   }
 
   void WS_uplink::restore(liu::Restore& store)
@@ -106,10 +106,8 @@ namespace uplink {
     binary_hash_ = store.as_string(); store.go_next();
 
     // calculate update cycles taken
-    uint64_t cycles = store.as_type<uint64_t> (); store.go_next();
-    cycles = OS::cycles_since_boot() - cycles;
-    // cycles to nanos
-    this->update_time_taken = cycles / (OS::cpu_freq().count() / 1.0e6);
+    uint64_t prev_nanos = store.as_type<uint64_t> (); store.go_next();
+    this->update_time_taken = OS::nanos_since_boot() - prev_nanos;
 
     INFO2("Update took %.3f millis", this->update_time_taken / 1.0e6);
   }
@@ -394,6 +392,9 @@ namespace uplink {
 
     writer.Key("arch");
     writer.String(OS::arch());
+
+    writer.Key("physical_ram");
+    writer.Uint64(sysinfo.physical_memory);
 
     // CPU Features
     auto features = CPUID::detect_features_str();

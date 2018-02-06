@@ -184,10 +184,6 @@ set(OS_SOURCES
   ${SRC}/net/tcp/tcp.cpp
   ${SRC}/net/tcp/read_buffer.cpp
   ${SRC}/net/tcp/write_queue.cpp
-  ${SRC}/posix/fcntl.cpp
-  ${SRC}/posix/fd.cpp
-  ${SRC}/posix/sys/select.cpp
-  ${SRC}/posix/arpa/inet.cpp
   ${SRC}/util/async.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp
