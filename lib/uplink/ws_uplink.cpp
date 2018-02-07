@@ -451,6 +451,9 @@ namespace uplink {
     writer.Key("token");
     writer.String(config_.token);
 
+    writer.Key("reboot");
+    writer.Bool(config_.reboot);
+
     writer.EndObject();
 
     std::string str = buf.GetString();
