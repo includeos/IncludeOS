@@ -74,9 +74,9 @@ void __arch_init_paging() {
 
   auto default_fl = Flags::present | Flags::writable | Flags::huge | Flags::no_exec;
   INFO2("* Adding 512 1GiB entries @ 0x0 -> 0x%llx", 512_GiB);
-  auto* pml3_0 = __pml4->create_page_dir(0, default_fl);
+  /* pml3_0 = */ __pml4->create_page_dir(0, default_fl);
 
-  if (! os::mem::supported_page_size(1_GiB)) {
+  if (not os::mem::supported_page_size(1_GiB)) {
     auto first_range = __pml4->map_r({0,0,default_fl, 16_GiB});
     Expects(first_range && first_range.size >= 16_GiB);
     INFO2("* Identity mapping %s", first_range.to_string().c_str());
@@ -303,10 +303,6 @@ Map unmap(uintptr_t lin){
 
 uintptr_t active_page_size(uintptr_t addr){
   return __pml4->active_page_size(addr);
-}
-
-uintptr_t active_page_size(void* addr){
-  return __pml4->active_page_size(reinterpret_cast<uintptr_t>(addr));
 }
 
 }} // os::mem
