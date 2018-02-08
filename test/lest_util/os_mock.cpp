@@ -61,6 +61,21 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
 const char* service_binary_name__ = "Service binary name";
 const char* service_name__        = "Service name";
 
+extern "C"
+void kprintf(char* format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+}
+
+extern "C"
+void kprint(char* str)
+{
+printf("%s", str);
+}
+
 #include <kernel/os.hpp>
 void OS::start(unsigned, unsigned) {}
 void OS::default_stdout(const char*, size_t) {}
@@ -110,7 +125,6 @@ extern "C" {
 /// C ABI ///
   void _init_c_runtime() {}
   void _init_bss() {}
-  void _init_heap(uintptr_t) {}
 
 #ifdef __MACH__
   void _init() {}

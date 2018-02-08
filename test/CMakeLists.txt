@@ -124,6 +124,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
+  ${TEST}/util/unit/lstack.cpp
 )
 
 set(OS_SOURCES
@@ -199,6 +200,8 @@ set(OS_SOURCES
   ${SRC}/util/tar.cpp
   ${SRC}/util/uri.cpp
   ${SRC}/virtio/virtio_queue.cpp
+  ${SRC}/musl/mmap.cpp
+  ${SRC}/musl/brk.cpp
 )
 
 set(MOD_OBJECTS
