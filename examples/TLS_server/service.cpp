@@ -35,10 +35,6 @@ void Service::start()
     printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
 
-  fs::memdisk().init_fs(
-  [] (auto err, auto&) {
-    assert(!err);
-  });
   server = new http::OpenSSL_server(
         "/test.pem", "/test.key", inet.tcp());
 
