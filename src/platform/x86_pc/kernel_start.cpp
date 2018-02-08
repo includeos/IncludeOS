@@ -32,10 +32,9 @@ extern "C" {
   void __test_syscall(void* p);
   uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
   uintptr_t _move_symbols(uintptr_t loc);
+  void _init_heap(uintptr_t free_mem_begin);
 }
 
-extern uintptr_t heap_begin;
-extern uintptr_t heap_end;
 extern char _ELF_START_;
 extern char _ELF_END_;
 extern char _INIT_START_;
@@ -43,17 +42,6 @@ extern char _FINI_START_;
 
 thread_local int __tl1__ = 42;
 
-void _init_heap(uintptr_t free_mem_begin)
-{
-  #define HEAP_ALIGNMENT   4095
-  // NOTE: Initialize the heap before exceptions
-  // cache-align heap, because its not aligned
-  heap_begin = free_mem_begin + HEAP_ALIGNMENT;
-  heap_begin = ((uintptr_t)heap_begin & ~HEAP_ALIGNMENT);
-  heap_end   = heap_begin;
-  kprintf("* Heap initialized. Begin: 0x%lx, end 0x%lx\n",
-          heap_begin, heap_end);
-}
 
 void _init_bss()
 {
@@ -175,8 +163,10 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
     kprintf("* Free mem begin: %p \n", free_mem_begin);
   }
 
+  kprintf("* Moving symbols. \n");
   // Preserve symbols from the ELF binary
-  //free_mem_begin += _move_symbols(free_mem_begin);
+  free_mem_begin += _move_symbols(free_mem_begin);
+  kprintf("* Free mem moved to: %p \n", free_mem_begin);
 
   kprintf("* Grub magic: 0x%lx, grub info @ 0x%lx\n",
           __grub_magic, __grub_addr);

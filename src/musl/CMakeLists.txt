@@ -7,7 +7,7 @@ set(MUSL_OBJECTS
   nanosleep.cpp open.cpp clock_gettime.cpp gettimeofday.cpp
   poll.cpp mmap2.cpp exit_group.cpp exit.cpp close.cpp set_tid_address.cpp
   pipe.cpp read.cpp readv.cpp getpid.cpp mknod.cpp stat.cpp sync.cpp msync.cpp
-  mincore.cpp syscall_n.cpp sigmask.cpp
+  mincore.cpp syscall_n.cpp sigmask.cpp gettid.cpp tkill.cpp
 )
 
 add_library(musl_syscalls STATIC ${MUSL_OBJECTS})

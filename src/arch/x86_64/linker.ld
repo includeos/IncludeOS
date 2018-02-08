@@ -21,12 +21,14 @@ ENTRY(_start)
 
 SECTIONS
 {
-  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x100000));
-  . = SEGMENT_START("text-segment", 0x100000) + SIZEOF_HEADERS;
+
+  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x800000));
 
   /* For convenience w. multiboot */
   PROVIDE ( _ELF_START_ = __executable_start);
   PROVIDE ( _LOAD_START_ = _ELF_START_ );
+
+  . = SEGMENT_START("text-segment", 0x800000) + SIZEOF_HEADERS;
 
   .multiboot : {
       PROVIDE(_MULTIBOOT_START_ = . );
@@ -141,13 +143,6 @@ SECTIONS
     _RODATA_END_ = .;
     /* For solo5, although it's just used to print the mem layout. */
     _erodata = .;
-  }
-
-  .config ALIGN(0x8) : {
-    _CONFIG_JSON_START_ = .;
-    KEEP(*(.config))
-    _CONFIG_JSON_END_ = .;
-    BYTE(0);
   }
 
   .eh_frame :

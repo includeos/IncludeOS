@@ -29,10 +29,12 @@ if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
     )
 else()
   set(DRIVERS
-      virtionet     # Virtio networking
-      # virtioblk   # Virtio block device
+    virtionet     # Virtio networking
+    # virtioblk   # Virtio block device
 
-      # Use "boot --drivers ." to see other drivers
+    # Use "boot --drivers ." to see other drivers
+    # virtioblock # Virtio block device
+    # ... Others from src/drivers
     )
 endif()
 
