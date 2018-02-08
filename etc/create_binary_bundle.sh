@@ -9,18 +9,16 @@ export PATH="$TEMP_INSTALL_DIR/bin:$PATH"
 
 # Build options
 export ARCH=${ARCH:-i686} # CPU architecture. Alternatively x86_64
-export BUNDLE_ARCHES=${BUNDLE_ARCHES:-i686 x86_64}
+export BUNDLE_ARCHES=${BUNDLE_ARCHES:-"i686 x86_64"}
 export TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
 export num_jobs=${num_jobs:--j}	# Specify number of build jobs
 
 # Version numbers
-export binutils_version=${binutils_version:-2.28}		# ftp://ftp.gnu.org/gnu/binutils
-export newlib_version=${newlib_version:-2.5.0.20170323}			# ftp://sourceware.org/pub/newlib
-#export newlib_version=${newlib_version:-2.5.0}			# ftp://sourceware.org/pub/newlib
-export gcc_version=${gcc_version:-6.3.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
-export clang_version=${clang_version:-3.9}				# http://releases.llvm.org/
-export LLVM_TAG=${LLVM_TAG:-RELEASE_391/final}			# http://llvm.org/svn/llvm-project/llvm/tags
-export llvm_branch=${llvm_branch:-release_39}
+export binutils_version=${binutils_version:-2.29.1}		# ftp://ftp.gnu.org/gnu/binutils
+export newlib_version=${newlib_version:-2.5.0.20170922}			# ftp://sourceware.org/pub/newlib
+export gcc_version=${gcc_version:-7.2.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
+export clang_version=${clang_version:-4.0}				# http://releases.llvm.org/
+export llvm_branch=${llvm_branch:-release_50}
 
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
@@ -55,6 +53,12 @@ DEPS_BUILD="build-essential make nasm texinfo clang-$clang_version clang++-$clan
 echo -e "\n\n >>> Trying to install prerequisites for *building* IncludeOS"
 echo -e  "        Packages: $DEPS_BUILD \n"
 
+# NOTE: Addding  llvm 5.0 package sources, needed for Ubuntu 16.04 LTS can be done like so:
+# llvm_source_list=/etc/apt/sources.list.d/llvm.list
+# llvm_deb_entry="deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-5.0 main"
+# sudo grep -q -F "$llvm_deb_entry" $llvm_source_list || sudo bash -c "echo \"$llvm_deb_entry\" >> $llvm_source_list"
+# wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+
 if [ ! -z $do_packages ]; then
   sudo apt-get update
   sudo apt-get install -y $DEPS_BUILD
@@ -71,7 +75,7 @@ printf "    %-25s %-25s %s\n"\
 	   "newlib_version" "newlib version" "$newlib_version"\
 	   "gcc_version" "gcc version" "$gcc_version"\
 	   "clang_version" "clang version" "$clang_version"\
-	   "LLVM_TAG" "LLVM version" "$LLVM_TAG"\
+	   "LLVM_branch" "LLVM version" "$llvm_branch"\
      "BUNDLE_ARCHES" "Build for CPU arches" "$BUNDLE_ARCHES"\
 
 # Give user option to evaluate install options

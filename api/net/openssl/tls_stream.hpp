@@ -10,7 +10,7 @@ namespace openssl
   {
     using Stream_ptr = net::Stream_ptr;
 
-    TLS_stream(SSL_CTX* ctx, Stream_ptr t);
+    TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing = false);
     virtual ~TLS_stream();
 
     void write(buffer_t buffer) override;
@@ -33,7 +33,7 @@ namespace openssl
     void on_connect(ConnectCallback cb) override {
       m_on_connect = std::move(cb);
     }
-    void on_read(size_t n, ReadCallback cb) override {
+    void on_read(size_t, ReadCallback cb) override {
       m_on_read = std::move(cb);
     }
     void on_close(CloseCallback cb) override {
@@ -66,6 +66,7 @@ namespace openssl
   private:
     void tls_read(buffer_t);
     int  tls_perform_stream_write();
+    int  tls_perform_handshake();
     void close_callback_once();
     bool handshake_completed() const noexcept;
 
@@ -86,7 +87,7 @@ namespace openssl
     CloseCallback    m_on_close   = nullptr;
   };
 
-  inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t)
+  inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing)
     : m_transport(std::move(t))
   {
     this->m_bio_rd = BIO_new(BIO_s_mem());
@@ -95,14 +96,22 @@ namespace openssl
     this->m_ssl = SSL_new(ctx);
     assert(this->m_ssl != nullptr);
     assert(ERR_get_error() == 0 && "Initializing SSL");
-    //extern void openssl_setup_rng();
-    //openssl_setup_rng();
     // TLS server-mode
-    SSL_set_accept_state(this->m_ssl);
+    if (outgoing == false)
+        SSL_set_accept_state(this->m_ssl);
+    else
+        SSL_set_connect_state(this->m_ssl);
+
     SSL_set_bio(this->m_ssl, this->m_bio_rd, this->m_bio_wr);
     // always-on callbacks
     m_transport->on_read(8192, {this, &TLS_stream::tls_read});
     m_transport->on_close({this, &TLS_stream::close_callback_once});
+
+    // start TLS handshake process
+    if (outgoing == true)
+    {
+      if (this->tls_perform_handshake() < 0) return;
+    }
   }
   inline TLS_stream::~TLS_stream()
   {
@@ -155,7 +164,7 @@ namespace openssl
       // if we aren't finished initializing session
       if (UNLIKELY(!handshake_completed()))
       {
-        int num = SSL_accept(this->m_ssl);
+        int num = SSL_do_handshake(this->m_ssl);
         auto status = this->status(num);
 
         // OpenSSL wants to write
@@ -227,6 +236,24 @@ namespace openssl
       return -1;
     }
     return 0;
+  }
+  inline int TLS_stream::tls_perform_handshake()
+  {
+    // will return -1:SSL_ERROR_WANT_WRITE
+    int ret = SSL_do_handshake(this->m_ssl);
+    int n = this->status(ret);
+    ERR_print_errors_fp(stderr);
+    if (n == STATUS_WANT_IO)
+    {
+      do {
+        n = tls_perform_stream_write();
+      } while (n > 0);
+      return n;
+    }
+    else {
+      this->close();
+      return -1;
+    }
   }
 
   inline void TLS_stream::close()

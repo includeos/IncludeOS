@@ -19,6 +19,7 @@
 #include <os>
 #include <kprint>
 #include <boot/multiboot.h>
+#include <kernel/memory.hpp>
 
 //#define DEBUG
 #if defined(DEBUG)
@@ -31,6 +32,9 @@
 
 extern uintptr_t _end;
 extern "C" uintptr_t _multiboot_free_begin(uintptr_t);
+
+using namespace util::bitops;
+using namespace util::literals;
 
 multiboot_info_t* OS::bootinfo()
 {
@@ -103,9 +107,9 @@ void OS::multiboot(uint32_t boot_addr)
     OS::memory_end_ = mem_high_end;
 
     INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
-    INFO2("\t 0x%08x - 0x%08x (%i Kib)",
+    INFO2("  0x%08x - 0x%08x (%i Kib)",
           mem_low_start, mem_low_end, mem_low_kb);
-    INFO2("\t 0x%08x - 0x%08x (%i Kib)",
+    INFO2("  0x%08x - 0x%08x (%i Kib)",
           mem_high_start, mem_high_end, mem_high_kb);
     INFO2("");
   }
@@ -127,14 +131,29 @@ void OS::multiboot(uint32_t boot_addr)
         (int)(bootinfo_->mmap_length / sizeof(multiboot_memory_map_t))
       };
 
-    for (auto map : mmap) {
+    for (auto map : mmap)
+    {
       const char* str_type = map.type & MULTIBOOT_MEMORY_AVAILABLE ? "FREE" : "RESERVED";
-      INFO2("\t 0x%08llx - 0x%08llx %s (%llu Kb.)",
-            map.addr, map.addr + map.len - 1, str_type, map.len / 1024 );
+      const uintptr_t addr = map.addr;
+      const uintptr_t size = map.len;
+      INFO2("  0x%010llx - 0x%010llx %s (%llu Kb.)",
+            addr, addr + size - 1, str_type, size / 1024 );
 
       if (not (map.type & MULTIBOOT_MEMORY_AVAILABLE)) {
-        memory_map().assign_range({static_cast<uintptr_t>(map.addr),
-              static_cast<uintptr_t>(map.addr + map.len - 1), "Reserved", "Multiboot / BIOS"});
+
+        if (util::bits::is_aligned<4_KiB>(map.addr)) {
+          os::mem::map({addr, addr, {os::mem::Access::read | os::mem::Access::write}, size},
+                       "Reserved (Multiboot)");
+          continue;
+        }
+
+        // For non-aligned addresses, assign
+        memory_map().assign_range({addr, addr + size - 1, "Reserved (Multiboot)"});
+      }
+      else
+      {
+        // Map as free memory
+        //os::mem::map_avail({map.addr, map.addr, {os::mem::Access::read | os::mem::Access::write}, map.len}, "Reserved (Multiboot)");
       }
     }
     printf("\n");

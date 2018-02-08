@@ -109,7 +109,7 @@ namespace http {
       {
         try
         {
-          const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
+          const unsigned conlen = std::stoul(std::string(header.value(header::Content_Length)));
           const unsigned body_size = res_->body().size();
           debug2("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
             req_->uri().to_string().to_string().c_str(), data.size(), conlen, body_size);

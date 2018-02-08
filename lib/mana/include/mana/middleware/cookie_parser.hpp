@@ -57,7 +57,7 @@ inline bool Cookie_parser::has_cookie(mana::Request_ptr req) const noexcept {
 }
 
 inline std::string Cookie_parser::read_cookies(mana::Request_ptr req) const noexcept {
-  return req->header().value(http::header::Cookie).to_string();
+  return std::string(req->header().value(http::header::Cookie));
 }
 
 /**--^----------- Implementation Details -----------^--**/

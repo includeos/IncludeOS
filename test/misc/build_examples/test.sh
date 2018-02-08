@@ -27,14 +27,10 @@ skip_tests="demo_linux"	# Tests to skip
 errors_present=0
 echo -e ">>> Will now attempt to make all examples. Outpt from make will only be present if an error occured"
 
-for dir in `ls -d $script_absolute_dir/../../../examples/*`
-do
-  if [[ $dir == *"$skip_tests"* ]]; then
-	  continue
-  fi
-  BREAK=""
-  cd $dir
-  BASE=`basename $dir`
+BREAK=""
+function build_service() {
+  cd $1
+  BASE=`basename $1`
   echo -e "\n\n>>> Now making $BASE"
   git submodule update --init --recursive
   mkdir -p build
@@ -42,6 +38,17 @@ do
   rm -rf *
   cmake .. > /tmp/build_test
   make >> /tmp/build_test || BREAK=1
+}
+
+N=4
+for dir in `ls -d $script_absolute_dir/../../../examples/*`
+do
+  if [[ $dir == *"$skip_tests"* ]]; then
+	  continue
+  fi
+
+  ((i=i%N)); ((i++==0)) && wait
+  build_service "$dir" &
 
   if [ "$BREAK" != "" ]
   then
@@ -50,7 +57,8 @@ do
   fi
 
 done
-
+wait
+echo "Done!"
 
 # Clean up the files used
 rm -f /tmp/build_test

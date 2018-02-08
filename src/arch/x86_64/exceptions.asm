@@ -57,43 +57,86 @@ __cpu_except_%1:
 %endmacro
 
 SECTION .text
-%define regs(r) [__amd64_registers + r]
+%define RAX 0
+%define RBX 1
+%define RCX 2
+%define RDX 3
+%define RBP 4
+%define R8  5
+%define R9  6
+%define R10 7
+%define R11 8
+%define R12 9
+%define R13 10
+%define R14 11
+%define R15 12
+%define RSP 13
+%define RSI 14
+%define RDI 15
+%define RIP 16
+%define FLA 17
+%define CR0 18
+%define CR1 19
+%define CR2 20
+%define CR3 21
+%define CR4 22
+%define CR8 23
+
+
+%define regs(r) [__amd64_registers + r * 8]
+
+
+;; We call save_cpu regs, creating another frame
+%define SZ_CALL_FRAME 8
+
+;; Exception handler stack (no privilege change)
+;; Intel manual Vol. 3A §6-13
+%define ERRCODE_OFFS SZ_CALL_FRAME
+%define EIP_OFFS SZ_CALL_FRAME + 8
+%define CS_OFFS EIP_OFFS + 8
+%define FLAGS_OFFS CS_OFFS + 8
+
+;; We don't have the previous stack pointer on stack
+;; Make a best guess
+%define RSP_OFFS SZ_CALL_FRAME * 2 + ERRCODE_OFFS
+
 save_cpu_regs:
-    mov regs( 0), rax
-    mov regs( 8), rbx
-    mov regs(16), rcx
-    mov regs(24), rdx
-    mov regs(32), rbp
+    mov regs(RAX), rax
+    mov regs(RBX), rbx
+    mov regs(RCX), rcx
+    mov regs(RDX), rdx
+    mov regs(RBP), rbp
 
-    mov regs(40), r8
-    mov regs(48), r9
-    mov regs(56), r10
-    mov regs(64), r11
-    mov regs(72), r12
-    mov regs(80), r13
-    mov regs(88), r14
-    mov regs(96), r15
+    mov regs(R8), r8
+    mov regs(R9), r9
+    mov regs(R10), r10
+    mov regs(R11), r11
+    mov regs(R12), r12
+    mov regs(R13), r13
+    mov regs(R14), r14
+    mov regs(R15), r15
 
-    mov rax, QWORD [rsp + 32]
-    mov regs(104), rax
-    mov regs(112), rsi
-    mov regs(120), rdi
-    mov rax, QWORD [rsp + 8]
-    mov regs(128), rax
+    mov rax, rsp
+    add rax, RSP_OFFS
+    mov regs(RSP), rax
+    mov regs(RSI), rsi
+    mov regs(RDI), rdi
+    mov rax, QWORD [rsp + EIP_OFFS]
+    mov regs(RIP), rax
 
-    pushf
-    pop QWORD regs(136)
+    mov rax, QWORD [rsp + FLAGS_OFFS]
+    mov regs(FLA),rax
     mov rax, cr0
-    mov regs(144), rax
-    mov QWORD regs(152), 0
+    mov regs(CR0), rax
+    mov QWORD regs(CR1), 0
     mov rbx, cr2
-    mov regs(160), rbx
+    mov regs(CR2), rbx
     mov rcx, cr3
-    mov regs(168), rcx
+    mov regs(CR3), rcx
     mov rdx, cr4
-    mov regs(176), rdx
+    mov regs(CR4), rdx
     mov rax, cr8
-    mov regs(184), rax
+    mov regs(CR8), rax
     ret
 
 CPU_EXCEPT 0

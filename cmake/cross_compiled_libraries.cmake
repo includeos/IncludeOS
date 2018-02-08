@@ -18,8 +18,8 @@ else(BUNDLE_LOC)
 	include(ExternalProject)
 	ExternalProject_Add(PrecompiledLibraries
 			    PREFIX precompiled
-			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.11.0-bundle/IncludeOS_dependencies_v0-11-0-rc-1.tar.gz
-			    URL_HASH SHA1=f719886bcab5c55957361c024bab54c601d862f5
+			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.12.0-rc.2/IncludeOS_dependencies_v0-12-0_libcpp5_threaded.tar.gz
+			    URL_HASH SHA1=792613743b6fc7b4ba2d6a180d32e04d2a973846
 			    CONFIGURE_COMMAND ""
 			    BUILD_COMMAND ""
 			    UPDATE_COMMAND ""
@@ -58,13 +58,6 @@ add_dependencies(ukvm-bin solo5_repo)
 add_dependencies(PrecompiledLibraries solo5)
 add_dependencies(PrecompiledLibraries ukvm-bin)
 
-# Only x86_64 supported at the moment
-if ("${ARCH}" STREQUAL "x86_64")
-  install(FILES ${SOLO5_REPO_DIR}/kernel/ukvm/solo5.o ${SOLO5_REPO_DIR}/ukvm/ukvm-bin DESTINATION includeos/${ARCH}/lib)
-endif()
-
-install(FILES ${SOLO5_INCLUDE_DIR}/solo5.h DESTINATION includeos/${ARCH}/include)
-
 endif (WITH_SOLO5)
 
 set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/${ARCH})
@@ -96,7 +89,10 @@ add_dependencies(libm PrecompiledLibraries)
 set(CRTEND ${PRECOMPILED_DIR}/crt/crtend.o)
 set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
 
-# installation instructions
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libcxx)
 
 install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/newlib)
@@ -104,3 +100,12 @@ install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/ne
 install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/${ARCH}/lib)
 
 install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a ${LIBCXX_LIB_DIR}/libc++abi.a DESTINATION includeos/${ARCH}/lib)
+
+if (WITH_SOLO5)
+# Only x86_64 supported at the moment
+if ("${ARCH}" STREQUAL "x86_64")
+  install(FILES ${SOLO5_REPO_DIR}/kernel/ukvm/solo5.o ${SOLO5_REPO_DIR}/ukvm/ukvm-bin DESTINATION includeos/${ARCH}/lib)
+endif()
+
+install(FILES ${SOLO5_INCLUDE_DIR}/solo5.h DESTINATION includeos/${ARCH}/include)
+endif(WITH_SOLO5)

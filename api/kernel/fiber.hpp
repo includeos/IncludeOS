@@ -22,7 +22,13 @@
 #include <cstdio>
 #include <delegate>
 
+#ifndef INCLUDEOS_SINGLE_THREADED
+#include <atomic>
+#endif
+
 class Fiber;
+
+/** Bottom C++ stack frame for all fibers */
 extern "C" void fiber_jumpstarter(Fiber* f);
 
 /** Exception: General error for fibers */
@@ -44,16 +50,16 @@ public:
   using P_t = void*;
   using init_func = void*(*)(void*);
   using Stack_ptr = std::unique_ptr<char[]>;
-  static constexpr int default_stack_size = 0x10000;
-  static constexpr int redzone = 0;
 
-  void start();
-  void restart();
+  static constexpr int default_stack_size = 0x10000;
+
+  //
+  // Strongly typed constructors with parameter pointer
+  //
 
   template<typename R, typename P>
-  Fiber(Fiber* parent, int stack_size, R(*func)(P), void* arg)
-    : parent_{parent},
-      id_{next_id_++},
+  Fiber(int stack_size, R(*func)(P), void* arg)
+    : id_{next_id_++},
       stack_size_{stack_size},
       stack_{Stack_ptr(new char[16 + stack_size_], std::default_delete<char[]> ())},
       stack_loc_{(void*)(uintptr_t(stack_.get() + stack_size_ ) &  ~ (uintptr_t)0xf)},
@@ -63,34 +69,29 @@ public:
       param_{arg}
   {}
 
-  template<typename R, typename P>
-  Fiber(Fiber* parent, R(*func)(P))
-    : Fiber(parent, default_stack_size, func, nullptr)
-  {}
 
   template<typename R, typename P>
   Fiber(R(*func)(P), void* arg)
-    : Fiber(main_, default_stack_size, func, arg)
+    : Fiber(default_stack_size, func, arg)
   {}
 
   template<typename R, typename P>
   Fiber(R(*func)(P))
-    : Fiber(main_, default_stack_size, func, nullptr)
+    : Fiber(default_stack_size, func, nullptr)
   {}
+
 
   Fiber()
     : Fiber(init_func{nullptr})
   {}
 
-
   //
-  // void versions
+  // void-typed constructors
   //
 
   /** Fiber with void() function */
-  Fiber(Fiber* parent, int stack_size, void(*func)())
-    : parent_{parent},
-      id_{next_id_++},
+  Fiber(int stack_size, void(*func)())
+    : id_{next_id_++},
       stack_size_{stack_size},
       stack_{Stack_ptr(new char[16 + stack_size_], std::default_delete<char[]> ())},
       stack_loc_{(void*)(uintptr_t(stack_.get() + stack_size_ ) &  ~ (uintptr_t)0xf)},
@@ -100,15 +101,18 @@ public:
   {}
 
   Fiber(void(*func)())
-    : Fiber(main_, default_stack_size, func)
+    : Fiber(default_stack_size, func)
   {}
 
 
+  //
+  // Constructors for functions with parameter
+  //
+
   /** Fiber with void(P) function. P must be storable in a void*  */
   template<typename P>
-  Fiber(Fiber* parent, int stack_size, void(*func)(P), P par)
-    : parent_{parent},
-      id_{next_id_++},
+  Fiber(int stack_size, void(*func)(P), P par)
+    : id_{next_id_++},
       stack_size_{stack_size},
       stack_{Stack_ptr(new char[16 + stack_size_], std::default_delete<char[]> ())},
       stack_loc_{(void*)(uintptr_t(stack_.get() + stack_size_ ) &  ~ (uintptr_t)0xf)},
@@ -122,14 +126,14 @@ public:
 
   template<typename P>
   Fiber(void(*func)(P), P par)
-    : Fiber(main_, default_stack_size, func, par)
+    : Fiber(default_stack_size, func, par)
   {}
+
 
   /** Fiber with R() function. R must be storable in a void*  */
   template<typename R>
-  Fiber(Fiber* parent, int stack_size, R(*func)())
-    : parent_{parent},
-      id_{next_id_++},
+  Fiber(int stack_size, R(*func)())
+    : id_{next_id_++},
       stack_size_{stack_size},
       stack_{Stack_ptr(new char[16 + stack_size_], std::default_delete<char[]> ())},
       stack_loc_{(void*)(uintptr_t(stack_.get() + stack_size_ ) &  ~ (uintptr_t)0xf)},
@@ -142,32 +146,49 @@ public:
 
   template<typename R>
   Fiber(R(*func)())
-    : Fiber(main_, default_stack_size, func)
+    : Fiber(default_stack_size, func)
   {}
 
 
+  /** Switch into fiber stack and start the function */
+  void start();
 
-  int id()
-  { return id_; }
+  /** Yield into the parent fiber. */
+  static void yield();
+
+  /** Resume a suspended / yielded fiber */
+  void resume();
+
+  /** TODO: restart a fiber */
+  void restart();
 
   Fiber* parent()
   { return parent_; }
 
-  void resume();
-  static void yield();
-
-  static Fiber* main()
-  { return main_; }
+  int id()
+  { return id_; }
 
   bool suspended() {
     return suspended_;
+  }
+
+  bool started() {
+    return started_;
+  }
+
+  bool empty() {
+    return func_ == nullptr;
+  }
+
+  bool done() {
+    return done_;
   }
 
   template<typename R>
   R ret()
   {
 
-    while (suspended_)
+    while (not done_)
       resume();
 
     if (typeid(R) != type_return_)
@@ -177,27 +198,60 @@ public:
     return reinterpret_cast<R>(ret_);
   }
 
+  static Fiber* main()
+  { return main_; }
+
+  static Fiber* current()
+  { return current_; }
+
+  static int last_id()
+  {
+#if defined( INCLUDEOS_SINGLE_THREADED)
+    return next_id_;
+#else
+    return next_id_.load();
+#endif
+  }
+
 
 private:
 
-  static Fiber* main_;
-  static Fiber* current_;
-  static int next_id_;
 
-  Fiber* parent_;
-  int id_ = next_id_ ++ ;
+#if defined(INCLUDEOS_SINGLE_THREADED)
+  static int next_id_;
+#else
+  static std::atomic<int> next_id_;
+#endif
+  static thread_local Fiber* main_;
+  static thread_local Fiber* current_;
+
+  // Uniquely identify return target (yield / exit)
+  // first stack frame and yield will use this to identify next stack
+  Fiber* parent_ = nullptr;
+  void* parent_stack_ = nullptr;
+
+  void make_parent(Fiber* parent){
+    parent_ = parent;
+    parent_stack_ = parent_->stack_loc_;
+  }
+
+  const int id_ = next_id_++ ;
+
   int stack_size_ = default_stack_size;
-  Stack_ptr stack_;
-  void* stack_loc_;
+  Stack_ptr stack_ {};
+  void* stack_loc_ {};
 
   const std::type_info& type_return_;
   const std::type_info& type_param_;
 
   init_func func_ = nullptr;
-  void* param_;
-  void* ret_;
+  void* param_ {};
+  void* ret_ {};
 
-  bool suspended_ = false;
+  bool suspended_ { false };
+  bool started_ { false };
+  bool done_ { false };
+  bool running_ { false };
 
   friend void ::fiber_jumpstarter(Fiber* f);
 

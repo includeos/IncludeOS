@@ -26,7 +26,7 @@ public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
   static const int DRIVER_OFFSET = 2;
-  static const int NUM_TX_DESC   = 64;
+  static const int NUM_TX_DESC   = 128;
   static const int NUM_RX_DESC   = 128;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
@@ -78,8 +78,18 @@ public:
 private:
   void intr_enable();
   void intr_disable();
+  void intr_cause_clear();
   void link_up();
   void retrieve_hw_addr();
+
+  void wait_millis(int);
+
+  void init_filters();
+  void set_filter(int, MAC::Addr);
+  uint64_t construct_filter(MAC::Addr);
+
+  void     detect_eeprom();
+  uint32_t read_eeprom(uint8_t addr);
 
   uint32_t read_cmd(uint16_t cmd);
   void     write_cmd(uint16_t cmd, uint32_t val);
@@ -95,11 +105,11 @@ private:
 
   hw::PCI_Device& m_pcidev;
   std::vector<uint8_t> irqs;
+  bool         use_mmio = false;
+  bool         use_eeprom = false;
   uint16_t     io_base;
   uintptr_t    shm_base;
   MAC::Addr    hw_addr;
-
-  uint8_t m_irq;
 
   struct rx_desc
   {
