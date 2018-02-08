@@ -44,10 +44,13 @@ extern __multiboot_addr
 
 ;; Extended Feature Enable Register (MSR)
 %define IA32_EFER_MSR 0xC0000080
+
 ;; EFER Longmode bit
 %define LONGMODE_ENABLE 0x100
 ;; EFER Execute Disable bit
 %define NX_ENABLE 0x800
+;; EFER Syscall enable bit
+%define SYSCALL_ENABLE 0x1
 
 
 [BITS 32]
@@ -105,7 +108,7 @@ __arch_start:
     ;; enable long mode
     mov ecx, IA32_EFER_MSR
     rdmsr
-    or  eax, (LONGMODE_ENABLE | NX_ENABLE)
+    or  eax, (LONGMODE_ENABLE | NX_ENABLE | SYSCALL_ENABLE)
     wrmsr
 
     ;; enable paging

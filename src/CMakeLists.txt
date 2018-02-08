@@ -39,7 +39,7 @@ set(OS_OBJECTS
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp
   crt/ctype_b_loc.c crt/ctype_tolower_loc.c crt/string.c
-  crt/quick_exit.cpp crt/cxx_abi.cpp
+  crt/quick_exit.cpp crt/cxx_abi.cpp crt/c_abi.c
   hw/pci_device.cpp hw/ps2.cpp hw/serial.cpp hw/vga_gfx.cpp
   hw/msi.cpp hw/pci_msi.cpp virtio/virtio.cpp virtio/virtio_queue.cpp
   net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp

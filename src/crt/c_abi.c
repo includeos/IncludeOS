@@ -34,13 +34,6 @@ void* __dso_handle;
 const uintptr_t __stack_chk_guard = (uintptr_t) _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 
-void _init_bss()
-{
-  /// Initialize .bss section
-  extern char _BSS_START_, _BSS_END_;
-  __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
-}
-
 extern void (*__preinit_array_start [])();
 extern void (*__preinit_array_end [])();
 extern void (*__init_array_start [])();
@@ -59,16 +52,6 @@ void __libc_init_array() {
   count = __init_array_end - __init_array_start;
   for (i = 0; i < count; i++)
     __init_array_start[i]();
-}
-
-void _init_heap(uintptr_t free_mem_begin)
-{
-  // NOTE: Initialize the heap before exceptions
-  // cache-align heap, because its not aligned
-  heap_begin = (void*) free_mem_begin + HEAP_ALIGNMENT;
-  heap_begin = (void*) ((uintptr_t)heap_begin & ~HEAP_ALIGNMENT);
-  // heap end tracking, used with sbrk
-  heap_end   = heap_begin;
 }
 
 uint32_t _move_symbols(void* sym_loc)
@@ -109,6 +92,7 @@ void _init_c_runtime()
   crt_sanity_checks();
   kprintf("Sanity checks OK \n");
 }
+
 
 // stack-protector
 __attribute__((noreturn))
