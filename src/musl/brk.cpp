@@ -5,7 +5,7 @@
 #include <kprint>
 
 __attribute__((weak))
-uintptr_t __brk_max = 0x10000;
+uintptr_t __brk_max = 0x100000;
 
 uintptr_t heap_begin = 0;
 
