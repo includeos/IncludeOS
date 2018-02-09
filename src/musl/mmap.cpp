@@ -3,7 +3,7 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <os>
-#include <util/minialloc.hpp>
+#include <util/alloc_lstack.hpp>
 
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end = 0;
@@ -13,9 +13,6 @@ using Alloc = util::alloc::Lstack<4096>;
 static Alloc alloc;
 
 void init_mmap(uintptr_t addr_begin){
-  if (alloc.empty()){
-    printf("Alloc not empty: %s\n ", alloc.begin() == nullptr ? "nullptr" : "size not 0");
-  }
   Expects(alloc.empty());
   auto aligned_begin = (addr_begin + Alloc::align - 1) & ~(Alloc::align - 1);
   alloc.donate((void*)aligned_begin, (OS::heap_max() - aligned_begin) & ~(Alloc::align - 1));
