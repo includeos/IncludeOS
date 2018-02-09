@@ -24,13 +24,14 @@
 #include <net/tcp/packet.hpp>
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/tcp_errors.hpp>
-#include <iostream> // remove me, sack debugging
+
+/*#include <iostream> // remove me, sack debugging
 std::ostream& operator<< (std::ostream& out, const net::tcp::sack::Entries& ent) {
   for (auto el : ent) {
     out << el << "\n";
   }
   return out;
-}
+}*/
 
 
 using namespace net::tcp;
@@ -780,7 +781,7 @@ void Connection::recv_out_of_order(const Packet& in)
 
     Ensures(res.length == length);
 
-    std::cout << sack_list->recent_entries();
+    //std::cout << sack_list->recent_entries();
   }
 
   /*

@@ -129,31 +129,31 @@ CASE("SACK Fixed List implementation [RFC 2018]")
 
   // 5000     5500       6000
   res = sack_list.recv_out_of_order(5500, 500);
-  EXPECT(res.entries == expected({{5500,6000}}));
+  EXPECT(sack_list.recent_entries() == expected({{5500,6000}}));
 
   // 5000     5500       6500
   res = sack_list.recv_out_of_order(6000, 500);
-  EXPECT(res.entries == expected({{5500,6500}}));
+  EXPECT(sack_list.recent_entries() == expected({{5500,6500}}));
 
   // 5000     5500       7000
   res = sack_list.recv_out_of_order(6500, 500);
-  EXPECT(res.entries == expected({{5500,7000}}));
+  EXPECT(sack_list.recent_entries() == expected({{5500,7000}}));
 
   // 5000     5500       7500
   res = sack_list.recv_out_of_order(7000,500);
-  EXPECT(res.entries == expected({{5500,7500}}));
+  EXPECT(sack_list.recent_entries() == expected({{5500,7500}}));
 
   // 5000     5500       8000
   res = sack_list.recv_out_of_order(7500,500);
-  EXPECT(res.entries == expected({{5500,8000}}));
+  EXPECT(sack_list.recent_entries() == expected({{5500,8000}}));
 
   // 5000     5500       8500
   res = sack_list.recv_out_of_order(8000,500);
-  EXPECT(res.entries == expected({{5500,8500}}));
+  EXPECT(sack_list.recent_entries() == expected({{5500,8500}}));
 
   // 5000     5500       9000
   res = sack_list.recv_out_of_order(8500,500);
-  EXPECT(res.entries == expected({{5500, 9000}}));
+  EXPECT(sack_list.recent_entries() == expected({{5500, 9000}}));
 
   /*
     Case 3:  The 2nd, 4th, 6th, and 8th (last) segments are
@@ -180,15 +180,15 @@ CASE("SACK Fixed List implementation [RFC 2018]")
 
   // 5500    6000   6500
   res = sack_list.recv_out_of_order(6000, 500);
-  EXPECT(res.entries == expected({{6000,6500}}));
+  EXPECT(sack_list.recent_entries() == expected({{6000,6500}}));
 
   // 5500    7000   7500   6000   6500
   res = sack_list.recv_out_of_order(7000, 500);
-  EXPECT(res.entries == expected({{7000,7500}, {6000,6500}}));
+  EXPECT(sack_list.recent_entries() == expected({{7000,7500}, {6000,6500}}));
 
   // 5500    8000   8500   7000   7500   6000   6500
   res = sack_list.recv_out_of_order(8000, 500);
-  EXPECT(res.entries == expected({{8000,8500}, {7000,7500}, {6000,6500}}));
+  EXPECT(sack_list.recent_entries() == expected({{8000,8500}, {7000,7500}, {6000,6500}}));
 
   /*
     Suppose at this point, the 4th packet is received out of order.
@@ -208,7 +208,7 @@ CASE("SACK Fixed List implementation [RFC 2018]")
   // 6000   7500   8000   8500
   res = sack_list.recv_out_of_order(6500, 500);
 
-  EXPECT(res.entries == expected({{6000,7500}, {8000,8500}}));
+  EXPECT(sack_list.recent_entries() == expected({{6000,7500}, {8000,8500}}));
 
   /*
     Suppose at this point, the 2nd segment is received.  The data
@@ -220,27 +220,27 @@ CASE("SACK Fixed List implementation [RFC 2018]")
 
         5500       7500    8000   8500
   */
-  res = sack_list.new_valid_ack(5500 + 500);
+  res = sack_list.new_valid_ack(5500, 500);
 
-  EXPECT(res.entries == expected({{8000,8500}}));
-  EXPECT(res.bytes == 7500-6000);
+  EXPECT(sack_list.recent_entries() == expected({{8000,8500}}));
+  EXPECT(res.blocksize == 7500-6000);
 
 
   // Create a hole which connects both ends and fill the hole
   sack_list = Sack_list();
 
   res = sack_list.recv_out_of_order(5500, 500);
-  EXPECT(res.entries == expected({{5500,6000}}));
+  EXPECT(sack_list.recent_entries() == expected({{5500,6000}}));
 
   res = sack_list.recv_out_of_order(6500, 500);
-  EXPECT(res.entries == expected({{6500,7000}, {5500,6000}}));
+  EXPECT(sack_list.recent_entries() == expected({{6500,7000}, {5500,6000}}));
 
   res = sack_list.recv_out_of_order(6000, 500);
-  EXPECT(res.entries == expected({{5500,7000}}));
+  EXPECT(sack_list.recent_entries() == expected({{5500,7000}}));
 
-  res = sack_list.new_valid_ack(5500);
-  EXPECT(res.entries == expected({}));
-  EXPECT(res.bytes == 1500);
+  res = sack_list.new_valid_ack(5000, 500);
+  EXPECT(sack_list.recent_entries() == expected({}));
+  EXPECT(res.blocksize == 1500);
 }
 
 CASE("SACK block list is full")
@@ -265,29 +265,29 @@ CASE("SACK block list is full")
   }
 
   // Fully populated sack list
-  EXPECT(res.entries == expected({{seq - incr, (seq - incr ) +  blksz},
+  EXPECT(sack_list.recent_entries() == expected({{seq - incr, (seq - incr ) +  blksz},
                                  {seq - incr * 2, (seq - incr * 2) + blksz  },
                                  {seq - incr * 3, (seq - incr * 3) + blksz } }));
 
-  EXPECT(res.bytes == blksz);
+  EXPECT(res.blocksize == blksz);
 
   // Try adding one more
   res = sack_list.recv_out_of_order(seq, blksz);
 
   // We should now get the same
-  EXPECT(res.entries == expected({{seq - incr, (seq - incr ) +  blksz},
+  EXPECT(sack_list.recent_entries() == expected({{seq - incr, (seq - incr ) +  blksz},
                                  {seq - incr * 2, (seq - incr * 2) + blksz  },
                                  {seq - incr * 3, (seq - incr * 3) + blksz } }));
 
   // Nothing inserted
-  EXPECT(res.bytes == 0);
+  EXPECT(res.blocksize == 0);
 
   // Add a block that connects to the end, which should free up one spot
   res = sack_list.recv_out_of_order(seq - incr + blksz, blksz);
-  EXPECT(res.bytes == blksz);
+  EXPECT(res.blocksize == blksz);
 
   // Last block should now be larger
-  EXPECT(res.entries == expected({{seq - incr, (seq - incr ) + blksz + blksz },
+  EXPECT(sack_list.recent_entries() == expected({{seq - incr, (seq - incr ) + blksz + blksz },
                                  {seq - incr * 2, (seq - incr * 2) + blksz },
                                  {seq - incr * 3, (seq - incr * 3) + blksz } }));
 
