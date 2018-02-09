@@ -132,6 +132,9 @@ struct Option {
       : ts{val, echo}
     {}
 
+    uint8_t size() const noexcept
+    { return sizeof(padding) + sizeof(ts); }
+
   } __attribute__((packed));
 
   /**
@@ -155,7 +158,7 @@ struct Option {
 
     template <typename Collection>
     opt_sack(const Collection& blocks)
-      : length{static_cast<uint8_t>(2 +
+      : length{static_cast<uint8_t>(sizeof(kind) + sizeof(length) +
           (blocks.size() * sizeof(typename Collection::value_type)))}
     {
       using T = typename Collection::value_type;
@@ -173,6 +176,9 @@ struct Option {
     opt_sack_align(const Collection& blocks)
       : sack{blocks}
     {}
+
+    uint8_t size() const noexcept
+    { return sizeof(padding) + sack.length; }
 
   } __attribute__((packed));
 
