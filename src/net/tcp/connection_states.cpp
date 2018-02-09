@@ -96,7 +96,7 @@ using namespace std;
 bool Connection::State::check_seq(Connection& tcp, const Packet& in)
 {
   auto& tcb = tcp.tcb();
-
+  uint32_t packet_end = static_cast<uint32_t>(in.seq() + in.tcp_data_length()-1);
   // RFC 7323
   Option::opt_ts* ts = nullptr;
   static constexpr uint8_t HEADER_WITH_TS{sizeof(Header) + 12};
@@ -131,12 +131,12 @@ bool Connection::State::check_seq(Connection& tcp, const Packet& in)
     goto acceptable;
   }
   // #3 (INVALID) - Packet is outside the right edge of the recv window
-  else if( in.seq() + in.tcp_data_length()-1 > tcb.RCV.NXT+tcb.RCV.WND ) {
+  else if( packet_end > tcb.RCV.NXT+tcb.RCV.WND ) {
     goto unacceptable;
   }
   // #4 - Packet with payload is what we expect or bigger, but inside our window
-  else if( tcb.RCV.NXT <= in.seq()+in.tcp_data_length()-1
-      and in.seq()+in.tcp_data_length()-1 < tcb.RCV.NXT+tcb.RCV.WND ) {
+  else if( tcb.RCV.NXT <= packet_end
+      and packet_end < tcb.RCV.NXT+tcb.RCV.WND ) {
     goto acceptable;
   }
   /*
