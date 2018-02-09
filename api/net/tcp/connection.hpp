@@ -1046,6 +1046,8 @@ private:
    */
   void recv_data(const Packet& in);
 
+  void recv_out_of_order(const Packet& in);
+
   /**
    * @brief      Acknowledge incoming data. This is done by:
    *             - Trying to send data if possible (can send)

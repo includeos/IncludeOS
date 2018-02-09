@@ -92,8 +92,8 @@ inline std::ostream& operator<<(std::ostream& out, const Block& b) {
 using Entries = Fixed_vector<Block,3>;
 
 struct Ack_result {
-  Entries   entries;
-  uint32_t  bytes;
+  size_t    length;
+  uint32_t  blocksize;
 };
 
 template <typename List_impl>
@@ -105,14 +105,17 @@ public:
     : impl{std::forward(args)}
   {}
 
-  Ack_result recv_out_of_order(const seq_t seq, const size_t len)
-  { return impl.recv_out_of_order({seq, static_cast<seq_t>(seq+len)}); }
+  Ack_result recv_out_of_order(const seq_t seq, size_t len)
+  { return impl.recv_out_of_order(seq, len); }
 
-  Ack_result new_valid_ack(const seq_t end)
-  { return impl.new_valid_ack(end); }
+  Ack_result new_valid_ack(const seq_t end, size_t len)
+  { return impl.new_valid_ack(end, len); }
 
   size_t size() const noexcept
   { return impl.size(); }
+
+  Entries recent_entries() const noexcept
+  { return impl.recent_entries(); }
 
   List_impl impl;
 };
@@ -155,8 +158,12 @@ public:
 
   static_assert(N <= 32 && N > 0, "N wrong sized - optimized for small N");
 
-  Ack_result recv_out_of_order(Block blk)
+  Ack_result recv_out_of_order(const seq_t seq, size_t len)
   {
+    // TODO: This just assumes nothing of the block exists from before.
+    // Uncertain if this will cause an issue.
+    Block blk{seq, static_cast<seq_t>(seq+len)};
+
     auto connected = connects_to(blocks.begin(), blocks.end(), blk);
 
     if (connected.end != blocks.end()) // Connectes to an end
@@ -182,47 +189,50 @@ public:
       Expects(blocks.size() <= capacity);
 
       if(UNLIKELY(blocks.size() == capacity))
-        return {recent_entries(), 0};
+        return {0, 0};
 
       blocks.push_front(blk);
     }
 
-    return {recent_entries(), blk.size()};
+    // just return the full length
+    return {len, blk.size()};
   }
 
-  Ack_result new_valid_ack(const seq_t seq)
+  Ack_result new_valid_ack(const seq_t seq, size_t len)
   {
+    const auto ack = seq + len;
     uint32_t bytes_freed = 0;
 
     for(auto it = blocks.begin(); it != blocks.end(); it++)
     {
-      if (it->start == seq)
+      if (it->contains(ack))
       {
         bytes_freed = it->size();
+        len -= (ack - it->start);
         blocks.erase(it);
         break;
       }
     }
 
-    return {recent_entries(), bytes_freed};
+    return {len, bytes_freed};
   }
 
   size_t size() const noexcept
   { return blocks.size(); }
 
-  void move_to_front(List_iterator it)
-  {
-    if(it != blocks.begin())
-      blocks.splice(blocks.begin(), blocks, it);
-  }
-
-  Entries recent_entries() const
+  Entries recent_entries() const noexcept
   {
     Entries ret;
     for(auto it = blocks.begin(); it != blocks.end() and ret.size() < ret.capacity(); it++)
       ret.push_back(*it);
 
     return ret;
+  }
+
+  void move_to_front(List_iterator it)
+  {
+    if(it != blocks.begin())
+      blocks.splice(blocks.begin(), blocks, it);
   }
 
   List blocks;

@@ -24,6 +24,14 @@
 #include <net/tcp/packet.hpp>
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/tcp_errors.hpp>
+#include <iostream> // remove me, sack debugging
+std::ostream& operator<< (std::ostream& out, const net::tcp::sack::Entries& ent) {
+  for (auto el : ent) {
+    out << el << "\n";
+  }
+  return out;
+}
+
 
 using namespace net::tcp;
 using namespace std;
@@ -71,6 +79,7 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
   // read request is already set, only reset if new size.
   else
   {
+    //printf("on_read already set\n");
     read_request->callback = cb;
     // this will flush the current data to the user (if any)
     read_request->reset(recv_bufsz, seq_t(this->cb.RCV.NXT));
@@ -328,7 +337,21 @@ Packet_ptr Connection::create_outgoing_packet()
 
   if(cb.SND.TS_OK)
     packet->add_tcp_option_aligned<Option::opt_ts_align>(host_.get_ts_value(), cb.get_ts_recent());
-  // Set SEQ and ACK - I think this is OK..
+
+  // Add SACK option (if any entries)
+  if(UNLIKELY(sack_list and sack_list->size()))
+  {
+    Expects(sack_perm);
+
+    auto entries = sack_list->recent_entries();
+    // swap to network endian before adding to packet
+    for(auto& ent : entries)
+      ent.swap_endian();
+
+    packet->add_tcp_option_aligned<Option::opt_sack_align>(entries);
+  }
+
+  // Set SEQ and ACK
   packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
   debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
 
@@ -669,46 +692,53 @@ void Connection::recv_data(const Packet& in)
 {
   Expects(in.has_tcp_data());
 
-  const auto length = in.tcp_data_length();
+  // Keep track if a packet is being sent during the async read callback
+  const auto snd_nxt = cb.SND.NXT;
 
   // The packet we expect
   if(cb.RCV.NXT == in.seq())
   {
+    size_t length = in.tcp_data_length();
+
+    //auto& front = read_request->front();
+    //if(front.missing()) {
+    //  printf("<Connection::recv_data> In order: SEQ=%u hole=%u fits=%u sz=%u front_start=%u front_end=%u\n",
+    //    in.seq(), front.missing(), read_request->fits(in.seq()), read_request->size(), front.start_seq(), front.end_seq());
+    //}
+
     // If we had packet loss before (and SACK is on)
     // we need to clear up among the blocks
     // and increase the total amount of bytes acked
     if(UNLIKELY(sack_list))
     {
-      auto res = sack_list->new_valid_ack(in.seq());
-      cb.RCV.NXT += res.bytes;
+      //printf("In order: SEQ=%u sz=%lu - front: hole=%u fits=%u sz=%u cap=%u start=%u end=%u\n",
+      //  in.seq(), length, front.missing(), read_request->fits(in.seq()),
+      //  front.size(), front.capacity(), front.start_seq(), front.end_seq());
+
+      auto res = sack_list->new_valid_ack(in.seq(), length);
+      // if any bytes are cleared up in sack, increase expected sequence number
+      cb.RCV.NXT += res.blocksize;
+
+      if(UNLIKELY(length != res.length))
+        printf("mismatch len=%u res.len=%u\n", length, res.length);
+      // TODO: This Ensures verifies that we never have partial packets
+      Ensures(length == res.length);
+      //length = res.length;
+
+      if(cb.RCV.NXT != in.seq())
+        printf("ACKED res.bytes=%u\n", res.blocksize);
+      //std::cout << sack_list->recent_entries();
     }
 
-    cb.RCV.NXT += length;
+    const auto recv = read_request->insert(in.seq(), in.tcp_data(), length, in.isset(PSH));
+    Ensures(recv == length);
+
+    cb.RCV.NXT += recv;
   }
   // Packet out of order
-  else
+  else if((in.seq() - cb.RCV.NXT) < cb.RCV.WND)
   {
-    // We know that out of order packets wouldnt reach here
-    // without SACK being permitted
-    Expects(sack_perm);
-
-    printf("<Connection::recv_data> Out-of-order: RCV.NXT=%u SEQ=%u\n",
-      cb.RCV.NXT, in.seq());
-
-    // The SACK list is initated on the first out of order packet
-    if(not sack_list)
-      sack_list = std::make_unique<Sack_list>();
-
-    auto res = sack_list->recv_out_of_order(in.seq(), length);
-  }
-
-  // Keep track if a packet is being sent during the async read callback
-  const auto snd_nxt = cb.SND.NXT;
-
-  if(read_request)
-  {
-    auto recv = receive(in.seq(), in.tcp_data(), length, in.isset(PSH));
-    Ensures(recv == length);
+    recv_out_of_order(in);
   }
 
   // User callback didnt result in transmitting an ACK
@@ -716,6 +746,60 @@ void Connection::recv_data(const Packet& in)
     ack_data();
 
   // [RFC 5681] ???
+}
+
+void Connection::recv_out_of_order(const Packet& in)
+{
+  // Packets before this point would totally ruin the buffer
+  Expects((in.seq() - cb.RCV.NXT) < cb.RCV.WND);
+  // We know that out of order packets wouldnt reach here
+  // without SACK being permitted
+  Expects(sack_perm);
+
+  // The SACK list is initated on the first out of order packet
+  if(UNLIKELY(not sack_list))
+    sack_list = std::make_unique<Sack_list>();
+
+  const size_t length = in.tcp_data_length();
+  auto seq = in.seq();
+  auto fits = read_request->fits(seq);
+
+  //if(fits)
+  //  printf("Out-of-order: SEQ=%u REL=%u RCV.NXT=%u fits=%u\n",
+  //    in.seq(), in.seq() - cb.RCV.NXT, cb.RCV.NXT, fits);
+
+  // TODO: if our packet partial fits, we just ignores it for now
+  // to avoid headache
+  if(fits >= length)
+  {
+    auto inserted = read_request->insert(seq, in.tcp_data(), length, in.isset(PSH));
+    Ensures(inserted == length);
+
+    // Assume for now that we have room in sack list
+    auto res = sack_list->recv_out_of_order(seq, inserted);
+
+    Ensures(res.length == length);
+
+    std::cout << sack_list->recent_entries();
+  }
+
+  /*
+  size_t rem = length;
+  // Support filling partial packets
+  while(rem != 0 and fits != 0)
+  {
+    auto offset = length - rem;
+    auto inserted = read_request->insert(seq, in.tcp_data()+offset, std::min(rem, fits), in.isset(PSH));
+
+    // Assume for now that we have room in sack list
+    auto res = sack_list->recv_out_of_order(seq, inserted);
+    std::cout << res.entries;
+
+    seq += inserted;
+    rem -= inserted;
+
+    fits = read_request->fits(seq);
+  }*/
 }
 
 void Connection::ack_data()
@@ -1109,8 +1193,6 @@ void Connection::parse_options(const Packet& packet) {
 
     case Option::SACK_PERM:
     {
-      printf("<Connection::parse_options@SACK_PERM>\n");
-
       if(UNLIKELY(option->length != sizeof(Option::opt_sack_perm)))
           throw TCPBadOptionException{Option::SACK_PERM, "length != 2"};
 
