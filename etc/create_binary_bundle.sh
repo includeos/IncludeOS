@@ -162,19 +162,6 @@ function do_build {
   cp $include_libunwind/libunwind.h $BUNDLE_LOC/libunwind/include
   cp $include_libunwind/__libunwind_config.h $BUNDLE_LOC/libunwind/include
 
-  if [ $ARCH == "i686" ]
-  then
-    crtbegin=`$CC -m32 --print-file-name crtbegin.o`
-    crtend=`$CC -m32 --print-file-name crtend.o`
-  else
-    crtbegin=`$CC --print-file-name crtbegin.o`
-    crtend=`$CC --print-file-name crtend.o`
-  fi
-
-  mkdir -p $BUNDLE_LOC/crt
-  cp $crtbegin $BUNDLE_LOC/crt/
-  cp $crtend $BUNDLE_LOC/crt/
-
 }
 
 for B_ARCH in $BUNDLE_ARCHES

@@ -88,9 +88,6 @@ add_library(libm STATIC IMPORTED)
 set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${MUSL_LIB_DIR}/libm.a)
 add_dependencies(libm PrecompiledLibraries)
 
-set(CRTEND ${PRECOMPILED_DIR}/crt/crtend.o)
-set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
-
 #
 # Installation
 #
@@ -99,8 +96,6 @@ install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/li
 install(DIRECTORY ${LIBUNWIND_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libunwind)
 
 install(DIRECTORY ${MUSL_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/musl)
-
-install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/${ARCH}/lib)
 
 set(CHAINLOAD_LOC ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/chainloader)
 install(FILES ${CHAINLOAD_LOC} DESTINATION includeos)

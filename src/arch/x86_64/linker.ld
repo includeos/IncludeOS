@@ -65,50 +65,6 @@ SECTIONS
       *(.got*)
   }
 
-/**
- *  .ctors, .dtors, .preinit_array, .init_array, .fini_array
- *  from GNU LD default linker script
- */
-
-.ctors          :
-  {
-    _GCONSTR_START_ = .;
-      /* gcc uses crtbegin.o to find the start of
-       the constructors, so we make sure it is
-       first.  Because this is a wildcard, it
-       doesn't matter if the user does not
-       actually link against crtbegin.o; the
-       linker won't look for a file to match a
-       wildcard.  The wildcard also means that it
-       doesn't matter which directory crtbegin.o
-       is in.  */
-       KEEP (*crtbegin.o(.ctors))
-       KEEP (*crtbegin?.o(.ctors))
-       /* We don't want to include the .ctor section from
-       the crtend.o file until after the sorted ctors.
-       The .ctor section from the crtend file contains the
-       end of ctors marker and it must be last */
-       KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .ctors))
-       KEEP (*(SORT(.ctors.*)))
-       KEEP (*(.ctors))
-    _GCONSTR_END_ = .;
-  }
-
-  .dtors :
-  {
-    KEEP (*crtbegin.o(.dtors))
-    KEEP (*crtbegin?.o(.dtors))
-    KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
-    KEEP (*(SORT(.dtors.*)))
-    KEEP (*(.dtors))
-  }
-
-  .preinit_array :
-  {
-    PROVIDE_HIDDEN (__preinit_array_start = .);
-    KEEP (*(.preinit_array))
-    PROVIDE_HIDDEN (__preinit_array_end = .);
-  }
 
   .init_array :
   {

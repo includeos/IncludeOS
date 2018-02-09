@@ -34,26 +34,6 @@ void* __dso_handle;
 const uintptr_t __stack_chk_guard = (uintptr_t) _STACK_GUARD_VALUE_;
 extern void panic(const char* why) __attribute__((noreturn));
 
-extern void (*__preinit_array_start [])();
-extern void (*__preinit_array_end [])();
-extern void (*__init_array_start [])();
-extern void (*__init_array_end [])();
-
-void __libc_init_array() {
-  size_t count, i;
-
-  count = __preinit_array_end - __preinit_array_start;
-  for (i = 0; i < count; i++)
-    __preinit_array_start[i]();
-
-  kprintf("Initializing C constructors \n");
-  _init();
-  kprintf("Initializing C++ constructors \n");
-  count = __init_array_end - __init_array_start;
-  for (i = 0; i < count; i++)
-    __init_array_start[i]();
-}
-
 uint32_t _move_symbols(void* sym_loc)
 {
   extern char _ELF_SYM_START_;
