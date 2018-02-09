@@ -41,10 +41,11 @@ void Service::start()
 
   // initialize client context
   openssl::init();
-  auto* ctx = openssl::create_client("/ca-certs/");
+  auto* ctx = openssl::create_client("/ca/");
 
+  printf("Connecting to https://www.google.com...");
   inet.tcp().connect(
-    {{"10.0.0.1"}, 2345},
+    {{"173.194.221.105"}, 443},
     [ctx] (auto conn) {
       if (conn == nullptr) {
         printf("Could not connect...\n");
@@ -55,8 +56,10 @@ void Service::start()
 
       auto* stream = new openssl::TLS_stream(ctx, std::move(tcp_stream), true);
       stream->on_connect(
-        [] (auto& stream) {
-          printf("Stream connected: %p\n", &stream);
+        [] (auto& stream)
+        {
+          stream.write("GET /\r\n\r\n");
+
           stream.on_read(8192,
           [strim = &stream] (auto buf) {
             printf("on_read(%lu): %.*s\n",
@@ -64,7 +67,11 @@ void Service::start()
                   (int) buf->size(), buf->data());
             strim->write(buf);
           });
-
+        });
+      stream->on_close(
+        [stream] {
+          printf("Stream closed\n");
+          delete stream;
         });
     });
 

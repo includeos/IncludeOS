@@ -23,6 +23,7 @@
 #include <util/bitops.hpp>
 #include <util/units.hpp>
 #include <kernel/memory.hpp>
+#include <cstdlib>
 
 //#define DEBUG_X86_PAGING
 
@@ -90,9 +91,10 @@ using Map = os::mem::Mapping<Flags>;
 
 /** 4k aligned allocation of page table / page dir **/
 template <typename T, typename... Args>
-T* allocate_pdir(Args... a)
+T* allocate_pdir(Args... args)
 {
-  return os::mem::aligned_alloc<T, 4_KiB, Args...>(a...);
+  void* ptr = aligned_alloc(4_KiB, sizeof(T));
+  return new (ptr) T(args...);
 }
 
 /** x86_64 specific types for page directories **/

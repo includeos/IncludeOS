@@ -13,6 +13,16 @@ inline void handle_error(const char* file, int lineno, const char* msg) {
 #define int_error(msg) handle_error(__FILE__, __LINE__, msg)
 
 static void
+tls_check_for_errors()
+{
+  int error = ERR_get_error();
+  if (error) {
+    printf("Status: %s\n", ERR_error_string(error, nullptr));
+  }
+  assert(error == SSL_ERROR_NONE);
+}
+
+static void
 tls_load_from_memory(X509_STORE* store,
                      fs::Buffer cert_buffer)
 {
@@ -76,18 +86,23 @@ tls_init_client(const char* path)
   /* Recommended to avoid SSLv2 & SSLv3 */
   SSL_CTX_set_options(ctx, SSL_OP_ALL|SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3);
 
-  int error = ERR_get_error();
-  if (error) {
-    printf("Status: %s\n", ERR_error_string(error, nullptr));
-  }
-  assert(error == SSL_ERROR_NONE);
+  tls_check_for_errors();
   return ctx;
 }
 
 namespace openssl
 {
-  SSL_CTX* create_client(const char* path)
+  SSL_CTX* create_client(const char* path, bool verify_peer)
   {
-    return tls_init_client(path);
+    auto* ctx = tls_init_client(path);
+    if (verify_peer) client_verify_peer(ctx);
+    return ctx;
+  }
+
+  void client_verify_peer(SSL_CTX* ctx)
+  {
+    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, nullptr);
+    SSL_CTX_set_verify_depth(ctx, 1);
+    tls_check_for_errors();
   }
 }
