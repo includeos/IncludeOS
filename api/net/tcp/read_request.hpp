@@ -29,6 +29,7 @@ namespace tcp {
 class Read_request {
 public:
   using Buffer_ptr = std::unique_ptr<Read_buffer>;
+  using Buffer_queue = std::deque<Buffer_ptr>;
   using ReadCallback = delegate<void(buffer_t)>;
   static constexpr size_t buffer_limit = 2;
   ReadCallback callback;
@@ -51,8 +52,11 @@ public:
   Read_buffer& front()
   { return *buffers.front(); }
 
+  const Buffer_queue& queue() const
+  { return buffers; }
+
 private:
-  std::deque<Buffer_ptr> buffers;
+  Buffer_queue buffers;
 
   Read_buffer* get_buffer(const seq_t seq);
 

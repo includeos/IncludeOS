@@ -36,8 +36,10 @@ namespace tcp {
     {
       auto* buf = get_buffer(seq);
 
-      if(UNLIKELY(buf == nullptr))
+      if(UNLIKELY(buf == nullptr)) {
+        //printf("no buffer found\n");
         break;
+      }
 
       //printf("got buffer start=%u end=%u missing=%lu\n",
       //  buf->start_seq(), buf->end_seq(), buf->missing());
@@ -52,12 +54,20 @@ namespace tcp {
       // (and also being the one in the front)
       while(buf->is_ready() and buf == buffers.front().get())
       {
+        const auto rem = buf->capacity() - buf->size();
         callback(buf->buffer());
 
         // this is the only one, so we can reuse it
         if(buffers.size() == 1)
         {
+          // Trick to make SACK work. If a lot of data was cleared up
+          // it means the local sequence number is much farther behind
+          // the real one
+          seq = buf->end_seq() - rem;
+
           buf->reset(seq);
+          //printf("size=1, reset rem=%u start=%u end=%u\n",
+          //  rem, buf->start_seq(), buf->end_seq());
           break;
         }
         // to make it simple, just get rid of it and have the
@@ -67,11 +77,27 @@ namespace tcp {
         // maybe it isnt even necessary..)
         else
         {
-          buffers.pop_front();
-          buf = buffers.front().get();
+          // if there are other buffers following this one,
+          // and the buffer wasnt full, fill the small gap
+          if(UNLIKELY(rem != 0))
+          {
+            buf->reset(seq, rem);
+            //printf("remaining=%u, reset start=%u end=%u\n",
+            //  rem, buf->start_seq(), buf->end_seq());
+            Ensures(buf->end_seq() == buffers.at(1)->start_seq());
+          }
+          else
+          {
+            //printf("finished, pop front start=%u end=%u\n",
+            //  buf->start_seq(), buf->end_seq());
+            buffers.pop_front();
+            buf = buffers.front().get();
+          }
         }
-      }
-    }
+
+      } // < while(buf->is_ready() and buf == buffers.front().get())
+
+    } // < while(n)
 
     Ensures(not buffers.empty());
     return recv;
@@ -86,35 +112,42 @@ namespace tcp {
         return ptr.get();
     }
 
+    //printf("seq=%u do not fit in any current buffer\n", seq);
     // We can still create a new one
     if(buffers.size() < buffer_limit)
     {
       // current cap
-      const auto& back = buffers.back();
+      const auto& cur_back = buffers.back();
+      //printf("current back, start=%u end=%u sz=%u\n",
+      //  cur_back->start_seq(), cur_back->end_seq(), cur_back->size());
 
       // TODO: if the gap is bigger than 1 buffer
       // we probably need to create multiple buffers,
       // ... or just decide we only support gaps of 1 buffer size.
       buffers.push_back(
-        std::make_unique<Read_buffer>(back->capacity(), back->end_seq()));
+        std::make_unique<Read_buffer>(cur_back->capacity(), cur_back->end_seq()));
 
-      //printf("new buffer added,fits(%lu)=%lu\n",
-      //  seq, buffers.back()->fits(seq));
+      auto& back = buffers.back();
+      //printf("new buffer added start=%u end=%u, fits(%lu)=%lu\n",
+      //  back->start_seq(), back->end_seq(), seq, back->fits(seq));
 
-      if(buffers.back()->fits(seq) > 0)
-        return buffers.back().get();
+      if(back->fits(seq) > 0)
+        return back.get();
     }
+    //printf("did not fit\n");
 
     return nullptr;
   }
 
   size_t Read_request::fits(const seq_t seq) const
   {
+    auto len = 0;
     // There is room in a existing one
     for(auto& ptr : buffers)
     {
-      if(ptr->fits(seq) > 0)
-        return ptr->fits(seq);
+      len += ptr->fits(seq);
+      /*if(ptr->fits(seq) > 0)
+        return ptr->fits(seq);*/
     }
 
     // Possible to create one (or more) to support this?
@@ -125,10 +158,10 @@ namespace tcp {
       const auto cap = back->capacity();
 
       if(rel < cap)
-        return (cap - rel);
+        len += (cap - rel);
     }
 
-    return 0;
+    return len;
   }
 
   size_t Read_request::size() const
@@ -160,9 +193,16 @@ namespace tcp {
 
     // get the first buffer
     auto* buf = it->get();
-    // if it contains data without any holes,
+
+    // okay, so here's the deal.
+    // there might be data in the read_buffer (due to liveupdate restore)
+    // so we need to be able to set a callback, then have reset called,
+    // to flush the data to the user.
+
+    // if noone is using the buffer right now, (stupid yes)
+    // AND it contains data without any holes,
     // return it to the user
-    if(buf->size() > 0 and buf->missing() == 0)
+    if(buf->buffer().unique() and buf->size() > 0 and buf->missing() == 0)
     {
       callback(buf->buffer());
     }
