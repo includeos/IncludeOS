@@ -23,11 +23,30 @@ namespace net
   Timer::duration_t DNSClient::DEFAULT_FLUSH_INTERVAL{std::chrono::seconds(30)};
   std::chrono::seconds DNSClient::DEFAULT_CACHE_TTL{std::chrono::seconds(60)};
 
+  DNSClient::DNSClient(Stack& stack)
+    : stack_{stack},
+      socket_(nullptr),
+      cache_ttl_{DEFAULT_CACHE_TTL},
+      flush_timer_{{this, &DNSClient::flush_expired}}
+  {
+  }
+
+  void DNSClient::bind_socket()
+  {
+    Expects(socket_ == nullptr);
+    socket_ = &stack_.udp().bind();
+    // Parse received data on this socket as Responses
+    socket_->on_read({this, &DNSClient::receive_response});
+  }
+
   void DNSClient::resolve(Address dns_server,
                           const Hostname& hname,
                           Resolve_handler func,
                           Timer::duration_t timeout, bool force)
   {
+    if(UNLIKELY(socket_ == nullptr))
+      bind_socket();
+
     auto hostname = hname; // fixme: unecessary copy
     if(not is_FQDN(hostname) and not stack_.domain_name().empty())
     {
@@ -56,7 +75,9 @@ namespace net
       std::forward_as_tuple(std::move(request), std::move(func), timeout));
 
     // send request to DNS server
-    socket_.sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len, nullptr, [this, dns_server, key] (const Error& err) {
+    socket_->sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len, nullptr,
+      [this, key] (const Error& err)
+    {
       // If an error is not received, this will never execute (Error is just erased from the map
       // without calling the callback)
 
@@ -152,5 +173,14 @@ namespace net
 
     if(not cache_.empty())
       flush_timer_.start(DEFAULT_FLUSH_INTERVAL);
+  }
+
+  DNSClient::~DNSClient()
+  {
+    if(socket_ != nullptr)
+    {
+      socket_->close();
+      socket_ = nullptr;
+    }
   }
 }
