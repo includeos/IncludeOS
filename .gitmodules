@@ -22,7 +22,7 @@
 	url = https://github.com/fwsGonzo/libsl3.git
 [submodule "lib/protobuf"]
 	path = lib/protobuf
-	url = https://github.com/RicoAntonioFelix/protobuf.git
+	url = https://github.com/google/protobuf.git
 [submodule "NaCl"]
 	path = NaCl
 	url = https://github.com/includeos/NaCl.git

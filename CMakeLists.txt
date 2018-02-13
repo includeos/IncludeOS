@@ -247,7 +247,7 @@ endif()
 option(libprotobuf "Build and install Google's protobuf runtime library" ON)
 if(libprotobuf)
   init_submodule(lib/protobuf)
-  add_subdirectory(lib/protobuf)
+  include(${INCLUDEOS_ROOT}/cmake/protobuf.cmake)
 endif(libprotobuf)
 
 #
