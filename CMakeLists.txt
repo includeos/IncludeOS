@@ -196,8 +196,8 @@ endif(diskbuilder)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
-#  set(libprotobuf ON) # dependent
-#  add_subdirectory(examples)
+  set(libprotobuf ON) # dependent
+  add_subdirectory(examples)
 endif(examples)
 
 option(tests "Build unit tests in /test and install lest test framework" OFF)
@@ -244,11 +244,11 @@ if(libmicroLB)
 endif()
 
 
-#option(libprotobuf "Build and install Google's protobuf runtime library" ON)
-#if(libprotobuf)
-#  init_submodule(lib/protobuf)
-#  add_subdirectory(lib/protobuf)
-#endif(libprotobuf)
+option(libprotobuf "Build and install Google's protobuf runtime library" ON)
+if(libprotobuf)
+  init_submodule(lib/protobuf)
+  include(${INCLUDEOS_ROOT}/cmake/protobuf.cmake)
+endif(libprotobuf)
 
 #
 # Installation
