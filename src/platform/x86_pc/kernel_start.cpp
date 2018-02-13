@@ -52,9 +52,11 @@ void _init_bss()
 
 uintptr_t __grub_magic = 0xc001;
 uintptr_t __grub_addr = 0x7001;
+bool __libc_initialized = false;
 
 int kernel_main(int, char * *, char * *) {
   kprintf("<kernel_main> libc initialization complete \n");
+  __libc_initialized = true;
   Expects(__tl1__ == 42);
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
   Expects(elf.is_ELF() && "ELF header intact");

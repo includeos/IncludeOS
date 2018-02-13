@@ -20,6 +20,8 @@
 #define INCLUDE_FD_HPP
 
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #include <cstdarg>
 
 /**
@@ -40,6 +42,7 @@ public:
   virtual int     write(const void*, size_t) { return -1; }
   virtual int     close() = 0;
   virtual int     fcntl(int, va_list);
+  virtual int     ioctl(int, void*);
 
   /** SOCKET **/
   virtual int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -1; }

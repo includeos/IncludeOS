@@ -1,10 +1,34 @@
+#include <iostream>
+#include <os>
+#include <sstream>
 #include "common.hpp"
+#include <kprint>
+
 
 extern "C" void __serial_print(const char*, size_t);
+
+
+// The actual syscall
+static long sys_write(int fd, char* str, size_t len) {
+  kprintf("Sys write\n");
+
+  if (fd <= 0) {
+    errno = EBADF;
+    return -1;
+  }
+
+  if (fd == 1 or fd == 2) {
+    OS::print(str, len);
+    return len;
+  }
+
+  // TODO: integrate with old file descriptors
+  errno = ENOSYS;
+  return -1;
+}
+
+// The syscall wrapper, using strace if enabled
 extern "C"
 long syscall_SYS_write(int fd, char* str, size_t len) {
-  STUB("write");
-
-  __serial_print(str, len);
-  return 0;
+  return strace(sys_write, "write", fd, str, len);
 }

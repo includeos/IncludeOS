@@ -1,7 +1,10 @@
-#include "common.hpp"
+#include "stub.hpp"
+
+long syscall(long i){
+  return 0;
+};
 
 extern "C"
 long syscall_n(long i) {
-  STRACE("syscall_n, n=%i\n", i);
-  return 0;
+  return stubtrace(syscall, "syscall", i);
 }

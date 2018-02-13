@@ -1,10 +1,12 @@
 #include "common.hpp"
 
+static int sys_close(int fd) {
+  if (!fd) return -1;
+  return 0;
+
+};
+
 extern "C"
 int syscall_SYS_close(int fd) {
-  STRACE("close fd=%i\n", fd);
-
-  if (!fd) return -1;
-
-  return 0;
+  return strace(sys_close, "close", fd);
 }

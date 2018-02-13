@@ -1,26 +1,35 @@
-#include "common.hpp"
 #include <sys/ioctl.h>
+#include <fd_map.hpp>
 
-#warning stub
+#include "stub.hpp"
 
-extern "C"
-int syscall_SYS_ioctl(int fd, int req, void* arg) {
-  STRACE("syscall ioctl: fd=%i, req=0x%x\n",
-         fd, req);
+static int sys_ioctl(int fd, int req, void* arg) {
+  if (fd == 1 or fd == 2) {
+    if (req == TIOCGWINSZ) {
+      winsize* ws = (winsize*)arg;
+      ws->ws_row = 25;
+      ws->ws_col = 80;
+      return 0;
+    }
 
-  if (req == TIOCGWINSZ) {
-    kprintf("\t* Wants to get winsize\n");
-    winsize* ws = (winsize*)arg;
-    ws->ws_row = 25;
-    ws->ws_col = 80;
+    if (req == TIOCSWINSZ) {
+      winsize* ws = (winsize*)arg;
+    }
+
     return 0;
   }
 
-  if (req == TIOCSWINSZ) {
-    winsize* ws = (winsize*)arg;
-    kprintf("\t* Wants to set winsize to %i x %i\n",
-            ws->ws_row, ws->ws_col);
+  try {
+    auto& fildes = FD_map::_get(fd);
+    return fildes.ioctl(req, arg);
   }
+  catch(const FD_not_found&) {
+    errno = EBADF;
+    return -1;
+  }
+}
 
-  return 0;
+extern "C"
+int syscall_SYS_ioctl(int fd, int req, void* arg) {
+  return stubtrace(sys_ioctl, "ioctl", fd, req, arg);
 }

@@ -19,23 +19,20 @@ void init_mmap(uintptr_t addr_begin){
 
 }
 
-extern "C"
+
+extern "C" __attribute__((weak))
 void* __kalloc(size_t size){
   return alloc.allocate(size);
 }
 
-extern "C"
+extern "C" __attribute__((weak))
 void __kfree (void* ptr, size_t size){
   alloc.deallocate(ptr, size);
 }
 
-extern "C"
-void* syscall_SYS_mmap(void *addr, size_t length, int prot, int flags,
+static void* sys_mmap(void *addr, size_t length, int prot, int flags,
                       int fd, off_t offset)
 {
-
-  STRACE("syscall mmap: addr=%p len=%u prot=%d fl=%d fd=%d off=%d \n",
-         addr, length, prot, flags, fd, offset);
 
   // TODO: Mapping to file descriptor
   if (fd > 0) {
@@ -48,13 +45,15 @@ void* syscall_SYS_mmap(void *addr, size_t length, int prot, int flags,
     return MAP_FAILED;
   }
 
-  void* res = __kalloc(length);
-  STRACE("syscall mmap: addr=%p len=%u prot=%d fl=%d fd=%d off=%d res=%p\n",
-         addr, length, prot, flags, fd, offset, res);
-
-  return res;
+  return __kalloc(length);;
 }
 
+extern "C"
+void* syscall_SYS_mmap(void *addr, size_t length, int prot, int flags,
+                      int fd, off_t offset)
+{
+  return strace(sys_mmap, "mmap", addr, length, prot, flags, fd, offset);
+}
 
 /**
   The mmap2() system call provides the same interface as mmap(2),
@@ -65,12 +64,9 @@ void* syscall_SYS_mmap(void *addr, size_t length, int prot, int flags,
 
   http://man7.org/linux/man-pages/man2/mmap2.2.html
 **/
+
 extern "C"
 void* syscall_SYS_mmap2(void *addr, size_t length, int prot,
-                       int flags, int fd, off_t offset) {
-  uintptr_t res = heap_begin + current_pos;
-  current_pos += length;
-  STRACE("syscall mmap2: addr=%p len=%u prot=%d fl=%d fd=%d off=%d\n",
-         addr, length, prot, flags, fd, offset);
-  return (void*)res;
+                        int flags, int fd, off_t offset) {
+  return strace(sys_mmap, "mmap2", addr, length, prot, flags, fd, offset * 4096);
 }

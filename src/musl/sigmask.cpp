@@ -1,35 +1,48 @@
-#include "common.hpp"
+#include "stub.hpp"
 #include <signal.h>
 
-extern "C" {
-long syscall_SYS_sigmask() {
-  STUB("sigmask");
+static int sys_rt_sigprocmask (int how, const sigset_t *set, sigset_t *oldset){
   return 0;
 }
 
-long syscall_SYS_rt_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
-
-char* howstr = nullptr;
-
-switch(how) {
-
- case (SIG_BLOCK):
-howstr="BLOCK";
-break;
-
- case (SIG_UNBLOCK):
-howstr="UNBLOCK";
-break;
-
- case (SIG_SETMASK):
-howstr="SETMASK";
-break;
-
+static int sys_sigmask(int signum)
+{
+  return 0;
 }
 
-STRACE("rt_sigprocmask how=%i (%s), set=%p, oldset=%p\n",
-         how, howstr, set, oldset);
+extern const bool __strace;
 
-return 0;
+extern "C" {
+int syscall_SYS_rt_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
+
+  if constexpr (__strace) {
+
+      char* howstr = nullptr;
+
+      switch(how) {
+
+      case (SIG_BLOCK):
+        howstr="BLOCK";
+        break;
+
+      case (SIG_UNBLOCK):
+        howstr="UNBLOCK";
+        break;
+
+      case (SIG_SETMASK):
+        howstr="SETMASK";
+        break;
+      }
+      auto ret = sys_rt_sigprocmask(how, set, oldset);
+      stubtrace_print("sys_rt_sigprocmask", howstr, set, oldset);
+      return ret;
+    }
+  return sys_rt_sigprocmask(how, set, oldset);
 }
-} // extern "C"
+
+
+long syscall_SYS_sigmask(int signum) {
+  return stubtrace(sys_sigmask, "sigmask", signum);
+}
+
+}

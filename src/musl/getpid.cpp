@@ -1,7 +1,10 @@
 #include "common.hpp"
 
+int sys_getpid() {
+  return 1;
+}
+
 extern "C"
 long syscall_SYS_getpid() {
-  STRACE("getpid");
-  return 0;
+  return strace(sys_getpid, "getpid");
 }
