@@ -8,7 +8,8 @@ set(ARCH_OBJECTS
   exceptions.asm
   interrupts.asm
   fiber_asm.asm
-  syscall_entry.asm
+  __syscall_entry.asm
+  syscall_entry.cpp
   ist.cpp
   paging.cpp
   init_paging.cpp

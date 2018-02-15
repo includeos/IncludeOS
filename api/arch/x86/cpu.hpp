@@ -74,6 +74,16 @@ namespace x86
 #error "write_msr() not implemented for selected arch"
 #endif
     }
+
+#if defined(ARCH_x86_64)
+    static inline void set_fs(void* entry) noexcept {
+      write_msr(IA32_FS_BASE, (uintptr_t) entry);
+    }
+    static inline void set_gs(void* entry) noexcept {
+      write_msr(IA32_GS_BASE, (uintptr_t) entry);
+    }
+#endif
+
   };
 }
 

@@ -19,7 +19,7 @@
 #ifndef i686_ARCH_HPP
 #define i686_ARCH_HPP
 
-#include <arch/x86.hpp>
+#define ARCH_x86
 
 inline uint64_t __arch_cpu_cycles() noexcept {
   uint64_t ret;

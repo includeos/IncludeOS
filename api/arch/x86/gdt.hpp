@@ -48,15 +48,7 @@ struct GDT
 
   static void reload_gdt(GDT& base) noexcept;
 
-#if defined(ARCH_x86_64)
-
-  static inline void set_fs(void* entry) noexcept {
-    CPU::write_msr(IA32_FS_BASE, (uintptr_t) entry);
-  }
-  static inline void set_gs(void* entry) noexcept {
-    CPU::write_msr(IA32_GS_BASE, (uintptr_t) entry);
-  }
-#elif defined(ARCH_i686)
+#if defined(ARCH_x86)
   static inline void set_fs(uint16_t entry) noexcept {
     asm volatile("movw %%ax, %%fs" : : "a"(entry * 0x8));
   }

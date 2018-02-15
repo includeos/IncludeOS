@@ -18,7 +18,7 @@
 #include "apic.hpp"
 #include "ioapic.hpp"
 #include "acpi.hpp"
-#include "cpu.hpp"
+#include <arch/x86/cpu.hpp>
 #include "pic.hpp"
 #include "smp.hpp"
 #include <kernel/cpuid.hpp>

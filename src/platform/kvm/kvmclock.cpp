@@ -1,5 +1,5 @@
 #include "kvmclock.hpp"
-#include "../x86_pc/cpu.hpp"
+#include <arch/x86/cpu.hpp>
 #include <util/units.hpp>
 #include <kernel/os.hpp>
 #include <cstdio>

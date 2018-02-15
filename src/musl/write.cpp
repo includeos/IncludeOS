@@ -10,7 +10,6 @@ extern "C" void __serial_print(const char*, size_t);
 
 // The actual syscall
 static long sys_write(int fd, char* str, size_t len) {
-  kprintf("Sys write\n");
 
   if (fd <= 0) {
     errno = EBADF;

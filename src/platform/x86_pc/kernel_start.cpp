@@ -21,15 +21,17 @@
 #include <kprint>
 #include <debug>
 #include <util/elf_binary.hpp>
-#include "cpu.hpp"
-#include "gdt.hpp"
+#include <arch/x86/cpu.hpp>
+#include <kernel/auxvec.h>
+#include <kernel/service.hpp>
+
+#include "idt.hpp"
 
 extern "C" {
   void __init_serial1();
   void __init_sanity_checks();
   void kernel_sanity_checks();
   void _init_bss();
-  void __test_syscall(void* p);
   uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_heap(uintptr_t free_mem_begin);
@@ -40,7 +42,7 @@ extern char _ELF_END_;
 extern char _INIT_START_;
 extern char _FINI_START_;
 
-thread_local int __tl1__ = 42;
+static thread_local int __tl1__ = 42;
 
 
 void _init_bss()
@@ -61,9 +63,11 @@ int kernel_main(int, char * *, char * *) {
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
   Expects(elf.is_ELF() && "ELF header intact");
 
+  kprintf("<kernel_main> OS start \n");
   // Initialize early OS, platform and devices
   OS::start(__grub_magic,__grub_addr);
 
+  kprintf("<kernel_main> post start \n");
   // Initialize common subsystems and call Service::start
   OS::post_start();
 
@@ -83,56 +87,6 @@ void __init_tls(size_t* p)
 // Musl entry
 extern "C"
 int __libc_start_main(int (*main)(int,char **,char **), int argc, char **argv);
-
-extern "C" void _init();
-extern "C" void _fini();
-#include <kernel/auxvec.h>
-#include <kernel/service.hpp>
-
-
-#define ARCH_SET_GS 0x1001
-#define ARCH_SET_FS 0x1002
-#define ARCH_GET_FS 0x1003
-#define ARCH_GET_GS 0x1004
-
-int __arch_prctl(int code, uintptr_t ptr){
-
-  switch(code){
-  case ARCH_SET_GS:
-    kprintf("<arch_prctl> set_gs to %#lx\n", ptr);
-    if (!ptr) return -1;
-    x86::GDT::set_gs((void*)ptr);
-    break;
-  case ARCH_SET_FS:
-    kprintf("<arch_prctl> set_fs to %#lx\n", ptr);
-    if (!ptr) return -1;
-    x86::GDT::set_fs((void*)ptr);
-    break;
-  case ARCH_GET_GS:
-    panic("<arch_prctl> get gs \n");
-    break;
-  case ARCH_GET_FS:
-    panic("<arch_prctl> get gs \n");
-    break;
-  }
-  return 0;
-}
-
-
-extern "C"
-uintptr_t syscall_entry(uint64_t n, uint64_t a1, uint64_t a2, uint64_t a3,
-                   uint64_t a4, uint64_t a5)
-{
-  kprintf("<syscall entry> no %lu (a1=%#lx a2=%#lx a3=%#lx a4=%#lx a5=%#lx) \n",
-          n, a1, a2, a3, a4, a5);
-
-  switch(n) {
-  case 158: // arch_prctl
-    __arch_prctl(a1, a2);
-    break;
-  }
-  return 0;
-}
 
 extern "C" uintptr_t __syscall_entry();
 
@@ -176,12 +130,13 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   kprintf("* Init .bss\n");
   _init_bss();
 
-
   kprintf("* Init heap\n");
   _init_heap(free_mem_begin);
 
-  kprintf("* Thread local1: %i\n", __tl1__);
+  // Initialize CPU exceptions
+  x86::idt_initialize_for_cpu(0);
 
+  kprintf("* Thread local1: %i\n", __tl1__);
 
   kprintf("* Elf start: 0x%lx\n", &_ELF_START_);
   auto* ehdr = (Elf64_Ehdr*)&_ELF_START_;

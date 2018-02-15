@@ -19,7 +19,7 @@
 #ifndef X86_64_ARCH_HPP
 #define X86_64_ARCH_HPP
 
-#include <arch/x86.hpp>
+#define ARCH_x86
 
 inline uint64_t __arch_cpu_cycles() noexcept {
   uint32_t hi, lo;
