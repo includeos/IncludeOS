@@ -1,12 +1,5 @@
-#include <iostream>
 #include <os>
-#include <sstream>
 #include "common.hpp"
-#include <kprint>
-
-
-extern "C" void __serial_print(const char*, size_t);
-
 
 // The actual syscall
 static long sys_write(int fd, char* str, size_t len) {
