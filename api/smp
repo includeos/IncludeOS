@@ -21,6 +21,7 @@
 #define API_SMP_HEADER
 
 #include <delegate>
+#include <vector>
 #include <smp_utils>
 
 #ifndef SMP_MAX_CORES
@@ -33,9 +34,6 @@
 
 #define SMP_ALIGN       64
 
-template <typename T>
-using SMP_ARRAY = std::array<T, SMP_MAX_CORES>;
-
 // access a std::array of T by current CPU id
 #define PER_CPU(x) (per_cpu_help<decltype(x)::value_type, SMP_MAX_CORES>(x))
 
@@ -44,11 +42,22 @@ public:
   using task_func = delegate<void()>;
   using done_func = delegate<void()>;
 
+  template <typename T>
+  using Array = std::array<T, SMP_MAX_CORES>;
+
   // return the current CPU id
   static int cpu_id() noexcept;
 
   // return the number of active CPUs
   static int cpu_count() noexcept;
+
+  // Return the indices of all initialized CPU cores
+  static const std::vector<int>& active_cpus();
+
+  static int active_cpus(int index){
+    return active_cpus().at(index);
+  }
+
 
   // implement this function to execute something on all APs at init
   static void init_task();

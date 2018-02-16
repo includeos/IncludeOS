@@ -40,8 +40,12 @@ struct alignas(64) smp_table
   int cpuid;
   /** put more here **/
 };
+static SMP::Array<smp_table> cpu_tables;
 
-static SMP_ARRAY<smp_table> cpu_tables;
+namespace x86 {
+  void initialize_cpu_tables_for_cpu(int cpu);
+}
+
 
 void __platform_init()
 {
@@ -59,19 +63,8 @@ void __platform_init()
   x86::ist_initialize_for_cpu(0, 0x9D3F0);
 #endif
 
-  // IDT manager: Interrupt and exception handlers
-  //INFO("x86", "Creating CPU exception handlers");
-  //  x86::idt_initialize_for_cpu(0);
-
-  cpu_tables[0].cpuid = 0;
-
-#ifdef ARCH_x86_64
-  x86::CPU::set_gs(&cpu_tables[0]);
-#else
-  x86::CPU::set_fs(&cpu_tables[0]);
-#endif
-
-  MYINFO("Creating CPU exception handlers");
+  INFO("x86", "Initializing CPU 0");
+  x86::initialize_cpu_tables_for_cpu(0);
   Events::get(0).init_local();
 
   // setup APIC, APIC timer, SMP etc.
@@ -109,6 +102,16 @@ void __platform_init()
   // Print registered devices
   hw::Devices::print_devices();
   kprintf("Platform init done \n");
+}
+
+void x86::initialize_cpu_tables_for_cpu(int cpu){
+  cpu_tables[cpu].cpuid = cpu;
+
+#ifdef ARCH_x86_64
+  x86::CPU::set_gs(&cpu_tables[cpu]);
+#else
+  x86::CPU::set_fs(&cpu_tables[cpu]);
+#endif
 }
 
 void __arch_enable_legacy_irq(uint8_t irq)

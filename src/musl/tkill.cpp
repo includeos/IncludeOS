@@ -1,15 +1,16 @@
-#include "common.hpp"
+#include "stub.hpp"
 #include <stdlib.h>
 
 static int sys_tkill(int tid, int sig) {
-  #ifdef INCLUDEOS_SINGLE_THREADED
+
+#ifndef INCLUDEOS_SINGLE_THREADED
+#warning "tkill not implemented for threaded IncludeOS"
+#endif
+
   exit(sig);
-  #else
-  #error "tkill not implemented for threaded IncludeOS"
-  #endif
 }
 
 extern "C"
 int syscall_SYS_tkill(int tid, int sig) {
-  return strace(sys_tkill, "tkill", tid, sig);
+  return stubtrace(sys_tkill, "tkill", tid, sig);
 }

@@ -89,7 +89,7 @@ struct alignas(SMP_ALIGN) context_buffer
   std::array<char, 512> buffer;
   bool is_panicking = false;
 };
-static SMP_ARRAY<context_buffer> contexts;
+static SMP::Array<context_buffer> contexts;
 
 size_t get_crash_context_length()
 {

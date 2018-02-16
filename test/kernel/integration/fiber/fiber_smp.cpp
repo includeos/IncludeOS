@@ -269,15 +269,16 @@ void many_fibers() {
 
   for (int i = 1; i < SMP::cpu_count(); ++i) {
     active_runners++;
-    SMP::add_task([i]{
+    int cpu = SMP::active_cpus(i);
+    SMP::add_task([cpu]{
 
-        CPULOG("[ SMP::add_task %i ] starting \n", i);
+        CPULOG("[ SMP::add_task %i ] starting \n", cpu);
 
-        Fiber runner { threadrunner , i};
+        Fiber runner { threadrunner , cpu};
         auto runner_id_ = runner.id();
         runners_per_cpu[SMP::cpu_id()] = runner_id_;
         CPULOG("[ SMP::add_task %i ] NEW RUNNER: id %i, th_cnt: %i\n",
-               i, runner.id(), active_runners.load());
+               cpu, runner.id(), active_runners.load());
         runner.start();
         Expects(runner.id() == runner_id_);
         active_runners--;
@@ -285,7 +286,7 @@ void many_fibers() {
         asm("hlt");
         CPULOG("[ SMP::add_task %i ] runner id %i done. Runners left: %i\n",
         i, runner.id(), active_runners.load());*/
-      }, i);
+      }, cpu);
 
   }
 

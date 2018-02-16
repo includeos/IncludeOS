@@ -22,7 +22,7 @@
 #include <smp>
 //#define DEBUG_SMP
 
-static SMP_ARRAY<Events> managers;
+static SMP::Array<Events> managers;
 
 Events& Events::get(int cpuid)
 {

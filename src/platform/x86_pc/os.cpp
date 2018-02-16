@@ -50,7 +50,7 @@ extern uintptr_t _ELF_END_;
 struct alignas(SMP_ALIGN) OS_CPU {
   uint64_t cycles_hlt = 0;
 };
-static SMP_ARRAY<OS_CPU> os_per_cpu;
+static SMP::Array<OS_CPU> os_per_cpu;
 
 uint64_t OS::cycles_asleep() noexcept {
   return PER_CPU(os_per_cpu).cycles_hlt;
