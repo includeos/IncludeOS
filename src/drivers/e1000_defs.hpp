@@ -42,10 +42,13 @@
 
 
 #define REG_RDTR         0x2820 // RX Delay Timer Register
-#define REG_RXDCTL       0x3828 // RX Descriptor Control
 #define REG_RADV         0x282C // RX Int. Absolute Delay Timer
 #define REG_RSRPD        0x2C00 // RX Small Packet Detect Interrupt
 
+#define REG_RXDCTL(n)    0x2828 + ((n) * 0x100) // RX Descriptor Control
+#define REG_TXDCTL(n)    0x3828 + ((n) * 0x100) // TX Descriptor Control
+#define REG_TARC(n)      0x3840 + ((n) * 0x100) // Transmit Arbitration Control
+#define REG_EITR(n)      0x00E8 + ((n) * 0x4)   // Ext. Intr Throttling Register
 
 
 #define REG_TIPG         0x0410      // Transmit Inter Packet Gap
