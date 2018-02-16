@@ -42,8 +42,7 @@ namespace hw
   }
   inline uint32_t msix_data_single_vector(uint8_t vector)
   {
-    // range 16 >= vector > 255
-    assert((vector & 0xF0) && vector != 0xff);
+    assert(vector >= 32 && vector != 0xff);
     const uint32_t DM = 0x1; // low-pri
     const uint32_t TM = 0;
 
@@ -140,7 +139,7 @@ namespace hw
     if (this->pba_addr == 0) return;
 
     // get number of vectors we can get notifications from
-    this->vector_cnt = (func & MSIX_TBL_SIZE) + 1;
+    const size_t vector_cnt = (func & MSIX_TBL_SIZE) + 1;
 
     if (vector_cnt > 2048) {
       printf("table addr: %p  pba addr: %p  vectors: %u\n",
@@ -148,11 +147,11 @@ namespace hw
       printf("Unreasonably many MSI-X vectors!");
       return;
     }
+    used_vectors.resize(vector_cnt);
 
-    // reset all entries
+    // manually mask all entries
     for (size_t i = 0; i < this->vectors(); i++) {
       mask_entry(i);
-      zero_entry(i);
     }
     PRINT("[MSI-X] Enabled with %u vectors\n", this->vectors());
 
@@ -166,11 +165,9 @@ namespace hw
   {
     // find free table entry
     uint16_t vec;
-    for (vec = 0; vec < this->vectors(); vec++)
+    for (vec = 0; vec < used_vectors.size(); vec++)
     {
-      // read data register
-      auto reg = get_entry(vec, ENT_MSG_DATA);
-      if ((mm_read(reg) & 0xff) == 0) break;
+      if (used_vectors[vec] == false) break;
     }
     assert (vec != this->vectors());
     // use free table entry

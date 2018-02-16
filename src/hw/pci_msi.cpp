@@ -62,7 +62,7 @@ namespace hw
 
   void PCI_Device::deactivate_msix()
   {
-    for (int ent = 0; ent < msix->vectors(); ent++) {
+    for (size_t ent = 0; ent < msix->vectors(); ent++) {
         msix->mask_entry(ent);
         msix->zero_entry(ent);
     }
