@@ -51,9 +51,9 @@ namespace hw
       delete this->msix;
     }
   }
-  void PCI_Device::setup_msix_vector(uint8_t cpu, uint8_t irq)
+  int PCI_Device::setup_msix_vector(uint8_t cpu, uint8_t irq)
   {
-    msix->setup_vector(cpu, irq);
+    return msix->setup_vector(cpu, irq);
   }
   void PCI_Device::rebalance_msix_vector(uint16_t idx, uint8_t cpu, uint8_t irq)
   {
