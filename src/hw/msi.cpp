@@ -142,7 +142,7 @@ namespace hw
     const size_t vector_cnt = (func & MSIX_TBL_SIZE) + 1;
 
     if (vector_cnt > 2048) {
-      printf("table addr: %p  pba addr: %p  vectors: %u\n",
+      printf("table addr: %p  pba addr: %p  vectors: %lu\n",
               (void*) table_addr, (void*) pba_addr, vectors());
       printf("Unreasonably many MSI-X vectors!");
       return;
@@ -186,5 +186,7 @@ namespace hw
     mm_write(get_entry(idx, ENT_MSG_UPPER), 0x0);
     mm_write(get_entry(idx, ENT_MSG_DATA), msix_data_single_vector(intr));
     unmask_entry(idx);
+    // mark as being used
+    this->used_vectors.at(idx) = true;
   }
 }
