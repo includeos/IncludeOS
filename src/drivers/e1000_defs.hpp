@@ -25,6 +25,8 @@
 #define REG_ICRR        0x00C0
 #define REG_IMASK       0x00D0
 #define REG_IMC         0x00D8
+#define REG_EIAC        0x00DC
+#define REG_IAM         0x00E0
 #define REG_IVAR        0x00E4
 #define REG_RCTRL       0x0100
 #define REG_RXDESCLO    0x2800

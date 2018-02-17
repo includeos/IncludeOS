@@ -101,9 +101,10 @@ private:
   void event_handler();
   void receive_handler();
   void transmit_handler();
-  bool can_transmit();
+  uint16_t free_transmit_descr() const noexcept;
+  bool can_transmit() const noexcept;
   void transmit_data(uint8_t*, uint16_t);
-  void free_transmit_buffers();
+  void do_release_transmitted();
   void xmit_kick();
   static void do_deferred_xmit();
 
@@ -112,6 +113,7 @@ private:
   bool         use_mmio = false;
   bool         use_eeprom = false;
   bool         use_msix = false;
+  bool         link_state_up = false;
   uint16_t     io_base;
   uintptr_t    shm_base;
   MAC::Addr    hw_addr;

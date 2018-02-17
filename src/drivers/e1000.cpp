@@ -27,6 +27,13 @@
 //#define E1000_FAKE_EVENT_HANDLER
 //#define E1000E_FAKE_EVENT_HANDLER
 
+//#define VERBOSE_E1000
+#ifdef VERBOSE_E1000
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
 static const uint32_t TXDW = 1 << 0; // transmit descr written back
 static const uint32_t TXQE = 1 << 1; // transmit queue empty
 static const uint32_t LSC  = 1 << 2; // link status change
@@ -34,17 +41,19 @@ static const uint32_t RXDMTO= 1 << 4; // rx desc minimum tresh hit
 static const uint32_t RXO  = 1 << 6; // receiver (rx) overrun
 static const uint32_t RXTO = 1 << 7; // receive timer interrupt
 #define LEGACY_INTR_MASK() (TXDW | TXQE | LSC | RXDMTO | RXO | RXTO)
-#define MSIX_INTR_MASK() ((1 << 20) | (1 << 22) | (1 << 24))
+#define MSIX_INTR_MASK() (LSC | RXO | (1 << 20) | (1 << 22) | (1 << 24))
 
 static int deferred_event = 0;
 static std::vector<e1000*> deferred_devices;
 
 e1000::e1000(hw::PCI_Device& d) :
     Link(Link_protocol{{this, &e1000::transmit}, mac()}, bufstore_),
-    m_pcidev(d), bufstore_{1024, 2048}
+    m_pcidev(d), bufstore_{600, 2048}
 {
-  INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
+  static_assert((NUM_RX_DESC * sizeof(rx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
+  static_assert((NUM_TX_DESC * sizeof(tx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
 
+  INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
   if (d.msix_cap())
   {
     d.init_msix();
@@ -110,12 +119,11 @@ e1000::e1000(hw::PCI_Device& d) :
     rx.desc[i].status = 0;
   }
 
-  uint64_t rx_desc_ptr = (uint64_t) rx.desc;
-  write_cmd(REG_RXDESCLO, rx_desc_ptr);
+  write_cmd(REG_RXDESCLO, (uint64_t) rx.desc);
   write_cmd(REG_RXDESCHI, 0);
   write_cmd(REG_RXDESCLEN, NUM_RX_DESC * sizeof(rx_desc));
   write_cmd(REG_RXDESCHEAD, 0);
-  write_cmd(REG_RXDESCTAIL, NUM_RX_DESC);
+  write_cmd(REG_RXDESCTAIL, NUM_RX_DESC-1);
   uint32_t rx_flags = 0
       //| RCTL_UPE // unicast promisc enable
       | RCTL_MPE // multcast promisc enable
@@ -130,29 +138,31 @@ e1000::e1000(hw::PCI_Device& d) :
     tx.desc[i].status = 0x1; // done
   }
 
-  uint64_t tx_desc_ptr = (uint64_t) tx.desc;
-  write_cmd(REG_TXDESCLO, tx_desc_ptr);
+  write_cmd(REG_TXDESCLO, (uint64_t) tx.desc);
   write_cmd(REG_TXDESCHI, 0);
   write_cmd(REG_TXDESCLEN, NUM_TX_DESC * sizeof(tx_desc));
   write_cmd(REG_TXDESCHEAD, 0);
-  write_cmd(REG_TXDESCTAIL, NUM_TX_DESC);
+  write_cmd(REG_TXDESCTAIL, NUM_TX_DESC-1);
   //write_cmd(REG_TIPG, 0x702008); // p.202
   //write_cmd(REG_TIPG, (10 | (10 << 10) | (10 << 20)));
   // enable, PSP, 0xF coll tresh, 0x3F coll distance
   write_cmd(REG_TCTRL, read_cmd(REG_TCTRL) | (1 << 1) | (1 << 3));
 
   // e1000e configuration
-  if (d.has_msix())
+  if (this->use_msix)
   {
-    // descriptor lengths are weird on 82574L and later
-    write_cmd(REG_RXDESCLEN, (NUM_RX_DESC * sizeof(rx_desc)) << 7);
-    write_cmd(REG_TXDESCLEN, (NUM_TX_DESC * sizeof(tx_desc)) << 7);
+    // interrupt throttling
+    //for (int n = 0; n < 5; n++)
+    //    write_cmd(REG_EITR(n), 10);
+
+    // interrupt auto-clear for vec0 - vec4
+    //write_cmd(REG_EIAC, (1 << 20) | (1 << 21) | (1 << 22) | (1 << 23) | (1 << 24));
 
     // configure IVAR and MSI-X table entries
     this->config_msix();
 
-    // CTRL_EXT = MSI-X PBA + Ext. IAME
-    write_cmd(REG_CTRL_EXT, read_cmd(REG_CTRL_EXT) | (1 << 31) | (1 << 24));
+    // CTRL_EXT = MSI-X PBA  (NOT Ext. IAME (1 << 24))
+    write_cmd(REG_CTRL_EXT, read_cmd(REG_CTRL_EXT) | (1 << 31));
   }
   else
   {
@@ -160,6 +170,7 @@ e1000::e1000(hw::PCI_Device& d) :
     write_cmd(REG_CTRL_EXT, (1 << 27));
   }
 
+  //write_cmd(REG_IAM, 0xFFFFFFFF);
   this->intr_cause_clear();
   this->intr_enable();
 
@@ -181,11 +192,11 @@ e1000::e1000(hw::PCI_Device& d) :
       printf("Full Duplex: %u\n", stat & (1 << 0));
       const char* spd = ((stat >> 6) & 3) ? "1000Mb/s" : "100Mb/s";
       printf("Link Up: %u (%s)\n", stat & (1 << 1), spd);
-      printf("PHY powered off: %u\n", stat & (1 << 5));
+      //printf("PHY powered off: %u\n", stat & (1 << 5));
       printf("Transmission paused: %u\n", stat & (1 << 4));
       printf("Read comp blocked: %u\n", stat & (1 << 8));
-      printf("LAN init done: %u\n", stat & (1 << 9));
-      printf("Master enable status: %u\n", stat & (1 << 19));
+      //printf("LAN init done: %u\n", stat & (1 << 9));
+      //printf("Master enable status: %u\n", stat & (1 << 19));
       printf("\n");
       uint64_t val;
       val = this->read_cmd(0x40C0);
@@ -242,10 +253,6 @@ void e1000::config_msix()
   // enable TX interrupts on every writeback regardless of RS bit
   ivar |= 1 << 31;
   write_cmd(REG_IVAR, ivar);
-
-  // interrupt throttling
-  for (int n = 0; n < 5; n++)
-      write_cmd(REG_EITR(n), 10);
 }
 
 void e1000::wait_millis(int millis)
@@ -350,8 +357,8 @@ void e1000::link_up()
   //wait_millis(1);
 
   uint32_t status = read_cmd(REG_STATUS);
-  int success = (status & (1 << 1)) != 0;
-  if (success == 0)
+  this->link_state_up = (status & (1 << 1)) != 0;
+  if (this->link_state_up == false)
       INFO("e1000", "Link NOT up");
   else {
     const char* spd = ((status >> 6) & 3) ? "1000Mb/s" : "100Mb/s";
@@ -363,14 +370,14 @@ void e1000::link_up()
 void e1000::intr_enable()
 {
   if (this->use_msix)
-    write_cmd(REG_IMASK, LEGACY_INTR_MASK() | MSIX_INTR_MASK());
+    write_cmd(REG_IMASK, MSIX_INTR_MASK());
   else
     write_cmd(REG_IMASK, LEGACY_INTR_MASK());
 }
 void e1000::intr_disable()
 {
   if (this->use_msix)
-    write_cmd(REG_IMC, LEGACY_INTR_MASK() | MSIX_INTR_MASK());
+    write_cmd(REG_IMC, MSIX_INTR_MASK());
   else
     write_cmd(REG_IMC, LEGACY_INTR_MASK());
 }
@@ -413,10 +420,10 @@ void e1000::event_handler()
   const uint32_t status = read_cmd(0xC0);
   if (status == 0) return;
   // see: e1000_regs.h
-  //printf("e1000: event %x received\n", status);
+  PRINT("[e1000] event %x received\n", status);
 
-  // empty transmit queue
-  if (status & TXQE)
+  // empty tx queue or tx desc written back
+  if (status & TXQE || status & TXDW)
   {
     // free old & send more!
     this->transmit_handler();
@@ -424,16 +431,17 @@ void e1000::event_handler()
   // link status change
   if (status & LSC)
   {
+    PRINT("[e1000] link state changed\n");
     this->link_up();
   }
   if (status & RXDMTO)
   {
-    //printf("e1000: rx descriptor minimum treshold hit!\n");
+    PRINT("[e1000] rx descriptor minimum treshold hit!\n");
     this->receive_handler();
   }
   if (status & RXO)
   {
-    printf("e1000: rx overrun!\n");
+    fprintf(stderr, "[e1000] rx overrun!\n");
   }
   // rx timer interrupt
   if (status & RXTO)
@@ -447,18 +455,24 @@ void e1000::event_handler()
 
 void e1000::receive_handler()
 {
-  uint16_t old_idx = 0xffff;
-  std::vector<net::Packet_ptr> recv;
-
-  while (rx.desc[rx.current].status & 1)
+  int32_t old_idx = -1;
+  while (true)
   {
     auto& tk = rx.desc[rx.current];
+    if ((tk.status & 1) == 0) break;
+
     // must be complete packet
-    if ((tk.status & 2) == 0) continue;
+    if ((tk.status & 2) == 0) {
+      PRINT("[e1000] dropping incomplete buffer %u bytes\n", tk.length);
+      continue;
+    }
 
     auto* buf = (uint8_t*) tk.addr;
+    assert(buf != nullptr);
+    PRINT("[e1000] recv %p -> %u bytes\n", buf, tk.length);
+
     auto pkt = recv_packet(buf, tk.length);
-    recv.push_back(std::move(pkt));
+    Link_layer::receive(std::move(pkt));
 
     // give new buffer
     tk.addr = (uint64_t) this->new_rx_packet();
@@ -467,27 +481,30 @@ void e1000::receive_handler()
     old_idx = rx.current;
     rx.current = (rx.current + 1) % NUM_RX_DESC;
   }
-  if (old_idx != 0xffff)
+  if (old_idx != -1)
     write_cmd(REG_RXDESCTAIL, old_idx);
-
-  for (auto& pkt : recv) {
-    // after moving position, handle packet
-    Link_layer::receive(std::move(pkt));
-  }
 }
 
 void e1000::transmit_handler()
 {
   // try to free transmitted buffers
-  free_transmit_buffers();
+  do_release_transmitted();
 
   // try to send more packets
   if (sendq) {
     transmit(std::move(sendq));
   }
   if (can_transmit()) {
-    transmit_queue_available_event(NUM_TX_DESC);
+    transmit_queue_available_event(NUM_TX_DESC - tx.sent.size());
   }
+}
+bool e1000::can_transmit() const noexcept
+{
+  return this->link_state_up && tx.sent.size() < NUM_TX_DESC;
+}
+uint16_t e1000::free_transmit_descr() const noexcept
+{
+  return (NUM_TX_DESC - tx.current + tx.sent_id) % NUM_TX_DESC;
 }
 
 void e1000::transmit(net::Packet_ptr pckt)
@@ -509,30 +526,29 @@ void e1000::transmit(net::Packet_ptr pckt)
     sendq = std::move(next);
   }
 }
-bool e1000::can_transmit()
+void e1000::do_release_transmitted()
 {
-  return tx.sent.size() < NUM_TX_DESC;
-        //&& (tx.desc[tx.current].status & 0x1) == 0x1;
-}
-void e1000::free_transmit_buffers()
-{
-  while (tx.sent.size() > 0
-     && (tx.desc[tx.sent_id].status & 0x1) == 1)
+  //const uint16_t tx_head = read_cmd(REG_TXDESCTAIL);
+  //uint32_t total = (NUM_TX_DESC - tx.current + tx_head) % NUM_TX_DESC;
+  while (not tx.sent.empty())
   {
+    auto& tk = tx.desc[tx.sent_id];
+    if ((tk.status & 0x1) == 0) break;
+
     auto* packet = tx.sent.front();
     delete packet; // call deleter on Packet to release it
     tx.sent.pop_front();
     tx.sent_id = (tx.sent_id + 1) % NUM_TX_DESC;
   }
-  //printf("Sent buffers %lu - BufferStore available: %lu\n",
-  //        tx.sent.size(), bufstore().available());
+  PRINT("[e1000] transmitting %lu - bufferstore %lu\n",
+        tx.sent.size(), bufstore().available());
 }
 void e1000::transmit_data(uint8_t* data, uint16_t length)
 {
   auto& tk = tx.desc[tx.current];
   assert(tk.status == 0x1 && "Descriptor must be done");
 
-  //printf("e1000: xmit %p -> %u bytes\n", data, length);
+  PRINT("[e1000] xmit %p -> %u bytes\n", data, length);
   tk.addr   = (uint64_t) data;
   tk.length = length;
   tk.cso    = 0;
@@ -540,7 +556,7 @@ void e1000::transmit_data(uint8_t* data, uint16_t length)
   tk.status = 0;
   tk.css    = 0;
   tk.vlan_tag = 0;
-
+  // next tx position
   tx.current = (tx.current + 1) % NUM_TX_DESC;
 
   if (tx.deferred == false)
