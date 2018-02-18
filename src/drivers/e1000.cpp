@@ -94,7 +94,9 @@ e1000::e1000(hw::PCI_Device& d) :
 
   // SW reset device
   write_cmd(REG_CTRL, (1 << 26));
-  //wait_millis(1);
+  while (read_cmd(REG_CTRL) & (1 << 26)) {
+    asm("pause");
+  }
 
   // have to clear out the multicast filter, otherwise shit breaks
 	for(int i = 0; i < 128; i++)
@@ -351,9 +353,8 @@ uint32_t e1000::read_eeprom(uint8_t addr)
 
 void e1000::link_up()
 {
-  // set link up CTRL.SLU
-  write_cmd(REG_CTRL, read_cmd(REG_CTRL) | ECTRL_SLU);
-
+  // set link up CTRL.SLU (not present on modern devices)
+  write_cmd(REG_CTRL, read_cmd(REG_CTRL) | (1 << 6));
   //wait_millis(1);
 
   uint32_t status = read_cmd(REG_STATUS);

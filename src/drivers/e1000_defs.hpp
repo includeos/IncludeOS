@@ -36,6 +36,7 @@
 #define REG_RXDESCTAIL  0x2818
 
 #define REG_TCTRL       0x0400
+#define REG_TIPG        0x0410 // Transmit Inter Packet Gap
 #define REG_TXDESCLO    0x3800
 #define REG_TXDESCHI    0x3804
 #define REG_TXDESCLEN   0x3808
@@ -51,11 +52,6 @@
 #define REG_TXDCTL(n)    0x3828 + ((n) * 0x100) // TX Descriptor Control
 #define REG_TARC(n)      0x3840 + ((n) * 0x100) // Transmit Arbitration Control
 #define REG_EITR(n)      0x00E8 + ((n) * 0x4)   // Ext. Intr Throttling Register
-
-
-#define REG_TIPG         0x0410      // Transmit Inter Packet Gap
-#define ECTRL_SLU        0x40        //set link up
-
 
 #define RCTL_EN                         (1 << 1)    // Receiver Enable
 #define RCTL_SBP                        (1 << 2)    // Store Bad Packets
