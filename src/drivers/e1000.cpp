@@ -98,10 +98,15 @@ e1000::e1000(hw::PCI_Device& d) :
     asm("pause");
   }
 
+  // disable multicast addressing
+  /*for (int n = 0; n < 15; n++) {
+      write_cmd(0x5400 + n*8, 0);
+      write_cmd(0x5404 + n*8, 0);
+  }*/
   // have to clear out the multicast filter, otherwise shit breaks
-	for(int i = 0; i < 128; i++)
+	for (int i = 0; i < 128; i++)
       write_cmd(0x5200 + i*4, 0);
-  for(int i = 0; i < 64; i++)
+  for (int i = 0; i < 64; i++)
       write_cmd(0x4000 + i*4, 0);
 
   // enable single MAC filter
@@ -209,12 +214,12 @@ e1000::e1000(hw::PCI_Device& d) :
       printf("Octets transmitted: %lu\n", val);
       printf("Packets RX total: %u\n", this->read_cmd(0x40D0));
       printf("Packets TX total: %u\n", this->read_cmd(0x40D4));
-      printf("Mcast TX count: %u\n", this->read_cmd(0x40F0));
-      printf("Bcast TX count: %u\n", this->read_cmd(0x40F4));
       printf("Intr asserted: %u\n", this->read_cmd(0x4100));
-      printf("\n");
       printf("Intr status: %x\n", this->read_cmd(REG_ICRR));
       printf("\n");
+      printf("RX errors: %u\n", this->read_cmd(0x400C));
+      printf("Missed packets: %u\n", this->read_cmd(0x4010));
+      printf("RX length errors: %u\n", this->read_cmd(0x4040));
     });
 #endif
 #ifdef E1000_FAKE_EVENT_HANDLER
@@ -280,8 +285,10 @@ uint32_t e1000::read_cmd(uint16_t cmd)
 }
 void e1000::write_cmd(uint16_t cmd, uint32_t val)
 {
-  if (LIKELY(this->use_mmio))
+  if (LIKELY(this->use_mmio)) {
       *(volatile uint32_t*) (this->shm_base + cmd) = val;
+      return;
+  }
   hw::outl(this->io_base, cmd);
   hw::outl(this->io_base + 4, val);
 }
