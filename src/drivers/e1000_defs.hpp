@@ -20,10 +20,12 @@
 
 #define REG_CTRL        0x0000
 #define REG_STATUS      0x0008
+#define REG_EEC         0x0010
 #define REG_EEPROM      0x0014
 #define REG_CTRL_EXT    0x0018
 #define REG_ICRR        0x00C0
-#define REG_IMASK       0x00D0
+#define REG_ICS         0x00C8
+#define REG_IMS         0x00D0
 #define REG_IMC         0x00D8
 #define REG_EIAC        0x00DC
 #define REG_IAM         0x00E0

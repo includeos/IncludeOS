@@ -98,11 +98,6 @@ e1000::e1000(hw::PCI_Device& d) :
     asm("pause");
   }
 
-  // disable multicast addressing
-  /*for (int n = 0; n < 15; n++) {
-      write_cmd(0x5400 + n*8, 0);
-      write_cmd(0x5404 + n*8, 0);
-  }*/
   // have to clear out the multicast filter, otherwise shit breaks
 	for (int i = 0; i < 128; i++)
       write_cmd(0x5200 + i*4, 0);
@@ -120,6 +115,9 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(0x0170, 0);
   write_cmd(REG_CTRL, read_cmd(REG_CTRL) & ~(1 << 30));
 
+  this->intr_cause_clear();
+  this->intr_enable();
+
   // initialize RX
   for (int i = 0; i < NUM_RX_DESC; i++) {
     rx.desc[i].addr = (uint64_t) new_rx_packet();
@@ -133,7 +131,7 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(REG_RXDESCTAIL, NUM_RX_DESC-1);
   uint32_t rx_flags = 0
       //| RCTL_UPE // unicast promisc enable
-      | RCTL_MPE // multcast promisc enable
+      | RCTL_MPE // multicast promisc enable
       | RCTL_BAM // broadcast accept mode
       | RCTL_BSIZE_2048 // 2048b recv buffers
       | RCTL_SECRC; // strip eth CRC
@@ -158,28 +156,22 @@ e1000::e1000(hw::PCI_Device& d) :
   // e1000e configuration
   if (this->use_msix)
   {
-    // interrupt throttling
-    //for (int n = 0; n < 5; n++)
-    //    write_cmd(REG_EITR(n), 10);
-
     // interrupt auto-clear for vec0 - vec4
-    //write_cmd(REG_EIAC, (1 << 20) | (1 << 21) | (1 << 22) | (1 << 23) | (1 << 24));
+    write_cmd(REG_EIAC, 0xFFFFFFFF);
+    write_cmd(REG_IAM, 0x0);
 
     // configure IVAR and MSI-X table entries
     this->config_msix();
 
-    // CTRL_EXT = MSI-X PBA  (NOT Ext. IAME (1 << 24))
-    write_cmd(REG_CTRL_EXT, read_cmd(REG_CTRL_EXT) | (1 << 31));
+    // CTRL_EXT = MSI-X PBA + **normal** IAME
+    write_cmd(REG_CTRL_EXT, (1 << 31) | (1 << 27));
   }
   else
   {
+    write_cmd(REG_IAM, 0xFFFFFFFF);
     // CTRL_EXT = IAME
     write_cmd(REG_CTRL_EXT, (1 << 27));
   }
-
-  //write_cmd(REG_IAM, 0xFFFFFFFF);
-  this->intr_cause_clear();
-  this->intr_enable();
 
   // remove master disable bit
   write_cmd(REG_CTRL, read_cmd(REG_CTRL) & ~(1 << 2));
@@ -196,7 +188,7 @@ e1000::e1000(hw::PCI_Device& d) :
   Timers::periodic(std::chrono::seconds(2),
     [this] (int) {
       uint32_t stat = this->read_cmd(REG_STATUS);
-      printf("Full Duplex: %u\n", stat & (1 << 0));
+      //printf("Full Duplex: %u\n", stat & (1 << 0));
       const char* spd = ((stat >> 6) & 3) ? "1000Mb/s" : "100Mb/s";
       printf("Link Up: %u (%s)\n", stat & (1 << 1), spd);
       //printf("PHY powered off: %u\n", stat & (1 << 5));
@@ -214,12 +206,10 @@ e1000::e1000(hw::PCI_Device& d) :
       printf("Octets transmitted: %lu\n", val);
       printf("Packets RX total: %u\n", this->read_cmd(0x40D0));
       printf("Packets TX total: %u\n", this->read_cmd(0x40D4));
-      printf("Intr asserted: %u\n", this->read_cmd(0x4100));
-      printf("Intr status: %x\n", this->read_cmd(REG_ICRR));
+      printf("Intr enabled: %x\n", this->read_cmd(REG_IMS));
+      printf("Intr masked:  %x\n", this->read_cmd(REG_IMC));
+      printf("Intr caused:  %x\n", this->read_cmd(REG_ICRR));
       printf("\n");
-      printf("RX errors: %u\n", this->read_cmd(0x400C));
-      printf("Missed packets: %u\n", this->read_cmd(0x4010));
-      printf("RX length errors: %u\n", this->read_cmd(0x4040));
     });
 #endif
 #ifdef E1000_FAKE_EVENT_HANDLER
@@ -295,17 +285,24 @@ void e1000::write_cmd(uint16_t cmd, uint32_t val)
 
 void e1000::retrieve_hw_addr()
 {
-  if (this->use_eeprom)
+  uint16_t* mac = &hw_addr.minor;
+  const uint32_t ral = read_cmd(0x5400);
+  if (ral)
   {
-    uint16_t* mac = &hw_addr.minor;
+    const uint32_t rah = read_cmd(0x5404);
+    mac[0] = ral;
+    mac[1] = ral >> 16;
+    mac[2] = rah;
+  }
+  else if (this->use_eeprom)
+  {
     mac[0] = read_eeprom(0) & 0xFFFF;
     mac[1] = read_eeprom(1) & 0xFFFF;
     mac[2] = read_eeprom(2) & 0xFFFF;
   }
   else
   {
-    auto* mac_src = (const char*) (this->shm_base + 0x5400);
-    memcpy(&this->hw_addr, mac_src, sizeof(hw_addr));
+    assert(0 && "e1000e: Don't know how to read MAC address");
   }
   INFO2("MAC address: %s", hw_addr.to_string().c_str());
 }
@@ -337,25 +334,22 @@ uint64_t e1000::construct_filter(MAC::Addr addr)
 
 void e1000::detect_eeprom()
 {
-  write_cmd(REG_EEPROM, 0x1);
-  for (int i = 0; i < 1000; i++)
-  {
-    uint32_t val = read_cmd(REG_EEPROM);
-    if (val & 0x10) {
-      this->use_eeprom = true;
-      return;
-    }
-  }
+  write_cmd(REG_EEC, 0x1);
+  const uint32_t eec = read_cmd(REG_EEC);
+  const bool NVM_present = (eec & (1 << 8)) == 1;
+  this->use_eeprom = NVM_present && (eec & (1 << 23)) == 0;
+  INFO2("NVM present: %d  type: %s", NVM_present, (use_eeprom) ? "EEPROM" : "Flash");
+  this->use_eeprom = true;
 }
 uint32_t e1000::read_eeprom(uint8_t addr)
 {
-	uint32_t tmp = 0;
-  if (this->use_eeprom)
-  {
-    write_cmd(REG_EEPROM, 1 | ((uint32_t)(addr) << 8));
-  	while (!((tmp = read_cmd(REG_EEPROM)) & (1 << 4)) );
+  // start read
+  write_cmd(REG_EEPROM, 1 | ((uint32_t)(addr) << 8));
+  // wait for word-read complete
+	while ((read_cmd(REG_EEPROM) & (1 << 1)) == 0) {
+    asm("pause");
   }
-  return (tmp >> 16) & 0xFFFF;
+  return (read_cmd(REG_EEPROM) >> 16) & 0xFFFF;
 }
 
 void e1000::link_up()
@@ -378,9 +372,9 @@ void e1000::link_up()
 void e1000::intr_enable()
 {
   if (this->use_msix)
-    write_cmd(REG_IMASK, MSIX_INTR_MASK());
+    write_cmd(REG_IMS, MSIX_INTR_MASK());
   else
-    write_cmd(REG_IMASK, LEGACY_INTR_MASK());
+    write_cmd(REG_IMS, LEGACY_INTR_MASK());
 }
 void e1000::intr_disable()
 {
@@ -425,7 +419,7 @@ uintptr_t e1000::new_rx_packet()
 
 void e1000::event_handler()
 {
-  const uint32_t status = read_cmd(0xC0);
+  const uint32_t status = read_cmd(REG_ICRR);
   if (status == 0) return;
   // see: e1000_regs.h
   PRINT("[e1000] event %x received\n", status);
