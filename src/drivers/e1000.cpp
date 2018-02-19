@@ -54,7 +54,15 @@ e1000::e1000(hw::PCI_Device& d) :
   static_assert((NUM_TX_DESC * sizeof(tx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
 
   INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
-  if (d.msix_cap())
+  this->use_msix = false;
+  const uint16_t variant = d.product_id();
+
+  // exception for I217
+  if (variant == 0x153A || variant == 0x1539)
+  {
+    this->use_msix = false;
+  }
+  else if (d.msix_cap())
   {
     d.init_msix();
     if (d.has_msix())
@@ -62,16 +70,43 @@ e1000::e1000(hw::PCI_Device& d) :
       this->use_msix = true;
     }
   }
-  if (d.has_msix() == false)
+  // legacy INTx IRQ from PCI
+  if (this->use_msix == false)
   {
-    // legacy IRQ from PCI
+    // 21 = lots of times (???)
+    // 16 = USB
+    // 18 = e1000 I217
     uint32_t value = d.read_dword(PCI::CONFIG_INTR);
-    uint8_t irq = value & 0xFF;
-    assert(irq != 0xFF);
+    uint8_t real_irq = value & 0xFF;
+    assert(real_irq != 0xFF);
 
-    __arch_enable_legacy_irq(irq);
-    Events::get().subscribe(irq, {this, &e1000::event_handler});
-    this->irqs.push_back(irq);
+    if (variant == 0x153A || variant == 0x1539)
+    {
+      // I217 bare metal IRQ on AX370
+      static const uint8_t I217_IRQ = 18;
+      __arch_enable_legacy_irq(I217_IRQ);
+      Events::get().subscribe(I217_IRQ,
+      [this, real_irq] () {
+        printf("Received interrupt %u (PCI IRQ %u)\n", I217_IRQ, real_irq);
+        this->event_handler();
+      });
+    }
+    /*
+    for (unsigned i = 8; i < 24+32; i++)
+    {
+      if (i == 21) continue;
+      __arch_enable_legacy_irq(i);
+      Events::get().subscribe(i,
+      [this, i] () {
+        printf("Received interrupt %u\n", i);
+        this->event_handler();
+      });
+    }*/
+
+    // real thing
+    __arch_enable_legacy_irq(real_irq);
+    Events::get().subscribe(real_irq, {this, &e1000::event_handler});
+    this->irqs.push_back(real_irq);
   }
 
   if (deferred_event == 0)
@@ -168,9 +203,10 @@ e1000::e1000(hw::PCI_Device& d) :
   }
   else
   {
-    write_cmd(REG_IAM, 0xFFFFFFFF);
+    write_cmd(REG_ITR, 100);
+    //write_cmd(REG_IAM, 0x0);
     // CTRL_EXT = IAME
-    write_cmd(REG_CTRL_EXT, (1 << 27));
+    //write_cmd(REG_CTRL_EXT, (1 << 27));
   }
 
   // remove master disable bit
@@ -207,7 +243,6 @@ e1000::e1000(hw::PCI_Device& d) :
       printf("Packets RX total: %u\n", this->read_cmd(0x40D0));
       printf("Packets TX total: %u\n", this->read_cmd(0x40D4));
       printf("Intr enabled: %x\n", this->read_cmd(REG_IMS));
-      printf("Intr masked:  %x\n", this->read_cmd(REG_IMC));
       printf("Intr caused:  %x\n", this->read_cmd(REG_ICRR));
       printf("\n");
     });
@@ -420,7 +455,10 @@ uintptr_t e1000::new_rx_packet()
 void e1000::event_handler()
 {
   const uint32_t status = read_cmd(REG_ICRR);
-  if (status == 0) return;
+  if (status == 0) {
+    PRINT("[e1000] spurious event handler\n");
+    return;
+  }
   // see: e1000_regs.h
   PRINT("[e1000] event %x received\n", status);
 
