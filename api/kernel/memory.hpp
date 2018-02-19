@@ -22,12 +22,10 @@
 #include <common>
 #include <util/bitops.hpp>
 #include <util/units.hpp>
-#include <cstdlib>
 #include <sstream>
 
 namespace os {
 namespace mem {
-  using namespace util::literals;
 
   /** POSIX mprotect compliant access bits **/
   enum class Access : uint8_t {
@@ -49,40 +47,15 @@ namespace mem {
   /** Determine if size is a supported page size */
   bool supported_page_size(uintptr_t size);
 
-  /** A-aligned allocation of T **/
-  template <typename T, int A, typename... Args>
-  T* aligned_alloc(Args... a)
-  {
-    void* ptr;
-    if (posix_memalign(&ptr, A, sizeof(T)) > 0)
-      return nullptr;
-    return new (ptr) T(a...);
-  }
-
-
-  inline std::string page_sizes_str(size_t bits){
-
-    if (bits == 0) return "None";
-
-    std::stringstream out;
-    while (bits){
-      auto ps = 1 << (__builtin_ffsl(bits) - 1);
-      bits &= ~ps;
-      out << util::Byte_r(ps);
-      if (bits)
-        out << ", ";
-    }
-
-    return out.str();
-  }
+  std::string page_sizes_str(size_t bits);
 
   template <typename Fl = Access>
-  struct Mapping {
-
+  struct Mapping
+  {
     static const size_t any_size;
 
-    uintptr_t lin {};
-    uintptr_t phys {};
+    uintptr_t lin  = 0;
+    uintptr_t phys = 0;
     Fl flags {};
     size_t size = 0;
     size_t page_sizes = 0;
@@ -128,31 +101,9 @@ namespace mem {
     size_t lmax_psize() const noexcept
     { return util::bits::keeplast(page_sizes); }
 
-    std::string to_string() const
-    {
-      std::stringstream out;
-      out << "0x" << std::hex << lin << "->" << phys
-          << ", size: "<< util::Byte_r(size)
-          << " flags: 0x" << std::hex << (int)flags << std::dec;
+    std::string to_string() const;
 
-      if (util::bits::is_pow2(page_sizes)) {
-        out << std::dec << " ( " << page_count()
-            << " x " << util::Byte_r(page_sizes)  << " pages )";
-      } else {
-        out << " page sizes: " << page_sizes_str(page_sizes);
-      }
-
-
-
-      return out.str();
-    }
-  };
-
-  template <typename Fl>
-  inline std::ostream& operator<<(std::ostream& out, const Mapping<Fl>& m)
-  {
-    return out << m.to_string();
-  }
+  }; // struct Mapping<>
 
   using Map = Mapping<>;
 
@@ -190,9 +141,7 @@ namespace mem {
   /** Set and return access flags for a page starting at linear **/
   Access protect_page(uintptr_t linear, Access flags = Access::read);
 
-
-}
-}
+}} // os::mem
 
 namespace util {
 inline namespace bitops {
@@ -251,6 +200,55 @@ namespace mem {
 
     return res;
   }
+
+  template <typename Fl>
+  inline std::string Mapping<Fl>::to_string() const
+  {
+    using namespace util::literals;
+    char buffer[1024];
+    int len = snprintf(buffer, sizeof(buffer),
+            "%p -> %p, size %s, flags %#x",
+            (void*) lin,
+            (void*) phys,
+            util::Byte_r(size).to_string().c_str(),
+            (int) flags);
+
+    const bool isseq = __builtin_popcount(page_sizes) == 1;
+    if (isseq) {
+    len += snprintf(buffer + len, sizeof(buffer) - len,
+            " (%lu pages á %s)",
+            page_count(),
+            util::Byte_r(page_sizes).to_string().c_str());
+    }
+    else {
+      len += snprintf(buffer + len, sizeof(buffer) - len,
+              " (page sizes: %s)", page_sizes_str(page_sizes).c_str());
+    }
+
+    return std::string(buffer, len);
+  }
+
+  inline std::string page_sizes_str(size_t bits)
+  {
+    using namespace util::literals;
+    if (bits == 0) return "None";
+
+    std::string out;
+    while (bits){
+      auto ps = 1 << (__builtin_ffsl(bits) - 1);
+      bits &= ~ps;
+      out += util::Byte_r(ps).to_string();
+      if (bits)
+        out += ", ";
+    }
+
+    return out;
+  }
+
+  inline uintptr_t active_page_size(void* addr) {
+    return active_page_size((uintptr_t) addr);
+  }
+
 }}
 
 #endif

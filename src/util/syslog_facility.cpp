@@ -24,11 +24,11 @@ const int TIMELEN = 32;
 // Syslog_udp (plugin)
 
 void Syslog_udp::syslog(const std::string& log_message) {
-  if (logopt() & LOG_CONS /*and priority() == LOG_ERR*/)
-    std::cout << log_message.c_str() << '\n';
+  //if (logopt() & LOG_CONS /*and priority() == LOG_ERR*/)
+  //  fprintf(stdout, "%s\n", log_message.c_str());
 
   if (logopt() & LOG_PERROR)
-    std::cerr << log_message.c_str() << '\n';
+    fprintf(stderr, "%s\n", log_message.c_str());
 
   send_udp_data(log_message);
 }
@@ -92,11 +92,10 @@ Syslog_udp::~Syslog_udp() {
 // Syslog_print (printf)
 
 void Syslog_print::syslog(const std::string& log_message) {
-  if (logopt() & LOG_CONS /*and priority() == LOG_ERR*/)
-    std::cout << log_message.c_str() << '\n';
+  //if (logopt() & LOG_CONS /*and priority() == LOG_ERR*/)
 
   if (logopt() & LOG_PERROR)
-    std::cerr << log_message.c_str() << '\n';
+    fprintf(stderr, "%s\n", log_message.c_str());
 
   printf("%s\n", log_message.c_str());
 }

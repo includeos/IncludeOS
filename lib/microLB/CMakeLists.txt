@@ -10,6 +10,8 @@ add_library(microlb STATIC
     micro_lb/serialize.cpp
   )
 
+add_dependencies(microlb PrecompiledLibraries)
+
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api/posix)
 target_include_directories(microlb PUBLIC ${LIBCXX_INCLUDE_DIR})
 target_include_directories(microlb PUBLIC ${MUSL_INCLUDE_DIR})
