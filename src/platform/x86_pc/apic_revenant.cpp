@@ -104,7 +104,7 @@ void revenant_main(int cpu)
   Events::get().subscribe(0, revenant_task_handler);
   Events::get().subscribe(1, APIC_Timer::start_timers);
   // seed RNG
-  RNG::init();
+  RNG::get().init();
 
   // allow programmers to do stuff on each core at init
   SMP::init_task();
