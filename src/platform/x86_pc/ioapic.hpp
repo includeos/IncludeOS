@@ -54,7 +54,7 @@ namespace x86 {
   public:
     static void init(const ACPI::ioapic_list& vec);
 
-    static void enable(uint8_t idx, uint8_t dst_irq, uint8_t lapic);
+    static void enable(uint8_t lapic, const ACPI::override_t&);
     static void disable(uint8_t idx);
   };
 

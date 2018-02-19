@@ -29,6 +29,7 @@
 #define IOAPIC_RDT   3
 
 #define IOAPIC_INTR  0x10
+#define IRQ_BASE     32
 
 namespace x86
 {
@@ -109,18 +110,22 @@ namespace x86
   {
     uint32_t current = 0;
     for (auto& a : ioapics) {
-      if (entry >= current && entry < current + a.entries()) return a;
+      if (entry >= current && entry < current + a.entries()) {
+        return a;
+      }
       current += a.entries();
     }
     printf("Entry: %u\n", entry);
     assert(0 && "Could not match I/O APIC to entry");
   }
 
-  void IOAPIC::enable(uint8_t idx, uint8_t irq_dst, uint8_t cpu)
+  void IOAPIC::enable(uint8_t cpu, const ACPI::override_t& redir)
   {
+    int idx = redir.global_intr;
     auto& ioa = get_ioapic_for(idx);
+    idx -= ioa.intr_base();
 
-    uint32_t field = irq_dst - ioa.intr_base();
+    uint32_t field = IRQ_BASE + redir.irq_source;
     if (idx > 15)
         field |= (1<<15) | (1<<13);
 
@@ -129,8 +134,6 @@ namespace x86
   void IOAPIC::disable(uint8_t idx)
   {
     auto& ioa = get_ioapic_for(idx);
-
-    uint32_t field = idx | IOAPIC_IRQ_DISABLE;
-    ioa.set_entry(idx, field, 0x0);
+    ioa.set_entry(idx, IOAPIC_IRQ_DISABLE, 0x0);
   }
 }
