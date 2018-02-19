@@ -122,8 +122,8 @@ namespace x86
       {
         if (OS::is_panicking() == false)
         {
-          INFO2("Enabled redirected IRQ %u -> %u on lapic %u",
-              redir.irq_source, redir.global_intr, get().get_id());
+          INFO2("Enabled redirected IRQ %u ioapic %u -> %u on apic %u",
+              redir.irq_source, redir.bus_source, redir.global_intr, get().get_id());
         }
         IOAPIC::enable(redir.global_intr, irq, get().get_id());
         return;
@@ -131,7 +131,7 @@ namespace x86
     }
     if (OS::is_panicking() == false)
     {
-      INFO2("Enabled non-redirected IRQ %u on LAPIC %u", irq, get().get_id());
+      INFO2("Enabled non-redirected IRQ %u on apic %u", irq, get().get_id());
     }
     IOAPIC::enable(irq, irq, get().get_id());
   }
