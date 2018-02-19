@@ -24,5 +24,7 @@ set(SOURCES
   service.cpp # ...add more here
   )
 
+set(PLUGINS vfs)
+
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)

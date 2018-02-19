@@ -23,6 +23,9 @@ add_dependencies(terminal_liu PrecompiledLibraries)
 add_library(nacl STATIC nacl.cpp)
 add_dependencies(nacl PrecompiledLibraries)
 
+add_library(vfs STATIC vfs.cpp)
+add_dependencies(vfs PrecompiledLibraries)
+
 #
 # Installation
 #
@@ -36,4 +39,5 @@ install(TARGETS
     terminal
     terminal_liu
     nacl
+    vfs
   DESTINATION includeos/${ARCH}/plugins)
