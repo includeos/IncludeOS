@@ -59,6 +59,8 @@ set(OS_OBJECTS
   net/nat/nat.cpp net/nat/napt.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
+  # POSIX
+  posix/fd.cpp
 )
 
 add_library(os STATIC ${OS_OBJECTS})

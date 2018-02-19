@@ -18,8 +18,7 @@
 #ifndef FILE_FD_HPP
 #define FILE_FD_HPP
 
-#include <fd.hpp>
-#include <os>
+#include "fd.hpp"
 #include <fs/dirent.hpp>
 
 class File_FD : public FD {
