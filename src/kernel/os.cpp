@@ -117,7 +117,7 @@ void OS::post_start()
 
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
-  RNG::init();
+  RNG::get().init();
 
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());

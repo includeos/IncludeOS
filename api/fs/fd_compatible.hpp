@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2018 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,29 +15,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FILE_FD_HPP
-#define FILE_FD_HPP
+#pragma once
+#ifndef INCLUDE_FD_COMPATIBLE_HPP
+#define INCLUDE_FD_COMPATIBLE_HPP
 
-#include <fd.hpp>
-#include <os>
-#include <fs/dirent.hpp>
+#include <posix/fd.hpp>
+#include <delegate>
 
-class File_FD : public FD {
+/**
+ * @brief      Makes classes inheriting this carry the
+ *             attribute to be able to create a
+ *             file descriptor of the resource.
+ */
+class FD_compatible {
 public:
-  explicit File_FD(const int id, const fs::Dirent ent, uint64_t offset = 0)
-      : FD(id), ent_ {ent}, offset_ {offset}
-  {}
+  delegate<FD&()> open_fd = nullptr;
 
-  int read(void*, size_t) override;
-  int write(const void*, size_t) override;
-  int close() override;
-  int lseek(off_t, int) override;
+  virtual ~FD_compatible() = default;
 
-  bool is_file() override { return true; }
-
-private:
-  fs::Dirent ent_;
-  uint64_t offset_;
 };
 
 #endif
