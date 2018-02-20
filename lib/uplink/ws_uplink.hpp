@@ -76,7 +76,11 @@ private:
   net::WebSocket_ptr            ws_;
   std::string                   id_;
   std::string                   token_;
+  /** Hash for the current running binary
+   * (restored during update, none if never updated) */
   std::string                   binary_hash_;
+  /** Hash for current received update */
+  std::string                   update_hash_;
 
   Transport_parser parser_;
 
