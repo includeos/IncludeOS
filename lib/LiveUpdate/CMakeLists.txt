@@ -23,6 +23,8 @@ add_library(liveupdate STATIC
     serialize_tcp.cpp hotswap.cpp hotswap64_blob.asm
   )
 add_dependencies(liveupdate hotswap64)
+add_dependencies(liveupdate PrecompiledLibraries)
+
 install(TARGETS liveupdate DESTINATION includeos/${ARCH}/lib)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/liveupdate.hpp DESTINATION includeos/include)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/liveupdate DESTINATION includeos/include)
