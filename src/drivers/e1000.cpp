@@ -61,9 +61,11 @@ static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
   return report_size_for_mtu(mtu) + header;
 }
 
+#define NUM_PACKET_BUFFERS (NUM_TX_DESC + NUM_RX_DESC + NUM_TX_QUEUE + 8)
+
 e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
     Link(Link_protocol{{this, &e1000::transmit}, mac()}, bufstore_),
-    m_pcidev(d), m_mtu(mtu), bufstore_{600, buffer_size_for_mtu(mtu)}
+    m_pcidev(d), m_mtu(mtu), bufstore_{NUM_PACKET_BUFFERS, buffer_size_for_mtu(mtu)}
 {
   static_assert((NUM_RX_DESC * sizeof(rx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
   static_assert((NUM_TX_DESC * sizeof(tx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
@@ -512,7 +514,10 @@ void e1000::event_handler()
 
 void e1000::receive_handler()
 {
-  int32_t old_idx = -1;
+  uint16_t old_idx = 0;
+  uint32_t received = 0;
+  std::array<net::Packet_ptr, NUM_RX_DESC> recv_array;
+
   while (true)
   {
     auto& tk = rx.desc[rx.current];
@@ -528,8 +533,8 @@ void e1000::receive_handler()
     assert(buf != nullptr);
     PRINT("[e1000] recv %p -> %u bytes\n", buf, tk.length);
 
-    auto pkt = recv_packet(buf, tk.length);
-    Link_layer::receive(std::move(pkt));
+    recv_array[received] = recv_packet(buf, tk.length);
+    received++;
 
     // give new buffer
     tk.addr = (uint64_t) this->new_rx_packet();
@@ -538,8 +543,16 @@ void e1000::receive_handler()
     old_idx = rx.current;
     rx.current = (rx.current + 1) % NUM_RX_DESC;
   }
-  if (old_idx != -1)
+
+  if (received > 0)
+  {
+    // acknowledge all rx packets
     write_cmd(REG_RXDESCTAIL, old_idx);
+    // process rx packets
+    for (uint32_t i = 0; i < received; i++) {
+      Link_layer::receive(std::move(recv_array[i]));
+    }
+  }
 }
 
 void e1000::transmit_handler()
@@ -549,10 +562,12 @@ void e1000::transmit_handler()
 
   // try to send more packets
   if (sendq) {
-    transmit(std::move(sendq));
+    transmit(nullptr);
   }
-  if (can_transmit()) {
-    transmit_queue_available_event(NUM_TX_DESC - tx.sent.size());
+  if (can_transmit() || sendq_size < NUM_TX_QUEUE) {
+    const uint32_t free_tokens = free_transmit_descr() + (NUM_TX_QUEUE - sendq_size);
+    //printf("free_tokens: %u\n", free_tokens);
+    transmit_queue_available_event(free_tokens);
   }
 }
 bool e1000::can_transmit() const noexcept
@@ -561,15 +576,19 @@ bool e1000::can_transmit() const noexcept
 }
 uint16_t e1000::free_transmit_descr() const noexcept
 {
-  return (NUM_TX_DESC - tx.current + tx.sent_id) % NUM_TX_DESC;
+  return NUM_TX_DESC - tx.sent.size();
 }
 
 void e1000::transmit(net::Packet_ptr pckt)
 {
-  if (sendq == nullptr)
-      sendq = std::move(pckt);
-  else
-      sendq->chain(std::move(pckt));
+  if (pckt != nullptr) {
+      if (sendq == nullptr)
+        sendq = std::move(pckt);
+      else
+        sendq->chain(std::move(pckt));
+      sendq_size += 1;
+  }
+
   // send as much as possible from sendq
   while (sendq != nullptr && can_transmit())
   {
@@ -579,6 +598,13 @@ void e1000::transmit(net::Packet_ptr pckt)
     transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
     // add to sent packets
     tx.sent.push_back(packet);
+    // decrement send queue size
+    assert(sendq_size > 0);
+    sendq_size--;
+    // force kick if tx queue is exactly quarter full
+    if (this->free_transmit_descr() == NUM_TX_DESC / 4) {
+      this->xmit_kick();
+    }
     // next is the new sendq
     sendq = std::move(next);
   }
@@ -625,8 +651,10 @@ void e1000::transmit_data(uint8_t* data, uint16_t length)
 }
 void e1000::xmit_kick()
 {
-  write_cmd(REG_TXDESCTAIL, tx.current);
-  tx.deferred = false;
+  if (tx.deferred) {
+    tx.deferred = false;
+    write_cmd(REG_TXDESCTAIL, tx.current);
+  }
 }
 void e1000::do_deferred_xmit()
 {
@@ -637,7 +665,7 @@ void e1000::do_deferred_xmit()
 
 void e1000::flush()
 {
-  this->transmit(std::move(sendq));
+  this->transmit(std::move(nullptr));
 }
 void e1000::poll()
 {

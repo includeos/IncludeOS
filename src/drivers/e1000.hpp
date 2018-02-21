@@ -27,8 +27,9 @@ public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
   static const int DRIVER_OFFSET = 2;
-  static const int NUM_TX_DESC   = 256;
-  static const int NUM_RX_DESC   = 256;
+  static const int NUM_TX_DESC   = 64;
+  static const int NUM_TX_QUEUE  = 128;
+  static const int NUM_RX_DESC   = 64;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d, const uint16_t MTU)
   { return std::make_unique<e1000>(d, MTU); }
@@ -154,5 +155,6 @@ private:
 
   // sendq as packet chain
   net::Packet_ptr  sendq = nullptr;
+  size_t           sendq_size = 0;
   net::BufferStore bufstore_;
 };
