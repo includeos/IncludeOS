@@ -30,8 +30,8 @@ public:
   static const int NUM_TX_DESC   = 256;
   static const int NUM_RX_DESC   = 256;
 
-  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
-  { return std::make_unique<e1000>(d); }
+  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d, const uint16_t MTU)
+  { return std::make_unique<e1000>(d, MTU); }
 
   const char* driver_name() const override {
     return "e1000";
@@ -61,7 +61,7 @@ public:
   void transmit(net::Packet_ptr pckt);
 
   /** Constructor. @param pcidev an initialized PCI device. */
-  e1000(hw::PCI_Device& pcidev);
+  e1000(hw::PCI_Device& pcidev, uint16_t MTU);
 
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override {

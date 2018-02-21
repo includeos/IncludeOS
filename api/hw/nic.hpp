@@ -113,6 +113,9 @@ namespace hw {
     /** Trigger a read from buffers, pusing any packets up the stack */
     virtual void poll() = 0;
 
+    /** Overridable MTU detection function per-network **/
+    static uint16_t MTU_detection_override(int idx, uint16_t default_MTU);
+
   protected:
     /**
      *  Constructor

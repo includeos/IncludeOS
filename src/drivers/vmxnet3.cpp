@@ -107,7 +107,7 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
   *(uint32_t volatile*) location = value;
 }
 
-vmxnet3::vmxnet3(hw::PCI_Device& d) :
+vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, bufstore_),
     m_pcidev(d), bufstore_{1024, 2048 /* half-page buffer size */}
 {

@@ -46,7 +46,7 @@ static const uint32_t RXTO = 1 << 7; // receive timer interrupt
 static int deferred_event = 0;
 static std::vector<e1000*> deferred_devices;
 
-e1000::e1000(hw::PCI_Device& d) :
+e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
     Link(Link_protocol{{this, &e1000::transmit}, mac()}, bufstore_),
     m_pcidev(d), bufstore_{600, 2048}
 {
