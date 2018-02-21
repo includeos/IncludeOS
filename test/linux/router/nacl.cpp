@@ -2,7 +2,6 @@
 #include <net/inet4>
 #include <net/ip4/cidr.hpp>
 #include <net/router.hpp>
-#include <plugins/nacl.hpp>
 using namespace net;
 std::unique_ptr<Router<IP4>> nacl_router_obj;
 std::shared_ptr<Conntrack>   nacl_ct_obj;
