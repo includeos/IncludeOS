@@ -89,7 +89,7 @@ init_submodule(NaCl)
 set(OPTIMIZE "-O2")
 
 if(debug OR debug-info OR debug-all)
-	set(OTPIMIZE "-O0")
+	set(OPTIMIZE "-O0")
 endif(debug OR debug-info OR debug-all)
 
 if(minimal)
@@ -247,7 +247,7 @@ endif()
 option(libprotobuf "Build and install Google's protobuf runtime library" ON)
 if(libprotobuf)
   init_submodule(lib/protobuf)
-  add_subdirectory(lib/protobuf)
+  include(${INCLUDEOS_ROOT}/cmake/protobuf.cmake)
 endif(libprotobuf)
 
 #

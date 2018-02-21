@@ -275,8 +275,8 @@ bool vmxnet3::check_version()
 uint16_t vmxnet3::check_link()
 {
   auto state = command(VMXNET3_CMD_GET_LINK);
-  bool link_up  = state & 1;
-  if (link_up)
+  this->link_state_up = (state & 1) != 0;
+  if (this->link_state_up)
       return state >> 16;
   else
       return 0;
@@ -387,7 +387,29 @@ void vmxnet3::msix_evt_handler()
   // ack all events
   mmio_write32(this->iobase + VMXNET3_VD_ECR, evts);
 
-  printf("[vmxnet3] events: %#x\n", evts);
+  if (evts & 0x1)
+  {
+    printf("[vmxnet3] rxq error: %#x\n", evts);
+  }
+  if (evts & 0x2)
+  {
+    printf("[vmxnet3] txq error: %#x\n", evts);
+  }
+  if (evts & 0x4)
+  {
+    this->check_link();
+    printf("[vmxnet3] resume from sleep? link up = %d\n",
+          this->link_state_up);
+  }
+  if (evts & 0x8)
+  {
+    this->check_link();
+  }
+  // unknown event
+  if (evts & ~0xF)
+  {
+    printf("[vmxnet3] unknown events: %#x\n", evts);
+  }
 }
 void vmxnet3::msix_xmit_handler()
 {
@@ -510,7 +532,7 @@ inline int  vmxnet3::tx_tokens_free() const noexcept
 }
 inline bool vmxnet3::can_transmit() const noexcept
 {
-  return tx_tokens_free() > 0;
+  return tx_tokens_free() > 0 && this->link_state_up;
 }
 
 void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)

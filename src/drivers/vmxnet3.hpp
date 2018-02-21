@@ -136,6 +136,7 @@ private:
   uint8_t  deferred_irq  = 0;
   bool     deferred_kick = false;
   bool   already_polling = false;
+  bool     link_state_up = false;
   static void handle_deferred();
   // sendq as packet chain
   net::Packet_ptr sendq = nullptr;
