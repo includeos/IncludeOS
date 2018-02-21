@@ -47,7 +47,7 @@ public:
   }
 
   uint16_t MTU() const noexcept override {
-    return 1500;
+    return m_mtu;
   }
 
   uint16_t packet_len() const noexcept {
@@ -128,6 +128,7 @@ private:
   uintptr_t     iobase = 0;
   uintptr_t     ptbase = 0;
   MAC::Addr     hw_addr;
+  uint16_t      m_mtu  = 0;
   vmxnet3_dma*  dma = nullptr;
 
   ring_stuff tx;
