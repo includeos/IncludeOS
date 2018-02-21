@@ -24,6 +24,7 @@
 #define REG_EEPROM      0x0014
 #define REG_CTRL_EXT    0x0018
 #define REG_ICRR        0x00C0
+#define REG_ITR         0x00C4
 #define REG_ICS         0x00C8
 #define REG_IMS         0x00D0
 #define REG_IMC         0x00D8
