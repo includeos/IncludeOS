@@ -20,6 +20,7 @@
 #include <statman>
 #include <profile>
 #include <cstdio>
+#define ENABLE_JUMBO_FRAMES
 
 using namespace net::tcp;
 
@@ -156,3 +157,14 @@ void Service::ready()
     });
   });
 }
+
+#ifdef ENABLE_JUMBO_FRAMES
+#include <hw/nic.hpp>
+namespace hw {
+  uint16_t Nic::MTU_detection_override(int idx, const uint16_t default_MTU)
+  {
+    if (idx == 0) return 9000;
+    return default_MTU;
+  }
+}
+#endif
