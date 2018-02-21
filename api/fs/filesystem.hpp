@@ -34,36 +34,36 @@ namespace fs {
     error_t print_subtree(const std::string& path);
 
     /** @param path: Path in the initialized filesystem */
-    virtual void  ls(const std::string& path, on_ls_func) = 0;
-    virtual void  ls(const Dirent& entry,     on_ls_func) = 0;
-    virtual List  ls(const std::string& path) = 0;
-    virtual List  ls(const Dirent&) = 0;
+    virtual void  ls(const std::string& path, on_ls_func) const = 0;
+    virtual void  ls(const Dirent& entry,     on_ls_func) const = 0;
+    virtual List  ls(const std::string& path) const = 0;
+    virtual List  ls(const Dirent&) const = 0;
 
     /** Read an entire file into a buffer, async, then call on_read */
-    void read_file(const std::string& path, on_read_func on_read);
+    void read_file(const std::string& path, on_read_func on_read) const;
 
     /** Read an entire file sync **/
-    Buffer read_file(const std::string& path);
+    Buffer read_file(const std::string& path) const;
 
     /** Read @n bytes from direntry from position @pos  - async */
-    virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) = 0;
+    virtual void   read(const Dirent&, uint64_t pos, uint64_t n, on_read_func) const = 0;
 
     /** Read - sync */
-    virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) = 0;
+    virtual Buffer read(const Dirent&, uint64_t pos, uint64_t n) const = 0;
 
     /** Return information about a file or directory - async */
-    virtual void stat(Path_ptr, on_stat_func fn, const Dirent* const = nullptr) = 0;
+    virtual void stat(Path_ptr, on_stat_func fn, const Dirent* const = nullptr) const = 0;
 
     /** Stat async - for various types of path initializations **/
     template <typename P = Path>
-    inline void stat(P pathstr, on_stat_func fn, const Dirent* const = nullptr);
+    inline void stat(P pathstr, on_stat_func fn, const Dirent* const = nullptr) const;
 
     /** Return information about a file or directory relative to dirent - sync*/
-    virtual Dirent stat(Path, const Dirent* const = nullptr) = 0;
+    virtual Dirent stat(Path, const Dirent* const = nullptr) const = 0;
 
     /** Return information about a file or directory relative to dirent - sync*/
     template <typename P = Path>
-    inline Dirent stat(P, const Dirent* const = nullptr);
+    inline Dirent stat(P, const Dirent* const = nullptr) const;
 
     /** Cached async stat */
     virtual void cstat(const std::string& pathstr, on_stat_func) = 0;
@@ -87,13 +87,13 @@ namespace fs {
 namespace fs {
 
   template <typename P>
-  void File_system::stat(P path, on_stat_func fn, const Dirent* const dir) {
+  void File_system::stat(P path, on_stat_func fn, const Dirent* const dir) const {
     auto path_ptr = std::make_shared<Path> (path);
     stat(path_ptr, fn, dir);
   }
 
   template <typename P>
-  Dirent File_system::stat(P pathstr, const Dirent* const dir) {
+  Dirent File_system::stat(P pathstr, const Dirent* const dir) const {
     return stat(Path{pathstr}, dir);
   }
 
