@@ -26,8 +26,8 @@ namespace net
 template <>
 Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic, int N, int sub)
 {
-  INFO("Network", "Creating stack for %s on %s",
-        nic.driver_name(), nic.device_name().c_str());
+  INFO("Network", "Creating stack for %s on %s (MTU=%u)",
+        nic.driver_name(), nic.device_name().c_str(), nic.MTU());
 
   auto& stacks = inet().ip4_stacks_.at(N);
 
@@ -57,8 +57,8 @@ Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic, int N, int sub)
 template <>
 Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic)
 {
-  INFO("Network", "Creating stack for %s on %s",
-        nic.driver_name(), nic.device_name().c_str());
+  INFO("Network", "Creating stack for %s on %s (MTU=%u)",
+        nic.driver_name(), nic.device_name().c_str(), nic.MTU());
 
   auto inet_ = [&nic]()->auto {
     switch(nic.proto()) {
