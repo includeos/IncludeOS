@@ -78,16 +78,6 @@
 #define RCTL_PMCF                       (1 << 23)   // Pass MAC Control Frames
 #define RCTL_SECRC                      (1 << 26)   // Strip Ethernet CRC
 
-// Buffer Sizes
-#define RCTL_BSIZE_256                  (3 << 16)
-#define RCTL_BSIZE_512                  (2 << 16)
-#define RCTL_BSIZE_1024                 (1 << 16)
-#define RCTL_BSIZE_2048                 (0 << 16)
-#define RCTL_BSIZE_4096                 ((3 << 16) | (1 << 25))
-#define RCTL_BSIZE_8192                 ((2 << 16) | (1 << 25))
-#define RCTL_BSIZE_16384                ((1 << 16) | (1 << 25))
-
-
 // Transmit Command
 
 #define CMD_EOP                         (1 << 0)    // End of Packet

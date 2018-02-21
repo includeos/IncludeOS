@@ -46,9 +46,24 @@ static const uint32_t RXTO = 1 << 7; // receive timer interrupt
 static int deferred_event = 0;
 static std::vector<e1000*> deferred_devices;
 
+static inline uint16_t report_size_for_mtu(uint16_t mtu)
+{
+  uint16_t diff = mtu % 1024;
+  mtu = (mtu / 1024) * 1024;
+  if (diff) mtu += 1024;
+  return mtu;
+}
+static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
+{
+  const uint16_t header = sizeof(net::Packet) + e1000::DRIVER_OFFSET;
+  if (mtu <= 2048 - header) return 2048;
+  assert(mtu <= 9000 && "Buffers larger than 9000 are not supported");
+  return report_size_for_mtu(mtu) + header;
+}
+
 e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
     Link(Link_protocol{{this, &e1000::transmit}, mac()}, bufstore_),
-    m_pcidev(d), bufstore_{600, 2048}
+    m_pcidev(d), m_mtu(mtu), bufstore_{600, buffer_size_for_mtu(mtu)}
 {
   static_assert((NUM_RX_DESC * sizeof(rx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
   static_assert((NUM_TX_DESC * sizeof(tx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
@@ -168,8 +183,10 @@ e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
       //| RCTL_UPE // unicast promisc enable
       | RCTL_MPE // multicast promisc enable
       | RCTL_BAM // broadcast accept mode
-      | RCTL_BSIZE_2048 // 2048b recv buffers
+      | (report_size_for_mtu(MTU()) << 27) // recv buffers
       | RCTL_SECRC; // strip eth CRC
+  // LPE if MTU > 1500
+  if (MTU() > 1500) rx_flags |= RCTL_LPE;
   write_cmd(REG_RCTRL, rx_flags);
 
   // initialize TX

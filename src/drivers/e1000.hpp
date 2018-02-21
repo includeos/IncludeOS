@@ -42,7 +42,7 @@ public:
   }
 
   uint16_t MTU() const noexcept override {
-    return 1500;
+    return m_mtu;
   }
 
   uint16_t packet_len() const noexcept {
@@ -116,7 +116,8 @@ private:
   bool         link_state_up = false;
   uint16_t     io_base;
   uintptr_t    shm_base;
-  MAC::Addr    hw_addr;
+  MAC::Addr      hw_addr;
+  const uint16_t m_mtu;
 
   struct rx_desc
   {
