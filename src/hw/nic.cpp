@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef ACORN_FS_HPP
-#define ACORN_FS_HPP
+#include <hw/nic.hpp>
 
-#include <memdisk>
-#include <fs/disk.hpp>
-
-namespace acorn
+namespace hw
 {
-  void list_static_content(const fs::File_system&);
+  uint16_t Nic::MTU_detection_override(int idx, const uint16_t default_MTU)
+  {
+    (void) idx;
+    return default_MTU;
+  }
 }
-
-#endif //< ACORN_FS_HPP

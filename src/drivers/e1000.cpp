@@ -25,6 +25,14 @@
 #include <cassert>
 //#define E1000_ENABLE_STATS
 //#define E1000_FAKE_EVENT_HANDLER
+//#define E1000E_FAKE_EVENT_HANDLER
+
+//#define VERBOSE_E1000
+#ifdef VERBOSE_E1000
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
 
 static const uint32_t TXDW = 1 << 0; // transmit descr written back
 static const uint32_t TXQE = 1 << 1; // transmit queue empty
@@ -32,68 +40,88 @@ static const uint32_t LSC  = 1 << 2; // link status change
 static const uint32_t RXDMTO= 1 << 4; // rx desc minimum tresh hit
 static const uint32_t RXO  = 1 << 6; // receiver (rx) overrun
 static const uint32_t RXTO = 1 << 7; // receive timer interrupt
-
-#define E1000_ICR_INT_ASSERTED	0x80000000
-#define E1000_ICR_RXQ0		0x00100000	/* Rx Queue 0 Interrupt */
-#define E1000_ICR_RXQ1		0x00200000	/* Rx Queue 1 Interrupt */
-#define E1000_ICR_TXQ0		0x00400000	/* Tx Queue 0 Interrupt */
-#define E1000_ICR_TXQ1	  0x00800000	/* Tx Queue 1 Interrupt */
+#define LEGACY_INTR_MASK() (TXDW | TXQE | LSC | RXDMTO | RXO | RXTO)
+#define MSIX_INTR_MASK() (LSC | RXO | (1 << 20) | (1 << 22) | (1 << 24))
 
 static int deferred_event = 0;
 static std::vector<e1000*> deferred_devices;
 
-e1000::e1000(hw::PCI_Device& d) :
-    Link(Link_protocol{{this, &e1000::transmit}, mac()}, bufstore_),
-    m_pcidev(d), bufstore_{1024, 2048}
+static inline uint16_t report_size_for_mtu(uint16_t mtu)
 {
-  INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
+  uint16_t diff = mtu % 1024;
+  mtu = (mtu / 1024) * 1024;
+  if (diff) mtu += 1024;
+  return mtu;
+}
+static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
+{
+  const uint16_t header = sizeof(net::Packet) + e1000::DRIVER_OFFSET;
+  if (mtu <= 2048 - header) return 2048;
+  assert(mtu <= 9000 && "Buffers larger than 9000 are not supported");
+  return report_size_for_mtu(mtu) + header;
+}
 
-  if (d.msi_cap())
+e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
+    Link(Link_protocol{{this, &e1000::transmit}, mac()}, bufstore_),
+    m_pcidev(d), m_mtu(mtu), bufstore_{600, buffer_size_for_mtu(mtu)}
+{
+  static_assert((NUM_RX_DESC * sizeof(rx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
+  static_assert((NUM_TX_DESC * sizeof(tx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
+
+  INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
+  this->use_msix = false;
+  const uint16_t variant = d.product_id();
+
+  // exception for I217
+  if (variant == 0x153A || variant == 0x1539)
   {
-    printf("legacy MSI capability detected\n");
+    this->use_msix = false;
   }
-  if (d.msix_cap())
+  else if (d.msix_cap())
   {
-    printf("MSI-X capability detected\n");
     d.init_msix();
     if (d.has_msix())
     {
-      printf("Initializing MSI-X...\n");
-      #define IVAR_INT_ALLOC_VALID 0x8
-      uint32_t ivar = 0;
-      // rx queue
-      uint8_t vec0 = Events::get().subscribe({this, &e1000::event_handler});
-      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec0);
-      ivar |= IVAR_INT_ALLOC_VALID | vec0;
-
-      // tx queue
-      uint8_t vec1 = Events::get().subscribe({this, &e1000::event_handler});
-      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec1);
-      ivar |= (IVAR_INT_ALLOC_VALID | vec1) << 8;
-
-      // other causes
-      uint8_t vec2 = Events::get().subscribe({this, &e1000::event_handler});
-      d.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec2);
-      ivar |= (IVAR_INT_ALLOC_VALID | vec1) << 16;
-
-      // enable interrupts on every writeback
-      ivar |= 1 << 31;
-      write_cmd(REG_IVAR, ivar);
-
-      // enable PBA MSI-X support
-      write_cmd(REG_CTRL_EXT, read_cmd(REG_CTRL_EXT) | 0x80000000);
+      this->use_msix = true;
     }
   }
-  if (d.has_msix() == false)
+  // legacy INTx IRQ from PCI
+  if (this->use_msix == false)
   {
-    // legacy IRQ from PCI
+    // 21 = lots of times (???)
+    // 16 = USB
+    // 18 = e1000 I217
     uint32_t value = d.read_dword(PCI::CONFIG_INTR);
-    uint8_t irq = value & 0xFF;
-    assert(irq != 0xFF);
+    uint8_t real_irq = value & 0xFF;
+    assert(real_irq != 0xFF);
 
-    __arch_enable_legacy_irq(irq);
-    Events::get().subscribe(irq, {this, &e1000::event_handler});
-    this->irqs.push_back(irq);
+    if (variant == 0x153A || variant == 0x1539)
+    {
+      // I217 bare metal IRQ on AX370
+      static const uint8_t I217_IRQ = 18;
+      __arch_enable_legacy_irq(I217_IRQ);
+      Events::get().subscribe(I217_IRQ,
+      [this, real_irq] () {
+        printf("Received interrupt %u (PCI IRQ %u)\n", I217_IRQ, real_irq);
+        this->event_handler();
+      });
+    }
+    /*
+    for (unsigned i = 8; i < 24+32; i++)
+    {
+      if (i == 21) continue;
+      __arch_enable_legacy_irq(i);
+      Events::get().subscribe(i,
+      [this, i] () {
+        printf("Received interrupt %u\n", i);
+        this->event_handler();
+      });
+    }*/
+
+    // real thing
+    __arch_enable_legacy_irq(real_irq);
+    Events::get().subscribe(real_irq, {this, &e1000::event_handler});
+    this->irqs.push_back(real_irq);
   }
 
   if (deferred_event == 0)
@@ -116,17 +144,19 @@ e1000::e1000(hw::PCI_Device& d) :
 
   // SW reset device
   write_cmd(REG_CTRL, (1 << 26));
-  wait_millis(1);
+  while (read_cmd(REG_CTRL) & (1 << 26)) {
+    asm("pause");
+  }
 
   // have to clear out the multicast filter, otherwise shit breaks
-	for(int i = 0; i < 128; i++)
+	for (int i = 0; i < 128; i++)
       write_cmd(0x5200 + i*4, 0);
-  for(int i = 0; i < 64; i++)
+  for (int i = 0; i < 64; i++)
       write_cmd(0x4000 + i*4, 0);
 
   // enable single MAC filter
-  init_filters();
-  set_filter(0, this->hw_addr);
+  //init_filters();
+  //set_filter(0, this->hw_addr);
 
   // disables flow control
   write_cmd(0x0028, 0);
@@ -135,24 +165,28 @@ e1000::e1000(hw::PCI_Device& d) :
   write_cmd(0x0170, 0);
   write_cmd(REG_CTRL, read_cmd(REG_CTRL) & ~(1 << 30));
 
+  this->intr_cause_clear();
+  this->intr_enable();
+
   // initialize RX
   for (int i = 0; i < NUM_RX_DESC; i++) {
     rx.desc[i].addr = (uint64_t) new_rx_packet();
     rx.desc[i].status = 0;
   }
 
-  uint64_t rx_desc_ptr = (uint64_t) rx.desc;
-  write_cmd(REG_RXDESCLO, rx_desc_ptr);
+  write_cmd(REG_RXDESCLO, (uint64_t) rx.desc);
   write_cmd(REG_RXDESCHI, 0);
   write_cmd(REG_RXDESCLEN, NUM_RX_DESC * sizeof(rx_desc));
   write_cmd(REG_RXDESCHEAD, 0);
-  write_cmd(REG_RXDESCTAIL, NUM_RX_DESC);
+  write_cmd(REG_RXDESCTAIL, NUM_RX_DESC-1);
   uint32_t rx_flags = 0
       //| RCTL_UPE // unicast promisc enable
-      | RCTL_MPE // multcast promisc enable
+      | RCTL_MPE // multicast promisc enable
       | RCTL_BAM // broadcast accept mode
-      | RCTL_BSIZE_2048 // 2048b recv buffers
+      | (report_size_for_mtu(MTU()) << 27) // recv buffers
       | RCTL_SECRC; // strip eth CRC
+  // LPE if MTU > 1500
+  if (MTU() > 1500) rx_flags |= RCTL_LPE;
   write_cmd(REG_RCTRL, rx_flags);
 
   // initialize TX
@@ -161,20 +195,36 @@ e1000::e1000(hw::PCI_Device& d) :
     tx.desc[i].status = 0x1; // done
   }
 
-  uint64_t tx_desc_ptr = (uint64_t) tx.desc;
-  write_cmd(REG_TXDESCLO, tx_desc_ptr);
+  write_cmd(REG_TXDESCLO, (uint64_t) tx.desc);
   write_cmd(REG_TXDESCHI, 0);
   write_cmd(REG_TXDESCLEN, NUM_TX_DESC * sizeof(tx_desc));
   write_cmd(REG_TXDESCHEAD, 0);
-  write_cmd(REG_TXDESCTAIL, NUM_TX_DESC);
-
+  write_cmd(REG_TXDESCTAIL, NUM_TX_DESC-1);
+  //write_cmd(REG_TIPG, 0x702008); // p.202
+  //write_cmd(REG_TIPG, (10 | (10 << 10) | (10 << 20)));
   // enable, PSP, 0xF coll tresh, 0x3F coll distance
   write_cmd(REG_TCTRL, read_cmd(REG_TCTRL) | (1 << 1) | (1 << 3));
-  //write_cmd(REG_TIPG, 0x702008); // p.202
-  write_cmd(REG_TIPG, (10 | (10 << 10) | (10 << 20)));
 
-  this->intr_cause_clear();
-  this->intr_enable();
+  // e1000e configuration
+  if (this->use_msix)
+  {
+    // interrupt auto-clear for vec0 - vec4
+    write_cmd(REG_EIAC, 0xFFFFFFFF);
+    write_cmd(REG_IAM, 0x0);
+
+    // configure IVAR and MSI-X table entries
+    this->config_msix();
+
+    // CTRL_EXT = MSI-X PBA + **normal** IAME
+    write_cmd(REG_CTRL_EXT, (1 << 31) | (1 << 27));
+  }
+  else
+  {
+    write_cmd(REG_ITR, 100);
+    //write_cmd(REG_IAM, 0x0);
+    // CTRL_EXT = IAME
+    //write_cmd(REG_CTRL_EXT, (1 << 27));
+  }
 
   // remove master disable bit
   write_cmd(REG_CTRL, read_cmd(REG_CTRL) & ~(1 << 2));
@@ -191,13 +241,14 @@ e1000::e1000(hw::PCI_Device& d) :
   Timers::periodic(std::chrono::seconds(2),
     [this] (int) {
       uint32_t stat = this->read_cmd(REG_STATUS);
-      printf("Full Duplex: %u\n", stat & (1 << 0));
-      printf("Link Up: %u\n", stat & (1 << 1));
-      printf("PHY powered off: %u\n", stat & (1 << 5));
+      //printf("Full Duplex: %u\n", stat & (1 << 0));
+      const char* spd = ((stat >> 6) & 3) ? "1000Mb/s" : "100Mb/s";
+      printf("Link Up: %u (%s)\n", stat & (1 << 1), spd);
+      //printf("PHY powered off: %u\n", stat & (1 << 5));
       printf("Transmission paused: %u\n", stat & (1 << 4));
       printf("Read comp blocked: %u\n", stat & (1 << 8));
-      printf("LAN init done: %u\n", stat & (1 << 9));
-      printf("Master enable status: %u\n", stat & (1 << 19));
+      //printf("LAN init done: %u\n", stat & (1 << 9));
+      //printf("Master enable status: %u\n", stat & (1 << 19));
       printf("\n");
       uint64_t val;
       val = this->read_cmd(0x40C0);
@@ -208,11 +259,8 @@ e1000::e1000(hw::PCI_Device& d) :
       printf("Octets transmitted: %lu\n", val);
       printf("Packets RX total: %u\n", this->read_cmd(0x40D0));
       printf("Packets TX total: %u\n", this->read_cmd(0x40D4));
-      printf("Mcast TX count: %u\n", this->read_cmd(0x40F0));
-      printf("Bcast TX count: %u\n", this->read_cmd(0x40F4));
-      printf("Intr asserted: %u\n", this->read_cmd(0x4100));
-      printf("\n");
-      printf("Intr status: %x\n", this->read_cmd(REG_ICRR));
+      printf("Intr enabled: %x\n", this->read_cmd(REG_IMS));
+      printf("Intr caused:  %x\n", this->read_cmd(REG_ICRR));
       printf("\n");
     });
 #endif
@@ -222,6 +270,38 @@ e1000::e1000(hw::PCI_Device& d) :
       this->event_handler();
     });
 #endif
+#ifdef E1000E_FAKE_EVENT_HANDLER
+  Timers::periodic(std::chrono::milliseconds(1),
+    [this] (int) {
+      this->receive_handler();
+      this->transmit_handler();
+      this->event_handler();
+    });
+#endif
+}
+
+void e1000::config_msix()
+{
+  #define IVAR_INT_ALLOC_VALID 0x8 // 10.2.4.9 p.328
+  uint32_t ivar = 0;
+  // rx queue 0 2:0
+  uint8_t vec0 = Events::get().subscribe({this, &e1000::receive_handler});
+  int m0 = m_pcidev.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec0);
+  ivar |= (IVAR_INT_ALLOC_VALID | m0);
+
+  // tx queue 0 10:8
+  uint8_t vec1 = Events::get().subscribe({this, &e1000::transmit_handler});
+  int m1 = m_pcidev.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec1);
+  ivar |= (IVAR_INT_ALLOC_VALID | m1) << 8;
+
+  // other causes 18:16
+  uint8_t vec2 = Events::get().subscribe({this, &e1000::event_handler});
+  int m2 = m_pcidev.setup_msix_vector(SMP::cpu_id(), IRQ_BASE + vec2);
+  ivar |= (IVAR_INT_ALLOC_VALID | m2) << 16;
+
+  // enable TX interrupts on every writeback regardless of RS bit
+  ivar |= 1 << 31;
+  write_cmd(REG_IVAR, ivar);
 }
 
 void e1000::wait_millis(int millis)
@@ -247,25 +327,34 @@ uint32_t e1000::read_cmd(uint16_t cmd)
 }
 void e1000::write_cmd(uint16_t cmd, uint32_t val)
 {
-  if (LIKELY(this->use_mmio))
+  if (LIKELY(this->use_mmio)) {
       *(volatile uint32_t*) (this->shm_base + cmd) = val;
+      return;
+  }
   hw::outl(this->io_base, cmd);
   hw::outl(this->io_base + 4, val);
 }
 
 void e1000::retrieve_hw_addr()
 {
-  if (this->use_eeprom)
+  uint16_t* mac = &hw_addr.minor;
+  const uint32_t ral = read_cmd(0x5400);
+  if (ral)
   {
-    uint16_t* mac = &hw_addr.minor;
+    const uint32_t rah = read_cmd(0x5404);
+    mac[0] = ral;
+    mac[1] = ral >> 16;
+    mac[2] = rah;
+  }
+  else if (this->use_eeprom)
+  {
     mac[0] = read_eeprom(0) & 0xFFFF;
     mac[1] = read_eeprom(1) & 0xFFFF;
     mac[2] = read_eeprom(2) & 0xFFFF;
   }
   else
   {
-    auto* mac_src = (const char*) (this->shm_base + 0x5400);
-    memcpy(&this->hw_addr, mac_src, sizeof(hw_addr));
+    assert(0 && "e1000e: Don't know how to read MAC address");
   }
   INFO2("MAC address: %s", hw_addr.to_string().c_str());
 }
@@ -297,37 +386,33 @@ uint64_t e1000::construct_filter(MAC::Addr addr)
 
 void e1000::detect_eeprom()
 {
-  write_cmd(REG_EEPROM, 0x1);
-  for (int i = 0; i < 1000; i++)
-  {
-    uint32_t val = read_cmd(REG_EEPROM);
-    if (val & 0x10) {
-      this->use_eeprom = true;
-      return;
-    }
-  }
+  write_cmd(REG_EEC, 0x1);
+  const uint32_t eec = read_cmd(REG_EEC);
+  const bool NVM_present = (eec & (1 << 8)) == 1;
+  this->use_eeprom = NVM_present && (eec & (1 << 23)) == 0;
+  INFO2("NVM present: %d  type: %s", NVM_present, (use_eeprom) ? "EEPROM" : "Flash");
+  this->use_eeprom = true;
 }
 uint32_t e1000::read_eeprom(uint8_t addr)
 {
-	uint32_t tmp = 0;
-  if (this->use_eeprom)
-  {
-    write_cmd(REG_EEPROM, 1 | ((uint32_t)(addr) << 8));
-  	while (!((tmp = read_cmd(REG_EEPROM)) & (1 << 4)) );
+  // start read
+  write_cmd(REG_EEPROM, 1 | ((uint32_t)(addr) << 8));
+  // wait for word-read complete
+	while ((read_cmd(REG_EEPROM) & (1 << 1)) == 0) {
+    asm("pause");
   }
-  return (tmp >> 16) & 0xFFFF;
+  return (read_cmd(REG_EEPROM) >> 16) & 0xFFFF;
 }
 
 void e1000::link_up()
 {
-  // set link up CTRL.SLU
-  write_cmd(REG_CTRL, read_cmd(REG_CTRL) | ECTRL_SLU);
-
-  wait_millis(1);
+  // set link up CTRL.SLU (not present on modern devices)
+  write_cmd(REG_CTRL, read_cmd(REG_CTRL) | (1 << 6));
+  //wait_millis(1);
 
   uint32_t status = read_cmd(REG_STATUS);
-  int success = (status & (1 << 1)) != 0;
-  if (success == 0)
+  this->link_state_up = (status & (1 << 1)) != 0;
+  if (this->link_state_up == false)
       INFO("e1000", "Link NOT up");
   else {
     const char* spd = ((status >> 6) & 3) ? "1000Mb/s" : "100Mb/s";
@@ -338,18 +423,21 @@ void e1000::link_up()
 
 void e1000::intr_enable()
 {
-  write_cmd(REG_IMASK, TXDW | TXQE | LSC | RXDMTO | RXO | RXTO);
-  // enable interrupt auto-masking (IAME)
-  write_cmd(REG_CTRL_EXT, read_cmd(REG_CTRL_EXT) | (1 << 27));
-  //write_cmd(REG_ICRR, ~0);
+  if (this->use_msix)
+    write_cmd(REG_IMS, MSIX_INTR_MASK());
+  else
+    write_cmd(REG_IMS, LEGACY_INTR_MASK());
 }
 void e1000::intr_disable()
 {
-  write_cmd(REG_IMC, TXDW | TXQE | LSC | RXDMTO | RXO | RXTO);
+  if (this->use_msix)
+    write_cmd(REG_IMC, MSIX_INTR_MASK());
+  else
+    write_cmd(REG_IMC, LEGACY_INTR_MASK());
 }
 void e1000::intr_cause_clear()
 {
-  write_cmd(REG_ICRR, 0x5FD2F7);
+  write_cmd(REG_ICRR, 0xFFFFFFFF);
 }
 
 net::Packet_ptr
@@ -383,55 +471,63 @@ uintptr_t e1000::new_rx_packet()
 
 void e1000::event_handler()
 {
-  uint32_t status = read_cmd(0xC0);
-  if (status == 0) return;
+  const uint32_t status = read_cmd(REG_ICRR);
+  if (status == 0) {
+    PRINT("[e1000] spurious event handler\n");
+    return;
+  }
   // see: e1000_regs.h
-  //printf("e1000: event %x received\n", status);
+  PRINT("[e1000] event %x received\n", status);
 
-  // empty transmit queue
-  if (status & TXQE)
+  // empty tx queue or tx desc written back
+  if (status & TXQE || status & TXDW)
   {
-    //printf("tx queue empty!\n");
-    if (sendq) {
-      transmit(std::move(sendq));
-    }
-    if (can_transmit()) {
-      transmit_queue_available_event(NUM_TX_DESC);
-    }
+    // free old & send more!
+    this->transmit_handler();
   }
   // link status change
   if (status & LSC)
   {
+    PRINT("[e1000] link state changed\n");
     this->link_up();
   }
   if (status & RXDMTO)
   {
-    printf("e1000: rx descriptor minimum treshold hit!\n");
+    PRINT("[e1000] rx descriptor minimum treshold hit!\n");
+    this->receive_handler();
   }
   if (status & RXO)
   {
-    printf("e1000: rx overrun!\n");
+    fprintf(stderr, "[e1000] rx overrun!\n");
   }
   // rx timer interrupt
   if (status & RXTO)
   {
-    recv_handler();
+    this->receive_handler();
   }
 
   // ready to handle more events
   this->intr_cause_clear();
 }
 
-void e1000::recv_handler()
+void e1000::receive_handler()
 {
-  uint16_t old_idx = 0xffff;
-
-  while (rx.desc[rx.current].status & 1)
+  int32_t old_idx = -1;
+  while (true)
   {
     auto& tk = rx.desc[rx.current];
-    auto* buf = (uint8_t*) tk.addr;
+    if ((tk.status & 1) == 0) break;
 
-    printf("e1000: recv %u bytes -> %p\n", tk.length, buf);
+    // must be complete packet
+    if ((tk.status & 2) == 0) {
+      PRINT("[e1000] dropping incomplete buffer %u bytes\n", tk.length);
+      continue;
+    }
+
+    auto* buf = (uint8_t*) tk.addr;
+    assert(buf != nullptr);
+    PRINT("[e1000] recv %p -> %u bytes\n", buf, tk.length);
+
     auto pkt = recv_packet(buf, tk.length);
     Link_layer::receive(std::move(pkt));
 
@@ -442,8 +538,30 @@ void e1000::recv_handler()
     old_idx = rx.current;
     rx.current = (rx.current + 1) % NUM_RX_DESC;
   }
-  if (old_idx != 0xffff)
+  if (old_idx != -1)
     write_cmd(REG_RXDESCTAIL, old_idx);
+}
+
+void e1000::transmit_handler()
+{
+  // try to free transmitted buffers
+  do_release_transmitted();
+
+  // try to send more packets
+  if (sendq) {
+    transmit(std::move(sendq));
+  }
+  if (can_transmit()) {
+    transmit_queue_available_event(NUM_TX_DESC - tx.sent.size());
+  }
+}
+bool e1000::can_transmit() const noexcept
+{
+  return this->link_state_up && tx.sent.size() < NUM_TX_DESC;
+}
+uint16_t e1000::free_transmit_descr() const noexcept
+{
+  return (NUM_TX_DESC - tx.current + tx.sent_id) % NUM_TX_DESC;
 }
 
 void e1000::transmit(net::Packet_ptr pckt)
@@ -459,33 +577,45 @@ void e1000::transmit(net::Packet_ptr pckt)
     // transmit released buffer
     auto* packet = sendq.release();
     transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
+    // add to sent packets
+    tx.sent.push_back(packet);
     // next is the new sendq
     sendq = std::move(next);
   }
 }
-bool e1000::can_transmit()
+void e1000::do_release_transmitted()
 {
-  return (tx.desc[tx.current].status & 0xFF) == 0x1;
+  //const uint16_t tx_head = read_cmd(REG_TXDESCTAIL);
+  //uint32_t total = (NUM_TX_DESC - tx.current + tx_head) % NUM_TX_DESC;
+  while (not tx.sent.empty())
+  {
+    auto& tk = tx.desc[tx.sent_id];
+    if ((tk.status & 0x1) == 0) break;
+
+    auto* packet = tx.sent.front();
+    delete packet; // call deleter on Packet to release it
+    tx.sent.pop_front();
+    tx.sent_id = (tx.sent_id + 1) % NUM_TX_DESC;
+  }
+  PRINT("[e1000] transmitting %lu - bufferstore %lu\n",
+        tx.sent.size(), bufstore().available());
 }
 void e1000::transmit_data(uint8_t* data, uint16_t length)
 {
   auto& tk = tx.desc[tx.current];
   assert(tk.status == 0x1 && "Descriptor must be done");
 
-  if (tk.addr != 0x0) {
-    auto* packet = (net::Packet*) (tk.addr - DRIVER_OFFSET - sizeof(net::Packet));
-    delete packet; // call deleter on Packet to release it
-  }
-  printf("e1000: xmit %p -> %u bytes\n", data, length);
+  PRINT("[e1000] xmit %p -> %u bytes\n", data, length);
   tk.addr   = (uint64_t) data;
   tk.length = length;
   tk.cso    = 0;
-  tk.cmd    = (1 << 3) | 0x3;
+  tk.cmd    = 0x3 | (1 << 3);
   tk.status = 0;
   tk.css    = 0;
-  tk.special = 0;
-
+  tk.vlan_tag = 0;
+  // next tx position
   tx.current = (tx.current + 1) % NUM_TX_DESC;
+
   if (tx.deferred == false)
   {
     tx.deferred = true;
@@ -511,7 +641,7 @@ void e1000::flush()
 }
 void e1000::poll()
 {
-  this->recv_handler();
+  this->receive_handler();
 }
 void e1000::deactivate()
 {
@@ -531,6 +661,8 @@ static void register_func()
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x100E, &e1000::new_instance);
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x100F, &e1000::new_instance);
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x109A, &e1000::new_instance);
+  // e1000e 82574L
+  PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x10D3, &e1000::new_instance);
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x10EA, &e1000::new_instance);
   // I217
   PCI_manager::register_nic(PCI::VENDOR_INTEL, 0x153A, &e1000::new_instance);

@@ -57,6 +57,26 @@ static inline bool register_device(hw::PCI_Device& dev,
   return false;
 }
 
+/** TEMP FIX until C++17 if constexpr support **/
+static inline bool
+register_device_nic(hw::PCI_Device& dev, fixed_factory_t<PCI_manager::NIC_driver>& factory)
+{
+  for (auto& fact : factory) {
+    if (fact.first == dev.vendor_product())
+    {
+      INFO2("|  +-o Driver found, initializing ");
+      INFO2("|");
+
+      const int idx = hw::Devices::device_next_index<hw::Nic>();
+      auto driver = fact.second(dev, hw::Nic::MTU_detection_override(idx, 1500));
+      hw::Devices::register_device<hw::Nic>(std::move(driver));
+      return true;
+    }
+  }
+  INFO2("|  +-x Driver not found ");
+  return false;
+}
+
 PCI_manager::Device_vector PCI_manager::devices () {
   Device_vector device_vec;
   for (const auto& dev : devices_)
@@ -87,7 +107,7 @@ void PCI_manager::scan_bus(const uint8_t classcode, const int bus)
       case PCI::NIC:
         if (classcode == PCI::NIC) {
           auto& stored_dev = devices_.emplace_back(pci_addr, id, devclass.reg);
-          register_device<NIC_driver, hw::Nic>(stored_dev, nic_fact);
+          register_device_nic(stored_dev, nic_fact);
         }
         break;
       case PCI::BRIDGE:

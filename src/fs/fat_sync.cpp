@@ -33,7 +33,7 @@ inline size_t roundup(size_t n, size_t multiple)
 
 namespace fs
 {
-  Buffer FAT::read(const Dirent& ent, uint64_t pos, uint64_t n)
+  Buffer FAT::read(const Dirent& ent, uint64_t pos, uint64_t n) const
   {
     // bounds check the read position and length
     auto stapos = std::min(ent.size(), pos);
@@ -60,7 +60,7 @@ namespace fs
     return Buffer(no_error, std::move(data));
   }
 
-  error_t FAT::int_ls(uint32_t sector, dirvector& ents)
+  error_t FAT::int_ls(uint32_t sector, dirvector& ents) const
   {
     bool done = false;
     do {
@@ -76,7 +76,7 @@ namespace fs
     return no_error;
   }
 
-  error_t FAT::traverse(Path path, dirvector& ents, const Dirent* const start)
+  error_t FAT::traverse(Path path, dirvector& ents, const Dirent* const start) const
   {
     // start with given entry (defaults to root)
     uint32_t cluster = start ? start->block() : 0;
@@ -126,14 +126,14 @@ namespace fs
     return int_ls(S, ents);
   }
 
-  List FAT::ls(const std::string& strpath)
+  List FAT::ls(const std::string& strpath) const
   {
     auto ents = std::make_shared<dirvector> ();
     auto err = traverse(strpath, *ents);
     return { err, ents };
   }
 
-  List FAT::ls(const Dirent& ent)
+  List FAT::ls(const Dirent& ent) const
   {
     auto ents = std::make_shared<dirvector> ();
     // verify ent is a directory
@@ -146,7 +146,7 @@ namespace fs
     return { err, ents };
   }
 
-  Dirent FAT::stat(Path path, const Dirent* const start)
+  Dirent FAT::stat(Path path, const Dirent* const start) const
   {
     if (UNLIKELY(path.empty())) {
       // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
