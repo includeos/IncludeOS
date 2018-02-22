@@ -16,18 +16,13 @@
 // limitations under the License.
 
 #include <kernel/syscalls.hpp>
-
-#include <fcntl.h> // open()
-#include <string.h>
-#include <signal.h>
-#include <sys/stat.h>
 #include <kernel/os.hpp>
 #include <system_log>
-
 #include <statman>
 #include <kprint>
 #include <info>
 #include <smp>
+#include <cstring>
 
 #if defined (UNITTESTS) && !defined(__MACH__)
 #define THROW throw()
@@ -39,48 +34,22 @@
 #define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
 
 // Emitted if and only if panic (unrecoverable system wide error) happens
-const char* panic_signature = "\x15\x07\t**** PANIC ****";
-
-char*   __env[1] {nullptr};
-char**  environ {__env};
-
+static const char* panic_signature = "\x15\x07\t**** PANIC ****";
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 
-
 void _exit(int status) {
-  kprintf("%s",std::string(LINEWIDTH, '=').c_str());
-  kprint("\n");
-  SYSINFO("service exited with status %i", status);
+  SYSINFO("Service exiting with status %d", status);
   default_exit();
   __builtin_unreachable();
 }
 
-clock_t times(struct tms*) {
-  panic("SYSCALL TIMES Dummy, returning -1");
-  return -1;
-}
-
-int wait(int*) {
-  debug((char*)"SYSCALL WAIT Dummy, returning -1");
-  return -1;
-}
-
-
-int kill(pid_t pid, int sig) THROW {
-  SMP::global_lock();
-  printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
-
-  if (sig == 6) {
-    printf("/ ABORT\n");
-  } else {
-    printf("\n");
-  }
-  SMP::global_unlock();
-
-  panic("kill called");
-  errno = ESRCH;
-  return -1;
+extern "C"
+void syscall_SYS_exit_group(int status)
+{
+  SYSINFO("Service exiting with status %d", status);
+  default_exit();
+  __builtin_unreachable();
 }
 
 struct alignas(SMP_ALIGN) context_buffer
@@ -224,31 +193,7 @@ void default_exit() {
   __builtin_unreachable();
 }
 
-#if defined(__MACH__)
-#if !defined(__MAC_10_12)
-typedef int clockid_t;
-#endif
-#if !defined(CLOCK_REALTIME)
-#define CLOCK_REALTIME 0
-#endif
-#endif
-
-int clock_gettime(clockid_t clk_id, struct timespec* tp) {
-  if (clk_id == CLOCK_REALTIME) {
-    *tp = __arch_wall_clock();
-    return 0;
-  }
-  printf("hmm clock_gettime called, -1\n");
-  return -1;
-}
-int gettimeofday(struct timeval* p, void*) {
-  auto tval = __arch_wall_clock();
-  p->tv_sec  = tval.tv_sec;
-  p->tv_usec = tval.tv_nsec / 1000;
-  return 0;
-}
-
-extern "C" void _init_syscalls();
+extern "C"
 void _init_syscalls()
 {
   // make sure each buffer is zero length so it won't always show up in crashes
