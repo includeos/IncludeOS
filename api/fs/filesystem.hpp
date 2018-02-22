@@ -71,6 +71,9 @@ namespace fs {
     /** Returns the name of this filesystem */
     virtual std::string name() const = 0;
 
+    /** Returns the block size of this filesystem */
+    virtual uint64_t block_size() const = 0;
+
     /** Initialize this filesystem with LBA at @base_sector */
     virtual void init(uint64_t lba, uint64_t size, on_init_func on_init) = 0;
 
