@@ -5,13 +5,9 @@
 
 # The name of the bridge VM's are added to
 
-if [ -n $INCLUDEOS_BRIDGE ]
-then
-    BRIDGE=$INCLUDEOS_BRIDGE
-else    
-   BRIDGE="bridge43"
-fi
-
+[ -z $INCLUDEOS_BRIDGE ] && INCLUDEOS_BRIDGE="bridge43"
+BRIDGE=$INCLUDEOS_BRIDGE
+    
 if [ -n "$1" ];then
     
     ifconfig $1 down

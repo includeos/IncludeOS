@@ -7,7 +7,7 @@
 ############################################################
 
 BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip g++-multilib gcc"
-[ ! -z "$CC" ] && { CLANG_VERSION=${CC: -3}; } || CLANG_VERSION="3.8"
+[ ! -z "$CC" ] && { CLANG_VERSION=${CC: -3}; } || CLANG_VERSION="5.0"
 TEST_DEPENDENCIES="g++"
 PYTHON_DEPENDENCIES="jsonschema psutil junit-xml filemagic"
 INSTALLED_PIP=0

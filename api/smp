@@ -23,10 +23,12 @@
 #include <delegate>
 #include <smp_utils>
 
-#ifdef INCLUDEOS_SINGLE_THREADED
-#define SMP_MAX_CORES   1
-#else
-#define SMP_MAX_CORES   32
+#ifndef SMP_MAX_CORES
+# ifdef INCLUDEOS_SINGLE_THREADED
+#   define SMP_MAX_CORES   1
+# else
+#   define SMP_MAX_CORES   32
+# endif
 #endif
 
 #define SMP_ALIGN       64
@@ -74,7 +76,7 @@ public:
   static void global_unlock() noexcept;
 };
 
-#define SMP_DEBUG 1
+//#define SMP_DEBUG 1
 
 // SMP serialized print helpers
 #define SMP_ALWAYS_PRINT(fmt, ...) \
@@ -84,8 +86,10 @@ public:
 
 #ifdef SMP_DEBUG
 #define SMP_PRINT(fmt, ...) SMP_ALWAYS_PRINT(fmt, ##__VA_ARGS__)
+#define CPULOG(X,...) SMP_PRINT("[C%i]" X,SMP::cpu_id(),##__VA_ARGS__)
 #else
 #define SMP_PRINT(fmt, ...) /** fmt **/
+#define CPULOG(X,...) ;
 #endif
 
 #include <array>

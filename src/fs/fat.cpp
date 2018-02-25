@@ -188,7 +188,7 @@ namespace fs
     );
   }
 
-  bool FAT::int_dirent(uint32_t sector, const void* data, dirvector& dirents)
+  bool FAT::int_dirent(uint32_t sector, const void* data, dirvector& dirents) const
   {
     auto* root = (cl_dir*) data;
     bool  found_last = false;

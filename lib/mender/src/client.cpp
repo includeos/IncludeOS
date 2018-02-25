@@ -191,7 +191,8 @@ namespace mender {
       res = std::move(context_.response);
 
     auto uri = parse_update_uri(*res);
-    MENDER_INFO("Client", "Fetching update from: %s", uri.to_string().c_str());
+    MENDER_INFO("Client", "Fetching update from: %s",
+                uri.to_string().c_str());
 
     using namespace http;
 
@@ -204,7 +205,7 @@ namespace mender {
     };
 
     httpclient_->get({cached_.address(), uri.port()},
-      uri.path().to_string() + "?" + uri.query().to_string(),
+      std::string(uri.path()) + "?" + std::string(uri.query()),
       headers, {this, &Client::response_handler});
   }
 
@@ -212,7 +213,7 @@ namespace mender {
   {
     using namespace rapidjson;
     Document d;
-    d.Parse(res.body().to_string().c_str());
+    d.Parse(std::string(res.body()).c_str());
     return http::URI{d["artifact"]["source"]["uri"].GetString()};
   }
 
@@ -247,7 +248,7 @@ namespace mender {
       res = std::move(context_.response);
     assert(res);
 
-    auto data = res->body().to_string();
+    auto data = std::string(res->body());
 
     // Process data:
     Artifact artifact{{data.begin(), data.end()}};

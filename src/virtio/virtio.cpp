@@ -94,8 +94,9 @@ Virtio::Virtio(hw::PCI_Device& dev)
   // between this class and subclasses.
 
   // initialize MSI-X if available
-  if (_pcidev.has_msix())
+  if (_pcidev.msix_cap())
   {
+    _pcidev.init_msix();
     uint8_t msix_vectors = _pcidev.get_msix_vectors();
     if (msix_vectors)
     {

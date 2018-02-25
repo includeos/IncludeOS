@@ -23,12 +23,10 @@ CASE ("Using the fixed memory range class")
 {
     GIVEN ("A fixed memory range over raw sequence of bytes")
     {
-      // A dynamically allocated "raw pool" of bytes
-      // @note : In the kernel memory map these would be physical ranges
+      // A dynamically allocated range of bytes
       char* seq = const_cast<char*>("Spans provide a safer way to access memory");
       Fixed_memory_range range(reinterpret_cast<uintptr_t>(seq + 16),
-                                 reinterpret_cast<uintptr_t>(seq + 20), "Demo range",
-                               "A range inside a local pool");
+                                 reinterpret_cast<uintptr_t>(seq + 20), "Demo range");
 
       auto seq_start = seq + 16;
       auto seq_end = seq + 20;
@@ -70,8 +68,8 @@ CASE ("Using the fixed memory range class")
 
 CASE("Construct a range with illegal parameters")
 {
-  EXPECT_THROWS((Fixed_memory_range{(uintptr_t)1000, (uintptr_t)10, "Negative", "A range going backwards"}));
-  EXPECT_THROWS((Fixed_memory_range{(uintptr_t)1, (uintptr_t)Fixed_memory_range::max_size() + 100, "Too big", "A range > max of ptrdiff_t"}));
+  EXPECT_THROWS((Fixed_memory_range{(uintptr_t)1000, (uintptr_t)10, "Negative - A range going backwards"}));
+  EXPECT_THROWS((Fixed_memory_range{(uintptr_t)1, (uintptr_t)Fixed_memory_range::max_size() + 100, "Too big - A range > max of ptrdiff_t"}));
 }
 
 CASE ("Using the kernel memory map") {
@@ -86,7 +84,7 @@ CASE ("Using the kernel memory map") {
       uintptr_t init_key = 0xff;
       uintptr_t init_end = 0xffff;
       auto init_size = init_end - init_key + 1;
-      map.assign_range({init_key, init_end, "Initial", "The first range"});
+      map.assign_range({init_key, init_end, "Initial"});
       EXPECT(map.size() == 1);
       EXPECT(not map.empty());
       auto& range_init = map.at(init_key);
@@ -155,8 +153,7 @@ CASE ("Using the kernel memory map") {
         {
 
           auto key = map.at(init_key).addr_end() + 1;
-          map.assign_range({key, key + 1000, "Resizable",
-                "A resizable range", []()->ptrdiff_t{ return 4; }});
+          map.assign_range({key, key + 1000, "Resizable", []()->ptrdiff_t{ return 4; }});
 
 
           auto res = map.resize(key, 5);
@@ -176,8 +173,7 @@ CASE ("Using the kernel memory map") {
 
                   auto& last_range = map.at(key);
                   auto key2 = last_range.addr_end() + 1;
-                  map.assign_range({key2, key2 + 1000, "Above Resizable",
-                    "A barrier for resizable"});
+                  map.assign_range({key2, key2 + 1000, "Above Resizable"});
 
                   EXPECT_THROWS(map.resize(key, last_range.size() + 1));
                   EXPECT_THROWS(map.resize(key, last_range.size() + 100));
@@ -187,18 +183,18 @@ CASE ("Using the kernel memory map") {
 
       AND_THEN("You can't insert an overlapping range")
         {
-          EXPECT_THROWS(map.assign_range({0x1, 0xfff, "Range 2", "Overlapping beginning of Range 1"}));
-          EXPECT_THROWS(map.assign_range({0xfff, 0xfffff, "Range 2", "Overlapping end of Range 1"}));
+          EXPECT_THROWS(map.assign_range({0x1, 0xfff, "Range 2 - Overlapping beginning of Range 1"}));
+          EXPECT_THROWS(map.assign_range({0xfff, 0xfffff, "Range 2 - Overlapping end of Range 1"}));
 
           uintptr_t rng2_key = 0x30000;
           uintptr_t rng2_end = 0xfffff;
-          EXPECT(map.assign_range({rng2_key, rng2_end, "Range 2", "OK range above initial"}).addr_start() == rng2_key);
+          EXPECT(map.assign_range({rng2_key, rng2_end, "Range 2 - OK range above initial"}).addr_start() == rng2_key);
 
           // A range where end-address only is with the second range
-          EXPECT_THROWS(map.assign_range({0x20000, 0x40000, "Range 3", "Between Range 1 and Range 2"}));
+          EXPECT_THROWS(map.assign_range({0x20000, 0x40000, "Range 3 - Between Range 1 and Range 2"}));
 
           // A range where start-address is in the first of the two ranges
-          EXPECT_THROWS(map.assign_range({0xfff0, 0x20000, "Range 3", "Between Range 1 and Range 2"}));
+          EXPECT_THROWS(map.assign_range({0xfff0, 0x20000, "Range 3 - Between Range 1 and Range 2"}));
 
           /** Pretty print
           for (auto i : map)
@@ -208,7 +204,7 @@ CASE ("Using the kernel memory map") {
 
       AND_THEN("You can't insert an embedded  range")
         {
-          EXPECT_THROWS(map.assign_range({0xfff, 0xfffa, "Range 4", "Embedded in range 1"}));
+          EXPECT_THROWS(map.assign_range({0xfff, 0xfffa, "Range 4 - Embedded in range 1"}));
         }
 
       AND_WHEN("You've inserted several ranges you can iterate over them")
@@ -219,10 +215,8 @@ CASE ("Using the kernel memory map") {
           const size_t count = 20;
 
           for (auto i = start; i < start + count * size; i += size) {
-            Fixed_memory_range rng = {i , i + size - 1,"demo",
-                                      std::string("The ") + std::to_string(i) + std::string("'th range")};
+            Fixed_memory_range rng = {i , i + size - 1,"test"};
             map.assign_range(std::move(rng));
-            //std::cout << "Demo range for iteration: " << rng.to_string() << "\n";
           }
 
           EXPECT(map.size() == count + 1);

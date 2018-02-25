@@ -68,7 +68,7 @@ public:
           // setup the response
           // location to the newly created resource
           using namespace std;
-          res->header().set_field(http::header::Location, req->uri().path().to_string()); // return back end loc i guess?
+          res->header().set_field(http::header::Location, std::string(req->uri().path())); // return back end loc i guess?
           // status code 201 Created
           res->source().set_status_code(http::Created);
           // send the created entity as response

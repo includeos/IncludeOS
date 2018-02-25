@@ -35,8 +35,7 @@ namespace http
   SSL_CTX* tls_init_server(const char* cert_file, const char* key_file)
   {
     /* create the SSL server context */
-    auto meth = TLSv1_1_method();
-    auto* ctx = SSL_CTX_new(meth);
+    auto* ctx = SSL_CTX_new(TLSv1_2_method());
     if (!ctx) throw std::runtime_error("SSL_CTX_new()");
 
     int res = SSL_CTX_set_cipher_list(ctx, "AES256-SHA");

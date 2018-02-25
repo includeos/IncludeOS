@@ -4,11 +4,13 @@
 # Download, configure, compile and install llvm
 ARCH=${ARCH:-x86_64} # CPU architecture. Alternatively x86_64
 TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
+INCLUDEOS_THREADING=${INCLUDEOS_THREADING:-ON}
 
 newlib_inc=$TEMP_INSTALL_DIR/$TARGET/include	# path for newlib headers
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
 libcxx_inc=$BUILD_DIR/llvm/projects/libcxx/include
 libcxxabi_inc=$BUILD_DIR/llvm/projects/libcxxabi/include
+
 
 # Install dependencies
 sudo apt-get install -y ninja-build zlib1g-dev libtinfo-dev
@@ -75,30 +77,37 @@ CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse"
 
 echo "Building LLVM for $TRIPLE"
 
-
-cmake -GNinja $OPTS  \
-      -DCMAKE_CXX_FLAGS="$CXX_FLAGS -I$IncludeOS_posix -I$libcxxabi_inc -I$libcxx_inc -I$newlib_inc " $BUILD_DIR/llvm \
-      -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DCMAKE_C_COMPILER=clang-$clang_version \
-      -DCMAKE_CXX_COMPILER=clang++-$clang_version \
-      -DTARGET_TRIPLE=$TRIPLE \
-      -DLLVM_BUILD_32_BITS=OFF \
-      -DLLVM_INCLUDE_TESTS=OFF \
-      -DLLVM_ENABLE_THREADS=OFF \
-      -DLLVM_DEFAULT_TARGET_TRIPLE=$TRIPLE \
-      -DLIBCXX_ENABLE_SHARED=OFF \
-      -DLIBCXX_ENABLE_THREADS=OFF \
-      -DLIBCXX_TARGET_TRIPLE=$TRIPLE \
-      -DLIBCXX_BUILD_32_BITS=OFF \
-      -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
-      -DLIBCXX_CXX_ABI=libcxxabi \
-      -DLIBCXXABI_TARGET_TRIPLE=$TRIPLE \
-      -DLIBCXXABI_ENABLE_THREADS=ON \
-      -DLIBCXXABI_HAS_PTHREAD_API=ON
-
+generator="-GNinja"
+cmake  $generator  $BUILD_DIR/llvm/  \
+       -DCMAKE_CXX_FLAGS="$CXX_FLAGS -I$IncludeOS_posix -I$libcxxabi_inc -I$libcxx_inc -I$newlib_inc " \
+       -DLLVM_PATH=$BUILD_DIR/llvm       \
+       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+       -DBUILD_SHARED_LIBS=OFF \
+       -DCMAKE_C_COMPILER=clang-$clang_version \
+       -DCMAKE_CXX_COMPILER=clang++-$clang_version \
+       -DTARGET_TRIPLE=$TRIPLE \
+       -DLLVM_BUILD_32_BITS=OFF \
+       -DLLVM_INCLUDE_TESTS=OFF \
+       -DLLVM_ENABLE_THREADS=$INCLUDEOS_THREADING \
+       -DLLVM_ENABLE_SHARED=OFF \
+       -DLLVM_DEFAULT_TARGET_TRIPLE=$TRIPLE \
+       -DLIBCXX_ENABLE_SHARED=OFF \
+       -DLIBCXX_ENABLE_THREADS=$INCLUDEOS_THREADING \
+       -DLIBCXX_TARGET_TRIPLE=$TRIPLE \
+       -DLIBCXX_BUILD_32_BITS=OFF \
+       -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY=ON \
+       -DLIBCXX_CXX_ABI=libcxxabi \
+       -DLIBCXXABI_USE_LLVM_UNWINDER=OFF \
+       -DLIBUNWIND_ENABLE_SHARED=OFF \
+       -DLIBUNWIND_ENABLE_STATIC=ON \
+       -DLIBUNWIND_TARGET_TRIPLE=$TRIPLE \
+       -DLIBCXXABI_TARGET_TRIPLE=$TRIPLE \
+       -DLIBCXXABI_ENABLE_THREADS=$INCLUDEOS_THREADING \
+       -DLIBCXXABI_HAS_PTHREAD_API=ON \
+       -DLIBCXX_CXX_ABI_LIBRARY_PATH=$BUILD_DIR/build_llvm/lib/ \
 
 # MAKE
+# ninja libunwind.a
 ninja libc++abi.a
 ninja libc++.a
 

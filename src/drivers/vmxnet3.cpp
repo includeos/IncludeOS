@@ -107,15 +107,24 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
   *(uint32_t volatile*) location = value;
 }
 
-vmxnet3::vmxnet3(hw::PCI_Device& d) :
+static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
+{
+  const uint16_t header = sizeof(net::Packet) + vmxnet3::DRIVER_OFFSET;
+  if (mtu <= 2048 - header) return 2048;
+  assert(header + mtu <= 16384 && "Buffers larger than 16k are not supported");
+  return mtu + header;
+}
+
+vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, bufstore_),
-    m_pcidev(d), bufstore_{1024, 2048 /* half-page buffer size */}
+    m_pcidev(d), m_mtu(mtu), bufstore_{1024, buffer_size_for_mtu(mtu)}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
 
-  if (d.has_msix())
+  if (d.msix_cap())
   {
+    d.init_msix();
     uint8_t msix_vectors = d.get_msix_vectors();
     INFO2("[x] Device has %u MSI-X vectors", msix_vectors);
     assert(msix_vectors >= 3);
@@ -274,8 +283,8 @@ bool vmxnet3::check_version()
 uint16_t vmxnet3::check_link()
 {
   auto state = command(VMXNET3_CMD_GET_LINK);
-  bool link_up  = state & 1;
-  if (link_up)
+  this->link_state_up = (state & 1) != 0;
+  if (this->link_state_up)
       return state >> 16;
   else
       return 0;
@@ -386,7 +395,29 @@ void vmxnet3::msix_evt_handler()
   // ack all events
   mmio_write32(this->iobase + VMXNET3_VD_ECR, evts);
 
-  printf("[vmxnet3] events: %#x\n", evts);
+  if (evts & 0x1)
+  {
+    printf("[vmxnet3] rxq error: %#x\n", evts);
+  }
+  if (evts & 0x2)
+  {
+    printf("[vmxnet3] txq error: %#x\n", evts);
+  }
+  if (evts & 0x4)
+  {
+    this->check_link();
+    printf("[vmxnet3] resume from sleep? link up = %d\n",
+          this->link_state_up);
+  }
+  if (evts & 0x8)
+  {
+    this->check_link();
+  }
+  // unknown event
+  if (evts & ~0xF)
+  {
+    printf("[vmxnet3] unknown events: %#x\n", evts);
+  }
 }
 void vmxnet3::msix_xmit_handler()
 {
@@ -509,7 +540,7 @@ inline int  vmxnet3::tx_tokens_free() const noexcept
 }
 inline bool vmxnet3::can_transmit() const noexcept
 {
-  return tx_tokens_free() > 0;
+  return tx_tokens_free() > 0 && this->link_state_up;
 }
 
 void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)

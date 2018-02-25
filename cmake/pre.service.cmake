@@ -19,23 +19,24 @@ endif()
 option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "Strip symbols to further reduce size" OFF)
-option(single_threaded "Compile without SMP support" ON)
+
+option(threading "Compile threading and SMP support" OFF)
 option (undefined_san "Enable undefined-behavior sanitizer" OFF)
+option(coroutines "Compile with coroutines TS support" OFF)
 
 # arch and platform defines
 message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
-set(TRIPLE ${ARCH}) #-pc-linux-elf
-set(DCMAKE_CXX_COMPILER_TARGET ${TRIPLE})
-set(DCMAKE_C_COMPILER_TARGET ${TRIPLE})
+set(TRIPLE "${ARCH}-pc-linux-elf")
+set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
+set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
+
+set(CPP_VERSION c++17)
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DPLATFORM="${PLATFORM}")
 add_definitions(-DPLATFORM_${PLATFORM})
 
-if (single_threaded)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
-endif()
 
 # include toolchain for arch
-include($ENV{INCLUDEOS_PREFIX}/includeos/${ARCH}-elf-toolchain.cmake)
+include($ENV{INCLUDEOS_PREFIX}/includeos/elf-toolchain.cmake)

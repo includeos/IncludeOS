@@ -29,7 +29,9 @@ namespace fs {
   struct Dirent {
 
     /** Constructor */
-    explicit Dirent(File_system* fs, const Enttype t = INVALID_ENTITY, const std::string& n = "",
+    explicit Dirent(const File_system* fs,
+                    const Enttype t = INVALID_ENTITY,
+                    const std::string& n = "",
                     const uint64_t blk   = 0, const uint64_t pr    = 0,
                     const uint64_t sz    = 0, const uint32_t attr  = 0,
                     const uint32_t modt = 0)
@@ -41,42 +43,29 @@ namespace fs {
     Dirent(const Dirent&) noexcept;
 
     Enttype type() const noexcept
-    { return ftype; }
+    { return this->ftype; }
 
     const std::string& name() const noexcept
-    { return fname_; }
+    { return this->fname_; }
 
     uint64_t block() const noexcept
-    { return block_; }
+    { return this->block_; }
 
     uint64_t parent() const noexcept
-    { return parent_; }
+    { return this->parent_; }
 
     inline int device_id() const noexcept;
 
     uint64_t size() const noexcept
-    { return size_; }
+    { return this->size_; }
 
     uint32_t attrib() const noexcept
-    { return attrib_; }
+    { return this->attrib_; }
 
     // good luck
     uint64_t modified() const
     {
-      /*
-        uint32_t oldshit = modif;
-        uint32_t day   = (oldshit & 0x1f);
-        uint32_t month = (oldshit >> 5) & 0x0f;
-        uint32_t year  = (oldshit >> 9) & 0x7f;
-        oldshit >>= 16;
-        uint32_t secs = (oldshit & 0x1f) * 2;
-        uint32_t mins = (oldshit >> 5) & 0x3f;
-        uint32_t hrs  = (oldshit >> 11) & 0x1f;
-        // invalid timestamp?
-        if (hrs > 23 or mins > 59 or secs > 59)
-        return 0;
-      */
-      return modif;
+      return this->modif;
     }
 
 
@@ -122,10 +111,10 @@ namespace fs {
     inline std::string read();
 
     /** List contents async **/
-    inline void ls(on_ls_func fn);
+    inline void ls(on_ls_func fn) const;
 
     /** List contents sync **/
-    inline List ls();
+    inline List ls() const;
 
     /** Get a dirent by path, relative to here - async **/
     template <typename P = std::initializer_list<std::string> >
@@ -135,10 +124,8 @@ namespace fs {
     template <typename P = std::initializer_list<std::string> >
     inline Dirent stat_sync(P path);
 
-
-
   private:
-    File_system* fs_;
+    const File_system* fs_;
     Enttype     ftype;
     std::string fname_;
     uint64_t    block_;
@@ -180,12 +167,12 @@ namespace fs {
 
 
   /** List contents async **/
-  void Dirent::ls(on_ls_func fn) {
+  void Dirent::ls(on_ls_func fn) const {
     fs_->ls(*this, fn);
   }
 
   /** List contents sync **/
-  List Dirent::ls() {
+  List Dirent::ls() const {
     return fs_->ls(*this);
   }
 

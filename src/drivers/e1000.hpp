@@ -18,6 +18,7 @@
 #include <hw/pci_device.hpp>
 #include <net/link_layer.hpp>
 #include <net/ethernet/ethernet.hpp>
+#include <deque>
 #include <vector>
 
 class e1000 : public net::Link_layer<net::Ethernet>
@@ -26,11 +27,11 @@ public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
   static const int DRIVER_OFFSET = 2;
-  static const int NUM_TX_DESC   = 64;
-  static const int NUM_RX_DESC   = 128;
+  static const int NUM_TX_DESC   = 256;
+  static const int NUM_RX_DESC   = 256;
 
-  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
-  { return std::make_unique<e1000>(d); }
+  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d, const uint16_t MTU)
+  { return std::make_unique<e1000>(d, MTU); }
 
   const char* driver_name() const override {
     return "e1000";
@@ -41,7 +42,7 @@ public:
   }
 
   uint16_t MTU() const noexcept override {
-    return 1500;
+    return m_mtu;
   }
 
   uint16_t packet_len() const noexcept {
@@ -60,7 +61,7 @@ public:
   void transmit(net::Packet_ptr pckt);
 
   /** Constructor. @param pcidev an initialized PCI device. */
-  e1000(hw::PCI_Device& pcidev);
+  e1000(hw::PCI_Device& pcidev, uint16_t MTU);
 
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override {
@@ -78,8 +79,19 @@ public:
 private:
   void intr_enable();
   void intr_disable();
+  void intr_cause_clear();
   void link_up();
   void retrieve_hw_addr();
+  void config_msix();
+
+  void wait_millis(int);
+
+  void init_filters();
+  void set_filter(int, MAC::Addr);
+  uint64_t construct_filter(MAC::Addr);
+
+  void     detect_eeprom();
+  uint32_t read_eeprom(uint8_t addr);
 
   uint32_t read_cmd(uint16_t cmd);
   void     write_cmd(uint16_t cmd, uint32_t val);
@@ -87,19 +99,25 @@ private:
   net::Packet_ptr recv_packet(uint8_t*, uint16_t);
   uintptr_t       new_rx_packet();
   void event_handler();
-  void recv_handler();
-  bool can_transmit();
+  void receive_handler();
+  void transmit_handler();
+  uint16_t free_transmit_descr() const noexcept;
+  bool can_transmit() const noexcept;
   void transmit_data(uint8_t*, uint16_t);
+  void do_release_transmitted();
   void xmit_kick();
   static void do_deferred_xmit();
 
   hw::PCI_Device& m_pcidev;
   std::vector<uint8_t> irqs;
+  bool         use_mmio = false;
+  bool         use_eeprom = false;
+  bool         use_msix = false;
+  bool         link_state_up = false;
   uint16_t     io_base;
   uintptr_t    shm_base;
-  MAC::Addr    hw_addr;
-
-  uint8_t m_irq;
+  MAC::Addr      hw_addr;
+  const uint16_t m_mtu;
 
   struct rx_desc
   {
@@ -108,7 +126,7 @@ private:
     uint16_t checksum;
     uint8_t  status;
     uint8_t  errors;
-    uint16_t special;
+    uint16_t vlan_tag;
   } __attribute__((packed, aligned(16)));
   struct tx_desc
   {
@@ -118,7 +136,7 @@ private:
     uint8_t  cmd;
     uint8_t  status;
     uint8_t  css;
-    uint16_t special;
+    uint16_t vlan_tag;
   } __attribute__((packed, aligned(16)));
 
   struct rx_t {
@@ -128,7 +146,9 @@ private:
 
   struct tx_t {
     tx_desc desc[NUM_TX_DESC];
+    std::deque<net::Packet*> sent;
     uint16_t current = 0;
+    uint16_t sent_id = 0;
     bool deferred = false;
   } tx;
 
