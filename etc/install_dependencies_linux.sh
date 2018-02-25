@@ -64,7 +64,7 @@ if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 	for package in $ALL_DEPENDENCIES; do
 		dpkg-query -W $package > /dev/null 2>&1
 		if [ $? -eq 0 ]; then
-			printf '    \e[32m%-15s\e[0m %-20s %s \n'\
+			printf '\e[32m%-15s\e[0m %-20s %s \n'\
 				"INSTALLED" $(dpkg-query -W $package)
 		else
 			printf '\e[31m%-15s\e[0m %-20s %s \n'\
