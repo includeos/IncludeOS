@@ -24,6 +24,7 @@
 #include <file_fd.hpp>
 #include <errno.h>
 #include <posix_strace.hpp>
+#include <system_log>
 
 static const int RNG_FD = 4;
 
@@ -103,7 +104,7 @@ int read(int fd, void* buf, size_t len)
 int write(int fd, const void* ptr, size_t len)
 {
   if (fd < 4) {
-    OS::print((const char*) ptr, len);
+    SystemLog::write((const char*) ptr, len);
     return len;
   }
   PRINT("write(%d, %p, %lu)\n", fd, ptr, len);
