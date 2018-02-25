@@ -71,7 +71,6 @@ function print_installed {
 function print_missing {
   printf '\e[31m%-15s\e[0m %-20s %s \n'\
     "MISSING" $1
-
 }
 
 if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
