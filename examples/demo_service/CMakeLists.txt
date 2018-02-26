@@ -30,15 +30,14 @@ if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
 else()
   set(DRIVERS
       virtionet     # Virtio networking
-      # virtioblk   # Virtio block device
+      vmxnet3
+      boot_logger   # Display boot information
 
       # Use "boot --drivers ." to see other drivers
     )
 endif()
 
 set(PLUGINS
-    autoconf  # configuration from config.json
-
     # Use "boot --plugins ." to see other plugins
   )
 
