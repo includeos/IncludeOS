@@ -137,15 +137,20 @@ namespace http {
 
   void Client_connection::end_response(Error err)
   {
-    // move response to a copy in case of callback result in new request
-    Ensures(on_response_);
-    auto callback = std::move(on_response_);
-    on_response_.reset();
+    // If the request has timed out, but the response is received later,
+    // just discard (we can't do anything because we have no callback).
+    // This MAY have side effects if the connection is reused and
+    // a delayed response is received
+    if (on_response_) {
+      // move response to a copy in case of callback result in new request
+      auto callback = std::move(on_response_);
+      on_response_.reset();
 
-    // stop timeout timer
-    timer_.stop();
+      // stop timeout timer
+      timer_.stop();
 
-    callback(err, std::move(res_), *this);
+      callback(err, std::move(res_), *this);
+    }
     end();
     /*if(!released())
     {

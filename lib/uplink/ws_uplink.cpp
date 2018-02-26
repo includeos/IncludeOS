@@ -129,7 +129,8 @@ namespace uplink {
     client_->post(http::URI{url},
       { {"Content-Type", "application/json"} },
       auth_data(),
-      {this, &WS_uplink::handle_auth_response});
+      {this, &WS_uplink::handle_auth_response},
+      http::Client::Options{15s});
   }
 
   void WS_uplink::handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&)
