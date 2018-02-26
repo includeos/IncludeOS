@@ -175,6 +175,13 @@ namespace x86 {
       // create SDT pointer from 32-bit address
       // NOTE: don't touch!
       auto* sdt = (SDTHeader*) (uintptr_t) (*(uint32_t*) addr);
+
+      addr += 4; total--;
+
+      // some entries seems to be null depending on hypervisor
+      if(sdt == nullptr)
+        continue;
+
       // find out which SDT it is
       switch (sdt->sigint()) {
       case APIC_t:
@@ -192,8 +199,6 @@ namespace x86 {
       default:
         debug("Signature: %.*s (u=%u)\n", 4, sdt->Signature, sdt->sigint());
       }
-
-      addr += 4; total--;
     }
     debug("Finished walking SDTs\n");
   }
