@@ -169,7 +169,7 @@ protected:
 class HeapRingBuffer : public RingBuffer {
 public:
   HeapRingBuffer(int size)
-    : RingBuffer(new char[capacity()], size) {}
+    : RingBuffer(new char[size], size) {}
   virtual ~HeapRingBuffer() {
     delete[] this->buffer;
   }
