@@ -27,8 +27,9 @@ public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
   static const int DRIVER_OFFSET = 2;
-  static const int NUM_TX_DESC   = 256;
-  static const int NUM_RX_DESC   = 256;
+  static const int NUM_TX_DESC   = 64;
+  static const int NUM_TX_QUEUE  = 64;
+  static const int NUM_RX_DESC   = 64;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d, const uint16_t MTU)
   { return std::make_unique<e1000>(d, MTU); }
@@ -65,7 +66,8 @@ public:
 
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override {
-    return 1;
+    if (sendq_size >= NUM_TX_QUEUE) return 0;
+    return free_transmit_descr() + NUM_TX_QUEUE - sendq_size;
   }
 
   void flush() override;
@@ -154,5 +156,6 @@ private:
 
   // sendq as packet chain
   net::Packet_ptr  sendq = nullptr;
+  size_t           sendq_size = 0;
   net::BufferStore bufstore_;
 };
