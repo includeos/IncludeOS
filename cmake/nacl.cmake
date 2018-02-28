@@ -18,7 +18,7 @@ ExternalProject_Add(nacl_bin
 set(NACL_DIR ${INCLUDEOS_ROOT}/NaCl)
 set(NACL_EXE ${NACL_DIR}/NaCl.py)
 set(NACL_SRC
-  ${NACL_DIR}/cpp_template.py
+  ${NACL_DIR}/cpp_transpile_function.py
   ${NACL_DIR}/cpp_template.mustache
   ${NACL_DIR}/cpp_resolve_values.py
   ${NACL_DIR}/shared_constants.py
