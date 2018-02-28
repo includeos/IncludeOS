@@ -28,20 +28,18 @@ namespace fs
   // new singleton interface for the memdisk
   inline Disk& memdisk()
   {
-    static MemDisk device;
-    static Disk    disk {device};
+    static Disk    disk {MemDisk::get()};
     return disk;
   }
   // new_shared_memdisk() very likely contains FAT
   inline Disk_ptr shared_memdisk()
   {
-    static MemDisk device;
     static std::weak_ptr<Disk> disk;
 
     if(auto ptr = disk.lock())
       return ptr;
 
-    auto ptr = std::make_shared<Disk>(device);
+    auto ptr = std::make_shared<Disk>(MemDisk::get());
     disk = ptr;
     return ptr;
   }
