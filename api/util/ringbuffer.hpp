@@ -22,19 +22,14 @@
 #include <cassert>
 #include <cstdio>
 
+/**
+ *  See:
+ *  HeapRingBuffer
+ *  MemoryRingBuffer
+**/
+
 class RingBuffer {
 public:
-  RingBuffer(int size)
-    : cap(size), start(0), end(0), used(0)
-  {
-    assert(size > 0);
-    this->buffer = new char[capacity()];
-  }
-  ~RingBuffer()
-  {
-    delete[] this->buffer;
-  }
-
   int write(const void* buffer, int length) noexcept
   {
     const char* data = (const char*) buffer;
@@ -150,19 +145,54 @@ public:
     return this->buffer;
   }
 
-private:
+protected:
+  virtual ~RingBuffer() = 0;
+  RingBuffer(char* rbuffer, int size)
+    : buffer(rbuffer), cap(size)
+  {
+    assert(size > 0);
+  }
+
   const char* at_start() const noexcept {
     return &this->buffer[this->start];
   }
   char* at_end() const noexcept {
     return &this->buffer[this->end];
   }
-
   char* buffer;
   int  cap;
-  int  start;
-  int  end;
-  int  used;
+  int  start = 0;
+  int  end   = 0;
+  int  used  = 0;
 };
+
+class HeapRingBuffer : public RingBuffer {
+public:
+  HeapRingBuffer(int size)
+    : RingBuffer(new char[size], size) {}
+  virtual ~HeapRingBuffer() {
+    delete[] this->buffer;
+  }
+};
+
+class MemoryRingBuffer : public RingBuffer {
+public:
+  MemoryRingBuffer(char* location, int size)
+    : RingBuffer(location, size) {}
+  virtual ~MemoryRingBuffer() {}
+};
+
+template <int N>
+class FixedRingBuffer : public RingBuffer {
+public:
+  FixedRingBuffer()
+    : RingBuffer(m_buffer, N) {}
+  virtual ~FixedRingBuffer() {}
+
+private:
+  char m_buffer[N];
+};
+
+inline RingBuffer::~RingBuffer() {}
 
 #endif

@@ -5,6 +5,9 @@
 #
 # ...There are probably nicer solutions, so please PR if you know them.
 
+# make LiveUpdate visible to drivers
+include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
+
 add_library(disable_paging STATIC disable_paging.cpp)
 add_dependencies(disable_paging PrecompiledLibraries)
 
