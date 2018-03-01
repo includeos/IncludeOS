@@ -202,6 +202,10 @@ void WebSocket::read_data(net::tcp::buffer_t buf)
     else
     {
       const size_t written = create_message(data, len);
+
+      if(UNLIKELY(message == nullptr))
+        return; // Something was invalid, error has been called and stream closed.
+
       len -= written;
       data += len;
     }
@@ -250,12 +254,13 @@ size_t WebSocket::create_message(const uint8_t* buf, size_t len)
 
   const auto& hdr = *(const ws_header*) buf;
 
-  // TODO: Add configuration for this, hardcoded max msgs of 5MB for now
-  if (hdr.data_length() > (1024 * 1024 * 5)) {
-    failure("read: Maximum message size exceeded (5MB)");
+  if(max_msg_size != 0 and hdr.data_length() > max_msg_size)
+  {
+    std::string msg{"read: Maximum message size exceeded: "};
+    msg.append(std::to_string(max_msg_size)).append(" bytes");
 
-    // consume and discard current message, leave any remaining data in buffer
-    return std::min(hdr.data_length(), len);
+    failure(std::move(msg));
+    return 0;
   }
 
   /*
@@ -421,7 +426,7 @@ void WebSocket::tcp_closed()
 }
 
 WebSocket::WebSocket(net::Stream_ptr stream_ptr, bool client)
-  : stream(std::move(stream_ptr)), clientside(client)
+  : stream(std::move(stream_ptr)), max_msg_size(0), clientside(client)
 {
   assert(stream != nullptr);
   this->stream->on_read(8*1024, {this, &WebSocket::read_data});
@@ -440,6 +445,8 @@ WebSocket::WebSocket(WebSocket&& other)
   stream   = std::move(other.stream);
   clientside = other.clientside;
   other.ping_timer.stop(); // ..
+
+  max_msg_size = other.max_msg_size;
 }
 WebSocket::~WebSocket()
 {
