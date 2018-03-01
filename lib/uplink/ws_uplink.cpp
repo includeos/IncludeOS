@@ -307,7 +307,7 @@ namespace uplink {
     }
   }
 
-  void WS_uplink::update(const std::vector<char>& buffer)
+  void WS_uplink::update(std::vector<char> buffer)
   {
     static SHA1 checksum;
     checksum.update(buffer);
@@ -317,21 +317,26 @@ namespace uplink {
     auto trans = Transport{Header{Transport_code::UPDATE, static_cast<uint32_t>(update_hash_.size())}};
     trans.load_cargo(update_hash_.data(), update_hash_.size());
     ws_->write(trans.data().data(), trans.data().size());
+
+    // make sure to flush the driver rings so there is room for the next packets
+    inet_.nic().flush();
+    // can't wait for defered log flush due to liveupdating
+    uplink::Log::get().flush();
+    // close the websocket (and tcp) gracefully
     ws_->close();
+    // make sure both the log and the close is flushed before updating
+    inet_.nic().flush();
 
     // do the update
-    Timers::oneshot(std::chrono::milliseconds(10),
-    [this, copy = buffer] (int) {
-      try {
-        liu::LiveUpdate::exec(copy);
-      }
-      catch (std::exception& e) {
-        INFO2("LiveUpdate::exec() failed: %s\n", e.what());
-        liu::LiveUpdate::restore_environment();
-        // establish new connection
-        this->auth();
-      }
-    });
+    try {
+      liu::LiveUpdate::exec(std::move(buffer));
+    }
+    catch (std::exception& e) {
+      INFO2("LiveUpdate::exec() failed: %s\n", e.what());
+      liu::LiveUpdate::restore_environment();
+      // establish new connection
+      this->auth();
+    }
   }
 
   template <typename Writer, typename Stack_ptr>
