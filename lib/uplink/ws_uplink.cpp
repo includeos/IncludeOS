@@ -479,7 +479,11 @@ namespace uplink {
     ws_->write(transport.data().data(), transport.data().size());
   }
 
-  void WS_uplink::send_message(Transport_code code, const char* data, size_t len) {
+  void WS_uplink::send_message(Transport_code code, const char* data, size_t len)
+  {
+    if(UNLIKELY(not is_online()))
+      return;
+
     auto transport = Transport{Header{code, static_cast<uint32_t>(len)}};
 
     transport.load_cargo(data, len);
