@@ -303,7 +303,7 @@ namespace net {
       this->offset += total;
     }
 
-    // Only transmit if chain_head != nullptr
+    // Only transmit if a chain actually was produced
     if (chain_head) {
       Expects(chain_head->ip_protocol() == Protocol::UDP);
       // ship the packet
