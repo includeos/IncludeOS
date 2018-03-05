@@ -55,7 +55,7 @@ public:
 
   void send_uplink();
 
-  void update(const std::vector<char>& buffer);
+  void update(std::vector<char> buffer);
 
   void send_error(const std::string& err);
 

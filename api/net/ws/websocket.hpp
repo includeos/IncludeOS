@@ -258,6 +258,11 @@ public:
     return stream->get_cpuid();
   }
 
+  // 0 == unlimited
+  void set_max_message_size(uint32_t sz) noexcept {
+    max_msg_size = sz;
+  }
+
   WebSocket(net::Stream_ptr, bool);
   WebSocket(WebSocket&&);
   ~WebSocket();
@@ -266,6 +271,7 @@ private:
   net::Stream_ptr stream;
   Timer ping_timer{{this, &WebSocket::pong_timeout}};
   Message_ptr message;
+  uint32_t max_msg_size;
   bool clientside;
 
   WebSocket(const WebSocket&) = delete;
