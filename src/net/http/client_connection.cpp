@@ -109,7 +109,7 @@ namespace http {
       {
         try
         {
-          const unsigned conlen = std::stoul(header.value(header::Content_Length).to_string());
+          const unsigned conlen = std::stoul(std::string(header.value(header::Content_Length)));
           const unsigned body_size = res_->body().size();
           debug2("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
             req_->uri().to_string().to_string().c_str(), data.size(), conlen, body_size);
@@ -137,15 +137,20 @@ namespace http {
 
   void Client_connection::end_response(Error err)
   {
-    // move response to a copy in case of callback result in new request
-    Ensures(on_response_);
-    auto callback = std::move(on_response_);
-    on_response_.reset();
+    // If the request has timed out, but the response is received later,
+    // just discard (we can't do anything because we have no callback).
+    // This MAY have side effects if the connection is reused and
+    // a delayed response is received
+    if (on_response_) {
+      // move response to a copy in case of callback result in new request
+      auto callback = std::move(on_response_);
+      on_response_.reset();
 
-    // stop timeout timer
-    timer_.stop();
+      // stop timeout timer
+      timer_.stop();
 
-    callback(err, std::move(res_), *this);
+      callback(err, std::move(res_), *this);
+    }
     end();
     /*if(!released())
     {

@@ -9,10 +9,6 @@ endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
 
-message(STATUS "Target CPU architecture ${ARCH}")
-set(TRIPLE "${ARCH}-pc-linux-elf")
-set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
-set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 message(STATUS "Target triple ${TRIPLE}")
 
 # defines $CAPABS depending on installation
@@ -31,6 +27,18 @@ else()
   set(CAPABS "${CAPABS} -m32")
 endif()
 enable_language(ASM_NASM)
+
+if (NOT threading)
+  add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
+  message(STATUS "Building without threading / SMP")
+else()
+  message(STATUS "Building with threading / SMP")
+endif()
+
+if (coroutines)
+  set(CAPABS "${CAPABS} -fcoroutines-ts ")
+endif()
 
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
@@ -53,11 +61,11 @@ if (undefined_san)
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=${CPP_VERSION}")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -std=c++14 -D_LIBCPP_HAS_NO_THREADS=1")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -std=${CPP_VERSION} ")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
@@ -288,6 +296,8 @@ if(${ARCH} STREQUAL "x86_64")
   set_target_properties(libcrypto PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libcrypto PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrypto.a)
   set(OPENSSL_LIBS libssl libcrypto)
+
+  include_directories(${INSTALL_LOC}/${ARCH}/include/include)
 endif()
 
 add_library(libosdeps STATIC IMPORTED)
@@ -429,6 +439,7 @@ target_link_libraries(service
   libc
   libos
   libcxx
+  libarch
   libm
   libg
   libgcc
@@ -459,7 +470,3 @@ add_custom_target(
   COMMAND ${INSTALL_LOC}/bin/vmbuild ${BINARY} ${INSTALL_LOC}/${ARCH}/boot/bootloader
   DEPENDS service
 )
-
-# install binary directly to prefix (which should be service root)
-install(TARGETS service                                 DESTINATION ${CMAKE_INSTALL_PREFIX})
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${BINARY}.img DESTINATION ${CMAKE_INSTALL_PREFIX})

@@ -20,7 +20,7 @@
 #define X86_PIT_HPP
 #include <delegate>
 #include <chrono>
-#include <hertz>
+#include <util/units.hpp>
 
 namespace x86
 {
@@ -28,6 +28,9 @@ namespace x86
    * Programmable Interval Timer
    *
   **/
+
+  using namespace util::literals;
+
   class PIT {
   public:
     using timeout_handler = delegate<void()>;
@@ -58,6 +61,9 @@ namespace x86
     /** Estimate cpu frequency based on the fixed PIT frequency and rdtsc.
         @Note This is an asynchronous function.  */
     static double estimate_CPU_frequency();
+
+    /** Halt until PIT interrupt is triggered (one PIT cycle) **/
+    static void blocking_cycles(int cnt);
 
     /** Get the (single) instance. */
     static PIT& get() {

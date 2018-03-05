@@ -58,13 +58,14 @@ WebSocket_ptr WebSocket::upgrade(http::Request& req, http::Response_writer& writ
 {
   // validate handshake
   auto view = req.header().value("Sec-WebSocket-Version");
-  if (view == nullptr || view != "13") {
+
+  if (view.empty() || view.compare("13") != 0) {
     writer.write_header(http::Bad_Request);
     return nullptr;
   }
 
   auto key = req.header().value("Sec-WebSocket-Key");
-  if (key == nullptr || key.size() < 16) {
+  if (key.empty() || key.size() < 16) {
     writer.write_header(http::Bad_Request);
     return nullptr;
   }
@@ -73,7 +74,7 @@ WebSocket_ptr WebSocket::upgrade(http::Request& req, http::Response_writer& writ
   auto& header = writer.header();
   header.set_field(http::header::Connection, "Upgrade");
   header.set_field(http::header::Upgrade,    "WebSocket");
-  header.set_field("Sec-WebSocket-Accept", encode_hash(key.to_string()));
+  header.set_field("Sec-WebSocket-Accept", encode_hash(std::string(key)));
   writer.write_header(http::Switching_Protocols);
 
   auto stream = writer.connection().release();
@@ -133,7 +134,7 @@ http::Server::Request_handler WebSocket::create_request_handler(
       if (on_accept)
       {
         const bool accepted = on_accept(writer->connection().peer(),
-                                       req->header().value("Origin").to_string());
+                                       std::string(req->header().value("Origin")));
         if (not accepted)
         {
           writer->write_header(http::Unauthorized);
@@ -171,7 +172,7 @@ void WebSocket::connect(
   // doesn't have to be extremely random, just random
   std::string key  = base64::encode(generate_key());
   http::Header_set ws_headers {
-      {"Host",       remote.to_string()},
+      {"Host",       std::string(remote)},
       {"Connection", "Upgrade"  },
       {"Upgrade",    "WebSocket"},
       {"Sec-WebSocket-Version", "13"},
@@ -201,6 +202,10 @@ void WebSocket::read_data(net::tcp::buffer_t buf)
     else
     {
       const size_t written = create_message(data, len);
+
+      if(UNLIKELY(message == nullptr))
+        return; // Something was invalid, error has been called and stream closed.
+
       len -= written;
       data += len;
     }
@@ -249,12 +254,13 @@ size_t WebSocket::create_message(const uint8_t* buf, size_t len)
 
   const auto& hdr = *(const ws_header*) buf;
 
-  // TODO: Add configuration for this, hardcoded max msgs of 5MB for now
-  if (hdr.data_length() > (1024 * 1024 * 5)) {
-    failure("read: Maximum message size exceeded (5MB)");
+  if(max_msg_size != 0 and hdr.data_length() > max_msg_size)
+  {
+    std::string msg{"read: Maximum message size exceeded: "};
+    msg.append(std::to_string(max_msg_size)).append(" bytes");
 
-    // consume and discard current message, leave any remaining data in buffer
-    return std::min(hdr.data_length(), len);
+    failure(std::move(msg));
+    return 0;
   }
 
   /*
@@ -420,7 +426,7 @@ void WebSocket::tcp_closed()
 }
 
 WebSocket::WebSocket(net::Stream_ptr stream_ptr, bool client)
-  : stream(std::move(stream_ptr)), clientside(client)
+  : stream(std::move(stream_ptr)), max_msg_size(0), clientside(client)
 {
   assert(stream != nullptr);
   this->stream->on_read(8*1024, {this, &WebSocket::read_data});
@@ -439,6 +445,8 @@ WebSocket::WebSocket(WebSocket&& other)
   stream   = std::move(other.stream);
   clientside = other.clientside;
   other.ping_timer.stop(); // ..
+
+  max_msg_size = other.max_msg_size;
 }
 WebSocket::~WebSocket()
 {

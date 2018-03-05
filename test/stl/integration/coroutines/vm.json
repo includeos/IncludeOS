@@ -1,0 +1,4 @@
+{
+  "image" : "test_coro.img",
+  "smp" : 5
+}

@@ -20,7 +20,6 @@ add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DOS_VERSION="v0.0.0.1")
 
-set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
@@ -33,7 +32,7 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
@@ -56,6 +55,7 @@ include_directories(
 set(LEST_UTIL
   ${TEST}/lest_util/lestmain.cxx
   ${TEST}/lest_util/os_mock.cpp
+  ${TEST}/lest_util/random.cpp
 )
 
 set(TEST_SOURCES
@@ -69,6 +69,8 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/events_test.cpp
   ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
+  ${TEST}/kernel/unit/memory.cpp
+  ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/net/unit/bufstore.cpp
@@ -121,6 +123,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslogd_test.cpp
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
+  ${TEST}/util/unit/bitops.cpp
 )
 
 set(OS_SOURCES
@@ -133,6 +136,7 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
+  ${SRC}/hw/nic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp
@@ -148,6 +152,7 @@ set(OS_SOURCES
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
+  ${SRC}/arch/x86_64/paging.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp

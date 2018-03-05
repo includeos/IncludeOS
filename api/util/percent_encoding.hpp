@@ -40,6 +40,7 @@
 #define PERCENT_ENCODING_HPP
 
 #include "detail/string_view"
+#include <string>
 
 namespace uri {
 

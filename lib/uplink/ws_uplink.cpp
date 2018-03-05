@@ -95,7 +95,7 @@ namespace uplink {
   void WS_uplink::store(liu::Storage& store, const liu::buffer_t*)
   {
     // BINARY HASH
-    store.add_string(0, binary_hash_);
+    store.add_string(0, update_hash_);
     // nanos timestamp of when update begins
     store.add<uint64_t> (1, OS::nanos_since_boot());
   }
@@ -129,7 +129,8 @@ namespace uplink {
     client_->post(http::URI{url},
       { {"Content-Type", "application/json"} },
       auth_data(),
-      {this, &WS_uplink::handle_auth_response});
+      {this, &WS_uplink::handle_auth_response},
+      http::Client::Options{15s});
   }
 
   void WS_uplink::handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&)
@@ -151,7 +152,7 @@ namespace uplink {
     retry_backoff = 0;
 
     MYINFO("Auth success (token received)");
-    token_ = res->body().to_string();
+    token_ = std::string(res->body());
 
     dock();
   }
@@ -306,31 +307,36 @@ namespace uplink {
     }
   }
 
-  void WS_uplink::update(const std::vector<char>& buffer)
+  void WS_uplink::update(std::vector<char> buffer)
   {
     static SHA1 checksum;
     checksum.update(buffer);
-    binary_hash_ = checksum.as_hex();
+    update_hash_ = checksum.as_hex();
 
     // send a reponse with the to tell we received the update
-    auto trans = Transport{Header{Transport_code::UPDATE, static_cast<uint32_t>(binary_hash_.size())}};
-    trans.load_cargo(binary_hash_.data(), binary_hash_.size());
+    auto trans = Transport{Header{Transport_code::UPDATE, static_cast<uint32_t>(update_hash_.size())}};
+    trans.load_cargo(update_hash_.data(), update_hash_.size());
     ws_->write(trans.data().data(), trans.data().size());
+
+    // make sure to flush the driver rings so there is room for the next packets
+    inet_.nic().flush();
+    // can't wait for defered log flush due to liveupdating
+    uplink::Log::get().flush();
+    // close the websocket (and tcp) gracefully
     ws_->close();
+    // make sure both the log and the close is flushed before updating
+    inet_.nic().flush();
 
     // do the update
-    Timers::oneshot(std::chrono::milliseconds(10),
-    [this, copy = buffer] (int) {
-      try {
-        liu::LiveUpdate::exec(copy);
-      }
-      catch (std::exception& e) {
-        INFO2("LiveUpdate::exec() failed: %s\n", e.what());
-        liu::LiveUpdate::restore_environment();
-        // establish new connection
-        this->auth();
-      }
-    });
+    try {
+      liu::LiveUpdate::exec(std::move(buffer));
+    }
+    catch (std::exception& e) {
+      INFO2("LiveUpdate::exec() failed: %s\n", e.what());
+      liu::LiveUpdate::restore_environment();
+      // establish new connection
+      this->auth();
+    }
   }
 
   template <typename Writer, typename Stack_ptr>
@@ -473,7 +479,11 @@ namespace uplink {
     ws_->write(transport.data().data(), transport.data().size());
   }
 
-  void WS_uplink::send_message(Transport_code code, const char* data, size_t len) {
+  void WS_uplink::send_message(Transport_code code, const char* data, size_t len)
+  {
+    if(UNLIKELY(not is_online()))
+      return;
+
     auto transport = Transport{Header{code, static_cast<uint32_t>(len)}};
 
     transport.load_cargo(data, len);

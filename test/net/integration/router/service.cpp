@@ -15,22 +15,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #define DEBUG // Debug supression
-// #define NO_INFO
-
-#include <os>
+#include <service>
 #include <net/inet4>
 #include <net/router.hpp>
-#include <timers>
-
-#define USE_STACK_SAMPLING
-
 using namespace net;
-using namespace std::chrono;
 
-std::unique_ptr<Router<IP4> > router;
+static std::unique_ptr<Router<IP4>> router;
 
-bool route_checker(IP4::addr addr) {
+static bool
+route_checker(IP4::addr addr)
+{
   INFO("Route checker", "asked for route to IP %s", addr.to_string().c_str());
 
   bool have_route = router->route_check(addr);
@@ -45,12 +39,9 @@ bool route_checker(IP4::addr addr) {
   return have_route;
 }
 
-void ip_forward (Inet<IP4>& stack,  IP4::IP_packet_ptr pckt) {
-
-  // Packet could have been erroneously moved prior to this call
-  if (not pckt)
-    return;
-
+static void
+ip_forward (IP4::IP_packet_ptr pckt, Inet<IP4>& stack, Conntrack::Entry_ptr)
+{
   Inet<IP4>* route = router->get_first_interface(pckt->ip_dst());
 
   if (not route){
@@ -105,7 +96,7 @@ void Service::start(const std::string&)
     {{10, 0, 0, 0 }, { 255, 255, 255, 0}, {10, 0, 0, 1}, inet , 1 }
   };
 
-  router = std::make_unique<Router<IP4>>(Super_stack::inet().ip4_stacks(), routing_table);
+  router = std::make_unique<Router<IP4>>(routing_table);
 
   INFO("Router", "Routing enabled - routing table:");
 
@@ -113,7 +104,7 @@ void Service::start(const std::string&)
     INFO2("* %s/%i -> %s / %s, cost %i", r.net().str().c_str(),
           __builtin_popcount(r.netmask().whole),
           r.interface()->ifname().c_str(),
-          r.gateway().str().c_str(),
+          r.nexthop().to_string().c_str(),
           r.cost());
   printf("\n");
   INFO("Router","Service ready");

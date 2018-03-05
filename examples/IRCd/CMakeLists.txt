@@ -36,16 +36,27 @@ set(SOURCES
 # To add your own include paths:
 set(LOCAL_INCLUDES "")
 
-# DRIVERS / PLUGINS:
-set(DRIVERS
-  virtionet
-  vmxnet3
-  #boot_logger
-  )
 
-set (PLUGINS
-  uplink
-  )
+option(REAL_HW "Run on real hardware" ON)
+
+if (REAL_HW)
+  set(DRIVERS
+      boot_logger
+      disable_paging
+      e1000
+      vga_output
+      vga_emergency
+    )
+else()
+  set(DRIVERS
+      virtionet
+      vmxnet3
+      vga_output
+    )
+  set (PLUGINS
+      uplink
+    )
+endif()
 
 set(LIBRARIES libliveupdate.a)
 

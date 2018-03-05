@@ -1,45 +1,35 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ___API_HERTZ___
-#define ___API_HERTZ___
+#include <malloc.h>
+#include <errno.h>
 
-#include <chrono>
+extern "C" {
+int posix_memalign(void **memptr, size_t alignment, size_t size) {
 
-using Hz  = std::chrono::duration<double>; 
-using KHz = std::chrono::duration<double, std::kilo>;
-using MHz = std::chrono::duration<double, std::mega>;
-using GHz = std::chrono::duration<double, std::giga>;
+  if (alignment < sizeof(void*))
+    return EINVAL;
 
-constexpr Hz operator"" _hz(long double d) {
-  return Hz(d);
+  auto ptr =  memalign(alignment, size);
+
+  if (! ptr)
+    return errno;
+
+  *memptr = ptr;
+  return 0;
+};
 }
-
-constexpr KHz operator"" _khz(long double d) {
-  return KHz(d);
-}
-
-constexpr MHz operator"" _mhz(long double d) {
-  return MHz(d);
-}
-
-constexpr GHz operator"" _ghz(long double d) {
-  return GHz(d);
-}
-
-#endif //< ___API_HERTZ___

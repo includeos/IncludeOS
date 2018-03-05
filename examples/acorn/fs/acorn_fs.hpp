@@ -22,14 +22,9 @@
 #include <memdisk>
 #include <fs/disk.hpp>
 
-namespace acorn {
-
-using Disk_ptr = fs::Disk_ptr;
-
-void recursive_fs_dump(Disk_ptr disk, const std::vector<fs::Dirent>& entries, const int depth = 1);
-
-void list_static_content(Disk_ptr disk);
-
-} //< namespace acorn
+namespace acorn
+{
+  void list_static_content(const fs::File_system&);
+}
 
 #endif //< ACORN_FS_HPP

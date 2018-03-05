@@ -3,6 +3,13 @@
 #include <hw/pci_device.hpp>
 #include <info>
 
+//#define VERBOSE_MSIX
+#ifdef VERBOSE_MSIX
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
+
 #define MSIX_ENABLE    (1 << 15)
 #define MSIX_FUNC_MASK (1 << 14)
 #define MSIX_TBL_SIZE  0x7ff
@@ -17,15 +24,15 @@
 
 namespace hw
 {
-  void mm_write(intptr_t addr, uint32_t val)
+  inline void mm_write(intptr_t addr, uint32_t val)
   {
     *((uint32_t volatile*) addr) = val;
   }
-  uint32_t mm_read (intptr_t addr)
+  inline uint32_t mm_read (intptr_t addr)
   {
     return *(uint32_t volatile*) addr;
   }
-  uint32_t msix_addr_single_cpu(uint8_t cpu_id)
+  inline uint32_t msix_addr_for_cpu(uint8_t cpu_id)
   {
     // send to a specific APIC ID
     const uint32_t RH = 1;
@@ -33,10 +40,9 @@ namespace hw
     // create message address
     return 0xfee00000 | (cpu_id << 12) | (RH << 3) | (DM << 2);
   }
-  uint32_t msix_data_single_vector(uint8_t vector)
+  inline uint32_t msix_data_single_vector(uint8_t vector)
   {
-    // range 16 >= vector > 255
-    assert((vector & 0xF0) && vector != 0xff);
+    assert(vector >= 32 && vector != 0xff);
     const uint32_t DM = 0x1; // low-pri
     const uint32_t TM = 0;
 
@@ -93,9 +99,16 @@ namespace hw
     auto capbar_off = bar & ~MSIX_BIR_MASK;
     bar &= MSIX_BIR_MASK;
 
+    if (dev.validate_bar(bar) == false)
+    {
+      printf("PCI: Invalid BAR: %u\n", bar);
+      return 0;
+    }
     auto baroff = dev.get_bar(bar);
     assert(baroff != 0);
 
+    PRINT("[MSI-X] offset %p -> bir %u => %p  res: %p\n",
+          (void*) offset, bar, (void*) baroff, (void*) (capbar_off + baroff));
     return capbar_off + baroff;
   }
 
@@ -119,20 +132,28 @@ namespace hw
     // MSI-X table and pending bit array (PBA)
     this->table_addr = get_bar_paddr(cap + 4);
     this->pba_addr   = get_bar_paddr(cap + 8);
+    PRINT("[MSI-X] Table addr: %p  PBA addr: %p\n",
+          (void*) this->table_addr, (void*) this->pba_addr);
+
+    if (this->table_addr == 0) return;
+    if (this->pba_addr == 0) return;
+
     // get number of vectors we can get notifications from
-    this->vector_cnt = (func & MSIX_TBL_SIZE) + 1;
+    const size_t vector_cnt = (func & MSIX_TBL_SIZE) + 1;
 
     if (vector_cnt > 2048) {
-      printf("table addr: %p  pba addr: %p  vectors: %u\n",
+      printf("table addr: %p  pba addr: %p  vectors: %lu\n",
               (void*) table_addr, (void*) pba_addr, vectors());
-      assert(vectors() <= 2048 && "Unreasonably many MSI-X vectors");
+      printf("Unreasonably many MSI-X vectors!");
+      return;
     }
+    used_vectors.resize(vector_cnt);
 
-    // reset all entries
+    // manually mask all entries
     for (size_t i = 0; i < this->vectors(); i++) {
       mask_entry(i);
-      zero_entry(i);
     }
+    PRINT("[MSI-X] Enabled with %u vectors\n", this->vectors());
 
     // unmask vectors
     func &= ~MSIX_FUNC_MASK;
@@ -144,11 +165,9 @@ namespace hw
   {
     // find free table entry
     uint16_t vec;
-    for (vec = 0; vec < this->vectors(); vec++)
+    for (vec = 0; vec < used_vectors.size(); vec++)
     {
-      // read data register
-      auto reg = get_entry(vec, ENT_MSG_DATA);
-      if ((mm_read(reg) & 0xff) == 0) break;
+      if (used_vectors[vec] == false) break;
     }
     assert (vec != this->vectors());
     // use free table entry
@@ -162,14 +181,12 @@ namespace hw
     assert(idx < vectors());
     INFO2("MSI-X vector %u pointing to cpu %u intr %u", idx, cpu, intr);
 
-    // mask entry
     mask_entry(idx);
-
-    mm_write(get_entry(idx, ENT_MSG_ADDR), msix_addr_single_cpu(cpu));
+    mm_write(get_entry(idx, ENT_MSG_ADDR), msix_addr_for_cpu(cpu));
     mm_write(get_entry(idx, ENT_MSG_UPPER), 0x0);
     mm_write(get_entry(idx, ENT_MSG_DATA), msix_data_single_vector(intr));
-
-    // unmask entry
     unmask_entry(idx);
+    // mark as being used
+    this->used_vectors.at(idx) = true;
   }
 }

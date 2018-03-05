@@ -10,15 +10,11 @@ project (256_color_vga)
 set(SERVICE_NAME "256 Color VGA Example Service")
 
 # Name of your service binary
-set(BINARY       "256_color_vga_example")
-
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
+set(BINARY       "vga_gfx")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp int32.asm
+  service.cpp
   )
 
 # include service build script

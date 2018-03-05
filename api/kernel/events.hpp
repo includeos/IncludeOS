@@ -20,10 +20,12 @@
 
 #include <delegate>
 #include <array>
+#include <common>
 #include <deque>
 #include <smp>
 
 #define IRQ_BASE    32
+//#define DEBUG_ALL_INTERRUPTS
 
 class alignas(SMP_ALIGN) Events {
 public:
@@ -81,9 +83,25 @@ private:
 
 inline void Events::trigger_event(const uint8_t evt)
 {
-  event_pend[evt] = true;
-  // increment events received
-  received_array[evt]++;
+#ifdef DEBUG_ALL_INTERRUPTS
+  bool is_subbed = false;
+  for (auto intr : sublist) {
+    if (intr == evt) { is_subbed = true; break; }
+  }
+  if (UNLIKELY(is_subbed == false)) {
+    printf("! Unhandled interrupt: %u\n", evt);
+  }
+#endif
+  if (LIKELY(evt < NUM_EVENTS)) {
+    event_pend[evt] = true;
+    // increment events received
+    received_array[evt]++;
+  }
+#ifdef DEBUG_ALL_INTERRUPTS
+  else {
+    printf("! Received out of range intr %u\n", evt);
+  }
+#endif
 }
 
 #endif //< KERNEL_EVENTS_HPP

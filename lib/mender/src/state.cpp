@@ -44,7 +44,7 @@ State::Result Auth_wait::handle(Client& cli, Context& ctx)
   else
   {
     auto& res = *ctx.response;
-    const auto body{res.body().to_string()};
+    const auto body{std::string(res.body())};
     switch(res.status_code())
     {
       MENDER_INFO("Auth_wait", "%s", body.c_str());
@@ -152,4 +152,3 @@ State::Result Error_state::handle(Client&, Context&)
   MENDER_INFO("Error_state", "Previous state %s resulted in error.", prev_->to_string().c_str());
   return AWAIT_EVENT;
 }
-

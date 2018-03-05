@@ -25,7 +25,7 @@
 /// x86-related locking stuff ///
 #if defined(ARCH_x86)
 // Intel 3a  8.10.6.7: 128-byte boundary
-typedef volatile int spinlock_t __attribute__((aligned(128)));
+typedef unsigned int spinlock_t __attribute__((aligned(128)));
 
 #ifdef INCLUDEOS_SINGLE_THREADED
 inline void lock(spinlock_t&) {}

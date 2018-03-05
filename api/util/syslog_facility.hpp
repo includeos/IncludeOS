@@ -21,7 +21,6 @@
 #define LOG_INTERNAL  5   /* Messages generated internally by syslogd */
 
 #include <cstdio>
-#include <iostream>
 #include <string>
 #include <map>
 
@@ -186,14 +185,14 @@ private:
 
 class Syslog_print : public Syslog_facility {
 public:
-  void syslog(const std::string& log_message);
-  inline void settings(const net::UDP::addr_t, const net::UDP::port_t) {}
-  inline net::UDP::addr_t ip() const noexcept { return 0; }
-  inline net::UDP::port_t port() const noexcept { return 0; }
-  void open_socket() {}
-  void close_socket() {}
+  void syslog(const std::string& log_message) override;
+  void settings(const net::UDP::addr_t, const net::UDP::port_t) override {}
+  net::UDP::addr_t ip() const noexcept override { return 0; }
+  net::UDP::port_t port() const noexcept override { return 0; }
+  void open_socket() override {}
+  void close_socket() override {}
 
-  std::string build_message_prefix(const std::string& binary_name);
+  std::string build_message_prefix(const std::string& binary_name) override;
 
   Syslog_print() : Syslog_facility() {}
   Syslog_print(const char* ident, int facility) : Syslog_facility(ident, facility) {}
