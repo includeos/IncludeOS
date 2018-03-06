@@ -25,7 +25,13 @@ __amd64_registers:
 global __cpu_except_%1:function
 __cpu_except_%1:
     call save_cpu_regs
-    ;; set parameters and enter panic
+
+    ;; reveal origin stack frame
+    push rbp
+    mov  rbp, rsp
+    ;; re-align stack
+    and rsp, ~0xF
+    ;; enter panic
     mov rdi, __amd64_registers
     mov rsi, %1
     mov rdx, 0
@@ -36,9 +42,15 @@ __cpu_except_%1:
 global __cpu_except_%1:function
 __cpu_except_%1:
     call save_cpu_regs
+
     ;; pop error code
     pop rdx
-    ;; set parameters and enter panic
+    ;; reveal origin stack frame
+    push rbp
+    mov  rbp, rsp
+    ;; re-align stack
+    and rsp, ~0xF
+    ;; enter panic
     mov rdi, __amd64_registers
     mov rsi, %1
     call __cpu_exception
