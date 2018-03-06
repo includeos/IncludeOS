@@ -5,6 +5,12 @@
 #include <smp>
 #include <kernel/memory.hpp>
 
+#ifdef DEBUG_IST
+#define IST_PRINT(X, ...) printf(X, __VA_ARGS__)
+#else
+#define IST_PRINT(X, ...)
+#endif
+
 extern "C" void __amd64_load_tr(uint16_t);
 
 struct gdtr64 {
@@ -13,9 +19,9 @@ struct gdtr64 {
 } __attribute__((packed));
 extern gdtr64 __gdt64_base_pointer;
 
-#define INTR_SIZE  4096 * 10
-#define NMI_SIZE   4096 * 20
-#define DFI_SIZE   4096 * 10
+#define INTR_SIZE  4096 * 20
+#define NMI_SIZE   4096 * 64
+#define DFI_SIZE   4096 * 20
 #define GUARD_SIZE 4096
 
 struct stack {
@@ -27,7 +33,6 @@ static stack create_stack(size_t size, const char* name)
 {
   using namespace os;
   using namespace util::bitops;
-
 
   // Virtual memory area for CPU stacks.
   // TODO randomize location / ask virtual memory allocator
@@ -41,6 +46,9 @@ static stack create_stack(size_t size, const char* name)
 
   // Allocate physical memory
   auto* phys = (char*)memalign(4096, size);
+  IST_PRINT("* Creating stack '%s' @ %p (%p phys) \n",
+         name, (void*)stacks_begin, phys);
+
   const auto map = mem::map({stacks_begin, (uintptr_t)phys, flags, size}, name);
 
   Expects(map);
