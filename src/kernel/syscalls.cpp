@@ -119,7 +119,7 @@ int kill(pid_t pid, int sig) THROW {
 struct alignas(SMP_ALIGN) context_buffer
 {
   std::array<char, 512> buffer;
-  bool is_panicking = false;
+  int panics = 0;
 };
 static SMP_ARRAY<context_buffer> contexts;
 
@@ -133,12 +133,12 @@ char*  get_crash_context_buffer()
 }
 bool OS::is_panicking() noexcept
 {
-  return PER_CPU(contexts).is_panicking;
+  return PER_CPU(contexts).panics > 0;
 }
 extern "C"
 void cpu_enable_panicking()
 {
-  PER_CPU(contexts).is_panicking = true;
+  PER_CPU(contexts).panics++;
 }
 
 static OS::on_panic_func panic_handler = nullptr;
@@ -147,6 +147,7 @@ void OS::on_panic(on_panic_func func)
   panic_handler = std::move(func);
 }
 
+extern "C" void double_fault(const char* why);
 extern "C" __attribute__((noreturn)) void panic_epilogue(const char*);
 extern "C" __attribute__ ((weak))
 void panic_perform_inspection_procedure() {}
@@ -164,6 +165,9 @@ void panic(const char* why)
 {
 asm("panic_begin:");
   cpu_enable_panicking();
+  if (PER_CPU(contexts).panics > 4)
+    double_fault(why);
+
   const int current_cpu = SMP::cpu_id();
 
   SMP::global_lock();
@@ -190,9 +194,7 @@ asm("panic_begin:");
          (ulong) (heap_end - heap_begin) / 1024,
          (ulong) heap_total / 1024); //, total * 100.0);
 
-  // call stack
   print_backtrace();
-
   fflush(stderr);
   SMP::global_unlock();
 
@@ -207,7 +209,7 @@ extern "C"
 void double_fault(const char* why)
 {
   SMP::global_lock();
-  fprintf(stderr, "\n%s\nCPU: %d, Reason: %s\n",
+  fprintf(stderr, "\n\n%s\nDouble fault! \nCPU: %d, Reason: %s\n",
           panic_signature, SMP::cpu_id(), why);
   SMP::global_unlock();
 

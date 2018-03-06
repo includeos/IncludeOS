@@ -205,6 +205,11 @@ namespace net {
     {
       WriteBuffer& buffer = sendq.front();
 
+      // If nothing is remaining, it probably means we're currently
+      // processing this buffer
+      if (UNLIKELY(buffer.remaining() == 0))
+        return;
+
       // create and transmit packet from writebuffer
       buffer.write();
       num--;
@@ -265,6 +270,9 @@ namespace net {
           remaining(),
           remaining() / udp.max_datagram_size() + (remaining() % udp.max_datagram_size() ? 1 : 0));
 
+    // Only call write() (above) when there's something remaining
+    Expects(remaining());
+
     while (remaining()) {
       // the max bytes we can write in one operation
       size_t total = remaining();
@@ -275,6 +283,7 @@ namespace net {
       if (!p) break;
 
       auto p2 = static_unique_ptr_cast<PacketUDP>(std::move(p));
+
       // Initialize UDP packet
       p2->init(l_port, d_port);
       p2->set_ip_src(l_addr);
@@ -294,9 +303,12 @@ namespace net {
       this->offset += total;
     }
 
-    Expects(chain_head->ip_protocol() == Protocol::UDP);
-    // ship the packet
-    udp.transmit(std::move(chain_head));
+    // Only transmit if a chain actually was produced
+    if (chain_head) {
+      Expects(chain_head->ip_protocol() == Protocol::UDP);
+      // ship the packet
+      udp.transmit(std::move(chain_head));
+    }
   }
 
 } //< namespace net

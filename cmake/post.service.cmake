@@ -453,7 +453,7 @@ file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
 set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
 if (debug)
-  set(STRIP_LV /bin/true)
+  unset(STRIP_LV)
 endif()
 
 add_custom_target(
