@@ -30,6 +30,7 @@ namespace uplink {
     net::Inet<net::IP4>* inet;
     std::string url;
     std::string token;
+    std::string tag;
     bool        reboot        = true;
     bool        ws_logging    = true;
     bool        serialize_ct  = false;

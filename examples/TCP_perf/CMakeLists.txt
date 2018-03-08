@@ -26,6 +26,7 @@ else()
   set(DRIVERS
     virtionet
     vmxnet3
+    e1000
   )
 endif()
 

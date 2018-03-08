@@ -2,6 +2,7 @@
 #include <kernel/syscalls.hpp>
 #include <liveupdate>
 #include <timers>
+#include <system_log>
 using namespace liu;
 
 static std::vector<uint64_t> timestamps;
@@ -53,6 +54,7 @@ LiveUpdate::storage_func begin_test_boot()
       using namespace std::chrono;
       Timers::oneshot(5ms,[] (int) {
         printf("SUCCESS\n");
+        SystemLog::print_to(OS::default_stdout);
       });
       return nullptr;
     }

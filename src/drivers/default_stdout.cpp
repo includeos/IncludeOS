@@ -15,28 +15,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-#include <net/inet4>
-#include <cstdio>
-#include "liu.hpp"
-
-using storage_func_t = liu::LiveUpdate::storage_func;
-extern storage_func_t begin_test_boot();
-
-void Service::start()
-{
-  OS::set_panic_action(OS::Panic_action::halt);
-
-  auto func = begin_test_boot();
-
-  if (OS::is_live_updated() == false)
-  {
-    auto& inet = net::Super_stack::get<net::IP4>(0);
-    inet.network_config({10,0,0,49}, {255,255,255,0}, {10,0,0,1});
-    setup_liveupdate_server(inet, 666, func);
-
-    // signal test.py that the server is up
-    const char* sig = "Ready to receive binary blob\n";
-    OS::default_stdout(sig, strlen(sig));
-  }
-}
+// add OS default stdout handler
+bool os_default_stdout = true;

@@ -96,6 +96,11 @@ namespace uplink {
       config_.serialize_ct = cfg["serialize_ct"].GetBool();
     }
 
+    if(cfg.HasMember("tag"))
+    {
+      config_.tag = cfg["tag"].GetString();
+    }
+
     return config_;
   }
 
