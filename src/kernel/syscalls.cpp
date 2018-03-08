@@ -61,12 +61,7 @@ void abort_message(const char* fmt, ...)
   va_start(list, fmt);
   vsnprintf(buffer, sizeof(buffer), fmt, list);
   va_end(list);
-#ifdef ARCH_x86_64
-  asm("movq %0, %%rdi" : : "r"(buffer));
-  asm("jmp panic_begin");
-#else
   panic(buffer);
-#endif
 }
 
 void _exit(int status) {
@@ -163,7 +158,6 @@ void panic_perform_inspection_procedure() {}
 **/
 void panic(const char* why)
 {
-asm("panic_begin:");
   cpu_enable_panicking();
   if (PER_CPU(contexts).panics > 4)
     double_fault(why);
