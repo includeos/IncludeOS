@@ -151,6 +151,8 @@ void OS::add_stdout(OS::print_func func)
 }
 __attribute__((weak))
 bool os_enable_boot_logging = false;
+__attribute__((weak))
+bool os_default_stdout = false;
 void OS::print(const char* str, const size_t len)
 {
   for (auto& callback : os_print_handlers) {
