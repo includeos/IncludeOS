@@ -5,7 +5,8 @@
 
 struct Log_buffer {
   uint64_t magic;
-  int64_t  capacity;
+  int32_t  capacity;
+  uint32_t flags;
   char     vla[0];
 
   static const int PADDING = 32;
@@ -24,6 +25,36 @@ static inline RingBuffer* get_mrb()
   return &temp_mrb;
 }
 
+inline char* get_ringbuffer_loc()
+{
+  return (char*) OS::liveupdate_storage_area() - MRB_LOG_SIZE;
+}
+
+inline char* get_system_log_loc()
+{
+  return get_ringbuffer_loc() - sizeof(Log_buffer) - Log_buffer::PADDING;
+}
+
+inline Log_buffer& get_log_buffer()
+{
+  return *((Log_buffer*) get_system_log_loc());
+}
+
+uint32_t SystemLog::get_flags()
+{
+  return get_log_buffer().flags;
+}
+
+void SystemLog::set_flags(uint32_t new_flags)
+{
+  get_log_buffer().flags |= new_flags;
+}
+
+void SystemLog::clear_flags()
+{
+  get_log_buffer().flags = 0;
+}
+
 void SystemLog::write(const char* buffer, size_t length)
 {
   size_t free = get_mrb()->free_space();
@@ -39,25 +70,25 @@ std::vector<char> SystemLog::copy()
   return {buffer, buffer + get_mrb()->size()};
 }
 
-inline char* get_ringbuffer_loc()
-{
-  return (char*) OS::liveupdate_storage_area() - MRB_LOG_SIZE;
-}
-
-inline char* get_system_log_loc()
-{
-  return get_ringbuffer_loc() - sizeof(Log_buffer) - Log_buffer::PADDING;
-}
-
 void SystemLog::initialize()
 {
   INFO("SystemLog", "Initializing System Log");
 
-  auto& buffer = *((Log_buffer*) get_system_log_loc());
+  auto& buffer = get_log_buffer();
   mrb = buffer.get_mrb();
 
+  // There isn't one, so we have to create
+  if(buffer.magic != Log_buffer::MAGIC)
+  {
+    new (mrb) MemoryRingBuffer(get_ringbuffer_loc(), MRB_LOG_SIZE);
+    buffer.magic = Log_buffer::MAGIC;
+    buffer.capacity = mrb->capacity();
+    buffer.flags    = 0;
+
+    INFO2("Created @ %p (%i kB)", mrb->data(), mrb->capacity() / 1024);
+  }
   // Correct magic means (hopefully) existing system log
-  if(buffer.magic == Log_buffer::MAGIC)
+  else
   {
     auto* state = (int*)(&buffer.vla);
 
@@ -65,15 +96,6 @@ void SystemLog::initialize()
                     state[0], state[1], state[2], state[3]);
 
     INFO2("Restored @ %p (%i kB)", mrb->data(), mrb->capacity() / 1024);
-  }
-  // There isn't one, so we have to create
-  else
-  {
-    new (mrb) MemoryRingBuffer(get_ringbuffer_loc(), MRB_LOG_SIZE);
-    buffer.magic = Log_buffer::MAGIC;
-    buffer.capacity = mrb->capacity();
-
-    INFO2("Created @ %p (%i kB)", mrb->data(), mrb->capacity() / 1024);
   }
   Ensures(mrb != nullptr);
   Expects(buffer.capacity == mrb->capacity());
