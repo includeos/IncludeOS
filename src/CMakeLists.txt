@@ -34,7 +34,7 @@ set(OS_OBJECTS
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm
   kernel/fiber.cpp kernel/tls.cpp kernel/profile.cpp kernel/scoped_profiler.cpp
   kernel/terminal.cpp kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp
-  kernel/rdrand.cpp kernel/solo5_manager.cpp
+  kernel/system_log.cpp kernel/rdrand.cpp kernel/solo5_manager.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp

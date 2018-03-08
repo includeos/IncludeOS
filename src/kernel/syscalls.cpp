@@ -23,6 +23,7 @@
 #include <sys/errno.h>
 #include <sys/stat.h>
 #include <kernel/os.hpp>
+#include <system_log>
 
 #include <statman>
 #include <kprint>
@@ -165,8 +166,12 @@ asm("panic_begin:");
   cpu_enable_panicking();
   const int current_cpu = SMP::cpu_id();
 
-  /// display informacion ...
   SMP::global_lock();
+
+  // Tell the System log that we have paniced
+  SystemLog::set_flags(SystemLog::PANIC);
+
+  /// display informacion ...
   fprintf(stderr, "\n%s\nCPU: %d, Reason: %s\n",
           panic_signature, current_cpu, why);
 

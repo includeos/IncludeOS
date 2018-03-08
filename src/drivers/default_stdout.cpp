@@ -1,4 +1,3 @@
-// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
@@ -16,33 +15,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-#ifndef MEMDISK_HEADER
-#define MEMDISK_HEADER
-
-#include "fs/disk.hpp"
-#include "fs/memdisk.hpp"
-
-namespace fs
-{
-  // new singleton interface for the memdisk
-  inline Disk& memdisk()
-  {
-    static Disk    disk {MemDisk::get()};
-    return disk;
-  }
-  // new_shared_memdisk() very likely contains FAT
-  inline Disk_ptr shared_memdisk()
-  {
-    static std::weak_ptr<Disk> disk;
-
-    if(auto ptr = disk.lock())
-      return ptr;
-
-    auto ptr = std::make_shared<Disk>(MemDisk::get());
-    disk = ptr;
-    return ptr;
-  }
-}
-
-#endif
+// add OS default stdout handler
+bool os_default_stdout = true;

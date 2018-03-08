@@ -66,8 +66,6 @@ public:
   bool is_online() const
   { return ws_ != nullptr and ws_->is_alive(); }
 
-  void panic(const char* why);
-
 private:
   Config config_;
 
@@ -76,6 +74,7 @@ private:
   net::WebSocket_ptr            ws_;
   std::string                   id_;
   std::string                   token_;
+  std::string                   tag_;
   /** Hash for the current running binary
    * (restored during update, none if never updated) */
   std::string                   binary_hash_;

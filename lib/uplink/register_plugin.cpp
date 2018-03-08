@@ -23,13 +23,6 @@ namespace uplink {
 
 static std::unique_ptr<WS_uplink> uplink{nullptr};
 
-
-  void on_panic(const char* why){
-    if (uplink)
-      uplink->panic(why);
-  }
-
-
 void setup_uplink()
 {
   MYINFO("Setting up WS uplink");
@@ -38,8 +31,6 @@ void setup_uplink()
     auto config = Config::read();
 
     uplink = std::make_unique<WS_uplink>(std::move(config));
-
-    OS::on_panic(uplink::on_panic);
 
   }catch(const std::exception& e) {
     MYINFO("Uplink initialization failed: %s ", e.what());
