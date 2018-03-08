@@ -11,6 +11,6 @@ public:
   // retrieve a copy of the memory-stored system log
   static std::vector<char> copy();
 
-  // invoke OS::print on the system log
-  static void print_all();
+  // platform will initialize (create new or restore)
+  static void initialize();
 };

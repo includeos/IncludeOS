@@ -1,11 +1,22 @@
 #include <system_log>
 #include <kernel/os.hpp>
 #include <ringbuffer>
-#include <liveupdate.hpp>
 #include <kprint>
 
+struct Log_buffer {
+  uint64_t magic;
+  int64_t  capacity;
+  char     vla[0];
+
+  static const int PADDING = 32;
+  static const uint64_t MAGIC = 0xDEADC0DEDEADC0DE;
+
+  MemoryRingBuffer* get_mrb()
+  { return reinterpret_cast<MemoryRingBuffer*>(&vla[0]); }
+};
+
 static FixedRingBuffer<32768> temp_mrb;
-#define MRB_LOG_SIZE (1 << 17)
+#define MRB_LOG_SIZE (1 << 20)
 static MemoryRingBuffer* mrb = nullptr;
 static inline RingBuffer* get_mrb()
 {
@@ -20,63 +31,60 @@ void SystemLog::write(const char* buffer, size_t length)
     get_mrb()->discard(length - free);
   }
   get_mrb()->write(buffer, length);
-  // we will want to display the panic, always
-  if (OS::is_panicking()) {
-    OS::print(buffer, length);
-  }
 }
+
 std::vector<char> SystemLog::copy()
 {
   const auto* buffer = get_mrb()->sequentialize();
   return {buffer, buffer + get_mrb()->size()};
 }
-void SystemLog::print_all()
+
+inline char* get_ringbuffer_loc()
 {
-  const auto* buffer = get_mrb()->sequentialize();
-  OS::print(buffer, get_mrb()->size());
+  return (char*) OS::liveupdate_storage_area() - MRB_LOG_SIZE;
 }
 
-static void resume_system_log(liu::Restore& store)
+inline char* get_system_log_loc()
 {
-  mrb = store.as_type<MemoryRingBuffer*> ();
-  store.go_next();
-}
-static void store_system_log(liu::Storage& store, const liu::buffer_t*)
-{
-  store.add<RingBuffer*> (0, get_mrb());
+  return get_ringbuffer_loc() - sizeof(Log_buffer) - Log_buffer::PADDING;
 }
 
-// start dumping the log
-extern "C"
-void panic_perform_inspection_procedure()
+void SystemLog::initialize()
 {
-  static bool procedure_entered = false;
-  if (procedure_entered) return;
-  procedure_entered = true;
+  INFO("SystemLog", "Initializing System Log");
 
-  SystemLog::print_all();
-}
+  auto& buffer = *((Log_buffer*) get_system_log_loc());
+  mrb = buffer.get_mrb();
 
-static void register_system_log()
-{
-  if (liu::LiveUpdate::partition_exists("system_log"))
+  // Correct magic means (hopefully) existing system log
+  if(buffer.magic == Log_buffer::MAGIC)
   {
-    liu::LiveUpdate::resume("system_log", resume_system_log);
+    auto* state = (int*)(&buffer.vla);
+
+    new (mrb) MemoryRingBuffer(get_ringbuffer_loc(),
+                    state[0], state[1], state[2], state[3]);
+
+    INFO2("Restored @ %p (%i kB)", mrb->data(), mrb->capacity() / 1024);
   }
+  // There isn't one, so we have to create
   else
   {
-    // create new MRB
-    char* loc = (char*) OS::liveupdate_storage_area() - MRB_LOG_SIZE;
-    mrb = (MemoryRingBuffer*) (loc - sizeof(MemoryRingBuffer));
-    new (mrb) MemoryRingBuffer(loc, MRB_LOG_SIZE);
-    // copy from temp RB
-    mrb->write(temp_mrb.sequentialize(), temp_mrb.size());
+    new (mrb) MemoryRingBuffer(get_ringbuffer_loc(), MRB_LOG_SIZE);
+    buffer.magic = Log_buffer::MAGIC;
+    buffer.capacity = mrb->capacity();
+
+    INFO2("Created @ %p (%i kB)", mrb->data(), mrb->capacity() / 1024);
   }
-  liu::LiveUpdate::register_partition("system_log", store_system_log);
+  Ensures(mrb != nullptr);
+  Expects(buffer.capacity == mrb->capacity());
+  Expects(mrb->is_valid());
+
+  // copy from temp RB
+  SystemLog::write(temp_mrb.sequentialize(), temp_mrb.size());
 }
 
 __attribute__((constructor))
 static void system_log_gconstr()
 {
-  OS::register_plugin(register_system_log, "System log plugin");
+  OS::add_stdout(SystemLog::write);
 }

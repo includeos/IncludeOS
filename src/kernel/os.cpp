@@ -28,6 +28,7 @@
 #include <cstdio>
 #include <cinttypes>
 #include <util/fixed_vector.hpp>
+#include <system_log>
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -114,6 +115,9 @@ void OS::post_start()
     auto size = OS::heap_max() / 4;
     OS::liveupdate_loc_ = (OS::heap_max() - size) & 0xFFFFFFF0;
   }
+  // Initialize the system log if plugin is present.
+  // Dependent on the liveupdate location being set
+  SystemLog::initialize();
 
   MYINFO("Initializing RNG");
   PROFILE("RNG init");

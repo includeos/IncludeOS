@@ -12,7 +12,7 @@ std::vector<char> SystemLog::copy() {
 }
 
 __attribute__((weak))
-void SystemLog::print_all()
+void SystemLog::initialize()
 {
   /* override me */
 }
