@@ -14,7 +14,7 @@ constexpr bool __strace = ENABLE_STRACE;
 extern "C" void __serial_print(const char*, size_t);
 
 template <typename ...Args>
-inline constexpr void pr_param(std::ostream& out){
+inline constexpr void pr_param([[maybe_unused]] std::ostream& out){
 
 }
 
@@ -41,8 +41,8 @@ inline void strace_print(const char* name, Ret ret, Args&&... args){
   out << name << "(";
   pr_param(out, args...);
   out << ") = " << ret;
-  if (errno)
-    out << " " << strerror(errno);
+  //if (errno)
+  //  out << " " << strerror(errno);
   out << '\n';
   auto str = out.str();
   __serial_print(str.data(), str.size());
