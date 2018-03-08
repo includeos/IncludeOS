@@ -62,6 +62,8 @@ namespace uplink {
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
 
     CHECK(config_.reboot, "Reboot on panic");
+    if(config_.reboot)
+      OS::set_panic_action(OS::Panic_action::reboot);
 
     CHECK(config_.serialize_ct, "Serialize Conntrack");
     if(config_.serialize_ct)
