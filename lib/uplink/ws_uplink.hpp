@@ -66,8 +66,6 @@ public:
   bool is_online() const
   { return ws_ != nullptr and ws_->is_alive(); }
 
-  void panic(const char* why);
-
 private:
   Config config_;
 
