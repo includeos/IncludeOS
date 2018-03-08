@@ -89,9 +89,8 @@ void paging_test_init(){
 void OS::multiboot(unsigned) {}
 
 #include <system_log>
-void SystemLog::print_all() {
-  printf("SystemLog::print_all();\n");
-}
+void SystemLog::initialize() {}
+void SystemLog::set_flags(uint32_t) {}
 
 /// Kernel ///
 char _binary_apic_boot_bin_end;

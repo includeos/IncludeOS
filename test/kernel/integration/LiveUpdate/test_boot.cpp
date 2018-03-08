@@ -54,7 +54,7 @@ LiveUpdate::storage_func begin_test_boot()
       using namespace std::chrono;
       Timers::oneshot(5ms,[] (int) {
         printf("SUCCESS\n");
-        SystemLog::print_all();
+        SystemLog::print_to(OS::default_stdout);
       });
       return nullptr;
     }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kernel/os.hpp>
 #include <vector>
 
 class SystemLog
@@ -16,6 +17,9 @@ public:
   // retrieve a copy of the memory-stored system log
   static std::vector<char> copy();
 
+  // send whole system log to stdout @function
+  static void print_to(OS::print_func function);
+
   // set and get global bits
   static uint32_t get_flags();
   static void     set_flags(uint32_t flags);
@@ -24,3 +28,10 @@ public:
   // platform will initialize (create new or restore)
   static void initialize();
 };
+
+
+inline void SystemLog::print_to(OS::print_func funcptr)
+{
+  auto copy = SystemLog::copy();
+  if (not copy.empty()) funcptr(copy.data(), copy.size());
+}

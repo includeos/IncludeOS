@@ -37,6 +37,6 @@ void Service::start()
 
     // signal test.py that the server is up
     const char* sig = "Ready to receive binary blob\n";
-    OS::print(sig, strlen(sig));
+    OS::default_stdout(sig, strlen(sig));
   }
 }
