@@ -409,6 +409,12 @@ namespace uplink {
       writer.String(binary_hash_);
     }
 
+    if(not tag_.empty())
+    {
+      writer.Key("tag");
+      writer.String(tag_);
+    }
+
     if(update_time_taken > 0)
     {
       writer.Key("update_time_taken");
