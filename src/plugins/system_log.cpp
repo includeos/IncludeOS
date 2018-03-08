@@ -95,7 +95,8 @@ void SystemLog::initialize()
     new (mrb) MemoryRingBuffer(get_ringbuffer_loc(),
                     state[0], state[1], state[2], state[3]);
 
-    INFO2("Restored @ %p (%i kB)", mrb->data(), mrb->capacity() / 1024);
+    INFO2("Restored @ %p (%i kB) Flags: 0x%x",
+      mrb->data(), mrb->capacity() / 1024, buffer.flags);
   }
   Ensures(mrb != nullptr);
   Expects(buffer.capacity == mrb->capacity());
