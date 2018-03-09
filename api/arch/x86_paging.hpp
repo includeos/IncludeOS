@@ -94,6 +94,7 @@ template <typename T, typename... Args>
 T* allocate_pdir(Args... args)
 {
   void* ptr = aligned_alloc(4_KiB, sizeof(T));
+  Expects(ptr != nullptr);
   return new (ptr) T(args...);
 }
 
@@ -587,6 +588,7 @@ public:
     Expects(bits::is_aligned(req.min_psize(), req.phys));
     Expects((req.page_sizes & os::mem::supported_page_sizes()) != 0);
     Expects(req.lin < Platform::max_memory);
+    Expects(req.phys < Platform::max_memory);
     Expects(within_range(req.lin));
 
     Map res{};

@@ -38,6 +38,7 @@ def increment_header2(line):
 
 def check_num_outputs(line):
   assert(num_elements == 20)  # 2 * 10
+  print "Num_header1: ", num_header1
   assert(num_header1 == 17)
   assert(num_content == 5)
   assert(num_header2 == 17)
@@ -58,8 +59,8 @@ vm.on_output("tar_example/l1_f2/virtio.hpp - element", increment_element)
 # README.md's header
 vm.on_output("tar_example/l1_f1/l2/README.md - name of README.md", increment_header1)
 vm.on_output("Mode of README.md: 0000664", increment_header1)
-vm.on_output("Uid of README.md: 0001750", increment_header1)
-vm.on_output("Gid of README.md: 0001750", increment_header1)
+vm.on_output("Uid of README.md: ", increment_header1)
+vm.on_output("Gid of README.md: ", increment_header1)
 vm.on_output("Size of README.md: 293", increment_header1)
 vm.on_output("Mod_time of README.md: ", increment_header1)
 vm.on_output("Checksum of README.md: ", increment_header1)
@@ -83,8 +84,8 @@ vm.on_output("Note: Remember to run the bridge creation script for networking to
 # Folder l2's header and content (no content)
 vm.on_output("tar_example/l1_f1/l2/ - name of l2", increment_header2)
 vm.on_output("Mode of l2: 0000775", increment_header2)
-vm.on_output("Uid of l2: 0001750", increment_header2)
-vm.on_output("Gid of l2: 0001750", increment_header2)
+vm.on_output("Uid of l2: ", increment_header2)
+vm.on_output("Gid of l2: ", increment_header2)
 vm.on_output("Size of l2: 0", increment_header2)
 vm.on_output("Mod_time of l2: ", increment_header2)
 vm.on_output("Checksum of l2: ", increment_header2)

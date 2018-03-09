@@ -393,7 +393,7 @@ class qemu(hypervisor):
     def get_final_output(self):
         return self._proc.communicate()
 
-    def boot(self, multiboot, kernel_args = "", image_name = None):
+    def boot(self, multiboot, debug = False, kernel_args = "", image_name = None):
         self._stopped = False
 
         info ("Booting with multiboot:", multiboot, "kernel_args: ", kernel_args, "image_name:", image_name)
@@ -410,6 +410,10 @@ class qemu(hypervisor):
         self._image_name = image_name
 
         disk_args = []
+
+        debug_args = []
+        if debug:
+            debug_args = ["-s"]
 
         # multiboot - e.g. boot with '-kernel' and no bootloader
         if multiboot:
@@ -514,7 +518,7 @@ class qemu(hypervisor):
 
         command += kernel_args
 
-        command += disk_args + net_args + mem_arg + mod_args
+        command += disk_args + debug_args + net_args + mem_arg + mod_args
         command += vga_arg + trace_arg + pci_arg
 
         #command_str = " ".join(command)
@@ -827,7 +831,7 @@ class vm:
 
 
     # Boot the VM and start reading output. This is the main event loop.
-    def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner", image_name = None):
+    def boot(self, timeout = 60, multiboot = True, debug = False, kernel_args = "booted with vmrunner", image_name = None):
         info ("VM boot, timeout: ", timeout, "multiboot: ", multiboot, "Kernel_args: ", kernel_args, "image_name: ", image_name)
         # This might be a reboot
         self._exit_status = None
@@ -842,7 +846,7 @@ class vm:
 
         # Boot via hypervisor
         try:
-            self._hyper.boot(multiboot, kernel_args, image_name)
+            self._hyper.boot(multiboot, debug, kernel_args, image_name)
         except Exception as err:
             print color.WARNING("Exception raised while booting: ")
             print_exception()

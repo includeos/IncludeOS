@@ -29,7 +29,7 @@ set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
 set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 
 # C++ version
-set(CMAKE_CXX_STANDARD 14)
+set(CPP_VERSION c++17)
 
 # create OS version string from git describe (used in CXX flags)
 execute_process(COMMAND git describe --dirty
@@ -140,11 +140,11 @@ endif()
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS " -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_CXX_FLAGS "-std=${CPP_VERSION} -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
   set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_CXX_FLAGS "-std=${CPP_VERSION} -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 endif()
 
