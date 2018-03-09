@@ -30,5 +30,8 @@ set(LIBRARIES
   libliveupdate.a
   )
 
+# disable serial output
+set(default_stdout OFF)
+
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)

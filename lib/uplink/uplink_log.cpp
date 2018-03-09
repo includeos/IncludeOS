@@ -20,7 +20,7 @@
 
 // Initialize the log at OS start (global constructor)
 // and hook it up to OS stdout.
-struct Autoreg_log {
+static struct Autoreg_log {
   Autoreg_log() {
     auto& log = uplink::Log::get();
     OS::add_stdout({log, &uplink::Log::log});

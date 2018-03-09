@@ -107,6 +107,12 @@ public:
     return used_space() == 0;
   }
 
+  bool is_valid() const noexcept {
+    return (used <= cap and cap > 0)
+      and (start < cap and start >= 0)
+      and (end < cap and end >= 0);
+  }
+
   // rotate buffer until it becomes sequential
   const char* sequentialize()
   {
@@ -146,9 +152,8 @@ public:
   }
 
 protected:
-  virtual ~RingBuffer() = 0;
   RingBuffer(char* rbuffer, int size)
-    : buffer(rbuffer), cap(size)
+    : cap(size), buffer(rbuffer)
   {
     assert(size > 0);
   }
@@ -159,18 +164,19 @@ protected:
   char* at_end() const noexcept {
     return &this->buffer[this->end];
   }
-  char* buffer;
-  int  cap;
+
+  const int  cap;
   int  start = 0;
   int  end   = 0;
   int  used  = 0;
+  char* buffer;
 };
 
 class HeapRingBuffer : public RingBuffer {
 public:
   HeapRingBuffer(int size)
     : RingBuffer(new char[size], size) {}
-  virtual ~HeapRingBuffer() {
+  ~HeapRingBuffer() {
     delete[] this->buffer;
   }
 };
@@ -179,7 +185,17 @@ class MemoryRingBuffer : public RingBuffer {
 public:
   MemoryRingBuffer(char* location, int size)
     : RingBuffer(location, size) {}
-  virtual ~MemoryRingBuffer() {}
+
+  MemoryRingBuffer(char* loc, const int cap,
+                   int start, int end, int used)
+    : RingBuffer(loc, cap)
+  {
+    this->start = start;
+    this->end   = end;
+    this->used  = used;
+  }
+
+  ~MemoryRingBuffer() {}
 };
 
 template <int N>
@@ -187,12 +203,10 @@ class FixedRingBuffer : public RingBuffer {
 public:
   FixedRingBuffer()
     : RingBuffer(m_buffer, N) {}
-  virtual ~FixedRingBuffer() {}
+  ~FixedRingBuffer() {}
 
 private:
   char m_buffer[N];
 };
-
-inline RingBuffer::~RingBuffer() {}
 
 #endif

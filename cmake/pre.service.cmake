@@ -16,6 +16,8 @@ if (NOT DEFINED PLATFORM)
 endif()
 
 # configure options
+option(default_stdout "Use the OS default stdout (serial)" ON)
+
 option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "Strip symbols to further reduce size" OFF)

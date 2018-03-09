@@ -95,6 +95,11 @@ endif()
 # DRIVERS / PLUGINS - support for parent cmake list specification
 #
 
+# Add default stdout driver if option is ON
+if (default_stdout)
+  set(DRIVERS ${DRIVERS} default_stdout)
+endif()
+
 # Add extra drivers defined from command line
 set(DRIVERS ${DRIVERS} ${EXTRA_DRIVERS})
 if(DRIVERS)

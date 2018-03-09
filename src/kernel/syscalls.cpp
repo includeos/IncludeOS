@@ -23,8 +23,8 @@
 #include <sys/errno.h>
 #include <sys/stat.h>
 #include <kernel/os.hpp>
-
 #include <system_log>
+
 #include <statman>
 #include <kprint>
 #include <info>
@@ -165,8 +165,9 @@ void panic(const char* why)
   const int current_cpu = SMP::cpu_id();
 
   SMP::global_lock();
-  // dump entire log (?)
-  SystemLog::print_all();
+
+  // Tell the System log that we have paniced
+  SystemLog::set_flags(SystemLog::PANIC);
 
   /// display informacion ...
   fprintf(stderr, "\n%s\nCPU: %d, Reason: %s\n",

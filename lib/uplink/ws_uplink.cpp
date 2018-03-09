@@ -37,6 +37,7 @@
 #include <statman>
 #include <config>
 #include "log.hpp"
+#include <system_log>
 
 namespace uplink {
   constexpr std::chrono::seconds WS_uplink::heartbeat_interval;
@@ -62,6 +63,8 @@ namespace uplink {
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
 
     CHECK(config_.reboot, "Reboot on panic");
+    if(config_.reboot)
+      OS::set_panic_action(OS::Panic_action::reboot);
 
     CHECK(config_.serialize_ct, "Serialize Conntrack");
     if(config_.serialize_ct)
@@ -210,6 +213,14 @@ namespace uplink {
     heart_retries_left = heartbeat_retries;
     last_ping = RTC::now();
     heartbeat_timer.start(std::chrono::seconds(10));
+
+    if(SystemLog::get_flags() & SystemLog::PANIC)
+    {
+      MYINFO("Found panic in system log");
+      auto log = SystemLog::copy();
+      SystemLog::clear_flags();
+      send_message(Transport_code::PANIC, log.data(), log.size());
+    }
   }
 
   void WS_uplink::handle_ws_close(uint16_t code)
@@ -398,6 +409,12 @@ namespace uplink {
       writer.String(binary_hash_);
     }
 
+    if(not tag_.empty())
+    {
+      writer.Key("tag");
+      writer.String(tag_);
+    }
+
     if(update_time_taken > 0)
     {
       writer.Key("update_time_taken");
@@ -523,16 +540,6 @@ namespace uplink {
       logbuf_.clear();
       logbuf_.shrink_to_fit();
     }
-  }
-
-  void WS_uplink::panic(const char* why){
-    MYINFO("WS_uplink sending panic\n");
-    Log::get().flush();
-    send_message(Transport_code::PANIC, why, strlen(why));
-    ws_->close();
-    inet_.nic().flush();
-
-    if(config_.reboot) OS::reboot();
   }
 
   void WS_uplink::send_stats()
