@@ -42,7 +42,6 @@ option(REAL_HW "Run on real hardware" ON)
 if (REAL_HW)
   set(DRIVERS
       boot_logger
-      disable_paging
       e1000
       vga_output
       vga_emergency
