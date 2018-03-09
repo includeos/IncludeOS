@@ -94,6 +94,7 @@ template <typename T, typename... Args>
 T* allocate_pdir(Args... args)
 {
   void* ptr = aligned_alloc(4_KiB, sizeof(T));
+  Expects(ptr != nullptr);
   return new (ptr) T(args...);
 }
 

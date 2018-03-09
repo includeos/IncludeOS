@@ -25,7 +25,7 @@ extern __multiboot_addr
 %define P2_TAB             0x3000  ;; - 0x7fff
 %define NUM_P3_ENTRIES     5
 %define NUM_P2_ENTRIES     2560
-%define STACK_LOCATION     0x200000
+%define STACK_LOCATION     0x200000 - 16
 
 ;; CR0 paging enable bit
 %define PAGING_ENABLE 0x80000000
