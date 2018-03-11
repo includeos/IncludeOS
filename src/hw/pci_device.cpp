@@ -154,11 +154,6 @@ namespace hw {
 
     // bridges are different from other PCI devices
     if (classcode() == PCI::classcode::BRIDGE) return;
-
-    // find and store capabilities
-    this->parse_capabilities();
-    // find BARs
-    this->probe_resources();
   }
 
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {

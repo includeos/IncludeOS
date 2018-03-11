@@ -122,6 +122,11 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
 
+  // find and store capabilities
+  d.parse_capabilities();
+  // find BARs etc.
+  d.probe_resources();
+
   if (d.msix_cap())
   {
     d.init_msix();

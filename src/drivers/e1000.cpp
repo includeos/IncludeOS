@@ -71,6 +71,11 @@ e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
   static_assert((NUM_TX_DESC * sizeof(tx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
 
   INFO("e1000", "Intel Pro/1000 Ethernet Adapter (rev=%#x)", d.rev_id());
+  // find and store capabilities
+  d.parse_capabilities();
+  // find BARs etc.
+  d.probe_resources();
+
   this->use_msix = false;
   const uint16_t variant = d.product_id();
 
