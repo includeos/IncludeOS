@@ -5,6 +5,11 @@ endif()
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 project (service)
 
+option(benchmark_mode "Optimizations for benchmarking" OFF)
+if (benchmark_mode)
+  add_definitions(-DDRIFTING_BINARY)
+endif()
+
 # Human-readable name of your service
 set(SERVICE_NAME "LiveUpdate integration test")
 
