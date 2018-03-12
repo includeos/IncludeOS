@@ -23,7 +23,6 @@
 #include <kernel/syscalls.hpp>
 
 //#define ENABLE_CRC_RO
-const auto* LOW_CHECK_SIZE = (volatile int*) 0x200;
 
 // Global constructors
 static int gconstr_value = 0;
@@ -49,9 +48,6 @@ static uint32_t generate_ro_crc() noexcept
 extern "C"
 void __init_sanity_checks() noexcept
 {
-  // zero low memory
-  for (volatile int* lowmem = NULL; lowmem < LOW_CHECK_SIZE; lowmem++)
-      *lowmem = 0;
 #ifdef ENABLE_CRC_RO
   // generate checksum for read-only portions of kernel
   crc_ro = generate_ro_crc();
