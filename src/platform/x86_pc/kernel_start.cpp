@@ -28,7 +28,7 @@
 #include "idt.hpp"
 
 #undef Expects
-#define Expects(X) if (!X) { kprint("Expect failed: " #X "\n");  asm("cli;hlt"); }
+#define Expects(X) if (!(X)) { kprint("Expect failed: " #X "\n");  asm("cli;hlt"); }
 
 extern "C" {
   void __init_serial1();
@@ -106,9 +106,9 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   __grub_addr = addr;
 
   // TODO: remove extra verbosity after musl port stabilizes
-  kprintf("\n//////////////////  IncludeOS kernel start ////////////////// \n",
+  kprintf("\n//////////////////  IncludeOS kernel start ////////////////// \n");
+  kprintf("* Booted with magic 0x%lx, grub @ 0x%lx \n* Init sanity\n",
           magic, addr);
-  kprintf("* Booted with magic 0x%lx, grub @ 0x%lx \n* Init sanity\n", magic, addr);
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
@@ -121,13 +121,13 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
-    kprintf("* Free mem begin: %p \n", free_mem_begin);
+    kprintf("* Free mem begin: 0x%lx \n", free_mem_begin);
   }
 
   kprintf("* Moving symbols. \n");
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
-  kprintf("* Free mem moved to: %p \n", free_mem_begin);
+  kprintf("* Free mem moved to: 0x%lx \n", free_mem_begin);
 
   kprintf("* Grub magic: 0x%lx, grub info @ 0x%lx\n",
           __grub_magic, __grub_addr);
@@ -148,7 +148,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   x86::idt_initialize_for_cpu(0);
   kprintf("* Thread local1: %i\n", __tl1__);
 
-  kprintf("* Elf start: 0x%lx\n", &_ELF_START_);
+  kprintf("* Elf start: %p\n", &_ELF_START_);
   auto* ehdr = (Elf64_Ehdr*)&_ELF_START_;
   auto* phdr = (Elf64_Phdr*)((char*)ehdr + ehdr->e_phoff);
   Expects(phdr);
@@ -157,8 +157,8 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   size_t size =  &_ELF_END_ - &_ELF_START_;
   Expects(phdr[0].p_type == PT_LOAD);
 
-  printf("* Elf ident: %s, program headers:\n", ehdr->e_ident, ehdr);
-  kprintf("\tElf size: %i \n", size);
+  printf("* Elf ident: %s, program headers: %p\n", ehdr->e_ident, ehdr);
+  kprintf("\tElf size: %zu \n", size);
   for (int i = 0; i < ehdr->e_phnum; i++)
   {
     kprintf("\tPhdr %i @ %p, va_addr: 0x%lx \n", i, &phdr[i], phdr[i].p_vaddr);
@@ -199,7 +199,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   int argc = 1;
 
   // Env vars
-  argv[2] = "USER=root";
+  argv[2] = strdup("USER=root");
   argv[3] = 0x0;
 
   memcpy(&argv[4], aux, sizeof(auxv_t) * 38);
