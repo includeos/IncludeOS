@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <include/fd.hpp>
-#include <include/fd_map.hpp>
+#include <posix/fd.hpp>
+#include <posix/fd_map.hpp>
 
 class Test_fd : public FD {
 public:

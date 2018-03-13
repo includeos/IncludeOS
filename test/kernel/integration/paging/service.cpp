@@ -21,9 +21,9 @@
 #include <service>
 #include <cassert>
 #include <iostream>
-#include "../../../../api/kernel/memory.hpp"
-#include "../../../../api/arch/x86_paging.hpp"
-#include "../../../../api/arch/x86_paging_utils.hpp"
+#include <kernel/memory.hpp>
+#include <arch/x86/paging.hpp>
+#include <arch/x86/paging_utils.hpp>
 #include <random>
 #include <vector>
 

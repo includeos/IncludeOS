@@ -128,6 +128,7 @@ set(TEST_SOURCES
 )
 
 set(OS_SOURCES
+  ${SRC}/arch/x86_64/paging.cpp
   ${SRC}/fs/disk.cpp
   ${SRC}/fs/dirent.cpp
   ${SRC}/fs/fat.cpp
@@ -153,7 +154,8 @@ set(OS_SOURCES
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
-  ${SRC}/arch/x86_64/paging.cpp
+  ${SRC}/musl/mmap.cpp
+  ${SRC}/musl/brk.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp
@@ -190,6 +192,7 @@ set(OS_SOURCES
   ${SRC}/net/tcp/tcp.cpp
   ${SRC}/net/tcp/read_buffer.cpp
   ${SRC}/net/tcp/write_queue.cpp
+  ${SRC}/posix/fd.cpp
   ${SRC}/util/async.cpp
   ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
@@ -202,8 +205,6 @@ set(OS_SOURCES
   ${SRC}/util/tar.cpp
   ${SRC}/util/uri.cpp
   ${SRC}/virtio/virtio_queue.cpp
-  ${SRC}/musl/mmap.cpp
-  ${SRC}/musl/brk.cpp
 )
 
 set(MOD_OBJECTS
@@ -266,7 +267,6 @@ endif()
 
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
-install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 if (GENERATE_SUPPORT_FILES)
 
