@@ -29,11 +29,9 @@ SECTIONS
       PROVIDE(_MULTIBOOT_START_ = .);
       *(.multiboot)
    }
-  PROVIDE(SECRET_SPACE_BEGIN = .)
 
   .text ALIGN(0x1000):
   {
-  PROVIDE(SECRET_SPACE_END = .)
   PROVIDE( _TEXT_START_ = . );
     /* For solo5, although it's just used to print the mem layout. */
     _stext = .;

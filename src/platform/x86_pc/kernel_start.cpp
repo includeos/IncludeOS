@@ -38,6 +38,8 @@ extern "C" {
   uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_heap(uintptr_t free_mem_begin);
+  void _init_elf_parser();
+  void _init_syscalls();
 }
 
 extern char _ELF_START_;
@@ -135,6 +137,12 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 
   kprintf("* Init heap\n");
   _init_heap(free_mem_begin);
+
+  /// init ELF / backtrace functionality
+  _init_elf_parser();
+
+  // init syscalls
+  _init_syscalls();
 
   // Initialize CPU exceptions
   x86::idt_initialize_for_cpu(0);
