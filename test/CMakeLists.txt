@@ -194,6 +194,7 @@ set(OS_SOURCES
   ${SRC}/posix/sys/select.cpp
   ${SRC}/posix/arpa/inet.cpp
   ${SRC}/util/async.cpp
+  ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp
   ${SRC}/util/percent_encoding.cpp
