@@ -1,5 +1,6 @@
 #include "common.hpp"
 
+#include <kprint>
 #include <sys/uio.h>
 
 static ssize_t sys_writev(int fd, const struct iovec *iov, int iovcnt)

@@ -1,9 +1,9 @@
-#include "stub.hpp"
-#include <sys/stat.h>
+#include "common.hpp"
+#include <sys/types.h>
 
 #include <fs/vfs.hpp>
 
-int sys_open(const char *pathname, int flags, mode_t mode = 0) {
+static long sys_open(const char *pathname, int flags, mode_t mode = 0) {
   try {
     auto& entry = fs::VFS::get<FD_compatible>(pathname);
     auto& fd = entry.open_fd();
@@ -16,21 +16,10 @@ int sys_open(const char *pathname, int flags, mode_t mode = 0) {
     // Open fd delegate not set
   }
 
-  errno = ENOENT;
-  return -1;
+  return -ENOENT;
 }
 
-int sys_creat(const char *pathname, mode_t mode) {
-  return -1;
+extern "C"
+long syscall_SYS_open(const char *pathname, int flags, mode_t mode = 0) {
+  return strace(sys_open, "open", pathname, flags, mode);
 }
-
-extern "C" {
-int syscall_SYS_open(const char *pathname, int flags, mode_t mode = 0) {
-  return stubtrace(sys_open, "open", pathname, flags, mode);
-}
-
-int syscall_SYS_creat(const char *pathname, mode_t mode) {
-  return stubtrace(sys_creat, "creat", pathname, mode);
-}
-
-} // extern "C"

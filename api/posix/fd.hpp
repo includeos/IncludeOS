@@ -62,6 +62,7 @@ public:
   // file-related
   virtual int   fchmod(mode_t) { return -1; }
   virtual int   fchmodat(const char *, mode_t, int) { return -1; }
+  virtual long  fstat(struct stat *) { return -1; }
   virtual int   fstatat(const char *, struct stat *, int) { return -1; }
   virtual int   futimens(const struct timespec[2]) { return -1; }
   virtual int   utimensat(const char *, const struct timespec[2], int) { return -1; }

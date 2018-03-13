@@ -435,6 +435,7 @@ target_link_libraries(service
   libarch
   libos
   libc
+  musl_syscalls
   cxxabi
   libpthread
   libunwind
