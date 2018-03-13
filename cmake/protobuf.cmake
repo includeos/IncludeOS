@@ -11,7 +11,7 @@ set(PROTOBUF_SRC ${LIB_PROTOBUF}/google/protobuf)
 include_directories(${LIB_PROTOBUF})
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
-include_directories(${NEWLIB_INCLUDE_DIR})
+include_directories(${MUSL_INCLUDE_DIR})
 
 # Maybe possible to use wildcard with files(...) to gather all cc objects.
 set(PROTOBUF_SOURCES
