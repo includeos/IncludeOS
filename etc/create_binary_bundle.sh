@@ -17,7 +17,7 @@ export num_jobs=${num_jobs:--j}	# Specify number of build jobs
 export binutils_version=${binutils_version:-2.29.1}		# ftp://ftp.gnu.org/gnu/binutils
 export newlib_version=${newlib_version:-2.5.0.20170922}			# ftp://sourceware.org/pub/newlib
 export gcc_version=${gcc_version:-7.2.0}				# ftp://ftp.nluug.nl/mirror/languages/gcc/releases/
-export clang_version=${clang_version:-4.0}				# http://releases.llvm.org/
+export clang_version=${clang_version:-5.0}				# http://releases.llvm.org/
 export llvm_branch=${llvm_branch:-release_50}
 
 # Options to skip steps
