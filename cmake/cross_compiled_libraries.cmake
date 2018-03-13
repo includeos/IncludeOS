@@ -19,7 +19,7 @@ else(BUNDLE_LOC)
 	ExternalProject_Add(PrecompiledLibraries
 			    PREFIX precompiled
 			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.12.0-rc.2/IncludeOS_dependencies_v0-12-0_musl_libunwind_threaded.tar.gz
-			    URL_HASH SHA1=4ab139536295321866ebe4136de25879450eb58b
+			    URL_HASH SHA1=9f3f8da09c1f15bdc2a7d3feea665a31cb9fe889
 			    CONFIGURE_COMMAND ""
 			    BUILD_COMMAND ""
 			    UPDATE_COMMAND ""
