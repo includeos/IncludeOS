@@ -107,12 +107,25 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
   *(uint32_t volatile*) location = value;
 }
 
-vmxnet3::vmxnet3(hw::PCI_Device& d) :
+static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
+{
+  const uint16_t header = sizeof(net::Packet) + vmxnet3::DRIVER_OFFSET;
+  if (mtu <= 2048 - header) return 2048;
+  assert(header + mtu <= 16384 && "Buffers larger than 16k are not supported");
+  return mtu + header;
+}
+
+vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, bufstore_),
-    m_pcidev(d), bufstore_{1024, 2048 /* half-page buffer size */}
+    m_pcidev(d), m_mtu(mtu), bufstore_{1024, buffer_size_for_mtu(mtu)}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
+
+  // find and store capabilities
+  d.parse_capabilities();
+  // find BARs etc.
+  d.probe_resources();
 
   if (d.msix_cap())
   {

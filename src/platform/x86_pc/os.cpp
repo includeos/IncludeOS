@@ -46,6 +46,8 @@ extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
+// in kernel/os.cpp
+extern bool os_default_stdout;
 
 struct alignas(SMP_ALIGN) OS_CPU {
   uint64_t cycles_hlt = 0;
@@ -83,8 +85,11 @@ void OS::default_stdout(const char* str, const size_t len)
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   OS::cmdline = Service::binary_name();
+
   // Initialize stdout handlers
-  OS::add_stdout(&OS::default_stdout);
+  if(os_default_stdout) {
+    OS::add_stdout(&OS::default_stdout);
+  }
 
   PROFILE("OS::start");
   // Print a fancy header
@@ -204,29 +209,4 @@ void OS::legacy_boot()
   memmap.assign_range({0x000A0000, 0x000FFFFF,
         "VGA/ROM"});
 
-  // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
-  uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
-  uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-
-  uintptr_t unavail_start = OS::memory_end_+1;
-  size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
-  uintptr_t unavail_end = unavail_start + interval;
-
-  while (unavail_end < addr_max)
-  {
-    INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
-    memmap.assign_range({unavail_start, unavail_end,
-          "N/A"});
-    unavail_start = unavail_end + 1;
-    interval = std::min(span_max, addr_max - unavail_start);
-    // Increment might wrapped around
-    if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
-      INFO2("* Last chunk of memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, addr_max);
-      memmap.assign_range({unavail_start, addr_max,
-            "N/A"});
-      break;
-    }
-
-    unavail_end += interval;
-  }
 }

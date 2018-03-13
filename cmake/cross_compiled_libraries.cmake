@@ -121,6 +121,7 @@ install(FILES
   ${LIBUNWIND_LIB_DIR}/libunwind.a
   DESTINATION includeos/${ARCH}/lib)
 
+
 if (WITH_SOLO5)
 # Only x86_64 supported at the moment
 if ("${ARCH}" STREQUAL "x86_64")

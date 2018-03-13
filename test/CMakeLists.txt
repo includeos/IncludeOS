@@ -137,6 +137,7 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
+  ${SRC}/hw/nic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp
@@ -190,6 +191,7 @@ set(OS_SOURCES
   ${SRC}/net/tcp/read_buffer.cpp
   ${SRC}/net/tcp/write_queue.cpp
   ${SRC}/util/async.cpp
+  ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp
   ${SRC}/util/percent_encoding.cpp

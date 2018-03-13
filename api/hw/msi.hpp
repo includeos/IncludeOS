@@ -20,8 +20,8 @@
 #define HW_MSI_HPP
 
 #include <cstdint>
-#include <cstddef>
 #include <cassert>
+#include <vector>
 
 namespace hw {
 
@@ -53,8 +53,8 @@ namespace hw {
     // redirect MSI-X vector to another CPU
     void redirect_vector(uint16_t idx, uint8_t cpu, uint8_t vector);
 
-    uint16_t vectors() const noexcept {
-      return vector_cnt;
+    size_t vectors() const noexcept {
+      return used_vectors.size();
     }
 
     void reset_pba_bit(size_t vec);
@@ -63,7 +63,7 @@ namespace hw {
     PCI_Device& dev;
     uintptr_t table_addr = 0;
     uintptr_t pba_addr   = 0;
-    uint16_t  vector_cnt = 0;
+    std::vector<bool> used_vectors;
 
     inline auto* get_entry(size_t idx)
     {

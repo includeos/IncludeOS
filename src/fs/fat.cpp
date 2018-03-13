@@ -188,7 +188,7 @@ namespace fs
     );
   }
 
-  bool FAT::int_dirent(uint32_t sector, const void* data, dirvector& dirents)
+  bool FAT::int_dirent(uint32_t sector, const void* data, dirvector& dirents) const
   {
     auto* root = (cl_dir*) data;
     bool  found_last = false;
@@ -196,7 +196,6 @@ namespace fs
     for (int i = 0; i < 16; i++) {
 
       if (UNLIKELY(root[i].shortname[0] == 0x0)) {
-        //printf("end of dir\n");
         found_last = true;
         // end of directory
         break;
@@ -217,6 +216,9 @@ namespace fs
             int  final_count = 0;
 
             int  total = L->long_index();
+            // ignore names we can't complete inside of one sector
+            if (i + total >= 16) return false;
+
             // go to the last entry and work backwards
             i += total-1;
             L += total-1;

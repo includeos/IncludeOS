@@ -23,9 +23,12 @@ set(SOURCES
   config.cpp
   )
 
+# Uplink library
 add_library(${LIBRARY_NAME} STATIC ${SOURCES})
-
+add_dependencies(${LIBRARY_NAME} PrecompiledLibraries)
 install(TARGETS ${LIBRARY_NAME} DESTINATION includeos/${ARCH}/plugins)
 
+# Uplink log driver
 add_library(uplink_log STATIC uplink_log.cpp)
+add_dependencies(uplink_log PrecompiledLibraries)
 install(TARGETS uplink_log DESTINATION includeos/${ARCH}/drivers)

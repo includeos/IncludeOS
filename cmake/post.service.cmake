@@ -96,6 +96,11 @@ endif()
 # DRIVERS / PLUGINS - support for parent cmake list specification
 #
 
+# Add default stdout driver if option is ON
+if (default_stdout)
+  set(DRIVERS ${DRIVERS} default_stdout)
+endif()
+
 # Add extra drivers defined from command line
 set(DRIVERS ${DRIVERS} ${EXTRA_DRIVERS})
 if(DRIVERS)
@@ -469,7 +474,7 @@ file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
 set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
 if (debug)
-  set(STRIP_LV /bin/true)
+  unset(STRIP_LV)
 endif()
 
 if (NOT debug)

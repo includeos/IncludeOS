@@ -67,6 +67,9 @@ parser.add_argument('vm_location', action="store", type = str, default=".",
 parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                     help="Start hypervisor in debug mode if available")
 
+parser.add_argument("--with-solo5", dest="solo5", action="store_true",
+                    help="Run includeOS on solo5 kernel with ukvm-bin as monitor")
+
 parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 
 args = parser.parse_args()
@@ -153,7 +156,17 @@ if args.config:
     config = os.path.abspath(args.config)
     if VERB: print INFO, "Using config file", config
 
-vm = vmrunner.vm(config = config)
+hyper_name = "qemu"
+if args.solo5:
+    hyper_name = "ukvm"
+    os.environ['PLATFORM'] = "x86_solo5"
+    qkvm_bin = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/ukvm-bin"
+
+    subprocess.call(['touch', INCLUDEOS_PREFIX + 'dummy.disk'])
+    subprocess.call(['chmod', '+x', qkvm_bin])
+    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/ukvm-ifup.sh" ])
+
+vm = vmrunner.vm(config = config, hyper_name = hyper_name)
 
 # Don't listen to events needed by testrunner
 vm.on_success(lambda(x): None, do_exit = False)
@@ -206,5 +219,5 @@ if (not has_bootloader):
     vm.boot(timeout = None, multiboot = True, debug = args.debug, kernel_args = " ".join(args.vmargs), image_name = image_name)
 else:
     vm.boot(timeout = None, multiboot = False, debug = args.debug, kernel_args = None, image_name = image_name)
-    vm.boot(timeout = None, multiboot = False, kernel_args = None, image_name = image_name)
+
 exit(0);

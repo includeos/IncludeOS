@@ -16,27 +16,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 **/
-
 ENTRY(_start)
 
 SECTIONS
 {
+  PROVIDE ( _ELF_START_ = . + 0x200000);
+  PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
-  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x800000));
-
-  /* For convenience w. multiboot */
-  PROVIDE ( _ELF_START_ = __executable_start);
-  PROVIDE ( _LOAD_START_ = _ELF_START_ );
-
-  . = SEGMENT_START("text-segment", 0x800000) + SIZEOF_HEADERS;
+  . = _ELF_START_ + SIZEOF_HEADERS;
 
   .multiboot : {
-      PROVIDE(_MULTIBOOT_START_ = . );
+      PROVIDE(_MULTIBOOT_START_ = .);
       *(.multiboot)
    }
+  PROVIDE(SECRET_SPACE_BEGIN = .)
 
   .text ALIGN(0x1000):
   {
+  PROVIDE(SECRET_SPACE_END = .)
   PROVIDE( _TEXT_START_ = . );
     /* For solo5, although it's just used to print the mem layout. */
     _stext = .;
@@ -46,18 +43,16 @@ SECTIONS
     /* For solo5, although it's just used to print the mem layout. */
     _etext = .;
   }
-
   PROVIDE( _TEXT_END_ = . );
-  .init ALIGN(0x10) : {
+
+  .init ALIGN(0x1000) : {
     _INIT_START_ = .;
     *(.init)
     _INIT_END_ = .;
   }
 
   .fini ALIGN(0x10) : {
-    _FINI_START_ = .;
     *(.fini)
-    _FINI_END_ = .;
   }
 
   /* Global offset-table. For dynamic linking */
@@ -65,6 +60,50 @@ SECTIONS
       *(.got*)
   }
 
+/**
+ *  .ctors, .dtors, .preinit_array, .init_array, .fini_array
+ *  from GNU LD default linker script
+ */
+
+.ctors          :
+  {
+    _GCONSTR_START_ = .;
+      /* gcc uses crtbegin.o to find the start of
+       the constructors, so we make sure it is
+       first.  Because this is a wildcard, it
+       doesn't matter if the user does not
+       actually link against crtbegin.o; the
+       linker won't look for a file to match a
+       wildcard.  The wildcard also means that it
+       doesn't matter which directory crtbegin.o
+       is in.  */
+       KEEP (*crtbegin.o(.ctors))
+       KEEP (*crtbegin?.o(.ctors))
+       /* We don't want to include the .ctor section from
+       the crtend.o file until after the sorted ctors.
+       The .ctor section from the crtend file contains the
+       end of ctors marker and it must be last */
+       KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .ctors))
+       KEEP (*(SORT(.ctors.*)))
+       KEEP (*(.ctors))
+    _GCONSTR_END_ = .;
+  }
+
+  .dtors :
+  {
+    KEEP (*crtbegin.o(.dtors))
+    KEEP (*crtbegin?.o(.dtors))
+    KEEP (*(EXCLUDE_FILE (*crtend.o *crtend?.o ) .dtors))
+    KEEP (*(SORT(.dtors.*)))
+    KEEP (*(.dtors))
+  }
+
+  .preinit_array :
+  {
+    PROVIDE_HIDDEN (__preinit_array_start = .);
+    KEEP (*(.preinit_array))
+    PROVIDE_HIDDEN (__preinit_array_end = .);
+  }
 
   .init_array :
   {
@@ -101,16 +140,38 @@ SECTIONS
     _erodata = .;
   }
 
-  .eh_frame :
+  .tdata ALIGN(0x10) :
+  {
+    _TDATA_START_ = .;
+    *(.tdata .tdata.*)
+    _TDATA_END_ = .;
+    . = ALIGN(0x10);
+  }
+  .tbss :
+  {
+    _TBSS_START_ = .;
+    *(.tbss .tbss.*)
+    _TBSS_END_ = .;
+    . = ALIGN(0x10);
+  }
+
+  .memdisk :
+  {
+    _DISK_START_ = .;
+    *(.diskdata)
+    _DISK_END_ = .;
+  }
+
+  /* For stack unwinding (exception handling)  */
+  .eh_frame_hdr ALIGN(0x8):
+  {
+    KEEP(*(.eh_frame_hdr*))
+  }
+  .eh_frame ALIGN(0x8):
   {
     PROVIDE (__eh_frame_start = .);
     KEEP(*(.eh_frame))
-    PROVIDE (__eh_frame_end = .);
-  }
-
-  .eh_frame_hdr :
-  {
-    KEEP(*(.eh_frame_hdr))
+    LONG (0);
   }
 
   .gcc_except_table :
@@ -127,29 +188,6 @@ SECTIONS
     _DATA_END_ = .;
   }
 
-  .tdata ALIGN(0x10) :
-  {
-    _TDATA_START_ = .;
-    *(.tdata .tdata.*)
-    _TDATA_END_ = .;
-    . = ALIGN(0x10);
-  }
-
-  .tbss :
-  {
-    _TBSS_START_ = .;
-    *(.tbss .tbss.*)
-    _TBSS_END_ = .;
-    . = ALIGN(0x10);
-  }
-
-  .memdisk :
-  {
-    _DISK_START_ = .;
-    *(.diskdata)
-    _DISK_END_ = .;
-  }
-
   .elf_symbols : {
     _ELF_SYM_START_ = .;
     LONG (0);
@@ -160,7 +198,6 @@ SECTIONS
 
   .bss ALIGN(0x1000) :
   {
-
     _BSS_START_ = .;
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
@@ -169,7 +206,6 @@ SECTIONS
   . = ALIGN(0x8);
 
   _end = .;
-
 
   PROVIDE (end = .);
   PROVIDE (_ELF_END_ = .);

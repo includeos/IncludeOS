@@ -24,7 +24,7 @@ extern __multiboot_addr
 %define P4_TAB                  0x1000
 %define P3_TAB                  0x2000 ;; - 0x5fff
 %define P2_TAB                  0x100000
-%define STACK_LOCATION          0x9D3F0
+%define STACK_LOCATION          0x200000 - 16
 
 %define IA32_EFER               0xC0000080
 %define IA32_STAR               0xC0000081
@@ -136,6 +136,8 @@ long_mode:
     ;; set up new stack for 64-bit
     push rsp
     mov  rsp, STACK_LOCATION
+    push 0
+    push 0
     mov  rbp, rsp
 
     ;; setup temporary smp table

@@ -3,7 +3,7 @@
 #include <ringbuffer>
 #include <hw/ps2.hpp>
 
-static RingBuffer emerg_buffer(1 << 17);
+static FixedRingBuffer<1 << 17> emerg_buffer;
 static bool procedure_entered = false;
 static const char* read_position = nullptr;
 static const char* read_minpos = nullptr;

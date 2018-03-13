@@ -7,7 +7,9 @@
 ############################################################
 
 BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip g++-multilib gcc"
-[ ! -z "$CC" ] && { CLANG_VERSION=${CC: -3}; } || CLANG_VERSION="5.0"
+CLANG_VERSION_MIN_REQUIRED="5.0"
+[ ! -z "$CC" ] && { CLANG_VERSION=${CC: -3}; } || CLANG_VERSION=$CLANG_VERSION_MIN_REQUIRED
+[[ $CLANG_VERSION < $CLANG_VERSION_MIN_REQUIRED ]] && CLANG_VERSION=$CLANG_VERSION_MIN_REQUIRED
 TEST_DEPENDENCIES="g++"
 PYTHON_DEPENDENCIES="jsonschema psutil junit-xml filemagic"
 INSTALLED_PIP=0
@@ -57,18 +59,30 @@ esac
 # CHECK INSTALLED PACKAGES:
 ############################################################
 
+function print_header {
+  printf "%-15s %-20s %s \n"\
+     "Status" "Package" "Version"\
+     "------" "-------" "-------"
+}
+
+function print_installed {
+  printf '\e[32m%-15s\e[0m %-20s %s \n'\
+    "INSTALLED" $1 $2
+}
+
+function print_missing {
+  printf '\e[31m%-15s\e[0m %-20s %s \n'\
+    "MISSING" $1
+}
+
 if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
-	printf "%-15s %-20s %s \n"\
-		   "Status" "Package" "Version"\
-		   "------" "-------" "-------"
+  print_header
 	for package in $ALL_DEPENDENCIES; do
 		dpkg-query -W $package > /dev/null 2>&1
 		if [ $? -eq 0 ]; then
-			printf '    \e[32m%-15s\e[0m %-20s %s \n'\
-				"INSTALLED" $(dpkg-query -W $package)
+      print_installed $(dpkg-query -W $package)
 		else
-			printf '\e[31m%-15s\e[0m %-20s %s \n'\
-				"MISSING" $package
+      print_missing $package
 			DEPENDENCIES="$DEPENDENCIES $package"
 		fi
 	done
@@ -92,17 +106,16 @@ if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 		if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
 			printf "\n%s\n" "python pip -> INSTALLED"
 		fi
+    print_header
 		for package in $PYTHON_DEPENDENCIES; do
 			pip show $package > /dev/null 2>&1
 			if [ $? -eq 0 ]; then
 				if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
-					printf '     \e[32m%-15s\e[0m %-20s %s \n'\
-						"INSTALLED" $(pip list 2> /dev/null | grep $package)
+          print_installed $(pip list 2> /dev/null | grep $package)
 				fi
 			else
 				if [ $PRINT_INSTALL_STATUS -eq 1 ]; then
-					printf '     \e[31m%-15s\e[0m %-20s %s \n'\
-						"MISSING" $package
+          print_missing $package
 					PYTHON_DEPS_TO_INSTALL="$PYTHON_DEPS_TO_INSTALL $package"
 				fi
 			fi

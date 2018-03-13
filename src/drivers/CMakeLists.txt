@@ -5,8 +5,12 @@
 #
 # ...There are probably nicer solutions, so please PR if you know them.
 
-add_library(disable_paging STATIC disable_paging.cpp)
-add_dependencies(disable_paging PrecompiledLibraries)
+# make LiveUpdate visible to drivers
+include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
+
+# Simple stuff
+add_library(boot_logger STATIC bootlog.cpp)
+add_library(default_stdout STATIC "default_stdout.cpp")
 
 add_library(ide_readwrite STATIC ide.cpp)
 set_target_properties(ide_readwrite PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ -DIDE_ENABLE_WRITE")
@@ -36,9 +40,6 @@ add_dependencies(ip4_reassembly PrecompiledLibraries)
 add_library(heap_debugging STATIC heap_debugging.cpp)
 add_dependencies(heap_debugging PrecompiledLibraries)
 
-add_library(boot_logger STATIC bootlog.cpp)
-add_dependencies(boot_logger PrecompiledLibraries)
-
 add_library(disk_logger STATIC "disk_logger.cpp")
 add_dependencies(disk_logger PrecompiledLibraries)
 
@@ -57,7 +58,7 @@ add_dependencies(vga_emergency PrecompiledLibraries)
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
 install(TARGETS
-    disable_paging
+    default_stdout
     ide_readwrite ide_readonly ide_writeonly
     virtionet virtioblk
     vmxnet3 e1000

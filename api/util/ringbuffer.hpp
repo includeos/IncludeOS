@@ -22,19 +22,14 @@
 #include <cassert>
 #include <cstdio>
 
+/**
+ *  See:
+ *  HeapRingBuffer
+ *  MemoryRingBuffer
+**/
+
 class RingBuffer {
 public:
-  RingBuffer(int size)
-    : cap(size), start(0), end(0), used(0)
-  {
-    assert(size > 0);
-    this->buffer = new char[capacity()];
-  }
-  ~RingBuffer()
-  {
-    delete[] this->buffer;
-  }
-
   int write(const void* buffer, int length) noexcept
   {
     const char* data = (const char*) buffer;
@@ -112,6 +107,12 @@ public:
     return used_space() == 0;
   }
 
+  bool is_valid() const noexcept {
+    return (used <= cap and cap > 0)
+      and (start < cap and start >= 0)
+      and (end < cap and end >= 0);
+  }
+
   // rotate buffer until it becomes sequential
   const char* sequentialize()
   {
@@ -150,7 +151,13 @@ public:
     return this->buffer;
   }
 
-private:
+protected:
+  RingBuffer(char* rbuffer, int size)
+    : cap(size), buffer(rbuffer)
+  {
+    assert(size > 0);
+  }
+
   const char* at_start() const noexcept {
     return &this->buffer[this->start];
   }
@@ -158,11 +165,48 @@ private:
     return &this->buffer[this->end];
   }
 
+  const int  cap;
+  int  start = 0;
+  int  end   = 0;
+  int  used  = 0;
   char* buffer;
-  int  cap;
-  int  start;
-  int  end;
-  int  used;
+};
+
+class HeapRingBuffer : public RingBuffer {
+public:
+  HeapRingBuffer(int size)
+    : RingBuffer(new char[size], size) {}
+  ~HeapRingBuffer() {
+    delete[] this->buffer;
+  }
+};
+
+class MemoryRingBuffer : public RingBuffer {
+public:
+  MemoryRingBuffer(char* location, int size)
+    : RingBuffer(location, size) {}
+
+  MemoryRingBuffer(char* loc, const int cap,
+                   int start, int end, int used)
+    : RingBuffer(loc, cap)
+  {
+    this->start = start;
+    this->end   = end;
+    this->used  = used;
+  }
+
+  ~MemoryRingBuffer() {}
+};
+
+template <int N>
+class FixedRingBuffer : public RingBuffer {
+public:
+  FixedRingBuffer()
+    : RingBuffer(m_buffer, N) {}
+  ~FixedRingBuffer() {}
+
+private:
+  char m_buffer[N];
 };
 
 #endif

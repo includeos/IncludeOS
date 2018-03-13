@@ -27,6 +27,9 @@
 
 #include "idt.hpp"
 
+#undef Expects
+#define Expects(X) if (!X) { kprint("Expect failed: " #X "\n");  asm("cli;hlt"); }
+
 extern "C" {
   void __init_serial1();
   void __init_sanity_checks();
@@ -135,12 +138,12 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 
   // Initialize CPU exceptions
   x86::idt_initialize_for_cpu(0);
-
   kprintf("* Thread local1: %i\n", __tl1__);
 
   kprintf("* Elf start: 0x%lx\n", &_ELF_START_);
   auto* ehdr = (Elf64_Ehdr*)&_ELF_START_;
   auto* phdr = (Elf64_Phdr*)((char*)ehdr + ehdr->e_phoff);
+  Expects(phdr);
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
   Expects(elf.is_ELF());
   size_t size =  &_ELF_END_ - &_ELF_START_;

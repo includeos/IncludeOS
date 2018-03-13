@@ -24,6 +24,8 @@ extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
+// in kernel/os.cpp
+extern bool os_default_stdout;
 
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
@@ -70,7 +72,9 @@ void OS::default_stdout(const char* str, const size_t len)
 void OS::start(char* _cmdline, uintptr_t mem_size)
 {
   // Initialize stdout handlers
-  OS::add_stdout(&OS::default_stdout);
+  if(os_default_stdout) {
+    OS::add_stdout(&OS::default_stdout);
+  }
 
   PROFILE("");
   // Print a fancy header

@@ -93,6 +93,12 @@ namespace hw {
         dev->device_type(), devices<Device_type>().size()-1);
     }
 
+    /** The next index to be designated to given Device_type **/
+    template <typename Device_type>
+    static size_t device_next_index() {
+      return devices<Device_type>().size();
+    }
+
   private:
     /** Print a decorated indexed list with the devices of the given type. No output if empty */
     template <typename Device_type>

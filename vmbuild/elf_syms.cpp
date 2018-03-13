@@ -126,16 +126,16 @@ static int relocate_pruned(char* new_location, SymTab& symtab, StrTab& strtab)
          hdr.strtab_size * sizeof(char);
 
   // checksum of symbols & strings and the entire section
-  hdr.checksum_syms = crc32(symloc, hdr.symtab_entries * sizeof(ElfSym));
-  hdr.checksum_strs = crc32(strloc, hdr.strtab_size);
-  uint32_t all = crc32(&hdr, sizeof(relocate_header) + size);
+  hdr.checksum_syms = crc32_fast(symloc, hdr.symtab_entries * sizeof(ElfSym));
+  hdr.checksum_strs = crc32_fast(strloc, hdr.strtab_size);
+  uint32_t hdr_csum = crc32_fast(&hdr, sizeof(relocate_header) + size);
   fprintf(stderr, "ELF symbols: %08x  "
                   "ELF strings: %08x  "
                   "ELF section: %08x\n",
-                  hdr.checksum_syms, hdr.checksum_strs, all);
+                  hdr.checksum_syms, hdr.checksum_strs, hdr_csum);
   hdr.sanity_check = 0;
   // header consistency check
-  hdr.sanity_check = crc32(new_location, sizeof(relocate_header));
+  hdr.sanity_check = crc32_fast(new_location, sizeof(relocate_header));
 
   // return total length
   return sizeof(relocate_header) + size;

@@ -1,6 +1,13 @@
 #
 # Build and install plugins as libraries
 #
+
+# make LiveUpdate visible to plugins
+include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
+
+add_library(system_log STATIC "system_log.cpp")
+add_dependencies(system_log PrecompiledLibraries)
+
 add_library(syslogd STATIC syslogd.cpp)
 add_dependencies(syslogd PrecompiledLibraries)
 
@@ -32,6 +39,7 @@ add_dependencies(vfs PrecompiledLibraries)
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
 install(TARGETS
+    system_log
     syslogd
     unik
     example

@@ -73,8 +73,7 @@ private:
 struct TCP_FD_Conn
 {
   TCP_FD_Conn(net::tcp::Connection_ptr c)
-    : conn(c), readq(16384)
-  {}
+    : conn(c) {}
 
   void recv_to_ringbuffer(net::tcp::buffer_t);
   void set_default_read();
@@ -87,7 +86,7 @@ struct TCP_FD_Conn
   std::string to_string() const { return conn->to_string(); }
 
   net::tcp::Connection_ptr conn;
-  RingBuffer readq;
+  FixedRingBuffer<16384> readq;
 };
 
 struct TCP_FD_Listen
