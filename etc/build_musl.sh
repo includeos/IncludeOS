@@ -20,6 +20,7 @@ rm -f arch/i386/syscall_arch.h
 
 # Compatibility patch
 git apply $INCLUDEOS_SRC/etc/musl/musl.patch || true
+git apply $INCLUDEOS_SRC/etc/musl/endian.patch || true
 
 
 # ln -s $INCLUDEOS_SRC/api/arch/syscalls.h arch/x86_64/syscall_arch.h
