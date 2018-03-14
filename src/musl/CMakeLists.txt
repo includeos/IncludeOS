@@ -20,7 +20,7 @@ set(MUSL_OBJECTS
   openat.cpp
   umask.cpp
   utimensat.cpp
-
+  uname.cpp
 )
 
 add_library(musl_syscalls STATIC ${MUSL_OBJECTS})
