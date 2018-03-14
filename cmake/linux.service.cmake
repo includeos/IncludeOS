@@ -2,7 +2,7 @@
 #   Linux Userspace CMake script   #
 ####################################
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(COMMON "-g -O2 -march=native -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
@@ -11,10 +11,12 @@ option(GPROF "Enable profiling with gprof" OFF)
 option(SANITIZE "Enable undefined- and address sanitizers" OFF)
 option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
 option(CUSTOM_BOTAN "Enable building with a local Botan" OFF)
+option(STATIC_BUILD "Build a portable static executable" OFF)
+option(STRIP_BINARY "Strip final binary to reduce size" ON)
 
 if (ENABLE_LTO)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin -fuse-ld=lld-5.0")
-  set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin -fuse-ld=lld-5.0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
+  set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
 endif()
 
 if(GPROF)
@@ -70,3 +72,20 @@ if (CUSTOM_BOTAN)
 endif()
 target_link_libraries(service ${EXTRA_LIBS})
 target_link_libraries(service includeos linuxrt includeos http_parser rt)
+
+if (STATIC_BUILD)
+  target_link_libraries(service -static-libstdc++ -static-libgcc)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -pthread")
+endif()
+
+if (ENABLE_LTO)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
+endif()
+
+if (STRIP_BINARY)
+  add_custom_target(
+    strip_binary ALL
+    COMMAND strip --strip-all ${BINARY}
+    DEPENDS service
+  )
+endif()

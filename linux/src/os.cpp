@@ -2,7 +2,9 @@
 #include <kernel/events.hpp>
 #include <kernel/service.hpp>
 #include <kernel/timers.hpp>
+#include <system_log>
 #include <sys/time.h>
+#include <malloc.h> // mallinfo()
 #include <sched.h>
 
 void OS::event_loop()
@@ -20,34 +22,6 @@ void OS::event_loop()
   // call on shutdown procedure
   Service::stop();
 }
-
-struct mallinfo
-{
-  // Total size of memory allocated with sbrk by malloc, in bytes.
-  int arena;
-  // Number of chunks not in use.
-  // (The memory allocator internally gets chunks of memory from the
-  // operating system, and then carves them up to satisfy individual
-  // malloc requests; see The GNU Allocator.)
-  int ordblks;
-  // Unused.
-  int smblks;
-  // Total number of chunks allocated with mmap.
-  int hblks;
-  // Total size of memory allocated with mmap, in bytes.
-  int hblkhd;
-  // Unused and always 0.
-  int usmblks;
-  // Unused.
-  int fsmblks;
-  // Total size of memory occupied by chunks handed out by malloc.
-  int uordblks;
-  // Total size of memory occupied by free (not in use) chunks.
-  int fordblks;
-  // Size of the top-most releasable chunk that normally borders the end of the heap (i.e., the high end of the virtual address space’s data segment).
-  int keepcost;
-};
-extern "C" struct mallinfo mallinfo(void);
 
 uintptr_t OS::heap_begin() noexcept {
   return 0;
@@ -128,6 +102,9 @@ void __platform_init()
   Timers::init(begin_timer, stop_timers);
   Timers::ready();
 }
+
+// system_log has no place on Linux because stdout goes --> pipe
+void SystemLog::initialize() {}
 
 #ifdef __MACH__
 #include <stdlib.h>
