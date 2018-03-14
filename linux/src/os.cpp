@@ -59,8 +59,7 @@ const char* Service::binary_name() {
   return service_binary_name__;
 }
 
-static void stop_timers() {}
-
+// timer system
 #include <signal.h>
 #include <unistd.h>
 static timer_t timer_id;
@@ -78,19 +77,13 @@ static void begin_timer(std::chrono::nanoseconds usec)
   it.it_value.tv_nsec = usec.count() - secs.count() * 1000000000ull;
   timer_settime(timer_id, 0, &it, nullptr);
 }
+static void stop_timers() {}
 
 #include <statman>
-void __platform_init()
+void OS::start(char* cmdline, uintptr_t)
 {
-  // set affinity to CPU 1
-#ifdef __linux__
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  CPU_SET(1, &cpuset);
-  sched_setaffinity(0, sizeof(cpuset), &cpuset);
-#endif
   // statman
-  static char statman_data[8192];
+  static char statman_data[1 << 16];
   Statman::get().init((uintptr_t) statman_data, sizeof(statman_data));
   // setup Linux timer (with signal handler)
   struct sigevent sev;
@@ -101,6 +94,10 @@ void __platform_init()
   // setup timer system
   Timers::init(begin_timer, stop_timers);
   Timers::ready();
+  // fake CPU frequency
+  using namespace std::chrono;
+  OS::cpu_khz_ = decltype(OS::cpu_freq()) {3000000ul};
+  OS::cmdline = cmdline;
 }
 
 // system_log has no place on Linux because stdout goes --> pipe
