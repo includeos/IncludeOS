@@ -52,6 +52,10 @@ public:
     driver->set_transmit_forward(std::move(func));
   }
 
+  auto* get_driver() {
+    return this->driver;
+  }
+
 private:
   inline void driver_receive(net::Packet_ptr packet) {
     this->driver->receive(std::move(packet));
