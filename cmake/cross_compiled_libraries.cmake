@@ -18,8 +18,8 @@ else(BUNDLE_LOC)
 	include(ExternalProject)
 	ExternalProject_Add(PrecompiledLibraries
 			    PREFIX precompiled
-			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.12.0-rc.2/IncludeOS_dependencies_v0-12-0_libcpp5_threaded.tar.gz
-			    URL_HASH SHA1=792613743b6fc7b4ba2d6a180d32e04d2a973846
+			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.12.0-rc.2/IncludeOS_dependencies_v0-12-0_libcpp5_singlethread.tar.gz
+			    URL_HASH SHA1=eb343de326ae6b0acc3c87d6b22136d0aa2b3fdf
 			    CONFIGURE_COMMAND ""
 			    BUILD_COMMAND ""
 			    UPDATE_COMMAND ""
