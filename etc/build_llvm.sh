@@ -5,7 +5,7 @@
 ARCH=${ARCH:-x86_64} # CPU architecture. Alternatively x86_64
 TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
 BUILD_DIR=${BUILD_DIR:-~/IncludeOS_build/build_llvm}
-INCLUDEOS_THREADING=${INCLUDEOS_THREADING:-ON}
+INCLUDEOS_THREADING=${INCLUDEOS_THREADING:-OFF}
 
 musl_inc=$TEMP_INSTALL_DIR/$TARGET/include	# path for newlib headers
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
@@ -66,7 +66,7 @@ fi
 
 
 TRIPLE=$ARCH-pc-linux-elf
-CXX_FLAGS="-std=c++14 -msse3 -mfpmath=sse -nostdlibinc -D_LIBCPP_HAS_MUSL_LIBC"
+CXX_FLAGS="-std=c++14 -msse3 -g -mfpmath=sse -nostdlibinc -D_LIBCPP_HAS_MUSL_LIBC"
 
 # CMAKE configure step
 #

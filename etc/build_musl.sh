@@ -30,7 +30,7 @@ git apply $INCLUDEOS_SRC/etc/musl/endian.patch || true
 git checkout $musl_version
 make distclean || true
 
-export CFLAGS="$CFLAGS -target $ARCH-pc-linux-elf"
+export CFLAGS="$CFLAGS -g -target $ARCH-pc-linux-elf"
 ./configure --prefix=$TEMP_INSTALL_DIR/$TARGET  --disable-shared --enable-debug --target=$TARGET #--enable-optimize=*
 make $num_jobs
 make install
