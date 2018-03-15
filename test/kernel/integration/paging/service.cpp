@@ -401,6 +401,7 @@ void map_non_aligned(){
 
 int main()
 {
+  void(*heap_code)() = (void(*)()) malloc(42);
 
   Expects(Byte_r{std::numeric_limits<int>::max()}.to_string() == "2.000_GiB");
   Expects(Byte_r{std::numeric_limits<uintptr_t>::max()}.to_string() == "16777216.000_TiB");
@@ -476,7 +477,6 @@ int main()
     ((void(*)())(&protected_page[magic->i]))();
   }
 
-  void(*heap_code)() = (void(*)()) malloc(42);
   if (magic->reboots == 3){
     // Verify XD
     Expects(magic->last_error = Page_fault);
