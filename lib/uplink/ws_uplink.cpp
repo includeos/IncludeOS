@@ -245,7 +245,7 @@ namespace uplink {
   {
 
     if (not is_online()) {
-      MYINFO("Can't heartbeat on closed conection. ");
+      MYINFO("Can't heartbeat on closed connection.");
       return;
     }
 

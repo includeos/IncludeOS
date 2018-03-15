@@ -37,7 +37,7 @@ set(OS_OBJECTS
   kernel/system_log.cpp kernel/rdrand.cpp kernel/solo5_manager.cpp
   util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
-  util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp
+  util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp util/crc32.cpp
   crt/c_abi.c crt/ctype_b_loc.c crt/ctype_tolower_loc.c crt/string.c
   crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/pci_device.cpp hw/nic.cpp hw/ps2.cpp hw/serial.cpp hw/vga_gfx.cpp

@@ -17,15 +17,12 @@
 
 #include <cassert>
 #include <cstdint>
-#include <common>
 #include <kprint>
 #include <util/crc32.hpp>
 #include <kernel/elf.hpp>
 #include <kernel/syscalls.hpp>
 
-// NOTE: crc_to MUST NOT be initialized to zero
-static uint32_t crc_ro = CRC32_BEGIN();
-const auto* LOW_CHECK_SIZE = (volatile int*) 0x200;
+//#define ENABLE_CRC_RO
 
 // Global constructors
 static int gconstr_value = 0;
@@ -33,6 +30,10 @@ __attribute__((constructor))
 static void self_test_gconstr() {
   gconstr_value = 1;
 }
+
+#ifdef ENABLE_CRC_RO
+// NOTE: crc_ro MUST NOT be initialized to zero
+static uint32_t crc_ro = CRC32_BEGIN();
 
 static uint32_t generate_ro_crc() noexcept
 {
@@ -42,26 +43,29 @@ static uint32_t generate_ro_crc() noexcept
   extern char _RODATA_END_;
   return crc32_fast(&_TEXT_START_, &_RODATA_END_ - &_TEXT_START_);
 }
+#endif
 
 extern "C"
 void __init_sanity_checks() noexcept
 {
-  // zero low memory
-  for (volatile int* lowmem = NULL; lowmem < LOW_CHECK_SIZE; lowmem++)
-      *lowmem = 0;
+#ifdef ENABLE_CRC_RO
   // generate checksum for read-only portions of kernel
   crc_ro = generate_ro_crc();
+#endif
 }
 
 extern "C"
 void kernel_sanity_checks()
 {
+#ifdef ENABLE_CRC_RO
   // verify checksum of read-only portions of kernel
   uint32_t new_ro = generate_ro_crc();
+
   if (crc_ro != new_ro) {
     kprintf("CRC mismatch %#x vs %#x\n", crc_ro, new_ro);
     panic("Sanity checks: CRC of kernel read-only area failed");
   }
+#endif
 
   // verify that Elf symbols were not overwritten
   bool symbols_verified = Elf::verify_symbols();
