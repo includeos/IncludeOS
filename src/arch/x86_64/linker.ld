@@ -60,12 +60,38 @@ SECTIONS
     PROVIDE_HIDDEN (__preinit_array_end = .);
   }
 
+/**
+  *   Global constructors
+  *   Constructors are split into groups allowing the OS to use global ctors
+  *   before the OS itself is initialized, while delaying the calls to service constructors
+  *   until as much of the OS / C++ runtime as possible is ready.
+  */
+
+  /* OS / stdlib constructors */
   .init_array :
   {
     PROVIDE_HIDDEN (__init_array_start = .);
+    */x86_64/lib/lib*.a:*(.init_array*)
+    */x86_64/platform/lib*.a:*(.init_array*)
+    */x86_64/drivers/lib*.a:*(.init_array*)
+    PROVIDE_HIDDEN (__init_array_end = .);
+  }
+
+  /* Plugin constructors */
+  .plugin_ctors :
+  {
+    PROVIDE_HIDDEN (__plugin_ctors_start = .);
+    */x86_64/plugins/lib*.a:*(.init_array*)
+    PROVIDE_HIDDEN (__plugin_ctors_end = .);
+  }
+
+  /* All other constructors */
+  .service_ctors :
+  {
+    PROVIDE_HIDDEN (__service_ctors_start = .);
     KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.ctors.*)))
     KEEP (*(.init_array EXCLUDE_FILE (*crtbegin.o *crtbegin?.o *crtend.o *crtend?.o ) .ctors))
-    PROVIDE_HIDDEN (__init_array_end = .);
+    PROVIDE_HIDDEN (__service_ctors_end = .);
   }
 
   .fini_array :

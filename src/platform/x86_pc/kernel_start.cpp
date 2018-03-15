@@ -47,7 +47,13 @@ extern char _ELF_END_;
 extern char _INIT_START_;
 extern char _FINI_START_;
 
-static thread_local int __tl1__ = 42;
+thread_local int __tl1__ = 42;
+
+uintptr_t __grub_magic = 0xc001;
+uintptr_t __grub_addr = 0x7001;
+
+static int __global_ctors_ok = 0;
+bool __libc_initialized = false;
 
 
 void _init_bss()
@@ -57,13 +63,17 @@ void _init_bss()
   __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 }
 
-uintptr_t __grub_magic = 0xc001;
-uintptr_t __grub_addr = 0x7001;
-bool __libc_initialized = false;
+
+__attribute__((constructor))
+static void global_ctor_test(){
+  __global_ctors_ok = 42;
+}
 
 int kernel_main(int, char * *, char * *) {
   kprintf("<kernel_main> libc initialization complete \n");
+  Expects(__global_ctors_ok == 42);
   __libc_initialized = true;
+
   Expects(__tl1__ == 42);
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
   Expects(elf.is_ELF() && "ELF header intact");
@@ -138,14 +148,15 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   kprintf("* Init heap\n");
   _init_heap(free_mem_begin);
 
-  /// init ELF / backtrace functionality
-  _init_elf_parser();
-
-  // init syscalls
+  kprintf("* Init syscalls\n");
   _init_syscalls();
 
-  // Initialize CPU exceptions
+  kprintf("* Init CPU exceptions\n");
   x86::idt_initialize_for_cpu(0);
+
+  kprintf("* Init ELF parser\n");
+  _init_elf_parser();
+
   kprintf("* Thread local1: %i\n", __tl1__);
 
   kprintf("* Elf start: %p\n", &_ELF_START_);

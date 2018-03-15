@@ -89,6 +89,20 @@ const char* OS::cmdline_args() noexcept {
   return cmdline;
 }
 
+extern char __service_ctors_start;
+extern char __service_ctors_end;
+extern char __plugin_ctors_start;
+extern char __plugin_ctors_end;
+
+static int __run_ctors(uintptr_t begin, uintptr_t end)
+{
+  int i = 0;
+	for (; begin < end; begin += sizeof(void(*)()), i++) {
+		(*(void (**)(void)) begin )();
+  }
+  return i;
+}
+
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
   plugins.emplace_back(delg, name);
@@ -128,14 +142,25 @@ void OS::post_start()
 
   // Custom initialization functions
   MYINFO("Initializing plugins");
-  // the boot sequence is over when we get to plugins/Service::start
-  OS::boot_sequence_passed_ = true;
 
+  // Run plugin constructors
+  __run_ctors((uintptr_t)&__plugin_ctors_start, (uintptr_t)&__plugin_ctors_end);
+
+
+  // Run plugins
   PROFILE("Plugins init");
   for (auto plugin : plugins) {
     INFO2("* Initializing %s", plugin.name);
     plugin.func();
   }
+
+  MYINFO("Running service constructors");
+  FILLINE('-');
+  // the boot sequence is over when we get to plugins/Service::start
+  OS::boot_sequence_passed_ = true;
+
+    // Run service constructors
+  __run_ctors((uintptr_t)&__service_ctors_start, (uintptr_t)&__service_ctors_end);
 
   PROFILE("Service::start");
   // begin service start
@@ -157,8 +182,16 @@ __attribute__((weak))
 bool os_enable_boot_logging = false;
 __attribute__((weak))
 bool os_default_stdout = false;
+extern bool __libc_initialized;
+
 void OS::print(const char* str, const size_t len)
 {
+
+  if (UNLIKELY(! __libc_initialized)) {
+    OS::default_stdout(str, len);
+    return;
+  }
+
   for (auto& callback : os_print_handlers) {
     if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
       callback(str, len);
