@@ -17,7 +17,6 @@
 
 #include <file_fd.hpp>
 #include <errno.h>
-#include <posix_strace.hpp>
 
 int File_FD::read(void* p, size_t n) {
   auto buf = ent_.read(offset_, n);
@@ -37,7 +36,7 @@ int File_FD::close() {
 int File_FD::lseek(off_t offset, int whence)
 {
   if ((whence != SEEK_SET) && (whence != SEEK_CUR) && (whence != SEEK_END)) {
-    PRINT("lseek(%lu, %d) == %d\n", offset, whence, -1);
+    //PRINT("lseek(%lu, %d) == %d\n", offset, whence, -1);
     errno = EINVAL;
     return -1;
   }
@@ -54,6 +53,6 @@ int File_FD::lseek(off_t offset, int whence)
   }
   if (calculated_offset < 0) calculated_offset = 0;
   offset_ = calculated_offset;
-  PRINT("lseek(%lu, %d) == %d\n", offset, whence, offset_);
+  //PRINT("lseek(%lu, %d) == %d\n", offset, whence, offset_);
   return offset_;
 }
