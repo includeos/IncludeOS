@@ -33,7 +33,8 @@ ALIGN 16
 ;; RSI:   const char* base,
 ;; RDX:   size_t len,
 ;; RCX:   void* entry_function,
-;; R8:    void* reset_data)
+;; R8:    void* reset_data,
+;; R9:    void* liu_storage)
 hotswap_amd64:
     ;; save soft reset data location and entry function
     mov rax, r8
@@ -46,6 +47,19 @@ hotswap_amd64:
     mov rcx, rdx ;; count
     cld
     rep movsb
+
+    ;; clear heap + kernel remains
+    ;; RDI already at end of new kernel
+    mov rax, 0
+    mov rcx, r9    ;; LU location
+    sub rcx, rdi   ;; - KERN_END
+    rep stosb
+
+    ;; clear stack
+    mov rdi, 0x100000
+    mov rax, 0
+    mov rcx, 0x100000
+    rep stosb
 
 begin_enter_protected:
     ; load 64-bit GDTR with 32-bit entries

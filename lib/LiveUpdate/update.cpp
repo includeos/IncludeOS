@@ -43,7 +43,7 @@ extern "C" void solo5_exec(const char*, size_t);
 static void* HOTSWAP_AREA = (void*) 0x8000;
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
-extern "C" void  hotswap64(char*, const char*, int, uintptr_t, void*);
+extern "C" void  hotswap64(char*, const char*, int, uintptr_t, void*, void*);
 extern uint32_t  hotswap64_len;
 extern void      __x86_init_paging(void*);
 extern "C" void* __os_store_soft_reset(const void*, size_t);
@@ -241,7 +241,8 @@ void LiveUpdate::exec(const buffer_t& blob)
     // copy hotswapping function to sweet spot
     memcpy(HOTSWAP_AREA, (void*) &hotswap64, hotswap64_len);
     /// the end
-    ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data);
+    char* end_loc = storage_area - 0x110000;
+    ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data, end_loc);
 # else
 #   error "Unimplemented architecture"
 # endif
