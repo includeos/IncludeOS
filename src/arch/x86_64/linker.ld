@@ -139,21 +139,6 @@ SECTIONS
     _erodata = .;
   }
 
-  .tdata ALIGN(0x10) :
-  {
-    _TDATA_START_ = .;
-    *(.tdata .tdata.*)
-    _TDATA_END_ = .;
-    . = ALIGN(0x10);
-  }
-  .tbss :
-  {
-    _TBSS_START_ = .;
-    *(.tbss .tbss.*)
-    _TBSS_END_ = .;
-    . = ALIGN(0x10);
-  }
-
   .memdisk :
   {
     _DISK_START_ = .;
@@ -194,6 +179,20 @@ SECTIONS
 
   /** Optional memory hole between memdisk and bss **/
   . += PRE_BSS_AREA;
+
+  .tdata :
+  {
+    _TDATA_START_ = .;
+    *(.tdata .tdata.* .gnu.linkonce.td.*)
+    _TDATA_END_ = .;
+  }
+
+  .tbss :
+  {
+    _TBSS_START_ = .;
+    *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon)
+    _TBSS_END_ = .;
+  }
 
   .bss ALIGN(0x1000) :
   {
