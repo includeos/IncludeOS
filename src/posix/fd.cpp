@@ -46,20 +46,20 @@ int FD::fcntl(int cmd, va_list list)
   }
 }
 
-int FD::ioctl(int req, void* arg)
+int FD::ioctl(int /*req*/, void* /*arg*/)
 {
   //PRINT("ioctl(%d, %p) = -1\n", req, arg);
   errno = ENOSYS;
   return -1;
 }
 
-int FD::getsockopt(int fd, int, void *__restrict__, socklen_t *__restrict__)
+int FD::getsockopt(int /*fd*/, int, void *__restrict__, socklen_t *__restrict__)
 {
   //PRINT("getsockopt(%d) = -1\n", fd);
   errno = ENOTSOCK;
   return -1;
 }
-int FD::setsockopt(int fd, int, const void *, socklen_t)
+int FD::setsockopt(int /*fd*/, int, const void *, socklen_t)
 {
   //PRINT("setsockopt(%d) = -1\n", fd);
   errno = ENOTSOCK;

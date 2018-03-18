@@ -20,7 +20,6 @@
 #include <fcntl.h> // open()
 #include <string.h>
 #include <signal.h>
-#include <sys/errno.h>
 #include <sys/stat.h>
 #include <kernel/os.hpp>
 #include <system_log>

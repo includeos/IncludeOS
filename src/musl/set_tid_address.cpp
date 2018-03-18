@@ -1,7 +1,5 @@
 #include "stub.hpp"
 
-#warning stub
-
 static struct {
   int tid = 1;
   int* set_child_tid = nullptr;

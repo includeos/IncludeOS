@@ -1,6 +1,6 @@
 #include "common.hpp"
 
-static int sys_fcntl(int fd, int cmd, ...){
+static int sys_fcntl(int /*fd*/, int /*cmd*/, ...){
   return 0;
 }
 

@@ -17,8 +17,8 @@
 
 extern void print_backtrace();
 
-static int sys_futex(int *uaddr, int futex_op, int val,
-                      const struct timespec *timeout, int val3)
+static int sys_futex(int *uaddr, int /*futex_op*/, int val,
+                      const struct timespec *timeout, int /*val3*/)
 {
 
   if (*uaddr != val){

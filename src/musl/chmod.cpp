@@ -1,10 +1,9 @@
 #include "common.hpp"
 #include <sys/stat.h>
 
-static int sys_chmod(const char *path, mode_t mode) {
+static int sys_chmod(const char* /*path*/, mode_t /*mode*/) {
   // currently makes no sense, especially since we're read-only
-  errno = EROFS;
-  return -1;
+  return -EROFS;
 }
 
 extern "C"

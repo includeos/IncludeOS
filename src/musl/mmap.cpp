@@ -6,34 +6,31 @@
 #include <util/alloc_lstack.hpp>
 
 extern uintptr_t heap_begin;
-extern uintptr_t heap_end = 0;
-static uintptr_t current_pos = 0;
+extern uintptr_t heap_end;
 
 using Alloc = util::alloc::Lstack<4096>;
 static Alloc alloc;
 
-void init_mmap(uintptr_t addr_begin){
+void init_mmap(uintptr_t addr_begin)
+{
   Expects(alloc.empty());
   auto aligned_begin = (addr_begin + Alloc::align - 1) & ~(Alloc::align - 1);
   alloc.donate((void*)aligned_begin, (OS::heap_max() - aligned_begin) & ~(Alloc::align - 1));
-
 }
 
-
 extern "C" __attribute__((weak))
-void* __kalloc(size_t size){
+void* kalloc(size_t size) {
   return alloc.allocate(size);
 }
 
 extern "C" __attribute__((weak))
-void __kfree (void* ptr, size_t size){
+void kfree (void* ptr, size_t size) {
   alloc.deallocate(ptr, size);
 }
 
-static void* sys_mmap(void *addr, size_t length, int prot, int flags,
-                      int fd, off_t offset)
+static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
+                      int fd, off_t /*offset*/)
 {
-
   // TODO: Mapping to file descriptor
   if (fd > 0) {
     assert(false && "Mapping to file descriptor not yet implemented");
@@ -41,11 +38,10 @@ static void* sys_mmap(void *addr, size_t length, int prot, int flags,
 
   // TODO: mapping virtual address
   if (addr) {
-    errno = ENODEV;
     return MAP_FAILED;
   }
 
-  return __kalloc(length);;
+  return kalloc(length);
 }
 
 extern "C"

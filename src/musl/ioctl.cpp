@@ -13,7 +13,8 @@ static int sys_ioctl(int fd, int req, void* arg) {
     }
 
     if (req == TIOCSWINSZ) {
-      winsize* ws = (winsize*)arg;
+      const auto* ws = (winsize*) arg;
+      (void) ws;
     }
 
     return 0;

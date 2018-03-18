@@ -51,7 +51,6 @@ namespace openssl
   }
   void verify_rng()
   {
-    auto* rm = RAND_get_rand_method();
     int random_value = 0;
     int rc = RAND_bytes((uint8_t*) &random_value, sizeof(random_value));
     assert(rc == 0 || rc == 1);

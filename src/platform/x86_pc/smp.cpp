@@ -216,6 +216,8 @@ void SMP::signal(int cpu)
   // 1-xx: Unicast specific vCPU
   else
       x86::APIC::get().send_ipi(cpu, 0x20);
+#else
+  (void) cpu;
 #endif
 }
 void SMP::signal_bsp()

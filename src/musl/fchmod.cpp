@@ -1,9 +1,8 @@
 #include "common.hpp"
 #include <sys/stat.h>
 
-static int sys_fchmod(int fildes, mode_t mode) {
+static int sys_fchmod(int /*fd*/, mode_t /*mode*/) {
   // currently makes no sense, especially since we're read-only
-  errno = EROFS;
   return -EROFS;
 }
 

@@ -1,7 +1,7 @@
 #include "stub.hpp"
 #include <sys/types.h>
 
-static long sys_creat(const char *pathname, mode_t mode) {
+static long sys_creat(const char* /*pathname*/, mode_t /*mode*/) {
   // currently makes no sense, especially since we're read-only
   return -EROFS;
 }

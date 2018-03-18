@@ -49,9 +49,9 @@ class Lstack {
 public:
 
   struct Chunk {
-    Chunk* next;
-    size_t size;
-    Chunk(Chunk* n, size_t s)
+    Chunk*  next;
+    ssize_t size;
+    Chunk(Chunk* n, ssize_t s)
       : next(n), size(s)
     {
       Expects(s >= Min);

@@ -1,9 +1,9 @@
 #include "common.hpp"
 #include <sys/types.h>
-
 #include <fs/vfs.hpp>
 
-static long sys_open(const char *pathname, int flags, mode_t mode = 0) {
+static long sys_open(const char *pathname, int /*flags*/, mode_t /*mode = 0*/)
+{
   try {
     auto& entry = fs::VFS::get<FD_compatible>(pathname);
     auto& fd = entry.open_fd();
