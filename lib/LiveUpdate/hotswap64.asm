@@ -52,7 +52,7 @@ hotswap_amd64:
     ;; RDI already at end of new kernel
     mov rax, 0
     mov rcx, r9    ;; LU location
-    sub rcx, rdi   ;; - KERN_END
+    sub rcx, rdi   ;; - end of new kernel
     rep stosb
 
     ;; clear stack
