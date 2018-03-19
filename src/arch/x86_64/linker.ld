@@ -172,14 +172,6 @@ SECTIONS
     _DATA_END_ = .;
   }
 
-  .elf_symbols : {
-    _ELF_SYM_START_ = .;
-    LONG (0);
-  }
-
-  /** Optional memory hole between memdisk and bss **/
-  . += PRE_BSS_AREA;
-
   .tdata :
   {
     _TDATA_START_ = .;
@@ -193,6 +185,14 @@ SECTIONS
     *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon)
     _TBSS_END_ = .;
   }
+
+  .elf_symbols : {
+    _ELF_SYM_START_ = .;
+    LONG (0);
+  }
+
+  /** Optional memory hole between memdisk and bss **/
+  . += PRE_BSS_AREA;
 
   .bss ALIGN(0x1000) :
   {
