@@ -746,8 +746,8 @@ class vm:
     # Make using GNU Make
     def make(self, params = []):
         print INFO, "Building with 'make' (params=" + str(params) + ")"
-        jobs = os.environ["num_jobs"] if "num_jobs" in os.environ else "-j4"
-        make = ["make", jobs]
+        jobs = os.environ["num_jobs"].split(" ") if "num_jobs" in os.environ else ["-j4"]
+        make = ["make"] + jobs
         make.extend(params)
         cmd(make)
         return self
