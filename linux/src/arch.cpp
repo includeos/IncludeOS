@@ -21,7 +21,7 @@ void __arch_subscribe_irq(uint8_t) {}
 uint64_t __arch_system_time() noexcept
 {
   struct timespec tv;
-  clock_gettime(CLOCK_REALTIME, &tv);
+  clock_gettime(CLOCK_MONOTONIC, &tv);
   return tv.tv_sec*(uint64_t)1000000000ull+tv.tv_nsec;
 }
 timespec __arch_wall_clock() noexcept
