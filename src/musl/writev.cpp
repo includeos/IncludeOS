@@ -22,5 +22,6 @@ static ssize_t sys_writev(int fd, const struct iovec *iov, int iovcnt)
 
 extern "C"
 ssize_t syscall_SYS_writev(int fd, const struct iovec *iov, int iovcnt){
-  return strace(sys_writev, "writev", fd, iov, iovcnt);
+  //return strace(sys_writev, "writev", fd, iov, iovcnt);
+  return sys_writev(fd, iov, iovcnt);
 }

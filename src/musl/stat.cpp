@@ -28,6 +28,7 @@ long sys_stat(const char *path, struct stat *buf)
       buf->st_mtime = ent.modified();
       buf->st_blocks = buf->st_size > 0 ? util::bits::roundto<512>(buf->st_size) : 0;
       buf->st_blksize = ent.fs().block_size();
+      //printf("Is file? %s\n", S_ISREG(buf->st_mode) ? "YES" : "NO");
       //PRINT("stat(%s, %p) == %d\n", path, buf, 0);
       return 0;
     }

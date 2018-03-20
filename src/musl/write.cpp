@@ -24,5 +24,6 @@ static long sys_write(int fd, char* str, size_t len) {
 // The syscall wrapper, using strace if enabled
 extern "C"
 long syscall_SYS_write(int fd, char* str, size_t len) {
-  return strace(sys_write, "write", fd, str, len);
+  //return strace(sys_write, "write", fd, str, len);
+  return sys_write(fd, str, len);
 }

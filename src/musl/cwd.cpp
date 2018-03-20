@@ -2,20 +2,22 @@
 #include <unistd.h>
 
 #include <fs/vfs.hpp>
-#include <kprint>
+
 static std::string cwd{"/"};
 
 static long sys_chdir(const char* path)
 {
   // todo: handle relative path
   // todo: handle ..
-  if (UNLIKELY(not path or strlen(path) < 1))
+  if (UNLIKELY(path == nullptr))
+    return -ENOENT;
+
+  if (UNLIKELY(strlen(path) < 1))
     return -ENOENT;
 
   if (strcmp(path, ".") == 0)
-  {
     return 0;
-  }
+
   std::string desired_path;
   if (*path != '/')
   {
@@ -34,7 +36,6 @@ static long sys_chdir(const char* path)
       cwd = desired_path;
       assert(cwd.front() == '/');
       assert(cwd.find("..") == std::string::npos);
-      printf("cwd: %s\n", cwd.c_str());
       return 0;
     }
     else
@@ -69,6 +70,7 @@ long sys_getcwd(char *buf, size_t size)
 extern "C"
 long syscall_SYS_chdir(const char* path) {
   return strace(sys_chdir, "chdir", path);
+  //return sys_chdir(path);
 }
 
 extern "C"
