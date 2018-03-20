@@ -115,7 +115,7 @@ void send_cb() {
     data_len += SEND_BUF_LEN;
 }
 
-void send_data(auto &client, auto &inet) {
+void send_data(net::UDPSocket& client, net::Inet<net::IP4>& inet) {
     for (size_t i = 0; i < PACKETS_PER_INTERVAL; i++) {
         const char c = 'A' + (i % 26);
         std::string buff(SEND_BUF_LEN, c);
@@ -160,7 +160,10 @@ void Service::start(const std::string& input) {
         auto& server = udp.bind(SERVER_PORT);
         printf("Running as Server. Waiting for data...\n");
         server.on_read(
-            [&server](auto addr, auto port, const char* buf, int len) {
+            []([[maybe_unused]]auto addr,
+                      [[maybe_unused]]auto port,
+                      const char* buf, int len)
+        {
             auto data = std::string(buf, len);
             using namespace std::chrono;
             if (first_time) {
