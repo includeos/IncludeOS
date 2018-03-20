@@ -5,6 +5,8 @@
 
 set -eE
 
+export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-/usr/local}
+
 tmpfile=/tmp/build_test
 
 trap fail ERR
@@ -44,7 +46,7 @@ function build_service() {
   str=">>> Now making $BASE"
   printf "%-50s " "* $BASE"
   git submodule update --init --recursive
-  boot -cb . &> $tmpfile
+  $INCLUDEOS_PREFIX/bin/boot -cb . &> $tmpfile
   echo "[ PASS ]"
 }
 
