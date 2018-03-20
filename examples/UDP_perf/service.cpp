@@ -145,8 +145,8 @@ void Service::start(const std::string& input) {
         init_sample_stats();
         printf("Sending to %s!\n", inet.gateway().str().c_str());
         send_data(client, inet);
-        int timer = Timers::periodic(1s, 2s,
-          [&timer, &inet, &client] (uint32_t) {
+        Timers::periodic(1s, 1s,
+          [&inet, &client] (uint32_t timer) {
             static int secs = 0;
             measure_sample_stats();
             send_data(client, inet);
