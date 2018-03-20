@@ -56,6 +56,7 @@ struct Magic {
   void* last_access = nullptr;
   Pfault last_code{};
   int i = 0;
+  void(*heap_code)() = nullptr;
 };
 
 auto magic_loc = 42_TiB;
@@ -476,15 +477,15 @@ int main()
     ((void(*)())(&protected_page[magic->i]))();
   }
 
-  void(*heap_code)() = (void(*)()) malloc(42);
   if (magic->reboots == 3){
     // Verify XD
+    magic->heap_code = (void(*)()) malloc(42);
     Expects(magic->last_error = Page_fault);
     Expects(magic->last_code == (Pfault::present | Pfault::xd));
     Expects(magic->last_access == &protected_page[magic->i]);
     printf("\n%i EXECUTE protection 1/2 PASSED\n", magic->reboots);
-    printf("* Executing heap code @ %p, expecting instruction fetch fail\n\n", heap_code);
-    heap_code();
+    printf("* Executing heap code @ %p, expecting instruction fetch fail\n\n", magic->heap_code);
+    magic->heap_code();
   }
 
   if (magic->reboots == 4) {
@@ -493,7 +494,7 @@ int main()
 
     // Expect last access to be on the same page as heap_code
     auto aligned_last = (uintptr_t)magic->last_access & ~(4_KiB - 1);
-    auto aligned_heap = (uintptr_t)heap_code & ~(4_KiB - 1);
+    auto aligned_heap = (uintptr_t)magic->heap_code & ~(4_KiB - 1);
     Expects(aligned_last == aligned_heap);
 
     printf("\n%i EXECUTE protection 2/2 PASSED\n", magic->reboots);
