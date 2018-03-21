@@ -1,11 +1,10 @@
 #include "common.hpp"
 #include <sys/types.h>
-
 #include <fs/vfs.hpp>
 #include <posix/fd_map.hpp>
 #include <posix/file_fd.hpp>
 
-static long sys_open(const char *pathname, int flags, mode_t mode = 0) {
+static long sys_open(const char *pathname, int /*flags*/, mode_t /*mode = 0*/) {
   if (UNLIKELY(pathname == nullptr))
     return -EFAULT;
 

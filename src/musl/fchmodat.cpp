@@ -2,9 +2,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-static int sys_fchmodat(int fd, const char *path, mode_t mode, int flag) {
+static int sys_fchmodat(int /*fd*/, const char* /*path*/, mode_t, int /*flag*/)
+{
   // currently makes no sense, especially since we're read-only
-  errno = EROFS;
   return -EROFS;
 }
 

@@ -184,7 +184,9 @@ private:
   Stat* end_stats_;
   MemBitmap::word* bdata = nullptr;
   MemBitmap bitmap;
+#ifndef INCLUDEOS_SINGLE_THREADED
   spinlock_t stlock = 0;
+#endif
 
   Statman(const Statman& other) = delete;
   Statman(const Statman&& other) = delete;

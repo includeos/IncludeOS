@@ -1,7 +1,7 @@
 #include "common.hpp"
 #include <sys/stat.h>
 
-static long sys_mkdir(const char *path, mode_t mode) {
+static long sys_mkdir(const char* /*path*/, mode_t /*mode*/) {
   // currently makes no sense, especially since we're read-only
   return -EROFS;
 }
