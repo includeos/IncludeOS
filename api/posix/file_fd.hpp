@@ -32,6 +32,8 @@ public:
   int close() override;
   int lseek(off_t, int) override;
 
+  long getdents(struct dirent *dirp, unsigned int count) override;
+
   bool is_file() override { return true; }
 
 private:

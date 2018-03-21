@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <cstring>
 #include <lest/lest.hpp>
+#include <unistd.h>
 
 
 #include <fstream>

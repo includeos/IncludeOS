@@ -18,7 +18,7 @@ static long sys_open(const char *pathname, int flags, mode_t mode = 0) {
     return fd.get_id();
   }
   // Not FD_compatible, try dirent
-  catch(const fs::Err_bad_cast&)
+  catch(const fs::VFS_err& err)
   {
     try {
       auto ent = fs::VFS::stat_sync(pathname);
@@ -33,10 +33,6 @@ static long sys_open(const char *pathname, int flags, mode_t mode = 0) {
     {
       return -ENOENT;
     }
-  }
-  catch(const fs::VFS_err&)
-  {
-    // VFS error for one of many reasons (not mounted, not fd compatible etc)
   }
   catch(const std::bad_function_call&) {
     // Open fd delegate not set

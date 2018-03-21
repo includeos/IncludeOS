@@ -22,10 +22,26 @@ template <typename L, typename ...Args>
 inline constexpr auto& pr_param(std::ostream& out,  L lhs, Args&&... rest){
   if constexpr (sizeof...(rest) > 0)
   {
-    out << lhs << ", ";
+    // avoid writing nullptr to std out
+    if constexpr(std::is_pointer_v<L>) {
+      if(lhs != nullptr) out << lhs << ", ";
+      else out << "nullptr, ";
+    }
+    else {
+      out << lhs << ", ";
+    }
     pr_param(out, rest...);
-  } else {
-    out << lhs;
+  }
+  else
+  {
+    // avoid writing nullptr to std out
+    if constexpr(std::is_pointer_v<L>) {
+      if(lhs != nullptr) out << lhs;
+      else out << "nullptr";
+    }
+    else {
+      out << lhs;
+    }
   }
   return out;
 }

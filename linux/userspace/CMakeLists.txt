@@ -69,6 +69,7 @@ set(OS_SOURCES
     ${IOS}/src/kernel/rng.cpp
     ${IOS}/src/kernel/timers.cpp
     ${IOS}/src/util/async.cpp
+    ${IOS}/src/util/crc32.cpp
     ${IOS}/src/util/logger.cpp
     ${IOS}/src/util/sha1.cpp
     ${IOS}/src/util/statman.cpp
