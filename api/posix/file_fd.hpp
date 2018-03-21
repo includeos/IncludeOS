@@ -24,7 +24,8 @@
 class File_FD : public FD {
 public:
   explicit File_FD(const int id, const fs::Dirent ent, uint64_t offset = 0)
-      : FD(id), ent_ {ent}, offset_ {offset}
+      : FD(id), ent_ {ent}, offset_ {offset},
+        dir_pos{0}, dir_{nullptr}
   {}
 
   int read(void*, size_t) override;
@@ -39,6 +40,8 @@ public:
 private:
   fs::Dirent ent_;
   uint64_t offset_;
+  size_t dir_pos;
+  fs::Dirvec_ptr dir_;
 };
 
 #endif
