@@ -71,9 +71,9 @@ SECTIONS
   .init_array :
   {
     PROVIDE_HIDDEN (__init_array_start = .);
-    */x86_64/lib/lib*.a:*(.init_array*)
-    */x86_64/platform/lib*.a:*(.init_array*)
-    */x86_64/drivers/lib*.a:*(.init_array*)
+    */x86_64/lib/lib*.a:*(.init_array* .ctors*)
+    */x86_64/platform/lib*.a:*(.init_array* .ctors*)
+    */x86_64/drivers/lib*.a:*(.init_array* .ctors*)
     PROVIDE_HIDDEN (__init_array_end = .);
   }
 
@@ -81,7 +81,7 @@ SECTIONS
   .plugin_ctors :
   {
     PROVIDE_HIDDEN (__plugin_ctors_start = .);
-    */x86_64/plugins/lib*.a:*(.init_array*)
+    */x86_64/plugins/lib*.a:*(.init_array* .ctors*)
     PROVIDE_HIDDEN (__plugin_ctors_end = .);
   }
 

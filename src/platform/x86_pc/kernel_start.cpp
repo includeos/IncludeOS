@@ -52,7 +52,7 @@ thread_local int __tl1__ = 42;
 uintptr_t __grub_magic = 0xc001;
 uintptr_t __grub_addr = 0x7001;
 
-static int __global_ctors_ok = 0;
+static volatile int __global_ctors_ok = 0;
 bool __libc_initialized = false;
 
 
