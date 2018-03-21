@@ -466,6 +466,7 @@ target_link_libraries(service
 
   musl_syscalls
   libos
+  libc
 
   ${CRTN}
   )
