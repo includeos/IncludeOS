@@ -29,8 +29,8 @@ int Fiber::next_id_{0};
 std::atomic<int> Fiber::next_id_{0};
 #endif
 
-SMP::Array<Fiber*> Fiber::main_ {nullptr};
-SMP::Array<Fiber*> Fiber::current_ {nullptr};
+SMP::Array<Fiber*> Fiber::main_ = {{nullptr}};
+SMP::Array<Fiber*> Fiber::current_ {{nullptr}};
 
 extern "C" {
   void __fiber_jumpstart(volatile void* th_stack, volatile Fiber* f, volatile void* parent_stack);
