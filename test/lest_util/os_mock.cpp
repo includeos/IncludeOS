@@ -110,6 +110,14 @@ void SystemLog::set_flags(uint32_t) {}
 /// Kernel ///
 char _binary_apic_boot_bin_end;
 char _binary_apic_boot_bin_start;
+char __plugin_ctors_start;
+char __plugin_ctors_end;
+char __service_ctors_start;
+char __service_ctors_end;
+bool __libc_initialized = true;
+
+
+
 char _ELF_START_;
 char _ELF_END_;
 uintptr_t _MULTIBOOT_START_;
