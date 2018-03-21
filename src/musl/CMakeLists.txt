@@ -5,7 +5,7 @@ set(MUSL_OBJECTS
   lseek.cpp sched_getaffinity.cpp sysinfo.cpp prlimit64.cpp
   getrlimit.cpp sched_yield.cpp set_robust_list.cpp
   nanosleep.cpp open.cpp creat.cpp clock_gettime.cpp gettimeofday.cpp
-  poll.cpp exit_group.cpp exit.cpp close.cpp set_tid_address.cpp
+  poll.cpp exit.cpp close.cpp set_tid_address.cpp
   pipe.cpp read.cpp readv.cpp getpid.cpp mknod.cpp sync.cpp msync.cpp
   mincore.cpp syscall_n.cpp sigmask.cpp gettid.cpp tkill.cpp
   stat.cpp fstat.cpp fstatat.cpp
@@ -21,6 +21,7 @@ set(MUSL_OBJECTS
   umask.cpp
   utimensat.cpp
   uname.cpp
+  access.cpp
 )
 
 add_library(musl_syscalls STATIC ${MUSL_OBJECTS})

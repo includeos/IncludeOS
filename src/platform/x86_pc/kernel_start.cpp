@@ -175,6 +175,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
     kprintf("\tPhdr %i @ %p, va_addr: 0x%lx \n", i, &phdr[i], phdr[i].p_vaddr);
   }
 
+  // Build AUX-vector for C-runtime
   auxv_t aux[38];
   kprintf("* Initializing aux-vector @ %p\n", aux);
 

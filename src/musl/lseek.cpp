@@ -4,14 +4,14 @@
 
 #include "stub.hpp"
 
-off_t sys_lseek(int fd, off_t offset, int whence) {
+off_t sys_lseek(int /*fd*/, off_t /*offset*/, int /*whence*/) {
   errno = ENOSYS;
   return -1;
 }
 
-off_t sys__llseek(unsigned int fd, unsigned long offset_high,
-                  unsigned long offset_low, loff_t *result,
-                  unsigned int whence) {
+off_t sys__llseek(unsigned int /*fd*/, unsigned long /*offset_high*/,
+                  unsigned long /*offset_low*/, loff_t* /*result*/,
+                  unsigned int /*whence*/) {
   errno = ENOSYS;
   return -1;
 }

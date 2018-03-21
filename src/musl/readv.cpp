@@ -2,10 +2,9 @@
 #include <errno.h>
 #include <sys/uio.h>
 
-static ssize_t sys_readv(int fd, const struct iovec *iov, int iovcnt)
+static ssize_t sys_readv(int /*fd*/, const struct iovec*, int /*iovcnt*/)
 {
-  errno = ENOSYS;
-  return -1;
+  return -ENOSYS;
 }
 
 extern "C"

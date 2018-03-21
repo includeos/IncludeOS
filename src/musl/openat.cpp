@@ -2,9 +2,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-static int sys_openat(int dirfd, const char *pathname, int flags, mode_t mode) {
-  errno = ENOSYS;
-  return -1;
+static int sys_openat(int /*dirfd*/, const char* /*path*/, int /*flags*/, mode_t)
+{
+  return -ENOSYS;
 }
 
 extern "C"

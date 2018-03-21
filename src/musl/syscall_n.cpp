@@ -1,8 +1,9 @@
 #include "stub.hpp"
 
-long syscall(long i){
-  return 0;
-};
+long syscall(long /*number*/)
+{
+  return -ENOSYS;
+}
 
 extern "C"
 long syscall_n(long i) {

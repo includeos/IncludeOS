@@ -19,7 +19,11 @@
 #include <cstdint>
 #include <memory>
 
+#ifdef ARCH_i686
 extern "C" void __fastcall __context_switch(uintptr_t stack, Context::context_func& func);
+#else
+extern "C" void __context_switch(uintptr_t stack, Context::context_func& func);
+#endif
 extern "C" void* get_cpu_esp();
 
 extern "C"
@@ -37,8 +41,8 @@ void Context::jump(void* location, context_func func)
 void Context::create(unsigned stack_size, context_func func)
 {
   // create stack, and jump to end (because it grows down)
-  auto stack_mem = 
-      std::unique_ptr<char[]>(new char[16+stack_size], 
+  auto stack_mem =
+      std::unique_ptr<char[]>(new char[16+stack_size],
                               std::default_delete<char[]> ());
   jump(&(stack_mem.get()[stack_size]), func);
 }

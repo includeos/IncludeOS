@@ -181,7 +181,7 @@ IDE::IDE(hw::PCI_Device& pcidev, selector_t sel)
   { // 28-bits CHS (MAX_LBA)
     this->num_blocks = (read_array[61] << 16) | read_array[60];
   }
-  INFO("IDE", "%u sectors (%lu bytes)", num_blocks, num_blocks * IDE::SECTOR_SIZE);
+  INFO("IDE", "%zu sectors (%zu bytes)", num_blocks, num_blocks * IDE::SECTOR_SIZE);
   INFO("IDE", "Initialization complete");
 }
 

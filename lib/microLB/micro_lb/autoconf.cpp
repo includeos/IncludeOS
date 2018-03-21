@@ -23,8 +23,10 @@ namespace microLB
     assert(CLIENT_PORT > 0 && CLIENT_PORT < 65536);
     // client wait queue limit
     const int CLIENT_WAITQ = clients["waitq_limit"].GetUint();
+    (void) CLIENT_WAITQ;
     // client session limit
     const int CLIENT_SLIMIT = clients["session_limit"].GetUint();
+    (void) CLIENT_SLIMIT;
 
     auto& nodes = obj["nodes"];
     const int NODE_NET = nodes["iface"].GetInt();

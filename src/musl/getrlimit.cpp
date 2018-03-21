@@ -2,9 +2,8 @@
 
 #include "stub.hpp"
 
-static int sys_getrlimit(int resource, struct rlimit *rlim) {
-  errno = ENOSYS;
-  return -1;
+static int sys_getrlimit(int /*resource*/, struct rlimit*) {
+  return -ENOSYS;
 }
 
 extern "C"

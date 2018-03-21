@@ -30,10 +30,7 @@ extern void *memalign(size_t, size_t);
 //#define DEBUG_RELEASE
 //#define DEBUG_RETRIEVE
 //#define DEBUG_BUFSTORE
-
-#define PAGE_SIZE     0x1000
 #define ENABLE_BUFFERSTORE_CHAIN
-
 
 #ifdef DEBUG_RELEASE
 #define BSD_RELEASE(fmt, ...) printf(fmt, ##__VA_ARGS__);

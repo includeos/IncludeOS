@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-static long sys_mkdirat(int fd, const char *path, mode_t mode) {
+static long sys_mkdirat(int /*fd*/, const char* /*path*/, mode_t /*mode*/) {
   // currently makes no sense, especially since we're read-only
   return -EROFS;
 }
