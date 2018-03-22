@@ -36,8 +36,8 @@ struct isotime
    */
   static std::string to_datetime_string(time_t ts)
   {
-    char buf[sizeof("2017-04-10T13:337:00Z")];
-    const auto res = std::strftime(buf, sizeof(buf)-1, "%FT%TZ", gmtime(&ts));
+    char buf[sizeof("2017-04-10T13:37:00Z")];
+    const auto res = std::strftime(buf, sizeof(buf), "%FT%TZ", gmtime(&ts));
     return {buf, res};
   }
 
