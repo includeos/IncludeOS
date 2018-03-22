@@ -35,5 +35,16 @@ CASE("A timestamp can be converted into a ISO UTC datetime string")
 
   EXPECT(str == "1970-01-01T05:00:00Z");
 
-  // Not gonna bother more due to leap seconds and calendars etc...
+  uint64_t big_number = 253402297200L;
+
+  str = isotime::to_datetime_string(big_number);
+
+  EXPECT(str == "9999-12-31T23:00:00Z");
+
+  uint64_t bigger_number = big_number + 2*60*60;
+
+  str = isotime::to_datetime_string(bigger_number);
+
+  // buffer is not big enough for more than 21 chars
+  EXPECT(str == "");
 }
