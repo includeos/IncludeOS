@@ -40,7 +40,7 @@ execute_process(COMMAND brew "--prefix" "llvm@5" OUTPUT_VARIABLE BREW_LLVM)
 string(STRIP ${BREW_LLVM} BREW_LLVM)
 set(BREW_LIBCXX_INC ${BREW_LLVM}/lib)
 message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${BREW_LIBCXX_INC} -Wl")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${BREW_LIBCXX_INC} -Wno-unused-command-line-argument")
 endif()
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
