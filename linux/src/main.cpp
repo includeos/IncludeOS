@@ -6,10 +6,9 @@
 #include "drivers/usernet.hpp"
 #include <vector>
 
-// create TAP device and hook up packet receive to UserNet driver
-extern void __platform_init();
 static TAP_driver::TAPVEC tap_devices;
 
+// create TAP device and hook up packet receive to UserNet driver
 void create_network_device(int N, const char* route, const char* ip)
 {
   auto tap = std::make_shared<TAP_driver> (
@@ -28,9 +27,18 @@ void create_network_device(int N, const char* route, const char* ip)
   tap->on_read({usernet, &UserNet::receive});
 }
 
-int main(void)
+int main(int, char** args)
 {
-  __platform_init();
+#ifdef __linux__
+  // set affinity to CPU 1
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(1, &cpuset);
+  sched_setaffinity(0, sizeof(cpuset), &cpuset);
+#endif
+
+  // initialize Linux platform
+  OS::start(args[0], 0u);
 
   // calls Service::start
   OS::post_start();

@@ -26,7 +26,6 @@ set(SOURCES
 # DRIVERS / PLUGINS:
 
 set(DRIVERS
-  disable_paging
   vga_output
   vga_emergency
   # virtionet   # Virtio networking

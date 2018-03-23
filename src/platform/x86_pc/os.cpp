@@ -209,29 +209,4 @@ void OS::legacy_boot()
   memmap.assign_range({0x000A0000, 0x000FFFFF,
         "VGA/ROM"});
 
-  // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
-  uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
-  uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-
-  uintptr_t unavail_start = OS::memory_end_+1;
-  size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
-  uintptr_t unavail_end = unavail_start + interval;
-
-  while (unavail_end < addr_max)
-  {
-    INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
-    memmap.assign_range({unavail_start, unavail_end,
-          "N/A"});
-    unavail_start = unavail_end + 1;
-    interval = std::min(span_max, addr_max - unavail_start);
-    // Increment might wrapped around
-    if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
-      INFO2("* Last chunk of memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, addr_max);
-      memmap.assign_range({unavail_start, addr_max,
-            "N/A"});
-      break;
-    }
-
-    unavail_end += interval;
-  }
 }

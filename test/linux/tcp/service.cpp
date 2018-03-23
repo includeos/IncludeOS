@@ -38,19 +38,10 @@ static inline auto now() {
 
 void Service::start()
 {
-  // Create some pure userspace Nic's
-  auto& nic1 = UserNet::create(1500);
-  auto& nic2 = UserNet::create(1500);
-
-  delegate<void(net::Packet_ptr)> delg1 {&nic1, &UserNet::receive};
-  delegate<void(net::Packet_ptr)> delg2 {&nic2, &UserNet::receive};
-
-  dev1 = std::make_unique<Async_device>(delg1);
-  dev2 = std::make_unique<Async_device>(delg2);
-
-  // Connect them with a wire
-  nic1.set_transmit_forward({dev2.get(), &Async_device::receive});
-  nic2.set_transmit_forward({dev1.get(), &Async_device::receive});
+  dev1 = std::make_unique<Async_device>(1500);
+  dev2 = std::make_unique<Async_device>(1500);
+  dev1->connect(*dev2);
+  dev2->connect(*dev1);
 
   // Create IP stacks on top of the nic's and configure them
   auto& inet_server = net::Super_stack::get<net::IP4>(0);
@@ -98,10 +89,7 @@ void Service::start()
       if (not conn)
         std::abort();
 
-      for (int i = 0; i < NUM_CHUNKS; i++)
+      for (size_t i = 0; i < NUM_CHUNKS; i++)
         conn->write(buf);
-
     });
-
-
 }

@@ -7,9 +7,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,14 +22,21 @@
 
 #if defined(DEBUG) && ! defined(NO_DEBUG)
 #define debug(X,...)  printf(X,##__VA_ARGS__);
-#else 
-#define debug(X,...) 
+#else
+#define debug(X,...)
 #endif
+
+#if defined(__x86_64__) || defined(__i386__)
+#define GDB_ENTRY { printf("Waiting for GDB to set %%eax to 1..\n"); \
+      asm("mov $0,%eax ; 0: ; test %eax,%eax ; jz 0b"); }
+#else
+#define GDB_ENTRY
+#endif
+
 
 #if defined(DEBUG2) && ! defined(NO_DEBUG)
 #define debug2(X,...)  printf(X,##__VA_ARGS__);
-#else 
-#define debug2(X,...) 
+#else
+#define debug2(X,...)
 #endif
-
 #endif

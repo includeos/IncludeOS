@@ -20,7 +20,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-  PROVIDE ( _ELF_START_ = . + 0x100000);
+  PROVIDE ( _ELF_START_ = . + 0x200000);
   PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
   . = _ELF_START_;
@@ -139,6 +139,13 @@ SECTIONS
     _erodata = .;
   }
 
+  .memdisk :
+  {
+    _DISK_START_ = .;
+    *(.diskdata)
+    _DISK_END_ = .;
+  }
+
   /* For stack unwinding (exception handling)  */
   .eh_frame_hdr ALIGN(0x8):
   {
@@ -165,26 +172,18 @@ SECTIONS
     _DATA_END_ = .;
   }
 
-  .tdata ALIGN(0x10) :
+  .tdata :
   {
     _TDATA_START_ = .;
-    *(.tdata .tdata.*)
+    *(.tdata .tdata.* .gnu.linkonce.td.*)
     _TDATA_END_ = .;
-    . = ALIGN(0x10);
   }
+
   .tbss :
   {
     _TBSS_START_ = .;
-    *(.tbss .tbss.*)
+    *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon)
     _TBSS_END_ = .;
-    . = ALIGN(0x10);
-  }
-
-  .memdisk :
-  {
-    _DISK_START_ = .;
-    *(.diskdata)
-    _DISK_END_ = .;
   }
 
   .elf_symbols : {

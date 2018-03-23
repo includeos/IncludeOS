@@ -18,8 +18,8 @@ else(BUNDLE_LOC)
 	include(ExternalProject)
 	ExternalProject_Add(PrecompiledLibraries
 			    PREFIX precompiled
-			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.12.0-rc.2/IncludeOS_dependencies_v0-12-0_libcpp5_threaded.tar.gz
-			    URL_HASH SHA1=792613743b6fc7b4ba2d6a180d32e04d2a973846
+			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.12.0-rc.2/IncludeOS_dependencies_v0-12-0_libcpp5_singlethread.tar.gz
+			    URL_HASH SHA1=eb343de326ae6b0acc3c87d6b22136d0aa2b3fdf
 			    CONFIGURE_COMMAND ""
 			    BUILD_COMMAND ""
 			    UPDATE_COMMAND ""
@@ -100,6 +100,7 @@ install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/ne
 install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/${ARCH}/lib)
 
 install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a ${LIBCXX_LIB_DIR}/libc++abi.a DESTINATION includeos/${ARCH}/lib)
+
 
 if (WITH_SOLO5)
 # Only x86_64 supported at the moment

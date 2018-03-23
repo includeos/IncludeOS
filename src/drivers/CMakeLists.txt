@@ -12,9 +12,6 @@ include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 add_library(boot_logger STATIC bootlog.cpp)
 add_library(default_stdout STATIC "default_stdout.cpp")
 
-add_library(disable_paging STATIC disable_paging.cpp)
-add_dependencies(disable_paging PrecompiledLibraries)
-
 add_library(ide_readwrite STATIC ide.cpp)
 set_target_properties(ide_readwrite PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ -DIDE_ENABLE_WRITE")
 add_dependencies(ide_readwrite PrecompiledLibraries)
@@ -62,7 +59,6 @@ set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
 install(TARGETS
     default_stdout
-    disable_paging
     ide_readwrite ide_readonly ide_writeonly
     virtionet virtioblk
     vmxnet3 e1000

@@ -99,7 +99,7 @@ static allocation* find_alloc(char* addr)
   return nullptr;
 }
 
-void* operator new (std::size_t len) throw(std::bad_alloc)
+void* operator new (std::size_t len)
 {
   void* data = nullptr;
 
@@ -159,7 +159,7 @@ void* operator new (std::size_t len) throw(std::bad_alloc)
     return data;
   }
 }
-void* operator new[] (std::size_t n) throw(std::bad_alloc)
+void* operator new[] (std::size_t n)
 {
   return ::operator new (n);
 }

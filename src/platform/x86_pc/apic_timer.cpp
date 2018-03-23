@@ -124,7 +124,12 @@ namespace x86
   {
     // prevent overflow
     uint64_t ticks = nanos.count() / 1000 * ticks_per_micro;
-    if (ticks > 0xFFFFFFFF) ticks = 0xFFFFFFFF;
+    if (ticks > 0xFFFFFFFF)
+        ticks = 0xFFFFFFFF;
+    // prevent oneshots less than a microsecond
+    // NOTE: when ticks == 0, the entire timer system stops
+    else if (UNLIKELY(ticks < ticks_per_micro))
+        ticks = ticks_per_micro;
 
     // set initial counter
     auto& lapic = APIC::get();
