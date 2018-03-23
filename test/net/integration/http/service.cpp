@@ -75,8 +75,8 @@ void Service::ready()
     if (err)
       printf("Error: %s \n", err.to_string().c_str());
 
-    printf("Received body: %s\n", res->body());
     CHECKSERT(!err, "No error");
+    printf("Received body: %s\n", res->body());
     CHECKSERT(res->body() == "/testing", "Received body: \"/testing\"");
 
     using namespace std::chrono; // zzz...
@@ -106,5 +106,18 @@ void Service::ready()
     if(!err)
       printf("Response:\n%s\n", res->to_string().c_str());
   }, { 3s });
+
+
+  INFO("Client", "HTTPS");
+
+  try
+  {
+    client_->get("https://www.google.com", {}, [](Error err, Response_ptr res, Connection&) {});
+    assert(false && "Client should throw exception");
+  }
+  catch(const http::Client_error& err)
+  {
+    CHECKSERT(true, "HTTP Client should throw exception on https URL");
+  }
 
 }

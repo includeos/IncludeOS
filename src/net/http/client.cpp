@@ -34,17 +34,19 @@ namespace http {
     req->set_method(method);
 
     auto& header = req->header();
-    header.set_field(header::User_Agent, "IncludeOS/0.10");
+    header.set_field(header::User_Agent, "IncludeOS/0.12");
     set_connection_header(*req);
 
     return req;
   }
 
-  void Client::send(Request_ptr req, Host host, Response_handler cb, Options options)
+  void Client::send(Request_ptr req, Host host, Response_handler cb,
+                    const bool secure, Options options)
   {
     Expects(cb != nullptr);
     using namespace std;
-    auto& conn = get_connection(host);
+    auto& conn = (not secure) ?
+      get_connection(host) : get_secure_connection(host);
 
     auto&& header = req->header();
 
@@ -64,9 +66,15 @@ namespace http {
     conn.send(move(req), move(cb), options.bufsize, options.timeout);
   }
 
-  void Client::request(Method method, URI url, Header_set hfields, Response_handler cb, Options options)
+  void Client::request(Method method, URI url, Header_set hfields,
+                       Response_handler cb, Options options)
   {
     Expects(cb != nullptr);
+
+    // find out if this is a secured request or not
+    const bool secure = (url.scheme() == "https");
+    validate_secure(secure);
+
     using namespace std;
 
     if (url.host_is_ip4())
@@ -83,7 +91,7 @@ namespace http {
       // Default to port 80 if non given
       const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-      send(move(req), {ip, port}, move(cb), move(options));
+      send(move(req), {ip, port}, move(cb), secure, move(options));
     }
     else
     {
@@ -95,7 +103,8 @@ namespace http {
         url{move(url)},
         hfields{move(hfields)},
         cb{move(cb)},
-        opt{move(options)}
+        opt{move(options)},
+        secure
       ]
         (net::ip4::Addr ip, const net::Error&)
       {
@@ -112,7 +121,7 @@ namespace http {
           // Default to port 80 if non given
           const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-          send(move(req), {ip, port}, move(cb), move(opt));
+          send(move(req), {ip, port}, move(cb), secure, move(opt));
         }
         else
         {
@@ -122,8 +131,12 @@ namespace http {
     }
   }
 
-  void Client::request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb, Options options)
+  void Client::request(Method method, Host host, std::string path,
+                       Header_set hfields, Response_handler cb,
+                      const bool secure, Options options)
   {
+    validate_secure(secure);
+
     using namespace std;
     // setup request with method and headers
     auto req = create_request(method);
@@ -132,11 +145,17 @@ namespace http {
     //set uri (default "/")
     req->set_uri((!path.empty()) ? URI{move(path)} : URI{"/"});
 
-    send(move(req), move(host), move(cb), move(options));
+    send(move(req), move(host), move(cb), secure, move(options));
   }
 
-  void Client::request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
+  void Client::request(Method method, URI url, Header_set hfields,
+                       std::string data, Response_handler cb,
+                       Options options)
   {
+    // find out if this is a secured request or not
+    const bool secure = (url.scheme() == "https");
+    validate_secure(secure);
+
     using namespace std;
     if (url.host_is_ip4())
     {
@@ -155,7 +174,7 @@ namespace http {
       // Default to port 80 if non given
       const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-      send(move(req), {ip, port}, move(cb), move(options));
+      send(move(req), {ip, port}, move(cb), secure, move(options));
     }
     else
     {
@@ -169,7 +188,8 @@ namespace http {
           hfields{move(hfields)},
           data{move(data)},
           cb{move(cb)},
-          opt{move(options)}
+          opt{move(options)},
+          secure
         ] (auto ip, const net::Error&)
         {
           // Host resolved
@@ -188,7 +208,7 @@ namespace http {
             // Default to port 80 if non given
             const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-            this->send(move(req), {ip, port}, move(cb), move(opt));
+            this->send(move(req), {ip, port}, move(cb), secure, move(opt));
           }
           else
           {
@@ -199,8 +219,12 @@ namespace http {
     }
   }
 
-  void Client::request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options)
+  void Client::request(Method method, Host host, std::string path,
+                       Header_set hfields, const std::string& data,
+                       Response_handler cb, const bool secure, Options options)
   {
+    validate_secure(secure);
+
     using namespace std;
     // setup request with method and headers
     auto req = create_request(method);
@@ -212,7 +236,7 @@ namespace http {
     // Add data and content length
     add_data(*req, data);
 
-    send(move(req), move(host), move(cb), move(options));
+    send(move(req), move(host), move(cb), secure, move(options));
   }
 
   void Client::add_data(Request& req, const std::string& data)
@@ -260,8 +284,15 @@ namespace http {
     }
 
     // no non-occupied connections, emplace a new one
-    cset.push_back(std::make_unique<Client_connection>(*this, std::make_unique<net::tcp::Connection::Stream>(tcp_.connect(host))));
+    cset.push_back(std::make_unique<Client_connection>(
+      *this, std::make_unique<net::tcp::Connection::Stream>(tcp_.connect(host)))
+    );
     return *cset.back();
+  }
+
+  Client_connection& Client::get_secure_connection(const Host)
+  {
+    throw Client_error{"Secured connections not supported (use the HTTPS Client)."};
   }
 
   void Client::close(Client_connection& c)

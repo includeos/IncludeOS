@@ -28,6 +28,10 @@
 
 namespace http {
 
+  struct Client_error : public std::runtime_error {
+    using runtime_error::runtime_error;
+  };
+
   using Response_handler = Client_connection::Response_handler;
 
   class Client {
@@ -67,7 +71,7 @@ namespace http {
     };
 
   private:
-    using ResolveCallback    = delegate<void(net::ip4::Addr, const net::Error&)>;
+    using ResolveCallback = delegate<void(net::ip4::Addr, const net::Error&)>;
 
   public:
     explicit Client(TCP& tcp, Request_handler on_send = nullptr);
@@ -88,7 +92,8 @@ namespace http {
      * @param[in]  host  The host
      * @param[in]  cb    Callback to be invoked when a response is received (or error)
      */
-    void send(Request_ptr req, Host host, Response_handler cb, Options options = {});
+    void send(Request_ptr req, Host host, Response_handler cb,
+              const bool secure = false, Options options = {});
 
     /**
      * @brief      Create a request on the given URL
@@ -98,12 +103,14 @@ namespace http {
      * @param[in]  hfields  A set of headers
      * @param[in]  cb       Response handler
      */
-    void request(Method method, URI url, Header_set hfields, Response_handler cb, Options options = {});
+    void request(Method method, URI url, Header_set hfields,
+                 Response_handler cb, Options options = {});
 
     /**
      * @brief      Same as above
      */
-    void request(Method method, std::string url, Header_set hfields, Response_handler cb, Options options = {})
+    void request(Method method, std::string url, Header_set hfields,
+                 Response_handler cb, Options options = {})
     { request(method, URI{url}, std::move(hfields), std::move(cb), std::move(options)); }
 
     /**
@@ -115,7 +122,8 @@ namespace http {
      * @param[in]  hfields  A set of headers
      * @param[in]  cb       Response handler
      */
-    void request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb, Options options = {});
+    void request(Method method, Host host, std::string path, Header_set hfields,
+                 Response_handler cb, const bool secure = false, Options options = {});
 
     /**
      * @brief      Create a request on the given URL with payload
@@ -126,12 +134,14 @@ namespace http {
      * @param[in]  data     The data (payload)
      * @param[in]  cb       Response handler
      */
-    void request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb, Options options = {});
+    void request(Method method, URI url, Header_set hfields, std::string data,
+                 Response_handler cb, Options options = {});
 
     /**
      * @brief      Same as above
      */
-    void request(Method method, std::string url, Header_set hfields, std::string data, Response_handler cb, Options options = {})
+    void request(Method method, std::string url, Header_set hfields, std::string data,
+                 Response_handler cb, Options options = {})
     { request(method, URI{url}, std::move(hfields), std::move(data), std::move(cb), std::move(options)); }
 
     /**
@@ -144,15 +154,21 @@ namespace http {
      * @param[in]  data     The data (payload)
      * @param[in]  cb       Response handler
      */
-    void request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options = {});
+    void request(Method method, Host host, std::string path, Header_set hfields,
+                 const std::string& data, Response_handler cb,
+                 const bool secure = false, Options options = {});
 
     /* GET */
     inline void get(URI url, Header_set hfields, Response_handler cb, Options options = {});
-    inline void get(Host host, std::string path, Header_set hfields, Response_handler cb, Options options = {});
+    inline void get(Host host, std::string path, Header_set hfields,
+                    Response_handler cb, const bool secure = false, Options options = {});
 
     /* POST */
-    inline void post(URI url, Header_set hfields, std::string data, Response_handler cb, Options options = {});
-    inline void post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options = {});
+    inline void post(URI url, Header_set hfields, std::string data,
+                     Response_handler cb, Options options = {});
+    inline void post(Host host, std::string path, Header_set hfields,
+                     const std::string& data, Response_handler cb,
+                     const bool secure = false, Options options = {});
 
     /**
      * @brief      Set callback to be invoked right before the request gets sent.
@@ -180,6 +196,7 @@ namespace http {
     Request_handler   on_send_;
     Connection_mapset conns_;
     bool              keep_alive_ = false;
+    const bool        supports_https = false;
 
     void resolve(const std::string& host, ResolveCallback);
 
@@ -197,7 +214,15 @@ namespace http {
 
     Client_connection& get_connection(const Host host);
 
+    virtual Client_connection& get_secure_connection(const Host host);
+
     void close(Client_connection&);
+
+    void validate_secure(const bool secure) const
+    {
+      if(secure and not this->supports_https)
+        throw Client_error{"Secured connections not supported (use the HTTPS Client)."};
+    }
 
   }; // < class Client
 
@@ -206,15 +231,19 @@ namespace http {
   inline void Client::get(URI url, Header_set hfields, Response_handler cb, Options options)
   { request(GET, std::move(url), std::move(hfields), std::move(cb), std::move(options)); }
 
-  inline void Client::get(Host host, std::string path, Header_set hfields, Response_handler cb, Options options)
-  { request(GET, std::move(host), std::move(path), std::move(hfields), std::move(cb), std::move(options)); }
+  inline void Client::get(Host host, std::string path, Header_set hfields,
+                          Response_handler cb, const bool secure, Options options)
+  { request(GET, std::move(host), std::move(path), std::move(hfields), std::move(cb), secure, std::move(options)); }
 
   /* POST */
-  inline void Client::post(URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
+  inline void Client::post(URI url, Header_set hfields, std::string data,
+                           Response_handler cb, Options options)
   { request(POST, std::move(url), std::move(hfields), std::move(data), std::move(cb), std::move(options)); }
 
-  inline void Client::post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options)
-  { request(POST, std::move(host), std::move(path), std::move(hfields), std::move(data), std::move(cb), std::move(options)); }
+  inline void Client::post(Host host, std::string path, Header_set hfields,
+                           const std::string& data, Response_handler cb,
+                           const bool secure, Options options)
+  { request(POST, std::move(host), std::move(path), std::move(hfields), std::move(data), std::move(cb), secure, std::move(options)); }
 
 
 } // < namespace http
