@@ -277,7 +277,7 @@ class qemu(hypervisor):
     def get_final_output(self):
         return self._proc.communicate()
 
-    def boot(self, multiboot, kernel_args = "", image_name = None):
+    def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
         self._stopped = False
 
         info ("Booting with multiboot:", multiboot, "kernel_args: ", kernel_args, "image_name:", image_name)
