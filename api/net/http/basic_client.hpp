@@ -16,8 +16,8 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HTTP_CLIENT_HPP
-#define HTTP_CLIENT_HPP
+#ifndef HTTP_BASIC_CLIENT_HPP
+#define HTTP_BASIC_CLIENT_HPP
 
 // http
 #include "client_connection.hpp"
@@ -34,7 +34,7 @@ namespace http {
 
   using Response_handler = Client_connection::Response_handler;
 
-  class Client {
+  class Basic_client {
   public:
     using TCP                 = net::TCP;
     using Host                = net::Socket;
@@ -74,7 +74,7 @@ namespace http {
     using ResolveCallback = delegate<void(net::ip4::Addr, const net::Error&)>;
 
   public:
-    explicit Client(TCP& tcp, Request_handler on_send = nullptr);
+    explicit Basic_client(TCP& tcp, Request_handler on_send = nullptr);
 
     /**
      * @brief      Creates a request with some predefined attributes
@@ -189,13 +189,13 @@ namespace http {
     std::string origin() const
     { return tcp_.stack().ip_addr().to_string(); }
 
-    virtual ~Client() = default;
+    virtual ~Basic_client() = default;
 
   protected:
     TCP&              tcp_;
     Connection_mapset conns_;
 
-    explicit Client(TCP& tcp, Request_handler on_send, const bool https_supported);
+    explicit Basic_client(TCP& tcp, Request_handler on_send, const bool https_supported);
 
     virtual Client_connection& get_secure_connection(const Host host);
 
@@ -226,26 +226,26 @@ namespace http {
     void validate_secure(const bool secure) const
     {
       if(secure and not this->supports_https)
-        throw Client_error{"Secured connections not supported (use the HTTPS Client)."};
+        throw Client_error{"Secured connections not supported with Basic_client (use the HTTPS Client)."};
     }
 
-  }; // < class Client
+  }; // < class Basic_client
 
 
   /* Inline implementation */
-  inline void Client::get(URI url, Header_set hfields, Response_handler cb, Options options)
+  inline void Basic_client::get(URI url, Header_set hfields, Response_handler cb, Options options)
   { request(GET, std::move(url), std::move(hfields), std::move(cb), std::move(options)); }
 
-  inline void Client::get(Host host, std::string path, Header_set hfields,
+  inline void Basic_client::get(Host host, std::string path, Header_set hfields,
                           Response_handler cb, const bool secure, Options options)
   { request(GET, std::move(host), std::move(path), std::move(hfields), std::move(cb), secure, std::move(options)); }
 
   /* POST */
-  inline void Client::post(URI url, Header_set hfields, std::string data,
+  inline void Basic_client::post(URI url, Header_set hfields, std::string data,
                            Response_handler cb, Options options)
   { request(POST, std::move(url), std::move(hfields), std::move(data), std::move(cb), std::move(options)); }
 
-  inline void Client::post(Host host, std::string path, Header_set hfields,
+  inline void Basic_client::post(Host host, std::string path, Header_set hfields,
                            const std::string& data, Response_handler cb,
                            const bool secure, Options options)
   { request(POST, std::move(host), std::move(path), std::move(hfields), std::move(data), std::move(cb), secure, std::move(options)); }
@@ -253,4 +253,4 @@ namespace http {
 
 } // < namespace http
 
-#endif // < HTTP_CLIENT_HPP
+#endif // < HTTP_BASIC_CLIENT_HPP

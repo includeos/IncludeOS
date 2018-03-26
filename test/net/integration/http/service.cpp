@@ -16,13 +16,13 @@
 // limitations under the License.
 
 #include <service>
-#include <net/http/client.hpp>
+#include <net/http/basic_client.hpp>
 #include <net/http/server.hpp>
 #include <net/inet4>
 #include <info>
 #include <timers>
 
-std::unique_ptr<http::Client> client_;
+std::unique_ptr<http::Basic_client> client_;
 std::unique_ptr<http::Server> server_;
 
 void Service::start(const std::string&)
@@ -58,13 +58,13 @@ void Service::ready()
   server_->listen(8080);
 
 
-  client_ = std::make_unique<Client>(inet.tcp());
-  client_->on_send([] (Request& req, Client::Options& opt, const Client::Host host)
+  client_ = std::make_unique<Basic_client>(inet.tcp());
+  client_->on_send([] (Request& req, Basic_client::Options& opt, const Basic_client::Host host)
   {
     printf("Sending request:\n%s\n", req.to_string().c_str());
   });
 
-  INFO("Client", "Testing against local server");
+  INFO("Basic_client", "Testing against local server");
 
   auto req = client_->create_request();
 
@@ -84,7 +84,7 @@ void Service::ready()
   });
 
 
-  INFO("Client", "Testing against Acorn");
+  INFO("Basic_client", "Testing against Acorn");
 
   const std::string acorn_url{"http://acorn2.unofficial.includeos.io/"};
 
@@ -108,16 +108,16 @@ void Service::ready()
   }, { 3s });
 
 
-  INFO("Client", "HTTPS");
+  INFO("Basic_client", "HTTPS");
 
   try
   {
     client_->get("https://www.google.com", {}, [](Error err, Response_ptr res, Connection&) {});
-    assert(false && "Client should throw exception");
+    assert(false && "Basic Client should throw exception");
   }
   catch(const http::Client_error& err)
   {
-    CHECKSERT(true, "HTTP Client should throw exception on https URL");
+    CHECKSERT(true, "Basic Client should throw exception on https URL");
   }
 
 }

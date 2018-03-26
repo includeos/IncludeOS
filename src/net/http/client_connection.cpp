@@ -16,11 +16,11 @@
 // limitations under the License.
 
 #include <net/http/client_connection.hpp>
-#include <net/http/client.hpp>
+#include <net/http/basic_client.hpp>
 
 namespace http {
 
-  Client_connection::Client_connection(Client& client, Stream_ptr stream)
+  Client_connection::Client_connection(Basic_client& client, Stream_ptr stream)
     : Connection{std::move(stream)},
       client_(client),
       req_(nullptr),

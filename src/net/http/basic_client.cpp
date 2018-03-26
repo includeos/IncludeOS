@@ -15,25 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/http/client.hpp>
+#include <net/http/basic_client.hpp>
 
 namespace http {
 
-  const Client::timeout_duration Client::DEFAULT_TIMEOUT{std::chrono::seconds(5)};
+  const Basic_client::timeout_duration Basic_client::DEFAULT_TIMEOUT{std::chrono::seconds(5)};
 
-  Client::Client(TCP& tcp, Request_handler on_send)
-    : Client(tcp, std::move(on_send), false)
+  Basic_client::Basic_client(TCP& tcp, Request_handler on_send)
+    : Basic_client(tcp, std::move(on_send), false)
   {
   }
 
-  Client::Client(TCP& tcp, Request_handler on_send, const bool https_supported)
+  Basic_client::Basic_client(TCP& tcp, Request_handler on_send, const bool https_supported)
     : tcp_(tcp),
       on_send_{std::move(on_send)},
       supports_https(https_supported)
   {
   }
 
-  Request_ptr Client::create_request(Method method) const
+  Request_ptr Basic_client::create_request(Method method) const
   {
     auto req = std::make_unique<Request>();
     req->set_method(method);
@@ -45,7 +45,7 @@ namespace http {
     return req;
   }
 
-  void Client::send(Request_ptr req, Host host, Response_handler cb,
+  void Basic_client::send(Request_ptr req, Host host, Response_handler cb,
                     const bool secure, Options options)
   {
     Expects(cb != nullptr);
@@ -63,7 +63,7 @@ namespace http {
     if(! header.has_field(header::Origin))
       header.set_field(header::Origin, origin());
 
-    debug("<http::Client> Sending Request:\n%s\n", req->to_string().c_str());
+    debug("<http::Basic_client> Sending Request:\n%s\n", req->to_string().c_str());
 
     if(on_send_)
       on_send_(*req, options, host);
@@ -71,7 +71,7 @@ namespace http {
     conn.send(move(req), move(cb), options.bufsize, options.timeout);
   }
 
-  void Client::request(Method method, URI url, Header_set hfields,
+  void Basic_client::request(Method method, URI url, Header_set hfields,
                        Response_handler cb, Options options)
   {
     Expects(cb != nullptr);
@@ -136,7 +136,7 @@ namespace http {
     }
   }
 
-  void Client::request(Method method, Host host, std::string path,
+  void Basic_client::request(Method method, Host host, std::string path,
                        Header_set hfields, Response_handler cb,
                       const bool secure, Options options)
   {
@@ -153,7 +153,7 @@ namespace http {
     send(move(req), move(host), move(cb), secure, move(options));
   }
 
-  void Client::request(Method method, URI url, Header_set hfields,
+  void Basic_client::request(Method method, URI url, Header_set hfields,
                        std::string data, Response_handler cb,
                        Options options)
   {
@@ -224,7 +224,7 @@ namespace http {
     }
   }
 
-  void Client::request(Method method, Host host, std::string path,
+  void Basic_client::request(Method method, Host host, std::string path,
                        Header_set hfields, const std::string& data,
                        Response_handler cb, const bool secure, Options options)
   {
@@ -244,7 +244,7 @@ namespace http {
     send(move(req), move(host), move(cb), secure, move(options));
   }
 
-  void Client::add_data(Request& req, const std::string& data)
+  void Basic_client::add_data(Request& req, const std::string& data)
   {
     auto& header = req.header();
     if(!header.has_field(header::Content_Type))
@@ -257,7 +257,7 @@ namespace http {
     req.add_body(data);
   }
 
-  void Client::populate_from_url(Request& req, const URI& url)
+  void Basic_client::populate_from_url(Request& req, const URI& url)
   {
     // Set uri path (default "/")
     req.set_uri((!url.path().empty()) ? URI{url.path()} : URI{"/"});
@@ -270,13 +270,13 @@ namespace http {
       : std::string(url.host())); // to_string madness
   }
 
-  void Client::resolve(const std::string& host, ResolveCallback cb)
+  void Basic_client::resolve(const std::string& host, ResolveCallback cb)
   {
     static auto&& stack = tcp_.stack();
     stack.resolve(host, cb);
   }
 
-  Client_connection& Client::get_connection(const Host host)
+  Client_connection& Basic_client::get_connection(const Host host)
   {
     // return/create a set for the given host
     auto& cset = conns_[host];
@@ -295,14 +295,14 @@ namespace http {
     return *cset.back();
   }
 
-  Client_connection& Client::get_secure_connection(const Host)
+  Client_connection& Basic_client::get_secure_connection(const Host)
   {
     throw Client_error{"Secured connections not supported (use the HTTPS Client)."};
   }
 
-  void Client::close(Client_connection& c)
+  void Basic_client::close(Client_connection& c)
   {
-    debug("<http::Client> Closing %u:%s %p\n", c.local_port(), c.peer().to_string().c_str(), &c);
+    debug("<http::Basic_client> Closing %u:%s %p\n", c.local_port(), c.peer().to_string().c_str(), &c);
     auto& cset = conns_.at(c.peer());
 
     cset.erase(std::remove_if(cset.begin(), cset.end(),
