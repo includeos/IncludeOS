@@ -746,7 +746,8 @@ class vm:
     # Make using GNU Make
     def make(self, params = []):
         print INFO, "Building with 'make' (params=" + str(params) + ")"
-        make = ["make"]
+        jobs = os.environ["num_jobs"].split(" ") if "num_jobs" in os.environ else ["-j4"]
+        make = ["make"] + jobs
         make.extend(params)
         cmd(make)
         return self
@@ -782,6 +783,7 @@ class vm:
             cmd(cmake)
 
             # if everything went well, build with make and install
+
             return self.make()
         except Exception as e:
             print "Exception while building: ", e
