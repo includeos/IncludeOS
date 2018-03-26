@@ -104,13 +104,20 @@ void __platform_init()
   kprintf("Platform init done \n");
 }
 
-void x86::initialize_cpu_tables_for_cpu(int cpu){
+#ifdef ARCH_i686
+static x86::GDT gdt;
+#endif
+
+void x86::initialize_cpu_tables_for_cpu(int cpu)
+{
   cpu_tables[cpu].cpuid = cpu;
 
 #ifdef ARCH_x86_64
   x86::CPU::set_gs(&cpu_tables[cpu]);
 #else
-  x86::CPU::set_fs(&cpu_tables[cpu]);
+  int fs = gdt.create_data(&cpu_tables[cpu], 1);
+  GDT::reload_gdt(gdt);
+  GDT::set_fs(fs);
 #endif
 }
 
