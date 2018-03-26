@@ -189,14 +189,21 @@ namespace http {
     std::string origin() const
     { return tcp_.stack().ip_addr().to_string(); }
 
+    virtual ~Client() = default;
+
+  protected:
+    TCP&              tcp_;
+    Connection_mapset conns_;
+
+    explicit Client(TCP& tcp, Request_handler on_send, const bool https_supported);
+
+    virtual Client_connection& get_secure_connection(const Host host);
+
   private:
     friend class Client_connection;
-
-    TCP&              tcp_;
     Request_handler   on_send_;
-    Connection_mapset conns_;
     bool              keep_alive_ = false;
-    const bool        supports_https = false;
+    const bool        supports_https;
 
     void resolve(const std::string& host, ResolveCallback);
 
@@ -213,8 +220,6 @@ namespace http {
     void add_data(Request&, const std::string& data);
 
     Client_connection& get_connection(const Host host);
-
-    virtual Client_connection& get_secure_connection(const Host host);
 
     void close(Client_connection&);
 

@@ -22,9 +22,14 @@ namespace http {
   const Client::timeout_duration Client::DEFAULT_TIMEOUT{std::chrono::seconds(5)};
 
   Client::Client(TCP& tcp, Request_handler on_send)
+    : Client(tcp, std::move(on_send), false)
+  {
+  }
+
+  Client::Client(TCP& tcp, Request_handler on_send, const bool https_supported)
     : tcp_(tcp),
       on_send_{std::move(on_send)},
-      conns_{}
+      supports_https(https_supported)
   {
   }
 
