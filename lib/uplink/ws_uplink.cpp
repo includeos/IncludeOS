@@ -410,10 +410,10 @@ namespace uplink {
       writer.String(binary_hash_);
     }
 
-    if(not tag_.empty())
+    if(not config_.tag.empty())
     {
       writer.Key("tag");
-      writer.String(tag_);
+      writer.String(config_.tag);
     }
 
     if(update_time_taken > 0)
