@@ -20,14 +20,16 @@
 
 static SSL_CTX* init_ssl_context()
 {
-  fs::memdisk().init_fs(
-  [] (auto err, auto&) {
+  auto& disk = fs::memdisk();
+  disk.init_fs([] (auto err, auto&) {
     assert(!err);
   });
 
+  auto ents = disk.fs().ls("/");
+
   // initialize client context
   openssl::init();
-  return openssl::create_client("/");
+  return openssl::create_client(ents);
 }
 
 #include <service>
