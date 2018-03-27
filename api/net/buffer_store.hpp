@@ -93,7 +93,7 @@ namespace net
     size_t               bufsize_;
     uint8_t*             pool_;
     std::vector<uint8_t*> available_;
-    BufferStore*         next_;
+    std::unique_ptr<BufferStore> next_;
     int                  index;
 #ifndef INCLUDEOS_SINGLE_THREADED
     // has strict alignment reqs, so put at end

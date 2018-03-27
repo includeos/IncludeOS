@@ -15,12 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#if !defined(__MACH__)
-#include <malloc.h>
-#else
-#include <cstddef>
-extern void *memalign(size_t, size_t);
-#endif
+#include <cstdlib>
 #include <net/buffer_store.hpp>
 #include <kernel/syscalls.hpp>
 #include <common>
@@ -64,7 +59,7 @@ namespace net {
     assert(bufsize != 0);
     const size_t DATA_SIZE  = poolsize_;
 
-    this->pool_ = (uint8_t*) memalign(PAGE_SIZE, DATA_SIZE);
+    this->pool_ = (uint8_t*) aligned_alloc(PAGE_SIZE, DATA_SIZE);
     assert(this->pool_);
 
     available_.reserve(num);
@@ -79,7 +74,7 @@ namespace net {
   }
 
   BufferStore::~BufferStore() {
-    delete this->next_;
+    this->next_ = nullptr;
     free(this->pool_);
   }
 
@@ -89,7 +84,7 @@ namespace net {
 #ifdef ENABLE_BUFFERSTORE_CHAIN
     auto* parent = this;
     while (parent->next_ != nullptr) {
-        parent = parent->next_;
+        parent = parent->next_.get();
         avail += parent->available_.size();
     }
 #endif
@@ -101,7 +96,7 @@ namespace net {
 #ifdef ENABLE_BUFFERSTORE_CHAIN
     auto* parent = this;
     while (parent->next_ != nullptr) {
-        parent = parent->next_;
+        parent = parent->next_.get();
         total += parent->local_buffers();
     }
 #endif
@@ -113,13 +108,13 @@ namespace net {
 #ifdef ENABLE_BUFFERSTORE_CHAIN
     BufferStore* parent = this;
     while (parent->next_ != nullptr) {
-        parent = parent->next_;
+        parent = parent->next_.get();
         if (!parent->available_.empty()) return parent;
     }
     BSD_BUF("<BufferStore> Allocating %lu new buffers (%lu total)\n",
             local_buffers(), total_buffers() + local_buffers());
-    parent->next_ = new BufferStore(local_buffers(), bufsize());
-    return parent->next_;
+    parent->next_ = std::make_unique<BufferStore>(local_buffers(), bufsize());
+    return parent->next_.get();
 #else
     return nullptr;
 #endif
@@ -170,14 +165,14 @@ namespace net {
 #endif
 #ifdef ENABLE_BUFFERSTORE_CHAIN
     // try to release buffer on linked bufferstore
-    BufferStore* ptr = next_;
+    BufferStore* ptr = next_.get();
     while (ptr != nullptr) {
       if (ptr->is_from_this_pool(buff)) {
         BSD_RELEASE("released on other bufferstore\n");
         ptr->release_directly(buff);
         return;
       }
-      ptr = ptr->next_;
+      ptr = ptr->next_.get();
     }
 #endif
     throw std::runtime_error("Packet did not belong");
