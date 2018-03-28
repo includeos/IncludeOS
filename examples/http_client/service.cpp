@@ -37,12 +37,11 @@ static SSL_CTX* init_ssl_context()
 #include <net/super_stack.hpp>
 #include <net/ip4/ip4.hpp>
 
-void Service::start()
+static void begin_http()
 {
-  auto& inet = net::Super_stack::get<net::IP4>(0);
-
   using namespace http;
 
+  auto& inet = net::Super_stack::get<net::IP4>(0);
   static Basic_client basic{inet.tcp()};
 
   const std::string url{"http://www.google.com"};
@@ -77,4 +76,14 @@ void Service::start()
       printf("Make sure the virtual machine can reach internet.\n");
     }
   });
+}
+
+void Service::start()
+{
+  auto& inet = net::Super_stack::get<net::IP4>(0);
+
+  inet.on_config(
+    [] (auto) {
+      begin_http();
+    });
 }
