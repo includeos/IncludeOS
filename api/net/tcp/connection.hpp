@@ -235,8 +235,8 @@ public:
     virtual void on_connect(ConnectCallback cb) override
     {
       tcp->on_connect(Connection::ConnectCallback::make_packed(
-          [this, cb] (Connection_ptr)
-          { cb(*this); }));
+          [this, cb] (Connection_ptr conn)
+          { if(conn) cb(*this); }));
     }
 
     /**

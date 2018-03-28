@@ -1,0 +1,7 @@
+Iface eth0 {
+    index: 0,
+    address: 10.0.0.42,
+    netmask: 255.255.255.0,
+    gateway: 10.0.0.1,
+    dns: 8.8.8.8
+}

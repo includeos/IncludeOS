@@ -5,28 +5,26 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (demo_service)
+project (http_client)
 
 # Human-readable name of your service
-set(SERVICE_NAME "IncludeOS TLS example")
+set(SERVICE_NAME "IncludeOS HTTP Client example")
+
 # Name of your service binary
-set(BINARY       "tls_client")
+set(BINARY       "http_client")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
-  http.cpp
-  ../acorn/fs/acorn_fs.cpp
   )
 
-# DRIVERS / PLUGINS:
 set(DRIVERS
-    virtionet     # Virtio networking
-    # virtioblock # Virtio block device
-    # ... Others from src/drivers
+    virtionet
+    vmxnet3
+    e1000
+    boot_logger
   )
 
-# include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
-diskbuilder(disk)
+diskbuilder(certs)

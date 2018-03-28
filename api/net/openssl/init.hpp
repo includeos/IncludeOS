@@ -1,5 +1,6 @@
 #pragma once
 #include <openssl/ossl_typ.h>
+#include <fs/common.hpp>
 
 namespace openssl
 {
@@ -7,7 +8,7 @@ namespace openssl
   extern void verify_rng();
   extern void init();
 
-  extern SSL_CTX* create_client(const char* path, bool verify_peer = false);
+  extern SSL_CTX* create_client(fs::List, bool verify_peer = false);
   // enable peer certificate verification
   extern void client_verify_peer(SSL_CTX*);
 }
