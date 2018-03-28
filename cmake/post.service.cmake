@@ -455,17 +455,9 @@ target_link_libraries(service
   libunwind
   libcxx
 
-  libplatform
-  libarch
-  libos
-  libc
-  cxxabi
-  libpthread
-  libunwind
-  libcxx
-
   musl_syscalls
   libos
+  libcxx
   libc
 
   ${CRTN}
