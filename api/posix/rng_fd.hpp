@@ -21,6 +21,7 @@
 
 #include <kernel/rng.hpp>
 #include "fd.hpp"
+#include <sys/stat.h>
 
 /**
  * @brief      Simple stateless file descriptor
@@ -41,6 +42,20 @@ public:
   {
     rng_absorb(input, bytes);
     return bytes;
+  }
+
+  long fstat(struct stat* buf) override
+  {
+    buf->st_dev = 0x6;
+    buf->st_ino = 10;
+    buf->st_nlink = 1;
+    buf->st_size = 0;
+    buf->st_atime = 0;
+    buf->st_ctime = 0;
+    buf->st_mtime = 0;
+    buf->st_blocks = 0;
+    buf->st_blksize = 4096;
+    return 0;
   }
 
   int close() override
