@@ -2,8 +2,9 @@
 #include <cstdint>
 #include <sys/mman.h>
 #include <errno.h>
-#include <os>
 #include <util/alloc_lstack.hpp>
+#include <os>
+#include <kprint>
 
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
@@ -15,7 +16,8 @@ void init_mmap(uintptr_t addr_begin)
 {
   Expects(alloc.empty());
   auto aligned_begin = (addr_begin + Alloc::align - 1) & ~(Alloc::align - 1);
-  alloc.donate((void*)aligned_begin, (OS::heap_max() - aligned_begin) & ~(Alloc::align - 1));
+  int64_t len = (OS::heap_max() - aligned_begin) & ~int64_t(Alloc::align - 1);
+  alloc.donate((void*)aligned_begin, len);
 }
 
 extern "C" __attribute__((weak))

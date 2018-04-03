@@ -16,8 +16,7 @@ static long sys_write(int fd, char* str, size_t len) {
     return fildes.write(str, len);
   }
   catch(const FD_not_found&) {
-    errno = EBADF;
-    return -1;
+    return -EBADF;
   }
 }
 

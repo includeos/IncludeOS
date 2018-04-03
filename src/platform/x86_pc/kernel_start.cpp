@@ -49,20 +49,17 @@ extern char _FINI_START_;
 
 thread_local int __tl1__ = 42;
 
-uintptr_t __grub_magic = 0xc001;
-uintptr_t __grub_addr = 0x7001;
+uint32_t __grub_magic = 0xc001;
+uint32_t __grub_addr  = 0x7001;
 
 static volatile int __global_ctors_ok = 0;
 bool __libc_initialized = false;
 
-
 void _init_bss()
 {
-  /// Initialize .bss section
   extern char _BSS_START_, _BSS_END_;
   __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 }
-
 
 __attribute__((constructor))
 static void global_ctor_test(){
@@ -107,22 +104,22 @@ extern "C" uintptr_t __syscall_entry();
 
 extern "C"
 __attribute__((no_sanitize("all")))
-void kernel_start(uintptr_t magic, uintptr_t addr)
+void kernel_start(uint32_t magic, uint32_t addr)
 {
   // Initialize default serial port
   __init_serial1();
 
   __grub_magic = magic;
-  __grub_addr = addr;
+  __grub_addr  = addr;
 
   // TODO: remove extra verbosity after musl port stabilizes
   kprintf("\n//////////////////  IncludeOS kernel start ////////////////// \n");
-  kprintf("* Booted with magic 0x%lx, grub @ 0x%lx \n* Init sanity\n",
+  kprintf("* Booted with magic 0x%x, grub @ 0x%x \n* Init sanity\n",
           magic, addr);
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
-  kprintf("* Grub magic: 0x%lx, grub info @ 0x%lx\n",
+  kprintf("* Grub magic: 0x%x, grub info @ 0x%x\n",
           __grub_magic, __grub_addr);
 
   // Determine where free memory starts
@@ -137,9 +134,9 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   kprintf("* Moving symbols. \n");
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
-  kprintf("* Free mem moved to: 0x%lx \n", free_mem_begin);
+  kprintf("* Free mem moved to: %p \n", (void*) free_mem_begin);
 
-  kprintf("* Grub magic: 0x%lx, grub info @ 0x%lx\n",
+  kprintf("* Grub magic: 0x%x, grub info @ 0x%x\n",
           __grub_magic, __grub_addr);
 
   kprintf("* Init .bss\n");
@@ -220,7 +217,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 #if defined(__x86_64__)
   kprintf("* Initialize syscall MSR\n");
   uint64_t star_kernel_cs = 8ull << 32;
-  uint64_t star_user_cs = 8ull << 48;
+  uint64_t star_user_cs   = 8ull << 48;
   uint64_t star = star_kernel_cs | star_user_cs;
   x86::CPU::write_msr(IA32_STAR, star);
   x86::CPU::write_msr(IA32_LSTAR, (uintptr_t)&__syscall_entry);
@@ -229,8 +226,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   #warning Classical syscall interface missing for 32-bit
 #endif
 
-  //GDB_ENTRY;
+  // GDB_ENTRY;
   kprintf("* Starting libc initialization\n");
   __libc_start_main(kernel_main, argc, argv.data());
-
 }

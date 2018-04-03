@@ -4,11 +4,8 @@
 #include <errno.h>
 #include <kprint>
 
-__attribute__((weak))
-uintptr_t __brk_max = 0x100000;
-
+__attribute__((weak)) uintptr_t __brk_max = 0x100000;
 uintptr_t heap_begin = 0;
-
 uintptr_t brk_end;
 uintptr_t brk_init = 0;
 
@@ -24,16 +21,14 @@ void _init_heap(uintptr_t free_mem_begin)
   heap_begin = ((uintptr_t)heap_begin & ~HEAP_ALIGNMENT);
   brk_end    = heap_begin;
   brk_init = brk_end;
-  kprintf("* Brk initialized. Begin: 0x%lx, end 0x%lx\n",
-          heap_begin, brk_end);
+  kprintf("* Brk initialized. Begin: %p, end %p, MAX %p\n",
+          (void*) heap_begin, (void*) brk_end, (void*) __brk_max);
 
   init_mmap(heap_begin + __brk_max);
-
 }
 
 static uintptr_t sys_brk(void* addr)
 {
-
   if (addr == nullptr
       or (uintptr_t)addr > heap_begin +  __brk_max
       or (uintptr_t)addr < heap_begin) {
@@ -49,7 +44,6 @@ static uintptr_t sys_brk(void* addr)
 
   return brk_end;
 }
-
 
 extern "C"
 uintptr_t syscall_SYS_brk(void* addr)

@@ -1,10 +1,18 @@
 #include "common.hpp"
+#include <posix/fd_map.hpp>
 
-static int sys_close(int fd) {
-  if (!fd) return -1;
-  return 0;
-
-};
+static long sys_close(int fd)
+{
+  try {
+    auto& fildes = FD_map::_get(fd);
+    int res = fildes.close();
+    FD_map::close(fd);
+    return res;
+  }
+  catch(const FD_not_found&) {
+    return -EBADF;
+  }
+}
 
 extern "C"
 int syscall_SYS_close(int fd) {

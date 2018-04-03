@@ -44,14 +44,14 @@ namespace alloc {
  * NOTE: The allocator will not search for duplicates on deallocation,
  *       e.g. won't prevent double free, so that has to be done elsewhere.
  **/
-template <ssize_t Min = 4096>
+template <size_t Min = 4096>
 class Lstack {
 public:
 
   struct Chunk {
     Chunk*  next;
-    ssize_t size;
-    Chunk(Chunk* n, ssize_t s)
+    size_t size;
+    Chunk(Chunk* n, size_t s)
       : next(n), size(s)
     {
       Expects(s >= Min);
@@ -60,7 +60,7 @@ public:
 
   static constexpr int align = Min;
 
-  void* allocate(ssize_t size){
+  void* allocate(size_t size){
     Expects((size & (Min - 1)) == 0);
 
     Chunk* next = front_;
@@ -98,11 +98,11 @@ public:
     push(ptr, size);
   }
 
-  void donate(void* ptr, ssize_t size){
+  void donate(void* ptr, size_t size){
     push(ptr, size);
   }
 
-  void push(void* ptr, ssize_t size){
+  void push(void* ptr, size_t size){
     Expects((size & (align - 1)) == 0);
     auto* old_front = front_;
     front_ = (Chunk*)ptr;
