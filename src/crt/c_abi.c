@@ -17,6 +17,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <kprint>
 #define HEAP_ALIGNMENT   63
 
@@ -36,4 +37,84 @@ uint32_t _move_symbols(void* sym_loc)
   _move_elf_syms_location(&_ELF_SYM_START_, sym_loc);
 
   return elfsym_size;
+}
+
+void* __memcpy_chk(void* dest, const void* src, size_t len, size_t destlen)
+{
+  assert (len <= destlen);
+  return memcpy(dest, src, len);
+}
+void* __memset_chk(void* dest, int c, size_t len, size_t destlen)
+{
+  assert (len <= destlen);
+  return memset(dest, c, len);
+}
+char* __strcat_chk(char* dest, const char* src, size_t destlen)
+{
+  size_t len = strlen(dest) + strlen(src) + 1;
+  assert (len <= destlen);
+  return strcat(dest, src);
+}
+
+__attribute__((format(printf, 2, 3)))
+int __printf_chk (int flag, const char *format, ...)
+{
+  (void) flag;
+  va_list ap;
+  va_start (ap, format);
+  int done = vfprintf (stdout, format, ap);
+  va_end (ap);
+  return done;
+}
+int __fprintf_chk(FILE* fp, int flag, const char* format, ...)
+{
+  (void) flag;
+  va_list arg;
+  va_start (arg, format);
+  int done = vfprintf(fp, format, arg);
+  va_end (arg);
+  return done;
+}
+int __vfprintf_chk(FILE* fp, int flag, const char *format, va_list ap)
+{
+  (void) flag;
+  int done;
+  done = vfprintf (fp, format, ap);
+  return done;
+}
+int __vsprintf_chk(char* s, int flag, size_t slen, const char* format, va_list args)
+{
+  (void) flag;
+  int res = vsnprintf(s, slen, format, args);
+  assert ((size_t) res < slen);
+  return res;
+}
+__attribute__((format(printf, 4, 5)))
+int __sprintf_chk(char* s, int flags, size_t slen, const char *format, ...)
+{
+  va_list arg;
+  int done;
+  va_start (arg, format);
+  done = __vsprintf_chk(s, flags, slen, format, arg);
+  va_end (arg);
+  return done;
+}
+
+int __isoc99_scanf (const char *format, ...)
+{
+  va_list arg;
+  va_start (arg, format);
+  int done = vfscanf(stdin, format, arg);
+  va_end (arg);
+  return done;
+}
+__attribute__((format(scanf, 2, 3)))
+int __isoc99_sscanf (const char *s, const char *format, ...)
+{
+  va_list arg;
+  int done;
+  va_start (arg, format);
+  done = vsscanf(s, format, arg);
+  va_end (arg);
+  return done;
 }
