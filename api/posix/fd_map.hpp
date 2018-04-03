@@ -55,9 +55,6 @@ public:
 
   FD& get(const id_t id) const;
 
-  int close(const id_t id)
-  { return (map_.erase(id)) ? 0 : -1; }
-
   template <typename T, typename... Args>
   static auto&& _open(Args&&... args)
   { return instance().open<T>(std::forward<Args>(args)...); }
@@ -65,10 +62,16 @@ public:
   static auto&& _get(const id_t id)
   { return instance().get(id); }
 
-  static int _close(id_t id)
-  { return instance().close(id); }
+  static void close(id_t id)
+  { instance().internal_close(id); }
 
 private:
+  void internal_close(const id_t id)
+  {
+    auto erased = map_.erase(id);
+    assert(erased > 0);
+  }
+
   std::map<id_t, std::unique_ptr<FD>> map_;
   FD_map() {}
 };
