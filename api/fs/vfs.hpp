@@ -347,7 +347,7 @@ namespace fs {
         disk,
         remote,
         insert_dirent_delg::make_packed(
-        [local, callback, desc](error_t err, auto&& dirent_ref)
+        [local, callback, desc](error_t err, auto& dirent_ref)
         {
           VFS::mount<true>(local, dirent_ref, desc);
           callback(err);
@@ -439,7 +439,7 @@ namespace fs {
           auto res_it = (dirent_map().emplace(Dirent_mountpoint{disk_id, path.to_string()}, dir));
 
           if (res_it.second) {
-            auto saved_dir = res_it.first->second;
+            auto& saved_dir = res_it.first->second;
             fn(err, saved_dir);
           } else {
             fn(err, invalid_dirent());
