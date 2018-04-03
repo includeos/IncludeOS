@@ -10,13 +10,20 @@ project(test_posix_stat)
 
 set(SERVICE_NAME "Stat test")
 set(BINARY       "test_posix_stat")
-set(MAX_MEM 128)
+
 set(SOURCES
     test_stat_ftw.cpp
     ftw_tests.cpp
     stat_tests.cpp
   )
-#set(LOCAL_INCLUDES ".")
+
+set(DRIVERS
+  boot_logger
+)
+
+set(PLUGINS
+  vfs
+)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
