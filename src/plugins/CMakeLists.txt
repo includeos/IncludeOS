@@ -30,6 +30,12 @@ add_dependencies(terminal_liu PrecompiledLibraries)
 add_library(nacl STATIC nacl.cpp)
 add_dependencies(nacl PrecompiledLibraries)
 
+add_library(field_medic STATIC
+  field_medic/fieldmedic.cpp
+  field_medic/diag.cpp)
+add_dependencies(field_medic PrecompiledLibraries)
+
+
 #
 # Installation
 #
@@ -44,4 +50,5 @@ install(TARGETS
     terminal
     terminal_liu
     nacl
+    field_medic
   DESTINATION includeos/${ARCH}/plugins)

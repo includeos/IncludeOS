@@ -6,5 +6,12 @@
   {"name": "posix/integration/ucontext",
    "reason": "The test shows that ucontext is unrealiable, as is."},
   {"name": "kernel/integration/context",
-   "reason": "context is only implemented for 32-bit."}
+   "reason": "context is only implemented for 32-bit."},
+  {"name": "kernel/integration/tls",
+   "reason": "TLS is currently disabled."},
+  {"name": "kernel/integration/fiber",
+   "reason": "Fibers depend on TLS which are currently disabled."},
+  {"name": "posix/integration/pthread",
+   "reason": "pthread depends on fibers which depend on TLS."}
+
 ]

@@ -175,13 +175,9 @@ namespace x86
 
   void initialize_gdt_for_cpu(int cpu_id)
   {
-    char* tls_data  = tls_buffers.at(cpu_id);
-    char* tls_table = tls_data + tls::get_tls_size();
-    // TLS data at front of buffer
-    tls::fill_tls_data(tls_data);
     // SMP control block after TLS data
-    auto* table = (smp_table*) tls_table;
-    table->tls_data = tls_data;
+    auto* table = new smp_table;
+    table->tls_data = nullptr;
     table->cpuid    = cpu_id;
     table->guard    = (uintptr_t) _SENTINEL_VALUE_;
     // should be at least 8-byte aligned

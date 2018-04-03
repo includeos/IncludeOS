@@ -4,7 +4,7 @@
 # Download, configure, compile and install llvm
 ARCH=${ARCH:-x86_64} # CPU architecture. Alternatively x86_64
 TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
-INCLUDEOS_THREADING=${INCLUDEOS_THREADING:-ON}
+INCLUDEOS_THREADING=${INCLUDEOS_THREADING:-OFF}
 
 newlib_inc=$TEMP_INSTALL_DIR/$TARGET/include	# path for newlib headers
 IncludeOS_posix=$INCLUDEOS_SRC/api/posix
@@ -103,7 +103,7 @@ cmake  $generator  $BUILD_DIR/llvm/  \
        -DLIBUNWIND_TARGET_TRIPLE=$TRIPLE \
        -DLIBCXXABI_TARGET_TRIPLE=$TRIPLE \
        -DLIBCXXABI_ENABLE_THREADS=$INCLUDEOS_THREADING \
-       -DLIBCXXABI_HAS_PTHREAD_API=ON \
+       -DLIBCXXABI_HAS_PTHREAD_API=$INCLUDEOS_THREADING \
        -DLIBCXX_CXX_ABI_LIBRARY_PATH=$BUILD_DIR/build_llvm/lib/ \
 
 # MAKE
