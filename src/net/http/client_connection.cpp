@@ -16,12 +16,11 @@
 // limitations under the License.
 
 #include <net/http/client_connection.hpp>
-#include <net/http/client.hpp>
-#include <debug>
+#include <net/http/basic_client.hpp>
 
 namespace http {
 
-  Client_connection::Client_connection(Client& client, Stream_ptr stream)
+  Client_connection::Client_connection(Basic_client& client, Stream_ptr stream)
     : Connection{std::move(stream)},
       client_(client),
       req_(nullptr),
@@ -45,7 +44,17 @@ namespace http {
     if(timeout_dur_ > timeout_duration::zero())
       timer_.restart(timeout_dur_);
 
-    send_request(bufsize);
+    // if the stream is not established, send the request when connected
+    if(not stream_->is_connected())
+    {
+      stream_->on_connect([this, bufsize](auto&)
+      {
+        this->send_request(bufsize);
+      });
+    }
+    else {
+      send_request(bufsize);
+    }
   }
 
   void Client_connection::send_request(const size_t bufsize)
@@ -111,8 +120,8 @@ namespace http {
         {
           const unsigned conlen = std::stoul(std::string(header.value(header::Content_Length)));
           const unsigned body_size = res_->body().size();
-          debug2("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
-            req_->uri().to_string().to_string().c_str(), data.size(), conlen, body_size);
+          //printf("<http::Connection> [%s] Data: %u ConLen: %u Body:%u\n",
+          //  req_->uri().to_string().to_string().c_str(), data.size(), conlen, body_size);
           // risk buffering forever if no timeout
           if(body_size == conlen)
           {

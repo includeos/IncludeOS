@@ -98,7 +98,7 @@ void Service::start()
 void ws_client_test(net::TCP& tcp)
 {
   /// client ///
-  static http::Client client(tcp);
+  static http::Basic_client client(tcp);
   net::WebSocket::connect(client, "ws://10.0.0.1:8001/",
   [] (net::WebSocket_ptr socket)
   {

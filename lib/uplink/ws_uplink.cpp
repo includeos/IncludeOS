@@ -90,8 +90,8 @@ namespace uplink {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
     Expects(not config_.url.empty());
 
-    client_ = std::make_unique<http::Client>(inet.tcp(),
-      http::Client::Request_handler{this, &WS_uplink::inject_token});
+    client_ = std::make_unique<http::Basic_client>(inet.tcp(),
+      http::Basic_client::Request_handler{this, &WS_uplink::inject_token});
 
     auth();
   }
@@ -134,7 +134,7 @@ namespace uplink {
       { {"Content-Type", "application/json"} },
       auth_data(),
       {this, &WS_uplink::handle_auth_response},
-      http::Client::Options{15s});
+      http::Basic_client::Options{15s});
   }
 
   void WS_uplink::handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&)
