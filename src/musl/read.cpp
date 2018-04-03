@@ -7,8 +7,7 @@ static ssize_t sys_read(int fd, void* buf, size_t len) {
     return fildes.read(buf, len);
   }
   catch(const FD_not_found&) {
-    errno = EBADF;
-    return -1;
+    return -EBADF;
   }
 }
 
