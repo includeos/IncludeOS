@@ -6,8 +6,9 @@ set(MUSL_OBJECTS
   getrlimit.cpp sched_yield.cpp set_robust_list.cpp
   nanosleep.cpp open.cpp creat.cpp clock_gettime.cpp gettimeofday.cpp
   poll.cpp exit.cpp close.cpp set_tid_address.cpp
-  pipe.cpp read.cpp readv.cpp getpid.cpp mknod.cpp sync.cpp msync.cpp
-  mincore.cpp syscall_n.cpp sigmask.cpp gettid.cpp tkill.cpp
+  pipe.cpp read.cpp readv.cpp getpid.cpp getuid.cpp mknod.cpp sync.cpp
+  msync.cpp mincore.cpp syscall_n.cpp sigmask.cpp gettid.cpp tkill.cpp
+  socketcall.cpp rt_sigaction.cpp
   stat.cpp fstat.cpp fstatat.cpp
   chmod.cpp
   cwd.cpp
