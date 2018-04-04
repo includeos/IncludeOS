@@ -28,7 +28,8 @@ public:
         dir_pos{0}, dir_{nullptr}
   {}
 
-  int read(void*, size_t) override;
+  ssize_t read(void*, size_t) override;
+  ssize_t readv(const struct iovec*, int iovcnt) override;
   int write(const void*, size_t) override;
   int close() override;
   int lseek(off_t, int) override;

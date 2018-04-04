@@ -1,14 +1,20 @@
-#include "stub.hpp"
-#include <errno.h>
-#include <sys/uio.h>
+#include "common.hpp"
 
-static ssize_t sys_readv(int /*fd*/, const struct iovec*, int /*iovcnt*/)
+#include <posix/fd_map.hpp>
+
+static ssize_t sys_readv(int fd, const struct iovec* iov, int iovcnt)
 {
-  return -ENOSYS;
+  try {
+    auto& fildes = FD_map::_get(fd);
+    return fildes.readv(iov, iovcnt);
+  }
+  catch(const FD_not_found&) {
+    return -EBADF;
+  }
 }
 
 extern "C"
 ssize_t syscall_SYS_readv(int fd, const struct iovec *iov, int iovcnt)
 {
-  return stubtrace(sys_readv, "readv", fd, iov, iovcnt);
+  return strace(sys_readv, "readv", fd, iov, iovcnt);
 }

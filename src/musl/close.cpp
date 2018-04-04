@@ -15,6 +15,6 @@ static long sys_close(int fd)
 }
 
 extern "C"
-int syscall_SYS_close(int fd) {
+long syscall_SYS_close(int fd) {
   return strace(sys_close, "close", fd);
 }

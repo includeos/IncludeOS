@@ -32,7 +32,7 @@ public:
   RNG_fd(int fd)
     : FD{fd} {}
 
-  int read(void* output, size_t bytes) override
+  ssize_t read(void* output, size_t bytes) override
   {
     rng_extract(output, bytes);
     return bytes;

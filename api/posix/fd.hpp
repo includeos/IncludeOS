@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <cstdarg>
+#include <errno.h>
 
 /**
  * @brief File descriptor
@@ -38,7 +39,8 @@ public:
   {}
 
   /** FILES **/
-  virtual int     read(void*, size_t) { return -1; }
+  virtual ssize_t read(void*, size_t) { return -EBADF; }
+  virtual ssize_t readv(const struct iovec*, int) { return -EBADF; }
   virtual int     write(const void*, size_t) { return -1; }
   virtual int     close() = 0;
   virtual int     fcntl(int, va_list);
@@ -72,7 +74,7 @@ public:
   virtual int   lseek(off_t, int) { return -1; }
 
   // linux specific
-  virtual long getdents([[maybe_unused]]struct dirent *dirp, [[maybe_unused]]unsigned int count) { return -1; }
+  virtual long getdents(struct dirent*, unsigned int) { return -1; }
 
   id_t get_id() const noexcept { return id_; }
 
