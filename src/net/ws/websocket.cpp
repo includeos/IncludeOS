@@ -148,10 +148,10 @@ http::Server::Request_handler WebSocket::create_request_handler(
     });
 }
 
-http::Client::Response_handler WebSocket::create_response_handler(
+http::Basic_client::Response_handler WebSocket::create_response_handler(
   Connect_handler on_connect, std::string key)
 {
-  return http::Client::Response_handler::make_packed(
+  return http::Basic_client::Response_handler::make_packed(
     [
       on_connect{std::move(on_connect)},
       key{std::move(key)}
@@ -165,9 +165,9 @@ http::Client::Response_handler WebSocket::create_response_handler(
 }
 
 void WebSocket::connect(
-      http::Client&   client,
-      uri::URI        remote,
-      Connect_handler callback)
+      http::Basic_client&   client,
+      uri::URI              remote,
+      Connect_handler       callback)
 {
   // doesn't have to be extremely random, just random
   std::string key  = base64::encode(generate_key());

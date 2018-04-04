@@ -7,6 +7,7 @@
 #include <openssl/ssl.h>
 #include <kernel/rng.hpp>
 #include <cassert>
+#include <info>
 
 extern "C" void ios_rand_seed(const void* buf, int num)
 {
@@ -62,6 +63,7 @@ namespace openssl
     static bool init_once = false;
     if (init_once == false)
     {
+      INFO("OpenSSL", "Initializing (%s)", OPENSSL_VERSION_TEXT);
       init_once = true;
       SSL_library_init();
       OpenSSL_add_all_algorithms();
