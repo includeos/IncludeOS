@@ -17,7 +17,7 @@
 
 #include <cstdlib>
 #include <net/buffer_store.hpp>
-#include <kernel/syscalls.hpp>
+#include <os>
 #include <common>
 #include <cassert>
 #include <smp>
@@ -56,7 +56,7 @@ namespace net {
     assert(bufsize != 0);
     const size_t DATA_SIZE  = poolsize_;
 
-    this->pool_ = (uint8_t*) aligned_alloc(PAGE_SIZE, DATA_SIZE);
+    this->pool_ = (uint8_t*) aligned_alloc(OS::page_size(), DATA_SIZE);
     assert(this->pool_);
 
     available_.reserve(num);
