@@ -25,6 +25,7 @@
 #include <cstdarg>
 #include <errno.h>
 
+#define DEFAULT_ERR EPERM
 /**
  * @brief File descriptor
  * @details
@@ -39,9 +40,9 @@ public:
   {}
 
   /** FILES **/
-  virtual ssize_t read(void*, size_t) { return -EBADF; }
-  virtual ssize_t readv(const struct iovec*, int) { return -EBADF; }
-  virtual int     write(const void*, size_t) { return -1; }
+  virtual ssize_t read(void*, size_t) { return -DEFAULT_ERR; }
+  virtual ssize_t readv(const struct iovec*, int) { return -DEFAULT_ERR; }
+  virtual int     write(const void*, size_t) { return -DEFAULT_ERR; }
   virtual int     close() = 0;
   virtual int     fcntl(int, va_list);
   virtual int     ioctl(int, void*);
@@ -71,7 +72,7 @@ public:
   virtual int   mkdirat(const char *, mode_t) { return -1; }
   virtual int   mkfifoat(const char *, mode_t) { return -1; }
   virtual int   mknodat(const char *, mode_t, dev_t) { return -1; }
-  virtual int   lseek(off_t, int) { return -1; }
+  virtual off_t lseek(off_t, int) { return -DEFAULT_ERR; }
 
   // linux specific
   virtual long getdents(struct dirent*, unsigned int) { return -1; }
