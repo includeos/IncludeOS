@@ -17,12 +17,12 @@
 
 #pragma once
 #include <sys/time.h>
-#include <hertz>
+#include <util/units.hpp>
 
 namespace x86
 {
   struct Clocks {
     static void init();
-    static KHz  get_khz();
+    static util::KHz  get_khz();
   };
 }

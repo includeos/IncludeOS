@@ -26,6 +26,6 @@ namespace x86
     static void init();
     static uint64_t system_time();
     static timespec wall_clock();
-    static KHz      get_tsc_khz();
+    static util::KHz      get_tsc_khz();
   };
 }

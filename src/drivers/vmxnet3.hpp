@@ -33,8 +33,8 @@ public:
   static const int NUM_TX_DESC   = 512;
   static const int NUM_RX_DESC   = 256;
 
-  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
-  { return std::make_unique<vmxnet3>(d); }
+  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d, const uint16_t MTU)
+  { return std::make_unique<vmxnet3>(d, MTU); }
 
   /** Human readable name. */
   const char* driver_name() const override {
@@ -47,7 +47,7 @@ public:
   }
 
   uint16_t MTU() const noexcept override {
-    return 1500;
+    return m_mtu;
   }
 
   uint16_t packet_len() const noexcept {
@@ -66,7 +66,7 @@ public:
   void transmit(net::Packet_ptr pckt);
 
   /** Constructor. @param pcidev an initialized PCI device. */
-  vmxnet3(hw::PCI_Device& pcidev);
+  vmxnet3(hw::PCI_Device& pcidev, uint16_t MTU);
 
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override {
@@ -128,6 +128,7 @@ private:
   uintptr_t     iobase = 0;
   uintptr_t     ptbase = 0;
   MAC::Addr     hw_addr;
+  uint16_t      m_mtu  = 0;
   vmxnet3_dma*  dma = nullptr;
 
   ring_stuff tx;
@@ -136,6 +137,7 @@ private:
   uint8_t  deferred_irq  = 0;
   bool     deferred_kick = false;
   bool   already_polling = false;
+  bool     link_state_up = false;
   static void handle_deferred();
   // sendq as packet chain
   net::Packet_ptr sendq = nullptr;

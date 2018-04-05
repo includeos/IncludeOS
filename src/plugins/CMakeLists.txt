@@ -1,6 +1,13 @@
 #
 # Build and install plugins as libraries
 #
+
+# make LiveUpdate visible to plugins
+include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
+
+add_library(system_log STATIC "system_log.cpp")
+add_dependencies(system_log PrecompiledLibraries)
+
 add_library(syslogd STATIC syslogd.cpp)
 add_dependencies(syslogd PrecompiledLibraries)
 
@@ -23,7 +30,19 @@ add_dependencies(terminal_liu PrecompiledLibraries)
 add_library(nacl STATIC nacl.cpp)
 add_dependencies(nacl PrecompiledLibraries)
 
+add_library(field_medic STATIC
+  field_medic/fieldmedic.cpp
+  field_medic/diag.cpp)
+add_dependencies(field_medic PrecompiledLibraries)
+
+
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
+
 install(TARGETS
+    system_log
     syslogd
     unik
     example
@@ -31,4 +50,5 @@ install(TARGETS
     terminal
     terminal_liu
     nacl
+    field_medic
   DESTINATION includeos/${ARCH}/plugins)

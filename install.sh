@@ -12,6 +12,8 @@ export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-/usr/local}
 export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST:-OFF}
 # Set CPU-architecture (default x86_64)
 export ARCH=${ARCH:-x86_64}
+# Enable threading
+export INCLUDEOS_THREADING=${INCLUDEOS_THREADING:-OFF}
 
 ############################################################
 # COMMAND LINE PROPERTIES:
@@ -166,7 +168,8 @@ printf "    %-25s %-25s %s\n"\
 	   "INCLUDEOS_SRC" "Source dir of IncludeOS" "$INCLUDEOS_SRC"\
 	   "INCLUDEOS_PREFIX" "Install location" "$INCLUDEOS_PREFIX"\
 	   "ARCH" "CPU Architecture" "$ARCH"\
-	   "INCLUDEOS_ENABLE_TEST" "Enable test compilation" "$INCLUDEOS_ENABLE_TEST"
+	   "INCLUDEOS_ENABLE_TEST" "Enable test compilation" "$INCLUDEOS_ENABLE_TEST"\
+	   "INCLUDEOS_THREADING" "Enable threading / SMP" "$INCLUDEOS_THREADING"
 
 # Give user option to evaluate install options
 if tty -s && [ $install_yes -eq 0 ]; then
@@ -247,8 +250,8 @@ fi
 
 printf "\n\n>>> IncludeOS installation Done!\n"
 printf "    %s\n" "To use IncludeOS set env variables for cmake to know your compiler, e.g.:"\
-	   '    export CC="clang-3.8"'\
-	   '    export CXX="clang++-3.8"'\
+	   '    export CC="clang-5.0"'\
+	   '    export CXX="clang++-5.0"'\
 	   ""\
 	   "Test your installation with ./test.sh"
 

@@ -117,8 +117,8 @@ public:
   using Link          = net::Link_layer<net::Ethernet>;
   using Link_protocol = Link::Protocol;
 
-  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d)
-  { return std::make_unique<VirtioNet>(d); }
+  static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d, const uint16_t MTU)
+  { return std::make_unique<VirtioNet>(d, MTU); }
 
   /** Human readable name. */
   const char* driver_name() const override {
@@ -149,7 +149,7 @@ public:
   void transmit(net::Packet_ptr pckt);
 
   /** Constructor. @param pcidev an initialized PCI device. */
-  VirtioNet(hw::PCI_Device& pcidev);
+  VirtioNet(hw::PCI_Device& pcidev, uint16_t MTU);
 
   /** Space available in the transmit queue, in packets */
   size_t transmit_queue_available() override {

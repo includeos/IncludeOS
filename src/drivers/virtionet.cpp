@@ -60,7 +60,7 @@ void VirtioNet::get_config() {
 }
 #define VNET_TOT_BUFFERS() (48 + (queue_size(0) + queue_size(1)) / 2)
 
-VirtioNet::VirtioNet(hw::PCI_Device& d)
+VirtioNet::VirtioNet(hw::PCI_Device& d, const uint16_t mtu)
   : Virtio(d),
     Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, bufstore_),
     m_pcidev(d),

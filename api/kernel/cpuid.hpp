@@ -110,6 +110,8 @@ namespace CPUID
     BMI1,              // Bit manipulation 1
     BMI2,              // Bit manipulation 2
     LZCNT,             // Count leading zero bits
+
+    TSC_INV,           // Invariant TSC
   };
 
   using Feature_map =  const std::unordered_map<Feature, const char*>;

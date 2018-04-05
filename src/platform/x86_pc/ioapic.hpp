@@ -49,19 +49,15 @@
 #define IOAPIC_HI_DESTINATION  (1 << 24)
 
 namespace x86 {
-  
+
   class IOAPIC {
   public:
     static void init(const ACPI::ioapic_list& vec);
-    
-    static unsigned entries();
-    
-    static void set(uint8_t idx, uint32_t src, uint32_t dst);
-    
-    static void enable(uint8_t idx, uint8_t dst_irq, uint8_t lapic);
+
+    static void enable(uint8_t lapic, const ACPI::override_t&);
     static void disable(uint8_t idx);
   };
-  
+
 }
 
 #endif

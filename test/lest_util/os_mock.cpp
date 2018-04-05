@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
 #ifdef __MACH__
 #include <stdlib.h>
 #include <stddef.h>
@@ -71,20 +72,40 @@ bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
 
+void __x86_init_paging(void*){};
+namespace x86 {
+namespace paging {
+  void invalidate(void* pageaddr){};
+}}
+
+__attribute__((constructor))
+void paging_test_init(){
+  extern uintptr_t __exec_begin;
+  extern uintptr_t __exec_end;
+  __exec_begin = 0xa00000;
+  __exec_end = 0xb0000b;
+}
+
 void OS::multiboot(unsigned) {}
 
-extern "C" {
+#include <system_log>
+void SystemLog::initialize() {}
+void SystemLog::set_flags(uint32_t) {}
 
 /// Kernel ///
-  char _binary_apic_boot_bin_end;
-  char _binary_apic_boot_bin_start;
-  char _ELF_START_;
-  char _ELF_END_;
-  uintptr_t _MULTIBOOT_START_;
-  uintptr_t _LOAD_START_;
-  uintptr_t _LOAD_END_;
-  uintptr_t _BSS_END_;
+char _binary_apic_boot_bin_end;
+char _binary_apic_boot_bin_start;
+char _ELF_START_;
+char _ELF_END_;
+uintptr_t _MULTIBOOT_START_;
+uintptr_t _LOAD_START_;
+uintptr_t _LOAD_END_;
+uintptr_t _BSS_END_;
+uintptr_t _TEXT_START_;
+uintptr_t _TEXT_END_;
+uintptr_t _EXEC_END_;
 
+extern "C" {
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
   }
@@ -121,8 +142,6 @@ extern "C" {
     static char __printbuf[4096];
     snprintf(__printbuf, sizeof(__printbuf), "%s", cstr);
   }
-
-
 } // ~ extern "C"
 
 /// platform ///

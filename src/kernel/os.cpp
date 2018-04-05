@@ -18,12 +18,17 @@
 //#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
+#ifndef PANIC_ACTION
+#define PANIC_ACTION halt
+#endif
+
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <service>
 #include <cstdio>
 #include <cinttypes>
 #include <util/fixed_vector.hpp>
+#include <system_log>
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -32,6 +37,8 @@
 #else
 #define PROFILE(name) /* name */
 #endif
+
+using namespace util;
 
 extern "C" void* get_cpu_esp();
 extern uintptr_t heap_begin;
@@ -52,6 +59,7 @@ KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
 uintptr_t OS::memory_end_ = 0;
 uintptr_t OS::heap_max_ = (uintptr_t) -1;
+OS::Panic_action OS::panic_action_ = OS::Panic_action::PANIC_ACTION;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // stdout redirection
@@ -107,6 +115,9 @@ void OS::post_start()
     auto size = OS::heap_max() / 4;
     OS::liveupdate_loc_ = (OS::heap_max() - size) & 0xFFFFFFF0;
   }
+  // Initialize the system log if plugin is present.
+  // Dependent on the liveupdate location being set
+  SystemLog::initialize();
 
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
@@ -123,13 +134,7 @@ void OS::post_start()
   PROFILE("Plugins init");
   for (auto plugin : plugins) {
     INFO2("* Initializing %s", plugin.name);
-    try {
-      plugin.func();
-    } catch(std::exception& e){
-      MYINFO("Exception thrown when initializing plugin: %s", e.what());
-    } catch(...){
-      MYINFO("Unknown exception when initializing plugin");
-    }
+    plugin.func();
   }
 
   PROFILE("Service::start");
@@ -150,6 +155,8 @@ void OS::add_stdout(OS::print_func func)
 }
 __attribute__((weak))
 bool os_enable_boot_logging = false;
+__attribute__((weak))
+bool os_default_stdout = false;
 void OS::print(const char* str, const size_t len)
 {
   for (auto& callback : os_print_handlers) {

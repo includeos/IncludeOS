@@ -1,4 +1,4 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
+// This file is a part of the IntcludeOS unikernel - www.includeos.org
 //
 // Copyright 2017 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
@@ -15,77 +15,118 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//#define SMP_DEBUG 1
 #include <kernel/fiber.hpp>
-#include <gsl/gsl>
+#include <common> // assert-based Exepcts/Ensures
 #include <cstdint>
 #include <memory>
+#include <smp>
 
-void* previous_stack_ = nullptr;
-Fiber* Fiber::main_ = nullptr;
-Fiber* Fiber::current_ = nullptr;
+// Default location for previous stack. Asm will always save a pointer.
+#if defined(INCLUDEOS_SINGLE_THREADED)
+int Fiber::next_id_{0};
+#else
+std::atomic<int> Fiber::next_id_{0};
+#endif
 
+thread_local void* caller_stack_ = nullptr;
+thread_local Fiber* Fiber::main_ = nullptr;
+thread_local Fiber* Fiber::current_ = nullptr;
 
 extern "C" {
-  void __fiber_jumpstart(void* th_stack, Fiber* f, void* parent_stack);
-  void __fiber_yield(void* stack, void* parent_stack);
+  void __fiber_jumpstart(volatile void* th_stack, volatile Fiber* f, volatile void* parent_stack);
+  void __fiber_yield(volatile void* stack, volatile void* parent_stack);
 
+  /** Jumpstart a fiber. Called from __fiber_jumpstart (assembly) */
   void fiber_jumpstarter(Fiber* f)
   {
+
+    Expects(f);
     f->ret_= f->func_(f->param_);
+
+    // Last stackframe before switching back. Done.
+    Fiber::current_ = f->parent_ ? f->parent_ : nullptr;
+    f->done_ = true;
   }
 }
 
 
-int Fiber::next_id_ = 0;
 
 void Fiber::start() {
-
-  if (not main_)  {
-    Expects(parent_ == nullptr);
-    main_ = this;
-  }
 
   if (not func_)
     throw Err_bad_fiber("Can't start fiber without a function");
 
+  // Become main if none exists
+  if (not main_)
+    main_ = this;
+
+  // Suspend current running fiber if any
+  if (current_) {
+    current_ -> suspended_ = true;
+    make_parent(current_);
+  }
+
+  // Become current
   current_ = this;
 
-  // Switch stack + call thread initialize
-  void* prev_stack = previous_stack_;
+  started_ = true;
+  running_ = true;
 
-  if (parent_)
-    prev_stack = &(parent_->stack_loc_);
+  // Switch stacks and call function
+  __fiber_jumpstart(stack_loc_, this, &(parent_stack_));
 
-  __fiber_jumpstart(stack_loc_, this, prev_stack);
+  // Returns here after first yield / final return
 
   if (main_ == this)
     main_ = nullptr;
 
+  Expects(current_ != this);
+
+  return;
 }
 
 void Fiber::yield() {
 
-  Fiber* child = current_;
-  Fiber* parent = child->parent();
+  auto* from = current_;
+  Expects(from);
+  auto* into = current_->parent_;
+  Expects(into);
+  Expects(into->suspended());
+  Expects(into->stack_loc_);
+  Expects(from->stack_loc_);
+  Expects(not into->done_);
 
-  child->suspended_ = true;
-  current_ = parent;
+  from->suspended_ = true;
+  from->running_ = false;
 
-  __fiber_yield(parent->stack_loc_, &(child->stack_loc_));
+  current_ = into;
+
+  __fiber_yield(from->parent_stack_, &(from->stack_loc_));
 
 };
 
 void Fiber::resume()
 {
 
-  if (not suspended_)
+  if (not suspended_ or done_ or func_ == nullptr)
     return;
 
-  Fiber* parent = current_;
+  Expects(current_);
+
+  make_parent(current_);
+
   current_ = this;
   suspended_ = false;
+  running_ = true;
+  parent_->suspended_ = true;
+  parent_->running_ = false;
 
   Expects(stack_loc_ > stack_.get() and stack_loc_ < stack_.get() + stack_size_);
+  Expects(not done_);
 
-  __fiber_yield(stack_loc_, &(parent->stack_loc_));
+  __fiber_yield(stack_loc_, &(parent_stack_));
+
+  // Returns here after yield
+
 }

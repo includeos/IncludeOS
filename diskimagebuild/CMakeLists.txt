@@ -10,4 +10,9 @@ set(SOURCES main.cpp filetree.cpp writer.cpp)
 include_directories(../mod/GSL)
 add_executable(diskbuilder ${SOURCES})
 
+#
+# Installation
+#
+set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
+
 install(TARGETS diskbuilder DESTINATION ${CMAKE_INSTALL_PREFIX})

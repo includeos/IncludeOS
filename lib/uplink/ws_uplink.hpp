@@ -55,7 +55,7 @@ public:
 
   void send_uplink();
 
-  void update(const std::vector<char>& buffer);
+  void update(std::vector<char> buffer);
 
   void send_error(const std::string& err);
 
@@ -66,8 +66,6 @@ public:
   bool is_online() const
   { return ws_ != nullptr and ws_->is_alive(); }
 
-  void panic(const char* why);
-
 private:
   Config config_;
 
@@ -76,7 +74,12 @@ private:
   net::WebSocket_ptr            ws_;
   std::string                   id_;
   std::string                   token_;
+  std::string                   tag_;
+  /** Hash for the current running binary
+   * (restored during update, none if never updated) */
   std::string                   binary_hash_;
+  /** Hash for current received update */
+  std::string                   update_hash_;
 
   Transport_parser parser_;
 

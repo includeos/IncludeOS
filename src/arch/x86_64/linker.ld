@@ -20,7 +20,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-  PROVIDE ( _ELF_START_ = . + 0x100000);
+  PROVIDE ( _ELF_START_ = . + 0x200000);
   PROVIDE ( _LOAD_START_ = _ELF_START_); /* For convenience w. multiboot */
 
   . = _ELF_START_;
@@ -31,7 +31,7 @@ SECTIONS
    }
 
 
-  .text ALIGN(0x10):
+  .text ALIGN(0x1000):
   {
   PROVIDE( _TEXT_START_ = . );
     /* For solo5, although it's just used to print the mem layout. */
@@ -44,7 +44,7 @@ SECTIONS
   }
   PROVIDE( _TEXT_END_ = . );
 
-  .init ALIGN(0x10) : {
+  .init ALIGN(0x1000) : {
     _INIT_START_ = .;
     *(.init)
     _INIT_END_ = .;
@@ -120,7 +120,9 @@ SECTIONS
    PROVIDE_HIDDEN (__fini_array_end = .);
   }
 
-  .config ALIGN(0x8) : {
+  _EXEC_END_ = .;
+  _READONLY_START_ = .;
+  .config ALIGN(0x1000) : {
     _CONFIG_JSON_START_ = .;
     KEEP(*(.config))
     _CONFIG_JSON_END_ = .;
@@ -135,6 +137,13 @@ SECTIONS
     _RODATA_END_ = .;
     /* For solo5, although it's just used to print the mem layout. */
     _erodata = .;
+  }
+
+  .memdisk :
+  {
+    _DISK_START_ = .;
+    *(.diskdata)
+    _DISK_END_ = .;
   }
 
   /* For stack unwinding (exception handling)  */
@@ -153,7 +162,7 @@ SECTIONS
   {
     *(.gcc_except_table)
   }
-
+  _READONLY_END_ = .;
   .data :
   {
     _DATA_START_ = .;
@@ -163,26 +172,18 @@ SECTIONS
     _DATA_END_ = .;
   }
 
-  .tdata ALIGN(0x10) :
+  .tdata :
   {
     _TDATA_START_ = .;
-    *(.tdata .tdata.*)
+    *(.tdata .tdata.* .gnu.linkonce.td.*)
     _TDATA_END_ = .;
-    . = ALIGN(0x10);
   }
+
   .tbss :
   {
     _TBSS_START_ = .;
-    *(.tbss .tbss.*)
+    *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon)
     _TBSS_END_ = .;
-    . = ALIGN(0x10);
-  }
-
-  .memdisk :
-  {
-    _DISK_START_ = .;
-    *(.diskdata)
-    _DISK_END_ = .;
   }
 
   .elf_symbols : {

@@ -25,9 +25,9 @@ double mysecond()
 
 void Service::start()
 {
+  //asm("cli");
   // do the STREAM test here
   printf("Running STREAM benchmark\n");
-  extern int main();
-  main();
-  OS::shutdown();
+  extern int stream_main();
+  stream_main();
 }

@@ -26,6 +26,8 @@ set(SOURCES
 # DRIVERS / PLUGINS:
 
 set(DRIVERS
+  vga_output
+  vga_emergency
   # virtionet   # Virtio networking
   # virtioblock # Virtio block device
   # ... Others from IncludeOS/src/drivers
@@ -39,3 +41,5 @@ set(PLUGINS
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")

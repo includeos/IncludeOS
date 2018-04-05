@@ -44,6 +44,7 @@ set(DRIVERS
   uplink_log
   vga_output
   boot_logger
+  e1000
   )
 
 set(PLUGINS

@@ -46,6 +46,8 @@ extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
+// in kernel/os.cpp
+extern bool os_default_stdout;
 
 struct alignas(SMP_ALIGN) OS_CPU {
   uint64_t cycles_hlt = 0;
@@ -83,8 +85,11 @@ void OS::default_stdout(const char* str, const size_t len)
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   OS::cmdline = Service::binary_name();
+
   // Initialize stdout handlers
-  OS::add_stdout(&OS::default_stdout);
+  if(os_default_stdout) {
+    OS::add_stdout(&OS::default_stdout);
+  }
 
   PROFILE("OS::start");
   // Print a fancy header
@@ -96,6 +101,11 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   // Call global ctors
   PROFILE("Global constructors");
   __libc_init_array();
+
+  // PAGING //
+  PROFILE("Enable paging");
+  extern void __arch_init_paging();
+  __arch_init_paging();
 
   // BOOT METHOD //
   PROFILE("Multiboot / legacy");
@@ -124,32 +134,33 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   auto& memmap = memory_map();
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x8000, 0xffff, "Statman", "Statistics"});
+  memmap.assign_range({0x8000, 0xffff, "Statman"});
 #if defined(ARCH_x86_64)
-  memmap.assign_range({0x1000, 0x6fff, "Pagetables", "System page tables"});
-  memmap.assign_range({0x10000, 0x9d3ff, "Stack", "System main stack"});
+  /**
+   * TODO: Map binary parts using mem::map instead of assigning ranges directly
+   * e.g. the .text segment is now mapped individually by __arch_init_paging
+   */
+  memmap.assign_range({0x1000, 0x6fff, "Pagetables"});
+  memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
 #elif defined(ARCH_i686)
-  memmap.assign_range({0x10000, 0x9d3ff, "Stack", "System main stack"});
+  memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
 #endif
-  //memmap.assign_range({0x9d400, 0x9ffff, "Multiboot", "Multiboot reserved area"});
-  memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end - 1,
-        "ELF", "Your service binary including OS"});
 
   assert(::heap_begin != 0x0 and OS::heap_max_ != 0x0);
   // @note for security we don't want to expose this
   memmap.assign_range({(uintptr_t)&_end, ::heap_begin - 1,
-        "Pre-heap", "Heap randomization area"});
+        "Pre-heap"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_);
 
   MYINFO("Assigning heap");
   memmap.assign_range({::heap_begin, heap_range_max_,
-        "Heap", "Dynamic memory", heap_usage });
+        "Dynamic memory", heap_usage });
 
-  MYINFO("Printing memory map");
+  MYINFO("Virtual memory map");
   for (const auto &i : memmap)
-    INFO2("* %s",i.second.to_string().c_str());
+    INFO2("%s",i.second.to_string().c_str());
 
   PROFILE("Platform init");
   extern void __platform_init();
@@ -194,33 +205,8 @@ void OS::legacy_boot()
   auto& memmap = memory_map();
   // No guarantees without multiboot, but we assume standard memory layout
   memmap.assign_range({0x0009FC00, 0x0009FFFF,
-        "EBDA", "Extended BIOS data area"});
+        "EBDA"});
   memmap.assign_range({0x000A0000, 0x000FFFFF,
-        "VGA/ROM", "Memory mapped video memory"});
+        "VGA/ROM"});
 
-  // @note : since the maximum size of a span is unsigned (ptrdiff_t) we may need more than one
-  uintptr_t addr_max = std::numeric_limits<std::size_t>::max();
-  uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-
-  uintptr_t unavail_start = OS::memory_end_+1;
-  size_t interval = std::min(span_max, addr_max - unavail_start) - 1;
-  uintptr_t unavail_end = unavail_start + interval;
-
-  while (unavail_end < addr_max)
-  {
-    INFO2("* Unavailable memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, unavail_end);
-    memmap.assign_range({unavail_start, unavail_end,
-          "N/A", "Reserved / outside physical range" });
-    unavail_start = unavail_end + 1;
-    interval = std::min(span_max, addr_max - unavail_start);
-    // Increment might wrapped around
-    if (unavail_start > unavail_end + interval or unavail_start + interval == addr_max){
-      INFO2("* Last chunk of memory: 0x%" PRIxPTR" - 0x%" PRIxPTR, unavail_start, addr_max);
-      memmap.assign_range({unavail_start, addr_max,
-            "N/A", "Reserved / outside physical range" });
-      break;
-    }
-
-    unavail_end += interval;
-  }
 }

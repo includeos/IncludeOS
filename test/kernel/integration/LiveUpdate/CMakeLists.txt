@@ -5,6 +5,11 @@ endif()
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 project (service)
 
+option(benchmark_mode "Optimizations for benchmarking" OFF)
+if (benchmark_mode)
+  add_definitions(-DDRIFTING_BINARY)
+endif()
+
 # Human-readable name of your service
 set(SERVICE_NAME "LiveUpdate integration test")
 
@@ -18,15 +23,20 @@ set(SOURCES
 
 # DRIVERS / PLUGINS:
 set(DRIVERS
-  virtionet
+    virtionet
   )
 
-set(PLUGINS )
+set(PLUGINS
+    system_log
+  )
 
 # STATIC LIBRARIES:
 set(LIBRARIES
   libliveupdate.a
   )
+
+# disable serial output
+set(default_stdout OFF)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)

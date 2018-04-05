@@ -20,9 +20,17 @@
 
 #define REG_CTRL        0x0000
 #define REG_STATUS      0x0008
+#define REG_EEC         0x0010
 #define REG_EEPROM      0x0014
 #define REG_CTRL_EXT    0x0018
-#define REG_IMASK       0x00D0
+#define REG_ICRR        0x00C0
+#define REG_ITR         0x00C4
+#define REG_ICS         0x00C8
+#define REG_IMS         0x00D0
+#define REG_IMC         0x00D8
+#define REG_EIAC        0x00DC
+#define REG_IAM         0x00E0
+#define REG_IVAR        0x00E4
 #define REG_RCTRL       0x0100
 #define REG_RXDESCLO    0x2800
 #define REG_RXDESCHI    0x2804
@@ -31,6 +39,7 @@
 #define REG_RXDESCTAIL  0x2818
 
 #define REG_TCTRL       0x0400
+#define REG_TIPG        0x0410 // Transmit Inter Packet Gap
 #define REG_TXDESCLO    0x3800
 #define REG_TXDESCHI    0x3804
 #define REG_TXDESCLEN   0x3808
@@ -39,15 +48,13 @@
 
 
 #define REG_RDTR         0x2820 // RX Delay Timer Register
-#define REG_RXDCTL       0x3828 // RX Descriptor Control
 #define REG_RADV         0x282C // RX Int. Absolute Delay Timer
 #define REG_RSRPD        0x2C00 // RX Small Packet Detect Interrupt
 
-
-
-#define REG_TIPG         0x0410      // Transmit Inter Packet Gap
-#define ECTRL_SLU        0x40        //set link up
-
+#define REG_RXDCTL(n)    0x2828 + ((n) * 0x100) // RX Descriptor Control
+#define REG_TXDCTL(n)    0x3828 + ((n) * 0x100) // TX Descriptor Control
+#define REG_TARC(n)      0x3840 + ((n) * 0x100) // Transmit Arbitration Control
+#define REG_EITR(n)      0x00E8 + ((n) * 0x4)   // Ext. Intr Throttling Register
 
 #define RCTL_EN                         (1 << 1)    // Receiver Enable
 #define RCTL_SBP                        (1 << 2)    // Store Bad Packets
@@ -70,16 +77,6 @@
 #define RCTL_DPF                        (1 << 22)   // Discard Pause Frames
 #define RCTL_PMCF                       (1 << 23)   // Pass MAC Control Frames
 #define RCTL_SECRC                      (1 << 26)   // Strip Ethernet CRC
-
-// Buffer Sizes
-#define RCTL_BSIZE_256                  (3 << 16)
-#define RCTL_BSIZE_512                  (2 << 16)
-#define RCTL_BSIZE_1024                 (1 << 16)
-#define RCTL_BSIZE_2048                 (0 << 16)
-#define RCTL_BSIZE_4096                 ((3 << 16) | (1 << 25))
-#define RCTL_BSIZE_8192                 ((2 << 16) | (1 << 25))
-#define RCTL_BSIZE_16384                ((1 << 16) | (1 << 25))
-
 
 // Transmit Command
 

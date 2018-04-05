@@ -1,5 +1,5 @@
 {
   "image" : "IRCd",
-  "net" : [{"device" : "virtio"}],
+  "net" : [{"device" : "e1000"}],
   "mem" : 1024
 }

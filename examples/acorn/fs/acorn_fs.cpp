@@ -19,10 +19,12 @@
 
 namespace acorn {
 
-static size_t dir_count  {0U};
-static size_t file_count {0U};
+static size_t dir_count;
+static size_t file_count;
 
-void recursive_fs_dump(Disk_ptr disk, const std::vector<fs::Dirent>& entries, const int depth) {
+static void
+recursive_fs_dump(const std::vector<fs::Dirent>& entries, const int depth = 1)
+{
   const int indent = (depth * 3);
 
   for (auto&& entry : entries) {
@@ -30,9 +32,10 @@ void recursive_fs_dump(Disk_ptr disk, const std::vector<fs::Dirent>& entries, co
       if (entry.name() not_eq "."  and entry.name() not_eq "..") {
         ++dir_count;
         printf("%*c-[ %s ]\n", indent, '+', entry.name().c_str());
-        disk->fs().ls(entry, [disk, depth](auto, auto entries) {
-          recursive_fs_dump(disk, *entries, (depth + 1));
-        });
+        entry.ls(
+          [depth] (auto, auto entries) {
+            recursive_fs_dump(*entries, (depth + 1));
+          });
       } else {
         printf("%*c   %s\n", indent, '+', entry.name().c_str());
       }
@@ -44,17 +47,18 @@ void recursive_fs_dump(Disk_ptr disk, const std::vector<fs::Dirent>& entries, co
 
 }
 
-void list_static_content(Disk_ptr disk) {
+void list_static_content(const fs::File_system& fs)
+{
   printf("%s\n",
   "================================================================================\n"
   "STATIC CONTENT LISTING\n"
   "================================================================================\n");
-  recursive_fs_dump(disk, *disk->fs().ls("/").entries);
+  dir_count  = 0;
+  file_count = 0;
+  recursive_fs_dump(*fs.ls("/").entries);
   printf("\n%u %s, %u %s\n", dir_count, "directories", file_count, "files");
   printf("%s",
   "================================================================================\n");
-  dir_count  = 0U;
-  file_count = 0U;
 }
 
 } //< namespace acorn

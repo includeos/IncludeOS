@@ -38,7 +38,7 @@ namespace fs
     return tok_str[token_];
   }
 
-  void File_system::read_file(const std::string& path, on_read_func on_read)
+  void File_system::read_file(const std::string& path, on_read_func on_read) const
   {
     stat(
       path,
@@ -56,7 +56,7 @@ namespace fs
     );
   }
 
-  Buffer File_system::read_file(const std::string& path) {
+  Buffer File_system::read_file(const std::string& path) const {
       auto ent = stat(path);
 
       if(UNLIKELY(!ent.is_valid()))
