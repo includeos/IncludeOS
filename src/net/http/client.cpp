@@ -1,7 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2018 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,237 +16,17 @@
 
 #include <net/http/client.hpp>
 
+#include <net/openssl/tls_stream.hpp>
+
 namespace http {
 
-  const Client::timeout_duration Client::DEFAULT_TIMEOUT{std::chrono::seconds(5)};
-
-  Client::Client(TCP& tcp, Request_handler on_send)
-    : tcp_(tcp),
-      on_send_{std::move(on_send)},
-      conns_{}
+  Client::Client(TCP& tcp, SSL_CTX* ssl_ctx, Request_handler on_send)
+    : http::Basic_client(tcp, std::move(on_send), true),
+      ssl_context(ssl_ctx)
   {
   }
 
-  Request_ptr Client::create_request(Method method) const
-  {
-    auto req = std::make_unique<Request>();
-    req->set_method(method);
-
-    auto& header = req->header();
-    header.set_field(header::User_Agent, "IncludeOS/0.10");
-    set_connection_header(*req);
-
-    return req;
-  }
-
-  void Client::send(Request_ptr req, Host host, Response_handler cb, Options options)
-  {
-    Expects(cb != nullptr);
-    using namespace std;
-    auto& conn = get_connection(host);
-
-    auto&& header = req->header();
-
-    // Set Host if not already set
-    if(! header.has_field(header::Host))
-      header.set_field(header::Host, host.to_string());
-
-    // Set Origin if not already set
-    if(! header.has_field(header::Origin))
-      header.set_field(header::Origin, origin());
-
-    debug("<http::Client> Sending Request:\n%s\n", req->to_string().c_str());
-
-    if(on_send_)
-      on_send_(*req, options, host);
-
-    conn.send(move(req), move(cb), options.bufsize, options.timeout);
-  }
-
-  void Client::request(Method method, URI url, Header_set hfields, Response_handler cb, Options options)
-  {
-    Expects(cb != nullptr);
-    using namespace std;
-
-    if (url.host_is_ip4())
-    {
-      std::string host(url.host());
-      auto ip = net::ip4::Addr(host);
-      // setup request with method and headers
-      auto req = create_request(method);
-      *req << hfields;
-
-      // Set Host and URI path
-      populate_from_url(*req, url);
-
-      // Default to port 80 if non given
-      const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
-
-      send(move(req), {ip, port}, move(cb), move(options));
-    }
-    else
-    {
-      tcp_.stack().resolve(std::string(url.host()),
-      ResolveCallback::make_packed(
-      [
-        this,
-        method,
-        url{move(url)},
-        hfields{move(hfields)},
-        cb{move(cb)},
-        opt{move(options)}
-      ]
-        (net::ip4::Addr ip, const net::Error&)
-      {
-        // Host resolved
-        if (ip != 0)
-        {
-          // setup request with method and headers
-          auto req = create_request(method);
-          *req << hfields;
-
-          // Set Host and URI path
-          populate_from_url(*req, url);
-
-          // Default to port 80 if non given
-          const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
-
-          send(move(req), {ip, port}, move(cb), move(opt));
-        }
-        else
-        {
-          cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
-        }
-      }));
-    }
-  }
-
-  void Client::request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb, Options options)
-  {
-    using namespace std;
-    // setup request with method and headers
-    auto req = create_request(method);
-    *req << hfields;
-
-    //set uri (default "/")
-    req->set_uri((!path.empty()) ? URI{move(path)} : URI{"/"});
-
-    send(move(req), move(host), move(cb), move(options));
-  }
-
-  void Client::request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
-  {
-    using namespace std;
-    if (url.host_is_ip4())
-    {
-      std::string host(url.host());
-      auto ip = net::ip4::Addr(host);
-      // setup request with method and headers
-      auto req = create_request(method);
-      *req << hfields;
-
-      // Set Host and URI path
-      populate_from_url(*req, url);
-
-      // Add data and content length
-      this->add_data(*req, data);
-
-      // Default to port 80 if non given
-      const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
-
-      send(move(req), {ip, port}, move(cb), move(options));
-    }
-    else
-    {
-      tcp_.stack().resolve(
-        std::string(url.host()),
-        ResolveCallback::make_packed(
-        [
-          this,
-          method,
-          url{move(url)},
-          hfields{move(hfields)},
-          data{move(data)},
-          cb{move(cb)},
-          opt{move(options)}
-        ] (auto ip, const net::Error&)
-        {
-          // Host resolved
-          if(ip != 0)
-          {
-            // setup request with method and headers
-            auto req = this->create_request(method);
-            *req << hfields;
-
-            // Set Host & path from url
-            this->populate_from_url(*req, url);
-
-            // Add data and content length
-            this->add_data(*req, data);
-
-            // Default to port 80 if non given
-            const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
-
-            this->send(move(req), {ip, port}, move(cb), move(opt));
-          }
-          else
-          {
-            cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
-          }
-        })
-      );
-    }
-  }
-
-  void Client::request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options)
-  {
-    using namespace std;
-    // setup request with method and headers
-    auto req = create_request(method);
-    *req << hfields;
-
-    // set uri (default "/")
-    req->set_uri((!path.empty()) ? URI{move(path)} : URI{"/"});
-
-    // Add data and content length
-    add_data(*req, data);
-
-    send(move(req), move(host), move(cb), move(options));
-  }
-
-  void Client::add_data(Request& req, const std::string& data)
-  {
-    auto& header = req.header();
-    if(!header.has_field(header::Content_Type))
-      header.set_field(header::Content_Type, "text/plain");
-
-    // Set Content-Length to be equal data length
-    req.header().set_field(header::Content_Length, std::to_string(data.size()));
-
-    // Add data
-    req.add_body(data);
-  }
-
-  void Client::populate_from_url(Request& req, const URI& url)
-  {
-    // Set uri path (default "/")
-    req.set_uri((!url.path().empty()) ? URI{url.path()} : URI{"/"});
-
-    // Set Host: host(:port)
-    const auto port = url.port();
-    req.header().set_field(header::Host,
-      (port != 0xFFFF and port != 80) ?
-      std::string(url.host()) + ":" + std::to_string(port)
-      : std::string(url.host())); // to_string madness
-  }
-
-  void Client::resolve(const std::string& host, ResolveCallback cb)
-  {
-    static auto&& stack = tcp_.stack();
-    stack.resolve(host, cb);
-  }
-
-  Client_connection& Client::get_connection(const Host host)
+  Client_connection& Client::get_secure_connection(const Host host)
   {
     // return/create a set for the given host
     auto& cset = conns_[host];
@@ -259,21 +38,12 @@ namespace http {
         return *conn;
     }
 
-    // no non-occupied connections, emplace a new one
-    cset.push_back(std::make_unique<Client_connection>(*this, std::make_unique<net::tcp::Connection::Stream>(tcp_.connect(host))));
+    auto tcp_stream = std::make_unique<net::tcp::Connection::Stream>(tcp_.connect(host));
+    auto tls_stream = std::make_unique<openssl::TLS_stream>(ssl_context, std::move(tcp_stream), true);
+
+    cset.push_back(std::make_unique<Client_connection>(*this, std::move(tls_stream)));
+
     return *cset.back();
-  }
-
-  void Client::close(Client_connection& c)
-  {
-    debug("<http::Client> Closing %u:%s %p\n", c.local_port(), c.peer().to_string().c_str(), &c);
-    auto& cset = conns_.at(c.peer());
-
-    cset.erase(std::remove_if(cset.begin(), cset.end(),
-    [port = c.local_port()] (const std::unique_ptr<Client_connection>& conn)->bool
-    {
-      return conn->local_port() == port;
-    }));
   }
 
 }

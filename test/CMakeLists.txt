@@ -34,6 +34,15 @@ endif()
 
 set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
+if (APPLE)
+message(STATUS "Including brew bundled libc++")
+execute_process(COMMAND brew "--prefix" "llvm@5" OUTPUT_VARIABLE BREW_LLVM)
+string(STRIP ${BREW_LLVM} BREW_LLVM)
+set(BREW_LIBCXX_INC ${BREW_LLVM}/lib)
+message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${BREW_LIBCXX_INC} -Wno-unused-command-line-argument")
+endif()
+
 if(NOT DEFINED ${INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
 endif()
@@ -42,6 +51,7 @@ set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${INCLUDEOS_ROOT}/test)
 
 include_directories(
+  ${TEST}/lest_util
   ${INCLUDEOS_ROOT}/api
   ${INCLUDEOS_ROOT}/src/
   ${INCLUDEOS_ROOT}/src/include
@@ -49,7 +59,6 @@ include_directories(
   ${INCLUDEOS_ROOT}/mod/GSL
   ${INCLUDEOS_ROOT}/mod/uzlib/src
   ${TEST}/lest/include
-  ${TEST}/lest_util
 )
 
 set(LEST_UTIL
@@ -158,7 +167,7 @@ set(OS_SOURCES
   ${SRC}/net/dns/client.cpp
   ${SRC}/net/dns/dns.cpp
   ${SRC}/net/ethernet/ethernet.cpp
-  ${SRC}/net/http/client.cpp
+  ${SRC}/net/http/basic_client.cpp
   ${SRC}/net/http/client_connection.cpp
   ${SRC}/net/http/cookie.cpp
   ${SRC}/net/http/header.cpp

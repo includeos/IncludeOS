@@ -1,7 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016-2017 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2018 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,207 +15,25 @@
 // limitations under the License.
 
 #pragma once
-#ifndef HTTP_CLIENT_HPP
-#define HTTP_CLIENT_HPP
+#ifndef NET_HTTP_CLIENT_HPP
+#define NET_HTTP_CLIENT_HPP
 
-// http
-#include "client_connection.hpp"
-
-#include <net/tcp/tcp.hpp>
-#include <vector>
-#include <map>
+#include <net/http/basic_client.hpp>
+#include <openssl/ossl_typ.h>
 
 namespace http {
 
-  using Response_handler = Client_connection::Response_handler;
-
-  class Client {
+  class Client : public http::Basic_client {
   public:
-    using TCP                 = net::TCP;
-    using Host                = net::Socket;
-
-    using Response_handler    = Client_connection::Response_handler;
-    struct Options;
-    using Request_handler     = delegate<void(Request&, Options&, const Host)>;
-
-    using Connection_set      = std::vector<std::unique_ptr<Client_connection>>;
-    using Connection_mapset   = std::map<Host, Connection_set>;
-
-    using timeout_duration    = Client_connection::timeout_duration;
-
-    const static timeout_duration     DEFAULT_TIMEOUT; // client.cpp, 5s
-    constexpr static size_t           DEFAULT_BUFSIZE = 2048;
-
-    /* Client Options */
-    // if someone has a better solution, please fix
-    struct Options {
-      timeout_duration  timeout{DEFAULT_TIMEOUT};
-      size_t            bufsize{DEFAULT_BUFSIZE};
-
-      Options(timeout_duration dur, size_t bufsz)
-        : timeout{dur},
-          bufsize{bufsz}
-      {}
-
-      Options() : Options(DEFAULT_TIMEOUT, DEFAULT_BUFSIZE) {}
-
-      Options(timeout_duration dur) : Options(dur, DEFAULT_BUFSIZE) {}
-
-      Options(size_t bufsz) : Options(DEFAULT_TIMEOUT, bufsz) {}
-
-    };
+    explicit Client(TCP& tcp, SSL_CTX* ssl_ctx, Request_handler on_send = nullptr);
 
   private:
-    using ResolveCallback    = delegate<void(net::ip4::Addr, const net::Error&)>;
+    SSL_CTX* ssl_context;
 
-  public:
-    explicit Client(TCP& tcp, Request_handler on_send = nullptr);
-
-    /**
-     * @brief      Creates a request with some predefined attributes
-     *
-     * @param[in]  method  The HTTP method
-     *
-     * @return     A Request_ptr
-     */
-    Request_ptr create_request(Method method = GET) const;
-
-    /**
-     * @brief      Send a request to a specific host with a response handler
-     *
-     * @param[in]  req   The request
-     * @param[in]  host  The host
-     * @param[in]  cb    Callback to be invoked when a response is received (or error)
-     */
-    void send(Request_ptr req, Host host, Response_handler cb, Options options = {});
-
-    /**
-     * @brief      Create a request on the given URL
-     *
-     * @param[in]  method   The HTTP method
-     * @param[in]  url      The url
-     * @param[in]  hfields  A set of headers
-     * @param[in]  cb       Response handler
-     */
-    void request(Method method, URI url, Header_set hfields, Response_handler cb, Options options = {});
-
-    /**
-     * @brief      Same as above
-     */
-    void request(Method method, std::string url, Header_set hfields, Response_handler cb, Options options = {})
-    { request(method, URI{url}, std::move(hfields), std::move(cb), std::move(options)); }
-
-    /**
-     * @brief      Create a request to the given host on the given path
-     *
-     * @param[in]  method   The HTTP method
-     * @param[in]  host     The host
-     * @param[in]  path     The path
-     * @param[in]  hfields  A set of headers
-     * @param[in]  cb       Response handler
-     */
-    void request(Method method, Host host, std::string path, Header_set hfields, Response_handler cb, Options options = {});
-
-    /**
-     * @brief      Create a request on the given URL with payload
-     *
-     * @param[in]  method   The HTTP method
-     * @param[in]  url      The url
-     * @param[in]  hfields  A set of headers
-     * @param[in]  data     The data (payload)
-     * @param[in]  cb       Response handler
-     */
-    void request(Method method, URI url, Header_set hfields, std::string data, Response_handler cb, Options options = {});
-
-    /**
-     * @brief      Same as above
-     */
-    void request(Method method, std::string url, Header_set hfields, std::string data, Response_handler cb, Options options = {})
-    { request(method, URI{url}, std::move(hfields), std::move(data), std::move(cb), std::move(options)); }
-
-    /**
-     * @brief      Create a request to the given host on the given path with payload
-     *
-     * @param[in]  method   The HTTP method
-     * @param[in]  host     The host
-     * @param[in]  path     The path
-     * @param[in]  hfields  A set of headers
-     * @param[in]  data     The data (payload)
-     * @param[in]  cb       Response handler
-     */
-    void request(Method method, Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options = {});
-
-    /* GET */
-    inline void get(URI url, Header_set hfields, Response_handler cb, Options options = {});
-    inline void get(Host host, std::string path, Header_set hfields, Response_handler cb, Options options = {});
-
-    /* POST */
-    inline void post(URI url, Header_set hfields, std::string data, Response_handler cb, Options options = {});
-    inline void post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options = {});
-
-    /**
-     * @brief      Set callback to be invoked right before the request gets sent.
-     *
-     * @details    Useful for modifying/inspecting auto-generated Requests.
-     *
-     * @param[in]  cb    Request_handler callback
-     */
-    void on_send(Request_handler cb)
-    { on_send_ = std::move(cb); }
-
-    /**
-     * @brief      Returns the Origin for the Client as a string.
-     *             Currently returns the IP address to the stack.
-     *
-     * @return     The origin as a string
-     */
-    std::string origin() const
-    { return tcp_.stack().ip_addr().to_string(); }
-
-  private:
-    friend class Client_connection;
-
-    TCP&              tcp_;
-    Request_handler   on_send_;
-    Connection_mapset conns_;
-    bool              keep_alive_ = false;
-
-    void resolve(const std::string& host, ResolveCallback);
-
-    void set_connection_header(Request& req) const
-    {
-      req.header().set_field(header::Connection,
-      (keep_alive_) ? std::string{"keep-alive"} : std::string{"close"});
-    }
-
-    /** Set uri and Host from URL */
-    void populate_from_url(Request& req, const URI& url);
-
-    /** Add data and content length */
-    void add_data(Request&, const std::string& data);
-
-    Client_connection& get_connection(const Host host);
-
-    void close(Client_connection&);
+    virtual Client_connection& get_secure_connection(const Host host) override;
 
   }; // < class Client
 
-
-  /* Inline implementation */
-  inline void Client::get(URI url, Header_set hfields, Response_handler cb, Options options)
-  { request(GET, std::move(url), std::move(hfields), std::move(cb), std::move(options)); }
-
-  inline void Client::get(Host host, std::string path, Header_set hfields, Response_handler cb, Options options)
-  { request(GET, std::move(host), std::move(path), std::move(hfields), std::move(cb), std::move(options)); }
-
-  /* POST */
-  inline void Client::post(URI url, Header_set hfields, std::string data, Response_handler cb, Options options)
-  { request(POST, std::move(url), std::move(hfields), std::move(data), std::move(cb), std::move(options)); }
-
-  inline void Client::post(Host host, std::string path, Header_set hfields, const std::string& data, Response_handler cb, Options options)
-  { request(POST, std::move(host), std::move(path), std::move(hfields), std::move(data), std::move(cb), std::move(options)); }
-
-
 } // < namespace http
 
-#endif // < HTTP_CLIENT_HPP
+#endif // < NET_HTTP_CLIENT_HPP
