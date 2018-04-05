@@ -43,13 +43,24 @@ namespace x86
 
   void Clocks::init()
   {
-    // fallback with CMOS
-    PER_CPU(vcpu_clock).system_time = {&CMOS_clock::system_time};
-    PER_CPU(vcpu_clock).wall_time   = {&CMOS_clock::wall_clock};
-    PER_CPU(vcpu_clock).tsc_khz     = {&CMOS_clock::get_tsc_khz};
-    if (SMP::cpu_id() == 0) {
-      CMOS_clock::init();
-      INFO("x86", "CMOS clock initialized");
+    if (false && CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
+    {
+      KVM_clock::init();
+      PER_CPU(vcpu_clock).system_time = {&KVM_clock::system_time};
+      PER_CPU(vcpu_clock).wall_time   = {&KVM_clock::wall_clock};
+      PER_CPU(vcpu_clock).tsc_khz     = {&KVM_clock::get_tsc_khz};
+      if (SMP::cpu_id() == 0) INFO("x86", "KVM PV clocks initialized");
+    }
+    else
+    {
+      // fallback with CMOS
+      PER_CPU(vcpu_clock).system_time = {&CMOS_clock::system_time};
+      PER_CPU(vcpu_clock).wall_time   = {&CMOS_clock::wall_clock};
+      PER_CPU(vcpu_clock).tsc_khz     = {&CMOS_clock::get_tsc_khz};
+      if (SMP::cpu_id() == 0) {
+        CMOS_clock::init();
+        INFO("x86", "CMOS clock initialized");
+      }
     }
   }
 
