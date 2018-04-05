@@ -65,9 +65,9 @@ namespace openssl
     {
       INFO("OpenSSL", "Initializing (%s)", OPENSSL_VERSION_TEXT);
       init_once = true;
-      SSL_library_init();
-      OpenSSL_add_all_algorithms();
-      //SSL_load_error_strings();
+      SSL_library_init(); // OPENSSL_INIT_LOAD_SSL_STRINGS | OPENSSL_INIT_LOAD_CRYPTO_STRINGS
+      SSL_load_error_strings();
+      ERR_load_crypto_strings();
       ERR_load_BIO_strings();
     }
   }
