@@ -18,6 +18,7 @@
 #include <service>
 #include <cstdio>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <info>
 #include <cassert>
 #include <errno.h>
