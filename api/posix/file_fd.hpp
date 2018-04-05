@@ -32,7 +32,7 @@ public:
   ssize_t readv(const struct iovec*, int iovcnt) override;
   int write(const void*, size_t) override;
   int close() override;
-  int lseek(off_t, int) override;
+  off_t lseek(off_t, int) override;
 
   long getdents(struct dirent *dirp, unsigned int count) override;
 
