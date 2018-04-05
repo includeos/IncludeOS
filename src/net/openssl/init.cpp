@@ -5,6 +5,7 @@
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <openssl/engine.h>
 #include <kernel/rng.hpp>
 #include <cassert>
 #include <info>
@@ -40,7 +41,7 @@ namespace openssl
 {
   void setup_rng()
   {
-    RAND_METHOD ios_rand {
+    static RAND_METHOD ios_rand {
       ios_rand_seed,
       ios_rand_bytes,
       ios_rand_cleanup,
@@ -65,6 +66,7 @@ namespace openssl
     {
       INFO("OpenSSL", "Initializing (%s)", OPENSSL_VERSION_TEXT);
       init_once = true;
+      setup_rng();
       SSL_library_init(); // OPENSSL_INIT_LOAD_SSL_STRINGS | OPENSSL_INIT_LOAD_CRYPTO_STRINGS
       SSL_load_error_strings();
       ERR_load_crypto_strings();
