@@ -43,7 +43,7 @@ namespace x86
 
   void Clocks::init()
   {
-    if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
+    if (false && CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
     {
       KVM_clock::init();
       PER_CPU(vcpu_clock).system_time = {&KVM_clock::system_time};
