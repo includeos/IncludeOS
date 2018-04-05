@@ -43,6 +43,7 @@ public:
 class FD_map {
 public:
   using id_t = FD::id_t;
+  using FD_ptr = std::unique_ptr<FD>;
 
   static FD_map& instance()
   {
@@ -53,13 +54,13 @@ public:
   template <typename T, typename... Args>
   T& open(Args&&... args);
 
-  FD& get(const id_t id) const;
+  FD* get(const id_t id) const noexcept;
 
   template <typename T, typename... Args>
-  static auto&& _open(Args&&... args)
+  static T& _open(Args&&... args)
   { return instance().open<T>(std::forward<Args>(args)...); }
 
-  static auto&& _get(const id_t id)
+  static FD* _get(const id_t id) noexcept
   { return instance().get(id); }
 
   static void close(id_t id)
@@ -84,17 +85,25 @@ T& FD_map::open(Args&&... args)
 
   static id_t counter = 5;
   const auto id = counter++;
+
   auto* fd = new T(id, std::forward<Args>(args)...);
-  map_.emplace(std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple(fd));
+
+  auto res = map_.emplace(std::piecewise_construct,
+                          std::forward_as_tuple(id),
+                          std::forward_as_tuple(fd));
+
+  if(UNLIKELY(res.second == false))
+    throw FD_map_error{"Unable to open FD (map emplace failed)"};
+
   return *fd;
 }
 
-inline FD& FD_map::get(const id_t id) const
+inline FD* FD_map::get(const id_t id) const noexcept
 {
-  auto it = map_.find(id);
-  if(it != map_.end())
-    return *it->second;
-  throw FD_not_found{id};
+  if(auto it = map_.find(id); it != map_.end())
+    return it->second.get();
+
+  return nullptr;
 }
 
 #endif

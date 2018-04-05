@@ -3,15 +3,15 @@
 
 static long sys_close(int fd)
 {
-  try {
-    auto& fildes = FD_map::_get(fd);
-    int res = fildes.close();
+  if(auto* fildes = FD_map::_get(fd); fildes)
+  {
+    long res = fildes->close();
+    if(res != 0)
+      return res;
     FD_map::close(fd);
-    return res;
+    return 0;
   }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+  return -EBADF;
 }
 
 extern "C"

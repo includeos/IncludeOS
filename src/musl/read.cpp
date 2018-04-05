@@ -6,13 +6,10 @@ static long sys_read(int fd, void* buf, size_t len)
   if(UNLIKELY(buf == nullptr))
     return -EFAULT;
 
-  try {
-    auto& fildes = FD_map::_get(fd);
-    return fildes.read(buf, len);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+  if(auto* fildes = FD_map::_get(fd); fildes)
+    return fildes->read(buf, len);
+
+  return -EBADF;
 }
 
 extern "C"

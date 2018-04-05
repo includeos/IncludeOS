@@ -20,14 +20,10 @@ static int sys_ioctl(int fd, int req, void* arg) {
     return 0;
   }
 
-  try {
-    auto& fildes = FD_map::_get(fd);
-    return fildes.ioctl(req, arg);
-  }
-  catch(const FD_not_found&) {
-    errno = EBADF;
-    return -1;
-  }
+  if(auto* fildes = FD_map::_get(fd); fildes)
+    return fildes->ioctl(req, arg);
+
+  return -EBADF;
 }
 
 extern "C"

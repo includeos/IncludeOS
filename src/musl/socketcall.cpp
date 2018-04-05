@@ -34,60 +34,45 @@ static long sock_socket(int domain, int type, int protocol)
 static long sock_connect(int sockfd, const struct sockaddr *addr,
                          socklen_t addrlen)
 {
-  try {
-    auto& fildes = FD_map::_get(sockfd);
-    return fildes.connect(addr, addrlen);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+  if(auto* fildes = FD_map::_get(sockfd); fildes)
+    return fildes->connect(addr, addrlen);
+
+  return -EBADF;
 }
 
 static long sock_bind(int sockfd, const struct sockaddr *addr,
                       socklen_t addrlen)
 {
-  try {
-    auto& fildes = FD_map::_get(sockfd);
-    return fildes.connect(addr, addrlen);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+  if(auto* fildes = FD_map::_get(sockfd); fildes)
+    return fildes->bind(addr, addrlen);
+
+  return -EBADF;
 }
 
 static long sock_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
-  try {
-    auto& fildes = FD_map::_get(sockfd);
-    return fildes.sendmsg(msg, flags);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+  if(auto* fildes = FD_map::_get(sockfd); fildes)
+    return fildes->sendmsg(msg, flags);
+
+  return -EBADF;
 }
 
 static ssize_t sock_sendto(int sockfd, const void *buf, size_t len, int flags,
                            const struct sockaddr *dest_addr, socklen_t addrlen)
 {
-  try {
-    auto& fildes = FD_map::_get(sockfd);
-    return fildes.sendto(buf, len, flags, dest_addr, addrlen);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+  if(auto* fildes = FD_map::_get(sockfd); fildes)
+    return fildes->sendto(buf, len, flags, dest_addr, addrlen);
+
+  return -EBADF;
 }
 
 static ssize_t sock_recvfrom(int sockfd, void *buf, size_t len, int flags,
                              struct sockaddr *src_addr, socklen_t *addrlen)
 {
-  try {
-    auto& fildes = FD_map::_get(sockfd);
-    return fildes.recvfrom(buf, len, flags, src_addr, addrlen);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+  if(auto* fildes = FD_map::_get(sockfd); fildes)
+    return fildes->recvfrom(buf, len, flags, src_addr, addrlen);
+
+  return -EBADF;
 }
 
 extern "C"

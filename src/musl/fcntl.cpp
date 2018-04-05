@@ -1,13 +1,12 @@
 #include "common.hpp"
 #include <posix/fd_map.hpp>
 
-static long sys_fcntl(int fd, int cmd, va_list va) {
-  try {
-    return FD_map::_get(fd).fcntl(cmd, va);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+static long sys_fcntl(int fd, int cmd, va_list va)
+{
+  if(auto* fildes = FD_map::_get(fd); fildes)
+    return fildes->fcntl(cmd, va);
+
+  return -EBADF;
 }
 
 extern "C"

@@ -11,13 +11,10 @@ static long sys_write(int fd, char* str, size_t len) {
     return len;
   }
 
-  try {
-    auto& fildes = FD_map::_get(fd);
-    return fildes.write(str, len);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+  if(auto* fildes = FD_map::_get(fd); fildes)
+    return fildes->write(str, len);
+
+  return -EBADF;
 }
 
 // The syscall wrapper, using strace if enabled

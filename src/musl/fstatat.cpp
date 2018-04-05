@@ -6,9 +6,9 @@
 long sys_getcwd(char *buf, size_t size);
 long sys_stat(const char *path, struct stat *buf);
 
-static long sys_fstatat(int filedes, const char *path, struct stat *buf, int flag)
+static long sys_fstatat(int fd, const char *path, struct stat *buf, int flag)
 {
-  if (filedes == AT_FDCWD)
+  if (fd == AT_FDCWD)
   {
     char cwd_buf[PATH_MAX];
     char abs_path[PATH_MAX];
@@ -19,13 +19,10 @@ static long sys_fstatat(int filedes, const char *path, struct stat *buf, int fla
   }
   else
   {
-    try {
-      auto& fd = FD_map::_get(filedes);
-      return fd.fstatat(path, buf, flag);
-    }
-    catch(const FD_not_found&) {
-      return -EBADF;
-    }
+   if(auto* fildes = FD_map::_get(fd); fildes)
+      return fildes->fstatat(path, buf, flag);
+
+    return -EBADF;
   }
 }
 

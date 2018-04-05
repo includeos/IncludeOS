@@ -3,18 +3,15 @@
 
 #include <posix/fd_map.hpp>
 
-static long sys_fstat(int filedes, struct stat* stat_buf)
+static long sys_fstat(int fd, struct stat* stat_buf)
 {
   if (UNLIKELY(stat_buf == nullptr))
     return -EINVAL;
 
-  try {
-    auto& fd = FD_map::_get(filedes);
-    return fd.fstat(stat_buf);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+  if(auto* fildes = FD_map::_get(fd); fildes)
+    return fildes->fstat(stat_buf);
+
+  return -EBADF;
 }
 
 extern "C"

@@ -25,7 +25,7 @@ inline constexpr auto& pr_param(std::ostream& out,  L lhs, Args&&... rest){
     // avoid writing nullptr to std out
     if constexpr(std::is_pointer_v<L>) {
       if(lhs != nullptr) out << lhs << ", ";
-      else out << "nullptr, ";
+      else out << "NULL, ";
     }
     else {
       out << lhs << ", ";
@@ -37,7 +37,7 @@ inline constexpr auto& pr_param(std::ostream& out,  L lhs, Args&&... rest){
     // avoid writing nullptr to std out
     if constexpr(std::is_pointer_v<L>) {
       if(lhs != nullptr) out << lhs;
-      else out << "nullptr";
+      else out << "NULL";
     }
     else {
       out << lhs;

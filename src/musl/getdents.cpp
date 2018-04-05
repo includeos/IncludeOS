@@ -2,13 +2,12 @@
 #include <dirent.h>
 #include <posix/fd_map.hpp>
 
-static long sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count) {
-  try {
-    return FD_map::_get(fd).getdents(dirp, count);
-  }
-  catch(const FD_not_found&) {
-    return -EBADF;
-  }
+static long sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
+{
+  if(auto* fildes = FD_map::_get(fd); fildes)
+    fildes->getdents(dirp, count);
+
+  return -EBADF;
 }
 
 extern "C"
