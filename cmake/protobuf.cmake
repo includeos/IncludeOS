@@ -99,6 +99,7 @@ set(PROTOBUF_SOURCES
 
 add_library(protobuf STATIC ${PROTOBUF_SOURCES})
 target_compile_definitions(protobuf PRIVATE HAVE_PTHREAD=0)
+target_compile_options(protobuf PRIVATE -Wno-sign-compare -Wno-unused-parameter)
 
 # Make sure precompiled libraries exists
 add_dependencies(protobuf PrecompiledLibraries)
