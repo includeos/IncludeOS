@@ -1,8 +1,11 @@
 #include "common.hpp"
 
+extern "C"
+void __serial_print1(const char*);
+
 template<typename R, typename ...Args>
 inline void stubtrace_print(const char* name, R ret, Args&&... args) {
-  printf("<WARNING> Stubbed syscall: ");
+  __serial_print1("<WARNING> Stubbed syscall: ");
   strace_print(name, ret, args...);
 }
 
