@@ -30,7 +30,8 @@ extern "C" {
   void _init_heap(uintptr_t);
   void _init_syscalls();
 }
-bool __libc_initialized = false;
+bool __libc_initialized = true;
+extern bool os_default_stdout;
 
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)
@@ -60,7 +61,8 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   _init_syscalls();
 
   // Initialize stdout handlers
-  OS::add_stdout(&OS::default_stdout);
+  if (os_default_stdout)
+    OS::add_stdout(&OS::default_stdout);
 
   OS::start(magic, addr);
 

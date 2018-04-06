@@ -7,6 +7,8 @@ endif()
 set(ARCH i686)
 set(PLATFORM x86_nano)
 
+option(default_stdout "" OFF)
+
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
 project (chainloader)
