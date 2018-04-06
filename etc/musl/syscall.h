@@ -47,9 +47,8 @@ long __syscall_ret(unsigned long), __syscall(syscall_arg_t, ...),
 #define __syscall_cp syscall
 #define syscall_cp syscall
 
-#define __socketcall(nm,a,b,c,d,e,f) socketcall_##nm			\
-  ((long [6]){ (long)a, (long)b, (long)c, (long)d, (long)e, (long)f })
-#define __socketcall_cp(nm,a,b,c,d,e,f) __syscall_ret(__socketcall(nm,a,b,c,d,e,f))
+#define __socketcall(nm, ...) socketcall_##nm(__VA_ARGS__)
+#define __socketcall_cp(nm, ...) __syscall_ret(socketcall_##nm(__VA_ARGS__))
 
 /* fixup legacy 16-bit junk */
 
