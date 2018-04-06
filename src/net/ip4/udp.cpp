@@ -190,9 +190,12 @@ namespace net {
   void UDP::flush_expired() {
     PRINT("<UDP> Flushing expired error callbacks\n");
 
-    for (auto& err : error_callbacks_) {
-      if (err.second.expired())
-        error_callbacks_.erase(err.first);
+    for (auto it = error_callbacks_.begin(); it != error_callbacks_.end();)
+    {
+      if (not it->second.expired())
+        it++;
+      else
+        it = error_callbacks_.erase(it);
     }
 
     if (not error_callbacks_.empty())
