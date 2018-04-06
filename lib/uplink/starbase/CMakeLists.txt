@@ -50,6 +50,7 @@ set(DRIVERS
 set(PLUGINS
   uplink
   autoconf
+  system_log
   )
 
 # THIRD PARTY LIBRARIES:
