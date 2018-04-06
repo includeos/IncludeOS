@@ -8,7 +8,6 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 
 set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
-set(INSTALL_LOC_LIBGCC $ENV{INCLUDEOS_PREFIX}/includeos)
 
 message(STATUS "Target triple ${TRIPLE}")
 
@@ -266,7 +265,7 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
   set(PRE_BSS_SIZE  "--defsym PRE_BSS_AREA=0x200000")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr  ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE}")
+set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE}")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
@@ -275,6 +274,11 @@ set(CRTI "${INSTALL_LOC}/${ARCH}/lib/crti.o")
 
 target_link_libraries(service ${CRTI})
 target_link_libraries(service ${CRT1})
+
+add_library(libgcc STATIC IMPORTED)
+set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcompiler.a)
+
 
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
@@ -459,7 +463,7 @@ target_link_libraries(service
   libos
   libcxx
   libc
-
+  libgcc
   ${CRTN}
   )
 # write binary location to known file

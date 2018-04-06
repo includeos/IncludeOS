@@ -22,11 +22,12 @@ export llvm_branch=${llvm_branch:-release_50}
 # Options to skip steps
 [ ! -v do_binutils ] && do_binutils=1
 [ ! -v do_musl ] && do_musl=1
-[ ! -v do_libunwind ] && do_libunwind=1;
+[ ! -v do_libunwind ] && do_libunwind=1
 [ ! -v do_includeos ] &&  do_includeos=1
 [ ! -v do_llvm ] &&  do_llvm=1
 [ ! -v do_bridge ] &&  do_bridge=1
 [ ! -v do_packages ] && do_packages=1
+[ ! -v do_build ] && do_build=1
 
 ############################################################
 # COMMAND LINE PROPERTIES:
@@ -105,6 +106,15 @@ DIR_NAME="IncludeOS_dependencies"
 OUTFILE="${DIR_NAME}_$filename_tag.tar.gz"
 BUNDLE_PATH=${BUNDLE_PATH:-$BUILD_DIR}
 
+function export_libgcc {
+  if [ $ARCH == i686 ]
+  then
+    export LGCC_ARCH_PARAM="-m32"
+  fi
+  export libgcc=$($CC $LGCC_ARCH_PARAM "--print-libgcc-file-name")
+  echo ">>> Copying libgcc from: $libgcc"
+}
+
 function do_build {
   echo -e "\n\n >>> Building bundle for ${ARCH} \n"
   # Build all sources
@@ -134,6 +144,7 @@ function do_build {
 
   musl=$TEMP_INSTALL_DIR/$TARGET/lib
   llvm=$BUILD_DIR/build_llvm
+
   libcpp=$llvm/lib/libc++.a
   libunwind=$llvm/lib/libunwind.a
   libcppabi=$llvm/lib/libc++abi.a
@@ -146,6 +157,7 @@ function do_build {
   # Make directory-tree
   mkdir -p $BUNDLE_LOC
   mkdir -p $BUNDLE_LOC/musl
+  mkdir -p $BUNDLE_LOC/libgcc
   mkdir -p $BUNDLE_LOC/libcxx
   mkdir -p $BUNDLE_LOC/libunwind
   mkdir -p $BUNDLE_LOC/libunwind/include
@@ -155,6 +167,7 @@ function do_build {
   cp $libcppabi $BUNDLE_LOC/libcxx/
   cp $libunwind $BUNDLE_LOC/libunwind/
   cp -r $musl $BUNDLE_LOC/musl/
+  cp $libgcc $BUNDLE_LOC/libgcc/libcompiler.a
 
   # Copy includes
   cp -r $include_musl $BUNDLE_LOC/musl/
@@ -164,12 +177,16 @@ function do_build {
 
 }
 
-for B_ARCH in $BUNDLE_ARCHES
-do
-  export ARCH=$B_ARCH
-  export TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
-  do_build
-done
+
+if [ ! -z $do_build ]; then
+  for B_ARCH in $BUNDLE_ARCHES
+  do
+    export ARCH=$B_ARCH
+    export_libgcc
+    export TARGET=$ARCH-elf	# Configure target based on arch. Always ELF.
+    do_build
+  done
+fi
 
 # Zip it
 tar -czvf $OUTFILE --directory=$BUNDLE_PATH $DIR_NAME

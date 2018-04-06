@@ -62,31 +62,14 @@ endif (WITH_SOLO5)
 
 set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/${ARCH})
 
+set(LIBGCC_LIB_DIR ${PRECOMPILED_DIR}/libgcc/)
 set(LIBCXX_INCLUDE_DIR ${PRECOMPILED_DIR}/libcxx/include/)
 set(LIBCXX_LIB_DIR ${PRECOMPILED_DIR}/libcxx/)
 set(LIBUNWIND_INCLUDE_DIR ${PRECOMPILED_DIR}/libunwind/include/)
 set(LIBUNWIND_LIB_DIR ${PRECOMPILED_DIR}/libunwind/)
 
-add_library(libcxx STATIC IMPORTED)
-add_library(libcxxabi STATIC IMPORTED)
-add_library(libunwind STATIC IMPORTED)
-
-add_dependencies(libcxx PrecompiledLibraries)
-add_dependencies(libcxxabi PrecompiledLibraries)
-set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++.a)
-set_target_properties(libcxxabi PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++abi.a)
-set_target_properties(libunwind PROPERTIES IMPORTED_LOCATION ${LIBUNWIND_LIB_DIR}/libunwind.a)
-
 set(MUSL_INCLUDE_DIR ${PRECOMPILED_DIR}/musl/include/)
 set(MUSL_LIB_DIR ${PRECOMPILED_DIR}/musl/lib)
-
-add_library(libc STATIC IMPORTED)
-set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${MUSL_LIB_DIR}/libc.a)
-add_dependencies(libc PrecompiledLibraries)
-
-add_library(libm STATIC IMPORTED)
-set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${MUSL_LIB_DIR}/libm.a)
-add_dependencies(libm PrecompiledLibraries)
 
 #
 # Installation
@@ -96,12 +79,6 @@ install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/li
 install(DIRECTORY ${LIBUNWIND_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libunwind)
 
 install(DIRECTORY ${MUSL_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/musl)
-
-set(CHAINLOAD_LOC ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/chainloader)
-install(FILES ${CHAINLOAD_LOC} DESTINATION includeos)
-
-file(GLOB musl_libs ${MUSL_LIB_DIR}/*.a)
-file(GLOB musl_objs ${MUSL_LIB_DIR}/*.o)
 
 add_custom_command(TARGET PrecompiledLibraries POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E echo "Installed elf.h into ${CMAKE_INSTALL_PREFIX}/include"
@@ -113,11 +90,14 @@ ExternalProject_Add_Step(PrecompiledLibraries copy_elf
   DEPENDEES download
   )
 
+# Install musl
+install(DIRECTORY ${MUSL_LIB_DIR}/ DESTINATION includeos/${ARCH}/lib)
+
+# Install libc++ etc.
 install(FILES
-  ${musl_libs}
-  ${musl_objs}
   ${LIBCXX_LIB_DIR}/libc++.a
   ${LIBCXX_LIB_DIR}/libc++abi.a
+  ${LIBGCC_LIB_DIR}/libcompiler.a
   ${LIBUNWIND_LIB_DIR}/libunwind.a
   DESTINATION includeos/${ARCH}/lib)
 
