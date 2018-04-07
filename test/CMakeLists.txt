@@ -76,7 +76,6 @@ set(TEST_SOURCES
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
   ${TEST}/kernel/unit/events_test.cpp
-  ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/memory.cpp
   ${TEST}/kernel/unit/x86_paging.cpp
@@ -152,7 +151,6 @@ set(OS_SOURCES
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp
   ${SRC}/hw/ps2.cpp
-  ${SRC}/hw/serial.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
   ${SRC}/kernel/events.cpp
