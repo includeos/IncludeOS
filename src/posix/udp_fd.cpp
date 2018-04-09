@@ -18,7 +18,7 @@
 #include <kernel/os.hpp> // OS::block()
 #include <errno.h>
 
-#define POSIX_STRACE
+//#define POSIX_STRACE 1
 #ifdef POSIX_STRACE
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -89,7 +89,7 @@ int UDP_FD::write(const void* buffer, size_t len)
 }
 int UDP_FD::close()
 {
-  return -1;
+  return 0;
 }
 int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
 {
@@ -150,36 +150,32 @@ int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 
   return 0;
 }
-ssize_t UDP_FD::send(const void* message, size_t len, int flags)
-{
-  if(!is_connected()) {
-    errno = EDESTADDRREQ;
-    return -1;
-  }
-  PRINT("UDP: send(%lu, %x)\n", len, flags);
-
-  return sendto(message, len, flags, (struct sockaddr*)&peer_, sizeof(peer_));
-}
 
 ssize_t UDP_FD::sendto(const void* message, size_t len, int,
   const struct sockaddr* dest_addr, socklen_t dest_len)
 {
-  // The specified address is not a valid address for the address family of the specified socket.
-  if(UNLIKELY(dest_len != sizeof(struct sockaddr_in))) {
-    errno = EINVAL;
-    return -1;
+  if(not is_connected())
+  {
+    if(UNLIKELY((dest_addr == nullptr or dest_len == 0))) {
+      return -EDESTADDRREQ;
+    }
+    // The specified address is not a valid address for the address family of the specified socket.
+    else if(UNLIKELY(dest_len != sizeof(struct sockaddr_in))) {
+      return -EAFNOSUPPORT;
+    }
   }
+
   // Bind a socket if we dont already have one
   if(this->sock == nullptr) {
     this->sock = &net_stack().udp().bind();
     set_default_recv();
   }
-  const auto& dest = *((sockaddr_in*)dest_addr);
+  const auto& dest = (not is_connected()) ? *((sockaddr_in*)dest_addr) : peer_;
   // If the socket protocol supports broadcast and the specified address
   // is a broadcast address for the socket protocol,
   // sendto() shall fail if the SO_BROADCAST option is not set for the socket.
   if(!broadcast_ && dest.sin_addr.s_addr == INADDR_BROADCAST) { // Fix me
-    return -1;
+    return -EOPNOTSUPP;
   }
 
   // Sending

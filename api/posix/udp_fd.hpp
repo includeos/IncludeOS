@@ -48,7 +48,6 @@ public:
   int     bind(const struct sockaddr *, socklen_t) override;
   int     connect(const struct sockaddr *, socklen_t) override;
 
-  ssize_t send(const void *, size_t, int fl) override;
   ssize_t sendto(const void *, size_t, int, const struct sockaddr *, socklen_t) override;
 
   ssize_t recv(void*, size_t, int fl) override;
