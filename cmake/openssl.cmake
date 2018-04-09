@@ -2,11 +2,11 @@
 include(ExternalProject)
 
 if(${ARCH} STREQUAL "x86_64")
-  set(OPENSSL_HASH 8f807887c7f9835a7fc4a54b0d3cce55)
+  set(OPENSSL_HASH 3ef6bc4e8be049725ca3887f0d235031)
 
   ExternalProject_Add(openssl_bundle
           PREFIX openssl
-          URL https://github.com/fwsGonzo/OpenSSL_bundle/releases/download/v1.0/openssl_bundle.tar.gz
+          URL https://github.com/fwsGonzo/OpenSSL_bundle/releases/download/v1.2/openssl_bundle.tar.gz
           URL_HASH MD5=${OPENSSL_HASH}
           CONFIGURE_COMMAND ""
           BUILD_COMMAND ""
@@ -16,9 +16,8 @@ if(${ARCH} STREQUAL "x86_64")
 
   set(OPENSSL_DIR ${CMAKE_CURRENT_BINARY_DIR}/openssl/src/openssl_bundle)
   set(OPENSSL_INCLUDE ${OPENSSL_DIR}/include)
-  set(OPENSSL_CONF    ${OPENSSL_DIR}/openssl/opensslconf.h)
-  set(OPENSSL_LIB_CRYPTO ${OPENSSL_DIR}/libcrypto.a)
-  set(OPENSSL_LIB_SSL    ${OPENSSL_DIR}/libssl.a)
+  set(OPENSSL_LIB_CRYPTO ${OPENSSL_DIR}/lib/libcrypto.a)
+  set(OPENSSL_LIB_SSL    ${OPENSSL_DIR}/lib/libssl.a)
 
   add_library(openssl_ssl STATIC IMPORTED)
   set_target_properties(openssl_ssl PROPERTIES IMPORTED_LOCATION ${OPENSSL_LIB_SSL})
@@ -28,5 +27,4 @@ if(${ARCH} STREQUAL "x86_64")
   install(FILES ${OPENSSL_LIB_CRYPTO}  DESTINATION includeos/${ARCH}/lib)
   install(FILES ${OPENSSL_LIB_SSL}     DESTINATION includeos/${ARCH}/lib)
   install(DIRECTORY ${OPENSSL_INCLUDE} DESTINATION includeos/${ARCH}/include)
-  install(FILES ${OPENSSL_CONF}        DESTINATION includeos/${ARCH}/include/openssl)
 endif()

@@ -306,7 +306,7 @@ if(${ARCH} STREQUAL "x86_64")
   set_target_properties(libcrypto PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrypto.a)
   set(OPENSSL_LIBS libssl libcrypto)
 
-  include_directories(${INSTALL_LOC}/${ARCH}/include/include)
+  include_directories(${INSTALL_LOC}/${ARCH}/include)
 endif()
 
 add_library(libosdeps STATIC IMPORTED)
