@@ -18,7 +18,7 @@
 //#define DEBUG // Debug supression
 
 #include <service>
-#include <net/inet4>
+#include <net/inet>
 
 using namespace std;
 using namespace net;
@@ -26,7 +26,7 @@ auto& timer = hw::PIT::instance();
 
 void Service::start(const std::string&)
 {
-  static auto& inet = net::Inet4::ifconfig<0>(
+  static auto& inet = net::Inet::ifconfig<0>(
          { 10,0,0,45 },     // IP
          { 255,255,255,0 }, // Netmask
          { 10,0,0,1 },      // Gateway

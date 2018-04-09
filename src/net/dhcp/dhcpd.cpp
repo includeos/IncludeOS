@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <net/dhcp/dhcpd.hpp>
+#include <net/inet>
 #include <rtc>
 
 using namespace net;

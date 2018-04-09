@@ -1,10 +1,10 @@
 #pragma once
-#include <net/inet4>
+#include <net/inet>
 #include <liveupdate>
 
 namespace microLB
 {
-  typedef net::Inet<net::IP4> netstack_t;
+  typedef net::Inet netstack_t;
   typedef net::tcp::Connection_ptr tcp_ptr;
   typedef std::vector<net::tcp::buffer_t> queue_vector_t;
   typedef delegate<void()> pool_signal_t;

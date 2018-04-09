@@ -20,7 +20,7 @@
 #define INCLUDE_SOCKFD_HPP
 
 #include <sys/socket.h>
-#include <net/inet4>
+#include <net/inet>
 #include "fd.hpp"
 
 class SockFD : public FD {

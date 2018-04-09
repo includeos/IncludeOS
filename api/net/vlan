@@ -33,7 +33,7 @@ void parse_vlan_entry(const T& net)
 
   // Get the index (nic) the VLAN should be place upon
   auto iface = net["iface"].GetInt();
-  auto& nic = Super_stack::get<IP4>(iface).nic();
+  auto& nic = Super_stack::get(iface).nic();
 
   Expects(net.HasMember("vlan")
     && "VLAN config not found (\"vlan\")");
@@ -59,7 +59,7 @@ void parse_vlan_entry(const T& net)
     auto& vif = manager.add(nic, id);
 
     // Create stack on VLAN Nic [iface, id]
-    auto& stack = Super_stack::inet().create<IP4>(vif, iface, id);
+    auto& stack = Super_stack::inet().create(vif, iface, id);
 
     // Configure the network stack
     Expects(entry.HasMember("address"));

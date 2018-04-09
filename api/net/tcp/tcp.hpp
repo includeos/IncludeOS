@@ -27,11 +27,12 @@
 
 #include <map>  // connections, listeners
 #include <deque>  // writeq
-#include <net/inet.hpp>
 #include <net/socket.hpp>
 #include <net/ip4/ip4.hpp>
 
 namespace net {
+
+  class Inet;
 
   struct TCP_error : public std::runtime_error {
     using runtime_error::runtime_error;
@@ -384,8 +385,7 @@ namespace net {
      *
      * @return     An IP4 address
      */
-    tcp::Address address() const noexcept
-    { return inet_.ip_addr(); }
+    tcp::Address address() const noexcept;
 
     /**
      * @brief      The stack object for which the TCP instance is "bound to"
@@ -461,7 +461,7 @@ namespace net {
     Listeners     listeners_;
     Connections   connections_;
 
-    IPStack::Port_utils& ports_;
+    IP4::Port_utils& ports_;
 
     downstream  _network_layer_out;
 
@@ -539,8 +539,7 @@ namespace net {
      *
      * @return     An IP4 object
      */
-    IP4& network() const
-    { return inet_.ip_obj(); }
+    IP4& network() const;
 
     /**
      * @brief      Drops the TCP segment
@@ -597,8 +596,7 @@ namespace net {
      *
      * @return     True if valid source, False otherwise.
      */
-    bool is_valid_source(const tcp::Address addr) const noexcept
-    { return addr == 0 or inet_.is_valid_source(addr); }
+    bool is_valid_source(const tcp::Address addr) const noexcept;
 
     /**
      * @brief      Try to find the listener bound to socket.
@@ -705,8 +703,7 @@ namespace net {
     /**
      * @brief      Force the TCP to process the it's queue with the current amount of available packets.
      */
-    void kick()
-    { process_writeq(inet_.transmit_queue_available()); }
+    void kick();
 
   }; // < class TCP
 

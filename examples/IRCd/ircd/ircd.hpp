@@ -1,5 +1,5 @@
 #pragma once
-#include <net/inet4>
+#include <net/inet>
 #include <rtc>
 #include <vector>
 #include <liveupdate>

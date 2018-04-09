@@ -18,14 +18,14 @@
  * by Alf-Andre Walla 2016-2017
  *
 **/
-#include <net/inet4>
+#include <net/inet>
 #include <net/tcp/connection_states.hpp>
 #include "serialize_tcp.hpp"
 #include <cstring>
 #include <unordered_set>
 
 using namespace net::tcp;
-static std::unordered_set<net::Inet<net::IP4>*> slumbering_ip4;
+static std::unordered_set<net::Inet*> slumbering_ip4;
 
 Connection::State* serialized_tcp::to_state(int8_t state) const
 {

@@ -18,6 +18,7 @@
 #include <config>
 #include "config.hpp"
 #include "common.hpp"
+#include <net/inet.hpp>
 #include <net/super_stack.hpp>
 
 #ifndef RAPIDJSON_HAS_STDSTRING
@@ -65,17 +66,17 @@ namespace uplink {
 
       if(index.IsNumber())
       {
-        config_.inet = &net::Super_stack::get<net::IP4>(index.GetInt());
+        config_.inet = &net::Super_stack::get(index.GetInt());
       }
       else
       {
-        config_.inet = &net::Super_stack::get<net::IP4>(index.GetString());
+        config_.inet = &net::Super_stack::get(index.GetString());
       }
     }
     // If not given, pick the first stack
     else
     {
-      config_.inet = &net::Super_stack::get<net::IP4>(0);
+      config_.inet = &net::Super_stack::get(0);
     }
 
     // Reboot on panic (optional)

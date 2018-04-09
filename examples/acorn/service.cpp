@@ -34,7 +34,7 @@ static std::unique_ptr<Logger> logger_;
 static fs::Disk_ptr disk;
 
 #include <isotime>
-#include <net/inet4>
+#include <net/inet>
 
 static void start_acorn(net::Inet<net::IP4>& inet)
 {

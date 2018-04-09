@@ -83,7 +83,7 @@ namespace uplink {
     }
   }
 
-  void WS_uplink::start(net::Inet<net::IP4>& inet) {
+  void WS_uplink::start(net::Inet& inet) {
     MYINFO("Starting WS uplink on %s with ID %s",
       inet.ifname().c_str(), id_.c_str());
 

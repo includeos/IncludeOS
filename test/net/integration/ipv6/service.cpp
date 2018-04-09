@@ -15,22 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG // Debug supression
-
 #include <os>
-#include <list>
 #include <net/inet>
 
 using namespace net;
 
 void Service::start(const std::string&)
 {
-  net::Inet::ifconfig(10.0, [](bool timeout) {
-      if (timeout)
-        panic("DHCP timed out");
-
-      INFO("DHCP test", "Got IP from DHCP");
-      printf("%s\n", net::Inet::stack<0>().ip_addr().str().c_str());
-    });
-  INFO("DHCP test", "Waiting for DHCP response\n");
+  auto& inet = Inet::stack<0>();
+  inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1}, {0, 0, 0, 0},
+       {  0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd },   // IP6
+       {  0, 0, 0, 64 },                                       // Prefix6
+       {  0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 }  // Gateway6
+  );
+  printf("Service IPv4 address: %s, IPv6 address: %s\n",
+          inet.ip_addr().str().c_str(), inet.ip6_addr().str().c_str());
 }

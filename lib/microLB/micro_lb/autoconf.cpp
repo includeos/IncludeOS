@@ -17,7 +17,7 @@ namespace microLB
     auto& clients = obj["clients"];
     // client network interface
     const int CLIENT_NET = clients["iface"].GetInt();
-    auto& netinc = net::Super_stack::get<net::IP4>(CLIENT_NET);
+    auto& netinc = net::Super_stack::get(CLIENT_NET);
     // client port
     const int CLIENT_PORT = clients["port"].GetUint();
     assert(CLIENT_PORT > 0 && CLIENT_PORT < 65536);
@@ -28,7 +28,7 @@ namespace microLB
 
     auto& nodes = obj["nodes"];
     const int NODE_NET = nodes["iface"].GetInt();
-    auto& netout = net::Super_stack::get<net::IP4>(NODE_NET);
+    auto& netout = net::Super_stack::get(NODE_NET);
     netout.tcp().set_MSL(15s);
 
     // create load balancer

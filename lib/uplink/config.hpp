@@ -20,14 +20,13 @@
 #define UPLINK_CONFIG_HPP
 
 #include <string>
-#include <net/inet>
 #include <net/ip4/ip4.hpp>
 
 namespace uplink {
 
   struct Config
   {
-    net::Inet<net::IP4>* inet;
+    net::Inet  *inet;
     std::string url;
     std::string token;
     std::string tag;

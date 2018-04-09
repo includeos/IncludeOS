@@ -19,7 +19,7 @@
 #include <sstream>
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 #include <timers>
 #include <net/http/request.hpp>
 #include <net/http/response.hpp>

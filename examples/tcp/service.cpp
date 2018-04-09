@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 
 /**
  * An example to show incoming and outgoing TCP Connections.

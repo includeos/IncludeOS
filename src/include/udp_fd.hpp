@@ -20,7 +20,7 @@
 #define INCLUDE_UDP_FD_HPP
 
 #include "sockfd.hpp"
-#include <net/inet4>
+#include <net/inet>
 #include <gsl/span>
 #include <deque>
 

@@ -2,7 +2,7 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
-#include <net/inet4>
+#include <net/inet>
 
 namespace openssl
 {

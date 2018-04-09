@@ -24,7 +24,7 @@
 
 #include <vector>
 
-#include <net/inet4.hpp>
+#include <net/inet>
 #include <net/ip4/arp.hpp>
 #include <net/ip4/packet_arp.hpp>
 #include <statman>
