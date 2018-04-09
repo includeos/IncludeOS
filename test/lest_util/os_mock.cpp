@@ -156,13 +156,16 @@ extern "C" {
     return {0};
   }
   void malloc_trim() {}
+  uintptr_t heap_end = std::numeric_limits<uintptr_t>::max();
 
-  __attribute__((weak))
   void __init_serial1 () {}
-  __attribute__((weak))
+
   void __serial_print1(const char* cstr) {
-    static char __printbuf[4096];
-    snprintf(__printbuf, sizeof(__printbuf), "%s", cstr);
+    printf("<serial print1> %s\n", cstr);
+  }
+
+  void __serial_print(const char* cstr, int len) {
+    printf("<serial print> %.*s", len, cstr);
   }
 } // ~ extern "C"
 
