@@ -224,7 +224,7 @@ class ukvm(hypervisor):
     def get_final_output(self):
         return self._proc.communicate()
 
-    def boot(self, multiboot, kernel_args = "", image_name = None):
+    def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
         self._stopped = False
 
         qkvm_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/ukvm-bin"
@@ -239,6 +239,7 @@ class ukvm(hypervisor):
         command += self.drive_arg()
         command += self.net_arg()
         command += [self._image_name]
+        command += [kernel_args]
 
         try:
             self.start_process(command)
