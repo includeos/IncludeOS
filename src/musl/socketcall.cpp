@@ -3,6 +3,8 @@
 #include <sys/socket.h>
 
 #include <posix/fd_map.hpp>
+#include <posix/tcp_fd.hpp>
+#include <posix/udp_fd.hpp>
 
 static long sock_socket(int domain, int type, int protocol)
 {
@@ -16,7 +18,7 @@ static long sock_socket(int domain, int type, int protocol)
   if (UNLIKELY(protocol < 0))
     return -EPROTONOSUPPORT;
 
-  /*return [](const int type)->int{
+  return [](const int type)->int{
     switch(type)
     {
       case SOCK_STREAM:
@@ -24,11 +26,9 @@ static long sock_socket(int domain, int type, int protocol)
       case SOCK_DGRAM:
         return FD_map::_open<UDP_FD>().get_id();
       default:
-        errno = EINVAL;
-        return -1;
+        return -EINVAL;
     }
-  }(type);*/
-  return -EINVAL;
+  }(type);
 }
 
 static long sock_connect(int sockfd, const struct sockaddr *addr,

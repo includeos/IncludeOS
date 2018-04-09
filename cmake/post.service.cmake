@@ -225,7 +225,6 @@ endforeach()
 
 # includes
 include_directories(${LOCAL_INCLUDES})
-include_directories(${INSTALL_LOC}/api/posix)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
 include_directories(${INSTALL_LOC}/${ARCH}/include/musl)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libunwind)

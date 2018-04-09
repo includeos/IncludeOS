@@ -23,6 +23,7 @@
 #include <net/inet4>
 #include <gsl/span>
 #include <deque>
+#include <netinet/in.h>
 
 class UDP_FD : public SockFD {
 public:
@@ -39,7 +40,7 @@ public:
 
   ~UDP_FD();
 
-  int     read(void*, size_t) override;
+  ssize_t read(void*, size_t) override;
   int     write(const void*, size_t) override;
   int     close() override;
 
