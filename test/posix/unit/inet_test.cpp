@@ -60,7 +60,7 @@ CASE("IPv4 address manipulation - addr to pointer")
   // Too small address buffer yeilds error
   char addrstr2[11];
   res = inet_ntop(AF_INET, &addr, (char*)&addrstr2, sizeof(addrstr2));
-  EXPECT(errno == ENOSPC);
+  EXPECT(errno == EAFNOSUPPORT);
 
   // No buffer returns nullptr
   res = inet_ntop(AF_INET, &addr, nullptr, 0);
@@ -85,7 +85,7 @@ CASE("IPv4 address manipulation - pointer to addr")
   res = inet_pton(AF_INET, "256.666.666.1338", &addr);
   EXPECT(res == 0);
 
-  // Unsupported IP4 format
+  // IP4 format invalid
   res = inet_pton(AF_INET, "255.255.0", &addr);
-  EXPECT(res == 1);
+  EXPECT(res == 0);
 }
