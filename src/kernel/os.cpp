@@ -94,7 +94,7 @@ extern char __service_ctors_end;
 extern char __plugin_ctors_start;
 extern char __plugin_ctors_end;
 
-static int __run_ctors(uintptr_t begin, uintptr_t end)
+int __run_ctors(uintptr_t begin, uintptr_t end)
 {
   int i = 0;
 	for (; begin < end; begin += sizeof(void(*)()), i++) {
