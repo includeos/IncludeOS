@@ -15,14 +15,12 @@ set(SERVICE_NAME "RNG Test Service")
 # Name of your service binary
 set(BINARY       "rng_jesus")
 
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
-
-
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp # ...add more here
   )
+
+#set(DRIVERS boot_logger)
 
 set(PLUGINS vfs)
 

@@ -141,6 +141,11 @@ ssize_t TCP_FD::recv(void* dest, size_t len, int flags)
   return cd->recv(dest, len, flags);
 }
 
+ssize_t TCP_FD::recvfrom(void* dest, size_t len, int flags, struct sockaddr*, socklen_t*)
+{
+  return recv(dest, len, flags);
+}
+
 int TCP_FD::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ addr_len)
 {
   if (!ld) {
@@ -157,23 +162,20 @@ int TCP_FD::listen(int backlog)
   }
   return ld->listen(backlog);
 }
-int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
+long TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
 {
   //
-  if (cd) {
-    errno = EINVAL;
-    return -1;
+  if (cd or ld) {
+    return -EINVAL;
   }
   // verify socket address
   if (addrlen != sizeof(sockaddr_in)) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   auto* sin = (sockaddr_in*) addr;
   // verify its AF_INET
   if (sin->sin_family != AF_INET) {
-    errno = EAFNOSUPPORT;
-    return -1;
+    return -EAFNOSUPPORT;
   }
   // use sin_port for bind
   // its network order ... so swap that shit:
@@ -193,15 +195,13 @@ int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
     return 0;
 
   } catch (...) {
-    errno = EADDRINUSE;
-    return -1;
+    return -EADDRINUSE;
   }
 }
 int TCP_FD::shutdown(int mode)
 {
   if (!cd) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   return cd->shutdown(mode);
 }

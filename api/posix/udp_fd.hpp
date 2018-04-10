@@ -45,7 +45,7 @@ public:
   int     close() override;
 
   /** SOCKET */
-  int     bind(const struct sockaddr *, socklen_t) override;
+  long    bind(const struct sockaddr *, socklen_t) override;
   int     connect(const struct sockaddr *, socklen_t) override;
 
   ssize_t sendto(const void *, size_t, int, const struct sockaddr *, socklen_t) override;

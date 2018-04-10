@@ -51,8 +51,8 @@ void print_content(const Element& element, const std::string& unique) {
 
 void Service::start(const std::string&)
 {
-  Reader tr;
-  Tar read_tarfile = tr.read_binary_tar_gz(); // In CMakeLists.txt: set(TARFILE tar_example.tar.gz)
+  const auto decompressed = Reader::decompress_tar(); // In CMakeLists.txt: set(TARFILE tar_example.tar.gz)
+  Tar read_tarfile = Reader::read(decompressed.data(), decompressed.size());
 
   // Get the names of all the elements in the tarball
   auto found_elements = read_tarfile.element_names();

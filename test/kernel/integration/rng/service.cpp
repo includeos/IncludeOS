@@ -23,18 +23,21 @@
 #include <info>
 #include <map> // hist
 
-const size_t BUFLEN = 4096;
-void Service::start(const std::string&)
+static const size_t BUFLEN = 4096;
+void Service::start()
 {
   INFO("POSIX", "Operating on fd \"dev/(u)random\"");
 
   int fd = open("/dev/urandom", O_RDONLY);
   CHECKSERT(fd > 0, "open /dev/urandom returns fd");
+  printf("fd: %d\n", fd);
+
+  // close is *not* ignored!
+  int res = close(fd);
+  CHECKSERT(res == 0, "close does not return error");
 
   int rand_fd = open("/dev/random", O_RDONLY);
   CHECKSERT(rand_fd > 0, "open /dev/random returns fd");
-
-  CHECKSERT(0 == close(rand_fd), "close does not return error"); // ignored
 
   uint8_t a[BUFLEN];
   uint8_t b[BUFLEN];

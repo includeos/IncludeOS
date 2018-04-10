@@ -38,13 +38,14 @@ public:
   int     close() override;
 
   /** SOCKET */
-  int     bind(const struct sockaddr *, socklen_t) override;
+  long    bind(const struct sockaddr *, socklen_t) override;
   int     listen(int) override;
   int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) override;
   int     connect(const struct sockaddr *, socklen_t) override;
 
   ssize_t send(const void *, size_t, int fl) override;
   ssize_t recv(void*, size_t, int fl) override;
+  ssize_t recvfrom(void*, size_t, int fl, struct sockaddr*, socklen_t *) override;
 
   int     shutdown(int) override;
 

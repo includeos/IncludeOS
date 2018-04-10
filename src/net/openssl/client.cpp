@@ -58,21 +58,29 @@ tls_init_client(fs::List ents)
   int res = SSL_CTX_set_cipher_list(ctx, "AES256-SHA");
   assert(res == 1);
 
+  /*
   X509_STORE* store = X509_STORE_new();
   assert(store != nullptr);
 
+  int certs = 0;
   for (auto& ent : ents)
   {
     if (ent.is_file())
     {
-      INFO2("Loading certificate %s", ent.name().c_str());
+      TLS_PRINT("\t\t* %s\n", ent.name().c_str());
       auto buffer = ent.read(0, ent.size());
       tls_load_from_memory(store, buffer);
+      certs++;
     }
   }
+  INFO2("Loaded %d certificates", certs);
 
   // assign CA store to CTX
   SSL_CTX_set_cert_store(ctx, store);
+  */
+  (void) ents;
+
+  SSL_CTX_load_verify_locations(ctx, nullptr, "/certs");
 
   // create private key for client
   tls_private_key_for_ctx(ctx);
@@ -82,6 +90,27 @@ tls_init_client(fs::List ents)
 
   tls_check_for_errors();
   return ctx;
+}
+
+extern "C" typedef int verify_cb_t(int, X509_STORE_CTX*);
+static verify_cb_t verify_cb;
+int verify_cb(int preverify, X509_STORE_CTX* ctx)
+{
+  printf("verify_cb\n");
+  X509* current_cert = X509_STORE_CTX_get_current_cert(ctx);
+
+  if (preverify == 0)
+  {
+    if (current_cert) {
+      X509_NAME_print_ex_fp(stdout,
+                            X509_get_subject_name(current_cert),
+                            0, XN_FLAG_ONELINE);
+      printf("\n");
+    }
+    TLS_PRINT("verify_cb error: %d\n", X509_STORE_CTX_get_error(ctx));
+    ERR_print_errors_fp(stdout);
+  }
+  return preverify;
 }
 
 namespace openssl
@@ -97,8 +126,8 @@ namespace openssl
 
   void client_verify_peer(SSL_CTX* ctx)
   {
-    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, nullptr);
-    SSL_CTX_set_verify_depth(ctx, 1);
+    SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER|SSL_VERIFY_CLIENT_ONCE, &verify_cb);
+    SSL_CTX_set_verify_depth(ctx, 20);
     tls_check_for_errors();
   }
 }

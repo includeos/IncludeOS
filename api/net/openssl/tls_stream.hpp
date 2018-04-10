@@ -4,6 +4,13 @@
 #include <openssl/ssl.h>
 #include <net/inet4>
 
+#define VERBOSE_OPENSSL
+#ifdef VERBOSE_OPENSSL
+#define TLS_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define TLS_PRINT(fmt, ...) /* fmt */
+#endif
+
 namespace openssl
 {
   struct TLS_stream : public net::Stream
@@ -174,6 +181,12 @@ namespace openssl
         }
         else if (status == STATUS_FAIL)
         {
+          if (num < 0) {
+            TLS_PRINT("TLS_stream::SSL_do_handshake() returned %d\n", num);
+            #ifdef VERBOSE_OPENSSL
+              ERR_print_errors_fp(stdout);
+            #endif
+          }
           this->close();
           return;
         }
@@ -247,10 +260,14 @@ namespace openssl
     {
       do {
         n = tls_perform_stream_write();
+        if (n < 0) {
+          TLS_PRINT("TLS_stream::tls_perform_handshake() stream write failed\n");
+        }
       } while (n > 0);
       return n;
     }
     else {
+      TLS_PRINT("TLS_stream::tls_perform_handshake() returned %d\n", ret);
       this->close();
       return -1;
     }
