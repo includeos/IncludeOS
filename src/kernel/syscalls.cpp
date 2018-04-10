@@ -38,6 +38,17 @@ static const char* panic_signature = "\x15\x07\t**** PANIC ****";
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 
+extern "C" __attribute__((noreturn))
+void abort_message(const char* format, ...)
+{
+  static char abort_buf[2048];
+  va_list list;
+  va_start(list, format);
+  vsnprintf(abort_buf, sizeof(abort_buf), format, list);
+  va_end(list);
+  panic(abort_buf);
+}
+
 void _exit(int status) {
   SYSINFO("Service exiting with status %d", status);
   default_exit();
