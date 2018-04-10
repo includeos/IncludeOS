@@ -14,7 +14,9 @@ extern "C" {
 static uint64_t os_cycles_hlt = 0;
 
 extern "C" void* get_cpu_esp();
-extern "C" void __libc_init_array();
+extern char __init_array_start;
+extern char __init_array_end;
+int __run_ctors(uintptr_t begin, uintptr_t end);
 extern uintptr_t heap_begin;
 extern uintptr_t heap_end;
 extern uintptr_t _start;
@@ -94,9 +96,8 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   OS::heap_max_ = OS::memory_end_;
 
   // Call global ctors
-  PROFILE("Global constructors");
-  __libc_init_array();
-
+  PROFILE("Global kernel constructors");
+  __run_ctors((uintptr_t)&__init_array_start, (uintptr_t)&__init_array_end);
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel

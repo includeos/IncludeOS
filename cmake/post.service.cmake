@@ -429,7 +429,7 @@ endif(TARFILE)
 
 
 if ("${PLATFORM}" STREQUAL "x86_solo5")
-  target_link_libraries(service solo5 --whole-archive crtn --no-whole-archive)
+  target_link_libraries(service solo5)
 endif()
 
 # all the OS and C/C++ libraries + crt end
