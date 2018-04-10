@@ -42,13 +42,12 @@ long __syscall_ret(unsigned long), __syscall(syscall_arg_t, ...),
 
 
 #define socketcall __socketcall
-#define socketcall_cp __socketcall_cp
+#define socketcall_cp __socketcall
 
 #define __syscall_cp syscall
 #define syscall_cp syscall
 
-#define __socketcall(nm, ...) socketcall_##nm(__VA_ARGS__)
-#define __socketcall_cp(nm, ...) __syscall_ret(socketcall_##nm(__VA_ARGS__))
+#define __socketcall(nm, ...) __syscall_ret(socketcall_##nm(__VA_ARGS__))
 
 /* fixup legacy 16-bit junk */
 
