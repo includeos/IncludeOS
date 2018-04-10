@@ -23,7 +23,7 @@
 #include "config.hpp"
 
 #include <net/inet4>
-#include <net/http/client.hpp>
+#include <net/http/basic_client.hpp>
 #include <net/ws/websocket.hpp>
 #include <liveupdate.hpp>
 #include <util/timer.hpp>
@@ -70,11 +70,10 @@ private:
   Config config_;
 
   net::Inet<net::IP4>&          inet_;
-  std::unique_ptr<http::Client> client_;
+  std::unique_ptr<http::Basic_client> client_;
   net::WebSocket_ptr            ws_;
   std::string                   id_;
   std::string                   token_;
-  std::string                   tag_;
   /** Hash for the current running binary
    * (restored during update, none if never updated) */
   std::string                   binary_hash_;
@@ -94,7 +93,7 @@ private:
 
   RTC::timestamp_t update_time_taken = 0;
 
-  void inject_token(http::Request& req, http::Client::Options&, const http::Client::Host)
+  void inject_token(http::Request& req, http::Basic_client::Options&, const http::Basic_client::Host)
   {
     if (not token_.empty())
       req.header().add_field("Authorization", "Bearer " + token_);

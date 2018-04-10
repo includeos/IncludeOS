@@ -19,6 +19,7 @@
 #ifndef UTIL_URI_HPP
 #define UTIL_URI_HPP
 
+#include <vector>
 #include <string>
 #include <unordered_map>
 
@@ -252,7 +253,7 @@ class URI {
   ///
   /// @return A string representation of this class
   ///
-  const std::string& to_string() const noexcept;
+  std::string to_string() const;
 
   ///
   /// Operator to transform this class into string form
@@ -285,7 +286,7 @@ private:
   ///
   /// A copy of the data representing a uri
   ///
-  std::string uri_str_;
+  std::vector<char> uri_str_;
 
   uint16_t port_ {0xFFFF};
 

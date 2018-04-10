@@ -28,7 +28,7 @@
 
 namespace http {
 
-  class Client;
+  class Basic_client;
 
   class Client_connection : public Connection {
   public:
@@ -36,7 +36,7 @@ namespace http {
     using timeout_duration  = std::chrono::milliseconds;
 
   public:
-    explicit Client_connection(Client&, Stream_ptr);
+    explicit Client_connection(Basic_client&, Stream_ptr);
 
     bool available() const
     { return on_response_ == nullptr && keep_alive_; }
@@ -47,7 +47,7 @@ namespace http {
     void send(Request_ptr, Response_handler, const size_t bufsize, timeout_duration = timeout_duration::zero());
 
   private:
-    Client&           client_;
+    Basic_client&     client_;
     Request_ptr       req_;
     Response_ptr      res_;
     Response_handler  on_response_;
