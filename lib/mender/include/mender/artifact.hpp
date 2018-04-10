@@ -44,7 +44,8 @@ namespace mender {
     int version() const { return version_; }
     const std::string& format() const { return format_; }
     const std::string& name() const { return name_; }
-    const tar::Element& get_update(int index = 0) const { return updates_.at(index).elements().at(0); }
+    const tar::Tar_data& get_update_blob(int index = 0) const
+    { return updates_.at(index); }
 
     void parse_version(const uint8_t* version);
 
@@ -52,10 +53,9 @@ namespace mender {
 
   private:
     byte_seq data_;
-    tar::Reader reader_;
     tar::Tar artifact_;               // version, header.tar.gz, data/0000.tar.gz, data/0001.tar.gz, etc.
-    tar::Tar header_;                 // unpacked header.tar.gz
-    std::vector<tar::Tar> updates_;   // unpacked data/0000.tar.gz, data/0001.tar.gz, etc.
+    tar::Tar_data header_;            // unpacked header.tar.gz
+    std::vector<tar::Tar_data> updates_;   // unpacked data/0000.tar.gz, data/0001.tar.gz, etc.
 
     int version_;                     // version specified in version file
     std::string format_;              // format specified in version file

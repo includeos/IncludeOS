@@ -22,7 +22,6 @@ namespace mender {
 
   Artifact::Artifact(byte_seq data)
     : data_(std::move(data)),
-      reader_{},
       artifact_{}
   {
     parse();
@@ -35,7 +34,7 @@ namespace mender {
     // Print and add
 
     MENDER_INFO("Artifact", "Parsing data as mender arifact (%u bytes)", (uint32_t)data_.size());
-    artifact_ = reader_.read_uncompressed(data_.data(), data_.size());
+    artifact_ = Reader::read(data_.data(), data_.size());
 
     auto& elements = artifact_.elements();
     MENDER_INFO("Artifact", "Content");
@@ -48,18 +47,15 @@ namespace mender {
     // Header
     auto& header_element = elements.at(HEADER);
     MENDER_INFO2("%s", header_element.name().c_str());
-    header_ = reader_.decompress(header_element);
+    header_ = Reader::decompress(header_element);
 
-    auto& header_elements = header_.elements();
+    auto header = Reader::read(header_.data(), header_.size());
 
-    for (size_t i = 0; i < header_.elements().size(); i++) {
-      const std::string header_element_name = header_.elements().at(i).name();
-      MENDER_INFO2("\t%s", header_element_name.c_str());
-    }
+    for(auto& h_element : header)
+      MENDER_INFO2("\t%s", h_element.name().c_str());
 
     // header_info
-    auto& header_info = header_elements.at(0);
-    parse_header_info(header_info.content());
+    parse_header_info(header.begin()->content());
 
     // Data
     for (size_t i = DATA_START; i < elements.size(); i++) {
@@ -70,15 +66,14 @@ namespace mender {
 
       MENDER_INFO2("%s", data_tar_gz.name().c_str());
 
-      auto tar = reader_.decompress(data_tar_gz);
+      auto tar_data = Reader::decompress(data_tar_gz);
 
-      for (auto& data_element : tar.elements())
-      {
-        (void) data_element;
-        MENDER_INFO2("\t%s", data_element.name().c_str());
-      }
+      // Print content
+      auto tar = Reader::read(tar_data.data(), tar_data.size());
+      for (const auto& d_element : tar)
+        MENDER_INFO2("\t%s", d_element.name().c_str());
 
-      updates_.push_back(tar);
+      updates_.push_back(tar_data);
     }
   }
 
