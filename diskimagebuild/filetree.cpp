@@ -21,9 +21,12 @@ File::File(const char* path)
   rewind(f);
 
   this->data = std::unique_ptr<char[]> (new char[size], std::default_delete<char[]> ());
-  size_t actual = fread(this->data.get(), this->size, 1, f);
-  if (actual != 1) {
-    throw std::runtime_error("diskbuilder: Could not read from file " + std::string(path));
+  if (this->size > 0)
+  {
+    size_t actual = fread(this->data.get(), this->size, 1, f);
+    if (actual != 1) {
+      throw std::runtime_error("diskbuilder: Could not read from file " + std::string(path));
+    }
   }
   fclose(f);
 }

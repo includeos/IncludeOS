@@ -280,8 +280,11 @@ long File::write(FileSys&, FILE* file, long pos) const
 {
   //printf("writing file to %ld with size %u\n", pos, this->size);
   fseek(file, pos, SEEK_SET);
-  int count = fwrite(data.get(), this->size, 1, file);
-  assert(count == 1);
+  if (this->size > 0)
+  {
+    int count = fwrite(data.get(), this->size, 1, file);
+    assert(count == 1);
+  }
   // write zeroes to remainder
   int rem = SECT_SIZE - (this->size & (SECT_SIZE-1));
   fwrite("\0", 1, rem, file);
