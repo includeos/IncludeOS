@@ -49,7 +49,7 @@ public:
 
   /** SOCKET **/
   virtual int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -1; }
-  virtual int     bind(const struct sockaddr *, socklen_t) { return -1; }
+  virtual long    bind(const struct sockaddr *, socklen_t) { return -ENOTSOCK; }
   virtual int     connect(const struct sockaddr *, socklen_t) { return -1; }
   virtual int     getsockopt(int, int, void *__restrict__, socklen_t *__restrict__);
   virtual int     listen(int) { return -1; }

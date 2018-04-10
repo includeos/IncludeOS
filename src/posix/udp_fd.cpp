@@ -91,17 +91,15 @@ int UDP_FD::close()
 {
   return 0;
 }
-int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
+long UDP_FD::bind(const struct sockaddr* address, socklen_t len)
 {
   // we can assume this has already been bound since there is a pointer
   if(UNLIKELY(this->sock != nullptr)) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   // invalid address
   if(UNLIKELY(len != sizeof(struct sockaddr_in))) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   // Bind
   const auto port = ((sockaddr_in*)address)->sin_port;
@@ -115,8 +113,7 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
   }
   catch(const net::UDP::Port_in_use_exception&)
   {
-    errno = EADDRINUSE;
-    return -1;
+    return -EADDRINUSE;
   }
 }
 int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)

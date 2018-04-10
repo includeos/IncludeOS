@@ -75,48 +75,69 @@ static ssize_t sock_recvfrom(int sockfd, void *buf, size_t len, int flags,
   return -EBADF;
 }
 
-extern "C"
+static long sock_listen(int sockfd, int backlog)
+{
+  if(auto* fildes = FD_map::_get(sockfd); fildes)
+    return fildes->listen(backlog);
+
+  return -EBADF;
+}
+
+static long sock_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+  if(auto* fildes = FD_map::_get(sockfd); fildes)
+    return fildes->accept(addr, addrlen);
+
+  return -EBADF;
+}
+
+extern "C" {
 long socketcall_socket(int domain, int type, int protocol)
 {
   return strace(sock_socket, "socket", domain, type, protocol);
 }
 
-extern "C"
 long socketcall_connect(int sockfd, const struct sockaddr *addr,
                         socklen_t addrlen)
 {
   return strace(sock_connect, "connect", sockfd, addr, addrlen);
 }
 
-extern "C"
 long socketcall_bind(int sockfd, const struct sockaddr *addr,
                      socklen_t addrlen)
 {
   return strace(sock_bind, "bind", sockfd, addr, addrlen);
 }
 
-extern "C"
 long socketcall_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
   return strace(sock_sendmsg, "sendmsg", sockfd, msg, flags);
 }
 
-extern "C"
 ssize_t socketcall_sendto(int sockfd, const void *buf, size_t len, int flags,
                           const struct sockaddr *dest_addr, socklen_t addrlen)
 {
   return strace(sock_sendto, "sendto", sockfd, buf, len, flags, dest_addr, addrlen);
 }
 
-extern "C"
 ssize_t socketcall_recvfrom(int sockfd, void *buf, size_t len, int flags,
                             struct sockaddr *src_addr, socklen_t *addrlen)
 {
   return strace(sock_recvfrom, "recvfrom", sockfd, buf, len, flags, src_addr, addrlen);
 }
 
-extern "C"
+long socketcall_listen(int sockfd, int backlog)
+{
+  return strace(sock_listen, "listen", sockfd, backlog);
+}
+
+long socketcall_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+  return strace(sock_accept, "accept", sockfd, addr, addrlen);
+}
+
 long socketcall_shutdown()
 {
   return -ENOSYS;
 }
+} // < extern "C"
