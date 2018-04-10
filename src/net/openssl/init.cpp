@@ -66,10 +66,15 @@ namespace openssl
     {
       INFO("OpenSSL", "Initializing (%s)", OPENSSL_VERSION_TEXT);
       init_once = true;
+      printf("setup_rng\n");
       setup_rng();
+      printf("SSL_library_init\n");
       SSL_library_init(); // OPENSSL_INIT_LOAD_SSL_STRINGS | OPENSSL_INIT_LOAD_CRYPTO_STRINGS
+      printf("SSL_load_error_strings\n");
       SSL_load_error_strings();
+      printf("ERR_load_crypto_strings\n");
       ERR_load_crypto_strings();
+      printf("ERR_load_BIO_strings\n");
       ERR_load_BIO_strings();
     }
   }
