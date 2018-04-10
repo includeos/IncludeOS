@@ -26,5 +26,5 @@ if(${ARCH} STREQUAL "x86_64")
 
   install(FILES ${OPENSSL_LIB_CRYPTO}  DESTINATION includeos/${ARCH}/lib)
   install(FILES ${OPENSSL_LIB_SSL}     DESTINATION includeos/${ARCH}/lib)
-  install(DIRECTORY ${OPENSSL_INCLUDE} DESTINATION includeos/${ARCH}/include)
+  install(DIRECTORY ${OPENSSL_INCLUDE} DESTINATION includeos/${ARCH})
 endif()
