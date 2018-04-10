@@ -75,7 +75,7 @@
         "properties" : {
           "device" : { "type" : "string" },
           "name" : { "type" : "string" },
-          "backend" : { "enum" : ["tap", "user"], "default" : "user" }
+          "backend" : { "enum" : ["tap", "user"], "default" : "tap" }
         },
 
         "required" : ["device"]
