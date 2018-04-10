@@ -7,7 +7,6 @@ if (NOT threading)
 add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 endif()
 
-include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
 include_directories(${MUSL_INCLUDE_DIR})
 include_directories(${SOLO5_INCLUDE_DIR})
@@ -61,7 +60,7 @@ set(OS_OBJECTS
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   # POSIX
-  posix/fd.cpp posix/file_fd.cpp
+  posix/fd.cpp posix/file_fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp
 )
 
 add_library(os STATIC ${OS_OBJECTS})

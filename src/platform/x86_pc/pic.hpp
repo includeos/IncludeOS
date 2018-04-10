@@ -18,7 +18,7 @@
 #ifndef X86_PIC_HPP
 #define X86_PIC_HPP
 
-#include "../kernel/os.hpp"
+#include <kernel/os.hpp>
 #include <hw/ioport.hpp>
 #include <cassert>
 

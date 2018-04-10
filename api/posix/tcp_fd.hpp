@@ -33,7 +33,7 @@ public:
     : SockFD(id)
   {}
 
-  int     read(void*, size_t) override;
+  ssize_t read(void*, size_t) override;
   int     write(const void*, size_t) override;
   int     close() override;
 

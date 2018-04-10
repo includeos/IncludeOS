@@ -104,7 +104,7 @@ static void parse_config()
 
 }
 
-#include <rng_fd.hpp>
+#include <posix/rng_fd.hpp>
 // Mount RNG functionality to system paths
 static void mount_rng()
 {
