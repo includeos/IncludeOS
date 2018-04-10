@@ -201,15 +201,15 @@ if(examples)
   add_subdirectory(examples)
 endif(examples)
 
+option(tests "Build unit tests in /test and install lest test framework" OFF)
 option(lest "Install lest unittest headers" OFF)
-if (lest)
+
+if (lest OR tests)
   init_submodule(test/lest)
   install(DIRECTORY test/lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/includeos/include)
 endif()
 
-option(tests "Build unit tests in /test and install lest test framework" OFF)
 if(tests)
-  set(lest ON)
   enable_testing()
   ExternalProject_Add(unittests
     PREFIX unittests
