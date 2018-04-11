@@ -12,20 +12,28 @@ set(MUSL_OBJECTS
   stat.cpp fstat.cpp fstatat.cpp
   access.cpp
   chmod.cpp
+  chown.cpp
   cwd.cpp
   fchmod.cpp
   fchmodat.cpp
+  fchown.cpp
+  fsync.cpp
+  ftruncate.cpp
   getdents.cpp
+  geteuid.cpp
   kill.cpp
   mkdir.cpp
   mkdirat.cpp
   mknodat.cpp
   openat.cpp
+  readlink.cpp
+  rmdir.cpp
   select.cpp
   setrlimit.cpp
   umask.cpp
-  utimensat.cpp
   uname.cpp
+  utimensat.cpp
+  unlink.cpp
 )
 
 add_library(musl_syscalls STATIC ${MUSL_OBJECTS})
