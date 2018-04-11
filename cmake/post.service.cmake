@@ -481,9 +481,9 @@ if (NOT debug)
     )
 endif()
 
-# create .img files too automatically
+# create bare metal .img: make legacy_bootloader
 add_custom_target(
-  prepend_bootloader ALL
+  legacy_bootloader
   COMMAND ${INSTALL_LOC}/bin/vmbuild ${BINARY} ${INSTALL_LOC}/${ARCH}/boot/bootloader
   DEPENDS service
 )
