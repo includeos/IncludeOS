@@ -91,6 +91,14 @@ static long sock_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
   return -EBADF;
 }
 
+static long sock_shutdown(int sockfd, int how)
+{
+  if(auto* fildes = FD_map::_get(sockfd); fildes)
+    return fildes->shutdown(how);
+
+  return -EBADF;
+}
+
 extern "C" {
 long socketcall_socket(int domain, int type, int protocol)
 {
@@ -136,8 +144,8 @@ long socketcall_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
   return strace(sock_accept, "accept", sockfd, addr, addrlen);
 }
 
-long socketcall_shutdown()
+long socketcall_shutdown(int sockfd, int how)
 {
-  return -ENOSYS;
+  return strace(sock_shutdown, "shutdown", sockfd, how);
 }
 } // < extern "C"

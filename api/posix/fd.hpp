@@ -48,11 +48,11 @@ public:
   virtual int     ioctl(int, void*);
 
   /** SOCKET **/
-  virtual int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -1; }
+  virtual long    accept(struct sockaddr *__restrict__, socklen_t *__restrict__) { return -ENOTSOCK; }
   virtual long    bind(const struct sockaddr *, socklen_t) { return -ENOTSOCK; }
-  virtual int     connect(const struct sockaddr *, socklen_t) { return -1; }
+  virtual long    connect(const struct sockaddr *, socklen_t) { return-ENOTSOCK; }
   virtual int     getsockopt(int, int, void *__restrict__, socklen_t *__restrict__);
-  virtual int     listen(int) { return -1; }
+  virtual long    listen(int) { return -ENOTSOCK; }
   virtual ssize_t recv(void *, size_t, int) { return 0; }
   virtual ssize_t recvfrom(void *__restrict__, size_t, int, struct sockaddr *__restrict__, socklen_t *__restrict__) { return 0; }
   virtual ssize_t recvmsg(struct msghdr *, int) { return 0; }
