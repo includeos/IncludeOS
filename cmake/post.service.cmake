@@ -448,26 +448,17 @@ target_link_libraries(service
 
   libplatform
   libarch
-  libos
-  libc
-  musl_syscalls
-  cxxabi
-  libpthread
-  libunwind
-  libcxx
-
-  libplatform
-  libarch
-  libos
-  libc
-  cxxabi
-  libpthread
-  libunwind
-  libcxx
 
   musl_syscalls
   libos
   libcxx
+  cxxabi
+  libunwind
+  libpthread
+  libc
+
+  musl_syscalls
+  libos
   libc
   libgcc
   ${CRTN}
