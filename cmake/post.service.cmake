@@ -274,11 +274,6 @@ set(CRTI "${INSTALL_LOC}/${ARCH}/lib/crti.o")
 target_link_libraries(service ${CRTI})
 target_link_libraries(service ${CRT1})
 
-add_library(libgcc STATIC IMPORTED)
-set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcompiler.a)
-
-
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libos PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libos.a)
@@ -333,8 +328,25 @@ set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/l
 
 add_library(libpthread STATIC IMPORTED)
 set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libpthread.a)
+set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INSTALL_LOC}/${ARCH}/lib/libpthread.a")
 
+# libgcc/compiler-rt detection
+if (UNIX)
+  execute_process(
+      COMMAND ${CMAKE_CXX_COMPILER} --target=${TRIPLE} --print-libgcc-file-name
+      RESULT_VARIABLE CC_RT_RES
+      OUTPUT_VARIABLE COMPILER_RT_FILE OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if (NOT ${CC_RT_RES} EQUAL 0)
+    message(AUTHOR_WARNING "Failed to detect libgcc/compiler-rt: ${COMPILER_RT_FILE}")
+  endif()
+endif()
+if (NOT COMPILER_RT_FILE)
+  set(COMPILER_RT_FILE "${INSTALL_LOC}/${ARCH}/lib/libcompiler.a")
+endif()
+
+add_library(libgcc STATIC IMPORTED)
+set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION "${COMPILER_RT_FILE}")
 
 if ("${PLATFORM}" STREQUAL "x86_solo5")
   add_library(solo5 STATIC IMPORTED)
@@ -422,11 +434,6 @@ if(TARFILE)
   set_target_properties(tarfile PROPERTIES LINKER_LANGUAGE CXX)
   target_link_libraries(service --whole-archive tarfile --no-whole-archive)
 endif(TARFILE)
-
-#add_library(crtn STATIC IMPORTED)
-#set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)
-#set_target_properties(crtn PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrtn.a)
-
 
 if ("${PLATFORM}" STREQUAL "x86_solo5")
   target_link_libraries(service solo5)
