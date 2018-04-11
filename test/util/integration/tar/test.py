@@ -123,4 +123,4 @@ vm.on_output("tar_example/l1_f2/virtio.hpp Typeflag: 0", increment_element)
 vm.on_output("Something special to close with", check_num_outputs)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(20).clean()
+vm.cmake().boot(30).clean()
