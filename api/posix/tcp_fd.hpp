@@ -39,11 +39,13 @@ public:
 
   /** SOCKET */
   long    bind(const struct sockaddr *, socklen_t) override;
-  int     listen(int) override;
-  int     accept(struct sockaddr *__restrict__, socklen_t *__restrict__) override;
-  int     connect(const struct sockaddr *, socklen_t) override;
+  long    listen(int) override;
+  long    accept(struct sockaddr *__restrict__, socklen_t *__restrict__) override;
+  long    connect(const struct sockaddr *, socklen_t) override;
 
   ssize_t send(const void *, size_t, int fl) override;
+  ssize_t sendto(const void *, size_t, int fl,
+                 const struct sockaddr*, socklen_t) override;
   ssize_t recv(void*, size_t, int fl) override;
   ssize_t recvfrom(void*, size_t, int fl, struct sockaddr*, socklen_t *) override;
 
@@ -65,7 +67,7 @@ public:
 
   ~TCP_FD() {}
 private:
-  TCP_FD_Conn*   cd = nullptr;
+  std::unique_ptr<TCP_FD_Conn> cd = nullptr;
   TCP_FD_Listen* ld = nullptr;
 
   friend struct TCP_FD_Listen;
@@ -73,8 +75,7 @@ private:
 
 struct TCP_FD_Conn
 {
-  TCP_FD_Conn(net::tcp::Connection_ptr c)
-    : conn(c) {}
+  TCP_FD_Conn(net::tcp::Connection_ptr c);
 
   void recv_to_ringbuffer(net::tcp::buffer_t);
   void set_default_read();
@@ -88,6 +89,7 @@ struct TCP_FD_Conn
 
   net::tcp::Connection_ptr conn;
   FixedRingBuffer<16384> readq;
+  bool recv_disc = false;
 };
 
 struct TCP_FD_Listen
@@ -97,14 +99,14 @@ struct TCP_FD_Listen
   {}
 
   int close();
-  int listen(int);
-  int accept(struct sockaddr *__restrict__, socklen_t *__restrict__);
+  long listen(int);
+  long accept(struct sockaddr *__restrict__, socklen_t *__restrict__);
   int shutdown(int);
 
   std::string to_string() const { return listener.to_string(); }
 
   net::tcp::Listener& listener;
-  std::deque<net::tcp::Connection_ptr> connq;
+  std::deque<std::unique_ptr<TCP_FD_Conn>> connq;
 };
 
 inline net::tcp::Connection_ptr TCP_FD::get_connection() noexcept {

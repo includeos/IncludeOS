@@ -116,7 +116,7 @@ long UDP_FD::bind(const struct sockaddr* address, socklen_t len)
     return -EADDRINUSE;
   }
 }
-int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
+long UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
   if (UNLIKELY(address_len < sizeof(struct sockaddr_in))) {
     return -EINVAL;
