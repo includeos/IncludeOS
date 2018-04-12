@@ -5,7 +5,7 @@
 static long sys_getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
 {
   if(auto* fildes = FD_map::_get(fd); fildes)
-    fildes->getdents(dirp, count);
+    return fildes->getdents(dirp, count);
 
   return -EBADF;
 }
