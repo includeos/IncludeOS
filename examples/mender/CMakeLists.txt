@@ -16,8 +16,6 @@ set(SOURCES service.cpp)
 
 set(DRIVERS virtionet vmxnet3)
 
-set(PLUGINS vfs)
-
 set(LIBRARIES
   "libmender.a"
   "libliveupdate.a"
