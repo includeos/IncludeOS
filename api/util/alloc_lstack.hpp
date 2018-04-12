@@ -62,7 +62,49 @@ public:
 
   void* allocate(size_t size){
     Expects((size & (Min - 1)) == 0);
+    auto* chunk = find_free(size);
+    if (chunk != nullptr)
+      bytes_allocated_ += chunk->size;
+    return chunk;
+  }
 
+  void deallocate (void* ptr, size_t size){
+    push(ptr, size);
+    bytes_allocated_ -= size;
+  }
+
+  void donate(void* ptr, size_t size){
+    push(ptr, size);
+    bytes_total_ += size;
+  }
+
+  const Chunk* begin() const {
+    return front_;
+  }
+
+  bool empty() const noexcept { return front_ == nullptr || front_->size == 0; }
+
+  size_t bytes_allocated()
+  { return bytes_allocated_; }
+
+  size_t bytes_free()
+  { return bytes_total_ - bytes_allocated_; }
+
+private:
+  Chunk* new_chunk(void* addr_begin, Chunk* next, size_t sz){
+    Expects((sz & align - 1) == 0);
+    Expects(((uintptr_t)addr_begin & align - 1) == 0);
+    return new ((Chunk*)addr_begin) Chunk(next, sz);
+  }
+
+  void push(void* ptr, size_t size){
+    Expects((size & (align - 1)) == 0);
+    auto* old_front = front_;
+    front_ = (Chunk*)ptr;
+    new_chunk(front_, old_front, size);
+  };
+
+  Chunk* find_free(size_t size) {
     Chunk* next = front_;
     Chunk** prev = &front_;
     do {
@@ -84,6 +126,7 @@ public:
           *prev = nullptr;
         else
           *prev = new_chunk((char*)next + size, next->next, next->size - size);
+        next->size = size;
         return next;
       }
 
@@ -94,34 +137,9 @@ public:
     return nullptr;
   }
 
-  void deallocate (void* ptr, size_t size){
-    push(ptr, size);
-  }
-
-  void donate(void* ptr, size_t size){
-    push(ptr, size);
-  }
-
-  void push(void* ptr, size_t size){
-    Expects((size & (align - 1)) == 0);
-    auto* old_front = front_;
-    front_ = (Chunk*)ptr;
-    new_chunk(front_, old_front, size);
-  };
-
-  const Chunk* begin() const {
-    return front_;
-  }
-
-  bool empty() const noexcept { return front_ == nullptr || front_->size == 0; }
-
-private:
-  Chunk* new_chunk(void* addr_begin, Chunk* next, size_t sz){
-    Expects((sz & align - 1) == 0);
-    Expects(((uintptr_t)addr_begin & align - 1) == 0);
-    return new ((Chunk*)addr_begin) Chunk(next, sz);
-  }
   Chunk* front_ = nullptr;
+  ssize_t bytes_allocated_ = 0;
+  ssize_t bytes_total_ = 0;
 };
 
 } // namespace util
