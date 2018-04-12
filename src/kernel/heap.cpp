@@ -16,12 +16,25 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
-extern uintptr_t heap_begin;
-extern uintptr_t heap_end;
+#include <util/bitops.hpp>
 
-uintptr_t OS::heap_usage() noexcept
+size_t brk_bytes_used();
+size_t mmap_bytes_used();
+
+uintptr_t OS::heap_begin_ = 0;
+uintptr_t OS::heap_end_   = __arch_max_canonical_addr;
+uintptr_t OS::heap_max_   = __arch_max_canonical_addr;
+uintptr_t OS::memory_end_ = __arch_max_canonical_addr;;
+
+
+size_t OS::heap_usage() noexcept
 {
-  return ::heap_end;
+  return brk_bytes_used() + mmap_bytes_used();
+}
+
+size_t OS::heap_avail() noexcept
+{
+  return (heap_max() - heap_begin()) - heap_usage();
 }
 
 void OS::heap_trim() noexcept
@@ -36,11 +49,11 @@ uintptr_t OS::heap_max() noexcept
 
 uintptr_t OS::heap_begin() noexcept
 {
-  return ::heap_begin;
+  return heap_begin_;
 }
 uintptr_t OS::heap_end() noexcept
 {
-  return ::heap_end;
+  return heap_end_;
 }
 
 uintptr_t OS::resize_heap(size_t size)
@@ -52,4 +65,23 @@ uintptr_t OS::resize_heap(size_t size)
   memory_map().resize(heap_begin(), size);
   heap_max_ = heap_begin() + size;
   return size;
+}
+
+constexpr size_t heap_alignment = 4096;
+__attribute__((weak)) ssize_t __brk_max = 0x100000;
+
+extern void init_mmap(uintptr_t mmap_begin);
+
+
+uintptr_t __init_brk(uintptr_t begin);
+uintptr_t __init_mmap(uintptr_t begin);
+
+void OS::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept {
+  // NOTE: Initialize the heap before exceptions
+  // cache-align heap, because its not aligned
+  memory_end_ = memory_end;
+  heap_max_   = memory_end;
+  heap_begin_ = util::bits::roundto<heap_alignment>(free_mem_begin);
+  auto brk_end  = __init_brk(heap_begin_);
+  heap_end_      = __init_mmap(brk_end);
 }

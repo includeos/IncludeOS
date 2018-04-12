@@ -27,4 +27,6 @@ inline uint64_t __arch_cpu_cycles() noexcept {
   return ((uint64_t) lo) | ((uint64_t) hi) << 32;
 }
 
+constexpr uintptr_t __arch_max_canonical_addr = 0xffffffffffff;
+
 #endif

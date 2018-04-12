@@ -17,8 +17,6 @@ extern "C" void* get_cpu_esp();
 extern char __init_array_start;
 extern char __init_array_end;
 int __run_ctors(uintptr_t begin, uintptr_t end);
-extern uintptr_t heap_begin;
-extern uintptr_t heap_end;
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t mem_size;
@@ -91,10 +89,6 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
 
   OS::cmdline = _cmdline;
 
-  // setup memory and heap end
-  OS::memory_end_ = mem_size;
-  OS::heap_max_ = OS::memory_end_;
-
   // Call global ctors
   PROFILE("Global kernel constructors");
   __run_ctors((uintptr_t)&__init_array_start, (uintptr_t)&__init_array_end);
@@ -110,16 +104,16 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF"});
 
-  Expects(::heap_begin and heap_max_);
+  Expects(heap_begin() and heap_max_);
   // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
+  memmap.assign_range({(uintptr_t)&_end + 1, heap_begin() - 1,
         "Pre-heap"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
 
   MYINFO("Assigning heap");
-  memmap.assign_range({::heap_begin, heap_range_max_,
+  memmap.assign_range({heap_begin(), heap_range_max_,
         "Dynamic memory", heap_usage });
 
   MYINFO("Printing memory map");

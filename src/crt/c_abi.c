@@ -22,7 +22,6 @@
 #define HEAP_ALIGNMENT   63
 
 void* __dso_handle;
-uintptr_t heap_end;
 
 uint32_t _move_symbols(void* sym_loc)
 {

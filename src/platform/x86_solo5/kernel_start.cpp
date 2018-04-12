@@ -46,7 +46,7 @@ extern "C" {
     // XXX: this is dangerous as solo5 might be doing malloc()'s using it's own
     // idea of a heap. Luckily there is no malloc instance at solo5/kernel/[ukvm|virtio|muen],
     // so might be OK (for now).
-    _init_heap(free_mem_begin);
+    OS::init_heap(free_mem_begin, mem_size);
 
     _init_elf_parser();
 

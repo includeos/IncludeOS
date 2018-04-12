@@ -134,11 +134,11 @@ void panic(const char* why)
 
   // heap info
   typedef unsigned long ulong;
-  uintptr_t heap_total = OS::heap_max() - heap_begin;
+  uintptr_t heap_total = OS::heap_max() - OS::heap_begin();
   fprintf(stderr, "Heap is at: %p / %p  (diff=%lu)\n",
-         (void*) heap_end, (void*) OS::heap_max(), (ulong) (OS::heap_max() - heap_end));
+         (void*) OS::heap_end(), (void*) OS::heap_max(), (ulong) (OS::heap_max() - OS::heap_end()));
   fprintf(stderr, "Heap usage: %lu / %lu Kb\n", // (%.2f%%)\n",
-         (ulong) (heap_end - heap_begin) / 1024,
+         (ulong) (OS::heap_end() - OS::heap_begin()) / 1024,
          (ulong) heap_total / 1024); //, total * 100.0);
 
   print_backtrace();
