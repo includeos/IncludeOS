@@ -182,7 +182,7 @@ void Service::start(const std::string&)
 
   printf("*** TEST SERVICE STARTED *** \n");
   auto memuse = OS::heap_usage();
-  printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
+  printf("Current memory usage: %zi b, (%f MB) \n", memuse, float(memuse)  / 1000000);
 
   /** These printouts are event-triggers for the vmrunner **/
   printf("Ready to start\n");
