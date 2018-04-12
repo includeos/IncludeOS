@@ -8,8 +8,8 @@
 
 static long sock_socket(int domain, int type, int protocol)
 {
-  // disallow strange domains, like ALG
-  if (UNLIKELY(domain < 0 || domain > AF_INET6))
+  // currently only support for AF_INET (IPv4, no local/unix or IP6)
+  if (UNLIKELY(domain != AF_INET))
     return -EAFNOSUPPORT;
   // disallow RAW etc
   if (UNLIKELY(type < 0 || type > SOCK_DGRAM))
