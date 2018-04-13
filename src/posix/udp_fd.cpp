@@ -364,17 +364,3 @@ int UDP_FD::setsockopt(int level, int option_name,
   } // < switch(option_name)
 }
 
-/// socket default handler getters
-
-UDP_FD::on_read_func UDP_FD::get_default_read_func()
-{
-  return [] (net::tcp::buffer_t) {};
-}
-UDP_FD::on_write_func UDP_FD::get_default_write_func()
-{
-  return [] {};
-}
-UDP_FD::on_except_func UDP_FD::get_default_except_func()
-{
-  return [] {};
-}

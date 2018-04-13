@@ -5,9 +5,12 @@
 #include <posix/fd_map.hpp>
 #include <posix/tcp_fd.hpp>
 #include <posix/udp_fd.hpp>
+#include <posix/unix_fd.hpp>
 
 static long sock_socket(int domain, int type, int protocol)
 {
+  if(domain == AF_UNIX)
+    return FD_map::_open<Unix_FD>(type).get_id();
   // currently only support for AF_INET (IPv4, no local/unix or IP6)
   if (UNLIKELY(domain != AF_INET))
     return -EAFNOSUPPORT;

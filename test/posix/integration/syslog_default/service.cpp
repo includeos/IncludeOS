@@ -22,42 +22,47 @@
 
 /* For testing IncludeOS */
 #include <syslogd>
-
+#include <posix/syslog_print_socket.hpp>
+#include <fs/vfs.hpp>
 int main()
 {
+  static Syslog_print_socket syslog_sock_impl;
+  const fs::Path path{"/dev/log"};
+  printf("path: %s\n", path.to_string().c_str());
+  fs::VFS::mount<true, Unix_FD_impl>(path, syslog_sock_impl, "Just a printing syslog");
 	/* ----------- Integration test for the default syslog behavior: printf ----------- */
 
 	/* ------------------------- Testing POSIX syslog ------------------------- */
-
+  INFO("Syslog", "POSIX");
   int invalid_priority = -1;
+
   syslog(invalid_priority, "Invalid %d", invalid_priority);
 
-  invalid_priority = 10;
-  syslog(invalid_priority, "Invalid %d", invalid_priority);
-
-  invalid_priority = 55;
-  syslog(invalid_priority, "Invalid %d", invalid_priority);
+  syslog(LOG_INFO, " : A info message");
 
   std::string one{"one"};
   std::string two{"two"};
-  size_t number = 33;
-
-  syslog(LOG_INFO, "No open has been called prior to this");
   syslog(LOG_NOTICE, "Program created with two arguments: %s and %s", one.c_str(), two.c_str());
+
+  INFO2("Adding prepend");
 
   openlog("Prepended message", 0, LOG_MAIL);
 
   syslog(LOG_ERR, "Log after prepended message with one argument: %d", 44);
-  syslog(LOG_WARNING, "Log number two after openlog set prepended message");
 
   closelog();
 
+  size_t number = 33;
   syslog(LOG_WARNING, "Log after closelog with three arguments. One is %u, another is %s, a third is %d", number, "this", 4011);
 
   openlog("Second prepended message", LOG_PID | LOG_NDELAY, LOG_USER);
 
   syslog(LOG_EMERG, "Emergency log after openlog and new facility: user");
+  errno = EINVAL;
   syslog(LOG_ALERT, "Alert log with the m argument: %m");
+  errno = 0;
+  syslog(LOG_ALERT, "Second alert log with the m argument: %m");
+
 
   closelog();
 
@@ -65,6 +70,7 @@ int main()
 
   closelog();
 
+  // max 32 chars ident allowed
   openlog("Open after close prepended message", LOG_PERROR, LOG_KERN);
 
   syslog(LOG_INFO, "Info after openlog with both m: %m and two hex arguments: 0x%x and 0x%x", 100, 50);
@@ -72,7 +78,7 @@ int main()
   closelog();
 
   /* ------------------------- Testing IncludeOS syslog ------------------------- */
-
+  INFO("Syslog", "Syslogd");
   invalid_priority = -1;
   Syslog::syslog(invalid_priority, "Syslogd Invalid %d", invalid_priority);
 
@@ -92,7 +98,7 @@ int main()
 
   Syslog::closelog();
 
-  Syslog::syslog(LOG_WARNING, "Syslogd Log after closelog with three arguments. One is %u, another is %s, a third is %d", number, "this", 4011);
+  Syslog::syslog(LOG_WARNING, "Syslogd Log after closelog with three arguments. One is %zu, another is %s, a third is %d", number, "this", 4011);
 
   Syslog::openlog("Second prepended message", LOG_PID | LOG_NDELAY, LOG_USER);
 
@@ -107,7 +113,9 @@ int main()
 
   Syslog::openlog("Open after close prepended message", LOG_PERROR, LOG_KERN);
 
+  errno = 0;
   Syslog::syslog(LOG_INFO, "Syslogd Info after openlog with both m: %m and two hex arguments: 0x%x and 0x%x", 100, 50);
+  printf("%d\n", errno);
 
   Syslog::openlog("Exiting test", 0, LOG_LOCAL7);
 
