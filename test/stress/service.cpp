@@ -69,15 +69,20 @@ const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \n Connection: close\n\n";
 uint64_t TCP_BYTES_RECV = 0;
 uint64_t TCP_BYTES_SENT = 0;
 
+void print_memuse(uintptr_t u) {
+  auto end = OS::heap_end();
+  printf("Current memory usage: %s (%zi b) heap_end: 0x%zx lstack chunks: (%s)\n",
+         util::Byte_r(u).to_string().c_str(), u, end, util::Byte_r(end).to_string().c_str());
+}
+
 void Service::start(const std::string&)
 {
   using namespace util::literals;
   // Allocation / free spam to warm up
   auto initial_memuse =  OS::heap_usage();
-  printf("Current memory usage: %zi b, (%s) \n", initial_memuse, util::Byte_r(initial_memuse).to_string().c_str());
+  print_memuse(initial_memuse);
 
-
-  std::array<void*, 10> allocs {};
+  std::array<volatile void*, 10> allocs {};
   auto chunksize = 1024 * 1024 * 5;
   printf("Exercising heap: incrementally allocating %zi x %i bytes \n",
          allocs.size(), chunksize);
@@ -85,8 +90,13 @@ void Service::start(const std::string&)
   for (auto& ptr : allocs) {
     ptr = malloc(chunksize);
     Expects(ptr != nullptr);
+    memset((void*)ptr, '!', chunksize);
+    for (char* c = (char*)ptr; c < (char*)ptr + chunksize; c++)
+      Expects(*c == '!');
+    printf("Allocated area: %p heap_end: %p\n", (void*)ptr, (void*)OS::heap_end());
     auto memuse = OS::heap_usage();
-    printf("Current memory usage: %zi b, (%s) \n", memuse, util::Byte_r(memuse).to_string().c_str());
+
+    print_memuse(memuse);
     Expects(memuse > initial_memuse);
   }
 
@@ -97,9 +107,9 @@ void Service::start(const std::string&)
 
   printf("Deallocating \n");
   for (auto& ptr : allocs) {
-    free(ptr);
+    free((void*)ptr);
     auto memuse = OS::heap_usage();
-    printf("Current memory usage: %zi b, (%s) \n", memuse, util::Byte_r(memuse).to_string().c_str());
+    print_memuse(memuse);
     Expects(memuse < high_memuse);
     Expects(memuse < prev_memuse);
     prev_memuse = memuse;

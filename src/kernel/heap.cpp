@@ -20,9 +20,9 @@
 
 size_t brk_bytes_used();
 size_t mmap_bytes_used();
+size_t mmap_allocation_end();
 
 uintptr_t OS::heap_begin_ = 0;
-uintptr_t OS::heap_end_   = __arch_max_canonical_addr;
 uintptr_t OS::heap_max_   = __arch_max_canonical_addr;
 uintptr_t OS::memory_end_ = __arch_max_canonical_addr;;
 
@@ -53,7 +53,7 @@ uintptr_t OS::heap_begin() noexcept
 }
 uintptr_t OS::heap_end() noexcept
 {
-  return heap_end_;
+  return mmap_allocation_end();
 }
 
 uintptr_t OS::resize_heap(size_t size)
@@ -83,5 +83,5 @@ void OS::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept {
   heap_max_   = memory_end;
   heap_begin_ = util::bits::roundto<heap_alignment>(free_mem_begin);
   auto brk_end  = __init_brk(heap_begin_);
-  heap_end_      = __init_mmap(brk_end);
+  __init_mmap(brk_end);
 }
