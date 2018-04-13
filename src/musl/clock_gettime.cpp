@@ -1,6 +1,6 @@
 #include "common.hpp"
 
-long sys_clock_gettime(clockid_t clk_id, struct timespec* tp)
+static long sys_clock_gettime(clockid_t clk_id, struct timespec* tp)
 {
   if (clk_id == CLOCK_REALTIME)
   {
@@ -14,7 +14,7 @@ long sys_clock_gettime(clockid_t clk_id, struct timespec* tp)
     tp->tv_nsec = ts % 1000000000ull;
     return 0;
   }
-  return -EPERM;
+  return -EINVAL;
 }
 
 extern "C"

@@ -12,7 +12,7 @@ static int sys_sigmask(int /*signum*/)
 
 extern const bool __strace;
 
-extern "C" {
+extern "C"
 int syscall_SYS_rt_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
 
   if constexpr (__strace)
@@ -39,9 +39,7 @@ int syscall_SYS_rt_sigprocmask(int how, const sigset_t *set, sigset_t *oldset) {
   return sys_rt_sigprocmask(how, set, oldset);
 }
 
-
+extern "C"
 long syscall_SYS_sigmask(int signum) {
   return stubtrace(sys_sigmask, "sigmask", signum);
-}
-
 }

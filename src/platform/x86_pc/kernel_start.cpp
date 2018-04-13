@@ -204,7 +204,7 @@ void kernel_start(uint32_t magic, uint32_t addr)
   aux[i++].set_ptr(AT_PLATFORM, plat);
   aux[i++].set_long(AT_NULL, 0);
 
-  std::array<char*, 4 + 38> argv;
+  std::array<char*, 6 + 38> argv;
 
   // Parameters to main
   argv[0] = (char*) Service::name();
@@ -212,11 +212,12 @@ void kernel_start(uint32_t magic, uint32_t addr)
   int argc = 1;
 
   // Env vars
-  argv[2] = strdup("USER=root");
-  argv[3] = 0x0;
+  argv[2] = strdup("LC_CTYPE=C");
+  argv[3] = strdup("LC_ALL=C");
+  argv[4] = strdup("USER=root");
+  argv[5] = 0x0;
 
-  memcpy(&argv[4], aux, sizeof(auxv_t) * 38);
-  Expects(elf.is_ELF() && "Elf header present");
+  memcpy(&argv[6], aux, sizeof(auxv_t) * 38);
 
 #if defined(__x86_64__)
   kprintf("* Initialize syscall MSR\n");
