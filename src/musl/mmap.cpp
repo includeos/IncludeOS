@@ -38,6 +38,10 @@ size_t mmap_bytes_free() {
   return alloc.bytes_free();
 }
 
+uintptr_t mmap_allocation_end(){
+  return alloc.allocation_end();
+}
+
 static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
                       int fd, off_t /*offset*/)
 {
