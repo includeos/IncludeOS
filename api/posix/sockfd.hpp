@@ -35,9 +35,12 @@ public:
   typedef delegate<void()> on_write_func;
   typedef delegate<void()> on_except_func;
 
-  virtual on_read_func   get_default_read_func()   = 0;
-  virtual on_write_func  get_default_write_func()  = 0;
-  virtual on_except_func get_default_except_func() = 0;
+  virtual on_read_func   get_default_read_func()
+  { return [] (net::tcp::buffer_t) {}; }
+  virtual on_write_func  get_default_write_func()
+  { return [] {}; }
+  virtual on_except_func get_default_except_func()
+  { return [] {}; }
 };
 
 struct sockaddr;

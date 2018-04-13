@@ -70,10 +70,6 @@ public:
     net::tcp::buffer_t    buffer;
   };
 
-  on_read_func   get_default_read_func()   override;
-  on_write_func  get_default_write_func()  override;
-  on_except_func get_default_except_func() override;
-
 private:
   std::deque<Message> buffer_;
   // http://osr507doc.xinuos.com/en/netguide/disockD.connecting_datagrams.html
