@@ -38,6 +38,8 @@ acceptable_increase = 12 * PAGE_SIZE
 sock_mem = socket.socket
 sock_mem = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+heap_verified = False
+
 def get_mem():
   name_tag = "<" + test_name + "::get_mem>"
 
@@ -126,12 +128,23 @@ def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   return get_mem()
 
 
+
+def heap_ok(line):
+    global heap_verified
+    heap_verified = True
+    print color.INFO("Stresstest::heap_ok"), "VM reports heap is increasing and decreasing as expected"
+
+
 def crash_test(string):
   print color.INFO("Opening persistent TCP connection for diagnostics")
   sock_mem.connect((HOST, PORT_MEM))
   mem_before = get_mem_start()
   if mem_before <= 0:
       print color.FAIL("Initial memory reported as " + str(mem_before))
+      return False
+
+  if not heap_verified:
+      print color.FAIL("Heap behavior was not verified as expected. ")
       return False
 
   print color.HEADER("Initial crash test")
@@ -240,6 +253,7 @@ def wait_for_tw():
     time.sleep(7)
 
 # Add custom event-handlers
+vm.on_output("Heap functioning as expected", heap_ok)
 vm.on_output("Ready to start", crash_test)
 vm.on_output("Ready for ARP", ARP)
 vm.on_output("Ready for UDP", UDP)

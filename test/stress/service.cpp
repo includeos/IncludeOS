@@ -71,6 +71,47 @@ uint64_t TCP_BYTES_SENT = 0;
 
 void Service::start(const std::string&)
 {
+  using namespace util::literals;
+  // Allocation / free spam to warm up
+  auto initial_memuse =  OS::heap_usage();
+  printf("Current memory usage: %zi b, (%s) \n", initial_memuse, util::Byte_r(initial_memuse).to_string().c_str());
+
+
+  std::array<void*, 10> allocs {};
+  auto chunksize = 1024 * 1024 * 5;
+  printf("Exercising heap: incrementally allocating %zi x %i bytes \n",
+         allocs.size(), chunksize);
+
+  for (auto& ptr : allocs) {
+    ptr = malloc(chunksize);
+    Expects(ptr != nullptr);
+    auto memuse = OS::heap_usage();
+    printf("Current memory usage: %zi b, (%s) \n", memuse, util::Byte_r(memuse).to_string().c_str());
+    Expects(memuse > initial_memuse);
+  }
+
+  auto high_memuse = OS::heap_usage();
+  Expects(high_memuse >= (chunksize * allocs.size()) + initial_memuse);
+
+  auto prev_memuse = high_memuse;
+
+  printf("Deallocating \n");
+  for (auto& ptr : allocs) {
+    free(ptr);
+    auto memuse = OS::heap_usage();
+    printf("Current memory usage: %zi b, (%s) \n", memuse, util::Byte_r(memuse).to_string().c_str());
+    Expects(memuse < high_memuse);
+    Expects(memuse < prev_memuse);
+    prev_memuse = memuse;
+  }
+
+  // Expect the heap to have shrunk. With musl and chunksize of 5Mib,
+  // the mallocs will have resulted in calls to mmap, and frees in calls to
+  // munmap, so we could expect to be back to exacty where we were, but
+  // we're adding some room (somewhat arbitrarily) for malloc to change and
+  // not necessarily give back all it allocated.
+  Expects(OS::heap_usage() <= initial_memuse + 1_MiB);
+  printf("Heap functioning as expected\n");
 
   // Timer spam
   for (int i = 0; i < 1000; i++)

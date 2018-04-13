@@ -122,7 +122,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Total memory detected as %s ", util::Byte_r(OS::memory_end_).to_string().c_str());
 
   // Give the rest of physical memory to heap
-  OS::heap_max_ = OS::memory_end_;
+  OS::heap_max_ = OS::memory_end_ - 1;
 
   /// STATMAN ///
   PROFILE("Statman");
@@ -154,8 +154,8 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_);
 
-  MYINFO("Assigning heap");
-  memmap.assign_range({heap_begin(), heap_range_max_,
+  MYINFO("Assigning heap 0x%zx -> 0x%zx", heap_begin_, heap_range_max_);
+  memmap.assign_range({heap_begin_, heap_range_max_,
         "Dynamic memory", heap_usage });
 
   MYINFO("Virtual memory map");
