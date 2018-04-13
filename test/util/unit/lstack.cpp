@@ -64,19 +64,27 @@ CASE("Using lstack")
   char* pool = (char*)memalign(blocksize, poolsize);
   void* pool_end = pool + poolsize;
   heap.donate(pool, poolsize);
+  EXPECT(heap.bytes_allocated() == 0);
+  EXPECT(heap.bytes_free() == poolsize);
 
   auto* page = heap.allocate(blocksize);
   EXPECT(page == pool);
-  EXPECT(((Chunk*)page)->size == poolsize);
+  EXPECT(((Chunk*)page)->size == blocksize);
   EXPECT(((Chunk*)page)->next == nullptr);
+  EXPECT(heap.bytes_allocated() == blocksize);
+  EXPECT(heap.bytes_free() == poolsize - blocksize);
 
   print_summary(heap.begin());
 
   int i = 0;
+  auto prev_bytes_alloc = heap.bytes_allocated();
   for (; i < poolsize - blocksize; i += blocksize)
   {
     auto* p = heap.allocate(blocksize);
     EXPECT(p == (uint8_t*)pool + blocksize + i);
+    EXPECT(heap.bytes_allocated() == prev_bytes_alloc + blocksize);
+    prev_bytes_alloc = heap.bytes_allocated();
+    EXPECT(heap.bytes_free() == poolsize - prev_bytes_alloc);
   }
 
   print_summary(heap.begin());

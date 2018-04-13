@@ -21,17 +21,21 @@
 #include <boot/multiboot.h>
 #include <kernel/memory.hpp>
 
-//#define DEBUG
-#if defined(DEBUG)
+// #define DEBUG_MULTIBOOT
+#if defined(DEBUG_MULTIBOOT)
+#undef debug
 #define debug(X,...)  kprintf(X,##__VA_ARGS__);
+#define MYINFO(X,...) kprintf("<Multiboot>" X "\n", ##__VA_ARGS__)
+#undef INFO2
+#define INFO2(X,...) kprintf("\t" X "\n", ##__VA_ARGS__)
 #else
 #define debug(X,...)
+#define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 #endif
 
-#define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 extern uintptr_t _end;
-extern "C" uintptr_t _multiboot_free_begin(uintptr_t);
+
 
 using namespace util::bitops;
 using namespace util::literals;
@@ -46,6 +50,14 @@ multiboot_info_t* OS::bootinfo()
 {
   extern uint32_t __multiboot_addr;
   return (multiboot_info_t*) (uintptr_t) __multiboot_addr;
+}
+
+uintptr_t _multiboot_memory_end(uintptr_t boot_addr) {
+  auto* info = bootinfo(boot_addr);
+  if (info->flags & MULTIBOOT_INFO_MEMORY) {
+    return 0x100000 + (info->mem_upper * 1024);
+  }
+  return __arch_max_canonical_addr;
 }
 
 // Deterimine the end of multiboot provided data
@@ -108,8 +120,6 @@ void OS::multiboot(uint32_t boot_addr)
     uint32_t mem_high_start = 0x100000;
     uint32_t mem_high_end = mem_high_start + (info->mem_upper * 1024) - 1;
     uint32_t mem_high_kb = info->mem_upper;
-
-    OS::memory_end_ = mem_high_end;
 
     INFO2("* Valid memory (%i Kib):", mem_low_kb + mem_high_kb);
     INFO2("  0x%08x - 0x%08x (%i Kib)",

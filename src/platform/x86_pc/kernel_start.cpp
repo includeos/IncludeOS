@@ -35,12 +35,13 @@ extern "C" {
   void __init_sanity_checks();
   void kernel_sanity_checks();
   void _init_bss();
-  uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
   uintptr_t _move_symbols(uintptr_t loc);
-  void _init_heap(uintptr_t free_mem_begin);
   void _init_elf_parser();
   void _init_syscalls();
 }
+
+uintptr_t _multiboot_free_begin(uintptr_t bootinfo);
+uintptr_t _multiboot_memory_end(uintptr_t bootinfo);
 
 extern char _ELF_START_;
 extern char _ELF_END_;
@@ -125,10 +126,13 @@ void kernel_start(uint32_t magic, uint32_t addr)
   // Determine where free memory starts
   extern char _end;
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
+  uintptr_t memory_end     = __arch_max_canonical_addr;
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
-    kprintf("* Free mem begin: 0x%lx \n", free_mem_begin);
+    memory_end     = _multiboot_memory_end(addr);
+    kprintf("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
+            free_mem_begin, memory_end);
   }
 
   kprintf("* Moving symbols. \n");
@@ -143,7 +147,7 @@ void kernel_start(uint32_t magic, uint32_t addr)
   _init_bss();
 
   kprintf("* Init heap\n");
-  _init_heap(free_mem_begin);
+  OS::init_heap(free_mem_begin, memory_end);
 
   kprintf("* Init syscalls\n");
   _init_syscalls();

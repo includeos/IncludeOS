@@ -41,8 +41,6 @@
 using namespace util;
 
 extern "C" void* get_cpu_esp();
-extern uintptr_t heap_begin;
-extern uintptr_t heap_end;
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t _ELF_START_;
@@ -57,8 +55,7 @@ bool  OS::m_is_live_updated     = false;
 bool  OS::m_block_drivers_ready = false;
 KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
-uintptr_t OS::memory_end_ = 0;
-uintptr_t OS::heap_max_ = (uintptr_t)0xffffffffffff;
+
 OS::Panic_action OS::panic_action_ = OS::Panic_action::PANIC_ACTION;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 

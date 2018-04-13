@@ -24,12 +24,16 @@
 extern "C" {
   void __init_serial1();
   void __init_sanity_checks();
-  uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_bss();
   void _init_heap(uintptr_t);
   void _init_syscalls();
 }
+
+uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
+uintptr_t _multiboot_memory_end(uintptr_t boot_addr);
+
+
 bool __libc_initialized = true;
 extern bool os_default_stdout;
 
@@ -42,9 +46,11 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   // Determine where free memory starts
   extern char _end;
   uintptr_t free_mem_begin = (uintptr_t) &_end;
+  uintptr_t mem_end = __arch_max_canonical_addr;
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
+    mem_end = _multiboot_memory_end(addr);
   }
 
   // Preserve symbols from the ELF binary
@@ -55,7 +61,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 
   // Initialize heap
-  _init_heap(free_mem_begin);
+  OS::init_heap(free_mem_begin, mem_end);
 
   // Initialize system calls
   _init_syscalls();
