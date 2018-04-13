@@ -43,6 +43,7 @@ namespace alloc {
  *
  * NOTE: The allocator will not search for duplicates on deallocation,
  *       e.g. won't prevent double free, so that has to be done elsewhere.
+ *       It also won't join contigous blocks on deallocation.
  **/
 template <size_t Min = 4096>
 class Lstack {
@@ -63,19 +64,32 @@ public:
   void* allocate(size_t size){
     Expects((size & (Min - 1)) == 0);
     auto* chunk = find_free(size);
-    if (chunk != nullptr)
+    if (chunk != nullptr) {
       bytes_allocated_ += chunk->size;
+
+      auto addr_end = (uintptr_t)chunk + chunk->size;
+      if (UNLIKELY(addr_end > allocation_end_)) {
+        allocation_end_ = addr_end;
+      }
+    }
     return chunk;
   }
 
   void deallocate (void* ptr, size_t size){
     push(ptr, size);
     bytes_allocated_ -= size;
+    auto addr_end = (uintptr_t) ptr + size;
+    if (UNLIKELY(addr_end >= allocation_end_)) {
+      allocation_end_ = (uintptr_t) ptr;
+    }
   }
 
   void donate(void* ptr, size_t size){
     push(ptr, size);
     bytes_total_ += size;
+    if ((uintptr_t)ptr > allocation_end_) {
+      allocation_end_ = (uintptr_t)ptr;
+    }
   }
 
   const Chunk* begin() const {
@@ -89,6 +103,27 @@ public:
 
   size_t bytes_free()
   { return bytes_total_ - bytes_allocated_; }
+
+  /**
+   * The highest address allocated (more or less ever) + 1.
+   * No memory has been handed out beyond this point, but this is likely
+   * a very pessimistic estimate. To get highest actually allocated address,
+   * iterate over the chunks.
+   **/
+  uintptr_t allocation_end() {
+    return allocation_end_;
+  }
+
+  ssize_t chunk_count(){
+    ssize_t res = 0;
+    auto* next = front_;
+    do {
+      if (next == nullptr)
+        return res;
+      res++;
+    } while ((next = next->next));
+    return res;
+  }
 
 private:
   Chunk* new_chunk(void* addr_begin, Chunk* next, size_t sz){
@@ -140,6 +175,7 @@ private:
   Chunk* front_ = nullptr;
   ssize_t bytes_allocated_ = 0;
   ssize_t bytes_total_ = 0;
+  uintptr_t allocation_end_ = 0;
 };
 
 } // namespace util

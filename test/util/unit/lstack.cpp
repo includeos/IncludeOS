@@ -56,6 +56,7 @@ CASE("Using lstack")
 {
 
   Lstack heap;
+  EXPECT(heap.allocation_end() == 0);
   EXPECT(heap.allocate(rand() & ~4095) == nullptr);
 
   auto poolsize = 0x100000;
@@ -63,19 +64,25 @@ CASE("Using lstack")
 
   char* pool = (char*)memalign(blocksize, poolsize);
   void* pool_end = pool + poolsize;
+
+  // Donate pool
   heap.donate(pool, poolsize);
   EXPECT(heap.bytes_allocated() == 0);
   EXPECT(heap.bytes_free() == poolsize);
+  EXPECT(heap.allocation_end() == (uintptr_t)pool);
 
+  // First allocation
   auto* page = heap.allocate(blocksize);
   EXPECT(page == pool);
   EXPECT(((Chunk*)page)->size == blocksize);
   EXPECT(((Chunk*)page)->next == nullptr);
   EXPECT(heap.bytes_allocated() == blocksize);
   EXPECT(heap.bytes_free() == poolsize - blocksize);
-
+  EXPECT(heap.allocation_end() == (uintptr_t)pool + blocksize);
+  EXPECT(heap.chunk_count() == 1);
   print_summary(heap.begin());
 
+  // Empty out the pool
   int i = 0;
   auto prev_bytes_alloc = heap.bytes_allocated();
   for (; i < poolsize - blocksize; i += blocksize)
@@ -85,17 +92,21 @@ CASE("Using lstack")
     EXPECT(heap.bytes_allocated() == prev_bytes_alloc + blocksize);
     prev_bytes_alloc = heap.bytes_allocated();
     EXPECT(heap.bytes_free() == poolsize - prev_bytes_alloc);
+    EXPECT(heap.allocation_end() == (uintptr_t)p + blocksize);
   }
 
   print_summary(heap.begin());
-
   EXPECT(heap.allocate(blocksize) == nullptr);
   EXPECT(heap.begin() == nullptr);
+  EXPECT(heap.chunk_count() == 0);
+  auto heap_end = heap.allocation_end();
 
+  // First deallocation
   char* chunk1 = pool + 0x1000;
   heap.deallocate(chunk1, 0x2000);
   EXPECT((char*)heap.begin() == chunk1);
   EXPECT((char*)heap.begin()->next == nullptr);
+  EXPECT(heap.allocation_end() == heap_end);
 
   print_summary(heap.begin());
 
@@ -104,6 +115,7 @@ CASE("Using lstack")
   EXPECT((char*)heap.begin() == chunk2);
   EXPECT((char*)heap.begin()->next == chunk1);
   EXPECT((char*)heap.begin()->next->next == nullptr);
+  EXPECT(heap.allocation_end() == heap_end);
 
   print_summary(heap.begin());
   EXPECT(heap.allocate(0x4000) == chunk2);
@@ -111,15 +123,18 @@ CASE("Using lstack")
   EXPECT(heap.allocate(0x1000) == chunk1);
   EXPECT(heap.allocate(0x1000) == chunk1 + 0x1000);
   EXPECT(heap.begin() == nullptr);
+  EXPECT(heap.allocation_end() == heap_end);
 
   // Free some small chunks in random order
-  void* prev = nullptr;
   std::vector<int> rands;
-  auto size  = blocksize * 2;
-  auto count = poolsize / size;
+  auto size2  = blocksize * 2;
+  auto count = poolsize / size2;
   auto index = 0;
 
-  for (i = 0; i < 5; i++)
+  std::array<void*, 5> deallocs;
+
+  // Create random chunks
+  for (i = 0; i < deallocs.size(); i++)
   {
 
     do {
@@ -128,12 +143,23 @@ CASE("Using lstack")
 
     rands.push_back(index);
 
-    auto* frag = &(pool)[index * size];
-    EXPECT((frag >= pool && frag <= pool + poolsize - size));
+    auto* frag = &(pool)[index * size2];
+    EXPECT((frag >= pool && frag <= pool + poolsize - size2));
     EXPECT(((uintptr_t)frag & blocksize - 1 ) == 0);
-    heap.donate(frag, size);
+    deallocs[i] = frag;
+  }
+
+  // Deallocate
+  for (auto& frag : deallocs) {
+    heap.deallocate(frag, size2);
+
+    if ((uintptr_t)frag + size2 >= heap_end) {
+      EXPECT(heap.allocation_end() == (uintptr_t)frag);
+    } else {
+      EXPECT(heap.allocation_end() == heap_end);
+    }
+
     EXPECT((void*)heap.begin() == frag);
-    prev = frag;
     print_summary(heap.begin());
   }
 
@@ -156,18 +182,31 @@ CASE("Using lstack")
 
   // Fragment the first chunk
   chunk1 = (char*)heap.allocate(0x1000);
-  EXPECT(chunk1 == pool + (rands.back() * size));
+  EXPECT(chunk1 == pool + (rands.back() * size2));
   print_summary(heap.begin());
   heap.deallocate(chunk1, 0x1000);
   print_summary(heap.begin());
   EXPECT(heap.begin() == (Chunk*)chunk1);
   EXPECT(heap.begin()->next->size == 0x1000);
   EXPECT(heap.begin()->next->next->size == 0x2000);
+  EXPECT(heap.allocation_end() == heap_end);
 
   auto* first_2k = heap.begin()->next->next;
   chunk2 = (char*)heap.allocate(0x2000);
   print_summary(heap.begin());
   EXPECT((Chunk*)chunk2 == first_2k);
+
+  // hand back the last two chunks, expect allocation_end decrease
+  auto* minus_1 = pool + poolsize - blocksize;
+  auto* minus_2 = minus_1 - blocksize;
+
+  EXPECT(heap_end > (uintptr_t)minus_1);
+  EXPECT(heap_end > (uintptr_t)minus_2);
+
+  heap.deallocate(minus_1, blocksize);
+  EXPECT(heap.allocation_end() == (uintptr_t)minus_1);
+  heap.deallocate(minus_2, blocksize);
+  EXPECT(heap.allocation_end() == (uintptr_t)minus_2);
 
   free(pool);
 
