@@ -86,17 +86,16 @@ const char* OS::cmdline_args() noexcept {
   return cmdline;
 }
 
-extern char __service_ctors_start;
-extern char __service_ctors_end;
-extern char __plugin_ctors_start;
-extern char __plugin_ctors_end;
+typedef void (*ctor_t) ();
+extern ctor_t __service_ctors_start;
+extern ctor_t __service_ctors_end;
+extern ctor_t __plugin_ctors_start;
+extern ctor_t __plugin_ctors_end;
 
-int __run_ctors(uintptr_t begin, uintptr_t end)
+int __run_ctors(ctor_t* begin, ctor_t* end)
 {
   int i = 0;
-	for (; begin < end; begin += sizeof(void(*)()), i++) {
-		(*(void (**)(void)) begin )();
-  }
+	for (; begin < end; begin++, i++) (*begin)();
   return i;
 }
 
@@ -141,7 +140,7 @@ void OS::post_start()
   MYINFO("Initializing plugins");
 
   // Run plugin constructors
-  __run_ctors((uintptr_t)&__plugin_ctors_start, (uintptr_t)&__plugin_ctors_end);
+  __run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
 
 
   // Run plugins
@@ -157,7 +156,7 @@ void OS::post_start()
   OS::boot_sequence_passed_ = true;
 
     // Run service constructors
-  __run_ctors((uintptr_t)&__service_ctors_start, (uintptr_t)&__service_ctors_end);
+  __run_ctors(&__service_ctors_start, &__service_ctors_end);
 
   PROFILE("Service::start");
   // begin service start

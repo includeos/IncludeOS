@@ -2,6 +2,15 @@
 #include <cstdint>
 #include <ctime>
 #include <kernel/os.hpp>
+# define weak_alias(name, aliasname) \
+  extern __typeof (name) aliasname __attribute__ ((weak, alias (#name)));
+
+typedef void (*ctor_t) ();
+extern "C" __attribute__(( visibility("hidden") )) void default_ctor() {}
+ctor_t __plugin_ctors_start = default_ctor;
+weak_alias(__plugin_ctors_start, __plugin_ctors_end);
+ctor_t __service_ctors_start = default_ctor;
+weak_alias(__service_ctors_start, __service_ctors_end);
 
 void* _ELF_START_;
 void* _ELF_END_;

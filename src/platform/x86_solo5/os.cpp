@@ -14,9 +14,6 @@ extern "C" {
 static uint64_t os_cycles_hlt = 0;
 
 extern "C" void* get_cpu_esp();
-extern char __init_array_start;
-extern char __init_array_end;
-int __run_ctors(uintptr_t begin, uintptr_t end);
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t mem_size;
@@ -26,6 +23,11 @@ extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
 // in kernel/os.cpp
 extern bool os_default_stdout;
+
+typedef void (*ctor_t) ();
+extern ctor_t __init_array_start;
+extern ctor_t __init_array_end;
+extern int __run_ctors(ctor_t* begin, ctor_t* end);
 
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
@@ -91,7 +93,7 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
 
   // Call global ctors
   PROFILE("Global kernel constructors");
-  __run_ctors((uintptr_t)&__init_array_start, (uintptr_t)&__init_array_end);
+  __run_ctors(&__init_array_start, &__init_array_end);
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
