@@ -17,14 +17,18 @@
 
 #include <kernel/os.hpp>
 #include <util/bitops.hpp>
+#include <util/units.hpp>
+using namespace util::literals;
 
 size_t brk_bytes_used();
 size_t mmap_bytes_used();
 size_t mmap_allocation_end();
 
+static constexpr size_t default_max_mem = 2_GiB;
+
 uintptr_t OS::heap_begin_ = 0;
-uintptr_t OS::heap_max_   = __arch_max_canonical_addr;
-uintptr_t OS::memory_end_ = __arch_max_canonical_addr;;
+uintptr_t OS::heap_max_   = default_max_mem;
+uintptr_t OS::memory_end_ = __arch_max_canonical_addr;
 
 
 size_t OS::heap_usage() noexcept

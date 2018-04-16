@@ -126,7 +126,7 @@ void kernel_start(uint32_t magic, uint32_t addr)
   // Determine where free memory starts
   extern char _end;
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
-  uintptr_t memory_end     = __arch_max_canonical_addr;
+  uintptr_t memory_end     = OS::memory_end();
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
