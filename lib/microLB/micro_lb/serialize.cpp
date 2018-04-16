@@ -1,7 +1,7 @@
 #include "balancer.hpp"
 #include <stdexcept>
 
-#define LB_VERBOSE 0
+#define LB_VERBOSE 1
 #if LB_VERBOSE
 #define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -39,8 +39,8 @@ namespace microLB
 
   void Session::serialize(Storage& store)
   {
-    store.add_connection(120, incoming);
-    store.add_connection(121, outgoing);
+    //store.add_connection(120, incoming);
+    //store.add_connection(121, outgoing);
     store.put_marker(120);
   }
 
@@ -61,32 +61,34 @@ namespace microLB
     LBOUT("Deserialize %llu sessions\n", tot_sessions);
     for(auto i = 0; i < static_cast<int>(tot_sessions); i++)
     {
-      auto incoming = store.as_tcp_connection(tcp_in); store.go_next();
-      auto outgoing = store.as_tcp_connection(tcp_out); store.go_next();
+      //auto incoming = store.as_tcp_connection(tcp_in); store.go_next();
+      //auto outgoing = store.as_tcp_connection(tcp_out); store.go_next();
       store.pop_marker(120);
 
-      create_session(true /* no readq atm */, incoming, outgoing);
+      //create_session(true /* no readq atm */, incoming, outgoing);
     }
   }
 
   void Waiting::serialize(liu::Storage& store)
   {
+    /*
     store.add_connection(10, this->conn);
     store.add_int(11, (int) readq.size());
     for (auto buffer : readq) {
       store.add_buffer(12, buffer->data(), buffer->size());
-    }
+    }*/
     store.put_marker(10);
   }
   Waiting::Waiting(liu::Restore& store, net::TCP& stack)
   {
+    /*
     this->conn = store.as_tcp_connection(stack); store.go_next();
     int qsize = store.as_int(); store.go_next();
     for (int i = 0; i < qsize; i++)
     {
       auto buf = store.as_buffer(); store.go_next();
       readq.push_back(net::tcp::construct_buffer(buf.begin(), buf.end()));
-    }
+    }*/
     store.pop_marker(10);
   }
 
