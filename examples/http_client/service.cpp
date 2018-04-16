@@ -17,6 +17,7 @@
 
 #include <memdisk>
 #include <net/openssl/init.hpp>
+#include "../acorn/fs/acorn_fs.hpp"
 
 static SSL_CTX* init_ssl_context()
 {
@@ -25,6 +26,7 @@ static SSL_CTX* init_ssl_context()
     assert(!err);
   });
 
+  acorn::list_static_content(disk.fs());
   auto ents = disk.fs().ls("/mozilla");
 
   // initialize client context

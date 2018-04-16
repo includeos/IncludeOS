@@ -58,7 +58,6 @@ tls_init_client(fs::List ents)
   int res = SSL_CTX_set_cipher_list(ctx, "AES256-SHA");
   assert(res == 1);
 
-  /*
   X509_STORE* store = X509_STORE_new();
   assert(store != nullptr);
 
@@ -77,10 +76,8 @@ tls_init_client(fs::List ents)
 
   // assign CA store to CTX
   SSL_CTX_set_cert_store(ctx, store);
-  */
-  (void) ents;
 
-  SSL_CTX_load_verify_locations(ctx, nullptr, "/certs");
+  //SSL_CTX_load_verify_locations(ctx, nullptr, "/mozilla");
 
   // create private key for client
   tls_private_key_for_ctx(ctx);
@@ -96,7 +93,6 @@ extern "C" typedef int verify_cb_t(int, X509_STORE_CTX*);
 static verify_cb_t verify_cb;
 int verify_cb(int preverify, X509_STORE_CTX* ctx)
 {
-  printf("verify_cb\n");
   X509* current_cert = X509_STORE_CTX_get_current_cert(ctx);
 
   if (preverify == 0)
