@@ -2,7 +2,7 @@
   "vfs" : [
     {
       "disk" : "memdisk",
-      "root" : "/",
+      "root" : "/files",
       "mount" : "/etc",
       "description" : "test fs"
     }
