@@ -68,14 +68,19 @@ public:
   { instance().internal_close(id); }
 
 private:
+  std::map<id_t, std::unique_ptr<FD>> map_;
+  id_t counter_ = 5;
+
+  FD_map() = default;
+
+  auto& counter() noexcept
+  { return counter_; }
+
   void internal_close(const id_t id)
   {
     auto erased = map_.erase(id);
     assert(erased > 0);
   }
-
-  std::map<id_t, std::unique_ptr<FD>> map_;
-  FD_map() {}
 };
 
 template <typename T, typename... Args>
@@ -84,8 +89,8 @@ T& FD_map::open(Args&&... args)
   static_assert(std::is_base_of<FD, T>::value,
     "Template argument is not a File Descriptor (FD)");
 
-  static id_t counter = 5;
-  const auto id = counter++;
+
+  const auto id = counter()++;
 
   auto* fd = new T(id, std::forward<Args>(args)...);
 
