@@ -78,8 +78,8 @@ namespace microLB
     void add_node(Args&&... args);
     void create_connections(int total);
     bool assign(net::Stream_ptr, queue_vector_t&);
-    void create_session(bool talk, net::Stream_ptr inc, net::Stream_ptr out);
-    void close_session(int, bool timeout = false);
+    Session& create_session(bool talk, net::Stream_ptr inc, net::Stream_ptr out);
+    void     close_session(int, bool timeout = false);
     Session& get_session(int);
 
     void serialize(liu::Storage&);

@@ -13,7 +13,7 @@
 #define INITIAL_SESSION_TIMEOUT   5s
 #define ROLLING_SESSION_TIMEOUT  60s
 
-#define LB_VERBOSE 1
+#define LB_VERBOSE 0
 #if LB_VERBOSE
 #define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -50,7 +50,7 @@ namespace microLB
   }
   netstack_t& Balancer::get_nodes_network() noexcept
   {
-    return this->netin;
+    return this->netout;
   }
   const pool_signal_t& Balancer::get_pool_signal() const
   {
@@ -165,11 +165,12 @@ namespace microLB
         assert(outgoing->is_connected());
         LBOUT("Assigning client to node %d (%s)\n",
               algo_iterator, outgoing->to_string().c_str());
-        this->create_session(not readq.empty(), std::move(conn), std::move(outgoing));
-        // flush readq
+        auto& session = this->create_session(
+            not readq.empty(), std::move(conn), std::move(outgoing));
+        // flush readq to session.outgoing
         for (auto buffer : readq) {
           LBOUT("*** Flushing %lu bytes\n", buffer->size());
-          outgoing->write(buffer);
+          session.outgoing->write(buffer);
         }
         return true;
       }
@@ -204,7 +205,7 @@ namespace microLB
   int32_t Nodes::timed_out_sessions() const {
     return session_timeouts;
   }
-  void Nodes::create_session(bool talk, net::Stream_ptr client, net::Stream_ptr outgoing)
+  Session& Nodes::create_session(bool talk, net::Stream_ptr client, net::Stream_ptr outgoing)
   {
     int idx = -1;
     if (free_sessions.empty()) {
@@ -219,6 +220,7 @@ namespace microLB
     session_cnt++;
     LBOUT("New session %d  (current = %d, total = %ld)\n",
           idx, session_cnt, session_total);
+    return sessions[idx];
   }
   Session& Nodes::get_session(int idx)
   {
