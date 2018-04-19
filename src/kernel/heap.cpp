@@ -60,16 +60,6 @@ uintptr_t OS::heap_end() noexcept
   return mmap_allocation_end();
 }
 
-uintptr_t OS::resize_heap(size_t size)
-{
-  uintptr_t new_end = heap_begin() + size;
-  if (not size or size < heap_usage() or new_end > memory_end())
-    return heap_max() - heap_begin();
-
-  memory_map().resize(heap_begin(), size);
-  heap_max_ = heap_begin() + size;
-  return size;
-}
 
 constexpr size_t heap_alignment = 4096;
 __attribute__((weak)) ssize_t __brk_max = 0x100000;

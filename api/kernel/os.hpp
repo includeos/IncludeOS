@@ -189,9 +189,6 @@ public:
   /** Last used address of the heap **/
   static uintptr_t heap_end() noexcept;
 
-  /** Resize the heap if possible. Return (potentially) new size. **/
-  static uintptr_t resize_heap(size_t size);
-
   /** The maximum last address of the dynamic memory area (heap) */
   static uintptr_t heap_max() noexcept;
 
