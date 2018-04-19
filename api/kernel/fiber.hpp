@@ -21,6 +21,7 @@
 
 #include <cstdio>
 #include <delegate>
+#include <smp>
 
 #ifndef INCLUDEOS_SINGLE_THREADED
 #include <atomic>
@@ -199,10 +200,10 @@ public:
   }
 
   static Fiber* main()
-  { return main_; }
+  { return PER_CPU(main_); }
 
   static Fiber* current()
-  { return current_; }
+  { return PER_CPU(current_); }
 
   static int last_id()
   {
@@ -222,8 +223,8 @@ private:
 #else
   static std::atomic<int> next_id_;
 #endif
-  static thread_local Fiber* main_;
-  static thread_local Fiber* current_;
+  static SMP::Array<Fiber*> main_;
+  static SMP::Array<Fiber*> current_;
 
   // Uniquely identify return target (yield / exit)
   // first stack frame and yield will use this to identify next stack

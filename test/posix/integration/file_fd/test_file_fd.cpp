@@ -17,30 +17,13 @@
 
 #include <service>
 #include <os>
-#include <memdisk>
-#include <fs/vfs.hpp>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <cstring>
 #include <lest/lest.hpp>
-
+#include <unistd.h>
 
 #include <fstream>
-
-fs::Disk_ptr& memdisk() {
-  static auto disk = fs::shared_memdisk();
-
-  if (not disk->fs_ready()) {
-    disk->init_fs([](fs::error_t err, auto&) {
-        if (err) {
-          printf("ERROR MOUNTING DISK\n");
-          printf("%s\n", err.reason().c_str());
-          exit(127);
-        }
-      });
-    }
-  return disk;
-}
 
 const lest::test specification[] =
 {
@@ -293,7 +276,7 @@ const lest::test specification[] =
       size_t wanted_count {7};
       size_t count = fread(buf, sizeof(char), wanted_count, f);
       EXPECT(count == wanted_count);
-      printf("fread result: %d\n", count);
+      printf("fread result: %zu\n", count);
       int cmp = strcmp(buf, "content");
       EXPECT(cmp == 0);
       int res = fclose(f);
@@ -319,10 +302,6 @@ const lest::test specification[] =
 int main()
 {
   INFO("POSIX file_fd", "Running tests for POSIX file_fd");
-
-  // mount a disk with contents for testing
-  auto root = memdisk()->fs().stat("/");
-  fs::mount("/mnt/disk", root, "test root");
 
   auto failed = lest::run(specification, {"-p"});
   Expects(not failed);

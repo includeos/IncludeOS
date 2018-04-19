@@ -17,6 +17,7 @@
 
 #include <memdisk>
 #include <net/openssl/init.hpp>
+#include "../acorn/fs/acorn_fs.hpp"
 
 static SSL_CTX* init_ssl_context()
 {
@@ -25,11 +26,12 @@ static SSL_CTX* init_ssl_context()
     assert(!err);
   });
 
-  auto ents = disk.fs().ls("/");
+  acorn::list_static_content(disk.fs());
+  auto ents = disk.fs().ls("/mozilla");
 
   // initialize client context
   openssl::init();
-  return openssl::create_client(ents);
+  return openssl::create_client(ents, true);
 }
 
 #include <service>
@@ -37,12 +39,10 @@ static SSL_CTX* init_ssl_context()
 #include <net/super_stack.hpp>
 #include <net/ip4/ip4.hpp>
 
-void Service::start()
+static void begin_http(net::Inet<net::IP4>& inet)
 {
-  auto& inet = net::Super_stack::get<net::IP4>(0);
-
   using namespace http;
-
+  /*
   static Basic_client basic{inet.tcp()};
 
   const std::string url{"http://www.google.com"};
@@ -58,7 +58,7 @@ void Service::start()
       printf("Make sure the virtual machine can reach internet.\n");
     }
   });
-
+  */
   auto* ctx = init_ssl_context();
   assert(ctx != nullptr);
 
@@ -77,4 +77,13 @@ void Service::start()
       printf("Make sure the virtual machine can reach internet.\n");
     }
   });
+}
+
+void Service::start()
+{
+  auto& inet = net::Super_stack::get<net::IP4>(0);
+  inet.on_config(
+    [] (auto& inet) {
+      begin_http(inet);
+    });
 }

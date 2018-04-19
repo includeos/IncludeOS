@@ -5,6 +5,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 
 set(ARCH i686)
+set(PLATFORM x86_nano)
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 

@@ -76,7 +76,6 @@ set(TEST_SOURCES
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
   ${TEST}/kernel/unit/events_test.cpp
-  ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/memory.cpp
   ${TEST}/kernel/unit/x86_paging.cpp
@@ -133,9 +132,11 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
+  ${TEST}/util/unit/lstack.cpp
 )
 
 set(OS_SOURCES
+  ${SRC}/arch/x86_64/paging.cpp
   ${SRC}/fs/disk.cpp
   ${SRC}/fs/dirent.cpp
   ${SRC}/fs/fat.cpp
@@ -150,7 +151,6 @@ set(OS_SOURCES
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp
   ${SRC}/hw/ps2.cpp
-  ${SRC}/hw/serial.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
   ${SRC}/kernel/events.cpp
@@ -161,7 +161,8 @@ set(OS_SOURCES
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
-  ${SRC}/arch/x86_64/paging.cpp
+  ${SRC}/musl/mmap.cpp
+  ${SRC}/musl/brk.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp
@@ -198,10 +199,7 @@ set(OS_SOURCES
   ${SRC}/net/tcp/tcp.cpp
   ${SRC}/net/tcp/read_buffer.cpp
   ${SRC}/net/tcp/write_queue.cpp
-  ${SRC}/posix/fcntl.cpp
   ${SRC}/posix/fd.cpp
-  ${SRC}/posix/sys/select.cpp
-  ${SRC}/posix/arpa/inet.cpp
   ${SRC}/util/async.cpp
   ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
@@ -276,7 +274,6 @@ endif()
 
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
-install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 if (GENERATE_SUPPORT_FILES)
 

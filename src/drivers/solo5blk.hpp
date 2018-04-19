@@ -77,9 +77,6 @@ public:
   Solo5Blk();
 
 private:
-  // stat counters
-  uint32_t* errors;
-  uint32_t* requests;
 };
 
 #endif

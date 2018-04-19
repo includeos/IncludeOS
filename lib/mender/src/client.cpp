@@ -258,7 +258,9 @@ namespace mender {
     // artifact.update() <- this is what liveupdate wants
 
     //artifact.verify();
-    auto& e = artifact.get_update(0);  // returns element with index
+    const auto& blob = artifact.get_update_blob(0);  // returns element with index
+    auto tar = tar::Reader::read(blob.data(), blob.size());
+    const auto& e = *tar.begin();
 
     device_.inventory("artifact_name") = artifact.name();
 

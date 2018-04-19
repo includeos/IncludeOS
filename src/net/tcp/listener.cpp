@@ -147,7 +147,7 @@ void Listener::close() {
 std::string Listener::to_string() const {
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
-          "[%s] SynQueue (%ld) ", local_.to_string().c_str(), syn_queue_.size());
+          "[%s] SynQueue (%zu) ", local_.to_string().c_str(), syn_queue_.size());
   std::string str(buffer, len);
   // add syn queue
   for(auto& conn : syn_queue_)

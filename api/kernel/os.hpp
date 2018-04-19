@@ -175,7 +175,10 @@ public:
   }
 
   /** Total used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept;
+  static size_t heap_usage() noexcept;
+
+  /** Total free heap, as far as the OS knows, in bytes */
+  static size_t heap_avail() noexcept;
 
   /** Attempt to trim the heap end, reducing the size */
   static void heap_trim() noexcept;
@@ -186,9 +189,6 @@ public:
   /** Last used address of the heap **/
   static uintptr_t heap_end() noexcept;
 
-  /** Resize the heap if possible. Return (potentially) new size. **/
-  static uintptr_t resize_heap(size_t size);
-
   /** The maximum last address of the dynamic memory area (heap) */
   static uintptr_t heap_max() noexcept;
 
@@ -196,6 +196,8 @@ public:
   static uintptr_t memory_end() noexcept {
     return memory_end_;
   }
+
+  static void init_heap(uintptr_t phys_begin, size_t size) noexcept;
 
   /**
    *  Returns true when the current OS comes from a live update,
@@ -271,8 +273,10 @@ private:
   static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
-  static uintptr_t memory_end_;
+  static uintptr_t heap_begin_;
+  static uintptr_t heap_end_;
   static uintptr_t heap_max_;
+  static uintptr_t memory_end_;
   static const uintptr_t elf_binary_size_;
   static const char* cmdline;
   static Panic_action panic_action_;

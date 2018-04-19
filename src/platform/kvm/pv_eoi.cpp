@@ -1,6 +1,6 @@
 #include <kprint>
 #include <cstdint>
-#include "../x86_pc/cpu.hpp"
+#include <arch/x86/cpu.hpp>
 #include <info>
 
 // *** manual ***

@@ -21,8 +21,8 @@ extern "C" {
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_bss();
   void _init_heap(uintptr_t);
-  void _init_c_runtime();
   void _init_syscalls();
+  void _init_elf_parser();
   uintptr_t _end;
   void set_stack();
   void* get_cpu_ebp();
@@ -46,10 +46,9 @@ extern "C" {
     // XXX: this is dangerous as solo5 might be doing malloc()'s using it's own
     // idea of a heap. Luckily there is no malloc instance at solo5/kernel/[ukvm|virtio|muen],
     // so might be OK (for now).
-    _init_heap(free_mem_begin);
+    OS::init_heap(free_mem_begin, mem_size);
 
-    //Initialize stack-unwinder, call global constructors etc.
-    _init_c_runtime();
+    _init_elf_parser();
 
     // Initialize system calls
     _init_syscalls();

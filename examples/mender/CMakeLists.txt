@@ -10,11 +10,7 @@ include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 project (mender_demo)
 
 set(SERVICE_NAME "IncludeOS Mender Example")
-
 set(BINARY       "mender_demo")
-
-# Maximum memory can be hard-coded into the binary
-set(MAX_MEM 128)
 
 set(SOURCES service.cpp)
 

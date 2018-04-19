@@ -23,7 +23,7 @@ set(SOURCES
     service.cpp
     )
 
-set(PLUGINS syslogd)
+set(PLUGINS syslogd syslog)
 set(DRIVERS virtionet)
 
 # include service build script

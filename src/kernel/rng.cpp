@@ -27,7 +27,7 @@ struct alignas(SMP_ALIGN) rng_state
 {
   uint64_t state[25];
 };
-static SMP_ARRAY<rng_state> rng;
+static SMP::Array<rng_state> rng;
 
 static inline uint64_t rotate_left(uint64_t input, size_t rot) {
   return (input << rot) | (input >> (64-rot));
