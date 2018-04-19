@@ -28,7 +28,7 @@ static constexpr size_t default_max_mem = 2_GiB;
 
 uintptr_t OS::heap_begin_ = 0;
 uintptr_t OS::heap_max_   = default_max_mem;
-uintptr_t OS::memory_end_ = __arch_max_canonical_addr;
+uintptr_t OS::memory_end_ = default_max_mem;
 
 
 size_t OS::heap_usage() noexcept
