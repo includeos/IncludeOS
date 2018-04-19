@@ -38,15 +38,16 @@ long Unix_FD::set_impl_if_needed(const struct sockaddr* addr, socklen_t addrlen)
     impl = &ent;
     return 0;
   }
-  catch (const fs::Err_not_found& e) {
-    printf("no ent: %s\n", e.what());
+  catch (const fs::Err_not_found& /*e*/) {
+    //printf("no ent: %s\n", e.what());
     return -ENOENT;
   }
 }
 
 long Unix_FD::connect(const struct sockaddr* addr, socklen_t addrlen)
 {
-  return set_impl_if_needed(addr, addrlen);
+  auto res = set_impl_if_needed(addr, addrlen);
+  return (res < 0) ? res : impl->connect(addr, addrlen);
 }
 
 ssize_t Unix_FD::sendto(const void* buf, size_t len, int fl,
@@ -59,5 +60,11 @@ ssize_t Unix_FD::sendto(const void* buf, size_t len, int fl,
 
 int Unix_FD::close()
 {
+  if(impl)
+  {
+    auto res = impl->close();
+    impl = nullptr;
+    return res;
+  }
   return 0;
 }

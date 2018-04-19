@@ -38,6 +38,9 @@ add_library(field_medic STATIC
             field_medic/diag.cpp)
 add_dependencies(field_medic PrecompiledLibraries)
 
+add_library(syslog STATIC syslog.cpp)
+add_dependencies(syslog PrecompiledLibraries)
+
 #
 # Installation
 #
@@ -54,4 +57,5 @@ install(TARGETS
     nacl
     vfs
     field_medic
+    syslog
   DESTINATION includeos/${ARCH}/plugins)
