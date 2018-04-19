@@ -97,6 +97,7 @@ namespace openssl
   inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing)
     : m_transport(std::move(t))
   {
+    ERR_clear_error(); // prevent old errors from mucking things up
     this->m_bio_rd = BIO_new(BIO_s_mem());
     this->m_bio_wr = BIO_new(BIO_s_mem());
     assert(ERR_get_error() == 0 && "Initializing BIOs");
@@ -155,6 +156,7 @@ namespace openssl
 
   inline void TLS_stream::tls_read(buffer_t buffer)
   {
+    ERR_clear_error();
     uint8_t* buf = buffer->data();
     int      len = buffer->size();
 
@@ -229,6 +231,7 @@ namespace openssl
 
   inline int TLS_stream::tls_perform_stream_write()
   {
+    ERR_clear_error();
     int pending = BIO_ctrl_pending(this->m_bio_wr);
     //printf("pending: %d\n", pending);
     if (pending > 0)
@@ -252,6 +255,7 @@ namespace openssl
   }
   inline int TLS_stream::tls_perform_handshake()
   {
+    ERR_clear_error(); // prevent old errors from mucking things up
     // will return -1:SSL_ERROR_WANT_WRITE
     int ret = SSL_do_handshake(this->m_ssl);
     int n = this->status(ret);
@@ -275,6 +279,7 @@ namespace openssl
 
   inline void TLS_stream::close()
   {
+    ERR_clear_error();
     m_transport->close();
   }
   inline void TLS_stream::abort()
