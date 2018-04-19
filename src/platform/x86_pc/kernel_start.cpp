@@ -131,9 +131,9 @@ void kernel_start(uint32_t magic, uint32_t addr)
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
     memory_end     = _multiboot_memory_end(addr);
-    kprintf("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
-            free_mem_begin, memory_end);
   }
+  kprintf("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
+          free_mem_begin, memory_end);
 
   kprintf("* Moving symbols. \n");
   // Preserve symbols from the ELF binary
