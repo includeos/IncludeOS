@@ -98,6 +98,8 @@ namespace microLB
 
   struct Balancer {
     Balancer(netstack_t& in, uint16_t port, netstack_t& out);
+    Balancer(netstack_t& in, uint16_t port, netstack_t& out,
+             const std::string& cert, const std::string& key);
     static Balancer* from_config();
 
     int  wait_queue() const;
@@ -125,6 +127,7 @@ namespace microLB
     std::deque<Waiting> queue;
     int throw_retry_timer = -1;
     int throw_counter = 0;
+    void* openssl_data = nullptr;
   };
 
   template <typename... Args>

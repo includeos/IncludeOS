@@ -14,8 +14,8 @@ from vmrunner import vmrunner
 import requests
 
 def validateRequest(expected = ""):
-    response = requests.get('http://10.0.0.68')
-    #print (response.content)
+    response = requests.get('https://10.0.0.68:443', verify=False)
+    print (response.content)
     return (response.content) == expected
 
 # start nodeJS

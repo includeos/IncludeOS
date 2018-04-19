@@ -7,6 +7,7 @@ add_definitions(-DARCH="${ARCH}")
 add_library(microlb STATIC
     micro_lb/autoconf.cpp
     micro_lb/balancer.cpp
+    micro_lb/openssl.cpp
     micro_lb/serialize.cpp
   )
 
@@ -20,6 +21,7 @@ target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api)
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/lib/LiveUpdate)
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/mod/rapidjson/include)
 target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/mod/GSL/)
+target_include_directories(microlb PUBLIC ${OPENSSL_DIR}/include)
 
 install(TARGETS microlb DESTINATION includeos/${ARCH}/lib)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/micro_lb/balancer.hpp DESTINATION includeos/include/micro_lb)
