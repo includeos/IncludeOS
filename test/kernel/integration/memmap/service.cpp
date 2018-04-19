@@ -16,80 +16,55 @@
 // limitations under the License.
 
 #include <os>
-#include <lest/lest.hpp>
+#include <kernel/memory.hpp>
 #include <util/bitops.hpp>
 
-extern "C" uintptr_t heap_begin;
-extern "C" uintptr_t heap_end;
 
 using namespace util;
-
-const lest::test specification[] =
-  {
-    {
-      CASE( "Make sure the heap respects the memory map max" )
-      {
-        auto heap = OS::memory_map().at(heap_begin);
-        EXPECT(heap.addr_start());
-        EXPECT(heap.addr_end() == OS::heap_max());
-        auto* buf = malloc(0x100000);
-        EXPECT(buf);
-        free(buf);
-        EXPECT_NOT(malloc(heap.addr_end()));
-        EXPECT(errno == ENOMEM);
-      }
-    },
-    {
-      SCENARIO ("Using the kernel memory map")
-      {
-        GIVEN ("The kernel map")
-        {
-          auto& map = OS::memory_map();
-          EXPECT(map.size());
-
-          THEN("You can resize the heap as long as it's not full")
-          {
-            auto& heap = map.at(heap_begin);
-            auto original_end = heap.addr_end();
-            EXPECT(original_end == OS::heap_max());
-            auto in_use_prior = bits::roundto(4_KiB, heap.bytes_in_use());
-
-            EXPECT(heap.bytes_in_use() < heap.size());
-
-            // Resize heap to have only 1 MB of free space
-            auto new_size = in_use_prior + 1_MiB;
-            OS::resize_heap(new_size);
-
-            EXPECT(heap.addr_end() == heap.addr_start() + in_use_prior + 1_MiB - 1);
-            EXPECT(heap.addr_end() == OS::heap_max() - 1);
-
-            ptrdiff_t size = 1000;
-            map.assign_range({OS::heap_max(), OS::heap_max() + size - 1, "Custom"});
-
-            for (auto i: map)
-              std::cout << i.second.to_string() << "\n";
-
-            auto capacity = heap.addr_end() - heap.addr_start() + heap.bytes_in_use();
-            EXPECT(capacity > 1_MiB);
-
-            EXPECT_NOT(malloc(2_MiB));
-
-            // Malloc might ask sbrk for more than it needs
-            auto* buf = malloc(500_KiB);
-            EXPECT(buf);
-          }
-        }
-      }
-    }
-  };
-
 
 void Service::start(const std::string&)
 {
   INFO("Memmap", "Testing the kernel memory map");
 
-  auto failed = lest::run(specification, {"-p"});
-  Expects(not failed);
+  auto& map = OS::memory_map();
+  Expects(map.size());
+
+  // Verify that you can't create any overlapping ranges
+  const auto s = map.size();
+  int failed = 0;
+  auto i = 0;
+  for (auto it : map) {
+    try {
+      auto m = it.second;
+      Expects(m.size());
+      int offs   = rand() % m.size() + 1;
+      uintptr_t begin = i++ % 2 ? m.addr_start() + offs : m.addr_start() - offs;
+      uintptr_t end   = begin + offs * 2;
+      Fixed_memory_range rng {begin, end, "Can't work"};
+      map.assign_range(std::move(rng));
+    } catch (const std::exception& e) {
+      failed++;
+    }
+  }
+
+  Expects(failed == s);
+  Expects(map.size() == s);
+
+  // mem::map is using memory_map to keep track of virutal memory
+  // TODO: we might consider consolidating ranges with mappings.
+  auto m = os::mem::map({42_GiB, 42_GiB, os::mem::Access::read, 1_GiB},
+                        "Test range");
+  Expects(m);
+  Expects(map.size() == s + 1);
+
+  auto key = map.in_range(42_GiB);
+  Expects(key == 42_GiB);
+  auto rng = map.at(key);
+  Expects(rng.size() == 1_GiB);
+
+  // TODO: There's an unimplemented map.assign_range(size) to integrate.
+  // auto& given = map.assign_range(5_GiB);
+  // Expects(given.size() == 5_GiB);
 
   INFO("Memmap", "SUCCESS");
 
