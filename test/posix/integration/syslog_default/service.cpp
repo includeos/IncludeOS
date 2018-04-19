@@ -22,14 +22,9 @@
 
 /* For testing IncludeOS */
 #include <syslogd>
-#include <posix/syslog_print_socket.hpp>
 #include <fs/vfs.hpp>
 int main()
 {
-  static Syslog_print_socket syslog_sock_impl;
-  const fs::Path path{"/dev/log"};
-  printf("path: %s\n", path.to_string().c_str());
-  fs::VFS::mount<true, Unix_FD_impl>(path, syslog_sock_impl, "Just a printing syslog");
 	/* ----------- Integration test for the default syslog behavior: printf ----------- */
 
 	/* ------------------------- Testing POSIX syslog ------------------------- */
