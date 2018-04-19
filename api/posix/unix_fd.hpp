@@ -27,7 +27,8 @@ public:
   using Impl = Unix_FD_impl;
   Unix_FD(int id, int type)
     : SockFD(id), type_(type)
-  {}
+  {
+  }
 
   /** SOCKET */
   long    connect(const struct sockaddr *, socklen_t) override;
@@ -36,7 +37,8 @@ public:
   int     close() override;
 private:
   Impl* impl = nullptr;
-  const int type_;
+  const int type_ [[maybe_unused]]; // it's probably gonna be necessary
+                                    // to tell if socket is stream or dgram
 
   long set_impl_if_needed(const struct sockaddr* addr, socklen_t addrlen);
 };
