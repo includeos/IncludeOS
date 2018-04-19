@@ -69,5 +69,7 @@ void Service::start(const std::string&)
   MYINFO ("Running LEST-tests");
   auto failed = lest::run(tests, {"-p"});
   assert(not failed);
-  MYINFO("SUCCESS");
+
+  MYINFO("Part 1 OK. Now throwing whithout try-catch which should panic");
+  throw std::runtime_error("Uncaught exception expecting panic");
 }

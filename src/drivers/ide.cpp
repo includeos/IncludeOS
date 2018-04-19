@@ -26,6 +26,7 @@
 #include <kernel/events.hpp>
 #include <fs/common.hpp>
 #include <arch.hpp>
+#include <inttypes.h>
 
 //#define IDE_DEBUG
 #ifdef IDE_DEBUG
@@ -181,7 +182,7 @@ IDE::IDE(hw::PCI_Device& pcidev, selector_t sel)
   { // 28-bits CHS (MAX_LBA)
     this->num_blocks = (read_array[61] << 16) | read_array[60];
   }
-  INFO("IDE", "%u sectors (%lu bytes)", num_blocks, num_blocks * IDE::SECTOR_SIZE);
+  INFO("IDE", "%" PRIu64 " sectors (%" PRIu64 " bytes)", num_blocks, num_blocks * IDE::SECTOR_SIZE);
   INFO("IDE", "Initialization complete");
 }
 

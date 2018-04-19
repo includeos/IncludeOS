@@ -10,11 +10,14 @@ project(test_file_fd)
 
 set(SERVICE_NAME "File_fd test")
 set(BINARY       "test_file_fd")
-set(MAX_MEM 128)
+
 set(SOURCES
     test_file_fd.cpp
   )
-#set(LOCAL_INCLUDES ".")
+
+set(PLUGINS
+  vfs
+  )
 
 set_property(SOURCE test_file_fd.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-unused-function ")
 

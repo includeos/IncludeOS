@@ -17,6 +17,7 @@
 *.img
 *.img.*
 *.gz
+*.tar
 .DS_Store
 nbproject
 dummy.disk

@@ -255,7 +255,8 @@ namespace net {
     icmp4::Packet res(inet_.ip_packet_factory());
 
     // drop if the packet is too small
-    if (res.ip().capacity() < res.ip().ip_header_length() + res.header_size() + req.payload().size())
+    if (res.ip().capacity() < res.ip().ip_header_length()
+     + (int) res.header_size() + req.payload().size())
     {
       printf("WARNING: Network MTU too small for ICMP response, dropping\n");
       return;

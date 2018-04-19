@@ -36,14 +36,14 @@ struct sysclock_t
   wall_time_t   wall_time   = nullptr;
   tsc_khz_t     tsc_khz     = nullptr;
 };
-static SMP_ARRAY<sysclock_t> vcpu_clock;
+static SMP::Array<sysclock_t> vcpu_clock;
 
 namespace x86
 {
 
   void Clocks::init()
   {
-    if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
+    if (false && CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
     {
       KVM_clock::init();
       PER_CPU(vcpu_clock).system_time = {&KVM_clock::system_time};

@@ -62,9 +62,8 @@ set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_P
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
-set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION ")
-
-set(WARNS "-Wall -Wextra")
+set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE")
+set(WARNS "-Wall -Wextra") # -Werror
 
 # configure options
 option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
@@ -140,11 +139,11 @@ endif()
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "-std=${CPP_VERSION} -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
   set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-std=${CPP_VERSION} -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
   set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
 endif()
 
@@ -179,7 +178,9 @@ if(vmbuild)
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
     BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+     -DINCLUDE_PATH=${CMAKE_INSTALL_PREFIX} # Pass installation folder
+    DEPENDS PrecompiledLibraries
     )
 endif(vmbuild)
 
@@ -201,8 +202,14 @@ if(examples)
 endif(examples)
 
 option(tests "Build unit tests in /test and install lest test framework" OFF)
-if(tests)
+option(lest "Install lest unittest headers" OFF)
+
+if (lest OR tests)
   init_submodule(test/lest)
+  install(DIRECTORY test/lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/includeos/include)
+endif()
+
+if(tests)
   enable_testing()
   ExternalProject_Add(unittests
     PREFIX unittests

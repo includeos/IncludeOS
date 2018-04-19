@@ -4,7 +4,6 @@ set(X86_PC_OBJECTS
   kernel_start.cpp
   platform.cpp
   os.cpp
-  block.cpp
   clocks.cpp
   cmos.cpp
   cmos_clock.cpp

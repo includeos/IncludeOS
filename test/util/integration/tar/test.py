@@ -86,7 +86,7 @@ vm.on_output("Note: Remember to run the bridge creation script for networking to
 
 # Folder l2's header and content (no content)
 vm.on_output("tar_example/l1_f1/l2/ - name of l2", increment_header2)
-vm.on_output("Mode of l2: 0000775", increment_header2)
+vm.on_output("Mode of l2: 000", increment_header2)
 
 # TODO: check for not null
 vm.on_output("Uid of l2: ", increment_header2)
@@ -123,4 +123,4 @@ vm.on_output("tar_example/l1_f2/virtio.hpp Typeflag: 0", increment_element)
 vm.on_output("Something special to close with", check_num_outputs)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(20).clean()
+vm.cmake().boot(30).clean()

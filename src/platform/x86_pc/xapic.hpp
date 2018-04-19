@@ -21,7 +21,7 @@
 
 #include "apic_iface.hpp"
 #include "apic_regs.hpp"
-#include "cpu.hpp"
+#include <arch/x86/cpu.hpp>
 #include <kernel/events.hpp>
 #include <debug>
 #include <info>

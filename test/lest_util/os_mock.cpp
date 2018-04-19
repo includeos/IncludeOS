@@ -61,6 +61,21 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
 const char* service_binary_name__ = "Service binary name";
 const char* service_name__        = "Service name";
 
+extern "C"
+void kprintf(char* format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+}
+
+extern "C"
+void kprint(char* str)
+{
+printf("%s", str);
+}
+
 #include <kernel/os.hpp>
 void OS::start(unsigned, unsigned) {}
 void OS::default_stdout(const char*, size_t) {}
@@ -95,6 +110,14 @@ void SystemLog::set_flags(uint32_t) {}
 /// Kernel ///
 char _binary_apic_boot_bin_end;
 char _binary_apic_boot_bin_start;
+char __plugin_ctors_start;
+char __plugin_ctors_end;
+char __service_ctors_start;
+char __service_ctors_end;
+bool __libc_initialized = true;
+
+
+
 char _ELF_START_;
 char _ELF_END_;
 uintptr_t _MULTIBOOT_START_;
@@ -113,7 +136,6 @@ extern "C" {
 /// C ABI ///
   void _init_c_runtime() {}
   void _init_bss() {}
-  void _init_heap(uintptr_t) {}
 
 #ifdef __MACH__
   void _init() {}
@@ -134,13 +156,16 @@ extern "C" {
     return {0};
   }
   void malloc_trim() {}
+  uintptr_t heap_end = std::numeric_limits<uintptr_t>::max();
 
-  __attribute__((weak))
   void __init_serial1 () {}
-  __attribute__((weak))
+
   void __serial_print1(const char* cstr) {
-    static char __printbuf[4096];
-    snprintf(__printbuf, sizeof(__printbuf), "%s", cstr);
+    printf("<serial print1> %s\n", cstr);
+  }
+
+  void __serial_print(const char* cstr, int len) {
+    printf("<serial print> %.*s", len, cstr);
   }
 } // ~ extern "C"
 

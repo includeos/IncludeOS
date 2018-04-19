@@ -1,7 +1,7 @@
 #include <kprint>
 #include <cstdint>
+#include <arch/x86/cpu.hpp>
 #include "../x86_pc/apic.hpp"
-#include "../x86_pc/cpu.hpp"
 #include <info>
 #include <smp>
 
@@ -24,7 +24,7 @@ struct alignas(SMP_ALIGN) pv_eoi
 {
   uint32_t eoi_word = 0;
 };
-static SMP_ARRAY<pv_eoi> exitless_eoi;
+static SMP::Array<pv_eoi> exitless_eoi;
 
 extern "C"
 void kvm_pv_eoi()

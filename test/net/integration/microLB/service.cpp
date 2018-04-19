@@ -21,4 +21,5 @@
 void Service::start()
 {
   static auto* balancer = microLB::Balancer::from_config();
+  printf("MicroLB ready for test\n");
 }

@@ -16,15 +16,18 @@ set(BINARY       "http_client")
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
+  ../acorn/fs/acorn_fs.cpp
   )
 
 set(DRIVERS
     virtionet
     vmxnet3
     e1000
-    boot_logger
+    #boot_logger
   )
+
+set(PLUGINS vfs)
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
-diskbuilder(certs)
+diskbuilder(disk)

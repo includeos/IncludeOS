@@ -20,10 +20,9 @@
 #include <botan/x509cert.h>
 #include <botan/data_src.h>
 #include <botan/pkcs8.h>
-#include <botan/rng.h>
-#include <botan/system_rng.h>
 #include <botan/pubkey.h>
 #include <botan/hex.h>
+#include <kernel/botan_rng.hpp>
 
 namespace mender {
 
@@ -48,8 +47,8 @@ namespace mender {
   {
     MENDER_INFO("Keystore", "Constructing keystore with the private key itself");
     Botan::DataSource_Memory data{key};
-    private_key_.reset(dynamic_cast<Private_key*>(Botan::PKCS8::load_key(data, Botan::system_rng())));
-    //assert(private_key_->check_key(Botan::system_rng(), true));
+    private_key_.reset(dynamic_cast<Private_key*>(Botan::PKCS8::load_key(data, IncludeOS_RNG::get())));
+    //assert(private_key_->check_key(IncludeOS_RNG::get(), true));
   }
 
   void Keystore::load()
@@ -59,7 +58,7 @@ namespace mender {
     if(buffer)
     {
       Botan::DataSource_Memory data{buffer.data(), buffer.size()};
-      private_key_.reset(dynamic_cast<Private_key*>(Botan::PKCS8::load_key(data, Botan::system_rng())));
+      private_key_.reset(dynamic_cast<Private_key*>(Botan::PKCS8::load_key(data, IncludeOS_RNG::get())));
       MENDER_INFO2("%s\n ... Done.", Botan::PKCS8::PEM_encode(*private_key_).c_str());
     }
     else
@@ -77,7 +76,7 @@ namespace mender {
   void Keystore::generate()
   {
     MENDER_INFO("Keystore", "Generating private key ...");
-    private_key_ = std::make_unique<Private_key>(Botan::system_rng(), 1024);
+    private_key_ = std::make_unique<Private_key>(IncludeOS_RNG::get(), 1024);
     MENDER_INFO2("%s\n ... Done.", Botan::PKCS8::PEM_encode(*private_key_).c_str());
     save();
   }
@@ -93,8 +92,9 @@ namespace mender {
   byte_seq Keystore::sign(const byte_seq& data)
   {
     // https://botan.randombit.net/manual/pubkey.html#signatures
-    Botan::PK_Signer signer(*private_key_, "EMSA3(SHA-256)"); // EMSA3 for backward compability with PKCS1_15
-    auto signature = signer.sign_message((uint8_t*)data.data(), data.size(), Botan::system_rng());
+    // EMSA3 for backward compability with PKCS1_15
+    Botan::PK_Signer signer(*private_key_, IncludeOS_RNG::get(), "EMSA3(SHA-256)");
+    auto signature = signer.sign_message((uint8_t*)data.data(), data.size(), IncludeOS_RNG::get());
     //printf("Sign:\n%s\n", Botan::hex_encode(signature).c_str());
     return signature;
   }

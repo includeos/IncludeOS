@@ -126,9 +126,12 @@ else
 	else
 		dependency_level=build
 	fi
-	echo ">>> Dependencies required:"
-	if ! ./etc/install_dependencies_linux.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
-		missing_dependencies=1
+  if [ $do_packages ]
+  then
+	  echo ">>> Dependencies required:"
+	  if ! ./etc/install_dependencies_linux.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
+		  missing_dependencies=1
+    fi
 	fi
 fi
 

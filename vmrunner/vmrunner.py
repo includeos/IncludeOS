@@ -224,7 +224,7 @@ class ukvm(hypervisor):
     def get_final_output(self):
         return self._proc.communicate()
 
-    def boot(self, multiboot, kernel_args = "", image_name = None):
+    def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
         self._stopped = False
 
         qkvm_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/ukvm-bin"
@@ -239,6 +239,7 @@ class ukvm(hypervisor):
         command += self.drive_arg()
         command += self.net_arg()
         command += [self._image_name]
+        command += [kernel_args]
 
         try:
             self.start_process(command)
@@ -517,7 +518,6 @@ class qemu(hypervisor):
         if self._kvm_present: command.extend(["--enable-kvm"])
 
         command += kernel_args
-
         command += disk_args + debug_args + net_args + mem_arg + mod_args
         command += vga_arg + trace_arg + pci_arg
 

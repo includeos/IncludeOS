@@ -168,7 +168,7 @@ std::vector<Sample> StackSampler::results(int N)
       res.push_back(Sample {sa.second, (void*) func.addr, func.name});
     }
     else {
-      int len = snprintf(buffer, sizeof(buffer), "0x%08x", func.addr);
+      int len = snprintf(buffer, sizeof(buffer), "0x%08zx", func.addr);
       res.push_back(Sample {sa.second, (void*) func.addr, std::string(buffer, len)});
     }
 
@@ -182,14 +182,14 @@ void StackSampler::print(const int N)
   auto samp = results(N);
   int total = samples_total();
 
-  printf("Stack sampling - %d results (%u samples)\n",
+  printf("Stack sampling - %zu results (%d samples)\n",
          samp.size(), total);
   for (auto& sa : samp)
   {
     // percentage of total samples
     float perc = sa.samp / (float)total * 100.0f;
     printf("%5.2f%%  %*u: %.*s\n",
-           perc, 8, sa.samp, sa.name.size(), sa.name.c_str());
+           perc, 8, sa.samp, (int) sa.name.size(), sa.name.c_str());
   }
 }
 
