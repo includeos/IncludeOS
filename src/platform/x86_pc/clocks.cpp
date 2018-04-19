@@ -36,7 +36,7 @@ struct sysclock_t
   wall_time_t   wall_time   = nullptr;
   tsc_khz_t     tsc_khz     = nullptr;
 };
-static SMP_ARRAY<sysclock_t> vcpu_clock;
+static SMP::Array<sysclock_t> vcpu_clock;
 
 namespace x86
 {

@@ -25,9 +25,9 @@
 #include <cstdlib>
 #include <sys/stat.h>
 #include <cassert>
+#include <elf.h>
 
 #include "../api/boot/multiboot.h"
-#include "../api/util/elf.h"
 
 #define GSL_THROW_ON_CONTRACT_VIOLATION
 #include "../api/util/elf_binary.hpp"

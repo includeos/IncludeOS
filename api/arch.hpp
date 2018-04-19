@@ -44,6 +44,9 @@ extern uint64_t __arch_system_time() noexcept;
 extern timespec __arch_wall_clock() noexcept;
 inline uint64_t __arch_cpu_cycles() noexcept;
 
+inline void __arch_hw_barrier() noexcept {
+  __sync_synchronize();
+}
 
 inline void __sw_barrier() noexcept
 {

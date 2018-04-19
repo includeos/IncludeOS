@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <os>
-#include <lest/lest.hpp>
 
 extern int f1_data;
 extern int f2_data;
@@ -25,37 +24,20 @@ extern int my_plugin_functions;
 extern bool example_plugin_registered;
 extern bool example_plugin_run;
 
-
-const lest::test specification[] =
-  {
-    {
-      CASE("Make sure the external example plugin was registered and called")
-      {
-        EXPECT(example_plugin_registered);
-        EXPECT(example_plugin_run);
-      }
-    },
-    {
-      CASE( "Make sure the custom plugin initialization functions were called" )
-      {
-        EXPECT(f1_data == 0xf1);
-        EXPECT(f2_data == 0xf2);
-        EXPECT(f3_data == 0xf3);
-        EXPECT(my_plugin_functions == 3);
-      }
-    }
-  };
-
-
-
-void Service::start(const std::string&)
+void Service::start()
 {
 
   INFO("Plugin test", "Testing the plugin initialization");
 
-  auto failed = lest::run(specification, {"-p"});
-  Expects(not failed);
+  CHECKSERT(example_plugin_registered, "Example plugin registered");
+  CHECKSERT(example_plugin_run, "Example plugin ran");
+
+  INFO("Plugin test", "Make sure the custom plugin initialization functions were called");
+
+  CHECKSERT(f1_data == 0xf1, "f1 data OK");
+  CHECKSERT(f2_data == 0xf2, "f2 data OK");
+  CHECKSERT(f3_data == 0xf3, "f3 data OK");
+  CHECKSERT(my_plugin_functions == 3, "Correct number of function calls");
 
   INFO("Plugin test", "SUCCESS");
-
 }

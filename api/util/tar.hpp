@@ -19,7 +19,7 @@
 #ifndef TAR_HPP
 #define TAR_HPP
 
-#include <posix/tar.h>        // Our posix header has the Tar_header struct, which the newlib tar.h does not
+#include <tar.h>
 #include <tinf.h>             // From uzlib (mod)
 #include <util/crc32.hpp>
 #include <info>
@@ -33,12 +33,52 @@
 extern uint8_t _binary_input_bin_start;
 extern uintptr_t _binary_input_bin_size;
 
+#define LENGTH_NAME 100
+#define LENGTH_MODE 8
+#define LENGTH_UID 8
+#define LENGTH_GID 8
+#define LENGTH_SIZE 12
+#define LENGTH_MTIME 12
+#define LENGTH_CHECKSUM 8
+#define LENGTH_TYPEFLAG 1
+#define LENGTH_LINKNAME 100
+#define LENGTH_MAGIC 6
+#define LENGTH_VERSION 2
+#define LENGTH_UNAME 32
+#define LENGTH_GNAME 32
+#define LENGTH_DEVMAJOR 8
+#define LENGTH_DEVMINOR 8
+#define LENGTH_PREFIX 155
+#define LENGTH_PAD 12
+
+struct Tar_header {
+  char name[LENGTH_NAME];             // Name of header file entry
+  char mode[LENGTH_MODE];             // Permission and mode bits
+  char uid[LENGTH_UID];               // User ID of owner
+  char gid[LENGTH_GID];               // Group ID of owner
+  char size[LENGTH_SIZE];             // File size in bytes (octal base)
+  char mod_time[LENGTH_MTIME];        // Last modification time in numeric Unix time format (octal)
+  char checksum[LENGTH_CHECKSUM];     // Checksum for header record (6 digit octal number with leading zeroes)
+  char typeflag;                      // Type of header entry
+  char linkname[LENGTH_LINKNAME];     // Target name of link
+  char magic[LENGTH_MAGIC];           // Ustar indicator
+  char version[LENGTH_VERSION];       // Ustar version
+  char uname[LENGTH_UNAME];           // User name of owner
+  char gname[LENGTH_GNAME];           // Group name of owner
+  char devmajor[LENGTH_DEVMAJOR];     // Major number of character or block device
+  char devminor[LENGTH_DEVMINOR];     // Minor number of character or block device
+  char prefix[LENGTH_PREFIX];         // Prefix for file name
+  char pad[LENGTH_PAD];
+};
+
 namespace tar {
 
 static const int SECTOR_SIZE = 512;
 static const int DECOMPRESSION_SIZE = 256;
 
 static bool has_uzlib_init = false;
+
+using Tar_data = std::vector<uint8_t>;
 
 // --------------------------- Tar_exception ---------------------------
 
@@ -110,12 +150,19 @@ private:
 class Tar {
 
 public:
+  using Elements = std::vector<Element>;
   Tar() = default;
   int num_elements() const noexcept { return elements_.size(); }
   void add_element(const Element& element) { elements_.push_back(element); }
   const Element& element(const std::string& path) const;
-  const std::vector<Element>& elements() const noexcept { return elements_; }
+  const Elements& elements() const noexcept { return elements_; }
   std::vector<std::string> element_names() const;
+
+  auto begin() const noexcept
+  { return elements_.begin(); }
+
+  auto end() const noexcept
+  { return elements_.end(); }
 
 private:
   std::vector<Element> elements_;
@@ -125,76 +172,41 @@ private:
 // ------------------------------ Reader ------------------------------
 
 class Reader {
-
 public:
-  uint32_t checksum(Element& element) const { return crc32(element.content(), element.size()); }
-
-  unsigned int decompressed_length(const uint8_t* data, size_t size) const;
-
-  Tar read_binary_tar() {
+  static Tar read_tar()
+  {
     const uint8_t* bin_content   = &_binary_input_bin_start;
     const int   bin_size      = (intptr_t) &_binary_input_bin_size;
-
-    return read_uncompressed(bin_content, bin_size);
+    return read(bin_content, bin_size);
   }
 
-  Tar read_binary_tar_gz() {
-    const uint8_t* bin_content  = &_binary_input_bin_start;
-    const int   bin_size     = (intptr_t) &_binary_input_bin_size;
-
+  static Tar_data decompress_tar()
+  {
+    const uint8_t* bin_content   = &_binary_input_bin_start;
+    const int   bin_size      = (intptr_t) &_binary_input_bin_size;
     return decompress(bin_content, bin_size);
   }
+
+  static Tar read(const uint8_t* data, const size_t size);
 
   /**
     dlen is only given if the data is from an Element - see decompress(Element&)
   */
-  Tar decompress(const uint8_t* data, size_t size, unsigned int dlen = 0) {
-    if (!has_uzlib_init) {
-      uzlib_init();
-      has_uzlib_init = true;
-    }
-
-    // If not decompressing an Element:
-    if (dlen == 0)
-      dlen = decompressed_length(data, size);
-
-    TINF_DATA d;
-    d.source = data;
-
-    int res = uzlib_gzip_parse_header(&d);
-
-    if (res != TINF_OK)
-      throw Tar_exception(std::string{"Error parsing header: " + std::to_string(res)});
-
-    uzlib_uncompress_init(&d, NULL, 0);
-
-    auto dest = std::make_unique<unsigned char[]>(dlen);
-
-    d.dest = dest.get();
-
-    // decompress byte by byte or any other length
-    d.destSize = DECOMPRESSION_SIZE;
-
-    // INFO("tar::Reader", "Decompression started - waiting...");
-
-    do {
-      res = uzlib_uncompress_chksum(&d);
-    } while (res == TINF_OK);
-
-    if (res not_eq TINF_DONE)
-      throw Tar_exception(std::string{"Error during decompression. Res: " + std::to_string(res)});
-
-    // INFO("tar::Reader", "Decompressed %d bytes", d.dest - dest.get());
-
-    return read_uncompressed(dest.get(), dlen);
-  }
+  static Tar_data decompress(const uint8_t* data,
+                             const size_t size,
+                             unsigned int dlen = 0);
 
   /* When have a tar.gz file inside a tar file f.ex. */
-  Tar decompress(const Element& element) {
-    return decompress(element.content(), element.size(), decompressed_length(element.content(), element.size()));
+  static Tar_data decompress(const Element& element)
+  {
+    return decompress(element.content(), element.size(),
+      decompressed_length(element.content(), element.size()));
   }
 
-  Tar read_uncompressed(const uint8_t* data, size_t size);
+  static uint32_t checksum(const Element& element)
+  { return crc32(element.content(), element.size()); }
+
+  static unsigned int decompressed_length(const uint8_t* data, const size_t size);
 
 };  // < class Reader
 

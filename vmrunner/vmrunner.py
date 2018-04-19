@@ -518,7 +518,6 @@ class qemu(hypervisor):
         if self._kvm_present: command.extend(["--enable-kvm"])
 
         command += kernel_args
-
         command += disk_args + debug_args + net_args + mem_arg + mod_args
         command += vga_arg + trace_arg + pci_arg
 

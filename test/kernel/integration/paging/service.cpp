@@ -21,9 +21,9 @@
 #include <service>
 #include <cassert>
 #include <iostream>
-#include "../../../../api/kernel/memory.hpp"
-#include "../../../../api/arch/x86_paging.hpp"
-#include "../../../../api/arch/x86_paging_utils.hpp"
+#include <kernel/memory.hpp>
+#include <arch/x86/paging.hpp>
+#include <arch/x86/paging_utils.hpp>
 #include <random>
 #include <vector>
 
@@ -402,6 +402,7 @@ void map_non_aligned(){
 
 int main()
 {
+  void(*heap_code)() = (void(*)()) malloc(42);
 
   Expects(Byte_r{std::numeric_limits<int>::max()}.to_string() == "2.000_GiB");
   Expects(Byte_r{std::numeric_limits<uintptr_t>::max()}.to_string() == "16777216.000_TiB");

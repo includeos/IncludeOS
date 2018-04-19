@@ -30,7 +30,7 @@ extern fiber_jumpstarter
 %define arg5 r8
 %define arg6 r9
 
-;; Preserve caller-saved registers
+;; Preserve callee-saved registers
 %macro PUSHEM 0
     push rbp
     push rbx
@@ -40,7 +40,7 @@ extern fiber_jumpstarter
     push r15
 %endmacro
 
-;; Restore caller-saved registers
+;; Restore callee-saved registers
 %macro POPEM 0
     pop r15
     pop r14

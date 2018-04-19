@@ -13,7 +13,7 @@ struct alignas(SMP_ALIGN) HTTP_server
   // websocket clients
   std::deque<net::WebSocket_ptr> clients;
 };
-static SMP_ARRAY<HTTP_server> httpd;
+static SMP::Array<HTTP_server> httpd;
 
 static net::WebSocket_ptr& new_client(net::WebSocket_ptr socket)
 {
