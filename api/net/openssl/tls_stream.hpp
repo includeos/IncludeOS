@@ -4,7 +4,7 @@
 #include <openssl/ssl.h>
 #include <net/inet4>
 
-#define VERBOSE_OPENSSL
+//#define VERBOSE_OPENSSL
 #ifdef VERBOSE_OPENSSL
 #define TLS_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else

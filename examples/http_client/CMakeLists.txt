@@ -31,5 +31,5 @@ set(PLUGINS
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
-install_certificates(disk)
+install_certificates(disk/certs)
 diskbuilder(disk)
