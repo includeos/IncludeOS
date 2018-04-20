@@ -70,7 +70,6 @@ void init(){
         if(c != '!')
           throw medic::diag::Error("unexpected .tbss value");
       }
-      int i = 0;
       for (auto& i : __tl_data) {
         if (i != 42)
           return false;
