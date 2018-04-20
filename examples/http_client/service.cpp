@@ -17,18 +17,18 @@
 
 #include <memdisk>
 #include <net/openssl/init.hpp>
-#include "../acorn/fs/acorn_fs.hpp"
 
 static SSL_CTX* init_ssl_context()
 {
   auto& disk = fs::memdisk();
-  disk.init_fs([] (auto err, auto&) {
+  disk.init_fs([] (fs::error_t err, auto& fs) {
     assert(!err);
+
+    err = fs.print_subtree("/cert_bundle");
+    assert(err == fs::no_error && "Need certificate bundle folder present");
   });
 
-  acorn::list_static_content(disk.fs());
   auto ents = disk.fs().ls("/cert_bundle");
-
   // initialize client context
   openssl::init();
   return openssl::create_client(ents, true);
