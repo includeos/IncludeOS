@@ -16,7 +16,6 @@ set(BINARY       "http_client")
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
-  ../acorn/fs/acorn_fs.cpp
   )
 
 set(DRIVERS
