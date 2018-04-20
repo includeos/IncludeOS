@@ -28,7 +28,7 @@ tls_load_from_memory(X509_STORE* store,
 {
   auto* cbio = BIO_new_mem_buf(cert_buffer.data(), cert_buffer.size());
   auto* cert = PEM_read_bio_X509(cbio, NULL, 0, NULL);
-  assert(cert != NULL);
+  assert(cert != NULL && "Invalid certificate");
   int res = X509_STORE_add_cert(store, cert);
   assert(res == 1);
   BIO_free(cbio);

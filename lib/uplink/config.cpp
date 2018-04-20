@@ -101,6 +101,11 @@ namespace uplink {
       config_.tag = cfg["tag"].GetString();
     }
 
+    if(cfg.HasMember("certs"))
+    {
+      config_.certs_path = cfg["certs"].GetString();
+    }
+
     return config_;
   }
 
