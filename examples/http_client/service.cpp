@@ -82,6 +82,7 @@ static void begin_http(net::Inet<net::IP4>& inet)
 void Service::start()
 {
   auto& inet = net::Super_stack::get<net::IP4>(0);
+
   inet.on_config(
     [] (auto& inet) {
       begin_http(inet);
