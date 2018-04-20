@@ -1,5 +1,0 @@
-{
-  "vfs": [
-    {"disk": "memdisk", "root": "/mozilla", "mount": "/certs", "description": ""}
-  ]
-}

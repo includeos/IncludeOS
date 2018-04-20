@@ -399,6 +399,11 @@ function(diskbuilder FOLD)
   endif()
 endfunction()
 
+function(install_certificates FOLD)
+  get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  file(COPY ${INSTALL_LOC}/cert_bundle DESTINATION ${REL_PATH})
+endfunction()
+
 if(TARFILE)
   get_filename_component(TAR_RELPATH "${TARFILE}"
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")

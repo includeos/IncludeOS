@@ -7,12 +7,10 @@
       "description" : "The virtual CPU",
       "type"    : "object",
       "properties": {
-        "model" : {
-          "enum" : ["host", "pentium", "qemu64", "kvm64"]
-        },
+        "model" : { "type" : "string" },
         "features" : {
           "type" : "array",
-          "items" : { "enum" : ["xsave", "avx", "aes"] }
+          "items" : { "type" : "string" }
         }
       }
     }

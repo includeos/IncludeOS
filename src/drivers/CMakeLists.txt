@@ -22,6 +22,9 @@ add_library(ide_writeonly STATIC ide.cpp)
 set_target_properties(ide_writeonly PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_WRITE")
 add_dependencies(ide_writeonly PrecompiledLibraries)
 
+add_library(virtiocon STATIC virtiocon.cpp)
+add_dependencies(virtiocon PrecompiledLibraries)
+
 add_library(virtioblk STATIC virtioblk.cpp)
 add_dependencies(virtioblk PrecompiledLibraries)
 
@@ -60,7 +63,7 @@ set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(TARGETS
     default_stdout
     ide_readwrite ide_readonly ide_writeonly
-    virtionet virtioblk
+    virtionet virtioblk virtiocon
     vmxnet3 e1000
     ip4_reassembly
     heap_debugging

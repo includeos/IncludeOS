@@ -28,3 +28,15 @@ if(${ARCH} STREQUAL "x86_64")
   install(FILES ${OPENSSL_LIB_SSL}     DESTINATION includeos/${ARCH}/lib)
   install(DIRECTORY ${OPENSSL_INCLUDE} DESTINATION includeos/${ARCH})
 endif()
+
+ExternalProject_Add(cert_bundle
+        PREFIX cert_bundle
+        URL https://github.com/fwsGonzo/OpenSSL_bundle/releases/download/v1.2/ca_bundle.tar.gz
+        URL_HASH MD5=4596f90b912bea7ad7bd974d10c58efd
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        UPDATE_COMMAND ""
+        INSTALL_COMMAND ""
+)
+set(CERT_BUNDLE_DIR ${CMAKE_CURRENT_BINARY_DIR}/cert_bundle/src/cert_bundle)
+install(DIRECTORY ${CERT_BUNDLE_DIR} DESTINATION includeos/)
