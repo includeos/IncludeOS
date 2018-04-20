@@ -58,6 +58,7 @@ static inline uint16_t bind_port(util::csview scheme, const uint16_t port_from_u
     {"ssh",    22U},
     {"telnet", 23U},
     {"ws",     80U},
+    {"wss",    443U},
     {"xmpp",   5222U},
   };
 
@@ -186,6 +187,10 @@ util::sview URI::scheme() const noexcept {
   return scheme_;
 }
 
+bool URI::scheme_is_secure() const noexcept {
+  return scheme() == "https" or scheme() == "wss";
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 util::sview URI::userinfo() const noexcept {
   return userinfo_;
@@ -270,6 +275,7 @@ URI::operator std::string () const {
 ///////////////////////////////////////////////////////////////////////////////
 URI& URI::operator << (const std::string& chunk) {
   uri_str_.insert(uri_str_.end(), chunk.begin(), chunk.end());
+  parse();
   return *this;
 }
 
