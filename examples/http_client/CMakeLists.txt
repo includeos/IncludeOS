@@ -26,8 +26,11 @@ set(DRIVERS
     #boot_logger
   )
 
-set(PLUGINS vfs)
+set(PLUGINS
+    #vfs
+  )
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
+install_certificates(disk)
 diskbuilder(disk)

@@ -27,7 +27,7 @@ static SSL_CTX* init_ssl_context()
   });
 
   acorn::list_static_content(disk.fs());
-  auto ents = disk.fs().ls("/mozilla");
+  auto ents = disk.fs().ls("/cert_bundle");
 
   // initialize client context
   openssl::init();
