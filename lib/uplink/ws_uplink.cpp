@@ -40,6 +40,35 @@
 #include <system_log>
 #include <isotime>
 
+#include <memdisk>
+#include <net/openssl/init.hpp>
+
+static SSL_CTX* init_ssl_context(const std::string& certs_path)
+{
+  MYINFO("Reading certificates from disk @ %s", certs_path.c_str());
+  auto& disk = fs::memdisk();
+  disk.init_fs([] (auto err, auto&) {
+    Ensures(!err && "Error init filesystem");
+  });
+
+  auto ents = disk.fs().ls(certs_path);
+
+  int files = 0;
+  MYINFO("Scanning files...");
+  for(auto& ent : ents) {
+    if(not ent.is_file())
+      continue;
+    INFO2("%s", ent.name().c_str());
+    files++;
+  }
+
+  Expects(files > 0 && "No files found on disk");
+
+  // initialize client context
+  openssl::init();
+  return openssl::create_client(ents, true);
+}
+
 namespace uplink {
   constexpr std::chrono::seconds WS_uplink::heartbeat_interval;
 
@@ -90,8 +119,23 @@ namespace uplink {
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
     Expects(not config_.url.empty());
 
-    client_ = std::make_unique<http::Basic_client>(inet.tcp(),
-      http::Basic_client::Request_handler{this, &WS_uplink::inject_token});
+    const uri::URI url{config_.url};
+
+    Expects(url.is_valid() && "Invalid URL");
+
+    if(url.scheme() == "https")
+    {
+      auto* ssl_context = init_ssl_context(config_.certs_path);
+      Expects(ssl_context != nullptr && "Secure URL given but no valid certificates found");
+
+      client_ = std::make_unique<http::Client>(inet.tcp(), ssl_context,
+        http::Basic_client::Request_handler{this, &WS_uplink::inject_token});
+    }
+    else
+    {
+      client_ = std::make_unique<http::Basic_client>(inet.tcp(),
+        http::Basic_client::Request_handler{this, &WS_uplink::inject_token});
+    }
 
     auth();
   }

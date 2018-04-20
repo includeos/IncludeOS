@@ -25,12 +25,15 @@
 
 namespace uplink {
 
+  const static std::string default_cert_path{"/certs"};
+
   struct Config
   {
     net::Inet<net::IP4>* inet;
     std::string url;
     std::string token;
     std::string tag;
+    std::string certs_path    = default_cert_path;
     bool        reboot        = true;
     bool        ws_logging    = true;
     bool        serialize_ct  = false;
