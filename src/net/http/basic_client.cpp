@@ -77,7 +77,7 @@ namespace http {
     Expects(cb != nullptr);
 
     // find out if this is a secured request or not
-    const bool secure = (url.scheme() == "https");
+    const bool secure = url.scheme_is_secure();
     validate_secure(secure);
 
     using namespace std;
@@ -158,7 +158,7 @@ namespace http {
                        Options options)
   {
     // find out if this is a secured request or not
-    const bool secure = (url.scheme() == "https");
+    const bool secure = url.scheme_is_secure();
     validate_secure(secure);
 
     using namespace std;

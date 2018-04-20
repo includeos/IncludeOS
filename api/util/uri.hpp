@@ -136,6 +136,13 @@ class URI {
   ///
   util::sview scheme() const noexcept;
 
+  /**
+   * @brief      Check whether the scheme is secure (like https or wss) or not.
+   *
+   * @return     true if secure, false otherwise
+   */
+  bool scheme_is_secure() const noexcept;
+
   ///
   /// Get userinfo.
   ///

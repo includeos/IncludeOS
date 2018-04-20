@@ -43,9 +43,11 @@
 #include <memdisk>
 #include <net/openssl/init.hpp>
 
-static SSL_CTX* init_ssl_context(const std::string& certs_path)
+static SSL_CTX* init_ssl_context(const std::string& certs_path, bool verify)
 {
-  MYINFO("Reading certificates from disk @ %s", certs_path.c_str());
+  MYINFO("Reading certificates from disk @ %s. Verify certs: %s",
+    certs_path.c_str(), verify ? "YES" : "NO");
+
   auto& disk = fs::memdisk();
   disk.init_fs([] (auto err, auto&) {
     Ensures(!err && "Error init filesystem");
@@ -66,7 +68,7 @@ static SSL_CTX* init_ssl_context(const std::string& certs_path)
 
   // initialize client context
   openssl::init();
-  return openssl::create_client(ents, true);
+  return openssl::create_client(ents, verify);
 }
 
 namespace uplink {
@@ -117,15 +119,10 @@ namespace uplink {
       inet.ifname().c_str(), id_.c_str());
 
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
-    Expects(not config_.url.empty());
 
-    const uri::URI url{config_.url};
-
-    Expects(url.is_valid() && "Invalid URL");
-
-    if(url.scheme() == "https")
+    if(config_.url.scheme_is_secure())
     {
-      auto* ssl_context = init_ssl_context(config_.certs_path);
+      auto* ssl_context = init_ssl_context(config_.certs_path, config_.verify_certs);
       Expects(ssl_context != nullptr && "Secure URL given but no valid certificates found");
 
       client_ = std::make_unique<http::Client>(inet.tcp(), ssl_context,
@@ -167,14 +164,14 @@ namespace uplink {
 
   void WS_uplink::auth()
   {
-    std::string url{"http://"};
-    url.append(config_.url).append("/auth");
+    const static std::string endpoint{"/auth"};
 
-    //static const std::string auth_data{"{ \"id\": \"testor\", \"key\": \"kappa123\"}"};
+    uri::URI url{config_.url};
+    url << endpoint;
 
-    MYINFO("[ %s ] Sending auth request to %s", isotime::now().c_str(), url.c_str());
+    MYINFO("[ %s ] Sending auth request to %s", isotime::now().c_str(), url.to_string().c_str());
 
-    client_->post(http::URI{url},
+    client_->post(url,
       { {"Content-Type", "application/json"} },
       auth_data(),
       {this, &WS_uplink::handle_auth_response},
@@ -220,12 +217,17 @@ namespace uplink {
   {
     Expects(not token_.empty() and client_ != nullptr);
 
-    std::string url{"ws://"};
-    url.append(config_.url).append("/dock");
+    const static std::string endpoint{"/dock"};
 
-    MYINFO("[ %s ] Dock attempt to %s", isotime::now().c_str(), url.c_str());
+    // for now, build the websocket url based on the auth url.
+    // maybe this will change in the future, and the ws url will have it's own
+    // entry in the config
+    std::string scheme = (config_.url.scheme_is_secure()) ? "wss://" : "ws://";
+    uri::URI url{scheme + config_.url.host_and_port() + endpoint};
 
-    net::WebSocket::connect(*client_, http::URI{url}, {this, &WS_uplink::establish_ws});
+    MYINFO("[ %s ] Dock attempt to %s", isotime::now().c_str(), url.to_string().c_str());
+
+    net::WebSocket::connect(*client_, url, {this, &WS_uplink::establish_ws});
   }
 
   void WS_uplink::establish_ws(net::WebSocket_ptr ws)
