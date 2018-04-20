@@ -17,18 +17,18 @@
 
 #include <memdisk>
 #include <net/openssl/init.hpp>
-#include "../acorn/fs/acorn_fs.hpp"
 
 static SSL_CTX* init_ssl_context()
 {
   auto& disk = fs::memdisk();
-  disk.init_fs([] (auto err, auto&) {
+  disk.init_fs([] (fs::error_t err, auto& fs) {
     assert(!err);
+
+    err = fs.print_subtree("/certs");
+    assert(err == fs::no_error && "Need certificate bundle folder present");
   });
 
-  acorn::list_static_content(disk.fs());
-  auto ents = disk.fs().ls("/mozilla");
-
+  auto ents = disk.fs().ls("/certs");
   // initialize client context
   openssl::init();
   return openssl::create_client(ents, true);
@@ -42,7 +42,7 @@ static SSL_CTX* init_ssl_context()
 static void begin_http(net::Inet<net::IP4>& inet)
 {
   using namespace http;
-  /*
+
   static Basic_client basic{inet.tcp()};
 
   const std::string url{"http://www.google.com"};
@@ -58,7 +58,7 @@ static void begin_http(net::Inet<net::IP4>& inet)
       printf("Make sure the virtual machine can reach internet.\n");
     }
   });
-  */
+
   auto* ctx = init_ssl_context();
   assert(ctx != nullptr);
 

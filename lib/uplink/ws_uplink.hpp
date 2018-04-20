@@ -23,7 +23,7 @@
 #include "config.hpp"
 
 #include <net/inet4>
-#include <net/http/basic_client.hpp>
+#include <net/http/client.hpp>
 #include <net/ws/websocket.hpp>
 #include <liveupdate.hpp>
 #include <util/timer.hpp>

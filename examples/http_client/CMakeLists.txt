@@ -16,7 +16,6 @@ set(BINARY       "http_client")
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
-  ../acorn/fs/acorn_fs.cpp
   )
 
 set(DRIVERS
@@ -26,8 +25,11 @@ set(DRIVERS
     #boot_logger
   )
 
-set(PLUGINS vfs)
+set(PLUGINS
+    #vfs
+  )
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
+install_certificates(disk/certs)
 diskbuilder(disk)
