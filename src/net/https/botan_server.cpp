@@ -16,11 +16,13 @@
 // limitations under the License.
 
 #include <net/https/botan_server.hpp>
+#include <kernel/botan_rng.hpp>
 #include <botan/data_src.h>
-#include <botan/system_rng.h>
 #include <botan/pkcs8.h>
 
-inline static auto& get_rng() { return Botan::system_rng(); }
+inline static Botan::RandomNumberGenerator& get_rng() {
+  return IncludeOS_RNG::get();
+}
 
 inline std::unique_ptr<Botan::Private_Key> read_pkey(fs::Dirent& key_file)
 {

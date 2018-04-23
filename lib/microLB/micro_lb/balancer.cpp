@@ -31,7 +31,9 @@ namespace microLB
   {
     netin.tcp().listen(in_port,
     [this] (auto conn) {
-      if (conn != nullptr) this->incoming(conn);
+      if (conn != nullptr) {
+        this->incoming(std::make_unique<net::tcp::Stream> (conn));
+      }
     });
 
     this->init_liveupdate();
@@ -48,15 +50,15 @@ namespace microLB
   }
   netstack_t& Balancer::get_nodes_network() noexcept
   {
-    return this->netin;
+    return this->netout;
   }
   const pool_signal_t& Balancer::get_pool_signal() const
   {
     return this->signal;
   }
-  void Balancer::incoming(tcp_ptr conn)
+  void Balancer::incoming(net::Stream_ptr conn)
   {
-      queue.emplace_back(conn);
+      queue.emplace_back(std::move(conn));
       LBOUT("Queueing connection (q=%lu)\n", queue.size());
       // IMPORTANT: try to handle queue, in case its ready
       // don't directly call handle_connections() from here!
@@ -70,7 +72,7 @@ namespace microLB
       auto& client = queue.front();
       if (client.conn->is_connected()) {
         // NOTE: explicitly want to copy buffers
-        if (nodes.assign(client.conn, client.readq)) {
+        if (nodes.assign(std::move(client.conn), client.readq)) {
           queue.pop_front();
         }
       }
@@ -112,8 +114,8 @@ namespace microLB
     } // estimate
   } // handle_connections()
 
-  Waiting::Waiting(tcp_ptr incoming)
-    : conn(incoming), total(0)
+  Waiting::Waiting(net::Stream_ptr incoming)
+    : conn(std::move(incoming)), total(0)
   {
     // queue incoming data from clients not yet
     // assigned to a node
@@ -150,7 +152,7 @@ namespace microLB
       }
     }
   }
-  bool Nodes::assign(tcp_ptr conn, queue_vector_t& readq)
+  bool Nodes::assign(net::Stream_ptr conn, queue_vector_t& readq)
   {
     for (size_t i = 0; i < nodes.size(); i++)
     {
@@ -163,11 +165,12 @@ namespace microLB
         assert(outgoing->is_connected());
         LBOUT("Assigning client to node %d (%s)\n",
               algo_iterator, outgoing->to_string().c_str());
-        this->create_session(not readq.empty(), conn, outgoing);
-        // flush readq
+        auto& session = this->create_session(
+            not readq.empty(), std::move(conn), std::move(outgoing));
+        // flush readq to session.outgoing
         for (auto buffer : readq) {
           LBOUT("*** Flushing %lu bytes\n", buffer->size());
-          outgoing->write(buffer);
+          session.outgoing->write(buffer);
         }
         return true;
       }
@@ -202,21 +205,22 @@ namespace microLB
   int32_t Nodes::timed_out_sessions() const {
     return session_timeouts;
   }
-  void Nodes::create_session(bool talk, tcp_ptr client, tcp_ptr outgoing)
+  Session& Nodes::create_session(bool talk, net::Stream_ptr client, net::Stream_ptr outgoing)
   {
     int idx = -1;
     if (free_sessions.empty()) {
       idx = sessions.size();
-      sessions.emplace_back(*this, idx, talk, client, outgoing);
+      sessions.emplace_back(*this, idx, talk, std::move(client), std::move(outgoing));
     } else {
       idx = free_sessions.back();
-      new (&sessions[idx]) Session(*this, idx, talk, client, outgoing);
+      new (&sessions[idx]) Session(*this, idx, talk, std::move(client), std::move(outgoing));
       free_sessions.pop_back();
     }
     session_total++;
     session_cnt++;
     LBOUT("New session %d  (current = %d, total = %ld)\n",
           idx, session_cnt, session_total);
+    return sessions[idx];
   }
   Session& Nodes::get_session(int idx)
   {
@@ -264,7 +268,7 @@ namespace microLB
         if (conn != nullptr)
         {
           // hopefully put this to good use
-          pool.push_back(conn);
+          pool.push_back(std::make_unique<net::tcp::Stream>(conn));
           // stop any active check
           this->stop_active_check();
           // signal change in pool
@@ -337,7 +341,7 @@ namespace microLB
       {
         LBOUT("Connected to %s  (%ld total)\n",
                 addr.to_string().c_str(), pool.size());
-        this->pool.push_back(conn);
+        this->pool.push_back(std::make_unique<net::tcp::Stream>(conn));
         // stop any active check
         this->stop_active_check();
       }
@@ -348,10 +352,10 @@ namespace microLB
       this->pool_signal();
     });
   }
-  tcp_ptr Node::get_connection()
+  net::Stream_ptr Node::get_connection()
   {
     while (pool.empty() == false) {
-        auto conn = pool.back();
+        auto conn = std::move(pool.back());
         assert(conn != nullptr);
         pool.pop_back();
         if (conn->is_connected()) return conn;
@@ -361,8 +365,10 @@ namespace microLB
   }
 
   // use indexing to access Session because std::vector
-  Session::Session(Nodes& n, int idx, bool talk, tcp_ptr inc, tcp_ptr out)
-      : parent(n), self(idx), incoming(inc), outgoing(out)
+  Session::Session(Nodes& n, int idx, bool talk,
+                   net::Stream_ptr inc, net::Stream_ptr out)
+      : parent(n), self(idx), incoming(std::move(inc)),
+                              outgoing(std::move(out))
   {
     // if the client talked before it was assigned a session, use bigger timeout
     auto timeout = (talk) ? ROLLING_SESSION_TIMEOUT : INITIAL_SESSION_TIMEOUT;
@@ -377,10 +383,10 @@ namespace microLB
         this->handle_timeout();
         this->outgoing->write(buf);
     });
-    incoming->on_disconnect(
-    [&nodes = n, idx] (auto conn, auto /*reason*/) mutable {
+    incoming->on_close(
+    [&nodes = n, idx] () {
         nodes.get_session(idx).outgoing->close();
-        conn->close();
+        nodes.get_session(idx).incoming->close();
     });
     outgoing->on_read(READQ_FOR_NODES,
     [this] (auto buf) {
@@ -388,10 +394,10 @@ namespace microLB
         this->handle_timeout();
         this->incoming->write(buf);
     });
-    outgoing->on_disconnect(
-    [&nodes = n, idx] (auto conn, auto /*reason*/) mutable {
+    outgoing->on_close(
+    [&nodes = n, idx] () {
+        nodes.get_session(idx).outgoing->close();
         nodes.get_session(idx).incoming->close();
-        conn->close();
     });
     outgoing->on_close(
     [&nodes = n, idx] () {

@@ -32,7 +32,7 @@ namespace fs {
     device.read(
       0,
       hw::Block_device::on_read_func::make_packed(
-      [this, func] (hw::Block_device::buffer_t data)
+      [func] (hw::Block_device::buffer_t data)
       {
         std::vector<fs::Partition> parts;
 

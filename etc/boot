@@ -219,4 +219,5 @@ if (not has_bootloader):
     vm.boot(timeout = None, multiboot = True, debug = args.debug, kernel_args = " ".join(args.vmargs), image_name = image_name)
 else:
     vm.boot(timeout = None, multiboot = False, debug = args.debug, kernel_args = None, image_name = image_name)
+
 exit(0);

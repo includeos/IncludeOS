@@ -4,6 +4,13 @@
 #include <openssl/ssl.h>
 #include <net/inet>
 
+//#define VERBOSE_OPENSSL
+#ifdef VERBOSE_OPENSSL
+#define TLS_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define TLS_PRINT(fmt, ...) /* fmt */
+#endif
+
 namespace openssl
 {
   struct TLS_stream : public net::Stream
@@ -90,6 +97,7 @@ namespace openssl
   inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing)
     : m_transport(std::move(t))
   {
+    ERR_clear_error(); // prevent old errors from mucking things up
     this->m_bio_rd = BIO_new(BIO_s_mem());
     this->m_bio_wr = BIO_new(BIO_s_mem());
     assert(ERR_get_error() == 0 && "Initializing BIOs");
@@ -148,6 +156,7 @@ namespace openssl
 
   inline void TLS_stream::tls_read(buffer_t buffer)
   {
+    ERR_clear_error();
     uint8_t* buf = buffer->data();
     int      len = buffer->size();
 
@@ -174,6 +183,12 @@ namespace openssl
         }
         else if (status == STATUS_FAIL)
         {
+          if (num < 0) {
+            TLS_PRINT("TLS_stream::SSL_do_handshake() returned %d\n", num);
+            #ifdef VERBOSE_OPENSSL
+              ERR_print_errors_fp(stdout);
+            #endif
+          }
           this->close();
           return;
         }
@@ -216,6 +231,7 @@ namespace openssl
 
   inline int TLS_stream::tls_perform_stream_write()
   {
+    ERR_clear_error();
     int pending = BIO_ctrl_pending(this->m_bio_wr);
     //printf("pending: %d\n", pending);
     if (pending > 0)
@@ -239,6 +255,7 @@ namespace openssl
   }
   inline int TLS_stream::tls_perform_handshake()
   {
+    ERR_clear_error(); // prevent old errors from mucking things up
     // will return -1:SSL_ERROR_WANT_WRITE
     int ret = SSL_do_handshake(this->m_ssl);
     int n = this->status(ret);
@@ -247,10 +264,14 @@ namespace openssl
     {
       do {
         n = tls_perform_stream_write();
+        if (n < 0) {
+          TLS_PRINT("TLS_stream::tls_perform_handshake() stream write failed\n");
+        }
       } while (n > 0);
       return n;
     }
     else {
+      TLS_PRINT("TLS_stream::tls_perform_handshake() returned %d\n", ret);
       this->close();
       return -1;
     }
@@ -258,6 +279,7 @@ namespace openssl
 
   inline void TLS_stream::close()
   {
+    ERR_clear_error();
     m_transport->close();
   }
   inline void TLS_stream::abort()

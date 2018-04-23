@@ -1,7 +1,7 @@
 // -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2016-2018 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,9 +40,21 @@ inline uint32_t rng_extract_uint32()
   return x;
   }
 
-struct RNG
-{
-  static void init();
+
+#include <fs/fd_compatible.hpp>
+class RNG : public FD_compatible {
+public:
+  static RNG& get()
+  {
+    static RNG rng;
+    return rng;
+  }
+
+  void init();
+
+private:
+  RNG() {}
+
 };
 
 

@@ -23,7 +23,7 @@
 #include "config.hpp"
 
 #include <net/inet>
-#include <net/http/basic_client.hpp>
+#include <net/http/client.hpp>
 #include <net/ws/websocket.hpp>
 #include <liveupdate.hpp>
 #include <util/timer.hpp>
@@ -74,7 +74,6 @@ private:
   net::WebSocket_ptr            ws_;
   std::string                   id_;
   std::string                   token_;
-  std::string                   tag_;
   /** Hash for the current running binary
    * (restored during update, none if never updated) */
   std::string                   binary_hash_;

@@ -24,7 +24,7 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
-#include <util/elf.h>
+#include <elf.h>
 #include <arch.hpp>
 
 #if __LP64__
@@ -300,20 +300,6 @@ void print_backtrace()
 
 void Elf::print_info()
 {
-  auto& hdr = elf_header();
-  // program headers
-  auto* phdr = (ElfPhdr*) (ELF_START + hdr.e_phoff);
-  printf("program headers offs=%#lx at phys %p\n", hdr.e_phoff, phdr);
-  // section headers
-  auto* shdr = (ElfShdr*) (ELF_START + hdr.e_shoff);
-  printf("section headers offs=%#lx at phys %p\n", hdr.e_shoff, shdr);
-  for (uint16_t i = 0; i < hdr.e_shnum; i++)
-  {
-    uintptr_t start = ELF_START + shdr[i].sh_offset;
-    uintptr_t end   = start     + shdr[i].sh_size;
-    printf("sh from %#lx to %#lx\n", start, end);
-  }
-
 }
 
 #include <kprint>

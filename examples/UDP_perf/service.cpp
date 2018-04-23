@@ -21,6 +21,7 @@
 #include <profile>
 #include <cstdio>
 #include <timers>
+#include <rtc>
 
 #define CLIENT_PORT 1337
 #define SERVER_PORT 1338
@@ -73,7 +74,7 @@ void init_sample_stats()
     initial_packets_tx = Statman::get().get_by_name("eth0.ethernet.packets_tx").get_uint64();
     prev_packets_rx  = initial_packets_rx;
     prev_packets_tx = initial_packets_tx;
-    first_ts = OS::nanos_since_boot();
+    first_ts = RTC::nanos_now();
     sample_ts = last_ts = first_ts;
     activity_before.reset();
 }
@@ -122,7 +123,7 @@ void send_data(net::UDPSocket& client, net::Inet<net::IP4>& inet) {
         client.sendto(inet.gateway(), NCAT_RECEIVE_PORT, buff.data(), buff.size(), send_cb);
     }
     sample_ts = last_ts;
-    last_ts = OS::nanos_since_boot();
+    last_ts = RTC::nanos_now();
     printf("Done sending data\n");
 }
 void Service::start(const std::string& input) {
@@ -176,7 +177,7 @@ void Service::start(const std::string& input) {
             data_len += data.size();
             data_received = true;
             sample_ts = last_ts;
-            last_ts = OS::nanos_since_boot();
+            last_ts = RTC::nanos_now();
       });
 
       Timers::periodic(5s, 5s,

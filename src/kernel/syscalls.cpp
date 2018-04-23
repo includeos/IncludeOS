@@ -16,19 +16,13 @@
 // limitations under the License.
 
 #include <kernel/syscalls.hpp>
-
-#include <fcntl.h> // open()
-#include <string.h>
-#include <signal.h>
-#include <sys/errno.h>
-#include <sys/stat.h>
 #include <kernel/os.hpp>
 #include <system_log>
-
 #include <statman>
 #include <kprint>
 #include <info>
 #include <smp>
+#include <cstring>
 
 #if defined (UNITTESTS) && !defined(__MACH__)
 #define THROW throw()
@@ -40,75 +34,33 @@
 #define SYSINFO(TEXT, ...) kprintf("%13s ] " TEXT "\n", "[ Kernel", ##__VA_ARGS__)
 
 // Emitted if and only if panic (unrecoverable system wide error) happens
-const char* panic_signature = "\x15\x07\t**** PANIC ****";
+static const char* panic_signature = "\x15\x07\t**** PANIC ****";
+extern uintptr_t heap_begin;
+extern uintptr_t heap_end;
 
-char*   __env[1] {nullptr};
-char**  environ {__env};
-extern "C" {
-  uintptr_t heap_begin;
-  uintptr_t heap_end;
-}
-
-extern "C"
-void abort() {
-  panic("abort() called");
-}
-extern "C"
-void abort_message(const char* fmt, ...)
+extern "C" __attribute__((noreturn))
+void abort_message(const char* format, ...)
 {
-  char buffer[1024];
+  static char abort_buf[2048];
   va_list list;
-  va_start(list, fmt);
-  vsnprintf(buffer, sizeof(buffer), fmt, list);
+  va_start(list, format);
+  vsnprintf(abort_buf, sizeof(abort_buf), format, list);
   va_end(list);
-  panic(buffer);
+  panic(abort_buf);
 }
 
 void _exit(int status) {
-  kprintf("%s",std::string(LINEWIDTH, '=').c_str());
-  kprint("\n");
-  SYSINFO("service exited with status %i", status);
+  SYSINFO("Service exiting with status %d", status);
   default_exit();
   __builtin_unreachable();
 }
 
-void* sbrk(ptrdiff_t incr) {
-  /// NOTE:
-  /// sbrk gets called really early on, before everything else
-  if (UNLIKELY(heap_end + incr > OS::heap_max())) {
-    errno = ENOMEM;
-    return (void*)-1;
-  }
-  auto prev_heap_end = heap_end;
-  heap_end += incr;
-  return (void*) prev_heap_end;
-}
-
-clock_t times(struct tms*) {
-  panic("SYSCALL TIMES Dummy, returning -1");
-  return -1;
-}
-
-int wait(int*) {
-  debug((char*)"SYSCALL WAIT Dummy, returning -1");
-  return -1;
-}
-
-
-int kill(pid_t pid, int sig) THROW {
-  SMP::global_lock();
-  printf("!!! Kill PID: %i, SIG: %i - %s ", pid, sig, strsignal(sig));
-
-  if (sig == 6) {
-    printf("/ ABORT\n");
-  } else {
-    printf("\n");
-  }
-  SMP::global_unlock();
-
-  panic("kill called");
-  errno = ESRCH;
-  return -1;
+extern "C"
+void syscall_SYS_exit_group(int status)
+{
+  SYSINFO("Service exiting with status %d", status);
+  default_exit();
+  __builtin_unreachable();
 }
 
 struct alignas(SMP_ALIGN) context_buffer
@@ -116,7 +68,7 @@ struct alignas(SMP_ALIGN) context_buffer
   std::array<char, 512> buffer;
   int panics = 0;
 };
-static SMP_ARRAY<context_buffer> contexts;
+static SMP::Array<context_buffer> contexts;
 
 size_t get_crash_context_length()
 {
@@ -182,11 +134,11 @@ void panic(const char* why)
 
   // heap info
   typedef unsigned long ulong;
-  uintptr_t heap_total = OS::heap_max() - heap_begin;
+  uintptr_t heap_total = OS::heap_max() - OS::heap_begin();
   fprintf(stderr, "Heap is at: %p / %p  (diff=%lu)\n",
-         (void*) heap_end, (void*) OS::heap_max(), (ulong) (OS::heap_max() - heap_end));
+         (void*) OS::heap_end(), (void*) OS::heap_max(), (ulong) (OS::heap_max() - OS::heap_end()));
   fprintf(stderr, "Heap usage: %lu / %lu Kb\n", // (%.2f%%)\n",
-         (ulong) (heap_end - heap_begin) / 1024,
+         (ulong) (OS::heap_end() - OS::heap_begin()) / 1024,
          (ulong) heap_total / 1024); //, total * 100.0);
 
   print_backtrace();
@@ -252,31 +204,7 @@ void default_exit() {
   __builtin_unreachable();
 }
 
-#if defined(__MACH__)
-#if !defined(__MAC_10_12)
-typedef int clockid_t;
-#endif
-#if !defined(CLOCK_REALTIME)
-#define CLOCK_REALTIME 0
-#endif
-#endif
-
-int clock_gettime(clockid_t clk_id, struct timespec* tp) {
-  if (clk_id == CLOCK_REALTIME) {
-    *tp = __arch_wall_clock();
-    return 0;
-  }
-  printf("hmm clock_gettime called, -1\n");
-  return -1;
-}
-int gettimeofday(struct timeval* p, void*) {
-  auto tval = __arch_wall_clock();
-  p->tv_sec  = tval.tv_sec;
-  p->tv_usec = tval.tv_nsec / 1000;
-  return 0;
-}
-
-extern "C" void _init_syscalls();
+extern "C"
 void _init_syscalls()
 {
   // make sure each buffer is zero length so it won't always show up in crashes

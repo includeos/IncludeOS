@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <malloc.h> // mallinfo()
 #include <sched.h>
+bool __libc_initialized = true;
 
 void OS::event_loop()
 {
@@ -98,6 +99,12 @@ void OS::start(char* cmdline, uintptr_t)
   using namespace std::chrono;
   OS::cpu_khz_ = decltype(OS::cpu_freq()) {3000000ul};
   OS::cmdline = cmdline;
+}
+
+// stdout
+void OS::default_stdout(const char* text, size_t len)
+{
+  write(STDOUT_FILENO, text, len);
 }
 
 // system_log has no place on Linux because stdout goes --> pipe

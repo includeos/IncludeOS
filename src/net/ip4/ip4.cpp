@@ -105,7 +105,7 @@ namespace net {
       or local_ip() == ADDR_ANY;
   }
 
-  void IP4::receive(Packet_ptr pckt, const bool link_bcast)
+  void IP4::receive(Packet_ptr pckt, const bool /*link_bcast*/)
   {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));

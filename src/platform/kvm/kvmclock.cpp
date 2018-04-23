@@ -1,5 +1,5 @@
 #include "kvmclock.hpp"
-#include "../x86_pc/cpu.hpp"
+#include <arch/x86/cpu.hpp>
 #include <util/units.hpp>
 #include <kernel/os.hpp>
 #include <cstdio>
@@ -21,7 +21,7 @@ struct alignas(4096) pvclock_vcpu_time_info {
 	unsigned char flags;
 	unsigned char pad[2];
 }__attribute__((packed));
-static SMP_ARRAY<pvclock_vcpu_time_info> vcpu_time;
+static SMP::Array<pvclock_vcpu_time_info> vcpu_time;
 
 struct alignas(4096) pvclock_wall_clock {
 	uint32_t version;

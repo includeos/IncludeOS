@@ -149,8 +149,7 @@ namespace fs
   Dirent FAT::stat(Path path, const Dirent* const start) const
   {
     if (UNLIKELY(path.empty())) {
-      // root doesn't have any stat anyways (except ATTR_VOLUME_ID in FAT)
-      return Dirent(this, INVALID_ENTITY);
+      return Dirent(this, Enttype::DIR, "/", 0);
     }
 
     FS_PRINT("stat_sync: %s\n", path.back().c_str());

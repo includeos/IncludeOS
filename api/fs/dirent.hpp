@@ -98,6 +98,9 @@ namespace fs {
       } //< switch (type)
     }
 
+    const File_system& fs() const noexcept
+    { return *fs_; }
+
     /** Read async **/
     inline void read(uint64_t pos, uint64_t n, on_read_func fn);
 

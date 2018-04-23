@@ -36,7 +36,7 @@ void unik::Client::register_instance(net::Inet& inet, const net::UDP::port_t por
   // Set up an UDP port for receiving UniK heartbeat
   auto& sock = inet.udp().bind(port);
   CHECK(net::Inet::stack<0>().udp().is_bound(sock.local()), "Unik UDP port is bound as expected");
-  sock.on_read([&sock, &inet] (auto addr, auto port, const char* data, size_t len) {
+  sock.on_read([&inet] (auto addr, auto port, const char* data, size_t len) {
 
       static bool registered_with_unik = false;
       static const int max_attempts = 5;

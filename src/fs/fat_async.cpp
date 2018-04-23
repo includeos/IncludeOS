@@ -226,9 +226,8 @@ namespace fs
   {
     // manual lookup
     if (UNLIKELY(path->empty())) {
-      // root doesn't have any stat anyways
       // Note: could use ATTR_VOLUME_ID in FAT
-      func({ error_t::E_NOENT, "Cannot stat root" }, Dirent(this, INVALID_ENTITY, path->to_string()));
+      func(no_error, Dirent(this, DIR, "/", 0));
       return;
     }
 

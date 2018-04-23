@@ -21,15 +21,17 @@
 static SSL_CTX* init_ssl_context()
 {
   auto& disk = fs::memdisk();
-  disk.init_fs([] (auto err, auto&) {
+  disk.init_fs([] (fs::error_t err, auto& fs) {
     assert(!err);
+
+    err = fs.print_subtree("/certs");
+    assert(err == fs::no_error && "Need certificate bundle folder present");
   });
 
-  auto ents = disk.fs().ls("/");
-
+  auto ents = disk.fs().ls("/certs");
   // initialize client context
   openssl::init();
-  return openssl::create_client(ents);
+  return openssl::create_client(ents, true);
 }
 
 #include <service>
@@ -37,10 +39,8 @@ static SSL_CTX* init_ssl_context()
 #include <net/super_stack.hpp>
 #include <net/ip4/ip4.hpp>
 
-void Service::start()
+static void begin_http(net::Inet<net::IP4>& inet)
 {
-  auto& inet = net::Super_stack::get<net::IP4>(0);
-
   using namespace http;
 
   static Basic_client basic{inet.tcp()};
@@ -77,4 +77,14 @@ void Service::start()
       printf("Make sure the virtual machine can reach internet.\n");
     }
   });
+}
+
+void Service::start()
+{
+  auto& inet = net::Super_stack::get<net::IP4>(0);
+
+  inet.on_config(
+    [] (auto& inet) {
+      begin_http(inet);
+    });
 }

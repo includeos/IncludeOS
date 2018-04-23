@@ -23,16 +23,30 @@ namespace microLB
     assert(CLIENT_PORT > 0 && CLIENT_PORT < 65536);
     // client wait queue limit
     const int CLIENT_WAITQ = clients["waitq_limit"].GetUint();
+    (void) CLIENT_WAITQ;
     // client session limit
     const int CLIENT_SLIMIT = clients["session_limit"].GetUint();
+    (void) CLIENT_SLIMIT;
 
     auto& nodes = obj["nodes"];
     const int NODE_NET = nodes["iface"].GetInt();
     auto& netout = net::Super_stack::get(NODE_NET);
     netout.tcp().set_MSL(15s);
 
-    // create load balancer
-    auto* balancer = new Balancer(netinc, CLIENT_PORT, netout);
+    Balancer* balancer = nullptr;
+
+    if (clients.HasMember("certificate"))
+    {
+      assert(clients.HasMember("key") && "TLS-enabled microLB must also have key");
+      // create TLS over TCP load balancer
+      balancer = new Balancer(netinc, CLIENT_PORT, netout,
+            clients["certificate"].GetString(),
+            clients["key"].GetString());
+    }
+    else {
+      // create TCP load balancer
+      balancer = new Balancer(netinc, CLIENT_PORT, netout);
+    }
 
     auto& nodelist = nodes["list"];
     assert(nodelist.IsArray());

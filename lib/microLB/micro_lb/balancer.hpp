@@ -10,28 +10,28 @@ namespace microLB
   typedef delegate<void()> pool_signal_t;
 
   struct Waiting {
-    Waiting(tcp_ptr);
+    Waiting(net::Stream_ptr);
     Waiting(liu::Restore&, net::TCP&);
     void serialize(liu::Storage&);
 
-    tcp_ptr conn;
+    net::Stream_ptr conn;
     queue_vector_t readq;
     int total = 0;
   };
 
   struct Nodes;
   struct Session {
-    Session(Nodes&, int idx, bool talk, tcp_ptr inc, tcp_ptr out);
+    Session(Nodes&, int idx, bool talk, net::Stream_ptr in, net::Stream_ptr out);
     bool is_alive() const;
     void handle_timeout();
     void timeout(Nodes&);
     void serialize(liu::Storage&);
 
-    Nodes&    parent;
-    const int self;
-    int       timeout_timer;
-    tcp_ptr   incoming;
-    tcp_ptr   outgoing;
+    Nodes&     parent;
+    const int  self;
+    int        timeout_timer;
+    net::Stream_ptr incoming;
+    net::Stream_ptr outgoing;
   };
 
   struct Node {
@@ -46,13 +46,13 @@ namespace microLB
     void    perform_active_check();
     void    stop_active_check();
     void    connect();
-    tcp_ptr get_connection();
+    net::Stream_ptr get_connection();
 
     netstack_t& stack;
   private:
     net::Socket addr;
     const pool_signal_t& pool_signal;
-    std::vector<tcp_ptr> pool;
+    std::vector<net::Stream_ptr> pool;
     bool        active = false;
     int         active_timer = -1;
     signed int  connecting = 0;
@@ -77,9 +77,9 @@ namespace microLB
     template <typename... Args>
     void add_node(Args&&... args);
     void create_connections(int total);
-    bool assign(tcp_ptr, queue_vector_t&);
-    void create_session(bool talk, tcp_ptr inc, tcp_ptr out);
-    void close_session(int, bool timeout = false);
+    bool assign(net::Stream_ptr, queue_vector_t&);
+    Session& create_session(bool talk, net::Stream_ptr inc, net::Stream_ptr out);
+    void     close_session(int, bool timeout = false);
     Session& get_session(int);
 
     void serialize(liu::Storage&);
@@ -98,6 +98,8 @@ namespace microLB
 
   struct Balancer {
     Balancer(netstack_t& in, uint16_t port, netstack_t& out);
+    Balancer(netstack_t& in, uint16_t port, netstack_t& out,
+             const std::string& cert, const std::string& key);
     static Balancer* from_config();
 
     int  wait_queue() const;
@@ -112,7 +114,7 @@ namespace microLB
     const pool_signal_t& get_pool_signal() const;
 
   private:
-    void incoming(tcp_ptr);
+    void incoming(net::Stream_ptr);
     void handle_connections();
     void handle_queue();
     void init_liveupdate();
@@ -125,6 +127,7 @@ namespace microLB
     std::deque<Waiting> queue;
     int throw_retry_timer = -1;
     int throw_counter = 0;
+    void* openssl_data = nullptr;
   };
 
   template <typename... Args>
