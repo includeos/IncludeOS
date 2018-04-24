@@ -164,7 +164,7 @@ static void start_acorn(net::Inet<net::IP4>& inet)
 
 void Service::start()
 {
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
   if (not inet.is_configured())
   {
     inet.on_config(start_acorn);

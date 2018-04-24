@@ -23,7 +23,7 @@
 void Service::start()
 {
   // Get the first IP stack
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
 
   // Print some useful netstats every 30 secs
   using namespace std::chrono;

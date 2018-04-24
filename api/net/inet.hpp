@@ -351,7 +351,7 @@ namespace net {
     const Vip4_list virtual_ips() const noexcept
     { return vip4s_; }
 
-    const Vip6_list virtual_ips() const noexcept
+    const Vip6_list virtual_ip6s() const noexcept
     { return vip6s_; }
 
     /** Check if IP4 address is virtual loopback */
@@ -369,18 +369,18 @@ namespace net {
     }
 
     /** add ip address as virtual loopback */
-    void add_vip(ip4::addr a)
+    void add_vip(IP4::addr a)
     {
       if (not is_loopback(a)) {
-        info("inet", "adding virtual ip address %s", a.to_string().c_str());
+        INFO("inet", "adding virtual ip address %s", a.to_string().c_str());
         vip4s_.emplace_back(a);
       }
     }
 
-    void add_vip(ip6::addr a)
+    void add_vip(IP6::addr a)
     {
       if (not is_loopback(a)) {
-        info("inet", "adding virtual ip6 address %s", a.to_string().c_str());
+        INFO("inet", "adding virtual ip6 address %s", a.to_string().c_str());
         vip6s_.emplace_back(a);
       }
     }
@@ -421,7 +421,7 @@ namespace net {
       if (is_loopback(dest))
         return dest;
 
-      return ip_addr();
+      return ip6_addr();
     }
 
     bool is_valid_source(IP4::addr src)
