@@ -26,6 +26,7 @@
 #include <net/socket.hpp>
 
 namespace net {
+  class Inet4;
   class Stream;
   using Stream_ptr = std::unique_ptr<Stream>;
   /**
@@ -171,6 +172,12 @@ namespace net {
      * Returns the CPU id the Stream originates from
     **/
     virtual int get_cpuid() const noexcept = 0;
+
+    //virtual size_t serialize_to(void*) const = 0;
+
+    virtual int my_virtual_member() {
+      return 0;
+    }
 
     Stream() = default;
     virtual ~Stream() {}

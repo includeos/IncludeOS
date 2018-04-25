@@ -119,6 +119,11 @@ public:
     return m_transport->get_cpuid();
   }
 
+  /** Not implemented **/
+  //size_t serialize_to(void* /*ptr*/) const override {
+  //  throw std::runtime_error("Not implemented");
+  //}
+
 protected:
   void tls_read(buffer_t buf)
   {
