@@ -39,7 +39,7 @@ static SSL_CTX* init_ssl_context()
 #include <net/super_stack.hpp>
 #include <net/ip4/ip4.hpp>
 
-static void begin_http(net::Inet<net::IP4>& inet)
+static void begin_http(net::Inet& inet)
 {
   using namespace http;
 

@@ -33,7 +33,7 @@ struct RemoteServer {
 class IrcServer {
 public:
   using Connection = net::tcp::Connection_ptr;
-  using Network    = net::Inet<net::IP4>;
+  using Network    = net::Inet;
   typedef std::function<const std::string&()> motd_func_t;
 
   IrcServer(

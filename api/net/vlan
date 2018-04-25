@@ -21,6 +21,7 @@
 
 #include <net/vlan_manager.hpp>
 #include <net/super_stack.hpp>
+#include <net/inet>
 #include <config>
 #include <rapidjson/document.h>
 

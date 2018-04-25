@@ -66,37 +66,37 @@ namespace net {
     using Vip4_list = std::vector<IP4::addr>;
     using Vip6_list = std::vector<IP6::addr>;
 
-    std::string ifname()
+    std::string ifname() const
     { return nic_.device_name(); }
 
-    MAC::Addr link_addr()
+    MAC::Addr link_addr() const
     { return nic_.mac(); }
 
-    hw::Nic& nic()
+    hw::Nic& nic() const
     { return nic_; }
 
-    IP4::addr ip_addr()
+    IP4::addr ip_addr() const
     { return ip4_addr_; }
 
-    IP4::addr netmask()
+    IP4::addr netmask() const
     { return netmask_; }
 
-    IP4::addr gateway()
+    IP4::addr gateway() const
     { return gateway_; }
 
-    IP4::addr dns_addr()
+    IP4::addr dns_addr() const
     { return dns_server_; }
 
-    IP4::addr broadcast_addr()
+    IP4::addr broadcast_addr() const
     { return ip4_addr_ | ( ~ netmask_); }
 
-    IP6::addr ip6_addr()
+    IP6::addr ip6_addr() const
     { return ip6_addr_; }
 
-    IP6::addr netmask6()
+    IP6::addr netmask6() const
      { return ip6_prefix_; }
 
-    IP6::addr gateway6()
+    IP6::addr gateway6() const
     { return ip6_gateway_; }
 
     void cache_link_addr(IP4::addr ip, MAC::Addr mac);
@@ -211,7 +211,7 @@ namespace net {
     { return IP_packet_factory{this, &Inet::create_ip_packet}; }
 
     /** MTU retreived from Nic on construction */
-    uint16_t MTU()
+    uint16_t MTU () const
     { return MTU_; }
 
     /**
@@ -230,7 +230,7 @@ namespace net {
     void set_domain_name(std::string domain_name)
     { this->domain_name_ = std::move(domain_name); }
 
-    const std::string& domain_name()
+    const std::string& domain_name() const
     { return this->domain_name_; }
 
     void set_gateway(IP4::addr gateway)
@@ -253,12 +253,12 @@ namespace net {
      */
     void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
 
-    bool is_configured()
+    bool is_configured() const
     {
       return ip4_addr_ != 0;
     }
 
-    bool is_configured_v6()
+    bool is_configured_v6() const
     {
       return ip6_addr_ != IP6::ADDR_ANY;
     }
@@ -284,7 +284,7 @@ namespace net {
                         IP6::addr prefix6 = IP6::ADDR_ANY,
                         IP6::addr gateway6 = IP6::ADDR_ANY);
 
-    virtual void
+    void
     reset_config()
     {
       this->ip4_addr_ = IP4::ADDR_ANY;
@@ -296,7 +296,7 @@ namespace net {
     }
 
     // register a callback for receiving signal on free packet-buffers
-    virtual void
+    void
     on_transmit_queue_available(transmit_avail_delg del) {
       tqa.push_back(del);
     }

@@ -36,7 +36,7 @@ static fs::Disk_ptr disk;
 #include <isotime>
 #include <net/inet>
 
-static void start_acorn(net::Inet<net::IP4>& inet)
+static void start_acorn(net::Inet& inet)
 {
   /** SETUP LOGGER */
   const int LOGBUFFER_LEN = 1024*16;
