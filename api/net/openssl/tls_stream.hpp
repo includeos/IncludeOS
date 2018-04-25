@@ -70,6 +70,12 @@ namespace openssl
       return m_transport->get_cpuid();
     }
 
+    //size_t serialize_to(void*) const override;
+
+    int my_virtual_member() override {
+      return 443;
+    }
+
   private:
     void tls_read(buffer_t);
     int  tls_perform_stream_write();

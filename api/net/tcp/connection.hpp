@@ -375,6 +375,13 @@ public:
 
     int get_cpuid() const noexcept override;
 
+    /*
+    size_t serialize_to(void* p) const override {
+      return tcp->serialize_to(p);
+    }*/
+
+    virtual int my_virtual_member() override { return 42; }
+
     virtual ~Stream() {}
 
   protected:

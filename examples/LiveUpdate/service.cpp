@@ -51,9 +51,7 @@ void Service::start()
   });
 
   openssl::init();
-  printf("Done, verifying RNG\n");
   openssl::verify_rng();
-  printf("Done, creating OpenSSL server\n");
 
   auto* ctx = openssl::create_server(tls_cert, tls_key);
   printf("Done, listening on TCP port\n");
@@ -72,11 +70,9 @@ void Service::start()
             // -->
             strims.push_back(std::unique_ptr<openssl::TLS_stream> (stream));
             // <--
-            /*
             stream->on_read(8192, [] (auto buf) {
               printf("Read: %.*s\n", (int) buf->size(), buf->data());
             });
-            */
           });
           stream->on_close(
           [stream] () {
