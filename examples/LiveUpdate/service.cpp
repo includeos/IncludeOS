@@ -18,7 +18,16 @@
 #include <os>
 #include <net/inet4>
 #include <timers>
+#include <memdisk>
+#include <net/openssl/init.hpp>
+#include <net/openssl/tls_stream.hpp>
 #include "liu.hpp"
+static std::deque<std::unique_ptr<openssl::TLS_stream>> strims;
+
+void save_state(liu::Storage&, const liu::buffer_t*)
+{
+
+}
 
 void Service::start()
 {
@@ -32,5 +41,54 @@ void Service::start()
     printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
 
-  setup_liveupdate_server(inet, 666, nullptr);
+  const char* tls_cert = "/test.pem";
+  const char* tls_key  = "/test.key";
+  const uint16_t tls_port = 12345;
+
+  fs::memdisk().init_fs(
+  [] (auto err, auto&) {
+    assert(!err);
+  });
+
+  openssl::init();
+  printf("Done, verifying RNG\n");
+  openssl::verify_rng();
+  printf("Done, creating OpenSSL server\n");
+
+  auto* ctx = openssl::create_server(tls_cert, tls_key);
+  printf("Done, listening on TCP port\n");
+
+  inet.tcp().listen(tls_port,
+    [ctx] (net::tcp::Connection_ptr conn) {
+      if (conn != nullptr)
+      {
+        auto* stream = new openssl::TLS_stream(
+            ctx,
+            std::make_unique<net::tcp::Stream>(conn)
+        );
+        stream->on_connect(
+          [stream] (auto&) {
+            printf("Connected to %s\n", stream->to_string().c_str());
+            // -->
+            strims.push_back(std::unique_ptr<openssl::TLS_stream> (stream));
+            // <--
+            /*
+            stream->on_read(8192, [] (auto buf) {
+              printf("Read: %.*s\n", (int) buf->size(), buf->data());
+            });
+            */
+          });
+          stream->on_close(
+          [stream] () {
+            delete stream;
+          });
+      }
+    });
+
+  setup_liveupdate_server(inet, 666, save_state);
+}
+
+void Service::ready()
+{
+  printf("Service::ready\n");
 }
