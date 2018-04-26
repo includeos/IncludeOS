@@ -177,6 +177,7 @@ struct Restore
   std::string     as_string() const;
   buffer_t        as_buffer() const;
   Connection_ptr  as_tcp_connection(net::TCP&) const;
+  net::Stream_ptr as_tcp_stream    (net::TCP&) const;
   net::Stream_ptr as_tls_stream(void* ctx, net::Stream_ptr);
 
   template <typename S>

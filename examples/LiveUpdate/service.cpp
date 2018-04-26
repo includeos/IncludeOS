@@ -22,11 +22,53 @@
 #include <net/openssl/init.hpp>
 #include <net/openssl/tls_stream.hpp>
 #include "liu.hpp"
-static std::deque<std::unique_ptr<openssl::TLS_stream>> strims;
+static std::deque<net::Stream_ptr> strims;
+static SSL_CTX* g_ctx = nullptr;
 
-void save_state(liu::Storage&, const liu::buffer_t*)
+static void setup_callbacks(net::Stream& stream)
 {
+  stream.on_read(8192,
+    [] (auto buf) {
+      printf("Read: %.*s\n", (int) buf->size(), buf->data());
+    });
+  stream.on_close(
+    [&stream] () {
+      printf("Stream to %s closed\n", stream.to_string().c_str());
+    });
+}
 
+static void save_state(liu::Storage& store, const liu::buffer_t*)
+{
+  printf("Save state called\n");
+  for (auto& strim : strims)
+  {
+    auto* tls = (openssl::TLS_stream*) strim.get();
+    auto* tcp = dynamic_cast<net::tcp::Stream*> (tls->transport());
+    store.add_connection(1, tcp->tcp());
+
+    store.add_tls_stream(2, *tls);
+  }
+  store.put_marker(3);
+}
+static void resume_state(liu::Restore& thing)
+{
+  printf("Resume state called\n");
+  auto& inet = net::Super_stack::get<net::IP4>(0);
+
+  while (not thing.is_marker())
+  {
+    // restore tcp stream from storage
+    auto tcp_stream = thing.as_tcp_stream(inet.tcp());
+    thing.go_next();
+    // create OpenSSL stream using TCP stream
+    auto tls = thing.as_tls_stream(g_ctx, std::move(tcp_stream));
+    thing.go_next();
+    printf("Restored stream to %s\n", tls->to_string().c_str());
+    // restore callbacks
+    setup_callbacks(*tls);
+    // store stream
+    strims.push_back(std::move(tls));
+  }
 }
 
 void Service::start()
@@ -53,15 +95,15 @@ void Service::start()
   openssl::init();
   openssl::verify_rng();
 
-  auto* ctx = openssl::create_server(tls_cert, tls_key);
+  g_ctx = openssl::create_server(tls_cert, tls_key);
   printf("Done, listening on TCP port\n");
 
   inet.tcp().listen(tls_port,
-    [ctx] (net::tcp::Connection_ptr conn) {
+    [] (net::tcp::Connection_ptr conn) {
       if (conn != nullptr)
       {
         auto* stream = new openssl::TLS_stream(
-            ctx,
+            g_ctx,
             std::make_unique<net::tcp::Stream>(conn)
         );
         stream->on_connect(
@@ -70,9 +112,7 @@ void Service::start()
             // -->
             strims.push_back(std::unique_ptr<openssl::TLS_stream> (stream));
             // <--
-            stream->on_read(8192, [] (auto buf) {
-              printf("Read: %.*s\n", (int) buf->size(), buf->data());
-            });
+            setup_callbacks(*stream);
           });
           stream->on_close(
           [stream] () {
@@ -82,6 +122,7 @@ void Service::start()
     });
 
   setup_liveupdate_server(inet, 666, save_state);
+  liu::LiveUpdate::resume("test", resume_state);
 }
 
 void Service::ready()

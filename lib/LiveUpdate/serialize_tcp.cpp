@@ -303,4 +303,8 @@ namespace liu
   {
     return deserialize_connection(ent->vla, tcp);
   }
+  net::Stream_ptr Restore::as_tcp_stream   (net::TCP& tcp) const
+  {
+    return std::make_unique<net::tcp::Stream> (as_tcp_connection(tcp));
+  }
 }
