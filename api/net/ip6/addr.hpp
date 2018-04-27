@@ -46,16 +46,16 @@ struct Addr {
   Addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2,
        uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
   {
-    i16[0] = htons(a1); i16[1] = htons(a2);
-    i16[2] = htons(b1); i16[3] = htons(b2);
-    i16[4] = htons(c1); i16[5] = htons(c2);
-    i16[6] = htons(d1); i16[7] = htons(d2);
+    i16[7] = a1; i16[6] = a2;
+    i16[5] = b1; i16[4] = b2;
+    i16[3] = c1; i16[2] = c2;
+    i16[1] = d1; i16[0] = d2;
   }
 
   Addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
   {
-    i32[0] = htonl(a); i32[1] = htonl(b);
-    i32[2] = htonl(c); i32[3] = htonl(d);
+    i32[0] = d; i32[1] = c;
+    i32[2] = b; i32[3] = a;
   }
 
   Addr(const Addr& a)
@@ -70,9 +70,9 @@ struct Addr {
     char ipv6_addr[32];
     snprintf(ipv6_addr, sizeof(ipv6_addr),
             "%0x:%0x:%0x:%0x:%0x:%0x:%0x:%0x",
-            ntohs(i16[0]), ntohs(i16[1]), ntohs(i16[2]),
-            ntohs(i16[3]), ntohs(i16[4]), ntohs(i16[5]),
-            ntohs(i16[6]), ntohs(i16[7]));
+            i16[7], i16[6], i16[5],
+            i16[4], i16[3], i16[2],
+            i16[1], i16[0]);
     return ipv6_addr;
   }
 
@@ -152,25 +152,18 @@ struct Addr {
   { return not (*this == other); }
 
   /**
-   * Operator to check for less-than relationship
-   */
-  bool operator<(const Addr other) const noexcept
-  { return i32[3] < other.i32[3] &&
-        i32[2] < other.i32[2] &&
-        i32[1] < other.i32[1] &&
-        i32[0] < other.i32[0]; }
-
-  /**
-   * Operator to check for less-than-or-equal relationship
-   */
-  bool operator<=(const Addr other) const noexcept
-  { return (*this < other or *this == other); }
-
-  /**
    * Operator to check for greater-than relationship
    */
   bool operator>(const Addr other) const noexcept
-  { return not (*this <= other); }
+  {
+      if (i32[3] > other.i32[3]) return true;
+      if (i32[2] > other.i32[2]) return true;
+      if (i32[1] > other.i32[1]) return true;
+      if (i32[0] > other.i32[0]) return true;
+
+      return false;
+  }
+
 
   /**
    * Operator to check for greater-than-or-equal relationship
@@ -179,14 +172,54 @@ struct Addr {
   { return (*this > other or *this == other); }
 
   /**
+   * Operator to check for lesser-than relationship
+   */
+  bool operator<(const Addr other) const noexcept
+  { return not (*this >= other); }
+
+  /**
+   * Operator to check for lesser-than-or-equal relationship
+   */
+  bool operator<=(const Addr other) const noexcept
+  { return (*this < other or *this == other); }
+
+  /**
    * Operator to perform a bitwise-and operation on the given
-   * IPv4 addresses
+   * IPv6 addresses
    */
   Addr operator&(const Addr other) const noexcept
   { return Addr{i32[3] & other.i32[3],
                i32[2] & other.i32[2],
                i32[1] & other.i32[1],
                i32[0] & other.i32[0] }; }
+
+  Addr operator&(uint8_t prefix) const noexcept
+  {
+      int i = 0;
+      uint8_t mask;
+      uint32_t addr[32];
+
+      addr[0] = i32[0];
+      addr[1] = i32[1];
+      addr[2] = i32[2];
+      addr[3] = i32[3];
+
+      if (prefix > 128) {
+          prefix = 128;
+      }
+
+      mask = 128 - prefix;
+      while (mask >= 32) {
+          addr[i++] = 0; 
+          mask -= 32;
+      }
+
+      if (mask != 0) {
+          addr[i] &= (0xFFFFFFFF << mask); 
+      }
+      return Addr { addr[3], addr[2], 
+               addr[1], addr[0] }; 
+  }
 
   Addr operator|(const Addr other) const noexcept
   { return Addr{i32[3] | other.i32[3],

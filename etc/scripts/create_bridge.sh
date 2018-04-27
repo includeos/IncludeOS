@@ -9,6 +9,8 @@ then
   BRIDGE=bridge43
   NETMASK=255.255.255.0
   GATEWAY=10.0.0.1
+  NETMASK6=64
+  GATEWAY6=fe80::e823:fcff:fef4:83e7
 
 elif [ $# -eq 3 ]
 then
@@ -26,6 +28,7 @@ if [ -n "$INCLUDEOS_BRIDGE" ]; then
 fi
 
 echo "    Creating bridge $BRIDGE, netmask $NETMASK, gateway $GATEWAY "
+echo "    ipv6 netmask $NETMASK6, gateway $GATEWAY6 "
 
 # Håreks cool hack:
 # - First two bytes is fixed to "c001" because it's cool
@@ -84,6 +87,7 @@ else
   echo "    Configuring network bridge (requires sudo):"
 
   sudo ifconfig $BRIDGE $GATEWAY netmask $NETMASK up || exit 1
+  sudo ifconfig $BRIDGE inet6 add $GATEWAY6/$NETMASK6
   if uname -s | grep Darwin > /dev/null 2>&1; then
 	sudo ifconfig $BRIDGE ether $HWADDR || exit 1
   else
