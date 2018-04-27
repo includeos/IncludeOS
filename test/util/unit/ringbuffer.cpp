@@ -20,7 +20,7 @@
 
 CASE("A new ringbuffer is empty")
 {
-  RingBuffer rb(1);
+  HeapRingBuffer rb(1);
   EXPECT(rb.capacity() == 1);
 
   EXPECT(rb.free_space() == 1);
@@ -31,7 +31,7 @@ CASE("A new ringbuffer is empty")
 }
 CASE("Adding bytes to ringbuffer")
 {
-  RingBuffer rb(2);
+  HeapRingBuffer rb(2);
 
   int written = rb.write("1", 1);
   EXPECT(written == 1);
@@ -55,7 +55,7 @@ CASE("Adding bytes to ringbuffer")
 }
 CASE("Reading bytes to ringbuffer")
 {
-  RingBuffer rb(2);
+  HeapRingBuffer rb(2);
   int written;
 
   written = rb.write("1", 1);
@@ -90,7 +90,7 @@ CASE("Read Pt.2")
   const char* buffer = "ABCDEFGH";
   const int len = strlen(buffer);
 
-  RingBuffer rb(len);
+  HeapRingBuffer rb(len);
   // advance one position internally
   rb.write("A", 1);
   rb.discard(1);
@@ -104,7 +104,7 @@ CASE("Read Pt.2")
 }
 CASE("We can discard data")
 {
-  RingBuffer rb(10);
+  HeapRingBuffer rb(10);
   int written;
 
   written = rb.write("12345", 5);
@@ -132,7 +132,7 @@ CASE("We can discard data")
 }
 CASE("Discard pt.2")
 {
-  RingBuffer rb(10);
+  HeapRingBuffer rb(10);
   int written;
   written = rb.write("1234567890", 10);
   EXPECT(written == 10);
@@ -174,17 +174,17 @@ CASE("Discard pt.2")
 CASE("Test sequentialize Pt.1")
 {
   {
-    RingBuffer rb(1);
+    HeapRingBuffer rb(1);
     rb.write("A", 1);
     EXPECT(strncmp(rb.sequentialize(), "A", 1) == 0);
   }
   {
-    RingBuffer rb(2);
+    HeapRingBuffer rb(2);
     rb.write("AB", 2);
     EXPECT(strncmp(rb.sequentialize(), "AB", 2) == 0);
   }
   {
-    RingBuffer rb(2);
+    HeapRingBuffer rb(2);
     rb.write("A", 1);
     rb.discard(1);
     rb.write("AB", 2);
@@ -195,7 +195,7 @@ CASE("Test sequentialize Pt.2")
 {
   const char* buffer = "ABCDEFGH";
   const int len = strlen(buffer);
-  RingBuffer rb(len);
+  HeapRingBuffer rb(len);
 
   for (int i = 0; i < len; i++)
   {

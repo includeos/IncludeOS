@@ -22,14 +22,20 @@
 #include <string>
 #include <net/inet>
 #include <net/ip4/ip4.hpp>
+#include <uri>
 
 namespace uplink {
+
+  const static std::string default_cert_path{"/certs"};
 
   struct Config
   {
     net::Inet<net::IP4>* inet;
-    std::string url;
+    uri::URI    url;
     std::string token;
+    std::string tag;
+    std::string certs_path    = default_cert_path;
+    bool        verify_certs  = true;
     bool        reboot        = true;
     bool        ws_logging    = true;
     bool        serialize_ct  = false;

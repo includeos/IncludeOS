@@ -18,7 +18,7 @@
 #ifndef ELF_BINARY_HPP
 #define ELF_BINARY_HPP
 
-#include "elf.h"
+#include <elf.h>
 #include <gsl/gsl>
 #include <stdexcept>
 
@@ -53,7 +53,7 @@ public:
   Elf_binary(Span data)
     : data_{data}
   {
-    validate();
+    Expects(is_ELF());
   }
 
   const Elf_header& elf_header() const;

@@ -104,7 +104,8 @@ namespace CPUID {
       {Feature::PDPE1GB,"PDPE1GB"},
       {Feature::RDTSCP,"RDTSCP"},
       {Feature::LM,"LM"},
-      {Feature::SVM,"SVM"}
+      {Feature::SVM,"SVM"},
+      {Feature::TSC_INV,"TSC_INV"}
   };
 }
 
@@ -202,6 +203,7 @@ namespace
       case Feature::PDPE1GB:      return FeatureInfo { 0x80000001, 0, Register::EDX, 1u << 26 }; // 1 GB Pages
       case Feature::RDTSCP:       return FeatureInfo { 0x80000001, 0, Register::EDX, 1u << 27 }; // RDTSCP and IA32_TSC_AUX
       case Feature::LM:           return FeatureInfo { 0x80000001, 0, Register::EDX, 1u << 29 }; // 64-bit Architecture
+      case Feature::TSC_INV:      return FeatureInfo { 0x80000007, 0, Register::EDX, 1u << 8 };  // Invariant TSC
 
       case Feature::SVM:          return FeatureInfo { 0x80000001, 0, Register::ECX, 1u <<  2 }; // Secure Virtual Machine (AMD-V)
       case Feature::SSE4A:        return FeatureInfo { 0x80000001, 0, Register::ECX, 1u <<  6 }; // SSE4a

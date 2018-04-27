@@ -67,15 +67,7 @@ namespace net
      *
      * @param      stack   The stack
      */
-    DNSClient(Stack& stack)
-      : stack_{stack},
-        socket_(stack.udp().bind()),
-        cache_ttl_{DEFAULT_CACHE_TTL},
-        flush_timer_{{this, &DNSClient::flush_expired}}
-    {
-      // Parse received data on this socket as Responses
-      socket_.on_read({this, &DNSClient::receive_response});
-    }
+    DNSClient(Stack& stack);
 
     /**
      * @brief      Resolve a hostname for an IP4 address with a timeout duration
@@ -155,14 +147,11 @@ namespace net
     static bool is_FQDN(const std::string& hostname)
     { return hostname.find('.') != std::string::npos; }
 
-    ~DNSClient()
-    {
-      socket_.close();
-    }
+    ~DNSClient();
 
   private:
     Stack&                stack_;
-    UDPSocket&            socket_;
+    UDPSocket*            socket_;
     Cache                 cache_;
     std::chrono::seconds  cache_ttl_;
     Timer                 flush_timer_;
@@ -192,6 +181,12 @@ namespace net
      *             Called internally from the flush timer.
      */
     void flush_expired();
+
+    /**
+     * @brief      Bind to a UDP socket which will be used to send requests.
+     *             May only be used when no socket is already bound.
+     */
+    void bind_socket();
 
     /**
      * @brief      Returns a timestamp used when calculating TTL.

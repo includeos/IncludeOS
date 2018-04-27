@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 2.8.9)
+
+# IncludeOS install location
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+endif()
+include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+project (service)
+
+# Human-readable name of your service
+set(SERVICE_NAME "IncludeOS UDP Performance")
+
+# Name of your service binary
+set(BINARY       "udp_perf")
+
+# Source files to be linked with OS library parts to form bootable image
+set(SOURCES
+  service.cpp # ...add more here
+  )
+
+if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
+  set(DRIVERS
+      solo5net     # Virtio networking
+      ip4_reassembly
+    )
+else()
+  set(DRIVERS
+    virtionet
+    vmxnet3
+    ip4_reassembly
+  )
+endif()
+
+# include service build script
+include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)

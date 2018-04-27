@@ -23,7 +23,7 @@
 #include "auth_manager.hpp"
 #include <net/tcp/tcp.hpp>
 #include <string>
-#include <net/http/client.hpp>
+#include <net/http/basic_client.hpp>
 #include <timers>
 #include "state.hpp"
 #include "device.hpp"
@@ -110,7 +110,7 @@ namespace mender {
     // http related
     const std::string server_;
     net::Socket cached_;
-    std::unique_ptr<http::Client> httpclient_;
+    std::unique_ptr<http::Basic_client> httpclient_;
 
     // state related
     friend class state::State;

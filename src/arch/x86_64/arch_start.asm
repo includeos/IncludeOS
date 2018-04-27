@@ -20,12 +20,38 @@ extern kernel_start
 extern __multiboot_magic
 extern __multiboot_addr
 
-%define P4_TAB             0x1000
-%define P3_TAB             0x2000
-%define P2_TAB             0x3000  ;; - 0x7fff
+%define PAGE_SIZE               0x1000
+%define P4_TAB                  0x1000
+%define P3_TAB                  0x2000 ;; - 0x5fff
+%define P2_TAB                  0x100000
+%define STACK_LOCATION          0x200000 - 16
+
+%define IA32_EFER               0xC0000080
+%define IA32_STAR               0xC0000081
+%define IA32_LSTAR              0xc0000082
+%define IA32_FMASK              0xc0000084
+%define IA32_FS_BASE            0xc0000100
+%define IA32_GS_BASE            0xc0000101
+%define IA32_KERNEL_GS_BASE     0xc0000102
+
 %define NUM_P3_ENTRIES     5
 %define NUM_P2_ENTRIES     2560
-%define STACK_LOCATION     0x9D3F0
+
+;; CR0 paging enable bit
+%define PAGING_ENABLE 0x80000000
+;; CR0 Supervisor write-protect enable
+%define SUPER_WP_ENABLE 0x10000
+
+;; Extended Feature Enable Register (MSR)
+%define IA32_EFER_MSR 0xC0000080
+
+;; EFER Longmode bit
+%define LONGMODE_ENABLE 0x100
+;; EFER Execute Disable bit
+%define NX_ENABLE 0x800
+;; EFER Syscall enable bit
+%define SYSCALL_ENABLE 0x1
+
 
 [BITS 32]
 __arch_start:
@@ -80,14 +106,14 @@ __arch_start:
     mov cr4, eax
 
     ;; enable long mode
-    mov ecx, 0xC0000080          ; EFER MSR
+    mov ecx, IA32_EFER_MSR
     rdmsr
-    or  eax, 1 << 8              ; Long Mode bit
+    or  eax, (LONGMODE_ENABLE | NX_ENABLE | SYSCALL_ENABLE)
     wrmsr
 
     ;; enable paging
     mov eax, cr0                 ; Set the A-register to control register 0.
-    or  eax, 1 << 31
+    or  eax, (PAGING_ENABLE | SUPER_WP_ENABLE)
     mov cr0, eax                 ; Set control register 0 to the A-register.
 
     ;; load 64-bit GDT
@@ -110,12 +136,19 @@ long_mode:
     ;; set up new stack for 64-bit
     push rsp
     mov  rsp, STACK_LOCATION
+    push 0
+    push 0
     mov  rbp, rsp
 
     ;; setup temporary smp table
     mov rax, sentinel_table
     mov rdx, 0
-    mov rcx, 0xC0000100 ;; FS BASE
+    mov rcx, IA32_FS_BASE ;; FS BASE
+    wrmsr
+
+    mov ecx, IA32_STAR
+    mov edx, 0x8
+    mov eax, 0x0
     wrmsr
 
     ;; geronimo!

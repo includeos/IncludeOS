@@ -58,6 +58,9 @@ namespace uplink {
     config_.url   = cfg["url"].GetString();
     config_.token = cfg["token"].GetString();
 
+    Expects(config_.url.is_valid() && "Invalid URL given (may have missing scheme)");
+    Expects(not config_.url.scheme().empty() && "Scheme missing in URL (http or https)");
+
     // Decide stack/interface
     if(cfg.HasMember("index"))
     {
@@ -94,6 +97,21 @@ namespace uplink {
     if(cfg.HasMember("serialize_ct"))
     {
       config_.serialize_ct = cfg["serialize_ct"].GetBool();
+    }
+
+    if(cfg.HasMember("tag"))
+    {
+      config_.tag = cfg["tag"].GetString();
+    }
+
+    if(cfg.HasMember("certs"))
+    {
+      config_.certs_path = cfg["certs"].GetString();
+    }
+
+    if(cfg.HasMember("verify"))
+    {
+      config_.verify_certs = cfg["verify"].GetBool();
     }
 
     return config_;

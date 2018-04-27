@@ -15,30 +15,45 @@ from ws4py.client.threadedclient import WebSocketClient
 class DummyClient(WebSocketClient):
     def opened(self):
         self.count = 0
-        print "Opened"
+        print "<test.py> Opened"
 
     def closed(self, code, reason=None):
-        print "Closed down", code, reason
+        print "<test.py> Closed down", code, reason
 
     def received_message(self, m):
+        print "<test.py> received message"
         self.count += 1
         if self.count >= 1000:
             self.close(reason='Bye bye')
 
 def startBenchmark(line):
+    print "<test.py> Starting WS benchmark"
     try:
-        ws = DummyClient('ws://10.0.0.42:8000/', protocols=['http-only', 'chat'])
+        ws = DummyClient('ws://10.0.0.54:8000/', protocols=['http-only', 'chat'])
+        print "<test.py> WS-client connecting"
         ws.connect()
+        print "<test.py> WS-client conneted, doing run_forever"
         ws.run_forever()
+        print "<test.py> Finished running forever"
     except KeyboardInterrupt:
         ws.close()
     return True
+
+
+def start_ws_thread(line):
+    # NOTE: The websocket client is threaded, but it doesn't start a thread until
+    # the handshake is complete, which assumes everything works on IncludeOS' side.
+    # If it doesn't, control is never returned back to vmrunner and it all hangs.
+    print "<test.py> Starting ws client thread"
+    thread.start_new_thread(startBenchmark, (line,))
+    print "<test.py> Thread started, returning to vmrunner"
+
 
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
 # Add custom event for testing server
-vm.on_output("Listening on port 8000", startBenchmark)
+vm.on_output("Listening on port 8000", start_ws_thread)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(20).clean()

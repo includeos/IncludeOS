@@ -16,7 +16,7 @@ extern "C" {
 Solo5Blk::Solo5Blk()
   : hw::Block_device()
 {
-  INFO("Solo5Blk", "Block device with %llu sectors", solo5_blk_sectors());
+  INFO("Solo5Blk", "Block device with %zu sectors", solo5_blk_sectors());
 }
 
 Solo5Blk::block_t Solo5Blk::size() const noexcept {

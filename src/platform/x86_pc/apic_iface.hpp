@@ -19,6 +19,9 @@
 #ifndef X86_APIC_IFACE_HPP
 #define X86_APIC_IFACE_HPP
 
+#include <array>
+#include <cstdint>
+
 namespace x86 {
 
   class IApic {
@@ -36,9 +39,9 @@ namespace x86 {
     virtual void enable() noexcept = 0;
     virtual void smp_enable() noexcept = 0;
 
-    virtual void    eoi() noexcept = 0;
-    virtual uint8_t get_isr() noexcept = 0;
-    virtual uint8_t get_irr() noexcept = 0;
+    virtual void eoi() noexcept = 0;
+    virtual int  get_isr() noexcept = 0;
+    virtual int  get_irr() noexcept = 0;
 
     virtual void ap_init (int id) noexcept = 0;
     virtual void ap_start(int id, uint32_t vec) noexcept = 0;

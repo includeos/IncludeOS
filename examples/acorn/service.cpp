@@ -24,14 +24,14 @@ using namespace acorn;
 using UserBucket     = bucket::Bucket<User>;
 using SquirrelBucket = bucket::Bucket<Squirrel>;
 
-std::shared_ptr<UserBucket>     users;
-std::shared_ptr<SquirrelBucket> squirrels;
+static std::shared_ptr<UserBucket>     users;
+static std::shared_ptr<SquirrelBucket> squirrels;
 
-std::unique_ptr<mana::Server> server_;
-std::unique_ptr<mana::dashboard::Dashboard> dashboard_;
-std::unique_ptr<Logger> logger_;
-
-Disk_ptr disk;
+static std::unique_ptr<mana::Server> server_;
+static std::unique_ptr<mana::dashboard::Dashboard> dashboard_;
+static std::unique_ptr<Logger> logger_;
+// static content from memdisk
+static fs::Disk_ptr disk;
 
 #include <isotime>
 #include <net/inet4>
@@ -61,7 +61,7 @@ static void start_acorn(net::Inet<net::IP4>& inet)
       if (err) panic("Could not mount filesystem...\n");
 
       // only works with synchronous disks (memdisk)
-      list_static_content(disk);
+      list_static_content(fs);
 
       /** BUCKET SETUP */
 

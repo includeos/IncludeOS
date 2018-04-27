@@ -37,6 +37,7 @@ chainloader = INCLUDEOS_HOME + "/includeos/chainloader"
 # (One default vm added at the end)
 vms = []
 
+panic_signature = "\\x15\\x07\\t\*\*\*\* PANIC \*\*\*\*"
 nametag = "<VMRunner>"
 INFO = color.INFO(nametag)
 VERB = bool(os.environ["VERBOSE"]) if "VERBOSE" in os.environ else False
@@ -179,6 +180,137 @@ class hypervisor(object):
     def image_name(self):
         abstract()
 
+    def start_process(self, cmdlist):
+
+        if cmdlist[0] == "sudo": # and have_sudo():
+            print color.WARNING("Running with sudo")
+            self._sudo = True
+
+        # Start a subprocess
+        self._proc = subprocess.Popen(cmdlist,
+                                      stdout = subprocess.PIPE,
+                                      stderr = subprocess.PIPE,
+                                      stdin = subprocess.PIPE)
+
+        return self._proc
+
+
+# Ukvm Hypervisor interface
+class ukvm(hypervisor):
+
+    def __init__(self, config):
+        # config is not yet used for ukvm
+        super(ukvm, self).__init__(config)
+        self._proc = None
+        self._stopped = False
+        self._sudo = False
+        self._image_name = self._config if "image" in self._config else self.name() + " vm"
+
+        # Pretty printing
+        self.info = Logger(color.INFO("<" + type(self).__name__ + ">"))
+
+    def name(self):
+        return "Ukvm"
+
+    def image_name(self):
+        return self._image_name
+
+    def drive_arg(self):
+        return ["--disk=" + INCLUDEOS_HOME + "dummy.disk"]
+
+    def net_arg(self):
+        return ["--net=tap100"]
+
+    def get_final_output(self):
+        return self._proc.communicate()
+
+    def boot(self, multiboot, debug=False, kernel_args = "", image_name = None):
+        self._stopped = False
+
+        qkvm_bin = INCLUDEOS_HOME + "/includeos/x86_64/lib/ukvm-bin"
+
+        # Use provided image name if set, otherwise raise an execption
+        if not image_name:
+            raise Exception("No image name provided as param")
+
+        self._image_name = image_name
+
+        command = ["sudo", qkvm_bin]
+        command += self.drive_arg()
+        command += self.net_arg()
+        command += [self._image_name]
+        command += [kernel_args]
+
+        try:
+            self.start_process(command)
+            self.info("Started process PID ",self._proc.pid)
+        except Exception as e:
+            raise e
+
+    def stop(self):
+
+        signal = "-SIGTERM"
+
+        # Don't try to kill twice
+        if self._stopped:
+            self.wait()
+            return self
+        else:
+            self._stopped = True
+
+        if self._proc and self._proc.poll() == None :
+
+            if not self._sudo:
+                info ("Stopping child process (no sudo required)")
+                self._proc.terminate()
+            else:
+                # Find and terminate all child processes, since parent is "sudo"
+                parent = psutil.Process(self._proc.pid)
+                children = parent.children()
+
+                info ("Stopping", self._image_name, "PID",self._proc.pid, "with", signal)
+
+                for child in children:
+                    info (" + child process ", child.pid)
+
+                    # The process might have gotten an exit status by now so check again to avoid negative exit
+                    if (not self._proc.poll()):
+                        subprocess.call(["sudo", "kill", signal, str(child.pid)])
+
+            # Wait for termination (avoids the need to reset the terminal etc.)
+            self.wait()
+
+        return self
+
+    def wait(self):
+        if (self._proc): self._proc.wait()
+        return self
+
+    def read_until_EOT(self):
+        chars = ""
+
+        while (not self._proc.poll()):
+            char = self._proc.stdout.read(1)
+            if char == chr(4):
+                return chars
+            chars += char
+
+        return chars
+
+
+    def readline(self):
+        if self._proc.poll():
+            raise Exception("Process completed")
+        return self._proc.stdout.readline()
+
+
+    def writeline(self, line):
+        if self._proc.poll():
+            raise Exception("Process completed")
+        return self._proc.stdin.write(line + "\n")
+
+    def poll(self):
+        return self._proc.poll()
 
 # Qemu Hypervisor interface
 class qemu(hypervisor):
@@ -258,26 +390,11 @@ class qemu(hypervisor):
     # Note: if the command failed, we can't know until we have exit status,
     # but we can't wait since we expect no exit. Checking for program start error
     # is therefore deferred to the callee
-    def start_process(self, cmdlist):
-
-        if cmdlist[0] == "sudo": # and have_sudo():
-            print color.WARNING("Running with sudo")
-            self._sudo = True
-
-        # Start a subprocess
-        self._proc = subprocess.Popen(cmdlist,
-                                      stdout = subprocess.PIPE,
-                                      stderr = subprocess.PIPE,
-                                      stdin = subprocess.PIPE)
-        self.info("Started process PID ",self._proc.pid)
-
-        return self._proc
-
 
     def get_final_output(self):
         return self._proc.communicate()
 
-    def boot(self, multiboot, kernel_args = "", image_name = None):
+    def boot(self, multiboot, debug = False, kernel_args = "", image_name = None):
         self._stopped = False
 
         info ("Booting with multiboot:", multiboot, "kernel_args: ", kernel_args, "image_name:", image_name)
@@ -294,6 +411,10 @@ class qemu(hypervisor):
         self._image_name = image_name
 
         disk_args = []
+
+        debug_args = []
+        if debug:
+            debug_args = ["-s"]
 
         # multiboot - e.g. boot with '-kernel' and no bootloader
         if multiboot:
@@ -379,17 +500,26 @@ class qemu(hypervisor):
         if "vga" in self._config:
             vga_arg = ["-vga", str(self._config["vga"])]
 
+        trace_arg = []
+        if "trace" in self._config:
+            trace_arg = ["-trace", "events=" + str(self._config["trace"])]
+
         pci_arg = []
         if "vfio" in self._config:
             pci_arg = ["-device", "vfio-pci,host=" + self._config["vfio"]]
 
+        # custom qemu binary/location
+        qemu_binary = "qemu-system-x86_64"
+        if "qemu" in self._config:
+            qemu_binary = self._config["qemu"]
+
         # TODO: sudo is only required for tap networking and kvm. Check for those.
-        command = ["sudo", "--preserve-env", "qemu-system-x86_64"]
+        command = ["sudo", "--preserve-env", qemu_binary]
         if self._kvm_present: command.extend(["--enable-kvm"])
 
         command += kernel_args
-
-        command += disk_args + net_args + mem_arg + vga_arg + pci_arg + mod_args
+        command += disk_args + debug_args + net_args + mem_arg + mod_args
+        command += vga_arg + trace_arg + pci_arg
 
         #command_str = " ".join(command)
         #command_str.encode('ascii','ignore')
@@ -399,6 +529,7 @@ class qemu(hypervisor):
 
         try:
             self.start_process(command)
+            self.info("Started process PID ",self._proc.pid)
         except Exception as e:
             print self.INFO,"Starting subprocess threw exception:", e
             raise e
@@ -471,7 +602,7 @@ class qemu(hypervisor):
 # VM class
 class vm:
 
-    def __init__(self, config = None, hyper = qemu):
+    def __init__(self, config = None, hyper_name = "qemu"):
 
         self._exit_status = None
         self._exit_msg = ""
@@ -482,8 +613,13 @@ class vm:
         self._on_panic =  self.panic
         self._on_timeout = self.timeout
         self._on_output = {
-            "\\x15\\x07\\t\*\*\*\* PANIC \*\*\*\*" : self._on_panic,
+            panic_signature : self._on_panic,
             "SUCCESS" : self._on_success }
+
+        if hyper_name == "ukvm":
+            hyper = ukvm
+        else:
+            hyper = qemu
 
         # Initialize hypervisor with config
         assert(issubclass(hyper, hypervisor))
@@ -581,8 +717,10 @@ class vm:
         else: self._on_output["SUCCESS"] = callback
         return self
 
-    def on_panic(self, callback):
-        self._on_output["PANIC"] = lambda(line) : [callback(line), self._on_panic(line)]
+    def on_panic(self, callback, do_exit = True):
+        if do_exit:
+            self._on_output[panic_signature] = lambda(line) : [callback(line), self._on_panic(line)]
+        else: self._on_output[panic_signature] = callback
         return self
 
     def on_timeout(self, callback):
@@ -608,7 +746,8 @@ class vm:
     # Make using GNU Make
     def make(self, params = []):
         print INFO, "Building with 'make' (params=" + str(params) + ")"
-        make = ["make"]
+        jobs = os.environ["num_jobs"].split(" ") if "num_jobs" in os.environ else ["-j4"]
+        make = ["make"] + jobs
         make.extend(params)
         cmd(make)
         return self
@@ -644,6 +783,7 @@ class vm:
             cmd(cmake)
 
             # if everything went well, build with make and install
+
             return self.make()
         except Exception as e:
             print "Exception while building: ", e
@@ -693,7 +833,7 @@ class vm:
 
 
     # Boot the VM and start reading output. This is the main event loop.
-    def boot(self, timeout = 60, multiboot = True, kernel_args = "booted with vmrunner", image_name = None):
+    def boot(self, timeout = 60, multiboot = True, debug = False, kernel_args = "booted with vmrunner", image_name = None):
         info ("VM boot, timeout: ", timeout, "multiboot: ", multiboot, "Kernel_args: ", kernel_args, "image_name: ", image_name)
         # This might be a reboot
         self._exit_status = None
@@ -708,7 +848,7 @@ class vm:
 
         # Boot via hypervisor
         try:
-            self._hyper.boot(multiboot, kernel_args, image_name)
+            self._hyper.boot(multiboot, debug, kernel_args, image_name)
         except Exception as err:
             print color.WARNING("Exception raised while booting: ")
             print_exception()

@@ -32,13 +32,13 @@ namespace hw
   {
     return caps[PCI_CAP_ID_MSI];
   }
-  
+
   int PCI_Device::msix_cap()
   {
     return caps[PCI_CAP_ID_MSIX];
   }
-  
-  uint8_t PCI_Device::init_msix()
+
+  void PCI_Device::init_msix()
   {
     assert(this->msix == nullptr);
     // disable intx
@@ -46,25 +46,28 @@ namespace hw
     write16(PCI_CMD_REG, cmd | (1 << 10));
     // enable MSI-X
     this->msix = new msix_t(*this, msix_cap());
-    return msix->vectors();
+    // deallocate if it failed
+    if (this->msix->vectors() == 0) {
+      delete this->msix;
+    }
   }
-  void PCI_Device::setup_msix_vector(uint8_t cpu, uint8_t irq)
+  int PCI_Device::setup_msix_vector(uint8_t cpu, uint8_t irq)
   {
-    msix->setup_vector(cpu, irq);
+    return msix->setup_vector(cpu, irq);
   }
   void PCI_Device::rebalance_msix_vector(uint16_t idx, uint8_t cpu, uint8_t irq)
   {
     msix->redirect_vector(idx, cpu, irq);
   }
-  
+
   void PCI_Device::deactivate_msix()
   {
-    for (int ent = 0; ent < msix->vectors(); ent++) {
+    for (size_t ent = 0; ent < msix->vectors(); ent++) {
         msix->mask_entry(ent);
         msix->zero_entry(ent);
     }
   }
-  
+
   uint8_t PCI_Device::get_msix_vectors()
   {
     if (this->msix == nullptr) return 0;

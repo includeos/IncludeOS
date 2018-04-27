@@ -183,9 +183,9 @@ class Test:
         else:
             print pretty.FAIL_INLINE()
             print pretty.INFO("Process stdout")
-            print pretty.DATA(self.output_[0])
+            print pretty.DATA(self.output_[0].encode('ascii', 'ignore').decode('ascii'))
             print pretty.INFO("Process stderr")
-            print pretty.DATA(self.output_[1])
+            print pretty.DATA(self.output_[1].encode('ascii', 'ignore').decode('ascii'))
 
         return self.proc_.returncode
 

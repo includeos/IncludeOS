@@ -18,7 +18,6 @@
 #ifndef KERNEL_SYSCALLS_HPP
 #define KERNEL_SYSCALLS_HPP
 
-#include <sys/unistd.h>
 #include <sys/types.h>
 
 extern "C" {

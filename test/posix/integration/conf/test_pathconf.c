@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #define PCV(x) print_conf_value(x, #x)
 
@@ -29,6 +30,7 @@ const char* filename = "/etc/passwd";
 static void print_conf_value(int name, const char* sym) {
   errno = 0;
   int fd = open(filename, O_RDONLY);
+  assert(fd > 0);
   if (fd == -1) {
     printf("Couldn't open %s\n", filename);
     exit(1);

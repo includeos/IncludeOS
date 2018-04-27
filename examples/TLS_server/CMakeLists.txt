@@ -38,6 +38,7 @@ endif()
 
 set(PLUGINS
     autoconf  # configuration from config.json
+    vfs
     # ...others
   )
 

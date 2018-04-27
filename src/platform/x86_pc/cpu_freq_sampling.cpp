@@ -20,8 +20,10 @@
 #include "pit.hpp"
 #include <kernel/os.hpp>
 #include <algorithm>
-#include <hertz>
+#include <util/units.hpp>
 #include <vector>
+
+using namespace util::literals;
 
 extern "C"
 const uint16_t _cpu_sampling_freq_divider_ = KHz(x86::PIT::FREQUENCY).count() * 10; // Run 1 KHz  Lowest: 0xffff

@@ -1,0 +1,10 @@
+{
+  "vfs" : [
+    {
+      "disk" : "memdisk",
+      "root" : "/files",
+      "mount" : "/etc",
+      "description" : "test fs"
+    }
+  ]
+}

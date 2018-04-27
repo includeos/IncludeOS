@@ -24,7 +24,7 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
-#include <util/elf.h>
+#include <elf.h>
 #include <arch.hpp>
 
 #if __LP64__
@@ -163,13 +163,13 @@ public:
 
   bool verify_symbols() const {
     uint32_t csum =
-        crc32(symtab.base, symtab.entries * sizeof(ElfSym));
+        crc32_fast(symtab.base, symtab.entries * sizeof(ElfSym));
     if (csum != checksum_syms) {
       printf("ELF symbol tables checksum failed! "
               "(%08x vs %08x)\n", csum, checksum_syms);
       return false;
     }
-    csum = crc32(strtab.base, strtab.size);
+    csum = crc32_fast(strtab.base, strtab.size);
     if (csum != checksum_strs) {
       printf("ELF string tables checksum failed! "
               "(%08x vs %08x)\n", csum, checksum_strs);
@@ -300,20 +300,6 @@ void print_backtrace()
 
 void Elf::print_info()
 {
-  auto& hdr = elf_header();
-  // program headers
-  auto* phdr = (ElfPhdr*) (ELF_START + hdr.e_phoff);
-  printf("program headers offs=%#lx at phys %p\n", hdr.e_phoff, phdr);
-  // section headers
-  auto* shdr = (ElfShdr*) (ELF_START + hdr.e_shoff);
-  printf("section headers offs=%#lx at phys %p\n", hdr.e_shoff, shdr);
-  for (uint16_t i = 0; i < hdr.e_shnum; i++)
-  {
-    uintptr_t start = ELF_START + shdr[i].sh_offset;
-    uintptr_t end   = start     + shdr[i].sh_size;
-    printf("sh from %#lx to %#lx\n", start, end);
-  }
-
 }
 
 #include <kprint>
@@ -376,6 +362,12 @@ int _get_elf_section_datasize(const void* location)
   return hdr.symtab_entries * sizeof(ElfSym) + hdr.strtab_size;
 }
 
+// we unfortunately cannot call crc32_fast directly, as it changes .bss
+extern uint32_t crc32c_sw(uint32_t, const char*, size_t);
+inline uint32_t crc32c(const void* buffer, size_t len) {
+  return ~crc32c_sw(0xFFFFFFFF, (const char*) buffer, len);
+}
+
 extern "C"
 void _move_elf_syms_location(const void* location, void* new_location)
 {
@@ -391,11 +383,11 @@ void _move_elf_syms_location(const void* location, void* new_location)
   // verify CRC sanity check
   const uint32_t temp_hdr = hdr->sanity_check;
   hdr->sanity_check = 0;
-  const uint32_t our_sanity = crc32(hdr, sizeof(elfsyms_header));
+  const uint32_t our_sanity = crc32c(hdr, sizeof(elfsyms_header));
   hdr->sanity_check = temp_hdr;
   if (hdr->sanity_check != our_sanity)
   {
-    kprintf("CRC sanity check failed! "
+    kprintf("ELF syms header CRC failed! "
             "(%08x vs %08x)\n", hdr->sanity_check, our_sanity);
     relocs.entries = 0;
     relocs.strsize = 0;
@@ -404,8 +396,8 @@ void _move_elf_syms_location(const void* location, void* new_location)
 
   // verify separate checksums of symbols and strings
   uint32_t symbsize = hdr->symtab_entries * sizeof(ElfSym);
-  uint32_t csum_syms = crc32((char*) hdr->syms, symbsize);
-  uint32_t csum_strs = crc32((char*) &hdr->syms[hdr->symtab_entries], hdr->strtab_size);
+  uint32_t csum_syms = crc32c(hdr->syms, symbsize);
+  uint32_t csum_strs = crc32c(&hdr->syms[hdr->symtab_entries], hdr->strtab_size);
   if (csum_syms != hdr->checksum_syms || csum_strs != hdr->checksum_strs)
   {
     if (csum_syms != hdr->checksum_syms)
@@ -414,7 +406,7 @@ void _move_elf_syms_location(const void* location, void* new_location)
     if (csum_strs != hdr->checksum_strs)
       kprintf("ELF string tables checksum failed! "
               "(%08x vs %08x)\n", csum_strs, hdr->checksum_strs);
-    uint32_t all = crc32(hdr, sizeof(elfsyms_header) + size);
+    uint32_t all = crc32c(hdr, sizeof(elfsyms_header) + size);
     kprintf("Checksum ELF section: %08x\n", all);
 
     relocs.entries = 0;

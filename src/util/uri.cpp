@@ -26,6 +26,12 @@
 
 namespace uri {
 
+static inline std::vector<char> decoded_vector(util::csview input)
+{
+  auto res = decode(input);
+  return {res.begin(), res.end()};
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 static inline bool icase_equal(util::csview lhs, util::csview rhs) noexcept {
   return (lhs.size() == rhs.size())
@@ -52,6 +58,7 @@ static inline uint16_t bind_port(util::csview scheme, const uint16_t port_from_u
     {"ssh",    22U},
     {"telnet", 23U},
     {"ws",     80U},
+    {"wss",    443U},
     {"xmpp",   5222U},
   };
 
@@ -67,37 +74,37 @@ static inline uint16_t bind_port(util::csview scheme, const uint16_t port_from_u
 ///////////////////////////////////////////////////////////////////////////////
 // copy helper
 ///////////////////////////////////////////////////////////////////////////////
-static inline util::sview updated_copy(const std::string& to_copy,
+static inline util::sview updated_copy(const std::vector<char>& to_copy,
                                        util::csview view,
-                                       const std::string& from_copy)
+                                       const std::vector<char>& from_copy)
 {
   return {to_copy.data() + (view.data() - from_copy.data()), view.size()};
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 URI::URI(const char* uri, const bool parse)
-  : uri_str_{decode(uri)}
+  : uri_str_{decoded_vector(uri)}
 {
   if (parse) this->parse();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 URI::URI(const char* uri, const size_t count, const bool parse)
-  : uri_str_{decode(util::csview{uri, count})}
+  : uri_str_{decoded_vector(util::csview{uri, count})}
 {
   if (parse) this->parse();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 URI::URI(const std::string& uri, const bool parse)
-  : uri_str_{decode(util::csview{uri.data(), uri.length()})}
+  : uri_str_{decoded_vector(util::csview{uri.data(), uri.length()})}
 {
   if (parse) this->parse();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 URI::URI(util::csview uri, const bool parse)
-  : uri_str_{decode(uri)}
+  : uri_str_{decoded_vector(uri)}
 {
   if (parse) this->parse();
 }
@@ -134,7 +141,8 @@ URI::URI(URI&& u) noexcept
   , query_    {u.query_}
   , fragment_ {u.fragment_}
   , query_map_{std::move(u.query_map_)}
-{}
+{
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 URI& URI::operator=(const URI& u) {
@@ -177,6 +185,10 @@ URI& URI::operator=(URI&& u) noexcept {
 ///////////////////////////////////////////////////////////////////////////////
 util::sview URI::scheme() const noexcept {
   return scheme_;
+}
+
+bool URI::scheme_is_secure() const noexcept {
+  return scheme() == "https" or scheme() == "wss";
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -251,18 +263,19 @@ URI::operator bool() const noexcept {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const std::string& URI::to_string() const noexcept {
-  return uri_str_;
+std::string URI::to_string() const {
+  return {uri_str_.begin(), uri_str_.end()};
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 URI::operator std::string () const {
-  return uri_str_;
+  return to_string();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 URI& URI::operator << (const std::string& chunk) {
-  uri_str_.append(chunk);
+  uri_str_.insert(uri_str_.end(), chunk.begin(), chunk.end());
+  parse();
   return *this;
 }
 
@@ -272,11 +285,12 @@ URI& URI::parse() {
   http_parser_url_init(&u);
 
   const auto p = uri_str_.data();
-  const auto result = http_parser_parse_url(p, uri_str_.length(), 0, &u);
+  const auto result = http_parser_parse_url(p, uri_str_.size(), 0, &u);
 
 #ifdef URI_THROW_ON_ERROR
   if (result not_eq 0) {
-    throw URI_error{"Invalid uri: " + uri_str_};
+    std::string uri{uri_str_.begin(), uri_str_.end()};
+    throw URI_error{"Invalid uri: " + uri};
   }
 #endif //< URI_THROW_ON_ERROR
 

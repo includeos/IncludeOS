@@ -29,7 +29,7 @@ namespace mender {
       device_{std::forward<Device>(dev)},
       server_(server),
       cached_{0, port},
-      httpclient_{std::make_unique<http::Client>(tcp)},
+      httpclient_{std::make_unique<http::Basic_client>(tcp)},
       state_(&state::Init::instance()),
       context_({this, &Client::run_state}),
       on_state_store_(nullptr),
@@ -44,7 +44,7 @@ namespace mender {
       device_{std::forward<Device>(dev)},
       server_{socket.address().to_string()},
       cached_(std::move(socket)),
-      httpclient_{std::make_unique<http::Client>(tcp)},
+      httpclient_{std::make_unique<http::Basic_client>(tcp)},
       state_(&state::Init::instance()),
       context_({this, &Client::run_state}),
       on_state_store_(nullptr),
@@ -191,7 +191,8 @@ namespace mender {
       res = std::move(context_.response);
 
     auto uri = parse_update_uri(*res);
-    MENDER_INFO("Client", "Fetching update from: %s", uri.to_string().c_str());
+    MENDER_INFO("Client", "Fetching update from: %s",
+                uri.to_string().c_str());
 
     using namespace http;
 
@@ -204,7 +205,7 @@ namespace mender {
     };
 
     httpclient_->get({cached_.address(), uri.port()},
-      uri.path().to_string() + "?" + uri.query().to_string(),
+      std::string(uri.path()) + "?" + std::string(uri.query()),
       headers, {this, &Client::response_handler});
   }
 
@@ -212,7 +213,7 @@ namespace mender {
   {
     using namespace rapidjson;
     Document d;
-    d.Parse(res.body().to_string().c_str());
+    d.Parse(std::string(res.body()).c_str());
     return http::URI{d["artifact"]["source"]["uri"].GetString()};
   }
 
@@ -247,7 +248,7 @@ namespace mender {
       res = std::move(context_.response);
     assert(res);
 
-    auto data = res->body().to_string();
+    auto data = std::string(res->body());
 
     // Process data:
     Artifact artifact{{data.begin(), data.end()}};
@@ -257,7 +258,9 @@ namespace mender {
     // artifact.update() <- this is what liveupdate wants
 
     //artifact.verify();
-    auto& e = artifact.get_update(0);  // returns element with index
+    const auto& blob = artifact.get_update_blob(0);  // returns element with index
+    auto tar = tar::Reader::read(blob.data(), blob.size());
+    const auto& e = *tar.begin();
 
     device_.inventory("artifact_name") = artifact.name();
 

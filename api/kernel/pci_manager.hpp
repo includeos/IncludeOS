@@ -30,7 +30,7 @@ class PCI_manager {
 public:
   // a <...> driver is constructed from a PCI device,
   //   and returns a unique_ptr to itself
-  using NIC_driver = delegate< std::unique_ptr<hw::Nic> (hw::PCI_Device&) >;
+  using NIC_driver = delegate< std::unique_ptr<hw::Nic> (hw::PCI_Device&, uint16_t) >;
   using Device_vector = std::vector<const hw::PCI_Device*>;
   static void register_nic(uint16_t, uint16_t, NIC_driver);
 

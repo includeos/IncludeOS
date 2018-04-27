@@ -9,6 +9,7 @@ import os
 import sys
 import argparse
 import subprocess
+import re
 
 INCLUDEOS_PREFIX = None
 default_prefix = "/usr/local"
@@ -31,13 +32,19 @@ from vmrunner.prettify import color
 
 # Argparse
 parser = argparse.ArgumentParser(
-  description="IncludeOS vmrunner. Builds and runs an IncludeOS service")
+  description="Boot - Build and run IncludeOS services")
 
 parser.add_argument("-c", "--clean", dest="clean", action="store_true",
                     help="Clean previous build before building")
 
 parser.add_argument("-b", "--build", dest="build", action="store_true", default=False,
                     help="Only build the service, don't start it in a VM")
+
+parser.add_argument("--drivers", dest="list_drivers", action="store_true", default=False,
+                    help="List all available drivers")
+
+parser.add_argument("--plugins", dest="list_plugins", action="store_true", default=False,
+                    help="List all available plugins")
 
 parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=False,
                     help="Verbose output when building")
@@ -54,8 +61,14 @@ parser.add_argument("--grub-reuse", dest="grub_reuse", action="store_true",
 parser.add_argument("-j", "--config", dest="config", type = str, metavar = "PATH",
                     help="Location of VM config file - JSON validated against a schema")
 
-parser.add_argument('vm_location', action="store", type = str,
+parser.add_argument('vm_location', action="store", type = str, default=".",
                     help="Location of the IncludeOS service binary, image or source")
+
+parser.add_argument("-d", "--debug", dest="debug", action="store_true",
+                    help="Start hypervisor in debug mode if available")
+
+parser.add_argument("--with-solo5", dest="solo5", action="store_true",
+                    help="Run includeOS on solo5 kernel with ukvm-bin as monitor")
 
 parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 
@@ -79,10 +92,38 @@ if (args.verbose):
 elif "VERBOSE" in os.environ:
     del os.environ["VERBOSE"]
 
+## list of drivers by processing library filenames
+if (args.list_drivers):
+    if "ARCH" not in os.environ:
+        ARCH = "x86_64"
+    else:
+        ARCH = os.environ["ARCH"]
+    FLD = INCLUDEOS_PREFIX + "/includeos/" + ARCH + "/drivers"
+    print "Listing drivers from " + FLD + "..."
+    for file in os.listdir(FLD):
+        m = re.search('.*lib(.*)\.a', file)
+        line = "=> " + m.group(1) + "\t (" + file + ")"
+        print line.expandtabs(20)
+    exit(0)
+
+## list of plugins by processing library filenames
+if (args.list_plugins):
+    if "ARCH" not in os.environ:
+        ARCH = "x86_64"
+    else:
+        ARCH = os.environ["ARCH"]
+    FLD = INCLUDEOS_PREFIX + "/includeos/" + ARCH + "/plugins"
+    print "Listing plugins from " + FLD + "..."
+    for file in os.listdir(FLD):
+        m = re.search('.*lib(.*)\.a', file)
+        line = "=> " + m.group(1) + "\t (" + file + ")"
+        print line.expandtabs(20)
+    exit(0)
+
+
 # Note: importing vmrunner will make it start looking for VM's
 # vmrunner also relies on the verbose env var to be set on initialization
 from vmrunner import vmrunner
-
 
 # We can boot either a binary without bootloader, or an image with bootloader already attached
 has_bootloader = False
@@ -115,16 +156,30 @@ if args.config:
     config = os.path.abspath(args.config)
     if VERB: print INFO, "Using config file", config
 
-vm = vmrunner.vm(config = config)
+hyper_name = "qemu"
+if args.solo5:
+    hyper_name = "ukvm"
+    os.environ['PLATFORM'] = "x86_solo5"
+    qkvm_bin = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/ukvm-bin"
+
+    subprocess.call(['touch', INCLUDEOS_PREFIX + 'dummy.disk'])
+    subprocess.call(['chmod', '+x', qkvm_bin])
+    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/ukvm-ifup.sh" ])
+
+vm = vmrunner.vm(config = config, hyper_name = hyper_name)
 
 # Don't listen to events needed by testrunner
 vm.on_success(lambda(x): None, do_exit = False)
+vm.on_panic(lambda(x): None, do_exit = False)
 
 file_extension = os.path.splitext(args.vm_location)[1]
 
 if args.clean:
     print INFO, "Cleaning build"
     vm.clean()
+
+if (args.debug):
+    print INFO, "Booting in debug mode"
 
 if args.bridge:
     print INFO, "Creating bridge"
@@ -161,6 +216,8 @@ if (args.grub or args.grub_reuse):
 if (args.build): exit(0);
 
 if (not has_bootloader):
-    vm.boot(timeout = None, multiboot = True, kernel_args = " ".join(args.vmargs), image_name = image_name)
+    vm.boot(timeout = None, multiboot = True, debug = args.debug, kernel_args = " ".join(args.vmargs), image_name = image_name)
 else:
-    vm.boot(timeout = None, multiboot = False, kernel_args = None, image_name = image_name)
+    vm.boot(timeout = None, multiboot = False, debug = args.debug, kernel_args = None, image_name = image_name)
+
+exit(0);

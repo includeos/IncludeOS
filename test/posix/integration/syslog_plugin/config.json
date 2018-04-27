@@ -1,0 +1,9 @@
+{
+  "syslog": {
+    "type": "udp",
+    "path": "/dev/log",
+    "iface": 0,
+    "address": "10.0.0.2",
+    "port": 6514
+  }
+}

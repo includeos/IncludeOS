@@ -44,11 +44,13 @@ set(DRIVERS
   uplink_log
   vga_output
   boot_logger
+  e1000
   )
 
 set(PLUGINS
   uplink
   autoconf
+  system_log
   )
 
 # THIRD PARTY LIBRARIES:
@@ -60,3 +62,6 @@ set(LIBRARIES
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+
+#install_certificates(disk/certs)
+#diskbuilder(disk)

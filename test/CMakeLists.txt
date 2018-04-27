@@ -20,7 +20,6 @@ add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DOS_VERSION="v0.0.0.1")
 
-set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
@@ -33,7 +32,16 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++14 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+
+if (APPLE)
+message(STATUS "Including brew bundled libc++")
+execute_process(COMMAND brew "--prefix" "llvm@5" OUTPUT_VARIABLE BREW_LLVM)
+string(STRIP ${BREW_LLVM} BREW_LLVM)
+set(BREW_LIBCXX_INC ${BREW_LLVM}/lib)
+message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${BREW_LIBCXX_INC} -Wno-unused-command-line-argument")
+endif()
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
   set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
@@ -43,6 +51,7 @@ set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${INCLUDEOS_ROOT}/test)
 
 include_directories(
+  ${TEST}/lest_util
   ${INCLUDEOS_ROOT}/api
   ${INCLUDEOS_ROOT}/src/
   ${INCLUDEOS_ROOT}/src/include
@@ -50,12 +59,12 @@ include_directories(
   ${INCLUDEOS_ROOT}/mod/GSL
   ${INCLUDEOS_ROOT}/mod/uzlib/src
   ${TEST}/lest/include
-  ${TEST}/lest_util
 )
 
 set(LEST_UTIL
   ${TEST}/lest_util/lestmain.cxx
   ${TEST}/lest_util/os_mock.cpp
+  ${TEST}/lest_util/random.cpp
 )
 
 set(TEST_SOURCES
@@ -67,8 +76,9 @@ set(TEST_SOURCES
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
   ${TEST}/kernel/unit/events_test.cpp
-  ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
+  ${TEST}/kernel/unit/memory.cpp
+  ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/net/unit/bufstore.cpp
@@ -123,9 +133,12 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslogd_test.cpp
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
+  ${TEST}/util/unit/bitops.cpp
+  ${TEST}/util/unit/lstack.cpp
 )
 
 set(OS_SOURCES
+  ${SRC}/arch/x86_64/paging.cpp
   ${SRC}/fs/disk.cpp
   ${SRC}/fs/dirent.cpp
   ${SRC}/fs/fat.cpp
@@ -135,11 +148,11 @@ set(OS_SOURCES
   ${SRC}/fs/mbr.cpp
   ${SRC}/fs/memdisk.cpp
   ${SRC}/fs/path.cpp
+  ${SRC}/hw/nic.cpp
   ${SRC}/hw/msi.cpp
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp
   ${SRC}/hw/ps2.cpp
-  ${SRC}/hw/serial.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
   ${SRC}/kernel/events.cpp
@@ -150,12 +163,14 @@ set(OS_SOURCES
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
+  ${SRC}/musl/mmap.cpp
+  ${SRC}/musl/brk.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp
   ${SRC}/net/dns/dns.cpp
   ${SRC}/net/ethernet/ethernet.cpp
-  ${SRC}/net/http/client.cpp
+  ${SRC}/net/http/basic_client.cpp
   ${SRC}/net/http/client_connection.cpp
   ${SRC}/net/http/cookie.cpp
   ${SRC}/net/http/header.cpp
@@ -187,11 +202,9 @@ set(OS_SOURCES
   ${SRC}/net/tcp/read_buffer.cpp
   ${SRC}/net/tcp/read_request.cpp
   ${SRC}/net/tcp/write_queue.cpp
-  ${SRC}/posix/fcntl.cpp
   ${SRC}/posix/fd.cpp
-  ${SRC}/posix/sys/select.cpp
-  ${SRC}/posix/arpa/inet.cpp
   ${SRC}/util/async.cpp
+  ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
   ${SRC}/util/path_to_regex.cpp
   ${SRC}/util/percent_encoding.cpp
@@ -264,7 +277,6 @@ endif()
 
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
-install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 if (GENERATE_SUPPORT_FILES)
 

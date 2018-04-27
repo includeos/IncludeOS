@@ -14,9 +14,6 @@ extern "C" {
 static uint64_t os_cycles_hlt = 0;
 
 extern "C" void* get_cpu_esp();
-extern "C" void __libc_init_array();
-extern uintptr_t heap_begin;
-extern uintptr_t heap_end;
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t mem_size;
@@ -24,6 +21,13 @@ extern uintptr_t _ELF_START_;
 extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
+// in kernel/os.cpp
+extern bool os_default_stdout;
+
+typedef void (*ctor_t) ();
+extern ctor_t __init_array_start;
+extern ctor_t __init_array_end;
+extern int __run_ctors(ctor_t* begin, ctor_t* end);
 
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
@@ -70,7 +74,9 @@ void OS::default_stdout(const char* str, const size_t len)
 void OS::start(char* _cmdline, uintptr_t mem_size)
 {
   // Initialize stdout handlers
-  OS::add_stdout(&OS::default_stdout);
+  if(os_default_stdout) {
+    OS::add_stdout(&OS::default_stdout);
+  }
 
   PROFILE("");
   // Print a fancy header
@@ -85,37 +91,32 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
 
   OS::cmdline = _cmdline;
 
-  // setup memory and heap end
-  OS::memory_end_ = mem_size;
-  OS::heap_max_ = OS::memory_end_;
-
   // Call global ctors
-  PROFILE("Global constructors");
-  __libc_init_array();
-
+  PROFILE("Global kernel constructors");
+  __run_ctors(&__init_array_start, &__init_array_end);
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
-  memmap.assign_range({0x500, 0x5fff, "solo5", "solo5"});
-  memmap.assign_range({0x6000, 0x8fff, "Statman", "Statistics"});
-  memmap.assign_range({0xA000, 0x9fbff, "Stack", "Kernel / service main stack"});
+  memmap.assign_range({0x500, 0x5fff, "solo5"});
+  memmap.assign_range({0x6000, 0x8fff, "Statman"});
+  memmap.assign_range({0xA000, 0x9fbff, "Stack"});
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
-        "ELF", "Your service binary including OS"});
+        "ELF"});
 
-  Expects(::heap_begin and heap_max_);
+  Expects(heap_begin() and heap_max_);
   // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
-        "Pre-heap", "Heap randomization area"});
+  memmap.assign_range({(uintptr_t)&_end + 1, heap_begin() - 1,
+        "Pre-heap"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
 
   MYINFO("Assigning heap");
-  memmap.assign_range({::heap_begin, heap_range_max_,
-        "Heap", "Dynamic memory", heap_usage });
+  memmap.assign_range({heap_begin(), heap_range_max_,
+        "Dynamic memory", heap_usage });
 
   MYINFO("Printing memory map");
   for (const auto &i : memmap)

@@ -29,6 +29,14 @@
 extern const uint16_t _cpu_sampling_freq_divider_;
 using namespace std::chrono;
 
+// Used by blocking_cycle() to block until one interrupt happens
+extern "C" void blocking_cycle_irq_entry();
+static int blocking_cycle_done = 0;
+extern "C"
+void blocking_cycle_irq_handler() {
+  blocking_cycle_done++;
+}
+
 namespace x86
 {
   constexpr MHz PIT::FREQUENCY;
@@ -70,6 +78,27 @@ namespace x86
 
     __arch_subscribe_irq(0);
     return freq;
+  }
+
+  void PIT::blocking_cycles(int total)
+  {
+    // Save PIT-state
+    auto temp_mode     = get().current_mode_;
+    auto temp_freq_div = get().current_freq_divider_;
+
+    blocking_cycle_done = 0;
+    __arch_install_irq(0, blocking_cycle_irq_entry);
+    // GO!
+    get().set_mode(RATE_GEN);
+    get().set_freq_divider(MILLISEC_INTERVAL);
+
+    while (blocking_cycle_done < total) {
+      asm("hlt");
+    }
+
+    get().set_mode(temp_mode);
+    get().set_freq_divider(temp_freq_div);
+    __arch_subscribe_irq(0);
   }
 
   static inline auto now() noexcept

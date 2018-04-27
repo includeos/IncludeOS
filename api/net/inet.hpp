@@ -296,6 +296,10 @@ namespace net {
     virtual void move_to_this_cpu() = 0;
     virtual int  get_cpu_id() const noexcept = 0;
 
+
+    /** Empty virtual destructor for Inet base **/
+    virtual ~Inet<IPV>() {}
+
   }; //< class Inet<LINKLAYER, IPV>
 } //< namespace net
 

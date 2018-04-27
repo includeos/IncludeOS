@@ -22,7 +22,7 @@
 #include "header.hpp"
 
 #include <net/http/server.hpp>
-#include <net/http/client.hpp>
+#include <net/http/basic_client.hpp>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -178,7 +178,7 @@ public:
    * @param[in]  dest      The destination
    * @param[in]  callback  The connect callback
    */
-  static void connect(http::Client&   client,
+  static void connect(http::Basic_client&   client,
                       uri::URI        dest,
                       Connect_handler callback);
 
@@ -202,7 +202,7 @@ public:
    *
    * @return     A Response handler for a http::Client
    */
-  static http::Client::Response_handler
+  static http::Basic_client::Response_handler
   create_response_handler(Connect_handler on_connect, std::string key);
 
   void write(const char* buffer, size_t len, op_code = op_code::TEXT);
@@ -258,6 +258,11 @@ public:
     return stream->get_cpuid();
   }
 
+  // 0 == unlimited
+  void set_max_message_size(uint32_t sz) noexcept {
+    max_msg_size = sz;
+  }
+
   WebSocket(net::Stream_ptr, bool);
   WebSocket(WebSocket&&);
   ~WebSocket();
@@ -266,6 +271,7 @@ private:
   net::Stream_ptr stream;
   Timer ping_timer{{this, &WebSocket::pong_timeout}};
   Message_ptr message;
+  uint32_t max_msg_size;
   bool clientside;
 
   WebSocket(const WebSocket&) = delete;

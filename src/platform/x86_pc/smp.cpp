@@ -19,6 +19,7 @@
 #include "acpi.hpp"
 #include "apic.hpp"
 #include "apic_revenant.hpp"
+#include "pit.hpp"
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
 #include <malloc.h>
@@ -94,6 +95,8 @@ void init_SMP()
           cpu.cpu, cpu.id, cpu.flags);
     apic.ap_init(cpu.id);
   }
+  PIT::blocking_cycles(10);
+
   // start CPUs
   INFO("SMP", "Starting APs");
   for (const auto& cpu : ACPI::get_cpus())
@@ -101,8 +104,9 @@ void init_SMP()
     if (cpu.id == apic.get_id()) continue;
     // Send SIPI with start page at BOOTLOADER_LOCATION
     apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
-    apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
+    //apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
   }
+  PIT::blocking_cycles(1);
 
   // wait for all APs to start
   smp_main.boot_barrier.spin_wait(CPUcount);
@@ -133,6 +137,8 @@ void init_SMP()
 
 } // x86
 
+using namespace x86;
+
 /// implementation of the SMP interface ///
 int SMP::cpu_id() noexcept
 {
@@ -148,11 +154,11 @@ int SMP::cpu_id() noexcept
 }
 int SMP::cpu_count() noexcept
 {
-#ifdef INCLUDEOS_SINGLE_THREADED
-  return 1;
-#else
-  return x86::ACPI::get_cpus().size();
-#endif
+  return x86::smp_main.initialized_cpus.size();
+}
+
+const std::vector<int>& SMP::active_cpus(){
+  return x86::smp_main.initialized_cpus;
 }
 
 __attribute__((weak))
@@ -210,6 +216,8 @@ void SMP::signal(int cpu)
   // 1-xx: Unicast specific vCPU
   else
       x86::APIC::get().send_ipi(cpu, 0x20);
+#else
+  (void) cpu;
 #endif
 }
 void SMP::signal_bsp()
@@ -236,52 +244,3 @@ void SMP::global_unlock() noexcept
 {
   unlock(__global_lock);
 }
-
-/// SMP variants of malloc and free ///
-#ifndef INCLUDEOS_SINGLE_THREADED
-static spinlock_t __memory_lock = 0;
-
-#include <malloc.h>
-void* malloc(size_t size)
-{
-  lock(__memory_lock);
-  void* addr = _malloc_r(_REENT, size);
-  unlock(__memory_lock);
-  return addr;
-}
-void* calloc(size_t num, size_t size)
-{
-  lock(__memory_lock);
-  void* addr = _calloc_r(_REENT, num, size);
-  unlock(__memory_lock);
-  return addr;
-}
-void* realloc(void *ptr, size_t new_size)
-{
-  lock(__memory_lock);
-  void* addr = _realloc_r (_REENT, ptr, new_size);
-  unlock(__memory_lock);
-  return addr;
-}
-void free(void* ptr)
-{
-  lock(__memory_lock);
-  _free_r(_REENT, ptr);
-  unlock(__memory_lock);
-}
-void* posix_memalign(size_t align, size_t nbytes)
-{
-  lock(__memory_lock);
-  void* addr = _memalign_r(_REENT, align, nbytes);
-  unlock(__memory_lock);
-  return addr;
-}
-void* memalign(size_t align, size_t nbytes)
-{
-  lock(__memory_lock);
-  void* addr = _memalign_r(_REENT, align, nbytes);
-  unlock(__memory_lock);
-  return addr;
-}
-
-#endif

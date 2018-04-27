@@ -13,7 +13,7 @@ struct alignas(SMP_ALIGN) HTTP_server
   // websocket clients
   std::deque<net::WebSocket_ptr> clients;
 };
-static SMP_ARRAY<HTTP_server> httpd;
+static SMP::Array<HTTP_server> httpd;
 
 static net::WebSocket_ptr& new_client(net::WebSocket_ptr socket)
 {
@@ -86,7 +86,7 @@ void Service::start()
 {
   auto& inet = net::Inet4::ifconfig<>(0);
   inet.network_config(
-      {  10, 0,  0, 42 },  // IP
+      {  10, 0,  0, 54 },  // IP
       { 255,255,255, 0 },  // Netmask
       {  10, 0,  0,  1 },  // Gateway
       {  10, 0,  0,  1 }); // DNS
@@ -98,7 +98,7 @@ void Service::start()
 void ws_client_test(net::TCP& tcp)
 {
   /// client ///
-  static http::Client client(tcp);
+  static http::Basic_client client(tcp);
   net::WebSocket::connect(client, "ws://10.0.0.1:8001/",
   [] (net::WebSocket_ptr socket)
   {

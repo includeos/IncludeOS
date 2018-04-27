@@ -22,7 +22,7 @@
 #include <arch.hpp>
 #include <kernel/memmap.hpp>
 #include <kernel/rtc.hpp>
-#include <hertz>
+#include <util/units.hpp>
 #include <string>
 #include <vector>
 #include <boot/multiboot.h>
@@ -34,6 +34,7 @@
  */
 class OS {
 public:
+
   using print_func  = delegate<void(const char*, size_t)>;
   using Plugin      = delegate<void()>;
   using Span_mods   = gsl::span<multiboot_module_t>;
@@ -76,7 +77,6 @@ public:
 
   /** Time spent sleeping (halt) in nanoseconds */
   static uint64_t nanos_asleep() noexcept;
-
 
   static auto cpu_freq() noexcept
   { return cpu_khz_; }
@@ -132,7 +132,18 @@ public:
    * unresponsive. After the handler is called, the OS goes to sleep.
    * This handler can thus be used to, for example, automatically
    * have the OS restart on any crash.
-  **/
+   **/
+  enum class Panic_action {
+    halt, reboot, shutdown
+  };
+
+  static Panic_action panic_action()
+  { return panic_action_; }
+
+
+  static void set_panic_action(Panic_action action)
+  { panic_action_ = action; }
+
   typedef void (*on_panic_func) (const char*);
   static void on_panic(on_panic_func);
 
@@ -164,7 +175,10 @@ public:
   }
 
   /** Total used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept;
+  static size_t heap_usage() noexcept;
+
+  /** Total free heap, as far as the OS knows, in bytes */
+  static size_t heap_avail() noexcept;
 
   /** Attempt to trim the heap end, reducing the size */
   static void heap_trim() noexcept;
@@ -175,9 +189,6 @@ public:
   /** Last used address of the heap **/
   static uintptr_t heap_end() noexcept;
 
-  /** Resize the heap if possible. Return (potentially) new size. **/
-  static uintptr_t resize_heap(size_t size);
-
   /** The maximum last address of the dynamic memory area (heap) */
   static uintptr_t heap_max() noexcept;
 
@@ -185,6 +196,8 @@ public:
   static uintptr_t memory_end() noexcept {
     return memory_end_;
   }
+
+  static void init_heap(uintptr_t phys_begin, size_t size) noexcept;
 
   /**
    *  Returns true when the current OS comes from a live update,
@@ -235,7 +248,7 @@ public:
   /** Initialize common subsystems, call Service::start */
   static void post_start();
 
-  static void install_cpu_frequency(MHz);
+  static void install_cpu_frequency(util::MHz);
 
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
@@ -255,15 +268,18 @@ private:
   static bool boot_sequence_passed_;
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
-  static KHz cpu_khz_;
+  static util::KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;
   static std::string version_str_;
   static std::string arch_str_;
-  static uintptr_t memory_end_;
+  static uintptr_t heap_begin_;
+  static uintptr_t heap_end_;
   static uintptr_t heap_max_;
+  static uintptr_t memory_end_;
   static const uintptr_t elf_binary_size_;
   static const char* cmdline;
+  static Panic_action panic_action_;
 
   // Prohibit copy and move operations
   OS(OS&)  = delete;

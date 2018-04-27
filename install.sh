@@ -12,6 +12,8 @@ export INCLUDEOS_PREFIX=${INCLUDEOS_PREFIX:-/usr/local}
 export INCLUDEOS_ENABLE_TEST=${INCLUDEOS_ENABLE_TEST:-OFF}
 # Set CPU-architecture (default x86_64)
 export ARCH=${ARCH:-x86_64}
+# Enable threading
+export INCLUDEOS_THREADING=${INCLUDEOS_THREADING:-OFF}
 
 ############################################################
 # COMMAND LINE PROPERTIES:
@@ -22,15 +24,17 @@ install_yes=0
 quiet=0
 bundle_location=""
 net_bridge=1
+skip_dependencies=0
 
-while getopts "h?yqb:n" opt; do
+while getopts "h?yqb:ns" opt; do
     case "$opt" in
     h|\?)
         printf "%s\n" "Options:"\
                 "-y Yes: answer yes to install"\
                 "-q Quiet: Suppress output from cmake during install"\
                 "-b Bundle: Local path to bundle"\
-                "-n No Net bridge: Disable setting up network bridge"
+                "-n No Net bridge: Disable setting up network bridge"\
+                "-s Skip dependencies: Don't check for dependencies"
         exit 0
         ;;
     y)  install_yes=1
@@ -46,6 +50,8 @@ while getopts "h?yqb:n" opt; do
 		fi
         ;;
     n)  net_bridge=0
+        ;;
+    s)  skip_dependencies=1
         ;;
     esac
 done
@@ -112,22 +118,24 @@ if ! command -v sudo > /dev/null 2>&1; then
 fi
 
 # Install build requirements (compiler, etc)
-if [ "Darwin" = "$SYSTEM" ]; then
-	echo ">>> Dependencies required:"
-    if ! ./etc/install_dependencies_macos.sh -c; then
-		missing_dependencies=1
-	fi
-else
-	# Will only check if build dependencies are installed at this point
-	if [ $INCLUDEOS_ENABLE_TEST == "ON" ]; then
-		dependency_level=all
-	else
-		dependency_level=build
-	fi
-	echo ">>> Dependencies required:"
-	if ! ./etc/install_dependencies_linux.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
-		missing_dependencies=1
-	fi
+if [ $skip_dependencies -eq 0 ]; then
+  if [ "Darwin" = "$SYSTEM" ]; then
+  	echo ">>> Dependencies required:"
+      if ! ./etc/install_dependencies_macos.sh -c; then
+  		missing_dependencies=1
+  	fi
+  else
+  	# Will only check if build dependencies are installed at this point
+  	if [ $INCLUDEOS_ENABLE_TEST == "ON" ]; then
+  		dependency_level=all
+  	else
+  		dependency_level=build
+  	fi
+    echo ">>> Dependencies required:"
+    if ! ./etc/install_dependencies_linux.sh -s $SYSTEM -r $RELEASE -c -d $dependency_level; then
+  	  missing_dependencies=1
+    fi
+  fi
 fi
 
 ############################################################
@@ -166,7 +174,8 @@ printf "    %-25s %-25s %s\n"\
 	   "INCLUDEOS_SRC" "Source dir of IncludeOS" "$INCLUDEOS_SRC"\
 	   "INCLUDEOS_PREFIX" "Install location" "$INCLUDEOS_PREFIX"\
 	   "ARCH" "CPU Architecture" "$ARCH"\
-	   "INCLUDEOS_ENABLE_TEST" "Enable test compilation" "$INCLUDEOS_ENABLE_TEST"
+	   "INCLUDEOS_ENABLE_TEST" "Enable test compilation" "$INCLUDEOS_ENABLE_TEST"\
+	   "INCLUDEOS_THREADING" "Enable threading / SMP" "$INCLUDEOS_THREADING"
 
 # Give user option to evaluate install options
 if tty -s && [ $install_yes -eq 0 ]; then
@@ -247,8 +256,8 @@ fi
 
 printf "\n\n>>> IncludeOS installation Done!\n"
 printf "    %s\n" "To use IncludeOS set env variables for cmake to know your compiler, e.g.:"\
-	   '    export CC="clang-3.8"'\
-	   '    export CXX="clang++-3.8"'\
+	   '    export CC="clang-5.0"'\
+	   '    export CXX="clang++-5.0"'\
 	   ""\
 	   "Test your installation with ./test.sh"
 

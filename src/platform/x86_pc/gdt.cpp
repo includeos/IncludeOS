@@ -1,4 +1,4 @@
-#include "gdt.hpp"
+#include <arch/x86/gdt.hpp>
 
 #include <cstring>
 #include <cassert>

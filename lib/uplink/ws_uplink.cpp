@@ -37,6 +37,39 @@
 #include <statman>
 #include <config>
 #include "log.hpp"
+#include <system_log>
+#include <isotime>
+
+#include <memdisk>
+#include <net/openssl/init.hpp>
+
+static SSL_CTX* init_ssl_context(const std::string& certs_path, bool verify)
+{
+  MYINFO("Reading certificates from disk @ %s. Verify certs: %s",
+    certs_path.c_str(), verify ? "YES" : "NO");
+
+  auto& disk = fs::memdisk();
+  disk.init_fs([] (auto err, auto&) {
+    Ensures(!err && "Error init filesystem");
+  });
+
+  auto ents = disk.fs().ls(certs_path);
+
+  int files = 0;
+  MYINFO("Scanning files...");
+  for(auto& ent : ents) {
+    if(not ent.is_file())
+      continue;
+    INFO2("%s", ent.name().c_str());
+    files++;
+  }
+
+  Expects(files > 0 && "No files found on disk");
+
+  // initialize client context
+  openssl::init();
+  return openssl::create_client(ents, verify);
+}
 
 namespace uplink {
   constexpr std::chrono::seconds WS_uplink::heartbeat_interval;
@@ -62,6 +95,8 @@ namespace uplink {
     liu::LiveUpdate::register_partition("uplink", {this, &WS_uplink::store});
 
     CHECK(config_.reboot, "Reboot on panic");
+    if(config_.reboot)
+      OS::set_panic_action(OS::Panic_action::reboot);
 
     CHECK(config_.serialize_ct, "Serialize Conntrack");
     if(config_.serialize_ct)
@@ -84,10 +119,20 @@ namespace uplink {
       inet.ifname().c_str(), id_.c_str());
 
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
-    Expects(not config_.url.empty());
 
-    client_ = std::make_unique<http::Client>(inet.tcp(),
-      http::Client::Request_handler{this, &WS_uplink::inject_token});
+    if(config_.url.scheme_is_secure())
+    {
+      auto* ssl_context = init_ssl_context(config_.certs_path, config_.verify_certs);
+      Expects(ssl_context != nullptr && "Secure URL given but no valid certificates found");
+
+      client_ = std::make_unique<http::Client>(inet.tcp(), ssl_context,
+        http::Basic_client::Request_handler{this, &WS_uplink::inject_token});
+    }
+    else
+    {
+      client_ = std::make_unique<http::Basic_client>(inet.tcp(),
+        http::Basic_client::Request_handler{this, &WS_uplink::inject_token});
+    }
 
     auth();
   }
@@ -95,7 +140,7 @@ namespace uplink {
   void WS_uplink::store(liu::Storage& store, const liu::buffer_t*)
   {
     // BINARY HASH
-    store.add_string(0, binary_hash_);
+    store.add_string(0, update_hash_);
     // nanos timestamp of when update begins
     store.add<uint64_t> (1, OS::nanos_since_boot());
   }
@@ -119,39 +164,40 @@ namespace uplink {
 
   void WS_uplink::auth()
   {
-    std::string url{"http://"};
-    url.append(config_.url).append("/auth");
+    const static std::string endpoint{"/auth"};
 
-    //static const std::string auth_data{"{ \"id\": \"testor\", \"key\": \"kappa123\"}"};
+    uri::URI url{config_.url};
+    url << endpoint;
 
-    MYINFO("Sending auth request to %s", url.c_str());
+    MYINFO("[ %s ] Sending auth request to %s", isotime::now().c_str(), url.to_string().c_str());
 
-    client_->post(http::URI{url},
+    client_->post(url,
       { {"Content-Type", "application/json"} },
       auth_data(),
-      {this, &WS_uplink::handle_auth_response});
+      {this, &WS_uplink::handle_auth_response},
+      http::Basic_client::Options{15s});
   }
 
   void WS_uplink::handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&)
   {
     if(err)
     {
-      MYINFO("Auth failed - %s", err.to_string().c_str());
+      MYINFO("[ %s ] Auth failed - %s", isotime::now().c_str(), err.to_string().c_str());
       retry_auth();
       return;
     }
 
     if(res->status_code() != http::OK)
     {
-      MYINFO("Auth failed - %s", res->to_string().c_str());
+      MYINFO("[ %s ] Auth failed - %s", isotime::now().c_str(), res->to_string().c_str());
       retry_auth();
       return;
     }
 
     retry_backoff = 0;
 
-    MYINFO("Auth success (token received)");
-    token_ = res->body().to_string();
+    MYINFO("[ %s ] Auth success (token received)", isotime::now().c_str());
+    token_ = std::string(res->body());
 
     dock();
   }
@@ -171,18 +217,23 @@ namespace uplink {
   {
     Expects(not token_.empty() and client_ != nullptr);
 
-    std::string url{"ws://"};
-    url.append(config_.url).append("/dock");
+    const static std::string endpoint{"/dock"};
 
-    MYINFO("Dock attempt to %s", url.c_str());
+    // for now, build the websocket url based on the auth url.
+    // maybe this will change in the future, and the ws url will have it's own
+    // entry in the config
+    std::string scheme = (config_.url.scheme_is_secure()) ? "wss://" : "ws://";
+    uri::URI url{scheme + config_.url.host_and_port() + endpoint};
 
-    net::WebSocket::connect(*client_, http::URI{url}, {this, &WS_uplink::establish_ws});
+    MYINFO("[ %s ] Dock attempt to %s", isotime::now().c_str(), url.to_string().c_str());
+
+    net::WebSocket::connect(*client_, url, {this, &WS_uplink::establish_ws});
   }
 
   void WS_uplink::establish_ws(net::WebSocket_ptr ws)
   {
     if(ws == nullptr) {
-      MYINFO("Failed to establish websocket");
+      MYINFO("[ %s ] Failed to establish websocket", isotime::now().c_str());
       retry_auth();
       return;
     }
@@ -197,7 +248,7 @@ namespace uplink {
 
     flush_log();
 
-    MYINFO("Websocket established");
+    MYINFO("[ %s ] Websocket established", isotime::now().c_str());
 
     send_ident();
 
@@ -209,6 +260,14 @@ namespace uplink {
     heart_retries_left = heartbeat_retries;
     last_ping = RTC::now();
     heartbeat_timer.start(std::chrono::seconds(10));
+
+    if(SystemLog::get_flags() & SystemLog::PANIC)
+    {
+      MYINFO("[ %s ] Found panic in system log", isotime::now().c_str());
+      auto log = SystemLog::copy();
+      SystemLog::clear_flags();
+      send_message(Transport_code::PANIC, log.data(), log.size());
+    }
   }
 
   void WS_uplink::handle_ws_close(uint16_t code)
@@ -226,14 +285,14 @@ namespace uplink {
   void WS_uplink::handle_pong_timeout(net::WebSocket&)
   {
     heart_retries_left--;
-    MYINFO("! Pong timeout. Retries left %i", heart_retries_left);
+    MYINFO("[ %s ] ! Pong timeout. Retries left %i", isotime::now().c_str(), heart_retries_left);
   }
 
   void WS_uplink::on_heartbeat_timer()
   {
 
     if (not is_online()) {
-      MYINFO("Can't heartbeat on closed conection. ");
+      MYINFO("Can't heartbeat on closed connection.");
       return;
     }
 
@@ -266,7 +325,7 @@ namespace uplink {
       parser_.parse(msg->data(), msg->size());
     }
     else {
-      MYINFO("Malformed WS message, try to re-establish");
+      MYINFO("[ %s ] Malformed WS message, try to re-establish", isotime::now().c_str());
       send_error("WebSocket error");
       ws_->close();
       ws_ = nullptr;
@@ -278,7 +337,7 @@ namespace uplink {
   {
     if(UNLIKELY(t == nullptr))
     {
-      MYINFO("Something went terribly wrong...");
+      MYINFO("[ %s ] Something went terribly wrong...", isotime::now().c_str());
       return;
     }
 
@@ -287,7 +346,7 @@ namespace uplink {
     {
       case Transport_code::UPDATE:
       {
-        MYINFO("Update received - commencing update...");
+        MYINFO("[ %s ] Update received - commencing update...", isotime::now().c_str());
 
         update({t->begin(), t->end()});
         return;
@@ -306,23 +365,36 @@ namespace uplink {
     }
   }
 
-  void WS_uplink::update(const std::vector<char>& buffer)
+  void WS_uplink::update(std::vector<char> buffer)
   {
     static SHA1 checksum;
     checksum.update(buffer);
-    binary_hash_ = checksum.as_hex();
+    update_hash_ = checksum.as_hex();
 
     // send a reponse with the to tell we received the update
-    auto trans = Transport{Header{Transport_code::UPDATE, static_cast<uint32_t>(binary_hash_.size())}};
-    trans.load_cargo(binary_hash_.data(), binary_hash_.size());
+    auto trans = Transport{Header{Transport_code::UPDATE, static_cast<uint32_t>(update_hash_.size())}};
+    trans.load_cargo(update_hash_.data(), update_hash_.size());
     ws_->write(trans.data().data(), trans.data().size());
 
+    // make sure to flush the driver rings so there is room for the next packets
+    inet_.nic().flush();
+    // can't wait for defered log flush due to liveupdating
+    uplink::Log::get().flush();
+    // close the websocket (and tcp) gracefully
     ws_->close();
+    // make sure both the log and the close is flushed before updating
+    inet_.nic().flush();
+
     // do the update
-    Timers::oneshot(std::chrono::milliseconds(10),
-    [buffer] (auto) {
-      liu::LiveUpdate::exec(buffer);
-    });
+    try {
+      liu::LiveUpdate::exec(std::move(buffer));
+    }
+    catch (std::exception& e) {
+      INFO2("LiveUpdate::exec() failed: %s\n", e.what());
+      liu::LiveUpdate::restore_environment();
+      // establish new connection
+      this->auth();
+    }
   }
 
   template <typename Writer, typename Stack_ptr>
@@ -359,7 +431,7 @@ namespace uplink {
 
   void WS_uplink::send_ident()
   {
-    MYINFO("Sending ident");
+    MYINFO("[ %s ] Sending ident", isotime::now().c_str());
     using namespace rapidjson;
 
     StringBuffer buf;
@@ -382,6 +454,12 @@ namespace uplink {
     {
       writer.Key("binary");
       writer.String(binary_hash_);
+    }
+
+    if(not config_.tag.empty())
+    {
+      writer.Key("tag");
+      writer.String(config_.tag);
     }
 
     if(update_time_taken > 0)
@@ -437,7 +515,7 @@ namespace uplink {
   }
 
   void WS_uplink::send_uplink() {
-    MYINFO("Sending uplink");
+    MYINFO("[ %s ] Sending uplink", isotime::now().c_str());
     using namespace rapidjson;
 
     StringBuffer buf;
@@ -451,6 +529,9 @@ namespace uplink {
     writer.Key("token");
     writer.String(config_.token);
 
+    writer.Key("reboot");
+    writer.Bool(config_.reboot);
+
     writer.EndObject();
 
     std::string str = buf.GetString();
@@ -462,7 +543,11 @@ namespace uplink {
     ws_->write(transport.data().data(), transport.data().size());
   }
 
-  void WS_uplink::send_message(Transport_code code, const char* data, size_t len) {
+  void WS_uplink::send_message(Transport_code code, const char* data, size_t len)
+  {
+    if(UNLIKELY(not is_online()))
+      return;
+
     auto transport = Transport{Header{code, static_cast<uint32_t>(len)}};
 
     transport.load_cargo(data, len);
@@ -502,16 +587,6 @@ namespace uplink {
       logbuf_.clear();
       logbuf_.shrink_to_fit();
     }
-  }
-
-  void WS_uplink::panic(const char* why){
-    MYINFO("WS_uplink sending panic\n");
-    Log::get().flush();
-    send_message(Transport_code::PANIC, why, strlen(why));
-    ws_->close();
-    inet_.nic().flush();
-
-    if(config_.reboot) OS::reboot();
   }
 
   void WS_uplink::send_stats()

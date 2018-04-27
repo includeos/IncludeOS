@@ -5,6 +5,7 @@ if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
 endif()
 
 set(ARCH i686)
+set(PLATFORM x86_nano)
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
@@ -28,7 +29,7 @@ ExternalProject_Add(mod2
   PREFIX module
   SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/mod2
   BINARY_DIR ${CMAKE_CURRENT_LIST_DIR}/mod2/build
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_LIST_DIR}
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/mod2/build/seed ${CMAKE_CURRENT_BINARY_DIR}/
   )
 
 add_dependencies(service mod2)

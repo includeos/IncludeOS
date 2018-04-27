@@ -175,6 +175,13 @@ namespace x86 {
       // create SDT pointer from 32-bit address
       // NOTE: don't touch!
       auto* sdt = (SDTHeader*) (uintptr_t) (*(uint32_t*) addr);
+
+      addr += 4; total--;
+
+      // some entries seems to be null depending on hypervisor
+      if(sdt == nullptr)
+        continue;
+
       // find out which SDT it is
       switch (sdt->sigint()) {
       case APIC_t:
@@ -192,8 +199,6 @@ namespace x86 {
       default:
         debug("Signature: %.*s (u=%u)\n", 4, sdt->Signature, sdt->sigint());
       }
-
-      addr += 4; total--;
     }
     debug("Finished walking SDTs\n");
   }
@@ -231,7 +236,7 @@ namespace x86 {
               ioapic.id, ioapic.addr_base, ioapic.intr_base);
         }
         break;
-      case 2:
+      case 2: // interrupt source override
         {
           auto& redirect = *(override_t*) rec;
           overrides.push_back(redirect);
@@ -239,8 +244,16 @@ namespace x86 {
               redirect.bus_source, redirect.irq_source, redirect.global_intr);
         }
         break;
+      case 4: // non-maskable interrupts
+        {
+          auto& nmi = *(nmi_t*) rec;
+          nmis.push_back(nmi);
+          //INFO2("NMI for CPU %u (flags %x) on LINT %u",
+          //      nmi.cpu, nmi.flags, nmi.lint);
+          break;
+        }
       default:
-        debug("Unrecognized ACPI MADT type: %u\n", rec->type);
+        printf("Unrecognized ACPI MADT type: %u\n", rec->type);
       }
       // decrease length as we go
       len -= rec->length;

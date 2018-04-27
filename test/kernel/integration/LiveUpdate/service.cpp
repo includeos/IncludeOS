@@ -22,9 +22,13 @@
 
 using storage_func_t = liu::LiveUpdate::storage_func;
 extern storage_func_t begin_test_boot();
+extern bool LIVEUPDATE_PERFORM_SANITY_CHECKS;
 
 void Service::start()
 {
+  //LIVEUPDATE_PERFORM_SANITY_CHECKS = false;
+  OS::set_panic_action(OS::Panic_action::halt);
+
   auto func = begin_test_boot();
 
   if (OS::is_live_updated() == false)
@@ -32,7 +36,9 @@ void Service::start()
     auto& inet = net::Super_stack::get<net::IP4>(0);
     inet.network_config({10,0,0,49}, {255,255,255,0}, {10,0,0,1});
     setup_liveupdate_server(inet, 666, func);
+
     // signal test.py that the server is up
-    printf("Ready to receive binary blob\n");
+    const char* sig = "Ready to receive binary blob\n";
+    OS::default_stdout(sig, strlen(sig));
   }
 }

@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
 #ifdef __MACH__
 #include <stdlib.h>
 #include <stddef.h>
@@ -60,6 +61,21 @@ Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
 const char* service_binary_name__ = "Service binary name";
 const char* service_name__        = "Service name";
 
+extern "C"
+void kprintf(char* format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  vprintf(format, args);
+  va_end(args);
+}
+
+extern "C"
+void kprint(char* str)
+{
+printf("%s", str);
+}
+
 #include <kernel/os.hpp>
 void OS::start(unsigned, unsigned) {}
 void OS::default_stdout(const char*, size_t) {}
@@ -71,20 +87,48 @@ bool OS::is_softreset_magic(uint32_t) {
   return true;
 }
 
+void __x86_init_paging(void*){};
+namespace x86 {
+namespace paging {
+  void invalidate(void* pageaddr){};
+}}
+
+__attribute__((constructor))
+void paging_test_init(){
+  extern uintptr_t __exec_begin;
+  extern uintptr_t __exec_end;
+  __exec_begin = 0xa00000;
+  __exec_end = 0xb0000b;
+}
+
 void OS::multiboot(unsigned) {}
 
-extern "C" {
+#include <system_log>
+void SystemLog::initialize() {}
+void SystemLog::set_flags(uint32_t) {}
 
 /// Kernel ///
-  char _binary_apic_boot_bin_end;
-  char _binary_apic_boot_bin_start;
-  char _ELF_START_;
-  char _ELF_END_;
-  uintptr_t _MULTIBOOT_START_;
-  uintptr_t _LOAD_START_;
-  uintptr_t _LOAD_END_;
-  uintptr_t _BSS_END_;
+char _binary_apic_boot_bin_end;
+char _binary_apic_boot_bin_start;
+char __plugin_ctors_start;
+char __plugin_ctors_end;
+char __service_ctors_start;
+char __service_ctors_end;
+bool __libc_initialized = true;
 
+
+
+char _ELF_START_;
+char _ELF_END_;
+uintptr_t _MULTIBOOT_START_;
+uintptr_t _LOAD_START_;
+uintptr_t _LOAD_END_;
+uintptr_t _BSS_END_;
+uintptr_t _TEXT_START_;
+uintptr_t _TEXT_END_;
+uintptr_t _EXEC_END_;
+
+extern "C" {
   uintptr_t get_cpu_esp() {
     return 0xdeadbeef;
   }
@@ -92,7 +136,6 @@ extern "C" {
 /// C ABI ///
   void _init_c_runtime() {}
   void _init_bss() {}
-  void _init_heap(uintptr_t) {}
 
 #ifdef __MACH__
   void _init() {}
@@ -113,16 +156,17 @@ extern "C" {
     return {0};
   }
   void malloc_trim() {}
+  uintptr_t heap_end = std::numeric_limits<uintptr_t>::max();
 
-  __attribute__((weak))
   void __init_serial1 () {}
-  __attribute__((weak))
+
   void __serial_print1(const char* cstr) {
-    static char __printbuf[4096];
-    snprintf(__printbuf, sizeof(__printbuf), "%s", cstr);
+    printf("<serial print1> %s\n", cstr);
   }
 
-
+  void __serial_print(const char* cstr, int len) {
+    printf("<serial print> %.*s", len, cstr);
+  }
 } // ~ extern "C"
 
 /// platform ///

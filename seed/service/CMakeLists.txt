@@ -21,16 +21,17 @@ set(SOURCES
 
 # DRIVERS / PLUGINS:
 set(DRIVERS
-  # virtionet   # Virtio networking
-  # virtioblock # Virtio block device
-  # ... Others from IncludeOS/src/drivers
-
+  # virtionet   # Virtio networking driver
+  # virtioblk   # Virtio block device driver
   #boot_logger   # Enable lots of logging from boot stage
+
+  # Use "boot --drivers ." to see other drivers
   )
 
 set(PLUGINS
   # syslogd    # Syslog over UDP
-  # ...others
+
+  # Use "boot --plugins ." to see other plugins
   )
 
 # STATIC LIBRARIES:

@@ -65,7 +65,7 @@ extern "C"
   }
 
   using ub_error = std::runtime_error;
-  void undefined_throw(const char*) {
+  void undefined_throw(const char*) {
     
   }
 
