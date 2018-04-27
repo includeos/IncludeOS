@@ -19,8 +19,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <kprint>
+#define weak_alias(name, aliasname) _weak_alias (name, aliasname)
+#define _weak_alias(name, aliasname) \
+    extern __typeof (name) aliasname __attribute__ ((weak, alias (#name)));
 #define HEAP_ALIGNMENT   63
-
 void* __dso_handle;
 
 uint32_t _move_symbols(void* sym_loc)
@@ -88,6 +90,13 @@ int __vsprintf_chk(char* s, int flag, size_t slen, const char* format, va_list a
   assert ((size_t) res < slen);
   return res;
 }
+int __vsnprintf_chk (char *s, size_t maxlen, int flags, size_t slen,
+		                  const char *format, va_list args)
+{
+  assert (slen < maxlen);
+  (void) flags;
+  return vsnprintf(s, slen, format, args);
+}
 __attribute__((format(printf, 4, 5)))
 int __sprintf_chk(char* s, int flags, size_t slen, const char *format, ...)
 {
@@ -96,6 +105,18 @@ int __sprintf_chk(char* s, int flags, size_t slen, const char *format, ...)
   va_start (arg, format);
   done = __vsprintf_chk(s, flags, slen, format, arg);
   va_end (arg);
+  return done;
+}
+int __snprintf_chk (char *s, size_t maxlen, int flags, size_t slen,
+                		 const char *format, ...)
+{
+  va_list arg;
+  int done;
+
+  va_start (arg, format);
+  done = __vsnprintf_chk (s, maxlen, flags, slen, format, arg);
+  va_end (arg);
+
   return done;
 }
 
@@ -116,4 +137,14 @@ int __isoc99_sscanf (const char *s, const char *format, ...)
   done = vsscanf(s, format, arg);
   va_end (arg);
   return done;
+}
+
+// TODO: too complicated to implement
+#include <setjmp.h>
+
+__attribute__ ((noreturn, weak))
+void __longjmp_chk(jmp_buf env, int val)
+{
+  longjmp(env, val);
+  __builtin_unreachable();
 }

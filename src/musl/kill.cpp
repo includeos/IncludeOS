@@ -1,15 +1,15 @@
 #include "common.hpp"
 #include <kernel/syscalls.hpp>
 
-int sys_kill(pid_t pid, int sig) {
+int sys_kill(pid_t /*pid*/, int /*sig*/) {
   panic("KILL called");
 }
 
-int sys_tkill(int tid, int sig) {
+int sys_tkill(int /*tid*/, int /*sig*/) {
   panic("TKILL called");
 }
 
-int sys_tgkill(int tgid, int tid, int sig) {
+int sys_tgkill(int /*tgid*/, int /*tid*/, int /*sig*/) {
   panic("TGKILL called");
 }
 
