@@ -21,6 +21,8 @@
 #include <net/inet4>
 #include <net/tcp/connection_states.hpp>
 #include "serialize_tcp.hpp"
+#include "liveupdate.hpp"
+#include "storage.hpp"
 #include <cstring>
 #include <unordered_set>
 
@@ -283,5 +285,26 @@ void serialized_tcp::wakeup_ip_networks()
   // start all the send queues for the slumbering IP stacks
   for (auto& stack : slumbering_ip4) {
     stack->force_start_send_queues();
+  }
+}
+
+/// public API ///
+namespace liu
+{
+  void Storage::add_connection(uid id, Connection_ptr conn)
+  {
+    hdr.add_struct(TYPE_TCP, id,
+    [&conn] (char* location) -> int {
+      // return size of all the serialized data
+      return conn->serialize_to(location);
+    });
+  }
+  Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
+  {
+    return deserialize_connection(ent->vla, tcp);
+  }
+  net::Stream_ptr Restore::as_tcp_stream   (net::TCP& tcp) const
+  {
+    return std::make_unique<net::tcp::Stream> (as_tcp_connection(tcp));
   }
 }

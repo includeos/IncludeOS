@@ -328,13 +328,3 @@ void Storage::add_string_vector(uid id, const std::vector<std::string>& vec)
 {
   hdr.add_string_vector(id, vec);
 }
-
-#include "serialize_tcp.hpp"
-void Storage::add_connection(uid id, Connection_ptr conn)
-{
-  hdr.add_struct(TYPE_TCP, id,
-  [&conn] (char* location) -> int {
-    // return size of all the serialized data
-    return conn->serialize_to(location);
-  });
-}
