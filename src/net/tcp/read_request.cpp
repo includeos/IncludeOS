@@ -77,13 +77,12 @@ namespace tcp {
         // maybe it isnt even necessary..)
         else
         {
+          //printf("size=%zu rem=%zu\n", buffers.size(), rem);
           // if there are other buffers following this one,
           // and the buffer wasnt full, fill the small gap
           if(UNLIKELY(rem != 0))
           {
-            buf->reset(seq, rem);
-            //printf("remaining=%u, reset start=%u end=%u\n",
-            //  rem, buf->start_seq(), buf->end_seq());
+            buf->reset(buf->end_seq()-(uint32_t)rem, rem);
             Ensures(buf->end_seq() == buffers.at(1)->start_seq());
           }
           else

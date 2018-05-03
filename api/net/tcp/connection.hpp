@@ -608,6 +608,9 @@ public:
   Socket remote() const noexcept
   { return remote_; }
 
+  auto bytes_sacked() const noexcept
+  { return bytes_sacked_; }
+
 
   /**
    * @brief      Interface for one of the many states a Connection can have.
@@ -837,10 +840,11 @@ private:
   /** State if connection is in TCP write queue or not. */
   bool queued_;
 
-  using Sack_list = sack::List<sack::Fixed_list<9>>;
+  using Sack_list = sack::List<sack::Fixed_list<32>>;
   std::unique_ptr<Sack_list> sack_list;
   /** If SACK is permitted (option has been seen from peer) */
   bool sack_perm = false;
+  size_t bytes_sacked_ = 0;
 
   /** Congestion control */
   // is fast recovery state

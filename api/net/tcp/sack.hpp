@@ -117,6 +117,9 @@ public:
   Entries recent_entries() const noexcept
   { return impl.recent_entries(); }
 
+  bool contains(const seq_t seq) const noexcept
+  { return impl.contains(seq); }
+
   List_impl impl;
 };
 
@@ -200,7 +203,7 @@ public:
 
   Ack_result new_valid_ack(const seq_t seq, size_t len)
   {
-    const auto ack = seq + len;
+    const seq_t ack = seq + (uint32_t)len;
     uint32_t bytes_freed = 0;
 
     for(auto it = blocks.begin(); it != blocks.end(); it++)
@@ -208,7 +211,7 @@ public:
       if (it->contains(ack))
       {
         bytes_freed = it->size();
-        len -= (ack - it->start);
+        len -= (ack - it->start); // result in 0 if not partial
         blocks.erase(it);
         break;
       }
@@ -233,6 +236,15 @@ public:
   {
     if(it != blocks.begin())
       blocks.splice(blocks.begin(), blocks, it);
+  }
+
+  bool contains(const seq_t seq) const noexcept
+  {
+    for(auto& block : blocks) {
+      if(block.contains(seq))
+        return true;
+    }
+    return false;
   }
 
   List blocks;
