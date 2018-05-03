@@ -225,6 +225,7 @@ public:
 
   // close the websocket
   void close();
+  void close(uint16_t reason);
 
   // user callbacks
   close_func   on_close = nullptr;
@@ -268,7 +269,6 @@ public:
   static std::pair<WebSocket_ptr, size_t> deserialize_from(const void*);
 
   WebSocket(net::Stream_ptr, bool);
-  WebSocket(WebSocket&&);
   ~WebSocket();
 
 private:
@@ -279,12 +279,13 @@ private:
   bool clientside;
 
   WebSocket(const WebSocket&) = delete;
+  WebSocket(WebSocket&&) = delete;
   WebSocket& operator= (const WebSocket&) = delete;
   WebSocket& operator= (WebSocket&&) = delete;
   void read_data(net::tcp::buffer_t);
   bool write_opcode(op_code code, const char*, size_t);
   void failure(const std::string&);
-  void tcp_closed();
+  void close_callback_once(uint16_t code);
   size_t create_message(const uint8_t*, size_t len);
   void finalize_message();
   void reset();

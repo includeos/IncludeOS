@@ -152,6 +152,11 @@ namespace fs {
     { return err_; }
 
     /**
+     * Returns the underlying buffer
+    **/
+    auto& get() noexcept { return this->buffer_; }
+
+    /**
      * @brief Get the starting address of the underlying data buffer
      *
      * @return The starting address of the underlying data buffer
