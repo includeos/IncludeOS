@@ -109,6 +109,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/super_stack.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
+  ${TEST}/net/unit/tcp_read_request_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/net/unit/router_test.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
@@ -117,6 +118,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/sha1.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
+  ${TEST}/util/unit/fixed_list_alloc_test.cpp
   ${TEST}/util/unit/fixed_queue.cpp
   ${TEST}/util/unit/fixed_vector.cpp
   ${TEST}/util/unit/isotime.cpp
@@ -198,6 +200,7 @@ set(OS_SOURCES
   ${SRC}/net/tcp/rttm.cpp
   ${SRC}/net/tcp/tcp.cpp
   ${SRC}/net/tcp/read_buffer.cpp
+  ${SRC}/net/tcp/read_request.cpp
   ${SRC}/net/tcp/write_queue.cpp
   ${SRC}/posix/fd.cpp
   ${SRC}/util/async.cpp

@@ -37,10 +37,18 @@ enum class Fixedvector_Init {
 template <typename T, int N>
 class Fixed_vector {
 public:
+  using value_type = T;
   using iterator = T*;
 
   Fixed_vector() : count(0) {}
   Fixed_vector(Fixedvector_Init) {}
+
+  Fixed_vector(std::initializer_list<T> l)
+    : count(l.size())
+  {
+    Expects(count <= capacity());
+    std::memcpy(begin(), l.begin(), count * sizeof(T));
+  }
 
   // add existing
   T& push_back(const T& e) noexcept {
@@ -107,10 +115,23 @@ public:
     return (T*) (element + i);
   }
 
+  T* data() noexcept {
+    return (T*) &element[0];
+  }
   T* begin() noexcept {
     return (T*) &element[0];
   }
   T* end() noexcept {
+    return (T*) &element[count];
+  }
+
+  const T* data() const noexcept {
+    return (T*) &element[0];
+  }
+  const T* begin() const noexcept {
+    return (T*) &element[0];
+  }
+  const T* end() const noexcept {
     return (T*) &element[count];
   }
 
@@ -132,6 +153,12 @@ public:
   void copy(T* src, uint32_t size) {
     memcpy(element, src, size * sizeof(T));
     count = size;
+  }
+
+  template <typename R>
+  bool operator==(const R& rhs) const noexcept
+  {
+    return size() == rhs.size() and std::memcmp(data(), rhs.data(), size()*sizeof(T)) == 0;
   }
 
 private:

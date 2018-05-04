@@ -306,6 +306,22 @@ namespace net {
     { return timestamps_; }
 
     /**
+     * @brief      Sets if SACK Option is gonna be used.
+     *
+     * @param[in]  active  Whether SACK Option are in use.
+     */
+    void set_SACK(bool active) noexcept
+    { sack_ = active; }
+
+    /**
+     * @brief      Whether the TCP instance is using SACK Options or not.
+     *
+     * @return     Whether the TCP instance is using SACK Options or not.
+     */
+    bool uses_SACK() const noexcept
+    { return sack_; }
+
+    /**
      * @brief      Sets the dack. [RFC 1122] (p.96)
      *
      * @param[in]  dack_timeout  The dack timeout
@@ -478,6 +494,8 @@ namespace net {
     uint8_t                   wscale_;
     /** Timestamp option active [RFC 7323] p. 11 */
     bool                      timestamps_;
+    /** Selective ACK  [RFC 2018] */
+    bool                      sack_;
     /** Delayed ACK timeout - how long should we wait with sending an ACK */
     std::chrono::milliseconds dack_timeout_;
     /** Maximum SYN queue backlog */
