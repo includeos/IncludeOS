@@ -81,11 +81,14 @@ struct Block {
   Block& operator=(uint64_t whole)
   { this->whole = whole; return *this; }
 
+  std::string to_string() const
+  { return "[" + std::to_string(start) + " => " + std::to_string(end) + "]"; }
+
 }__attribute__((packed));
 
 // Print for Block
 inline std::ostream& operator<<(std::ostream& out, const Block& b) {
-  out << "[" << b.start << " => " << b.end << "]";
+  out << b.to_string();
   return out;
 }
 
@@ -120,6 +123,9 @@ public:
   bool contains(const seq_t seq) const noexcept
   { return impl.contains(seq); }
 
+  bool contains(const seq_t seq, const uint32_t len) const noexcept
+  { return impl.contains(seq, len); }
+
   List_impl impl;
 };
 
@@ -152,6 +158,37 @@ connects_to(Iterator first, Iterator last, const Connectable& value)
   return connected;
 }
 
+template <typename Iterator>
+struct Partial_connect_result {
+  Iterator end;
+  Iterator start;
+  uint32_t offs_start;
+};
+
+template <typename Iterator, typename Connectable>
+Partial_connect_result<Iterator>
+partial_connects_to(Iterator first, Iterator last, const Connectable& value)
+{
+  Partial_connect_result<Iterator> connected{last, last, 0};
+  for (; first != last; ++first)
+  {
+    if (first->connects_end(value))
+    {
+      connected.end = first;
+    }
+    else if (first->contains(value.end))
+    {
+      connected.start = first;
+      connected.offs_start = value.end - first->start;
+    }
+
+    // if we connected to two nodes, no point in looking for more
+    if (connected.start != last and connected.end != last)
+      break;
+  }
+  return connected;
+}
+
 template <int N = 3>
 class Fixed_list {
 public:
@@ -163,11 +200,9 @@ public:
 
   Ack_result recv_out_of_order(const seq_t seq, size_t len)
   {
-    // TODO: This just assumes nothing of the block exists from before.
-    // Uncertain if this will cause an issue.
     Block blk{seq, static_cast<seq_t>(seq+len)};
 
-    auto connected = connects_to(blocks.begin(), blocks.end(), blk);
+    auto connected = partial_connects_to(blocks.begin(), blocks.end(), blk);
 
     if (connected.end != blocks.end()) // Connectes to an end
     {
@@ -177,6 +212,8 @@ public:
       if (connected.start != blocks.end())
       {
         connected.end->end = connected.start->end;
+        blk.end -= connected.offs_start; // shrink end with offset (if partial)
+        Ensures(connected.offs_start <= len && "Offset cannot be bigger than length");
         blocks.erase(connected.start);
       }
 
@@ -185,6 +222,8 @@ public:
     else if (connected.start != blocks.end()) // Connected only to an start
     {
       connected.start->start = blk.start;
+      blk.end -= connected.offs_start; // shrink end with offset (if partial)
+      Ensures(connected.offs_start <= len && "Offset cannot be bigger than length");
       move_to_front(connected.start);
     }
     else // No connection - new entry
@@ -197,8 +236,7 @@ public:
       blocks.push_front(blk);
     }
 
-    // just return the full length
-    return {len, blk.size()};
+    return {blk.size(), 0};
   }
 
   Ack_result new_valid_ack(const seq_t seq, size_t len)
@@ -242,6 +280,16 @@ public:
   {
     for(auto& block : blocks) {
       if(block.contains(seq))
+        return true;
+    }
+    return false;
+  }
+
+  bool contains(const seq_t seq, const uint32_t len) const noexcept
+  {
+    const auto ack = seq + len;
+    for(auto& block : blocks) {
+      if(block.contains(seq) or block.contains(ack))
         return true;
     }
     return false;

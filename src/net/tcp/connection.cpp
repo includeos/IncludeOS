@@ -25,13 +25,13 @@
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/tcp_errors.hpp>
 
-#include <iostream> // remove me, sack debugging
+/*#include <iostream> // remove me, sack debugging
 std::ostream& operator<< (std::ostream& out, const net::tcp::sack::Entries& ent) {
   for (auto el : ent) {
     out << el << "\n";
   }
   return out;
-}
+}*/
 
 
 using namespace net::tcp;
@@ -710,13 +710,12 @@ void Connection::recv_data(const Packet& in)
       // if any bytes are cleared up in sack, increase expected sequence number
       cb.RCV.NXT += res.blocksize;
 
-      // TODO: This Ensures verifies that we never have partial packets
-      if(length != res.length) {
-        printf("len=%zu res.len=%zu blksz=%u\n seq=%u",
-          length, res.length, res.blocksize, in.seq());
-        std::cout << sack_list->recent_entries() << "\n";
-      }
-      assert(length == res.length && "No partial insertion support");
+      // if the ACK was a new ack, but some of the latter part of the segment
+      // was already received by SACK, it will report a shorter length
+      // (only the amount not yet received).
+      // The remaining data is already covered in the reported blocksize
+      // when incrementing RCV.NXT
+      length = res.length;
     }
 
     const auto recv = read_request->insert(in.seq(), in.tcp_data(), length, in.isset(PSH));
@@ -758,7 +757,7 @@ void Connection::recv_out_of_order(const Packet& in)
   if(UNLIKELY(not sack_list))
     sack_list = std::make_unique<Sack_list>();
 
-  const size_t length = in.tcp_data_length();
+  size_t length = in.tcp_data_length();
   auto seq = in.seq();
 
   // If it's already SACKed, it means we already received the data,
@@ -770,7 +769,6 @@ void Connection::recv_out_of_order(const Packet& in)
   }
 
   auto fits = read_request->fits(seq);
-
   // TODO: if our packet partial fits, we just ignores it for now
   // to avoid headache
   if(fits >= length)
@@ -779,10 +777,10 @@ void Connection::recv_out_of_order(const Packet& in)
     auto res = sack_list->recv_out_of_order(seq, length);
 
     // if we can't add the entry, we can't allow to insert into the buffer
-    if(res.length != length) {
-      Ensures(res.length == 0 && "No partial insertion support");
+    length = res.length;
+
+    if(UNLIKELY(length == 0))
       return;
-    }
 
     const auto inserted = read_request->insert(seq, in.tcp_data(), length, in.isset(PSH));
     Ensures(inserted == length && "No partial insertion support");
