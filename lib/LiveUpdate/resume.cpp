@@ -140,10 +140,6 @@ buffer_t  Restore::as_buffer() const
   }
   throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
 }
-Restore::Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
-{
-  return deserialize_connection(ent->vla, tcp);
-}
 
 int16_t     Restore::get_type() const noexcept
 {

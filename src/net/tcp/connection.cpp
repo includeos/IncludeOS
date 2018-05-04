@@ -38,7 +38,7 @@ using namespace net::tcp;
 using namespace std;
 
 int Connection::Stream::get_cpuid() const noexcept {
-  return tcp->host().get_cpuid();
+  return m_tcp->host().get_cpuid();
 }
 
 Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback)

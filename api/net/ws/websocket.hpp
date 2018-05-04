@@ -263,6 +263,10 @@ public:
     max_msg_size = sz;
   }
 
+  size_t serialize_to(void* p) const /*override*/;
+  /* Create connection from binary data */
+  static std::pair<WebSocket_ptr, size_t> deserialize_from(const void*);
+
   WebSocket(net::Stream_ptr, bool);
   WebSocket(WebSocket&&);
   ~WebSocket();
