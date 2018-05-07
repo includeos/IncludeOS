@@ -20,7 +20,7 @@
 /* For testing IncludeOS */
 #include <syslogd>
 
-#include <net/inet4>
+#include <net/inet>
 
 int main()
 {
@@ -29,7 +29,7 @@ int main()
   /* ------------------------- Testing POSIX syslog ------------------------- */
 
   // DHCP on interface 0
-  auto& inet = net::Inet4::stack();
+  auto& inet = net::Inet::stack();
   // static IP in case DHCP fails
   inet.network_config({  10,  0,  0, 47 },   // IP
                        { 255, 255, 255,  0 },    // Netmask

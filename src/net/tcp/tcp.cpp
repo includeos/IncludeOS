@@ -20,6 +20,7 @@
 #define DEBUG2
 
 #include <net/tcp/tcp.hpp>
+#include <net/inet>
 #include <net/inet_common.hpp> // checksum
 #include <statman>
 #include <rtc> // nanos_now (get_ts_value)
@@ -493,3 +494,15 @@ void TCP::queue_offer(Connection& conn)
     }
   }
 }
+
+tcp::Address TCP::address() const noexcept
+{ return inet_.ip_addr(); }
+
+IP4& TCP::network() const
+{ return inet_.ip_obj(); }
+
+bool TCP::is_valid_source(const tcp::Address addr) const noexcept
+{ return addr == 0 or inet_.is_valid_source(addr); }
+
+void TCP::kick()
+{ process_writeq(inet_.transmit_queue_available()); }

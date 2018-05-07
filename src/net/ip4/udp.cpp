@@ -24,6 +24,7 @@
 
 #include <common>
 #include <net/ip4/udp.hpp>
+#include <net/inet>
 #include <net/util.hpp>
 #include <memory>
 #include <net/ip4/icmp4.hpp>
@@ -313,5 +314,20 @@ namespace net {
       udp.transmit(std::move(chain_head));
     }
   }
+
+  ip4::Addr UDP::local_ip() const
+  { return stack_.ip_addr(); }
+
+  UDPSocket& UDP::bind(port_t port)
+  { return bind({stack_.ip_addr(), port}); }
+
+  UDPSocket& UDP::bind()
+  { return bind(stack_.ip_addr()); }
+
+  bool UDP::is_bound(const port_t port) const
+  { return is_bound({stack_.ip_addr(), port}); }
+
+  uint16_t UDP::max_datagram_size() noexcept
+  { return stack().ip_obj().MDDS() - sizeof(header); }
 
 } //< namespace net

@@ -22,7 +22,6 @@
 #include <map>
 #include <net/port_util.hpp>
 #include <net/conntrack.hpp>
-#include <net/inet>
 #include <net/ip4/ip4.hpp>
 
 namespace net {
@@ -33,7 +32,7 @@ namespace nat {
  */
 class NAPT {
 public:
-  using Stack = Inet<IP4>;
+  using Stack = Inet;
 
 public:
 

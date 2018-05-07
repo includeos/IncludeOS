@@ -26,8 +26,8 @@
 #endif
 
 // return the "currently selected" networking stack
-static net::Inet<net::IP4>& net_stack() {
-  return net::Inet4::stack<> ();
+static net::Inet& net_stack() {
+  return net::Inet::stack<> ();
 }
 
 size_t UDP_FD::max_buffer_msgs() const

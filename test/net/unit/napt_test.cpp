@@ -19,7 +19,7 @@
 #include <packet_factory.hpp>
 #include <net/nat/napt.hpp>
 #include <nic_mock.hpp>
-#include <net/inet4>
+#include <net/inet>
 
 using namespace net;
 using namespace net::nat;
@@ -161,7 +161,7 @@ CASE("NAPT MASQUERADE")
   NAPT napt{conntrack};
 
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
   inet.network_config({10,0,0,40},{255,255,255,0}, 0);
 
   const Socket src{{10,0,0,1}, 32222};

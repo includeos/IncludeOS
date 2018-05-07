@@ -18,7 +18,6 @@
 #ifndef NET_DNS_CLIENT_HPP
 #define NET_DNS_CLIENT_HPP
 
-#include <net/inet.hpp>
 #include <net/dns/dns.hpp>
 #include <net/ip4/udp.hpp>
 #include <util/timer.hpp>
@@ -38,7 +37,7 @@ namespace net
   {
   public:
     using Stack           = IP4::Stack;
-    using Resolve_handler = Stack::resolve_func<IP4>;
+    using Resolve_handler = IP4::resolve_func;
     using Address         = ip4::Addr;
     using Hostname        = std::string;
     using timestamp_t     = RTC::timestamp_t;

@@ -15,6 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <net/ip4/ip4.hpp>
+#include <net/ip6/ip6.hpp>
+#include <net/inet>
 #include <kernel/terminal.hpp>
 #include <kernel/os.hpp>
 #include <cstdio>

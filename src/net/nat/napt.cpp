@@ -17,6 +17,7 @@
 
 #include <net/nat/napt.hpp>
 #include <net/nat/nat.hpp>
+#include <net/inet>
 
 //#define NAPT_DEBUG 1
 #ifdef NAPT_DEBUG

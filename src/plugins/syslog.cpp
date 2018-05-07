@@ -42,7 +42,7 @@ static void mount_print_sock(const std::string& path)
   fs::mount(path, *syslog_impl, "Syslog Print Unix Backend");
 }
 
-static void mount_udp_sock(const std::string& path, net::Inet<net::IP4>& stack,
+static void mount_udp_sock(const std::string& path, net::Inet& stack,
                            const net::ip4::Addr addr, const uint16_t port)
 {
   INFO("Syslog", "Mounting Syslog UDP backend on %s", path.c_str());
@@ -98,7 +98,7 @@ static void syslog_mount()
   Expects(cfg.HasMember("iface") && "Missing iface (index)");
   Expects(cfg.HasMember("address") && "Missing address");
 
-  auto& stack = net::Super_stack::get<net::IP4>(cfg["iface"].GetInt());
+  auto& stack = net::Super_stack::get(cfg["iface"].GetInt());
   const net::ip4::Addr addr{cfg["address"].GetString()};
   const uint16_t port = cfg.HasMember("port") ?
     cfg["port"].GetUint() : default_port;

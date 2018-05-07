@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/inet4>
+#include <net/inet>
 #include <service>
 
 #include <net/ws/websocket.hpp>
@@ -55,7 +55,7 @@ std::unique_ptr<http::Server> server;
 void Service::start()
 {
   // Retreive the stack (configured from outside)
-  auto& inet = net::Inet4::stack<0>();
+  auto& inet = net::Inet::stack<0>();
   Expects(inet.is_configured());
 
   // Init the memdisk
