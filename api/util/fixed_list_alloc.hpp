@@ -20,6 +20,7 @@
 #define UTIL_FIXED_LIST_ALLOC_HPP
 
 #include "fixed_storage.hpp"
+#include <memory>
 
 // Implemenation based upon Howard Hinnant's terrific short_alloc example
 // https://howardhinnant.github.io/short_alloc.h
@@ -46,14 +47,30 @@ public:
     "Total size (sizeof(T) * N) needs to be a multiple of alignment Align");
 
 private:
-    storage_type store_;
+    std::unique_ptr<storage_type> store_;
 
 public:
-  Fixed_list_alloc() noexcept
-    : store_() {}
+  Fixed_list_alloc()
+    : store_{std::make_unique<storage_type>()}
+  {}
 
+  template<typename U>
+  Fixed_list_alloc(const U&)
+    : store_{std::make_unique<storage_type>()}
+  {
+    // ain't much to do here since storage is fixed to T,
+    // so we just create a new storage for this type
+  }
+
+  Fixed_list_alloc(Fixed_list_alloc&&) noexcept = default;
+  Fixed_list_alloc& operator=(Fixed_list_alloc&&) noexcept = default;
+
+  /* No copy */
   Fixed_list_alloc(const Fixed_list_alloc&) = delete;
   Fixed_list_alloc& operator=(const Fixed_list_alloc&) = delete;
+
+  template<typename U>
+  using other = Fixed_list_alloc<U, N, alignment>;
 
   template <class U> struct rebind {
     using other = Fixed_list_alloc<U, N, alignment>;
@@ -61,16 +78,16 @@ public:
 
   T* allocate(std::size_t n)
   {
-    return reinterpret_cast<T*>(store_.template allocate<alignof(T)>(n*sizeof(T)));
+    return reinterpret_cast<T*>(store_->template allocate<alignof(T)>(n*sizeof(T)));
   }
 
   void deallocate(T* p, std::size_t n) noexcept
   {
-    store_.deallocate(reinterpret_cast<char*>(p), n*sizeof(T));
+    store_->deallocate(reinterpret_cast<char*>(p), n*sizeof(T));
   }
 
   bool operator==(const Fixed_list_alloc& other) const noexcept
-  { return this == &other; }
+  { return this->store_ == other.store_; }
 
   bool operator!=(const Fixed_list_alloc& other) const noexcept
   { return !(*this == other); }

@@ -48,7 +48,6 @@ public:
   static constexpr std::size_t buffer_size() noexcept
   { return N * aligned_size(); }
 
-
 private:
   alignas(alignment) std::array<char, buffer_size()> buf_;
   /** Available addresses */
@@ -56,6 +55,11 @@ private:
 
 public:
   Fixed_storage() noexcept;
+
+  Fixed_storage(const Fixed_storage&) = delete;
+  Fixed_storage(Fixed_storage&&) = delete;
+  Fixed_storage& operator=(const Fixed_storage&) = delete;
+  Fixed_storage& operator=(Fixed_storage&&) = delete;
 
   template <std::size_t ReqAlign> char* allocate(std::size_t n);
   void deallocate(char* p, std::size_t n) noexcept;
@@ -108,6 +112,9 @@ char* Fixed_storage<T, N, alignment>::allocate(std::size_t n)
 template <typename T, std::size_t N, std::size_t alignment>
 void Fixed_storage<T, N, alignment>::deallocate(char* p, std::size_t) noexcept
 {
+  //printf("Fixed_storage<%s, %u, %u> dealloc %p\n",
+  //  typeid(T).name(), N, alignment, p);
+
   Expects(pointer_in_buffer(p) &&
     "Trying to deallocate pointer outside my buffer");
 
