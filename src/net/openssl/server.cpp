@@ -82,9 +82,4 @@ namespace openssl
     assert(error == SSL_ERROR_NONE);
     return ctx;
   }
-
-  __attribute__((weak))
-  size_t TLS_stream::serialize_to(void*) const {
-    return 0;
-  }
 }

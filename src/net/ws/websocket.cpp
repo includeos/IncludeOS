@@ -183,7 +183,7 @@ void WebSocket::connect(
     WS_client_connector::create_response_handler(std::move(callback), std::move(key)));
 }
 
-void WebSocket::read_data(net::tcp::buffer_t buf)
+void WebSocket::read_data(Stream::buffer_t buf)
 {
   // silently ignore data for reset connection
   if (this->stream == nullptr) return;
@@ -334,9 +334,7 @@ static Stream::buffer_t create_wsmsg(size_t len, op_code code, bool client)
   // generate header length based on buffer length
   const size_t header_len = net::ws_header::header_length(len, client);
   // create shared buffer with position at end of header
-  auto buffer = tcp::construct_buffer();
-  buffer->reserve(header_len + len);
-  buffer->resize(header_len);
+  auto buffer = tcp::construct_buffer(header_len);
   // create header on buffer
   new (buffer->data()) ws_header;
   auto& hdr = *(ws_header*) buffer->data();
@@ -380,7 +378,7 @@ void WebSocket::write(const char* data, size_t len, op_code code)
   /// send everything as shared buffer
   this->stream->write(buf);
 }
-void WebSocket::write(net::tcp::buffer_t buffer, op_code code)
+void WebSocket::write(Stream::buffer_t buffer, op_code code)
 {
   if (UNLIKELY(this->stream == nullptr)) {
     failure("write: Already closed");

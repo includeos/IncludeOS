@@ -206,7 +206,7 @@ public:
   create_response_handler(Connect_handler on_connect, std::string key);
 
   void write(const char* buffer, size_t len, op_code = op_code::TEXT);
-  void write(net::tcp::buffer_t, op_code = op_code::TEXT);
+  void write(Stream::buffer_t, op_code = op_code::TEXT);
 
   void write(const std::string& text)
   {
@@ -221,7 +221,7 @@ public:
   bool ping(Timer::duration_t timeout)
   { return ping(nullptr, 0, timeout); }
 
-  //void ping(net::tcp::buffer_t, Timer::duration_t timeout);
+  //void ping(Stream::buffer_t, Timer::duration_t timeout);
 
   // close the websocket
   void close();
@@ -282,7 +282,7 @@ private:
   WebSocket(WebSocket&&) = delete;
   WebSocket& operator= (const WebSocket&) = delete;
   WebSocket& operator= (WebSocket&&) = delete;
-  void read_data(net::tcp::buffer_t);
+  void read_data(Stream::buffer_t);
   bool write_opcode(op_code code, const char*, size_t);
   void failure(const std::string&);
   void close_callback_once(uint16_t code);
