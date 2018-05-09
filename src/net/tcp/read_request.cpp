@@ -55,7 +55,7 @@ namespace tcp {
       while(buf->is_ready() and buf == buffers.front().get())
       {
         const auto rem = buf->capacity() - buf->size();
-        callback(buf->buffer());
+        if (callback) callback(buf->buffer());
 
         // this is the only one, so we can reuse it
         if(buffers.size() == 1)
