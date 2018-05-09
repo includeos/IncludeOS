@@ -76,9 +76,13 @@ public:
 
   void close() override {
     m_transport->close();
+    CloseCallback cb = std::move(m_on_close);
+    reset_callbacks();
+    if (cb) cb();
   }
   void abort() override {
     m_transport->abort();
+    this->close();
   }
   void reset_callbacks() override
   {
@@ -140,11 +144,6 @@ protected:
     catch(Botan::Exception& e)
     {
       printf("Fatal TLS error %s\n", e.what());
-      this->close();
-    }
-    catch(...)
-    {
-      printf("Unknown error!\n");
       this->close();
     }
   }
