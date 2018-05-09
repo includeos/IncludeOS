@@ -185,7 +185,7 @@ CASE("net::router: Actual routing verifying TTL")
   inet1.ip_obj().set_linklayer_out([&](auto pckt, auto ip) {
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
     EXPECT(packet->ip_protocol() == Protocol::ICMPv4);
-    EXPECT(packet->ip_ttl() == DEFAULT_TTL);
+    EXPECT(packet->ip_ttl() == PacketIP4::DEFAULT_TTL);
 
     auto icmp = icmp4::Packet(std::move(packet));
     ICMP_error err{icmp.type(), icmp.code()};
@@ -201,7 +201,7 @@ CASE("net::router: Actual routing verifying TTL")
     auto packet = static_unique_ptr_cast<tcp::Packet>(std::move(pckt));
     EXPECT(packet->source() == src);
     EXPECT(packet->destination() == dst);
-    EXPECT(packet->ip_ttl() == DEFAULT_TTL-1);
+    EXPECT(packet->ip_ttl() == (PacketIP4::DEFAULT_TTL-1));
 
     tcp_packet_recv++;
   });
@@ -229,7 +229,7 @@ CASE("net::router: Actual routing verifying TTL")
   // Ok this one is actual legit (default TTL)
   router.send_time_exceeded = true;
   tcp = create_tcp_packet_init(src, dst);
-  tcp->set_ip_ttl(DEFAULT_TTL);
+  tcp->set_ip_ttl(PacketIP4::DEFAULT_TTL);
   tcp->set_ip_checksum();
   tcp->set_tcp_checksum();
   inet1.ip_obj().receive(std::move(tcp), false);
@@ -238,7 +238,9 @@ CASE("net::router: Actual routing verifying TTL")
 
   // Test the forward chain as well
   // Accept the first one
-  router.forward_chain.chain.push_back([](auto pkt, auto&, const auto*)->auto {
+  router.forward_chain.chain.push_back([](
+    IP4::IP_packet_ptr pkt, Inet<IP4>&, Conntrack::Entry_ptr)->Filter_verdict<IP4>
+  {
     return Filter_verdict<IP4>{std::move(pkt), Filter_verdict_type::ACCEPT};
   });
 
@@ -249,7 +251,9 @@ CASE("net::router: Actual routing verifying TTL")
   EXPECT(tcp_packet_recv == 2);
 
   // Lets drop the next one
-  router.forward_chain.chain.push_back([](auto pkt, auto&, const auto*)->auto {
+  router.forward_chain.chain.push_back([](
+    IP4::IP_packet_ptr pkt, Inet<IP4>&, Conntrack::Entry_ptr)->Filter_verdict<IP4>
+  {
     return Filter_verdict<IP4>{std::move(pkt), Filter_verdict_type::DROP};
   });
 

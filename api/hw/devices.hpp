@@ -125,7 +125,7 @@ namespace hw {
     try {
       return *(devices<Device_type>().at(N));
     }
-    catch(std::out_of_range)
+    catch(const std::out_of_range&)
     {
       throw Device_not_found{Device_type::device_type(), N};
     }

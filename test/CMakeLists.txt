@@ -20,7 +20,7 @@ add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DOS_VERSION="v0.0.0.1")
 
-set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
+set(CMAKE_C_FLAGS "-g -O2 -std=c11 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
 if(INFO)
@@ -32,9 +32,9 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-g -O2 -march=native -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
-if (APPLE)
+if (APPLE AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 message(STATUS "Including brew bundled libc++")
 execute_process(COMMAND brew "--prefix" "llvm@5" OUTPUT_VARIABLE BREW_LLVM)
 string(STRIP ${BREW_LLVM} BREW_LLVM)

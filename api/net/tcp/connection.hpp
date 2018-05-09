@@ -1028,7 +1028,7 @@ private:
   uint32_t usable_window() const noexcept
   {
     const auto x = (int64_t)send_window() - (int64_t)flight_size();
-    return (uint32_t) std::max((decltype(x)) 0, x);
+    return (uint32_t) std::max(0ll, x);
   }
 
   uint32_t send_window() const noexcept

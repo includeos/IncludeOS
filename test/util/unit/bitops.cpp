@@ -37,7 +37,7 @@ using namespace util;
 
 // Enable bitmask ops for the Flags enum
 template<>
-struct enable_bitmask_ops<Flags> {
+struct bitops::enable_bitmask_ops<Flags> {
   using type = std::underlying_type<Flags>::type;
   static constexpr bool enable = true;
 };
@@ -81,7 +81,7 @@ CASE ("util::bitops: Using bitmask ops for an enum")
 
 // Enable bitmask ops for int, to use in combination with other enabled types
 template<>
-struct enable_bitmask_ops<int> {
+struct bitops::enable_bitmask_ops<int> {
   using type = int;
   static constexpr bool enable = true;
 };

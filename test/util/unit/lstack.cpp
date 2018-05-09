@@ -16,7 +16,7 @@
 
 #include <common.cxx>
 #include <util/alloc_lstack.hpp>
-#include <malloc.h>
+extern void* memalign(size_t alignment, size_t size);
 
 using Lstack = util::alloc::Lstack<>;
 using Chunk = Lstack::Chunk;

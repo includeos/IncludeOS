@@ -31,6 +31,9 @@ void* aligned_alloc(size_t alignment, size_t size) {
 }
 #endif
 
+char _DISK_START_;
+char _DISK_END_;
+
 #include <util/statman.hpp>
 Statman& Statman::get() {
   static uintptr_t start {0};
