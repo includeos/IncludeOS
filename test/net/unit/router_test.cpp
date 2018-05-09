@@ -239,7 +239,7 @@ CASE("net::router: Actual routing verifying TTL")
   // Test the forward chain as well
   // Accept the first one
   router.forward_chain.chain.push_back([](
-    IP4::IP_packet_ptr pkt, Inet<IP4>&, Conntrack::Entry_ptr)->Filter_verdict<IP4>
+    IP4::IP_packet_ptr pkt, Inet&, Conntrack::Entry_ptr)->Filter_verdict<IP4>
   {
     return Filter_verdict<IP4>{std::move(pkt), Filter_verdict_type::ACCEPT};
   });
@@ -252,7 +252,7 @@ CASE("net::router: Actual routing verifying TTL")
 
   // Lets drop the next one
   router.forward_chain.chain.push_back([](
-    IP4::IP_packet_ptr pkt, Inet<IP4>&, Conntrack::Entry_ptr)->Filter_verdict<IP4>
+    IP4::IP_packet_ptr pkt, Inet&, Conntrack::Entry_ptr)->Filter_verdict<IP4>
   {
     return Filter_verdict<IP4>{std::move(pkt), Filter_verdict_type::DROP};
   });
