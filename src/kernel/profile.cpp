@@ -197,3 +197,25 @@ void StackSampler::set_mask(bool mask)
 {
   get().discard = mask;
 }
+
+std::string HeapDiag::to_string()
+{
+  static intptr_t last = 0;
+  // show information on heap status, to discover leaks etc.
+  auto heap_begin = OS::heap_begin();
+  auto heap_end   = OS::heap_end();
+  auto heap_usage = OS::heap_usage();
+  intptr_t heap_size = heap_end - heap_begin;
+  last = heap_size - last;
+
+  char buffer[256];
+  int len = snprintf(buffer, sizeof(buffer),
+          "Heap begin  %#lx  size %lu Kb\n"
+          "Heap end    %#lx  diff %lu (%ld Kb)\n"
+          "Heap usage  %lu kB\n",
+          heap_begin, heap_size / 1024,
+          heap_end,  last, last / 1024,
+          heap_usage / 1024);
+  last = (int32_t) heap_size;
+  return std::string(buffer, len);
+}

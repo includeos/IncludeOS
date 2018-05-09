@@ -150,4 +150,9 @@ class ScopedProfiler
   static std::array<Entry, 64> entries;
 };
 
+struct HeapDiag
+{
+  static std::string to_string();
+};
+
 #endif
