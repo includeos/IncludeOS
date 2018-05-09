@@ -20,7 +20,7 @@
 #define API_KERNEL_TERMINAL_HPP
 
 #include <terminal>
-#include <net/inet4>
+#include <net/inet>
 #include <cstdint>
 #include <cstdarg>
 #include <unordered_map>

@@ -7,7 +7,7 @@
 #include <stdexcept>
 
 static inline
-void server(net::Inet<net::IP4>& inet,
+void server(net::Inet& inet,
             const uint16_t port,
             delegate<void(liu::buffer_t&)> callback)
 {

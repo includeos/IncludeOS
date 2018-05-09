@@ -26,6 +26,7 @@
 #define MYINFO(X,...) INFO("DHCPv4",X,##__VA_ARGS__)
 
 #include <net/dhcp/dh4client.hpp>
+#include <net/inet>
 #include <net/dhcp/message.hpp>
 #include <cstdlib>
 #include <debug>

@@ -23,7 +23,7 @@
 #include <cassert>
 #include <errno.h>
 #include <unistd.h>
-#include <net/inet4>
+#include <net/inet>
 
 const uint16_t PORT = 1042;
 const uint16_t OUT_PORT = 4242;
@@ -31,7 +31,7 @@ const uint16_t BUFSIZE = 2048;
 
 int main()
 {
-  auto&& inet = net::Inet4::ifconfig({  10,  0,  0, 51 },   // IP
+  auto&& inet =  net::Inet::ifconfig({  10,  0,  0, 51 },   // IP
                                      { 255, 255, 0,  0 },   // Netmask
                                      {  10,  0,  0,  4 });  // Gateway
 

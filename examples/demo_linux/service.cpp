@@ -19,7 +19,7 @@
 #include <sstream>
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 #include <timers>
 #include <net/http/request.hpp>
 #include <net/http/response.hpp>
@@ -79,7 +79,7 @@ void Service::start()
   create_network_device(0, "10.0.0.0/24", "10.0.0.1");
 
   // Get the first IP stack configured from config.json
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
   inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
 
   // Print some useful netstats every 30 secs

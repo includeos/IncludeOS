@@ -19,7 +19,7 @@
 #ifndef UTIL_ASYNC_HPP
 #define UTIL_ASYNC_HPP
 
-#include <net/inet4.hpp>
+#include <net/inet>
 #include <net/tcp/connection.hpp>
 #include <fs/disk.hpp>
 

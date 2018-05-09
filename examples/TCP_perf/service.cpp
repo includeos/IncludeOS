@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 #include <statman>
 #include <profile>
 #include <cstdio>
@@ -105,10 +105,10 @@ void Service::ready()
   create_network_device(0, "10.0.0.0/24", "10.0.0.1");
 
   // Get the first IP stack configured from config.json
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
   inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
 #else
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
 #endif
   auto& tcp = inet.tcp();
   tcp.set_DACK(dack); // default

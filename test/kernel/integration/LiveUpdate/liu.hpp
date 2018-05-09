@@ -19,7 +19,7 @@
 #include <liveupdate>
 #include "server.hpp"
 
-void setup_liveupdate_server(net::Inet<net::IP4>& inet,
+void setup_liveupdate_server(net::Inet& inet,
                              const uint16_t PORT,
                              liu::LiveUpdate::storage_func func)
 {

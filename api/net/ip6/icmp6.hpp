@@ -17,8 +17,12 @@
 
 #pragma once
 
-#include "../util.hpp"
-#include "packet_ip6.hpp"
+#ifndef NET_IP6_ICMPv6_HPP
+#define NET_IP6_ICMPv6_HPP
+
+//#include "packet_icmp6.hpp"
+#include <map>
+#include <timers>
 
 namespace net
 {
@@ -26,16 +30,66 @@ namespace net
 
   class ICMPv6
   {
+#if 0
+    using ICMP_type = ICMP_error::ICMP_type;
+    using ICMP_code = ICMP_error::ICMP_code;
+
   public:
-    static const int ECHO_REQUEST = 128;
-    static const int ECHO_REPLY   = 129;
+    using Stack = IP6::Stack;
+    using Tuple = std::pair<uint16_t, uint16_t>;  // identifier and sequence number
+    using icmp_func = delegate<void(ICMP_view)>;
 
-    static const int ND_ROUTER_SOL = 133;
-    static const int ND_ROUTER_ADV = 134;
-    static const int ND_NEIGHB_SOL = 135;
-    static const int ND_NEIGHB_ADV = 136;
-    static const int ND_REDIRECT   = 137;
+    static const int SEC_WAIT_FOR_REPLY = 40;
 
+    // Initialize
+    ICMPv6(Stack&);
+
+    // Input from network layer
+    void receive(Packet_ptr);
+
+    // Delegate output to network layer
+    inline void set_network_out(downstream s)
+    { network_layer_out_ = s; };
+
+    /**
+     *  Destination Unreachable sent from host because of port (UDP) or protocol (IP6) unreachable
+     */
+    void destination_unreachable(Packet_ptr pckt, icmp6::code::Dest_unreachable code);
+
+    /**
+     *
+     */
+    void redirect(Packet_ptr pckt, icmp6::code::Redirect code);
+
+    /**
+     *  Sending a Time Exceeded message from a host when fragment reassembly time exceeded (code 1)
+     *  Sending a Time Exceeded message from a gateway when time to live exceeded in transit (code 0)
+     */
+    void time_exceeded(Packet_ptr pckt, icmp6::code::Time_exceeded code);
+
+    /**
+     *  Sending a Parameter Problem message if the gateway or host processing a datagram finds a problem with
+     *  the header parameters such that it cannot complete processing the datagram. The message is only sent if
+     *  the error caused the datagram to be discarded
+     *  Code 0 means Pointer (uint8_t after checksum) indicates the error/identifies the octet where an error was detected
+     *  in the IP header
+     *  Code 1 means that a required option is missing
+     */
+    void parameter_problem(Packet_ptr pckt, uint8_t error_pointer);
+
+    // May
+    void timestamp_request(IP6::addr ip);
+    void timestamp_reply(icmp6::Packet& req);
+
+    void ping(IP6::addr ip);
+    void ping(IP6::addr ip, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
+
+    void ping(const std::string& hostname);
+    void ping(const std::string& hostname, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
+#endif
+
+
+#if 0
     typedef uint8_t type_t;
     typedef int (*handler_t)(ICMPv6&, std::shared_ptr<PacketICMP6>&);
 
@@ -143,7 +197,7 @@ namespace net
       // new total packet length
       set_size(sizeof(IP6::full_header) + icmp_len);
     }
-
+#endif
   };
-
 }
+#endif

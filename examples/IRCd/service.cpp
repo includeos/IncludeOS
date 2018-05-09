@@ -106,7 +106,7 @@ void print_stats(int)
   printf("[%s] Conns/sec %.1f  Heap %.1f kb\n",
       now().c_str(), cps, OS::heap_usage() / 1024.0);
   // client and channel stats
-  auto& inet = net::Inet4::stack<0>();
+  auto& inet = net::Inet::stack<0>();
 
   printf("Syns: %u  Conns: %lu  Users: %u  RAM: %lu bytes Chans: %u\n",
          ircd->get_counter(STAT_TOTAL_CONNS),

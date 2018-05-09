@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/http/server.hpp>
+#include <net/inet>
 #include <smp>
 
 namespace http {

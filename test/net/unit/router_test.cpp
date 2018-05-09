@@ -24,10 +24,10 @@
 using namespace net;
 
 // We need discrete inet pointers for the tests
-Inet<IP4>* eth1 = (Inet<IP4>*) 1;
-Inet<IP4>* eth2 = (Inet<IP4>*) 2;
-Inet<IP4>* eth3 = (Inet<IP4>*) 3;
-Inet<IP4>* eth4 = (Inet<IP4>*) 4;
+Inet* eth1 = (Inet*) 1;
+Inet* eth2 = (Inet*) 2;
+Inet* eth3 = (Inet*) 3;
+Inet* eth4 = (Inet*) 4;
 
 CASE("net::router: Testing Route functionality")
 {
@@ -154,16 +154,16 @@ CASE("net::router: Testing default gateway route")
 
 #include <nic_mock.hpp>
 #include <packet_factory.hpp>
-#include <net/inet4>
+#include <net/inet>
 
 CASE("net::router: Actual routing verifying TTL")
 {
   Nic_mock nic1;
-  Inet4 inet1{nic1};
+  Inet inet1{nic1};
   inet1.network_config({10,0,1,1},{255,255,255,0}, 0);
 
   Nic_mock nic2;
-  Inet4 inet2{nic2};
+  Inet inet2{nic2};
   inet2.network_config({10,0,2,1},{255,255,255,0}, 0);
 
   Router<IP4>::Routing_table tbl{
@@ -267,7 +267,7 @@ CASE("net::router: Actual routing verifying TTL")
 CASE("net::router: Calculate Route nexthop")
 {
   Nic_mock nic1;
-  Inet4 inet1{nic1};
+  Inet inet1{nic1};
   inet1.network_config({10, 0, 2, 1}, {255, 255, 255, 0}, 0);
 
   // Net for inet1 without nexthop
@@ -288,7 +288,7 @@ CASE("net::router: Calculate Route nexthop")
   EXPECT(r2.nexthop({10,0,2,20}) == ip4::Addr(10,0,2,20)); // == ip
 
   Nic_mock nic2;
-  Inet4 inet2{nic2};
+  Inet inet2{nic2};
   inet2.network_config({10, 0, 1, 1}, {255, 255, 255, 0}, 0);
 
   // Default route

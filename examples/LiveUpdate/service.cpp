@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 #include <timers>
 #include <memdisk>
 #include <net/openssl/init.hpp>
@@ -74,7 +74,7 @@ static void resume_state(liu::Restore& thing)
 void Service::start()
 {
   // Get the first IP stack
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
 
   // Print some useful netstats every 30 secs
   using namespace std::chrono;

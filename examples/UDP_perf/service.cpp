@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 #include <statman>
 #include <profile>
 #include <cstdio>
@@ -116,7 +116,7 @@ void send_cb() {
     data_len += SEND_BUF_LEN;
 }
 
-void send_data(net::UDPSocket& client, net::Inet<net::IP4>& inet) {
+void send_data(net::UDPSocket& client, net::Inet& inet) {
     for (size_t i = 0; i < PACKETS_PER_INTERVAL; i++) {
         const char c = 'A' + (i % 26);
         std::string buff(SEND_BUF_LEN, c);
@@ -132,10 +132,10 @@ void Service::start(const std::string& input) {
     create_network_device(0, "10.0.0.0/24", "10.0.0.1");
 
     // Get the first IP stack configured from config.json
-    auto& inet = net::Super_stack::get<net::IP4>(0);
+    auto& inet = net::Super_stack::get(0);
     inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
 #else
-    auto& inet = net::Super_stack::get<net::IP4>(0);
+    auto& inet = net::Super_stack::get(0);
 #endif
     auto& udp = inet.udp();
 
