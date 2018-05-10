@@ -46,16 +46,16 @@ struct Addr {
   Addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2,
        uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
   {
-    i16[7] = a1; i16[6] = a2;
-    i16[5] = b1; i16[4] = b2;
-    i16[3] = c1; i16[2] = c2;
-    i16[1] = d1; i16[0] = d2;
+    i16[0] = htons(a1); i16[1] = htons(a2);
+    i16[2] = htons(b1); i16[3] = htons(b2);
+    i16[4] = htons(c1); i16[5] = htons(c2);
+    i16[6] = htons(d1); i16[7] = htons(d2);
   }
 
   Addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
   {
-    i32[0] = d; i32[1] = c;
-    i32[2] = b; i32[3] = a;
+    i32[0] = htonl(a); i32[1] = htonl(b);
+    i32[2] = htonl(c); i32[3] = htonl(d);
   }
 
   Addr(const Addr& a)
@@ -70,9 +70,9 @@ struct Addr {
     char ipv6_addr[32];
     snprintf(ipv6_addr, sizeof(ipv6_addr),
             "%0x:%0x:%0x:%0x:%0x:%0x:%0x:%0x",
-            i16[7], i16[6], i16[5],
-            i16[4], i16[3], i16[2],
-            i16[1], i16[0]);
+            ntohs(i16[0]), ntohs(i16[1]), ntohs(i16[2]),
+            ntohs(i16[3]), ntohs(i16[4]), ntohs(i16[5]),
+            ntohs(i16[6]), ntohs(i16[7]));
     return ipv6_addr;
   }
 
@@ -94,8 +94,8 @@ struct Addr {
 
   // RFC 4291  2.4.6:
   // Link-Local Addresses are designed to be used for Addressing on a
-  // single link for purposes such as automatic Address configuration,
   // neighbor discovery, or when no routers are present.
+  // single link for purposes such as automatic Address configuration,
   static const Addr link_all_nodes;     // RFC 4921
   static const Addr link_all_routers;   // RFC 4921
   static const Addr link_mDNSv6;        // RFC 6762
@@ -124,8 +124,8 @@ struct Addr {
    *
    **/
   bool is_loopback() const noexcept
-  { return i32[0] == 1 && i32[1] == 0 &&
-      i32[2] == 0 && i32[3] == 0; }
+  { return i32[0] == 0 && i32[1] == 0 &&
+      i32[2] == 0 && ntohl(i32[3]) == 1; }
 
   /**
    * Assignment operator
@@ -156,10 +156,10 @@ struct Addr {
    */
   bool operator>(const Addr other) const noexcept
   {
-      if (i32[3] > other.i32[3]) return true;
-      if (i32[2] > other.i32[2]) return true;
-      if (i32[1] > other.i32[1]) return true;
       if (i32[0] > other.i32[0]) return true;
+      if (i32[1] > other.i32[1]) return true;
+      if (i32[2] > other.i32[2]) return true;
+      if (i32[3] > other.i32[3]) return true;
 
       return false;
   }
@@ -188,21 +188,21 @@ struct Addr {
    * IPv6 addresses
    */
   Addr operator&(const Addr other) const noexcept
-  { return Addr{i32[3] & other.i32[3],
-               i32[2] & other.i32[2],
+  { return Addr{i32[0] & other.i32[0],
                i32[1] & other.i32[1],
-               i32[0] & other.i32[0] }; }
+               i32[2] & other.i32[2],
+               i32[3] & other.i32[3] }; }
 
   Addr operator&(uint8_t prefix) const noexcept
   {
-      int i = 0;
+      int i = 3;
       uint8_t mask;
       uint32_t addr[32];
 
-      addr[0] = i32[0];
-      addr[1] = i32[1];
-      addr[2] = i32[2];
-      addr[3] = i32[3];
+      addr[0] = htonl(i32[0]);
+      addr[1] = htonl(i32[1]);
+      addr[2] = htonl(i32[2]);
+      addr[3] = htonl(i32[3]);
 
       if (prefix > 128) {
           prefix = 128;
@@ -210,25 +210,25 @@ struct Addr {
 
       mask = 128 - prefix;
       while (mask >= 32) {
-          addr[i++] = 0; 
+          addr[i--] = 0; 
           mask -= 32;
       }
 
       if (mask != 0) {
           addr[i] &= (0xFFFFFFFF << mask); 
       }
-      return Addr { addr[3], addr[2], 
-               addr[1], addr[0] }; 
+      return Addr { addr[0], addr[1], 
+               addr[2], addr[3] }; 
   }
 
   Addr operator|(const Addr other) const noexcept
-  { return Addr{i32[3] | other.i32[3],
-               i32[2] | other.i32[2],
+  { return Addr{i32[0] | other.i32[0],
                i32[1] | other.i32[1],
-               i32[0] | other.i32[0] }; }
+               i32[2] | other.i32[2],
+               i32[3] | other.i32[3] }; }
 
   Addr operator~() const noexcept
-  { return Addr{~i32[3], ~i32[2], ~i32[1], ~i32[0]}; }
+  { return Addr{~i32[0], ~i32[1], ~i32[2], ~i32[3]}; }
 
   union
   {

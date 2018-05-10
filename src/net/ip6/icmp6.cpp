@@ -95,7 +95,7 @@ namespace net
     if (res.ip().capacity() < IP6_HEADER_LEN
      + (int) res.header_size() + req.payload().size())
     {
-      printf("WARNING: Network MTU too small for ICMP response, dropping\n");
+      PRINT("WARNING: Network MTU too small for ICMP response, dropping\n");
       return -1;
     }
 
@@ -106,6 +106,7 @@ namespace net
     } else {
         res.ip().set_ip_dst(req.ip().ip_src());
     }
+    res.ip().set_ip_hop_limit(255);
 
     // Populate response ICMP header
     res.set_type(ICMP_type::ND_NEIGHBOR_ADV);
@@ -363,7 +364,7 @@ namespace net
     if (res.ip().capacity() < IP6_HEADER_LEN
      + (int) res.header_size() + req.payload().size())
     {
-      printf("WARNING: Network MTU too small for ICMP response, dropping\n");
+      PRINT("WARNING: Network MTU too small for ICMP response, dropping\n");
       return;
     }
 
