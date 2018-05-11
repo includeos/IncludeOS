@@ -125,7 +125,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/isotime.cpp
   ${TEST}/util/unit/logger_test.cpp
   ${TEST}/util/unit/membitmap.cpp
-  ${TEST}/util/unit/path_to_regex_no_options.cpp
+  #${TEST}/util/unit/path_to_regex_no_options.cpp
   ${TEST}/util/unit/path_to_regex_parse.cpp
   ${TEST}/util/unit/path_to_regex_options.cpp
   ${TEST}/util/unit/percent_encoding_test.cpp
