@@ -15,28 +15,53 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
+#include <service>
 #include <net/inet4>
 #include <memdisk>
 #include <timers>
 #include <https>
 static http::Server* server = nullptr;
 extern http::Response_ptr handle_request(const http::Request&);
+static const bool ENABLE_TLS    = true;
+static const bool USE_BOTAN_TLS = true;
+#define BENCHMARK
 
 void Service::start()
 {
+  fs::memdisk().init_fs(
+  [] (auto err, auto&) {
+    assert(!err);
+  });
   // Get the first IP stack
   // It should have configuration from config.json
   auto& inet = net::Super_stack::get<net::IP4>(0);
 
+#ifndef BENCHMARK
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,
   [&inet] (uint32_t) {
     printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
+#endif
 
-  server = new http::OpenSSL_server(
-        "/test.pem", "/test.key", inet.tcp());
+  if (USE_BOTAN_TLS) {
+    auto& filesys = fs::memdisk().fs();
+    // load CA certificate
+    auto ca_cert = filesys.stat("/test.der");
+    // load CA private key
+    auto ca_key  = filesys.stat("/test.key");
+    // load server private key
+    auto srv_key = filesys.stat("/server.key");
+
+    server = new http::Botan_server(
+          "blabla", ca_key, ca_cert, srv_key, inet.tcp());
+    printf("Using Botan for HTTPS transport\n");
+  }
+  else {
+    server = new http::OpenSSL_server(
+            "/test.pem", "/test.key", inet.tcp());
+    printf("Using OpenSSL for HTTPS transport\n");
+  }
 
   server->on_request(
     [] (auto request, auto response_writer) {
@@ -46,5 +71,4 @@ void Service::start()
 
   // listen on default HTTPS port
   server->listen(443);
-  printf("*** TLS service started ***\n");
 }
