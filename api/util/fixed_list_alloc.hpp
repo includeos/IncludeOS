@@ -45,18 +45,18 @@ public:
 
   static_assert((sizeof(T) * size) % alignment == 0,
     "Total size (sizeof(T) * N) needs to be a multiple of alignment Align");
-
+  using propagate_on_container_move_assignment = std::true_type;
 private:
     std::unique_ptr<storage_type> store_;
 
 public:
   Fixed_list_alloc()
-    : store_{std::make_unique<storage_type>()}
+    : store_{nullptr}
   {}
 
   template<typename U>
   Fixed_list_alloc(const U&)
-    : store_{std::make_unique<storage_type>()}
+    : store_{nullptr}
   {
     // ain't much to do here since storage is fixed to T,
     // so we just create a new storage for this type
@@ -65,9 +65,25 @@ public:
   Fixed_list_alloc(Fixed_list_alloc&&) noexcept = default;
   Fixed_list_alloc& operator=(Fixed_list_alloc&&) noexcept = default;
 
+  // I'd really like to disable copy construction, since it makes no sense here.
+  // >=Clang5 and >=GCC8 allows this ('rebind' resp. 'move constuctor' being used),
+  // but GCC7 does not (unecessary utilize copy constructor).
+  Fixed_list_alloc(const Fixed_list_alloc&)
+    : store_{nullptr}
+  {
+    // we can't really copy due to fixed_storage,
+    // just create new storage and hope no assumptions
+    // are made that the allocators are the same
+  }
+
   /* No copy */
-  Fixed_list_alloc(const Fixed_list_alloc&) = delete;
+  //Fixed_list_alloc(const Fixed_list_alloc&) = delete;
   Fixed_list_alloc& operator=(const Fixed_list_alloc&) = delete;
+
+  static Fixed_list_alloc select_on_container_copy_construction(const Fixed_list_alloc&)
+  {
+    return {};
+  }
 
   template<typename U>
   using other = Fixed_list_alloc<U, N, alignment>;
@@ -78,6 +94,8 @@ public:
 
   T* allocate(std::size_t n)
   {
+    if(UNLIKELY(store_ == nullptr))
+      store_.reset(new storage_type);
     return reinterpret_cast<T*>(store_->template allocate<alignof(T)>(n*sizeof(T)));
   }
 
