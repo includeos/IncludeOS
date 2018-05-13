@@ -67,7 +67,7 @@ struct Addr {
 
   // returns this IPv6 Address as a string
   std::string str() const {
-    char ipv6_addr[32];
+    char ipv6_addr[40];
     snprintf(ipv6_addr, sizeof(ipv6_addr),
             "%0x:%0x:%0x:%0x:%0x:%0x:%0x:%0x",
             ntohs(i16[0]), ntohs(i16[1]), ntohs(i16[2]),
@@ -117,7 +117,7 @@ struct Addr {
        |11111111|flgs|scop|                  group ID                   |
        +--------+----+----+---------------------------------------------+
     **/
-    return i8[0] == 0xFF;
+    return ((ntohs(i16[0]) & 0xFF00) == 0xFF00);
   }
 
   /**
@@ -210,15 +210,15 @@ struct Addr {
 
       mask = 128 - prefix;
       while (mask >= 32) {
-          addr[i--] = 0; 
+          addr[i--] = 0;
           mask -= 32;
       }
 
       if (mask != 0) {
-          addr[i] &= (0xFFFFFFFF << mask); 
+          addr[i] &= (0xFFFFFFFF << mask);
       }
-      return Addr { addr[0], addr[1], 
-               addr[2], addr[3] }; 
+      return Addr { addr[0], addr[1],
+               addr[2], addr[3] };
   }
 
   Addr operator|(const Addr other) const noexcept
@@ -232,9 +232,9 @@ struct Addr {
 
   union
   {
-    uint32_t  i32[4];
-    uint16_t  i16[8];
-    uint8_t   i8[16];
+    std::array<uint64_t, 2> i64;
+    std::array<uint32_t ,4> i32;
+    std::array<uint16_t, 8> i16;
   };
 } __attribute__((packed)); //< struct Addr
 } //< namespace ip6
