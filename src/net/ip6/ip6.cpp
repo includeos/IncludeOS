@@ -300,9 +300,9 @@ namespace net
         // Compare subnets to know where to send packet
         next_hop = target == local ? packet->ip_dst() : stack_.gateway6();
 
-        PRINT("<IP6 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+        PRINT("<IP6 TOP> Next hop for %s, (netmask %d, local IP: %s, gateway: %s) == %s\n",
               packet->ip_dst().str().c_str(),
-              stack_.netmask6().str().c_str(),
+              stack_.netmask6(),
               stack_.ip6_addr().str().c_str(),
               stack_.gateway6().str().c_str(),
               next_hop.str().c_str());
