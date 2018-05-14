@@ -4,7 +4,7 @@
 #include <openssl/ssl.h>
 #include <net/inet4>
 
-//#define VERBOSE_OPENSSL
+#define VERBOSE_OPENSSL
 #ifdef VERBOSE_OPENSSL
 #define TLS_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -120,7 +120,7 @@ namespace openssl
     SSL_set_bio(this->m_ssl, this->m_bio_rd, this->m_bio_wr);
     // always-on callbacks
     m_transport->on_read(8192, {this, &TLS_stream::tls_read});
-    m_transport->on_close({this, &TLS_stream::close_callback_once});
+    m_transport->on_close({this, &TLS_stream::close});
 
     // start TLS handshake process
     if (outgoing == true)
@@ -143,7 +143,7 @@ namespace openssl
   inline void TLS_stream::write(buffer_t buffer)
   {
     if (UNLIKELY(this->is_connected() == false)) {
-      printf("TLS_stream::write() called on closed stream\n");
+      TLS_PRINT("TLS_stream::write() called on closed stream\n");
       return;
     }
 
@@ -219,12 +219,13 @@ namespace openssl
         if (n > 0) {
           auto buf = net::tcp::construct_buffer(temp, temp + n);
           if (m_on_read) m_on_read(std::move(buf));
+
         }
       } while (n > 0);
       // this goes here?
       if (UNLIKELY(this->is_closing() || this->is_closed())) {
-          //this->close_callback_once();
-          return;
+        TLS_PRINT("TLS_stream::SSL_read closed during read\n");
+        return;
       }
 
       auto status = this->status(n);
@@ -295,18 +296,14 @@ namespace openssl
   {
     ERR_clear_error();
     m_transport->close();
+    CloseCallback func = std::move(m_on_close);
+    this->reset_callbacks();
+    if (func) func();
   }
   inline void TLS_stream::abort()
   {
     m_transport->abort();
-    this->reset_callbacks();
-  }
-  inline void TLS_stream::close_callback_once()
-  {
-    auto func = std::move(m_on_close);
-    // free captured resources
-    this->reset_callbacks();
-    if (func) func();
+    this->close();
   }
   inline void TLS_stream::reset_callbacks()
   {
@@ -314,6 +311,7 @@ namespace openssl
     this->m_on_connect = nullptr;
     this->m_on_read  = nullptr;
     this->m_on_write = nullptr;
+    this->m_transport->reset_callbacks(); // why this?
   }
 
   inline bool TLS_stream::handshake_completed() const noexcept

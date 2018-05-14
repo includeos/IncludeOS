@@ -20,11 +20,12 @@
 #include <memdisk>
 #include <timers>
 #include <https>
+#define BENCHMARK_MODE
+static const bool ENABLE_TLS    = true;
+static const bool USE_BOTAN_TLS = false;
+
 static http::Server* server = nullptr;
 extern http::Response_ptr handle_request(const http::Request&);
-static const bool ENABLE_TLS    = true;
-static const bool USE_BOTAN_TLS = true;
-#define BENCHMARK
 
 void Service::start()
 {
@@ -32,12 +33,11 @@ void Service::start()
   [] (auto err, auto&) {
     assert(!err);
   });
-  // Get the first IP stack
-  // It should have configuration from config.json
+  // Auto-configured from config.json
   auto& inet = net::Super_stack::get<net::IP4>(0);
 
-#ifndef BENCHMARK
-  // Print some useful netstats every 30 secs
+#ifndef BENCHMARK_MODE
+  // Print some useful TCP stats every 30 secs
   Timers::periodic(5s, 30s,
   [&inet] (uint32_t) {
     printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
@@ -46,11 +46,8 @@ void Service::start()
 
   if (USE_BOTAN_TLS) {
     auto& filesys = fs::memdisk().fs();
-    // load CA certificate
-    auto ca_cert = filesys.stat("/test.der");
-    // load CA private key
+    auto ca_cert = filesys.stat("/test.pem");
     auto ca_key  = filesys.stat("/test.key");
-    // load server private key
     auto srv_key = filesys.stat("/server.key");
 
     server = new http::Botan_server(
@@ -72,3 +69,23 @@ void Service::start()
   // listen on default HTTPS port
   server->listen(443);
 }
+
+#ifdef BENCHMARK_MODE
+#include <profile>
+static void print_heap_info()
+{
+  const std::string heapinfo = HeapDiag::to_string();
+  printf("%s\n", heapinfo.c_str());
+  StackSampler::print(10);
+}
+
+void Service::ready()
+{
+  using namespace std::chrono;
+  Timers::periodic(1s, [] (int) {
+    print_heap_info();
+  });
+
+  StackSampler::begin();
+}
+#endif

@@ -77,7 +77,7 @@ public:
   void close() override {
     m_transport->close();
     CloseCallback cb = std::move(m_on_close);
-    reset_callbacks();
+    this->reset_callbacks();
     if (cb) cb();
   }
   void abort() override {
