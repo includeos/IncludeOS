@@ -240,7 +240,6 @@ CASE("x86::paging 4-level x86_64 paging") {
 
       x86::paging::Map m;
       EXPECT(not m);
-      EXPECT(m.page_count() == 0);
       m.lin       = 0;
       m.phys      = 4_KiB;
       // NOTE: Execute is allowed by default on intel
@@ -290,7 +289,6 @@ CASE("x86::paging 4-level x86_64 paging") {
 
       x86::paging::Map m;
       EXPECT(not m);
-      EXPECT(m.page_count() == 0);
       m.lin       = lin;
       m.phys      = phys;
       m.flags     = Pflag::present;
