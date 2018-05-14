@@ -104,8 +104,6 @@ CASE ("util::bitops: Using bitmask ops an enum and an integral")
 
 CASE ("util::bitops: using various bit operations")
 {
-
-  EXPECT(__builtin_clzl(0) == 64);
   EXPECT(__builtin_clzl(0x1000) == 51);
 
   EXPECT(bits::keeplast(0x10110) == 0x10000);
