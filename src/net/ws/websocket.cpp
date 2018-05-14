@@ -300,10 +300,10 @@ void WebSocket::finalize_message()
     }
     return;
   case op_code::CLOSE:
-    // they are angry with us :(
+    // there is a message behind the reason, hmm..
     if (hdr.data_length() >= 2) {
       // provide reason to user
-      uint16_t reason = *(uint16_t*) message->data();
+      uint16_t reason = htons(*(uint16_t*) message->data());
       this->close(reason);
     }
     else {
