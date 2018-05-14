@@ -17,28 +17,17 @@
 
 #include <os>
 #include <net/inet>
-#include <cstdio>
-#include "liu.hpp"
 
-using storage_func_t = liu::LiveUpdate::storage_func;
-extern storage_func_t begin_test_boot();
-extern bool LIVEUPDATE_PERFORM_SANITY_CHECKS;
+using namespace net;
 
-void Service::start()
+void Service::start(const std::string&)
 {
-  //LIVEUPDATE_PERFORM_SANITY_CHECKS = false;
-  OS::set_panic_action(OS::Panic_action::halt);
-
-  auto func = begin_test_boot();
-
-  if (OS::is_live_updated() == false)
-  {
-    auto& inet = net::Super_stack::get(0);
-    inet.network_config({10,0,0,49}, {255,255,255,0}, {10,0,0,1});
-    setup_liveupdate_server(inet, 666, func);
-
-    // signal test.py that the server is up
-    const char* sig = "Ready to receive binary blob\n";
-    OS::default_stdout(sig, strlen(sig));
-  }
+  auto& inet = Inet::stack<0>();
+  inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1}, {0, 0, 0, 0},
+       {  0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd },   // IP6
+       {  0, 0, 0, 64 },                                       // Prefix6
+       {  0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 }  // Gateway6
+  );
+  printf("Service IPv4 address: %s, IPv6 address: %s\n",
+          inet.ip_addr().str().c_str(), inet.ip6_addr().str().c_str());
 }

@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <service>
+#include <net/inet>
 #include <net/super_stack.hpp>
 #include <config>
 

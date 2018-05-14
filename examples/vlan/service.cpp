@@ -22,7 +22,7 @@
 void Service::start()
 {
   net::setup_vlans();
-  auto& eth0 = net::Super_stack::get<net::IP4>(0);
+  auto& eth0 = net::Super_stack::get(0);
 
-  auto& vlan0_2 = net::Super_stack::get<net::IP4>(0,2);
+  auto& vlan0_2 = net::Super_stack::get(0,2);
 }

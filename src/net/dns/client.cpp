@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/dns/client.hpp>
+#include <net/inet>
 
 namespace net
 {

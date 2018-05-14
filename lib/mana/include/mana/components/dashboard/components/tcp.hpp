@@ -21,6 +21,7 @@
 
 #include "../component.hpp"
 
+#include <net/inet>
 #include <net/tcp/tcp.hpp>
 
 namespace mana {

@@ -60,7 +60,6 @@ public:
 	T& back() noexcept { return buff_[(index_ + 1) % N]; }
 
 	template<typename F> void fold(F&& func)
-		noexcept(noexcept(func(front())))
 	{
 		for (size_t i = 0, max = index_ < N ? index_ : N ; i < max; ++i)
 			std::forward<F>(func)(buff_[(index_ - i) % N]);

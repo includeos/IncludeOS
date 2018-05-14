@@ -31,7 +31,7 @@ using namespace net;
 
 // return the "currently selected" networking stack
 static auto& net_stack() {
-  return Inet4::stack();
+  return Inet::stack();
 }
 
 ssize_t TCP_FD::read(void* data, size_t len)

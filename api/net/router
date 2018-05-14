@@ -24,7 +24,7 @@ namespace net {
       ? ip4::Addr{obj["nexthop"].GetString()} : 0;
 
     int N = obj["iface"].GetInt();
-    auto& iface = Super_stack::get<IP4>(N);
+    auto& iface = Super_stack::get(N);
 
     int cost = (not obj.HasMember("cost")) ? 100 : obj["cost"].GetInt();
 

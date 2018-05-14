@@ -18,7 +18,7 @@
 #include <map>
 #include <common.cxx>
 #include <nic_mock.hpp>
-#include <net/inet4.hpp>
+#include <net/inet>
 
 int ip_packets_dropped = 0;
 int ip_packets_received = 0;
@@ -98,7 +98,7 @@ CASE("IP4 is still a thing")
   SETUP("A pre-wired IP4 instance with custom upstream handlers"){
 
     Nic_mock nic;
-    Inet4 inet{nic};
+    Inet inet{nic};
 
     inet.ip_obj().set_drop_handler(ip_drop);
     inet.ip_obj().set_udp_handler(ip_rcv_udp);

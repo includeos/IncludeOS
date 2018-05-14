@@ -125,7 +125,7 @@ namespace icmp4 {
     {  }
 
     /** Provision fresh packet from factory **/
-    Packet(Inet<IP4>::IP_packet_factory create)
+    Packet(IP4::IP_packet_factory create)
       : pckt_{create(Protocol::ICMPv4)}
     {
       pckt_->increment_data_end(sizeof(Header));

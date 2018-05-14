@@ -17,7 +17,7 @@
 
 #include <service>
 #include <net/vlan>
-#include <net/inet4>
+#include <net/inet>
 
 void test_finished() {
   static int i = 0;
@@ -26,16 +26,16 @@ void test_finished() {
 
 void Service::start()
 {
-  auto& eth0 = net::Super_stack::get<net::IP4>(0);
-  auto& eth1 = net::Super_stack::get<net::IP4>(1);
+  auto& eth0 = net::Super_stack::get(0);
+  auto& eth1 = net::Super_stack::get(1);
 
   net::setup_vlans();
 
-  auto& vlan0_2 = net::Super_stack::get<net::IP4>(0,2);
-  auto& vlan0_42 = net::Super_stack::get<net::IP4>(0,42);
+  auto& vlan0_2 = net::Super_stack::get(0,2);
+  auto& vlan0_42 = net::Super_stack::get(0,42);
 
-  auto& vlan1_2 = net::Super_stack::get<net::IP4>(1,2);
-  auto& vlan1_42 = net::Super_stack::get<net::IP4>(1,42);
+  auto& vlan1_2 = net::Super_stack::get(1,2);
+  auto& vlan1_42 = net::Super_stack::get(1,42);
 
 
   eth0.tcp().listen(80, [](auto conn) {

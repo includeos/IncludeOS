@@ -20,7 +20,6 @@
 #define UPLINK_CONFIG_HPP
 
 #include <string>
-#include <net/inet>
 #include <net/ip4/ip4.hpp>
 #include <uri>
 
@@ -30,7 +29,7 @@ namespace uplink {
 
   struct Config
   {
-    net::Inet<net::IP4>* inet;
+    net::Inet  *inet;
     uri::URI    url;
     std::string token;
     std::string tag;

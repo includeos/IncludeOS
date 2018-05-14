@@ -1,5 +1,5 @@
 #include <iostream>
-#include <net/inet4>
+#include <net/inet>
 #include <net/ip4/cidr.hpp>
 #include <net/router.hpp>
 using namespace net;
@@ -9,9 +9,9 @@ std::shared_ptr<Conntrack>   nacl_ct_obj;
 void register_plugin_nacl()
 {
   INFO("NaCl", "Registering NaCl plugin");
-  auto &eth0 = Inet4::stack<0>();
+  auto &eth0 = Inet::stack<0>();
   eth0.network_config(IP4::addr{10, 0, 0, 42}, IP4::addr{255, 255, 255, 0}, 0);
-  auto &eth1 = Inet4::stack<1>();
+  auto &eth1 = Inet::stack<1>();
   eth1.network_config(IP4::addr{10, 0, 20, 42}, IP4::addr{255, 255, 255, 0}, 0);
   return;
   // Router

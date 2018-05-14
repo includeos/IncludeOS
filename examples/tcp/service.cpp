@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 
 /**
  * An example to show incoming and outgoing TCP Connections.
@@ -53,7 +53,7 @@ void handle_python_on_read(Connection_ptr client, const std::string& response) {
 
 void Service::start()
 {
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
 
   // Set up a TCP server on port 80
   auto& server = inet.tcp().listen(80);
