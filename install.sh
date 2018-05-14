@@ -254,10 +254,12 @@ fi
 # INSTALL FINISHED:
 ############################################################
 
+# Set compiler version
+source $INCLUDEOS_SRC/etc/use_clang_version.sh
 printf "\n\n>>> IncludeOS installation Done!\n"
 printf "    %s\n" "To use IncludeOS set env variables for cmake to know your compiler, e.g.:"\
-	   '    export CC="clang-5.0"'\
-	   '    export CXX="clang++-5.0"'\
+	   '    export CC="'$CC'"'\
+	   '    export CXX="'$CXX'"'\
 	   ""\
 	   "Test your installation with ./test.sh"
 
