@@ -30,13 +30,13 @@ void Service::start(const std::string&)
   // Server
 
   auto& inet = Inet::ifconfig<0>(
-    { 10,0,100,1 },     // IP
+    { 10,0,0,1 },     // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 });       // DNS
 
-  IP4::addr pool_start{10,0,100,10};
-  IP4::addr pool_end{10,0,100,20};
+  IP4::addr pool_start{10,0,0,10};
+  IP4::addr pool_end{10,0,0,20};
   server = std::make_unique<DHCPD>(inet.udp(), pool_start, pool_end);
 
   // Client 1

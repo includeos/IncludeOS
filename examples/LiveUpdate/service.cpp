@@ -53,7 +53,7 @@ static void save_state(liu::Storage& store, const liu::buffer_t*)
 static void resume_state(liu::Restore& thing)
 {
   printf("Resume state called\n");
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
 
   while (not thing.is_marker())
   {
