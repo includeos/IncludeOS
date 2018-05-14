@@ -55,6 +55,7 @@ namespace tcp {
       while(buf->is_ready() and buf == buffers.front().get())
       {
         const auto rem = buf->capacity() - buf->size();
+        const auto end_seq = buf->end_seq(); // store end_seq if reseted in callback
         if (callback) callback(buf->buffer());
 
         // this is the only one, so we can reuse it
@@ -63,7 +64,7 @@ namespace tcp {
           // Trick to make SACK work. If a lot of data was cleared up
           // it means the local sequence number is much farther behind
           // the real one
-          seq = buf->end_seq() - rem;
+          seq = end_seq - rem;
 
           buf->reset(seq);
           //printf("size=1, reset rem=%u start=%u end=%u\n",
