@@ -72,3 +72,14 @@ CASE("Determine if an address is loopback")
   EXPECT(not l2.is_loopback());
   EXPECT(not l3.is_loopback());
 }
+
+CASE("Determine if an address is a multicast")
+{
+  Addr l1 { 0xffffffff,0,0,1 };
+  Addr l2 { 0xff000000,0,0,0};
+  Addr l3 { 0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd };
+
+  EXPECT(l1.is_multicast());
+  EXPECT(l2.is_multicast());
+  EXPECT(not l3.is_multicast());
+}
