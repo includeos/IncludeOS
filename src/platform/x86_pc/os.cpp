@@ -192,7 +192,7 @@ void OS::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = x86::CMOS::meminfo();
-  if (OS::memory_end_ == 0)
+  if (OS::memory_end_ == __arch_max_canonical_addr)
   {
     //uintptr_t low_memory_size = mem.base.total * 1024;
     INFO2("* Low memory: %i Kib", mem.base.total);

@@ -427,7 +427,7 @@ int main()
     std::cout << "Protection fault test setup\n";
     std::cout << "* Mapping protected page @ " << prot << "\n";
     mapped = mem::map(prot, "Protected test page");
-    mem::protect((uint64_t)protected_page, mem::Access::read | mem::Access::write);
+    mem::protect_range((uint64_t)protected_page, mem::Access::read | mem::Access::write);
     Expects(mapped && mapped == prot);
   }
 
@@ -443,7 +443,7 @@ int main()
     pml1 = pml2->page_dir(pml2->entry(mapped.lin));
 
     protected_page[magic->i] = 'a';
-    mem::protect((uint64_t)protected_page, mem::Access::read);
+    mem::protect_range((uint64_t)protected_page, mem::Access::read);
     Expects(protected_page[magic->i] == 'a');
     std::cout << "* Writing to write-protected page, expecting page write fail\n\n";
     protected_page[magic->i] = 'b';
@@ -460,7 +460,7 @@ int main()
 
     // Read-protect (e.g. not present)
     std::cout << "* Reading non-present page, expecting page read fail\n\n";
-    mem::protect((uint64_t)protected_page, mem::Access::none);
+    mem::protect_range((uint64_t)protected_page, mem::Access::none);
     Expects(protected_page[magic->i] == 'b');
   }
 
@@ -474,7 +474,7 @@ int main()
 
     // Execute protected page
     std::cout << "* Executing code from execute-protected page, expecting instruction fetch fail\n\n";
-    mem::protect((uint64_t)protected_page, mem::Access::read);
+    mem::protect_range((uint64_t)protected_page, mem::Access::read);
     ((void(*)())(&protected_page[magic->i]))();
   }
 

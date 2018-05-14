@@ -199,7 +199,7 @@ CASE("x86::paging 4-level x86_64 paging") {
   SETUP ("Initializing page tables") {
     using namespace x86::paging;
     using Pflag = x86::paging::Flags;
-    Pml4* __pml4 = allocate_pdir<Pml4>();
+    Pml4* __pml4 = new Pml4();
 
     EXPECT(__pml4 != nullptr);
     EXPECT(__pml4->size() == 512);
@@ -338,7 +338,7 @@ void init_default_paging(uintptr_t exec_beg = 0xa00000, uintptr_t exec_end = 0xb
 
   // Initialize default paging (all except actually passing it to CPU)
   if (__pml4 != nullptr) {
-    free(__pml4);
+    delete __pml4;
     OS::memory_map().clear();
   }
   __arch_init_paging();
@@ -566,13 +566,21 @@ CASE ("x86::paging Verify default paging setup")
       using Tbl = std::array<uintptr_t, 512>;
       Tbl& tbl4 = *(Tbl*)__pml4->data();
 
+
+      std::cout << __pml4->summary(true, 0) << "\n";
+
       // PML4
       for (auto& ent4 : tbl4 ) {
         if (ent4 & Flags::pdir) {
           page_dirs_found++;
           auto* sub3 = __pml4->page_dir(&ent4);
           EXPECT(sub3);
-          EXPECT(sub3->at(0) != 0);
+
+          // Expect the first pml3 to have a mapped 0-entry
+          if ((void*)&ent4 == (void*)&tbl4) {
+            EXPECT(sub3->at(0) != 0);
+          }
+
           EXPECT_THROWS(sub3->at(512));
           Tbl& tbl3 = *(Tbl*)sub3->data();
           // PML3
