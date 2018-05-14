@@ -10,7 +10,7 @@ The build system will:
 
 IncludeOS is free software, with "no warranties or restrictions of any kind".
 
-[![Early Prototype](https://img.shields.io/badge/IncludeOS-v0.11.0-yellow.svg)](https://github.com/hioa-cs/IncludeOS/releases)
+[![Pre-release](https://img.shields.io/badge/IncludeOS-v0.12.0-green.svg)](https://github.com/hioa-cs/IncludeOS/releases)
 [![Apache v2.0](https://img.shields.io/badge/license-Apache%20v2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Join the chat at https://gitter.im/hioa-cs/IncludeOS](https://badges.gitter.im/hioa-cs/IncludeOS.svg)](https://gitter.im/hioa-cs/IncludeOS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
