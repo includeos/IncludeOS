@@ -115,8 +115,13 @@ namespace net
     PRINT("<ICMP6> Transmitting Neighbor adv to %s\n",
           res.ip().ip_dst().str().c_str());
 
-    // Payload
-    res.set_payload(req.payload());
+    // Insert target link address, ICMP6 option header and our mac address
+    // TODO: This is hacky. Fix it
+    MAC::Addr dest_mac("c0:01:0a:00:00:2a");
+    // Target link address
+    res.set_payload({req.payload().data(), 16 });
+    res.set_ndp_options_header(0x02, 0x01);
+    res.set_payload({reinterpret_cast<uint8_t*> (&dest_mac), 6});
 
     // Add checksum
     res.set_checksum();
