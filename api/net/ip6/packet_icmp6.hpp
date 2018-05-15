@@ -31,15 +31,20 @@ namespace net {
 namespace icmp6 {
 
   class Packet {
+
+    struct IdSe {
+      uint16_t identifier;
+      uint16_t sequence;
+    };
+
     struct Header {
       Type  type;
       uint8_t  code;
       uint16_t checksum;
       union {
-        uint16_t identifier;
-        uint16_t sequence;
-        uint32_t reserved;
-        uint32_t rso_flags;
+        struct IdSe  idse;
+        uint32_t     reserved;
+        uint32_t     rso_flags;
       };
       uint8_t  payload[0];
     }__attribute__((packed));
@@ -57,6 +62,11 @@ namespace icmp6 {
       uint32_t  len;
       uint8_t   zeros[3];
       uint8_t   next;
+    } __attribute__((packed));
+
+    struct nd_options_header {
+        uint8_t type;
+        uint8_t len;
     } __attribute__((packed));
 
     struct RouterSol
@@ -113,10 +123,10 @@ namespace icmp6 {
     { return header().checksum; }
 
     uint16_t id() const noexcept
-    { return header().identifier; }
+    { return header().idse.identifier; }
 
     uint16_t sequence() const noexcept
-    { return header().sequence; }
+    { return header().idse.sequence; }
 
     /**
      *  Where the payload of an ICMP packet starts, calculated from the start of the IP header
@@ -127,7 +137,7 @@ namespace icmp6 {
     { return pckt_->ip_header_len() + header_size(); }
 
     Span payload()
-    { return {&(header().payload[0]), pckt_->data_end() - &(header().payload[0]) }; }
+    { return {&(header().payload[0 + payload_offset_]), pckt_->data_end() - &(header().payload[0 + payload_offset_]) }; }
 
     /** Several ICMP messages require the payload to be the header and 64 bits of the
      *  data of the original datagram
@@ -157,10 +167,10 @@ namespace icmp6 {
     { header().code = c; }
 
     void set_id(uint16_t s) noexcept
-    { header().identifier = s; }
+    { header().idse.identifier = s; }
 
     void set_sequence(uint16_t s) noexcept
-    { header().sequence = s; }
+    { header().idse.sequence = s; }
 
     void set_reserved(uint32_t s) noexcept
     { header().reserved = s; }
@@ -170,7 +180,7 @@ namespace icmp6 {
      * (identifier and sequence is not used when pointer is used)
      */
     void set_pointer(uint8_t error)
-    { header().identifier = error; }
+    { header().idse.identifier = error; }
 
     uint16_t compute_checksum() const noexcept
     {
@@ -240,10 +250,19 @@ namespace icmp6 {
     void set_neighbor_adv_flag(uint32_t flag)
     { header().rso_flags = htonl(flag << 28); }
 
+    void set_ndp_options_header(uint8_t type, uint8_t len)
+    {
+        struct nd_options_header ndo;
+        ndo.type = type;
+        ndo.len = len;
+        set_payload({reinterpret_cast<uint8_t*> (&ndo), sizeof ndo});
+    }
+
     void set_payload(Span new_load)
     {
-      pckt_->set_data_end(pckt_->ip_header_len() + header_size() + new_load.size());
+      pckt_->set_data_end(pckt_->ip_header_len() + header_size() + payload_offset_ + new_load.size());
       memcpy(payload().data(), new_load.data(), payload().size());
+      payload_offset_ += payload().size();
     }
 
     /** Get the underlying IP packet */
@@ -252,12 +271,12 @@ namespace icmp6 {
 
     /** Construct from existing packet **/
     Packet(IP6::IP_packet_ptr pckt)
-      : pckt_{ std::move(pckt) }
+      : pckt_{ std::move(pckt) }, payload_offset_{0}
     {  }
 
     /** Provision fresh packet from factory **/
     Packet(IP6::IP_packet_factory create)
-      : pckt_{create(Protocol::ICMPv6)}
+      : pckt_{create(Protocol::ICMPv6)}, payload_offset_{0}
     {
       pckt_->increment_data_end(sizeof(Header));
     }
@@ -268,6 +287,7 @@ namespace icmp6 {
 
   private:
     IP6::IP_packet_ptr pckt_;
+    uint16_t payload_offset_;
   };
 }
 }
