@@ -36,7 +36,7 @@ void Service::start(const std::string&)
         CHECKSERT(not net::Inet::stack<0>().udp().is_bound(unik::default_port), "Unik UDP port is free as expected");
 
         INFO("Unik test", "Manual netwok config");
-        net::Inet::stack<0>().network_config({10,0,0,42},{255,255,255,0},{10,0,0,1},{8,8,8,8});
+        net::Inet::stack<0>().network_config({10,0,0,56},{255,255,255,0},{10,0,0,1},{8,8,8,8});
         unik::Client::register_instance(net::Inet::stack<0>());
 
       } else {
