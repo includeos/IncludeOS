@@ -101,6 +101,8 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/ip4_packet_test.cpp
   ${TEST}/net/unit/ip6.cpp
+  ${TEST}/net/unit/ip6_addr.cpp
+  ${TEST}/net/unit/ip6_packet_test.cpp
   ${TEST}/net/unit/nat_test.cpp
   ${TEST}/net/unit/napt_test.cpp
   ${TEST}/net/unit/packets.cpp
@@ -189,6 +191,7 @@ set(OS_SOURCES
   ${SRC}/net/ip4/reassembly.cpp
   ${SRC}/net/ip4/udp.cpp
   ${SRC}/net/ip4/udp_socket.cpp
+  ${SRC}/net/ip6/icmp6.cpp
   ${SRC}/net/ip6/ip6.cpp
   ${SRC}/net/dhcp/dh4client.cpp
   ${SRC}/net/nat/nat.cpp

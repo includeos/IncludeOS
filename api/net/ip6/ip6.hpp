@@ -47,6 +47,7 @@ namespace net
     using header = ip6::Header;
     using IP_packet = PacketIP6;
     using IP_packet_ptr = std::unique_ptr<IP_packet>;
+    using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
     using downstream_ndp = delegate<void(Packet_ptr, IP6::addr)>;
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
@@ -117,7 +118,7 @@ namespace net
      *   * Destination IP
      *   * Protocol
      *
-     *  Source IP *can* be set - if it's not, IP4 will set it
+     *  Source IP *can* be set - if it's not, IP6 will set it
      */
     void transmit(Packet_ptr);
     void ship(Packet_ptr, addr next_hop = IP6::ADDR_ANY, Conntrack::Entry_ptr ct = nullptr);
@@ -137,7 +138,7 @@ namespace net
      * @return     True if for me, False otherwise.
      */
     bool is_for_me(ip6::Addr dst) const;
-    void ipv6_ext_header_receive(Packet_ptr pckt);
+    Protocol ipv6_ext_header_receive(net::PacketIP6& packet);
 
     ///
     /// PACKET FILTERING

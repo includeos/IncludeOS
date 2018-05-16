@@ -89,26 +89,28 @@ namespace net
       or local_ip() == ADDR_ANY;
   }
 
-  void IP6::ipv6_ext_header_receive(Packet_ptr pckt)
+  Protocol IP6::ipv6_ext_header_receive(net::PacketIP6& packet)
   {
-    auto packet = static_unique_ptr_cast<net::PacketIP6>(std::move(pckt));
-    uint8_t* reader = packet->buf();
-    auto header = packet->ip6_header();
-    reader += sizeof(header);
+    auto reader = packet.layer_begin() + IP6_HEADER_LEN;
+    auto next_proto = packet.next_protocol();
     ip6::ExtensionHeader& ext = *(ip6::ExtensionHeader*)reader;
-    auto next_proto = packet->next_protocol();
+    uint8_t ext_len;
 
     while (next_proto != Protocol::IPv6_NONXT) {
         if (next_proto == Protocol::HOPOPT) {
+            PRINT("HOP extension header\n");
         } else if (next_proto == Protocol::OPTSV6) {
         } else {
-            PRINT("Unknown IPv6 extension header\n");
-            break;
+            PRINT("Done parsing extension header, next proto: %d\n", next_proto);
+            return next_proto;
         }
         ext = *(ip6::ExtensionHeader*)reader;
-        reader += ext.size();
+        ext_len = ext.size();
+        reader += ext_len;
+        packet.update_extension_header_len(ext_len);
         next_proto = ext.next();
     }
+    return next_proto;
   }
 
   void IP6::receive(Packet_ptr pckt, const bool link_bcast)
@@ -116,11 +118,13 @@ namespace net
     // Cast to IP6 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP6>(std::move(pckt));
 
-    PRINT("<IP6 Receive> Source IP: %s Dest.IP: %s Type: %d LinkBcast: %d ",
+    PRINT("<IP6 Receive> Source IP: %s, Dest.IP: %s, Next header: %d,"
+            "Payload len: %u, Hop limit: %d, version: %d, tc: %u, fl: %u\n",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
            (int) packet->next_header(),
-           link_bcast);
+           packet->payload_length(), packet->hop_limit(),
+           packet->ip6_version(), packet->traffic_class(), packet->flow_label());
 
     switch (packet->next_protocol()) {
     case Protocol::HOPOPT:
@@ -198,29 +202,33 @@ namespace net
     packet = res.release();
 #endif
 
+    auto next_proto = packet->next_protocol();
     // Pass packet to it's respective protocol controller
-    switch (packet->next_protocol()) {
-    case Protocol::HOPOPT:
-    case Protocol::OPTSV6:
-      ipv6_ext_header_receive(std::move(pckt));
-      break;
+    if (packet->next_protocol() == Protocol::HOPOPT ||
+        packet->next_protocol() == Protocol::OPTSV6) {
+        next_proto = ipv6_ext_header_receive(*packet);
+    }
+
+    switch (next_proto) {
     case Protocol::IPv6_NONXT:
       /* Nothing after the icmp header */
       break;
     case Protocol::ICMPv6:
+      PRINT("ICMPv6: %d\n", packet->size());
       icmp_handler_(std::move(packet));
       break;
     case Protocol::UDP:
-      udp_handler_(std::move(packet));
+      //udp_handler_(std::move(packet));
       break;
     case Protocol::TCP:
-      tcp_handler_(std::move(packet));
+      //tcp_handler_(std::move(packet));
       break;
     default:
       // Send ICMP error of type Destination Unreachable and code PROTOCOL
       // @note: If dest. is broadcast or multicast it should be dropped by now
       //stack_.icmp().destination_unreachable(std::move(packet), icmp6::code::Dest_unreachable::PROTOCOL);
 
+      PRINT("Unknown next proto. Dropping packet\n");
       drop(std::move(packet), Direction::Upstream, Drop_reason::Unknown_proto);
       break;
     }
@@ -292,9 +300,9 @@ namespace net
         // Compare subnets to know where to send packet
         next_hop = target == local ? packet->ip_dst() : stack_.gateway6();
 
-        PRINT("<IP6 TOP> Next hop for %s, (netmask %s, local IP: %s, gateway: %s) == %s\n",
+        PRINT("<IP6 TOP> Next hop for %s, (netmask %d, local IP: %s, gateway: %s) == %s\n",
               packet->ip_dst().str().c_str(),
-              stack_.netmask6().str().c_str(),
+              stack_.netmask6(),
               stack_.ip6_addr().str().c_str(),
               stack_.gateway6().str().c_str(),
               next_hop.str().c_str());
@@ -310,13 +318,13 @@ namespace net
     // Stat increment packets transmitted
     packets_tx_++;
 
-#if 0
     extern MAC::Addr linux_tap_device;
-    MAC::Addr dest_mac = linux_tap_device;
+    MAC::Addr dest_mac("c0:01:0a:00:00:01");
 
-    PRINT("<IP6> Transmitting packet, layer begin: buf + %li\n", packet->layer_begin() - packet->buf());
+    PRINT("<IP6> Transmitting packet on mac address: %s,"
+        " layer begin: buf + %li\n", dest_mac.to_string().c_str(),
+        packet->layer_begin() - packet->buf());
     linklayer_out_(std::move(packet), dest_mac, Ethertype::IP6);
-#endif
   }
 
     const ip6::Addr IP6::local_ip() const {
