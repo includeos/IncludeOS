@@ -42,13 +42,12 @@ void Service::start(const std::string&)
       } else {
         INFO("Unik test", "DHCP OK. We can now use the IP stack");
         CHECK(net::Inet::stack<0>().udp().is_bound(unik::default_port), "Unik UDP port is bound as expected");
-        try {
-          net::Inet::stack<0>().udp().bind(unik::default_port);
-        } catch(net::UDP::Port_in_use_exception& e){
-          CHECK(true, "Trying to bound to the Unik port now fails");
-          INFO("Unik test", "SUCCESS");
-        }
+      }
+      try {
+        net::Inet::stack<0>().udp().bind(unik::default_port);
+      } catch(net::UDP::Port_in_use_exception& e){
+        CHECK(true, "Trying to bound to the Unik port now fails");
+        INFO("Unik test", "SUCCESS");
       }
     });
-
 }
