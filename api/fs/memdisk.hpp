@@ -64,6 +64,7 @@ namespace fs {
     bool write_sync(block_t, buffer_t) override { return true; };
 
     explicit MemDisk() noexcept;
+    explicit MemDisk(const char* start, const char* end) noexcept;
 
     void deactivate() override;
 

@@ -39,6 +39,7 @@ TCP::TCP(IPStack& inet, bool smp_enable) :
   win_size_{default_ws_window_size},    // 8096*1024
   wscale_{default_window_scaling},      // 5
   timestamps_{default_timestamps},      // true
+  sack_{default_sack},                  // true
   dack_timeout_{default_dack_timeout},  // 40ms
   max_syn_backlog_{default_max_syn_backlog} // 64
 {

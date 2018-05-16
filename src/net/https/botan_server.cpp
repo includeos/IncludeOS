@@ -46,8 +46,9 @@ namespace http
   {
     // load CA certificate
     assert(file_ca_cert.is_valid());
-    auto ca_cert = file_ca_cert.read();
-    std::vector<uint8_t> vca_cert(ca_cert.begin(), ca_cert.end());
+    auto ca_cert = file_ca_cert.read(0, file_ca_cert.size());
+    assert(ca_cert.is_valid());
+
     // load CA private key
     auto ca_key = read_pkey(file_ca_key);
     // load server private key
@@ -57,7 +58,7 @@ namespace http
             server_name,
             get_rng(),
             std::move(ca_key),
-            Botan::X509_Certificate(vca_cert),
+            Botan::X509_Certificate(*ca_cert.get()),
             std::move(srv_key));
 
     this->credman.reset(credman);

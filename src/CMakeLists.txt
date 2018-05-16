@@ -45,7 +45,8 @@ set(OS_OBJECTS
   net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp
   net/checksum.cpp net/ip4/arp.cpp net/ip4/ip4.cpp net/ip4/reassembly.cpp
   net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
-  net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp net/tcp/read_buffer.cpp
+  net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp
+  net/tcp/read_buffer.cpp net/tcp/read_request.cpp
   net/ip4/icmp4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
   net/ip6/ip6.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp

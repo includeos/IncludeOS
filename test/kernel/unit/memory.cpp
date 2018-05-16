@@ -77,8 +77,8 @@ CASE("os::mem::Mapping Addition")
   n.lin = m.lin + m.size;
   auto old_m = m;
   auto old_n = n;
-
-  EXPECT(m + n == (m += n));
+  m += n;
+  EXPECT(old_m + old_n == m);
   EXPECT(m.size == old_m.size + old_n.size);
   EXPECT(m.lin == old_m.lin);
 

@@ -32,14 +32,15 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
   assert(buf != nullptr && "Buffer seems to be stolen, make sure to renew()");
 
   // get the relative sequence number (the diff)
-  size_t rel = seq - start;
+  size_t rel = (seq_t)(seq - start);
   assert(rel < capacity() && "No point trying to write at or above the end");
 
+  //printf("seq=%u, start=%u, rel: %lu sz=%lu\n", seq, start, rel, size());
   // avoid writing above size by shrinking len
   len = std::min(capacity() - rel, len);
 
   // fill/add hole
-  hole += (rel >= buf->size()) ? rel - buf->size() : -len;
+  hole += (rel >= buf->size()) ? (rel - buf->size()) : -len;
   assert(hole >= 0 && "A hole cannot have a negative depth..");
 
   // add data to the buffer at the relative position
