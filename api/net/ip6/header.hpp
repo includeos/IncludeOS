@@ -30,9 +30,12 @@ namespace ip6 {
  * This type is used to represent the standard IPv6 header
  */
 struct Header {
-  uint32_t version:4,
-           traffic_class:8,
-           flow_label:20;
+  union {
+    uint32_t ver_tc_fl;
+    uint32_t version : 4,
+             traffic_class : 8,
+             flow_label : 20;
+  };
   uint16_t payload_length;
   uint8_t  next_header;
   uint8_t  hop_limit;

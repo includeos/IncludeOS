@@ -58,6 +58,25 @@ static std::unique_ptr<net::PacketIP4> create_ip4_packet_init(ip4::Addr src, ip4
   return ip4;
 }
 
+#include <net/ip6/packet_ip6.hpp>
+static std::unique_ptr<net::PacketIP6> create_ip6_packet() noexcept
+{
+  auto pkt = create_packet();
+  pkt->increment_layer_begin(sizeof(net::ethernet::Header));
+  // IP6 Packet
+  auto ip6 = net::static_unique_ptr_cast<net::PacketIP6> (std::move(pkt));
+  return ip6;
+}
+
+static std::unique_ptr<net::PacketIP6> create_ip6_packet_init(ip6::Addr src, ip6::Addr dst) noexcept
+{
+  auto ip6 = create_ip6_packet();
+  ip6->init();
+  ip6->set_ip_src(src);
+  ip6->set_ip_dst(dst);
+  return ip6;
+}
+
 #include <net/tcp/packet.hpp>
 static std::unique_ptr<net::tcp::Packet> create_tcp_packet() noexcept
 {
