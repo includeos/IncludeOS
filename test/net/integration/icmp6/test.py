@@ -44,7 +44,7 @@ def start_icmp_test(trigger_line):
   else:
     print color.FAIL("<Test.py>"), "Ping test FAILED"
 
-vm.on_output("Service IPv4 address: 10.0.0.45, IPv6 address: fe80:0:0:0:e823:fcff:fef4:85bd", start_icmp_test);
+vm.on_output("Service IPv4 address: 10.0.0.52, IPv6 address: fe80:0:0:0:e823:fcff:fef4:85bd", start_icmp_test);
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(50).clean()
