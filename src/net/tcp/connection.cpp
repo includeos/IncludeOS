@@ -718,10 +718,13 @@ void Connection::recv_data(const Packet& in)
       length = res.length;
     }
 
+    // make sure to mark the data as recveied (ACK) before putting in buffer,
+    // since user callback can result in sending new data, which means we
+    // want to ACK the data recv at the same time
+    cb.RCV.NXT += length;
     const auto recv = read_request->insert(in.seq(), in.tcp_data(), length, in.isset(PSH));
+    // this ensures that the data we ACK is actually put in our buffer.
     Ensures(recv == length);
-
-    cb.RCV.NXT += recv;
   }
   // Packet out of order
   else if((in.seq() - cb.RCV.NXT) < cb.RCV.WND)
