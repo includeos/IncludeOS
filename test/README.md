@@ -17,6 +17,7 @@ The following IP addresses are used by the services in the test folder. Make sur
 - gateway: 10.0.1.1, 10.0.1.10, 10.0.2.1, 10.0.2.10
 - http: 10.0.0.46
 - icmp: 10.0.0.45
+- icmp6: 10.0.0.52
 - ipv6: 10.0.0.47
 - microLB: 10.0.0.1, 10.0.0.68, 10.0.0.69 - Is 10.0.0.1 a problem?
 - nat: 10.1.0.1, 192.1.0.1, 10.1.0.10, 192.1.0.192, 10.1.10.20
@@ -30,3 +31,4 @@ The following IP addresses are used by the services in the test folder. Make sur
 ### Others
 - stress: 10.0.0.42
 - plugin/unik: 10.0.0.56
+- kernel/modules: 10.0.0.53
