@@ -29,7 +29,6 @@ using namespace std::chrono_literals;
 namespace net {
 
   class ICMPv6;
-  class PacketNdp;
 
   /** NDP manager, including an NDP-Cache. */
   class Ndp {
