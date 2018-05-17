@@ -21,32 +21,22 @@
 #else
 #define PRINT(fmt, ...) /* fmt */
 #endif
-#include <net/ip6/ndp.hpp>
+#include <net/ip6/icmp6.hpp>
 #include <net/inet>
 
 namespace net
 {
-  int Ndp::receive_neighbor_solicitation(icmp6::Packet& req)
+  void Ndp::send_neighbor_advertisement(icmp6::Packet& req)
   {
-    bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
-    IP6::addr target = req.neighbor_sol().get_target();
-
-    PRINT("ICMPv6 NDP Neighbor solicitation request\n");
-    PRINT(">> target: %s\n", target.str().c_str());
-
-    if (target.is_multicast()) {
-        PRINT("ND: neighbor solictation target address is multicast\n");
-        return -1;
-    }
-
     icmp6::Packet res(inet_.ip6_packet_factory());
+    bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
 
     // drop if the packet is too small
     if (res.ip().capacity() < IP6_HEADER_LEN
      + (int) res.header_size() + req.payload().size())
     {
       PRINT("WARNING: Network MTU too small for ICMP response, dropping\n");
-      return -1;
+      return;
     }
 
     // Populate response IP header
@@ -80,7 +70,36 @@ namespace net
           res.ip().size(), res.payload().size(), res.compute_checksum());
 
     network_layer_out_(res.release());
-    return 0;
+  }
+
+  void Ndp::receive_neighbor_advertisement(icmp6::Packet& req)
+  {
+  }
+
+  void Ndp::send_neighbor_solicitation()
+  {
+  }
+
+  void Ndp::receive_neighbor_solicitation(icmp6::Packet& req)
+  {
+    bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
+    IP6::addr target = req.neighbor_sol().get_target();
+
+    PRINT("ICMPv6 NDP Neighbor solicitation request\n");
+    PRINT(">> target: %s\n", target.str().c_str());
+
+    if (target.is_multicast()) {
+        PRINT("ND: neighbor solictation target address is multicast\n");
+        return;
+    }
+
+    if (any_src && !req.ip().ip_dst().is_solicit_multicast()) {
+        PRINT("ND: neighbor solictation address is any source "
+                "but not solicit destination\n");
+        return;
+    }
+
+    return send_neighbor_advertisement(req);
   }
 
   void Ndp::send_router_solicitation()
@@ -103,7 +122,6 @@ namespace net
 
     network_layer_out_(req.release());
   }
-
 
   void Ndp::receive(icmp6::Packet& pckt) {
     switch(pckt.type()) {

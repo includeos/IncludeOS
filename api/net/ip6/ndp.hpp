@@ -66,8 +66,16 @@ namespace net {
 
     /** Handle incoming NDP packet. */
     void receive(icmp6::Packet& pckt);
-    int receive_neighbor_solicitation(icmp6::Packet& pckt);
+    void receive_neighbor_solicitation(icmp6::Packet& pckt);
+    void receive_neighbor_advertisement(icmp6::Packet& pckt);
+    void receive_router_solicitation(icmp6::Packet& pckt);
+    void receive_router_advertisement(icmp6::Packet& pckt);
+
+    /** Send out NDP packet */
+    void send_neighbor_solicitation();
+    void send_neighbor_advertisement(icmp6::Packet& req);
     void send_router_solicitation();
+    void send_router_advertisement();
 
     /** Roll your own ndp-resolution system. */
     void set_resolver(Ndp_resolver ar)

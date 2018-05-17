@@ -120,6 +120,14 @@ struct Addr {
     return ((ntohs(i16[0]) & 0xFF00) == 0xFF00);
   }
 
+  bool is_solicit_multicast() const
+  {
+      return ((ntohs(i32[0]) ^  (0xff020000)) |
+              ntohs(i32[1]) |
+              (ntohs(i32[2]) ^ (0x00000001)) |
+              (ntohs(i32[3]) ^ 0xff)) == 0;
+  }
+
   /**
    *
    **/
