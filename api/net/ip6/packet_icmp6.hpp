@@ -16,6 +16,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+#ifndef PACKET_ICMP6_HPP
+#define PACKET_ICMP6_HPP
+
 #include <cstdint>
 #include <gsl/span>
 #include <net/ip6/packet_ip6.hpp>
@@ -291,3 +295,4 @@ namespace icmp6 {
   };
 }
 }
+#endif //< PACKET_ICMP6_HPP

@@ -239,4 +239,15 @@ struct Addr {
 } __attribute__((packed)); //< struct Addr
 } //< namespace ip6
 } //< namespace net
+
+// Allow an IPv6 address to be used as key in e.g. std::unordered_map
+namespace std {
+  template<>
+  struct hash<net::ip6::Addr> {
+    size_t operator()(const net::ip6::Addr& addr) const {
+      // This is temporary. Use a proper hash
+      return std::hash<uint64_t>{}(addr.i64[0] + addr.i64[1]);
+    }
+  };
+} //< namespace std
 #endif
