@@ -22,6 +22,7 @@
 #define PRINT(fmt, ...) /* fmt */
 #endif
 #include <net/ip6/icmp6.hpp>
+#include <net/ip6/ndp.hpp>
 #include <net/inet>
 
 #include <iostream>

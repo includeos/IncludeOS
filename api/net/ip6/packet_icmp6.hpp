@@ -36,25 +36,131 @@ namespace icmp6 {
 
   class Packet {
 
+    class NdpPacket {
+
+        private:
+        Packet& icmp6_;
+
+        enum class NdpOpt : uint8_t {
+          ND_OPT_SOURCE_LL_ADDR = 1,   /* RFC2461 */
+          ND_OPT_TARGET_LL_ADDR = 2,   /* RFC2461 */
+          ND_OPT_PREFIX_INFO = 3,      /* RFC2461 */
+          ND_OPT_REDIRECT_HDR = 4,   /* RFC2461 */
+          ND_OPT_MTU = 5,         /* RFC2461 */
+          ND_OPT_NONCE = 14,              /* RFC7527 */
+          ND_OPT_ARRAY_MAX,
+          ND_OPT_ROUTE_INFO = 24,      /* RFC4191 */
+          ND_OPT_RDNSS = 25,      /* RFC5006 */
+          ND_OPT_DNSSL = 31,      /* RFC6106 */
+          ND_OPT_6CO = 34,      /* RFC6775 */
+          ND_OPT_MAX
+        };
+
+        struct nd_options_header {
+            uint8_t type;
+            uint8_t len;
+        } __attribute__((packed));
+
+        class NdpOptions {
+
+            private:
+            struct nd_options_header *header_;
+#if 0
+            std::array<struct nd_options_header*,
+                static_cast<size_t> (NdpOpt::ND_OPT_ARRAY_MAX)> opt_array;
+            struct nd_options_header &user_opts;
+            struct nd_options_header &user_opts_end;
+#endif
+
+            public:
+            NdpOptions(uint8_t &opt) {
+                header_ = reinterpret_cast<struct nd_options_header*>(opt); 
+            }
+
+            void parse() 
+            {
+            }
+        };
+
+        struct RouterSol
+        {
+          uint8_t  options[0];
+        } __attribute__((packed));
+
+        struct RouterAdv
+        {
+            uint32_t reachable_time;
+            uint32_t retrans_timer;
+        } __attribute__((packed));
+
+        struct RouterRedirect
+        {
+          IP6::addr target;
+          IP6::addr dest;
+          uint8_t  options[0];
+        } __attribute__((packed));
+
+        struct NeighborSol
+        {
+          IP6::addr target;
+          uint8_t   options[0];
+
+          IP6::addr get_target()
+          { return target; }
+
+          bool parse_options(uint8_t options) 
+          {
+              struct NdpOptions opt(options);
+              opt.parse();
+          }
+
+        } __attribute__((packed));
+
+        struct NeighborAdv
+        {
+          IP6::addr target;
+          uint8_t   options[0];
+
+          void set_target(IP6::addr tar)
+          { target = tar; }
+        } __attribute__((packed));
+
+        public:
+
+        NdpPacket(Packet& icmp6) : icmp6_(icmp6) {}
+
+        RouterSol& router_sol()
+        { return *reinterpret_cast<RouterSol*>(&(icmp6_.header().payload[0])); }
+
+        RouterAdv& router_adv()
+        { return *reinterpret_cast<RouterAdv*>(&(icmp6_.header().payload[0])); }
+
+        RouterRedirect& router_redirect()
+        { return *reinterpret_cast<RouterRedirect*>(&(icmp6_.header().payload[0])); }
+
+        NeighborSol& neighbor_sol()
+        { return *reinterpret_cast<NeighborSol*>(&(icmp6_.header().payload[0])); }
+
+        NeighborAdv& neighbor_adv()
+        { return *reinterpret_cast<NeighborAdv*>(&(icmp6_.header().payload[0])); }
+
+        void set_neighbor_adv_flag(uint32_t flag)
+        { icmp6_.header().rso_flags = htonl(flag << 28); }
+
+        void set_ndp_options_header(uint8_t type, uint8_t len)
+        {
+            struct nd_options_header header;
+            header.type = type;
+            header.len = len;
+
+            icmp6_.set_payload({reinterpret_cast<uint8_t*>(&header), 
+                    sizeof header});
+        }
+    };
+
     struct IdSe {
       uint16_t identifier;
       uint16_t sequence;
-    };
-
-    enum class NdpOpt : uint8_t {
-      ND_OPT_PREFIX_INFO_END = 0,
-      ND_OPT_SOURCE_LL_ADDR = 1,   /* RFC2461 */
-      ND_OPT_TARGET_LL_ADDR = 2,   /* RFC2461 */
-      ND_OPT_PREFIX_INFO = 3,      /* RFC2461 */
-      ND_OPT_REDIRECT_HDR = 4,   /* RFC2461 */
-      ND_OPT_MTU = 5,         /* RFC2461 */
-      ND_OPT_NONCE = 14,              /* RFC7527 */
-      ND_OPT_ARRAY_MAX,
-      ND_OPT_ROUTE_INFO = 24,      /* RFC4191 */
-      ND_OPT_RDNSS = 25,      /* RFC5006 */
-      ND_OPT_DNSSL = 31,      /* RFC6106 */
-      ND_OPT_6CO = 34,      /* RFC6775 */
-      ND_OPT_MAX
     };
 
     struct Header {
@@ -82,48 +188,6 @@ namespace icmp6 {
       uint32_t  len;
       uint8_t   zeros[3];
       uint8_t   next;
-    } __attribute__((packed));
-
-    struct nd_options_header {
-        uint8_t type;
-        uint8_t len;
-    } __attribute__((packed));
-
-    struct RouterSol
-    {
-      uint8_t  options[0];
-    } __attribute__((packed));
-
-    struct RouterAdv
-    {
-        uint32_t reachable_time;
-        uint32_t retrans_timer;
-    } __attribute__((packed));
-
-    struct RouterRedirect
-    {
-      IP6::addr target;
-      IP6::addr dest;
-      uint8_t  options[0];
-    } __attribute__((packed));
-
-    struct NeighborSol
-    {
-      IP6::addr target;
-      uint8_t   options[0];
-
-      IP6::addr get_target()
-      { return target; }
-
-    } __attribute__((packed));
-
-    struct NeighborAdv
-    {
-      IP6::addr target;
-      uint8_t   options[0];
-
-      void set_target(IP6::addr tar)
-      { target = tar; }
     } __attribute__((packed));
 
   public:
@@ -164,21 +228,6 @@ namespace icmp6 {
      */
     Span header_and_data()
     { return {pckt_->layer_begin(), pckt_->ip_header_len() + 8}; }
-
-    RouterSol& router_sol()
-    { return *reinterpret_cast<RouterSol*>(&(header().payload[0])); }
-
-    RouterAdv& router_adv()
-    { return *reinterpret_cast<RouterAdv*>(&(header().payload[0])); }
-
-    RouterRedirect& router_redirect()
-    { return *reinterpret_cast<RouterRedirect*>(&(header().payload[0])); }
-
-    NeighborSol& neighbor_sol()
-    { return *reinterpret_cast<NeighborSol*>(&(header().payload[0])); }
-
-    NeighborAdv& neighbor_adv()
-    { return *reinterpret_cast<NeighborAdv*>(&(header().payload[0])); }
 
     void set_type(Type t) noexcept
     { header().type = t; }
@@ -267,17 +316,6 @@ namespace icmp6 {
       header().checksum = compute_checksum();;
     }
 
-    void set_neighbor_adv_flag(uint32_t flag)
-    { header().rso_flags = htonl(flag << 28); }
-
-    void set_ndp_options_header(uint8_t type, uint8_t len)
-    {
-        struct nd_options_header ndo;
-        ndo.type = type;
-        ndo.len = len;
-        set_payload({reinterpret_cast<uint8_t*> (&ndo), sizeof ndo});
-    }
-
     void set_payload(Span new_load)
     {
       pckt_->set_data_end(pckt_->ip_header_len() + header_size() + payload_offset_ + new_load.size());
@@ -291,12 +329,12 @@ namespace icmp6 {
 
     /** Construct from existing packet **/
     Packet(IP6::IP_packet_ptr pckt)
-      : pckt_{ std::move(pckt) }, payload_offset_{0}
+      : pckt_{ std::move(pckt) }, ndp_(*this), payload_offset_{0}
     {  }
 
     /** Provision fresh packet from factory **/
     Packet(IP6::IP_packet_factory create)
-      : pckt_{create(Protocol::ICMPv6)}, payload_offset_{0}
+      : pckt_{create(Protocol::ICMPv6)}, ndp_(*this), payload_offset_{0}
     {
       pckt_->increment_data_end(sizeof(Header));
     }
@@ -305,8 +343,12 @@ namespace icmp6 {
     IP6::IP_packet_ptr release()
     { return std::move(pckt_); }
 
+    NdpPacket ndp()
+    { return ndp_; }
+
   private:
     IP6::IP_packet_ptr pckt_;
+    NdpPacket          ndp_;
     uint16_t payload_offset_;
   };
 }

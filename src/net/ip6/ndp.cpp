@@ -23,9 +23,19 @@
 #endif
 #include <net/ip6/icmp6.hpp>
 #include <net/inet>
+#include <statman>
 
 namespace net
 {
+  Ndp::Ndp(Stack& inet) noexcept:
+  requests_rx_    {Statman::get().create(Stat::UINT32, inet.ifname() + ".ndp.requests_rx").get_uint32()},
+  requests_tx_    {Statman::get().create(Stat::UINT32, inet.ifname() + ".ndp.requests_tx").get_uint32()},
+  replies_rx_     {Statman::get().create(Stat::UINT32, inet.ifname() + ".ndp.replies_rx").get_uint32()},
+  replies_tx_     {Statman::get().create(Stat::UINT32, inet.ifname() + ".ndp.replies_tx").get_uint32()},
+  inet_           {inet},
+  mac_            (inet.link_addr())
+  {}
+
   void Ndp::send_neighbor_advertisement(icmp6::Packet& req)
   {
     icmp6::Packet res(inet_.ip6_packet_factory());
@@ -51,7 +61,7 @@ namespace net
     // Populate response ICMP header
     res.set_type(ICMP_type::ND_NEIGHBOR_ADV);
     res.set_code(0);
-    res.set_neighbor_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
+    res.ndp().set_neighbor_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
     PRINT("<ICMP6> Transmitting Neighbor adv to %s\n",
           res.ip().ip_dst().str().c_str());
 
@@ -60,7 +70,7 @@ namespace net
     MAC::Addr dest_mac("c0:01:0a:00:00:2a");
     // Target link address
     res.set_payload({req.payload().data(), 16 });
-    res.set_ndp_options_header(0x02, 0x01);
+    res.ndp().set_ndp_options_header(0x02, 0x01);
     res.set_payload({reinterpret_cast<uint8_t*> (&dest_mac), 6});
 
     // Add checksum
@@ -83,7 +93,7 @@ namespace net
   void Ndp::receive_neighbor_solicitation(icmp6::Packet& req)
   {
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
-    IP6::addr target = req.neighbor_sol().get_target();
+    IP6::addr target = req.ndp().neighbor_sol().get_target();
 
     PRINT("ICMPv6 NDP Neighbor solicitation request\n");
     PRINT(">> target: %s\n", target.str().c_str());
@@ -145,4 +155,8 @@ namespace net
       return;
     }
   }
+
+  void Ndp::resolve_waiting() {}
+  void Ndp::flush_expired() {}
+  void Ndp::ndp_resolve(IP6::addr next_hop) {}
 }
