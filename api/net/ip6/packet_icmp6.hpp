@@ -36,11 +36,10 @@ namespace icmp6 {
 
   class Packet {
 
+    using ICMP_type = ICMP6_error::ICMP_type;
     class NdpPacket {
 
         private:
-        Packet& icmp6_;
-
         enum class NdpOpt : uint8_t {
           ND_OPT_SOURCE_LL_ADDR = 1,   /* RFC2461 */
           ND_OPT_TARGET_LL_ADDR = 2,   /* RFC2461 */
@@ -59,6 +58,7 @@ namespace icmp6 {
         struct nd_options_header {
             uint8_t type;
             uint8_t len;
+            uint8_t payload[0];
         } __attribute__((packed));
 
         class NdpOptions {
@@ -73,12 +73,20 @@ namespace icmp6 {
 #endif
 
             public:
-            NdpOptions(uint8_t &opt) {
-                header_ = reinterpret_cast<struct nd_options_header*>(opt); 
-            }
+            NdpOptions() : header_{NULL} {}
 
             void parse() 
             {
+            }
+
+            bool setup_options(uint8_t *opt)
+            {
+                header_ = reinterpret_cast<struct nd_options_header*>(opt); 
+            }
+
+            struct nd_options_header *get_header(uint8_t &opt) 
+            {
+                return reinterpret_cast<struct nd_options_header*>(opt);
             }
         };
 
@@ -98,6 +106,7 @@ namespace icmp6 {
           IP6::addr target;
           IP6::addr dest;
           uint8_t  options[0];
+
         } __attribute__((packed));
 
         struct NeighborSol
@@ -110,8 +119,6 @@ namespace icmp6 {
 
           bool parse_options(uint8_t options) 
           {
-              struct NdpOptions opt(options);
-              opt.parse();
           }
 
         } __attribute__((packed));
@@ -123,11 +130,38 @@ namespace icmp6 {
 
           void set_target(IP6::addr tar)
           { target = tar; }
+
         } __attribute__((packed));
+
+        Packet&    icmp6_;
+        NdpOptions ndp_opt_;
 
         public:
 
-        NdpPacket(Packet& icmp6) : icmp6_(icmp6) {}
+        NdpPacket(Packet& icmp6) : icmp6_(icmp6) {
+        }
+
+        bool setup(icmp6::Type type) {
+            switch(type) {
+            case (ICMP_type::ND_ROUTER_SOLICATION):
+              ndp_opt_.setup_options(router_sol().options);
+              break;
+            case (ICMP_type::ND_ROUTER_ADV):
+              break;
+            case (ICMP_type::ND_NEIGHBOR_SOL):
+              ndp_opt_.setup_options(neighbor_sol().options);
+              break;
+            case (ICMP_type::ND_NEIGHBOR_ADV):
+              ndp_opt_.setup_options(neighbor_adv().options);
+              break;
+            case (ICMP_type::ND_REDIRECT):
+              ndp_opt_.setup_options(router_redirect().options);
+              break;
+            default:
+              return false;
+            }
+            return true;
+        }
 
         RouterSol& router_sol()
         { return *reinterpret_cast<RouterSol*>(&(icmp6_.header().payload[0])); }
@@ -343,7 +377,7 @@ namespace icmp6 {
     IP6::IP_packet_ptr release()
     { return std::move(pckt_); }
 
-    NdpPacket ndp()
+    NdpPacket& ndp()
     { return ndp_; }
 
   private:
