@@ -34,27 +34,28 @@ namespace net {
 
 namespace icmp6 {
 
+  enum {
+      ND_OPT_PREFIX_INFO_END = 0,
+      ND_OPT_SOURCE_LL_ADDR = 1,   /* RFC2461 */
+      ND_OPT_TARGET_LL_ADDR = 2,   /* RFC2461 */
+      ND_OPT_PREFIX_INFO = 3,      /* RFC2461 */
+      ND_OPT_REDIRECT_HDR = 4,   /* RFC2461 */
+      ND_OPT_MTU = 5,         /* RFC2461 */
+      ND_OPT_NONCE = 14,              /* RFC7527 */
+      ND_OPT_ARRAY_MAX,
+      ND_OPT_ROUTE_INFO = 24,      /* RFC4191 */
+      ND_OPT_RDNSS = 25,      /* RFC5006 */
+      ND_OPT_DNSSL = 31,      /* RFC6106 */
+      ND_OPT_6CO = 34,      /* RFC6775 */
+      ND_OPT_MAX
+  };
+
   class Packet {
 
     using ICMP_type = ICMP6_error::ICMP_type;
     class NdpPacket {
 
         private:
-        enum class NdpOpt : uint8_t {
-          ND_OPT_SOURCE_LL_ADDR = 1,   /* RFC2461 */
-          ND_OPT_TARGET_LL_ADDR = 2,   /* RFC2461 */
-          ND_OPT_PREFIX_INFO = 3,      /* RFC2461 */
-          ND_OPT_REDIRECT_HDR = 4,   /* RFC2461 */
-          ND_OPT_MTU = 5,         /* RFC2461 */
-          ND_OPT_NONCE = 14,              /* RFC7527 */
-          ND_OPT_ARRAY_MAX,
-          ND_OPT_ROUTE_INFO = 24,      /* RFC4191 */
-          ND_OPT_RDNSS = 25,      /* RFC5006 */
-          ND_OPT_DNSSL = 31,      /* RFC6106 */
-          ND_OPT_6CO = 34,      /* RFC6775 */
-          ND_OPT_MAX
-        };
-
         struct nd_options_header {
             uint8_t type;
             uint8_t len;
@@ -65,40 +66,58 @@ namespace icmp6 {
 
             private:
             struct nd_options_header *header_;
-#if 0
-            std::array<struct nd_options_header*,
-                static_cast<size_t> (NdpOpt::ND_OPT_ARRAY_MAX)> opt_array;
-            struct nd_options_header &user_opts;
-            struct nd_options_header &user_opts_end;
-#endif
+            std::array<struct nd_options_header*, ND_OPT_ARRAY_MAX> opt_array;
+            struct nd_options_header *nd_opts_ri;
+            struct nd_options_header *nd_opts_ri_end;
+            struct nd_options_header *user_opts;
+            struct nd_options_header *user_opts_end;
+
+            bool is_useropt(struct nd_options_header *opt) 
+            {
+                if (opt->type == ND_OPT_RDNSS ||
+                    opt->type == ND_OPT_DNSSL) {
+                    return true;
+                }
+                return false;
+            }
 
             public:
             NdpOptions() : header_{NULL} {}
 
-            void parse() 
-            {
-            }
-
-            bool setup_options(uint8_t *opt)
-            {
-                header_ = reinterpret_cast<struct nd_options_header*>(opt); 
-            }
-
+            void parse(uint8_t *opt, uint16_t opts_len);
             struct nd_options_header *get_header(uint8_t &opt) 
             {
                 return reinterpret_cast<struct nd_options_header*>(opt);
+            }
+
+            uint8_t *get_option_data(uint8_t option)
+            {
+                if (option < ND_OPT_ARRAY_MAX) {
+                    if (opt_array[option]) {
+                        return static_cast<uint8_t*> (opt_array[option]->payload);
+                    }
+                }
+                return NULL;
             }
         };
 
         struct RouterSol
         {
           uint8_t  options[0];
+
+          uint16_t option_offset()
+          { return 0; }
+
         } __attribute__((packed));
 
         struct RouterAdv
         {
-            uint32_t reachable_time;
-            uint32_t retrans_timer;
+          uint32_t reachable_time;
+          uint32_t retrans_timer;
+
+          uint16_t option_offset()
+          { return 0; }
+
         } __attribute__((packed));
 
         struct RouterRedirect
@@ -106,6 +125,9 @@ namespace icmp6 {
           IP6::addr target;
           IP6::addr dest;
           uint8_t  options[0];
+
+          uint16_t option_offset()
+          { return 16 * 2; }
 
         } __attribute__((packed));
 
@@ -117,9 +139,8 @@ namespace icmp6 {
           IP6::addr get_target()
           { return target; }
 
-          bool parse_options(uint8_t options) 
-          {
-          }
+          uint16_t option_offset()
+          { return 16; }
 
         } __attribute__((packed));
 
@@ -131,6 +152,9 @@ namespace icmp6 {
           void set_target(IP6::addr tar)
           { target = tar; }
 
+          uint16_t option_offset()
+          { return 16; }
+
         } __attribute__((packed));
 
         Packet&    icmp6_;
@@ -141,27 +165,7 @@ namespace icmp6 {
         NdpPacket(Packet& icmp6) : icmp6_(icmp6) {
         }
 
-        bool setup(icmp6::Type type) {
-            switch(type) {
-            case (ICMP_type::ND_ROUTER_SOLICATION):
-              ndp_opt_.setup_options(router_sol().options);
-              break;
-            case (ICMP_type::ND_ROUTER_ADV):
-              break;
-            case (ICMP_type::ND_NEIGHBOR_SOL):
-              ndp_opt_.setup_options(neighbor_sol().options);
-              break;
-            case (ICMP_type::ND_NEIGHBOR_ADV):
-              ndp_opt_.setup_options(neighbor_adv().options);
-              break;
-            case (ICMP_type::ND_REDIRECT):
-              ndp_opt_.setup_options(router_redirect().options);
-              break;
-            default:
-              return false;
-            }
-            return true;
-        }
+        void parse(icmp6::Type type); 
 
         RouterSol& router_sol()
         { return *reinterpret_cast<RouterSol*>(&(icmp6_.header().payload[0])); }
@@ -189,6 +193,11 @@ namespace icmp6 {
 
             icmp6_.set_payload({reinterpret_cast<uint8_t*>(&header), 
                     sizeof header});
+        }
+
+        uint8_t* get_option_data(int opt)
+        {
+            return ndp_opt_.get_option_data(opt); 
         }
     };
 
@@ -245,6 +254,9 @@ namespace icmp6 {
 
     uint16_t sequence() const noexcept
     { return header().idse.sequence; }
+
+    uint16_t payload_len() const noexcept
+    { return pckt_->data_end() - (pckt_->layer_begin() + pckt_->ip_header_len() + header_size()); }
 
     /**
      *  Where the payload of an ICMP packet starts, calculated from the start of the IP header

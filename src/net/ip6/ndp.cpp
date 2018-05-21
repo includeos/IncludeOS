@@ -94,6 +94,8 @@ namespace net
   {
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
     IP6::addr target = req.ndp().neighbor_sol().get_target();
+    uint8_t *lladdr, *nonce_opt;
+    uint64_t nonce = 0;
 
     PRINT("ICMPv6 NDP Neighbor solicitation request\n");
     PRINT(">> target: %s\n", target.str().c_str());
@@ -108,8 +110,36 @@ namespace net
                 "but not solicit destination\n");
         return;
     }
+    req.ndp().parse(ICMP_type::ND_NEIGHBOR_SOL);
+    lladdr = req.ndp().get_option_data(icmp6::ND_OPT_SOURCE_LL_ADDR);
 
-    return send_neighbor_advertisement(req);
+    if (lladdr) {
+        if (any_src) {
+            PRINT("ND: bad any source packet with link layer option\n");
+            return;
+        }
+    }
+
+    nonce_opt = req.ndp().get_option_data(icmp6::ND_OPT_NONCE);
+    if (nonce_opt) {
+        //memcpy(&nonce, nonce_opt, 6); 
+    }
+
+    bool is_dest_multicast = req.ip().ip_dst().is_multicast();  
+
+    if (target != inet_.ip6_addr()) {
+        /* Not for us. Should we forward? */
+        return;
+    }
+
+    if (any_src) {
+        send_neighbor_advertisement(req);
+        return;
+    }
+
+    /* Update/Create cache entry for the source address */
+    send_neighbor_advertisement(req);
+
   }
 
   void Ndp::send_router_solicitation()
@@ -159,4 +189,91 @@ namespace net
   void Ndp::resolve_waiting() {}
   void Ndp::flush_expired() {}
   void Ndp::ndp_resolve(IP6::addr next_hop) {}
-}
+
+  // NDP packet function definitions
+  namespace icmp6 {
+      void Packet::NdpPacket::parse(icmp6::Type type) 
+      {
+        switch(type) {
+        case (ICMP_type::ND_ROUTER_SOLICATION):
+          ndp_opt_.parse(router_sol().options, 
+                  (icmp6_.payload_len() - router_sol().option_offset()));
+          break;
+        case (ICMP_type::ND_ROUTER_ADV):
+          break;
+        case (ICMP_type::ND_NEIGHBOR_SOL):
+          ndp_opt_.parse(neighbor_sol().options, 
+                  (icmp6_.payload_len() - neighbor_sol().option_offset()));
+          break;
+        case (ICMP_type::ND_NEIGHBOR_ADV):
+          ndp_opt_.parse(neighbor_adv().options,
+                  (icmp6_.payload_len() - neighbor_adv().option_offset()));
+          break;
+        case (ICMP_type::ND_REDIRECT):
+          ndp_opt_.parse(router_redirect().options,
+                  (icmp6_.payload_len() - router_redirect().option_offset()));
+          break;
+        default:
+          break;
+        }
+      }
+
+      void Packet::NdpPacket::NdpOptions::parse(uint8_t *opt, uint16_t opts_len) 
+      {
+         uint16_t opt_len;
+         header_ = reinterpret_cast<struct nd_options_header*>(opt); 
+         struct nd_options_header *option_hdr = header_;
+
+          if (option_hdr == NULL) {
+             return;
+          }
+          while(opts_len) {
+            if (opts_len < sizeof (struct nd_options_header)) {
+               return;
+            }
+            opt_len = option_hdr->len << 3;
+
+            if (opts_len < opt_len || opt_len == 0) {
+               return;
+            }
+            switch (option_hdr->type) {
+            case ND_OPT_SOURCE_LL_ADDR:
+            case ND_OPT_TARGET_LL_ADDR:
+            case ND_OPT_MTU:
+            case ND_OPT_NONCE:
+            case ND_OPT_REDIRECT_HDR:
+                if (opt_array[option_hdr->type]) {
+                } else {
+                   opt_array[option_hdr->type] = option_hdr;
+                }
+                break;
+            case ND_OPT_PREFIX_INFO:
+                opt_array[ND_OPT_PREFIX_INFO_END] = option_hdr;
+                if (!opt_array[ND_OPT_PREFIX_INFO]) {
+                   opt_array[ND_OPT_PREFIX_INFO] = option_hdr;
+                }
+                break;
+            case ND_OPT_ROUTE_INFO:
+                 nd_opts_ri_end = option_hdr;
+                 if (!nd_opts_ri) {
+                     nd_opts_ri = option_hdr;
+                 }
+                 break;
+            default:
+                 if (is_useropt(option_hdr)) {
+                    user_opts_end = option_hdr;
+                    if (!user_opts) {
+                       user_opts = option_hdr;
+                    }
+                 } else {
+                    PRINT("%s: Unsupported option: type=%d, len=%d\n",
+                        __FUNCTION__, option_hdr->type, option_hdr->len); 
+                 }
+            }
+            opts_len -= opt_len;
+            option_hdr = (option_hdr + opt_len);
+        }
+     }
+
+  } // icmp6
+} // net
