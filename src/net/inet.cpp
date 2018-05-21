@@ -76,6 +76,7 @@ Inet::Inet(hw::Nic& nic)
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());
   auto arp_top(IP4::downstream_arp{arp_, &Arp::transmit});
+  auto ndp_top(IP6::downstream_ndp{icmp6_, &ICMPv6::ndp_transmit});
   auto ip4_top(downstream{ip4_, &IP4::transmit});
   auto ip6_top(downstream{ip6_, &IP6::transmit});
 
@@ -98,6 +99,7 @@ Inet::Inet(hw::Nic& nic)
 
   // IP6 -> Link
   ip6_.set_linklayer_out(link_top);
+  //ip6_.set_linklayer_out(ndp_top);
 
   // UDP6 -> IP6
   // udp6->set_network_out(ip6_top);

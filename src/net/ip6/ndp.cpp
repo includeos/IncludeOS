@@ -95,6 +95,7 @@ namespace net
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
     IP6::addr target = req.ndp().neighbor_sol().get_target();
     uint8_t *lladdr, *nonce_opt;
+    bool found;
     uint64_t nonce = 0;
 
     PRINT("ICMPv6 NDP Neighbor solicitation request\n");
@@ -122,10 +123,10 @@ namespace net
 
     nonce_opt = req.ndp().get_option_data(icmp6::ND_OPT_NONCE);
     if (nonce_opt) {
-        //memcpy(&nonce, nonce_opt, 6); 
+        //memcpy(&nonce, nonce_opt, 6);
     }
 
-    bool is_dest_multicast = req.ip().ip_dst().is_multicast();  
+    bool is_dest_multicast = req.ip().ip_dst().is_multicast();
 
     if (target != inet_.ip6_addr()) {
         /* Not for us. Should we forward? */
@@ -138,7 +139,12 @@ namespace net
     }
 
     /* Update/Create cache entry for the source address */
-    send_neighbor_advertisement(req);
+    found = lookup(!is_dest_multicast || lladdr,
+            req.ip().ip_src(), lladdr, 0);
+
+    if (found) {
+        send_neighbor_advertisement(req);
+    }
 
   }
 
@@ -186,23 +192,145 @@ namespace net
     }
   }
 
-  void Ndp::resolve_waiting() {}
-  void Ndp::flush_expired() {}
-  void Ndp::ndp_resolve(IP6::addr next_hop) {}
+  bool Ndp::lookup(bool create, IP6::addr ip, uint8_t *ll_addr, uint8_t flags)
+  {
+      auto entry = cache_.find(ip);
+      if (entry != cache_.end()) {
+          return true;
+      } else if (create == true && ll_addr) {
+          MAC::Addr mac(ll_addr);
+          cache(ip, mac, flags);
+          return true;
+      }
+      return false;
+  }
+
+  bool Ndp::cache(IP6::addr ip, MAC::Addr mac, uint8_t flags)
+  {
+      auto entry = cache_.find(ip);
+      if (entry != cache_.end()) {
+          PRINT("Cached entry found: %s recorded @ %zu. Updating timestamp\n",
+             entry->second.mac().str().c_str(), entry->second.timestamp());
+          if (entry->second.mac() != mac) {
+            cache_.erase(entry);
+            cache_[ip] = mac;
+          } else {
+            entry->second.update();
+          }
+      } else {
+          cache_[ip] = mac; // Insert
+          if (UNLIKELY(not flush_timer_.is_running())) {
+            flush_timer_.start(flush_interval_);
+          }
+      }
+  }
+
+  void Ndp::resolve_waiting()
+  {
+    PRINT("<ndp> resolve timer doing sweep\n");
+
+    for (auto it =waiting_packets_.begin(); it != waiting_packets_.end();){
+      if (it->second.tries_remaining--) {
+        ndp_resolver_(it->first);
+        it++;
+      } else {
+        it = waiting_packets_.erase(it);
+      }
+    }
+
+    if (not waiting_packets_.empty())
+      resolve_timer_.start(1s);
+
+  }
+
+  void Ndp::await_resolution(Packet_ptr pckt, IP6::addr next_hop) {
+    auto queue =  waiting_packets_.find(next_hop);
+    PRINT("<ARP await> Waiting for resolution of %s\n", next_hop.str().c_str());
+    if (queue != waiting_packets_.end()) {
+      PRINT("\t * Packets already queueing for this IP\n");
+      queue->second.pckt->chain(std::move(pckt));
+    } else {
+      PRINT("\t *This is the first packet going to that IP\n");
+      waiting_packets_.emplace(std::make_pair(next_hop, Queue_entry{std::move(pckt)}));
+
+      // Try resolution immediately
+      ndp_resolver_(next_hop);
+
+      // Retry later
+      resolve_timer_.start(1s);
+    }
+  }
+
+  void Ndp::flush_expired()
+  {
+    PRINT("<NDP> Flushing expired entries\n");
+    std::vector<IP6::addr> expired;
+    for (auto ent : cache_) {
+      if (ent.second.expired()) {
+        expired.push_back(ent.first);
+      }
+    }
+
+    for (auto ip : expired) {
+      cache_.erase(ip);
+    }
+
+    if (not cache_.empty()) {
+      flush_timer_.start(flush_interval_);
+    }
+  }
+
+  void Ndp::ndp_resolve(IP6::addr next_hop)
+  {
+    PRINT("<NDP RESOLVE> %s\n", next_hop.str().c_str());
+
+    // Stat increment requests sent
+    requests_tx_++;
+
+    // Send ndp solicit
+  }
+
+  void Ndp::transmit(Packet_ptr pckt, IP6::addr next_hop)
+  {
+
+    Expects(pckt->size());
+
+    PRINT("<NDP -> physical> Transmitting %u bytes to %s\n",
+          (uint32_t) pckt->size(), next_hop.str().c_str());
+
+    MAC::Addr dest_mac;
+
+    // If we don't have a cached IP, perform address resolution
+    auto cache_entry = cache_.find(next_hop);
+    if (UNLIKELY(cache_entry == cache_.end())) {
+        PRINT("<NDP> No cache entry for IP %s.  Resolving. \n", next_hop.to_string().c_str());
+        await_resolution(std::move(pckt), next_hop);
+        return;
+    }
+
+    // Get MAC from cache
+    dest_mac = cache_[next_hop].mac();
+
+    PRINT("<NDP> Found cache entry for IP %s -> %s \n",
+        next_hop.to_string().c_str(), dest_mac.to_string().c_str());
+
+    // Move chain to linklayer
+    linklayer_out_(std::move(pckt), dest_mac, Ethertype::IP4);
+  }
 
   // NDP packet function definitions
   namespace icmp6 {
-      void Packet::NdpPacket::parse(icmp6::Type type) 
+      void Packet::NdpPacket::parse(icmp6::Type type)
       {
         switch(type) {
         case (ICMP_type::ND_ROUTER_SOLICATION):
-          ndp_opt_.parse(router_sol().options, 
+          ndp_opt_.parse(router_sol().options,
                   (icmp6_.payload_len() - router_sol().option_offset()));
           break;
         case (ICMP_type::ND_ROUTER_ADV):
           break;
         case (ICMP_type::ND_NEIGHBOR_SOL):
-          ndp_opt_.parse(neighbor_sol().options, 
+          ndp_opt_.parse(neighbor_sol().options,
                   (icmp6_.payload_len() - neighbor_sol().option_offset()));
           break;
         case (ICMP_type::ND_NEIGHBOR_ADV):
@@ -218,10 +346,10 @@ namespace net
         }
       }
 
-      void Packet::NdpPacket::NdpOptions::parse(uint8_t *opt, uint16_t opts_len) 
+      void Packet::NdpPacket::NdpOptions::parse(uint8_t *opt, uint16_t opts_len)
       {
          uint16_t opt_len;
-         header_ = reinterpret_cast<struct nd_options_header*>(opt); 
+         header_ = reinterpret_cast<struct nd_options_header*>(opt);
          struct nd_options_header *option_hdr = header_;
 
           if (option_hdr == NULL) {
@@ -267,7 +395,7 @@ namespace net
                     }
                  } else {
                     PRINT("%s: Unsupported option: type=%d, len=%d\n",
-                        __FUNCTION__, option_hdr->type, option_hdr->len); 
+                        __FUNCTION__, option_hdr->type, option_hdr->len);
                  }
             }
             opts_len -= opt_len;

@@ -110,10 +110,14 @@ namespace net
 
     // Delegate output to network layer
     inline void set_network_out(downstream s)
-    { 
-      network_layer_out_ = s; 
-      ndp_.set_network_out(s);
-    };
+    {
+      network_layer_out_ = s;
+    }
+
+    void ndp_transmit(Packet_ptr ptr, IP6::addr next_hop)
+    {
+        //ndp_.transmit(ptr, next_hop);
+    }
 
     /**
      *  Destination Unreachable sent from host because of port (UDP) or protocol (IP6) unreachable

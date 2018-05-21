@@ -39,29 +39,11 @@ namespace net {
     using Ndp_resolver = delegate<void(IP6::addr)>;
     using ICMP_type = ICMP6_error::ICMP_type;
 
-    enum Opcode { H_request = 0x100, H_reply = 0x200 };
-
-    /** Ndp opcodes (Big-endian) */
-    static constexpr uint16_t H_htype_eth {0x0100};
-    static constexpr uint16_t H_ptype_ip6 {0x0008};
-    static constexpr uint16_t H_hlen_plen {0x0406};
-
     /** Number of resolution retries **/
     static constexpr int ndp_retries = 3;
 
     /** Constructor */
     explicit Ndp(Stack&) noexcept;
-
-    struct __attribute__((packed)) header {
-      uint16_t         htype;     // Hardware type
-      uint16_t         ptype;     // Protocol type
-      uint16_t         hlen_plen; // Protocol address length
-      uint16_t         opcode;    // Opcode
-      MAC::Addr     shwaddr;   // Source mac
-      IP6::addr        sipaddr;   // Source ip
-      MAC::Addr     dhwaddr;   // Target mac
-      IP6::addr        dipaddr;   // Target ip
-    };
 
     /** Handle incoming NDP packet. */
     void receive(icmp6::Packet& pckt);
@@ -99,7 +81,10 @@ namespace net {
     void transmit(Packet_ptr, IP6::addr next_hop);
 
     /** Cache IP resolution. */
-    void cache(IP6::addr, MAC::Addr);
+    bool cache(IP6::addr ip, MAC::Addr mac, uint8_t flags);
+
+    /** Lookup for cache entry */
+    bool lookup(bool create, IP6::addr ip, uint8_t *ll_addr, uint8_t flags);
 
     /** Flush the NDP cache. RFC-2.3.2.1 */
     void flush_cache()
@@ -179,7 +164,6 @@ namespace net {
     Route_checker proxy_ = nullptr;
     downstream network_layer_out_ =   nullptr;
 
-    // Needs to know which mac address to put in header->swhaddr
     MAC::Addr mac_;
 
     // Outbound data goes through here */
@@ -193,9 +177,6 @@ namespace net {
 
     // Settable resolver - defualts to ndp_resolve
     Ndp_resolver ndp_resolver_ = {this, &Ndp::ndp_resolve};
-
-    /** Respond to ndp request */
-    void ndp_respond(header* hdr_in, IP6::addr ack_ip);
 
     /** Send an ndp resolution request */
     void ndp_resolve(IP6::addr next_hop);
