@@ -188,9 +188,7 @@ namespace net {
 
     virtual size_t serialize_to(void*) const = 0;
 
-    Stream() = default;
-    virtual ~Stream() {}
-
+    virtual ~Stream() = default;
   }; // < class Stream
 } // < namespace net
 
