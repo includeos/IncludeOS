@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define NDP_DEBUG 1
+//#define NDP_DEBUG 1
 #ifdef NDP_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -101,7 +101,7 @@ namespace net
     uint64_t nonce = 0;
 
     PRINT("ICMPv6 NDP Neighbor solicitation request\n");
-    PRINT(">> target: %s\n", target.str().c_str());
+    PRINT("target: %s\n", target.str().c_str());
 
     if (target.is_multicast()) {
         PRINT("ND: neighbor solictation target address is multicast\n");
@@ -121,10 +121,6 @@ namespace net
             PRINT("ND: bad any source packet with link layer option\n");
             return;
         }
-        char mac[6];
-        memcpy(mac, lladdr, 6);
-        PRINT("printing lladdr\n");
-        PRINT("lladdres is %s\n", mac);
     }
 
     nonce_opt = req.ndp().get_option_data(icmp6::ND_OPT_NONCE);
@@ -215,7 +211,6 @@ namespace net
   {
       PRINT("Ndp Caching IP %s for %s\n", ip.str().c_str(), mac.str().c_str());
       auto entry = cache_.find(ip);
-      PRINT("Finding cache\n");
       if (entry != cache_.end()) {
           PRINT("Cached entry found: %s recorded @ %zu. Updating timestamp\n",
              entry->second.mac().str().c_str(), entry->second.timestamp());
@@ -226,14 +221,11 @@ namespace net
             entry->second.update();
           }
       } else {
-          PRINT("Trying to add cache\n");
           cache_.emplace(ip, mac); // Insert
-          PRINT("Done adding cache\n");
           if (UNLIKELY(not flush_timer_.is_running())) {
             flush_timer_.start(flush_interval_);
           }
       }
-      PRINT("Done with cache\n");
   }
 
   void Ndp::resolve_waiting()
@@ -256,7 +248,7 @@ namespace net
 
   void Ndp::await_resolution(Packet_ptr pckt, IP6::addr next_hop) {
     auto queue =  waiting_packets_.find(next_hop);
-    PRINT("<ARP await> Waiting for resolution of %s\n", next_hop.str().c_str());
+    PRINT("<NDP await> Waiting for resolution of %s\n", next_hop.str().c_str());
     if (queue != waiting_packets_.end()) {
       PRINT("\t * Packets already queueing for this IP\n");
       queue->second.pckt->chain(std::move(pckt));
@@ -381,15 +373,11 @@ namespace net
             case ND_OPT_MTU:
             case ND_OPT_NONCE:
             case ND_OPT_REDIRECT_HDR:
-                printf("Setting option header: %d\n", option_hdr->type);
                 if (opt_array[option_hdr->type]) {
                 } else {
                    opt_array[option_hdr->type] = option_hdr;
                 }
-                printf("De-referencing option headerd\n");
                 option_hdr = opt_array[option_hdr->type];
-                printf("De-referencing option headerd\n");
-                printf("De-referencing option header: %d\n", option_hdr->type);
                 break;
             case ND_OPT_PREFIX_INFO:
                 opt_array[ND_OPT_PREFIX_INFO_END] = option_hdr;

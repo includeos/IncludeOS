@@ -66,14 +66,13 @@ namespace icmp6 {
 
             private:
             struct nd_options_header *header_;
-            //std::array<struct nd_options_header*, ND_OPT_ARRAY_MAX> opt_array;
-            struct nd_options_header* opt_array[ND_OPT_ARRAY_MAX];
+            std::array<struct nd_options_header*, ND_OPT_ARRAY_MAX> opt_array;
             struct nd_options_header *nd_opts_ri;
             struct nd_options_header *nd_opts_ri_end;
             struct nd_options_header *user_opts;
             struct nd_options_header *user_opts_end;
 
-            bool is_useropt(struct nd_options_header *opt) 
+            bool is_useropt(struct nd_options_header *opt)
             {
                 if (opt->type == ND_OPT_RDNSS ||
                     opt->type == ND_OPT_DNSSL) {
@@ -83,11 +82,11 @@ namespace icmp6 {
             }
 
             public:
-            NdpOptions() : header_{NULL}, nd_opts_ri{NULL}, 
-                nd_opts_ri_end{NULL}, user_opts{NULL}, user_opts_end{NULL} {}
+            NdpOptions() : header_{nullptr}, opt_array{}, nd_opts_ri{nullptr},
+                nd_opts_ri_end{nullptr}, user_opts{nullptr}, user_opts_end{nullptr} {}
 
             void parse(uint8_t *opt, uint16_t opts_len);
-            struct nd_options_header *get_header(uint8_t &opt) 
+            struct nd_options_header *get_header(uint8_t &opt)
             {
                 return reinterpret_cast<struct nd_options_header*>(opt);
             }
@@ -96,11 +95,6 @@ namespace icmp6 {
             {
                 if (option < ND_OPT_ARRAY_MAX) {
                     if (opt_array[option]) {
-                        printf("Returning options, %d, %d\n",
-                                opt_array[option]->type, opt_array[option]->len);
-                        char mac[6];
-                        memcpy(mac, opt_array[option]->payload, 6);
-                        printf("lladdres is api is %s\n", mac);
                         return static_cast<uint8_t*> (opt_array[option]->payload);
                     }
                 }
@@ -172,7 +166,7 @@ namespace icmp6 {
         NdpPacket(Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {
         }
 
-        void parse(icmp6::Type type); 
+        void parse(icmp6::Type type);
 
         RouterSol& router_sol()
         { return *reinterpret_cast<RouterSol*>(&(icmp6_.header().payload[0])); }
@@ -198,13 +192,13 @@ namespace icmp6 {
             header.type = type;
             header.len = len;
 
-            icmp6_.set_payload({reinterpret_cast<uint8_t*>(&header), 
+            icmp6_.set_payload({reinterpret_cast<uint8_t*>(&header),
                     sizeof header});
         }
 
         uint8_t* get_option_data(int opt)
         {
-            return ndp_opt_.get_option_data(opt); 
+            return ndp_opt_.get_option_data(opt);
         }
     };
 
