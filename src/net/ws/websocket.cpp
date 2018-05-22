@@ -432,8 +432,10 @@ void WebSocket::close(const uint16_t reason)
 {
   assert(stream != nullptr);
   /// send CLOSE message
-  if (this->stream->is_writable())
-      this->write_opcode(op_code::CLOSE, "Closed", 6);
+  if (this->stream->is_writable()) {
+      uint16_t data = htons(reason);
+      this->write_opcode(op_code::CLOSE, (const char*) &data, sizeof(data));
+  }
   /// close and unset socket
   this->stream->close();
 }
