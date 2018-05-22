@@ -174,7 +174,7 @@ protected:
   void tls_record_received(uint64_t, const uint8_t buf[], size_t buf_len) override
   {
     if (m_on_read) {
-      m_on_read(tcp::construct_buffer(buf, buf + buf_len));
+      m_on_read(Stream::construct_buffer(buf, buf + buf_len));
     }
   }
 

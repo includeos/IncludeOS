@@ -224,8 +224,9 @@ public:
   //void ping(Stream::buffer_t, Timer::duration_t timeout);
 
   // close the websocket
-  void close();
-  void close(uint16_t reason);
+  void close(uint16_t reason = 1000);
+
+  void reset_callbacks();
 
   // user callbacks
   close_func   on_close = nullptr;
@@ -285,10 +286,9 @@ private:
   void read_data(Stream::buffer_t);
   bool write_opcode(op_code code, const char*, size_t);
   void failure(const std::string&);
-  void close_callback_once(uint16_t code);
+  void close_callback_once();
   size_t create_message(const uint8_t*, size_t len);
   void finalize_message();
-  void reset();
 
   bool default_on_ping(const char*, size_t)
   { return true; }
@@ -298,7 +298,7 @@ private:
     if (on_pong_timeout)
       on_pong_timeout(*this);
     else
-      this->close();
+      this->close(1000);
   }
 };
 using WebSocket_ptr = WebSocket::WebSocket_ptr;

@@ -336,8 +336,7 @@ static Stream::buffer_t create_wsmsg(size_t len, op_code code, bool client)
   // create shared buffer with position at end of header
   auto buffer = tcp::construct_buffer(header_len);
   // create header on buffer
-  new (buffer->data()) ws_header;
-  auto& hdr = *(ws_header*) buffer->data();
+  auto& hdr = *(new (buffer->data()) ws_header);
   hdr.bits = 0;
   hdr.set_final();
   hdr.set_payload(len);
@@ -421,18 +420,14 @@ WebSocket::WebSocket(net::Stream_ptr stream_ptr, bool client)
 {
   assert(stream != nullptr);
   this->stream->on_read(8*1024, {this, &WebSocket::read_data});
-  this->stream->on_close({this, &WebSocket::close});
+  this->stream->on_close({this, &WebSocket::close_callback_once});
 }
 WebSocket::~WebSocket()
 {
-  if (stream != nullptr && stream->is_connected())
-      this->close(1000);
-}
-
-void WebSocket::close()
-{
+  this->reset_callbacks();
   this->close(1000);
 }
+
 void WebSocket::close(const uint16_t reason)
 {
   assert(stream != nullptr);
@@ -441,16 +436,15 @@ void WebSocket::close(const uint16_t reason)
       this->write_opcode(op_code::CLOSE, "Closed", 6);
   /// close and unset socket
   this->stream->close();
-  this->close_callback_once(reason);
 }
-void WebSocket::close_callback_once(const uint16_t reason)
+void WebSocket::close_callback_once()
 {
   auto close_func = std::move(this->on_close);
-  this->reset();
-  if (close_func) close_func(reason);
+  this->reset_callbacks();
+  if (close_func) close_func(1000);
 }
 
-void WebSocket::reset()
+void WebSocket::reset_callbacks()
 {
   this->on_close = nullptr;
   this->on_error = nullptr;
@@ -458,12 +452,6 @@ void WebSocket::reset()
   this->on_ping  = nullptr;
   this->on_pong  = nullptr;
   this->on_pong_timeout = nullptr;
-  this->ping_timer.stop();
-  if (this->stream != nullptr)
-  {
-    this->stream->reset_callbacks();
-    this->stream = nullptr;
-  }
 }
 
 void WebSocket::failure(const std::string& reason)

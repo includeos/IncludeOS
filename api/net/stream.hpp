@@ -27,7 +27,6 @@
 #include <net/socket.hpp>
 
 namespace net {
-  class Inet4;
   class Stream;
   using Stream_ptr = std::unique_ptr<Stream>;
   /**
@@ -38,9 +37,9 @@ namespace net {
     using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
     using ptr      = Stream_ptr;
 
-    /** Construct a shared vector used in TCP **/
+    /** Construct a shared vector used by streams **/
     template <typename... Args>
-    buffer_t construct_buffer(Args&&... args) {
+    static buffer_t construct_buffer(Args&&... args) {
       return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
     }
 

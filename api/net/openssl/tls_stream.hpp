@@ -137,6 +137,8 @@ namespace openssl
   }
   inline TLS_stream::~TLS_stream()
   {
+    this->reset_callbacks();
+    this->close();
     SSL_free(this->m_ssl);
   }
 

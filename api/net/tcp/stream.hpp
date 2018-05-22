@@ -21,11 +21,12 @@ namespace net::tcp
     {
       // stream for a nullptr makes no sense
       Expects(m_tcp != nullptr);
+      m_tcp->on_close({this, &Stream::close});
     }
     ~Stream()
     {
       this->reset_callbacks();
-      this->close();
+      m_tcp->close();
     }
 
     /**
@@ -55,7 +56,9 @@ namespace net::tcp
      * @param[in]  cb    The close callback
      */
     void on_close(CloseCallback cb) override
-    { m_tcp->on_close(cb); }
+    {
+      m_on_close = std::move(cb);
+    }
 
     /**
      * @brief      Event for when data has been written.
@@ -97,7 +100,10 @@ namespace net::tcp
      */
     void close() override
     {
+      auto onclose = std::move(this->m_on_close);
+      m_tcp->reset_callbacks();
       m_tcp->close();
+      onclose();
     }
 
     /**
@@ -192,6 +198,7 @@ namespace net::tcp
 
   protected:
     Connection_ptr m_tcp;
+    CloseCallback  m_on_close = nullptr;
 
   }; // < class Connection::Stream
 
