@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <delegate>
+#include <memory>
 #include <vector>
 #include <net/socket.hpp>
 
@@ -36,6 +37,12 @@ namespace net {
   public:
     using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
     using ptr      = Stream_ptr;
+
+    /** Construct a shared vector used in TCP **/
+    template <typename... Args>
+    buffer_t construct_buffer(Args&&... args) {
+      return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
+    }
 
     /** Called when the stream is ready to be used. */
     using ConnectCallback = delegate<void(Stream& self)>;
@@ -186,7 +193,6 @@ namespace net {
     virtual ~Stream() {}
 
   }; // < class Stream
-
 } // < namespace net
 
 #endif // < NET_STREAM_HPP

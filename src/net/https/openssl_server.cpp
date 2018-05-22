@@ -36,7 +36,7 @@ namespace http
   void OpenSSL_server::on_connect(TCP_conn conn)
   {
     connect(
-      std::make_unique<openssl::TLS_stream> ((SSL_CTX*) m_ctx, std::make_unique<net::tcp::Connection::Stream>(std::move(conn)))
+      std::make_unique<openssl::TLS_stream> ((SSL_CTX*) m_ctx, std::make_unique<net::tcp::Stream>(std::move(conn)))
     );
   }
 } // http

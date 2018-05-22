@@ -20,6 +20,7 @@
 **/
 #include <net/inet>
 #include <net/tcp/connection_states.hpp>
+#include <net/tcp/stream.hpp>
 #include "serialize_tcp.hpp"
 #include "liveupdate.hpp"
 #include "storage.hpp"

@@ -23,6 +23,7 @@
 #define LIVEUPDATE_HEADER_HPP
 
 #include <net/tcp/connection.hpp>
+#include <net/stream.hpp>
 #include <delegate>
 #include <string>
 #include <vector>

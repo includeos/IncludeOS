@@ -25,21 +25,8 @@
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/tcp_errors.hpp>
 
-/*#include <iostream> // remove me, sack debugging
-std::ostream& operator<< (std::ostream& out, const net::tcp::sack::Entries& ent) {
-  for (auto el : ent) {
-    out << el << "\n";
-  }
-  return out;
-}*/
-
-
 using namespace net::tcp;
 using namespace std;
-
-int Connection::Stream::get_cpuid() const noexcept {
-  return m_tcp->host().get_cpuid();
-}
 
 Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback)
   : host_(host),

@@ -1,4 +1,5 @@
 #include "balancer.hpp"
+#include <net/tcp/stream.hpp>
 
 #define READQ_PER_CLIENT        4096
 #define MAX_READQ_PER_NODE      8192

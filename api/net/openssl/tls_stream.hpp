@@ -2,7 +2,7 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
-#include <net/inet>
+#include <net/stream.hpp>
 
 #define VERBOSE_OPENSSL
 #ifdef VERBOSE_OPENSSL
@@ -160,12 +160,12 @@ namespace openssl
   }
   inline void TLS_stream::write(const std::string& str)
   {
-    write(net::tcp::construct_buffer(str.data(), str.data() + str.size()));
+    write(net::Stream::construct_buffer(str.data(), str.data() + str.size()));
   }
   inline void TLS_stream::write(const void* data, const size_t len)
   {
     auto* buf = static_cast<const uint8_t*> (data);
-    write(net::tcp::construct_buffer(buf, buf + len));
+    write(net::Stream::construct_buffer(buf, buf + len));
   }
 
   inline void TLS_stream::tls_read(buffer_t buffer)
@@ -217,7 +217,7 @@ namespace openssl
         char temp[8192];
         n = SSL_read(this->m_ssl, temp, sizeof(temp));
         if (n > 0) {
-          auto buf = net::tcp::construct_buffer(temp, temp + n);
+          auto buf = net::Stream::construct_buffer(temp, temp + n);
           if (m_on_read) m_on_read(std::move(buf));
 
         }
@@ -251,7 +251,7 @@ namespace openssl
     //printf("pending: %d\n", pending);
     if (pending > 0)
     {
-      auto buffer = net::tcp::construct_buffer(pending);
+      auto buffer = net::Stream::construct_buffer(pending);
       int n = BIO_read(this->m_bio_wr, buffer->data(), buffer->size());
       assert(n == pending);
       m_transport->write(buffer);
