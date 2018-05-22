@@ -15,14 +15,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define NDP_DEBUG 1
+#define NDP_DEBUG 1
 #ifdef NDP_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define PRINT(fmt, ...) /* fmt */
 #endif
-#include <net/ip6/icmp6.hpp>
+#include <vector>
 #include <net/inet>
+#include <net/ip6/ndp.hpp>
+#include <net/ip6/icmp6.hpp>
 #include <statman>
 
 namespace net
@@ -62,7 +64,7 @@ namespace net
     res.set_type(ICMP_type::ND_NEIGHBOR_ADV);
     res.set_code(0);
     res.ndp().set_neighbor_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
-    PRINT("<ICMP6> Transmitting Neighbor adv to %s\n",
+    PRINT("<NDP> Transmitting Neighbor adv to %s\n",
           res.ip().ip_dst().str().c_str());
 
     // Insert target link address, ICMP6 option header and our mac address
@@ -76,7 +78,7 @@ namespace net
     // Add checksum
     res.set_checksum();
 
-    PRINT("<ICMP6> Neighbor Adv Response size: %i payload size: %i, checksum: 0x%x\n",
+    PRINT("<NDP> Neighbor Adv Response size: %i payload size: %i, checksum: 0x%x\n",
           res.ip().size(), res.payload().size(), res.compute_checksum());
 
     network_layer_out_(res.release());
@@ -119,6 +121,10 @@ namespace net
             PRINT("ND: bad any source packet with link layer option\n");
             return;
         }
+        char mac[6];
+        memcpy(mac, lladdr, 6);
+        PRINT("printing lladdr\n");
+        PRINT("lladdres is %s\n", mac);
     }
 
     nonce_opt = req.ndp().get_option_data(icmp6::ND_OPT_NONCE);
@@ -163,7 +169,7 @@ namespace net
     // Add checksum
     req.set_checksum();
 
-    PRINT("<ICMP6> Router solicit size: %i payload size: %i, checksum: 0x%x\n",
+    PRINT("<NDP> Router solicit size: %i payload size: %i, checksum: 0x%x\n",
           req.ip().size(), req.payload().size(), req.compute_checksum());
 
     network_layer_out_(req.release());
@@ -172,20 +178,20 @@ namespace net
   void Ndp::receive(icmp6::Packet& pckt) {
     switch(pckt.type()) {
     case (ICMP_type::ND_ROUTER_SOLICATION):
-      PRINT("<ICMP6> ICMP Router solictation message from %s\n", pckt.ip().ip_src().str().c_str());
+      PRINT("<NDP> ICMP Router solictation message from %s\n", pckt.ip().ip_src().str().c_str());
       break;
     case (ICMP_type::ND_ROUTER_ADV):
-      PRINT("<ICMP6> ICMP Router advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
+      PRINT("<NDP> ICMP Router advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
       break;
     case (ICMP_type::ND_NEIGHBOR_SOL):
-      PRINT("<ICMP6> ICMP Neigbor solictation message from %s\n", pckt.ip().ip_src().str().c_str());
+      PRINT("<NDP> ICMP Neigbor solictation message from %s\n", pckt.ip().ip_src().str().c_str());
       receive_neighbor_solicitation(pckt);
       break;
     case (ICMP_type::ND_NEIGHBOR_ADV):
-      PRINT("<ICMP6> ICMP Neigbor advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
+      PRINT("<NDP> ICMP Neigbor advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
       break;
     case (ICMP_type::ND_REDIRECT):
-      PRINT("<ICMP6> ICMP Neigbor redirect message from %s\n", pckt.ip().ip_src().str().c_str());
+      PRINT("<NDP> ICMP Neigbor redirect message from %s\n", pckt.ip().ip_src().str().c_str());
       break;
     default:
       return;
@@ -205,24 +211,29 @@ namespace net
       return false;
   }
 
-  bool Ndp::cache(IP6::addr ip, MAC::Addr mac, uint8_t flags)
+  void Ndp::cache(IP6::addr ip, MAC::Addr mac, uint8_t flags)
   {
+      PRINT("Ndp Caching IP %s for %s\n", ip.str().c_str(), mac.str().c_str());
       auto entry = cache_.find(ip);
+      PRINT("Finding cache\n");
       if (entry != cache_.end()) {
           PRINT("Cached entry found: %s recorded @ %zu. Updating timestamp\n",
              entry->second.mac().str().c_str(), entry->second.timestamp());
           if (entry->second.mac() != mac) {
             cache_.erase(entry);
-            cache_[ip] = mac;
+            cache_.emplace(ip, mac);
           } else {
             entry->second.update();
           }
       } else {
-          cache_[ip] = mac; // Insert
+          PRINT("Trying to add cache\n");
+          cache_.emplace(ip, mac); // Insert
+          PRINT("Done adding cache\n");
           if (UNLIKELY(not flush_timer_.is_running())) {
             flush_timer_.start(flush_interval_);
           }
       }
+      PRINT("Done with cache\n");
   }
 
   void Ndp::resolve_waiting()
@@ -370,10 +381,15 @@ namespace net
             case ND_OPT_MTU:
             case ND_OPT_NONCE:
             case ND_OPT_REDIRECT_HDR:
+                printf("Setting option header: %d\n", option_hdr->type);
                 if (opt_array[option_hdr->type]) {
                 } else {
                    opt_array[option_hdr->type] = option_hdr;
                 }
+                printf("De-referencing option headerd\n");
+                option_hdr = opt_array[option_hdr->type];
+                printf("De-referencing option headerd\n");
+                printf("De-referencing option header: %d\n", option_hdr->type);
                 break;
             case ND_OPT_PREFIX_INFO:
                 opt_array[ND_OPT_PREFIX_INFO_END] = option_hdr;

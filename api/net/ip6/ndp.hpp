@@ -81,7 +81,7 @@ namespace net {
     void transmit(Packet_ptr, IP6::addr next_hop);
 
     /** Cache IP resolution. */
-    bool cache(IP6::addr ip, MAC::Addr mac, uint8_t flags);
+    void cache(IP6::addr ip, MAC::Addr mac, uint8_t flags);
 
     /** Lookup for cache entry */
     bool lookup(bool create, IP6::addr ip, uint8_t *ll_addr, uint8_t flags);
