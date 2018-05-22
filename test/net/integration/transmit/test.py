@@ -12,7 +12,7 @@ import socket
 
 def transmit_test(grgr):
   print "<Test.py> Performing transmit tests"
-  HOST, PORT = "10.0.0.45", 4242
+  HOST, PORT = "10.0.0.49", 4242
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
   data = "Someone there?"

@@ -33,30 +33,28 @@
 #include "ip4/icmp4.hpp"
 #include "ip4/arp.hpp"
 #include "ip6/ip6.hpp"
+#include "ip6/icmp6.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include "super_stack.hpp"
 
 namespace net {
 
-  class   Arp;
-  class   TCP;
-  class   UDP;
-  class   ICMPv4;
   class DHClient;
-  class Super_stack;
 
   /** A complete IP network stack */
   class Inet {
   public:
 
-    using Stack         = class Inet;
-    using IP_packet_ptr = IP4::IP_packet_ptr;
-    using IP_addr       = IP4::addr;
+    using Stack          = class Inet;
+    using IP_packet_ptr  = IP4::IP_packet_ptr;
+    using IP6_packet_ptr = IP6::IP_packet_ptr;
+    using IP_addr        = IP4::addr;
 
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using Route_checker = delegate<bool(IP_addr)>;
-    using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
+    using IP_packet_factory  = delegate<IP_packet_ptr(Protocol)>;
+    using IP6_packet_factory = delegate<IP6_packet_ptr(Protocol)>;
 
     using resolve_func = delegate<void(IP4::addr, const Error&)>;
     using on_configured_func = delegate<void(Stack&)>;
@@ -93,7 +91,7 @@ namespace net {
     IP6::addr ip6_addr() const
     { return ip6_addr_; }
 
-    IP6::addr netmask6() const
+    uint8_t netmask6() const
      { return ip6_prefix_; }
 
     IP6::addr gateway6() const
@@ -119,6 +117,9 @@ namespace net {
 
     /** Get the ICMP-object belonging to this stack */
     ICMPv4& icmp() { return icmp_; }
+
+    /** Get the ICMP-object belonging to this stack */
+    ICMPv6& icmp6() { return icmp6_; }
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
@@ -210,6 +211,9 @@ namespace net {
     IP_packet_factory ip_packet_factory()
     { return IP_packet_factory{this, &Inet::create_ip_packet}; }
 
+    IP6_packet_factory ip6_packet_factory()
+    { return IP6_packet_factory{this, &Inet::create_ip6_packet}; }
+
     /** MTU retreived from Nic on construction */
     uint16_t MTU () const
     { return MTU_; }
@@ -279,9 +283,10 @@ namespace net {
     void network_config(IP4::addr addr,
                         IP4::addr nmask,
                         IP4::addr gateway,
-                        IP4::addr dns = IP4::ADDR_ANY,
-                        IP6::addr addr6 = IP6::ADDR_ANY,
-                        IP6::addr prefix6 = IP6::ADDR_ANY,
+                        IP4::addr dns = IP4::ADDR_ANY);
+
+    void network_config6(IP6::addr addr6 = IP6::ADDR_ANY,
+                        uint8_t prefix6 = 0,
                         IP6::addr gateway6 = IP6::ADDR_ANY);
 
     void
@@ -292,7 +297,7 @@ namespace net {
       this->netmask_ = IP4::ADDR_ANY;
       this->ip6_addr_ = IP6::ADDR_ANY;
       this->ip6_gateway_ = IP6::ADDR_ANY;
-      this->ip6_prefix_ = IP6::ADDR_ANY;
+      this->ip6_prefix_ = 0;
     }
 
     // register a callback for receiving signal on free packet-buffers
@@ -428,7 +433,7 @@ namespace net {
     { return src == ip_addr() or is_loopback(src); }
 
     bool is_valid_source(IP6::addr src)
-    { return src == ip6_addr() or is_loopback(src); }
+    { return src == ip6_addr() or is_loopback(src) or src.is_multicast(); }
 
     std::shared_ptr<Conntrack>& conntrack()
     { return conntrack_; }
@@ -457,7 +462,7 @@ namespace net {
 
     IP6::addr ip6_addr_;
     IP6::addr ip6_gateway_;
-    IP6::addr ip6_prefix_;
+    uint8_t   ip6_prefix_;
 
     Vip4_list vip4s_ = {{127,0,0,1}};
     Vip6_list vip6s_ = {{IP6::ADDR_LOOPBACK}};
@@ -468,6 +473,7 @@ namespace net {
     IP4    ip4_;
     IP6    ip6_;
     ICMPv4 icmp_;
+    ICMPv6 icmp6_;
     UDP    udp_;
     TCP    tcp_;
 
