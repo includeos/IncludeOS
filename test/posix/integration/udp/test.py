@@ -39,7 +39,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 server.bind((S_HOST, S_PORT))
 
-HOST, PORT = '10.0.0.50', 1042
+HOST, PORT = '10.0.0.58', 1042
 
 RECEIVED = ''
 
