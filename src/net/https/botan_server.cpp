@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/https/botan_server.hpp>
+
 #include <kernel/botan_rng.hpp>
 #include <botan/data_src.h>
 #include <botan/pkcs8.h>
@@ -74,7 +75,7 @@ namespace http
   {
     connect(
       std::make_unique<net::botan::Server> (
-        std::make_unique<net::tcp::Connection::Stream>(
+        std::make_unique<net::tcp::Stream>(
           std::move(conn)), rng, *credman)
     );
   }

@@ -206,6 +206,7 @@ set(OS_SOURCES
   ${SRC}/net/tcp/tcp.cpp
   ${SRC}/net/tcp/read_buffer.cpp
   ${SRC}/net/tcp/read_request.cpp
+  ${SRC}/net/tcp/stream.cpp
   ${SRC}/net/tcp/write_queue.cpp
   ${SRC}/posix/fd.cpp
   ${SRC}/util/async.cpp

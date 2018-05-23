@@ -77,7 +77,7 @@ public:
   void close() override {
     m_transport->close();
     CloseCallback cb = std::move(m_on_close);
-    reset_callbacks();
+    this->reset_callbacks();
     if (cb) cb();
   }
   void abort() override {
@@ -174,7 +174,7 @@ protected:
   void tls_record_received(uint64_t, const uint8_t buf[], size_t buf_len) override
   {
     if (m_on_read) {
-      m_on_read(tcp::construct_buffer(buf, buf + buf_len));
+      m_on_read(Stream::construct_buffer(buf, buf + buf_len));
     }
   }
 

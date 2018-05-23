@@ -405,6 +405,11 @@ function(install_certificates FOLD)
   file(COPY ${INSTALL_LOC}/cert_bundle/ DESTINATION ${REL_PATH})
 endfunction()
 
+if(CERTS)
+  message(STATUS "Certs folder set: " ${CERTS})
+  install_certificates(${CERTS})
+endif()
+
 if(TARFILE)
   get_filename_component(TAR_RELPATH "${TARFILE}"
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")

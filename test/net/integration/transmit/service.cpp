@@ -27,7 +27,7 @@ auto& timer = hw::PIT::instance();
 void Service::start(const std::string&)
 {
   static auto& inet = net::Inet::ifconfig<0>(
-         { 10,0,0,45 },     // IP
+         { 10,0,0,49 },     // IP
          { 255,255,255,0 }, // Netmask
          { 10,0,0,1 },      // Gateway
          { 8,8,8,8 });      // DNS

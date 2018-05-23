@@ -22,11 +22,11 @@
 #include <cstdint>
 #include <cstddef>
 #include <delegate>
+#include <memory>
 #include <vector>
 #include <net/socket.hpp>
 
 namespace net {
-  class Inet4;
   class Stream;
   using Stream_ptr = std::unique_ptr<Stream>;
   /**
@@ -36,6 +36,12 @@ namespace net {
   public:
     using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
     using ptr      = Stream_ptr;
+
+    /** Construct a shared vector used by streams **/
+    template <typename... Args>
+    static buffer_t construct_buffer(Args&&... args) {
+      return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
+    }
 
     /** Called when the stream is ready to be used. */
     using ConnectCallback = delegate<void(Stream& self)>;
@@ -182,11 +188,8 @@ namespace net {
 
     virtual size_t serialize_to(void*) const = 0;
 
-    Stream() = default;
-    virtual ~Stream() {}
-
+    virtual ~Stream() = default;
   }; // < class Stream
-
 } // < namespace net
 
 #endif // < NET_STREAM_HPP

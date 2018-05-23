@@ -41,7 +41,6 @@ namespace http {
    */
   class Response_writer {
   public:
-    using TCP_conn  = net::tcp::Connection_ptr;
     using buffer_t  = net::tcp::buffer_t;
 
   public:
