@@ -74,7 +74,11 @@ public:
     m_tls.send(buf->data(), buf->size());
   }
 
-  void close() override {
+  void close() override
+  {
+    if (this->m_busy) {
+      this->m_deferred_close = true; return;
+    }
     m_transport->close();
     CloseCallback cb = std::move(m_on_close);
     this->reset_callbacks();
@@ -168,13 +172,21 @@ protected:
   void tls_emit_data(const uint8_t buf[], size_t len) override
   {
     m_transport->write(buf, len);
-    if (m_on_write) m_on_write(len);
+    if (m_on_write) {
+      this->m_busy = true;
+      m_on_write(len);
+      this->m_busy = false;
+      if (this->m_deferred_close) this->close();
+    }
   }
 
   void tls_record_received(uint64_t, const uint8_t buf[], size_t buf_len) override
   {
     if (m_on_read) {
+      this->m_busy = true;
       m_on_read(Stream::construct_buffer(buf, buf + buf_len));
+      this->m_busy = false;
+      if (this->m_deferred_close) this->close();
     }
   }
 
@@ -188,6 +200,8 @@ private:
   Stream::WriteCallback   m_on_write = nullptr;
   Stream::ConnectCallback m_on_connect = nullptr;
   Stream::CloseCallback   m_on_close = nullptr;
+  bool m_busy = false;
+  bool m_deferred_close = false;
 
   Botan::Credentials_Manager&   m_creds;
   Botan::TLS::Strict_Policy     m_policy;
