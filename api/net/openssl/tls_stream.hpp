@@ -81,7 +81,6 @@ namespace openssl
     void tls_read(buffer_t);
     int  tls_perform_stream_write();
     int  tls_perform_handshake();
-    void close_callback_once();
     bool handshake_completed() const noexcept;
 
     enum status_t {
@@ -133,7 +132,7 @@ namespace openssl
   {
     // always-on callbacks
     m_transport->on_read(8192, {this, &TLS_stream::tls_read});
-    m_transport->on_close({this, &TLS_stream::close_callback_once});
+    m_transport->on_close({this, &TLS_stream::close});
   }
   inline TLS_stream::~TLS_stream()
   {
