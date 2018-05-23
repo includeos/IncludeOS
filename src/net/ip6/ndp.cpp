@@ -81,7 +81,7 @@ namespace net
     PRINT("<NDP> Neighbor Adv Response size: %i payload size: %i, checksum: 0x%x\n",
           res.ip().size(), res.payload().size(), res.compute_checksum());
 
-    network_layer_out_(res.release());
+    transmit(res.release(), res.ip().ip_dst());
   }
 
   void Ndp::receive_neighbor_advertisement(icmp6::Packet& req)
@@ -168,7 +168,7 @@ namespace net
     PRINT("<NDP> Router solicit size: %i payload size: %i, checksum: 0x%x\n",
           req.ip().size(), req.payload().size(), req.compute_checksum());
 
-    network_layer_out_(req.release());
+    transmit(req.release(), req.ip().ip_dst());
   }
 
   void Ndp::receive(icmp6::Packet& pckt) {
@@ -301,8 +301,8 @@ namespace net
     PRINT("<NDP -> physical> Transmitting %u bytes to %s\n",
           (uint32_t) pckt->size(), next_hop.str().c_str());
 
+#if 0
     MAC::Addr dest_mac;
-
     // If we don't have a cached IP, perform address resolution
     auto cache_entry = cache_.find(next_hop);
     if (UNLIKELY(cache_entry == cache_.end())) {
@@ -316,9 +316,15 @@ namespace net
 
     PRINT("<NDP> Found cache entry for IP %s -> %s \n",
         next_hop.to_string().c_str(), dest_mac.to_string().c_str());
+#endif
+    MAC::Addr dest_mac("c0:01:0a:00:00:01");
+
+    PRINT("NDP: Transmitting packet on mac address: %s,"
+        " layer begin: buf + %li\n", dest_mac.to_string().c_str(),
+        packet->layer_begin() - packet->buf());
 
     // Move chain to linklayer
-    linklayer_out_(std::move(pckt), dest_mac, Ethertype::IP4);
+    linklayer_out_(std::move(pckt), dest_mac, Ethertype::IP6);
   }
 
   // NDP packet function definitions

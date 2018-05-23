@@ -287,12 +287,7 @@ namespace net
     if (packet == nullptr) return;
 
     if (next_hop == IP6::ADDR_ANY) {
-#if 0
-      if (UNLIKELY(packet->ip_dst() == IP6::ADDR_BCAST)) {
-        next_hop = IP6::ADDR_BCAST;
-      }
-      else {
-#endif
+
         // Create local and target subnets
         addr target = packet->ip_dst() & stack_.netmask6();
         addr local  = stack_.ip6_addr() & stack_.netmask6();
@@ -318,13 +313,7 @@ namespace net
     // Stat increment packets transmitted
     packets_tx_++;
 
-    extern MAC::Addr linux_tap_device;
-    MAC::Addr dest_mac("c0:01:0a:00:00:01");
-
-    PRINT("<IP6> Transmitting packet on mac address: %s,"
-        " layer begin: buf + %li\n", dest_mac.to_string().c_str(),
-        packet->layer_begin() - packet->buf());
-    linklayer_out_(std::move(packet), dest_mac, Ethertype::IP6);
+    ndp_out_(std::move(packet), next_hop);
   }
 
     const ip6::Addr IP6::local_ip() const {

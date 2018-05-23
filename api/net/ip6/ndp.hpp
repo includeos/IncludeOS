@@ -73,10 +73,6 @@ namespace net {
     void set_proxy_policy(Route_checker delg)
     { proxy_ = delg; }
 
-    /** Delegate link-layer output. */
-    void set_linklayer_out(downstream_link link)
-    { linklayer_out_ = link; }
-
     /** Downstream transmission. */
     void transmit(Packet_ptr, IP6::addr next_hop);
 
@@ -97,9 +93,9 @@ namespace net {
       flush_interval_ = m;
     }
 
-    // Delegate output to network layer
-    inline void set_network_out(downstream s)
-    { network_layer_out_ = s; };
+    // Delegate output to link layer
+    void set_linklayer_out(downstream_link s)
+    { linklayer_out_ = s; };
 
   private:
 
@@ -162,7 +158,6 @@ namespace net {
 
     Stack& inet_;
     Route_checker proxy_ = nullptr;
-    downstream network_layer_out_ =   nullptr;
 
     MAC::Addr mac_;
 

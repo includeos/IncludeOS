@@ -112,13 +112,16 @@ namespace net
     inline void set_network_out(downstream s)
     {
       network_layer_out_ = s;
-      // TODO: Remove this. NDP packets should be sent directly on link
-      ndp_.set_network_out(s);
+    }
+
+    inline void set_ndp_linklayer_out(downstream_link s)
+    {
+       ndp_.set_linklayer_out(s);
     }
 
     void ndp_transmit(Packet_ptr ptr, IP6::addr next_hop)
     {
-        //ndp_.transmit(ptr, next_hop);
+        ndp_.transmit(std::move(ptr), next_hop);
     }
 
     /**
