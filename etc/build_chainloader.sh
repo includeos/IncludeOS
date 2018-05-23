@@ -23,6 +23,9 @@ fi
 $INCLUDEOS_SRC/etc/install_from_bundle.sh
 
 echo -e "\n\n>>> Building chainloader"
+# Set compiler version
+source $INCLUDEOS_SRC/etc/use_clang_version.sh
+echo -e "\n\n>>> Best guess for compatible compilers: $CXX / $CC"
 
 mkdir -p $CHAINLOAD_LOC/build
 pushd $CHAINLOAD_LOC/build

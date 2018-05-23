@@ -23,11 +23,47 @@ using namespace net;
 void Service::start(const std::string&)
 {
   auto& inet = Inet::stack<0>();
-  inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1}, {0, 0, 0, 0},
+  inet.network_config({  10,  0,  0, 45 },    // IP
+                      { 255, 255, 0,  0 },    // Netmask
+                      {  10,  0,  0,  1 },    // Gateway
+                      {   8,  8,  8,  8 }     // DNS
+  );
+
+  inet.network_config6(
        {  0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd },   // IP6
-       {  0, 0, 0, 64 },                                       // Prefix6
+       64,                                                     // Prefix6
        {  0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 }  // Gateway6
   );
+
   printf("Service IPv4 address: %s, IPv6 address: %s\n",
           inet.ip_addr().str().c_str(), inet.ip6_addr().str().c_str());
+
+  // ping gateway
+  inet.icmp6().ping(inet.gateway6(), [](ICMP6_view pckt) {
+    if (pckt)
+      printf("Received packet from gateway\n%s\n", pckt.to_string().c_str());
+    else
+      printf("No reply received from gateway\n");
+  });
+
+#if 0
+  const int wait = 10;
+
+  // No reply-pings
+  // Waiting 30 seconds for reply
+  inet.icmp().ping(IP4::addr{10,0,0,42}, [](ICMP_view pckt) {
+    if (pckt)
+      printf("Received packet from 10.0.0.42\n%s\n", pckt.to_string().c_str());
+    else
+      printf("No reply received from 10.0.0.42\n");
+  }, wait);
+
+  // Waiting 30 seconds for reply
+  inet.icmp().ping(IP4::addr{10,0,0,43}, [](ICMP_view pckt) {
+    if (pckt)
+      printf("Received packet from 10.0.0.43\n%s\n", pckt.to_string().c_str());
+    else
+      printf("No reply received from 10.0.0.43\n");
+  }, wait);
+#endif
 }

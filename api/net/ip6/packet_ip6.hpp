@@ -38,15 +38,19 @@ namespace net
     ip6::Header& ip6_header() noexcept
     { return *reinterpret_cast<ip6::Header*>(layer_begin()); }
 
+    uint32_t ver_tc_fl() const noexcept
+    { return ip6_header().ver_tc_fl; }
+
     uint8_t ip6_version() const noexcept
-    { return ip6_header().version; }
+    { return (ver_tc_fl() & 0xF0) >> 4; }
 
     bool is_ipv6() const noexcept
-    { return (ip6_header().version) == 6; }
+    { return ip6_version() == 6; }
 
     /** Get traffic class */
     uint8_t traffic_class() const noexcept
-    { return (ip6_header().traffic_class); }
+    { return ((ver_tc_fl() & 0xF0000) >> 12) +
+        (ver_tc_fl() & 0xF); }
 
     /** Get Differentiated Services Code Point (DSCP)*/
     DSCP ip_dscp() const noexcept
@@ -58,7 +62,7 @@ namespace net
 
     /** Get flow label */
     uint32_t flow_label() const noexcept
-    { return (ip6_header().flow_label); }
+    { return (htonl(ver_tc_fl()) & 0x000FFFFF); }
 
     /** Get payload length */
     uint16_t payload_length() const noexcept
@@ -94,6 +98,11 @@ namespace net
     /** Get total data capacity of IP packet in bytes  */
     uint16_t ip_capacity() const noexcept
     { return capacity() - IP6_HEADER_LEN; }
+
+    /* This returns the IPv6 header and extension header len.
+     * Note: Extension header needs to be parsed to know this */
+    uint16_t ip_header_len() const noexcept
+    { return IP6_HEADER_LEN + get_extension_header_len(); }
 
     // IPv6 setters
     //
@@ -132,6 +141,12 @@ namespace net
     void set_ip_dst(const ip6::Addr& addr) noexcept
     { ip6_header().daddr = addr; }
 
+    void decrement_hop_limit()
+    {
+      Expects(hop_limit() != 0);
+      ip6_header().hop_limit--;
+    }
+
     /** Last modifications before transmission */
     void make_flight_ready() noexcept {
       assert(ip6_header().next_header);
@@ -142,9 +157,9 @@ namespace net
       Expects(size() == 0);
       auto& hdr = ip6_header();
       std::memset(&ip6_header(), 0, IP6_HEADER_LEN);
-      hdr.version        = 6;
+      hdr.ver_tc_fl = 0x0060;
       hdr.next_header    = static_cast<uint8_t>(proto);
-      hdr.payload_length = 0x1400; // Big-endian 20
+      hdr.payload_length = 0x0;
       increment_data_end(IP6_HEADER_LEN);
     }
 
@@ -156,29 +171,41 @@ namespace net
       return {ip_data_ptr(), ip_data_length()};
     }
 
-  protected:
-
-    /** Get pointer to IP data */
-    Byte* ip_data_ptr() noexcept __attribute__((assume_aligned(4)))
-    {
-      return layer_begin() + IP6_HEADER_LEN;
+    void update_extension_header_len(uint8_t len) {
+        extension_header_len_ += len;
     }
 
-    const Byte* ip_data_ptr() const noexcept __attribute__((assume_aligned(4)))
-    {
-      return layer_begin() + IP6_HEADER_LEN;
+    uint16_t get_extension_header_len() const {
+        return extension_header_len_;
     }
-
-  private:
 
     /**
      *  Set IP6 payload length
      */
     void set_segment_length() noexcept
-    { ip6_header().payload_length = htons(size()) - IP6_HEADER_LEN; }
+    { ip6_header().payload_length = htons(size() - IP6_HEADER_LEN); }
+
+  protected:
+
+    /** Get pointer to IP data */
+    Byte* ip_data_ptr() noexcept __attribute__((assume_aligned(4)))
+    {
+      return layer_begin() + IP6_HEADER_LEN + get_extension_header_len();
+    }
+
+    const Byte* ip_data_ptr() const noexcept __attribute__((assume_aligned(4)))
+    {
+      return layer_begin() + IP6_HEADER_LEN + get_extension_header_len();
+    }
+
+
+
+  private:
 
     const ip6::Header& ip6_header() const noexcept
     { return *reinterpret_cast<const ip6::Header*>(layer_begin()); }
+
+    uint16_t extension_header_len_;
 
   }; //< class PacketIP6
 } //< namespace net

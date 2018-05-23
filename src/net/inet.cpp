@@ -28,7 +28,7 @@ Inet::Inet(hw::Nic& nic)
     gateway_(IP4::ADDR_ANY),
     dns_server_(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ip4_(*this), ip6_(*this),
-    icmp_(*this), udp_(*this), tcp_(*this), dns_(*this),
+    icmp_(*this), icmp6_(*this), udp_(*this), tcp_(*this), dns_(*this),
     domain_name_{},
     MTU_(nic.MTU())
 {
@@ -44,6 +44,7 @@ Inet::Inet(hw::Nic& nic)
   auto ip4_bottom(upstream_ip{ip4_, &IP4::receive});
   auto ip6_bottom(upstream_ip{ip6_, &IP6::receive});
   auto icmp4_bottom(upstream{icmp_, &ICMPv4::receive});
+  auto icmp6_bottom(upstream{icmp6_, &ICMPv6::receive});
   auto udp4_bottom(upstream{udp_, &UDP::receive});
   auto tcp_bottom(upstream{tcp_, &TCP::receive});
 
@@ -63,6 +64,9 @@ Inet::Inet(hw::Nic& nic)
   // IP4 -> ICMP
   ip4_.set_icmp_handler(icmp4_bottom);
 
+  // IP6 -> ICMP6
+  ip6_.set_icmp_handler(icmp6_bottom);
+
   // IP4 -> UDP
   ip4_.set_udp_handler(udp4_bottom);
 
@@ -80,6 +84,9 @@ Inet::Inet(hw::Nic& nic)
   // ICMP -> IP4
   icmp_.set_network_out(ip4_top);
 
+  // ICMPv6 -> IP6
+  icmp6_.set_network_out(ip6_top);
+
   // UDP4 -> IP4
   udp_.set_network_out(ip4_top);
 
@@ -89,8 +96,9 @@ Inet::Inet(hw::Nic& nic)
   // IP4 -> Arp
   ip4_.set_linklayer_out(arp_top);
 
-  // ICMP6 -> IP6
-  // icmp6->set_network_out(ip6_top);
+  // IP6 -> Link
+  ip6_.set_linklayer_out(link_top);
+
   // UDP6 -> IP6
   // udp6->set_network_out(ip6_top);
   // TCP6 -> IP6
@@ -100,7 +108,6 @@ Inet::Inet(hw::Nic& nic)
   // IP6 -> Link
   assert(link_top);
   arp_.set_linklayer_out(link_top);
-  //ip6_.set_linklayer_out(link_top);
 
 #ifndef INCLUDEOS_SINGLE_THREADED
   // move this nework stack automatically
@@ -189,10 +196,7 @@ void Inet::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
 void Inet::network_config(IP4::addr addr,
                            IP4::addr nmask,
                            IP4::addr gateway,
-                           IP4::addr dns,
-                           IP6::addr addr6,
-                           IP6::addr prefix6,
-                           IP6::addr gateway6)
+                           IP4::addr dns)
 {
   this->ip4_addr_   = addr;
   this->netmask_    = nmask;
@@ -204,15 +208,24 @@ void Inet::network_config(IP4::addr addr,
   INFO2("Gateway: \t%s", gateway_.str().c_str());
   INFO2("DNS Server: \t%s", dns_server_.str().c_str());
 
-  if (addr6 != IP6::ADDR_ANY) {
-      this->ip6_addr_    = addr6;
-      this->ip6_prefix_  = prefix6;
-      this->ip6_gateway_ = gateway6;
-      INFO("Inet6", "Network configured (%s)", nic_.mac().to_string().c_str());
-      INFO2("IP6: \t\t%s", ip6_addr_.str().c_str());
-      INFO2("Prefix: \t%s", ip6_prefix_.str().c_str());
-      INFO2("Gateway: \t%s", ip6_gateway_.str().c_str());
-  }
+  for(auto& handler : configured_handlers_)
+    handler(*this);
+
+  configured_handlers_.clear();
+}
+
+void Inet::network_config6(IP6::addr addr6,
+                           uint8_t   prefix6,
+                           IP6::addr gateway6)
+{
+
+  this->ip6_addr_    = addr6;
+  this->ip6_prefix_  = prefix6;
+  this->ip6_gateway_ = gateway6;
+  INFO("Inet6", "Network configured (%s)", nic_.mac().to_string().c_str());
+  INFO2("IP6: \t\t%s", ip6_addr_.str().c_str());
+  INFO2("Prefix: \t%d", ip6_prefix_);
+  INFO2("Gateway: \t%s", ip6_gateway_.str().c_str());
 
   for(auto& handler : configured_handlers_)
     handler(*this);

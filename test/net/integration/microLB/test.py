@@ -19,7 +19,7 @@ def validateRequest(expected = ""):
     return (response.content) == expected
 
 # start nodeJS
-pro = subprocess.Popen(["node", "server.js"], stdout=subprocess.PIPE)
+pro = subprocess.Popen(["nodejs", "server.js"], stdout=subprocess.PIPE)
 
 def startBenchmark(line):
     print "<test.py> starting test "

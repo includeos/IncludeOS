@@ -41,7 +41,7 @@ struct Invalid_Address : public std::runtime_error {
  */
 struct Addr {
   Addr()
-    : i32{0, 0, 0, 0} {}
+    : i32{{0, 0, 0, 0}} {}
 
   Addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2,
        uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
@@ -67,7 +67,7 @@ struct Addr {
 
   // returns this IPv6 Address as a string
   std::string str() const {
-    char ipv6_addr[32];
+    char ipv6_addr[40];
     snprintf(ipv6_addr, sizeof(ipv6_addr),
             "%0x:%0x:%0x:%0x:%0x:%0x:%0x:%0x",
             ntohs(i16[0]), ntohs(i16[1]), ntohs(i16[2]),
@@ -94,8 +94,8 @@ struct Addr {
 
   // RFC 4291  2.4.6:
   // Link-Local Addresses are designed to be used for Addressing on a
-  // single link for purposes such as automatic Address configuration,
   // neighbor discovery, or when no routers are present.
+  // single link for purposes such as automatic Address configuration,
   static const Addr link_all_nodes;     // RFC 4921
   static const Addr link_all_routers;   // RFC 4921
   static const Addr link_mDNSv6;        // RFC 6762
@@ -117,15 +117,15 @@ struct Addr {
        |11111111|flgs|scop|                  group ID                   |
        +--------+----+----+---------------------------------------------+
     **/
-    return i8[0] == 0xFF;
+    return ((ntohs(i16[0]) & 0xFF00) == 0xFF00);
   }
 
   /**
    *
    **/
   bool is_loopback() const noexcept
-  { return i32[0] == 1 && i32[1] == 0 &&
-      i32[2] == 0 && i32[3] == 0; }
+  { return i32[0] == 0 && i32[1] == 0 &&
+      i32[2] == 0 && ntohl(i32[3]) == 1; }
 
   /**
    * Assignment operator
@@ -152,25 +152,18 @@ struct Addr {
   { return not (*this == other); }
 
   /**
-   * Operator to check for less-than relationship
-   */
-  bool operator<(const Addr other) const noexcept
-  { return i32[3] < other.i32[3] &&
-        i32[2] < other.i32[2] &&
-        i32[1] < other.i32[1] &&
-        i32[0] < other.i32[0]; }
-
-  /**
-   * Operator to check for less-than-or-equal relationship
-   */
-  bool operator<=(const Addr other) const noexcept
-  { return (*this < other or *this == other); }
-
-  /**
    * Operator to check for greater-than relationship
    */
   bool operator>(const Addr other) const noexcept
-  { return not (*this <= other); }
+  {
+      if (i32[0] > other.i32[0]) return true;
+      if (i32[1] > other.i32[1]) return true;
+      if (i32[2] > other.i32[2]) return true;
+      if (i32[3] > other.i32[3]) return true;
+
+      return false;
+  }
+
 
   /**
    * Operator to check for greater-than-or-equal relationship
@@ -179,29 +172,69 @@ struct Addr {
   { return (*this > other or *this == other); }
 
   /**
+   * Operator to check for lesser-than relationship
+   */
+  bool operator<(const Addr other) const noexcept
+  { return not (*this >= other); }
+
+  /**
+   * Operator to check for lesser-than-or-equal relationship
+   */
+  bool operator<=(const Addr other) const noexcept
+  { return (*this < other or *this == other); }
+
+  /**
    * Operator to perform a bitwise-and operation on the given
-   * IPv4 addresses
+   * IPv6 addresses
    */
   Addr operator&(const Addr other) const noexcept
-  { return Addr{i32[3] & other.i32[3],
-               i32[2] & other.i32[2],
+  { return Addr{i32[0] & other.i32[0],
                i32[1] & other.i32[1],
-               i32[0] & other.i32[0] }; }
+               i32[2] & other.i32[2],
+               i32[3] & other.i32[3] }; }
+
+  Addr operator&(uint8_t prefix) const noexcept
+  {
+      int i = 3;
+      uint8_t mask;
+      uint32_t addr[32];
+
+      addr[0] = htonl(i32[0]);
+      addr[1] = htonl(i32[1]);
+      addr[2] = htonl(i32[2]);
+      addr[3] = htonl(i32[3]);
+
+      if (prefix > 128) {
+          prefix = 128;
+      }
+
+      mask = 128 - prefix;
+      while (mask >= 32) {
+          addr[i--] = 0;
+          mask -= 32;
+      }
+
+      if (mask != 0) {
+          addr[i] &= (0xFFFFFFFF << mask);
+      }
+      return Addr { addr[0], addr[1],
+               addr[2], addr[3] };
+  }
 
   Addr operator|(const Addr other) const noexcept
-  { return Addr{i32[3] | other.i32[3],
-               i32[2] | other.i32[2],
+  { return Addr{i32[0] | other.i32[0],
                i32[1] | other.i32[1],
-               i32[0] | other.i32[0] }; }
+               i32[2] | other.i32[2],
+               i32[3] | other.i32[3] }; }
 
   Addr operator~() const noexcept
-  { return Addr{~i32[3], ~i32[2], ~i32[1], ~i32[0]}; }
+  { return Addr{~i32[0], ~i32[1], ~i32[2], ~i32[3]}; }
 
   union
   {
-    uint32_t  i32[4];
-    uint16_t  i16[8];
-    uint8_t   i8[16];
+    std::array<uint64_t, 2> i64;
+    std::array<uint32_t ,4> i32;
+    std::array<uint16_t, 8> i16;
   };
 } __attribute__((packed)); //< struct Addr
 } //< namespace ip6

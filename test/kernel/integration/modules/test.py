@@ -4,7 +4,7 @@ import sys
 import os
 import subprocess
 
-HOST="10.0.0.42"
+HOST="10.0.0.53"
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
 sys.path.insert(0,includeos_src)

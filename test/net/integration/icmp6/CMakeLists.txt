@@ -7,13 +7,13 @@ endif()
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
-project(test_ipv6)
+project(test_icmp)
 
 # Human-readable name of your service
-set(SERVICE_NAME "IncludeOS IPv6 test")
+set(SERVICE_NAME "IncludeOS ICMP test")
 
 # Name of your service binary
-set(BINARY       "test_ipv6")
+set(BINARY       "test_icmp")
 
 # Maximum memory can be hard-coded into the binary
 set(MAX_MEM 128)
@@ -24,10 +24,15 @@ set(SOURCES
   )
 
 # DRIVERS / PLUGINS:
-
-set(DRIVERS
-  virtionet
+if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
+  set(DRIVERS
+      solo5net     # Virtio networking
+    )
+else()
+  set(DRIVERS
+    virtionet
   )
+endif()
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
