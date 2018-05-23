@@ -18,7 +18,6 @@ The following IP addresses are used by the services in the test folder. Make sur
 - http: 10.0.0.46
 - icmp: 10.0.0.45
 - icmp6: 10.0.0.52
-- ipv6: 10.0.0.47
 - microLB: 10.0.0.1, 10.0.0.68, 10.0.0.69 - Is 10.0.0.1 a problem?
 - nat: 10.1.0.1, 192.1.0.1, 10.1.0.10, 192.1.0.192, 10.1.10.20
 - router: Intrusive + time sensitive - runs alone
@@ -32,6 +31,7 @@ The following IP addresses are used by the services in the test folder. Make sur
 - stress: 10.0.0.42
 - plugin/unik: 10.0.0.56
 - kernel/modules: 10.0.0.53
+- posix/syslog_plugin: 10.0.0.47, 10.0.0.2
 - posix/tcp: 10.0.0.57, 10.0.0.4
 - posix/udp: 10.0.0.58, 10.0.0.3
 - kernel/liveupdate: 10.0.0.59
