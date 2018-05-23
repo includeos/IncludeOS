@@ -270,14 +270,16 @@ public:
   static std::pair<WebSocket_ptr, size_t> deserialize_from(const void*);
 
   WebSocket(net::Stream_ptr, bool);
-  ~WebSocket();
+  ~WebSocket() = default;
 
 private:
   net::Stream_ptr stream;
   Timer ping_timer{{this, &WebSocket::pong_timeout}};
   Message_ptr message;
   uint32_t max_msg_size;
-  bool clientside;
+  bool     clientside;
+  bool     m_busy = false;
+  uint16_t m_deferred_close = 0;
 
   WebSocket(const WebSocket&) = delete;
   WebSocket(WebSocket&&) = delete;
