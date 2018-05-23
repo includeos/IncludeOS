@@ -32,3 +32,4 @@ The following IP addresses are used by the services in the test folder. Make sur
 - stress: 10.0.0.42
 - plugin/unik: 10.0.0.56
 - kernel/modules: 10.0.0.53
+- kernel/liveupdate: 10.0.0.59
