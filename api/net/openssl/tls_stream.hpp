@@ -25,7 +25,6 @@ namespace openssl
     void write(const std::string&) override;
     void write(const void* buf, size_t n) override;
     void close() override;
-    void abort() override;
     void reset_callbacks() override;
 
     net::Socket local() const override {
@@ -327,11 +326,6 @@ namespace openssl
     CloseCallback func = std::move(this->m_on_close);
     this->reset_callbacks();
     if (func) func();
-  }
-  inline void TLS_stream::abort()
-  {
-    m_transport->abort();
-    this->close();
   }
   inline void TLS_stream::reset_callbacks()
   {

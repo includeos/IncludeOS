@@ -125,7 +125,7 @@ namespace microLB
       // prevent buffer bloat attack
       this->total += buf->size();
       if (this->total > MAX_READQ_PER_NODE) {
-        conn->abort();
+        conn->close();
       }
       else {
         LBOUT("*** Queued %lu bytes\n", buf->size());

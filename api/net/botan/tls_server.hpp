@@ -94,10 +94,6 @@ public:
     this->reset_callbacks();
     if (cb) cb();
   }
-  void abort() override {
-    m_transport->abort();
-    this->close();
-  }
   void reset_callbacks() override
   {
     m_on_read  = nullptr;

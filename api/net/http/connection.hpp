@@ -49,7 +49,7 @@ namespace http {
     { return peer_; }
 
     void timeout()
-    { stream_->is_closing() ? stream_->abort() : stream_->close(); }
+    { stream_->close(); }
 
     auto& stream() const
     { return stream_; }
