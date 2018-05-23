@@ -68,12 +68,9 @@ namespace net
           res.ip().ip_dst().str().c_str());
 
     // Insert target link address, ICMP6 option header and our mac address
-    // TODO: This is hacky. Fix it
-    MAC::Addr dest_mac("c0:01:0a:00:00:2a");
-    // Target link address
-    res.set_payload({req.payload().data(), 16 });
-    res.ndp().set_ndp_options_header(0x02, 0x01);
-    res.set_payload({reinterpret_cast<uint8_t*> (&dest_mac), 6});
+    res.set_payload({req.ndp().neighbor_sol().get_target().data(), 16 });
+    res.ndp().set_ndp_options_header(icmp6::ND_OPT_TARGET_LL_ADDR, 0x01);
+    res.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
 
     // Add checksum
     res.set_checksum();

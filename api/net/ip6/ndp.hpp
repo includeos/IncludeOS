@@ -95,7 +95,10 @@ namespace net {
 
     // Delegate output to link layer
     void set_linklayer_out(downstream_link s)
-    { linklayer_out_ = s; };
+    { linklayer_out_ = s; }
+
+    MAC::Addr& link_mac_addr()
+    { return mac_; }
 
   private:
 

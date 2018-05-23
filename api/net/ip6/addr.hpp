@@ -128,6 +128,11 @@ struct Addr {
               (ntohs(i32[3]) ^ 0xff)) == 0;
   }
 
+  uint8_t* data()
+  {
+      return reinterpret_cast<uint8_t*> (i16.data());
+  }
+
   /**
    *
    **/
