@@ -550,7 +550,7 @@ public:
 
     PG_PRINT("<map_entry_r> Sub 0x%p want: %s\n",  pdir, req.to_string().c_str());
 
-    auto res = pdir->template map_r(req);
+    auto res = pdir->map_r(req);
 
     // We either get no result or a partial / correct one
     if (res)
@@ -561,9 +561,9 @@ public:
     else
     {
       // If result is empty we had page size constraints that couldn't be met
-      auto sub_psize = pdir->template page_size;
+      auto sub_psize = pdir->page_size;
       Ensures((req.page_sizes & page_size) == 0
-              or (pdir->template is_page_dir(req.lin) and (req.page_sizes & sub_psize))
+              or (pdir->is_page_dir(req.lin) and (req.page_sizes & sub_psize))
               or (sub_psize & req.page_sizes) == 0);
     }
 
