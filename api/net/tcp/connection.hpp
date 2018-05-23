@@ -655,6 +655,8 @@ private:
   /** Time Wait / DACK timeout timer */
   Timer timewait_dack_timer;
 
+  bool close_signaled_ = false;
+
   /** Number of retransmission attempts on the packet first in RT-queue */
   int8_t rtx_attempt_ = 0;
 
