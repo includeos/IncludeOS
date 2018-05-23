@@ -139,9 +139,7 @@ namespace openssl
   }
   inline TLS_stream::~TLS_stream()
   {
-    this->reset_callbacks();
-    if (m_transport->is_connected())
-        m_transport->close();
+    assert(m_busy == false && "Cannot delete stream while in its call stack");
     SSL_free(this->m_ssl);
   }
 

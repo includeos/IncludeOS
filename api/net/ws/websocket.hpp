@@ -270,7 +270,9 @@ public:
   static std::pair<WebSocket_ptr, size_t> deserialize_from(const void*);
 
   WebSocket(net::Stream_ptr, bool);
-  ~WebSocket() = default;
+  ~WebSocket() {
+    assert(m_busy == false && "Cannot delete stream while in its call stack");
+  }
 
 private:
   net::Stream_ptr stream;

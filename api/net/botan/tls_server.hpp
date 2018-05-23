@@ -45,6 +45,9 @@ public:
     // default read callback
     m_transport->on_read(4096, {this, &Server::tls_read});
   }
+  ~Server() {
+    assert(m_busy == false && "Cannot delete stream while in its call stack");
+  }
 
   void on_read(size_t bs, ReadCallback cb) override
   {
