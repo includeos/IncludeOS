@@ -319,7 +319,7 @@ public:
           printf("%.*s-+<%s> 0x%zx\n", print_lvl * 2, pad,
                  util::Byte_r(page_size).to_string().c_str(), (void*)sub->start_addr());
         }
-        sum += sub->template summary(print, print_lvl + 1);
+        sum += sub->summary(print, print_lvl + 1);
       }
     }
     if (print) {
