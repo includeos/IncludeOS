@@ -21,9 +21,9 @@ class DummyClient(WebSocketClient):
         print "<test.py> Closed down", code, reason
 
     def received_message(self, m):
-        print "<test.py> received message"
         self.count += 1
         if self.count >= 1000:
+            print "<test.py> received ", self.count, "messages. Closing."
             self.close(reason='Bye bye')
 
 def startBenchmark(line):
