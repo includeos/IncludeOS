@@ -44,6 +44,7 @@ public:
     assert(m_transport->is_connected());
     // default read callback
     m_transport->on_read(4096, {this, &Server::tls_read});
+    m_transport->on_close({this, &Server::close_callback_once});
   }
   ~Server() {
     assert(m_busy == false && "Cannot delete stream while in its call stack");
@@ -82,7 +83,13 @@ public:
     if (this->m_busy) {
       this->m_deferred_close = true; return;
     }
+    CloseCallback cb = std::move(m_on_close);
+    this->reset_callbacks();
     m_transport->close();
+    if (cb) cb();
+  }
+  void close_callback_once()
+  {
     CloseCallback cb = std::move(m_on_close);
     this->reset_callbacks();
     if (cb) cb();
@@ -97,7 +104,6 @@ public:
     m_on_write = nullptr;
     m_on_connect = nullptr;
     m_on_close = nullptr;
-    m_transport->reset_callbacks();
   }
 
   net::Socket local() const override {
@@ -142,6 +148,7 @@ public:
 protected:
   void tls_read(buffer_t buf)
   {
+    this->m_busy = true;
     try
     {
       int rem = m_tls.received_data(buf->data(), buf->size());
@@ -153,6 +160,8 @@ protected:
       printf("Fatal TLS error %s\n", e.what());
       this->close();
     }
+    this->m_busy = false;
+    if (this->m_deferred_close) this->close();
   }
 
   void tls_alert(Botan::TLS::Alert alert) override
@@ -186,10 +195,7 @@ protected:
   void tls_record_received(uint64_t, const uint8_t buf[], size_t buf_len) override
   {
     if (m_on_read) {
-      this->m_busy = true;
       m_on_read(Stream::construct_buffer(buf, buf + buf_len));
-      this->m_busy = false;
-      if (this->m_deferred_close) this->close();
     }
   }
 
