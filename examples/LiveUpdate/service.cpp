@@ -21,6 +21,7 @@
 #include <memdisk>
 #include <net/openssl/init.hpp>
 #include <net/openssl/tls_stream.hpp>
+#include <net/tcp/stream.hpp>
 #include "liu.hpp"
 static std::deque<net::Stream_ptr> strims;
 static SSL_CTX* g_ctx = nullptr;
