@@ -44,6 +44,10 @@ public:
     assert(m_transport->is_connected());
     // default read callback
     m_transport->on_read(4096, {this, &Server::tls_read});
+    m_transport->on_close({this, &Server::close_callback_once});
+  }
+  ~Server() {
+    assert(m_busy == false && "Cannot delete stream while in its call stack");
   }
 
   void on_read(size_t bs, ReadCallback cb) override
@@ -74,15 +78,21 @@ public:
     m_tls.send(buf->data(), buf->size());
   }
 
-  void close() override {
+  void close() override
+  {
+    if (this->m_busy) {
+      this->m_deferred_close = true; return;
+    }
+    CloseCallback cb = std::move(m_on_close);
+    this->reset_callbacks();
     m_transport->close();
+    if (cb) cb();
+  }
+  void close_callback_once()
+  {
     CloseCallback cb = std::move(m_on_close);
     this->reset_callbacks();
     if (cb) cb();
-  }
-  void abort() override {
-    m_transport->abort();
-    this->close();
   }
   void reset_callbacks() override
   {
@@ -90,7 +100,6 @@ public:
     m_on_write = nullptr;
     m_on_connect = nullptr;
     m_on_close = nullptr;
-    m_transport->reset_callbacks();
   }
 
   net::Socket local() const override {
@@ -135,6 +144,7 @@ public:
 protected:
   void tls_read(buffer_t buf)
   {
+    this->m_busy = true;
     try
     {
       int rem = m_tls.received_data(buf->data(), buf->size());
@@ -146,6 +156,8 @@ protected:
       printf("Fatal TLS error %s\n", e.what());
       this->close();
     }
+    this->m_busy = false;
+    if (this->m_deferred_close) this->close();
   }
 
   void tls_alert(Botan::TLS::Alert alert) override
@@ -168,7 +180,12 @@ protected:
   void tls_emit_data(const uint8_t buf[], size_t len) override
   {
     m_transport->write(buf, len);
-    if (m_on_write) m_on_write(len);
+    if (m_on_write) {
+      this->m_busy = true;
+      m_on_write(len);
+      this->m_busy = false;
+      if (this->m_deferred_close) this->close();
+    }
   }
 
   void tls_record_received(uint64_t, const uint8_t buf[], size_t buf_len) override
@@ -188,6 +205,8 @@ private:
   Stream::WriteCallback   m_on_write = nullptr;
   Stream::ConnectCallback m_on_connect = nullptr;
   Stream::CloseCallback   m_on_close = nullptr;
+  bool m_busy = false;
+  bool m_deferred_close = false;
 
   Botan::Credentials_Manager&   m_creds;
   Botan::TLS::Strict_Policy     m_policy;

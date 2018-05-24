@@ -107,12 +107,6 @@ namespace net::tcp
     }
 
     /**
-     * @brief      Aborts (terminates) the stream.
-     */
-    void abort() override
-    { m_tcp->abort(); }
-
-    /**
      * @brief      Resets all callbacks.
      */
     void reset_callbacks() override

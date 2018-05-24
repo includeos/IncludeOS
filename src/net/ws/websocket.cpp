@@ -295,8 +295,11 @@ void WebSocket::finalize_message()
   case op_code::TEXT:
   case op_code::BINARY:
     /// .. call on_read
-    if (on_read != nullptr) {
-      on_read(std::move(message));
+    if (this->on_read) {
+      this->m_busy = true;
+      this->on_read(std::move(message));
+      this->m_busy = false;
+      if (this->m_deferred_close) this->close(this->m_deferred_close);
     }
     return;
   case op_code::CLOSE:
@@ -422,14 +425,12 @@ WebSocket::WebSocket(net::Stream_ptr stream_ptr, bool client)
   this->stream->on_read(8*1024, {this, &WebSocket::read_data});
   this->stream->on_close({this, &WebSocket::close_callback_once});
 }
-WebSocket::~WebSocket()
-{
-  this->reset_callbacks();
-  this->close(1000);
-}
 
 void WebSocket::close(const uint16_t reason)
 {
+  if (this->m_busy) {
+    this->m_deferred_close = reason; return;
+  }
   assert(stream != nullptr);
   /// send CLOSE message
   if (this->stream->is_writable()) {
