@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet4>
+#include <net/inet>
 
 using namespace net;
 
@@ -42,7 +42,7 @@ void print_success(const std::string& hostname, IP4::addr server, IP4::addr res)
 
 void Service::start(const std::string&)
 {
-  auto& inet = net::Inet4::stack<0>();
+  auto& inet = net::Inet::stack<0>();
   inet.network_config(
     { 10, 0, 0, 48 },       // IP
     { 255, 255, 255, 0 },   // Netmask

@@ -17,7 +17,7 @@
 
 #include <common.cxx>
 #include <nic_mock.hpp>
-#include <net/inet4.hpp>
+#include <net/inet>
 
 using namespace net;
 
@@ -27,7 +27,7 @@ using namespace net;
 CASE("Path MTU Discovery is disabled by default and can be enabled")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
   EXPECT(not inet.ip_obj().path_mtu_discovery());
 
   inet.set_path_mtu_discovery(true);
@@ -37,7 +37,7 @@ CASE("Path MTU Discovery is disabled by default and can be enabled")
 CASE("An ICMP Too Big message with a next hop MTU value of 45 is invalid")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   inet.set_path_mtu_discovery(true);
 
@@ -64,7 +64,7 @@ CASE("An ICMP Too Big message with a next hop MTU value of 45 is invalid")
 CASE("An ICMP Too Big message with a next hop MTU value of 68 is valid")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   inet.set_path_mtu_discovery(true);
 
@@ -92,7 +92,7 @@ CASE("An ICMP Too Big message with a next hop MTU value of 68 is valid")
 CASE("Turning Path MTU Discovery off clears the PMTU cache")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   inet.set_path_mtu_discovery(true);
 
@@ -112,7 +112,7 @@ CASE("Turning Path MTU Discovery off clears the PMTU cache")
 CASE("No PMTU entry exists for non-existing path")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   inet.set_path_mtu_discovery(true);
 
@@ -122,7 +122,7 @@ CASE("No PMTU entry exists for non-existing path")
 CASE("A PMTU entry can be removed")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   inet.set_path_mtu_discovery(true);
 
@@ -142,7 +142,7 @@ CASE("A PMTU entry can be removed")
 CASE("The PMTU cache/map can be flushed")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   inet.set_path_mtu_discovery(true);
 
@@ -172,7 +172,7 @@ CASE("The PMTU cache/map can be flushed")
 CASE("Path MTU Discovery is enabled by default and can be disabled")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
   EXPECT(inet.ip_obj().path_mtu_discovery());
 
   inet.set_path_mtu_discovery(false);
@@ -182,7 +182,7 @@ CASE("Path MTU Discovery is enabled by default and can be disabled")
 CASE("An ICMP Too Big message with a next hop MTU value of 45 is invalid")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   ICMP_error err{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 45};
   bool too_big = err.is_too_big();
@@ -207,7 +207,7 @@ CASE("An ICMP Too Big message with a next hop MTU value of 45 is invalid")
 CASE("An ICMP Too Big message with a next hop MTU value of 68 is valid")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   ICMP_error err{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 68};
   bool too_big = err.is_too_big();
@@ -233,7 +233,7 @@ CASE("An ICMP Too Big message with a next hop MTU value of 68 is valid")
 CASE("Turning Path MTU Discovery off clears the PMTU cache")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   ICMP_error err{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 1400};
   bool too_big = err.is_too_big();
@@ -251,7 +251,7 @@ CASE("Turning Path MTU Discovery off clears the PMTU cache")
 CASE("No PMTU entry exists for non-existing path")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   EXPECT(inet.ip_obj().pmtu(Socket{{10,0,0,45}, 80}) == 0);
 }
@@ -259,7 +259,7 @@ CASE("No PMTU entry exists for non-existing path")
 CASE("A PMTU entry can be removed")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   ICMP_error err{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 1400};
   bool too_big = err.is_too_big();
@@ -277,7 +277,7 @@ CASE("A PMTU entry can be removed")
 CASE("The PMTU cache/map can be flushed")
 {
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
 
   ICMP_error err1{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 1000};
   bool too_big1 = err1.is_too_big();

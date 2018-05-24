@@ -18,7 +18,7 @@
  * by Alf-Andre Walla 2016-2017
  *
 **/
-#include <net/inet4>
+#include <net/inet>
 #include <net/tcp/connection_states.hpp>
 #include "serialize_tcp.hpp"
 #include "liveupdate.hpp"
@@ -27,7 +27,7 @@
 #include <unordered_set>
 
 using namespace net::tcp;
-static std::unordered_set<net::Inet<net::IP4>*> slumbering_ip4;
+static std::unordered_set<net::Inet*> slumbering_ip4;
 
 Connection::State* serialized_tcp::to_state(int8_t state) const
 {
@@ -302,5 +302,9 @@ namespace liu
   Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
   {
     return deserialize_connection(ent->vla, tcp);
+  }
+  net::Stream_ptr Restore::as_tcp_stream   (net::TCP& tcp) const
+  {
+    return std::make_unique<net::tcp::Stream> (as_tcp_connection(tcp));
   }
 }

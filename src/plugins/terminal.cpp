@@ -18,7 +18,7 @@
 #include <rapidjson/document.h>
 #include <config>
 #include <info>
-#include <net/inet4>
+#include <net/inet>
 #include <kernel/terminal.hpp>
 #include <kernel/os.hpp>
 static int counter = 0;
@@ -52,7 +52,7 @@ void store_terminal(liu::Storage& store, const liu::buffer_t*)
 }
 void restore_terminal(const int TERM_NET, liu::Restore& restore)
 {
-  auto& inet = net::Super_stack::get<net::IP4>(TERM_NET);
+  auto& inet = net::Super_stack::get(TERM_NET);
   while (!restore.is_end())
   {
     auto conn = restore.as_tcp_connection(inet.tcp());
@@ -75,7 +75,7 @@ static void spawn_terminal()
   const auto& obj = doc["terminal"];
   // terminal network interface
   const int TERM_NET  = obj["iface"].GetInt();
-  auto& inet = net::Super_stack::get<net::IP4>(TERM_NET);
+  auto& inet = net::Super_stack::get(TERM_NET);
   // terminal TCP port
   const int TERM_PORT = obj["port"].GetUint();
   inet.tcp().listen(TERM_PORT,

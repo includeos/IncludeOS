@@ -64,12 +64,11 @@ struct Filter_verdict
   { return std::move(packet); }
 };
 
-template <typename IPV>
-struct Inet;
+class Inet;
 
 template <typename IPV>
 using Packetfilter =
-  delegate<Filter_verdict<IPV>(typename IPV::IP_packet_ptr, Inet<IPV>&, Conntrack::Entry_ptr)>;
+  delegate<Filter_verdict<IPV>(typename IPV::IP_packet_ptr, Inet&, Conntrack::Entry_ptr)>;
 
 /**
  * @brief      A filter chain consisting of a list of packet filters.
@@ -87,7 +86,7 @@ struct Filter_chain
   /**
    *  Execute the chain
    */
-  Filter_verdict<IPV> operator()(IP_packet_ptr pckt, Inet<IPV>& stack, Conntrack::Entry_ptr ct)
+  Filter_verdict<IPV> operator()(IP_packet_ptr pckt, Inet& stack, Conntrack::Entry_ptr ct)
   {
     Filter_verdict<IPV> verdict{std::move(pckt), Filter_verdict_type::ACCEPT};
     int i = 0;

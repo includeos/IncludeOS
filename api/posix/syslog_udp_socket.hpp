@@ -24,7 +24,7 @@
 
 class Syslog_UDP_socket : public Unix_FD_impl {
 public:
-  inline Syslog_UDP_socket(net::Inet<net::IP4>& net,
+  inline Syslog_UDP_socket(net::Inet& net,
                            const net::ip4::Addr raddr, const uint16_t rport);
 
   inline long    connect(const struct sockaddr *, socklen_t) override;
@@ -35,13 +35,13 @@ public:
   inline ~Syslog_UDP_socket();
 
 private:
-  net::Inet<net::IP4>&  stack;
+  net::Inet&  stack;
   net::UDPSocket*       udp;
   const net::ip4::Addr  addr;
   const uint16_t        port;
 };
 
-Syslog_UDP_socket::Syslog_UDP_socket(net::Inet<net::IP4>& net,
+Syslog_UDP_socket::Syslog_UDP_socket(net::Inet& net,
                                      const net::ip4::Addr raddr,
                                      const uint16_t rport)
   : stack{net}, udp{nullptr}, addr{raddr}, port{rport}

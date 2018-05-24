@@ -2,7 +2,7 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
-#include <net/inet4>
+#include <net/inet>
 
 //#define VERBOSE_OPENSSL
 #ifdef VERBOSE_OPENSSL
@@ -17,7 +17,8 @@ namespace openssl
   {
     using Stream_ptr = net::Stream_ptr;
 
-    TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing = false);
+    TLS_stream(SSL_CTX* ctx, Stream_ptr, bool outgoing = false);
+    TLS_stream(Stream_ptr, SSL* ctx, BIO*, BIO*);
     virtual ~TLS_stream();
 
     void write(buffer_t buffer) override;
@@ -70,11 +71,11 @@ namespace openssl
       return m_transport->get_cpuid();
     }
 
-    //size_t serialize_to(void*) const override;
-
-    int my_virtual_member() override {
-      return 443;
+    Stream* transport() noexcept override {
+      return m_transport.get();
     }
+
+    size_t serialize_to(void*) const override;
 
   private:
     void tls_read(buffer_t);
@@ -126,6 +127,13 @@ namespace openssl
     {
       if (this->tls_perform_handshake() < 0) return;
     }
+  }
+  inline TLS_stream::TLS_stream(Stream_ptr t, SSL* ssl, BIO* rd, BIO* wr)
+    : m_transport(std::move(t)), m_ssl(ssl), m_bio_rd(rd), m_bio_wr(wr)
+  {
+    // always-on callbacks
+    m_transport->on_read(8192, {this, &TLS_stream::tls_read});
+    m_transport->on_close({this, &TLS_stream::close_callback_once});
   }
   inline TLS_stream::~TLS_stream()
   {

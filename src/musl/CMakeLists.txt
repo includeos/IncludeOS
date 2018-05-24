@@ -14,6 +14,8 @@ set(MUSL_OBJECTS
   chmod.cpp
   chown.cpp
   cwd.cpp
+  dup3.cpp # also dup, dup2
+  execve.cpp
   fchmod.cpp
   fchmodat.cpp
   fchown.cpp
@@ -21,15 +23,23 @@ set(MUSL_OBJECTS
   ftruncate.cpp
   getdents.cpp
   geteuid.cpp
+  getgid.cpp
+  getuid.cpp
   kill.cpp
   mkdir.cpp
   mkdirat.cpp
   mknodat.cpp
   openat.cpp
   readlink.cpp
+  rename.cpp
   rmdir.cpp
   select.cpp
+  setgid.cpp
+  setpgid.cpp
   setrlimit.cpp
+  setsid.cpp
+  setuid.cpp
+  wait4.cpp
   umask.cpp
   uname.cpp
   utimensat.cpp
