@@ -71,8 +71,11 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
     read_request->callback = cb;
     // this will flush the current data to the user (if any)
     read_request->reset(recv_bufsz, seq_t(this->cb.RCV.NXT));
-    // TODO: we should probably clear any SACK if it exists,
-    // due to reset() throwing away buffers
+
+    // due to throwing away buffers (and all data) we also
+    // need to clear the sack list if anything is stored here.
+    if(sack_list)
+      sack_list->clear();
   }
 }
 

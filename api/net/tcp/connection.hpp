@@ -666,7 +666,7 @@ private:
   /** State if connection is in TCP write queue or not. */
   bool queued_;
 
-  using Sack_list = sack::List<sack::Fixed_list<32>>;
+  using Sack_list = sack::List<sack::Fixed_list<default_sack_entries>>;
   std::unique_ptr<Sack_list> sack_list;
   /** If SACK is permitted (option has been seen from peer) */
   bool sack_perm = false;
