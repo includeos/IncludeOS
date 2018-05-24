@@ -1060,7 +1060,12 @@ void Connection::signal_connect(const bool success)
     (success) ? on_connect_(retrieve_shared()) : on_connect_(nullptr);
 }
 
-void Connection::signal_close() {
+void Connection::signal_close()
+{
+  if(UNLIKELY(close_signaled_))
+    return;
+  close_signaled_ = true;
+
   debug("<Connection::signal_close> It's time to delete this connection. \n");
 
   // call user callback
@@ -1092,7 +1097,7 @@ void Connection::clean_up() {
     read_request->callback.reset();
   _on_cleanup_.reset();
 
-  debug2("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
+  debug("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
 }
 
 std::string Connection::TCB::to_string() const {

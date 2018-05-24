@@ -39,3 +39,9 @@ cmake_install.cmake
 
 # Name of installation folder
 IncludeOS_install
+
+# Vim
+*.swp
+
+#CLion
+.idea/

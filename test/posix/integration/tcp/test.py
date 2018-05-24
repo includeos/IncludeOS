@@ -37,7 +37,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server.bind((S_HOST, S_PORT))
 
-HOST, PORT = '10.0.0.51', 1042
+HOST, PORT = '10.0.0.57', 1042
 
 RECEIVED = ''
 
