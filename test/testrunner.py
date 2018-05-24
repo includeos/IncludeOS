@@ -51,7 +51,7 @@ parser.add_argument("-f", "--fail-early", dest="fail", action="store_true",
 parser.add_argument("-j", "--junit-xml", dest="junit", action="store_true",
                     help="Produce junit xml results")
 
-parser.add_argument("-p", "--parallel-tests", dest="parallel", default=0,
+parser.add_argument("-p", "--parallel-tests", dest="parallel", default=0, type=int,
                     help="How many tests to run at once in parallell, \
                     overrides cpu count which is default")
 
@@ -309,6 +309,7 @@ def integration_tests(tests):
         num_cpus = args.parallel
     else:
         num_cpus = multiprocessing.cpu_count()
+    num_cpus = int(num_cpus)
 
 	# Collect test results
     print pretty.HEADER("Collecting integration test results, on {0} cpu(s)".format(num_cpus))
