@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 2.8.9)
 project(unittests C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# IncludeOS install location
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+endif()
+
 option(COVERAGE "Build with coverage generation" OFF)
 option(SILENT_BUILD "Build with some warnings turned off" ON)
 
@@ -59,6 +64,7 @@ include_directories(
   ${INCLUDEOS_ROOT}/mod/GSL
   ${INCLUDEOS_ROOT}/mod/uzlib/src
   ${TEST}/lest/include
+  $ENV{INCLUDEOS_PREFIX}/include
 )
 
 set(LEST_UTIL
