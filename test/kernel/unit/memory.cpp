@@ -77,8 +77,8 @@ CASE("os::mem::Mapping Addition")
   n.lin = m.lin + m.size;
   auto old_m = m;
   auto old_n = n;
-
-  EXPECT(m + n == (m += n));
+  m += n;
+  EXPECT(old_m + old_n == m);
   EXPECT(m.size == old_m.size + old_n.size);
   EXPECT(m.lin == old_m.lin);
 
@@ -319,7 +319,7 @@ SETUP ("Assuming a default page table setup")
   SECTION ("os::mem protect basics")
   {
     // Save some page sizes around the area we'll be mapping
-    std::array sizes_pre = {mem::active_page_size(5_GiB),
+    std::array<uintptr_t, 4> sizes_pre {mem::active_page_size(5_GiB),
                             mem::active_page_size(6_GiB),
                             mem::active_page_size(6_GiB + 100_MiB),
                             mem::active_page_size(7_GiB)};
@@ -363,7 +363,7 @@ SETUP ("Assuming a default page table setup")
     }
 
     // The rest of memory is largely as before except adjacent areas
-    std::array sizes_post = {mem::active_page_size(5_GiB),
+    std::array<uintptr_t, 4> sizes_post {mem::active_page_size(5_GiB),
                              mem::active_page_size(6_GiB),
                              mem::active_page_size(prot_begin),
                              mem::active_page_size(7_GiB)};

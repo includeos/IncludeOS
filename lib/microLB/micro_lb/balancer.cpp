@@ -1,4 +1,5 @@
 #include "balancer.hpp"
+#include <net/tcp/stream.hpp>
 
 #define READQ_PER_CLIENT        4096
 #define MAX_READQ_PER_NODE      8192
@@ -124,7 +125,7 @@ namespace microLB
       // prevent buffer bloat attack
       this->total += buf->size();
       if (this->total > MAX_READQ_PER_NODE) {
-        conn->abort();
+        conn->close();
       }
       else {
         LBOUT("*** Queued %lu bytes\n", buf->size());
@@ -386,7 +387,7 @@ namespace microLB
     incoming->on_close(
     [&nodes = n, idx] () {
         nodes.get_session(idx).outgoing->close();
-        nodes.get_session(idx).incoming->close();
+        //nodes.get_session(idx).incoming->close();
     });
     outgoing->on_read(READQ_FOR_NODES,
     [this] (auto buf) {
@@ -396,12 +397,8 @@ namespace microLB
     });
     outgoing->on_close(
     [&nodes = n, idx] () {
-        nodes.get_session(idx).outgoing->close();
+        //nodes.get_session(idx).outgoing->close();
         nodes.get_session(idx).incoming->close();
-    });
-    outgoing->on_close(
-    [&nodes = n, idx] () {
-        nodes.close_session(idx);
     });
   }
   bool Session::is_alive() const {

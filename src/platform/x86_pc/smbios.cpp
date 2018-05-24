@@ -126,13 +126,10 @@ namespace x86
         INFO2("Product name: %s", hdr->get_string(hdr->data[1]));
         {
           char uuid[33];
-          snprintf(uuid, sizeof(uuid),
-                  "%08x%08x%08x%08x",
-                  *(uint32_t*) &hdr->data[4],
-                  *(uint32_t*) &hdr->data[8],
-                  *(uint32_t*) &hdr->data[12],
-                  *(uint32_t*) &hdr->data[16]);
-          sysinfo.uuid = std::string(uuid);
+          for (int i = 0; i < 16; i++) {
+            sprintf(&uuid[i*2], "%02hhx", hdr->data[i]);
+          }
+          sysinfo.uuid = std::string(uuid, 32);
           INFO2("System UUID: %s", sysinfo.uuid.c_str());
         }
         break;

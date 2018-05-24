@@ -103,7 +103,7 @@ public:
  * 4. create certificate request <req> with private key 2
  * 5. create CA with <CA> key and <CA> cert
  * 6, create certificate <server> by signing <req>
- * 
+ *
 **/
 inline Credman* Credman::create(
         const std::string& server_name,
@@ -112,7 +112,7 @@ inline Credman* Credman::create(
         Botan::X509_Certificate ca_cert,
         std::unique_ptr<Botan::Private_Key> server_key)
 {
-  Botan::X509_CA ca(ca_cert, *ca_key, "SHA-256", rng);
+  Botan::X509_CA ca(ca_cert, *ca_key, "SHA-512", rng);
 
   // create server certificate from CA
   auto now = std::chrono::system_clock::now();
@@ -124,7 +124,7 @@ inline Credman* Credman::create(
   server_opts.common_name = server_name;
   server_opts.country = "VT";
 
-  auto req = Botan::X509::create_cert_req(server_opts, *server_key, "SHA-256", rng);
+  auto req = Botan::X509::create_cert_req(server_opts, *server_key, "SHA-512", rng);
 
   auto server_cert = ca.sign_request(req, rng, start_time, end_time);
 

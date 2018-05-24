@@ -41,7 +41,7 @@ struct Invalid_Address : public std::runtime_error {
  */
 struct Addr {
   Addr()
-    : i32{0, 0, 0, 0} {}
+    : i32{{0, 0, 0, 0}} {}
 
   Addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2,
        uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)

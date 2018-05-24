@@ -40,9 +40,6 @@ extern void __serial_print(const char* str, size_t len);
  **/
 __attribute__ ((format (printf, 1, 2)))
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void kprintf(const char* format, ...);
 extern void kprint(const char*);
 

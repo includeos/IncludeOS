@@ -10,12 +10,7 @@ inline Connection& Connection::on_connect(ConnectCallback cb) {
 
 inline Connection& Connection::on_read(size_t recv_bufsz, ReadCallback cb)
 {
-  if(not read_request) {
-    read_request = std::make_unique<ReadRequest>(recv_bufsz, seq_t(this->cb.RCV.NXT), cb);
-  } else {
-    read_request->buffer.reset(seq_t(this->cb.RCV.NXT), recv_bufsz);
-    read_request->callback = cb;
-  }
+  _on_read(recv_bufsz, cb);
   return *this;
 }
 

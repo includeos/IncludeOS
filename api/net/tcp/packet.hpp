@@ -249,7 +249,7 @@ public:
 
   /**
    * @brief      Adds a tcp option aligned.
-   *             Assumes the user knows what he's doing.
+   *             Assumes the user knows what she/he is doing.
    *
    * @tparam     T          An aligned TCP option
    * @tparam     Args       construction args to option T
@@ -257,15 +257,15 @@ public:
   template <typename T, typename... Args>
   inline void add_tcp_option_aligned(Args&&... args) {
     // to avoid headache, options need to be added BEFORE any data.
-    Expects(!has_tcp_data() and sizeof(T) % 4 == 0);
+    Expects(!has_tcp_data());
 
     // option address
     auto* addr = tcp_options()+tcp_options_length();
     // emplace the option
-    new (addr) T(args...);
+    auto& opt = *(new (addr) T(args...));
 
     // update offset
-    auto newoffset = offset() + (sizeof(T) / 4);
+    auto newoffset = offset() + round_up(opt.size(), 4);
 
     set_offset(newoffset);
     if (UNLIKELY(newoffset > 0xF)) {

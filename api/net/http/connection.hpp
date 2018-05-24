@@ -23,7 +23,7 @@
 #include "request.hpp"
 #include "response.hpp"
 
-#include <net/tcp/connection.hpp>
+#include <net/tcp/stream.hpp>
 
 namespace http {
 
@@ -32,7 +32,7 @@ namespace http {
     using Stream        = net::Stream;
     using Stream_ptr    = std::unique_ptr<Stream>;
     using Peer          = net::Socket;
-    using buffer_t      = net::tcp::buffer_t;
+    using buffer_t      = net::Stream::buffer_t;
 
   public:
     inline explicit Connection(Stream_ptr stream, bool keep_alive = true);
@@ -42,14 +42,14 @@ namespace http {
 
     inline explicit Connection() noexcept;
 
-    net::tcp::port_t local_port() const noexcept
+    uint16_t local_port() const noexcept
     { return (stream_) ? stream_->local().port() : 0; }
 
     Peer peer() const noexcept
     { return peer_; }
 
     void timeout()
-    { stream_->is_closing() ? stream_->abort() : stream_->close(); }
+    { stream_->close(); }
 
     auto& stream() const
     { return stream_; }
@@ -121,7 +121,7 @@ namespace http {
 
   template <typename TCP>
   Connection::Connection(TCP& tcp, Peer addr)
-    : Connection(std::make_unique<net::tcp::Connection::Stream>(tcp.connect(addr)))
+    : Connection(std::make_unique<net::tcp::Stream>(tcp.connect(addr)))
   {
   }
 
@@ -142,8 +142,7 @@ namespace http {
   {
     auto copy = std::move(stream_);
 
-    // this is expensive and may be unecessary,
-    // but just to be safe for now
+    // reset delegates before handing out stream
     copy->reset_callbacks();
 
     return copy;

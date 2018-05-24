@@ -15,28 +15,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
+#include <service>
 #include <net/inet>
 #include <memdisk>
 #include <timers>
 #include <https>
+#define BENCHMARK_MODE
+static const bool ENABLE_TLS    = true;
+static const bool USE_BOTAN_TLS = false;
+
 static http::Server* server = nullptr;
 extern http::Response_ptr handle_request(const http::Request&);
 
 void Service::start()
 {
-  // Get the first IP stack
-  // It should have configuration from config.json
+  fs::memdisk().init_fs(
+  [] (auto err, auto&) {
+    assert(!err);
+  });
+  // Auto-configured from config.json
   auto& inet = net::Super_stack::get(0);
 
-  // Print some useful netstats every 30 secs
+#ifndef BENCHMARK_MODE
+  // Print some useful TCP stats every 30 secs
   Timers::periodic(5s, 30s,
   [&inet] (uint32_t) {
     printf("<Service> TCP STATUS:\n%s\n", inet.tcp().status().c_str());
   });
+#endif
 
-  server = new http::OpenSSL_server(
-        "/test.pem", "/test.key", inet.tcp());
+  if (USE_BOTAN_TLS) {
+    auto& filesys = fs::memdisk().fs();
+    auto ca_cert = filesys.stat("/test.pem");
+    auto ca_key  = filesys.stat("/test.key");
+    auto srv_key = filesys.stat("/server.key");
+
+    server = new http::Botan_server(
+          "blabla", ca_key, ca_cert, srv_key, inet.tcp());
+    printf("Using Botan for HTTPS transport\n");
+  }
+  else {
+    server = new http::OpenSSL_server(
+            "/test.pem", "/test.key", inet.tcp());
+    printf("Using OpenSSL for HTTPS transport\n");
+  }
 
   server->on_request(
     [] (auto request, auto response_writer) {
@@ -46,5 +68,24 @@ void Service::start()
 
   // listen on default HTTPS port
   server->listen(443);
-  printf("*** TLS service started ***\n");
 }
+
+#ifdef BENCHMARK_MODE
+#include <profile>
+static void print_heap_info()
+{
+  const std::string heapinfo = HeapDiag::to_string();
+  printf("%s\n", heapinfo.c_str());
+  StackSampler::print(10);
+}
+
+void Service::ready()
+{
+  using namespace std::chrono;
+  Timers::periodic(1s, [] (int) {
+    print_heap_info();
+  });
+
+  StackSampler::begin();
+}
+#endif
