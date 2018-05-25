@@ -126,6 +126,9 @@ public:
   bool contains(const seq_t seq, const uint32_t len) const noexcept
   { return impl.contains(seq, len); }
 
+  void clear() noexcept
+  { impl.clear(); }
+
   List_impl impl;
 };
 
@@ -293,6 +296,11 @@ public:
         return true;
     }
     return false;
+  }
+
+  void clear() noexcept
+  {
+    blocks.clear();
   }
 
   List blocks;

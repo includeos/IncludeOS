@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 2.8.9)
 project(unittests C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# IncludeOS install location
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+endif()
+
 option(COVERAGE "Build with coverage generation" OFF)
 option(SILENT_BUILD "Build with some warnings turned off" ON)
 
@@ -20,7 +25,7 @@ add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DOS_VERSION="v0.0.0.1")
 
-set(CMAKE_C_FLAGS "-g -O2 -std=c11 -Wall -Wextra")
+set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
 if(INFO)
@@ -32,15 +37,20 @@ if (DEBUG_INFO)
   set(NO_DEBUG "")
 endif()
 
-set(CMAKE_CXX_FLAGS "-g -O2 -march=native -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
-if (APPLE AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-message(STATUS "Including brew bundled libc++")
-execute_process(COMMAND brew "--prefix" "llvm@5" OUTPUT_VARIABLE BREW_LLVM)
-string(STRIP ${BREW_LLVM} BREW_LLVM)
-set(BREW_LIBCXX_INC ${BREW_LLVM}/lib)
-message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${BREW_LIBCXX_INC} -Wno-unused-command-line-argument")
+if (APPLE)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    message(STATUS "Including brew bundled libc++")
+    execute_process(COMMAND brew "--prefix" "llvm@5" OUTPUT_VARIABLE BREW_LLVM)
+    string(STRIP ${BREW_LLVM} BREW_LLVM)
+    set(BREW_LIBCXX_INC "-L${BREW_LLVM}/lib -I${BREW_LLVM}/include/c++/v1")
+    message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BREW_LIBCXX_INC} -stdlib=libc++ -nostdinc++ -Wno-unused-command-line-argument")
+  else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mmacosx-version-min=10.12")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.12")
+  endif()
 endif()
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
@@ -59,6 +69,7 @@ include_directories(
   ${INCLUDEOS_ROOT}/mod/GSL
   ${INCLUDEOS_ROOT}/mod/uzlib/src
   ${TEST}/lest/include
+  $ENV{INCLUDEOS_PREFIX}/include
 )
 
 set(LEST_UTIL

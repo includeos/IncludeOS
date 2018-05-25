@@ -37,6 +37,7 @@ namespace net {
     static constexpr bool     default_timestamps {true};
     // use of SACK
     static constexpr bool     default_sack {true};
+    static constexpr size_t   default_sack_entries{32};
     // maximum size of a TCP segment - later set based on MTU or peer
     static constexpr uint16_t default_mss {536};
     // the maximum amount of half-open connections per port (listener)

@@ -31,7 +31,7 @@ const uint16_t BUFSIZE = 2048;
 
 int main()
 {
-  auto&& inet =  net::Inet::ifconfig({  10,  0,  0, 51 },   // IP
+  auto&& inet =  net::Inet::ifconfig({  10,  0,  0, 57 },   // IP
                                      { 255, 255, 0,  0 },   // Netmask
                                      {  10,  0,  0,  4 });  // Gateway
 

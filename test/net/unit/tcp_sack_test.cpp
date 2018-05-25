@@ -294,6 +294,11 @@ CASE("SACK block list is full")
 
   // Add a block that connects two blocks, which should free up one spot
 
+  // Clear list
+  sack_list.clear();
+  EXPECT(sack_list.size() == 0);
+  EXPECT(sack_list.recent_entries() == expected({}));
+
 }
 
 CASE("SACK Scoreboard - recv SACK")

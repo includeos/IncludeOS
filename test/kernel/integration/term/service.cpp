@@ -24,7 +24,7 @@ void Service::start()
 {
   auto& inet = net::Super_stack::get(0);
   inet.network_config(
-     { 10,0,0,59 },      // IP
+     { 10,0,0,63 },      // IP
      { 255,255,255,0 },  // Netmask
      { 10,0,0,1 });      // GW
 
