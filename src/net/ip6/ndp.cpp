@@ -38,7 +38,7 @@ namespace net
   mac_            (inet.link_addr())
   {}
 
-  void Ndp::send_neighbor_advertisement(icmp6::Packet& req)
+  void Ndp::send_neighbour_advertisement(icmp6::Packet& req)
   {
     icmp6::Packet res(inet_.ip6_packet_factory());
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
@@ -61,38 +61,98 @@ namespace net
     res.ip().set_ip_hop_limit(255);
 
     // Populate response ICMP header
-    res.set_type(ICMP_type::ND_NEIGHBOR_ADV);
+    res.set_type(ICMP_type::ND_NEIGHBOUR_ADV);
     res.set_code(0);
-    res.ndp().set_neighbor_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
-    PRINT("<NDP> Transmitting Neighbor adv to %s\n",
+    res.ndp().set_neighbour_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
+    PRINT("NDP: Transmitting Neighbor adv to %s\n",
           res.ip().ip_dst().str().c_str());
 
     // Insert target link address, ICMP6 option header and our mac address
-    res.set_payload({req.ndp().neighbor_sol().get_target().data(), 16 });
+    res.set_payload({req.ndp().neighbour_sol().get_target().data(), 16 });
     res.ndp().set_ndp_options_header(icmp6::ND_OPT_TARGET_LL_ADDR, 0x01);
     res.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
 
     // Add checksum
     res.set_checksum();
 
-    PRINT("<NDP> Neighbor Adv Response size: %i payload size: %i, checksum: 0x%x\n",
+    PRINT("NDP: Neighbor Adv Response size: %i payload size: %i, checksum: 0x%x\n",
           res.ip().size(), res.payload().size(), res.compute_checksum());
 
-    transmit(res.release(), res.ip().ip_dst());
+    auto dest = res.ip().ip_dst();
+    transmit(res.release(), dest);
   }
 
-  void Ndp::receive_neighbor_advertisement(icmp6::Packet& req)
+  void Ndp::receive_neighbour_advertisement(icmp6::Packet& req)
   {
+    IP6::addr target = req.ndp().neighbour_adv().get_target();
+    uint8_t *lladdr;
+
+    if (target.is_multicast()) {
+        PRINT("NDP: neighbour advertisement target address is multicast\n");
+        return;
+    }
+
+    if (req.ip().ip_dst().is_multicast() &&
+        req.ndp().is_flag_solicited()) {
+        PRINT("NDP: neighbour destination address is multicast when"
+                " solicit flag is set\n");
+        return;
+    }
+
+    req.ndp().parse(ICMP_type::ND_NEIGHBOUR_ADV);
+    lladdr = req.ndp().get_option_data(icmp6::ND_OPT_TARGET_LL_ADDR);
+
+    // For now, just create a cache entry, if one doesn't exist
+    if (lookup(true, target, lladdr, 0) == false) {
+        PRINT("NDP: Failed to create a cached entry for %s\n",
+            target.str().c_str());
+    } else {
+        auto waiting = waiting_packets_.find(target);
+        if (waiting != waiting_packets_.end()) {
+          PRINT("Ndp: Had a packet waiting for this IP. Sending\n");
+          transmit(std::move(waiting->second.pckt), target);
+          waiting_packets_.erase(waiting);
+        }
+    }
   }
 
-  void Ndp::send_neighbor_solicitation()
+  void Ndp::send_neighbour_solicitation(IP6::addr target)
   {
+    IP6::addr dest_ip;
+    icmp6::Packet req(inet_.ip6_packet_factory());
+
+    req.ip().set_ip_src(inet_.ip6_addr());
+    req.ip().set_ip_dst(dest_ip.solicit(target));
+
+    req.ip().set_ip_hop_limit(255);
+    req.set_type(ICMP_type::ND_NEIGHBOUR_SOL);
+    req.set_code(0);
+    req.set_reserved(0);
+
+    // Set target address
+    req.set_payload({target.data(), 16});
+    req.ndp().set_ndp_options_header(icmp6::ND_OPT_SOURCE_LL_ADDR, 0x01);
+    req.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
+
+    req.set_checksum();
+
+    MAC::Addr dest_mac(0x33,0x33, req.ip().ip_dst()[12],
+            req.ip().ip_dst()[13], req.ip().ip_dst()[14],
+            req.ip().ip_dst()[15]);
+    PRINT("NDP: Sending Neighbour solicit size: %i payload size: %i,"
+        "checksum: 0x%x\n, source: %s, dest: %s, dest mac: %s\n",
+        req.ip().size(), req.payload().size(), req.compute_checksum(),
+        req.ip().ip_src().str().c_str(),
+        req.ip().ip_dst().str().c_str(), dest_mac.str().c_str());
+
+    auto dest = req.ip().ip_dst();
+    transmit(req.release(), dest, dest_mac);
   }
 
-  void Ndp::receive_neighbor_solicitation(icmp6::Packet& req)
+  void Ndp::receive_neighbour_solicitation(icmp6::Packet& req)
   {
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
-    IP6::addr target = req.ndp().neighbor_sol().get_target();
+    IP6::addr target = req.ndp().neighbour_sol().get_target();
     uint8_t *lladdr, *nonce_opt;
     bool found;
     uint64_t nonce = 0;
@@ -101,21 +161,21 @@ namespace net
     PRINT("target: %s\n", target.str().c_str());
 
     if (target.is_multicast()) {
-        PRINT("ND: neighbor solictation target address is multicast\n");
+        PRINT("NDP: neighbour solictation target address is multicast\n");
         return;
     }
 
     if (any_src && !req.ip().ip_dst().is_solicit_multicast()) {
-        PRINT("ND: neighbor solictation address is any source "
+        PRINT("NDP: neighbour solictation address is any source "
                 "but not solicit destination\n");
         return;
     }
-    req.ndp().parse(ICMP_type::ND_NEIGHBOR_SOL);
+    req.ndp().parse(ICMP_type::ND_NEIGHBOUR_SOL);
     lladdr = req.ndp().get_option_data(icmp6::ND_OPT_SOURCE_LL_ADDR);
 
     if (lladdr) {
         if (any_src) {
-            PRINT("ND: bad any source packet with link layer option\n");
+            PRINT("NDP: bad any source packet with link layer option\n");
             return;
         }
     }
@@ -133,7 +193,7 @@ namespace net
     }
 
     if (any_src) {
-        send_neighbor_advertisement(req);
+        send_neighbour_advertisement(req);
         return;
     }
 
@@ -142,7 +202,7 @@ namespace net
             req.ip().ip_src(), lladdr, 0);
 
     if (found) {
-        send_neighbor_advertisement(req);
+        send_neighbour_advertisement(req);
     }
 
   }
@@ -153,7 +213,7 @@ namespace net
     req.ip().set_ip_src(inet_.ip6_addr());
     req.ip().set_ip_dst(ip6::Addr::node_all_nodes);
     req.ip().set_ip_hop_limit(255);
-    req.set_type(ICMP_type::ND_ROUTER_SOLICATION);
+    req.set_type(ICMP_type::ND_ROUTER_SOL);
     req.set_code(0);
     req.set_reserved(0);
     // Set multicast addreqs
@@ -162,36 +222,47 @@ namespace net
     // Add checksum
     req.set_checksum();
 
-    PRINT("<NDP> Router solicit size: %i payload size: %i, checksum: 0x%x\n",
+    PRINT("NDP: Router solicit size: %i payload size: %i, checksum: 0x%x\n",
           req.ip().size(), req.payload().size(), req.compute_checksum());
 
     transmit(req.release(), req.ip().ip_dst());
   }
 
+  void Ndp::receive_router_solicitation(icmp6::Packet& req)
+  {
+  }
+
+  void Ndp::receive_router_advertisement(icmp6::Packet& req)
+  {
+  }
+
   void Ndp::receive(icmp6::Packet& pckt) {
     switch(pckt.type()) {
-    case (ICMP_type::ND_ROUTER_SOLICATION):
-      PRINT("<NDP> ICMP Router solictation message from %s\n", pckt.ip().ip_src().str().c_str());
+    case (ICMP_type::ND_ROUTER_SOL):
+      PRINT("NDP: Router solictation message from %s\n", pckt.ip().ip_src().str().c_str());
+      receive_router_solicitation(pckt);
       break;
     case (ICMP_type::ND_ROUTER_ADV):
-      PRINT("<NDP> ICMP Router advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
+      PRINT("NDP: Router advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
+      receive_router_advertisement(pckt);
       break;
-    case (ICMP_type::ND_NEIGHBOR_SOL):
-      PRINT("<NDP> ICMP Neigbor solictation message from %s\n", pckt.ip().ip_src().str().c_str());
-      receive_neighbor_solicitation(pckt);
+    case (ICMP_type::ND_NEIGHBOUR_SOL):
+      PRINT("NDP: Neigbor solictation message from %s\n", pckt.ip().ip_src().str().c_str());
+      receive_neighbour_solicitation(pckt);
       break;
-    case (ICMP_type::ND_NEIGHBOR_ADV):
-      PRINT("<NDP> ICMP Neigbor advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
+    case (ICMP_type::ND_NEIGHBOUR_ADV):
+      PRINT("NDP: Neigbor advertisement message from %s\n", pckt.ip().ip_src().str().c_str());
+      receive_neighbour_advertisement(pckt);
       break;
     case (ICMP_type::ND_REDIRECT):
-      PRINT("<NDP> ICMP Neigbor redirect message from %s\n", pckt.ip().ip_src().str().c_str());
+      PRINT("NDP: Neigbor redirect message from %s\n", pckt.ip().ip_src().str().c_str());
       break;
     default:
       return;
     }
   }
 
-  bool Ndp::lookup(bool create, IP6::addr ip, uint8_t *ll_addr, uint8_t flags)
+  bool Ndp::lookup(bool create, IP6::addr ip, uint8_t *ll_addr, uint8_t flags = 0)
   {
       auto entry = cache_.find(ip);
       if (entry != cache_.end()) {
@@ -263,7 +334,7 @@ namespace net
 
   void Ndp::flush_expired()
   {
-    PRINT("<NDP> Flushing expired entries\n");
+    PRINT("NDP: Flushing expired entries\n");
     std::vector<IP6::addr> expired;
     for (auto ent : cache_) {
       if (ent.second.expired()) {
@@ -288,40 +359,35 @@ namespace net
     requests_tx_++;
 
     // Send ndp solicit
+    send_neighbour_solicitation(next_hop);
   }
 
-  void Ndp::transmit(Packet_ptr pckt, IP6::addr next_hop)
+  void Ndp::transmit(Packet_ptr pckt, IP6::addr next_hop, MAC::Addr mac)
   {
 
     Expects(pckt->size());
 
-    PRINT("<NDP -> physical> Transmitting %u bytes to %s\n",
-          (uint32_t) pckt->size(), next_hop.str().c_str());
+    if (mac == MAC::EMPTY) {
+        // If we don't have a cached IP, perform NDP sol
+        auto cache_entry = cache_.find(next_hop);
+        if (UNLIKELY(cache_entry == cache_.end())) {
+            PRINT("NDP: No cache entry for IP %s.  Resolving. \n", next_hop.to_string().c_str());
+            await_resolution(std::move(pckt), next_hop);
+            return;
+        }
 
-#if 0
-    MAC::Addr dest_mac;
-    // If we don't have a cached IP, perform address resolution
-    auto cache_entry = cache_.find(next_hop);
-    if (UNLIKELY(cache_entry == cache_.end())) {
-        PRINT("<NDP> No cache entry for IP %s.  Resolving. \n", next_hop.to_string().c_str());
-        await_resolution(std::move(pckt), next_hop);
-        return;
+        // Get MAC from cache
+        mac = cache_[next_hop].mac();
+
+        PRINT("NDP: Found cache entry for IP %s -> %s \n",
+            next_hop.to_string().c_str(), mac.to_string().c_str());
     }
 
-    // Get MAC from cache
-    dest_mac = cache_[next_hop].mac();
-
-    PRINT("<NDP> Found cache entry for IP %s -> %s \n",
-        next_hop.to_string().c_str(), dest_mac.to_string().c_str());
-#endif
-    MAC::Addr dest_mac("c0:01:0a:00:00:01");
-
-    PRINT("NDP: Transmitting packet on mac address: %s,"
-        " layer begin: buf + %li\n", dest_mac.to_string().c_str(),
-        packet->layer_begin() - packet->buf());
+    PRINT("<NDP -> physical> Transmitting %u bytes to %s\n",
+        (uint32_t) pckt->size(), next_hop.str().c_str());
 
     // Move chain to linklayer
-    linklayer_out_(std::move(pckt), dest_mac, Ethertype::IP6);
+    linklayer_out_(std::move(pckt), mac, Ethertype::IP6);
   }
 
   // NDP packet function definitions
@@ -329,19 +395,19 @@ namespace net
       void Packet::NdpPacket::parse(icmp6::Type type)
       {
         switch(type) {
-        case (ICMP_type::ND_ROUTER_SOLICATION):
+        case (ICMP_type::ND_ROUTER_SOL):
           ndp_opt_.parse(router_sol().options,
                   (icmp6_.payload_len() - router_sol().option_offset()));
           break;
         case (ICMP_type::ND_ROUTER_ADV):
           break;
-        case (ICMP_type::ND_NEIGHBOR_SOL):
-          ndp_opt_.parse(neighbor_sol().options,
-                  (icmp6_.payload_len() - neighbor_sol().option_offset()));
+        case (ICMP_type::ND_NEIGHBOUR_SOL):
+          ndp_opt_.parse(neighbour_sol().options,
+                  (icmp6_.payload_len() - neighbour_sol().option_offset()));
           break;
-        case (ICMP_type::ND_NEIGHBOR_ADV):
-          ndp_opt_.parse(neighbor_adv().options,
-                  (icmp6_.payload_len() - neighbor_adv().option_offset()));
+        case (ICMP_type::ND_NEIGHBOUR_ADV):
+          ndp_opt_.parse(neighbour_adv().options,
+                  (icmp6_.payload_len() - neighbour_adv().option_offset()));
           break;
         case (ICMP_type::ND_REDIRECT):
           ndp_opt_.parse(router_redirect().options,

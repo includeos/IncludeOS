@@ -90,10 +90,10 @@ namespace net
     case (ICMP_type::MULTICAST_LISTENER_DONE):
       PRINT("<ICMP6> ICMP multicast message from %s\n", req.ip().ip_src().str().c_str());
       break;
-    case (ICMP_type::ND_ROUTER_SOLICATION):
+    case (ICMP_type::ND_ROUTER_SOL):
     case (ICMP_type::ND_ROUTER_ADV):
-    case (ICMP_type::ND_NEIGHBOR_SOL):
-    case (ICMP_type::ND_NEIGHBOR_ADV):
+    case (ICMP_type::ND_NEIGHBOUR_SOL):
+    case (ICMP_type::ND_NEIGHBOUR_ADV):
     case (ICMP_type::ND_REDIRECT):
       ndp().receive(req);
       break;

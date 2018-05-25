@@ -47,14 +47,14 @@ namespace net {
 
     /** Handle incoming NDP packet. */
     void receive(icmp6::Packet& pckt);
-    void receive_neighbor_solicitation(icmp6::Packet& pckt);
-    void receive_neighbor_advertisement(icmp6::Packet& pckt);
+    void receive_neighbour_solicitation(icmp6::Packet& pckt);
+    void receive_neighbour_advertisement(icmp6::Packet& pckt);
     void receive_router_solicitation(icmp6::Packet& pckt);
     void receive_router_advertisement(icmp6::Packet& pckt);
 
     /** Send out NDP packet */
-    void send_neighbor_solicitation();
-    void send_neighbor_advertisement(icmp6::Packet& req);
+    void send_neighbour_solicitation(IP6::addr target);
+    void send_neighbour_advertisement(icmp6::Packet& req);
     void send_router_solicitation();
     void send_router_advertisement();
 
@@ -74,7 +74,7 @@ namespace net {
     { proxy_ = delg; }
 
     /** Downstream transmission. */
-    void transmit(Packet_ptr, IP6::addr next_hop);
+    void transmit(Packet_ptr, IP6::addr next_hop, MAC::Addr mac = MAC::EMPTY);
 
     /** Cache IP resolution. */
     void cache(IP6::addr ip, MAC::Addr mac, uint8_t flags);

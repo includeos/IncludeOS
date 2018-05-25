@@ -133,6 +133,14 @@ struct Addr {
       return reinterpret_cast<uint8_t*> (i16.data());
   }
 
+  Addr& solicit(const Addr other) noexcept {
+    i32[0] = htonl(0xFF020000);
+    i32[1] = 0;
+    i32[2] = htonl(0x1);
+    i32[3] = htonl(0xFF000000) | other.i32[3];
+    return *this;
+  }
+
   /**
    *
    **/
@@ -243,11 +251,31 @@ struct Addr {
   Addr operator~() const noexcept
   { return Addr{~i32[0], ~i32[1], ~i32[2], ~i32[3]}; }
 
+  uint8_t operator[](const int loc) const  noexcept
+  { return i8[loc]; }
+
+#if 0
+  template <typename T>
+  T get_part(const uint8_t n)
+  {
+      constexpr if (T = uint8_t) {
+          Expects(n < 32)
+          return i8[n];
+      } else if (T = uint16_t) {
+          Expects(n < 16)
+          return i16[n];
+      } else {
+          static_assert(false, "Unallowed T";
+      }
+  }
+#endif
+
   union
   {
     std::array<uint64_t, 2> i64;
     std::array<uint32_t ,4> i32;
     std::array<uint16_t, 8> i16;
+    std::array<uint8_t, 16> i8;
   };
 } __attribute__((packed)); //< struct Addr
 } //< namespace ip6

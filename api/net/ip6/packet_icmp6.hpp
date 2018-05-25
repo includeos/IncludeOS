@@ -150,8 +150,8 @@ namespace icmp6 {
           IP6::addr target;
           uint8_t   options[0];
 
-          void set_target(IP6::addr tar)
-          { target = tar; }
+          IP6::addr get_target()
+          { return target; }
 
           uint16_t option_offset()
           { return 16; }
@@ -177,13 +177,22 @@ namespace icmp6 {
         RouterRedirect& router_redirect()
         { return *reinterpret_cast<RouterRedirect*>(&(icmp6_.header().payload[0])); }
 
-        NeighborSol& neighbor_sol()
+        NeighborSol& neighbour_sol()
         { return *reinterpret_cast<NeighborSol*>(&(icmp6_.header().payload[0])); }
 
-        NeighborAdv& neighbor_adv()
+        NeighborAdv& neighbour_adv()
         { return *reinterpret_cast<NeighborAdv*>(&(icmp6_.header().payload[0])); }
 
-        void set_neighbor_adv_flag(uint32_t flag)
+        bool is_flag_router()
+        { return icmp6_.header().rso_flags & NEIGH_ADV_ROUTER; }
+
+        bool is_flag_solicited()
+        { return icmp6_.header().rso_flags & NEIGH_ADV_SOL; }
+
+        bool is_flag_override()
+        { return icmp6_.header().rso_flags &  NEIGH_ADV_OVERRIDE; }
+
+        void set_neighbour_adv_flag(uint32_t flag)
         { icmp6_.header().rso_flags = htonl(flag << 28); }
 
         void set_ndp_options_header(uint8_t type, uint8_t len)
