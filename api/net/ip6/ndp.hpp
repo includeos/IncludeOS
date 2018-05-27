@@ -34,6 +34,21 @@ namespace net {
   class Ndp {
 
   public:
+
+#define NEIGH_UPDATE_OVERRIDE          0x00000001
+#define NEIGH_UPDATE_WEAK_OVERRIDE     0x00000002
+#define NEIGH_UPDATE_OVERRIDE_ISROUTER 0x00000004
+#define NEIGH_UPDATE_ISROUTER          0x40000000
+#define NEIGH_UPDATE_ADMIN             0x80000000
+
+    enum class NeighbourStates : uint8_t {
+      INCOMPLETE,
+      REACHABLE,
+      STALE,
+      DELAY,
+      PROBE,
+      MAX
+    };
     using Stack   = IP6::Stack;
     using Route_checker = delegate<bool(IP6::addr)>;
     using Ndp_resolver = delegate<void(IP6::addr)>;
@@ -77,19 +92,20 @@ namespace net {
     void transmit(Packet_ptr, IP6::addr next_hop, MAC::Addr mac = MAC::EMPTY);
 
     /** Cache IP resolution. */
-    void cache(IP6::addr ip, MAC::Addr mac, uint8_t flags);
+    void cache(IP6::addr ip, MAC::Addr mac, NeighbourStates state, uint32_t flags);
+    void cache(IP6::addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags);
 
     /** Lookup for cache entry */
-    bool lookup(bool create, IP6::addr ip, uint8_t *ll_addr, uint8_t flags);
+    bool lookup(IP6::addr ip, uint8_t *ll_addr);
 
     /** Flush the NDP cache. RFC-2.3.2.1 */
     void flush_cache()
-    { cache_.clear(); };
+    { neighbour_cache_.clear(); };
 
     /** Flush expired cache entries. RFC-2.3.2.1 */
     void flush_expired ();
 
-    void set_cache_flush_interval(std::chrono::minutes m) {
+    void set_neighbour_cache_flush_interval(std::chrono::minutes m) {
       flush_interval_ = m;
     }
 
@@ -102,8 +118,8 @@ namespace net {
 
   private:
 
-    /** NDP cache expires after cache_exp_sec_ seconds */
-    static constexpr uint16_t cache_exp_sec_ {60 * 5};
+    /** NDP cache expires after neighbour_cache_exp_sec_ seconds */
+    static constexpr uint16_t neighbour_cache_exp_sec_ {60 * 5};
 
     /** Cache entries are just MAC's and timestamps */
     struct Cache_entry {
@@ -113,13 +129,18 @@ namespace net {
       Cache_entry(MAC::Addr mac) noexcept
       : mac_(mac), timestamp_(RTC::time_since_boot()) {}
 
+      Cache_entry(MAC::Addr mac, NeighbourStates state, uint32_t flags) noexcept
+      : mac_(mac), timestamp_(RTC::time_since_boot()), flags_(flags) {
+          set_state(state);
+      }
+
       Cache_entry(const Cache_entry& cpy) noexcept
       : mac_(cpy.mac_), timestamp_(cpy.timestamp_) {}
 
       void update() noexcept { timestamp_ = RTC::time_since_boot(); }
 
       bool expired() const noexcept
-      { return RTC::time_since_boot() > timestamp_ + cache_exp_sec_; }
+      { return RTC::time_since_boot() > timestamp_ + neighbour_cache_exp_sec_; }
 
       MAC::Addr mac() const noexcept
       { return mac_; }
@@ -128,11 +149,43 @@ namespace net {
       { return timestamp_; }
 
       RTC::timestamp_t expires() const noexcept
-      { return timestamp_ + cache_exp_sec_; }
+      { return timestamp_ + neighbour_cache_exp_sec_; }
+
+      void set_state(NeighbourStates state)
+      {
+         if (state < NeighbourStates::MAX) {
+           state_ = state;
+         }
+      }
+
+      void set_flags(uint32_t flags)
+      {
+          flags_ = flags;
+      }
+
+      std::string get_state_name()
+      {
+          switch(state_) {
+          case NeighbourStates::INCOMPLETE:
+              return "incomplete";
+          case NeighbourStates::REACHABLE:
+              return "reachable";
+          case NeighbourStates::STALE:
+              return "stale";
+          case  NeighbourStates::DELAY:
+              return "delay";
+          case NeighbourStates::PROBE:
+              return "probe";
+          default:
+              return "uknown";
+          }
+      }
 
     private:
-      MAC::Addr mac_;
+      uint32_t         flags_;
+      MAC::Addr        mac_;
       RTC::timestamp_t timestamp_;
+      NeighbourStates  state_;
     }; //< struct Cache_entry
 
     struct Queue_entry {
@@ -168,7 +221,7 @@ namespace net {
     downstream_link linklayer_out_ = nullptr;
 
     // The NDP cache
-    Cache cache_ {};
+    Cache neighbour_cache_ {};
 
     // RFC-1122 2.3.2.2 Packet queue
     PacketQueue waiting_packets_;

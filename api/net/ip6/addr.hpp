@@ -261,9 +261,6 @@ struct Addr {
       constexpr if (T = uint8_t) {
           Expects(n < 32)
           return i8[n];
-      } else if (T = uint16_t) {
-          Expects(n < 16)
-          return i16[n];
       } else {
           static_assert(false, "Unallowed T";
       }

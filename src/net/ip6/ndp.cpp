@@ -103,16 +103,18 @@ namespace net
     lladdr = req.ndp().get_option_data(icmp6::ND_OPT_TARGET_LL_ADDR);
 
     // For now, just create a cache entry, if one doesn't exist
-    if (lookup(true, target, lladdr, 0) == false) {
-        PRINT("NDP: Failed to create a cached entry for %s\n",
-            target.str().c_str());
-    } else {
-        auto waiting = waiting_packets_.find(target);
-        if (waiting != waiting_packets_.end()) {
-          PRINT("Ndp: Had a packet waiting for this IP. Sending\n");
-          transmit(std::move(waiting->second.pckt), target);
-          waiting_packets_.erase(waiting);
-        }
+    cache(target, lladdr, req.ndp().is_flag_solicited() ?
+            NeighbourStates::REACHABLE : NeighbourStates::STALE,
+             NEIGH_UPDATE_WEAK_OVERRIDE |
+            (req.ndp().is_flag_override() ? NEIGH_UPDATE_OVERRIDE : 0) |
+             NEIGH_UPDATE_OVERRIDE_ISROUTER |
+             (req.ndp().is_flag_router() ? NEIGH_UPDATE_ISROUTER : 0));
+
+    auto waiting = waiting_packets_.find(target);
+    if (waiting != waiting_packets_.end()) {
+      PRINT("Ndp: Had a packet waiting for this IP. Sending\n");
+      transmit(std::move(waiting->second.pckt), target);
+      waiting_packets_.erase(waiting);
     }
   }
 
@@ -122,12 +124,15 @@ namespace net
     icmp6::Packet req(inet_.ip6_packet_factory());
 
     req.ip().set_ip_src(inet_.ip6_addr());
-    req.ip().set_ip_dst(dest_ip.solicit(target));
 
     req.ip().set_ip_hop_limit(255);
     req.set_type(ICMP_type::ND_NEIGHBOUR_SOL);
     req.set_code(0);
     req.set_reserved(0);
+
+    // Solicit destination address. Source address
+    // option must be present
+    req.ip().set_ip_dst(dest_ip.solicit(target));
 
     // Set target address
     req.set_payload({target.data(), 16});
@@ -146,6 +151,7 @@ namespace net
         req.ip().ip_dst().str().c_str(), dest_mac.str().c_str());
 
     auto dest = req.ip().ip_dst();
+    cache(dest, MAC::EMPTY, NeighbourStates::INCOMPLETE, 0);
     transmit(req.release(), dest, dest_mac);
   }
 
@@ -193,18 +199,17 @@ namespace net
     }
 
     if (any_src) {
-        send_neighbour_advertisement(req);
+        if (lladdr) {
+            send_neighbour_advertisement(req);
+        }
         return;
     }
 
     /* Update/Create cache entry for the source address */
-    found = lookup(!is_dest_multicast || lladdr,
-            req.ip().ip_src(), lladdr, 0);
+    cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
+         NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE);
 
-    if (found) {
-        send_neighbour_advertisement(req);
-    }
-
+    send_neighbour_advertisement(req);
   }
 
   void Ndp::send_router_solicitation()
@@ -262,34 +267,42 @@ namespace net
     }
   }
 
-  bool Ndp::lookup(bool create, IP6::addr ip, uint8_t *ll_addr, uint8_t flags = 0)
+  bool Ndp::lookup(IP6::addr ip, uint8_t *ll_addr)
   {
-      auto entry = cache_.find(ip);
-      if (entry != cache_.end()) {
-          return true;
-      } else if (create == true && ll_addr) {
-          MAC::Addr mac(ll_addr);
-          cache(ip, mac, flags);
+      auto entry = neighbour_cache_.find(ip);
+      if (entry != neighbour_cache_.end()) {
           return true;
       }
       return false;
   }
 
-  void Ndp::cache(IP6::addr ip, MAC::Addr mac, uint8_t flags)
+  void Ndp::cache(IP6::addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags)
+  {
+      if (ll_addr) {
+        MAC::Addr mac(ll_addr);
+        cache(ip, mac, state, flags);
+      }
+  }
+
+  void Ndp::cache(IP6::addr ip, MAC::Addr mac, NeighbourStates state, uint32_t flags)
   {
       PRINT("Ndp Caching IP %s for %s\n", ip.str().c_str(), mac.str().c_str());
-      auto entry = cache_.find(ip);
-      if (entry != cache_.end()) {
+      auto entry = neighbour_cache_.find(ip);
+      if (entry != neighbour_cache_.end()) {
           PRINT("Cached entry found: %s recorded @ %zu. Updating timestamp\n",
              entry->second.mac().str().c_str(), entry->second.timestamp());
           if (entry->second.mac() != mac) {
-            cache_.erase(entry);
-            cache_.emplace(ip, mac);
+            neighbour_cache_.erase(entry);
+            neighbour_cache_.emplace(
+               std::make_pair(ip, Cache_entry{mac, state, flags})); // Insert
           } else {
+            entry->second.set_state(state);
+            entry->second.set_flags(flags);
             entry->second.update();
           }
       } else {
-          cache_.emplace(ip, mac); // Insert
+          neighbour_cache_.emplace(
+            std::make_pair(ip, Cache_entry{mac, state, flags})); // Insert
           if (UNLIKELY(not flush_timer_.is_running())) {
             flush_timer_.start(flush_interval_);
           }
@@ -305,6 +318,8 @@ namespace net
         ndp_resolver_(it->first);
         it++;
       } else {
+        // TODO: According to RFC,
+        // Send ICMP destination unreachable
         it = waiting_packets_.erase(it);
       }
     }
@@ -336,17 +351,17 @@ namespace net
   {
     PRINT("NDP: Flushing expired entries\n");
     std::vector<IP6::addr> expired;
-    for (auto ent : cache_) {
+    for (auto ent : neighbour_cache_) {
       if (ent.second.expired()) {
         expired.push_back(ent.first);
       }
     }
 
     for (auto ip : expired) {
-      cache_.erase(ip);
+      neighbour_cache_.erase(ip);
     }
 
-    if (not cache_.empty()) {
+    if (not neighbour_cache_.empty()) {
       flush_timer_.start(flush_interval_);
     }
   }
@@ -369,15 +384,15 @@ namespace net
 
     if (mac == MAC::EMPTY) {
         // If we don't have a cached IP, perform NDP sol
-        auto cache_entry = cache_.find(next_hop);
-        if (UNLIKELY(cache_entry == cache_.end())) {
+        auto neighbour_cache_entry = neighbour_cache_.find(next_hop);
+        if (UNLIKELY(neighbour_cache_entry == neighbour_cache_.end())) {
             PRINT("NDP: No cache entry for IP %s.  Resolving. \n", next_hop.to_string().c_str());
             await_resolution(std::move(pckt), next_hop);
             return;
         }
 
         // Get MAC from cache
-        mac = cache_[next_hop].mac();
+        mac = neighbour_cache_[next_hop].mac();
 
         PRINT("NDP: Found cache entry for IP %s -> %s \n",
             next_hop.to_string().c_str(), mac.to_string().c_str());

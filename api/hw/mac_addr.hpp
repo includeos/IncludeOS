@@ -89,7 +89,9 @@ union Addr {
 
   Addr(uint8_t *addr) noexcept
   {
-      memcpy(part, addr, PARTS_LEN);
+      if (addr) {
+        memcpy(part, addr, PARTS_LEN);
+      }
   }
 
   /**
