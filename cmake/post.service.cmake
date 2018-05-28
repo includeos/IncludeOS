@@ -205,6 +205,7 @@ if(LIBRARIES)
 endif()
 
 # add all extra libs
+set(LIBR_CMAKE_NAMES)
 foreach(LIBR ${LIBRARIES})
   # if relative path but not local, use includeos lib.
   if(NOT IS_ABSOLUTE ${LIBR} AND NOT EXISTS ${LIBR})
@@ -219,7 +220,7 @@ foreach(LIBR ${LIBRARIES})
   set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libr_${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
 
-  target_link_libraries(service libr_${LNAME})
+  list(APPEND LIBR_CMAKE_NAMES "libr_${LNAME}")
 endforeach()
 
 
@@ -453,6 +454,7 @@ endif()
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
   libos
+  ${LIBR_CMAKE_NAMES}
   libbotan
   ${OPENSSL_LIBS}
   libosdeps
