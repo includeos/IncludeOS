@@ -37,9 +37,7 @@
 #endif
 
 extern "C" void* get_cpu_esp();
-extern "C" void __libc_init_array();
-extern uintptr_t heap_begin;
-extern uintptr_t heap_end;
+//extern "C" void __libc_init_array();
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t _ELF_START_;
@@ -52,7 +50,7 @@ extern bool os_default_stdout;
 struct alignas(SMP_ALIGN) OS_CPU {
   uint64_t cycles_hlt = 0;
 };
-static SMP_ARRAY<OS_CPU> os_per_cpu;
+static SMP::Array<OS_CPU> os_per_cpu;
 
 uint64_t OS::cycles_asleep() noexcept {
   return PER_CPU(os_per_cpu).cycles_hlt;
@@ -100,7 +98,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   // Call global ctors
   PROFILE("Global constructors");
-  __libc_init_array();
+  //__libc_init_array();
 
   // PAGING //
   PROFILE("Enable paging");
@@ -109,7 +107,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   // BOOT METHOD //
   PROFILE("Multiboot / legacy");
-  OS::memory_end_ = 0;
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     OS::multiboot(boot_addr);
@@ -120,9 +117,12 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
     OS::legacy_boot();
   }
-  assert(OS::memory_end_ != 0);
+  assert(OS::memory_end() != 0);
+
+  MYINFO("Total memory detected as %s ", util::Byte_r(OS::memory_end_).to_string().c_str());
+
   // Give the rest of physical memory to heap
-  OS::heap_max_ = OS::memory_end_;
+  OS::heap_max_ = OS::memory_end_ - 1;
 
   /// STATMAN ///
   PROFILE("Statman");
@@ -146,16 +146,16 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
 #endif
 
-  assert(::heap_begin != 0x0 and OS::heap_max_ != 0x0);
+  assert(heap_begin() != 0x0 and OS::heap_max_ != 0x0);
   // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end, ::heap_begin - 1,
+  memmap.assign_range({(uintptr_t)&_end, heap_begin() - 1,
         "Pre-heap"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_);
 
-  MYINFO("Assigning heap");
-  memmap.assign_range({::heap_begin, heap_range_max_,
+  MYINFO("Assigning heap 0x%zx -> 0x%zx", heap_begin_, heap_range_max_);
+  memmap.assign_range({heap_begin_, heap_range_max_,
         "Dynamic memory", heap_usage });
 
   MYINFO("Virtual memory map");
@@ -192,7 +192,7 @@ void OS::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = x86::CMOS::meminfo();
-  if (OS::memory_end_ == 0)
+  if (OS::memory_end_ == __arch_max_canonical_addr)
   {
     //uintptr_t low_memory_size = mem.base.total * 1024;
     INFO2("* Low memory: %i Kib", mem.base.total);

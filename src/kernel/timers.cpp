@@ -81,7 +81,7 @@ struct alignas(SMP_ALIGN) timer_system
   uint32_t* periodic_started = nullptr;
   uint32_t* periodic_stopped = nullptr;
 };
-static SMP_ARRAY<timer_system> systems;
+static SMP::Array<timer_system> systems;
 
 void timer_system::free_timer(Timers::id_t id)
 {

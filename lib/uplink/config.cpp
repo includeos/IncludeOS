@@ -18,6 +18,7 @@
 #include <config>
 #include "config.hpp"
 #include "common.hpp"
+#include <net/inet.hpp>
 #include <net/super_stack.hpp>
 
 #ifndef RAPIDJSON_HAS_STDSTRING
@@ -58,6 +59,9 @@ namespace uplink {
     config_.url   = cfg["url"].GetString();
     config_.token = cfg["token"].GetString();
 
+    Expects(config_.url.is_valid() && "Invalid URL given (may have missing scheme)");
+    Expects(not config_.url.scheme().empty() && "Scheme missing in URL (http or https)");
+
     // Decide stack/interface
     if(cfg.HasMember("index"))
     {
@@ -65,17 +69,17 @@ namespace uplink {
 
       if(index.IsNumber())
       {
-        config_.inet = &net::Super_stack::get<net::IP4>(index.GetInt());
+        config_.inet = &net::Super_stack::get(index.GetInt());
       }
       else
       {
-        config_.inet = &net::Super_stack::get<net::IP4>(index.GetString());
+        config_.inet = &net::Super_stack::get(index.GetString());
       }
     }
     // If not given, pick the first stack
     else
     {
-      config_.inet = &net::Super_stack::get<net::IP4>(0);
+      config_.inet = &net::Super_stack::get(0);
     }
 
     // Reboot on panic (optional)
@@ -99,6 +103,16 @@ namespace uplink {
     if(cfg.HasMember("tag"))
     {
       config_.tag = cfg["tag"].GetString();
+    }
+
+    if(cfg.HasMember("certs"))
+    {
+      config_.certs_path = cfg["certs"].GetString();
+    }
+
+    if(cfg.HasMember("verify"))
+    {
+      config_.verify_certs = cfg["verify"].GetBool();
     }
 
     return config_;

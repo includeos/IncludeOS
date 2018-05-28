@@ -1,5 +1,5 @@
 #include <service>
-#include <net/inet4>
+#include <net/inet>
 #include <net/ws/connector.hpp>
 #include <http>
 #include <crash>
@@ -13,7 +13,7 @@ struct alignas(SMP_ALIGN) HTTP_server
   // websocket clients
   std::deque<net::WebSocket_ptr> clients;
 };
-static SMP_ARRAY<HTTP_server> httpd;
+static SMP::Array<HTTP_server> httpd;
 
 static net::WebSocket_ptr& new_client(net::WebSocket_ptr socket)
 {
@@ -84,7 +84,7 @@ void websocket_service(net::TCP& tcp, uint16_t port)
 
 void Service::start()
 {
-  auto& inet = net::Inet4::ifconfig<>(0);
+  auto& inet = net::Inet::ifconfig<>(0);
   inet.network_config(
       {  10, 0,  0, 54 },  // IP
       { 255,255,255, 0 },  // Netmask

@@ -23,6 +23,7 @@
 #define LIVEUPDATE_HEADER_HPP
 
 #include <net/tcp/connection.hpp>
+#include <net/stream.hpp>
 #include <delegate>
 #include <string>
 #include <vector>
@@ -143,6 +144,7 @@ struct Storage
   inline void add_vector(uid, const std::vector<T>& vector);
   // store a TCP connection
   void add_connection(uid, Connection_ptr);
+  void add_tls_stream(uid, net::Stream&);
 
   // markers are used to delineate the end of variable-length structures
   void put_marker(uid);
@@ -172,10 +174,12 @@ struct Restore
   bool  is_end()    const noexcept;
   bool  is_int()    const noexcept;
   bool  is_marker() const noexcept;
-  int            as_int()    const;
-  std::string    as_string() const;
-  buffer_t       as_buffer() const;
-  Connection_ptr as_tcp_connection(net::TCP&) const;
+  int             as_int()    const;
+  std::string     as_string() const;
+  buffer_t        as_buffer() const;
+  Connection_ptr  as_tcp_connection(net::TCP&) const;
+  net::Stream_ptr as_tcp_stream    (net::TCP&) const;
+  net::Stream_ptr as_tls_stream(void* ctx, net::Stream_ptr);
 
   template <typename S>
   inline const S& as_type() const;

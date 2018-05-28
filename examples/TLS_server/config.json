@@ -2,7 +2,7 @@
   "net" : [
     {
       "iface": 0,
-      "config": "dhcp-with-fallback",
+      "config": "static",
       "address": "10.0.0.42",
       "netmask": "255.255.255.0",
       "gateway": "10.0.0.1"

@@ -7,9 +7,8 @@ if (NOT threading)
 add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 endif()
 
-include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
-include_directories(${NEWLIB_INCLUDE_DIR})
+include_directories(${MUSL_INCLUDE_DIR})
 include_directories(${SOLO5_INCLUDE_DIR})
 include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
@@ -18,18 +17,18 @@ include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 include_directories(${BOTAN_DIR})
-include_directories(${OPENSSL_DIR})
 include_directories(${OPENSSL_DIR}/include)
 if(${ARCH} STREQUAL "x86_64")
-  set(OPENSSL_MODULES "net/openssl/init.cpp" "net/openssl/client.cpp" "net/https/openssl_server.cpp"
-                      "net/http/client.cpp")
+  set(OPENSSL_MODULES "net/openssl/init.cpp" "net/openssl/client.cpp"
+                      "net/openssl/server.cpp"
+                      "net/https/openssl_server.cpp" "net/http/client.cpp")
   set(OPENSSL_LIBS    openssl_ssl openssl_crypto)
 endif()
 set(BOTAN_MODULES "net/https/botan_server.cpp")
 
 set(OS_OBJECTS
   kernel/multiboot.cpp
-  kernel/syscalls.cpp kernel/os.cpp kernel/cpuid.cpp
+  kernel/syscalls.cpp kernel/os.cpp kernel/cpuid.cpp kernel/block.cpp
   kernel/events.cpp kernel/memmap.cpp kernel/pci_manager.cpp
   kernel/heap.cpp kernel/service_stub.cpp kernel/elf.cpp
   kernel/vga.cpp kernel/context.cpp kernel/context_asm.asm
@@ -46,10 +45,12 @@ set(OS_OBJECTS
   net/ethernet/ethernet.cpp net/ethernet/ethernet_8021q.cpp
   net/checksum.cpp net/ip4/arp.cpp net/ip4/ip4.cpp net/ip4/reassembly.cpp
   net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
-  net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp net/tcp/read_buffer.cpp
+  net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp
+  net/tcp/read_buffer.cpp net/tcp/read_request.cpp net/tcp/stream.cpp
   net/ip4/icmp4.cpp net/ip4/udp.cpp net/ip4/udp_socket.cpp
+  net/ip6/ip6.cpp net/ip6/icmp6.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
-  net/buffer_store.cpp net/inet4.cpp
+  net/buffer_store.cpp net/inet.cpp
   net/super_stack.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
@@ -60,12 +61,10 @@ set(OS_OBJECTS
   net/nat/nat.cpp net/nat/napt.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
-  posix/fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unistd.cpp posix/fcntl.cpp posix/syslog.cpp
-  posix/sys/socket.cpp posix/sys/select.cpp posix/sys/utsname.cpp posix/sys/mman.cpp posix/arpa/inet.cpp
-  posix/ucontext.cpp posix/ucontext_asm.asm posix/file_fd.cpp posix/dlfcn.cpp posix/memalign.cpp
-  posix/sys/stat.cpp posix/sys/ioctl.cpp posix/ftw.cpp posix/utime.cpp posix/math.cpp
-  posix/pwd.cpp posix/pthread.cpp posix/poll.cpp
-  posix/signal.cpp posix/stdio.cpp posix/dirent.cpp posix/termios.cpp)
+  # POSIX
+  posix/fd.cpp posix/file_fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unix_fd.cpp
+
+)
 
 add_library(os STATIC ${OS_OBJECTS})
 add_dependencies(os PrecompiledLibraries botan ${OPENSSL_LIBS})
@@ -82,6 +81,9 @@ add_subdirectory(platform/x86_solo5)
 endif(WITH_SOLO5)
 add_subdirectory(drivers)
 add_subdirectory(plugins)
+
+# Add musl
+add_subdirectory(musl)
 
 #
 # Installation

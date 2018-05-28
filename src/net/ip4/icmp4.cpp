@@ -17,6 +17,7 @@
 
 // #define DEBUG
 #include <net/ip4/icmp4.hpp>
+#include <net/inet>
 
 namespace net {
 
@@ -176,7 +177,7 @@ namespace net {
   }
 
   void ICMPv4::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
-    inet_.resolve(hostname, Inet<IP4>::resolve_func<IP4>::make_packed([this, callback, sec_wait] (IP4::addr a, Error err) {
+    inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (IP4::addr a, Error err) {
       if (!err and a != IP4::ADDR_ANY)
         ping(a, callback, sec_wait);
     }));
@@ -255,7 +256,8 @@ namespace net {
     icmp4::Packet res(inet_.ip_packet_factory());
 
     // drop if the packet is too small
-    if (res.ip().capacity() < res.ip().ip_header_length() + res.header_size() + req.payload().size())
+    if (res.ip().capacity() < res.ip().ip_header_length()
+     + (int) res.header_size() + req.payload().size())
     {
       printf("WARNING: Network MTU too small for ICMP response, dropping\n");
       return;

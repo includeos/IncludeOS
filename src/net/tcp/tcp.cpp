@@ -20,9 +20,10 @@
 #define DEBUG2
 
 #include <net/tcp/tcp.hpp>
+#include <net/inet>
 #include <net/inet_common.hpp> // checksum
 #include <statman>
-#include <os> // nanos_since_boot (get_ts_value)
+#include <rtc> // nanos_now (get_ts_value)
 
 using namespace std;
 using namespace net;
@@ -38,6 +39,7 @@ TCP::TCP(IPStack& inet, bool smp_enable) :
   win_size_{default_ws_window_size},    // 8096*1024
   wscale_{default_window_scaling},      // 5
   timestamps_{default_timestamps},      // true
+  sack_{default_sack},                  // true
   dack_timeout_{default_dack_timeout},  // 40ms
   max_syn_backlog_{default_max_syn_backlog} // 64
 {
@@ -365,7 +367,7 @@ seq_t TCP::generate_iss() {
 
 uint32_t TCP::get_ts_value() const
 {
-  return ((OS::nanos_since_boot() / 1000000000ull) & 0xffffffff);
+  return ((RTC::nanos_now() / 1000000000ull) & 0xffffffff);
 }
 
 void TCP::drop(const tcp::Packet&) {
@@ -493,3 +495,15 @@ void TCP::queue_offer(Connection& conn)
     }
   }
 }
+
+tcp::Address TCP::address() const noexcept
+{ return inet_.ip_addr(); }
+
+IP4& TCP::network() const
+{ return inet_.ip_obj(); }
+
+bool TCP::is_valid_source(const tcp::Address addr) const noexcept
+{ return addr == 0 or inet_.is_valid_source(addr); }
+
+void TCP::kick()
+{ process_writeq(inet_.transmit_queue_available()); }

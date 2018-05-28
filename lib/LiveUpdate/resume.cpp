@@ -29,9 +29,6 @@
 //#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
 #define LPRINT(x, ...) /** x **/
 
-// heap area
-extern char* heap_end;
-
 namespace liu
 {
 static bool resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
@@ -59,10 +56,10 @@ bool LiveUpdate::resume(std::string key, resume_func func)
 {
   void* location = OS::liveupdate_storage_area();
   /// memory sanity check
-  if (heap_end >= (char*) location) {
+  if (OS::heap_end() >= (uintptr_t) location) {
     fprintf(stderr,
         "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
-		     (long int) (heap_end - (char*) location));
+		     (long int) (OS::heap_end() - (uintptr_t) location));
     throw std::runtime_error("LiveUpdate storage area inside heap");
   }
   return resume_helper(location, std::move(key), func);
@@ -142,10 +139,6 @@ buffer_t  Restore::as_buffer() const
       return buffer;
   }
   throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
-}
-Restore::Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
-{
-  return deserialize_connection(ent->vla, tcp);
 }
 
 int16_t     Restore::get_type() const noexcept

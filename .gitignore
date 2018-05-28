@@ -17,6 +17,7 @@
 *.img
 *.img.*
 *.gz
+*.tar
 .DS_Store
 nbproject
 dummy.disk
@@ -35,3 +36,12 @@ test/**/*.log
 CMakeFiles*
 CMakeCache*
 cmake_install.cmake
+
+# Name of installation folder
+IncludeOS_install
+
+# Vim
+*.swp
+
+#CLion
+.idea/

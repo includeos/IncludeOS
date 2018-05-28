@@ -22,8 +22,8 @@
 #include "transport.hpp"
 #include "config.hpp"
 
-#include <net/inet4>
-#include <net/http/basic_client.hpp>
+#include <net/inet>
+#include <net/http/client.hpp>
 #include <net/ws/websocket.hpp>
 #include <liveupdate.hpp>
 #include <util/timer.hpp>
@@ -39,7 +39,7 @@ public:
 
   WS_uplink(Config config);
 
-  void start(net::Inet<net::IP4>&);
+  void start(net::Inet&);
 
   void auth();
 
@@ -69,7 +69,7 @@ public:
 private:
   Config config_;
 
-  net::Inet<net::IP4>&          inet_;
+  net::Inet&                   inet_;
   std::unique_ptr<http::Basic_client> client_;
   net::WebSocket_ptr            ws_;
   std::string                   id_;

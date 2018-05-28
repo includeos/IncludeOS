@@ -142,7 +142,7 @@ namespace hw
     const size_t vector_cnt = (func & MSIX_TBL_SIZE) + 1;
 
     if (vector_cnt > 2048) {
-      printf("table addr: %p  pba addr: %p  vectors: %lu\n",
+      printf("table addr: %p  pba addr: %p  vectors: %zu\n",
               (void*) table_addr, (void*) pba_addr, vectors());
       printf("Unreasonably many MSI-X vectors!");
       return;

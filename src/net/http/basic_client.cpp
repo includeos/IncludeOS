@@ -77,7 +77,7 @@ namespace http {
     Expects(cb != nullptr);
 
     // find out if this is a secured request or not
-    const bool secure = (url.scheme() == "https");
+    const bool secure = url.scheme_is_secure();
     validate_secure(secure);
 
     using namespace std;
@@ -158,7 +158,7 @@ namespace http {
                        Options options)
   {
     // find out if this is a secured request or not
-    const bool secure = (url.scheme() == "https");
+    const bool secure = url.scheme_is_secure();
     validate_secure(secure);
 
     using namespace std;
@@ -290,7 +290,7 @@ namespace http {
 
     // no non-occupied connections, emplace a new one
     cset.push_back(std::make_unique<Client_connection>(
-      *this, std::make_unique<net::tcp::Connection::Stream>(tcp_.connect(host)))
+      *this, std::make_unique<net::tcp::Stream>(tcp_.connect(host)))
     );
     return *cset.back();
   }

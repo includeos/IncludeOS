@@ -41,8 +41,6 @@
 using namespace util;
 
 extern "C" void* get_cpu_esp();
-extern uintptr_t heap_begin;
-extern uintptr_t heap_end;
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t _ELF_START_;
@@ -57,8 +55,7 @@ bool  OS::m_is_live_updated     = false;
 bool  OS::m_block_drivers_ready = false;
 KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
-uintptr_t OS::memory_end_ = 0;
-uintptr_t OS::heap_max_ = (uintptr_t) -1;
+
 OS::Panic_action OS::panic_action_ = OS::Panic_action::PANIC_ACTION;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
@@ -87,6 +84,19 @@ void* OS::liveupdate_storage_area() noexcept
 const char* OS::cmdline = nullptr;
 const char* OS::cmdline_args() noexcept {
   return cmdline;
+}
+
+typedef void (*ctor_t) ();
+extern ctor_t __service_ctors_start;
+extern ctor_t __service_ctors_end;
+extern ctor_t __plugin_ctors_start;
+extern ctor_t __plugin_ctors_end;
+
+int __run_ctors(ctor_t* begin, ctor_t* end)
+{
+  int i = 0;
+	for (; begin < end; begin++, i++) (*begin)();
+  return i;
 }
 
 void OS::register_plugin(Plugin delg, const char* name){
@@ -121,21 +131,32 @@ void OS::post_start()
 
   MYINFO("Initializing RNG");
   PROFILE("RNG init");
-  RNG::init();
+  RNG::get().init();
 
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
   // Custom initialization functions
   MYINFO("Initializing plugins");
-  // the boot sequence is over when we get to plugins/Service::start
-  OS::boot_sequence_passed_ = true;
 
+  // Run plugin constructors
+  __run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
+
+
+  // Run plugins
   PROFILE("Plugins init");
   for (auto plugin : plugins) {
     INFO2("* Initializing %s", plugin.name);
     plugin.func();
   }
+
+  MYINFO("Running service constructors");
+  FILLINE('-');
+  // the boot sequence is over when we get to plugins/Service::start
+  OS::boot_sequence_passed_ = true;
+
+    // Run service constructors
+  __run_ctors(&__service_ctors_start, &__service_ctors_end);
 
   PROFILE("Service::start");
   // begin service start
@@ -157,8 +178,16 @@ __attribute__((weak))
 bool os_enable_boot_logging = false;
 __attribute__((weak))
 bool os_default_stdout = false;
+extern bool __libc_initialized;
+
 void OS::print(const char* str, const size_t len)
 {
+
+  if (UNLIKELY(! __libc_initialized)) {
+    OS::default_stdout(str, len);
+    return;
+  }
+
   for (auto& callback : os_print_handlers) {
     if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
       callback(str, len);

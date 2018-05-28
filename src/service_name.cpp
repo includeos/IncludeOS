@@ -17,5 +17,13 @@
 
 #include <service>
 
+extern "C" __attribute__((noreturn))
+void panic(const char* reason);
+
+extern "C" __attribute__((noreturn))
+void abort(){
+  panic("Abort called");
+}
+
 const char* service_name__ = SERVICE_NAME;
 const char* service_binary_name__ = SERVICE;

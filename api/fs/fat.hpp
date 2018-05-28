@@ -70,6 +70,9 @@ namespace fs
         }
       return "Invalid fat type";
     }
+
+    uint64_t block_size() const noexcept override
+    { return device.block_size(); }
     /// ----------------------------------------------------- ///
 
     // constructor

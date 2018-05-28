@@ -96,7 +96,7 @@ using namespace std;
 bool Connection::State::check_seq(Connection& tcp, const Packet& in)
 {
   auto& tcb = tcp.tcb();
-
+  uint32_t packet_end = static_cast<uint32_t>(in.seq() + in.tcp_data_length()-1);
   // RFC 7323
   Option::opt_ts* ts = nullptr;
   static constexpr uint8_t HEADER_WITH_TS{sizeof(Header) + 12};
@@ -118,24 +118,25 @@ bool Connection::State::check_seq(Connection& tcp, const Packet& in)
   }
 
   debug2("<Connection::State::check_seq> TCB: %s \n",tcb.to_string().c_str());
-  // #1
+  // #1 - The packet we expect
   if( in.seq() == tcb.RCV.NXT ) {
     goto acceptable;
   }
-  /// TODO: FIXME: reordering issues solved by this
-  else goto unacceptable;
+  /// if SACK isn't permitted there is no point handling out-of-order packets
+  else if(not tcp.sack_perm)
+    goto unacceptable;
 
-  // #2
+  // #2 - Packet is ahead of what we expect to receive, but inside our window
   if( tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND ) {
     goto acceptable;
   }
-  // #3 (INVALID)
-  else if( in.seq() + in.tcp_data_length()-1 > tcb.RCV.NXT+tcb.RCV.WND ) {
+  // #3 (INVALID) - Packet is outside the right edge of the recv window
+  else if( packet_end > tcb.RCV.NXT+tcb.RCV.WND ) {
     goto unacceptable;
   }
-  // #4
-  else if( (tcb.RCV.NXT <= in.seq() and in.seq() < tcb.RCV.NXT + tcb.RCV.WND)
-           or ( tcb.RCV.NXT <= in.seq()+in.tcp_data_length()-1 and in.seq()+in.tcp_data_length()-1 < tcb.RCV.NXT+tcb.RCV.WND ) ) {
+  // #4 - Packet with payload is what we expect or bigger, but inside our window
+  else if( tcb.RCV.NXT <= packet_end
+      and packet_end < tcb.RCV.NXT+tcb.RCV.WND ) {
     goto acceptable;
   }
   /*
@@ -305,106 +306,6 @@ bool Connection::State::check_ack(Connection& tcp, const Packet& in) {
 
 /////////////////////////////////////////////////////////////////////
 /*
-  7. Process the segment text
-
-  If a packet has data, process the data.
-
-  [RFC 793] Page 74:
-
-  Once in the ESTABLISHED state, it is possible to deliver segment
-  text to user RECEIVE buffers.  Text from segments can be moved
-  into buffers until either the buffer is full or the segment is
-  empty.  If the segment empties and carries an PUSH flag, then
-  the user is informed, when the buffer is returned, that a PUSH
-  has been received.
-
-  When the TCP takes responsibility for delivering the data to the
-  user it must also acknowledge the receipt of the data.
-
-  Once the TCP takes responsibility for the data it advances
-  RCV.NXT over the data accepted, and adjusts RCV.WND as
-  apporopriate to the current buffer availability.  The total of
-  RCV.NXT and RCV.WND should not be reduced.
-
-  Please note the window management suggestions in section 3.7.
-
-  Send an acknowledgment of the form:
-
-  <SEQ=SND.NXT><ACK=RCV.NXT><CTL=ACK>
-
-  This acknowledgment should be piggybacked on a segment being
-  transmitted if possible without incurring undue delay.
-*/
-/////////////////////////////////////////////////////////////////////
-
-void Connection::State::process_segment(Connection& tcp, Packet& in) {
-  assert(in.has_tcp_data());
-
-  auto& tcb = tcp.tcb();
-  auto length = in.tcp_data_length();
-  // Receive could result in a user callback. This is used to avoid sending empty ACK reply.
-  debug("<Connection::State::process_segment> Received packet with DATA-LENGTH: %i. Add to receive buffer. \n", length);
-  tcb.RCV.NXT += length;
-  const auto snd_nxt = tcb.SND.NXT;
-  if(tcp.read_request and tcp.read_request->buffer.capacity()) {
-    auto received = tcp.receive(in.seq(), in.tcp_data(), in.tcp_data_length(), in.isset(PSH));
-    Ensures(received == length);
-  }
-
-  // [RFC 5681]
-  //tcb.SND.cwnd += std::min(length, tcp.SMSS());
-  debug2("<Connection::State::process_segment> Advanced RCV.NXT: %u. SND.NXT = %u \n", tcb.RCV.NXT, snd_nxt);
-
-  // user callback didnt result in transmitting an ACK
-  if (tcb.SND.NXT == snd_nxt)
-  {
-    // ACK by trying to send more
-    if (tcp.can_send())
-    {
-      tcp.writeq_push();
-      // nothing got sent
-      if (tcb.SND.NXT == snd_nxt)
-      {
-        tcp.send_ack();
-      }
-      // something got sent
-      else
-      {
-        tcp.dack_ = 0;
-      }
-    }
-    // else regular ACK
-    else
-    {
-      if (tcp.use_dack() and tcp.dack_ == 0)
-      {
-        tcp.start_dack();
-        //tcp.dack_ = 1;
-      }
-      else
-      {
-        tcp.stop_dack();
-        tcp.send_ack();
-      }
-    }
-  }
-  /*
-    WARNING/NOTE:
-    Not sure how "dangerous" the following is, and how big of a bottleneck it is.
-    Maybe has to be implemented with timers or something.
-  */
-
-  /*
-    Once the TCP takes responsibility for the data it advances
-    RCV.NXT over the data accepted, and adjusts RCV.WND as
-    apporopriate to the current buffer availability.  The total of
-    RCV.NXT and RCV.WND should not be reduced.
-  */
-}
-/////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////
-/*
   8. Process FIN
 
   Process a packet with FIN, by signal disconnect, reply with ACK etc.
@@ -429,7 +330,7 @@ void Connection::State::process_fin(Connection& tcp, const Packet& in) {
   //tcb.RCV.NXT += fin;
   const auto snd_nxt = tcb.SND.NXT;
   // empty the read buffer
-  if(tcp.read_request and tcp.read_request->buffer.buffer())
+  if(tcp.read_request and tcp.read_request->size())
     tcp.receive_disconnect();
   // signal disconnect to the user
   tcp.signal_disconnect(Disconnect::CLOSING);
@@ -539,6 +440,11 @@ void Connection::Closed::open(Connection& tcp, bool active) {
       if(tcp.uses_timestamps())
       {
         tcp.add_option(Option::TS, *packet);
+      }
+
+      if(tcp.uses_SACK())
+      {
+        tcp.add_option(Option::SACK_PERM, *packet);
       }
 
       tcb.SND.UNA = tcb.ISS;
@@ -828,6 +734,12 @@ State::Result Connection::Listen::handle(Connection& tcp, Packet_ptr in) {
       packet->set_win(std::min((uint32_t)default_window_size, tcb.RCV.WND));
     }
 
+    // SACK permitted
+    if(tcp.sack_perm == true)
+    {
+      tcp.add_option(Option::SACK_PERM, *packet);
+    }
+
     tcp.transmit(std::move(packet));
     tcp.set_state(SynReceived::instance());
 
@@ -955,7 +867,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
       // 7. process segment text
       if(UNLIKELY(in->has_tcp_data()))
       {
-        process_segment(tcp, *in);
+        tcp.recv_data(*in);
       }
 
       // 8. check FIN bit
@@ -974,7 +886,7 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_ptr in) {
       tcp.transmit(std::move(packet));
       tcp.set_state(Connection::SynReceived::instance());
       if(in->has_tcp_data()) {
-        process_segment(tcp, *in);
+        tcp.recv_data(*in);
       }
       return OK;
       /*
@@ -1052,7 +964,7 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_ptr in) {
 
       // 7. proccess the segment text
       if(UNLIKELY(in->has_tcp_data())) {
-        process_segment(tcp, *in);
+        tcp.recv_data(*in);
       }
     }
     /*
@@ -1109,7 +1021,7 @@ State::Result Connection::Established::handle(Connection& tcp, Packet_ptr in) {
 
   // 7. proccess the segment text
   if(in->has_tcp_data()) {
-    process_segment(tcp, *in);
+    tcp.recv_data(*in);
   }
 
   // 8. check FIN bit
@@ -1159,7 +1071,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_ptr in) {
 
   // 7. proccess the segment text
   if(in->has_tcp_data()) {
-    process_segment(tcp, *in);
+    tcp.recv_data(*in);
   }
 
   // 8. check FIN
@@ -1210,7 +1122,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_ptr in) {
 
   // 7. proccess the segment text
   if(in->has_tcp_data()) {
-    process_segment(tcp, *in);
+    tcp.recv_data(*in);
   }
 
   // 8. check FIN

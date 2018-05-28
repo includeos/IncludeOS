@@ -13,13 +13,9 @@ class myexcept : public std::exception {
   }
 };
 
-void func3(){
+__attribute__((constructor))
+static void func3(){
   INFO("Plugin 3","initialization function 3");
   my_plugin_functions++;
   f3_data = 0xf3;
-}
-
-__attribute__((constructor))
-void autoregister3(){
-    OS::register_plugin(func3, "Plugin 3");
 }

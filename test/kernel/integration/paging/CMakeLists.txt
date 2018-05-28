@@ -21,7 +21,7 @@ set(DRIVERS
   boot_logger
   )
 
-set(PLUGINS )
+set(PLUGINS vfs)
 
 # STATIC LIBRARIES:
 set(LIBRARIES

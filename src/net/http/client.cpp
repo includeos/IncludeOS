@@ -38,7 +38,7 @@ namespace http {
         return *conn;
     }
 
-    auto tcp_stream = std::make_unique<net::tcp::Connection::Stream>(tcp_.connect(host));
+    auto tcp_stream = std::make_unique<net::tcp::Stream>(tcp_.connect(host));
     auto tls_stream = std::make_unique<openssl::TLS_stream>(ssl_context, std::move(tcp_stream), true);
 
     cset.push_back(std::make_unique<Client_connection>(*this, std::move(tls_stream)));

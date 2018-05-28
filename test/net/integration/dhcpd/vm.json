@@ -4,5 +4,6 @@
           {"device" : "virtio", "mac" : "c0:01:0a:00:00:2f"},
           {"device" : "virtio", "mac" : "c0:01:0a:00:00:20"},
           {"device" : "virtio", "mac" : "c0:01:0a:00:00:23"}],
-  "mem" : 128
+  "mem" : 128,
+  "time_sensitive" : "True"
 }

@@ -17,7 +17,7 @@
 
 #include <service>
 #include <cstdio>
-#include <net/inet4>
+#include <net/inet>
 
 #include <kernel/pci_manager.hpp>
 #include <hw/pci_device.hpp>

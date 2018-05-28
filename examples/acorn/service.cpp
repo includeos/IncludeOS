@@ -34,9 +34,9 @@ static std::unique_ptr<Logger> logger_;
 static fs::Disk_ptr disk;
 
 #include <isotime>
-#include <net/inet4>
+#include <net/inet>
 
-static void start_acorn(net::Inet<net::IP4>& inet)
+static void start_acorn(net::Inet& inet)
 {
   /** SETUP LOGGER */
   const int LOGBUFFER_LEN = 1024*16;
@@ -164,7 +164,7 @@ static void start_acorn(net::Inet<net::IP4>& inet)
 
 void Service::start()
 {
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
   if (not inet.is_configured())
   {
     inet.on_config(start_acorn);

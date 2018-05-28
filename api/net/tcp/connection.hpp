@@ -25,11 +25,11 @@
 #include "rttm.hpp"
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
+#include "sack.hpp"
 
 #include <net/socket.hpp>
 #include <delegate>
 #include <util/timer.hpp>
-#include <net/stream.hpp>
 
 namespace net {
   // Forward declaration of the TCP object
@@ -57,8 +57,6 @@ public:
   struct Disconnect;
   /** Reason for packet being dropped */
   enum class Drop_reason;
-  /** A Connection stream */
-  class Stream;
 
   using Byte = uint8_t;
 
@@ -210,179 +208,6 @@ public:
   inline void abort();
 
   /**
-   * @brief      Exposes a TCP Connection as a Stream with only the most necessary features.
-   *             May be overrided by extensions like TLS etc for additional functionality.
-   */
-  class Stream : public net::Stream {
-  public:
-    /**
-     * @brief      Construct a Stream for a Connection ptr
-     *
-     * @param[in]  conn  The connection
-     */
-    Stream(Connection_ptr conn)
-      : tcp{std::move(conn)}
-    {
-      // stream for a nullptr makes no sense
-      Expects(tcp != nullptr);
-    }
-
-    /**
-     * @brief      Event when the stream is connected/established/ready to use.
-     *
-     * @param[in]  cb    The connect callback
-     */
-    virtual void on_connect(ConnectCallback cb) override
-    {
-      tcp->on_connect(Connection::ConnectCallback::make_packed(
-          [this, cb] (Connection_ptr conn)
-          { if(conn) cb(*this); }));
-    }
-
-    /**
-     * @brief      Event when data is received.
-     *
-     * @param[in]  n     The size of the receive buffer
-     * @param[in]  cb    The read callback
-     */
-    virtual void on_read(size_t n, ReadCallback cb) override
-    { tcp->on_read(n, cb); }
-
-    /**
-     * @brief      Event for when the Stream is being closed.
-     *
-     * @param[in]  cb    The close callback
-     */
-    virtual void on_close(CloseCallback cb) override
-    { tcp->on_close(cb); }
-
-    /**
-     * @brief      Event for when data has been written.
-     *
-     * @param[in]  cb    The write callback
-     */
-    virtual void on_write(WriteCallback cb) override
-    { tcp->on_write(cb); }
-
-    /**
-     * @brief      Async write of a data with a length.
-     *
-     * @param[in]  buf   data
-     * @param[in]  n     length
-     */
-    virtual void write(const void* buf, size_t n) override
-    { tcp->write(buf, n); }
-
-    /**
-     * @brief      Async write of a shared buffer with a length.
-     *
-     * @param[in]  buffer  shared buffer
-     * @param[in]  n       length
-     */
-    virtual void write(buffer_t buffer) override
-    { tcp->write(buffer); }
-
-    /**
-     * @brief      Async write of a string.
-     *             Calls write(const void* buf, size_t n)
-     *
-     * @param[in]  str   The string
-     */
-    virtual void write(const std::string& str) override
-    { write(str.data(), str.size()); }
-
-    /**
-     * @brief      Closes the stream.
-     */
-    virtual void close() override
-    { tcp->close(); }
-
-    /**
-     * @brief      Aborts (terminates) the stream.
-     */
-    virtual void abort() override
-    { tcp->abort(); }
-
-    /**
-     * @brief      Resets all callbacks.
-     */
-    virtual void reset_callbacks() override
-    { tcp->reset_callbacks(); }
-
-    /**
-     * @brief      Returns the streams local socket.
-     *
-     * @return     A TCP Socket
-     */
-    Socket local() const override
-    { return tcp->local(); }
-
-    /**
-     * @brief      Returns the streams remote socket.
-     *
-     * @return     A TCP Socket
-     */
-    Socket remote() const override
-    { return tcp->remote(); }
-
-    /**
-     * @brief      Returns a string representation of the stream.
-     *
-     * @return     String representation of the stream.
-     */
-    virtual std::string to_string() const override
-    { return tcp->to_string(); }
-
-    /**
-     * @brief      Determines if connected (established).
-     *
-     * @return     True if connected, False otherwise.
-     */
-    virtual bool is_connected() const noexcept override
-    { return tcp->is_connected(); }
-
-    /**
-     * @brief      Determines if writable. (write is allowed)
-     *
-     * @return     True if writable, False otherwise.
-     */
-    virtual bool is_writable() const noexcept override
-    { return tcp->is_writable(); }
-
-    /**
-     * @brief      Determines if readable. (data can be received)
-     *
-     * @return     True if readable, False otherwise.
-     */
-    virtual bool is_readable() const noexcept override
-    { return tcp->is_readable(); }
-
-    /**
-     * @brief      Determines if closing.
-     *
-     * @return     True if closing, False otherwise.
-     */
-    virtual bool is_closing() const noexcept override
-    { return tcp->is_closing(); }
-
-    /**
-     * @brief      Determines if closed.
-     *
-     * @return     True if closed, False otherwise.
-     */
-    virtual bool is_closed() const noexcept override
-    { return tcp->is_closed(); };
-
-    int get_cpuid() const noexcept override;
-
-    virtual ~Stream() {}
-
-  protected:
-    Connection_ptr tcp;
-
-  }; // < class Connection::Stream
-
-  /**
    * @brief      Reason for disconnect event.
    */
   struct Disconnect {
@@ -461,7 +286,7 @@ public:
    * @return bytes not yet read
    */
   size_t readq_size() const
-  { return (read_request) ? read_request->buffer.size() : 0; }
+  { return (read_request) ? read_request->size() : 0; }
 
   /**
    * @brief Total number of bytes in send queue
@@ -607,6 +432,9 @@ public:
   Socket remote() const noexcept
   { return remote_; }
 
+  auto bytes_sacked() const noexcept
+  { return bytes_sacked_; }
+
 
   /**
    * @brief      Interface for one of the many states a Connection can have.
@@ -662,8 +490,6 @@ public:
     virtual void unallowed_syn_reset_connection(Connection&, const Packet&);
 
     virtual bool check_ack(Connection&, const Packet&);
-
-    virtual void process_segment(Connection&, Packet&);
 
     virtual void process_fin(Connection&, const Packet&);
 
@@ -808,7 +634,7 @@ private:
   TCB cb;
 
   /** The given read request */
-  std::unique_ptr<ReadRequest> read_request;
+  std::unique_ptr<Read_request> read_request;
 
   /** Queue for write requests to process */
   Write_queue writeq;
@@ -829,6 +655,8 @@ private:
   /** Time Wait / DACK timeout timer */
   Timer timewait_dack_timer;
 
+  bool close_signaled_ = false;
+
   /** Number of retransmission attempts on the packet first in RT-queue */
   int8_t rtx_attempt_ = 0;
 
@@ -837,6 +665,12 @@ private:
 
   /** State if connection is in TCP write queue or not. */
   bool queued_;
+
+  using Sack_list = sack::List<sack::Fixed_list<default_sack_entries>>;
+  std::unique_ptr<Sack_list> sack_list;
+  /** If SACK is permitted (option has been seen from peer) */
+  bool sack_perm = false;
+  size_t bytes_sacked_ = 0;
 
   /** Congestion control */
   // is fast recovery state
@@ -871,6 +705,14 @@ private:
   //static constexpr int8_t LATE_SPUR_TO {1};
   //RTTM::seconds SRTT_prev{1.0f};
   //RTTM::seconds RTTVAR_prev{1.0f};
+
+  /**
+   * @brief      Set the Read_request
+   *
+   * @param[in]  recv_bufsz  The receive bufsz
+   * @param[in]  cb          The read callback
+   */
+  void _on_read(size_t recv_bufsz, ReadCallback cb);
 
   // Retrieve the associated shared_ptr for a connection, if it exists
   // Throws out_of_range if it doesn't
@@ -999,8 +841,8 @@ private:
   */
   uint32_t usable_window() const noexcept
   {
-    const auto x = (int64_t)send_window() - (int64_t)flight_size();
-    return (uint32_t) std::max((decltype(x)) 0, x);
+    const int64_t x = (int64_t)send_window() - (int64_t)flight_size();
+    return (uint32_t) std::max(static_cast<int64_t>(0), x);
   }
 
   uint32_t send_window() const noexcept
@@ -1013,6 +855,8 @@ private:
 
   bool uses_timestamps() const noexcept;
 
+  bool uses_SACK() const noexcept;
+
   /// --- INCOMING / TRANSMISSION --- ///
   /*
     Receive a TCP Packet.
@@ -1024,6 +868,22 @@ private:
     - TCB update, Congestion control handling, RTT calculation and RT handling.
   */
   bool handle_ack(const Packet&);
+
+  /**
+   * @brief      Receive data from an incoming packet containing data.
+   *
+   * @param[in]  in  TCP Packet containing payload
+   */
+  void recv_data(const Packet& in);
+
+  void recv_out_of_order(const Packet& in);
+
+  /**
+   * @brief      Acknowledge incoming data. This is done by:
+   *             - Trying to send data if possible (can send)
+   *             - If not, regular ACK (use DACK if enabled)
+   */
+  void ack_data();
 
   /**
    * @brief      Determines if the incoming segment is a legit window update.
@@ -1307,8 +1167,6 @@ private:
   Option::opt_ts* parse_ts_option(const Packet&) const;
 
 }; // < class Connection
-
-using Stream = Connection::Stream;
 
 } // < namespace tcp
 } // < namespace net

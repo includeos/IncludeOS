@@ -19,7 +19,7 @@
 #include <sstream>
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 #include <timers>
 #include <net/http/request.hpp>
 #include <net/http/response.hpp>
@@ -83,7 +83,7 @@ void Service::start()
 {
   // Get the first IP stack
   // It should have configuration from config.json
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
 
   // Print some useful netstats every 30 secs
   Timers::periodic(5s, 30s,

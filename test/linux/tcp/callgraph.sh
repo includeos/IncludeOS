@@ -2,7 +2,7 @@
 
 
 echo -e "\n>>> Installing dependencies"
-pip install gprof2dot
+pip -q install gprof2dot
 sudo apt install gprof graphviz
 
 echo -e "\n>>> Running tcp test service with profiling"

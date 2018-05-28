@@ -84,13 +84,15 @@ namespace net {
    * http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
    */
   enum class Protocol : uint8_t {
-    HOPOPT  =  0,
-    ICMPv4  =  1,
-    IPv4    =  4,  // IPv4 encapsulation
-    TCP     =  6,
-    UDP     = 17,
-    IPv6    = 41,  // IPv6 encapsulation
-    ICMPv6  = 58
+    HOPOPT     =  0,
+    ICMPv4     =  1,
+    IPv4       =  4,  // IPv4 encapsulation
+    TCP        =  6,
+    UDP        = 17,
+    IPv6       = 41,  // IPv6 encapsulation
+    ICMPv6     = 58,
+    IPv6_NONXT = 59,
+    OPTSV6     = 60
   };
 
   /**

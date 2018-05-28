@@ -16,14 +16,14 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <include/fd.hpp>
-#include <include/fd_map.hpp>
+#include <posix/fd.hpp>
+#include <posix/fd_map.hpp>
 
 class Test_fd : public FD {
 public:
   Test_fd(const int id) : FD(id) {};
 
-  int read(void*, size_t) override
+  ssize_t read(void*, size_t) override
   { return 1; }
 
   int close() override
@@ -57,15 +57,15 @@ CASE("Adding a implemented FD descriptor in FD_map")
 
   // Get works
   const FD_map::id_t id = test.get_id();
-  auto& get = FD_map::_get(id);
-  EXPECT(get == test);
+  auto* get = FD_map::_get(id);
+  EXPECT(get != nullptr);
+  EXPECT(*get == test);
 
   // Close works
-  FD_map::_close(id);
+  FD_map::close(id);
 
-  // Throws when not found works
-  EXPECT_THROWS_AS(FD_map::_get(id), FD_not_found);
+  EXPECT(FD_map::_get(id) == nullptr);
 
-  const int bet = 322; // this is a throw
-  EXPECT_THROWS_AS(FD_map::_get(bet), FD_not_found);
+  const int bet = 322; // this used to be a throw
+  EXPECT(FD_map::_get(bet) == nullptr);
 }

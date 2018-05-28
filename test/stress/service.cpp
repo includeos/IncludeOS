@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 #include <net/dhcp/dh4client.hpp>
 #include <math.h> // rand()
 #include <sstream>
@@ -69,14 +69,65 @@ const std::string NOT_FOUND = "HTTP/1.1 404 Not Found \n Connection: close\n\n";
 uint64_t TCP_BYTES_RECV = 0;
 uint64_t TCP_BYTES_SENT = 0;
 
+void print_memuse(uintptr_t u) {
+  auto end = OS::heap_end();
+  printf("Current memory usage: %s (%zi b) heap_end: 0x%zx lstack chunks: (%s)\n",
+         util::Byte_r(u).to_string().c_str(), u, end, util::Byte_r(end).to_string().c_str());
+}
+
 void Service::start(const std::string&)
 {
+  using namespace util::literals;
+  // Allocation / free spam to warm up
+  auto initial_memuse =  OS::heap_usage();
+  print_memuse(initial_memuse);
+
+  std::array<volatile void*, 10> allocs {};
+  auto chunksize = 1024 * 1024 * 5;
+  printf("Exercising heap: incrementally allocating %zi x %i bytes \n",
+         allocs.size(), chunksize);
+
+  for (auto& ptr : allocs) {
+    ptr = malloc(chunksize);
+    Expects(ptr != nullptr);
+    memset((void*)ptr, '!', chunksize);
+    for (char* c = (char*)ptr; c < (char*)ptr + chunksize; c++)
+      Expects(*c == '!');
+    printf("Allocated area: %p heap_end: %p\n", (void*)ptr, (void*)OS::heap_end());
+    auto memuse = OS::heap_usage();
+
+    print_memuse(memuse);
+    Expects(memuse > initial_memuse);
+  }
+
+  auto high_memuse = OS::heap_usage();
+  Expects(high_memuse >= (chunksize * allocs.size()) + initial_memuse);
+
+  auto prev_memuse = high_memuse;
+
+  printf("Deallocating \n");
+  for (auto& ptr : allocs) {
+    free((void*)ptr);
+    auto memuse = OS::heap_usage();
+    print_memuse(memuse);
+    Expects(memuse < high_memuse);
+    Expects(memuse < prev_memuse);
+    prev_memuse = memuse;
+  }
+
+  // Expect the heap to have shrunk. With musl and chunksize of 5Mib,
+  // the mallocs will have resulted in calls to mmap, and frees in calls to
+  // munmap, so we could expect to be back to exacty where we were, but
+  // we're adding some room (somewhat arbitrarily) for malloc to change and
+  // not necessarily give back all it allocated.
+  Expects(OS::heap_usage() <= initial_memuse + 1_MiB);
+  printf("Heap functioning as expected\n");
 
   // Timer spam
   for (int i = 0; i < 1000; i++)
     Timers::oneshot(std::chrono::microseconds(i + 200), [](auto){});
 
-  static auto& inet = net::Inet4::stack<0>();
+  static auto& inet = net::Inet::stack<0>();
 
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
@@ -182,7 +233,7 @@ void Service::start(const std::string&)
 
   printf("*** TEST SERVICE STARTED *** \n");
   auto memuse = OS::heap_usage();
-  printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
+  printf("Current memory usage: %zi b, (%f MB) \n", memuse, float(memuse)  / 1000000);
 
   /** These printouts are event-triggers for the vmrunner **/
   printf("Ready to start\n");

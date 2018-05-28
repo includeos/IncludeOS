@@ -17,7 +17,7 @@
 
 #include <service>
 #include <cstdio>
-#include <net/inet4>
+#include <net/inet>
 #include <mender/client.hpp>
 #include <memdisk>
 
@@ -44,7 +44,7 @@ void Service::start(const std::string&)
 // when generating private key (compute heavy)
 void Service::ready()
 {
-  auto& inet = net::Inet4::stack();
+  auto& inet = net::Inet::stack();
   inet.network_config(
     {  10,  0,  0, 42 },  // IP
     {  255,255,255, 0 },  // Netmask

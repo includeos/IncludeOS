@@ -25,9 +25,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <unistd.h>
-#include <util/elf.h>
-#include <unordered_map>
+#include <elf.h>
 #include "storage.hpp"
 #include <kernel/os.hpp>
 #include <kernel/memory.hpp>
@@ -50,9 +48,6 @@ extern "C" void* __os_store_soft_reset(const void*, size_t);
 // kernel area
 extern char _ELF_START_;
 extern char _end;
-// heap area
-extern char* heap_begin;
-extern char* heap_end;
 // turn this off to reduce liveupdate times at the cost of extra checks
 bool LIVEUPDATE_PERFORM_SANITY_CHECKS = true;
 
@@ -116,7 +111,7 @@ void LiveUpdate::exec(const buffer_t& blob)
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
     throw std::runtime_error("LiveUpdate storage area is inside kernel area");
   }
-  if (storage_area >= heap_begin && storage_area < heap_end) {
+  if (storage_area >= (char*) OS::heap_begin() && storage_area < (char*) OS::heap_end()) {
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }
   if (storage_area >= (char*) OS::heap_max()) {
@@ -332,14 +327,4 @@ void Storage::add_vector(uid id, const void* buf, size_t count, size_t esize)
 void Storage::add_string_vector(uid id, const std::vector<std::string>& vec)
 {
   hdr.add_string_vector(id, vec);
-}
-
-#include "serialize_tcp.hpp"
-void Storage::add_connection(uid id, Connection_ptr conn)
-{
-  hdr.add_struct(TYPE_TCP, id,
-  [&conn] (char* location) -> int {
-    // return size of all the serialized data
-    return conn->serialize_to(location);
-  });
 }

@@ -23,6 +23,7 @@
 #endif
 
 #include <net/ip4/ip4.hpp>
+#include <net/inet>
 #include <net/ip4/packet_ip4.hpp>
 #include <net/packet.hpp>
 #include <statman>
@@ -104,7 +105,7 @@ namespace net {
       or local_ip() == ADDR_ANY;
   }
 
-  void IP4::receive(Packet_ptr pckt, const bool link_bcast)
+  void IP4::receive(Packet_ptr pckt, const bool /*link_bcast*/)
   {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
@@ -435,6 +436,16 @@ namespace net {
         paths_.erase(it); // Optional, if keep the entry in the map: it->second.reset_pmtu();
       }
     }
+  }
+
+  uint16_t IP4::MDDS() const
+  { return stack_.MTU() - sizeof(ip4::Header); }
+
+  uint16_t IP4::default_PMTU() const noexcept
+  { return stack_.MTU(); }
+
+  const ip4::Addr IP4::local_ip() const {
+    return stack_.ip_addr();
   }
 
 } //< namespace net

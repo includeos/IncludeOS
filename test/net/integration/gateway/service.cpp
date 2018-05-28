@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet4>
+#include <net/inet>
 
 using namespace net;
 
@@ -29,13 +29,13 @@ void verify() {
 
 void Service::start()
 {
-  static auto& eth0 = Inet4::stack<0>();
+  static auto& eth0 = Inet::stack<0>();
 
-  static auto& eth1 = Inet4::stack<1>();
+  static auto& eth1 = Inet::stack<1>();
 
-  static auto& host1 = Inet4::stack<2>();
+  static auto& host1 = Inet::stack<2>();
 
-  static auto& host2 = Inet4::stack<3>();
+  static auto& host2 = Inet::stack<3>();
 
   INFO("Ping", "host1 => host2 (%s)", host2.ip_addr().to_string().c_str());
   host1.icmp().ping(host2.ip_addr(), [](auto reply) {
