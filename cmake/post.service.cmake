@@ -215,12 +215,8 @@ foreach(LIBR ${LIBRARIES})
       set(LIBR ${OS_LIB})
     endif()
   endif()
-  get_filename_component(LNAME ${LIBR} NAME_WE)
-  add_library(libr_${LNAME} STATIC IMPORTED)
-  set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libr_${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
-
-  list(APPEND LIBR_CMAKE_NAMES "libr_${LNAME}")
+  # add as whole archive to allow strong symbols
+  list(APPEND LIBR_CMAKE_NAMES "--whole-archive ${LIBR} --no-whole-archive")
 endforeach()
 
 
