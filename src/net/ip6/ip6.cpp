@@ -287,7 +287,6 @@ namespace net
     if (packet == nullptr) return;
 
     if (next_hop == IP6::ADDR_ANY) {
-
         // Create local and target subnets
         addr target = packet->ip_dst() & stack_.netmask6();
         addr local  = stack_.ip6_addr() & stack_.netmask6();

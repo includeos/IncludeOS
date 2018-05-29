@@ -64,8 +64,6 @@ namespace net
     res.set_type(ICMP_type::ND_NEIGHBOUR_ADV);
     res.set_code(0);
     res.ndp().set_neighbour_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
-    PRINT("NDP: Transmitting Neighbor adv to %s\n",
-          res.ip().ip_dst().str().c_str());
 
     // Insert target link address, ICMP6 option header and our mac address
     res.set_payload({req.ndp().neighbour_sol().get_target().data(), 16 });
@@ -75,8 +73,9 @@ namespace net
     // Add checksum
     res.set_checksum();
 
-    PRINT("NDP: Neighbor Adv Response size: %i payload size: %i, checksum: 0x%x\n",
-          res.ip().size(), res.payload().size(), res.compute_checksum());
+    PRINT("NDP: Neighbor Adv Response dst: %s size: %i payload size: %i,"
+        " checksum: 0x%x\n", res.ip().size(), res.payload().size(),
+        res.ip().ip_dst().str().c_str(), res.compute_checksum());
 
     auto dest = res.ip().ip_dst();
     transmit(res.release(), dest);
@@ -146,6 +145,7 @@ namespace net
             req.ip().ip_dst().get_part<uint8_t>(13),
             req.ip().ip_dst().get_part<uint8_t>(14),
             req.ip().ip_dst().get_part<uint8_t>(15));
+
     PRINT("NDP: Sending Neighbour solicit size: %i payload size: %i,"
         "checksum: 0x%x\n, source: %s, dest: %s, dest mac: %s\n",
         req.ip().size(), req.payload().size(), req.compute_checksum(),
@@ -243,7 +243,8 @@ namespace net
   {
   }
 
-  void Ndp::receive(icmp6::Packet& pckt) {
+  void Ndp::receive(icmp6::Packet& pckt)
+  {
     switch(pckt.type()) {
     case (ICMP_type::ND_ROUTER_SOL):
       PRINT("NDP: Router solictation message from %s\n", pckt.ip().ip_src().str().c_str());
@@ -331,7 +332,8 @@ namespace net
 
   }
 
-  void Ndp::await_resolution(Packet_ptr pckt, IP6::addr next_hop) {
+  void Ndp::await_resolution(Packet_ptr pckt, IP6::addr next_hop)
+  {
     auto queue =  waiting_packets_.find(next_hop);
     PRINT("<NDP await> Waiting for resolution of %s\n", next_hop.str().c_str());
     if (queue != waiting_packets_.end()) {

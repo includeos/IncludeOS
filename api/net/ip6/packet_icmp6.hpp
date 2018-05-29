@@ -36,17 +36,17 @@ namespace icmp6 {
 
   enum {
       ND_OPT_PREFIX_INFO_END = 0,
-      ND_OPT_SOURCE_LL_ADDR = 1,   /* RFC2461 */
-      ND_OPT_TARGET_LL_ADDR = 2,   /* RFC2461 */
-      ND_OPT_PREFIX_INFO = 3,      /* RFC2461 */
+      ND_OPT_SOURCE_LL_ADDR = 1, /* RFC2461 */
+      ND_OPT_TARGET_LL_ADDR = 2, /* RFC2461 */
+      ND_OPT_PREFIX_INFO = 3,    /* RFC2461 */
       ND_OPT_REDIRECT_HDR = 4,   /* RFC2461 */
-      ND_OPT_MTU = 5,         /* RFC2461 */
-      ND_OPT_NONCE = 14,              /* RFC7527 */
+      ND_OPT_MTU = 5,            /* RFC2461 */
+      ND_OPT_NONCE = 14,         /* RFC7527 */
       ND_OPT_ARRAY_MAX,
-      ND_OPT_ROUTE_INFO = 24,      /* RFC4191 */
-      ND_OPT_RDNSS = 25,      /* RFC5006 */
-      ND_OPT_DNSSL = 31,      /* RFC6106 */
-      ND_OPT_6CO = 34,      /* RFC6775 */
+      ND_OPT_ROUTE_INFO = 24,    /* RFC4191 */
+      ND_OPT_RDNSS = 25,         /* RFC5006 */
+      ND_OPT_DNSSL = 31,         /* RFC6106 */
+      ND_OPT_6CO = 34,           /* RFC6775 */
       ND_OPT_MAX
   };
 
@@ -66,11 +66,11 @@ namespace icmp6 {
 
             private:
             struct nd_options_header *header_;
-            std::array<struct nd_options_header*, ND_OPT_ARRAY_MAX> opt_array;
             struct nd_options_header *nd_opts_ri;
             struct nd_options_header *nd_opts_ri_end;
             struct nd_options_header *user_opts;
             struct nd_options_header *user_opts_end;
+            std::array<struct nd_options_header*, ND_OPT_ARRAY_MAX> opt_array;
 
             bool is_useropt(struct nd_options_header *opt)
             {
@@ -128,7 +128,7 @@ namespace icmp6 {
           uint8_t  options[0];
 
           uint16_t option_offset()
-          { return 16 * 2; }
+          { return IP6_ADDR_BYTES * 2; }
 
         } __attribute__((packed));
 
@@ -141,7 +141,7 @@ namespace icmp6 {
           { return target; }
 
           uint16_t option_offset()
-          { return 16; }
+          { return IP6_ADDR_BYTES; }
 
         } __attribute__((packed));
 
@@ -154,7 +154,7 @@ namespace icmp6 {
           { return target; }
 
           uint16_t option_offset()
-          { return 16; }
+          { return IP6_ADDR_BYTES; }
 
         } __attribute__((packed));
 
@@ -163,8 +163,7 @@ namespace icmp6 {
 
         public:
 
-        NdpPacket(Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {
-        }
+        NdpPacket(Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {}
 
         void parse(icmp6::Type type);
 
@@ -217,7 +216,7 @@ namespace icmp6 {
     };
 
     struct Header {
-      Type  type;
+      Type     type;
       uint8_t  code;
       uint16_t checksum;
       union {

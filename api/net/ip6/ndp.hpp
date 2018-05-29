@@ -47,7 +47,7 @@ namespace net {
       STALE,
       DELAY,
       PROBE,
-      MAX
+      FAIL
     };
     using Stack   = IP6::Stack;
     using Route_checker = delegate<bool(IP6::addr)>;
@@ -98,11 +98,11 @@ namespace net {
     /** Lookup for cache entry */
     bool lookup(IP6::addr ip, uint8_t *ll_addr);
 
-    /** Flush the NDP cache. RFC-2.3.2.1 */
+    /** Flush the NDP cache */
     void flush_cache()
     { neighbour_cache_.clear(); };
 
-    /** Flush expired cache entries. RFC-2.3.2.1 */
+    /** Flush expired cache entries */
     void flush_expired ();
 
     void set_neighbour_cache_flush_interval(std::chrono::minutes m) {
@@ -126,16 +126,14 @@ namespace net {
       /** Map needs empty constructor (we have no emplace yet) */
       Cache_entry() noexcept = default;
 
-      Cache_entry(MAC::Addr mac) noexcept
-      : mac_(mac), timestamp_(RTC::time_since_boot()) {}
-
       Cache_entry(MAC::Addr mac, NeighbourStates state, uint32_t flags) noexcept
       : mac_(mac), timestamp_(RTC::time_since_boot()), flags_(flags) {
           set_state(state);
       }
 
       Cache_entry(const Cache_entry& cpy) noexcept
-      : mac_(cpy.mac_), timestamp_(cpy.timestamp_) {}
+      : mac_(cpy.mac_), state_(cpy.state_),
+        timestamp_(cpy.timestamp_), flags_(cpy.flags_) {}
 
       void update() noexcept { timestamp_ = RTC::time_since_boot(); }
 
@@ -153,7 +151,7 @@ namespace net {
 
       void set_state(NeighbourStates state)
       {
-         if (state < NeighbourStates::MAX) {
+         if (state <= NeighbourStates::FAIL) {
            state_ = state;
          }
       }
@@ -176,6 +174,8 @@ namespace net {
               return "delay";
           case NeighbourStates::PROBE:
               return "probe";
+          case NeighbourStates::FAIL:
+              return "fail";
           default:
               return "uknown";
           }
@@ -200,7 +200,6 @@ namespace net {
     using Cache       = std::unordered_map<IP6::addr, Cache_entry>;
     using PacketQueue = std::unordered_map<IP6::addr, Queue_entry>;
 
-
     /** Stats */
     uint32_t& requests_rx_;
     uint32_t& requests_tx_;
@@ -223,7 +222,7 @@ namespace net {
     // The NDP cache
     Cache neighbour_cache_ {};
 
-    // RFC-1122 2.3.2.2 Packet queue
+    // Packet queue
     PacketQueue waiting_packets_;
 
     // Settable resolver - defualts to ndp_resolve
@@ -234,10 +233,6 @@ namespace net {
 
     /**
      * Add a packet to waiting queue, to be sent when IP is resolved.
-     *
-     * Implements RFC1122
-     * 2.3.2.1 : Prevent NDP flooding
-     * 2.3.2.2 : Packets SHOULD be queued.
      */
     void await_resolution(Packet_ptr, IP6::addr);
 
@@ -246,7 +241,6 @@ namespace net {
 
     /** Retry ndp-resolution for packets still waiting */
     void resolve_waiting();
-
 
   }; //< class Ndp
 
