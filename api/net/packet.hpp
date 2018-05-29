@@ -127,6 +127,16 @@ namespace net
       }
     }
 
+    int chain_length() const noexcept {
+      int count = 1;
+      auto* p = this;
+      while (p->chain_) {
+        p = p->chain_.get();
+        count++;
+      }
+      return count;
+    }
+
     /* Get the last packet in the chain */
     Packet* last_in_chain() noexcept
     { return last_; }

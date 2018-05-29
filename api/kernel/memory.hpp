@@ -147,6 +147,8 @@ namespace mem {
   /** Get the physical address to which linear address is mapped **/
   uintptr_t virt_to_phys(uintptr_t linear);
 
+  void virtual_move(uintptr_t src, size_t size, uintptr_t dst, const char* label);
+
 }} // os::mem
 
 
@@ -302,6 +304,16 @@ namespace mem {
     return active_page_size((uintptr_t) addr);
   }
 
+  inline void
+  virtual_move(uintptr_t src, size_t size, uintptr_t dst, const char* label)
+  {
+    using namespace util::bitops;
+    const auto flags = os::mem::Access::read | os::mem::Access::write;
+    // setup @dst as new virt area for @src
+    os::mem::map({dst, src, flags, size}, label);
+    // unpresent @src
+    os::mem::protect(src, size, os::mem::Access::none);
+  }
 }}
 
 #endif
