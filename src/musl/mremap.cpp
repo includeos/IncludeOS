@@ -3,5 +3,5 @@
 extern "C"
 long syscall_SYS_mremap() {
   STUB("mremap");
-  return 0;
+  return -ENOSYS;
 }

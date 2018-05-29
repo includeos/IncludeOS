@@ -387,7 +387,7 @@ namespace microLB
     incoming->on_close(
     [&nodes = n, idx] () {
         nodes.get_session(idx).outgoing->close();
-        nodes.get_session(idx).incoming->close();
+        //nodes.get_session(idx).incoming->close();
     });
     outgoing->on_read(READQ_FOR_NODES,
     [this] (auto buf) {
@@ -397,12 +397,8 @@ namespace microLB
     });
     outgoing->on_close(
     [&nodes = n, idx] () {
-        nodes.get_session(idx).outgoing->close();
+        //nodes.get_session(idx).outgoing->close();
         nodes.get_session(idx).incoming->close();
-    });
-    outgoing->on_close(
-    [&nodes = n, idx] () {
-        nodes.close_session(idx);
     });
   }
   bool Session::is_alive() const {

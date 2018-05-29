@@ -71,8 +71,11 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
     read_request->callback = cb;
     // this will flush the current data to the user (if any)
     read_request->reset(recv_bufsz, seq_t(this->cb.RCV.NXT));
-    // TODO: we should probably clear any SACK if it exists,
-    // due to reset() throwing away buffers
+
+    // due to throwing away buffers (and all data) we also
+    // need to clear the sack list if anything is stored here.
+    if(sack_list)
+      sack_list->clear();
   }
 }
 
@@ -1060,7 +1063,12 @@ void Connection::signal_connect(const bool success)
     (success) ? on_connect_(retrieve_shared()) : on_connect_(nullptr);
 }
 
-void Connection::signal_close() {
+void Connection::signal_close()
+{
+  if(UNLIKELY(close_signaled_))
+    return;
+  close_signaled_ = true;
+
   debug("<Connection::signal_close> It's time to delete this connection. \n");
 
   // call user callback
@@ -1092,7 +1100,7 @@ void Connection::clean_up() {
     read_request->callback.reset();
   _on_cleanup_.reset();
 
-  debug2("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
+  debug("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
 }
 
 std::string Connection::TCB::to_string() const {
