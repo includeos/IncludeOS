@@ -21,6 +21,7 @@
 #include "storage.hpp"
 
 #include <kernel/os.hpp>
+#include <kernel/memory.hpp>
 #include <util/crc32.hpp>
 #include <cassert>
 //#define VERIFY_MEMORY
@@ -111,7 +112,7 @@ void storage_header::add_end()
   auto& ent = create_entry(TYPE_END, 0, 0);
 
   // test against heap max
-  uintptr_t storage_end = (uintptr_t) ent.vla;
+  const auto storage_end = os::mem::virt_to_phys((uintptr_t) ent.vla);
   if (storage_end > OS::heap_max())
   {
     printf("ERROR:\n"
