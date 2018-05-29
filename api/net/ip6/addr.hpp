@@ -148,6 +148,25 @@ struct Addr {
   { return i32[0] == 0 && i32[1] == 0 &&
       i32[2] == 0 && ntohl(i32[3]) == 1; }
 
+  template <typename T>
+  T get_part(const uint8_t n) const
+  {
+     static_assert(std::is_same_v<T, uint8_t> or
+             std::is_same_v<T, uint16_t> or
+             std::is_same_v<T, uint32_t>, "Unallowed T");
+
+     if constexpr (std::is_same_v<T, uint8_t>) {
+         Expects(n < 16);
+         return i8[n];
+     } else if constexpr (std::is_same_v<T, uint16_t>) {
+         Expects(n < 8);
+         return i16[n];
+     } else if constexpr (std::is_same_v<T, uint32_t>) {
+         Expects(n < 4);
+         return i32[n];
+     }
+  }
+
   /**
    * Assignment operator
    */
@@ -184,7 +203,6 @@ struct Addr {
 
       return false;
   }
-
 
   /**
    * Operator to check for greater-than-or-equal relationship
@@ -250,22 +268,6 @@ struct Addr {
 
   Addr operator~() const noexcept
   { return Addr{~i32[0], ~i32[1], ~i32[2], ~i32[3]}; }
-
-  uint8_t operator[](const int loc) const  noexcept
-  { return i8[loc]; }
-
-#if 0
-  template <typename T>
-  T get_part(const uint8_t n)
-  {
-      constexpr if (T = uint8_t) {
-          Expects(n < 32)
-          return i8[n];
-      } else {
-          static_assert(false, "Unallowed T";
-      }
-  }
-#endif
 
   union
   {

@@ -141,9 +141,11 @@ namespace net
 
     req.set_checksum();
 
-    MAC::Addr dest_mac(0x33,0x33, req.ip().ip_dst()[12],
-            req.ip().ip_dst()[13], req.ip().ip_dst()[14],
-            req.ip().ip_dst()[15]);
+    MAC::Addr dest_mac(0x33,0x33,
+            req.ip().ip_dst().get_part<uint8_t>(12),
+            req.ip().ip_dst().get_part<uint8_t>(13),
+            req.ip().ip_dst().get_part<uint8_t>(14),
+            req.ip().ip_dst().get_part<uint8_t>(15));
     PRINT("NDP: Sending Neighbour solicit size: %i payload size: %i,"
         "checksum: 0x%x\n, source: %s, dest: %s, dest mac: %s\n",
         req.ip().size(), req.payload().size(), req.compute_checksum(),
