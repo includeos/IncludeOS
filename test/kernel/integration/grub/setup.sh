@@ -1,2 +1,3 @@
 #!/bin/bash
-sudo apt install -y grub-pc xorriso
+sudo apt install -qy grub-pc xorriso
+
