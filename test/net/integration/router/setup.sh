@@ -14,7 +14,7 @@ alias server1="sudo ip netns exec $NSNAME"
 setup() {
 
   # TODO: it's probably not nice to install test deps here
-  sudo apt install -y iperf3
+  sudo apt-get -qqq install -y iperf3
 
   # Make sure the default bridge exists
   $INCLUDEOS_PREFIX/includeos/scripts/create_bridge.sh
