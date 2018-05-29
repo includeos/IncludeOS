@@ -59,11 +59,9 @@ struct Addr {
   }
 
   Addr(const Addr& a)
-  {
-    for (int i = 0; i < 4; i++) {
-        i32[i] = a.i32[i];
-    }
-  }
+    : i32{a.i32} {}
+
+  Addr(Addr&& a) = default;
 
   // returns this IPv6 Address as a string
   std::string str() const {
@@ -130,64 +128,55 @@ struct Addr {
   /**
    * Assignment operator
    */
-  Addr& operator=(const Addr other) noexcept {
-    i32[0] = other.i32[0];
-    i32[1] = other.i32[1];
-    i32[2] = other.i32[2];
-    i32[3] = other.i32[3];
+  Addr& operator=(const Addr& other)
+  {
+    i32 = other.i32;
     return *this;
   }
+
+  Addr& operator=(Addr&& other) = default;
 
   /**
    * Operator to check for equality
    */
-  bool operator==(const Addr other) const noexcept
-  { return i32[0] == other.i32[0] && i32[1] == other.i32[1] &&
-      i32[2] == other.i32[2] && i32[3] == other.i32[3]; }
+  bool operator==(const Addr& other) const noexcept
+  { return i32 == other.i32; }
 
   /**
    * Operator to check for inequality
    */
-  bool operator!=(const Addr other) const noexcept
+  bool operator!=(const Addr& other) const noexcept
   { return not (*this == other); }
 
   /**
    * Operator to check for greater-than relationship
    */
-  bool operator>(const Addr other) const noexcept
-  {
-      if (i32[0] > other.i32[0]) return true;
-      if (i32[1] > other.i32[1]) return true;
-      if (i32[2] > other.i32[2]) return true;
-      if (i32[3] > other.i32[3]) return true;
-
-      return false;
-  }
-
+  bool operator>(const Addr& other) const noexcept
+  { return i32 > other.i32; }
 
   /**
    * Operator to check for greater-than-or-equal relationship
    */
-  bool operator>=(const Addr other) const noexcept
+  bool operator>=(const Addr& other) const noexcept
   { return (*this > other or *this == other); }
 
   /**
    * Operator to check for lesser-than relationship
    */
-  bool operator<(const Addr other) const noexcept
+  bool operator<(const Addr& other) const noexcept
   { return not (*this >= other); }
 
   /**
    * Operator to check for lesser-than-or-equal relationship
    */
-  bool operator<=(const Addr other) const noexcept
+  bool operator<=(const Addr& other) const noexcept
   { return (*this < other or *this == other); }
 
   /**
    * Operator to perform a bitwise-and operation on the given
    * IPv6 addresses
    */
-  Addr operator&(const Addr other) const noexcept
+  Addr operator&(const Addr& other) const noexcept
   { return Addr{i32[0] & other.i32[0],
                i32[1] & other.i32[1],
                i32[2] & other.i32[2],
@@ -221,7 +210,7 @@ struct Addr {
                addr[2], addr[3] };
   }
 
-  Addr operator|(const Addr other) const noexcept
+  Addr operator|(const Addr& other) const noexcept
   { return Addr{i32[0] | other.i32[0],
                i32[1] | other.i32[1],
                i32[2] | other.i32[2],
