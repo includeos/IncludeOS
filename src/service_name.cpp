@@ -20,8 +20,8 @@
 extern "C" __attribute__((noreturn))
 void panic(const char* reason);
 
-__attribute__((noreturn))
-extern "C" void abort(){
+extern "C" __attribute__((noreturn))
+void abort(){
   panic("Abort called");
 }
 
