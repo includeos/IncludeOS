@@ -451,6 +451,7 @@ endif()
 target_link_libraries(service
   libos
   ${LIBR_CMAKE_NAMES}
+  libos
   libbotan
   ${OPENSSL_LIBS}
   libosdeps
