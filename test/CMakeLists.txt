@@ -23,6 +23,7 @@ message(STATUS "Building for arch ${ARCH}")
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-DPLATFORM_UNITTEST)
 add_definitions(-DOS_VERSION="v0.0.0.1")
 add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 
@@ -69,6 +70,7 @@ include_directories(
   ${INCLUDEOS_ROOT}/mod/
   ${INCLUDEOS_ROOT}/mod/GSL
   ${INCLUDEOS_ROOT}/mod/uzlib/src
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate
   ${TEST}/lest/include
   $ENV{INCLUDEOS_PREFIX}/include
 )
@@ -94,6 +96,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/service_stub_test.cpp
   ${TEST}/kernel/unit/unit_events.cpp
   ${TEST}/kernel/unit/unit_timers.cpp
+  ${TEST}/kernel/unit/unit_liveupdate.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cidr.cpp
@@ -238,11 +241,23 @@ set(OS_SOURCES
 )
 
 set(MOD_OBJECTS
+  # http-parser
   ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
+  # uzlib
   ${INCLUDEOS_ROOT}/mod/uzlib/src/adler32.c
   ${INCLUDEOS_ROOT}/mod/uzlib/src/crc32.c
   ${INCLUDEOS_ROOT}/mod/uzlib/src/tinflate.c
   ${INCLUDEOS_ROOT}/mod/uzlib/src/tinfgzip.c
+  # LiveUpdate
+  #${INCLUDEOS_ROOT}/lib/LiveUpdate/hotswap.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/partition.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/rollback.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_tcp.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/update.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/os.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/resume.cpp
+  #${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_openssl.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/storage.cpp
 )
 
 if(EXTRA_TESTS)
