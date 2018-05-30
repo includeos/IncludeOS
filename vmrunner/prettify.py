@@ -91,7 +91,7 @@ class color:
 
     @staticmethod
     def DATA(string):
-        return color.C_GRAY + string + color.C_ENDC + "\n"
+        return string + "\n"
 
     @staticmethod
     def HEADER(string):
