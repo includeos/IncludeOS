@@ -83,9 +83,9 @@ void SystemLog::initialize()
   using namespace util::bitops;
   const size_t size = MRB_LOG_SIZE - 4096;
   const uintptr_t syslog_area = (uintptr_t) get_ringbuffer_loc() - 4096;
-  const uintptr_t origin_area = (uintptr_t) OS::liveupdate_storage_area() - size;
+  const uintptr_t lu_phys = os::mem::virt_to_phys((uintptr_t) OS::liveupdate_storage_area());
   // move systemlog to high memory and unpresent physical
-  os::mem::virtual_move(origin_area, size, syslog_area, "SystemLog");
+  os::mem::virtual_move(lu_phys - size, size, syslog_area, "SystemLog");
 #endif
 
   auto& buffer = get_log_buffer();

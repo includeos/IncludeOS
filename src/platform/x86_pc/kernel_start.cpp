@@ -138,6 +138,10 @@ void kernel_start(uint32_t magic, uint32_t addr)
     free_mem_begin = _multiboot_free_begin(addr);
     memory_end     = _multiboot_memory_end(addr);
   }
+  else if (OS::is_softreset_magic(magic))
+  {
+    memory_end = OS::softreset_memory_end(addr);
+  }
   PRATTLE("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
           free_mem_begin, memory_end);
 

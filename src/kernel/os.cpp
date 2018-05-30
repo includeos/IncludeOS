@@ -81,6 +81,13 @@ void* OS::liveupdate_storage_area() noexcept
   return (void*) OS::liveupdate_loc_;
 }
 
+__attribute__((weak))
+void OS::setup_liveupdate(uintptr_t)
+{
+  // without LiveUpdate: storage location is at the last page?
+  OS::liveupdate_loc_ = OS::heap_max() & ~(uintptr_t) 0xFFF;
+}
+
 const char* OS::cmdline = nullptr;
 const char* OS::cmdline_args() noexcept {
   return cmdline;
@@ -117,14 +124,9 @@ void OS::shutdown()
 
 void OS::post_start()
 {
-  // if the LiveUpdate storage area is not yet determined,
-  // we can assume its a fresh boot, so calculate new one based on ...
-  if (OS::liveupdate_loc_ == 0)
-  {
-    // default size is 1/4 of heap from the end of memory
-    auto size = OS::heap_max() / 4;
-    OS::liveupdate_loc_ = (OS::heap_max() - size) & 0xFFFFFFF0;
-  }
+  // LiveUpdate needs some initialization, although only if present
+  OS::setup_liveupdate();
+
   // Initialize the system log if plugin is present.
   // Dependent on the liveupdate location being set
   SystemLog::initialize();

@@ -103,6 +103,7 @@ void LiveUpdate::exec(const buffer_t& blob)
   // the copy mechanism just copies single bytes.
   const char* update_area  = blob.data();
   char* storage_area = (char*) location;
+  const uintptr_t storage_area_phys = os::mem::virt_to_phys((uintptr_t) storage_area);
 
   // validate not overwriting heap, kernel area and other things
   if (storage_area < (char*) 0x200) {
@@ -114,10 +115,12 @@ void LiveUpdate::exec(const buffer_t& blob)
   if (storage_area >= (char*) OS::heap_begin() && storage_area < (char*) OS::heap_end()) {
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }
-  if (storage_area >= (char*) OS::heap_max()) {
+  if (storage_area_phys >= OS::heap_max()) {
     throw std::runtime_error("LiveUpdate storage area is outside physical memory");
   }
-  if (storage_area >= (char*) OS::heap_max() - 0x10000) {
+  if (storage_area_phys >= OS::heap_max() - 0x10000) {
+    printf("Storage area is at %p / %p\n",
+           (void*) storage_area_phys, (void*) OS::heap_max());
     throw std::runtime_error("LiveUpdate storage area needs at least 64kb memory");
   }
 
@@ -206,7 +209,9 @@ void LiveUpdate::exec(const buffer_t& blob)
 #else
   extern const std::pair<const char*, size_t> get_rollback_location();
   const auto rollback = get_rollback_location();
-  void* sr_data = __os_store_soft_reset(rollback.first, rollback.second);
+  // we should store physical address of update location
+  auto rb_phys = os::mem::virt_to_phys((uintptr_t) rollback.first);
+  void* sr_data = __os_store_soft_reset((void*) rb_phys, rollback.second);
 #endif
 
   // get offsets for the new service from program header
