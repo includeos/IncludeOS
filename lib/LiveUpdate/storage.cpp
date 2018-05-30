@@ -140,7 +140,7 @@ void storage_header::finalize()
   // generate checksum for header
   this->crc = generate_checksum();
 }
-bool storage_header::validate() noexcept
+bool storage_header::validate() const noexcept
 {
   if (this->magic != LIVEUPD_MAGIC) return false;
   if (this->crc   == 0) return false;
@@ -150,7 +150,7 @@ bool storage_header::validate() noexcept
   return true;
 }
 
-uint32_t storage_header::generate_checksum() noexcept
+uint32_t storage_header::generate_checksum() const noexcept
 {
   uint32_t crc_copy = this->crc;
   this->crc         = 0;

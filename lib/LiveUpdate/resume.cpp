@@ -37,9 +37,9 @@ bool LiveUpdate::is_resumable()
 {
   return is_resumable(OS::liveupdate_storage_area());
 }
-bool LiveUpdate::is_resumable(void* location)
+bool LiveUpdate::is_resumable(const void* location)
 {
-  return ((storage_header*) location)->validate();
+  return ((const storage_header*) location)->validate();
 }
 
 static bool resume_helper(void* location, std::string key, LiveUpdate::resume_func func)
@@ -64,14 +64,14 @@ bool LiveUpdate::resume(std::string key, resume_func func)
   }
   return resume_helper(location, std::move(key), func);
 }
-bool LiveUpdate::partition_exists(const std::string& key) noexcept
+bool LiveUpdate::partition_exists(const std::string& key, const void* area) noexcept
 {
-  auto* location = OS::liveupdate_storage_area();
+  if (area == nullptr) area = OS::liveupdate_storage_area();
 
-  if (!LiveUpdate::is_resumable(location))
+  if (!LiveUpdate::is_resumable(area))
     return false;
 
-  auto& storage = *reinterpret_cast<storage_header*>(location);
+  auto& storage = *(const storage_header*) area;
   return (storage.find_partition(key.c_str()) != -1);
 }
 void LiveUpdate::resume_from_heap(void* location, std::string key, LiveUpdate::resume_func func)

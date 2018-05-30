@@ -87,12 +87,16 @@ void LiveUpdate::exec(const buffer_t& blob, std::string key, storage_func func)
   LiveUpdate::exec(blob);
 }
 
-void LiveUpdate::exec(const buffer_t& blob)
+void LiveUpdate::exec(const buffer_t& blob, void* location)
 {
-  void* location = OS::liveupdate_storage_area();
+  if (location == nullptr) location = OS::liveupdate_storage_area();
   LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
+#if defined(PLATFORM_x86_solo5) || defined(PLATFORM_UNITTEST)
+  // nothing to do
+#else
   // 1. turn off interrupts
   asm volatile("cli");
+#endif
 
   // use area provided to us directly, which we will assume
   // is far enough into heap to not get overwritten by hotswap.
@@ -101,6 +105,8 @@ void LiveUpdate::exec(const buffer_t& blob)
   // blobs are separated by at least one old kernel size and
   // some early heap allocations, which is at least 1mb, while
   // the copy mechanism just copies single bytes.
+  if (blob.size() < ELF_MINIMUM)
+      throw std::runtime_error("Buffer too small to be valid ELF");
   const char* update_area  = blob.data();
   char* storage_area = (char*) location;
   const uintptr_t storage_area_phys = os::mem::virt_to_phys((uintptr_t) storage_area);
@@ -204,7 +210,7 @@ void LiveUpdate::exec(const buffer_t& blob)
   hw::Devices::deactivate_all();
 
   // store soft-resetting stuff
-#ifdef PLATFORM_x86_solo5
+#if defined(PLATFORM_x86_solo5) || defined(PLATFORM_UNITTEST)
   void* sr_data = nullptr;
 #else
   extern const std::pair<const char*, size_t> get_rollback_location();
@@ -229,8 +235,9 @@ void LiveUpdate::exec(const buffer_t& blob)
 #ifdef PLATFORM_x86_solo5
   solo5_exec(blob.data(), blob.size());
   throw std::runtime_error("solo5_exec returned");
-#else
-# ifdef ARCH_i686
+# elif defined(PLATFORM_UNITTEST)
+  throw liveupdate_exec_success();
+# elif defined(ARCH_i686)
     // copy hotswapping function to sweet spot
     memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
     /// the end
@@ -245,7 +252,6 @@ void LiveUpdate::exec(const buffer_t& blob)
 # else
 #   error "Unimplemented architecture"
 # endif
-#endif
 }
 void LiveUpdate::restore_environment()
 {
@@ -259,12 +265,9 @@ buffer_t LiveUpdate::store()
   return buffer_t(location, location + size);
 }
 
-size_t LiveUpdate::stored_data_length()
+size_t LiveUpdate::stored_data_length(const void* location)
 {
-  return stored_data_length(OS::liveupdate_storage_area());
-}
-size_t LiveUpdate::stored_data_length(void* location)
-{
+  if (location == nullptr) location = OS::liveupdate_storage_area();
   auto* storage = (storage_header*) location;
 
   if (LIVEUPDATE_PERFORM_SANITY_CHECKS)
