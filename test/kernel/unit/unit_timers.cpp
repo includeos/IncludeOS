@@ -134,3 +134,24 @@ CASE("Stop a timer")
   // verify timer did not execute, since it was stopped
   EXPECT(magic_performed == 0);
 }
+
+CASE("Test a periodic timer")
+{
+  current_time = 0;
+  magic_performed = 0;
+  // start timer
+  int id = Timers::periodic(microseconds(1), perform_magic);
+  EXPECT(Timers::active() == 1);
+
+  for (int i = 0; i < 100000; i += 1000)
+  {
+    current_time = i;
+    // execute timer interrupt
+    Timers::timers_handler();
+    // verify timer did not execute
+    EXPECT(magic_performed == i / 1000);
+  }
+  // stop timer
+  Timers::stop(id);
+  current_time = 0;
+}
