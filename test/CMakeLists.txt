@@ -24,6 +24,7 @@ message(STATUS "Building for arch ${ARCH}")
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DOS_VERSION="v0.0.0.1")
+add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
@@ -86,12 +87,13 @@ set(TEST_SOURCES
   #${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
-  ${TEST}/kernel/unit/events_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/memory.cpp
   ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
+  ${TEST}/kernel/unit/unit_events.cpp
+  ${TEST}/kernel/unit/unit_timers.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cidr.cpp
@@ -177,6 +179,7 @@ set(OS_SOURCES
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
+  ${SRC}/kernel/timers.cpp
   ${SRC}/musl/mmap.cpp
   ${SRC}/musl/brk.cpp
   ${SRC}/net/buffer_store.cpp
