@@ -68,7 +68,7 @@ def print_skipped(tests):
 
 class Test:
     """ A class to start a test as a subprocess and pretty-print status """
-    def __init__(self, path, clean=False, command=['python', 'test.py'], name=None):
+    def __init__(self, path, clean=False, command=['python', '-u', 'test.py'], name=None):
         self.command_ = command
         self.proc_ = None
         self.path_ = path
