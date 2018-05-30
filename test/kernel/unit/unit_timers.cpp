@@ -72,10 +72,16 @@ CASE("Start many timers, execute all at once")
 {
   current_time = 0;
   magic_performed = 0;
-  // start many timers
+  // start many timers, starting at 1ms and ending at 2ms
   for (int i = 0; i < 1000; i++)
-    Timers::oneshot(microseconds(i), perform_magic);
-  current_time = 1000 * 1000000ull;
+    Timers::oneshot(microseconds(1000 + i), perform_magic);
+  // verify timer did not execute for all times before 1ms
+  for (uint64_t time = 0; time < 1000000; time += 1000)
+  {
+    Timers::timers_handler();
+    EXPECT(magic_performed == 0);
+  }
+  current_time = 2000000;
   // verify many timers executed
   Timers::timers_handler();
   EXPECT(magic_performed == 1000);
