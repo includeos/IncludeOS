@@ -52,6 +52,7 @@ namespace net
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using PMTU = uint16_t;
+    using netmask = uint8_t;
 
     static const addr ADDR_ANY;
     static const addr ADDR_LOOPBACK;

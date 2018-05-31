@@ -306,9 +306,6 @@ void Inet::flush_link_cache()
 void Inet::set_link_cache_flush_interval(std::chrono::minutes min)
 { arp_.set_cache_flush_interval(min); }
 
-void Inet::set_route_checker(Route_checker delg)
-{ arp_.set_proxy_policy(delg); }
-
 void Inet::reset_pmtu(Socket dest, IP4::PMTU pmtu)
 { tcp_.reset_pmtu(dest, pmtu); /* Maybe later: udp_.reset_pmtu(dest, pmtu);*/ }
 
@@ -326,3 +323,6 @@ void Inet::resolve(const std::string& hostname,
 {
    dns_.resolve(server, hostname, func, force);
 }
+
+void Inet::set_route_checker6(Route_checker6 delg)
+{ icmp6_.set_ndp_proxy_policy(delg); }

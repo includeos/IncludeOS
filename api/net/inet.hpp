@@ -50,9 +50,11 @@ namespace net {
     using IP_packet_ptr  = IP4::IP_packet_ptr;
     using IP6_packet_ptr = IP6::IP_packet_ptr;
     using IP_addr        = IP4::addr;
+    using IP6_addr       = IP6::addr;
 
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using Route_checker = delegate<bool(IP_addr)>;
+    using Route_checker6 = delegate<bool(IP6_addr)>;
     using IP_packet_factory  = delegate<IP_packet_ptr(Protocol)>;
     using IP6_packet_factory = delegate<IP6_packet_ptr(Protocol)>;
 
@@ -174,6 +176,7 @@ namespace net {
      * Assign a delegate that checks if we have a route to a given IP
      */
     void set_route_checker(Route_checker delg);
+    void set_route_checker6(Route_checker6 delg);
 
     /**
      * Get the forwarding delegate used by this stack.

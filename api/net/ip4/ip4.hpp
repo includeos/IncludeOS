@@ -70,6 +70,7 @@ namespace net {
     using PMTU = uint16_t;
     using Port_utils  = std::map<IP4::addr, Port_util>;
     using resolve_func = delegate<void(IP4::addr, const Error&)>;
+    using netmask = ip4::Addr;
 
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Stack&) noexcept;

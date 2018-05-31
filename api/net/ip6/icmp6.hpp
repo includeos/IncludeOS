@@ -99,6 +99,7 @@ namespace net
     using Stack = IP6::Stack;
     using Tuple = std::pair<uint16_t, uint16_t>;  // identifier and sequence number
     using icmp_func = delegate<void(ICMP6_view)>;
+    using Route_checker = delegate<bool(IP6::addr)>;
 
     static const int SEC_WAIT_FOR_REPLY = 40;
 
@@ -123,6 +124,9 @@ namespace net
     {
         ndp_.transmit(std::move(ptr), next_hop);
     }
+
+    void set_ndp_proxy_policy(Route_checker delg)
+    { ndp_.set_proxy_policy(delg); }
 
     /**
      *  Destination Unreachable sent from host because of port (UDP) or protocol (IP6) unreachable
