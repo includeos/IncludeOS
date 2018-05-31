@@ -4,18 +4,22 @@ set(NET_SOURCES
   ${IOS}/src/net/buffer_store.cpp
   ${IOS}/src/net/checksum.cpp
   ${IOS}/src/net/super_stack.cpp
-  ${IOS}/src/net/inet4.cpp
+  ${IOS}/src/net/inet.cpp
 
   ${IOS}/src/net/ethernet/ethernet.cpp
   ${IOS}/src/net/ip4/arp.cpp
   ${IOS}/src/net/ip4/ip4.cpp
   ${IOS}/src/net/ip4/reassembly.cpp
+  ${IOS}/src/net/ip6/ip6.cpp
+  ${IOS}/src/net/ip6/icmp6.cpp
+  #${IOS}/src/net/ip6/ndp.cpp
 
   ${IOS}/src/net/tcp/tcp.cpp
   ${IOS}/src/net/tcp/connection.cpp
   ${IOS}/src/net/tcp/connection_states.cpp
   ${IOS}/src/net/tcp/write_queue.cpp
   ${IOS}/src/net/tcp/read_buffer.cpp
+  ${IOS}/src/net/tcp/read_request.cpp
   ${IOS}/src/net/tcp/rttm.cpp
   ${IOS}/src/net/tcp/listener.cpp
   ${IOS}/src/net/ip4/icmp4.cpp
@@ -94,7 +98,9 @@ add_library(includeos STATIC ${NET_SOURCES} ${OS_SOURCES} ${MOD_SOURCES})
 set_target_properties(includeos PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(includeos PUBLIC
     ${IOS}/lib/mana/include
-    ${IOS}/mod/rapidjson/include)
+    ${IOS}/mod/rapidjson/include
+    $ENV{INCLUDEOS_PREFIX}/includeos/x86_64/include
+  )
 
 add_library(http_parser STATIC "${IOS}/mod/http-parser/http_parser.c")
 set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE C)
