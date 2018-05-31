@@ -153,5 +153,5 @@ extern "C"
 void panic(const char* why)
 {
   printf("!! PANIC !!\nReason: %s\n", why);
-  std::abort();
+  raise(SIGINT);
 }

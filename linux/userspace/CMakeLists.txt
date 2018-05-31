@@ -22,6 +22,7 @@ set(NET_SOURCES
   ${IOS}/src/net/tcp/read_request.cpp
   ${IOS}/src/net/tcp/rttm.cpp
   ${IOS}/src/net/tcp/listener.cpp
+  ${IOS}/src/net/tcp/stream.cpp
   ${IOS}/src/net/ip4/icmp4.cpp
   ${IOS}/src/net/ip4/udp.cpp
   ${IOS}/src/net/ip4/udp_socket.cpp
@@ -35,6 +36,7 @@ set(NET_SOURCES
   ${IOS}/src/net/nat/nat.cpp
   ${IOS}/src/net/nat/napt.cpp
 
+  ${IOS}/src/net/http/basic_client.cpp
   ${IOS}/src/net/http/header.cpp
   ${IOS}/src/net/http/header_fields.cpp
   ${IOS}/src/net/http/message.cpp
@@ -50,7 +52,16 @@ set(NET_SOURCES
   ${IOS}/src/net/http/server_connection.cpp
   ${IOS}/src/net/http/server.cpp
   ${IOS}/src/net/http/response_writer.cpp
+
+  ${IOS}/src/net/https/botan_server.cpp
+  ${IOS}/src/net/https/openssl_server.cpp
+
   ${IOS}/src/net/ws/websocket.cpp
+
+  ${IOS}/src/net/openssl/init.cpp
+  ${IOS}/src/net/openssl/client.cpp
+  ${IOS}/src/net/openssl/server.cpp
+
 )
 if (CUSTOM_BOTAN)
   set(NET_SOURCES ${NET_SOURCES}
