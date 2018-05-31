@@ -141,6 +141,9 @@ void Inet::error_report(Error& err, Packet_ptr orig_pckt) {
 
   if (err.is_icmp()) {
     auto* icmp_err = dynamic_cast<ICMP_error*>(&err);
+    if (icmp_err == nullptr) {
+      return; // not an ICMP error
+    }
 
     if (icmp_err->is_too_big()) {
       // If Path MTU Discovery is not enabled, ignore the ICMP Datagram Too Big message
