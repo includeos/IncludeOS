@@ -3,16 +3,22 @@
 ####################################
 
 set(CMAKE_CXX_STANDARD 17)
-set(COMMON "-g -O2 -march=native -Wall -Wextra")
+set(COMMON "-O2 -march=native -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 
+option(DEBUGGING "Enable debugging" OFF)
 option(GPROF "Enable profiling with gprof" OFF)
 option(SANITIZE "Enable undefined- and address sanitizers" OFF)
 option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
 option(CUSTOM_BOTAN "Enable building with a local Botan" OFF)
 option(STATIC_BUILD "Build a portable static executable" OFF)
 option(STRIP_BINARY "Strip final binary to reduce size" ON)
+option(USE_LLD "Allow linking against LTO archives" ON)
+
+if(DEBUGGING)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
+endif()
 
 if (ENABLE_LTO)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
@@ -78,7 +84,7 @@ if (STATIC_BUILD)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -pthread")
 endif()
 
-if (ENABLE_LTO)
+if (ENABLE_LTO OR USE_LLD)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
 endif()
 
