@@ -28,7 +28,7 @@ namespace net {
   /** IPv4 packet. */
   class PacketIP4 : public Packet {
   public:
-    static constexpr size_t DEFAULT_TTL {64};
+    static constexpr int DEFAULT_TTL = 64;
 
     using Span = gsl::span<Byte>;
     using Cspan = gsl::span<const Byte>;
@@ -224,14 +224,9 @@ namespace net {
       Expects(size() == 0);
       auto& hdr = ip_header();
       hdr = {};
-      hdr.version_ihl    = 0x45;
-      //hdr.ds_ecn         = 0;
-      //hdr.id             = 0;
-      //hdr.frag_off_flags = 0;
+      hdr.tot_len        = 0x1400; // Big-endian 20
       hdr.ttl            = DEFAULT_TTL;
       hdr.protocol       = static_cast<uint8_t>(proto);
-      //hdr.check          = 0;
-      hdr.tot_len        = 0x1400; // Big-endian 20
       increment_data_end(sizeof(ip4::Header));
     }
 

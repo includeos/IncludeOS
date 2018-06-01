@@ -39,7 +39,7 @@ CASE("IP6 packet setters/getters")
         EXPECT(ip_pckt1->flow_label() == 0);
         EXPECT(ip_pckt1->payload_length() == 0);
         EXPECT(ip_pckt1->next_protocol() == Protocol::ICMPv4);
-        EXPECT(ip_pckt1->hop_limit() == 0);
+        EXPECT(ip_pckt1->hop_limit() == PacketIP6::DEFAULT_TTL);
         EXPECT(ip_pckt1->ip_src() == IP6::ADDR_ANY);
         EXPECT(ip_pckt1->ip_dst() == IP6::ADDR_ANY);
       }
