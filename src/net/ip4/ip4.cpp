@@ -134,7 +134,7 @@ namespace net {
 
     /* PREROUTING */
     // Track incoming packet if conntrack is active
-    Conntrack::Entry_ptr ct = (stack_.conntrack())
+    Conntrack<IP4>::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
@@ -180,10 +180,14 @@ namespace net {
     if(stack_.conntrack())
       stack_.conntrack()->confirm(*packet); // No need to set ct again
     res = input_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+        PRINT("* parsing the packet header\n");
+        return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();
+    PRINT("* Done parsing the packet header\n");
 
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {
@@ -229,7 +233,7 @@ namespace net {
     packet->make_flight_ready();
 
     /* OUTPUT */
-    Conntrack::Entry_ptr ct =
+    Conntrack<IP4>::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
@@ -246,7 +250,7 @@ namespace net {
     ship(std::move(packet), 0, ct);
   }
 
-  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
+  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack<IP4>::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 

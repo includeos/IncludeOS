@@ -44,7 +44,7 @@ def iperf_server():
 
 def iperf_client(o):
     print "Starting iperf client. Iperf output: "
-    print subprocess.check_output([iperf_cmd,"-c","fe80:0:0:0:abcd:abcd:1234:8367",
+    print subprocess.check_output([iperf_cmd,"-c","fe80:0:0:0:abcd:abcd:1234:8367%bridge43",
         "-n", transmit_size])
     vmrunner.vms[0].exit(0, "Test completed without errors")
     return True

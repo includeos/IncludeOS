@@ -40,7 +40,7 @@ route_checker(IP6::addr addr)
 }
 
 static void
-ip_forward (IP6::IP_packet_ptr pckt, Inet& stack, Conntrack::Entry_ptr)
+ip_forward (IP6::IP_packet_ptr pckt, Inet& stack, Conntrack<IP6>::Entry_ptr)
 {
   Inet* route = router->get_first_interface(pckt->ip_dst());
 

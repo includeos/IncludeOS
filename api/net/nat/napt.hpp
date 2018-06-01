@@ -36,7 +36,7 @@ public:
 
 public:
 
-  NAPT(std::shared_ptr<Conntrack> ct);
+  NAPT(std::shared_ptr<Conntrack<IP4>> ct);
 
   /**
    * @brief      Masquerade a packet, changing it's source
@@ -44,7 +44,7 @@ public:
    * @param      pkt   The packet
    * @param[in]  inet  The inet
    */
-  void masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr);
+  void masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack<IP4>::Entry_ptr);
 
   /**
    * @brief      Demasquerade a packet, restoring it's destination
@@ -52,20 +52,20 @@ public:
    * @param      pkt   The packet
    * @param[in]  inet  The inet
    */
-  void demasquerade(IP4::IP_packet& pkt, const Stack& inet, Conntrack::Entry_ptr);
+  void demasquerade(IP4::IP_packet& pkt, const Stack& inet, Conntrack<IP4>::Entry_ptr);
 
-  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const Socket sock);
-  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const ip4::Addr addr);
-  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const uint16_t port);
-  void dnat(IP4::IP_packet& pkt, Conntrack::Entry_ptr);
+  void dnat(IP4::IP_packet& pkt, Conntrack<IP4>::Entry_ptr, const Socket sock);
+  void dnat(IP4::IP_packet& pkt, Conntrack<IP4>::Entry_ptr, const ip4::Addr addr);
+  void dnat(IP4::IP_packet& pkt, Conntrack<IP4>::Entry_ptr, const uint16_t port);
+  void dnat(IP4::IP_packet& pkt, Conntrack<IP4>::Entry_ptr);
 
-  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const Socket sock);
-  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const ip4::Addr addr);
-  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr, const uint16_t port);
-  void snat(IP4::IP_packet& pkt, Conntrack::Entry_ptr);
+  void snat(IP4::IP_packet& pkt, Conntrack<IP4>::Entry_ptr, const Socket sock);
+  void snat(IP4::IP_packet& pkt, Conntrack<IP4>::Entry_ptr, const ip4::Addr addr);
+  void snat(IP4::IP_packet& pkt, Conntrack<IP4>::Entry_ptr, const uint16_t port);
+  void snat(IP4::IP_packet& pkt, Conntrack<IP4>::Entry_ptr);
 
 private:
-  std::shared_ptr<Conntrack> conntrack;
+  std::shared_ptr<Conntrack<IP4>> conntrack;
 
   /**
    * @brief      If not already updated, bind to a ephemeral port and update the entry.
@@ -76,7 +76,7 @@ private:
    *
    * @return     The socket used for SNAT
    */
-  Socket masq(Conntrack::Entry_ptr entry, const ip4::Addr addr, Port_util& ports);
+  Socket masq(Conntrack<IP4>::Entry_ptr entry, const ip4::Addr addr, Port_util& ports);
 
 }; // < class NAPT
 

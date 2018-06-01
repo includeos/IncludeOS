@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/conntrack.hpp>
+#include <net/inet.hpp>
 #include <set>
 
 //#define CT_DEBUG 1
@@ -33,34 +34,39 @@ std::string proto_str(const Protocol proto)
     case Protocol::TCP: return "TCP";
     case Protocol::UDP: return "UDP";
     case Protocol::ICMPv4: return "ICMPv4";
+    case Protocol::ICMPv6: return "ICMPv6";
     default: return "???";
   }
 }
 
-std::string state_str(const Conntrack::State state)
+template <typename IPV>
+std::string state_str(const typename Conntrack<IPV>::State state)
 {
   switch(state) {
-    case Conntrack::State::NEW: return "NEW";
-    case Conntrack::State::ESTABLISHED: return "EST";
-    case Conntrack::State::RELATED: return "RELATED";
-    case Conntrack::State::UNCONFIRMED: return "UNCONFIRMED";
+    case Conntrack<IPV>::State::NEW: return "NEW";
+    case Conntrack<IPV>::State::ESTABLISHED: return "EST";
+    case Conntrack<IPV>::State::RELATED: return "RELATED";
+    case Conntrack<IPV>::State::UNCONFIRMED: return "UNCONFIRMED";
     default: return "???";
   }
 }
 
-std::string Conntrack::Entry::to_string() const
+template <typename IPV>
+std::string Conntrack<IPV>::Entry::to_string() const
 {
   return "[ " + first.to_string() + " ] [ " + second.to_string() + " ]"
     + " P: " + proto_str(proto) + " S: " + state_str(state);
 }
 
-Conntrack::Entry::~Entry()
+template <typename IPV>
+Conntrack<IPV>::Entry::~Entry()
 {
   if(this->on_close)
     on_close(this);
 }
 
-Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
+template <typename IPV>
+typename Conntrack<IPV>::Entry* Conntrack<IPV>::simple_track_in(Quadruple q, const Protocol proto)
 {
   // find the entry
   auto* entry = get(q, proto);
@@ -89,21 +95,25 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
   return entry;
 }
 
-Conntrack::Entry* dumb_in(Conntrack& ct, Quadruple q, const PacketIP4& pkt)
+template <typename IPV>
+typename Conntrack<IPV>::Entry* dumb_in(Conntrack<IPV>& ct, Quadruple q, const typename IPV::IP_packet& pkt)
 { return  ct.simple_track_in(std::move(q), pkt.ip_protocol()); }
 
-Conntrack::Conntrack()
- : Conntrack(0)
+template <typename IPV>
+Conntrack<IPV>::Conntrack()
+ : Conntrack<IPV>(0)
 {}
 
-Conntrack::Conntrack(size_t max_entries)
+template <typename IPV>
+Conntrack<IPV>::Conntrack(size_t max_entries)
  : maximum_entries{max_entries},
    tcp_in{&dumb_in},
    flush_timer({this, &Conntrack::on_timeout})
 {
 }
 
-Conntrack::Entry* Conntrack::get(const PacketIP4& pkt) const
+template <typename IPV>
+typename Conntrack<IPV>::Entry* Conntrack<IPV>::get(const typename IPV::IP_packet& pkt) const
 {
   const auto proto = pkt.ip_protocol();
   switch(proto)
@@ -120,7 +130,8 @@ Conntrack::Entry* Conntrack::get(const PacketIP4& pkt) const
   }
 }
 
-Conntrack::Entry* Conntrack::get(const Quadruple& quad, const Protocol proto) const
+template <typename IPV>
+typename Conntrack<IPV>::Entry* Conntrack<IPV>::get(const Quadruple& quad, const Protocol proto) const
 {
   auto it = entries.find({quad, proto});
 
@@ -130,7 +141,8 @@ Conntrack::Entry* Conntrack::get(const Quadruple& quad, const Protocol proto) co
   return nullptr;
 }
 
-Quadruple Conntrack::get_quadruple(const PacketIP4& pkt)
+template <typename IPV>
+Quadruple Conntrack<IPV>::get_quadruple(const typename IPV::IP_packet& pkt)
 {
   const auto* ports = reinterpret_cast<const uint16_t*>(pkt.ip_data().data());
   uint16_t src_port = ntohs(*ports);
@@ -139,7 +151,8 @@ Quadruple Conntrack::get_quadruple(const PacketIP4& pkt)
   return {{pkt.ip_src(), src_port}, {pkt.ip_dst(), dst_port}};
 }
 
-Quadruple Conntrack::get_quadruple_icmp(const PacketIP4& pkt)
+template <typename IPV>
+Quadruple Conntrack<IPV>::get_quadruple_icmp(const typename IPV::IP_packet& pkt)
 {
   Expects(pkt.ip_protocol() == Protocol::ICMPv4);
 
@@ -155,7 +168,8 @@ Quadruple Conntrack::get_quadruple_icmp(const PacketIP4& pkt)
   return {{pkt.ip_src(), id}, {pkt.ip_dst(), id}};
 }
 
-Conntrack::Entry* Conntrack::in(const PacketIP4& pkt)
+template <typename IPV>
+typename Conntrack<IPV>::Entry* Conntrack<IPV>::in(const typename IPV::IP_packet& pkt)
 {
   const auto proto = pkt.ip_protocol();
   switch(proto)
@@ -174,7 +188,8 @@ Conntrack::Entry* Conntrack::in(const PacketIP4& pkt)
   }
 }
 
-Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
+template <typename IPV>
+typename Conntrack<IPV>::Entry* Conntrack<IPV>::confirm(const typename IPV::IP_packet& pkt)
 {
   const auto proto = pkt.ip_protocol();
 
@@ -196,7 +211,8 @@ Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
   return confirm(quad, proto);
 }
 
-Conntrack::Entry* Conntrack::confirm(Quadruple quad, const Protocol proto)
+template <typename IPV>
+typename Conntrack<IPV>::Entry* Conntrack<IPV>::confirm(Quadruple quad, const Protocol proto)
 {
   auto* entry = get(quad, proto);
 
@@ -219,7 +235,8 @@ Conntrack::Entry* Conntrack::confirm(Quadruple quad, const Protocol proto)
   return entry;
 }
 
-Conntrack::Entry* Conntrack::add_entry(
+template <typename IPV>
+typename Conntrack<IPV>::Entry* Conntrack<IPV>::add_entry(
   const Quadruple& quad, const Protocol proto)
 {
   // Return nullptr if conntrack is full
@@ -255,7 +272,8 @@ Conntrack::Entry* Conntrack::add_entry(
   return entry.get();
 }
 
-Conntrack::Entry* Conntrack::update_entry(
+template <typename IPV>
+typename Conntrack<IPV>::Entry* Conntrack<IPV>::update_entry(
   const Protocol proto, const Quadruple& oldq, const Quadruple& newq)
 {
   // find the entry that has quintuple containing the old quant
@@ -290,7 +308,8 @@ Conntrack::Entry* Conntrack::update_entry(
   return entry.get();
 }
 
-void Conntrack::remove_expired()
+template <typename IPV>
+void Conntrack<IPV>::remove_expired()
 {
   CTDBG("<Conntrack> Removing expired entries\n");
   const auto NOW = RTC::now();
@@ -307,7 +326,8 @@ void Conntrack::remove_expired()
   }
 }
 
-void Conntrack::on_timeout()
+template <typename IPV>
+void Conntrack<IPV>::on_timeout()
 {
   remove_expired();
 
@@ -315,7 +335,8 @@ void Conntrack::on_timeout()
     flush_timer.restart(flush_interval);
 }
 
-int Conntrack::Entry::deserialize_from(void* addr)
+template <typename IPV>
+int Conntrack<IPV>::Entry::deserialize_from(void* addr)
 {
   auto& entry = *reinterpret_cast<Entry*>(addr);
   this->first   = entry.first;
@@ -326,14 +347,16 @@ int Conntrack::Entry::deserialize_from(void* addr)
   return sizeof(Entry) - sizeof(on_close);
 }
 
-void Conntrack::Entry::serialize_to(std::vector<char>& buf) const
+template <typename IPV>
+void Conntrack<IPV>::Entry::serialize_to(std::vector<char>& buf) const
 {
   const size_t size = sizeof(Entry) - sizeof(on_close);
   const auto* ptr = reinterpret_cast<const char*>(this);
   buf.insert(buf.end(), ptr, ptr + size);
 }
 
-int Conntrack::deserialize_from(void* addr)
+template <typename IPV>
+int Conntrack<IPV>::deserialize_from(void* addr)
 {
   const auto prev_size = entries.size();
   auto* buffer = reinterpret_cast<uint8_t*>(addr);
@@ -361,7 +384,8 @@ int Conntrack::deserialize_from(void* addr)
   return buffer - reinterpret_cast<uint8_t*>(addr);
 }
 
-void Conntrack::serialize_to(std::vector<char>& buf) const
+template <typename IPV>
+void Conntrack<IPV>::serialize_to(std::vector<char>& buf) const
 {
   int unserialized = 0;
 

@@ -50,7 +50,7 @@ namespace net
     using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
     using downstream_ndp = delegate<void(Packet_ptr, IP6::addr)>;
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
-    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
+    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack<IP6>::Entry_ptr)>;
     using PMTU = uint16_t;
     using netmask = uint8_t;
 
@@ -119,7 +119,7 @@ namespace net
      *  Source IP *can* be set - if it's not, IP6 will set it
      */
     void transmit(Packet_ptr);
-    void ship(Packet_ptr, addr next_hop = IP6::ADDR_ANY, Conntrack::Entry_ptr ct = nullptr);
+    void ship(Packet_ptr, addr next_hop = IP6::ADDR_ANY, Conntrack<IP6>::Entry_ptr ct = nullptr);
 
     /**
      * \brief

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define IP6_DEBUG 1
+#define IP6_DEBUG 1
 #ifdef IP6_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -153,10 +153,10 @@ namespace net
 
     /* PREROUTING */
     // Track incoming packet if conntrack is active
-    Conntrack::Entry_ptr ct = nullptr;
+    Conntrack<IP6>::Entry_ptr ct = nullptr;
 
 #if 0
-    Conntrack::Entry_ptr ct = (stack_.conntrack())
+    Conntrack<IP6>::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
@@ -252,10 +252,10 @@ namespace net
 
     packet->make_flight_ready();
 
-    Conntrack::Entry_ptr ct = nullptr;
+    Conntrack<IP6>::Entry_ptr ct = nullptr;
 #if 0
     /* OUTPUT */
-    Conntrack::Entry_ptr ct =
+    Conntrack<IP6>::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
@@ -271,7 +271,7 @@ namespace net
     ship(std::move(packet), IP6::ADDR_ANY, ct);
   }
 
-  void IP6::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
+  void IP6::ship(Packet_ptr pckt, addr next_hop, Conntrack<IP6>::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
 

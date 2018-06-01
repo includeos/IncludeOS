@@ -236,7 +236,7 @@ void Inet::network_config6(IP6::addr addr6,
   configured_handlers_.clear();
 }
 
-void Inet::enable_conntrack(std::shared_ptr<Conntrack> ct)
+void Inet::enable_conntrack(std::shared_ptr<Conntrack<IP4>> ct)
 {
   Expects(conntrack_ == nullptr && "Conntrack is already set");
   conntrack_ = ct;
