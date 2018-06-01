@@ -48,7 +48,8 @@ extern uintptr_t _TEXT_START_;
 extern uintptr_t _LOAD_START_;
 extern uintptr_t _ELF_END_;
 
-// Initialize static OS data members
+bool __libc_initialized = false;
+
 bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 bool  OS::m_is_live_updated     = false;
@@ -180,7 +181,6 @@ __attribute__((weak))
 bool os_enable_boot_logging = false;
 __attribute__((weak))
 bool os_default_stdout = false;
-extern bool __libc_initialized;
 
 void OS::print(const char* str, const size_t len)
 {

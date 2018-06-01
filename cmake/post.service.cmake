@@ -450,6 +450,9 @@ endif()
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
   libos
+  libplatform
+  libarch
+  
   ${LIBR_CMAKE_NAMES}
   libos
   libbotan

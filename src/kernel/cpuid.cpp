@@ -211,8 +211,7 @@ namespace
       case Feature::BMI1:         return FeatureInfo { 7, 0, Register::ECX, 1u <<  3 }; // BMI1
       case Feature::BMI2:         return FeatureInfo { 7, 0, Register::ECX, 1u <<  8 }; // BMI2
       case Feature::LZCNT:        return FeatureInfo { 7, 0, Register::ECX, 1u <<  5 }; // LZCNT
-
-
+      default: throw std::out_of_range("Unimplemented CPU feature encountered");
     }
   }
 
@@ -308,6 +307,7 @@ bool CPUID::has_feature(Feature f)
     case Register::ECX: return (cpuid_result.ECX & feature_info.bitmask) != 0;
     case Register::EDX: return (cpuid_result.EDX & feature_info.bitmask) != 0;
   }
+  return false;
 }
 
 #define KVM_CPUID_SIGNATURE       0x40000000

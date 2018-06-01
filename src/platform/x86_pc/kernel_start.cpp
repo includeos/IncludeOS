@@ -61,7 +61,6 @@ uint32_t __grub_magic = 0xc001;
 uint32_t __grub_addr  = 0x7001;
 
 static volatile int __global_ctors_ok = 0;
-bool __libc_initialized = false;
 
 void _init_bss()
 {
@@ -77,6 +76,7 @@ static void global_ctor_test(){
 int kernel_main(int, char * *, char * *) {
   PRATTLE("<kernel_main> libc initialization complete \n");
   Expects(__global_ctors_ok == 42);
+  extern bool __libc_initialized;
   __libc_initialized = true;
 
   Expects(__tl1__ == 42);
