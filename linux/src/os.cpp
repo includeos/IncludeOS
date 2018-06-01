@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <malloc.h> // mallinfo()
 #include <sched.h>
-bool __libc_initialized = true;
+extern bool __libc_initialized;
 
 void OS::event_loop()
 {
@@ -83,6 +83,7 @@ static void stop_timers() {}
 #include <statman>
 void OS::start(char* cmdline, uintptr_t)
 {
+  __libc_initialized = true;
   // statman
   static char statman_data[1 << 16];
   Statman::get().init((uintptr_t) statman_data, sizeof(statman_data));
