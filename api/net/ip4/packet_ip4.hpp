@@ -223,7 +223,7 @@ namespace net {
     void init(Protocol proto = Protocol::HOPOPT) noexcept {
       Expects(size() == 0);
       auto& hdr = ip_header();
-      std::memset(&ip_header(), 0, sizeof(ip4::Header));
+      hdr = {};
       hdr.version_ihl    = 0x45;
       //hdr.ds_ecn         = 0;
       //hdr.id             = 0;
