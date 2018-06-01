@@ -1,10 +1,10 @@
 #! /bin/bash
-source_net=10.0.0.0/24
+source_net=fe80:0:0:0:e823:fcff:fef4:0/112
 source_bridge=bridge43
 
-dest_net=10.42.42.0/24
+dest_net=fe80:0:0:0:abcd:abcd:1234:0/112
 dest_bridge=bridge44
-dest_gateway=10.42.42.2
+dest_gateway=fe80:0:0:0:abcd:abcd:1234:8367
 
 
 export NSNAME="server1"
@@ -32,7 +32,7 @@ setup() {
   sudo ip link set veth_dest netns $NSNAME
 
   # Bring up destination end, with IP, inside namespace
-  server1 ip addr add $dest_gateway/24 dev veth_dest
+  server1 ip -6 addr add $dest_gateway dev veth_dest
   server1 ip link set veth_dest up
   server1 ip link set lo up
 
@@ -44,10 +44,10 @@ setup() {
   sudo brctl addif $dest_bridge veth_src
 
   # Route all traffic to the isolated network via bridge43
-  sudo ip route add $dest_net dev $source_bridge
+  sudo ip -6 route add $dest_net dev $source_bridge
 
   # Route all traffic from server1 back to root namespace, via veth_dest
-  server1 sudo ip route add $source_net via $dest_gateway
+  server1 ip -6 route add $source_net dev veth_dest
 
 }
 
@@ -58,7 +58,7 @@ undo(){
   echo ">>> Deleting namespace and veth pair"
   sudo ip netns del $NSNAME
   echo ">>> Deleting route to namespace"
-  sudo ip route del $dest_net dev $source_bridge
+  sudo ip -6 route del $dest_net dev $source_bridge
 }
 
 
