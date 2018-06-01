@@ -32,9 +32,6 @@ extern "C" {
 
 uintptr_t _multiboot_free_begin(uintptr_t boot_addr);
 uintptr_t _multiboot_memory_end(uintptr_t boot_addr);
-
-
-bool __libc_initialized = true;
 extern bool os_default_stdout;
 
 extern "C"
