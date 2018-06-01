@@ -29,7 +29,7 @@ namespace net
   /** IPv6 packet. */
   class PacketIP6 : public Packet {
   public:
-    static constexpr int DEFAULT_TTL = 64;
+    static constexpr int DEFAULT_HOP_LIMIT = 64;
     using Span = gsl::span<Byte>;
     using Cspan = gsl::span<const Byte>;
 
@@ -158,7 +158,7 @@ namespace net
       Expects(size() == 0);
       auto& hdr = ip6_header();
       hdr = {};
-      hdr.hop_limit   = DEFAULT_TTL;
+      hdr.hop_limit   = DEFAULT_HOP_LIMIT;
       hdr.next_header = static_cast<uint8_t>(proto);
       increment_data_end(IP6_HEADER_LEN);
     }
