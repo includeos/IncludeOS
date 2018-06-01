@@ -104,7 +104,8 @@ void OS::start(char* cmdline, uintptr_t)
 // stdout
 void OS::default_stdout(const char* text, size_t len)
 {
-  write(STDOUT_FILENO, text, len);
+  ssize_t bytes = write(STDOUT_FILENO, text, len);
+  assert(bytes == (ssize_t) len);
 }
 
 // system_log has no place on Linux because stdout goes --> pipe
