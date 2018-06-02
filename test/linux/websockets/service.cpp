@@ -7,7 +7,7 @@
 
 // configuration
 static const bool ENABLE_TLS    = true;
-static const bool USE_BOTAN_TLS = true;
+static const bool USE_BOTAN_TLS = false;
 //static_assert(SMP_MAX_CORES > 1 || TCP_OVER_SMP == false, "SMP must be enabled");
 
 struct alignas(SMP_ALIGN) HTTP_server
@@ -131,7 +131,7 @@ void Service::start()
 
   // Read-only filesystem
   fs::memdisk().init_fs(
-  [] (auto err, auto&) {
+  [] (fs::error_t err, fs::File_system&) {
     assert(!err);
   });
 

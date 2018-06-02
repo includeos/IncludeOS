@@ -3,12 +3,13 @@
 set -e
 
 export GPROF="OFF"
+export DBG="OFF"
 
-export num_jobs=${num_jobs:--j4}
+export num_jobs=${num_jobs:--j32}
 
 function make_linux(){
   pushd $INCLUDEOS_SRC/linux/build
-  cmake -DGPROF=$GPROF ..
+  cmake -DGPROF=$GPROF -DDEBUGGING=$DBG ..
   make $num_jobs install
   popd
 }
@@ -16,7 +17,7 @@ function make_linux(){
 function make_service(){
   mkdir -p build
   pushd build
-  cmake -DGPROF=$GPROF ..
+  cmake -DGPROF=$GPROF -DDEBUGGING=$DBG ..
   make $num_jobs
   popd
 }
