@@ -28,6 +28,11 @@
 
 namespace net {
 
+
+template Conntrack<IP4>::Entry* Conntrack<IP4>::simple_track_in(Quadruple q, const Protocol proto);
+template Conntrack<IP4>::Entry* Conntrack<IP4>::confirm(const IP4::IP_packet& pkt);
+template Conntrack<IP4>::Entry* Conntrack<IP4>::confirm(Quadruple quad, const Protocol proto);
+
 std::string proto_str(const Protocol proto)
 {
   switch(proto) {
@@ -422,6 +427,5 @@ void Conntrack<IPV>::serialize_to(std::vector<char>& buf) const
   if(unserialized > 0)
     INFO("Conntrack", "%i entries not serialized\n", unserialized);
 }
-
 
 }
