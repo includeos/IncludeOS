@@ -25,6 +25,11 @@
 
 namespace net
 {
+  enum {
+      OPT_HOP = 1,
+      OPT_V6,
+      OPT_MAX
+  };
 
   /** IPv6 packet. */
   class PacketIP6 : public Packet {
@@ -71,6 +76,10 @@ namespace net
     /** Get next header */
     Protocol next_protocol() const noexcept
     { return static_cast<Protocol>(ip6_header().next_header); }
+
+    /** Protocol after Extension headers */
+    Protocol ip_protocol() const noexcept
+    { return ext_hdr_.next_proto(); }
 
     /** Get next header */
     uint8_t next_header() const noexcept
@@ -171,12 +180,12 @@ namespace net
       return {ip_data_ptr(), ip_data_length()};
     }
 
-    void update_extension_header_len(uint8_t len) {
-        extension_header_len_ += len;
+    void parse_ext_header() {
+        ext_hdr_.parse(*this);
     }
 
     uint16_t get_extension_header_len() const {
-        return extension_header_len_;
+        return ext_hdr_.extension_header_len();
     }
 
     /**
@@ -198,14 +207,56 @@ namespace net
       return layer_begin() + IP6_HEADER_LEN + get_extension_header_len();
     }
 
-
-
   private:
 
     const ip6::Header& ip6_header() const noexcept
     { return *reinterpret_cast<const ip6::Header*>(layer_begin()); }
 
-    uint16_t extension_header_len_;
+    class ExtensionHeader {
+    private:
+        ip6::extension_header   *header_;
+        uint16_t                extension_header_len_;
+        Protocol                next_proto_;
+        std::array<struct ip6::extension_header*, OPT_MAX> opt_array;
+
+    public:
+
+        void parse(PacketIP6& pckt)
+        {
+            next_proto_ = pckt.next_protocol();
+            auto reader = pckt.layer_begin() + IP6_HEADER_LEN;
+            header_ = reinterpret_cast<ip6::extension_header *>(reader);
+            ip6::extension_header& ext = *(ip6::extension_header*)reader;
+            uint16_t ext_len;
+
+            if (next_proto_ != Protocol::HOPOPT and
+                next_proto_ != Protocol::OPTSV6) {
+                header_ = nullptr;
+                extension_header_len_ = 0;
+                opt_array = {};
+            } else {
+                while (next_proto_ != Protocol::IPv6_NONXT) {
+                    if (next_proto_ == Protocol::HOPOPT) {
+                    } else if (next_proto_ == Protocol::OPTSV6) {
+                    } else {
+                        break;
+                    }
+                    ext = *(ip6::extension_header*)reader;
+                    ext_len = ext.size();
+                    reader += ext_len;
+                    extension_header_len_ += ext_len;
+                    next_proto_ = ext.next();
+                }
+            }
+        }
+
+        uint16_t extension_header_len() const noexcept
+        { return extension_header_len_; }
+
+        Protocol next_proto() const noexcept
+        { return next_proto_; }
+    };
+    ExtensionHeader ext_hdr_;
 
   }; //< class PacketIP6
 } //< namespace net

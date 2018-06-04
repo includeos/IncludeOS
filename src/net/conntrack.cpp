@@ -442,6 +442,7 @@ template int Conntrack<IP4>::deserialize_from(void* addr);
 template void Conntrack<IP4>::serialize_to(std::vector<char>& buf) const;
 
 // IP6 template initialisation
+#if 0
 template Conntrack<IP6>::Entry* Conntrack<IP6>::simple_track_in(Quadruple q, const Protocol proto);
 template Conntrack<IP6>::Entry* Conntrack<IP6>::get(const IP6::IP_packet& pkt) const;
 template Conntrack<IP6>::Entry* Conntrack<IP6>::get(const Quadruple& quad, const Protocol proto) const;
@@ -458,4 +459,5 @@ template void Conntrack<IP6>::remove_expired();
 template void Conntrack<IP6>::Entry::serialize_to(std::vector<char>& buf) const;
 template int Conntrack<IP6>::deserialize_from(void* addr);
 template void Conntrack<IP6>::serialize_to(std::vector<char>& buf) const;
+#endif
 }
