@@ -87,6 +87,13 @@ union Addr {
     memcpy(part, macaddr, PARTS_LEN);
   }
 
+  Addr(uint8_t *addr) noexcept
+  {
+      if (addr) {
+        memcpy(part, addr, PARTS_LEN);
+      }
+  }
+
   /**
    * Assignment operator
    *

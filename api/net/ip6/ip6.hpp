@@ -83,12 +83,9 @@ namespace net
     void set_packet_forwarding(Forward_delg fwd)
     { forward_packet_ = fwd; }
 
-    /** Set linklayer out (downstream) */
-    void set_ndp_out(downstream_ndp s)
+    /** Set linklayer out (downstream) via ndp */
+    void set_linklayer_out(downstream_ndp s)
     { ndp_out_ = s; }
-
-    void set_linklayer_out(downstream_link link)
-    { linklayer_out_ = link; }
 
     /** Upstream: Input from link layer */
     void receive(Packet_ptr, const bool link_bcast);
@@ -198,7 +195,6 @@ namespace net
 
     /** Downstream delegates */
     downstream_ndp ndp_out_ = nullptr;
-    downstream_link linklayer_out_ = nullptr;
 
     /** Packet forwarding  */
     Forward_delg forward_packet_;

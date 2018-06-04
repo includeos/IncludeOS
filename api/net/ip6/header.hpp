@@ -22,6 +22,7 @@
 #include <net/ip6/addr.hpp>
 #include <net/inet_common.hpp>
 #define  IP6_HEADER_LEN 40
+#define  IP6_ADDR_BYTES 16
 
 namespace net {
 namespace ip6 {

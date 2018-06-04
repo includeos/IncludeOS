@@ -111,13 +111,13 @@ namespace net {
 
       if (entry->second.mac() != mac) {
         cache_.erase(entry);
-        cache_[ip] = mac;
+        cache_.emplace(ip, mac);
       } else {
         entry->second.update();
       }
 
     } else {
-      cache_[ip] = mac; // Insert
+      cache_.emplace(ip, mac); // Insert
       if (UNLIKELY(not flush_timer_.is_running())) {
         flush_timer_.start(flush_interval_);
       }
