@@ -242,6 +242,12 @@ void Inet::enable_conntrack(std::shared_ptr<Conntrack<IP4>> ct)
   conntrack_ = ct;
 }
 
+void Inet::enable_conntrack(std::shared_ptr<Conntrack<IP6>> ct)
+{
+  Expects(conntrack6_ == nullptr && "Conntrack is already set");
+  conntrack6_ = ct;
+}
+
 void Inet::process_sendq(size_t packets) {
 
   ////////////////////////////////////////////

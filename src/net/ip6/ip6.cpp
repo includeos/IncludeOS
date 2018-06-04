@@ -153,17 +153,13 @@ namespace net
 
     /* PREROUTING */
     // Track incoming packet if conntrack is active
-    Conntrack<IP6>::Entry_ptr ct = nullptr;
-
-#if 0
-    Conntrack<IP6>::Entry_ptr ct = (stack_.conntrack())
-      ? stack_.conntrack()->in(*packet) : nullptr;
+    Conntrack<IP6>::Entry_ptr ct = (stack_.conntrack6())
+      ? stack_.conntrack6()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     // Drop / forward if my ip address doesn't match dest.
     if(not is_for_me(packet->ip_dst()))
@@ -187,20 +183,18 @@ namespace net
 
     /* INPUT */
     // Confirm incoming packet if conntrack is active
-#if 0
-    auto& conntrack = stack_.conntrack();
+    auto& conntrack = stack_.conntrack6();
     if(conntrack) {
       ct = (ct != nullptr) ?
         conntrack->confirm(ct->second, ct->proto) : conntrack->confirm(*packet);
     }
-    if(stack_.conntrack())
-      stack_.conntrack()->confirm(*packet); // No need to set ct again
+    if(stack_.conntrack6())
+      stack_.conntrack6()->confirm(*packet); // No need to set ct again
     res = input_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     auto next_proto = packet->next_protocol();
     // Pass packet to it's respective protocol controller
@@ -252,17 +246,14 @@ namespace net
 
     packet->make_flight_ready();
 
-    Conntrack<IP6>::Entry_ptr ct = nullptr;
-#if 0
     /* OUTPUT */
     Conntrack<IP6>::Entry_ptr ct =
-      (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
+      (stack_.conntrack6()) ? stack_.conntrack6()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     if (forward_packet_) {
       forward_packet_(std::move(packet), stack_, ct);
