@@ -60,7 +60,7 @@ namespace net {
     using on_configured_func = delegate<void(Stack&)>;
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
 
-    using Port_utils  = std::map<IP_addr, Port_util>;
+    using Port_utils  = std::map<net::Addr, Port_util>;
     using Vip4_list = std::vector<IP4::addr>;
     using Vip6_list = std::vector<IP6::addr>;
 
@@ -360,14 +360,14 @@ namespace net {
     { return vip6s_; }
 
     /** Check if IP4 address is virtual loopback */
-    bool is_loopback(IP4::addr a)
+    bool is_loopback(IP4::addr a) const
     {
       return a.is_loopback()
         or std::find( vip4s_.begin(), vip4s_.end(), a) != vip4s_.end();
     }
 
     /** Check if IP6 address is virtual loopback */
-    bool is_loopback(IP6::addr a)
+    bool is_loopback(IP6::addr a) const
     {
       return a.is_loopback()
         or std::find( vip6s_.begin(), vip6s_.end(), a) != vip6s_.end();
@@ -429,10 +429,13 @@ namespace net {
       return ip6_addr();
     }
 
-    bool is_valid_source(IP4::addr src)
+    bool is_valid_source(const Addr& addr) const
+    { return addr.is_v4() ? is_valid_source4(addr.v4()) : is_valid_source6(addr.v6()); }
+
+    bool is_valid_source4(IP4::addr src) const
     { return src == ip_addr() or is_loopback(src); }
 
-    bool is_valid_source(IP6::addr src)
+    bool is_valid_source6(const IP6::addr& src) const
     { return src == ip6_addr() or is_loopback(src) or src.is_multicast(); }
 
     std::shared_ptr<Conntrack>& conntrack()

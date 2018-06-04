@@ -68,7 +68,6 @@ namespace net {
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using PMTU = uint16_t;
-    using Port_utils  = std::map<IP4::addr, Port_util>;
     using resolve_func = delegate<void(IP4::addr, const Error&)>;
 
     /** Initialize. Sets a dummy linklayer out. */

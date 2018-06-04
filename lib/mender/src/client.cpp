@@ -28,7 +28,7 @@ namespace mender {
     : am_{std::forward<Auth_manager>(man)},
       device_{std::forward<Device>(dev)},
       server_(server),
-      cached_{0, port},
+      cached_{net::Addr{}, port},
       httpclient_{std::make_unique<http::Basic_client>(tcp)},
       state_(&state::Init::instance()),
       context_({this, &Client::run_state}),

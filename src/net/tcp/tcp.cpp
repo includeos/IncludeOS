@@ -82,17 +82,6 @@ void TCP::smp_process_writeq(size_t packets)
   SMP::signal(this->cpu_id);
 }
 
-/*
-  Note: There is different approaches to how to handle listeners & connections.
-  Need to discuss and decide for the best one.
-
-  Best solution(?):
-  Preallocate a pool with listening connections.
-  When threshold is reach, remove/add new ones, similar to TCP window.
-
-  Current solution:
-  Simple.
-*/
 Listener& TCP::listen(Socket socket, ConnectCallback cb)
 {
   bind(socket);
@@ -104,7 +93,26 @@ Listener& TCP::listen(Socket socket, ConnectCallback cb)
   return *listener;
 }
 
+Listener& TCP::listen(const tcp::port_t port, ConnectCallback cb, const bool ipv6_only)
+{
+  Socket socket{ip6::Addr::addr_any, port};
+  bind(socket);
+
+  auto ptr = std::make_shared<tcp::Listener>(*this, socket, std::move(cb), ipv6_only);
+  auto& listener = listeners_.emplace(socket, ptr).first->second;
+
+  if(not ipv6_only)
+  {
+    Socket ip4_sock{ip4::Addr::addr_any, port};
+    bind(ip4_sock);
+    Ensures(listeners_.emplace(ip4_sock, ptr).second && "Could not insert IPv4 listener");
+  }
+
+  return *listener;
+}
+
 bool TCP::close(Socket socket) {
+  //TODO: check ip6 any addr
   auto it = listeners_.find(socket);
   if(it != listeners_.end())
   {
@@ -177,7 +185,7 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
   }
 
   const auto dest = packet->destination();
-  debug2("<TCP::receive> TCP Packet received - Source: %s, Destination: %s \n",
+  debug("<TCP::receive> TCP Packet received - Source: %s, Destination: %s \n",
         packet->source().to_string().c_str(), dest.to_string().c_str());
 
   // Validate checksum
@@ -216,7 +224,7 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
   // Listener found => Create Listener
   if (listener_it != listeners_.end()) {
     auto& listener = listener_it->second;
-    debug("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
+    debug2("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
     listener->segment_arrived(std::move(packet));
     debug2("<TCP::receive> Listener done with packet\n");
     return;
@@ -234,8 +242,8 @@ string TCP::to_string() const {
   // Write all connections in a cute list.
   std::string str = "LISTENERS:\nLocal\tQueued\n";
   for(auto& listen_it : listeners_) {
-    auto& l = listen_it.second;
-    str += l->local().to_string() + "\t" + std::to_string(l->syn_queue_size()) + "\n";
+    auto& l = listen_it;
+    str += l.first.to_string() + "\t" + std::to_string(l.second->syn_queue_size()) + "\n";
   }
   str +=
   "\nCONNECTIONS:\nProto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
@@ -380,8 +388,8 @@ bool TCP::is_bound(const Socket socket) const
 {
   auto it = ports_.find(socket.address());
 
-  if(it == ports_.cend() and socket.address() != 0)
-    it = ports_.find({0});
+  if(it == ports_.cend() and not socket.address().is_any())
+    it = ports_.find(socket.address().any_addr());
 
   if(it != ports_.cend())
     return it->second.is_bound(socket.port());
@@ -502,8 +510,35 @@ tcp::Address TCP::address() const noexcept
 IP4& TCP::network() const
 { return inet_.ip_obj(); }
 
-bool TCP::is_valid_source(const tcp::Address addr) const noexcept
-{ return addr == 0 or inet_.is_valid_source(addr); }
+bool TCP::is_valid_source(const tcp::Address& addr) const noexcept
+{ return addr.is_any() or inet_.is_valid_source(addr); }
 
 void TCP::kick()
 { process_writeq(inet_.transmit_queue_available()); }
+
+TCP::Listeners::iterator TCP::find_listener(const Socket& socket)
+{
+  Listeners::iterator it = listeners_.find(socket);
+  if(it != listeners_.end())
+    return it;
+
+  if(not socket.address().is_any())
+    it = listeners_.find({socket.address().any_addr(), socket.port()});
+
+  return it;
+}
+
+TCP::Listeners::const_iterator TCP::cfind_listener(const Socket& socket) const
+{
+  Listeners::const_iterator it = listeners_.find(socket);
+  if(it != listeners_.cend())
+    return it;
+
+  if(not socket.address().is_any())
+    it = listeners_.find({socket.address().any_addr(), socket.port()});
+
+  return it;
+}
+
+
+

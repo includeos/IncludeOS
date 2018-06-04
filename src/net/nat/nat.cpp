@@ -213,7 +213,7 @@ void udp_snat(PacketIP4& p, Socket new_sock)
   // Recalc checksum
   recalc_udp_sock(pkt, old_sock, new_sock);
   // Set the value
-  pkt.set_ip_src(new_sock.address());
+  pkt.set_ip_src(new_sock.address().v4());
   pkt.set_src_port(new_sock.port());
 }
 
@@ -248,7 +248,7 @@ void udp_dnat(PacketIP4& p, Socket new_sock)
   recalc_udp_sock(pkt, old_sock, new_sock);
 
   // change destination
-  pkt.set_ip_dst(new_sock.address());
+  pkt.set_ip_dst(new_sock.address().v4());
   pkt.set_dst_port(new_sock.port());
 }
 
@@ -296,8 +296,8 @@ inline void recalc_ip_checksum(PacketIP4& pkt, ip4::Addr old_addr, ip4::Addr new
 
 inline void recalc_tcp_sock(tcp::Packet& pkt, Socket osock, Socket nsock)
 {
-  auto old_addr = osock.address();
-  auto new_addr = nsock.address();
+  auto old_addr = osock.address().v4();
+  auto new_addr = nsock.address().v4();
 
   // recalc IP checksum
   recalc_ip_checksum(pkt, old_addr, new_addr);
@@ -336,8 +336,8 @@ inline void recalc_tcp_port(tcp::Packet& pkt, uint16_t old_port, uint16_t new_po
 
 inline void recalc_udp_sock(PacketUDP& pkt, Socket osock, Socket nsock)
 {
-  auto old_addr = osock.address();
-  auto new_addr = nsock.address();
+  auto old_addr = osock.address().v4();
+  auto new_addr = nsock.address().v4();
 
   // recalc IP checksum
   recalc_ip_checksum(pkt, old_addr, new_addr);

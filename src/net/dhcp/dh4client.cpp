@@ -142,7 +142,7 @@ namespace net {
     /// broadcast our DHCP plea as 0.0.0.0:67
     socket->bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, buffer, sizeof(buffer));
     socket->on_read(
-    [this] (IP4::addr addr, UDP::port_t port,
+    [this] (net::Addr addr, UDP::port_t port,
                      const char* data, size_t len)
     {
       if (port == DHCP_SERVER_PORT)
@@ -292,7 +292,7 @@ namespace net {
     assert(this->socket);
     // set our onRead function to point to a hopeful DHCP ACK!
     socket->on_read(
-    [this] (IP4::addr addr, UDP::port_t port,
+    [this] (net::Addr addr, UDP::port_t port,
           const char* data, size_t len)
     {
       if (port == DHCP_SERVER_PORT)

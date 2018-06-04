@@ -43,12 +43,12 @@ namespace net {
   /** Basic UDP support. @todo Implement UDP sockets.  */
   class UDP {
   public:
-    using addr_t = IP4::addr;
+    using addr_t = net::Addr;
     using port_t = uint16_t;
 
     using Packet_ptr    = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
     using Stack         = IP4::Stack;
-    using Port_utils    = IP4::Port_utils;
+    using Port_utils    = std::map<net::Addr, Port_util>;
 
     using Sockets       = std::map<Socket, UDPSocket>;
 
@@ -130,7 +130,7 @@ namespace net {
 
     //! returns a new UDP socket bound to a random port
     UDPSocket& bind();
-    UDPSocket& bind(const ip4::Addr addr);
+    UDPSocket& bind(const addr_t addr);
 
     bool is_bound(const Socket) const;
     bool is_bound(const port_t port) const;

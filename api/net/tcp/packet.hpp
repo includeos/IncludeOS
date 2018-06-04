@@ -134,13 +134,13 @@ public:
 
 
   Packet& set_source(const Socket& src) {
-    set_ip_src(src.address()); // PacketIP4::set_src
+    set_ip_src(src.address().v4()); // PacketIP4::set_src
     set_src_port(src.port());
     return *this;
   }
 
   Packet& set_destination(const Socket& dest) {
-    set_ip_dst(dest.address()); // PacketIP4::set_dst
+    set_ip_dst(dest.address().v4()); // PacketIP4::set_dst
     set_dst_port(dest.port());
     return *this;
   }

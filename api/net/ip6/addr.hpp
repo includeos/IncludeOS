@@ -40,7 +40,7 @@ struct Invalid_Address : public std::runtime_error {
  * IPv6 Address representation
  */
 struct Addr {
-  Addr()
+  constexpr Addr() noexcept
     : i32{{0, 0, 0, 0}} {}
 
   Addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2,
@@ -89,6 +89,7 @@ struct Addr {
 
   // unspecified link-local Address
   static const Addr link_unspecified;
+  static const Addr addr_any;
 
   // RFC 4291  2.4.6:
   // Link-Local Addresses are designed to be used for Addressing on a
@@ -226,6 +227,19 @@ struct Addr {
     std::array<uint16_t, 8> i16;
   };
 } __attribute__((packed)); //< struct Addr
+static_assert(sizeof(Addr) == 16);
+
 } //< namespace ip6
 } //< namespace net
+
+// Allow an IPv6 address to be used as key in e.g. std::unordered_map
+namespace std {
+  template<>
+  struct hash<net::ip6::Addr> {
+    size_t operator()(const net::ip6::Addr& addr) const {
+      // This is temporary. Use a proper hash
+      return std::hash<uint64_t>{}(addr.i64[0] + addr.i64[1]);
+    }
+  };
+} //< namespace std
 #endif

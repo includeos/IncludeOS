@@ -19,7 +19,7 @@
 #ifndef NET_TCP_COMMON_HPP
 #define NET_TCP_COMMON_HPP
 
-#include <net/ip4/addr.hpp>
+#include <net/addr.hpp>
 #include <net/packet.hpp>
 #include <net/checksum.hpp>
 #include <chrono>
@@ -48,7 +48,7 @@ namespace net {
     static const std::chrono::seconds       default_msl {30};
     static const std::chrono::milliseconds  default_dack_timeout {40};
 
-    using Address = ip4::Addr;
+    using Address = net::Addr;
 
     /** A port */
     using port_t = uint16_t;

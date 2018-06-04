@@ -49,11 +49,13 @@ namespace net {
 
     using Packet_reroute_func = delegate<void(tcp::Packet_ptr)>;
 
+    using Port_utils = std::map<net::Addr, Port_util>;
+
     friend class tcp::Connection;
     friend class tcp::Listener;
 
   private:
-    using Listeners       = std::map<Socket, std::unique_ptr<tcp::Listener>>;
+    using Listeners       = std::map<Socket, std::shared_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
 
   public:
@@ -77,8 +79,8 @@ namespace net {
      *
      * @return     A TCP Listener
      */
-    tcp::Listener& listen(const tcp::port_t port, ConnectCallback cb = nullptr)
-    { return listen({0, port}, std::move(cb)); }
+    tcp::Listener& listen(const tcp::port_t port, ConnectCallback cb = nullptr,
+                          const bool ipv6_only = false);
 
     /**
      * @brief      Bind to a socket to start listening for new connections
@@ -477,7 +479,7 @@ namespace net {
     Listeners     listeners_;
     Connections   connections_;
 
-    IP4::Port_utils& ports_;
+    Port_utils& ports_;
 
     downstream  _network_layer_out;
 
@@ -614,7 +616,7 @@ namespace net {
      *
      * @return     True if valid source, False otherwise.
      */
-    bool is_valid_source(const tcp::Address addr) const noexcept;
+    bool is_valid_source(const tcp::Address& addr) const noexcept;
 
     /**
      * @brief      Try to find the listener bound to socket.
@@ -624,13 +626,7 @@ namespace net {
      *
      * @return     A listener iterator
      */
-    Listeners::iterator find_listener(const Socket socket)
-    {
-      Listeners::iterator it = listeners_.find(socket);
-      if(it == listeners_.end() and socket.address() != 0)
-        it = listeners_.find({0, socket.port()});
-      return it;
-    }
+    Listeners::iterator find_listener(const Socket& socket);
 
     /**
      * @brief      Try to find the listener bound to socket.
@@ -640,13 +636,7 @@ namespace net {
      *
      * @return     A listener const iterator
      */
-    Listeners::const_iterator cfind_listener(const Socket socket) const
-    {
-      Listeners::const_iterator it = listeners_.find(socket);
-      if(it == listeners_.cend() and socket.address() != 0)
-        it = listeners_.find({0, socket.port()});
-      return it;
-    }
+    Listeners::const_iterator cfind_listener(const Socket& socket) const;
 
     /**
      * @brief      Adds a connection.

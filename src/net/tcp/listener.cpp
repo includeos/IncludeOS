@@ -22,11 +22,12 @@
 using namespace net;
 using namespace tcp;
 
-Listener::Listener(TCP& host, Socket local, ConnectCallback cb)
+Listener::Listener(TCP& host, Socket local, ConnectCallback cb, const bool ipv6_only)
   : host_(host), local_(local), syn_queue_(),
     on_accept_({this, &Listener::default_on_accept}),
     on_connect_{std::move(cb)},
-    _on_close_({host_, &TCP::close_listener})
+    _on_close_({host_, &TCP::close_listener}),
+    ipv6_only_{ipv6_only}
 {
 }
 
@@ -152,5 +153,6 @@ std::string Listener::to_string() const {
   // add syn queue
   for(auto& conn : syn_queue_)
       str += "\n\t" + conn->to_string();
+
   return str;
 }
