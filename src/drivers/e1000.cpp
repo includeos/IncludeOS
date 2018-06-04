@@ -137,7 +137,7 @@ e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
   }
 
   // shared-memory & I/O address
-  this->shm_base = d.get_bar(0);
+  this->shm_base = d.get_bar(0).start;
   this->use_mmio = this->shm_base > 0xFFFF;
   if (this->use_mmio == false) {
       this->io_base = d.iobase();

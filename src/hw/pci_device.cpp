@@ -67,14 +67,6 @@ namespace hw {
     return size;
   }
 
-  uint32_t PCI_Device::iobase() const noexcept {
-
-    for (auto& res : resources) {
-      if (res.type == PCI::RES_IO) return res.start;
-    }
-    assert(0 && "No I/O resource present on device");
-  }
-
   void PCI_Device::probe_resources() noexcept
   {
     //Find resources on this PCI device (scan the BAR's)
@@ -100,19 +92,17 @@ namespace hw {
         // Resource type IO
         unmasked_val = value & PCI::BASE_ADDRESS_IO_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_IO_MASK & 0xFFFF);
-
-        resources.emplace_back(PCI::RES_IO, unmasked_val, pci__size);
+        this->m_iobase = bar;
 
       } else {
         // Resource type Mem
         unmasked_val = value & PCI::BASE_ADDRESS_MEM_MASK;
         pci__size = pci_size(len, PCI::BASE_ADDRESS_MEM_MASK);
-
-        resources.emplace_back(PCI::RES_MEM, unmasked_val, pci__size);
       }
+      this->m_resources.at(bar) = {unmasked_val, pci__size};
 
-      INFO2("|  |- BAR %s @ 0x%x, size %i ",
-            value & 1 ? "I/O" : "Mem", unmasked_val, pci__size);
+      INFO2("|  |- BAR%d %s @ 0x%x, size %i ", bar,
+            (value & 1 ? "I/O" : "Mem"), unmasked_val, pci__size);
     }
 
   }
@@ -138,6 +128,12 @@ namespace hw {
             PCI::vendor_str(vendor_id()),
             bridge_subclasses[devtype_.subclass < SS_BR ? devtype_.subclass : SS_BR-1],
             devtype_.subclass);
+      break;
+    case PCI::classcode::STORAGE:
+      INFO2("+--[ %s, %s (0x%x) ]",
+            PCI::classcode_str(devtype_.classcode),
+            PCI::vendor_str(vendor_id()),
+            product_id());
       break;
     case PCI::classcode::NIC:
       INFO2("+--[ %s, %s, %s (0x%x) ]",

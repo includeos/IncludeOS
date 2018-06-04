@@ -152,9 +152,9 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   }
 
   // dma areas
-  this->iobase = d.get_bar(PCI_BAR_VD);
+  this->iobase = d.get_bar(PCI_BAR_VD).start;
   assert(this->iobase);
-  this->ptbase = d.get_bar(PCI_BAR_PT);
+  this->ptbase = d.get_bar(PCI_BAR_PT).start;
   assert(this->ptbase);
 
   // verify and select version
