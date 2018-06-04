@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -176,7 +176,7 @@ namespace net
     }
 
     uint16_t get_extension_header_len() const {
-        return extension_header_len_;
+        return ext_hdr_.extension_header_len();
     }
 
     /**
@@ -198,14 +198,51 @@ namespace net
       return layer_begin() + IP6_HEADER_LEN + get_extension_header_len();
     }
 
-
-
   private:
 
     const ip6::Header& ip6_header() const noexcept
     { return *reinterpret_cast<const ip6::Header*>(layer_begin()); }
 
-    uint16_t extension_header_len_;
+    class ExtensionHeader {
+        private:
+        struct ExtensionHeader *header_;
+        uint16_t                extension_header_len_;
+        std::array<struct ExtensionHeader*, ND_OPT_ARRAY_MAX> opt_array;
+
+        public:
+        ExtensionHeader(Packet& icmp6) 
+        {
+            auto next_proto = icmp6.next_protocol();
+
+            if (next_proto != Protocol::HOPOPT or
+                next_proto != Protocol::OPTSV6) {
+                header_ = nullptr;
+                extension_header_len_ = 0;
+                opt_array = {};
+            } else {
+                auto reader = icmp6.layer_begin() + IP6_HEADER_LEN;
+                header_ = reinterpret_cast<struct ExtensionHeader*>(reader);
+                while (next_proto != Protocol::IPv6_NONXT) {
+                    if (next_proto == Protocol::HOPOPT) {
+                        PRINT("HOP extension header\n");
+                    } else if (next_proto == Protocol::OPTSV6) {
+                    } else {
+                        PRINT("Done parsing extension header, next proto: %d\n", next_proto);
+                        return next_proto;
+                    }
+                    ext = *(ip6::ExtensionHeader*)reader;
+                    ext_len = ext.size();
+                    reader += ext_len;
+                    extension_header_len_ += ext_len;
+                    next_proto = ext.next();
+                }
+            }
+        }
+
+        uint16_t extension_header_len()
+        { return extension_header_len_; }
+    };
+    ExtensionHeader ext_hdr_;
 
   }; //< class PacketIP6
 } //< namespace net
