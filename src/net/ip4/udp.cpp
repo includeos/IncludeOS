@@ -135,7 +135,7 @@ namespace net {
     return it.first->second;
   }
 
-  UDPSocket& UDP::bind(const ip4::Addr addr)
+  UDPSocket& UDP::bind(const addr_t addr)
   {
     if(UNLIKELY( not stack_.is_valid_source(addr) ))
       throw UDP_error{"Cannot bind to address: " + addr.to_string()};
@@ -290,8 +290,8 @@ namespace net {
 
       // Initialize UDP packet
       p2->init(l_port, d_port);
-      p2->set_ip_src(l_addr);
-      p2->set_ip_dst(d_addr);
+      p2->set_ip_src(l_addr.v4());
+      p2->set_ip_dst(d_addr.v4());
       p2->set_data_length(total);
 
       // fill buffer (at payload position)
@@ -315,7 +315,7 @@ namespace net {
     }
   }
 
-  ip4::Addr UDP::local_ip() const
+  UDP::addr_t UDP::local_ip() const
   { return stack_.ip_addr(); }
 
   UDPSocket& UDP::bind(port_t port)

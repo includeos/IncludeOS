@@ -388,7 +388,7 @@ long TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__rest
     auto* sin = (sockaddr_in*) addr;
     sin->sin_family      = AF_INET;
     sin->sin_port        = conn->remote().port();
-    sin->sin_addr.s_addr = conn->remote().address().whole;
+    sin->sin_addr.s_addr = conn->remote().address().v4().whole;
     *addr_len = sizeof(sockaddr_in);
   }
   // return socket

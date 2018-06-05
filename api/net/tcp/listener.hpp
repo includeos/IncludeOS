@@ -42,7 +42,8 @@ public:
 
 public:
 
-  Listener(TCP& host, Socket local, ConnectCallback cb = nullptr);
+  Listener(TCP& host, Socket local, ConnectCallback cb = nullptr,
+           const bool ipv6_only = false);
 
   Listener& on_accept(AcceptCallback cb)
   {
@@ -96,6 +97,7 @@ private:
   AcceptCallback  on_accept_;
   ConnectCallback on_connect_;
   CloseCallback   _on_close_;
+  const bool      ipv6_only_;
 
   bool default_on_accept(Socket);
 

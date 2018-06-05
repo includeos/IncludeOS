@@ -31,6 +31,7 @@
 
 namespace net {
 
+  const ip4::Addr ip4::Addr::addr_any{0};
   const IP4::addr IP4::ADDR_ANY(0);
   const IP4::addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
 
@@ -331,7 +332,7 @@ namespace net {
     if (UNLIKELY(not path_mtu_discovery_ or dest.address() == IP4::ADDR_ANY or (new_pmtu > 0 and new_pmtu < minimum_MTU())))
       return;
 
-    if (UNLIKELY(dest.address().is_multicast())) {
+    if (UNLIKELY(dest.address().v4().is_multicast())) {
       // TODO RFC4821 p. 12
 
     }
