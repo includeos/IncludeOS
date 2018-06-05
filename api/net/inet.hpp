@@ -453,7 +453,11 @@ namespace net {
     std::shared_ptr<Conntrack<IP4>>& conntrack()
     { return conntrack_; }
 
+    std::shared_ptr<Conntrack<IP6>>& conntrack6()
+    { return conntrack6_; }
+
     void enable_conntrack(std::shared_ptr<Conntrack<IP4>> ct);
+    void enable_conntrack(std::shared_ptr<Conntrack<IP6>> ct);
 
     Port_utils& tcp_ports()
     { return tcp_ports_; }
@@ -496,6 +500,7 @@ namespace net {
     Port_utils udp_ports_;
 
     std::shared_ptr<Conntrack<IP4>> conntrack_;
+    std::shared_ptr<Conntrack<IP6>> conntrack6_;
 
     // we need this to store the cache per-stack
     DNSClient dns_;

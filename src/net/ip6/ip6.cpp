@@ -90,30 +90,6 @@ namespace net
       or local_ip() == ADDR_ANY;
   }
 
-  Protocol IP6::ipv6_ext_header_receive(net::PacketIP6& packet)
-  {
-    auto reader = packet.layer_begin() + IP6_HEADER_LEN;
-    auto next_proto = packet.next_protocol();
-    ip6::ExtensionHeader& ext = *(ip6::ExtensionHeader*)reader;
-    uint8_t ext_len;
-
-    while (next_proto != Protocol::IPv6_NONXT) {
-        if (next_proto == Protocol::HOPOPT) {
-            PRINT("HOP extension header\n");
-        } else if (next_proto == Protocol::OPTSV6) {
-        } else {
-            PRINT("Done parsing extension header, next proto: %d\n", next_proto);
-            return next_proto;
-        }
-        ext = *(ip6::ExtensionHeader*)reader;
-        ext_len = ext.size();
-        reader += ext_len;
-        packet.update_extension_header_len(ext_len);
-        next_proto = ext.next();
-    }
-    return next_proto;
-  }
-
   void IP6::receive(Packet_ptr pckt, const bool link_bcast)
   {
     // Cast to IP6 Packet
@@ -152,13 +128,14 @@ namespace net
     packet = drop_invalid_in(std::move(packet));
     if (UNLIKELY(packet == nullptr)) return;
 
+    packet->parse_ext_header();
+
     /* PREROUTING */
     // Track incoming packet if conntrack is active
     Conntrack<IP6>::Entry_ptr ct = nullptr;
-
 #if 0
-    Conntrack<IP6>::Entry_ptr ct = (stack_.conntrack())
-      ? stack_.conntrack()->in(*packet) : nullptr;
+    Conntrack<IP6>::Entry_ptr ct = (stack_.conntrack6())
+      ? stack_.conntrack6()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
@@ -189,13 +166,13 @@ namespace net
     /* INPUT */
     // Confirm incoming packet if conntrack is active
 #if 0
-    auto& conntrack = stack_.conntrack();
+    auto& conntrack = stack_.conntrack6();
     if(conntrack) {
       ct = (ct != nullptr) ?
         conntrack->confirm(ct->second, ct->proto) : conntrack->confirm(*packet);
     }
-    if(stack_.conntrack())
-      stack_.conntrack()->confirm(*packet); // No need to set ct again
+    if(stack_.conntrack6())
+      stack_.conntrack6()->confirm(*packet); // No need to set ct again
     res = input_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
@@ -203,12 +180,7 @@ namespace net
     packet = res.release();
 #endif
 
-    auto next_proto = packet->next_protocol();
-    // Pass packet to it's respective protocol controller
-    if (packet->next_protocol() == Protocol::HOPOPT ||
-        packet->next_protocol() == Protocol::OPTSV6) {
-        next_proto = ipv6_ext_header_receive(*packet);
-    }
+    auto next_proto = packet->ip_protocol();
 
     switch (next_proto) {
     case Protocol::IPv6_NONXT:
@@ -253,11 +225,11 @@ namespace net
 
     packet->make_flight_ready();
 
+    /* OUTPUT */
     Conntrack<IP6>::Entry_ptr ct = nullptr;
 #if 0
-    /* OUTPUT */
     Conntrack<IP6>::Entry_ptr ct =
-      (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
+      (stack_.conntrack6()) ? stack_.conntrack6()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
