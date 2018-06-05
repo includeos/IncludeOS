@@ -17,8 +17,7 @@
 
 #include <hw/pci_device.hpp>
 #include <net/link_layer.hpp>
-#include <net/ethernet/ethernet.hpp>
-#include <net/ethernet/ethernet_8021q.hpp> // vlan header size
+#include <net/ethernet/ethernet_8021q.hpp>
 #include <deque>
 #include <vector>
 
