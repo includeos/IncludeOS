@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define IP_DEBUG 1
+#define IP_DEBUG 1
 #ifdef IP_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -111,11 +111,10 @@ namespace net {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
-    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x LinkBcast: %d ",
+    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x ",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
-           (int) packet->ip_protocol(),
-           link_bcast);
+           (int) packet->ip_protocol());
     switch (packet->ip_protocol()) {
     case Protocol::ICMPv4:
        PRINT("Type: ICMP\n"); break;

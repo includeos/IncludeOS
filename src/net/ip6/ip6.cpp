@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define IP6_DEBUG 1
+//#define IP6_DEBUG 1
 #ifdef IP6_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -132,8 +132,6 @@ namespace net
 
     /* PREROUTING */
     // Track incoming packet if conntrack is active
-    Conntrack<IP6>::Entry_ptr ct = nullptr;
-#if 0
     Conntrack<IP6>::Entry_ptr ct = (stack_.conntrack6())
       ? stack_.conntrack6()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
@@ -141,7 +139,6 @@ namespace net
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     // Drop / forward if my ip address doesn't match dest.
     if(not is_for_me(packet->ip_dst()))
@@ -165,7 +162,6 @@ namespace net
 
     /* INPUT */
     // Confirm incoming packet if conntrack is active
-#if 0
     auto& conntrack = stack_.conntrack6();
     if(conntrack) {
       ct = (ct != nullptr) ?
@@ -178,7 +174,6 @@ namespace net
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     auto next_proto = packet->ip_protocol();
 
@@ -226,8 +221,6 @@ namespace net
     packet->make_flight_ready();
 
     /* OUTPUT */
-    Conntrack<IP6>::Entry_ptr ct = nullptr;
-#if 0
     Conntrack<IP6>::Entry_ptr ct =
       (stack_.conntrack6()) ? stack_.conntrack6()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
@@ -235,7 +228,6 @@ namespace net
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     if (forward_packet_) {
       forward_packet_(std::move(packet), stack_, ct);

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define NDP_DEBUG 1
+#define NDP_DEBUG 1
 #ifdef NDP_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -73,10 +73,9 @@ namespace net
     // Add checksum
     res.set_checksum();
 
-    PRINT("NDP: Neighbor Adv Response dst: %s\n size: %i\n payload size: %i\n,"
-        " checksum: 0x%x\n",
-        res.ip().ip_dst().str().c_str(), res.ip().size(), res.payload().size(),
-        res.compute_checksum());
+    PRINT("NDP: Neighbor Adv Response dst: %s size: %i payload size: %i,"
+        " checksum: 0x%x\n", res.ip().ip_dst().str().c_str(), res.payload().size(),
+        res.ip().ip_dst().str().c_str(), res.compute_checksum());
 
     auto dest = res.ip().ip_dst();
     transmit(res.release(), dest);
@@ -198,8 +197,12 @@ namespace net
 
     if (target != inet_.ip6_addr()) {
       PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(), inet_.ip6_addr().to_string().c_str());
-        /* Not for us. Should we forward? */
-        return;
+      if (!proxy_) {
+         return;
+      } else if (!proxy_(target)) {
+         return;
+      }
+       PRINT("Responding to neighbour sol as a proxy\n");
     }
 
     if (any_src) {
