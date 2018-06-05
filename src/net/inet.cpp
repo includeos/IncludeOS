@@ -222,11 +222,11 @@ void Inet::network_config6(IP6::addr addr6,
                            IP6::addr gateway6)
 {
 
-  this->ip6_addr_    = addr6;
+  this->ip6_addr_    = std::move(addr6);
   this->ip6_prefix_  = prefix6;
-  this->ip6_gateway_ = gateway6;
+  this->ip6_gateway_ = std::move(gateway6);
   INFO("Inet6", "Network configured (%s)", nic_.mac().to_string().c_str());
-  INFO2("IP6: \t\t%s", ip6_addr_.str().c_str());
+  INFO2("IP6: \t\t%s", ip6_addr_.to_string().c_str());
   INFO2("Prefix: \t%d", ip6_prefix_);
   INFO2("Gateway: \t%s", ip6_gateway_.str().c_str());
 

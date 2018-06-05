@@ -88,7 +88,7 @@ namespace net {
     IP4::addr broadcast_addr() const
     { return ip4_addr_ | ( ~ netmask_); }
 
-    IP6::addr ip6_addr() const
+    const ip6::Addr& ip6_addr() const noexcept
     { return ip6_addr_; }
 
     uint8_t netmask6() const
@@ -295,9 +295,9 @@ namespace net {
       this->ip4_addr_ = IP4::ADDR_ANY;
       this->gateway_ = IP4::ADDR_ANY;
       this->netmask_ = IP4::ADDR_ANY;
-      this->ip6_addr_ = IP6::ADDR_ANY;
-      this->ip6_gateway_ = IP6::ADDR_ANY;
-      this->ip6_prefix_ = 0;
+      //this->ip6_addr_ = IP6::ADDR_ANY;
+      //this->ip6_gateway_ = IP6::ADDR_ANY;
+      //this->ip6_prefix_ = 0;
     }
 
     // register a callback for receiving signal on free packet-buffers
