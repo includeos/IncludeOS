@@ -96,7 +96,7 @@ namespace net {
     void cache(IP6::addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags);
 
     /** Lookup for cache entry */
-    bool lookup(IP6::addr ip, uint8_t *ll_addr);
+    bool lookup(IP6::addr ip);
 
     /** Flush the NDP cache */
     void flush_cache()
@@ -182,10 +182,10 @@ namespace net {
       }
 
     private:
-      uint32_t         flags_;
       MAC::Addr        mac_;
-      RTC::timestamp_t timestamp_;
       NeighbourStates  state_;
+      RTC::timestamp_t timestamp_;
+      uint32_t         flags_;
     }; //< struct Cache_entry
 
     struct Queue_entry {

@@ -113,7 +113,7 @@ namespace net
     return next_proto;
   }
 
-  void IP6::receive(Packet_ptr pckt, const bool link_bcast)
+  void IP6::receive(Packet_ptr pckt, const bool /*link_bcast */)
   {
     // Cast to IP6 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP6>(std::move(pckt));
