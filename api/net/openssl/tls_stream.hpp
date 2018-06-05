@@ -2,7 +2,7 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
-#include <net/inet>
+#include <net/stream.hpp>
 
 //#define VERBOSE_OPENSSL
 #ifdef VERBOSE_OPENSSL
@@ -25,7 +25,6 @@ namespace openssl
     void write(const std::string&) override;
     void write(const void* buf, size_t n) override;
     void close() override;
-    void abort() override;
     void reset_callbacks() override;
 
     net::Socket local() const override {
@@ -81,8 +80,8 @@ namespace openssl
     void tls_read(buffer_t);
     int  tls_perform_stream_write();
     int  tls_perform_handshake();
-    void close_callback_once();
     bool handshake_completed() const noexcept;
+    void close_callback_once();
 
     enum status_t {
       STATUS_OK,
@@ -95,6 +94,8 @@ namespace openssl
     SSL*  m_ssl    = nullptr;
     BIO*  m_bio_rd = nullptr;
     BIO*  m_bio_wr = nullptr;
+    bool  m_busy = false;
+    bool  m_deferred_close = false;
     ConnectCallback  m_on_connect = nullptr;
     ReadCallback     m_on_read    = nullptr;
     WriteCallback    m_on_write   = nullptr;
@@ -137,13 +138,14 @@ namespace openssl
   }
   inline TLS_stream::~TLS_stream()
   {
+    assert(m_busy == false && "Cannot delete stream while in its call stack");
     SSL_free(this->m_ssl);
   }
 
   inline void TLS_stream::write(buffer_t buffer)
   {
     if (UNLIKELY(this->is_connected() == false)) {
-      printf("TLS_stream::write() called on closed stream\n");
+      TLS_PRINT("TLS_stream::write() called on closed stream\n");
       return;
     }
 
@@ -160,12 +162,12 @@ namespace openssl
   }
   inline void TLS_stream::write(const std::string& str)
   {
-    write(net::tcp::construct_buffer(str.data(), str.data() + str.size()));
+    write(net::Stream::construct_buffer(str.data(), str.data() + str.size()));
   }
   inline void TLS_stream::write(const void* data, const size_t len)
   {
     auto* buf = static_cast<const uint8_t*> (data);
-    write(net::tcp::construct_buffer(buf, buf + len));
+    write(net::Stream::construct_buffer(buf, buf + len));
   }
 
   inline void TLS_stream::tls_read(buffer_t buffer)
@@ -217,14 +219,21 @@ namespace openssl
         char temp[8192];
         n = SSL_read(this->m_ssl, temp, sizeof(temp));
         if (n > 0) {
-          auto buf = net::tcp::construct_buffer(temp, temp + n);
-          if (m_on_read) m_on_read(std::move(buf));
+          auto buf = net::Stream::construct_buffer(temp, temp + n);
+          if (m_on_read) {
+            this->m_busy = true;
+            m_on_read(std::move(buf));
+            this->m_busy = false;
+          }
         }
       } while (n > 0);
       // this goes here?
       if (UNLIKELY(this->is_closing() || this->is_closed())) {
-          //this->close_callback_once();
-          return;
+        TLS_PRINT("TLS_stream::SSL_read closed during read\n");
+        return;
+      }
+      if (this->m_deferred_close) {
+        this->close(); return;
       }
 
       auto status = this->status(n);
@@ -240,6 +249,11 @@ namespace openssl
         this->close();
         return;
       }
+      // check deferred closing
+      if (this->m_deferred_close) {
+        this->close(); return;
+      }
+
     } // while it < end
   } // tls_read()
 
@@ -250,11 +264,15 @@ namespace openssl
     //printf("pending: %d\n", pending);
     if (pending > 0)
     {
-      auto buffer = net::tcp::construct_buffer(pending);
+      auto buffer = net::Stream::construct_buffer(pending);
       int n = BIO_read(this->m_bio_wr, buffer->data(), buffer->size());
       assert(n == pending);
       m_transport->write(buffer);
-      if (m_on_write) m_on_write(n);
+      if (m_on_write) {
+        this->m_busy = true;
+        m_on_write(n);
+        this->m_busy = false;
+      }
       return n;
     }
     else {
@@ -293,18 +311,22 @@ namespace openssl
 
   inline void TLS_stream::close()
   {
-    ERR_clear_error();
-    m_transport->close();
-  }
-  inline void TLS_stream::abort()
-  {
-    m_transport->abort();
+    //ERR_clear_error();
+    if (this->m_busy) {
+      this->m_deferred_close = true; return;
+    }
+    CloseCallback func = std::move(this->m_on_close);
     this->reset_callbacks();
+    if (m_transport->is_connected())
+        m_transport->close();
+    if (func) func();
   }
   inline void TLS_stream::close_callback_once()
   {
-    auto func = std::move(m_on_close);
-    // free captured resources
+    if (this->m_busy) {
+      this->m_deferred_close = true; return;
+    }
+    CloseCallback func = std::move(this->m_on_close);
     this->reset_callbacks();
     if (func) func();
   }

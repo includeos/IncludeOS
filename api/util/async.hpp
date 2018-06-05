@@ -20,7 +20,7 @@
 #define UTIL_ASYNC_HPP
 
 #include <net/inet>
-#include <net/tcp/connection.hpp>
+#include <net/stream.hpp>
 #include <fs/disk.hpp>
 
 class Async

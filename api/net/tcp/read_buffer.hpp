@@ -57,6 +57,21 @@ public:
   size_t insert(const seq_t seq, const uint8_t* data, size_t len, bool push = false);
 
   /**
+   * @brief      Returns the amount of the bytes that fits in the buffer
+   *             when starting from "seq".
+   *             If the seq is before the start of the buffer, 0 is returned.
+   *
+   * @param[in]  seq   The sequence number
+   *
+   * @return     Amount of bytes that fits in the buffer starting from seq
+   */
+  size_t fits(const seq_t seq) const
+  {
+    const auto rel = (seq - start);
+    return (rel < capacity()) ? (capacity() - rel) : 0;
+  }
+
+  /**
    * @brief      Exposes the internal buffer
    *
    * @return     A reference to the internal shared buffer
@@ -139,6 +154,12 @@ public:
    */
   void set_start(const seq_t seq)
   { start = seq; }
+
+  seq_t start_seq() const
+  { return start; }
+
+  seq_t end_seq() const
+  { return start + capacity(); }
 
 
   int deserialize_from(void*);

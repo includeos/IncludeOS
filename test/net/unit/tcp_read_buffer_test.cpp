@@ -169,3 +169,29 @@ CASE("Reseting the buffer")
   buf.reset(SEQ, BUFSZ/2);
   EXPECT(buf.buffer()->data() != data);
 }
+
+#include <limits>
+CASE("fits()")
+{
+  using namespace net::tcp;
+  const size_t BUFSZ = 1024;
+  seq_t seq = 1000;
+
+  std::unique_ptr<Read_buffer> buf;
+
+  buf.reset(new Read_buffer(BUFSZ, seq));
+
+  EXPECT(buf->fits(1000) == BUFSZ - (1000 - seq));
+  EXPECT(buf->fits(1200) == BUFSZ - (1200 - seq));
+  EXPECT(buf->fits(900) == 0);
+  EXPECT(buf->fits(seq + BUFSZ) == 0);
+
+  const uint32_t MAX_UINT = std::numeric_limits<uint32_t>::max();
+
+  seq = MAX_UINT - 500;
+  buf.reset(new Read_buffer(BUFSZ, seq));
+  EXPECT(buf->fits(seq) == BUFSZ);
+  EXPECT(buf->fits(seq + 500) == BUFSZ - 500);
+  EXPECT(buf->fits(seq + 1000) == BUFSZ - 1000);
+  EXPECT(buf->fits(4000) == 0);
+}

@@ -101,7 +101,6 @@ void __platform_init()
 
   // Print registered devices
   hw::Devices::print_devices();
-  kprintf("Platform init done \n");
 }
 
 #ifdef ARCH_i686

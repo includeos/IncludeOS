@@ -587,11 +587,11 @@ uint16_t e1000::free_transmit_descr() const noexcept
 void e1000::transmit(net::Packet_ptr pckt)
 {
   if (pckt != nullptr) {
+      sendq_size += pckt->chain_length();
       if (sendq == nullptr)
         sendq = std::move(pckt);
       else
         sendq->chain(std::move(pckt));
-      sendq_size += 1;
   }
 
   // send as much as possible from sendq

@@ -30,11 +30,13 @@ namespace tcp {
 struct Option {
 
   enum Kind {
-    END = 0x00, // End of option list
-    NOP = 0x01, // No-Operation
-    MSS = 0x02, // Maximum Segment Size [RFC 793] Rev: [879, 6691]
-    WS  = 0x03, // Window Scaling [RFC 7323] p. 8
-    TS  = 0x08, // Timestamp [RFC 7323] p. 11
+    END       = 0x00, // End of option list
+    NOP       = 0x01, // No-Operation
+    MSS       = 0x02, // Maximum Segment Size [RFC 793] Rev: [879, 6691]
+    WS        = 0x03, // Window Scaling [RFC 7323] p. 8
+    SACK_PERM = 0x04, // Sack-Permitted [RFC 2018]
+    SACK      = 0x05, // Selective ACK [RFC 2018]
+    TS        = 0x08, // Timestamp [RFC 7323] p. 11
   };
 
   const uint8_t kind    {END};
@@ -45,24 +47,16 @@ struct Option {
   { return kind_string(static_cast<Kind>(kind)); }
 
   static std::string kind_string(Kind kind) {
-    switch(kind) {
-    case MSS:
-      return {"MSS"};
-
-    case WS:
-      return {"Window Scaling"};
-
-    case TS:
-      return {"Timestamp"};
-
-    case NOP:
-      return {"No-Operation"};
-
-    case END:
-      return {"End of list"};
-
-    default:
-      return {"Unknown Option"};
+    switch(kind)
+    {
+      case MSS: return {"MSS"};
+      case WS: return {"Window Scaling"};
+      case SACK_PERM: return {"SACK Permitted"};
+      case SACK: return {"SACK"};
+      case TS: return {"Timestamp"};
+      case NOP: return {"No-Operation"};
+      case END: return {"End of list"};
+      default: return {"Unknown Option"};
     }
   }
 
@@ -137,6 +131,54 @@ struct Option {
     opt_ts_align(const uint32_t val, const uint32_t echo)
       : ts{val, echo}
     {}
+
+    uint8_t size() const noexcept
+    { return sizeof(padding) + sizeof(ts); }
+
+  } __attribute__((packed));
+
+  /**
+   * @brief      SACK Permitted [RFC 2018] p. 11
+   */
+  struct opt_sack_perm {
+    const uint8_t   kind    {SACK_PERM};
+    const uint8_t   length  {2};
+
+    opt_sack_perm() = default;
+
+  } __attribute__((packed));
+
+  /**
+   * @brief      Timestamp option [RFC 7323] p. 11
+   */
+  struct opt_sack {
+    const uint8_t   kind{SACK};
+    const uint8_t   length;
+    uint8_t         val[0];
+
+    template <typename Collection>
+    opt_sack(const Collection& blocks)
+      : length{static_cast<uint8_t>(sizeof(kind) + sizeof(length) +
+          (blocks.size() * sizeof(typename Collection::value_type)))}
+    {
+      using T = typename Collection::value_type;
+      Expects(blocks.size() * sizeof(T) <= 4*8);
+      std::memcpy(&val[0], blocks.data(), blocks.size() * sizeof(T));
+    }
+
+  } __attribute__((packed));
+
+  struct opt_sack_align {
+    const uint8_t padding[2] {NOP, NOP};
+    const opt_sack  sack;
+
+    template <typename Collection>
+    opt_sack_align(const Collection& blocks)
+      : sack{blocks}
+    {}
+
+    uint8_t size() const noexcept
+    { return sizeof(padding) + sack.length; }
 
   } __attribute__((packed));
 

@@ -74,7 +74,7 @@ void OS::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept {
   // NOTE: Initialize the heap before exceptions
   // cache-align heap, because its not aligned
   memory_end_ = memory_end;
-  heap_max_   = memory_end;
+  heap_max_   = memory_end-1;
   heap_begin_ = util::bits::roundto<heap_alignment>(free_mem_begin);
   auto brk_end  = __init_brk(heap_begin_);
   __init_mmap(brk_end);

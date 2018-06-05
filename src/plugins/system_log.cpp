@@ -1,5 +1,6 @@
 #include <system_log>
 #include <kernel/os.hpp>
+#include <kernel/memory.hpp>
 #include <ringbuffer>
 #include <kprint>
 
@@ -27,7 +28,11 @@ static inline RingBuffer* get_mrb()
 
 inline char* get_ringbuffer_loc()
 {
+#ifdef ARCH_x86_64
+  return (char*) ((1ull << 46) - MRB_LOG_SIZE);
+#else
   return (char*) OS::liveupdate_storage_area() - MRB_LOG_SIZE;
+#endif
 }
 
 inline char* get_system_log_loc()
@@ -73,6 +78,15 @@ std::vector<char> SystemLog::copy()
 void SystemLog::initialize()
 {
   INFO("SystemLog", "Initializing System Log");
+
+#ifdef ARCH_x86_64
+  using namespace util::bitops;
+  const size_t size = MRB_LOG_SIZE - 4096;
+  const uintptr_t syslog_area = (uintptr_t) get_ringbuffer_loc() - 4096;
+  const uintptr_t lu_phys = os::mem::virt_to_phys((uintptr_t) OS::liveupdate_storage_area());
+  // move systemlog to high memory and unpresent physical
+  os::mem::virtual_move(lu_phys - size, size, syslog_area, "SystemLog");
+#endif
 
   auto& buffer = get_log_buffer();
   mrb = buffer.get_mrb();

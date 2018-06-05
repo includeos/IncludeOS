@@ -27,7 +27,7 @@ endif()
 # LiveUpdate static library
 add_library(liveupdate STATIC
     storage.cpp partition.cpp update.cpp resume.cpp rollback.cpp
-    serialize_tcp.cpp hotswap.cpp hotswap64_blob.asm
+    os.cpp serialize_tcp.cpp hotswap.cpp hotswap64_blob.asm
     ${LIU_OPENSSL_FILES}
   )
 add_dependencies(liveupdate hotswap64)

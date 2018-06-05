@@ -57,6 +57,13 @@ template<
 >
 class delegate<R(Args...), Spec, size, align>;
 
+class empty_delegate_error : public std::bad_function_call
+{
+public:
+    const char* what() const throw() {
+      return "Empty delegate called";
+    }
+};
 
 // ----- IMPLEMENTATION -----
 
@@ -64,7 +71,7 @@ namespace detail
 {
 template<typename R, typename... Args> static R empty_pure(Args...)
 {
-	throw std::bad_function_call();
+	throw empty_delegate_error();
 }
 
 template<
@@ -331,7 +338,7 @@ public:
 	}
 
 private:
-	mutable storage_t storage_;
+	mutable storage_t storage_ {};
 
 	invoke_ptr_t invoke_ptr_;
 	copy_ptr_t copy_ptr_;
