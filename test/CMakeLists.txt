@@ -211,6 +211,7 @@ set(OS_SOURCES
   ${SRC}/net/ip4/udp.cpp
   ${SRC}/net/ip4/udp_socket.cpp
   ${SRC}/net/ip6/icmp6.cpp
+  ${SRC}/net/ip6/ndp.cpp
   ${SRC}/net/ip6/ip6.cpp
   ${SRC}/net/dhcp/dh4client.cpp
   ${SRC}/net/nat/nat.cpp

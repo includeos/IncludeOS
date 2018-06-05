@@ -35,10 +35,10 @@ namespace net {
     MULTICAST_LISTENER_QUERY  = 130,
     MULTICAST_LISTENER_REPORT = 131,
     MULTICAST_LISTENER_DONE   = 132,
-    ND_ROUTER_SOLICATION      = 133,
+    ND_ROUTER_SOL             = 133,
     ND_ROUTER_ADV             = 134,
-    ND_NEIGHBOR_SOL           = 135,
-    ND_NEIGHBOR_ADV           = 136,
+    ND_NEIGHBOUR_SOL          = 135,
+    ND_NEIGHBOUR_ADV          = 136,
     ND_REDIRECT               = 137,
     ROUTER_RENUMBERING        = 138,
     INFORMATION_QUERY         = 139,
@@ -98,10 +98,10 @@ namespace net {
       case Type::MULTICAST_LISTENER_QUERY:
       case Type::MULTICAST_LISTENER_REPORT:
       case Type::MULTICAST_LISTENER_DONE:
-      case Type::ND_ROUTER_SOLICATION:
+      case Type::ND_ROUTER_SOL:
       case Type::ND_ROUTER_ADV:
-      case Type::ND_NEIGHBOR_SOL:
-      case Type::ND_NEIGHBOR_ADV:
+      case Type::ND_NEIGHBOUR_SOL:
+      case Type::ND_NEIGHBOUR_ADV:
       case Type::ND_REDIRECT:
       case Type::ROUTER_RENUMBERING:
       case Type::INFORMATION_QUERY:

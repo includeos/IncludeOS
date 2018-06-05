@@ -120,12 +120,52 @@ struct Addr {
     return ((ntohs(i16[0]) & 0xFF00) == 0xFF00);
   }
 
+  bool is_solicit_multicast() const
+  {
+      return ((ntohs(i32[0]) ^  (0xff020000)) |
+              ntohs(i32[1]) |
+              (ntohs(i32[2]) ^ (0x00000001)) |
+              (ntohs(i32[3]) ^ 0xff)) == 0;
+  }
+
+  uint8_t* data()
+  {
+      return reinterpret_cast<uint8_t*> (i16.data());
+  }
+
+  Addr& solicit(const Addr other) noexcept {
+    i32[0] = htonl(0xFF020000);
+    i32[1] = 0;
+    i32[2] = htonl(0x1);
+    i32[3] = htonl(0xFF000000) | other.i32[3];
+    return *this;
+  }
+
   /**
    *
    **/
   bool is_loopback() const noexcept
   { return i32[0] == 0 && i32[1] == 0 &&
       i32[2] == 0 && ntohl(i32[3]) == 1; }
+
+  template <typename T>
+  T get_part(const uint8_t n) const
+  {
+     static_assert(std::is_same_v<T, uint8_t> or
+             std::is_same_v<T, uint16_t> or
+             std::is_same_v<T, uint32_t>, "Unallowed T");
+
+     if constexpr (std::is_same_v<T, uint8_t>) {
+         Expects(n < 16);
+         return i8[n];
+     } else if constexpr (std::is_same_v<T, uint16_t>) {
+         Expects(n < 8);
+         return i16[n];
+     } else if constexpr (std::is_same_v<T, uint32_t>) {
+         Expects(n < 4);
+         return i32[n];
+     }
+  }
 
   /**
    * Assignment operator
@@ -163,7 +203,6 @@ struct Addr {
 
       return false;
   }
-
 
   /**
    * Operator to check for greater-than-or-equal relationship
@@ -235,8 +274,20 @@ struct Addr {
     std::array<uint64_t, 2> i64;
     std::array<uint32_t ,4> i32;
     std::array<uint16_t, 8> i16;
+    std::array<uint8_t, 16> i8;
   };
 } __attribute__((packed)); //< struct Addr
 } //< namespace ip6
 } //< namespace net
+
+// Allow an IPv6 address to be used as key in e.g. std::unordered_map
+namespace std {
+  template<>
+  struct hash<net::ip6::Addr> {
+    size_t operator()(const net::ip6::Addr& addr) const {
+      // This is temporary. Use a proper hash
+      return std::hash<uint64_t>{}(addr.i64[0] + addr.i64[1]);
+    }
+  };
+} //< namespace std
 #endif
