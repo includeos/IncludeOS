@@ -58,10 +58,11 @@ struct Addr {
     i32[2] = htonl(c); i32[3] = htonl(d);
   }
 
-  Addr(const Addr& a)
-    : i32{a.i32} {}
+  Addr(const Addr& a) noexcept
+    : i64{a.i64} {}
 
-  Addr(Addr&& a) = default;
+  Addr(Addr&& a) noexcept
+    : i64{std::move(a.i64)} {}
 
   // returns this IPv6 Address as a string
   std::string str() const {
@@ -169,13 +170,17 @@ struct Addr {
   /**
    * Assignment operator
    */
-  Addr& operator=(const Addr& other)
+  Addr& operator=(const Addr& other) noexcept
   {
-    i32 = other.i32;
+    i64 = other.i64;
     return *this;
   }
 
-  Addr& operator=(Addr&& other) = default;
+  Addr& operator=(Addr&& other) noexcept
+  {
+    i64 = std::move(other.i64);
+    return *this;
+  }
 
   /**
    * Operator to check for equality
