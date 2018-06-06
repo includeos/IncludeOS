@@ -145,7 +145,6 @@ void OS::post_start()
   // Run plugin constructors
   __run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
 
-
   // Run plugins
   PROFILE("Plugins init");
   for (auto plugin : plugins) {
@@ -184,7 +183,6 @@ bool os_default_stdout = false;
 
 void OS::print(const char* str, const size_t len)
 {
-
   if (UNLIKELY(! __libc_initialized)) {
     OS::default_stdout(str, len);
     return;

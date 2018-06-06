@@ -56,9 +56,10 @@ static inline uint16_t report_size_for_mtu(uint16_t mtu)
 static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 {
   const uint16_t header = sizeof(net::Packet) + e1000::DRIVER_OFFSET;
-  if (mtu <= 2048 - header) return 2048;
+  const uint16_t total = header + sizeof(net::ethernet::VLAN_header) + mtu;
+  if (total <= 2048) return 2048;
   assert(mtu <= 9000 && "Buffers larger than 9000 are not supported");
-  return report_size_for_mtu(mtu) + header;
+  return total;
 }
 
 #define NUM_PACKET_BUFFERS (NUM_TX_DESC + NUM_RX_DESC + NUM_TX_QUEUE + 8)
@@ -137,7 +138,7 @@ e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
   }
 
   // shared-memory & I/O address
-  this->shm_base = d.get_bar(0);
+  this->shm_base = d.get_bar(0).start;
   this->use_mmio = this->shm_base > 0xFFFF;
   if (this->use_mmio == false) {
       this->io_base = d.iobase();

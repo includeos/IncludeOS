@@ -361,8 +361,8 @@ function(add_memdisk DISK)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file ${INSTALL_LOC}/memdisk/memdisk.asm ${DISK_RELPATH}
-    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${INSTALL_LOC}/memdisk/memdisk.asm -o memdisk.o
+    COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK_RELPATH} fake_news
   )
   add_library(memdisk STATIC memdisk.o)
@@ -452,7 +452,7 @@ target_link_libraries(service
   libos
   libplatform
   libarch
-  
+
   ${LIBR_CMAKE_NAMES}
   libos
   libbotan

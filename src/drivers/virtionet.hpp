@@ -39,6 +39,7 @@
 #include <net/buffer_store.hpp>
 #include <net/link_layer.hpp>
 #include <net/ethernet/ethernet.hpp>
+#include <net/ethernet/ethernet_8021q.hpp> // vlan header size
 #include <delegate>
 #include <deque>
 #include <statman>
@@ -133,7 +134,7 @@ public:
   { return 1500; }
 
   uint16_t packet_len() const noexcept {
-    return sizeof(net::ethernet::Header) + MTU();
+    return sizeof(net::ethernet::VLAN_header) + MTU();
   }
 
   net::Packet_ptr create_packet(int) override;
