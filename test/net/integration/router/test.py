@@ -45,7 +45,6 @@ def iperf_server():
 
 def iperf_client(o):
     print "Starting iperf client. Iperf output: "
-    #time.sleep(60)
     print subprocess.check_output([iperf_cmd,"-c","10.42.42.2","-n", transmit_size])
     vmrunner.vms[0].exit(0, "Test completed without errors")
     return True

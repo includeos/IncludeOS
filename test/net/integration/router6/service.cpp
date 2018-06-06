@@ -50,12 +50,12 @@ ip_forward (IP6::IP_packet_ptr pckt, Inet& stack, Conntrack<IP6>::Entry_ptr)
   }
 
   if (route == &stack) {
-    INFO("ip_fwd", "* Oh, this packet was for me, sow why was it forwarded here? \n");
+    INFO("ip_fwd", "* Oh, this packet was for me, so why was it forwarded here? \n");
     return;
   }
 
   debug("[ ip_fwd ] %s transmitting packet to %s",stack.ifname().c_str(), route->ifname().c_str());
-  route->ip_obj().ship(std::move(pckt));
+  route->ip6_obj().ship(std::move(pckt));
 }
 
 
@@ -80,15 +80,9 @@ void Service::start(const std::string&)
   inet.ip6_obj().set_packet_forwarding(ip_forward);
   inet2.ip6_obj().set_packet_forwarding(ip_forward);
 
-  // ARP Route checker
+  // NDP Route checker
   inet.set_route_checker6(route_checker);
   inet2.set_route_checker6(route_checker);
-
-
-  /** Some times it's nice to add dest. to arp-cache to avoid having it respond to arp */
-  // inet2.cache_link_ip({10,42,42,2}, {0x10,0x11, 0x12, 0x13, 0x14, 0x15});
-  // inet2.cache_link_ip({10,42,42,2}, {0x1e,0x5f,0x30,0x98,0x19,0x8b});
-  // inet2.cache_link_ip({10,42,42,2}, {0xc0,0x00, 0x10, 0x00, 0x00, 0x02});
 
   // Routing table
   Router<IP6>::Routing_table routing_table{
