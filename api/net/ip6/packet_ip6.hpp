@@ -26,7 +26,7 @@
 namespace net
 {
   enum {
-      OPT_HOP = 1,
+      OPT_HOP,
       OPT_V6,
       OPT_MAX
   };
@@ -214,27 +214,23 @@ namespace net
 
     class ExtensionHeader {
     private:
-        ip6::extension_header   *header_;
         uint16_t                extension_header_len_;
         Protocol                next_proto_;
         std::array<struct ip6::extension_header*, OPT_MAX> opt_array;
 
     public:
+        ExtensionHeader() : extension_header_len_{0}, next_proto_{0},
+          opt_array{} {}
 
         void parse(PacketIP6& pckt)
         {
             next_proto_ = pckt.next_protocol();
-            auto reader = pckt.layer_begin() + IP6_HEADER_LEN;
-            header_ = reinterpret_cast<ip6::extension_header *>(reader);
-            ip6::extension_header& ext = *(ip6::extension_header*)reader;
             uint16_t ext_len;
 
-            if (next_proto_ != Protocol::HOPOPT and
-                next_proto_ != Protocol::OPTSV6) {
-                header_ = nullptr;
-                extension_header_len_ = 0;
-                opt_array = {};
-            } else {
+            if (next_proto_ == Protocol::HOPOPT or
+                next_proto_ == Protocol::OPTSV6) {
+                auto reader = pckt.layer_begin() + IP6_HEADER_LEN;
+                ip6::extension_header& ext = *(ip6::extension_header*)reader;
                 while (next_proto_ != Protocol::IPv6_NONXT) {
                     if (next_proto_ == Protocol::HOPOPT) {
                     } else if (next_proto_ == Protocol::OPTSV6) {
