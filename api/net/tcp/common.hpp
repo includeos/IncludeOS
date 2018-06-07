@@ -68,6 +68,9 @@ namespace net {
     class Packet;
     using Packet_ptr = std::unique_ptr<Packet>;
 
+    class Packet_view;
+    using Packet_view_ptr = std::unique_ptr<Packet_view>;
+
     class Connection;
     using Connection_ptr = std::shared_ptr<Connection>;
 

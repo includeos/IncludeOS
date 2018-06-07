@@ -15,8 +15,13 @@ public:
     set_header(packet().ip_data().data());
   }
 
-  uint16_t compute_tcp_checksum() noexcept override
+  inline void init();
+
+  uint16_t compute_tcp_checksum() const noexcept override
   { return calculate_checksum6(*this); }
+
+  Protocol ipv() const noexcept override
+  { return Protocol::IPv4; }
 
 private:
   PacketIP6& packet() noexcept
@@ -39,6 +44,15 @@ private:
 
    uint16_t ip_data_length() const noexcept override
    { return packet().ip_data_length(); }
+
+   uint16_t ip_header_length() const noexcept override
+  { return packet().ip_header_len(); }
 };
+
+
+inline void Packet6_view::init()
+{
+  set_length();
+}
 
 }

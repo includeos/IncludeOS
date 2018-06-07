@@ -8,11 +8,6 @@ namespace net::tcp {
 
 class Packet_view {
 public:
-  Packet_view(net::Packet_ptr ptr)
-    : pkt{std::move(ptr)}
-  {
-    Expects(pkt != nullptr);
-  }
 
   Header& tcp_header() noexcept
   { return *header; }
@@ -34,6 +29,26 @@ public:
   Socket destination() const noexcept
   { return Socket{ip_dst(), dst_port()}; }
 
+  Packet_view& set_src_port(port_t p) noexcept
+  { tcp_header().source_port = htons(p); return *this; }
+
+  Packet_view& set_dst_port(port_t p) noexcept
+  { tcp_header().destination_port = htons(p); return *this; }
+
+  Packet_view& set_source(const Socket& src)
+  {
+    set_ip_src(src.address());
+    set_src_port(src.port());
+    return *this;
+  }
+
+  Packet_view& set_destination(const Socket& dest)
+  {
+    set_ip_dst(dest.address());
+    set_dst_port(dest.port());
+    return *this;
+  }
+
   // Flags //
 
   seq_t seq() const noexcept
@@ -42,7 +57,7 @@ public:
   seq_t ack() const noexcept
   { return ntohl(tcp_header().ack_nr); }
 
-  uint16_t win() const
+  uint16_t win() const noexcept
   { return ntohs(tcp_header().window_size); }
 
   bool isset(Flag f) const noexcept
@@ -52,26 +67,47 @@ public:
   int offset() const noexcept
   { return tcp_header().offset_flags.offset_reserved >> 4; }
 
+
+  Packet_view& set_seq(seq_t n) noexcept
+  { tcp_header().seq_nr = htonl(n); return *this; }
+
+  Packet_view& set_ack(seq_t n) noexcept
+  { tcp_header().ack_nr = htonl(n); return *this; }
+
+  Packet_view& set_win(uint16_t size) noexcept
+  { tcp_header().window_size = htons(size); return *this; }
+
+  Packet_view& set_flag(Flag f) noexcept
+  { tcp_header().offset_flags.whole |= htons(f); return *this; }
+
+  Packet_view& set_flags(uint16_t f) noexcept
+  { tcp_header().offset_flags.whole |= htons(f); return *this; }
+
+  Packet_view& clear_flag(Flag f) noexcept
+  { tcp_header().offset_flags.whole &= ~ htons(f); return *this; }
+
+  Packet_view& clear_flags()
+  { tcp_header().offset_flags.whole &= 0x00ff; return *this; }
+
+  // Set raw TCP offset in quadruples
+  void set_offset(int offset)
+  { tcp_header().offset_flags.offset_reserved = (offset & 0xF) << 4; }
+
+
   // The actual TCP header size (including options).
   auto tcp_header_length() const noexcept
   { return offset() * 4; }
 
-  // Data //
+  virtual uint16_t compute_tcp_checksum() const noexcept = 0;
 
-  // Where data starts
-  uint8_t* tcp_data()
-  { return (uint8_t*)header + tcp_header_length(); }
+  Packet_view& set_tcp_checksum(uint16_t checksum) noexcept
+  { tcp_header().checksum = checksum; return *this; }
 
-  const uint8_t* tcp_data() const
-  { return (uint8_t*)header + tcp_header_length(); }
-
-  // Length of data in packet when header has been accounted for
-  uint16_t tcp_data_length() const noexcept
-  { return ip_data_length() - tcp_header_length(); }
-
-  bool has_tcp_data() const noexcept
-  { return tcp_data_length() > 0; }
-
+  void set_tcp_checksum() noexcept
+  {
+    tcp_header().checksum = 0;
+    set_tcp_checksum(compute_tcp_checksum());
+  }
 
   // Options //
 
@@ -87,11 +123,49 @@ public:
   bool has_tcp_options() const
   { return tcp_options_length() > 0; }
 
+  /**
+   * @brief      Adds a tcp option.
+   *
+   * @todo       It's probably a better idea to make the option include
+   *             the padding for it to be aligned, and avoid two mem operations
+   *
+   * @tparam     T          TCP Option
+   * @tparam     Padding    padding in bytes to be put infront of the option
+   * @tparam     Args       construction args to option T
+   */
+  template <typename T, int Padding = 0, typename... Args>
+  void add_tcp_option(Args&&... args);
+
+  /**
+   * @brief      Adds a tcp option aligned.
+   *             Assumes the user knows what she/he is doing.
+   *
+   * @tparam     T          An aligned TCP option
+   * @tparam     Args       construction args to option T
+   */
+  template <typename T, typename... Args>
+  void add_tcp_option_aligned(Args&&... args);
+
+
   const Option::opt_ts* ts_option() const noexcept
   { return ts_opt; }
 
   inline const Option::opt_ts* parse_ts_option() noexcept;
 
+  // Data //
+
+  uint8_t* tcp_data()
+  { return (uint8_t*)header + tcp_header_length(); }
+
+  const uint8_t* tcp_data() const
+  { return (uint8_t*)header + tcp_header_length(); }
+
+  // Length of data in packet when header has been accounted for
+  uint16_t tcp_data_length() const noexcept
+  { return ip_data_length() - tcp_header_length(); }
+
+  bool has_tcp_data() const noexcept
+  { return tcp_data_length() > 0; }
 
   // View operations
   net::Packet_ptr release()
@@ -103,25 +177,94 @@ public:
   const net::Packet_ptr& packet_ptr() const noexcept
   { return pkt; }
 
-  virtual uint16_t compute_tcp_checksum() noexcept = 0;
+  // hmm
+  virtual Protocol ipv() const noexcept = 0;
+
+  virtual ~Packet_view() = default;
+
 
 protected:
   net::Packet_ptr   pkt;
+  Header*           header = nullptr;
+
+  Packet_view(net::Packet_ptr ptr)
+    : pkt{std::move(ptr)}
+  {
+    Expects(pkt != nullptr);
+  }
 
   void set_header(uint8_t* hdr)
   { Expects(hdr != nullptr); header = reinterpret_cast<Header*>(hdr); }
 
+  // sets the correct length for all the protocols up to IP4
+  void set_length(uint16_t newlen = 0)
+  { pkt->set_data_end(ip_header_length() + tcp_header_length() + newlen); }
+
 private:
-  Header*           header = nullptr;
   Option::opt_ts*   ts_opt = nullptr;
 
   virtual void set_ip_src(const net::Addr& addr) noexcept = 0;
   virtual void set_ip_dst(const net::Addr& addr) noexcept = 0;
   virtual net::Addr ip_src() const noexcept = 0;
   virtual net::Addr ip_dst() const noexcept = 0;
-  // TODO: see if we can get rid of this virtual call
+
+  // TODO: see if we can get rid of these virtual calls
   virtual uint16_t ip_data_length() const noexcept = 0;
+  virtual uint16_t ip_header_length() const noexcept = 0;
 };
+
+
+template <typename T, int Padding, typename... Args>
+inline void Packet_view::add_tcp_option(Args&&... args) {
+  // to avoid headache, options need to be added BEFORE any data.
+  assert(!has_tcp_data());
+  struct NOP {
+    uint8_t kind{0x01};
+  };
+  // option address
+  auto* addr = tcp_options()+tcp_options_length();
+  // if to use pre padding
+  if(Padding)
+    new (addr) NOP[Padding];
+
+  // emplace the option after pre padding
+  const auto& opt = *(new (addr + Padding) T(args...));
+
+  // find number of NOP to pad with
+  const auto nops = (opt.length + Padding) % 4;
+  if(nops) {
+    new (addr + Padding + opt.length) NOP[nops];
+  }
+
+  // update offset
+  auto newoffset = offset() + round_up(opt.length + Padding, 4);
+  if (UNLIKELY(newoffset > 0xF)) {
+    throw std::runtime_error("Too many TCP options");
+  }
+  set_offset(newoffset);
+
+  set_length(); // update
+}
+
+template <typename T, typename... Args>
+inline void Packet_view::add_tcp_option_aligned(Args&&... args) {
+  // to avoid headache, options need to be added BEFORE any data.
+  Expects(!has_tcp_data());
+
+  // option address
+  auto* addr = tcp_options()+tcp_options_length();
+  // emplace the option
+  auto& opt = *(new (addr) T(args...));
+
+  // update offset
+  auto newoffset = offset() + round_up(opt.size(), 4);
+
+  set_offset(newoffset);
+  if (UNLIKELY(newoffset > 0xF)) {
+    throw std::runtime_error("Too many TCP options");
+  }
+  set_length(); // update
+}
 
 // assumes the packet contains no other options.
 inline const Option::opt_ts* Packet_view::parse_ts_option() noexcept

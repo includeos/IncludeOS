@@ -540,7 +540,14 @@ namespace net {
      *
      * @return     A tcp packet ptr
      */
-    tcp::Packet_ptr create_outgoing_packet();
+    tcp::Packet_view_ptr create_outgoing_packet();
+
+    /**
+     * @brief      Creates an outgoing TCP6 packet.
+     *
+     * @return     A tcp packet ptr
+     */
+    tcp::Packet_view_ptr create_outgoing_packet6();
 
     /**
      * @brief      Sends a TCP reset based on the values of the incoming packet.

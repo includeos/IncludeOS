@@ -422,7 +422,7 @@ public:
    *
    * @return     A TCP Socket
    */
-  Socket local() const noexcept
+  const Socket& local() const noexcept
   { return local_; }
 
   /**
@@ -430,8 +430,11 @@ public:
    *
    * @return     A TCP Socket
    */
-  Socket remote() const noexcept
+  const Socket& remote() const noexcept
   { return remote_; }
+
+  Protocol ipv() const noexcept
+  { return is_ipv6_ ? Protocol::IPv6 : Protocol::IPv4; }
 
   auto bytes_sacked() const noexcept
   { return bytes_sacked_; }
@@ -625,6 +628,8 @@ private:
   /* End points. */
   Socket local_;
   Socket remote_;
+
+  const bool is_ipv6_ = false;
 
   /** The current state the Connection is in. Handles most of the logic. */
   State* state_;

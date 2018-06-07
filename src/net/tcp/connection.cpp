@@ -30,8 +30,8 @@ using namespace std;
 
 Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback)
   : host_(host),
-    local_(local),
-    remote_(remote),
+    local_{std::move(local)}, remote_{std::move(remote)},
+    is_ipv6_(local_.address().is_v6()),
     state_(&Connection::Closed::instance()),
     prev_state_(state_),
     cb{host_.window_size()},
@@ -318,9 +318,10 @@ int  Connection::serialize_to(void*) const {  return 0;  }
 
 Packet_ptr Connection::create_outgoing_packet()
 {
-  auto packet = host_.create_outgoing_packet();
+  auto packet = (is_ipv6_) ?
+    host_.create_outgoing_packet6() : host_.create_outgoing_packet();
   // Set Source (local == the current connection)
-  packet->set_source(local());
+  packet->set_source(local_);
   // Set Destination (remote)
   packet->set_destination(remote_);
 
@@ -346,7 +347,7 @@ Packet_ptr Connection::create_outgoing_packet()
   packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
   debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
 
-  return packet;
+  return static_unique_ptr_cast<tcp::Packet>(packet->release());
 }
 
 void Connection::transmit(Packet_ptr packet) {

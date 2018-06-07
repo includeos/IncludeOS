@@ -48,7 +48,7 @@ public:
   //! a valid MTU-sized buffer
   void init()
   {
-    PacketIP4::init(Protocol::TCP);
+    //PacketIP4::init(Protocol::TCP);
     auto* ipdata = ip_data_ptr();
 
     // clear TCP header

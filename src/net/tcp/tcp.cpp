@@ -371,9 +371,16 @@ void TCP::transmit(tcp::Packet_ptr packet) {
   _network_layer_out(std::move(packet));
 }
 
-tcp::Packet_ptr TCP::create_outgoing_packet()
+tcp::Packet_view_ptr TCP::create_outgoing_packet()
 {
-  auto packet = static_unique_ptr_cast<net::tcp::Packet>(inet_.create_packet());
+  auto packet = std::make_unique<tcp::Packet4_view>(inet_.create_ip_packet(Protocol::TCP));
+  packet->init();
+  return packet;
+}
+
+tcp::Packet_view_ptr TCP::create_outgoing_packet6()
+{
+  auto packet = std::make_unique<tcp::Packet6_view>(inet_.create_ip6_packet(Protocol::TCP));
   packet->init();
   return packet;
 }
@@ -382,14 +389,15 @@ void TCP::send_reset(const tcp::Packet_view& in)
 {
   // TODO: maybe worth to just swap the fields in
   // the incoming packet and send that one
-  auto out = create_outgoing_packet();
+  auto out = (in.ipv() == Protocol::IPv6)
+    ? create_outgoing_packet6() : create_outgoing_packet();
   // increase incoming SEQ and ACK by 1 and set RST + ACK
   out->set_seq(in.ack()+1).set_ack(in.seq()+1).set_flags(RST | ACK);
   // swap dest and src
   out->set_source(in.destination());
   out->set_destination(in.source());
 
-  transmit(std::move(out));
+  transmit(static_unique_ptr_cast<tcp::Packet>(out->release()));
 }
 
 seq_t TCP::generate_iss() {
