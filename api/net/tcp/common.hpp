@@ -90,6 +90,14 @@ namespace net {
       return net::checksum(sum, buffer, length);
     }
 
+    template <typename View6>
+    uint16_t calculate_checksum6(const View6& packet)
+    {
+      // Alf fix me ;D
+      (void) packet;
+      return 0;
+    }
+
   } // < namespace tcp
 } // < namespace net
 
