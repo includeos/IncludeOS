@@ -24,6 +24,7 @@
 #include "headers.hpp"
 #include "listener.hpp"
 #include "packet.hpp"
+#include "packet_view.hpp"
 
 #include <map>  // connections, listeners
 #include <deque>  // writeq
@@ -179,6 +180,15 @@ namespace net {
      * @param[in]  <unnamed>  A network packet
      */
     void receive(net::Packet_ptr);
+
+    /**
+     * @brief      Receive a Packet from the network layer (IP6)
+     *
+     * @param[in]  <unnamed>  A IP6 packet
+     */
+    void receive6(net::Packet_ptr);
+
+    void receive(tcp::Packet_view&);
 
     /**
      * @brief      Sets a delegate to the network output.

@@ -222,7 +222,7 @@ namespace net
       //udp_handler_(std::move(packet));
       break;
     case Protocol::TCP:
-      //tcp_handler_(std::move(packet));
+      tcp_handler_(std::move(packet));
       break;
     default:
       // Send ICMP error of type Destination Unreachable and code PROTOCOL

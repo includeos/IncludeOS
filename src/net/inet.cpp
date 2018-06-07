@@ -47,6 +47,7 @@ Inet::Inet(hw::Nic& nic)
   auto icmp6_bottom(upstream{icmp6_, &ICMPv6::receive});
   auto udp4_bottom(upstream{udp_, &UDP::receive});
   auto tcp_bottom(upstream{tcp_, &TCP::receive});
+  auto tcp6_bottom(upstream{tcp_, &TCP::receive6});
 
   /** Upstream wiring  */
   // Packets available
@@ -72,6 +73,9 @@ Inet::Inet(hw::Nic& nic)
 
   // IP4 -> TCP
   ip4_.set_tcp_handler(tcp_bottom);
+
+  // IP6 -> TCP
+  ip6_.set_tcp_handler(tcp6_bottom);
 
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());

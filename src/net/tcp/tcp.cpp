@@ -15,15 +15,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#undef NO_DEBUG
-#define DEBUG
-#define DEBUG2
+//#define TCP_DEBUG 1
+#ifdef TCP_DEBUG
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
 
 #include <net/tcp/tcp.hpp>
 #include <net/inet>
 #include <net/inet_common.hpp> // checksum
 #include <statman>
 #include <rtc> // nanos_now (get_ts_value)
+#include <net/tcp/packet4_view.hpp>
+#include <net/tcp/packet6_view.hpp>
 
 using namespace std;
 using namespace net;
@@ -170,50 +175,70 @@ void TCP::insert_connection(Connection_ptr conn)
       std::forward_as_tuple(conn));
 }
 
-void TCP::receive(net::Packet_ptr packet_ptr) {
+void TCP::receive(net::Packet_ptr ptr)
+{
+  auto ip4 = static_unique_ptr_cast<PacketIP4>(std::move(ptr));
+  Packet4_view pkt{std::move(ip4)};
+
+  PRINT("<TCP::receive> Recv TCP4 packet %s => %s\n",
+    pkt.source().to_string().c_str(), pkt.destination().to_string().c_str());
+
+  receive(pkt);
+}
+
+void TCP::receive6(net::Packet_ptr ptr)
+{
+  auto ip6 = static_unique_ptr_cast<PacketIP6>(std::move(ptr));
+  Packet6_view pkt{std::move(ip6)};
+
+  PRINT("<TCP::receive6> Recv TCP6 packet %s => %s\n",
+    pkt.source().to_string().c_str(), pkt.destination().to_string().c_str());
+
+  receive(pkt);
+}
+
+void TCP::receive(Packet_view& packet)
+{
   // Stat increment packets received
   (*packets_rx_)++;
   assert(get_cpuid() == SMP::cpu_id());
 
-  // Translate into a TCP::Packet. This will be used inside the TCP-scope.
-  auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
+  //auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
 
   // validate some unlikely but invalid packet properties
-  if (UNLIKELY(packet->src_port() == 0)) {
-    drop(*packet);
+  if (UNLIKELY(packet.src_port() == 0)) {
+    drop(*static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
     return;
   }
 
-  const auto dest = packet->destination();
-  debug("<TCP::receive> TCP Packet received - Source: %s, Destination: %s \n",
-        packet->source().to_string().c_str(), dest.to_string().c_str());
+  const auto dest = packet.destination();
 
   // Validate checksum
-  if (UNLIKELY(packet->compute_tcp_checksum() != 0)) {
-    debug("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
-          packet->compute_tcp_checksum(), 0x0);
-    drop(*packet);
+  if (UNLIKELY(packet.compute_tcp_checksum() != 0)) {
+    PRINT("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
+          packet.compute_tcp_checksum(), 0x0);
+    drop(*static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
     return;
   }
 
   // Stat increment bytes received
-  (*bytes_rx_) += packet->tcp_data_length();
+  (*bytes_rx_) += packet.tcp_data_length();
 
   // Redirect packet to custom function
   if (packet_rerouter) {
-    packet_rerouter(std::move(packet));
+    packet_rerouter(static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
     return;
   }
 
-  const Connection::Tuple tuple { dest, packet->source() };
+  const Connection::Tuple tuple { dest, packet.source() };
 
   // Try to find the receiver
   auto conn_it = connections_.find(tuple);
 
   // Connection found
   if (conn_it != connections_.end()) {
-    debug("<TCP::receive> Connection found: %s \n", conn_it->second->to_string().c_str());
-    conn_it->second->segment_arrived(std::move(packet));
+    PRINT("<TCP::receive> Connection found: %s \n", conn_it->second->to_string().c_str());
+    conn_it->second->segment_arrived(static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
     return;
   }
 
@@ -224,16 +249,17 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
   // Listener found => Create Listener
   if (listener_it != listeners_.end()) {
     auto& listener = listener_it->second;
-    debug2("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
-    listener->segment_arrived(std::move(packet));
-    debug2("<TCP::receive> Listener done with packet\n");
+    PRINT("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
+    listener->segment_arrived(static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
+    PRINT("<TCP::receive> Listener done with packet\n");
     return;
   }
 
+  auto pkt = static_unique_ptr_cast<net::tcp::Packet>(packet.release());
   // Send a reset
-  send_reset(*packet);
+  send_reset(*pkt);
 
-  drop(*packet);
+  drop(*pkt);
 }
 
 // Show all connections for TCP as a string.
