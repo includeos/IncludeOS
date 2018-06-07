@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG_UNIT
+//#define DEBUG_UNIT
 
 #include <common.cxx>
 #include <os>
@@ -564,8 +564,9 @@ CASE ("x86::paging Verify default paging setup")
       using Tbl = std::array<uintptr_t, 512>;
       Tbl& tbl4 = *(Tbl*)__pml4->data();
 
-
+#ifdef DEBUG_UNIT
       std::cout << __pml4->summary(true, 0) << "\n";
+#endif
 
       // PML4
       for (auto& ent4 : tbl4 ) {

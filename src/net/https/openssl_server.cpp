@@ -9,7 +9,7 @@ namespace http
                                           const std::string& key)
   {
     fs::memdisk().init_fs(
-    [] (auto err, auto&) {
+    [] (fs::error_t err, fs::File_system&) {
       assert(!err);
     });
     /** INIT OPENSSL **/

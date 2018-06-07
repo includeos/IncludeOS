@@ -3,16 +3,22 @@
 ####################################
 
 set(CMAKE_CXX_STANDARD 17)
-set(COMMON "-g -O2 -march=native -Wall -Wextra")
+set(COMMON "-O2 -march=native -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 
+option(DEBUGGING "Enable debugging" OFF)
 option(GPROF "Enable profiling with gprof" OFF)
 option(SANITIZE "Enable undefined- and address sanitizers" OFF)
 option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
 option(CUSTOM_BOTAN "Enable building with a local Botan" OFF)
 option(STATIC_BUILD "Build a portable static executable" OFF)
-option(STRIP_BINARY "Strip final binary to reduce size" ON)
+option(STRIP_BINARY "Strip final binary to reduce size" OFF)
+option(USE_LLD "Allow linking against LTO archives" ON)
+
+if(DEBUGGING)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
+endif()
 
 if (ENABLE_LTO)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
@@ -28,7 +34,7 @@ if(SANITIZE)
 endif()
 
 if(CUSTOM_BOTAN)
-  include_directories("/usr/local/botan/include/botan-2")
+  include_directories("/usr/local/include/botan/botan-2")
 endif()
 
 add_definitions(-DARCH="x86_64" -DARCH_x86_64)
@@ -68,17 +74,21 @@ add_executable(service ${SOURCES} ${IOSPATH}/src/service_name.cpp)
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 
 if (CUSTOM_BOTAN)
-  target_link_libraries(service /usr/local/botan/lib/libbotan-2.a -ldl -pthread)
+  set(BOTAN_LIBS /usr/local/lib/libbotan-2.a)
+  target_link_libraries(service ${BOTAN_LIBS} -ldl -pthread)
 endif()
-target_link_libraries(service ${EXTRA_LIBS})
 target_link_libraries(service includeos linuxrt includeos http_parser rt)
+target_link_libraries(service ${EXTRA_LIBS})
+if (CUSTOM_BOTAN)
+  target_link_libraries(service ${BOTAN_LIBS})
+endif()
 
 if (STATIC_BUILD)
   target_link_libraries(service -static-libstdc++ -static-libgcc)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -pthread")
 endif()
 
-if (ENABLE_LTO)
+if (ENABLE_LTO OR USE_LLD)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
 endif()
 

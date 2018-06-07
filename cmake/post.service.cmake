@@ -205,6 +205,7 @@ if(LIBRARIES)
 endif()
 
 # add all extra libs
+set(LIBR_CMAKE_NAMES)
 foreach(LIBR ${LIBRARIES})
   # if relative path but not local, use includeos lib.
   if(NOT IS_ABSOLUTE ${LIBR} AND NOT EXISTS ${LIBR})
@@ -214,12 +215,8 @@ foreach(LIBR ${LIBRARIES})
       set(LIBR ${OS_LIB})
     endif()
   endif()
-  get_filename_component(LNAME ${LIBR} NAME_WE)
-  add_library(libr_${LNAME} STATIC IMPORTED)
-  set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libr_${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
-
-  target_link_libraries(service libr_${LNAME})
+  # add as whole archive to allow strong symbols
+  list(APPEND LIBR_CMAKE_NAMES "--whole-archive ${LIBR} --no-whole-archive")
 endforeach()
 
 
@@ -364,8 +361,8 @@ function(add_memdisk DISK)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file ${INSTALL_LOC}/memdisk/memdisk.asm ${DISK_RELPATH}
-    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${INSTALL_LOC}/memdisk/memdisk.asm -o memdisk.o
+    COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK_RELPATH} fake_news
   )
   add_library(memdisk STATIC memdisk.o)
@@ -452,6 +449,11 @@ endif()
 
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
+  libos
+  libplatform
+  libarch
+
+  ${LIBR_CMAKE_NAMES}
   libos
   libbotan
   ${OPENSSL_LIBS}

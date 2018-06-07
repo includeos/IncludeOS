@@ -9,3 +9,8 @@ uint64_t StackSampler::samples_asleep() noexcept {
 }
 void StackSampler::print(int) {}
 void StackSampler::set_mode(mode_t) {}
+
+std::string HeapDiag::to_string()
+{
+  return "";
+}

@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,6 +29,7 @@ namespace net
   /** IPv6 packet. */
   class PacketIP6 : public Packet {
   public:
+    static constexpr int DEFAULT_HOP_LIMIT = 64;
     using Span = gsl::span<Byte>;
     using Cspan = gsl::span<const Byte>;
 
@@ -156,10 +157,9 @@ namespace net
     void init(Protocol proto = Protocol::HOPOPT) noexcept {
       Expects(size() == 0);
       auto& hdr = ip6_header();
-      std::memset(&ip6_header(), 0, IP6_HEADER_LEN);
-      hdr.ver_tc_fl = 0x0060;
-      hdr.next_header    = static_cast<uint8_t>(proto);
-      hdr.payload_length = 0x0;
+      hdr = {};
+      hdr.hop_limit   = DEFAULT_HOP_LIMIT;
+      hdr.next_header = static_cast<uint8_t>(proto);
       increment_data_end(IP6_HEADER_LEN);
     }
 

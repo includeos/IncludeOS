@@ -1,5 +1,3 @@
-#define DEBUG
-#define DEBUG2
 #include "virtioblk.hpp"
 
 #include <kernel/events.hpp>
@@ -37,7 +35,7 @@ void null_deleter(uint8_t*) {};
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   : Virtio(d), hw::Block_device(), req(device_name() + ".req0", queue_size(0), 0, iobase()), inflight(0)
 {
-  INFO("VirtioBlk", "Block_devicer initializing");
+  INFO("VirtioBlk", "Initializing");
   {
     auto& reqs = Statman::get().create(
       Stat::UINT32, device_name() + ".requests");

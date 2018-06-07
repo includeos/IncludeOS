@@ -82,8 +82,9 @@ namespace icmp6 {
             }
 
             public:
-            NdpOptions() : header_{nullptr}, opt_array{}, nd_opts_ri{nullptr},
-                nd_opts_ri_end{nullptr}, user_opts{nullptr}, user_opts_end{nullptr} {}
+            NdpOptions() : header_{nullptr}, nd_opts_ri{nullptr},
+                nd_opts_ri_end{nullptr}, user_opts{nullptr},
+                user_opts_end{nullptr}, opt_array{} {}
 
             void parse(uint8_t *opt, uint16_t opts_len);
             struct nd_options_header *get_header(uint8_t &opt)
