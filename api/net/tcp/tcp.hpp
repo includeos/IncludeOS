@@ -548,7 +548,7 @@ namespace net {
      *
      * @param[in]  incoming  The incoming tcp packet "to reset".
      */
-    void send_reset(const tcp::Packet& incoming);
+    void send_reset(const tcp::Packet_view& incoming);
 
     /**
      * @brief      Generate a unique initial sequence number (ISS).
@@ -576,7 +576,7 @@ namespace net {
      *
      * @param[in]  <unnamed>  A TCP Segment
      */
-    void drop(const tcp::Packet&);
+    void drop(const tcp::Packet_view&);
 
 
     // INTERNALS - Handling of collections

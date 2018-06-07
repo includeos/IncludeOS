@@ -207,17 +207,15 @@ void TCP::receive(Packet_view& packet)
 
   // validate some unlikely but invalid packet properties
   if (UNLIKELY(packet.src_port() == 0)) {
-    drop(*static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
+    drop(packet);
     return;
   }
-
-  const auto dest = packet.destination();
 
   // Validate checksum
   if (UNLIKELY(packet.compute_tcp_checksum() != 0)) {
     PRINT("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
           packet.compute_tcp_checksum(), 0x0);
-    drop(*static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
+    drop(packet);
     return;
   }
 
@@ -230,6 +228,7 @@ void TCP::receive(Packet_view& packet)
     return;
   }
 
+  const auto dest = packet.destination();
   const Connection::Tuple tuple { dest, packet.source() };
 
   // Try to find the receiver
@@ -238,7 +237,7 @@ void TCP::receive(Packet_view& packet)
   // Connection found
   if (conn_it != connections_.end()) {
     PRINT("<TCP::receive> Connection found: %s \n", conn_it->second->to_string().c_str());
-    conn_it->second->segment_arrived(static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
+    conn_it->second->segment_arrived(packet);
     return;
   }
 
@@ -250,16 +249,15 @@ void TCP::receive(Packet_view& packet)
   if (listener_it != listeners_.end()) {
     auto& listener = listener_it->second;
     PRINT("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
-    listener->segment_arrived(static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
+    listener->segment_arrived(packet);
     PRINT("<TCP::receive> Listener done with packet\n");
     return;
   }
 
-  auto pkt = static_unique_ptr_cast<net::tcp::Packet>(packet.release());
   // Send a reset
-  send_reset(*pkt);
+  send_reset(packet);
 
-  drop(*pkt);
+  drop(packet);
 }
 
 // Show all connections for TCP as a string.
@@ -380,7 +378,7 @@ tcp::Packet_ptr TCP::create_outgoing_packet()
   return packet;
 }
 
-void TCP::send_reset(const tcp::Packet& in)
+void TCP::send_reset(const tcp::Packet_view& in)
 {
   // TODO: maybe worth to just swap the fields in
   // the incoming packet and send that one
@@ -404,7 +402,7 @@ uint32_t TCP::get_ts_value() const
   return ((RTC::nanos_now() / 1000000000ull) & 0xffffffff);
 }
 
-void TCP::drop(const tcp::Packet&) {
+void TCP::drop(const tcp::Packet_view&) {
   // Stat increment packets dropped
   (*packets_dropped_)++;
   debug("<TCP::drop> Packet dropped\n");

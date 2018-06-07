@@ -21,6 +21,7 @@
 
 #include "common.hpp"
 #include "packet.hpp"
+#include "packet_view.hpp"
 #include "read_request.hpp"
 #include "rttm.hpp"
 #include "tcp_errors.hpp"
@@ -460,7 +461,7 @@ public:
     virtual void abort(Connection&);
 
     /** Handle a Packet [SEGMENT ARRIVES] */
-    virtual Result handle(Connection&, Packet_ptr in) = 0;
+    virtual Result handle(Connection&, Packet_view& in) = 0;
 
     /** The current state represented as a string [STATUS] */
     virtual std::string to_string() const = 0;
@@ -485,13 +486,13 @@ public:
       Helper functions
       TODO: Clean up names.
     */
-    virtual bool check_seq(Connection&, const Packet&);
+    virtual bool check_seq(Connection&, Packet_view&);
 
-    virtual void unallowed_syn_reset_connection(Connection&, const Packet&);
+    virtual void unallowed_syn_reset_connection(Connection&, const Packet_view&);
 
-    virtual bool check_ack(Connection&, const Packet&);
+    virtual bool check_ack(Connection&, const Packet_view&);
 
-    virtual void process_fin(Connection&, const Packet&);
+    virtual void process_fin(Connection&, const Packet_view&);
 
     virtual void send_reset(Connection&);
 
@@ -817,7 +818,7 @@ private:
   /*
     Drop a packet. Used for debug/callback.
   */
-  void drop(const Packet& packet, Drop_reason reason = Drop_reason::NA);
+  void drop(const Packet_view& packet, Drop_reason reason = Drop_reason::NA);
 
   // RFC 3042
   void limited_tx();
@@ -861,22 +862,22 @@ private:
   /*
     Receive a TCP Packet.
   */
-  void segment_arrived(Packet_ptr);
+  void segment_arrived(Packet_view&);
 
   /*
     Acknowledge a packet
     - TCB update, Congestion control handling, RTT calculation and RT handling.
   */
-  bool handle_ack(const Packet&);
+  bool handle_ack(const Packet_view&);
 
   /**
    * @brief      Receive data from an incoming packet containing data.
    *
    * @param[in]  in  TCP Packet containing payload
    */
-  void recv_data(const Packet& in);
+  void recv_data(const Packet_view& in);
 
-  void recv_out_of_order(const Packet& in);
+  void recv_out_of_order(const Packet_view& in);
 
   /**
    * @brief      Acknowledge incoming data. This is done by:
@@ -893,7 +894,7 @@ private:
    *
    * @return     True if window update, False otherwise.
    */
-  bool is_win_update(const Packet& in, const uint32_t win) const
+  bool is_win_update(const Packet_view& in, const uint32_t win) const
   {
     return cb.SND.WND != win and
       (cb.SND.WL1 < in.seq() or (cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack()));
@@ -906,7 +907,7 @@ private:
    *
    * @return     True if duplicate acknowledge, False otherwise.
    */
-  bool is_dup_ack(const Packet& in, const uint32_t win) const
+  bool is_dup_ack(const Packet_view& in, const uint32_t win) const
   {
     return in.ack() == cb.SND.UNA
       and flight_size() > 0
@@ -920,21 +921,21 @@ private:
    *
    * @param[in]  <unnamed>  Incoming TCP segment (duplicate ACK)
    */
-  void on_dup_ack(const Packet&);
+  void on_dup_ack(const Packet_view&);
 
   /**
    * @brief      Handle segment according to congestion control (New Reno)
    *
    * @param[in]  <unnamed>  Incoming TCP segment
    */
-  void congestion_control(const Packet&);
+  void congestion_control(const Packet_view&);
 
   /**
    * @brief      Handle segment according to fast recovery (New Reno)
    *
    * @param[in]  <unnamed>  Incoming TCP segment
    */
-  void fast_recovery(const Packet&);
+  void fast_recovery(const Packet_view&);
 
   /**
    * @brief      Determines ability to send ONE segment, not caring about the usable window.
@@ -1060,7 +1061,7 @@ private:
    *
    * @param[in]  <unnamed>  An incomming TCP packet
    */
-  void take_rtt_measure(const Packet&);
+  void take_rtt_measure(const Packet_view&);
 
   /*
     Start retransmission timer.
@@ -1149,7 +1150,7 @@ private:
   /*
     Parse and apply options.
   */
-  void parse_options(const Packet&);
+  void parse_options(const Packet_view&);
 
   /*
     Add an option.

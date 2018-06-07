@@ -281,7 +281,7 @@ void Connection::receive_disconnect() {
   }
 }
 
-void Connection::segment_arrived(Packet_ptr incoming)
+void Connection::segment_arrived(Packet_view& incoming)
 {
   //const uint32_t FMASK = (~(0x0000000F | htons(0x08)));
   //uint32_t FMASK = 0xFFFFF7F0;
@@ -293,7 +293,7 @@ void Connection::segment_arrived(Packet_ptr incoming)
   //  printf("predicted\n");
 
   // Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
-  switch(state_->handle(*this, std::move(incoming)))
+  switch(state_->handle(*this, incoming))
   {
     case State::OK:
       return; // // Do nothing.
@@ -368,7 +368,7 @@ void Connection::transmit(Packet_ptr packet) {
   host_.transmit(std::move(packet));
 }
 
-bool Connection::handle_ack(const Packet& in)
+bool Connection::handle_ack(const Packet_view& in)
 {
   //printf("<Connection> RX ACK: %s\n", in.to_string().c_str());
 
@@ -410,8 +410,9 @@ bool Connection::handle_ack(const Packet& in)
 
     if(cb.SND.TS_OK)
     {
-      auto* ts = parse_ts_option(in);
-      last_acked_ts_ = ts->ecr;
+      const auto* ts = in.ts_option();
+      if(ts != nullptr) // TODO: not sure the packet is valid if TS missing
+        last_acked_ts_ = ts->ecr;
     }
 
     cb.SND.UNA = in.ack();
@@ -438,7 +439,7 @@ bool Connection::handle_ack(const Packet& in)
   return false;
 }
 
-void Connection::congestion_control(const Packet& in)
+void Connection::congestion_control(const Packet_view& in)
 {
   const size_t bytes_acked = highest_ack_ - prev_highest_ack_;
 
@@ -469,7 +470,7 @@ void Connection::congestion_control(const Packet& in)
   }
 }
 
-void Connection::fast_recovery(const Packet& in)
+void Connection::fast_recovery(const Packet_view& in)
 {
   // partial ack
   /*
@@ -550,7 +551,7 @@ void Connection::fast_recovery(const Packet& in)
 
   What to do when received ACK is a duplicate.
 */
-void Connection::on_dup_ack(const Packet& in)
+void Connection::on_dup_ack(const Packet_view& in)
 {
   // if less than 3 dup acks
   if(dup_acks_ < 3)
@@ -581,7 +582,7 @@ void Connection::on_dup_ack(const Packet& in)
     // 4.2.  Timestamp Heuristic
     if(cb.SND.TS_OK)
     {
-      auto* ts = parse_ts_option(in);
+      const auto* ts = in.ts_option();
       if(ts != nullptr and last_acked_ts_ == ts->ecr)
       {
         goto fast_rtx;
@@ -679,7 +680,7 @@ void Connection::rtx_ack(const seq_t ack) {
   This acknowledgment should be piggybacked on a segment being
   transmitted if possible without incurring undue delay.
 */
-void Connection::recv_data(const Packet& in)
+void Connection::recv_data(const Packet_view& in)
 {
   Expects(in.has_tcp_data());
 
@@ -738,7 +739,7 @@ void Connection::recv_data(const Packet& in)
 // For now, only full segments are allowed (not partial),
 // meaning the data will get thrown away if the read buffer not fully fits it.
 // This makes everything much easier.
-void Connection::recv_out_of_order(const Packet& in)
+void Connection::recv_out_of_order(const Packet_view& in)
 {
   // Packets before this point would totally ruin the buffer
   Expects((in.seq() - cb.RCV.NXT) < cb.RCV.WND);
@@ -832,11 +833,11 @@ void Connection::ack_data()
   }
 }
 
-void Connection::take_rtt_measure(const Packet& packet)
+void Connection::take_rtt_measure(const Packet_view& packet)
 {
   if(cb.SND.TS_OK)
   {
-    auto* ts = parse_ts_option(packet);
+    const auto* ts = packet.ts_option();
     if(ts)
     {
       rttm.rtt_measurement(RTTM::milliseconds{host_.get_ts_value() - ntohl(ts->ecr)});
@@ -1113,7 +1114,7 @@ std::string Connection::TCB::to_string() const {
   return std::string(buffer, len);
 }
 
-void Connection::parse_options(const Packet& packet) {
+void Connection::parse_options(const Packet_view& packet) {
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
         packet.offset(), packet.tcp_options_length());
 
@@ -1273,9 +1274,9 @@ bool Connection::uses_SACK() const noexcept
   return host_.uses_SACK();
 }
 
-void Connection::drop(const Packet& packet, Drop_reason reason)
+void Connection::drop(const Packet_view& packet, Drop_reason reason)
 {
-  signal_packet_dropped(packet, reason);
+  signal_packet_dropped(reinterpret_cast<const Packet&>(*packet.packet_ptr()), reason);
   host_.drop(packet);
 }
 

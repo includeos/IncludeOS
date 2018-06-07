@@ -23,7 +23,7 @@
 
 #include "common.hpp"
 #include "connection.hpp"
-#include "packet.hpp"
+#include "packet_view.hpp"
 
 #include <net/socket.hpp>
 
@@ -101,7 +101,7 @@ private:
 
   bool default_on_accept(Socket);
 
-  void segment_arrived(Packet_ptr);
+  void segment_arrived(Packet_view&);
 
   void remove(Connection_ptr);
 

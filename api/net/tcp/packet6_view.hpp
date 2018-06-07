@@ -12,7 +12,7 @@ public:
     : Packet_view(std::move(ptr))
   {
     Expects(packet().is_ipv6());
-    header = reinterpret_cast<Header*>(packet().ip_data().data());
+    set_header(packet().ip_data().data());
   }
 
   uint16_t compute_tcp_checksum() noexcept override
