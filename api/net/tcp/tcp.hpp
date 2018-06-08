@@ -23,7 +23,6 @@
 #include "connection.hpp"
 #include "headers.hpp"
 #include "listener.hpp"
-#include "packet.hpp"
 #include "packet_view.hpp"
 
 #include <map>  // connections, listeners
@@ -48,7 +47,7 @@ namespace net {
     using CleanupCallback = tcp::Connection::CleanupCallback;
     using ConnectCallback = tcp::Connection::ConnectCallback;
 
-    using Packet_reroute_func = delegate<void(tcp::Packet_ptr)>;
+    using Packet_reroute_func = delegate<void(net::Packet_ptr)>;
 
     using Port_utils = std::map<net::Addr, Port_util>;
 
@@ -196,7 +195,10 @@ namespace net {
      * @param[in]  del   A downstream delegate
      */
     void set_network_out(downstream del)
-    { _network_layer_out = del; }
+    { network_layer_out_ = del; }
+
+    void set_network_out6(downstream del)
+    { network_layer_out6_ = del; }
 
     /**
      * @brief      Returns a collection of the listeners for this instance.
@@ -491,7 +493,8 @@ namespace net {
 
     Port_utils& ports_;
 
-    downstream  _network_layer_out;
+    downstream  network_layer_out_;
+    downstream  network_layer_out6_;
 
     /** Internal writeq - connections gets queued in the wait for packets and recvs offer */
     std::deque<tcp::Connection_ptr> writeq;
@@ -533,7 +536,7 @@ namespace net {
      *
      * @param[in]  <unnamed>  A TCP Segment
      */
-    void transmit(tcp::Packet_ptr);
+    void transmit(tcp::Packet_view_ptr);
 
     /**
      * @brief      Creates an outgoing TCP packet.

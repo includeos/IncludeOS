@@ -19,6 +19,7 @@
 #include <net/dhcp/dh4client.hpp>
 #include <smp>
 #include <net/socket.hpp>
+#include <net/tcp/packet4_view.hpp> // due to ICMP error //temp
 
 using namespace net;
 
@@ -98,6 +99,9 @@ Inet::Inet(hw::Nic& nic)
   // TCP -> IP4
   tcp_.set_network_out(ip4_top);
 
+  // TCP -> IP6
+  tcp_.set_network_out6(ip6_top);
+
   // IP4 -> Arp
   ip4_.set_linklayer_out(arp_top);
 
@@ -130,20 +134,22 @@ void Inet::error_report(Error& err, Packet_ptr orig_pckt) {
   bool too_big = false;
 
   // Get the destination to the original packet
-  Socket dest = [](const PacketIP4& pkt)->Socket {
-    switch (pkt.ip_protocol()) {
+  Socket dest = [](std::unique_ptr<PacketIP4>& pkt)->Socket {
+    switch (pkt->ip_protocol()) {
       case Protocol::UDP: {
-        const auto& udp = static_cast<const PacketUDP&>(pkt);
+        const auto& udp = static_cast<const PacketUDP&>(*pkt);
         return udp.destination();
       }
       case Protocol::TCP: {
-        const auto& tcp = static_cast<const tcp::Packet&>(pkt);
-        return tcp.destination();
+        auto tcp = tcp::Packet4_view(std::move(pkt));
+        auto dst = tcp.destination();
+        pkt = static_unique_ptr_cast<PacketIP4>(tcp.release());
+        return dst;
       }
       default:
         return {};
     }
-  }(*pckt_ip4);
+  }(pckt_ip4);
 
 
   if (err.is_icmp()) {

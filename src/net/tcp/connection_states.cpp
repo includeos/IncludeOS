@@ -15,9 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <gsl/gsl_assert> // Ensures/Expects
 #include <net/tcp/connection_states.hpp>
-#include <net/tcp/packet.hpp>
 
 using namespace net::tcp;
 using namespace std;

@@ -21,7 +21,13 @@ public:
   { return calculate_checksum6(*this); }
 
   Protocol ipv() const noexcept override
-  { return Protocol::IPv4; }
+  { return Protocol::IPv6; }
+
+  ip6::Addr ip6_src() const noexcept
+  { return packet().ip_src(); }
+
+  ip6::Addr ip6_dst() const noexcept
+  { return packet().ip_dst(); }
 
 private:
   PacketIP6& packet() noexcept
@@ -52,6 +58,11 @@ private:
 
 inline void Packet6_view::init()
 {
+  // clear TCP header
+  memset(header, 0, sizeof(tcp::Header));
+
+  set_win(tcp::default_window_size);
+  header->offset_flags.offset_reserved = (5 << 4);
   set_length();
 }
 

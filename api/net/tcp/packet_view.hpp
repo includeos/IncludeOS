@@ -2,15 +2,17 @@
 #pragma once
 
 #include "common.hpp"
+#include "headers.hpp"
 #include "options.hpp"
+
+#include <net/socket.hpp>
+#include <net/packet.hpp>
+#include <net/iana.hpp>
 
 namespace net::tcp {
 
 class Packet_view {
 public:
-
-  Header& tcp_header() noexcept
-  { return *header; }
 
   const Header& tcp_header() const noexcept
   { return *header; }
@@ -98,6 +100,9 @@ public:
   auto tcp_header_length() const noexcept
   { return offset() * 4; }
 
+  uint16_t tcp_length() const
+  { return tcp_header_length() + tcp_data_length(); }
+
   virtual uint16_t compute_tcp_checksum() const noexcept = 0;
 
   Packet_view& set_tcp_checksum(uint16_t checksum) noexcept
@@ -146,7 +151,6 @@ public:
   template <typename T, typename... Args>
   void add_tcp_option_aligned(Args&&... args);
 
-
   const Option::opt_ts* ts_option() const noexcept
   { return ts_opt; }
 
@@ -167,7 +171,23 @@ public:
   bool has_tcp_data() const noexcept
   { return tcp_data_length() > 0; }
 
-  // View operations
+  inline size_t fill(const uint8_t* buffer, size_t length);
+
+  // Util //
+
+  seq_t end() const noexcept
+  { return seq() + tcp_data_length(); }
+
+  bool is_acked_by(const seq_t ack) const noexcept
+  { return ack >= (seq() + tcp_data_length()); }
+
+  bool should_rtx() const noexcept
+  { return has_tcp_data() or isset(SYN) or isset(FIN); }
+
+  inline std::string to_string() const;
+
+  // Packet_view specific operations //
+
   net::Packet_ptr release()
   {
     Expects(pkt != nullptr && "Packet ptr is already null");
@@ -193,12 +213,16 @@ protected:
     Expects(pkt != nullptr);
   }
 
+  Header& tcp_header() noexcept
+  { return *header; }
+
   void set_header(uint8_t* hdr)
   { Expects(hdr != nullptr); header = reinterpret_cast<Header*>(hdr); }
 
   // sets the correct length for all the protocols up to IP4
   void set_length(uint16_t newlen = 0)
   { pkt->set_data_end(ip_header_length() + tcp_header_length() + newlen); }
+
 
 private:
   Option::opt_ts*   ts_opt = nullptr;
@@ -211,8 +235,15 @@ private:
   // TODO: see if we can get rid of these virtual calls
   virtual uint16_t ip_data_length() const noexcept = 0;
   virtual uint16_t ip_header_length() const noexcept = 0;
+  uint16_t ip_capacity() const noexcept
+  { return pkt->capacity() - ip_header_length(); }
+
 };
 
+inline unsigned round_up(unsigned n, unsigned div) {
+  Expects(div > 0);
+  return (n + div - 1) / div;
+}
 
 template <typename T, int Padding, typename... Args>
 inline void Packet_view::add_tcp_option(Args&&... args) {
@@ -278,6 +309,30 @@ inline const Option::opt_ts* Packet_view::parse_ts_option() noexcept
     this->ts_opt = (Option::opt_ts*)opt;
 
   return this->ts_opt;
+}
+
+inline size_t Packet_view::fill(const uint8_t* buffer, size_t length)
+{
+  size_t rem = ip_capacity() - tcp_length();
+  if(rem == 0) return 0;
+  size_t total = std::min(length, rem);
+  // copy from buffer to packet buffer
+  memcpy(tcp_data() + tcp_data_length(), buffer, total);
+  // set new packet length
+  set_length(tcp_data_length() + total);
+  return total;
+}
+
+inline std::string Packet_view::to_string() const
+{
+  char buffer[512];
+  int len = snprintf(buffer, sizeof(buffer),
+        "[ S:%s D:%s SEQ:%u ACK:%u HEAD-LEN:%d OPT-LEN:%d DATA-LEN:%d"
+        " WIN:%u FLAGS:%#x ]",
+        source().to_string().c_str(), destination().to_string().c_str(),
+        seq(), ack(), tcp_header_length(), tcp_options_length(),
+        tcp_data_length(), win(), tcp_header().offset_flags.flags);
+  return std::string(buffer, len);
 }
 
 }

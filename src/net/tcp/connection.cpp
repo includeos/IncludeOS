@@ -18,10 +18,9 @@
 // #define DEBUG
 // #define DEBUG2
 
-#include <gsl/gsl_assert> // Ensures/Expects
+#include <common> // Ensures/Expects
 #include <net/tcp/connection.hpp>
 #include <net/tcp/connection_states.hpp>
-#include <net/tcp/packet.hpp>
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/tcp_errors.hpp>
 
@@ -113,8 +112,6 @@ void Connection::reset_callbacks()
   on_disconnect_ = {this, &Connection::default_on_disconnect};
   on_connect_.reset();
   writeq.on_write(nullptr);
-  on_packet_dropped_.reset();
-  on_rtx_timeout_.reset();
   on_close_.reset();
 
   if(read_request)
@@ -316,7 +313,7 @@ void Connection::deserialize_from(void*) {}
 __attribute__((weak))
 int  Connection::serialize_to(void*) const {  return 0;  }
 
-Packet_ptr Connection::create_outgoing_packet()
+Packet_view_ptr Connection::create_outgoing_packet()
 {
   auto packet = (is_ipv6_) ?
     host_.create_outgoing_packet6() : host_.create_outgoing_packet();
@@ -347,10 +344,10 @@ Packet_ptr Connection::create_outgoing_packet()
   packet->set_seq(cb.SND.NXT).set_ack(cb.RCV.NXT);
   debug("<TCP::Connection::create_outgoing_packet> Outgoing packet created: %s \n", packet->to_string().c_str());
 
-  return static_unique_ptr_cast<tcp::Packet>(packet->release());
+  return packet;
 }
 
-void Connection::transmit(Packet_ptr packet) {
+void Connection::transmit(Packet_view_ptr packet) {
   if(!cb.SND.TS_OK
     and !rttm.active()
     and packet->end() == cb.SND.NXT)
@@ -1095,8 +1092,6 @@ void Connection::clean_up() {
 
   on_connect_.reset();
   on_disconnect_.reset();
-  on_packet_dropped_.reset();
-  on_rtx_timeout_.reset();
   on_close_.reset();
   if(read_request)
     read_request->callback.reset();
@@ -1219,7 +1214,7 @@ void Connection::parse_options(const Packet_view& packet) {
   }
 }
 
-void Connection::add_option(Option::Kind kind, Packet& packet) {
+void Connection::add_option(Option::Kind kind, Packet_view& packet) {
 
   switch(kind) {
 
@@ -1250,16 +1245,6 @@ void Connection::add_option(Option::Kind kind, Packet& packet) {
   }
 }
 
-Option::opt_ts* Connection::parse_ts_option(const Packet& packet) const
-{
-  auto* opt = packet.tcp_options();
-
-  while(((Option*)opt)->kind == Option::NOP and opt < (uint8_t*)packet.tcp_data())
-    opt++;
-
-  return (((Option*)opt)->kind == Option::TS) ? (Option::opt_ts*)opt : nullptr;
-}
-
 bool Connection::uses_window_scaling() const noexcept
 {
   return host_.uses_wscale();
@@ -1275,9 +1260,8 @@ bool Connection::uses_SACK() const noexcept
   return host_.uses_SACK();
 }
 
-void Connection::drop(const Packet_view& packet, Drop_reason reason)
+void Connection::drop(const Packet_view& packet, [[maybe_unused]]Drop_reason reason)
 {
-  signal_packet_dropped(reinterpret_cast<const Packet&>(*packet.packet_ptr()), reason);
   host_.drop(packet);
 }
 

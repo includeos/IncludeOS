@@ -224,7 +224,7 @@ void TCP::receive(Packet_view& packet)
 
   // Redirect packet to custom function
   if (packet_rerouter) {
-    packet_rerouter(static_unique_ptr_cast<net::tcp::Packet>(packet.release()));
+    packet_rerouter(packet.release());
     return;
   }
 
@@ -359,16 +359,21 @@ void TCP::reset_pmtu(Socket dest, IP4::PMTU pmtu) {
   }
 }
 
-void TCP::transmit(tcp::Packet_ptr packet) {
+void TCP::transmit(tcp::Packet_view_ptr packet)
+{
   // Generate checksum.
   packet->set_tcp_checksum();
-  debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
 
   // Stat increment bytes transmitted and packets transmitted
   (*bytes_tx_) += packet->tcp_data_length();
   (*packets_tx_)++;
 
-  _network_layer_out(std::move(packet));
+  if(packet->ipv() == Protocol::IPv6) {
+    network_layer_out6_(packet->release());
+  }
+  else {
+    network_layer_out_(packet->release());
+  }
 }
 
 tcp::Packet_view_ptr TCP::create_outgoing_packet()
@@ -397,7 +402,7 @@ void TCP::send_reset(const tcp::Packet_view& in)
   out->set_source(in.destination());
   out->set_destination(in.source());
 
-  transmit(static_unique_ptr_cast<tcp::Packet>(out->release()));
+  transmit(std::move(out));
 }
 
 seq_t TCP::generate_iss() {
