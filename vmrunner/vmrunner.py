@@ -321,6 +321,7 @@ class qemu(hypervisor):
         self._stopped = False
         self._sudo = False
         self._image_name = self._config if "image" in self._config else self.name() + " vm"
+        self.m_drive_no = 0
 
         # Pretty printing
         self.info = Logger(color.INFO("<" + type(self).__name__ + ">"))
@@ -347,9 +348,11 @@ class qemu(hypervisor):
             if device in names:
                 device = names[device]
 
+            driveno = "drv" + str(self.m_drive_no)
+            self.m_drive_no += 1
             return ["-drive", "file=" + filename + ",format=" + drive_format
-                            + ",if=none" + ",media=" + media_type + ",id=drv0",
-                    "-device",  device + ",drive=drv0,serial=foo"]
+                            + ",if=none" + ",media=" + media_type + ",id=" + driveno,
+                    "-device",  device + ",drive=" + driveno +",serial=foo"]
 
     # -initrd "file1 arg=foo,file2"
     # This syntax is only available with multiboot.
