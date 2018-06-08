@@ -9,7 +9,13 @@ static Disk_ptr disk = nullptr;
 
 CASE("Prepare custom memdisk")
 {
-  auto* fp = fopen("../memdisk.fat", "rb");
+  const char* rootp(getenv("INCLUDEOS_SRC"));
+  std::string path;
+  if (rootp == nullptr) path = "..";
+  else path = std::string(rootp) + "/test";
+
+  path += "/memdisk.fat";
+  auto* fp = fopen(path.c_str(), "rb");
   EXPECT(fp != nullptr);
   fseek(fp, 0L, SEEK_END);
   long int size = ftell(fp);
