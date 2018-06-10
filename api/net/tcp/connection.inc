@@ -24,16 +24,6 @@ inline Connection& Connection::on_write(WriteCallback cb) {
   return *this;
 }
 
-inline Connection& Connection::on_packet_dropped(PacketDroppedCallback callback) {
-  on_packet_dropped_ = callback;
-  return *this;
-}
-
-inline Connection& Connection::on_rtx_timeout(RtxTimeoutCallback cb) {
-  on_rtx_timeout_ = cb;
-  return *this;
-}
-
 inline Connection& Connection::on_close(CloseCallback cb) {
   on_close_ = cb;
   return *this;

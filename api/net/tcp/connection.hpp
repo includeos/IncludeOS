@@ -136,30 +136,6 @@ public:
    */
   inline Connection&            on_write(WriteCallback callback);
 
-  /** Called with the packet that got dropped and the reason why. */
-  using PacketDroppedCallback   = delegate<void(const Packet&, Drop_reason)>;
-  /**
-   * @brief      Event when a connection has dropped a packet.
-   *             Useful for debugging/track counting.
-   *
-   * @param[in]  callback  The callback
-   *
-   * @return     This connection
-   */
-  inline Connection&            on_packet_dropped(PacketDroppedCallback callback);
-
-  /** Called with the number of simultaneous retransmit attempts and the current Round trip timeout in milliseconds. */
-  using RtxTimeoutCallback      = delegate<void(size_t no_attempts, std::chrono::milliseconds rto)>;
-  /**
-   * @brief      Event when the connections retransmit timer has expired.
-   *             Useful for debugging/track counting.
-   *
-   * @param[in]  callback  The callback
-   *
-   * @return     This connection
-   */
-  inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
-
   /**
    * @brief      Only change the on_read callback without touching the buffer.
    *             Only useful in special cases. Assumes on_read has been called.
@@ -169,7 +145,6 @@ public:
    * @return     This connection
    */
   inline Connection&            set_on_read_callback(ReadCallback callback);
-
 
   /**
    * @brief      Async write of a shared buffer with a length.
@@ -645,8 +620,6 @@ private:
   /** Callbacks */
   ConnectCallback         on_connect_;
   DisconnectCallback      on_disconnect_;
-  PacketDroppedCallback   on_packet_dropped_;
-  RtxTimeoutCallback      on_rtx_timeout_;
   CloseCallback           on_close_;
 
   /** Retransmission timer */
@@ -807,12 +780,6 @@ private:
 
   void signal_disconnect(Disconnect::Reason&& reason)
   { on_disconnect_(retrieve_shared(), Disconnect{reason}); }
-
-  void signal_packet_dropped(const Packet& packet, Drop_reason reason)
-  { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
-
-  void signal_rtx_timeout()
-  { if(on_rtx_timeout_) on_rtx_timeout_(rtx_attempt_+1, rttm.rto_ms()); }
 
   /*
     Drop a packet. Used for debug/callback.
