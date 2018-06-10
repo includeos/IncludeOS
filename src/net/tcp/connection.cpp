@@ -113,8 +113,6 @@ void Connection::reset_callbacks()
   on_disconnect_ = {this, &Connection::default_on_disconnect};
   on_connect_.reset();
   writeq.on_write(nullptr);
-  on_packet_dropped_.reset();
-  on_rtx_timeout_.reset();
   on_close_.reset();
 
   if(read_request)
@@ -950,7 +948,6 @@ void Connection::rtx_timeout() {
   debug("<Connection::RTX@timeout> Timed out (RTO %lld ms). FS: %u\n",
     rttm.rto_ms().count(), flight_size());
 
-  signal_rtx_timeout();
   // experimental
   if(rto_limit_reached()) {
     debug("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
@@ -1093,8 +1090,6 @@ void Connection::clean_up() {
 
   on_connect_.reset();
   on_disconnect_.reset();
-  on_packet_dropped_.reset();
-  on_rtx_timeout_.reset();
   on_close_.reset();
   if(read_request)
     read_request->callback.reset();
@@ -1275,7 +1270,6 @@ bool Connection::uses_SACK() const noexcept
 
 void Connection::drop(const Packet& packet, Drop_reason reason)
 {
-  signal_packet_dropped(packet, reason);
   host_.drop(packet);
 }
 
