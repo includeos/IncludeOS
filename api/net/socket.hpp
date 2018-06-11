@@ -93,8 +93,10 @@ public:
    *
    * @return A string representation of this class
    */
-  std::string to_string() const
-  { return address().to_string() + ":" + std::to_string(port()); }
+  std::string to_string() const {
+    return (addr_.is_v6()) ? "[" + addr_.to_string() + "]:" + std::to_string(port_)
+      : addr_.to_string() + ":" + std::to_string(port_);
+  }
 
   /**
    * Check if this socket is empty <0.0.0.0:0>
@@ -114,7 +116,7 @@ public:
    */
   bool operator==(const Socket& other) const noexcept
   {
-    return addr_ == other.addr_;
+    return addr_ == other.addr_ and port_ == other.port_;
   }
 
   /**
@@ -139,8 +141,8 @@ public:
    */
   bool operator<(const Socket& other) const noexcept
   {
-    return (address() < other.address())
-        or ((address() == other.address()) and (port() < other.port()));
+    return (addr_ < other.addr_)
+        or ((addr_ == other.addr_) and (port_ < other.port_));
   }
 
   /**

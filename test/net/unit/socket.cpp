@@ -24,13 +24,13 @@ using namespace net;
 CASE("Creating a Socket without arguments is empty")
 {
   Socket socket;
-  const Socket::Address addr { ip4::Addr{0,0,0,0} };
+  const Socket::Address addr { ip6::Addr::addr_any };
   EXPECT( socket.is_empty() );
   EXPECT( socket.address() == addr );
   EXPECT( socket.address().is_any() );
   EXPECT( socket.port() == 0 );
 
-  const std::string expected_str {"0.0.0.0:0"};
+  const std::string expected_str {"[0:0:0:0:0:0:0:0]:0"};
   EXPECT( socket.to_string() == expected_str );
 }
 

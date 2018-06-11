@@ -28,13 +28,13 @@ public:
     : ip6_{} {}
 
   Addr(ip4::Addr addr) noexcept
-    : ip4_{0, ip4_sign_le, std::move(addr)} {}
+    : ip4_{0, ip4_sign_be, std::move(addr)} {}
 
   Addr(ip6::Addr addr) noexcept
     : ip6_{std::move(addr)} {}
 
   bool is_v4() const noexcept
-  { return ip4_.big == 0 and ip4_.sign == ip4_sign_le; }
+  { return ip4_.big == 0 and ip4_.sign == ip4_sign_be; }
 
   bool is_v6() const noexcept
   { return not is_v4(); }
@@ -42,7 +42,7 @@ public:
   void set_v4(ip4::Addr addr) noexcept
   {
     ip4_.big  = 0;
-    ip4_.sign = ip4_sign_le;
+    ip4_.sign = ip4_sign_be;
     ip4_.addr = std::move(addr);
   }
 
@@ -116,7 +116,7 @@ private:
   } ip4_;
   ip6::Addr ip6_;
 
-  static constexpr uint32_t ip4_sign_le{0xFFFF0000};
+  static constexpr uint32_t ip4_sign_be{0xFFFF0000};
 };
 
 static_assert(sizeof(Addr) == sizeof(ip6::Addr));

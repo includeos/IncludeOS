@@ -81,6 +81,7 @@ static std::unique_ptr<net::PacketIP6> create_ip6_packet_init(ip6::Addr src, ip6
 static std::unique_ptr<net::tcp::Packet> create_tcp_packet() noexcept
 {
   auto ip4 = create_ip4_packet();
+  ip4->init(Protocol::TCP);
   auto tcp = net::static_unique_ptr_cast<net::tcp::Packet> (std::move(ip4));
   return tcp;
 }
