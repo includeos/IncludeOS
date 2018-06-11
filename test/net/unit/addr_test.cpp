@@ -20,19 +20,48 @@
 
 using namespace net;
 
-CASE("Addr")
+CASE("Default Addr intitialization")
 {
-  Addr addr{};
+  Addr addr;
 
-  ip4::Addr ip4addr;
   ip6::Addr ip6addr;
+  EXPECT(addr.is_any());
+  EXPECT(addr.is_v6());
+  EXPECT_NOT(addr.is_v4());
+  EXPECT(addr.v6() == ip6addr);
+  EXPECT_THROWS(addr.v4());
+
+  const std::string str{"0:0:0:0:0:0:0:0"};
+  EXPECT(addr.to_string() == str);
+}
+
+CASE("Addr v4/v6")
+{
+  Addr addr{ip4::Addr::addr_any};
 
   EXPECT(addr.is_any());
-  //EXPECT(addr.v4() == ip4addr);
-  EXPECT(addr.v6() == ip6addr);
+  EXPECT(addr.is_v4());
+  EXPECT_NOT(addr.is_v6());
+  EXPECT(addr.v4() == ip4::Addr::addr_any);
 
-  addr.set_v4({10,0,0,42});
-  printf("%s\n", addr.v4().to_string().c_str());
-  printf("%s\n", addr.v6().to_string().c_str());
+  EXPECT(addr.to_string() == std::string("0.0.0.0"));
+
+  const ip4::Addr ipv4{10,0,0,42};
+  addr.set_v4(ipv4);
+  EXPECT_NOT(addr.is_any());
+  EXPECT(addr.is_v4());
+  EXPECT(addr.v4() == ipv4);
+
+  EXPECT(addr.to_string() == std::string("10.0.0.42"));
+
+  const ip6::Addr ipv6{0,0,0x0000FFFF,ntohl(ipv4.whole)};
+  EXPECT(addr.v6() == ipv6);
+  EXPECT(addr.v6().to_string() == std::string("0:0:0:0:0:ffff:a00:2a"));
+
+  addr.set_v6(ip6::Addr{0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd});
+  EXPECT_NOT(addr.is_v4());
+  EXPECT(addr.is_v6());
+  EXPECT_NOT(addr.is_any());
+  EXPECT(addr.to_string() == std::string("fe80:0:0:0:e823:fcff:fef4:85bd"));
 
 }
