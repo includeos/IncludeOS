@@ -101,8 +101,8 @@ static std::unique_ptr<net::PacketUDP> create_udp_packet_init(Socket src, Socket
   ip4->init(Protocol::UDP);
   auto udp = net::static_unique_ptr_cast<net::PacketUDP> (std::move(ip4));
   udp->init(src.port(), dst.port());
-  udp->set_ip_src(src.address());
-  udp->set_ip_dst(dst.address());
+  udp->set_ip_src(src.address().v4());
+  udp->set_ip_dst(dst.address().v4());
   return udp;
 }
 

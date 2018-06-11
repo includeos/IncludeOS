@@ -27,6 +27,7 @@ CASE("Addr")
   ip4::Addr ip4addr;
   ip6::Addr ip6addr;
 
+  EXPECT(addr.is_any());
   //EXPECT(addr.v4() == ip4addr);
   EXPECT(addr.v6() == ip6addr);
 
