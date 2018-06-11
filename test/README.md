@@ -11,7 +11,7 @@ The following IP addresses are used by the services in the test folder. Make sur
 - bufstore: No IP
 - configure: 10.0.0.60, 10.0.0.61, 10.0.0.62
 - dhclient: Time_sensitive, leave for now
-- dhcpd: 10.0.0.1, 10.0.0.10, 10.0.0.11, 10.0.0.12 - Is 10.0.0.1 a problem?
+- dhcpd: 10.0.0.9, 10.0.0.10, 10.0.0.11, 10.0.0.12
 - dhcpd_dhclient_linux: leave for now
 - dns: 10.0.0.48
 - gateway: 10.0.1.1, 10.0.1.10, 10.0.2.1, 10.0.2.10
