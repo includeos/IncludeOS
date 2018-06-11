@@ -26,11 +26,6 @@
 #include "common.hpp" // constants, seq_t
 #include "headers.hpp"
 
-inline unsigned round_up(unsigned n, unsigned div) {
-  Expects(div > 0);
-  return (n + div - 1) / div;
-}
-
 namespace net {
 namespace tcp {
 
@@ -48,7 +43,7 @@ public:
   //! a valid MTU-sized buffer
   void init()
   {
-    PacketIP4::init(Protocol::TCP);
+    //PacketIP4::init(Protocol::TCP);
     auto* ipdata = ip_data_ptr();
 
     // clear TCP header
@@ -134,13 +129,13 @@ public:
 
 
   Packet& set_source(const Socket& src) {
-    set_ip_src(src.address()); // PacketIP4::set_src
+    set_ip_src(src.address().v4()); // PacketIP4::set_src
     set_src_port(src.port());
     return *this;
   }
 
   Packet& set_destination(const Socket& dest) {
-    set_ip_dst(dest.address()); // PacketIP4::set_dst
+    set_ip_dst(dest.address().v4()); // PacketIP4::set_dst
     set_dst_port(dest.port());
     return *this;
   }

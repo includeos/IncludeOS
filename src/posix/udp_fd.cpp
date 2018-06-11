@@ -43,7 +43,7 @@ void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t addr,
     // copy data into to-be Message buffer
     auto buff = net::tcp::buffer_t(new std::vector<uint8_t> (buf, buf + len));
     // emplace the message in buffer
-    buffer_.emplace_back(htonl(addr.whole), htons(port), std::move(buff));
+    buffer_.emplace_back(htonl(addr.v4().whole), htons(port), std::move(buff));
   }
 }
 
@@ -177,7 +177,7 @@ ssize_t UDP_FD::sendto(const void* message, size_t len, int,
 
   // Sending
   bool written = false;
-  this->sock->sendto(ntohl(dest.sin_addr.s_addr), ntohs(dest.sin_port), message, len,
+  this->sock->sendto(net::ip4::Addr{ntohl(dest.sin_addr.s_addr)}, ntohs(dest.sin_port), message, len,
     [&written]() { written = true; });
 
   while(!written)
@@ -230,7 +230,7 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
         auto& sender = *((sockaddr_in*)address);
         sender.sin_family       = AF_INET;
         sender.sin_port         = htons(port);
-        sender.sin_addr.s_addr  = htonl(addr.whole);
+        sender.sin_addr.s_addr  = htonl(addr.v4().whole);
         *address_len            = sizeof(struct sockaddr_in);
       }
       done = true;

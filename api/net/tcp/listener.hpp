@@ -23,7 +23,7 @@
 
 #include "common.hpp"
 #include "connection.hpp"
-#include "packet.hpp"
+#include "packet_view.hpp"
 
 #include <net/socket.hpp>
 
@@ -42,7 +42,8 @@ public:
 
 public:
 
-  Listener(TCP& host, Socket local, ConnectCallback cb = nullptr);
+  Listener(TCP& host, Socket local, ConnectCallback cb = nullptr,
+           const bool ipv6_only = false);
 
   Listener& on_accept(AcceptCallback cb)
   {
@@ -96,10 +97,11 @@ private:
   AcceptCallback  on_accept_;
   ConnectCallback on_connect_;
   CloseCallback   _on_close_;
+  const bool      ipv6_only_;
 
   bool default_on_accept(Socket);
 
-  void segment_arrived(Packet_ptr);
+  void segment_arrived(Packet_view&);
 
   void remove(Connection_ptr);
 

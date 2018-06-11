@@ -23,7 +23,7 @@
 #include "connection.hpp"
 #include "headers.hpp"
 #include "listener.hpp"
-#include "packet.hpp"
+#include "packet_view.hpp"
 
 #include <map>  // connections, listeners
 #include <deque>  // writeq
@@ -47,13 +47,15 @@ namespace net {
     using CleanupCallback = tcp::Connection::CleanupCallback;
     using ConnectCallback = tcp::Connection::ConnectCallback;
 
-    using Packet_reroute_func = delegate<void(tcp::Packet_ptr)>;
+    using Packet_reroute_func = delegate<void(net::Packet_ptr)>;
+
+    using Port_utils = std::map<net::Addr, Port_util>;
 
     friend class tcp::Connection;
     friend class tcp::Listener;
 
   private:
-    using Listeners       = std::map<Socket, std::unique_ptr<tcp::Listener>>;
+    using Listeners       = std::map<Socket, std::shared_ptr<tcp::Listener>>;
     using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
 
   public:
@@ -77,8 +79,8 @@ namespace net {
      *
      * @return     A TCP Listener
      */
-    tcp::Listener& listen(const tcp::port_t port, ConnectCallback cb = nullptr)
-    { return listen({0, port}, std::move(cb)); }
+    tcp::Listener& listen(const tcp::port_t port, ConnectCallback cb = nullptr,
+                          const bool ipv6_only = false);
 
     /**
      * @brief      Bind to a socket to start listening for new connections
@@ -179,12 +181,24 @@ namespace net {
     void receive(net::Packet_ptr);
 
     /**
+     * @brief      Receive a Packet from the network layer (IP6)
+     *
+     * @param[in]  <unnamed>  A IP6 packet
+     */
+    void receive6(net::Packet_ptr);
+
+    void receive(tcp::Packet_view&);
+
+    /**
      * @brief      Sets a delegate to the network output.
      *
      * @param[in]  del   A downstream delegate
      */
     void set_network_out(downstream del)
-    { _network_layer_out = del; }
+    { network_layer_out_ = del; }
+
+    void set_network_out6(downstream del)
+    { network_layer_out6_ = del; }
 
     /**
      * @brief      Returns a collection of the listeners for this instance.
@@ -477,9 +491,10 @@ namespace net {
     Listeners     listeners_;
     Connections   connections_;
 
-    IP4::Port_utils& ports_;
+    Port_utils& ports_;
 
-    downstream  _network_layer_out;
+    downstream  network_layer_out_;
+    downstream  network_layer_out6_;
 
     /** Internal writeq - connections gets queued in the wait for packets and recvs offer */
     std::deque<tcp::Connection_ptr> writeq;
@@ -521,14 +536,21 @@ namespace net {
      *
      * @param[in]  <unnamed>  A TCP Segment
      */
-    void transmit(tcp::Packet_ptr);
+    void transmit(tcp::Packet_view_ptr);
 
     /**
      * @brief      Creates an outgoing TCP packet.
      *
      * @return     A tcp packet ptr
      */
-    tcp::Packet_ptr create_outgoing_packet();
+    tcp::Packet_view_ptr create_outgoing_packet();
+
+    /**
+     * @brief      Creates an outgoing TCP6 packet.
+     *
+     * @return     A tcp packet ptr
+     */
+    tcp::Packet_view_ptr create_outgoing_packet6();
 
     /**
      * @brief      Sends a TCP reset based on the values of the incoming packet.
@@ -536,7 +558,7 @@ namespace net {
      *
      * @param[in]  incoming  The incoming tcp packet "to reset".
      */
-    void send_reset(const tcp::Packet& incoming);
+    void send_reset(const tcp::Packet_view& incoming);
 
     /**
      * @brief      Generate a unique initial sequence number (ISS).
@@ -564,7 +586,7 @@ namespace net {
      *
      * @param[in]  <unnamed>  A TCP Segment
      */
-    void drop(const tcp::Packet&);
+    void drop(const tcp::Packet_view&);
 
 
     // INTERNALS - Handling of collections
@@ -614,7 +636,7 @@ namespace net {
      *
      * @return     True if valid source, False otherwise.
      */
-    bool is_valid_source(const tcp::Address addr) const noexcept;
+    bool is_valid_source(const tcp::Address& addr) const noexcept;
 
     /**
      * @brief      Try to find the listener bound to socket.
@@ -624,13 +646,7 @@ namespace net {
      *
      * @return     A listener iterator
      */
-    Listeners::iterator find_listener(const Socket socket)
-    {
-      Listeners::iterator it = listeners_.find(socket);
-      if(it == listeners_.end() and socket.address() != 0)
-        it = listeners_.find({0, socket.port()});
-      return it;
-    }
+    Listeners::iterator find_listener(const Socket& socket);
 
     /**
      * @brief      Try to find the listener bound to socket.
@@ -640,13 +656,7 @@ namespace net {
      *
      * @return     A listener const iterator
      */
-    Listeners::const_iterator cfind_listener(const Socket socket) const
-    {
-      Listeners::const_iterator it = listeners_.find(socket);
-      if(it == listeners_.cend() and socket.address() != 0)
-        it = listeners_.find({0, socket.port()});
-      return it;
-    }
+    Listeners::const_iterator cfind_listener(const Socket& socket) const;
 
     /**
      * @brief      Adds a connection.

@@ -20,7 +20,7 @@
 #define NET_TCP_CONNECTION_HPP
 
 #include "common.hpp"
-#include "packet.hpp"
+#include "packet_view.hpp"
 #include "read_request.hpp"
 #include "rttm.hpp"
 #include "tcp_errors.hpp"
@@ -138,27 +138,6 @@ public:
 
   /** Called with the packet that got dropped and the reason why. */
   using PacketDroppedCallback   = delegate<void(const Packet&, Drop_reason)>;
-  /**
-   * @brief      Event when a connection has dropped a packet.
-   *             Useful for debugging/track counting.
-   *
-   * @param[in]  callback  The callback
-   *
-   * @return     This connection
-   */
-  inline Connection&            on_packet_dropped(PacketDroppedCallback callback);
-
-  /** Called with the number of simultaneous retransmit attempts and the current Round trip timeout in milliseconds. */
-  using RtxTimeoutCallback      = delegate<void(size_t no_attempts, std::chrono::milliseconds rto)>;
-  /**
-   * @brief      Event when the connections retransmit timer has expired.
-   *             Useful for debugging/track counting.
-   *
-   * @param[in]  callback  The callback
-   *
-   * @return     This connection
-   */
-  inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
   /**
    * @brief      Only change the on_read callback without touching the buffer.
@@ -421,7 +400,7 @@ public:
    *
    * @return     A TCP Socket
    */
-  Socket local() const noexcept
+  const Socket& local() const noexcept
   { return local_; }
 
   /**
@@ -429,8 +408,11 @@ public:
    *
    * @return     A TCP Socket
    */
-  Socket remote() const noexcept
+  const Socket& remote() const noexcept
   { return remote_; }
+
+  Protocol ipv() const noexcept
+  { return is_ipv6_ ? Protocol::IPv6 : Protocol::IPv4; }
 
   auto bytes_sacked() const noexcept
   { return bytes_sacked_; }
@@ -460,7 +442,7 @@ public:
     virtual void abort(Connection&);
 
     /** Handle a Packet [SEGMENT ARRIVES] */
-    virtual Result handle(Connection&, Packet_ptr in) = 0;
+    virtual Result handle(Connection&, Packet_view& in) = 0;
 
     /** The current state represented as a string [STATUS] */
     virtual std::string to_string() const = 0;
@@ -485,13 +467,13 @@ public:
       Helper functions
       TODO: Clean up names.
     */
-    virtual bool check_seq(Connection&, const Packet&);
+    virtual bool check_seq(Connection&, Packet_view&);
 
-    virtual void unallowed_syn_reset_connection(Connection&, const Packet&);
+    virtual void unallowed_syn_reset_connection(Connection&, const Packet_view&);
 
-    virtual bool check_ack(Connection&, const Packet&);
+    virtual bool check_ack(Connection&, const Packet_view&);
 
-    virtual void process_fin(Connection&, const Packet&);
+    virtual void process_fin(Connection&, const Packet_view&);
 
     virtual void send_reset(Connection&);
 
@@ -625,6 +607,8 @@ private:
   Socket local_;
   Socket remote_;
 
+  const bool is_ipv6_ = false;
+
   /** The current state the Connection is in. Handles most of the logic. */
   State* state_;
   // Previous state. Used to keep track of state transitions.
@@ -645,8 +629,6 @@ private:
   /** Callbacks */
   ConnectCallback         on_connect_;
   DisconnectCallback      on_disconnect_;
-  PacketDroppedCallback   on_packet_dropped_;
-  RtxTimeoutCallback      on_rtx_timeout_;
   CloseCallback           on_close_;
 
   /** Retransmission timer */
@@ -808,16 +790,13 @@ private:
   void signal_disconnect(Disconnect::Reason&& reason)
   { on_disconnect_(retrieve_shared(), Disconnect{reason}); }
 
-  void signal_packet_dropped(const Packet& packet, Drop_reason reason)
-  { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
-
   void signal_rtx_timeout()
-  { if(on_rtx_timeout_) on_rtx_timeout_(rtx_attempt_+1, rttm.rto_ms()); }
+  { }
 
   /*
     Drop a packet. Used for debug/callback.
   */
-  void drop(const Packet& packet, Drop_reason reason = Drop_reason::NA);
+  void drop(const Packet_view& packet, Drop_reason reason = Drop_reason::NA);
 
   // RFC 3042
   void limited_tx();
@@ -861,22 +840,22 @@ private:
   /*
     Receive a TCP Packet.
   */
-  void segment_arrived(Packet_ptr);
+  void segment_arrived(Packet_view&);
 
   /*
     Acknowledge a packet
     - TCB update, Congestion control handling, RTT calculation and RT handling.
   */
-  bool handle_ack(const Packet&);
+  bool handle_ack(const Packet_view&);
 
   /**
    * @brief      Receive data from an incoming packet containing data.
    *
    * @param[in]  in  TCP Packet containing payload
    */
-  void recv_data(const Packet& in);
+  void recv_data(const Packet_view& in);
 
-  void recv_out_of_order(const Packet& in);
+  void recv_out_of_order(const Packet_view& in);
 
   /**
    * @brief      Acknowledge incoming data. This is done by:
@@ -893,7 +872,7 @@ private:
    *
    * @return     True if window update, False otherwise.
    */
-  bool is_win_update(const Packet& in, const uint32_t win) const
+  bool is_win_update(const Packet_view& in, const uint32_t win) const
   {
     return cb.SND.WND != win and
       (cb.SND.WL1 < in.seq() or (cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack()));
@@ -906,7 +885,7 @@ private:
    *
    * @return     True if duplicate acknowledge, False otherwise.
    */
-  bool is_dup_ack(const Packet& in, const uint32_t win) const
+  bool is_dup_ack(const Packet_view& in, const uint32_t win) const
   {
     return in.ack() == cb.SND.UNA
       and flight_size() > 0
@@ -920,21 +899,21 @@ private:
    *
    * @param[in]  <unnamed>  Incoming TCP segment (duplicate ACK)
    */
-  void on_dup_ack(const Packet&);
+  void on_dup_ack(const Packet_view&);
 
   /**
    * @brief      Handle segment according to congestion control (New Reno)
    *
    * @param[in]  <unnamed>  Incoming TCP segment
    */
-  void congestion_control(const Packet&);
+  void congestion_control(const Packet_view&);
 
   /**
    * @brief      Handle segment according to fast recovery (New Reno)
    *
    * @param[in]  <unnamed>  Incoming TCP segment
    */
-  void fast_recovery(const Packet&);
+  void fast_recovery(const Packet_view&);
 
   /**
    * @brief      Determines ability to send ONE segment, not caring about the usable window.
@@ -959,20 +938,20 @@ private:
    *
    * @return     The amount of data filled into the packet.
    */
-  size_t fill_packet(Packet& packet, const uint8_t* data, size_t n)
+  size_t fill_packet(Packet_view& packet, const uint8_t* data, size_t n)
   { return packet.fill(data, std::min(n, (size_t)SMSS())); }
 
   /*
     Transmit the packet and hooks up retransmission.
   */
-  void transmit(Packet_ptr);
+  void transmit(Packet_view_ptr);
 
   /*
     Creates a new outgoing packet with the current TCB values and options.
   */
-  Packet_ptr create_outgoing_packet();
+  Packet_view_ptr create_outgoing_packet();
 
-  Packet_ptr outgoing_packet()
+  Packet_view_ptr outgoing_packet()
   { return create_outgoing_packet(); }
 
   /**
@@ -1060,7 +1039,7 @@ private:
    *
    * @param[in]  <unnamed>  An incomming TCP packet
    */
-  void take_rtt_measure(const Packet&);
+  void take_rtt_measure(const Packet_view&);
 
   /*
     Start retransmission timer.
@@ -1149,22 +1128,13 @@ private:
   /*
     Parse and apply options.
   */
-  void parse_options(const Packet&);
+  void parse_options(const Packet_view&);
 
   /*
     Add an option.
   */
-  void add_option(Option::Kind, Packet&);
+  void add_option(Option::Kind, Packet_view&);
 
-  /**
-   * @brief      Parses the timestamp option from a packet (if any).
-   *             Assumes the packet contains no other options.
-   *
-   * @param[in]  <unnamed>  A TCP packet
-   *
-   * @return     A pointer the the timestamp option (nullptr if none)
-   */
-  Option::opt_ts* parse_ts_option(const Packet&) const;
 
 }; // < class Connection
 

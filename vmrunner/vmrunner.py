@@ -388,6 +388,7 @@ class qemu(hypervisor):
 
         # Add mac-address if specified
         if mac: device += ",mac=" + mac
+        device += ",romfile=" # remove some qemu boot info (experimental)
 
         return ["-device", device,
                 "-netdev", netdev]

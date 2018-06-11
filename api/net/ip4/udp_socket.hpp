@@ -28,7 +28,7 @@ namespace net
   public:
 
     typedef UDP::port_t port_t;
-    typedef IP4::addr addr_t;
+    typedef net::Addr addr_t;
     typedef IP4::addr multicast_group_addr;
 
     typedef delegate<void(addr_t, port_t, const char*, size_t)> recvfrom_handler;
@@ -65,7 +65,7 @@ namespace net
 
     // stuff
     addr_t local_addr() const
-    { return socket_.address(); }
+    { return socket_.address().v4(); }
 
     port_t local_port() const
     { return socket_.port(); }
