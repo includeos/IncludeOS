@@ -331,11 +331,25 @@ class qemu(hypervisor):
     def image_name(self):
         return self._image_name
 
-    def drive_arg(self, filename, drive_type = "virtio", drive_format = "raw", media_type = "disk"):
-        return ["-drive","file=" + filename
-                + ",format=" + drive_format
-                + ",if=" + drive_type
-                + ",media=" + media_type]
+    def drive_arg(self, filename, device = "virtio", drive_format = "raw", media_type = "disk"):
+        names = {"virtio" : "virtio-blk",
+                 "virtio-scsi" : "virtio-scsi",
+                 "ide"    : "piix3-ide",
+                 "nvme"   : "nvme"}
+
+        if device == "ide":
+            # most likely a problem relating to bus, or wrong .drive
+            return ["-drive","file=" + filename
+                    + ",format=" + drive_format
+                    + ",if=" + device
+                    + ",media=" + media_type]
+        else:
+            if device in names:
+                device = names[device]
+
+            return ["-drive", "file=" + filename + ",format=" + drive_format
+                            + ",if=none" + ",media=" + media_type + ",id=drv0",
+                    "-device",  device + ",drive=drv0,serial=foo"]
 
     # -initrd "file1 arg=foo,file2"
     # This syntax is only available with multiboot.
@@ -371,6 +385,7 @@ class qemu(hypervisor):
 
         # Add mac-address if specified
         if mac: device += ",mac=" + mac
+        device += ",romfile=" # remove some qemu boot info (experimental)
 
         return ["-device", device,
                 "-netdev", netdev]

@@ -163,7 +163,7 @@ def crash_test(string):
 def fire_bursts(func, sub_test_name, lead_out = 3):
   name_tag = "<" + sub_test_name + ">"
   print color.HEADER(test_name + " initiating "+sub_test_name)
-  membase_start = func()
+  membase_start = get_mem()
   mem_base = membase_start
 
   # Track heap behavior
@@ -262,7 +262,7 @@ vm.on_output("Ready for TCP", TCP)
 vm.on_output("Ready to end", check_vitals)
 
 # Boot the VM, taking a timeout as parameter
-timeout = BURST_COUNT * 20
+timeout = BURST_COUNT * 30
 
 if len(sys.argv) > 1:
   timeout = int(sys.argv[1])

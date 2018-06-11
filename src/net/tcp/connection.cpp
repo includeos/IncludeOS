@@ -18,10 +18,9 @@
 // #define DEBUG
 // #define DEBUG2
 
-#include <gsl/gsl_assert> // Ensures/Expects
+#include <common> // Ensures/Expects
 #include <net/tcp/connection.hpp>
 #include <net/tcp/connection_states.hpp>
-#include <net/tcp/packet.hpp>
 #include <net/tcp/tcp.hpp>
 #include <net/tcp/tcp_errors.hpp>
 
@@ -30,8 +29,8 @@ using namespace std;
 
 Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback callback)
   : host_(host),
-    local_(local),
-    remote_(remote),
+    local_{std::move(local)}, remote_{std::move(remote)},
+    is_ipv6_(local_.address().is_v6()),
     state_(&Connection::Closed::instance()),
     prev_state_(state_),
     cb{host_.window_size()},
@@ -113,8 +112,6 @@ void Connection::reset_callbacks()
   on_disconnect_ = {this, &Connection::default_on_disconnect};
   on_connect_.reset();
   writeq.on_write(nullptr);
-  on_packet_dropped_.reset();
-  on_rtx_timeout_.reset();
   on_close_.reset();
 
   if(read_request)
@@ -281,7 +278,7 @@ void Connection::receive_disconnect() {
   }
 }
 
-void Connection::segment_arrived(Packet_ptr incoming)
+void Connection::segment_arrived(Packet_view& incoming)
 {
   //const uint32_t FMASK = (~(0x0000000F | htons(0x08)));
   //uint32_t FMASK = 0xFFFFF7F0;
@@ -293,7 +290,7 @@ void Connection::segment_arrived(Packet_ptr incoming)
   //  printf("predicted\n");
 
   // Let state handle what to do when incoming packet arrives, and modify the outgoing packet.
-  switch(state_->handle(*this, std::move(incoming)))
+  switch(state_->handle(*this, incoming))
   {
     case State::OK:
       return; // // Do nothing.
@@ -316,11 +313,12 @@ void Connection::deserialize_from(void*) {}
 __attribute__((weak))
 int  Connection::serialize_to(void*) const {  return 0;  }
 
-Packet_ptr Connection::create_outgoing_packet()
+Packet_view_ptr Connection::create_outgoing_packet()
 {
-  auto packet = host_.create_outgoing_packet();
+  auto packet = (is_ipv6_) ?
+    host_.create_outgoing_packet6() : host_.create_outgoing_packet();
   // Set Source (local == the current connection)
-  packet->set_source(local());
+  packet->set_source(local_);
   // Set Destination (remote)
   packet->set_destination(remote_);
 
@@ -349,7 +347,7 @@ Packet_ptr Connection::create_outgoing_packet()
   return packet;
 }
 
-void Connection::transmit(Packet_ptr packet) {
+void Connection::transmit(Packet_view_ptr packet) {
   if(!cb.SND.TS_OK
     and !rttm.active()
     and packet->end() == cb.SND.NXT)
@@ -368,7 +366,7 @@ void Connection::transmit(Packet_ptr packet) {
   host_.transmit(std::move(packet));
 }
 
-bool Connection::handle_ack(const Packet& in)
+bool Connection::handle_ack(const Packet_view& in)
 {
   //printf("<Connection> RX ACK: %s\n", in.to_string().c_str());
 
@@ -410,8 +408,9 @@ bool Connection::handle_ack(const Packet& in)
 
     if(cb.SND.TS_OK)
     {
-      auto* ts = parse_ts_option(in);
-      last_acked_ts_ = ts->ecr;
+      const auto* ts = in.ts_option();
+      if(ts != nullptr) // TODO: not sure the packet is valid if TS missing
+        last_acked_ts_ = ts->ecr;
     }
 
     cb.SND.UNA = in.ack();
@@ -438,7 +437,7 @@ bool Connection::handle_ack(const Packet& in)
   return false;
 }
 
-void Connection::congestion_control(const Packet& in)
+void Connection::congestion_control(const Packet_view& in)
 {
   const size_t bytes_acked = highest_ack_ - prev_highest_ack_;
 
@@ -469,7 +468,7 @@ void Connection::congestion_control(const Packet& in)
   }
 }
 
-void Connection::fast_recovery(const Packet& in)
+void Connection::fast_recovery(const Packet_view& in)
 {
   // partial ack
   /*
@@ -550,7 +549,7 @@ void Connection::fast_recovery(const Packet& in)
 
   What to do when received ACK is a duplicate.
 */
-void Connection::on_dup_ack(const Packet& in)
+void Connection::on_dup_ack(const Packet_view& in)
 {
   // if less than 3 dup acks
   if(dup_acks_ < 3)
@@ -581,7 +580,7 @@ void Connection::on_dup_ack(const Packet& in)
     // 4.2.  Timestamp Heuristic
     if(cb.SND.TS_OK)
     {
-      auto* ts = parse_ts_option(in);
+      const auto* ts = in.ts_option();
       if(ts != nullptr and last_acked_ts_ == ts->ecr)
       {
         goto fast_rtx;
@@ -679,7 +678,7 @@ void Connection::rtx_ack(const seq_t ack) {
   This acknowledgment should be piggybacked on a segment being
   transmitted if possible without incurring undue delay.
 */
-void Connection::recv_data(const Packet& in)
+void Connection::recv_data(const Packet_view& in)
 {
   Expects(in.has_tcp_data());
 
@@ -738,7 +737,7 @@ void Connection::recv_data(const Packet& in)
 // For now, only full segments are allowed (not partial),
 // meaning the data will get thrown away if the read buffer not fully fits it.
 // This makes everything much easier.
-void Connection::recv_out_of_order(const Packet& in)
+void Connection::recv_out_of_order(const Packet_view& in)
 {
   // Packets before this point would totally ruin the buffer
   Expects((in.seq() - cb.RCV.NXT) < cb.RCV.WND);
@@ -832,11 +831,11 @@ void Connection::ack_data()
   }
 }
 
-void Connection::take_rtt_measure(const Packet& packet)
+void Connection::take_rtt_measure(const Packet_view& packet)
 {
   if(cb.SND.TS_OK)
   {
-    auto* ts = parse_ts_option(packet);
+    const auto* ts = packet.ts_option();
     if(ts)
     {
       rttm.rtt_measurement(RTTM::milliseconds{host_.get_ts_value() - ntohl(ts->ecr)});
@@ -1093,8 +1092,6 @@ void Connection::clean_up() {
 
   on_connect_.reset();
   on_disconnect_.reset();
-  on_packet_dropped_.reset();
-  on_rtx_timeout_.reset();
   on_close_.reset();
   if(read_request)
     read_request->callback.reset();
@@ -1113,7 +1110,7 @@ std::string Connection::TCB::to_string() const {
   return std::string(buffer, len);
 }
 
-void Connection::parse_options(const Packet& packet) {
+void Connection::parse_options(const Packet_view& packet) {
   debug("<TCP::parse_options> Parsing options. Offset: %u, Options: %u \n",
         packet.offset(), packet.tcp_options_length());
 
@@ -1217,7 +1214,7 @@ void Connection::parse_options(const Packet& packet) {
   }
 }
 
-void Connection::add_option(Option::Kind kind, Packet& packet) {
+void Connection::add_option(Option::Kind kind, Packet_view& packet) {
 
   switch(kind) {
 
@@ -1248,16 +1245,6 @@ void Connection::add_option(Option::Kind kind, Packet& packet) {
   }
 }
 
-Option::opt_ts* Connection::parse_ts_option(const Packet& packet) const
-{
-  auto* opt = packet.tcp_options();
-
-  while(((Option*)opt)->kind == Option::NOP and opt < (uint8_t*)packet.tcp_data())
-    opt++;
-
-  return (((Option*)opt)->kind == Option::TS) ? (Option::opt_ts*)opt : nullptr;
-}
-
 bool Connection::uses_window_scaling() const noexcept
 {
   return host_.uses_wscale();
@@ -1273,9 +1260,8 @@ bool Connection::uses_SACK() const noexcept
   return host_.uses_SACK();
 }
 
-void Connection::drop(const Packet& packet, Drop_reason reason)
+void Connection::drop(const Packet_view& packet, [[maybe_unused]]Drop_reason reason)
 {
-  signal_packet_dropped(packet, reason);
   host_.drop(packet);
 }
 

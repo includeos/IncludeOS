@@ -7,13 +7,13 @@ endif()
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
-project(test_icmp)
+project(test_icmp6)
 
 # Human-readable name of your service
 set(SERVICE_NAME "IncludeOS ICMP test")
 
 # Name of your service binary
-set(BINARY       "test_icmp")
+set(BINARY       "test_icmp6")
 
 # Maximum memory can be hard-coded into the binary
 set(MAX_MEM 128)

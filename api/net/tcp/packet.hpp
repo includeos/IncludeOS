@@ -26,11 +26,6 @@
 #include "common.hpp" // constants, seq_t
 #include "headers.hpp"
 
-inline unsigned round_up(unsigned n, unsigned div) {
-  Expects(div > 0);
-  return (n + div - 1) / div;
-}
-
 namespace net {
 namespace tcp {
 
@@ -48,7 +43,7 @@ public:
   //! a valid MTU-sized buffer
   void init()
   {
-    PacketIP4::init(Protocol::TCP);
+    //PacketIP4::init(Protocol::TCP);
     auto* ipdata = ip_data_ptr();
 
     // clear TCP header

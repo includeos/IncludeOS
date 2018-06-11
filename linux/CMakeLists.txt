@@ -12,10 +12,15 @@ set(COMMON "-g -O2 -march=native -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 
+option(DEBUGGING "Enable debugging" OFF)
 option(GPROF "Enable profiling with gprof" OFF)
 option(SANITIZE "Enable undefined- and address sanitizers" OFF)
 option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
 option(CUSTOM_BOTAN "Enable building with a local Botan" OFF)
+
+if(DEBUGGING)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
+endif()
 
 if (ENABLE_LTO)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")

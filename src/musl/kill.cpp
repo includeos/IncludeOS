@@ -6,6 +6,9 @@ int sys_kill(pid_t /*pid*/, int /*sig*/) {
 }
 
 int sys_tkill(int /*tid*/, int /*sig*/) {
+#ifndef INCLUDEOS_SINGLE_THREADED
+#   warning "tkill not implemented for threaded IncludeOS"
+#endif
   panic("TKILL called");
 }
 

@@ -32,14 +32,14 @@ namespace ip6 {
  */
 struct Header {
   union {
-    uint32_t ver_tc_fl;
+    uint32_t ver_tc_fl = 0x0060;
     uint32_t version : 4,
              traffic_class : 8,
              flow_label : 20;
   };
-  uint16_t payload_length;
-  uint8_t  next_header;
-  uint8_t  hop_limit;
+  uint16_t payload_length = 0;
+  uint8_t  next_header = 0;
+  uint8_t  hop_limit   = 0;
   Addr     saddr;
   Addr     daddr;
 }; //< struct Header

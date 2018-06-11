@@ -162,7 +162,6 @@ namespace net
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
     IP6::addr target = req.ndp().neighbour_sol().get_target();
     uint8_t *lladdr, *nonce_opt;
-    bool found;
     uint64_t nonce = 0;
 
     PRINT("ICMPv6 NDP Neighbor solicitation request\n");
@@ -275,7 +274,7 @@ namespace net
     }
   }
 
-  bool Ndp::lookup(IP6::addr ip, uint8_t *ll_addr)
+  bool Ndp::lookup(IP6::addr ip)
   {
       auto entry = neighbour_cache_.find(ip);
       if (entry != neighbour_cache_.end()) {

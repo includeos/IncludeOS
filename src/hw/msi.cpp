@@ -104,12 +104,13 @@ namespace hw
       printf("PCI: Invalid BAR: %u\n", bar);
       return 0;
     }
-    auto baroff = dev.get_bar(bar);
-    assert(baroff != 0);
+    auto pcibar = dev.get_bar(bar);
+    assert(pcibar.start != 0);
 
     PRINT("[MSI-X] offset %p -> bir %u => %p  res: %p\n",
-          (void*) offset, bar, (void*) baroff, (void*) (capbar_off + baroff));
-    return capbar_off + baroff;
+          (void*) offset, bar, (void*) pcibar.start,
+          (void*) (pcibar.start + capbar_off));
+    return pcibar.start + capbar_off;
   }
 
   msix_t::msix_t(PCI_Device& device, uint32_t cap)
@@ -153,7 +154,7 @@ namespace hw
     for (size_t i = 0; i < this->vectors(); i++) {
       mask_entry(i);
     }
-    PRINT("[MSI-X] Enabled with %u vectors\n", this->vectors());
+    PRINT("[MSI-X] Enabled with %zu vectors\n", this->vectors());
 
     // unmask vectors
     func &= ~MSIX_FUNC_MASK;

@@ -23,7 +23,7 @@
 #include "connection.hpp"
 #include "headers.hpp"
 #include "listener.hpp"
-#include "packet.hpp"
+#include "packet_view.hpp"
 
 #include <map>  // connections, listeners
 #include <deque>  // writeq
@@ -47,7 +47,7 @@ namespace net {
     using CleanupCallback = tcp::Connection::CleanupCallback;
     using ConnectCallback = tcp::Connection::ConnectCallback;
 
-    using Packet_reroute_func = delegate<void(tcp::Packet_ptr)>;
+    using Packet_reroute_func = delegate<void(net::Packet_ptr)>;
 
     using Port_utils = std::map<net::Addr, Port_util>;
 
@@ -181,12 +181,24 @@ namespace net {
     void receive(net::Packet_ptr);
 
     /**
+     * @brief      Receive a Packet from the network layer (IP6)
+     *
+     * @param[in]  <unnamed>  A IP6 packet
+     */
+    void receive6(net::Packet_ptr);
+
+    void receive(tcp::Packet_view&);
+
+    /**
      * @brief      Sets a delegate to the network output.
      *
      * @param[in]  del   A downstream delegate
      */
     void set_network_out(downstream del)
-    { _network_layer_out = del; }
+    { network_layer_out_ = del; }
+
+    void set_network_out6(downstream del)
+    { network_layer_out6_ = del; }
 
     /**
      * @brief      Returns a collection of the listeners for this instance.
@@ -481,7 +493,8 @@ namespace net {
 
     Port_utils& ports_;
 
-    downstream  _network_layer_out;
+    downstream  network_layer_out_;
+    downstream  network_layer_out6_;
 
     /** Internal writeq - connections gets queued in the wait for packets and recvs offer */
     std::deque<tcp::Connection_ptr> writeq;
@@ -523,14 +536,21 @@ namespace net {
      *
      * @param[in]  <unnamed>  A TCP Segment
      */
-    void transmit(tcp::Packet_ptr);
+    void transmit(tcp::Packet_view_ptr);
 
     /**
      * @brief      Creates an outgoing TCP packet.
      *
      * @return     A tcp packet ptr
      */
-    tcp::Packet_ptr create_outgoing_packet();
+    tcp::Packet_view_ptr create_outgoing_packet();
+
+    /**
+     * @brief      Creates an outgoing TCP6 packet.
+     *
+     * @return     A tcp packet ptr
+     */
+    tcp::Packet_view_ptr create_outgoing_packet6();
 
     /**
      * @brief      Sends a TCP reset based on the values of the incoming packet.
@@ -538,7 +558,7 @@ namespace net {
      *
      * @param[in]  incoming  The incoming tcp packet "to reset".
      */
-    void send_reset(const tcp::Packet& incoming);
+    void send_reset(const tcp::Packet_view& incoming);
 
     /**
      * @brief      Generate a unique initial sequence number (ISS).
@@ -566,7 +586,7 @@ namespace net {
      *
      * @param[in]  <unnamed>  A TCP Segment
      */
-    void drop(const tcp::Packet&);
+    void drop(const tcp::Packet_view&);
 
 
     // INTERNALS - Handling of collections

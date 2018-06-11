@@ -17,7 +17,7 @@
 
 #include <hw/pci_device.hpp>
 #include <net/link_layer.hpp>
-#include <net/ethernet/ethernet.hpp>
+#include <net/ethernet/ethernet_8021q.hpp>
 #include <vector>
 struct vmxnet3_dma;
 struct vmxnet3_rx_desc;
@@ -51,7 +51,7 @@ public:
   }
 
   uint16_t packet_len() const noexcept {
-    return sizeof(net::ethernet::Header) + MTU();
+    return sizeof(net::ethernet::VLAN_header) + MTU();
   }
 
   net::downstream create_physical_downstream() override

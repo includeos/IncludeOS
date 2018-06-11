@@ -1,9 +1,6 @@
 #include <kernel/os.hpp>
 #include <smp>
 
-bool __libc_initialized = false;
-
-
 void __arch_poweroff()
 {
   while (true) asm ("cli; hlt");

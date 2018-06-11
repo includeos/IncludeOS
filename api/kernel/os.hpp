@@ -250,6 +250,12 @@ public:
 
   static void install_cpu_frequency(util::MHz);
 
+  /** Resume stuff from a soft reset **/
+  static bool is_softreset_magic(uint32_t value);
+  static uintptr_t softreset_memory_end(intptr_t boot_addr);
+  static void resume_softreset(intptr_t boot_addr);
+  static void setup_liveupdate(uintptr_t phys = 0);
+
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
@@ -258,10 +264,6 @@ private:
 
   /** Boot with no multiboot params */
   static void legacy_boot();
-
-  /** Resume stuff from a soft reset **/
-  static bool is_softreset_magic(uint32_t value);
-  static void resume_softreset(intptr_t boot_addr);
 
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;
@@ -274,7 +276,6 @@ private:
   static std::string version_str_;
   static std::string arch_str_;
   static uintptr_t heap_begin_;
-  static uintptr_t heap_end_;
   static uintptr_t heap_max_;
   static uintptr_t memory_end_;
   static const uintptr_t elf_binary_size_;

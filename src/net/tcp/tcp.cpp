@@ -15,15 +15,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#undef NO_DEBUG
-#define DEBUG
-#define DEBUG2
+//#define TCP_DEBUG 1
+#ifdef TCP_DEBUG
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
 
 #include <net/tcp/tcp.hpp>
 #include <net/inet>
 #include <net/inet_common.hpp> // checksum
 #include <statman>
 #include <rtc> // nanos_now (get_ts_value)
+#include <net/tcp/packet4_view.hpp>
+#include <net/tcp/packet6_view.hpp>
 
 using namespace std;
 using namespace net;
@@ -170,50 +175,69 @@ void TCP::insert_connection(Connection_ptr conn)
       std::forward_as_tuple(conn));
 }
 
-void TCP::receive(net::Packet_ptr packet_ptr) {
+void TCP::receive(net::Packet_ptr ptr)
+{
+  auto ip4 = static_unique_ptr_cast<PacketIP4>(std::move(ptr));
+  Packet4_view pkt{std::move(ip4)};
+
+  PRINT("<TCP::receive> Recv TCP4 packet %s => %s\n",
+    pkt.source().to_string().c_str(), pkt.destination().to_string().c_str());
+
+  receive(pkt);
+}
+
+void TCP::receive6(net::Packet_ptr ptr)
+{
+  auto ip6 = static_unique_ptr_cast<PacketIP6>(std::move(ptr));
+  Packet6_view pkt{std::move(ip6)};
+
+  PRINT("<TCP::receive6> Recv TCP6 packet %s => %s\n",
+    pkt.source().to_string().c_str(), pkt.destination().to_string().c_str());
+
+  receive(pkt);
+}
+
+void TCP::receive(Packet_view& packet)
+{
   // Stat increment packets received
   (*packets_rx_)++;
   assert(get_cpuid() == SMP::cpu_id());
 
-  // Translate into a TCP::Packet. This will be used inside the TCP-scope.
-  auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
+  //auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
 
   // validate some unlikely but invalid packet properties
-  if (UNLIKELY(packet->src_port() == 0)) {
-    drop(*packet);
+  if (UNLIKELY(packet.src_port() == 0)) {
+    drop(packet);
     return;
   }
 
-  const auto dest = packet->destination();
-  debug("<TCP::receive> TCP Packet received - Source: %s, Destination: %s \n",
-        packet->source().to_string().c_str(), dest.to_string().c_str());
-
   // Validate checksum
-  if (UNLIKELY(packet->compute_tcp_checksum() != 0)) {
-    debug("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
-          packet->compute_tcp_checksum(), 0x0);
-    drop(*packet);
+  if (UNLIKELY(packet.compute_tcp_checksum() != 0)) {
+    PRINT("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
+          packet.compute_tcp_checksum(), 0x0);
+    drop(packet);
     return;
   }
 
   // Stat increment bytes received
-  (*bytes_rx_) += packet->tcp_data_length();
+  (*bytes_rx_) += packet.tcp_data_length();
 
   // Redirect packet to custom function
   if (packet_rerouter) {
-    packet_rerouter(std::move(packet));
+    packet_rerouter(packet.release());
     return;
   }
 
-  const Connection::Tuple tuple { dest, packet->source() };
+  const auto dest = packet.destination();
+  const Connection::Tuple tuple { dest, packet.source() };
 
   // Try to find the receiver
   auto conn_it = connections_.find(tuple);
 
   // Connection found
   if (conn_it != connections_.end()) {
-    debug("<TCP::receive> Connection found: %s \n", conn_it->second->to_string().c_str());
-    conn_it->second->segment_arrived(std::move(packet));
+    PRINT("<TCP::receive> Connection found: %s \n", conn_it->second->to_string().c_str());
+    conn_it->second->segment_arrived(packet);
     return;
   }
 
@@ -224,16 +248,16 @@ void TCP::receive(net::Packet_ptr packet_ptr) {
   // Listener found => Create Listener
   if (listener_it != listeners_.end()) {
     auto& listener = listener_it->second;
-    debug2("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
-    listener->segment_arrived(std::move(packet));
-    debug2("<TCP::receive> Listener done with packet\n");
+    PRINT("<TCP::receive> Listener found: %s\n", listener->to_string().c_str());
+    listener->segment_arrived(packet);
+    PRINT("<TCP::receive> Listener done with packet\n");
     return;
   }
 
   // Send a reset
-  send_reset(*packet);
+  send_reset(packet);
 
-  drop(*packet);
+  drop(packet);
 }
 
 // Show all connections for TCP as a string.
@@ -335,30 +359,43 @@ void TCP::reset_pmtu(Socket dest, IP4::PMTU pmtu) {
   }
 }
 
-void TCP::transmit(tcp::Packet_ptr packet) {
+void TCP::transmit(tcp::Packet_view_ptr packet)
+{
   // Generate checksum.
   packet->set_tcp_checksum();
-  debug2("<TCP::transmit> %s\n", packet->to_string().c_str());
 
   // Stat increment bytes transmitted and packets transmitted
   (*bytes_tx_) += packet->tcp_data_length();
   (*packets_tx_)++;
 
-  _network_layer_out(std::move(packet));
+  if(packet->ipv() == Protocol::IPv6) {
+    network_layer_out6_(packet->release());
+  }
+  else {
+    network_layer_out_(packet->release());
+  }
 }
 
-tcp::Packet_ptr TCP::create_outgoing_packet()
+tcp::Packet_view_ptr TCP::create_outgoing_packet()
 {
-  auto packet = static_unique_ptr_cast<net::tcp::Packet>(inet_.create_packet());
+  auto packet = std::make_unique<tcp::Packet4_view>(inet_.create_ip_packet(Protocol::TCP));
   packet->init();
   return packet;
 }
 
-void TCP::send_reset(const tcp::Packet& in)
+tcp::Packet_view_ptr TCP::create_outgoing_packet6()
+{
+  auto packet = std::make_unique<tcp::Packet6_view>(inet_.create_ip6_packet(Protocol::TCP));
+  packet->init();
+  return packet;
+}
+
+void TCP::send_reset(const tcp::Packet_view& in)
 {
   // TODO: maybe worth to just swap the fields in
   // the incoming packet and send that one
-  auto out = create_outgoing_packet();
+  auto out = (in.ipv() == Protocol::IPv6)
+    ? create_outgoing_packet6() : create_outgoing_packet();
   // increase incoming SEQ and ACK by 1 and set RST + ACK
   out->set_seq(in.ack()+1).set_ack(in.seq()+1).set_flags(RST | ACK);
   // swap dest and src
@@ -378,7 +415,7 @@ uint32_t TCP::get_ts_value() const
   return ((RTC::nanos_now() / 1000000000ull) & 0xffffffff);
 }
 
-void TCP::drop(const tcp::Packet&) {
+void TCP::drop(const tcp::Packet_view&) {
   // Stat increment packets dropped
   (*packets_dropped_)++;
   debug("<TCP::drop> Packet dropped\n");

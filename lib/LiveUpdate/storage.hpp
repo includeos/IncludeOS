@@ -116,7 +116,7 @@ struct storage_header
 
   storage_header();
   int  create_partition(std::string key);
-  int  find_partition(const char*);
+  int  find_partition(const char*) const;
   void finish_partition(int);
   void zero_partition(int);
 
@@ -143,17 +143,17 @@ struct storage_header
     ((storage_entry*) &vla[length])->type = TYPE_END;
   }
   void finalize();
-  bool validate() noexcept;
+  bool validate() const noexcept;
   // zero out everything if all partitions consumed
   void try_zero() noexcept;
 
 private:
-  uint32_t generate_checksum() noexcept;
+  uint32_t generate_checksum() const noexcept;
   // zero out the entire header and its data, for extra security
   void zero();
 
   uint64_t magic;
-  uint32_t crc;
+  mutable uint32_t crc;
   uint32_t entries = 0;
   uint32_t length  = 0;
   std::array<partition_header, 16> ptable;

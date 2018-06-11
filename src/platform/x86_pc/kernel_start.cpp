@@ -30,6 +30,13 @@
 #undef Expects
 #define Expects(X) if (!(X)) { kprint("Expect failed: " #X "\n");  asm("cli;hlt"); }
 
+//#define KERN_DEBUG 1
+#ifdef KERN_DEBUG
+#define PRATTLE(fmt, ...) kprintf(fmt, ##__VA_ARGS__)
+#else
+#define PRATTLE(fmt, ...) /* fmt */
+#endif
+
 extern "C" {
   void __init_serial1();
   void __init_sanity_checks();
@@ -54,7 +61,6 @@ uint32_t __grub_magic = 0xc001;
 uint32_t __grub_addr  = 0x7001;
 
 static volatile int __global_ctors_ok = 0;
-bool __libc_initialized = false;
 
 void _init_bss()
 {
@@ -68,19 +74,20 @@ static void global_ctor_test(){
 }
 
 int kernel_main(int, char * *, char * *) {
-  kprintf("<kernel_main> libc initialization complete \n");
+  PRATTLE("<kernel_main> libc initialization complete \n");
   Expects(__global_ctors_ok == 42);
+  extern bool __libc_initialized;
   __libc_initialized = true;
 
   Expects(__tl1__ == 42);
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
   Expects(elf.is_ELF() && "ELF header intact");
 
-  kprintf("<kernel_main> OS start \n");
+  PRATTLE("<kernel_main> OS start \n");
   // Initialize early OS, platform and devices
   OS::start(__grub_magic,__grub_addr);
 
-  kprintf("<kernel_main> post start \n");
+  PRATTLE("<kernel_main> post start \n");
   // Initialize common subsystems and call Service::start
   OS::post_start();
 
@@ -113,14 +120,13 @@ void kernel_start(uint32_t magic, uint32_t addr)
   __grub_magic = magic;
   __grub_addr  = addr;
 
-  // TODO: remove extra verbosity after musl port stabilizes
-  kprintf("\n//////////////////  IncludeOS kernel start ////////////////// \n");
-  kprintf("* Booted with magic 0x%x, grub @ 0x%x \n* Init sanity\n",
+  PRATTLE("\n//////////////////  IncludeOS kernel start ////////////////// \n");
+  PRATTLE("* Booted with magic 0x%x, grub @ 0x%x \n* Init sanity\n",
           magic, addr);
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
 
-  kprintf("* Grub magic: 0x%x, grub info @ 0x%x\n",
+  PRATTLE("* Grub magic: 0x%x, grub info @ 0x%x\n",
           __grub_magic, __grub_addr);
 
   // Determine where free memory starts
@@ -132,53 +138,59 @@ void kernel_start(uint32_t magic, uint32_t addr)
     free_mem_begin = _multiboot_free_begin(addr);
     memory_end     = _multiboot_memory_end(addr);
   }
-  kprintf("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
+  else if (OS::is_softreset_magic(magic))
+  {
+    memory_end = OS::softreset_memory_end(addr);
+  }
+  PRATTLE("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
           free_mem_begin, memory_end);
 
-  kprintf("* Moving symbols. \n");
+  PRATTLE("* Moving symbols. \n");
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
-  kprintf("* Free mem moved to: %p \n", (void*) free_mem_begin);
+  PRATTLE("* Free mem moved to: %p \n", (void*) free_mem_begin);
 
-  kprintf("* Grub magic: 0x%x, grub info @ 0x%x\n",
+  PRATTLE("* Grub magic: 0x%x, grub info @ 0x%x\n",
           __grub_magic, __grub_addr);
 
-  kprintf("* Init .bss\n");
+  PRATTLE("* Init .bss\n");
   _init_bss();
 
-  kprintf("* Init heap\n");
+  PRATTLE("* Init heap\n");
   OS::init_heap(free_mem_begin, memory_end);
 
-  kprintf("* Init syscalls\n");
+  PRATTLE("* Init syscalls\n");
   _init_syscalls();
 
-  kprintf("* Init CPU exceptions\n");
+  PRATTLE("* Init CPU exceptions\n");
   x86::idt_initialize_for_cpu(0);
 
-  kprintf("* Init ELF parser\n");
+  PRATTLE("* Init ELF parser\n");
   _init_elf_parser();
 
-  kprintf("* Thread local1: %i\n", __tl1__);
+  PRATTLE("* Thread local1: %i\n", __tl1__);
 
-  kprintf("* Elf start: %p\n", &_ELF_START_);
+  PRATTLE("* Elf start: %p\n", &_ELF_START_);
   auto* ehdr = (Elf64_Ehdr*)&_ELF_START_;
   auto* phdr = (Elf64_Phdr*)((char*)ehdr + ehdr->e_phoff);
   Expects(phdr);
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};
   Expects(elf.is_ELF());
-  size_t size =  &_ELF_END_ - &_ELF_START_;
   Expects(phdr[0].p_type == PT_LOAD);
 
-  printf("* Elf ident: %s, program headers: %p\n", ehdr->e_ident, ehdr);
-  kprintf("\tElf size: %zu \n", size);
+#ifdef KERN_DEBUG
+  PRATTLE("* Elf ident: %s, program headers: %p\n", ehdr->e_ident, ehdr);
+  size_t size =  &_ELF_END_ - &_ELF_START_;
+  PRATTLE("\tElf size: %zu \n", size);
   for (int i = 0; i < ehdr->e_phnum; i++)
   {
-    kprintf("\tPhdr %i @ %p, va_addr: 0x%lx \n", i, &phdr[i], phdr[i].p_vaddr);
+    PRATTLE("\tPhdr %i @ %p, va_addr: 0x%lx \n", i, &phdr[i], phdr[i].p_vaddr);
   }
+#endif
 
   // Build AUX-vector for C-runtime
   auxv_t aux[38];
-  kprintf("* Initializing aux-vector @ %p\n", aux);
+  PRATTLE("* Initializing aux-vector @ %p\n", aux);
 
   int i = 0;
   aux[i++].set_long(AT_PAGESZ, 4096);
@@ -220,18 +232,18 @@ void kernel_start(uint32_t magic, uint32_t addr)
   memcpy(&argv[6], aux, sizeof(auxv_t) * 38);
 
 #if defined(__x86_64__)
-  kprintf("* Initialize syscall MSR\n");
+  PRATTLE("* Initialize syscall MSR (64-bit)\n");
   uint64_t star_kernel_cs = 8ull << 32;
   uint64_t star_user_cs   = 8ull << 48;
   uint64_t star = star_kernel_cs | star_user_cs;
   x86::CPU::write_msr(IA32_STAR, star);
   x86::CPU::write_msr(IA32_LSTAR, (uintptr_t)&__syscall_entry);
 #elif defined(__i386__)
-  kprintf("Initialize syscall MSR (32)\n");
+  PRATTLE("Initialize syscall intr (32-bit)\n");
   #warning Classical syscall interface missing for 32-bit
 #endif
 
   // GDB_ENTRY;
-  kprintf("* Starting libc initialization\n");
+  PRATTLE("* Starting libc initialization\n");
   __libc_start_main(kernel_main, argc, argv.data());
 }
