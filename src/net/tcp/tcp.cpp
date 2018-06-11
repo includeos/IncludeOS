@@ -87,7 +87,7 @@ void TCP::smp_process_writeq(size_t packets)
   SMP::signal(this->cpu_id);
 }
 
-Listener& TCP::listen(Socket socket, ConnectCallback cb)
+Listener& TCP::listen(const Socket& socket, ConnectCallback cb)
 {
   bind(socket);
 
@@ -116,8 +116,10 @@ Listener& TCP::listen(const tcp::port_t port, ConnectCallback cb, const bool ipv
   return *listener;
 }
 
-bool TCP::close(Socket socket) {
-  //TODO: check ip6 any addr
+bool TCP::close(const Socket& socket)
+{
+  // TODO: if the socket is ipv6 any addr it will also
+  // close the ipv4 any addr due to call to Listener::close()
   auto it = listeners_.find(socket);
   if(it != listeners_.end())
   {
@@ -126,12 +128,16 @@ bool TCP::close(Socket socket) {
     Ensures(listeners_.find(socket) == listeners_.end());
     return true;
   }
+
   return false;
 }
 
 void TCP::connect(Socket remote, ConnectCallback callback)
 {
-  create_connection(bind(), remote, std::move(callback))->open(true);
+  auto addr = remote.address().is_v6()
+    ? Addr{inet_.ip6_addr()} : Addr{inet_.ip_addr()};
+
+  create_connection(bind(addr), remote, std::move(callback))->open(true);
 }
 
 void TCP::connect(Address source, Socket remote, ConnectCallback callback)
@@ -147,7 +153,10 @@ void TCP::connect(Socket local, Socket remote, ConnectCallback callback)
 
 Connection_ptr TCP::connect(Socket remote)
 {
-  auto conn = create_connection(bind(), remote);
+  auto addr = remote.address().is_v6()
+    ? Addr{inet_.ip6_addr()} : Addr{inet_.ip_addr()};
+
+  auto conn = create_connection(bind(addr), remote);
   conn->open(true);
   return conn;
 }
@@ -421,7 +430,7 @@ void TCP::drop(const tcp::Packet_view&) {
   debug("<TCP::drop> Packet dropped\n");
 }
 
-bool TCP::is_bound(const Socket socket) const
+bool TCP::is_bound(const Socket& socket) const
 {
   auto it = ports_.find(socket.address());
 
@@ -434,7 +443,7 @@ bool TCP::is_bound(const Socket socket) const
   return false;
 }
 
-void TCP::bind(const Socket socket)
+void TCP::bind(const Socket& socket)
 {
   if(UNLIKELY( is_valid_source(socket.address()) == false ))
     throw TCP_error{"Cannot bind to address: " + socket.address().to_string()};
@@ -445,7 +454,7 @@ void TCP::bind(const Socket socket)
   ports_[socket.address()].bind(socket.port());
 }
 
-Socket TCP::bind(const Address addr)
+Socket TCP::bind(const Address& addr)
 {
   if(UNLIKELY( is_valid_source(addr) == false ))
     throw TCP_error{"Cannot bind to address: " + addr.to_string()};
@@ -457,7 +466,7 @@ Socket TCP::bind(const Address addr)
   return {addr, port};
 }
 
-bool TCP::unbind(const Socket socket)
+bool TCP::unbind(const Socket& socket)
 {
   auto it = ports_.find(socket.address());
 
@@ -552,6 +561,22 @@ bool TCP::is_valid_source(const tcp::Address& addr) const noexcept
 
 void TCP::kick()
 { process_writeq(inet_.transmit_queue_available()); }
+
+void TCP::close_listener(tcp::Listener& listener)
+{
+  const auto& socket = listener.local();
+  unbind(socket);
+  listeners_.erase(socket);
+
+  // if the listener is "dual-stack", make sure to clean up the
+  // ip4 any addr copy as well
+  if(socket.address().is_v6() and socket.address().is_any())
+  {
+    Socket ip4_sock{ip4::Addr::addr_any, socket.port()};
+    unbind(ip4_sock);
+    listeners_.erase(ip4_sock);
+  }
+}
 
 TCP::Listeners::iterator TCP::find_listener(const Socket& socket)
 {

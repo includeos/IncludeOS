@@ -325,7 +325,7 @@ inline size_t Packet_view::fill(const uint8_t* buffer, size_t length)
 
 inline std::string Packet_view::to_string() const
 {
-  char buffer[512];
+  char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
         "[ S:%s D:%s SEQ:%u ACK:%u HEAD-LEN:%d OPT-LEN:%d DATA-LEN:%d"
         " WIN:%u FLAGS:%#x ]",
