@@ -221,14 +221,17 @@ namespace net
   void Ndp::send_router_solicitation()
   {
     icmp6::Packet req(inet_.ip6_packet_factory());
+
     req.ip().set_ip_src(inet_.ip6_addr());
     req.ip().set_ip_dst(ip6::Addr::node_all_nodes);
+
     req.ip().set_ip_hop_limit(255);
     req.set_type(ICMP_type::ND_ROUTER_SOL);
     req.set_code(0);
     req.set_reserved(0);
-    // Set multicast addreqs
-    // IPv6mcast_02: 33:33:00:00:00:02
+
+    req.ndp().set_ndp_options_header(icmp6::ND_OPT_SOURCE_LL_ADDR, 0x01);
+    req.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
 
     // Add checksum
     req.set_checksum();
@@ -241,10 +244,38 @@ namespace net
 
   void Ndp::receive_router_solicitation(icmp6::Packet& req)
   {
+      uint8_t *lladdr;
+
+      /* Not a router. Drop it */
+      if (!inet_.ip6_obj().forward_delg()) {
+          return;
+      }
+
+      if (req.ip().ip_src() == IP6::ADDR_ANY) {
+          PRINT("NDP: RS: Source address is any\n");
+          return;
+      }
+
+      req.ndp().parse(ICMP_type::ND_ROUTER_SOL);
+      lladdr = req.ndp().get_option_data(icmp6::ND_OPT_SOURCE_LL_ADDR);
+
+      cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
+         NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE |
+         NEIGH_UPDATE_OVERRIDE_ISROUTER);
   }
 
   void Ndp::receive_router_advertisement(icmp6::Packet& req)
   {
+      if (!req.ip().ip_src().is_link_local()) {
+        PRINT("NDP: Router advertisement source address is not link-local\n");
+        return;
+      }
+
+      if (inet_.ip6_obj().forward_delg()) {
+          PRINT("Forwarding is enabled. Not accepting router advertisement\n");
+          return;
+      }
+      req.ndp().parse(ICMP_type::ND_ROUTER_ADV);
   }
 
   void Ndp::receive(icmp6::Packet& pckt)

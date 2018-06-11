@@ -120,6 +120,11 @@ struct Addr {
     return ((ntohs(i16[0]) & 0xFF00) == 0xFF00);
   }
 
+  bool is_link_local() const
+  {
+    return ((ntohs(i16[0]) & 0xFF80) == 0xFF80);
+  }
+
   bool is_solicit_multicast() const
   {
       return ((ntohs(i32[0]) ^  (0xff020000)) |
