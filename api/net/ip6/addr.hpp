@@ -62,7 +62,7 @@ struct Addr {
     : i64{a.i64} {}
 
   Addr(Addr&& a) noexcept
-    : i64{std::move(a.i64)} {}
+    : i64{a.i64} {}
 
   // returns this IPv6 Address as a string
   std::string str() const {
@@ -178,7 +178,7 @@ struct Addr {
 
   Addr& operator=(Addr&& other) noexcept
   {
-    i64 = std::move(other.i64);
+    i64 = other.i64;
     return *this;
   }
 
