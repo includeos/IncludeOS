@@ -17,6 +17,7 @@
 
 #include <net/inet>
 #include <net/dhcp/dh4client.hpp>
+#include <net/ip6/slaac.hpp>
 #include <smp>
 #include <net/socket.hpp>
 #include <net/tcp/packet4_view.hpp> // due to ICMP error //temp
@@ -207,6 +208,20 @@ void Inet::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
   // add timeout_handler if supplied
   if (handler)
       dhcp_->on_config(handler);
+}
+
+void Inet::negotiate_slaac(double timeout, slaac_timeout_func handler) {
+  INFO("Inet", "Attempting automatic configuration of ipv6 address"
+          " (%.1fs timeout)...", timeout);
+  if (!slaac_)
+      slaac_ = std::make_shared<Slaac>(*this);
+
+  // @timeout for Slaac auto-configuration
+  slaac_->autoconf(timeout);
+
+  // add timeout_handler if supplied
+  if (handler)
+      slaac_->on_config(handler);
 }
 
 void Inet::network_config(IP4::addr addr,

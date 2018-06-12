@@ -42,6 +42,7 @@
 namespace net {
 
   class DHClient;
+  class Slaac;
 
   /** A complete IP network stack */
   class Inet {
@@ -65,6 +66,7 @@ namespace net {
     using resolve_func = delegate<void(IP4::addr, const Error&)>;
     using on_configured_func = delegate<void(Stack&)>;
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
+    using slaac_timeout_func = delegate<void(bool timed_out, IP6::addr)>;
 
     using Port_utils  = std::map<net::Addr, Port_util>;
     using Vip4_list = std::vector<IP4::addr>;
@@ -273,6 +275,9 @@ namespace net {
      */
     void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
 
+    /* Automatic configuration of ipv6 address for inet */
+    void negotiate_slaac(double timeout = 10.0, slaac_timeout_func = nullptr);
+
     bool is_configured() const
     {
       return ip4_addr_ != 0;
@@ -311,9 +316,9 @@ namespace net {
       this->ip4_addr_ = IP4::ADDR_ANY;
       this->gateway_ = IP4::ADDR_ANY;
       this->netmask_ = IP4::ADDR_ANY;
-      //this->ip6_addr_ = IP6::ADDR_ANY;
-      //this->ip6_gateway_ = IP6::ADDR_ANY;
-      //this->ip6_prefix_ = 0;
+      this->ip6_addr_ = IP6::ADDR_ANY;
+      this->ip6_gateway_ = IP6::ADDR_ANY;
+      this->ip6_prefix_ = 0;
     }
 
     // register a callback for receiving signal on free packet-buffers
@@ -366,6 +371,15 @@ namespace net {
     {
       if (timeout > 0.0)
           stack<N>().negotiate_dhcp(timeout, on_timeout);
+      return stack<N>();
+    }
+
+    /** SLAAC config */
+    template <int N = 0>
+    static auto& ifconfig6(double timeout = 10.0, slaac_timeout_func on_timeout = nullptr)
+    {
+      if (timeout > 0.0)
+          stack<N>().negotiate_slaac(timeout, on_timeout);
       return stack<N>();
     }
 
@@ -512,6 +526,7 @@ namespace net {
     std::string domain_name_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
+    std::shared_ptr<net::Slaac>    slaac_{};
 
     std::vector<on_configured_func> configured_handlers_;
 
