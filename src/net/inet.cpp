@@ -28,7 +28,7 @@ Inet::Inet(hw::Nic& nic)
     netmask_(IP4::ADDR_ANY),
     gateway_(IP4::ADDR_ANY),
     dns_server_(IP4::ADDR_ANY),
-    nic_(nic), arp_(*this), ip4_(*this), ip6_(*this),
+    nic_(nic), arp_(*this), ndp_(*this), ip4_(*this), ip6_(*this),
     icmp_(*this), icmp6_(*this), udp_(*this), tcp_(*this), dns_(*this),
     domain_name_{},
     MTU_(nic.MTU())
@@ -81,7 +81,7 @@ Inet::Inet(hw::Nic& nic)
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());
   auto arp_top(IP4::downstream_arp{arp_, &Arp::transmit});
-  auto ndp_top(IP6::downstream_ndp{icmp6_, &ICMPv6::ndp_transmit});
+  auto ndp_top(IP6::downstream_ndp{ndp_, &Ndp::transmit});
   auto ip4_top(downstream{ip4_, &IP4::transmit});
   auto ip6_top(downstream{ip6_, &IP6::transmit});
 
@@ -109,7 +109,7 @@ Inet::Inet(hw::Nic& nic)
   ip6_.set_linklayer_out(ndp_top);
 
   // NDP -> Link
-  icmp6_.set_ndp_linklayer_out(link_top);
+  ndp_.set_linklayer_out(link_top);
 
   // UDP6 -> IP6
   // udp6->set_network_out(ip6_top);
@@ -347,4 +347,4 @@ void Inet::resolve(const std::string& hostname,
 }
 
 void Inet::set_route_checker6(Route_checker6 delg)
-{ icmp6_.set_ndp_proxy_policy(delg); }
+{ ndp_.set_proxy_policy(delg); }

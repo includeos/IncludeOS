@@ -277,7 +277,7 @@ namespace net
     // Stat increment packets transmitted
     packets_tx_++;
 
-    ndp_out_(std::move(packet), next_hop);
+    ndp_out_(std::move(packet), next_hop, MAC::EMPTY);
   }
 
     const ip6::Addr IP6::local_ip() const {

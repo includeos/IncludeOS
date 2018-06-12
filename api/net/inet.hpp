@@ -34,6 +34,7 @@
 #include "ip4/arp.hpp"
 #include "ip6/ip6.hpp"
 #include "ip6/icmp6.hpp"
+#include "ip6/ndp.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include "super_stack.hpp"
@@ -125,6 +126,9 @@ namespace net {
 
     /** Get the ICMP-object belonging to this stack */
     ICMPv6& icmp6() { return icmp6_; }
+
+    /** Get the NDP-object belonging to this stack */
+    Ndp& ndp() { return ndp_; }
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
@@ -489,6 +493,7 @@ namespace net {
     // This is the actual stack
     hw::Nic& nic_;
     Arp    arp_;
+    Ndp    ndp_;
     IP4    ip4_;
     IP6    ip6_;
     ICMPv4 icmp_;

@@ -48,7 +48,7 @@ namespace net
     using IP_packet = PacketIP6;
     using IP_packet_ptr = std::unique_ptr<IP_packet>;
     using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
-    using downstream_ndp = delegate<void(Packet_ptr, IP6::addr)>;
+    using downstream_ndp = delegate<void(Packet_ptr, IP6::addr, MAC::Addr)>;
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack<IP6>::Entry_ptr)>;
     using PMTU = uint16_t;

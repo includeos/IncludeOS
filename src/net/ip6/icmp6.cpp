@@ -53,8 +53,7 @@ namespace net
   int ICMPv6::request_id_ = 0;
 
   ICMPv6::ICMPv6(Stack& inet) :
-    inet_{inet}, ndp_(inet)
-  {}
+    inet_{inet} {}
 
   void ICMPv6::receive(Packet_ptr pckt) {
     if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
@@ -95,7 +94,7 @@ namespace net
     case (ICMP_type::ND_NEIGHBOUR_SOL):
     case (ICMP_type::ND_NEIGHBOUR_ADV):
     case (ICMP_type::ND_REDIRECT):
-      ndp().receive(req);
+      inet_.ndp().receive(req);
       break;
     case (ICMP_type::ROUTER_RENUMBERING):
       PRINT("<ICMP6> ICMP Router re-numbering message from %s\n", req.ip().ip_src().str().c_str());
