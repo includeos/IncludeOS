@@ -11,7 +11,13 @@
 
 namespace net::tcp {
 
-class Packet_view {
+template <typename Ptr_type> class Packet_v;
+using Packet_view = Packet_v<net::Packet_ptr>;
+using Packet_view_raw = Packet_v<net::Packet*>;
+using Packet_view_ptr = std::unique_ptr<Packet_view>;
+
+template <typename Ptr_type>
+class Packet_v {
 public:
 
   const Header& tcp_header() const noexcept
@@ -31,20 +37,20 @@ public:
   Socket destination() const noexcept
   { return Socket{ip_dst(), dst_port()}; }
 
-  Packet_view& set_src_port(port_t p) noexcept
+  Packet_v& set_src_port(port_t p) noexcept
   { tcp_header().source_port = htons(p); return *this; }
 
-  Packet_view& set_dst_port(port_t p) noexcept
+  Packet_v& set_dst_port(port_t p) noexcept
   { tcp_header().destination_port = htons(p); return *this; }
 
-  Packet_view& set_source(const Socket& src)
+  Packet_v& set_source(const Socket& src)
   {
     set_ip_src(src.address());
     set_src_port(src.port());
     return *this;
   }
 
-  Packet_view& set_destination(const Socket& dest)
+  Packet_v& set_destination(const Socket& dest)
   {
     set_ip_dst(dest.address());
     set_dst_port(dest.port());
@@ -70,25 +76,25 @@ public:
   { return tcp_header().offset_flags.offset_reserved >> 4; }
 
 
-  Packet_view& set_seq(seq_t n) noexcept
+  Packet_v& set_seq(seq_t n) noexcept
   { tcp_header().seq_nr = htonl(n); return *this; }
 
-  Packet_view& set_ack(seq_t n) noexcept
+  Packet_v& set_ack(seq_t n) noexcept
   { tcp_header().ack_nr = htonl(n); return *this; }
 
-  Packet_view& set_win(uint16_t size) noexcept
+  Packet_v& set_win(uint16_t size) noexcept
   { tcp_header().window_size = htons(size); return *this; }
 
-  Packet_view& set_flag(Flag f) noexcept
+  Packet_v& set_flag(Flag f) noexcept
   { tcp_header().offset_flags.whole |= htons(f); return *this; }
 
-  Packet_view& set_flags(uint16_t f) noexcept
+  Packet_v& set_flags(uint16_t f) noexcept
   { tcp_header().offset_flags.whole |= htons(f); return *this; }
 
-  Packet_view& clear_flag(Flag f) noexcept
+  Packet_v& clear_flag(Flag f) noexcept
   { tcp_header().offset_flags.whole &= ~ htons(f); return *this; }
 
-  Packet_view& clear_flags()
+  Packet_v& clear_flags()
   { tcp_header().offset_flags.whole &= 0x00ff; return *this; }
 
   // Set raw TCP offset in quadruples
@@ -103,9 +109,12 @@ public:
   uint16_t tcp_length() const
   { return tcp_header_length() + tcp_data_length(); }
 
+  uint16_t tcp_checksum() const noexcept
+  { return tcp_header().checksum; }
+
   virtual uint16_t compute_tcp_checksum() const noexcept = 0;
 
-  Packet_view& set_tcp_checksum(uint16_t checksum) noexcept
+  Packet_v& set_tcp_checksum(uint16_t checksum) noexcept
   { tcp_header().checksum = checksum; return *this; }
 
   void set_tcp_checksum() noexcept
@@ -188,26 +197,26 @@ public:
 
   // Packet_view specific operations //
 
-  net::Packet_ptr release()
+  Ptr_type release()
   {
     Expects(pkt != nullptr && "Packet ptr is already null");
     return std::move(pkt);
   }
 
-  const net::Packet_ptr& packet_ptr() const noexcept
+  const Ptr_type& packet_ptr() const noexcept
   { return pkt; }
 
   // hmm
   virtual Protocol ipv() const noexcept = 0;
 
-  virtual ~Packet_view() = default;
+  virtual ~Packet_v() = default;
 
 
 protected:
-  net::Packet_ptr   pkt;
-  Header*           header = nullptr;
+  Ptr_type   pkt;
+  Header*    header = nullptr;
 
-  Packet_view(net::Packet_ptr ptr)
+  Packet_v(Ptr_type ptr)
     : pkt{std::move(ptr)}
   {
     Expects(pkt != nullptr);
@@ -245,8 +254,9 @@ inline unsigned round_up(unsigned n, unsigned div) {
   return (n + div - 1) / div;
 }
 
+template <typename Ptr_type>
 template <typename T, int Padding, typename... Args>
-inline void Packet_view::add_tcp_option(Args&&... args) {
+inline void Packet_v<Ptr_type>::add_tcp_option(Args&&... args) {
   // to avoid headache, options need to be added BEFORE any data.
   assert(!has_tcp_data());
   struct NOP {
@@ -277,8 +287,9 @@ inline void Packet_view::add_tcp_option(Args&&... args) {
   set_length(); // update
 }
 
+template <typename Ptr_type>
 template <typename T, typename... Args>
-inline void Packet_view::add_tcp_option_aligned(Args&&... args) {
+inline void Packet_v<Ptr_type>::add_tcp_option_aligned(Args&&... args) {
   // to avoid headache, options need to be added BEFORE any data.
   Expects(!has_tcp_data());
 
@@ -298,7 +309,8 @@ inline void Packet_view::add_tcp_option_aligned(Args&&... args) {
 }
 
 // assumes the packet contains no other options.
-inline const Option::opt_ts* Packet_view::parse_ts_option() noexcept
+template <typename Ptr_type>
+inline const Option::opt_ts* Packet_v<Ptr_type>::parse_ts_option() noexcept
 {
   auto* opt = this->tcp_options();
   // TODO: improve by iterate option instead of byte (see Connection::parse_options)
@@ -311,7 +323,8 @@ inline const Option::opt_ts* Packet_view::parse_ts_option() noexcept
   return this->ts_opt;
 }
 
-inline size_t Packet_view::fill(const uint8_t* buffer, size_t length)
+template <typename Ptr_type>
+inline size_t Packet_v<Ptr_type>::fill(const uint8_t* buffer, size_t length)
 {
   size_t rem = ip_capacity() - tcp_length();
   if(rem == 0) return 0;
@@ -323,7 +336,8 @@ inline size_t Packet_view::fill(const uint8_t* buffer, size_t length)
   return total;
 }
 
-inline std::string Packet_view::to_string() const
+template <typename Ptr_type>
+inline std::string Packet_v<Ptr_type>::to_string() const
 {
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
