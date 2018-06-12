@@ -52,7 +52,7 @@ struct Addr {
     i16[6] = htons(d1); i16[7] = htons(d2);
   }
 
-  Addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+  explicit Addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
   {
     i32[0] = htonl(a); i32[1] = htonl(b);
     i32[2] = htonl(c); i32[3] = htonl(d);

@@ -36,7 +36,7 @@ CASE("Creating a Socket without arguments is empty")
 
 CASE("Creating a Socket with arguments is not empty")
 {
-  const Socket::Address addr { ip4::Addr{10,0,0,42} };
+  const Socket::Address addr {10,0,0,42};
   const Socket::port_t port = 80;
 
   Socket socket { addr, 80 };
@@ -51,15 +51,15 @@ CASE("Creating a Socket with arguments is not empty")
 
 CASE("Sockets can be compared to each other")
 {
-  Socket sock1 { ip4::Addr{ 10,0,0,42 }, 80 };
-  Socket sock2 { ip4::Addr{ 10,0,0,42 }, 8080 };
-  Socket sock3 { ip4::Addr{ 192,168,0,1 }, 80 };
+  Socket sock1 { { 10,0,0,42 }, 80 };
+  Socket sock2 { { 10,0,0,42 }, 8080 };
+  Socket sock3 { { 192,168,0,1 }, 80 };
 
   EXPECT_NOT( sock1 == sock2 );
   EXPECT_NOT( sock1 == sock3 );
   EXPECT( sock2 != sock3 );
 
-  const Socket temp { ip4::Addr{ 10,0,0,42 }, 80 };
+  const Socket temp { { 10,0,0,42 }, 80 };
   EXPECT( sock1 == temp );
 
   const Socket empty;

@@ -421,7 +421,7 @@ namespace net {
     {
 
       if (dest.is_loopback())
-        return {0,0,0,1};
+        return ip6::Addr{0,0,0,1};
 
       if (is_loopback(dest))
         return dest;
