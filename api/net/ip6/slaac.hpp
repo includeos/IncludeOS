@@ -40,7 +40,14 @@ namespace net {
     // timeout is true if the negotiation timed out
     void on_config(config_func handler) {}
   private:
-    bool flags;
+    Stack& stack;
+    IP6::addr    ipaddr, netmask, router;
+    uint32_t     lease_time;
+    std::vector<config_func> config_handlers_;
+    int          retries  = 0;
+    int          progress = 0;
+    Timer        timeout_timer_;
+    std::chrono::milliseconds timeout;
   };
 }
 

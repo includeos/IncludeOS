@@ -172,6 +172,25 @@ struct Addr {
      }
   }
 
+  template <typename T>
+  void set_part(const uint8_t n, T val) 
+  {
+     static_assert(std::is_same_v<T, uint8_t> or
+             std::is_same_v<T, uint16_t> or
+             std::is_same_v<T, uint32_t>, "Unallowed T");
+
+     if constexpr (std::is_same_v<T, uint8_t>) {
+         Expects(n < 16);
+         i8[n] = val;
+     } else if constexpr (std::is_same_v<T, uint16_t>) {
+         Expects(n < 8);
+         i16[n] = val;
+     } else if constexpr (std::is_same_v<T, uint32_t>) {
+         Expects(n < 4);
+         i32[n] = val;
+     }
+  }
+
   /**
    * Assignment operator
    */

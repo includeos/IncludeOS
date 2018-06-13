@@ -19,6 +19,7 @@
 #ifndef HW_MAC_ADDR_HPP
 #define HW_MAC_ADDR_HPP
 
+#include <common>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -175,6 +176,11 @@ union Addr {
   constexpr bool operator!=(const Addr other) const noexcept
   { return not (*this == other); }
 
+  constexpr bool operator[](uint8_t n) const noexcept
+  { 
+      Expects(n < 6);
+      return part[n];
+  }
 
   static constexpr const size_t PARTS_LEN {6}; //< Number of parts in a MAC address
   uint8_t part[PARTS_LEN];                     //< The parts of the MAC address
