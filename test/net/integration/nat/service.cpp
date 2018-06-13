@@ -19,6 +19,7 @@
 #include <net/inet>
 #include <net/nat/napt.hpp>
 #include <net/router.hpp>
+#include <net/tcp/packet.hpp>
 
 using namespace net;
 
@@ -162,7 +163,7 @@ void Service::start()
   server.tcp().listen(DNAT_PORT, [] (auto conn)
   {
     INFO("TCP DNAT", "Server received connection - %s", conn->to_string().c_str());
-    CHECKSERT(conn->remote().address() != eth1.ip_addr(),
+    CHECKSERT(conn->remote().address().v4() != eth1.ip_addr(),
       "Received non SNAT connection - %s", conn->remote().to_string().c_str());
 
     conn->on_read(1024, [conn](auto buf)
