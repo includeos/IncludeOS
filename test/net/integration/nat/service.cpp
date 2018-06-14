@@ -19,7 +19,7 @@
 #include <net/inet>
 #include <net/nat/napt.hpp>
 #include <net/router.hpp>
-#include <net/tcp/packet.hpp>
+#include <net/tcp/packet4_view.hpp>
 
 using namespace net;
 
@@ -141,7 +141,7 @@ void Service::start()
 
     if(pkt->ip_protocol() == Protocol::TCP)
     {
-      auto& tcp = static_cast<tcp::Packet&>(*pkt);
+      auto tcp = tcp::Packet4_view_raw(pkt.get());
 
       if(tcp.dst_port() == DNAT_PORT)
         natty->dnat(*pkt, entry, SERVER);

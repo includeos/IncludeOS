@@ -24,6 +24,7 @@
 #include "headers.hpp"
 #include "listener.hpp"
 #include "packet_view.hpp"
+#include "packet.hpp" // remove me, temp for NaCl
 
 #include <map>  // connections, listeners
 #include <deque>  // writeq
