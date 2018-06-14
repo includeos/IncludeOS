@@ -292,6 +292,10 @@ namespace net
           return;
       }
       req.ndp().parse(ICMP_type::ND_ROUTER_ADV);
+
+      route_info = req.ndp().option(ICMP_type::ND_OPT_PREFIX_INFO);
+      for(pinfo = route_info; pinfo; pinfo = req.ndp().next_option()) {
+      }
   }
 
   void Ndp::receive(icmp6::Packet& pckt)

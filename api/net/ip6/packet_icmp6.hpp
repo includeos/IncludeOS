@@ -56,29 +56,6 @@ namespace icmp6 {
     class NdpPacket {
 
         private:
-        struct route_info {
-            uint8_t  type;
-            uint8_t  len;
-            uint8_t  prefix_len;
-            uint8_t  reserved_l:3,
-                     route_pref:2,
-                     reserved_h:2;
-            uint32_t lifetime;
-            uint8_t  prefix[0];
-        };
-
-        struct prefix_info {
-            uint8_t   type;
-            uint8_t   len;
-            uint8_t   prefix_len;
-            uint8_t   onlink:1,
-                      autoconf:1,
-                      reserved:6;
-            uint32_t  valid;
-            uint32_t  prefered;
-            uint32_t  reserved2;
-            IP6::addr prefix;
-        };
 
         struct nd_options_header {
             uint8_t type;
@@ -135,9 +112,12 @@ namespace icmp6 {
                 }
             }
 
+            /* This is used by prefix and route info only */
             struct nd_options_header *next_option(struct nd_options_header *cur,
-                    struct nd_options_header *end)
+                    uint8_t option)
             {
+                struct nd_options_header *end;
+
                 int type;
 
                 if (!cur || !end || cur >= end)
@@ -219,6 +199,30 @@ namespace icmp6 {
         NdpOptions ndp_opt_;
 
         public:
+
+        struct route_info {
+            uint8_t  type;
+            uint8_t  len;
+            uint8_t  prefix_len;
+            uint8_t  reserved_l:3,
+                     route_pref:2,
+                     reserved_h:2;
+            uint32_t lifetime;
+            uint8_t  prefix[0];
+        };
+
+        struct prefix_info {
+            uint8_t   type;
+            uint8_t   len;
+            uint8_t   prefix_len;
+            uint8_t   onlink:1,
+                      autoconf:1,
+                      reserved:6;
+            uint32_t  valid;
+            uint32_t  prefered;
+            uint32_t  reserved2;
+            IP6::addr prefix;
+        };
 
         NdpPacket(Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {}
 
