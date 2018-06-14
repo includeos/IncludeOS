@@ -479,11 +479,6 @@ target_link_libraries(service
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
-set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
-if (debug)
-  unset(STRIP_LV)
-endif()
-
 if (NOT debug)
   add_custom_target(
     pruned_elf_symbols ALL
