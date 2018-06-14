@@ -455,7 +455,7 @@ e1000::recv_packet(uint8_t* data, uint16_t size)
   new (ptr) net::Packet(
         DRIVER_OFFSET,
         size,
-        DRIVER_OFFSET + packet_len(),
+        DRIVER_OFFSET + size,
         &bufstore());
   return net::Packet_ptr(ptr);
 }
@@ -467,7 +467,7 @@ e1000::create_packet(int link_offset)
   new (ptr) net::Packet(
         DRIVER_OFFSET + link_offset,
         0,
-        DRIVER_OFFSET + packet_len(),
+        DRIVER_OFFSET + frame_offset_link() + MTU(),
         buffer.bufstore);
   return net::Packet_ptr(ptr);
 }
