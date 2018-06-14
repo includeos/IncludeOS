@@ -222,6 +222,9 @@ namespace net {
     MAC::Addr mac_;
     IP6::addr tentative_addr_ = IP6::ADDR_ANY;
 
+    // List of prefixes
+    std::list<IP6::addr> prefix_list_;
+
     // Outbound data goes through here */
     downstream_link linklayer_out_ = nullptr;
 

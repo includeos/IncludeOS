@@ -66,7 +66,7 @@ namespace net
     res.ndp().set_neighbour_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
 
     // Insert target link address, ICMP6 option header and our mac address
-    res.set_payload({req.ndp().neighbour_sol().get_target().data(), 16 });
+    res.set_payload({req.ndp().neighbour_sol().target().data(), 16 });
     res.ndp().set_ndp_options_header(icmp6::ND_OPT_TARGET_LL_ADDR, 0x01);
     res.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
 
@@ -83,7 +83,7 @@ namespace net
 
   void Ndp::receive_neighbour_advertisement(icmp6::Packet& req)
   {
-    IP6::addr target = req.ndp().neighbour_adv().get_target();
+    IP6::addr target = req.ndp().neighbour_adv().target();
     uint8_t *lladdr;
 
     if (target.is_multicast()) {
@@ -168,7 +168,7 @@ namespace net
   void Ndp::receive_neighbour_solicitation(icmp6::Packet& req)
   {
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
-    IP6::addr target = req.ndp().neighbour_sol().get_target();
+    IP6::addr target = req.ndp().neighbour_sol().target();
     uint8_t *lladdr, *nonce_opt;
     uint64_t nonce = 0;
 
@@ -237,7 +237,7 @@ namespace net
     icmp6::Packet req(inet_.ip6_packet_factory());
 
     req.ip().set_ip_src(inet_.ip6_addr());
-    req.ip().set_ip_dst(ip6::Addr::node_all_nodes);
+    req.ip().set_ip_dst(ip6::Addr::node_all_routers);
 
     req.ip().set_ip_hop_limit(255);
     req.set_type(ICMP_type::ND_ROUTER_SOL);
@@ -285,6 +285,8 @@ namespace net
         return;
       }
 
+      /* Forwarding is enabled. Does that mean
+       * we are a router? We need to consume if we are */
       if (inet_.ip6_obj().forward_delg()) {
           PRINT("Forwarding is enabled. Not accepting router advertisement\n");
           return;
@@ -490,6 +492,8 @@ namespace net
                   (icmp6_.payload_len() - router_sol().option_offset()));
           break;
         case (ICMP_type::ND_ROUTER_ADV):
+          ndp_opt_.parse(router_adv().options,
+                  (icmp6_.payload_len() - router_adv().option_offset()));
           break;
         case (ICMP_type::ND_NEIGHBOUR_SOL):
           ndp_opt_.parse(neighbour_sol().options,

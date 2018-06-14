@@ -56,6 +56,30 @@ namespace icmp6 {
     class NdpPacket {
 
         private:
+        struct route_info {
+            uint8_t  type;
+            uint8_t  len;
+            uint8_t  prefix_len;
+            uint8_t  reserved_l:3,
+                     route_pref:2,
+                     reserved_h:2;
+            uint32_t lifetime;
+            uint8_t  prefix[0];
+        };
+
+        struct prefix_info {
+            uint8_t   type;
+            uint8_t   len;
+            uint8_t   prefix_len;
+            uint8_t   onlink:1,
+                      autoconf:1,
+                      reserved:6;
+            uint32_t  valid;
+            uint32_t  prefered;
+            uint32_t  reserved2;
+            IP6::addr prefix;
+        };
+
         struct nd_options_header {
             uint8_t type;
             uint8_t len;
@@ -99,7 +123,32 @@ namespace icmp6 {
                         return static_cast<uint8_t*> (opt_array[option]->payload);
                     }
                 }
-                return NULL;
+                return nullptr;
+            }
+
+            struct nd_options_header *option(uint8_t option)
+            {
+                if (option < ND_OPT_ARRAY_MAX) {
+                    if (opt_array[option]) {
+                        return opt_array[option];
+                    }
+                }
+            }
+
+            struct nd_options_header *next_option(struct nd_options_header *cur,
+                    struct nd_options_header *end)
+            {
+                int type;
+
+                if (!cur || !end || cur >= end)
+                    return nullptr;
+
+                type = cur->type;
+
+                do {
+                  cur += (cur->len << 3);
+                } while (cur < end && cur->type != type);
+                return cur <= end && cur->type == type ? cur : nullptr;
             }
         };
 
@@ -114,17 +163,24 @@ namespace icmp6 {
 
         struct RouterAdv
         {
-          uint32_t reachable_time;
-          uint32_t retrans_timer;
+          uint32_t reachable_time_;
+          uint32_t retrans_timer_;
+          uint8_t  options[0];
+
+          uint32_t reachable_time()
+          { return reachable_time_; }
+
+          uint32_t retrans_timer()
+          { return retrans_timer_; }
 
           uint16_t option_offset()
-          { return 0; }
+          { return 8; }
 
         } __attribute__((packed));
 
         struct RouterRedirect
         {
-          IP6::addr target;
+          IP6::addr target_;
           IP6::addr dest;
           uint8_t  options[0];
 
@@ -135,11 +191,11 @@ namespace icmp6 {
 
         struct NeighborSol
         {
-          IP6::addr target;
+          IP6::addr target_;
           uint8_t   options[0];
 
-          IP6::addr get_target()
-          { return target; }
+          IP6::addr target()
+          { return target_; }
 
           uint16_t option_offset()
           { return IP6_ADDR_BYTES; }
@@ -148,11 +204,11 @@ namespace icmp6 {
 
         struct NeighborAdv
         {
-          IP6::addr target;
+          IP6::addr target_;
           uint8_t   options[0];
 
-          IP6::addr get_target()
-          { return target; }
+          IP6::addr target()
+          { return target_; }
 
           uint16_t option_offset()
           { return IP6_ADDR_BYTES; }

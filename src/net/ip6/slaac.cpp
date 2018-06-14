@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define SLAAC_DEBUG 1
+#define SLAAC_DEBUG 1
 #ifdef SLAAC_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -50,6 +50,12 @@ namespace net
     });
   }
 
+  void Slaac::on_config(config_func handler)
+  {
+    assert(handler);
+    config_handlers_.push_back(handler);
+  }
+
   void Slaac::autoconf_trigger()
   {
     if (dad_retransmits_-- <= 0)
@@ -69,6 +75,7 @@ namespace net
   void Slaac::autoconf_start(int retries, IP6::addr alternate_addr)
   {
 
+    std::chrono::milliseconds delay;
     MAC::Addr link_addr = stack.link_addr();
     tentative_addr_ = {0xFE80,  0, 0, 0, 0, 0, 0, 0};
     alternate_addr_ = alternate_addr;
@@ -81,14 +88,16 @@ namespace net
     this->dad_retransmits_ = retries ? retries : NUM_RETRIES;
     this->progress = 0;
 
-    PRINT("Auto-configuring tentative ip6-address %s for %s\n",
-            tentative_addr_.str().c_str(), stack.ifname().c_str());
-
     // Schedule sending of auto-config for random delay
     // between 0 and MAX_RTR_SOLICITATION_DELAY
     using namespace std::chrono;
-    this->interval = seconds(INTERVAL);
-    timeout_timer_.start(interval);
+    this->interval = milliseconds(INTERVAL);
+    delay = milliseconds(rand() % (INTERVAL * 1000));
+    PRINT("Auto-configuring tentative ip6-address %s for %s "
+        "with interval:%u and delay:%u\n",
+           tentative_addr_.str().c_str(), stack.ifname().c_str(),
+           interval, delay);
+    timeout_timer_.start(delay);
   }
 
   void Slaac::autoconf()
@@ -106,6 +115,7 @@ namespace net
           handler(false);
       }
     });
+
     /* Try to get a global address */
   }
 }

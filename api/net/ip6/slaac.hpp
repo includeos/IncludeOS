@@ -28,6 +28,8 @@ namespace net {
   public:
     static const int NUM_RETRIES = 1;
     static const int INTERVAL = 1;
+    static const int MAX_RTR_SOLICITATIONS = 5;
+    static const int RTR_SOLICITATION_INTERVAL = 5;
 
     using Stack = IP6::Stack;
     using config_func = delegate<void(bool)>;
