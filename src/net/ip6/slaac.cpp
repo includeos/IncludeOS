@@ -22,6 +22,7 @@
 #define PRINT(fmt, ...) /* fmt */
 #endif
 #include <vector>
+#include <cstdlib>
 #include <net/inet>
 #include <net/ip6/slaac.hpp>
 #include <statman>
@@ -29,80 +30,82 @@
 namespace net
 {
   const int Slaac::NUM_RETRIES;
+  const int Slaac::INTERVAL;
 
   Slaac::Slaac(Stack& inet)
     : stack(inet),
-      domain_name{},
-      timeout_timer_{{this, &Slaac::restart_auto_config}}
+      timeout_timer_{{this, &Slaac::autoconf_trigger}}
   {
     // default timed out handler spams logs
     this->on_config(
-    [this] (bool timed_out)
+    [this] (bool completed)
     {
-      if (timed_out)
-        MYINFO("Negotiation timed out (%s)", this->stack.ifname().c_str());
-      else
-        MYINFO("Configuration complete (%s)", this->stack.ifname().c_str());
+      if (completed) {
+        INFO("AUTOCONF", "Negotiation timed out (%s)",
+            this->stack.ifname().c_str());
+      } else {
+        INFO("AUTOCONF", "Configuration complete (%s)",
+            this->stack.ifname().c_str());
+      }
     });
   }
 
-  void Slaac::on_config(config_func handler)
+  void Slaac::autoconf_trigger()
   {
-    assert(handler);
-    config_handlers_.push_back(handler);
-  }
-
-  void Slaac::restart_auto_config()
-  {
-    if (retries-- <= 0)
+    if (dad_retransmits_-- <= 0)
     {
-      // give up when retries reached zero
-      end_negotiation(true);
+      // Success. No address collision
+      stack.ndp().dad_completed();
+      for(auto& handler : this->config_handlers_)
+        handler(true);
     }
     else
     {
-      timeout_timer_.start(this->timeout);
-      send_first();
+      timeout_timer_.start(interval);
+      autoconf();
     }
   }
 
-  void Slaac::autoconfig(uint32_t timeout_secs)
+  void Slaac::autoconf_start(int retries, IP6::addr alternate_addr)
   {
 
     MAC::Addr link_addr = stack.link_addr();
-    IP6::addr tentative_addr = {0xFE80,  0, 0, 0, 0, 0, 0, 0}; 
+    tentative_addr_ = {0xFE80,  0, 0, 0, 0, 0, 0, 0};
+    alternate_addr_ = alternate_addr;
+    int i, j = 10;
 
-    for (int i = 5, int j = 10; i >= 0; i--) {
-      tentative_addr.set_part<uint8_t>(j++, link_addr[i]);
+    for (i = 5; i >= 0; i--) {
+      tentative_addr_.set_part<uint8_t>(j++, link_addr[i]);
     }
-    // TODO: Join all-nodes and solicited-node multicast address of the
-    // tentaive address
 
-    // Allow multiple calls to negotiate without restarting the process
-    this->retries = NUM_RETRIES;
+    this->dad_retransmits_ = retries ? retries : NUM_RETRIES;
     this->progress = 0;
 
-    // calculate progress timeout
-    using namespace std::chrono;
-    this->timeout = seconds(timeout_secs) / NUM_RETRIES;
-
     PRINT("Auto-configuring tentative ip6-address %s for %s\n",
-            tentative_addr.str().c_str(), stack.ifname().c_str());
+            tentative_addr_.str().c_str(), stack.ifname().c_str());
 
-    restart_auto_config();
+    // Schedule sending of auto-config for random delay
+    // between 0 and MAX_RTR_SOLICITATION_DELAY
+    using namespace std::chrono;
+    this->interval = seconds(INTERVAL);
+    timeout_timer_.start(interval);
   }
 
-  void Slaac::send_first()
+  void Slaac::autoconf()
   {
-    if (in_progress_) {
-        stack.ndp().send_neighbour_solicitation(tentative_addr);
-        stack.ndp().on_neighbour_advertisement(
-          [this] (IP6::addr target)
-          {
-          }
-        );
-    } else {
-        /* Try to get a global address */
-    }
+    // Perform DAD
+    stack.ndp().perform_dad(tentative_addr_,
+      [this] () {
+      if(alternate_addr_ != IP6::ADDR_ANY &&
+        alternate_addr_ != tentative_addr_) {
+        tentative_addr_ = alternate_addr_;
+        dad_retransmits_ = 1;
+      } else {
+        /* DAD has failed. */
+        for(auto& handler : this->config_handlers_)
+          handler(false);
+      }
+    });
+    /* Try to get a global address */
   }
 }

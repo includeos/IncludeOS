@@ -210,16 +210,17 @@ void Inet::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
       dhcp_->on_config(handler);
 }
 
-void Inet::negotiate_slaac(double timeout, slaac_timeout_func handler) {
-  INFO("Inet", "Attempting automatic configuration of ipv6 address"
-          " (%.1fs timeout)...", timeout);
+void Inet::autoconf_v6(int retries, slaac_timeout_func handler,
+        IP6::addr alternate_addr) {
+
+  INFO("Inet", "Attempting automatic configuration of ipv6 address");
   if (!slaac_)
       slaac_ = std::make_shared<Slaac>(*this);
 
-  // @timeout for Slaac auto-configuration
-  slaac_->autoconf(timeout);
+  // @Retries for Slaac auto-configuration
+  slaac_->autoconf_start(retries, alternate_addr);
 
-  // add timeout_handler if supplied
+  // add failure_handler if supplied
   if (handler)
       slaac_->on_config(handler);
 }

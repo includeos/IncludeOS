@@ -52,6 +52,7 @@ namespace net {
     using Stack   = IP6::Stack;
     using Route_checker = delegate<bool(IP6::addr)>;
     using Ndp_resolver = delegate<void(IP6::addr)>;
+    using Dad_handler = delegate<void()>;
     using ICMP_type = ICMP6_error::ICMP_type;
 
     /** Number of resolution retries **/
@@ -87,6 +88,9 @@ namespace net {
      */
     void set_proxy_policy(Route_checker delg)
     { proxy_ = delg; }
+
+    void perform_dad(IP6::addr, Dad_handler delg);
+    void dad_completed();
 
     /** Downstream transmission. */
     void transmit(Packet_ptr, IP6::addr next_hop, MAC::Addr mac = MAC::EMPTY);
@@ -213,8 +217,10 @@ namespace net {
 
     Stack& inet_;
     Route_checker proxy_ = nullptr;
+    Dad_handler   dad_handler_ = nullptr;
 
     MAC::Addr mac_;
+    IP6::addr tentative_addr_ = IP6::ADDR_ANY;
 
     // Outbound data goes through here */
     downstream_link linklayer_out_ = nullptr;

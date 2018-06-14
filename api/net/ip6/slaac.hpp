@@ -26,28 +26,34 @@ namespace net {
   class Slaac
   {
   public:
+    static const int NUM_RETRIES = 1;
+    static const int INTERVAL = 1;
+
     using Stack = IP6::Stack;
-    using config_func = delegate<void(bool, IP6::addr)>;
+    using config_func = delegate<void(bool)>;
 
     Slaac() = delete;
     Slaac(Slaac&) = delete;
     Slaac(Stack& inet);
 
     // autoconfigure linklocal and global address
-    void autoconf(uint32_t timeout_secs) {}
+    void autoconf_start(int retries,
+            IP6::addr alternate_addr = IP6::ADDR_ANY);
+    void autoconf();
+    void autoconf_trigger();
+    void on_config(config_func handler);
 
-    // Signal indicating the result of DHCP negotation
-    // timeout is true if the negotiation timed out
-    void on_config(config_func handler) {}
   private:
     Stack& stack;
-    IP6::addr    ipaddr, netmask, router;
+    IP6::addr    alternate_addr_;
+    IP6::addr    tentative_addr_;
     uint32_t     lease_time;
-    std::vector<config_func> config_handlers_;
-    int          retries  = 0;
+    // Number of times to attempt DAD
+    int          dad_retransmits_ = NUM_RETRIES;
     int          progress = 0;
     Timer        timeout_timer_;
-    std::chrono::milliseconds timeout;
+    std::vector<config_func> config_handlers_;
+    std::chrono::milliseconds interval;
   };
 }
 

@@ -94,8 +94,16 @@ namespace net
     if (req.ip().ip_dst().is_multicast() &&
         req.ndp().is_flag_solicited()) {
         PRINT("NDP: neighbour destination address is multicast when"
-                " solicit flag is set\n");
+              " solicit flag is set\n");
         return;
+    }
+
+
+    if (dad_handler_ && target == tentative_addr_) {
+      PRINT("NDP: NA: DAD failed. We can't use the %s"
+            " address on our interface", target.str().c_str());
+      dad_handler_();
+      return;
     }
 
     req.ndp().parse(ICMP_type::ND_NEIGHBOUR_ADV);
@@ -195,8 +203,14 @@ namespace net
     bool is_dest_multicast = req.ip().ip_dst().is_multicast();
 
     if (target != inet_.ip6_addr()) {
-      PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(), inet_.ip6_addr().to_string().c_str());
-      if (!proxy_) {
+      PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(),
+              inet_.ip6_addr().to_string().c_str());
+      if (dad_handler_ && target == tentative_addr_) {
+        PRINT("NDP: NS: DAD failed. We can't use the %s"
+              " address on our interface", target.str().c_str());
+        dad_handler_();
+        return;
+      } else if (!proxy_) {
          return;
       } else if (!proxy_(target)) {
          return;
@@ -442,6 +456,28 @@ namespace net
 
     // Move chain to linklayer
     linklayer_out_(std::move(pckt), mac, Ethertype::IP6);
+  }
+
+  /* Perform Duplicate Address Detection for the specifed address.
+   * DAD must be performed on all unicast addresses prior to
+   * assigning them to an interface. regardless of whether they
+   * are obtained through stateless autoconfiguration,
+   * DHCPv6, or manual configuration */
+  void Ndp::perform_dad(IP6::addr tentative_addr,
+          Dad_handler delg)
+  {
+    tentative_addr_ = tentative_addr;
+    dad_handler_ = delg;
+
+    // TODO: Join all-nodes and solicited-node multicast address of the
+    // tentaive address
+    send_neighbour_solicitation(tentative_addr);
+  }
+
+  void Ndp::dad_completed()
+  {
+    dad_handler_ = nullptr;
+    tentative_addr_ = IP6::ADDR_ANY;
   }
 
   // NDP packet function definitions

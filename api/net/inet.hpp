@@ -66,7 +66,7 @@ namespace net {
     using resolve_func = delegate<void(IP4::addr, const Error&)>;
     using on_configured_func = delegate<void(Stack&)>;
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
-    using slaac_timeout_func = delegate<void(bool timed_out, IP6::addr)>;
+    using slaac_timeout_func = delegate<void(bool complete)>;
 
     using Port_utils  = std::map<net::Addr, Port_util>;
     using Vip4_list = std::vector<IP4::addr>;
@@ -276,7 +276,8 @@ namespace net {
     void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
 
     /* Automatic configuration of ipv6 address for inet */
-    void negotiate_slaac(double timeout = 10.0, slaac_timeout_func = nullptr);
+    void autoconf_v6(int retries = 0, slaac_timeout_func = nullptr,
+            IP6::addr alternate_addr = IP6::ADDR_ANY);
 
     bool is_configured() const
     {
