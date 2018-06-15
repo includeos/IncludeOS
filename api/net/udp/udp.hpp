@@ -15,47 +15,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef NET_IP4_UDP_HPP
-#define NET_IP4_UDP_HPP
+#pragma once
+#ifndef NET_UDP_UDP_HPP
+#define NET_UDP_UDP_HPP
+
+#include "common.hpp"
+#include "socket.hpp"
+#include "packet_udp.hpp"
 
 #include <deque>
 #include <map>
 #include <cstring>
 #include <unordered_map>
 
-#include <net/ip4/ip4.hpp>
 #include <net/packet.hpp>
 #include <net/socket.hpp>
+#include <net/port_util.hpp>
 #include <util/timer.hpp>
 #include <rtc>
 
 namespace net {
-
   class Inet;
-  class PacketUDP;
-  class UDPSocket;
 
   struct UDP_error : public std::runtime_error {
     using base = std::runtime_error;
     using base::base;
   };
 
-  /** Basic UDP support. @todo Implement UDP sockets.  */
   class UDP {
   public:
-    using addr_t = net::Addr;
-    using port_t = uint16_t;
+    using addr_t = udp::addr_t;
+    using port_t = udp::port_t;
 
-    using Packet_ptr    = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
-    using Stack         = IP4::Stack;
-    using Port_utils    = std::map<net::Addr, Port_util>;
 
-    using Sockets       = std::map<Socket, UDPSocket>;
+    using Stack         = Inet;
+    using Port_utils    = std::map<Addr, Port_util>;
 
-    typedef delegate<void()> sendto_handler;
-    typedef delegate<void(const Error&)> error_handler;
+    using Sockets       = std::map<net::Socket, udp::Socket>;
 
-    // write buffer for sendq
+    using sendto_handler = udp::sendto_handler;
+    using error_handler  = udp::error_handler;
+
     struct WriteBuffer
     {
       WriteBuffer(
@@ -90,14 +90,6 @@ namespace net {
       addr_t d_addr;
     }; // < struct WriteBuffer
 
-    /** UDP header */
-    struct header {
-      port_t   sport;
-      port_t   dport;
-      uint16_t length;
-      uint16_t checksum;
-    };
-
     ////////////////////////////////////////////
 
     addr_t local_ip() const;
@@ -121,22 +113,22 @@ namespace net {
         @param sport Local port
         @param dip   Remote IP-address
         @param dport Remote port   */
-    void transmit(UDP::Packet_ptr udp);
+    void transmit(udp::Packet_ptr udp);
 
     //! @param port local port
-    UDPSocket& bind(port_t port);
+    udp::Socket& bind(port_t port);
 
-    UDPSocket& bind(const Socket socket);
+    udp::Socket& bind(const Socket& socket);
 
     //! returns a new UDP socket bound to a random port
-    UDPSocket& bind();
-    UDPSocket& bind(const addr_t addr);
+    udp::Socket& bind();
+    udp::Socket& bind(const addr_t addr);
 
-    bool is_bound(const Socket) const;
+    bool is_bound(const Socket&) const;
     bool is_bound(const port_t port) const;
 
     /** Close a socket **/
-    void close(const Socket socket);
+    void close(const Socket& socket);
 
     //! construct this UDP module with @inet
     UDP(Stack& inet);
@@ -196,14 +188,14 @@ namespace net {
     /** Error entries are just error callbacks and timestamps */
     class Error_entry {
     public:
-      Error_entry(UDP::error_handler cb) noexcept
+      Error_entry(udp::error_handler cb) noexcept
       : callback(std::move(cb)), timestamp(RTC::time_since_boot())
       {}
 
       bool expired() noexcept
       { return timestamp + exp_t_ < RTC::time_since_boot(); }
 
-      UDP::error_handler callback;
+      udp::error_handler callback;
 
     private:
       RTC::timestamp_t timestamp;
@@ -216,12 +208,10 @@ namespace net {
     /** Timer that flushes expired error entries/callbacks (no errors have occurred) */
     Timer flush_timer_{{ *this, &UDP::flush_expired }};
 
-    friend class net::UDPSocket;
+    friend class udp::Socket;
+
   }; //< class UDP
 
 } //< namespace net
-
-#include "packet_udp.hpp"
-#include "socket.hpp"
 
 #endif

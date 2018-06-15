@@ -32,6 +32,7 @@
 namespace net {
 
   const ip4::Addr ip4::Addr::addr_any{0};
+  const ip4::Addr ip4::Addr::addr_bcast{0xff,0xff,0xff,0xff};
   const IP4::addr IP4::ADDR_ANY(0);
   const IP4::addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
 

@@ -36,7 +36,7 @@ public:
 
 private:
   net::Inet&  stack;
-  net::UDPSocket*       udp;
+  net::udp::Socket*     udp;
   const net::ip4::Addr  addr;
   const uint16_t        port;
 };

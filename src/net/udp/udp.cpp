@@ -22,8 +22,9 @@
 #define PRINT(fmt, ...) /* fmt */
 #endif
 
-#include <common>
 #include <net/udp/udp.hpp>
+#include <net/udp/packet_udp.hpp>
+#include <common>
 #include <net/inet>
 #include <net/util.hpp>
 #include <memory>
@@ -105,7 +106,7 @@ namespace net {
     }
   }
 
-  UDPSocket& UDP::bind(const Socket socket)
+  udp::Socket& UDP::bind(const net::Socket& socket)
   {
     const auto addr = socket.address();
     const auto port = socket.port();
@@ -135,7 +136,7 @@ namespace net {
     return it.first->second;
   }
 
-  UDPSocket& UDP::bind(const addr_t addr)
+  udp::Socket& UDP::bind(const addr_t addr)
   {
     if(UNLIKELY( not stack_.is_valid_source(addr) ))
       throw UDP_error{"Cannot bind to address: " + addr.to_string()};
@@ -158,25 +159,25 @@ namespace net {
     return it.first->second;
   }
 
-  bool UDP::is_bound(const Socket socket) const
+  bool UDP::is_bound(const net::Socket& socket) const
   {
     return sockets_.find(socket) != sockets_.end();
   }
 
-  void UDP::close(const Socket socket)
+  void UDP::close(const net::Socket& socket)
   {
     PRINT("Closed socket %s\n", socket.to_string().c_str());
     sockets_.erase(socket);
   }
 
-  void UDP::transmit(UDP::Packet_ptr udp)
+  void UDP::transmit(udp::Packet_ptr udp)
   {
     PRINT("<UDP> Transmitting %u bytes (data=%u) from %s to %s:%i\n",
            udp->length(), udp->data_length(),
            udp->ip_src().str().c_str(),
            udp->ip_dst().str().c_str(), udp->dst_port());
 
-    Expects(udp->length() >= sizeof(header));
+    Expects(udp->length() >= sizeof(udp::Header));
     Expects(udp->ip_protocol() == Protocol::UDP);
 
     network_layer_out_(std::move(udp));
@@ -267,7 +268,7 @@ namespace net {
 
   void UDP::WriteBuffer::write()
   {
-    UDP::Packet_ptr chain_head = nullptr;
+    udp::Packet_ptr chain_head = nullptr;
 
     PRINT("<%s> UDP: %i bytes to write, need %i packets \n",
           udp.stack().ifname().c_str(),
@@ -318,16 +319,16 @@ namespace net {
   UDP::addr_t UDP::local_ip() const
   { return stack_.ip_addr(); }
 
-  UDPSocket& UDP::bind(port_t port)
+  udp::Socket& UDP::bind(port_t port)
   { return bind({stack_.ip_addr(), port}); }
 
-  UDPSocket& UDP::bind()
+  udp::Socket& UDP::bind()
   { return bind(stack_.ip_addr()); }
 
   bool UDP::is_bound(const port_t port) const
   { return is_bound({stack_.ip_addr(), port}); }
 
   uint16_t UDP::max_datagram_size() noexcept
-  { return stack().ip_obj().MDDS() - sizeof(header); }
+  { return stack().ip_obj().MDDS() - sizeof(udp::Header); }
 
 } //< namespace net

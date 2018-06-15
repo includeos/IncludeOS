@@ -16,17 +16,18 @@
 // limitations under the License.
 
 #include <net/udp/socket.hpp>
+#include <net/udp/udp.hpp>
 #include <common>
 #include <memory>
 
-namespace net
+namespace net::udp
 {
-  UDPSocket::UDPSocket(UDP& udp_instance, Socket socket)
-    : udp_{udp_instance}, socket_{socket}
+  Socket::Socket(UDP& udp_instance, net::Socket socket)
+    : udp_{udp_instance}, socket_{std::move(socket)}
   {}
 
-  void UDPSocket::packet_init(
-      UDP::Packet_ptr p,
+  void Socket::packet_init(
+      Packet_ptr p,
       addr_t srcIP,
       addr_t destIP,
       port_t port,
@@ -40,10 +41,10 @@ namespace net
     assert(p->data_length() == length);
   }
 
-  void UDPSocket::internal_read(const PacketUDP& udp)
+  void Socket::internal_read(const PacketUDP& udp)
   { on_read_handler(udp.ip_src(), udp.src_port(), (const char*) udp.data(), udp.data_length()); }
 
-  void UDPSocket::sendto(
+  void Socket::sendto(
      addr_t destIP,
      port_t port,
      const void* buffer,
@@ -60,7 +61,7 @@ namespace net
     udp_.flush();
   }
 
-  void UDPSocket::bcast(
+  void Socket::bcast(
     addr_t srcIP,
     port_t port,
     const void* buffer,
@@ -71,9 +72,14 @@ namespace net
     if (UNLIKELY(length == 0)) return;
     udp_.sendq.emplace_back(
          (const uint8_t*) buffer, length, cb, ecb, this->udp_,
-         srcIP, this->local_port(), IP4::ADDR_BCAST, port);
+         srcIP, this->local_port(), ip4::Addr::addr_bcast, port);
 
     // UDP packets are meant to be sent immediately, so try flushing
     udp_.flush();
+  }
+
+  void Socket::close()
+  {
+    udp_.close(socket_);
   }
 } // < namespace net

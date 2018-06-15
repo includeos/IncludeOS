@@ -150,7 +150,7 @@ namespace net
 
   private:
     Stack&                stack_;
-    UDPSocket*            socket_;
+    udp::Socket*          socket_;
     Cache                 cache_;
     std::chrono::seconds  cache_ttl_;
     Timer                 flush_timer_;
@@ -164,7 +164,7 @@ namespace net
      * @param[in]  data       The raw data containing the msg
      * @param[in]  <unnamed>  Size of the data
      */
-    void receive_response(Address, UDP::port_t, const char* data, size_t);
+    void receive_response(Address, udp::port_t, const char* data, size_t);
 
     /**
      * @brief      Adds a cache entry.
