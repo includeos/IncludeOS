@@ -292,10 +292,15 @@ namespace net
           return;
       }
       req.ndp().parse(ICMP_type::ND_ROUTER_ADV);
-
-      route_info = req.ndp().option(ICMP_type::ND_OPT_PREFIX_INFO);
-      for(pinfo = route_info; pinfo; pinfo = req.ndp().next_option()) {
+      req.ndp().process(ICMP_type::ND_OPT_PREFIX_INFO, [] (IP6::addr prefix)
+      {
+        /* Called if autoconfig option is set */
+      }, [] (IP6::addr prefix));
+#if 0
+      for(pinfo = route_info; pinfo;
+        pinfo = req.ndp().next_option(pinfo, ICMP_type::ND_OPT_PREFIX_INFO)) {
       }
+#endif
   }
 
   void Ndp::receive(icmp6::Packet& pckt)
@@ -572,6 +577,37 @@ namespace net
             opts_len -= opt_len;
             option_hdr = (option_hdr + opt_len);
         }
+     }
+
+     bool Packet::NdpPacket::NdpOptions::parse_prefix(prefix_info_handler autoconf_cb,
+        prefix_info_handler onlink_cb)
+     {
+         IP6::addr confaddr;
+
+         if (pinfo->prefix.is_multicast() || pinfo->prefix.is_linklocal()) {
+             PRINT("NDP: Prefix info address is either multicast or linklocal\n");
+             return false;
+         }
+
+         if (pinfo->prefered > pinfo->valid) {
+             PRINT("NDP: Prefix option has invalid lifetime\n");
+             return false;
+         }
+
+         if (pinfo->onlink) {
+             onlink_cb(confaddr);
+         } else if (pinfo->autoconf) {
+             if (pinfo->prefix_len == 64) {
+                 confaddr.set_part<uint64_t>(1,
+                    pinfo->prefix.get_part<uint64_t>(1)); 
+                 confaddr.set(stack.link_addr());
+             } else {
+                 PRINT("NDP: Prefix option: autoconf: "
+                         " prefix with wrong len: %d", pinfo->prefix_len);
+                 return false;
+             }
+             autoconf_cb(confaddr)
+         }
      }
 
   } // icmp6

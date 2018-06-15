@@ -82,6 +82,24 @@ namespace icmp6 {
                 return false;
             }
 
+            struct nd_options_header *next_option(struct nd_options_header *cur,
+                    struct nd_options_header *end)
+            {
+                struct nd_options_header *end;
+
+                int type;
+
+                if (!cur || !end || cur >= end)
+                    return nullptr;
+
+                type = cur->type;
+
+                do {
+                  cur += (cur->len << 3);
+                } while (cur < end && cur->type != type);
+                return cur <= end && cur->type == type ? cur : nullptr;
+            }
+
             public:
             NdpOptions() : header_{nullptr}, nd_opts_ri{nullptr},
                 nd_opts_ri_end{nullptr}, user_opts{nullptr},
@@ -109,26 +127,23 @@ namespace icmp6 {
                     if (opt_array[option]) {
                         return opt_array[option];
                     }
+                } else if (option == ND_OPT_ROUTE_INFO) {
+                    return nd_opts_ri;
+                } else if (option == ND_OPT_RDNSS ||
+                    option == ND_OPT_DNSSL ) {
                 }
+                return nullptr;
             }
 
-            /* This is used by prefix and route info only */
-            struct nd_options_header *next_option(struct nd_options_header *cur,
-                    uint8_t option)
+            struct nd_options_header *parse_option(struct nd_options_header *cur,
+                    int option)
             {
-                struct nd_options_header *end;
-
-                int type;
-
-                if (!cur || !end || cur >= end)
-                    return nullptr;
-
-                type = cur->type;
-
-                do {
-                  cur += (cur->len << 3);
-                } while (cur < end && cur->type != type);
-                return cur <= end && cur->type == type ? cur : nullptr;
+                if (option == ND_OPT_PREFIX_INFO) {
+                    return next_option(cur, opt_array[ND_OPT_PREFIX_INFO_END]); 
+                } else if (option == ND_OPT_ROUTE_INFO) {
+                    return next_option(cur, nd_opts_ri_end);
+                }
+                return nullptr;
             }
         };
 

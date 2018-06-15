@@ -76,14 +76,11 @@ namespace net
   {
 
     std::chrono::milliseconds delay;
-    MAC::Addr link_addr = stack.link_addr();
     tentative_addr_ = {0xFE80,  0, 0, 0, 0, 0, 0, 0};
     alternate_addr_ = alternate_addr;
     int i, j = 10;
 
-    for (i = 5; i >= 0; i--) {
-      tentative_addr_.set_part<uint8_t>(j++, link_addr[i]);
-    }
+    tentative_addr_.set(stack.link_addr());
 
     this->dad_retransmits_ = retries ? retries : NUM_RETRIES;
     this->progress = 0;

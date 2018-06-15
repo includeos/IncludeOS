@@ -191,6 +191,15 @@ struct Addr {
      }
   }
 
+  void set(MAC::addr &mac, uint8_t start_loc = 0) 
+  {
+      Expects(start_loc <= (16 - 6));
+
+      for (i = 0; i < 6; i++) {
+        i8[start_loc++] = mac[i];
+      }
+  }
+
   /**
    * Assignment operator
    */
