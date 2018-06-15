@@ -12,7 +12,7 @@ set(NET_SOURCES
   ${IOS}/src/net/ip4/reassembly.cpp
   ${IOS}/src/net/ip6/ip6.cpp
   ${IOS}/src/net/ip6/icmp6.cpp
-  #${IOS}/src/net/ip6/ndp.cpp
+  ${IOS}/src/net/ip6/ndp.cpp
 
   ${IOS}/src/net/tcp/tcp.cpp
   ${IOS}/src/net/tcp/connection.cpp
