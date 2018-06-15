@@ -115,9 +115,11 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   if (storage_area < (char*) 0x200) {
     throw std::runtime_error("LiveUpdate storage area is (probably) a null pointer");
   }
+#ifndef PLATFORM_UNITTEST
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
     throw std::runtime_error("LiveUpdate storage area is inside kernel area");
   }
+#endif
   if (storage_area >= (char*) OS::heap_begin() && storage_area < (char*) OS::heap_end()) {
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }

@@ -36,6 +36,7 @@ namespace net
   const ip6::Addr ip6::Addr::node_mDNSv6(0xFF01, 0, 0, 0, 0, 0, 0, 0xFB);
 
   const ip6::Addr ip6::Addr::link_unspecified(0, 0, 0, 0, 0, 0, 0, 0);
+  const ip6::Addr ip6::Addr::addr_any{ip6::Addr::link_unspecified};
 
   const ip6::Addr ip6::Addr::link_all_nodes(0xFF02, 0, 0, 0, 0, 0, 0, 1);
   const ip6::Addr ip6::Addr::link_all_routers(0xFF02, 0, 0, 0, 0, 0, 0, 2);
@@ -221,7 +222,7 @@ namespace net
       //udp_handler_(std::move(packet));
       break;
     case Protocol::TCP:
-      //tcp_handler_(std::move(packet));
+      tcp_handler_(std::move(packet));
       break;
     default:
       // Send ICMP error of type Destination Unreachable and code PROTOCOL

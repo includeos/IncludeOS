@@ -19,10 +19,10 @@
 #ifndef NET_TCP_COMMON_HPP
 #define NET_TCP_COMMON_HPP
 
-#include <net/ip4/addr.hpp>
-#include <net/packet.hpp>
+#include <net/addr.hpp>
 #include <net/checksum.hpp>
 #include <chrono>
+#include <vector>
 
 namespace net {
   namespace tcp {
@@ -48,7 +48,7 @@ namespace net {
     static const std::chrono::seconds       default_msl {30};
     static const std::chrono::milliseconds  default_dack_timeout {40};
 
-    using Address = ip4::Addr;
+    using Address = net::Addr;
 
     /** A port */
     using port_t = uint16_t;
@@ -65,12 +65,10 @@ namespace net {
       return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
     }
 
-    class Packet;
-    using Packet_ptr = std::unique_ptr<Packet>;
-
     class Connection;
     using Connection_ptr = std::shared_ptr<Connection>;
 
+    // TODO: Remove when TCP packet class is gone
     template <typename Tcp_packet>
     uint16_t calculate_checksum(const Tcp_packet& packet)
     {
@@ -84,6 +82,55 @@ namespace net {
           + (packet.ip_dst().whole & 0xffff)
           + (Proto_TCP << 8)
           + htons(length);
+
+      // Compute sum of header and data
+      const char* buffer = (char*) &packet.tcp_header();
+      return net::checksum(sum, buffer, length);
+    }
+
+    template <typename View4>
+    uint16_t calculate_checksum4(const View4& packet)
+    {
+      constexpr uint8_t Proto_TCP = 6; // avoid including inet_common
+      uint16_t length = packet.tcp_length();
+      const auto ip_src = packet.ip4_src();
+      const auto ip_dst = packet.ip4_dst();
+      // Compute sum of pseudo-header
+      uint32_t sum =
+            (ip_src.whole >> 16)
+          + (ip_src.whole & 0xffff)
+          + (ip_dst.whole >> 16)
+          + (ip_dst.whole & 0xffff)
+          + (Proto_TCP << 8)
+          + htons(length);
+
+      // Compute sum of header and data
+      const char* buffer = (char*) &packet.tcp_header();
+      return net::checksum(sum, buffer, length);
+    }
+
+    template <typename View6>
+    uint16_t calculate_checksum6(const View6& packet)
+    {
+      constexpr uint8_t Proto_TCP = 6; // avoid including inet_common
+      uint16_t length = packet.tcp_length();
+      const auto ip_src = packet.ip6_src();
+      const auto ip_dst = packet.ip6_dst();
+      // Compute sum of pseudo-header
+      uint32_t sum = 0;
+
+      for(int i = 0; i < 4; i++)
+      {
+        uint32_t part = ip_src.template get_part<uint32_t>(i);
+        sum += (part >> 16);
+        sum += (part & 0xffff);
+
+        part = ip_dst.template get_part<uint32_t>(i);
+        sum += (part >> 16);
+        sum += (part & 0xffff);
+      }
+
+      sum += (Proto_TCP << 8) + htons(length);
 
       // Compute sum of header and data
       const char* buffer = (char*) &packet.tcp_header();

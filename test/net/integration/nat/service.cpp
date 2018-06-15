@@ -19,6 +19,7 @@
 #include <net/inet>
 #include <net/nat/napt.hpp>
 #include <net/router.hpp>
+#include <net/tcp/packet4_view.hpp>
 
 using namespace net;
 
@@ -140,7 +141,7 @@ void Service::start()
 
     if(pkt->ip_protocol() == Protocol::TCP)
     {
-      auto& tcp = static_cast<tcp::Packet&>(*pkt);
+      auto tcp = tcp::Packet4_view_raw(pkt.get());
 
       if(tcp.dst_port() == DNAT_PORT)
         natty->dnat(*pkt, entry, SERVER);
@@ -162,7 +163,7 @@ void Service::start()
   server.tcp().listen(DNAT_PORT, [] (auto conn)
   {
     INFO("TCP DNAT", "Server received connection - %s", conn->to_string().c_str());
-    CHECKSERT(conn->remote().address() != eth1.ip_addr(),
+    CHECKSERT(conn->remote().address().v4() != eth1.ip_addr(),
       "Received non SNAT connection - %s", conn->remote().to_string().c_str());
 
     conn->on_read(1024, [conn](auto buf)

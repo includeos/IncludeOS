@@ -59,7 +59,7 @@ namespace net
       if(it != cache_.end())
       {
         Error err;
-        func(it->second.address, err);
+        func(it->second.address.v4(), err);
         return;
       }
     }
@@ -98,7 +98,7 @@ namespace net
     flush_timer_.stop();
   }
 
-  void DNSClient::receive_response(IP4::addr, UDP::port_t, const char* data, size_t)
+  void DNSClient::receive_response(Address, UDP::port_t, const char* data, size_t)
   {
     const auto& reply = *(DNS::header*) data;
     // match the transactions id on the reply with the ones in our map

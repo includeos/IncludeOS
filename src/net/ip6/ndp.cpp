@@ -73,9 +73,10 @@ namespace net
     // Add checksum
     res.set_checksum();
 
-    PRINT("NDP: Neighbor Adv Response dst: %s size: %i payload size: %i,"
-        " checksum: 0x%x\n", res.ip().size(), res.payload().size(),
-        res.ip().ip_dst().str().c_str(), res.compute_checksum());
+    PRINT("NDP: Neighbor Adv Response dst: %s\n size: %i\n payload size: %i\n,"
+        " checksum: 0x%x\n",
+        res.ip().ip_dst().str().c_str(), res.ip().size(), res.payload().size(),
+        res.compute_checksum());
 
     auto dest = res.ip().ip_dst();
     transmit(res.release(), dest);
@@ -195,6 +196,7 @@ namespace net
     bool is_dest_multicast = req.ip().ip_dst().is_multicast();
 
     if (target != inet_.ip6_addr()) {
+      PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(), inet_.ip6_addr().to_string().c_str());
         /* Not for us. Should we forward? */
         return;
     }

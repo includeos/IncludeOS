@@ -19,6 +19,7 @@
 #include <net/dhcp/dh4client.hpp>
 #include <smp>
 #include <net/socket.hpp>
+#include <net/tcp/packet4_view.hpp> // due to ICMP error //temp
 
 using namespace net;
 
@@ -47,6 +48,7 @@ Inet::Inet(hw::Nic& nic)
   auto icmp6_bottom(upstream{icmp6_, &ICMPv6::receive});
   auto udp4_bottom(upstream{udp_, &UDP::receive});
   auto tcp_bottom(upstream{tcp_, &TCP::receive});
+  auto tcp6_bottom(upstream{tcp_, &TCP::receive6});
 
   /** Upstream wiring  */
   // Packets available
@@ -73,6 +75,9 @@ Inet::Inet(hw::Nic& nic)
   // IP4 -> TCP
   ip4_.set_tcp_handler(tcp_bottom);
 
+  // IP6 -> TCP
+  ip6_.set_tcp_handler(tcp6_bottom);
+
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());
   auto arp_top(IP4::downstream_arp{arp_, &Arp::transmit});
@@ -93,6 +98,9 @@ Inet::Inet(hw::Nic& nic)
 
   // TCP -> IP4
   tcp_.set_network_out(ip4_top);
+
+  // TCP -> IP6
+  tcp_.set_network_out6(ip6_top);
 
   // IP4 -> Arp
   ip4_.set_linklayer_out(arp_top);
@@ -126,20 +134,22 @@ void Inet::error_report(Error& err, Packet_ptr orig_pckt) {
   bool too_big = false;
 
   // Get the destination to the original packet
-  Socket dest = [](const PacketIP4& pkt)->Socket {
-    switch (pkt.ip_protocol()) {
+  Socket dest = [](std::unique_ptr<PacketIP4>& pkt)->Socket {
+    switch (pkt->ip_protocol()) {
       case Protocol::UDP: {
-        const auto& udp = static_cast<const PacketUDP&>(pkt);
+        const auto& udp = static_cast<const PacketUDP&>(*pkt);
         return udp.destination();
       }
       case Protocol::TCP: {
-        const auto& tcp = static_cast<const tcp::Packet&>(pkt);
-        return tcp.destination();
+        auto tcp = tcp::Packet4_view(std::move(pkt));
+        auto dst = tcp.destination();
+        pkt = static_unique_ptr_cast<PacketIP4>(tcp.release());
+        return dst;
       }
       default:
         return {};
     }
-  }(*pckt_ip4);
+  }(pckt_ip4);
 
 
   if (err.is_icmp()) {
@@ -225,11 +235,11 @@ void Inet::network_config6(IP6::addr addr6,
                            IP6::addr gateway6)
 {
 
-  this->ip6_addr_    = addr6;
+  this->ip6_addr_    = std::move(addr6);
   this->ip6_prefix_  = prefix6;
-  this->ip6_gateway_ = gateway6;
+  this->ip6_gateway_ = std::move(gateway6);
   INFO("Inet6", "Network configured (%s)", nic_.mac().to_string().c_str());
-  INFO2("IP6: \t\t%s", ip6_addr_.str().c_str());
+  INFO2("IP6: \t\t%s", ip6_addr_.to_string().c_str());
   INFO2("Prefix: \t%d", ip6_prefix_);
   INFO2("Gateway: \t%s", ip6_gateway_.str().c_str());
 

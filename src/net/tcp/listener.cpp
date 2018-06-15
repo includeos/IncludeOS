@@ -22,11 +22,12 @@
 using namespace net;
 using namespace tcp;
 
-Listener::Listener(TCP& host, Socket local, ConnectCallback cb)
+Listener::Listener(TCP& host, Socket local, ConnectCallback cb, const bool ipv6_only)
   : host_(host), local_(local), syn_queue_(),
     on_accept_({this, &Listener::default_on_accept}),
     on_connect_{std::move(cb)},
-    _on_close_({host_, &TCP::close_listener})
+    _on_close_({host_, &TCP::close_listener}),
+    ipv6_only_{ipv6_only}
 {
 }
 
@@ -38,14 +39,13 @@ bool Listener::syn_queue_full() const
 { return syn_queue_.size() >= host_.max_syn_backlog(); }
 
 
-void Listener::segment_arrived(Packet_ptr packet) {
+void Listener::segment_arrived(Packet_view& packet) {
   debug2("<Listener::segment_arrived> Received packet: %s\n",
-    packet->to_string().c_str());
+    packet.to_string().c_str());
 
   auto it = std::find_if(syn_queue_.begin(), syn_queue_.end(),
-    [dest = packet->source()]
-    (Connection_ptr conn) {
-      return conn->remote() == dest;
+    [&packet] (const Connection_ptr& conn) {
+      return conn->remote() == packet.source();
     });
 
   // if it's an reply to any of our half-open connections
@@ -54,7 +54,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
     auto conn = *it;
     debug("<Listener::segment_arrived> Found packet receiver: %s\n",
       conn->to_string().c_str());
-    conn->segment_arrived(std::move(packet));
+    conn->segment_arrived(packet);
     debug2("<Listener::segment_arrived> Connection done handling segment\n");
     return;
   }
@@ -62,9 +62,9 @@ void Listener::segment_arrived(Packet_ptr packet) {
   else
   {
     // don't waste time if the packet does not have SYN
-    if(UNLIKELY(not packet->isset(SYN) or packet->has_tcp_data()))
+    if(UNLIKELY(not packet.isset(SYN) or packet.has_tcp_data()))
     {
-      host_.send_reset(*packet);
+      host_.send_reset(packet);
       return;
     }
 
@@ -72,7 +72,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
     host_.connection_attempts_++;
 
     // if we don't like this client, do nothing
-    if(UNLIKELY(on_accept_(packet->source()) == false))
+    if(UNLIKELY(on_accept_(packet.source()) == false))
       return;
 
     // remove oldest connection if queue is full
@@ -90,7 +90,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
 
     auto& conn = *(syn_queue_.emplace(
       syn_queue_.cbegin(),
-      std::make_shared<Connection>(host_, packet->destination(), packet->source(), ConnectCallback{this, &Listener::connected})
+      std::make_shared<Connection>(host_, packet.destination(), packet.source(), ConnectCallback{this, &Listener::connected})
       )
     );
     conn->_on_cleanup({this, &Listener::remove});
@@ -99,7 +99,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
     Ensures(conn->is_listening());
     debug("<Listener::segment_arrived> Connection %s created\n",
       conn->to_string().c_str());
-    conn->segment_arrived(std::move(packet));
+    conn->segment_arrived(packet);
     debug2("<Listener::segment_arrived> Connection done handling segment\n");
     return;
   }
@@ -152,5 +152,6 @@ std::string Listener::to_string() const {
   // add syn queue
   for(auto& conn : syn_queue_)
       str += "\n\t" + conn->to_string();
+
   return str;
 }
