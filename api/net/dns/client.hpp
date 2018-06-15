@@ -19,7 +19,7 @@
 #define NET_DNS_CLIENT_HPP
 
 #include <net/dns/dns.hpp>
-#include <net/ip4/udp.hpp>
+#include <net/udp/udp.hpp>
 #include <util/timer.hpp>
 #include <map>
 #include <unordered_map>

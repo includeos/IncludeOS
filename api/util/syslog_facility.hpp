@@ -25,7 +25,7 @@
 #include <map>
 
 #include <syslog.h>         // POSIX symbolic constants
-#include <net/ip4/udp_socket.hpp>  // For private attribute UDPSocket* in Syslog_udp
+#include <net/udp/socket.hpp>  // For private attribute UDPSocket* in Syslog_udp
 
 const int MUL_VAL = 8;
 const std::map<int, std::string> pri_colors = {

@@ -23,7 +23,7 @@
 #include <cstring>
 #include <unordered_map>
 
-#include "ip4.hpp"
+#include <net/ip4/ip4.hpp>
 #include <net/packet.hpp>
 #include <net/socket.hpp>
 #include <util/timer.hpp>
@@ -222,6 +222,6 @@ namespace net {
 } //< namespace net
 
 #include "packet_udp.hpp"
-#include "udp_socket.hpp"
+#include "socket.hpp"
 
 #endif

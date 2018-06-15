@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/ip4/udp_socket.hpp>
+#include <net/udp/socket.hpp>
 #include <common>
 #include <memory>
 

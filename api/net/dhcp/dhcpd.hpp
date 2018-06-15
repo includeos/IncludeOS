@@ -21,7 +21,7 @@
 
 #include <net/dhcp/message.hpp>
 #include <net/dhcp/record.hpp>  // Status and Record
-#include <net/ip4/udp.hpp>
+#include <net/udp/udp.hpp>
 #include <map>
 
 namespace net {

@@ -23,7 +23,7 @@
 #endif
 
 #include <common>
-#include <net/ip4/udp.hpp>
+#include <net/udp/udp.hpp>
 #include <net/inet>
 #include <net/util.hpp>
 #include <memory>

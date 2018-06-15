@@ -23,7 +23,7 @@
 #include "options.hpp"
 
 #include <util/timer.hpp>
-#include <net/ip4/udp.hpp>
+#include <net/udp/udp.hpp>
 
 namespace net {
 

@@ -18,7 +18,7 @@
 #include <net/nat/nat.hpp>
 #include <net/inet_common.hpp> // checksum_adjust
 #include <net/tcp/packet4_view.hpp>
-#include <net/ip4/packet_udp.hpp>
+#include <net/udp/packet_udp.hpp>
 
 namespace net {
 namespace nat {

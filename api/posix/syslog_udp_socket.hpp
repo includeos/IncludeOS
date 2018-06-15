@@ -20,7 +20,7 @@
 
 #include <posix/unix_fd_impl.hpp>
 #include <net/inet>
-#include <net/ip4/udp.hpp>
+#include <net/udp/udp.hpp>
 
 class Syslog_UDP_socket : public Unix_FD_impl {
 public:
