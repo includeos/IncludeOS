@@ -77,11 +77,8 @@ namespace hw {
     size_t buffers_total()
     { return bufstore_.total_buffers(); }
 
-    /** Number of bytes in a frame needed by the device itself **/
-    virtual size_t frame_offset_device() = 0;
-
     /** Number of bytes in a frame needed by the link layer **/
-    virtual size_t frame_offset_link() = 0;
+    virtual size_t frame_offset_link() const noexcept = 0;
 
     /**
      * Create a packet with appropriate size for the underlying link

@@ -99,3 +99,6 @@ if (STRIP_BINARY)
     DEPENDS service
   )
 endif()
+
+# write binary name to file
+file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
