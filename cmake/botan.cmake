@@ -4,14 +4,14 @@
 include(ExternalProject)
 
 if(${ARCH} STREQUAL "x86_64")
-  set(BOTAN_HASH b1dfea0d906783e00dc650832d47ffd4)
+  set(BOTAN_HASH 6f0a3e4aaf6723d83fd025176249372b)
 elseif(${ARCH} STREQUAL "i686")
-  set(BOTAN_HASH e49e7177fe015de294acb0c8dc13a099)
+  set(BOTAN_HASH 0175670a61b45a04f832ee9e5965f1f3)
 endif()
 
 ExternalProject_Add(botan
         PREFIX botan
-        URL https://github.com/includeos/botan/releases/download/musl-1.0/botan-includeos-${ARCH}.tar.gz
+        URL https://github.com/includeos/botan/releases/download/musl-1.1/botan-includeos-${ARCH}.tar.gz
         URL_HASH MD5=${BOTAN_HASH}
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
