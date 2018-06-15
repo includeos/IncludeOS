@@ -24,19 +24,19 @@ using namespace net;
 CASE("Creating a Socket without arguments is empty")
 {
   Socket socket;
-  const Socket::Address addr { 0,0,0,0 };
+  const Socket::Address addr { ip6::Addr::addr_any };
   EXPECT( socket.is_empty() );
   EXPECT( socket.address() == addr );
-  EXPECT( socket.address() == 0 );
+  EXPECT( socket.address().is_any() );
   EXPECT( socket.port() == 0 );
 
-  const std::string expected_str {"0.0.0.0:0"};
+  const std::string expected_str {"[0:0:0:0:0:0:0:0]:0"};
   EXPECT( socket.to_string() == expected_str );
 }
 
 CASE("Creating a Socket with arguments is not empty")
 {
-  const Socket::Address addr { 10,0,0,42 };
+  const Socket::Address addr {10,0,0,42};
   const Socket::port_t port = 80;
 
   Socket socket { addr, 80 };

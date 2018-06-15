@@ -27,7 +27,7 @@ void Service::start()
   inet.network_config({  10,  0,  0, 55 },   // IP
                       { 255, 255, 0,  0 },   // Netmask
                       {  10,  0,  0,  1 } ); // Gateway
-  printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
+  printf("Service IP address is %s\n", inet.ip_addr().to_string().c_str());
 
   // UDP
   const UDP::port_t port = 4242;
@@ -40,7 +40,7 @@ void Service::start()
   {
      std::string strdata(data, len);
      CHECK(1, "Getting UDP data from %s:  %d -> %s",
-           addr.str().c_str(), port, strdata.c_str());
+           addr.to_string().c_str(), port, strdata.c_str());
      // send the same thing right back!
      using namespace std::chrono;
      Timers::oneshot(100ms,

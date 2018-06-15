@@ -174,8 +174,8 @@ CASE("TCP header source and dest")
   auto tcp = create_tcp_packet();
   tcp->init();
 
-  tcp->set_source({{10,0,0,1}, 666});
-  tcp->set_destination({{10,0,0,2}, 667});
+  tcp->set_source({ip4::Addr{10,0,0,1}, 666});
+  tcp->set_destination({ip4::Addr{10,0,0,2}, 667});
 
   EXPECT(tcp->source().address() == ip4::Addr(10,0,0,1));
   EXPECT(tcp->source().port()    == 666);
@@ -188,8 +188,8 @@ CASE("TCP checksum")
   auto tcp = create_tcp_packet();
   tcp->init();
 
-  tcp->set_source({{10,0,0,1}, 666});
-  tcp->set_destination({{10,0,0,2}, 667});
+  tcp->set_source({ip4::Addr{10,0,0,1}, 666});
+  tcp->set_destination({ip4::Addr{10,0,0,2}, 667});
 
   tcp->set_tcp_checksum();
   EXPECT(tcp->compute_tcp_checksum() == 0);

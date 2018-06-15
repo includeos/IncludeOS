@@ -60,12 +60,8 @@ public:
   void set_vlan_upstream(upstream handler) override
   { link_.set_vlan_upstream(handler); }
 
-  /** Number of bytes in a frame needed by the device itself **/
-  virtual size_t frame_offset_device() override
-  { return 0; }
-
   /** Number of bytes in a frame needed by the linklayer **/
-  virtual size_t frame_offset_link() override
+  size_t frame_offset_link() const noexcept override
   { return Protocol::header_size(); }
 
   hw::Nic::Proto proto() const override

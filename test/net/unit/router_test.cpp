@@ -176,8 +176,8 @@ CASE("net::router: Actual routing verifying TTL")
   inet1.set_forward_delg(router.forward_delg());
   inet2.set_forward_delg(router.forward_delg());
 
-  const Socket src{{10,0,1,10}, 32222};
-  const Socket dst{{10,0,2,10}, 80};
+  const Socket src{ip4::Addr{10,0,1,10}, 32222};
+  const Socket dst{ip4::Addr{10,0,2,10}, 80};
   const uint8_t DEFAULT_TTL = PacketIP4::DEFAULT_TTL;
 
   // Here we gonna receive the ICMP TTL Exceeded ONCE

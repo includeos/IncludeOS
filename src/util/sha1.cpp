@@ -230,8 +230,9 @@ void SHA1::update(const std::vector<char>& vec)
     update(vec.data(), vec.size());
 }
 
-void SHA1::update(const char* inbuffer, size_t inlen)
+void SHA1::update(const void* inbuffer_v, size_t inlen)
 {
+    auto* inbuffer = (const char*) inbuffer_v;
     while (inlen)
     {
         // find out how much we can copy

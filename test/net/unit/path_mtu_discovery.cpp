@@ -98,7 +98,7 @@ CASE("Turning Path MTU Discovery off clears the PMTU cache")
 
   ICMP_error err{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 1400};
   bool too_big = err.is_too_big();
-  Socket dest{{10,0,0,48}, 443};
+  Socket dest{ip4::Addr{10,0,0,48}, 443};
 
   inet.ip_obj().update_path(dest, err.pmtu(), too_big);
 
@@ -116,7 +116,7 @@ CASE("No PMTU entry exists for non-existing path")
 
   inet.set_path_mtu_discovery(true);
 
-  EXPECT(inet.ip_obj().pmtu(Socket{{10,0,0,45}, 80}) == 0);
+  EXPECT(inet.ip_obj().pmtu(Socket{ip4::Addr{10,0,0,45}, 80}) == 0);
 }
 
 CASE("A PMTU entry can be removed")
@@ -128,7 +128,7 @@ CASE("A PMTU entry can be removed")
 
   ICMP_error err{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 1400};
   bool too_big = err.is_too_big();
-  Socket dest{{10,0,0,49}, 443};
+  Socket dest{ip4::Addr{10,0,0,49}, 443};
 
   inet.ip_obj().update_path(dest, err.pmtu(), too_big);
 
@@ -148,11 +148,11 @@ CASE("The PMTU cache/map can be flushed")
 
   ICMP_error err1{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 1000};
   bool too_big1 = err1.is_too_big();
-  Socket dest1{{10,0,0,5}, 80};
+  Socket dest1{ip4::Addr{10,0,0,5}, 80};
 
   ICMP_error err2{icmp4::Type::DEST_UNREACHABLE, (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED, 900};
   bool too_big2 = err2.is_too_big();
-  Socket dest2{{10,0,0,6}, 80};
+  Socket dest2{ip4::Addr{10,0,0,6}, 80};
 
   inet.ip_obj().update_path(dest1, err1.pmtu(), too_big1);
   inet.ip_obj().update_path(dest2, err2.pmtu(), too_big2);

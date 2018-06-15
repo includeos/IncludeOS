@@ -50,7 +50,7 @@ public:
     return m_mtu;
   }
 
-  uint16_t packet_len() const noexcept {
+  uint16_t max_packet_len() const noexcept {
     return sizeof(net::ethernet::VLAN_header) + MTU();
   }
 
@@ -58,9 +58,6 @@ public:
   { return {this, &vmxnet3::transmit}; }
 
   net::Packet_ptr create_packet(int) override;
-
-  size_t frame_offset_device() override
-  { return DRIVER_OFFSET; };
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);

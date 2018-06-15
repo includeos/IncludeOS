@@ -47,16 +47,13 @@ public:
   }
 
   uint16_t packet_len() const noexcept {
-    return sizeof(net::ethernet::VLAN_header) + MTU();
+    return frame_offset_link() + MTU();
   }
 
   net::downstream create_physical_downstream() override
   { return {this, &e1000::transmit}; }
 
   net::Packet_ptr create_packet(int) override;
-
-  size_t frame_offset_device() override
-  { return DRIVER_OFFSET; };
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);
