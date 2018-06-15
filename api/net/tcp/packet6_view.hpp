@@ -13,7 +13,7 @@ using Packet6_view_raw = Packet6_v<net::Packet*>;
 template <typename Ptr_type>
 class Packet6_v : public Packet_v<Ptr_type> {
 public:
-  Packet6_v(std::unique_ptr<PacketIP6> ptr)
+  Packet6_v(Ptr_type ptr)
     : Packet_v<Ptr_type>(std::move(ptr))
   {
     Expects(packet().is_ipv6());
