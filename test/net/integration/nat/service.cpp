@@ -32,7 +32,7 @@ void test_finished() {
   if (++i == 6) printf("SUCCESS\n");
 }
 
-void ip_forward(IP4::IP_packet_ptr pckt, Inet& stack, Conntrack::Entry_ptr) {
+void ip_forward(IP4::IP_packet_ptr pckt, Inet& stack, Conntrack<IP4>::Entry_ptr) {
   // Packet could have been erroneously moved prior to this call
   if (not pckt)
     return;
@@ -85,12 +85,12 @@ void Service::start()
   // Setup NAT (Masquerade)
   natty = std::make_unique<nat::NAPT>(ct);
 
-  auto masq = [](IP4::IP_packet_ptr pkt, Inet& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
+  auto masq = [](IP4::IP_packet_ptr pkt, Inet& stack, Conntrack<IP4>::Entry_ptr entry)->Filter_verdict<IP4>
   {
     natty->masquerade(*pkt, stack, entry);
     return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
-  auto demasq = [](IP4::IP_packet_ptr pkt, Inet& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
+  auto demasq = [](IP4::IP_packet_ptr pkt, Inet& stack, Conntrack<IP4>::Entry_ptr entry)->Filter_verdict<IP4>
   {
     natty->demasquerade(*pkt, stack, entry);
     return {std::move(pkt), Filter_verdict_type::ACCEPT};
@@ -134,7 +134,7 @@ void Service::start()
   static const uint16_t DNAT_PORT{3389};
   static const uint16_t DNAT_PORT2{8933};
   // DNAT all TCP on dst_port==DNAT_PORT to SERVER
-  auto dnat_rule = [](IP4::IP_packet_ptr pkt, Inet& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
+  auto dnat_rule = [](IP4::IP_packet_ptr pkt, Inet& stack, Conntrack<IP4>::Entry_ptr entry)->Filter_verdict<IP4>
   {
     if(not entry)
       return {std::move(pkt), Filter_verdict_type::DROP};
@@ -151,7 +151,7 @@ void Service::start()
     return {std::move(pkt), Filter_verdict_type::ACCEPT};
   };
   // SNAT all packets that comes in return that has been DNAT
-  auto snat_translate = [](IP4::IP_packet_ptr pkt, Inet& stack, Conntrack::Entry_ptr entry)->Filter_verdict<IP4>
+  auto snat_translate = [](IP4::IP_packet_ptr pkt, Inet& stack, Conntrack<IP4>::Entry_ptr entry)->Filter_verdict<IP4>
   {
     natty->snat(*pkt, entry);
     return {std::move(pkt), Filter_verdict_type::ACCEPT};

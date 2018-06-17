@@ -24,7 +24,7 @@
 using namespace net;
 using namespace net::nat;
 
-static Conntrack::Entry* get_entry(Conntrack& ct, const PacketIP4& pkt)
+static Conntrack<IP4>::Entry* get_entry(Conntrack<IP4>& ct, const PacketIP4& pkt)
 {
   auto* entry = ct.in(pkt);
   ct.confirm(pkt);
@@ -48,7 +48,7 @@ static std::unique_ptr<net::PacketUDP> udp_packet(Socket src, Socket dst)
 
 CASE("NAPT DNAT")
 {
-  auto conntrack = std::make_shared<Conntrack>();
+  auto conntrack = std::make_shared<Conntrack<IP4>>();
   NAPT napt{conntrack};
 
   const Socket src{ip4::Addr{10,0,0,1}, 32222};
@@ -101,7 +101,7 @@ CASE("NAPT DNAT")
 
 CASE("NAPT SNAT")
 {
-  auto conntrack = std::make_shared<Conntrack>();
+  auto conntrack = std::make_shared<Conntrack<IP4>>();
   NAPT napt{conntrack};
 
   const Socket src{ip4::Addr{10,0,0,1}, 32222};
@@ -157,7 +157,7 @@ CASE("NAPT SNAT")
 
 CASE("NAPT MASQUERADE")
 {
-  auto conntrack = std::make_shared<Conntrack>();
+  auto conntrack = std::make_shared<Conntrack<IP4>>();
   NAPT napt{conntrack};
 
   Nic_mock nic;

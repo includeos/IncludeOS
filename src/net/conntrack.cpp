@@ -424,6 +424,8 @@ void Conntrack<IPV>::serialize_to(std::vector<char>& buf) const
 }
 
 // IP4 template initialisation
+template Conntrack<IP4>::Conntrack();
+template Conntrack<IP4>::Conntrack(size_t max_entries);
 template Conntrack<IP4>::Entry* Conntrack<IP4>::simple_track_in(Quadruple q, const Protocol proto);
 template Conntrack<IP4>::Entry* Conntrack<IP4>::get(const IP4::IP_packet& pkt) const;
 template Conntrack<IP4>::Entry* Conntrack<IP4>::get(const Quadruple& quad, const Protocol proto) const;
@@ -442,6 +444,8 @@ template int Conntrack<IP4>::deserialize_from(void* addr);
 template void Conntrack<IP4>::serialize_to(std::vector<char>& buf) const;
 
 // IP6 template initialisation
+template Conntrack<IP6>::Conntrack();
+template Conntrack<IP6>::Conntrack(size_t max_entries);
 template Conntrack<IP6>::Entry* Conntrack<IP6>::simple_track_in(Quadruple q, const Protocol proto);
 template Conntrack<IP6>::Entry* Conntrack<IP6>::get(const IP6::IP_packet& pkt) const;
 template Conntrack<IP6>::Entry* Conntrack<IP6>::get(const Quadruple& quad, const Protocol proto) const;
