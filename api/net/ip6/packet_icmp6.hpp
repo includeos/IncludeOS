@@ -63,6 +63,30 @@ namespace icmp6 {
             uint8_t payload[0];
         } __attribute__((packed));
 
+        struct route_info {
+            uint8_t  type;
+            uint8_t  len;
+            uint8_t  prefix_len;
+            uint8_t  reserved_l:3,
+                     route_pref:2,
+                     reserved_h:2;
+            uint32_t lifetime;
+            uint8_t  prefix[0];
+        };
+
+        struct prefix_info {
+            uint8_t   type;
+            uint8_t   len;
+            uint8_t   prefix_len;
+            uint8_t   onlink:1,
+                      autoconf:1,
+                      reserved:6;
+            uint32_t  valid;
+            uint32_t  prefered;
+            uint32_t  reserved2;
+            IP6::addr prefix;
+        };
+
         class NdpOptions {
 
             private:
@@ -85,8 +109,6 @@ namespace icmp6 {
             struct nd_options_header *next_option(struct nd_options_header *cur,
                     struct nd_options_header *end)
             {
-                struct nd_options_header *end;
-
                 int type;
 
                 if (!cur || !end || cur >= end)
@@ -100,12 +122,31 @@ namespace icmp6 {
                 return cur <= end && cur->type == type ? cur : nullptr;
             }
 
+            prefix_info* pinfo_next(prefix_info* cur)
+            {
+              return reinterpret_cast<prefix_info *> (
+                     next_option(reinterpret_cast<nd_options_header *>(cur),
+                     opt_array[ND_OPT_PREFIX_INFO_END]));
+            }
+
+            route_info* rinfo_next(route_info* cur)
+            {
+              return reinterpret_cast<route_info*> (
+                     next_option(reinterpret_cast<nd_options_header *>(cur),
+                     nd_opts_ri_end));
+            }
+
             public:
+            using Pinfo_handler = delegate<void(IP6::addr)>;
+
             NdpOptions() : header_{nullptr}, nd_opts_ri{nullptr},
                 nd_opts_ri_end{nullptr}, user_opts{nullptr},
                 user_opts_end{nullptr}, opt_array{} {}
 
             void parse(uint8_t *opt, uint16_t opts_len);
+            bool parse_prefix(Pinfo_handler autoconf_cb,
+                Pinfo_handler onlink_cb);
+
             struct nd_options_header *get_header(uint8_t &opt)
             {
                 return reinterpret_cast<struct nd_options_header*>(opt);
@@ -131,17 +172,6 @@ namespace icmp6 {
                     return nd_opts_ri;
                 } else if (option == ND_OPT_RDNSS ||
                     option == ND_OPT_DNSSL ) {
-                }
-                return nullptr;
-            }
-
-            struct nd_options_header *parse_option(struct nd_options_header *cur,
-                    int option)
-            {
-                if (option == ND_OPT_PREFIX_INFO) {
-                    return next_option(cur, opt_array[ND_OPT_PREFIX_INFO_END]); 
-                } else if (option == ND_OPT_ROUTE_INFO) {
-                    return next_option(cur, nd_opts_ri_end);
                 }
                 return nullptr;
             }
@@ -215,33 +245,13 @@ namespace icmp6 {
 
         public:
 
-        struct route_info {
-            uint8_t  type;
-            uint8_t  len;
-            uint8_t  prefix_len;
-            uint8_t  reserved_l:3,
-                     route_pref:2,
-                     reserved_h:2;
-            uint32_t lifetime;
-            uint8_t  prefix[0];
-        };
-
-        struct prefix_info {
-            uint8_t   type;
-            uint8_t   len;
-            uint8_t   prefix_len;
-            uint8_t   onlink:1,
-                      autoconf:1,
-                      reserved:6;
-            uint32_t  valid;
-            uint32_t  prefered;
-            uint32_t  reserved2;
-            IP6::addr prefix;
-        };
+        using Pinfo_handler = delegate<void(IP6::addr)>;
 
         NdpPacket(Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {}
 
         void parse(icmp6::Type type);
+        bool parse_prefix(Pinfo_handler autoconf_cb,
+          Pinfo_handler onlink_cb);
 
         RouterSol& router_sol()
         { return *reinterpret_cast<RouterSol*>(&(icmp6_.header().payload[0])); }

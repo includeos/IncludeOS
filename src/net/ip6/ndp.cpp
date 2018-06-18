@@ -280,7 +280,7 @@ namespace net
 
   void Ndp::receive_router_advertisement(icmp6::Packet& req)
   {
-      if (!req.ip().ip_src().is_link_local()) {
+      if (!req.ip().ip_src().is_linklocal()) {
         PRINT("NDP: Router advertisement source address is not link-local\n");
         return;
       }
@@ -292,15 +292,15 @@ namespace net
           return;
       }
       req.ndp().parse(ICMP_type::ND_ROUTER_ADV);
-      req.ndp().process(ICMP_type::ND_OPT_PREFIX_INFO, [] (IP6::addr prefix)
+      req.ndp().parse_prefix([this] (IP6::addr prefix)
       {
         /* Called if autoconfig option is set */
-      }, [] (IP6::addr prefix));
-#if 0
-      for(pinfo = route_info; pinfo;
-        pinfo = req.ndp().next_option(pinfo, ICMP_type::ND_OPT_PREFIX_INFO)) {
-      }
-#endif
+        /* Append mac addres to get a valid address */
+        prefix.set(this->inet_.link_addr());
+      }, [] (IP6::addr prefix)
+      {
+        /* Called if onlink is set */
+      });
   }
 
   void Ndp::receive(icmp6::Packet& pckt)
@@ -579,34 +579,49 @@ namespace net
         }
      }
 
-     bool Packet::NdpPacket::NdpOptions::parse_prefix(prefix_info_handler autoconf_cb,
-        prefix_info_handler onlink_cb)
+     bool Packet::NdpPacket::parse_prefix(Pinfo_handler autoconf_cb,
+          Pinfo_handler onlink_cb)
+     {
+         return ndp_opt_.parse_prefix(autoconf_cb, onlink_cb);
+     }
+
+     bool Packet::NdpPacket::NdpOptions::parse_prefix(Pinfo_handler autoconf_cb,
+        Pinfo_handler onlink_cb)
      {
          IP6::addr confaddr;
+         struct prefix_info *pinfo;
+         struct nd_options_header *opt = option(ND_OPT_PREFIX_INFO);
 
-         if (pinfo->prefix.is_multicast() || pinfo->prefix.is_linklocal()) {
-             PRINT("NDP: Prefix info address is either multicast or linklocal\n");
-             return false;
+         if (!opt) {
+             return true;
          }
 
-         if (pinfo->prefered > pinfo->valid) {
-             PRINT("NDP: Prefix option has invalid lifetime\n");
-             return false;
-         }
+         for (pinfo = reinterpret_cast<struct prefix_info *>(opt); pinfo;
+              pinfo = pinfo_next(pinfo)) {
 
-         if (pinfo->onlink) {
-             onlink_cb(confaddr);
-         } else if (pinfo->autoconf) {
-             if (pinfo->prefix_len == 64) {
-                 confaddr.set_part<uint64_t>(1,
-                    pinfo->prefix.get_part<uint64_t>(1)); 
-                 confaddr.set(stack.link_addr());
-             } else {
-                 PRINT("NDP: Prefix option: autoconf: "
-                         " prefix with wrong len: %d", pinfo->prefix_len);
+             if (pinfo->prefix.is_multicast() || pinfo->prefix.is_linklocal()) {
+                 PRINT("NDP: Prefix info address is either multicast or linklocal\n");
                  return false;
              }
-             autoconf_cb(confaddr)
+
+             if (pinfo->prefered > pinfo->valid) {
+                 PRINT("NDP: Prefix option has invalid lifetime\n");
+                 return false;
+             }
+
+             if (pinfo->onlink) {
+                 onlink_cb(confaddr);
+             } else if (pinfo->autoconf) {
+                 if (pinfo->prefix_len == 64) {
+                     confaddr.set_part<uint64_t>(1,
+                        pinfo->prefix.get_part<uint64_t>(1));
+                 } else {
+                     PRINT("NDP: Prefix option: autoconf: "
+                             " prefix with wrong len: %d", pinfo->prefix_len);
+                     return false;
+                 }
+                 autoconf_cb(confaddr);
+             }
          }
      }
 

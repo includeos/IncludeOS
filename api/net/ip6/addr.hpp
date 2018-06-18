@@ -23,6 +23,7 @@
 #include <net/util.hpp>
 #include <cstdlib>
 #include <string>
+#include <hw/mac_addr.hpp>
 
 namespace net {
 namespace ip6 {
@@ -120,7 +121,7 @@ struct Addr {
     return ((ntohs(i16[0]) & 0xFF00) == 0xFF00);
   }
 
-  bool is_link_local() const
+  bool is_linklocal() const
   {
     return ((ntohs(i16[0]) & 0xFF80) == 0xFF80);
   }
@@ -158,7 +159,8 @@ struct Addr {
   {
      static_assert(std::is_same_v<T, uint8_t> or
              std::is_same_v<T, uint16_t> or
-             std::is_same_v<T, uint32_t>, "Unallowed T");
+             std::is_same_v<T, uint32_t> or
+             std::is_same_v<T, uint64_t>, "Unallowed T");
 
      if constexpr (std::is_same_v<T, uint8_t>) {
          Expects(n < 16);
@@ -169,15 +171,19 @@ struct Addr {
      } else if constexpr (std::is_same_v<T, uint32_t>) {
          Expects(n < 4);
          return i32[n];
+     } else {
+         Expects(n < 2);
+         return i64[n];
      }
   }
 
   template <typename T>
-  void set_part(const uint8_t n, T val) 
+  void set_part(const uint8_t n, T val)
   {
      static_assert(std::is_same_v<T, uint8_t> or
              std::is_same_v<T, uint16_t> or
-             std::is_same_v<T, uint32_t>, "Unallowed T");
+             std::is_same_v<T, uint32_t> or
+             std::is_same_v<T, uint64_t>, "Unallowed T");
 
      if constexpr (std::is_same_v<T, uint8_t>) {
          Expects(n < 16);
@@ -188,14 +194,17 @@ struct Addr {
      } else if constexpr (std::is_same_v<T, uint32_t>) {
          Expects(n < 4);
          i32[n] = val;
+     } else {
+         Expects(n < 2);
+         i64[n] = val;
      }
   }
 
-  void set(MAC::addr &mac, uint8_t start_loc = 0) 
+  void set(const MAC::Addr &mac, uint8_t start_loc = 0)
   {
       Expects(start_loc <= (16 - 6));
 
-      for (i = 0; i < 6; i++) {
+      for (int i = 0; i < 6; i++) {
         i8[start_loc++] = mac[i];
       }
   }
