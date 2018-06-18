@@ -172,8 +172,8 @@ namespace net
     uint8_t *lladdr, *nonce_opt;
     uint64_t nonce = 0;
 
-    PRINT("ICMPv6 NDP Neighbor solicitation request\n");
-    PRINT("target: %s\n", target.str().c_str());
+    PRINT("Receive NDP Neighbor solicitation request. Target addr: %s\n",
+            target.str().c_str());
 
     if (target.is_multicast()) {
         PRINT("NDP: neighbour solictation target address is multicast\n");

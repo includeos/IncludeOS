@@ -378,10 +378,9 @@ namespace net {
 
     /** SLAAC config */
     template <int N = 0>
-    static auto& ifconfig6(double timeout = 10.0, slaac_timeout_func on_timeout = nullptr)
+    static auto& ifconfig6(slaac_timeout_func on_timeout = nullptr, int retries=0)
     {
-      if (timeout > 0.0)
-          stack<N>().negotiate_slaac(timeout, on_timeout);
+      stack<N>().autoconf_v6(retries, on_timeout);
       return stack<N>();
     }
 

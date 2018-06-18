@@ -200,9 +200,10 @@ struct Addr {
      }
   }
 
-  void set(const MAC::Addr &mac, uint8_t start_loc = 0)
+  void set(const MAC::Addr &mac, const uint8_t loc = 0)
   {
-      Expects(start_loc <= (16 - 6));
+      Expects(loc <= (16 - 6));
+      uint8_t start_loc = (10 - loc);
 
       for (int i = 0; i < 6; i++) {
         i8[start_loc++] = mac[i];

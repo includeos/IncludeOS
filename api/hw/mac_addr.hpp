@@ -176,8 +176,8 @@ union Addr {
   constexpr bool operator!=(const Addr other) const noexcept
   { return not (*this == other); }
 
-  constexpr bool operator[](uint8_t n) const noexcept
-  { 
+  constexpr uint8_t operator[](uint8_t n) const noexcept
+  {
       Expects(n < 6);
       return part[n];
   }

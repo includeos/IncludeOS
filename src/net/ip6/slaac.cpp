@@ -41,10 +41,10 @@ namespace net
     [this] (bool completed)
     {
       if (completed) {
-        INFO("AUTOCONF", "Negotiation timed out (%s)",
+        INFO("SLAAC", "Autoconf completed for (%s)",
             this->stack.ifname().c_str());
       } else {
-        INFO("AUTOCONF", "Configuration complete (%s)",
+        INFO("SLAAC", "Autoconf failed for (%s)",
             this->stack.ifname().c_str());
       }
     });
@@ -78,7 +78,6 @@ namespace net
     std::chrono::milliseconds delay;
     tentative_addr_ = {0xFE80,  0, 0, 0, 0, 0, 0, 0};
     alternate_addr_ = alternate_addr;
-    int i, j = 10;
 
     tentative_addr_.set(stack.link_addr());
 
@@ -91,7 +90,7 @@ namespace net
     this->interval = milliseconds(INTERVAL);
     delay = milliseconds(rand() % (INTERVAL * 1000));
     PRINT("Auto-configuring tentative ip6-address %s for %s "
-        "with interval:%u and delay:%u\n",
+        "with interval:%u and delay:%u ms\n",
            tentative_addr_.str().c_str(), stack.ifname().c_str(),
            interval, delay);
     timeout_timer_.start(delay);
