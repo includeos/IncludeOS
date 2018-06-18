@@ -156,6 +156,8 @@ public:
 
   bool link_up() const noexcept;
 
+  auto& bufstore() noexcept { return bufstore_; }
+
   void deactivate() override;
 
   void flush() override {
