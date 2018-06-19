@@ -201,8 +201,8 @@ namespace icmp6 {
             header.type = type;
             header.len = len;
 
-            icmp6_.set_payload({reinterpret_cast<uint8_t*>(&header),
-                    sizeof header});
+            icmp6_.add_payload(reinterpret_cast<uint8_t*>(&header),
+                               sizeof header);
         }
 
         uint8_t* get_option_data(int opt)
@@ -372,10 +372,10 @@ namespace icmp6 {
       header().checksum = compute_checksum();;
     }
 
-    void set_payload(Span new_load)
+    void add_payload(const void* new_load, const size_t len)
     {
-      pckt_->set_data_end(pckt_->ip_header_len() + header_size() + payload_offset_ + new_load.size());
-      memcpy(payload().data(), new_load.data(), payload().size());
+      pckt_->set_data_end(pckt_->ip_header_len() + header_size() + payload_offset_ + len);
+      memcpy(payload().data(), new_load, payload().size());
       payload_offset_ += payload().size();
     }
 

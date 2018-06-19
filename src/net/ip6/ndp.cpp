@@ -66,9 +66,9 @@ namespace net
     res.ndp().set_neighbour_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
 
     // Insert target link address, ICMP6 option header and our mac address
-    res.set_payload({req.ndp().neighbour_sol().get_target().data(), 16 });
+    res.add_payload(req.ndp().neighbour_sol().get_target().data(), 16);
     res.ndp().set_ndp_options_header(icmp6::ND_OPT_TARGET_LL_ADDR, 0x01);
-    res.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
+    res.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
 
     // Add checksum
     res.set_checksum();
@@ -135,9 +135,9 @@ namespace net
     req.ip().set_ip_dst(dest_ip.solicit(target));
 
     // Set target address
-    req.set_payload({target.data(), 16});
+    req.add_payload(target.data(), 16);
     req.ndp().set_ndp_options_header(icmp6::ND_OPT_SOURCE_LL_ADDR, 0x01);
-    req.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
+    req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
 
     req.set_checksum();
 

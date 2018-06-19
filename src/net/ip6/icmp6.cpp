@@ -32,6 +32,13 @@
 
 namespace net
 {
+  static constexpr std::array<uint8_t, 48> includeos_payload =
+    {'I','N','C','L','U','D','E','O',
+     'S','1','2','3','4','5','A','B',
+     'C','D','E','F','G','H','I','J',
+     'K','L','M','N','O','P','Q','R',
+     'S','T','U','V','W','X','Y','Z',
+     '1','2','3','4','5','6','7','8'};
   // ---------------------------- ICMP_view ----------------------------
 
   std::string ICMP6_view::to_string() const {
@@ -225,9 +232,10 @@ namespace net
 
     PRINT("<ICMP6> Transmitting request to %s\n", dest_ip.to_string().c_str());
 
-    // Payload
-    // Default: includeos_payload_
-    req.set_payload(icmp6::Packet::Span(includeos_payload_, 68));
+    //printf("<ICMP6> Request size: %i payload size: %i\n",
+    //       req.ip().size(), req.payload().size());
+    // Default payload
+    req.add_payload(includeos_payload.data(), includeos_payload.size());
 
     // Add checksum
     req.set_checksum();
@@ -261,7 +269,7 @@ namespace net
 
     // Payload
     // Default: Header and 66 bits (8 bytes) of original payload
-    res.set_payload(req.header_and_data());
+    res.add_payload(req.header_and_data().data(), req.header_and_data().size());
 
     // Add checksum
     res.set_checksum();
@@ -302,7 +310,7 @@ namespace net
           res.ip().ip_dst().str().c_str());
 
     // Payload
-    res.set_payload(req.payload());
+    res.add_payload(req.payload().data(), req.payload().size());
 
     // Add checksum
     res.set_checksum();
