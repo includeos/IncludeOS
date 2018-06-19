@@ -117,7 +117,7 @@ static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 }
 
 vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
-    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, bufstore_),
+    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}),
     m_pcidev(d), m_mtu(mtu), bufstore_{1024, buffer_size_for_mtu(mtu)}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());

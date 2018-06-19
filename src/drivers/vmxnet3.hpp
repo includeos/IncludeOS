@@ -70,6 +70,8 @@ public:
     return tx_tokens_free();
   }
 
+  auto& bufstore() noexcept { return bufstore_; }
+
   void flush() override;
 
   void deactivate() override;
