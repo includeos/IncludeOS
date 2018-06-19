@@ -232,8 +232,8 @@ namespace net
 
     PRINT("<ICMP6> Transmitting request to %s\n", dest_ip.to_string().c_str());
 
-    //printf("<ICMP6> Request size: %i payload size: %i\n",
-    //       req.ip().size(), req.payload().size());
+    printf("<ICMP6> Request size: %i payload size: %i\n",
+           req.ip().size(), req.payload().size());
     // Default payload
     req.add_payload(includeos_payload.data(), includeos_payload.size());
 
