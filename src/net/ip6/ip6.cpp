@@ -96,6 +96,7 @@ namespace net
     auto next_proto = packet.next_protocol();
     ip6::ExtensionHeader& ext = *(ip6::ExtensionHeader*)reader;
     uint8_t ext_len;
+    uint16_t pl_off = IP6_HEADER_LEN;
 
     while (next_proto != Protocol::IPv6_NONXT) {
         if (next_proto == Protocol::HOPOPT) {
@@ -108,9 +109,11 @@ namespace net
         ext = *(ip6::ExtensionHeader*)reader;
         ext_len = ext.size();
         reader += ext_len;
-        packet.update_extension_header_len(ext_len);
+        //packet.update_extension_header_len(ext_len);
+        pl_off += ext_len;
         next_proto = ext.next();
     }
+    packet.set_payload_offset(pl_off);
     return next_proto;
   }
 
