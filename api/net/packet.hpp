@@ -114,28 +114,11 @@ namespace net
       data_end_ += i;
     }
 
-    /* Add a packet to this packet chain.  */
-    void chain(Packet_ptr p) noexcept {
-      if (!chain_) {
-        chain_ = std::move(p);
-        last_ = chain_.get();
-      } else {
-        auto* ptr = p.get();
-        last_->chain(std::move(p));
-        last_ = ptr->last_in_chain() ? ptr->last_in_chain() : ptr;
-        assert(last_);
-      }
-    }
+    /* Add a packet to this packet chain */
+    inline void chain(Packet_ptr p) noexcept;
 
-    int chain_length() const noexcept {
-      int count = 1;
-      auto* p = this;
-      while (p->chain_) {
-        p = p->chain_.get();
-        count++;
-      }
-      return count;
-    }
+    /* Count packets in chain */
+    inline int chain_length() const noexcept;
 
     /* Get the last packet in the chain */
     Packet* last_in_chain() noexcept
@@ -161,9 +144,6 @@ namespace net
     }
 
   private:
-    Packet_ptr chain_ = nullptr;
-    Packet*    last_  = nullptr;
-
     /** Set layer begin, e.g. view the packet from another layer */
     void set_layer_begin(Byte_ptr loc)
     {
@@ -184,9 +164,37 @@ namespace net
     Byte_ptr              layer_begin_;
     Byte_ptr              data_end_;
     const Byte* const     buffer_end_;
+
+    Packet_ptr chain_ = nullptr;
+    Packet*    last_  = nullptr;
+
     BufferStore*          bufstore_;
     Byte buf_[0];
   }; //< class Packet
+
+  void Packet::chain(Packet_ptr p) noexcept
+  {
+    if (!chain_) {
+      chain_ = std::move(p);
+      last_ = chain_.get();
+    } else {
+      auto* ptr = p.get();
+      last_->chain(std::move(p));
+      last_ = ptr->last_in_chain() ? ptr->last_in_chain() : ptr;
+      assert(last_);
+    }
+  }
+
+  int Packet::chain_length() const noexcept
+  {
+    int count = 1;
+    auto* p = this;
+    while (p->chain_) {
+      p = p->chain_.get();
+      count++;
+    }
+    return count;
+  }
 
 } //< namespace net
 
