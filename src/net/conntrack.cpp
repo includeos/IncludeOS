@@ -92,6 +92,9 @@ Conntrack::Entry* Conntrack::simple_track_in(Quadruple q, const Protocol proto)
 Conntrack::Entry* dumb_in(Conntrack& ct, Quadruple q, const PacketIP4& pkt)
 { return  ct.simple_track_in(std::move(q), pkt.ip_protocol()); }
 
+Conntrack::Entry* dumb6_in(Conntrack& ct, Quadruple q, const PacketIP6& pkt)
+{ return  ct.simple_track_in(std::move(q), pkt.ip_protocol()); }
+
 Conntrack::Conntrack()
  : Conntrack(0)
 {}
@@ -99,6 +102,7 @@ Conntrack::Conntrack()
 Conntrack::Conntrack(size_t max_entries)
  : maximum_entries{max_entries},
    tcp_in{&dumb_in},
+   tcp6_in{&dumb6_in},
    flush_timer({this, &Conntrack::on_timeout})
 {
 }
@@ -139,9 +143,34 @@ Quadruple Conntrack::get_quadruple(const PacketIP4& pkt)
   return {{pkt.ip_src(), src_port}, {pkt.ip_dst(), dst_port}};
 }
 
+Quadruple Conntrack::get_quadruple(const PacketIP6& pkt)
+{
+  const auto* ports = reinterpret_cast<const uint16_t*>(pkt.ip_data().data());
+  uint16_t src_port = ntohs(*ports);
+  uint16_t dst_port = ntohs(*(ports + 1));
+
+  return {{pkt.ip_src(), src_port}, {pkt.ip_dst(), dst_port}};
+}
+
 Quadruple Conntrack::get_quadruple_icmp(const PacketIP4& pkt)
 {
   Expects(pkt.ip_protocol() == Protocol::ICMPv4);
+
+  struct partial_header {
+    uint16_t  type_code;
+    uint16_t  checksum;
+    uint16_t  id;
+  };
+
+  // not sure if sufficent
+  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->id;
+
+  return {{pkt.ip_src(), id}, {pkt.ip_dst(), id}};
+}
+
+Quadruple Conntrack::get_quadruple_icmp(const PacketIP6& pkt)
+{
+  Expects(pkt.ip_protocol() == Protocol::ICMPv6);
 
   struct partial_header {
     uint16_t  type_code;
@@ -174,6 +203,25 @@ Conntrack::Entry* Conntrack::in(const PacketIP4& pkt)
   }
 }
 
+Conntrack::Entry* Conntrack::in(const PacketIP6& pkt)
+{
+  const auto proto = pkt.ip_protocol();
+  switch(proto)
+  {
+    case Protocol::TCP:
+      return tcp6_in(*this, get_quadruple(pkt), pkt);
+
+    case Protocol::UDP:
+      return simple_track_in(get_quadruple(pkt), proto);
+
+    case Protocol::ICMPv6:
+      return simple_track_in(get_quadruple_icmp(pkt), proto);
+
+    default:
+      return nullptr;
+  }
+}
+
 Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
 {
   const auto proto = pkt.ip_protocol();
@@ -186,6 +234,28 @@ Conntrack::Entry* Conntrack::confirm(const PacketIP4& pkt)
         return get_quadruple(pkt);
 
       case Protocol::ICMPv4:
+        return get_quadruple_icmp(pkt);
+
+      default:
+        return Quadruple();
+    }
+  }();
+
+  return confirm(quad, proto);
+}
+
+Conntrack::Entry* Conntrack::confirm(const PacketIP6& pkt)
+{
+  const auto proto = pkt.ip_protocol();
+
+  auto quad = [&]()->Quadruple {
+    switch(proto)
+    {
+      case Protocol::TCP:
+      case Protocol::UDP:
+        return get_quadruple(pkt);
+
+      case Protocol::ICMPv6:
         return get_quadruple_icmp(pkt);
 
       default:
