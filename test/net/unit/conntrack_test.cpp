@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <common.cxx>
-#include <net/inet>
 #include <net/conntrack.hpp>
 
 CASE("Testing Conntrack flow")
@@ -29,8 +28,8 @@ CASE("Testing Conntrack flow")
   // Reversed quadruple
   Quadruple rquad = quad; rquad.swap();
 
-  Conntrack<IP4> ct;
-  Conntrack<IP4>::Entry* entry = nullptr;
+  Conntrack ct;
+  Conntrack::Entry* entry = nullptr;
 
   // Entry do not exist
   EXPECT((entry = ct.get(quad, proto)) == nullptr);
@@ -39,7 +38,7 @@ CASE("Testing Conntrack flow")
   EXPECT((entry = ct.simple_track_in(quad, proto)) != nullptr);
 
   // It should now have state NEW
-  EXPECT(entry->state == Conntrack<IP4>::State::UNCONFIRMED);
+  EXPECT(entry->state == Conntrack::State::UNCONFIRMED);
   EXPECT(entry->proto == proto);
   // The timeout should be set to "timeout.unconfirmed"
   EXPECT(entry->timeout == RTC::now() + ct.timeout.unconfirmed.udp.count());
@@ -52,7 +51,7 @@ CASE("Testing Conntrack flow")
 
   // Confirm works
   EXPECT(ct.confirm(quad, proto) == entry);
-  EXPECT(entry->state == Conntrack<IP4>::State::NEW);
+  EXPECT(entry->state == Conntrack::State::NEW);
 
   // The timeout should now be updated to "timeout.confirmed" when confirmed
   EXPECT(entry->timeout == RTC::now() + ct.timeout.confirmed.udp.count());
@@ -70,7 +69,7 @@ CASE("Testing Conntrack flow")
   EXPECT(entry == ct.simple_track_in(rquad, proto));
 
   // The entry should now be ESTABLISHED due to seen traffic both ways
-  EXPECT(entry->state == Conntrack<IP4>::State::ESTABLISHED);
+  EXPECT(entry->state == Conntrack::State::ESTABLISHED);
   // The timeout should be set to "timeout.established"
   EXPECT(entry->timeout == RTC::now() + ct.timeout.established.udp.count());
 
@@ -97,8 +96,8 @@ CASE("Testing Conntrack update entry")
   // Reversed quadruple
   Quadruple rquad = quad; rquad.swap();
 
-  Conntrack<IP4> ct;
-  Conntrack<IP4>::Entry* entry = nullptr;
+  Conntrack ct;
+  Conntrack::Entry* entry = nullptr;
 
   entry = ct.simple_track_in(quad, proto);
   ct.confirm(quad, proto);
@@ -139,8 +138,8 @@ CASE("Testing Conntrack limit")
 
   const size_t limit{2};
 
-  Conntrack<IP4> ct(limit);
-  Conntrack<IP4>::Entry* entry = nullptr;
+  Conntrack ct(limit);
+  Conntrack::Entry* entry = nullptr;
 
   // OK
   entry = ct.simple_track_in(quad, Protocol::UDP);
@@ -170,14 +169,14 @@ CASE("Testing Conntrack serialization")
   // Reversed quadruple
   Quadruple rquad = quad; rquad.swap();
 
-  auto ct = std::make_unique<Conntrack<IP4>>();
+  auto ct = std::make_unique<Conntrack>();
 
   ct->simple_track_in(quad, Protocol::TCP);
   auto* confirmed = ct->confirm(quad, Protocol::TCP);
-  EXPECT(confirmed->state == Conntrack<IP4>::State::NEW);
+  EXPECT(confirmed->state == Conntrack::State::NEW);
 
   auto* unconfirmed = ct->simple_track_in(quad, Protocol::UDP);
-  EXPECT(unconfirmed->state == Conntrack<IP4>::State::UNCONFIRMED);
+  EXPECT(unconfirmed->state == Conntrack::State::UNCONFIRMED);
 
   // This one aint gonna be serialized
 
@@ -192,20 +191,20 @@ CASE("Testing Conntrack serialization")
   const auto written = buffer.size();
 
   // Deserialize
-  ct.reset(new Conntrack<IP4>());
+  ct.reset(new Conntrack());
   EXPECT(written == ct->deserialize_from(buffer.data()));
 
   auto* entry = ct->get(quad, Protocol::TCP);
   EXPECT(entry != nullptr);
   EXPECT(entry->first == quad);
   EXPECT(entry->second == rquad);
-  EXPECT(entry->state == Conntrack<IP4>::State::NEW);
+  EXPECT(entry->state == Conntrack::State::NEW);
 
   entry = ct->get(quad, Protocol::UDP);
   EXPECT(entry != nullptr);
   EXPECT(entry->first == quad);
   EXPECT(entry->second == rquad);
-  EXPECT(entry->state == Conntrack<IP4>::State::UNCONFIRMED);
+  EXPECT(entry->state == Conntrack::State::UNCONFIRMED);
 
   EXPECT(ct->number_of_entries() == 4);
 }

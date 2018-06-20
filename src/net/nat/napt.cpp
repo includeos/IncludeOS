@@ -29,14 +29,14 @@
 namespace net {
 namespace nat {
 
-inline bool is_snat(const Conntrack<IP4>::Entry_ptr entry)
+inline bool is_snat(const Conntrack::Entry_ptr entry)
 { return entry->first.src != entry->second.dst; }
 
-inline bool is_dnat(const Conntrack<IP4>::Entry_ptr entry)
+inline bool is_dnat(const Conntrack::Entry_ptr entry)
 { return entry->first.dst != entry->second.src; }
 
 // Helpers to update the entry (if needed)
-inline void update_dnat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, Socket socket)
+inline void update_dnat(Conntrack& ct, Conntrack::Entry_ptr entry, Socket socket)
 {
   if(entry->second.src != socket) {
     ct.update_entry(entry->proto, entry->second, {
@@ -46,7 +46,7 @@ inline void update_dnat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, Soc
   }
 }
 
-inline void update_dnat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, ip4::Addr addr)
+inline void update_dnat(Conntrack& ct, Conntrack::Entry_ptr entry, ip4::Addr addr)
 {
   if(entry->second.src.address().v4() != addr) {
     ct.update_entry(entry->proto, entry->second, {
@@ -56,7 +56,7 @@ inline void update_dnat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, ip4
   }
 }
 
-inline void update_dnat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, uint16_t port)
+inline void update_dnat(Conntrack& ct, Conntrack::Entry_ptr entry, uint16_t port)
 {
   if(entry->second.src.port() != port) {
     ct.update_entry(entry->proto, entry->second, {
@@ -66,7 +66,7 @@ inline void update_dnat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, uin
   }
 }
 
-inline void update_snat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, Socket socket)
+inline void update_snat(Conntrack& ct, Conntrack::Entry_ptr entry, Socket socket)
 {
   if(entry->second.dst != socket) {
     ct.update_entry(entry->proto, entry->second, {
@@ -76,7 +76,7 @@ inline void update_snat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, Soc
   }
 }
 
-inline void update_snat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, ip4::Addr addr)
+inline void update_snat(Conntrack& ct, Conntrack::Entry_ptr entry, ip4::Addr addr)
 {
   if(entry->second.dst.address().v4() != addr) {
     ct.update_entry(entry->proto, entry->second, {
@@ -86,7 +86,7 @@ inline void update_snat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, ip4
   }
 }
 
-inline void update_snat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, uint16_t port)
+inline void update_snat(Conntrack& ct, Conntrack::Entry_ptr entry, uint16_t port)
 {
   if(entry->second.dst.port() != port) {
     ct.update_entry(entry->proto, entry->second, {
@@ -97,13 +97,13 @@ inline void update_snat(Conntrack<IP4>& ct, Conntrack<IP4>::Entry_ptr entry, uin
 }
 
 
-NAPT::NAPT(std::shared_ptr<Conntrack<IP4>> ct)
+NAPT::NAPT(std::shared_ptr<Conntrack> ct)
   : conntrack(std::move(ct))
 {
   Expects(conntrack != nullptr);
 }
 
-void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack<IP4>::Entry_ptr entry)
+void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr entry)
 {
   if (UNLIKELY(entry == nullptr)) return;
 
@@ -155,7 +155,7 @@ void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack<IP4>::Entry_pt
   }
 }
 
-void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack&, Conntrack<IP4>::Entry_ptr entry)
+void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack&, Conntrack::Entry_ptr entry)
 {
   // unknown protocols aren't tracked, so exit
   if (UNLIKELY(entry == nullptr)) return;
@@ -187,7 +187,7 @@ void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack&, Conntrack<IP4>::Entry
   }
 }
 
-Socket NAPT::masq(Conntrack<IP4>::Entry_ptr entry, const ip4::Addr addr, Port_util& ports)
+Socket NAPT::masq(Conntrack::Entry_ptr entry, const ip4::Addr addr, Port_util& ports)
 {
   Expects(entry->proto != Protocol::ICMPv4);
 
@@ -204,14 +204,14 @@ Socket NAPT::masq(Conntrack<IP4>::Entry_ptr entry, const ip4::Addr addr, Port_ut
       entry->proto, entry->second, {entry->second.src, masq_sock});
 
     // Setup to unbind port on entry close
-    auto on_close = [&ports, port](Conntrack<IP4>::Entry_ptr){ ports.unbind(port); };
+    auto on_close = [&ports, port](Conntrack::Entry_ptr){ ports.unbind(port); };
     updated->on_close = on_close;
   }
 
   return entry->second.dst;
 }
 
-void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const Socket socket)
+void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const Socket socket)
 {
   if (UNLIKELY(entry == nullptr)) return;
 
@@ -243,7 +243,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const Socket
   }
 }
 
-void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const ip4::Addr addr)
+void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const ip4::Addr addr)
 {
   if (UNLIKELY(entry == nullptr)) return;
 
@@ -273,7 +273,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const ip4::A
   }
 }
 
-void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const uint16_t port)
+void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const uint16_t port)
 {
   if (UNLIKELY(entry == nullptr)) return;
 
@@ -303,7 +303,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const uint16
   }
 }
 
-void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry)
+void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
 {
   if (UNLIKELY(entry == nullptr)) return;
 
@@ -314,7 +314,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry)
   {
     case Protocol::TCP:
     {
-      if(Conntrack<IP4>::get_quadruple(p).dst == entry->second.dst) // assume reply
+      if(Conntrack::get_quadruple(p).dst == entry->second.dst) // assume reply
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.to_string().c_str());
@@ -324,7 +324,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry)
     }
     case Protocol::UDP:
     {
-      if(Conntrack<IP4>::get_quadruple(p).dst == entry->second.dst) // assume reply
+      if(Conntrack::get_quadruple(p).dst == entry->second.dst) // assume reply
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.to_string().c_str());
@@ -334,7 +334,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry)
     }
     case Protocol::ICMPv4:
     {
-      if(Conntrack<IP4>::get_quadruple_icmp(p).dst == entry->second.dst) // assume reply
+      if(Conntrack::get_quadruple_icmp(p).dst == entry->second.dst) // assume reply
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.address().to_string().c_str());
@@ -347,7 +347,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry)
   }
 }
 
-void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const Socket socket)
+void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const Socket socket)
 {
   if (UNLIKELY(entry == nullptr)) return;
 
@@ -379,7 +379,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const Socket
   }
 }
 
-void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const ip4::Addr addr)
+void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const ip4::Addr addr)
 {
   if (UNLIKELY(entry == nullptr)) return;
   NATDBG("<NAPT> SNAT: %s => addr %s\n",
@@ -408,7 +408,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const ip4::A
   }
 }
 
-void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const uint16_t port)
+void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry, const uint16_t port)
 {
   if (UNLIKELY(entry == nullptr)) return;
   NATDBG("<NAPT> SNAT: %s => port %d\n",
@@ -437,7 +437,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry, const uint16
   }
 }
 
-void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry)
+void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
 {
   if (UNLIKELY(entry == nullptr)) return;
 
@@ -448,7 +448,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry)
   {
     case Protocol::TCP:
     {
-      if(Conntrack<IP4>::get_quadruple(p).src == entry->second.src) // assume reply
+      if(Conntrack::get_quadruple(p).src == entry->second.src) // assume reply
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.to_string().c_str());
@@ -458,7 +458,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry)
     }
     case Protocol::UDP:
     {
-      if(Conntrack<IP4>::get_quadruple(p).src == entry->second.src) // assume reply
+      if(Conntrack::get_quadruple(p).src == entry->second.src) // assume reply
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.to_string().c_str());
@@ -468,7 +468,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack<IP4>::Entry_ptr entry)
     }
     case Protocol::ICMPv4:
     {
-      if(Conntrack<IP4>::get_quadruple_icmp(p).src == entry->second.src) // assume reply
+      if(Conntrack::get_quadruple_icmp(p).src == entry->second.src) // assume reply
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.address().to_string().c_str());

@@ -53,9 +53,9 @@ namespace net {
     using IP6_addr       = IP6::addr;
 
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source,
-            Conntrack<IP4>::Entry_ptr)>;
+            Conntrack::Entry_ptr)>;
     using Forward_delg6  = delegate<void(IP6_packet_ptr, Stack& source,
-            Conntrack<IP6>::Entry_ptr)>;
+            Conntrack::Entry_ptr)>;
     using Route_checker = delegate<bool(IP_addr)>;
     using Route_checker6 = delegate<bool(IP6_addr)>;
     using IP_packet_factory  = delegate<IP_packet_ptr(Protocol)>;
@@ -450,14 +450,10 @@ namespace net {
     bool is_valid_source6(const IP6::addr& src) const
     { return src == ip6_addr() or is_loopback(src) or src.is_multicast(); }
 
-    std::shared_ptr<Conntrack<IP4>>& conntrack()
+    std::shared_ptr<Conntrack>& conntrack()
     { return conntrack_; }
 
-    std::shared_ptr<Conntrack<IP6>>& conntrack6()
-    { return conntrack6_; }
-
-    void enable_conntrack(std::shared_ptr<Conntrack<IP4>> ct);
-    void enable_conntrack(std::shared_ptr<Conntrack<IP6>> ct);
+    void enable_conntrack(std::shared_ptr<Conntrack> ct);
 
     Port_utils& tcp_ports()
     { return tcp_ports_; }
@@ -499,8 +495,7 @@ namespace net {
     Port_utils tcp_ports_;
     Port_utils udp_ports_;
 
-    std::shared_ptr<Conntrack<IP4>> conntrack_;
-    std::shared_ptr<Conntrack<IP6>> conntrack6_;
+    std::shared_ptr<Conntrack> conntrack_;
 
     // we need this to store the cache per-stack
     DNSClient dns_;

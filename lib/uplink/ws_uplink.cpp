@@ -621,7 +621,7 @@ namespace uplink {
     send_message(Transport_code::STATS, str.data(), str.size());
   }
 
-  std::shared_ptr<net::Conntrack<net::IP4>> get_first_conntrack()
+  std::shared_ptr<net::Conntrack> get_first_conntrack()
   {
     for(auto& stacks : net::Super_stack::inet().ip4_stacks()) {
       for(auto& stack : stacks)
