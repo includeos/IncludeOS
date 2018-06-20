@@ -21,6 +21,7 @@
 
 #include <rtc>
 #include <unordered_map>
+#include <deque>
 #include <util/timer.hpp>
 #include "ip6.hpp"
 #include "packet_icmp6.hpp"
@@ -201,8 +202,22 @@ namespace net {
       {}
     };
 
+    struct Prefix_entry {
+    private:
+      IP6::addr        prefix_;
+      uint32_t         preferred_lifetime_;
+      uint32_t         valid_lifetime_;
+      RTC::timestamp_t expiry_time_;
+
+      Prefix_entry(IP6::addr prefix, uint32_t preferred_lifetime,
+            uint32_t valid_lifetime)
+          : prefix_{prefix}, preferred_lifetime_{preferred_lifetime},
+          valid_lifetime_{valid_lifetime} {}
+    };
+
     using Cache       = std::unordered_map<IP6::addr, Cache_entry>;
     using PacketQueue = std::unordered_map<IP6::addr, Queue_entry>;
+    using PrefixList  = std::deque<Prefix_entry>;
 
     /** Stats */
     uint32_t& requests_rx_;
@@ -222,9 +237,6 @@ namespace net {
     MAC::Addr mac_;
     IP6::addr tentative_addr_ = IP6::ADDR_ANY;
 
-    // List of prefixes
-    std::list<IP6::addr> prefix_list_;
-
     // Outbound data goes through here */
     downstream_link linklayer_out_ = nullptr;
 
@@ -233,6 +245,9 @@ namespace net {
 
     // Packet queue
     PacketQueue waiting_packets_;
+
+    // Prefix List
+    PrefixList prefix_list_; 
 
     // Settable resolver - defualts to ndp_resolve
     Ndp_resolver ndp_resolver_ = {this, &Ndp::ndp_resolve};

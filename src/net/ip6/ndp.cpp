@@ -288,7 +288,8 @@ namespace net
       /* Forwarding is enabled. Does that mean
        * we are a router? We need to consume if we are */
       if (inet_.ip6_obj().forward_delg()) {
-          PRINT("Forwarding is enabled. Not accepting router advertisement\n");
+          PRINT("NDP: RA: Forwarding is enabled. Not accepting"
+                " router advertisement\n");
           return;
       }
       req.ndp().parse(ICMP_type::ND_ROUTER_ADV);
