@@ -53,6 +53,16 @@ namespace net {
     receive(std::move(pkt), is_bcast);
   }
 
+  void UDP::receive6(net::Packet_ptr ptr)
+  {
+    auto ip6 = static_unique_ptr_cast<PacketIP6>(std::move(ptr));
+    auto pkt = std::make_unique<udp::Packet6_view>(std::move(ip6));
+
+    const bool is_bcast = false; // TODO: multicast?
+
+    receive(std::move(pkt), is_bcast);
+  }
+
   void UDP::receive(udp::Packet_view_ptr udp_packet, const bool is_bcast)
   {
     PRINT("<%s> UDP", stack_.ifname().c_str());

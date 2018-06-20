@@ -219,7 +219,7 @@ namespace net
       icmp_handler_(std::move(packet));
       break;
     case Protocol::UDP:
-      //udp_handler_(std::move(packet));
+      udp_handler_(std::move(packet));
       break;
     case Protocol::TCP:
       tcp_handler_(std::move(packet));

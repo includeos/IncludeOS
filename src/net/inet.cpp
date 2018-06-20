@@ -48,6 +48,7 @@ Inet::Inet(hw::Nic& nic)
   auto icmp4_bottom(upstream{icmp_, &ICMPv4::receive});
   auto icmp6_bottom(upstream{icmp6_, &ICMPv6::receive});
   auto udp4_bottom(upstream{udp_, &UDP::receive4});
+  auto udp6_bottom(upstream{udp_, &UDP::receive6});
   auto tcp_bottom(upstream{tcp_, &TCP::receive});
   auto tcp6_bottom(upstream{tcp_, &TCP::receive6});
 
@@ -72,6 +73,9 @@ Inet::Inet(hw::Nic& nic)
 
   // IP4 -> UDP
   ip4_.set_udp_handler(udp4_bottom);
+
+  // IP6 -> UDP
+  ip6_.set_udp_handler(udp6_bottom);
 
   // IP4 -> TCP
   ip4_.set_tcp_handler(tcp_bottom);
