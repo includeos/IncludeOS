@@ -67,7 +67,7 @@ namespace net
 
     // Insert target link address, ICMP6 option header and our mac address
     res.set_payload({req.ndp().neighbour_sol().target().data(), 16 });
-    res.ndp().set_ndp_options_header(icmp6::ND_OPT_TARGET_LL_ADDR, 0x01);
+    res.ndp().set_ndp_options_header(ndp::ND_OPT_TARGET_LL_ADDR, 0x01);
     res.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
 
     // Add checksum
@@ -83,7 +83,7 @@ namespace net
 
   void Ndp::receive_neighbour_advertisement(icmp6::Packet& req)
   {
-    IP6::addr target = req.ndp().neighbour_adv().target();
+    ip6::Addr target = req.ndp().neighbour_adv().target();
     uint8_t *lladdr;
 
     if (target.is_multicast()) {
@@ -107,7 +107,7 @@ namespace net
     }
 
     req.ndp().parse(ICMP_type::ND_NEIGHBOUR_ADV);
-    lladdr = req.ndp().get_option_data(icmp6::ND_OPT_TARGET_LL_ADDR);
+    lladdr = req.ndp().get_option_data(ndp::ND_OPT_TARGET_LL_ADDR);
 
     // For now, just create a cache entry, if one doesn't exist
     cache(target, lladdr, req.ndp().is_flag_solicited() ?
@@ -125,9 +125,9 @@ namespace net
     }
   }
 
-  void Ndp::send_neighbour_solicitation(IP6::addr target)
+  void Ndp::send_neighbour_solicitation(ip6::Addr target)
   {
-    IP6::addr dest_ip;
+    ip6::Addr dest_ip;
     icmp6::Packet req(inet_.ip6_packet_factory());
 
     req.ip().set_ip_src(inet_.ip6_addr());
@@ -143,7 +143,7 @@ namespace net
 
     // Set target address
     req.set_payload({target.data(), 16});
-    req.ndp().set_ndp_options_header(icmp6::ND_OPT_SOURCE_LL_ADDR, 0x01);
+    req.ndp().set_ndp_options_header(ndp::ND_OPT_SOURCE_LL_ADDR, 0x01);
     req.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
 
     req.set_checksum();
@@ -168,7 +168,7 @@ namespace net
   void Ndp::receive_neighbour_solicitation(icmp6::Packet& req)
   {
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
-    IP6::addr target = req.ndp().neighbour_sol().target();
+    ip6::Addr target = req.ndp().neighbour_sol().target();
     uint8_t *lladdr, *nonce_opt;
     uint64_t nonce = 0;
 
@@ -186,7 +186,7 @@ namespace net
         return;
     }
     req.ndp().parse(ICMP_type::ND_NEIGHBOUR_SOL);
-    lladdr = req.ndp().get_option_data(icmp6::ND_OPT_SOURCE_LL_ADDR);
+    lladdr = req.ndp().get_option_data(ndp::ND_OPT_SOURCE_LL_ADDR);
 
     if (lladdr) {
         if (any_src) {
@@ -195,7 +195,7 @@ namespace net
         }
     }
 
-    nonce_opt = req.ndp().get_option_data(icmp6::ND_OPT_NONCE);
+    nonce_opt = req.ndp().get_option_data(ndp::ND_OPT_NONCE);
     if (nonce_opt) {
         //memcpy(&nonce, nonce_opt, 6);
     }
@@ -244,7 +244,7 @@ namespace net
     req.set_code(0);
     req.set_reserved(0);
 
-    req.ndp().set_ndp_options_header(icmp6::ND_OPT_SOURCE_LL_ADDR, 0x01);
+    req.ndp().set_ndp_options_header(ndp::ND_OPT_SOURCE_LL_ADDR, 0x01);
     req.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
 
     // Add checksum
@@ -271,7 +271,7 @@ namespace net
       }
 
       req.ndp().parse(ICMP_type::ND_ROUTER_SOL);
-      lladdr = req.ndp().get_option_data(icmp6::ND_OPT_SOURCE_LL_ADDR);
+      lladdr = req.ndp().get_option_data(ndp::ND_OPT_SOURCE_LL_ADDR);
 
       cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
          NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE |
@@ -293,12 +293,12 @@ namespace net
           return;
       }
       req.ndp().parse(ICMP_type::ND_ROUTER_ADV);
-      req.ndp().parse_prefix([this] (IP6::addr prefix)
+      req.ndp().parse_prefix([this] (ip6::Addr prefix)
       {
         /* Called if autoconfig option is set */
         /* Append mac addres to get a valid address */
         prefix.set(this->inet_.link_addr());
-      }, [] (IP6::addr prefix)
+      }, [] (ip6::Addr prefix)
       {
         /* Called if onlink is set */
       });
@@ -331,7 +331,7 @@ namespace net
     }
   }
 
-  bool Ndp::lookup(IP6::addr ip)
+  bool Ndp::lookup(ip6::Addr ip)
   {
       auto entry = neighbour_cache_.find(ip);
       if (entry != neighbour_cache_.end()) {
@@ -340,7 +340,7 @@ namespace net
       return false;
   }
 
-  void Ndp::cache(IP6::addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags)
+  void Ndp::cache(ip6::Addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags)
   {
       if (ll_addr) {
         MAC::Addr mac(ll_addr);
@@ -348,7 +348,7 @@ namespace net
       }
   }
 
-  void Ndp::cache(IP6::addr ip, MAC::Addr mac, NeighbourStates state, uint32_t flags)
+  void Ndp::cache(ip6::Addr ip, MAC::Addr mac, NeighbourStates state, uint32_t flags)
   {
       PRINT("Ndp Caching IP %s for %s\n", ip.str().c_str(), mac.str().c_str());
       auto entry = neighbour_cache_.find(ip);
@@ -393,7 +393,7 @@ namespace net
 
   }
 
-  void Ndp::await_resolution(Packet_ptr pckt, IP6::addr next_hop)
+  void Ndp::await_resolution(Packet_ptr pckt, ip6::Addr next_hop)
   {
     auto queue =  waiting_packets_.find(next_hop);
     PRINT("<NDP await> Waiting for resolution of %s\n", next_hop.str().c_str());
@@ -415,7 +415,7 @@ namespace net
   void Ndp::flush_expired()
   {
     PRINT("NDP: Flushing expired entries\n");
-    std::vector<IP6::addr> expired;
+    std::vector<ip6::Addr> expired;
     for (auto ent : neighbour_cache_) {
       if (ent.second.expired()) {
         expired.push_back(ent.first);
@@ -431,7 +431,7 @@ namespace net
     }
   }
 
-  void Ndp::ndp_resolve(IP6::addr next_hop)
+  void Ndp::ndp_resolve(ip6::Addr next_hop)
   {
     PRINT("<NDP RESOLVE> %s\n", next_hop.str().c_str());
 
@@ -442,7 +442,7 @@ namespace net
     send_neighbour_solicitation(next_hop);
   }
 
-  void Ndp::transmit(Packet_ptr pckt, IP6::addr next_hop, MAC::Addr mac)
+  void Ndp::transmit(Packet_ptr pckt, ip6::Addr next_hop, MAC::Addr mac)
   {
 
     Expects(pckt->size());
@@ -475,7 +475,7 @@ namespace net
    * assigning them to an interface. regardless of whether they
    * are obtained through stateless autoconfiguration,
    * DHCPv6, or manual configuration */
-  void Ndp::perform_dad(IP6::addr tentative_addr,
+  void Ndp::perform_dad(ip6::Addr tentative_addr,
           Dad_handler delg)
   {
     tentative_addr_ = tentative_addr;
@@ -493,138 +493,4 @@ namespace net
   }
 
   // NDP packet function definitions
-  namespace icmp6 {
-      void Packet::NdpPacket::parse(icmp6::Type type)
-      {
-        switch(type) {
-        case (ICMP_type::ND_ROUTER_SOL):
-          ndp_opt_.parse(router_sol().options,
-                  (icmp6_.payload_len() - router_sol().option_offset()));
-          break;
-        case (ICMP_type::ND_ROUTER_ADV):
-          ndp_opt_.parse(router_adv().options,
-                  (icmp6_.payload_len() - router_adv().option_offset()));
-          break;
-        case (ICMP_type::ND_NEIGHBOUR_SOL):
-          ndp_opt_.parse(neighbour_sol().options,
-                  (icmp6_.payload_len() - neighbour_sol().option_offset()));
-          break;
-        case (ICMP_type::ND_NEIGHBOUR_ADV):
-          ndp_opt_.parse(neighbour_adv().options,
-                  (icmp6_.payload_len() - neighbour_adv().option_offset()));
-          break;
-        case (ICMP_type::ND_REDIRECT):
-          ndp_opt_.parse(router_redirect().options,
-                  (icmp6_.payload_len() - router_redirect().option_offset()));
-          break;
-        default:
-          break;
-        }
-      }
-
-      void Packet::NdpPacket::NdpOptions::parse(uint8_t *opt, uint16_t opts_len)
-      {
-         uint16_t opt_len;
-         header_ = reinterpret_cast<struct nd_options_header*>(opt);
-         struct nd_options_header *option_hdr = header_;
-
-          if (option_hdr == NULL) {
-             return;
-          }
-          while(opts_len) {
-            if (opts_len < sizeof (struct nd_options_header)) {
-               return;
-            }
-            opt_len = option_hdr->len << 3;
-
-            if (opts_len < opt_len || opt_len == 0) {
-               return;
-            }
-            switch (option_hdr->type) {
-            case ND_OPT_SOURCE_LL_ADDR:
-            case ND_OPT_TARGET_LL_ADDR:
-            case ND_OPT_MTU:
-            case ND_OPT_NONCE:
-            case ND_OPT_REDIRECT_HDR:
-                if (opt_array[option_hdr->type]) {
-                } else {
-                   opt_array[option_hdr->type] = option_hdr;
-                }
-                option_hdr = opt_array[option_hdr->type];
-                break;
-            case ND_OPT_PREFIX_INFO:
-                opt_array[ND_OPT_PREFIX_INFO_END] = option_hdr;
-                if (!opt_array[ND_OPT_PREFIX_INFO]) {
-                   opt_array[ND_OPT_PREFIX_INFO] = option_hdr;
-                }
-                break;
-            case ND_OPT_ROUTE_INFO:
-                 nd_opts_ri_end = option_hdr;
-                 if (!nd_opts_ri) {
-                     nd_opts_ri = option_hdr;
-                 }
-                 break;
-            default:
-                 if (is_useropt(option_hdr)) {
-                    user_opts_end = option_hdr;
-                    if (!user_opts) {
-                       user_opts = option_hdr;
-                    }
-                 } else {
-                    PRINT("%s: Unsupported option: type=%d, len=%d\n",
-                        __FUNCTION__, option_hdr->type, option_hdr->len);
-                 }
-            }
-            opts_len -= opt_len;
-            option_hdr = (option_hdr + opt_len);
-        }
-     }
-
-     bool Packet::NdpPacket::parse_prefix(Pinfo_handler autoconf_cb,
-          Pinfo_handler onlink_cb)
-     {
-         return ndp_opt_.parse_prefix(autoconf_cb, onlink_cb);
-     }
-
-     bool Packet::NdpPacket::NdpOptions::parse_prefix(Pinfo_handler autoconf_cb,
-        Pinfo_handler onlink_cb)
-     {
-         IP6::addr confaddr;
-         struct prefix_info *pinfo;
-         struct nd_options_header *opt = option(ND_OPT_PREFIX_INFO);
-
-         if (!opt) {
-             return true;
-         }
-
-         for (pinfo = reinterpret_cast<struct prefix_info *>(opt); pinfo;
-              pinfo = pinfo_next(pinfo)) {
-
-             if (pinfo->prefix.is_multicast() || pinfo->prefix.is_linklocal()) {
-                 PRINT("NDP: Prefix info address is either multicast or linklocal\n");
-                 return false;
-             }
-
-             if (pinfo->prefered > pinfo->valid) {
-                 PRINT("NDP: Prefix option has invalid lifetime\n");
-                 return false;
-             }
-
-             if (pinfo->onlink) {
-                 onlink_cb(confaddr);
-             } else if (pinfo->autoconf) {
-                 if (pinfo->prefix_len == 64) {
-                     confaddr.set_part<uint64_t>(1,
-                        pinfo->prefix.get_part<uint64_t>(1));
-                 } else {
-                     PRINT("NDP: Prefix option: autoconf: "
-                             " prefix with wrong len: %d", pinfo->prefix_len);
-                     return false;
-                 }
-                 autoconf_cb(confaddr);
-             }
-         }
-     }
-
-  } // icmp6
 } // net
