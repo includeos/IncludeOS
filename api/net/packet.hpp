@@ -101,6 +101,16 @@ namespace net
       set_layer_begin(layer_begin() + i);
     }
 
+    /** Modify/retrieve payload offset, used by higher levelprotocols */
+    void set_payload_offset(int offset) noexcept
+    {
+      Expects(offset >= 0 and layer_begin() + offset < buffer_end_);
+      this->payload_off_ = layer_begin() + offset;
+    }
+    Byte_ptr payload() const noexcept {
+      return this->payload_off_;
+    }
+
     /** Set data end / write-position relative to layer_begin */
     void set_data_end(int offset)
     {
@@ -163,6 +173,7 @@ namespace net
 
     Byte_ptr              layer_begin_;
     Byte_ptr              data_end_;
+    Byte_ptr              payload_off_ = 0;
     const Byte* const     buffer_end_;
 
     Packet_ptr chain_ = nullptr;
