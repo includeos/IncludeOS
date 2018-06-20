@@ -65,7 +65,7 @@ static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 #define NUM_PACKET_BUFFERS (NUM_TX_DESC + NUM_RX_DESC + NUM_TX_QUEUE + 8)
 
 e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
-    Link(Link_protocol{{this, &e1000::transmit}, mac()}, bufstore_),
+    Link(Link_protocol{{this, &e1000::transmit}, mac()}),
     m_pcidev(d), m_mtu(mtu), bufstore_{NUM_PACKET_BUFFERS, buffer_size_for_mtu(mtu)}
 {
   static_assert((NUM_RX_DESC * sizeof(rx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");

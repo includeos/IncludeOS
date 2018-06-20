@@ -30,7 +30,7 @@ public:
   using upstream    = hw::Nic::upstream;
   using downstream_link  = hw::Nic::downstream;
 public:
-  explicit Link_layer(Protocol&& protocol, BufferStore& bufstore);
+  explicit Link_layer(Protocol&& protocol);
 
   std::string device_name() const override {
     return link_.link_name();
@@ -88,8 +88,8 @@ private:
 };
 
 template <class Protocol>
-Link_layer<Protocol>::Link_layer(Protocol&& protocol, BufferStore& bufstore)
-  : hw::Nic(bufstore),
+Link_layer<Protocol>::Link_layer(Protocol&& protocol)
+  : hw::Nic(),
     link_{std::forward<Protocol>(protocol)}
 {
 }

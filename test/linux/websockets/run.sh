@@ -35,4 +35,5 @@ make_linux
 make_service
 
 #sudo mknod /dev/net/tap c 10 200
-sudo ./build/websockets
+BINARY=build/"`cat build/binary.txt`"
+sudo $BINARY
