@@ -32,7 +32,7 @@ public:
   using Linklayer  = Link_layer<Protocol>;
 
   Vif(hw::Nic& link, const int id)
-    : Linklayer(Protocol{{this, &Vif<Protocol>::transmit}, link.mac(), id}, link.bufstore()),
+    : Linklayer(Protocol{{this, &Vif<Protocol>::transmit}, link.mac(), id}),
       link_{link}, id_{id}, phys_down_{link_.create_physical_downstream()}
   {}
 
