@@ -94,7 +94,6 @@ namespace net
   {
     auto reader = packet.layer_begin() + IP6_HEADER_LEN;
     auto next_proto = packet.next_protocol();
-    ip6::ExtensionHeader& ext = *(ip6::ExtensionHeader*)reader;
     uint8_t ext_len;
     uint16_t pl_off = IP6_HEADER_LEN;
 
@@ -106,7 +105,7 @@ namespace net
             PRINT("Done parsing extension header, next proto: %d\n", next_proto);
             return next_proto;
         }
-        ext = *(ip6::ExtensionHeader*)reader;
+        auto& ext = *(ip6::ExtensionHeader*)reader;
         ext_len = ext.size();
         reader += ext_len;
         //packet.update_extension_header_len(ext_len);
