@@ -20,6 +20,7 @@
 #include <smp>
 #include <net/socket.hpp>
 #include <net/tcp/packet4_view.hpp> // due to ICMP error //temp
+#include <net/udp/packet4_view.hpp> // due to ICMP error //temp
 
 using namespace net;
 
@@ -46,7 +47,7 @@ Inet::Inet(hw::Nic& nic)
   auto ip6_bottom(upstream_ip{ip6_, &IP6::receive});
   auto icmp4_bottom(upstream{icmp_, &ICMPv4::receive});
   auto icmp6_bottom(upstream{icmp6_, &ICMPv6::receive});
-  auto udp4_bottom(upstream{udp_, &UDP::receive});
+  auto udp4_bottom(upstream{udp_, &UDP::receive4});
   auto tcp_bottom(upstream{tcp_, &TCP::receive});
   auto tcp6_bottom(upstream{tcp_, &TCP::receive6});
 
@@ -96,10 +97,13 @@ Inet::Inet(hw::Nic& nic)
   // UDP4 -> IP4
   udp_.set_network_out(ip4_top);
 
-  // TCP -> IP4
+  // UDP6 -> IP6
+  udp_.set_network_out(ip6_top);
+
+  // TCP4 -> IP4
   tcp_.set_network_out(ip4_top);
 
-  // TCP -> IP6
+  // TCP6 -> IP6
   tcp_.set_network_out6(ip6_top);
 
   // IP4 -> Arp
@@ -137,14 +141,12 @@ void Inet::error_report(Error& err, Packet_ptr orig_pckt) {
   Socket dest = [](std::unique_ptr<PacketIP4>& pkt)->Socket {
     switch (pkt->ip_protocol()) {
       case Protocol::UDP: {
-        const auto& udp = static_cast<const PacketUDP&>(*pkt);
+        auto udp = udp::Packet4_view_raw(pkt.get());
         return udp.destination();
       }
       case Protocol::TCP: {
-        auto tcp = tcp::Packet4_view(std::move(pkt));
-        auto dst = tcp.destination();
-        pkt = static_unique_ptr_cast<PacketIP4>(tcp.release());
-        return dst;
+        auto tcp = tcp::Packet4_view_raw(pkt.get());
+        return tcp.destination();
       }
       default:
         return {};

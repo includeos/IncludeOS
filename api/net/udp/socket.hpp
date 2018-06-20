@@ -21,6 +21,7 @@
 
 #include "common.hpp"
 #include "header.hpp"
+#include "packet_view.hpp"
 
 #include <net/socket.hpp>
 
@@ -76,14 +77,14 @@ namespace net::udp
     { return socket_; }
 
   private:
-    void packet_init(Packet_ptr, addr_t, addr_t, port_t, uint16_t);
-    void internal_read(const PacketUDP&);
+    void internal_read(const Packet_view&);
 
     UDP&    udp_;
     net::Socket  socket_;
     recvfrom_handler on_read_handler =
       [] (addr_t, port_t, const char*, size_t) {};
 
+    const bool is_ipv6_;
     bool reuse_addr;
     bool loopback; // true means multicast data is looped back to sender
 

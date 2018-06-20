@@ -21,7 +21,7 @@
 
 #include "common.hpp"
 #include "socket.hpp"
-#include "packet_udp.hpp"
+#include "packet_view.hpp"
 
 #include <deque>
 #include <map>
@@ -58,9 +58,9 @@ namespace net {
 
     struct WriteBuffer
     {
-      WriteBuffer(
-                  const uint8_t* data, size_t length, sendto_handler cb, error_handler ecb,
-                  UDP& udp, addr_t LA, port_t LP, addr_t DA, port_t DP);
+      WriteBuffer(UDP& udp, net::Socket src, net::Socket dst,
+                  const uint8_t* data, size_t length,
+                  sendto_handler cb, error_handler ecb);
 
       int remaining() const
       { return len - offset; }
@@ -71,6 +71,12 @@ namespace net {
       size_t packets_needed() const;
       void write();
 
+      // the UDP stack
+      UDP& udp;
+      // port and addr this was being sent from
+      const net::Socket src;
+      // destination address and port
+      const net::Socket dst;
       // buffer, total length and current write offset
       std::shared_ptr<uint8_t> buf;
       size_t len;
@@ -79,15 +85,7 @@ namespace net {
       sendto_handler send_callback;
       // the callback for when this receives an error
       error_handler error_callback;
-      // the UDP stack
-      UDP& udp;
 
-      // port and addr this was being sent from
-      addr_t l_addr;
-      port_t l_port;
-      // destination address and port
-      port_t d_port;
-      addr_t d_addr;
     }; // < struct WriteBuffer
 
     ////////////////////////////////////////////
@@ -95,11 +93,16 @@ namespace net {
     addr_t local_ip() const;
 
     /** Input from network layer */
-    void receive(net::Packet_ptr);
+    void receive4(net::Packet_ptr);
+    void receive6(net::Packet_ptr);
+    void receive(udp::Packet_view_ptr, const bool is_bcast);
 
     /** Delegate output to network layer */
     void set_network_out(downstream del)
     { network_layer_out_ = del; }
+
+    void set_network_out6(downstream del)
+    { network_layer_out6_ = del; }
 
     /**
      *  Is called when an Error has occurred in the OS
@@ -107,22 +110,19 @@ namespace net {
     */
     void error_report(const Error& err, Socket dest);
 
-    /** Send UDP datagram from source ip/port to destination ip/port.
-
-        @param sip   Local IP-address
-        @param sport Local port
-        @param dip   Remote IP-address
-        @param dport Remote port   */
-    void transmit(udp::Packet_ptr udp);
+    /** Send UDP datagram to network handler */
+    void transmit(udp::Packet_view_ptr udp);
 
     //! @param port local port
     udp::Socket& bind(port_t port);
+    udp::Socket& bind6(port_t port);
 
+    udp::Socket& bind(const addr_t& addr);
     udp::Socket& bind(const Socket& socket);
 
     //! returns a new UDP socket bound to a random port
     udp::Socket& bind();
-    udp::Socket& bind(const addr_t addr);
+    udp::Socket& bind6();
 
     bool is_bound(const Socket&) const;
     bool is_bound(const port_t port) const;
@@ -165,6 +165,7 @@ namespace net {
 
     std::chrono::minutes        flush_interval_{5};
     downstream                  network_layer_out_;
+    downstream                  network_layer_out6_;
     Stack&                      stack_;
     Sockets                     sockets_;
     Port_utils&                 ports_;
@@ -172,14 +173,13 @@ namespace net {
     // the async send queue
     std::deque<WriteBuffer> sendq;
 
-
-    Sockets::iterator find(const Socket socket)
+    Sockets::iterator find(const Socket& socket)
     {
       Sockets::iterator it = sockets_.find(socket);
       return it;
     }
 
-    Sockets::const_iterator cfind(const Socket socket) const
+    Sockets::const_iterator cfind(const Socket& socket) const
     {
       Sockets::const_iterator it = sockets_.find(socket);
       return it;
@@ -203,10 +203,14 @@ namespace net {
     }; //< class Error_entry
 
     /** The error callbacks that the user has sent in via the UDPSockets' sendto and bcast methods */
-    std::unordered_map<Socket, Error_entry> error_callbacks_;
+    std::unordered_map<net::Socket, Error_entry> error_callbacks_;
 
     /** Timer that flushes expired error entries/callbacks (no errors have occurred) */
     Timer flush_timer_{{ *this, &UDP::flush_expired }};
+
+    void send_dest_unreachable(udp::Packet_view_ptr);
+
+    udp::Packet_view_ptr create_packet(const net::Socket& src, const net::Socket& dst);
 
     friend class udp::Socket;
 
