@@ -134,6 +134,11 @@ struct Buffer {
 
 void Service::start()
 {
+#ifdef USERSPACE_LINUX
+  extern void create_network_device(int N, const char* route, const char* ip);
+  create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+#endif
+
   for(int i = 0; i < S; i++) small += TEST_STR;
 
   big += "start-";
