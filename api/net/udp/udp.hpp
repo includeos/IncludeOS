@@ -127,6 +127,7 @@ namespace net {
 
     bool is_bound(const Socket&) const;
     bool is_bound(const port_t port) const;
+    bool is_bound6(const port_t port) const;
 
     /** Close a socket **/
     void close(const Socket& socket);

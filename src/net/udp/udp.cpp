@@ -189,6 +189,12 @@ namespace net {
     return sockets_.find(socket) != sockets_.end();
   }
 
+  bool UDP::is_bound(const port_t port) const
+  { return is_bound({stack_.ip_addr(), port}); }
+
+  bool UDP::is_bound6(const port_t port) const
+  { return is_bound({stack_.ip6_addr(), port}); }
+
   void UDP::close(const net::Socket& socket)
   {
     PRINT("Closed socket %s\n", socket.to_string().c_str());
