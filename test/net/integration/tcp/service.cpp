@@ -157,7 +157,7 @@ void Service::start()
     {   8,  8,  8,  8 }   // DNS
   );
   inet.network_config6(
-    {  0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x93bd },   // IP6
+    {  0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd },   // IP6
     64,                                                     // Prefix6
     {  0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 }  // Gateway6
   );

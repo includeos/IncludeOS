@@ -102,6 +102,7 @@ namespace net
     case (ICMP_type::ND_NEIGHBOUR_SOL):
     case (ICMP_type::ND_NEIGHBOUR_ADV):
     case (ICMP_type::ND_REDIRECT):
+      PRINT("<ICMP6> NDP message from %s\n", req.ip().ip_src().str().c_str());
       ndp().receive(req);
       break;
     case (ICMP_type::ROUTER_RENUMBERING):
@@ -120,9 +121,8 @@ namespace net
 
     // The icmp6::Packet's payload contains the original packet sent that resulted
     // in an error
-    int payload_idx = req.payload_index();
     auto packet_ptr = req.release();
-    packet_ptr->increment_layer_begin(payload_idx);
+    packet_ptr->increment_layer_begin(req.payload_index());
 
     // inet forwards to transport layer (UDP or TCP)
     inet_.error_report(err, std::move(packet_ptr));
@@ -135,9 +135,8 @@ namespace net
 
     // The icmp6::Packet's payload contains the original packet sent that resulted
     // in the Fragmentation Needed
-    int payload_idx = req.payload_index();
     auto packet_ptr = req.release();
-    packet_ptr->increment_layer_begin(payload_idx);
+    packet_ptr->increment_layer_begin(req.payload_index());
 
     // Inet updates the corresponding Path MTU value in IP and notifies the transport/packetization layer
     inet_.error_report(err, std::move(packet_ptr));
@@ -232,8 +231,6 @@ namespace net
 
     PRINT("<ICMP6> Transmitting request to %s\n", dest_ip.to_string().c_str());
 
-    printf("<ICMP6> Request size: %i payload size: %i\n",
-           req.ip().size(), req.payload().size());
     // Default payload
     req.add_payload(includeos_payload.data(), includeos_payload.size());
 
