@@ -34,8 +34,7 @@
 namespace net {
 
   UDP::UDP(Stack& inet)
-    : network_layer_out_{[] (net::Packet_ptr) {}},
-      stack_(inet),
+    : stack_(inet),
       ports_(inet.udp_ports())
   {
     inet.on_transmit_queue_available({this, &UDP::process_sendq});
@@ -205,10 +204,12 @@ namespace net {
 
     Expects(udp->udp_length() >= sizeof(udp::Header));
 
-    if(udp->ipv() == Protocol::IPv6)
+    if(udp->ipv() == Protocol::IPv6) {
       network_layer_out6_(udp->release());
-    else
-      network_layer_out_(udp->release());
+    }
+    else {
+      network_layer_out4_(udp->release());
+    }
   }
 
   void UDP::flush()

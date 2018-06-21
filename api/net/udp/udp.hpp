@@ -99,8 +99,8 @@ namespace net {
     void receive(udp::Packet_view_ptr, const bool is_bcast);
 
     /** Delegate output to network layer */
-    void set_network_out(downstream del)
-    { network_layer_out_ = del; }
+    void set_network_out4(downstream del)
+    { network_layer_out4_ = del; }
 
     void set_network_out6(downstream del)
     { network_layer_out6_ = del; }
@@ -165,7 +165,7 @@ namespace net {
     static constexpr uint16_t exp_t_ {60 * 5};
 
     std::chrono::minutes        flush_interval_{5};
-    downstream                  network_layer_out_;
+    downstream                  network_layer_out4_;
     downstream                  network_layer_out6_;
     Stack&                      stack_;
     Sockets                     sockets_;
