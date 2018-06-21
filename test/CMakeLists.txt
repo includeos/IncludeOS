@@ -189,6 +189,7 @@ set(OS_SOURCES
   ${SRC}/kernel/timers.cpp
   ${SRC}/musl/mmap.cpp
   ${SRC}/musl/brk.cpp
+  ${SRC}/net/addr.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp
@@ -212,8 +213,6 @@ set(OS_SOURCES
   ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
   ${SRC}/net/ip4/reassembly.cpp
-  ${SRC}/net/ip4/udp.cpp
-  ${SRC}/net/ip4/udp_socket.cpp
   ${SRC}/net/ip6/icmp6.cpp
   ${SRC}/net/ip6/ndp.cpp
   ${SRC}/net/ip6/ip6.cpp
@@ -230,6 +229,8 @@ set(OS_SOURCES
   ${SRC}/net/tcp/read_request.cpp
   ${SRC}/net/tcp/stream.cpp
   ${SRC}/net/tcp/write_queue.cpp
+  ${SRC}/net/udp/socket.cpp
+  ${SRC}/net/udp/udp.cpp
   ${SRC}/posix/fd.cpp
   ${SRC}/util/async.cpp
   ${SRC}/util/crc32.cpp
@@ -264,6 +265,15 @@ set(MOD_OBJECTS
   #${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_openssl.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/storage.cpp
 )
+
+# Disable (don't build) currently non-working tests on macOS
+if (APPLE)
+  list(REMOVE_ITEM TEST_SOURCES
+    ${TEST}/kernel/unit/memory.cpp
+    ${TEST}/kernel/unit/x86_paging.cpp
+    ${TEST}/kernel/unit/unit_liveupdate.cpp
+    )
+endif()
 
 if(EXTRA_TESTS)
   set(GENERATE_SUPPORT_FILES ON)
