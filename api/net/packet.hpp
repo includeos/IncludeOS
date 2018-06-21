@@ -104,11 +104,18 @@ namespace net
     /** Modify/retrieve payload offset, used by higher levelprotocols */
     void set_payload_offset(int offset) noexcept
     {
-      Expects(offset >= 0 and layer_begin() + offset < buffer_end_);
+      Expects(offset >= 0 and layer_begin() + offset < buffer_end());
       this->payload_off_ = layer_begin() + offset;
+    }
+    void increment_payload_offset(int offset) noexcept {
+      this->payload_off_ += offset;
+      Expects(payload_off_ >= layer_begin() and payload_off_ < buffer_end());
     }
     Byte_ptr payload() const noexcept {
       return this->payload_off_;
+    }
+    int payload_length() const noexcept {
+      return this->data_end() - payload();
     }
 
     /** Set data end / write-position relative to layer_begin */
