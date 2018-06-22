@@ -94,8 +94,7 @@ namespace net
   {
     auto reader = packet.layer_begin() + IP6_HEADER_LEN;
     auto next_proto = packet.next_protocol();
-    ip6::ExtensionHeader& ext = *(ip6::ExtensionHeader*)reader;
-    uint8_t ext_len;
+    uint16_t pl_off = IP6_HEADER_LEN;
 
     while (next_proto != Protocol::IPv6_NONXT) {
         if (next_proto == Protocol::HOPOPT) {
@@ -103,21 +102,46 @@ namespace net
         } else if (next_proto == Protocol::OPTSV6) {
         } else {
             PRINT("Done parsing extension header, next proto: %d\n", next_proto);
+            packet.set_payload_offset(pl_off);
             return next_proto;
         }
-        ext = *(ip6::ExtensionHeader*)reader;
-        ext_len = ext.size();
-        reader += ext_len;
-        packet.update_extension_header_len(ext_len);
+        auto& ext = *(ip6::ExtensionHeader*)reader;
+        auto ext_len = ext.size();
         next_proto = ext.next();
+        pl_off += ext_len;
+        reader += ext_len;
     }
+    packet.set_payload_offset(pl_off);
     return next_proto;
+  }
+  void PacketIP6::calculate_payload_offset()
+  {
+    auto reader = this->layer_begin() + IP6_HEADER_LEN;
+    auto next_proto = this->next_protocol();
+    uint16_t pl_off = IP6_HEADER_LEN;
+
+    while (next_proto != Protocol::IPv6_NONXT)
+    {
+        if (next_proto != Protocol::HOPOPT &&
+            next_proto != Protocol::OPTSV6)
+        {
+            PRINT("Done parsing extension header, next proto: %d\n", next_proto);
+            this->set_payload_offset(pl_off);
+            return;
+        }
+        auto& ext = *(ip6::ExtensionHeader*)reader;
+        next_proto = ext.next();
+        pl_off += ext.size();
+        reader += ext.size();
+    }
+    this->set_payload_offset(pl_off);
   }
 
   void IP6::receive(Packet_ptr pckt, const bool /*link_bcast */)
   {
-    // Cast to IP6 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP6>(std::move(pckt));
+    // this will calculate exthdr length and set payload correctly
+    packet->calculate_payload_offset();
 
     PRINT("<IP6 Receive> Source IP: %s, Dest.IP: %s, Next header: %d,"
             "Payload len: %u, Hop limit: %d, version: %d, tc: %u, fl: %u\n",

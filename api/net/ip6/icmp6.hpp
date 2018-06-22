@@ -165,13 +165,6 @@ namespace net
     Stack& inet_;
     Ndp    ndp_;
     downstream network_layer_out_ =   nullptr;
-    uint8_t includeos_payload_[48] =  {'I','N','C','L','U','D',
-                                      'E','O','S','1','2','3','4','5',
-                                      'A','B','C','D','E','F','G','H',
-                                      'I','J','K','L','M','N','O','P',
-                                      'Q','R','S','T','U','V','W','X',
-                                      'Y','Z','1','2','3','4','5','6',
-                                      '7','8'};
 
     inline bool is_full_header(size_t pckt_size)
     { return (pckt_size >= sizeof(IP6::header) + icmp6::Packet::header_size()); }
