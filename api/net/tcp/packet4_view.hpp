@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <net/tcp/packet_view.hpp>
+#include "packet_view.hpp"
 #include <net/ip4/packet_ip4.hpp>
 
 namespace net::tcp {
