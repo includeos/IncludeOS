@@ -70,7 +70,7 @@ namespace x86 {
       INFO2("APIC id: %x  ver: %x", get_id(), version());
     }
 
-    uint32_t read(uint32_t reg) noexcept override
+    uint32_t read(uint32_t reg) noexcept
     {
       return CPU::read_msr(BASE_MSR + reg);
     }
@@ -78,7 +78,7 @@ namespace x86 {
     {
       return CPU::read_msr(BASE_MSR + reg);
     }
-    void write(uint32_t reg, uint32_t value) noexcept override
+    void write(uint32_t reg, uint32_t value) noexcept
     {
       CPU::write_msr(BASE_MSR + reg, value);
     }
@@ -220,8 +220,7 @@ namespace x86 {
     }
     uint32_t timer_diff() noexcept override
     {
-      return CPU::read_msr(BASE_MSR + x2APIC_TMRINITCNT) -
-             CPU::read_msr(BASE_MSR + x2APIC_TMRCURRCNT);
+      return read(x2APIC_TMRINITCNT) - read(x2APIC_TMRCURRCNT);
     }
     void timer_interrupt(bool enabled) noexcept override
     {
