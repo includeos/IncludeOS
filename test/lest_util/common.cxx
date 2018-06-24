@@ -5,7 +5,8 @@
 #define CASE( name ) lest_CASE( specification(), name )
 extern lest::tests & specification();
 
-#define DEBUG_UNIT
+#define TEST
+
 #ifdef DEBUG_UNIT
 #define LINK printf("%s:%i: OK\n",__FILE__,__LINE__)
 #else
@@ -31,7 +32,8 @@ static std::vector<uint64_t> rands64()
   return rnd;
 }
 
-const std::vector<uint64_t> random = rands64<10>();
+const std::vector<uint64_t> random = rands64<100>();
+const std::vector<uint64_t> random_1k  = rands64<1000>();
 
 }
 
