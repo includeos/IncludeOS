@@ -28,6 +28,8 @@ set(SOURCES
 
 set(DRIVERS
   virtionet   # Virtio networking
+  vmxnet3
+  e1000
   # virtioblock # Virtio block device
   # ... Others from IncludeOS/src/drivers
   )

@@ -13,28 +13,26 @@ extern lest::tests & specification();
 #define LINK (void)
 #endif
 
-namespace test {
-
-uint64_t rand64();
-template <int N>
-static std::vector<uint64_t> rands64()
+namespace test
 {
-  static std::vector<uint64_t> rnd;
-
-  if (rnd.empty())
+  extern uint64_t rand64();
+  template <int N>
+  static std::vector<uint64_t> rands64()
   {
-    for (int i = 0; i < N; i++)
+    static std::vector<uint64_t> rnd;
+
+    if (rnd.empty())
     {
-      rnd.push_back(rand64());
+      for (int i = 0; i < N; i++)
+      {
+        rnd.push_back(rand64());
+      }
     }
+    return rnd;
   }
 
-  return rnd;
-}
-
-const std::vector<uint64_t> random = rands64<100>();
-const std::vector<uint64_t> random_1k  = rands64<1000>();
-
+  const std::vector<uint64_t> random = rands64<100>();
+  const std::vector<uint64_t> random_1k  = rands64<1000>();
 }
 
 #ifndef HAVE_LEST_MAIN

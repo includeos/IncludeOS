@@ -39,6 +39,7 @@
 #include <net/buffer_store.hpp>
 #include <net/link_layer.hpp>
 #include <net/ethernet/ethernet.hpp>
+#include <net/ethernet/ethernet_8021q.hpp> // vlan header size
 #include <delegate>
 #include <deque>
 #include <statman>
@@ -132,14 +133,11 @@ public:
   uint16_t MTU() const noexcept override
   { return 1500; }
 
-  uint16_t packet_len() const noexcept {
-    return sizeof(net::ethernet::Header) + MTU();
+  uint16_t max_packet_len() const noexcept {
+    return sizeof(net::ethernet::VLAN_header) + MTU();
   }
 
   net::Packet_ptr create_packet(int) override;
-
-  size_t frame_offset_device() override
-  { return sizeof(virtio_net_hdr); };
 
   net::downstream create_physical_downstream() override
   { return {this, &VirtioNet::transmit}; }
@@ -157,6 +155,8 @@ public:
   }
 
   bool link_up() const noexcept;
+
+  auto& bufstore() noexcept { return bufstore_; }
 
   void deactivate() override;
 

@@ -6,9 +6,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,14 +29,11 @@ namespace net
   /** IPv6 packet. */
   class PacketIP6 : public Packet {
   public:
+    static constexpr int DEFAULT_HOP_LIMIT = 64;
     using Span = gsl::span<Byte>;
     using Cspan = gsl::span<const Byte>;
 
     // IPv6 header getters
-
-    /** Get IP protocol version field. Must be 6 */
-    ip6::Header& ip6_header() noexcept
-    { return *reinterpret_cast<ip6::Header*>(layer_begin()); }
 
     uint32_t ver_tc_fl() const noexcept
     { return ip6_header().ver_tc_fl; }
@@ -102,7 +99,10 @@ namespace net
     /* This returns the IPv6 header and extension header len.
      * Note: Extension header needs to be parsed to know this */
     uint16_t ip_header_len() const noexcept
-    { return IP6_HEADER_LEN + get_extension_header_len(); }
+    {
+      assert(payload() != nullptr);
+      return payload() - layer_begin();
+    }
 
     // IPv6 setters
     //
@@ -154,14 +154,16 @@ namespace net
     }
 
     void init(Protocol proto = Protocol::HOPOPT) noexcept {
-      Expects(size() == 0);
       auto& hdr = ip6_header();
-      std::memset(&ip6_header(), 0, IP6_HEADER_LEN);
-      hdr.ver_tc_fl = 0x0060;
-      hdr.next_header    = static_cast<uint8_t>(proto);
-      hdr.payload_length = 0x0;
+      hdr = {};
+      hdr.hop_limit   = DEFAULT_HOP_LIMIT;
+      hdr.next_header = static_cast<uint8_t>(proto);
       increment_data_end(IP6_HEADER_LEN);
+      set_payload_offset(IP6_HEADER_LEN);
+      assert(this->payload_length() == 0);
     }
+
+    void calculate_payload_offset();
 
     Span ip_data() {
       return {ip_data_ptr(), ip_data_length()};
@@ -169,14 +171,6 @@ namespace net
 
     Cspan ip_data() const {
       return {ip_data_ptr(), ip_data_length()};
-    }
-
-    void update_extension_header_len(uint8_t len) {
-        extension_header_len_ += len;
-    }
-
-    uint16_t get_extension_header_len() const {
-        return extension_header_len_;
     }
 
     /**
@@ -190,23 +184,20 @@ namespace net
     /** Get pointer to IP data */
     Byte* ip_data_ptr() noexcept __attribute__((assume_aligned(4)))
     {
-      return layer_begin() + IP6_HEADER_LEN + get_extension_header_len();
+      return payload();
     }
-
     const Byte* ip_data_ptr() const noexcept __attribute__((assume_aligned(4)))
     {
-      return layer_begin() + IP6_HEADER_LEN + get_extension_header_len();
+      return payload();
     }
 
-
-
   private:
+    ip6::Header& ip6_header() noexcept
+    { return *reinterpret_cast<ip6::Header*>(layer_begin()); }
 
     const ip6::Header& ip6_header() const noexcept
     { return *reinterpret_cast<const ip6::Header*>(layer_begin()); }
 
-    uint16_t extension_header_len_;
-
-  }; //< class PacketIP6
+  }; //< PacketIP6
 } //< namespace net
 #endif

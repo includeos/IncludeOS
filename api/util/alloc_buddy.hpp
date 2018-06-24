@@ -187,7 +187,6 @@ namespace mem::buddy {
         pool_size_{pool_size}
 
     {
-      kprint("Constructing allocator \n");
       using namespace util;
       Expects(bits::is_pow2(pool_size_));
       Expects(pool_size_ >= min_size);
@@ -195,8 +194,6 @@ namespace mem::buddy {
       Expects(bits::is_aligned<min_size>(start_addr_));
 
       Ensures(pool_size_ + nodes_.size() * sizeof(Node_t) <= bufsize);
-      kprintf("Constructed alloc. Nodes start 0x%x, node count 0x%x ",
-              nodes_.data(), nodes_.size());
       // Initialize nodes
       memset(nodes_.data(), 0, nodes_.size() * sizeof(Node_arr::element_type));
     }
@@ -206,10 +203,6 @@ namespace mem::buddy {
       Size_t pool_size_ = pool_size(bufsize);
       Size_t overhead_  = bufsize - pool_size_;
       auto*  nodes_ptr  = (char*)addr + overhead_;
-      kprintf("Creating buddy allocator, bufsize 0x%zx, pool_size_ 0x%zx required_size 0x%zx "
-              "overhead: 0x%zx \n",
-              bufsize, pool_size_, required_size(pool_size_), overhead_);
-
       Expects(bufsize >= required_size(pool_size_));
       Ensures(bufsize >= required_size(pool_size_));
       auto* alloc = new (addr) Alloc(nodes_ptr, bufsize, pool_size_);

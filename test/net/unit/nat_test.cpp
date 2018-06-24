@@ -25,8 +25,8 @@ using namespace net::nat;
 CASE("TCP NAT verifying rewrite and checksum")
 {
   // Socket
-  const Socket src{{10,0,0,42},80};
-  const Socket dst{{10,0,0,43},32222};
+  const Socket src{ip4::Addr{10,0,0,42},80};
+  const Socket dst{ip4::Addr{10,0,0,43},32222};
   auto tcp = create_tcp_packet_init(src, dst);
   EXPECT(tcp->source() == src);
   EXPECT(tcp->destination() == dst);
@@ -107,8 +107,8 @@ CASE("TCP NAT verifying rewrite and checksum")
 CASE("UDP NAT verifying rewrite")
 {
   // Socket
-  const Socket src{{10,0,0,42},80};
-  const Socket dst{{10,0,0,43},32222};
+  const Socket src{ip4::Addr{10,0,0,42},80};
+  const Socket dst{ip4::Addr{10,0,0,43},32222};
   auto udp = create_udp_packet_init(src, dst);
   EXPECT(udp->source() == src);
   EXPECT(udp->destination() == dst);
@@ -212,7 +212,7 @@ CASE("ICMP NAT verifying rewrite")
   EXPECT(ip4.ip_dst() == src);
   EXPECT(ip4.compute_ip_checksum() == 0);
 
-  const Socket sock{{10,10,10,10},80};
+  const Socket sock{ip4::Addr{10,10,10,10},80};
   // Socket does nothing (unsupported)
   dnat(ip4, sock);
   EXPECT(ip4.ip_src() == dst);

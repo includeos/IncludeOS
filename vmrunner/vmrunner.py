@@ -321,6 +321,7 @@ class qemu(hypervisor):
         self._stopped = False
         self._sudo = False
         self._image_name = self._config if "image" in self._config else self.name() + " vm"
+        self.m_drive_no = 0
 
         # Pretty printing
         self.info = Logger(color.INFO("<" + type(self).__name__ + ">"))
@@ -331,11 +332,27 @@ class qemu(hypervisor):
     def image_name(self):
         return self._image_name
 
-    def drive_arg(self, filename, drive_type = "virtio", drive_format = "raw", media_type = "disk"):
-        return ["-drive","file=" + filename
-                + ",format=" + drive_format
-                + ",if=" + drive_type
-                + ",media=" + media_type]
+    def drive_arg(self, filename, device = "virtio", drive_format = "raw", media_type = "disk"):
+        names = {"virtio" : "virtio-blk",
+                 "virtio-scsi" : "virtio-scsi",
+                 "ide"    : "piix3-ide",
+                 "nvme"   : "nvme"}
+
+        if device == "ide":
+            # most likely a problem relating to bus, or wrong .drive
+            return ["-drive","file=" + filename
+                    + ",format=" + drive_format
+                    + ",if=" + device
+                    + ",media=" + media_type]
+        else:
+            if device in names:
+                device = names[device]
+
+            driveno = "drv" + str(self.m_drive_no)
+            self.m_drive_no += 1
+            return ["-drive", "file=" + filename + ",format=" + drive_format
+                            + ",if=none" + ",media=" + media_type + ",id=" + driveno,
+                    "-device",  device + ",drive=" + driveno +",serial=foo"]
 
     # -initrd "file1 arg=foo,file2"
     # This syntax is only available with multiboot.
@@ -371,6 +388,7 @@ class qemu(hypervisor):
 
         # Add mac-address if specified
         if mac: device += ",mac=" + mac
+        device += ",romfile=" # remove some qemu boot info (experimental)
 
         return ["-device", device,
                 "-netdev", netdev]

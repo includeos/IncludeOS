@@ -68,12 +68,13 @@ def print_skipped(tests):
 
 class Test:
     """ A class to start a test as a subprocess and pretty-print status """
-    def __init__(self, path, clean=False, command=['python', 'test.py'], name=None):
+    def __init__(self, path, clean=False, command=['python', '-u', 'test.py'], name=None):
         self.command_ = command
         self.proc_ = None
         self.path_ = path
         self.output_ = []
         self.clean = clean
+        self.start_time = None
         self.properties_ = {"time_sensitive": False, "intrusive": False}
         # Extract category and type from the path variable
         # Category is linked to the top level folder e.g. net, fs, hw
@@ -134,6 +135,7 @@ class Test:
         ).format(x=self.__dict__)
 
     def start(self):
+        self.start_time = time.time()
         os.chdir(startdir + "/" + self.path_)
         if self.clean:
             self.clean_test()
@@ -161,7 +163,11 @@ class Test:
 
 
     def print_start(self):
-        print "* {0:66} ".format(self.name_),
+        print "* {0:59} ".format(self.name_),
+        sys.stdout.flush()
+
+    def print_duration(self):
+        print "{0:5.0f}s".format(time.time() - self.start_time),
         sys.stdout.flush()
 
     def wait_status(self):
@@ -170,6 +176,7 @@ class Test:
 
         # Start and wait for the process
         self.proc_.communicate()
+        self.print_duration()
 
         with codecs.open('{}/log_stdout.log'.format(self.path_), encoding='utf-8', errors='replace') as log_stdout:
             self.output_.append(log_stdout.read())

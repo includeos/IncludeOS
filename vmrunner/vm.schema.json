@@ -54,7 +54,7 @@
         "type" : "object",
         "properties" : {
           "file" : { "type" : "string" },
-          "type" : { "enum" : ["ide", "virtio"] },
+          "type" : { "enum" : ["ide", "virtio", "virtio-scsi", "nvme"] },
           "format" : { "enum" : ["raw", "qcow2", "vdi"] },
           "media" : { "enum" : ["disk"] },
           "name" : { "type" : "string" }

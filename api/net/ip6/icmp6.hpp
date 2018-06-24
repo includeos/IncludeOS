@@ -20,6 +20,7 @@
 #ifndef NET_IP6_ICMPv6_HPP
 #define NET_IP6_ICMPv6_HPP
 
+#include "ndp.hpp"
 #include "packet_icmp6.hpp"
 #include <map>
 #include <timers>
@@ -109,7 +110,19 @@ namespace net
 
     // Delegate output to network layer
     inline void set_network_out(downstream s)
-    { network_layer_out_ = s; };
+    {
+      network_layer_out_ = s;
+    }
+
+    inline void set_ndp_linklayer_out(downstream_link s)
+    {
+       ndp_.set_linklayer_out(s);
+    }
+
+    void ndp_transmit(Packet_ptr ptr, IP6::addr next_hop)
+    {
+        ndp_.transmit(std::move(ptr), next_hop);
+    }
 
     /**
      *  Destination Unreachable sent from host because of port (UDP) or protocol (IP6) unreachable
@@ -145,18 +158,13 @@ namespace net
 
     void ping(const std::string& hostname);
     void ping(const std::string& hostname, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
+    Ndp& ndp() { return ndp_; }
 
   private:
     static int request_id_; // message identifier for messages originating from IncludeOS
     Stack& inet_;
+    Ndp    ndp_;
     downstream network_layer_out_ =   nullptr;
-    uint8_t includeos_payload_[48] =  {'I','N','C','L','U','D',
-                                      'E','O','S','1','2','3','4','5',
-                                      'A','B','C','D','E','F','G','H',
-                                      'I','J','K','L','M','N','O','P',
-                                      'Q','R','S','T','U','V','W','X',
-                                      'Y','Z','1','2','3','4','5','6',
-                                      '7','8'};
 
     inline bool is_full_header(size_t pckt_size)
     { return (pckt_size >= sizeof(IP6::header) + icmp6::Packet::header_size()); }

@@ -33,8 +33,8 @@ namespace net
       uint16_t length)
   {
     p->init(this->local_port(), port);
-    p->set_ip_src(srcIP);
-    p->set_ip_dst(destIP);
+    p->set_ip_src(srcIP.v4());
+    p->set_ip_dst(destIP.v4());
     p->set_data_length(length);
 
     assert(p->data_length() == length);

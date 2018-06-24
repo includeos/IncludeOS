@@ -175,7 +175,7 @@ public:
   ~Syslog_udp();
 
 private:
-  net::UDP::addr_t ip_{0};
+  net::UDP::addr_t ip_{};
   net::UDP::port_t port_{0};
   net::UDPSocket* sock_ = nullptr;
 
@@ -187,7 +187,7 @@ class Syslog_print : public Syslog_facility {
 public:
   void syslog(const std::string& log_message) override;
   void settings(const net::UDP::addr_t, const net::UDP::port_t) override {}
-  net::UDP::addr_t ip() const noexcept override { return 0; }
+  net::UDP::addr_t ip() const noexcept override { return net::ip4::Addr::addr_any; }
   net::UDP::port_t port() const noexcept override { return 0; }
   void open_socket() override {}
   void close_socket() override {}

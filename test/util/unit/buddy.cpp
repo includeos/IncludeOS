@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define DEBUG_UNIT
+// #define DEBUG_UNIT
 
 #include <common.cxx>
 #include <valarray>
@@ -27,7 +27,6 @@ struct Pool {
 
   Pool(size_t s) : size{s} {
     auto sz  = Alloc::required_size(s);
-    printf("Pool: wanted size 0x%zx, required 0x%zx\n", s, sz);
     auto res = posix_memalign(&addr, Alloc::min_size, sz);
     Expects(res == 0);
     alloc = Alloc::create(addr, sz);

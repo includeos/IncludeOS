@@ -18,7 +18,6 @@
 #ifndef HW_NIC_HPP
 #define HW_NIC_HPP
 
-#include "../net/buffer_store.hpp"
 #include "mac_addr.hpp"
 #include <net/inet_common.hpp>
 
@@ -66,22 +65,8 @@ namespace hw {
     virtual void set_arp_upstream(upstream handler) = 0;
     virtual void set_vlan_upstream(upstream handler) = 0;
 
-    net::BufferStore& bufstore() noexcept
-    { return bufstore_; }
-
-    /** Number of free buffers in the BufferStore **/
-    size_t buffers_available()
-    { return bufstore_.available(); }
-
-    /** Number of total buffers in the BufferStore **/
-    size_t buffers_total()
-    { return bufstore_.total_buffers(); }
-
-    /** Number of bytes in a frame needed by the device itself **/
-    virtual size_t frame_offset_device() = 0;
-
     /** Number of bytes in a frame needed by the link layer **/
-    virtual size_t frame_offset_link() = 0;
+    virtual size_t frame_offset_link() const noexcept = 0;
 
     /**
      * Create a packet with appropriate size for the underlying link
@@ -110,7 +95,7 @@ namespace hw {
 
     virtual ~Nic() {}
 
-    /** Trigger a read from buffers, pusing any packets up the stack */
+    /** Check for completed rx and pass rx packets up the stack */
     virtual void poll() = 0;
 
     /** Overridable MTU detection function per-network **/
@@ -122,8 +107,7 @@ namespace hw {
      *
      *  Constructed by the actual Nic Driver
      */
-    Nic(net::BufferStore& bufstore)
-      : bufstore_{bufstore}
+    Nic()
     {
       static int id_counter = 0;
       N = id_counter++;
@@ -150,7 +134,6 @@ namespace hw {
     }
 
   private:
-    net::BufferStore& bufstore_;
     int N;
     friend class Devices;
   };

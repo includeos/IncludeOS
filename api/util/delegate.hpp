@@ -338,7 +338,7 @@ public:
 	}
 
 private:
-	mutable storage_t storage_;
+	mutable storage_t storage_ {};
 
 	invoke_ptr_t invoke_ptr_;
 	copy_ptr_t copy_ptr_;

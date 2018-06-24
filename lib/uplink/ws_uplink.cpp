@@ -56,13 +56,12 @@ static SSL_CTX* init_ssl_context(const std::string& certs_path, bool verify)
   auto ents = disk.fs().ls(certs_path);
 
   int files = 0;
-  MYINFO("Scanning files...");
   for(auto& ent : ents) {
     if(not ent.is_file())
       continue;
-    INFO2("%s", ent.name().c_str());
     files++;
   }
+  INFO2("%d certificates", files);
 
   Expects(files > 0 && "No files found on disk");
 

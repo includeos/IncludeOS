@@ -6,7 +6,7 @@
 # OPTIONS:
 ############################################################
 
-BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip g++-multilib gcc"
+BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip gcc g++-multilib"
 CLANG_VERSION_MIN_REQUIRED="5.0"
 [ ! -z "$CC" ] && { CLANG_VERSION=${CC: -3}; } || CLANG_VERSION=$CLANG_VERSION_MIN_REQUIRED
 [[ $CLANG_VERSION < $CLANG_VERSION_MIN_REQUIRED ]] && CLANG_VERSION=$CLANG_VERSION_MIN_REQUIRED
@@ -160,6 +160,7 @@ case $SYSTEM in
             "fedora")
                 # Removes g++-multilib from dependencies
                 DEPENDENCIES=${DEPENDENCIES%g++-multilib}
+                DEPENDENCIES="$DEPENDENCIES clang glibc-devel.i686"
                 sudo dnf install $DEPENDENCIES || exit 1
                 ;;
             "arch")

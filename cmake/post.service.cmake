@@ -205,6 +205,7 @@ if(LIBRARIES)
 endif()
 
 # add all extra libs
+set(LIBR_CMAKE_NAMES)
 foreach(LIBR ${LIBRARIES})
   # if relative path but not local, use includeos lib.
   if(NOT IS_ABSOLUTE ${LIBR} AND NOT EXISTS ${LIBR})
@@ -214,12 +215,8 @@ foreach(LIBR ${LIBRARIES})
       set(LIBR ${OS_LIB})
     endif()
   endif()
-  get_filename_component(LNAME ${LIBR} NAME_WE)
-  add_library(libr_${LNAME} STATIC IMPORTED)
-  set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libr_${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
-
-  target_link_libraries(service libr_${LNAME})
+  # add as whole archive to allow strong symbols
+  list(APPEND LIBR_CMAKE_NAMES "--whole-archive ${LIBR} --no-whole-archive")
 endforeach()
 
 
@@ -245,12 +242,9 @@ set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <LINK_FLAGS> <OBJECTS>
 set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
-set(STRIP_LV)
+set(LD_STRIP)
 if (NOT debug)
-  set(STRIP_LV "--strip-debug")
-endif()
-if (stripped)
-  set(STRIP_LV "--strip-all")
+  set(LD_STRIP "--strip-debug")
 endif()
 
 set(ELF ${ARCH})
@@ -264,7 +258,7 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
   set(PRE_BSS_SIZE  "--defsym PRE_BSS_AREA=0x200000")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE}")
+set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE}")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
@@ -364,8 +358,8 @@ function(add_memdisk DISK)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file ${INSTALL_LOC}/memdisk/memdisk.asm ${DISK_RELPATH}
-    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${INSTALL_LOC}/memdisk/memdisk.asm -o memdisk.o
+    COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK_RELPATH} fake_news
   )
   add_library(memdisk STATIC memdisk.o)
@@ -453,6 +447,11 @@ endif()
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
   libos
+  libplatform
+  libarch
+
+  ${LIBR_CMAKE_NAMES}
+  libos
   libbotan
   ${OPENSSL_LIBS}
   libosdeps
@@ -477,20 +476,18 @@ target_link_libraries(service
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
-set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
-if (debug)
-  unset(STRIP_LV)
+# old behavior: remote all symbols after elfsym
+if (NOT debug)
+  set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
 endif()
 
-if (NOT debug)
-  add_custom_target(
-    pruned_elf_symbols ALL
-    COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
-    COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
-    COMMAND ${STRIP_LV}
-    DEPENDS service
-    )
-endif()
+add_custom_target(
+  pruned_elf_symbols ALL
+  COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
+  COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
+  #COMMAND ${STRIP_LV}
+  DEPENDS service
+  )
 
 # create bare metal .img: make legacy_bootloader
 add_custom_target(

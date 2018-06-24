@@ -56,15 +56,16 @@ static inline uint16_t report_size_for_mtu(uint16_t mtu)
 static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 {
   const uint16_t header = sizeof(net::Packet) + e1000::DRIVER_OFFSET;
-  if (mtu <= 2048 - header) return 2048;
+  const uint16_t total = header + sizeof(net::ethernet::VLAN_header) + mtu;
+  if (total <= 2048) return 2048;
   assert(mtu <= 9000 && "Buffers larger than 9000 are not supported");
-  return report_size_for_mtu(mtu) + header;
+  return total;
 }
 
 #define NUM_PACKET_BUFFERS (NUM_TX_DESC + NUM_RX_DESC + NUM_TX_QUEUE + 8)
 
 e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
-    Link(Link_protocol{{this, &e1000::transmit}, mac()}, bufstore_),
+    Link(Link_protocol{{this, &e1000::transmit}, mac()}),
     m_pcidev(d), m_mtu(mtu), bufstore_{NUM_PACKET_BUFFERS, buffer_size_for_mtu(mtu)}
 {
   static_assert((NUM_RX_DESC * sizeof(rx_desc)) % 128 == 0, "Ring length must be 128-byte aligned");
@@ -137,7 +138,7 @@ e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
   }
 
   // shared-memory & I/O address
-  this->shm_base = d.get_bar(0);
+  this->shm_base = d.get_bar(0).start;
   this->use_mmio = this->shm_base > 0xFFFF;
   if (this->use_mmio == false) {
       this->io_base = d.iobase();
@@ -454,7 +455,7 @@ e1000::recv_packet(uint8_t* data, uint16_t size)
   new (ptr) net::Packet(
         DRIVER_OFFSET,
         size,
-        DRIVER_OFFSET + packet_len(),
+        DRIVER_OFFSET + size,
         &bufstore());
   return net::Packet_ptr(ptr);
 }
@@ -466,7 +467,7 @@ e1000::create_packet(int link_offset)
   new (ptr) net::Packet(
         DRIVER_OFFSET + link_offset,
         0,
-        DRIVER_OFFSET + packet_len(),
+        DRIVER_OFFSET + frame_offset_link() + MTU(),
         buffer.bufstore);
   return net::Packet_ptr(ptr);
 }
@@ -587,11 +588,11 @@ uint16_t e1000::free_transmit_descr() const noexcept
 void e1000::transmit(net::Packet_ptr pckt)
 {
   if (pckt != nullptr) {
+      sendq_size += pckt->chain_length();
       if (sendq == nullptr)
         sendq = std::move(pckt);
       else
         sendq->chain(std::move(pckt));
-      sendq_size += 1;
   }
 
   // send as much as possible from sendq

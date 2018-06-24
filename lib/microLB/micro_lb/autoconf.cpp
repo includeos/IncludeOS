@@ -61,7 +61,7 @@ namespace microLB
       assert(port >= 0 && port < 65536);
       // try to construct socket from string
       net::Socket socket{
-        {addr[0].GetString()}, (uint16_t) port
+        net::ip4::Addr{addr[0].GetString()}, (uint16_t) port
       };
       balancer->nodes.add_node(netout, socket, balancer->get_pool_signal());
     }

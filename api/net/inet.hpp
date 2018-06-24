@@ -60,7 +60,7 @@ namespace net {
     using on_configured_func = delegate<void(Stack&)>;
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
 
-    using Port_utils  = std::map<IP_addr, Port_util>;
+    using Port_utils  = std::map<net::Addr, Port_util>;
     using Vip4_list = std::vector<IP4::addr>;
     using Vip6_list = std::vector<IP6::addr>;
 
@@ -88,7 +88,7 @@ namespace net {
     IP4::addr broadcast_addr() const
     { return ip4_addr_ | ( ~ netmask_); }
 
-    IP6::addr ip6_addr() const
+    const ip6::Addr& ip6_addr() const noexcept
     { return ip6_addr_; }
 
     uint8_t netmask6() const
@@ -295,9 +295,9 @@ namespace net {
       this->ip4_addr_ = IP4::ADDR_ANY;
       this->gateway_ = IP4::ADDR_ANY;
       this->netmask_ = IP4::ADDR_ANY;
-      this->ip6_addr_ = IP6::ADDR_ANY;
-      this->ip6_gateway_ = IP6::ADDR_ANY;
-      this->ip6_prefix_ = 0;
+      //this->ip6_addr_ = IP6::ADDR_ANY;
+      //this->ip6_gateway_ = IP6::ADDR_ANY;
+      //this->ip6_prefix_ = 0;
     }
 
     // register a callback for receiving signal on free packet-buffers
@@ -308,13 +308,6 @@ namespace net {
 
     size_t transmit_queue_available() {
       return nic_.transmit_queue_available();
-    }
-
-    size_t buffers_available() {
-      return nic_.buffers_available();
-    }
-    size_t buffers_total() {
-      return nic_.buffers_total();
     }
 
     void force_start_send_queues();
@@ -360,14 +353,14 @@ namespace net {
     { return vip6s_; }
 
     /** Check if IP4 address is virtual loopback */
-    bool is_loopback(IP4::addr a)
+    bool is_loopback(IP4::addr a) const
     {
       return a.is_loopback()
         or std::find( vip4s_.begin(), vip4s_.end(), a) != vip4s_.end();
     }
 
     /** Check if IP6 address is virtual loopback */
-    bool is_loopback(IP6::addr a)
+    bool is_loopback(IP6::addr a) const
     {
       return a.is_loopback()
         or std::find( vip6s_.begin(), vip6s_.end(), a) != vip6s_.end();
@@ -421,7 +414,7 @@ namespace net {
     {
 
       if (dest.is_loopback())
-        return {0,0,0,1};
+        return ip6::Addr{0,0,0,1};
 
       if (is_loopback(dest))
         return dest;
@@ -429,10 +422,13 @@ namespace net {
       return ip6_addr();
     }
 
-    bool is_valid_source(IP4::addr src)
+    bool is_valid_source(const Addr& addr) const
+    { return addr.is_v4() ? is_valid_source4(addr.v4()) : is_valid_source6(addr.v6()); }
+
+    bool is_valid_source4(IP4::addr src) const
     { return src == ip_addr() or is_loopback(src); }
 
-    bool is_valid_source(IP6::addr src)
+    bool is_valid_source6(const IP6::addr& src) const
     { return src == ip6_addr() or is_loopback(src) or src.is_multicast(); }
 
     std::shared_ptr<Conntrack>& conntrack()

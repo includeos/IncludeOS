@@ -50,19 +50,14 @@ Statman& Statman::get() {
 RTC::timestamp_t RTC::booted_at = 0;
 void RTC::init() {}
 
-/// TIMERS ///
-#include <kernel/timers.hpp>
-void Timers::timers_handler() {}
-void Timers::ready() {}
-void Timers::stop(int) {}
-void Timers::init(const start_func_t&, const stop_func_t&) {}
-Timers::id_t Timers::periodic(duration_t, duration_t, handler_t) {
-  return 0;
-}
-
 #include <service>
 const char* service_binary_name__ = "Service binary name";
 const char* service_name__        = "Service name";
+
+void Service::ready()
+{
+  printf("Service::ready() called\n");
+}
 
 extern "C"
 void kprintf(char* format, ...)
@@ -117,9 +112,6 @@ char __plugin_ctors_start;
 char __plugin_ctors_end;
 char __service_ctors_start;
 char __service_ctors_end;
-bool __libc_initialized = true;
-
-
 
 char _ELF_START_;
 char _ELF_END_;
@@ -186,8 +178,9 @@ void __arch_subscribe_irq(uint8_t) {}
 void __arch_enable_legacy_irq(uint8_t) {}
 void __arch_disable_legacy_irq(uint8_t) {}
 
+delegate<uint64_t()> systime_override = [] () -> uint64_t { return 0; };
 uint64_t __arch_system_time() noexcept {
-  return 0;
+  return systime_override();
 }
 #include <sys/time.h>
 timespec __arch_wall_clock() noexcept {

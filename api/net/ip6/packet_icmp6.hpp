@@ -16,6 +16,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#pragma once
+#ifndef PACKET_ICMP6_HPP
+#define PACKET_ICMP6_HPP
+
 #include <cstdint>
 #include <gsl/span>
 #include <net/ip6/packet_ip6.hpp>
@@ -30,7 +34,182 @@ namespace net {
 
 namespace icmp6 {
 
+  enum {
+      ND_OPT_PREFIX_INFO_END = 0,
+      ND_OPT_SOURCE_LL_ADDR = 1, /* RFC2461 */
+      ND_OPT_TARGET_LL_ADDR = 2, /* RFC2461 */
+      ND_OPT_PREFIX_INFO = 3,    /* RFC2461 */
+      ND_OPT_REDIRECT_HDR = 4,   /* RFC2461 */
+      ND_OPT_MTU = 5,            /* RFC2461 */
+      ND_OPT_NONCE = 14,         /* RFC7527 */
+      ND_OPT_ARRAY_MAX,
+      ND_OPT_ROUTE_INFO = 24,    /* RFC4191 */
+      ND_OPT_RDNSS = 25,         /* RFC5006 */
+      ND_OPT_DNSSL = 31,         /* RFC6106 */
+      ND_OPT_6CO = 34,           /* RFC6775 */
+      ND_OPT_MAX
+  };
+
   class Packet {
+
+    using ICMP_type = ICMP6_error::ICMP_type;
+    class NdpPacket {
+
+        private:
+        struct nd_options_header {
+            uint8_t type;
+            uint8_t len;
+            uint8_t payload[0];
+        } __attribute__((packed));
+
+        class NdpOptions {
+
+            private:
+            struct nd_options_header *header_;
+            struct nd_options_header *nd_opts_ri;
+            struct nd_options_header *nd_opts_ri_end;
+            struct nd_options_header *user_opts;
+            struct nd_options_header *user_opts_end;
+            std::array<struct nd_options_header*, ND_OPT_ARRAY_MAX> opt_array;
+
+            bool is_useropt(struct nd_options_header *opt)
+            {
+                if (opt->type == ND_OPT_RDNSS ||
+                    opt->type == ND_OPT_DNSSL) {
+                    return true;
+                }
+                return false;
+            }
+
+            public:
+            NdpOptions() : header_{nullptr}, nd_opts_ri{nullptr},
+                nd_opts_ri_end{nullptr}, user_opts{nullptr},
+                user_opts_end{nullptr}, opt_array{} {}
+
+            void parse(uint8_t *opt, uint16_t opts_len);
+            struct nd_options_header *get_header(uint8_t &opt)
+            {
+                return reinterpret_cast<struct nd_options_header*>(opt);
+            }
+
+            uint8_t *get_option_data(uint8_t option)
+            {
+                if (option < ND_OPT_ARRAY_MAX) {
+                    if (opt_array[option]) {
+                        return static_cast<uint8_t*> (opt_array[option]->payload);
+                    }
+                }
+                return NULL;
+            }
+        };
+
+        struct RouterSol
+        {
+          uint8_t  options[0];
+
+          uint16_t option_offset()
+          { return 0; }
+
+        } __attribute__((packed));
+
+        struct RouterAdv
+        {
+          uint32_t reachable_time;
+          uint32_t retrans_timer;
+
+          uint16_t option_offset()
+          { return 0; }
+
+        } __attribute__((packed));
+
+        struct RouterRedirect
+        {
+          IP6::addr target;
+          IP6::addr dest;
+          uint8_t  options[0];
+
+          uint16_t option_offset()
+          { return IP6_ADDR_BYTES * 2; }
+
+        } __attribute__((packed));
+
+        struct NeighborSol
+        {
+          IP6::addr target;
+          uint8_t   options[0];
+
+          IP6::addr get_target()
+          { return target; }
+
+          uint16_t option_offset()
+          { return IP6_ADDR_BYTES; }
+
+        } __attribute__((packed));
+
+        struct NeighborAdv
+        {
+          IP6::addr target;
+          uint8_t   options[0];
+
+          IP6::addr get_target()
+          { return target; }
+
+          uint16_t option_offset()
+          { return IP6_ADDR_BYTES; }
+
+        } __attribute__((packed));
+
+        Packet&    icmp6_;
+        NdpOptions ndp_opt_;
+
+        public:
+
+        NdpPacket(Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {}
+
+        void parse(icmp6::Type type);
+
+        RouterSol& router_sol()
+        { return *reinterpret_cast<RouterSol*>(&(icmp6_.header().payload[0])); }
+
+        RouterAdv& router_adv()
+        { return *reinterpret_cast<RouterAdv*>(&(icmp6_.header().payload[0])); }
+
+        RouterRedirect& router_redirect()
+        { return *reinterpret_cast<RouterRedirect*>(&(icmp6_.header().payload[0])); }
+
+        NeighborSol& neighbour_sol()
+        { return *reinterpret_cast<NeighborSol*>(&(icmp6_.header().payload[0])); }
+
+        NeighborAdv& neighbour_adv()
+        { return *reinterpret_cast<NeighborAdv*>(&(icmp6_.header().payload[0])); }
+
+        bool is_flag_router()
+        { return icmp6_.header().rso_flags & NEIGH_ADV_ROUTER; }
+
+        bool is_flag_solicited()
+        { return icmp6_.header().rso_flags & NEIGH_ADV_SOL; }
+
+        bool is_flag_override()
+        { return icmp6_.header().rso_flags &  NEIGH_ADV_OVERRIDE; }
+
+        void set_neighbour_adv_flag(uint32_t flag)
+        { icmp6_.header().rso_flags = htonl(flag << 28); }
+
+        void set_ndp_options_header(uint8_t type, uint8_t len)
+        {
+            struct nd_options_header header;
+            header.type = type;
+            header.len = len;
+
+            icmp6_.add_payload(reinterpret_cast<uint8_t*>(&header),
+                               sizeof header);
+        }
+
+        uint8_t* get_option_data(int opt)
+        {
+            return ndp_opt_.get_option_data(opt);
+        }
+    };
 
     struct IdSe {
       uint16_t identifier;
@@ -38,7 +217,7 @@ namespace icmp6 {
     };
 
     struct Header {
-      Type  type;
+      Type     type;
       uint8_t  code;
       uint16_t checksum;
       union {
@@ -50,10 +229,10 @@ namespace icmp6 {
     }__attribute__((packed));
 
     Header& header()
-    { return *reinterpret_cast<Header*>(pckt_->layer_begin() + pckt_->ip_header_len()); }
+    { return *reinterpret_cast<Header*>(pckt_->payload()); }
 
     const Header& header() const
-    { return *reinterpret_cast<Header*>(pckt_->layer_begin() + pckt_->ip_header_len()); }
+    { return *reinterpret_cast<Header*>(pckt_->payload()); }
 
     struct pseudo_header
     {
@@ -62,48 +241,6 @@ namespace icmp6 {
       uint32_t  len;
       uint8_t   zeros[3];
       uint8_t   next;
-    } __attribute__((packed));
-
-    struct nd_options_header {
-        uint8_t type;
-        uint8_t len;
-    } __attribute__((packed));
-
-    struct RouterSol
-    {
-      uint8_t  options[0];
-    } __attribute__((packed));
-
-    struct RouterAdv
-    {
-        uint32_t reachable_time;
-        uint32_t retrans_timer;
-    } __attribute__((packed));
-
-    struct RouterRedirect
-    {
-      IP6::addr target;
-      IP6::addr dest;
-      uint8_t  options[0];
-    } __attribute__((packed));
-
-    struct NeighborSol
-    {
-      IP6::addr target;
-      uint8_t   options[0];
-
-      IP6::addr get_target()
-      { return target; }
-
-    } __attribute__((packed));
-
-    struct NeighborAdv
-    {
-      IP6::addr target;
-      uint8_t   options[0];
-
-      void set_target(IP6::addr tar)
-      { target = tar; }
     } __attribute__((packed));
 
   public:
@@ -128,37 +265,28 @@ namespace icmp6 {
     uint16_t sequence() const noexcept
     { return header().idse.sequence; }
 
+    uint16_t payload_len() const noexcept
+    { return pckt_->size() - (pckt_->ip_header_len() + header_size()); }
+
     /**
      *  Where the payload of an ICMP packet starts, calculated from the start of the IP header
      *  The payload of an ICMP error message packet contains the original packet sent that caused an
      *  ICMP error to occur (the original IP header and 8 bytes of the original packet's data)
      */
-    int payload_index()
+    int payload_index() const
     { return pckt_->ip_header_len() + header_size(); }
 
     Span payload()
-    { return {&(header().payload[0 + payload_offset_]), pckt_->data_end() - &(header().payload[0 + payload_offset_]) }; }
+    {
+      auto* icmp_pl = &header().payload[payload_offset_];
+      return {icmp_pl, pckt_->data_end() - icmp_pl };
+    }
 
     /** Several ICMP messages require the payload to be the header and 64 bits of the
      *  data of the original datagram
      */
     Span header_and_data()
     { return {pckt_->layer_begin(), pckt_->ip_header_len() + 8}; }
-
-    RouterSol& router_sol()
-    { return *reinterpret_cast<RouterSol*>(&(header().payload[0])); }
-
-    RouterAdv& router_adv()
-    { return *reinterpret_cast<RouterAdv*>(&(header().payload[0])); }
-
-    RouterRedirect& router_redirect()
-    { return *reinterpret_cast<RouterRedirect*>(&(header().payload[0])); }
-
-    NeighborSol& neighbor_sol()
-    { return *reinterpret_cast<NeighborSol*>(&(header().payload[0])); }
-
-    NeighborAdv& neighbor_adv()
-    { return *reinterpret_cast<NeighborAdv*>(&(header().payload[0])); }
 
     void set_type(Type t) noexcept
     { header().type = t; }
@@ -247,36 +375,25 @@ namespace icmp6 {
       header().checksum = compute_checksum();;
     }
 
-    void set_neighbor_adv_flag(uint32_t flag)
-    { header().rso_flags = htonl(flag << 28); }
-
-    void set_ndp_options_header(uint8_t type, uint8_t len)
+    void add_payload(const void* new_load, const size_t len)
     {
-        struct nd_options_header ndo;
-        ndo.type = type;
-        ndo.len = len;
-        set_payload({reinterpret_cast<uint8_t*> (&ndo), sizeof ndo});
-    }
-
-    void set_payload(Span new_load)
-    {
-      pckt_->set_data_end(pckt_->ip_header_len() + header_size() + payload_offset_ + new_load.size());
-      memcpy(payload().data(), new_load.data(), payload().size());
-      payload_offset_ += payload().size();
+      pckt_->increment_data_end(len);
+      memcpy(payload().data(), new_load, len);
+      payload_offset_ += len;
     }
 
     /** Get the underlying IP packet */
-    IP6::IP_packet& ip() const
-    { return *pckt_.get(); }
+    IP6::IP_packet& ip() { return *pckt_; }
+    const IP6::IP_packet& ip() const { return *pckt_; }
 
     /** Construct from existing packet **/
     Packet(IP6::IP_packet_ptr pckt)
-      : pckt_{ std::move(pckt) }, payload_offset_{0}
-    {  }
+      : pckt_{ std::move(pckt) }, ndp_(*this)
+    { }
 
     /** Provision fresh packet from factory **/
     Packet(IP6::IP_packet_factory create)
-      : pckt_{create(Protocol::ICMPv6)}, payload_offset_{0}
+      : pckt_ { create(Protocol::ICMPv6) }, ndp_(*this)
     {
       pckt_->increment_data_end(sizeof(Header));
     }
@@ -285,9 +402,14 @@ namespace icmp6 {
     IP6::IP_packet_ptr release()
     { return std::move(pckt_); }
 
+    NdpPacket& ndp()
+    { return ndp_; }
+
   private:
     IP6::IP_packet_ptr pckt_;
-    uint16_t payload_offset_;
+    NdpPacket          ndp_;
+    uint16_t payload_offset_ = 0;
   };
 }
 }
+#endif //< PACKET_ICMP6_HPP

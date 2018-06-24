@@ -142,7 +142,7 @@ namespace net {
     /// broadcast our DHCP plea as 0.0.0.0:67
     socket->bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, buffer, sizeof(buffer));
     socket->on_read(
-    [this] (IP4::addr addr, UDP::port_t port,
+    [this] (net::Addr addr, UDP::port_t port,
                      const char* data, size_t len)
     {
       if (port == DHCP_SERVER_PORT)
@@ -150,7 +150,7 @@ namespace net {
         // we have got a DHCP Offer
         (void) addr;
         PRINT("Received possible DHCP OFFER from %s\n",
-               addr.str().c_str());
+               addr.to_string().c_str());
         this->offer(data, len);
       }
     });
@@ -292,7 +292,7 @@ namespace net {
     assert(this->socket);
     // set our onRead function to point to a hopeful DHCP ACK!
     socket->on_read(
-    [this] (IP4::addr addr, UDP::port_t port,
+    [this] (net::Addr addr, UDP::port_t port,
           const char* data, size_t len)
     {
       if (port == DHCP_SERVER_PORT)
@@ -300,7 +300,7 @@ namespace net {
         (void) addr;
         // we have hopefully got a DHCP Ack
         PRINT("\tReceived DHCP ACK from %s:%d\n",
-          addr.str().c_str(), DHCP_SERVER_PORT);
+          addr.to_string().c_str(), DHCP_SERVER_PORT);
         this->acknowledge(data, len);
       }
     });

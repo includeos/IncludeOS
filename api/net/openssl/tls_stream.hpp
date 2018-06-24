@@ -25,7 +25,6 @@ namespace openssl
     void write(const std::string&) override;
     void write(const void* buf, size_t n) override;
     void close() override;
-    void abort() override;
     void reset_callbacks() override;
 
     net::Socket local() const override {
@@ -139,9 +138,7 @@ namespace openssl
   }
   inline TLS_stream::~TLS_stream()
   {
-    this->reset_callbacks();
-    if (m_transport->is_connected())
-        m_transport->close();
+    assert(m_busy == false && "Cannot delete stream while in its call stack");
     SSL_free(this->m_ssl);
   }
 
@@ -314,9 +311,9 @@ namespace openssl
 
   inline void TLS_stream::close()
   {
-    ERR_clear_error();
+    //ERR_clear_error();
     if (this->m_busy) {
-      m_deferred_close = true; return;
+      this->m_deferred_close = true; return;
     }
     CloseCallback func = std::move(this->m_on_close);
     this->reset_callbacks();
@@ -326,14 +323,12 @@ namespace openssl
   }
   inline void TLS_stream::close_callback_once()
   {
+    if (this->m_busy) {
+      this->m_deferred_close = true; return;
+    }
     CloseCallback func = std::move(this->m_on_close);
     this->reset_callbacks();
     if (func) func();
-  }
-  inline void TLS_stream::abort()
-  {
-    m_transport->abort();
-    this->close();
   }
   inline void TLS_stream::reset_callbacks()
   {

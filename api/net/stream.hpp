@@ -109,11 +109,6 @@ namespace net {
     virtual void close() = 0;
 
     /**
-     * @brief      Aborts (terminates) the stream.
-     */
-    virtual void abort() = 0;
-
-    /**
      * @brief      Resets all callbacks.
      */
     virtual void reset_callbacks() = 0;
