@@ -158,6 +158,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
   ${TEST}/util/unit/lstack.cpp
+  ${TEST}/util/unit/buddy.cpp
 )
 
 set(OS_SOURCES
