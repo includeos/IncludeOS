@@ -21,24 +21,10 @@ set(NACL_SRC
   ${NACL_DIR}/cpp_template.mustache
   ${NACL_DIR}/shared.py
   )
-set(NACL_SUBTRANS_SRC
-  ${NACL_DIR}/subtranspilers/__init__.py
-  ${NACL_DIR}/subtranspilers/function_transpiler.py
-  ${NACL_DIR}/subtranspilers/value_transpiler.py
-  )
-set(NACL_TYPEPROC_SRC
-  ${NACL_DIR}/type_processors/__init__.py
-  ${NACL_DIR}/type_processors/conntrack.py
-  ${NACL_DIR}/type_processors/function.py
-  ${NACL_DIR}/type_processors/gateway.py
-  ${NACL_DIR}/type_processors/iface.py
-  ${NACL_DIR}/type_processors/load_balancer.py
-  ${NACL_DIR}/type_processors/syslog.py
-  )
 set(NACL_BIN ${CMAKE_CURRENT_BINARY_DIR}/nacl_bin/src/nacl_bin)
 
 install(PROGRAMS ${NACL_EXE} DESTINATION includeos/nacl)
 install(FILES ${NACL_SRC} DESTINATION includeos/nacl)
-install(FILES ${NACL_SUBTRANS_SRC} DESTINATION includeos/nacl/subtranspilers)
-install(FILES ${NACL_TYPEPROC_SRC} DESTINATION includeos/nacl/type_processors)
+install(DIRECTORY ${NACL_DIR}/subtranspilers DESTINATION includeos/nacl)
+install(DIRECTORY ${NACL_DIR}/type_processors DESTINATION includeos/nacl)
 install(DIRECTORY ${NACL_BIN}/ DESTINATION includeos/nacl)
