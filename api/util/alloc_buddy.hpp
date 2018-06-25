@@ -72,13 +72,10 @@ namespace mem::buddy {
    **/
   template <bool Track_allocs = false>
   struct Alloc {
-    using Size_t = Size_t;
-    using Addr_t = Addr_t;
+    static constexpr mem::buddy::Size_t min_size  = 4096;
+    static constexpr mem::buddy::Size_t align = min_size;
 
-    static constexpr Size_t min_size  = 4096;
-    static constexpr Size_t align = min_size;
-
-    static constexpr Index_t node_count(Size_t pool_size){
+    static constexpr Index_t node_count(mem::buddy::Size_t pool_size){
       return ((pool_size / min_size) * 2) - 1;
     }
 

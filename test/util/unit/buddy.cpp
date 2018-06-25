@@ -20,8 +20,6 @@
 #include <valarray>
 #include <util/alloc_buddy.hpp>
 
-
-
 struct Pool {
   using Alloc = mem::buddy::Alloc<true>;
 
@@ -195,8 +193,8 @@ CASE("mem::buddy random ordered allocation then deallocation"){
 
 struct Allocation {
   using Alloc  = Pool::Alloc;
-  using Addr_t = typename Alloc::Addr_t;
-  using Size_t = typename Alloc::Size_t;
+  using Addr_t = mem::buddy::Addr_t;
+  using Size_t = mem::buddy::Size_t;
 
   Addr_t addr = 0;
   Size_t size = 0;
