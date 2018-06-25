@@ -49,7 +49,8 @@
  *
  **/
 
-#include <net/ip4/ip4.hpp> // IP4::addr
+#include <net/ip4/addr.hpp> // ip4::Addr
+#include <delegate>
 #include <string>
 #include <vector>
 
@@ -124,7 +125,7 @@ namespace net
         OP_REFUSED   = 5, // for political reasons
       };
 
-    typedef delegate<std::vector<IP4::addr>* (const std::string&)> lookup_func;
+    typedef delegate<std::vector<ip4::Addr>* (const std::string&)> lookup_func;
 
     static int createResponse(header& hdr, lookup_func func);
 
@@ -158,7 +159,7 @@ namespace net
         return this->hostname_;
       }
 
-      IP4::addr getFirstIP4() const
+      ip4::Addr getFirstIP4() const
       {
         for(auto&& ans : answers)
         {
@@ -166,7 +167,7 @@ namespace net
             return ans.getIP4();
         }
 
-        return IP4::ADDR_ANY;
+        return ip4::Addr::addr_any;
       }
 
       id_t get_id() const
@@ -181,7 +182,7 @@ namespace net
         std::string rdata;
         rr_data resource;
 
-        IP4::addr getIP4() const;
+        ip4::Addr getIP4() const;
         void      print()  const;
 
         bool is_type(int type) const

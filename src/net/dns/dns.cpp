@@ -15,7 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
+//#define DNS_DEBUG 1
+#ifdef DNS_DEBUG
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
 #include <common>
 #include <net/dns/dns.hpp>
 #include <net/util.hpp>
@@ -43,12 +48,12 @@ namespace net
 
   int DNS::createResponse(DNS::header& hdr, DNS::lookup_func lookup)
   {
-    debug("Request ID: %i \n", htons(hdr.id));
-    debug("\t Type: %s \n", (hdr.qr ? "RESPONSE" : "QUERY"));
+    PRINT("Request ID: %i \n", htons(hdr.id));
+    PRINT("\t Type: %s \n", (hdr.qr ? "RESPONSE" : "QUERY"));
 
-#ifdef DEBUG
+#ifdef DNS_DEBUG
     unsigned short qno = ntohs(hdr.q_count);
-    debug("Questions: %i \n ", qno);
+    PRINT("Questions: %i \n ", qno);
 #endif
 
     char* buffer = (char*) &hdr + sizeof(header);
@@ -57,17 +62,17 @@ namespace net
     char* query = buffer;
 
     std::string parsed_query = parse_dns_query((unsigned char*) query);
-    debug("Question: %s\n", parsed_query.c_str());
+    PRINT("Question: %s\n", parsed_query.c_str());
 
     buffer += parsed_query.size() + 1; // zero-terminated
 
-#ifdef DEBUG
+#ifdef DNS_DEBUG
     question& q = *(question*) buffer;
     unsigned short qtype  = ntohs(q.qtype);
     unsigned short qclass = ntohs(q.qclass);
 
-    debug("Type:  %s (%i)",DNS::question_string(qtype).c_str(), qtype);
-    debug("\t Class: %s (%i)",((qclass == 1) ? "INET" : "Unknown class"),qclass);
+    PRINT("Type:  %s (%i)",DNS::question_string(qtype).c_str(), qtype);
+    PRINT("\t Class: %s (%i)",((qclass == 1) ? "INET" : "Unknown class"),qclass);
 #endif
 
     // go to next question (assuming 1 question!!!!)
@@ -89,21 +94,21 @@ namespace net
     hdr.auth_count = 0;
     hdr.add_count  = 0;
 
-    std::vector<IP4::addr>* addrs = lookup(parsed_query);
+    std::vector<ip4::Addr>* addrs = lookup(parsed_query);
     if (addrs == nullptr)
       {
         // not found
-        debug("*** Could not find: %s", parsed_query.c_str());
+        PRINT("*** Could not find: %s", parsed_query.c_str());
         hdr.ans_count = 0;
         hdr.rcode     = DNS::NO_ERROR;
       }
     else
       {
-        debug("*** Found %lu results for %s", addrs->size(), parsed_query.c_str());
+        PRINT("*** Found %lu results for %s", addrs->size(), parsed_query.c_str());
         // append answers
         for (auto addr : *addrs)
           {
-            debug("*** Result: %s", addr.str().c_str());
+            PRINT("*** Result: %s", addr.str().c_str());
             // add query
             int qlen = parsed_query.size() + 1;
             memcpy(buffer, query, qlen);
@@ -116,14 +121,14 @@ namespace net
             data->type     = htons(DNS_TYPE_A);
             data->_class   = htons(DNS_CLASS_INET);
             data->ttl      = htons(0x7FFF); // just because
-            data->data_len = htons(sizeof(IP4::addr));
+            data->data_len = htons(sizeof(ip4::Addr));
             buffer += sizeof(rr_data);
 
             // add resource itself
-            *((IP4::addr*) buffer) = addr; // IPv4 address
-            buffer += sizeof(IP4::addr);
+            *((ip4::Addr*) buffer) = addr; // IPv4 address
+            buffer += sizeof(ip4::Addr);
 
-            packetlen += sizeof(rr_data) + sizeof(IP4::addr); // (!)
+            packetlen += sizeof(rr_data) + sizeof(ip4::Addr); // (!)
           } // addr
 
         // set dns header answer count (!)
@@ -276,15 +281,15 @@ namespace net
       }
   }
 
-  IP4::addr DNS::Request::rr_t::getIP4() const
+  ip4::Addr DNS::Request::rr_t::getIP4() const
   {
     switch (ntohs(resource.type)) {
     case DNS_TYPE_A:
-      return *(IP4::addr*) rdata.data();
+      return *(ip4::Addr*) rdata.data();
     case DNS_TYPE_ALIAS:
     case DNS_TYPE_NS:
     default:
-      return IP4::ADDR_ANY;
+      return ip4::Addr::addr_any;
     }
   }
 
@@ -295,7 +300,7 @@ namespace net
       {
       case DNS_TYPE_A:
         {
-          auto* addr = (IP4::addr*) rdata.data();
+          auto* addr = (ip4::Addr*) rdata.data();
           printf("has IPv4 address: %s", addr->str().c_str());
         }
         break;
