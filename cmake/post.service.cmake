@@ -326,8 +326,11 @@ set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INSTALL_LOC}/${
 
 # libgcc/compiler-rt detection
 if (UNIX)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      set(TARGET_LINE --target=${TRIPLE})
+  endif()
   execute_process(
-      COMMAND ${CMAKE_CXX_COMPILER} --target=${TRIPLE} --print-libgcc-file-name
+      COMMAND ${CMAKE_CXX_COMPILER} ${TARGET_LINE} --print-libgcc-file-name
       RESULT_VARIABLE CC_RT_RES
       OUTPUT_VARIABLE COMPILER_RT_FILE OUTPUT_STRIP_TRAILING_WHITESPACE)
   if (NOT ${CC_RT_RES} EQUAL 0)
