@@ -26,10 +26,10 @@ namespace net {
   class Slaac
   {
   public:
-    static const int NUM_RETRIES = 1;
-    static const int INTERVAL = 1;
-    static const int MAX_RTR_SOLICITATIONS = 5;
-    static const int RTR_SOLICITATION_INTERVAL = 5;
+    static const int LINKLOCAL_RETRIES = 1;
+    static const int LINKLOCAL_INTERVAL = 1;
+    static const int GLOBAL_RETRIES = 5;
+    static const int GLOBAL_INTERVAL = 5;
 
     using Stack = IP6::Stack;
     using config_func = delegate<void(bool)>;
@@ -41,7 +41,8 @@ namespace net {
     // autoconfigure linklocal and global address
     void autoconf_start(int retries,
             IP6::addr alternate_addr = IP6::ADDR_ANY);
-    void autoconf();
+    void autoconf_linklocal();
+    void autoconf_global();
     void autoconf_trigger();
     void on_config(config_func handler);
 
@@ -51,8 +52,7 @@ namespace net {
     IP6::addr    tentative_addr_;
     uint32_t     lease_time;
     // Number of times to attempt DAD
-    int          dad_retransmits_ = NUM_RETRIES;
-    int          progress = 0;
+    int          dad_retransmits_ = LINKLOCAL_RETRIES;
     Timer        timeout_timer_;
     std::vector<config_func> config_handlers_;
     std::chrono::milliseconds interval;

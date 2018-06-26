@@ -232,6 +232,12 @@ namespace net
     send_neighbour_advertisement(req);
   }
 
+  void Ndp::send_router_solicitation(RouterAdv_handler delg)
+  {
+    ra_handler_ = delg;
+    send_router_solicitation();
+  }
+
   void Ndp::send_router_solicitation()
   {
     icmp6::Packet req(inet_.ip6_packet_factory());
@@ -298,6 +304,8 @@ namespace net
         /* Called if autoconfig option is set */
         /* Append mac addres to get a valid address */
         prefix.set(this->inet_.link_addr());
+        if (ra_handler_) {
+        }
       }, [] (ip6::Addr prefix)
       {
         /* Called if onlink is set */

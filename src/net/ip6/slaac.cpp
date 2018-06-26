@@ -32,8 +32,8 @@
 
 namespace net
 {
-  const int Slaac::NUM_RETRIES;
-  const int Slaac::INTERVAL;
+  const int Slaac::LINKLOCAL_RETRIES;
+  const int Slaac::LINKLOCAL_INTERVAL;
 
   Slaac::Slaac(Stack& inet)
     : stack(inet),
@@ -61,40 +61,56 @@ namespace net
 
   void Slaac::autoconf_trigger()
   {
-    if (dad_retransmits_-- <= 0)
-    {
-      // Success. No address collision
-      stack.ndp().dad_completed();
-      stack.network_config6(tentative_addr_, 64, tentative_addr_ & 64);
-      PRINT("Auto-configuring ip6-address %s for stack %s\n",
-          tentative_addr_.str().c_str(), stack.ifname().c_str());
-      for(auto& handler : this->config_handlers_)
-        handler(true);
-    }
-    else
-    {
-      timeout_timer_.start(interval);
-      autoconf();
+    static bool linklocal_completed = false;
+
+    if (!linklocal_completed) {
+      if (dad_retransmits_-- <= 0) {
+        // Success. No address collision
+        stack.ndp().dad_completed();
+        stack.network_config6(tentative_addr_, 64, tentative_addr_ & 64);
+        PRINT("Auto-configuring ip6-address %s for stack %s\n",
+            tentative_addr_.str().c_str(), stack.ifname().c_str());
+        linklocal_completed = true;
+
+        // Start global address autoconfig
+        using namespace std::chrono;
+        dad_retransmits_ = GLOBAL_RETRIES;
+        interval = milliseconds(GLOBAL_INTERVAL);
+        timeout_timer_.start(interval);
+        auto delay = milliseconds(rand() % (GLOBAL_INTERVAL * 1000));
+        timeout_timer_.start(delay);
+      } else {
+        timeout_timer_.start(interval);
+        autoconf_linklocal();
+      }
+    } else {
+      if (dad_retransmits_-- <= 0) {
+        // Success. No address collision
+        stack.ndp().dad_completed();
+        stack.network_config6(tentative_addr_, 64, tentative_addr_ & 64);
+        PRINT("Auto-configuring ip6-address %s for stack %s\n",
+            tentative_addr_.str().c_str(), stack.ifname().c_str());
+        for(auto& handler : this->config_handlers_)
+          handler(true);
+      } else {
+        timeout_timer_.start(interval);
+        autoconf_linklocal();
+      }
     }
   }
 
   void Slaac::autoconf_start(int retries, IP6::addr alternate_addr)
   {
-
-    std::chrono::milliseconds delay;
     tentative_addr_ = {0xFE80,  0, 0, 0, 0, 0, 0, 0};
     alternate_addr_ = alternate_addr;
 
     tentative_addr_.set(stack.link_addr());
 
-    this->dad_retransmits_ = retries ? retries : NUM_RETRIES;
-    this->progress = 0;
-
-    // Schedule sending of auto-config for random delay
-    // between 0 and MAX_RTR_SOLICITATION_DELAY
+    // Schedule sending of solicitations for random delay
     using namespace std::chrono;
-    this->interval = milliseconds(INTERVAL);
-    delay = milliseconds(rand() % (INTERVAL * 1000));
+    this->dad_retransmits_ = retries ? retries : LINKLOCAL_RETRIES;
+    this->interval = milliseconds(LINKLOCAL_INTERVAL);
+    auto delay = milliseconds(rand() % (LINKLOCAL_INTERVAL * 1000));
     PRINT("Auto-configuring tentative ip6-address %s for %s "
         "with interval:%u and delay:%u ms\n",
            tentative_addr_.str().c_str(), stack.ifname().c_str(),
@@ -102,7 +118,7 @@ namespace net
     timeout_timer_.start(delay);
   }
 
-  void Slaac::autoconf()
+  void Slaac::autoconf_linklocal()
   {
     // Perform DAD
     stack.ndp().perform_dad(tentative_addr_,
@@ -117,7 +133,24 @@ namespace net
           handler(false);
       }
     });
+    /* Try to get a global address */
+  }
 
+  void Slaac::autoconf_global()
+  {
+    // Perform DAD
+    stack.ndp().perform_dad(tentative_addr_,
+      [this] () {
+      if(alternate_addr_ != IP6::ADDR_ANY &&
+        alternate_addr_ != tentative_addr_) {
+        tentative_addr_ = alternate_addr_;
+        dad_retransmits_ = 1;
+      } else {
+        /* DAD has failed. */
+        for(auto& handler : this->config_handlers_)
+          handler(false);
+      }
+    });
     /* Try to get a global address */
   }
 }

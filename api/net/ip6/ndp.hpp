@@ -54,6 +54,7 @@ namespace net {
     using Route_checker = delegate<bool(IP6::addr)>;
     using Ndp_resolver = delegate<void(IP6::addr)>;
     using Dad_handler = delegate<void()>;
+    using RouterAdv_handler = delegate<void()>;
     using ICMP_type = ICMP6_error::ICMP_type;
 
     /** Number of resolution retries **/
@@ -73,6 +74,7 @@ namespace net {
     void send_neighbour_solicitation(IP6::addr target);
     void send_neighbour_advertisement(icmp6::Packet& req);
     void send_router_solicitation();
+    void send_router_solicitation(RouterAdv_handler delg);
     void send_router_advertisement();
 
     /** Roll your own ndp-resolution system. */
@@ -231,8 +233,9 @@ namespace net {
     Timer flush_timer_ {{ *this, &Ndp::flush_expired }};
 
     Stack& inet_;
-    Route_checker proxy_ = nullptr;
-    Dad_handler   dad_handler_ = nullptr;
+    Route_checker     proxy_ = nullptr;
+    Dad_handler       dad_handler_ = nullptr;
+    RouterAdv_handler ra_handler_ = nullptr;
 
     MAC::Addr mac_;
     IP6::addr tentative_addr_ = IP6::ADDR_ANY;
@@ -247,7 +250,7 @@ namespace net {
     PacketQueue waiting_packets_;
 
     // Prefix List
-    PrefixList prefix_list_; 
+    PrefixList prefix_list_;
 
     // Settable resolver - defualts to ndp_resolve
     Ndp_resolver ndp_resolver_ = {this, &Ndp::ndp_resolve};
