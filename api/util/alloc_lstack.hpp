@@ -127,8 +127,8 @@ public:
 
 private:
   Chunk* new_chunk(void* addr_begin, Chunk* next, size_t sz){
-    Expects((sz & align - 1) == 0);
-    Expects(((uintptr_t)addr_begin & align - 1) == 0);
+    Expects((sz & (align - 1)) == 0);
+    Expects(((uintptr_t)addr_begin & (align - 1)) == 0);
     return new ((Chunk*)addr_begin) Chunk(next, sz);
   }
 

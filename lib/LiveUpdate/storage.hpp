@@ -153,7 +153,7 @@ private:
   void zero();
 
   uint64_t magic;
-  mutable uint32_t crc;
+  mutable uint32_t crc = 0;
   uint32_t entries = 0;
   uint32_t length  = 0;
   std::array<partition_header, 16> ptable;

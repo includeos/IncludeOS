@@ -103,7 +103,7 @@ namespace net::tcp
       auto onclose = std::move(this->m_on_close);
       m_tcp->reset_callbacks();
       m_tcp->close();
-      onclose();
+      if (onclose) onclose();
     }
 
     /**
