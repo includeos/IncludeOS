@@ -76,7 +76,7 @@ namespace uplink {
   WS_uplink::WS_uplink(Config config)
     : config_{std::move(config)},
       inet_{*config_.inet},
-      id_{inet_.link_addr().to_string()},
+      id_{__arch_system_info().uuid},
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
