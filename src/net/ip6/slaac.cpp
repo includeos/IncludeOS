@@ -27,6 +27,9 @@
 #include <net/ip6/slaac.hpp>
 #include <statman>
 
+#include <info>
+#define MYINFO(X,...) INFO("SLAAC",X,##__VA_ARGS__)
+
 namespace net
 {
   const int Slaac::NUM_RETRIES;
@@ -62,6 +65,9 @@ namespace net
     {
       // Success. No address collision
       stack.ndp().dad_completed();
+      stack.network_config6(tentative_addr_, 64, tentative_addr_ & 64);
+      PRINT("Auto-configuring ip6-address %s for stack %s\n",
+          tentative_addr_.str().c_str(), stack.ifname().c_str());
       for(auto& handler : this->config_handlers_)
         handler(true);
     }

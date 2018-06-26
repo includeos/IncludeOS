@@ -26,11 +26,11 @@ using namespace net;
 void Service::start(const std::string&)
 {
   net::Inet::ifconfig6([](bool completed) {
-      if (!completed)
-        panic("Auto-configuration of IP address failed");
-
-      INFO("Slaac test", "Got IP from Auto-configuration");
-      printf("%s\n", net::Inet::stack<0>().ip6_addr().str().c_str());
-    });
+    if (!completed) {
+       panic("Auto-configuration of IP address failed");
+    }
+    INFO("Slaac test", "Got IP from Auto-configuration");
+    printf("%s\n", net::Inet::stack<0>().ip6_addr().str().c_str());
+  });
   INFO("Slaac test", "Waiting for Auto-configuration\n");
 }
