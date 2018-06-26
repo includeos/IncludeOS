@@ -310,12 +310,9 @@ namespace mem {
     using namespace util::bitops;
     const auto flags = os::mem::Access::read | os::mem::Access::write;
     // setup @dst as new virt area for @src
-    printf("mem::map\n");
     os::mem::map({dst, src, flags, size}, label);
     // unpresent @src
-    printf("mem::protect\n");
     os::mem::protect(src, size, os::mem::Access::none);
-    printf("done\n");
   }
 }}
 
