@@ -101,9 +101,10 @@ namespace net::tcp
     void close() override
     {
       auto onclose = std::move(this->m_on_close);
+      this->m_on_close.reset();
       m_tcp->reset_callbacks();
       m_tcp->close();
-      onclose();
+      if (onclose) onclose();
     }
 
     /**

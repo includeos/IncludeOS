@@ -45,7 +45,7 @@ struct Header {
 }; //< struct Header
 
 
-struct ExtensionHeader
+struct extension_header
 {
   uint8_t  next_header;
   uint8_t  hdr_ext_len;
@@ -58,7 +58,7 @@ struct ExtensionHeader
   }
   uint8_t size() const
   {
-    return sizeof(ExtensionHeader) + hdr_ext_len;
+    return sizeof(extension_header) + hdr_ext_len;
   }
   uint8_t extended() const
   {

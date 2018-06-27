@@ -69,6 +69,7 @@ namespace net {
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using PMTU = uint16_t;
     using resolve_func = delegate<void(IP4::addr, const Error&)>;
+    using netmask = ip4::Addr;
 
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Stack&) noexcept;

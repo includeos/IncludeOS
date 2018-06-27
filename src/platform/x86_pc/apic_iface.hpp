@@ -26,9 +26,6 @@ namespace x86 {
 
   class IApic {
   public:
-    virtual uint32_t read (uint32_t reg) noexcept = 0;
-    virtual void     write(uint32_t reg, uint32_t value) noexcept = 0;
-
     virtual const char* name() const noexcept = 0;
     virtual uint32_t get_id()  noexcept = 0;
     virtual uint32_t version() noexcept = 0;

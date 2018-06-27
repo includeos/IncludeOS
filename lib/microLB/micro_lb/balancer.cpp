@@ -73,8 +73,15 @@ namespace microLB
       auto& client = queue.front();
       if (client.conn->is_connected()) {
         // NOTE: explicitly want to copy buffers
-        if (nodes.assign(std::move(client.conn), client.readq)) {
+        net::Stream_ptr rval =
+            nodes.assign(std::move(client.conn), client.readq);
+        if (rval == nullptr) {
+          // done with this queue item
           queue.pop_front();
+        }
+        else {
+          // put connection back in queue item
+          client.conn = std::move(rval);
         }
       }
       else {
@@ -153,7 +160,7 @@ namespace microLB
       }
     }
   }
-  bool Nodes::assign(net::Stream_ptr conn, queue_vector_t& readq)
+  net::Stream_ptr Nodes::assign(net::Stream_ptr conn, queue_vector_t& readq)
   {
     for (size_t i = 0; i < nodes.size(); i++)
     {
@@ -173,10 +180,10 @@ namespace microLB
           LBOUT("*** Flushing %lu bytes\n", buffer->size());
           session.outgoing->write(buffer);
         }
-        return true;
+        return nullptr;
       }
     }
-    return false;
+    return std::move(conn);
   }
   size_t Nodes::size() const noexcept {
     return nodes.size();

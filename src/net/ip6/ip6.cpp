@@ -90,34 +90,34 @@ namespace net
       or local_ip() == ADDR_ANY;
   }
 
-  Protocol IP6::ipv6_ext_header_receive(net::PacketIP6& packet)
+  void PacketIP6::calculate_payload_offset()
   {
-    auto reader = packet.layer_begin() + IP6_HEADER_LEN;
-    auto next_proto = packet.next_protocol();
-    ip6::ExtensionHeader& ext = *(ip6::ExtensionHeader*)reader;
-    uint8_t ext_len;
+    auto reader = this->layer_begin() + IP6_HEADER_LEN;
+    auto next_proto = this->next_protocol();
+    uint16_t pl_off = IP6_HEADER_LEN;
 
-    while (next_proto != Protocol::IPv6_NONXT) {
-        if (next_proto == Protocol::HOPOPT) {
-            PRINT("HOP extension header\n");
-        } else if (next_proto == Protocol::OPTSV6) {
-        } else {
+    while (next_proto != Protocol::IPv6_NONXT)
+    {
+        if (next_proto != Protocol::HOPOPT &&
+            next_proto != Protocol::OPTSV6)
+        {
             PRINT("Done parsing extension header, next proto: %d\n", next_proto);
-            return next_proto;
+            this->set_payload_offset(pl_off);
+            return;
         }
-        ext = *(ip6::ExtensionHeader*)reader;
-        ext_len = ext.size();
-        reader += ext_len;
-        packet.update_extension_header_len(ext_len);
+        auto& ext = *(ip6::extension_header*)reader;
         next_proto = ext.next();
+        pl_off += ext.size();
+        reader += ext.size();
     }
-    return next_proto;
+    this->set_payload_offset(pl_off);
   }
 
-  void IP6::receive(Packet_ptr pckt, const bool /*link_bcast */)
+  void IP6::receive(Packet_ptr pckt, const bool link_bcast)
   {
-    // Cast to IP6 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP6>(std::move(pckt));
+    // this will calculate exthdr length and set payload correctly
+    packet->calculate_payload_offset();
 
     PRINT("<IP6 Receive> Source IP: %s, Dest.IP: %s, Next header: %d,"
             "Payload len: %u, Hop limit: %d, version: %d, tc: %u, fl: %u\n",
@@ -154,9 +154,6 @@ namespace net
 
     /* PREROUTING */
     // Track incoming packet if conntrack is active
-    Conntrack::Entry_ptr ct = nullptr;
-
-#if 0
     Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
@@ -164,7 +161,6 @@ namespace net
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     // Drop / forward if my ip address doesn't match dest.
     if(not is_for_me(packet->ip_dst()))
@@ -188,7 +184,6 @@ namespace net
 
     /* INPUT */
     // Confirm incoming packet if conntrack is active
-#if 0
     auto& conntrack = stack_.conntrack();
     if(conntrack) {
       ct = (ct != nullptr) ?
@@ -201,14 +196,8 @@ namespace net
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
-    auto next_proto = packet->next_protocol();
-    // Pass packet to it's respective protocol controller
-    if (packet->next_protocol() == Protocol::HOPOPT ||
-        packet->next_protocol() == Protocol::OPTSV6) {
-        next_proto = ipv6_ext_header_receive(*packet);
-    }
+    auto next_proto = packet->ip_protocol();
 
     switch (next_proto) {
     case Protocol::IPv6_NONXT:
@@ -253,8 +242,6 @@ namespace net
 
     packet->make_flight_ready();
 
-    Conntrack::Entry_ptr ct = nullptr;
-#if 0
     /* OUTPUT */
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
@@ -263,7 +250,6 @@ namespace net
 
     Ensures(res.packet != nullptr);
     packet = res.release();
-#endif
 
     if (forward_packet_) {
       forward_packet_(std::move(packet), stack_, ct);

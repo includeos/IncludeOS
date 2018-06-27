@@ -111,11 +111,10 @@ namespace net {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
 
-    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x LinkBcast: %d ",
+    PRINT("<IP4 Receive> Source IP: %s Dest.IP: %s Type: 0x%x ",
            packet->ip_src().str().c_str(),
            packet->ip_dst().str().c_str(),
-           (int) packet->ip_protocol(),
-           link_bcast);
+           (int) packet->ip_protocol());
     switch (packet->ip_protocol()) {
     case Protocol::ICMPv4:
        PRINT("Type: ICMP\n"); break;
@@ -181,10 +180,14 @@ namespace net {
     if(stack_.conntrack())
       stack_.conntrack()->confirm(*packet); // No need to set ct again
     res = input_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+        PRINT("* parsing the packet header\n");
+        return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();
+    PRINT("* Done parsing the packet header\n");
 
     // Pass packet to it's respective protocol controller
     switch (packet->ip_protocol()) {

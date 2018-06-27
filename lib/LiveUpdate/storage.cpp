@@ -34,7 +34,7 @@ inline uint32_t liu_crc32(const void* buf, size_t len)
 const uint64_t storage_header::LIVEUPD_MAGIC = 0xbaadb33fdeadc0de;
 
 storage_header::storage_header()
-  : magic(LIVEUPD_MAGIC), crc(0), entries(0), length(0)
+  : magic(LIVEUPD_MAGIC)
 {
   //printf("%p --> %#llx\n", this, value);
 }
@@ -174,8 +174,9 @@ void storage_header::try_zero() noexcept
 }
 void storage_header::zero()
 {
-  memset(this, 0, sizeof(storage_header) + this->length);
-  assert(this->magic == 0);
+  memset(this->vla, 0, this->length);
+  *this = {};
+  this->magic = 0;
 }
 
 storage_entry* storage_header::begin(int p)

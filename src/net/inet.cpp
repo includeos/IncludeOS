@@ -339,3 +339,6 @@ void Inet::resolve(const std::string& hostname,
 {
    dns_.resolve(server, hostname, func, force);
 }
+
+void Inet::set_route_checker6(Route_checker6 delg)
+{ icmp6_.set_ndp_proxy_policy(delg); }

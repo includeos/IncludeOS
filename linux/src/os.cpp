@@ -156,4 +156,5 @@ void panic(const char* why)
 {
   printf("!! PANIC !!\nReason: %s\n", why);
   raise(SIGINT);
+  exit(1);
 }

@@ -21,6 +21,7 @@
 
 #include <net/socket.hpp>
 #include <net/ip4/packet_ip4.hpp>
+#include <net/ip6/packet_ip6.hpp>
 #include <vector>
 #include <unordered_map>
 #include <rtc>
@@ -37,6 +38,7 @@ public:
    * Custom handler for tracking packets in a certain way
    */
   using Packet_tracker = delegate<Entry*(Conntrack&, Quadruple, const PacketIP4&)>;
+  using Packet_tracker6 = delegate<Entry*(Conntrack&, Quadruple, const PacketIP6&)>;
 
   using Entry_handler = delegate<void(Entry*)>;
 
@@ -156,6 +158,7 @@ public:
    * @return     A matching conntrack entry (nullptr if not found)
    */
   Entry* get(const PacketIP4& pkt) const;
+  Entry* get(const PacketIP6& pkt) const;
 
   /**
    * @brief      Find the entry where the quadruple
@@ -176,6 +179,7 @@ public:
    * @return     The conntrack entry related to this packet.
    */
   Entry* in(const PacketIP4& pkt);
+  Entry* in(const PacketIP6& pkt);
 
   /**
    * @brief      Confirms a connection, moving the entry to confirmed.
@@ -185,6 +189,7 @@ public:
    * @return     The confirmed entry, if any
    */
   Entry* confirm(const PacketIP4& pkt);
+  Entry* confirm(const PacketIP6& pkt);
 
   /**
    * @brief      Confirms a connection, moving the entry to confirmed
@@ -258,6 +263,7 @@ public:
    * @return     The quadruple.
    */
   static Quadruple get_quadruple(const PacketIP4& pkt);
+  static Quadruple get_quadruple(const PacketIP6& pkt);
 
   /**
    * @brief      Gets the quadruple from a IP4 packet carrying
@@ -268,6 +274,7 @@ public:
    * @return     The quadruple for ICMP.
    */
   static Quadruple get_quadruple_icmp(const PacketIP4& pkt);
+  static Quadruple get_quadruple_icmp(const PacketIP6& pkt);
 
   /**
    * @brief      Construct a Conntrack with unlimited maximum entries.
@@ -285,7 +292,8 @@ public:
   std::chrono::seconds flush_interval {10};
 
   /** Custom TCP handler can (and should) be added here */
-  Packet_tracker tcp_in;
+  Packet_tracker  tcp_in;
+  Packet_tracker6 tcp6_in;
 
   int deserialize_from(void*);
   void serialize_to(std::vector<char>&) const;

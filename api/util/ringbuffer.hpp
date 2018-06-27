@@ -152,8 +152,8 @@ public:
   }
 
 protected:
-  RingBuffer(char* rbuffer, int size)
-    : cap(size), buffer(rbuffer)
+  RingBuffer(void* rbuffer, int size)
+    : cap(size), buffer((char*) rbuffer)
   {
     assert(size > 0);
   }
@@ -183,10 +183,10 @@ public:
 
 class MemoryRingBuffer : public RingBuffer {
 public:
-  MemoryRingBuffer(char* location, int size)
+  MemoryRingBuffer(void* location, int size)
     : RingBuffer(location, size) {}
 
-  MemoryRingBuffer(char* loc, const int cap,
+  MemoryRingBuffer(void* loc, const int cap,
                    int start, int end, int used)
     : RingBuffer(loc, cap)
   {

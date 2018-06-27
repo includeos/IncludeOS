@@ -77,7 +77,8 @@ namespace microLB
     template <typename... Args>
     void add_node(Args&&... args);
     void create_connections(int total);
-    bool assign(net::Stream_ptr, queue_vector_t&);
+    // returns the connection back if the operation fails
+    net::Stream_ptr assign(net::Stream_ptr, queue_vector_t&);
     Session& create_session(bool talk, net::Stream_ptr inc, net::Stream_ptr out);
     void     close_session(int, bool timeout = false);
     Session& get_session(int);

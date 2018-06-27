@@ -4,6 +4,7 @@ import signal
 import sys
 import subprocess
 import thread
+import time
 import atexit
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
@@ -21,6 +22,7 @@ def validateRequest(expected = ""):
 # start nodeJS
 pro = subprocess.Popen(["nodejs", "server.js"], stdout=subprocess.PIPE)
 
+requests_completed = False
 def startBenchmark(line):
     print "<test.py> starting test "
     assert validateRequest("6001")
@@ -32,7 +34,13 @@ def startBenchmark(line):
     assert validateRequest("6002")
     assert validateRequest("6003")
     assert validateRequest("6004")
-    vm._on_success("SUCCESS")
+    print "Waiting for TCP MSL end..."
+    global requests_completed
+    requests_completed = True
+    return True
+def mslEnded(line):
+    if requests_completed:
+        vm._on_success("SUCCESS")
     return True
 
 @atexit.register
@@ -47,6 +55,7 @@ vm = vmrunner.vms[0]
 
 # Add custom event for testing server
 vm.on_output("MicroLB ready for test", startBenchmark)
+vm.on_output("TCP MSL ended", mslEnded)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(20).clean()
