@@ -99,6 +99,7 @@ namespace net
     using Stack = IP6::Stack;
     using Tuple = std::pair<uint16_t, uint16_t>;  // identifier and sequence number
     using icmp_func = delegate<void(ICMP6_view)>;
+    using Route_checker = delegate<bool(IP6::addr)>;
 
     static const int SEC_WAIT_FOR_REPLY = 40;
 
@@ -123,6 +124,9 @@ namespace net
     {
         ndp_.transmit(std::move(ptr), next_hop);
     }
+
+    void set_ndp_proxy_policy(Route_checker delg)
+    { ndp_.set_proxy_policy(delg); }
 
     /**
      *  Destination Unreachable sent from host because of port (UDP) or protocol (IP6) unreachable
@@ -165,13 +169,6 @@ namespace net
     Stack& inet_;
     Ndp    ndp_;
     downstream network_layer_out_ =   nullptr;
-    uint8_t includeos_payload_[48] =  {'I','N','C','L','U','D',
-                                      'E','O','S','1','2','3','4','5',
-                                      'A','B','C','D','E','F','G','H',
-                                      'I','J','K','L','M','N','O','P',
-                                      'Q','R','S','T','U','V','W','X',
-                                      'Y','Z','1','2','3','4','5','6',
-                                      '7','8'};
 
     inline bool is_full_header(size_t pckt_size)
     { return (pckt_size >= sizeof(IP6::header) + icmp6::Packet::header_size()); }

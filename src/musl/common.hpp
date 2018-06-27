@@ -71,6 +71,7 @@ inline auto strace(Fn func, const char* name, Args&&... args) {
 
   if constexpr (__strace)
      strace_print(name, ret, args...);
+  (void) name;
 
   return ret;
 }

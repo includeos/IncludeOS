@@ -66,17 +66,16 @@ namespace net
     res.ndp().set_neighbour_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
 
     // Insert target link address, ICMP6 option header and our mac address
-    res.set_payload({req.ndp().neighbour_sol().get_target().data(), 16 });
+    res.add_payload(req.ndp().neighbour_sol().get_target().data(), 16);
     res.ndp().set_ndp_options_header(icmp6::ND_OPT_TARGET_LL_ADDR, 0x01);
-    res.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
+    res.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
 
     // Add checksum
     res.set_checksum();
 
-    PRINT("NDP: Neighbor Adv Response dst: %s\n size: %i\n payload size: %i\n,"
-        " checksum: 0x%x\n",
-        res.ip().ip_dst().str().c_str(), res.ip().size(), res.payload().size(),
-        res.compute_checksum());
+    PRINT("NDP: Neighbor Adv Response dst: %s size: %i payload size: %i,"
+        " checksum: 0x%x\n", res.ip().ip_dst().str().c_str(), res.payload().size(),
+        res.ip().ip_dst().str().c_str(), res.compute_checksum());
 
     auto dest = res.ip().ip_dst();
     transmit(res.release(), dest);
@@ -135,9 +134,9 @@ namespace net
     req.ip().set_ip_dst(dest_ip.solicit(target));
 
     // Set target address
-    req.set_payload({target.data(), 16});
+    req.add_payload(target.data(), 16);
     req.ndp().set_ndp_options_header(icmp6::ND_OPT_SOURCE_LL_ADDR, 0x01);
-    req.set_payload({reinterpret_cast<uint8_t*> (&link_mac_addr()), 6});
+    req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
 
     req.set_checksum();
 
@@ -197,8 +196,12 @@ namespace net
 
     if (target != inet_.ip6_addr()) {
       PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(), inet_.ip6_addr().to_string().c_str());
-        /* Not for us. Should we forward? */
-        return;
+      if (!proxy_) {
+         return;
+      } else if (!proxy_(target)) {
+         return;
+      }
+       PRINT("Responding to neighbour sol as a proxy\n");
     }
 
     if (any_src) {
@@ -218,14 +221,17 @@ namespace net
   void Ndp::send_router_solicitation()
   {
     icmp6::Packet req(inet_.ip6_packet_factory());
+
     req.ip().set_ip_src(inet_.ip6_addr());
     req.ip().set_ip_dst(ip6::Addr::node_all_nodes);
+
     req.ip().set_ip_hop_limit(255);
     req.set_type(ICMP_type::ND_ROUTER_SOL);
     req.set_code(0);
     req.set_reserved(0);
-    // Set multicast addreqs
-    // IPv6mcast_02: 33:33:00:00:00:02
+
+    req.ndp().set_ndp_options_header(icmp6::ND_OPT_SOURCE_LL_ADDR, 0x01);
+    req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
 
     // Add checksum
     req.set_checksum();
@@ -238,10 +244,38 @@ namespace net
 
   void Ndp::receive_router_solicitation(icmp6::Packet& req)
   {
+      uint8_t *lladdr;
+
+      /* Not a router. Drop it */
+      if (!inet_.ip6_obj().forward_delg()) {
+          return;
+      }
+
+      if (req.ip().ip_src() == IP6::ADDR_ANY) {
+          PRINT("NDP: RS: Source address is any\n");
+          return;
+      }
+
+      req.ndp().parse(ICMP_type::ND_ROUTER_SOL);
+      lladdr = req.ndp().get_option_data(icmp6::ND_OPT_SOURCE_LL_ADDR);
+
+      cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
+         NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE |
+         NEIGH_UPDATE_OVERRIDE_ISROUTER);
   }
 
   void Ndp::receive_router_advertisement(icmp6::Packet& req)
   {
+      if (!req.ip().ip_src().is_link_local()) {
+        PRINT("NDP: Router advertisement source address is not link-local\n");
+        return;
+      }
+
+      if (inet_.ip6_obj().forward_delg()) {
+          PRINT("Forwarding is enabled. Not accepting router advertisement\n");
+          return;
+      }
+      req.ndp().parse(ICMP_type::ND_ROUTER_ADV);
   }
 
   void Ndp::receive(icmp6::Packet& pckt)

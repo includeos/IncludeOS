@@ -4,7 +4,6 @@ import sys
 import os
 import subprocess
 import thread
-import time 
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
@@ -45,7 +44,8 @@ def iperf_server():
 
 def iperf_client(o):
     print "Starting iperf client. Iperf output: "
-    print subprocess.check_output([iperf_cmd,"-c","10.42.42.2","-n", transmit_size])
+    print subprocess.check_output([iperf_cmd,"-c","fe80:0:0:0:abcd:abcd:1234:8367%bridge43",
+        "-n", transmit_size])
     vmrunner.vms[0].exit(0, "Test completed without errors")
     return True
 

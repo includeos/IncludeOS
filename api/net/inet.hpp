@@ -50,9 +50,14 @@ namespace net {
     using IP_packet_ptr  = IP4::IP_packet_ptr;
     using IP6_packet_ptr = IP6::IP_packet_ptr;
     using IP_addr        = IP4::addr;
+    using IP6_addr       = IP6::addr;
 
-    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
+    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source,
+            Conntrack::Entry_ptr)>;
+    using Forward_delg6  = delegate<void(IP6_packet_ptr, Stack& source,
+            Conntrack::Entry_ptr)>;
     using Route_checker = delegate<bool(IP_addr)>;
+    using Route_checker6 = delegate<bool(IP6_addr)>;
     using IP_packet_factory  = delegate<IP_packet_ptr(Protocol)>;
     using IP6_packet_factory = delegate<IP6_packet_ptr(Protocol)>;
 
@@ -170,10 +175,15 @@ namespace net {
       ip4_.set_packet_forwarding(fwd);
     }
 
+    void set_forward_delg6(Forward_delg6 fwd) {
+      ip6_.set_packet_forwarding(fwd);
+    }
+
     /**
      * Assign a delegate that checks if we have a route to a given IP
      */
     void set_route_checker(Route_checker delg);
+    void set_route_checker6(Route_checker6 delg);
 
     /**
      * Get the forwarding delegate used by this stack.
@@ -181,6 +191,8 @@ namespace net {
     Forward_delg forward_delg()
     { return ip4_.forward_delg(); }
 
+    Forward_delg6 forward_delg6()
+    { return ip6_.forward_delg(); }
 
     Packet_ptr create_packet() {
       return nic_.create_packet(nic_.frame_offset_link());
