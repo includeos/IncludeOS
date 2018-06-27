@@ -32,6 +32,13 @@
 
 namespace net
 {
+  static constexpr std::array<uint8_t, 48> includeos_payload =
+    {'I','N','C','L','U','D','E','O',
+     'S','1','2','3','4','5','A','B',
+     'C','D','E','F','G','H','I','J',
+     'K','L','M','N','O','P','Q','R',
+     'S','T','U','V','W','X','Y','Z',
+     '1','2','3','4','5','6','7','8'};
   // ---------------------------- ICMP_view ----------------------------
 
   std::string ICMP6_view::to_string() const {
@@ -95,6 +102,7 @@ namespace net
     case (ICMP_type::ND_NEIGHBOUR_SOL):
     case (ICMP_type::ND_NEIGHBOUR_ADV):
     case (ICMP_type::ND_REDIRECT):
+      PRINT("<ICMP6> NDP message from %s\n", req.ip().ip_src().str().c_str());
       ndp().receive(req);
       break;
     case (ICMP_type::ROUTER_RENUMBERING):
@@ -113,9 +121,8 @@ namespace net
 
     // The icmp6::Packet's payload contains the original packet sent that resulted
     // in an error
-    int payload_idx = req.payload_index();
     auto packet_ptr = req.release();
-    packet_ptr->increment_layer_begin(payload_idx);
+    packet_ptr->increment_layer_begin(req.payload_index());
 
     // inet forwards to transport layer (UDP or TCP)
     inet_.error_report(err, std::move(packet_ptr));
@@ -128,9 +135,8 @@ namespace net
 
     // The icmp6::Packet's payload contains the original packet sent that resulted
     // in the Fragmentation Needed
-    int payload_idx = req.payload_index();
     auto packet_ptr = req.release();
-    packet_ptr->increment_layer_begin(payload_idx);
+    packet_ptr->increment_layer_begin(req.payload_index());
 
     // Inet updates the corresponding Path MTU value in IP and notifies the transport/packetization layer
     inet_.error_report(err, std::move(packet_ptr));
@@ -225,9 +231,8 @@ namespace net
 
     PRINT("<ICMP6> Transmitting request to %s\n", dest_ip.to_string().c_str());
 
-    // Payload
-    // Default: includeos_payload_
-    req.set_payload(icmp6::Packet::Span(includeos_payload_, 68));
+    // Default payload
+    req.add_payload(includeos_payload.data(), includeos_payload.size());
 
     // Add checksum
     req.set_checksum();
@@ -261,7 +266,7 @@ namespace net
 
     // Payload
     // Default: Header and 66 bits (8 bytes) of original payload
-    res.set_payload(req.header_and_data());
+    res.add_payload(req.header_and_data().data(), req.header_and_data().size());
 
     // Add checksum
     res.set_checksum();
@@ -302,7 +307,7 @@ namespace net
           res.ip().ip_dst().str().c_str());
 
     // Payload
-    res.set_payload(req.payload());
+    res.add_payload(req.payload().data(), req.payload().size());
 
     // Add checksum
     res.set_checksum();

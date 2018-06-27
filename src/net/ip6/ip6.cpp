@@ -92,8 +92,9 @@ namespace net
 
   void IP6::receive(Packet_ptr pckt, const bool link_bcast)
   {
-    // Cast to IP6 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP6>(std::move(pckt));
+    // this will calculate exthdr length and set payload correctly
+    packet->calculate_payload_offset();
 
     PRINT("<IP6 Receive> Source IP: %s, Dest.IP: %s, Next header: %d,"
             "Payload len: %u, Hop limit: %d, version: %d, tc: %u, fl: %u\n",
@@ -127,8 +128,6 @@ namespace net
 
     packet = drop_invalid_in(std::move(packet));
     if (UNLIKELY(packet == nullptr)) return;
-
-    packet->parse_ext_header();
 
     /* PREROUTING */
     // Track incoming packet if conntrack is active

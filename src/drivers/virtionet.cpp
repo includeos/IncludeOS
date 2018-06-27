@@ -62,7 +62,7 @@ void VirtioNet::get_config() {
 
 VirtioNet::VirtioNet(hw::PCI_Device& d, const uint16_t /*mtu*/)
   : Virtio(d),
-    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, bufstore_),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}),
     m_pcidev(d),
     bufstore_{VNET_TOT_BUFFERS(), 2048 /* half-page buffers */},
     packets_rx_{Statman::get().create(Stat::UINT64,

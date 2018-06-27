@@ -322,13 +322,6 @@ namespace net {
       return nic_.transmit_queue_available();
     }
 
-    size_t buffers_available() {
-      return nic_.buffers_available();
-    }
-    size_t buffers_total() {
-      return nic_.buffers_total();
-    }
-
     void force_start_send_queues();
 
     void move_to_this_cpu();

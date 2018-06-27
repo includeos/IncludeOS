@@ -47,9 +47,6 @@ public:
 
   net::Packet_ptr create_packet(int) override;
 
-  size_t frame_offset_device() override
-  { return sizeof(driver_hdr); };
-
   net::downstream create_physical_downstream() override
   { return {this, &UserNet::transmit}; }
 

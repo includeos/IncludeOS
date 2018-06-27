@@ -93,11 +93,7 @@ if (ENABLE_LTO OR USE_LLD)
 endif()
 
 if (STRIP_BINARY)
-  add_custom_target(
-    strip_binary ALL
-    COMMAND strip --strip-all ${BINARY}
-    DEPENDS service
-  )
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
 endif()
 
 # write binary name to file

@@ -80,7 +80,7 @@ public:
 
   net::Packet_ptr create_packet(int) override
   {
-    auto buffer = bufstore().get_buffer();
+    auto buffer = bufstore_.get_buffer();
     auto* ptr = (net::Packet*) buffer.addr;
 
     new (ptr) net::Packet(frame_offs_link_,
@@ -115,7 +115,7 @@ public:
   //
 
   ~Nic_mock() {}
-  Nic_mock() : Nic(bufstore_), bufstore_{256u, 2048} {}
+  Nic_mock() : Nic(), bufstore_{256u, 2048} {}
 
   // Public data members (ahem)
   MAC::Addr mac_ = {0xc0,0x00,0x01,0x70,0x00,0x01};

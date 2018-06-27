@@ -67,6 +67,8 @@ public:
     return free_transmit_descr() + NUM_TX_QUEUE - sendq_size;
   }
 
+  auto& bufstore() noexcept { return bufstore_; }
+
   void flush() override;
 
   void deactivate() override;

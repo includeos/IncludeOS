@@ -62,15 +62,6 @@ void FINISH_TEST() {
       INFO("TEST", "Verify release of resources");
       CHECKSERT(stack().tcp().active_connections() == 0,
         "No (0) active connections");
-      INFO("Buffers", "%u avail / %u total",
-            stack().buffers_available(),
-            stack().buffers_total());
-      // unfortunately we can't know just how many buffers SHOULD be
-      // available, because drivers take some buffers, but there should
-      // be at least half the buffers left
-      auto total = stack().buffers_total();
-      CHECKSERT(stack().buffers_available() >= total / 2,
-                "Free buffers (%u available)", total);
       printf("# TEST SUCCESS #\n");
     });
 }
@@ -143,6 +134,11 @@ struct Buffer {
 
 void Service::start()
 {
+#ifdef USERSPACE_LINUX
+  extern void create_network_device(int N, const char* route, const char* ip);
+  create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+#endif
+
   for(int i = 0; i < S; i++) small += TEST_STR;
 
   big += "start-";
@@ -165,7 +161,6 @@ void Service::start()
     64,                                                     // Prefix6
     {  0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 }  // Gateway6
   );
-  INFO("Buffers available", "%u", inet.buffers_available());
 
   auto& tcp = inet.tcp();
   // reduce test duration
