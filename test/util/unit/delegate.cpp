@@ -223,6 +223,13 @@ CASE("A delegate can be moved")
 
 	size_t ret = del_b();
 	EXPECT(ret == v.size());
+  EXPECT_NOT(del_a);
+
+  user_class usr(1);
+  auto usr_del = usr.get_del();
+  EXPECT(usr_del);
+  auto usr_del2 = std::move(usr_del);
+  EXPECT_NOT(usr_del);
 }
 
 CASE("A delegate can be constructed with a class member function pointer")
