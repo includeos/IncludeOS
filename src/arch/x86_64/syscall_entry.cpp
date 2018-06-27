@@ -15,13 +15,15 @@
 // limitations under the License.
 
 #include <arch/x86/cpu.hpp>
-#include <os>
+#include <kernel/syscalls.hpp>
+#include <common>
+#include <kprint>
+#include <errno.h>
 
 #define ARCH_SET_GS 0x1001
 #define ARCH_SET_FS 0x1002
 #define ARCH_GET_FS 0x1003
 #define ARCH_GET_GS 0x1004
-
 
 #ifdef __x86_64__
 static int sys_prctl(int code, uintptr_t ptr)
@@ -39,12 +41,10 @@ static int sys_prctl(int code, uintptr_t ptr)
     break;
   case ARCH_GET_GS:
     panic("<arch_prctl> GET_GS called!\n");
-    break;
   case ARCH_GET_FS:
     panic("<arch_prctl> GET_FS called!\n");
-    break;
   }
-  return 0;
+  return -EINVAL;
 }
 #endif
 

@@ -44,7 +44,7 @@ CASE("IP6 Packet HOPLIMIT - multiple packets")
   std::vector<ip6::Addr> addrs{
     {0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd},
     {0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7},
-    {0,0,0,1},
+    ip6::Addr{0,0,0,1},
     {0xfe80, 0, 0, 0, 0x0202, 0xb3ff, 0xff1e, 0x8329},
   };
 

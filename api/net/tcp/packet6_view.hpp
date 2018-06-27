@@ -6,13 +6,18 @@
 
 namespace net::tcp {
 
-class Packet6_view : public Packet_view {
+template <typename Ptr_type> class Packet6_v;
+using Packet6_view = Packet6_v<net::Packet_ptr>;
+using Packet6_view_raw = Packet6_v<net::Packet*>;
+
+template <typename Ptr_type>
+class Packet6_v : public Packet_v<Ptr_type> {
 public:
-  Packet6_view(std::unique_ptr<PacketIP6> ptr)
-    : Packet_view(std::move(ptr))
+  Packet6_v(Ptr_type ptr)
+    : Packet_v<Ptr_type>(std::move(ptr))
   {
     Expects(packet().is_ipv6());
-    set_header(packet().ip_data().data());
+    this->set_header(packet().ip_data().data());
   }
 
   inline void init();
@@ -31,10 +36,10 @@ public:
 
 private:
   PacketIP6& packet() noexcept
-  { return static_cast<PacketIP6&>(*pkt); }
+  { return static_cast<PacketIP6&>(*this->pkt); }
 
   const PacketIP6& packet() const noexcept
-  { return static_cast<PacketIP6&>(*pkt); }
+  { return static_cast<PacketIP6&>(*this->pkt); }
 
   void set_ip_src(const net::Addr& addr) noexcept override
   { packet().set_ip_src(addr.v6()); }
@@ -55,15 +60,15 @@ private:
   { return packet().ip_header_len(); }
 };
 
-
-inline void Packet6_view::init()
+template <typename Ptr_type>
+inline void Packet6_v<Ptr_type>::init()
 {
   // clear TCP header
-  memset(header, 0, sizeof(tcp::Header));
+  memset(this->header, 0, sizeof(tcp::Header));
 
-  set_win(tcp::default_window_size);
-  header->offset_flags.offset_reserved = (5 << 4);
-  set_length();
+  this->set_win(tcp::default_window_size);
+  this->header->offset_flags.offset_reserved = (5 << 4);
+  this->set_length();
 }
 
 }

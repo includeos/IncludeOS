@@ -66,7 +66,7 @@ namespace net {
     using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
     using downstream_arp = delegate<void(Packet_ptr, IP4::addr)>;
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
-    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack<IP4>::Entry_ptr)>;
+    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using PMTU = uint16_t;
     using resolve_func = delegate<void(IP4::addr, const Error&)>;
     using netmask = ip4::Addr;
@@ -164,7 +164,7 @@ namespace net {
      *  Source IP *can* be set - if it's not, IP4 will set it
      */
     void transmit(Packet_ptr);
-    void ship(Packet_ptr, addr next_hop = 0, Conntrack<IP4>::Entry_ptr ct = nullptr);
+    void ship(Packet_ptr, addr next_hop = 0, Conntrack::Entry_ptr ct = nullptr);
 
 
     /**

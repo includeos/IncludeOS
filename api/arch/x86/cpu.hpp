@@ -21,7 +21,6 @@
 
 #include <cstdint>
 #include <arch.hpp>
-#include <kprint>
 
 #define IA32_EFER               0xC0000080
 #define IA32_STAR               0xC0000081
@@ -41,10 +40,9 @@ namespace x86
     static uint64_t
     read_msr(uint32_t addr)
     {
-
 #if defined(ARCH_x86)
       uint64_t v;
-      asm volatile("rdmsr": "=A" (v) : "c" (addr));
+      asm volatile("rdmsr" : "=A" (v) : "c" (addr));
       return v;
 #else
 #error "read_msr() not implemented for selected arch"

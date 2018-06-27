@@ -1,6 +1,7 @@
 //-*- C++ -*-
-#ifndef NET_INET
-#define NET_INET
+#pragma once
+#ifndef NET_INET_HEADER
+#define NET_INET_HEADER
 
 #include "inet.hpp"
 

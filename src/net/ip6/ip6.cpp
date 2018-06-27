@@ -92,8 +92,9 @@ namespace net
 
   void IP6::receive(Packet_ptr pckt, const bool link_bcast)
   {
-    // Cast to IP6 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP6>(std::move(pckt));
+    // this will calculate exthdr length and set payload correctly
+    packet->calculate_payload_offset();
 
     PRINT("<IP6 Receive> Source IP: %s, Dest.IP: %s, Next header: %d,"
             "Payload len: %u, Hop limit: %d, version: %d, tc: %u, fl: %u\n",
@@ -128,12 +129,10 @@ namespace net
     packet = drop_invalid_in(std::move(packet));
     if (UNLIKELY(packet == nullptr)) return;
 
-    packet->parse_ext_header();
-
     /* PREROUTING */
     // Track incoming packet if conntrack is active
-    Conntrack<IP6>::Entry_ptr ct = (stack_.conntrack6())
-      ? stack_.conntrack6()->in(*packet) : nullptr;
+    Conntrack::Entry_ptr ct = (stack_.conntrack())
+      ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
@@ -162,13 +161,13 @@ namespace net
 
     /* INPUT */
     // Confirm incoming packet if conntrack is active
-    auto& conntrack = stack_.conntrack6();
+    auto& conntrack = stack_.conntrack();
     if(conntrack) {
       ct = (ct != nullptr) ?
         conntrack->confirm(ct->second, ct->proto) : conntrack->confirm(*packet);
     }
-    if(stack_.conntrack6())
-      stack_.conntrack6()->confirm(*packet); // No need to set ct again
+    if(stack_.conntrack())
+      stack_.conntrack()->confirm(*packet); // No need to set ct again
     res = input_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
@@ -221,8 +220,8 @@ namespace net
     packet->make_flight_ready();
 
     /* OUTPUT */
-    Conntrack<IP6>::Entry_ptr ct =
-      (stack_.conntrack6()) ? stack_.conntrack6()->in(*packet) : nullptr;
+    Conntrack::Entry_ptr ct =
+      (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
 
@@ -236,7 +235,7 @@ namespace net
     ship(std::move(packet), IP6::ADDR_ANY, ct);
   }
 
-  void IP6::ship(Packet_ptr pckt, addr next_hop, Conntrack<IP6>::Entry_ptr ct)
+  void IP6::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
 

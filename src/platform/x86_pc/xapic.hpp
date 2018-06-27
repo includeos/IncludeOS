@@ -78,11 +78,11 @@ namespace x86 {
       INFO2("ID: %x  Ver: %x", get_id(), version());
     }
 
-    uint32_t read(uint32_t reg) noexcept override
+    uint32_t read(uint32_t reg) noexcept
     {
       return *(volatile uint32_t*) (regbase + reg);
     }
-    void write(uint32_t reg, uint32_t value) noexcept override
+    void write(uint32_t reg, uint32_t value) noexcept
     {
       *(volatile uint32_t*) (regbase + reg) = value;
     }

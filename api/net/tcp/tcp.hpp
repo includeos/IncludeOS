@@ -24,6 +24,7 @@
 #include "headers.hpp"
 #include "listener.hpp"
 #include "packet_view.hpp"
+#include "packet.hpp" // remove me, temp for NaCl
 
 #include <map>  // connections, listeners
 #include <deque>  // writeq
@@ -91,7 +92,7 @@ namespace net {
      *
      * @return     A TCP Listener
      */
-    tcp::Listener& listen(Socket socket, ConnectCallback cb = nullptr);
+    tcp::Listener& listen(const Socket& socket, ConnectCallback cb = nullptr);
 
     /**
      * @brief Close a Listener
@@ -101,7 +102,7 @@ namespace net {
      * @param socket listening socket
      * @return whether the listener existed and was closed
      */
-    bool close(Socket socket);
+    bool close(const Socket& socket);
 
     /**
      * @brief      Make an outgoing connection to a TCP remote (IP:port).
@@ -400,7 +401,7 @@ namespace net {
      *
      * @return     True if bound, False otherwise.
      */
-    bool is_bound(const Socket socket) const;
+    bool is_bound(const Socket& socket) const;
 
     /**
      * @brief      Number of connections queued for writing.
@@ -413,7 +414,7 @@ namespace net {
     /**
      * @brief      The IP address for which the TCP instance is "connected".
      *
-     * @return     An IP4 address
+     * @return     An IP address
      */
     tcp::Address address() const noexcept;
 
@@ -598,7 +599,7 @@ namespace net {
      *
      * @param[in]  socket  The socket
      */
-    void bind(const Socket socket);
+    void bind(const Socket& socket);
 
     /**
      * @brief      Unbinds a socket, making it free for future use
@@ -607,7 +608,7 @@ namespace net {
      *
      * @return     Returns wether there was a socket that got unbound
      */
-    bool unbind(const Socket socket);
+    bool unbind(const Socket& socket);
 
     /**
      * @brief      Bind to an socket where the address is given and the
@@ -618,16 +619,7 @@ namespace net {
      *
      * @return     The socket that got bound.
      */
-    Socket bind(const tcp::Address addr);
-
-    /**
-     * @brief      Binds to an socket where the address is given by the
-     *             stack and port is ephemeral. See bind(addr)
-     *
-     * @return     The socket that got bound.
-     */
-    Socket bind()
-    { return bind(address()); }
+    Socket bind(const tcp::Address& addr);
 
     /**
      * @brief      Determines if the source address is valid.
@@ -694,12 +686,7 @@ namespace net {
      *
      * @param[in]  listener  A Listener
      */
-    void close_listener(tcp::Listener& listener)
-    {
-      const auto socket = listener.local();
-      unbind(socket);
-      listeners_.erase(socket);
-    }
+    void close_listener(tcp::Listener& listener);
 
 
     // WRITEQ HANDLING

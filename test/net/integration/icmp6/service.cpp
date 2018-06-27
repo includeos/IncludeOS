@@ -20,8 +20,13 @@
 
 using namespace net;
 
-void Service::start(const std::string&)
+void Service::start()
 {
+#ifdef USERSPACE_LINUX
+  extern void create_network_device(int N, const char* route, const char* ip);
+  create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+#endif
+
   auto& inet = Inet::stack<0>();
   inet.network_config({  10,  0,  0, 52 },    // IP
                       { 255, 255, 0,  0 },    // Netmask

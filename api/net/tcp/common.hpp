@@ -65,9 +65,6 @@ namespace net {
       return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
     }
 
-    class Packet_view;
-    using Packet_view_ptr = std::unique_ptr<Packet_view>;
-
     class Connection;
     using Connection_ptr = std::shared_ptr<Connection>;
 

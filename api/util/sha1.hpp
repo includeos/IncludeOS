@@ -36,7 +36,7 @@ public:
     // update with new data
     void update(const std::string&);
     void update(const std::vector<char>&);
-    void update(const char*, size_t);
+    void update(const void*, size_t);
     // finalize values
     std::vector<char> as_raw();  // 20 bytes
     std::string       as_hex();  // 40 bytes

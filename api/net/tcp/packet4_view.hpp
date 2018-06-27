@@ -6,13 +6,18 @@
 
 namespace net::tcp {
 
-class Packet4_view : public Packet_view {
+template <typename Ptr_type> class Packet4_v;
+using Packet4_view = Packet4_v<net::Packet_ptr>;
+using Packet4_view_raw = Packet4_v<net::Packet*>;
+
+template <typename Ptr_type>
+class Packet4_v : public Packet_v<Ptr_type> {
 public:
-  Packet4_view(std::unique_ptr<PacketIP4> ptr)
-    : Packet_view(std::move(ptr))
+  Packet4_v(Ptr_type ptr)
+    : Packet_v<Ptr_type>(std::move(ptr))
   {
     Expects(packet().is_ipv4());
-    set_header(packet().ip_data().data());
+    this->set_header(packet().ip_data().data());
   }
 
   inline void init();
@@ -31,10 +36,10 @@ public:
 
 private:
   PacketIP4& packet() noexcept
-  { return static_cast<PacketIP4&>(*pkt); }
+  { return static_cast<PacketIP4&>(*this->pkt); }
 
   const PacketIP4& packet() const noexcept
-  { return static_cast<PacketIP4&>(*pkt); }
+  { return static_cast<PacketIP4&>(*this->pkt); }
 
   void set_ip_src(const net::Addr& addr) noexcept override
   { packet().set_ip_src(addr.v4()); }
@@ -56,15 +61,16 @@ private:
 
 };
 
-inline void Packet4_view::init()
+template <typename Ptr_type>
+inline void Packet4_v<Ptr_type>::init()
 {
   // clear TCP header
-  memset(header, 0, sizeof(tcp::Header));
+  memset(this->header, 0, sizeof(tcp::Header));
 
-  set_win(tcp::default_window_size);
-  header->offset_flags.offset_reserved = (5 << 4);
+  this->set_win(tcp::default_window_size);
+  this->header->offset_flags.offset_reserved = (5 << 4);
 
-  set_length();
+  this->set_length();
 }
 
 }

@@ -64,7 +64,7 @@ public:
    *
    * @return The local Socket the listener is bound to
    */
-  Socket local() const noexcept
+  const Socket& local() const noexcept
   { return local_; }
 
   port_t port() const noexcept

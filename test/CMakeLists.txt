@@ -78,6 +78,7 @@ include_directories(
 set(LEST_UTIL
   ${TEST}/lest_util/lestmain.cxx
   ${TEST}/lest_util/os_mock.cpp
+  ${TEST}/lest_util/mock_fs.cpp
   ${TEST}/lest_util/random.cpp
 )
 
@@ -86,6 +87,8 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/memdisk_test.cpp
   ${TEST}/fs/unit/path_test.cpp
   ${TEST}/fs/unit/vfs_test.cpp
+  ${TEST}/fs/unit/unit_fs.cpp
+  ${TEST}/fs/unit/unit_fat.cpp
   #${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
@@ -97,6 +100,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/unit_events.cpp
   ${TEST}/kernel/unit/unit_timers.cpp
   ${TEST}/kernel/unit/unit_liveupdate.cpp
+  ${TEST}/net/unit/addr_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cidr.cpp

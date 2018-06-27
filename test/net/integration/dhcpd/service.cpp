@@ -30,7 +30,7 @@ void Service::start(const std::string&)
   // Server
 
   auto& inet = Inet::ifconfig<0>(
-    { 10,0,0,1 },     // IP
+    { 10,0,0,9 },     // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
     { 8,8,8,8 });       // DNS

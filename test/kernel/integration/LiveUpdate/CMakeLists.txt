@@ -28,7 +28,7 @@ set(DRIVERS
   )
 
 set(PLUGINS
-    #system_log
+    system_log
   )
 
 # STATIC LIBRARIES:
@@ -37,7 +37,7 @@ set(LIBRARIES
   )
 
 # disable serial output
-#set(default_stdout OFF)
+set(default_stdout OFF)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)

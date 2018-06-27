@@ -57,10 +57,11 @@ namespace x86 {
     static const uint8_t  SPURIOUS_INTR = IRQ_BASE + Events::NUM_EVENTS-1;
 
     x2apic() {
-      INFO("x2APIC", "Enabling x2APIC");
-      // add x2APIC enable bit to APIC BASE MSR
       auto base_msr = CPU::read_msr(IA32_APIC_BASE_MSR);
-      base_msr = (base_msr & 0xfffff100) | MSR_ENABLE_X2APIC;
+      INFO("x2APIC", "Enabling x2APIC @ %#x", (uint32_t) base_msr);
+
+      // add x2APIC enable bit to APIC BASE MSR
+      base_msr = (base_msr & 0xfffff000) | MSR_ENABLE_X2APIC;
       // turn the x2APIC on
       CPU::write_msr(IA32_APIC_BASE_MSR, base_msr, 0);
       // verify that x2APIC is online
@@ -69,7 +70,7 @@ namespace x86 {
       INFO2("APIC id: %x  ver: %x", get_id(), version());
     }
 
-    uint32_t read(uint32_t reg) noexcept override
+    uint32_t read(uint32_t reg) noexcept
     {
       return CPU::read_msr(BASE_MSR + reg);
     }
@@ -77,7 +78,7 @@ namespace x86 {
     {
       return CPU::read_msr(BASE_MSR + reg);
     }
-    void write(uint32_t reg, uint32_t value) noexcept override
+    void write(uint32_t reg, uint32_t value) noexcept
     {
       CPU::write_msr(BASE_MSR + reg, value);
     }

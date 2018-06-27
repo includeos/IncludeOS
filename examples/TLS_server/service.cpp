@@ -21,7 +21,7 @@
 #include <timers>
 #include <https>
 #define BENCHMARK_MODE
-static const bool ENABLE_TLS    = true;
+static const bool ENABLE_TLS    = false;
 static const bool USE_BOTAN_TLS = false;
 
 static http::Server* server = nullptr;
@@ -54,10 +54,13 @@ void Service::start()
           "blabla", ca_key, ca_cert, srv_key, inet.tcp());
     printf("Using Botan for HTTPS transport\n");
   }
-  else {
+  else if (ENABLE_TLS) {
     server = new http::OpenSSL_server(
             "/test.pem", "/test.key", inet.tcp());
     printf("Using OpenSSL for HTTPS transport\n");
+  }
+  else {
+    server = new http::Server(inet.tcp());
   }
 
   server->on_request(
@@ -66,8 +69,11 @@ void Service::start()
       response_writer->write();
     });
 
+if (ENABLE_TLS)
   // listen on default HTTPS port
   server->listen(443);
+else
+  server->listen(80);
 }
 
 #ifdef BENCHMARK_MODE
@@ -76,14 +82,14 @@ static void print_heap_info()
 {
   const std::string heapinfo = HeapDiag::to_string();
   printf("%s\n", heapinfo.c_str());
-  StackSampler::print(10);
+  //StackSampler::print(10);
 }
 
 void Service::ready()
 {
   using namespace std::chrono;
   Timers::periodic(1s, [] (int) {
-    print_heap_info();
+    //print_heap_info();
   });
 
   StackSampler::begin();

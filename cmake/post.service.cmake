@@ -242,12 +242,9 @@ set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <LINK_FLAGS> <OBJECTS>
 set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "-static")
 
-set(STRIP_LV)
+set(LD_STRIP)
 if (NOT debug)
-  set(STRIP_LV "--strip-debug")
-endif()
-if (stripped)
-  set(STRIP_LV "--strip-all")
+  set(LD_STRIP "--strip-debug")
 endif()
 
 set(ELF ${ARCH})
@@ -261,7 +258,7 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
   set(PRE_BSS_SIZE  "--defsym PRE_BSS_AREA=0x200000")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE}")
+set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE}")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
@@ -329,8 +326,11 @@ set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INSTALL_LOC}/${
 
 # libgcc/compiler-rt detection
 if (UNIX)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      set(TARGET_LINE --target=${TRIPLE})
+  endif()
   execute_process(
-      COMMAND ${CMAKE_CXX_COMPILER} --target=${TRIPLE} --print-libgcc-file-name
+      COMMAND ${CMAKE_CXX_COMPILER} ${TARGET_LINE} --print-libgcc-file-name
       RESULT_VARIABLE CC_RT_RES
       OUTPUT_VARIABLE COMPILER_RT_FILE OUTPUT_STRIP_TRAILING_WHITESPACE)
   if (NOT ${CC_RT_RES} EQUAL 0)
@@ -479,20 +479,18 @@ target_link_libraries(service
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
-set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
-if (debug)
-  unset(STRIP_LV)
+# old behavior: remote all symbols after elfsym
+if (NOT debug)
+  set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
 endif()
 
-if (NOT debug)
-  add_custom_target(
-    pruned_elf_symbols ALL
-    COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
-    COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
-    COMMAND ${STRIP_LV}
-    DEPENDS service
-    )
-endif()
+add_custom_target(
+  pruned_elf_symbols ALL
+  COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
+  COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
+  #COMMAND ${STRIP_LV}
+  DEPENDS service
+  )
 
 # create bare metal .img: make legacy_bootloader
 add_custom_target(

@@ -50,7 +50,7 @@ int main()
   /* ------------------------- Testing IncludeOS syslog ------------------------- */
   // Setting IP and port for the syslog messages
   Syslog::settings( {10, 0, 0, 2}, 6514 );
-  printf("Syslog messages are sent to IP %s and port %d\n", Syslog::ip().str().c_str(), Syslog::port());
+  printf("Syslog messages are sent to IP %s and port %d\n", Syslog::ip().to_string().c_str(), Syslog::port());
 
   invalid_priority = -1;
   Syslog::syslog(invalid_priority, "Invalid %d", invalid_priority);

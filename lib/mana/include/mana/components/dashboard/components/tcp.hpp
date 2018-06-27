@@ -42,7 +42,7 @@ public:
     writer.StartObject();
 
     writer.Key("address");
-    writer.String(tcp_.address().str());
+    writer.String(tcp_.address().to_string());
 
     writer.Key("ifname");
     writer.String(tcp_.stack().ifname());
@@ -120,7 +120,3 @@ private:
 } // < namespace mana
 
 #endif
-
-
-
-

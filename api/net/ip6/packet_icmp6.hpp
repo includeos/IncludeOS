@@ -48,10 +48,10 @@ namespace icmp6 {
     }__attribute__((packed));
 
     Header& header()
-    { return *reinterpret_cast<Header*>(pckt_->layer_begin() + pckt_->ip_header_len()); }
+    { return *reinterpret_cast<Header*>(pckt_->payload()); }
 
     const Header& header() const
-    { return *reinterpret_cast<Header*>(pckt_->layer_begin() + pckt_->ip_header_len()); }
+    { return *reinterpret_cast<Header*>(pckt_->payload()); }
 
     struct pseudo_header
     {
@@ -86,18 +86,21 @@ namespace icmp6 {
     { return header().idse.sequence; }
 
     uint16_t payload_len() const noexcept
-    { return pckt_->data_end() - (pckt_->layer_begin() + pckt_->ip_header_len() + header_size()); }
+    { return pckt_->size() - (pckt_->ip_header_len() + header_size()); }
 
     /**
      *  Where the payload of an ICMP packet starts, calculated from the start of the IP header
      *  The payload of an ICMP error message packet contains the original packet sent that caused an
      *  ICMP error to occur (the original IP header and 8 bytes of the original packet's data)
      */
-    int payload_index()
+    int payload_index() const
     { return pckt_->ip_header_len() + header_size(); }
 
     Span payload()
-    { return {&(header().payload[0 + payload_offset_]), pckt_->data_end() - &(header().payload[0 + payload_offset_]) }; }
+    {
+      auto* icmp_pl = &header().payload[payload_offset_];
+      return {icmp_pl, pckt_->data_end() - icmp_pl };
+    }
 
     /** Several ICMP messages require the payload to be the header and 64 bits of the
      *  data of the original datagram
@@ -192,25 +195,25 @@ namespace icmp6 {
       header().checksum = compute_checksum();;
     }
 
-    void set_payload(Span new_load)
+    void add_payload(const void* new_load, const size_t len)
     {
-      pckt_->set_data_end(pckt_->ip_header_len() + header_size() + payload_offset_ + new_load.size());
-      memcpy(payload().data(), new_load.data(), payload().size());
-      payload_offset_ += payload().size();
+      pckt_->increment_data_end(len);
+      memcpy(payload().data(), new_load, len);
+      payload_offset_ += len;
     }
 
     /** Get the underlying IP packet */
-    IP6::IP_packet& ip() const
-    { return *pckt_.get(); }
+    IP6::IP_packet& ip() { return *pckt_; }
+    const IP6::IP_packet& ip() const { return *pckt_; }
 
     /** Construct from existing packet **/
     Packet(IP6::IP_packet_ptr pckt)
-      : pckt_{ std::move(pckt) }, ndp_(*this), payload_offset_{0}
-    {  }
+      : pckt_{ std::move(pckt) }, ndp_(*this)
+    { }
 
     /** Provision fresh packet from factory **/
     Packet(IP6::IP_packet_factory create)
-      : pckt_{create(Protocol::ICMPv6)}, ndp_(*this), payload_offset_{0}
+      : pckt_ { create(Protocol::ICMPv6) }, ndp_(*this)
     {
       pckt_->increment_data_end(sizeof(Header));
     }
@@ -224,8 +227,8 @@ namespace icmp6 {
 
   private:
     IP6::IP_packet_ptr pckt_;
-    ndp::NdpPacket     ndp_;
-    uint16_t payload_offset_;
+    NdpPacket          ndp_;
+    uint16_t payload_offset_ = 0;
   };
 }
 }

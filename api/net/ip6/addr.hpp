@@ -53,7 +53,7 @@ struct Addr {
     i16[6] = htons(d1); i16[7] = htons(d2);
   }
 
-  Addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+  explicit Addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
   {
     i32[0] = htonl(a); i32[1] = htonl(b);
     i32[2] = htonl(c); i32[3] = htonl(d);
@@ -63,7 +63,7 @@ struct Addr {
     : i64{a.i64} {}
 
   Addr(Addr&& a) noexcept
-    : i64{std::move(a.i64)} {}
+    : i64{a.i64} {}
 
   // returns this IPv6 Address as a string
   std::string str() const {
@@ -221,7 +221,7 @@ struct Addr {
 
   Addr& operator=(Addr&& other) noexcept
   {
-    i64 = std::move(other.i64);
+    i64 = other.i64;
     return *this;
   }
 
@@ -229,7 +229,7 @@ struct Addr {
    * Operator to check for equality
    */
   bool operator==(const Addr& other) const noexcept
-  { return i32 == other.i32; }
+  { return i64 == other.i64; }
 
   /**
    * Operator to check for inequality
@@ -241,7 +241,13 @@ struct Addr {
    * Operator to check for greater-than relationship
    */
   bool operator>(const Addr& other) const noexcept
-  { return i32 > other.i32; }
+  {
+    if(ntohl(i32[0]) > ntohl(other.i32[0])) return true;
+    if(ntohl(i32[1]) > ntohl(other.i32[1])) return true;
+    if(ntohl(i32[2]) > ntohl(other.i32[2])) return true;
+    if(ntohl(i32[3]) > ntohl(other.i32[3])) return true;
+    return false;
+  }
 
   /**
    * Operator to check for greater-than-or-equal relationship

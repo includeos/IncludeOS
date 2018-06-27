@@ -76,7 +76,7 @@ namespace uplink {
   WS_uplink::WS_uplink(Config config)
     : config_{std::move(config)},
       inet_{*config_.inet},
-      id_{inet_.link_addr().to_string()},
+      id_{__arch_system_info().uuid},
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
@@ -621,7 +621,7 @@ namespace uplink {
     send_message(Transport_code::STATS, str.data(), str.size());
   }
 
-  std::shared_ptr<net::Conntrack<net::IP4>> get_first_conntrack()
+  std::shared_ptr<net::Conntrack> get_first_conntrack()
   {
     for(auto& stacks : net::Super_stack::inet().ip4_stacks()) {
       for(auto& stack : stacks)

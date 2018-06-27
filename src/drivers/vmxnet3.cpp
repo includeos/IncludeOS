@@ -117,7 +117,7 @@ static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 }
 
 vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
-    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, bufstore_),
+    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}),
     m_pcidev(d), m_mtu(mtu), bufstore_{1024, buffer_size_for_mtu(mtu)}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
@@ -231,7 +231,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   shared.misc.queue_desc_address  = (uintptr_t) &dma->queues;
   shared.misc.driver_data_len     = sizeof(vmxnet3_dma);
   shared.misc.queue_desc_len      = sizeof(vmxnet3_queues);
-  shared.misc.mtu = packet_len(); // 60-9000
+  shared.misc.mtu = max_packet_len(); // 60-9000
   shared.misc.num_tx_queues  = 1;
   shared.misc.num_rx_queues  = NUM_RX_QUEUES;
   shared.interrupt.mask_mode = VMXNET3_IT_AUTO | (VMXNET3_IMM_AUTO << 2);
@@ -359,7 +359,7 @@ void vmxnet3::refill(rxring_state& rxq)
     // assign rx descriptor
     auto& desc = rxq.desc0[i];
     desc.address = (uintptr_t) rxq.buffers[i];
-    desc.flags   = packet_len() | generation;
+    desc.flags   = max_packet_len() | generation;
     rxq.prod_count++;
     rxq.producers++;
   }
@@ -377,7 +377,7 @@ vmxnet3::recv_packet(uint8_t* data, uint16_t size)
   new (ptr) net::Packet(
         DRIVER_OFFSET,
         size,
-        DRIVER_OFFSET + packet_len(),
+        DRIVER_OFFSET + size,
         &bufstore());
   return net::Packet_ptr(ptr);
 }
@@ -389,7 +389,7 @@ vmxnet3::create_packet(int link_offset)
   new (ptr) net::Packet(
         DRIVER_OFFSET + link_offset,
         0,
-        DRIVER_OFFSET + packet_len(),
+        DRIVER_OFFSET + frame_offset_link() + MTU(),
         buffer.bufstore);
   return net::Packet_ptr(ptr);
 }

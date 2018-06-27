@@ -62,7 +62,7 @@ void VirtioNet::get_config() {
 
 VirtioNet::VirtioNet(hw::PCI_Device& d, const uint16_t /*mtu*/)
   : Virtio(d),
-    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}, bufstore_),
+    Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}),
     m_pcidev(d),
     bufstore_{VNET_TOT_BUFFERS(), 2048 /* half-page buffers */},
     packets_rx_{Statman::get().create(Stat::UINT64,
@@ -285,7 +285,7 @@ void VirtioNet::add_receive_buffer(uint8_t* pkt)
   auto* vnet = pkt + sizeof(Packet);
 
   Token token1 {{vnet, sizeof(virtio_net_hdr)}, Token::IN };
-  Token token2 {{vnet + sizeof(virtio_net_hdr), packet_len()}, Token::IN };
+  Token token2 {{vnet + sizeof(virtio_net_hdr), max_packet_len()}, Token::IN };
 
   std::array<Token, 2> tokens {{ token1, token2 }};
   rx_q.enqueue(tokens);
@@ -299,7 +299,7 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
   new (ptr) net::Packet(
       sizeof(virtio_net_hdr),
       size - sizeof(virtio_net_hdr),
-      sizeof(virtio_net_hdr) + packet_len(),
+      size,
       &bufstore());
 
   return net::Packet_ptr(ptr);
@@ -314,7 +314,7 @@ VirtioNet::create_packet(int link_offset)
   new (ptr) net::Packet(
         sizeof(virtio_net_hdr) + link_offset,
         0,
-        sizeof(virtio_net_hdr) + packet_len(),
+        sizeof(virtio_net_hdr) + frame_offset_link() + MTU(),
         buffer.bufstore);
 
   return net::Packet_ptr(ptr);

@@ -38,6 +38,7 @@ namespace net {
     using Stack_ptr = Stack*;
     using Addr = typename IPV::addr;
     using Netmask = typename IPV::netmask;
+    using Packet_ptr = typename IPV::IP_packet_ptr;
 
     Addr net() const noexcept
     { return net_; }
@@ -70,9 +71,9 @@ namespace net {
         iface_ == b.interface();
     }
 
-    void ship(Packet_ptr pckt, Addr nexthop, typename Conntrack<IPV>::Entry_ptr ct);
+    void ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct);
 
-    void ship(typename IPV::IP_packet_ptr pckt, typename Conntrack<IPV>::Entry_ptr ct) {
+    void ship(typename IPV::IP_packet_ptr pckt, Conntrack::Entry_ptr ct) {
       auto next = nexthop(pckt->ip_dst());
       ship(std::move(pckt), next, ct);
     }
@@ -112,7 +113,7 @@ namespace net {
     /**
      * Forward an IP packet according to local policy / routing table.
      **/
-    inline void forward(Packet_ptr pckt, Stack& stack, typename Conntrack<IPV>::Entry_ptr ct);
+    inline void forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct);
 
     /**
      * Get forwarding delegate
@@ -230,12 +231,12 @@ namespace net {
 namespace net {
 
   template <>
-  void Route<IP4>::ship(Packet_ptr pckt, Addr nexthop, Conntrack<IP4>::Entry_ptr ct) {
+  void Route<IP4>::ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
     iface_->ip_obj().ship(std::move(pckt), nexthop, ct);
   }
 
   template <>
-  void Route<IP6>::ship(Packet_ptr pckt, Addr nexthop, Conntrack<IP6>::Entry_ptr ct) {
+  void Route<IP6>::ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
     iface_->ip6_obj().ship(std::move(pckt), nexthop, ct);
   }
 
@@ -260,7 +261,7 @@ namespace net {
   }
 
   template <>
-  inline void Router<IP4>::forward(Packet_ptr pckt, Stack& stack, Conntrack<IP4>::Entry_ptr ct)
+  inline void Router<IP4>::forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct)
   {
     Expects(pckt);
 
@@ -304,7 +305,7 @@ namespace net {
   }
 
   template <>
-  inline void Router<IP6>::forward(Packet_ptr pckt, Stack& stack, Conntrack<IP6>::Entry_ptr ct)
+  inline void Router<IP6>::forward(Packet_ptr pckt, Stack& stack, Conntrack::Entry_ptr ct)
   {
     Expects(pckt);
 

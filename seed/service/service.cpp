@@ -17,28 +17,14 @@
 
 #include <service>
 #include <cstdio>
-#include <sys/time.h>
-#include <ctime>
-
-static void print_time()
-{
- /* Obtain the time of day, and convert it to a tm struct. */
- struct timeval tv;
- gettimeofday (&tv, NULL);
- struct tm* ptm = localtime(&tv.tv_sec);
- /* Format the date and time, down to a single second. */
- char time_string[40];
- strftime (time_string, sizeof (time_string), "%Y-%m-%d %H:%M:%S", ptm);
- /* Compute milliseconds from microseconds. */
- long milliseconds = tv.tv_usec / 1000;
- /* Print the formatted time, in seconds, followed by a decimal point
-   and the milliseconds. */
- printf ("%s.%03ld\n", time_string, milliseconds);
-}
+#include <isotime>
 
 void Service::start(const std::string& args)
 {
-  printf("Hello world! Time is now "); print_time();
+#ifdef __GNUG__
+  printf("Built by g++ " __VERSION__ "\n");
+#endif
+  printf("Hello world! Time is now %s\n", isotime::now().c_str());
   printf("Args = %s\n", args.c_str());
   printf("Try giving the service less memory, eg. 5MB in vm.json\n");
 }

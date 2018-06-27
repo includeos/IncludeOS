@@ -106,7 +106,7 @@ namespace net {
       or local_ip() == ADDR_ANY;
   }
 
-  void IP4::receive(Packet_ptr pckt, const bool /*link_bcast*/)
+  void IP4::receive(Packet_ptr pckt, [[maybe_unused]]const bool link_bcast)
   {
     // Cast to IP4 Packet
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
@@ -134,7 +134,7 @@ namespace net {
 
     /* PREROUTING */
     // Track incoming packet if conntrack is active
-    Conntrack<IP4>::Entry_ptr ct = (stack_.conntrack())
+    Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
@@ -233,7 +233,7 @@ namespace net {
     packet->make_flight_ready();
 
     /* OUTPUT */
-    Conntrack<IP4>::Entry_ptr ct =
+    Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
@@ -250,7 +250,7 @@ namespace net {
     ship(std::move(packet), 0, ct);
   }
 
-  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack<IP4>::Entry_ptr ct)
+  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
@@ -308,7 +308,8 @@ namespace net {
     // Stat increment packets transmitted
     packets_tx_++;
 
-    PRINT("<IP4> Transmitting packet, layer begin: buf + %li\n", packet->layer_begin() - packet->buf());
+    PRINT("<IP4> Transmitting packet, layer begin: buf + %li ip.len=%u pkt.size=%zu\n",
+      packet->layer_begin() - packet->buf(), packet->ip_total_length(), packet->size());
 
     linklayer_out_(std::move(packet), next_hop);
   }
