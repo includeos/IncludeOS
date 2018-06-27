@@ -222,24 +222,23 @@ namespace net
 
         void setup(const PacketIP6& pckt)
         {
+          auto reader = pckt.layer_begin() + IP6_HEADER_LEN;
           next_proto_ = pckt.next_protocol();
           uint16_t ext_len;
 
           if (next_proto_ == Protocol::HOPOPT or
             next_proto_ == Protocol::OPTSV6) {
-            auto reader = pckt.layer_begin() + IP6_HEADER_LEN;
-            ip6::extension_header& ext = *(ip6::extension_header*)reader;
             while (next_proto_ != Protocol::IPv6_NONXT) {
               if (next_proto_ == Protocol::HOPOPT) {
               } else if (next_proto_ == Protocol::OPTSV6) {
               } else {
                   break;
               }
-              ext = *(ip6::extension_header*)reader;
-              ext_len = ext.size();
-              reader += ext_len;
-              extension_header_len_ += ext_len;
+              auto ext = *(ip6::extension_header*)reader;
+              auto ext_len = ext.size();
               next_proto_ = ext.next();
+              extension_header_len_ += ext_len;
+              reader += ext_len;
             }
           }
         }
