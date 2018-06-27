@@ -382,6 +382,7 @@ struct Addr {
   { return part(3) >= 224 and part(3) < 240; }
 
   static const Addr addr_any;
+  static const Addr addr_bcast;
 
   /* Data member */
   uint32_t whole;

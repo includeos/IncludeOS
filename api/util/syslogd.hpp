@@ -32,15 +32,15 @@ public:
     fac_ = std::move(facility);
   }
 
-  static void settings(const net::UDP::addr_t dest_ip, const net::UDP::port_t dest_port) {
+  static void settings(const net::Addr& dest_ip, const uint16_t dest_port) {
     fac_->settings(dest_ip, dest_port);
   }
 
-  static net::UDP::addr_t ip() {
+  static const net::Addr& ip() {
     return fac_->ip();
   }
 
-  static net::UDP::port_t port() {
+  static uint16_t port() {
     return fac_->port();
   }
 

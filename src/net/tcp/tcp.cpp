@@ -184,7 +184,7 @@ void TCP::insert_connection(Connection_ptr conn)
       std::forward_as_tuple(conn));
 }
 
-void TCP::receive(net::Packet_ptr ptr)
+void TCP::receive4(net::Packet_ptr ptr)
 {
   auto ip4 = static_unique_ptr_cast<PacketIP4>(std::move(ptr));
   Packet4_view pkt{std::move(ip4)};
@@ -381,7 +381,7 @@ void TCP::transmit(tcp::Packet_view_ptr packet)
     network_layer_out6_(packet->release());
   }
   else {
-    network_layer_out_(packet->release());
+    network_layer_out4_(packet->release());
   }
 }
 

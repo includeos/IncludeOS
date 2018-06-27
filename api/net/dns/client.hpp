@@ -19,13 +19,15 @@
 #define NET_DNS_CLIENT_HPP
 
 #include <net/dns/dns.hpp>
-#include <net/ip4/udp.hpp>
+#include <net/ip4/ip4.hpp>
+#include <net/udp/socket.hpp>
 #include <util/timer.hpp>
 #include <map>
 #include <unordered_map>
 
 namespace net
 {
+  class Inet;
   /**
    * @brief      A simple DNS client which is able to resolve hostnames
    *             and locally cache them.
@@ -36,7 +38,7 @@ namespace net
   class DNSClient
   {
   public:
-    using Stack           = IP4::Stack;
+    using Stack           = Inet;
     using Resolve_handler = IP4::resolve_func;
     using Address         = net::Addr;
     using Hostname        = std::string;
@@ -83,7 +85,7 @@ namespace net
      * @param[in]  force       Wether to force the resolve, ignoring the cache
      */
     void resolve(Address            dns_server,
-                 const Hostname&    hostname,
+                 Hostname           hostname,
                  Resolve_handler    handler,
                  Timer::duration_t  timeout,
                  bool               force = false);
@@ -92,11 +94,11 @@ namespace net
      * @brief      Resolve a hostname with default timeout.
      */
     void resolve(Address            dns_server,
-                 const Hostname&    hostname,
+                 Hostname           hostname,
                  Resolve_handler    handler,
                  bool               force = false)
     {
-      resolve(dns_server, hostname, std::move(handler), DEFAULT_RESOLVE_TIMEOUT, force);
+      resolve(dns_server, std::move(hostname), std::move(handler), DEFAULT_RESOLVE_TIMEOUT, force);
     }
 
     /**
@@ -150,7 +152,7 @@ namespace net
 
   private:
     Stack&                stack_;
-    UDPSocket*            socket_;
+    udp::Socket*          socket_;
     Cache                 cache_;
     std::chrono::seconds  cache_ttl_;
     Timer                 flush_timer_;
@@ -164,7 +166,7 @@ namespace net
      * @param[in]  data       The raw data containing the msg
      * @param[in]  <unnamed>  Size of the data
      */
-    void receive_response(Address, UDP::port_t, const char* data, size_t);
+    void receive_response(Address, udp::port_t, const char* data, size_t);
 
     /**
      * @brief      Adds a cache entry.

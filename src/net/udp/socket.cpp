@@ -15,35 +15,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <net/ip4/udp_socket.hpp>
+#include <net/udp/socket.hpp>
+#include <net/udp/udp.hpp>
 #include <common>
 #include <memory>
 
-namespace net
+namespace net::udp
 {
-  UDPSocket::UDPSocket(UDP& udp_instance, Socket socket)
-    : udp_{udp_instance}, socket_{socket}
+  Socket::Socket(UDP& udp_instance, net::Socket socket)
+    : udp_{udp_instance}, socket_{std::move(socket)},
+      is_ipv6_{socket.address().is_v6()}
   {}
 
-  void UDPSocket::packet_init(
-      UDP::Packet_ptr p,
-      addr_t srcIP,
-      addr_t destIP,
-      port_t port,
-      uint16_t length)
+  void Socket::internal_read(const Packet_view& udp)
   {
-    p->init(this->local_port(), port);
-    p->set_ip_src(srcIP.v4());
-    p->set_ip_dst(destIP.v4());
-    p->set_data_length(length);
-
-    assert(p->data_length() == length);
+    on_read_handler(udp.ip_src(), udp.src_port(),
+                   (const char*) udp.udp_data(), udp.udp_data_length());
   }
 
-  void UDPSocket::internal_read(const PacketUDP& udp)
-  { on_read_handler(udp.ip_src(), udp.src_port(), (const char*) udp.data(), udp.data_length()); }
-
-  void UDPSocket::sendto(
+  void Socket::sendto(
      addr_t destIP,
      port_t port,
      const void* buffer,
@@ -52,15 +42,16 @@ namespace net
      error_handler ecb)
   {
     if (UNLIKELY(length == 0)) return;
-    udp_.sendq.emplace_back(
-       (const uint8_t*) buffer, length, cb, ecb, this->udp_,
-       local_addr(), this->local_port(), destIP, port);
+    udp_.sendq.emplace_back(this->udp_,
+      socket_, net::Socket{destIP, port},
+      (const uint8_t*) buffer, length,
+      cb, ecb);
 
     // UDP packets are meant to be sent immediately, so try flushing
     udp_.flush();
   }
 
-  void UDPSocket::bcast(
+  void Socket::bcast(
     addr_t srcIP,
     port_t port,
     const void* buffer,
@@ -68,12 +59,20 @@ namespace net
     sendto_handler cb,
     error_handler ecb)
   {
+    // TODO: IPv6 support?
+    Expects(not is_ipv6_ && "Don't know what broadcast with IPv6 is yet");
     if (UNLIKELY(length == 0)) return;
-    udp_.sendq.emplace_back(
-         (const uint8_t*) buffer, length, cb, ecb, this->udp_,
-         srcIP, this->local_port(), IP4::ADDR_BCAST, port);
+    udp_.sendq.emplace_back(this->udp_,
+      net::Socket{srcIP, socket_.port()}, net::Socket{ip4::Addr::addr_bcast, port},
+      (const uint8_t*) buffer, length,
+      cb, ecb);
 
     // UDP packets are meant to be sent immediately, so try flushing
     udp_.flush();
+  }
+
+  void Socket::close()
+  {
+    udp_.close(socket_);
   }
 } // < namespace net

@@ -41,14 +41,13 @@ namespace net
   }
 
   void DNSClient::resolve(Address dns_server,
-                          const Hostname& hname,
+                          Hostname hostname,
                           Resolve_handler func,
                           Timer::duration_t timeout, bool force)
   {
     if(UNLIKELY(socket_ == nullptr))
       bind_socket();
 
-    auto hostname = hname; // fixme: unecessary copy
     if(not is_FQDN(hostname) and not stack_.domain_name().empty())
     {
       hostname.append(".").append(stack_.domain_name());
