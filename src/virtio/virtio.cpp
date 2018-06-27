@@ -159,7 +159,7 @@ void Virtio::reset() {
 uint8_t Virtio::get_legacy_irq()
 {
   // Get legacy IRQ from PCI
-  uint32_t value = _pcidev.read_dword(PCI::CONFIG_INTR);
+  uint32_t value = _pcidev.read32(PCI::CONFIG_INTR);
   if ((value & 0xFF) != 0xFF) {
     return value & 0xFF;
   }
