@@ -19,7 +19,7 @@
 #include "packet_view.hpp"
 #include <net/ip6/packet_ip6.hpp>
 
-namespace net::tcp {
+namespace net::udp {
 
 template <typename Ptr_type> class Packet6_v;
 using Packet6_view = Packet6_v<net::Packet_ptr>;
@@ -35,10 +35,7 @@ public:
     this->set_header(packet().ip_data().data());
   }
 
-  inline void init();
-
-  uint16_t compute_tcp_checksum() const noexcept override
-  { return calculate_checksum6(*this); }
+  inline void init(const net::Socket& src, const net::Socket& dst);
 
   Protocol ipv() const noexcept override
   { return Protocol::IPv6; }
@@ -76,14 +73,16 @@ private:
 };
 
 template <typename Ptr_type>
-inline void Packet6_v<Ptr_type>::init()
+inline void Packet6_v<Ptr_type>::init(const net::Socket& src, const net::Socket& dst)
 {
-  // clear TCP header
-  memset(this->header, 0, sizeof(tcp::Header));
-
-  this->set_win(tcp::default_window_size);
-  this->header->offset_flags.offset_reserved = (5 << 4);
+  Expects(src.address().is_v6() and dst.address().is_v6());
+  // set zero length
   this->set_length();
+  // zero the optional checksum
+  this->udp_header().checksum = 0;
+
+  this->set_source(src);
+  this->set_destination(dst);
 }
 
 }

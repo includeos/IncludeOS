@@ -31,20 +31,6 @@
 
 namespace net
 {
-  const ip6::Addr ip6::Addr::node_all_nodes(0xFF01, 0, 0, 0, 0, 0, 0, 1);
-  const ip6::Addr ip6::Addr::node_all_routers(0xFF01, 0, 0, 0, 0, 0, 0, 2);
-  const ip6::Addr ip6::Addr::node_mDNSv6(0xFF01, 0, 0, 0, 0, 0, 0, 0xFB);
-
-  const ip6::Addr ip6::Addr::link_unspecified(0, 0, 0, 0, 0, 0, 0, 0);
-  const ip6::Addr ip6::Addr::addr_any{ip6::Addr::link_unspecified};
-
-  const ip6::Addr ip6::Addr::link_all_nodes(0xFF02, 0, 0, 0, 0, 0, 0, 1);
-  const ip6::Addr ip6::Addr::link_all_routers(0xFF02, 0, 0, 0, 0, 0, 0, 2);
-  const ip6::Addr ip6::Addr::link_mDNSv6(0xFF02, 0, 0, 0, 0, 0, 0, 0xFB);
-
-  const ip6::Addr ip6::Addr::link_dhcp_servers(0xFF02, 0, 0, 0, 0, 0, 0x01, 0x02);
-  const ip6::Addr ip6::Addr::site_dhcp_servers(0xFF05, 0, 0, 0, 0, 0, 0x01, 0x03);
-
   const IP6::addr IP6::ADDR_ANY(0, 0, 0, 0);
   const IP6::addr IP6::ADDR_LOOPBACK(0, 0, 0, 1);
 
@@ -208,7 +194,7 @@ namespace net
       icmp_handler_(std::move(packet));
       break;
     case Protocol::UDP:
-      //udp_handler_(std::move(packet));
+      udp_handler_(std::move(packet));
       break;
     case Protocol::TCP:
       tcp_handler_(std::move(packet));
