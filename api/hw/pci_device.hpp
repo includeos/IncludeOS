@@ -149,7 +149,7 @@ struct msix_t;
     explicit PCI_Device(const uint16_t pci_addr, const uint32_t, const uint32_t);
 
     //! @brief Read from device with implicit pci_address (e.g. used by Nic)
-    uint32_t read_dword(const uint8_t reg) noexcept;
+    uint32_t read32(const uint8_t reg) noexcept;
 
     //! @brief Read from device with explicit pci_addr
     static uint32_t read_dword(const uint16_t pci_addr, const uint8_t reg) noexcept;
@@ -287,7 +287,7 @@ struct msix_t;
     int m_iobase = -1;
     std::array<PCI::Resource, 6> m_resources;
 
-    pcicap_t caps[PCI_CAP_ID_MAX+1];
+    std::array<pcicap_t, PCI_CAP_ID_MAX+1> caps;
 
     // has msix support if not null
     msix_t*  msix = nullptr;
