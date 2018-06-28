@@ -468,8 +468,9 @@ public:
    **/
   void map_all(uintptr_t phys, Pflag flags)
   {
-    if (! is_range_aligned(phys))
-      PG_PRINT("<map_all> Physical addr 0x%lx is not range aligned \n", phys);
+    if (!is_range_aligned(phys)) {
+      printf("<map_all> Physical addr 0x%lx is not range aligned \n", phys);
+    }
     Expects(is_range_aligned(phys));
 
     for(auto& page : this->tbl_) {
@@ -506,8 +507,9 @@ public:
   {
     Expects(entry >= tbl_.begin() && entry < tbl_.end());
     auto new_entry = addr_of(*entry) | (flags & allowed_flags);
-    if (!is_page_aligned(addr_of(new_entry)))
+    if (!is_page_aligned(addr_of(new_entry))) {
       printf("%p is not page aligned \n", (void*)addr_of(new_entry));
+    }
     Expects(is_page_aligned(addr_of(new_entry)));
 
     // Can only make pages and page dirs present. E.g. no unmapped PML4 entry.
@@ -622,8 +624,9 @@ public:
     req.size = page_size;
     req.page_sizes = page_size;
 
-    if (addr_of(*ent) != req.phys)
-      PG_PRINT("Couldn't set address: req. expected 0x%lx, got 0x%lx\n", req.phys, addr_of(*ent));
+    if (addr_of(*ent) != req.phys) {
+      printf("Couldn't set address: req. expected 0x%lx, got 0x%lx\n", req.phys, addr_of(*ent));
+    }
     Ensures(addr_of(*ent) == req.phys);
     return req;
   }
