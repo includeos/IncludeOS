@@ -71,8 +71,10 @@ void OS::default_stdout(const char* str, const size_t len)
   solo5_console_write(str, len);
 }
 
-void OS::start(char* _cmdline, uintptr_t mem_size)
+void OS::start(const char* cmdline)
 {
+  OS::cmdline = cmdline;
+
   // Initialize stdout handlers
   if(os_default_stdout) {
     OS::add_stdout(&OS::default_stdout);
@@ -88,8 +90,6 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   /// STATMAN ///
   /// initialize on page 7, 2 pages in size
   Statman::get().init(0x6000, 0x3000);
-
-  OS::cmdline = _cmdline;
 
   // Call global ctors
   PROFILE("Global kernel constructors");
