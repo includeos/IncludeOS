@@ -314,13 +314,21 @@ Conntrack::Entry* Conntrack::update_entry(
   // give it a new value
   quad = newq;
 
-  // TODO: this could probably be optimized with C++17 map::extract
+  // replace this ...
   // erase the old entry
   entries.erase(quint);
   // insert the entry with updated quintuple
   entries.emplace(std::piecewise_construct,
     std::forward_as_tuple(newq, proto),
     std::forward_as_tuple(entry));
+
+  // ... with this (when compile on clang)
+  /*
+  // update the key in the map with the new quadruple
+  auto ent = entries.extract(it);
+  ent.key().quad = newq;
+  entries.insert(std::move(ent));
+  */
 
   CTDBG("<Conntrack> Entry updated: %s\n", entry->to_string().c_str());
 
