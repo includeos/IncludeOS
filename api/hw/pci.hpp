@@ -28,7 +28,7 @@ namespace hw {
   {
     uint8_t ret;
 #if defined(ARCH_x86)
-    asm volatile("inb %w1,%b0" : "=a"(ret) : "Nd"(port));
+    asm volatile("inb %1,%0" : "=a"(ret) : "Nd"(port));
 #else
 #error "inp() not implemented for selected arch"
 #endif
@@ -39,7 +39,7 @@ namespace hw {
   {
     uint16_t ret;
 #if defined(ARCH_x86)
-    asm volatile("inw %w1,%w0" : "=a"(ret) : "Nd"(port));
+    asm volatile("inw %1,%0" : "=a"(ret) : "Nd"(port));
 #else
 #error "inpw() not implemented for selected arch"
 #endif
@@ -50,7 +50,7 @@ namespace hw {
   {
     uint32_t ret;
 #if defined(ARCH_x86)
-    asm volatile("inl %w1,%d0" : "=a"(ret) : "Nd"(port));
+    asm volatile("inl %1,%0" : "=a"(ret) : "Nd"(port));
 #else
 #error "inpd() not implemented for selected arch"
 #endif
@@ -60,7 +60,7 @@ namespace hw {
   static inline void outp(uint16_t port, uint8_t data)
   {
 #if defined(ARCH_x86)
-    asm volatile ("outb %b0,%w1" :: "a"(data), "Nd"(port));
+    asm volatile ("outb %0,%1" :: "a"(data), "Nd"(port));
 #else
 #error "outp() not implemented for selected arch"
 #endif
@@ -68,7 +68,7 @@ namespace hw {
   static inline void outpw(uint16_t port, uint16_t data)
   {
 #if defined(ARCH_x86)
-    asm volatile ("outw %w0,%w1" :: "a" (data), "Nd"(port));
+    asm volatile ("outw %0,%1" :: "a" (data), "Nd"(port));
 #else
 #error "outpw() not implemented for selected arch"
 #endif
@@ -76,7 +76,7 @@ namespace hw {
   static inline void outpd(uint16_t port, uint32_t data)
   {
 #if defined(ARCH_x86)
-    asm volatile ("outl %d0,%w1" :: "a" (data), "Nd"(port));
+    asm volatile ("outl %0,%1" :: "a" (data), "Nd"(port));
 #else
 #error "outpd() not implemented for selected arch"
 #endif
