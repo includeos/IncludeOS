@@ -66,8 +66,8 @@ namespace net
     res.ndp().set_neighbour_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
 
     // Insert target link address, ICMP6 option header and our mac address
-    res.add_payload(req.ndp().neighbour_sol().get_target().data(), 16);
-    res.ndp().set_ndp_options_header(icmp6::ND_OPT_TARGET_LL_ADDR, 0x01);
+    res.add_payload(req.ndp().neighbour_sol().target().data(), 16);
+    res.ndp().set_ndp_options_header(ndp::ND_OPT_TARGET_LL_ADDR, 0x01);
     res.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
 
     // Add checksum
@@ -143,7 +143,7 @@ namespace net
 
     // Set target address
     req.add_payload(target.data(), 16);
-    req.ndp().set_ndp_options_header(icmp6::ND_OPT_SOURCE_LL_ADDR, 0x01);
+    req.ndp().set_ndp_options_header(ndp::ND_OPT_SOURCE_LL_ADDR, 0x01);
     req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
 
     req.set_checksum();
@@ -250,7 +250,7 @@ namespace net
     req.set_code(0);
     req.set_reserved(0);
 
-    req.ndp().set_ndp_options_header(icmp6::ND_OPT_SOURCE_LL_ADDR, 0x01);
+    req.ndp().set_ndp_options_header(ndp::ND_OPT_SOURCE_LL_ADDR, 0x01);
     req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
 
     // Add checksum
@@ -299,14 +299,17 @@ namespace net
           return;
       }
       req.ndp().parse(ICMP_type::ND_ROUTER_ADV);
-      req.ndp().parse_prefix([this] (ip6::Addr prefix)
+      req.ndp().parse_prefix([this] (ip6::Addr prefix,
+            uint32_t preferred_lifetime, uint32_t valid_lifetime)
       {
         /* Called if autoconfig option is set */
         /* Append mac addres to get a valid address */
         prefix.set(this->inet_.link_addr());
+        add_prefix_addr(prefix, preferred_lifetime, valid_lifetime); 
         if (ra_handler_) {
         }
-      }, [] (ip6::Addr prefix)
+      }, [this] (ip6::Addr prefix, uint32_t preferred_lifetime,
+          uint32_t valid_lifetime)
       {
         /* Called if onlink is set */
       });
@@ -375,8 +378,8 @@ namespace net
       } else {
           neighbour_cache_.emplace(
             std::make_pair(ip, Cache_entry{mac, state, flags})); // Insert
-          if (UNLIKELY(not flush_timer_.is_running())) {
-            flush_timer_.start(flush_interval_);
+          if (UNLIKELY(not flush_neighbour_timer_.is_running())) {
+            flush_neighbour_timer_.start(flush_interval_);
           }
       }
   }
@@ -420,22 +423,19 @@ namespace net
     }
   }
 
-  void Ndp::flush_expired()
+  void Ndp::flush_expired_prefix()
   {
-    PRINT("NDP: Flushing expired entries\n");
-    std::vector<ip6::Addr> expired;
-    for (auto ent : neighbour_cache_) {
-      if (ent.second.expired()) {
-        expired.push_back(ent.first);
-      }
+    PRINT("NDP: Flushing expired prefix addresses\n");
+    for (auto ent = prefix_list_.begin(); ent != prefix_list_.end();) {
+        if (!ent->valid()) {
+            ent = prefix_list_.erase(ent);
+        } else {
+            ent++;
+        }
     }
 
-    for (auto ip : expired) {
-      neighbour_cache_.erase(ip);
-    }
-
-    if (not neighbour_cache_.empty()) {
-      flush_timer_.start(flush_interval_);
+    if (not prefix_list_.empty()) {
+      flush_prefix_timer_.start(flush_interval_);
     }
   }
 
@@ -498,6 +498,26 @@ namespace net
   {
     dad_handler_ = nullptr;
     tentative_addr_ = IP6::ADDR_ANY;
+  }
+
+  void Ndp::add_prefix_addr(ip6::Addr ip, uint32_t preferred_lifetime, uint32_t valid_lifetime)
+  {
+      auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
+            [&ip] (const Prefix_entry& obj) { return obj.prefix() == ip; }); 
+      auto two_hours = 60 * 60 * 2;
+
+      if (entry == prefix_list_.end()) {
+        prefix_list_.push_back(Prefix_entry{ip, preferred_lifetime, valid_lifetime});
+      } else if (!entry->always_valid()) {
+        entry->update_preferred_lifetime(preferred_lifetime);
+        if ((valid_lifetime > two_hours) || (valid_lifetime > entry->remaining_valid_time())) {
+          /* Honor the valid lifetime only if its greater than 2 hours
+           * or more than the remaining valid time */
+          entry->update_valid_lifetime(valid_lifetime);
+        } else if (entry->remaining_valid_time() > two_hours) {
+          entry->update_valid_lifetime(two_hours);
+        }
+      }
   }
 
   // NDP packet function definitions

@@ -133,24 +133,11 @@ namespace net
           handler(false);
       }
     });
-    /* Try to get a global address */
   }
 
   void Slaac::autoconf_global()
   {
-    // Perform DAD
-    stack.ndp().perform_dad(tentative_addr_,
-      [this] () {
-      if(alternate_addr_ != IP6::ADDR_ANY &&
-        alternate_addr_ != tentative_addr_) {
-        tentative_addr_ = alternate_addr_;
-        dad_retransmits_ = 1;
-      } else {
-        /* DAD has failed. */
-        for(auto& handler : this->config_handlers_)
-          handler(false);
-      }
-    });
-    /* Try to get a global address */
+    stack.ndp().send_router_solicitation([this] () {
+      });
   }
 }

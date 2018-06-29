@@ -227,7 +227,7 @@ namespace icmp6 {
 
   private:
     IP6::IP_packet_ptr pckt_;
-    NdpPacket          ndp_;
+    ndp::NdpPacket     ndp_;
     uint16_t payload_offset_ = 0;
   };
 }

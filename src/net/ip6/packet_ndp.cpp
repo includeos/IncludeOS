@@ -132,7 +132,7 @@ namespace net
      }
 
      if (pinfo->onlink) {
-       onlink_cb(confaddr);
+       onlink_cb(confaddr, pinfo->prefered, pinfo->valid);
      } else if (pinfo->autoconf) {
        if (pinfo->prefix_len == 64) {
            confaddr.set_part<uint64_t>(1,
@@ -142,7 +142,7 @@ namespace net
                    " prefix with wrong len: %d", pinfo->prefix_len);
            return false;
        }
-       autoconf_cb(confaddr);
+       autoconf_cb(confaddr, pinfo->prefered, pinfo->valid);
      }
    }
  }
@@ -180,8 +180,8 @@ namespace net
     header.type = type;
     header.len = len;
 
-    icmp6_.set_payload({reinterpret_cast<uint8_t*>(&header),
-            sizeof header});
+    icmp6_.add_payload(reinterpret_cast<uint8_t*>(&header),
+            sizeof header);
   }
 
   } // ndp

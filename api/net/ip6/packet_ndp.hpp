@@ -52,6 +52,8 @@ namespace ndp {
 
   class NdpPacket {
 
+      using Pinfo_handler = delegate<void(ip6::Addr, uint32_t, uint32_t)>;
+      using ICMP_type = ICMP6_error::ICMP_type;
       private:
 
       struct nd_options_header {
@@ -134,7 +136,7 @@ namespace ndp {
           }
 
           public:
-          using Pinfo_handler = delegate<void(ip6::Addr)>;
+          using Pinfo_handler = NdpPacket::Pinfo_handler;
 
           NdpOptions() : header_{nullptr}, nd_opts_ri{nullptr},
               nd_opts_ri_end{nullptr}, user_opts{nullptr},
@@ -241,8 +243,6 @@ namespace ndp {
       NdpOptions ndp_opt_;
 
       public:
-      using Pinfo_handler = delegate<void(ip6::Addr)>;
-      using ICMP_type = ICMP6_error::ICMP_type;
 
       NdpPacket(icmp6::Packet& icmp6);
 
