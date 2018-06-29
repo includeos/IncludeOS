@@ -129,7 +129,7 @@ namespace icmp6 {
           uint8_t  options[0];
 
           uint16_t option_offset()
-          { return IP6_ADDR_BYTES * 2; }
+          { return sizeof(ip6::Addr) * 2; }
 
         } __attribute__((packed));
 
@@ -142,7 +142,7 @@ namespace icmp6 {
           { return target; }
 
           uint16_t option_offset()
-          { return IP6_ADDR_BYTES; }
+          { return sizeof(ip6::Addr); }
 
         } __attribute__((packed));
 
@@ -155,7 +155,7 @@ namespace icmp6 {
           { return target; }
 
           uint16_t option_offset()
-          { return IP6_ADDR_BYTES; }
+          { return sizeof(ip6::Addr); }
 
         } __attribute__((packed));
 

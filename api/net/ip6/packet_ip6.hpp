@@ -20,6 +20,7 @@
 #define IP6_PACKET_IP6_HPP
 
 #include "header.hpp"
+#include "extension_header.hpp"
 #include <cassert>
 #include <net/packet.hpp>
 
@@ -77,8 +78,7 @@ namespace net
     /** Protocol after Extension headers */
     Protocol ip_protocol() const noexcept
     {
-      auto ext_hdr = ExtensionHeaderView(*this);
-      return ext_hdr.next_proto();
+      return ip6::parse_upper_layer_proto(ext_hdr_start(), next_protocol());
     }
 
     /** Get next header */
@@ -101,12 +101,12 @@ namespace net
     uint16_t ip_data_length() const noexcept
     {
       Expects(size() and static_cast<size_t>(size()) >= sizeof(ip6::Header));
-      return size() - IP6_HEADER_LEN;
+      return size() - sizeof(ip6::Header);
     }
 
     /** Get total data capacity of IP packet in bytes  */
     uint16_t ip_capacity() const noexcept
-    { return capacity() - IP6_HEADER_LEN; }
+    { return capacity() - sizeof(ip6::Header); }
 
     /* This returns the IPv6 header and extension header len.
      * Note: Extension header needs to be parsed to know this */
@@ -170,8 +170,8 @@ namespace net
       hdr = {};
       hdr.hop_limit   = DEFAULT_HOP_LIMIT;
       hdr.next_header = static_cast<uint8_t>(proto);
-      increment_data_end(IP6_HEADER_LEN);
-      set_payload_offset(IP6_HEADER_LEN);
+      increment_data_end(sizeof(ip6::Header));
+      set_payload_offset(sizeof(ip6::Header));
       assert(this->payload_length() == 0);
     }
 
@@ -185,11 +185,14 @@ namespace net
       return {ip_data_ptr(), ip_data_length()};
     }
 
+    const ip6::Extension_header* ext_hdr_start() const
+    { return reinterpret_cast<ip6::Extension_header*>(layer_begin() + sizeof(ip6::Header)); }
+
     /**
      *  Set IP6 payload length
      */
     void set_segment_length() noexcept
-    { ip6_header().payload_length = htons(size() - IP6_HEADER_LEN); }
+    { ip6_header().payload_length = htons(size() - sizeof(ip6::Header)); }
 
   protected:
 
@@ -209,46 +212,6 @@ namespace net
 
     const ip6::Header& ip6_header() const noexcept
     { return *reinterpret_cast<const ip6::Header*>(layer_begin()); }
-
-    class ExtensionHeaderView {
-    private:
-        uint16_t                extension_header_len_;
-        Protocol                next_proto_;
-        std::array<struct ip6::extension_header*, OPT_MAX> opt_array;
-
-    public:
-        ExtensionHeaderView(const PacketIP6& pckt) : extension_header_len_{0}, next_proto_{0},
-          opt_array{} { setup(pckt); }
-
-        void setup(const PacketIP6& pckt)
-        {
-          auto reader = pckt.layer_begin() + IP6_HEADER_LEN;
-          next_proto_ = pckt.next_protocol();
-          uint16_t ext_len;
-
-          if (next_proto_ == Protocol::HOPOPT or
-            next_proto_ == Protocol::OPTSV6) {
-            while (next_proto_ != Protocol::IPv6_NONXT) {
-              if (next_proto_ == Protocol::HOPOPT) {
-              } else if (next_proto_ == Protocol::OPTSV6) {
-              } else {
-                  break;
-              }
-              auto ext = *(ip6::extension_header*)reader;
-              auto ext_len = ext.size();
-              next_proto_ = ext.next();
-              extension_header_len_ += ext_len;
-              reader += ext_len;
-            }
-          }
-        }
-
-        uint16_t extension_header_len() const noexcept
-        { return extension_header_len_; }
-
-        Protocol next_proto() const noexcept
-        { return next_proto_; }
-    }; //ExtenstionHeaderView
 
   }; //< PacketIP6
 

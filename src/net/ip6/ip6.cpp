@@ -78,9 +78,9 @@ namespace net
 
   void PacketIP6::calculate_payload_offset()
   {
-    auto reader = this->layer_begin() + IP6_HEADER_LEN;
+    auto reader = this->ext_hdr_start();
     auto next_proto = this->next_protocol();
-    uint16_t pl_off = IP6_HEADER_LEN;
+    uint16_t pl_off = sizeof(ip6::Header);
 
     while (next_proto != Protocol::IPv6_NONXT)
     {
@@ -91,8 +91,8 @@ namespace net
             this->set_payload_offset(pl_off);
             return;
         }
-        auto& ext = *(ip6::extension_header*)reader;
-        next_proto = ext.next();
+        auto& ext = *(ip6::Extension_header*)reader;
+        next_proto = ext.proto();
         pl_off += ext.size();
         reader += ext.size();
     }
