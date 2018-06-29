@@ -318,7 +318,6 @@ namespace net {
       this->gateway_ = IP4::ADDR_ANY;
       this->netmask_ = IP4::ADDR_ANY;
       this->ip6_addr_ = IP6::ADDR_ANY;
-      this->ip6_global_addr_ = IP6::ADDR_ANY;
       this->ip6_gateway_ = IP6::ADDR_ANY;
       this->ip6_prefix_ = 0;
     }
@@ -488,7 +487,6 @@ namespace net {
     IP4::addr dns_server_;
 
     IP6::addr ip6_addr_;
-    IP6::addr ip6_global_addr_;
     IP6::addr ip6_gateway_;
     uint8_t   ip6_prefix_;
 

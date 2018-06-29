@@ -305,8 +305,13 @@ namespace net
         /* Called if autoconfig option is set */
         /* Append mac addres to get a valid address */
         prefix.set(this->inet_.link_addr());
-        add_prefix_addr(prefix, preferred_lifetime, valid_lifetime); 
+        add_addr(prefix, preferred_lifetime, valid_lifetime);
+        PRINT("NDP: RA: Adding address %s with preferred lifetime: %u"
+            " and valid lifetime: %u\n", prefix.str().c_str(),
+            preferred_lifetime, valid_lifetime);
+
         if (ra_handler_) {
+          ra_handler_(prefix);
         }
       }, [this] (ip6::Addr prefix, uint32_t preferred_lifetime,
           uint32_t valid_lifetime)
@@ -423,6 +428,25 @@ namespace net
     }
   }
 
+  void Ndp::flush_expired_neighbours()
+  {
+    PRINT("NDP: Flushing expired entries\n");
+    std::vector<IP6::addr> expired;
+    for (auto ent : neighbour_cache_) {
+      if (ent.second.expired()) {
+        expired.push_back(ent.first);
+      }
+    }
+
+    for (auto ip : expired) {
+      neighbour_cache_.erase(ip);
+    }
+
+    if (not neighbour_cache_.empty()) {
+      flush_neighbour_timer_.start(flush_interval_);
+    }
+  }
+
   void Ndp::flush_expired_prefix()
   {
     PRINT("NDP: Flushing expired prefix addresses\n");
@@ -500,17 +524,18 @@ namespace net
     tentative_addr_ = IP6::ADDR_ANY;
   }
 
-  void Ndp::add_prefix_addr(ip6::Addr ip, uint32_t preferred_lifetime, uint32_t valid_lifetime)
+  void Ndp::add_addr(ip6::Addr ip, uint32_t preferred_lifetime, uint32_t valid_lifetime)
   {
       auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
-            [&ip] (const Prefix_entry& obj) { return obj.prefix() == ip; }); 
+            [&ip] (const Prefix_entry& obj) { return obj.prefix() == ip; });
       auto two_hours = 60 * 60 * 2;
 
       if (entry == prefix_list_.end()) {
         prefix_list_.push_back(Prefix_entry{ip, preferred_lifetime, valid_lifetime});
       } else if (!entry->always_valid()) {
         entry->update_preferred_lifetime(preferred_lifetime);
-        if ((valid_lifetime > two_hours) || (valid_lifetime > entry->remaining_valid_time())) {
+        if ((valid_lifetime > two_hours) ||
+            (valid_lifetime > entry->remaining_valid_time())) {
           /* Honor the valid lifetime only if its greater than 2 hours
            * or more than the remaining valid time */
           entry->update_valid_lifetime(valid_lifetime);

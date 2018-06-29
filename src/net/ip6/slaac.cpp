@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define SLAAC_DEBUG 1
+//#define SLAAC_DEBUG 1
 #ifdef SLAAC_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -34,6 +34,8 @@ namespace net
 {
   const int Slaac::LINKLOCAL_RETRIES;
   const int Slaac::LINKLOCAL_INTERVAL;
+  const int Slaac::GLOBAL_RETRIES;
+  const int Slaac::GLOBAL_INTERVAL;
 
   Slaac::Slaac(Stack& inet)
     : stack(inet),
@@ -137,7 +139,8 @@ namespace net
 
   void Slaac::autoconf_global()
   {
-    stack.ndp().send_router_solicitation([this] () {
-      });
+    stack.ndp().send_router_solicitation([this] (ip6::Addr addr) {
+      PRINT("Auto-configuring global address: %s\n", addr.str().c_str());
+    });
   }
 }

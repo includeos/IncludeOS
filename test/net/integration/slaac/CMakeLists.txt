@@ -6,12 +6,12 @@ endif()
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
 
-project (test_dhcp)
+project (test_slaac)
 
 MESSAGE(STATUS "IncludeOS prefix: " $ENV{INCLUDEOS_PREFIX})
 
-set(SERVICE_NAME "IncludeOS DHCP test")
-set(BINARY       "test_dhcp")
+set(SERVICE_NAME "IncludeOS Slaac test")
+set(BINARY       "test_slaac")
 set(MAX_MEM 128)
 set(SOURCES
     service.cpp

@@ -55,7 +55,7 @@ namespace net {
     using Route_checker = delegate<bool(ip6::Addr)>;
     using Ndp_resolver = delegate<void(ip6::Addr)>;
     using Dad_handler = delegate<void()>;
-    using RouterAdv_handler = delegate<void()>;
+    using RouterAdv_handler = delegate<void(ip6::Addr)>;
     using ICMP_type = ICMP6_error::ICMP_type;
 
     /** Number of resolution retries **/
@@ -95,7 +95,7 @@ namespace net {
 
     void perform_dad(ip6::Addr, Dad_handler delg);
     void dad_completed();
-    void add_prefix_addr(ip6::Addr ip, uint32_t preferred_lifetime,
+    void add_addr(ip6::Addr ip, uint32_t preferred_lifetime,
             uint32_t valid_lifetime);
 
     /** Downstream transmission. */
@@ -211,7 +211,7 @@ namespace net {
     struct Prefix_entry {
     private:
       ip6::Addr        prefix_;
-      RTC::timestamp_t preferred_ts_; 
+      RTC::timestamp_t preferred_ts_;
       RTC::timestamp_t valid_ts_;
 
     public:
@@ -228,7 +228,7 @@ namespace net {
       ip6::Addr prefix() const noexcept
       { return prefix_; }
 
-      bool preferred() const noexcept 
+      bool preferred() const noexcept
       { return preferred_ts_ ? RTC::time_since_boot() < preferred_ts_ : true; }
 
       bool valid() const noexcept
@@ -237,14 +237,14 @@ namespace net {
       bool always_valid() const noexcept
       { return valid_ts_ ? false : true; }
 
-      uint32_t remaining_valid_time() 
-      { (valid_ts_ < RTC::time_since_boot() ? 0 : (valid_ts_ - RTC::time_since_boot())); }
+      uint32_t remaining_valid_time()
+      { valid_ts_ < RTC::time_since_boot() ? 0 : valid_ts_ - RTC::time_since_boot(); }
 
       void update_preferred_lifetime(uint32_t preferred_lifetime)
       {
         preferred_ts_ = preferred_lifetime ?
             (RTC::time_since_boot() + preferred_lifetime) : 0;
-      } 
+      }
 
       void update_valid_lifetime(uint32_t valid_lifetime)
       {
