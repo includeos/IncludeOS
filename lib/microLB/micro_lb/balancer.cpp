@@ -183,7 +183,7 @@ namespace microLB
         return nullptr;
       }
     }
-    return std::move(conn);
+    return conn;
   }
   size_t Nodes::size() const noexcept {
     return nodes.size();
