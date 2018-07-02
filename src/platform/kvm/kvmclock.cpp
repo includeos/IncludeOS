@@ -1,13 +1,12 @@
 #include "kvmclock.hpp"
 #include <arch/x86/cpu.hpp>
 #include <util/units.hpp>
+#include <kernel/cpuid.hpp>
 #include <kernel/os.hpp>
 #include <cstdio>
 #include <info>
 #include <smp>
 
-#define MSR_KVM_WALL_CLOCK_NEW  0x4b564d00
-#define MSR_KVM_SYSTEM_TIME_NEW 0x4b564d01
 using namespace x86;
 using namespace util::literals;
 
@@ -32,10 +31,29 @@ static pvclock_wall_clock kvm_wall_clock;
 
 void KVM_clock::init()
 {
+  #define MSR_KVM_WALL_CLOCK_NEW  0x4b564d00
+  #define MSR_KVM_SYSTEM_TIME_NEW 0x4b564d01
+  uint32_t msr_kvm_wall_clock;
+  uint32_t msr_kvm_system_time;
+
+  if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
+  {
+    msr_kvm_wall_clock = MSR_KVM_WALL_CLOCK_NEW;
+    msr_kvm_system_time = MSR_KVM_SYSTEM_TIME_NEW;
+  }
+  else if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE))
+  {
+    msr_kvm_wall_clock = 0x11;
+    msr_kvm_system_time = 0x12;
+  }
+  else {
+    assert(0 && "No KVM clock support detected");
+  }
+
   auto wall_addr = (uintptr_t) &kvm_wall_clock;
-  CPU::write_msr(MSR_KVM_WALL_CLOCK_NEW, wall_addr);
+  CPU::write_msr(msr_kvm_wall_clock, wall_addr);
   auto vcpu_addr = (uintptr_t) &PER_CPU(vcpu_time);
-  CPU::write_msr(MSR_KVM_SYSTEM_TIME_NEW, vcpu_addr | 1);
+  CPU::write_msr(msr_kvm_system_time, vcpu_addr | 1);
 }
 
 KHz KVM_clock::get_tsc_khz()
