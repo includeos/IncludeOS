@@ -213,6 +213,7 @@ set(OS_SOURCES
   ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
   ${SRC}/net/ip4/reassembly.cpp
+  ${SRC}/net/ip6/extension_header.cpp
   ${SRC}/net/ip6/icmp6.cpp
   ${SRC}/net/ip6/ndp.cpp
   ${SRC}/net/ip6/ip6.cpp
