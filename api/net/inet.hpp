@@ -34,6 +34,7 @@
 #include "ip6/ip6.hpp"
 #include "ip6/icmp6.hpp"
 #include "ip6/ndp.hpp"
+#include "ip6/slaac.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include "udp/udp.hpp"
@@ -42,7 +43,6 @@
 namespace net {
 
   class DHClient;
-  class Slaac;
 
   /** A complete IP network stack */
   class Inet {
@@ -514,7 +514,7 @@ namespace net {
     std::string domain_name_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
-    std::shared_ptr<net::Slaac>    slaac_{};
+    std::unique_ptr<net::Slaac>    slaac_{};
 
     std::vector<on_configured_func> configured_handlers_;
 

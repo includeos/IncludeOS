@@ -221,7 +221,7 @@ void Inet::autoconf_v6(int retries, slaac_timeout_func handler,
 
   INFO("Inet", "Attempting automatic configuration of ipv6 address");
   if (!slaac_)
-      slaac_ = std::make_shared<Slaac>(*this);
+      slaac_ = std::make_unique<Slaac>(*this);
 
   // @Retries for Slaac auto-configuration
   slaac_->autoconf_start(retries, alternate_addr);
