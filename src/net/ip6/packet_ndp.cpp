@@ -43,71 +43,71 @@ namespace net
     }
   }
 
-  void NdpPacket::NdpOptions::parse(uint8_t *opt, uint16_t opts_len)
+  void NdpOptions::parse(uint8_t *opt, uint16_t opts_len)
   {
-     uint16_t opt_len;
-     header_ = reinterpret_cast<struct nd_options_header*>(opt);
-     struct nd_options_header *option_hdr = header_;
+    uint16_t opt_len;
+    header_ = reinterpret_cast<struct nd_options_header*>(opt);
+    struct nd_options_header *option_hdr = header_;
 
-      if (option_hdr == NULL) {
+    if (option_hdr == NULL) {
+       return;
+    }
+    while(opts_len) {
+      if (opts_len < sizeof (struct nd_options_header)) {
          return;
       }
-      while(opts_len) {
-        if (opts_len < sizeof (struct nd_options_header)) {
-           return;
-        }
-        opt_len = option_hdr->len << 3;
+      opt_len = option_hdr->len << 3;
 
-        if (opts_len < opt_len || opt_len == 0) {
-           return;
+      if (opts_len < opt_len || opt_len == 0) {
+         return;
+      }
+      switch (option_hdr->type) {
+      case ND_OPT_SOURCE_LL_ADDR:
+      case ND_OPT_TARGET_LL_ADDR:
+      case ND_OPT_MTU:
+      case ND_OPT_NONCE:
+      case ND_OPT_REDIRECT_HDR:
+        if (opt_array[option_hdr->type]) {
+        } else {
+           opt_array[option_hdr->type] = option_hdr;
         }
-        switch (option_hdr->type) {
-        case ND_OPT_SOURCE_LL_ADDR:
-        case ND_OPT_TARGET_LL_ADDR:
-        case ND_OPT_MTU:
-        case ND_OPT_NONCE:
-        case ND_OPT_REDIRECT_HDR:
-            if (opt_array[option_hdr->type]) {
-            } else {
-               opt_array[option_hdr->type] = option_hdr;
-            }
-            option_hdr = opt_array[option_hdr->type];
-            break;
-        case ND_OPT_PREFIX_INFO:
-            opt_array[ND_OPT_PREFIX_INFO_END] = option_hdr;
-            if (!opt_array[ND_OPT_PREFIX_INFO]) {
-               opt_array[ND_OPT_PREFIX_INFO] = option_hdr;
-            }
-            break;
-        case ND_OPT_ROUTE_INFO:
-             nd_opts_ri_end = option_hdr;
-             if (!nd_opts_ri) {
-                 nd_opts_ri = option_hdr;
-             }
-             break;
-        default:
-             if (is_useropt(option_hdr)) {
-                user_opts_end = option_hdr;
-                if (!user_opts) {
-                   user_opts = option_hdr;
-                }
-             } else {
-                PRINT("%s: Unsupported option: type=%d, len=%d\n",
-                    __FUNCTION__, option_hdr->type, option_hdr->len);
-             }
+        option_hdr = opt_array[option_hdr->type];
+        break;
+      case ND_OPT_PREFIX_INFO:
+        opt_array[ND_OPT_PREFIX_INFO_END] = option_hdr;
+        if (!opt_array[ND_OPT_PREFIX_INFO]) {
+           opt_array[ND_OPT_PREFIX_INFO] = option_hdr;
         }
-        opts_len -= opt_len;
-        option_hdr = (option_hdr + opt_len);
+        break;
+      case ND_OPT_ROUTE_INFO:
+         nd_opts_ri_end = option_hdr;
+         if (!nd_opts_ri) {
+             nd_opts_ri = option_hdr;
+         }
+         break;
+      default:
+        if (is_useropt(option_hdr)) {
+          user_opts_end = option_hdr;
+          if (!user_opts) {
+           user_opts = option_hdr;
+          }
+        } else {
+          PRINT("%s: Unsupported option: type=%d, len=%d\n",
+              __FUNCTION__, option_hdr->type, option_hdr->len);
+        }
+      }
+      opts_len -= opt_len;
+      option_hdr = (option_hdr + opt_len);
     }
  }
 
  bool NdpPacket::parse_prefix(Pinfo_handler autoconf_cb,
       Pinfo_handler onlink_cb)
  {
-     return ndp_opt_.parse_prefix(autoconf_cb, onlink_cb);
+   return ndp_opt_.parse_prefix(autoconf_cb, onlink_cb);
  }
 
- bool NdpPacket::NdpOptions::parse_prefix(Pinfo_handler autoconf_cb,
+ bool NdpOptions::parse_prefix(Pinfo_handler autoconf_cb,
     Pinfo_handler onlink_cb)
  {
    ip6::Addr confaddr;

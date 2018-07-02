@@ -38,8 +38,10 @@ namespace net
   const int Slaac::GLOBAL_INTERVAL;
 
   Slaac::Slaac(Stack& inet)
-    : stack(inet),
-      timeout_timer_{{this, &Slaac::autoconf_trigger}}
+    : stack(inet), alternate_addr_(IP6::ADDR_ANY),
+    tentative_addr_(IP6::ADDR_ANY), linklocal_completed(false),
+    dad_retransmits_(LINKLOCAL_RETRIES),
+    timeout_timer_{{this, &Slaac::autoconf_trigger}}
   {
     // default timed out handler spams logs
     this->on_config(
@@ -63,8 +65,6 @@ namespace net
 
   void Slaac::autoconf_trigger()
   {
-    static bool linklocal_completed = false;
-
     if (!linklocal_completed) {
       if (dad_retransmits_-- <= 0) {
         // Success. No address collision

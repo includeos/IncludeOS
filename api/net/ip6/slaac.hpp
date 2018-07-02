@@ -20,6 +20,7 @@
 #define NET_SLAAC_HPP
 
 #include <util/timer.hpp>
+#include "ip6.hpp"
 
 namespace net {
 
@@ -50,9 +51,9 @@ namespace net {
     Stack& stack;
     IP6::addr    alternate_addr_;
     IP6::addr    tentative_addr_;
-    uint32_t     lease_time;
+    bool         linklocal_completed;
     // Number of times to attempt DAD
-    int          dad_retransmits_ = LINKLOCAL_RETRIES;
+    int          dad_retransmits_;
     Timer        timeout_timer_;
     std::vector<config_func> config_handlers_;
     std::chrono::milliseconds interval;

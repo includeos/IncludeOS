@@ -63,7 +63,7 @@ namespace net
     // Populate response ICMP header
     res.set_type(ICMP_type::ND_NEIGHBOUR_ADV);
     res.set_code(0);
-    res.ndp().set_neighbour_adv_flag(NEIGH_ADV_SOL | NEIGH_ADV_OVERRIDE);
+    res.ndp().set_neighbour_adv_flag(ndp::NEIGH_ADV_SOL | ndp::NEIGH_ADV_OVERRIDE);
 
     // Insert target link address, ICMP6 option header and our mac address
     res.add_payload(req.ndp().neighbour_sol().target().data(), 16);
@@ -87,17 +87,16 @@ namespace net
     uint8_t *lladdr;
 
     if (target.is_multicast()) {
-        PRINT("NDP: neighbour advertisement target address is multicast\n");
-        return;
+      PRINT("NDP: neighbour advertisement target address is multicast\n");
+      return;
     }
 
     if (req.ip().ip_dst().is_multicast() &&
-        req.ndp().is_flag_solicited()) {
-        PRINT("NDP: neighbour destination address is multicast when"
-              " solicit flag is set\n");
-        return;
+      req.ndp().is_flag_solicited()) {
+      PRINT("NDP: neighbour destination address is multicast when"
+            " solicit flag is set\n");
+      return;
     }
-
 
     if (dad_handler_ && target == tentative_addr_) {
       PRINT("NDP: NA: DAD failed. We can't use the %s"
@@ -111,11 +110,11 @@ namespace net
 
     // For now, just create a cache entry, if one doesn't exist
     cache(target, lladdr, req.ndp().is_flag_solicited() ?
-            NeighbourStates::REACHABLE : NeighbourStates::STALE,
-             NEIGH_UPDATE_WEAK_OVERRIDE |
-            (req.ndp().is_flag_override() ? NEIGH_UPDATE_OVERRIDE : 0) |
-             NEIGH_UPDATE_OVERRIDE_ISROUTER |
-             (req.ndp().is_flag_router() ? NEIGH_UPDATE_ISROUTER : 0));
+          NeighbourStates::REACHABLE : NeighbourStates::STALE,
+           NEIGH_UPDATE_WEAK_OVERRIDE |
+          (req.ndp().is_flag_override() ? NEIGH_UPDATE_OVERRIDE : 0) |
+           NEIGH_UPDATE_OVERRIDE_ISROUTER |
+           (req.ndp().is_flag_router() ? NEIGH_UPDATE_ISROUTER : 0));
 
     auto waiting = waiting_packets_.find(target);
     if (waiting != waiting_packets_.end()) {
@@ -176,28 +175,28 @@ namespace net
             target.str().c_str());
 
     if (target.is_multicast()) {
-        PRINT("NDP: neighbour solictation target address is multicast\n");
-        return;
+      PRINT("NDP: neighbour solictation target address is multicast\n");
+      return;
     }
 
     if (any_src && !req.ip().ip_dst().is_solicit_multicast()) {
-        PRINT("NDP: neighbour solictation address is any source "
-                "but not solicit destination\n");
-        return;
+      PRINT("NDP: neighbour solictation address is any source "
+              "but not solicit destination\n");
+      return;
     }
     req.ndp().parse(ICMP_type::ND_NEIGHBOUR_SOL);
     lladdr = req.ndp().get_option_data(ndp::ND_OPT_SOURCE_LL_ADDR);
 
     if (lladdr) {
-        if (any_src) {
-            PRINT("NDP: bad any source packet with link layer option\n");
-            return;
-        }
+      if (any_src) {
+        PRINT("NDP: bad any source packet with link layer option\n");
+        return;
+      }
     }
 
     nonce_opt = req.ndp().get_option_data(ndp::ND_OPT_NONCE);
     if (nonce_opt) {
-        //memcpy(&nonce, nonce_opt, 6);
+      //memcpy(&nonce, nonce_opt, 6);
     }
 
     bool is_dest_multicast = req.ip().ip_dst().is_multicast();
@@ -219,10 +218,10 @@ namespace net
     }
 
     if (any_src) {
-        if (lladdr) {
-            send_neighbour_advertisement(req);
-        }
-        return;
+      if (lladdr) {
+        send_neighbour_advertisement(req);
+      }
+      return;
     }
 
     /* Update/Create cache entry for the source address */
@@ -294,9 +293,9 @@ namespace net
       /* Forwarding is enabled. Does that mean
        * we are a router? We need to consume if we are */
       if (inet_.ip6_obj().forward_delg()) {
-          PRINT("NDP: RA: Forwarding is enabled. Not accepting"
-                " router advertisement\n");
-          return;
+        PRINT("NDP: RA: Forwarding is enabled. Not accepting"
+              " router advertisement\n");
+        return;
       }
       req.ndp().parse(ICMP_type::ND_ROUTER_ADV);
       req.ndp().parse_prefix([this] (ip6::Addr prefix,
@@ -349,44 +348,44 @@ namespace net
 
   bool Ndp::lookup(ip6::Addr ip)
   {
-      auto entry = neighbour_cache_.find(ip);
-      if (entry != neighbour_cache_.end()) {
-          return true;
-      }
-      return false;
+    auto entry = neighbour_cache_.find(ip);
+    if (entry != neighbour_cache_.end()) {
+      return true;
+    }
+    return false;
   }
 
   void Ndp::cache(ip6::Addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags)
   {
-      if (ll_addr) {
-        MAC::Addr mac(ll_addr);
-        cache(ip, mac, state, flags);
-      }
+    if (ll_addr) {
+      MAC::Addr mac(ll_addr);
+      cache(ip, mac, state, flags);
+    }
   }
 
   void Ndp::cache(ip6::Addr ip, MAC::Addr mac, NeighbourStates state, uint32_t flags)
   {
-      PRINT("Ndp Caching IP %s for %s\n", ip.str().c_str(), mac.str().c_str());
-      auto entry = neighbour_cache_.find(ip);
-      if (entry != neighbour_cache_.end()) {
-          PRINT("Cached entry found: %s recorded @ %zu. Updating timestamp\n",
-             entry->second.mac().str().c_str(), entry->second.timestamp());
-          if (entry->second.mac() != mac) {
-            neighbour_cache_.erase(entry);
-            neighbour_cache_.emplace(
-               std::make_pair(ip, Cache_entry{mac, state, flags})); // Insert
-          } else {
-            entry->second.set_state(state);
-            entry->second.set_flags(flags);
-            entry->second.update();
-          }
+    PRINT("Ndp Caching IP %s for %s\n", ip.str().c_str(), mac.str().c_str());
+    auto entry = neighbour_cache_.find(ip);
+    if (entry != neighbour_cache_.end()) {
+      PRINT("Cached entry found: %s recorded @ %zu. Updating timestamp\n",
+         entry->second.mac().str().c_str(), entry->second.timestamp());
+      if (entry->second.mac() != mac) {
+        neighbour_cache_.erase(entry);
+        neighbour_cache_.emplace(
+           std::make_pair(ip, Cache_entry{mac, state, flags})); // Insert
       } else {
-          neighbour_cache_.emplace(
-            std::make_pair(ip, Cache_entry{mac, state, flags})); // Insert
-          if (UNLIKELY(not flush_neighbour_timer_.is_running())) {
-            flush_neighbour_timer_.start(flush_interval_);
-          }
+        entry->second.set_state(state);
+        entry->second.set_flags(flags);
+        entry->second.update();
       }
+    } else {
+      neighbour_cache_.emplace(
+        std::make_pair(ip, Cache_entry{mac, state, flags})); // Insert
+      if (UNLIKELY(not flush_neighbour_timer_.is_running())) {
+        flush_neighbour_timer_.start(flush_interval_);
+      }
+    }
   }
 
   void Ndp::resolve_waiting()
@@ -451,11 +450,11 @@ namespace net
   {
     PRINT("NDP: Flushing expired prefix addresses\n");
     for (auto ent = prefix_list_.begin(); ent != prefix_list_.end();) {
-        if (!ent->valid()) {
-            ent = prefix_list_.erase(ent);
-        } else {
-            ent++;
-        }
+      if (!ent->valid()) {
+        ent = prefix_list_.erase(ent);
+      } else {
+        ent++;
+      }
     }
 
     if (not prefix_list_.empty()) {
@@ -480,19 +479,19 @@ namespace net
     Expects(pckt->size());
 
     if (mac == MAC::EMPTY) {
-        // If we don't have a cached IP, perform NDP sol
-        auto neighbour_cache_entry = neighbour_cache_.find(next_hop);
-        if (UNLIKELY(neighbour_cache_entry == neighbour_cache_.end())) {
-            PRINT("NDP: No cache entry for IP %s.  Resolving. \n", next_hop.to_string().c_str());
-            await_resolution(std::move(pckt), next_hop);
-            return;
-        }
+      // If we don't have a cached IP, perform NDP sol
+      auto neighbour_cache_entry = neighbour_cache_.find(next_hop);
+      if (UNLIKELY(neighbour_cache_entry == neighbour_cache_.end())) {
+        PRINT("NDP: No cache entry for IP %s.  Resolving. \n", next_hop.to_string().c_str());
+        await_resolution(std::move(pckt), next_hop);
+        return;
+      }
 
-        // Get MAC from cache
-        mac = neighbour_cache_[next_hop].mac();
+      // Get MAC from cache
+      mac = neighbour_cache_[next_hop].mac();
 
-        PRINT("NDP: Found cache entry for IP %s -> %s \n",
-            next_hop.to_string().c_str(), mac.to_string().c_str());
+      PRINT("NDP: Found cache entry for IP %s -> %s \n",
+          next_hop.to_string().c_str(), mac.to_string().c_str());
     }
 
     PRINT("<NDP -> physical> Transmitting %u bytes to %s\n",
@@ -526,23 +525,23 @@ namespace net
 
   void Ndp::add_addr(ip6::Addr ip, uint32_t preferred_lifetime, uint32_t valid_lifetime)
   {
-      auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
-            [&ip] (const Prefix_entry& obj) { return obj.prefix() == ip; });
-      auto two_hours = 60 * 60 * 2;
+    auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
+          [&ip] (const Prefix_entry& obj) { return obj.prefix() == ip; });
+    auto two_hours = 60 * 60 * 2;
 
-      if (entry == prefix_list_.end()) {
-        prefix_list_.push_back(Prefix_entry{ip, preferred_lifetime, valid_lifetime});
-      } else if (!entry->always_valid()) {
-        entry->update_preferred_lifetime(preferred_lifetime);
-        if ((valid_lifetime > two_hours) ||
-            (valid_lifetime > entry->remaining_valid_time())) {
-          /* Honor the valid lifetime only if its greater than 2 hours
-           * or more than the remaining valid time */
-          entry->update_valid_lifetime(valid_lifetime);
-        } else if (entry->remaining_valid_time() > two_hours) {
-          entry->update_valid_lifetime(two_hours);
-        }
+    if (entry == prefix_list_.end()) {
+      prefix_list_.push_back(Prefix_entry{ip, preferred_lifetime, valid_lifetime});
+    } else if (!entry->always_valid()) {
+      entry->update_preferred_lifetime(preferred_lifetime);
+      if ((valid_lifetime > two_hours) ||
+          (valid_lifetime > entry->remaining_valid_time())) {
+        /* Honor the valid lifetime only if its greater than 2 hours
+         * or more than the remaining valid time */
+        entry->update_valid_lifetime(valid_lifetime);
+      } else if (entry->remaining_valid_time() > two_hours) {
+        entry->update_valid_lifetime(two_hours);
       }
+    }
   }
 
   // NDP packet function definitions
