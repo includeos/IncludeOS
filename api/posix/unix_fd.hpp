@@ -37,8 +37,8 @@ public:
   int     close() override;
 private:
   Impl* impl = nullptr;
-  const int type_ [[maybe_unused]]; // it's probably gonna be necessary
-                                    // to tell if socket is stream or dgram
+  const int type_; // it's probably gonna be necessary
+                   // to tell if socket is stream or dgram
 
   long set_impl_if_needed(const struct sockaddr* addr, socklen_t addrlen);
 };
