@@ -33,6 +33,8 @@
 #include "ip4/arp.hpp"
 #include "ip6/ip6.hpp"
 #include "ip6/icmp6.hpp"
+#include "ip6/ndp.hpp"
+#include "ip6/slaac.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include "udp/udp.hpp"
@@ -64,6 +66,7 @@ namespace net {
     using resolve_func = delegate<void(IP4::addr, const Error&)>;
     using on_configured_func = delegate<void(Stack&)>;
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
+    using slaac_timeout_func = delegate<void(bool complete)>;
 
     using Port_utils  = std::map<net::Addr, Port_util>;
     using Vip4_list = std::vector<IP4::addr>;
@@ -125,6 +128,9 @@ namespace net {
 
     /** Get the ICMP-object belonging to this stack */
     ICMPv6& icmp6() { return icmp6_; }
+
+    /** Get the NDP-object belonging to this stack */
+    Ndp& ndp() { return ndp_; }
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
@@ -269,6 +275,10 @@ namespace net {
      */
     void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
 
+    /* Automatic configuration of ipv6 address for inet */
+    void autoconf_v6(int retries = 0, slaac_timeout_func = nullptr,
+            IP6::addr alternate_addr = IP6::ADDR_ANY);
+
     bool is_configured() const
     {
       return ip4_addr_ != 0;
@@ -307,9 +317,9 @@ namespace net {
       this->ip4_addr_ = IP4::ADDR_ANY;
       this->gateway_ = IP4::ADDR_ANY;
       this->netmask_ = IP4::ADDR_ANY;
-      //this->ip6_addr_ = IP6::ADDR_ANY;
-      //this->ip6_gateway_ = IP6::ADDR_ANY;
-      //this->ip6_prefix_ = 0;
+      this->ip6_addr_ = IP6::ADDR_ANY;
+      this->ip6_gateway_ = IP6::ADDR_ANY;
+      this->ip6_prefix_ = 0;
     }
 
     // register a callback for receiving signal on free packet-buffers
@@ -355,6 +365,14 @@ namespace net {
     {
       if (timeout > 0.0)
           stack<N>().negotiate_dhcp(timeout, on_timeout);
+      return stack<N>();
+    }
+
+    /** SLAAC config */
+    template <int N = 0>
+    static auto& ifconfig6(slaac_timeout_func on_timeout = nullptr, int retries=0)
+    {
+      stack<N>().autoconf_v6(retries, on_timeout);
       return stack<N>();
     }
 
@@ -478,6 +496,7 @@ namespace net {
     // This is the actual stack
     hw::Nic& nic_;
     Arp    arp_;
+    Ndp    ndp_;
     IP4    ip4_;
     IP6    ip6_;
     ICMPv4 icmp_;
@@ -495,6 +514,7 @@ namespace net {
     std::string domain_name_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
+    std::unique_ptr<net::Slaac>    slaac_{};
 
     std::vector<on_configured_func> configured_handlers_;
 

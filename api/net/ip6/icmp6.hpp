@@ -115,19 +115,6 @@ namespace net
       network_layer_out_ = s;
     }
 
-    inline void set_ndp_linklayer_out(downstream_link s)
-    {
-       ndp_.set_linklayer_out(s);
-    }
-
-    void ndp_transmit(Packet_ptr ptr, IP6::addr next_hop)
-    {
-        ndp_.transmit(std::move(ptr), next_hop);
-    }
-
-    void set_ndp_proxy_policy(Route_checker delg)
-    { ndp_.set_proxy_policy(delg); }
-
     /**
      *  Destination Unreachable sent from host because of port (UDP) or protocol (IP6) unreachable
      */
@@ -162,12 +149,10 @@ namespace net
 
     void ping(const std::string& hostname);
     void ping(const std::string& hostname, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
-    Ndp& ndp() { return ndp_; }
 
   private:
     static int request_id_; // message identifier for messages originating from IncludeOS
     Stack& inet_;
-    Ndp    ndp_;
     downstream network_layer_out_ =   nullptr;
 
     inline bool is_full_header(size_t pckt_size)

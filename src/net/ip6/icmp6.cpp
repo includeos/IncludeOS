@@ -60,8 +60,7 @@ namespace net
   int ICMPv6::request_id_ = 0;
 
   ICMPv6::ICMPv6(Stack& inet) :
-    inet_{inet}, ndp_(inet)
-  {}
+    inet_{inet} {}
 
   void ICMPv6::receive(Packet_ptr pckt) {
     if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
@@ -103,7 +102,7 @@ namespace net
     case (ICMP_type::ND_NEIGHBOUR_ADV):
     case (ICMP_type::ND_REDIRECT):
       PRINT("<ICMP6> NDP message from %s\n", req.ip().ip_src().str().c_str());
-      ndp().receive(req);
+      inet_.ndp().receive(req);
       break;
     case (ICMP_type::ROUTER_RENUMBERING):
       PRINT("<ICMP6> ICMP Router re-numbering message from %s\n", req.ip().ip_src().str().c_str());
@@ -177,15 +176,15 @@ namespace net
     send_response(pckt_icmp6, ICMP_type::PARAMETER_PROBLEM, 0, error_pointer);
   }
 
-  void ICMPv6::ping(IP6::addr ip)
+  void ICMPv6::ping(ip6::Addr ip)
   { send_request(ip, ICMP_type::ECHO, 0); }
 
-  void ICMPv6::ping(IP6::addr ip, icmp_func callback, int sec_wait)
+  void ICMPv6::ping(ip6::Addr ip, icmp_func callback, int sec_wait)
   { send_request(ip, ICMP_type::ECHO, 0, callback, sec_wait); }
 
   void ICMPv6::ping(const std::string& hostname) {
 #if 0
-    inet_.resolve(hostname, [this] (IP6::addr a, Error err) {
+    inet_.resolve(hostname, [this] (ip6::Addr a, Error err) {
       if (!err and a != IP6::ADDR_ANY)
         ping(a);
     });
@@ -194,14 +193,14 @@ namespace net
 
   void ICMPv6::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
 #if 0
-    inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (IP6::addr a, Error err) {
+    inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (ip6::Addr a, Error err) {
       if (!err and a != IP6::ADDR_ANY)
         ping(a, callback, sec_wait);
     }));
 #endif
   }
 
-  void ICMPv6::send_request(IP6::addr dest_ip, ICMP_type type, ICMP_code code,
+  void ICMPv6::send_request(ip6::Addr dest_ip, ICMP_type type, ICMP_code code,
     icmp_func callback, int sec_wait, uint16_t sequence) {
 
     // Check if inet is configured with ipv6

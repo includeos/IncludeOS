@@ -224,7 +224,6 @@ namespace net
         {
           auto reader = pckt.layer_begin() + IP6_HEADER_LEN;
           next_proto_ = pckt.next_protocol();
-          uint16_t ext_len;
 
           if (next_proto_ == Protocol::HOPOPT or
             next_proto_ == Protocol::OPTSV6) {
