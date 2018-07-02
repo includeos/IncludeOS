@@ -10,9 +10,9 @@ static long sys_fstatat(int fd, const char *path, struct stat *buf, int flag)
 {
   if (fd == AT_FDCWD)
   {
-    char cwd_buf[PATH_MAX];
+    char cwd_buf[PATH_MAX-1];
     char abs_path[PATH_MAX];
-    if (sys_getcwd(cwd_buf, PATH_MAX) > 0) {
+    if (sys_getcwd(cwd_buf, PATH_MAX-1) > 0) {
       snprintf(abs_path, PATH_MAX, "%s/%s", cwd_buf, path);
     }
     return sys_stat(abs_path, buf);

@@ -124,6 +124,23 @@ Conntrack::Entry* Conntrack::get(const PacketIP4& pkt) const
   }
 }
 
+Conntrack::Entry* Conntrack::get(const PacketIP6& pkt) const
+{
+  const auto proto = pkt.ip_protocol();
+  switch(proto)
+  {
+    case Protocol::TCP:
+    case Protocol::UDP:
+      return get(get_quadruple(pkt), proto);
+
+    case Protocol::ICMPv6:
+      return get(get_quadruple_icmp(pkt), proto);
+
+    default:
+      return nullptr;
+  }
+}
+
 Conntrack::Entry* Conntrack::get(const Quadruple& quad, const Protocol proto) const
 {
   auto it = entries.find({quad, proto});
@@ -132,56 +149,6 @@ Conntrack::Entry* Conntrack::get(const Quadruple& quad, const Protocol proto) co
     return it->second.get();
 
   return nullptr;
-}
-
-Quadruple Conntrack::get_quadruple(const PacketIP4& pkt)
-{
-  const auto* ports = reinterpret_cast<const uint16_t*>(pkt.ip_data().data());
-  uint16_t src_port = ntohs(*ports);
-  uint16_t dst_port = ntohs(*(ports + 1));
-
-  return {{pkt.ip_src(), src_port}, {pkt.ip_dst(), dst_port}};
-}
-
-Quadruple Conntrack::get_quadruple(const PacketIP6& pkt)
-{
-  const auto* ports = reinterpret_cast<const uint16_t*>(pkt.ip_data().data());
-  uint16_t src_port = ntohs(*ports);
-  uint16_t dst_port = ntohs(*(ports + 1));
-
-  return {{pkt.ip_src(), src_port}, {pkt.ip_dst(), dst_port}};
-}
-
-Quadruple Conntrack::get_quadruple_icmp(const PacketIP4& pkt)
-{
-  Expects(pkt.ip_protocol() == Protocol::ICMPv4);
-
-  struct partial_header {
-    uint16_t  type_code;
-    uint16_t  checksum;
-    uint16_t  id;
-  };
-
-  // not sure if sufficent
-  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->id;
-
-  return {{pkt.ip_src(), id}, {pkt.ip_dst(), id}};
-}
-
-Quadruple Conntrack::get_quadruple_icmp(const PacketIP6& pkt)
-{
-  Expects(pkt.ip_protocol() == Protocol::ICMPv6);
-
-  struct partial_header {
-    uint16_t  type_code;
-    uint16_t  checksum;
-    uint16_t  id;
-  };
-
-  // not sure if sufficent
-  auto id = reinterpret_cast<const partial_header*>(pkt.ip_data().data())->id;
-
-  return {{pkt.ip_src(), id}, {pkt.ip_dst(), id}};
 }
 
 Conntrack::Entry* Conntrack::in(const PacketIP4& pkt)
@@ -347,13 +314,21 @@ Conntrack::Entry* Conntrack::update_entry(
   // give it a new value
   quad = newq;
 
-  // TODO: this could probably be optimized with C++17 map::extract
+  // replace this ...
   // erase the old entry
   entries.erase(quint);
   // insert the entry with updated quintuple
   entries.emplace(std::piecewise_construct,
     std::forward_as_tuple(newq, proto),
     std::forward_as_tuple(entry));
+
+  // ... with this (when compile on clang)
+  /*
+  // update the key in the map with the new quadruple
+  auto ent = entries.extract(it);
+  ent.key().quad = newq;
+  entries.insert(std::move(ent));
+  */
 
   CTDBG("<Conntrack> Entry updated: %s\n", entry->to_string().c_str());
 

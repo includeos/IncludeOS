@@ -30,6 +30,7 @@ namespace icmp6 {
   class Packet {
 
     using ICMP_type = ICMP6_error::ICMP_type;
+
     struct IdSe {
       uint16_t identifier;
       uint16_t sequence;

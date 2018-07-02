@@ -99,7 +99,7 @@ e1000::e1000(hw::PCI_Device& d, uint16_t mtu) :
     // 21 = lots of times (???)
     // 16 = USB
     // 18 = e1000 I217
-    uint32_t value = d.read_dword(PCI::CONFIG_INTR);
+    uint32_t value = d.read32(PCI::CONFIG_INTR);
     uint8_t real_irq = value & 0xFF;
     assert(real_irq != 0xFF);
 

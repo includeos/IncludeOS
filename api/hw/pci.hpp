@@ -24,72 +24,59 @@
 
 namespace hw {
 
-  typedef uint16_t port_t;
-
-  static inline uint8_t inp(port_t port)
+  static inline uint8_t inp(uint16_t port)
   {
     uint8_t ret;
 #if defined(ARCH_x86)
-    __asm__ volatile("xorl %eax,%eax");
-    __asm__ volatile("inb %%dx,%%al"
-                     :"=a"(ret)
-                     :"d"(port));
+    asm volatile("inb %1,%0" : "=a"(ret) : "Nd"(port));
 #else
 #error "inp() not implemented for selected arch"
 #endif
     return ret;
   }
 
-  static inline uint16_t inpw(port_t port)
+  static inline uint16_t inpw(uint16_t port)
   {
     uint16_t ret;
 #if defined(ARCH_x86)
-    __asm__ volatile("xorl %eax,%eax");
-    __asm__ volatile("inw %%dx,%%ax"
-                     :"=a"(ret)
-                     :"d"(port));
+    asm volatile("inw %1,%0" : "=a"(ret) : "Nd"(port));
 #else
 #error "inpw() not implemented for selected arch"
 #endif
     return ret;
   }
 
-  static inline uint32_t inpd(port_t port)
+  static inline uint32_t inpd(uint16_t port)
   {
     uint32_t ret;
 #if defined(ARCH_x86)
-    __asm__ volatile("xorl %eax,%eax");
-    __asm__ volatile("inl %%dx,%%eax"
-                     :"=a"(ret)
-                     :"d"(port));
+    asm volatile("inl %1,%0" : "=a"(ret) : "Nd"(port));
 #else
 #error "inpd() not implemented for selected arch"
 #endif
-
     return ret;
   }
 
-
-  static inline void outp(port_t port, uint8_t data)
+  static inline void outp(uint16_t port, uint8_t data)
   {
 #if defined(ARCH_x86)
-    __asm__ volatile ("outb %%al,%%dx"::"a" (data), "d"(port));
+    asm volatile ("outb %0,%1" :: "a"(data), "Nd"(port));
 #else
 #error "outp() not implemented for selected arch"
 #endif
   }
-  static inline void outpw(port_t port, uint16_t data)
+  static inline void outpw(uint16_t port, uint16_t data)
   {
 #if defined(ARCH_x86)
-    __asm__ volatile ("outw %%ax,%%dx"::"a" (data), "d"(port));
+    asm volatile ("outw %0,%1" :: "a" (data), "Nd"(port));
 #else
 #error "outpw() not implemented for selected arch"
 #endif
   }
-  static inline void outpd(port_t port, uint32_t data)
+  static inline void outpd(uint16_t port, uint32_t data)
   {
 #if defined(ARCH_x86)
-    __asm__ volatile ("outl %%eax,%%dx"::"a" (data), "d"(port));
+    asm volatile ("outl %0,%1" :: "a" (data), "Nd"(port));
 #else
 #error "outpd() not implemented for selected arch"
 #endif

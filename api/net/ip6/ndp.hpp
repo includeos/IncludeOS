@@ -238,7 +238,7 @@ namespace net {
       { return valid_ts_ ? false : true; }
 
       uint32_t remaining_valid_time()
-      { valid_ts_ < RTC::time_since_boot() ? 0 : valid_ts_ - RTC::time_since_boot(); }
+      { return valid_ts_ < RTC::time_since_boot() ? 0 : valid_ts_ - RTC::time_since_boot(); }
 
       void update_preferred_lifetime(uint32_t preferred_lifetime)
       {

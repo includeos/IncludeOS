@@ -279,7 +279,7 @@ public:
 		copy_ptr_{ other.copy_ptr_ },
 		destructor_ptr_{ other.destructor_ptr_ }
 	{
-		other.destructor_ptr_ = [](storage_t&) -> void {};
+		other.destructor_ptr_ = nullptr;
 	}
 
 	inplace& operator= (const inplace& other)
@@ -311,7 +311,7 @@ public:
 			copy_ptr_ = other.copy_ptr_;
 			destructor_ptr_ = other.destructor_ptr_;
 
-			other.destructor_ptr_ = [](storage_t&) -> void {};
+			other.destructor_ptr_ = nullptr;
 		}
 		return *this;
 	}

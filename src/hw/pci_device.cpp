@@ -74,13 +74,13 @@ namespace hw {
     {
       //Read the current BAR register
       uint32_t reg = PCI::CONFIG_BASE_ADDR_0 + (bar << 2);
-      uint32_t value = read_dword(reg);
+      uint32_t value = read32(reg);
 
       if (!value) continue;
 
       //Write all 1's to the register, to get the length value (osdev)
       write_dword(reg, 0xFFFFFFFF);
-      uint32_t len = read_dword(reg);
+      uint32_t len = read32(reg);
 
       //Put the value back
       write_dword(reg, value);
@@ -113,7 +113,7 @@ namespace hw {
       : pci_addr_{pci_addr}, device_id_{device_id}
   {
     // set master, mem and io flags
-    uint32_t cmd = read_dword(PCI_CMD_REG);
+    uint32_t cmd = read32(PCI_CMD_REG);
     cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_MEM | PCI_COMMAND_IO;
     write_dword(PCI_CMD_REG, cmd);
 
@@ -152,6 +152,16 @@ namespace hw {
     if (classcode() == PCI::classcode::BRIDGE) return;
   }
 
+  uint32_t PCI_Device::read_dword(const uint16_t pci_addr, const uint8_t reg) noexcept {
+    PCI::msg req;
+
+    req.data = 0x80000000;
+    req.addr = pci_addr;
+    req.reg  = reg;
+
+    outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
+    return inpd(PCI::CONFIG_DATA);
+  }
   void PCI_Device::write_dword(const uint8_t reg, const uint32_t value) noexcept {
     PCI::msg req;
 
@@ -163,7 +173,7 @@ namespace hw {
     outpd(PCI::CONFIG_DATA, value);
   }
 
-  uint32_t PCI_Device::read_dword(const uint8_t reg) noexcept {
+  uint32_t PCI_Device::read32(const uint8_t reg) noexcept {
     PCI::msg req;
 
     req.data = 0x80000000;
@@ -174,6 +184,7 @@ namespace hw {
     return inpd(PCI::CONFIG_DATA);
   }
 
+  __attribute__((noinline))
   uint16_t PCI_Device::read16(const uint8_t reg) noexcept {
     PCI::msg req;
     req.data = 0x80000000;
@@ -181,7 +192,8 @@ namespace hw {
     req.reg  = reg;
 
     outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
-    return inpw(PCI::CONFIG_DATA + (reg & 2));
+    uint16_t data = inpw(PCI::CONFIG_DATA + (reg & 2));
+    return data;
   }
   void PCI_Device::write16(const uint8_t reg, const uint16_t value) noexcept {
     PCI::msg req;
@@ -193,36 +205,24 @@ namespace hw {
     outpw(PCI::CONFIG_DATA + (reg & 2), value);
   }
 
-  uint32_t PCI_Device::read_dword(const uint16_t pci_addr, const uint8_t reg) noexcept {
-    PCI::msg req;
-
-    req.data = 0x80000000;
-    req.addr = pci_addr;
-    req.reg  = reg;
-
-    outpd(PCI::CONFIG_ADDR, 0x80000000 | req.data);
-    return inpd(PCI::CONFIG_DATA);
-  }
-
   union capability_t
   {
     struct
     {
       uint8_t  id;
       uint8_t  next;
-      char  data[2];
+      uint16_t data;
     };
     uint32_t capd;
   };
 
   void PCI_Device::parse_capabilities()
   {
-    /// FROM http://wiki.osdev.org/PCI
-    memset(caps, 0, sizeof(caps));
-
+    caps = {};
     // the capability list is only available if bit 4
     // in the status register is set
     uint16_t status = read16(PCI_STATUS_REG);
+    //printf("read16 %#x  status %#x\n", PCI_STATUS_REG, status);
     if ((status & 0x10) == 0) return;
     // this offset works for non-cardbus bridges
     uint32_t offset = 0x34;
@@ -232,10 +232,9 @@ namespace hw {
 
     while (offset) {
       capability_t cap;
-      cap.capd = read_dword(offset);
-      assert (cap.id <= PCI_CAP_ID_MAX);
+      cap.capd = read32(offset);
       // remember capability
-      this->caps[cap.id] = offset;
+      this->caps.at(cap.id) = offset;
       // go to next cap
       offset = cap.next;
     }
