@@ -21,9 +21,11 @@
 
 #include <rtc>
 #include <unordered_map>
+#include <deque>
 #include <util/timer.hpp>
 #include "ip6.hpp"
 #include "packet_icmp6.hpp"
+#include "packet_ndp.hpp"
 
 using namespace std::chrono_literals;
 namespace net {
@@ -50,8 +52,10 @@ namespace net {
       FAIL
     };
     using Stack   = IP6::Stack;
-    using Route_checker = delegate<bool(IP6::addr)>;
-    using Ndp_resolver = delegate<void(IP6::addr)>;
+    using Route_checker = delegate<bool(ip6::Addr)>;
+    using Ndp_resolver = delegate<void(ip6::Addr)>;
+    using Dad_handler = delegate<void()>;
+    using RouterAdv_handler = delegate<void(ip6::Addr)>;
     using ICMP_type = ICMP6_error::ICMP_type;
 
     /** Number of resolution retries **/
@@ -68,9 +72,10 @@ namespace net {
     void receive_router_advertisement(icmp6::Packet& pckt);
 
     /** Send out NDP packet */
-    void send_neighbour_solicitation(IP6::addr target);
+    void send_neighbour_solicitation(ip6::Addr target);
     void send_neighbour_advertisement(icmp6::Packet& req);
     void send_router_solicitation();
+    void send_router_solicitation(RouterAdv_handler delg);
     void send_router_advertisement();
 
     /** Roll your own ndp-resolution system. */
@@ -88,22 +93,28 @@ namespace net {
     void set_proxy_policy(Route_checker delg)
     { proxy_ = delg; }
 
+    void perform_dad(ip6::Addr, Dad_handler delg);
+    void dad_completed();
+    void add_addr(ip6::Addr ip, uint32_t preferred_lifetime,
+            uint32_t valid_lifetime);
+
     /** Downstream transmission. */
-    void transmit(Packet_ptr, IP6::addr next_hop, MAC::Addr mac = MAC::EMPTY);
+    void transmit(Packet_ptr, ip6::Addr next_hop, MAC::Addr mac = MAC::EMPTY);
 
     /** Cache IP resolution. */
-    void cache(IP6::addr ip, MAC::Addr mac, NeighbourStates state, uint32_t flags);
-    void cache(IP6::addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags);
+    void cache(ip6::Addr ip, MAC::Addr mac, NeighbourStates state, uint32_t flags);
+    void cache(ip6::Addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags);
 
     /** Lookup for cache entry */
-    bool lookup(IP6::addr ip);
+    bool lookup(ip6::Addr ip);
 
     /** Flush the NDP cache */
     void flush_cache()
     { neighbour_cache_.clear(); };
 
-    /** Flush expired cache entries */
-    void flush_expired ();
+    /** Flush expired entries */
+    void flush_expired_neighbours();
+    void flush_expired_prefix();
 
     void set_neighbour_cache_flush_interval(std::chrono::minutes m) {
       flush_interval_ = m;
@@ -197,8 +208,54 @@ namespace net {
       {}
     };
 
-    using Cache       = std::unordered_map<IP6::addr, Cache_entry>;
-    using PacketQueue = std::unordered_map<IP6::addr, Queue_entry>;
+    struct Prefix_entry {
+    private:
+      ip6::Addr        prefix_;
+      RTC::timestamp_t preferred_ts_;
+      RTC::timestamp_t valid_ts_;
+
+    public:
+      Prefix_entry(ip6::Addr prefix, uint32_t preferred_lifetime,
+            uint32_t valid_lifetime)
+          : prefix_{prefix}
+      {
+        preferred_ts_ = preferred_lifetime ?
+            (RTC::time_since_boot() + preferred_lifetime) : 0;
+        valid_ts_ = valid_lifetime ?
+            (RTC::time_since_boot() + valid_lifetime) : 0;
+      }
+
+      ip6::Addr prefix() const noexcept
+      { return prefix_; }
+
+      bool preferred() const noexcept
+      { return preferred_ts_ ? RTC::time_since_boot() < preferred_ts_ : true; }
+
+      bool valid() const noexcept
+      { return valid_ts_ ? RTC::time_since_boot() > valid_ts_ : true; }
+
+      bool always_valid() const noexcept
+      { return valid_ts_ ? false : true; }
+
+      uint32_t remaining_valid_time()
+      { return valid_ts_ < RTC::time_since_boot() ? 0 : valid_ts_ - RTC::time_since_boot(); }
+
+      void update_preferred_lifetime(uint32_t preferred_lifetime)
+      {
+        preferred_ts_ = preferred_lifetime ?
+            (RTC::time_since_boot() + preferred_lifetime) : 0;
+      }
+
+      void update_valid_lifetime(uint32_t valid_lifetime)
+      {
+        valid_ts_ = valid_lifetime ?
+          (RTC::time_since_boot() + valid_lifetime) : 0;
+      }
+    };
+
+    using Cache       = std::unordered_map<ip6::Addr, Cache_entry>;
+    using PacketQueue = std::unordered_map<ip6::Addr, Queue_entry>;
+    using PrefixList  = std::deque<Prefix_entry>;
 
     /** Stats */
     uint32_t& requests_rx_;
@@ -209,12 +266,16 @@ namespace net {
     std::chrono::minutes flush_interval_ = 5min;
 
     Timer resolve_timer_ {{ *this, &Ndp::resolve_waiting }};
-    Timer flush_timer_ {{ *this, &Ndp::flush_expired }};
+    Timer flush_neighbour_timer_ {{ *this, &Ndp::flush_expired_neighbours }};
+    Timer flush_prefix_timer_ {{ *this, &Ndp::flush_expired_prefix }};
 
     Stack& inet_;
-    Route_checker proxy_ = nullptr;
+    Route_checker     proxy_ = nullptr;
+    Dad_handler       dad_handler_ = nullptr;
+    RouterAdv_handler ra_handler_ = nullptr;
 
     MAC::Addr mac_;
+    ip6::Addr tentative_addr_ = IP6::ADDR_ANY;
 
     // Outbound data goes through here */
     downstream_link linklayer_out_ = nullptr;
@@ -225,16 +286,19 @@ namespace net {
     // Packet queue
     PacketQueue waiting_packets_;
 
+    // Prefix List
+    PrefixList prefix_list_;
+
     // Settable resolver - defualts to ndp_resolve
     Ndp_resolver ndp_resolver_ = {this, &Ndp::ndp_resolve};
 
     /** Send an ndp resolution request */
-    void ndp_resolve(IP6::addr next_hop);
+    void ndp_resolve(ip6::Addr next_hop);
 
     /**
      * Add a packet to waiting queue, to be sent when IP is resolved.
      */
-    void await_resolution(Packet_ptr, IP6::addr);
+    void await_resolution(Packet_ptr, ip6::Addr);
 
     /** Create a default initialized NDP-packet */
     Packet_ptr create_packet();

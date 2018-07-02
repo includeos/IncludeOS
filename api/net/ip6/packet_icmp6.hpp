@@ -20,196 +20,16 @@
 #ifndef PACKET_ICMP6_HPP
 #define PACKET_ICMP6_HPP
 
-#include <cstdint>
-#include <gsl/span>
-#include <net/ip6/packet_ip6.hpp>
 #include <net/ip6/icmp6_error.hpp>
-#include <net/ip6/ip6.hpp>
+#include <net/ip6/packet_ndp.hpp>
 
 namespace net {
 
-#define NEIGH_ADV_ROUTER   0x1
-#define NEIGH_ADV_SOL      0x2
-#define NEIGH_ADV_OVERRIDE 0x4
-
 namespace icmp6 {
-
-  enum {
-      ND_OPT_PREFIX_INFO_END = 0,
-      ND_OPT_SOURCE_LL_ADDR = 1, /* RFC2461 */
-      ND_OPT_TARGET_LL_ADDR = 2, /* RFC2461 */
-      ND_OPT_PREFIX_INFO = 3,    /* RFC2461 */
-      ND_OPT_REDIRECT_HDR = 4,   /* RFC2461 */
-      ND_OPT_MTU = 5,            /* RFC2461 */
-      ND_OPT_NONCE = 14,         /* RFC7527 */
-      ND_OPT_ARRAY_MAX,
-      ND_OPT_ROUTE_INFO = 24,    /* RFC4191 */
-      ND_OPT_RDNSS = 25,         /* RFC5006 */
-      ND_OPT_DNSSL = 31,         /* RFC6106 */
-      ND_OPT_6CO = 34,           /* RFC6775 */
-      ND_OPT_MAX
-  };
 
   class Packet {
 
     using ICMP_type = ICMP6_error::ICMP_type;
-    class NdpPacket {
-
-        private:
-        struct nd_options_header {
-            uint8_t type;
-            uint8_t len;
-            uint8_t payload[0];
-        } __attribute__((packed));
-
-        class NdpOptions {
-
-            private:
-            struct nd_options_header *header_;
-            struct nd_options_header *nd_opts_ri;
-            struct nd_options_header *nd_opts_ri_end;
-            struct nd_options_header *user_opts;
-            struct nd_options_header *user_opts_end;
-            std::array<struct nd_options_header*, ND_OPT_ARRAY_MAX> opt_array;
-
-            bool is_useropt(struct nd_options_header *opt)
-            {
-                if (opt->type == ND_OPT_RDNSS ||
-                    opt->type == ND_OPT_DNSSL) {
-                    return true;
-                }
-                return false;
-            }
-
-            public:
-            NdpOptions() : header_{nullptr}, nd_opts_ri{nullptr},
-                nd_opts_ri_end{nullptr}, user_opts{nullptr},
-                user_opts_end{nullptr}, opt_array{} {}
-
-            void parse(uint8_t *opt, uint16_t opts_len);
-            struct nd_options_header *get_header(uint8_t &opt)
-            {
-                return reinterpret_cast<struct nd_options_header*>(opt);
-            }
-
-            uint8_t *get_option_data(uint8_t option)
-            {
-                if (option < ND_OPT_ARRAY_MAX) {
-                    if (opt_array[option]) {
-                        return static_cast<uint8_t*> (opt_array[option]->payload);
-                    }
-                }
-                return NULL;
-            }
-        };
-
-        struct RouterSol
-        {
-          uint8_t  options[0];
-
-          uint16_t option_offset()
-          { return 0; }
-
-        } __attribute__((packed));
-
-        struct RouterAdv
-        {
-          uint32_t reachable_time;
-          uint32_t retrans_timer;
-
-          uint16_t option_offset()
-          { return 0; }
-
-        } __attribute__((packed));
-
-        struct RouterRedirect
-        {
-          IP6::addr target;
-          IP6::addr dest;
-          uint8_t  options[0];
-
-          uint16_t option_offset()
-          { return sizeof(ip6::Addr) * 2; }
-
-        } __attribute__((packed));
-
-        struct NeighborSol
-        {
-          IP6::addr target;
-          uint8_t   options[0];
-
-          IP6::addr get_target()
-          { return target; }
-
-          uint16_t option_offset()
-          { return sizeof(ip6::Addr); }
-
-        } __attribute__((packed));
-
-        struct NeighborAdv
-        {
-          IP6::addr target;
-          uint8_t   options[0];
-
-          IP6::addr get_target()
-          { return target; }
-
-          uint16_t option_offset()
-          { return sizeof(ip6::Addr); }
-
-        } __attribute__((packed));
-
-        Packet&    icmp6_;
-        NdpOptions ndp_opt_;
-
-        public:
-
-        NdpPacket(Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {}
-
-        void parse(icmp6::Type type);
-
-        RouterSol& router_sol()
-        { return *reinterpret_cast<RouterSol*>(&(icmp6_.header().payload[0])); }
-
-        RouterAdv& router_adv()
-        { return *reinterpret_cast<RouterAdv*>(&(icmp6_.header().payload[0])); }
-
-        RouterRedirect& router_redirect()
-        { return *reinterpret_cast<RouterRedirect*>(&(icmp6_.header().payload[0])); }
-
-        NeighborSol& neighbour_sol()
-        { return *reinterpret_cast<NeighborSol*>(&(icmp6_.header().payload[0])); }
-
-        NeighborAdv& neighbour_adv()
-        { return *reinterpret_cast<NeighborAdv*>(&(icmp6_.header().payload[0])); }
-
-        bool is_flag_router()
-        { return icmp6_.header().rso_flags & NEIGH_ADV_ROUTER; }
-
-        bool is_flag_solicited()
-        { return icmp6_.header().rso_flags & NEIGH_ADV_SOL; }
-
-        bool is_flag_override()
-        { return icmp6_.header().rso_flags &  NEIGH_ADV_OVERRIDE; }
-
-        void set_neighbour_adv_flag(uint32_t flag)
-        { icmp6_.header().rso_flags = htonl(flag << 28); }
-
-        void set_ndp_options_header(uint8_t type, uint8_t len)
-        {
-            struct nd_options_header header;
-            header.type = type;
-            header.len = len;
-
-            icmp6_.add_payload(reinterpret_cast<uint8_t*>(&header),
-                               sizeof header);
-        }
-
-        uint8_t* get_option_data(int opt)
-        {
-            return ndp_opt_.get_option_data(opt);
-        }
-    };
 
     struct IdSe {
       uint16_t identifier;
@@ -236,8 +56,8 @@ namespace icmp6 {
 
     struct pseudo_header
     {
-      IP6::addr src;
-      IP6::addr dst;
+      ip6::Addr src;
+      ip6::Addr dst;
       uint32_t  len;
       uint8_t   zeros[3];
       uint8_t   next;
@@ -246,6 +66,7 @@ namespace icmp6 {
   public:
 
     using Span = gsl::span<uint8_t>;
+    friend class ndp::NdpPacket;
 
     static constexpr size_t header_size()
     { return sizeof(Header); }
@@ -402,12 +223,12 @@ namespace icmp6 {
     IP6::IP_packet_ptr release()
     { return std::move(pckt_); }
 
-    NdpPacket& ndp()
+    ndp::NdpPacket& ndp()
     { return ndp_; }
 
   private:
     IP6::IP_packet_ptr pckt_;
-    NdpPacket          ndp_;
+    ndp::NdpPacket     ndp_;
     uint16_t payload_offset_ = 0;
   };
 }
