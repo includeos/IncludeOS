@@ -66,6 +66,15 @@ uint64_t& Stat::get_uint64() {
   return ui64;
 }
 
+std::string Stat::to_string() const {
+  switch (this->type_) {
+    case UINT32: return std::to_string(ui32);
+    case UINT64: return std::to_string(ui64);
+    case FLOAT:  return std::to_string(f);
+    default:     return "Invalid Stat_type";
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 

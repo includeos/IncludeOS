@@ -35,6 +35,10 @@ struct Stats_exception : public std::runtime_error {
   using runtime_error::runtime_error;
 };
 
+namespace liu {
+  struct Storage; struct Restore;
+}
+
 class Stat {
 public:
   static const int MAX_NAME_LEN = 46;
@@ -73,6 +77,8 @@ public:
 
   ///
   uint64_t& get_uint64();
+
+  std::string to_string() const;
 
 private:
   union {
@@ -169,6 +175,8 @@ public:
   Stat* begin() noexcept { return (Stat*) cbegin(); }
   Stat* end() noexcept { return (Stat*) cend(); }
 
+  void store(uint32_t id, liu::Storage&);
+  void restore(liu::Restore&);
 
   void init(const uintptr_t location, const Size_type size);
 
