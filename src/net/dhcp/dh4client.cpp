@@ -34,7 +34,6 @@
 namespace net {
 
   using namespace dhcp;
-  const int DHClient::NUM_RETRIES;
 
   DHClient::DHClient(Stack& inet)
     : stack(inet),
@@ -60,24 +59,54 @@ namespace net {
 
   void DHClient::restart_negotation()
   {
-    if (retries-- <= 0)
+    tries++;
+    // if timeout is supplied
+    if(timeout != std::chrono::seconds::zero())
     {
-      // give up when retries reached zero
-      end_negotiation(true);
+      // calculate if we should retry
+      const bool retry = (timeout / (tries * RETRY_FREQUENCY)) >= 1;
+
+      if(retry)
+      {
+        timeout_timer_.start(RETRY_FREQUENCY);
+        send_first();
+        return;
+      }
+      else
+      {
+        end_negotiation(true);
+        return;
+      }
+    }
+
+    static const int FAST_TRIES = 10;
+    // never timeout
+    if(tries <= FAST_TRIES)
+    {
+      // do fast retry
+      timeout_timer_.start(RETRY_FREQUENCY);
     }
     else
     {
-      timeout_timer_.start(this->timeout);
-      send_first();
+      if(UNLIKELY(tries == FAST_TRIES+1)) {
+        MYINFO("No reply for %i tries, retrying every %lli second",
+          FAST_TRIES, RETRY_FREQUENCY_SLOW.count());
+      }
+
+      // fallback to slow retry
+      timeout_timer_.start(RETRY_FREQUENCY_SLOW);
     }
+
+    send_first();
   }
+
   void DHClient::end_negotiation(bool timed_out)
   {
     // wind down
     this->xid      = 0;
     timeout_timer_.stop();
     this->progress = 0;
-    this->retries  = NUM_RETRIES;
+    this->tries  = 0;
     // close UDP socket
     Expects(this->socket != nullptr);
     this->socket->close();
@@ -89,16 +118,16 @@ namespace net {
     if(timeout_timer_.is_running()) timeout_timer_.stop();
   }
 
-  void DHClient::negotiate(uint32_t timeout_secs)
+  void DHClient::negotiate(std::chrono::seconds timeout)
   {
     // Allow multiple calls to negotiate without restarting the process
     if (this->xid != 0) return;
-    this->retries = NUM_RETRIES;
+    this->tries = 0;
     this->progress = 0;
 
     // calculate progress timeout
     using namespace std::chrono;
-    this->timeout = seconds(timeout_secs) / NUM_RETRIES;
+    this->timeout = timeout;
 
     // generate a new session ID
     this->xid  = (rand() & 0xffff);
