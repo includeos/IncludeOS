@@ -62,7 +62,9 @@ do
 	  continue
   fi
   # build_service "$dir"
-  parallel build_service ::: "$dir"
+  # parallel build_service ::: "$dir"
+  # build_service "$dir" | xargs -n 8
+  build_service "$dir" | xargs
 done
 
 echo "Done"
