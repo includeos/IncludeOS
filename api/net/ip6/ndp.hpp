@@ -70,6 +70,7 @@ namespace net {
     void receive_neighbour_advertisement(icmp6::Packet& pckt);
     void receive_router_solicitation(icmp6::Packet& pckt);
     void receive_router_advertisement(icmp6::Packet& pckt);
+    void receive_redirect(icmp6::Packet& req);
 
     /** Send out NDP packet */
     void send_neighbour_solicitation(ip6::Addr target);
@@ -108,12 +109,16 @@ namespace net {
     /** Lookup for cache entry */
     bool lookup(ip6::Addr ip);
 
+    /* Check for Neighbour Reachabilty periodically */
+    void check_neighbour_reachability();
+
     /** Flush the NDP cache */
     void flush_cache()
     { neighbour_cache_.clear(); };
 
     /** Flush expired entries */
     void flush_expired_neighbours();
+    void flush_expired_routers();
     void flush_expired_prefix();
 
     void set_neighbour_cache_flush_interval(std::chrono::minutes m) {
@@ -133,16 +138,16 @@ namespace net {
     static constexpr uint16_t neighbour_cache_exp_sec_ {60 * 5};
 
     /** Cache entries are just MAC's and timestamps */
-    struct Cache_entry {
+    struct Neighbour_Cache_entry {
       /** Map needs empty constructor (we have no emplace yet) */
-      Cache_entry() noexcept = default;
+      Neighbour_Cache_entry() noexcept = default;
 
-      Cache_entry(MAC::Addr mac, NeighbourStates state, uint32_t flags) noexcept
+      Neighbour_Cache_entry(MAC::Addr mac, NeighbourStates state, uint32_t flags) noexcept
       : mac_(mac), timestamp_(RTC::time_since_boot()), flags_(flags) {
           set_state(state);
       }
 
-      Cache_entry(const Cache_entry& cpy) noexcept
+      Neighbour_Cache_entry(const Neighbour_Cache_entry& cpy) noexcept
       : mac_(cpy.mac_), state_(cpy.state_),
         timestamp_(cpy.timestamp_), flags_(cpy.flags_) {}
 
@@ -197,23 +202,25 @@ namespace net {
       NeighbourStates  state_;
       RTC::timestamp_t timestamp_;
       uint32_t         flags_;
-    }; //< struct Cache_entry
+    }; //< struct Neighbour_Cache_entry
+
+    struct Destination_Cache_entry {
+      Destination_Cache_entry(ip6::Addr next_hop)
+        : next_hop_{next_hop} {}
+    private:
+      ip6::Addr        next_hop_;
+      // TODO: Add PMTU and Round-trip timers
+    };
 
     struct Queue_entry {
-      Packet_ptr pckt;
-      int tries_remaining = ndp_retries;
-
       Queue_entry(Packet_ptr p)
         : pckt{std::move(p)}
       {}
+      Packet_ptr pckt;
+      int tries_remaining = ndp_retries;
     };
 
     struct Prefix_entry {
-    private:
-      ip6::Addr        prefix_;
-      RTC::timestamp_t preferred_ts_;
-      RTC::timestamp_t valid_ts_;
-
     public:
       Prefix_entry(ip6::Addr prefix, uint32_t preferred_lifetime,
             uint32_t valid_lifetime)
@@ -251,11 +258,24 @@ namespace net {
         valid_ts_ = valid_lifetime ?
           (RTC::time_since_boot() + valid_lifetime) : 0;
       }
+    private:
+      ip6::Addr        prefix_;
+      RTC::timestamp_t preferred_ts_;
+      RTC::timestamp_t valid_ts_;
     };
 
-    using Cache       = std::unordered_map<ip6::Addr, Cache_entry>;
+    struct Router_entry {
+      Router_entry(ip6::Addr router) :
+        router_{router} {}
+    private:
+      ip6::Addr    router_;
+    };
+
+    using Cache       = std::unordered_map<ip6::Addr, Neighbour_Cache_entry>;
+    using DestCache   = std::unordered_map<ip6::Addr, Destination_Cache_entry>;
     using PacketQueue = std::unordered_map<ip6::Addr, Queue_entry>;
     using PrefixList  = std::deque<Prefix_entry>;
+    using RouterList  = std::deque<Router_entry>;
 
     /** Stats */
     uint32_t& requests_rx_;
@@ -265,9 +285,11 @@ namespace net {
 
     std::chrono::minutes flush_interval_ = 5min;
 
+    Timer neighbour_reachability_timer_ {{ *this, &Ndp::check_neighbour_reachability }};
     Timer resolve_timer_ {{ *this, &Ndp::resolve_waiting }};
     Timer flush_neighbour_timer_ {{ *this, &Ndp::flush_expired_neighbours }};
     Timer flush_prefix_timer_ {{ *this, &Ndp::flush_expired_prefix }};
+    Timer router_invalidation_timer_ {{ *this, &Ndp::flush_expired_routers }};
 
     Stack& inet_;
     Route_checker     proxy_ = nullptr;
@@ -280,14 +302,16 @@ namespace net {
     // Outbound data goes through here */
     downstream_link linklayer_out_ = nullptr;
 
-    // The NDP cache
-    Cache neighbour_cache_ {};
+    // The caches
+    Cache     neighbour_cache_ {};
+    DestCache dest_cache_ {};
 
     // Packet queue
     PacketQueue waiting_packets_;
 
     // Prefix List
     PrefixList prefix_list_;
+    RouterList router_list_;
 
     // Settable resolver - defualts to ndp_resolve
     Ndp_resolver ndp_resolver_ = {this, &Ndp::ndp_resolve};

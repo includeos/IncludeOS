@@ -53,6 +53,7 @@ namespace net
 
     // Populate response IP header
     res.ip().set_ip_src(inet_.ip6_addr());
+    
     if (any_src) {
         res.ip().set_ip_dst(ip6::Addr::node_all_nodes);
     } else {
@@ -231,6 +232,10 @@ namespace net
     send_neighbour_advertisement(req);
   }
 
+  void Ndp::receive_redirect(icmp6::Packet& req)
+  {
+  }
+
   void Ndp::send_router_solicitation(RouterAdv_handler delg)
   {
     ra_handler_ = delg;
@@ -339,6 +344,7 @@ namespace net
       receive_neighbour_advertisement(pckt);
       break;
     case (ICMP_type::ND_REDIRECT):
+      receive_redirect(pckt);
       PRINT("NDP: Neigbor redirect message from %s\n", pckt.ip().ip_src().str().c_str());
       break;
     default:
@@ -373,7 +379,7 @@ namespace net
       if (entry->second.mac() != mac) {
         neighbour_cache_.erase(entry);
         neighbour_cache_.emplace(
-           std::make_pair(ip, Cache_entry{mac, state, flags})); // Insert
+           std::make_pair(ip, Neighbour_Cache_entry{mac, state, flags})); // Insert
       } else {
         entry->second.set_state(state);
         entry->second.set_flags(flags);
@@ -381,7 +387,7 @@ namespace net
       }
     } else {
       neighbour_cache_.emplace(
-        std::make_pair(ip, Cache_entry{mac, state, flags})); // Insert
+        std::make_pair(ip, Neighbour_Cache_entry{mac, state, flags})); // Insert
       if (UNLIKELY(not flush_neighbour_timer_.is_running())) {
         flush_neighbour_timer_.start(flush_interval_);
       }
@@ -425,6 +431,17 @@ namespace net
       // Retry later
       resolve_timer_.start(1s);
     }
+  }
+
+  void Ndp::check_neighbour_reachability()
+  {
+  }
+
+  void Ndp::flush_expired_routers()
+  {
+    PRINT("NDP: Flushing expired routers\n");
+    // Check the head of the router list. 
+    // If that isn't expired. None of them after it is
   }
 
   void Ndp::flush_expired_neighbours()
