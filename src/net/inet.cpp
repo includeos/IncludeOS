@@ -32,7 +32,7 @@ Inet::Inet(hw::Nic& nic)
     domain_name_{},
     MTU_(nic.MTU())
 {
-  static_assert(sizeof(IP4::addr) == 4, "IPv4 addresses must be 32-bits");
+  static_assert(sizeof(ip4::Addr) == 4, "IPv4 addresses must be 32-bits");
 
   /** SMP related **/
   this->cpu_id = SMP::cpu_id();
@@ -228,10 +228,10 @@ void Inet::autoconf_v6(int retries, slaac_timeout_func handler,
       slaac_->on_config(handler);
 }
 
-void Inet::network_config(IP4::addr addr,
-                           IP4::addr nmask,
-                           IP4::addr gw,
-                           IP4::addr dns)
+void Inet::network_config(ip4::Addr addr,
+                           ip4::Addr nmask,
+                           ip4::Addr gw,
+                           ip4::Addr dns)
 {
   ip_obj().set_addr(addr);
   ip_obj().set_netmask(nmask);
@@ -329,7 +329,7 @@ void Inet::move_to_this_cpu()
   nic_.move_to_this_cpu();
 }
 
-void Inet::cache_link_addr(IP4::addr ip, MAC::Addr mac)
+void Inet::cache_link_addr(ip4::Addr ip, MAC::Addr mac)
 { arp_.cache(ip, mac); }
 
 void Inet::flush_link_cache()
@@ -352,7 +352,7 @@ void Inet::resolve(const std::string& hostname,
 }
 
 void Inet::resolve(const std::string& hostname,
-      IP4::addr         server,
+      ip4::Addr         server,
       resolve_func      func,
       bool              force)
 {

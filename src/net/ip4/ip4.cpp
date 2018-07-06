@@ -31,8 +31,8 @@
 
 namespace net {
 
-  const IP4::addr IP4::ADDR_ANY(0);
-  const IP4::addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
+  const ip4::Addr IP4::ADDR_ANY(0);
+  const ip4::Addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
 
   IP4::IP4(Stack& inet) noexcept :
   addr_             {IP4::ADDR_ANY},
