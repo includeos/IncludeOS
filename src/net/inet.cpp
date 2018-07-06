@@ -26,10 +26,7 @@
 using namespace net;
 
 Inet::Inet(hw::Nic& nic)
-  : ip4_addr_(IP4::ADDR_ANY),
-    netmask_(IP4::ADDR_ANY),
-    gateway_(IP4::ADDR_ANY),
-    dns_server_(IP4::ADDR_ANY),
+  : dns_server_(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ndp_(*this), ip4_(*this), ip6_(*this),
     icmp_(*this), icmp6_(*this), udp_(*this), tcp_(*this), dns_(*this),
     domain_name_{},
@@ -233,17 +230,17 @@ void Inet::autoconf_v6(int retries, slaac_timeout_func handler,
 
 void Inet::network_config(IP4::addr addr,
                            IP4::addr nmask,
-                           IP4::addr gateway,
+                           IP4::addr gw,
                            IP4::addr dns)
 {
-  this->ip4_addr_   = addr;
-  this->netmask_    = nmask;
-  this->gateway_    = gateway;
-  this->dns_server_ = (dns == IP4::ADDR_ANY) ? gateway : dns;
+  ip_obj().set_addr(addr);
+  ip_obj().set_netmask(nmask);
+  ip_obj().set_gateway(gw);
+  this->dns_server_ = (dns == IP4::ADDR_ANY) ? gw : dns;
   INFO("Inet", "Network configured (%s)", nic_.mac().to_string().c_str());
-  INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
-  INFO2("Netmask: \t%s", netmask_.str().c_str());
-  INFO2("Gateway: \t%s", gateway_.str().c_str());
+  INFO2("IP: \t\t%s", ip_addr().str().c_str());
+  INFO2("Netmask: \t%s", netmask().str().c_str());
+  INFO2("Gateway: \t%s", gateway().str().c_str());
   INFO2("DNS Server: \t%s", dns_server_.str().c_str());
 
   for(auto& handler : configured_handlers_)

@@ -306,7 +306,32 @@ namespace net {
     PMTU minimum_MTU() const noexcept
     { return (PMTU) PMTU_plateau::ONE; }
 
+    ip4::Addr ip4_addr() const noexcept
+    { return addr_; }
+
+    ip4::Addr ip4_netmask() const noexcept
+    { return netmask_; }
+
+    ip4::Addr ip4_gateway() const noexcept
+    { return gateway_; }
+
+    ip4::Addr broadcast_addr() const noexcept
+    { return addr_ | ( ~ netmask_); }
+
+    void set_addr(ip4::Addr addr)
+    { addr_ = addr; }
+
+    void set_netmask(ip4::Addr netmask)
+    { netmask_ = netmask; }
+
+    void set_gateway(ip4::Addr gateway)
+    { gateway_ = gateway; }
+
   private:
+    /* Network config for the inet stack */
+    IP4::addr addr_;
+    IP4::addr netmask_;
+    IP4::addr gateway_;
     /** Stats */
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;

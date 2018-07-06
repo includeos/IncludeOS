@@ -81,20 +81,20 @@ namespace net {
     hw::Nic& nic() const
     { return nic_; }
 
-    IP4::addr ip_addr() const
-    { return ip4_addr_; }
+    IP4::addr ip_addr()
+    { return ip_obj().ip4_addr(); }
 
-    IP4::addr netmask() const
-    { return netmask_; }
+    IP4::addr netmask()
+    { return ip_obj().ip4_netmask(); }
 
-    IP4::addr gateway() const
-    { return gateway_; }
+    IP4::addr gateway()
+    { return ip_obj().ip4_gateway(); }
 
     IP4::addr dns_addr() const
     { return dns_server_; }
 
-    IP4::addr broadcast_addr() const
-    { return ip4_addr_ | ( ~ netmask_); }
+    IP4::addr broadcast_addr()
+    { return ip_obj().broadcast_addr(); }
 
     const ip6::Addr& ip6_addr() const noexcept
     { return ip6_addr_; }
@@ -257,7 +257,7 @@ namespace net {
 
     void set_gateway(IP4::addr gateway)
     {
-      this->gateway_ = gateway;
+      this->ip_obj().set_gateway(gateway);
     }
 
     void set_dns_server(IP4::addr server)
@@ -279,9 +279,9 @@ namespace net {
     void autoconf_v6(int retries = 0, slaac_timeout_func = nullptr,
             IP6::addr alternate_addr = IP6::ADDR_ANY);
 
-    bool is_configured() const
+    bool is_configured()
     {
-      return ip4_addr_ != 0;
+      return ip_obj().ip4_addr() != 0;
     }
 
     bool is_configured_v6() const
@@ -314,9 +314,9 @@ namespace net {
     void
     reset_config()
     {
-      this->ip4_addr_ = IP4::ADDR_ANY;
-      this->gateway_ = IP4::ADDR_ANY;
-      this->netmask_ = IP4::ADDR_ANY;
+      this->ip_obj().set_addr(IP4::ADDR_ANY);
+      this->ip_obj().set_gateway(IP4::ADDR_ANY);
+      this->ip_obj().set_netmask(IP4::ADDR_ANY);
       this->ip6_addr_ = IP6::ADDR_ANY;
       this->ip6_gateway_ = IP6::ADDR_ANY;
       this->ip6_prefix_ = 0;
@@ -452,10 +452,10 @@ namespace net {
       return ip6_addr();
     }
 
-    bool is_valid_source(const Addr& addr) const
+    bool is_valid_source(const Addr& addr)
     { return addr.is_v4() ? is_valid_source4(addr.v4()) : is_valid_source6(addr.v6()); }
 
-    bool is_valid_source4(IP4::addr src) const
+    bool is_valid_source4(IP4::addr src)
     { return src == ip_addr() or is_loopback(src); }
 
     bool is_valid_source6(const IP6::addr& src) const
@@ -481,9 +481,6 @@ namespace net {
     // delegates registered to get signalled about free packets
     std::vector<transmit_avail_delg> tqa;
 
-    IP4::addr ip4_addr_;
-    IP4::addr netmask_;
-    IP4::addr gateway_;
     IP4::addr dns_server_;
 
     IP6::addr ip6_addr_;
