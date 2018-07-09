@@ -35,6 +35,7 @@ namespace net
   replies_rx_     {Statman::get().create(Stat::UINT32, inet.ifname() + ".ndp.replies_rx").get_uint32()},
   replies_tx_     {Statman::get().create(Stat::UINT32, inet.ifname() + ".ndp.replies_tx").get_uint32()},
   inet_           {inet},
+  host_params_    {},
   mac_            (inet.link_addr())
   {}
 

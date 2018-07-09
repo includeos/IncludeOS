@@ -36,12 +36,35 @@ namespace net {
   class Ndp {
 
   public:
+    // Router constants
+    static const int MAX_INITIAL_RTR_ADVERT_INTERVAL = 16;  // in seconds
+    static const int MAX_INITIAL_RTR_ADVERTISEMENTS  = 3;   // transmissions
+    static const int MAX_FINAL_RTR_ADVERTISEMENTS    = 3;   // transmissions
+    static const int MIN_DELAY_BETWEEN_RAS           = 3;   // in seconds
+    static const int MAX_RA_DELAY_TIME               = 0.5; // in seconds
 
-#define NEIGH_UPDATE_OVERRIDE          0x00000001
-#define NEIGH_UPDATE_WEAK_OVERRIDE     0x00000002
-#define NEIGH_UPDATE_OVERRIDE_ISROUTER 0x00000004
-#define NEIGH_UPDATE_ISROUTER          0x40000000
-#define NEIGH_UPDATE_ADMIN             0x80000000
+    // Host constants
+    static const int MAX_RTR_SOLICITATION_DELAY = 1; // in seconds
+    static const int RTR_SOLICITATION_INTERVAL  = 4; // in seconds
+    static const int MAX_RTR_SOLICITATIONS      = 3; // transmissions
+
+    // Node constants
+    static const int MAX_MULTICAST_SOLICIT      = 3;     // transmissions
+    static const int MAX_UNICAST_SOLICIT        = 3;     // transmissions
+    static const int MAX_ANYCAST_DELAY_TIME     = 1;     // in seconds
+    static const int MAX_NEIGHBOR_ADVERTISEMENT = 3;     // transmissions
+    static const int REACHABLE_TIME             = 30000; // in milliseconds
+    static const int RETRANS_TIMER              = 1000;  // in milliseconds
+    static const int DELAY_FIRST_PROBE_TIME     = 5;     // in seconds
+    static const int MIN_RANDOM_FACTOR          = 0.5;
+    static const int MAX_RANDOM_FACTOR          = 1.5;
+
+    // Neighbour flag constants
+    static const uint32_t NEIGH_UPDATE_OVERRIDE          = 0x00000001;
+    static const uint32_t NEIGH_UPDATE_WEAK_OVERRIDE     = 0x00000002;
+    static const uint32_t NEIGH_UPDATE_OVERRIDE_ISROUTER = 0x00000004;
+    static const uint32_t NEIGH_UPDATE_ISROUTER          = 0x40000000;
+    static const uint32_t NEIGH_UPDATE_ADMIN             = 0x80000000;
 
     enum class NeighbourStates : uint8_t {
       INCOMPLETE,
@@ -304,6 +327,49 @@ namespace net {
     using PrefixList  = std::deque<Prefix_entry>;
     using RouterList  = std::deque<Router_entry>;
 
+    // Ndp host parameters configured for a particular inet stack
+    struct HostNdpParameters {
+    public:
+      HostNdpParameters() :
+        link_mtu_{1500}, cur_hop_limit_{255},
+        base_reachable_time_{REACHABLE_TIME},
+        reachable_time_{},
+        retrans_time_{RETRANS_TIMER} {}
+
+    private:
+      uint16_t link_mtu_;
+      uint8_t  cur_hop_limit_;
+      uint32_t base_reachable_time_;
+      uint32_t reachable_time_;
+      uint32_t retrans_time_;
+    };
+
+    // Ndp router parameters configured for a particular inet stack
+    struct RouterNdpParameters {
+    public:
+      RouterNdpParameters() :
+        is_router_{false}, send_advertisements_{false},
+        managed_flag_{false}, other_flag_{false},
+        cur_hop_limit_{255}, link_mtu_{0},
+        max_ra_interval_{600}, min_ra_interval_{max_ra_interval_},
+        default_lifetime_(3 * max_ra_interval_), reachable_time_{0},
+        retrans_time_{0} {}
+
+    private:
+      bool       is_router_;
+      bool       send_advertisements_;
+      bool       managed_flag_;
+      bool       other_flag_;
+      uint8_t    cur_hop_limit_;
+      uint16_t   link_mtu_;
+      uint16_t   max_ra_interval_;
+      uint16_t   min_ra_interval_;
+      uint16_t   default_lifetime_;
+      uint32_t   reachable_time_;
+      uint32_t   retrans_time_;
+      PrefixList prefix_list_;
+    };
+
     /** Stats */
     uint32_t& requests_rx_;
     uint32_t& requests_tx_;
@@ -322,6 +388,7 @@ namespace net {
     Route_checker     proxy_ = nullptr;
     Dad_handler       dad_handler_ = nullptr;
     RouterAdv_handler ra_handler_ = nullptr;
+    HostNdpParameters host_params_;
 
     MAC::Addr mac_;
     ip6::Addr tentative_addr_ = IP6::ADDR_ANY;
