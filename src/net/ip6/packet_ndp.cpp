@@ -15,7 +15,7 @@ namespace net
 
   NdpPacket::NdpPacket(icmp6::Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {}
 
-  void NdpPacket::parse(icmp6::Type type)
+  void NdpPacket::parse_options(icmp6::Type type)
   {
     switch(type) {
     case (ICMP_type::ND_ROUTER_SOL):

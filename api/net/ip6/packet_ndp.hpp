@@ -206,8 +206,14 @@ static const int NEIGH_ADV_OVERRIDE = 0x4;
     struct RouterRedirect
     {
       ip6::Addr target_;
-      ip6::Addr dest;
+      ip6::Addr dest_;
       uint8_t  options[0];
+
+      ip6::Addr target()
+      { return target_; }
+
+      ip6::Addr dest()
+      { return dest_; }
 
       uint16_t option_offset()
       { return IP6_ADDR_BYTES * 2; }
@@ -246,7 +252,7 @@ static const int NEIGH_ADV_OVERRIDE = 0x4;
   public:
     NdpPacket(icmp6::Packet& icmp6);
 
-    void parse(icmp6::Type type);
+    void parse_options(icmp6::Type type);
     bool parse_prefix(Pinfo_handler autoconf_cb,
       Pinfo_handler onlink_cb);
 

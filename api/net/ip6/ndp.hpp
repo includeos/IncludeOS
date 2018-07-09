@@ -103,8 +103,11 @@ namespace net {
     void transmit(Packet_ptr, ip6::Addr next_hop, MAC::Addr mac = MAC::EMPTY);
 
     /** Cache IP resolution. */
-    void cache(ip6::Addr ip, MAC::Addr mac, NeighbourStates state, uint32_t flags);
-    void cache(ip6::Addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags);
+    void cache(ip6::Addr ip, MAC::Addr mac, NeighbourStates state, uint32_t flags, bool update=true);
+    void cache(ip6::Addr ip, uint8_t *ll_addr, NeighbourStates state, uint32_t flags, bool update=true);
+
+    /* Destination cache */
+    void dest_cache(ip6::Addr dest_ip, ip6::Addr next_hop);
 
     /** Lookup for cache entry */
     bool lookup(ip6::Addr ip);
@@ -207,6 +210,15 @@ namespace net {
     struct Destination_Cache_entry {
       Destination_Cache_entry(ip6::Addr next_hop)
         : next_hop_{next_hop} {}
+
+    void update(ip6::Addr next_hop)
+    {
+      next_hop_ = next_hop;
+    }
+
+    ip6::Addr next_hop()
+    { return next_hop_; }
+
     private:
       ip6::Addr        next_hop_;
       // TODO: Add PMTU and Round-trip timers
