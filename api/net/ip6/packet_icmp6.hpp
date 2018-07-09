@@ -36,14 +36,23 @@ namespace icmp6 {
       uint16_t sequence;
     };
 
+    struct RaHeader {
+      uint8_t   cur_hop_limit;
+      uint8_t   ma_config_flag : 1,
+                mo_config_flag : 1,
+                reserved       : 6;
+      uint16_t  router_lifetime;
+    };
+
     struct Header {
       Type     type;
       uint8_t  code;
       uint16_t checksum;
       union {
-        struct IdSe  idse;
-        uint32_t     reserved;
-        uint32_t     rso_flags;
+        struct IdSe     idse;
+        uint32_t        reserved;
+        uint32_t        rso_flags;
+        struct RaHeader ra;
       };
       uint8_t  payload[0];
     }__attribute__((packed));
@@ -85,6 +94,18 @@ namespace icmp6 {
 
     uint16_t sequence() const noexcept
     { return header().idse.sequence; }
+
+    uint8_t cur_hop_limit() const noexcept
+    { return header().ra.cur_hop_limit; }
+
+    bool managed_address_config() const noexcept
+    { return header().ra.ma_config_flag; }
+
+    bool managed_other_config() const noexcept
+    { return header().ra.mo_config_flag; }
+
+    uint16_t router_lifetime() const noexcept
+    { return header().ra.router_lifetime; }
 
     uint16_t payload_len() const noexcept
     { return pckt_->size() - (pckt_->ip_header_len() + header_size()); }

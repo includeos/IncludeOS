@@ -189,14 +189,14 @@ static const int NEIGH_ADV_OVERRIDE = 0x4;
     struct RouterAdv
     {
       uint32_t reachable_time_;
-      uint32_t retrans_timer_;
+      uint32_t retrans_time_;
       uint8_t  options[0];
 
       uint32_t reachable_time()
       { return reachable_time_; }
 
-      uint32_t retrans_timer()
-      { return retrans_timer_; }
+      uint32_t retrans_time()
+      { return retrans_time_; }
 
       uint16_t option_offset()
       { return 8; }

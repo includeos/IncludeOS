@@ -98,6 +98,7 @@ namespace net {
     void dad_completed();
     void add_addr(ip6::Addr ip, uint32_t preferred_lifetime,
             uint32_t valid_lifetime);
+    void add_router(ip6::Addr ip, uint16_t router_lifetime);
 
     /** Downstream transmission. */
     void transmit(Packet_ptr, ip6::Addr next_hop, MAC::Addr mac = MAC::EMPTY);
@@ -277,10 +278,24 @@ namespace net {
     };
 
     struct Router_entry {
-      Router_entry(ip6::Addr router) :
-        router_{router} {}
+      Router_entry(ip6::Addr router, uint16_t lifetime) :
+        router_{router}
+      {
+        update_router_lifetime(lifetime);
+      }
+
+      ip6::Addr router() const noexcept
+      { return router_; }
+
+      bool expired() const noexcept
+      { return RTC::time_since_boot() > invalidation_ts_; }
+
+      void update_router_lifetime(uint16_t lifetime)
+      { invalidation_ts_ = RTC::time_since_boot() + lifetime; }
+
     private:
-      ip6::Addr    router_;
+      ip6::Addr        router_;
+      RTC::timestamp_t invalidation_ts_;
     };
 
     using Cache       = std::unordered_map<ip6::Addr, Neighbour_Cache_entry>;
@@ -301,7 +316,7 @@ namespace net {
     Timer resolve_timer_ {{ *this, &Ndp::resolve_waiting }};
     Timer flush_neighbour_timer_ {{ *this, &Ndp::flush_expired_neighbours }};
     Timer flush_prefix_timer_ {{ *this, &Ndp::flush_expired_prefix }};
-    Timer router_invalidation_timer_ {{ *this, &Ndp::flush_expired_routers }};
+    Timer flush_router_timer_ {{ *this, &Ndp::flush_expired_routers }};
 
     Stack& inet_;
     Route_checker     proxy_ = nullptr;

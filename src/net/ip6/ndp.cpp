@@ -85,7 +85,6 @@ namespace net
   void Ndp::receive_neighbour_advertisement(icmp6::Packet& req)
   {
     ip6::Addr target = req.ndp().neighbour_adv().target();
-    uint8_t *lladdr;
 
     if (target.is_multicast()) {
       PRINT("NDP: neighbour advertisement target address is multicast\n");
@@ -107,7 +106,7 @@ namespace net
     }
 
     req.ndp().parse_options(ICMP_type::ND_NEIGHBOUR_ADV);
-    lladdr = req.ndp().get_option_data(ndp::ND_OPT_TARGET_LL_ADDR);
+    auto lladdr = req.ndp().get_option_data(ndp::ND_OPT_TARGET_LL_ADDR);
 
     // For now, just create a cache entry, if one doesn't exist
     cache(target, lladdr, req.ndp().is_flag_solicited() ?
@@ -169,7 +168,6 @@ namespace net
   {
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
     ip6::Addr target = req.ndp().neighbour_sol().target();
-    uint8_t *lladdr, *nonce_opt;
     uint64_t nonce = 0;
 
     PRINT("Receive NDP Neighbor solicitation request. Target addr: %s\n",
@@ -186,7 +184,7 @@ namespace net
       return;
     }
     req.ndp().parse_options(ICMP_type::ND_NEIGHBOUR_SOL);
-    lladdr = req.ndp().get_option_data(ndp::ND_OPT_SOURCE_LL_ADDR);
+    auto lladdr = req.ndp().get_option_data(ndp::ND_OPT_SOURCE_LL_ADDR);
 
     if (lladdr) {
       if (any_src) {
@@ -195,7 +193,7 @@ namespace net
       }
     }
 
-    nonce_opt = req.ndp().get_option_data(ndp::ND_OPT_NONCE);
+    auto nonce_opt = req.ndp().get_option_data(ndp::ND_OPT_NONCE);
     if (nonce_opt) {
       //memcpy(&nonce, nonce_opt, 6);
     }
@@ -342,6 +340,7 @@ namespace net
               " router advertisement\n");
         return;
       }
+      add_router(req.ip().ip_src(), req.router_lifetime());
       req.ndp().parse_options(ICMP_type::ND_ROUTER_ADV);
       req.ndp().parse_prefix([this] (ip6::Addr prefix,
             uint32_t preferred_lifetime, uint32_t valid_lifetime)
@@ -362,6 +361,13 @@ namespace net
       {
         /* Called if onlink is set */
       });
+
+     auto lladdr = req.ndp().get_option_data(ndp::ND_OPT_SOURCE_LL_ADDR);
+     if (lladdr) {
+       cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
+           NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE |
+           NEIGH_UPDATE_OVERRIDE_ISROUTER | NEIGH_UPDATE_ISROUTER);
+     }
   }
 
   void Ndp::receive(icmp6::Packet& pckt)
@@ -491,8 +497,19 @@ namespace net
   void Ndp::flush_expired_routers()
   {
     PRINT("NDP: Flushing expired routers\n");
-    // Check the head of the router list.
+    // TODO: Check the head of the router list.
     // If that isn't expired. None of them after it is
+    for (auto ent = router_list_.begin(); ent != router_list_.end();) {
+      if (!ent->expired()) {
+        ent = router_list_.erase(ent);
+      } else {
+        ent++;
+      }
+    }
+
+    if (not router_list_.empty()) {
+      flush_router_timer_.start(flush_interval_);
+    }
   }
 
   void Ndp::flush_expired_neighbours()
@@ -612,5 +629,31 @@ namespace net
     }
   }
 
-  // NDP packet function definitions
+  void Ndp::add_router(ip6::Addr ip, uint16_t router_lifetime)
+  {
+    auto entry = std::find_if(router_list_.begin(), router_list_.end(),
+          [&ip] (const Router_entry& obj) { return obj.router() == ip; });
+
+    if (entry == router_list_.end()) {
+      if (router_lifetime) {
+        router_list_.push_back(Router_entry{ip, router_lifetime});
+      }
+    } else if (router_lifetime) {
+      entry->update_router_lifetime(router_lifetime);
+    } else {
+      // Delete the destination cache entries which have
+      // the next hop address equal to the router address
+      std::vector<IP6::addr> expired;
+      for (auto ent : dest_cache_) {
+        if (ent.second.next_hop() == ip) {
+          expired.push_back(ent.first);
+        }
+      }
+
+      for (auto ip : expired) {
+        dest_cache_.erase(ip);
+      }
+      router_list_.erase(entry);
+    }
+  }
 } // net
