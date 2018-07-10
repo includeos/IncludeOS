@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <string.h>
 #include <cassert>
+#include <cstdarg>
 
 extern "C"
 FILE* fopen64(const char *filename, const char *type)

@@ -298,7 +298,7 @@ void __page_fault(uintptr_t* regs, uint32_t code) {
 }
 
 extern "C"
-__attribute__((noreturn optnone, weak))
+__attribute__((noreturn, optnone, weak))
 void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
 {
   cpu_enable_panicking();
