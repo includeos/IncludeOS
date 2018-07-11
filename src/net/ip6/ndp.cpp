@@ -526,6 +526,22 @@ namespace net
   {
   }
 
+  void Ndp::delete_destination_entry(ip6::Addr& ip)
+  {
+    //TODO: Better to have a list of destination 
+    // list entries inside router entries for faster cleanup 
+    std::vector<IP6::addr> expired;
+    for (auto ent : dest_cache_) {
+      if (ent.second.next_hop() == ip) {
+        expired.push_back(ent.first);
+      }
+    }
+
+    for (auto ip : expired) {
+      dest_cache_.erase(ip);
+    }
+  }
+
   void Ndp::flush_expired_routers()
   {
     PRINT("NDP: Flushing expired routers\n");
@@ -533,6 +549,7 @@ namespace net
     // If that isn't expired. None of them after it is
     for (auto ent = router_list_.begin(); ent != router_list_.end();) {
       if (!ent->expired()) {
+        delete_destination_entry(ent->router());
         ent = router_list_.erase(ent);
       } else {
         ent++;
@@ -693,16 +710,7 @@ namespace net
     } else {
       // Delete the destination cache entries which have
       // the next hop address equal to the router address
-      std::vector<IP6::addr> expired;
-      for (auto ent : dest_cache_) {
-        if (ent.second.next_hop() == ip) {
-          expired.push_back(ent.first);
-        }
-      }
-
-      for (auto ip : expired) {
-        dest_cache_.erase(ip);
-      }
+      delete_destination_entry(ip);
       router_list_.erase(entry);
     }
   }
