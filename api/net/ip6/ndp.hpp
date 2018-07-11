@@ -81,9 +81,6 @@ namespace net {
     using RouterAdv_handler = delegate<void(ip6::Addr)>;
     using ICMP_type = ICMP6_error::ICMP_type;
 
-    /** Number of resolution retries **/
-    static constexpr int ndp_retries = 3;
-
     /** Constructor */
     explicit Ndp(Stack&) noexcept;
 
@@ -119,9 +116,10 @@ namespace net {
 
     void perform_dad(ip6::Addr, Dad_handler delg);
     void dad_completed();
-    void autoconf_add_addr(ip6::Addr ip, uint32_t preferred_lifetime,
+    void add_addr_autoconf(ip6::Addr ip, uint32_t preferred_lifetime,
             uint32_t valid_lifetime);
-    void onlink_add_addr(ip6::Addr ip, uint32_t valid_lifetime);
+    void add_addr_onlink(ip6::Addr ip, uint32_t valid_lifetime);
+    void add_addr_static(ip6::Addr ip, uint32_t valid_lifetime);
     void add_router(ip6::Addr ip, uint16_t router_lifetime);
 
     /** Downstream transmission. */
@@ -133,6 +131,7 @@ namespace net {
 
     /* Destination cache */
     void dest_cache(ip6::Addr dest_ip, ip6::Addr next_hop);
+    void delete_dest_entry(ip6::Addr ip);
 
     /** Lookup for cache entry */
     bool lookup(ip6::Addr ip);
@@ -159,6 +158,24 @@ namespace net {
 
     MAC::Addr& link_mac_addr()
     { return mac_; }
+
+    const ip6::Addr& static_ip()
+    { return ip6_addr_; }
+
+    uint8_t static_prefix() const
+    { return ip6_prefix_; }
+
+    ip6::Addr static_gateway() const
+    { return ip6_gateway_; }
+
+    void set_static_addr(ip6::Addr addr)
+    { ip6_addr_ = addr; }
+
+    void set_static_gateway(ip6::Addr addr)
+    { ip6_gateway_ = addr; }
+
+    void set_static_prefix(uint8_t prefix)
+    { ip6_prefix_ = prefix; }
 
   private:
 
@@ -254,7 +271,7 @@ namespace net {
         : pckt{std::move(p)}
       {}
       Packet_ptr pckt;
-      int tries_remaining = ndp_retries;
+      int tries_remaining = MAX_MULTICAST_SOLICIT;
     };
 
     struct Prefix_entry {
@@ -339,13 +356,13 @@ namespace net {
         }
 
       // Compute random time in the range of min and max
-      // random factor times base reachable time 
+      // random factor times base reachable time
       double compute_reachable_time()
-      { 
+      {
         auto lower = MIN_RANDOM_FACTOR * base_reachable_time_;
         auto upper = MAX_RANDOM_FACTOR * base_reachable_time_;
 
-        return (std::fmod(rand(), (upper - lower + 1)) + lower); 
+        return (std::fmod(rand(), (upper - lower + 1)) + lower);
       }
 
       uint16_t link_mtu_;
@@ -401,6 +418,14 @@ namespace net {
     RouterAdv_handler   ra_handler_ = nullptr;
     HostNdpParameters   host_params_;
     RouterNdpParameters router_params_;
+
+    /* Static IP6 configuration for inet.
+     * Dynamic ip6 addresses are present in prefix list.
+     * We could have this in ip6 instead but gets confusing since ip6
+     * stack can multiple ip6 addresses. */
+    ip6::Addr ip6_addr_;
+    ip6::Addr ip6_gateway_;
+    uint8_t   ip6_prefix_;
 
     MAC::Addr mac_;
     ip6::Addr tentative_addr_ = IP6::ADDR_ANY;

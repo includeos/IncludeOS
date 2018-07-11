@@ -96,14 +96,14 @@ namespace net {
     ip4::Addr broadcast_addr()
     { return ip_obj().broadcast_addr(); }
 
-    const ip6::Addr& ip6_addr() const noexcept
-    { return ip6_addr_; }
+    const ip6::Addr& ip6_addr()
+    { return ndp().static_ip(); }
 
-    uint8_t netmask6() const
-     { return ip6_prefix_; }
+    uint8_t netmask6()
+    { return ndp().static_prefix(); }
 
-    ip6::Addr gateway6() const
-    { return ip6_gateway_; }
+    ip6::Addr gateway6()
+    { return ndp().static_gateway(); }
 
     void cache_link_addr(ip4::Addr ip, MAC::Addr mac);
     void flush_link_cache();
@@ -114,8 +114,7 @@ namespace net {
     { return ip4_; }
 
     /** Get the IP6-object belonging to this stack */
-    IP6& ip6_obj()
-    { return ip6_; }
+    IP6& ip6_obj() { return ip6_; }
 
     /** Get the TCP-object belonging to this stack */
     TCP& tcp() { return tcp_; }
@@ -284,9 +283,9 @@ namespace net {
       return ip_obj().ip4_addr() != 0;
     }
 
-    bool is_configured_v6() const
+    bool is_configured_v6()
     {
-      return ip6_addr_ != IP6::ADDR_ANY;
+      return ndp().static_ip() != IP6::ADDR_ANY;
     }
 
     // handler called after the network is configured,
@@ -317,9 +316,9 @@ namespace net {
       this->ip_obj().set_addr(IP4::ADDR_ANY);
       this->ip_obj().set_gateway(IP4::ADDR_ANY);
       this->ip_obj().set_netmask(IP4::ADDR_ANY);
-      this->ip6_addr_ = IP6::ADDR_ANY;
-      this->ip6_gateway_ = IP6::ADDR_ANY;
-      this->ip6_prefix_ = 0;
+      this->ndp().set_static_addr(IP6::ADDR_ANY);
+      this->ndp().set_static_gateway(IP6::ADDR_ANY);
+      this->ndp().set_static_prefix(0);
     }
 
     // register a callback for receiving signal on free packet-buffers
@@ -458,7 +457,7 @@ namespace net {
     bool is_valid_source4(ip4::Addr src)
     { return src == ip_addr() or is_loopback(src); }
 
-    bool is_valid_source6(const ip6::Addr& src) const
+    bool is_valid_source6(const ip6::Addr& src)
     { return src == ip6_addr() or is_loopback(src) or src.is_multicast(); }
 
     std::shared_ptr<Conntrack>& conntrack()
@@ -482,10 +481,6 @@ namespace net {
     std::vector<transmit_avail_delg> tqa;
 
     ip4::Addr dns_server_;
-
-    ip6::Addr ip6_addr_;
-    ip6::Addr ip6_gateway_;
-    uint8_t   ip6_prefix_;
 
     Vip4_list vip4s_ = {{127,0,0,1}};
     Vip6_list vip6s_ = {{IP6::ADDR_LOOPBACK}};

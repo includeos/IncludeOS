@@ -117,11 +117,6 @@ Inet::Inet(hw::Nic& nic)
   // NDP -> Link
   ndp_.set_linklayer_out(link_top);
 
-  // UDP6 -> IP6
-  // udp6->set_network_out(ip6_top);
-  // TCP6 -> IP6
-  // tcp6->set_network_out(ip6_top);
-
   // Arp -> Link
   assert(link_top);
   arp_.set_linklayer_out(link_top);
@@ -254,13 +249,13 @@ void Inet::network_config6(IP6::addr addr6,
                            IP6::addr gateway6)
 {
 
-  this->ip6_addr_    = std::move(addr6);
-  this->ip6_prefix_  = prefix6;
-  this->ip6_gateway_ = std::move(gateway6);
+  ndp().set_static_addr(std::move(addr6));
+  ndp().set_static_prefix(prefix6);
+  ndp().set_static_gateway(std::move(gateway6));
   INFO("Inet6", "Network configured (%s)", nic_.mac().to_string().c_str());
-  INFO2("IP6: \t\t%s", ip6_addr_.to_string().c_str());
-  INFO2("Prefix: \t%d", ip6_prefix_);
-  INFO2("Gateway: \t%s", ip6_gateway_.str().c_str());
+  INFO2("IP6: \t\t%s", ndp().static_ip().to_string().c_str());
+  INFO2("Prefix: \t%d", ndp().static_prefix());
+  INFO2("Gateway: \t%s", ndp().static_gateway().str().c_str());
 
   for(auto& handler : configured_handlers_)
     handler(*this);

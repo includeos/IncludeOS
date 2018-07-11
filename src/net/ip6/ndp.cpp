@@ -38,7 +38,15 @@ namespace net
   host_params_    {},
   router_params_  {},
   mac_            (inet.link_addr())
-  {}
+  {
+    /* Since NDP is present in inet. We need to do ndp interface
+     * initialisation here.
+     * 1. Join the all node multicast address
+     * 2. Join the solicited multicast address for all the ip address
+     *    assignged to the interface.
+     * 3. We add/remove the interface ip addresses to/from the prefix list.
+     * 4. Need to join/leave the multicast solicit address using MLD. */
+  }
 
   void Ndp::send_neighbour_advertisement(icmp6::Packet& req)
   {
@@ -200,6 +208,7 @@ namespace net
 
     bool is_dest_multicast = req.ip().ip_dst().is_multicast();
 
+    // Change this
     if (target != inet_.ip6_addr()) {
       PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(),
               inet_.ip6_addr().to_string().c_str());
@@ -340,7 +349,7 @@ namespace net
               " router advertisement\n");
         return;
       }
-      
+
       /* Add this router to the router list */
       add_router(req.ip().ip_src(), req.router_lifetime());
 
@@ -361,7 +370,7 @@ namespace net
 
       if (retrans_time &&
           retrans_time != host().retrans_time_) {
-        host().retrans_time_ = retrans_time; 
+        host().retrans_time_ = retrans_time;
       }
 
       req.ndp().parse_options(ICMP_type::ND_ROUTER_ADV);
@@ -387,7 +396,7 @@ namespace net
         /* Called if autoconfig option is set */
         /* Append mac addres to get a valid address */
         prefix.set(this->inet_.link_addr());
-        autoconf_add_addr(prefix, preferred_lifetime, valid_lifetime);
+        add_addr_autoconf(prefix, preferred_lifetime, valid_lifetime);
         PRINT("NDP: RA: Adding address %s with preferred lifetime: %u"
             " and valid lifetime: %u\n", prefix.str().c_str(),
             preferred_lifetime, valid_lifetime);
@@ -526,10 +535,10 @@ namespace net
   {
   }
 
-  void Ndp::delete_destination_entry(ip6::Addr& ip)
+  void Ndp::delete_dest_entry(ip6::Addr ip)
   {
-    //TODO: Better to have a list of destination 
-    // list entries inside router entries for faster cleanup 
+    //TODO: Better to have a list of destination
+    // list entries inside router entries for faster cleanup
     std::vector<IP6::addr> expired;
     for (auto ent : dest_cache_) {
       if (ent.second.next_hop() == ip) {
@@ -549,7 +558,7 @@ namespace net
     // If that isn't expired. None of them after it is
     for (auto ent = router_list_.begin(); ent != router_list_.end();) {
       if (!ent->expired()) {
-        delete_destination_entry(ent->router());
+        delete_dest_entry(ent->router());
         ent = router_list_.erase(ent);
       } else {
         ent++;
@@ -657,7 +666,19 @@ namespace net
     tentative_addr_ = IP6::ADDR_ANY;
   }
 
-  void Ndp::onlink_add_addr(ip6::Addr ip, uint32_t valid_lifetime)
+  void Ndp::add_addr_static(ip6::Addr ip, uint32_t valid_lifetime)
+  {
+    auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
+          [&ip] (const Prefix_entry& obj) { return obj.prefix() == ip; });
+
+    if (entry == prefix_list_.end()) {
+        prefix_list_.push_back(Prefix_entry{ip, 0, valid_lifetime});
+    } else {
+        entry->update_valid_lifetime(valid_lifetime);
+    }
+  }
+
+  void Ndp::add_addr_onlink(ip6::Addr ip, uint32_t valid_lifetime)
   {
     auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
           [&ip] (const Prefix_entry& obj) { return obj.prefix() == ip; });
@@ -675,7 +696,7 @@ namespace net
     }
   }
 
-  void Ndp::autoconf_add_addr(ip6::Addr ip, uint32_t preferred_lifetime, uint32_t valid_lifetime)
+  void Ndp::add_addr_autoconf(ip6::Addr ip, uint32_t preferred_lifetime, uint32_t valid_lifetime)
   {
     auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
           [&ip] (const Prefix_entry& obj) { return obj.prefix() == ip; });
@@ -710,7 +731,7 @@ namespace net
     } else {
       // Delete the destination cache entries which have
       // the next hop address equal to the router address
-      delete_destination_entry(ip);
+      delete_dest_entry(ip);
       router_list_.erase(entry);
     }
   }
