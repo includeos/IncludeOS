@@ -20,7 +20,7 @@
 #define UPLINK_CONFIG_HPP
 
 #include <string>
-#include <net/ip4/ip4.hpp>
+#include <net/inet>
 #include <uri>
 
 namespace uplink {

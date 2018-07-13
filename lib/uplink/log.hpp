@@ -21,8 +21,8 @@
 
 #include <util/fixed_vector.hpp>
 #include <kernel/events.hpp>
+#include <kernel/os.hpp>
 #include <common>
-#include <os>
 
 namespace uplink {
 
