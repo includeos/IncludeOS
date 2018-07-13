@@ -81,7 +81,7 @@ static void begin_timer(std::chrono::nanoseconds usec)
 static void stop_timers() {}
 
 #include <statman>
-void OS::start(char* cmdline, uintptr_t)
+void OS::start(const char* cmdline)
 {
   __libc_initialized = true;
   // statman

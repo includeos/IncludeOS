@@ -38,7 +38,7 @@ int main(int, char** args)
 #endif
 
   // initialize Linux platform
-  OS::start(args[0], 0u);
+  OS::start(args[0]);
 
   // calls Service::start
   OS::post_start();
