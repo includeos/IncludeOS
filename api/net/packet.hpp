@@ -190,8 +190,19 @@ namespace net
     Byte buf_[0];
   }; //< class Packet
 
-  void Packet::chain(Packet_ptr p) noexcept
+  void Packet::chain(Packet_ptr pkt) noexcept
   {
+    assert(pkt.get() != nullptr);
+    assert(pkt.get() != this);
+
+    auto* p = this;
+    while (p->chain_ != nullptr) {
+      p = p->chain_.get();
+      assert(pkt.get() != p);
+    }
+    p->chain_ = std::move(pkt);
+
+    /*
     if (!chain_) {
       chain_ = std::move(p);
       last_ = chain_.get();
@@ -201,6 +212,7 @@ namespace net
       last_ = ptr->last_in_chain() ? ptr->last_in_chain() : ptr;
       assert(last_);
     }
+    */
   }
 
   int Packet::chain_length() const noexcept
