@@ -9,9 +9,7 @@
 #include <net/ip6/packet_icmp6.hpp>
 #include <statman>
 
-namespace net
-{
-  namespace ndp {
+namespace net::ndp {
 
   NdpPacket::NdpPacket(icmp6::Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {}
 
@@ -189,8 +187,6 @@ namespace net
     icmp6_.add_payload(reinterpret_cast<uint8_t*>(&header),
             sizeof header);
   }
-
-  } // ndp
 }
 
 #endif

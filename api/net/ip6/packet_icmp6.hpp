@@ -22,10 +22,9 @@
 
 #include <net/ip6/icmp6_error.hpp>
 #include <net/ip6/packet_ndp.hpp>
+#include <net/ip6/packet_mld.hpp>
 
-namespace net {
-
-namespace icmp6 {
+namespace net::icmp6 {
 
   class Packet {
 
@@ -44,15 +43,33 @@ namespace icmp6 {
       uint16_t  router_lifetime;
     };
 
+    struct mldHeader {
+      uint16_t  max_resp_delay;
+      uint16_t  reserved;
+    };
+
+    struct mldHeader2_query {
+        uint16_t  max_resp_code;
+        uint16_t  reserved;
+    };
+
+    struct mldHeader2_listener {
+      uint16_t  reserved;
+      uint16_t  num_records;
+    };
+
     struct Header {
       Type     type;
       uint8_t  code;
       uint16_t checksum;
       union {
-        struct IdSe     idse;
-        uint32_t        reserved;
-        uint32_t        rso_flags;
-        struct RaHeader ra;
+        struct IdSe          idse;
+        uint32_t             reserved;
+        uint32_t             rso_flags;
+        RaHeader             ra;
+        mldHeader            mld_rd;
+        mldHeader2_query     mld2_q;
+        mldHeader2_listener  mld2_l;
       };
       uint8_t  payload[0];
     }__attribute__((packed));
@@ -76,6 +93,8 @@ namespace icmp6 {
 
     using Span = gsl::span<uint8_t>;
     friend class ndp::NdpPacket;
+    friend class mld::MldPacket;
+    friend class mld::MldPacket2;
 
     static constexpr size_t header_size()
     { return sizeof(Header); }
@@ -106,6 +125,15 @@ namespace icmp6 {
 
     uint16_t router_lifetime() const noexcept
     { return header().ra.router_lifetime; }
+
+    uint16_t mld_max_resp_delay() const noexcept
+    { return header().mld_rd.max_resp_delay; }
+
+    uint16_t mld2_query_max_resp_code() const noexcept
+    { return header().mld2_q.max_resp_code; }
+
+    uint16_t mld2_listner_num_records() const noexcept
+    { return header().mld2_l.num_records; }
 
     uint16_t payload_len() const noexcept
     { return pckt_->size() - (pckt_->ip_header_len() + header_size()); }
@@ -230,12 +258,13 @@ namespace icmp6 {
 
     /** Construct from existing packet **/
     Packet(IP6::IP_packet_ptr pckt)
-      : pckt_{ std::move(pckt) }, ndp_(*this)
+      : pckt_{ std::move(pckt) }, ndp_(*this), mld_(*this), mld2_(*this)
     { }
 
     /** Provision fresh packet from factory **/
     Packet(IP6::IP_packet_factory create)
-      : pckt_ { create(Protocol::ICMPv6) }, ndp_(*this)
+      : pckt_ { create(Protocol::ICMPv6) }, ndp_(*this), mld_(*this),
+      mld2_(*this)
     {
       pckt_->increment_data_end(sizeof(Header));
     }
@@ -247,11 +276,18 @@ namespace icmp6 {
     ndp::NdpPacket& ndp()
     { return ndp_; }
 
+    mld::MldPacket& mld()
+    { return mld_; }
+
+    mld::MldPacket2& mld2()
+    { return mld2_; }
+
   private:
     IP6::IP_packet_ptr pckt_;
     ndp::NdpPacket     ndp_;
+    mld::MldPacket     mld_;
+    mld::MldPacket2    mld2_;
     uint16_t payload_offset_ = 0;
   };
-}
 }
 #endif //< PACKET_ICMP6_HPP
