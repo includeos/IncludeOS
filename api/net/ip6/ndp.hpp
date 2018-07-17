@@ -23,7 +23,6 @@
 #include <unordered_map>
 #include <deque>
 #include <util/timer.hpp>
-#include "ip6.hpp"
 #include "packet_icmp6.hpp"
 #include "packet_ndp.hpp"
 

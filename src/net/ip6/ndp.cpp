@@ -151,7 +151,7 @@ namespace net
     req.ip().set_ip_dst(dest_ip.solicit(target));
 
     // Set target address
-    req.add_payload(target.data(), 16);
+    req.add_payload(target.data(), IP6_ADDR_BYTES);
     req.ndp().set_ndp_options_header(ndp::ND_OPT_SOURCE_LL_ADDR, 0x01);
     req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
 

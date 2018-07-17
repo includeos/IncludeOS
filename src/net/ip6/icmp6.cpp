@@ -94,7 +94,9 @@ namespace net
     case (ICMP_type::MULTICAST_LISTENER_QUERY):
     case (ICMP_type::MULTICAST_LISTENER_REPORT):
     case (ICMP_type::MULTICAST_LISTENER_DONE):
+    case (ICMP_type::MULTICAST_LISTENER_REPORT_v2):
       PRINT("<ICMP6> ICMP multicast message from %s\n", req.ip().ip_src().str().c_str());
+      inet_.mld().receive(req);
       break;
     case (ICMP_type::ND_ROUTER_SOL):
     case (ICMP_type::ND_ROUTER_ADV):

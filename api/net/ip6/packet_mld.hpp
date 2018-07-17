@@ -29,16 +29,6 @@ namespace net::icmp6 {
 }
 
 namespace net::mld {
-  class MldPacket {
-  private:
-    struct Header {
-      ip6::Addr multicast;
-    };
-
-    icmp6::Packet&  icmp6_;
-  public:
-    MldPacket(icmp6::Packet& icmp6);
-  };
 
   class MldPacket2 {
   private:
@@ -68,5 +58,7 @@ namespace net::mld {
   public:
     MldPacket2(icmp6::Packet& icmp6);
   };
+
+  void mld_send_report(ip6::Addr mcast);
 }
 #endif

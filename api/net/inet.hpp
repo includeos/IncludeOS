@@ -35,6 +35,7 @@
 #include "ip6/icmp6.hpp"
 #include "ip6/ndp.hpp"
 #include "ip6/slaac.hpp"
+#include "ip6/mld.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include "udp/udp.hpp"
@@ -130,6 +131,9 @@ namespace net {
 
     /** Get the NDP-object belonging to this stack */
     Ndp& ndp() { return ndp_; }
+
+    /** Get the MLD-object belonging to this stack */
+    Mld& mld() { return mld_; }
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
@@ -458,6 +462,7 @@ namespace net {
     { return src == ip_addr() or is_loopback(src); }
 
     bool is_valid_source6(const ip6::Addr& src)
+      // ismulticast needs to be verified in mld
     { return src == ip6_addr() or is_loopback(src) or src.is_multicast(); }
 
     std::shared_ptr<Conntrack>& conntrack()
@@ -470,6 +475,9 @@ namespace net {
 
     Port_utils& udp_ports()
     { return udp_ports_; }
+
+    bool isRouter()
+    { return false; }
 
     /** Initialize with ANY_ADDR */
     Inet(hw::Nic& nic);
@@ -489,6 +497,7 @@ namespace net {
     hw::Nic& nic_;
     Arp    arp_;
     Ndp    ndp_;
+    Mld    mld_;
     IP4    ip4_;
     IP6    ip6_;
     ICMPv4 icmp_;
