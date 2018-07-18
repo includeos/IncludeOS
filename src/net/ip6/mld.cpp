@@ -38,7 +38,7 @@ namespace net
 
   Mld::MulticastHostNode::MulticastHostNode()
   {
-    state_handlers_[Mld::HostStates::NON_LISTENER] = 
+    state_handlers_[Mld::HostStates::NON_LISTENER] =
         [this] (icmp6::Packet& pckt)
         {
         };
@@ -46,6 +46,18 @@ namespace net
     state_handlers_[Mld::HostStates::DELAYING_LISTENER] =
         [this] (icmp6::Packet& pckt)
         {
+          switch(pckt.type()) {
+          case (ICMP_type::MULTICAST_LISTENER_QUERY):
+            receive_query(pckt);
+            // Change state
+            break;
+          case (ICMP_type::MULTICAST_LISTENER_REPORT):
+            break;
+          case (ICMP_type::MULTICAST_LISTENER_DONE):
+            break;
+          default:
+            return;
+          }
         };
 
     state_handlers_[Mld::HostStates::DELAYING_LISTENER] =
@@ -54,9 +66,35 @@ namespace net
         };
   }
 
+  void Mld::MulticastHostNode::receive_query(icmp6::Packet& pckt)
+  {
+    auto now_ms = RTC::time_since_boot();
+    auto resp_delay = pckt. mld_max_resp_delay();
+    auto mcast_addr = pckt.mld_multicast();
+
+    if (mcast_addr != IP6::ADDR_ANY) {
+      if (addr() == mcast_addr) {
+        if (auto diff = now_ms - timestamp();
+            now_ms < timestamp() &&
+            resp_delay < timestamp()) {
+          update_timestamp(rand() % resp_delay);
+        }
+      }
+    } else {
+      if (UNLIKELY(addr() == ip6::Addr::node_all_nodes)) {
+        return;
+      }
+      if (auto diff = now_ms - timestamp();
+          now_ms < timestamp() &&
+          resp_delay < timestamp()) {
+        update_timestamp(rand() % resp_delay);
+      }
+    }
+  }
+
   Mld::MulticastRouterNode::MulticastRouterNode()
   {
-    state_handlers_[Mld::RouterStates::QUERIER] = 
+    state_handlers_[Mld::RouterStates::QUERIER] =
         [this] (icmp6::Packet& pckt)
         {
         };
@@ -76,33 +114,10 @@ namespace net
     }
   }
 
-  void Mld::Host::receive_mcast_query(ip6::Addr mcast_addr, uint16_t resp_delay)
+  void Mld::Host::receive(icmp6::Packet& pckt)
   {
-    auto now_ms = RTC::time_since_boot();
     for (auto mcast : mlist_) {
-      if (mcast.addr() == mcast_addr) {
-        if (auto diff = now_ms - mcast.timestamp();
-            now_ms < mcast.timestamp() &&
-            resp_delay < mcast.timestamp()) {
-          mcast.update_timestamp(rand() % resp_delay);
-        }
-      }
-    }
-  }
-
-  void Mld::Host::update_all_resp_time(icmp6::Packet& pckt, uint16_t resp_delay)
-  {
-    auto now_ms = RTC::time_since_boot();
-
-    for(auto mcast : mlist_) {
-      if (UNLIKELY(mcast.addr() == ip6::Addr::node_all_nodes)) {
-        continue;
-      }
-      if (auto diff = now_ms - mcast.timestamp();
-          now_ms < mcast.timestamp() &&
-          resp_delay < mcast.timestamp()) {
-        mcast.update_timestamp(rand() % resp_delay);
-      }
+      mcast.handle(pckt);
     }
   }
 
@@ -110,20 +125,11 @@ namespace net
   {
   }
 
-  void Mld::receive_query(icmp6::Packet& pckt)
+  void Mld::receive_v1(icmp6::Packet& pckt)
   {
-    auto resp_delay = pckt. mld_max_resp_delay();
-    auto mcast_addr = pckt.mld_multicast(); 
-
     if (inet_.isRouter()) {
     } else {
-
-      if (mcast_addr != IP6::ADDR_ANY) {
-          host_.receive_mcast_query(mcast_addr, resp_delay);
-      } else {
-        // General query
-        host_.update_all_resp_time(pckt, resp_delay);
-      }
+        host_.receive(pckt);
     }
   }
 
@@ -131,10 +137,9 @@ namespace net
   {
     switch(pckt.type()) {
     case (ICMP_type::MULTICAST_LISTENER_QUERY):
-      break;
     case (ICMP_type::MULTICAST_LISTENER_REPORT):
-      break;
     case (ICMP_type::MULTICAST_LISTENER_DONE):
+      receive_v1(pckt);
       break;
     case (ICMP_type::MULTICAST_LISTENER_REPORT_v2):
       break;

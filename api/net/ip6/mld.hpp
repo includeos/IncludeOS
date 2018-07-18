@@ -34,16 +34,16 @@ namespace net {
     static const int        ROBUSTNESS_VAR              = 2;
 
     // Router constants
-    static const int        QUERY_INTERVAL              = 125; // in seconds   
-    static const int        QUERY_RESPONSE_INTERVAL     = 10000; // in milliseconds 
-    static const int        MULTICAST_LISTENER_INTERVAL = (ROBUSTNESS_VAR * 
+    static const int        QUERY_INTERVAL              = 125; // in seconds
+    static const int        QUERY_RESPONSE_INTERVAL     = 10000; // in milliseconds
+    static const int        MULTICAST_LISTENER_INTERVAL = (ROBUSTNESS_VAR *
         QUERY_INTERVAL * 1000) + QUERY_RESPONSE_INTERVAL; // in milliseconds
     static const int        OTHER_QUERIER_PRESENT_INTERVAL = (ROBUSTNESS_VAR *
         QUERY_INTERVAL * 1000) + (QUERY_RESPONSE_INTERVAL / 2); // in milliseconds
-    static constexpr double STARTUP_QUERY_INTERVAL       = QUERY_INTERVAL / 4; // in seconds 
-    static const int        STARTUP_QUERY_COUNT          = ROBUSTNESS_VAR; 
-    static const int        LAST_LISTENER_QUERY_INTERVAL = 1000; // in milliseconds  
-    static const int        LAST_LISTENER_QUERY_COUNT    = ROBUSTNESS_VAR; 
+    static constexpr double STARTUP_QUERY_INTERVAL       = QUERY_INTERVAL / 4; // in seconds
+    static const int        STARTUP_QUERY_COUNT          = ROBUSTNESS_VAR;
+    static const int        LAST_LISTENER_QUERY_INTERVAL = 1000; // in milliseconds
+    static const int        LAST_LISTENER_QUERY_COUNT    = ROBUSTNESS_VAR;
 
     // Node constants
     static const int        UNSOLICITED_REPORT_INTERVAL  = 10; // in seconds
@@ -70,6 +70,7 @@ namespace net {
     explicit Mld(Stack&) noexcept;
 
     void receive(icmp6::Packet& pckt);
+    void receive_v1(icmp6::Packet& pckt);
     void receive_query(icmp6::Packet& pckt);
     void mld_send_report(ip6::Addr mcast);
     void mcast_expiry();
@@ -90,10 +91,13 @@ namespace net {
       bool expired() const noexcept
       { return RTC::time_since_boot() > timestamp_; }
 
-      const HostStates& state() const { return state_; }
-      void setState(const HostStates state) { state_ = state; }
+      void handle(icmp6::Packet& pckt) { state_handlers_[state_](pckt); }
 
     private:
+      const HostStates& state() const { return state_; }
+      void setState(const HostStates state) { state_ = state; }
+      void receive_query(icmp6::Packet& pckt);
+
       ip6::Addr             mcast_addr_;
       HostStates            state_;
       State_handler         state_handlers_[HostStates::MAX_HOST_STATE];
@@ -119,8 +123,7 @@ namespace net {
     struct Host {
     public:
       Host(Mld& ref) : mld_{ref} {}
-      void update_all_resp_time(icmp6::Packet& pckt, uint16_t resp_delay);
-      void receive_mcast_query(ip6::Addr mcast_addr, uint16_t resp_delay);
+      void receive(icmp6::Packet& pckt);
       void expiry();
 
     private:
