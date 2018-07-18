@@ -58,7 +58,5 @@ namespace net::mld {
   public:
     MldPacket2(icmp6::Packet& icmp6);
   };
-
-  void mld_send_report(ip6::Addr mcast);
 }
 #endif

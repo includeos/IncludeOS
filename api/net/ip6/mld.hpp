@@ -48,41 +48,39 @@ namespace net {
     // Node constants
     static const int        UNSOLICITED_REPORT_INTERVAL  = 10; // in seconds
 
-    enum class HostStates : uint8_t {
+
+    using Stack         = IP6::Stack;
+    using ICMP_type     = ICMP6_error::ICMP_type;
+    using State_handler = delegate<void(icmp6::Packet&)>;
+
+    enum HostStates {
       NON_LISTENER,
       DELAYING_LISTENER,
-      IDLE_LISTENER
+      IDLE_LISTENER,
+      MAX_HOST_STATE
     };
 
-    enum class RouterStates : uint8_t {
+    enum RouterStates {
       QUERIER,
       NON_QUERIER,
+      MAX_ROUTER_STATE
     };
-
-    template <typename T>
-    class NodeState 
-    {
-      public:
-      const T& state() const { return state_; }
-      void setState(const T& state) { state_ = state; }
-      private:
-        T state_;
-    };
-
-    using Stack       = IP6::Stack;
-    using ICMP_type   = ICMP6_error::ICMP_type;
 
     /** Constructor */
     explicit Mld(Stack&) noexcept;
 
     void receive(icmp6::Packet& pckt);
     void receive_query(icmp6::Packet& pckt);
+    void mld_send_report(ip6::Addr mcast);
     void mcast_expiry();
 
   private:
 
     struct MulticastHostNode {
     public:
+
+      MulticastHostNode();
+
       void update_timestamp(const uint16_t ms)
       { timestamp_ = RTC::time_since_boot() + ms; }
 
@@ -92,17 +90,26 @@ namespace net {
       bool expired() const noexcept
       { return RTC::time_since_boot() > timestamp_; }
 
+      const HostStates& state() const { return state_; }
+      void setState(const HostStates state) { state_ = state; }
+
     private:
       ip6::Addr             mcast_addr_;
-      NodeState<HostStates> state_;
+      HostStates            state_;
+      State_handler         state_handlers_[HostStates::MAX_HOST_STATE];
       RTC::timestamp_t      timestamp_;
     };
 
     struct MulticastRouterNode {
     public:
+      MulticastRouterNode();
+      const RouterStates& state() const { return state_; }
+      void setState(const RouterStates state) { state_ = state; }
+
     private:
       ip6::Addr               mcast_addr_;
-      NodeState<RouterStates> state_;
+      RouterStates            state_;
+      State_handler           state_handlers_[RouterStates::MAX_ROUTER_STATE];
       RTC::timestamp_t        timestamp_;
     };
 
@@ -111,23 +118,26 @@ namespace net {
 
     struct Host {
     public:
+      Host(Mld& ref) : mld_{ref} {}
       void update_all_resp_time(icmp6::Packet& pckt, uint16_t resp_delay);
       void receive_mcast_query(ip6::Addr mcast_addr, uint16_t resp_delay);
       void expiry();
 
     private:
       HostMlist mlist_;
+      Mld       &mld_;
     };
 
     struct Router {
     public:
+      Router(Mld& ref) : mld_{ref} {}
     private:
+      Mld         &mld_;
       RouterMlist mlist_;
     };
 
     Stack& inet_;
     Timer  delay_timer_ {{ *this, &Mld::mcast_expiry }};
-    // TODO: Templatize into a single node
     Router router_;
     Host   host_;
   };

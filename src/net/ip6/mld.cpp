@@ -31,14 +31,47 @@
 namespace net
 {
   Mld::Mld(Stack& inet) noexcept:
-  inet_ {inet}
+  inet_{inet},
+  host_{*this},
+  router_{*this}
   {}
+
+  Mld::MulticastHostNode::MulticastHostNode()
+  {
+    state_handlers_[Mld::HostStates::NON_LISTENER] = 
+        [this] (icmp6::Packet& pckt)
+        {
+        };
+
+    state_handlers_[Mld::HostStates::DELAYING_LISTENER] =
+        [this] (icmp6::Packet& pckt)
+        {
+        };
+
+    state_handlers_[Mld::HostStates::DELAYING_LISTENER] =
+        [this] (icmp6::Packet& pckt)
+        {
+        };
+  }
+
+  Mld::MulticastRouterNode::MulticastRouterNode()
+  {
+    state_handlers_[Mld::RouterStates::QUERIER] = 
+        [this] (icmp6::Packet& pckt)
+        {
+        };
+
+    state_handlers_[Mld::RouterStates::NON_QUERIER] =
+        [this] (icmp6::Packet& pckt)
+        {
+        };
+  }
 
   void Mld::Host::expiry()
   {
     for (auto mcast : mlist_) {
       if (mcast.expired()) {
-        mld::mld_send_report(mcast.addr());
+        mld_.mld_send_report(mcast.addr());
       }
     }
   }
@@ -108,5 +141,29 @@ namespace net
     default:
       return;
     }
+  }
+
+  void Mld::mld_send_report(ip6::Addr mcast)
+  {
+    icmp6::Packet req(inet_.ip6_packet_factory());
+
+    req.ip().set_ip_src(inet_.ip6_addr());
+
+    req.ip().set_ip_hop_limit(1);
+    req.set_type(ICMP_type::MULTICAST_LISTENER_REPORT);
+    req.set_code(0);
+    req.set_reserved(0);
+
+    req.ip().set_ip_dst(ip6::Addr::node_all_routers);
+
+    // Set target address
+    req.add_payload(mcast.data(), IP6_ADDR_BYTES);
+    req.set_checksum();
+
+    PRINT("MLD: Sending MLD report: %i payload size: %i,"
+        "checksum: 0x%x\n, source: %s, dest: %s\n",
+        req.ip().size(), req.payload().size(), req.compute_checksum(),
+        req.ip().ip_src().str().c_str(),
+        req.ip().ip_dst().str().c_str());
   }
 } //net
