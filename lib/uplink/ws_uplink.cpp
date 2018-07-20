@@ -148,7 +148,7 @@ namespace uplink {
     try {
       ++stm.get_by_name("system.updates");
     }
-    catch (std::exception e)
+    catch (const std::exception& e)
     {
       ++stm.create(Stat::UINT32, "system.updates");
     }
@@ -409,7 +409,7 @@ namespace uplink {
     try {
       liu::LiveUpdate::exec(std::move(buffer));
     }
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
       INFO2("LiveUpdate::exec() failed: %s\n", e.what());
       liu::LiveUpdate::restore_environment();
       // establish new connection

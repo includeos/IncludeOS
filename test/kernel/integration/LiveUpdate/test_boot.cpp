@@ -34,7 +34,7 @@ static void boot_save(Storage& storage, const buffer_t* blob)
   try {
     ++stm.get_by_name("system.updates");
   }
-  catch (std::exception e)
+  catch (const std::exception& e)
   {
     ++stm.create(Stat::UINT32, "system.updates");
   }
