@@ -21,7 +21,7 @@ void Statman::restore(liu::Restore& store)
       auto& stat = this->get_by_name(ptr->name());
       std::memcpy(&stat, ptr, sizeof(Stat));
     }
-    catch (std::exception e)
+    catch (const std::exception& e)
     {
       auto& stat = this->create(ptr->type(), ptr->name());
       std::memcpy(&stat, ptr, sizeof(Stat));
