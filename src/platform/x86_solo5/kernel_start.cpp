@@ -26,15 +26,13 @@ extern "C" {
 
 static char temp_cmdline[1024];
 static uintptr_t mem_size = 0;
+static uintptr_t free_mem_begin;
 
 extern "C"
 void kernel_start()
 {
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
-
-  // Determine where free memory starts
-  uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
 
   // Preserve symbols from the ELF binary
   free_mem_begin += _move_symbols(free_mem_begin);
@@ -43,9 +41,6 @@ void kernel_start()
   //_init_bss();
 
   // Initialize heap
-  // XXX: this is dangerous as solo5 might be doing malloc()'s using it's own
-  // idea of a heap. Luckily there is no malloc instance at solo5/kernel/[ukvm|virtio|muen],
-  // so might be OK (for now).
   OS::init_heap(free_mem_begin, mem_size);
 
   _init_elf_parser();
@@ -62,17 +57,15 @@ void kernel_start()
 }
 
 extern "C"
-int solo5_app_main(char* cmdline)
+int solo5_app_main(const struct solo5_start_info *si)
 {
-   // cmdline is stored at 0x6000 by ukvm which is used by includeos. Move it fast.
-   strncpy(temp_cmdline, cmdline, sizeof(temp_cmdline)-1);
-   temp_cmdline[sizeof(temp_cmdline)-1] = 0;
+  // si is stored at 0x6000 by ukvm which is used by includeos. Move it fast.
+  strncpy(temp_cmdline, si->cmdline, sizeof(temp_cmdline)-1);
+  temp_cmdline[sizeof(temp_cmdline)-1] = 0;
+  free_mem_begin = si->heap_start;
+  mem_size = si->heap_size;
 
-   // solo5 sets the stack to be at the end of memory, so let's use that as
-   // our memory size (before we change).
-   mem_size = (uintptr_t) get_cpu_ebp();
-
-   // set the stack location to its new includeos location, and call kernel_start
-   set_stack();
-   return 0;
+  // set the stack location to its new includeos location, and call kernel_start
+  set_stack();
+  return 0;
 }
