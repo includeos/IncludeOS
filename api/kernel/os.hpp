@@ -243,7 +243,7 @@ public:
   /** Initialize platform, devices etc. */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
-  static void start(char *cmdline, uintptr_t mem_size);
+  static void start(const char* cmdline);
 
   /** Initialize common subsystems, call Service::start */
   static void post_start();

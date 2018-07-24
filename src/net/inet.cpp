@@ -203,7 +203,7 @@ void Inet::negotiate_dhcp(double timeout, dhcp_timeout_func handler) {
   if (!dhcp_)
       dhcp_ = std::make_shared<DHClient>(*this);
   // @timeout for DHCP-server negotation
-  dhcp_->negotiate(timeout);
+  dhcp_->negotiate(std::chrono::seconds((uint32_t)timeout));
   // add timeout_handler if supplied
   if (handler)
       dhcp_->on_config(handler);

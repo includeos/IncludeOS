@@ -23,7 +23,14 @@ set(SOURCES
   ws_uplink.cpp
   register_plugin.cpp
   config.cpp
+  uplink.cpp
   )
+
+# Install headers
+install(DIRECTORY . DESTINATION includeos/include/uplink
+  FILES_MATCHING PATTERN "*.hpp"
+  PATTERN "starbase" EXCLUDE
+  PATTERN "build" EXCLUDE)
 
 # Uplink library
 add_library(${LIBRARY_NAME} STATIC ${SOURCES})

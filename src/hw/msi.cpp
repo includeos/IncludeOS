@@ -94,7 +94,7 @@ namespace hw
      * Software calculates the base address of the MSI-X PBA using the same process
      * with the PBA Offset / PBA BIR register.
     **/
-    auto bar = dev.read_dword(offset);
+    auto bar = dev.read32(offset);
 
     auto capbar_off = bar & ~MSIX_BIR_MASK;
     bar &= MSIX_BIR_MASK;

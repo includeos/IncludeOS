@@ -125,19 +125,19 @@ namespace CPUID
   bool is_intel_cpu() noexcept;
   bool has_feature(Feature f);
 
-  bool kvm_feature(unsigned id) noexcept;
+  bool kvm_feature(unsigned mask) noexcept;
 } //< CPUID
 
 
 
-#define KVM_FEATURE_CLOCKSOURCE   0
-#define KVM_FEATURE_NOP_IO_DELAY  1
-#define KVM_FEATURE_MMU_OP        2   /* deprecated */
-#define KVM_FEATURE_CLOCKSOURCE2  3
-#define KVM_FEATURE_ASYNC_PF      4
-#define KVM_FEATURE_STEAL_TIME    5
-#define KVM_FEATURE_PV_EOI        6
-#define KVM_FEATURE_PV_UNHALT     7
+#define KVM_FEATURE_CLOCKSOURCE   0x1
+#define KVM_FEATURE_NOP_IO_DELAY  0x2
+#define KVM_FEATURE_MMU_OP        0x4   /* deprecated */
+#define KVM_FEATURE_CLOCKSOURCE2  0x8
+#define KVM_FEATURE_ASYNC_PF      0x10
+#define KVM_FEATURE_STEAL_TIME    0x20
+#define KVM_FEATURE_PV_EOI        0x40
+#define KVM_FEATURE_PV_UNHALT     0x80
 #define KVM_FEATURE_CLOCKSOURCE_STABLE_BIT 24
 
 #endif //< KERNEL_CPUID_HPP

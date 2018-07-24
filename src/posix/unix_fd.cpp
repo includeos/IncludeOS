@@ -20,6 +20,7 @@
 
 long Unix_FD::set_impl_if_needed(const struct sockaddr* addr, socklen_t addrlen)
 {
+  (void) type_;
   if((addr == nullptr and addrlen == 0) and impl != nullptr)
     return 0;
 

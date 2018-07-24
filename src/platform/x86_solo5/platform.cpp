@@ -6,13 +6,14 @@ void __arch_poweroff()
   while (true) asm ("cli; hlt");
 }
 
-void __platform_init(){
+void __platform_init() {
   // minimal CPU exception handlers already set by solo5/ukvm
 }
 
-void __arch_reboot(){}
-void __arch_enable_legacy_irq(unsigned char){}
-void __arch_disable_legacy_irq(unsigned char){}
+void __arch_reboot() {}
+void __arch_enable_legacy_irq(unsigned char) {}
+void __arch_disable_legacy_irq(unsigned char) {}
+void __arch_subscribe_irq(unsigned char) {}
 
 void SMP::global_lock() noexcept {}
 void SMP::global_unlock() noexcept {}

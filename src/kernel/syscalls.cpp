@@ -188,10 +188,10 @@ void panic_epilogue(const char* why)
   case OS::Panic_action::halt:
     while (1) OS::halt();
   case OS::Panic_action::shutdown:
-    extern void __arch_poweroff();
+    extern __attribute__((noreturn)) void __arch_poweroff();
     __arch_poweroff();
+    [[fallthrough]]; // needed for g++ bug
   case OS::Panic_action::reboot:
-  default:
     OS::reboot();
   }
 

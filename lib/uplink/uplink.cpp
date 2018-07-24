@@ -1,7 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2018 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,20 +14,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <service>
-#include <microLB>
-#include <net/inet>
-#include <timers>
+#include "uplink.hpp"
+#include "common.hpp"
 
-void Service::start()
-{
-  static auto* balancer = microLB::Balancer::from_config();
-  printf("MicroLB ready for test\n");
-  auto& inet = net::Super_stack::get(0);
-  inet.tcp().set_MSL(std::chrono::seconds(2));
+namespace uplink {
 
-  Timers::oneshot(std::chrono::seconds(5),
-  [] (int) {
-    printf("TCP MSL ended (4 seconds)\n");
-  });
+  static WS_uplink setup_uplink()
+  {
+    MYINFO("Setting up WS uplink");
+    try
+    {
+      auto config = Config::read();
+      return WS_uplink{std::move(config)};
+    }
+    catch(const std::exception& e)
+    {
+      MYINFO("Uplink initialization failed: %s ", e.what());
+      throw;
+    }
+  }
+
+  WS_uplink& get()
+  {
+    static WS_uplink instance{setup_uplink()};
+    return instance;
+  }
+
 }

@@ -22,6 +22,7 @@
 #include <info>
 
 extern "C" void reboot_os();
+extern "C" void apm_shutdown();
 
 namespace x86 {
 
@@ -311,8 +312,8 @@ namespace x86 {
        ACPI_ENABLE = facp->ACPI_ENABLE;
        ACPI_DISABLE = facp->ACPI_DISABLE;
 
-       PM1a_CNT = (uint32_t*) (uintptr_t) facp->PM1a_CNT_BLK;
-       PM1b_CNT = (uint32_t*) (uintptr_t) facp->PM1b_CNT_BLK;
+       PM1a_CNT = facp->PM1a_CNT_BLK;
+       PM1b_CNT = facp->PM1b_CNT_BLK;
 
        PM1_CNT_LEN = facp->PM1_CNT_LEN;
 
@@ -386,10 +387,9 @@ namespace x86 {
     // check if shutdown enabled
     if (SCI_EN == 1) {
       // write shutdown commands
-      hw::outw((uintptr_t) PM1a_CNT, SLP_TYPa | SLP_EN);
+      hw::outw(PM1a_CNT, SLP_TYPa | SLP_EN);
       if (PM1b_CNT != 0)
-        hw::outw((uintptr_t) PM1b_CNT, SLP_TYPb | SLP_EN);
-      printf("*** ACPI shutdown failed\n");
+        hw::outw(PM1b_CNT, SLP_TYPb | SLP_EN);
     }
   }
 
@@ -401,17 +401,13 @@ namespace x86 {
     // ACPI shutdown
     get().acpi_shutdown();
 
-    // http://forum.osdev.org/viewtopic.php?t=16990
     hw::outw (0xB004, 0x2000);
 
-    const char s[] = "Shutdown";
-    const char *p;
-    for (p = s; *p; p++)
-      // magic code for bochs and qemu
-      hw::outb (0x8900, *s);
+    // magic code for bochs and qemu
+    const char* s = "Shutdown";
+    while (*s) hw::outb (0x8900, *(s++));
 
     // VMWare poweroff when "gui.exitOnCLIHLT" is true
-    printf("Shutdown failed :(\n");
     while (true) asm ("cli; hlt");
-  }
+  } // shutdown()
 }

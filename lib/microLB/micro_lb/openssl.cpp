@@ -15,7 +15,7 @@ namespace microLB
     : nodes(), netin(in), netout(out), signal({this, &Balancer::handle_queue})
   {
     fs::memdisk().init_fs(
-    [] (auto err, auto&) {
+    [] (fs::error_t err, fs::File_system&) {
       assert(!err);
     });
 

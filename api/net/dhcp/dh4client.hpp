@@ -30,7 +30,8 @@ namespace net {
   class DHClient
   {
   public:
-    static const int NUM_RETRIES = 5;
+    static constexpr std::chrono::seconds RETRY_FREQUENCY{1};
+    static constexpr std::chrono::seconds RETRY_FREQUENCY_SLOW{10};
 
     using Stack = IP4::Stack;
     using config_func = delegate<void(bool)>;
@@ -40,7 +41,7 @@ namespace net {
     DHClient(Stack& inet);
 
     // negotiate with local DHCP server
-    void negotiate(uint32_t timeout_secs);
+    void negotiate(std::chrono::seconds timeout = std::chrono::seconds::zero());
 
     // Signal indicating the result of DHCP negotation
     // timeout is true if the negotiation timed out
@@ -61,7 +62,7 @@ namespace net {
     std::string  domain_name;
     uint32_t     lease_time;
     std::vector<config_func> config_handlers_;
-    int          retries  = 0;
+    int          tries    = 0;
     int          progress = 0;
     Timer        timeout_timer_;
     std::chrono::milliseconds timeout;
