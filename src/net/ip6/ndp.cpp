@@ -496,7 +496,7 @@ namespace net
   {
     PRINT("<ndp> resolve timer doing sweep\n");
 
-    for (auto it =waiting_packets_.begin(); it != waiting_packets_.end();){
+    for (auto it = waiting_packets_.begin(); it != waiting_packets_.end();) {
       if (it->second.tries_remaining--) {
         ndp_resolver_(it->first);
         it++;

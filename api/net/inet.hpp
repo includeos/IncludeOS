@@ -134,6 +134,7 @@ namespace net {
 
     /** Get the MLD-object belonging to this stack */
     Mld& mld() { return mld_; }
+    Mld2& mld2() { return mld2_; }
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
@@ -498,6 +499,7 @@ namespace net {
     Arp    arp_;
     Ndp    ndp_;
     Mld    mld_;
+    Mld2   mld2_;
     IP4    ip4_;
     IP6    ip6_;
     ICMPv4 icmp_;

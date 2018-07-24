@@ -32,7 +32,10 @@ namespace net::mld {
 
   class MldPacket2 {
   private:
-    struct query {
+    icmp6::Packet&  icmp6_;
+
+  public:
+    struct Query {
       ip6::Addr multicast;
       uint8_t   reserved : 4,
                 supress  : 1,
@@ -50,13 +53,13 @@ namespace net::mld {
       ip6::Addr sources[0];
     };
 
-    struct listner {
+    struct Report {
       multicast_address_rec records[0];
     };
 
-    icmp6::Packet&  icmp6_;
-  public:
     MldPacket2(icmp6::Packet& icmp6);
+    Query& query();
+    Report& report();
   };
 }
 #endif

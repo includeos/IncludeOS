@@ -27,10 +27,9 @@ using namespace net;
 
 Inet::Inet(hw::Nic& nic)
   : dns_server_(IP4::ADDR_ANY),
-    nic_(nic), arp_(*this), ndp_(*this), mld_(*this), ip4_(*this), ip6_(*this),
-    icmp_(*this), icmp6_(*this), udp_(*this), tcp_(*this), dns_(*this),
-    domain_name_{},
-    MTU_(nic.MTU())
+    nic_(nic), arp_(*this), ndp_(*this), mld_(*this), mld2_(*this), ip4_(*this),
+    ip6_(*this), icmp_(*this), icmp6_(*this), udp_(*this), tcp_(*this),
+    dns_(*this), domain_name_{}, MTU_(nic.MTU())
 {
   static_assert(sizeof(ip4::Addr) == 4, "IPv4 addresses must be 32-bits");
 

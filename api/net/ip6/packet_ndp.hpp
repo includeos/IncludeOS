@@ -34,8 +34,6 @@ static const int NEIGH_ADV_ROUTER   = 0x1;
 static const int NEIGH_ADV_SOL      = 0x2;
 static const int NEIGH_ADV_OVERRIDE = 0x4;
 
-  class NdpPacket;
-
   enum {
       ND_OPT_PREFIX_INFO_END = 0,
       ND_OPT_SOURCE_LL_ADDR = 1, /* RFC2461 */

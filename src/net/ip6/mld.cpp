@@ -125,23 +125,16 @@ namespace net
   {
   }
 
-  void Mld::receive_v1(icmp6::Packet& pckt)
-  {
-    if (inet_.isRouter()) {
-    } else {
-        host_.receive(pckt);
-    }
-  }
-
   void Mld::receive(icmp6::Packet& pckt)
   {
     switch(pckt.type()) {
     case (ICMP_type::MULTICAST_LISTENER_QUERY):
     case (ICMP_type::MULTICAST_LISTENER_REPORT):
     case (ICMP_type::MULTICAST_LISTENER_DONE):
-      receive_v1(pckt);
-      break;
-    case (ICMP_type::MULTICAST_LISTENER_REPORT_v2):
+      if (inet_.isRouter()) {
+      } else {
+          host_.receive(pckt);
+      }
       break;
     default:
       return;
@@ -171,4 +164,91 @@ namespace net
         req.ip().ip_src().str().c_str(),
         req.ip().ip_dst().str().c_str());
   }
+
+  Mld2::Mld2(Stack& inet) noexcept:
+  inet_ {inet} 
+  {}
+
+  void Mld2::receive_query(icmp6::Packet& pckt)
+  {
+    if (!pckt.ip().ip_src().is_linklocal()) {
+      PRINT("MLD2: Query does not have linklocal source address\n");
+      return;
+    }
+
+    auto max_res_code = pckt.mld2_query_max_resp_code();
+    auto query = pckt.mld2().query();
+    auto mcast = query.multicast;
+    auto num_sources = query.num_srcs;
+
+    if (max_res_code < 32768) {
+      //max_resp_delay = max_res_code;
+    } else {
+      //max_resp_delay = ((0x0fff & max_res_code) | 0x1000) << 
+      //((0x7000 & max_res_code) + 3);
+    }
+
+    if (mcast == IP6::ADDR_ANY) {
+      // mcast specific query
+    } else {
+      // General query
+      if (pckt.ip().ip_dst() != ip6::Addr::node_all_nodes) {
+        PRINT("MLD2: General Query does not have all nodes multicast "
+            "destination address\n");
+        return;
+      }
+    }
+  }
+
+  void Mld2::receive_report(icmp6::Packet& pckt)
+  {
+    auto num_records = pckt.mld2_listner_num_records();
+    auto report = pckt.mld2().report();
+  }
+
+  void Mld2::receive(icmp6::Packet& pckt)
+  {
+    switch(pckt.type()) {
+    case (ICMP_type::MULTICAST_LISTENER_QUERY):
+      break;
+    case (ICMP_type::MULTICAST_LISTENER_REPORT_v2):
+      break;
+    default:
+      return;
+    }
+  }
+
+  bool Mld2::allow(ip6::Addr source_addr, ip6::Addr mcast) 
+  {
+  }
+
+  void Mld2::join(ip6::Addr mcast, FilterMode filtermode, SourceList source_list)
+  {
+    auto rec = mld_records_.find(mcast);
+
+    if (rec != mld_records_.end()) {
+      if (filtermode == FilterMode::EXCLUDE) {
+        rec->second.exclude(source_list);
+      } else {
+        rec->second.include(source_list);
+      }
+    } else {
+      mld_records_.emplace(std::make_pair(mcast,
+            Multicast_listening_record{filtermode, source_list})); 
+    }
+  }
+
+  // Mldv2 packet definitions
+  namespace mld {
+    MldPacket2::Query& MldPacket2::query()
+    {
+      return *reinterpret_cast<Query*>(&(icmp6_.header().payload[0]));
+    }
+
+    MldPacket2::Report& MldPacket2::report()
+    {
+      return *reinterpret_cast<Report*>(&(icmp6_.header().payload[0]));
+    }
+  }
+
 } //net

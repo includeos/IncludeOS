@@ -70,7 +70,6 @@ namespace net {
     explicit Mld(Stack&) noexcept;
 
     void receive(icmp6::Packet& pckt);
-    void receive_v1(icmp6::Packet& pckt);
     void receive_query(icmp6::Packet& pckt);
     void mld_send_report(ip6::Addr mcast);
     void mcast_expiry();
@@ -143,6 +142,81 @@ namespace net {
     Timer  delay_timer_ {{ *this, &Mld::mcast_expiry }};
     Router router_;
     Host   host_;
+  };
+
+  class Mld2 {
+  public:
+    static const int  ROBUSTNESS_VAR  = 2;
+    enum class FilterMode : uint8_t {
+      INCLUDE,
+      EXCLUDE
+    };
+    using Stack      = IP6::Stack;
+    using ICMP_type  = ICMP6_error::ICMP_type;
+    using SourceList = std::deque<ip6::Addr>;
+
+    /** Constructor */
+    explicit Mld2(Stack&) noexcept;
+    void receive(icmp6::Packet& pckt);
+    void receive_query(icmp6::Packet& pckt);
+    void receive_report(icmp6::Packet& pckt);
+    bool allow(ip6::Addr source_addr, ip6::Addr mcast);
+    void join(ip6::Addr addr, FilterMode filtermode, SourceList source_list);
+
+  private:
+    struct Multicast_listening_record {
+    private:
+      FilterMode filter_mode_;
+      SourceList source_list_;
+    public:
+      Multicast_listening_record() noexcept = default;
+      Multicast_listening_record(FilterMode filter_mode, SourceList source_list) noexcept
+        : filter_mode_{filter_mode}, source_list_{source_list} {}
+
+      void exclude(SourceList source_list) 
+      {
+        filter_mode_ = FilterMode::EXCLUDE;
+
+        if (source_list_.empty()) {
+          source_list_ = source_list;
+          return;
+        }
+
+        for (auto src = source_list_.begin(); src != source_list_.end();)  {
+          if (std::find(source_list.begin(), source_list.end(), *src) ==
+              source_list.end()) {
+            // source is not found in the new source list. Remove it
+            src = source_list_.erase(src);
+          }
+        }
+      }
+
+      void include(SourceList source_list)
+      {
+        if (source_list_.empty()) {
+          source_list_ = source_list;
+        } else if (filter_mode_ == FilterMode::INCLUDE) {
+          for(auto src : source_list) {
+            if (std::find(source_list_.begin(), source_list_.end(), src) ==
+                source_list_.end()) {
+              source_list_.push_back(src);
+            }
+          }
+        } else {
+          for (auto src = source_list_.begin(); src != source_list_.end();)  {
+            if (std::find(source_list.begin(), source_list.end(), *src) !=
+                source_list.end()) {
+              // source is found in the new source list. Remove it
+              src = source_list_.erase(src);
+            }
+          }
+        }
+      }
+    };
+
+    using MldRec = std::unordered_map<ip6::Addr, Multicast_listening_record>;
+    Stack& inet_;
+    MldRec mld_records_;
   };
 }
 #endif //< NET_MLD_HPP
