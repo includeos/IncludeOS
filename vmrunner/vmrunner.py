@@ -215,8 +215,13 @@ class ukvm(hypervisor):
     def image_name(self):
         return self._image_name
 
-    def drive_arg(self):
-        return ["--disk=" + INCLUDEOS_HOME + "dummy.disk"]
+    def drive_arg(self, filename,
+                  device_format="raw", media_type="disk"):
+        if device_format != "raw":
+            raise Exception("solo5/ukvm can only handle drives in raw format.")
+        if media_type != "disk":
+            raise Exception("solo5/ukvm can only handle drives of type disk.")
+        return ["--disk=" + filename]
 
     def net_arg(self):
         return ["--net=tap100"]
@@ -236,7 +241,15 @@ class ukvm(hypervisor):
         self._image_name = image_name
 
         command = ["sudo", qkvm_bin]
-        command += self.drive_arg()
+
+        if "drives" in self._config:
+            if len(self._config["drives"]) > 1:
+                raise Exception("solo5/ukvm can only handle one drive.")
+            for disk in self._config["drives"]:
+                info ("Ignoring drive type argument: ", disk["type"])
+                command += self.drive_arg(disk["file"], disk["format"],
+                                          disk["media"])
+
         command += self.net_arg()
         command += [self._image_name]
         command += [kernel_args]
