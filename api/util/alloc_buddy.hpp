@@ -187,9 +187,7 @@ namespace mem::buddy {
       using namespace util;
       Expects(bits::is_pow2(pool_size_));
       Expects(pool_size_ >= min_size);
-      Expects(bits::is_aligned<min_size>(start));
       Expects(bits::is_aligned<min_size>(start_addr_));
-
       Ensures(pool_size_ + nodes_.size() * sizeof(Node_t) <= bufsize);
       // Initialize nodes
       memset(nodes_.data(), 0, nodes_.size() * sizeof(Node_arr::element_type));
@@ -198,11 +196,11 @@ namespace mem::buddy {
     static Alloc* create(void* addr, Size_t bufsize) {
       using namespace util;
       Size_t pool_size_ = pool_size(bufsize);
-      Size_t overhead_  = bufsize - pool_size_;
-      auto*  nodes_ptr  = (char*)addr + overhead_;
       Expects(bufsize >= required_size(pool_size_));
-      Ensures(bufsize >= required_size(pool_size_));
-      auto* alloc = new (addr) Alloc(nodes_ptr, bufsize, pool_size_);
+
+      // Placement new an allocator on addr, passing in the rest of memory
+      auto* alloc_begin = (char*)addr + sizeof(Alloc);
+      auto* alloc       = new (addr) Alloc(alloc_begin, bufsize, pool_size_);
       return alloc;
     }
 
@@ -572,21 +570,21 @@ namespace mem::buddy {
       std::string dashes(80, '-');
       out << dashes << "\n";
       out << "Bytes used: " << util::Byte_r(bytes_used())
-                << " Bytes free: " << util::Byte_r(bytes_free())
-                << " H: " << std::dec << tree_height()
-                << " W: " << tree_width()
-                << " Alloc.size: " << util::Byte_r(sizeof(*this)) << "\n"
-                << "Address pool: 0x" << std::hex
-                << root().addr() << " - " << root().addr() + pool_size_
-                << std::dec << "\n";
+          << " Bytes free: " << util::Byte_r(bytes_free())
+          << " H: " << std::dec << tree_height()
+          << " W: " << tree_width()
+          << " Alloc.size: " << util::Byte_r(sizeof(*this)) << "\n"
+          << "Address pool: 0x" << std::hex
+          << root().addr() << " - " << root().addr() + pool_size_
+          << std::dec << " ( " << util::Byte_r(pool_size()) <<" ) \n";
       auto track = alloc_tracker();
       out << "Allocations:  " << track.allocs
-                << " Steps: Last: " << track.last
-                << " Min:  " << track.min
-                << " Max:  " << track.max
-                << " Total: " << track.total
-                << " Avg: " << track.total / track.allocs
-                << "\n";
+          << " Steps: Last: " << track.last
+          << " Min:  " << track.min
+          << " Max:  " << track.max
+          << " Total: " << track.total
+          << " Avg: " << track.total / track.allocs
+          << "\n";
       out << dashes << "\n";
       return out.str();
     }
