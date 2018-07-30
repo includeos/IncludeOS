@@ -140,6 +140,38 @@ void OS::start(const char* cmdline)
   Timers::ready();
 }
 
+static inline void event_loop_inner()
+{
+  int res = 0;
+  auto nxt = Timers::next();
+  if (nxt == std::chrono::nanoseconds(0))
+  {
+    // no next timer, just wait a while
+    res = solo5_yield(solo5_clock_monotonic() + 500000000ULL); // 500 ms
+    //printf("Waiting, next is indeterminate...\n");
+  }
+  else if (nxt == std::chrono::nanoseconds(1))
+  {
+    // there is an imminent or activated timer, don't wait
+    //printf("Not waiting, imminent timer...\n");
+  }
+  else
+  {
+    res = solo5_yield(solo5_clock_monotonic() + nxt.count());
+    //printf("Waiting %llu nanos\n", nxt.count());
+  }
+
+  // handle any activated timers
+  Timers::timers_handler();
+  if (res != 0)
+  {
+    // handle any network traffic
+    for(auto& nic : hw::Devices::devices<hw::Nic>()) {
+      nic->poll();
+    }
+  }
+}
+
 void OS::event_loop()
 {
   while (power_)
@@ -150,35 +182,7 @@ void OS::event_loop()
     ".global _irq_cb_return_location;\n"
     "_irq_cb_return_location:" );
 
-    int res = 0;
-    auto nxt = Timers::next();
-    if (nxt == std::chrono::nanoseconds(0))
-    {
-      // no next timer, just wait a while
-      res = solo5_yield(solo5_clock_monotonic() + 500000000ULL); // 500 ms
-      //printf("Waiting, next is indeterminate...\n");
-    }
-    else if (nxt == std::chrono::nanoseconds(1))
-    {
-      // there is an imminent or activated timer, don't wait
-      //printf("Not waiting, imminent timer...\n");
-    }
-    else
-    {
-      res = solo5_yield(solo5_clock_monotonic() + nxt.count());
-      //printf("Waiting %llu nanos\n", nxt.count());
-    }
-
-    // handle any activated timers
-    Timers::timers_handler();
-    if (res != 0)
-    {
-      // handle any network traffic
-      for(auto& nic : hw::Devices::devices<hw::Nic>()) {
-        nic->poll();
-        break;
-      }
-    }
+    event_loop_inner();
   }
 
 
@@ -201,31 +205,14 @@ void OS::halt() {
   os_cycles_hlt += solo5_clock_monotonic() - cycles_before;
 }
 
-// Keep track of blocking levels
-static uint32_t blocking_level = 0;
-static uint32_t highest_blocking_level = 0;
-
 void OS::block()
 {
-  // Increment level
+  static uint32_t blocking_level = 0;
   blocking_level += 1;
+  // prevent recursion stack overflow
+  assert(blocking_level < 200);
 
-  // Increment highest if applicable
-  if (blocking_level > highest_blocking_level)
-      highest_blocking_level = blocking_level;
-
-  int rc;
-  rc = solo5_yield(solo5_clock_monotonic() + 50000ULL); // now + 0.05 ms
-  if (rc == 0) {
-    Timers::timers_handler();
-  } else {
-
-    for(auto& nic : hw::Devices::devices<hw::Nic>()) {
-      nic->poll();
-      break;
-    }
-
-  }
+  event_loop_inner();
 
   // Decrement level
   blocking_level -= 1;
