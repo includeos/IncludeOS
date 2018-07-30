@@ -154,7 +154,7 @@ void OS::event_loop()
     // XXX: temporarily ALWAYS sleep for 0.5 ms. We should ideally ask Timers
     // for the next immediate timer to fire (the first from the "scheduled" list
     // of timers?)
-    rc = solo5_poll(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
+    rc = solo5_yield(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
     Timers::timers_handler();
     if (rc) {
       for(auto& nic : hw::Devices::devices<hw::Nic>()) {
@@ -198,7 +198,7 @@ void OS::block()
       highest_blocking_level = blocking_level;
 
   int rc;
-  rc = solo5_poll(solo5_clock_monotonic() + 50000ULL); // now + 0.05 ms
+  rc = solo5_yield(solo5_clock_monotonic() + 50000ULL); // now + 0.05 ms
   if (rc == 0) {
     Timers::timers_handler();
   } else {
