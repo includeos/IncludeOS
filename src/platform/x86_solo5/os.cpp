@@ -142,21 +142,38 @@ void OS::start(const char* cmdline)
 
 void OS::event_loop()
 {
-  while (power_) {
-    int rc;
-
+  while (power_)
+  {
     // add a global symbol here so we can quickly discard
     // event loop from stack sampling
     asm volatile(
     ".global _irq_cb_return_location;\n"
     "_irq_cb_return_location:" );
 
-    // XXX: temporarily ALWAYS sleep for 0.5 ms. We should ideally ask Timers
-    // for the next immediate timer to fire (the first from the "scheduled" list
-    // of timers?)
-    rc = solo5_yield(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
+    int res = 0;
+    auto nxt = Timers::next();
+    if (nxt == std::chrono::nanoseconds(0))
+    {
+      // no next timer, just wait a while
+      res = solo5_yield(solo5_clock_monotonic() + 500000000ULL); // 500 ms
+      //printf("Waiting, next is indeterminate...\n");
+    }
+    else if (nxt == std::chrono::nanoseconds(1))
+    {
+      // there is an imminent or activated timer, don't wait
+      //printf("Not waiting, imminent timer...\n");
+    }
+    else
+    {
+      res = solo5_yield(solo5_clock_monotonic() + nxt.count());
+      //printf("Waiting %llu nanos\n", nxt.count());
+    }
+
+    // handle any activated timers
     Timers::timers_handler();
-    if (rc) {
+    if (res != 0)
+    {
+      // handle any network traffic
       for(auto& nic : hw::Devices::devices<hw::Nic>()) {
         nic->poll();
         break;
