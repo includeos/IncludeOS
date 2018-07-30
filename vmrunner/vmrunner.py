@@ -242,9 +242,11 @@ class ukvm(hypervisor):
 
         command = ["sudo", qkvm_bin]
 
-        if "drives" in self._config:
-            if len(self._config["drives"]) > 1:
-                raise Exception("solo5/ukvm can only handle one drive.")
+        if not "drives" in self._config:
+            command += self.drive_arg(self._image_name)
+        elif len(self._config["drives"]) > 1:
+            raise Exception("solo5/ukvm can only handle one drive.")
+        else:
             for disk in self._config["drives"]:
                 info ("Ignoring drive type argument: ", disk["type"])
                 command += self.drive_arg(disk["file"], disk["format"],
@@ -255,6 +257,7 @@ class ukvm(hypervisor):
         command += [kernel_args]
 
         try:
+            self.info("Starting ", command)
             self.start_process(command)
             self.info("Started process PID ",self._proc.pid)
         except Exception as e:
