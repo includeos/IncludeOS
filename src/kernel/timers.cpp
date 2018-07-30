@@ -200,6 +200,21 @@ size_t Timers::free() {
 
 /// scheduling ///
 
+duration_t Timers::next()
+{
+  auto& system = get();
+  if (LIKELY(!system.scheduled.empty()))
+  {
+    auto it   = system.scheduled.begin();
+    auto when = it->first;
+    auto diff = when - now();
+    // avoid returning zero or negative diff
+    if (diff < nanoseconds(1)) return nanoseconds(1);
+    return diff;
+  }
+  return duration_t::zero();
+}
+
 void Timers::timers_handler()
 {
   auto& system = get();
