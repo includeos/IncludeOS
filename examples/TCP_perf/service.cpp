@@ -16,16 +16,21 @@
 // limitations under the License.
 
 #include <os>
+#include <rtc>
 #include <net/inet>
 #include <statman>
 #include <profile>
 #include <cstdio>
-#define ENABLE_JUMBO_FRAMES
 
 using namespace net::tcp;
 
 size_t    bufsize = 128*1024;
-uint32_t  SIZE = 1024*1024*512;
+#ifdef PLATFORM_x86_solo5
+static const uint32_t  SIZE = 1024*1024*50;
+#else
+static const uint32_t  SIZE = 1024*1024*512;
+#define ENABLE_JUMBO_FRAMES
+#endif
 uint64_t  packets_rx{0};
 uint64_t  packets_tx{0};
 uint64_t  received{0};
@@ -38,8 +43,13 @@ bool      SACK{true};
 
 struct activity {
   void reset() {
+#ifdef PLATFORM_x86_solo5
+    total  = 0;
+    asleep = 0;
+#else
     total  = StackSampler::samples_total();
     asleep = StackSampler::samples_asleep();
+#endif
   }
   void print(activity& other) {
     auto tdiff = total - other.total;
@@ -70,16 +80,18 @@ void start_measure()
     dack.count(), winsize, wscale, (winsize << wscale)/1024,
     timestamps ? "ON" : "OFF",
     SACK ? "ON" : "OFF");
-  ts          = OS::nanos_since_boot();
+  ts          = RTC::nanos_now();
   activity_before.reset();
 }
 
 void stop_measure()
 {
-  auto diff   = OS::nanos_since_boot() - ts;
+  auto diff   = RTC::nanos_now() - ts;
   activity_after.reset();
 
+#ifndef PLATFORM_x86_solo5
   StackSampler::print(15);
+#endif
   activity_after.print(activity_before);
 
   packets_rx  = Statman::get().get_by_name("eth0.ethernet.packets_rx").get_uint64() - packets_rx;
@@ -95,8 +107,10 @@ void Service::start() {}
 
 void Service::ready()
 {
+#ifndef PLATFORM_x86_solo5
   StackSampler::begin();
   StackSampler::set_mode(StackSampler::MODE_DUMMY);
+#endif
 
   static auto blob = net::tcp::construct_buffer(SIZE);
 
