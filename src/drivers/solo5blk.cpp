@@ -36,7 +36,6 @@ Solo5Blk::buffer_t Solo5Blk::read_sync(block_t blk) {
   res = solo5_block_read((solo5_off_t) blk * SECTOR_SIZE,
                          buffer->data(), SECTOR_SIZE);
   if (res != SOLO5_R_OK) {
-    buffer.reset();
     return nullptr;
   }
   return buffer;
@@ -51,7 +50,6 @@ Solo5Blk::buffer_t Solo5Blk::read_sync(block_t blk, size_t count) {
     res = solo5_block_read((solo5_off_t) (blk + i) * SECTOR_SIZE,
                            data + (i * SECTOR_SIZE), SECTOR_SIZE);
     if (res != SOLO5_R_OK) {
-      buffer.reset();
       return nullptr;
     }
   }
