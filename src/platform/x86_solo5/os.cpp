@@ -3,6 +3,7 @@
 #include <info>
 #include <smp>
 #include <statman>
+#include <kernel/events.hpp>
 #include <kernel/timers.hpp>
 #include <kernel/solo5_manager.hpp>
 
@@ -137,7 +138,7 @@ void OS::start(const char* cmdline)
     // timer stop function
     [] () {});
 
-  Timers::ready();
+  Events::get().defer(Timers::ready);
 }
 
 static inline void event_loop_inner()
@@ -146,9 +147,11 @@ static inline void event_loop_inner()
   auto nxt = Timers::next();
   if (nxt == std::chrono::nanoseconds(0))
   {
-    // no next timer, just wait a while
-    res = solo5_yield(solo5_clock_monotonic() + 500000000ULL); // 500 ms
-    //printf("Waiting, next is indeterminate...\n");
+    // no next timer, wait forever
+    //printf("Waiting 15s, next is indeterminate...\n");
+    const unsigned long long count = 15000000000ULL;
+    res = solo5_yield(solo5_clock_monotonic() + count);
+    os_cycles_hlt += count;
   }
   else if (nxt == std::chrono::nanoseconds(1))
   {
@@ -157,12 +160,14 @@ static inline void event_loop_inner()
   }
   else
   {
-    res = solo5_yield(solo5_clock_monotonic() + nxt.count());
     //printf("Waiting %llu nanos\n", nxt.count());
+    res = solo5_yield(solo5_clock_monotonic() + nxt.count());
+    os_cycles_hlt += nxt.count();
   }
 
   // handle any activated timers
   Timers::timers_handler();
+  Events::get().process_events();
   if (res != 0)
   {
     // handle any network traffic
