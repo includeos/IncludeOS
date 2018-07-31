@@ -20,12 +20,19 @@
 #include <common>
 #include <sstream>
 #include <array>
-#include <util/bitops.hpp>
-#include <util/units.hpp>
-#include <common>
+#if __has_include(<memory_resource>)
+#include <memory_resource>
+#else
+#include <experimental/memory_resource>
+namespace std::pmr {
+  using memory_resource = std::experimental::pmr::memory_resource;
+}
+#endif
 #include <stdlib.h>
 #include <math.h>
 
+#include <util/bitops.hpp>
+#include <util/units.hpp>
 #include <kprint>
 
 //
@@ -71,7 +78,7 @@ namespace mem::buddy {
    * A buddy allocator over a fixed size pool
    **/
   template <bool Track_allocs = false>
-  struct Alloc {
+  struct Alloc : public std::pmr::memory_resource {
     static constexpr mem::buddy::Size_t min_size  = 4096;
     static constexpr mem::buddy::Size_t align = min_size;
 
@@ -273,10 +280,24 @@ namespace mem::buddy {
       bytes_used_ -= res;
     }
 
+    void* do_allocate(std::size_t bytes, std::size_t alignment)  override {
+      using namespace util;
+      auto aligned_size = bits::roundto(alignment, bytes);
+      return allocate(aligned_size);
+    }
+
+    void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override {
+      using namespace util;
+      deallocate(p, bits::roundto(alignment, bytes));
+    }
+
+    bool do_is_equal(const memory_resource& other) const noexcept override {
+      return &other == this;
+    }
+
     void free(void* addr) {
       deallocate(addr, 0);
     }
-
 
 
     //private:
@@ -583,10 +604,10 @@ namespace mem::buddy {
       std::string dashes(80, '-');
       out << dashes << "\n";
       out << "Bytes used: " << util::Byte_r(bytes_used())
-          << " Bytes free: " << util::Byte_r(bytes_free())
+          << ", Bytes free: " << util::Byte_r(bytes_free())
           << " H: " << std::dec << tree_height()
           << " W: " << tree_width()
-          << " Alloc.size: " << util::Byte_r(sizeof(*this)) << "\n"
+          << " Tree size: " << util::Byte_r(nodes_.size()) << "\n"
           << "Address pool: 0x" << std::hex
           << root().addr() << " - " << root().addr() + pool_size_
           << std::dec << " ( " << util::Byte_r(pool_size()) <<" ) \n";
@@ -637,6 +658,37 @@ namespace mem::buddy {
     const uintptr_t start_addr_ = 0;
     const Size_t pool_size_ = min_size;
     Size_t bytes_used_ = 0;
+  };
+
+  /**
+   * C++17 std::allocator interface using buddy allocator
+   **/
+  template <typename T, typename Resource>
+  struct Allocator {
+    using value_type = T;
+
+    Allocator(Resource* alloc)
+      : resource{alloc}
+    {}
+
+    T* allocate(std::size_t size) {
+      return reinterpret_cast<T*>(resource->allocate(size * sizeof(T)));
+    }
+
+    void deallocate(T* ptr, std::size_t size) {
+      resource->deallocate(ptr, size * sizeof(T));
+    }
+
+    bool operator==(const Allocator& other) {
+      return resource == other.resource;
+    }
+
+    bool operator!=(const Allocator& other) {
+      return not other == *this;
+    }
+
+    Resource* resource;
+
   };
 
 }
