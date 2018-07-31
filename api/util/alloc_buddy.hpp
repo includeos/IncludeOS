@@ -80,7 +80,6 @@ namespace mem::buddy {
     }
 
 
-
     /** Total allocatable memory in an allocator created in a bufsize buffer **/
     static Size_t pool_size(Size_t bufsize){
       using namespace util;
@@ -125,32 +124,32 @@ namespace mem::buddy {
       return node_count() / 2 + 1;
     }
 
-    int max_chunksize() const noexcept {
+    Size_t max_chunksize() const noexcept {
       // Same as pool size.
       return min_size << (tree_height() - 1);
     }
 
-    Size_t pool_size()
-    { return pool_size_; }
+    Size_t pool_size() const noexcept {
+      return pool_size_;
+    }
 
-
-    Size_t bytes_used() {
+    Size_t bytes_used() const noexcept {
       return bytes_used_;
     }
 
-    Addr_t highest_used() {
-      return root().highest_used();
+    Addr_t highest_used() const noexcept {
+      return root().highest_used_r();
     }
 
-    Size_t bytes_free(){
+    Size_t bytes_free() const noexcept {
       return pool_size_ - bytes_used_;
     }
 
-    Size_t bytes_free_r(){
-      return pool_size_ - root().bytes_used();
+    Size_t bytes_free_r() const noexcept {
+      return pool_size_ - root().bytes_used_r();
     }
 
-    Size_t bytes_used_r() {
+    Size_t bytes_used_r() const noexcept {
       return root().bytes_used_r();
     }
 
@@ -162,15 +161,15 @@ namespace mem::buddy {
       return root().is_free();
     }
 
-    Addr_t addr_begin() {
+    Addr_t addr_begin() const noexcept {
       return reinterpret_cast<Addr_t>(start_addr_);
     }
 
-    Addr_t addr_end() {
+    Addr_t addr_end() const noexcept {
       return start_addr_ + pool_size_;
     }
 
-    bool in_range(void* a) {
+    bool in_range(void* a) const noexcept {
       auto addr = reinterpret_cast<Addr_t>(a);
       return addr >= addr_begin() and addr < addr_end();
     }
@@ -205,7 +204,7 @@ namespace mem::buddy {
     }
 
 
-    Size_t chunksize(Size_t wanted_sz) {
+    Size_t chunksize(Size_t wanted_sz) const noexcept {
       auto sz = util::bits::next_pow2(wanted_sz);
       if (sz > max_chunksize())
         return 0;
@@ -226,7 +225,7 @@ namespace mem::buddy {
       int allocs;
     };
 
-    Track_res alloc_tracker(Track action = Track::get) {
+    Track_res alloc_tracker(Track action = Track::get) const noexcept {
       if constexpr (Track_allocs) {
           static Track_res tr {0,0,0,0,0};
           if (action == Track::start) {
@@ -250,12 +249,11 @@ namespace mem::buddy {
       return {};
     }
 
-    void* allocate(Size_t size) {
+    void* allocate(Size_t size) noexcept {
 
       Expects(start_addr_);
 
       auto node = root();
-      auto addr = start_addr_;
 
       auto sz = chunksize(size);
       if (not sz) return 0;
@@ -280,105 +278,116 @@ namespace mem::buddy {
     }
 
 
+
     //private:
     class Node_view {
     public:
 
-      Node_view(int index, Alloc* alloc)
+      Node_view(int index, const Alloc* alloc)
         : i_{index}, alloc_{alloc},
           my_size_{compute_size()}, my_addr_{compute_addr()}
       {}
 
       Node_view() = default;
 
-      Node_view left() {
+      Node_view empty() const noexcept {
+        return Node_view();
+      }
+
+      Node_view left() const noexcept {
         if (is_leaf()) {
-          return Node_view();
+          return empty();
         }
         return Node_view(i_ * 2 + 1, alloc_);
       }
 
-      Node_view right() {
+      Node_view right() const noexcept {
         if (is_leaf()) {
-          return Node_view();
+          return empty();
         }
         return Node_view(i_ * 2 + 2, alloc_);
       }
 
-      Addr_t addr()
-      { return my_addr_; }
+      Addr_t addr() const noexcept {
+        return my_addr_;
+      }
 
-      Size_t size()
-      { return my_size_; }
+      Size_t size() const noexcept {
+        return my_size_;
+      }
 
-      bool is_leaf() {
+      bool is_leaf() const noexcept {
         return i_ >= alloc_->nodes_.size() / 2;
       }
 
-      bool is_taken() {
+      bool is_taken() const noexcept {
         return data() & Flags::taken;
       }
 
-      bool is_free() {
+      bool is_free() const noexcept {
         return data() == 0;
       }
 
-      bool is_full() {
+      bool is_full() const noexcept {
         auto fl = data();
         return fl & Flags::taken or
           (fl & Flags::left_full and fl & Flags::right_full);
       }
 
-      bool in_range(Addr_t a) {
+      bool in_range(Addr_t a) const noexcept {
         return a >= my_addr_ and a < my_addr_ + my_size_;
       }
 
-      void set_flag(Flags f){
+      void set_flag(Flags f) {
         data() |= f;
       }
 
-      void clear_flag(Flags f){
+      void clear_flag(Flags f) {
         data() &= ~f;
       }
 
-      bool is_parent() {
+      bool is_parent() const noexcept {
         return i_ <= alloc_->leaf0();
       }
 
 
-      bool is_full_r() {
+      bool is_full_r() const noexcept {
         if (is_taken())
           return true;
         return is_parent() and left().is_full_r()
           and is_parent() and right().is_full_r();
       }
 
-      bool is_free_r() {
+      bool is_free_r() const noexcept {
         auto lfree = not is_parent() or left().is_free_r();
         auto rfree = not is_parent() or right().is_free_r();
         return not is_taken() and lfree and rfree;
       }
 
 
-      int height() {
+      int height() const noexcept {
         return (util::bits::fls(i_ + 1));
       }
 
-      Size_t compute_size() {
+      Size_t compute_size() const noexcept {
         return min_size << (alloc_->tree_height() - height());
       }
 
-      Addr_t compute_addr() {
+      Addr_t compute_addr() const noexcept {
         auto first_lvl_idx = 1 << (height() - 1);
         auto sz_offs = i_ - first_lvl_idx + 1;
         return alloc_->start_addr_ + (sz_offs * my_size_);
       }
 
-      operator bool() {
+      operator bool() const noexcept {
         return alloc_->start_addr_ != 0 and alloc_ != nullptr;
       }
 
       Node_t& data() {
+        return alloc_->nodes_.at(i_);
+      }
+
+      const Node_t& data() const noexcept {
         return alloc_->nodes_.at(i_);
       }
 
@@ -473,16 +482,16 @@ namespace mem::buddy {
         return res;
       }
 
-      Size_t dealloc_self(){
+      Size_t dealloc_self() {
         data() = 0;
         return my_size_;
       }
 
-      bool is_left(Addr_t ptr){
+      bool is_left(Addr_t ptr) const noexcept {
         return ptr < my_addr_ + my_size_ / 2;
       }
 
-      bool is_right(Addr_t ptr) {
+      bool is_right(Addr_t ptr) const noexcept {
         return ptr >= my_addr_ + my_size_ / 2;
       }
 
@@ -527,45 +536,49 @@ namespace mem::buddy {
         return 0;
       }
 
-      Size_t bytes_used() {
+      Size_t bytes_used_r() const noexcept {
         if (is_taken())
           return my_size_;
 
         if (is_parent())
-          return left().bytes_used() + right().bytes_used();
+          return left().bytes_used_r() + right().bytes_used_r();
 
         return 0;
       }
 
-      Addr_t highest_used() {
+      Addr_t highest_used_r() const noexcept {
         if (is_taken() or not is_parent())
           return my_addr_ + my_size_;
 
-        auto rhs = right().highest_used();
+        auto rhs = right().highest_used_r();
         if (rhs > my_addr_ + my_size_) return rhs;
-        return left().highest_used();
+        return left().highest_used_r();
       }
 
-      std::string to_string(){
+      std::string to_string() const  {
         std::stringstream out;
         out << std::hex
-          // << addr()<< " | "
-            <<  (int)data() //is_full_r() //
+            <<  (int)data()
             << std::dec;
         return out.str();
       }
 
     private:
       int i_ = 0;
-      Alloc* alloc_ = nullptr;
+      const Alloc* alloc_  = nullptr;
       Size_t my_size_ = 0;
       Addr_t my_addr_ = 0;
     };
 
-    Node_view root()
-    { return Node_view(0, this); }
+    Node_view root() {
+      return Node_view(0, this);
+    }
 
-    std::string summary() {
+    const Node_view root() const {
+      return Node_view(0, this);
+    }
+
+    std::string summary() const {
       std::stringstream out;
       std::string dashes(80, '-');
       out << dashes << "\n";
@@ -588,7 +601,7 @@ namespace mem::buddy {
       out << dashes << "\n";
       return out.str();
     }
-    std::string draw_tree(bool index = false) {
+    std::string draw_tree(bool index = false) const {
       auto node_pr_w = index ? 6 : 4;
       auto line_w = tree_width() * node_pr_w;
 
