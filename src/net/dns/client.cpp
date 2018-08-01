@@ -151,25 +151,14 @@ namespace net
 
   void DNSClient::flush_expired()
   {
-    const auto before = cache_.size();
-
-    // which key that has expired
-    std::vector<const std::string*> expired;
-    expired.reserve(before);
-
     const auto now = timestamp();
-    // gather all expired entries
-    for(auto& ent : cache_)
+    for(auto it = cache_.begin(); it != cache_.end();)
     {
-      if(ent.second.expires <= now)
-        expired.push_back(&ent.first);
+      if(it->second.expires > now)
+        it++;
+      else
+        it = cache_.erase(it);
     }
-
-    // remove all expired from cache
-    for(auto* exp : expired)
-      cache_.erase(*exp);
-
-    debug("<DNSClient> Flushed %u expired entries.\n", before - cache_.size());
 
     if(not cache_.empty())
       flush_timer_.start(DEFAULT_FLUSH_INTERVAL);

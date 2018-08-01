@@ -52,8 +52,8 @@ namespace net
       Address     address;
       timestamp_t expires;
 
-      Cache_entry(const Address addr, const timestamp_t exp) noexcept
-        : address{addr}, expires{exp}
+      Cache_entry(Address addr, const timestamp_t exp) noexcept
+        : address{std::move(addr)}, expires{exp}
       {}
     };
     using Cache           = std::unordered_map<Hostname, Cache_entry>;
