@@ -169,11 +169,10 @@ namespace net {
       FilterMode filter_mode_;
       SourceList source_list_;
     public:
-      Multicast_listening_record() noexcept = default;
       Multicast_listening_record(FilterMode filter_mode, SourceList source_list) noexcept
         : filter_mode_{filter_mode}, source_list_{source_list} {}
 
-      void exclude(SourceList source_list) 
+      void exclude(SourceList source_list)
       {
         filter_mode_ = FilterMode::EXCLUDE;
 

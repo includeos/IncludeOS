@@ -166,7 +166,7 @@ namespace net
   }
 
   Mld2::Mld2(Stack& inet) noexcept:
-  inet_ {inet} 
+  inet_ {inet}
   {}
 
   void Mld2::receive_query(icmp6::Packet& pckt)
@@ -184,7 +184,7 @@ namespace net
     if (max_res_code < 32768) {
       //max_resp_delay = max_res_code;
     } else {
-      //max_resp_delay = ((0x0fff & max_res_code) | 0x1000) << 
+      //max_resp_delay = ((0x0fff & max_res_code) | 0x1000) <<
       //((0x7000 & max_res_code) + 3);
     }
 
@@ -218,7 +218,7 @@ namespace net
     }
   }
 
-  bool Mld2::allow(ip6::Addr source_addr, ip6::Addr mcast) 
+  bool Mld2::allow(ip6::Addr source_addr, ip6::Addr mcast)
   {
   }
 
@@ -234,20 +234,7 @@ namespace net
       }
     } else {
       mld_records_.emplace(std::make_pair(mcast,
-            Multicast_listening_record{filtermode, source_list})); 
-    }
-  }
-
-  // Mldv2 packet definitions
-  namespace mld {
-    MldPacket2::Query& MldPacket2::query()
-    {
-      return *reinterpret_cast<Query*>(&(icmp6_.header().payload[0]));
-    }
-
-    MldPacket2::Report& MldPacket2::report()
-    {
-      return *reinterpret_cast<Report*>(&(icmp6_.header().payload[0]));
+            Multicast_listening_record{filtermode, source_list}));
     }
   }
 

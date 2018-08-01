@@ -20,6 +20,7 @@
 #define NET_IP6_NDP_HPP
 
 #include <rtc>
+#include <cmath>
 #include <unordered_map>
 #include <deque>
 #include <util/timer.hpp>

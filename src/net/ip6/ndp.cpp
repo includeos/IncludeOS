@@ -63,7 +63,6 @@ namespace net
 
     // Populate response IP header
     res.ip().set_ip_src(inet_.ip6_addr());
-
     if (any_src) {
         res.ip().set_ip_dst(ip6::Addr::node_all_nodes);
     } else {
@@ -208,7 +207,7 @@ namespace net
 
     bool is_dest_multicast = req.ip().ip_dst().is_multicast();
 
-    // Change this
+    // TODO: Change this. Can be targeted to many ip6 address on this inet
     if (target != inet_.ip6_addr()) {
       PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(),
               inet_.ip6_addr().to_string().c_str());
