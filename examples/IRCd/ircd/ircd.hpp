@@ -109,7 +109,8 @@ public:
   // message local operators
   void wallops(const std::string&);
   // propagate message globally
-  void broadcast(net::tcp::buffer_t, size_t);
+  void lnotice(const std::string& src, const std::string&);
+  void gnotice(const std::string& src, const std::string&);
   // send message to all users visible to user, including user
   void user_bcast(clindex_t user, const char* buffer, size_t len);
   void user_bcast(clindex_t user, const std::string& from, uint16_t tk, const std::string&);

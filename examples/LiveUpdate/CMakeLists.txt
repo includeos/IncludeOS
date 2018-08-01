@@ -16,11 +16,30 @@ set(BINARY       "liveupdate")
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
+  ../IRCd/autoconf.cpp
+  ../IRCd/ircd/channel.cpp
+  ../IRCd/ircd/client.cpp
+  ../IRCd/ircd/client_commands.cpp
+  ../IRCd/ircd/client_new.cpp
+  ../IRCd/ircd/client_send.cpp
+  ../IRCd/ircd/client_timeout.cpp
+  ../IRCd/ircd/ircd.cpp
+  ../IRCd/ircd/ircsplit.cpp
+  ../IRCd/ircd/modes.cpp
+  ../IRCd/ircd/readq.cpp
+  ../IRCd/ircd/restore.cpp
+  ../IRCd/ircd/selftest.cpp
+  ../IRCd/ircd/server.cpp
+  ../IRCd/ircd/server_commands.cpp
+  ../IRCd/ircd/test.cpp
+  ../IRCd/ircd/transform.cpp
   )
 
 # DRIVERS / PLUGINS:
 set(DRIVERS
     virtionet
+    vmxnet3
+    #boot_logger
   )
 
 set(PLUGINS
