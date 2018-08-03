@@ -195,6 +195,7 @@ private:
   StrTab    strtab;
   uint32_t  checksum_syms;
   uint32_t  checksum_strs;
+  friend void elf_protect_symbol_areas();
 };
 static ElfTables parser;
 
@@ -437,3 +438,17 @@ void _init_elf_parser()
     parser.set(nullptr, 0, nullptr, 0,  0, 0);
   }
 }
+
+#ifdef ARCH_x86_64
+#include <kernel/memory.hpp>
+void elf_protect_symbol_areas()
+{
+  const char* src = (const char*) parser.symtab.base;
+  ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
+  if (size & 4095) size += 4096 - (size & 4095);
+  INFO2("* Protecting syms %p to %p (size %#zx)\n",
+        src, src + size, size);
+
+  os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
+}
+#endif
