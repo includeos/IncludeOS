@@ -538,15 +538,12 @@ namespace net
   {
     //TODO: Better to have a list of destination
     // list entries inside router entries for faster cleanup
-    std::vector<IP6::addr> expired;
-    for (auto ent : dest_cache_) {
-      if (ent.second.next_hop() == ip) {
-        expired.push_back(ent.first);
-      }
-    }
-
-    for (auto ip : expired) {
-      dest_cache_.erase(ip);
+    for(auto it = dest_cache_.begin(); it != dest_cache_.end(); )
+    {
+      if(it->second.next_hop() == ip)
+        it = dest_cache_.erase(it);
+      else
+        it++;
     }
   }
 

@@ -30,41 +30,47 @@
 
 namespace net
 {
-  Mld::Mld(Stack& inet) noexcept:
-  inet_{inet},
-  host_{*this},
-  router_{*this}
-  {}
+  Mld::Mld(Stack& inet) noexcept
+    : inet_{inet},
+    host_{*this},
+    router_{*this} {}
 
   Mld::MulticastHostNode::MulticastHostNode()
   {
-    state_handlers_[Mld::HostStates::NON_LISTENER] =
-        [this] (icmp6::Packet& pckt)
-        {
-        };
+    state_handlers_[Mld::HostStates::NON_LISTENER] = State_handler{this,
+      &Mld::MulticastHostNode::non_listener_state_handler};
 
-    state_handlers_[Mld::HostStates::DELAYING_LISTENER] =
-        [this] (icmp6::Packet& pckt)
-        {
-          switch(pckt.type()) {
-          case (ICMP_type::MULTICAST_LISTENER_QUERY):
-            receive_query(pckt);
-            // Change state
-            break;
-          case (ICMP_type::MULTICAST_LISTENER_REPORT):
-            break;
-          case (ICMP_type::MULTICAST_LISTENER_DONE):
-            break;
-          default:
-            return;
-          }
-        };
+    state_handlers_[Mld::HostStates::DELAYING_LISTENER] = State_handler{this,
+      &Mld::MulticastHostNode::delay_listener_state_handler};
 
-    state_handlers_[Mld::HostStates::DELAYING_LISTENER] =
-        [this] (icmp6::Packet& pckt)
-        {
-        };
+    state_handlers_[Mld::HostStates::IDLE_LISTENER] = State_handler{this,
+      &Mld::MulticastHostNode::idle_listener_state_handler};
   }
+
+  void Mld::MulticastHostNode::non_listener_state_handler(icmp6::Packet& pckt)
+  {
+  }
+
+  void Mld::MulticastHostNode::delay_listener_state_handler(icmp6::Packet& pckt)
+  {
+    switch(pckt.type()) {
+    case (ICMP_type::MULTICAST_LISTENER_QUERY):
+      receive_query(pckt);
+      // Change state
+      break;
+    case (ICMP_type::MULTICAST_LISTENER_REPORT):
+      break;
+    case (ICMP_type::MULTICAST_LISTENER_DONE):
+      break;
+    default:
+      return;
+    }
+  }
+
+  void Mld::MulticastHostNode::idle_listener_state_handler(icmp6::Packet& pckt)
+  {
+  }
+
 
   void Mld::MulticastHostNode::receive_query(icmp6::Packet& pckt)
   {

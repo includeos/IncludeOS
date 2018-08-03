@@ -159,13 +159,13 @@ namespace net {
     MAC::Addr& link_mac_addr()
     { return mac_; }
 
-    const ip6::Addr& static_ip()
+    ip6::Addr static_ip() const noexcept
     { return ip6_addr_; }
 
-    uint8_t static_prefix() const
+    uint8_t static_prefix() const noexcept
     { return ip6_prefix_; }
 
-    ip6::Addr static_gateway() const
+    ip6::Addr static_gateway() const noexcept
     { return ip6_gateway_; }
 
     void set_static_addr(ip6::Addr addr)

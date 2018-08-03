@@ -96,6 +96,9 @@ namespace net {
       const HostStates& state() const { return state_; }
       void setState(const HostStates state) { state_ = state; }
       void receive_query(icmp6::Packet& pckt);
+      void non_listener_state_handler(icmp6::Packet& pckt);
+      void delay_listener_state_handler(icmp6::Packet& pckt);
+      void idle_listener_state_handler(icmp6::Packet& pckt);
 
       ip6::Addr             mcast_addr_;
       HostStates            state_;

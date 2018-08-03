@@ -252,7 +252,7 @@ namespace net {
     ship(std::move(packet), 0, ct);
   }
 
-  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
+  void IP4::ship(Packet_ptr pckt, ip4::Addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
@@ -285,8 +285,8 @@ namespace net {
       }
       else {
         // Create local and target subnets
-        addr target = packet->ip_dst()  & stack_.netmask();
-        addr local  = stack_.ip_addr() & stack_.netmask();
+        ip4::Addr target = packet->ip_dst()  & stack_.netmask();
+        ip4::Addr local  = stack_.ip_addr() & stack_.netmask();
 
         // Compare subnets to know where to send packet
         next_hop = target == local ? packet->ip_dst() : stack_.gateway();

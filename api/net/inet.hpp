@@ -52,7 +52,7 @@ namespace net {
     using Stack          = class Inet;
     using IP_packet_ptr  = IP4::IP_packet_ptr;
     using IP6_packet_ptr = IP6::IP_packet_ptr;
-    using IP_addr        = IP4::addr;
+    using IP_addr        = ip4::Addr;
     using IP6_addr       = ip6::Addr;
 
     using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source,
@@ -82,29 +82,29 @@ namespace net {
     hw::Nic& nic() const
     { return nic_; }
 
-    ip4::Addr ip_addr()
-    { return ip_obj().ip4_addr(); }
+    ip4::Addr ip_addr() const
+    { return ip4_.address(); }
 
-    ip4::Addr netmask()
-    { return ip_obj().ip4_netmask(); }
+    ip4::Addr netmask() const
+    { return ip4_.networkmask(); }
 
-    ip4::Addr gateway()
-    { return ip_obj().ip4_gateway(); }
+    ip4::Addr gateway() const
+    { return ip4_.gateway(); }
 
     ip4::Addr dns_addr() const
     { return dns_server_; }
 
-    ip4::Addr broadcast_addr()
-    { return ip_obj().broadcast_addr(); }
+    ip4::Addr broadcast_addr() const
+    { return ip4_.broadcast_addr(); }
 
-    const ip6::Addr& ip6_addr()
-    { return ndp().static_ip(); }
+    ip6::Addr ip6_addr() const
+    { return ndp_.static_ip(); }
 
-    uint8_t netmask6()
-    { return ndp().static_prefix(); }
+    uint8_t netmask6() const
+    { return ndp_.static_prefix(); }
 
-    ip6::Addr gateway6()
-    { return ndp().static_gateway(); }
+    ip6::Addr gateway6() const
+    { return ndp_.static_gateway(); }
 
     void cache_link_addr(ip4::Addr ip, MAC::Addr mac);
     void flush_link_cache();
@@ -261,7 +261,7 @@ namespace net {
 
     void set_gateway(ip4::Addr gateway)
     {
-      this->ip_obj().set_gateway(gateway);
+      this->ip4_.set_gateway(gateway);
     }
 
     void set_dns_server(ip4::Addr server)
@@ -283,14 +283,14 @@ namespace net {
     void autoconf_v6(int retries = 0, slaac_timeout_func = nullptr,
             ip6::Addr alternate_addr = IP6::ADDR_ANY);
 
-    bool is_configured()
+    bool is_configured() const
     {
-      return ip_obj().ip4_addr() != 0;
+      return ip4_.address() != 0;
     }
 
-    bool is_configured_v6()
+    bool is_configured_v6() const
     {
-      return ndp().static_ip() != IP6::ADDR_ANY;
+      return ndp_.static_ip() != IP6::ADDR_ANY;
     }
 
     // handler called after the network is configured,
@@ -318,12 +318,12 @@ namespace net {
     void
     reset_config()
     {
-      this->ip_obj().set_addr(IP4::ADDR_ANY);
-      this->ip_obj().set_gateway(IP4::ADDR_ANY);
-      this->ip_obj().set_netmask(IP4::ADDR_ANY);
-      this->ndp().set_static_addr(IP6::ADDR_ANY);
-      this->ndp().set_static_gateway(IP6::ADDR_ANY);
-      this->ndp().set_static_prefix(0);
+      this->ip4_.set_addr(IP4::ADDR_ANY);
+      this->ip4_.set_gateway(IP4::ADDR_ANY);
+      this->ip4_.set_netmask(IP4::ADDR_ANY);
+      this->ndp_.set_static_addr(IP6::ADDR_ANY);
+      this->ndp_.set_static_gateway(IP6::ADDR_ANY);
+      this->ndp_.set_static_prefix(0);
     }
 
     // register a callback for receiving signal on free packet-buffers
@@ -456,13 +456,13 @@ namespace net {
       return ip6_addr();
     }
 
-    bool is_valid_source(const Addr& addr)
+    bool is_valid_source(const Addr& addr) const
     { return addr.is_v4() ? is_valid_source4(addr.v4()) : is_valid_source6(addr.v6()); }
 
-    bool is_valid_source4(ip4::Addr src)
+    bool is_valid_source4(ip4::Addr src) const
     { return src == ip_addr() or is_loopback(src); }
 
-    bool is_valid_source6(const ip6::Addr& src)
+    bool is_valid_source6(const ip6::Addr& src) const
       // ismulticast needs to be verified in mld
     { return src == ip6_addr() or is_loopback(src) or src.is_multicast(); }
 
@@ -477,7 +477,7 @@ namespace net {
     Port_utils& udp_ports()
     { return udp_ports_; }
 
-    bool isRouter()
+    bool isRouter() const
     { return false; }
 
     /** Initialize with ANY_ADDR */
