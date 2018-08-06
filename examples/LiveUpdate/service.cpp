@@ -18,7 +18,7 @@
 #include <os>
 #include <profile>
 #include <timers>
-#include <sys/time.h>
+#include "motd_array.h"
 #define USE_STACK_SAMPLING
 #define PERIOD_SECS    4
 
@@ -34,17 +34,7 @@ void Service::start()
   ircd = IrcServer::from_config();
 
   ircd->set_motd([] () -> const std::string& {
-    static const std::string motd = R"M0TDT3XT(
-              .-') _                               _ .-') _     ('-.                       .-')
-             ( OO ) )                             ( (  OO) )  _(  OO)                     ( OO ).
-  ,-.-') ,--./ ,--,'  .-----. ,--.     ,--. ,--.   \     .'_ (,------.       .-'),-----. (_)---\_)
-  |  |OO)|   \ |  |\ '  .--./ |  |.-') |  | |  |   ,`'--..._) |  .---'      ( OO'  .-.  '/    _ |
-  |  |  \|    \|  | )|  |('-. |  | OO )|  | | .-') |  |  \  ' |  |          /   |  | |  |\  :` `.
-  |  |(_/|  .     |//_) |OO  )|  |`-' ||  |_|( OO )|  |   ' |(|  '--.       \_) |  |\|  | '..`''.)
- ,|  |_.'|  |\    | ||  |`-'|(|  '---.'|  | | `-' /|  |   / : |  .--'         \ |  | |  |.-._)   \
-(_|  |   |  | \   |(_'  '--'\ |      |('  '-'(_.-' |  '--'  / |  `---.         `'  '-'  '\       /
-  `--'   `--'  `--'   `-----' `------'  `-----'    `-------'  `------'           `-----'  `-----'
-)M0TDT3XT";
+    static std::string motd(motd_array);
     return motd;
   });
   // motd spam
