@@ -1,3 +1,4 @@
+
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2018 IncludeOS AS, Oslo, Norway
@@ -33,13 +34,12 @@ namespace std::pmr {
 
 #include <util/bitops.hpp>
 #include <util/units.hpp>
-#include <kprint>
 
 //
 // Tree node flags
 //
 
-namespace mem::buddy {
+namespace os::mem::buddy {
   enum class Flags : uint8_t {
     free = 0,
     taken = 1,
@@ -58,13 +58,13 @@ namespace util {
   };
 
   template<>
-  struct enable_bitmask_ops<mem::buddy::Flags> {
+  struct enable_bitmask_ops<os::mem::buddy::Flags> {
     using type = uint8_t;
     static constexpr bool enable = true;
   };
 }
 
-namespace mem::buddy {
+namespace os::mem::buddy {
   using namespace util::literals;
   using namespace util::bitops;
 
