@@ -13,6 +13,11 @@ set(SERVICE_NAME "LiveUpdate example")
 # Name of your service binary
 set(BINARY       "liveupdate")
 
+# Custom version string of the IRC server
+set(VERSION      "v0.4 LiveUpdate demo")
+
+add_definitions(-DIRC_SERVER_VERSION="${VERSION}")
+
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp
@@ -55,3 +60,12 @@ set(LIBRARIES
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
 diskbuilder(drive)
+
+add_custom_command(
+  OUTPUT motd.h
+  COMMAND xxd -i < ${CMAKE_CURRENT_SOURCE_DIR}/ircd.motd > motd.h
+  DEPENDS ircd.motd
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+add_custom_target(motd DEPENDS motd.h)
+add_dependencies(service motd)

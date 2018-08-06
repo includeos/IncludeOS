@@ -37,7 +37,7 @@
 #endif
 
 extern "C" void* get_cpu_esp();
-//extern "C" void __libc_init_array();
+extern "C" void kernel_sanity_checks();
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t _ELF_START_;
@@ -95,10 +95,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   MYINFO("Stack: %p", get_cpu_esp());
   MYINFO("Boot magic: 0x%x, addr: 0x%x", boot_magic, boot_addr);
-
-  // Call global ctors
-  PROFILE("Global constructors");
-  //__libc_init_array();
 
   // PAGING //
   PROFILE("Enable paging");
@@ -158,9 +154,16 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   memmap.assign_range({heap_begin_, heap_range_max_,
         "Dynamic memory", heap_usage });
 
+#ifdef ARCH_x86_64
+  // memory protection on ELF symbols & strings
+  extern void elf_protect_symbol_areas();
+  elf_protect_symbol_areas();
+#endif
+
   MYINFO("Virtual memory map");
-  for (const auto &i : memmap)
-    INFO2("%s",i.second.to_string().c_str());
+  for (const auto& entry : memmap)
+      INFO2("%s", entry.second.to_string().c_str());
+  kernel_sanity_checks();
 
   PROFILE("Platform init");
   extern void __platform_init();

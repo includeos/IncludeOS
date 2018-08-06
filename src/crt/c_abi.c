@@ -22,22 +22,26 @@
 #define weak_alias(name, aliasname) _weak_alias (name, aliasname)
 #define _weak_alias(name, aliasname) \
     extern __typeof (name) aliasname __attribute__ ((weak, alias (#name)));
-#define HEAP_ALIGNMENT   63
 void* __dso_handle;
 
 uint32_t _move_symbols(void* sym_loc)
 {
+  // re-align new symbol area to a page boundary
+  const intptr_t align_size = 4096 - ((uintptr_t) sym_loc & 4095);
+  sym_loc = (void*) ((uintptr_t) sym_loc + align_size);
+
   extern char _ELF_SYM_START_;
-  /// read out size of symbols **before** moving them
+  // read out size of symbols **before** moving them
   extern int  _get_elf_section_datasize(const void*);
   int elfsym_size = _get_elf_section_datasize(&_ELF_SYM_START_);
-  elfsym_size = (elfsym_size < HEAP_ALIGNMENT) ? HEAP_ALIGNMENT : elfsym_size;
 
-  /// move ELF symbols to safe area
+  // move ELF symbols to safe area
   extern void _move_elf_syms_location(const void*, void*);
   _move_elf_syms_location(&_ELF_SYM_START_, sym_loc);
 
-  return elfsym_size;
+  // increment elfsym_size to next page boundary
+  if (elfsym_size & 4095) elfsym_size += 4096 - (elfsym_size & 4095);
+  return align_size + elfsym_size;
 }
 
 void* __memcpy_chk(void* dest, const void* src, size_t len, size_t destlen)
