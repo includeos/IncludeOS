@@ -153,7 +153,7 @@ Super_stack::Super_stack()
     INFO("Network", "No registered network interfaces found");
 
   for (size_t i = 0; i < hw::Devices::devices<hw::Nic>().size(); i++) {
-    ip4_stacks_.emplace_back(Stacks{});
+    ip4_stacks_.emplace_back();
     ip4_stacks_.back()[0] = nullptr;
   }
 }
