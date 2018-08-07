@@ -82,6 +82,7 @@ void OS::default_stdout(const char* str, const size_t len)
 
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
+  PROFILE("OS::start");
   OS::cmdline = Service::binary_name();
 
   // Initialize stdout handlers
@@ -89,7 +90,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
     OS::add_stdout(&OS::default_stdout);
   }
 
-  PROFILE("OS::start");
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
@@ -119,11 +119,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   // Give the rest of physical memory to heap
   OS::heap_max_ = OS::memory_end_ - 1;
-
-  /// STATMAN ///
-  PROFILE("Statman");
-  /// initialize on page 9, 8 pages in size
-  Statman::get().init(0x8000, 0x8000);
+  assert(heap_begin() != 0x0 and OS::heap_max_ != 0x0);
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
@@ -136,17 +132,15 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
    * TODO: Map binary parts using mem::map instead of assigning ranges directly
    * e.g. the .text segment is now mapped individually by __arch_init_paging
    */
-  memmap.assign_range({0x1000, 0x6fff, "Pagetables"});
+  memmap.assign_range({ 0x1000,  0x7fff, "Pagetables"});
   memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
 #elif defined(ARCH_i686)
   memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
 #endif
+  memmap.assign_range({(uintptr_t)&_end, heap_begin()-1,
+                       "Symbols & strings"});
 
-  assert(heap_begin() != 0x0 and OS::heap_max_ != 0x0);
-  // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end, heap_begin() - 1,
-        "Pre-heap"});
-
+  // heap (physical) area
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_);
 
@@ -154,16 +148,16 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   memmap.assign_range({heap_begin_, heap_range_max_,
         "Dynamic memory", heap_usage });
 
-#ifdef ARCH_x86_64
-  // memory protection on ELF symbols & strings
-  extern void elf_protect_symbol_areas();
-  elf_protect_symbol_areas();
-#endif
-
+  kernel_sanity_checks();
   MYINFO("Virtual memory map");
   for (const auto& entry : memmap)
       INFO2("%s", entry.second.to_string().c_str());
   kernel_sanity_checks();
+
+  /// STATMAN ///
+  PROFILE("Statman");
+  /// initialize on page 9, 8 pages in size
+  Statman::get().init(0x8000, 0x8000);
 
   PROFILE("Platform init");
   extern void __platform_init();

@@ -158,8 +158,8 @@ void OS::multiboot(uint32_t boot_addr)
       if (not (map.type & MULTIBOOT_MEMORY_AVAILABLE)) {
 
         if (util::bits::is_aligned<4_KiB>(map.addr)) {
-          os::mem::map({addr, addr, os::mem::Access::read | os::mem::Access::write, size},
-                       "Reserved (Multiboot)");
+          //os::mem::map({addr, addr, os::mem::Access::read | os::mem::Access::write, size},
+          //             "Reserved (Multiboot)");
           continue;
         }
 

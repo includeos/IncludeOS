@@ -40,6 +40,7 @@ using Flags = x86::paging::Flags;
 using Pml4  = x86::paging::Pml4;
 
 static void allow_executable();
+static void protect_pagetables_once();
 
 // must be public symbols because of a unittest
 extern char _TEXT_START_;
@@ -113,6 +114,11 @@ void __arch_init_paging() {
   Expects(! __pml4->has_flag((uintptr_t)__exec_begin, Flags::no_exec));
   Expects(__pml4->has_flag((uintptr_t)__exec_begin, Flags::present));
 
+  extern void elf_protect_symbol_areas();
+  elf_protect_symbol_areas();
+
+  // hack to prevent see who overwrites the pagetables
+  protect_pagetables_once();
 
   INFO2("* Passing page tables to CPU");
   extern void __x86_init_paging(void*);
@@ -377,4 +383,31 @@ void allow_executable()
   m.flags      = os::mem::Access::execute | os::mem::Access::read;
 
   os::mem::map(m, "ELF .text");
+}
+
+void protect_pagetables_once()
+{
+  struct ptinfo {
+    void*  addr;
+    size_t len;
+  };
+  std::vector<ptinfo> table_entries;
+
+  __pml4->traverse(
+    [&table_entries] (void* ptr, size_t len) {
+      table_entries.push_back({ptr, len});
+    });
+
+
+  for (auto it = table_entries.rbegin(); it != table_entries.rend(); ++it)
+  {
+    const auto& entry = *it;
+    const x86::paging::Map m {
+        (uintptr_t) entry.addr, x86::paging::any_addr,
+        x86::paging::Flags::present, static_cast<size_t>(entry.len)
+      };
+    assert(m);
+    MEM_PRINT("Protecting table: %p, size %zu\n", entry.addr, entry.len);
+    __pml4->map_r(m);
+  }
 }
