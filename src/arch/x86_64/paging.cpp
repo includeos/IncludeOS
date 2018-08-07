@@ -118,7 +118,7 @@ void __arch_init_paging() {
   elf_protect_symbol_areas();
 
   // hack to prevent see who overwrites the pagetables
-  protect_pagetables_once();
+  //protect_pagetables_once();
 
   INFO2("* Passing page tables to CPU");
   extern void __x86_init_paging(void*);

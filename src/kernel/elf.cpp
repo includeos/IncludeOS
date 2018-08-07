@@ -165,13 +165,13 @@ public:
     printf("ELF verification from %p to %p (Syms=%#x, Strs=%#x)\n",
             symtab.base, strtab.base + strtab.size, checksum_syms, checksum_strs);
     uint32_t csum =
-        crc32c(symtab.base, symtab.entries * sizeof(ElfSym));
+        crc32_fast(symtab.base, symtab.entries * sizeof(ElfSym));
     if (csum != checksum_syms) {
       printf("ELF symbol tables checksum failed! "
               "(%08x vs %08x)\n", csum, checksum_syms);
       return false;
     }
-    csum = crc32c(strtab.base, strtab.size);
+    csum = crc32_fast(strtab.base, strtab.size);
     if (csum != checksum_strs) {
       printf("ELF string tables checksum failed! "
               "(%08x vs %08x)\n", csum, checksum_strs);

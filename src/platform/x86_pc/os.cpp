@@ -148,11 +148,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   memmap.assign_range({heap_begin_, heap_range_max_,
         "Dynamic memory", heap_usage });
 
-  kernel_sanity_checks();
   MYINFO("Virtual memory map");
   for (const auto& entry : memmap)
       INFO2("%s", entry.second.to_string().c_str());
-  kernel_sanity_checks();
+  //kernel_sanity_checks();
 
   /// STATMAN ///
   PROFILE("Statman");
