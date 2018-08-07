@@ -46,7 +46,7 @@ namespace os::mem::buddy {
     left_used = 2,
     right_used = 4,
     left_full = 8,
-    right_full = 16,
+    right_full = 16
   };
 }
 
@@ -86,33 +86,62 @@ namespace os::mem::buddy {
       return ((pool_size / min_size) * 2) - 1;
     }
 
+    static constexpr Size_t overhead(Size_t pool_size) {
+      using namespace util;
+      auto nodes_size  = node_count(pool_size) * sizeof(Node_t);
+      auto overhead_   = bits::roundto(min_size, sizeof(Alloc) + nodes_size);
+      return overhead_;
+    }
 
-    /** Total allocatable memory in an allocator created in a bufsize buffer **/
+    /**
+     * Indicate if the allocator should manage a power of 2 larger than- or
+     * smaller than available memory.
+     **/
+    enum class Policy {
+      underbook, overbook
+    };
+
+    /**
+     * Total allocatable memory in an allocator created in a bufsize buffer.
+     * If the policy is overbook, we compute the next power of two above bufsize,
+     * otherwise the next power of two below.
+     **/
+    template <Policy P = Policy::overbook>
     static Size_t pool_size(Size_t bufsize){
       using namespace util;
 
-      // Find closest power of two below bufsize
-      auto pool_size_ = bits::keeplast(bufsize - 1);
-      auto unalloc    = bufsize - pool_size_;
-      auto node_size  = node_count(pool_size_) * sizeof(Node_t);
-      auto overhead   = bits::roundto(min_size, sizeof(Alloc) + node_size);
+      auto pool_size = 0;
+      // Find closest usable power of two depending on policy
+      if constexpr (P == Policy::overbook) {
+          return bits::next_pow2(bufsize);
+      } else {
+        pool_size = bits::keeplast(bufsize - 1); // -1 starts the recursion
+      }
+
+      auto unalloc   = bufsize - pool_size;
+      auto overhead  = Alloc::overhead(pool_size);
 
       // If bufsize == overhead + pow2, and overhead was too small to fit alloc
       // Try the next power of two recursively
       if(unalloc < overhead)
-        return pool_size(pool_size_);
+        return Alloc::pool_size(pool_size);
 
-      auto free      = bufsize - overhead;
-      auto pool_size = bits::keeplast(free);
-      return pool_size;
+      auto free = bufsize - overhead;
+      return bits::keeplast(free);
     }
 
 
     /** Required total bufsize to manage pool_size memory **/
+    template <Policy P = Policy::overbook>
     static Size_t required_size(Size_t pool_size) {
       using namespace util;
+
+      if constexpr (P == Policy::overbook) {
+          return overhead(pool_size);
+      }
+
       return bits::roundto(min_size, pool_size)
-        + bits::roundto(min_size, sizeof(Alloc) + node_count(pool_size) * sizeof(Node_t));
+        + overhead(pool_size);
     }
 
     Index_t node_count() const noexcept {
@@ -136,8 +165,13 @@ namespace os::mem::buddy {
       return min_size << (tree_height() - 1);
     }
 
+    /** Theoretically allocatable capacity */
     Size_t pool_size() const noexcept {
       return pool_size_;
+    }
+
+    Size_t bytes_unavailable() const noexcept {
+      return pool_size_ - (addr_limit_ - start_addr_);
     }
 
     Size_t bytes_used() const noexcept {
@@ -149,7 +183,7 @@ namespace os::mem::buddy {
     }
 
     Size_t bytes_free() const noexcept {
-      return pool_size_ - bytes_used_;
+      return pool_size_ - bytes_used_ - bytes_unavailable();
     }
 
     Size_t bytes_free_r() const noexcept {
@@ -186,7 +220,7 @@ namespace os::mem::buddy {
 
     Alloc(void* start, Size_t bufsize, Size_t pool_size)
       : nodes_{(Node_t*)start, node_count(pool_size)},
-        start_addr_{util::bits::roundto(min_size, (Addr_t)start + node_count(pool_size))},
+        start_addr_{util::bits::roundto(min_size, (Addr_t)start + node_count(pool_size))}, addr_limit_{reinterpret_cast<uintptr_t>(start) + bufsize},
         pool_size_{pool_size}
 
     {
@@ -194,11 +228,15 @@ namespace os::mem::buddy {
       Expects(bits::is_pow2(pool_size_));
       Expects(pool_size_ >= min_size);
       Expects(bits::is_aligned<min_size>(start_addr_));
-      Ensures(pool_size_ + nodes_.size() * sizeof(Node_t) <= bufsize);
+      Ensures(bufsize >= overhead(pool_size));
       // Initialize nodes
       memset(nodes_.data(), 0, nodes_.size() * sizeof(Node_arr::element_type));
     }
 
+    /**
+     * Create an allocator
+     **/
+    template <Policy P = Policy::overbook>
     static Alloc* create(void* addr, Size_t bufsize) {
       using namespace util;
       Size_t pool_size_ = pool_size(bufsize);
@@ -206,7 +244,9 @@ namespace os::mem::buddy {
 
       // Placement new an allocator on addr, passing in the rest of memory
       auto* alloc_begin = (char*)addr + sizeof(Alloc);
-      auto* alloc       = new (addr) Alloc(alloc_begin, bufsize, pool_size_);
+      auto* alloc       = new (addr) Alloc(alloc_begin,
+                                           bufsize + sizeof(Alloc),
+                                           pool_size_);
       return alloc;
     }
 
@@ -269,12 +309,19 @@ namespace os::mem::buddy {
       alloc_tracker(Track::start);
 
       auto res = node.allocate(sz);
+
+      // For overbooking allocator, allow unusable memory to gradually become
+      // marked as allocated, without actually handing it out.
+      if (UNLIKELY(res + size > addr_limit_))
+        return 0;
+
       if (res) bytes_used_ += sz;
       return reinterpret_cast<void*>(res);
     }
 
     void deallocate(void* addr, Size_t size) {
       auto sz = size ? chunksize(size) : 0;
+      Expects(reinterpret_cast<uintptr_t>(addr) + size < addr_limit_);
       auto res = root().deallocate((Addr_t)addr, sz);
       Expects(not size or res == sz);
       bytes_used_ -= res;
@@ -426,10 +473,6 @@ namespace os::mem::buddy {
 
         Expects(sz <= my_size_);
         Expects(! is_taken());
-
-        if (is_taken()) {
-          return 0;
-        }
 
         // Allocate self if possible
         if (sz == my_size_) {
@@ -656,6 +699,7 @@ namespace os::mem::buddy {
 
     Node_arr nodes_;
     const uintptr_t start_addr_ = 0;
+    const uintptr_t addr_limit_ = 0;
     const Size_t pool_size_ = min_size;
     Size_t bytes_used_ = 0;
   };
