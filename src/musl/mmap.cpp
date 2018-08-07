@@ -4,10 +4,16 @@
 #include <errno.h>
 #include <util/alloc_buddy.hpp>
 #include <os>
+#include <kernel/memory.hpp>
 #include <kprint>
 
-using Alloc = mem::buddy::Alloc<>;
+using Alloc = os::mem::Allocator;
 static Alloc* alloc;
+
+Alloc& os::mem::allocator() {
+  Expects(alloc);
+  return *alloc;
+}
 
 uintptr_t __init_mmap(uintptr_t addr_begin)
 {
@@ -39,7 +45,7 @@ size_t mmap_bytes_free() {
   return alloc->bytes_free();
 }
 
-uintptr_t mmap_allocation_end(){
+uintptr_t mmap_allocation_end() {
   return alloc->highest_used();
 }
 
@@ -56,7 +62,12 @@ static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
     return MAP_FAILED;
   }
 
-  return kalloc(length);
+  auto* res = kalloc(length);
+
+  if (UNLIKELY(res == nullptr))
+    return MAP_FAILED;
+
+  return res;
 }
 
 extern "C"
