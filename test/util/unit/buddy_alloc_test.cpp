@@ -24,13 +24,14 @@
 #endif
 
 struct Pool {
-  using Alloc = mem::buddy::Alloc<true>;
+  using Alloc = os::mem::buddy::Alloc<true>;
+  static constexpr auto P = Alloc::Policy::overbook;
 
   Pool(size_t s) : size{s} {
-    auto sz  = Alloc::required_size(s);
+    auto sz  = Alloc::max_bufsize(s);
     auto res = posix_memalign(&addr, Alloc::min_size, sz);
     Expects(res == 0);
-    alloc = Alloc::create(addr, sz);
+    alloc = Alloc::create<P>(addr, sz);
   }
 
   ~Pool() {
@@ -57,9 +58,15 @@ CASE("mem::buddy init allocator"){
 
   EXPECT(bool(alloc.root()));
 
-  EXPECT(alloc.root().height() == 1);
+  printf("Allocator \n");
+  printf("Node count: %i \n", alloc.node_count());
+  printf("Pool size : %i \n", alloc.pool_size());
 
-  EXPECT(alloc.root().is_parent());
+  //std::cout << alloc.summary() << "\n";
+
+  EXPECT(alloc.root().height() == 1);
+  EXPECT(not alloc.root().is_leaf());
+  EXPECT(not alloc.root().is_leaf());
   EXPECT(alloc.root().is_free());
   EXPECT(alloc.root().left().height() == 2);
   EXPECT(alloc.bytes_used() == 0);
@@ -196,8 +203,8 @@ CASE("mem::buddy random ordered allocation then deallocation"){
 
 struct Allocation {
   using Alloc  = Pool::Alloc;
-  using Addr_t = mem::buddy::Addr_t;
-  using Size_t = mem::buddy::Size_t;
+  using Addr_t = os::mem::buddy::Addr_t;
+  using Size_t = os::mem::buddy::Size_t;
 
   Addr_t addr = 0;
   Size_t size = 0;
@@ -247,7 +254,7 @@ CASE("mem::buddy random chaos with data verification"){
   auto& alloc = *pool.alloc;
 
   EXPECT(bool(alloc.root()));
-  EXPECT(alloc.bytes_free() == alloc.pool_size());
+  EXPECT(alloc.bytes_free() == alloc.capacity());
 
   std::vector<Allocation> allocs;
 
@@ -350,7 +357,7 @@ CASE("mem::buddy as std::allocator") {
   Pool pool(1_GiB);
   auto* resource = pool.alloc;
 
-  std::vector<int, mem::buddy::Allocator<int, Pool::Alloc>> numbers(resource);
+  std::vector<int, os::mem::buddy::Allocator<int, Pool::Alloc>> numbers(resource);
 
   EXPECT(resource->empty());
   numbers.push_back(10);

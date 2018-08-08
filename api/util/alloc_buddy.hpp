@@ -106,7 +106,7 @@ namespace os::mem::buddy {
      * If the policy is overbook, we compute the next power of two above bufsize,
      * otherwise the next power of two below.
      **/
-    template <Policy P = Policy::overbook>
+    template <Policy P>
     static Size_t pool_size(Size_t bufsize){
       using namespace util;
 
@@ -124,24 +124,33 @@ namespace os::mem::buddy {
       // If bufsize == overhead + pow2, and overhead was too small to fit alloc
       // Try the next power of two recursively
       if(unalloc < overhead)
-        return Alloc::pool_size(pool_size);
+        return Alloc::pool_size<P>(pool_size);
 
       auto free = bufsize - overhead;
       return bits::keeplast(free);
     }
 
 
-    /** Required total bufsize to manage pool_size memory **/
-    template <Policy P = Policy::overbook>
-    static Size_t required_size(Size_t pool_size) {
+   /**
+    * Maximum required bufsize to manage pool_size memory,
+    * assuming the whole pool will be available in memory.
+    **/
+    static Size_t max_bufsize(Size_t pool_size) {
+      using namespace util;
+      return bits::roundto(min_size, pool_size)
+        + overhead(pool_size);
+    }
+
+    /** Minimum total bufsize to manage pool_size memory **/
+    template <Policy P>
+    static Size_t min_bufsize(Size_t pool_size) {
       using namespace util;
 
       if constexpr (P == Policy::overbook) {
           return overhead(pool_size);
       }
 
-      return bits::roundto(min_size, pool_size)
-        + overhead(pool_size);
+      return max_bufsize(pool_size);
     }
 
     Index_t node_count() const noexcept {
@@ -170,8 +179,14 @@ namespace os::mem::buddy {
       return pool_size_;
     }
 
+    /** Total allocatable bytes, including allocated and free */
+    Size_t capacity() const noexcept {
+      return addr_limit_ - start_addr_;
+    }
+
+    /** Bytes unavailable in an overbooking allocator */
     Size_t bytes_unavailable() const noexcept {
-      return pool_size_ - (addr_limit_ - start_addr_);
+      return pool_size_ - capacity();
     }
 
     Size_t bytes_used() const noexcept {
@@ -239,13 +254,13 @@ namespace os::mem::buddy {
     template <Policy P = Policy::overbook>
     static Alloc* create(void* addr, Size_t bufsize) {
       using namespace util;
-      Size_t pool_size_ = pool_size(bufsize);
-      Expects(bufsize >= required_size(pool_size_));
+      Size_t pool_size_ = pool_size<P>(bufsize);
+      Expects(bufsize >= min_bufsize<P>(pool_size_));
 
       // Placement new an allocator on addr, passing in the rest of memory
       auto* alloc_begin = (char*)addr + sizeof(Alloc);
       auto* alloc       = new (addr) Alloc(alloc_begin,
-                                           bufsize + sizeof(Alloc),
+                                           bufsize - sizeof(Alloc),
                                            pool_size_);
       return alloc;
     }
