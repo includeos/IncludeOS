@@ -285,13 +285,13 @@ namespace fs {
     };
 
     Obs_ptr insert_parent(const std::string& token){
-      children_.emplace_back(new VFS_entry{token, "Directory"});
+      children_.emplace_back(std::make_unique<VFS_entry>(token, "Directory"));
       return children_.back().get();
     }
 
     template <typename T>
     VFS_entry& insert(const std::string& token, T& obj, const std::string& desc) {
-      children_.emplace_back(new VFS_entry(obj, token, desc));
+      children_.emplace_back(std::make_unique<VFS_entry>(obj, token, desc));
       return *children_.back();
     }
 
