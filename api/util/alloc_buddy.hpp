@@ -113,10 +113,15 @@ namespace os::mem::buddy {
       auto pool_size = 0;
       // Find closest usable power of two depending on policy
       if constexpr (P == Policy::overbook) {
-          return bits::next_pow2(bufsize);
-      } else {
-        pool_size = bits::keeplast(bufsize - 1); // -1 starts the recursion
+          auto pow2 = bits::next_pow2(bufsize);
+
+          // On 32 bit we might easily overflow
+          if (pow2 > bufsize)
+            return pow2;
+
       }
+
+      pool_size = bits::keeplast(bufsize - 1); // -1 starts the recursion
 
       auto unalloc   = bufsize - pool_size;
       auto overhead  = Alloc::overhead(pool_size);
@@ -255,8 +260,8 @@ namespace os::mem::buddy {
     static Alloc* create(void* addr, Size_t bufsize) {
       using namespace util;
       Size_t pool_size_ = pool_size<P>(bufsize);
+      Expects(pool_size_ >= min_size);
       Expects(bufsize >= min_bufsize<P>(pool_size_));
-
       // Placement new an allocator on addr, passing in the rest of memory
       auto* alloc_begin = (char*)addr + sizeof(Alloc);
       auto* alloc       = new (addr) Alloc(alloc_begin,
