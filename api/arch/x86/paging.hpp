@@ -755,7 +755,7 @@ public:
     {
       auto* ent = entry(req.lin + res.size);
 
-      Map sub {req.lin + res.size, req.phys + res.size, req.flags,
+      Map sub {req.lin + res.size, req.phys == any_addr ? any_addr : req.phys + res.size, req.flags,
           req.size - res.size, req.page_sizes};
 
       res += map_entry_r(ent, sub);
