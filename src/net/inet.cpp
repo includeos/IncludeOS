@@ -26,16 +26,12 @@
 using namespace net;
 
 Inet::Inet(hw::Nic& nic)
-  : ip4_addr_(IP4::ADDR_ANY),
-    netmask_(IP4::ADDR_ANY),
-    gateway_(IP4::ADDR_ANY),
-    dns_server_(IP4::ADDR_ANY),
-    nic_(nic), arp_(*this), ndp_(*this), ip4_(*this), ip6_(*this),
-    icmp_(*this), icmp6_(*this), udp_(*this), tcp_(*this), dns_(*this),
-    domain_name_{},
-    MTU_(nic.MTU())
+  : dns_server_(IP4::ADDR_ANY),
+    nic_(nic), arp_(*this), ndp_(*this), mld_(*this), mld2_(*this), ip4_(*this),
+    ip6_(*this), icmp_(*this), icmp6_(*this), udp_(*this), tcp_(*this),
+    dns_(*this), domain_name_{}, MTU_(nic.MTU())
 {
-  static_assert(sizeof(IP4::addr) == 4, "IPv4 addresses must be 32-bits");
+  static_assert(sizeof(ip4::Addr) == 4, "IPv4 addresses must be 32-bits");
 
   /** SMP related **/
   this->cpu_id = SMP::cpu_id();
@@ -119,11 +115,6 @@ Inet::Inet(hw::Nic& nic)
 
   // NDP -> Link
   ndp_.set_linklayer_out(link_top);
-
-  // UDP6 -> IP6
-  // udp6->set_network_out(ip6_top);
-  // TCP6 -> IP6
-  // tcp6->set_network_out(ip6_top);
 
   // Arp -> Link
   assert(link_top);
@@ -231,19 +222,19 @@ void Inet::autoconf_v6(int retries, slaac_timeout_func handler,
       slaac_->on_config(handler);
 }
 
-void Inet::network_config(IP4::addr addr,
-                           IP4::addr nmask,
-                           IP4::addr gateway,
-                           IP4::addr dns)
+void Inet::network_config(ip4::Addr addr,
+                           ip4::Addr nmask,
+                           ip4::Addr gw,
+                           ip4::Addr dns)
 {
-  this->ip4_addr_   = addr;
-  this->netmask_    = nmask;
-  this->gateway_    = gateway;
-  this->dns_server_ = (dns == IP4::ADDR_ANY) ? gateway : dns;
+  ip_obj().set_addr(addr);
+  ip_obj().set_netmask(nmask);
+  ip_obj().set_gateway(gw);
+  this->dns_server_ = (dns == IP4::ADDR_ANY) ? gw : dns;
   INFO("Inet", "Network configured (%s)", nic_.mac().to_string().c_str());
-  INFO2("IP: \t\t%s", ip4_addr_.str().c_str());
-  INFO2("Netmask: \t%s", netmask_.str().c_str());
-  INFO2("Gateway: \t%s", gateway_.str().c_str());
+  INFO2("IP: \t\t%s", ip_addr().str().c_str());
+  INFO2("Netmask: \t%s", netmask().str().c_str());
+  INFO2("Gateway: \t%s", gateway().str().c_str());
   INFO2("DNS Server: \t%s", dns_server_.str().c_str());
 
   for(auto& handler : configured_handlers_)
@@ -257,13 +248,13 @@ void Inet::network_config6(IP6::addr addr6,
                            IP6::addr gateway6)
 {
 
-  this->ip6_addr_    = std::move(addr6);
-  this->ip6_prefix_  = prefix6;
-  this->ip6_gateway_ = std::move(gateway6);
+  ndp().set_static_addr(std::move(addr6));
+  ndp().set_static_prefix(prefix6);
+  ndp().set_static_gateway(std::move(gateway6));
   INFO("Inet6", "Network configured (%s)", nic_.mac().to_string().c_str());
-  INFO2("IP6: \t\t%s", ip6_addr_.to_string().c_str());
-  INFO2("Prefix: \t%d", ip6_prefix_);
-  INFO2("Gateway: \t%s", ip6_gateway_.str().c_str());
+  INFO2("IP6: \t\t%s", ndp().static_ip().to_string().c_str());
+  INFO2("Prefix: \t%d", ndp().static_prefix());
+  INFO2("Gateway: \t%s", ndp().static_gateway().str().c_str());
 
   for(auto& handler : configured_handlers_)
     handler(*this);
@@ -332,7 +323,7 @@ void Inet::move_to_this_cpu()
   nic_.move_to_this_cpu();
 }
 
-void Inet::cache_link_addr(IP4::addr ip, MAC::Addr mac)
+void Inet::cache_link_addr(ip4::Addr ip, MAC::Addr mac)
 { arp_.cache(ip, mac); }
 
 void Inet::flush_link_cache()
@@ -355,7 +346,7 @@ void Inet::resolve(const std::string& hostname,
 }
 
 void Inet::resolve(const std::string& hostname,
-      IP4::addr         server,
+      ip4::Addr         server,
       resolve_func      func,
       bool              force)
 {

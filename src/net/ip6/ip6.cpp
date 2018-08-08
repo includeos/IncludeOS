@@ -31,8 +31,8 @@
 
 namespace net
 {
-  const IP6::addr IP6::ADDR_ANY(0, 0, 0, 0);
-  const IP6::addr IP6::ADDR_LOOPBACK(0, 0, 0, 1);
+  const ip6::Addr IP6::ADDR_ANY(0, 0, 0, 0);
+  const ip6::Addr IP6::ADDR_LOOPBACK(0, 0, 0, 1);
 
   IP6::IP6(Stack& inet) noexcept :
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip6.packets_rx").get_uint64()},

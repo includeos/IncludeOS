@@ -34,8 +34,6 @@ static const int NEIGH_ADV_ROUTER   = 0x1;
 static const int NEIGH_ADV_SOL      = 0x2;
 static const int NEIGH_ADV_OVERRIDE = 0x4;
 
-  class NdpPacket;
-
   enum {
       ND_OPT_PREFIX_INFO_END = 0,
       ND_OPT_SOURCE_LL_ADDR = 1, /* RFC2461 */
@@ -189,14 +187,14 @@ static const int NEIGH_ADV_OVERRIDE = 0x4;
     struct RouterAdv
     {
       uint32_t reachable_time_;
-      uint32_t retrans_timer_;
+      uint32_t retrans_time_;
       uint8_t  options[0];
 
       uint32_t reachable_time()
       { return reachable_time_; }
 
-      uint32_t retrans_timer()
-      { return retrans_timer_; }
+      uint32_t retrans_time()
+      { return retrans_time_; }
 
       uint16_t option_offset()
       { return 8; }
@@ -206,8 +204,14 @@ static const int NEIGH_ADV_OVERRIDE = 0x4;
     struct RouterRedirect
     {
       ip6::Addr target_;
-      ip6::Addr dest;
+      ip6::Addr dest_;
       uint8_t  options[0];
+
+      ip6::Addr target()
+      { return target_; }
+
+      ip6::Addr dest()
+      { return dest_; }
 
       uint16_t option_offset()
       { return IP6_ADDR_BYTES * 2; }
@@ -246,7 +250,7 @@ static const int NEIGH_ADV_OVERRIDE = 0x4;
   public:
     NdpPacket(icmp6::Packet& icmp6);
 
-    void parse(icmp6::Type type);
+    void parse_options(icmp6::Type type);
     bool parse_prefix(Pinfo_handler autoconf_cb,
       Pinfo_handler onlink_cb);
 
