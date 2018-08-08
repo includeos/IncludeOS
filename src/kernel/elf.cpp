@@ -162,6 +162,8 @@ public:
   }
 
   bool verify_symbols() const {
+    printf("ELF verification from %p to %p (Syms=%#x, Strs=%#x)\n",
+            symtab.base, strtab.base + strtab.size, checksum_syms, checksum_strs);
     uint32_t csum =
         crc32_fast(symtab.base, symtab.entries * sizeof(ElfSym));
     if (csum != checksum_syms) {
@@ -193,8 +195,9 @@ private:
 
   SymTab    symtab;
   StrTab    strtab;
-  uint32_t  checksum_syms;
-  uint32_t  checksum_strs;
+  uint32_t  checksum_syms = 0;
+  uint32_t  checksum_strs = 0;
+  friend void elf_protect_symbol_areas();
 };
 static ElfTables parser;
 
@@ -362,12 +365,6 @@ int _get_elf_section_datasize(const void* location)
   return hdr.symtab_entries * sizeof(ElfSym) + hdr.strtab_size;
 }
 
-// we unfortunately cannot call crc32_fast directly, as it changes .bss
-extern uint32_t crc32c_sw(uint32_t, const char*, size_t);
-inline uint32_t crc32c(const void* buffer, size_t len) {
-  return ~crc32c_sw(0xFFFFFFFF, (const char*) buffer, len);
-}
-
 extern "C"
 void _move_elf_syms_location(const void* location, void* new_location)
 {
@@ -437,3 +434,17 @@ void _init_elf_parser()
     parser.set(nullptr, 0, nullptr, 0,  0, 0);
   }
 }
+
+#ifdef ARCH_x86_64
+#include <kernel/memory.hpp>
+void elf_protect_symbol_areas()
+{
+  char* src = (char*) parser.symtab.base;
+  ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
+  if (size & 4095) size += 4096 - (size & 4095);
+  INFO2("* Protecting syms %p to %p (size %#zx)",
+        src, &parser.strtab.base[parser.strtab.size], size);
+
+  //os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
+}
+#endif

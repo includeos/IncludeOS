@@ -68,6 +68,7 @@ static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
     return MAP_FAILED;
 
   return res;
+
 }
 
 extern "C"

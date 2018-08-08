@@ -127,7 +127,7 @@ public:
     __arch_init_paging();
   }
 
-private:
+
   static void clear_paging() {
     using namespace x86::paging;
     MYINFO("Clearing default paging \n");
@@ -372,7 +372,6 @@ SETUP ("Assuming a default page table setup")
     EXPECT(sizes_pre[1] >= sizes_post[1]); // Is now likely 2_MiB or 4_KiB
     EXPECT(sizes_pre[2] >  sizes_post[2]); // Must be the new size
     EXPECT(sizes_pre[3] == sizes_post[3]); // Can't have changed, 1 GiB above
-
   }
 }
 }
@@ -380,6 +379,7 @@ SETUP ("Assuming a default page table setup")
 CASE("os::mem::protect try to break stuff"){
   using namespace util::literals;
   auto init_access = mem::Access::none;
+  Default_paging::clear_paging();
 
   EXPECT(__pml4 == nullptr);
   __pml4 = new x86::paging::Pml4(0);
@@ -431,5 +431,67 @@ CASE("os::mem::protect try to break stuff"){
     EXPECT(__pml4->bytes_allocated() == initial_use);
   }
   MYINFO("Allocated bytes at end: %zi \n", __pml4->bytes_allocated());
-  delete __pml4;
+  Default_paging::clear_paging();
+}
+
+
+CASE("os::mem::protect verify consistency"){
+  using namespace util::literals;
+  auto init_access = mem::Access::none;
+
+  if (__pml4 != nullptr) {
+    printf("NOT NULL\n");
+  }
+  EXPECT(__pml4 == nullptr);
+
+  __pml4 = new x86::paging::Pml4(0);
+  EXPECT(__pml4->is_empty());
+
+  auto initial_use = __pml4->bytes_allocated();
+  MYINFO("Initial memory use: %zi \n", initial_use);
+
+
+  mem::Map req {6_GiB, 3_GiB, mem::Access::read | mem::Access::write, 300_MiB};
+  auto res = mem::map(req);
+  EXPECT(res);
+  EXPECT(res.flags == (mem::Access::write | mem::Access::read));
+  EXPECT(res.lin == req.lin);
+  EXPECT(res.phys == req.phys);
+
+  auto prot_offs  = 1_MiB;
+  auto prot_begin = 6_GiB + prot_offs;
+  auto prot_size  = 1043_KiB;
+  auto diff_phys  = req.lin - req.phys;
+  auto new_flags  = mem::Access::read;
+
+  // Write-protect
+  auto prot = mem::protect(prot_begin, prot_size, new_flags);
+  EXPECT(prot);
+  EXPECT(prot.flags == new_flags);
+
+  // Verify each page
+  for (auto i = prot_begin; i < prot_begin + prot_size; i += mem::min_psize()) {
+    EXPECT(mem::virt_to_phys(i) == i - diff_phys);
+    auto flags = mem::flags(i);
+    EXPECT(flags == new_flags);
+  }
+
+  auto memuse_after_prot = __pml4->bytes_allocated();
+  EXPECT(__pml4->bytes_allocated() > initial_use);
+
+  // Protect with different flags
+  new_flags = mem::Access::read | mem::Access::write | mem::Access::execute;
+  auto prot2 = mem::protect(prot_begin, prot_size, new_flags);
+  EXPECT(prot2);
+
+  // Verify each page
+  for (auto i = prot_begin; i < prot_begin + prot_size; i += mem::min_psize()) {
+    EXPECT(mem::virt_to_phys(i) == i - diff_phys);
+    auto flags = mem::flags(i);
+    EXPECT(flags == new_flags);
+  }
+
+  EXPECT(__pml4->bytes_allocated() == memuse_after_prot);
+
+  Default_paging::clear_paging();
 }

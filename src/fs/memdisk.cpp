@@ -32,7 +32,7 @@ namespace fs {
   MemDisk::MemDisk() noexcept
     : MemDisk(&_DISK_START_, &_DISK_END_)
   {
-    INFO("Memdisk", "Initializing");
+    INFO("Memdisk", "Initializing start=%p end=%p", image_start_, image_end_);
   }
 
   MemDisk::MemDisk(const char* start, const char* end) noexcept

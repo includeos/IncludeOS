@@ -20,13 +20,15 @@ set(SOURCES
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
   set(DRIVERS
-      solo5net     # Virtio networking
+      solo5net
+      #solo5blk
     )
 else()
   set(DRIVERS
     virtionet
     vmxnet3
     e1000
+    boot_logger
   )
 endif()
 

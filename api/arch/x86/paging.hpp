@@ -20,6 +20,7 @@
 
 #include <common>
 #include <array>
+#include <delegate>
 #include <util/bitops.hpp>
 #include <util/units.hpp>
 #include <kernel/memory.hpp>
@@ -754,7 +755,7 @@ public:
     {
       auto* ent = entry(req.lin + res.size);
 
-      Map sub {req.lin + res.size, req.phys + res.size, req.flags,
+      Map sub {req.lin + res.size, req.phys == any_addr ? any_addr : req.phys + res.size, req.flags,
           req.size - res.size, req.page_sizes};
 
       res += map_entry_r(ent, sub);
@@ -805,6 +806,16 @@ public:
   uintptr_t& at(int i)
   { return tbl_.at(i); }
 
+
+  void traverse(delegate<void(void*, size_t)> callback)
+  {
+    callback(this, sizeof(Page_table));
+    for (auto& ent : tbl_)
+      if(is_page_dir(ent)) {
+        auto* pdir = page_dir(&ent);
+        pdir->traverse(callback);
+      }
+  }
 
 private:
   alignas(Arch::min_pagesize) std::array<uintptr_t, Arch::table_size> tbl_ {};
@@ -909,6 +920,8 @@ inline Map Pml1::map_r(Map req)
 /** Invalidate page (e.g. flush TLB entry) **/
 void invalidate(void *pageaddr);
 
+template <>
+inline void Pml1::traverse(delegate<void(void*, size_t)>) {}
 
 } // namespace paging
 } // namespace x86
