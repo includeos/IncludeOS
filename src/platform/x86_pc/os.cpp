@@ -21,6 +21,7 @@
 #include <boot/multiboot.h>
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
+#include <kernel/memory.hpp>
 #include <kprint>
 #include <service>
 #include <statman>
@@ -124,34 +125,34 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();
-  MYINFO("Assigning fixed memory ranges (Memory map)");
+  INFO2("Assigning fixed memory ranges (Memory map)");
+  // protect symbols early on (the calculation is complex so not doing it here)
+  memmap.assign_range({(uintptr_t)&_end, heap_begin()-1,
+                       "Symbols & strings"});
+  extern void elf_protect_symbol_areas();
+  elf_protect_symbol_areas();
 
   memmap.assign_range({0x8000, 0xffff, "Statman"});
 #if defined(ARCH_x86_64)
-  /**
-   * TODO: Map binary parts using mem::map instead of assigning ranges directly
-   * e.g. the .text segment is now mapped individually by __arch_init_paging
-   */
-  memmap.assign_range({ 0x1000,  0x7fff, "Pagetables"});
+  // protect the basic pagetable used by LiveUpdate and any other
+  // systems that need to exit long/protected mode
+  os::mem::map({0x1000, 0x1000, os::mem::Access::read, 0x7000}, "Page tables");
   memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
 #elif defined(ARCH_i686)
   memmap.assign_range({0x10000, 0x9d3ff, "Stack"});
 #endif
-  memmap.assign_range({(uintptr_t)&_end, heap_begin()-1,
-                       "Symbols & strings"});
 
   // heap (physical) area
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_);
 
-  MYINFO("Assigning heap 0x%zx -> 0x%zx", heap_begin_, heap_range_max_);
+  INFO2("* Assigning heap 0x%zx -> 0x%zx", heap_begin_, heap_range_max_);
   memmap.assign_range({heap_begin_, heap_range_max_,
         "Dynamic memory", heap_usage });
 
   MYINFO("Virtual memory map");
   for (const auto& entry : memmap)
       INFO2("%s", entry.second.to_string().c_str());
-  //kernel_sanity_checks();
 
   /// STATMAN ///
   PROFILE("Statman");

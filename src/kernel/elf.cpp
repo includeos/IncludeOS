@@ -442,7 +442,7 @@ void elf_protect_symbol_areas()
   char* src = (char*) parser.symtab.base;
   ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
   if (size & 4095) size += 4096 - (size & 4095);
-  INFO2("* Protecting syms %p to %p (size %#zx)\n",
+  INFO2("* Protecting syms %p to %p (size %#zx)",
         src, &parser.strtab.base[parser.strtab.size], size);
 
   //os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
