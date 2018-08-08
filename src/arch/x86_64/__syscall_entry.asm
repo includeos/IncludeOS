@@ -61,12 +61,10 @@ extern kprintf
 section .bss
 temp_stack:
     resb stack_size
-
-section .data:
 temp_old_stack:
-    dq 0
+    resq 1
 temp_rcx:
-    dq 0
+    resq 1
 
 section .text
 __syscall_entry:

@@ -93,4 +93,11 @@ inline uint32_t crc32(const void* buf, size_t len)
 /** Intel (iSCSI) aka CRC32-C with hardware support **/
 extern uint32_t crc32_fast(const void* buf, size_t len);
 
+/** Software-only CRC32-C **/
+inline uint32_t crc32c(const void* buf, size_t len)
+{
+  extern uint32_t crc32c_sw(uint32_t, const char*, size_t);
+  return ~crc32c_sw(0xFFFFFFFF, (const char*) buf, len);
+}
+
 #endif

@@ -55,7 +55,9 @@ static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
     return MAP_FAILED;
   }
 
-  return kalloc(length);
+  auto* ptr = kalloc(length);
+  if (ptr == nullptr) return MAP_FAILED;
+  return ptr;
 }
 
 extern "C"
