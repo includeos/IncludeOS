@@ -194,6 +194,9 @@ set(OS_SOURCES
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp
   ${SRC}/net/dns/dns.cpp
+  ${SRC}/net/dns/query.cpp
+  ${SRC}/net/dns/record.cpp
+  ${SRC}/net/dns/response.cpp
   ${SRC}/net/ethernet/ethernet.cpp
   ${SRC}/net/http/basic_client.cpp
   ${SRC}/net/http/client_connection.cpp

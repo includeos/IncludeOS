@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2018 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,8 +54,6 @@
 #include <string>
 #include <vector>
 
-namespace net
-{
 #define DNS_QR_QUERY     0
 #define DNS_QR_RESPONSE  1
 
@@ -74,141 +72,78 @@ namespace net
 
 #define DNS_Z_RESERVED   0
 
+namespace net::dns {
 
-  class DNS
+  using id_t = uint16_t;
+
+  static constexpr uint16_t SERVICE_PORT = 53;
+
+  enum class Record_type : uint16_t
   {
-  public:
-    static const unsigned short DNS_SERVICE_PORT = 53;
+    A     = 1,
+    NS    = 2,
+    ALIAS = 5,
+    AAAA  = 28
+  };
 
-    struct header
-    {
-      unsigned short id;       // identification number
-      unsigned char rd :1;     // recursion desired
-      unsigned char tc :1;     // truncated message
-      unsigned char aa :1;     // authoritive answer
-      unsigned char opcode :4; // purpose of message
-      unsigned char qr :1;     // query/response flag
-      unsigned char rcode :4;  // response code
-      unsigned char cd :1;     // checking disabled
-      unsigned char ad :1;     // authenticated data
-      unsigned char z :1;      // reserved, set to 0
-      unsigned char ra :1;     // recursion available
-      unsigned short q_count;    // number of question entries
-      unsigned short ans_count;  // number of answer entries
-      unsigned short auth_count; // number of authority entries
-      unsigned short add_count;  // number of resource entries
-    } __attribute__ ((packed));
+  enum class Class : uint16_t
+  {
+    INET = 1
+  };
 
-    struct question
-    {
-      unsigned short qtype;
-      unsigned short qclass;
-    };
+  struct Header
+  {
+    unsigned short id;       // identification number
+    unsigned char rd :1;     // recursion desired
+    unsigned char tc :1;     // truncated message
+    unsigned char aa :1;     // authoritive answer
+    unsigned char opcode :4; // purpose of message
+    unsigned char qr :1;     // query/response flag
+    unsigned char rcode :4;  // response code
+    unsigned char cd :1;     // checking disabled
+    unsigned char ad :1;     // authenticated data
+    unsigned char z :1;      // reserved, set to 0
+    unsigned char ra :1;     // recursion available
+    unsigned short q_count;    // number of question entries
+    unsigned short ans_count;  // number of answer entries
+    unsigned short auth_count; // number of authority entries
+    unsigned short add_count;  // number of resource entries
+  } __attribute__ ((packed));
+
+  struct Question
+  {
+    unsigned short qtype;
+    unsigned short qclass;
+  } __attribute__ ((packed));
+
+  enum class Response_code : uint8_t
+  {
+    NO_ERROR     = 0,
+    FORMAT_ERROR = 1,
+    SERVER_FAIL  = 2,
+    NAME_ERROR   = 3,
+    NOT_IMPL     = 4, // unimplemented feature
+    OP_REFUSED   = 5, // for political reasons
+  };
 
 #pragma pack(push, 1)
-    struct rr_data // resource record data
-    {
-      unsigned short type;
-      unsigned short _class;
-      unsigned int   ttl;
-      unsigned short data_len;
-    };
+  struct rr_data // resource record data
+  {
+    unsigned short type;
+    unsigned short _class;
+    unsigned int   ttl;
+    unsigned short data_len;
+  };
 #pragma pack(pop)
 
-    enum resp_code
-      {
-        NO_ERROR     = 0,
-        FORMAT_ERROR = 1,
-        SERVER_FAIL  = 2,
-        NAME_ERROR   = 3,
-        NOT_IMPL     = 4, // unimplemented feature
-        OP_REFUSED   = 5, // for political reasons
-      };
 
-    typedef delegate<std::vector<ip4::Addr>* (const std::string&)> lookup_func;
+  // convert www.google.com to 3www6google3com
+  int encode_name(std::string name, char* dst);
+  // convert 3www6google3com to www.google.com
+  //int decode_name(...);
 
-    static int createResponse(header& hdr, lookup_func func);
-
-    static std::string question_string(unsigned short type)
-    {
-      switch (type)
-        {
-        case DNS_TYPE_A:
-          return "IPv4 address";
-        case DNS_TYPE_ALIAS:
-          return "Alias";
-        case DNS_TYPE_MX:
-          return "Mail exchange";
-        case DNS_TYPE_NS:
-          return "Name server";
-        default:
-          return "FIXME DNS::question_string(type = " + std::to_string(type) + ")";
-        }
-    }
-
-    class Request
-    {
-    public:
-      using id_t = unsigned short;
-      int  create(char* buffer, const std::string& hostname);
-      bool parseResponse(const char* buffer);
-      void print(const char* buffer) const;
-
-      const std::string& hostname() const
-      {
-        return this->hostname_;
-      }
-
-      ip4::Addr getFirstIP4() const
-      {
-        for(auto&& ans : answers)
-        {
-          if(ans.is_type(DNS_TYPE_A))
-            return ans.getIP4();
-        }
-
-        return ip4::Addr::addr_any;
-      }
-
-      id_t get_id() const
-      { return id; }
-
-    private:
-      struct rr_t // resource record
-      {
-        rr_t(const char*& reader, const char* buffer);
-
-        std::string name;
-        std::string rdata;
-        rr_data resource;
-
-        ip4::Addr getIP4() const;
-        void      print()  const;
-
-        bool is_type(int type) const
-        { return ntohs(resource.type) == type; }
-
-      private:
-        // decompress names in 3www6google3com format
-        std::string readName(const char* reader, const char* buffer, int& count);
-      };
-
-      unsigned short generateID()
-      {
-        static unsigned short id = 0;
-        return ++id;
-      }
-      void dnsNameFormat(char* dns);
-
-      unsigned short id;
-      std::string    hostname_;
-
-      std::vector<rr_t> answers;
-      std::vector<rr_t> auth;
-      std::vector<rr_t> addit;
-    };
-
-  };
+  typedef delegate<std::vector<ip4::Addr>* (const std::string&)> lookup_func;
+  int create_response(Header& hdr, lookup_func func);
 
 }
 

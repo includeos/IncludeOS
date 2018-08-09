@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2018 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,18 +26,9 @@ namespace net
 
   DNSClient::DNSClient(Stack& stack)
     : stack_{stack},
-      socket_(nullptr),
       cache_ttl_{DEFAULT_CACHE_TTL},
       flush_timer_{{this, &DNSClient::flush_expired}}
   {
-  }
-
-  void DNSClient::bind_socket()
-  {
-    Expects(socket_ == nullptr);
-    socket_ = &stack_.udp().bind();
-    // Parse received data on this socket as Responses
-    socket_->on_read({this, &DNSClient::receive_response});
   }
 
   void DNSClient::resolve(Address dns_server,
@@ -45,9 +36,6 @@ namespace net
                           Resolve_handler func,
                           Timer::duration_t timeout, bool force)
   {
-    if(UNLIKELY(socket_ == nullptr))
-      bind_socket();
-
     if(not is_FQDN(hostname) and not stack_.domain_name().empty())
     {
       hostname.append(".").append(stack_.domain_name());
@@ -62,32 +50,80 @@ namespace net
         return;
       }
     }
-    // create DNS request
-    DNS::Request request;
-    std::array<char, 256> buf{};
-    size_t len  = request.create(buf.data(), hostname);
+    // Make sure we actually can bind to a socket
+    auto& socket = stack_.udp().bind();
 
-    auto key = request.get_id();
+    // Create our query
+    dns::Query query{std::move(hostname), dns::Record_type::A};
 
     // store the request for later match
-    requests_.emplace(std::piecewise_construct,
-      std::forward_as_tuple(key),
-      std::forward_as_tuple(std::move(request), std::move(func), timeout));
+    auto emp = requests_.emplace(std::piecewise_construct,
+      std::forward_as_tuple(query.id),
+      std::forward_as_tuple(*this, socket, std::move(query), std::move(func)));
 
-    // send request to DNS server
-    socket_->sendto(dns_server, DNS::DNS_SERVICE_PORT, buf.data(), len, nullptr,
-      [this, key] (const Error& err)
+    Ensures(emp.second && "Unable to insert");
+    auto& req = emp.first->second;
+    req.resolve(dns_server, timeout);
+  }
+
+  DNSClient::Request::Request(DNSClient& cli, udp::Socket& sock,
+                              dns::Query q, Resolve_handler cb)
+    : client{cli},
+      query{std::move(q)},
+      response{nullptr},
+      socket{sock},
+      callback{std::move(cb)},
+      timer({this, &Request::finish})
+  {
+    socket.on_read({this, &DNSClient::Request::parse_response});
+  }
+
+  void DNSClient::Request::resolve(net::Addr server, Timer::duration_t timeout)
+  {
+    std::array<char, 256> buf;
+    size_t len = query.write(buf.data());
+
+    socket.sendto(server, dns::SERVICE_PORT, buf.data(), len, nullptr,
+      {this, &DNSClient::Request::handle_error});
+
+    timer.start(timeout);
+  }
+
+  void DNSClient::Request::parse_response(Addr, UDP::port_t, const char* data, size_t len)
+  {
+    const auto& reply = *(dns::Header*) data;
+
+    Error err;
+    // this is a response to our query
+    if(query.id == ntohs(reply.id))
     {
-      // If an error is not received, this will never execute (Error is just erased from the map
-      // without calling the callback)
+      // TODO: Validate
 
-      // Find the request and remove it since an error occurred
-      auto it = requests_.find(key);
-      if (it != requests_.end()) {
-        it->second.callback(IP4::ADDR_ANY, err);
-        requests_.erase(it);
-      }
-    });
+      response.reset(new dns::Response(data));
+
+      // TODO: Cache
+      /*if(client.cache_ttl_ > std::chrono::seconds::zero())
+      {
+        add_cache_entry(...);
+      }*/
+    }
+
+    finish(err);
+  }
+
+  void DNSClient::Request::finish(const Error& err)
+  {
+    ip4::Addr addr = (response) ? response->get_first_ipv4() : 0;
+    callback(addr, err);
+
+    auto erased = client.requests_.erase(query.id);
+    Ensures(erased == 1);
+  }
+
+  void DNSClient::Request::handle_error(const Error& err)
+  {
+    // This will call the user callback - do we want that?
+    finish(err);
   }
 
   void DNSClient::flush_cache()
@@ -95,43 +131,6 @@ namespace net
     cache_.clear();
 
     flush_timer_.stop();
-  }
-
-  void DNSClient::receive_response(Address, UDP::port_t, const char* data, size_t)
-  {
-    const auto& reply = *(DNS::header*) data;
-    // match the transactions id on the reply with the ones in our map
-    auto it = requests_.find(ntohs(reply.id));
-    // if this is match
-    if(it != requests_.end())
-    {
-      auto& req = it->second;
-      // TODO: do some necessary validation ... (truncate etc?)
-
-      auto& dns_req = req.request;
-      // parse request
-      dns_req.parseResponse(data);
-
-      // cache the response for 60 seconds
-      if(cache_ttl_ > std::chrono::seconds::zero())
-      {
-        const auto ip = dns_req.getFirstIP4();
-
-        // online cache if ip was resolved
-        if(ip != 0)
-          add_cache_entry(dns_req.hostname(), ip, cache_ttl_);
-      }
-
-      // fire onResolve event
-      req.finish();
-
-      // the request is finished, removed it from our map
-      requests_.erase(it);
-    }
-    else
-    {
-      debug("<DNSClient::receive_response> Cannot find matching DNS Request with transid=%u\n", ntohs(reply.id));
-    }
   }
 
   void DNSClient::add_cache_entry(const Hostname& hostname, Address addr, std::chrono::seconds ttl)
@@ -164,12 +163,4 @@ namespace net
       flush_timer_.start(DEFAULT_FLUSH_INTERVAL);
   }
 
-  DNSClient::~DNSClient()
-  {
-    if(socket_ != nullptr)
-    {
-      socket_->close();
-      socket_ = nullptr;
-    }
-  }
 }
