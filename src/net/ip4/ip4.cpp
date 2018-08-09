@@ -31,10 +31,13 @@
 
 namespace net {
 
-  const IP4::addr IP4::ADDR_ANY(0);
-  const IP4::addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
+  const ip4::Addr IP4::ADDR_ANY(0);
+  const ip4::Addr IP4::ADDR_BCAST(0xff,0xff,0xff,0xff);
 
   IP4::IP4(Stack& inet) noexcept :
+  addr_             {IP4::ADDR_ANY},
+  netmask_          {IP4::ADDR_ANY},
+  gateway_          {IP4::ADDR_ANY},
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
@@ -249,7 +252,7 @@ namespace net {
     ship(std::move(packet), 0, ct);
   }
 
-  void IP4::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
+  void IP4::ship(Packet_ptr pckt, ip4::Addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP4>(std::move(pckt));
 
@@ -282,8 +285,8 @@ namespace net {
       }
       else {
         // Create local and target subnets
-        addr target = packet->ip_dst()  & stack_.netmask();
-        addr local  = stack_.ip_addr() & stack_.netmask();
+        ip4::Addr target = packet->ip_dst()  & stack_.netmask();
+        ip4::Addr local  = stack_.ip_addr() & stack_.netmask();
 
         // Compare subnets to know where to send packet
         next_hop = target == local ? packet->ip_dst() : stack_.gateway();

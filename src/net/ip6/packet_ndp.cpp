@@ -9,13 +9,11 @@
 #include <net/ip6/packet_icmp6.hpp>
 #include <statman>
 
-namespace net
-{
-  namespace ndp {
+namespace net::ndp {
 
   NdpPacket::NdpPacket(icmp6::Packet& icmp6) : icmp6_(icmp6), ndp_opt_() {}
 
-  void NdpPacket::parse(icmp6::Type type)
+  void NdpPacket::parse_options(icmp6::Type type)
   {
     switch(type) {
     case (ICMP_type::ND_ROUTER_SOL):
@@ -121,19 +119,25 @@ namespace net
    for (pinfo = reinterpret_cast<struct prefix_info *>(opt); pinfo;
       pinfo = pinfo_next(pinfo)) {
 
-     if (pinfo->prefix.is_multicast() || pinfo->prefix.is_linklocal()) {
-       PRINT("NDP: Prefix info address is either multicast or linklocal\n");
-       return false;
-     }
-
-     if (pinfo->prefered > pinfo->valid) {
-       PRINT("NDP: Prefix option has invalid lifetime\n");
+     if (pinfo->prefix.is_linklocal()) {
+       PRINT("NDP: Prefix info address is linklocal\n");
        return false;
      }
 
      if (pinfo->onlink) {
        onlink_cb(confaddr, pinfo->prefered, pinfo->valid);
      } else if (pinfo->autoconf) {
+
+       if (pinfo->prefix.is_multicast()) {
+         PRINT("NDP: Prefix info address is multicast\n");
+         return false;
+       }
+
+       if (pinfo->prefered > pinfo->valid) {
+         PRINT("NDP: Prefix option has invalid lifetime\n");
+         return false;
+       }
+
        if (pinfo->prefix_len == 64) {
            confaddr.set_part<uint64_t>(1,
               pinfo->prefix.get_part<uint64_t>(1));
@@ -183,8 +187,6 @@ namespace net
     icmp6_.add_payload(reinterpret_cast<uint8_t*>(&header),
             sizeof header);
   }
-
-  } // ndp
 }
 
 #endif
