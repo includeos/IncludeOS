@@ -37,25 +37,18 @@ def start_icmp_test(trigger_line):
     "Destination: fe80:0:0:0:e823:fcff:fef4:85bd" in output_data and \
     "Type: ECHO REPLY (129)" in output_data and \
     "Code: DEFAULT (0)" in output_data and \
-    "Checksum: " in output_data:
-    #"Data: INCLUDEOS12345ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678" in output_data:
+    "Checksum: " in output_data and \
+    "Data: INCLUDEOS12345ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678" in output_data:
     num_successes += 1
     print color.INFO("<Test.py>"), "Ping test succeeded"
   else:
     print color.FAIL("<Test.py>"), "Ping test FAILED"
     vm.exit(1, 666)
 
-  if num_successes == 2:
+  if num_successes == 1:
     vm.exit(0, "<Test.py> All ICMP tests succeeded. Process returned 0 exit status")
 
-def data_line(text):
-    global num_successes
-    num_successes += 1
-    if num_successes == 2:
-        vm.exit(0, "<Test.py> All ICMP tests succeeded. Process returned 0 exit status")
-
 vm.on_output("Service IPv4 address: 10.0.0.52, IPv6 address: fe80:0:0:0:e823:fcff:fef4:85bd", start_icmp_test);
-vm.on_output("Data: INCLUDEOS12345ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678", data_line);
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(50).clean()
