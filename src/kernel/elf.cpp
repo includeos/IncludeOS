@@ -162,8 +162,8 @@ public:
   }
 
   bool verify_symbols() const {
-    printf("ELF verification from %p to %p (Syms=%#x, Strs=%#x)\n",
-            symtab.base, strtab.base + strtab.size, checksum_syms, checksum_strs);
+    //printf("ELF verification from %p to %p (Syms=%#x, Strs=%#x)\n",
+    //        symtab.base, strtab.base + strtab.size, checksum_syms, checksum_strs);
     uint32_t csum =
         crc32_fast(symtab.base, symtab.entries * sizeof(ElfSym));
     if (csum != checksum_syms) {
