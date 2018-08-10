@@ -142,6 +142,20 @@ namespace uplink {
     store.add_string(0, update_hash_);
     // nanos timestamp of when update begins
     store.add<uint64_t> (1, OS::nanos_since_boot());
+    // statman
+    auto& stm = Statman::get();
+    // increment number of updates performed
+    try {
+      ++stm.get_by_name("system.updates");
+    }
+    catch (const std::exception& e)
+    {
+      ++stm.create(Stat::UINT32, "system.updates");
+    }
+    // store all stats
+    stm.store(2, store);
+    // go to end
+    store.put_marker(100);
   }
 
   void WS_uplink::restore(liu::Restore& store)
@@ -152,6 +166,13 @@ namespace uplink {
     // calculate update cycles taken
     uint64_t prev_nanos = store.as_type<uint64_t> (); store.go_next();
     this->update_time_taken = OS::nanos_since_boot() - prev_nanos;
+    // statman
+    if (!store.is_end())
+    {
+      Statman::get().restore(store);
+    }
+    // done marker
+    store.pop_marker(100);
 
     INFO2("Update took %.3f millis", this->update_time_taken / 1.0e6);
   }
@@ -388,7 +409,7 @@ namespace uplink {
     try {
       liu::LiveUpdate::exec(std::move(buffer));
     }
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
       INFO2("LiveUpdate::exec() failed: %s\n", e.what());
       liu::LiveUpdate::restore_environment();
       // establish new connection

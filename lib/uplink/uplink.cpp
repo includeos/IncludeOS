@@ -1,7 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2017 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2018 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,22 +16,28 @@
 
 #include "uplink.hpp"
 #include "common.hpp"
-#include <kernel/os.hpp>
 
-static void setup_uplink_plugin()
-{
-  try
-  {
-    uplink::get();
-  }
-  catch(const std::exception& e)
-  {
-    MYINFO("Rebooting");
-    OS::reboot();
-  }
-}
+namespace uplink {
 
-__attribute__((constructor))
-void register_plugin_uplink(){
-  OS::register_plugin(setup_uplink_plugin, "Uplink");
+  static WS_uplink setup_uplink()
+  {
+    MYINFO("Setting up WS uplink");
+    try
+    {
+      auto config = Config::read();
+      return WS_uplink{std::move(config)};
+    }
+    catch(const std::exception& e)
+    {
+      MYINFO("Uplink initialization failed: %s ", e.what());
+      throw;
+    }
+  }
+
+  WS_uplink& get()
+  {
+    static WS_uplink instance{setup_uplink()};
+    return instance;
+  }
+
 }

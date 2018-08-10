@@ -10,11 +10,14 @@ project (test_virtioblk)
 
 set(SERVICE_NAME "VirtioBlk test")
 set(BINARY       "virtioblk")
-set(MAX_MEM 128)
 set(SOURCES
     service.cpp
   )
 
-set(DRIVERS virtioblk)
+if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
+  set(DRIVERS solo5blk)
+else()
+  set(DRIVERS virtioblk)
+endif()
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)

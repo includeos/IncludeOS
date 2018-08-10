@@ -320,12 +320,12 @@ static unsigned kvm_function() noexcept
       return res.EAX;
   return 0;
 }
-bool CPUID::kvm_feature(unsigned id) noexcept
+bool CPUID::kvm_feature(unsigned mask) noexcept
 {
   unsigned func = kvm_function();
   if (func == 0) return false;
   auto res = cpuid(func, 0);
-  return (res.EAX & (1 << id)) != 0;
+  return (res.EAX & mask) != 0;
 }
 
 CPUID::Feature_list CPUID::detect_features() {

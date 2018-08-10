@@ -29,11 +29,12 @@ void OS::setup_liveupdate(uintptr_t phys)
   if (phys == 0) {
     // default is 1/4 of heap from the end of memory
     size = OS::heap_max() / 4;
-    phys = (OS::heap_max() - size) & 0xFFFFFFF0;
+    phys = (OS::heap_max() - size) & ~(uintptr_t) 0xFFF; // page aligned
   }
   else {
     size = OS::heap_max() - phys;
   }
+  size &= ~(uintptr_t) 0xFFF; // page sized
 
   // move location to high memory
   const uintptr_t dst = (uintptr_t) OS::liveupdate_storage_area();

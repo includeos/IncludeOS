@@ -41,8 +41,9 @@ option(REAL_HW "Run on real hardware" ON)
 
 if (REAL_HW)
   set(DRIVERS
-      #boot_logger
+      boot_logger
       e1000
+      vmxnet3
       vga_output
       vga_emergency
     )

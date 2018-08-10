@@ -16,6 +16,7 @@ include_directories(${INCLUDEOS_ROOT}/mod/)
 include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
+include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 include_directories(${BOTAN_DIR})
 include_directories(${OPENSSL_DIR}/include)
 if(${ARCH} STREQUAL "x86_64")
@@ -35,7 +36,8 @@ set(OS_OBJECTS
   kernel/fiber.cpp kernel/tls.cpp kernel/profile.cpp kernel/scoped_profiler.cpp
   kernel/terminal.cpp kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp
   kernel/system_log.cpp kernel/rdrand.cpp kernel/solo5_manager.cpp
-  util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
+  util/memstream.c util/async.cpp util/statman.cpp "util/statman_liu.cpp"
+  util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp util/crc32.cpp
   crt/c_abi.c crt/ctype_b_loc.c crt/ctype_tolower_loc.c crt/string.c
