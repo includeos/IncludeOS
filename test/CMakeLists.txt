@@ -107,7 +107,6 @@ set(TEST_SOURCES
   ${TEST}/net/unit/conntrack_test.cpp
   ${TEST}/net/unit/cookie_test.cpp
   ${TEST}/net/unit/dhcp_message_test.cpp
-  ${TEST}/net/unit/dns_test.cpp
   ${TEST}/net/unit/error.cpp
   ${TEST}/net/unit/http_header_test.cpp
   ${TEST}/net/unit/http_status_codes_test.cpp
@@ -158,6 +157,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
   ${TEST}/util/unit/lstack.cpp
+  ${TEST}/util/unit/buddy_alloc_test.cpp
 )
 
 set(OS_SOURCES
@@ -181,19 +181,20 @@ set(OS_SOURCES
   ${SRC}/kernel/events.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
-  ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
   ${SRC}/kernel/timers.cpp
-  ${SRC}/musl/mmap.cpp
   ${SRC}/musl/brk.cpp
   ${SRC}/net/addr.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp
   ${SRC}/net/dns/dns.cpp
+  ${SRC}/net/dns/query.cpp
+  ${SRC}/net/dns/record.cpp
+  ${SRC}/net/dns/response.cpp
   ${SRC}/net/ethernet/ethernet.cpp
   ${SRC}/net/http/basic_client.cpp
   ${SRC}/net/http/client_connection.cpp

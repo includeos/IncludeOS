@@ -41,7 +41,7 @@ const lest::test tests[] = {
               std::runtime_error myexception(error_msg);
               throw myexception;
             }
-          } catch(std::runtime_error e) {
+          } catch(const std::runtime_error& e) {
             caught = std::string(e.what()) == std::string(error_msg);
           }
           EXPECT(caught);
@@ -53,7 +53,7 @@ const lest::test tests[] = {
 
           try {
             throw CustomException(custom_msg);
-          } catch (CustomException e){
+          } catch (const CustomException& e){
             caught_msg = e.what();
           }
 

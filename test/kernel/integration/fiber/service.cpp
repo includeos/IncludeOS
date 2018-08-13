@@ -180,7 +180,7 @@ void scheduler3 () {
   INFO("Scheduler", "Started. Initializing %i threads", N);
 
   for (int i = 0; i < N; i++) {
-    threads.emplace_back(Fiber{work});
+    threads.emplace_back(work);
   }
 
   for (auto& thread : threads) {

@@ -16,6 +16,7 @@ include_directories(${INCLUDEOS_ROOT}/mod/)
 include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
+include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 include_directories(${BOTAN_DIR})
 include_directories(${OPENSSL_DIR}/include)
 if(${ARCH} STREQUAL "x86_64")
@@ -35,7 +36,8 @@ set(OS_OBJECTS
   kernel/fiber.cpp kernel/tls.cpp kernel/profile.cpp kernel/scoped_profiler.cpp
   kernel/terminal.cpp kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp
   kernel/system_log.cpp kernel/rdrand.cpp kernel/solo5_manager.cpp
-  util/memstream.c util/async.cpp util/statman.cpp util/logger.cpp util/sha1.cpp
+  util/memstream.c util/async.cpp util/statman.cpp "util/statman_liu.cpp"
+  util/logger.cpp util/sha1.cpp
   util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
   util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp util/crc32.cpp
   crt/c_abi.c crt/ctype_b_loc.c crt/ctype_tolower_loc.c crt/string.c
@@ -51,7 +53,8 @@ set(OS_OBJECTS
   net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp net/ip6/mld.cpp
   net/ip6/extension_header.cpp net/ip6/packet_ndp.cpp
   net/ip6/packet_mld.cpp net/ip6/slaac.cpp
-  net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
+  net/dns/dns.cpp net/dns/client.cpp net/dns/record.cpp net/dns/response.cpp net/dns/query.cpp
+  net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet.cpp
   net/super_stack.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp

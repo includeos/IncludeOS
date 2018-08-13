@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2018 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,8 @@
 #include <util/timer.hpp>
 #include <map>
 #include <unordered_map>
+#include "query.hpp"
+#include "response.hpp"
 
 namespace net
 {
@@ -52,8 +54,8 @@ namespace net
       Address     address;
       timestamp_t expires;
 
-      Cache_entry(const Address addr, const timestamp_t exp) noexcept
-        : address{addr}, expires{exp}
+      Cache_entry(Address addr, const timestamp_t exp) noexcept
+        : address{std::move(addr)}, expires{exp}
       {}
     };
     using Cache           = std::unordered_map<Hostname, Cache_entry>;
@@ -148,11 +150,8 @@ namespace net
     static bool is_FQDN(const std::string& hostname)
     { return hostname.find('.') != std::string::npos; }
 
-    ~DNSClient();
-
   private:
     Stack&                stack_;
-    udp::Socket*          socket_;
     Cache                 cache_;
     std::chrono::seconds  cache_ttl_;
     Timer                 flush_timer_;
@@ -184,12 +183,6 @@ namespace net
     void flush_expired();
 
     /**
-     * @brief      Bind to a UDP socket which will be used to send requests.
-     *             May only be used when no socket is already bound.
-     */
-    void bind_socket();
-
-    /**
      * @brief      Returns a timestamp used when calculating TTL.
      *
      * @return     A timestamp in seconds.
@@ -204,35 +197,42 @@ namespace net
      */
     struct Request
     {
-      DNS::Request request;
-      Resolve_handler callback;
-      Timer timer;
+      DNSClient&      client;
 
-      Request(DNS::Request req, Resolve_handler cb,
-              Timer::duration_t timeout = DEFAULT_RESOLVE_TIMEOUT)
-        : request{std::move(req)},
-          callback{std::move(cb)},
-          timer({this, &Request::finish})
-      {
-        start_timeout(timeout);
-      }
+      dns::Query      query;
+      using Response_ptr = std::unique_ptr<dns::Response>;
+      Response_ptr    response;
+
+      udp::Socket&    socket;
+
+      Resolve_handler callback;
+      Timer           timer;
+
+      Request(DNSClient& cli, udp::Socket& sock, dns::Query q, Resolve_handler cb);
+
+      void resolve(Address server, Timer::duration_t timeout);
+
+    private:
+
+      void parse_response(Addr, udp::port_t, const char* data, size_t len);
+
+      void handle_error(const Error& err);
 
       /**
        * @brief      Finish the request with a no error,
        *             invoking the resolve handler (callback)
        */
+      void finish(const Error& err);
+
       void finish()
       {
         Error err;
-        callback(request.getFirstIP4(), err);
+        finish(err);
       }
-
-      void start_timeout(Timer::duration_t timeout)
-      { timer.start(timeout); }
 
     }; // < struct Request
        //
-    using Requests = std::unordered_map<DNS::Request::id_t, Request>;
+    using Requests = std::unordered_map<dns::id_t, Request>;
     /** Pending requests (not yet resolved) */
     Requests requests_;
   };

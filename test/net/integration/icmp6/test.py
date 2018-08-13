@@ -43,13 +43,10 @@ def start_icmp_test(trigger_line):
     print color.INFO("<Test.py>"), "Ping test succeeded"
   else:
     print color.FAIL("<Test.py>"), "Ping test FAILED"
+    vm.exit(1, 666)
 
   if num_successes == 1:
     vm.exit(0, "<Test.py> All ICMP tests succeeded. Process returned 0 exit status")
-  else:
-    num_fails = 1 - num_successes
-    res = "<Test.py> " + str(num_fails) + " ICMP6 test(s) failed"
-    vm.exit(1, res)
 
 vm.on_output("Service IPv4 address: 10.0.0.52, IPv6 address: fe80:0:0:0:e823:fcff:fef4:85bd", start_icmp_test);
 

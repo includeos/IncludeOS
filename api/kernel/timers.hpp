@@ -50,6 +50,10 @@ public:
   /// returns the number of free timers
   static size_t free();
 
+  /// returns the time to next timer, or zero
+  /// implementations may treat 1 nanosecond as "timer activation imminent"
+  static duration_t next();
+
   /// NOTE: All above operations operate on the current CPU
   /// NOTE: There is a separate timer system on each active CPU
 

@@ -1,7 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2018 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,10 +14,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <common.cxx>
-#include <net/dns/dns.hpp>
+#pragma once
 
-CASE("DNS::question_string returns string representation of DNS record type")
-{
-  EXPECT(net::DNS::question_string(DNS_TYPE_A) == "IPv4 address");
+#include "dns.hpp"
+#include "record.hpp"
+#include <vector>
+
+namespace net::dns {
+
+  class Response {
+  public:
+    Response() = default;
+    Response(const char* buffer)
+    {
+      parse(buffer);
+    }
+
+    std::vector<Record> answers;
+    std::vector<Record> auth;
+    std::vector<Record> addit;
+
+    ip4::Addr get_first_ipv4() const;
+    ip6::Addr get_first_ipv6() const;
+    net::Addr get_first_addr() const;
+
+    int parse(const char* buffer);
+  };
+
 }

@@ -15,34 +15,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ws_uplink.hpp"
+#include "uplink.hpp"
 #include "common.hpp"
-#include <os>
+#include <kernel/os.hpp>
 
-namespace uplink {
-
-static std::unique_ptr<WS_uplink> uplink{nullptr};
-
-void setup_uplink()
+static void setup_uplink_plugin()
 {
-  MYINFO("Setting up WS uplink");
-
-  try {
-    auto config = Config::read();
-
-    uplink = std::make_unique<WS_uplink>(std::move(config));
-
-  }catch(const std::exception& e) {
-    MYINFO("Uplink initialization failed: %s ", e.what());
+  try
+  {
+    uplink::get();
+  }
+  catch(const std::exception& e)
+  {
     MYINFO("Rebooting");
     OS::reboot();
   }
 }
 
-} // < namespace uplink
-
-#include <kernel/os.hpp>
 __attribute__((constructor))
 void register_plugin_uplink(){
-  OS::register_plugin(uplink::setup_uplink, "Uplink");
+  OS::register_plugin(setup_uplink_plugin, "Uplink");
 }

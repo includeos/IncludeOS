@@ -119,7 +119,6 @@ void OS::reboot()
 }
 void OS::shutdown()
 {
-  MYINFO("Soft shutdown signalled");
   power_ = false;
 }
 

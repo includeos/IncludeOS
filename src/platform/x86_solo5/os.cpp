@@ -3,6 +3,7 @@
 #include <info>
 #include <smp>
 #include <statman>
+#include <kernel/events.hpp>
 #include <kernel/timers.hpp>
 #include <kernel/solo5_manager.hpp>
 
@@ -137,31 +138,56 @@ void OS::start(const char* cmdline)
     // timer stop function
     [] () {});
 
-  Timers::ready();
+  Events::get().defer(Timers::ready);
+}
+
+static inline void event_loop_inner()
+{
+  int res = 0;
+  auto nxt = Timers::next();
+  if (nxt == std::chrono::nanoseconds(0))
+  {
+    // no next timer, wait forever
+    //printf("Waiting 15s, next is indeterminate...\n");
+    const unsigned long long count = 15000000000ULL;
+    res = solo5_yield(solo5_clock_monotonic() + count);
+    os_cycles_hlt += count;
+  }
+  else if (nxt == std::chrono::nanoseconds(1))
+  {
+    // there is an imminent or activated timer, don't wait
+    //printf("Not waiting, imminent timer...\n");
+  }
+  else
+  {
+    //printf("Waiting %llu nanos\n", nxt.count());
+    res = solo5_yield(solo5_clock_monotonic() + nxt.count());
+    os_cycles_hlt += nxt.count();
+  }
+
+  // handle any activated timers
+  Timers::timers_handler();
+  Events::get().process_events();
+  if (res != 0)
+  {
+    // handle any network traffic
+    for(auto& nic : hw::Devices::devices<hw::Nic>()) {
+      nic->poll();
+    }
+  }
 }
 
 void OS::event_loop()
 {
-  while (power_) {
-    int rc;
-
+  while (power_)
+  {
     // add a global symbol here so we can quickly discard
     // event loop from stack sampling
     asm volatile(
     ".global _irq_cb_return_location;\n"
     "_irq_cb_return_location:" );
 
-    // XXX: temporarily ALWAYS sleep for 0.5 ms. We should ideally ask Timers
-    // for the next immediate timer to fire (the first from the "scheduled" list
-    // of timers?)
-    rc = solo5_poll(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
-    Timers::timers_handler();
-    if (rc) {
-      for(auto& nic : hw::Devices::devices<hw::Nic>()) {
-        nic->poll();
-        break;
-      }
-    }
+    event_loop_inner();
   }
 
 
@@ -184,35 +210,15 @@ void OS::halt() {
   os_cycles_hlt += solo5_clock_monotonic() - cycles_before;
 }
 
-// Keep track of blocking levels
-static uint32_t blocking_level = 0;
-static uint32_t highest_blocking_level = 0;
-
 void OS::block()
 {
-  // Increment level
+  static uint32_t blocking_level = 0;
   blocking_level += 1;
+  // prevent recursion stack overflow
+  assert(blocking_level < 200);
 
-  // Increment highest if applicable
-  if (blocking_level > highest_blocking_level)
-      highest_blocking_level = blocking_level;
-
-  int rc;
-  rc = solo5_poll(solo5_clock_monotonic() + 50000ULL); // now + 0.05 ms
-  if (rc == 0) {
-    Timers::timers_handler();
-  } else {
-
-    for(auto& nic : hw::Devices::devices<hw::Nic>()) {
-      nic->poll();
-      break;
-    }
-
-  }
+  event_loop_inner();
 
   // Decrement level
   blocking_level -= 1;
 }
-
-extern "C"
-void __os_store_soft_reset(void*, size_t) {}
