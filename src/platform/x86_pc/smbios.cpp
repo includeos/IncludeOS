@@ -125,9 +125,10 @@ namespace x86
         INFO2("Manufacturer: %s", hdr->get_string(hdr->data[0]));
         INFO2("Product name: %s", hdr->get_string(hdr->data[1]));
         {
+          // UUID starts at offset 0x4 after header
           char uuid[33];
           for (int i = 0; i < 16; i++) {
-            sprintf(&uuid[i*2], "%02hhx", hdr->data[i]);
+            sprintf(&uuid[i*2], "%02hhx", hdr->data[0x4 + i]);
           }
           sysinfo.uuid = std::string(uuid, 32);
           INFO2("System UUID: %s", sysinfo.uuid.c_str());
