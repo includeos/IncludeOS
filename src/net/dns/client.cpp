@@ -131,6 +131,11 @@ namespace net::dns
     finish(err);
   }
 
+  Client::Request::~Request()
+  {
+    socket.close();
+  }
+
   void Client::flush_cache()
   {
     cache_.clear();

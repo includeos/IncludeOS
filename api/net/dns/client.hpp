@@ -214,6 +214,8 @@ namespace net::dns {
 
       void resolve(Address server, Timer::duration_t timeout);
 
+      ~Request();
+
     private:
 
       void parse_response(Addr, udp::port_t, const char* data, size_t len);
