@@ -39,5 +39,8 @@ namespace net::dns {
     ip4::Addr get_ipv4() const;
     ip6::Addr get_ipv6() const;
     net::Addr get_addr() const;
+
+    bool is_addr() const
+    { return rtype == Record_type::A or rtype == Record_type::AAAA; }
   };
 }

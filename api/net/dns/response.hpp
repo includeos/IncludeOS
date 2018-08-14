@@ -38,6 +38,8 @@ namespace net::dns {
     ip6::Addr get_first_ipv6() const;
     net::Addr get_first_addr() const;
 
+    bool has_addr() const;
+
     int parse(const char* buffer);
   };
 

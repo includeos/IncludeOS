@@ -78,6 +78,9 @@ namespace net::dns {
 
   static constexpr uint16_t SERVICE_PORT = 53;
 
+  class Response;
+  using Response_ptr = std::unique_ptr<Response>;
+
   enum class Record_type : uint16_t
   {
     A     = 1,

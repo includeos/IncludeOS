@@ -111,11 +111,17 @@ namespace http {
         opt{move(options)},
         secure
       ]
-        (net::ip4::Addr ip, const net::Error&)
+        (net::dns::Response_ptr res, const net::Error& err)
       {
         // Host resolved
-        if (ip != 0)
+        if (not err)
         {
+          auto addr = res->get_first_addr();
+          if(UNLIKELY(addr == net::Addr::addr_any))
+          {
+            cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
+            return;
+          }
           // setup request with method and headers
           auto req = create_request(method);
           *req << hfields;
@@ -126,7 +132,7 @@ namespace http {
           // Default to port 80 if non given
           const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-          send(move(req), {ip, port}, move(cb), secure, move(opt));
+          send(move(req), {addr, port}, move(cb), secure, move(opt));
         }
         else
         {
@@ -195,11 +201,18 @@ namespace http {
           cb{move(cb)},
           opt{move(options)},
           secure
-        ] (auto ip, const net::Error&)
+        ]
+          (net::dns::Response_ptr res, const net::Error& err)
         {
           // Host resolved
-          if(ip != 0)
+          if (not err)
           {
+            auto addr = res->get_first_addr();
+            if(UNLIKELY(addr == net::Addr::addr_any))
+            {
+              cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
+              return;
+            }
             // setup request with method and headers
             auto req = this->create_request(method);
             *req << hfields;
@@ -213,7 +226,7 @@ namespace http {
             // Default to port 80 if non given
             const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
 
-            this->send(move(req), {ip, port}, move(cb), secure, move(opt));
+            this->send(move(req), {addr, port}, move(cb), secure, move(opt));
           }
           else
           {

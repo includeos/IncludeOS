@@ -33,7 +33,8 @@ namespace net {
       no_error,
       general_IO,
       ifdown,
-      ICMP
+      ICMP,
+      timeout
       // Add more as needed
     };
 

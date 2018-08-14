@@ -64,7 +64,7 @@ namespace net {
     using IP_packet_factory  = delegate<IP_packet_ptr(Protocol)>;
     using IP6_packet_factory = delegate<IP6_packet_ptr(Protocol)>;
 
-    using resolve_func = delegate<void(ip4::Addr, const Error&)>;
+    using resolve_func = dns::Client::Resolve_handler;
     using on_configured_func = delegate<void(Stack&)>;
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
     using slaac_timeout_func = delegate<void(bool complete)>;
@@ -249,9 +249,9 @@ namespace net {
                  bool               force = false);
 
     void resolve(const std::string& hostname,
-                  ip4::Addr         server,
-                  resolve_func      func,
-                  bool              force = false);
+                 net::Addr          server,
+                 resolve_func       func,
+                 bool               force = false);
 
     void set_domain_name(std::string domain_name)
     { this->domain_name_ = std::move(domain_name); }
@@ -513,7 +513,7 @@ namespace net {
     std::shared_ptr<Conntrack> conntrack_;
 
     // we need this to store the cache per-stack
-    DNSClient dns_;
+    dns::Client dns_;
     std::string domain_name_;
 
     std::shared_ptr<net::DHClient> dhcp_{};

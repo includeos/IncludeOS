@@ -42,10 +42,20 @@ namespace net::dns {
   {
     for(auto& rec : answers)
     {
-      if(rec.rtype == Record_type::A or rec.rtype == Record_type::AAAA)
+      if(rec.is_addr())
         return rec.get_addr();
     }
     return {};
+  }
+
+  bool Response::has_addr() const
+  {
+    for(auto& rec : answers)
+    {
+      if(rec.is_addr())
+        return true;
+    }
+    return false;
   }
 
   // TODO: Verify

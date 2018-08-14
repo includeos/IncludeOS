@@ -20,7 +20,7 @@
 
 using namespace net;
 
-void print_error(const std::string& hostname, IP4::addr server, const Error& err) {
+void print_error(const std::string& hostname, net::Addr server, const Error& err) {
   printf("Error occurred when resolving IP address of %s with DNS server %s: %s\n", hostname.c_str(),
         server.to_string().c_str(), err.what());
 
@@ -35,9 +35,13 @@ void print_not_resolved(const std::string& hostname) {
   printf("%s couldn't be resolved\n", hostname.c_str());
 }
 
-void print_success(const std::string& hostname, IP4::addr server, IP4::addr res) {
-  printf("Resolved IP address of %s with DNS server %s: %s\n", hostname.c_str(),
-          server.to_string().c_str(), res.to_string().c_str());
+void print_success(const std::string& hostname, net::Addr server, dns::Response_ptr res) {
+  assert(res != nullptr);
+  if(res->has_addr())
+    printf("Resolved IP address of %s with DNS server %s: %s\n", hostname.c_str(),
+          server.to_string().c_str(), res->get_first_ipv4().to_string().c_str());
+  else
+    print_not_resolved(hostname);
 }
 
 void Service::start(const std::string&)
@@ -55,54 +59,42 @@ void Service::start(const std::string&)
   const std::string guardian      = "theguardian.com";
   const std::string some_address  = "some_address_that_doesnt_exist.com";
 
-  const IP4::addr stack_dns       = inet.dns_addr();
-  const IP4::addr level3          = IP4::addr{4, 2, 2, 1};
+  static const net::Addr stack_dns       = inet.dns_addr();
+  static const net::Addr level3          = IP4::addr{4, 2, 2, 1};
 
-  inet.resolve(google, [google, stack_dns] (IP4::addr res, const Error& err) {
+  inet.resolve(google, [google] (auto res, const Error& err) {
     if (err) {
       print_error(google, stack_dns, err);
     }
     else {
-      if (res != IP4::ADDR_ANY)
-        print_success(google, stack_dns, res);
-      else
-        print_not_resolved(google);
+      print_success(google, stack_dns, std::move(res));
     }
   });
 
-  inet.resolve(github, [github, stack_dns] (IP4::addr res, const Error& err) {
+  inet.resolve(github, [github] (auto res, const Error& err) {
     if (err) {
       print_error(github, stack_dns, err);
     }
     else {
-      if (res != IP4::ADDR_ANY)
-        print_success(github, stack_dns, res);
-      else
-        print_not_resolved(github);
+      print_success(github, stack_dns, std::move(res));
     }
   });
 
-  inet.resolve(guardian, level3, [guardian, level3] (IP4::addr res, const Error& err) {
+  inet.resolve(guardian, level3, [guardian] (auto res, const Error& err) {
     if (err) {
       print_error(guardian, level3, err);
     }
     else {
-      if (res != IP4::ADDR_ANY)
-        print_success(guardian, level3, res);
-      else
-        print_not_resolved(guardian);
+      print_success(guardian, level3, std::move(res));
     }
   });
 
-  inet.resolve(some_address, [some_address, stack_dns] (IP4::addr res, const Error& err) {
+  inet.resolve(some_address, [some_address] (auto res, const Error& err) {
     if (err) {
       print_error(some_address, stack_dns, err);
     }
     else {
-      if (res != IP4::ADDR_ANY)
-        print_success(some_address, stack_dns, res);
-      else
-        print_not_resolved(some_address);
+      print_success(some_address, stack_dns, std::move(res));
     }
   });
 }

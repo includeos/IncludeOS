@@ -346,7 +346,7 @@ void Inet::resolve(const std::string& hostname,
 }
 
 void Inet::resolve(const std::string& hostname,
-      ip4::Addr         server,
+      net::Addr         server,
       resolve_func      func,
       bool              force)
 {
