@@ -84,8 +84,8 @@ namespace net {
       void update_timestamp(const uint16_t ms)
       { timestamp_ = RTC::time_since_boot() + ms; }
 
-      const ip6::Addr addr() const { return mcast_addr_; }
-      const RTC::timestamp_t timestamp() const { return timestamp_; }
+      const ip6::Addr& addr() const { return mcast_addr_; }
+      RTC::timestamp_t timestamp() const { return timestamp_; }
 
       bool expired() const noexcept
       { return RTC::time_since_boot() > timestamp_; }
