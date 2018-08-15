@@ -103,6 +103,14 @@ namespace net {
       return size() - ip_header_length();
     }
 
+    /** Adjust packet size to match IP header's tot_len in case of padding */
+    void adjust_size_from_header() {
+      auto ip_len = ip_total_length();
+      if (UNLIKELY(size() > ip_len)) {
+        set_data_end(ip_len);
+      }
+    }
+
     /** Get total data capacity of IP packet in bytes  */
     uint16_t ip_capacity() const noexcept
     { return capacity() - ip_header_length(); }
