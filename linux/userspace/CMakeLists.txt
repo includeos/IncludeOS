@@ -1,5 +1,15 @@
 set(IOS ${CMAKE_SOURCE_DIR}/..)
 
+# write OS version to header file
+file(WRITE ${IOS}/src/version.cpp
+  "#include <kernel/os.hpp>\n
+  const char* OS::version_str_ = \"${OS_VERSION}\";\n
+  const char* OS::arch_str_ = \"${ARCH}\";\n"
+)
+# invalidate files we always want to rebuild
+set(REBUILD_FILES ${IOS}/src/version.cpp)
+add_custom_target(invalidate_files ALL COMMAND ${CMAKE_COMMAND} -E touch ${REBUILD_FILES})
+
 set(NET_SOURCES
   ${IOS}/src/version.cpp
   ${IOS}/src/net/buffer_store.cpp

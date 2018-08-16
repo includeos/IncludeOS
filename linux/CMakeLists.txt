@@ -39,8 +39,6 @@ if(CUSTOM_BOTAN)
   include_directories("/usr/local/botan/include/botan-2")
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-
 add_definitions(-DARCH="x86_64" -DARCH_x86_64)
 add_definitions(-DOS_TERMINATE_ON_CONTRACT_VIOLATION)
 add_definitions(-DARP_PASSTHROUGH)

@@ -1,6 +1,13 @@
 #
 # CMake script for the OS library
 #
+# invalidate files we always want to rebuild
+set(REBUILD_FILES ${INCLUDEOS_ROOT}/src/version.cpp)
+add_custom_target(invalidate_files ALL COMMAND ${CMAKE_COMMAND} -E touch ${REBUILD_FILES})
+# write OS version to source file
+configure_file("${INCLUDEOS_ROOT}/src/version.cpp.in"
+               "${INCLUDEOS_ROOT}/src/version.cpp")
+
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 if (NOT threading)
@@ -98,7 +105,3 @@ install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")
 
 install(FILES service_name.cpp DESTINATION includeos/src)
-
-# Invalidate files we always want to rebuild
-set(REBUILD_FILES ${INCLUDEOS_ROOT}/src/version.cpp)
-add_custom_target(invalidate_files ALL COMMAND ${CMAKE_COMMAND} -E touch ${REBUILD_FILES})
