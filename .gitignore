@@ -21,7 +21,6 @@
 .DS_Store
 nbproject
 dummy.disk
-src/version.cpp
 
 !Dockerfile
 

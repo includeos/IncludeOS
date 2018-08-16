@@ -1,13 +1,6 @@
 #
 # CMake script for the OS library
 #
-# invalidate files we always want to rebuild
-set(REBUILD_FILES ${INCLUDEOS_ROOT}/src/version.cpp)
-add_custom_target(invalidate_files ALL COMMAND ${CMAKE_COMMAND} -E touch ${REBUILD_FILES})
-# write OS version to source file
-configure_file("${INCLUDEOS_ROOT}/src/version.cpp.in"
-               "${INCLUDEOS_ROOT}/src/version.cpp")
-
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 if (NOT threading)
@@ -82,6 +75,7 @@ add_dependencies(os PrecompiledLibraries botan ${OPENSSL_LIBS})
 # disable sanitizers on c_abi and cxx_abi, etc.
 set_source_files_properties(crt/c_abi.c PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 set_source_files_properties(crt/cxx_abi.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
+set_source_files_properties(version.cpp PROPERTIES COMPILE_DEFINITIONS "OS_VERSION=\"${OS_VERSION}\"")
 
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)

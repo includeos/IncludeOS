@@ -36,7 +36,6 @@ execute_process(COMMAND git describe --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
-message("OS VERSION IS ${OS_VERSION}")
 
 option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
 if(cpu_feat_vanilla)
