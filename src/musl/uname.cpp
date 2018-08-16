@@ -10,11 +10,11 @@ static long sys_uname(struct utsname *buf) {
 
   strcpy(buf->nodename, "IncludeOS-node");
 
-  strcpy(buf->release, OS::version().c_str());
+  strcpy(buf->release, OS::version());
 
-  strcpy(buf->version, OS::version().c_str());
+  strcpy(buf->version, OS::version());
 
-  strcpy(buf->machine, ARCH);
+  strcpy(buf->machine, OS::arch());
 
   return 0;
 }

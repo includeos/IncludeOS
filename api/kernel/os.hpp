@@ -42,13 +42,13 @@ public:
   /**
    * Returns the OS version string
    **/
-  static const std::string& version() noexcept
+  static const char* version() noexcept
   { return version_str_; }
 
   /**
    * Returns the CPU architecture for which the OS was built
    **/
-  static const std::string& arch() noexcept
+  static const char* arch() noexcept
   { return arch_str_; }
 
 
@@ -273,8 +273,8 @@ private:
   static util::KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;
-  static std::string version_str_;
-  static std::string arch_str_;
+  static const char* version_str_;
+  static const char* arch_str_;
   static uintptr_t heap_begin_;
   static uintptr_t heap_max_;
   static uintptr_t memory_end_;

@@ -1,6 +1,7 @@
 set(IOS ${CMAKE_SOURCE_DIR}/..)
 
 set(NET_SOURCES
+  ${IOS}/src/version.cpp
   ${IOS}/src/net/buffer_store.cpp
   ${IOS}/src/net/checksum.cpp
   ${IOS}/src/net/super_stack.cpp

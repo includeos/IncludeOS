@@ -73,10 +73,6 @@ struct Plugin_desc {
 };
 static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
 
-// OS version
-std::string OS::version_str_ = OS_VERSION;
-std::string OS::arch_str_ = ARCH;
-
 void* OS::liveupdate_storage_area() noexcept
 {
   return (void*) OS::liveupdate_loc_;
@@ -162,9 +158,9 @@ void OS::post_start()
   PROFILE("Service::start");
   // begin service start
   FILLINE('=');
-  printf(" IncludeOS %s (%s / %i-bit)\n",
-         version().c_str(), arch().c_str(),
-         static_cast<int>(sizeof(uintptr_t)) * 8);
+  printf(" IncludeOS %s (%s / %u-bit)\n",
+         version(), arch(),
+         static_cast<unsigned>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name());
   FILLINE('~');
 

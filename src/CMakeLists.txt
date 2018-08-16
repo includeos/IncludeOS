@@ -28,6 +28,7 @@ endif()
 set(BOTAN_MODULES "net/https/botan_server.cpp")
 
 set(OS_OBJECTS
+  version.cpp
   kernel/multiboot.cpp
   kernel/syscalls.cpp kernel/os.cpp kernel/cpuid.cpp kernel/block.cpp
   kernel/events.cpp kernel/memmap.cpp kernel/pci_manager.cpp
@@ -97,3 +98,7 @@ install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
         FILES_MATCHING PATTERN "*.*")
 
 install(FILES service_name.cpp DESTINATION includeos/src)
+
+# Invalidate files we always want to rebuild
+set(REBUILD_FILES ${INCLUDEOS_ROOT}/src/version.cpp)
+add_custom_target(invalidate_files ALL COMMAND ${CMAKE_COMMAND} -E touch ${REBUILD_FILES})
