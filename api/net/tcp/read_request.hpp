@@ -34,7 +34,7 @@ public:
   static constexpr size_t buffer_limit = 2;
   ReadCallback callback;
 
-  Read_request(size_t size, seq_t start, ReadCallback cb);
+  Read_request(seq_t start, size_t min, size_t max, ReadCallback cb);
 
   size_t insert(seq_t seq, const uint8_t* data, size_t n, bool psh = false);
 

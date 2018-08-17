@@ -16,19 +16,24 @@
 // limitations under the License.
 
 #include <net/tcp/read_buffer.hpp>
+#include <util/bitops.hpp>
 
 namespace net {
 namespace tcp {
 
-Read_buffer::Read_buffer(const size_t capacity, const seq_t startv)
+Read_buffer::Read_buffer(const seq_t startv, const size_t min, const size_t max)
   : buf(tcp::construct_buffer()),
-    start{startv}, hole{0}
+    start{startv}, cap{max}, hole{0}
 {
-  buf->reserve(capacity);
+  Expects(util::bits::is_pow2(cap));
+  Expects(util::bits::is_pow2(min));
+  Expects(cap >= min);
+  buf->reserve(min);
 }
 
 size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, bool push)
 {
+  auto old_cap = buf->capacity();
   assert(buf != nullptr && "Buffer seems to be stolen, make sure to renew()");
 
   // get the relative sequence number (the diff)
@@ -47,12 +52,16 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
   if (rel == buf->size()) {
     buf->insert(buf->end(), data, data + len);
   }
-  else {
-    if (rel + len > buf->size()) buf->resize(rel + len);
+  else
+  {
+    if (rel + len > buf->size())
+      buf->resize(rel + len);
+
     __builtin_memcpy(buf->data() + rel, data, len);
   }
 
   if (push) push_seen = true;
+
   return len;
 }
 

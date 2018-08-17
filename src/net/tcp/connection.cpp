@@ -61,7 +61,7 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
 {
   if(read_request == nullptr)
   {
-    read_request = std::make_unique<Read_request>(recv_bufsz, seq_t(this->cb.RCV.NXT), cb);
+    read_request.reset(new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb));
   }
   // read request is already set, only reset if new size.
   else
