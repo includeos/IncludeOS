@@ -40,6 +40,7 @@ if(CUSTOM_BOTAN)
 endif()
 
 add_definitions(-DARCH="x86_64" -DARCH_x86_64)
+add_definitions(-DOS_VERSION=\"${OS_VERSION}\")
 add_definitions(-DOS_TERMINATE_ON_CONTRACT_VIOLATION)
 add_definitions(-DARP_PASSTHROUGH)
 add_definitions(-DNO_DEBUG)

@@ -1,19 +1,9 @@
 set(IOS ${CMAKE_SOURCE_DIR}/..)
 
-# write OS version to header file
-file(WRITE ${IOS}/src/version.cpp
-  "#include <kernel/os.hpp>\n
-  const char* OS::version_str_ = \"${OS_VERSION}\";\n
-  const char* OS::arch_str_ = \"${ARCH}\";\n"
-)
-# invalidate files we always want to rebuild
-set(REBUILD_FILES ${IOS}/src/version.cpp)
-add_custom_target(invalidate_files ALL COMMAND ${CMAKE_COMMAND} -E touch ${REBUILD_FILES})
-
 set(NET_SOURCES
-  ${IOS}/src/version.cpp
   ${IOS}/src/net/buffer_store.cpp
   ${IOS}/src/net/checksum.cpp
+  ${IOS}/src/net/configure.cpp
   ${IOS}/src/net/super_stack.cpp
   ${IOS}/src/net/inet.cpp
 
@@ -80,6 +70,7 @@ if (CUSTOM_BOTAN)
 endif()
 
 set(OS_SOURCES
+    ${IOS}/src/version.cpp
     ${IOS}/src/fs/dirent.cpp
     ${IOS}/src/fs/disk.cpp
     ${IOS}/src/fs/fat.cpp
@@ -95,6 +86,7 @@ set(OS_SOURCES
     ${IOS}/src/kernel/rng.cpp
     ${IOS}/src/kernel/timers.cpp
     ${IOS}/src/util/async.cpp
+    ${IOS}/src/util/autoconf.cpp
     ${IOS}/src/util/crc32.cpp
     ${IOS}/src/util/logger.cpp
     ${IOS}/src/util/sha1.cpp

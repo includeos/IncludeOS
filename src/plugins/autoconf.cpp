@@ -19,6 +19,6 @@
 #include <autoconf>
 
 __attribute__((constructor))
-void register_autoconf_plugin() {
+static void register_autoconf_plugin() {
   OS::register_plugin(autoconf::run, "Autoconf plugin");
 }
