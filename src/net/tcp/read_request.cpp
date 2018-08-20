@@ -185,7 +185,7 @@ namespace tcp {
     }
   }
 
-  void Read_request::reset(size_t size, const seq_t seq)
+  void Read_request::reset(const seq_t seq)
   {
     Expects(not buffers.empty());
 
@@ -207,7 +207,7 @@ namespace tcp {
       callback(buf->buffer());
     }
     // reset the first buffer
-    buf->reset(seq, size);
+    buf->reset(seq);
     // throw the others away
     buffers.erase(++it, buffers.end());
 

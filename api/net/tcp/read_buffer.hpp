@@ -36,12 +36,6 @@ class Read_buffer {
 public:
   /**
    * @brief      Construct a read buffer.
-   *
-   * p@aram[in]  capacity  The capacity of the buffer
-   * @param[in]  seq       The sequence number to start on
-   */
-  /**
-   * @brief      Construct a read buffer.
    *             Min and max need to be power of 2.
    *
    * @param[in]  start  The sequence number the buffer starts on
@@ -181,12 +175,9 @@ private:
   bool            push_seen{false};
 
   /**
-   * @brief      Reset the buffer if either non-unique or
-   *             a decrease of the current capacity.
-   *
-   * @param[in]  capacity  The capacity
+   * @brief      Reset the buffer if non-unique
    */
-  void reset_buffer_if_needed(const size_t capacity);
+  void reset_buffer_if_needed();
 
 }; // < class Read_buffer
 

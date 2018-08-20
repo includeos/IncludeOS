@@ -33,7 +33,6 @@ Read_buffer::Read_buffer(const seq_t startv, const size_t min, const size_t max)
 
 size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, bool push)
 {
-  auto old_cap = buf->capacity();
   assert(buf != nullptr && "Buffer seems to be stolen, make sure to renew()");
 
   // get the relative sequence number (the diff)
@@ -75,29 +74,30 @@ void Read_buffer::reset(const seq_t seq, const size_t capacity)
   start = seq;
   hole = 0;
   push_seen = false;
-  reset_buffer_if_needed(capacity);
+  cap = capacity;
+  reset_buffer_if_needed();
 }
 
-void Read_buffer::reset_buffer_if_needed(const size_t capacity)
+void Read_buffer::reset_buffer_if_needed()
 {
   // if the buffer isnt unique, create a new one
   if (buf.use_count() != 1)
   {
     buf = tcp::construct_buffer();
-    buf->reserve(capacity);
+    buf->reserve(cap);
     return;
   }
   // from here on the buffer is ours only
   buf->clear();
   const auto bufcap = buf->capacity();
-  if (UNLIKELY(capacity < bufcap))
+  if (UNLIKELY(cap < bufcap))
   {
     buf->shrink_to_fit();
-    buf->reserve(capacity);
+    buf->reserve(cap);
   }
-  else if (UNLIKELY(capacity != bufcap))
+  else if (UNLIKELY(cap != bufcap))
   {
-    buf->reserve(capacity);
+    buf->reserve(cap);
   }
 }
 

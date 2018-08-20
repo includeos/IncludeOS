@@ -44,7 +44,7 @@ public:
 
   void set_start(seq_t seq);
 
-  void reset(size_t size, const seq_t seq);
+  void reset(const seq_t seq);
 
   const Read_buffer& front() const
   { return *buffers.front(); }

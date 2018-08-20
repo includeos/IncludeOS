@@ -34,7 +34,7 @@ CASE("Operating with out of order data")
     no_reads++;
   };
 
-  auto req = std::make_unique<Read_request>(BUFSZ, seq, read_cb);
+  auto req = std::make_unique<Read_request>(seq, BUFSZ, BUFSZ, read_cb);
   no_reads = 0;
 
   // Insert hole, first missing
