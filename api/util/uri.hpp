@@ -185,13 +185,6 @@ class URI {
   std::string host_and_port() const;
 
   ///
-  /// Get the raw port number in decimal character representation.
-  ///
-  /// @return The raw port number in decimal character representation
-  ///
-  util::sview port_str() const noexcept;
-
-  ///
   /// Get numeric port number.
   ///
   /// @warning The RFC don't specify dimension. This method will bind
@@ -300,7 +293,6 @@ private:
   util::sview scheme_;
   util::sview userinfo_;
   util::sview host_;
-  util::sview port_str_;
   util::sview path_;
   util::sview query_;
   util::sview fragment_;
