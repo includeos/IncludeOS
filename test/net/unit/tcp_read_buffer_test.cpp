@@ -163,10 +163,10 @@ CASE("Reseting the buffer")
   auto* data = buf.buffer()->data();
   buf.reset(SEQ, BUFSZ*2);
   EXPECT(buf.buffer().get() == ptr);
-  // but not same data
-  EXPECT(buf.buffer()->data() != data);
+  // and the same data
+  EXPECT(buf.buffer()->data() == data);
 
-  // decreasing the cap also means new data
+  // decreasing the cap means new data
   data = buf.buffer()->data();
   buf.reset(SEQ, BUFSZ/2);
   EXPECT(buf.buffer()->data() != data);
