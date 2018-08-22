@@ -66,7 +66,7 @@ size_t Read_buffer::insert(const seq_t seq, const uint8_t* data, size_t len, boo
 
 void Read_buffer::reset(const seq_t seq)
 {
-  this->reset(seq, buf->capacity());
+  this->reset(seq, capacity());
 }
 
 void Read_buffer::reset(const seq_t seq, const size_t capacity)
@@ -80,24 +80,31 @@ void Read_buffer::reset(const seq_t seq, const size_t capacity)
 
 void Read_buffer::reset_buffer_if_needed()
 {
+  // current buffer cap
+  const auto bufcap = buf->capacity();
+
+  // buffer is only ours
+  if(buf.unique())
+  {
+    buf->clear();
+  }
   // if the buffer isnt unique, create a new one
-  if (buf.use_count() != 1)
+  else
   {
     buf = tcp::construct_buffer();
-    buf->reserve(cap);
-    return;
   }
-  // from here on the buffer is ours only
-  buf->clear();
-  const auto bufcap = buf->capacity();
+
+  // This case is when we need a small buffer in front of
+  // another buffer due to SACK
   if (UNLIKELY(cap < bufcap))
   {
     buf->shrink_to_fit();
     buf->reserve(cap);
   }
-  else if (UNLIKELY(cap != bufcap))
+  // if not we just reserve the same capacity as we had the last time
+  else
   {
-    buf->reserve(cap);
+    buf->reserve(bufcap);
   }
 }
 

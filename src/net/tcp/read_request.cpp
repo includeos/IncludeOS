@@ -65,7 +65,6 @@ namespace tcp {
           // it means the local sequence number is much farther behind
           // the real one
           seq = end_seq - rem;
-
           buf->reset(seq);
           //printf("size=1, reset rem=%u start=%u end=%u\n",
           //  rem, buf->start_seq(), buf->end_seq());
