@@ -22,6 +22,7 @@
 #include <common>
 #include <util/bitops.hpp>
 #include <util/units.hpp>
+#include <util/alloc_buddy.hpp>
 #include <sstream>
 
 namespace os {
@@ -34,6 +35,11 @@ namespace mem {
     write = 2,
     execute = 4
   };
+
+  /** Default system allocator **/
+  using Allocator = buddy::Alloc<false>;
+
+  Allocator& allocator();
 
   /** Get bitfield with bit set for each supported page size */
   uintptr_t supported_page_sizes();

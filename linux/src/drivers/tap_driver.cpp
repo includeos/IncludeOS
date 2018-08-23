@@ -136,6 +136,7 @@ TAP_driver::TAP_driver(const char* devname,
 
 TAP_driver::~TAP_driver()
 {
+  delete epoll_ptr;
   close (this->tun_fd);
   close (this->epoll_fd);
 }

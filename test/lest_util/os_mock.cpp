@@ -213,4 +213,16 @@ bool rdrand32(uint32_t* result) {
   return true;
 }
 
+/// heap ///
+uintptr_t __brk_max = 0;
+uintptr_t OS::heap_begin() noexcept {
+  return 0;
+}
+uintptr_t OS::heap_end() noexcept {
+  return 1 << 30;
+}
+uintptr_t OS::heap_max() noexcept {
+  return -1;
+}
+
 #endif

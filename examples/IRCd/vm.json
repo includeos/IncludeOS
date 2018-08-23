@@ -1,5 +1,6 @@
 {
   "image" : "IRCd",
   "net" : [{"device" : "e1000"}],
-  "mem" : 1024
+  "mem" : 1024,
+  "uuid": "5cae2301-7467-424b-9def-e9bcbc85cf91"
 }

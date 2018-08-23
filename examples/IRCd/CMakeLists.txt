@@ -33,9 +33,9 @@ set(SOURCES
   ircd/transform.cpp
   )
 
-# To add your own include paths:
-set(LOCAL_INCLUDES "")
-
+# Custom version string of the IRC server
+set(VERSION      "v0.3 IRCd")
+add_definitions(-DIRC_SERVER_VERSION="${VERSION}")
 
 option(REAL_HW "Run on real hardware" ON)
 

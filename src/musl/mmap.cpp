@@ -2,19 +2,26 @@
 #include <cstdint>
 #include <sys/mman.h>
 #include <errno.h>
-#include <util/alloc_lstack.hpp>
+#include <util/alloc_buddy.hpp>
 #include <os>
+#include <kernel/memory.hpp>
 #include <kprint>
 
-using Alloc = util::alloc::Lstack<4096>;
-static Alloc alloc;
+using Alloc = os::mem::Allocator;
+static Alloc* alloc;
+
+Alloc& os::mem::allocator() {
+  Expects(alloc);
+  return *alloc;
+}
 
 uintptr_t __init_mmap(uintptr_t addr_begin)
 {
-  Expects(alloc.empty());
   auto aligned_begin = (addr_begin + Alloc::align - 1) & ~(Alloc::align - 1);
   int64_t len = (OS::heap_max() - aligned_begin) & ~int64_t(Alloc::align - 1);
-  alloc.donate((void*)aligned_begin, len);
+
+  kprintf("Initializing mmap\n");
+  alloc = Alloc::create((void*)aligned_begin, len);
   kprintf("* mmap initialized. Begin: 0x%zx, end: 0x%zx\n",
           addr_begin, addr_begin + len);
   return aligned_begin + len;
@@ -22,24 +29,24 @@ uintptr_t __init_mmap(uintptr_t addr_begin)
 
 extern "C" __attribute__((weak))
 void* kalloc(size_t size) {
-  return alloc.allocate(size);
+  return alloc->allocate(size);
 }
 
 extern "C" __attribute__((weak))
 void kfree (void* ptr, size_t size) {
-  alloc.deallocate(ptr, size);
+  alloc->deallocate(ptr, size);
 }
 
 size_t mmap_bytes_used() {
-  return alloc.bytes_allocated();
+  return alloc->bytes_used();
 }
 
 size_t mmap_bytes_free() {
-  return alloc.bytes_free();
+  return alloc->bytes_free();
 }
 
-uintptr_t mmap_allocation_end(){
-  return alloc.allocation_end();
+uintptr_t mmap_allocation_end() {
+  return alloc->highest_used();
 }
 
 static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
@@ -55,9 +62,13 @@ static void* sys_mmap(void *addr, size_t length, int /*prot*/, int /*flags*/,
     return MAP_FAILED;
   }
 
-  auto* ptr = kalloc(length);
-  if (ptr == nullptr) return MAP_FAILED;
-  return ptr;
+  auto* res = kalloc(length);
+
+  if (UNLIKELY(res == nullptr))
+    return MAP_FAILED;
+
+  return res;
+
 }
 
 extern "C"

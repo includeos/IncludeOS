@@ -26,7 +26,7 @@ size_t brk_bytes_used() {
 }
 
 size_t brk_bytes_free() {
-  return __brk_max - brk_bytes_free();
+  return __brk_max - brk_bytes_used();
 }
 
 static uintptr_t sys_brk(void* addr)

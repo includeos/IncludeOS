@@ -113,7 +113,7 @@ int Write_queue::deserialize_from(void* addr)
     len += sizeof(write_buffer);
 
     // insert shared buffer into write queue
-    this->q.emplace_back(new std::vector<uint8_t> ());
+    this->q.emplace_back(std::make_shared<std::vector<uint8_t>>());
 
     // copy data
     auto wbuf = this->q.back();

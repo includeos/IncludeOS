@@ -158,6 +158,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
   ${TEST}/util/unit/lstack.cpp
+  ${TEST}/util/unit/buddy_alloc_test.cpp
 )
 
 set(OS_SOURCES
@@ -181,13 +182,11 @@ set(OS_SOURCES
   ${SRC}/kernel/events.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
-  ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
   ${SRC}/kernel/timers.cpp
-  ${SRC}/musl/mmap.cpp
   ${SRC}/musl/brk.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
