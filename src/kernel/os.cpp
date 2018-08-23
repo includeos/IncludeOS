@@ -176,6 +176,22 @@ bool os_enable_boot_logging = false;
 __attribute__((weak))
 bool os_default_stdout = false;
 
+#include <ctime>
+static std::string now()
+{
+  auto  tnow = time(0);
+  auto* curtime = localtime(&tnow);
+
+  char buff[48];
+  int len = strftime(buff, sizeof(buff), "%T", curtime);
+  return std::string(buff, len);
+}
+bool contains(const char* str, size_t len, char c)
+{
+  for (size_t i = 0; i < len; i++) if (str[i] == c) return true;
+  return false;
+}
+
 void OS::print(const char* str, const size_t len)
 {
   if (UNLIKELY(! __libc_initialized)) {
@@ -185,6 +201,19 @@ void OS::print(const char* str, const size_t len)
 
   for (auto& callback : os_print_handlers) {
     if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
+    {
+      /** TIMESTAMPING **/
+      static bool ts_shown = false;
+      if (ts_shown == false)
+      {
+        std::string ts = "[" + now() + "] ";
+        callback(ts.c_str(), ts.size());
+        ts_shown = true;
+      }
+      const bool has_newline = contains(str, len, '\n');
+      if (ts_shown && has_newline) ts_shown = false;
+      /** TIMESTAMPING **/
       callback(str, len);
+    }
   }
 }
