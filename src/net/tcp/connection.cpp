@@ -59,9 +59,10 @@ Connection::~Connection()
 
 void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
 {
+  (void) recv_bufsz;
   if(read_request == nullptr)
   {
-    read_request = std::make_unique<Read_request>(recv_bufsz, seq_t(this->cb.RCV.NXT), cb);
+    read_request.reset(new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb));
   }
   // read request is already set, only reset if new size.
   else
@@ -69,7 +70,7 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
     //printf("on_read already set\n");
     read_request->callback = cb;
     // this will flush the current data to the user (if any)
-    read_request->reset(recv_bufsz, seq_t(this->cb.RCV.NXT));
+    read_request->reset(this->cb.RCV.NXT);
 
     // due to throwing away buffers (and all data) we also
     // need to clear the sack list if anything is stored here.

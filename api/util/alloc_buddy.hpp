@@ -110,7 +110,7 @@ namespace os::mem::buddy {
     static Size_t pool_size(Size_t bufsize){
       using namespace util;
 
-      auto pool_size = 0;
+      auto pool_sz = 0;
       // Find closest usable power of two depending on policy
       if constexpr (P == Policy::overbook) {
           auto pow2 = bits::next_pow2(bufsize);
@@ -121,15 +121,15 @@ namespace os::mem::buddy {
 
       }
 
-      pool_size = bits::keeplast(bufsize - 1); // -1 starts the recursion
+      pool_sz = bits::keeplast(bufsize - 1); // -1 starts the recursion
 
-      auto unalloc   = bufsize - pool_size;
-      auto overhead  = Alloc::overhead(pool_size);
+      auto unalloc   = bufsize - pool_sz;
+      auto overhead  = Alloc::overhead(pool_sz);
 
       // If bufsize == overhead + pow2, and overhead was too small to fit alloc
       // Try the next power of two recursively
       if(unalloc < overhead)
-        return Alloc::pool_size<P>(pool_size);
+        return Alloc::pool_size<P>(pool_sz);
 
       auto free = bufsize - overhead;
       return bits::keeplast(free);
