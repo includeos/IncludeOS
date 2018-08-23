@@ -1,7 +1,8 @@
 #!/bin/bash
-mkdir -p build
-pushd build
+BFOLD=build
+mkdir -p $BFOLD
+pushd $BFOLD
 cmake ..
 make -j8
 popd
-dd if=build/liveupdate > /dev/tcp/10.0.0.42/666
+dd if=$BFOLD/liveupdate > /dev/tcp/10.0.0.42/666
