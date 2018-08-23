@@ -1,7 +1,11 @@
-#include "common.hpp"
+#include "stub.hpp"
+
+static long sys_sysinfo()
+{
+  return 0;
+}
 
 extern "C"
 long syscall_SYS_sysinfo() {
-  STUB("sysinfo");
-  return 0;
+  return stubtrace(sys_sysinfo, "sysinfo");
 }
