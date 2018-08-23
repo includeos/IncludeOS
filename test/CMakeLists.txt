@@ -162,6 +162,7 @@ set(TEST_SOURCES
 )
 
 set(OS_SOURCES
+  ${SRC}/version.cpp
   ${SRC}/arch/x86_64/paging.cpp
   ${SRC}/fs/disk.cpp
   ${SRC}/fs/dirent.cpp

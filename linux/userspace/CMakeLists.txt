@@ -3,6 +3,7 @@ set(IOS ${CMAKE_SOURCE_DIR}/..)
 set(NET_SOURCES
   ${IOS}/src/net/buffer_store.cpp
   ${IOS}/src/net/checksum.cpp
+  ${IOS}/src/net/configure.cpp
   ${IOS}/src/net/super_stack.cpp
   ${IOS}/src/net/inet.cpp
 
@@ -69,6 +70,7 @@ if (CUSTOM_BOTAN)
 endif()
 
 set(OS_SOURCES
+    ${IOS}/src/version.cpp
     ${IOS}/src/fs/dirent.cpp
     ${IOS}/src/fs/disk.cpp
     ${IOS}/src/fs/fat.cpp
@@ -84,6 +86,7 @@ set(OS_SOURCES
     ${IOS}/src/kernel/rng.cpp
     ${IOS}/src/kernel/timers.cpp
     ${IOS}/src/util/async.cpp
+    ${IOS}/src/util/autoconf.cpp
     ${IOS}/src/util/crc32.cpp
     ${IOS}/src/util/logger.cpp
     ${IOS}/src/util/sha1.cpp
