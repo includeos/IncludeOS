@@ -49,6 +49,9 @@ add_dependencies(disk_logger PrecompiledLibraries)
 add_library(disklog_reader STATIC "disklog_reader.cpp")
 add_dependencies(disklog_reader PrecompiledLibraries)
 
+add_library(timestamps STATIC timestamps.cpp)
+add_dependencies(timestamps PrecompiledLibraries)
+
 add_library(vga_output STATIC vgaout.cpp)
 add_dependencies(vga_output PrecompiledLibraries)
 
@@ -68,6 +71,7 @@ install(TARGETS
     ip4_reassembly
     heap_debugging
     boot_logger disk_logger disklog_reader
+    timestamps
     vga_output vga_emergency
     DESTINATION includeos/${ARCH}/drivers)
 
