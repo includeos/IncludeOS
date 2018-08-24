@@ -24,7 +24,7 @@
 #include <hw/pci_device.hpp>
 #include <util/fixed_vector.hpp>
 
-static const int ELEMENTS = 16;
+static const int ELEMENTS = 64;
 
 template <typename Driver>
 using Driver_entry = std::pair<uint32_t, Driver>;
