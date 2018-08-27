@@ -1,4 +1,4 @@
-#include "stub.hpp"
+#include "common.hpp"
 
 extern "C" void kfree(void* addr, size_t length);
 
@@ -14,5 +14,5 @@ static long sys_munmap(void *addr, size_t length)
 extern "C"
 long syscall_SYS_munmap(void *addr, size_t length)
 {
-  return stubtrace(sys_munmap, "munmap", addr, length);
+  return strace(sys_munmap, "munmap", addr, length);
 }

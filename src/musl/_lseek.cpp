@@ -2,7 +2,7 @@
 
 static long sys__lseek()
 {
-  return 0;
+  return -ENOSYS;
 }
 
 extern "C"

@@ -1,11 +1,12 @@
-#include "stub.hpp"
+#include "common.hpp"
+#include <sys/sysinfo.h>
 
-static long sys_sysinfo()
+static long sys_sysinfo(struct sysinfo */*info*/)
 {
-  return 0;
+  return -ENOSYS;
 }
 
 extern "C"
-long syscall_SYS_sysinfo() {
-  return stubtrace(sys_sysinfo, "sysinfo");
+long syscall_SYS_sysinfo(struct sysinfo *info) {
+  return strace(sys_sysinfo, "sysinfo", info);
 }
