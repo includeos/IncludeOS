@@ -1,6 +1,7 @@
 
 set(SOURCES
     arch.cpp
+    config.cpp
     main.cpp
     os.cpp
     profile.cpp

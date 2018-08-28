@@ -152,10 +152,21 @@ inline void Squirrel::serialize(rapidjson::Writer<rapidjson::StringBuffer>& writ
   writer.EndObject();
 }
 
-inline bool Squirrel::deserialize(const rapidjson::Document& doc) {
+inline bool Squirrel::deserialize(const rapidjson::Document& doc)
+{
+  if(not (doc.HasMember("name") and doc["name"].IsString()))
+    return false;
+
+  if(not (doc.HasMember("age") and doc["age"].IsInt()))
+    return false;
+
+  if(not (doc.HasMember("occupation") and doc["occupation"].IsString()))
+    return false;
+
   name_       = doc["name"].GetString();
   age_        = doc["age"].GetUint();
   occupation_ = doc["occupation"].GetString();
+
   return true;
 }
 

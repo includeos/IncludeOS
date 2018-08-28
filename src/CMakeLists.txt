@@ -28,6 +28,7 @@ endif()
 set(BOTAN_MODULES "net/https/botan_server.cpp")
 
 set(OS_OBJECTS
+  version.cpp
   kernel/multiboot.cpp
   kernel/syscalls.cpp kernel/os.cpp kernel/cpuid.cpp kernel/block.cpp
   kernel/events.cpp kernel/memmap.cpp kernel/pci_manager.cpp
@@ -77,6 +78,7 @@ add_dependencies(os PrecompiledLibraries botan ${OPENSSL_LIBS})
 # disable sanitizers on c_abi and cxx_abi, etc.
 set_source_files_properties(crt/c_abi.c PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 set_source_files_properties(crt/cxx_abi.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
+set_source_files_properties(version.cpp PROPERTIES COMPILE_DEFINITIONS "OS_VERSION=\"${OS_VERSION}\"")
 
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)

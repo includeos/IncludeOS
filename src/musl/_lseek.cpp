@@ -1,7 +1,11 @@
-#include "common.hpp"
+#include "stub.hpp"
+
+static long sys__lseek()
+{
+  return -ENOSYS;
+}
 
 extern "C"
 long syscall_SYS__lseek() {
-  STUB("_lseek");
-  return 0;
+  return stubtrace(sys__lseek, "_lseek");
 }

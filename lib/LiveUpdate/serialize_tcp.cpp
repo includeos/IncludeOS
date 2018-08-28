@@ -179,7 +179,7 @@ void Connection::deserialize_from(void* addr)
   auto* readq = (read_buffer*) &area->vla[writeq_len];
   if (readq->capacity)
   {
-    read_request = std::make_unique<Read_request>(readq->capacity, readq->seq, nullptr);
+    read_request = std::make_unique<Read_request>(readq->seq, readq->capacity, host_.max_bufsize(), nullptr);
     read_request->front().deserialize_from(readq);
   }
 

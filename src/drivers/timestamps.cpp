@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2017 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,9 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
-#include <autoconf>
 
 __attribute__((constructor))
-static void register_autoconf_plugin() {
-  OS::register_plugin(autoconf::run, "Autoconf plugin");
+static void enable_timestamps()
+{
+  OS::enable_timestamps(true);
 }

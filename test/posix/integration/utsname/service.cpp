@@ -26,10 +26,10 @@ int main()
     "sysname is IncludeOS");
   CHECKSERT(strcmp(struct_test.nodename, "IncludeOS-node") == 0,
     "nodename is IncludeOS-node");
-  CHECKSERT(strcmp(struct_test.release, OS::version().c_str()) == 0,
-    "release is %s", OS::version().c_str());
-  CHECKSERT(strcmp(struct_test.version, OS::version().c_str()) == 0,
-    "version is %s", OS::version().c_str());
+  CHECKSERT(strcmp(struct_test.release, OS::version()) == 0,
+    "release is %s", OS::version());
+  CHECKSERT(strcmp(struct_test.version, OS::version()) == 0,
+    "version is %s", OS::version());
   CHECKSERT(strcmp(struct_test.machine, ARCH) == 0,
     "machine is %s", ARCH);
 

@@ -42,13 +42,13 @@ public:
   /**
    * Returns the OS version string
    **/
-  static const std::string& version() noexcept
+  static const char* version() noexcept
   { return version_str_; }
 
   /**
    * Returns the CPU architecture for which the OS was built
    **/
-  static const std::string& arch() noexcept
+  static const char* arch() noexcept
   { return arch_str_; }
 
 
@@ -151,6 +151,12 @@ public:
    *  Write data to standard out callbacks
    */
   static void print(const char* ptr, const size_t len);
+
+  /**
+   *  Enable or disable timestamps automatically
+   *  prepended to all OS::print(...) calls
+   */
+  static void enable_timestamps(bool enabled);
 
   /**
    *  Add handler for standard output.
@@ -270,11 +276,12 @@ private:
   static bool boot_sequence_passed_;
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
+  static bool m_timestamps;
   static util::KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;
-  static std::string version_str_;
-  static std::string arch_str_;
+  static const char* version_str_;
+  static const char* arch_str_;
   static uintptr_t heap_begin_;
   static uintptr_t heap_max_;
   static uintptr_t memory_end_;

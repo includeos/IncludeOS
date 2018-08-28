@@ -352,8 +352,9 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
 endif()
 
 # Depending on the output of this command will make it always run. Like magic.
-add_custom_command(OUTPUT fake_news
-      COMMAND cmake -E touch_nocreate alternative_facts)
+add_custom_command(
+    OUTPUT fake_news
+    COMMAND cmake -E echo)
 
 # add memdisk
 function(add_memdisk DISK)
@@ -363,7 +364,7 @@ function(add_memdisk DISK)
     OUTPUT  memdisk.o
     COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
-    DEPENDS ${DISK_RELPATH} fake_news
+    DEPENDS ${DISK_RELPATH}
   )
   add_library(memdisk STATIC memdisk.o)
   set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
@@ -378,7 +379,7 @@ function(build_memdisk FOLD)
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
       DEPENDS fake_news
       )
-    add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
+  add_custom_target(diskbuilder DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
   add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
 endfunction()

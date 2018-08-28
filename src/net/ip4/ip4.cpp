@@ -131,6 +131,9 @@ namespace net {
     // Stat increment packets received
     packets_rx_++;
 
+    // Account for possible linklayer padding
+    packet->adjust_size_from_header();
+
     packet = drop_invalid_in(std::move(packet));
     if (UNLIKELY(packet == nullptr)) return;
 
