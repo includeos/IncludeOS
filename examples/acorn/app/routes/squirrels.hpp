@@ -60,7 +60,13 @@ public:
           // create an empty model
           acorn::Squirrel s;
           // deserialize it
-          s.deserialize(doc);
+          bool ok = s.deserialize(doc);
+          if(UNLIKELY(not ok))
+          {
+            printf("[Squirrels@POST:/] Could not deserialize squirrel\n");
+            res->error({"Parsing Error", "Could not parse data."});
+            return;
+          }
           // add to bucket
           auto id = squirrels->capture(s);
           assert(id == s.key);
@@ -73,10 +79,6 @@ public:
           res->source().set_status_code(http::Created);
           // send the created entity as response
           res->send_json(s.json());
-        }
-        catch(const Assert_error& e) {
-          printf("[Squirrels@POST:/] Assert_error: %s\n", e.what());
-          res->error({"Parsing Error", "Could not parse data."});
         }
         catch(const bucket::ConstraintException& e) {
           printf("[Squirrels@POST:/] ConstraintException: %s\n", e.what());
