@@ -50,7 +50,7 @@ namespace x86
     uint8_t  length;
     uint16_t handle;
 
-    char data[0];
+    const char data[0];
 
     const char* strings() const
     {
@@ -74,7 +74,7 @@ namespace x86
       {
         int len = strnlen(str, 64);
         str += len + 1;
-        if (len == 0) return (Header*) str;
+        if (len == 0) return (const Header*) str;
       }
     }
   };

@@ -71,16 +71,25 @@ extern "C"
 			uint32_t column;
 		};
   };
+  struct type_descriptor {
+	   uint16_t type_kind;
+	   uint16_t type_info;
+	   char type_name[1];
+  };
+
   struct out_of_bounds {
-	   struct source_location src;
-	   //struct type_descriptor *array_type;
-	   //struct type_descriptor *index_type;
+	   source_location  src;
+	   type_descriptor* array_type;
+	   type_descriptor* index_type;
   };
   struct overflow {
     source_location src;
   };
   struct mismatch {
-    source_location src;
+    source_location  src;
+    type_descriptor* type;
+    unsigned char    log_align;
+    unsigned char    type_kind;
   };
   struct nonnull_return {
     source_location src;
@@ -156,11 +165,21 @@ extern "C"
   void __ubsan_handle_type_mismatch_v1(struct mismatch* data, unsigned long ptr)
   {
     print_src_location(data->src);
+    const char* reason = "Type mismatch";
+    const long alignment = 1 << data->log_align;
+
+    if (alignment && (ptr & (alignment-1)) != 0) {
+      reason = "Misaligned access";
+    }
+    else if (ptr == 0) {
+      reason = "Null-pointer access";
+    }
     char buffer[1024];
     snprintf(buffer, sizeof(buffer),
-            "Type mismatch on ptr %p, %s",
+            "%s on ptr %p  (aligned %lu)",
+            reason,
             (void*) ptr,
-            (ptr < 1024) ? "was nullptr deref" : "normal");
+            alignment);
     undefined_throw(buffer);
   }
   void __ubsan_handle_function_type_mismatch()
