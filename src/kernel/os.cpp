@@ -54,6 +54,7 @@ bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 bool  OS::m_is_live_updated     = false;
 bool  OS::m_block_drivers_ready = false;
+bool  OS::m_timestamps          = false;
 KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
 
@@ -176,6 +177,13 @@ bool os_enable_boot_logging = false;
 __attribute__((weak))
 bool os_default_stdout = false;
 
+#include <isotime>
+bool contains(const char* str, size_t len, char c)
+{
+  for (size_t i = 0; i < len; i++) if (str[i] == c) return true;
+  return false;
+}
+
 void OS::print(const char* str, const size_t len)
 {
   if (UNLIKELY(! __libc_initialized)) {
@@ -185,6 +193,27 @@ void OS::print(const char* str, const size_t len)
 
   for (auto& callback : os_print_handlers) {
     if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
+    {
+      if (OS::m_timestamps && OS::is_booted() && !OS::is_panicking())
+      {
+        /** TIMESTAMPING **/
+        static bool ts_shown = false;
+        if (ts_shown == false)
+        {
+          std::string ts = "[" + isotime::now() + "] ";
+          callback(ts.c_str(), ts.size());
+          ts_shown = true;
+        }
+        const bool has_newline = contains(str, len, '\n');
+        if (ts_shown && has_newline) ts_shown = false;
+        /** TIMESTAMPING **/
+      }
       callback(str, len);
+    }
   }
+}
+
+void OS::enable_timestamps(const bool enabled)
+{
+  OS::m_timestamps = enabled;
 }

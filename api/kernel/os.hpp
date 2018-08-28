@@ -153,6 +153,12 @@ public:
   static void print(const char* ptr, const size_t len);
 
   /**
+   *  Enable or disable timestamps automatically
+   *  prepended to all OS::print(...) calls
+   */
+  static void enable_timestamps(bool enabled);
+
+  /**
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
@@ -270,6 +276,7 @@ private:
   static bool boot_sequence_passed_;
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
+  static bool m_timestamps;
   static util::KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;
