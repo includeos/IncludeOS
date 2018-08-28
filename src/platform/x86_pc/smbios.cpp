@@ -77,7 +77,7 @@ namespace x86
         if (len == 0) return (const Header*) str;
       }
     }
-  };
+  } __attribute__((packed));
 
   struct PhysMemArray : public Header
   {
@@ -102,8 +102,7 @@ namespace x86
       return (inf.capacity32 == 0x80000000)
         ? inf.capacity64 : inf.capacity32 * 1024;
     }
-
-  };
+  } __attribute__((packed));
 
   void SMBIOS::parse(const char* mem)
   {

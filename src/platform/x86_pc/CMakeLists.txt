@@ -40,7 +40,7 @@ add_dependencies(x86_pc PrecompiledLibraries)
 # disable sanitizers on kernel_start and others
 #set_source_files_properties(kernel_start.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 #set_source_files_properties(serial1.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
-set_source_files_properties(smbios.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
+#set_source_files_properties(smbios.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 
 add_subdirectory(boot)
 set_target_properties(x86_pc PROPERTIES LINKER_LANGUAGE CXX)
