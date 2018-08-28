@@ -1,9 +1,9 @@
+#include "common.hpp"
+
 #include <sys/ioctl.h>
 #include <posix/fd_map.hpp>
 
-#include "stub.hpp"
-
-static int sys_ioctl(int fd, int req, void* arg) {
+static long sys_ioctl(int fd, int req, void* arg) {
   if (fd == 1 or fd == 2) {
     if (req == TIOCGWINSZ) {
       winsize* ws = (winsize*)arg;
@@ -27,6 +27,6 @@ static int sys_ioctl(int fd, int req, void* arg) {
 }
 
 extern "C"
-int syscall_SYS_ioctl(int fd, int req, void* arg) {
-  return stubtrace(sys_ioctl, "ioctl", fd, req, arg);
+long syscall_SYS_ioctl(int fd, int req, void* arg) {
+  return strace(sys_ioctl, "ioctl", fd, req, arg);
 }

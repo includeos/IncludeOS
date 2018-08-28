@@ -1,4 +1,4 @@
-#include "stub.hpp"
+#include "common.hpp"
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -11,5 +11,5 @@ extern "C"
 long syscall_SYS_execve(const char *filename, char *const argv[],
                      char *const envp[])
 {
-  return stubtrace(sys_execve, "execve", filename, argv, envp);
+  return strace(sys_execve, "execve", filename, argv, envp);
 }
