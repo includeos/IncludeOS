@@ -110,8 +110,9 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 {
   const uint16_t header = sizeof(net::Packet) + vmxnet3::DRIVER_OFFSET;
-  const uint16_t total = header + sizeof(net::ethernet::VLAN_header) + mtu;
-  if (total <= 2048) return 2048;
+  uint16_t total = header + sizeof(net::ethernet::VLAN_header) + mtu;
+  if (total & 15) total += 16 - (total & 15);
+  //if (total & 2047) total += 2048 - (total & 2047);
   assert(total <= 16384 && "Buffers larger than 16k are not supported");
   return total;
 }
