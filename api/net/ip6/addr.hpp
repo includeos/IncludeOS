@@ -123,7 +123,7 @@ struct Addr {
 
   bool is_linklocal() const
   {
-    return ((ntohs(i16[0]) & 0xFF80) == 0xFF80);
+    return ((ntohs(i16[0]) & 0xFE80) == 0xFE80);
   }
 
   bool is_solicit_multicast() const
