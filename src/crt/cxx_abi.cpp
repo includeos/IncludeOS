@@ -20,6 +20,7 @@
 #include <stdexcept>
 #include <kernel/syscalls.hpp>
 #include <kernel/elf.hpp>
+#include <kprint>
 
 /**
  * This header is for instantiating and implementing
@@ -113,9 +114,9 @@ extern "C"
             src.file_name, src.line, src.column);
   }
   void undefined_throw(const char* error) {
-    printf("ubsan: %s", error);
+    kprintf("ubsan: %s", error);
     print_backtrace();
-    printf("\n");
+    kprintf("\n");
   }
 
   /// Undefined-behavior sanitizer
@@ -216,6 +217,11 @@ extern "C"
             res.name);
     undefined_throw(buffer);
   }
+  void __ubsan_handle_nonnull_arg()
+  {
+    undefined_throw("Non-null argument violated");
+  }
+
   void __ubsan_handle_invalid_builtin()
   {
     undefined_throw("Invalid built-in function");

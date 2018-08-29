@@ -435,6 +435,47 @@ void _init_elf_parser()
   }
 }
 
+extern "C"
+void __elf_validate_section(const void* location)
+{
+  int size = _get_elf_section_datasize(location);
+  // stripped variant
+  if (size == 0) {
+    kprintf("ELF syms are considered stripped\n");
+    asm("cli; hlt");
+  }
+  // incoming header
+  auto* hdr = (elfsyms_header*) location;
+  // verify CRC sanity check
+  const uint32_t temp_hdr = hdr->sanity_check;
+  hdr->sanity_check = 0;
+  const uint32_t our_sanity = crc32c(hdr, sizeof(elfsyms_header));
+  hdr->sanity_check = temp_hdr;
+  if (hdr->sanity_check != our_sanity)
+  {
+    kprintf("ELF syms header CRC failed! "
+            "(%08x vs %08x)\n", hdr->sanity_check, our_sanity);
+    asm("cli; hlt");
+  }
+
+  // verify separate checksums of symbols and strings
+  uint32_t symbsize = hdr->symtab_entries * sizeof(ElfSym);
+  uint32_t csum_syms = crc32c(hdr->syms, symbsize);
+  uint32_t csum_strs = crc32c(&hdr->syms[hdr->symtab_entries], hdr->strtab_size);
+  if (csum_syms != hdr->checksum_syms || csum_strs != hdr->checksum_strs)
+  {
+    if (csum_syms != hdr->checksum_syms)
+      kprintf("ELF symbol tables checksum failed! "
+              "(%08x vs %08x)\n", csum_syms, hdr->checksum_syms);
+    if (csum_strs != hdr->checksum_strs)
+      kprintf("ELF string tables checksum failed! "
+              "(%08x vs %08x)\n", csum_strs, hdr->checksum_strs);
+    uint32_t all = crc32c(hdr, sizeof(elfsyms_header) + size);
+    kprintf("Checksum ELF section: %08x\n", all);
+    asm("cli; hlt");
+  }
+}
+
 #ifdef ARCH_x86_64
 #include <kernel/memory.hpp>
 void elf_protect_symbol_areas()
