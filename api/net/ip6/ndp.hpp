@@ -159,7 +159,7 @@ namespace net {
     MAC::Addr& link_mac_addr()
     { return mac_; }
 
-    ip6::Addr static_ip() const noexcept
+    const ip6::Addr& static_ip() const noexcept
     { return ip6_addr_; }
 
     uint8_t static_prefix() const noexcept
@@ -169,7 +169,7 @@ namespace net {
     { return ip6_gateway_; }
 
     void set_static_addr(ip6::Addr addr)
-    { ip6_addr_ = addr; }
+    { ip6_addr_ = std::move(addr); }
 
     void set_static_gateway(ip6::Addr addr)
     { ip6_gateway_ = addr; }
