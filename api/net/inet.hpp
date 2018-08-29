@@ -97,7 +97,7 @@ namespace net {
     ip4::Addr broadcast_addr() const
     { return ip4_.broadcast_addr(); }
 
-    ip6::Addr ip6_addr() const
+    const ip6::Addr& ip6_addr() const
     { return ndp_.static_ip(); }
 
     uint8_t netmask6() const
@@ -315,15 +315,19 @@ namespace net {
                         uint8_t prefix6 = 0,
                         ip6::Addr gateway6 = IP6::ADDR_ANY);
 
-    void
-    reset_config()
+    void reset_config()
     {
       this->ip4_.set_addr(IP4::ADDR_ANY);
       this->ip4_.set_gateway(IP4::ADDR_ANY);
       this->ip4_.set_netmask(IP4::ADDR_ANY);
+    }
+
+    void reset_config6()
+    {
       this->ndp_.set_static_addr(IP6::ADDR_ANY);
       this->ndp_.set_static_gateway(IP6::ADDR_ANY);
       this->ndp_.set_static_prefix(0);
+
     }
 
     // register a callback for receiving signal on free packet-buffers
