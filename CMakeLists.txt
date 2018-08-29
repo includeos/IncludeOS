@@ -32,7 +32,7 @@ set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 set(CPP_VERSION c++17)
 
 # create OS version string from git describe (used in CXX flags)
-execute_process(COMMAND git describe --dirty
+execute_process(COMMAND git describe --tags --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
