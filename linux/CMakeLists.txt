@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.0.2)
 project (userland_tests C CXX)
 
 # create OS version string from git describe (used in CXX flags)
-execute_process(COMMAND git describe --dirty
+execute_process(COMMAND git describe --tags --dirty
 	        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/..
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
