@@ -191,23 +191,26 @@ void OS::print(const char* str, const size_t len)
     return;
   }
 
+  /** TIMESTAMPING **/
+  if (OS::m_timestamps && OS::is_booted() && !OS::is_panicking())
+  {
+    static bool apply_ts = true;
+    if (apply_ts)
+    {
+      std::string ts = "[" + isotime::now() + "] ";
+      for (auto& callback : os_print_handlers) {
+        callback(ts.c_str(), ts.size());
+      }
+      apply_ts = false;
+    }
+    const bool has_newline = contains(str, len, '\n');
+    if (has_newline) apply_ts = true;
+  }
+  /** TIMESTAMPING **/
+
   for (auto& callback : os_print_handlers) {
     if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
     {
-      if (OS::m_timestamps && OS::is_booted() && !OS::is_panicking())
-      {
-        /** TIMESTAMPING **/
-        static bool ts_shown = false;
-        if (ts_shown == false)
-        {
-          std::string ts = "[" + isotime::now() + "] ";
-          callback(ts.c_str(), ts.size());
-          ts_shown = true;
-        }
-        const bool has_newline = contains(str, len, '\n');
-        if (ts_shown && has_newline) ts_shown = false;
-        /** TIMESTAMPING **/
-      }
       callback(str, len);
     }
   }
