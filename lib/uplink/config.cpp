@@ -135,6 +135,9 @@ namespace uplink {
     writer.Key("token");
     writer.String(token);
 
+    writer.Key("tag");
+    writer.String(tag);
+
     writer.Key("certs");
     writer.String(certs_path);
 
