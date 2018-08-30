@@ -46,18 +46,17 @@ struct Addr {
 
   Addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2,
        uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
-  {
-    i16[0] = htons(a1); i16[1] = htons(a2);
-    i16[2] = htons(b1); i16[3] = htons(b2);
-    i16[4] = htons(c1); i16[5] = htons(c2);
-    i16[6] = htons(d1); i16[7] = htons(d2);
-  }
+    : i16{htons(a1), htons(a2), htons(b1), htons(b2),
+          htons(c1), htons(c2), htons(d1), htons(d2)}
+  {}
 
   explicit Addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
-  {
-    i32[0] = htonl(a); i32[1] = htonl(b);
-    i32[2] = htonl(c); i32[3] = htonl(d);
-  }
+    : i32{htonl(a), htonl(b), htonl(c), htonl(d)}
+  {}
+
+  explicit Addr(uint64_t a, uint64_t b)
+    : i64{htonll(a), htonll(b)}
+  {}
 
   Addr(const Addr& a) noexcept
     : i64{a.i64} {}
@@ -145,6 +144,11 @@ struct Addr {
     i32[2] = htonl(0x1);
     i32[3] = htonl(0xFF000000) | other.i32[3];
     return *this;
+  }
+
+  static Addr link_local(uint64_t eui) noexcept
+  {
+    return Addr{0xFE80'0000'0000'0000, ntohll(eui)};
   }
 
   /**
