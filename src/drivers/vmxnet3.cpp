@@ -35,7 +35,7 @@ static std::vector<vmxnet3*> deferred_devs;
 
 #define VMXNET3_NUM_TX_COMP  vmxnet3::NUM_TX_DESC
 #define VMXNET3_NUM_RX_COMP  vmxnet3::NUM_RX_DESC
-static const int VMXNET3_TX_FILL = vmxnet3::NUM_TX_DESC-1;
+static const int VMXNET3_TX_FILL = vmxnet3::NUM_TX_DESC;
 static const int VMXNET3_RX_FILL = vmxnet3::NUM_RX_DESC;
 
 /**
@@ -49,9 +49,11 @@ struct vmxnet3_dma {
   struct vmxnet3_tx_desc tx_desc[vmxnet3::NUM_TX_DESC];
   struct vmxnet3_tx_comp tx_comp[VMXNET3_NUM_TX_COMP];
   /** RX ring */
-  struct vmxnet3_rx_desc rx0_desc[vmxnet3::NUM_RX_DESC];
-  struct vmxnet3_rx_desc rx1_desc[vmxnet3::NUM_RX_DESC];
-  struct vmxnet3_rx_comp rx_comp[VMXNET3_NUM_RX_COMP];
+  struct vmxnet3_rx {
+    struct vmxnet3_rx_desc desc[vmxnet3::NUM_RX_DESC];
+    struct vmxnet3_rx_comp comp[VMXNET3_NUM_RX_COMP];
+  };
+  struct vmxnet3_rx rx[vmxnet3::NUM_RX_QUEUES];
   /** Queue descriptors */
   struct vmxnet3_queues queues;
   /** Shared area */
@@ -201,9 +203,9 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   for (int q = 0; q < NUM_RX_QUEUES; q++)
   {
     memset(rx[q].buffers, 0, sizeof(rx[q].buffers));
-    rx[q].desc0 = &dma->rx0_desc[0];
-    rx[q].desc1 = &dma->rx1_desc[0];
-    rx[q].comp  = &dma->rx_comp[0];
+    rx[q].desc0 = &dma->rx[q].desc[0];
+    rx[q].desc1 = nullptr;
+    rx[q].comp  = &dma->rx[q].comp[0];
     rx[q].index = q;
 
     auto& queue = queues.rx[q];
@@ -211,7 +213,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     queue.cfg.desc_address[1] = (uintptr_t) rx[q].desc1;
     queue.cfg.comp_address    = (uintptr_t) rx[q].comp;
     queue.cfg.num_desc[0]  = vmxnet3::NUM_RX_DESC;
-    queue.cfg.num_desc[1]  = vmxnet3::NUM_RX_DESC;
+    queue.cfg.num_desc[1]  = 0;
     queue.cfg.num_comp     = VMXNET3_NUM_RX_COMP;
     queue.cfg.driver_data_len = sizeof(vmxnet3_rx_desc)
                           + 2 * sizeof(vmxnet3_rx_desc);
@@ -436,9 +438,7 @@ void vmxnet3::msix_recv_handler()
 {
   for (int q = 0; q < NUM_RX_QUEUES; q++)
   {
-      this->disable_intr(2 + q);
       this->receive_handler(q);
-      this->enable_intr(2 + q);
   }
 }
 
@@ -481,12 +481,13 @@ bool vmxnet3::transmit_handler()
 bool vmxnet3::receive_handler(const int Q)
 {
   std::vector<net::Packet_ptr> recvq;
+  this->disable_intr(2 + Q);
   while (true)
   {
     uint32_t idx = rx[Q].consumers % VMXNET3_NUM_RX_COMP;
     uint32_t gen = (rx[Q].consumers & VMXNET3_NUM_RX_COMP) ? 0 : VMXNET3_RXCF_GEN;
 
-    auto& comp = dma->rx_comp[idx];
+    auto& comp = dma->rx[Q].comp[idx];
     // break when exiting this generation
     if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
     rx[Q].consumers++;
@@ -500,13 +501,14 @@ bool vmxnet3::receive_handler(const int Q)
     recvq.push_back(recv_packet(rx[Q].buffers[desc], len));
     rx[Q].buffers[desc] = nullptr;
   }
+  this->enable_intr(2 + Q);
   // refill always
   if (!recvq.empty()) {
     this->refill(rx[Q]);
-    // handle_magic()
-    for (auto& pckt : recvq) {
-      Link::receive(std::move(pckt));
-    }
+  }
+  // handle packets
+  for (auto& pckt : recvq) {
+    Link::receive(std::move(pckt));
   }
   return recvq.empty() == false;
 }

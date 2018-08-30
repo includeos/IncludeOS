@@ -23,7 +23,9 @@ option(minimal "Build for minimal size" OFF)
 option(stripped "Strip symbols to further reduce size" OFF)
 
 option(threading "Compile threading and SMP support" OFF)
-option (undefined_san "Enable undefined-behavior sanitizer" OFF)
+option(undefined_san "Enable undefined-behavior sanitizer" OFF)
+option(thin_lto "Enable Thin LTO plugin" OFF)
+option(full_lto "Enable full LTO (also works on LD)" OFF)
 option(coroutines "Compile with coroutines TS support" OFF)
 
 # arch and platform defines

@@ -19,6 +19,8 @@
 #include <cstdio>
 #include <stdexcept>
 #include <kernel/syscalls.hpp>
+#include <kernel/elf.hpp>
+#include <kprint>
 
 /**
  * This header is for instantiating and implementing
@@ -76,6 +78,10 @@ extern "C"
 	   uint16_t type_info;
 	   char type_name[1];
   };
+  const char* type_kind_string[] = {
+    "load of", "store to", "reference binding to", "member access within",
+    "member call on", "constructor call on", "downcast of", "downcast of"
+  };
 
   struct out_of_bounds {
 	   source_location  src;
@@ -87,9 +93,13 @@ extern "C"
   };
   struct mismatch {
     source_location  src;
-    type_descriptor* type;
+    type_descriptor& type;
     unsigned char    log_align;
     unsigned char    type_kind;
+  };
+  struct function_type_mismatch {
+    const source_location  src;
+    const type_descriptor& type;
   };
   struct nonnull_return {
     source_location src;
@@ -104,9 +114,9 @@ extern "C"
             src.file_name, src.line, src.column);
   }
   void undefined_throw(const char* error) {
-    printf("ubsan: %s", error);
+    kprintf("ubsan: %s", error);
     print_backtrace();
-    printf("\n");
+    kprintf("\n");
   }
 
   /// Undefined-behavior sanitizer
@@ -165,6 +175,9 @@ extern "C"
   void __ubsan_handle_type_mismatch_v1(struct mismatch* data, unsigned long ptr)
   {
     print_src_location(data->src);
+    char sbuf[1024];
+    auto res = Elf::safe_resolve_symbol((void*) ptr, sbuf, sizeof(sbuf));
+
     const char* reason = "Type mismatch";
     const long alignment = 1 << data->log_align;
 
@@ -174,18 +187,41 @@ extern "C"
     else if (ptr == 0) {
       reason = "Null-pointer access";
     }
-    char buffer[1024];
+    char buffer[2048];
     snprintf(buffer, sizeof(buffer),
-            "%s on ptr %p  (aligned %lu)",
+            "%s on ptr %p  (aligned %lu)\n"
+            "ubsan: type name %s\n"
+            "ubsan: symbol    %s",
             reason,
             (void*) ptr,
-            alignment);
+            alignment,
+            data->type.type_name,
+            res.name);
     undefined_throw(buffer);
   }
-  void __ubsan_handle_function_type_mismatch()
+  void __ubsan_handle_function_type_mismatch(
+          struct function_type_mismatch* data,
+          unsigned long ptr)
   {
-    undefined_throw("Function type mismatch");
+    print_src_location(data->src);
+    char sbuf[1024];
+    auto res = Elf::safe_resolve_symbol((void*) ptr, sbuf, sizeof(sbuf));
+
+    char buffer[2048];
+    snprintf(buffer, sizeof(buffer),
+            "Function type mismatch on ptr %p\n"
+            "ubsan: type name %s\n"
+            "ubsan: function  %s",
+            (void*) ptr,
+            data->type.type_name,
+            res.name);
+    undefined_throw(buffer);
   }
+  void __ubsan_handle_nonnull_arg()
+  {
+    undefined_throw("Non-null argument violated");
+  }
+
   void __ubsan_handle_invalid_builtin()
   {
     undefined_throw("Invalid built-in function");

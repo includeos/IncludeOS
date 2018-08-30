@@ -53,6 +53,8 @@ option(threading "Compile with SMP/threading support" OFF)
 option(silent "Disable most output during OS boot" OFF)
 
 option (undefined_san "Enable undefined-behavior sanitizer" OFF)
+option (thin_lto "Enable the Thin LTO plugin" OFF)
+option (full_lto "Enable full LTO (compatibility)" OFF)
 
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
@@ -114,6 +116,11 @@ set(CAPABS "${CAPABS} ${OPTIMIZE}")
 # Append sanitizers
 if (undefined_san)
   set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
+endif()
+if (thin_lto)
+  set(CAPABS "${CAPABS} -flto=thin")
+elseif(full_lto)
+  set(CAPABS "${CAPABS} -flto=full")
 endif()
 
 # object format needs to be set BEFORE enabling ASM
