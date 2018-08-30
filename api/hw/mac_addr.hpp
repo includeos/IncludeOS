@@ -197,7 +197,7 @@ union Addr {
       0xFF, 0xFE,
       addr.part[3], addr.part[4], addr.part[5]
     };
-    eui[0] ^= (1UL << 7);
+    eui[0] ^= (1UL << 1);
     return *((uint64_t*)eui.data());
   }
 
