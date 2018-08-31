@@ -277,6 +277,7 @@ private:
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
   static bool m_timestamps;
+  static bool m_timestamps_ready;
   static util::KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;
