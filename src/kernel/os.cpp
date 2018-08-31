@@ -55,6 +55,7 @@ bool  OS::boot_sequence_passed_ = false;
 bool  OS::m_is_live_updated     = false;
 bool  OS::m_block_drivers_ready = false;
 bool  OS::m_timestamps          = false;
+bool  OS::m_timestamps_ready    = false;
 KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
 
@@ -121,6 +122,9 @@ void OS::shutdown()
 
 void OS::post_start()
 {
+  // Enable timestamps (if present)
+  OS::m_timestamps_ready = true;
+
   // LiveUpdate needs some initialization, although only if present
   OS::setup_liveupdate();
 
@@ -192,7 +196,7 @@ void OS::print(const char* str, const size_t len)
   }
 
   /** TIMESTAMPING **/
-  if (OS::m_timestamps && OS::is_booted() && !OS::is_panicking())
+  if (OS::m_timestamps && OS::m_timestamps_ready && !OS::is_panicking())
   {
     static bool apply_ts = true;
     if (apply_ts)
