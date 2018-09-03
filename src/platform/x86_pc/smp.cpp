@@ -45,6 +45,26 @@ struct apic_boot {
   uint32_t  stack_size;
 };
 
+struct __libc {
+  int can_do_threads;
+  int threaded;
+  int secure;
+  volatile int threads_minus_1;
+  size_t* auxv;
+};
+extern struct __libc __libc;
+//extern "C" struct __libc *__libc_loc(void) __attribute__((const));
+//#define __libc (*__libc_loc())
+
+static inline void musl_override_glob_locks()
+{
+  printf("__libc.can_do_threads: %d  __libc.threaded: %d\n",
+        __libc.can_do_threads, __libc.threaded);
+  printf("__libc.threads_minus_1: %d -> %d\n",
+        __libc.threads_minus_1, 1);
+  __libc.threads_minus_1 = 1;
+}
+
 namespace x86
 {
 
@@ -53,6 +73,8 @@ void init_SMP()
   const uint32_t CPUcount = ACPI::get_cpus().size();
   if (CPUcount <= 1) return;
   assert(CPUcount <= SMP_MAX_CORES);
+  // avoid heap usage during AP init
+  x86::smp_main.initialized_cpus.reserve(CPUcount);
 
   // copy our bootloader to APIC init location
   const char* start = &_binary_apic_boot_bin_start;
@@ -85,6 +107,9 @@ void init_SMP()
   // reset barrier
   smp_main.boot_barrier.reset(1);
 
+  // enable global locks on musl
+  musl_override_glob_locks();
+
   auto& apic = x86::APIC::get();
   // turn on CPUs
   INFO("SMP", "Initializing APs");
@@ -95,7 +120,7 @@ void init_SMP()
           cpu.cpu, cpu.id, cpu.flags);
     apic.ap_init(cpu.id);
   }
-  PIT::blocking_cycles(10);
+  //PIT::blocking_cycles(10);
 
   // start CPUs
   INFO("SMP", "Starting APs");
@@ -104,9 +129,9 @@ void init_SMP()
     if (cpu.id == apic.get_id()) continue;
     // Send SIPI with start page at BOOTLOADER_LOCATION
     apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
-    //apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
+    apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
   }
-  PIT::blocking_cycles(1);
+  //PIT::blocking_cycles(1);
 
   // wait for all APs to start
   smp_main.boot_barrier.spin_wait(CPUcount);
