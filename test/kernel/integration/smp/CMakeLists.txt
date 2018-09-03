@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.9)
-option(threading "" ON)
+#option(threading "" ON)
 
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
