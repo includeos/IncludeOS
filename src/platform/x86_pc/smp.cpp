@@ -194,31 +194,29 @@ void SMP::init_task()
 
 void SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
 {
-#ifdef INCLUDEOS_SINGLE_THREADED
-  assert(cpu == 0);
-  task(); done();
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
   lock(smp_system[cpu].tlock);
   smp_system[cpu].tasks.emplace_back(std::move(task), std::move(done));
   unlock(smp_system[cpu].tlock);
+#else
+  assert(cpu == 0);
+  task(); done();
 #endif
 }
 void SMP::add_task(smp_task_func task, int cpu)
 {
-#ifdef INCLUDEOS_SINGLE_THREADED
-  assert(cpu == 0);
-  task();
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
   lock(smp_system[cpu].tlock);
   smp_system[cpu].tasks.emplace_back(std::move(task), nullptr);
   unlock(smp_system[cpu].tlock);
+#else
+  assert(cpu == 0);
+  task();
 #endif
 }
 void SMP::add_bsp_task(smp_done_func task)
 {
-#ifdef INCLUDEOS_SINGLE_THREADED
-  task();
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
   // queue job
   auto& system = PER_CPU(smp_system);
   lock(system.flock);
@@ -228,12 +226,14 @@ void SMP::add_bsp_task(smp_done_func task)
   smp_main.bitmap.atomic_set(SMP::cpu_id());
   // call home
   x86::APIC::get().send_bsp_intr();
+#else
+  task();
 #endif
 }
 
 void SMP::signal(int cpu)
 {
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   // broadcast that there is work to do
   // 0: Broadcast to everyone except BSP
   if (cpu == 0)

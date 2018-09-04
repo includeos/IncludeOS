@@ -26,7 +26,7 @@ static SMP::Array<Events> managers;
 
 Events& Events::get(int cpuid)
 {
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   return managers.at(cpuid);
 #else
   (void) cpuid;

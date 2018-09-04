@@ -3,8 +3,8 @@
 #
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
-if (NOT smp)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+if (smp)
+add_definitions(-DINCLUDEOS_SMP_ENABLE)
 endif()
 
 include_directories(${LIBCXX_INCLUDE_DIR})
