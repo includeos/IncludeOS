@@ -141,7 +141,8 @@ private:
   static void handle_deferred();
 
   // sendq as double-ended q
-  uint32_t& sendq_stat;
+  uint32_t& stat_sendq_cur;
+  uint32_t& stat_sendq_max;
   std::deque<net::Packet_ptr> sendq;
   net::BufferStore bufstore_;
 };

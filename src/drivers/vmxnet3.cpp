@@ -123,11 +123,14 @@ static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}),
     m_pcidev(d), m_mtu(mtu),
-    sendq_stat{Statman::get().create(Stat::UINT32, device_name() + ".sendq").get_uint32()},
+    stat_sendq_cur{Statman::get().create(Stat::UINT32, device_name() + ".sendq_now").get_uint32()},
+    stat_sendq_max{Statman::get().create(Stat::UINT32, device_name() + ".sendq_max").get_uint32()},
     bufstore_{1024, buffer_size_for_mtu(mtu)}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
+  Statman::get().create(Stat::UINT32, device_name() + ".buffer_size")
+      .get_uint32() = bufstore_.bufsize();
 
   // find and store capabilities
   d.parse_capabilities();
@@ -531,8 +534,9 @@ void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
     // transmit released buffer
     transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
   }
-  // update stat
-  sendq_stat = sendq.size();
+  // update sendq stats
+  stat_sendq_cur = sendq.size();
+  stat_sendq_max = std::max(stat_sendq_max, stat_sendq_cur);
 
   // delay dma message until we have written as much as possible
   if (!deferred_kick)
