@@ -167,6 +167,7 @@ using namespace x86;
 /// implementation of the SMP interface ///
 int SMP::cpu_id() noexcept
 {
+#ifdef INCLUDEOS_SMP_ENABLE
   int cpuid;
 #ifdef ARCH_x86_64
   asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
@@ -176,13 +177,15 @@ int SMP::cpu_id() noexcept
   #error "Implement me?"
 #endif
   return cpuid;
-}
-int SMP::cpu_count() noexcept
-{
-  return x86::smp_main.initialized_cpus.size();
+#else
+  return 0;
+#endif
 }
 
-const std::vector<int>& SMP::active_cpus(){
+int SMP::cpu_count() noexcept {
+  return x86::smp_main.initialized_cpus.size();
+}
+const std::vector<int>& SMP::active_cpus() {
   return x86::smp_main.initialized_cpus;
 }
 
