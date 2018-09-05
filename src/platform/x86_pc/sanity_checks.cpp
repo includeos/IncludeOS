@@ -22,7 +22,7 @@
 #include <kernel/elf.hpp>
 #include <kernel/syscalls.hpp>
 
-#define ENABLE_CRC_RO
+//#define ENABLE_CRC_RO
 
 // Global constructors
 static int gconstr_value = 0;
