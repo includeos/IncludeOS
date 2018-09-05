@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define NDP_DEBUG 1
+#define NDP_DEBUG 1
 #ifdef NDP_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -151,8 +151,18 @@ namespace net
 
     // Set target address
     req.add_payload(target.data(), IP6_ADDR_BYTES);
-    req.ndp().set_ndp_options_header(ndp::ND_OPT_SOURCE_LL_ADDR, 0x01);
-    req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
+    /* RFC 4861 p.22
+       MUST NOT be included when the source IP address is the
+       unspecified address.  Otherwise, on link layers
+       that have addresses this option MUST be included in
+       multicast solicitations and SHOULD be included in
+       unicast solicitations.
+    */
+    if(req.ip().ip_src() != IP6::ADDR_ANY)
+    {
+      req.ndp().set_ndp_options_header(ndp::ND_OPT_SOURCE_LL_ADDR, 0x01);
+      req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
+    }
 
     req.set_checksum();
 
@@ -293,7 +303,7 @@ namespace net
     icmp6::Packet req(inet_.ip6_packet_factory());
 
     req.ip().set_ip_src(inet_.ip6_addr());
-    req.ip().set_ip_dst(ip6::Addr::node_all_routers);
+    req.ip().set_ip_dst(ip6::Addr::link_all_routers);
 
     req.ip().set_ip_hop_limit(255);
     req.set_type(ICMP_type::ND_ROUTER_SOL);
@@ -306,10 +316,16 @@ namespace net
     // Add checksum
     req.set_checksum();
 
+    auto dst = req.ip().ip_dst();
+    MAC::Addr dest_mac(0x33,0x33,
+        dst.get_part<uint8_t>(12),
+        dst.get_part<uint8_t>(13),
+        dst.get_part<uint8_t>(14),
+        dst.get_part<uint8_t>(15));
+
     PRINT("NDP: Router solicit size: %i payload size: %i, checksum: 0x%x\n",
           req.ip().size(), req.payload().size(), req.compute_checksum());
-
-    transmit(req.release(), req.ip().ip_dst());
+    transmit(req.release(), dst, dest_mac);
   }
 
   void Ndp::receive_router_solicitation(icmp6::Packet& req)
