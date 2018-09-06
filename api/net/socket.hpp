@@ -207,13 +207,26 @@ struct Quadruple {
 } //< namespace net
 
 namespace std {
-  template<>
-  struct hash<net::Socket> {
-  public:
-    size_t operator () (const net::Socket& key) const noexcept {
-      const auto h1 = std::hash<net::ip6::Addr>{}(key.address().v6());
-      const auto h2 = std::hash<net::Socket::port_t>{}(key.port());
-      return h1 ^ h2;
+  template<> struct hash<net::Socket>
+  {
+    typedef net::Socket argument_type;
+    typedef std::size_t result_type;
+    result_type operator()(argument_type const& s) const noexcept
+    {
+      return s.address().v6().i64[0]
+           ^ s.address().v6().i64[1]
+           ^ s.port();
+    }
+  };
+
+  template<> struct hash<std::pair<net::Socket, net::Socket>>
+  {
+    typedef std::pair<net::Socket, net::Socket> argument_type;
+    typedef std::size_t result_type;
+    result_type operator()(argument_type const& s) const noexcept
+    {
+      return std::hash<net::Socket>{}(s.first)
+           ^ std::hash<net::Socket>{}(s.second);
     }
   };
 
