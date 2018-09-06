@@ -1,5 +1,7 @@
 #! /bin/bash
 BINARY="`cat build/binary.txt`"
+set-e
+
 echo -e "\n>>> Installing dependencies"
 pip -q install gprof2dot
 sudo apt install -y gprof graphviz
