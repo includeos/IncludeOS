@@ -95,7 +95,7 @@ namespace net
     std::vector<uint8_t*> available_;
     std::unique_ptr<BufferStore> next_;
     int                  index;
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
     // has strict alignment reqs, so put at end
     spinlock_t           plock = 0;
 #endif
@@ -110,7 +110,7 @@ namespace net
     auto* buff = (uint8_t*) addr;
     // try to release directly into pool
     if (LIKELY(is_from_this_pool(buff))) {
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
       scoped_spinlock spinlock(this->plock);
 #endif
       available_.push_back(buff);

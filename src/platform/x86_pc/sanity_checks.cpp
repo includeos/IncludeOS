@@ -26,7 +26,7 @@
 
 // Global constructors
 static int gconstr_value = 0;
-__attribute__((constructor))
+__attribute__((constructor, used))
 static void self_test_gconstr() {
   gconstr_value = 1;
 }
@@ -38,8 +38,6 @@ static uint32_t crc_ro = CRC32_BEGIN();
 static uint32_t generate_ro_crc() noexcept
 {
   extern char _TEXT_START_;
-  extern char _TEXT_END_;
-  extern char _RODATA_START_;
   extern char _RODATA_END_;
   return crc32_fast(&_TEXT_START_, &_RODATA_END_ - &_TEXT_START_);
 }

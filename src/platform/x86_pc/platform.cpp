@@ -75,7 +75,7 @@ void __platform_init()
   asm volatile("sti");
 
   // initialize and start registered APs found in ACPI-tables
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   x86::init_SMP();
 #endif
 

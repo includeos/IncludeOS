@@ -21,6 +21,7 @@
 
 #include <kernel/events.hpp>
 #include <smp>
+#include <statman>
 #include <info>
 #include <cassert>
 #include <malloc.h>
@@ -121,10 +122,15 @@ static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 
 vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}),
-    m_pcidev(d), m_mtu(mtu), bufstore_{1024, buffer_size_for_mtu(mtu)}
+    m_pcidev(d), m_mtu(mtu),
+    stat_sendq_cur{Statman::get().create(Stat::UINT32, device_name() + ".sendq_now").get_uint32()},
+    stat_sendq_max{Statman::get().create(Stat::UINT32, device_name() + ".sendq_max").get_uint32()},
+    bufstore_{1024, buffer_size_for_mtu(mtu)}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
+  Statman::get().create(Stat::UINT32, device_name() + ".buffer_size")
+      .get_uint32() = bufstore_.bufsize();
 
   // find and store capabilities
   d.parse_capabilities();
@@ -465,8 +471,8 @@ bool vmxnet3::transmit_handler()
     tx.buffers[desc] = nullptr;
   }
   // try to send sendq first
-  if (this->can_transmit() && sendq != nullptr) {
-    this->transmit(std::move(sendq));
+  if (this->can_transmit() && !sendq.empty()) {
+    this->transmit(nullptr);
     transmitted = true;
   }
   // if we can still send more, message network stack
@@ -515,20 +521,23 @@ bool vmxnet3::receive_handler(const int Q)
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
 {
-  if (sendq == nullptr)
-      sendq = std::move(pckt_ptr);
-  else
-      sendq->chain(std::move(pckt_ptr));
-  // send as much as possible from sendq
-  while (sendq != nullptr && can_transmit())
-  {
-    auto next = sendq->detach_tail();
-    // transmit released buffer
-    auto* packet = sendq.release();
-    transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
-    // next is the new sendq
-    sendq = std::move(next);
+  while (pckt_ptr != nullptr) {
+    auto tail = pckt_ptr->detach_tail();
+    sendq.emplace_back(std::move(pckt_ptr));
+    pckt_ptr = std::move(tail);
   }
+  // send as much as possible from sendq
+  while (!sendq.empty() && can_transmit())
+  {
+    auto* packet = sendq.front().release();
+    sendq.pop_front();
+    // transmit released buffer
+    transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
+  }
+  // update sendq stats
+  stat_sendq_cur = sendq.size();
+  stat_sendq_max = std::max(stat_sendq_max, stat_sendq_cur);
+
   // delay dma message until we have written as much as possible
   if (!deferred_kick)
   {

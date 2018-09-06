@@ -1,13 +1,11 @@
 #include "common.hpp"
-
-#include <kprint>
 #include <sys/uio.h>
 
-static ssize_t sys_writev(int fd, const struct iovec *iov, int iovcnt)
+static long sys_writev(int fd, const struct iovec *iov, int iovcnt)
 {
-  if(fd <= 2)
+  if (fd == 1 || fd == 2)
   {
-    ssize_t res = 0;
+    long res = 0;
     for(int i = 0; i < iovcnt; i++)
     {
       auto* text = (const char*)iov[i].iov_base;
@@ -21,7 +19,7 @@ static ssize_t sys_writev(int fd, const struct iovec *iov, int iovcnt)
 }
 
 extern "C"
-ssize_t syscall_SYS_writev(int fd, const struct iovec *iov, int iovcnt){
+long syscall_SYS_writev(int fd, const struct iovec *iov, int iovcnt){
   //return strace(sys_writev, "writev", fd, iov, iovcnt);
   return sys_writev(fd, iov, iovcnt);
 }

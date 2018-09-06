@@ -89,7 +89,7 @@ void smp_advanced_test()
       }
       SMP::global_unlock();
     });
-  });
+  }, i);
   // start working on tasks
   SMP::signal();
 }

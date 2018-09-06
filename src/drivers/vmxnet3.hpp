@@ -18,6 +18,7 @@
 #include <hw/pci_device.hpp>
 #include <net/link_layer.hpp>
 #include <net/ethernet/ethernet_8021q.hpp>
+#include <deque>
 #include <vector>
 struct vmxnet3_dma;
 struct vmxnet3_rx_desc;
@@ -138,7 +139,10 @@ private:
   bool   already_polling = false;
   bool     link_state_up = false;
   static void handle_deferred();
-  // sendq as packet chain
-  net::Packet_ptr sendq = nullptr;
+
+  // sendq as double-ended q
+  uint32_t& stat_sendq_cur;
+  uint32_t& stat_sendq_max;
+  std::deque<net::Packet_ptr> sendq;
   net::BufferStore bufstore_;
 };

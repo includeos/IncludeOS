@@ -44,7 +44,6 @@ add_definitions(-DOS_VERSION=\"${OS_VERSION}\")
 add_definitions(-DOS_TERMINATE_ON_CONTRACT_VIOLATION)
 add_definitions(-DARP_PASSTHROUGH)
 add_definitions(-DNO_DEBUG)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 add_definitions(-DUSERSPACE_LINUX)
 
 include_directories(../api)

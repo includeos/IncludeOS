@@ -241,7 +241,6 @@ void kernel_start(uint32_t magic, uint32_t addr)
   #warning Classical syscall interface missing for 32-bit
 #endif
 
-  kernel_sanity_checks();
   // GDB_ENTRY;
   PRATTLE("* Starting libc initialization\n");
   __libc_start_main(kernel_main, argc, argv.data());

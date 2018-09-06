@@ -126,7 +126,7 @@ namespace net {
 
   BufferStore::buffer_t BufferStore::get_buffer()
   {
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
     scoped_spinlock spinlock(plock);
 #endif
 
@@ -157,7 +157,7 @@ namespace net {
     auto* buff = (uint8_t*) addr;
     BSD_RELEASE("%d: Release %p -> ", this->index, buff);
 
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
     scoped_spinlock spinlock(plock);
 #endif
 #ifdef ENABLE_BUFFERSTORE_CHAIN
