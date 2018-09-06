@@ -1,0 +1,3 @@
+#! /bin/bash
+echo -e "\n>>> Running service with profiling"
+source lxp-run gprof
