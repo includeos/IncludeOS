@@ -694,7 +694,7 @@ void Connection::recv_data(const Packet_view& in)
     // If we had packet loss before (and SACK is on)
     // we need to clear up among the blocks
     // and increase the total amount of bytes acked
-    if(UNLIKELY(sack_list))
+    if(UNLIKELY(sack_list != nullptr))
     {
       const auto res = sack_list->new_valid_ack(in.seq(), length);
       // if any bytes are cleared up in sack, increase expected sequence number
@@ -708,18 +708,25 @@ void Connection::recv_data(const Packet_view& in)
       length = res.length;
     }
 
+
     // make sure to mark the data as recveied (ACK) before putting in buffer,
     // since user callback can result in sending new data, which means we
     // want to ACK the data recv at the same time
     cb.RCV.NXT += length;
-    const auto recv = read_request->insert(in.seq(), in.tcp_data(), length, in.isset(PSH));
-    // this ensures that the data we ACK is actually put in our buffer.
-    Ensures(recv == length);
+    // only actually recv the data if there is a read request (created with on_read)
+    if(read_request != nullptr)
+    {
+      const auto recv = read_request->insert(in.seq(), in.tcp_data(), length, in.isset(PSH));
+      // this ensures that the data we ACK is actually put in our buffer.
+      Ensures(recv == length);
+    }
   }
   // Packet out of order
   else if((in.seq() - cb.RCV.NXT) < cb.RCV.WND)
   {
-    recv_out_of_order(in);
+    // only accept the data if we have a read request
+    if(read_request != nullptr)
+      recv_out_of_order(in);
   }
 
   // User callback didnt result in transmitting an ACK
