@@ -3,7 +3,7 @@
 ####################################
 
 set(CMAKE_CXX_STANDARD 17)
-set(COMMON "-O2 -march=native -Wall -Wextra")
+set(COMMON "-g -O2 -march=native -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 
@@ -42,7 +42,6 @@ add_definitions("-DARCH=${ARCH}" "-DARCH_${ARCH}")
 add_definitions(-DOS_TERMINATE_ON_CONTRACT_VIOLATION)
 add_definitions(-DARP_PASSTHROUGH)
 add_definitions(-DNO_DEBUG)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 add_definitions(-DSERVICE=\"\\\"${BINARY}\\\"\")
 add_definitions(-DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\")
 add_definitions(-DUSERSPACE_LINUX)
@@ -62,7 +61,7 @@ add_executable(service ${SOURCES} ${IOSPATH}/src/service_name.cpp)
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 
 set(LPATH ${IOSPATH}/linux)
-set(PLUGIN_LOC "${IOSPATH}/${ARCH}/plugins")
+set(PLUGIN_LOC "${IOSPATH}/linux/plugins")
 set(DRIVER_LOC "${IOSPATH}/${ARCH}/drivers")
 
 # IncludeOS plugins

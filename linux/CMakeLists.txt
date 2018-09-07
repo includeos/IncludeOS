@@ -51,4 +51,5 @@ include_directories(../mod)
 include_directories(../mod/GSL)
 
 add_subdirectory(src)
+add_subdirectory(src/plugins)
 add_subdirectory(userspace)
