@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
+#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <boot/multiboot.h>

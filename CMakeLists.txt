@@ -48,7 +48,7 @@ else()
   set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
 endif(cpu_feat_vanilla)
 
-option(threading "Compile with SMP/threading support" OFF)
+option(smp "Compile with SMP (multiprocessing)" OFF)
 
 option(silent "Disable most output during OS boot" OFF)
 
@@ -137,21 +137,15 @@ endif()
 
 enable_language(ASM_NASM)
 
-
-if (NOT threading)
-  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
-endif()
-
-
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING}")
-  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING}")
-  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
 # either download or cross-compile needed libraries

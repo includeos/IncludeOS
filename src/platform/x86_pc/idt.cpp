@@ -120,7 +120,7 @@ extern "C" {
 void x86_IDT::init()
 {
   // make sure its all zeroes
-  memset(&PER_CPU(idt).entry, 0, sizeof(x86_IDT::entry));
+  memset(&this->entry[0], 0, sizeof(x86_IDT::entry));
 
   set_exception_handler(0, __cpu_except_0);
   set_exception_handler(1, __cpu_except_1);

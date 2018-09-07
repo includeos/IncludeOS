@@ -202,7 +202,7 @@ void OS::print(const char* str, const size_t len)
     if (apply_ts)
     {
       std::string ts = "[" + isotime::now() + "] ";
-      for (auto& callback : os_print_handlers) {
+      for (const auto& callback : os_print_handlers) {
         callback(ts.c_str(), ts.size());
       }
       apply_ts = false;
@@ -212,9 +212,9 @@ void OS::print(const char* str, const size_t len)
   }
   /** TIMESTAMPING **/
 
-  for (auto& callback : os_print_handlers) {
-    if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
-    {
+  if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
+  {
+    for (const auto& callback : os_print_handlers) {
       callback(str, len);
     }
   }

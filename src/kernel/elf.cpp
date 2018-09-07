@@ -195,8 +195,10 @@ private:
 
   SymTab    symtab;
   StrTab    strtab;
-  uint32_t  checksum_syms = 0;
-  uint32_t  checksum_strs = 0;
+  /* NOTE: DON'T INITIALIZE */
+  uint32_t  checksum_syms;
+  uint32_t  checksum_strs;
+  /* NOTE: DON'T INITIALIZE */
   friend void elf_protect_symbol_areas();
 };
 static ElfTables parser;
