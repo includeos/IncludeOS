@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0.2)
+cmake_minimum_required (VERSION 3.5.1)
 project (userland_tests C CXX)
 
 # create OS version string from git describe (used in CXX flags)
@@ -7,8 +7,8 @@ execute_process(COMMAND git describe --dirty
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
 
-set(CMAKE_CXX_STANDARD 17)
-set(COMMON "-g -O2 -march=native -Wall -Wextra")
+#set(CMAKE_CXX_STANDARD 17)
+set(COMMON "-g -O2 -march=native -Wall -Wextra -std=c++17")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
 
