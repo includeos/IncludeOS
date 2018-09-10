@@ -14,7 +14,7 @@ option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
 option(CUSTOM_BOTAN "Enable building with a local Botan" OFF)
 option(STATIC_BUILD "Build a portable static executable" ON)
 option(STRIP_BINARY "Strip final binary to reduce size" OFF)
-option(USE_LLD "Allow linking against LTO archives" ON)
+option(USE_LLD "Allow linking against LTO archives" OFF)
 
 if(DEBUGGING)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
