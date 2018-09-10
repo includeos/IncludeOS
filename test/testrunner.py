@@ -275,7 +275,7 @@ def stress_test(stress_tests):
         return 1 if test.wait_status() else 0
 
 
-def misc_working(misc_tests):
+def misc_working(misc_tests, test_type):
     global test_count
     test_count += len(misc_tests)
     if len(misc_tests) == 0:
@@ -285,7 +285,7 @@ def misc_working(misc_tests):
         print pretty.WARNING("Misc test skipped")
         return 0
 
-    print pretty.HEADER("Building " + str(len(misc_tests)) + " misc")
+    print pretty.HEADER("Building " + str(len(misc_tests)) + " " + str(test_type))
     fail_count = 0
 
     for test in misc_tests:
@@ -536,8 +536,8 @@ def main():
     # Run the tests
     integration_result = integration_tests([x for x in filtered_tests if x.type_ == "integration"])
     stress_result = stress_test([x for x in filtered_tests if x.type_ == "stress"])
-    misc_result = misc_working([x for x in filtered_tests if x.type_ == "misc"])
-    linux_result = misc_working([x for x in filtered_tests if x.type_ == "linux"])
+    misc_result = misc_working([x for x in filtered_tests if x.type_ == "misc"], "misc")
+    linux_result = misc_working([x for x in filtered_tests if x.type_ == "linux"], "linux platform")
 
     # Print status from test run
     status = max(integration_result, stress_result, misc_result, linux_result)
