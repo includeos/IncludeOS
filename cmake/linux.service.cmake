@@ -2,10 +2,10 @@
 #   Linux Userspace CMake script   #
 ####################################
 
-set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD 17)
 set(COMMON "-g -O2 -march=native -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON}")
 
 option(DEBUGGING "Enable debugging" OFF)
 option(GPROF "Enable profiling with gprof" OFF)
