@@ -259,9 +259,8 @@ if [ "$INCLUDEOS_ENABLE_LXP" = "ON" ]; then
   pushd linux
     mkdir -p build
     pushd build
-      cmake ..
-      make -j$num_jobs
-      make install
+      CXX=g++-7 CC=gcc-7 cmake ..
+      make ${num_jobs:="-j 4"} install
     popd
   popd
 else
