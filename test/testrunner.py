@@ -20,7 +20,7 @@ import validate_tests
 
 startdir = os.getcwd()
 
-test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'plugin', 'posix', 'stl', 'util']
+test_categories = ['fs', 'hw', 'kernel', 'linux', 'mod', 'net', 'performance', 'plugin', 'posix', 'stl', 'util']
 test_types = ['integration', 'stress', 'unit', 'misc']
 
 """
