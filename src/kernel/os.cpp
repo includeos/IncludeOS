@@ -41,12 +41,12 @@
 using namespace util;
 
 extern "C" void* get_cpu_esp();
-extern uintptr_t _start;
-extern uintptr_t _end;
-extern uintptr_t _ELF_START_;
-extern uintptr_t _TEXT_START_;
-extern uintptr_t _LOAD_START_;
-extern uintptr_t _ELF_END_;
+extern char _start;
+extern char _end;
+extern char _ELF_START_;
+extern char _TEXT_START_;
+extern char _LOAD_START_;
+extern char _ELF_END_;
 
 bool __libc_initialized = false;
 

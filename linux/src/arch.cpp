@@ -12,8 +12,8 @@ weak_alias(__plugin_ctors_start, __plugin_ctors_end);
 ctor_t __service_ctors_start = default_ctor;
 weak_alias(__service_ctors_start, __service_ctors_end);
 
-void* _ELF_START_;
-void* _ELF_END_;
+char _ELF_START_;
+char _ELF_END_;
 
 uintptr_t OS::heap_max() noexcept
 {
