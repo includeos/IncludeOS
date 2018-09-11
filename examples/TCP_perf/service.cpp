@@ -101,6 +101,7 @@ void stop_measure()
   double mbits  = (received/(1024*1024)*8) / durs;
   printf("Duration: %.2fs - Payload: %lu/%u MB - %.2f MBit/s\n",
           durs, received/(1024*1024), SIZE/(1024*1024), mbits);
+  OS::shutdown();
 }
 
 void Service::start() {}
@@ -148,10 +149,9 @@ void Service::ready()
     conn->close();
   });
 
-  tcp.listen(1338).on_connect([](auto conn)
+  tcp.listen(1338).on_connect([](net::tcp::Connection_ptr conn)
   {
     using namespace std::chrono;
-
     printf("%s connected. Receiving file %u MB\n", conn->remote().to_string().c_str(), SIZE/(1024*1024));
 
     start_measure();
@@ -160,7 +160,8 @@ void Service::ready()
     {
 
     });
-    conn->on_disconnect([] (auto self, auto reason)
+    conn->on_disconnect([] (net::tcp::Connection_ptr self,
+                            net::tcp::Connection::Disconnect reason)
     {
       (void) reason;
       if(const auto bytes_sacked = self->bytes_sacked(); bytes_sacked)

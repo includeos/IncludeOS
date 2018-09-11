@@ -76,7 +76,7 @@ void Service::start()
           double time_sec = timediff.count()/1000.0;
           double mbps = ((count_bytes * 8) / (1024.0 * 1024.0)) / time_sec;
 
-          printf("Server reveived %zu Mb in %f sec. - %f Mbps \n",
+          printf("Server received %zu Mb in %f sec. - %f Mbps \n",
                  count_bytes / (1024 * 1024), time_sec,  mbps);
 
           for (const auto& stat : Statman::get())

@@ -2,27 +2,32 @@
 #   Linux Userspace CMake script   #
 ####################################
 
-set(CMAKE_CXX_STANDARD 17)
-set(COMMON "-O2 -march=native -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON}")
+#set(CMAKE_CXX_STANDARD 17)
+set(COMMON "-g -O2 -march=native -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 ${COMMON}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON}")
 
 option(DEBUGGING "Enable debugging" OFF)
 option(GPROF "Enable profiling with gprof" OFF)
 option(SANITIZE "Enable undefined- and address sanitizers" OFF)
-option(ENABLE_LTO "Enable thinLTO for use with LLD" OFF)
+option(ENABLE_LTO "Enable LTO for use with Clang/GCC" OFF)
 option(CUSTOM_BOTAN "Enable building with a local Botan" OFF)
-option(STATIC_BUILD "Build a portable static executable" OFF)
+option(STATIC_BUILD "Build a portable static executable" ON)
 option(STRIP_BINARY "Strip final binary to reduce size" OFF)
-option(USE_LLD "Allow linking against LTO archives" ON)
+option(USE_LLD "Allow linking against LTO archives" OFF)
 
 if(DEBUGGING)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
 endif()
 
 if (ENABLE_LTO)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
-  set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+    set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
+    set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -flto=thin")
+  endif()
 endif()
 
 if(GPROF)
@@ -42,7 +47,6 @@ add_definitions("-DARCH=${ARCH}" "-DARCH_${ARCH}")
 add_definitions(-DOS_TERMINATE_ON_CONTRACT_VIOLATION)
 add_definitions(-DARP_PASSTHROUGH)
 add_definitions(-DNO_DEBUG)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 add_definitions(-DSERVICE=\"\\\"${BINARY}\\\"\")
 add_definitions(-DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\")
 add_definitions(-DUSERSPACE_LINUX)
@@ -62,7 +66,7 @@ add_executable(service ${SOURCES} ${IOSPATH}/src/service_name.cpp)
 set_target_properties(service PROPERTIES OUTPUT_NAME ${BINARY})
 
 set(LPATH ${IOSPATH}/linux)
-set(PLUGIN_LOC "${IOSPATH}/${ARCH}/plugins")
+set(PLUGIN_LOC "${IOSPATH}/linux/plugins")
 set(DRIVER_LOC "${IOSPATH}/${ARCH}/drivers")
 
 # IncludeOS plugins

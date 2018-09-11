@@ -21,6 +21,8 @@
 .DS_Store
 nbproject
 dummy.disk
+callgraph.svg
+massif.out.*
 
 !Dockerfile
 
