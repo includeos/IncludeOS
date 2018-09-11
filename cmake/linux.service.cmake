@@ -31,7 +31,7 @@ if (ENABLE_LTO)
 endif()
 
 if(GPROF)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -fno-omit-frame-pointer")
 endif()
 
 if(SANITIZE)
