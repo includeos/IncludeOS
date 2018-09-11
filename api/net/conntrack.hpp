@@ -83,6 +83,11 @@ public:
     UNCONFIRMED // not sure about this one
   };
 
+  enum class Flag : uint8_t {
+    UNREPLIED   = 1 << 0,
+    ASSURED     = 1 << 1
+  };
+
   /**
    * @brief      A entry in the connection tracker (a Connection)
    */
@@ -92,6 +97,8 @@ public:
     RTC::timestamp_t  timeout;
     Protocol          proto;
     State             state;
+    uint8_t           flags{0x0};
+    uint8_t           other{0x0}; // whoever can make whatever here
     Entry_handler     on_close;
 
     Entry(Quadruple quad, Protocol p)
@@ -110,6 +117,15 @@ public:
 
     int deserialize_from(void*);
     void serialize_to(std::vector<char>&) const;
+
+    void set_flag(const Flag f)
+    { flags |= static_cast<uint8_t>(f); }
+
+    void unset_flag(const Flag f)
+    { flags &= ~static_cast<uint8_t>(f); }
+
+    bool isset(const Flag f) const noexcept
+    { return flags & static_cast<uint8_t>(f); }
 
   };
 
