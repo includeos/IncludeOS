@@ -259,8 +259,10 @@ if [ "$INCLUDEOS_ENABLE_LXP" = "ON" ]; then
   pushd linux
     mkdir -p build
     pushd build
+      set -e
       CXX=g++-7 CC=gcc-7 cmake .. -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX
       make ${num_jobs:="-j 4"} install
+      set +e
     popd
   popd
 else
