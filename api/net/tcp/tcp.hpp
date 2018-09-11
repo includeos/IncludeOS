@@ -58,7 +58,7 @@ namespace net {
 
   private:
     using Listeners       = std::map<Socket, std::shared_ptr<tcp::Listener>>;
-    using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
+    using Connections     = std::unordered_map<tcp::Connection::Tuple, tcp::Connection_ptr>;
 
   public:
     /////// TCP Stuff - Relevant to the protocol /////
