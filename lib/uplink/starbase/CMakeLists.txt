@@ -45,6 +45,7 @@ set(DRIVERS
   vga_output
   boot_logger
   e1000
+  timestamps
   )
 
 set(PLUGINS
