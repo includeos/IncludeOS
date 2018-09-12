@@ -18,17 +18,12 @@ extern "C" void* get_cpu_esp();
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t mem_size;
-extern uintptr_t _ELF_START_;
-extern uintptr_t _TEXT_START_;
-extern uintptr_t _LOAD_START_;
-extern uintptr_t _ELF_END_;
+extern char _ELF_START_;
+extern char _TEXT_START_;
+extern char _LOAD_START_;
+extern char _ELF_END_;
 // in kernel/os.cpp
 extern bool os_default_stdout;
-
-typedef void (*ctor_t) ();
-extern ctor_t __init_array_start;
-extern ctor_t __init_array_end;
-extern int __run_ctors(ctor_t* begin, ctor_t* end);
 
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
@@ -81,6 +76,17 @@ void OS::start(const char* cmdline)
     OS::add_stdout(&OS::default_stdout);
   }
 
+  PROFILE("Global stdout constructors");
+  extern OS::ctor_t __stdout_ctors_start;
+  extern OS::ctor_t __stdout_ctors_end;
+  OS::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
+
+  // Call global ctors
+  PROFILE("Global kernel constructors");
+  extern OS::ctor_t __init_array_start;
+  extern OS::ctor_t __init_array_end;
+  OS::run_ctors(&__init_array_start, &__init_array_end);
+
   PROFILE("");
   // Print a fancy header
   CAPTION("#include<os> // Literally");
@@ -91,10 +97,6 @@ void OS::start(const char* cmdline)
   /// STATMAN ///
   /// initialize on page 7, 2 pages in size
   Statman::get().init(0x6000, 0x3000);
-
-  // Call global ctors
-  PROFILE("Global kernel constructors");
-  __run_ctors(&__init_array_start, &__init_array_end);
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
@@ -128,6 +130,10 @@ void OS::start(const char* cmdline)
 
   MYINFO("Booted at monotonic_ns=%ld walltime_ns=%ld",
          solo5_clock_monotonic(), solo5_clock_wall());
+
+  extern OS::ctor_t __driver_ctors_start;
+  extern OS::ctor_t __driver_ctors_end;
+  OS::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
 
   Solo5_manager::init();
 

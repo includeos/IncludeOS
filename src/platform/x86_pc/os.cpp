@@ -91,6 +91,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
     OS::add_stdout(&OS::default_stdout);
   }
 
+  extern OS::ctor_t __stdout_ctors_start;
+  extern OS::ctor_t __stdout_ctors_end;
+  OS::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
+
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
