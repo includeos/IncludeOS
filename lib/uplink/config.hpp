@@ -29,7 +29,8 @@ namespace uplink {
 
   struct Config
   {
-    net::Inet  *inet;
+    std::string index_str;
+    int         index{-1};
     uri::URI    url;
     std::string token;
     std::string tag;
@@ -40,6 +41,10 @@ namespace uplink {
     bool        serialize_ct  = false;
 
     static Config read();
+
+    std::string serialized_string() const;
+
+    net::Inet& get_stack() const;
   };
 
 }

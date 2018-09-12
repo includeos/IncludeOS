@@ -20,8 +20,11 @@
 
 CASE("version() returns string representation of OS version")
 {
-  EXPECT(OS::version() != "");
-  EXPECT(OS::version().front() == 'v');
+  EXPECT(OS::version() != nullptr);
+  EXPECT(std::string(OS::version()).size() > 0);
+  EXPECT(OS::version()[0] == 'v');
+  EXPECT(OS::arch() != nullptr);
+  EXPECT(std::string(OS::arch()).size() > 0);
 }
 
 CASE("cycles_since_boot() returns clock cycles since boot")

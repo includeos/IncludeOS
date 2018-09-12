@@ -23,7 +23,7 @@
 #include <delegate>
 #include <smp>
 
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
 #include <atomic>
 #endif
 
@@ -207,21 +207,19 @@ public:
 
   static int last_id()
   {
-#if defined( INCLUDEOS_SINGLE_THREADED)
-    return next_id_;
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
     return next_id_.load();
+#else
+    return next_id_;
 #endif
   }
 
 
 private:
-
-
-#if defined(INCLUDEOS_SINGLE_THREADED)
-  static int next_id_;
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
   static std::atomic<int> next_id_;
+#else
+  static int next_id_;
 #endif
   static SMP::Array<Fiber*> main_;
   static SMP::Array<Fiber*> current_;
@@ -255,8 +253,6 @@ private:
   bool running_ { false };
 
   friend void ::fiber_jumpstarter(Fiber* f);
-
 };
-
 
 #endif

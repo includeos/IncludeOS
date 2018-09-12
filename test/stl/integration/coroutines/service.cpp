@@ -34,10 +34,10 @@ struct smp_future {
   using handle_type = std::experimental::coroutine_handle<promise_type>;
   handle_type coro;
 
-#if defined(INCLUDEOS_SINGLE_THREADED)
-  int done {false};
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
   std::atomic<int> done {false};
+#else
+  int done {false};
 #endif
 
   smp_future(const smp_future &s) = delete;
@@ -151,26 +151,22 @@ smp_future<int> reduce() {
   int cpu = 1;
   for (auto& i : futures) {
 
-#if defined(INCLUDEOS_SINGLE_THREADED)
-    i.coro();
-    i.done = true;
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
     SMP::add_task([&i]() {
         CPULOG("Resuming coroutine \n");
         i.coro();
         CPULOG("Coroutine done. \n");
         i.done.store(true);
       }, []{}, cpu);
+#else
+    i.coro();
+    i.done = true;
 #endif
     cpu++;
   }
-
   SMP::signal();
 
-
   CPULOG("Created %li coroutines \n", futures.size());
-
-
   asm("pause");
 
   int sum = 0;

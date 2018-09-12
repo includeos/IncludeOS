@@ -21,7 +21,7 @@ import validate_tests
 startdir = os.getcwd()
 
 test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'plugin', 'posix', 'stl', 'util']
-test_types = ['integration', 'stress', 'unit', 'misc']
+test_types = ['integration', 'stress', 'unit', 'misc', 'linux']
 
 """
 Script used for running all the valid tests in the terminal.
@@ -85,6 +85,10 @@ class Test:
         elif self.path_.split("/")[1] == 'misc':
             self.category_ = 'misc'
             self.type_ = 'misc'
+            self.command_ = ['./test.sh']
+        elif self.path_.split("/")[1] == 'linux':
+            self.category_ = 'linux'
+            self.type_ = 'linux'
             self.command_ = ['./test.sh']
         elif self.path_ == 'mod/gsl':
             self.category_ = 'mod'
@@ -211,27 +215,38 @@ class Test:
             self.skip_reason_ = None
             return
 
+        # Linux tests only need a test.sh
+        if self.type_ == "linux":
+            for f in ["CMakeLists.txt", "test.sh"]:
+                if not os.path.isfile(self.path_ + "/" + f):
+                    self.skip_ = True
+                    self.skip_reason_ = 'Missing required file: ' + f
+                    return
+            self.skip_ = False
+            self.skip_reason_ = None
+            return
+
+        # Figure out if the test should be skipped
         # Test 1
+        if self.path_ in args.skip or self.category_ in args.skip:
+            self.skip_ = True
+            self.skip_reason_ = 'Defined by cmd line argument'
+            return
+
+        # Test 2
         valid, err = validate_tests.validate_test(self.path_, verb = False)
         if not valid:
             self.skip_ = True
             self.skip_reason_ = err
             return
 
-        # Test 2
-        # Figure out if the test should be skipped
+        # Test 3
         skip_json = json.loads(open("skipped_tests.json").read())
         for skip in skip_json:
             if skip['name'] in self.path_:
                 self.skip_ = True
                 self.skip_reason_ = skip['reason']
                 return
-
-        # Test 3
-        if self.path_ in args.skip or self.category_ in args.skip:
-            self.skip_ = True
-            self.skip_reason_ = 'Defined by cmd line argument'
-            return
 
         self.skip_ = False
         self.skip_reason_ = None
@@ -260,7 +275,7 @@ def stress_test(stress_tests):
         return 1 if test.wait_status() else 0
 
 
-def misc_working(misc_tests):
+def misc_working(misc_tests, test_type):
     global test_count
     test_count += len(misc_tests)
     if len(misc_tests) == 0:
@@ -270,7 +285,7 @@ def misc_working(misc_tests):
         print pretty.WARNING("Misc test skipped")
         return 0
 
-    print pretty.HEADER("Building " + str(len(misc_tests)) + " misc")
+    print pretty.HEADER("Building " + str(len(misc_tests)) + " " + str(test_type))
     fail_count = 0
 
     for test in misc_tests:
@@ -371,7 +386,7 @@ def find_test_folders():
 
         # Only look in folders listed as a test category
         if directory in test_types:
-            if directory == 'misc':
+            if directory == 'misc' or directory == 'linux':
                 # For each subfolder in misc, register test
                 for subdir in os.listdir("/".join(path)):
                     path.append(subdir)
@@ -521,10 +536,11 @@ def main():
     # Run the tests
     integration_result = integration_tests([x for x in filtered_tests if x.type_ == "integration"])
     stress_result = stress_test([x for x in filtered_tests if x.type_ == "stress"])
-    misc_result = misc_working([x for x in filtered_tests if x.type_ == "misc"])
+    misc_result = misc_working([x for x in filtered_tests if x.type_ == "misc"], "misc")
+    linux_result = misc_working([x for x in filtered_tests if x.type_ == "linux"], "linux platform")
 
     # Print status from test run
-    status = max(integration_result, stress_result, misc_result)
+    status = max(integration_result, stress_result, misc_result, linux_result)
     if (status == 0):
         print pretty.SUCCESS(str(test_count - status) + " / " + str(test_count)
                             +  " tests passed, exiting with code 0")

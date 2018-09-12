@@ -32,7 +32,7 @@ set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 set(CPP_VERSION c++17)
 
 # create OS version string from git describe (used in CXX flags)
-execute_process(COMMAND git describe --dirty
+execute_process(COMMAND git describe --tags --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
@@ -48,11 +48,13 @@ else()
   set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
 endif(cpu_feat_vanilla)
 
-option(threading "Compile with SMP/threading support" OFF)
+option(smp "Compile with SMP (multiprocessing)" OFF)
 
 option(silent "Disable most output during OS boot" OFF)
 
 option (undefined_san "Enable undefined-behavior sanitizer" OFF)
+option (thin_lto "Enable the Thin LTO plugin" OFF)
+option (full_lto "Enable full LTO (compatibility)" OFF)
 
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
@@ -115,6 +117,11 @@ set(CAPABS "${CAPABS} ${OPTIMIZE}")
 if (undefined_san)
   set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
 endif()
+if (thin_lto)
+  set(CAPABS "${CAPABS} -flto=thin")
+elseif(full_lto)
+  set(CAPABS "${CAPABS} -flto=full")
+endif()
 
 # object format needs to be set BEFORE enabling ASM
 # see: https://cmake.org/Bug/bug_relationship_graph.php?bug_id=13166
@@ -130,21 +137,15 @@ endif()
 
 enable_language(ASM_NASM)
 
-
-if (NOT threading)
-  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
-endif()
-
-
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
 # either download or cross-compile needed libraries
@@ -279,8 +280,12 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION 
 # Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
-# Install boot util
+# Install executable scripts
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-run DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-callgraph DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-debug DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-gprof DESTINATION bin)
 
 # Install scripts
 install(PROGRAMS

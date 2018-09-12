@@ -63,7 +63,7 @@ struct Block {
   bool contains(const seq_t seq) const noexcept
   {
     return static_cast<int32_t>(seq - start) >= 0 and
-           static_cast<int32_t>(seq - end) <= 0;
+           static_cast<int32_t>(seq - end) < 0;
   }
 
   bool precedes(const seq_t seq) const noexcept

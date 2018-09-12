@@ -36,11 +36,13 @@ class Read_buffer {
 public:
   /**
    * @brief      Construct a read buffer.
+   *             Min and max need to be power of 2.
    *
-   * @param[in]  capacity  The capacity of the buffer
-   * @param[in]  seq       The sequence number to start on
+   * @param[in]  start  The sequence number the buffer starts on
+   * @param[in]  min    The minimum size of the buffer (preallocated)
+   * @param[in]  max    The maximum size of the buffer (how much it can grow)
    */
-  Read_buffer(const size_t capacity, const seq_t start);
+  Read_buffer(const seq_t start, const size_t min, const size_t max);
 
   /**
    * @brief      Insert data into the buffer relative to the sequence number.
@@ -93,7 +95,7 @@ public:
    * @return     The capacity
    */
   size_t capacity() const noexcept
-  { return buf->capacity(); }
+  { return cap; }
 
   /**
    * @brief      How far into the internal buffer data has been written.
@@ -168,16 +170,14 @@ public:
 private:
   buffer_t        buf;
   seq_t           start;
+  size_t          cap;
   int32_t         hole; // number of bytes missing
   bool            push_seen{false};
 
   /**
-   * @brief      Reset the buffer if either non-unique or
-   *             a decrease of the current capacity.
-   *
-   * @param[in]  capacity  The capacity
+   * @brief      Reset the buffer if non-unique
    */
-  void reset_buffer_if_needed(const size_t capacity);
+  void reset_buffer_if_needed();
 
 }; // < class Read_buffer
 

@@ -45,7 +45,7 @@ namespace x86
     int  intr;
     bool intr_enabled = false;
   };
-  static std::array<timer_data, SMP_MAX_CORES> timerdata;
+  static SMP::Array<timer_data> timerdata;
 
   #define GET_TIMER() PER_CPU(timerdata)
 
@@ -57,10 +57,10 @@ namespace x86
         stop);   // timer stop function
 
     // set interrupt handler
-    PER_CPU(timerdata).intr =
+    GET_TIMER().intr =
         Events::get().subscribe(Timers::timers_handler);
     // initialize local APIC timer
-    APIC::get().timer_init(PER_CPU(timerdata).intr);
+    APIC::get().timer_init(GET_TIMER().intr);
   }
   void APIC_Timer::calibrate()
   {
@@ -68,6 +68,10 @@ namespace x86
 
     if (ticks_per_micro != 0) {
       start_timers();
+      // with SMP, signal everyone else too (IRQ 1)
+      if (SMP::cpu_count() > 1) {
+        APIC::get().bcast_ipi(0x21);
+      }
       return;
     }
 

@@ -121,8 +121,11 @@ void Timers::ready()
   if (get().is_running == false) {
     timers_handler();
   }
-  // call Service::ready(), because timer system is ready!
-  Service::ready();
+  if (SMP::cpu_id() == 0)
+  {
+    // call Service::ready(), because timer system is ready!
+    Service::ready();
+  }
 }
 
 Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)

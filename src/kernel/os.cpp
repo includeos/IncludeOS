@@ -54,6 +54,8 @@ bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 bool  OS::m_is_live_updated     = false;
 bool  OS::m_block_drivers_ready = false;
+bool  OS::m_timestamps          = false;
+bool  OS::m_timestamps_ready    = false;
 KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
 
@@ -72,10 +74,6 @@ struct Plugin_desc {
   const char* name;
 };
 static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
-
-// OS version
-std::string OS::version_str_ = OS_VERSION;
-std::string OS::arch_str_ = ARCH;
 
 void* OS::liveupdate_storage_area() noexcept
 {
@@ -124,6 +122,9 @@ void OS::shutdown()
 
 void OS::post_start()
 {
+  // Enable timestamps (if present)
+  OS::m_timestamps_ready = true;
+
   // LiveUpdate needs some initialization, although only if present
   OS::setup_liveupdate();
 
@@ -162,9 +163,9 @@ void OS::post_start()
   PROFILE("Service::start");
   // begin service start
   FILLINE('=');
-  printf(" IncludeOS %s (%s / %i-bit)\n",
-         version().c_str(), arch().c_str(),
-         static_cast<int>(sizeof(uintptr_t)) * 8);
+  printf(" IncludeOS %s (%s / %u-bit)\n",
+         version(), arch(),
+         static_cast<unsigned>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name());
   FILLINE('~');
 
@@ -180,6 +181,13 @@ bool os_enable_boot_logging = false;
 __attribute__((weak))
 bool os_default_stdout = false;
 
+#include <isotime>
+bool contains(const char* str, size_t len, char c)
+{
+  for (size_t i = 0; i < len; i++) if (str[i] == c) return true;
+  return false;
+}
+
 void OS::print(const char* str, const size_t len)
 {
   if (UNLIKELY(! __libc_initialized)) {
@@ -187,8 +195,32 @@ void OS::print(const char* str, const size_t len)
     return;
   }
 
-  for (auto& callback : os_print_handlers) {
-    if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
-      callback(str, len);
+  /** TIMESTAMPING **/
+  if (OS::m_timestamps && OS::m_timestamps_ready && !OS::is_panicking())
+  {
+    static bool apply_ts = true;
+    if (apply_ts)
+    {
+      std::string ts = "[" + isotime::now() + "] ";
+      for (const auto& callback : os_print_handlers) {
+        callback(ts.c_str(), ts.size());
+      }
+      apply_ts = false;
+    }
+    const bool has_newline = contains(str, len, '\n');
+    if (has_newline) apply_ts = true;
   }
+  /** TIMESTAMPING **/
+
+  if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
+  {
+    for (const auto& callback : os_print_handlers) {
+      callback(str, len);
+    }
+  }
+}
+
+void OS::enable_timestamps(const bool enabled)
+{
+  OS::m_timestamps = enabled;
 }

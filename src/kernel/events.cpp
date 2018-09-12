@@ -26,7 +26,7 @@ static SMP::Array<Events> managers;
 
 Events& Events::get(int cpuid)
 {
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   return managers.at(cpuid);
 #else
   (void) cpuid;
@@ -42,14 +42,18 @@ void Events::init_local()
 {
   std::memset(event_subs.data(), 0, sizeof(event_subs));
   std::memset(event_pend.data(), 0, sizeof(event_pend));
-  // prevent legacy IRQs from being free for taking
-  for (int evt = 0; evt < 32; evt++)
-      event_subs[evt] = true;
+
+  if (SMP::cpu_id() == 0)
+  {
+    // prevent legacy IRQs from being free for taking
+    for (int evt = 0; evt < 32; evt++)
+        event_subs[evt] = true;
+  }
 }
 
 uint8_t Events::subscribe(event_callback func)
 {
-  for (int evt = 32; evt < NUM_EVENTS; evt++) {
+  for (int evt = 0; evt < NUM_EVENTS; evt++) {
     if (event_subs[evt] == false) {
       subscribe(evt, func);
       return evt;
@@ -59,9 +63,6 @@ uint8_t Events::subscribe(event_callback func)
 }
 void Events::subscribe(uint8_t evt, event_callback func)
 {
-  // enable IRQ in hardware
-  __arch_subscribe_irq(evt);
-
   // Mark as subscribed to
   event_subs[evt] = true;
   // Set (new) callback for event
@@ -77,6 +78,8 @@ void Events::subscribe(uint8_t evt, event_callback func)
            IRQ_BASE + evt, evt, SMP::cpu_id());
     SMP::global_unlock();
 #endif
+    // enable IRQ in hardware
+    __arch_subscribe_irq(evt);
   }
 }
 void Events::unsubscribe(uint8_t evt)

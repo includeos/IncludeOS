@@ -57,8 +57,14 @@ inline void strace_print(const char* name, Ret ret, Args&&... args){
   out << name << "(";
   pr_param(out, args...);
   out << ") = " << ret;
-  //if (errno)
-  //  out << " " << strerror(errno);
+
+  // print error string if syscall returns a negative error code
+  if constexpr(std::is_integral_v<Ret>) {
+    if (static_cast<unsigned long>(ret) > -4096UL) {
+      out << " " << strerror(errno);
+    }
+  }
+
   out << '\n';
   auto str = out.str();
   __serial_print(str.data(), str.size());
@@ -66,12 +72,11 @@ inline void strace_print(const char* name, Ret ret, Args&&... args){
 
 // strace, calling the syscall, recording return value and printing if enabled
 template<typename Fn, typename ...Args>
-inline auto strace(Fn func, const char* name, Args&&... args) {
+inline auto strace(Fn func, [[maybe_unused]]const char* name, Args&&... args) {
   auto ret = func(args...);
 
   if constexpr (__strace)
      strace_print(name, ret, args...);
-  (void) name;
 
   return ret;
 }

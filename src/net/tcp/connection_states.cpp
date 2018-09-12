@@ -851,14 +851,13 @@ State::Result Connection::SynSent::handle(Connection& tcp, Packet_view& in) {
         tcp.rttm.RTO = RTTM::seconds(3.0);
       }
 
-      tcp.set_state(Connection::Established::instance());
-      const seq_t snd_nxt = tcb.SND.NXT;
-      tcp.signal_connect(); // NOTE: User callback
+      // make sure to send an ACK to fullfil the handshake
+      // before calling user callback in case of user write
+      tcp.send_ack();
 
-      if(tcb.SND.NXT == snd_nxt)
-      {
-        tcp.send_ack();
-      }
+      tcp.set_state(Connection::Established::instance());
+
+      tcp.signal_connect(); // NOTE: User callback
 
       if(tcp.has_doable_job())
         tcp.writeq_push();
