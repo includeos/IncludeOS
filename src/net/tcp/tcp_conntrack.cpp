@@ -27,6 +27,7 @@
 namespace net::tcp {
 
   static inline Ct_state state(Conntrack::Entry* entry);
+  [[maybe_unused]]
   static inline std::string state_str(const uint8_t state);
 
   static inline void update_timeout(Conntrack::Entry* entry);
@@ -115,7 +116,7 @@ namespace net::tcp {
           set_state(entry, Ct_state::LAST_ACK);
           break;
         default:
-          printf("FIN in state: %s\n", state_str(entry->other).c_str());
+          CTDBG("FIN in state: %s\n", state_str(entry->other).c_str());
       }
       return entry;
     }
