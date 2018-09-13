@@ -40,6 +40,40 @@ void print_success(const std::string& hostname, IP4::addr server, IP4::addr res)
           server.to_string().c_str(), res.to_string().c_str());
 }
 
+struct Name_request
+{
+  std::string name;
+  ip4::Addr   server;
+
+  Name_request(std::string n)
+    : name{std::move(n)} {}
+  Name_request(std::string n, ip4::Addr serv)
+    : name{std::move(n)}, server{serv} {}
+};
+
+static void do_test(net::Inet& inet, std::vector<Name_request>& reqs)
+{
+  for(auto& req : reqs)
+  {
+    if(req.server == 0)
+      req.server = inet.dns_addr();
+
+    inet.resolve(req.name, req.server,
+      [name = req.name, server = req.server] (ip4::Addr res, const Error& err)
+    {
+      if (err) {
+        print_error(name, server, err);
+      }
+      else {
+        if (res != 0)
+          print_success(name, server, res);
+        else
+          print_not_resolved(name);
+      }
+    });
+  }
+}
+
 void Service::start(const std::string&)
 {
   auto& inet = net::Inet::stack<0>();
@@ -47,62 +81,27 @@ void Service::start(const std::string&)
     { 10, 0, 0, 48 },       // IP
     { 255, 255, 255, 0 },   // Netmask
     { 10, 0, 0, 1 },        // Gateway
-    {  8, 8, 8, 8 }         // DNS
+    {  1, 1, 1, 1 }         // DNS
   );
 
-  const std::string google        = "google.com";
-  const std::string github        = "github.com";
-  const std::string guardian      = "theguardian.com";
-  const std::string some_address  = "some_address_that_doesnt_exist.com";
+  const ip4::Addr level3{4, 2, 2, 1};
+  const ip4::Addr google{8, 8, 8, 8};
 
-  const IP4::addr stack_dns       = inet.dns_addr();
-  const IP4::addr level3          = IP4::addr{4, 2, 2, 1};
+  static std::vector<Name_request> requests {
+    {"google.com", google},
+    {"github.com", google},
+    {"some_address_that_doesnt_exist.com"},
+    {"theguardian.com", level3},
+    {"www.facebook.com"},
+    {"rs.dns-oarc.net"},
+    {"reddit.com"},
+    {"includeos.io"},
+    {"includeos.org"},
+    {"doubleclick.net"},
+    {"google-analytics.com"},
+    {"akamaihd.net"},
+    {"googlesyndication.com"}
+  };
 
-  inet.resolve(google, [google, stack_dns] (IP4::addr res, const Error& err) {
-    if (err) {
-      print_error(google, stack_dns, err);
-    }
-    else {
-      if (res != IP4::ADDR_ANY)
-        print_success(google, stack_dns, res);
-      else
-        print_not_resolved(google);
-    }
-  });
-
-  inet.resolve(github, [github, stack_dns] (IP4::addr res, const Error& err) {
-    if (err) {
-      print_error(github, stack_dns, err);
-    }
-    else {
-      if (res != IP4::ADDR_ANY)
-        print_success(github, stack_dns, res);
-      else
-        print_not_resolved(github);
-    }
-  });
-
-  inet.resolve(guardian, level3, [guardian, level3] (IP4::addr res, const Error& err) {
-    if (err) {
-      print_error(guardian, level3, err);
-    }
-    else {
-      if (res != IP4::ADDR_ANY)
-        print_success(guardian, level3, res);
-      else
-        print_not_resolved(guardian);
-    }
-  });
-
-  inet.resolve(some_address, [some_address, stack_dns] (IP4::addr res, const Error& err) {
-    if (err) {
-      print_error(some_address, stack_dns, err);
-    }
-    else {
-      if (res != IP4::ADDR_ANY)
-        print_success(some_address, stack_dns, res);
-      else
-        print_not_resolved(some_address);
-    }
-  });
+  do_test(inet, requests);
 }
