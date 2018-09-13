@@ -66,8 +66,6 @@ set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 # installation of stdout drivers
 install(TARGETS
     default_stdout
-    boot_logger
-    timestamps
     vga_output
     vga_emergency
   DESTINATION includeos/${ARCH}/drivers/stdout)
@@ -80,6 +78,8 @@ install(TARGETS
     ip4_reassembly
     heap_debugging
     disk_logger disklog_reader
+    # stdout drivers that are simple enough to remain here
+    boot_logger timestamps
   DESTINATION includeos/${ARCH}/drivers)
 
 if(WITH_SOLO5)

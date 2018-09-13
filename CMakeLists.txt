@@ -99,7 +99,7 @@ endif(minimal)
 
 # Set debug options
 if(debug OR debug-all)
-	set(CAPABS "${CAPABS} -ggdb3 -DGSL_THROW_ON_CONTRACT_VIOLATION")
+	set(CAPABS "${CAPABS} -DGSL_THROW_ON_CONTRACT_VIOLATION")
 endif(debug OR debug-all)
 
 if(debug-info OR debug-all)
@@ -140,8 +140,8 @@ enable_language(ASM_NASM)
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
-  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -g -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS " ${CAPABS} -g ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
   set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")

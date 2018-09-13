@@ -1,11 +1,5 @@
 ### IncludeOS demo in Linux Userspace
 
-Build and install the linux userspace library first, from the linux folder:
-```
-mkdir -p build && pushd build && cmake .. -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX && make -j4 install && popd
-```
-
-Then run:
 ```
 sudo mknod /dev/net/tap c 10 200
 lxp-run
