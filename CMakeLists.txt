@@ -59,7 +59,7 @@ option (full_lto "Enable full LTO (compatibility)" OFF)
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
+set(CAPABS "${CAPABS} -g -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -68,9 +68,7 @@ set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCP
 set(WARNS "-Wall -Wextra") # -Werror
 
 # configure options
-option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
-option(debug-info "Build like \"all\" but with debugging output (i.e. the 'debug'-macro) enabled" OFF)
-option(debug-all "Build with debugging symbols + debugging output, i.e. \"debug\" + \"debug-info\"" OFF)
+option(debug "Build with no optimizations" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
@@ -96,15 +94,6 @@ endif(debug OR debug-info OR debug-all)
 if(minimal)
 	set(OPTIMIZE "-Os")
 endif(minimal)
-
-# Set debug options
-if(debug OR debug-all)
-	set(CAPABS "${CAPABS} -DGSL_THROW_ON_CONTRACT_VIOLATION")
-endif(debug OR debug-all)
-
-if(debug-info OR debug-all)
-	set(CAPABS "${CAPABS} -UNO_DEBUG")
-endif(debug-info OR debug-all)
 
 if(silent)
 	set(CAPABS "${CAPABS} -DNO-INFO=1")
@@ -140,8 +129,8 @@ enable_language(ASM_NASM)
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "${CAPABS} -g -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
-  set(CMAKE_C_FLAGS " ${CAPABS} -g ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
   set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")

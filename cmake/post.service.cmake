@@ -488,16 +488,18 @@ target_link_libraries(service
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
-# old behavior: remote all symbols after elfsym
+# old behavior: remove all symbols after elfsym
 if (NOT debug)
-  set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
+  set(STRIP_LV ${CMAKE_STRIP} --strip-debug ${BINARY})
+else()
+  set(STRIP_LV true)
 endif()
 
 add_custom_target(
   pruned_elf_symbols ALL
   COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
-  #COMMAND ${STRIP_LV}
+  COMMAND ${STRIP_LV}
   DEPENDS service
   )
 
