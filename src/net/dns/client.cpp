@@ -98,8 +98,11 @@ namespace net
     flush_timer_.stop();
   }
 
-  void DNSClient::receive_response(Address, UDP::port_t, const char* data, size_t)
+  void DNSClient::receive_response(Address, UDP::port_t, const char* data, size_t len)
   {
+    if(UNLIKELY(len < sizeof(DNS::header)))
+      return; // no point in even bothering
+
     const auto& reply = *(DNS::header*) data;
     // match the transactions id on the reply with the ones in our map
     auto it = requests_.find(ntohs(reply.id));
@@ -111,7 +114,7 @@ namespace net
 
       auto& dns_req = req.request;
       // parse request
-      dns_req.parseResponse(data);
+      dns_req.parseResponse(data, len);
 
       // cache the response for 60 seconds
       if(cache_ttl_ > std::chrono::seconds::zero())
