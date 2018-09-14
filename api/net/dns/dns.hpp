@@ -64,6 +64,7 @@ namespace net
 #define DNS_CLASS_INET   1
 
 #define DNS_TYPE_A    1  // A record
+#define DNS_TYPE_AAAA 28 // AAAA record
 #define DNS_TYPE_NS   2  // respect mah authoritah
 #define DNS_TYPE_ALIAS 5 // name alias
 

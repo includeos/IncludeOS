@@ -269,6 +269,12 @@ namespace net
         this->rdata = std::string(reader, len);
         reader += len;
       }
+    else if (ntohs(resource.type) == DNS_TYPE_AAAA)
+    {
+      // skip IPv6 records for now
+      int len = ntohs(resource.data_len);
+      reader += len;
+    }
     else
       {
         this->rdata = readName(reader, buffer, stop);
