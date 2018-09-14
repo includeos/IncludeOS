@@ -179,8 +179,10 @@ namespace net
   }
 
   // parse received message (as put into buffer)
-  bool DNS::Request::parseResponse(const char* buffer)
+  bool DNS::Request::parseResponse(const char* buffer, size_t len)
   {
+    Expects(len >= sizeof(DNS::header));
+
     const header* dns = (const header*) buffer;
 
     // move ahead of the dns header and the query field
@@ -189,17 +191,20 @@ namespace net
     // .. and past the original question
     reader += sizeof(DNS::question);
 
+    if(UNLIKELY(reader > (buffer + len)))
+      return false;
+
     // parse answers
     for(int i = 0; i < ntohs(dns->ans_count); i++)
-      answers.emplace_back(reader, buffer);
+      answers.emplace_back(reader, buffer, len);
 
     // parse authorities
     for (int i = 0; i < ntohs(dns->auth_count); i++)
-      auth.emplace_back(reader, buffer);
+      auth.emplace_back(reader, buffer, len);
 
     // parse additional
     for (int i = 0; i < ntohs(dns->add_count); i++)
-      addit.emplace_back(reader, buffer);
+      addit.emplace_back(reader, buffer, len);
 
     return true;
   }
@@ -251,11 +256,11 @@ namespace net
     *dns++ = '\0';
   }
 
-  DNS::Request::rr_t::rr_t(const char*& reader, const char* buffer)
+  DNS::Request::rr_t::rr_t(const char*& reader, const char* buffer, size_t len)
   {
     int stop;
 
-    this->name = readName(reader, buffer, stop);
+    this->name = readName(reader, buffer, len, stop);
     reader += stop;
 
     this->resource = *(rr_data*) reader;
@@ -264,14 +269,20 @@ namespace net
     // if its an ipv4 address
     if (ntohs(resource.type) == DNS_TYPE_A)
       {
-        int len = ntohs(resource.data_len);
+        int dlen = ntohs(resource.data_len);
 
-        this->rdata = std::string(reader, len);
+        this->rdata = std::string(reader, dlen);
         reader += len;
       }
+    else if (ntohs(resource.type) == DNS_TYPE_AAAA)
+    {
+      // skip IPv6 records for now
+      int dlen = ntohs(resource.data_len);
+      reader += dlen;
+    }
     else
       {
-        this->rdata = readName(reader, buffer, stop);
+        this->rdata = readName(reader, buffer, len, stop);
         reader += stop;
       }
   }
@@ -311,7 +322,7 @@ namespace net
     printf("\n");
   }
 
-  std::string DNS::Request::rr_t::readName(const char* reader, const char* buffer, int& count)
+  std::string DNS::Request::rr_t::readName(const char* reader, const char* buffer, size_t tot_len, int& count)
   {
     std::string name(256, '\0');
     unsigned p = 0;
@@ -325,7 +336,12 @@ namespace net
       {
         if (*ureader >= 192)
           {
-            offset = (*ureader) * 256 + *(ureader+1) - 49152; // = 11000000 00000000
+            // read 16-bit offset, mask out the 2 top bits
+            offset = ((*ureader) * 256 + *(ureader+1)) & 0x3FFF; // = 11000000 00000000
+
+            if(UNLIKELY(offset > tot_len))
+              return {};
+
             ureader = (unsigned char*) buffer + offset - 1;
             jumped = true; // we have jumped to another location so counting wont go up!
           }
@@ -338,6 +354,11 @@ namespace net
         // if we havent jumped to another location then we can count up
         if (jumped == false) count++;
       }
+
+    // maximum label size
+    if(UNLIKELY(p > 63))
+      return {};
+
     name.resize(p);
 
     // number of steps we actually moved forward in the packet
@@ -350,7 +371,6 @@ namespace net
     for(i = 0; i < len; i++)
       {
         p = name[i];
-
         for(unsigned j = 0; j < p; j++)
           {
             name[i] = name[i+1];

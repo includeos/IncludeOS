@@ -102,8 +102,8 @@ namespace net {
   bool IP4::is_for_me(ip4::Addr dst) const
   {
     return stack_.is_valid_source(dst)
-      or (dst | stack_.netmask()) == ADDR_BCAST
-      or local_ip() == ADDR_ANY;
+      or dst == stack_.broadcast_addr()
+      or dst == ADDR_BCAST;
   }
 
   void IP4::receive(Packet_ptr pckt, [[maybe_unused]]const bool link_bcast)
