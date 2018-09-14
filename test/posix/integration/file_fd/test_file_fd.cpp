@@ -247,9 +247,6 @@ const lest::test specification[] =
       EXPECT(c != EOF);
       int res = fclose(f);
       EXPECT(res == 0);
-      // try to read another character
-      c = fgetc(f);
-      EXPECT(c == EOF);
     }
   },
   {
@@ -257,10 +254,10 @@ const lest::test specification[] =
       FILE* f = fopen("/mnt/disk/file3", "r");
       EXPECT(f != nullptr);
       char buf[256];
-      memset(buf, 0, 256);
-      char* ptr = fgets(buf, 256, f);
+      memset(buf, 0, sizeof(buf));
+      const char* ptr = fgets(buf, sizeof(buf), f);
       EXPECT(ptr != nullptr);
-      int cmp = strcmp(buf, "even more content\n");
+      int cmp = strncmp(buf, "even more content\n", sizeof(buf));
       EXPECT(cmp == 0);
       int res = fclose(f);
       EXPECT(res == 0);
@@ -276,7 +273,6 @@ const lest::test specification[] =
       size_t wanted_count {7};
       size_t count = fread(buf, sizeof(char), wanted_count, f);
       EXPECT(count == wanted_count);
-      printf("fread result: %zu\n", count);
       int cmp = strcmp(buf, "content");
       EXPECT(cmp == 0);
       int res = fclose(f);
