@@ -93,6 +93,11 @@ void __platform_init()
   // Deferred call to Service::ready() when calibration is complete
   x86::APIC_Timer::calibrate();
 
+  INFO2("Initializing drivers");
+  extern OS::ctor_t __driver_ctors_start;
+  extern OS::ctor_t __driver_ctors_end;
+  OS::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
+
   // Initialize storage devices
   PCI_manager::init(PCI::STORAGE);
   OS::m_block_drivers_ready = true;

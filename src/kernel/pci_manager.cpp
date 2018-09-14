@@ -19,30 +19,25 @@
 #include <common>
 #include <delegate>
 #include <stdexcept>
+#include <vector>
+
 #include <kernel/pci_manager.hpp>
 #include <hw/devices.hpp>
 #include <hw/pci_device.hpp>
-#include <util/fixed_vector.hpp>
-
-static const int ELEMENTS = 64;
 
 template <typename Driver>
 using Driver_entry = std::pair<uint32_t, Driver>;
 template <typename Driver>
-using fixed_factory_t = Fixed_vector<Driver_entry<Driver>, ELEMENTS>;
+using fixed_factory_t = std::vector<Driver_entry<Driver>>;
 
-static // PCI devices
-Fixed_vector<hw::PCI_Device, ELEMENTS> devices_(Fixedvector_Init::UNINIT);
-// driver factories
-static
-fixed_factory_t<PCI_manager::NIC_driver> nic_fact(Fixedvector_Init::UNINIT);
-static
-fixed_factory_t<PCI_manager::BLK_driver> blk_fact(Fixedvector_Init::UNINIT);
+static std::vector<hw::PCI_Device> devices_;
+static std::vector<Driver_entry<PCI_manager::NIC_driver>> nic_fact;
+static std::vector<Driver_entry<PCI_manager::BLK_driver>> blk_fact;
 
 template <typename Factory, typename Class>
 static inline bool register_device(hw::PCI_Device& dev,
                                    fixed_factory_t<Factory>& factory) {
-  for (auto& fact : factory) {
+  for (const auto& fact : factory) {
     if (fact.first == dev.vendor_product())
     {
       INFO2("|  +-o Driver found, initializing ");
