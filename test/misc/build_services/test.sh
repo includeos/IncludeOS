@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script that builds all the files in the example folder
+# Script that builds a number of services
 # Will print the output if the test fails
 
 set -eE
