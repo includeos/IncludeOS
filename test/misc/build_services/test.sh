@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script that builds all the files in the example folder
+# Script that builds a number of services
 # Will print the output if the test fails
 
 set -eE
@@ -56,7 +56,7 @@ function build_service() {
 
 export -f build_service
 
-for dir in `ls -d $script_absolute_dir/../../../examples/*`
+for dir in `ls -d $script_absolute_dir/../../../examples/* $script_absolute_dir/../../../lib/uplink/starbase`
 do
   if [[ $dir == *"$skip_tests"* ]]; then
 	  continue
