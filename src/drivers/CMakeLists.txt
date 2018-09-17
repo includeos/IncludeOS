@@ -9,8 +9,8 @@
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 
 # Simple stuff
-add_library(boot_logger STATIC bootlog.cpp)
-add_library(default_stdout STATIC "default_stdout.cpp")
+add_library(boot_logger STATIC stdout/bootlog.cpp)
+add_library(default_stdout STATIC "stdout/default_stdout.cpp")
 
 add_library(ide_readwrite STATIC ide.cpp)
 set_target_properties(ide_readwrite PROPERTIES COMPILE_FLAGS "-DIDE_ENABLE_READ -DIDE_ENABLE_WRITE")
@@ -49,10 +49,10 @@ add_dependencies(disk_logger PrecompiledLibraries)
 add_library(disklog_reader STATIC "disklog_reader.cpp")
 add_dependencies(disklog_reader PrecompiledLibraries)
 
-add_library(timestamps STATIC timestamps.cpp)
+add_library(timestamps STATIC stdout/timestamps.cpp)
 add_dependencies(timestamps PrecompiledLibraries)
 
-add_library(vga_output STATIC vgaout.cpp)
+add_library(vga_output STATIC stdout/vgaout.cpp)
 add_dependencies(vga_output PrecompiledLibraries)
 
 add_library(vga_emergency STATIC vga_emergency.cpp)
@@ -63,17 +63,24 @@ add_dependencies(vga_emergency PrecompiledLibraries)
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
+# installation of stdout drivers
 install(TARGETS
     default_stdout
+    vga_output
+    vga_emergency
+  DESTINATION includeos/${ARCH}/drivers/stdout)
+
+# installation of drivers (called just before plugins)
+install(TARGETS
     ide_readwrite ide_readonly ide_writeonly
     virtionet virtioblk virtiocon
     vmxnet3 e1000
     ip4_reassembly
     heap_debugging
-    boot_logger disk_logger disklog_reader
-    timestamps
-    vga_output vga_emergency
-    DESTINATION includeos/${ARCH}/drivers)
+    disk_logger disklog_reader
+    # stdout drivers that are simple enough to remain here
+    boot_logger timestamps
+  DESTINATION includeos/${ARCH}/drivers)
 
 if(WITH_SOLO5)
   add_library(solo5blk STATIC solo5blk.cpp)

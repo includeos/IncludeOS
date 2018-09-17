@@ -262,6 +262,12 @@ public:
   static void resume_softreset(intptr_t boot_addr);
   static void setup_liveupdate(uintptr_t phys = 0);
 
+  typedef void (*ctor_t) ();
+  static void run_ctors(ctor_t* begin, ctor_t* end)
+  {
+  	for (; begin < end; begin++) (*begin)();
+  }
+
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
