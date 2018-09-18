@@ -15,16 +15,6 @@ weak_alias(__service_ctors_start, __service_ctors_end);
 char _ELF_START_;
 char _ELF_END_;
 
-uintptr_t OS::heap_max() noexcept
-{
-  return (uintptr_t) -1;
-}
-
-bool OS::is_panicking() noexcept
-{
-  return false;
-}
-
 void __arch_subscribe_irq(uint8_t) {}
 
 uint64_t __arch_system_time() noexcept
@@ -43,4 +33,38 @@ timespec __arch_wall_clock() noexcept
 void __arch_reboot()
 {
   exit(0);
+}
+
+#include <execinfo.h>
+void print_backtrace()
+{
+  static const int NUM_ADDRS = 64;
+  void*  addresses[NUM_ADDRS];
+
+  int nptrs = backtrace(addresses, NUM_ADDRS);
+  printf("backtrace() returned %d addresses\n", nptrs);
+
+  /* The call backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)
+     would produce similar output to the following: */
+
+  char** strings = backtrace_symbols(addresses, nptrs);
+  if (strings == NULL) {
+    perror("backtrace_symbols");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int j = 0; j < nptrs; j++)
+      printf("#%02d: %8p %s\n", j, addresses[j], strings[j]);
+
+  free(strings);
+}
+
+#include <signal.h>
+extern "C"
+void panic(const char* why)
+{
+  printf("!! PANIC !!\nReason: %s\n", why);
+  print_backtrace();
+  raise(SIGINT);
+  exit(1);
 }
