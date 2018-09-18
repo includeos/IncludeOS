@@ -51,7 +51,8 @@ struct vmxnet3_dma {
   struct vmxnet3_tx_comp tx_comp[VMXNET3_NUM_TX_COMP];
   /** RX ring */
   struct vmxnet3_rx {
-    struct vmxnet3_rx_desc desc[vmxnet3::NUM_RX_DESC];
+    struct vmxnet3_rx_desc desc0[vmxnet3::NUM_RX_DESC];
+    struct vmxnet3_rx_desc desc1[vmxnet3::NUM_RX_DESC];
     struct vmxnet3_rx_comp comp[VMXNET3_NUM_RX_COMP];
   };
   struct vmxnet3_rx rx[vmxnet3::NUM_RX_QUEUES];
@@ -209,8 +210,8 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   for (int q = 0; q < NUM_RX_QUEUES; q++)
   {
     memset(rx[q].buffers, 0, sizeof(rx[q].buffers));
-    rx[q].desc0 = &dma->rx[q].desc[0];
-    rx[q].desc1 = nullptr;
+    rx[q].desc0 = &dma->rx[q].desc0[0];
+    rx[q].desc1 = &dma->rx[q].desc1[0];
     rx[q].comp  = &dma->rx[q].comp[0];
     rx[q].index = q;
 
@@ -219,7 +220,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     queue.cfg.desc_address[1] = (uintptr_t) rx[q].desc1;
     queue.cfg.comp_address    = (uintptr_t) rx[q].comp;
     queue.cfg.num_desc[0]  = vmxnet3::NUM_RX_DESC;
-    queue.cfg.num_desc[1]  = 0;
+    queue.cfg.num_desc[1]  = vmxnet3::NUM_RX_DESC;
     queue.cfg.num_comp     = VMXNET3_NUM_RX_COMP;
     queue.cfg.driver_data_len = sizeof(vmxnet3_rx_desc)
                           + 2 * sizeof(vmxnet3_rx_desc);
@@ -318,8 +319,9 @@ void vmxnet3::retrieve_hwaddr()
   } mac;
   mac.lo = mmio_read32(this->iobase + VMXNET3_VD_MAC_LO);
   mac.hi = mmio_read32(this->iobase + VMXNET3_VD_MAC_HI);
-  // ETH_ALEN = 6
-  memcpy(&this->hw_addr, &mac, sizeof(hw_addr));
+  // avoid memcpy() when we can just use bitwise-operators
+  this->hw_addr.minor = mac.lo & 0xFFFF;
+  this->hw_addr.major = (mac.lo >> 16) | (mac.hi << 16);
   INFO2("MAC address: %s", hw_addr.to_string().c_str());
 }
 void vmxnet3::set_hwaddr(MAC::Addr& addr)
