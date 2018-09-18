@@ -41,12 +41,12 @@
 using namespace util;
 
 extern "C" void* get_cpu_esp();
-extern uintptr_t _start;
-extern uintptr_t _end;
-extern uintptr_t _ELF_START_;
-extern uintptr_t _TEXT_START_;
-extern uintptr_t _LOAD_START_;
-extern uintptr_t _ELF_END_;
+extern char _start;
+extern char _end;
+extern char _ELF_START_;
+extern char _TEXT_START_;
+extern char _LOAD_START_;
+extern char _ELF_END_;
 
 bool __libc_initialized = false;
 
@@ -92,18 +92,10 @@ const char* OS::cmdline_args() noexcept {
   return cmdline;
 }
 
-typedef void (*ctor_t) ();
-extern ctor_t __service_ctors_start;
-extern ctor_t __service_ctors_end;
-extern ctor_t __plugin_ctors_start;
-extern ctor_t __plugin_ctors_end;
-
-int __run_ctors(ctor_t* begin, ctor_t* end)
-{
-  int i = 0;
-	for (; begin < end; begin++, i++) (*begin)();
-  return i;
-}
+extern OS::ctor_t __plugin_ctors_start;
+extern OS::ctor_t __plugin_ctors_end;
+extern OS::ctor_t __service_ctors_start;
+extern OS::ctor_t __service_ctors_end;
 
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
@@ -141,9 +133,7 @@ void OS::post_start()
 
   // Custom initialization functions
   MYINFO("Initializing plugins");
-
-  // Run plugin constructors
-  __run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
+  OS::run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
 
   // Run plugins
   PROFILE("Plugins init");
@@ -158,7 +148,7 @@ void OS::post_start()
   OS::boot_sequence_passed_ = true;
 
     // Run service constructors
-  __run_ctors(&__service_ctors_start, &__service_ctors_end);
+  OS::run_ctors(&__service_ctors_start, &__service_ctors_end);
 
   PROFILE("Service::start");
   // begin service start

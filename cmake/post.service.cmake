@@ -101,7 +101,7 @@ endif()
 
 # Add default stdout driver if option is ON
 if (default_stdout)
-  set(DRIVERS ${DRIVERS} default_stdout)
+  set(STDOUT ${STDOUT} default_stdout)
 endif()
 
 # Add extra drivers defined from command line
@@ -178,18 +178,22 @@ function(plugin_config_option type plugin_list)
 endfunction()
 
 # Location of installed drivers / plugins
+set(STDOUT_LOC ${INSTALL_LOC}/${ARCH}/drivers/stdout)
 set(DRIVER_LOC ${INSTALL_LOC}/${ARCH}/drivers)
 set(PLUGIN_LOC ${INSTALL_LOC}/${ARCH}/plugins)
 
 # Enable DRIVERS which may be specified by parent cmake list
+enable_plugins(STDOUT  ${STDOUT_LOC})
 enable_plugins(DRIVERS ${DRIVER_LOC})
 enable_plugins(PLUGINS ${PLUGIN_LOC})
 
 # Global lists of installed Drivers / Plugins
+file(GLOB STDOUT_LIST "${STDOUT_LOC}/*.a")
 file(GLOB DRIVER_LIST "${DRIVER_LOC}/*.a")
 file(GLOB PLUGIN_LIST "${PLUGIN_LOC}/*.a")
 
 # Set configure option for each installed driver
+plugin_config_option(stdout STDOUT_LIST)
 plugin_config_option(driver DRIVER_LIST)
 plugin_config_option(plugin PLUGIN_LIST)
 
@@ -484,16 +488,18 @@ target_link_libraries(service
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
-# old behavior: remote all symbols after elfsym
+# old behavior: remove all symbols after elfsym
 if (NOT debug)
-  set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
+  set(STRIP_LV ${CMAKE_STRIP} --strip-debug ${BINARY})
+else()
+  set(STRIP_LV true)
 endif()
 
 add_custom_target(
   pruned_elf_symbols ALL
   COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
-  #COMMAND ${STRIP_LV}
+  COMMAND ${STRIP_LV}
   DEPENDS service
   )
 
