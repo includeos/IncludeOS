@@ -117,7 +117,7 @@ void test_tcp_conntrack()
   static auto& host1  = Super_stack::get(2);
   static auto& host2  = Super_stack::get(3);
 
-  // retreive the shared conntrack instance
+  // retrieve the shared conntrack instance
   eth0.conntrack()->tcp_in = net::tcp::tcp4_conntrack;
 
   // eth0 won't have seen the handshake so it will drop them packets
