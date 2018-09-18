@@ -132,7 +132,7 @@ split(const std::string& text, std::string& command)
   if (text.empty()) return retv;
   // extract command
   {
-    x = text.find(" ");
+    x = text.find(' ');
     // early return for cmd-only msg
     if (x == std::string::npos)
     {
@@ -145,8 +145,8 @@ split(const std::string& text, std::string& command)
   }
   // parse remainder
   do {
-    x = text.find(" ", p+1);
-    size_t y = text.find(":", x+1); // find last param
+    x = text.find(' ', p+1);
+    size_t y = text.find(':', x+1); // find last param
 
     if (y == x+1) {
       // single argument

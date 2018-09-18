@@ -75,7 +75,7 @@ namespace uplink {
 
   WS_uplink::WS_uplink(Config config)
     : config_{std::move(config)},
-      inet_{*config_.inet},
+      inet_{config_.get_stack()},
       id_{__arch_system_info().uuid},
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
@@ -536,25 +536,8 @@ namespace uplink {
 
   void WS_uplink::send_uplink() {
     MYINFO("[ %s ] Sending uplink", isotime::now().c_str());
-    using namespace rapidjson;
 
-    StringBuffer buf;
-    Writer<StringBuffer> writer{buf};
-
-    writer.StartObject();
-
-    writer.Key("url");
-    writer.String(config_.url);
-
-    writer.Key("token");
-    writer.String(config_.token);
-
-    writer.Key("reboot");
-    writer.Bool(config_.reboot);
-
-    writer.EndObject();
-
-    std::string str = buf.GetString();
+    auto str = config_.serialized_string();
 
     MYINFO("%s", str.c_str());
 

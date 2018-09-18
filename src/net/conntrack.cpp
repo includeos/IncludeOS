@@ -48,10 +48,20 @@ std::string state_str(const Conntrack::State state)
   }
 }
 
+std::string flag_str(const uint8_t flags)
+{
+  std::string str;
+  if(flags & static_cast<uint8_t>(Conntrack::Flag::UNREPLIED))
+    str.append(" UNREPLIED");
+  if(flags & static_cast<uint8_t>(Conntrack::Flag::ASSURED))
+    str.append(" ASSURED");
+  return str;
+}
+
 std::string Conntrack::Entry::to_string() const
 {
   return "[ " + first.to_string() + " ] [ " + second.to_string() + " ]"
-    + " P: " + proto_str(proto) + " S: " + state_str(state);
+    + " P: " + proto_str(proto) + " S: " + state_str(state) + " F:" + flag_str(flags);
 }
 
 Conntrack::Entry::~Entry()
