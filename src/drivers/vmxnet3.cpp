@@ -36,7 +36,7 @@ static std::vector<vmxnet3*> deferred_devs;
 
 #define VMXNET3_NUM_TX_COMP  vmxnet3::NUM_TX_DESC
 #define VMXNET3_NUM_RX_COMP  vmxnet3::NUM_RX_DESC
-static const int VMXNET3_TX_FILL = vmxnet3::NUM_TX_DESC;
+static const int VMXNET3_TX_FILL = vmxnet3::NUM_TX_DESC-1;
 static const int VMXNET3_RX_FILL = vmxnet3::NUM_RX_DESC;
 
 /**
