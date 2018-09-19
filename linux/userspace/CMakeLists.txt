@@ -24,12 +24,15 @@ set(NET_SOURCES
   ${IOS}/src/net/tcp/rttm.cpp
   ${IOS}/src/net/tcp/listener.cpp
   ${IOS}/src/net/tcp/stream.cpp
+  ${IOS}/src/net/udp/udp.cpp
+  ${IOS}/src/net/udp/socket.cpp
   ${IOS}/src/net/ip4/icmp4.cpp
-  ${IOS}/src/net/ip4/udp.cpp
-  ${IOS}/src/net/ip4/udp_socket.cpp
 
-  ${IOS}/src/net/dns/dns.cpp
   ${IOS}/src/net/dns/client.cpp
+  ${IOS}/src/net/dns/dns.cpp
+  ${IOS}/src/net/dns/query.cpp
+  ${IOS}/src/net/dns/record.cpp
+  ${IOS}/src/net/dns/response.cpp
   ${IOS}/src/net/dhcp/dh4client.cpp
   ${IOS}/src/net/dhcp/dhcpd.cpp
 
