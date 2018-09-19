@@ -92,7 +92,7 @@ void IrcServer::deserialize(Restore& thing)
       if (buf.size() >= sizeof(statcounters)) {
           memcpy(statcounters, buf.data(), buf.size());
       }
-      printf("* Resumed server, next id: %u\n", thing.get_id());
+      //printf("* Resumed server, next id: %u\n", thing.get_id());
       break;
     }
     case 20: /// channels

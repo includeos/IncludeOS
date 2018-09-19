@@ -33,9 +33,9 @@ set(SOURCES
   ircd/transform.cpp
   )
 
-# To add your own include paths:
-set(LOCAL_INCLUDES "")
-
+# Custom version string of the IRC server
+set(VERSION      "v0.3 IRCd")
+add_definitions(-DIRC_SERVER_VERSION="${VERSION}")
 
 option(REAL_HW "Run on real hardware" ON)
 
@@ -44,18 +44,22 @@ if (REAL_HW)
       boot_logger
       e1000
       vmxnet3
-      vga_output
-      vga_emergency
     )
+  set(STDOUT
+    vga_output
+    vga_emergency
+  )
 else()
   set(DRIVERS
       virtionet
       vmxnet3
-      vga_output
     )
   set (PLUGINS
       uplink
     )
+  set(STDOUT
+    vga_output
+  )
 endif()
 
 set(LIBRARIES libliveupdate.a)

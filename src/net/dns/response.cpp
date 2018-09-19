@@ -42,15 +42,27 @@ namespace net::dns {
   {
     for(auto& rec : answers)
     {
-      if(rec.rtype == Record_type::A or rec.rtype == Record_type::AAAA)
+      if(rec.is_addr())
         return rec.get_addr();
     }
     return {};
   }
 
-  // TODO: Verify
-  int Response::parse(const char* buffer)
+  bool Response::has_addr() const
   {
+    for(auto& rec : answers)
+    {
+      if(rec.is_addr())
+        return true;
+    }
+    return false;
+  }
+
+  // TODO: Verify
+  int Response::parse(const char* buffer, size_t len)
+  {
+    Expects(len >= sizeof(Header));
+
     const auto& hdr = *(const Header*) buffer;
 
     // move ahead of the dns header and the query field
@@ -60,17 +72,20 @@ namespace net::dns {
     // .. and past the question data
     reader += sizeof(Question);
 
+    if(UNLIKELY(reader > (buffer + len)))
+      return -1;
+
     // parse answers
     for(int i = 0; i < ntohs(hdr.ans_count); i++)
-      reader += answers.emplace_back().parse(reader, buffer);
+      reader += answers.emplace_back().parse(reader, buffer, len);
 
     // parse authorities
     for (int i = 0; i < ntohs(hdr.auth_count); i++)
-      reader += auth.emplace_back().parse(reader, buffer);
+      reader += auth.emplace_back().parse(reader, buffer, len);
 
     // parse additional
     for (int i = 0; i < ntohs(hdr.add_count); i++)
-      reader += addit.emplace_back().parse(reader, buffer);
+      reader += addit.emplace_back().parse(reader, buffer, len);
 
     return reader - buffer;
   }

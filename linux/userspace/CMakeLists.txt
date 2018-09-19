@@ -3,6 +3,7 @@ set(IOS ${CMAKE_SOURCE_DIR}/..)
 set(NET_SOURCES
   ${IOS}/src/net/buffer_store.cpp
   ${IOS}/src/net/checksum.cpp
+  ${IOS}/src/net/configure.cpp
   ${IOS}/src/net/super_stack.cpp
   ${IOS}/src/net/inet.cpp
 
@@ -23,12 +24,15 @@ set(NET_SOURCES
   ${IOS}/src/net/tcp/rttm.cpp
   ${IOS}/src/net/tcp/listener.cpp
   ${IOS}/src/net/tcp/stream.cpp
+  ${IOS}/src/net/udp/udp.cpp
+  ${IOS}/src/net/udp/socket.cpp
   ${IOS}/src/net/ip4/icmp4.cpp
-  ${IOS}/src/net/ip4/udp.cpp
-  ${IOS}/src/net/ip4/udp_socket.cpp
 
-  ${IOS}/src/net/dns/dns.cpp
   ${IOS}/src/net/dns/client.cpp
+  ${IOS}/src/net/dns/dns.cpp
+  ${IOS}/src/net/dns/query.cpp
+  ${IOS}/src/net/dns/record.cpp
+  ${IOS}/src/net/dns/response.cpp
   ${IOS}/src/net/dhcp/dh4client.cpp
   ${IOS}/src/net/dhcp/dhcpd.cpp
 
@@ -69,6 +73,7 @@ if (CUSTOM_BOTAN)
 endif()
 
 set(OS_SOURCES
+    ${IOS}/src/version.cpp
     ${IOS}/src/fs/dirent.cpp
     ${IOS}/src/fs/disk.cpp
     ${IOS}/src/fs/fat.cpp
@@ -84,6 +89,7 @@ set(OS_SOURCES
     ${IOS}/src/kernel/rng.cpp
     ${IOS}/src/kernel/timers.cpp
     ${IOS}/src/util/async.cpp
+    ${IOS}/src/util/autoconf.cpp
     ${IOS}/src/util/crc32.cpp
     ${IOS}/src/util/logger.cpp
     ${IOS}/src/util/sha1.cpp

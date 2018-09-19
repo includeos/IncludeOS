@@ -4,12 +4,12 @@ static const uint16_t port = 0x3F8; // Serial 1
 static char initialized = 0xFF;
 
 extern "C"
-__attribute__((no_sanitize("all")))
 void __init_serial1()
 {
   initialized = false;
 }
 
+__attribute__((no_sanitize("all")))
 static inline void init_if_needed()
 {
   if (initialized) return;

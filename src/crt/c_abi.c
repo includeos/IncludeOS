@@ -24,6 +24,7 @@
     extern __typeof (name) aliasname __attribute__ ((weak, alias (#name)));
 void* __dso_handle;
 
+__attribute__((no_sanitize("all")))
 uint32_t _move_symbols(void* sym_loc)
 {
   // re-align new symbol area to a page boundary

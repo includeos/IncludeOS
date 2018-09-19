@@ -62,6 +62,7 @@ uint32_t __grub_addr  = 0x7001;
 
 static volatile int __global_ctors_ok = 0;
 
+__attribute__((no_sanitize("all")))
 void _init_bss()
 {
   extern char _BSS_START_, _BSS_END_;
@@ -75,6 +76,7 @@ static void global_ctor_test(){
 
 int kernel_main(int, char * *, char * *) {
   PRATTLE("<kernel_main> libc initialization complete \n");
+  kernel_sanity_checks();
   Expects(__global_ctors_ok == 42);
   extern bool __libc_initialized;
   __libc_initialized = true;
@@ -99,16 +101,12 @@ int kernel_main(int, char * *, char * *) {
   return 0;
 }
 
-void __init_tls(size_t* p)
-{
-  kprintf("init_tls(%p)\n", p);
-}
-
 // Musl entry
 extern "C"
 int __libc_start_main(int (*main)(int,char **,char **), int argc, char **argv);
 
 extern "C" uintptr_t __syscall_entry();
+extern "C" void __elf_validate_section(const void*);
 
 extern "C"
 __attribute__((no_sanitize("all")))

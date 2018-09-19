@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define SLAAC_DEBUG 1
+#define SLAAC_DEBUG 1
 #ifdef SLAAC_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -94,6 +94,7 @@ namespace net
             tentative_addr_.str().c_str(), stack.ifname().c_str());
         for(auto& handler : this->config_handlers_)
           handler(true);
+        autoconf_global();
       } else {
         timeout_timer_.start(interval);
         autoconf_linklocal();
@@ -103,7 +104,7 @@ namespace net
 
   void Slaac::autoconf_start(int retries, IP6::addr alternate_addr)
   {
-    tentative_addr_ = {0xFE80,  0, 0, 0, 0, 0, 0, 0};
+    tentative_addr_ = ip6::Addr::link_local(stack.link_addr().eui64());
     alternate_addr_ = alternate_addr;
 
     tentative_addr_.set(stack.link_addr());

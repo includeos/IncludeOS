@@ -66,9 +66,11 @@ void syscall_SYS_exit_group(int status)
 struct alignas(SMP_ALIGN) context_buffer
 {
   std::array<char, 512> buffer;
-  int panics = 0;
 };
 static SMP::Array<context_buffer> contexts;
+// NOTE: panics cannot be per-cpu because it might not be ready yet
+// NOTE: it's also used by OS::is_panicking(), used by OS::print(...)
+static int panics = 0;
 
 size_t get_crash_context_length()
 {
@@ -80,12 +82,13 @@ char*  get_crash_context_buffer()
 }
 bool OS::is_panicking() noexcept
 {
-  return PER_CPU(contexts).panics > 0;
+  return panics > 0;
 }
 extern "C"
 void cpu_enable_panicking()
 {
-  PER_CPU(contexts).panics++;
+  //PER_CPU(contexts).panics++;
+  __sync_fetch_and_add(&panics, 1);
 }
 
 static OS::on_panic_func panic_handler = nullptr;
@@ -111,8 +114,7 @@ void panic_perform_inspection_procedure() {}
 void panic(const char* why)
 {
   cpu_enable_panicking();
-  if (PER_CPU(contexts).panics > 4)
-    double_fault(why);
+  if (panics > 4) double_fault(why);
 
   const int current_cpu = SMP::cpu_id();
 

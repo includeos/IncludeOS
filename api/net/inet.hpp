@@ -64,7 +64,7 @@ namespace net {
     using IP_packet_factory  = delegate<IP_packet_ptr(Protocol)>;
     using IP6_packet_factory = delegate<IP6_packet_ptr(Protocol)>;
 
-    using resolve_func = delegate<void(ip4::Addr, const Error&)>;
+    using resolve_func = dns::Client::Resolve_handler;
     using on_configured_func = delegate<void(Stack&)>;
     using dhcp_timeout_func = delegate<void(bool timed_out)>;
     using slaac_timeout_func = delegate<void(bool complete)>;
@@ -97,7 +97,7 @@ namespace net {
     ip4::Addr broadcast_addr() const
     { return ip4_.broadcast_addr(); }
 
-    ip6::Addr ip6_addr() const
+    const ip6::Addr& ip6_addr() const
     { return ndp_.static_ip(); }
 
     uint8_t netmask6() const
@@ -249,9 +249,9 @@ namespace net {
                  bool               force = false);
 
     void resolve(const std::string& hostname,
-                  ip4::Addr         server,
-                  resolve_func      func,
-                  bool              force = false);
+                 net::Addr          server,
+                 resolve_func       func,
+                 bool               force = false);
 
     void set_domain_name(std::string domain_name)
     { this->domain_name_ = std::move(domain_name); }
@@ -315,15 +315,19 @@ namespace net {
                         uint8_t prefix6 = 0,
                         ip6::Addr gateway6 = IP6::ADDR_ANY);
 
-    void
-    reset_config()
+    void reset_config()
     {
       this->ip4_.set_addr(IP4::ADDR_ANY);
       this->ip4_.set_gateway(IP4::ADDR_ANY);
       this->ip4_.set_netmask(IP4::ADDR_ANY);
+    }
+
+    void reset_config6()
+    {
       this->ndp_.set_static_addr(IP6::ADDR_ANY);
       this->ndp_.set_static_gateway(IP6::ADDR_ANY);
       this->ndp_.set_static_prefix(0);
+
     }
 
     // register a callback for receiving signal on free packet-buffers
@@ -513,7 +517,7 @@ namespace net {
     std::shared_ptr<Conntrack> conntrack_;
 
     // we need this to store the cache per-stack
-    DNSClient dns_;
+    dns::Client dns_;
     std::string domain_name_;
 
     std::shared_ptr<net::DHClient> dhcp_{};

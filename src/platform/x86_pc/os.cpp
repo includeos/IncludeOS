@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
+#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <boot/multiboot.h>
@@ -90,6 +90,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   if(os_default_stdout) {
     OS::add_stdout(&OS::default_stdout);
   }
+
+  extern OS::ctor_t __stdout_ctors_start;
+  extern OS::ctor_t __stdout_ctors_end;
+  OS::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
 
   // Print a fancy header
   CAPTION("#include<os> // Literally");

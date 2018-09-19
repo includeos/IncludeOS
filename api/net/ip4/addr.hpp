@@ -388,7 +388,7 @@ struct Addr {
   uint32_t whole;
 } __attribute__((packed)); //< struct Addr
 
-static_assert(sizeof(Addr) == 4);
+static_assert(sizeof(Addr) == 4, "Must be 4 bytes in size");
 
 } //< namespace ip4
 

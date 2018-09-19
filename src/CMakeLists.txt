@@ -3,8 +3,8 @@
 #
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
-if (NOT threading)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+if (smp)
+add_definitions(-DINCLUDEOS_SMP_ENABLE)
 endif()
 
 include_directories(${LIBCXX_INCLUDE_DIR})
@@ -28,6 +28,7 @@ endif()
 set(BOTAN_MODULES "net/https/botan_server.cpp")
 
 set(OS_OBJECTS
+  version.cpp
   kernel/multiboot.cpp
   kernel/syscalls.cpp kernel/os.cpp kernel/cpuid.cpp kernel/block.cpp
   kernel/events.cpp kernel/memmap.cpp kernel/pci_manager.cpp
@@ -49,6 +50,7 @@ set(OS_OBJECTS
   net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
   net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp
   net/tcp/read_buffer.cpp net/tcp/read_request.cpp net/tcp/stream.cpp
+  net/tcp/tcp_conntrack.cpp
   net/ip4/icmp4.cpp net/udp/udp.cpp net/udp/socket.cpp
   net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp net/ip6/mld.cpp
   net/ip6/extension_header.cpp net/ip6/packet_ndp.cpp
@@ -77,6 +79,7 @@ add_dependencies(os PrecompiledLibraries botan ${OPENSSL_LIBS})
 # disable sanitizers on c_abi and cxx_abi, etc.
 set_source_files_properties(crt/c_abi.c PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 set_source_files_properties(crt/cxx_abi.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
+set_source_files_properties(version.cpp PROPERTIES COMPILE_DEFINITIONS "OS_VERSION=\"${OS_VERSION}\"")
 
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)

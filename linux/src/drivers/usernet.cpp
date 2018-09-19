@@ -4,7 +4,7 @@
 constexpr MAC::Addr UserNet::MAC_ADDRESS;
 
 UserNet::UserNet(const uint16_t mtu)
-  : Link(Link_protocol{{this, &UserNet::transmit}, mac()}),
+  : Link(Link::Protocol{{this, &UserNet::transmit}, MAC_ADDRESS}),
     mtu_value(mtu), buffer_store(256u, 128 + mtu) {}
 
 UserNet& UserNet::create(const uint16_t mtu)

@@ -170,16 +170,27 @@ namespace net {
   { send_request(ip, ICMP_type::ECHO, 0, callback, sec_wait); }
 
   void ICMPv4::ping(const std::string& hostname) {
-    inet_.resolve(hostname, [this] (ip4::Addr a, Error err) {
-      if (!err and a != IP4::ADDR_ANY)
-        ping(a);
+    inet_.resolve(hostname, [this] (dns::Response_ptr res, Error err) {
+      if (!err)
+      {
+        auto addr = res->get_first_ipv4();
+        if(addr != 0)
+          ping(addr);
+      }
     });
   }
 
   void ICMPv4::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
-    inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (ip4::Addr a, Error err) {
-      if (!err and a != IP4::ADDR_ANY)
-        ping(a, callback, sec_wait);
+    inet_.resolve(hostname,
+      Inet::resolve_func::make_packed([this, callback, sec_wait]
+      (dns::Response_ptr res, Error err)
+    {
+      if (!err)
+      {
+        auto addr = res->get_first_ipv4();
+        if(addr != 0)
+          ping(addr, callback, sec_wait);
+      }
     }));
   }
 

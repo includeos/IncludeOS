@@ -28,12 +28,9 @@ else()
 endif()
 enable_language(ASM_NASM)
 
-if (NOT threading)
-  add_definitions(-DINCLUDEOS_SINGLE_THREADED)
-  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
-  message(STATUS "Building without threading / SMP")
-else()
-  message(STATUS "Building with threading / SMP")
+if (smp)
+  add_definitions(-DINCLUDEOS_SMP_ENABLE)
+  message(STATUS "Building with SMP enabled")
 endif()
 
 if (coroutines)
@@ -60,9 +57,32 @@ if (undefined_san)
   set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
 endif()
 
+if (thin_lto OR full_lto)
+  if (thin_lto)
+    set(OPTIMIZE "${OPTIMIZE} -flto=thin -fuse-ld=lld")
+  elseif (full_lto)
+    set(OPTIMIZE "${OPTIMIZE} -flto=full")
+  endif()
+  if (CMAKE_COMPILER_IS_CLANG)
+    set(CMAKE_LINKER "ld.lld")
+  elseif (CMAKE_COMPILER_IS_GNUCC)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} --print-file-name liblto_plugin.so OUTPUT_VARIABLE LTO_PLUGiN OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} --print-file-name lto-wrapper OUTPUT_VARIABLE LTO_WRAPPER OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} --print-file-name collect2 OUTPUT_VARIABLE GCC_COLLECT OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "Linker plugin: ${LTO_PLUGiN}, wrapper: ${LTO_WRAPPER}")
+    message(STATUS "LTO wrapper: ${LTO_WRAPPER}")
+    set(ENV{COLLECT_GCC} "${GCC_COLLECT}")
+    set(ENV{COLLECT_LTO_WRAPPER} "${LTO_WRAPPER}")
+    message(STATUS "COLLECT_GCC=$ENV{COLLECT_GCC}")
+    set(CMAKE_LINKER "gold")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -plugin ${LTO_PLUGiN} -plugin-opt ${LTO_WRAPPER} -plugin-opt -fresolution=40")
+    message(STATUS "Linker is now: ${CMAKE_LINKER}")
+  endif()
+endif()
+
 if (CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=${CPP_VERSION}")
-  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=${CPP_VERSION}")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
   set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -std=${CPP_VERSION} ")
@@ -97,7 +117,7 @@ endif()
 
 # Add default stdout driver if option is ON
 if (default_stdout)
-  set(DRIVERS ${DRIVERS} default_stdout)
+  set(STDOUT ${STDOUT} default_stdout)
 endif()
 
 # Add extra drivers defined from command line
@@ -174,18 +194,22 @@ function(plugin_config_option type plugin_list)
 endfunction()
 
 # Location of installed drivers / plugins
+set(STDOUT_LOC ${INSTALL_LOC}/${ARCH}/drivers/stdout)
 set(DRIVER_LOC ${INSTALL_LOC}/${ARCH}/drivers)
 set(PLUGIN_LOC ${INSTALL_LOC}/${ARCH}/plugins)
 
 # Enable DRIVERS which may be specified by parent cmake list
+enable_plugins(STDOUT  ${STDOUT_LOC})
 enable_plugins(DRIVERS ${DRIVER_LOC})
 enable_plugins(PLUGINS ${PLUGIN_LOC})
 
 # Global lists of installed Drivers / Plugins
+file(GLOB STDOUT_LIST "${STDOUT_LOC}/*.a")
 file(GLOB DRIVER_LIST "${DRIVER_LOC}/*.a")
 file(GLOB PLUGIN_LIST "${PLUGIN_LOC}/*.a")
 
 # Set configure option for each installed driver
+plugin_config_option(stdout STDOUT_LIST)
 plugin_config_option(driver DRIVER_LIST)
 plugin_config_option(plugin PLUGIN_LIST)
 
@@ -240,7 +264,7 @@ set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS) # this removed -rdynamic from linker ou
 set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <LINK_FLAGS> <OBJECTS> <LINK_LIBRARIES>")
 
 set(BUILD_SHARED_LIBRARIES OFF)
-set(CMAKE_EXE_LINKER_FLAGS "-static")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
 set(LD_STRIP)
 if (NOT debug)
@@ -352,8 +376,9 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
 endif()
 
 # Depending on the output of this command will make it always run. Like magic.
-add_custom_command(OUTPUT fake_news
-      COMMAND cmake -E touch_nocreate alternative_facts)
+add_custom_command(
+    OUTPUT fake_news
+    COMMAND cmake -E echo)
 
 # add memdisk
 function(add_memdisk DISK)
@@ -363,7 +388,7 @@ function(add_memdisk DISK)
     OUTPUT  memdisk.o
     COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
-    DEPENDS ${DISK_RELPATH} fake_news
+    DEPENDS ${DISK_RELPATH}
   )
   add_library(memdisk STATIC memdisk.o)
   set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
@@ -378,7 +403,7 @@ function(build_memdisk FOLD)
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
       DEPENDS fake_news
       )
-    add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
+  add_custom_target(diskbuilder DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
   add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
 endfunction()
@@ -479,16 +504,18 @@ target_link_libraries(service
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
-# old behavior: remote all symbols after elfsym
+# old behavior: remove all symbols after elfsym
 if (NOT debug)
-  set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
+  set(STRIP_LV ${CMAKE_STRIP} --strip-debug ${BINARY})
+else()
+  set(STRIP_LV true)
 endif()
 
 add_custom_target(
   pruned_elf_symbols ALL
   COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
-  #COMMAND ${STRIP_LV}
+  COMMAND ${STRIP_LV}
   DEPENDS service
   )
 

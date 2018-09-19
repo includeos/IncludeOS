@@ -25,7 +25,6 @@ add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DPLATFORM_UNITTEST)
 add_definitions(-DOS_VERSION="v0.0.0.1")
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
 
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
@@ -161,6 +160,7 @@ set(TEST_SOURCES
 )
 
 set(OS_SOURCES
+  ${SRC}/version.cpp
   ${SRC}/arch/x86_64/paging.cpp
   ${SRC}/fs/disk.cpp
   ${SRC}/fs/dirent.cpp

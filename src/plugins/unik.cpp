@@ -48,7 +48,7 @@ void unik::Client::register_instance(net::Inet& inet, const net::UDP::port_t por
       std::string strdata(data, len);
       INFO("Unik client","received UDP data from %s:%i: %s ", addr.to_string().c_str(), port, strdata.c_str());
 
-      auto dotloc = strdata.find(":");
+      auto dotloc = strdata.find(':');
 
       if (dotloc == std::string::npos) {
         INFO("Unik client","Unexpected UDP data format - no ':' in string.");

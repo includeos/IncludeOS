@@ -23,6 +23,7 @@
 #include <net/checksum.hpp>
 #include <chrono>
 #include <vector>
+#include <util/units.hpp>
 
 namespace net {
   namespace tcp {
@@ -47,6 +48,10 @@ namespace net {
 
     static const std::chrono::seconds       default_msl {30};
     static const std::chrono::milliseconds  default_dack_timeout {40};
+
+    using namespace util::literals;
+    static constexpr size_t default_min_bufsize {4_KiB};
+    static constexpr size_t default_max_bufsize {256_KiB};
 
     using Address = net::Addr;
 

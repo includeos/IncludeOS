@@ -1,8 +1,9 @@
-//#define NDP_DEBUG 1
+#define NDP_DEBUG 1
 #ifdef NDP_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define PRINT(fmt, ...) /* fmt */
+#endif
 
 #include <vector>
 #include <net/ip6/packet_ndp.hpp>
@@ -110,24 +111,34 @@ namespace net::ndp {
  {
    ip6::Addr confaddr;
    struct prefix_info *pinfo;
+   PRINT("about to parse opt\n");
    struct nd_options_header *opt = option(ND_OPT_PREFIX_INFO);
+   PRINT("opt parsed\n");
 
    if (!opt) {
      return true;
    }
 
-   for (pinfo = reinterpret_cast<struct prefix_info *>(opt); pinfo;
-      pinfo = pinfo_next(pinfo)) {
+   for (pinfo = reinterpret_cast<struct prefix_info *>(opt); pinfo != nullptr;
+        pinfo = pinfo_next(pinfo))
+   {
+    PRINT("pinfo start type=%u\n", pinfo->type);
+    if(pinfo == nullptr)
+      PRINT("pinfo null");
 
-     if (pinfo->prefix.is_linklocal()) {
-       PRINT("NDP: Prefix info address is linklocal\n");
-       return false;
-     }
+    PRINT("prefix %s\n", pinfo->prefix.to_string().c_str());
+    if (pinfo->prefix.is_linklocal()) {
+      PRINT("NDP: Prefix info address is linklocal\n");
+      return false;
+    }
 
-     if (pinfo->onlink) {
-       onlink_cb(confaddr, pinfo->prefered, pinfo->valid);
-     } else if (pinfo->autoconf) {
-
+    if (pinfo->onlink) {
+      PRINT("on link\n");
+      onlink_cb(confaddr, pinfo->prefered, pinfo->valid);
+    }
+    else if (pinfo->autoconf)
+    {
+      PRINT("autoconf\n");
        if (pinfo->prefix.is_multicast()) {
          PRINT("NDP: Prefix info address is multicast\n");
          return false;
@@ -139,15 +150,17 @@ namespace net::ndp {
        }
 
        if (pinfo->prefix_len == 64) {
-           confaddr.set_part<uint64_t>(1,
-              pinfo->prefix.get_part<uint64_t>(1));
-       } else {
-           PRINT("NDP: Prefix option: autoconf: "
-                   " prefix with wrong len: %d", pinfo->prefix_len);
-           return false;
+         confaddr.set_part<uint64_t>(1,
+            pinfo->prefix.get_part<uint64_t>(1));
+       }
+       else {
+         PRINT("NDP: Prefix option: autoconf: "
+                 " prefix with wrong len: %d", pinfo->prefix_len);
+         return false;
        }
        autoconf_cb(confaddr, pinfo->prefered, pinfo->valid);
      }
+     PRINT("next\n");
    }
  }
 
@@ -188,5 +201,3 @@ namespace net::ndp {
             sizeof header);
   }
 }
-
-#endif

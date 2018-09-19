@@ -101,7 +101,7 @@ Statman::~Statman()
 }
 
 Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   volatile scoped_spinlock lock(this->stlock);
 #endif
   if (name.empty())

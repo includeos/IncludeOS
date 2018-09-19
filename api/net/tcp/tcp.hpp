@@ -30,6 +30,7 @@
 #include <deque>  // writeq
 #include <net/socket.hpp>
 #include <net/ip4/ip4.hpp>
+#include <util/bitops.hpp>
 
 namespace net {
 
@@ -57,7 +58,7 @@ namespace net {
 
   private:
     using Listeners       = std::map<Socket, std::shared_ptr<tcp::Listener>>;
-    using Connections     = std::map<tcp::Connection::Tuple, tcp::Connection_ptr>;
+    using Connections     = std::unordered_map<tcp::Connection::Tuple, tcp::Connection_ptr>;
 
   public:
     /////// TCP Stuff - Relevant to the protocol /////
@@ -370,6 +371,36 @@ namespace net {
     { return max_syn_backlog_; }
 
     /**
+     * @brief      Sets the minimum buffer size.
+     *
+     * @param[in]  size  The size
+     */
+    void set_min_bufsize(const size_t size)
+    {
+      Expects(util::bits::is_pow2(size));
+      Expects(size <= max_bufsize_);
+      min_bufsize_ = size;
+    }
+
+    /**
+     * @brief      Sets the maximum buffer size.
+     *
+     * @param[in]  size  The size
+     */
+    void set_max_bufsize(const size_t size)
+    {
+      Expects(util::bits::is_pow2(size));
+      Expects(size >= min_bufsize_);
+      max_bufsize_ = size;
+    }
+
+    auto min_bufsize() const
+    { return min_bufsize_; }
+
+    auto max_bufsize() const
+    { return max_bufsize_; }
+
+    /**
      * @brief      The Maximum Segment Size to be used for this instance.
      *             [RFC 793] [RFC 879] [RFC 6691]
      *             This is the MTU - IP_hdr - TCP_hdr
@@ -516,6 +547,9 @@ namespace net {
     std::chrono::milliseconds dack_timeout_;
     /** Maximum SYN queue backlog */
     uint16_t                  max_syn_backlog_;
+
+    size_t min_bufsize_       {tcp::default_min_bufsize};
+    size_t max_bufsize_       {tcp::default_max_bufsize};
 
     /** Stats */
     uint64_t* bytes_rx_ = nullptr;
