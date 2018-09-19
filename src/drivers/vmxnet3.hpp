@@ -31,7 +31,7 @@ public:
   using Link_protocol = Link::Protocol;
   static const int DRIVER_OFFSET = 2;
   static const int NUM_RX_QUEUES = 1;
-  static const int NUM_TX_DESC   = 512;
+  static const int NUM_TX_DESC   = 128;
   static const int NUM_RX_DESC   = 512;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d, const uint16_t MTU)
