@@ -18,11 +18,11 @@
 
 namespace net::dns {
 
-  int Record::parse(const char* reader, const char* buffer)
+  int Record::parse(const char* reader, const char* buffer, size_t len)
   {
     int count = 0;
 
-    const auto namelen = parse_name(reader, buffer, this->name);
+    const auto namelen = parse_name(reader, buffer, len, this->name);
     reader += namelen;
     count += namelen;
 
@@ -42,7 +42,7 @@ namespace net::dns {
       }
       default:
       {
-        count += parse_name(reader, buffer, this->rdata);
+        count += parse_name(reader, buffer, len, this->rdata);
       }
     }
 
@@ -60,7 +60,9 @@ namespace net::dns {
     this->data_len  = ntohs(res.data_len);
   }
 
-  int Record::parse_name(const char* reader, const char* buffer, std::string& output) const
+  int Record::parse_name(const char* reader,
+                         const char* buffer, size_t tot_len,
+                         std::string& output) const
   {
     Expects(output.empty());
 
@@ -75,7 +77,12 @@ namespace net::dns {
     {
       if (*ureader >= 192)
       {
-        offset = (*ureader) * 256 + *(ureader+1) - 49152; // = 11000000 00000000
+        // read 16-bit offset, mask out the 2 top bits
+        offset = ((*ureader) * 256 + *(ureader+1)) & 0x3FFF; // = 11000000 00000000
+
+        if(UNLIKELY(offset > tot_len))
+          return 0;
+
         ureader = (unsigned char*) buffer + offset - 1;
         jumped = true; // we have jumped to another location so counting wont go up!
       }
@@ -88,6 +95,11 @@ namespace net::dns {
       // if we havent jumped to another location then we can count up
       if (jumped == false) count++;
     }
+
+    // maximum label size
+    if(UNLIKELY(p > 63))
+      return 0;
+
     output.resize(p);
 
     // number of steps we actually moved forward in the packet

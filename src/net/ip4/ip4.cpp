@@ -41,7 +41,11 @@ namespace net {
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
-  stack_            {inet}
+  stack_            {inet},
+  prerouting_dropped_   {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.prerouting_dropped").get_uint32()},
+  postrouting_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.postrouting_dropped").get_uint32()},
+  input_dropped_        {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.input_dropped").get_uint32()},
+  output_dropped_       {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.output_dropped").get_uint32()}
   {}
 
 
@@ -104,8 +108,8 @@ namespace net {
   bool IP4::is_for_me(ip4::Addr dst) const
   {
     return stack_.is_valid_source(dst)
-      or (dst | stack_.netmask()) == ADDR_BCAST
-      or local_ip() == ADDR_ANY;
+      or dst == stack_.broadcast_addr()
+      or dst == ADDR_BCAST;
   }
 
   void IP4::receive(Packet_ptr pckt, [[maybe_unused]]const bool link_bcast)
@@ -142,7 +146,10 @@ namespace net {
     Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      prerouting_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();
@@ -186,8 +193,8 @@ namespace net {
       stack_.conntrack()->confirm(*packet); // No need to set ct again
     res = input_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) {
-        PRINT("* parsing the packet header\n");
-        return;
+      input_dropped_++;
+      return;
     }
 
     Ensures(res.packet != nullptr);
@@ -241,7 +248,10 @@ namespace net {
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      output_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();
@@ -277,7 +287,10 @@ namespace net {
         conntrack->confirm(ct->first, ct->proto) : conntrack->confirm(*packet);
     }
     auto res = postrouting_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      postrouting_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();

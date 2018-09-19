@@ -75,7 +75,7 @@ void __platform_init()
   asm volatile("sti");
 
   // initialize and start registered APs found in ACPI-tables
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   x86::init_SMP();
 #endif
 
@@ -92,6 +92,11 @@ void __platform_init()
   // Initialize APIC timers and timer systems
   // Deferred call to Service::ready() when calibration is complete
   x86::APIC_Timer::calibrate();
+
+  INFO2("Initializing drivers");
+  extern OS::ctor_t __driver_ctors_start;
+  extern OS::ctor_t __driver_ctors_end;
+  OS::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
 
   // Initialize storage devices
   PCI_manager::init(PCI::STORAGE);

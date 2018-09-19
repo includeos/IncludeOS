@@ -262,6 +262,12 @@ public:
   static void resume_softreset(intptr_t boot_addr);
   static void setup_liveupdate(uintptr_t phys = 0);
 
+  typedef void (*ctor_t) ();
+  static void run_ctors(ctor_t* begin, ctor_t* end)
+  {
+  	for (; begin < end; begin++) (*begin)();
+  }
+
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
@@ -277,6 +283,7 @@ private:
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
   static bool m_timestamps;
+  static bool m_timestamps_ready;
   static util::KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;

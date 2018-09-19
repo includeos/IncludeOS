@@ -27,10 +27,7 @@
 // Intel 3a  8.10.6.7: 128-byte boundary
 typedef unsigned int spinlock_t __attribute__((aligned(128)));
 
-#ifdef INCLUDEOS_SINGLE_THREADED
-inline void lock(spinlock_t&) {}
-inline void unlock(spinlock_t&) {}
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
 inline void lock(spinlock_t& lock) {
   while (!__sync_bool_compare_and_swap(&lock, 0, 1)) {
     while (lock) asm("pause");
@@ -39,6 +36,9 @@ inline void lock(spinlock_t& lock) {
 inline void unlock(spinlock_t& lock) {
   __sync_lock_release(&lock, 0); // barrier
 }
+#else
+inline void lock(spinlock_t&) {}
+inline void unlock(spinlock_t&) {}
 #endif
 
 struct scoped_spinlock

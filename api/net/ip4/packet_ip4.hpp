@@ -99,7 +99,7 @@ namespace net {
     /** Get IP data length. */
     uint16_t ip_data_length() const noexcept
     {
-      Expects(size() and static_cast<size_t>(size()) >= sizeof(ip4::Header));
+      //Expects(size() and static_cast<size_t>(size()) >= sizeof(ip4::Header));
       return size() - ip_header_length();
     }
 

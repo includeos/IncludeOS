@@ -63,6 +63,7 @@
 #define DNS_CLASS_INET   1
 
 #define DNS_TYPE_A    1  // A record
+#define DNS_TYPE_AAAA 28 // AAAA record
 #define DNS_TYPE_NS   2  // respect mah authoritah
 #define DNS_TYPE_ALIAS 5 // name alias
 
@@ -138,7 +139,6 @@ namespace net::dns {
     unsigned short data_len;
   };
 #pragma pack(pop)
-
 
   // convert www.google.com to 3www6google3com
   int encode_name(std::string name, char* dst);

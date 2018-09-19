@@ -25,7 +25,6 @@
 class UserNet : public net::Link_layer<net::Ethernet> {
 public:
   using Link          = net::Link_layer<net::Ethernet>;
-  using Link_protocol = Link::Protocol;
   static constexpr MAC::Addr MAC_ADDRESS = {1, 2, 3, 4, 5, 6};
 
   static UserNet& create(const uint16_t MTU);

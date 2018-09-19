@@ -1,0 +1,4 @@
+#! /bin/bash
+echo -e "\n>>> Running service with debugging"
+DBG="ON"
+source lxp-run

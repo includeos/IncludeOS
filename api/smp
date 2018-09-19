@@ -25,10 +25,10 @@
 #include <smp_utils>
 
 #ifndef SMP_MAX_CORES
-# ifdef INCLUDEOS_SINGLE_THREADED
-#   define SMP_MAX_CORES   1
-# else
+# ifdef INCLUDEOS_SMP_ENABLE
 #   define SMP_MAX_CORES   32
+# else
+#   define SMP_MAX_CORES   1
 # endif
 #endif
 
@@ -102,26 +102,26 @@ public:
 #endif
 
 #include <array>
-#ifdef INCLUDEOS_SINGLE_THREADED
-template <typename T, size_t N>
-inline T& per_cpu_help(std::array<T, N>& array)
-{
-  return array[0];
-}
+#ifdef INCLUDEOS_SMP_ENABLE
+  template <typename T, size_t N>
+  inline T& per_cpu_help(std::array<T, N>& array)
+  {
+    unsigned cpuid;
+# ifdef ARCH_x86_64
+    asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
+# elif defined(ARCH_i686)
+    asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
+# else
+    #error "Implement me?"
+# endif
+    return array.at(cpuid);
+  }
 #else
-template <typename T, size_t N>
-inline T& per_cpu_help(std::array<T, N>& array)
-{
-  unsigned cpuid;
-#ifdef ARCH_x86_64
-  asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
-#elif defined(ARCH_i686)
-  asm("movl %%fs:(0x0), %0" : "=r" (cpuid));
-#else
-  #error "Implement me?"
-#endif
-  return array.at(cpuid);
-}
+  template <typename T, size_t N>
+  inline T& per_cpu_help(std::array<T, N>& array)
+  {
+    return array[0];
+  }
 #endif
 
 #endif

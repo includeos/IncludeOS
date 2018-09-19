@@ -1,0 +1,11 @@
+#! /bin/bash
+BINARY="`cat build/binary.txt`"
+set-e
+
+echo -e "\n>>> Installing dependencies"
+pip -q install gprof2dot
+sudo apt install -y gprof graphviz
+
+echo -e "\n>>> Generating callgraph.svg"
+gprof build/$BINARY | gprof2dot | dot -Tsvg -o callgraph.svg
+firefox callgraph.svg

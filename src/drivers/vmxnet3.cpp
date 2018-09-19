@@ -21,6 +21,7 @@
 
 #include <kernel/events.hpp>
 #include <smp>
+#include <statman>
 #include <info>
 #include <cassert>
 #include <malloc.h>
@@ -35,7 +36,7 @@ static std::vector<vmxnet3*> deferred_devs;
 
 #define VMXNET3_NUM_TX_COMP  vmxnet3::NUM_TX_DESC
 #define VMXNET3_NUM_RX_COMP  vmxnet3::NUM_RX_DESC
-static const int VMXNET3_TX_FILL = vmxnet3::NUM_TX_DESC-1;
+static const int VMXNET3_TX_FILL = vmxnet3::NUM_TX_DESC;
 static const int VMXNET3_RX_FILL = vmxnet3::NUM_RX_DESC;
 
 /**
@@ -49,9 +50,11 @@ struct vmxnet3_dma {
   struct vmxnet3_tx_desc tx_desc[vmxnet3::NUM_TX_DESC];
   struct vmxnet3_tx_comp tx_comp[VMXNET3_NUM_TX_COMP];
   /** RX ring */
-  struct vmxnet3_rx_desc rx0_desc[vmxnet3::NUM_RX_DESC];
-  struct vmxnet3_rx_desc rx1_desc[vmxnet3::NUM_RX_DESC];
-  struct vmxnet3_rx_comp rx_comp[VMXNET3_NUM_RX_COMP];
+  struct vmxnet3_rx {
+    struct vmxnet3_rx_desc desc[vmxnet3::NUM_RX_DESC];
+    struct vmxnet3_rx_comp comp[VMXNET3_NUM_RX_COMP];
+  };
+  struct vmxnet3_rx rx[vmxnet3::NUM_RX_QUEUES];
   /** Queue descriptors */
   struct vmxnet3_queues queues;
   /** Shared area */
@@ -119,10 +122,15 @@ static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 
 vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}),
-    m_pcidev(d), m_mtu(mtu), bufstore_{1024, buffer_size_for_mtu(mtu)}
+    m_pcidev(d), m_mtu(mtu),
+    stat_sendq_cur{Statman::get().create(Stat::UINT32, device_name() + ".sendq_now").get_uint32()},
+    stat_sendq_max{Statman::get().create(Stat::UINT32, device_name() + ".sendq_max").get_uint32()},
+    bufstore_{1024, buffer_size_for_mtu(mtu)}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
+  Statman::get().create(Stat::UINT32, device_name() + ".buffer_size")
+      .get_uint32() = bufstore_.bufsize();
 
   // find and store capabilities
   d.parse_capabilities();
@@ -201,9 +209,9 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   for (int q = 0; q < NUM_RX_QUEUES; q++)
   {
     memset(rx[q].buffers, 0, sizeof(rx[q].buffers));
-    rx[q].desc0 = &dma->rx0_desc[0];
-    rx[q].desc1 = &dma->rx1_desc[0];
-    rx[q].comp  = &dma->rx_comp[0];
+    rx[q].desc0 = &dma->rx[q].desc[0];
+    rx[q].desc1 = nullptr;
+    rx[q].comp  = &dma->rx[q].comp[0];
     rx[q].index = q;
 
     auto& queue = queues.rx[q];
@@ -211,7 +219,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     queue.cfg.desc_address[1] = (uintptr_t) rx[q].desc1;
     queue.cfg.comp_address    = (uintptr_t) rx[q].comp;
     queue.cfg.num_desc[0]  = vmxnet3::NUM_RX_DESC;
-    queue.cfg.num_desc[1]  = vmxnet3::NUM_RX_DESC;
+    queue.cfg.num_desc[1]  = 0;
     queue.cfg.num_comp     = VMXNET3_NUM_RX_COMP;
     queue.cfg.driver_data_len = sizeof(vmxnet3_rx_desc)
                           + 2 * sizeof(vmxnet3_rx_desc);
@@ -436,9 +444,7 @@ void vmxnet3::msix_recv_handler()
 {
   for (int q = 0; q < NUM_RX_QUEUES; q++)
   {
-      this->disable_intr(2 + q);
       this->receive_handler(q);
-      this->enable_intr(2 + q);
   }
 }
 
@@ -465,8 +471,8 @@ bool vmxnet3::transmit_handler()
     tx.buffers[desc] = nullptr;
   }
   // try to send sendq first
-  if (this->can_transmit() && sendq != nullptr) {
-    this->transmit(std::move(sendq));
+  if (this->can_transmit() && !sendq.empty()) {
+    this->transmit(nullptr);
     transmitted = true;
   }
   // if we can still send more, message network stack
@@ -481,12 +487,13 @@ bool vmxnet3::transmit_handler()
 bool vmxnet3::receive_handler(const int Q)
 {
   std::vector<net::Packet_ptr> recvq;
+  this->disable_intr(2 + Q);
   while (true)
   {
     uint32_t idx = rx[Q].consumers % VMXNET3_NUM_RX_COMP;
     uint32_t gen = (rx[Q].consumers & VMXNET3_NUM_RX_COMP) ? 0 : VMXNET3_RXCF_GEN;
 
-    auto& comp = dma->rx_comp[idx];
+    auto& comp = dma->rx[Q].comp[idx];
     // break when exiting this generation
     if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
     rx[Q].consumers++;
@@ -500,33 +507,37 @@ bool vmxnet3::receive_handler(const int Q)
     recvq.push_back(recv_packet(rx[Q].buffers[desc], len));
     rx[Q].buffers[desc] = nullptr;
   }
+  this->enable_intr(2 + Q);
   // refill always
   if (!recvq.empty()) {
     this->refill(rx[Q]);
-    // handle_magic()
-    for (auto& pckt : recvq) {
-      Link::receive(std::move(pckt));
-    }
+  }
+  // handle packets
+  for (auto& pckt : recvq) {
+    Link::receive(std::move(pckt));
   }
   return recvq.empty() == false;
 }
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
 {
-  if (sendq == nullptr)
-      sendq = std::move(pckt_ptr);
-  else
-      sendq->chain(std::move(pckt_ptr));
-  // send as much as possible from sendq
-  while (sendq != nullptr && can_transmit())
-  {
-    auto next = sendq->detach_tail();
-    // transmit released buffer
-    auto* packet = sendq.release();
-    transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
-    // next is the new sendq
-    sendq = std::move(next);
+  while (pckt_ptr != nullptr) {
+    auto tail = pckt_ptr->detach_tail();
+    sendq.emplace_back(std::move(pckt_ptr));
+    pckt_ptr = std::move(tail);
   }
+  // send as much as possible from sendq
+  while (!sendq.empty() && can_transmit())
+  {
+    auto* packet = sendq.front().release();
+    sendq.pop_front();
+    // transmit released buffer
+    transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
+  }
+  // update sendq stats
+  stat_sendq_cur = sendq.size();
+  stat_sendq_max = std::max(stat_sendq_max, stat_sendq_cur);
+
   // delay dma message until we have written as much as possible
   if (!deferred_kick)
   {

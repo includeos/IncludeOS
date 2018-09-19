@@ -91,16 +91,19 @@ namespace net::dns
 
   void Client::Request::parse_response(Addr, UDP::port_t, const char* data, size_t len)
   {
+    if(UNLIKELY(len < sizeof(dns::Header)))
+      return;
+
     const auto& reply = *(dns::Header*) data;
 
     // this is a response to our query
     if(query.id == ntohs(reply.id))
     {
-      auto* res = new dns::Response();
+      auto res = std::make_unique<dns::Response>();
       // TODO: Validate
-      res->parse(data);
+      res->parse(data, len);
 
-      response.reset(res);
+      this->response = std::move(res);
 
       // TODO: Cache
       /*if(client.cache_ttl_ > std::chrono::seconds::zero())

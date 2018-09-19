@@ -44,18 +44,22 @@ if (REAL_HW)
       boot_logger
       e1000
       vmxnet3
-      vga_output
-      vga_emergency
     )
+  set(STDOUT
+    vga_output
+    vga_emergency
+  )
 else()
   set(DRIVERS
       virtionet
       vmxnet3
-      vga_output
     )
   set (PLUGINS
       uplink
     )
+  set(STDOUT
+    vga_output
+  )
 endif()
 
 set(LIBRARIES libliveupdate.a)

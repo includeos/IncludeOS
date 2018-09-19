@@ -69,17 +69,17 @@ namespace uplink {
 
       if(index.IsNumber())
       {
-        config_.inet = &net::Super_stack::get(index.GetInt());
+        config_.index = index.GetInt();
       }
       else
       {
-        config_.inet = &net::Super_stack::get(index.GetString());
+        config_.index_str = index.GetString();
       }
     }
     // If not given, pick the first stack
     else
     {
-      config_.inet = &net::Super_stack::get(0);
+      config_.index = 0;
     }
 
     // Reboot on panic (optional)
@@ -116,6 +116,52 @@ namespace uplink {
     }
 
     return config_;
+  }
+
+  std::string Config::serialized_string() const
+  {
+    using namespace rapidjson;
+    StringBuffer buf;
+    Writer<StringBuffer> writer{buf};
+
+    writer.StartObject();
+
+    writer.Key("index");
+    (index >= 0) ? writer.Int(index) : writer.String(index_str);
+
+    writer.Key("url");
+    writer.String(url);
+
+    writer.Key("token");
+    writer.String(token);
+
+    writer.Key("tag");
+    writer.String(tag);
+
+    writer.Key("certs");
+    writer.String(certs_path);
+
+    writer.Key("verify");
+    writer.Bool(verify_certs);
+
+    writer.Key("reboot");
+    writer.Bool(reboot);
+
+    writer.Key("ws_logging");
+    writer.Bool(ws_logging);
+
+    writer.Key("serialize_ct");
+    writer.Bool(serialize_ct);
+
+    writer.EndObject();
+
+    return buf.GetString();
+  }
+
+  net::Inet& Config::get_stack() const
+  {
+    return (index >= 0) ? net::Super_stack::get(index)
+      : net::Super_stack::get(index_str);
   }
 
 }

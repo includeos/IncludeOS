@@ -192,7 +192,7 @@ private:
   Stat* end_stats_;
   MemBitmap::word* bdata = nullptr;
   MemBitmap bitmap;
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   spinlock_t stlock = 0;
 #endif
 

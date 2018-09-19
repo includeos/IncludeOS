@@ -326,7 +326,7 @@ struct Addr {
     std::array<uint8_t, 16> i8;
   };
 } __attribute__((packed)); //< struct Addr
-static_assert(sizeof(Addr) == 16);
+static_assert(sizeof(Addr) == 16, "Must be 16 bytes in size");
 
 } //< namespace ip6
 } //< namespace net
