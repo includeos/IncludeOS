@@ -51,8 +51,7 @@ struct vmxnet3_dma {
   struct vmxnet3_tx_comp tx_comp[VMXNET3_NUM_TX_COMP];
   /** RX ring */
   struct vmxnet3_rx {
-    struct vmxnet3_rx_desc desc0[vmxnet3::NUM_RX_DESC];
-    struct vmxnet3_rx_desc desc1[vmxnet3::NUM_RX_DESC];
+    struct vmxnet3_rx_desc desc[vmxnet3::NUM_RX_DESC];
     struct vmxnet3_rx_comp comp[VMXNET3_NUM_RX_COMP];
   };
   struct vmxnet3_rx rx[vmxnet3::NUM_RX_QUEUES];
@@ -210,8 +209,8 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   for (int q = 0; q < NUM_RX_QUEUES; q++)
   {
     memset(rx[q].buffers, 0, sizeof(rx[q].buffers));
-    rx[q].desc0 = &dma->rx[q].desc0[0];
-    rx[q].desc1 = &dma->rx[q].desc1[0];
+    rx[q].desc0 = &dma->rx[q].desc[0];
+    rx[q].desc1 = &dma->rx[q].desc[0];
     rx[q].comp  = &dma->rx[q].comp[0];
     rx[q].index = q;
 
