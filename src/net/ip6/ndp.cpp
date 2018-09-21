@@ -25,6 +25,7 @@
 #include <net/inet>
 #include <net/ip6/ndp.hpp>
 #include <net/ip6/icmp6.hpp>
+#include <net/ip6/ndp/message.hpp>
 #include <statman>
 
 namespace net
@@ -368,48 +369,133 @@ namespace net
       /* Add this router to the router list */
       add_router(req.ip().ip_src(), req.router_lifetime());
 
+      auto payload = req.payload();
+      auto* data   = payload.data() - 4;
+      auto& adv = *(ndp::View<ndp::Router_adv>*)(data);
+
       /* TODO: Check if this is a router or a host.
        * Lets assume we are a host for now. Set host params */
-      auto reachable_time = req.ndp().router_adv().reachable_time();
-      auto retrans_time = req.ndp().router_adv().retrans_time();
+      auto reachable_time = adv.reachable_time;
+      auto retrans_time   = adv.retrans_time;
+      auto cur_hop_limit  = adv.cur_hop_limit;
 
-      if (req.cur_hop_limit()) {
-        host().cur_hop_limit_ = req.cur_hop_limit();
-      }
-
-      if (reachable_time &&
-          reachable_time != host().base_reachable_time_) {
+      if (reachable_time and reachable_time != host().base_reachable_time_)
+      {
         host().base_reachable_time_ = reachable_time;
         host().compute_reachable_time();
       }
 
-      if (retrans_time &&
-          retrans_time != host().retrans_time_) {
+      if (retrans_time and retrans_time != host().retrans_time_)
+      {
         host().retrans_time_ = retrans_time;
       }
 
-      req.ndp().parse_options(ICMP_type::ND_ROUTER_ADV);
+      if (cur_hop_limit)
+      {
+        host().cur_hop_limit_ = cur_hop_limit;
+      }
 
-     if (auto lladdr = req.ndp().get_option_data(ndp::ND_OPT_SOURCE_LL_ADDR);
-         lladdr) {
-       cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
-           NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE |
-           NEIGH_UPDATE_OVERRIDE_ISROUTER | NEIGH_UPDATE_ISROUTER);
-     }
+      // Parse the options
+      adv.parse_options(data + payload.length(), [&](const auto* opt)
+      {
+        using namespace ndp::option;
+        switch(opt->type)
+        {
+          case PREFIX_INFO:
+          {
+            const auto* pinfo = reinterpret_cast<const Prefix_info*>(opt);
+            PRINT("NDP: Prefix: %s length=%u\n", pinfo->prefix.to_string().c_str(), pinfo->prefix_len);
 
-     if (auto mtu_data = req.ndp().get_option_data(ndp::ND_OPT_MTU); mtu_data) {
-       auto mtu = reinterpret_cast<uint16_t*>(mtu_data);
+            if (pinfo->prefix.is_linklocal())
+            {
+              PRINT("NDP: Prefix info address is linklocal\n");
+              return;
+            }
 
-       if (*mtu < 1500 && *mtu > host().link_mtu_) {
-         host().link_mtu_ = *mtu;
-       }
-     }
+            if (pinfo->onlink())
+            {
+              PRINT("on link\n");
+              //onlink_cb(confaddr, pinfo->prefered, pinfo->valid);
+            }
 
-      req.ndp().parse_prefix([this] (ip6::Addr prefix,
+            if (pinfo->autoconf())
+            {
+              PRINT("autoconf\n");
+              if (pinfo->prefix.is_multicast())
+              {
+                PRINT("NDP: Prefix info address is multicast\n");
+                return;
+              }
+
+              const auto preferred_lifetime = pinfo->preferred_lifetime();
+              const auto valid_lifetime     = pinfo->valid_lifetime();
+
+              if (preferred_lifetime > valid_lifetime)
+              {
+                PRINT("NDP: Prefix option has invalid lifetime\n");
+                return;
+              }
+
+              if (pinfo->prefix_len == 64)
+              {
+                PRINT("prefix_len is 64\n");
+                //confaddr.set_part<uint64_t>(1, pinfo->prefix.get_part<uint64_t>(1));
+              }
+              else
+              {
+                PRINT("NDP: Prefix option: autoconf: "
+                         " prefix with wrong len: %d", pinfo->prefix_len);
+                return;
+              }
+
+              auto eui64 = MAC::Addr::eui64(inet_.link_addr());
+              auto addr = pinfo->prefix;
+              addr.set_part(1, eui64);
+              add_addr_autoconf(addr, preferred_lifetime, valid_lifetime);
+
+              if(ra_handler_)
+                ra_handler_(addr);
+            }
+
+            break;
+          }
+
+          case SOURCE_LL_ADDR:
+          {
+            const auto lladdr =
+              reinterpret_cast<const Source_link_layer_address<MAC::Addr>*>(opt)->addr;
+
+            cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
+              NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE |
+              NEIGH_UPDATE_OVERRIDE_ISROUTER | NEIGH_UPDATE_ISROUTER);
+
+            break;
+          }
+
+          case MTU:
+          {
+            const auto mtu = reinterpret_cast<const Mtu*>(opt)->mtu;
+
+            if (mtu < 1500 && mtu > host().link_mtu_) {
+              host().link_mtu_ = mtu;
+            }
+
+            break;
+          }
+
+          default:
+          {
+            // Ignore options not allowed in the Router Adv scope
+          }
+        }
+        // do opt
+      });
+
+      /*req.ndp().parse_prefix([this] (ip6::Addr prefix,
             uint32_t preferred_lifetime, uint32_t valid_lifetime)
       {
-        /* Called if autoconfig option is set */
-        /* Append mac addres to get a valid address */
+        // Called if autoconfig option is set
+        // Append mac addres to get a valid address
         prefix.set(this->inet_.link_addr());
         add_addr_autoconf(prefix, preferred_lifetime, valid_lifetime);
         PRINT("NDP: RA: Adding address %s with preferred lifetime: %u"
@@ -422,8 +508,8 @@ namespace net
       }, [this] (ip6::Addr prefix, uint32_t preferred_lifetime,
           uint32_t valid_lifetime)
       {
-        /* Called if onlink is set */
-      });
+        //Called if onlink is set
+      });*/
   }
 
   void Ndp::receive(icmp6::Packet& pckt)
@@ -710,6 +796,10 @@ namespace net
 
   void Ndp::add_addr_autoconf(ip6::Addr ip, uint32_t preferred_lifetime, uint32_t valid_lifetime)
   {
+    PRINT("NDP: RA: Adding address %s with preferred lifetime: %u"
+            " and valid lifetime: %u\n", ip.to_string().c_str(),
+            preferred_lifetime, valid_lifetime);
+
     auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
           [&ip] (const Prefix_entry& obj) { return obj.prefix() == ip; });
     auto two_hours = 60 * 60 * 2;
