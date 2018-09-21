@@ -884,6 +884,7 @@ void Connection::retransmit() {
     debug2("<Connection::retransmit> With data (wq.sz=%u) buf.unacked=%u\n",
       writeq.size(), buf.length() - buf.acknowledged);
     fill_packet(*packet, buf->data() + writeq.acked(), buf->size() - writeq.acked());
+    packet->set_flag(PSH);
   }
   rtx_attempt_++;
   packet->set_seq(cb.SND.UNA);

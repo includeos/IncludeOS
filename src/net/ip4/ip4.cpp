@@ -39,7 +39,11 @@ namespace net {
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
-  stack_            {inet}
+  stack_            {inet},
+  prerouting_dropped_   {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.prerouting_dropped").get_uint32()},
+  postrouting_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.postrouting_dropped").get_uint32()},
+  input_dropped_        {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.input_dropped").get_uint32()},
+  output_dropped_       {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.output_dropped").get_uint32()}
   {}
 
 
@@ -141,7 +145,10 @@ namespace net {
     Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      prerouting_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();
@@ -184,7 +191,10 @@ namespace net {
     if(stack_.conntrack())
       stack_.conntrack()->confirm(*packet); // No need to set ct again
     res = input_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      input_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();
@@ -236,7 +246,10 @@ namespace net {
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      output_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();
@@ -272,7 +285,10 @@ namespace net {
         conntrack->confirm(ct->first, ct->proto) : conntrack->confirm(*packet);
     }
     auto res = postrouting_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      postrouting_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();

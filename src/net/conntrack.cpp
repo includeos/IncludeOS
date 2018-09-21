@@ -333,6 +333,8 @@ int Conntrack::Entry::deserialize_from(void* addr)
   this->timeout = entry.timeout;
   this->proto   = entry.proto;
   this->state   = entry.state;
+  this->flags   = entry.flags;
+  this->other   = entry.other;
   return sizeof(Entry) - sizeof(on_close);
 }
 

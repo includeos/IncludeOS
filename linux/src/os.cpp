@@ -34,6 +34,15 @@ uintptr_t OS::heap_usage() noexcept {
   auto info = mallinfo();
   return info.arena + info.hblkhd;
 }
+uintptr_t OS::heap_max() noexcept
+{
+  return (uintptr_t) -1;
+}
+
+bool OS::is_panicking() noexcept
+{
+  return false;
+}
 
 #include <kernel/rtc.hpp>
 #include <time.h>
@@ -126,35 +135,3 @@ void* aligned_alloc(size_t alignment, size_t size) {
   return memalign(alignment, size);
 }
 #endif
-
-#include <execinfo.h>
-void print_backtrace()
-{
-  static const int NUM_ADDRS = 64;
-  void*  addresses[NUM_ADDRS];
-
-  int nptrs = backtrace(addresses, NUM_ADDRS);
-  printf("backtrace() returned %d addresses\n", nptrs);
-
-  /* The call backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)
-     would produce similar output to the following: */
-
-  char** strings = backtrace_symbols(addresses, nptrs);
-  if (strings == NULL) {
-    perror("backtrace_symbols");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int j = 0; j < nptrs; j++)
-      printf("#%02d: %8p %s\n", j, addresses[j], strings[j]);
-
-  free(strings);
-}
-
-extern "C"
-void panic(const char* why)
-{
-  printf("!! PANIC !!\nReason: %s\n", why);
-  raise(SIGINT);
-  exit(1);
-}
