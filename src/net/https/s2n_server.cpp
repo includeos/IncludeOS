@@ -30,6 +30,9 @@ namespace http
       const std::string& ca_cert,
       const std::string& ca_key)
   {
+#ifdef __includeos__
+    setenv("S2N_DONT_MLOCK", "0", 1);
+#endif
     if (s2n_init() < 0) {
       print_s2n_error("Error running s2n_init()");
       exit(1);

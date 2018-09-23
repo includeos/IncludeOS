@@ -124,6 +124,12 @@ long socketcall_getsockname(int sockfd,
 {
   return -ENOSYS;
 }
+long socketcall_getpeername(int sockfd,
+    struct sockaddr *addr, socklen_t *addrlen)
+
+{
+  return -ENOSYS;
+}
 
 long socketcall_connect(int sockfd, const struct sockaddr *addr,
                         socklen_t addrlen)
