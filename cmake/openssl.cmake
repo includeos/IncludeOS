@@ -33,7 +33,7 @@ endif()
 
 ExternalProject_Add(cert_bundle
         PREFIX cert_bundle
-        URL https://github.com/fwsGonzo/OpenSSL_bundle/releases/download/v1.2/ca_bundle.tar.gz
+        URL https://github.com/fwsGonzo/s2n_bundle/releases/download/v1/ca_bundle.tar.gz
         URL_HASH MD5=4596f90b912bea7ad7bd974d10c58efd
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
