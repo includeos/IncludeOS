@@ -15,8 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "s2n_server.hpp"
-#include "s2n_stream.hpp"
+#include <net/https/s2n_server.hpp>
+#include <net/s2n/stream.hpp>
 using s2n::print_s2n_error;
 
 // allow all clients

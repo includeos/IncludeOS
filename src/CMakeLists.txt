@@ -22,7 +22,9 @@ include_directories(${S2N_INCLUDE})
 if(${ARCH} STREQUAL "x86_64")
   set(OPENSSL_MODULES "net/openssl/init.cpp" "net/openssl/client.cpp"
                       "net/openssl/server.cpp"
-                      "net/https/openssl_server.cpp" "net/http/client.cpp")
+                      "net/https/openssl_server.cpp" "net/http/client.cpp"
+                      "net/https/s2n_server.cpp"
+                    )
   set(OPENSSL_LIBS    s2n_libs2n s2n_libssl s2n_crypto)
 endif()
 set(BOTAN_MODULES "net/https/botan_server.cpp")

@@ -10,13 +10,11 @@ set(SERVICE_NAME "Linux userspace S2N test")
 set(BINARY       "linux_s2n")
 
 set(INCLUDES
-    /usr/local/include/s2n
   )
 
 set(SOURCES
     service.cpp
     http.cpp
-    s2n_server.cpp
   )
 
 option(ENABLE_S2N "" ON)
