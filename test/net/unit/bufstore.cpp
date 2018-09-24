@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <common.cxx>
+#define ENABLE_BUFFERSTORE_CHAIN
 #include <net/buffer_store.hpp>
 #include <stdlib.h>
 
