@@ -29,9 +29,6 @@
 //#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
 #define LPRINT(x, ...) /** x **/
 
-// heap area
-extern char* heap_end;
-
 namespace liu
 {
 static bool resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
@@ -40,9 +37,9 @@ bool LiveUpdate::is_resumable()
 {
   return is_resumable(OS::liveupdate_storage_area());
 }
-bool LiveUpdate::is_resumable(void* location)
+bool LiveUpdate::is_resumable(const void* location)
 {
-  return ((storage_header*) location)->validate();
+  return ((const storage_header*) location)->validate();
 }
 
 static bool resume_helper(void* location, std::string key, LiveUpdate::resume_func func)
@@ -59,22 +56,22 @@ bool LiveUpdate::resume(std::string key, resume_func func)
 {
   void* location = OS::liveupdate_storage_area();
   /// memory sanity check
-  if (heap_end >= (char*) location) {
+  if (OS::heap_end() >= (uintptr_t) location) {
     fprintf(stderr,
         "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
-		     (long int) (heap_end - (char*) location));
+		     (long int) (OS::heap_end() - (uintptr_t) location));
     throw std::runtime_error("LiveUpdate storage area inside heap");
   }
   return resume_helper(location, std::move(key), func);
 }
-bool LiveUpdate::partition_exists(const std::string& key) noexcept
+bool LiveUpdate::partition_exists(const std::string& key, const void* area) noexcept
 {
-  auto* location = OS::liveupdate_storage_area();
+  if (area == nullptr) area = OS::liveupdate_storage_area();
 
-  if (!LiveUpdate::is_resumable(location))
+  if (!LiveUpdate::is_resumable(area))
     return false;
 
-  auto& storage = *reinterpret_cast<storage_header*>(location);
+  auto& storage = *(const storage_header*) area;
   return (storage.find_partition(key.c_str()) != -1);
 }
 void LiveUpdate::resume_from_heap(void* location, std::string key, LiveUpdate::resume_func func)
@@ -142,10 +139,6 @@ buffer_t  Restore::as_buffer() const
       return buffer;
   }
   throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
-}
-Restore::Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
-{
-  return deserialize_connection(ent->vla, tcp);
 }
 
 int16_t     Restore::get_type() const noexcept

@@ -27,6 +27,9 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <array>
+#include <algorithm>
+#include <random>
 #include <functional>
 #include <cstring>
 #include <cassert>
@@ -90,18 +93,59 @@ const lest::test specification[] =
     }
   };
 
+
+static void verify_heap_works()
+{
+  static std::array<const char*, 2048> allocs;
+  static std::array<int, allocs.size()> order;
+  static const int ROUNDS = 2000;
+
+  INFO("Heap", "Testing heap allocations");
+  for (size_t i = 0; i < order.size(); i++) order[i] = i;
+  std::random_device rd;
+  std::mt19937 g(rd());
+
+  INFO2("Allocating %zu times in %d iterations", allocs.size(), ROUNDS);
+  for (int i = 0; i < ROUNDS; i++)
+  {
+    for (size_t j = 0; j < allocs.size(); j++)
+    {
+      const size_t bytes = 1 << (3 + j * 10 / allocs.size());
+      try {
+        allocs[j] = new char[bytes];
+      }
+      catch (const std::exception& e) {
+        fprintf(stderr, "Allocation failed on run %d for %zu bytes\n",
+                i, bytes);
+        assert(0 && "Failed allocation");
+      }
+    }
+    std::shuffle(order.begin(), order.end(), g);
+    for (const int index : order)
+    {
+      delete[] allocs[index];
+      allocs[index] = nullptr;
+    }
+  }
+}
+
 #define MYINFO(X,...) INFO("Test STL",X,##__VA_ARGS__)
 
 void Service::start(const std::string&)
 {
-  // Wonder when these are used...?
-  std::set_terminate([](){ printf("CUSTOM TERMINATE Handler \n"); });
-  std::set_new_handler([](){ printf("CUSTOM NEW Handler \n"); });
+  // these will get called when something bad happens
+  // and should not return
+  std::set_terminate([]() {
+    printf("CUSTOM TERMINATE Handler \n");
+    std::abort();
+  });
+  std::set_new_handler([]() {
+    printf("CUSTOM NEW Handler \n");
+    std::abort();
+  });
 
-
-  // TODO: find some implementation for long double, or not... or use double
-  //auto sine = sinl(42);
-
+  // test Heap
+  verify_heap_works();
 
   printf("*** Testing STL Basics - must be verified from the outside ***\n");
   MYINFO("The following two lines should be identical, including newline");

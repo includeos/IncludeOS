@@ -16,15 +16,21 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
+#include <rtc>
+#include <net/inet>
 #include <statman>
 #include <profile>
 #include <cstdio>
-#define ENABLE_JUMBO_FRAMES
 
 using namespace net::tcp;
 
-uint32_t  SIZE = 1024*1024*512;
+size_t    bufsize = 128*1024;
+#ifdef PLATFORM_x86_solo5
+static const uint32_t  SIZE = 1024*1024*50;
+#else
+static const uint32_t  SIZE = 1024*1024*512;
+#define ENABLE_JUMBO_FRAMES
+#endif
 uint64_t  packets_rx{0};
 uint64_t  packets_tx{0};
 uint64_t  received{0};
@@ -33,11 +39,17 @@ uint8_t   wscale{5};
 bool      timestamps{true};
 std::chrono::milliseconds dack{40};
 uint64_t  ts = 0;
+bool      SACK{true};
 
 struct activity {
   void reset() {
+#ifdef PLATFORM_x86_solo5
+    total  = 0;
+    asleep = 0;
+#else
     total  = StackSampler::samples_total();
     asleep = StackSampler::samples_asleep();
+#endif
   }
   void print(activity& other) {
     auto tdiff = total - other.total;
@@ -63,54 +75,60 @@ void start_measure()
   received    = 0;
   packets_rx  = Statman::get().get_by_name("eth0.ethernet.packets_rx").get_uint64();
   packets_tx  = Statman::get().get_by_name("eth0.ethernet.packets_tx").get_uint64();
-  printf("<Settings> DACK: %lli ms WSIZE: %u WS: %u CALC_WIN: %u TS: %s\n",
-    dack.count(), winsize, wscale, winsize << wscale, timestamps ? "ON" : "OFF");
-  ts          = OS::nanos_since_boot();
+  printf("<Settings> BUFSZ=%zukB DACK=%llims WSIZE=%u WS=%u CALC_WIN=%ukB TS=%s SACK=%s\n",
+    bufsize/1024,
+    dack.count(), winsize, wscale, (winsize << wscale)/1024,
+    timestamps ? "ON" : "OFF",
+    SACK ? "ON" : "OFF");
+  ts          = RTC::nanos_now();
   activity_before.reset();
 }
 
 void stop_measure()
 {
-  auto diff   = OS::nanos_since_boot() - ts;
+  auto diff   = RTC::nanos_now() - ts;
   activity_after.reset();
 
+#ifndef PLATFORM_x86_solo5
   StackSampler::print(15);
+#endif
   activity_after.print(activity_before);
 
   packets_rx  = Statman::get().get_by_name("eth0.ethernet.packets_rx").get_uint64() - packets_rx;
   packets_tx  = Statman::get().get_by_name("eth0.ethernet.packets_tx").get_uint64() - packets_tx;
-  printf("Packets RX [%llu] TX [%llu]\n", packets_rx, packets_tx);
+  printf("Packets RX [%lu] TX [%lu]\n", packets_rx, packets_tx);
   double durs   = (double) diff / 1000000000ULL;
   double mbits  = (received/(1024*1024)*8) / durs;
-  printf("Duration: %.2fs - Payload: %lld/%u MB - %.2f MBit/s\n",
+  printf("Duration: %.2fs - Payload: %lu/%u MB - %.2f MBit/s\n",
           durs, received/(1024*1024), SIZE/(1024*1024), mbits);
+  OS::shutdown();
 }
 
 void Service::start() {}
 
 void Service::ready()
 {
+#ifndef PLATFORM_x86_solo5
   StackSampler::begin();
   StackSampler::set_mode(StackSampler::MODE_DUMMY);
+#endif
 
   static auto blob = net::tcp::construct_buffer(SIZE);
 
 #ifdef USERSPACE_LINUX
   extern void create_network_device(int N, const char* route, const char* ip);
   create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+#endif
 
   // Get the first IP stack configured from config.json
-  auto& inet = net::Super_stack::get<net::IP4>(0);
-  inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
-#else
-  auto& inet = net::Super_stack::get<net::IP4>(0);
-#endif
+  auto& inet = net::Super_stack::get(0);
   auto& tcp = inet.tcp();
   tcp.set_DACK(dack); // default
   tcp.set_MSL(std::chrono::seconds(3));
 
   tcp.set_window_size(winsize, wscale);
   tcp.set_timestamps(timestamps);
+  tcp.set_SACK(SACK);
 
   tcp.listen(1337).on_connect([](Connection_ptr conn)
   {
@@ -131,10 +149,9 @@ void Service::ready()
     conn->close();
   });
 
-  tcp.listen(1338).on_connect([](auto conn)
+  tcp.listen(1338).on_connect([](net::tcp::Connection_ptr conn)
   {
     using namespace std::chrono;
-
     printf("%s connected. Receiving file %u MB\n", conn->remote().to_string().c_str(), SIZE/(1024*1024));
 
     start_measure();
@@ -143,15 +160,19 @@ void Service::ready()
     {
 
     });
-    conn->on_disconnect([] (auto self, auto reason)
+    conn->on_disconnect([] (net::tcp::Connection_ptr self,
+                            net::tcp::Connection::Disconnect reason)
     {
       (void) reason;
+      if(const auto bytes_sacked = self->bytes_sacked(); bytes_sacked)
+        printf("SACK: %zu bytes (%zu kB)\n", bytes_sacked, bytes_sacked/(1024));
+
       if(!self->is_closing())
         self->close();
 
       stop_measure();
     });
-    conn->on_read(16384, [] (buffer_t buf)
+    conn->on_read(bufsize, [] (buffer_t buf)
     {
       recv(buf->size());
     });

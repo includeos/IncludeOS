@@ -7,7 +7,7 @@
 #include <stdexcept>
 
 static inline
-void server(net::Inet<net::IP4>& inet,
+void server(net::Inet& inet,
             const uint16_t port,
             delegate<void(liu::buffer_t&)> callback)
 {
@@ -17,7 +17,7 @@ void server(net::Inet<net::IP4>& inet,
   [callback, port] (auto conn)
   {
     auto* buffer = new liu::buffer_t;
-    buffer->reserve(3*1024*1024);
+    buffer->reserve(4*1024*1024);
     printf("Receiving blob on port %u\n", port);
 
     // retrieve binary

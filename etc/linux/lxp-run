@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e
+export GPROF=${GPROF:-"OFF"}
+export DBG=${DBG:-"OFF"}
+export NUM_JOBS=${NUM_JOBS:--j8}
+
+function make_linux(){
+  pushd $INCLUDEOS_SRC/linux/build
+  cmake -DGPROF=$GPROF -DDEBUGGING=$DBG -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX ..
+  make $NUM_JOBS install
+  popd
+}
+
+function make_service(){
+  mkdir -p build
+  pushd build
+  cmake -DGPROF=$GPROF -DDEBUGGING=$DBG ..
+  make $NUM_JOBS
+  popd
+}
+
+if [ -z "$1" ]
+then
+  GPROF="OFF"
+elif [ "$1" == "gprof" ]
+then
+  GPROF="ON"
+fi
+
+# check that at least there is a cmake script here
+if [ ! -f CMakeLists.txt ]; then
+   echo "There must be at least a CMakeLists.txt in service folder"
+   exit 1
+fi
+
+make_linux
+make_service
+
+#sudo mknod /dev/net/tap c 10 200
+BINARY=build/"`cat build/binary.txt`"
+if [ $DBG = "ON" ]; then
+  sudo gdb $BINARY
+else
+  sudo $BINARY
+fi

@@ -64,6 +64,7 @@ namespace net
 #define DNS_CLASS_INET   1
 
 #define DNS_TYPE_A    1  // A record
+#define DNS_TYPE_AAAA 28 // AAAA record
 #define DNS_TYPE_NS   2  // respect mah authoritah
 #define DNS_TYPE_ALIAS 5 // name alias
 
@@ -150,7 +151,7 @@ namespace net
     public:
       using id_t = unsigned short;
       int  create(char* buffer, const std::string& hostname);
-      bool parseResponse(const char* buffer);
+      bool parseResponse(const char* buffer, size_t len);
       void print(const char* buffer) const;
 
       const std::string& hostname() const
@@ -175,7 +176,7 @@ namespace net
     private:
       struct rr_t // resource record
       {
-        rr_t(const char*& reader, const char* buffer);
+        rr_t(const char*& reader, const char* buffer, size_t len);
 
         std::string name;
         std::string rdata;
@@ -189,7 +190,7 @@ namespace net
 
       private:
         // decompress names in 3www6google3com format
-        std::string readName(const char* reader, const char* buffer, int& count);
+        std::string readName(const char* reader, const char* buffer, size_t len, int& count);
       };
 
       unsigned short generateID()

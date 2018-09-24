@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <delegate>
+#include <memory>
 #include <vector>
 #include <net/socket.hpp>
 
@@ -35,6 +36,12 @@ namespace net {
   public:
     using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
     using ptr      = Stream_ptr;
+
+    /** Construct a shared vector used by streams **/
+    template <typename... Args>
+    static buffer_t construct_buffer(Args&&... args) {
+      return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
+    }
 
     /** Called when the stream is ready to be used. */
     using ConnectCallback = delegate<void(Stream& self)>;
@@ -102,11 +109,6 @@ namespace net {
     virtual void close() = 0;
 
     /**
-     * @brief      Aborts (terminates) the stream.
-     */
-    virtual void abort() = 0;
-
-    /**
      * @brief      Resets all callbacks.
      */
     virtual void reset_callbacks() = 0;
@@ -172,11 +174,17 @@ namespace net {
     **/
     virtual int get_cpuid() const noexcept = 0;
 
-    Stream() = default;
-    virtual ~Stream() {}
+    /**
+     * Returns the underlying transport, or nullptr if bottom.
+     * If no transport present, most likely its a TCP stream, in which
+     * case you can dynamic_cast and call tcp() to get the connection
+    **/
+    virtual Stream* transport() noexcept = 0;
 
+    virtual size_t serialize_to(void*) const = 0;
+
+    virtual ~Stream() = default;
   }; // < class Stream
-
 } // < namespace net
 
 #endif // < NET_STREAM_HPP

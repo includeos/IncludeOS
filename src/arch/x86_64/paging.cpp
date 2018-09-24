@@ -15,12 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <os>
-#include <arch/x86_paging.hpp>
-#include <arch/x86_paging_utils.hpp>
+#include <arch/x86/paging.hpp>
+#include <arch/x86/paging_utils.hpp>
 #include <kernel/cpuid.hpp>
+#include <kprint>
 
+// #define DEBUG_X86_PAGING
 #ifdef DEBUG_X86_PAGING
-#define MEM_PRINT(X, ...) printf("<Paging> " X, __VA_ARGS__)
+#define MEM_PRINT(X, ...) kprintf("<Paging> " X, __VA_ARGS__)
 #else
 #define MEM_PRINT(X, ...)
 #endif
@@ -38,6 +40,13 @@ using Flags = x86::paging::Flags;
 using Pml4  = x86::paging::Pml4;
 
 static void allow_executable();
+static void protect_pagetables_once();
+
+// must be public symbols because of a unittest
+extern char _TEXT_START_;
+extern char _EXEC_END_;
+uintptr_t __exec_begin = (uintptr_t)&_TEXT_START_;
+uintptr_t __exec_end = (uintptr_t)&_EXEC_END_;
 
 /**
     IncludeOS default paging setup
@@ -73,14 +82,18 @@ Pml4* __pml4;
 __attribute__((weak))
 void __arch_init_paging() {
   INFO("x86_64", "Initializing paging");
-  __pml4 = x86::paging::allocate_pdir<Pml4>();
+  auto default_fl = Flags::present | Flags::writable | Flags::huge | Flags::no_exec;
+  __pml4 = new Pml4(0);
   Expects(__pml4 != nullptr);
+  Expects(!__pml4->has_flag(0, Flags::present));
 
   INFO2("* Supported page sizes: %s", os::mem::page_sizes_str(os::mem::Map::any_size).c_str());
 
-  auto default_fl = Flags::present | Flags::writable | Flags::huge | Flags::no_exec;
   INFO2("* Adding 512 1GiB entries @ 0x0 -> 0x%llx", 512_GiB);
-  /* pml3_0 = */ __pml4->create_page_dir(0, default_fl);
+  auto* pml3_0 =  __pml4->create_page_dir(0, 0, default_fl);
+
+  Expects(__pml4->has_flag(0, Flags::present));
+  Expects(__pml4->has_flag((uintptr_t)pml3_0, Flags::present));
 
   if (not os::mem::supported_page_size(1_GiB)) {
     auto first_range = __pml4->map_r({0,0,default_fl, 16_GiB});
@@ -90,28 +103,27 @@ void __arch_init_paging() {
 
   INFO2("* Marking page 0 as not present");
   auto zero_page = __pml4->map_r({0, 0, Flags::none, 4_KiB, 4_KiB});
-
+  Expects(__pml4->has_flag(8_KiB, Flags::present | Flags::writable | Flags::no_exec));
   allow_executable();
 
   Expects(zero_page.size == 4_KiB);
   Expects(zero_page.page_sizes == 4_KiB);
   Expects(__pml4->active_page_size(0LU) == 4_KiB);
+  Expects(! __pml4->has_flag(0, Flags::present));
+
+  Expects(! __pml4->has_flag((uintptr_t)__exec_begin, Flags::no_exec));
+  Expects(__pml4->has_flag((uintptr_t)__exec_begin, Flags::present));
+
+  extern void elf_protect_symbol_areas();
+  elf_protect_symbol_areas();
+
+  // hack to see who overwrites the pagetables
+  //protect_pagetables_once();
 
   INFO2("* Passing page tables to CPU");
   extern void __x86_init_paging(void*);
   __x86_init_paging(__pml4->data());
 }
-
-void print_entry(uintptr_t ent)
-{
-  using namespace x86::paging;
-  auto flags = __pml4->flags_of(ent);
-  auto addr = __pml4->addr_of(ent);
-  auto as_byte = Byte_r(addr);
-  std::cout << as_byte << std::hex << " 0x" << ent
-            << " Flags: " << flags << "\n";
-}
-
 
 namespace x86 {
 namespace paging {
@@ -143,6 +155,8 @@ Flags to_x86(os::mem::Access prot)
   Flags flags = Flags::none;
   if (prot != Access::none) {
     flags |= Flags::present;
+  } else {
+    return Flags::none;
   }
 
   if (has_flag(prot, Access::write)) {
@@ -172,8 +186,12 @@ using Map_x86 = Mapping<x86::paging::Flags>;
   throw Memory_exception(std::string(__FILE__) + ":" + std::to_string(__LINE__) \
                          + ": " + reason)
 
+} // mem
+} // os
 
-uintptr_t supported_page_sizes() {
+using namespace os;
+
+uintptr_t mem::supported_page_sizes() {
   static size_t res = 0;
   if (res == 0) {
     res = 4_KiB | 2_MiB;
@@ -183,17 +201,17 @@ uintptr_t supported_page_sizes() {
   return  res;
 }
 
-uintptr_t min_psize()
+uintptr_t mem::min_psize()
 {
   return bits::keepfirst(supported_page_sizes());
 }
 
-uintptr_t max_psize()
+uintptr_t mem::max_psize()
 {
   return bits::keeplast(supported_page_sizes());
 }
 
-bool supported_page_size(uintptr_t size)
+bool mem::supported_page_size(uintptr_t size)
 {
   return bits::is_pow2(size) and (size & supported_page_sizes()) != 0;
 }
@@ -206,7 +224,14 @@ Map_x86 to_x86(Map map){
   return {map.lin, map.phys, x86::paging::to_x86(map.flags), map.size, map.page_sizes};
 }
 
-Access protect_page(uintptr_t linear, Access flags)
+uintptr_t mem::virt_to_phys(uintptr_t linear)
+{
+  auto* ent = __pml4->entry_r(linear);
+  if (ent == nullptr) return 0;
+  return __pml4->addr_of(*ent);
+}
+
+Access mem::protect_page(uintptr_t linear, Access flags)
 {
   MEM_PRINT("::protect_page 0x%lx\n", linear);
   x86::paging::Flags xflags = x86::paging::to_x86(flags);
@@ -215,7 +240,7 @@ Access protect_page(uintptr_t linear, Access flags)
   return to_memflags(f);
 };
 
-Access protect(uintptr_t linear, Access flags)
+Access mem::protect_range(uintptr_t linear, Access flags)
 {
   MEM_PRINT("::protect 0x%lx \n", linear);
   x86::paging::Flags xflags = x86::paging::to_x86(flags);
@@ -227,7 +252,7 @@ Access protect(uintptr_t linear, Access flags)
 
   MEM_PRINT("Found entry: %s\n", map_ent.to_string().c_str());
   int sz_prot = 0;
-  x86::paging::Flags fl;
+  x86::paging::Flags fl{};
 
   // TOOD: Optimize. No need to re-traverse for each page
   //       set_flags_r should probably just take size.
@@ -242,17 +267,41 @@ Access protect(uintptr_t linear, Access flags)
   return to_memflags(fl);
 };
 
-Access flags(uintptr_t addr)
+Map mem::protect(uintptr_t linear, size_t len, Access flags)
+{
+  if (UNLIKELY(len < min_psize()))
+    mem_fail_fast("Can't map less than a page\n");
+
+  if (UNLIKELY(linear == 0))
+    mem_fail_fast("Can't map to address 0");
+
+  MEM_PRINT("::protect 0x%lx \n", linear);
+  auto key = OS::memory_map().in_range(linear);
+  MEM_PRINT("Found key: 0x%zx\n", key);
+  // Throws if entry wasn't previously mapped.
+  auto map_ent = OS::memory_map().at(key);
+  MEM_PRINT("Found entry: %s\n", map_ent.to_string().c_str());
+
+  auto xflags = x86::paging::to_x86(flags);
+  x86::paging::Map m{linear, x86::paging::any_addr, xflags, static_cast<size_t>(len)};
+  MEM_PRINT("Wants: %s \n", m.to_string().c_str());
+
+  Expects(m);
+  auto res = __pml4->map_r(m);
+  return to_mmap(res);
+}
+
+Access mem::flags(uintptr_t addr)
 {
   return to_memflags(__pml4->flags_r(addr));
 }
 
 __attribute__((weak))
-Map map(Map m, const char* name)
+Map mem::map(Map m, const char* name)
 {
   using namespace x86::paging;
   using namespace util;
-
+  MEM_PRINT("Wants : %s size: %li \n", m.to_string().c_str(), m.size);
   if (UNLIKELY(!m))
     mem_fail_fast("Provided map was empty");
 
@@ -273,12 +322,14 @@ Map map(Map m, const char* name)
   if (strcmp(name, "") == 0)
     name = "mem::map";
 
-  OS::memory_map().assign_range({m.lin, m.lin + m.size - 1, name});
+  // Align size to minimal page size;
+  auto req_addr_end = m.lin + bits::roundto(m.min_psize(), m.size) - 1;
+
+  OS::memory_map().assign_range({m.lin, req_addr_end, name});
 
   auto new_map = __pml4->map_r(to_x86(m));
   if (new_map) {
-    MEM_PRINT("Wants : %s size: %li", m.to_string().c_str(), m.size);
-    MEM_PRINT("Gets  : %s size: %li", new_map.to_string().c_str(), new_map.size);
+    MEM_PRINT("Gets  : %s size: %li\n", new_map.to_string().c_str(), new_map.size);
 
     // Size should match requested size rounded up to smallest requested page size
     Ensures(new_map.size == bits::roundto(m.min_psize(), m.size));
@@ -289,10 +340,11 @@ Map map(Map m, const char* name)
   return to_mmap(new_map);
 };
 
-Map unmap(uintptr_t lin){
+Map mem::unmap(uintptr_t lin){
   auto key = OS::memory_map().in_range(lin);
   Map_x86 m;
   if (key) {
+    MEM_PRINT("mem::unmap %p \n", (void*)lin);
     auto map_ent = OS::memory_map().at(key);
     m.lin = lin;
     m.phys = 0;
@@ -307,17 +359,11 @@ Map unmap(uintptr_t lin){
   return to_mmap(m);
 }
 
-uintptr_t active_page_size(uintptr_t addr){
+uintptr_t mem::active_page_size(uintptr_t addr){
   return __pml4->active_page_size(addr);
 }
 
-}} // os::mem
 
-// must be public symbols because of a unittest...
-extern char _TEXT_START_;
-extern char _EXEC_END_;
-uintptr_t __exec_begin = (uintptr_t)&_TEXT_START_;
-uintptr_t __exec_end = (uintptr_t)&_EXEC_END_;
 
 void allow_executable()
 {
@@ -337,4 +383,31 @@ void allow_executable()
   m.flags      = os::mem::Access::execute | os::mem::Access::read;
 
   os::mem::map(m, "ELF .text");
+}
+
+void protect_pagetables_once()
+{
+  struct ptinfo {
+    void*  addr;
+    size_t len;
+  };
+  std::vector<ptinfo> table_entries;
+
+  __pml4->traverse(
+    [&table_entries] (void* ptr, size_t len) {
+      table_entries.push_back({ptr, len});
+    });
+
+
+  for (auto it = table_entries.rbegin(); it != table_entries.rend(); ++it)
+  {
+    const auto& entry = *it;
+    const x86::paging::Map m {
+        (uintptr_t) entry.addr, x86::paging::any_addr,
+        x86::paging::Flags::present, static_cast<size_t>(entry.len)
+      };
+    assert(m);
+    MEM_PRINT("Protecting table: %p, size %zu\n", entry.addr, entry.len);
+    __pml4->map_r(m);
+  }
 }

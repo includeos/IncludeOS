@@ -38,6 +38,8 @@ acceptable_increase = 12 * PAGE_SIZE
 sock_mem = socket.socket
 sock_mem = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+heap_verified = False
+
 def get_mem():
   name_tag = "<" + test_name + "::get_mem>"
 
@@ -56,7 +58,9 @@ def get_mem():
 
 def get_mem_start():
   global memuse_at_start
-  memuse_at_start = get_mem()
+  if memuse_at_start == 0:
+      memuse_at_start = get_mem()
+  return memuse_at_start
 
 def memory_increase(lead_time, expected_memuse = memuse_at_start):
   name_tag = "<" + test_name + "::memory_increase>"
@@ -124,10 +128,24 @@ def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   return get_mem()
 
 
+
+def heap_ok(line):
+    global heap_verified
+    heap_verified = True
+    print color.INFO("Stresstest::heap_ok"), "VM reports heap is increasing and decreasing as expected"
+
+
 def crash_test(string):
   print color.INFO("Opening persistent TCP connection for diagnostics")
   sock_mem.connect((HOST, PORT_MEM))
-  get_mem_start()
+  mem_before = get_mem_start()
+  if mem_before <= 0:
+      print color.FAIL("Initial memory reported as " + str(mem_before))
+      return False
+
+  if not heap_verified:
+      print color.FAIL("Heap behavior was not verified as expected. ")
+      return False
 
   print color.HEADER("Initial crash test")
   burst_size = BURST_SIZE * 10
@@ -137,13 +155,15 @@ def crash_test(string):
   ICMP_flood(burst_size, 0)
   httperf(burst_size, 0)
   time.sleep(BURST_INTERVAL)
-  return get_mem()
+  mem_after = get_mem()
+  print color.INFO("Crash test complete. Memory in use: "), mem_after
+  return mem_after >= memuse_at_start
 
 # Fire several bursts, e.g. trigger a function that fires bursts, several times
 def fire_bursts(func, sub_test_name, lead_out = 3):
   name_tag = "<" + sub_test_name + ">"
   print color.HEADER(test_name + " initiating "+sub_test_name)
-  membase_start = func()
+  membase_start = get_mem()
   mem_base = membase_start
 
   # Track heap behavior
@@ -233,6 +253,7 @@ def wait_for_tw():
     time.sleep(7)
 
 # Add custom event-handlers
+vm.on_output("Heap functioning as expected", heap_ok)
 vm.on_output("Ready to start", crash_test)
 vm.on_output("Ready for ARP", ARP)
 vm.on_output("Ready for UDP", UDP)
@@ -241,7 +262,7 @@ vm.on_output("Ready for TCP", TCP)
 vm.on_output("Ready to end", check_vitals)
 
 # Boot the VM, taking a timeout as parameter
-timeout = BURST_COUNT * 20
+timeout = BURST_COUNT * 30
 
 if len(sys.argv) > 1:
   timeout = int(sys.argv[1])
@@ -251,6 +272,6 @@ if len(sys.argv) > 3:
   BURST_SIZE = int(sys.argv[3])
 
 print color.HEADER(test_name + " initializing")
-print color.INFO(name_tag),"Doing", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
+print color.INFO(name_tag),"configured for ", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
 
 vm.cmake().boot(timeout).clean()

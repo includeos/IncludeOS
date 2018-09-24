@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
+#include <net/inet>
 #include <timers>
 #include <profile>
 #include <string>
@@ -40,7 +40,7 @@ std::string create_html_response(const std::string& message)
 void Service::start()
 {
   // DHCP on interface 0
-  auto& inet = net::Super_stack::get<net::IP4>(0);
+  auto& inet = net::Super_stack::get(0);
 
   // Set up a TCP server on port 80
   auto& server = inet.tcp().listen(80);

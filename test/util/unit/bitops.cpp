@@ -37,7 +37,7 @@ using namespace util;
 
 // Enable bitmask ops for the Flags enum
 template<>
-struct enable_bitmask_ops<Flags> {
+struct bitops::enable_bitmask_ops<Flags> {
   using type = std::underlying_type<Flags>::type;
   static constexpr bool enable = true;
 };
@@ -81,7 +81,7 @@ CASE ("util::bitops: Using bitmask ops for an enum")
 
 // Enable bitmask ops for int, to use in combination with other enabled types
 template<>
-struct enable_bitmask_ops<int> {
+struct bitops::enable_bitmask_ops<int> {
   using type = int;
   static constexpr bool enable = true;
 };
@@ -104,8 +104,6 @@ CASE ("util::bitops: Using bitmask ops an enum and an integral")
 
 CASE ("util::bitops: using various bit operations")
 {
-
-  EXPECT(__builtin_clzl(0) == 64);
   EXPECT(__builtin_clzl(0x1000) == 51);
 
   EXPECT(bits::keeplast(0x10110) == 0x10000);

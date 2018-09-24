@@ -381,11 +381,16 @@ struct Addr {
   bool is_multicast() const noexcept
   { return part(3) >= 224 and part(3) < 240; }
 
+  static const Addr addr_any;
+
   /* Data member */
   uint32_t whole;
 } __attribute__((packed)); //< struct Addr
 
+static_assert(sizeof(Addr) == 4, "Must be 4 bytes in size");
+
 } //< namespace ip4
+
 } //< namespace net
 
 // Allow an IPv4 address to be used as key in e.g. std::unordered_map
@@ -397,5 +402,6 @@ namespace std {
     }
   };
 } //< namespace std
+
 
 #endif //< NET_IP4_ADDR_HPP

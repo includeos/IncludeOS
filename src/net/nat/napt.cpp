@@ -17,6 +17,7 @@
 
 #include <net/nat/napt.hpp>
 #include <net/nat/nat.hpp>
+#include <net/inet>
 
 //#define NAPT_DEBUG 1
 #ifdef NAPT_DEBUG
@@ -47,7 +48,7 @@ inline void update_dnat(Conntrack& ct, Conntrack::Entry_ptr entry, Socket socket
 
 inline void update_dnat(Conntrack& ct, Conntrack::Entry_ptr entry, ip4::Addr addr)
 {
-  if(entry->second.src.address() != addr) {
+  if(entry->second.src.address().v4() != addr) {
     ct.update_entry(entry->proto, entry->second, {
       {addr, entry->second.src.port()}, // change return addr but keep port
       entry->second.dst
@@ -77,7 +78,7 @@ inline void update_snat(Conntrack& ct, Conntrack::Entry_ptr entry, Socket socket
 
 inline void update_snat(Conntrack& ct, Conntrack::Entry_ptr entry, ip4::Addr addr)
 {
-  if(entry->second.dst.address() != addr) {
+  if(entry->second.dst.address().v4() != addr) {
     ct.update_entry(entry->proto, entry->second, {
       entry->second.src,
       {addr, entry->second.dst.port()} // change dst address but keep port
@@ -145,7 +146,7 @@ void NAPT::masquerade(IP4::IP_packet& pkt, Stack& inet, Conntrack::Entry_ptr ent
       NATDBG("<NAPT> MASQ: %s => %s\n",
         entry->to_string().c_str(), entry->second.dst.to_string().c_str());
       // static source nat
-      icmp_snat(pkt, entry->second.dst.address());
+      icmp_snat(pkt, entry->second.dst.address().v4());
       break;
     }
 
@@ -178,7 +179,7 @@ void NAPT::demasquerade(IP4::IP_packet& pkt, const Stack&, Conntrack::Entry_ptr 
       break;
 
     case Protocol::ICMPv4:
-      icmp_dnat(pkt, entry->first.src.address());
+      icmp_dnat(pkt, entry->first.src.address().v4());
       break;
 
     default:
@@ -337,7 +338,7 @@ void NAPT::dnat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
       {
         NATDBG("<NAPT> Found DNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.src.address().to_string().c_str());
-        icmp_dnat(p, entry->first.src.address());
+        icmp_dnat(p, entry->first.src.address().v4());
       }
       return;
     }
@@ -471,7 +472,7 @@ void NAPT::snat(IP4::IP_packet& p, Conntrack::Entry_ptr entry)
       {
         NATDBG("<NAPT> Found SNAT target: %s => %s\n",
           entry->to_string().c_str(), entry->first.dst.address().to_string().c_str());
-        icmp_snat(p, entry->first.dst.address());
+        icmp_snat(p, entry->first.dst.address().v4());
       }
       return;
     }

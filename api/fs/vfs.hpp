@@ -27,6 +27,7 @@
 #include <memory>
 #include <stdexcept>
 #include <typeinfo>
+#include <fs/fd_compatible.hpp>
 
 // Demangle
 extern "C" char* __cxa_demangle(const char* mangled_name,
@@ -54,29 +55,32 @@ inline std::string type_name(const std::type_info& type_, size_t max_chars = 0) 
 
 namespace fs {
 
-  /** Exception: Trying to fetch an object of wrong type  **/
-  struct Err_bad_cast : public std::runtime_error {
+  struct VFS_err : public std::runtime_error {
     using runtime_error::runtime_error;
+  };
+  /** Exception: Trying to fetch an object of wrong type  **/
+  struct Err_bad_cast : public VFS_err {
+    using VFS_err::VFS_err;
   };
 
   /** Exception: trying to fetch object from non-leaf **/
-  struct Err_not_leaf : public std::runtime_error {
-    using runtime_error::runtime_error;
+  struct Err_not_leaf : public VFS_err {
+    using VFS_err::VFS_err;
   };
 
   /** Exception: trying to access children of non-parent **/
-  struct Err_not_parent : public std::runtime_error {
-    using runtime_error::runtime_error;
+  struct Err_not_parent : public VFS_err {
+    using VFS_err::VFS_err;
   };
 
   /** Exception: trying to access non-existing node  **/
-  struct Err_not_found : public std::runtime_error {
-    using runtime_error::runtime_error;
+  struct Err_not_found : public VFS_err {
+    using VFS_err::VFS_err;
   };
 
   /** Exception: trying to mount on an occupied or non-existing mount point **/
-  struct Err_mountpoint_invalid : public std::runtime_error {
-    using runtime_error::runtime_error;
+  struct Err_mountpoint_invalid : public VFS_err {
+    using VFS_err::VFS_err;
   };
 
 
@@ -109,12 +113,16 @@ namespace fs {
     VFS_entry(T& obj, const std::string& name, const std::string& desc) // Can't have default desc due to clash with next ctor
       : type_{typeid(T)}, obj_is_const{std::is_const<T>::value},
         obj_{const_cast<typename std::remove_cv<T>::type*>(&obj)},
-        name_{name}, desc_{desc}
-    {}
+        name_{name}, desc_{desc},
+        is_fd_compatible{std::is_base_of<FD_compatible, T>::value}
+    {
+    }
 
     VFS_entry(std::string name, std::string desc)
-      : type_{typeid(nullptr)}, obj_{nullptr}, name_{name}, desc_{desc}
-    {}
+      : type_{typeid(nullptr)}, obj_{nullptr}, name_{name}, desc_{desc},
+        is_fd_compatible{false}
+    {
+    }
 
     VFS_entry() = delete;
     VFS_entry(VFS_entry&) = delete;
@@ -133,8 +141,12 @@ namespace fs {
       if (UNLIKELY(not obj_))
         throw Err_not_leaf(name_ + " does not hold an object ");
 
-      if (UNLIKELY(typeid(T) != type_))
+      // if not the same type, and not FD_compatible
+      if (UNLIKELY(typeid(T) != type_ and
+        not (std::is_same<FD_compatible, T>::value and this->is_fd_compatible)))
+      {
         throw Err_bad_cast(name_ + " is not of type " + ::type_name(typeid(T)));
+      }
 
       if (UNLIKELY(obj_is_const and not std::is_const<T>::value))
         throw Err_bad_cast(name_ + " must be retrieved as const " + type_name());
@@ -273,13 +285,13 @@ namespace fs {
     };
 
     Obs_ptr insert_parent(const std::string& token){
-      children_.emplace_back(new VFS_entry{token, "Directory"});
+      children_.emplace_back(std::make_unique<VFS_entry>(token, "Directory"));
       return children_.back().get();
     }
 
     template <typename T>
     VFS_entry& insert(const std::string& token, T& obj, const std::string& desc) {
-      children_.emplace_back(new VFS_entry(obj, token, desc));
+      children_.emplace_back(std::make_unique<VFS_entry>(obj, token, desc));
       return *children_.back();
     }
 
@@ -289,6 +301,7 @@ namespace fs {
     std::string name_;
     std::string desc_;
     std::vector<Own_ptr> children_;
+    bool is_fd_compatible = false;
 
   }; // End VFS_entry
 
@@ -334,7 +347,7 @@ namespace fs {
         disk,
         remote,
         insert_dirent_delg::make_packed(
-        [local, callback, desc](error_t err, auto&& dirent_ref)
+        [local, callback, desc](error_t err, auto& dirent_ref)
         {
           VFS::mount<true>(local, dirent_ref, desc);
           callback(err);
@@ -426,7 +439,7 @@ namespace fs {
           auto res_it = (dirent_map().emplace(Dirent_mountpoint{disk_id, path.to_string()}, dir));
 
           if (res_it.second) {
-            auto saved_dir = res_it.first->second;
+            auto& saved_dir = res_it.first->second;
             fn(err, saved_dir);
           } else {
             fn(err, invalid_dirent());

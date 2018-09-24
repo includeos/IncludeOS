@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <malloc.h> // mallinfo()
 #include <sched.h>
+extern bool __libc_initialized;
 
 void OS::event_loop()
 {
@@ -80,8 +81,9 @@ static void begin_timer(std::chrono::nanoseconds usec)
 static void stop_timers() {}
 
 #include <statman>
-void OS::start(char* cmdline, uintptr_t)
+void OS::start(const char* cmdline)
 {
+  __libc_initialized = true;
   // statman
   static char statman_data[1 << 16];
   Statman::get().init((uintptr_t) statman_data, sizeof(statman_data));
@@ -98,6 +100,13 @@ void OS::start(char* cmdline, uintptr_t)
   using namespace std::chrono;
   OS::cpu_khz_ = decltype(OS::cpu_freq()) {3000000ul};
   OS::cmdline = cmdline;
+}
+
+// stdout
+void OS::default_stdout(const char* text, size_t len)
+{
+  ssize_t bytes = write(STDOUT_FILENO, text, len);
+  assert(bytes == (ssize_t) len);
 }
 
 // system_log has no place on Linux because stdout goes --> pipe
@@ -146,5 +155,6 @@ extern "C"
 void panic(const char* why)
 {
   printf("!! PANIC !!\nReason: %s\n", why);
-  std::abort();
+  raise(SIGINT);
+  exit(1);
 }

@@ -19,7 +19,7 @@
 #include <liveupdate>
 #include "server.hpp"
 
-void setup_liveupdate_server(net::Inet<net::IP4>& inet,
+void setup_liveupdate_server(net::Inet& inet,
                              const uint16_t PORT,
                              liu::LiveUpdate::storage_func func)
 {
@@ -37,7 +37,7 @@ void setup_liveupdate_server(net::Inet<net::IP4>& inet,
       // run live update process
       liu::LiveUpdate::exec(buffer, "test", save_function);
     }
-    catch (std::exception& err)
+    catch (const std::exception& err)
     {
       liu::LiveUpdate::restore_environment();
       printf("Live update failed:\n%s\n", err.what());

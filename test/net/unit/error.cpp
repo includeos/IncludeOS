@@ -17,7 +17,7 @@
 
 #include <common.cxx>
 #include <nic_mock.hpp>
-#include <net/inet4.hpp>
+#include <net/inet>
 
 using namespace net;
 

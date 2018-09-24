@@ -2,9 +2,18 @@
 #include <cstdint>
 #include <ctime>
 #include <kernel/os.hpp>
+# define weak_alias(name, aliasname) \
+  extern __typeof (name) aliasname __attribute__ ((weak, alias (#name)));
 
-void* _ELF_START_;
-void* _ELF_END_;
+typedef void (*ctor_t) ();
+extern "C" __attribute__(( visibility("hidden") )) void default_ctor() {}
+ctor_t __plugin_ctors_start = default_ctor;
+weak_alias(__plugin_ctors_start, __plugin_ctors_end);
+ctor_t __service_ctors_start = default_ctor;
+weak_alias(__service_ctors_start, __service_ctors_end);
+
+char _ELF_START_;
+char _ELF_END_;
 
 uintptr_t OS::heap_max() noexcept
 {

@@ -15,7 +15,7 @@ def begin_test(line):
     f = open('./service','rb')
 
     s = socket.socket()
-    s.connect(("10.0.0.49", 666))
+    s.connect(("10.0.0.59", 666))
     s.send(f.read())
     s.close()
 

@@ -23,6 +23,7 @@
 #define LIVEUPDATE_HEADER_HPP
 
 #include <net/tcp/connection.hpp>
+#include <net/stream.hpp>
 #include <delegate>
 #include <string>
 #include <vector>
@@ -57,7 +58,8 @@ struct LiveUpdate
 
   // Start a live update process, storing all user-defined data
   // If no storage functions are registered no state will be saved
-  static void exec(const buffer_t& blob);
+  // If @storage_area is nullptr (default) it will be retrieved from OS
+  static void exec(const buffer_t& blob, void* storage_area = nullptr);
   // Same as above, but including the partition [@key, func]
   static void exec(const buffer_t& blob, std::string key, storage_func func);
 
@@ -73,7 +75,7 @@ struct LiveUpdate
   // It performs an extensive validation process to make sure the data is
   // complete and consistent
   static bool is_resumable();
-  static bool is_resumable(void* location);
+  static bool is_resumable(const void* location);
 
   // Restore existing state for a partition named @key.
   // Returns false if there was no such partition
@@ -81,7 +83,8 @@ struct LiveUpdate
   static bool resume(std::string key, resume_func handler);
 
   // Check whether a partition named @key exists at default update location.
-  static bool partition_exists(const std::string& key) noexcept;
+  // When @storage_area is nullptr (default) the area is retrieved from OS
+  static bool partition_exists(const std::string& key, const void* storage_area = nullptr) noexcept;
 
   // When explicitly resuming from heap, heap overrun checks are disabled
   static void resume_from_heap(void* location, std::string key, resume_func);
@@ -89,8 +92,7 @@ struct LiveUpdate
   // Retrieve the recorded length, in bytes, of a valid storage area
   // Throws std::runtime_error when something bad happens
   // Never returns zero
-  static size_t stored_data_length();
-  static size_t stored_data_length(void* location);
+  static size_t stored_data_length(const void* storage_area = nullptr);
 
   // Set location of known good blob to rollback to if something happens
   static void set_rollback_blob(const void*, size_t) noexcept;
@@ -143,6 +145,7 @@ struct Storage
   inline void add_vector(uid, const std::vector<T>& vector);
   // store a TCP connection
   void add_connection(uid, Connection_ptr);
+  void add_tls_stream(uid, net::Stream&);
 
   // markers are used to delineate the end of variable-length structures
   void put_marker(uid);
@@ -172,10 +175,12 @@ struct Restore
   bool  is_end()    const noexcept;
   bool  is_int()    const noexcept;
   bool  is_marker() const noexcept;
-  int            as_int()    const;
-  std::string    as_string() const;
-  buffer_t       as_buffer() const;
-  Connection_ptr as_tcp_connection(net::TCP&) const;
+  int             as_int()    const;
+  std::string     as_string() const;
+  buffer_t        as_buffer() const;
+  Connection_ptr  as_tcp_connection(net::TCP&) const;
+  net::Stream_ptr as_tcp_stream    (net::TCP&) const;
+  net::Stream_ptr as_tls_stream(void* ctx, net::Stream_ptr);
 
   template <typename S>
   inline const S& as_type() const;
@@ -249,6 +254,14 @@ inline void Storage::add_vector(uid id, const std::vector<std::string>& vector)
 {
   add_string_vector(id, vector);
 }
+
+class liveupdate_exec_success : public std::exception
+{
+public:
+    const char* what() const throw() {
+      return "LiveUpdate::exec() success";
+    }
+};
 
 } // liu
 

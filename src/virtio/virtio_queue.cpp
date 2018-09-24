@@ -67,6 +67,9 @@ Virtio::Queue::Queue(const std::string& name,
   size_t total_bytes = virtq_size(size);
   // Allocate page-aligned size and clear it
   void* buffer = memalign(PAGE_SIZE, total_bytes);
+  if (! buffer)
+    panic("Virtio queue could not allocate aligned queue area");
+
   memset(buffer, 0, total_bytes);
 
   debug(">>> Virtio Queue %s of size %i (%u bytes) initializing \n",

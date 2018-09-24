@@ -24,6 +24,7 @@ set(SOURCES
 # DRIVERS / PLUGINS:
 set(DRIVERS
     virtionet
+    boot_logger
   )
 
 set(PLUGINS

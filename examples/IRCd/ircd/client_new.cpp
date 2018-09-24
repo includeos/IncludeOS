@@ -13,7 +13,7 @@ void Client::handle_new(const std::vector<std::string>& msg)
 {
   volatile ScopedProfiler profile;
   const std::string& cmd = msg[0];
-  
+
   if (cmd == TK_CAP)
   {
     // ignored completely
@@ -68,7 +68,7 @@ void Client::auth_notice()
   send_raw(auth_host, sizeof auth_host - 1);
   send_raw(auth_idnt, sizeof auth_idnt - 1);
   //hostname_lookup()
-  this->host_ = conn->remote().address().str();
+  this->host_ = conn->remote().address().to_string();
   //ident_check()
 }
 void Client::welcome(uint8_t newreg)

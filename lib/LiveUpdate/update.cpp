@@ -25,9 +25,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <unistd.h>
-#include <util/elf.h>
-#include <unordered_map>
+#include <elf.h>
 #include "storage.hpp"
 #include <kernel/os.hpp>
 #include <kernel/memory.hpp>
@@ -50,9 +48,6 @@ extern "C" void* __os_store_soft_reset(const void*, size_t);
 // kernel area
 extern char _ELF_START_;
 extern char _end;
-// heap area
-extern char* heap_begin;
-extern char* heap_end;
 // turn this off to reduce liveupdate times at the cost of extra checks
 bool LIVEUPDATE_PERFORM_SANITY_CHECKS = true;
 
@@ -92,12 +87,16 @@ void LiveUpdate::exec(const buffer_t& blob, std::string key, storage_func func)
   LiveUpdate::exec(blob);
 }
 
-void LiveUpdate::exec(const buffer_t& blob)
+void LiveUpdate::exec(const buffer_t& blob, void* location)
 {
-  void* location = OS::liveupdate_storage_area();
+  if (location == nullptr) location = OS::liveupdate_storage_area();
   LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
+#if defined(PLATFORM_x86_solo5) || defined(PLATFORM_UNITTEST)
+  // nothing to do
+#else
   // 1. turn off interrupts
   asm volatile("cli");
+#endif
 
   // use area provided to us directly, which we will assume
   // is far enough into heap to not get overwritten by hotswap.
@@ -106,23 +105,30 @@ void LiveUpdate::exec(const buffer_t& blob)
   // blobs are separated by at least one old kernel size and
   // some early heap allocations, which is at least 1mb, while
   // the copy mechanism just copies single bytes.
+  if (blob.size() < ELF_MINIMUM)
+      throw std::runtime_error("Buffer too small to be valid ELF");
   const char* update_area  = blob.data();
   char* storage_area = (char*) location;
+  const uintptr_t storage_area_phys = os::mem::virt_to_phys((uintptr_t) storage_area);
 
   // validate not overwriting heap, kernel area and other things
   if (storage_area < (char*) 0x200) {
     throw std::runtime_error("LiveUpdate storage area is (probably) a null pointer");
   }
+#ifndef PLATFORM_UNITTEST
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
     throw std::runtime_error("LiveUpdate storage area is inside kernel area");
   }
-  if (storage_area >= heap_begin && storage_area < heap_end) {
+#endif
+  if (storage_area >= (char*) OS::heap_begin() && storage_area < (char*) OS::heap_end()) {
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }
-  if (storage_area >= (char*) OS::heap_max()) {
+  if (storage_area_phys >= OS::heap_max()) {
     throw std::runtime_error("LiveUpdate storage area is outside physical memory");
   }
-  if (storage_area >= (char*) OS::heap_max() - 0x10000) {
+  if (storage_area_phys >= OS::heap_max() - 0x10000) {
+    printf("Storage area is at %p / %p\n",
+           (void*) storage_area_phys, (void*) OS::heap_max());
     throw std::runtime_error("LiveUpdate storage area needs at least 64kb memory");
   }
 
@@ -206,12 +212,14 @@ void LiveUpdate::exec(const buffer_t& blob)
   hw::Devices::deactivate_all();
 
   // store soft-resetting stuff
-#ifdef PLATFORM_x86_solo5
+#if defined(PLATFORM_x86_solo5) || defined(PLATFORM_UNITTEST)
   void* sr_data = nullptr;
 #else
   extern const std::pair<const char*, size_t> get_rollback_location();
   const auto rollback = get_rollback_location();
-  void* sr_data = __os_store_soft_reset(rollback.first, rollback.second);
+  // we should store physical address of update location
+  auto rb_phys = os::mem::virt_to_phys((uintptr_t) rollback.first);
+  void* sr_data = __os_store_soft_reset((void*) rb_phys, rollback.second);
 #endif
 
   // get offsets for the new service from program header
@@ -229,8 +237,9 @@ void LiveUpdate::exec(const buffer_t& blob)
 #ifdef PLATFORM_x86_solo5
   solo5_exec(blob.data(), blob.size());
   throw std::runtime_error("solo5_exec returned");
-#else
-# ifdef ARCH_i686
+# elif defined(PLATFORM_UNITTEST)
+  throw liveupdate_exec_success();
+# elif defined(ARCH_i686)
     // copy hotswapping function to sweet spot
     memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
     /// the end
@@ -245,7 +254,6 @@ void LiveUpdate::exec(const buffer_t& blob)
 # else
 #   error "Unimplemented architecture"
 # endif
-#endif
 }
 void LiveUpdate::restore_environment()
 {
@@ -259,12 +267,9 @@ buffer_t LiveUpdate::store()
   return buffer_t(location, location + size);
 }
 
-size_t LiveUpdate::stored_data_length()
+size_t LiveUpdate::stored_data_length(const void* location)
 {
-  return stored_data_length(OS::liveupdate_storage_area());
-}
-size_t LiveUpdate::stored_data_length(void* location)
-{
+  if (location == nullptr) location = OS::liveupdate_storage_area();
   auto* storage = (storage_header*) location;
 
   if (LIVEUPDATE_PERFORM_SANITY_CHECKS)
@@ -332,14 +337,4 @@ void Storage::add_vector(uid id, const void* buf, size_t count, size_t esize)
 void Storage::add_string_vector(uid id, const std::vector<std::string>& vec)
 {
   hdr.add_string_vector(id, vec);
-}
-
-#include "serialize_tcp.hpp"
-void Storage::add_connection(uid id, Connection_ptr conn)
-{
-  hdr.add_struct(TYPE_TCP, id,
-  [&conn] (char* location) -> int {
-    // return size of all the serialized data
-    return conn->serialize_to(location);
-  });
 }

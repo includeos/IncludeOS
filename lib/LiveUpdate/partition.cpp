@@ -21,6 +21,7 @@
 #include "storage.hpp"
 #include <util/crc32.hpp>
 #include <cassert>
+#include <cstring>
 
 inline uint32_t liu_crc32(const void* buf, size_t len)
 {
@@ -42,7 +43,7 @@ int storage_header::create_partition(const std::string key)
   part.offset = this->length;
   return partitions++;
 }
-int storage_header::find_partition(const char* key)
+int storage_header::find_partition(const char* key) const
 {
   for (uint32_t p = 0; p < this->partitions; p++)
   {
@@ -74,7 +75,7 @@ void storage_header::zero_partition(int p)
 {
   auto& part = ptable.at(p);
   memset(&this->vla[part.offset], 0, part.length);
-  memset(&part, 0, sizeof(partition_header));
+  part = {};
   // NOTE: generate **NEW** checksum for header
   this->crc = generate_checksum();
 }

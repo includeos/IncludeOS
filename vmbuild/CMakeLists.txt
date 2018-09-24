@@ -8,7 +8,11 @@ set(ELF_SYMS_SOURCES elf_syms.cpp ../src/util/crc32.cpp)
 set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -Wextra -O2 -g")
 
 # TODO: write scripts that automatically find include directories
-include_directories(. ./../mod/GSL/ ../api)
+include_directories(
+  .
+  ${INCLUDE_PATH}/include
+  ./../mod/GSL/
+  ../api)
 
 add_executable(vmbuild ${SOURCES})
 add_executable(elf_syms ${ELF_SYMS_SOURCES})

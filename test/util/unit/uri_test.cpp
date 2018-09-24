@@ -114,12 +114,6 @@ CASE("host_is_ip6() returns whether uri's host is an IPv6 address")
   EXPECT(uri.host_is_ip6() == true);
 }
 
-CASE("port_str() returns uri's port as string")
-{
-  uri::URI uri {"http://www.vg.no:8080"};
-  EXPECT(uri.port_str() == "8080");
-}
-
 CASE("URI construction, assignment")
 {
   uri::URI uri1 {"http://www.vg.no:8080"};

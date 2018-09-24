@@ -18,7 +18,7 @@
 
 #include <os>
 #include <plugins/unik.hpp>
-#include <net/inet4>
+#include <net/inet>
 #include <regex>
 #include <info>
 
@@ -27,16 +27,16 @@ unik::Client::Registered_event unik::Client::on_registered_{nullptr};
 /**
  * UniK instance listener hearbeat / http registration
  **/
-void unik::Client::register_instance(net::Inet<net::IP4>& inet, const net::UDP::port_t port) {
+void unik::Client::register_instance(net::Inet& inet, const net::UDP::port_t port) {
 
   INFO("Unik client", "Initializing Unik registration service");
-  INFO("Unik client","Listening for UDP hearbeat on %s:%i", inet.ip_addr().str().c_str(), port);
+  INFO("Unik client","Listening for UDP hearbeat on %s:%i", inet.ip_addr().to_string().c_str(), port);
   INFO("Unik client","IP is attached to interface %s ", inet.link_addr().str().c_str());
 
   // Set up an UDP port for receiving UniK heartbeat
   auto& sock = inet.udp().bind(port);
-  CHECK(net::Inet4::stack<0>().udp().is_bound(sock.local()), "Unik UDP port is bound as expected");
-  sock.on_read([&sock, &inet] (auto addr, auto port, const char* data, size_t len) {
+  CHECK(net::Inet::stack<0>().udp().is_bound(sock.local()), "Unik UDP port is bound as expected");
+  sock.on_read([&inet] (auto addr, auto port, const char* data, size_t len) {
 
       static bool registered_with_unik = false;
       static const int max_attempts = 5;
@@ -46,9 +46,9 @@ void unik::Client::register_instance(net::Inet<net::IP4>& inet, const net::UDP::
         return;
 
       std::string strdata(data, len);
-      INFO("Unik client","received UDP data from %s:%i: %s ", addr.str().c_str(), port, strdata.c_str());
+      INFO("Unik client","received UDP data from %s:%i: %s ", addr.to_string().c_str(), port, strdata.c_str());
 
-      auto dotloc = strdata.find(":");
+      auto dotloc = strdata.find(':');
 
       if (dotloc == std::string::npos) {
         INFO("Unik client","Unexpected UDP data format - no ':' in string.");
@@ -106,9 +106,9 @@ void unik::Client::register_instance(net::Inet<net::IP4>& inet, const net::UDP::
 
 void unik::Client::register_instance_dhcp() {
   // Bring up a network device using DHCP
-  static auto&& inet = net::Inet4::stack<0>();
+  static auto&& inet = net::Inet::stack<0>();
 
-  net::Inet4::ifconfig<0>(10.0, [](bool timeout) {
+  net::Inet::ifconfig<0>(10.0, [](bool timeout) {
       if(timeout) {
         INFO("Unik client","DHCP request timed out. Nothing to do.");
         return;

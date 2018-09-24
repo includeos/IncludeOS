@@ -19,33 +19,8 @@ set -e
 : ${num_jobs:="-j 4"}
 : ${ARCH:=x86_64}
 
-# Try to find suitable compiler
-cc_list="clang-7.0 clang-6.0 clang-5.0 clang-4.0 clang-3.9 clang"
-cxx_list="clang++-7.0 clang++-6.0 clang++-5.0 clang++-4.0 clang++-3.9 clang++"
-
-compiler=""
-guess_compiler() {
-    for compiler in $*
-    do
-	if command -v $compiler; then
-		break
-	fi
-    done
-}
-
-
-if [ -z "$CC" ]
-then
-	guess_compiler "$cc_list"
-	export CC=$compiler
-fi
-
-if [ -z "$CXX" ]
-then
-	guess_compiler "$cxx_list"
-	export CXX=$compiler
-fi
-
+# Set compiler version
+source $INCLUDEOS_SRC/etc/use_clang_version.sh
 echo -e "\n\n>>> Best guess for compatible compilers: $CXX / $CC"
 
 # Build IncludeOS

@@ -29,7 +29,7 @@ struct stack {
   void* phys;
 };
 
-static stack create_stack(size_t size, const char* name)
+static stack create_stack_virt(size_t size, const char* name)
 {
   using namespace os;
   using namespace util::bitops;
@@ -61,12 +61,19 @@ static stack create_stack(size_t size, const char* name)
 
   // Align stack pointer to bottom of stack minus a pop
   auto sp = map.lin + size - 8;
-  sp = sp & ~uintptr_t(0xf);
+  sp &= ~uintptr_t(0xf);
 
   // Force page fault if mapped area isn't writable
   ((char*)sp)[0] = '!';
 
-  return {(void*)sp, phys};
+  return {(void*) sp, phys};
+}
+static stack create_stack_simple(size_t size, const char* /*name*/)
+{
+  auto* phys = (char*)memalign(4096, size);
+  uintptr_t sp = (uintptr_t) phys + size - 8;
+  sp &= ~uintptr_t(0xf);
+  return {(void*) sp, phys};
 }
 
 namespace x86
@@ -83,6 +90,9 @@ namespace x86
 
   void ist_initialize_for_cpu(int cpu, uintptr_t stack)
   {
+    typedef struct stack (*create_stack_func_t) (size_t, const char*);
+    create_stack_func_t create_stack = create_stack_virt;
+    if (cpu > 0) create_stack = create_stack_simple;
 
     auto& ist = lm_ist.at(cpu);
     memset(&ist.tss, 0, sizeof(AMD64_TSS));

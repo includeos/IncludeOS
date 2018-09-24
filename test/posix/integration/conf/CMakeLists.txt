@@ -35,6 +35,10 @@ set(DRIVERS
   # ... Others from IncludeOS/src/drivers
   )
 
+set(PLUGINS
+  vfs
+  )
+
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 

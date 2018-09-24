@@ -75,7 +75,8 @@ IrcServer::IrcServer(
         server_stack().ifname().c_str(), sv_port);
 
   /// LiveUpdate ///
-  if (this->init_liveupdate() == false)
+  const bool live_updated = this->init_liveupdate();
+  if (live_updated == false)
   {
     // set timestamp for when the server was started
     this->created_ts = create_timestamp();
@@ -87,6 +88,9 @@ IrcServer::IrcServer(
   INFO2("Server started on %s", created_string.c_str());
   INFO2("Version " IRC_SERVER_VERSION);
   INFO("IRC", "Server open");
+  if (live_updated) {
+    this->lnotice(this->name(), "Server was just live updated!");
+  }
 }
 
 void IrcServer::new_registered_client()
@@ -121,6 +125,17 @@ void IrcServer::free_channel(Channel& ch)
   channels.free(ch);
   // less channels on server/network
   dec_counter(STAT_CHANNELS);
+}
+
+void IrcServer::lnotice(const std::string& src, const std::string& msg)
+{
+  for (size_t id = 0; id < clients.size(); id++)
+  {
+    auto& cl = clients.get(id);
+    if (cl.is_reg()) {
+      cl.send_from(src, "NOTICE " + cl.nickuserhost() + " :" + msg);
+    }
+  }
 }
 
 void IrcServer::user_bcast(clindex_t idx, const std::string& from, uint16_t tk, const std::string& msg)
@@ -260,7 +275,7 @@ void IrcServer::begin_netburst(Server& target)
     }
   }
   /// clients
-  for (size_t id = 0; id < channels.size(); id++)
+  for (size_t id = 0; id < clients.size(); id++)
   {
     auto& cl = clients.get(id);
     if (cl.is_reg()) {

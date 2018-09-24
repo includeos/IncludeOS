@@ -5,6 +5,7 @@
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <openssl/engine.h>
 #include <kernel/rng.hpp>
 #include <cassert>
 #include <info>
@@ -40,7 +41,7 @@ namespace openssl
 {
   void setup_rng()
   {
-    RAND_METHOD ios_rand {
+    static RAND_METHOD ios_rand {
       ios_rand_seed,
       ios_rand_bytes,
       ios_rand_cleanup,
@@ -52,7 +53,6 @@ namespace openssl
   }
   void verify_rng()
   {
-    auto* rm = RAND_get_rand_method();
     int random_value = 0;
     int rc = RAND_bytes((uint8_t*) &random_value, sizeof(random_value));
     assert(rc == 0 || rc == 1);
@@ -66,11 +66,16 @@ namespace openssl
     {
       INFO("OpenSSL", "Initializing (%s)", OPENSSL_VERSION_TEXT);
       init_once = true;
-      SSL_library_init();
-      OpenSSL_add_all_algorithms();
+      printf("setup_rng\n");
+      setup_rng();
+      printf("SSL_library_init\n");
+      SSL_library_init(); // OPENSSL_INIT_LOAD_SSL_STRINGS | OPENSSL_INIT_LOAD_CRYPTO_STRINGS
+      printf("SSL_load_error_strings\n");
       SSL_load_error_strings();
-      ERR_load_BIO_strings();
+      printf("ERR_load_crypto_strings\n");
       ERR_load_crypto_strings();
+      printf("ERR_load_BIO_strings\n");
+      ERR_load_BIO_strings();
     }
   }
 }

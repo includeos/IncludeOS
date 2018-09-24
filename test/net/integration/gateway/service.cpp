@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet4>
+#include <net/inet>
 
 using namespace net;
 
@@ -27,15 +27,19 @@ void verify() {
   if (++i == 8) printf("SUCCESS\n");
 }
 
+#include <net/tcp/tcp_conntrack.hpp>
+
 void Service::start()
 {
-  static auto& eth0 = Inet4::stack<0>();
+  static auto& eth0 = Inet::stack<0>();
 
-  static auto& eth1 = Inet4::stack<1>();
+  static auto& eth1 = Inet::stack<1>();
 
-  static auto& host1 = Inet4::stack<2>();
+  static auto& host1 = Inet::stack<2>();
 
-  static auto& host2 = Inet4::stack<3>();
+  static auto& host2 = Inet::stack<3>();
+
+  eth0.conntrack()->tcp_in = net::tcp::tcp4_conntrack;
 
   INFO("Ping", "host1 => host2 (%s)", host2.ip_addr().to_string().c_str());
   host1.icmp().ping(host2.ip_addr(), [](auto reply) {
@@ -66,7 +70,8 @@ void Service::start()
   }, 1);
 
   INFO("TCP", "host2 => listen:5000");
-  host2.tcp().listen(5000, [](auto) {});
+  host2.tcp().listen(5000, [](auto /*conn*/) {
+  });
 
   INFO("TCP", "host1 => host2 (%s:%i)", host2.ip_addr().to_string().c_str(), 5000);
   host1.tcp().connect({host2.ip_addr(), 5000}, [](auto conn) {

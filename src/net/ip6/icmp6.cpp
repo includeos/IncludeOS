@@ -15,9 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
+//#define ICMP6_DEBUG 1
+#ifdef ICMP6_DEBUG
+#define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define PRINT(fmt, ...) /* fmt */
+#endif
 #include <net/ip6/icmp6.hpp>
 #include <net/ip6/ndp.hpp>
+#include <net/inet>
 
 #include <iostream>
 #include <net/ip6/ip6.hpp>
@@ -26,304 +32,289 @@
 
 namespace net
 {
-  // internal implementation of handler for ICMP type 128 (echo requests)
-  int echo_request(ICMPv6&, std::shared_ptr<PacketICMP6>& pckt);
-  int neighbor_solicitation(ICMPv6& caller, std::shared_ptr<PacketICMP6>& pckt);
+  static constexpr std::array<uint8_t, 48> includeos_payload =
+    {'I','N','C','L','U','D','E','O',
+     'S','1','2','3','4','5','A','B',
+     'C','D','E','F','G','H','I','J',
+     'K','L','M','N','O','P','Q','R',
+     'S','T','U','V','W','X','Y','Z',
+     '1','2','3','4','5','6','7','8'};
+  // ---------------------------- ICMP_view ----------------------------
 
-  ICMPv6::ICMPv6(IP6::addr& local_ip)
-    : localIP(local_ip)
-  {
-    // install default handler for echo requests
-    listen(ECHO_REQUEST, echo_request);
-    // install default handler for neighbor solicitation requests
-    listen(ND_NEIGHB_SOL, neighbor_solicitation);
+  std::string ICMP6_view::to_string() const {
+    if (type_ == ICMP_type::NO_REPLY)
+      return "No reply received";
+
+    return "Identifier: " + std::to_string(id_) + "\n" +
+      "Sequence number: " + std::to_string(seq_) + "\n" +
+      "Source: " + src_.to_string() + "\n" +
+      "Destination: " + dst_.to_string() + "\n" +
+      "Type: " + icmp6::get_type_string(type_) + "\n" +
+      "Code: " + icmp6::get_code_string(type_, code_) + "\n" +
+      "Checksum: " + std::to_string(checksum_) + "\n" +
+      "Data: " + payload_;
   }
 
-  // static function that returns a textual representation of
-  // the @code and @type of an ICMP message
-  std::string ICMPv6::code_string(uint8_t type, uint8_t code)
-  {
-    switch (type)
-      {
-        /// error codes ///
-      case 1:
-        /// delivery problems ///
-        switch (code)
-          {
-          case 0:
-            return "No route to destination";
-          case 1:
-            return "Communication with dest administratively prohibited";
-          case 2:
-            return "Beyond scope of source address";
-          case 3:
-            return "Address unreachable";
-          case 4:
-            return "Port unreachable";
-          case 5:
-            return "Source address failed ingress/egress policy";
-          case 6:
-            return "Reject route to destination";
-          case 7:
-            return "Error in source routing header";
-          default:
-            return "ERROR Invalid ICMP type";
-          }
-      case 2:
-        /// size problems ///
-        return "Packet too big";
+  // ------------------------------ ICMPv6 ------------------------------
 
-      case 3:
-        /// time problems ///
-        switch (code)
-          {
-          case 0:
-            return "Hop limit exceeded in traffic";
-          case 1:
-            return "Fragment reassembly time exceeded";
-          default:
-            return "ERROR Invalid ICMP code";
-          }
-      case 4:
-        /// parameter problems ///
-        switch (code)
-          {
-          case 0:
-            return "Erroneous header field";
-          case 1:
-            return "Unrecognized next header";
-          case 2:
-            return "Unrecognized IPv6 option";
-          default:
-            return "ERROR Invalid ICMP code";
-          }
+  int ICMPv6::request_id_ = 0;
 
-        /// echo feature ///
-      case ECHO_REQUEST:
-        return "Echo request";
-      case ECHO_REPLY:
-        return "Echo reply";
+  ICMPv6::ICMPv6(Stack& inet) :
+    inet_{inet}, ndp_(inet)
+  {}
 
-        /// multicast feature ///
-      case 130:
-        return "Multicast listener query";
-      case 131:
-        return "Multicast listener report";
-      case 132:
-        return "Multicast listener done";
+  void ICMPv6::receive(Packet_ptr pckt) {
+    if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
+      return;
 
-        /// neighbor discovery protocol ///
-      case ND_ROUTER_SOL:
-        return "NDP Router solicitation request";
-      case ND_ROUTER_ADV:
-        return "NDP Router advertisement";
-      case ND_NEIGHB_SOL:
-        return "NDP Neighbor solicitation request";
-      case ND_NEIGHB_ADV:
-        return "NDP Neighbor advertisement";
-      case ND_REDIRECT:
-        return "NDP Redirect message";
+    auto pckt_ip6 = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
+    auto req = icmp6::Packet(std::move(pckt_ip6));
+    PRINT("<ICMP6> receive from %s\n", req.ip().ip_src().to_string().c_str());
 
-      case 143:
-        return "Multicast Listener Discovery (MLDv2) reports (RFC 3810)";
-
-      default:
-        return "Unknown type: " + std::to_string((int) type);
-      }
+    switch(req.type()) {
+    case (ICMP_type::ECHO):
+      PRINT("<ICMP6> PING from %s\n", req.ip().ip_src().to_string().c_str());
+      ping_reply(req);
+      break;
+    case (ICMP_type::ECHO_REPLY):
+      PRINT("<ICMP6> PING Reply from %s\n", req.ip().ip_src().str().c_str());
+      execute_ping_callback(req);
+      break;
+    case (ICMP_type::DEST_UNREACHABLE):
+      PRINT("<ICMP6> Destination unreachable from %s\n", req.ip().ip_src().str().c_str());
+      break;
+    case (ICMP_type::PACKET_TOO_BIG):
+      PRINT("<ICMP6> ICMP Too Big message from %s\n", req.ip().ip_src().str().c_str());
+      handle_too_big(req);
+      return;
+    case (ICMP_type::TIME_EXCEEDED):
+    case (ICMP_type::PARAMETER_PROBLEM):
+      PRINT("<ICMP6> ICMP error message from %s\n", req.ip().ip_src().str().c_str());
+      forward_to_transport_layer(req);
+      break;
+    case (ICMP_type::MULTICAST_LISTENER_QUERY):
+    case (ICMP_type::MULTICAST_LISTENER_REPORT):
+    case (ICMP_type::MULTICAST_LISTENER_DONE):
+      PRINT("<ICMP6> ICMP multicast message from %s\n", req.ip().ip_src().str().c_str());
+      break;
+    case (ICMP_type::ND_ROUTER_SOL):
+    case (ICMP_type::ND_ROUTER_ADV):
+    case (ICMP_type::ND_NEIGHBOUR_SOL):
+    case (ICMP_type::ND_NEIGHBOUR_ADV):
+    case (ICMP_type::ND_REDIRECT):
+      PRINT("<ICMP6> NDP message from %s\n", req.ip().ip_src().str().c_str());
+      ndp().receive(req);
+      break;
+    case (ICMP_type::ROUTER_RENUMBERING):
+      PRINT("<ICMP6> ICMP Router re-numbering message from %s\n", req.ip().ip_src().str().c_str());
+      break;
+    case (ICMP_type::INFORMATION_QUERY):
+    case (ICMP_type::INFORMATION_RESPONSE):
+      break;
+    default:  // ICMP_type::NO_REPLY
+      return;
+    }
   }
 
-  int ICMPv6::bottom(Packet_ptr pckt)
-  {
-    auto icmp = std::static_pointer_cast<PacketICMP6>(pckt);
+  void ICMPv6::forward_to_transport_layer(icmp6::Packet& req) {
+    ICMP6_error err{req.type(), req.code()};
 
-    type_t type = icmp->type();
+    // The icmp6::Packet's payload contains the original packet sent that resulted
+    // in an error
+    auto packet_ptr = req.release();
+    packet_ptr->increment_layer_begin(req.payload_index());
 
-    if (listeners.find(type) != listeners.end())
-      {
-        return listeners[type](*this, icmp);
-      }
-    else
-      {
-        debug(">>> IPv6 -> ICMPv6 bottom (no handler installed)\n");
-        debug("ICMPv6 type %d: %s\n",
-              (int) icmp->type(), code_string(icmp->type(), icmp->code()).c_str());
-
-        /*
-        // show correct checksum
-        intptr_t chksum = icmp->checksum();
-        debug("ICMPv6 checksum: %p \n",(void*) chksum);
-
-        // show our recalculated checksum
-        icmp->header().checksum_ = 0;
-        chksum = checksum(icmp);
-        debug("ICMPv6 our estimate: %p \n", (void*) chksum );
-        */
-        return -1;
-      }
-  }
-  int ICMPv6::transmit(std::shared_ptr<PacketICMP6>& pckt)
-  {
-    // NOTE: *** OBJECT CREATED ON STACK *** -->
-    auto original = std::static_pointer_cast<PacketIP6>(pckt);
-    // NOTE: *** OBJECT CREATED ON STACK *** <--
-    return ip6_out(original);
+    // inet forwards to transport layer (UDP or TCP)
+    inet_.error_report(err, std::move(packet_ptr));
   }
 
-  uint16_t ICMPv6::checksum(std::shared_ptr<PacketICMP6>& pckt)
-  {
-    IP6::header& hdr = pckt->ip6_header();
+  void ICMPv6::handle_too_big(icmp6::Packet& req) {
+    // In this type of ICMP packet, the Next-Hop MTU is placed at the same location as
+    // the sequence number in an ECHO message f.ex.
+    ICMP6_error err{req.type(), req.code(), req.sequence()};
 
-    uint16_t datalen = hdr.size();
-    pseudo_header phdr;
+    // The icmp6::Packet's payload contains the original packet sent that resulted
+    // in the Fragmentation Needed
+    auto packet_ptr = req.release();
+    packet_ptr->increment_layer_begin(req.payload_index());
 
-    // ICMP checksum is done with a pseudo header
-    // consisting of src addr, dst addr, message length (32bits)
-    // 3 zeroes (8bits each) and id of the next header
-    phdr.src = hdr.src;
-    phdr.dst = hdr.dst;
-    phdr.len = htonl(datalen);
-    phdr.zeros[0] = 0;
-    phdr.zeros[1] = 0;
-    phdr.zeros[2] = 0;
-    phdr.next = hdr.next();
-    //assert(hdr.next() == 58); // ICMPv6
+    // Inet updates the corresponding Path MTU value in IP and notifies the transport/packetization layer
+    inet_.error_report(err, std::move(packet_ptr));
+  }
 
-    /**
-       RFC 4443
-       2.3. Message Checksum Calculation
+  void ICMPv6::destination_unreachable(Packet_ptr pckt, icmp6::code::Dest_unreachable code) {
+    if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
+      return;
 
-       The checksum is the 16-bit one's complement of the one's complement
-       sum of the entire ICMPv6 message, starting with the ICMPv6 message
-       type field, and prepended with a "pseudo-header" of IPv6 header
-       fields, as specified in [IPv6, Section 8.1].  The Next Header value
-       used in the pseudo-header is 58.  (The inclusion of a pseudo-header
-       in the ICMPv6 checksum is a change from IPv4; see [IPv6] for the
-       rationale for this change.)
+    auto pckt_ip6 = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
 
-       For computing the checksum, the checksum field is first set to zero.
-    **/
-    union
+#if 0
+    // Only sending destination unreachable message if the destination IP address is not
+    // broadcast or multicast
+    if (pckt_ip6->ip_dst() != inet_.broadcast_addr() and pckt_ip6->ip_dst() != IP6::ADDR_BCAST and
+      not pckt_ip6->ip_dst().is_multicast()) {
+      auto pckt_icmp6 = icmp6::Packet(std::move(pckt_ip6));
+      send_response(pckt_icmp6, ICMP_type::DEST_UNREACHABLE, (ICMP_code) code);
+    }
+#endif
+  }
+
+  void ICMPv6::time_exceeded(Packet_ptr pckt, icmp6::code::Time_exceeded code) {
+    if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
+      return;
+
+    auto pckt_ip6 = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
+    auto pckt_icmp6 = icmp6::Packet(std::move(pckt_ip6));
+    send_response(pckt_icmp6, ICMP_type::TIME_EXCEEDED, (ICMP_code) code);
+  }
+
+  void ICMPv6::parameter_problem(Packet_ptr pckt, uint8_t error_pointer) {
+    if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
+      return;
+
+    auto pckt_ip6 = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
+    auto pckt_icmp6 = icmp6::Packet(std::move(pckt_ip6));
+    send_response(pckt_icmp6, ICMP_type::PARAMETER_PROBLEM, 0, error_pointer);
+  }
+
+  void ICMPv6::ping(IP6::addr ip)
+  { send_request(ip, ICMP_type::ECHO, 0); }
+
+  void ICMPv6::ping(IP6::addr ip, icmp_func callback, int sec_wait)
+  { send_request(ip, ICMP_type::ECHO, 0, callback, sec_wait); }
+
+  void ICMPv6::ping(const std::string& hostname) {
+#if 0
+    inet_.resolve(hostname, [this] (IP6::addr a, Error err) {
+      if (!err and a != IP6::ADDR_ANY)
+        ping(a);
+    });
+#endif
+  }
+
+  void ICMPv6::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
+#if 0
+    inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (IP6::addr a, Error err) {
+      if (!err and a != IP6::ADDR_ANY)
+        ping(a, callback, sec_wait);
+    }));
+#endif
+  }
+
+  void ICMPv6::send_request(IP6::addr dest_ip, ICMP_type type, ICMP_code code,
+    icmp_func callback, int sec_wait, uint16_t sequence) {
+
+    // Check if inet is configured with ipv6
+    if (!inet_.is_configured_v6()) {
+      PRINT("<ICMP6> inet is not configured to send ipv6 packets\n");
+      return;
+    }
+    // Provision new IP6-packet
+    icmp6::Packet req(inet_.ip6_packet_factory());
+
+    // Populate request IP header
+    req.ip().set_ip_src(inet_.ip6_addr());
+    req.ip().set_ip_dst(dest_ip);
+
+    uint16_t temp_id = request_id_;
+    // Populate request ICMP header
+    req.set_type(type);
+    req.set_code(code);
+    req.set_id(request_id_++);
+    req.set_sequence(sequence);
+
+    if (callback) {
+      ping_callbacks_.emplace(std::piecewise_construct,
+                              std::forward_as_tuple(std::make_pair(temp_id, sequence)),
+                              std::forward_as_tuple(ICMP_callback{*this, std::make_pair(temp_id, sequence), callback, sec_wait}));
+    }
+
+    PRINT("<ICMP6> Transmitting request to %s\n", dest_ip.to_string().c_str());
+
+    // Default payload
+    req.add_payload(includeos_payload.data(), includeos_payload.size());
+
+    // Add checksum
+    req.set_checksum();
+
+    PRINT("<ICMP6> Request size: %i payload size: %i, checksum: 0x%x\n",
+      req.ip().size(), req.payload().size(), req.compute_checksum());
+
+    network_layer_out_(req.release());
+  }
+
+  void ICMPv6::send_response(icmp6::Packet& req, ICMP_type type, ICMP_code code, uint8_t error_pointer) {
+
+    // Check if inet is configured with ipv6
+    if (!inet_.is_configured_v6()) {
+      PRINT("<ICMP6> inet is not configured to send ipv6 response\n");
+      return;
+    }
+
+    // Provision new IP6-packet
+    icmp6::Packet res(inet_.ip6_packet_factory());
+
+    // Populate response IP header
+    res.ip().set_ip_src(inet_.ip6_addr());
+    res.ip().set_ip_dst(req.ip().ip_src());
+
+    // Populate response ICMP header
+    res.set_type(type);
+    res.set_code(code);
+
+    PRINT("<ICMP6> Transmitting answer to %s\n", res.ip().ip_dst().str().c_str());
+
+    // Payload
+    // Default: Header and 66 bits (8 bytes) of original payload
+    res.add_payload(req.header_and_data().data(), req.header_and_data().size());
+
+    // Add checksum
+    res.set_checksum();
+
+    if (error_pointer != std::numeric_limits<uint8_t>::max())
+      res.set_pointer(error_pointer);
+
+    PRINT("<ICMP6> Response size: %i payload size: %i, checksum: 0x%x\n",
+          res.ip().size(), res.payload().size(), res.compute_checksum());
+
+    network_layer_out_(res.release());
+  }
+
+  void ICMPv6::ping_reply(icmp6::Packet& req) {
+    // Provision new IP6-packet
+    icmp6::Packet res(inet_.ip6_packet_factory());
+
+    // drop if the packet is too small
+    if (res.ip().capacity() < IP6_HEADER_LEN
+     + (int) res.header_size() + req.payload().size())
     {
-      uint32_t whole;
-      uint16_t part[2];
-    } sum;
-    sum.whole = 0;
+      PRINT("WARNING: Network MTU too small for ICMP response, dropping\n");
+      return;
+    }
 
-    // compute sum of pseudo header
-    uint16_t* it = (uint16_t*) &phdr;
-    uint16_t* it_end = it + sizeof(pseudo_header) / 2;
+    // Populate response IP header
+    res.ip().set_ip_src(inet_.ip6_addr());
+    res.ip().set_ip_dst(req.ip().ip_src());
 
-    while (it < it_end)
-      sum.whole += *(it++);
+    // Populate response ICMP header
+    res.set_type(ICMP_type::ECHO_REPLY);
+    res.set_code(0);
+    // Incl. id and sequence number
+    res.set_id(req.id());
+    res.set_sequence(req.sequence());
 
-    // compute sum of data
-    it = (uint16_t*) pckt->payload();
-    it_end = it + datalen / 2;
+    PRINT("<ICMP6> Transmitting answer to %s\n",
+          res.ip().ip_dst().str().c_str());
 
-    while (it < it_end)
-      sum.whole += *(it++);
+    // Payload
+    res.add_payload(req.payload().data(), req.payload().size());
 
-    // odd-numbered case
-    if (datalen & 1)
-      sum.whole += *(uint8_t*) it;
+    // Add checksum
+    res.set_checksum();
 
-    return ~(sum.part[0] + sum.part[1]);
+    PRINT("<ICMP6> Response size: %i payload size: %i, checksum: 0x%x\n",
+          res.ip().size(), res.payload().size(), res.compute_checksum());
+
+    network_layer_out_(res.release());
   }
-
-  // internal implementation of handler for ICMP type 128 (echo requests)
-  int echo_request(ICMPv6& caller, std::shared_ptr<PacketICMP6>& pckt)
-  {
-    ICMPv6::echo_header* icmp = (ICMPv6::echo_header*) pckt->payload();
-    debug("*** Custom handler for ICMP ECHO REQ type=%d 0x%x\n", icmp->type, htons(icmp->checksum));
-
-    // set the hoplimit manually to the very standard 64 hops
-    pckt->set_hoplimit(64);
-
-    // set to ICMP Echo Reply (129)
-    icmp->type = ICMPv6::ECHO_REPLY;
-
-    if (pckt->dst().is_multicast())
-      {
-        // We won't be changing source address for multicast ping
-        debug("Was multicast ping6: no change for source and dest\n");
-      }
-    else
-      {
-        printf("Normal ping6: source is us\n");
-        printf("src is %s\n", pckt->src().str().c_str());
-        printf("dst is %s\n", pckt->dst().str().c_str());
-
-        printf("multicast is %s\n", IP6::addr::link_all_nodes.str().c_str());
-        // normal ping: send packet to source, from us
-        pckt->set_dst(pckt->src());
-        pckt->set_src(caller.local_ip());
-      }
-    // calculate and set checksum
-    // NOTE: do this after changing packet contents!
-    icmp->checksum = 0;
-    icmp->checksum = ICMPv6::checksum(pckt);
-
-    // send packet downstream
-    return caller.transmit(pckt);
-  }
-  int neighbor_solicitation(ICMPv6& caller, std::shared_ptr<PacketICMP6>& pckt)
-  {
-    (void) caller;
-    NDP::neighbor_sol* sol = (NDP::neighbor_sol*) pckt->payload();
-
-    printf("ICMPv6 NDP Neighbor solicitation request\n");
-    printf(">> target: %s\n", sol->target.str().c_str());
-    printf(">>\n");
-    printf(">> source: %s\n", pckt->src().str().c_str());
-    printf(">> dest:   %s\n", pckt->dst().str().c_str());
-
-    // perhaps we should answer
-    (void) caller;
-
-    return -1;
-  }
-
-  void ICMPv6::discover()
-  {
-    // ether-broadcast an IPv6 packet to all routers
-    // IPv6mcast_02: 33:33:00:00:00:02
-    auto pckt = IP6::create(
-                            IP6::PROTO_ICMPv6,
-                            Ethernet::IPv6mcast_02,
-                            IP6::addr::link_unspecified);
-
-    // RFC4861 4.1. Router Solicitation Message Format
-    pckt->set_hoplimit(255);
-
-    NDP::router_sol* ndp = (NDP::router_sol*) pckt->payload();
-    // set to Router Solicitation Request
-    ndp->type = ICMPv6::ND_ROUTER_SOL;
-    ndp->code = 0;
-    ndp->checksum = 0;
-    ndp->reserved = 0;
-
-    auto icmp = std::static_pointer_cast<PacketICMP6> (pckt);
-
-    // source and destination addresses
-    icmp->set_src(this->local_ip()); //IP6::addr::link_unspecified);
-    icmp->set_dst(IP6::addr::link_all_routers);
-
-    // ICMP header length field
-    icmp->set_length(sizeof(NDP::router_sol));
-
-    // calculate and set checksum
-    // NOTE: do this after changing packet contents!
-    ndp->checksum = ICMPv6::checksum(icmp);
-
-    this->transmit(icmp);
-
-    /// DHCPv6 test ///
-    // ether-broadcast an IPv6 packet to all routers
-    //pckt = IP6::create(
-    //    IP6::PROTO_UDP,
-    //    Ethernet::IPv6mcast_02,
-    //    IP6::addr::link_unspecified);
-  }
-
-
 }

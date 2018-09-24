@@ -23,22 +23,26 @@
 #include <fs/memdisk.hpp>
 #include <statman>
 
-extern "C" {
-  char _DISK_START_;
-  char _DISK_END_;
-}
+
+extern char _DISK_START_;
+extern char _DISK_END_;
 
 namespace fs {
 
   MemDisk::MemDisk() noexcept
-  : Block_device(),
-    image_start_ { &_DISK_START_ },
-    image_end_   { &_DISK_END_ },
+    : MemDisk(&_DISK_START_, &_DISK_END_)
+  {
+    INFO("Memdisk", "Initializing start=%p end=%p", image_start_, image_end_);
+  }
 
-    stat_read( Statman::get().create(
+  MemDisk::MemDisk(const char* start, const char* end) noexcept
+    : Block_device(),
+      image_start_ { start },
+      image_end_   { end },
+      stat_read( Statman::get().create(
                Stat::UINT64, device_name() + ".reads").get_uint64() )
   {
-    INFO("Memdisk", "Initializing");
+    Expects(image_start_ <= image_end_);
   }
 
   MemDisk::buffer_t MemDisk::read_sync(block_t blk)

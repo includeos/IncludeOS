@@ -116,10 +116,10 @@ namespace x86 {
     void acpi_shutdown();
 
     uint32_t* SMI_CMD;
-    uint8_t   ACPI_ENABLE;
-    uint8_t   ACPI_DISABLE;
-    uint32_t* PM1a_CNT;
-    uint32_t* PM1b_CNT;
+    uint8_t  ACPI_ENABLE;
+    uint8_t  ACPI_DISABLE;
+    uint32_t PM1a_CNT;
+    uint32_t PM1b_CNT;
     uint16_t SLP_TYPa;
     uint16_t SLP_TYPb;
     uint16_t SLP_EN;

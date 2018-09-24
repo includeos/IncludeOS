@@ -21,7 +21,7 @@
 
 #include "apic_iface.hpp"
 #include "apic_regs.hpp"
-#include "cpu.hpp"
+#include <arch/x86/cpu.hpp>
 #include <kernel/events.hpp>
 #include <debug>
 #include <info>
@@ -49,11 +49,6 @@
 
 #define IA32_APIC_BASE_MSR  0x1B
 
-extern "C" {
-  extern void (*current_eoi_mechanism)();
-  extern void x2apic_send_eoi();
-}
-
 namespace x86 {
 
   struct x2apic : public IApic
@@ -62,10 +57,11 @@ namespace x86 {
     static const uint8_t  SPURIOUS_INTR = IRQ_BASE + Events::NUM_EVENTS-1;
 
     x2apic() {
-      INFO("x2APIC", "Enabling x2APIC");
-      // add x2APIC enable bit to APIC BASE MSR
       auto base_msr = CPU::read_msr(IA32_APIC_BASE_MSR);
-      base_msr = (base_msr & 0xfffff100) | MSR_ENABLE_X2APIC;
+      INFO("x2APIC", "Enabling x2APIC @ %#x", (uint32_t) base_msr);
+
+      // add x2APIC enable bit to APIC BASE MSR
+      base_msr = (base_msr & 0xfffff000) | MSR_ENABLE_X2APIC;
       // turn the x2APIC on
       CPU::write_msr(IA32_APIC_BASE_MSR, base_msr, 0);
       // verify that x2APIC is online
@@ -74,7 +70,7 @@ namespace x86 {
       INFO2("APIC id: %x  ver: %x", get_id(), version());
     }
 
-    uint32_t read(uint32_t reg) noexcept override
+    uint32_t read(uint32_t reg) noexcept
     {
       return CPU::read_msr(BASE_MSR + reg);
     }
@@ -82,7 +78,7 @@ namespace x86 {
     {
       return CPU::read_msr(BASE_MSR + reg);
     }
-    void write(uint32_t reg, uint32_t value) noexcept override
+    void write(uint32_t reg, uint32_t value) noexcept
     {
       CPU::write_msr(BASE_MSR + reg, value);
     }
@@ -135,34 +131,46 @@ namespace x86 {
       enable();
     }
 
-    static uint8_t static_get_isr() noexcept
+    static int static_get_isr() noexcept
     {
       for (int i = 5; i >= 1; i--) {
         uint32_t reg = CPU::read_msr(BASE_MSR + x2APIC_ISR + i);
         if (reg) return 32 * i + __builtin_ffs(reg) - 1;
       }
-      return 159;
+      return -1;
     }
 
     void eoi() noexcept override
     {
       write(x2APIC_EOI, 0);
     }
-    uint8_t get_isr() noexcept override
+    int get_isr() noexcept override
     {
       for (int i = 5; i >= 1; i--) {
         uint32_t reg = read(x2APIC_ISR + i);
         if (reg) return 32 * i + __builtin_ffs(reg) - 1;
       }
-      return 159;
+      return -1;
     }
-    uint8_t get_irr() noexcept override
+    int get_irr() noexcept override
     {
-      for (int i = 5; i >= 1; i--) {
+      for (int i = 5; i >= 0; i--) {
         uint32_t reg = read(x2APIC_IRR + i);
         if (reg) return 32 * i + __builtin_ffs(reg) - 1;
       }
-      return 159;
+      return -1;
+    }
+    static uint32_t get_isr_at(int index) noexcept
+    {
+      return CPU::read_msr(BASE_MSR + x2APIC_ISR + index);
+    }
+    static std::array<uint32_t, 6> get_isr_array() noexcept
+    {
+      std::array<uint32_t, 6> isr_array;
+      for (int i = 1; i < 6; i++) {
+        isr_array[i] = get_isr_at(i);
+      }
+      return isr_array;
     }
 
     void ap_init(int id) noexcept override

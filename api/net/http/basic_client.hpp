@@ -23,6 +23,7 @@
 #include "client_connection.hpp"
 
 #include <net/tcp/tcp.hpp>
+#include <net/inet>
 #include <vector>
 #include <map>
 

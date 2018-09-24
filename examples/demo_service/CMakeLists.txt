@@ -33,7 +33,9 @@ else()
       vmxnet3
       boot_logger   # Display boot information
 
-      # Use "boot --drivers ." to see other drivers
+    # Use "boot --drivers ." to see other drivers
+    # virtioblk # Virtio block device
+    # ... Others from src/drivers
     )
 endif()
 

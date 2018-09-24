@@ -17,13 +17,10 @@
 
 #include <service>
 
-/* For testing Posix */
-#include <syslog.h>
-
 /* For testing IncludeOS */
 #include <syslogd>
 
-#include <net/inet4>
+#include <net/inet>
 
 int main()
 {
@@ -32,63 +29,28 @@ int main()
   /* ------------------------- Testing POSIX syslog ------------------------- */
 
   // DHCP on interface 0
-  auto& inet = net::Inet4::stack();
+  auto& inet = net::Inet::stack();
   // static IP in case DHCP fails
   inet.network_config({  10,  0,  0, 47 },   // IP
-                                   { 255, 255, 255,  0 },    // Netmask
-                                   {  10,  0,  0,  1 },    // Gateway
-                                   {  10,  0,  0,  1} );   // DNS
-
-  // Setting IP and port for the syslog messages
-  Syslog::settings( {10, 0, 0, 2}, 6514 );
-  printf("Syslog messages are sent to IP %s and port %d\n", Syslog::ip().str().c_str(), Syslog::port());
+                       { 255, 255, 255,  0 },    // Netmask
+                       {  10,  0,  0,  1 },    // Gateway
+                       {  10,  0,  0,  1} );   // DNS
 
   // Starts the python integration test:
   printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
 
   int invalid_priority = -1;
-  syslog(invalid_priority, "Invalid %d", invalid_priority);
-
-  invalid_priority = 10;
-  syslog(invalid_priority, "Invalid %d", invalid_priority);
-
-  invalid_priority = 55;
-  syslog(invalid_priority, "Invalid %d", invalid_priority);
 
   std::string one{"one"};
   std::string two{"two"};
   size_t number = 33;
 
-  syslog(LOG_INFO, "(Info) No open has been called prior to this");
-  syslog(LOG_NOTICE, "(Notice) Program created with two arguments: %s and %s", one.c_str(), two.c_str());
 
-  openlog("Prepended message", LOG_CONS | LOG_NDELAY, LOG_MAIL);
-
-  syslog(LOG_ERR, "(Err) Log after prepended message with one argument: %d", 44);
-  syslog(LOG_WARNING, "(Warning) Log number two after openlog set prepended message");
-
-  closelog();
-
-  syslog(LOG_WARNING, "(Warning) Log after closelog with three arguments. One is %u, another is %s, a third is %d", number, "this", 4011);
-
-  openlog("Second prepended message", LOG_PID | LOG_CONS, LOG_USER);
-
-  syslog(LOG_EMERG, "Emergency log after openlog and new facility: user");
-  syslog(LOG_ALERT, "Alert log with the m argument: %m");
-
-  closelog();
-
-  syslog(LOG_CRIT, "Critical after cleared prepended message (closelog has been called)");
-
-  closelog();
-
-  openlog("Open after close prepended message", LOG_CONS, LOG_MAIL);
-
-  syslog(LOG_INFO, "Info after openlog with both m: %m and two hex arguments: 0x%x and 0x%x", 100, 50);
-
-  closelog();
 
   /* ------------------------- Testing IncludeOS syslog ------------------------- */
+  // Setting IP and port for the syslog messages
+  Syslog::settings( {10, 0, 0, 2}, 6514 );
+  printf("Syslog messages are sent to IP %s and port %d\n", Syslog::ip().to_string().c_str(), Syslog::port());
 
   invalid_priority = -1;
   Syslog::syslog(invalid_priority, "Invalid %d", invalid_priority);
@@ -109,7 +71,7 @@ int main()
 
   Syslog::closelog();
 
-  Syslog::syslog(LOG_WARNING, "(Warning) Log after closelog with three arguments. One is %u, another is %s, a third is %d", number, "this", 4011);
+  Syslog::syslog(LOG_WARNING, "(Warning) Log after closelog with three arguments. One is %zu, another is %s, a third is %d", number, "this", 4011);
 
   Syslog::openlog("Second prepended message", LOG_PID | LOG_CONS, LOG_USER);
 

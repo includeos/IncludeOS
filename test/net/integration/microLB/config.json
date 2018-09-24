@@ -19,9 +19,11 @@
   "load_balancer" : {
     "clients" : {
       "iface" : 0,
-      "port" : 80,
+      "port" : 443,
       "waitq_limit"   : 1000,
-      "session_limit" : 1000
+      "session_limit" : 1000,
+      "certificate": "/test.pem",
+      "key":         "/test.key"
     },
     "nodes" : {
       "iface" : 1,
