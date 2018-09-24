@@ -21,8 +21,7 @@
 #define PACKET_ICMP6_HPP
 
 #include <net/ip6/icmp6_error.hpp>
-#include <net/ip6/packet_ndp.hpp>
-#include <net/ip6/packet_mld.hpp>
+#include <net/ip6/packet_ip6.hpp>
 
 namespace net::icmp6 {
 
@@ -62,15 +61,6 @@ namespace net::icmp6 {
       Type     type;
       uint8_t  code;
       uint16_t checksum;
-      union {
-        struct IdSe          idse;
-        uint32_t             reserved;
-        uint32_t             rso_flags;
-        RaHeader             ra;
-        mldHeader            mld_rd;
-        mldHeader2_query     mld2_q;
-        mldHeader2_listener  mld2_l;
-      };
       uint8_t  payload[0];
     }__attribute__((packed));
 
@@ -92,8 +82,6 @@ namespace net::icmp6 {
   public:
 
     using Span = gsl::span<uint8_t>;
-    friend class ndp::NdpPacket;
-    friend class mld::MldPacket2;
 
     static constexpr size_t header_size()
     { return sizeof(Header); }
@@ -108,33 +96,12 @@ namespace net::icmp6 {
     { return header().checksum; }
 
     uint16_t id() const noexcept
-    { return header().idse.identifier; }
+    { return reinterpret_cast<const IdSe*>(header().payload[0])->identifier; }
 
     uint16_t sequence() const noexcept
-    { return header().idse.sequence; }
+    { return reinterpret_cast<const IdSe*>(header().payload[0])->sequence; }
 
-    uint8_t cur_hop_limit() const noexcept
-    { return header().ra.cur_hop_limit; }
-
-    bool managed_address_config() const noexcept
-    { return header().ra.ma_config_flag; }
-
-    bool managed_other_config() const noexcept
-    { return header().ra.mo_config_flag; }
-
-    uint16_t router_lifetime() const noexcept
-    { return header().ra.router_lifetime; }
-
-    uint16_t mld_max_resp_delay() const noexcept
-    { return header().mld_rd.max_resp_delay; }
-
-    uint16_t mld2_query_max_resp_code() const noexcept
-    { return header().mld2_q.max_resp_code; }
-
-    uint16_t mld2_listner_num_records() const noexcept
-    { return header().mld2_l.num_records; }
-
-    ip6::Addr& mld_multicast() 
+    ip6::Addr& mld_multicast()
     { return *reinterpret_cast<ip6::Addr*> (&(header().payload[0])); }
 
     uint16_t payload_len() const noexcept
@@ -166,21 +133,21 @@ namespace net::icmp6 {
     void set_code(uint8_t c) noexcept
     { header().code = c; }
 
-    void set_id(uint16_t s) noexcept
-    { header().idse.identifier = s; }
+    void set_id(uint16_t id) noexcept
+    { reinterpret_cast<IdSe*>(header().payload[0])->identifier = id; }
 
     void set_sequence(uint16_t s) noexcept
-    { header().idse.sequence = s; }
+    { reinterpret_cast<IdSe*>(header().payload[0])->sequence = s; }
 
     void set_reserved(uint32_t s) noexcept
-    { header().reserved = s; }
+    { *reinterpret_cast<uint32_t*>(header().payload[0]) = s; }
 
     /**
      * RFC 792 Parameter problem f.ex.: error (Pointer) is placed in the first byte after checksum
      * (identifier and sequence is not used when pointer is used)
      */
     void set_pointer(uint8_t error)
-    { header().idse.identifier = error; }
+    { reinterpret_cast<IdSe*>(header().payload[0])->identifier = error; }
 
     uint16_t compute_checksum() const noexcept
     {
@@ -255,35 +222,28 @@ namespace net::icmp6 {
     }
 
     /** Get the underlying IP packet */
-    IP6::IP_packet& ip() { return *pckt_; }
-    const IP6::IP_packet& ip() const { return *pckt_; }
+    PacketIP6& ip() { return *pckt_; }
+    const PacketIP6& ip() const { return *pckt_; }
 
     /** Construct from existing packet **/
-    Packet(IP6::IP_packet_ptr pckt)
-      : pckt_{ std::move(pckt) }, ndp_(*this), mld2_(*this)
+    Packet(std::unique_ptr<PacketIP6> pckt)
+      : pckt_{ std::move(pckt) }
     { }
 
+    using IP_packet_factory = delegate<std::unique_ptr<PacketIP6>(Protocol)>;
     /** Provision fresh packet from factory **/
-    Packet(IP6::IP_packet_factory create)
-      : pckt_ { create(Protocol::ICMPv6) }, ndp_(*this), mld2_(*this)
+    Packet(IP_packet_factory create)
+      : pckt_ { create(Protocol::ICMPv6) }
     {
       pckt_->increment_data_end(sizeof(Header));
     }
 
     /** Release packet pointer **/
-    IP6::IP_packet_ptr release()
+    std::unique_ptr<PacketIP6> release()
     { return std::move(pckt_); }
 
-    ndp::NdpPacket& ndp()
-    { return ndp_; }
-
-    mld::MldPacket2& mld2()
-    { return mld2_; }
-
   private:
-    IP6::IP_packet_ptr pckt_;
-    ndp::NdpPacket     ndp_;
-    mld::MldPacket2    mld2_;
+    std::unique_ptr<PacketIP6> pckt_;
     uint16_t payload_offset_ = 0;
   };
 }

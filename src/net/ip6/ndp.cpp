@@ -74,19 +74,27 @@ namespace net
     // Populate response ICMP header
     res.set_type(ICMP_type::ND_NEIGHBOUR_ADV);
     res.set_code(0);
-    res.ndp().set_neighbour_adv_flag(ndp::NEIGH_ADV_SOL | ndp::NEIGH_ADV_OVERRIDE);
+
+    auto payload  = res.payload();
+    auto* data    = payload.data();
+    auto& adv     = *reinterpret_cast<ndp::View<ndp::Neighbor_adv>*>(data);
+
+    adv.set_flag(ndp::Neighbor_adv::Solicited | ndp::Neighbor_adv::Override);
 
     // Insert target link address, ICMP6 option header and our mac address
-    res.add_payload(req.ndp().neighbour_sol().target().data(), 16);
-    res.ndp().set_ndp_options_header(ndp::ND_OPT_TARGET_LL_ADDR, 0x01);
-    res.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
+    const auto& sol = *reinterpret_cast<const ndp::View<ndp::Neighbor_sol>*>(req.payload().data());
+    adv.target = sol.target;
+
+    res.ip().increment_data_end(sizeof(sol));
+    using Target_ll_addr = ndp::option::Target_link_layer_address<MAC::Addr>;
+    auto* opt = adv.add_option<Target_ll_addr>(0, link_mac_addr());
+    res.ip().increment_data_end(opt->size());
 
     // Add checksum
     res.set_checksum();
 
-    PRINT("NDP: Neighbor Adv Response dst: %s size: %i payload size: %i,"
-        " checksum: 0x%x\n", res.ip().ip_dst().str().c_str(), res.payload().size(),
-        res.ip().ip_dst().str().c_str(), res.compute_checksum());
+    PRINT("NDP: Neighbor Adv Response dst: %s payload size: %li checksum: 0x%x\n",
+      res.ip().ip_dst().str().c_str(), res.payload().size(), res.compute_checksum());
 
     auto dest = res.ip().ip_dst();
     transmit(res.release(), dest);
@@ -94,15 +102,18 @@ namespace net
 
   void Ndp::receive_neighbour_advertisement(icmp6::Packet& req)
   {
-    ip6::Addr target = req.ndp().neighbour_adv().target();
+    auto payload    = req.payload();
+    auto* data      = payload.data();
+    const auto& adv = *reinterpret_cast<const ndp::View<ndp::Neighbor_adv>*>(data);
+
+    const auto& target = adv.target;
 
     if (target.is_multicast()) {
       PRINT("NDP: neighbour advertisement target address is multicast\n");
       return;
     }
 
-    if (req.ip().ip_dst().is_multicast() &&
-      req.ndp().is_flag_solicited()) {
+    if (req.ip().ip_dst().is_multicast() && adv.solicited()) {
       PRINT("NDP: neighbour destination address is multicast when"
             " solicit flag is set\n");
       return;
@@ -115,16 +126,33 @@ namespace net
       return;
     }
 
-    req.ndp().parse_options(ICMP_type::ND_NEIGHBOUR_ADV);
-    auto lladdr = req.ndp().get_option_data(ndp::ND_OPT_TARGET_LL_ADDR);
+    // Parse the options
+    adv.parse_options(data + payload.length(), [&](const auto* opt)
+    {
+      using namespace ndp::option;
+      switch(opt->type)
+      {
+        case TARGET_LL_ADDR:
+        {
+          const auto lladdr =
+            reinterpret_cast<const Target_link_layer_address<MAC::Addr>*>(opt)->addr;
 
-    // For now, just create a cache entry, if one doesn't exist
-    cache(target, lladdr, req.ndp().is_flag_solicited() ?
-          NeighbourStates::REACHABLE : NeighbourStates::STALE,
-           NEIGH_UPDATE_WEAK_OVERRIDE |
-          (req.ndp().is_flag_override() ? NEIGH_UPDATE_OVERRIDE : 0) |
-           NEIGH_UPDATE_OVERRIDE_ISROUTER |
-           (req.ndp().is_flag_router() ? NEIGH_UPDATE_ISROUTER : 0));
+          // For now, just create a cache entry, if one doesn't exist
+          cache(target, lladdr,
+            adv.solicited() ? NeighbourStates::REACHABLE : NeighbourStates::STALE,
+            NEIGH_UPDATE_WEAK_OVERRIDE |
+            (adv.override() ? NEIGH_UPDATE_OVERRIDE : 0) |
+            NEIGH_UPDATE_OVERRIDE_ISROUTER |
+            (adv.router() ? NEIGH_UPDATE_ISROUTER : 0));
+
+          break;
+        }
+        default:
+        {
+          // Ignore other options
+        }
+      }
+    });
 
     auto waiting = waiting_packets_.find(target);
     if (waiting != waiting_packets_.end()) {
@@ -150,8 +178,11 @@ namespace net
     // option must be present
     req.ip().set_ip_dst(dest_ip.solicit(target));
 
+    auto& sol = *reinterpret_cast<ndp::View<ndp::Neighbor_sol>*>(req.payload().data());
+    req.ip().increment_data_end(sizeof(sol));
+
     // Set target address
-    req.add_payload(target.data(), IP6_ADDR_BYTES);
+    sol.target = target;
     /* RFC 4861 p.22
        MUST NOT be included when the source IP address is the
        unspecified address.  Otherwise, on link layers
@@ -161,8 +192,9 @@ namespace net
     */
     if(req.ip().ip_src() != IP6::ADDR_ANY)
     {
-      req.ndp().set_ndp_options_header(ndp::ND_OPT_SOURCE_LL_ADDR, 0x01);
-      req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
+      using Source_ll_addr = ndp::option::Source_link_layer_address<MAC::Addr>;
+      auto* opt = sol.add_option<Source_ll_addr>(0, link_mac_addr());
+      req.ip().increment_data_end(opt->size());
     }
 
     req.set_checksum();
@@ -187,8 +219,13 @@ namespace net
   void Ndp::receive_neighbour_solicitation(icmp6::Packet& req)
   {
     bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
-    ip6::Addr target = req.ndp().neighbour_sol().target();
-    uint64_t nonce = 0;
+
+    auto payload    = req.payload();
+    auto* data      = payload.data();
+    const auto& sol = *reinterpret_cast<const ndp::View<ndp::Neighbor_sol>*>(data);
+
+    auto target = sol.target;
+    [[maybe_unused]]uint64_t nonce = 0;
 
     PRINT("Receive NDP Neighbor solicitation request. Target addr: %s\n",
             target.str().c_str());
@@ -203,17 +240,34 @@ namespace net
               "but not solicit destination\n");
       return;
     }
-    req.ndp().parse_options(ICMP_type::ND_NEIGHBOUR_SOL);
-    auto lladdr = req.ndp().get_option_data(ndp::ND_OPT_SOURCE_LL_ADDR);
 
-    if (lladdr && any_src) {
+    MAC::Addr lladdr;
+    // Parse the options
+    sol.parse_options(data + payload.length(), [&](const auto* opt)
+    {
+      using namespace ndp::option;
+      switch(opt->type)
+      {
+        case SOURCE_LL_ADDR:
+        {
+          using Source_ll_addr = Source_link_layer_address<MAC::Addr>;
+          lladdr = reinterpret_cast<const Source_ll_addr*>(opt)->addr;
+          break;
+        }
+        case NONCE:
+        {
+          break;
+        }
+        default:
+        {
+          // Ignore other options
+        }
+      }
+    });
+
+    if (lladdr != MAC::EMPTY && any_src) {
       PRINT("NDP: bad any source packet with link layer option\n");
       return;
-    }
-
-    auto nonce_opt = req.ndp().get_option_data(ndp::ND_OPT_NONCE);
-    if (nonce_opt) {
-      //memcpy(&nonce, nonce_opt, 6);
     }
 
     bool is_dest_multicast = req.ip().ip_dst().is_multicast();
@@ -236,7 +290,7 @@ namespace net
     }
 
     if (any_src) {
-      if (lladdr) {
+      if (lladdr != MAC::EMPTY) {
         send_neighbour_advertisement(req);
       }
       return;
@@ -251,46 +305,47 @@ namespace net
 
   void Ndp::receive_redirect(icmp6::Packet& req)
   {
-      auto dest = req.ndp().router_redirect().dest();
-      auto target = req.ndp().router_redirect().target();
+    /*
+    auto dest = req.ndp().router_redirect().dest();
+    auto target = req.ndp().router_redirect().target();
 
-      if (!req.ip().ip_src().is_linklocal()) {
-        PRINT("NDP: Router Redirect source address is not link-local\n");
-        return;
-      }
+    if (!req.ip().ip_src().is_linklocal()) {
+      PRINT("NDP: Router Redirect source address is not link-local\n");
+      return;
+    }
 
-      if (req.ip().hop_limit() != 255) {
-        PRINT("NDP: Router Redirect source hop limit is not 255\n");
-        return;
-      }
+    if (req.ip().hop_limit() != 255) {
+      PRINT("NDP: Router Redirect source hop limit is not 255\n");
+      return;
+    }
 
-      if (req.code() != 0) {
-        PRINT("NDP: Router Redirect code is not 0\n");
-        return;
-      }
+    if (req.code() != 0) {
+      PRINT("NDP: Router Redirect code is not 0\n");
+      return;
+    }
 
-      if (dest.is_multicast()) {
-        PRINT("NDP: Router Redirect destination is multicast\n");
-        return;
-      }
+    if (dest.is_multicast()) {
+      PRINT("NDP: Router Redirect destination is multicast\n");
+      return;
+    }
 
-      if (!req.ndp().router_redirect().target().is_linklocal() &&
-            target != dest) {
-        PRINT("NDP: Router Redirect target is not linklocal and is not"
-            " equal to destination address\n");
-        return;
-      }
-      req.ndp().parse_options(ICMP_type::ND_REDIRECT);
-      dest_cache(dest, target);
+    if (!req.ndp().router_redirect().target().is_linklocal() &&
+          target != dest) {
+      PRINT("NDP: Router Redirect target is not linklocal and is not"
+          " equal to destination address\n");
+      return;
+    }
+    req.ndp().parse_options(ICMP_type::ND_REDIRECT);
+    dest_cache(dest, target);
 
-     auto lladdr = req.ndp().get_option_data(ndp::ND_OPT_TARGET_LL_ADDR);
+   auto lladdr = req.ndp().get_option_data(ndp::ND_OPT_TARGET_LL_ADDR);
 
-     if (lladdr) {
-       cache(target, lladdr, NeighbourStates::STALE,
-           NEIGH_UPDATE_WEAK_OVERRIDE | NEIGH_UPDATE_OVERRIDE |
-           (target == dest) ? 0 :
-           (NEIGH_UPDATE_OVERRIDE_ISROUTER| NEIGH_UPDATE_ISROUTER), false);
-     }
+   if (lladdr) {
+     cache(target, lladdr, NeighbourStates::STALE,
+         NEIGH_UPDATE_WEAK_OVERRIDE | NEIGH_UPDATE_OVERRIDE |
+         (target == dest) ? 0 :
+         (NEIGH_UPDATE_OVERRIDE_ISROUTER| NEIGH_UPDATE_ISROUTER), false);
+   }*/
   }
 
   void Ndp::send_router_solicitation(RouterAdv_handler delg)
@@ -311,8 +366,12 @@ namespace net
     req.set_code(0);
     req.set_reserved(0);
 
-    req.ndp().set_ndp_options_header(ndp::ND_OPT_SOURCE_LL_ADDR, 0x01);
-    req.add_payload(reinterpret_cast<uint8_t*> (&link_mac_addr()), 6);
+    auto& sol = *reinterpret_cast<ndp::View<ndp::Neighbor_sol>*>(req.payload().data());
+    req.ip().increment_data_end(sizeof(sol));
+
+    using Source_ll_addr = ndp::option::Source_link_layer_address<MAC::Addr>;
+    auto* opt = sol.add_option<Source_ll_addr>(0, link_mac_addr());
+    req.ip().increment_data_end(opt->size());
 
     // Add checksum
     req.set_checksum();
@@ -331,24 +390,42 @@ namespace net
 
   void Ndp::receive_router_solicitation(icmp6::Packet& req)
   {
-      uint8_t *lladdr;
+    /* Not a router. Drop it */
+    if (!inet_.ip6_obj().forward_delg()) {
+      return;
+    }
 
-      /* Not a router. Drop it */
-      if (!inet_.ip6_obj().forward_delg()) {
-          return;
+    if (req.ip().ip_src() == IP6::ADDR_ANY) {
+      PRINT("NDP: RS: Source address is any\n");
+      return;
+    }
+
+    auto payload    = req.payload();
+    auto* data      = payload.data();
+    const auto& sol = *reinterpret_cast<const ndp::View<ndp::Router_sol>*>(data);
+
+    sol.parse_options(data + payload.size(), [&](const auto* opt)
+    {
+      using namespace ndp::option;
+      switch(opt->type)
+      {
+        case SOURCE_LL_ADDR:
+        {
+          using Source_ll_addr = Source_link_layer_address<MAC::Addr>;
+          const auto lladdr = reinterpret_cast<const Source_ll_addr*>(opt)->addr;
+
+          cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
+            NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE |
+            NEIGH_UPDATE_OVERRIDE_ISROUTER);
+
+          break;
+        }
+        default:
+        {
+          // Ignore other options
+        }
       }
-
-      if (req.ip().ip_src() == IP6::ADDR_ANY) {
-          PRINT("NDP: RS: Source address is any\n");
-          return;
-      }
-
-      req.ndp().parse_options(ICMP_type::ND_ROUTER_SOL);
-      lladdr = req.ndp().get_option_data(ndp::ND_OPT_SOURCE_LL_ADDR);
-
-      cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
-         NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE |
-         NEIGH_UPDATE_OVERRIDE_ISROUTER);
+    });
   }
 
   void Ndp::receive_router_advertisement(icmp6::Packet& req)
@@ -366,12 +443,12 @@ namespace net
         return;
       }
 
-      /* Add this router to the router list */
-      add_router(req.ip().ip_src(), req.router_lifetime());
-
       auto payload = req.payload();
-      auto* data   = payload.data() - 4;
-      auto& adv = *(ndp::View<ndp::Router_adv>*)(data);
+      auto* data   = payload.data();
+      const auto& adv = *reinterpret_cast<const ndp::View<ndp::Router_adv>*>(data);
+
+      /* Add this router to the router list */
+      add_router(req.ip().ip_src(), ntohs(adv.router_lifetime));
 
       /* TODO: Check if this is a router or a host.
        * Lets assume we are a host for now. Set host params */

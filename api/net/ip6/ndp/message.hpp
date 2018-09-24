@@ -38,6 +38,13 @@ namespace net::ndp {
       return n;
     }
 
+    template <typename Opt, typename... Args>
+    Opt* add_option(size_t offset, Args&&... args) noexcept
+    {
+      auto* opt = new (&options[offset]) Opt(std::forward<Args>(args)...);
+      return opt;
+    }
+
   };
 
   struct Router_sol
@@ -80,11 +87,31 @@ namespace net::ndp {
 
   struct Neighbor_adv
   {
-    uint32_t  router:1,
+    enum Flag : uint8_t
+    {
+      Router    = 1 << 1,
+      Solicited = 1 << 2,
+      Override  = 1 << 3
+    };
+
+    uint32_t flags;
+    /*uint32_t  router:1,
               solicited:1,
               override:1,
-              reserved:29;
+              reserved:29;*/
     ip6::Addr target;
+
+    void set_flag(uint32_t flag) noexcept
+    { flags = htonl(flag << 28); }
+
+    constexpr bool router() const noexcept
+    { return flags & ntohs(Router); }
+
+    constexpr bool solicited() const noexcept
+    { return flags & ntohs(Solicited); }
+
+    constexpr bool override() const noexcept
+    { return flags & ntohs(Override); }
 
   } __attribute__((packed));
   static_assert(sizeof(Neighbor_adv) == 20);

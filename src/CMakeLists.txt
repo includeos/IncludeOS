@@ -52,9 +52,10 @@ set(OS_OBJECTS
   net/tcp/read_buffer.cpp net/tcp/read_request.cpp net/tcp/stream.cpp
   net/tcp/tcp_conntrack.cpp
   net/ip4/icmp4.cpp net/udp/udp.cpp net/udp/socket.cpp
-  net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp net/ip6/mld.cpp
-  net/ip6/extension_header.cpp net/ip6/packet_ndp.cpp
-  net/ip6/packet_mld.cpp net/ip6/slaac.cpp
+  net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp #net/ip6/mld.cpp
+  net/ip6/extension_header.cpp #net/ip6/packet_ndp.cpp
+  #net/ip6/packet_mld.cpp
+  net/ip6/slaac.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dns/record.cpp net/dns/response.cpp net/dns/query.cpp
   net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet.cpp

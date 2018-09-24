@@ -80,9 +80,9 @@ namespace net::ndp::option {
   {
     enum class Flag : uint8_t
     {
-      onlink      = 1 << 7,
-      autoconf    = 1 << 6, // Autonomous address-configuration
-      router_addr = 1 << 5
+      onlink      = 1 << 1,
+      autoconf    = 1 << 2, // Autonomous address-configuration
+      router_addr = 1 << 3
     };
 
     uint8_t   prefix_len;
@@ -93,13 +93,13 @@ namespace net::ndp::option {
     ip6::Addr prefix;
 
     bool onlink() const noexcept
-    { return flag & static_cast<uint8_t>(Flag::onlink); }
+    { return htons(flag) & static_cast<uint8_t>(Flag::onlink); }
 
     bool autoconf() const noexcept
-    { return flag & static_cast<uint8_t>(Flag::autoconf); }
+    { return htons(flag) & static_cast<uint8_t>(Flag::autoconf); }
 
     bool router_addr() const noexcept
-    { return flag & static_cast<uint8_t>(Flag::router_addr); }
+    { return htons(flag) & static_cast<uint8_t>(Flag::router_addr); }
 
     constexpr uint32_t valid_lifetime() const noexcept
     { return ntohl(valid); }
