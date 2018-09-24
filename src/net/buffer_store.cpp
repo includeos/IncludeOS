@@ -25,7 +25,7 @@
 //#define DEBUG_RELEASE
 //#define DEBUG_RETRIEVE
 //#define DEBUG_BUFSTORE
-#define ENABLE_BUFFERSTORE_CHAIN
+#define ENABLE_BUFFERSTORE_GROWTH
 
 #ifdef DEBUG_RELEASE
 #define BSD_RELEASE(fmt, ...) printf(fmt, ##__VA_ARGS__);
@@ -49,20 +49,13 @@ namespace net {
 
   BufferStore::BufferStore(size_t num, size_t bufsize) :
     poolsize_  {num * bufsize},
-    bufsize_   {bufsize},
-    next_(nullptr)
+    bufsize_   {bufsize}
   {
     assert(num != 0);
     assert(bufsize != 0);
-    const size_t DATA_SIZE  = poolsize_;
-
-    this->pool_ = (uint8_t*) aligned_alloc(OS::page_size(), DATA_SIZE);
-    assert(this->pool_);
-
     available_.reserve(num);
-    for (uint8_t* b = pool_end()-bufsize; b >= pool_begin(); b -= bufsize) {
-        available_.push_back(b);
-    }
+
+    this->create_new_pool();
     assert(available_.capacity() == num);
     assert(available() == num);
 
@@ -71,120 +64,59 @@ namespace net {
   }
 
   BufferStore::~BufferStore() {
-    this->next_ = nullptr;
-    free(this->pool_);
+    for (auto* pool : this->pools_)
+        free(pool);
   }
 
   size_t BufferStore::available() const noexcept
   {
-    auto avail = this->available_.size();
-#ifdef ENABLE_BUFFERSTORE_CHAIN
-    auto* parent = this;
-    while (parent->next_ != nullptr) {
-        parent = parent->next_.get();
-        avail += parent->available_.size();
-    }
-#endif
-    return avail;
+    return this->available_.size();
   }
   size_t BufferStore::total_buffers() const noexcept
   {
-    size_t total = this->local_buffers();
-#ifdef ENABLE_BUFFERSTORE_CHAIN
-    auto* parent = this;
-    while (parent->next_ != nullptr) {
-        parent = parent->next_.get();
-        total += parent->local_buffers();
-    }
-#endif
-    return total;
+    return this->local_buffers() * this->pools_.size();
   }
 
-  BufferStore* BufferStore::get_next_bufstore()
-  {
-#ifdef ENABLE_BUFFERSTORE_CHAIN
-    BufferStore* parent = this;
-    while (parent->next_ != nullptr) {
-        parent = parent->next_.get();
-        if (!parent->available_.empty()) return parent;
-    }
-    BSD_BUF("<BufferStore> Allocating %lu new buffers (%lu total)\n",
-            local_buffers(), total_buffers() + local_buffers());
-    parent->next_ = std::make_unique<BufferStore>(local_buffers(), bufsize());
-    return parent->next_.get();
-#else
-    return nullptr;
-#endif
-  }
-
-  BufferStore::buffer_t BufferStore::get_buffer_directly() noexcept
-  {
-    auto addr = available_.back();
-    available_.pop_back();
-    return { this, addr };
-  }
-
-  BufferStore::buffer_t BufferStore::get_buffer()
+  uint8_t* BufferStore::get_buffer()
   {
 #ifdef INCLUDEOS_SMP_ENABLE
     scoped_spinlock spinlock(plock);
 #endif
 
     if (UNLIKELY(available_.empty())) {
-#ifdef ENABLE_BUFFERSTORE_CHAIN
-      auto* next = get_next_bufstore();
-      if (next == nullptr)
-          throw std::runtime_error("Unable to create new bufstore");
-
-      // take buffer from external bufstore
-      auto buffer = next->get_buffer_directly();
-      BSD_GET("%d: Gave away EXTERN %p, %lu buffers remain\n",
-              this->index, buffer.addr, available());
-      return buffer;
+#ifdef ENABLE_BUFFERSTORE_GROWTH
+      this->create_new_pool();
 #else
-      panic("<BufferStore> Buffer pool empty! Not configured to increase pool size.\n");
+      throw std::runtime_error("This BufferStore is empty");
 #endif
     }
-
-    auto buffer = get_buffer_directly();
+    
+    auto* addr = available_.back();
+    available_.pop_back();
     BSD_GET("%d: Gave away %p, %lu buffers remain\n",
-            this->index, buffer.addr, available());
-    return buffer;
+            this->index, addr, available());
+    return addr;
   }
 
-  void BufferStore::release_internal(void* addr)
+  void BufferStore::create_new_pool()
   {
-    auto* buff = (uint8_t*) addr;
-    BSD_RELEASE("%d: Release %p -> ", this->index, buff);
+    auto* pool = (uint8_t*) aligned_alloc(OS::page_size(), poolsize_);
+    assert(pool != nullptr);
+    pools_.push_back(pool);
 
-#ifdef INCLUDEOS_SMP_ENABLE
-    scoped_spinlock spinlock(plock);
-#endif
-#ifdef ENABLE_BUFFERSTORE_CHAIN
-    // try to release buffer on linked bufferstore
-    BufferStore* ptr = next_.get();
-    while (ptr != nullptr) {
-      if (ptr->is_from_this_pool(buff)) {
-        BSD_RELEASE("released on other bufferstore\n");
-        ptr->release_directly(buff);
-        return;
-      }
-      ptr = ptr->next_.get();
+    for (uint8_t* b = pool; b < pool + poolsize_; b += bufsize_) {
+        available_.push_back(b);
     }
-#endif
-    throw std::runtime_error("Packet did not belong");
-  }
-
-  void BufferStore::release_directly(uint8_t* buffer)
-  {
-    BSD_GET("%d: Released EXTERN %p, %lu buffers remain\n",
-            this->index, buffer, available());
-    available_.push_back(buffer);
   }
 
   void BufferStore::move_to_this_cpu() noexcept
   {
     // TODO: hmm
   }
+  
+  __attribute__((weak))
+  bool BufferStore::growth_enabled() const {
+    return true;
+  }
 
-} //< namespace net
+} //< net
