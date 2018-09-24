@@ -7,6 +7,11 @@ if (smp)
 add_definitions(-DINCLUDEOS_SMP_ENABLE)
 endif()
 
+option(WITH_BUFFERSTORE_CHAINING "Enable Bufferstore chain" ON)
+if(WITH_BUFFERSTORE_CHAINING)
+  add_definitions(-DENABLE_BUFFERSTORE_CHAIN)
+endif()
+
 include_directories(${LIBCXX_INCLUDE_DIR})
 include_directories(${MUSL_INCLUDE_DIR})
 include_directories(${SOLO5_INCLUDE_DIR})

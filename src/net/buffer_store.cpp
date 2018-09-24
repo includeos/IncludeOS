@@ -25,7 +25,7 @@
 //#define DEBUG_RELEASE
 //#define DEBUG_RETRIEVE
 //#define DEBUG_BUFSTORE
-#define ENABLE_BUFFERSTORE_CHAIN
+//#define ENABLE_BUFFERSTORE_CHAIN
 
 #ifdef DEBUG_RELEASE
 #define BSD_RELEASE(fmt, ...) printf(fmt, ##__VA_ARGS__);
