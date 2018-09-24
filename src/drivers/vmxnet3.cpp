@@ -362,7 +362,7 @@ void vmxnet3::refill(rxring_state& rxq)
         (rxq.producers & vmxnet3::NUM_RX_DESC) ? 0 : VMXNET3_RXF_GEN;
 
     // get a pointer to packet data
-    auto* pkt_data = bufstore().get_buffer().addr;
+    auto* pkt_data = bufstore().get_buffer();
     rxq.buffers[i] = &pkt_data[sizeof(net::Packet) + DRIVER_OFFSET];
 
     // assign rx descriptor
@@ -393,13 +393,12 @@ vmxnet3::recv_packet(uint8_t* data, uint16_t size)
 net::Packet_ptr
 vmxnet3::create_packet(int link_offset)
 {
-  auto buffer = bufstore().get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
+  auto* ptr = (net::Packet*) bufstore().get_buffer();
   new (ptr) net::Packet(
         DRIVER_OFFSET + link_offset,
         0,
         DRIVER_OFFSET + frame_offset_link() + MTU(),
-        buffer.bufstore);
+        &bufstore());
   return net::Packet_ptr(ptr);
 }
 
