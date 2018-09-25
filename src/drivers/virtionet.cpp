@@ -142,9 +142,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d, const uint16_t /*mtu*/)
        rx_q.size() / 2, (uint32_t) bufstore().bufsize());
 
   for (int i = 0; i < rx_q.size() / 2; i++) {
-      auto buf = bufstore().get_buffer();
-      assert(bufstore().is_from_this_pool(buf.addr));
-      add_receive_buffer(buf.addr);
+      add_receive_buffer(bufstore().get_buffer());
   }
 
   // Step 4 - If there are many queues, we should negotiate the number.
@@ -229,7 +227,7 @@ void VirtioNet::msix_recv_handler()
     Link::receive( recv_packet(res.data(), res.size()) );
 
     // Requeue a new buffer
-    add_receive_buffer(bufstore().get_buffer().addr);
+    add_receive_buffer(bufstore().get_buffer());
 
     // Stat increase packets received
     packets_rx_++;
@@ -308,14 +306,13 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 net::Packet_ptr
 VirtioNet::create_packet(int link_offset)
 {
-  auto buffer = bufstore().get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
+  auto* ptr = (net::Packet*) bufstore().get_buffer();
 
   new (ptr) net::Packet(
         sizeof(virtio_net_hdr) + link_offset,
         0,
         sizeof(virtio_net_hdr) + frame_offset_link() + MTU(),
-        buffer.bufstore);
+        &bufstore());
 
   return net::Packet_ptr(ptr);
 }
