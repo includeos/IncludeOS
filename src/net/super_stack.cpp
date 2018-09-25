@@ -109,7 +109,7 @@ Inet& Super_stack::get(const std::string& mac)
 // Duplication of code to keep sanity intact
 Inet& Super_stack::get(const std::string& mac, int sub)
 {
-  auto index = hw::Devices::nic_index(mac);
+  auto index = hw::Devices::nic_index(mac.c_str());
 
   if(index < 0)
     throw Stack_not_found{"No NIC found with MAC address " + mac};

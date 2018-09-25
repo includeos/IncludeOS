@@ -49,9 +49,6 @@ namespace hw {
     // Nic helpers
     inline static int nic_index(const MAC::Addr& mac);
 
-    static int nic_index(const std::string& mac)
-    { return nic_index(MAC::Addr{mac.c_str()}); }
-
     /** List all devices (decorated, as seen in boot output) */
     inline static void print_devices();
 
