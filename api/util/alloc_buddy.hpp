@@ -631,12 +631,22 @@ namespace os::mem::buddy {
       }
 
       Addr_t highest_used_r() const noexcept {
-        if (is_taken() or not is_parent())
-          return my_addr_ + my_size_;
+        if (is_free()) {
+          return my_addr_;
+        }
 
-        auto rhs = right().highest_used_r();
-        if (rhs > my_addr_ + my_size_) return rhs;
-        return left().highest_used_r();
+        if (is_taken() or not is_parent()) {
+          return my_addr_ + my_size_;
+        }
+
+        auto right_ = right();
+        if (not right_.is_free()) {
+          return right_.highest_used_r();
+        }
+
+        auto left_ = left();
+        Expects(not left_.is_free());
+        return left_.highest_used_r();
       }
 
       std::string to_string() const  {
