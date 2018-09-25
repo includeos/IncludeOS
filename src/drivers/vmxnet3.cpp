@@ -125,6 +125,8 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     m_pcidev(d), m_mtu(mtu),
     stat_sendq_cur{Statman::get().create(Stat::UINT32, device_name() + ".sendq_now").get_uint32()},
     stat_sendq_max{Statman::get().create(Stat::UINT32, device_name() + ".sendq_max").get_uint32()},
+    stat_rx_refill_dropped{Statman::get().create(Stat::UINT64, device_name() + ".rx_refill_dropped").get_uint64()},
+    stat_sendq_dropped{Statman::get().create(Stat::UINT64, device_name() + ".sendq_dropped").get_uint64()},
     bufstore_{1024, buffer_size_for_mtu(mtu)}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
@@ -358,12 +360,20 @@ void vmxnet3::refill(rxring_state& rxq)
   bool added_buffers = (rxq.prod_count < VMXNET3_RX_FILL);
   while (rxq.prod_count < VMXNET3_RX_FILL)
   {
+    // break when not allowed to refill anymore
+    if (rxq.prod_count > 0 /* prevent full stop? */
+     && not Nic::buffers_still_available(bufstore().buffers_in_use()))
+    {
+      stat_rx_refill_dropped += VMXNET3_RX_FILL - rxq.prod_count;
+      break;
+    }
+
     size_t i = rxq.producers % vmxnet3::NUM_RX_DESC;
     const uint32_t generation =
         (rxq.producers & vmxnet3::NUM_RX_DESC) ? 0 : VMXNET3_RXF_GEN;
 
     // get a pointer to packet data
-    auto* pkt_data = bufstore().get_buffer().addr;
+    auto* pkt_data = bufstore().get_buffer();
     rxq.buffers[i] = &pkt_data[sizeof(net::Packet) + DRIVER_OFFSET];
 
     // assign rx descriptor
@@ -394,13 +404,12 @@ vmxnet3::recv_packet(uint8_t* data, uint16_t size)
 net::Packet_ptr
 vmxnet3::create_packet(int link_offset)
 {
-  auto buffer = bufstore().get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
+  auto* ptr = (net::Packet*) bufstore().get_buffer();
   new (ptr) net::Packet(
         DRIVER_OFFSET + link_offset,
         0,
         DRIVER_OFFSET + frame_offset_link() + MTU(),
-        buffer.bufstore);
+        &bufstore());
   return net::Packet_ptr(ptr);
 }
 
@@ -522,7 +531,12 @@ bool vmxnet3::receive_handler(const int Q)
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
 {
-  while (pckt_ptr != nullptr) {
+  while (pckt_ptr != nullptr)
+  {
+    if (not Nic::sendq_still_available(this->sendq.size())) {
+      stat_sendq_dropped++;
+      continue;
+    }
     auto tail = pckt_ptr->detach_tail();
     sendq.emplace_back(std::move(pckt_ptr));
     pckt_ptr = std::move(tail);

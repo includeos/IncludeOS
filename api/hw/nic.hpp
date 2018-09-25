@@ -101,6 +101,18 @@ namespace hw {
     /** Overridable MTU detection function per-network **/
     static uint16_t MTU_detection_override(int idx, uint16_t default_MTU);
 
+    /** Set new buffer limit, where 0 means infinite **/
+    void set_buffer_limit(uint32_t new_limit) {
+      this->m_buffer_limit = new_limit;
+    }
+    uint32_t buffer_limit() const noexcept { return m_buffer_limit; }
+    
+    /** Set new sendq limit, where 0 means infinite **/
+    void set_sendq_limit(uint32_t new_limit) {
+      this->m_sendq_limit = new_limit;
+    }
+    uint32_t sendq_limit() const noexcept { return m_sendq_limit; }
+
   protected:
     /**
      *  Constructor
@@ -133,8 +145,17 @@ namespace hw {
       }
     }
 
+    bool buffers_still_available(uint32_t size) const noexcept {
+      return this->buffer_limit() == 0 || size < this->buffer_limit();
+    }
+    bool sendq_still_available(uint32_t size) const noexcept {
+      return this->sendq_limit() == 0 || size < this->sendq_limit();
+    }
+
   private:
     int N;
+    uint32_t m_buffer_limit = 0;
+    uint32_t m_sendq_limit = 0;
     friend class Devices;
   };
 
