@@ -462,18 +462,17 @@ e1000::recv_packet(uint8_t* data, uint16_t size)
 net::Packet_ptr
 e1000::create_packet(int link_offset)
 {
-  auto buffer = bufstore().get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
+  auto* ptr = (net::Packet*) bufstore().get_buffer();
   new (ptr) net::Packet(
         DRIVER_OFFSET + link_offset,
         0,
         DRIVER_OFFSET + frame_offset_link() + MTU(),
-        buffer.bufstore);
+        &bufstore());
   return net::Packet_ptr(ptr);
 }
 uintptr_t e1000::new_rx_packet()
 {
-  auto* pkt = bufstore().get_buffer().addr;
+  auto* pkt = bufstore().get_buffer();
   return (uintptr_t) &pkt[sizeof(net::Packet) + DRIVER_OFFSET];
 }
 
