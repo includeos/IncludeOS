@@ -143,6 +143,8 @@ private:
   // sendq as double-ended q
   uint32_t& stat_sendq_cur;
   uint32_t& stat_sendq_max;
+  uint64_t& stat_rx_refill_dropped;
+  uint64_t& stat_sendq_dropped;
   std::deque<net::Packet_ptr> sendq;
   net::BufferStore bufstore_;
 };

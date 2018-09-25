@@ -59,14 +59,16 @@ namespace net
       return false;
     }
 
-    size_t available() const noexcept
-    {
+    size_t available() const noexcept {
       return this->available_.size();
     }
 
-    size_t total_buffers() const noexcept
-    {
+    size_t total_buffers() const noexcept {
       return this->pool_buffers() * this->pools_.size();
+    }
+
+    size_t buffers_in_use() const noexcept {
+      return this->total_buffers() - this->available();
     }
 
     /** move this bufferstore to the current CPU **/
