@@ -533,8 +533,8 @@ void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
   while (pckt_ptr != nullptr)
   {
     if (not Nic::sendq_still_available(this->sendq.size())) {
-      stat_sendq_dropped++;
-      continue;
+      stat_sendq_dropped += pckt_ptr->chain_length();
+      break;
     }
     auto tail = pckt_ptr->detach_tail();
     sendq.emplace_back(std::move(pckt_ptr));
