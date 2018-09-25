@@ -221,6 +221,11 @@ uintptr_t OS::heap_begin() noexcept {
 uintptr_t OS::heap_end() noexcept {
   return 1 << 30;
 }
+
+size_t OS::heap_usage() noexcept {
+  return OS::heap_end();
+}
+
 uintptr_t OS::heap_max() noexcept {
   return -1;
 }
