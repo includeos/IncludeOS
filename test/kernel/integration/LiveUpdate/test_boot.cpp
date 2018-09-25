@@ -59,7 +59,7 @@ static void boot_resume_all(Restore& thing)
 #endif
   // statman
   auto& stm = Statman::get();
-  stm.restore(thing);
+  stm.restore(thing); thing.go_next();
   auto& stat = stm.get_by_name("system.updates");
   assert(stat.get_uint32() > 0);
   thing.pop_marker();
