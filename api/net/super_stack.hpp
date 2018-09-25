@@ -64,20 +64,9 @@ public:
    * @return     A stack
    */
   static Inet& get(const std::string& mac);
+  static Inet& get(const std::string& mac, int sub);
 
   Inet& create(hw::Nic& nic, int N, int sub);
-
-  /**
-   * @brief      Create a stack on the given Nic,
-   *             occupying the first free index.
-   *
-   * @param      nic   The nic
-   *
-   * @tparam     IP version
-   *
-   * @return     A stack
-   */
-  Inet& create(hw::Nic& nic);
 
   IP4_stacks& ip4_stacks()
   { return ip4_stacks_; }
