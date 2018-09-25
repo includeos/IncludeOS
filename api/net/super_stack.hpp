@@ -40,8 +40,9 @@ struct Stack_not_found : public Super_stack_err
 
 class Super_stack {
 public:
-  using Stacks = std::map<int, std::unique_ptr<Inet>>;
-  using IP4_stacks = std::vector<Stacks>;
+  // naming is hard...
+  using Indexed_stacks = std::map<int, std::unique_ptr<Inet>>;
+  using Stacks = std::vector<Indexed_stacks>;
 
 public:
   static Super_stack& inet()
@@ -68,11 +69,11 @@ public:
 
   Inet& create(hw::Nic& nic, int N, int sub);
 
-  IP4_stacks& ip4_stacks()
-  { return ip4_stacks_; }
+  Stacks& stacks()
+  { return stacks_; }
 
 private:
-  IP4_stacks ip4_stacks_;
+  Stacks stacks_;
 
   Super_stack();
 

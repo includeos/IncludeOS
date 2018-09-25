@@ -27,7 +27,7 @@ Inet& Super_stack::create(hw::Nic& nic, int N, int sub)
   INFO("Network", "Creating stack for %s on %s (MTU=%u)",
         nic.driver_name(), nic.device_name().c_str(), nic.MTU());
 
-  auto& stacks = inet().ip4_stacks_.at(N);
+  auto& stacks = inet().stacks_.at(N);
 
   auto it = stacks.find(sub);
   if(it != stacks.end() and it->second != nullptr) {
@@ -57,7 +57,7 @@ Inet& Super_stack::get(int N)
     throw Stack_not_found{"No IP4 stack found with index: " + std::to_string(N) +
       ". Missing device (NIC) or driver."};
 
-  auto& stacks = inet().ip4_stacks_.at(N);
+  auto& stacks = inet().stacks_.at(N);
 
   if(stacks[0] != nullptr)
     return *stacks[0];
@@ -73,7 +73,7 @@ Inet& Super_stack::get(int N, int sub)
     throw Stack_not_found{"No IP4 stack found with index: " + std::to_string(N) +
       ". Missing device (NIC) or driver."};
 
-  auto& stacks = inet().ip4_stacks_.at(N);
+  auto& stacks = inet().stacks_.at(N);
 
   auto it = stacks.find(sub);
 
@@ -95,7 +95,7 @@ Inet& Super_stack::get(const std::string& mac)
   if(index < 0)
     throw Stack_not_found{"No NIC found with MAC address " + mac};
 
-  auto& stacks = inet().ip4_stacks_.at(index);
+  auto& stacks = inet().stacks_.at(index);
   auto& stack = stacks[0];
   if(stack != nullptr) {
     Expects(stack->link_addr() == link_addr);
@@ -123,8 +123,8 @@ Super_stack::Super_stack()
     INFO("Network", "No registered network interfaces found");
 
   for (size_t i = 0; i < hw::Devices::devices<hw::Nic>().size(); i++) {
-    ip4_stacks_.emplace_back();
-    ip4_stacks_.back()[0] = nullptr;
+    stacks_.emplace_back();
+    stacks_.back()[0] = nullptr;
   }
 }
 
