@@ -378,9 +378,13 @@ class qemu(hypervisor):
                              for mod in mods])
         return ["-initrd", mods_list]
 
-    def net_arg(self, backend, device, if_name = "net0", mac = None, bridge = None):
-        qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
-        qemu_ifdown = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifdown"
+    def net_arg(self, backend, device, if_name = "net0", mac = None, bridge = None, scripts = None):
+        if scripts:
+            qemu_ifup = scripts + "qemu-ifup"
+            qemu_ifdown = scripts + "qemu-ifdown"
+        else:
+            qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
+            qemu_ifdown = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifdown"
 
         # FIXME: this needs to get removed, e.g. fetched from the schema
         names = {"virtio" : "virtio-net", "vmxnet" : "vmxnet3", "vmxnet3" : "vmxnet3"}
@@ -523,7 +527,8 @@ class qemu(hypervisor):
             for net in self._config["net"]:
                 mac = net["mac"] if "mac" in net else None
                 bridge = net["bridge"] if "bridge" in net else None
-                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), mac, bridge)
+                scripts = net["scripts"] if "scripts" in net else None
+                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), mac, bridge, scripts)
                 i+=1
 
         mem_arg = []
