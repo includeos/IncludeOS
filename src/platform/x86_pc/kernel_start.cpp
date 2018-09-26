@@ -76,7 +76,6 @@ static void global_ctor_test(){
 
 int kernel_main(int, char * *, char * *) {
   PRATTLE("<kernel_main> libc initialization complete \n");
-  kernel_sanity_checks();
   Expects(__global_ctors_ok == 42);
   extern bool __libc_initialized;
   __libc_initialized = true;

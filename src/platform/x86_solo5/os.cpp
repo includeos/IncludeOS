@@ -94,10 +94,6 @@ void OS::start(const char* cmdline)
   void* esp = get_cpu_esp();
   MYINFO("Stack: %p", esp);
 
-  /// STATMAN ///
-  /// initialize on page 7, 2 pages in size
-  Statman::get().init(0x6000, 0x3000);
-
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
   auto& memmap = memory_map();

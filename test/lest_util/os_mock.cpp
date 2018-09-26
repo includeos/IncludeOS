@@ -34,17 +34,6 @@ void* aligned_alloc(size_t alignment, size_t size) {
 char _DISK_START_;
 char _DISK_END_;
 
-#include <util/statman.hpp>
-Statman& Statman::get() {
-  static uintptr_t start {0};
-  static const size_t memsize = 0x1000000;
-  if (!start) {
-    start = (uintptr_t) malloc(memsize);
-  }
-  static Statman statman_{start, memsize / sizeof(Stat)};
-  return statman_;
-}
-
 /// RTC ///
 #include <rtc>
 RTC::timestamp_t RTC::booted_at = 0;

@@ -3,28 +3,21 @@
 
 void Statman::store(uint32_t id, liu::Storage& store)
 {
-  store.add_buffer(id, this->cbegin(), this->num_bytes());
+  store.add_vector<Stat>(id, {m_stats.begin(), m_stats.end()});
 }
 void Statman::restore(liu::Restore& store)
 {
-  auto buffer = store.as_buffer(); store.go_next();
+  auto stats = store.as_vector<const Stat>();
 
-  assert(buffer.size() % sizeof(Stat) == 0);
-  const size_t count = buffer.size() / sizeof(Stat);
-
-  const Stat* ptr = (Stat*) buffer.data();
-  const Stat* end = ptr + count;
-
-  for (; ptr < end; ptr++)
+  for (auto& merge_stat : stats)
   {
     try {
-      auto& stat = this->get_by_name(ptr->name());
-      std::memcpy(&stat, ptr, sizeof(Stat));
+      // TODO: merge here
+      this->get_by_name(merge_stat.name()) = merge_stat;
     }
     catch (const std::exception& e)
     {
-      auto& stat = this->create(ptr->type(), ptr->name());
-      std::memcpy(&stat, ptr, sizeof(Stat));
+      this->create(merge_stat.type(), merge_stat.name()) = merge_stat;
     }
   }
 }
