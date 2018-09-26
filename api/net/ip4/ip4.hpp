@@ -477,6 +477,10 @@ namespace net {
     Filter_chain<IP4> postrouting_chain_{"Postrouting", {}};
     Filter_chain<IP4> input_chain_{"Input", {}};
     Filter_chain<IP4> output_chain_{"Output", {}};
+    uint32_t& prerouting_dropped_;
+    uint32_t& postrouting_dropped_;
+    uint32_t& input_dropped_;
+    uint32_t& output_dropped_;
 
     /** All dropped packets go here */
     drop_handler drop_handler_;

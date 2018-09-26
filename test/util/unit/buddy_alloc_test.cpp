@@ -58,12 +58,6 @@ CASE("mem::buddy init allocator"){
 
   EXPECT(bool(alloc.root()));
 
-  printf("Allocator \n");
-  printf("Node count: %i \n", alloc.node_count());
-  printf("Pool size : %i \n", alloc.pool_size());
-
-  //std::cout << alloc.summary() << "\n";
-
   EXPECT(alloc.root().height() == 1);
   EXPECT(not alloc.root().is_leaf());
   EXPECT(not alloc.root().is_leaf());
@@ -108,6 +102,7 @@ CASE("mem::buddy basic allocation / deallocation"){
     auto addr = alloc.allocate(sz);
     EXPECT(addr);
     EXPECT(alloc.in_range(addr));
+    EXPECT(alloc.highest_used() == (uintptr_t)addr + sz);
     addresses.push_back(addr);
     sum += sz;
     EXPECT(alloc.bytes_used() == sum);
@@ -182,6 +177,21 @@ CASE("mem::buddy random ordered allocation then deallocation"){
   if (pool.size <= 256_KiB)
     std::cout << alloc.draw_tree();
   #endif
+
+  int highest_i = 0;
+  void* highest = nullptr;
+
+  for (int i = 0; i < addresses.size(); i++) {
+    if (addresses.at(i) > highest) {
+      highest = addresses.at(i);
+      highest_i = i;
+    }
+  }
+
+  uintptr_t hi_used = (uintptr_t)addresses.at(highest_i) + sizes.at(highest_i);
+  EXPECT(hi_used == alloc.highest_used());
+  auto computed_use = hi_used - alloc.addr_begin();
+  EXPECT(computed_use >= alloc.bytes_used());
 
   // Deallocate
   for (int i = 0; i < addresses.size(); i++) {

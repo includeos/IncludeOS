@@ -109,11 +109,22 @@ void FileSys::add_dir(Dir& dvec)
     std::string name(ent->d_name);
     if (name == ".." || name == ".") continue;
 
-    if (ent->d_type == DT_DIR) {
+    struct stat buf;
+    int res = lstat(ent->d_name, &buf);
+    if (res < 0) {
+      fprintf(stderr, "Stat failed on %s with error %s\n",
+                      ent->d_name, strerror(errno));
+      continue;
+    }
+
+    if (S_ISDIR(buf.st_mode)) {
       sub_dirs.push_back(std::move(name));
     }
-    else {
+    else if (S_ISREG(buf.st_mode)) {
       sub_files.push_back(std::move(name));
+    }
+    else {
+      fprintf(stderr, "Encountered unknown entry %s\n", ent->d_name);
     }
   }
   // close directory before adding more folders and files

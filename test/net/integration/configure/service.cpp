@@ -24,7 +24,7 @@ void Service::start()
 {
   using namespace net;
 
-  auto& stacks = Super_stack::inet().ip4_stacks();
+  auto& stacks = Super_stack::inet().stacks();
   CHECKSERT(stacks.size() == 6, "There are 6 interfaces");
 
   INFO("Test", "Verify eth0");
