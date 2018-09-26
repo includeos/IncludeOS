@@ -89,13 +89,9 @@ static void begin_timer(std::chrono::nanoseconds usec)
 }
 static void stop_timers() {}
 
-#include <statman>
 void OS::start(const char* cmdline)
 {
   __libc_initialized = true;
-  // statman
-  static char statman_data[1 << 16];
-  Statman::get().init((uintptr_t) statman_data, sizeof(statman_data));
   // setup Linux timer (with signal handler)
   struct sigevent sev;
   sev.sigev_notify = SIGEV_SIGNAL;

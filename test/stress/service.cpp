@@ -71,8 +71,12 @@ uint64_t TCP_BYTES_SENT = 0;
 
 void print_memuse(uintptr_t u) {
   auto end = OS::heap_end();
-  printf("Current memory usage: %s (%zi b) heap_end: 0x%zx lstack chunks: (%s)\n",
-         util::Byte_r(u).to_string().c_str(), u, end, util::Byte_r(end).to_string().c_str());
+  auto bytes_used = OS::heap_end() - OS::heap_begin();
+  auto kb_used = bytes_used / 1024;
+
+  printf("Current memory usage: %s (%zi b) heap_end: 0x%zx (%s) calculated used: %zu (%zu kb)\n",
+         util::Byte_r(u).to_string().c_str(), u, end,
+         util::Byte_r(end).to_string().c_str(), bytes_used, kb_used);
 }
 
 void Service::start(const std::string&)
@@ -80,6 +84,7 @@ void Service::start(const std::string&)
   using namespace util::literals;
   // Allocation / free spam to warm up
   auto initial_memuse =  OS::heap_usage();
+  auto initial_highest_used = OS::heap_end();
   print_memuse(initial_memuse);
 
   std::array<volatile void*, 10> allocs {};
@@ -99,6 +104,10 @@ void Service::start(const std::string&)
     print_memuse(memuse);
     Expects(memuse > initial_memuse);
   }
+
+  // Verify new used heap area covers recent heap growth
+  Expects(OS::heap_end() - initial_highest_used >=
+          OS::heap_usage() - initial_memuse);
 
   auto high_memuse = OS::heap_usage();
   Expects(high_memuse >= (chunksize * allocs.size()) + initial_memuse);

@@ -24,7 +24,6 @@
 #include <kernel/memory.hpp>
 #include <kprint>
 #include <service>
-#include <statman>
 #include <cstdio>
 #include <cinttypes>
 #include "cmos.hpp"
@@ -38,7 +37,6 @@
 #endif
 
 extern "C" void* get_cpu_esp();
-extern "C" void kernel_sanity_checks();
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t _ELF_START_;
@@ -136,7 +134,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   extern void elf_protect_symbol_areas();
   elf_protect_symbol_areas();
 
-  memmap.assign_range({0x8000, 0xffff, "Statman"});
 #if defined(ARCH_x86_64)
   // protect the basic pagetable used by LiveUpdate and any other
   // systems that need to exit long/protected mode
@@ -157,11 +154,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Virtual memory map");
   for (const auto& entry : memmap)
       INFO2("%s", entry.second.to_string().c_str());
-
-  /// STATMAN ///
-  PROFILE("Statman");
-  /// initialize on page 9, 8 pages in size
-  Statman::get().init(0x8000, 0x8000);
 
   PROFILE("Platform init");
   extern void __platform_init();
