@@ -64,6 +64,7 @@ void restore_terminal(const int TERM_NET, liu::Restore& restore)
 }
 #endif
 
+__attribute__((constructor))
 static void spawn_terminal()
 {
   rapidjson::Document doc;
@@ -94,9 +95,4 @@ static void spawn_terminal()
   liu::LiveUpdate::register_partition("terminal", {&store_terminal});
 #endif
   INFO("Terminal", "Listening on port %u", TERM_PORT);
-}
-
-__attribute__((constructor))
-static void feijfeifjeifjeijfei() {
-  OS::register_plugin(spawn_terminal, "Terminal plugin");
 }

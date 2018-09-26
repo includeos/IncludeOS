@@ -66,15 +66,6 @@ const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_S
 using Print_vec = Fixed_vector<OS::print_func, 8>;
 static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
 
-// Plugins
-struct Plugin_desc {
-  Plugin_desc(OS::Plugin f, const char* n) : func{f}, name{n} {}
-
-  OS::Plugin  func;
-  const char* name;
-};
-static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
-
 void* OS::liveupdate_storage_area() noexcept
 {
   return (void*) OS::liveupdate_loc_;
@@ -96,11 +87,6 @@ extern OS::ctor_t __plugin_ctors_start;
 extern OS::ctor_t __plugin_ctors_end;
 extern OS::ctor_t __service_ctors_start;
 extern OS::ctor_t __service_ctors_end;
-
-void OS::register_plugin(Plugin delg, const char* name){
-  MYINFO("Registering plugin %s", name);
-  plugins.emplace_back(delg, name);
-}
 
 void OS::reboot()
 {
@@ -131,23 +117,17 @@ void OS::post_start()
   // Seed rand with 32 bits from RNG
   srand(rng_extract_uint32());
 
-  // Custom initialization functions
+  // Plugin constructors
   MYINFO("Initializing plugins");
-  OS::run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
-
-  // Run plugins
   PROFILE("Plugins init");
-  for (auto plugin : plugins) {
-    INFO2("* Initializing %s", plugin.name);
-    plugin.func();
-  }
+  OS::run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
 
   MYINFO("Running service constructors");
   FILLINE('-');
   // the boot sequence is over when we get to plugins/Service::start
   OS::boot_sequence_passed_ = true;
 
-    // Run service constructors
+  // Run service constructors
   OS::run_ctors(&__service_ctors_start, &__service_ctors_end);
 
   PROFILE("Service::start");

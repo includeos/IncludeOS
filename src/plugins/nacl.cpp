@@ -15,11 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os>
-
 extern void register_plugin_nacl();
 
 __attribute__((constructor))
-void register_nacl() {
-  OS::register_plugin(register_plugin_nacl, "NaCl");
+static void start_nacl_plugin() {
+  register_plugin_nacl();
 }

@@ -28,7 +28,9 @@
 extern "C" char get_single_tbss();
 namespace medic{
 
-void init(){
+__attribute__((constructor))
+static void init()
+{
   using namespace diag;
   INFO("Field medic", "Checking vital signs");
   printf(
@@ -52,12 +54,6 @@ void init(){
 
   INFO("Field medic", "Diagnose complete");
   }
-
-  __attribute__ ((constructor))
-  void register_medic() {
-    OS::register_plugin(medic::init, "Field medic");
-  }
-
 
   namespace diag
   {

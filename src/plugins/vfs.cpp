@@ -117,16 +117,11 @@ static void mount_rng()
 }
 
 // Function being run by the OS for mounting resources
+__attribute__((constructor))
 static void vfs_mount()
 {
   // RNG
   mount_rng();
 
   parse_config();
-}
-
-#include <os>
-__attribute__((constructor))
-static void vfs_mount_plugin() {
-  OS::register_plugin(vfs_mount, "VFS Mounter");
 }

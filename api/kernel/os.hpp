@@ -36,7 +36,6 @@ class OS {
 public:
 
   using print_func  = delegate<void(const char*, size_t)>;
-  using Plugin      = delegate<void()>;
   using Span_mods   = gsl::span<multiboot_module_t>;
 
   /**
@@ -225,17 +224,6 @@ public:
 
   /** Get "kernel modules", provided by multiboot */
   static Span_mods modules();
-
-  /**
-   * Register a custom initialization function. The provided delegate is
-   * guaranteed to be called after global constructors and device initialization
-   * and before Service::start, provided that this funciton was called by a
-   * global constructor.
-   * @param delg : A delegate to be called
-   * @param name : A human readable identifier
-  **/
-  static void register_plugin(Plugin delg, const char* name);
-
 
   /**
    * Block for a while, e.g. until the next round in the event loop

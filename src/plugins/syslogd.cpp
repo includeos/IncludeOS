@@ -15,10 +15,9 @@
 // limitations under the License.
 
 // Syslog plugin (UDP)
-
-#include <os>
 #include <syslogd>
 
+__attribute__((constructor))
 void register_plugin_syslogd() {
   INFO("Syslog", "Sending buffered data to syslog plugin");
 
@@ -26,13 +25,7 @@ void register_plugin_syslogd() {
 
   /*
     @todo
-    Get dmesg (kernel logs) and send to syslog
+    Get kernel logs and send to syslog
     INFO needs to be rewritten to use kprint and kprint needs to be rewritten to buffer the data
   */
-
-}
-
-__attribute__((constructor))
-void register_syslogd(){
-  OS::register_plugin(register_plugin_syslogd, "Syslog over UDP");
 }

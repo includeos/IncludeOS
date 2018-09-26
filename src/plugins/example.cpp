@@ -20,24 +20,21 @@
  */
 
 #include <os>
-#include <kprint>
-
 bool example_plugin_registered = false;
 bool example_plugin_run = false;
 
 // The actual plugin.
-void example_plugin(){
+void example_plugin() {
   INFO("Example plugin","initializing");
   Expects(example_plugin_registered);
   example_plugin_run = true;
 }
 
-
-// Run as global constructor
+// global constructor
 __attribute__((constructor))
-void register_example_plugin(){
-  OS::register_plugin(example_plugin, "Example plugin");
+static void start_example_plugin()
+{
   example_plugin_registered = true;
-  // Note: printf might rely on global ctor and may not be ready at this point.
+  example_plugin();
   INFO("Example", "plugin registered");
 }
