@@ -28,6 +28,7 @@ extern "C" {
   size_t get_crash_context_length();
 }
 extern void print_backtrace();
+extern void print_backtrace2(void(*stdout_function)(const char*, size_t));
 
 #ifndef SET_CRASH_CONTEXT
 // used to set a message that will be printed on crash the message is to
