@@ -3,6 +3,10 @@
 #include <kprint>
 
 #define HIGHMEM_LOCATION  (1ull << 45)
+#define LIVEUPDATE_AREA_SIZE 25
+static_assert(LIVEUPDATE_AREA_SIZE > 0 && LIVEUPDATE_AREA_SIZE < 50,
+              "LIVEUPDATE_AREA_SIZE must be a value between 1 and 50");
+
 static uintptr_t temp_phys = 0;
 
 //#define LIU_DEBUG 1
@@ -11,6 +15,14 @@ static uintptr_t temp_phys = 0;
 #else
 #define PRATTLE(fmt, ...) /* fmt */
 #endif
+
+size_t OS::liveupdate_phys_size(size_t phys_max) noexcept {
+  return phys_max / (100 / size_t(LIVEUPDATE_AREA_SIZE));
+};
+
+uintptr_t OS::liveupdate_phys_loc(size_t phys_max)  noexcept {
+  return (phys_max - liveupdate_phys_size(phys_max)) & ~(uintptr_t) 0xFFF;
+};
 
 void OS::setup_liveupdate(uintptr_t phys)
 {
@@ -27,9 +39,8 @@ void OS::setup_liveupdate(uintptr_t phys)
 
   size_t size = 0;
   if (phys == 0) {
-    // default is 1/4 of heap from the end of memory
-    size = OS::heap_max() / 4;
-    phys = (OS::heap_max() - size) & ~(uintptr_t) 0xFFF; // page aligned
+    size = OS::liveupdate_phys_size(OS::heap_max());
+    phys = OS::liveupdate_phys_loc(OS::heap_max());
   }
   else {
     size = OS::heap_max() - phys;

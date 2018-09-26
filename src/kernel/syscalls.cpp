@@ -23,6 +23,7 @@
 #include <info>
 #include <smp>
 #include <cstring>
+#include <util/bitops.hpp>
 
 #if defined (UNITTESTS) && !defined(__MACH__)
 #define THROW throw()
@@ -139,9 +140,11 @@ void panic(const char* why)
   uintptr_t heap_total = OS::heap_max() - OS::heap_begin();
   fprintf(stderr, "Heap is at: %p / %p  (diff=%lu)\n",
          (void*) OS::heap_end(), (void*) OS::heap_max(), (ulong) (OS::heap_max() - OS::heap_end()));
-  fprintf(stderr, "Heap area: %lu / %lu Kb (allocated %zu kb)\n\n", // (%.2f%%)\n",
+  fprintf(stderr, "Heap area: %lu / %lu Kb (allocated %zu kb)\n", // (%.2f%%)\n",
          (ulong) (OS::heap_end() - OS::heap_begin()) / 1024,
           (ulong) heap_total / 1024, OS::heap_usage() / 1024); //, total * 100.0);
+  fprintf(stderr, "Total memory use: ~%zu%% (%zu of %zu b)\n",
+          util::bits::upercent(OS::total_memuse(), OS::memory_end()), OS::total_memuse(), OS::memory_end());
 
   print_backtrace();
   fflush(stderr);

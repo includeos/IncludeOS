@@ -65,7 +65,7 @@ namespace net {
       else
           throw std::runtime_error("This BufferStore has run out of buffers");
     }
-    
+
     auto* addr = available_.back();
     available_.pop_back();
     BSD_PRINT("%d: Gave away %p, %zu buffers remain\n",
@@ -76,7 +76,9 @@ namespace net {
   void BufferStore::create_new_pool()
   {
     auto* pool = (uint8_t*) aligned_alloc(OS::page_size(), poolsize_);
-    assert(pool != nullptr);
+    if (UNLIKELY(pool == nullptr)) {
+      throw std::runtime_error("Buffer store failed to allocate memory");
+    }
     this->pools_.push_back(pool);
 
     for (uint8_t* b = pool; b < pool + poolsize_; b += bufsize_) {
@@ -90,7 +92,7 @@ namespace net {
   {
     // TODO: hmm
   }
-  
+
   __attribute__((weak))
   bool BufferStore::growth_enabled() const {
     return true;
