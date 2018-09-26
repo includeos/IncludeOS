@@ -237,7 +237,7 @@ bool Elf::verify_symbols()
   return get_parser().verify_symbols();
 }
 
-void print_backtrace()
+void print_backtrace2(void(*stdout_function)(const char*, size_t))
 {
   char _symbol_buffer[8192];
   char _btrace_buffer[8192];
@@ -255,7 +255,7 @@ void print_backtrace()
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
             "[%d] 0x%08x + 0x%.3x: %s\n",         \
             N, symb.addr, symb.offset, symb.name);\
-            write(1, _btrace_buffer, len);
+            stdout_function(_btrace_buffer, len);
 #elif defined(__LP64__)
   #define PRINT_TRACE(N, ra) \
     auto symb = Elf::safe_resolve_symbol(                     \
@@ -263,7 +263,7 @@ void print_backtrace()
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
             "[%d] 0x%016lx + 0x%.3x: %s\n",       \
             N, symb.addr, symb.offset, symb.name);\
-            write(1, _btrace_buffer, len);
+            stdout_function(_btrace_buffer, len);
 #else
   #error "Implement me"
 #endif
@@ -301,6 +301,12 @@ void print_backtrace()
                               if (frp(14, ra)) {
                                 PRINT_TRACE(14, ra);
   }}}}}}}}}}}}}}}
+}
+void print_backtrace()
+{
+  print_backtrace2([] (const char* text, size_t length) {
+    write(1, text, length);
+  });
 }
 
 void Elf::print_info()
