@@ -218,8 +218,11 @@ uintptr_t __brk_max = 0;
 uintptr_t OS::heap_begin() noexcept {
   return 0;
 }
+
+uintptr_t OS::memory_end_ = 1 << 30;
+
 uintptr_t OS::heap_end() noexcept {
-  return 1 << 30;
+  return memory_end_;
 }
 
 size_t OS::heap_usage() noexcept {
@@ -228,6 +231,10 @@ size_t OS::heap_usage() noexcept {
 
 uintptr_t OS::heap_max() noexcept {
   return -1;
+}
+
+size_t OS::total_memuse() noexcept {
+  return heap_end();
 }
 
 #endif
