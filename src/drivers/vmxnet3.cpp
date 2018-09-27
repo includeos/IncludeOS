@@ -1,4 +1,4 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
+﻿// This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
@@ -237,7 +237,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   shared.misc.version         = VMXNET3_VERSION_MAGIC;
   shared.misc.version_support     = 1;
   shared.misc.upt_version_support = 1;
-  shared.misc.upt_features        = UPT1_F_RXVLAN;
+  shared.misc.upt_features        = 0;
   shared.misc.driver_data_address = (uintptr_t) &dma;
   shared.misc.queue_desc_address  = (uintptr_t) &dma->queues;
   shared.misc.driver_data_len     = sizeof(vmxnet3_dma);
