@@ -5,5 +5,4 @@ vmbuild/build
 src/chainload/build
 test/
 examples/
-*/build/
-*/*/build/
+**/build

@@ -1,4 +1,5 @@
 FROM ubuntu:xenial as base
+LABEL maintainer="Martin Nordsletten, S Taiyeba Haroon"
 
 RUN apt-get update && apt-get -y install \
     sudo \
@@ -27,21 +28,9 @@ RUN USER=docker && \
 
 RUN echo "LANG=C.UTF-8" > /etc/default/locale
 
-# Docker TAG can be specified when building with --build-arg TAG=..., this is redeclared in the source-build stage
-# Git tags can be specified with --build-arg NEWTAG=..., the default is set as includeos-dev
-ARG BRANCH=dev
-ARG REPO=hioa-cs
-ARG NEWTAG=includeos-dev
-ENV BRANCH=$BRANCH
-ENV REPO=$REPO
-ENV NEWTAG=$NEWTAG
-
-
-LABEL dockerfile.version=1 \
-      includeos.version=$BRANCH
-WORKDIR /service
 
 #########################
+
 FROM base as source-build
 
 RUN apt-get update && apt-get -y install \
@@ -51,25 +40,19 @@ RUN apt-get update && apt-get -y install \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /root/IncludeOS
+WORKDIR /root/IncludeOS
+COPY . .
 
-# Copy IncludeOS contents from host repo to container
-RUN echo "copying Contents of current IncludeOS branch"
-RUN cd ~ && pwd && \
-  mkdir -p IncludeOS
-COPY . /root/IncludeOS/
-
-# Adding Custom git tags
-RUN echo "Assigning Your custom git tag"
-RUN cd /root/IncludeOS && \
-    git tag -d $(git describe --tags) ; git tag $NEWTAG
+# Ability to specify custom tag that overwrites any existing tag. This will then match the reported IncludeOS version
+ARG TAG
+RUN : ${TAG:=$(git describe --tags)} && git tag -d $(git describe --tags); git tag $TAG && git describe --tags --dirty > /ios_version.txt
 
 # Installation
-RUN cd /root/IncludeOS && \
-    ./install.sh -n
-
-RUN git -C /root/IncludeOS describe --dirty --tags > /ios_version.txt
+RUN ./install.sh -n
 
 #############################
+
 FROM base as grubify
 
 RUN apt-get update && apt-get -y install \
@@ -81,6 +64,7 @@ COPY --from=source-build /usr/local/includeos/scripts/grubify.sh /home/ubuntu/In
 ENTRYPOINT ["fixuid", "/home/ubuntu/IncludeOS_install/includeos/scripts/grubify.sh"]
 
 ###########################
+
 FROM base as build
 
 RUN apt-get update && apt-get -y install \
