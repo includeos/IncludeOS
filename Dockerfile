@@ -28,7 +28,6 @@ RUN USER=docker && \
 
 RUN echo "LANG=C.UTF-8" > /etc/default/locale
 
-
 #########################
 
 FROM base as source-build
