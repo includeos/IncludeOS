@@ -78,6 +78,8 @@ RUN apt-get update && apt-get -y install \
     apt-get remove -y python-pip && \
     apt autoremove -y
 
+WORKDIR /service
+
 COPY --from=source-build  /usr/local/includeos /usr/local/includeos/
 COPY --from=source-build  /usr/local/bin/boot /usr/local/bin/boot
 COPY --from=source-build  /root/IncludeOS/etc/install_dependencies_linux.sh /
