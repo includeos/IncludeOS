@@ -81,6 +81,16 @@ void* OS::liveupdate_storage_area() noexcept
 }
 
 __attribute__((weak))
+size_t OS::liveupdate_phys_size(size_t phys_max) noexcept {
+  return 4096;
+};
+
+__attribute__((weak))
+size_t OS::liveupdate_phys_loc(size_t phys_max) noexcept {
+  return phys_max - liveupdate_phys_size(phys_max);
+};
+
+__attribute__((weak))
 void OS::setup_liveupdate(uintptr_t)
 {
   // without LiveUpdate: storage location is at the last page?
