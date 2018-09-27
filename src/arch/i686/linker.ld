@@ -67,9 +67,9 @@ SECTIONS
   .init_array :
   {
     PROVIDE_HIDDEN (__init_array_start = .);
-    */x86_64/lib/lib*.a:*(.init_array* .ctors*)
-    */x86_64/platform/lib*.a:*(.init_array* .ctors*)
-    */x86_64/drivers/lib*.a:*(.init_array* .ctors*)
+    */i686/lib/lib*.a:*(.init_array* .ctors*)
+    */i686/platform/lib*.a:*(.init_array* .ctors*)
+    */i686/drivers/lib*.a:*(.init_array* .ctors*)
     PROVIDE_HIDDEN (__init_array_end = .);
   }
 
@@ -77,7 +77,7 @@ SECTIONS
   .stdout_ctors :
   {
     PROVIDE_HIDDEN (__stdout_ctors_start = .);
-    */x86_64/drivers/stdout/lib*.a:*(.init_array* .ctors*)
+    */i686/drivers/stdout/lib*.a:*(SORT_BY_INIT_PRIORITY(.init_array*) SORT_BY_INIT_PRIORITY(.ctors*))
     PROVIDE_HIDDEN (__stdout_ctors_end = .);
   }
 
@@ -85,7 +85,7 @@ SECTIONS
   .driver_ctors :
   {
     PROVIDE_HIDDEN (__driver_ctors_start = .);
-    */x86_64/drivers/lib*.a:*(.init_array* .ctors*)
+    */i686/drivers/lib*.a:*(SORT_BY_INIT_PRIORITY(.init_array*) SORT_BY_INIT_PRIORITY(.ctors*))
     PROVIDE_HIDDEN (__driver_ctors_end = .);
   }
 
@@ -93,7 +93,7 @@ SECTIONS
   .plugin_ctors :
   {
     PROVIDE_HIDDEN (__plugin_ctors_start = .);
-    */x86_64/plugins/lib*.a:*(.init_array* .ctors*)
+    */i686/plugins/lib*.a:*(SORT_BY_INIT_PRIORITY(.init_array*) SORT_BY_INIT_PRIORITY(.ctors*))
     PROVIDE_HIDDEN (__plugin_ctors_end = .);
   }
 
