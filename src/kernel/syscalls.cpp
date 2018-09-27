@@ -17,6 +17,7 @@
 
 #include <kernel/syscalls.hpp>
 #include <kernel/os.hpp>
+#include <kernel/elf.hpp>
 #include <system_log>
 #include <statman>
 #include <kprint>
@@ -146,7 +147,23 @@ void panic(const char* why)
   fprintf(stderr, "Total memory use: ~%zu%% (%zu of %zu b)\n",
           util::bits::upercent(OS::total_memuse(), OS::memory_end()), OS::total_memuse(), OS::memory_end());
 
-  print_backtrace();
+  // print plugins
+  extern OS::ctor_t __plugin_ctors_start;
+  extern OS::ctor_t __plugin_ctors_end;
+  fprintf(stderr, "*** Found %u plugin constructors:\n",
+          uint32_t(&__plugin_ctors_end - &__plugin_ctors_start));
+  for (OS::ctor_t* ptr = &__plugin_ctors_start; ptr < &__plugin_ctors_end; ptr++)
+  {
+    char buffer[4096];
+    auto res = Elf::safe_resolve_symbol((void*) *ptr, buffer, sizeof(buffer));
+    fprintf(stderr, "Plugin: %s (%p)\n", res.name, (void*) res.addr);
+  }
+
+  // finally, backtrace
+  fprintf(stderr, "\n*** Backtrace:");
+  print_backtrace2([] (const char* text, size_t len) {
+    fprintf(stderr, "%.*s", (int) len, text);
+  });
   fflush(stderr);
   SMP::global_unlock();
 
