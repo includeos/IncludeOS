@@ -218,8 +218,12 @@ namespace os::mem::buddy {
       return root().is_full();
     }
 
+    bool overbooked() {
+      return overbooked_;
+    }
+
     bool empty() {
-      return root().is_free();
+      return bytes_used() == 0;
     }
 
     Addr_t addr_begin() const noexcept {
@@ -332,8 +336,10 @@ namespace os::mem::buddy {
 
       // For overbooking allocator, allow unusable memory to gradually become
       // marked as allocated, without actually handing it out.
-      if (UNLIKELY(res + size > addr_limit_))
+      if (UNLIKELY(res + size > addr_limit_)) {
+        overbooked_ = true;
         return 0;
+      }
 
       if (res) bytes_used_ += sz;
       return reinterpret_cast<void*>(res);
@@ -732,6 +738,7 @@ namespace os::mem::buddy {
     const uintptr_t addr_limit_ = 0;
     const Size_t pool_size_ = min_size;
     Size_t bytes_used_ = 0;
+    bool overbooked_ = false;
   };
 
   /**
