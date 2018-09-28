@@ -199,7 +199,7 @@ namespace os::mem::buddy {
     }
 
     Addr_t highest_used() const noexcept {
-      return root().highest_used_r();
+      return std::min(root().highest_used_r(), start_addr_ + capacity());
     }
 
     Size_t bytes_free() const noexcept {
