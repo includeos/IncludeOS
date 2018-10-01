@@ -212,7 +212,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   {
     memset(rx[q].buffers, 0, sizeof(rx[q].buffers));
     rx[q].desc0 = &dma->rx[q].desc[0];
-    rx[q].desc1 = &dma->rx[q].desc[0];
+    rx[q].desc1 = nullptr;
     rx[q].comp  = &dma->rx[q].comp[0];
     rx[q].index = q;
 
@@ -221,7 +221,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     queue.cfg.desc_address[1] = (uintptr_t) rx[q].desc1;
     queue.cfg.comp_address    = (uintptr_t) rx[q].comp;
     queue.cfg.num_desc[0]  = vmxnet3::NUM_RX_DESC;
-    queue.cfg.num_desc[1]  = vmxnet3::NUM_RX_DESC;
+    queue.cfg.num_desc[1]  = 0;
     queue.cfg.num_comp     = VMXNET3_NUM_RX_COMP;
     queue.cfg.driver_data_len = sizeof(vmxnet3_rx_desc)
                           + 2 * sizeof(vmxnet3_rx_desc);
