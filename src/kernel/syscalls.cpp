@@ -102,6 +102,10 @@ extern "C" __attribute__((noreturn)) void panic_epilogue(const char*);
 extern "C" __attribute__ ((weak))
 void panic_perform_inspection_procedure() {}
 
+namespace net {
+  __attribute__((weak)) void print_last_packet() {}
+}
+
 /**
  * panic:
  * Display reason for kernel panic
@@ -142,6 +146,9 @@ void panic(const char* why)
   fprintf(stderr, "Heap area: %lu / %lu Kb (allocated %zu kb)\n\n", // (%.2f%%)\n",
          (ulong) (OS::heap_end() - OS::heap_begin()) / 1024,
           (ulong) heap_total / 1024, OS::heap_usage() / 1024); //, total * 100.0);
+
+  // last packet
+  net::print_last_packet();
 
   print_backtrace();
   fflush(stderr);
