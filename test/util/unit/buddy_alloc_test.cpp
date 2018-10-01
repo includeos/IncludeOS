@@ -30,7 +30,10 @@ struct Pool {
   Pool(size_t s) : size{s} {
     auto sz  = Alloc::max_bufsize(s);
     auto res = posix_memalign(&addr, Alloc::min_size, sz);
-    Expects(res == 0);
+    if (res != 0) {
+      printf("Failed to allocate memory for allocator\n");
+      Expects(res != 0);
+    }
     alloc = Alloc::create<P>(addr, sz);
   }
 
@@ -57,12 +60,6 @@ CASE("mem::buddy init allocator"){
   #endif
 
   EXPECT(bool(alloc.root()));
-
-  printf("Allocator \n");
-  printf("Node count: %i \n", alloc.node_count());
-  printf("Pool size : %i \n", alloc.pool_size());
-
-  //std::cout << alloc.summary() << "\n";
 
   EXPECT(alloc.root().height() == 1);
   EXPECT(not alloc.root().is_leaf());
@@ -108,6 +105,7 @@ CASE("mem::buddy basic allocation / deallocation"){
     auto addr = alloc.allocate(sz);
     EXPECT(addr);
     EXPECT(alloc.in_range(addr));
+    EXPECT(alloc.highest_used() == (uintptr_t)addr + sz);
     addresses.push_back(addr);
     sum += sz;
     EXPECT(alloc.bytes_used() == sum);
@@ -152,7 +150,7 @@ CASE("mem::buddy random ordered allocation then deallocation"){
     if (not alloc.bytes_free())
       break;
 
-    const auto sz = alloc.chunksize(rnd % std::max(size_t(32_KiB), pool.size / 1024));
+    const auto sz = alloc.chunksize(rnd % std::max(size_t(32_KiB), pool.size / test::random_1k.size()));
 
     #ifdef DEBUG_UNIT
     std::cout << "Alloc " << Byte_r(sz) << "\n";
@@ -165,6 +163,9 @@ CASE("mem::buddy random ordered allocation then deallocation"){
     }
     auto addr  = alloc.allocate(sz);
     EXPECT(addr);
+    if (addr == 0) {
+      continue;
+    }
     EXPECT(alloc.in_range(addr));
     addresses.push_back(addr);
     sizes.push_back(sz);
@@ -182,6 +183,21 @@ CASE("mem::buddy random ordered allocation then deallocation"){
   if (pool.size <= 256_KiB)
     std::cout << alloc.draw_tree();
   #endif
+
+  int highest_i = 0;
+  void* highest = nullptr;
+
+  for (int i = 0; i < addresses.size(); i++) {
+    if (addresses.at(i) > highest) {
+      highest = addresses.at(i);
+      highest_i = i;
+    }
+  }
+
+  uintptr_t hi_used = (uintptr_t)addresses.at(highest_i) + sizes.at(highest_i);
+  EXPECT((hi_used == alloc.highest_used() or alloc.overbooked()));
+  auto computed_use = hi_used - alloc.addr_begin();
+  EXPECT(computed_use >= alloc.bytes_used());
 
   // Deallocate
   for (int i = 0; i < addresses.size(); i++) {
@@ -227,7 +243,7 @@ struct Allocation {
 
   bool overlaps(Allocation other){
     return overlaps(other.addr_begin())
-      or overlaps(other.addr_end());
+      or overlaps(other.addr_end() - 1);
   }
 
   bool verify_addr() {
@@ -246,6 +262,9 @@ struct Allocation {
   }
 };
 
+std::ostream& operator<<(std::ostream& out, Allocation& a) {
+  return out << "[ " <<  a.addr << ", " << a.addr + a.size << " ]";
+}
 
 CASE("mem::buddy random chaos with data verification"){
   using namespace util;
@@ -255,17 +274,21 @@ CASE("mem::buddy random chaos with data verification"){
 
   EXPECT(bool(alloc.root()));
   EXPECT(alloc.bytes_free() == alloc.capacity());
+  EXPECT(alloc.empty());
 
   std::vector<Allocation> allocs;
 
   for (auto rnd : test::random_1k) {
-    auto sz = rnd % alloc.pool_size_ / 1024;
+    auto sz = std::max(rnd % alloc.pool_size_ / 1024, alloc.min_size);
     EXPECT(sz);
 
     if (not alloc.full()) {
       Allocation a{&alloc};
       a.size = sz;
       a.addr = (uintptr_t)alloc.allocate(sz);
+      if (a.addr == 0) {
+        continue;
+      }
       a.data = 'A' + (rnd % ('Z' - 'A'));
       EXPECT(a.addr);
       EXPECT(a.verify_addr());
@@ -274,6 +297,7 @@ CASE("mem::buddy random chaos with data verification"){
         std::find_if(allocs.begin(), allocs.end(), [&a](Allocation& other) {
             return other.overlaps(a);
           });
+
       EXPECT(overlap == allocs.end());
       allocs.emplace_back(std::move(a));
       memset((void*)a.addr, a.data, a.size);

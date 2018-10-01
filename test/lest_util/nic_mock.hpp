@@ -80,13 +80,12 @@ public:
 
   net::Packet_ptr create_packet(int) override
   {
-    auto buffer = bufstore_.get_buffer();
-    auto* ptr = (net::Packet*) buffer.addr;
+    auto* ptr = (net::Packet*) bufstore_.get_buffer();
 
     new (ptr) net::Packet(frame_offs_link_,
                           0,
                           packet_len(),
-                          buffer.bufstore);
+                          &bufstore_);
 
     return net::Packet_ptr(ptr);
   }

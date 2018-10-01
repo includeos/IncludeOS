@@ -36,7 +36,7 @@ CASE("Super stack functionality")
   nics.push_back(std::make_unique<Nic_mock>());
 
   // 3 stacks are preallocated
-  EXPECT(Super_stack::inet().ip4_stacks().size() == 3);
+  EXPECT(Super_stack::inet().stacks().size() == 3);
 
   // Retreiving the first stack creates an interface on the first nic
   auto& stack1 = Super_stack::get(0);
@@ -76,20 +76,6 @@ CASE("Super stack functionality")
   stack_err = false;
   try {
     Super_stack::inet().create(my_nic, 0, 0);
-  } catch(const Super_stack_err&) {
-    stack_err = true;
-  }
-  EXPECT(stack_err == true);
-
-  // Also possible to create without assigning index, which means it takes the first free one
-  auto& custom_created_stack = Super_stack::inet().create(my_nic);
-  EXPECT(&custom_created_stack == &Super_stack::get(1));
-
-  // Not allowed to create if all indexes are occupied tho
-  Super_stack::get(2); // occupy the last free one
-  stack_err = false;
-  try {
-    Super_stack::inet().create(my_nic);
   } catch(const Super_stack_err&) {
     stack_err = true;
   }

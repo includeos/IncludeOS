@@ -66,17 +66,15 @@ void Solo5Net::transmit(net::Packet_ptr pckt)
 
 net::Packet_ptr Solo5Net::create_packet(int link_offset)
 {
-  auto buffer = bufstore().get_buffer();
-  auto* pckt = (net::Packet*) buffer.addr;
+  auto* pckt = (net::Packet*) bufstore().get_buffer();
 
-  new (pckt) net::Packet(link_offset, 0, packet_len(), buffer.bufstore);
+  new (pckt) net::Packet(link_offset, 0, packet_len(), &bufstore());
   return net::Packet_ptr(pckt);
 }
 net::Packet_ptr Solo5Net::recv_packet()
 {
-  auto buffer = bufstore().get_buffer();
-  auto* pckt = (net::Packet*) buffer.addr;
-  new (pckt) net::Packet(0, MTU(), packet_len(), buffer.bufstore);
+  auto* pckt = (net::Packet*) bufstore().get_buffer();
+  new (pckt) net::Packet(0, MTU(), packet_len(), &bufstore());
   // Populate the packet buffer with new packet, if any
   size_t size = packet_len();
   if (solo5_net_read(pckt->buf(), size, &size) == 0) {
@@ -86,7 +84,7 @@ net::Packet_ptr Solo5Net::recv_packet()
       return net::Packet_ptr(pckt);
     }
   }
-  bufstore().release(buffer.addr);
+  bufstore().release(&pckt);
   return nullptr;
 }
 

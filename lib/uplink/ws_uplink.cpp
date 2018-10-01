@@ -517,7 +517,7 @@ namespace uplink {
 
     writer.StartArray();
 
-    auto& stacks = net::Super_stack::inet().ip4_stacks();
+    auto& stacks = net::Super_stack::inet().stacks();
     for(const auto& stack : stacks) {
       for(const auto& pair : stack)
         serialize_stack(writer, pair.second);
@@ -627,7 +627,7 @@ namespace uplink {
 
   std::shared_ptr<net::Conntrack> get_first_conntrack()
   {
-    for(auto& stacks : net::Super_stack::inet().ip4_stacks()) {
+    for(auto& stacks : net::Super_stack::inet().stacks()) {
       for(auto& stack : stacks)
       {
         if(stack.second != nullptr and stack.second->conntrack() != nullptr)

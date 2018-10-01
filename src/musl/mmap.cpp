@@ -18,7 +18,8 @@ Alloc& os::mem::allocator() {
 uintptr_t __init_mmap(uintptr_t addr_begin)
 {
   auto aligned_begin = (addr_begin + Alloc::align - 1) & ~(Alloc::align - 1);
-  int64_t len = (OS::heap_max() - aligned_begin) & ~int64_t(Alloc::align - 1);
+  auto mem_end = OS::liveupdate_phys_loc(OS::heap_max());
+  int64_t len = (mem_end - aligned_begin) & ~int64_t(Alloc::align - 1);
 
   alloc = Alloc::create((void*)aligned_begin, len);
   kprintf("* mmap initialized. Begin: 0x%zx, end: 0x%zx\n",
