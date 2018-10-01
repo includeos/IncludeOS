@@ -32,6 +32,11 @@ void Service::start()
   dev2 = std::make_unique<Async_device>(4000);
   //dev1->connect(*dev2);
   //dev2->connect(*dev1);
+  dev1->set_transmit(
+    [] (net::Packet_ptr packet) {
+      // drop
+      fprintf(stderr, "Dropping outgoing packet\n");
+    });
 
   auto& inet_server = net::Super_stack::get(0);
   inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
@@ -57,7 +62,9 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   eth->set_dest({0x7, 0x8, 0x9, 0xA, 0xB, 0xC});
   eth->set_type(net::Ethertype::IP4);
   const size_t packet_size = std::min((size_t) inet.MTU(), size);
-  p->set_data_end(packet_size);
+  // we have to add ethernet size here as its not part of MTU
+  p->set_data_end(sizeof(net::ethernet::Header) + packet_size);
+  // by subtracting 2 i can fuzz ethertype as well
   memcpy(eth->next_layer, data, packet_size);
   dev1->get_driver()->receive(std::move(p));
   return 0;
