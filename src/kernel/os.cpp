@@ -168,6 +168,10 @@ void OS::post_start()
          static_cast<unsigned>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name());
   FILLINE('~');
+#if defined(LIBFUZZER_ENABLED) || defined(ARP_PASSTHROUGH) || defined(USERSPACE_LINUX)
+  printf(" +--> WARNiNG: Environment unsafe for production\n");
+  FILLINE('~');
+#endif
 
   Service::start();
 }
