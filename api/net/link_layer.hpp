@@ -23,6 +23,8 @@
 
 namespace net {
 
+extern void set_last_packet(net::Packet*);
+
 template <class T>
 class Link_layer : public hw::Nic {
 public:
@@ -81,7 +83,10 @@ public:
 protected:
   /** Called by the underlying physical driver inheriting the Link_layer */
   void receive(net::Packet_ptr pkt)
-  { link_.receive(std::move(pkt)); }
+  {
+    set_last_packet(pkt.get());
+    link_.receive(std::move(pkt));
+  }
 
 private:
   Protocol link_;

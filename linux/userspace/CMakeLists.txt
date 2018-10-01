@@ -6,6 +6,7 @@ set(NET_SOURCES
   ${IOS}/src/net/configure.cpp
   ${IOS}/src/net/super_stack.cpp
   ${IOS}/src/net/inet.cpp
+  ${IOS}/src/net/packet_debug.cpp
 
   ${IOS}/src/net/ethernet/ethernet.cpp
   ${IOS}/src/net/ip4/arp.cpp
