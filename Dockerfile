@@ -44,8 +44,9 @@ WORKDIR /root/IncludeOS
 COPY . .
 
 # Ability to specify custom tag that overwrites any existing tag. This will then match the reported IncludeOS version
-ARG TAG
-RUN : ${TAG:=$(git describe --tags)} && git tag -d $(git describe --tags); git tag $TAG && git describe --tags --dirty > /ios_version.txt
+ARG CUSTOM_TAG
+RUN git describe --tags --dirty > /ios_version.txt
+RUN : ${CUSTOM_TAG:=$(git describe --tags)} && git tag -d $(git describe --tags); git tag $CUSTOM_TAG && git describe --tags --dirty > /custom_tag.txt
 
 # Installation
 RUN ./install.sh -n
@@ -85,6 +86,7 @@ COPY --from=source-build  /root/IncludeOS/etc/install_dependencies_linux.sh /
 COPY --from=source-build  /root/IncludeOS/etc/use_clang_version.sh /
 COPY --from=source-build  /root/IncludeOS/lib/uplink/starbase /root/IncludeOS/lib/uplink/starbase/
 COPY --from=source-build  /ios_version.txt /
+COPY --from=source-build  /custom_tag.txt /
 COPY --from=source-build  /root/IncludeOS/etc/docker_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
