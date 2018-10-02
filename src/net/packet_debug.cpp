@@ -75,10 +75,10 @@ namespace net {
     // ignore the above, just hope we can write the full content of the packet
     print_len = pkt->size();
 
-    fprintf(stderr, "Payload %i bytes from recorded layer begin (%p):\n", print_len, layer_begin);
+    fprintf(stderr, "Payload %i bytes from recorded layer begin (%p):", print_len, layer_begin);
     for(int i = 0; i < print_len; i++) {
+      if(i % 80 == 0) fprintf(stderr, "\n"); // break every 80th char
       fprintf(stderr, "%02x", *(layer_begin + i));
-      if(i > 0 and i % 80 == 0) fprintf(stderr, "\n"); // break every 80th char
     }
     fprintf(stderr, "\n");
   }
