@@ -269,7 +269,12 @@ namespace net {
 
     // Send loopback packets right back
     if (UNLIKELY(stack_.is_valid_source(packet->ip_dst()))) {
-      PRINT("<IP4> Destination address is loopback \n");
+      PRINT("<IP4> Loopback packet returned SRC %s DST %s\n",
+             packet->ip_src().to_string().c_str(),
+             packet->ip_dst().to_string().c_str()
+            );
+      // to avoid loops, lets decrement hop count here
+      packet->decrement_ttl();
       IP4::receive(std::move(packet), false);
       return;
     }
