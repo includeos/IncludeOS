@@ -65,7 +65,7 @@ namespace net {
     if (UNLIKELY(not packet->is_ipv4()))
       return drop(std::move(packet), up, Drop_reason::Wrong_version);
 
-#ifndef LIBFUZZER_ENABLED
+#if !defined(DISABLE_INET_CHECKSUMS)
     // RFC-1122 3.2.1.2, Verify IP checksum, silently discard bad dgram
     if (UNLIKELY(packet->compute_ip_checksum() != 0))
       return drop(std::move(packet), up, Drop_reason::Wrong_checksum);

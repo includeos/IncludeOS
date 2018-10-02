@@ -25,6 +25,8 @@
 
 static std::unique_ptr<Async_device> dev1;
 static std::unique_ptr<Async_device> dev2;
+static void insert_into_stack(const uint8_t* data, const size_t size);
+static std::vector<uint8_t> load_file(const std::string& file);
 
 void Service::start()
 {
@@ -42,19 +44,23 @@ void Service::start()
   inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
   auto& inet_client = net::Super_stack::get(1);
   inet_client.network_config({10,0,0,43}, {255,255,255,0}, {10,0,0,1});
+  
+#ifndef LIBFUZZER_ENABLED
+  std::vector<std::string> files = {
+    "crash-ac14c3b630c779e70d5e47363ca5d48842c9704f"
+  };
+  for (const auto& file : files) {
+    auto v = load_file(file);
+    printf("*** Inserting payload %s into stack...\n", file.c_str());
+    insert_into_stack(v.data(), v.size());
+    printf("*** Payload %s was inserted into stack\n", file.c_str());
+    printf("\n");
+  }
+#endif
 }
 
-extern "C"
-int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+void insert_into_stack(const uint8_t* data, const size_t size)
 {
-  static bool init_once = false;
-  if (UNLIKELY(init_once == false)) {
-    init_once = true;
-    extern int userspace_main(int, const char*[]);
-    const char* args[] = {"test"};
-    userspace_main(1, args);
-  }
-  if (size == 0) return 0;
   auto& inet = net::Super_stack::get(0);
   auto p = inet.create_packet();
   auto* eth = (net::ethernet::Header*) p->buf();
@@ -67,5 +73,35 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   // by subtracting 2 i can fuzz ethertype as well
   memcpy(eth->next_layer, data, packet_size);
   dev1->get_driver()->receive(std::move(p));
+}
+
+std::vector<uint8_t> load_file(const std::string& file)
+{
+	FILE *f = fopen(file.c_str(), "rb");
+	if (f == nullptr) return {};
+	fseek(f, 0, SEEK_END);
+	const size_t size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+  std::vector<uint8_t> data(size);
+	if (size != fread(data.data(), sizeof(char), size, f)) {
+		return {};
+	}
+	fclose(f);
+	return data;
+}
+
+// libfuzzer input
+extern "C"
+int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+{
+  static bool init_once = false;
+  if (UNLIKELY(init_once == false)) {
+    init_once = true;
+    extern int userspace_main(int, const char*[]);
+    const char* args[] = {"test"};
+    userspace_main(1, args);
+  }
+  if (size == 0) return 0;
+  insert_into_stack(data, size);
   return 0;
 }

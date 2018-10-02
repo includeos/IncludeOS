@@ -220,7 +220,7 @@ void TCP::receive(Packet_view& packet)
     return;
   }
 
-#ifndef LIBFUZZER_ENABLED
+#if !defined(DISABLE_INET_CHECKSUMS)
   // Validate checksum
   if (UNLIKELY(packet.compute_tcp_checksum() != 0)) {
     PRINT("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
