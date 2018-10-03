@@ -325,60 +325,56 @@ namespace net
   std::string DNS::Request::rr_t::readName(const char* reader, const char* buffer, size_t tot_len, int& count)
   {
     std::string name(256, '\0');
-    unsigned p = 0;
-    unsigned offset = 0;
+    unsigned namelen = 0;
     bool jumped = false;
 
     count = 1;
-    unsigned char* ureader = (unsigned char*) reader;
+    const auto* ureader = (unsigned char*) reader;
 
     while (*ureader)
       {
         if (*ureader >= 192)
           {
             // read 16-bit offset, mask out the 2 top bits
-            offset = ((*ureader) * 256 + *(ureader+1)) & 0x3FFF; // = 11000000 00000000
+            uint16_t offset = (*ureader >> 8) | *(ureader+1);
+            offset &= 0x3fff; // remove 2 top bits
 
             if(UNLIKELY(offset > tot_len))
               return {};
-
-            ureader = (unsigned char*) buffer + offset - 1;
+            
+            ureader = (unsigned char*) &buffer[offset];
             jumped = true; // we have jumped to another location so counting wont go up!
           }
         else
           {
-            name[p++] = *ureader;
+            name[namelen++] = *ureader++;
+            // maximum label size
+            if(UNLIKELY(namelen > 63)) break;
           }
-        ureader++;
 
         // if we havent jumped to another location then we can count up
         if (jumped == false) count++;
       }
 
-    // maximum label size
-    if(UNLIKELY(p > 63))
-      return {};
-
-    name.resize(p);
+    name.resize(namelen);
 
     // number of steps we actually moved forward in the packet
     if (jumped)
       count++;
 
     // now convert 3www6google3com0 to www.google.com
-    int len = p; // same as name.size()
-    int i;
-    for(i = 0; i < len; i++)
+    for(unsigned i = 0; i < name.size(); i++)
       {
-        p = name[i];
-        for(unsigned j = 0; j < p; j++)
+        const uint8_t len = name[i];
+        for(unsigned j = 0; j < len; j++)
           {
             name[i] = name[i+1];
             i++;
           }
         name[i] = '.';
       }
-    name[i - 1] = '\0'; // remove the last dot
+    // remove the last dot by resizing down
+    name.resize(name.size()-1);
     return name;
 
   } // readName()
