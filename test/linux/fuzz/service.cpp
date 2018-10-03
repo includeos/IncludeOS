@@ -120,6 +120,16 @@ add_eth_layer(uint8_t* data, FuzzyIterator& fuzzer, net::Ethertype type)
   return &data[sizeof(net::ethernet::Header)];
 }
 
+static inline uint16_t udp_port_scan(net::Inet& inet)
+{
+  for (uint16_t udp_port = 1; udp_port < 65535; udp_port++) {
+    if (inet.udp().is_bound({inet.ip_addr(), udp_port})) {
+      return udp_port;
+    }
+  }
+  return 0;
+}
+
 static void
 insert_into_stack(layer_t layer, const uint8_t* data, const size_t size)
 {
@@ -145,8 +155,21 @@ insert_into_stack(layer_t layer, const uint8_t* data, const size_t size)
       break;
     }
   case UDP:
-    //add_ip4_layer(eth_end, data, packet_size);
-    //add_udp4_layer(ip4_end, data, packet_size, 53);
+    {
+      // scan for UDP port (once)
+      static uint16_t udp_port = 0;
+      if (udp_port == 0) {
+        udp_port = udp_port_scan(inet);
+        assert(udp_port != 0);
+      }
+      // generate IP4 and UDP datagrams
+      auto* ip_layer = add_ip4_layer(eth_end, fuzzer,
+                         {10, 0, 0, 1}, inet.ip_addr());
+      auto* udp_layer = add_udp4_layer(ip_layer, fuzzer,
+                          udp_port);
+      fuzzer.fill_remaining(udp_layer);
+      break;
+    }
     break;
   default:
     assert(0 && "Implement me");
@@ -183,6 +206,6 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     userspace_main(1, args);
   }
   if (size == 0) return 0;
-  insert_into_stack(IP4, data, size);
+  insert_into_stack(UDP, data, size);
   return 0;
 }
