@@ -34,8 +34,6 @@ class Header {
   Ethertype type_;
 
 public:
-  uint8_t   next_layer[0];
-
   const MAC::Addr& dest() const noexcept
   { return dest_; }
 
