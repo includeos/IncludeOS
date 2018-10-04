@@ -22,7 +22,7 @@
 using namespace net;
 using namespace tcp;
 
-#define VERBOSE_TCP_LISTENER
+//#define VERBOSE_TCP_LISTENER
 #ifdef VERBOSE_TCP_LISTENER
 #define TCPL_PRINT1(x, ...) printf(x, ##__VA_ARGS__)
 #define TCPL_PRINT2(x, ...) printf(x, ##__VA_ARGS__)
