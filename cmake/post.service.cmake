@@ -14,6 +14,18 @@ message(STATUS "Target triple ${TRIPLE}")
 # defines $CAPABS depending on installation
 include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 
+if (${CMAKE_VERSION} VERSION_LESS "3.12")
+  find_program(Python2 python2.7)
+  if (NOT Python2)
+    #brutal fallback
+    set(Python2_EXECUTABLE python)
+  else()
+    set(Python2_EXECUTABLE ${Python2})
+  endif()
+else()
+  find_package(Python2 COMPONENTS Interpreter)
+endif()
+
 # Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")
   set(ARCH_INTERNAL "ARCH_X64")
@@ -139,7 +151,7 @@ endif()
 if (EXISTS ${CMAKE_SOURCE_DIR}/nacl.txt)
   add_custom_command(
      OUTPUT nacl_content.cpp
-     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | python ${INSTALL_LOC}/nacl/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
+     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | ${Python2_EXECUTABLE} ${INSTALL_LOC}/nacl/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
      DEPENDS ${CMAKE_SOURCE_DIR}/nacl.txt
    )
    add_library(nacl_content STATIC nacl_content.cpp)
@@ -386,7 +398,7 @@ function(add_memdisk DISK)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND ${Python2_EXECUTABLE} ${INSTALL_LOC}/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
     DEPENDS ${DISK_RELPATH}
   )
