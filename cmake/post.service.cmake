@@ -15,8 +15,6 @@ message(STATUS "Target triple ${TRIPLE}")
 include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 
 if (${CMAKE_VERSION} VERSION_LESS "3.12")
-  #ultimate fallback
-  set(Python2_EXECUTABLE python)
   find_program(Python2 python2.7)
   if (NOT Python2)
     #brutal fallback
