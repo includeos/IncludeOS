@@ -263,6 +263,9 @@ namespace net
 
   DNS::Request::rr_t::rr_t(const char*& reader, const char* buffer, size_t len)
   {
+    // don't call readName if we are already out of buffer
+    if (reader >= buffer + len)
+        throw std::runtime_error("Nothing left to parse");
     int stop;
     this->name = readName(reader, buffer, len, stop);
     assert(stop >= 0);
