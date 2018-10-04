@@ -27,6 +27,7 @@ static std::unique_ptr<Async_device> dev1;
 static std::unique_ptr<Async_device> dev2;
 static std::vector<uint8_t> load_file(const std::string& file);
 #define htons(x) __builtin_bswap16(x)
+static const int TCP_PORT = 12345;
 
 void Service::start()
 {
@@ -47,11 +48,6 @@ void Service::start()
   
 #ifndef LIBFUZZER_ENABLED
   std::vector<std::string> files = {
-    "crash-020bcdfd60a45b51a7a56172ba93ba7645994ba3",
-    "crash-3eef88b2c455a9959aaddd277312e9a206e421d9",
-    "crash-0dfed32cef2196386f0e3c5e7fa3e470521eb50f",
-    "crash-ac14c3b630c779e70d5e47363ca5d48842c9704f",
-    "crash-1ec21ad105c15b4cd558bca302903ccc3b145601"
   };
   for (const auto& file : files) {
     auto v = load_file(file);
@@ -68,6 +64,12 @@ void Service::start()
         (void) error;
         printf("resolve() call ended\n");
       });
+  inet_server.tcp().listen(
+    TCP_PORT,
+    [] (auto connection) {
+      printf("Writing test to new connection\n");
+      connection->write("test");
+    });
 }
 
 enum layer_t {
@@ -75,7 +77,8 @@ enum layer_t {
   IP4,
   TCP,
   UDP,
-  DNS
+  DNS,
+  TCP_CONNECTION
 };
 
 #include "fuzzy_helpers.hpp"
@@ -90,7 +93,7 @@ add_ip4_layer(uint8_t* data, FuzzyIterator& fuzzer,
   hdr->ttl      = 64;
   hdr->protocol = (protocol) ? protocol : fuzzer.steal8();
   hdr->check    = 0;
-  hdr->tot_len  = htons(fuzzer.size);
+  hdr->tot_len  = htons(sizeof(net::ip4::Header) + fuzzer.size);
   hdr->saddr    = src_addr;
   hdr->daddr    = dst_addr;
   //hdr->check    = net::checksum(hdr, sizeof(net::ip4::header));
@@ -108,6 +111,23 @@ add_udp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
   hdr->checksum = 0;
   fuzzer.increment_data(sizeof(net::UDP::header));
   return &data[sizeof(net::UDP::header)];
+}
+static uint8_t*
+add_tcp4_layer(uint8_t* data, FuzzyIterator& fuzzer,
+              const uint16_t dport)
+{
+  auto* hdr = new (data) net::tcp::Header();
+  hdr->source_port      = htons(1234);
+  hdr->destination_port = htons(dport);
+  hdr->seq_nr      = fuzzer.steal32();
+  hdr->ack_nr      = fuzzer.steal32();
+  hdr->offset_flags.offset_reserved = 0;
+  hdr->offset_flags.flags = fuzzer.steal8();
+  hdr->window_size = fuzzer.steal16();
+  hdr->checksum    = 0;
+  hdr->urgent      = 0;
+  fuzzer.increment_data(sizeof(net::tcp::Header));
+  return &data[sizeof(net::tcp::Header)];
 }
 static uint8_t*
 add_eth_layer(uint8_t* data, FuzzyIterator& fuzzer, net::Ethertype type)
@@ -164,12 +184,26 @@ insert_into_stack(layer_t layer, const uint8_t* data, const size_t size)
       }
       // generate IP4 and UDP datagrams
       auto* ip_layer = add_ip4_layer(eth_end, fuzzer,
-                         {10, 0, 0, 1}, inet.ip_addr());
+                         {10, 0, 0, 1}, inet.ip_addr(),
+                          (uint8_t) net::Protocol::UDP);
       auto* udp_layer = add_udp4_layer(ip_layer, fuzzer,
                           udp_port);
       fuzzer.fill_remaining(udp_layer);
       break;
     }
+  case TCP:
+    {
+      // generate IP4 and TCP data
+      auto* ip_layer = add_ip4_layer(eth_end, fuzzer,
+                         {10, 0, 0, 1}, inet.ip_addr(),
+                          (uint8_t) net::Protocol::TCP);
+      auto* tcp_layer = add_tcp4_layer(ip_layer, fuzzer,
+                          TCP_PORT);
+      fuzzer.fill_remaining(tcp_layer);
+      break;
+    }
+  case TCP_CONNECTION:
+    //
     break;
   default:
     assert(0 && "Implement me");
