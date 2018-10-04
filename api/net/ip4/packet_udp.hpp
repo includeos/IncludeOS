@@ -126,10 +126,7 @@ namespace net
     }
 
     bool validate_length() const noexcept {
-      uint16_t hdr_len = ip_header_length();
-      if ((unsigned) size() < hdr_len + sizeof(UDP::header)) return false;
-      if (length() < sizeof(UDP::header)) return false;
-      return true;
+      return length() >= sizeof(UDP::header);
     }
 
   private:

@@ -182,6 +182,10 @@ public:
 
   inline size_t fill(const uint8_t* buffer, size_t length);
 
+  bool validate_length() const noexcept {
+    return ip_data_length() >= tcp_header_length();
+  }
+
   // Util //
 
   seq_t end() const noexcept
