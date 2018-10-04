@@ -506,12 +506,17 @@ bool vmxnet3::receive_handler(const int Q)
     auto& comp = dma->rx[Q].comp[idx];
     // break when exiting this generation
     if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
+
+    /* prevent speculative pre read ahead of comp content*/
+    __arch_read_memory_barrier();
+
     rx[Q].consumers++;
     rx[Q].prod_count--;
 
     int desc = comp.index % vmxnet3::NUM_RX_DESC;
     // mask out length
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
+
     // get buffer and construct packet
     assert(rx[Q].buffers[desc] != nullptr);
     recvq.push_back(recv_packet(rx[Q].buffers[desc], len));
