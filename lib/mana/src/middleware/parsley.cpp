@@ -31,19 +31,15 @@ void Parsley::process(mana::Request_ptr req, mana::Response_ptr, mana::Next next
     auto json = std::make_shared<attribute::Json_doc>();
 
     // Access the document and parse the body
-    try {
-      json->doc().Parse(req->source().body().data());
-      #ifdef VERBOSE_WEBSERVER
-      printf("<Parsley> Parsed JSON data.\n");
-      #endif
+    bool err = json->doc().Parse(req->source().body().data()).HasParseError();
+    #ifdef VERBOSE_WEBSERVER
+    printf("<Parsley> Parsed JSON data.\n");
+    #endif
 
-      // Add the json attribute to the request
+    if(not err)
       req->set_attribute(std::move(json));
-    }
-    catch(const Assert_error& e) {
-      printf("<Parsley> Parsing error.\n");
-    }
-
+    else
+      printf("<Parsley> Parsing error\n");
   }
 
   return (*next)();

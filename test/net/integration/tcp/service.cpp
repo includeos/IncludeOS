@@ -16,9 +16,8 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet4>
-#include <net/dhcp/dh4client.hpp>
-#include <net/tcp/tcp.hpp>
+#include <net/inet.hpp>
+#include <net/super_stack.hpp>
 #include <vector>
 #include <info>
 #include <timers>
@@ -26,6 +25,9 @@
 using namespace net;
 using namespace std::chrono; // For timers and MSL
 tcp::Connection_ptr client;
+
+static Inet& stack()
+{ return Super_stack::get(0); }
 
 /*
   TEST VARIABLES
@@ -58,17 +60,8 @@ void FINISH_TEST() {
   Timers::oneshot(2 * MSL_TEST + 100ms,
   [] (Timers::id_t) {
       INFO("TEST", "Verify release of resources");
-      CHECKSERT(Inet4::stack<0>().tcp().active_connections() == 0,
+      CHECKSERT(stack().tcp().active_connections() == 0,
         "No (0) active connections");
-      INFO("Buffers", "%u avail / %u total",
-            Inet4::stack<0>().buffers_available(),
-            Inet4::stack<0>().buffers_total());
-      // unfortunately we can't know just how many buffers SHOULD be
-      // available, because drivers take some buffers, but there should
-      // be at least half the buffers left
-      auto total = Inet4::stack<0>().buffers_total();
-      CHECKSERT(Inet4::stack<0>().buffers_available() >= total / 2,
-                "Free buffers (%u available)", total);
       printf("# TEST SUCCESS #\n");
     });
 }
@@ -80,13 +73,13 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
   auto port = address.second;
   // This needs correct setup to work
   INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
-  Inet4::stack<0>().resolve(address.first,
+  stack().resolve(address.first,
     [port](auto ip_address, const Error&) {
       CHECK(ip_address != 0, "Resolved host");
 
       if(ip_address != 0)
       {
-        Inet4::stack<0>().tcp().connect({ip_address, port})
+        stack().tcp().connect({ip_address, port})
           ->on_connect([](tcp::Connection_ptr conn)
           {
             CHECKSERT(conn != nullptr, "Connected");
@@ -104,7 +97,7 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
 */
 void OUTGOING_TEST(Socket outgoing) {
   INFO("TEST", "Outgoing Connection (%s)", outgoing.to_string().c_str());
-  Inet4::stack<0>().tcp().connect(outgoing, [](tcp::Connection_ptr conn)
+  stack().tcp().connect(outgoing, [](tcp::Connection_ptr conn)
   {
     CHECKSERT(conn != nullptr, "Connection successfully established.");
     conn->on_read(small.size(),
@@ -141,6 +134,11 @@ struct Buffer {
 
 void Service::start()
 {
+#ifdef USERSPACE_LINUX
+  extern void create_network_device(int N, const char* route, const char* ip);
+  create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+#endif
+
   for(int i = 0; i < S; i++) small += TEST_STR;
 
   big += "start-";
@@ -151,14 +149,18 @@ void Service::start()
   for(int i = 0; i < H; i++) huge += TEST_STR;
   huge += "-end";
 
-  auto& inet = Inet4::stack<0>(); // Inet4<VirtioNet>::stack<0>();
+  auto& inet = stack();
   inet.network_config(
     {  10,  0,  0, 44 },  // IP
     {  255,255,255, 0 },  // Netmask
     {  10,  0,  0,  1 },  // Gateway
     {   8,  8,  8,  8 }   // DNS
   );
-  INFO("Buffers available", "%u", inet.buffers_available());
+  inet.network_config6(
+    {  0xfe80, 0, 0, 0, 0xe823, 0xfcff, 0xfef4, 0x85bd },   // IP6
+    64,                                                     // Prefix6
+    {  0xfe80,  0,  0, 0, 0xe823, 0xfcff, 0xfef4, 0x83e7 }  // Gateway6
+  );
 
   auto& tcp = inet.tcp();
   // reduce test duration
@@ -246,7 +248,7 @@ void Service::start()
   tcp.listen(TEST4).on_connect([](tcp::Connection_ptr conn) {
       INFO("Test 4","Connection/TCP state");
       // There should be at least one connection.
-      CHECKSERT(Inet4::stack<0>().tcp().active_connections() > 0, "There is (>0) open connection(s)");
+      CHECKSERT(stack().tcp().active_connections() > 0, "There is (>0) open connection(s)");
       // Test if connected.
       CHECKSERT(conn->is_connected(), "Is connected");
       // Test if writable.
@@ -264,7 +266,7 @@ void Service::start()
         [conn] (auto) {
             CHECKSERT(conn->is_state({"TIME-WAIT"}), "State: TIME-WAIT");
             INFO("Test 4", "Succeeded. Trigger TEST5");
-            OUTGOING_TEST({Inet4::stack().gateway(), TEST5});
+            OUTGOING_TEST({Inet::stack().gateway6(), TEST5});
           });
 
         Timers::oneshot(5s, [] (Timers::id_t) { FINISH_TEST(); });

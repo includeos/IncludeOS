@@ -9,7 +9,7 @@
       }
     ],
     "uplink" : {
-      "url" : "10.0.0.1:9090",
+      "url" : "http://10.0.0.1:9090",
       "token" : "kappa123",
       "reboot" : true
     }

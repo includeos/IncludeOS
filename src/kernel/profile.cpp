@@ -168,7 +168,7 @@ std::vector<Sample> StackSampler::results(int N)
       res.push_back(Sample {sa.second, (void*) func.addr, func.name});
     }
     else {
-      int len = snprintf(buffer, sizeof(buffer), "0x%08x", func.addr);
+      int len = snprintf(buffer, sizeof(buffer), "0x%08zx", func.addr);
       res.push_back(Sample {sa.second, (void*) func.addr, std::string(buffer, len)});
     }
 
@@ -182,18 +182,40 @@ void StackSampler::print(const int N)
   auto samp = results(N);
   int total = samples_total();
 
-  printf("Stack sampling - %d results (%u samples)\n",
+  printf("Stack sampling - %zu results (%d samples)\n",
          samp.size(), total);
   for (auto& sa : samp)
   {
     // percentage of total samples
     float perc = sa.samp / (float)total * 100.0f;
     printf("%5.2f%%  %*u: %.*s\n",
-           perc, 8, sa.samp, sa.name.size(), sa.name.c_str());
+           perc, 8, sa.samp, (int) sa.name.size(), sa.name.c_str());
   }
 }
 
 void StackSampler::set_mask(bool mask)
 {
   get().discard = mask;
+}
+
+std::string HeapDiag::to_string()
+{
+  static intptr_t last = 0;
+  // show information on heap status, to discover leaks etc.
+  auto heap_begin = OS::heap_begin();
+  auto heap_end   = OS::heap_end();
+  auto heap_usage = OS::heap_usage();
+  intptr_t heap_size = heap_end - heap_begin;
+  last = heap_size - last;
+
+  char buffer[256];
+  int len = snprintf(buffer, sizeof(buffer),
+          "Heap begin  %#lx  size %lu Kb\n"
+          "Heap end    %#lx  diff %lu (%ld Kb)\n"
+          "Heap usage  %lu kB\n",
+          heap_begin, heap_size / 1024,
+          heap_end,  last, last / 1024,
+          heap_usage / 1024);
+  last = (int32_t) heap_size;
+  return std::string(buffer, len);
 }

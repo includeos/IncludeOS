@@ -17,6 +17,7 @@
 
 // #define DEBUG
 #include <net/ip4/icmp4.hpp>
+#include <net/inet>
 
 namespace net {
 
@@ -52,33 +53,33 @@ namespace net {
     auto req = icmp4::Packet(std::move(pckt_ip4));
 
     switch(req.type()) {
-    case (ICMP_type::ECHO):
+    case ICMP_type::ECHO:
       debug("<ICMP> PING from %s\n", req.ip().ip_src().to_string().c_str());
       ping_reply(req);
       break;
-    case (ICMP_type::ECHO_REPLY):
+    case ICMP_type::ECHO_REPLY:
       debug("<ICMP> PING Reply from %s\n", req.ip().ip_src().str().c_str());
       execute_ping_callback(req);
       break;
-    case (ICMP_type::DEST_UNREACHABLE):
+    case ICMP_type::DEST_UNREACHABLE:
       if (req.code() == (uint8_t) icmp4::code::Dest_unreachable::FRAGMENTATION_NEEDED) {
         debug("<ICMP> ICMP Too Big message from %s\n", req.ip().ip_src().str().c_str());
         handle_too_big(req);
         return;
       }
-      // else continue
-    case (ICMP_type::REDIRECT):
-    case (ICMP_type::TIME_EXCEEDED):
-    case (ICMP_type::PARAMETER_PROBLEM):
+      break; // else continue
+    case ICMP_type::REDIRECT:
+    case ICMP_type::TIME_EXCEEDED:
+    case ICMP_type::PARAMETER_PROBLEM:
       debug("<ICMP> ICMP error message from %s\n", req.ip().ip_src().str().c_str());
       forward_to_transport_layer(req);
       break;
-    case (ICMP_type::TIMESTAMP):
+    case ICMP_type::TIMESTAMP:
       debug("<ICMP> TIMESTAMP from %s\n", req.ip().ip_src().str().c_str());
       // TODO May
       // timestamp_reply(req);
       break;
-    case (ICMP_type::TIMESTAMP_REPLY):
+    case ICMP_type::TIMESTAMP_REPLY:
       debug("<ICMP> TIMESTAMP REPLY from %s\n", req.ip().ip_src().str().c_str());
       // TODO May
       break;
@@ -176,7 +177,7 @@ namespace net {
   }
 
   void ICMPv4::ping(const std::string& hostname, icmp_func callback, int sec_wait) {
-    inet_.resolve(hostname, Inet<IP4>::resolve_func<IP4>::make_packed([this, callback, sec_wait] (IP4::addr a, Error err) {
+    inet_.resolve(hostname, Inet::resolve_func::make_packed([this, callback, sec_wait] (IP4::addr a, Error err) {
       if (!err and a != IP4::ADDR_ANY)
         ping(a, callback, sec_wait);
     }));
@@ -255,7 +256,8 @@ namespace net {
     icmp4::Packet res(inet_.ip_packet_factory());
 
     // drop if the packet is too small
-    if (res.ip().capacity() < res.ip().ip_header_length() + res.header_size() + req.payload().size())
+    if (res.ip().capacity() < res.ip().ip_header_length()
+     + (int) res.header_size() + req.payload().size())
     {
       printf("WARNING: Network MTU too small for ICMP response, dropping\n");
       return;

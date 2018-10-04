@@ -18,13 +18,13 @@ ExternalProject_Add(nacl_bin
 set(NACL_DIR ${INCLUDEOS_ROOT}/NaCl)
 set(NACL_EXE ${NACL_DIR}/NaCl.py)
 set(NACL_SRC
-  ${NACL_DIR}/cpp_transpile_function.py
   ${NACL_DIR}/cpp_template.mustache
-  ${NACL_DIR}/cpp_resolve_values.py
-  ${NACL_DIR}/shared_constants.py
+  ${NACL_DIR}/shared.py
   )
 set(NACL_BIN ${CMAKE_CURRENT_BINARY_DIR}/nacl_bin/src/nacl_bin)
 
 install(PROGRAMS ${NACL_EXE} DESTINATION includeos/nacl)
 install(FILES ${NACL_SRC} DESTINATION includeos/nacl)
+install(DIRECTORY ${NACL_DIR}/subtranspilers DESTINATION includeos/nacl)
+install(DIRECTORY ${NACL_DIR}/type_processors DESTINATION includeos/nacl)
 install(DIRECTORY ${NACL_BIN}/ DESTINATION includeos/nacl)

@@ -113,45 +113,6 @@ namespace bits {
 //
 // Various bit operations
 //
-
-// Check for power of two
-inline bool is_pow2(uintptr_t i)
-{ return i && !(i & (i - 1)); }
-
-// Multiples of M required to cover x
-template <uintptr_t M>
-inline uintptr_t multip(uintptr_t x)
-{ return (M - 1 + x) / M; }
-
-inline uintptr_t multip(uintptr_t M, uintptr_t x)
-{return (M - 1 + x) / M; }
-
-// Round up to nearest multiple of M
-template <uintptr_t M>
-inline uintptr_t roundto(uintptr_t x)
-{ return multip<M>(x) * M; }
-
-inline uintptr_t roundto(uintptr_t M, uintptr_t x)
-{ return multip(M,x) * M; }
-
-// Determine if ptr is A-aligned
-template <uintptr_t A>
-bool is_aligned(uintptr_t ptr)
-{
-  return (ptr & (A - 1)) == 0;
-}
-
-template <uintptr_t A>
-bool is_aligned(void* ptr)
-{
-  return is_aligned<A>(reinterpret_cast<uintptr_t>(ptr));
-}
-
-inline bool is_aligned(uintptr_t A, uintptr_t ptr)
-{
-  return (ptr & (A - 1)) == 0;
-}
-
 // Number of bits per word
 constexpr int bitcnt()
 { return sizeof(uintptr_t) * 8; }
@@ -188,6 +149,54 @@ inline uintptr_t keepfirst(uintptr_t n)
 inline uintptr_t popcount(uintptr_t n)
 { return __builtin_popcountl(n); }
 
+// Check for power of two
+inline constexpr bool is_pow2(uintptr_t i)
+{ return i && !(i & (i - 1)); }
+
+inline uintptr_t next_pow2(uintptr_t i)
+{
+  auto lastbit = keeplast(i);
+  return i == lastbit ? i : lastbit * 2;
+}
+
+// Multiples of M required to cover x
+template <uintptr_t M>
+inline uintptr_t multip(uintptr_t x)
+{ return (M - 1 + x) / M; }
+
+inline constexpr uintptr_t multip(uintptr_t M, uintptr_t x)
+{return (M - 1 + x) / M; }
+
+// Round up to nearest multiple of M
+template <uintptr_t M>
+inline uintptr_t roundto(uintptr_t x)
+{ return multip<M>(x) * M; }
+
+inline constexpr uintptr_t roundto(uintptr_t M, uintptr_t x)
+{ return multip(M,x) * M; }
+
+// Determine if ptr is A-aligned
+template <uintptr_t A>
+bool is_aligned(uintptr_t ptr)
+{
+  return (ptr & (A - 1)) == 0;
+}
+
+template <uintptr_t A>
+bool is_aligned(void* ptr)
+{
+  return is_aligned<A>(reinterpret_cast<uintptr_t>(ptr));
+}
+
+inline bool is_aligned(uintptr_t A, uintptr_t ptr)
+{
+  return (ptr & (A - 1)) == 0;
+}
+
+inline size_t upercent(size_t a, size_t b) noexcept
+{
+  return (100 * a + b / 2) / b;
+}
 
 } // ns bitops
 } // ns util

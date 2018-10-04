@@ -18,11 +18,12 @@
 #include <service>
 #include <cstdio>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <info>
 #include <cassert>
 #include <errno.h>
 #include <unistd.h>
-#include <net/inet4>
+#include <net/inet>
 
 const uint16_t PORT = 1042;
 const uint16_t OUT_PORT = 4242;
@@ -30,7 +31,7 @@ const uint16_t BUFSIZE = 2048;
 
 int main()
 {
-  auto&& inet = net::Inet4::ifconfig({  10,  0,  0, 50 },   // IP
+  auto&& inet = net::Inet::ifconfig({  10,  0,  0, 58 },   // IP
                                      { 255, 255, 0,  0 },   // Netmask
                                      {  10,  0,  0,  3 });  // Gateway
 
@@ -96,10 +97,11 @@ int main()
   destaddr.sin_port = htons(OUT_PORT);
 
   const char *my_message = "Only hipsters uses POSIX";
-
   res = sendto(socket(AF_INET, SOCK_DGRAM, 0), my_message, strlen(my_message), 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
   CHECKSERT(res > 0, "Message was sent from NEW socket to %s:%u (verified by script)",
     inet.gateway().to_string().c_str(), OUT_PORT);
+
+  INFO2("sendto() called");
 
 
   INFO("UDP Socket", "send() and connect()");
@@ -114,6 +116,7 @@ int main()
   res = send(fd_send_connect, my_message, strlen(my_message), 0);
   CHECKSERT(res > 0, "Send works when connected (verified by script)");
 
+  INFO2("sendto() called");
 
   INFO("UDP Socket", "reading from buffer with recv()");
   int i = 0;

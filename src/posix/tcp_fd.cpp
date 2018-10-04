@@ -1,7 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2017-2018 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,12 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <tcp_fd.hpp>
-#include <fd_map.hpp>
+#include <posix/tcp_fd.hpp>
+#include <posix/fd_map.hpp>
 #include <kernel/os.hpp>
 #include <errno.h>
+#include <netinet/in.h>
 
-#define POSIX_STRACE
+//#define POSIX_STRACE
 #ifdef POSIX_STRACE
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -31,10 +31,10 @@ using namespace net;
 
 // return the "currently selected" networking stack
 static auto& net_stack() {
-  return Inet4::stack();
+  return Inet::stack();
 }
 
-int TCP_FD::read(void* data, size_t len)
+ssize_t TCP_FD::read(void* data, size_t len)
 {
   return recv(data, len, 0);
 }
@@ -49,7 +49,7 @@ int TCP_FD::close()
   if (this->cd) {
     PRINT("TCP: close(%s)\n", cd->to_string().c_str());
     int ret = cd->close();
-    delete cd; cd = nullptr;
+    cd = nullptr;
     return ret;
   }
   // listener
@@ -59,121 +59,126 @@ int TCP_FD::close()
     delete ld; ld = nullptr;
     return ret;
   }
-  errno = EBADF;
-  return -1;
+  return -EBADF;
 }
 
-int TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
+long TCP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
   if (is_listener()) {
     PRINT("TCP: connect(%s) failed\n", ld->to_string().c_str());
     // already listening on port
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   if (this->cd) {
     PRINT("TCP: connect(%s) failed\n", cd->to_string().c_str());
     // if its straight-up connected, return that
     if (cd->conn->is_connected()) {
-      errno = EISCONN;
-      return -1;
+      return -EISCONN;
     }
     // if the connection isn't closed, we can just assume its being used already
     if (!cd->conn->is_closed()) {
-      errno = EALREADY;
-      return -1;
+      return -EALREADY;
     }
   }
 
   if (address_len != sizeof(sockaddr_in)) {
-    errno = EINVAL; // checkme?
-    return -1;
+    return -EINVAL; // checkme?
   }
   auto* inaddr = (sockaddr_in*) address;
 
-  auto addr = ip4::Addr(inaddr->sin_addr.s_addr);
+  auto addr = ip4::Addr(::ntohl(inaddr->sin_addr.s_addr));
   auto port = ::htons(inaddr->sin_port);
 
   PRINT("TCP: connect(%s:%u)\n", addr.to_string().c_str(), port);
 
   auto outgoing = net_stack().tcp().connect({addr, port});
+
+  bool refused = false;
+  outgoing->on_connect([&refused](auto conn) {
+    refused = (conn == nullptr);
+  });
   // O_NONBLOCK is set for the file descriptor for the socket and the connection
   // cannot be immediately established; the connection shall be established asynchronously.
   if (this->is_blocking() == false) {
-    errno = EINPROGRESS;
-    return -1;
+    return -EINPROGRESS;
   }
 
   // wait for connection state to change
-  while (not (outgoing->is_connected() || outgoing->is_closing() || outgoing->is_closed())) {
+  while (not (outgoing->is_connected() or
+              outgoing->is_closing() or
+              outgoing->is_closed() or
+              refused))
+  {
     OS::block();
   }
   // set connection whether good or bad
   if (outgoing->is_connected()) {
-    // out with the old
-    delete this->cd;
-    // in with the new
-    this->cd = new TCP_FD_Conn(outgoing);
+    // out with the old, in with the new
+    this->cd = std::make_unique<TCP_FD_Conn>(outgoing);
     cd->set_default_read();
     return 0;
   }
   // failed to connect
   // TODO: try to distinguish the reason for connection failure
-  errno = ECONNREFUSED;
-  return -1;
+  return -ECONNREFUSED;
 }
 
 
 ssize_t TCP_FD::send(const void* data, size_t len, int fmt)
 {
   if (!cd) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   return cd->send(data, len, fmt);
+}
+ssize_t TCP_FD::sendto(const void* data, size_t len, int fmt,
+                       const struct sockaddr* dest_addr, socklen_t dest_len)
+{
+  (void) dest_addr;
+  (void) dest_len;
+  return send(data, len, fmt);
 }
 ssize_t TCP_FD::recv(void* dest, size_t len, int flags)
 {
   if (!cd) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   return cd->recv(dest, len, flags);
 }
 
-int TCP_FD::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ addr_len)
+ssize_t TCP_FD::recvfrom(void* dest, size_t len, int flags, struct sockaddr*, socklen_t*)
+{
+  return recv(dest, len, flags);
+}
+
+long TCP_FD::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ addr_len)
 {
   if (!ld) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   return ld->accept(addr, addr_len);
 }
-int TCP_FD::listen(int backlog)
+long TCP_FD::listen(int backlog)
 {
   if (!ld) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   return ld->listen(backlog);
 }
-int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
+long TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
 {
   //
-  if (cd) {
-    errno = EINVAL;
-    return -1;
+  if (cd or ld) {
+    return -EINVAL;
   }
   // verify socket address
   if (addrlen != sizeof(sockaddr_in)) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   auto* sin = (sockaddr_in*) addr;
   // verify its AF_INET
   if (sin->sin_family != AF_INET) {
-    errno = EAFNOSUPPORT;
-    return -1;
+    return -EAFNOSUPPORT;
   }
   // use sin_port for bind
   // its network order ... so swap that shit:
@@ -193,15 +198,13 @@ int TCP_FD::bind(const struct sockaddr *addr, socklen_t addrlen)
     return 0;
 
   } catch (...) {
-    errno = EADDRINUSE;
-    return -1;
+    return -EADDRINUSE;
   }
 }
 int TCP_FD::shutdown(int mode)
 {
   if (!cd) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   return cd->shutdown(mode);
 }
@@ -211,11 +214,11 @@ int TCP_FD::shutdown(int mode)
 TCP_FD::on_read_func TCP_FD::get_default_read_func()
 {
   if (cd) {
-    return {cd, &TCP_FD_Conn::recv_to_ringbuffer};
+    return {cd.get(), &TCP_FD_Conn::recv_to_ringbuffer};
   }
   if (ld) {
     return
-    [this] (net::tcp::buffer_t) {
+    [/*this*/] (net::tcp::buffer_t) {
       // what to do here?
     };
   }
@@ -231,6 +234,22 @@ TCP_FD::on_except_func TCP_FD::get_default_except_func()
 }
 
 /// socket as connection
+TCP_FD_Conn::TCP_FD_Conn(net::tcp::Connection_ptr c)
+  : conn{std::move(c)}
+{
+  assert(conn != nullptr);
+  set_default_read();
+
+  conn->on_disconnect([this](auto self, auto reason) {
+    this->recv_disc = true;
+    (void) reason;
+    //printf("dc: %s - %s\n", reason.to_string().c_str(), self->to_string().c_str());
+    // do nothing, avoid close
+    // net::tcp::Connection::Disconnect::CLOSING
+    if(not self->is_connected())
+      self->close();
+  });
+}
 
 void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer)
 {
@@ -246,14 +265,13 @@ void TCP_FD_Conn::recv_to_ringbuffer(net::tcp::buffer_t buffer)
 }
 void TCP_FD_Conn::set_default_read()
 {
-  // readq buffering (4kb at a time)
-  conn->on_read(4096, {this, &TCP_FD_Conn::recv_to_ringbuffer});
+  // readq buffering (16kb at a time)
+  conn->on_read(16438, {this, &TCP_FD_Conn::recv_to_ringbuffer});
 }
 ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
 {
   if (not conn->is_connected()) {
-    errno = ENOTCONN;
-    return -1;
+    return -ENOTCONN;
   }
 
   bool written = false;
@@ -272,15 +290,12 @@ ssize_t TCP_FD_Conn::send(const void* data, size_t len, int)
 }
 ssize_t TCP_FD_Conn::recv(void* dest, size_t len, int)
 {
-  // if the connection is closed or closing: read returns 0
-  if (conn->is_closed() || conn->is_closing()) return 0;
-  if (not conn->is_connected()) {
-    errno = ENOTCONN;
-    return -1;
-  }
   // read some bytes from readq
   int bytes = readq.read((char*) dest, len);
   if (bytes) return bytes;
+
+  if(this->recv_disc)
+    return 0;
 
   bool done = false;
   bytes = 0;
@@ -315,9 +330,8 @@ int TCP_FD_Conn::close()
 }
 int TCP_FD_Conn::shutdown(int mode)
 {
-  if (not conn->is_connected()) {
-    errno = ENOTCONN;
-    return -1;
+  if (conn->is_closed()) {
+    return -ENOTCONN;
   }
   switch (mode) {
   case SHUT_RDWR:
@@ -330,50 +344,53 @@ int TCP_FD_Conn::shutdown(int mode)
     printf("Ignoring shutdown(SHUT_WR)\n");
     return 0;
   default:
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
 }
 
 /// socket as listener
 
-int TCP_FD_Listen::listen(int backlog)
+long TCP_FD_Listen::listen(int backlog)
 {
   listener.on_connect(
   [this, backlog] (net::tcp::Connection_ptr conn)
   {
+    if(UNLIKELY(not conn))
+      return;
+
     // remove oldest if full
     if ((int) this->connq.size() >= backlog)
         this->connq.pop_back();
     // new connection
-    this->connq.push_front(conn);
+    this->connq.push_front(std::make_unique<TCP_FD_Conn>(conn));
     /// if someone is blocking they should be leaving right about now
   });
   return 0;
 }
-int TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ addr_len)
+long TCP_FD_Listen::accept(struct sockaddr *__restrict__ addr, socklen_t *__restrict__ addr_len)
 {
   // block until connection appears
   while (connq.empty()) {
     OS::block();
   }
   // retrieve connection from queue
-  auto sock = connq.back();
+  auto sock = std::move(connq.back());
   connq.pop_back();
-  // make sure socket is connected, as promised
-  if (not sock->is_connected()) {
-    errno = ENOTCONN;
-    return -1;
-  }
+
+  assert(sock != nullptr);
   // create connected TCP socket
   auto& fd = FD_map::_open<TCP_FD>();
-  fd.cd = new TCP_FD_Conn(sock);
+  fd.cd = std::move(sock);
   // set address and length
-  auto* sin = (sockaddr_in*) addr;
-  sin->sin_family      = AF_INET;
-  sin->sin_port        = sock->remote().port();
-  sin->sin_addr.s_addr = sock->remote().address().whole;
-  *addr_len = sizeof(sockaddr_in);
+  if(addr != nullptr and addr_len != nullptr)
+  {
+    auto& conn = fd.cd->conn;
+    auto* sin = (sockaddr_in*) addr;
+    sin->sin_family      = AF_INET;
+    sin->sin_port        = conn->remote().port();
+    sin->sin_addr.s_addr = conn->remote().address().v4().whole;
+    *addr_len = sizeof(sockaddr_in);
+  }
   // return socket
   return fd.get_id();
 }

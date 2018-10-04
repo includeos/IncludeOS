@@ -53,7 +53,7 @@ public:
 
     => SynSent
   */
-  Result handle(Connection&, Packet_ptr in) override;
+  Result handle(Connection&, Packet_view& in) override;
 
   bool is_closed() const override {
     return true;
@@ -87,7 +87,7 @@ public:
 
     => SynReceived.
   */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   inline virtual std::string to_string() const override {
     return "LISTENING";
@@ -116,7 +116,7 @@ public:
 
     => Established.
   */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   inline virtual std::string to_string() const override {
     return "SYN-SENT";
@@ -151,7 +151,7 @@ public:
 
     => Established.
   */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   inline virtual std::string to_string() const override {
     return "SYN-RCV";
@@ -177,7 +177,7 @@ public:
 
   virtual void abort(Connection&) override;
 
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   inline virtual std::string to_string() const override {
     return "ESTABLISHED";
@@ -218,7 +218,7 @@ public:
 
     => FinWait2.
   */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   inline virtual std::string to_string() const override {
     return "FIN-WAIT-1";
@@ -252,7 +252,7 @@ public:
   /*
 
    */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   inline virtual std::string to_string() const override {
     return "FIN-WAIT-2";
@@ -292,7 +292,7 @@ public:
 
     => LastAck
   */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   inline virtual std::string to_string() const override {
     return "CLOSE-WAIT";
@@ -320,7 +320,7 @@ public:
 
     => TimeWait (Guess this isnt needed, just start a Close-timer)
   */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   inline virtual std::string to_string() const override {
     return "CLOSING";
@@ -350,7 +350,7 @@ public:
 
     => Closed (Tell TCP to remove this connection)
   */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   inline virtual std::string to_string() const override {
     return "LAST-ACK";
@@ -376,7 +376,7 @@ public:
   /*
 
    */
-  virtual Result handle(Connection&, Packet_ptr in) override;
+  virtual Result handle(Connection&, Packet_view& in) override;
 
   std::string to_string() const override {
     return "TIME-WAIT";

@@ -1,5 +1,3 @@
-#define DEBUG
-#define DEBUG2
 #include "virtioblk.hpp"
 
 #include <kernel/events.hpp>
@@ -37,7 +35,7 @@ void null_deleter(uint8_t*) {};
 VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   : Virtio(d), hw::Block_device(), req(device_name() + ".req0", queue_size(0), 0, iobase()), inflight(0)
 {
-  INFO("VirtioBlk", "Block_devicer initializing");
+  INFO("VirtioBlk", "Initializing");
   {
     auto& reqs = Statman::get().create(
       Stat::UINT32, device_name() + ".requests");
@@ -81,7 +79,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
 
   // Step 3 - Fill receive queue with buffers
   // DEBUG: Disable
-  INFO("VirtioBlk", "Queue size: %i\tRequest size: %u\n",
+  INFO("VirtioBlk", "Queue size: %i\tRequest size: %zu\n",
        req.size(), sizeof(request_t));
 
   // Get device configuration
@@ -107,7 +105,7 @@ VirtioBlk::VirtioBlk(hw::PCI_Device& d)
   }
 
   // Done
-  INFO("VirtioBlk", "Block device with %llu sectors capacity", config.capacity);
+  INFO("VirtioBlk", "Block device with %zu sectors capacity", config.capacity);
 }
 
 void VirtioBlk::get_config()
@@ -254,7 +252,7 @@ void VirtioBlk::read (block_t blk, size_t cnt, on_read_func func)
       [this, i, func, results, bigbuf] (uint8_t* data) {
         // if the job was already completed, return early
         if (*results == 0) {
-          printf("Job cancelled? results == 0,  blk=%u\n", i);
+          printf("[virtioblk] Job cancelled? results == 0,  blk=%zu\n", i);
           return;
         }
         // validate partial result

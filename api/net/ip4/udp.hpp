@@ -23,7 +23,6 @@
 #include <cstring>
 #include <unordered_map>
 
-#include "../inet.hpp"
 #include "ip4.hpp"
 #include <net/packet.hpp>
 #include <net/socket.hpp>
@@ -32,6 +31,7 @@
 
 namespace net {
 
+  class Inet;
   class PacketUDP;
   class UDPSocket;
 
@@ -43,11 +43,12 @@ namespace net {
   /** Basic UDP support. @todo Implement UDP sockets.  */
   class UDP {
   public:
-    using addr_t = IP4::addr;
+    using addr_t = net::Addr;
     using port_t = uint16_t;
 
     using Packet_ptr    = std::unique_ptr<PacketUDP, std::default_delete<net::Packet>>;
     using Stack         = IP4::Stack;
+    using Port_utils    = std::map<net::Addr, Port_util>;
 
     using Sockets       = std::map<Socket, UDPSocket>;
 
@@ -99,8 +100,7 @@ namespace net {
 
     ////////////////////////////////////////////
 
-    addr_t local_ip() const
-    { return stack_.ip_addr(); }
+    addr_t local_ip() const;
 
     /** Input from network layer */
     void receive(net::Packet_ptr);
@@ -124,21 +124,16 @@ namespace net {
     void transmit(UDP::Packet_ptr udp);
 
     //! @param port local port
-    UDPSocket& bind(port_t port)
-    { return bind({stack_.ip_addr(), port}); }
+    UDPSocket& bind(port_t port);
 
     UDPSocket& bind(const Socket socket);
 
     //! returns a new UDP socket bound to a random port
-    UDPSocket& bind()
-    { return bind(stack_.ip_addr()); }
-
-    UDPSocket& bind(const ip4::Addr addr);
+    UDPSocket& bind();
+    UDPSocket& bind(const addr_t addr);
 
     bool is_bound(const Socket) const;
-
-    bool is_bound(const port_t port) const
-    { return is_bound({stack_.ip_addr(), port}); }
+    bool is_bound(const port_t port) const;
 
     /** Close a socket **/
     void close(const Socket socket);
@@ -158,8 +153,7 @@ namespace net {
     // create and transmit @num packets from sendq
     void process_sendq(size_t num);
 
-    uint16_t max_datagram_size() noexcept
-    { return stack().ip_obj().MDDS() - sizeof(header); }
+    uint16_t max_datagram_size() noexcept;
 
     class Port_in_use_exception : public UDP_error {
     public:
@@ -181,7 +175,7 @@ namespace net {
     downstream                  network_layer_out_;
     Stack&                      stack_;
     Sockets                     sockets_;
-    Stack::Port_utils&          ports_;
+    Port_utils&                 ports_;
 
     // the async send queue
     std::deque<WriteBuffer> sendq;

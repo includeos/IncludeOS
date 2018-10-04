@@ -70,12 +70,9 @@ public:
     return 1000; // any big random number for now
   }
 
-  /** Number of incoming packets waiting in the RX-queue */
-  size_t receive_queue_waiting() {
-    return 0;
-  }
-
   net::Packet_ptr create_packet(int) override;
+
+  auto& bufstore() noexcept { return bufstore_; }
 
   void move_to_this_cpu() override {};
 

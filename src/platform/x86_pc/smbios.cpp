@@ -50,7 +50,7 @@ namespace x86
     uint8_t  length;
     uint16_t handle;
 
-    char data[0];
+    const char data[0];
 
     const char* strings() const
     {
@@ -74,10 +74,10 @@ namespace x86
       {
         int len = strnlen(str, 64);
         str += len + 1;
-        if (len == 0) return (Header*) str;
+        if (len == 0) return (const Header*) str;
       }
     }
-  };
+  } __attribute__((packed));
 
   struct PhysMemArray : public Header
   {
@@ -102,8 +102,7 @@ namespace x86
       return (inf.capacity32 == 0x80000000)
         ? inf.capacity64 : inf.capacity32 * 1024;
     }
-
-  };
+  } __attribute__((packed));
 
   void SMBIOS::parse(const char* mem)
   {
@@ -125,14 +124,12 @@ namespace x86
         INFO2("Manufacturer: %s", hdr->get_string(hdr->data[0]));
         INFO2("Product name: %s", hdr->get_string(hdr->data[1]));
         {
+          // UUID starts at offset 0x4 after header
           char uuid[33];
-          snprintf(uuid, sizeof(uuid),
-                  "%08x%08x%08x%08x",
-                  *(uint32_t*) &hdr->data[4],
-                  *(uint32_t*) &hdr->data[8],
-                  *(uint32_t*) &hdr->data[12],
-                  *(uint32_t*) &hdr->data[16]);
-          sysinfo.uuid = std::string(uuid);
+          for (int i = 0; i < 16; i++) {
+            sprintf(&uuid[i*2], "%02hhx", hdr->data[0x4 + i]);
+          }
+          sysinfo.uuid = std::string(uuid, 32);
           INFO2("System UUID: %s", sysinfo.uuid.c_str());
         }
         break;

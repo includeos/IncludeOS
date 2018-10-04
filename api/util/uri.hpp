@@ -136,6 +136,13 @@ class URI {
   ///
   util::sview scheme() const noexcept;
 
+  /**
+   * @brief      Check whether the scheme is secure (like https or wss) or not.
+   *
+   * @return     true if secure, false otherwise
+   */
+  bool scheme_is_secure() const noexcept;
+
   ///
   /// Get userinfo.
   ///
@@ -176,13 +183,6 @@ class URI {
   /// @return host and port information
   ///
   std::string host_and_port() const;
-
-  ///
-  /// Get the raw port number in decimal character representation.
-  ///
-  /// @return The raw port number in decimal character representation
-  ///
-  util::sview port_str() const noexcept;
 
   ///
   /// Get numeric port number.
@@ -293,7 +293,6 @@ private:
   util::sview scheme_;
   util::sview userinfo_;
   util::sview host_;
-  util::sview port_str_;
   util::sview path_;
   util::sview query_;
   util::sview fragment_;

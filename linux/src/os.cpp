@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <malloc.h> // mallinfo()
 #include <sched.h>
+extern bool __libc_initialized;
 
 void OS::event_loop()
 {
@@ -32,6 +33,15 @@ uintptr_t OS::heap_end() noexcept {
 uintptr_t OS::heap_usage() noexcept {
   auto info = mallinfo();
   return info.arena + info.hblkhd;
+}
+uintptr_t OS::heap_max() noexcept
+{
+  return (uintptr_t) -1;
+}
+
+bool OS::is_panicking() noexcept
+{
+  return false;
 }
 
 #include <kernel/rtc.hpp>
@@ -79,12 +89,9 @@ static void begin_timer(std::chrono::nanoseconds usec)
 }
 static void stop_timers() {}
 
-#include <statman>
-void OS::start(char* cmdline, uintptr_t)
+void OS::start(const char* cmdline)
 {
-  // statman
-  static char statman_data[1 << 16];
-  Statman::get().init((uintptr_t) statman_data, sizeof(statman_data));
+  __libc_initialized = true;
   // setup Linux timer (with signal handler)
   struct sigevent sev;
   sev.sigev_notify = SIGEV_SIGNAL;
@@ -98,6 +105,13 @@ void OS::start(char* cmdline, uintptr_t)
   using namespace std::chrono;
   OS::cpu_khz_ = decltype(OS::cpu_freq()) {3000000ul};
   OS::cmdline = cmdline;
+}
+
+// stdout
+void OS::default_stdout(const char* text, size_t len)
+{
+  ssize_t bytes = write(STDOUT_FILENO, text, len);
+  assert(bytes == (ssize_t) len);
 }
 
 // system_log has no place on Linux because stdout goes --> pipe
@@ -117,34 +131,3 @@ void* aligned_alloc(size_t alignment, size_t size) {
   return memalign(alignment, size);
 }
 #endif
-
-#include <execinfo.h>
-void print_backtrace()
-{
-  static const int NUM_ADDRS = 64;
-  void*  addresses[NUM_ADDRS];
-
-  int nptrs = backtrace(addresses, NUM_ADDRS);
-  printf("backtrace() returned %d addresses\n", nptrs);
-
-  /* The call backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)
-     would produce similar output to the following: */
-
-  char** strings = backtrace_symbols(addresses, nptrs);
-  if (strings == NULL) {
-    perror("backtrace_symbols");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int j = 0; j < nptrs; j++)
-      printf("#%02d: %8p %s\n", j, addresses[j], strings[j]);
-
-  free(strings);
-}
-
-extern "C"
-void panic(const char* why)
-{
-  printf("!! PANIC !!\nReason: %s\n", why);
-  std::abort();
-}

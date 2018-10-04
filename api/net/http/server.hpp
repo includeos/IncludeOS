@@ -120,7 +120,7 @@ namespace http {
      * @param[in]  conn  The TCP connection
      */
     virtual void on_connect(TCP_conn conn)
-    { connect(std::make_unique<net::tcp::Connection::Stream>(std::move(conn))); }
+    { connect(std::make_unique<net::tcp::Stream>(std::move(conn))); }
 
     /**
      * @brief      Connect the stream to the server.
@@ -184,7 +184,7 @@ namespace http {
    *
    * Usage example:
    * @code
-   *   auto& inet = net::Inet4::stack<0>();
+   *   auto& inet = net::Inet::stack<0>();
    *   Expects(inet.is_configured());
    *   auto server = http::make_server(inet.tcp());
    *   server->on_request([](auto req, auto rw){...});

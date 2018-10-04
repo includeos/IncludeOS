@@ -16,27 +16,43 @@ extern "C" {
 Solo5Blk::Solo5Blk()
   : hw::Block_device()
 {
-  INFO("Solo5Blk", "Block device with %llu sectors", solo5_blk_sectors());
+  struct solo5_block_info bi;
+  solo5_block_info(&bi);
+  assert(bi.block_size == SECTOR_SIZE);
+  INFO("Solo5Blk", "Block device with %zu sectors",
+       bi.capacity / SECTOR_SIZE);
 }
 
 Solo5Blk::block_t Solo5Blk::size() const noexcept {
-  return solo5_blk_sectors();
+  struct solo5_block_info bi;
+  solo5_block_info(&bi);
+  return bi.capacity / SECTOR_SIZE;
 }
 
-Solo5Blk::buffer_t Solo5Blk::read_sync(block_t blk)
-{
-  auto buffer = fs::construct_buffer(block_size());
-  int rlen = SECTOR_SIZE;
+Solo5Blk::buffer_t Solo5Blk::read_sync(block_t blk) {
+  auto buffer = fs::construct_buffer(SECTOR_SIZE);
+  solo5_result_t res;
 
-  solo5_blk_read_sync((uint64_t) blk, buffer->data(), &rlen);
+  res = solo5_block_read((solo5_off_t) blk * SECTOR_SIZE,
+                         buffer->data(), SECTOR_SIZE);
+  if (res != SOLO5_R_OK) {
+    return nullptr;
+  }
   return buffer;
 }
 
 Solo5Blk::buffer_t Solo5Blk::read_sync(block_t blk, size_t count) {
-  auto buffer = fs::construct_buffer(block_size() * count);
-  int rlen = SECTOR_SIZE * count;
+  auto buffer = fs::construct_buffer(SECTOR_SIZE * count);
+  solo5_result_t res;
 
-  solo5_blk_read_sync((uint64_t) blk, buffer->data(), &rlen);
+  auto* data = (uint8_t*) buffer->data();
+  for (size_t i = 0; i < count; i++) {
+    res = solo5_block_read((solo5_off_t) (blk + i) * SECTOR_SIZE,
+                           data + (i * SECTOR_SIZE), SECTOR_SIZE);
+    if (res != SOLO5_R_OK) {
+      return nullptr;
+    }
+  }
   return buffer;
 }
 

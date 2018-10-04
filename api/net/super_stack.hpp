@@ -20,7 +20,8 @@
 #define NET_SUPER_STACK_HPP
 
 #include <net/ip4/ip4.hpp>
-#include "inet.hpp"
+#include <hw/mac_addr.hpp>
+#include <hw/nic.hpp>
 #include <vector>
 #include <map>
 #include <stdexcept>
@@ -39,15 +40,9 @@ struct Stack_not_found : public Super_stack_err
 
 class Super_stack {
 public:
-  template <typename IPV>
-  using Inet_ptr = std::unique_ptr<Inet<IPV>>;
-  template <typename IPV>
-  using Stacks = std::map<int, Inet_ptr<IPV>>;
-  template <typename IPV>
-  using Stack_collection = std::vector<Stacks<IPV>>;
-
-  using IP4_stack = Inet<IP4>;
-  using IP4_stacks = Stack_collection<IP4>;
+  // naming is hard...
+  using Indexed_stacks = std::map<int, std::unique_ptr<Inet>>;
+  using Stacks = std::vector<Indexed_stacks>;
 
 public:
   static Super_stack& inet()
@@ -56,11 +51,8 @@ public:
     return stack_;
   }
 
-  template <typename IPV>
-  static Inet<IPV>& get(int N);
-
-  template <typename IPV>
-  static Inet<IPV>& get(int N, int sub);
+  static Inet& get(int N);
+  static Inet& get(int N, int sub);
 
   /**
    * @brief      Get a stack by MAC addr.
@@ -68,34 +60,20 @@ public:
    *
    * @param[in]  mac   The mac
    *
-   * @tparam     IPV   IP version
+   * @tparam     IP version
    *
    * @return     A stack
    */
-  template <typename IPV>
-  static Inet<IPV>& get(const std::string& mac);
+  static Inet& get(const std::string& mac);
+  static Inet& get(const std::string& mac, int sub);
 
-  template <typename IPV>
-  Inet<IPV>& create(hw::Nic& nic, int N, int sub);
+  Inet& create(hw::Nic& nic, int N, int sub);
 
-  /**
-   * @brief      Create a stack on the given Nic,
-   *             occupying the first free index.
-   *
-   * @param      nic   The nic
-   *
-   * @tparam     IPV   IP version
-   *
-   * @return     A stack
-   */
-  template <typename IPV>
-  Inet<IPV>& create(hw::Nic& nic);
-
-  IP4_stacks& ip4_stacks()
-  { return ip4_stacks_; }
+  Stacks& stacks()
+  { return stacks_; }
 
 private:
-  IP4_stacks ip4_stacks_;
+  Stacks stacks_;
 
   Super_stack();
 

@@ -19,7 +19,7 @@
 #ifndef i686_ARCH_HPP
 #define i686_ARCH_HPP
 
-#include <arch/x86.hpp>
+#define ARCH_x86
 
 inline uint64_t __arch_cpu_cycles() noexcept {
   uint64_t ret;
@@ -27,5 +27,7 @@ inline uint64_t __arch_cpu_cycles() noexcept {
   return ret;
 }
 
+
+constexpr uintptr_t __arch_max_canonical_addr = 0xffffffff;
 
 #endif

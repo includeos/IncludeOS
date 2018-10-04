@@ -19,10 +19,10 @@ vm.cmake()
 os.chdir("..")
 
 # Use grubify-script
-grubify = includeos_src + "/etc/scripts/grubify.sh"
+grubify = "grubiso.sh"
 
 # Create the GRUB image
-subprocess.check_call(["bash",grubify,"build/test_grub", "-c"])
+subprocess.check_call(["bash",grubify,"build/test_grub"])
 
 # Boot the image
 vm.boot(multiboot = False)

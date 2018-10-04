@@ -16,11 +16,14 @@
 // limitations under the License.
 
 #include <net/https/botan_server.hpp>
+
+#include <kernel/botan_rng.hpp>
 #include <botan/data_src.h>
-#include <botan/system_rng.h>
 #include <botan/pkcs8.h>
 
-inline static auto& get_rng() { return Botan::system_rng(); }
+inline static Botan::RandomNumberGenerator& get_rng() {
+  return IncludeOS_RNG::get();
+}
 
 inline std::unique_ptr<Botan::Private_Key> read_pkey(fs::Dirent& key_file)
 {
@@ -44,8 +47,9 @@ namespace http
   {
     // load CA certificate
     assert(file_ca_cert.is_valid());
-    auto ca_cert = file_ca_cert.read();
-    std::vector<uint8_t> vca_cert(ca_cert.begin(), ca_cert.end());
+    auto ca_cert = file_ca_cert.read(0, file_ca_cert.size());
+    assert(ca_cert.is_valid());
+
     // load CA private key
     auto ca_key = read_pkey(file_ca_key);
     // load server private key
@@ -55,7 +59,7 @@ namespace http
             server_name,
             get_rng(),
             std::move(ca_key),
-            Botan::X509_Certificate(vca_cert),
+            Botan::X509_Certificate(*ca_cert.get()),
             std::move(srv_key));
 
     this->credman.reset(credman);
@@ -71,7 +75,7 @@ namespace http
   {
     connect(
       std::make_unique<net::botan::Server> (
-        std::make_unique<net::tcp::Connection::Stream>(
+        std::make_unique<net::tcp::Stream>(
           std::move(conn)), rng, *credman)
     );
   }

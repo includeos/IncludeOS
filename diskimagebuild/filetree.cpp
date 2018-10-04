@@ -21,9 +21,12 @@ File::File(const char* path)
   rewind(f);
 
   this->data = std::unique_ptr<char[]> (new char[size], std::default_delete<char[]> ());
-  size_t actual = fread(this->data.get(), this->size, 1, f);
-  if (actual != 1) {
-    throw std::runtime_error("diskbuilder: Could not read from file " + std::string(path));
+  if (this->size > 0)
+  {
+    size_t actual = fread(this->data.get(), this->size, 1, f);
+    if (actual != 1) {
+      throw std::runtime_error("diskbuilder: Could not read from file " + std::string(path));
+    }
   }
   fclose(f);
 }
@@ -106,11 +109,22 @@ void FileSys::add_dir(Dir& dvec)
     std::string name(ent->d_name);
     if (name == ".." || name == ".") continue;
 
-    if (ent->d_type == DT_DIR) {
+    struct stat buf;
+    int res = lstat(ent->d_name, &buf);
+    if (res < 0) {
+      fprintf(stderr, "Stat failed on %s with error %s\n",
+                      ent->d_name, strerror(errno));
+      continue;
+    }
+
+    if (S_ISDIR(buf.st_mode)) {
       sub_dirs.push_back(std::move(name));
     }
-    else {
+    else if (S_ISREG(buf.st_mode)) {
       sub_files.push_back(std::move(name));
+    }
+    else {
+      fprintf(stderr, "Encountered unknown entry %s\n", ent->d_name);
     }
   }
   // close directory before adding more folders and files

@@ -1,3 +1,3 @@
 #!/bin/bash
 set -e
-sudo pip install ws4py
+sudo -H pip -q install ws4py==0.4.2

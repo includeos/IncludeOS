@@ -24,7 +24,7 @@
 #include <string>
 #include <unistd.h>
 #include <vector>
-#include <util/elf.h>
+#include <elf.h>
 #include <arch.hpp>
 
 #if __LP64__
@@ -162,6 +162,8 @@ public:
   }
 
   bool verify_symbols() const {
+    //printf("ELF verification from %p to %p (Syms=%#x, Strs=%#x)\n",
+    //        symtab.base, strtab.base + strtab.size, checksum_syms, checksum_strs);
     uint32_t csum =
         crc32_fast(symtab.base, symtab.entries * sizeof(ElfSym));
     if (csum != checksum_syms) {
@@ -193,8 +195,11 @@ private:
 
   SymTab    symtab;
   StrTab    strtab;
+  /* NOTE: DON'T INITIALIZE */
   uint32_t  checksum_syms;
   uint32_t  checksum_strs;
+  /* NOTE: DON'T INITIALIZE */
+  friend void elf_protect_symbol_areas();
 };
 static ElfTables parser;
 
@@ -232,7 +237,7 @@ bool Elf::verify_symbols()
   return get_parser().verify_symbols();
 }
 
-void print_backtrace()
+void print_backtrace2(void(*stdout_function)(const char*, size_t))
 {
   char _symbol_buffer[8192];
   char _btrace_buffer[8192];
@@ -250,7 +255,7 @@ void print_backtrace()
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
             "[%d] 0x%08x + 0x%.3x: %s\n",         \
             N, symb.addr, symb.offset, symb.name);\
-            write(1, _btrace_buffer, len);
+            stdout_function(_btrace_buffer, len);
 #elif defined(__LP64__)
   #define PRINT_TRACE(N, ra) \
     auto symb = Elf::safe_resolve_symbol(                     \
@@ -258,7 +263,7 @@ void print_backtrace()
     int len = snprintf(_btrace_buffer, sizeof(_btrace_buffer),\
             "[%d] 0x%016lx + 0x%.3x: %s\n",       \
             N, symb.addr, symb.offset, symb.name);\
-            write(1, _btrace_buffer, len);
+            stdout_function(_btrace_buffer, len);
 #else
   #error "Implement me"
 #endif
@@ -297,23 +302,15 @@ void print_backtrace()
                                 PRINT_TRACE(14, ra);
   }}}}}}}}}}}}}}}
 }
+void print_backtrace()
+{
+  print_backtrace2([] (const char* text, size_t length) {
+    write(1, text, length);
+  });
+}
 
 void Elf::print_info()
 {
-  auto& hdr = elf_header();
-  // program headers
-  auto* phdr = (ElfPhdr*) (ELF_START + hdr.e_phoff);
-  printf("program headers offs=%#lx at phys %p\n", hdr.e_phoff, phdr);
-  // section headers
-  auto* shdr = (ElfShdr*) (ELF_START + hdr.e_shoff);
-  printf("section headers offs=%#lx at phys %p\n", hdr.e_shoff, shdr);
-  for (uint16_t i = 0; i < hdr.e_shnum; i++)
-  {
-    uintptr_t start = ELF_START + shdr[i].sh_offset;
-    uintptr_t end   = start     + shdr[i].sh_size;
-    printf("sh from %#lx to %#lx\n", start, end);
-  }
-
 }
 
 #include <kprint>
@@ -374,12 +371,6 @@ int _get_elf_section_datasize(const void* location)
   // special case for missing call to elf_syms
   if (hdr.symtab_entries == 0) return 0;
   return hdr.symtab_entries * sizeof(ElfSym) + hdr.strtab_size;
-}
-
-// we unfortunately cannot call crc32_fast directly, as it changes .bss
-extern uint32_t crc32c_sw(uint32_t, const char*, size_t);
-inline uint32_t crc32c(const void* buffer, size_t len) {
-  return ~crc32c_sw(0xFFFFFFFF, (const char*) buffer, len);
 }
 
 extern "C"
@@ -451,3 +442,58 @@ void _init_elf_parser()
     parser.set(nullptr, 0, nullptr, 0,  0, 0);
   }
 }
+
+extern "C"
+void __elf_validate_section(const void* location)
+{
+  int size = _get_elf_section_datasize(location);
+  // stripped variant
+  if (size == 0) {
+    kprintf("ELF syms are considered stripped\n");
+    asm("cli; hlt");
+  }
+  // incoming header
+  auto* hdr = (elfsyms_header*) location;
+  // verify CRC sanity check
+  const uint32_t temp_hdr = hdr->sanity_check;
+  hdr->sanity_check = 0;
+  const uint32_t our_sanity = crc32c(hdr, sizeof(elfsyms_header));
+  hdr->sanity_check = temp_hdr;
+  if (hdr->sanity_check != our_sanity)
+  {
+    kprintf("ELF syms header CRC failed! "
+            "(%08x vs %08x)\n", hdr->sanity_check, our_sanity);
+    asm("cli; hlt");
+  }
+
+  // verify separate checksums of symbols and strings
+  uint32_t symbsize = hdr->symtab_entries * sizeof(ElfSym);
+  uint32_t csum_syms = crc32c(hdr->syms, symbsize);
+  uint32_t csum_strs = crc32c(&hdr->syms[hdr->symtab_entries], hdr->strtab_size);
+  if (csum_syms != hdr->checksum_syms || csum_strs != hdr->checksum_strs)
+  {
+    if (csum_syms != hdr->checksum_syms)
+      kprintf("ELF symbol tables checksum failed! "
+              "(%08x vs %08x)\n", csum_syms, hdr->checksum_syms);
+    if (csum_strs != hdr->checksum_strs)
+      kprintf("ELF string tables checksum failed! "
+              "(%08x vs %08x)\n", csum_strs, hdr->checksum_strs);
+    uint32_t all = crc32c(hdr, sizeof(elfsyms_header) + size);
+    kprintf("Checksum ELF section: %08x\n", all);
+    asm("cli; hlt");
+  }
+}
+
+#ifdef ARCH_x86_64
+#include <kernel/memory.hpp>
+void elf_protect_symbol_areas()
+{
+  char* src = (char*) parser.symtab.base;
+  ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
+  if (size & 4095) size += 4096 - (size & 4095);
+  INFO2("* Protecting syms %p to %p (size %#zx)",
+        src, &parser.strtab.base[parser.strtab.size], size);
+
+  //os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
+}
+#endif

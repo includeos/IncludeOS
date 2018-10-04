@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.8.9)
 
+option(threading "" ON)
+
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
@@ -19,6 +21,7 @@ set(SOURCES
   )
 
 set(DRIVERS
+  boot_logger
   )
 
 set(PLUGINS

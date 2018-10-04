@@ -120,7 +120,7 @@ extern "C" {
 void x86_IDT::init()
 {
   // make sure its all zeroes
-  memset(&PER_CPU(idt).entry, 0, sizeof(x86_IDT::entry));
+  memset(&this->entry[0], 0, sizeof(x86_IDT::entry));
 
   set_exception_handler(0, __cpu_except_0);
   set_exception_handler(1, __cpu_except_1);
@@ -298,7 +298,7 @@ void __page_fault(uintptr_t* regs, uint32_t code) {
 }
 
 extern "C"
-__attribute__((noreturn optnone, weak))
+__attribute__((noreturn, weak))
 void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
 {
   cpu_enable_panicking();

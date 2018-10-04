@@ -20,16 +20,16 @@
 #define NET_TCP_CONNECTION_HPP
 
 #include "common.hpp"
-#include "packet.hpp"
+#include "packet_view.hpp"
 #include "read_request.hpp"
 #include "rttm.hpp"
 #include "tcp_errors.hpp"
 #include "write_queue.hpp"
+#include "sack.hpp"
 
 #include <net/socket.hpp>
 #include <delegate>
 #include <util/timer.hpp>
-#include <net/stream.hpp>
 
 namespace net {
   // Forward declaration of the TCP object
@@ -57,8 +57,6 @@ public:
   struct Disconnect;
   /** Reason for packet being dropped */
   enum class Drop_reason;
-  /** A Connection stream */
-  class Stream;
 
   using Byte = uint8_t;
 
@@ -140,27 +138,6 @@ public:
 
   /** Called with the packet that got dropped and the reason why. */
   using PacketDroppedCallback   = delegate<void(const Packet&, Drop_reason)>;
-  /**
-   * @brief      Event when a connection has dropped a packet.
-   *             Useful for debugging/track counting.
-   *
-   * @param[in]  callback  The callback
-   *
-   * @return     This connection
-   */
-  inline Connection&            on_packet_dropped(PacketDroppedCallback callback);
-
-  /** Called with the number of simultaneous retransmit attempts and the current Round trip timeout in milliseconds. */
-  using RtxTimeoutCallback      = delegate<void(size_t no_attempts, std::chrono::milliseconds rto)>;
-  /**
-   * @brief      Event when the connections retransmit timer has expired.
-   *             Useful for debugging/track counting.
-   *
-   * @param[in]  callback  The callback
-   *
-   * @return     This connection
-   */
-  inline Connection&            on_rtx_timeout(RtxTimeoutCallback);
 
   /**
    * @brief      Only change the on_read callback without touching the buffer.
@@ -208,179 +185,6 @@ public:
    * @brief      Aborts the connection immediately, sending RST.
    */
   inline void abort();
-
-  /**
-   * @brief      Exposes a TCP Connection as a Stream with only the most necessary features.
-   *             May be overrided by extensions like TLS etc for additional functionality.
-   */
-  class Stream : public net::Stream {
-  public:
-    /**
-     * @brief      Construct a Stream for a Connection ptr
-     *
-     * @param[in]  conn  The connection
-     */
-    Stream(Connection_ptr conn)
-      : tcp{std::move(conn)}
-    {
-      // stream for a nullptr makes no sense
-      Expects(tcp != nullptr);
-    }
-
-    /**
-     * @brief      Event when the stream is connected/established/ready to use.
-     *
-     * @param[in]  cb    The connect callback
-     */
-    virtual void on_connect(ConnectCallback cb) override
-    {
-      tcp->on_connect(Connection::ConnectCallback::make_packed(
-          [this, cb] (Connection_ptr conn)
-          { if(conn) cb(*this); }));
-    }
-
-    /**
-     * @brief      Event when data is received.
-     *
-     * @param[in]  n     The size of the receive buffer
-     * @param[in]  cb    The read callback
-     */
-    virtual void on_read(size_t n, ReadCallback cb) override
-    { tcp->on_read(n, cb); }
-
-    /**
-     * @brief      Event for when the Stream is being closed.
-     *
-     * @param[in]  cb    The close callback
-     */
-    virtual void on_close(CloseCallback cb) override
-    { tcp->on_close(cb); }
-
-    /**
-     * @brief      Event for when data has been written.
-     *
-     * @param[in]  cb    The write callback
-     */
-    virtual void on_write(WriteCallback cb) override
-    { tcp->on_write(cb); }
-
-    /**
-     * @brief      Async write of a data with a length.
-     *
-     * @param[in]  buf   data
-     * @param[in]  n     length
-     */
-    virtual void write(const void* buf, size_t n) override
-    { tcp->write(buf, n); }
-
-    /**
-     * @brief      Async write of a shared buffer with a length.
-     *
-     * @param[in]  buffer  shared buffer
-     * @param[in]  n       length
-     */
-    virtual void write(buffer_t buffer) override
-    { tcp->write(buffer); }
-
-    /**
-     * @brief      Async write of a string.
-     *             Calls write(const void* buf, size_t n)
-     *
-     * @param[in]  str   The string
-     */
-    virtual void write(const std::string& str) override
-    { write(str.data(), str.size()); }
-
-    /**
-     * @brief      Closes the stream.
-     */
-    virtual void close() override
-    { tcp->close(); }
-
-    /**
-     * @brief      Aborts (terminates) the stream.
-     */
-    virtual void abort() override
-    { tcp->abort(); }
-
-    /**
-     * @brief      Resets all callbacks.
-     */
-    virtual void reset_callbacks() override
-    { tcp->reset_callbacks(); }
-
-    /**
-     * @brief      Returns the streams local socket.
-     *
-     * @return     A TCP Socket
-     */
-    Socket local() const override
-    { return tcp->local(); }
-
-    /**
-     * @brief      Returns the streams remote socket.
-     *
-     * @return     A TCP Socket
-     */
-    Socket remote() const override
-    { return tcp->remote(); }
-
-    /**
-     * @brief      Returns a string representation of the stream.
-     *
-     * @return     String representation of the stream.
-     */
-    virtual std::string to_string() const override
-    { return tcp->to_string(); }
-
-    /**
-     * @brief      Determines if connected (established).
-     *
-     * @return     True if connected, False otherwise.
-     */
-    virtual bool is_connected() const noexcept override
-    { return tcp->is_connected(); }
-
-    /**
-     * @brief      Determines if writable. (write is allowed)
-     *
-     * @return     True if writable, False otherwise.
-     */
-    virtual bool is_writable() const noexcept override
-    { return tcp->is_writable(); }
-
-    /**
-     * @brief      Determines if readable. (data can be received)
-     *
-     * @return     True if readable, False otherwise.
-     */
-    virtual bool is_readable() const noexcept override
-    { return tcp->is_readable(); }
-
-    /**
-     * @brief      Determines if closing.
-     *
-     * @return     True if closing, False otherwise.
-     */
-    virtual bool is_closing() const noexcept override
-    { return tcp->is_closing(); }
-
-    /**
-     * @brief      Determines if closed.
-     *
-     * @return     True if closed, False otherwise.
-     */
-    virtual bool is_closed() const noexcept override
-    { return tcp->is_closed(); };
-
-    int get_cpuid() const noexcept override;
-
-    virtual ~Stream() {}
-
-  protected:
-    Connection_ptr tcp;
-
-  }; // < class Connection::Stream
 
   /**
    * @brief      Reason for disconnect event.
@@ -461,7 +265,7 @@ public:
    * @return bytes not yet read
    */
   size_t readq_size() const
-  { return (read_request) ? read_request->buffer.size() : 0; }
+  { return (read_request) ? read_request->size() : 0; }
 
   /**
    * @brief Total number of bytes in send queue
@@ -596,7 +400,7 @@ public:
    *
    * @return     A TCP Socket
    */
-  Socket local() const noexcept
+  const Socket& local() const noexcept
   { return local_; }
 
   /**
@@ -604,8 +408,14 @@ public:
    *
    * @return     A TCP Socket
    */
-  Socket remote() const noexcept
+  const Socket& remote() const noexcept
   { return remote_; }
+
+  Protocol ipv() const noexcept
+  { return is_ipv6_ ? Protocol::IPv6 : Protocol::IPv4; }
+
+  auto bytes_sacked() const noexcept
+  { return bytes_sacked_; }
 
 
   /**
@@ -632,7 +442,7 @@ public:
     virtual void abort(Connection&);
 
     /** Handle a Packet [SEGMENT ARRIVES] */
-    virtual Result handle(Connection&, Packet_ptr in) = 0;
+    virtual Result handle(Connection&, Packet_view& in) = 0;
 
     /** The current state represented as a string [STATUS] */
     virtual std::string to_string() const = 0;
@@ -657,15 +467,13 @@ public:
       Helper functions
       TODO: Clean up names.
     */
-    virtual bool check_seq(Connection&, const Packet&);
+    virtual bool check_seq(Connection&, Packet_view&);
 
-    virtual void unallowed_syn_reset_connection(Connection&, const Packet&);
+    virtual void unallowed_syn_reset_connection(Connection&, const Packet_view&);
 
-    virtual bool check_ack(Connection&, const Packet&);
+    virtual bool check_ack(Connection&, const Packet_view&);
 
-    virtual void process_segment(Connection&, Packet&);
-
-    virtual void process_fin(Connection&, const Packet&);
+    virtual void process_fin(Connection&, const Packet_view&);
 
     virtual void send_reset(Connection&);
 
@@ -799,6 +607,8 @@ private:
   Socket local_;
   Socket remote_;
 
+  const bool is_ipv6_ = false;
+
   /** The current state the Connection is in. Handles most of the logic. */
   State* state_;
   // Previous state. Used to keep track of state transitions.
@@ -808,7 +618,7 @@ private:
   TCB cb;
 
   /** The given read request */
-  std::unique_ptr<ReadRequest> read_request;
+  std::unique_ptr<Read_request> read_request;
 
   /** Queue for write requests to process */
   Write_queue writeq;
@@ -819,8 +629,6 @@ private:
   /** Callbacks */
   ConnectCallback         on_connect_;
   DisconnectCallback      on_disconnect_;
-  PacketDroppedCallback   on_packet_dropped_;
-  RtxTimeoutCallback      on_rtx_timeout_;
   CloseCallback           on_close_;
 
   /** Retransmission timer */
@@ -828,6 +636,8 @@ private:
 
   /** Time Wait / DACK timeout timer */
   Timer timewait_dack_timer;
+
+  bool close_signaled_ = false;
 
   /** Number of retransmission attempts on the packet first in RT-queue */
   int8_t rtx_attempt_ = 0;
@@ -837,6 +647,12 @@ private:
 
   /** State if connection is in TCP write queue or not. */
   bool queued_;
+
+  using Sack_list = sack::List<sack::Fixed_list<default_sack_entries>>;
+  std::unique_ptr<Sack_list> sack_list;
+  /** If SACK is permitted (option has been seen from peer) */
+  bool sack_perm = false;
+  size_t bytes_sacked_ = 0;
 
   /** Congestion control */
   // is fast recovery state
@@ -871,6 +687,14 @@ private:
   //static constexpr int8_t LATE_SPUR_TO {1};
   //RTTM::seconds SRTT_prev{1.0f};
   //RTTM::seconds RTTVAR_prev{1.0f};
+
+  /**
+   * @brief      Set the Read_request
+   *
+   * @param[in]  recv_bufsz  The receive bufsz
+   * @param[in]  cb          The read callback
+   */
+  void _on_read(size_t recv_bufsz, ReadCallback cb);
 
   // Retrieve the associated shared_ptr for a connection, if it exists
   // Throws out_of_range if it doesn't
@@ -966,16 +790,13 @@ private:
   void signal_disconnect(Disconnect::Reason&& reason)
   { on_disconnect_(retrieve_shared(), Disconnect{reason}); }
 
-  void signal_packet_dropped(const Packet& packet, Drop_reason reason)
-  { if(on_packet_dropped_) on_packet_dropped_(packet, reason); }
-
   void signal_rtx_timeout()
-  { if(on_rtx_timeout_) on_rtx_timeout_(rtx_attempt_+1, rttm.rto_ms()); }
+  { }
 
   /*
     Drop a packet. Used for debug/callback.
   */
-  void drop(const Packet& packet, Drop_reason reason = Drop_reason::NA);
+  void drop(const Packet_view& packet, Drop_reason reason = Drop_reason::NA);
 
   // RFC 3042
   void limited_tx();
@@ -999,8 +820,8 @@ private:
   */
   uint32_t usable_window() const noexcept
   {
-    const auto x = (int64_t)send_window() - (int64_t)flight_size();
-    return (uint32_t) std::max((decltype(x)) 0, x);
+    const int64_t x = (int64_t)send_window() - (int64_t)flight_size();
+    return (uint32_t) std::max(static_cast<int64_t>(0), x);
   }
 
   uint32_t send_window() const noexcept
@@ -1013,17 +834,35 @@ private:
 
   bool uses_timestamps() const noexcept;
 
+  bool uses_SACK() const noexcept;
+
   /// --- INCOMING / TRANSMISSION --- ///
   /*
     Receive a TCP Packet.
   */
-  void segment_arrived(Packet_ptr);
+  void segment_arrived(Packet_view&);
 
   /*
     Acknowledge a packet
     - TCB update, Congestion control handling, RTT calculation and RT handling.
   */
-  bool handle_ack(const Packet&);
+  bool handle_ack(const Packet_view&);
+
+  /**
+   * @brief      Receive data from an incoming packet containing data.
+   *
+   * @param[in]  in  TCP Packet containing payload
+   */
+  void recv_data(const Packet_view& in);
+
+  void recv_out_of_order(const Packet_view& in);
+
+  /**
+   * @brief      Acknowledge incoming data. This is done by:
+   *             - Trying to send data if possible (can send)
+   *             - If not, regular ACK (use DACK if enabled)
+   */
+  void ack_data();
 
   /**
    * @brief      Determines if the incoming segment is a legit window update.
@@ -1033,7 +872,7 @@ private:
    *
    * @return     True if window update, False otherwise.
    */
-  bool is_win_update(const Packet& in, const uint32_t win) const
+  bool is_win_update(const Packet_view& in, const uint32_t win) const
   {
     return cb.SND.WND != win and
       (cb.SND.WL1 < in.seq() or (cb.SND.WL1 == in.seq() and cb.SND.WL2 <= in.ack()));
@@ -1046,7 +885,7 @@ private:
    *
    * @return     True if duplicate acknowledge, False otherwise.
    */
-  bool is_dup_ack(const Packet& in, const uint32_t win) const
+  bool is_dup_ack(const Packet_view& in, const uint32_t win) const
   {
     return in.ack() == cb.SND.UNA
       and flight_size() > 0
@@ -1060,21 +899,21 @@ private:
    *
    * @param[in]  <unnamed>  Incoming TCP segment (duplicate ACK)
    */
-  void on_dup_ack(const Packet&);
+  void on_dup_ack(const Packet_view&);
 
   /**
    * @brief      Handle segment according to congestion control (New Reno)
    *
    * @param[in]  <unnamed>  Incoming TCP segment
    */
-  void congestion_control(const Packet&);
+  void congestion_control(const Packet_view&);
 
   /**
    * @brief      Handle segment according to fast recovery (New Reno)
    *
    * @param[in]  <unnamed>  Incoming TCP segment
    */
-  void fast_recovery(const Packet&);
+  void fast_recovery(const Packet_view&);
 
   /**
    * @brief      Determines ability to send ONE segment, not caring about the usable window.
@@ -1099,20 +938,20 @@ private:
    *
    * @return     The amount of data filled into the packet.
    */
-  size_t fill_packet(Packet& packet, const uint8_t* data, size_t n)
+  size_t fill_packet(Packet_view& packet, const uint8_t* data, size_t n)
   { return packet.fill(data, std::min(n, (size_t)SMSS())); }
 
   /*
     Transmit the packet and hooks up retransmission.
   */
-  void transmit(Packet_ptr);
+  void transmit(Packet_view_ptr);
 
   /*
     Creates a new outgoing packet with the current TCB values and options.
   */
-  Packet_ptr create_outgoing_packet();
+  Packet_view_ptr create_outgoing_packet();
 
-  Packet_ptr outgoing_packet()
+  Packet_view_ptr outgoing_packet()
   { return create_outgoing_packet(); }
 
   /**
@@ -1200,7 +1039,7 @@ private:
    *
    * @param[in]  <unnamed>  An incomming TCP packet
    */
-  void take_rtt_measure(const Packet&);
+  void take_rtt_measure(const Packet_view&);
 
   /*
     Start retransmission timer.
@@ -1289,26 +1128,15 @@ private:
   /*
     Parse and apply options.
   */
-  void parse_options(const Packet&);
+  void parse_options(const Packet_view&);
 
   /*
     Add an option.
   */
-  void add_option(Option::Kind, Packet&);
+  void add_option(Option::Kind, Packet_view&);
 
-  /**
-   * @brief      Parses the timestamp option from a packet (if any).
-   *             Assumes the packet contains no other options.
-   *
-   * @param[in]  <unnamed>  A TCP packet
-   *
-   * @return     A pointer the the timestamp option (nullptr if none)
-   */
-  Option::opt_ts* parse_ts_option(const Packet&) const;
 
 }; // < class Connection
-
-using Stream = Connection::Stream;
 
 } // < namespace tcp
 } // < namespace net

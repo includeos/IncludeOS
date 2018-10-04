@@ -19,7 +19,7 @@
 #include <packet_factory.hpp>
 #include <net/nat/napt.hpp>
 #include <nic_mock.hpp>
-#include <net/inet4>
+#include <net/inet>
 
 using namespace net;
 using namespace net::nat;
@@ -31,7 +31,7 @@ static Conntrack::Entry* get_entry(Conntrack& ct, const PacketIP4& pkt)
   return entry;
 }
 
-static tcp::Packet_ptr tcp_packet(Socket src, Socket dst)
+static std::unique_ptr<tcp::Packet> tcp_packet(Socket src, Socket dst)
 {
   auto tcp = create_tcp_packet_init(src, dst);
   tcp->set_tcp_checksum();
@@ -51,9 +51,9 @@ CASE("NAPT DNAT")
   auto conntrack = std::make_shared<Conntrack>();
   NAPT napt{conntrack};
 
-  const Socket src{{10,0,0,1}, 32222};
-  const Socket dst{{10,0,0,42},80};
-  const Socket target{{10,0,0,43}, 8080};
+  const Socket src{ip4::Addr{10,0,0,1}, 32222};
+  const Socket dst{ip4::Addr{10,0,0,42},80};
+  const Socket target{ip4::Addr{10,0,0,43}, 8080};
 
   // TCP
   // Request
@@ -104,8 +104,8 @@ CASE("NAPT SNAT")
   auto conntrack = std::make_shared<Conntrack>();
   NAPT napt{conntrack};
 
-  const Socket src{{10,0,0,1}, 32222};
-  const Socket dst{{10,0,0,42},80};
+  const Socket src{ip4::Addr{10,0,0,1}, 32222};
+  const Socket dst{ip4::Addr{10,0,0,42},80};
   const ip4::Addr new_src{10,0,0,10};
 
   // TCP
@@ -161,11 +161,11 @@ CASE("NAPT MASQUERADE")
   NAPT napt{conntrack};
 
   Nic_mock nic;
-  Inet4 inet{nic};
+  Inet inet{nic};
   inet.network_config({10,0,0,40},{255,255,255,0}, 0);
 
-  const Socket src{{10,0,0,1}, 32222};
-  const Socket dst{{10,0,0,42},80};
+  const Socket src{ip4::Addr{10,0,0,1}, 32222};
+  const Socket dst{ip4::Addr{10,0,0,42},80};
 
   // TCP
   // Request

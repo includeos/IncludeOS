@@ -1,6 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
+// Copyright 2015-2018 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,23 +15,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <service>
+#include <os>
 #include <sys/utsname.h>
 
 int main()
 {
   struct utsname struct_test;
-  uname(&struct_test);
-  printf("Sysname: %s\n", struct_test.sysname);
-  printf("Nodename: %s\n", struct_test.nodename);
-  printf("Release: %s\n", struct_test.release);
-  printf("Version: %s\n", struct_test.version);
-  printf("Machine: %s\n", struct_test.machine);
-  printf("Something special to close with\n");
+  CHECKSERT(uname(&struct_test) == 0, "uname with buffer returns no error");
+  CHECKSERT(strcmp(struct_test.sysname, "IncludeOS") == 0,
+    "sysname is IncludeOS");
+  CHECKSERT(strcmp(struct_test.nodename, "IncludeOS-node") == 0,
+    "nodename is IncludeOS-node");
+  CHECKSERT(strcmp(struct_test.release, OS::version()) == 0,
+    "release is %s", OS::version());
+  CHECKSERT(strcmp(struct_test.version, OS::version()) == 0,
+    "version is %s", OS::version());
+  CHECKSERT(strcmp(struct_test.machine, ARCH) == 0,
+    "machine is %s", ARCH);
+
+  CHECKSERT(uname(nullptr) == -1, "uname with nullptr returns error");
+  CHECKSERT(errno == EFAULT, "error is EFAULT");
   return 0;
 }
 
 void Service::start(const std::string&)
 {
   main();
+  printf("SUCCESS\n");
 }

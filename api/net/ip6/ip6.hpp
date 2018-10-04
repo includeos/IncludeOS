@@ -18,292 +18,201 @@
 #ifndef NET_IP6_IP6_HPP
 #define NET_IP6_IP6_HPP
 
-#include <delegate>
-#include <net/ethernet/ethernet.hpp>
-#include "../packet.hpp"
-#include "../util.hpp"
+#include "addr.hpp"
+#include "header.hpp"
+#include "packet_ip6.hpp"
 
-#include <string>
-#include <map>
-#include <x86intrin.h>
-#include <cstdint>
-#include <cassert>
+#include <common>
+#include <net/netfilter.hpp>
+#include <net/conntrack.hpp>
 
 namespace net
 {
-  class PacketIP6;
 
-  /** IP6 layer skeleton */
+  class Inet;
+
+  /** IP6 layer */
   class IP6
   {
   public:
-    /** Known transport layer protocols. */
-    enum proto
-      {
-        PROTO_HOPOPT =  0, // IPv6 hop-by-hop
+    enum class Drop_reason
+    { None, Bad_source, Bad_destination, Wrong_version,
+        Unknown_proto };
 
-        PROTO_ICMPv4 =  1,
-        PROTO_TCP    =  6,
-        PROTO_UDP    = 17,
+    enum class Direction
+    { Upstream, Downstream };
 
-        PROTO_ICMPv6 = 58, // IPv6 ICMP
-        PROTO_NoNext = 59, // no next-header
-        PROTO_OPTSv6 = 60, // dest options
-      };
+    using Stack = class Inet;
+    using addr = ip6::Addr;
+    using header = ip6::Header;
+    using IP_packet = PacketIP6;
+    using IP_packet_ptr = std::unique_ptr<IP_packet>;
+    using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
+    using downstream_ndp = delegate<void(Packet_ptr, IP6::addr)>;
+    using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
+    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
+    using PMTU = uint16_t;
 
-    struct addr
-    {
-      // constructors
-      addr()
-        : i32{0, 0, 0, 0} {}
-      addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2,
-           uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
-      {
-        i16[0] = a1; i16[1] = a2;
-        i16[2] = b1; i16[3] = b2;
-        i16[4] = c1; i16[5] = c2;
-        i16[6] = d1; i16[7] = d2;
-        /*i128 = _mm_set_epi16(
-           htons(d2), htons(d1),
-           htons(c2), htons(c1),
-           htons(b2), htons(b1),
-           htons(a2), htons(a1));*/
-      }
-      addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
-      {
-        i32[0] = a; i32[1] = b; i32[2] = c; i32[3] = d;
-        //i128 = _mm_set_epi32(d, c, b, a);
-      }
-      addr(const addr& a)
-      {
-        for (int i = 0; i < 4; i++)
-          i32[i] = a.i32[i];
-      }
-      // move constructor
-      addr& operator= (const addr& a)
-      {
-        for (int i = 0; i < 4; i++)
-          i32[i] = a.i32[i];
-        //i128 = a.i128;
-        return *this;
-      }
+    static const addr ADDR_ANY;
+    static const addr ADDR_LOOPBACK;
 
-      // comparison functions
-      bool operator== (const addr& a) const
-      {
-        // i128 == a.i128:
-        for (int i = 0; i < 4; i++)
-          if (i32[i] != a.i32[i]) return false;
-        return true;
-        //__m128i cmp = _mm_cmpeq_epi32(i128, a.i128);
-        //return _mm_cvtsi128_si32(cmp);
-      }
-      bool operator!= (const addr& a) const
-      {
-        return !this->operator==(a);
-      }
+    /** Initialize. Sets a dummy linklayer out. */
+    explicit IP6(Stack&) noexcept;
 
-      // returns this IPv6 address as a string
-      std::string str() const;
+    //
+    // Delegate setters
+    //
 
-      // multicast IPv6 addresses
-      static const addr node_all_nodes;     // RFC 4921
-      static const addr node_all_routers;   // RFC 4921
-      static const addr node_mDNSv6;        // RFC 6762 (multicast DNSv6)
+    /** Set ICMP protocol handler (upstream)*/
+    void set_icmp_handler(upstream s)
+    { icmp_handler_ = s; }
 
-      // unspecified link-local address
-      static const addr link_unspecified;
+    /** Set UDP protocol handler (upstream)*/
+    void set_udp_handler(upstream s)
+    { udp_handler_ = s; }
 
-      // RFC 4291  2.4.6:
-      // Link-Local addresses are designed to be used for addressing on a
-      // single link for purposes such as automatic address configuration,
-      // neighbor discovery, or when no routers are present.
-      static const addr link_all_nodes;     // RFC 4921
-      static const addr link_all_routers;   // RFC 4921
-      static const addr link_mDNSv6;        // RFC 6762
+    /** Set TCP protocol handler (upstream) */
+    void set_tcp_handler(upstream s)
+    { tcp_handler_ = s; }
 
-      static const addr link_dhcp_servers;  // RFC 3315
-      static const addr site_dhcp_servers;  // RFC 3315
+    /** Set packet dropped handler */
+    void set_drop_handler(drop_handler s)
+    { drop_handler_ = s; }
 
-      // returns true if this addr is a IPv6 multicast address
-      bool is_multicast() const
-      {
-        /**
-           RFC 4291 2.7 Multicast Addresses
+    /** Set handler for packets not addressed to this interface (upstream) */
+    void set_packet_forwarding(Forward_delg fwd)
+    { forward_packet_ = fwd; }
 
-           An IPv6 multicast address is an identifier for a group of interfaces
-           (typically on different nodes). An interface may belong to any
-           number of multicast groups. Multicast addresses have the following format:
-           |   8    |  4 |  4 |                  112 bits                   |
-           +------ -+----+----+---------------------------------------------+
-           |11111111|flgs|scop|                  group ID                   |
-           +--------+----+----+---------------------------------------------+
-        **/
-        return i8[0] == 0xFF;
-      }
+    /** Set linklayer out (downstream) via ndp */
+    void set_linklayer_out(downstream_ndp s)
+    { ndp_out_ = s; }
 
-      union
-      {
-        //__m128i  i128;
-        uint32_t  i32[ 4];
-        uint16_t  i16[ 8];
-        uint8_t    i8[16];
-      };
-    };
+    /** Upstream: Input from link layer */
+    void receive(Packet_ptr, const bool link_bcast);
 
-#pragma pack(push, 1)
-    class header
-    {
-    public:
-      uint8_t version() const
-      {
-        return (scanline[0] & 0xF0) >> 4;
-      }
-      uint8_t tclass() const
-      {
-        return ((scanline[0] & 0xF000) >> 12) +
-          (scanline[0] & 0xF);
-      }
-      // initializes the first scanline with the IPv6 version
-      void init_scan0()
-      {
-        scanline[0] = 6u >> 4;
-      }
 
-      uint16_t size() const
-      {
-        return ((scanline[1] & 0x00FF) << 8) +
-          ((scanline[1] & 0xFF00) >> 8);
-      }
-      void set_size(uint16_t newsize)
-      {
-        scanline[1] &= 0xFFFF0000;
-        scanline[1] |= htons(newsize);
-      }
+    //
+    // Delegate getters
+    //
 
-      uint8_t next() const
-      {
-        return (scanline[1] >> 16) & 0xFF;
-      }
-      void set_next(uint8_t next)
-      {
-        scanline[1] &= 0xFF00FFFF;
-        scanline[1] |= next << 16;
-      }
-      uint8_t hoplimit() const
-      {
-        return (scanline[1] >> 24) & 0xFF;
-      }
-      void set_hoplimit(uint8_t limit = 64)
-      {
-        scanline[1] &= 0x00FFFFFF;
-        scanline[1] |= limit << 24;
-      }
+    upstream icmp_handler()
+    { return icmp_handler_; }
 
-    private:
-      uint32_t scanline[2];
-    public:
-      addr     src;
-      addr     dst;
-    };
+    upstream udp_handler()
+    { return udp_handler_; }
 
-    struct options_header
-    {
-      uint8_t  next_header;
-      uint8_t  hdr_ext_len;
-      uint16_t opt_1;
-      uint32_t opt_2;
+    upstream tcp_handler()
+    { return tcp_handler_; }
 
-      uint8_t next() const
-      {
-        return next_header;
-      }
-      uint8_t size() const
-      {
-        return sizeof(options_header) + hdr_ext_len;
-      }
-      uint8_t extended() const
-      {
-        return hdr_ext_len;
-      }
-    };
-#pragma pack(pop)
+    Forward_delg forward_delg()
+    { return forward_packet_; }
 
-    struct full_header
-    {
-      Ethernet::header eth_hdr;
-      IP6::header      ip6_hdr;
-    };
+    /**
+     *  Downstream: Receive data from above and transmit
+     *
+     *  @note: The following *must be set* in the packet:
+     *
+     *   * Destination IP
+     *   * Protocol
+     *
+     *  Source IP *can* be set - if it's not, IP6 will set it
+     */
+    void transmit(Packet_ptr);
+    void ship(Packet_ptr, addr next_hop = IP6::ADDR_ANY, Conntrack::Entry_ptr ct = nullptr);
 
-    // downstream delegate for transmit()
-    typedef delegate<int(std::shared_ptr<PacketIP6>&)> downstream6;
-    typedef downstream6 upstream6;
+    /**
+     * \brief
+     *
+     * Returns the IPv4 address associated with this interface
+     **/
+    const addr local_ip() const;
 
-    /** Constructor. Requires ethernet to latch on to. */
-    IP6(const addr& local);
+    /**
+     * @brief      Determines if the packet is for me (this host).
+     *
+     * @param[in]  dst   The destination
+     *
+     * @return     True if for me, False otherwise.
+     */
+    bool is_for_me(ip6::Addr dst) const;
+    Protocol ipv6_ext_header_receive(net::PacketIP6& packet);
 
-    const IP6::addr& local_ip() const
-    {
-      return local;
-    }
+    ///
+    /// PACKET FILTERING
+    ///
 
-    uint8_t parse6(uint8_t*& reader, uint8_t next);
+    /**
+     * Packet filtering hooks for firewall, NAT, connection tracking etc.
+     **/
 
-    static std::string protocol_name(uint8_t protocol)
-    {
-      switch (protocol)
-        {
-        case PROTO_HOPOPT:
-          return "IPv6 Hop-By-Hop (0)";
+    /** Packets pass through prerouting chain before routing decision */
+    Filter_chain<IP6>& prerouting_chain()
+    { return prerouting_chain_; }
 
-        case PROTO_TCP:
-          return "TCPv6 (6)";
-        case PROTO_UDP:
-          return "UDPv6 (17)";
+    /** Packets pass through postrouting chain after routing decision */
+    Filter_chain<IP6>& postrouting_chain()
+    { return postrouting_chain_; }
 
-        case PROTO_ICMPv6:
-          return "ICMPv6 (58)";
-        case PROTO_NoNext:
-          return "No next header (59)";
-        case PROTO_OPTSv6:
-          return "IPv6 destination options (60)";
+    /** Packets pass through input chain before hitting protocol handlers */
+    Filter_chain<IP6>& input_chain()
+    { return input_chain_; }
 
-        default:
-          return "Unknown: " + std::to_string(protocol);
-        }
-    }
+    /** Packets pass through output chain after exiting protocol handlers */
+    Filter_chain<IP6>& output_chain()
+    { return output_chain_; }
 
-    // handler for upstream IPv6 packets
-    void bottom(Packet_ptr pckt);
 
-    // transmit packets to the ether
-    void transmit(std::shared_ptr<PacketIP6>& pckt);
+    /**
+     * Stats getters
+     **/
+    uint64_t get_packets_rx()
+    { return packets_rx_; }
 
-    // modify upstream handlers
-    inline void set_handler(uint8_t proto, upstream& handler)
-    {
-      proto_handlers[proto] = handler;
-    }
+    uint64_t get_packets_tx()
+    { return packets_tx_; }
 
-    inline void set_linklayer_out(downstream func)
-    {
-      _linklayer_out = func;
-    }
+    uint64_t get_packets_dropped()
+    { return packets_dropped_; }
 
-    // creates a new IPv6 packet to be sent over the ether
-    static std::shared_ptr<PacketIP6> create(uint8_t proto,
-                                             Ethernet::addr ether_dest, const IP6::addr& dest);
+    /**  Drop incoming packets invalid according to RFC */
+    IP_packet_ptr drop_invalid_in(IP_packet_ptr packet);
+
+    /**  Drop outgoing packets invalid according to RFC */
+    IP_packet_ptr drop_invalid_out(IP_packet_ptr packet);
 
   private:
-    addr local;
+    /** Stats */
+    uint64_t& packets_rx_;
+    uint64_t& packets_tx_;
+    uint32_t& packets_dropped_;
+    Stack& stack_;
 
-    /** Downstream: Linklayer output delegate */
-    downstream _linklayer_out;
 
     /** Upstream delegates */
-    std::map<uint8_t, upstream> proto_handlers;
-  };
+    upstream icmp_handler_ = nullptr;
+    upstream udp_handler_  = nullptr;
+    upstream tcp_handler_  = nullptr;
 
-} // namespace net
+    /** Downstream delegates */
+    downstream_ndp ndp_out_ = nullptr;
+
+    /** Packet forwarding  */
+    Forward_delg forward_packet_;
+
+    // Filter chains
+    Filter_chain<IP6> prerouting_chain_{"Prerouting", {}};
+    Filter_chain<IP6> postrouting_chain_{"Postrouting", {}};
+    Filter_chain<IP6> input_chain_{"Input", {}};
+    Filter_chain<IP6> output_chain_{"Output", {}};
+
+    /** All dropped packets go here */
+    drop_handler drop_handler_;
+
+    /** Drop a packet, calling drop handler if set */
+    IP_packet_ptr drop(IP_packet_ptr ptr, Direction direction, Drop_reason reason);
+
+  }; //< class IP6
+
+} //< namespace net
 
 #endif

@@ -17,7 +17,8 @@
 
 #include <hw/pci_device.hpp>
 #include <net/link_layer.hpp>
-#include <net/ethernet/ethernet.hpp>
+#include <net/ethernet/ethernet_8021q.hpp>
+#include <deque>
 #include <vector>
 struct vmxnet3_dma;
 struct vmxnet3_rx_desc;
@@ -30,8 +31,8 @@ public:
   using Link_protocol = Link::Protocol;
   static const int DRIVER_OFFSET = 2;
   static const int NUM_RX_QUEUES = 1;
-  static const int NUM_TX_DESC   = 512;
-  static const int NUM_RX_DESC   = 256;
+  static const int NUM_TX_DESC   = 128;
+  static const int NUM_RX_DESC   = 512;
 
   static std::unique_ptr<Nic> new_instance(hw::PCI_Device& d, const uint16_t MTU)
   { return std::make_unique<vmxnet3>(d, MTU); }
@@ -50,17 +51,14 @@ public:
     return m_mtu;
   }
 
-  uint16_t packet_len() const noexcept {
-    return sizeof(net::ethernet::Header) + MTU();
+  uint16_t max_packet_len() const noexcept {
+    return sizeof(net::ethernet::VLAN_header) + MTU();
   }
 
   net::downstream create_physical_downstream() override
   { return {this, &vmxnet3::transmit}; }
 
   net::Packet_ptr create_packet(int) override;
-
-  size_t frame_offset_device() override
-  { return DRIVER_OFFSET; };
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);
@@ -72,6 +70,8 @@ public:
   size_t transmit_queue_available() override {
     return tx_tokens_free();
   }
+
+  auto& bufstore() noexcept { return bufstore_; }
 
   void flush() override;
 
@@ -139,7 +139,12 @@ private:
   bool   already_polling = false;
   bool     link_state_up = false;
   static void handle_deferred();
-  // sendq as packet chain
-  net::Packet_ptr sendq = nullptr;
+
+  // sendq as double-ended q
+  uint32_t& stat_sendq_cur;
+  uint32_t& stat_sendq_max;
+  uint64_t& stat_rx_refill_dropped;
+  uint64_t& stat_sendq_dropped;
+  std::deque<net::Packet_ptr> sendq;
   net::BufferStore bufstore_;
 };

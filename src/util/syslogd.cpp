@@ -32,6 +32,8 @@ void Syslog::syslog(const int priority, const char* fmt, ...)
 // va_list arguments (POSIX)
 void Syslog::syslog(const int priority, const char* fmt, va_list args)
 {
+  // due to musl "bug" (strftime setting errno..)
+  const int save_errno = errno;
   // snprintf removes % if calling syslog with %m in addition to arguments
   // Find %m here first and escape % if found
   std::regex m_regex{"\\%m"};
@@ -71,6 +73,7 @@ void Syslog::syslog(const int priority, const char* fmt, va_list args)
 		specifier character is not just %m, the behavior is undefined. A trailing <newline> may be
 		added if needed.
 	*/
+  errno = save_errno;
   // Handle %m (replace it with strerror(errno)) and add the message (buf)
   message += std::regex_replace(buf, m_regex, strerror(errno));
 

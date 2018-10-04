@@ -15,15 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fd.hpp>
+#include <posix/fd.hpp>
 #include <fcntl.h>
 #include <cstdarg>
 #include <errno.h>
-#include <posix_strace.hpp>
 
 int FD::fcntl(int cmd, va_list list)
 {
-  PRINT("fcntl(%d)\n", cmd);
+  //PRINT("fcntl(%d)\n", cmd);
   switch (cmd) {
   case F_GETFD:
       // return descriptor flags
@@ -46,15 +45,23 @@ int FD::fcntl(int cmd, va_list list)
       return -1;
   }
 }
-int FD::getsockopt(int fd, int, void *__restrict__, socklen_t *__restrict__)
+
+int FD::ioctl(int /*req*/, void* /*arg*/)
 {
-  PRINT("getsockopt(%d) = -1\n", fd);
+  //PRINT("ioctl(%d, %p) = -1\n", req, arg);
+  errno = ENOSYS;
+  return -1;
+}
+
+int FD::getsockopt(int /*fd*/, int, void *__restrict__, socklen_t *__restrict__)
+{
+  //PRINT("getsockopt(%d) = -1\n", fd);
   errno = ENOTSOCK;
   return -1;
 }
-int FD::setsockopt(int fd, int, const void *, socklen_t)
+int FD::setsockopt(int /*fd*/, int, const void *, socklen_t)
 {
-  PRINT("setsockopt(%d) = -1\n", fd);
+  //PRINT("setsockopt(%d) = -1\n", fd);
   errno = ENOTSOCK;
   return -1;
 }

@@ -26,6 +26,7 @@
 #define MYINFO(X,...) INFO("DHCPv4",X,##__VA_ARGS__)
 
 #include <net/dhcp/dh4client.hpp>
+#include <net/inet>
 #include <net/dhcp/message.hpp>
 #include <cstdlib>
 #include <debug>
@@ -33,7 +34,6 @@
 namespace net {
 
   using namespace dhcp;
-  const int DHClient::NUM_RETRIES;
 
   DHClient::DHClient(Stack& inet)
     : stack(inet),
@@ -59,24 +59,54 @@ namespace net {
 
   void DHClient::restart_negotation()
   {
-    if (retries-- <= 0)
+    tries++;
+    // if timeout is supplied
+    if(timeout != std::chrono::seconds::zero())
     {
-      // give up when retries reached zero
-      end_negotiation(true);
+      // calculate if we should retry
+      const bool retry = (timeout / (tries * RETRY_FREQUENCY)) >= 1;
+
+      if(retry)
+      {
+        timeout_timer_.start(RETRY_FREQUENCY);
+        send_first();
+        return;
+      }
+      else
+      {
+        end_negotiation(true);
+        return;
+      }
+    }
+
+    static const int FAST_TRIES = 10;
+    // never timeout
+    if(tries <= FAST_TRIES)
+    {
+      // do fast retry
+      timeout_timer_.start(RETRY_FREQUENCY);
     }
     else
     {
-      timeout_timer_.start(this->timeout);
-      send_first();
+      if(UNLIKELY(tries == FAST_TRIES+1)) {
+        MYINFO("No reply for %i tries, retrying every %lli second",
+          FAST_TRIES, RETRY_FREQUENCY_SLOW.count());
+      }
+
+      // fallback to slow retry
+      timeout_timer_.start(RETRY_FREQUENCY_SLOW);
     }
+
+    send_first();
   }
+
   void DHClient::end_negotiation(bool timed_out)
   {
     // wind down
     this->xid      = 0;
     timeout_timer_.stop();
     this->progress = 0;
-    this->retries  = NUM_RETRIES;
+    this->tries  = 0;
     // close UDP socket
     Expects(this->socket != nullptr);
     this->socket->close();
@@ -88,16 +118,16 @@ namespace net {
     if(timeout_timer_.is_running()) timeout_timer_.stop();
   }
 
-  void DHClient::negotiate(uint32_t timeout_secs)
+  void DHClient::negotiate(std::chrono::seconds timeout)
   {
     // Allow multiple calls to negotiate without restarting the process
     if (this->xid != 0) return;
-    this->retries = NUM_RETRIES;
+    this->tries = 0;
     this->progress = 0;
 
     // calculate progress timeout
     using namespace std::chrono;
-    this->timeout = seconds(timeout_secs) / NUM_RETRIES;
+    this->timeout = timeout;
 
     // generate a new session ID
     this->xid  = (rand() & 0xffff);
@@ -141,7 +171,7 @@ namespace net {
     /// broadcast our DHCP plea as 0.0.0.0:67
     socket->bcast(IP4::ADDR_ANY, DHCP_SERVER_PORT, buffer, sizeof(buffer));
     socket->on_read(
-    [this] (IP4::addr addr, UDP::port_t port,
+    [this] (net::Addr addr, UDP::port_t port,
                      const char* data, size_t len)
     {
       if (port == DHCP_SERVER_PORT)
@@ -149,7 +179,7 @@ namespace net {
         // we have got a DHCP Offer
         (void) addr;
         PRINT("Received possible DHCP OFFER from %s\n",
-               addr.str().c_str());
+               addr.to_string().c_str());
         this->offer(data, len);
       }
     });
@@ -291,7 +321,7 @@ namespace net {
     assert(this->socket);
     // set our onRead function to point to a hopeful DHCP ACK!
     socket->on_read(
-    [this] (IP4::addr addr, UDP::port_t port,
+    [this] (net::Addr addr, UDP::port_t port,
           const char* data, size_t len)
     {
       if (port == DHCP_SERVER_PORT)
@@ -299,7 +329,7 @@ namespace net {
         (void) addr;
         // we have hopefully got a DHCP Ack
         PRINT("\tReceived DHCP ACK from %s:%d\n",
-          addr.str().c_str(), DHCP_SERVER_PORT);
+          addr.to_string().c_str(), DHCP_SERVER_PORT);
         this->acknowledge(data, len);
       }
     });

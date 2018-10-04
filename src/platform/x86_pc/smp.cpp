@@ -45,6 +45,26 @@ struct apic_boot {
   uint32_t  stack_size;
 };
 
+struct __libc {
+  int can_do_threads;
+  int threaded;
+  int secure;
+  volatile int threads_minus_1;
+  size_t* auxv;
+};
+extern struct __libc __libc;
+//extern "C" struct __libc *__libc_loc(void) __attribute__((const));
+//#define __libc (*__libc_loc())
+
+static inline void musl_override_glob_locks()
+{
+  printf("__libc.can_do_threads: %d  __libc.threaded: %d\n",
+        __libc.can_do_threads, __libc.threaded);
+  printf("__libc.threads_minus_1: %d -> %d\n",
+        __libc.threads_minus_1, 1);
+  __libc.threads_minus_1 = 1;
+}
+
 namespace x86
 {
 
@@ -53,6 +73,8 @@ void init_SMP()
   const uint32_t CPUcount = ACPI::get_cpus().size();
   if (CPUcount <= 1) return;
   assert(CPUcount <= SMP_MAX_CORES);
+  // avoid heap usage during AP init
+  x86::smp_main.initialized_cpus.reserve(CPUcount);
 
   // copy our bootloader to APIC init location
   const char* start = &_binary_apic_boot_bin_start;
@@ -85,6 +107,9 @@ void init_SMP()
   // reset barrier
   smp_main.boot_barrier.reset(1);
 
+  // enable global locks on musl
+  musl_override_glob_locks();
+
   auto& apic = x86::APIC::get();
   // turn on CPUs
   INFO("SMP", "Initializing APs");
@@ -95,7 +120,7 @@ void init_SMP()
           cpu.cpu, cpu.id, cpu.flags);
     apic.ap_init(cpu.id);
   }
-  PIT::blocking_cycles(10);
+  //PIT::blocking_cycles(10);
 
   // start CPUs
   INFO("SMP", "Starting APs");
@@ -104,9 +129,9 @@ void init_SMP()
     if (cpu.id == apic.get_id()) continue;
     // Send SIPI with start page at BOOTLOADER_LOCATION
     apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
-    //apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
+    apic.ap_start(cpu.id, BOOTLOADER_LOCATION >> 12);
   }
-  PIT::blocking_cycles(1);
+  //PIT::blocking_cycles(1);
 
   // wait for all APs to start
   smp_main.boot_barrier.spin_wait(CPUcount);
@@ -137,9 +162,12 @@ void init_SMP()
 
 } // x86
 
+using namespace x86;
+
 /// implementation of the SMP interface ///
 int SMP::cpu_id() noexcept
 {
+#ifdef INCLUDEOS_SMP_ENABLE
   int cpuid;
 #ifdef ARCH_x86_64
   asm("movl %%gs:(0x0), %0" : "=r" (cpuid));
@@ -149,14 +177,16 @@ int SMP::cpu_id() noexcept
   #error "Implement me?"
 #endif
   return cpuid;
-}
-int SMP::cpu_count() noexcept
-{
-#ifdef INCLUDEOS_SINGLE_THREADED
-  return 1;
 #else
-  return x86::ACPI::get_cpus().size();
+  return 0;
 #endif
+}
+
+int SMP::cpu_count() noexcept {
+  return x86::smp_main.initialized_cpus.size();
+}
+const std::vector<int>& SMP::active_cpus() {
+  return x86::smp_main.initialized_cpus;
 }
 
 __attribute__((weak))
@@ -167,31 +197,29 @@ void SMP::init_task()
 
 void SMP::add_task(smp_task_func task, smp_done_func done, int cpu)
 {
-#ifdef INCLUDEOS_SINGLE_THREADED
-  assert(cpu == 0);
-  task(); done();
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
   lock(smp_system[cpu].tlock);
   smp_system[cpu].tasks.emplace_back(std::move(task), std::move(done));
   unlock(smp_system[cpu].tlock);
+#else
+  assert(cpu == 0);
+  task(); done();
 #endif
 }
 void SMP::add_task(smp_task_func task, int cpu)
 {
-#ifdef INCLUDEOS_SINGLE_THREADED
-  assert(cpu == 0);
-  task();
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
   lock(smp_system[cpu].tlock);
   smp_system[cpu].tasks.emplace_back(std::move(task), nullptr);
   unlock(smp_system[cpu].tlock);
+#else
+  assert(cpu == 0);
+  task();
 #endif
 }
 void SMP::add_bsp_task(smp_done_func task)
 {
-#ifdef INCLUDEOS_SINGLE_THREADED
-  task();
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
   // queue job
   auto& system = PER_CPU(smp_system);
   lock(system.flock);
@@ -201,12 +229,14 @@ void SMP::add_bsp_task(smp_done_func task)
   smp_main.bitmap.atomic_set(SMP::cpu_id());
   // call home
   x86::APIC::get().send_bsp_intr();
+#else
+  task();
 #endif
 }
 
 void SMP::signal(int cpu)
 {
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   // broadcast that there is work to do
   // 0: Broadcast to everyone except BSP
   if (cpu == 0)
@@ -214,6 +244,8 @@ void SMP::signal(int cpu)
   // 1-xx: Unicast specific vCPU
   else
       x86::APIC::get().send_ipi(cpu, 0x20);
+#else
+  (void) cpu;
 #endif
 }
 void SMP::signal_bsp()
@@ -240,52 +272,3 @@ void SMP::global_unlock() noexcept
 {
   unlock(__global_lock);
 }
-
-/// SMP variants of malloc and free ///
-#ifndef INCLUDEOS_SINGLE_THREADED
-static spinlock_t __memory_lock = 0;
-
-#include <malloc.h>
-void* malloc(size_t size)
-{
-  lock(__memory_lock);
-  void* addr = _malloc_r(_REENT, size);
-  unlock(__memory_lock);
-  return addr;
-}
-void* calloc(size_t num, size_t size)
-{
-  lock(__memory_lock);
-  void* addr = _calloc_r(_REENT, num, size);
-  unlock(__memory_lock);
-  return addr;
-}
-void* realloc(void *ptr, size_t new_size)
-{
-  lock(__memory_lock);
-  void* addr = _realloc_r (_REENT, ptr, new_size);
-  unlock(__memory_lock);
-  return addr;
-}
-void free(void* ptr)
-{
-  lock(__memory_lock);
-  _free_r(_REENT, ptr);
-  unlock(__memory_lock);
-}
-void* posix_memalign(size_t align, size_t nbytes)
-{
-  lock(__memory_lock);
-  void* addr = _memalign_r(_REENT, align, nbytes);
-  unlock(__memory_lock);
-  return addr;
-}
-void* memalign(size_t align, size_t nbytes)
-{
-  lock(__memory_lock);
-  void* addr = _memalign_r(_REENT, align, nbytes);
-  unlock(__memory_lock);
-  return addr;
-}
-
-#endif

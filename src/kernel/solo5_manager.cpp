@@ -18,18 +18,17 @@
 #include <assert.h>
 #include <common>
 #include <delegate>
+#include <vector>
 
 #include <kernel/solo5_manager.hpp>
 #include <stdexcept>
-#include <util/fixed_vector.hpp>
 
-static const int ELEMENTS = 4;
 using namespace hw;
 using Nic_ptr = std::unique_ptr<hw::Nic>;
 using Blk_ptr = std::unique_ptr<hw::Block_device>;
 
-Fixed_vector<delegate<Nic_ptr()>, ELEMENTS> nics(Fixedvector_Init::UNINIT);
-Fixed_vector<delegate<Blk_ptr()>, ELEMENTS> blks(Fixedvector_Init::UNINIT);
+static std::vector<delegate<Nic_ptr()>> nics;
+static std::vector<delegate<Blk_ptr()>> blks;
 
 void Solo5_manager::register_net(delegate<Nic_ptr()> func)
 {

@@ -46,6 +46,9 @@ namespace hw {
     static Block_device& drive(const int N)
     { return get<Block_device>(N); }
 
+    // Nic helpers
+    inline static int nic_index(const MAC::Addr& mac);
+
     /** List all devices (decorated, as seen in boot output) */
     inline static void print_devices();
 
@@ -112,11 +115,14 @@ namespace hw {
   /** Exception thrown when a device is not found (registered) */
   class Device_not_found : public std::out_of_range {
   public:
+    explicit Device_not_found(const std::string& what)
+      : std::out_of_range{what}
+    {}
     explicit Device_not_found(const std::string& type, const int n)
-      : std::out_of_range(
+      : Device_not_found{
           std::string{"Device of type "} + type +
           std::string{" not found at position #"}
-          + std::to_string(n))
+          + std::to_string(n)}
       {}
   }; //< class Device_not_found
 
@@ -125,10 +131,23 @@ namespace hw {
     try {
       return *(devices<Device_type>().at(N));
     }
-    catch(std::out_of_range)
+    catch(const std::out_of_range&)
     {
       throw Device_not_found{Device_type::device_type(), N};
     }
+  }
+
+  inline int Devices::nic_index(const MAC::Addr& mac)
+  {
+    auto& nics = devices<Nic>();
+    int i = 0;
+    for(auto it = nics.begin(); it != nics.end(); it++)
+    {
+      if((*it)->mac() == mac)
+        return i;
+      i++;
+    }
+    return -1;
   }
 
   template <typename Device_type>

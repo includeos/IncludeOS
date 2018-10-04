@@ -11,9 +11,8 @@ sys.path.insert(0,includeos_src)
 from vmrunner import vmrunner
 from vmrunner.prettify import color
 
-# Usage: python test.py $GUEST_IP $HOST_IP
-GUEST = '10.0.0.44' if (len(sys.argv) < 2) else sys.argv[1]
-HOST = '10.0.0.1' if (len(sys.argv) < 3) else sys.argv[2]
+GUEST = 'fe80:0:0:0:e823:fcff:fef4:85bd%bridge43'
+HOST = 'fe80:0:0:0:e823:fcff:fef4:83e7%bridge43'
 
 
 TEST1 = 8081
@@ -25,10 +24,12 @@ TEST5 = 8085
 INFO = color.INFO("<test.py>")
 
 def connect(port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = (GUEST, port)
-    print INFO, 'connecting to %s port %s' % server_address
-    sock.connect(server_address)
+    addr = (GUEST, port)
+    res = socket.getaddrinfo(addr[0], addr[1], socket.AF_INET6, socket.SOCK_STREAM, socket.SOL_TCP)
+    af, socktype, proto, canonname, sa = res[0]
+    sock = socket.socket(af, socktype, proto)
+    print INFO, 'connecting to %s' % res
+    sock.connect(sa)
     bytes_received = 0
     try:
         while True:
@@ -46,11 +47,13 @@ def connect(port):
     return True
 
 def listen(port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    addr = (HOST, port)
+    res = socket.getaddrinfo(addr[0], addr[1], socket.AF_INET6, socket.SOCK_STREAM, socket.SOL_TCP)
+    print INFO, 'starting up on %s' % res
+    af, socktype, proto, canonname, sa = res[0]
+    sock = socket.socket(af, socktype, proto)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server_address = (HOST, port)
-    print INFO, 'starting up on %s port %s' % server_address
-    sock.bind(server_address)
+    sock.bind(sa)
     sock.listen(1)
 
     while True:

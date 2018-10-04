@@ -30,9 +30,8 @@ void panic(const char*) { throw std::runtime_error("panic()"); }
 
 CASE("Create empty packet")
 {
-  auto buffer = bufstore.get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
-  new (ptr) net::Packet(0, 0, 0, buffer.bufstore);
+  auto* ptr = (net::Packet*) bufstore.get_buffer();
+  new (ptr) net::Packet(0, 0, 0, &bufstore);
   net::Packet_ptr packet(ptr);
 
   // everything is zero
@@ -49,9 +48,8 @@ CASE("Create empty packet")
 
 static Packet_ptr create_packet() noexcept
 {
-  auto buffer = bufstore.get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
-  new (ptr) net::Packet(DRIVER_OFFSET, 0, DRIVER_OFFSET + PACKET_CAPA, buffer.bufstore);
+  auto* ptr = (net::Packet*) bufstore.get_buffer();
+  new (ptr) net::Packet(DRIVER_OFFSET, 0, DRIVER_OFFSET + PACKET_CAPA, &bufstore);
   return net::Packet_ptr(ptr);
 }
 

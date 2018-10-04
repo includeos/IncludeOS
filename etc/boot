@@ -162,7 +162,6 @@ if args.solo5:
     os.environ['PLATFORM'] = "x86_solo5"
     qkvm_bin = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/ukvm-bin"
 
-    subprocess.call(['touch', INCLUDEOS_PREFIX + 'dummy.disk'])
     subprocess.call(['chmod', '+x', qkvm_bin])
     subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/ukvm-ifup.sh" ])
 
@@ -219,4 +218,5 @@ if (not has_bootloader):
     vm.boot(timeout = None, multiboot = True, debug = args.debug, kernel_args = " ".join(args.vmargs), image_name = image_name)
 else:
     vm.boot(timeout = None, multiboot = False, debug = args.debug, kernel_args = None, image_name = image_name)
+
 exit(0);

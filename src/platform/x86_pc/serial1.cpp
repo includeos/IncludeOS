@@ -1,15 +1,15 @@
 #include <hw/serial.hpp>
-
+#include <stdarg.h>
 static const uint16_t port = 0x3F8; // Serial 1
 static char initialized = 0xFF;
 
 extern "C"
-__attribute__((no_sanitize("all")))
 void __init_serial1()
 {
   initialized = false;
 }
 
+__attribute__((no_sanitize("all")))
 static inline void init_if_needed()
 {
   if (initialized) return;
@@ -41,4 +41,19 @@ void __serial_print(const char* str, size_t len)
     while (not (hw::inb(port + 5) & 0x20));
     hw::outb(port, str[i]);
   }
+}
+
+extern "C"
+void kprint(const char* c){
+  __serial_print1(c);
+}
+
+extern "C" void kprintf(const char* format, ...)
+{
+  char buf[8192];
+  va_list aptr;
+  va_start(aptr, format);
+  vsnprintf(buf, sizeof(buf), format, aptr);
+  __serial_print1(buf);
+  va_end(aptr);
 }

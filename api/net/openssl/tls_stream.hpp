@@ -2,7 +2,14 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
-#include <net/inet4>
+#include <net/stream.hpp>
+
+//#define VERBOSE_OPENSSL
+#ifdef VERBOSE_OPENSSL
+#define TLS_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+#define TLS_PRINT(fmt, ...) /* fmt */
+#endif
 
 namespace openssl
 {
@@ -10,14 +17,14 @@ namespace openssl
   {
     using Stream_ptr = net::Stream_ptr;
 
-    TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing = false);
+    TLS_stream(SSL_CTX* ctx, Stream_ptr, bool outgoing = false);
+    TLS_stream(Stream_ptr, SSL* ctx, BIO*, BIO*);
     virtual ~TLS_stream();
 
     void write(buffer_t buffer) override;
     void write(const std::string&) override;
     void write(const void* buf, size_t n) override;
     void close() override;
-    void abort() override;
     void reset_callbacks() override;
 
     net::Socket local() const override {
@@ -63,12 +70,18 @@ namespace openssl
       return m_transport->get_cpuid();
     }
 
+    Stream* transport() noexcept override {
+      return m_transport.get();
+    }
+
+    size_t serialize_to(void*) const override;
+
   private:
     void tls_read(buffer_t);
     int  tls_perform_stream_write();
     int  tls_perform_handshake();
-    void close_callback_once();
     bool handshake_completed() const noexcept;
+    void close_callback_once();
 
     enum status_t {
       STATUS_OK,
@@ -81,6 +94,8 @@ namespace openssl
     SSL*  m_ssl    = nullptr;
     BIO*  m_bio_rd = nullptr;
     BIO*  m_bio_wr = nullptr;
+    bool  m_busy = false;
+    bool  m_deferred_close = false;
     ConnectCallback  m_on_connect = nullptr;
     ReadCallback     m_on_read    = nullptr;
     WriteCallback    m_on_write   = nullptr;
@@ -90,6 +105,7 @@ namespace openssl
   inline TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing)
     : m_transport(std::move(t))
   {
+    ERR_clear_error(); // prevent old errors from mucking things up
     this->m_bio_rd = BIO_new(BIO_s_mem());
     this->m_bio_wr = BIO_new(BIO_s_mem());
     assert(ERR_get_error() == 0 && "Initializing BIOs");
@@ -113,15 +129,23 @@ namespace openssl
       if (this->tls_perform_handshake() < 0) return;
     }
   }
+  inline TLS_stream::TLS_stream(Stream_ptr t, SSL* ssl, BIO* rd, BIO* wr)
+    : m_transport(std::move(t)), m_ssl(ssl), m_bio_rd(rd), m_bio_wr(wr)
+  {
+    // always-on callbacks
+    m_transport->on_read(8192, {this, &TLS_stream::tls_read});
+    m_transport->on_close({this, &TLS_stream::close_callback_once});
+  }
   inline TLS_stream::~TLS_stream()
   {
+    assert(m_busy == false && "Cannot delete stream while in its call stack");
     SSL_free(this->m_ssl);
   }
 
   inline void TLS_stream::write(buffer_t buffer)
   {
     if (UNLIKELY(this->is_connected() == false)) {
-      printf("TLS_stream::write() called on closed stream\n");
+      TLS_PRINT("TLS_stream::write() called on closed stream\n");
       return;
     }
 
@@ -138,16 +162,17 @@ namespace openssl
   }
   inline void TLS_stream::write(const std::string& str)
   {
-    write(net::tcp::construct_buffer(str.data(), str.data() + str.size()));
+    write(net::Stream::construct_buffer(str.data(), str.data() + str.size()));
   }
   inline void TLS_stream::write(const void* data, const size_t len)
   {
     auto* buf = static_cast<const uint8_t*> (data);
-    write(net::tcp::construct_buffer(buf, buf + len));
+    write(net::Stream::construct_buffer(buf, buf + len));
   }
 
   inline void TLS_stream::tls_read(buffer_t buffer)
   {
+    ERR_clear_error();
     uint8_t* buf = buffer->data();
     int      len = buffer->size();
 
@@ -174,6 +199,12 @@ namespace openssl
         }
         else if (status == STATUS_FAIL)
         {
+          if (num < 0) {
+            TLS_PRINT("TLS_stream::SSL_do_handshake() returned %d\n", num);
+            #ifdef VERBOSE_OPENSSL
+              ERR_print_errors_fp(stdout);
+            #endif
+          }
           this->close();
           return;
         }
@@ -188,14 +219,21 @@ namespace openssl
         char temp[8192];
         n = SSL_read(this->m_ssl, temp, sizeof(temp));
         if (n > 0) {
-          auto buf = net::tcp::construct_buffer(temp, temp + n);
-          if (m_on_read) m_on_read(std::move(buf));
+          auto buf = net::Stream::construct_buffer(temp, temp + n);
+          if (m_on_read) {
+            this->m_busy = true;
+            m_on_read(std::move(buf));
+            this->m_busy = false;
+          }
         }
       } while (n > 0);
       // this goes here?
       if (UNLIKELY(this->is_closing() || this->is_closed())) {
-          //this->close_callback_once();
-          return;
+        TLS_PRINT("TLS_stream::SSL_read closed during read\n");
+        return;
+      }
+      if (this->m_deferred_close) {
+        this->close(); return;
       }
 
       auto status = this->status(n);
@@ -211,20 +249,30 @@ namespace openssl
         this->close();
         return;
       }
+      // check deferred closing
+      if (this->m_deferred_close) {
+        this->close(); return;
+      }
+
     } // while it < end
   } // tls_read()
 
   inline int TLS_stream::tls_perform_stream_write()
   {
+    ERR_clear_error();
     int pending = BIO_ctrl_pending(this->m_bio_wr);
     //printf("pending: %d\n", pending);
     if (pending > 0)
     {
-      auto buffer = net::tcp::construct_buffer(pending);
+      auto buffer = net::Stream::construct_buffer(pending);
       int n = BIO_read(this->m_bio_wr, buffer->data(), buffer->size());
       assert(n == pending);
       m_transport->write(buffer);
-      if (m_on_write) m_on_write(n);
+      if (m_on_write) {
+        this->m_busy = true;
+        m_on_write(n);
+        this->m_busy = false;
+      }
       return n;
     }
     else {
@@ -239,6 +287,7 @@ namespace openssl
   }
   inline int TLS_stream::tls_perform_handshake()
   {
+    ERR_clear_error(); // prevent old errors from mucking things up
     // will return -1:SSL_ERROR_WANT_WRITE
     int ret = SSL_do_handshake(this->m_ssl);
     int n = this->status(ret);
@@ -247,10 +296,14 @@ namespace openssl
     {
       do {
         n = tls_perform_stream_write();
+        if (n < 0) {
+          TLS_PRINT("TLS_stream::tls_perform_handshake() stream write failed\n");
+        }
       } while (n > 0);
       return n;
     }
     else {
+      TLS_PRINT("TLS_stream::tls_perform_handshake() returned %d\n", ret);
       this->close();
       return -1;
     }
@@ -258,17 +311,22 @@ namespace openssl
 
   inline void TLS_stream::close()
   {
-    m_transport->close();
-  }
-  inline void TLS_stream::abort()
-  {
-    m_transport->abort();
+    //ERR_clear_error();
+    if (this->m_busy) {
+      this->m_deferred_close = true; return;
+    }
+    CloseCallback func = std::move(this->m_on_close);
     this->reset_callbacks();
+    if (m_transport->is_connected())
+        m_transport->close();
+    if (func) func();
   }
   inline void TLS_stream::close_callback_once()
   {
-    auto func = std::move(m_on_close);
-    // free captured resources
+    if (this->m_busy) {
+      this->m_deferred_close = true; return;
+    }
+    CloseCallback func = std::move(this->m_on_close);
     this->reset_callbacks();
     if (func) func();
   }

@@ -71,12 +71,8 @@ public:
   void set_vlan_upstream(upstream handler) override
   { vlan_handler_ = handler; }
 
-  /** Number of bytes in a frame needed by the device itself **/
-  size_t frame_offset_device() override
-  { return frame_offs_dev_; }
-
   /** Number of bytes in a frame needed by the link layer **/
-  size_t frame_offset_link() override
+  size_t frame_offset_link() const noexcept override
   { return frame_offs_link_; }
 
   static constexpr uint16_t packet_len()
@@ -84,13 +80,12 @@ public:
 
   net::Packet_ptr create_packet(int) override
   {
-    auto buffer = bufstore().get_buffer();
-    auto* ptr = (net::Packet*) buffer.addr;
+    auto* ptr = (net::Packet*) bufstore_.get_buffer();
 
-    new (ptr) net::Packet(frame_offs_dev_ + frame_offs_link_,
+    new (ptr) net::Packet(frame_offs_link_,
                           0,
-                          frame_offs_dev_ + packet_len(),
-                          buffer.bufstore);
+                          packet_len(),
+                          &bufstore_);
 
     return net::Packet_ptr(ptr);
   }
@@ -119,11 +114,10 @@ public:
   //
 
   ~Nic_mock() {}
-  Nic_mock() : Nic(bufstore_), bufstore_{256u, 2048} {}
+  Nic_mock() : Nic(), bufstore_{256u, 2048} {}
 
   // Public data members (ahem)
   MAC::Addr mac_ = {0xc0,0x00,0x01,0x70,0x00,0x01};
-  static constexpr size_t frame_offs_dev_ = 0;
   static constexpr size_t frame_offs_link_ = 14;
 
   std::vector<net::Packet_ptr> tx_queue_;

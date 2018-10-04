@@ -17,6 +17,7 @@
 
 #include <net/configure.hpp>
 
+#include <net/inet>
 #include <net/super_stack.hpp>
 #include <info>
 
@@ -43,7 +44,7 @@ Addresses parse_iface(T& obj)
   return addresses;
 }
 
-inline void config_stack(Inet<IP4>& stack, const Addresses& addrs)
+inline void config_stack(Inet& stack, const Addresses& addrs)
 {
   if(addrs.empty()) {
     MYINFO("! WARNING: No config for stack %s", stack.ifname().c_str());
@@ -66,7 +67,7 @@ void configure(const rapidjson::Value& net)
   Expects(net.IsArray() && "Member net is not an array");
 
   auto configs = net.GetArray();
-  if(configs.Size() > Super_stack::inet().ip4_stacks().size())
+  if(configs.Size() > Super_stack::inet().stacks().size())
     MYINFO("! WARNING: Found more configs than there are interfaces");
   // Iterate all interfaces in config
   for(auto& val : configs)
@@ -76,7 +77,7 @@ void configure(const rapidjson::Value& net)
 
     auto N = val["iface"].GetInt();
 
-    auto& stack = Super_stack::get<IP4>(N);
+    auto& stack = Super_stack::get(N);
 
     // if config is not set, just ignore
     if(not val.HasMember("config")) {

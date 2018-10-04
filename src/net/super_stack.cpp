@@ -16,20 +16,18 @@
 // limitations under the License.
 
 #include <hw/devices.hpp>
-#include <net/inet4.hpp>
+#include <net/inet>
 #include <hw/mac_addr.hpp>
 
 namespace net
 {
 
-// Specialization for IP4
-template <>
-Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic, int N, int sub)
+Inet& Super_stack::create(hw::Nic& nic, int N, int sub)
 {
   INFO("Network", "Creating stack for %s on %s (MTU=%u)",
         nic.driver_name(), nic.device_name().c_str(), nic.MTU());
 
-  auto& stacks = inet().ip4_stacks_.at(N);
+  auto& stacks = inet().stacks_.at(N);
 
   auto it = stacks.find(sub);
   if(it != stacks.end() and it->second != nullptr) {
@@ -40,7 +38,7 @@ Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic, int N, int sub)
   auto inet = [&nic]()->auto {
     switch(nic.proto()) {
     case hw::Nic::Proto::ETH:
-      return std::make_unique<Inet4>(nic);
+      return std::make_unique<Inet>(nic);
     default:
       throw Super_stack_err{"Nic not supported"};
     }
@@ -53,63 +51,29 @@ Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic, int N, int sub)
   return *stacks[sub];
 }
 
-// Specialization for IP4
-template <>
-Inet<IP4>& Super_stack::create<IP4>(hw::Nic& nic)
-{
-  INFO("Network", "Creating stack for %s on %s (MTU=%u)",
-        nic.driver_name(), nic.device_name().c_str(), nic.MTU());
-
-  auto inet_ = [&nic]()->auto {
-    switch(nic.proto()) {
-    case hw::Nic::Proto::ETH:
-      return std::make_unique<Inet4>(nic);
-    default:
-      throw Super_stack_err{"Nic not supported"};
-    }
-  }();
-
-  // Just take the first free one..
-  for(auto& stacks : inet().ip4_stacks_)
-  {
-    auto& stack = stacks[0];
-    if(stack == nullptr) {
-      stack = std::move(inet_);
-      return *stack;
-    }
-  }
-
-  // we should never reach this point
-  throw Super_stack_err{"There wasn't a free slot to create stack on Nic"};
-}
-
-// Specialization for IP4
-template <>
-Inet<IP4>& Super_stack::get<IP4>(int N)
+Inet& Super_stack::get(int N)
 {
   if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
     throw Stack_not_found{"No IP4 stack found with index: " + std::to_string(N) +
       ". Missing device (NIC) or driver."};
 
-  auto& stacks = inet().ip4_stacks_.at(N);
+  auto& stacks = inet().stacks_.at(N);
 
   if(stacks[0] != nullptr)
     return *stacks[0];
 
   // create network stack
   auto& nic = hw::Devices::get<hw::Nic>(N);
-  return inet().create<IP4>(nic, N, 0);
+  return inet().create(nic, N, 0);
 }
 
-// Specialization for IP4
-template <>
-Inet<IP4>& Super_stack::get<IP4>(int N, int sub)
+Inet& Super_stack::get(int N, int sub)
 {
   if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
     throw Stack_not_found{"No IP4 stack found with index: " + std::to_string(N) +
       ". Missing device (NIC) or driver."};
 
-  auto& stacks = inet().ip4_stacks_.at(N);
+  auto& stacks = inet().stacks_.at(N);
 
   auto it = stacks.find(sub);
 
@@ -122,34 +86,35 @@ Inet<IP4>& Super_stack::get<IP4>(int N, int sub)
       + std::to_string(N) + "," + std::to_string(sub) + "]"};
 }
 
-// Specialization for IP4
-template <>
-Inet<IP4>& Super_stack::get<IP4>(const std::string& mac)
+Inet& Super_stack::get(const std::string& mac)
 {
   MAC::Addr link_addr{mac.c_str()};
-  // Look for the stack with the same NIC
-  for(auto& stacks : inet().ip4_stacks_)
-  {
-    auto& stack = stacks[0];
-    if(stack == nullptr)
-      continue;
-    if(stack->link_addr() == link_addr)
-      return *stack;
-  }
+  auto index = hw::Devices::nic_index(link_addr);
 
-  // If no stack, find the NIC
-  auto& devs = hw::Devices::devices<hw::Nic>();
-  auto it = devs.begin();
-  for(; it != devs.end(); it++) {
-    if((*it)->mac() == link_addr)
-      break;
-  }
   // If no NIC, no point looking more
-  if(it == devs.end())
+  if(index < 0)
     throw Stack_not_found{"No NIC found with MAC address " + mac};
 
+  auto& stacks = inet().stacks_.at(index);
+  auto& stack = stacks[0];
+  if(stack != nullptr) {
+    Expects(stack->link_addr() == link_addr);
+    return *stack;
+  }
+
   // If not found, create
-  return inet().create<IP4>(*(*it));
+  return inet().create(hw::Devices::nic(index), index, 0);
+}
+
+// Duplication of code to keep sanity intact
+Inet& Super_stack::get(const std::string& mac, int sub)
+{
+  auto index = hw::Devices::nic_index(mac.c_str());
+
+  if(index < 0)
+    throw Stack_not_found{"No NIC found with MAC address " + mac};
+
+  return get(index, sub);
 }
 
 Super_stack::Super_stack()
@@ -158,8 +123,8 @@ Super_stack::Super_stack()
     INFO("Network", "No registered network interfaces found");
 
   for (size_t i = 0; i < hw::Devices::devices<hw::Nic>().size(); i++) {
-    ip4_stacks_.emplace_back(Stacks<IP4>{});
-    ip4_stacks_.back()[0] = nullptr;
+    stacks_.emplace_back();
+    stacks_.back()[0] = nullptr;
   }
 }
 

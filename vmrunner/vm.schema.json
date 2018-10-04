@@ -7,12 +7,10 @@
       "description" : "The virtual CPU",
       "type"    : "object",
       "properties": {
-        "model" : {
-          "enum" : ["host", "pentium", "qemu64", "kvm64"]
-        },
+        "model" : { "type" : "string" },
         "features" : {
           "type" : "array",
-          "items" : { "enum" : ["xsave", "avx", "aes"] }
+          "items" : { "type" : "string" }
         }
       }
     }
@@ -56,7 +54,7 @@
         "type" : "object",
         "properties" : {
           "file" : { "type" : "string" },
-          "type" : { "enum" : ["ide", "virtio"] },
+          "type" : { "enum" : ["ide", "virtio", "virtio-scsi", "nvme"] },
           "format" : { "enum" : ["raw", "qcow2", "vdi"] },
           "media" : { "enum" : ["disk"] },
           "name" : { "type" : "string" }

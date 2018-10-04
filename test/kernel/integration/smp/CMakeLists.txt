@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.8.9)
+#option(smp "" ON)
 
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
@@ -9,7 +10,6 @@ project (service)
 
 # Human-readable name of your service
 set(SERVICE_NAME "SMP Test")
-
 # Name of your service binary
 set(BINARY       "smp")
 
@@ -19,6 +19,7 @@ set(SOURCES
   )
 
 set(DRIVERS
+    boot_logger
   )
 
 set(PLUGINS

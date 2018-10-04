@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <net/http/server.hpp>
+#include <net/inet>
 #include <smp>
 
 namespace http {
@@ -92,10 +93,6 @@ namespace http {
   {
     const auto idx = conn.idx();
     connections_[idx] = nullptr;
-    if (free_idx_.capacity() < connections_.size())
-    {
-      free_idx_.reserve(connections_.size());
-    }
     free_idx_.push_back(idx);
   }
 

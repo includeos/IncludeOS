@@ -12,7 +12,11 @@ set(BINARY       "tcp_perf")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  ../service.cpp
+    ../service.cpp
+  )
+
+set(PLUGINS
+    autoconf
   )
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/linux.service.cmake)

@@ -24,10 +24,10 @@
 using namespace net;
 
 // We need discrete inet pointers for the tests
-Inet<IP4>* eth1 = (Inet<IP4>*) 1;
-Inet<IP4>* eth2 = (Inet<IP4>*) 2;
-Inet<IP4>* eth3 = (Inet<IP4>*) 3;
-Inet<IP4>* eth4 = (Inet<IP4>*) 4;
+Inet* eth1 = (Inet*) 1;
+Inet* eth2 = (Inet*) 2;
+Inet* eth3 = (Inet*) 3;
+Inet* eth4 = (Inet*) 4;
 
 CASE("net::router: Testing Route functionality")
 {
@@ -154,16 +154,16 @@ CASE("net::router: Testing default gateway route")
 
 #include <nic_mock.hpp>
 #include <packet_factory.hpp>
-#include <net/inet4>
+#include <net/inet>
 
 CASE("net::router: Actual routing verifying TTL")
 {
   Nic_mock nic1;
-  Inet4 inet1{nic1};
+  Inet inet1{nic1};
   inet1.network_config({10,0,1,1},{255,255,255,0}, 0);
 
   Nic_mock nic2;
-  Inet4 inet2{nic2};
+  Inet inet2{nic2};
   inet2.network_config({10,0,2,1},{255,255,255,0}, 0);
 
   Router<IP4>::Routing_table tbl{
@@ -176,8 +176,8 @@ CASE("net::router: Actual routing verifying TTL")
   inet1.set_forward_delg(router.forward_delg());
   inet2.set_forward_delg(router.forward_delg());
 
-  const Socket src{{10,0,1,10}, 32222};
-  const Socket dst{{10,0,2,10}, 80};
+  const Socket src{ip4::Addr{10,0,1,10}, 32222};
+  const Socket dst{ip4::Addr{10,0,2,10}, 80};
   const uint8_t DEFAULT_TTL = PacketIP4::DEFAULT_TTL;
 
   // Here we gonna receive the ICMP TTL Exceeded ONCE
@@ -185,7 +185,7 @@ CASE("net::router: Actual routing verifying TTL")
   inet1.ip_obj().set_linklayer_out([&](auto pckt, auto ip) {
     auto packet = static_unique_ptr_cast<net::PacketIP4>(std::move(pckt));
     EXPECT(packet->ip_protocol() == Protocol::ICMPv4);
-    EXPECT(packet->ip_ttl() == DEFAULT_TTL);
+    EXPECT(packet->ip_ttl() == PacketIP4::DEFAULT_TTL);
 
     auto icmp = icmp4::Packet(std::move(packet));
     ICMP_error err{icmp.type(), icmp.code()};
@@ -201,7 +201,7 @@ CASE("net::router: Actual routing verifying TTL")
     auto packet = static_unique_ptr_cast<tcp::Packet>(std::move(pckt));
     EXPECT(packet->source() == src);
     EXPECT(packet->destination() == dst);
-    EXPECT(packet->ip_ttl() == DEFAULT_TTL-1);
+    EXPECT(packet->ip_ttl() == (PacketIP4::DEFAULT_TTL-1));
 
     tcp_packet_recv++;
   });
@@ -229,7 +229,7 @@ CASE("net::router: Actual routing verifying TTL")
   // Ok this one is actual legit (default TTL)
   router.send_time_exceeded = true;
   tcp = create_tcp_packet_init(src, dst);
-  tcp->set_ip_ttl(DEFAULT_TTL);
+  tcp->set_ip_ttl(PacketIP4::DEFAULT_TTL);
   tcp->set_ip_checksum();
   tcp->set_tcp_checksum();
   inet1.ip_obj().receive(std::move(tcp), false);
@@ -238,7 +238,9 @@ CASE("net::router: Actual routing verifying TTL")
 
   // Test the forward chain as well
   // Accept the first one
-  router.forward_chain.chain.push_back([](auto pkt, auto&, const auto*)->auto {
+  router.forward_chain.chain.push_back([](
+    IP4::IP_packet_ptr pkt, Inet&, Conntrack::Entry_ptr)->Filter_verdict<IP4>
+  {
     return Filter_verdict<IP4>{std::move(pkt), Filter_verdict_type::ACCEPT};
   });
 
@@ -249,7 +251,9 @@ CASE("net::router: Actual routing verifying TTL")
   EXPECT(tcp_packet_recv == 2);
 
   // Lets drop the next one
-  router.forward_chain.chain.push_back([](auto pkt, auto&, const auto*)->auto {
+  router.forward_chain.chain.push_back([](
+    IP4::IP_packet_ptr pkt, Inet&, Conntrack::Entry_ptr)->Filter_verdict<IP4>
+  {
     return Filter_verdict<IP4>{std::move(pkt), Filter_verdict_type::DROP};
   });
 
@@ -263,7 +267,7 @@ CASE("net::router: Actual routing verifying TTL")
 CASE("net::router: Calculate Route nexthop")
 {
   Nic_mock nic1;
-  Inet4 inet1{nic1};
+  Inet inet1{nic1};
   inet1.network_config({10, 0, 2, 1}, {255, 255, 255, 0}, 0);
 
   // Net for inet1 without nexthop
@@ -284,7 +288,7 @@ CASE("net::router: Calculate Route nexthop")
   EXPECT(r2.nexthop({10,0,2,20}) == ip4::Addr(10,0,2,20)); // == ip
 
   Nic_mock nic2;
-  Inet4 inet2{nic2};
+  Inet inet2{nic2};
   inet2.network_config({10, 0, 1, 1}, {255, 255, 255, 0}, 0);
 
   // Default route

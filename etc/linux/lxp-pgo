@@ -1,0 +1,4 @@
+#! /bin/bash
+echo -e "\n>>> Running service with profile-guided optimizations"
+source lxp-run pgo-gen
+source lxp-run pgo-use

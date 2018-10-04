@@ -15,6 +15,7 @@ static std::vector<std::string> items;
 
 void ftw_tests()
 {
+  INFO("FTW", "ftw_tests");
   int res;
 
   printf("nftw /mnt/disk/folder1\n");
@@ -119,7 +120,8 @@ int add_filesize(const char *fpath, const struct stat *sb, int flag, struct FTW 
 
 int add_items(const char *fpath, const struct stat *sb, int flag, struct FTW *ftwbuf)
 {
-  printf("add_items: %s\n", fpath);
+  printf("add_items: %s flag=%i level=%i\n", fpath, flag, ftwbuf->level);
+  assert(std::find(items.begin(), items.end(), fpath) == items.end() && "No duplicates allowed");
   (void) ftwbuf;
   (void) sb;
   (void) flag;

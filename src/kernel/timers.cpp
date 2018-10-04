@@ -81,7 +81,7 @@ struct alignas(SMP_ALIGN) timer_system
   uint32_t* periodic_started = nullptr;
   uint32_t* periodic_stopped = nullptr;
 };
-static SMP_ARRAY<timer_system> systems;
+static SMP::Array<timer_system> systems;
 
 void timer_system::free_timer(Timers::id_t id)
 {
@@ -121,8 +121,11 @@ void Timers::ready()
   if (get().is_running == false) {
     timers_handler();
   }
-  // call Service::ready(), because timer system is ready!
-  Service::ready();
+  if (SMP::cpu_id() == 0)
+  {
+    // call Service::ready(), because timer system is ready!
+    Service::ready();
+  }
 }
 
 Timers::id_t Timers::periodic(duration_t when, duration_t period, handler_t handler)
@@ -199,6 +202,21 @@ size_t Timers::free() {
 }
 
 /// scheduling ///
+
+duration_t Timers::next()
+{
+  auto& system = get();
+  if (LIKELY(!system.scheduled.empty()))
+  {
+    auto it   = system.scheduled.begin();
+    auto when = it->first;
+    auto diff = when - now();
+    // avoid returning zero or negative diff
+    if (diff < nanoseconds(1)) return nanoseconds(1);
+    return diff;
+  }
+  return duration_t::zero();
+}
 
 void Timers::timers_handler()
 {

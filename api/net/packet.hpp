@@ -101,6 +101,23 @@ namespace net
       set_layer_begin(layer_begin() + i);
     }
 
+    /** Modify/retrieve payload offset, used by higher levelprotocols */
+    void set_payload_offset(int offset) noexcept
+    {
+      Expects(offset >= 0 and layer_begin() + offset < buffer_end());
+      this->payload_off_ = layer_begin() + offset;
+    }
+    void increment_payload_offset(int offset) noexcept {
+      this->payload_off_ += offset;
+      Expects(payload_off_ >= layer_begin() and payload_off_ < buffer_end());
+    }
+    Byte_ptr payload() const noexcept {
+      return this->payload_off_;
+    }
+    int payload_length() const noexcept {
+      return this->data_end() - payload();
+    }
+
     /** Set data end / write-position relative to layer_begin */
     void set_data_end(int offset)
     {
@@ -114,18 +131,11 @@ namespace net
       data_end_ += i;
     }
 
-    /* Add a packet to this packet chain.  */
-    void chain(Packet_ptr p) noexcept {
-      if (!chain_) {
-        chain_ = std::move(p);
-        last_ = chain_.get();
-      } else {
-        auto* ptr = p.get();
-        last_->chain(std::move(p));
-        last_ = ptr->last_in_chain() ? ptr->last_in_chain() : ptr;
-        assert(last_);
-      }
-    }
+    /* Add a packet to this packet chain */
+    inline void chain(Packet_ptr p) noexcept;
+
+    /* Count packets in chain */
+    inline int chain_length() const noexcept;
 
     /* Get the last packet in the chain */
     Packet* last_in_chain() noexcept
@@ -151,9 +161,6 @@ namespace net
     }
 
   private:
-    Packet_ptr chain_ = nullptr;
-    Packet*    last_  = nullptr;
-
     /** Set layer begin, e.g. view the packet from another layer */
     void set_layer_begin(Byte_ptr loc)
     {
@@ -173,10 +180,51 @@ namespace net
 
     Byte_ptr              layer_begin_;
     Byte_ptr              data_end_;
+    Byte_ptr              payload_off_ = 0;
     const Byte* const     buffer_end_;
+
+    Packet_ptr chain_ = nullptr;
+    Packet*    last_  = nullptr;
+
     BufferStore*          bufstore_;
     Byte buf_[0];
   }; //< class Packet
+
+  void Packet::chain(Packet_ptr pkt) noexcept
+  {
+    assert(pkt.get() != nullptr);
+    assert(pkt.get() != this);
+
+    auto* p = this;
+    while (p->chain_ != nullptr) {
+      p = p->chain_.get();
+      assert(pkt.get() != p);
+    }
+    p->chain_ = std::move(pkt);
+
+    /*
+    if (!chain_) {
+      chain_ = std::move(p);
+      last_ = chain_.get();
+    } else {
+      auto* ptr = p.get();
+      last_->chain(std::move(p));
+      last_ = ptr->last_in_chain() ? ptr->last_in_chain() : ptr;
+      assert(last_);
+    }
+    */
+  }
+
+  int Packet::chain_length() const noexcept
+  {
+    int count = 1;
+    auto* p = this;
+    while (p->chain_) {
+      p = p->chain_.get();
+      count++;
+    }
+    return count;
+  }
 
 } //< namespace net
 
