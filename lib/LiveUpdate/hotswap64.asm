@@ -29,11 +29,12 @@ ALIGN 16
 ;; first six pointer arguments are passed in
 ;;     RDI, RSI, RDX, RCX, R8, and R9
 ;; hotswap64(
-;; RDI:   char* dest,
+;; RDI:   char*  dest,
 ;; RSI:   const char* base,
 ;; RDX:   size_t len,
-;; RCX:   void* entry_function,
-;; R8:    void* reset_data)
+;; RCX:   void*  entry_function,
+;; R8:    void*  reset_data,
+;; R9:    void*  zero_until)
 hotswap_amd64:
     ;; save soft reset data location and entry function
     mov rax, r8
@@ -46,6 +47,14 @@ hotswap_amd64:
     mov rcx, rdx ;; count
     cld
     rep movsb
+
+    ;; memzero area between kernel and end of heap
+    cmp r9, 0    ;; ... but only if r9 != 0
+    jz begin_enter_protected
+    mov rcx, r9  ;; rdi = kernel_end, r9 = zero_until
+    sub rcx, rdi ;; set rcx = zero_until - kernel_end
+    mov rax, 0   ;; memzero
+    rep stosb
 
 begin_enter_protected:
     ; load 64-bit GDTR with 32-bit entries
