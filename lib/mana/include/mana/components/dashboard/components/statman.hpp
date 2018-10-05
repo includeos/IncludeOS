@@ -62,7 +62,7 @@ public:
       writer.String(type);
 
       writer.Key("index");
-      writer.Int(&stat - statman_.begin());
+      writer.Int(std::distance(statman_.begin(), it));
 
       writer.EndObject();
     }

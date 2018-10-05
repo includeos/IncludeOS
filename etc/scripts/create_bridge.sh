@@ -33,7 +33,7 @@ if [ -n "$INCLUDEOS_BRIDGE" ]; then
 fi
 
 echo "    Creating bridge $BRIDGE, netmask $NETMASK, gateway $GATEWAY "
-if [[ -n "$GATEWAY6" ]]; then
+if [ -n "$GATEWAY6" ]; then
 echo "    ipv6 netmask $NETMASK6, gateway $GATEWAY6 "
 fi
 
@@ -89,7 +89,7 @@ else
   echo "    Configuring network bridge (requires sudo):"
 
   sudo ifconfig $BRIDGE $GATEWAY netmask $NETMASK up || exit 1
-  if [[ -n "$GATEWAY6" ]]; then
+  if [ -n "$GATEWAY6" ]; then
     sudo ifconfig $BRIDGE inet6 add $GATEWAY6/$NETMASK6
   fi
   if uname -s | grep Darwin > /dev/null 2>&1; then

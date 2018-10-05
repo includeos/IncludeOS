@@ -194,18 +194,23 @@ namespace net
     if(UNLIKELY(reader > (buffer + len)))
       return false;
 
-    // parse answers
-    for(int i = 0; i < ntohs(dns->ans_count); i++)
-      answers.emplace_back(reader, buffer, len);
+    try {
+      // parse answers
+      for(int i = 0; i < ntohs(dns->ans_count); i++)
+        answers.emplace_back(reader, buffer, len);
 
-    // parse authorities
-    for (int i = 0; i < ntohs(dns->auth_count); i++)
-      auth.emplace_back(reader, buffer, len);
+      // parse authorities
+      for (int i = 0; i < ntohs(dns->auth_count); i++)
+        auth.emplace_back(reader, buffer, len);
 
-    // parse additional
-    for (int i = 0; i < ntohs(dns->add_count); i++)
-      addit.emplace_back(reader, buffer, len);
-
+      // parse additional
+      for (int i = 0; i < ntohs(dns->add_count); i++)
+        addit.emplace_back(reader, buffer, len);
+    }
+    catch (const std::runtime_error&) {
+      // packet probably too short
+    }
+    
     return true;
   }
 
@@ -258,11 +263,20 @@ namespace net
 
   DNS::Request::rr_t::rr_t(const char*& reader, const char* buffer, size_t len)
   {
+    // don't call readName if we are already out of buffer
+    if (reader >= buffer + len)
+        throw std::runtime_error("Nothing left to parse");
     int stop;
-
     this->name = readName(reader, buffer, len, stop);
+    assert(stop >= 0);
     reader += stop;
+    int remaining = len - (reader - buffer);
+    assert(remaining <= (int) len);
+    // invalid request if there is no room for resources
+    if (remaining < (int) sizeof(rr_data))
+        throw std::runtime_error("Nothing left to parse");
 
+    // extract resource data header
     this->resource = *(rr_data*) reader;
     reader += sizeof(rr_data);
 
@@ -357,6 +371,7 @@ namespace net
       }
 
     name.resize(namelen);
+    if (name.empty()) return name;
 
     // number of steps we actually moved forward in the packet
     if (jumped)
