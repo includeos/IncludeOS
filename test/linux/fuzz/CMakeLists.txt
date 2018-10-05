@@ -7,9 +7,8 @@ project (service C CXX)
 set(SERVICE_NAME "Linux userspace IP-stack fuzzer")
 set(BINARY       "linux_fuzz")
 
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp
+  service.cpp fuzzy_packet.cpp fuzzy_stack.cpp
   )
 
 option(LIBCPP "" ON)
