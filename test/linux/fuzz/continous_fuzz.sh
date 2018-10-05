@@ -5,4 +5,4 @@ export CXX=clang++-7.0
 RUN=OFF $INCLUDEOS_PREFIX/bin/lxp-run
 BINARY=build/"`cat build/binary.txt`"
 # use -help=1 to see parameters to libfuzzer
-$BINARY -max_len=80
+$BINARY -max_len=120 -only_ascii=1

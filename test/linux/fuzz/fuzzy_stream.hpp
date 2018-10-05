@@ -36,6 +36,7 @@ namespace fuzzy
     virtual ~Stream();
     // call this with testdata
     void give_payload(buffer_t);
+    void transport_level_close();
 
     //** ALL functions below are used by higher layers **//
     void write(buffer_t buffer) override;
@@ -138,6 +139,10 @@ namespace fuzzy
       this->m_on_read(data_in);
       this->m_busy = false;
     }
+  }
+  inline void Stream::transport_level_close()
+  {
+    if (this->m_on_close) this->m_on_close();
   }
 
   inline void Stream::close()

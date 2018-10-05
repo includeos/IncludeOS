@@ -84,7 +84,8 @@ void Service::start()
   | |\/| | / _` |   / _|     | _|  | +| |    |_ /    |_ /    \_, |
   |_|__|_| \__,_|   \__|_   _|_|_   \_,_|   _/__|   _/__|   _|__/
   _|"""""|_|"""""|_|"""""|_| """ |_|"""""|_|"""""|_|"""""|_| """"|
-  "`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-' )FUzzY");
+  "`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'
+)FUzzY");
 }
 
 #include "fuzzy_http.hpp"
@@ -141,5 +142,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   http_server->add(std::move(http_stream));
   // give it random data
   test_stream->give_payload(net::Stream::construct_buffer(data, data + size));
+  // close stream from our end
+  test_stream->transport_level_close();
   return 0;
 }
