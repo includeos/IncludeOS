@@ -17,11 +17,10 @@
 
 #include <os>
 #include <kernel/events.hpp>
-#include <drivers/usernet.hpp>
 #include "macfuzzy.hpp"
 
-static fuzzy::AsyncDevice dev1;
-static fuzzy::AsyncDevice dev2;
+static fuzzy::AsyncDevice_ptr dev1;
+static fuzzy::AsyncDevice_ptr dev2;
 static const int TCP_PORT = 12345;
 
 std::vector<uint8_t> load_file(const std::string& file)
@@ -41,10 +40,8 @@ std::vector<uint8_t> load_file(const std::string& file)
 
 void Service::start()
 {
-  dev1 = std::make_unique<Async_device>(4000);
-  dev2 = std::make_unique<Async_device>(4000);
-  //dev1->connect(*dev2);
-  //dev2->connect(*dev1);
+  dev1 = std::make_unique<fuzzy::AsyncDevice>(UserNet::create(4000));
+  dev2 = std::make_unique<fuzzy::AsyncDevice>(UserNet::create(4000));
   dev1->set_transmit(
     [] (net::Packet_ptr packet) {
       (void) packet;
@@ -105,8 +102,8 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   
   // IP-stack fuzzing
   fuzzy::stack_config config {
-    .layer = fuzzy::IP4,
-    .ip_port = 0
+    .layer   = fuzzy::IP4,
+    .ip_port = TCP_PORT
   };
   fuzzy::insert_into_stack(dev1, config, data, size);
   // Upper layer fuzzing using fuzzy::Stream

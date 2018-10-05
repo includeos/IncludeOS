@@ -15,21 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cmath> // rand()
 #include <os>
 #include <statman>
-#include <hw/devices.hpp>
-#include <kernel/events.hpp>
+#include <hw/async_device.hpp>
 #include <drivers/usernet.hpp>
 #include <net/inet>
-#include "../router/async_device.hpp"
 #define ENABLE_JUMBO_FRAMES
 
 static const size_t CHUNK_SIZE = 1024 * 1024;
 static const size_t NUM_CHUNKS = 2048;
-
-static std::unique_ptr<Async_device> dev1;
-static std::unique_ptr<Async_device> dev2;
+static std::unique_ptr<hw::Async_device<UserNet>> dev1 = nullptr;
+static std::unique_ptr<hw::Async_device<UserNet>> dev2 = nullptr;
 
 using namespace std::chrono;
 static milliseconds time_start;
@@ -40,8 +36,8 @@ static inline auto now() {
 
 void Service::start()
 {
-  dev1 = std::make_unique<Async_device>(1500);
-  dev2 = std::make_unique<Async_device>(1500);
+  dev1 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(1500));
+  dev2 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(1500));
   dev1->connect(*dev2);
   dev2->connect(*dev1);
 

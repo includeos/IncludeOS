@@ -1,10 +1,12 @@
 #pragma once
 #include <net/inet>
-#include "../router/async_device.hpp"
+#include <hw/async_device.hpp>
+#include <drivers/usernet.hpp>
 
 namespace fuzzy
 {
-  using AsyncDevice = std::unique_ptr<Async_device>;
+  using AsyncDevice     = hw::Async_device<UserNet>;
+  using AsyncDevice_ptr = std::unique_ptr<AsyncDevice>;
 
   enum layer_t {
     ETH,
@@ -23,6 +25,6 @@ namespace fuzzy
   };
 
   extern void
-  insert_into_stack(AsyncDevice&, stack_config config,
+  insert_into_stack(AsyncDevice_ptr&, stack_config config,
                     const uint8_t* data, const size_t size);
 }

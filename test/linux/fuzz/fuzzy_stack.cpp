@@ -13,7 +13,7 @@ static inline uint16_t udp_port_scan(net::Inet& inet)
 
 namespace fuzzy
 {
-  void insert_into_stack(AsyncDevice& device, stack_config config,
+  void insert_into_stack(AsyncDevice_ptr& device, stack_config config,
                          const uint8_t* data, const size_t size)
   {
     auto& inet = net::Super_stack::get(0);
@@ -74,6 +74,6 @@ namespace fuzzy
     }
     // we have to add ethernet size here as its not part of MTU
     p->set_data_end(fuzzer.data_counter);
-    device->get_driver()->receive(std::move(p));
+    device->nic().receive(std::move(p));
   }
 }
