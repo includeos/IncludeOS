@@ -65,6 +65,7 @@ set(OS_OBJECTS
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
   net/ws/websocket.cpp ${OPENSSL_MODULES} ${BOTAN_MODULES}
   net/nat/nat.cpp net/nat/napt.cpp
+  net/packet_debug.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   # POSIX

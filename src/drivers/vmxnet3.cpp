@@ -212,7 +212,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   {
     memset(rx[q].buffers, 0, sizeof(rx[q].buffers));
     rx[q].desc0 = &dma->rx[q].desc[0];
-    rx[q].desc1 = &dma->rx[q].desc[0];
+    rx[q].desc1 = nullptr;
     rx[q].comp  = &dma->rx[q].comp[0];
     rx[q].index = q;
 
@@ -221,7 +221,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     queue.cfg.desc_address[1] = (uintptr_t) rx[q].desc1;
     queue.cfg.comp_address    = (uintptr_t) rx[q].comp;
     queue.cfg.num_desc[0]  = vmxnet3::NUM_RX_DESC;
-    queue.cfg.num_desc[1]  = vmxnet3::NUM_RX_DESC;
+    queue.cfg.num_desc[1]  = 0;
     queue.cfg.num_comp     = VMXNET3_NUM_RX_COMP;
     queue.cfg.driver_data_len = sizeof(vmxnet3_rx_desc)
                           + 2 * sizeof(vmxnet3_rx_desc);
@@ -506,12 +506,17 @@ bool vmxnet3::receive_handler(const int Q)
     auto& comp = dma->rx[Q].comp[idx];
     // break when exiting this generation
     if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
+
+    /* prevent speculative pre read ahead of comp content*/
+    __arch_read_memory_barrier();
+
     rx[Q].consumers++;
     rx[Q].prod_count--;
 
     int desc = comp.index % vmxnet3::NUM_RX_DESC;
     // mask out length
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
+
     // get buffer and construct packet
     assert(rx[Q].buffers[desc] != nullptr);
     recvq.push_back(recv_packet(rx[Q].buffers[desc], len));

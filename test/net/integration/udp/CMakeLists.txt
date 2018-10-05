@@ -11,9 +11,8 @@ project (test_udp)
 
 set(SERVICE_NAME "UDP test service")
 set(BINARY       "test_udp")
-set(MAX_MEM 128)
 set(SOURCES service.cpp)
-set(DRIVERS virtionet)
+set(DRIVERS virtionet ip4_reassembly)
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)

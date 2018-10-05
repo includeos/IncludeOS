@@ -104,6 +104,10 @@ extern "C" __attribute__((noreturn)) void panic_epilogue(const char*);
 extern "C" __attribute__ ((weak))
 void panic_perform_inspection_procedure() {}
 
+namespace net {
+  __attribute__((weak)) void print_last_packet() {}
+}
+
 /**
  * panic:
  * Display reason for kernel panic
@@ -159,11 +163,15 @@ void panic(const char* why)
     fprintf(stderr, "Plugin: %s (%p)\n", res.name, (void*) res.addr);
   }
 
+  // last packet
+  net::print_last_packet();
+
   // finally, backtrace
   fprintf(stderr, "\n*** Backtrace:");
   print_backtrace2([] (const char* text, size_t len) {
     fprintf(stderr, "%.*s", (int) len, text);
   });
+
   fflush(stderr);
   SMP::global_unlock();
 
