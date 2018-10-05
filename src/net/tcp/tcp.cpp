@@ -212,10 +212,12 @@ void TCP::receive(Packet_view& packet)
   (*packets_rx_)++;
   assert(get_cpuid() == SMP::cpu_id());
 
-  //auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
-
   // validate some unlikely but invalid packet properties
   if (UNLIKELY(packet.src_port() == 0)) {
+    drop(packet);
+    return;
+  }
+  if (UNLIKELY(packet.validate_length() == false)) {
     drop(packet);
     return;
   }

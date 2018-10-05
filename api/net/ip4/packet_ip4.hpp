@@ -246,6 +246,10 @@ namespace net {
       return {ip_data_ptr(), ip_data_length()};
     }
 
+    bool validate_length() const noexcept {
+      return this->size() == ip_header_length() + ip_data_length();
+    }
+
   protected:
 
     /** Get pointer to IP data */

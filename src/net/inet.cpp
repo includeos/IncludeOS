@@ -130,28 +130,34 @@ Inet::Inet(hw::Nic& nic)
 }
 
 void Inet::error_report(Error& err, Packet_ptr orig_pckt) {
+  // if its a forged packet, it might be too small
+  if (orig_pckt->size() < 40) return;
+
   auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(orig_pckt));
-  bool too_big = false;
-
   // Get the destination to the original packet
-  Socket dest = [](std::unique_ptr<PacketIP4>& pkt)->Socket {
-    switch (pkt->ip_protocol()) {
-      case Protocol::UDP: {
-        const auto& udp = static_cast<const PacketUDP&>(*pkt);
-        return udp.destination();
+  const Socket dest =
+    [] (std::unique_ptr<PacketIP4>& pkt)->Socket
+    {
+      // if its a forged packet, it might not be IPv4
+      if (pkt->is_ipv4() == false) return {};
+      // switch on IP4 protocol
+      switch (pkt->ip_protocol()) {
+        case Protocol::UDP: {
+          const auto& udp = static_cast<const PacketUDP&>(*pkt);
+          return udp.destination();
+        }
+        case Protocol::TCP: {
+          auto tcp = tcp::Packet4_view(std::move(pkt));
+          auto dst = tcp.destination();
+          pkt = static_unique_ptr_cast<PacketIP4>(tcp.release());
+          return dst;
+        }
+        default:
+          return {};
       }
-      case Protocol::TCP: {
-        auto tcp = tcp::Packet4_view(std::move(pkt));
-        auto dst = tcp.destination();
-        pkt = static_unique_ptr_cast<PacketIP4>(tcp.release());
-        return dst;
-      }
-      default:
-        return {};
-    }
-  }(pckt_ip4);
+    }(pckt_ip4);
 
-
+  bool too_big = false;
   if (err.is_icmp()) {
     auto* icmp_err = dynamic_cast<ICMP_error*>(&err);
     if (icmp_err == nullptr) {
