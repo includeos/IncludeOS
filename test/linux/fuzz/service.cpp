@@ -87,6 +87,12 @@ void Service::start()
   "`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-'"`-0-0-' )FUzzY");
 }
 
+#include "fuzzy_http.hpp"
+#include "fuzzy_stream.hpp"
+static fuzzy::HTTP_server* http_server = nullptr;
+static fuzzy::Stream*      test_stream = nullptr;
+extern http::Response_ptr handle_request(const http::Request&);
+
 // libfuzzer input
 extern "C"
 int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
@@ -101,12 +107,39 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   if (size == 0) return 0;
   
   // IP-stack fuzzing
+  /*
   fuzzy::stack_config config {
     .layer   = fuzzy::IP4,
     .ip_port = TCP_PORT
   };
   fuzzy::insert_into_stack(dev1, config, data, size);
+  */
+
   // Upper layer fuzzing using fuzzy::Stream
-  
+  auto& inet = net::Super_stack::get(0);
+  static bool init_http = false;
+  if (UNLIKELY(init_http == false)) {
+    init_http = true;
+    http_server = new fuzzy::HTTP_server(inet.tcp());
+    http_server->on_request(
+      [] (http::Request_ptr request,
+          http::Response_writer_ptr response_writer)
+      {
+        response_writer->set_response(handle_request(*request));
+        response_writer->write();
+      });
+  }
+  // create HTTP stream
+  const net::Socket local  {inet.ip_addr(), 80};
+  const net::Socket remote {{10,0,0,1}, 1234};
+  auto http_stream = std::make_unique<fuzzy::Stream> (local, remote,
+    [] (net::Stream::buffer_t buffer) {
+      //printf("Received %zu bytes on fuzzy stream\n", buffer->size());
+      (void) buffer;
+    });
+  test_stream = http_stream.get();
+  http_server->add(std::move(http_stream));
+  // give it random data
+  test_stream->give_payload(net::Stream::construct_buffer(data, data + size));
   return 0;
 }
