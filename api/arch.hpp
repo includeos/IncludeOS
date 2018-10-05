@@ -1,4 +1,4 @@
-// -*-C++-*-
+﻿// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2017 Oslo and Akershus University College of Applied Sciences
@@ -36,7 +36,8 @@ extern void __arch_install_irq(uint8_t, void(*)());
 extern void __arch_subscribe_irq(uint8_t);
 extern void __arch_unsubscribe_irq(uint8_t);
 extern void __arch_preempt_forever(void(*)());
-
+extern inline void __arch_read_memory_barrier() noexcept;
+extern inline void __arch_write_memory_barrier() noexcept;
 inline void __arch_hw_barrier() noexcept;
 inline void __sw_barrier() noexcept;
 

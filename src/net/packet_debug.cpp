@@ -38,8 +38,9 @@ namespace net {
     fprintf(stderr, "*** Last packet:\n");
     fprintf(stderr, "Buffer: Begin: %p End: %p Size: %i\n",
       pkt->buf(), pkt->buffer_end(), pkt->bufsize());
+    const size_t offset = pkt->layer_begin() - layer_begin;
     fprintf(stderr, "Layer: Recorded: %p Current: %p (%lub offset)\n",
-      layer_begin, pkt->layer_begin(), pkt->layer_begin() - layer_begin);
+      layer_begin, pkt->layer_begin(), offset);
     fprintf(stderr, "Size: %i ", pkt->size());
     fprintf(stderr, "Capacity: %i ", pkt->capacity());
     fprintf(stderr, "Data end: %p \n", pkt->data_end());
@@ -72,13 +73,14 @@ namespace net {
       print_len = 0;
     }
 
-    // read 40 more optimistic bytes (could be garbage from old packet)
-    if(pkt->size() > print_len)
-      print_len += std::min(pkt->size() - print_len, 40);
+    // ignore the above, just hope we can write the full content of the packet
+    print_len = offset + pkt->size();
 
-    fprintf(stderr, "Payload %i bytes from recorded layer begin (%p):\n", print_len, layer_begin);
-    for(int i = 0; i < print_len; i++)
+    fprintf(stderr, "Payload %i bytes from recorded layer begin (%p):", print_len, layer_begin);
+    for(int i = 0; i < print_len; i++) {
+      if(i % 80 == 0) fprintf(stderr, "\n"); // break every 80th char
       fprintf(stderr, "%02x", *(layer_begin + i));
+    }
     fprintf(stderr, "\n");
   }
 }
