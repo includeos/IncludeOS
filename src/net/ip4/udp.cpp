@@ -43,6 +43,12 @@ namespace net {
   {
     auto udp_packet = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
 
+    if (udp_packet->validate_length() == false) {
+      PRINT("<%s> UDP: Invalid packet received (too short). Drop!\n",
+              stack_.ifname().c_str());
+      return;
+    }
+
     PRINT("<%s> UDP", stack_.ifname().c_str());
 
     PRINT("\t Source port: %u, Dest. Port: %u Length: %u\n",

@@ -400,7 +400,6 @@ namespace net {
 
     IP4::addr get_source_addr(IP4::addr dest)
     {
-
       if (dest.is_loopback())
         return {127,0,0,1};
 
@@ -412,7 +411,6 @@ namespace net {
 
     IP6::addr get_source_addr(IP6::addr dest)
     {
-
       if (dest.is_loopback())
         return ip6::Addr{0,0,0,1};
 
@@ -426,10 +424,10 @@ namespace net {
     { return addr.is_v4() ? is_valid_source4(addr.v4()) : is_valid_source6(addr.v6()); }
 
     bool is_valid_source4(IP4::addr src) const
-    { return src == ip_addr() or is_loopback(src); }
+    { return src == ip_addr(); }
 
     bool is_valid_source6(const IP6::addr& src) const
-    { return src == ip6_addr() or is_loopback(src) or src.is_multicast(); }
+    { return src == ip6_addr() or src.is_multicast(); }
 
     std::shared_ptr<Conntrack>& conntrack()
     { return conntrack_; }
