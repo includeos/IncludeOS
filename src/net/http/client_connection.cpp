@@ -33,7 +33,7 @@ namespace http {
     stream_->on_close({this, &Client_connection::close});
   }
 
-  void Client_connection::send(Request_ptr req, Response_handler on_res, const size_t bufsize, timeout_duration timeout)
+  void Client_connection::send(Request_ptr req, Response_handler on_res, timeout_duration timeout)
   {
     Expects(available());
     req_ = std::move(req);
@@ -47,21 +47,21 @@ namespace http {
     // if the stream is not established, send the request when connected
     if(not stream_->is_connected())
     {
-      stream_->on_connect([this, bufsize](auto&)
+      stream_->on_connect([this](auto&)
       {
-        this->send_request(bufsize);
+        this->send_request();
       });
     }
     else {
-      send_request(bufsize);
+      send_request();
     }
   }
 
-  void Client_connection::send_request(const size_t bufsize)
+  void Client_connection::send_request()
   {
     keep_alive_ = (req_->header().value(header::Connection) != "close");
 
-    stream_->on_read(bufsize, {this, &Client_connection::recv_response});
+    stream_->on_read(0, {this, &Client_connection::recv_response});
 
     stream_->write(req_->to_string());
   }

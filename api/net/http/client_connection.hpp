@@ -44,7 +44,7 @@ namespace http {
     bool occupied() const
     { return !available(); }
 
-    void send(Request_ptr, Response_handler, const size_t bufsize, timeout_duration = timeout_duration::zero());
+    void send(Request_ptr, Response_handler, timeout_duration = timeout_duration::zero());
 
   private:
     Basic_client&     client_;
@@ -54,7 +54,7 @@ namespace http {
     Timer             timer_;
     timeout_duration  timeout_dur_;
 
-    void send_request(const size_t bufsize);
+    void send_request();
 
     void recv_response(buffer_t buf);
 

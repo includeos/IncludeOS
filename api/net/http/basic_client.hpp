@@ -50,24 +50,14 @@ namespace http {
     using timeout_duration    = Client_connection::timeout_duration;
 
     const static timeout_duration     DEFAULT_TIMEOUT; // client.cpp, 5s
-    constexpr static size_t           DEFAULT_BUFSIZE = 2048;
 
     /* Client Options */
-    // if someone has a better solution, please fix
+    // aggregate initialization would make this pretty (c++20):
+    // https://en.cppreference.com/w/cpp/language/aggregate_initialization
     struct Options {
       timeout_duration  timeout{DEFAULT_TIMEOUT};
-      size_t            bufsize{DEFAULT_BUFSIZE};
 
-      Options(timeout_duration dur, size_t bufsz)
-        : timeout{dur},
-          bufsize{bufsz}
-      {}
-
-      Options() : Options(DEFAULT_TIMEOUT, DEFAULT_BUFSIZE) {}
-
-      Options(timeout_duration dur) : Options(dur, DEFAULT_BUFSIZE) {}
-
-      Options(size_t bufsz) : Options(DEFAULT_TIMEOUT, bufsz) {}
+      Options() noexcept {}
 
     };
 

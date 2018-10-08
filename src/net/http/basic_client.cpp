@@ -68,7 +68,7 @@ namespace http {
     if(on_send_)
       on_send_(*req, options, host);
 
-    conn.send(move(req), move(cb), options.bufsize, options.timeout);
+    conn.send(move(req), move(cb), options.timeout);
   }
 
   void Basic_client::request(Method method, URI url, Header_set hfields,
