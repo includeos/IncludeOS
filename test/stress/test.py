@@ -3,6 +3,7 @@ import sys
 import socket
 import time
 import subprocess
+import subprocess32
 import os
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
@@ -27,6 +28,9 @@ PORT_FLOOD = 4242
 PORT_MEM = 4243
 memuse_at_start = 0
 sock_timeout = 20
+
+# Boot the VM, taking a timeout as parameter
+timeout = BURST_COUNT * 30
 
 # It's to be expected that the VM allocates more room during the running of tests
 # e.g. for containers, packets etc. These should all be freed after a run.
@@ -107,13 +111,13 @@ def UDP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 # Fire a single burst of ICMP packets
 def ICMP_flood(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   # Note: Ping-flooding requires sudo for optimal speed
-  res = subprocess.check_call(["sudo","ping","-f", HOST, "-c", str(burst_size)]);
+  res = subprocess32.check_call(["sudo","ping","-f", HOST, "-c", str(burst_size)], timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
 # Fire a single burst of HTTP requests
 def httperf(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
-  res = subprocess.check_call(["httperf","--hog", "--server", HOST, "--num-conn", str(burst_size)]);
+  res = subprocess32.check_call(["httperf","--hog", "--server", HOST, "--num-conn", str(burst_size)], timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
@@ -123,7 +127,7 @@ def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   command = ["sudo", "arping", "-q","-w", str(100), "-I", "bridge43", "-c", str(burst_size * 10),  HOST]
   print color.DATA(" ".join(command))
   time.sleep(0.5)
-  res = subprocess.check_call(command);
+  res = subprocess32.check_call(command, timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
@@ -260,9 +264,6 @@ vm.on_output("Ready for UDP", UDP)
 vm.on_output("Ready for ICMP", ICMP)
 vm.on_output("Ready for TCP", TCP)
 vm.on_output("Ready to end", check_vitals)
-
-# Boot the VM, taking a timeout as parameter
-timeout = BURST_COUNT * 30
 
 if len(sys.argv) > 1:
   timeout = int(sys.argv[1])

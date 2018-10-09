@@ -3,7 +3,10 @@
 import sys
 import os
 import subprocess
+import subprocess32
 import thread
+
+thread_timeout = 30
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
@@ -37,14 +40,15 @@ def clean():
 
 def iperf_server():
     global iperf_server_proc, iperf_srv_log
-    iperf_server_proc = subprocess.Popen(["sudo","ip","netns","exec", nsname, iperf_cmd, "-s"],
+    iperf_server_proc = subprocess32.Popen(["sudo","ip","netns","exec", nsname, iperf_cmd, "-s"],
                                     stdout = subprocess.PIPE,
                                     stdin = subprocess.PIPE,
-                                    stderr = subprocess.PIPE)
+                                    stderr = subprocess.PIPE,
+                                    timeout=thread_timeout)
 
 def iperf_client(o):
     print "Starting iperf client. Iperf output: "
-    print subprocess.check_output([iperf_cmd,"-c","10.42.42.2","-n", transmit_size])
+    print subprocess32.check_output([iperf_cmd,"-c","10.42.42.2","-n", transmit_size], timeout=thread_timeout)
     vmrunner.vms[0].exit(0, "Test completed without errors")
     return True
 
@@ -67,4 +71,4 @@ vm.on_output("Service ready", iperf_client)
 vm.on_exit(clean)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(30).clean()
+vm.cmake().boot(thread_timeout).clean()
