@@ -30,7 +30,7 @@ memuse_at_start = 0
 sock_timeout = 20
 
 # Boot the VM, taking a timeout as parameter
-timeout = BURST_COUNT * 30
+thread_timeout = BURST_COUNT * 30
 
 # It's to be expected that the VM allocates more room during the running of tests
 # e.g. for containers, packets etc. These should all be freed after a run.
@@ -266,7 +266,7 @@ vm.on_output("Ready for TCP", TCP)
 vm.on_output("Ready to end", check_vitals)
 
 if len(sys.argv) > 1:
-  timeout = int(sys.argv[1])
+  thread_timeout = int(sys.argv[1])
 
 if len(sys.argv) > 3:
   BURST_COUNT = int(sys.argv[2])
@@ -275,4 +275,4 @@ if len(sys.argv) > 3:
 print color.HEADER(test_name + " initializing")
 print color.INFO(name_tag),"configured for ", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
 
-vm.cmake().boot(timeout).clean()
+vm.cmake().boot(thread_timeout).clean()
