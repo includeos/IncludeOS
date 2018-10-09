@@ -20,6 +20,7 @@
 namespace http {
 
   const Basic_client::timeout_duration Basic_client::DEFAULT_TIMEOUT{std::chrono::seconds(5)};
+  int Basic_client::default_follow_redirect{0};
 
   Basic_client::Basic_client(TCP& tcp, Request_handler on_send)
     : Basic_client(tcp, std::move(on_send), false)
@@ -68,7 +69,53 @@ namespace http {
     if(on_send_)
       on_send_(*req, options, host);
 
-    conn.send(move(req), move(cb), options.timeout);
+    conn.send(move(req), move(cb), options.follow_redirect, options.timeout);
+  }
+
+  void Basic_client::send(Request_ptr req, URI url, Response_handler cb, Options options)
+  {
+    // find out if this is a secured request or not
+    const bool secure = url.scheme_is_secure();
+    validate_secure(secure);
+
+    using namespace std;
+
+    // Default to port 80 if non given
+    const uint16_t port = (url.port() != 0xFFFF) ? url.port() : 80;
+
+    if (url.host_is_ip4())
+    {
+      std::string host(url.host());
+      auto ip = net::ip4::Addr(host);
+
+      send(move(req), {ip, port}, move(cb), secure, move(options));
+    }
+    else
+    {
+      tcp_.stack().resolve(std::string(url.host()),
+      ResolveCallback::make_packed(
+      [
+        this,
+        request = move(req),
+        url{move(url)},
+        cb{move(cb)},
+        opt{move(options)},
+        secure,
+        port
+      ]
+        (net::ip4::Addr ip, const net::Error&) mutable
+      {
+        // Host resolved
+        if (ip != 0)
+        {
+          send(move(request), {ip, port}, move(cb), secure, move(opt));
+        }
+        else
+        {
+          cb({Error::RESOLVE_HOST}, nullptr, Connection::empty());
+        }
+      }));
+    }
   }
 
   void Basic_client::request(Method method, URI url, Header_set hfields,

@@ -27,19 +27,21 @@ namespace http {
       res_(nullptr),
       on_response_{nullptr},
       timer_({this, &Client_connection::timeout_request}),
-      timeout_dur_{timeout_duration::zero()}
+      timeout_dur_{timeout_duration::zero()},
+      redirect_{client.default_follow_redirect}
   {
     // setup close event
     stream_->on_close({this, &Client_connection::close});
   }
 
-  void Client_connection::send(Request_ptr req, Response_handler on_res, timeout_duration timeout)
+  void Client_connection::send(Request_ptr req, Response_handler on_res, int redirects, timeout_duration timeout)
   {
     Expects(available());
     req_ = std::move(req);
     on_response_ = std::move(on_res);
     Expects(on_response_ != nullptr);
     timeout_dur_ = timeout;
+    redirect_ = redirects;
 
     if(timeout_dur_ > timeout_duration::zero())
       timer_.restart(timeout_dur_);
@@ -61,7 +63,7 @@ namespace http {
   {
     keep_alive_ = (req_->header().value(header::Connection) != "close");
 
-    stream_->on_read(0, {this, &Client_connection::recv_response});
+    stream_->on_read(0 , {this, &Client_connection::recv_response});
 
     stream_->write(req_->to_string());
   }
@@ -150,7 +152,20 @@ namespace http {
     // just discard (we can't do anything because we have no callback).
     // This MAY have side effects if the connection is reused and
     // a delayed response is received
-    if (on_response_) {
+    if (on_response_)
+    {
+      if(UNLIKELY(not err and can_redirect(res_)))
+      {
+        uri::URI location{res_->header().value("Location")};
+
+        if(location.is_valid())
+        {
+          redirect(location);
+          end(); // hope its good here..
+          return;
+        }
+
+      }
       // move response to a copy in case of callback result in new request
       auto callback = std::move(on_response_);
       on_response_.reset();
@@ -173,6 +188,36 @@ namespace http {
     {
       close();
     }*/
+  }
+
+  bool Client_connection::can_redirect(const Response_ptr& res) const
+  {
+    if(redirect_ < 1) return false;
+    if(res == nullptr) return false;
+    if(not is_redirection(res->status_code())) return false;
+    if(not res->header().has_field("Location")) return false;
+
+    return true;
+  }
+
+  void Client_connection::redirect(uri::URI location)
+  {
+    Expects(on_response_);
+
+    // modify req
+    client_.populate_from_url(*req_, location);
+
+    // build option
+    Basic_client::Options options;
+    options.timeout         = timeout_dur_;
+    options.follow_redirect = --redirect_;
+
+    // move callback
+    auto callback = std::move(on_response_);
+    on_response_.reset();
+
+    // have client send new request
+    client_.send(std::move(req_), location, std::move(callback), options);
   }
 
   void Client_connection::close()
