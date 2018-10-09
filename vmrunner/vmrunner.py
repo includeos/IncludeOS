@@ -10,7 +10,6 @@ import traceback
 import validate_vm
 import signal
 import psutil
-import magic
 from shutil import copyfile
 
 from prettify import color
@@ -83,8 +82,9 @@ def info(*args):
 
 
 def file_type(filename):
-    with magic.Magic() as m:
-        return m.id_filename(filename)
+    p = subprocess.Popen(['file',filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    output, errors = p.communicate()
+    return output
 
 def is_Elf64(filename):
     magic = file_type(filename)
@@ -553,7 +553,7 @@ class qemu(hypervisor):
             qemu_binary = self._config["qemu"]
 
         # TODO: sudo is only required for tap networking and kvm. Check for those.
-        command = ["sudo", "--preserve-env", qemu_binary]
+        command = ["sudo", qemu_binary]
         if self._kvm_present: command.extend(["--enable-kvm"])
 
         command += kernel_args
