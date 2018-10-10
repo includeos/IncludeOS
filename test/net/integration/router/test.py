@@ -40,11 +40,10 @@ def clean():
 
 def iperf_server():
     global iperf_server_proc, iperf_srv_log
-    iperf_server_proc = subprocess32.Popen(["sudo","ip","netns","exec", nsname, iperf_cmd, "-s"],
+    iperf_server_proc = subprocess.Popen(["sudo","ip","netns","exec", nsname, iperf_cmd, "-s"],
                                     stdout = subprocess.PIPE,
                                     stdin = subprocess.PIPE,
-                                    stderr = subprocess.PIPE,
-                                    timeout=thread_timeout)
+                                    stderr = subprocess.PIPE)
 
 def iperf_client(o):
     print "Starting iperf client. Iperf output: "
