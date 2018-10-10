@@ -26,7 +26,7 @@ Statman& Statman::get() {
 }
 
 Stat::Stat(const Stat_type type, const std::string& name)
-  : ui64(0), type_{type}
+  : ui64(0), m_bits{type}
 {
   if (name.size() > MAX_NAME_LEN)
     throw Stats_exception("Stat name cannot be longer than " + std::to_string(MAX_NAME_LEN) + " characters");
@@ -34,19 +34,19 @@ Stat::Stat(const Stat_type type, const std::string& name)
   snprintf(name_, sizeof(name_), "%s", name.c_str());
 }
 Stat::Stat(const Stat& other) {
-  this->ui64 = other.ui64;
-  this->type_ = other.type_;
+  this->ui64   = other.ui64;
+  this->m_bits = other.m_bits;
   strncpy(this->name_, other.name_, MAX_NAME_LEN);
 }
 Stat& Stat::operator=(const Stat& other) {
-  this->ui64 = other.ui64;
-  this->type_ = other.type_;
+  this->ui64   = other.ui64;
+  this->m_bits = other.m_bits;
   strncpy(this->name_, other.name_, MAX_NAME_LEN);
   return *this;
 }
 
 void Stat::operator++() {
-  switch (type_) {
+  switch (this->type()) {
     case UINT32: ui32++;    break;
     case UINT64: ui64++;    break;
     case FLOAT:  f += 1.0f; break;
@@ -55,7 +55,7 @@ void Stat::operator++() {
 }
 
 std::string Stat::to_string() const {
-  switch (this->type_) {
+  switch (this->type()) {
     case UINT32: return std::to_string(ui32);
     case UINT64: return std::to_string(ui64);
     case FLOAT:  return std::to_string(f);
