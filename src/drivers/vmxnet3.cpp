@@ -514,6 +514,19 @@ bool vmxnet3::receive_handler(const int Q)
     rx[Q].prod_count--;
 
     int desc = comp.index % vmxnet3::NUM_RX_DESC;
+    
+    // Handle case of empty packet
+    if (UNLIKELY((comp.len & (VMXNET3_MAX_BUFFER_LEN-1)) == 0)) {
+      //TODO assert / log if eop and sop are not set in empty packet.
+
+      //release unused buffer
+      auto* packet = (net::Packet*) (tx.buffers[desc] - DRIVER_OFFSET - sizeof(net::Packet));
+      delete packet; // call deleter on Packet to release it
+      rx[Q].buffers[desc] = nullptr;
+
+      break;
+    }
+    
     // mask out length
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
 
