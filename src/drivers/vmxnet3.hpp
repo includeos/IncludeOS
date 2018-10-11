@@ -81,6 +81,8 @@ public:
 
   void poll() override;
 
+  void add_vlan(const int id) override;
+
 private:
   void msix_evt_handler();
   void msix_xmit_handler();

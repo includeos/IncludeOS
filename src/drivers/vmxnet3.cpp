@@ -642,6 +642,13 @@ void vmxnet3::poll()
   this->already_polling = false;
 }
 
+void vmxnet3::add_vlan(const int id)
+{
+  this->dma->shared.rx_filter.vlan_filter[((id>>3)&0x1FF)] |= (1<<(id&7));
+  // TODO in smp/mt protect this with IRQ disable / enable for the entire driver
+  mmio_write32(this->iobase + VMXNET3_VD_CMD, VMXNET3_CMD_UPDATE_VLAN_FILTERS);
+}
+
 void vmxnet3::deactivate()
 {
   // disable all queues
