@@ -113,6 +113,8 @@ namespace hw {
     }
     uint32_t sendq_limit() const noexcept { return m_sendq_limit; }
 
+    virtual void add_vlan([[maybe_unused]] const int id){}
+
   protected:
     /**
      *  Constructor

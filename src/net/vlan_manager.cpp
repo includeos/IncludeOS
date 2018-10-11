@@ -51,7 +51,7 @@ VLAN_manager::VLAN_interface& VLAN_manager::add(hw::Nic& link, const int id)
 
   // this is very redudant if it's already been set once,
   // but i'll keep it for now since it's not expensive.
-  this->setup(link);
+  this->setup(link,id);
 
   auto vif = std::make_unique<VLAN_interface>(link, id);
   auto* raw = vif.get();
