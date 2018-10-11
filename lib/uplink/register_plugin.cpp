@@ -19,6 +19,7 @@
 #include "common.hpp"
 #include <kernel/os.hpp>
 
+__attribute__((constructor))
 static void setup_uplink_plugin()
 {
   try
@@ -30,9 +31,4 @@ static void setup_uplink_plugin()
     MYINFO("Rebooting");
     OS::reboot();
   }
-}
-
-__attribute__((constructor))
-void register_plugin_uplink(){
-  OS::register_plugin(setup_uplink_plugin, "Uplink");
 }

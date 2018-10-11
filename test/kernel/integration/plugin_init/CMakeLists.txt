@@ -11,12 +11,12 @@ project (test_plugin_init)
 
 set(SERVICE_NAME "Plugin initialization test")
 set(BINARY       "test_plugin_init")
-set(MAX_MEM 128)
 set(SOURCES
     service.cpp plugin1.cpp plugin2.cpp plugin3.cpp
   )
 #set(LOCAL_INCLUDES ".")
 
+set(DRIVERS boot_logger)
 set(PLUGINS example)
 
 # include service build script

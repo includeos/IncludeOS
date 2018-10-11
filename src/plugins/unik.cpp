@@ -103,7 +103,7 @@ void unik::Client::register_instance(net::Inet& inet, const net::UDP::port_t por
     });
 } // register_instance
 
-
+__attribute__((constructor))
 void unik::Client::register_instance_dhcp() {
   // Bring up a network device using DHCP
   static auto&& inet = net::Inet::stack<0>();
@@ -116,9 +116,4 @@ void unik::Client::register_instance_dhcp() {
       INFO("Unik client","IP address updated: %s", inet.ip_addr().str().c_str());
       register_instance(inet);
     });
-}
-
-__attribute__((constructor))
-void register_plugin_unik(){
-  OS::register_plugin(unik::Client::register_instance_dhcp, "Unik register instance");
 }

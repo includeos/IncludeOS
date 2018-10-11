@@ -121,7 +121,7 @@ void SystemLog::initialize()
 }
 
 __attribute__((constructor))
-static void system_log_gconstr()
+static void system_log_constructor()
 {
   OS::add_stdout(SystemLog::write);
 }

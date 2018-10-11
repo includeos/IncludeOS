@@ -80,7 +80,7 @@ SECTIONS
   .stdout_ctors :
   {
     PROVIDE_HIDDEN (__stdout_ctors_start = .);
-    */x86_64/drivers/stdout/lib*.a:*(.init_array* .ctors*)
+    */x86_64/drivers/stdout/lib*.a:*(SORT_BY_INIT_PRIORITY(.init_array*) SORT_BY_INIT_PRIORITY(.ctors*))
     PROVIDE_HIDDEN (__stdout_ctors_end = .);
   }
 
@@ -88,7 +88,7 @@ SECTIONS
   .driver_ctors :
   {
     PROVIDE_HIDDEN (__driver_ctors_start = .);
-    */x86_64/drivers/lib*.a:*(.init_array* .ctors*)
+    */x86_64/drivers/lib*.a:*(SORT_BY_INIT_PRIORITY(.init_array*) SORT_BY_INIT_PRIORITY(.ctors*))
     PROVIDE_HIDDEN (__driver_ctors_end = .);
   }
 
@@ -96,7 +96,7 @@ SECTIONS
   .plugin_ctors :
   {
     PROVIDE_HIDDEN (__plugin_ctors_start = .);
-    */x86_64/plugins/lib*.a:*(.init_array* .ctors*)
+    */x86_64/plugins/lib*.a:*(SORT_BY_INIT_PRIORITY(.init_array*) SORT_BY_INIT_PRIORITY(.ctors*))
     PROVIDE_HIDDEN (__plugin_ctors_end = .);
   }
 

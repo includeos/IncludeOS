@@ -20,24 +20,24 @@
  */
 
 #include <os>
-#include <kprint>
-
 bool example_plugin_registered = false;
 bool example_plugin_run = false;
+static std::string test = "Test";
 
 // The actual plugin.
-void example_plugin(){
-  INFO("Example plugin","initializing");
+void example_plugin() {
+  INFO("Example", "Plugin initializing");
   Expects(example_plugin_registered);
   example_plugin_run = true;
 }
 
-
-// Run as global constructor
-__attribute__((constructor))
-void register_example_plugin(){
-  OS::register_plugin(example_plugin, "Example plugin");
-  example_plugin_registered = true;
-  // Note: printf might rely on global ctor and may not be ready at this point.
-  INFO("Example", "plugin registered");
-}
+// Use a C++ global constructor to get sane construction order
+static struct Example_plugin {
+  Example_plugin()
+  {
+    example_plugin_registered = true;
+    example_plugin();
+    assert(test == "Test");
+    INFO("Example", "Plugin done");
+  }
+} autorun;

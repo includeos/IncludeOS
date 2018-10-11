@@ -15,10 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <kernel/os.hpp>
 #include <autoconf>
 
 __attribute__((constructor))
-static void register_autoconf_plugin() {
-  OS::register_plugin(autoconf::run, "Autoconf plugin");
+static void execute_autoconf_plugin() {
+  autoconf::run();
 }

@@ -32,8 +32,8 @@
 #include <rapidjson/writer.h>
 
 static std::unique_ptr<Unix_FD_impl> syslog_impl = nullptr;
-const static std::string  default_path{"/dev/log"};
-const static uint16_t     default_port{6514};
+const static char*    default_path{"/dev/log"};
+const static uint16_t default_port{6514};
 
 static void mount_print_sock(const std::string& path)
 {
@@ -57,6 +57,7 @@ static void mount_default_sock()
 }
 
 // Function being run by the OS for mounting resources
+__attribute__((constructor))
 static void syslog_mount()
 {
   const auto& json = ::Config::get();
@@ -104,10 +105,4 @@ static void syslog_mount()
     cfg["port"].GetUint() : default_port;
 
   mount_udp_sock(path, stack, addr, port);
-}
-
-#include <os>
-__attribute__((constructor))
-static void syslog_plugin() {
-  OS::register_plugin(syslog_mount, "Syslog Unix backend");
 }
