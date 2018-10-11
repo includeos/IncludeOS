@@ -57,6 +57,7 @@ set(NET_SOURCES
 
   ${IOS}/src/net/https/botan_server.cpp
   ${IOS}/src/net/https/openssl_server.cpp
+  ${IOS}/src/net/https/s2n_server.cpp
 
   ${IOS}/src/net/ws/websocket.cpp
 
