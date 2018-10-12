@@ -116,7 +116,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/http_response_test.cpp
   ${TEST}/net/unit/http_time_test.cpp
   ${TEST}/net/unit/http_version_test.cpp
-  ${TEST}/net/unit/interfaces.cpp
+  ${TEST}/net/unit/interfaces_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/ip4_packet_test.cpp
@@ -207,6 +207,7 @@ set(OS_SOURCES
   ${SRC}/net/http/version.cpp
   ${SRC}/net/checksum.cpp
   ${SRC}/net/inet.cpp
+  ${SRC}/net/interfaces.cpp
   ${SRC}/net/ip4/arp.cpp
   ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
@@ -219,7 +220,6 @@ set(OS_SOURCES
   ${SRC}/net/dhcp/dh4client.cpp
   ${SRC}/net/nat/nat.cpp
   ${SRC}/net/nat/napt.cpp
-  ${SRC}/net/super_stack.cpp
   ${SRC}/net/tcp/connection.cpp
   ${SRC}/net/tcp/connection_states.cpp
   ${SRC}/net/tcp/listener.cpp
