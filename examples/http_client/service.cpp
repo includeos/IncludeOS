@@ -76,6 +76,33 @@ static void begin_http(net::Inet& inet)
       printf("Make sure the virtual machine can reach internet.\n");
     }
   });
+
+  Client::Options options;
+  options.follow_redirect = 0;
+  const auto url_mis{"https://www.facebok.com"s};
+  client.get(url_mis, {}, [url = url_mis](Error err, Response_ptr res, Connection&)
+  {
+    if(not err) {
+      std::cout << "\n" << url << " - Got response!\n" << res->status_line() << "\n" << res->header() << "\n";
+    }
+    else {
+      printf("\n%s - No response: %s\n", url.c_str(), err.to_string().c_str());
+      printf("Make sure the virtual machine can reach internet.\n");
+    }
+  }, options);
+
+  options.follow_redirect = 1;
+  client.get(url_mis, {}, [url = url_mis](Error err, Response_ptr res, Connection&)
+  {
+    if(not err) {
+      std::cout << "\n" << url << " - Got response!\n" << res->status_line() << "\n" << res->header() << "\n";
+    }
+    else {
+      printf("\n%s - No response: %s\n", url.c_str(), err.to_string().c_str());
+      printf("Make sure the virtual machine can reach internet.\n");
+    }
+  }, options);
+
 }
 
 void Service::start()
