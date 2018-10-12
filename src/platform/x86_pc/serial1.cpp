@@ -1,18 +1,12 @@
 #include <hw/serial.hpp>
 #include <stdarg.h>
 static const uint16_t port = 0x3F8; // Serial 1
-static char initialized = 0xFF;
-
-extern "C"
-void __init_serial1()
-{
-  initialized = false;
-}
+static char initialized __attribute__((section(".data"))) = 0x0;
 
 __attribute__((no_sanitize("all")))
 static inline void init_if_needed()
 {
-  if (initialized) return;
+  if (initialized == true) return;
   initialized = true;
   // properly initialize serial port
   hw::outb(port + 1, 0x00);    // Disable all interrupts

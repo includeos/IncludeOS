@@ -114,9 +114,6 @@ void __arch_init_paging() {
   Expects(! __pml4->has_flag((uintptr_t)__exec_begin, Flags::no_exec));
   Expects(__pml4->has_flag((uintptr_t)__exec_begin, Flags::present));
 
-  extern void elf_protect_symbol_areas();
-  elf_protect_symbol_areas();
-
   // hack to see who overwrites the pagetables
   //protect_pagetables_once();
 
