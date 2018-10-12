@@ -49,8 +49,33 @@ public:
     return stack_;
   }
 
+  /**
+   * @brief      Get Stack with the given ID
+   * @note       Throws if not found
+   *
+   * @param[in]  N     id
+   *
+   * @return     Stack with id N
+   */
   static Inet& get(int N);
+  /**
+   * @brief      Get a substack with a given ID and sub ID.
+   *             Used for VLAN purposes (0 is always the non-VLAN iface)
+   *
+   * @param[in]  N     Id
+   * @param[in]  sub   The sub
+   *
+   * @return     Stack with id N and sub index sub
+   */
   static Inet& get(int N, int sub);
+
+  /**
+   * @brief      Get all them stacks
+   *
+   * @return     List with Indexed stacks
+   */
+  static Stacks& get()
+  { return instance().stacks_; }
 
   /**
    * @brief      Get a stack by MAC addr.
@@ -66,9 +91,6 @@ public:
   static Inet& get(const std::string& mac, int sub);
 
   static Inet& create(hw::Nic& nic, int N, int sub);
-
-  Stacks& stacks()
-  { return stacks_; }
 
 private:
   Stacks stacks_;

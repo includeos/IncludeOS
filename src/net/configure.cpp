@@ -66,7 +66,7 @@ void configure(const rapidjson::Value& net)
   Expects(net.IsArray() && "Member net is not an array");
 
   auto configs = net.GetArray();
-  if(configs.Size() > Interfaces::instance().stacks().size())
+  if(configs.Size() > Interfaces::get().size())
     MYINFO("! WARNING: Found more configs than there are interfaces");
   // Iterate all interfaces in config
   for(auto& val : configs)
