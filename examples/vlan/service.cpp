@@ -16,13 +16,13 @@
 // limitations under the License.
 
 #include <service>
-#include <net/super_stack.hpp>
+#include <net/interfaces>
 #include <net/vlan>
 
 void Service::start()
 {
   net::setup_vlans();
-  auto& eth0 = net::Super_stack::get(0);
+  auto& eth0 = net::Interfaces::get(0);
 
-  auto& vlan0_2 = net::Super_stack::get(0,2);
+  auto& vlan0_2 = net::Interfaces::get(0,2);
 }

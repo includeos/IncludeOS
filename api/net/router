@@ -4,7 +4,7 @@
 #define NET_ROUTER_API
 
 #include <net/router.hpp>
-#include <net/super_stack.hpp>
+#include <net/interfaces.hpp>
 #include <config>
 #include <rapidjson/document.h>
 
@@ -24,7 +24,7 @@ namespace net {
       ? ip4::Addr{obj["nexthop"].GetString()} : 0;
 
     int N = obj["iface"].GetInt();
-    auto& iface = Super_stack::get(N);
+    auto& iface = Interfaces::get(N);
 
     int cost = (not obj.HasMember("cost")) ? 100 : obj["cost"].GetInt();
 

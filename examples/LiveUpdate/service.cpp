@@ -120,6 +120,7 @@ static void save_state(liu::Storage& store, const liu::buffer_t*)
 
 }
 
+#include <net/interfaces>
 void Service::ready()
 {
 #ifdef USE_STACK_SAMPLING
@@ -130,7 +131,7 @@ void Service::ready()
   Timers::periodic(seconds(5), seconds(PERIOD_SECS), print_stats);
 
   // raw TCP liveupdate server
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
   setup_liveupdate_server(inet, 666, save_state);
 
   // profiler statistics

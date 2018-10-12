@@ -78,9 +78,10 @@ static void begin_http(net::Inet& inet)
   });
 }
 
+#include <net/interfaces>
 void Service::start()
 {
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
 
   inet.on_config(
     [] (auto& inet) {
