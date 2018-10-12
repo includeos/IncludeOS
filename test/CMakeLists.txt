@@ -116,6 +116,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/http_response_test.cpp
   ${TEST}/net/unit/http_time_test.cpp
   ${TEST}/net/unit/http_version_test.cpp
+  ${TEST}/net/unit/interfaces.cpp
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/ip4_packet_test.cpp
@@ -128,7 +129,6 @@ set(TEST_SOURCES
   ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
   ${TEST}/net/unit/socket.cpp
-  ${TEST}/net/unit/super_stack.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
   ${TEST}/net/unit/tcp_read_request_test.cpp
