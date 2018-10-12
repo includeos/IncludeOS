@@ -16,8 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/super_stack.hpp>
-#include <net/inet>
+#include <net/interfaces>
 
 using namespace net;
 
@@ -33,10 +32,10 @@ inline void test_vlan();
 
 void Service::start()
 {
-  static auto& eth0   = Super_stack::get(0);
-  static auto& eth1   = Super_stack::get(1);
-  static auto& host1  = Super_stack::get(2);
-  static auto& host2  = Super_stack::get(3);
+  static auto& eth0   = Interfaces::get(0);
+  static auto& eth1   = Interfaces::get(1);
+  static auto& host1  = Interfaces::get(2);
+  static auto& host2  = Interfaces::get(3);
 
   INFO("Ping", "host1 => host2 (%s)", host2.ip_addr().to_string().c_str());
   host1.icmp().ping(host2.ip_addr(), [](auto reply) {
@@ -117,10 +116,10 @@ void test_tcp_conntrack()
   static std::vector<char> storage;
 
   // same rules still apply
-  static auto& eth0   = Super_stack::get(0);
-  static auto& eth1   = Super_stack::get(1);
-  static auto& host1  = Super_stack::get(2);
-  static auto& host2  = Super_stack::get(3);
+  static auto& eth0   = Interfaces::get(0);
+  static auto& eth1   = Interfaces::get(1);
+  static auto& host1  = Interfaces::get(2);
+  static auto& host2  = Interfaces::get(3);
 
   // retrieve the shared conntrack instance
   eth0.conntrack()->tcp_in = net::tcp::tcp4_conntrack;
@@ -204,7 +203,7 @@ void test_vlan()
   // eth0
   {
     const int idx = 0;
-    auto& nic = Super_stack::get(idx).nic();
+    auto& nic = Interfaces::get(idx).nic();
     auto& manager = VLAN_manager::get(idx);
     ip4::Addr netmask{255,255,255,0};
     // 10.0.10.1 - 10.0.109.1
@@ -212,7 +211,7 @@ void test_vlan()
     {
       ip4::Addr addr{10,0,id,1};
       auto& vif = manager.add(nic, id);
-      auto& inet = Super_stack::inet().create(vif, idx, id);
+      auto& inet = Interfaces::inet().create(vif, idx, id);
 
       inet.network_config(addr, netmask, 0);
 
@@ -225,7 +224,7 @@ void test_vlan()
   // host1
   {
     const int idx = 2;
-    auto& nic = Super_stack::get(idx).nic();
+    auto& nic = Interfaces::get(idx).nic();
     auto& manager = VLAN_manager::get(idx);
     // 10.0.10.10 - 10.0.109.10
     ip4::Addr netmask{255,255,255,0};
@@ -233,9 +232,9 @@ void test_vlan()
     {
       ip4::Addr addr{10,0,id,10};
       auto& vif = manager.add(nic, id);
-      auto& inet = Super_stack::inet().create(vif, idx, id);
+      auto& inet = Interfaces::inet().create(vif, idx, id);
 
-      inet.network_config(addr, netmask, Super_stack::get(0, id).ip_addr());
+      inet.network_config(addr, netmask, Interfaces::get(0, id).ip_addr());
     }
   }
 
@@ -247,14 +246,14 @@ void test_vlan()
   // eth1
   {
     const int idx = 1;
-    auto& nic = Super_stack::get(idx).nic();
+    auto& nic = Interfaces::get(idx).nic();
     auto& manager = VLAN_manager::get(idx);
     ip4::Addr addr{10,0,224,1};
     ip4::Addr netmask{255,255,255,0};
 
     const int id = 1337;
     auto& vif = manager.add(nic, id);
-    auto& inet = Super_stack::inet().create(vif, idx, id);
+    auto& inet = Interfaces::inet().create(vif, idx, id);
 
     inet.network_config(addr, netmask, 0);
 
@@ -266,16 +265,16 @@ void test_vlan()
   // host2
   {
     const int idx = 3;
-    auto& nic = Super_stack::get(idx).nic();
+    auto& nic = Interfaces::get(idx).nic();
     auto& manager = VLAN_manager::get(idx);
     ip4::Addr addr{10,0,224,10};
     ip4::Addr netmask{255,255,255,0};
 
     const int id = 1337;
     auto& vif = manager.add(nic, id);
-    auto& inet = Super_stack::inet().create(vif, idx, id);
+    auto& inet = Interfaces::inet().create(vif, idx, id);
 
-    inet.network_config(addr, netmask, Super_stack::get(1, id).ip_addr());
+    inet.network_config(addr, netmask, Interfaces::get(1, id).ip_addr());
   }
 
   // assign our routing table
@@ -283,7 +282,7 @@ void test_vlan()
 
   // recv TCP on host2
   INFO("VLAN", "TCP host2.1337 => listen:4242");
-  static auto& host2 = Super_stack::get(3, 1337);
+  static auto& host2 = Interfaces::get(3, 1337);
   host2.tcp().listen(4242, [](auto conn)
   {
     printf("Incoming connection %s\n", conn->to_string().c_str());
@@ -298,7 +297,7 @@ void test_vlan()
   {
     Timers::oneshot(std::chrono::milliseconds(10*(id-9)), [id](auto)
     {
-      auto& host = Super_stack::get(2, id);
+      auto& host = Interfaces::get(2, id);
       host.tcp().connect({host2.ip_addr(), 4242}, [](auto conn) {
         assert(conn);
       });

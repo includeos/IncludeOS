@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
+#include <net/interfaces>
 #include <net/router.hpp>
 using namespace net;
 
@@ -61,14 +61,14 @@ ip_forward (IP4::IP_packet_ptr pckt, Inet& stack, Conntrack::Entry_ptr)
 
 void Service::start(const std::string&)
 {
-  auto& inet = Inet::stack<0>();
+  auto& inet = Interfaces::get(0);
   inet.network_config({  10,  0,  0, 42 },   // IP
                       { 255, 255, 0,  0 },   // Netmask
                       {  10,  0,  0,  1 } ); // Gateway
 
   INFO("Router","Interface 1 IP: %s\n", inet.ip_addr().str().c_str());
 
-  auto& inet2 = Inet::stack<1>();
+  auto& inet2 = Interfaces::get(1);
   inet2.network_config({  10,  42,  42, 43 },   // IP
                       { 255, 255, 255,  0 },   // Netmask
                       {  10,  42,  42,  2 } ); // Gateway
