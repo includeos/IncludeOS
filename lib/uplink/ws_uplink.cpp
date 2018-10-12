@@ -39,6 +39,7 @@
 #include "log.hpp"
 #include <system_log>
 #include <isotime>
+#include <net/interfaces>
 
 #include <memdisk>
 #include <net/openssl/init.hpp>
@@ -517,7 +518,7 @@ namespace uplink {
 
     writer.StartArray();
 
-    auto& stacks = net::Super_stack::inet().stacks();
+    auto& stacks = net::Interfaces::instance().stacks();
     for(const auto& stack : stacks) {
       for(const auto& pair : stack)
         serialize_stack(writer, pair.second);
@@ -627,7 +628,7 @@ namespace uplink {
 
   std::shared_ptr<net::Conntrack> get_first_conntrack()
   {
-    for(auto& stacks : net::Super_stack::inet().stacks()) {
+    for(auto& stacks : net::Interfaces::instance().stacks()) {
       for(auto& stack : stacks)
       {
         if(stack.second != nullptr and stack.second->conntrack() != nullptr)
