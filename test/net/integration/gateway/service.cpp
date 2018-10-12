@@ -25,7 +25,7 @@ int pongs = 0;
 
 void verify() {
   static int i = 0;
-  if (++i == 9) printf("SUCCESS\n");
+  if (++i == 10) printf("SUCCESS\n");
 }
 
 inline void test_tcp_conntrack();
@@ -100,8 +100,7 @@ void Service::start()
 
   // some breathing room
   Timers::oneshot(std::chrono::seconds(1), [](auto) {
-    //test_vlan(); // remember to increase success counter by 1 when enabling.
-    INFO("VLAN", "Ignoring test due to issue #1519");
+    test_vlan();
   });
   Timers::oneshot(std::chrono::seconds(3), [](auto) {
     test_tcp_conntrack();
@@ -283,6 +282,7 @@ void test_vlan()
   router.set_routing_table(std::move(table));
 
   // recv TCP on host2
+  INFO("VLAN", "TCP host2.1337 => listen:4242");
   static auto& host2 = Super_stack::get(3, 1337);
   host2.tcp().listen(4242, [](auto conn)
   {
@@ -292,6 +292,7 @@ void test_vlan()
       verify();
   });
 
+  INFO("VLAN", "TCP host1.N => host2.1337 (%s:%i)", host2.ip_addr().to_string().c_str(), 4242);
   // establish a connection from every VLAN through the router
   for(uint8_t id = id_start; id < id_end; id++)
   {
