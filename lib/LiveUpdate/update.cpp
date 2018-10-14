@@ -212,6 +212,8 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // 3. deactivate all devices (eg. mask all MSI-X vectors)
   // NOTE: there are some nasty side effects from calling this
   hw::Devices::deactivate_all();
+  // turn off devices that affect memory
+  __arch_system_deactivate();
 
   // store soft-resetting stuff
 #if defined(PLATFORM_x86_solo5) || defined(PLATFORM_UNITTEST)
