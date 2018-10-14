@@ -39,9 +39,9 @@ static const int ELF_MINIMUM = 164;
 // hotswapping functions
 extern "C" void solo5_exec(const char*, size_t);
 static void* HOTSWAP_AREA = (void*) 0x8000;
-extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
+extern "C" void  hotswap(const char*, int, char*, uint32_t, void*);
 extern "C" char  __hotswap_length;
-extern "C" void  hotswap64(char*, const char*, int, uintptr_t, void*, void*);
+extern "C" void  hotswap64(char*, const char*, int, uint32_t, void*, void*);
 extern uint32_t  hotswap64_len;
 extern void      __x86_init_paging(void*);
 extern "C" void* __os_store_soft_reset(const void*, size_t);
@@ -153,8 +153,11 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   }
   LPRINT("* Found ELF header\n");
 
+  bool      found_kernel_start = false;
   size_t    expected_total = 0;
-  uintptr_t start_offset = 0;
+  uint32_t  start_offset = 0;
+  extern void* find_kernel_start32(const Elf32_Ehdr* hdr);
+  extern void* find_kernel_start64(const Elf64_Ehdr* hdr);
 
   const char* bin_data  = nullptr;
   int         bin_len   = 0;
@@ -167,7 +170,10 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
         hdr->e_shnum * hdr->e_shentsize +
         hdr->e_shoff;
     /// program entry point
-    start_offset = hdr->e_entry;
+    void* start = find_kernel_start32(hdr);
+    start_offset = (start) ? (uintptr_t) start : hdr->e_entry;
+    found_kernel_start = (start != nullptr);
+
     // get offsets for the new service from program header
     auto* phdr = (Elf32_Phdr*) &binary[hdr->e_phoff];
     bin_data  = &binary[phdr->p_offset];
@@ -181,7 +187,9 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
         ehdr->e_shnum * ehdr->e_shentsize +
         ehdr->e_shoff;
     /// program entry point
-    start_offset = ehdr->e_entry;
+    void* start = find_kernel_start64(ehdr);
+    start_offset = (start) ? (uintptr_t) start : ehdr->e_entry;
+    found_kernel_start = (start != nullptr);
     // get offsets for the new service from program header
     auto* phdr = (Elf64_Phdr*) &binary[ehdr->e_phoff];
     bin_data  = &binary[phdr->p_offset];
@@ -202,7 +210,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   LPRINT("* Validated ELF header\n");
 
   // _start() entry point
-  LPRINT("* _start is located at %#x\n", start_offset);
+  LPRINT("* Kernel entry is located at %#x\n", start_offset);
 
   // save ourselves if function passed
   update_store_data(storage_area, &blob);
@@ -231,8 +239,6 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
       phys_base == nullptr || bin_len <= 64) {
     throw std::runtime_error("ELF program header malformed");
   }
-
-  //char* phys_base = (char*) (start_offset & 0xffff0000);
   LPRINT("* Physical base address is %p...\n", phys_base);
 
   // replace ourselves and reset by jumping to _start
@@ -243,14 +249,11 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   throw std::runtime_error("solo5_exec returned");
 # elif defined(PLATFORM_UNITTEST)
   throw liveupdate_exec_success();
-# elif defined(ARCH_i686)
-    // copy hotswapping function to sweet spot
-    memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
-    /// the end
-    ((decltype(&hotswap)) HOTSWAP_AREA)(bin_data, bin_len, phys_base, start_offset, sr_data);
 # elif defined(ARCH_x86_64)
     // change to simple pagetable
     __x86_init_paging((void*) 0x1000);
+  if (found_kernel_start == false)
+  {
     // copy hotswapping function to sweet spot
     memcpy(HOTSWAP_AREA, (void*) &hotswap64, hotswap64_len);
     /// the end
@@ -262,9 +265,12 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   } else {
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data, nullptr);
   }
-# else
-#   error "Unimplemented architecture"
+  }
 # endif
+  // copy hotswapping function to sweet spot
+  memcpy(HOTSWAP_AREA, (void*) &hotswap, &__hotswap_length - (char*) &hotswap);
+  /// the end
+  ((decltype(&hotswap)) HOTSWAP_AREA)(bin_data, bin_len, phys_base, start_offset, sr_data);
 }
 void LiveUpdate::restore_environment()
 {

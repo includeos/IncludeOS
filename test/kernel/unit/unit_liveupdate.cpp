@@ -40,7 +40,7 @@ CASE("Setup LiveUpdate and perform no-op update")
   elf->e_shoff = 164;
 
   auto* phdr = (Elf64_Phdr*) &not_a_kernel[elf->e_phoff];
-  phdr->p_filesz = 164;
+  phdr->p_filesz = not_a_kernel.size();
   phdr->p_paddr  = 0x80;
 
   EXPECT_THROWS_AS(LiveUpdate::exec(not_a_kernel, storage_area), liveupdate_exec_success);
