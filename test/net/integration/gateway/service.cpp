@@ -211,7 +211,7 @@ void test_vlan()
     {
       ip4::Addr addr{10,0,id,1};
       auto& vif = manager.add(nic, id);
-      auto& inet = Interfaces::inet().create(vif, idx, id);
+      auto& inet = Interfaces::create(vif, idx, id);
 
       inet.network_config(addr, netmask, 0);
 
@@ -232,7 +232,7 @@ void test_vlan()
     {
       ip4::Addr addr{10,0,id,10};
       auto& vif = manager.add(nic, id);
-      auto& inet = Interfaces::inet().create(vif, idx, id);
+      auto& inet = Interfaces::create(vif, idx, id);
 
       inet.network_config(addr, netmask, Interfaces::get(0, id).ip_addr());
     }
@@ -253,7 +253,7 @@ void test_vlan()
 
     const int id = 1337;
     auto& vif = manager.add(nic, id);
-    auto& inet = Interfaces::inet().create(vif, idx, id);
+    auto& inet = Interfaces::create(vif, idx, id);
 
     inet.network_config(addr, netmask, 0);
 
@@ -272,7 +272,7 @@ void test_vlan()
 
     const int id = 1337;
     auto& vif = manager.add(nic, id);
-    auto& inet = Interfaces::inet().create(vif, idx, id);
+    auto& inet = Interfaces::create(vif, idx, id);
 
     inet.network_config(addr, netmask, Interfaces::get(1, id).ip_addr());
   }

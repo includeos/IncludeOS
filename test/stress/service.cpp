@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet>
+#include <net/interfaces>
 #include <net/dhcp/dh4client.hpp>
 #include <math.h> // rand()
 #include <sstream>
@@ -136,7 +136,7 @@ void Service::start(const std::string&)
   for (int i = 0; i < 1000; i++)
     Timers::oneshot(std::chrono::microseconds(i + 200), [](auto){});
 
-  static auto& inet = net::Inet::stack<0>();
+  static auto& inet = net::Interfaces::get(0);
 
   // Static IP configuration, until we (possibly) get DHCP
   // @note : Mostly to get a robust demo service that it works with and without DHCP
