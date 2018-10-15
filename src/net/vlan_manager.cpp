@@ -38,6 +38,7 @@ VLAN_manager& VLAN_manager::get(int N)
   }
   else
   {
+    PRINT("<VLAN_manager> Creating VLAN manager for N=%i\n", N);
     auto ptr = std::unique_ptr<VLAN_manager>(new VLAN_manager);
     auto ok = managers.emplace(N, std::move(ptr));
     Expects(ok.second);
