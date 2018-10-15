@@ -166,6 +166,7 @@ void __arch_reboot() {}
 void __arch_subscribe_irq(uint8_t) {}
 void __arch_enable_legacy_irq(uint8_t) {}
 void __arch_disable_legacy_irq(uint8_t) {}
+void __arch_system_deactivate() {}
 
 delegate<uint64_t()> systime_override = [] () -> uint64_t { return 0; };
 uint64_t __arch_system_time() noexcept {

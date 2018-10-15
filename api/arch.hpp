@@ -31,6 +31,7 @@ extern void __arch_poweroff();
 extern void __arch_reboot();
 extern void __arch_enable_legacy_irq(uint8_t);
 extern void __arch_disable_legacy_irq(uint8_t);
+extern void __arch_system_deactivate();
 
 extern void __arch_install_irq(uint8_t, void(*)());
 extern void __arch_subscribe_irq(uint8_t);

@@ -9,4 +9,5 @@ struct KVM_clock
   static uint64_t system_time();
   static timespec wall_clock();
   static util::KHz      get_tsc_khz();
+  static void deactivate();
 };
