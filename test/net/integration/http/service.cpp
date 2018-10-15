@@ -98,6 +98,8 @@ void Service::ready()
       });
 
   using namespace std::chrono;
+  Basic_client::Options options;
+  options.timeout = 3s;
   client_->get(acorn_url + "api/dashboard/status", {},
   [] (Error err, Response_ptr res, Connection&)
   {
@@ -105,7 +107,7 @@ void Service::ready()
     CHECK(res != nullptr, "Received response");
     if(!err)
       printf("Response:\n%s\n", res->to_string().c_str());
-  }, { 3s });
+  }, options);
 
 
   INFO("Basic_client", "HTTPS");
