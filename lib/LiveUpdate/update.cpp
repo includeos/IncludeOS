@@ -49,9 +49,9 @@ extern "C" void* __os_store_soft_reset(const void*, size_t);
 extern char _ELF_START_;
 extern char _end;
 // turn this off to reduce liveupdate times at the cost of extra checks
-bool LIVEUPDATE_PERFORM_SANITY_CHECKS = true;
+bool LIVEUPDATE_USE_CHEKSUMS    = true;
 // turn this om to zero-initialize all memory between new kernel and heap end
-bool LIVEUPDATE_ZERO_OLD_MEMORY       = false;
+bool LIVEUPDATE_ZERO_OLD_MEMORY = false;
 
 using namespace liu;
 
@@ -289,12 +289,8 @@ size_t LiveUpdate::stored_data_length(const void* location)
   if (location == nullptr) location = OS::liveupdate_storage_area();
   auto* storage = (storage_header*) location;
 
-  if (LIVEUPDATE_PERFORM_SANITY_CHECKS)
-  {
-    /// sanity check
-    if (storage->validate() == false)
-        throw std::runtime_error("Failed sanity check on LiveUpdate storage area");
-  }
+  if (storage->validate() == false)
+      throw std::runtime_error("Failed sanity check on LiveUpdate storage area");
 
   /// return length of the whole area
   return storage->total_bytes();

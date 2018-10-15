@@ -22,11 +22,13 @@
 
 using storage_func_t = liu::LiveUpdate::storage_func;
 extern storage_func_t begin_test_boot();
-extern bool LIVEUPDATE_PERFORM_SANITY_CHECKS;
 
 void Service::start()
 {
-  //LIVEUPDATE_PERFORM_SANITY_CHECKS = false;
+#ifdef BENCHMARK_MODE
+  extern bool LIVEUPDATE_USE_CHEKSUMS;
+  LIVEUPDATE_USE_CHEKSUMS = false;
+#endif
   OS::set_panic_action(OS::Panic_action::halt);
 
   auto func = begin_test_boot();
