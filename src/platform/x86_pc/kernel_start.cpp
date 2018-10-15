@@ -111,8 +111,6 @@ extern "C"
 __attribute__((no_sanitize("all")))
 void kernel_start(uint32_t magic, uint32_t addr)
 {
-  extern void elf_check_symbols_ok();
-  elf_check_symbols_ok();
   __grub_magic = magic;
   __grub_addr  = addr;
 

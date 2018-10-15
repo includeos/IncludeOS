@@ -151,10 +151,6 @@ long_mode:
     mov eax, 0x0
     wrmsr
 
-    ;; check elf symbols
-    extern elf_check_symbols_ok
-    call elf_check_symbols_ok
-
     ;; geronimo!
     mov  edi, DWORD[__multiboot_magic]
     mov  esi, DWORD[__multiboot_addr]
