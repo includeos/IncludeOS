@@ -125,6 +125,14 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     m_pcidev(d), m_mtu(mtu),
     stat_sendq_cur{Statman::get().create(Stat::UINT32, device_name() + ".sendq_now").get_uint32()},
     stat_sendq_max{Statman::get().create(Stat::UINT32, device_name() + ".sendq_max").get_uint32()},
+
+    //TODO make some of these stats generic and put them into LINK object so that they can be seen on all networking drivers
+    stat_tx_total_packets{Statman::get().create(Stat::UINT64, device_name() + ".stat_tx_total_packets").get_uint64()},
+    stat_tx_total_bytes{Statman::get().create(Stat::UINT64, device_name() + ".stat_tx_total_bytes").get_uint64()},
+    stat_rx_total_packets{Statman::get().create(Stat::UINT64, device_name() + ".stat_rx_total_packets").get_uint64()},
+    stat_rx_total_bytes{Statman::get().create(Stat::UINT64, device_name() + ".stat_rx_total_bytes").get_uint64()},
+    stat_rx_zero_dropped{Statman::get().create(Stat::UINT64, device_name() + ".stat_rx_zero_dropped").get_uint64()},
+
     stat_rx_refill_dropped{Statman::get().create(Stat::UINT64, device_name() + ".rx_refill_dropped").get_uint64()},
     stat_sendq_dropped{Statman::get().create(Stat::UINT64, device_name() + ".sendq_dropped").get_uint64()},
     bufstore_{1024, buffer_size_for_mtu(mtu)}
@@ -514,12 +522,29 @@ bool vmxnet3::receive_handler(const int Q)
     rx[Q].prod_count--;
 
     int desc = comp.index % vmxnet3::NUM_RX_DESC;
+    
+    // Handle case of empty packet
+    if (UNLIKELY((comp.len & (VMXNET3_MAX_BUFFER_LEN-1)) == 0)) {
+      //TODO assert / log if eop and sop are not set in empty packet.
+
+      //release unused buffer
+      auto* packet = (net::Packet*) (tx.buffers[desc] - DRIVER_OFFSET - sizeof(net::Packet));
+      delete packet; // call deleter on Packet to release it
+      rx[Q].buffers[desc] = nullptr;
+      stat_rx_zero_dropped++;
+      break;
+    }
+    
     // mask out length
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
 
     // get buffer and construct packet
     assert(rx[Q].buffers[desc] != nullptr);
     recvq.push_back(recv_packet(rx[Q].buffers[desc], len));
+
+    stat_rx_total_packets++;
+    stat_rx_total_bytes+=len;
+
     rx[Q].buffers[desc] = nullptr;
   }
   this->enable_intr(2 + Q);
@@ -596,6 +621,9 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
   desc.address  = (uintptr_t) tx.buffers[idx];
   desc.flags[0] = gen | data_length;
   desc.flags[1] = VMXNET3_TXF_CQ | VMXNET3_TXF_EOP;
+
+  stat_tx_total_packets++;
+  stat_tx_total_bytes+=data_length;
 }
 
 void vmxnet3::flush()
