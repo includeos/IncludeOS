@@ -86,11 +86,11 @@ def run_dhclient(trigger_line):
   route_output = subprocess.check_output(["route"])
 
   if "10.0.0.0" not in route_output:
-    subprocess.call(["sudo", "ifconfig", "bridge43", "10.0.0.1", "netmask", "255.255.0.0", "up"]
+    subprocess32.call(["sudo", "ifconfig", "bridge43", "10.0.0.1", "netmask", "255.255.0.0", "up"], timeout=thread_timeout)
     time.sleep(1)
 
   if "10.200.0.0" not in route_output:
-    subprocess.call(["sudo", "route", "add", "-net", "10.200.0.0", "netmask", "255.255.0.0", "dev", "bridge43"])
+    subprocess32.call(["sudo", "route", "add", "-net", "10.200.0.0", "netmask", "255.255.0.0", "dev", "bridge43"], timeout=thread_timeout)
     print color.INFO("<Test.py>"), "Route added to bridge43, 10.200.0.0"
 
   print color.INFO("<Test.py>"), "Running dhclient"
@@ -103,7 +103,7 @@ def run_dhclient(trigger_line):
     )
     # timeout on dhclient process
     kill_proc = lambda p: p.kill()
-    timer = Timer(20, kill_proc, [dhclient])
+    timer = Timer(thread_timeout, kill_proc, [dhclient])
     timer.start()
     process_output, _ = dhclient.communicate()
 
