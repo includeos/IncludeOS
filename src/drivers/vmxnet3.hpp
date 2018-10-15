@@ -81,6 +81,8 @@ public:
 
   void poll() override;
 
+  void add_vlan(const int id) override;
+
 private:
   void msix_evt_handler();
   void msix_xmit_handler();
@@ -143,6 +145,11 @@ private:
   // sendq as double-ended q
   uint32_t& stat_sendq_cur;
   uint32_t& stat_sendq_max;
+  uint64_t& stat_tx_total_packets;
+  uint64_t& stat_tx_total_bytes;
+  uint64_t& stat_rx_total_packets;
+  uint64_t& stat_rx_total_bytes;
+  uint64_t& stat_rx_zero_dropped;
   uint64_t& stat_rx_refill_dropped;
   uint64_t& stat_sendq_dropped;
   std::deque<net::Packet_ptr> sendq;

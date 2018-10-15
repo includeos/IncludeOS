@@ -42,6 +42,8 @@ namespace liu {
 class Stat {
 public:
   static const int MAX_NAME_LEN = 46;
+  static const int GAUGE_BIT    = 0x40;
+  static const int PERSIST_BIT  = 0x80;
 
   enum Stat_type: uint8_t
   {
@@ -59,14 +61,19 @@ public:
   void operator++();
 
   Stat_type type() const noexcept
-  { return type_; }
+  { return (Stat_type)(m_bits & 0xF); }
 
-  const char* name() const noexcept
-  { return name_; }
+  bool is_persistent() const noexcept { return m_bits & PERSIST_BIT; }
+  void make_persistent() noexcept { m_bits |= PERSIST_BIT; }
 
-  bool unused() const noexcept {
-    return name_[0] == 0;
-  }
+  bool is_counter() const noexcept { return (m_bits & GAUGE_BIT) == 0; }
+  bool is_gauge() const noexcept { return (m_bits & GAUGE_BIT) == GAUGE_BIT; }
+
+  void make_counter() noexcept { m_bits &= ~GAUGE_BIT; }
+  void make_gauge() noexcept { m_bits |= GAUGE_BIT; }
+
+  const char* name() const noexcept { return name_; }
+  bool unused() const noexcept { return name_[0] == 0; }
 
   const float&    get_float() const;
   float&          get_float();
@@ -83,7 +90,7 @@ private:
     uint32_t ui32;
     uint64_t ui64;
   };
-  Stat_type type_;
+  uint8_t m_bits;
 
   char name_[MAX_NAME_LEN+1];
 }; //< class Stat
@@ -154,28 +161,28 @@ private:
 }; //< class Statman
 
 inline float& Stat::get_float() {
-  if (UNLIKELY(type_ != FLOAT)) throw Stats_exception{"Stat type is not a float"};
+  if (UNLIKELY(type() != FLOAT)) throw Stats_exception{"Stat type is not a float"};
   return f;
 }
 inline uint32_t& Stat::get_uint32() {
-  if (UNLIKELY(type_ != UINT32)) throw Stats_exception{"Stat type is not an uint32"};
+  if (UNLIKELY(type() != UINT32)) throw Stats_exception{"Stat type is not an uint32"};
   return ui32;
 }
 inline uint64_t& Stat::get_uint64() {
-  if (UNLIKELY(type_ != UINT64)) throw Stats_exception{"Stat type is not an uint64"};
+  if (UNLIKELY(type() != UINT64)) throw Stats_exception{"Stat type is not an uint64"};
   return ui64;
 }
 
 inline const float& Stat::get_float() const {
-  if (UNLIKELY(type_ != FLOAT)) throw Stats_exception{"Stat type is not a float"};
+  if (UNLIKELY(type() != FLOAT)) throw Stats_exception{"Stat type is not a float"};
   return f;
 }
 inline const uint32_t& Stat::get_uint32() const {
-  if (UNLIKELY(type_ != UINT32)) throw Stats_exception{"Stat type is not an uint32"};
+  if (UNLIKELY(type() != UINT32)) throw Stats_exception{"Stat type is not an uint32"};
   return ui32;
 }
 inline const uint64_t& Stat::get_uint64() const {
-  if (UNLIKELY(type_ != UINT64)) throw Stats_exception{"Stat type is not an uint64"};
+  if (UNLIKELY(type() != UINT64)) throw Stats_exception{"Stat type is not an uint64"};
   return ui64;
 }
 

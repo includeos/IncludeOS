@@ -33,7 +33,6 @@
 
 //#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
 #define LPRINT(x, ...) /** x **/
-#define LIU_ZERO_OLD_MEMORY
 
 static const int SECT_SIZE   = 512;
 static const int ELF_MINIMUM = 164;
@@ -51,6 +50,8 @@ extern char _ELF_START_;
 extern char _end;
 // turn this off to reduce liveupdate times at the cost of extra checks
 bool LIVEUPDATE_PERFORM_SANITY_CHECKS = true;
+// turn this om to zero-initialize all memory between new kernel and heap end
+bool LIVEUPDATE_ZERO_OLD_MEMORY       = false;
 
 using namespace liu;
 
@@ -211,6 +212,8 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // 3. deactivate all devices (eg. mask all MSI-X vectors)
   // NOTE: there are some nasty side effects from calling this
   hw::Devices::deactivate_all();
+  // turn off devices that affect memory
+  __arch_system_deactivate();
 
   // store soft-resetting stuff
 #if defined(PLATFORM_x86_solo5) || defined(PLATFORM_UNITTEST)
@@ -251,14 +254,14 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
     // copy hotswapping function to sweet spot
     memcpy(HOTSWAP_AREA, (void*) &hotswap64, hotswap64_len);
     /// the end
-#ifdef LIU_ZERO_OLD_MEMORY
+  if (LIVEUPDATE_ZERO_OLD_MEMORY) {
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len,
                 start_offset,          /* binary entry point */
                 sr_data,               /* softreset location */
                 (void*) OS::heap_end() /* zero memory until this location */);
-#else
+  } else {
     ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data, nullptr);
-#endif
+  }
 # else
 #   error "Unimplemented architecture"
 # endif
