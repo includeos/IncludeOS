@@ -190,12 +190,14 @@ namespace uplink {
     url << endpoint;
 
     MYINFO("[ %s ] Sending auth request to %s", isotime::now().c_str(), url.to_string().c_str());
+    http::Basic_client::Options options;
+    options.timeout = 15s;
 
     client_->post(url,
       { {"Content-Type", "application/json"} },
       auth_data(),
       {this, &WS_uplink::handle_auth_response},
-      http::Basic_client::Options{15s});
+      options);
   }
 
   void WS_uplink::handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&)

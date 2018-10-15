@@ -44,6 +44,7 @@ static SMP::Array<smp_table> cpu_tables;
 
 namespace x86 {
   void initialize_cpu_tables_for_cpu(int cpu);
+  void register_deactivation_function(delegate<void()>);
 }
 
 
@@ -123,6 +124,15 @@ void x86::initialize_cpu_tables_for_cpu(int cpu)
   GDT::reload_gdt(gdt);
   GDT::set_fs(fs);
 #endif
+}
+
+static std::vector<delegate<void()>> deactivate_funcs;
+void x86::register_deactivation_function(delegate<void()> func) {
+  deactivate_funcs.push_back(std::move(func));
+}
+void __arch_system_deactivate()
+{
+  for (auto& func : deactivate_funcs) func();
 }
 
 void __arch_enable_legacy_irq(uint8_t irq)
