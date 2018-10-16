@@ -129,8 +129,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   auto& memmap = memory_map();
   INFO2("Assigning fixed memory ranges (Memory map)");
   // protect symbols early on (the calculation is complex so not doing it here)
-  memmap.assign_range({(uintptr_t)&_end, heap_begin()-1,
-                       "Symbols & strings"});
   extern void elf_protect_symbol_areas();
   elf_protect_symbol_areas();
 
