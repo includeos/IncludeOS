@@ -35,6 +35,11 @@ void __arch_reboot()
   exit(0);
 }
 
+void __arch_system_deactivate()
+{
+  // nada
+}
+
 #include <execinfo.h>
 void print_backtrace()
 {
@@ -67,4 +72,9 @@ void panic(const char* why)
   print_backtrace();
   raise(SIGINT);
   exit(1);
+}
+
+extern "C"
+void __os_store_soft_reset(const void*, size_t) {
+  // don't need to on this platform
 }

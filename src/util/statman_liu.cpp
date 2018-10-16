@@ -14,7 +14,7 @@ void Statman::restore(liu::Restore& store)
     // discard old stats that was stored as buffer
     return;
   }
-  auto stats = store.as_vector<const Stat>();
+  auto stats = store.as_vector<Stat>();
 
   for (auto& merge_stat : stats)
   {

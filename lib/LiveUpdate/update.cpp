@@ -62,6 +62,10 @@ static std::unordered_map<std::string, LiveUpdate::storage_func> storage_callbac
 
 void LiveUpdate::register_partition(std::string key, storage_func callback)
 {
+#if defined(USERSPACE_LINUX)
+  // on linux we cant make the jump, so the tracking wont reset
+  storage_callbacks[key] = std::move(callback);
+#else
   auto it = storage_callbacks.find(key);
   if (it == storage_callbacks.end())
   {
@@ -72,6 +76,7 @@ void LiveUpdate::register_partition(std::string key, storage_func callback)
   else {
     throw std::runtime_error("Storage key '" + key + "' already used");
   }
+#endif
 }
 
 template <typename Class>
@@ -93,9 +98,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
 {
   if (location == nullptr) location = OS::liveupdate_storage_area();
   LPRINT("LiveUpdate::begin(%p, %p:%d, ...)\n", location, blob.data(), (int) blob.size());
-#if defined(PLATFORM_x86_solo5) || defined(PLATFORM_UNITTEST)
-  // nothing to do
-#else
+#if defined(__includeos__)
   // 1. turn off interrupts
   asm volatile("cli");
 #endif
@@ -224,14 +227,14 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   __arch_system_deactivate();
 
   // store soft-resetting stuff
-#if defined(PLATFORM_x86_solo5) || defined(PLATFORM_UNITTEST)
-  void* sr_data = nullptr;
-#else
+#if defined(__includeos__)
   extern const std::pair<const char*, size_t> get_rollback_location();
   const auto rollback = get_rollback_location();
   // we should store physical address of update location
   auto rb_phys = os::mem::virt_to_phys((uintptr_t) rollback.first);
   void* sr_data = __os_store_soft_reset((void*) rb_phys, rollback.second);
+#else
+  void* sr_data = nullptr;
 #endif
 
   // get offsets for the new service from program header
@@ -247,7 +250,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
 #ifdef PLATFORM_x86_solo5
   solo5_exec(blob.data(), blob.size());
   throw std::runtime_error("solo5_exec returned");
-# elif defined(PLATFORM_UNITTEST)
+# elif defined(PLATFORM_UNITTEST) || defined(USERSPACE_LINUX)
   throw liveupdate_exec_success();
 # elif defined(ARCH_x86_64)
     // change to simple pagetable

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.9)
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-DPLATFORM_${PLATFORM})
+add_definitions(-D__includeos__)
 
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
