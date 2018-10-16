@@ -22,7 +22,6 @@
 #include <boot/multiboot.h>
 
 extern "C" {
-  void __init_serial1();
   void __init_sanity_checks();
   uintptr_t _move_symbols(uintptr_t loc);
   void _init_bss();
@@ -37,9 +36,6 @@ extern bool os_default_stdout;
 extern "C"
 void kernel_start(uintptr_t magic, uintptr_t addr)
 {
-  // Initialize serial port 1
-  __init_serial1();
-
   // Determine where free memory starts
   extern char _end;
   uintptr_t free_mem_begin = (uintptr_t) &_end;

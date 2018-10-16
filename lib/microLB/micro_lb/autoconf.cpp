@@ -1,6 +1,7 @@
 #include "balancer.hpp"
 #include <config>
 #include <rapidjson/document.h>
+#include <net/interfaces.hpp>
 
 namespace microLB
 {
@@ -17,7 +18,7 @@ namespace microLB
     auto& clients = obj["clients"];
     // client network interface
     const int CLIENT_NET = clients["iface"].GetInt();
-    auto& netinc = net::Super_stack::get(CLIENT_NET);
+    auto& netinc = net::Interfaces::get(CLIENT_NET);
     // client port
     const int CLIENT_PORT = clients["port"].GetUint();
     assert(CLIENT_PORT > 0 && CLIENT_PORT < 65536);
@@ -30,7 +31,7 @@ namespace microLB
 
     auto& nodes = obj["nodes"];
     const int NODE_NET = nodes["iface"].GetInt();
-    auto& netout = net::Super_stack::get(NODE_NET);
+    auto& netout = net::Interfaces::get(NODE_NET);
     netout.tcp().set_MSL(15s);
 
     Balancer* balancer = nullptr;

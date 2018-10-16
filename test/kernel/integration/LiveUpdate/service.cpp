@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet>
+#include <net/interfaces>
 #include <cstdio>
 #include "liu.hpp"
 
@@ -35,7 +35,7 @@ void Service::start()
 
   if (OS::is_live_updated() == false)
   {
-    auto& inet = net::Super_stack::get(0);
+    auto& inet = net::Interfaces::get(0);
     inet.network_config({10,0,0,59}, {255,255,255,0}, {10,0,0,1});
     setup_liveupdate_server(inet, 666, func);
 

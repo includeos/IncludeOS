@@ -17,12 +17,12 @@
 
 #include <service>
 #include <cstdio>
-#include <net/inet>
+#include <net/interfaces>
 #include <terminal>
 
 void Service::start()
 {
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
   inet.network_config(
      { 10,0,0,63 },      // IP
      { 255,255,255,0 },  // Netmask

@@ -4,7 +4,7 @@ set(NET_SOURCES
   ${IOS}/src/net/buffer_store.cpp
   ${IOS}/src/net/checksum.cpp
   ${IOS}/src/net/configure.cpp
-  ${IOS}/src/net/super_stack.cpp
+  ${IOS}/src/net/interfaces.cpp
   ${IOS}/src/net/inet.cpp
   ${IOS}/src/net/packet_debug.cpp
 
