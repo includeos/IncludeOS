@@ -21,6 +21,7 @@
 #include <math.h> // rand()
 #include <sstream>
 #include <timers>
+#include <statman>
 
 using namespace std::chrono;
 
@@ -159,16 +160,27 @@ void Service::start(const std::string&)
   net::UDP::port_t port_mem = 4243;
   auto& conn_mem = inet.udp().bind(port_mem);
 
-/*
-  Timers::periodic(10s, 10s,
-  [] (Timers::id_t) {
-    printf("<Service> TCP STATUS:\n%s \n", inet.tcp().status().c_str());
 
+  Timers::periodic(1s, 10s,
+  [] (Timers::id_t) {
     auto memuse =  OS::heap_usage();
     printf("Current memory usage: %i b, (%f MB) \n", memuse, float(memuse)  / 1000000);
     printf("Recv: %llu Sent: %llu\n", TCP_BYTES_RECV, TCP_BYTES_SENT);
+    printf("eth0.sendq_max: %zu, eth0.sendq_now: %zu"
+           "eth0.stat_rx_total_packets: %zu, eth0.stat_rx_total_packets: %zu, "
+           "eth0.stat_rx_total_bytes: %zu, eth0.stat_tx_total_bytes: %zu, "
+           "eth0.sendq_dropped: %zu, eth0.rx_refill_dropped: %zu \n",
+           Statman::get().get_by_name("eth0.sendq_max").get_uint64(),
+           Statman::get().get_by_name("eth0.sendq_now").get_uint64(),
+           Statman::get().get_by_name("eth0.stat_rx_total_packets").get_uint64(),
+           Statman::get().get_by_name("eth0.stat_tx_total_packets").get_uint64(),
+           Statman::get().get_by_name("eth0.stat_rx_total_bytes").get_uint64(),
+           Statman::get().get_by_name("eth0.stat_tx_total_bytes").get_uint64(),
+           Statman::get().get_by_name("eth0.sendq_dropped").get_uint64(),
+           Statman::get().get_by_name("eth0.rx_refill_dropped").get_uint64()
+      );
   });
-*/
+
   server_mem.on_connect([] (net::tcp::Connection_ptr conn) {
       conn->on_read(1024, [conn](net::tcp::buffer_t buf) {
           TCP_BYTES_RECV += buf->size();
