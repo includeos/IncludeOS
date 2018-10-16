@@ -19,6 +19,7 @@
 #include <kernel/os.hpp>
 #include <errno.h>
 #include <netinet/in.h>
+#include <net/interfaces.hpp>
 
 //#define POSIX_STRACE
 #ifdef POSIX_STRACE
@@ -31,7 +32,7 @@ using namespace net;
 
 // return the "currently selected" networking stack
 static auto& net_stack() {
-  return Inet::stack();
+  return Interfaces::get(0);
 }
 
 ssize_t TCP_FD::read(void* data, size_t len)

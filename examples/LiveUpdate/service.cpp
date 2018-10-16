@@ -91,7 +91,7 @@ void print_stats(int)
   printf("[%s] Conns/sec %.1f  Heap %.1f kb\n",
       now().c_str(), cps, OS::heap_usage() / 1024.0);
   // client and channel stats
-  auto& inet = net::Inet::stack<0>();
+  auto& inet = net::Interfaces::get(0);
 
   printf("Syns: %u  Conns: %lu  Users: %u  RAM: %lu bytes Chans: %u\n",
          ircd->get_counter(STAT_TOTAL_CONNS),
@@ -120,6 +120,7 @@ static void save_state(liu::Storage& store, const liu::buffer_t*)
 
 }
 
+#include <net/interfaces>
 void Service::ready()
 {
 #ifdef USE_STACK_SAMPLING
@@ -130,7 +131,7 @@ void Service::ready()
   Timers::periodic(seconds(5), seconds(PERIOD_SECS), print_stats);
 
   // raw TCP liveupdate server
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
   setup_liveupdate_server(inet, 666, save_state);
 
   // profiler statistics

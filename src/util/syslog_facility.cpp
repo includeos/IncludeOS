@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <util/syslog_facility.hpp>
-#include <net/inet>
+#include <net/interfaces>
 #include <unistd.h> // getpid
 #include <ctime>
 
@@ -35,7 +35,7 @@ void Syslog_udp::syslog(const std::string& log_message) {
 
 void Syslog_udp::open_socket() {
   if (sock_ == nullptr)
-    sock_ = &net::Inet::stack<>().udp().bind();
+    sock_ = &net::Interfaces::get(0).udp().bind();
 }
 
 void Syslog_udp::close_socket() {
@@ -65,7 +65,7 @@ std::string Syslog_udp::build_message_prefix(const std::string& binary_name) {
   strftime(timebuf, TIMELEN, "%FT%T.000Z", localtime(&now));
 
   // Third: Hostname ( Preferably: 1. FQDN (RFC1034) 2. Static IP address 3. Hostname 4. Dynamic IP address 5. NILVALUE (-) )
-  message += std::string{timebuf} + " " + net::Inet::stack().ip_addr().str() + " ";
+  message += std::string{timebuf} + " " + net::Interfaces::get(0).ip_addr().str() + " ";
 
   // Fourth: App-name, PROCID (LOG_PID) and MSGID
   message += std::string(binary_name) + " " + std::to_string(getpid()) + " UDPOUT ";

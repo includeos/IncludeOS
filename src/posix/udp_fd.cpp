@@ -17,6 +17,7 @@
 #include <posix/udp_fd.hpp>
 #include <kernel/os.hpp> // OS::block()
 #include <errno.h>
+#include <net/interfaces.hpp>
 
 //#define POSIX_STRACE 1
 #ifdef POSIX_STRACE
@@ -27,7 +28,7 @@
 
 // return the "currently selected" networking stack
 static net::Inet& net_stack() {
-  return net::Inet::stack<> ();
+  return net::Interfaces::get(0);
 }
 
 size_t UDP_FD::max_buffer_msgs() const

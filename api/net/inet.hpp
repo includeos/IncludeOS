@@ -36,7 +36,6 @@
 #include "ip6/icmp6.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
-#include "super_stack.hpp"
 
 namespace net {
 
@@ -316,34 +315,6 @@ namespace net {
 
     int  get_cpu_id() const noexcept {
       return this->cpu_id;
-    }
-
-    /** Return the stack on the given Nic */
-    template <int N = 0>
-    static auto&& stack()
-    {
-      return Super_stack::get(N);
-    }
-
-    /** Static IP config */
-    template <int N = 0>
-    static auto&& ifconfig(
-      IP4::addr addr,
-      IP4::addr nmask,
-      IP4::addr gateway,
-      IP4::addr dns = IP4::ADDR_ANY)
-    {
-      stack<N>().network_config(addr, nmask, gateway, dns);
-      return stack<N>();
-    }
-
-    /** DHCP config */
-    template <int N = 0>
-    static auto& ifconfig(double timeout = 10.0, dhcp_timeout_func on_timeout = nullptr)
-    {
-      if (timeout > 0.0)
-          stack<N>().negotiate_dhcp(timeout, on_timeout);
-      return stack<N>();
     }
 
     const Vip4_list virtual_ips() const noexcept

@@ -1,6 +1,7 @@
+//-*- C++ -*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015 Oslo and Akershus University College of Applied Sciences
+// Copyright 2018 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +15,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#pragma once
 
-#include <os>
-#include <net/interfaces>
-
-void Service::start()
-{
-  auto& inet = net::Interfaces::get(0);
-  inet.network_config({10,0,0,53},
-                      {255,255,255,0},
-                      {10,0,0,1});
-  printf("IncludeOS was just chainloaded by IncludeOS\n");
-
-}
+#include <net/interfaces.hpp>
