@@ -96,29 +96,23 @@ def run_dhclient(trigger_line):
   print color.INFO("<Test.py>"), "Running dhclient"
 
   try:
-    dhclient = subprocess.Popen(
+    dhclient = subprocess32.check_output(
         ["sudo", "dhclient", "bridge43", "-4", "-n", "-v"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT
+        stderr=subprocess.STDOUT,
+        timeout=thread_timeout
     )
-    # timeout on dhclient process
-    kill_proc = lambda p: p.kill()
-    timer = Timer(thread_timeout, kill_proc, [dhclient])
-    timer.start()
-    process_output, _ = dhclient.communicate()
 
     print color.INFO("<dhclient>")
-    print process_output
+    print dhclient
 
-    check_dhclient_output(process_output)
-  except (OSError, subprocess.CalledProcessError) as exception:
-    cleanup()
+    # gets ip of dhclient used to ping
+    check_dhclient_output(dhclient)
+
+  except subprocess.CalledProcessError as exception:
     print color.FAIL("<Test.py> dhclient FAILED threw exception:")
-    print str(exception)
-    timer.cancel()
+    print exception.output
     vm.exit(1, "<Test.py> dhclient test failed")
-  finally:
-    timer.cancel()
+    return False
 
   ping_test()
 
