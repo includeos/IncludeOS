@@ -3,7 +3,9 @@
 import sys
 import os
 import subprocess
+import subprocess32
 
+thread_timeout = 20
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
 sys.path.insert(0,includeos_src)
@@ -36,4 +38,4 @@ vm.on_output("Resolved IP address of github.com with DNS server 8.8.8.8", count)
 vm.on_output("some_address_that_doesnt_exist.com couldn't be resolved", count)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(20).clean()
+vm.cmake().boot(thread_timeout).clean()

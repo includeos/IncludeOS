@@ -17,8 +17,8 @@
 
 #pragma once
 #include <kernel/events.hpp>
-#include <hw/nic.hpp>
-#include <net/packet.hpp>
+#include <drivers/usernet.hpp>
+#include <net/interfaces>
 #include <deque>
 
 namespace hw

@@ -131,3 +131,11 @@ void* aligned_alloc(size_t alignment, size_t size) {
   return memalign(alignment, size);
 }
 #endif
+
+#include <memory>
+namespace os::mem
+{
+  uintptr_t virt_to_phys(uintptr_t linear) {
+    return linear;
+  }
+}

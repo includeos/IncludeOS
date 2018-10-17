@@ -33,6 +33,7 @@ void* aligned_alloc(size_t alignment, size_t size) {
 
 char _DISK_START_;
 char _DISK_END_;
+char _ELF_SYM_START_;
 
 /// RTC ///
 #include <rtc>
@@ -166,6 +167,7 @@ void __arch_reboot() {}
 void __arch_subscribe_irq(uint8_t) {}
 void __arch_enable_legacy_irq(uint8_t) {}
 void __arch_disable_legacy_irq(uint8_t) {}
+void __arch_system_deactivate() {}
 
 delegate<uint64_t()> systime_override = [] () -> uint64_t { return 0; };
 uint64_t __arch_system_time() noexcept {

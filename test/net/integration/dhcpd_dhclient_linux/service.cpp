@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
+#include <net/interfaces>
 #include <net/dhcp/dhcpd.hpp>
 #include <list>
 
@@ -29,7 +29,8 @@ void Service::start(const std::string&)
 
   // Server
 
-  auto& inet = Inet::ifconfig<0>(
+  auto& inet = Interfaces::get(0);
+  inet.network_config(
     { 10,200,0,1 },     // IP
     { 255,255,0,0 },    // Netmask
     { 10,0,0,1 },       // Gateway

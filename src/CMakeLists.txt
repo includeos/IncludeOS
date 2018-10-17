@@ -57,7 +57,7 @@ set(OS_OBJECTS
   net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet.cpp
-  net/super_stack.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
+  net/interfaces.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
   net/http/mime_types.cpp net/http/cookie.cpp

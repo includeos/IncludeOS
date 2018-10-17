@@ -44,7 +44,7 @@ namespace http {
     bool occupied() const
     { return !available(); }
 
-    void send(Request_ptr, Response_handler, const size_t bufsize, timeout_duration = timeout_duration::zero());
+    void send(Request_ptr, Response_handler, int redirects, timeout_duration = timeout_duration::zero());
 
   private:
     Basic_client&     client_;
@@ -53,8 +53,9 @@ namespace http {
     Response_handler  on_response_;
     Timer             timer_;
     timeout_duration  timeout_dur_;
+    int               redirect_;
 
-    void send_request(const size_t bufsize);
+    void send_request();
 
     void recv_response(buffer_t buf);
 
@@ -62,6 +63,10 @@ namespace http {
 
     void timeout_request()
     { end_response(Error::TIMEOUT); }
+
+    bool can_redirect(const Response_ptr&) const;
+
+    void redirect(uri::URI url);
 
     void close() override;
 

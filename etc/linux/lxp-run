@@ -9,6 +9,7 @@ RUN=${RUN:-"ON"}
 scriptName="${0##*/}"
 
 function make_linux() {
+  mkdir -p $INCLUDEOS_SRC/linux/build
   pushd $INCLUDEOS_SRC/linux/build
   cmake -DGPROF=$GPROF -DPGO_ENABLE=$PGO_EN -DPGO_GENERATE=$PGO_GEN -DDEBUGGING=$DBG -DCMAKE_INSTALL_PREFIX=$INCLUDEOS_PREFIX ..
   make $NUM_JOBS install

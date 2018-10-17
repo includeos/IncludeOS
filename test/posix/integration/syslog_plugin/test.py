@@ -4,6 +4,8 @@ import os
 import subprocess
 import atexit
 
+thread_timeout = 60
+
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
 print 'includeos_src: {0}'.format(includeos_src)
@@ -122,4 +124,4 @@ def end():
 vm.on_output("Service IP address is 10.0.0.47", start)
 
 # Boot the VM, taking a timeout as parameter
-vm.cmake().boot(60).clean()
+vm.cmake().boot(thread_timeout).clean()

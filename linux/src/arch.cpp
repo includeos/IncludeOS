@@ -35,6 +35,11 @@ void __arch_reboot()
   exit(0);
 }
 
+void __arch_system_deactivate()
+{
+  // nada
+}
+
 #include <execinfo.h>
 void print_backtrace()
 {
@@ -59,6 +64,17 @@ void print_backtrace()
   free(strings);
 }
 
+// context buffer
+static std::array<char, 512> context_buffer;
+size_t get_crash_context_length()
+{
+  return context_buffer.size();
+}
+char*  get_crash_context_buffer()
+{
+  return context_buffer.data();
+}
+
 #include <signal.h>
 extern "C"
 void panic(const char* why)
@@ -67,4 +83,9 @@ void panic(const char* why)
   print_backtrace();
   raise(SIGINT);
   exit(1);
+}
+
+extern "C"
+void __os_store_soft_reset(const void*, size_t) {
+  // don't need to on this platform
 }

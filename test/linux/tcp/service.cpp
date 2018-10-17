@@ -42,8 +42,8 @@ void Service::start()
   dev2->connect(*dev1);
 
   // Create IP stacks on top of the nic's and configure them
-  auto& inet_server = net::Super_stack::get(0);
-  auto& inet_client = net::Super_stack::get(1);
+  auto& inet_server = net::Interfaces::get(0);
+  auto& inet_client = net::Interfaces::get(1);
   inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
   inet_client.network_config({10,0,0,43}, {255,255,255,0}, {10,0,0,1});
 

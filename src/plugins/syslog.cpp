@@ -22,7 +22,7 @@
 #include <fs/vfs.hpp>
 #include <posix/syslog_print_socket.hpp>
 #include <posix/syslog_udp_socket.hpp>
-#include <net/super_stack.hpp>
+#include <net/interfaces.hpp>
 
 #ifndef RAPIDJSON_HAS_STDSTRING
   #define RAPIDJSON_HAS_STDSTRING 1
@@ -98,7 +98,7 @@ static void syslog_mount()
   Expects(cfg.HasMember("iface") && "Missing iface (index)");
   Expects(cfg.HasMember("address") && "Missing address");
 
-  auto& stack = net::Super_stack::get(cfg["iface"].GetInt());
+  auto& stack = net::Interfaces::get(cfg["iface"].GetInt());
   const net::ip4::Addr addr{cfg["address"].GetString()};
   const uint16_t port = cfg.HasMember("port") ?
     cfg["port"].GetUint() : default_port;

@@ -18,8 +18,11 @@
 #include <os>
 #include <profile>
 #include <timers>
+#include <net/interfaces>
 #include <sys/time.h>
+#ifndef USERSPACE_LINUX
 #define USE_STACK_SAMPLING
+#endif
 #define PERIOD_SECS    4
 
 #include "ircd/ircd.hpp"
@@ -28,6 +31,16 @@ using namespace std::chrono;
 
 void Service::start()
 {
+#ifdef USERSPACE_LINUX
+  extern void create_network_device(int N, const char* route, const char* ip);
+  create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+  auto& inet = net::Interfaces::get(0);
+  inet.network_config(
+      {  10, 0,  0, 42 },  // IP
+      { 255,255,255, 0 },  // Netmask
+      {  10, 0,  0,  1 },  // Gateway
+      {  10, 0,  0,  1 }); // DNS
+#endif
   // run a small self-test to verify parser is sane
   extern void selftest(); selftest();
 
@@ -106,7 +119,7 @@ void print_stats(int)
   printf("[%s] Conns/sec %.1f  Heap %.1f kb\n",
       now().c_str(), cps, OS::heap_usage() / 1024.0);
   // client and channel stats
-  auto& inet = net::Inet::stack<0>();
+  auto& inet = net::Interfaces::get(0);
 
   printf("Syns: %u  Conns: %lu  Users: %u  RAM: %lu bytes Chans: %u\n",
          ircd->get_counter(STAT_TOTAL_CONNS),
@@ -140,6 +153,8 @@ void Service::ready()
 
   Timers::periodic(seconds(1), seconds(PERIOD_SECS), print_stats);
 
+#ifndef USERSPACE_LINUX
   // profiler statistics
   printf("%s\n", ScopedProfiler::get_statistics(false).c_str());
+#endif
 }

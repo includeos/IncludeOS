@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
+#include <net/interfaces>
 #include <memdisk>
 #include <timers>
 #include <https>
@@ -34,7 +34,7 @@ void Service::start()
     assert(!err);
   });
   // Auto-configured from config.json
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
 
 #ifndef BENCHMARK_MODE
   // Print some useful TCP stats every 30 secs
