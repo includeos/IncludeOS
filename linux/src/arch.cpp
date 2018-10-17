@@ -64,6 +64,17 @@ void print_backtrace()
   free(strings);
 }
 
+// context buffer
+static std::array<char, 512> context_buffer;
+size_t get_crash_context_length()
+{
+  return context_buffer.size();
+}
+char*  get_crash_context_buffer()
+{
+  return context_buffer.data();
+}
+
 #include <signal.h>
 extern "C"
 void panic(const char* why)
