@@ -16,141 +16,127 @@
 // limitations under the License.
 
 #include <statman>
-#include <iterator>
 #include <info>
 #include <smp_utils>
 
-__attribute__((weak))
+// this is done to make sure construction only happens here
+static Statman statman_instance;
 Statman& Statman::get() {
-  static Statman statman;
-  return statman;
+  return statman_instance;
 }
 
-///////////////////////////////////////////////////////////////////////////////
 Stat::Stat(const Stat_type type, const std::string& name)
-  : ui64(0), type_{type}
+  : ui64(0), m_bits{type}
 {
-  if(name.size() > MAX_NAME_LEN)
-    throw Stats_exception{"Creating stat: Name cannot be longer than " + std::to_string(MAX_NAME_LEN) + " characters"};
+  if (name.size() > MAX_NAME_LEN)
+    throw Stats_exception("Stat name cannot be longer than " + std::to_string(MAX_NAME_LEN) + " characters");
 
   snprintf(name_, sizeof(name_), "%s", name.c_str());
 }
+Stat::Stat(const Stat& other) {
+  this->ui64   = other.ui64;
+  this->m_bits = other.m_bits;
+  strncpy(this->name_, other.name_, MAX_NAME_LEN);
+}
+Stat& Stat::operator=(const Stat& other) {
+  this->ui64   = other.ui64;
+  this->m_bits = other.m_bits;
+  strncpy(this->name_, other.name_, MAX_NAME_LEN);
+  return *this;
+}
 
 void Stat::operator++() {
-  switch (type_) {
+  switch (this->type()) {
     case UINT32: ui32++;    break;
     case UINT64: ui64++;    break;
     case FLOAT:  f += 1.0f; break;
-    default:     throw Stats_exception{"Incrementing stat: Invalid Stat_type"};
+    default: throw Stats_exception("Invalid stat type encountered when incrementing");
   }
 }
 
-float& Stat::get_float() {
-  if (type_ not_eq FLOAT)
-    throw Stats_exception{"Get stat: Stat_type is not a float"};
-
-  return f;
-}
-
-uint32_t& Stat::get_uint32() {
-  if (type_ not_eq UINT32)
-    throw Stats_exception{"Get stat: Stat_type is not an uint32_t"};
-
-  return ui32;
-}
-
-uint64_t& Stat::get_uint64() {
-  if (type_ not_eq UINT64)
-    throw Stats_exception{"Get stat: Stat_type is not an uint64_t"};
-
-  return ui64;
-}
-
 std::string Stat::to_string() const {
-  switch (this->type_) {
+  switch (this->type()) {
     case UINT32: return std::to_string(ui32);
     case UINT64: return std::to_string(ui64);
     case FLOAT:  return std::to_string(f);
-    default:     return "Invalid Stat_type";
+    default:     return "Unknown stat type";
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-
-void Statman::init(const uintptr_t start, const Size_type num_bytes)
-{
-  if (num_bytes < 0)
-    throw Stats_exception("Can't initialize statman with negative size");
-
-  const int N = num_bytes / sizeof(Stat);
-  this->stats_     = reinterpret_cast<Stat*>(start);
-  this->end_stats_ = this->stats_ + N;
-
-  // create bitmap
-  int chunks = N / (sizeof(MemBitmap::word) * 8) + 1;
-  delete[] bdata;
-  bdata = new MemBitmap::word[chunks]();
-  bitmap = MemBitmap(bdata, chunks);
-
-  INFO("Statman", "Initialized with %u stats capacity", (uint32_t) capacity());
-}
-Statman::~Statman()
-{
-  delete[] bdata;
+Statman::Statman() {
+  this->create(Stat::UINT32, "statman.unused_stats");
 }
 
-Stat& Statman::create(const Stat::Stat_type type, const std::string& name) {
+Stat& Statman::create(const Stat::Stat_type type, const std::string& name)
+{
 #ifdef INCLUDEOS_SMP_ENABLE
   volatile scoped_spinlock lock(this->stlock);
 #endif
   if (name.empty())
     throw Stats_exception("Cannot create Stat with no name");
 
-  const int idx = bitmap.first_free();
-  if (idx == -1 || idx >= capacity())
-    throw Stats_out_of_memory{};
+  const ssize_t idx = this->find_free_stat();
+  if (idx < 0) {
+    m_stats.emplace_back(type, name);
+    return m_stats.back();
+  }
 
   // note: we have to create this early in case it throws
-  auto& stat = *new (&stats_[idx]) Stat(type, name);
-  bitmap.set(idx);
+  auto& stat = *new (&m_stats[idx]) Stat(type, name);
+  m_stats[0].get_uint32()--; // decrease unused stats
   return stat;
 }
 
-Stat& Statman::get(const void* addr)
+Stat& Statman::get(const Stat* st)
 {
-  auto* st = (Stat*) addr;
-  auto  mod  = ((uintptr_t) st - (uintptr_t) stats_) % sizeof(Stat);
-
-  if (st >= cbegin() && st < cend())
-  if (mod == 0) // verify stat boundary
-  {
-    if (st->unused() == false)
-      return *st;
-    else
-      throw Stats_exception{"Accessing deleted stat"};
+#ifdef INCLUDEOS_SMP_ENABLE
+  volatile scoped_spinlock lock(this->stlock);
+#endif
+  for (auto& stat : this->m_stats) {
+    if (&stat == st) {
+      if (stat.unused() == false)
+          return stat;
+      throw Stats_exception("Accessing deleted stat");
+    }
   }
-
-  throw std::out_of_range("Address out of range");
+  throw std::out_of_range("Not a valid stat in this statman instance");
 }
 
 Stat& Statman::get_by_name(const char* name)
 {
-  for (auto* st = begin(); st < end(); st++)
+#ifdef INCLUDEOS_SMP_ENABLE
+  volatile scoped_spinlock lock(this->stlock);
+#endif
+  for (auto& stat : this->m_stats)
   {
-    if (st->unused() == false)
-    if (strncmp(st->name(), name, Stat::MAX_NAME_LEN) == 0)
-        return *st;
+    if (stat.unused() == false)
+    if (strncmp(stat.name(), name, Stat::MAX_NAME_LEN) == 0)
+        return stat;
   }
   throw std::out_of_range("No stat found with exact given name");
 }
 
 void Statman::free(void* addr)
 {
-  auto& stat = this->get(addr);
-  auto  idx  = &stat - cbegin();
-
+  auto& stat = this->get((Stat*) addr);
+#ifdef INCLUDEOS_SMP_ENABLE
+  volatile scoped_spinlock lock(this->stlock);
+#endif
   // delete entry
   new (&stat) Stat(Stat::FLOAT, "");
-  bitmap.reset(idx);
+  m_stats[0].get_uint32()++; // increase unused stats
+}
+
+ssize_t Statman::find_free_stat() const noexcept
+{
+#ifdef INCLUDEOS_SMP_ENABLE
+  volatile scoped_spinlock lock(this->stlock);
+#endif
+  for (size_t i = 0; i < this->m_stats.size(); i++)
+  {
+    if (m_stats[i].unused()) return i;
+  }
+  return -1;
 }

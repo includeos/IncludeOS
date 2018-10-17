@@ -75,17 +75,22 @@ namespace net::dns {
     if(UNLIKELY(reader > (buffer + len)))
       return -1;
 
-    // parse answers
-    for(int i = 0; i < ntohs(hdr.ans_count); i++)
-      reader += answers.emplace_back().parse(reader, buffer, len);
+    try {
+      // parse answers
+      for(int i = 0; i < ntohs(hdr.ans_count); i++)
+        reader += answers.emplace_back().parse(reader, buffer, len);
 
-    // parse authorities
-    for (int i = 0; i < ntohs(hdr.auth_count); i++)
-      reader += auth.emplace_back().parse(reader, buffer, len);
+      // parse authorities
+      for (int i = 0; i < ntohs(hdr.auth_count); i++)
+        reader += auth.emplace_back().parse(reader, buffer, len);
 
-    // parse additional
-    for (int i = 0; i < ntohs(hdr.add_count); i++)
-      reader += addit.emplace_back().parse(reader, buffer, len);
+      // parse additional
+      for (int i = 0; i < ntohs(hdr.add_count); i++)
+        reader += addit.emplace_back().parse(reader, buffer, len);
+    }
+    catch (const std::runtime_error&) {
+      // packet probably too short
+    }
 
     return reader - buffer;
   }

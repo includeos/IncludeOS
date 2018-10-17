@@ -203,6 +203,9 @@ public:
     return memory_end_;
   }
 
+  /** Total used memory, including reserved areas */
+  static size_t total_memuse() noexcept;
+
   static void init_heap(uintptr_t phys_begin, size_t size) noexcept;
 
   /**
@@ -211,8 +214,15 @@ public:
    */
   static bool is_live_updated() noexcept;
 
-  /** Returns the automatic location set aside for storing system and program state **/
+  /** Returns the virtual memory location set aside for storing system and program state **/
   static void* liveupdate_storage_area() noexcept;
+
+  /** Returns the amount of memory set aside for LiveUpdate */
+  static size_t liveupdate_phys_size(size_t) noexcept;
+
+  /** Computes the physical location of LiveUpdate storage area */
+  static uintptr_t liveupdate_phys_loc(size_t) noexcept;
+
 
   /**
    * A map of memory ranges. The key is the starting address in numeric form.

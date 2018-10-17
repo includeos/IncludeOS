@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
+#include <net/interfaces>
 
 /* For Posix */
 #include <syslog.h>
@@ -29,9 +29,10 @@ extern "C" int main();
 void Service::start(const std::string&)
 {
   // DHCP on interface 0
-  auto& inet = net::Inet::ifconfig(10.0);
+  auto& inet = net::Interfaces::get(0);
+  inet.negotiate_dhcp(10.0);
   // static IP in case DHCP fails
-  net::Inet::ifconfig({  10,  0,  0, 45 },   // IP
+  inet.network_config({  10,  0,  0, 45 },   // IP
                       { 255, 255, 0,  0 },    // Netmask
                       {  10,  0,  0,  1 },    // Gateway
                       {  10,  0,  0,  1} );   // DNS

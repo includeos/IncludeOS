@@ -33,17 +33,7 @@ void* aligned_alloc(size_t alignment, size_t size) {
 
 char _DISK_START_;
 char _DISK_END_;
-
-#include <util/statman.hpp>
-Statman& Statman::get() {
-  static uintptr_t start {0};
-  static const size_t memsize = 0x1000000;
-  if (!start) {
-    start = (uintptr_t) malloc(memsize);
-  }
-  static Statman statman_{start, memsize / sizeof(Stat)};
-  return statman_;
-}
+char _ELF_SYM_START_;
 
 /// RTC ///
 #include <rtc>
@@ -177,6 +167,7 @@ void __arch_reboot() {}
 void __arch_subscribe_irq(uint8_t) {}
 void __arch_enable_legacy_irq(uint8_t) {}
 void __arch_disable_legacy_irq(uint8_t) {}
+void __arch_system_deactivate() {}
 
 delegate<uint64_t()> systime_override = [] () -> uint64_t { return 0; };
 uint64_t __arch_system_time() noexcept {
@@ -218,11 +209,23 @@ uintptr_t __brk_max = 0;
 uintptr_t OS::heap_begin() noexcept {
   return 0;
 }
+
+uintptr_t OS::memory_end_ = 1 << 30;
+
 uintptr_t OS::heap_end() noexcept {
-  return 1 << 30;
+  return memory_end_;
 }
+
+size_t OS::heap_usage() noexcept {
+  return OS::heap_end();
+}
+
 uintptr_t OS::heap_max() noexcept {
   return -1;
+}
+
+size_t OS::total_memuse() noexcept {
+  return heap_end();
 }
 
 #endif

@@ -31,7 +31,7 @@ CASE("Randomly release bufferstore buffers")
   for (volatile int rounds = 0; rounds < 128; rounds++)
   {
     BufferStore bufstore(BUFFER_CNT, BUFFER_SZ);
-    std::vector<BufferStore::buffer_t> buffers;
+    std::vector<uint8_t*> buffers;
 
     // force out chained bufferstores
     for (int chain = 0; chain < BS_CHAINS; chain++)
@@ -46,7 +46,7 @@ CASE("Randomly release bufferstore buffers")
     // release them randomly
     while (!buffers.empty()) {
       int idx = rand() % buffers.size();
-      bufstore.release(buffers[idx].addr);
+      bufstore.release(buffers[idx]);
       buffers.erase(buffers.begin() + idx, buffers.begin() + idx + 1);
     }
     EXPECT(bufstore.available() == BUFFER_CNT * BS_CHAINS);

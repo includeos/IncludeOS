@@ -20,12 +20,25 @@ namespace net::dns {
 
   int Record::parse(const char* reader, const char* buffer, size_t len)
   {
+    // don't call parse_name if we are already out of buffer
+    if (reader >= buffer + len)
+        throw std::runtime_error("Nothing left to parse");
+
     int count = 0;
 
     const auto namelen = parse_name(reader, buffer, len, this->name);
-    reader += namelen;
     count += namelen;
+    assert(count >= 0);
 
+    reader += namelen;
+    const int remaining = len - (reader - buffer);
+    assert(remaining <= (int) len);
+
+    // invalid request if there is no room for resources
+    if (remaining < (int) sizeof(rr_data))
+      throw std::runtime_error("Nothing left to parse");
+
+    // extract resource data header
     const auto& resource = *(const rr_data*) reader;
     populate(resource);
     reader += sizeof(rr_data);
@@ -66,61 +79,59 @@ namespace net::dns {
   {
     Expects(output.empty());
 
-    unsigned p = 0;
-    unsigned offset = 0;
+    unsigned namelen = 0;
     bool jumped = false;
 
     int count = 1;
-    unsigned char* ureader = (unsigned char*) reader;
+    const auto* ureader = (unsigned char*) reader;
 
     while (*ureader)
     {
       if (*ureader >= 192)
       {
         // read 16-bit offset, mask out the 2 top bits
-        offset = ((*ureader) * 256 + *(ureader+1)) & 0x3FFF; // = 11000000 00000000
+        uint16_t offset = (*ureader >> 8) | *(ureader+1);
+        offset &= 0x3fff; // remove 2 top bits
 
         if(UNLIKELY(offset > tot_len))
           return 0;
 
-        ureader = (unsigned char*) buffer + offset - 1;
+        ureader = (unsigned char*) &buffer[offset];
         jumped = true; // we have jumped to another location so counting wont go up!
       }
       else
       {
-        output[p++] = *ureader;
+        output[namelen++] = *ureader++;
+
+        // maximum label size
+        if(UNLIKELY(namelen > 63)) break;
       }
-      ureader++;
 
       // if we havent jumped to another location then we can count up
       if (jumped == false) count++;
     }
 
-    // maximum label size
-    if(UNLIKELY(p > 63))
-      return 0;
-
-    output.resize(p);
+    output.resize(namelen);
+    if (output.empty()) return 0;
 
     // number of steps we actually moved forward in the packet
     if (jumped)
       count++;
 
     // now convert 3www6google3com0 to www.google.com
-    int len = p; // same as name.size()
-    int i;
-    for(i = 0; i < len; i++)
+    for(unsigned i = 0; i < output.size(); i++)
     {
-      p = output[i];
+      const uint8_t len = output[i];
 
-      for(unsigned j = 0; j < p; j++)
+      for(unsigned j = 0; j < len; j++)
       {
         output[i] = output[i+1];
         i++;
       }
       output[i] = '.';
     }
-    output[i - 1] = '\0'; // remove the last dot
+    // remove the last dot by resizing down
+    output.resize(output.size()-1);
     return count;
   }
 

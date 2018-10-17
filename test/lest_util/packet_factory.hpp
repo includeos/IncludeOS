@@ -33,9 +33,8 @@ using namespace net;
 static net::Packet_ptr create_packet() noexcept
 {
   static net::BufferStore bufstore(BUFFER_CNT, BUFFER_SIZE);
-  auto buffer = bufstore.get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
-  new (ptr) net::Packet(PHYS_OFFSET, 0, PHYS_OFFSET + PACKET_CAPA, buffer.bufstore);
+  auto* ptr = (net::Packet*) bufstore.get_buffer();
+  new (ptr) net::Packet(PHYS_OFFSET, 0, PHYS_OFFSET + PACKET_CAPA, &bufstore);
   return net::Packet_ptr(ptr);
 }
 

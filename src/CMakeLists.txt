@@ -59,7 +59,7 @@ set(OS_OBJECTS
   net/dns/dns.cpp net/dns/client.cpp net/dns/record.cpp net/dns/response.cpp net/dns/query.cpp
   net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet.cpp
-  net/super_stack.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
+  net/interfaces.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
   net/http/mime_types.cpp net/http/cookie.cpp
@@ -67,6 +67,7 @@ set(OS_OBJECTS
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
   net/ws/websocket.cpp ${OPENSSL_MODULES} ${BOTAN_MODULES}
   net/nat/nat.cpp net/nat/napt.cpp
+  net/packet_debug.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   # POSIX

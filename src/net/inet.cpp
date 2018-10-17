@@ -130,11 +130,14 @@ Inet::Inet(hw::Nic& nic)
 }
 
 void Inet::error_report(Error& err, Packet_ptr orig_pckt) {
-  auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(orig_pckt));
-  bool too_big = false;
+  // if its a forged packet, it might be too small
+  if (orig_pckt->size() < 40) return;
 
+  auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(orig_pckt));
   // Get the destination to the original packet
   Socket dest = [](std::unique_ptr<PacketIP4>& pkt)->Socket {
+    // if its a forged packet, it might not be IPv4
+    if (pkt->is_ipv4() == false) return {};
     switch (pkt->ip_protocol()) {
       case Protocol::UDP: {
         auto udp = udp::Packet4_view_raw(pkt.get());
@@ -149,7 +152,7 @@ void Inet::error_report(Error& err, Packet_ptr orig_pckt) {
     }
   }(pckt_ip4);
 
-
+  bool too_big = false;
   if (err.is_icmp()) {
     auto* icmp_err = dynamic_cast<ICMP_error*>(&err);
     if (icmp_err == nullptr) {

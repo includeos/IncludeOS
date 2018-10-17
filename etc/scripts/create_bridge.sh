@@ -11,15 +11,20 @@ then
   GATEWAY=10.0.0.1
   NETMASK6=64
   GATEWAY6=fe80::e823:fcff:fef4:83e7
+  # Håreks cool hack:
+  # - First two bytes is fixed to "c001" because it's cool
+  # - Last four is the gateway IP, 10.0.0.1
+  HWADDR=c0:01:0a:00:00:01
 
-elif [ $# -eq 3 ]
+elif [ $# -eq 4 ]
 then
   BRIDGE=$1
   NETMASK=$2
   GATEWAY=$3
+  HWADDR=$4
 else
   me=`basename "$0"`
-  echo "Usage: $me [name netmask gateway]"
+  echo "Usage: $me [name netmask gateway hwaddr]"
   exit 1
 fi
 
@@ -28,12 +33,9 @@ if [ -n "$INCLUDEOS_BRIDGE" ]; then
 fi
 
 echo "    Creating bridge $BRIDGE, netmask $NETMASK, gateway $GATEWAY "
+if [ -n "$GATEWAY6" ]; then
 echo "    ipv6 netmask $NETMASK6, gateway $GATEWAY6 "
-
-# Håreks cool hack:
-# - First two bytes is fixed to "c001" because it's cool
-# - Last four is the gateway IP, 10.0.0.1
-HWADDR=c0:01:0a:00:00:01
+fi
 
 # For later use
 NETWORK=10.0.0.0
@@ -87,8 +89,11 @@ else
   echo "    Configuring network bridge (requires sudo):"
 
   sudo ifconfig $BRIDGE $GATEWAY netmask $NETMASK up || exit 1
-  sudo ifconfig $BRIDGE inet6 add $GATEWAY6/$NETMASK6
+  if [ -n "$GATEWAY6" ]; then
+    sudo ifconfig $BRIDGE inet6 add $GATEWAY6/$NETMASK6
+  fi
   if uname -s | grep Darwin > /dev/null 2>&1; then
+    echo "    Setting ether to $HWADDR"
 	sudo ifconfig $BRIDGE ether $HWADDR || exit 1
   else
 	sudo ifconfig $BRIDGE hw ether $HWADDR || exit 1

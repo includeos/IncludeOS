@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
+#include <net/interfaces>
 #include <net/nat/napt.hpp>
 #include <net/router.hpp>
 #include <net/tcp/packet4_view.hpp>
@@ -50,20 +50,20 @@ void ip_forward(IP4::IP_packet_ptr pckt, Inet& stack, Conntrack::Entry_ptr) {
 void Service::start()
 {
   INFO("NAT Test", "Setting up enviornment to simulate a home router");
-  static auto& eth0 = Inet::ifconfig<0>(
-    { 10, 1, 0, 1 }, { 255, 255, 0, 0 }, { 10, 0, 0, 1 });
+  static auto& eth0 = Interfaces::get(0);
+  eth0.network_config({ 10, 1, 0, 1 }, { 255, 255, 0, 0 }, { 10, 0, 0, 1 });
 
-  static auto& eth1 = Inet::ifconfig<1>(
-    { 192, 1, 0, 1 }, { 255, 255, 255, 0 }, { 10, 0, 0, 1 });
+  static auto& eth1 = Interfaces::get(1);
+  eth1.network_config({ 192, 1, 0, 1 }, { 255, 255, 255, 0 }, { 10, 0, 0, 1 });
 
-  static auto& laptop1 = Inet::ifconfig<2>(
-    { 10, 1, 0, 10 }, { 255, 255, 255, 0 }, eth0.ip_addr());
+  static auto& laptop1 = Interfaces::get(2);
+  laptop1.network_config({ 10, 1, 0, 10 }, { 255, 255, 255, 0 }, eth0.ip_addr());
 
-  static auto& internet_host = Inet::ifconfig<3>(
-    { 192, 1, 0, 192 }, { 255, 255, 255, 0 }, eth1.ip_addr());
+  static auto& internet_host = Interfaces::get(3);
+  internet_host.network_config({ 192, 1, 0, 192 }, { 255, 255, 255, 0 }, eth1.ip_addr());
 
-  static auto& server = Inet::ifconfig<4>(
-    { 10, 1, 10, 20 }, { 255, 255, 255, 0 }, eth0.ip_addr());
+  static auto& server = Interfaces::get(4);
+  server.network_config({ 10, 1, 10, 20 }, { 255, 255, 255, 0 }, eth0.ip_addr());
 
 
   INFO("NAT Test", "Setup routing between eth0 and eth1");

@@ -21,8 +21,8 @@
 
 #include <common>
 #include <cstddef>
+#include <deque>
 #include <string>
-#include <membitmap>
 #include <smp_utils>
 
 struct Stats_out_of_memory : public std::out_of_range {
@@ -42,6 +42,8 @@ namespace liu {
 class Stat {
 public:
   static const int MAX_NAME_LEN = 46;
+  static const int GAUGE_BIT    = 0x40;
+  static const int PERSIST_BIT  = 0x80;
 
   enum Stat_type: uint8_t
   {
@@ -51,32 +53,34 @@ public:
   };
 
   Stat(const Stat_type type, const std::string& name);
+  Stat(const Stat& other);
+  Stat& operator=(const Stat& other);
   ~Stat() = default;
 
   // increment stat counter
   void operator++();
 
-  ///
   Stat_type type() const noexcept
-  { return type_; }
+  { return (Stat_type)(m_bits & 0xF); }
 
-  ///
-  const char* name() const noexcept
-  { return name_; }
+  bool is_persistent() const noexcept { return m_bits & PERSIST_BIT; }
+  void make_persistent() noexcept { m_bits |= PERSIST_BIT; }
 
-  ///
-  bool unused() const noexcept {
-    return name_[0] == 0;
-  }
+  bool is_counter() const noexcept { return (m_bits & GAUGE_BIT) == 0; }
+  bool is_gauge() const noexcept { return (m_bits & GAUGE_BIT) == GAUGE_BIT; }
 
-  ///
-  float& get_float();
+  void make_counter() noexcept { m_bits &= ~GAUGE_BIT; }
+  void make_gauge() noexcept { m_bits |= GAUGE_BIT; }
 
-  ///
-  uint32_t& get_uint32();
+  const char* name() const noexcept { return name_; }
+  bool unused() const noexcept { return name_[0] == 0; }
 
-  ///
-  uint64_t& get_uint64();
+  const float&    get_float() const;
+  float&          get_float();
+  const uint32_t& get_uint32() const;
+  uint32_t&       get_uint32();
+  const uint64_t& get_uint64() const;
+  uint64_t&       get_uint64();
 
   std::string to_string() const;
 
@@ -86,35 +90,23 @@ private:
     uint32_t ui32;
     uint64_t ui64;
   };
-  Stat_type type_;
+  uint8_t m_bits;
 
   char name_[MAX_NAME_LEN+1];
-
-  Stat(const Stat& other) = delete;
-  Stat(const Stat&& other) = delete;
-  Stat& operator=(const Stat& other) = delete;
-  Stat& operator=(Stat&& other) = delete;
-
 }; //< class Stat
 
 
 class Statman {
 public:
-  using Size_type = ptrdiff_t;
-
   // retrieve main instance of Statman
   static Statman& get();
 
   // access a Stat by a given index
-  const Stat& operator[] (const int i) const
-  {
-    if (i < 0 || i >= cend() - cbegin())
-      throw std::out_of_range("Index " + std::to_string(i) + " was out of range");
-    return stats_[i];
+  const Stat& operator[] (const size_t i) const {
+    return m_stats.at(i);
   }
-  Stat& operator[] (const int i)
-  {
-    return const_cast<Stat&>(static_cast<const Statman&>(*this)[i]);
+  Stat& operator[] (const size_t i) {
+    return m_stats.at(i);
   }
 
   /**
@@ -122,84 +114,76 @@ public:
    **/
   Stat& create(const Stat::Stat_type type, const std::string& name);
   // retrieve stat based on address from stats counter: &stat.get_xxx()
-  Stat& get(const void* addr);
+  Stat& get(const Stat* addr);
   // if you know the name of a statistic already
   Stat& get_by_name(const char* name);
   // free/delete stat based on address from stats counter
   void free(void* addr);
 
   /**
-   * Returns the max capacity of the container
-   */
-  Size_type capacity() const noexcept
-  { return end_stats_ - stats_; }
-
-  /**
    * Returns the number of used elements
    */
-  Size_type size() const noexcept
-  { return bitmap.count_set(); }
+  size_t size() const noexcept {
+    return m_stats.size() - m_stats[0].get_uint32();
+  }
 
   /**
    * Returns the number of bytes necessary to dump stats
    */
-  Size_type num_bytes() const noexcept
-  { return (cend() - cbegin()) * sizeof(Stat); }
+  size_t num_bytes() const noexcept
+  { return sizeof(*this) + size() * sizeof(Stat); }
 
   /**
    * Is true if the span stats_ contains no Stat-objects
    */
-  bool empty() const noexcept
-  { return size() == 0; }
+  bool empty() const noexcept { return m_stats.empty(); }
 
-  /**
-   * Returns true if the container is full
-   */
-  bool full() const noexcept
-  { return size() == capacity(); }
-
-  /**
-   *  Returns a pointer to the first element
-   */
-  const Stat* cbegin() const noexcept
-  { return stats_; }
-
-  /**
-   *  Returns a pointer to after the last used element
-   */
-  const Stat* cend() const noexcept {
-    int idx = bitmap.last_set() + 1; // 0 .. N-1
-    return &stats_[idx];
-  }
-
-  Stat* begin() noexcept { return (Stat*) cbegin(); }
-  Stat* end() noexcept { return (Stat*) cend(); }
+  auto begin() const noexcept { return m_stats.begin(); }
+  auto end() const noexcept { return m_stats.end(); }
+  auto cbegin() const noexcept { return m_stats.cbegin(); }
+  auto cend() const noexcept { return m_stats.cend(); }
 
   void store(uint32_t id, liu::Storage&);
   void restore(liu::Restore&);
 
-  void init(const uintptr_t location, const Size_type size);
-
-  Statman() {}
-  Statman(const uintptr_t location, const Size_type size)
-  {
-    init(location, size);
-  }
-  ~Statman();
-
+  Statman();
 private:
-  Stat* stats_;
-  Stat* end_stats_;
-  MemBitmap::word* bdata = nullptr;
-  MemBitmap bitmap;
+  std::deque<Stat> m_stats;
 #ifdef INCLUDEOS_SMP_ENABLE
   spinlock_t stlock = 0;
 #endif
+  ssize_t find_free_stat() const noexcept;
 
   Statman(const Statman& other) = delete;
   Statman(const Statman&& other) = delete;
   Statman& operator=(const Statman& other) = delete;
   Statman& operator=(Statman&& other) = delete;
 }; //< class Statman
+
+inline float& Stat::get_float() {
+  if (UNLIKELY(type() != FLOAT)) throw Stats_exception{"Stat type is not a float"};
+  return f;
+}
+inline uint32_t& Stat::get_uint32() {
+  if (UNLIKELY(type() != UINT32)) throw Stats_exception{"Stat type is not an uint32"};
+  return ui32;
+}
+inline uint64_t& Stat::get_uint64() {
+  if (UNLIKELY(type() != UINT64)) throw Stats_exception{"Stat type is not an uint64"};
+  return ui64;
+}
+
+inline const float& Stat::get_float() const {
+  if (UNLIKELY(type() != FLOAT)) throw Stats_exception{"Stat type is not a float"};
+  return f;
+}
+inline const uint32_t& Stat::get_uint32() const {
+  if (UNLIKELY(type() != UINT32)) throw Stats_exception{"Stat type is not an uint32"};
+  return ui32;
+}
+inline const uint64_t& Stat::get_uint64() const {
+  if (UNLIKELY(type() != UINT64)) throw Stats_exception{"Stat type is not an uint64"};
+  return ui64;
+}
 
 #endif //< UTIL_STATMAN_HPP

@@ -39,7 +39,6 @@
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include "udp/udp.hpp"
-#include "super_stack.hpp"
 
 namespace net {
 
@@ -348,42 +347,6 @@ namespace net {
       return this->cpu_id;
     }
 
-    /** Return the stack on the given Nic */
-    template <int N = 0>
-    static auto&& stack()
-    {
-      return Super_stack::get(N);
-    }
-
-    /** Static IP config */
-    template <int N = 0>
-    static auto&& ifconfig(
-      ip4::Addr addr,
-      ip4::Addr nmask,
-      ip4::Addr gateway,
-      ip4::Addr dns = IP4::ADDR_ANY)
-    {
-      stack<N>().network_config(addr, nmask, gateway, dns);
-      return stack<N>();
-    }
-
-    /** DHCP config */
-    template <int N = 0>
-    static auto& ifconfig(double timeout = 10.0, dhcp_timeout_func on_timeout = nullptr)
-    {
-      if (timeout > 0.0)
-          stack<N>().negotiate_dhcp(timeout, on_timeout);
-      return stack<N>();
-    }
-
-    /** SLAAC config */
-    template <int N = 0>
-    static auto& ifconfig6(slaac_timeout_func on_timeout = nullptr, int retries=0)
-    {
-      stack<N>().autoconf_v6(retries, on_timeout);
-      return stack<N>();
-    }
-
     const Vip4_list virtual_ips() const noexcept
     { return vip4s_; }
 
@@ -438,7 +401,6 @@ namespace net {
 
     ip4::Addr get_source_addr(ip4::Addr dest)
     {
-
       if (dest.is_loopback())
         return {127,0,0,1};
 
@@ -450,7 +412,6 @@ namespace net {
 
     ip6::Addr get_source_addr(ip6::Addr dest)
     {
-
       if (dest.is_loopback())
         return ip6::Addr{0,0,0,1};
 
@@ -464,11 +425,11 @@ namespace net {
     { return addr.is_v4() ? is_valid_source4(addr.v4()) : is_valid_source6(addr.v6()); }
 
     bool is_valid_source4(ip4::Addr src) const
-    { return src == ip_addr() or is_loopback(src); }
+    { return src == ip_addr(); }
 
+    // @todo: is_multicast needs to be verified in mld
     bool is_valid_source6(const ip6::Addr& src) const
-      // ismulticast needs to be verified in mld
-    { return src == ip6_addr() or is_loopback(src) or src.is_multicast(); }
+    { return src == ip6_addr() or src.is_multicast(); }
 
     std::shared_ptr<Conntrack>& conntrack()
     { return conntrack_; }

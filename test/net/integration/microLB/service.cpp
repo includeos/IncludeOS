@@ -17,14 +17,14 @@
 
 #include <service>
 #include <microLB>
-#include <net/inet>
+#include <net/interfaces>
 #include <timers>
 
 void Service::start()
 {
   static auto* balancer = microLB::Balancer::from_config();
   printf("MicroLB ready for test\n");
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
   inet.tcp().set_MSL(std::chrono::seconds(2));
 
   Timers::oneshot(std::chrono::seconds(5),

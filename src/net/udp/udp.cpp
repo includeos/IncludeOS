@@ -64,6 +64,12 @@ namespace net {
 
   void UDP::receive(udp::Packet_view_ptr udp_packet, const bool is_bcast)
   {
+    if (udp_packet->validate_length() == false) {
+      PRINT("<%s> UDP: Invalid packet received (too short). Drop!\n",
+              stack_.ifname().c_str());
+      return;
+    }
+
     PRINT("<%s> UDP", stack_.ifname().c_str());
 
     PRINT("\t Source port: %u, Dest. Port: %u Length: %u\n",

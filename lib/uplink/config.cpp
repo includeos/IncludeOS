@@ -18,8 +18,7 @@
 #include <config>
 #include "config.hpp"
 #include "common.hpp"
-#include <net/inet.hpp>
-#include <net/super_stack.hpp>
+#include <net/interfaces.hpp>
 
 #ifndef RAPIDJSON_HAS_STDSTRING
   #define RAPIDJSON_HAS_STDSTRING 1
@@ -160,8 +159,8 @@ namespace uplink {
 
   net::Inet& Config::get_stack() const
   {
-    return (index >= 0) ? net::Super_stack::get(index)
-      : net::Super_stack::get(index_str);
+    return (index >= 0) ? net::Interfaces::get(index)
+      : net::Interfaces::get(index_str);
   }
 
 }

@@ -18,6 +18,7 @@
 *.img.*
 *.gz
 *.tar
+*nacl.txt
 .DS_Store
 nbproject
 dummy.disk
@@ -47,3 +48,6 @@ IncludeOS_install
 
 #CLion
 .idea/
+
+# Starbase disk file
+lib/uplink/starbase/disk

@@ -20,7 +20,11 @@
 
 namespace net::dns
 {
+#ifdef LIBFUZZER_ENABLED
+  Timer::duration_t Client::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(9999)};
+#else
   Timer::duration_t Client::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(5)};
+#endif
   Timer::duration_t Client::DEFAULT_FLUSH_INTERVAL{std::chrono::seconds(30)};
   std::chrono::seconds Client::DEFAULT_CACHE_TTL{std::chrono::seconds(60)};
 
@@ -112,6 +116,11 @@ namespace net::dns
       }*/
 
       finish({});
+    }
+    else
+    {
+      debug("<dns::Client::Request> Cannot find matching DNS Request with transid=%u\n",
+        ntohs(reply.id));
     }
   }
 

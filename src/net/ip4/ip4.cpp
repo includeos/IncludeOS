@@ -61,11 +61,14 @@ namespace net {
 
   IP4::IP_packet_ptr IP4::drop_invalid_in(IP4::IP_packet_ptr packet)
   {
-    IP4::Direction up = IP4::Direction::Upstream;
-
+    const IP4::Direction up = IP4::Direction::Upstream;
     // RFC-1122 3.2.1.1, Silently discard Version != 4
     if (UNLIKELY(not packet->is_ipv4()))
       return drop(std::move(packet), up, Drop_reason::Wrong_version);
+
+    // Don't read from data before we know the length is sane
+    if (UNLIKELY(not packet->validate_length()))
+      return drop(std::move(packet), up, Drop_reason::Bad_length);
 
     // RFC-1122 3.2.1.2, Verify IP checksum, silently discard bad dgram
     if (UNLIKELY(packet->compute_ip_checksum() != 0))
@@ -271,7 +274,12 @@ namespace net {
 
     // Send loopback packets right back
     if (UNLIKELY(stack_.is_valid_source(packet->ip_dst()))) {
-      PRINT("<IP4> Destination address is loopback \n");
+      PRINT("<IP4> Loopback packet returned SRC %s DST %s\n",
+             packet->ip_src().to_string().c_str(),
+             packet->ip_dst().to_string().c_str()
+            );
+      // to avoid loops, lets decrement hop count here
+      packet->decrement_ttl();
       IP4::receive(std::move(packet), false);
       return;
     }

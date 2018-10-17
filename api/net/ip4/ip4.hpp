@@ -39,8 +39,8 @@ namespace net {
   public:
 
     enum class Drop_reason
-    { None, Bad_source, Bad_destination, Wrong_version, Wrong_checksum,
-        Unknown_proto, TTL0 };
+    { None, Bad_source, Bad_length, Bad_destination,
+      Wrong_version, Wrong_checksum, Unknown_proto, TTL0 };
 
     enum class Direction
     { Upstream, Downstream };

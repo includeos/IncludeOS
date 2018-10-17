@@ -28,13 +28,13 @@ struct alignas(4096) pvclock_wall_clock {
 	uint32_t nsec;
 }__attribute__((packed));
 static pvclock_wall_clock kvm_wall_clock;
+static uint32_t msr_kvm_wall_clock  = 0;
+static uint32_t msr_kvm_system_time = 0;
 
 void KVM_clock::init()
 {
   #define MSR_KVM_WALL_CLOCK_NEW  0x4b564d00
   #define MSR_KVM_SYSTEM_TIME_NEW 0x4b564d01
-  uint32_t msr_kvm_wall_clock;
-  uint32_t msr_kvm_system_time;
 
   if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
   {
@@ -54,6 +54,11 @@ void KVM_clock::init()
   CPU::write_msr(msr_kvm_wall_clock, wall_addr);
   auto vcpu_addr = (uintptr_t) &PER_CPU(vcpu_time);
   CPU::write_msr(msr_kvm_system_time, vcpu_addr | 1);
+}
+void KVM_clock::deactivate()
+{
+	CPU::write_msr(msr_kvm_wall_clock, 0);
+  CPU::write_msr(msr_kvm_system_time, 0);
 }
 
 KHz KVM_clock::get_tsc_khz()

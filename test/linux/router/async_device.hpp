@@ -18,7 +18,7 @@
 #pragma once
 #include <kernel/events.hpp>
 #include <drivers/usernet.hpp>
-#include <net/inet>
+#include <net/interfaces>
 #include <deque>
 
 class Async_device {

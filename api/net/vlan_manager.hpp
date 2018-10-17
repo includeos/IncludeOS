@@ -72,8 +72,10 @@ private:
    *
    * @param      link  The link
    */
-  void setup(hw::Nic& link)
-  { link.set_vlan_upstream({this, &VLAN_manager::receive}); }
+  void setup(hw::Nic& link,const int id)
+  { link.set_vlan_upstream({this, &VLAN_manager::receive});
+    link.add_vlan(id);
+  }
 
 };
 

@@ -41,7 +41,7 @@ extern "C" void solo5_exec(const char*, size_t);
 static void* HOTSWAP_AREA = (void*) 0x8000;
 extern "C" void  hotswap(const char*, int, char*, uintptr_t, void*);
 extern "C" char  __hotswap_length;
-extern "C" void  hotswap64(char*, const char*, int, uintptr_t, void*);
+extern "C" void  hotswap64(char*, const char*, int, uintptr_t, void*, void*);
 extern uint32_t  hotswap64_len;
 extern void      __x86_init_paging(void*);
 extern "C" void* __os_store_soft_reset(const void*, size_t);
@@ -50,6 +50,8 @@ extern char _ELF_START_;
 extern char _end;
 // turn this off to reduce liveupdate times at the cost of extra checks
 bool LIVEUPDATE_PERFORM_SANITY_CHECKS = true;
+// turn this om to zero-initialize all memory between new kernel and heap end
+bool LIVEUPDATE_ZERO_OLD_MEMORY       = false;
 
 using namespace liu;
 
@@ -210,6 +212,8 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   // 3. deactivate all devices (eg. mask all MSI-X vectors)
   // NOTE: there are some nasty side effects from calling this
   hw::Devices::deactivate_all();
+  // turn off devices that affect memory
+  __arch_system_deactivate();
 
   // store soft-resetting stuff
 #if defined(PLATFORM_x86_solo5) || defined(PLATFORM_UNITTEST)
@@ -250,7 +254,14 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
     // copy hotswapping function to sweet spot
     memcpy(HOTSWAP_AREA, (void*) &hotswap64, hotswap64_len);
     /// the end
-    ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data);
+  if (LIVEUPDATE_ZERO_OLD_MEMORY) {
+    ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len,
+                start_offset,          /* binary entry point */
+                sr_data,               /* softreset location */
+                (void*) OS::heap_end() /* zero memory until this location */);
+  } else {
+    ((decltype(&hotswap64)) HOTSWAP_AREA)(phys_base, bin_data, bin_len, start_offset, sr_data, nullptr);
+  }
 # else
 #   error "Unimplemented architecture"
 # endif

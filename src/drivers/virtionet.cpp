@@ -65,10 +65,24 @@ VirtioNet::VirtioNet(hw::PCI_Device& d, const uint16_t /*mtu*/)
     Link(Link_protocol{{this, &VirtioNet::transmit}, mac()}),
     m_pcidev(d),
     bufstore_{VNET_TOT_BUFFERS(), 2048 /* half-page buffers */},
-    packets_rx_{Statman::get().create(Stat::UINT64,
-                device_name() + ".packets_rx").get_uint64()},
-    packets_tx_{Statman::get().create(Stat::UINT64,
-                device_name() + ".packets_tx").get_uint64()}
+
+    stat_sendq_max_{Statman::get().create(Stat::UINT64,
+                device_name() + ".sendq_max").get_uint64()},
+    stat_sendq_now_{Statman::get().create(Stat::UINT64,
+                device_name() + ".sendq_now").get_uint64()},
+    stat_sendq_limit_dropped_{Statman::get().create(Stat::UINT64,
+                device_name() + ".sendq_dropped").get_uint64()},
+    stat_rx_refill_dropped_{Statman::get().create(Stat::UINT64,
+                device_name() + ".rx_refill_dropped").get_uint64()},
+    stat_bytes_rx_total_{Statman::get().create(Stat::UINT64,
+                device_name() + ".stat_rx_total_bytes").get_uint64()},
+    stat_bytes_tx_total_{Statman::get().create(Stat::UINT64,
+                device_name() + ".stat_tx_total_bytes").get_uint64()},
+    stat_packets_rx_total_{Statman::get().create(Stat::UINT64,
+                device_name() + ".stat_rx_total_packets").get_uint64()},
+    stat_packets_tx_total_{Statman::get().create(Stat::UINT64,
+                device_name() + ".stat_tx_total_packets").get_uint64()}
+
 {
   INFO("VirtioNet", "Driver initializing");
 #undef VNET_TOT_BUFFERS
@@ -142,9 +156,7 @@ VirtioNet::VirtioNet(hw::PCI_Device& d, const uint16_t /*mtu*/)
        rx_q.size() / 2, (uint32_t) bufstore().bufsize());
 
   for (int i = 0; i < rx_q.size() / 2; i++) {
-      auto buf = bufstore().get_buffer();
-      assert(bufstore().is_from_this_pool(buf.addr));
-      add_receive_buffer(buf.addr);
+      add_receive_buffer(bufstore().get_buffer());
   }
 
   // Step 4 - If there are many queues, we should negotiate the number.
@@ -218,7 +230,7 @@ void VirtioNet::msix_conf_handler()
 }
 void VirtioNet::msix_recv_handler()
 {
-  auto rx = packets_rx_;
+  auto rx = stat_packets_rx_total_;
   rx_q.disable_interrupts();
   // handle incoming packets as long as bufstore has available buffers
   int max = 128;
@@ -226,16 +238,24 @@ void VirtioNet::msix_recv_handler()
   {
     auto res = rx_q.dequeue();
     VDBG_RX("[virtionet] Recv %u bytes\n", (uint32_t) res.size());
-    Link::receive( recv_packet(res.data(), res.size()) );
-
-    // Requeue a new buffer
-    add_receive_buffer(bufstore().get_buffer().addr);
+    auto pckt = recv_packet(res.data(), res.size());
 
     // Stat increase packets received
-    packets_rx_++;
+    stat_packets_rx_total_++;
+    stat_bytes_rx_total_ += pckt->size();
+
+    Link::receive(std::move(pckt));
+
+    // Requeue a new buffer unless threshold is reached
+    if (not Nic::buffers_still_available(bufstore().buffers_in_use()))
+    {
+      stat_rx_refill_dropped_++;
+      break;
+    }
+    add_receive_buffer(bufstore().get_buffer());
   }
   rx_q.enable_interrupts();
-  if (rx != packets_rx_) rx_q.kick();
+  if (rx != stat_packets_rx_total_) rx_q.kick();
 }
 void VirtioNet::msix_xmit_handler()
 {
@@ -308,14 +328,13 @@ VirtioNet::recv_packet(uint8_t* data, uint16_t size)
 net::Packet_ptr
 VirtioNet::create_packet(int link_offset)
 {
-  auto buffer = bufstore().get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
+  auto* ptr = (net::Packet*) bufstore().get_buffer();
 
   new (ptr) net::Packet(
         sizeof(virtio_net_hdr) + link_offset,
         0,
         sizeof(virtio_net_hdr) + frame_offset_link() + MTU(),
-        buffer.bufstore);
+        &bufstore());
 
   return net::Packet_ptr(ptr);
 }
@@ -323,27 +342,47 @@ VirtioNet::create_packet(int link_offset)
 void VirtioNet::transmit(net::Packet_ptr pckt)
 {
   assert(pckt != nullptr);
-  if (transmit_queue == nullptr)
-    transmit_queue = std::move(pckt);
-  else
-    transmit_queue->chain(std::move(pckt));
-
-  auto tx = this->packets_tx_;
-  // Transmit all we can directly
-  while (tx_q.num_free() > 1 and transmit_queue)
-  {
-    VDBG_TX("[virtionet] tx: %u tokens left in TX queue \n",
-            tx_q.num_free());
-    // next in line
-    auto next = transmit_queue->detach_tail();
-    // explicitly release the data to prevent destructor being called
-    enqueue_tx(transmit_queue.release());
-    transmit_queue = std::move(next);
-    // Stat increase packets transmitted
-    this->packets_tx_++;
+  VDBG_TX("[virtionet] tx: Transmitting %#zu sized packet \n",
+          pckt->size());
+  while (pckt != nullptr) {
+    if (not Nic::sendq_still_available(sendq.size())) {
+      stat_sendq_limit_dropped_++;
+      return;
+    }
+    auto tail = pckt->detach_tail();
+    sendq.emplace_back(std::move(pckt));
+    pckt = std::move(tail);
   }
 
-  if (tx != this->packets_tx_) {
+  // Update sendq stats
+  stat_sendq_now_ = sendq.size();
+  if (sendq.size() > stat_sendq_max_)
+    stat_sendq_max_ = sendq.size();
+
+  auto tx = this->stat_packets_tx_total_;
+
+  VDBG_TX("[virtionet] tx: packets in send queue %#zu\n",
+          sendq.size());
+
+  // Transmit all we can directly
+  while (tx_q.num_free() > 1 and sendq.size() > 0)
+  {
+    VDBG_TX("[virtionet] tx: %u tokens left in TX ring \n",
+            tx_q.num_free());
+
+    auto* next = sendq.front().release();
+    sendq.pop_front();
+    enqueue_tx(next);
+
+    // Increase TX-stats
+    stat_packets_tx_total_++;
+    stat_bytes_tx_total_ += next->size();
+    stat_packets_tx_total_++;
+  }
+
+  VDBG_TX("[virtionet] tx: packet enqueued\n");
+
+  if (tx != this->stat_packets_tx_total_) {
 #ifdef NO_DEFERRED_KICK
     tx_q.kick();
 #else

@@ -21,9 +21,9 @@ extern __multiboot_magic
 extern __multiboot_addr
 
 %define PAGE_SIZE               0x1000
-%define P4_TAB                  0x1000
-%define P3_TAB                  0x2000 ;; - 0x5fff
-%define P2_TAB                  0x100000
+%define P4_TAB                  0x1000 ;; one page
+%define P3_TAB                  0x2000 ;; one page
+%define P2_TAB                  0x100000 ;; many pages
 %define STACK_LOCATION          0x200000 - 16
 
 %define IA32_EFER               0xC0000080
