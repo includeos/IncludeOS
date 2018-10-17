@@ -250,7 +250,10 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
 #ifdef PLATFORM_x86_solo5
   solo5_exec(blob.data(), blob.size());
   throw std::runtime_error("solo5_exec returned");
-# elif defined(PLATFORM_UNITTEST) || defined(USERSPACE_LINUX)
+# elif defined(PLATFORM_UNITTEST)
+  throw liveupdate_exec_success();
+# elif defined(USERSPACE_LINUX)
+  hotswap(bin_data, bin_len, phys_base, start_offset, sr_data);
   throw liveupdate_exec_success();
 # elif defined(ARCH_x86_64)
     // change to simple pagetable

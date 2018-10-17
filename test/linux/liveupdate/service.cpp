@@ -78,6 +78,19 @@ static void restore_func(Restore& thing)
   thing.pop_marker();
 }
 
+#include <elf.h>
+static void modify_kernel_base(liu::buffer_t& buffer, const char* base)
+{
+  auto* hdr = (Elf64_Ehdr*) buffer.data();
+  assert(hdr->e_ident[EI_MAG0] == ELFMAG0);
+  assert(hdr->e_ident[EI_MAG1] == ELFMAG1);
+  assert(hdr->e_ident[EI_MAG2] == ELFMAG2);
+  assert(hdr->e_ident[EI_MAG3] == ELFMAG3);
+  assert(hdr->e_ident[EI_CLASS] == ELFCLASS64);
+  auto* phdr = (Elf64_Phdr*) &buffer[hdr->e_phoff];
+  phdr->p_paddr = (Elf64_Addr) base;
+}
+
 void Service::start()
 {
   static const int NUM_ITERATIONS = 100;
@@ -87,6 +100,10 @@ void Service::start()
   LIVEUPDATE_USE_CHEKSUMS = true;
 
   bloberino = read_file("build/linux_liu");
+  auto* kernel = new char[bloberino.size()];
+  printf("Modifying base address to %p\n", kernel);
+  modify_kernel_base(bloberino, kernel);
+
   for (int tries = 0; tries < NUM_ITERATIONS; tries++)
   {
     try {
@@ -116,6 +133,7 @@ void Service::start()
     printf("%s: %s\n", stat.name(), stat.to_string().c_str());
   }
 
+  delete[] kernel;
   delete[] liu_storage_area;
   OS::shutdown();
 }

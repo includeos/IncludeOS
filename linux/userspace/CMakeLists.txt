@@ -111,7 +111,7 @@ set(MOD_SOURCES
 
 set(LIU_SOURCES
     ${IOS}/lib/LiveUpdate/elfscan.cpp
-    #${IOS}/lib/LiveUpdate/os.cpp
+    ${IOS}/lib/LiveUpdate/hotswap.cpp
     ${IOS}/lib/LiveUpdate/partition.cpp
     ${IOS}/lib/LiveUpdate/resume.cpp
     ${IOS}/lib/LiveUpdate/rollback.cpp
