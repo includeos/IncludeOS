@@ -22,12 +22,10 @@
 #define PRINT(fmt, ...) /* fmt */
 #endif
 #include <net/ip6/icmp6.hpp>
-#include <net/ip6/ndp.hpp>
+
 #include <net/inet>
 
 #include <iostream>
-#include <net/ip6/ip6.hpp>
-#include <alloca.h>
 #include <assert.h>
 
 namespace net

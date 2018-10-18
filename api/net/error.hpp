@@ -18,6 +18,9 @@
 #ifndef NET_ERROR_HPP
 #define NET_ERROR_HPP
 
+#include <cstdint>
+#include <string>
+
 namespace net {
 
   /**

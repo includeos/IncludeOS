@@ -20,13 +20,15 @@
 #ifndef NET_IP6_ICMPv6_HPP
 #define NET_IP6_ICMPv6_HPP
 
-#include "ndp.hpp"
 #include "packet_icmp6.hpp"
+#include <net/ip6/addr.hpp>
+#include <net/inet_common.hpp> // net::downstream
 #include <map>
 #include <timers>
 
 namespace net
 {
+  class Inet;
   /**
    *  User friendly ICMP packet (view) used in ping callback (icmp_func)
    */
@@ -55,10 +57,10 @@ namespace net
     uint16_t seq() const noexcept
     { return seq_; }
 
-    IP6::addr src() const noexcept
+    ip6::Addr src() const noexcept
     { return src_; }
 
-    IP6::addr dst() const noexcept
+    ip6::Addr dst() const noexcept
     { return dst_; }
 
     ICMP_type type() const noexcept
@@ -81,8 +83,8 @@ namespace net
   private:
     uint16_t      id_{0};
     uint16_t      seq_{0};
-    IP6::addr     src_{0,0,0,0};
-    IP6::addr     dst_{0,0,0,0};
+    ip6::Addr     src_{0,0,0,0};
+    ip6::Addr     dst_{0,0,0,0};
     ICMP_type     type_{ICMP_type::NO_REPLY};
     uint8_t       code_{0};
     uint16_t      checksum_{0};
@@ -96,10 +98,10 @@ namespace net
     using ICMP_code = ICMP6_error::ICMP_code;
 
   public:
-    using Stack = IP6::Stack;
+    using Stack = Inet;
     using Tuple = std::pair<uint16_t, uint16_t>;  // identifier and sequence number
     using icmp_func = delegate<void(ICMP6_view)>;
-    using Route_checker = delegate<bool(IP6::addr)>;
+    using Route_checker = delegate<bool(ip6::Addr)>;
 
     static const int SEC_WAIT_FOR_REPLY = 40;
 
@@ -141,11 +143,11 @@ namespace net
      */
     void parameter_problem(Packet_ptr pckt, uint8_t error_pointer);
 
-    void timestamp_request(IP6::addr ip);
+    void timestamp_request(ip6::Addr ip);
     void timestamp_reply(icmp6::Packet& req);
 
-    void ping(IP6::addr ip);
-    void ping(IP6::addr ip, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
+    void ping(ip6::Addr ip);
+    void ping(ip6::Addr ip, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
 
     void ping(const std::string& hostname);
     void ping(const std::string& hostname, icmp_func callback, int sec_wait = SEC_WAIT_FOR_REPLY);
@@ -156,7 +158,7 @@ namespace net
     downstream network_layer_out_ =   nullptr;
 
     inline bool is_full_header(size_t pckt_size)
-    { return (pckt_size >= sizeof(IP6::header) + icmp6::Packet::header_size()); }
+    { return (pckt_size >= sizeof(ip6::Header) + icmp6::Packet::header_size()); }
 
     struct ICMP_callback {
       using icmp_func = ICMPv6::icmp_func;
@@ -215,7 +217,7 @@ namespace net
       }
     }
 
-    void send_request(IP6::addr dest_ip, ICMP_type type, ICMP_code code,
+    void send_request(ip6::Addr dest_ip, ICMP_type type, ICMP_code code,
       icmp_func callback = nullptr, int sec_wait = SEC_WAIT_FOR_REPLY, uint16_t sequence = 0);
 
     /** Send response without id and sequence number */
