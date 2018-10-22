@@ -35,10 +35,10 @@ namespace net
   const ip6::Addr IP6::ADDR_LOOPBACK(0, 0, 0, 1);
 
   IP6::IP6(Stack& inet) noexcept :
+  stack_            {inet},
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip6.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip6.packets_tx").get_uint64()},
-  packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip6.packets_dropped").get_uint32()},
-  stack_            {inet}
+  packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip6.packets_dropped").get_uint32()}
   {}
 
   IP6::IP_packet_ptr IP6::drop(IP_packet_ptr ptr, Direction direction, Drop_reason reason) {

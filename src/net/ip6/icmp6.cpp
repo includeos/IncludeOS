@@ -91,18 +91,18 @@ namespace net
       break;
     case (ICMP_type::MULTICAST_LISTENER_QUERY):
       if (req.ip().payload_length() == 24) {
-        inet_.mld().receive(req);
+        //inet_.mld().receive(req);
       } else {
-        inet_.mld2().receive(req);
+        //inet_.mld2().receive(req);
       }
     case (ICMP_type::MULTICAST_LISTENER_REPORT):
     case (ICMP_type::MULTICAST_LISTENER_DONE):
-      inet_.mld().receive(req);
+      //inet_.mld().receive(req);
       break;
     case (ICMP_type::MULTICAST_LISTENER_REPORT_v2):
       PRINT("<ICMP6> ICMP multicast listener message from %s\n",
           req.ip().ip_src().str().c_str());
-      inet_.mld2().receive(req);
+      //inet_.mld2().receive(req);
       break;
     case (ICMP_type::ND_ROUTER_SOL):
     case (ICMP_type::ND_ROUTER_ADV):
@@ -110,7 +110,7 @@ namespace net
     case (ICMP_type::ND_NEIGHBOUR_ADV):
     case (ICMP_type::ND_REDIRECT):
       PRINT("<ICMP6> NDP message from %s\n", req.ip().ip_src().str().c_str());
-      inet_.ndp().receive(req);
+      ndp_upstream_(req.release());
       break;
     case (ICMP_type::ROUTER_RENUMBERING):
       PRINT("<ICMP6> ICMP Router re-numbering message from %s\n", req.ip().ip_src().str().c_str());

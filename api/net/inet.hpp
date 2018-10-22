@@ -35,7 +35,7 @@
 #include "ip6/icmp6.hpp"
 #include "ip6/ndp.hpp"
 #include "ip6/slaac.hpp"
-#include "ip6/mld.hpp"
+//#include "ip6/mld.hpp"
 #include "dns/client.hpp"
 #include "tcp/tcp.hpp"
 #include "udp/udp.hpp"
@@ -132,8 +132,8 @@ namespace net {
     Ndp& ndp() { return ndp_; }
 
     /** Get the MLD-object belonging to this stack */
-    Mld& mld() { return mld_; }
-    Mld2& mld2() { return mld2_; }
+    //Mld& mld() { return mld_; }
+    //Mld2& mld2() { return mld2_; }
 
     /** Get the DHCP client (if any) */
     auto dhclient() { return dhcp_;  }
@@ -463,8 +463,8 @@ namespace net {
     hw::Nic& nic_;
     Arp    arp_;
     Ndp    ndp_;
-    Mld    mld_;
-    Mld2   mld2_;
+    //Mld    mld_;
+    //Mld2   mld2_;
     IP4    ip4_;
     IP6    ip6_;
     ICMPv4 icmp_;

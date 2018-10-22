@@ -85,7 +85,7 @@ namespace net {
     explicit Ndp(Stack&) noexcept;
 
     /** Handle incoming NDP packet. */
-    void receive(icmp6::Packet& pckt);
+    void receive(net::Packet_ptr);
     void receive_neighbour_solicitation(icmp6::Packet& pckt);
     void receive_neighbour_advertisement(icmp6::Packet& pckt);
     void receive_router_solicitation(icmp6::Packet& pckt);

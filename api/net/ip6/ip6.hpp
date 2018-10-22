@@ -182,12 +182,12 @@ namespace net
     IP_packet_ptr drop_invalid_out(IP_packet_ptr packet);
 
   private:
+    Stack& stack_;
+
     /** Stats */
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;
     uint32_t& packets_dropped_;
-    Stack& stack_;
-
 
     /** Upstream delegates */
     upstream icmp_handler_ = nullptr;

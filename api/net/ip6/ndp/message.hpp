@@ -11,8 +11,9 @@ namespace net::ndp {
     using Message = M;
     uint8_t options[0];
 
+    View() = default;
     View(Message&& args)
-      : Message{std::forward(args)}
+      : Message{args}
     {}
 
 
@@ -44,7 +45,6 @@ namespace net::ndp {
       auto* opt = new (&options[offset]) Opt(std::forward<Args>(args)...);
       return opt;
     }
-
   };
 
   struct Router_sol
@@ -81,6 +81,11 @@ namespace net::ndp {
   {
     const uint32_t reserved{0x0};
     ip6::Addr target;
+
+    Neighbor_sol() = default;
+    Neighbor_sol(ip6::Addr tar)
+      : target{std::move(tar)}
+    {}
 
   } __attribute__((packed));
   static_assert(sizeof(Neighbor_sol) == 20);

@@ -164,25 +164,23 @@ namespace net
 
   void Ndp::send_neighbour_solicitation(ip6::Addr target)
   {
+    using namespace ndp;
     ip6::Addr dest_ip;
-    icmp6::Packet req(inet_.ip6_packet_factory());
 
+    icmp6::Packet req(inet_.ip6_packet_factory());
     req.ip().set_ip_src(inet_.ip6_addr());
 
     req.ip().set_ip_hop_limit(255);
     req.set_type(ICMP_type::ND_NEIGHBOUR_SOL);
     req.set_code(0);
-    req.set_reserved(0);
 
     // Solicit destination address. Source address
     // option must be present
     req.ip().set_ip_dst(dest_ip.solicit(target));
 
-    auto& sol = *reinterpret_cast<ndp::View<ndp::Neighbor_sol>*>(req.payload().data());
-    req.ip().increment_data_end(sizeof(sol));
-
-    // Set target address
-    sol.target = target;
+    // Construct neigbor sol msg on with target address on our ICMP
+    auto& sol = req.emplace<View<Neighbor_sol>>(target);
+    static_assert(sizeof(sol) == sizeof(Neighbor_sol));
     /* RFC 4861 p.22
        MUST NOT be included when the source IP address is the
        unspecified address.  Otherwise, on link layers
@@ -198,20 +196,19 @@ namespace net
     }
 
     req.set_checksum();
-
+    auto dest = req.ip().ip_dst();
     MAC::Addr dest_mac(0x33,0x33,
-            req.ip().ip_dst().get_part<uint8_t>(12),
-            req.ip().ip_dst().get_part<uint8_t>(13),
-            req.ip().ip_dst().get_part<uint8_t>(14),
-            req.ip().ip_dst().get_part<uint8_t>(15));
+            dest.get_part<uint8_t>(12),
+            dest.get_part<uint8_t>(13),
+            dest.get_part<uint8_t>(14),
+            dest.get_part<uint8_t>(15));
 
     PRINT("NDP: Sending Neighbour solicit size: %i payload size: %i,"
-        "checksum: 0x%x\n, source: %s, dest: %s, dest mac: %s\n",
+        "checksum: 0x%x, src: %s, dst: %s, dmac: %s\n",
         req.ip().size(), req.payload().size(), req.compute_checksum(),
         req.ip().ip_src().str().c_str(),
         req.ip().ip_dst().str().c_str(), dest_mac.str().c_str());
 
-    auto dest = req.ip().ip_dst();
     cache(dest, MAC::EMPTY, NeighbourStates::INCOMPLETE, 0);
     transmit(req.release(), dest, dest_mac);
   }
@@ -356,6 +353,7 @@ namespace net
 
   void Ndp::send_router_solicitation()
   {
+    using namespace ndp;
     icmp6::Packet req(inet_.ip6_packet_factory());
 
     req.ip().set_ip_src(inet_.ip6_addr());
@@ -364,12 +362,13 @@ namespace net
     req.ip().set_ip_hop_limit(255);
     req.set_type(ICMP_type::ND_ROUTER_SOL);
     req.set_code(0);
-    req.set_reserved(0);
 
-    auto& sol = *reinterpret_cast<ndp::View<ndp::Neighbor_sol>*>(req.payload().data());
-    req.ip().increment_data_end(sizeof(sol));
 
-    using Source_ll_addr = ndp::option::Source_link_layer_address<MAC::Addr>;
+    // Construct router sol msg on with target address on our ICMP
+    auto& sol = req.emplace<View<Router_sol>>();
+    static_assert(sizeof(sol) == sizeof(Router_sol));
+
+    using Source_ll_addr = option::Source_link_layer_address<MAC::Addr>;
     auto* opt = sol.add_option<Source_ll_addr>(0, link_mac_addr());
     req.ip().increment_data_end(opt->size());
 
@@ -589,8 +588,11 @@ namespace net
       });*/
   }
 
-  void Ndp::receive(icmp6::Packet& pckt)
+  void Ndp::receive(net::Packet_ptr pkt)
   {
+    auto pckt_ip6 = static_unique_ptr_cast<PacketIP6>(std::move(pkt));
+    auto pckt = icmp6::Packet(std::move(pckt_ip6));
+
     switch(pckt.type()) {
     case (ICMP_type::ND_ROUTER_SOL):
       PRINT("NDP: Router solictation message from %s\n", pckt.ip().ip_src().str().c_str());

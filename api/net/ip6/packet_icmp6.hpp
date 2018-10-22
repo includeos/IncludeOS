@@ -96,10 +96,10 @@ namespace net::icmp6 {
     { return header().checksum; }
 
     uint16_t id() const noexcept
-    { return reinterpret_cast<const IdSe*>(header().payload[0])->identifier; }
+    { return reinterpret_cast<const IdSe*>(header().payload)->identifier; }
 
     uint16_t sequence() const noexcept
-    { return reinterpret_cast<const IdSe*>(header().payload[0])->sequence; }
+    { return reinterpret_cast<const IdSe*>(header().payload)->sequence; }
 
     ip6::Addr& mld_multicast()
     { return *reinterpret_cast<ip6::Addr*> (&(header().payload[0])); }
@@ -134,13 +134,13 @@ namespace net::icmp6 {
     { header().code = c; }
 
     void set_id(uint16_t id) noexcept
-    { reinterpret_cast<IdSe*>(header().payload[0])->identifier = id; }
+    { reinterpret_cast<IdSe*>(header().payload)->identifier = id; }
 
     void set_sequence(uint16_t s) noexcept
-    { reinterpret_cast<IdSe*>(header().payload[0])->sequence = s; }
+    { reinterpret_cast<IdSe*>(header().payload)->sequence = s; }
 
     void set_reserved(uint32_t s) noexcept
-    { *reinterpret_cast<uint32_t*>(header().payload[0]) = s; }
+    { *reinterpret_cast<uint32_t*>(header().payload) = s; }
 
     /**
      * RFC 792 Parameter problem f.ex.: error (Pointer) is placed in the first byte after checksum
@@ -219,6 +219,14 @@ namespace net::icmp6 {
       pckt_->increment_data_end(len);
       memcpy(payload().data(), new_load, len);
       payload_offset_ += len;
+    }
+
+    template <typename T, typename... Args>
+    T& emplace(Args&&... args)
+    {
+      Expects(payload().empty());
+      pckt_->increment_data_end(sizeof(T));
+      return *(new (header().payload) T(args...));
     }
 
     /** Get the underlying IP packet */

@@ -27,8 +27,11 @@ using namespace net;
 
 Inet::Inet(hw::Nic& nic)
   : dns_server_(IP4::ADDR_ANY),
-    nic_(nic), arp_(*this), ndp_(*this), mld_(*this), mld2_(*this), ip4_(*this),
-    ip6_(*this), icmp_(*this), icmp6_(*this), udp_(*this), tcp_(*this),
+    nic_(nic), arp_(*this), ndp_(*this),
+    /*mld_(*this), mld2_(*this),*/
+    ip4_(*this), ip6_(*this),
+    icmp_(*this), icmp6_(*this),
+    udp_(*this), tcp_(*this),
     dns_(*this), domain_name_{}, MTU_(nic.MTU())
 {
   static_assert(sizeof(ip4::Addr) == 4, "IPv4 addresses must be 32-bits");
@@ -48,6 +51,7 @@ Inet::Inet(hw::Nic& nic)
   auto udp6_bottom(upstream{udp_, &UDP::receive6});
   auto tcp4_bottom(upstream{tcp_, &TCP::receive4});
   auto tcp6_bottom(upstream{tcp_, &TCP::receive6});
+  auto ndp_bottom(upstream{ndp_, &Ndp::receive});
 
   /** Upstream wiring  */
   // Packets available
@@ -79,6 +83,9 @@ Inet::Inet(hw::Nic& nic)
 
   // IP6 -> TCP
   ip6_.set_tcp_handler(tcp6_bottom);
+
+  // ICMPv6 -> NDP
+  icmp6_.set_ndp_handler(ndp_bottom);
 
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());
