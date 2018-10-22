@@ -17,6 +17,7 @@
 
 #pragma once
 #include <net/stream.hpp>
+#include <kernel/events.hpp>
 
 //#define VERBOSE_FUZZY_STREAM
 #ifdef VERBOSE_FUZZY_STREAM
@@ -27,15 +28,17 @@
 
 namespace fuzzy
 {
+  using Stream_ptr = net::Stream_ptr;
   struct Stream : public net::Stream
   {
-    using Stream_ptr = net::Stream_ptr;
-
     // read callback for when data is going out on this stream
-    Stream(net::Socket, net::Socket, ReadCallback);
+    Stream(net::Socket, net::Socket, ReadCallback, bool async = false);
     virtual ~Stream();
     // call this with testdata
     void give_payload(buffer_t);
+    // enable async behavior (to avoid trashing buffers)
+    void enable_async();
+    // for when we want to close fast
     void transport_level_close();
 
     //** ALL functions below are used by higher layers **//
@@ -94,32 +97,59 @@ namespace fuzzy
 
   private:
     void close_callback_once();
+    bool is_async() const noexcept { return this->m_async_event != 0; }
 
     net::Socket m_local;
     net::Socket m_remote;
     delegate<void(buffer_t)> m_payload_out = nullptr;
     
-    bool  m_busy = false;
-    bool  m_deferred_close = false;
+    bool    m_busy = false;
+    bool    m_deferred_close = false;
+    uint8_t m_async_event  = 0;
+    std::vector<buffer_t> m_async_queue;
     ConnectCallback  m_on_connect = nullptr;
     ReadCallback     m_on_read    = nullptr;
     WriteCallback    m_on_write   = nullptr;
     CloseCallback    m_on_close   = nullptr;
   };
-  using Stream_ptr = Stream::Stream_ptr;
 
   inline Stream::Stream(net::Socket lcl, net::Socket rmt,
-                        ReadCallback payload_out)
-    : m_local(lcl), m_remote(rmt), m_payload_out(payload_out) {}
+                        ReadCallback payload_out, const bool async)
+    : m_local(lcl), m_remote(rmt), m_payload_out(payload_out)
+  {
+    if (async) {
+      this->m_async_event = Events::get().subscribe(
+        [this] () {
+          auto copy = std::move(this->m_async_queue);
+          assert(this->m_async_queue.empty());
+          for (auto& buffer : copy) {
+              FZS_PRINT("fuzzy::Stream::async_write(%p: %p, %zu)\n",
+                        this, buffer->data(), buffer->size());
+              this->m_payload_out(std::move(buffer));
+          }
+        });
+      assert(this->is_async());
+    }
+  }
   inline Stream::~Stream()
   {
+    FZS_PRINT("fuzzy::Stream::~Stream(%p)\n", this);
     assert(m_busy == false && "Cannot delete stream while in its call stack");
   }
 
   inline void Stream::write(buffer_t buffer)
   {
-    FZS_PRINT("fuzzy::Stream::write(%zu)\n", buffer->size());
-    this->m_payload_out(std::move(buffer));
+    if (not this->is_async()) {
+        FZS_PRINT("fuzzy::Stream::write(%p: %p, %zu)\n",
+                  this, buffer->data(), buffer->size());
+        this->m_payload_out(std::move(buffer));
+    }
+    else {
+        FZS_PRINT("fuzzy::Stream::write(%p: %p, %zu) ASYNC\n",
+                  this, buffer->data(), buffer->size());
+        Events::get().trigger_event(this->m_async_event);
+        this->m_async_queue.push_back(std::move(buffer));
+    }
   }
   inline void Stream::write(const std::string& str)
   {
@@ -133,8 +163,9 @@ namespace fuzzy
 
   inline void Stream::give_payload(buffer_t data_in)
   {
-    FZS_PRINT("fuzzy::Stream::internal_read(%zu)\n", data_in->size());
+    FZS_PRINT("fuzzy::Stream::internal_read(%p, %zu)\n", this, data_in->size());
     if (this->m_on_read) {
+      assert(this->m_busy == false);
       this->m_busy = true;
       this->m_on_read(data_in);
       this->m_busy = false;
@@ -147,10 +178,16 @@ namespace fuzzy
 
   inline void Stream::close()
   {
+    FZS_PRINT("fuzzy::Stream::close(%p)\n", this);
     if (this->m_busy) {
       this->m_deferred_close = true; return;
     }
     CloseCallback func = std::move(this->m_on_close);
+    // unsubscribe and disable async writes
+    if (this->m_async_event) {
+        Events::get().unsubscribe(this->m_async_event);
+        this->m_async_event = 0;
+    }
     this->reset_callbacks();
     if (this->is_connected())
         this->close();
@@ -158,6 +195,7 @@ namespace fuzzy
   }
   inline void Stream::close_callback_once()
   {
+    FZS_PRINT("fuzzy::Stream::close_callback_once()\n");
     if (this->m_busy) {
       this->m_deferred_close = true; return;
     }
@@ -173,7 +211,7 @@ namespace fuzzy
     this->m_on_write = nullptr;
   }
   
-  size_t Stream::serialize_to(void*) const {
+  inline size_t Stream::serialize_to(void*) const {
     return 0;
   }
-} // s2n
+} // fuzzy

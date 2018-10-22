@@ -19,6 +19,7 @@
 #include <net/stream.hpp>
 #include <s2n.h>
 #include <util/ringbuffer.hpp>
+#include <errno.h>
 
 //#define VERBOSE_S2N
 #ifdef VERBOSE_S2N
@@ -147,7 +148,9 @@ namespace s2n
                                 const bool outgoing)
     : m_transport(std::move(t))
   {
+    assert(this->m_transport != nullptr);
     this->m_conn = s2n_connection_new(outgoing ? S2N_CLIENT : S2N_SERVER);
+    assert(this->m_conn);
     int res =
       s2n_connection_set_config(this->m_conn, config);
     if (res < 0) {
@@ -161,9 +164,28 @@ namespace s2n
     s2n_connection_set_recv_ctx(this->m_conn, this);
     s2n_connection_set_ctx(this->m_conn, this);
     this->m_transport->on_read(8192, {this, &TLS_stream::tls_read});
+    
+    // initial handshake on outgoing connections
+    if (outgoing)
+    {
+      s2n_blocked_status blocked;
+      int r = s2n_negotiate(this->m_conn, &blocked);
+      S2N_PRINT("s2n_negotiate: %d / %d, blocked = %x\n",
+                r, m_readq.size(), blocked);
+      if (r < 0) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED)
+        {
+          fprintf(stderr, "Failed to negotiate: '%s'. %s\n", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
+          fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(this->m_conn));
+          this->close();
+        }
+        return;
+      }
+    }
   }
   inline TLS_stream::~TLS_stream()
   {
+    S2N_PRINT("s2n::TLS_stream::~TLS_stream(%p)\n", this);
     assert(m_busy == false && "Cannot delete stream while in its call stack");
     s2n_connection_free(this->m_conn);
   }
@@ -177,12 +199,14 @@ namespace s2n
   }
   inline void TLS_stream::write(const std::string& str)
   {
+    assert(handshake_completed());
     s2n_blocked_status blocked;
     s2n_send(this->m_conn, str.data(), str.size(), &blocked);
     S2N_PRINT("write %zu bytes, blocked = %x\n", str.size(), blocked);
   }
   inline void TLS_stream::write(const void* data, const size_t len)
   {
+    assert(handshake_completed());
     auto* buf = static_cast<const uint8_t*> (data);
     s2n_blocked_status blocked;
     s2n_send(this->m_conn, buf, len, &blocked);
@@ -191,7 +215,8 @@ namespace s2n
 
   inline void TLS_stream::tls_read(buffer_t data_in)
   {
-    S2N_PRINT("tls_read: %zu bytes\n", data_in->size());
+    S2N_PRINT("s2n::tls_read(%p): %p, %zu bytes -> %p\n",
+              this, data_in->data(), data_in->size(), m_readq.data());
     m_readq.write(data_in->data(), data_in->size());
     
     s2n_blocked_status blocked;
@@ -223,6 +248,7 @@ namespace s2n
           return;
         }
       } else {
+        S2N_PRINT("calling s2n_negotiate\n");
         r = s2n_negotiate(this->m_conn, &blocked);
         S2N_PRINT("s2n_negotiate: %d / %d, blocked = %x\n",
                   r, m_readq.size(), blocked);
@@ -255,6 +281,7 @@ namespace s2n
   }
   int s2n_send(void* ctx, const uint8_t* buf, uint32_t len)
   {
+    S2N_PRINT("s2n_send(%p): %p, %u\n", ctx, buf, len);
     ((TLS_stream*) ctx)->m_transport->write(buf, len);
     return len;
   }
@@ -292,7 +319,7 @@ namespace s2n
     return APPLICATION_DATA == s2n_conn_get_current_message_type(this->m_conn);
   }
   
-  size_t TLS_stream::serialize_to(void*) const {
+  inline size_t TLS_stream::serialize_to(void*) const {
     return 0;
   }
 } // s2n

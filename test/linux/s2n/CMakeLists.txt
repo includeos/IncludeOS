@@ -14,7 +14,7 @@ set(INCLUDES
 
 set(SOURCES
     service.cpp
-    http.cpp
+    serial.cpp
   )
 
 option(ENABLE_S2N "" ON)
