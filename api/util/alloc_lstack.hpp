@@ -54,6 +54,19 @@ namespace alloc {
     void* end() {
       return reinterpret_cast<std::byte*>(this) + size;
     }
+
+    bool operator<(const Node& rhs) {
+      return this < rhs.begin();
+    }
+    bool operator<=(const Node& rhs) {
+      return this <= rhs.begin();
+    }
+    bool operator>(const Node& rhs) {
+      return this > rhs.begin();
+    }
+    bool operator>=(const Node& rhs) {
+      return this >= rhs.begin();
+    }
   };
 
   namespace detail {
@@ -223,7 +236,8 @@ public:
       return donations_end_;
     }
 
-    auto* highest_free = lower_bound((void*)(donations_end_ - min_alloc));
+    auto* highest_free = find_prior((void*)(donations_end_));
+    printf("Alloc_end high_free: %p \n", nullptr);
     if ((uintptr_t)highest_free->end() >= donations_end_)
       return (uintptr_t)highest_free->begin();
 
@@ -286,7 +300,7 @@ public:
     if constexpr (! merge_on_dealloc) {
         push_front(ptr, size);
     } else {
-      auto* prior = lower_bound(ptr);
+      auto* prior = find_prior(ptr);
 
       if (prior == nullptr) {
         printf("%p has no prior - push front \n");
@@ -322,27 +336,24 @@ public:
     return max;
   }
 
-  Node* lower_bound(void* ptr) {
+  Node* find_prior(void* ptr) {
     auto* node = front_;
-    if (node == nullptr or node > ptr)
-      return nullptr;
-
-    //Expects(*node < ptr);
     if constexpr (is_sorted) {
-        // If sorted we only iterate until next > ptr
-        while (node->next != nullptr and (std::byte*)node->next + node->size < ptr) {
+        // If sorted we only iterate until next->next > ptr
+        if (node >= ptr)
+          return nullptr;
+
+        while (node!= nullptr and node->next < ptr
+               and node->next != nullptr)
+        {
           node = node->next;
         }
         return node;
     } else {
       // If unsorted we iterate throught the entire list
-      Node* best_match = node;
-      while (node->next != nullptr) {
-        if ((std::byte*)node->next + node->size  > ptr) {
-          node = node->next;
-          continue;
-        }
-        if (node->next < ptr and node->next > best_match)
+      Node* best_match = nullptr;
+      while (node != nullptr) {
+        if (node->begin() < ptr and node->begin() > best_match)
           best_match = node;
         node = node->next;
       }
@@ -352,10 +363,16 @@ public:
 
   void merge(Node* prior, void* ptr, size_t size){
     static_assert(merge_on_dealloc, "Merge not enabled");
+    printf("MERGE %p->%p with %p->%p \n",
+           prior, (uintptr_t)prior + prior->size,
+           ptr, (uintptr_t)ptr + size);
     Expects(prior);
-    Expects((char*)prior + size <= ptr);
+    // Prevent double dealloc
+    Expects((char*)prior + prior->size <= ptr);
     auto* next = prior->next;
-    Expects((uintptr_t)ptr + size >= (uintptr_t)next);
+
+    Expects((uintptr_t)ptr + size <= (uintptr_t)next
+            or next == nullptr);
 
     if ((uintptr_t)ptr == (uintptr_t)prior + prior->size) {
       // New node starts exactly at prior end, so merge

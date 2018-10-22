@@ -22,10 +22,10 @@ CASE("lstack::nodes:no_merge: testing empty lstack")
   Alloc heap;
   EXPECT(*heap.find_largest() == nullptr);
   EXPECT(heap.node_count() == 0);
-  EXPECT(heap.lower_bound(0) == nullptr);
-  EXPECT(heap.lower_bound((void*)1) == nullptr);
-  EXPECT(heap.lower_bound((void*)4096) == nullptr);
-  EXPECT(heap.lower_bound((void*)(4096 * 1024)) == nullptr);
+  EXPECT(heap.find_prior(0) == nullptr);
+  EXPECT(heap.find_prior((void*)1) == nullptr);
+  EXPECT(heap.find_prior((void*)4096) == nullptr);
+  EXPECT(heap.find_prior((void*)(4096 * 1024)) == nullptr);
   EXPECT_THROWS(heap.pop(nullptr));
   Alloc::Node* ptr = nullptr;
   EXPECT((heap.pop(&ptr) == util::alloc::Allocation{}));
@@ -61,6 +61,8 @@ CASE("lstack::nodes: testing lstack<no_merge> node traversal")
   heap.deallocate(heap.allocate(sz), sz);
   heap.deallocate(heap.allocate(sz), sz);
   heap.deallocate(heap.allocate(sz), sz);
+
+  // No merging enabled
   EXPECT(heap.node_count() == 2);
 
   EXPECT((uintptr_t)(*(heap.find_largest())) == (uintptr_t)((char*)first_begin + sz));
@@ -108,13 +110,13 @@ CASE("lstack::nodes: testing lstack<no_merge> node traversal")
   EXPECT((uintptr_t)largest.ptr == (uintptr_t)pop6 + pop6->size);
   EXPECT(heap.node_count() == 3);
   EXPECT(*(heap.find_largest()) == pop5);
-  EXPECT(heap.lower_bound((void*)0) == nullptr);
+  EXPECT(heap.find_prior((void*)0) == nullptr);
   print_summary(heap);
-  auto lb1 = heap.lower_bound(pop1);
-  std::cout << "Lower bound of " << pop1 << " IS: " << lb1 << "\n";
-  EXPECT(heap.lower_bound(pop1) == pop1);
-
-
+  EXPECT(heap.find_prior(pop1) == nullptr);
+  printf("FINDING PRIOR \n");
+  auto pr2 = heap.find_prior(pop2);
+  std::cout << "Prior to " << pop2 << " IS: " << pr2 << " expected " << pop1 << "\n";
+  EXPECT(heap.find_prior(pop2) == pop1);
 }
 
 CASE("lstack::nodes: testing lstack<merge> node traversal")
@@ -126,6 +128,7 @@ CASE("lstack::nodes: testing lstack<merge> node traversal")
   Alloc heap = pool.stack;;
   EXPECT(heap.bytes_allocated() == 0);
   EXPECT(heap.bytes_free() == pool.size);
+  EXPECT(heap.node_count() == 1);
   EXPECT(heap.allocation_end() == (uintptr_t)pool.data);
 
   // Find largest
@@ -139,12 +142,83 @@ CASE("lstack::nodes: testing lstack<merge> node traversal")
   heap.deallocate(heap.allocate(sz), sz);
   heap.deallocate(heap.allocate(sz), sz);
   heap.deallocate(heap.allocate(sz), sz);
+
+  // Merging enabled
   EXPECT(heap.node_count() == 1);
 
   print_summary(heap);
   EXPECT((uintptr_t)(*(heap.find_largest())) == (uintptr_t)((char*)first_begin));
 
-  // Fresh heap
+  auto pop1 = heap.pop_off(sz);
+  EXPECT(pop1 == first_begin);
+  EXPECT((uintptr_t)(*(heap.find_largest())) == (uintptr_t)((char*)first_begin + sz));
+  EXPECT(heap.node_count() == 1);
 
+  print_summary(heap);
+
+  // Create gaps
+  auto sz2 = sz * 2;
+  auto pop2 = heap.pop_off(sz2);
+  EXPECT((uintptr_t)pop2 == (uintptr_t)first_begin + sz);
+  EXPECT(heap.node_count() == 1);
+
+  auto sz3 = sz * 3;
+  auto pop3 = heap.pop_off(sz3);
+  EXPECT((uintptr_t)pop3 == (uintptr_t)first_begin + sz + sz2);
+  EXPECT(heap.node_count() == 1);
+
+  auto sz4 = sz * 4;
+  auto pop4 = heap.pop_off(sz4);
+  EXPECT((uintptr_t)pop4 == (uintptr_t)first_begin + sz + sz2 + sz3);
+  EXPECT(heap.node_count() == 1);
+
+  auto sz5 = sz * 5;
+  auto pop5 = heap.pop_off(sz5);
+  EXPECT((uintptr_t)pop5 == (uintptr_t)first_begin + sz + sz2 + sz3 + sz4);
+  EXPECT(heap.node_count() == 1);
+
+  auto sz6 = sz * 6;
+  auto pop6 = heap.pop_off(sz6);
+  EXPECT((uintptr_t)pop6 == (uintptr_t)first_begin + sz + sz2 + sz3 + sz4 + sz5);
+  EXPECT(heap.node_count() == 1);
+
+  heap.push(pop1, pop1->size);
+  print_summary(heap);
+  heap.push(pop3, pop3->size);
+  heap.push(pop5, pop5->size);
+
+  // Expect fragmentation
+  EXPECT(heap.node_count() == 4);
+  EXPECT((uintptr_t)*(heap.find_largest()) == (uintptr_t)pop6 + pop6->size);
+
+  auto largest = heap.allocate_largest();
+  EXPECT((uintptr_t)largest.ptr == (uintptr_t)pop6 + pop6->size);
+  EXPECT(heap.node_count() == 3);
+  EXPECT(*(heap.find_largest()) == pop5);
+  EXPECT(heap.find_prior((void*)0) == nullptr);
+  print_summary(heap);
+  EXPECT(heap.find_prior(pop1) == nullptr);
+  printf("FINDING PRIOR \n");
+  auto pr2 = heap.find_prior(pop2);
+  std::cout << "Prior to " << pop2 << " IS: " << pr2 << " expected " << pop1 << "\n";
+  EXPECT(heap.find_prior(pop2) == pop1);
+
+  print_summary(heap);
+
+  // Expect perfect merging
+  heap.deallocate(pop2, sz2);
+  EXPECT(heap.node_count() == 2);
+
+  print_summary(heap);
+  EXPECT_THROWS(heap.deallocate(pop3, sz3));
+
+  heap.deallocate(pop4, sz4);
+  EXPECT(heap.node_count() == 1);
+
+  heap.deallocate(pop6, sz6);
+  EXPECT(heap.node_count() == 1);
+
+  heap.deallocate(largest);
+  EXPECT(heap.node_count() == 1);
 
 }
