@@ -38,12 +38,11 @@ CASE("lstack::nodes:no_merge: testing empty lstack")
 
 CASE("lstack::nodes: testing lstack<no_merge> node traversal")
 {
-  printf ("Test start\n");
   using namespace util::literals;
   using Alloc = util::alloc::detail::Lstack<util::alloc::Lstack_opt::no_merge>;
   using Node  = util::alloc::Node<>;
   test::pool<Alloc, 1_MiB> pool;
-  Alloc heap = pool.stack;;
+  Alloc heap = pool.stack;
   EXPECT(heap.bytes_allocated() == 0);
   EXPECT(heap.bytes_free() == pool.size);
   EXPECT(heap.allocation_end() == (uintptr_t)pool.data);
@@ -51,7 +50,6 @@ CASE("lstack::nodes: testing lstack<no_merge> node traversal")
 
   // Find largest
   auto* first_begin = heap.allocation_begin();
-  printf("Alloc begin: %#zx\n");
   EXPECT(*(heap.find_largest()) == heap.allocation_begin());
 
   auto sz = 4_KiB;
@@ -113,15 +111,12 @@ CASE("lstack::nodes: testing lstack<no_merge> node traversal")
   EXPECT(heap.find_prior((void*)0) == nullptr);
   print_summary(heap);
   EXPECT(heap.find_prior(pop1) == nullptr);
-  printf("FINDING PRIOR \n");
   auto pr2 = heap.find_prior(pop2);
-  std::cout << "Prior to " << pop2 << " IS: " << pr2 << " expected " << pop1 << "\n";
   EXPECT(heap.find_prior(pop2) == pop1);
 }
 
 CASE("lstack::nodes: testing lstack<merge> node traversal")
 {
-  printf ("Test start\n");
   using namespace util::literals;
   using Alloc = util::alloc::detail::Lstack<util::alloc::Lstack_opt::merge>;
   test::pool<Alloc, 1_MiB> pool;
@@ -198,9 +193,7 @@ CASE("lstack::nodes: testing lstack<merge> node traversal")
   EXPECT(heap.find_prior((void*)0) == nullptr);
   print_summary(heap);
   EXPECT(heap.find_prior(pop1) == nullptr);
-  printf("FINDING PRIOR \n");
   auto pr2 = heap.find_prior(pop2);
-  std::cout << "Prior to " << pop2 << " IS: " << pr2 << " expected " << pop1 << "\n";
   EXPECT(heap.find_prior(pop2) == pop1);
 
   print_summary(heap);

@@ -17,14 +17,21 @@
 #ifndef LSTACK_COMMON_HPP
 #define LSTACK_COMMON_HPP
 
-#undef NO_INFO
-
-#define DEBUG_UNIT
+//#define DEBUG_UNIT
+#include <algorithm>
 #include <common.cxx>
+//#undef NO_INFO
+
 #include <util/alloc_lstack.hpp>
 #include <util/units.hpp>
 #include <util/bitops.hpp>
 #include <malloc.h>
+
+
+#define QUOTE(X) #X
+#define STR(X) QUOTE(X)
+
+using namespace util;
 
 template<typename L>
 inline void print_summary(L& lstack)
@@ -45,7 +52,6 @@ inline void print_summary(L& lstack)
     return;
   }
 
-  Expects(ptr->size != 0);
   while (ptr != nullptr) {
     printf("[%p->%p ", ptr, (std::byte*)ptr + ptr->size);
     for (int i = 0; i < ptr->size / 4096; i++)
@@ -80,6 +86,15 @@ namespace test {
     ~pool(){
       free(data);
     }
+
+    uintptr_t begin() {
+      return (uintptr_t)data;
+    }
+
+    uintptr_t end() {
+      return (uintptr_t)data + size;
+    }
+
     Alloc stack;
     void* data;
   };

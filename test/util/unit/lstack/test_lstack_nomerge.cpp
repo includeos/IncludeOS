@@ -14,23 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#include "lstack/test_lstack.hpp"
+#define LSTACK_OPT       no_merge
+#include "test_lstack_common.cpp"
 
-// Test nodes data structure
-#include "lstack/test_lstack_nodes.cpp"
-
-/*
-#using Lstack = util::alloc::Lstack<util::alloc::Lstack_opt::no_merge>;
-#using Chunk  = Lstack::Node;
-
-#define LSTACK_VERSION_NAME "lstack::no_merge"
-#include "lstack/test_lstack_nomerge.cpp"
-
-//#include "lstack/test_lstack_common.cpp"
-//
-
-// using Lstack = util::alloc::Lstack<util::alloc::Lstack_opt::merge>;
-//#using Chunk  = Lstack::Node;
-#undef LSTACK_VERSION_NAME
-#define LSTACK_VERSION_NAME "lstack::merge"
-*/
