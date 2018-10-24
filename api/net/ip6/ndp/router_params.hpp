@@ -16,7 +16,7 @@
 // limitations under the License.
 #pragma once
 
-#include "prefix_entry.hpp"
+#include <net/ip6/stateful_addr.hpp>
 #include <deque>
 
 namespace net::ndp {
@@ -42,6 +42,6 @@ namespace net::ndp {
     uint16_t   default_lifetime_;
     uint32_t   reachable_time_;
     uint32_t   retrans_time_;
-    std::deque<Prefix_entry> prefix_list_;
+    std::deque<ip6::Stateful_addr> prefix_list_;
   };
 }

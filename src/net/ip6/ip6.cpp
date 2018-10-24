@@ -72,7 +72,7 @@ namespace net
   /* TODO: Check RFC */
   bool IP6::is_for_me(ip6::Addr dst) const
   {
-    return stack_.is_valid_source(dst)
+    return stack_.is_valid_source6(dst)
       or local_ip() == ADDR_ANY;
   }
 

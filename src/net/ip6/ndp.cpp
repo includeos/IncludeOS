@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define NDP_DEBUG 1
+//#define NDP_DEBUG 1
 #ifdef NDP_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -122,7 +122,7 @@ namespace net
     if (dad_handler_ && target == tentative_addr_) {
       PRINT("NDP: NA: DAD failed. We can't use the %s"
             " address on our interface", target.str().c_str());
-      dad_handler_();
+      dad_handler_(target);
       return;
     }
 
@@ -168,7 +168,7 @@ namespace net
     ip6::Addr dest_ip;
 
     icmp6::Packet req(inet_.ip6_packet_factory());
-    req.ip().set_ip_src(inet_.ip6_addr());
+    req.ip().set_ip_src(inet_.linklocal_addr());
 
     req.ip().set_ip_hop_limit(255);
     req.set_type(ICMP_type::ND_NEIGHBOUR_SOL);
@@ -270,13 +270,13 @@ namespace net
     bool is_dest_multicast = req.ip().ip_dst().is_multicast();
 
     // TODO: Change this. Can be targeted to many ip6 address on this inet
-    if (target != inet_.ip6_addr()) {
+    if (not inet_.is_valid_source6(target)) {
       PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(),
               inet_.ip6_addr().to_string().c_str());
       if (dad_handler_ && target == tentative_addr_) {
         PRINT("NDP: NS: DAD failed. We can't use the %s"
               " address on our interface", target.str().c_str());
-        dad_handler_();
+        dad_handler_(target);
         return;
       } else if (!proxy_) {
          return;
@@ -345,9 +345,9 @@ namespace net
    }*/
   }
 
-  void Ndp::send_router_solicitation(RouterAdv_handler delg)
+  void Ndp::send_router_solicitation(Autoconf_handler delg)
   {
-    ra_handler_ = delg;
+    autoconf_handler_ = delg;
     send_router_solicitation();
   }
 
@@ -429,7 +429,6 @@ namespace net
 
   void Ndp::receive_router_advertisement(icmp6::Packet& req)
   {
-    printf("Recv RA\n");
     if (!req.ip().ip_src().is_linklocal()) {
       PRINT("NDP: Router advertisement source address is not link-local\n");
       return;
@@ -473,7 +472,7 @@ namespace net
     }
 
     // Parse the options
-    auto n = adv.parse_options(data + payload.length(), [&](const auto* opt)
+    adv.parse_options(data + payload.length(), [&](const auto* opt)
     {
       using namespace ndp::option;
       switch(opt->type)
@@ -489,50 +488,23 @@ namespace net
             return;
           }
 
-          const auto preferred_lifetime = pinfo->preferred_lifetime();
-          const auto valid_lifetime     = pinfo->valid_lifetime();
-
           if (pinfo->onlink())
           {
-            PRINT("on link\n");
-            //onlink_cb(pinfo->prefix, preferred_lifetime, valid_lifetime);
+            add_addr_onlink(pinfo->prefix, pinfo->valid_lifetime());
           }
 
+          // if autoconf is set, call autoconf handler if set
           if (pinfo->autoconf())
           {
-            PRINT("autoconf\n");
-            if (pinfo->prefix.is_multicast())
+            if(autoconf_handler_)
             {
-              PRINT("NDP: Prefix info address is multicast\n");
-              return;
-            }
-
-            if (preferred_lifetime > valid_lifetime)
-            {
-              PRINT("NDP: Prefix option has invalid lifetime\n");
-              return;
-            }
-
-            if (pinfo->prefix_len == 64)
-            {
-              PRINT("prefix_len is 64\n");
+              autoconf_handler_(*pinfo);
             }
             else
             {
-              PRINT("NDP: Prefix option: autoconf: "
-                       " prefix with wrong len: %d", pinfo->prefix_len);
-              return;
+              PRINT("NDP: autoconf but no handler\n");
             }
-
-            auto eui64 = MAC::Addr::eui64(inet_.link_addr());
-            auto addr = pinfo->prefix;
-            addr.set_part(1, eui64);
-            add_addr_autoconf(addr, preferred_lifetime, valid_lifetime);
-
-            if(ra_handler_)
-              ra_handler_(addr);
           }
-
           break;
         }
 
@@ -566,8 +538,6 @@ namespace net
       }
       // do opt
     });
-
-    printf("number of options: %u\n", n);
 
     /*req.ndp().parse_prefix([this] (ip6::Addr prefix,
           uint32_t preferred_lifetime, uint32_t valid_lifetime)
@@ -848,7 +818,7 @@ namespace net
   void Ndp::add_addr_static(ip6::Addr ip, uint32_t valid_lifetime)
   {
     auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
-          [&ip] (const auto& obj) { return obj.prefix() == ip; });
+          [&ip] (const auto& obj) { return obj.addr() == ip; });
 
     if (entry == prefix_list_.end()) {
         prefix_list_.emplace_back(ip, 0, valid_lifetime);
@@ -860,7 +830,7 @@ namespace net
   void Ndp::add_addr_onlink(ip6::Addr ip, uint32_t valid_lifetime)
   {
     auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
-          [&ip] (const auto& obj) { return obj.prefix() == ip; });
+          [&ip] (const auto& obj) { return obj.addr() == ip; });
 
     if (entry == prefix_list_.end()) {
       if (valid_lifetime) {
@@ -882,7 +852,7 @@ namespace net
             preferred_lifetime, valid_lifetime);
 
     auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
-          [&ip] (const auto& obj) { return obj.prefix() == ip; });
+          [&ip] (const auto& obj) { return obj.addr() == ip; });
     auto two_hours = 60 * 60 * 2;
 
     if (entry == prefix_list_.end()) {

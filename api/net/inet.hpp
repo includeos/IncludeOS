@@ -279,7 +279,7 @@ namespace net {
     void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
 
     /* Automatic configuration of ipv6 address for inet */
-    void autoconf_v6(int retries = 0, slaac_timeout_func = nullptr,
+    void autoconf_v6(int retries = 1, slaac_timeout_func = nullptr,
             ip6::Addr alternate_addr = IP6::ADDR_ANY);
 
     bool is_configured() const
@@ -313,6 +313,19 @@ namespace net {
     void network_config6(ip6::Addr addr6 = IP6::ADDR_ANY,
                         uint8_t prefix6 = 0,
                         ip6::Addr gateway6 = IP6::ADDR_ANY);
+
+    void add_addr(const ip6::Addr& addr,
+                  uint32_t pref_lifetime, uint32_t valid_lifetime,
+                  uint8_t prefix = 64);
+
+    ip6::Addr linklocal_addr() const noexcept
+    { return this->addr6_config().get_first_linklocal(); }
+
+    ip6::Addr_list& addr6_config() noexcept
+    { return this->ip6_.addr_list(); }
+
+    const ip6::Addr_list& addr6_config() const noexcept
+    { return this->ip6_.addr_list(); }
 
     void reset_config()
     {
@@ -429,7 +442,7 @@ namespace net {
 
     // @todo: is_multicast needs to be verified in mld
     bool is_valid_source6(const ip6::Addr& src) const
-    { return src == ip6_addr() or src.is_multicast(); }
+    { return ip6_.is_valid_source(src) or src.is_multicast(); }
 
     std::shared_ptr<Conntrack>& conntrack()
     { return conntrack_; }
@@ -489,7 +502,11 @@ namespace net {
     int   cpu_id;
     const uint16_t MTU_;
 
-    friend class Super_stack;
+    friend class Slaac;
+
+    void add_addr_autoconf(const ip6::Addr& addr,
+                           uint32_t pref_lifetime, uint32_t valid_lifetime,
+                           uint8_t prefix = 64);
   };
 }
 

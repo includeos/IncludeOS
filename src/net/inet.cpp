@@ -272,6 +272,28 @@ void Inet::network_config6(IP6::addr addr6,
   configured_handlers_.clear();
 }
 
+void Inet::add_addr(const ip6::Addr& addr,
+              uint32_t pref_lifetime, uint32_t valid_lifetime,
+              uint8_t prefix)
+{
+  int r = this->ip6_.addr_list().input(
+    addr, pref_lifetime, valid_lifetime, prefix);
+  if(r == 1) {
+    INFO("Inet6", "Address configured %s", addr.to_string().c_str());
+  }
+}
+
+void Inet::add_addr_autoconf(const ip6::Addr& addr,
+                       uint32_t pref_lifetime, uint32_t valid_lifetime,
+                       uint8_t prefix)
+{
+  int r = this->ip6_.addr_list().input_autoconf(
+    addr, pref_lifetime, valid_lifetime, prefix);
+  if(r == 1) {
+    INFO("Inet6", "Address configured %s (autoconf)", addr.to_string().c_str());
+  }
+}
+
 void Inet::enable_conntrack(std::shared_ptr<Conntrack> ct)
 {
   Expects(conntrack_ == nullptr && "Conntrack is already set");

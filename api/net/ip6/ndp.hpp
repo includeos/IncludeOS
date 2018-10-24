@@ -26,10 +26,11 @@
 #include <util/timer.hpp>
 #include "packet_icmp6.hpp"
 #include "packet_ndp.hpp"
-#include "ndp/prefix_entry.hpp"
+#include "stateful_addr.hpp"
 #include "ndp/router_entry.hpp"
 #include "ndp/host_params.hpp"
 #include "ndp/router_params.hpp"
+#include "ndp/options.hpp"
 
 using namespace std::chrono_literals;
 namespace net {
@@ -77,8 +78,8 @@ namespace net {
     using Stack   = IP6::Stack;
     using Route_checker = delegate<bool(ip6::Addr)>;
     using Ndp_resolver = delegate<void(ip6::Addr)>;
-    using Dad_handler = delegate<void()>;
-    using RouterAdv_handler = delegate<void(ip6::Addr)>;
+    using Dad_handler = delegate<void(const ip6::Addr&)>;
+    using Autoconf_handler = delegate<void(const ndp::option::Prefix_info&)>;
     using ICMP_type = ICMP6_error::ICMP_type;
 
     /** Constructor */
@@ -96,7 +97,7 @@ namespace net {
     void send_neighbour_solicitation(ip6::Addr target);
     void send_neighbour_advertisement(icmp6::Packet& req);
     void send_router_solicitation();
-    void send_router_solicitation(RouterAdv_handler delg);
+    void send_router_solicitation(Autoconf_handler delg);
     void send_router_advertisement();
 
     /** Roll your own ndp-resolution system. */
@@ -277,7 +278,7 @@ namespace net {
     using Cache       = std::unordered_map<ip6::Addr, Neighbour_Cache_entry>;
     using DestCache   = std::unordered_map<ip6::Addr, Destination_Cache_entry>;
     using PacketQueue = std::unordered_map<ip6::Addr, Queue_entry>;
-    using PrefixList  = std::deque<ndp::Prefix_entry>;
+    using PrefixList  = std::deque<ip6::Stateful_addr>;
     using RouterList  = std::deque<ndp::Router_entry>;
 
     /** Stats */
@@ -297,7 +298,7 @@ namespace net {
     Stack& inet_;
     Route_checker       proxy_ = nullptr;
     Dad_handler         dad_handler_ = nullptr;
-    RouterAdv_handler   ra_handler_ = nullptr;
+    Autoconf_handler    autoconf_handler_ = nullptr;
     ndp::Host_params    host_params_;
     ndp::Router_params  router_params_;
 
