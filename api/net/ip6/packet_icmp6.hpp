@@ -229,6 +229,14 @@ namespace net::icmp6 {
       return *(new (header().payload) T(args...));
     }
 
+    template <typename T>
+    const T& view_payload_as()
+    {
+      const Span payload = this->payload();
+      Expects(payload.size() >= sizeof(T));
+      return *reinterpret_cast<const T*>(payload.data());
+    }
+
     /** Get the underlying IP packet */
     PacketIP6& ip() { return *pckt_; }
     const PacketIP6& ip() const { return *pckt_; }
