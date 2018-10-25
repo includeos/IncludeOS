@@ -22,7 +22,7 @@
 #include <net/inet_common.hpp>
 
 #define NIC_SENDQ_LIMIT_DEFAULT  4096
-#define NIC_BUFFER_LIMIT_DEFAULT 4096
+#define NIC_BUFFER_LIMIT_DEFAULT 0 /* unlimited to avoid exhaustion */
 
 namespace hw {
 
