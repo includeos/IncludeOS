@@ -120,6 +120,9 @@ namespace net
     void set_ndp_handler(upstream s)
     { ndp_upstream_ = s; }
 
+    void set_mld_handler(upstream s)
+    { mld_upstream_ = s; }
+
     /**
      *  Destination Unreachable sent from host because of port (UDP) or protocol (IP6) unreachable
      */
@@ -160,6 +163,7 @@ namespace net
     Stack& inet_;
     downstream network_layer_out_ = nullptr;
     upstream   ndp_upstream_      = nullptr;
+    upstream   mld_upstream_      = nullptr;
 
     inline bool is_full_header(size_t pckt_size)
     { return (pckt_size >= sizeof(ip6::Header) + icmp6::Packet::header_size()); }

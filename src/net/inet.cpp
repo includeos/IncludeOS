@@ -28,7 +28,7 @@ using namespace net;
 Inet::Inet(hw::Nic& nic)
   : dns_server_(IP4::ADDR_ANY),
     nic_(nic), arp_(*this), ndp_(*this),
-    /*mld_(*this), mld2_(*this),*/
+    mld_(*this), /*mld2_(*this),*/
     ip4_(*this), ip6_(*this),
     icmp_(*this), icmp6_(*this),
     udp_(*this), tcp_(*this),
@@ -52,6 +52,7 @@ Inet::Inet(hw::Nic& nic)
   auto tcp4_bottom(upstream{tcp_, &TCP::receive4});
   auto tcp6_bottom(upstream{tcp_, &TCP::receive6});
   auto ndp_bottom(upstream{ndp_, &Ndp::receive});
+  auto mld_bottom(upstream{mld_, &Mld::receive});
 
   /** Upstream wiring  */
   // Packets available
@@ -86,6 +87,9 @@ Inet::Inet(hw::Nic& nic)
 
   // ICMPv6 -> NDP
   icmp6_.set_ndp_handler(ndp_bottom);
+
+  // ICMPv6 -> MLD
+  icmp6_.set_mld_handler(mld_bottom);
 
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());
@@ -122,6 +126,9 @@ Inet::Inet(hw::Nic& nic)
 
   // NDP -> Link
   ndp_.set_linklayer_out(link_top);
+
+  // MLD -> Link
+  mld_.set_linklayer_out(link_top);
 
   // Arp -> Link
   assert(link_top);
