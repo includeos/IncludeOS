@@ -12,21 +12,21 @@ class MuslConan(ConanFile):
     name = "musl"
     version = "v1.1.18"
     license = 'MIT'
+    triple = str(self.settings.arch)+"-elf"
     #requires = 'binutils/2.31@includeos/test'
     description = 'musl - an implementation of the standard library for Linux-based systems'
     url = "https://www.musl-libc.org/"
     exports_sources=['../../etc*musl*musl.patch', '../../etc*musl*endian.patch','../../api*syscalls.h','../../etc*musl*syscall.h']
 
-    #for speedup doing multibuild
-    no_copy_source=True
+    #for speedup doing multibuild doesnt really work with AutoToolsx
+    #no_copy_source=True
     #for debugging
-    keep_imports=True
+    #keep_imports=True
 
 
 
     def build_requirements(self):
         self.build_requires("binutils/2.31@includeos/test")
-
 
     def imports(self):
         tgt=str(self.settings.arch)+"-elf"
@@ -49,9 +49,10 @@ class MuslConan(ConanFile):
         ##os.path.join(self.build_folder+"/bin")
         #TODO swap this to use self.settings.arch
         env_build = AutoToolsBuildEnvironment(self)
-        env_build.configure(configure_dir=self.source_folder+"/musl",target=str(self.settings.arch)+"-elf",args=["--enable-debug","--disable-shared"]) #what goes in here preferably
+        env_build.configure(configure_dir=self.source_folder+"/musl",target=self.triple,args=["--enable-debug","--disable-shared"]) #what goes in here preferably
         env_build.make()
         env_build.install()
 
     def package(self):
-        print ("TODO")
+        self.copy("*.h",dst="include",src="muslinclude")
+        self.copy("*.a",dst="lib",src="lib")
