@@ -12,7 +12,7 @@ class MuslConan(ConanFile):
     name = "musl"
     version = "v1.1.18"
     license = 'MIT'
-    triple = str(self.settings.arch)+"-elf"
+
     #requires = 'binutils/2.31@includeos/test'
     description = 'musl - an implementation of the standard library for Linux-based systems'
     url = "https://www.musl-libc.org/"
@@ -29,7 +29,8 @@ class MuslConan(ConanFile):
         self.build_requires("binutils/2.31@includeos/test")
 
     def imports(self):
-        tgt=str(self.settings.arch)+"-elf"
+        triple = str(self.settings.arch)+"-elf"
+        tgt=triple+"-elf"
         self.copy("*",dst="bin",src="bin") #copy binaries..
         self.copy("*.a",dst="lib",src="lib")
         self.copy("*",dst=tgt,src=tgt)
@@ -46,10 +47,11 @@ class MuslConan(ConanFile):
         os.unlink("musl/arch/i386/syscall_arch.h")
 
     def build(self):
+        triple = str(self.settings.arch)+"-elf"
         ##os.path.join(self.build_folder+"/bin")
         #TODO swap this to use self.settings.arch
         env_build = AutoToolsBuildEnvironment(self)
-        env_build.configure(configure_dir=self.source_folder+"/musl",target=self.triple,args=["--enable-debug","--disable-shared"]) #what goes in here preferably
+        env_build.configure(configure_dir=self.source_folder+"/musl",target=triple,args=["--enable-debug","--disable-shared"]) #what goes in here preferably
         env_build.make()
         env_build.install()
 
