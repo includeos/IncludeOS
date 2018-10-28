@@ -1,6 +1,23 @@
 cmake_minimum_required(VERSION 3.1.0)
 
+project (includeos C CXX)
+
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
+
+include(CheckCXXCompilerFlag)
+
+check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
+if(NOT HAVE_FLAG_STD_CXX17)
+ message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
+endif()
+
+if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
+ if (DEFINED ENV{INCLUDEOS_PREFIX})
+   set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
+ else()
+   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
+ endif()
+endif()
 
 # Target CPU Architecture
 if(DEFINED ENV{ARCH})
@@ -20,8 +37,6 @@ message(STATUS "Target triple ${TRIPLE}")
 option(WITH_SOLO5 "Install with solo5 support" ON)
 
 set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
-
-project (includeos C CXX)
 
 set(INC ${CMAKE_INSTALL_PREFIX}/includeos/include)
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
@@ -164,9 +179,8 @@ if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
     PREFIX vmbuild # Build where
-    BUILD_ALWAYS 1
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
-    BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
+    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
      -DINCLUDE_PATH=${CMAKE_INSTALL_PREFIX} # Pass installation folder
@@ -177,9 +191,8 @@ endif(vmbuild)
 option(diskbuilder "Build and install memdisk helper tool" ON)
 if(diskbuilder)
   ExternalProject_Add(diskbuilder
-    BUILD_ALWAYS 1
     SOURCE_DIR ${INCLUDEOS_ROOT}/diskimagebuild
-    BINARY_DIR ${INCLUDEOS_ROOT}/diskimagebuild/build
+    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/diskimagebuild/build
     INSTALL_DIR ${BIN}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
   )
