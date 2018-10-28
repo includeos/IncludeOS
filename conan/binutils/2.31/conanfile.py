@@ -24,10 +24,11 @@ class BinutilsConan(ConanFile):
 
     def package(self):
         self.copy("*.h", dst="include", src="include")
-#        self.copy("*hello.lib", dst="lib", keep_path=False)
-#        self.copy("*.dll", dst="bin", keep_path=False)
-#        self.copy("*.so", dst="lib", keep_path=False)
-#        self.copy("*.dylib", dst="lib", keep_path=False)
         self.copy("*.a", dst="lib", keep_path=False)
+
     def package_info(self):
         self.env_info.path.append(os.path.join(self.package_folder, "bin"))
+
+    def deploy(self):
+        self.copy("*",dst="bin",src="bin")
+        self.copy("*",dst=str(self.settings.arch)+"-elf",src=str(self.settings.arch)+"-elf")

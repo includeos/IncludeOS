@@ -10,21 +10,13 @@ from conans import ConanFile,tools,CMake
 class LlvmConan(ConanFile):
     settings= "compiler","arch","build_type","os"
     name = "llvm"
-    version = "5.0"
+    version = "7.0"
     branch = "release_%s"% version.replace('.','')
-
-    #release_50 <-- branch name
     license = 'NCSA','MIT'
-    #requires = 'binutils/2.31@includeos/test'
     description = 'The LLVM Compiler Infrastructure'
     url = "https://llvm.org/"
-    ## ?? exports_sources=['../../etc*musl*musl.patch', '../../etc*musl*endian.patch','../../api*syscalls.h','../../etc*musl*syscall.h']
-    ##TODO enable if treads is set in profile!!
-    exports_sources=['../../api*posix*']
-    #for speedup doing multibuild
+    exports_sources=['../../../api*posix*']
     no_copy_source=True
-    #for debugging
-    keep_imports=True
 
     def build_requirements(self):
         self.build_requires("binutils/2.31@includeos/test")
@@ -32,11 +24,6 @@ class LlvmConan(ConanFile):
 
     def imports(self):
         self.copy("*",dst="target",src=".")
-        #triple = str(self.settings.arch)+"-elf"
-        #tgt=triple+"-elf"
-        #self.copy("*",dst="bin",src="bin") #copy binaries..
-        #self.copy("*.a",dst="lib",src="lib")
-        #self.copy("*",dst=tgt,src=tgt)
 
     def llvm_checkout(self,project):
         llvm_project=tools.Git(folder="llvm/projects/"+project)
@@ -54,32 +41,29 @@ class LlvmConan(ConanFile):
         shutil.copytree("/home/kristian/repos/libunwind","llvm/projects/libunwind",symlinks=True)
 
         shutil.copytree("api/posix","posix")
-        #shutil.copy("etc/musl/syscall.h","musl/src/internal")
-        #self.copy("*",dst="llvm",src="/home/kristian/repos/llvm")
-        #self.copy("*",dst="llvm/libcxx",src="/home/kristian/repos/libcxx")
-        #self.copy("*",dst="llvm/libcxxabi",src="/home/kristian/repos/libcxxabi")
-        #self.copy("*",dst="llvm/libunwind",src="/home/kristian/repos/libunwind")
+
     def build(self):
         triple = str(self.settings.arch)+"-pc-linux-gnu"
-        #str(self.settings.arch)+"-elf"
         threads='OFF'
         cmake = CMake(self)
 
         llvm_source=self.source_folder+"/llvm"
         musl=self.build_folder+"/target/include"
-        #nostdinc"nostdinc"
-        #if (self.settins.compiler == "clang")
 
-        #doesnt cmake have a better way to pass the -I params ?
+        #TODO get these from profile
         #shouldnt the CFLAGS come from somewhere more sane like the profile we are building for ?
-        #cmake.definitions["CMAKE_CXX_FLAGS"] ="-std=c++14 -msse3 -g -mfpmath=sse -nostdlibinc -D_LIBCP_HAS_MUSL_LIBC -Illvm/projects/libcxx/include -Illvm/projects/libcxxabi/include"
-        cmake.definitions["CMAKE_C_FLAGS"] =" -msse3 -g -mfpmath=sse  -I"+musl+"  -nostdinc -nostdlib -D_LIBCPP_HAS_MUSL_LIBC -I"+llvm_source+"/posix -I"+llvm_source+"/projects/libcxx/include -I"+llvm_source+"/projects/libcxxabi/include -Itarget/include"
-        cmake.definitions["CMAKE_CXX_FLAGS"] ="-std=c++14 -msse3 -g -mfpmath=sse -D_LIBCPP_HAS_MUSL_LIBC -I"+musl+"  -I"+llvm_source+"/posix -I"+llvm_source+"/projects/libcxx/include -I"+llvm_source+"/projects/libcxxabi/include"
-        ##TODO make an on / off function for simple flags ?
-        #cmake.definitions["CMAKE_CXX_LINK_FLAGS"]="-Wl,-rpath,/usr/lib/gcc/x86_64-pc-linux-gnu -L/usr/lib/gcc/x86_64-pc-linux-gnu/8.2.0/libstdc++.so"
-        ##for clang to find libstdc++
-        #cmake.definitions["CMAKE_CXX_LINK_FLAGS"]="-Wl,-rpath,/usr/lib/gcc/x86_64-pc-linux-gnu/7.3.0 -L/usr/lib/gcc/x86_64-pc-linux-gnu/7.3.0"
-        #cmake.definitions["CMAKE_CROSSCOMPILING"] = 'ON'
+        cflags="-msse3 -g -mfpmath=sse"
+        cxxflags=cflags
+
+        if (self.settings.compiler == "clang" ):
+            cflags+=" -nostdlibinc" # do this in better python by using a list
+        if (self.settings.compiler == "gcc" ):
+            cflags+=" -nostdinc"
+        #doesnt cmake have a better way to pass the -I params ?
+
+        cmake.definitions["CMAKE_C_FLAGS"] =cflags+" -D_LIBCPP_HAS_MUSL_LIBC -I"+musl+" -I"+llvm_source+"/posix -I"+llvm_source+"/projects/libcxx/include -I"+llvm_source+"/projects/libcxxabi/include -Itarget/include"
+        cmake.definitions["CMAKE_CXX_FLAGS"] =cxxflags+" -D_LIBCPP_HAS_MUSL_LIBC -I"+musl+" -I"+llvm_source+"/posix -I"+llvm_source+"/projects/libcxx/include -I"+llvm_source+"/projects/libcxxabi/include"
+
         cmake.definitions["LLVM_ABI_BREAKING_CHECKS"]='FORCE_OFF'
         cmake.definitions["CMAKE_EXPORT_COMPILE_COMMANDS"] = 'ON'
         cmake.definitions["BUILD_SHARED_LIBS"] = 'OFF'
@@ -89,18 +73,32 @@ class LlvmConan(ConanFile):
         cmake.definitions["LLVM_INCLUDE_TESTS"] = 'OFF'
         cmake.definitions["LLVM_ENABLE_THREADS"] = threads
 
+
+        #from gentoo ebuild
+        cmake.definitions["LIBCXXABI_LIBDIR_SUFFIX"] = ''
+        cmake.definitions["LIBCXXABI_INCLUDE_TESTS"] = 'OFF'
+
+
         cmake.definitions["LIBCXXABI_TARGET_TRIPLE"] = triple
         cmake.definitions["LIBCXXABI_ENABLE_THREADS"] = threads
         cmake.definitions["LIBCXXABI_HAS_PTHREAD_API"] = threads
         cmake.definitions["LIBCXXABI_USE_LLVM_UNWINDER"] = 'ON'
         cmake.definitions["LIBCXXABI_ENABLE_STATIC_UNWINDER"] = 'ON'
 
+        #from gentoo ebuild..
+        cmake.definitions["LIBCXX_INCLUDE_TESTS"] = 'OFF'
+        cmake.definitions["LIBCXX_LIBDIR_SUFFIX"] = ''
+        cmake.definitions["LIBCXX_HAS_GCC_S_LIB"] = 'OFF'
+        cmake.definitions["LIBCXX_CXX_ABI_INCLUDE_PATHS"]="libcxxabi/include"
+
         cmake.definitions["LIBCXX_ENABLE_STATIC"] = 'ON'
         cmake.definitions["LIBCXX_ENABLE_SHARED"] = 'OFF'
         cmake.definitions["LIBCXX_CXX_ABI"] = 'libcxxabi'
+
         cmake.definitions["LIBCXX_ENABLE_THREADS"] = threads
         cmake.definitions["LIBCXX_TARGET_TRIPLE"] = triple
         cmake.definitions["LIBCXX_ENABLE_STATIC_ABI_LIBRARY"] = 'ON'
+        cmake.definitions["LIBCXX_HAS_MUSL_LIBC"]='ON'
         cmake.definitions["LIBCXX_CXX_ABI_LIBRARY_PATH"] = 'lib/'
 
         cmake.definitions["LIBUNWIND_TARGET_TRIPLE"] = triple
@@ -110,11 +108,11 @@ class LlvmConan(ConanFile):
         cmake.build(target='unwind')
         cmake.build(target='cxxabi')
         cmake.build(target='cxx')
-        #cmake.install()
-
+        
     def package(self):
         self.copy("*",dst="include/c++",src="include/c++")
         self.copy("*.a",dst="lib",src="lib")
-        #print("TODO")
-    #    self.copy("*.h",dst="include",src="include")
-    #    self.copy("*.a",dst="lib",src="lib")
+
+    def deploy(self):
+        self.copy("*",dst="include/c++",src="include/c++")
+        self.copy("*.a",dst="lib",src="lib")
