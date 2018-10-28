@@ -10,7 +10,7 @@ from conans import ConanFile,tools,AutoToolsBuildEnvironment
 class MuslConan(ConanFile):
     settings= "compiler","arch","build_type","os"
     name = "musl"
-    version = "v1.1.18"
+    version = "v1.1.20"
     license = 'MIT'
 
     description = 'musl - an implementation of the standard library for Linux-based systems'
