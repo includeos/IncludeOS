@@ -35,6 +35,7 @@ void* aligned_alloc(size_t alignment, size_t size) {
 
 char _DISK_START_;
 char _DISK_END_;
+char _ELF_SYM_START_;
 
 /// RTC ///
 #include <rtc>

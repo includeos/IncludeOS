@@ -17,7 +17,7 @@ void Service::start()
   hw::Devices::register_device<hw::Nic> (std::unique_ptr<hw::Nic> (dev2->get_driver()));
 
   // Get the first IP stack configured from config.json
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
   inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
 
   extern void register_plugin_nacl();

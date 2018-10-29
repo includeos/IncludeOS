@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet>
+#include <net/interfaces>
 #include <statman>
 #include <profile>
 #include <cstdio>
@@ -132,10 +132,10 @@ void Service::start(const std::string& input) {
     create_network_device(0, "10.0.0.0/24", "10.0.0.1");
 
     // Get the first IP stack configured from config.json
-    auto& inet = net::Super_stack::get(0);
+    auto& inet = net::Interfaces::get(0);
     inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
 #else
-    auto& inet = net::Super_stack::get(0);
+    auto& inet = net::Interfaces::get(0);
 #endif
     auto& udp = inet.udp();
 

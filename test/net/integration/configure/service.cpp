@@ -16,15 +16,14 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
-#include <net/super_stack.hpp>
+#include <net/interfaces>
 #include <config>
 
 void Service::start()
 {
   using namespace net;
 
-  auto& stacks = Super_stack::inet().stacks();
+  auto& stacks = Interfaces::get();
   CHECKSERT(stacks.size() == 6, "There are 6 interfaces");
 
   INFO("Test", "Verify eth0");

@@ -19,40 +19,63 @@
 #ifndef NET_SUPER_STACK_HPP
 #define NET_SUPER_STACK_HPP
 
-#include <net/ip4/ip4.hpp>
-#include <hw/mac_addr.hpp>
-#include <hw/nic.hpp>
+#include <net/inet.hpp>
 #include <vector>
 #include <map>
 #include <stdexcept>
 
 namespace net {
 
-struct Super_stack_err : public std::runtime_error {
+struct Interfaces_err : public std::runtime_error {
   using base = std::runtime_error;
   using base::base;
 };
 
-struct Stack_not_found : public Super_stack_err
+struct Stack_not_found : public Interfaces_err
 {
-  using Super_stack_err::Super_stack_err;
+  using Interfaces_err::Interfaces_err;
 };
 
-class Super_stack {
+class Interfaces {
 public:
   // naming is hard...
   using Indexed_stacks = std::map<int, std::unique_ptr<Inet>>;
   using Stacks = std::vector<Indexed_stacks>;
 
 public:
-  static Super_stack& inet()
+  static Interfaces& instance()
   {
-    static Super_stack stack_;
+    static Interfaces stack_;
     return stack_;
   }
 
+  /**
+   * @brief      Get Stack with the given ID
+   * @note       Throws if not found
+   *
+   * @param[in]  N     id
+   *
+   * @return     Stack with id N
+   */
   static Inet& get(int N);
+  /**
+   * @brief      Get a substack with a given ID and sub ID.
+   *             Used for VLAN purposes (0 is always the non-VLAN iface)
+   *
+   * @param[in]  N     Id
+   * @param[in]  sub   The sub
+   *
+   * @return     Stack with id N and sub index sub
+   */
   static Inet& get(int N, int sub);
+
+  /**
+   * @brief      Get all them stacks
+   *
+   * @return     List with Indexed stacks
+   */
+  static Stacks& get()
+  { return instance().stacks_; }
 
   /**
    * @brief      Get a stack by MAC addr.
@@ -67,15 +90,12 @@ public:
   static Inet& get(const std::string& mac);
   static Inet& get(const std::string& mac, int sub);
 
-  Inet& create(hw::Nic& nic, int N, int sub);
-
-  Stacks& stacks()
-  { return stacks_; }
+  static Inet& create(hw::Nic& nic, int N, int sub);
 
 private:
   Stacks stacks_;
 
-  Super_stack();
+  Interfaces();
 
 };
 
