@@ -138,12 +138,9 @@ struct Addr {
       return reinterpret_cast<uint8_t*> (i16.data());
   }
 
-  Addr& solicit(const Addr other) noexcept {
-    i32[0] = htonl(0xFF020000);
-    i32[1] = 0;
-    i32[2] = htonl(0x1);
-    i32[3] = htonl(0xFF000000) | other.i32[3];
-    return *this;
+  static Addr solicit(const Addr& other) noexcept
+  {
+    return Addr{0xFF020000, 0, 0x1, (0xFF000000 | ntohl(other.i32[3]))};
   }
 
   static Addr link_local(uint64_t eui) noexcept

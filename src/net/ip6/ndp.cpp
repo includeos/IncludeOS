@@ -165,7 +165,6 @@ namespace net
   void Ndp::send_neighbour_solicitation(ip6::Addr target)
   {
     using namespace ndp;
-    ip6::Addr dest_ip;
 
     icmp6::Packet req(inet_.ip6_packet_factory());
     req.ip().set_ip_src(inet_.linklocal_addr());
@@ -174,9 +173,10 @@ namespace net
     req.set_type(ICMP_type::ND_NEIGHBOUR_SOL);
     req.set_code(0);
 
+    auto dest = ip6::Addr::solicit(target);
     // Solicit destination address. Source address
     // option must be present
-    req.ip().set_ip_dst(dest_ip.solicit(target));
+    req.ip().set_ip_dst(dest);
 
     // Construct neigbor sol msg on with target address on our ICMP
     auto& sol = req.emplace<View<Neighbor_sol>>(target);
@@ -196,7 +196,6 @@ namespace net
     }
 
     req.set_checksum();
-    auto dest = req.ip().ip_dst();
     MAC::Addr dest_mac(0x33,0x33,
             dest.get_part<uint8_t>(12),
             dest.get_part<uint8_t>(13),
