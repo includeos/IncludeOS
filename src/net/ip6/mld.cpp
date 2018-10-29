@@ -220,7 +220,7 @@ namespace net
     linklayer_out_(pckt.release(), mac, Ethertype::IP6);
   }
 
-  void Mld::send_report(ip6::Addr mcast)
+  void Mld::send_report(const ip6::Addr& mcast)
   {
     icmp6::Packet req(inet_.ip6_packet_factory());
 
@@ -229,7 +229,7 @@ namespace net
     req.ip().set_ip_hop_limit(1);
     req.set_type(ICMP_type::MULTICAST_LISTENER_REPORT);
     req.set_code(0);
-    req.ip().set_ip_dst(ip6::Addr::link_all_routers);
+    req.ip().set_ip_dst(mcast);
 
     auto& report = req.emplace<mld::Report>(mcast);
 

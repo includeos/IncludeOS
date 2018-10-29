@@ -72,7 +72,7 @@ namespace net {
 
     void receive(icmp6::Packet& pckt);
     void receive_query(icmp6::Packet& pckt);
-    void send_report(ip6::Addr mcast);
+    void send_report(const ip6::Addr& mcast);
     void mcast_expiry();
 
     void receive(net::Packet_ptr pkt);
