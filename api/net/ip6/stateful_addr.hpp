@@ -76,8 +76,21 @@ namespace net::ip6 {
   public:
     using List = std::vector<Stateful_addr>;
 
+    ip6::Addr get_src(const ip6::Addr& dest) const noexcept
+    {
+      return (not dest.is_linklocal()) ?
+        get_first_unicast() : get_first_linklocal();
+    }
+
     ip6::Addr get_first() const noexcept
     { return (not list.empty()) ? list.front().addr() : ip6::Addr::addr_any; }
+
+    ip6::Addr get_first_unicast() const noexcept
+    {
+      for(const auto& sa : list)
+        if(not sa.addr().is_linklocal()) return sa.addr();
+      return ip6::Addr::addr_any;
+    }
 
     ip6::Addr get_first_linklocal() const noexcept
     {
