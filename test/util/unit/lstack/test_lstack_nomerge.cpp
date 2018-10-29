@@ -14,6 +14,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define LSTACK_OPT       no_merge
+#define LSTACK_OPT no_merge
 #include "test_lstack_common.cpp"
-

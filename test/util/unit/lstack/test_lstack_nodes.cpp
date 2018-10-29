@@ -188,6 +188,7 @@ CASE("lstack::nodes: testing lstack<merge> node traversal")
 
   auto largest = heap.allocate_largest();
   EXPECT((uintptr_t)largest.ptr == (uintptr_t)pop6 + pop6->size);
+  EXPECT((uintptr_t)largest.size != 0);
   EXPECT(heap.node_count() == 3);
   EXPECT(*(heap.find_largest()) == pop5);
   EXPECT(heap.find_prior((void*)0) == nullptr);
@@ -199,19 +200,18 @@ CASE("lstack::nodes: testing lstack<merge> node traversal")
   print_summary(heap);
 
   // Expect perfect merging
-  heap.deallocate(pop2, sz2);
+  heap.push(pop2, sz2);
   EXPECT(heap.node_count() == 2);
 
   print_summary(heap);
   EXPECT_THROWS(heap.deallocate(pop3, sz3));
 
-  heap.deallocate(pop4, sz4);
+  heap.push(pop4, sz4);
   EXPECT(heap.node_count() == 1);
 
-  heap.deallocate(pop6, sz6);
+  heap.push(pop6, sz6);
   EXPECT(heap.node_count() == 1);
 
-  heap.deallocate(largest);
+  heap.push(largest.ptr, largest.size);
   EXPECT(heap.node_count() == 1);
-
 }

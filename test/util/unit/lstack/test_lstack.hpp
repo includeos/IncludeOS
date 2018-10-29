@@ -18,15 +18,15 @@
 #define LSTACK_COMMON_HPP
 
 //#define DEBUG_UNIT
-#include <algorithm>
-#include <common.cxx>
 //#undef NO_INFO
 
+#include <common.cxx>
+
+#include <algorithm>
 #include <util/alloc_lstack.hpp>
 #include <util/units.hpp>
 #include <util/bitops.hpp>
 #include <malloc.h>
-
 
 #define QUOTE(X) #X
 #define STR(X) QUOTE(X)
@@ -41,7 +41,7 @@ inline void print_summary(L& lstack)
   #else
 
   FILLINE('=');
-  printf("Summary: ");
+  printf("Summary: is_sorted: %s ", lstack.is_sorted ? "YES" : "NO" );
   printf("Pool: %#zx -> %#zx\n", lstack.pool_begin(), lstack.pool_end());
   printf("Alloc begin: %p Allocation end: %#zx\n", lstack.allocation_begin(), lstack.allocation_end());
   FILLINE('-');

@@ -25,18 +25,50 @@ CASE("lstack::" STR(LSTACK_OPT) " basics") {
   Lstack heap;
 
   EXPECT(heap.allocation_end() == 0);
-  EXPECT(heap.allocate(rand() & ~4095) == nullptr);
+  EXPECT(heap.empty());
+  EXPECT(heap.pool_size() == 0);
+  EXPECT(heap.is_contiguous());
 
-  auto poolsize = 0x100000;
-  auto blocksize  = 0x1000;
+  size_t poolsize  = 0x100000;
+  auto   blocksize = 0x1000;
 
   char* pool = (char*)memalign(blocksize, poolsize);
   void* pool_end = pool + poolsize;
 
-  // Zero cases
+  // Edge cases with empty pool
+  EXPECT(heap.empty());
   EXPECT(heap.allocate(0) == nullptr);
   EXPECT(heap.allocate(blocksize) == nullptr);
   EXPECT(heap.allocate(poolsize) == nullptr);
+  EXPECT(heap.allocate(blocksize + 1) == nullptr);
+  EXPECT(heap.allocate(blocksize - 1) == nullptr);
+  EXPECT(heap.allocate(poolsize  + 1) == nullptr);
+  EXPECT(heap.allocate(poolsize  - 1) == nullptr);
+  EXPECT(heap.allocate(std::numeric_limits<size_t>::max()) == nullptr);
+
+  EXPECT(heap.allocate(rand() & ~4095) == nullptr);
+  EXPECT(heap.allocate(rand() & ~4095) == nullptr);
+  EXPECT(heap.allocate(rand() & ~4095) == nullptr);
+
+  EXPECT_THROWS(heap.donate(nullptr, poolsize));
+  EXPECT_THROWS(heap.donate(pool, 0));
+  EXPECT_THROWS(heap.donate(pool, heap.min_alloc - 1));
+
+  EXPECT(not heap.allocate_front(0));
+
+  // Nothing should happen on dealloc of nullptr in e.g. POSIX free/*
+  auto pre_null_dealloc = heap.bytes_free();
+  heap.deallocate({nullptr, 0});
+  heap.deallocate({nullptr, 4096});
+  heap.deallocate(nullptr, 1);
+  EXPECT(heap.bytes_free() == pre_null_dealloc);
+  EXPECT(heap.empty());
+
+  // Illegal dealloc edge cases
+  // NOTE: Expect throws means we're supposed to hit a failed "Expects", not
+  //       that we explicitly throw. Expects defaults to assert except in tests.
+
+  EXPECT_THROWS(heap.deallocate({(void*)42, 42}));
 
   // Donate pool
   heap.donate(pool, poolsize);
@@ -44,6 +76,30 @@ CASE("lstack::" STR(LSTACK_OPT) " basics") {
   EXPECT(heap.bytes_allocated() == 0);
   EXPECT(heap.bytes_free() == poolsize);
   EXPECT(heap.allocation_end() == (uintptr_t)pool);
+  EXPECT(heap.node_count() == 1);
+  EXPECT(heap.pool_size() == poolsize);
+  EXPECT(heap.is_contiguous());
+
+  // Edge cases with non-empty pool
+  EXPECT(not heap.empty());
+  EXPECT(heap.allocate(0) == nullptr);
+  EXPECT(heap.allocate(poolsize + 1) == nullptr);
+  EXPECT(heap.allocate(poolsize + 42) == nullptr);
+  EXPECT(heap.allocate(std::numeric_limits<size_t>::max()) == nullptr);
+  EXPECT(not heap.allocate_front(0));
+
+  heap.deallocate({nullptr, 0}); // no effect
+  heap.deallocate(nullptr, 1);   // no effect
+  EXPECT_THROWS(heap.deallocate({(void*)42, 42}));
+  EXPECT_THROWS(heap.donate(pool, poolsize));
+  print_summary(heap);
+
+  EXPECT_THROWS(heap.donate(pool + 1, poolsize));
+  EXPECT_THROWS(heap.donate(pool - 1, poolsize));
+  EXPECT_THROWS(heap.donate(pool, poolsize + 1));
+  EXPECT_THROWS(heap.donate(pool, poolsize - 1));
+  EXPECT_THROWS(heap.donate(pool + 42, 42));
+  EXPECT(heap.node_count() == 1);
 
   // Single alloc / dealloc
   size_t sz1 = 4096 * 2;
@@ -68,9 +124,19 @@ CASE("lstack::" STR(LSTACK_OPT) " basics") {
   auto* small1 = heap.allocate(1337);
   EXPECT(small1 != nullptr);
   heap.deallocate(small1, 1337);
-  EXPECT(heap.bytes_free() == poolsize);
+  EXPECT(heap.bytes_free()      == poolsize);
+  EXPECT(heap.bytes_allocated() == 0);
 
-  print_summary(heap);
+  // Alloc functions returning struct can be used with C++17 structured bindings
+  auto [data1, size1] = heap.allocate_front(42);
+
+  EXPECT(typeid(decltype(data1)) == typeid(void*));
+  EXPECT(typeid(decltype(size1)) == typeid(size_t));
+  EXPECT(data1 == pool);
+  EXPECT(size1 == heap.min_alloc);
+  heap.deallocate({data1, size1});
+  EXPECT(heap.bytes_allocated() == 0);
+
 
   if constexpr (heap.is_sorted) {
     EXPECT(heap.allocation_end() == (uintptr_t)pool);
@@ -142,8 +208,26 @@ CASE("lstack::" STR(LSTACK_OPT) " basics") {
   EXPECT(heap.allocate(4096) == nullptr);
   EXPECT(heap.allocate(0) == nullptr);
 
+  // Add secondary pool
+  char* pool2 = (char*)memalign(blocksize, poolsize);
+  heap.donate(pool2, poolsize);
+  auto ch2 = heap.allocate(4096);
+  EXPECT(ch2 != nullptr);
+  EXPECT(heap.bytes_free() == poolsize - 4096);
+  EXPECT(heap.bytes_allocated() == poolsize + 4096);
+
+  for (auto alloc : allocs)
+    heap.deallocate(alloc);
+
+  EXPECT(heap.bytes_allocated() == 4096);
+  heap.deallocate(ch2, 4096);
+  EXPECT(heap.bytes_allocated() == 0);
+  EXPECT(heap.bytes_free() == 2 * poolsize);
+  EXPECT(! heap.is_contiguous());
+
   print_summary(heap);
   free(pool);
+  free(pool2);
 }
 
 CASE("lstack::" STR(LSTACK_OPT) " fragmentation ") {
@@ -169,6 +253,7 @@ CASE("lstack::" STR(LSTACK_OPT) " fragmentation ") {
   EXPECT((uintptr_t)alloc4 == pool.begin() + 3 * chunksz);
   EXPECT((uintptr_t)alloc5 == pool.begin() + 4 * chunksz);
   EXPECT((uintptr_t)alloc6 == pool.begin() + 5 * chunksz);
+
   EXPECT(heap.allocation_end() == pool.end());
 
   // Create non-mergeable holes
@@ -333,6 +418,7 @@ CASE("lstack::" STR(LSTACK_OPT) " fragmentation ") {
     heap.deallocate(a5);
     heap.deallocate(lrg1);
     heap.deallocate(lrg2);
+    EXPECT(not heap.allocate_front(chunksz * 2));
   }
 
   // Back to full pool

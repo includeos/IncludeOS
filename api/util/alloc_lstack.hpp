@@ -18,6 +18,8 @@
 #define UTIL_MINIALLOC_HPP
 
 #include <common>
+
+//#include <gsl/gsl>
 #include <util/bitops.hpp>
 
 namespace util {
@@ -114,23 +116,27 @@ namespace alloc {
     static_assert(Min >= sizeof(Node), "Requires Min. size >= node size");
 
     /** Allocate size bytes */
-    void* allocate(size_t size) { return impl.allocate(size); }
+    void* allocate(size_t size) noexcept { return allocate_front(size).ptr; }
 
-    /** Allocate size from as low an address as possible. Default */
-    Allocation allocate_front(size_t size) { return impl.allocate_front(size); }
+    /** Allocate size from as low an address as possible. Default. */
+    Allocation allocate_front(size_t size) noexcept { return impl.allocate_front(size); }
 
     /** Allocate size from as high an address as possible */
-    Allocation allocate_back(size_t size) { return impl.allocate_back(size); }
+    Allocation allocate_back(size_t size) noexcept { return impl.allocate_back(size); }
 
     /** Allocate the largest contiguous chunk of memory */
-    Allocation allocate_largest() { return impl.allocate_largest(); }
+    Allocation allocate_largest() noexcept { return impl.allocate_largest(); }
+
 
     /** Deallocate **/
-    void deallocate (void* ptr, size_t size) { impl.deallocate(ptr, size); }
-    void deallocate(Allocation a) { impl.deallocate(a); }
+    void deallocate (void* ptr, size_t size) noexcept(os::hard_noexcept)
+    { deallocate({ptr, size}); }
+
+    void deallocate(Allocation a) noexcept(os::hard_noexcept)
+    { impl.deallocate(a); }
 
     /** Donate size memory starting at ptr. to the allocator. **/
-    void donate(void* ptr, size_t size) { impl.donate(ptr, size); }
+    void donate(void* ptr, size_t size) { donate({ptr, size}); }
     void donate(Allocation a) { impl.donate(a); }
 
     /** Lowest donated address */
@@ -138,6 +144,13 @@ namespace alloc {
 
     /** Highest donated address. [pool_begin, pool_end) may not be contiguous */
     uintptr_t pool_end() const noexcept { return impl.pool_end(); }
+
+    /** Sum of the sizes of all donated memory */
+    size_t pool_size() const noexcept { return impl.pool_size(); }
+
+    /** Determine if total donated memory forms a contigous range */
+    bool is_contiguous() const noexcept(os::hard_noexcept)
+    { return impl.is_contiguous(); }
 
     /* Return true if there are no bytes available */
     bool empty() const noexcept { return impl.empty(); }
@@ -188,8 +201,9 @@ namespace alloc {
       }
 
       Allocation allocate_front(size_t size){
-        if (size == 0)
+        if (size == 0 or size > bytes_free())
           return {};
+
         size = bits::roundto(Min, size);
         Ensures(size >= Min);
         auto* node = pop_off(size);
@@ -235,22 +249,29 @@ namespace alloc {
         return chunk;
       }
 
-      void deallocate (void* ptr, size_t size){
-        Expects(bits::is_aligned<Min>(ptr));
-        size = bits::roundto<Min>(size);
-        Expects((uintptr_t)ptr >= donations_begin_);
-        Expects((uintptr_t)ptr <= donations_end_ - min_alloc);
-        push(ptr, size);
-        bytes_allocated_ -= size;
+      void deallocate (void* ptr, size_t size) noexcept(os::hard_noexcept) {
+        deallocate({ptr, size});
       }
 
-      void deallocate(Allocation a) {
-        return deallocate(a.ptr, a.size);
+      void deallocate(Allocation a) noexcept(os::hard_noexcept) {
+        if (a.ptr == nullptr) // Like POSIX free
+          return;
+
+        Expects(bits::is_aligned(Min, (uintptr_t)a.ptr));
+        Expects((uintptr_t)a.ptr >= donations_begin_);
+        Expects((uintptr_t)a.ptr <= donations_end_ - min_alloc);
+
+        a.size = bits::roundto<Min>(a.size);
+        Expects((uintptr_t)a.size <= bytes_allocated());
+
+        push(a.ptr, a.size);
+        bytes_allocated_ -= a.size;
       }
 
       void donate(void* ptr, size_t size){
         Expects(bits::is_aligned(align, (uintptr_t)ptr));
         Expects(bits::is_aligned(align, size));
+
         push(ptr, size);
         bytes_total_ += size;
         if ((uintptr_t)ptr < donations_begin_ or donations_begin_ == 0)
@@ -258,6 +279,8 @@ namespace alloc {
 
         if ((uintptr_t)ptr + size > donations_end_)
           donations_end_ = (uintptr_t)ptr + size;
+
+        Ensures(pool_end() - pool_begin() >= pool_size());
       }
 
       void donate(Allocation a) {
@@ -274,6 +297,15 @@ namespace alloc {
 
       uintptr_t pool_end() const noexcept {
         return donations_end_;
+      }
+
+      size_t pool_size() const noexcept {
+        return bytes_total_;
+      }
+
+      bool is_contiguous() const noexcept(os::hard_noexcept) {
+        Expects(pool_end() - pool_begin() >= pool_size());
+        return pool_end() - pool_begin() == pool_size();
       }
 
       bool empty() const noexcept { return front_ == nullptr || front_->size == 0; }
@@ -342,11 +374,18 @@ namespace alloc {
         Expects(ptr != nullptr);
         Expects(size > 0);
         if constexpr (merge_on_dealloc) {
-            if (front_ != nullptr and (std::byte*)ptr + size == (std::byte*)front_) {
-              front_ = new_node(ptr, front_->next, size + front_->size);
-              return;
+            if (front_ != nullptr) {
+              Expects(ptr < front_);
+              Expects((uintptr_t)ptr + size <= (uintptr_t)front_);
+              if ((std::byte*)ptr + size == (std::byte*)front_) {
+                front_ = new_node(ptr, front_->next, size + front_->size);
+                return;
+              }
             }
           }
+
+        if (front_ != nullptr)
+          Expects(front_ != ptr);
 
         auto* old_front = front_;
         front_ = (Node*)ptr;
@@ -362,7 +401,8 @@ namespace alloc {
           auto* prior = find_prior(ptr);
 
           if (prior == nullptr) {
-            return push_front(ptr, size);
+            push_front(ptr, size);
+            return;
           }
           merge(prior, ptr, size);
         }
