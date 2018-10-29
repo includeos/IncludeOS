@@ -1,6 +1,7 @@
 set(IOS ${CMAKE_SOURCE_DIR}/..)
 
 set(NET_SOURCES
+  ${IOS}/src/net/addr.cpp
   ${IOS}/src/net/buffer_store.cpp
   ${IOS}/src/net/checksum.cpp
   ${IOS}/src/net/configure.cpp
@@ -13,8 +14,11 @@ set(NET_SOURCES
   ${IOS}/src/net/ip4/ip4.cpp
   ${IOS}/src/net/ip4/reassembly.cpp
   ${IOS}/src/net/ip6/ip6.cpp
+  ${IOS}/src/net/ip6/extension_header.cpp
   ${IOS}/src/net/ip6/icmp6.cpp
+  ${IOS}/src/net/ip6/mld.cpp
   ${IOS}/src/net/ip6/ndp.cpp
+  ${IOS}/src/net/ip6/slaac.cpp
 
   ${IOS}/src/net/tcp/tcp.cpp
   ${IOS}/src/net/tcp/connection.cpp
