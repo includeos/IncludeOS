@@ -83,6 +83,7 @@ void print_heap_info()
 }
 
 #include <kernel/elf.hpp>
+#include <net/interfaces>
 void print_stats(int)
 {
 #ifdef USE_STACK_SAMPLING
