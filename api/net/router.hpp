@@ -231,17 +231,17 @@ namespace net {
 namespace net {
 
   template <>
-  void Route<IP4>::ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
+  inline void Route<IP4>::ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
     iface_->ip_obj().ship(std::move(pckt), nexthop, ct);
   }
 
   template <>
-  void Route<IP6>::ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
+  inline void Route<IP6>::ship(Packet_ptr pckt, Addr nexthop, Conntrack::Entry_ptr ct) {
     iface_->ip6_obj().ship(std::move(pckt), nexthop, ct);
   }
 
   template<>
-  IP4::addr Route<IP4>::nexthop(IP4::addr ip) const noexcept
+  inline IP4::addr Route<IP4>::nexthop(IP4::addr ip) const noexcept
   {
       // No need to go via nexthop if IP is on the same net as interface
       if ((ip & iface_->netmask()) == (iface_->ip_addr() & iface_->netmask()))
@@ -251,7 +251,7 @@ namespace net {
   }
 
   template<>
-  IP6::addr Route<IP6>::nexthop(IP6::addr ip) const noexcept
+  inline IP6::addr Route<IP6>::nexthop(IP6::addr ip) const noexcept
   {
       // No need to go via nexthop if IP is on the same net as interface
       if ((ip & iface_->netmask6()) == (iface_->ip6_addr() & iface_->netmask6()))
