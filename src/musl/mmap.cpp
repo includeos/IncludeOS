@@ -22,8 +22,6 @@ uintptr_t __init_mmap(uintptr_t addr_begin)
   int64_t len = (mem_end - aligned_begin) & ~int64_t(Alloc::align - 1);
 
   alloc = Alloc::create((void*)aligned_begin, len);
-  kprintf("* mmap initialized. Begin: 0x%zx, end: 0x%zx\n",
-          addr_begin, addr_begin + len);
   return aligned_begin + len;
 }
 
