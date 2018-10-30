@@ -1,7 +1,3 @@
-#binutils recepie first take!!
-#todo figure out to get a build directory ?
-#todo use shutil to move versioned to unversioned ?
-
 import os
 from conans import ConanFile,tools,AutoToolsBuildEnvironment
 
@@ -9,7 +5,9 @@ class BinutilsConan(ConanFile):
     settings= "compiler","arch","build_type","os"
     name = "binutils"
     version = "2.31"
-    url = "TODO: https://ftp.gnu.org/gnu/binutils"
+    url = "https://www.gnu.org/software/binutils/"
+    description = "The GNU Binutils are a collection of binary tools."
+    license = "GNU GPL"
     def source(self):
         zip_name="binutils-%s.tar.gz"%self.version
         tools.download("https://ftp.gnu.org/gnu/binutils/%s" % zip_name,zip_name)
