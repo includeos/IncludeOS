@@ -1,5 +1,5 @@
 #include "serial.hpp"
-#include <s2n.h>
+#include <net/s2n/stream.hpp>
 #include <string>
 using s2n::print_s2n_error;
 static s2n_config* config = nullptr;
@@ -9,7 +9,9 @@ static uint8_t verify_host_passthrough(const char*, size_t, void* /*data*/) {
     return 1;
 }
 
-void s2n_serial_test(
+namespace s2n
+{
+void serial_test(
     const std::string& ca_cert,
     const std::string& ca_key)
 {
@@ -46,12 +48,23 @@ void s2n_serial_test(
   }
 }
 
-s2n_config* s2n_serial_get_config()
+s2n_config* serial_get_config()
 {
   return config;
 }
 
-void s2n_serial_test_over()
+void serial_test_serialize(std::vector<net::Stream*>& conns)
+{
+  
+}
+std::vector<net::Stream*> serial_test_deserialize()
+{
+  return {};
+}
+
+void serial_test_over()
 {
   s2n_config_free(config);
 }
+
+} // s2n

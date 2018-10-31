@@ -19,27 +19,99 @@
 #include <memdisk>
 #include <net/inet>
 #include <net/interfaces>
-#include <net/s2n/stream.hpp>
+#include "serial.hpp"
 #include "../fuzz/fuzzy_stream.hpp"
 static fuzzy::Stream* ossl_fuzz_ptr = nullptr;
 static fuzzy::Stream* s2n_fuzz_ptr = nullptr;
 
-static int test_stage = 0;
-static const int NUM_STAGES = 4;
-
-void test_stage_advance() {
-  test_stage ++;
-  printf("Test stage: %d / %d\n", test_stage, NUM_STAGES);
-  if (test_stage == NUM_STAGES) {
-    printf("SUCCESS\n");
-    extern void s2n_serial_test_over();
-    s2n_serial_test_over();
-    OS::shutdown();
-  }
-}
-void test_failure(const std::string& data) {
+static void do_test_serializing_tls(int index);
+static void do_test_completed();
+static bool are_all_streams_at_stage(int stage);
+static void test_failure(const std::string& data) {
   printf("Received unexpected data: %s\n", data.c_str());
+  printf("Length: %zu bytes\n", data.size());
   std::abort();
+}
+static std::string long_string(32000, '-');
+
+struct Testing
+{
+  static const int NUM_STAGES = 7;
+  int index = 0;
+  int test_stage = 0;
+  s2n::TLS_stream* stream = nullptr;
+  std::string read_buffer = "";
+
+  void send_data()
+  {
+    this->stream->write("Hello!");
+    this->stream->write("Second write");
+    this->stream->write(long_string);
+  }
+  void onread_function(net::Stream::buffer_t buffer)
+  {
+    assert(this->stream != nullptr && stream->is_connected());
+    read_buffer += std::string(buffer->begin(), buffer->end());
+    if (read_buffer == "Hello!") this->test_stage_advance();
+    else if (read_buffer == "Second write") this->test_stage_advance();
+    else if (read_buffer == long_string) this->test_stage_advance();
+    // else: ... wait for more data
+  }
+  void connect_function(net::Stream& stream)
+  {
+    this->test_stage_advance();
+    printf("TLS stream connected (%d / 2)\n", test_stage);
+    this->send_data();
+  }
+  void test_stage_advance()
+  {
+    this->test_stage ++;
+    this->read_buffer.clear();
+    printf("[%d] Test stage: %d / %d\n", 
+           this->index, this->test_stage, NUM_STAGES);
+    if (are_all_streams_at_stage(4))
+    {
+      do_test_serializing_tls(this->index);
+    }
+    else if (are_all_streams_at_stage(NUM_STAGES)) {
+      do_test_completed();
+    }
+  }
+  void setup_callbacks()
+  {
+    stream->on_connect({this, &Testing::connect_function});
+    stream->on_read(8192, {this, &Testing::onread_function});
+  }
+};
+static struct Testing server_test;
+static struct Testing client_test;
+
+bool are_all_streams_at_stage(int stage)
+{
+  return server_test.test_stage == stage &&
+         client_test.test_stage == stage;
+}
+void do_test_serializing_tls(int index)
+{
+  printf("Now serializing TLS state\n");
+  // 1. serialize TLS, destroy streams
+  // TODO: implement me
+  // 2. deserialize TLS, create new streams
+  // TODO: implement me
+  
+  printf("Now restarting test\n");
+  // 3. set all delegates again
+  server_test.setup_callbacks();
+  client_test.setup_callbacks();
+  // 4. send more data and wait for responses
+  server_test.send_data();
+  client_test.send_data();
+}
+void do_test_completed()
+{
+  printf("SUCCESS\n");
+  s2n::serial_test_over();
+  OS::shutdown();
 }
 
 void Service::start()
@@ -66,9 +138,7 @@ void Service::start()
   ossl_fuzz_ptr = client_side.get();
 
   // initialize S2N
-  extern void        s2n_serial_test(const std::string&, const std::string&);
-  extern s2n_config* s2n_serial_get_config();
-  s2n_serial_test(ca_cert.to_string(), ca_key.to_string());
+  s2n::serial_test(ca_cert.to_string(), ca_key.to_string());
   
   // server stream
   auto server_side = std::make_unique<fuzzy::Stream> (net::Socket{}, net::Socket{},
@@ -77,31 +147,13 @@ void Service::start()
     }, true);
   s2n_fuzz_ptr = server_side.get();
   
-  auto* server_stream =
-    new s2n::TLS_stream(s2n_serial_get_config(), std::move(server_side), false);
-  auto* client_stream =
-    new s2n::TLS_stream(s2n_serial_get_config(), std::move(client_side), true);
+  server_test.index = 0;
+  server_test.stream =
+    new s2n::TLS_stream(s2n::serial_get_config(), std::move(server_side), false);
+  client_test.index = 1;
+  client_test.stream =
+    new s2n::TLS_stream(s2n::serial_get_config(), std::move(client_side), true);
   
-  server_stream->on_connect([] (net::Stream& stream) {
-    printf("TLS server stream connected to client!\n");
-    stream.on_read(8192, [] (net::Stream::buffer_t buffer) {
-      std::string data(buffer->begin(), buffer->end());
-      if (data == "Hello!") test_stage_advance();
-      else if (data == "Second write") test_stage_advance();
-      else test_failure(data);
-    });
-    stream.write("Hello!");
-    stream.write("Second write");
-  });
-  client_stream->on_connect([] (net::Stream& stream) {
-    printf("TLS client stream connected to server!\n");
-    stream.on_read(8192, [] (net::Stream::buffer_t buffer) {
-      std::string data(buffer->begin(), buffer->end());
-      if (data == "Hello!") test_stage_advance();
-      else if (data == "Second write") test_stage_advance();
-      else test_failure(data);
-    });
-    stream.write("Hello!");
-    stream.write("Second write");
-  });
+  server_test.setup_callbacks();
+  client_test.setup_callbacks();
 }

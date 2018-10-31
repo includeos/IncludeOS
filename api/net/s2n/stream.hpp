@@ -47,6 +47,7 @@ typedef enum {
   APPLICATION_DATA
 } message_type_t;
 extern "C" message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+extern "C" size_t s2n_conn_serialize_to(struct s2n_connection *conn, void*);
 
 namespace s2n
 {
@@ -68,6 +69,7 @@ namespace s2n
     using Stream_ptr = net::Stream_ptr;
 
     TLS_stream(s2n_config*, Stream_ptr, bool outgoing = false);
+    TLS_stream(s2n_connection*, Stream_ptr, bool outgoing = false);
     virtual ~TLS_stream();
 
     void write(buffer_t buffer) override;
@@ -126,6 +128,7 @@ namespace s2n
     size_t serialize_to(void*) const override;
 
   private:
+    void initialize(bool outgoing);
     void tls_read(buffer_t);
     bool handshake_completed() const noexcept;
     void close_callback_once();
@@ -150,14 +153,22 @@ namespace s2n
   {
     assert(this->m_transport != nullptr);
     this->m_conn = s2n_connection_new(outgoing ? S2N_CLIENT : S2N_SERVER);
-    assert(this->m_conn);
-    int res =
-      s2n_connection_set_config(this->m_conn, config);
-    if (res < 0) {
+    if (s2n_connection_set_config(this->m_conn, config) < 0) {
       print_s2n_error("Error setting config");
-      exit(1);
+      throw std::runtime_error("Error setting s2n::TLS_stream config");
     }
-    
+    this->initialize(outgoing);
+  }
+  inline TLS_stream::TLS_stream(s2n_connection* conn, Stream_ptr t,
+                                const bool outgoing)
+    : m_transport(std::move(t)), m_conn(conn)
+  {
+    assert(this->m_transport != nullptr);
+    assert(this->m_conn != nullptr);
+    this->initialize(outgoing);
+  }
+  inline void TLS_stream::initialize(bool outgoing)
+  {
     s2n_connection_set_send_cb(this->m_conn, s2n_send);
     s2n_connection_set_recv_cb(this->m_conn, s2n_recv);
     s2n_connection_set_send_ctx(this->m_conn, this);
@@ -319,7 +330,7 @@ namespace s2n
     return APPLICATION_DATA == s2n_conn_get_current_message_type(this->m_conn);
   }
   
-  inline size_t TLS_stream::serialize_to(void*) const {
-    return 0;
+  inline size_t TLS_stream::serialize_to(void* addr) const {
+    return s2n_conn_serialize_to(this->m_conn, addr);
   }
 } // s2n
