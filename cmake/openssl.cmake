@@ -5,7 +5,7 @@ if(${ARCH} STREQUAL "x86_64")
   ExternalProject_Add(s2n_bundle
           PREFIX s2n
           URL https://github.com/fwsGonzo/s2n_bundle/releases/download/v1/s2n_bundle.tar.gz
-          URL_HASH MD5=6677a1526b5f450a9605c388577923b7
+          URL_HASH MD5=657af3e79e3a8ef08e2be5150386d193
           CONFIGURE_COMMAND ""
           BUILD_COMMAND ""
           UPDATE_COMMAND ""
