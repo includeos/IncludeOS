@@ -39,7 +39,7 @@ namespace net
 
   Slaac::Slaac(Stack& inet)
     : stack(inet), alternate_addr_(IP6::ADDR_ANY),
-    tentative_addr_({IP6::ADDR_ANY,0,0}), linklocal_completed(false),
+    tentative_addr_({IP6::ADDR_ANY,64,0,0}), linklocal_completed(false),
     dad_transmits_(LINKLOCAL_RETRIES),
     timeout_timer_{{this, &Slaac::autoconf_trigger}}
   {
@@ -79,7 +79,7 @@ namespace net
     if (!linklocal_completed)
     {
       stack.ndp().dad_completed();
-      stack.add_addr(tentative_addr_.addr(), 0, 0, 64);
+      stack.add_addr(tentative_addr_.addr(), 64, 0, 0);
       PRINT("Auto-configuring ip6-address %s for stack %s\n",
           tentative_addr_.addr().str().c_str(), stack.ifname().c_str());
       linklocal_completed = true;
@@ -91,10 +91,9 @@ namespace net
     else
     {
       stack.ndp().dad_completed();
-      stack.add_addr_autoconf(tentative_addr_.addr(),
+      stack.add_addr_autoconf(tentative_addr_.addr(), 64,
         tentative_addr_.preferred_ts(),
-        tentative_addr_.valid_ts(),
-        64);
+        tentative_addr_.valid_ts());
       PRINT("Auto-configuring ip6-address %s for stack %s\n",
           tentative_addr_.addr().str().c_str(), stack.ifname().c_str());
 
@@ -105,7 +104,7 @@ namespace net
 
   void Slaac::autoconf_start(int retries, IP6::addr alternate_addr)
   {
-    tentative_addr_ = {ip6::Addr::link_local(stack.link_addr().eui64()), 0, 0};
+    tentative_addr_ = {ip6::Addr::link_local(stack.link_addr().eui64()), 64, 0, 0};
     alternate_addr_ = alternate_addr;
     this->dad_transmits_ = retries;
 
@@ -123,6 +122,9 @@ namespace net
            tentative_addr_.addr().str().c_str(), stack.ifname().c_str(),
            interval, delay);
     timeout_timer_.start(delay);
+
+    // join multicast group fix
+    //stack.mld().send_report(ip6::Addr::solicit(tentative_addr_.addr()));
   }
 
   void Slaac::autoconf_global()
@@ -150,7 +152,7 @@ namespace net
     if(alternate_addr_ != IP6::ADDR_ANY &&
         alternate_addr_ != tentative_addr_.addr())
     {
-      tentative_addr_ = {alternate_addr_, 0, 0};
+      tentative_addr_ = {alternate_addr_, 64, 0, 0};
       dad_transmits_ = 1;
     }
     else {
@@ -203,12 +205,12 @@ namespace net
 
     if(not stack.addr6_config().has(addr))
     {
-      tentative_addr_ = {addr, preferred_lifetime, valid_lifetime};
+      tentative_addr_ = {addr, prefix_len, preferred_lifetime, valid_lifetime};
       autoconf_trigger();
     }
     else
     {
-      stack.add_addr_autoconf(addr, preferred_lifetime, valid_lifetime, prefix_len);
+      stack.add_addr_autoconf(addr, prefix_len, preferred_lifetime, valid_lifetime);
     }
   }
 

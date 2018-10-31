@@ -279,23 +279,22 @@ void Inet::network_config6(IP6::addr addr6,
   configured_handlers_.clear();
 }
 
-void Inet::add_addr(const ip6::Addr& addr,
-              uint32_t pref_lifetime, uint32_t valid_lifetime,
-              uint8_t prefix)
+void Inet::add_addr(const ip6::Addr& addr, uint8_t prefix,
+              uint32_t pref_lifetime, uint32_t valid_lifetime)
 {
   int r = this->ip6_.addr_list().input(
-    addr, pref_lifetime, valid_lifetime, prefix);
+    addr, prefix, pref_lifetime, valid_lifetime);
   if(r == 1) {
     INFO("Inet6", "Address configured %s", addr.to_string().c_str());
   }
 }
 
-void Inet::add_addr_autoconf(const ip6::Addr& addr,
-                       uint32_t pref_lifetime, uint32_t valid_lifetime,
-                       uint8_t prefix)
+void Inet::add_addr_autoconf(const ip6::Addr& addr, uint8_t prefix,
+                       uint32_t pref_lifetime, uint32_t valid_lifetime)
 {
+  Expects(prefix == 64);
   int r = this->ip6_.addr_list().input_autoconf(
-    addr, pref_lifetime, valid_lifetime, prefix);
+    addr, prefix, pref_lifetime, valid_lifetime);
   if(r == 1) {
     INFO("Inet6", "Address configured %s (autoconf)", addr.to_string().c_str());
   }

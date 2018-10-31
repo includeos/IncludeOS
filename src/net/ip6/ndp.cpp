@@ -489,7 +489,7 @@ namespace net
 
           if (pinfo->onlink())
           {
-            add_addr_onlink(pinfo->prefix, pinfo->valid_lifetime());
+            add_addr_onlink(pinfo->prefix, pinfo->prefix_len, pinfo->valid_lifetime());
           }
 
           // if autoconf is set, call autoconf handler if set
@@ -820,20 +820,20 @@ namespace net
           [&ip] (const auto& obj) { return obj.addr() == ip; });
 
     if (entry == prefix_list_.end()) {
-        prefix_list_.emplace_back(ip, 0, valid_lifetime);
+        prefix_list_.emplace_back(ip, 64, 0, valid_lifetime);
     } else {
         entry->update_valid_lifetime(valid_lifetime);
     }
   }
 
-  void Ndp::add_addr_onlink(ip6::Addr ip, uint32_t valid_lifetime)
+  void Ndp::add_addr_onlink(ip6::Addr ip, uint8_t prefix, uint32_t valid_lifetime)
   {
     auto entry = std::find_if(prefix_list_.begin(), prefix_list_.end(),
           [&ip] (const auto& obj) { return obj.addr() == ip; });
 
     if (entry == prefix_list_.end()) {
       if (valid_lifetime) {
-        prefix_list_.emplace_back(ip, 0, valid_lifetime);
+        prefix_list_.emplace_back(ip, prefix, 0, valid_lifetime);
       }
     } else {
       if (valid_lifetime) {
@@ -844,7 +844,8 @@ namespace net
     }
   }
 
-  void Ndp::add_addr_autoconf(ip6::Addr ip, uint32_t preferred_lifetime, uint32_t valid_lifetime)
+  void Ndp::add_addr_autoconf(ip6::Addr ip, uint8_t prefix,
+    uint32_t preferred_lifetime, uint32_t valid_lifetime)
   {
     PRINT("NDP: RA: Adding address %s with preferred lifetime: %u"
             " and valid lifetime: %u\n", ip.to_string().c_str(),
@@ -855,7 +856,7 @@ namespace net
     auto two_hours = 60 * 60 * 2;
 
     if (entry == prefix_list_.end()) {
-      prefix_list_.emplace_back(ip, preferred_lifetime, valid_lifetime);
+      prefix_list_.emplace_back(ip, prefix, preferred_lifetime, valid_lifetime);
     } else if (!entry->always_valid()) {
       entry->update_preferred_lifetime(preferred_lifetime);
       if ((valid_lifetime > two_hours) ||

@@ -23,17 +23,24 @@ namespace net::ip6 {
   // Naming...
   class Stateful_addr {
   public:
-    Stateful_addr(ip6::Addr addr, uint32_t preferred_lifetime,
+    // zero means invalid, maybe need to change.
+    //static constexpr uint32_t infinite_lifetime = 0xffffffff; // ¯\_(∞)_/¯
+
+    Stateful_addr(ip6::Addr addr, uint8_t prefix, uint32_t preferred_lifetime,
                   uint32_t valid_lifetime)
       : addr_{addr},
         preferred_ts_{preferred_lifetime ?
           (RTC::time_since_boot() + preferred_lifetime) : 0},
         valid_ts_{valid_lifetime ?
-          (RTC::time_since_boot() + valid_lifetime) : 0}
+          (RTC::time_since_boot() + valid_lifetime) : 0},
+        prefix_{prefix}
     {}
 
     const ip6::Addr& addr() const noexcept
     { return addr_; }
+
+    uint8_t prefix() const noexcept
+    { return prefix_; }
 
     bool preferred() const noexcept
     { return preferred_ts_ ? RTC::time_since_boot() < preferred_ts_ : true; }
@@ -42,7 +49,7 @@ namespace net::ip6 {
     { return valid_ts_ ? RTC::time_since_boot() > valid_ts_ : true; }
 
     bool always_valid() const noexcept
-    { return valid_ts_ ? false : true; }
+    { return valid_ts_; }
 
     uint32_t remaining_valid_time()
     { return valid_ts_ < RTC::time_since_boot() ? 0 : valid_ts_ - RTC::time_since_boot(); }
@@ -69,6 +76,8 @@ namespace net::ip6 {
     ip6::Addr        addr_;
     RTC::timestamp_t preferred_ts_;
     RTC::timestamp_t valid_ts_;
+    uint8_t          prefix_;
+
   };
 
 
@@ -114,9 +123,8 @@ namespace net::ip6 {
         [&](const auto& sa){ return sa.addr() == addr; });
     }
 
-    int input(const ip6::Addr& addr,
-      uint32_t pref_lifetime, uint32_t valid_lifetime,
-      [[maybe_unused]]uint8_t prefix)
+    int input(const ip6::Addr& addr, uint8_t prefix,
+      uint32_t pref_lifetime, uint32_t valid_lifetime)
     {
       auto it = std::find_if(list.begin(), list.end(),
         [&](const auto& sa){ return sa.addr() == addr; });
@@ -124,7 +132,7 @@ namespace net::ip6 {
       if (it == list.end())
       {
         if (valid_lifetime or addr.is_linklocal()) {
-          list.emplace_back(addr, pref_lifetime, valid_lifetime);
+          list.emplace_back(addr, prefix, pref_lifetime, valid_lifetime);
           return 1;
         }
       }
@@ -141,9 +149,8 @@ namespace net::ip6 {
       return 0;
     }
 
-    int input_autoconf(const ip6::Addr& addr,
-      uint32_t pref_lifetime, uint32_t valid_lifetime,
-      [[maybe_unused]]uint8_t prefix)
+    int input_autoconf(const ip6::Addr& addr, uint8_t prefix,
+      uint32_t pref_lifetime, uint32_t valid_lifetime)
     {
       auto it = std::find_if(list.begin(), list.end(),
         [&](const auto& sa){ return sa.addr() == addr; });
@@ -151,7 +158,7 @@ namespace net::ip6 {
       if (it == list.end())
       {
         if (valid_lifetime) {
-          list.emplace_back(addr, pref_lifetime, valid_lifetime);
+          list.emplace_back(addr, prefix, pref_lifetime, valid_lifetime);
           return 1;
         }
       }
@@ -179,9 +186,11 @@ namespace net::ip6 {
     {
       if(UNLIKELY(list.empty())) return "";
       auto it = list.begin();
-      std::string output{it->addr().to_string()};
+      std::string output{it->addr().to_string() +
+        "/" + std::to_string(it->prefix())};
       while(++it != list.end())
-        output += "\n" + it->addr().to_string();
+        output += "\n" + it->addr().to_string() +
+          "/" + std::to_string(it->prefix());
 
       return output;
     }

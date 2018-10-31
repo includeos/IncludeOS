@@ -117,9 +117,9 @@ namespace net {
 
     void perform_dad(ip6::Addr, Dad_handler delg);
     void dad_completed();
-    void add_addr_autoconf(ip6::Addr ip, uint32_t preferred_lifetime,
-            uint32_t valid_lifetime);
-    void add_addr_onlink(ip6::Addr ip, uint32_t valid_lifetime);
+    void add_addr_autoconf(ip6::Addr ip, uint8_t prefix,
+                           uint32_t pref_lifetime, uint32_t valid_lifetime);
+    void add_addr_onlink(ip6::Addr ip, uint8_t prefix, uint32_t valid_lifetime);
     void add_addr_static(ip6::Addr ip, uint32_t valid_lifetime);
     void add_router(ip6::Addr ip, uint16_t router_lifetime);
 

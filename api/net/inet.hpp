@@ -326,9 +326,8 @@ namespace net {
                         uint8_t prefix6 = 0,
                         ip6::Addr gateway6 = IP6::ADDR_ANY);
 
-    void add_addr(const ip6::Addr& addr,
-                  uint32_t pref_lifetime, uint32_t valid_lifetime,
-                  uint8_t prefix = 64);
+    void add_addr(const ip6::Addr& addr, uint8_t prefix = 64,
+                  uint32_t pref_lifetime = 0, uint32_t valid_lifetime = 0);
 
     ip6::Addr linklocal_addr() const noexcept
     { return this->addr6_config().get_first_linklocal(); }
@@ -516,9 +515,8 @@ namespace net {
 
     friend class Slaac;
 
-    void add_addr_autoconf(const ip6::Addr& addr,
-                           uint32_t pref_lifetime, uint32_t valid_lifetime,
-                           uint8_t prefix = 64);
+    void add_addr_autoconf(const ip6::Addr& addr, uint8_t prefix,
+      uint32_t pref_lifetime, uint32_t valid_lifetime);
   };
 }
 
