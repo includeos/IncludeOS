@@ -96,8 +96,20 @@ namespace net {
     ip4::Addr broadcast_addr() const
     { return ip4_.broadcast_addr(); }
 
-    const ip6::Addr& ip6_addr() const
-    { return ndp_.static_ip(); }
+    ip6::Addr ip6_src(const ip6::Addr& dst) const
+    { return addr6_config().get_src(dst); }
+
+    ip6::Addr ip6_addr() const {
+      if(auto addr = ip6_global(); addr != ip6::Addr::addr_any)
+        return addr;
+      else return ip6_linklocal();
+    }
+
+    ip6::Addr ip6_linklocal() const
+    { return addr6_config().get_first_linklocal(); }
+
+    ip6::Addr ip6_global() const
+    { return addr6_config().get_first_unicast(); }
 
     uint8_t netmask6() const
     { return ndp_.static_prefix(); }
@@ -431,7 +443,7 @@ namespace net {
       if (is_loopback(dest))
         return dest;
 
-      return ip6_addr();
+      return ip6_src(dest);
     }
 
     bool is_valid_source(const Addr& addr) const

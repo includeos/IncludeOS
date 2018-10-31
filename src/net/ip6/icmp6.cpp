@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define ICMP6_DEBUG 1
+#define ICMP6_DEBUG 1
 #ifdef ICMP6_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -292,9 +292,10 @@ namespace net
       return;
     }
 
+    auto dest = req.ip().ip_src();
     // Populate response IP header
-    res.ip().set_ip_src(inet_.ip6_addr());
-    res.ip().set_ip_dst(req.ip().ip_src());
+    res.ip().set_ip_src(inet_.ip6_src(dest));
+    res.ip().set_ip_dst(dest);
 
     // Populate response ICMP header
     res.set_type(ICMP_type::ECHO_REPLY);

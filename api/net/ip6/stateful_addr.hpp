@@ -175,6 +175,17 @@ namespace net::ip6 {
       return 0;
     }
 
+    std::string to_string() const
+    {
+      if(UNLIKELY(list.empty())) return "";
+      auto it = list.begin();
+      std::string output{it->addr().to_string()};
+      while(++it != list.end())
+        output += "\n" + it->addr().to_string();
+
+      return output;
+    }
+
   private:
     List list;
   };

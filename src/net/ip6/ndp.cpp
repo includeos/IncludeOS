@@ -63,7 +63,7 @@ namespace net
     }
 
     // Populate response IP header
-    res.ip().set_ip_src(inet_.ip6_addr());
+    res.ip().set_ip_src(inet_.addr6_config().get_first_linklocal());
     if (any_src) {
         res.ip().set_ip_dst(ip6::Addr::node_all_nodes);
     } else {
@@ -271,7 +271,7 @@ namespace net
     // TODO: Change this. Can be targeted to many ip6 address on this inet
     if (not inet_.is_valid_source6(target)) {
       PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(),
-              inet_.ip6_addr().to_string().c_str());
+              inet_.ip6_linklocal().to_string().c_str());
       if (dad_handler_ && target == tentative_addr_) {
         PRINT("NDP: NS: DAD failed. We can't use the %s"
               " address on our interface", target.str().c_str());
@@ -355,7 +355,7 @@ namespace net
     using namespace ndp;
     icmp6::Packet req(inet_.ip6_packet_factory());
 
-    req.ip().set_ip_src(inet_.ip6_addr());
+    req.ip().set_ip_src(inet_.ip6_linklocal());
     req.ip().set_ip_dst(ip6::Addr::link_all_routers);
 
     req.ip().set_ip_hop_limit(255);

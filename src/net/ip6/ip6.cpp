@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define IP6_DEBUG 1
+#define IP6_DEBUG 1
 #ifdef IP6_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -221,7 +221,9 @@ namespace net
        be one of its own IP addresses (but not a broadcast or
        multicast address).
     */
-    if (UNLIKELY(not stack_.is_valid_source(packet->ip_src()))) {
+    if (UNLIKELY(not stack_.is_valid_source6(packet->ip_src()))) {
+      PRINT("<IP6> Drop bad source egress: src=%s list:\n%s\n",
+        packet->ip_src().to_string().c_str(), addr_list_.to_string().c_str());
       drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_source);
       return;
     }
