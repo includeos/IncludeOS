@@ -64,6 +64,21 @@ struct Addr {
   Addr(Addr&& a) noexcept
     : i64{a.i64} {}
 
+  /**
+   * Constructor
+   *
+   * Construct an IPv6 address from a {std::string} object
+   * representing an IPv6 address
+   *
+   * @param addr
+   * A {std::string} object representing an IPv6 address
+   *
+   * @throws Invalid_address
+   *  IIf the {std::string} object doesn't representing a valid IPv6
+   *  address
+   */
+  Addr(const std::string &addr);
+
   // returns this IPv6 Address as a string
   std::string str() const {
     char ipv6_addr[40];
