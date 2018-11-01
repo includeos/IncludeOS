@@ -215,6 +215,7 @@ set(OS_SOURCES
   ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
   ${SRC}/net/ip4/reassembly.cpp
+  ${SRC}/net/ip6/addr.cpp
   ${SRC}/net/ip6/extension_header.cpp
   ${SRC}/net/ip6/icmp6.cpp
   ${SRC}/net/ip6/mld.cpp
@@ -330,6 +331,7 @@ if(SILENT_BUILD)
 endif()
 
 add_executable(unittests ${SOURCES})
+target_link_libraries(unittests -lstdc++ -lm)
 install(TARGETS unittests DESTINATION ${TEST})
 
 if (GENERATE_SUPPORT_FILES)
