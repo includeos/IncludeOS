@@ -279,14 +279,12 @@ void VirtioNet::msix_xmit_handler()
     VDBG_TX("[virtionet] %d transmitted\n", dequeued_tx);
 
     // transmit as much as possible from the buffer
-    if (transmit_queue != nullptr) {
-      //auto tx = packets_tx_;
-      transmit(std::move(transmit_queue));
-      //printf("[virtionet] %ld transmit queue\n", packets_tx_ - tx);
+    if (! sendq.empty()) {
+      transmit(nullptr);
     }
 
     // If we now emptied the buffer, offer packets to stack
-    if (transmit_queue == nullptr && tx_q.num_free() > 1) {
+    if (sendq.empty() && tx_q.num_free() > 1) {
       transmit_queue_available_event(tx_q.num_free() / 2);
     }
   }
