@@ -93,7 +93,6 @@ namespace fuzzy
     net::Stream* transport() noexcept override {
       assert(0);
     }
-    size_t serialize_to(void*) const override;
 
   private:
     void close_callback_once();
@@ -209,9 +208,5 @@ namespace fuzzy
     this->m_on_connect = nullptr;
     this->m_on_read  = nullptr;
     this->m_on_write = nullptr;
-  }
-  
-  inline size_t Stream::serialize_to(void*) const {
-    return 0;
   }
 } // fuzzy

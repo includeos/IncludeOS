@@ -12,16 +12,11 @@ add_custom_command(
 )
 add_custom_target(hotswap64 DEPENDS hotswap64.bin)
 
-if(${ARCH} STREQUAL "x86_64")
-  set(LIU_OPENSSL_FILES "serialize_openssl.cpp")
-endif()
-
 # LiveUpdate static library
 add_library(liveupdate STATIC
     storage.cpp partition.cpp update.cpp resume.cpp rollback.cpp
     elfscan.cpp os.cpp "serialize_tcp.cpp"
     hotswap.cpp "hotswap64_blob.asm"
-    ${LIU_OPENSSL_FILES}
   )
 add_dependencies(liveupdate hotswap64)
 add_dependencies(liveupdate PrecompiledLibraries)

@@ -5,11 +5,6 @@
 
 namespace openssl
 {
-  __attribute__((weak))
-  size_t TLS_stream::serialize_to(void*) const {
-    return 0;
-  }
-
   // https://gist.github.com/darrenjs/4645f115d10aa4b5cebf57483ec82eca
   inline static void
   handle_error(const char* file, int lineno, const char* msg) {

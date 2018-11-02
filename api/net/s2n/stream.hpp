@@ -46,8 +46,8 @@ typedef enum {
   SERVER_FINISHED,
   APPLICATION_DATA
 } message_type_t;
-extern "C" message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
-extern "C" size_t s2n_conn_serialize_to(struct s2n_connection *conn, void*);
+extern "C" message_type_t s2n_conn_get_current_message_type(struct s2n_connection*);
+extern "C" ssize_t s2n_conn_serialize_to(struct s2n_connection*, void* addr, size_t);
 
 namespace s2n
 {
@@ -125,7 +125,7 @@ namespace s2n
       return m_transport.get();
     }
 
-    size_t serialize_to(void*) const override;
+    size_t serialize_to(void*, size_t) const override;
 
   private:
     void initialize(bool outgoing);
@@ -330,7 +330,9 @@ namespace s2n
     return APPLICATION_DATA == s2n_conn_get_current_message_type(this->m_conn);
   }
   
-  inline size_t TLS_stream::serialize_to(void* addr) const {
-    return s2n_conn_serialize_to(this->m_conn, addr);
+  inline size_t TLS_stream::serialize_to(void* addr, size_t size) const {
+    ssize_t ret = s2n_conn_serialize_to(this->m_conn, addr, size);
+    if (ret < 0) throw std::runtime_error("Failed to serialize TLS connection");
+    return ret;
   }
 } // s2n
