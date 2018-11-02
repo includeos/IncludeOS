@@ -100,6 +100,8 @@ namespace net {
     void send_router_solicitation(Autoconf_handler delg);
     void send_router_advertisement();
 
+    ip6::Addr next_hop(const ip6::Addr&) const;
+
     /** Roll your own ndp-resolution system. */
     void set_resolver(Ndp_resolver ar)
     { ndp_resolver_ = ar; }
@@ -259,7 +261,7 @@ namespace net {
       next_hop_ = next_hop;
     }
 
-    ip6::Addr next_hop()
+    ip6::Addr next_hop() const
     { return next_hop_; }
 
     private:

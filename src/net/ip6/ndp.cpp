@@ -52,7 +52,8 @@ namespace net
   void Ndp::send_neighbour_advertisement(icmp6::Packet& req)
   {
     icmp6::Packet res(inet_.ip6_packet_factory());
-    bool any_src = req.ip().ip_src() == IP6::ADDR_ANY;
+    auto src = req.ip().ip_src();
+    bool any_src = src == IP6::ADDR_ANY;
 
     // drop if the packet is too small
     if (res.ip().capacity() < IP6_HEADER_LEN
@@ -63,11 +64,12 @@ namespace net
     }
 
     // Populate response IP header
-    res.ip().set_ip_src(inet_.addr6_config().get_first_linklocal());
     if (any_src) {
+        res.ip().set_ip_src(inet_.addr6_config().get_first_linklocal());
         res.ip().set_ip_dst(ip6::Addr::node_all_nodes);
     } else {
-        res.ip().set_ip_dst(req.ip().ip_src());
+        res.ip().set_ip_src(inet_.addr6_config().get_src(src));
+        res.ip().set_ip_dst(src);
     }
     res.ip().set_ip_hop_limit(255);
 
@@ -588,6 +590,41 @@ namespace net
     default:
       return;
     }
+  }
+
+  // RFC 4861 5.2.
+  ip6::Addr Ndp::next_hop(const ip6::Addr& dst) const
+  {
+    // First check destination cache
+    auto search = dest_cache_.find(dst);
+    if(search != dest_cache_.end())
+      return search->second.next_hop();
+
+    const ip6::Stateful_addr* match = nullptr;
+    // Check prefix list (longest prefix match)
+    for(const auto& entry : prefix_list_)
+    {
+      if(entry.match(dst))
+      {
+        if(match)
+          match = (entry.prefix() > match->prefix()) ? &entry : match;
+        else
+          match = &entry;
+      }
+    }
+    if(match)
+    {
+      PRINT("NDP: Dst %s on link, longest match: %s\n",
+        dst.to_string().c_str(), match->to_string().c_str());
+      return dst;
+    }
+
+    // Default router selection 6.3.6
+    // TODO: This just takes first available one - there are more details to this
+    for(const auto& entry : router_list_)
+      if(not entry.expired()) return entry.router();
+
+    return ip6::Addr::addr_any;
   }
 
   bool Ndp::lookup(ip6::Addr ip)

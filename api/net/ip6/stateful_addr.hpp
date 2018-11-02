@@ -42,6 +42,9 @@ namespace net::ip6 {
     uint8_t prefix() const noexcept
     { return prefix_; }
 
+    bool match(const ip6::Addr& other) const noexcept
+    { return (addr_ & prefix_) == (other & prefix_); }
+
     bool preferred() const noexcept
     { return preferred_ts_ ? RTC::time_since_boot() < preferred_ts_ : true; }
 
@@ -71,6 +74,9 @@ namespace net::ip6 {
 
     auto valid_ts() const noexcept
     { return valid_ts_; }
+
+    std::string to_string() const
+    { return {addr_.to_string() + "/" + std::to_string(prefix_)}; }
 
   private:
     ip6::Addr        addr_;
@@ -186,11 +192,9 @@ namespace net::ip6 {
     {
       if(UNLIKELY(list.empty())) return "";
       auto it = list.begin();
-      std::string output{it->addr().to_string() +
-        "/" + std::to_string(it->prefix())};
+      std::string output = it->to_string();
       while(++it != list.end())
-        output += "\n" + it->addr().to_string() +
-          "/" + std::to_string(it->prefix());
+        output += "\n" + it->to_string();
 
       return output;
     }

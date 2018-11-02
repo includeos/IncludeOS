@@ -262,26 +262,19 @@ namespace net
     if (packet == nullptr) return;
 
     if (next_hop == IP6::ADDR_ANY) {
-        // Create local and target subnets
-        addr target = packet->ip_dst() & stack_.netmask6();
-        addr local  = stack_.ip6_addr() & stack_.netmask6();
+      next_hop = stack_.ndp().next_hop(packet->ip_dst());
+      printf("ndp nexthop: %s\n", next_hop.to_string().c_str());
 
-        // Compare subnets to know where to send packet
-        next_hop = target == local ? packet->ip_dst() : stack_.gateway6();
+      PRINT("<IP6 TOP> Next hop for %s == %s\n",
+            packet->ip_dst().str().c_str(),
+            next_hop.str().c_str());
 
-        PRINT("<IP6 TOP> Next hop for %s, (netmask %d, local IP: %s, gateway: %s) == %s\n",
-              packet->ip_dst().str().c_str(),
-              stack_.netmask6(),
-              stack_.ip6_addr().str().c_str(),
-              stack_.gateway6().str().c_str(),
-              next_hop.str().c_str());
-
-        if(UNLIKELY(next_hop == IP6::ADDR_ANY)) {
-          PRINT("<IP6> Next_hop calculated to 0 (gateway == %s), dropping\n",
-            stack_.gateway6().str().c_str());
-          drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
-          return;
-        }
+      if(UNLIKELY(next_hop == IP6::ADDR_ANY)) {
+        PRINT("<IP6> Next_hop calculated to 0 (gateway == %s), dropping\n",
+          stack_.gateway6().str().c_str());
+        drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
+        return;
+      }
     }
 
     // Stat increment packets transmitted
