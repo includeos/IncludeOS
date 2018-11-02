@@ -75,6 +75,8 @@ namespace net {
     void send_report(const ip6::Addr& mcast);
     void mcast_expiry();
 
+    void send_report_v2(const ip6::Addr& mcast);
+
     void receive(net::Packet_ptr pkt);
     void set_linklayer_out(downstream_link s)
     { linklayer_out_ = s; }
@@ -150,7 +152,7 @@ namespace net {
     public:
       Router(Mld& ref) : mld_{ref} {}
     private:
-      Mld         &mld_;
+      [[maybe_unused]]Mld         &mld_;
       RouterMlist mlist_;
     };
 

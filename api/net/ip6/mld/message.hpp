@@ -72,20 +72,50 @@ namespace v2 {
 
   };
 
+  enum Record_type : uint8_t
+  {
+    IS_INCLUDE = 1,
+    IS_EXCLUDE = 2,
+    CHANGE_TO_INCLUDE = 3,
+    CHANGE_TO_EXCLUDE = 4,
+    ALLOW_NEW_SOURCES = 5,
+    BLOCK_OLD_SOURCES = 6
+  };
+
   struct Mcast_addr_record
   {
     uint8_t   rec_type;
-    uint8_t   data_len;
-    uint16_t  num_src;
+    uint8_t   data_len{0};
+    uint16_t  num_src{0};
     ip6::Addr multicast;
     ip6::Addr sources[0];
+
+    Mcast_addr_record(Record_type rec, ip6::Addr mcast)
+      : rec_type{rec},
+        multicast{std::move(mcast)}
+    {}
+
+    size_t size() const noexcept
+    { return sizeof(Mcast_addr_record) + num_src * (sizeof(ip6::Addr) + data_len); }
   };
 
   struct Report
   {
-    uint16_t          reserved{0x0};
-    uint16_t          num_records;
-    Mcast_addr_record records[0];
+    uint16_t  reserved{0x0};
+    uint16_t  num_records{0};
+    char      records[0];
+
+    uint16_t insert(uint16_t offset, Mcast_addr_record&& rec)
+    {
+      auto* data = records + offset;
+
+      std::memcpy(data, &rec, rec.size());
+
+      num_records = ntohs(num_records + 1);
+
+      return rec.size();
+   }
+
   };
 
 }

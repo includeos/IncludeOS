@@ -29,6 +29,8 @@
 
 namespace net
 {
+  static const ip6::Addr MLDv2_report_mcast{0xff02,0,0,0,0,0,0,0x0016};
+
   Mld::Mld(Stack& inet) noexcept
     : inet_{inet},
     host_{*this},
@@ -243,6 +245,39 @@ namespace net
     req.set_checksum();
 
     PRINT("MLD: Sending MLD report: %i payload size: %i,"
+        "checksum: 0x%x\n, source: %s, dest: %s\n",
+        req.ip().size(), req.payload().size(), req.compute_checksum(),
+        req.ip().ip_src().str().c_str(),
+        req.ip().ip_dst().str().c_str());
+
+    transmit(req, dest_mac);
+  }
+
+  void Mld::send_report_v2(const ip6::Addr& mcast)
+  {
+    icmp6::Packet req(inet_.ip6_packet_factory());
+
+    req.ip().set_ip_src(inet_.ip6_addr());
+
+    req.ip().set_ip_hop_limit(1);
+    req.set_type(ICMP_type::MULTICAST_LISTENER_REPORT_v2);
+    req.set_code(0);
+    req.ip().set_ip_dst(MLDv2_report_mcast);
+
+    auto& report = req.emplace<mld::v2::Report>();
+    auto n = report.insert(0, {mld::v2::CHANGE_TO_EXCLUDE, mcast});
+    req.ip().increment_data_end(n);
+
+    auto dest = req.ip().ip_dst();
+    MAC::Addr dest_mac(0x33,0x33,
+            dest.get_part<uint8_t>(12),
+            dest.get_part<uint8_t>(13),
+            dest.get_part<uint8_t>(14),
+            dest.get_part<uint8_t>(15));
+
+    req.set_checksum();
+
+    PRINT("MLD: Sending MLD v2 report: %i payload size: %i,"
         "checksum: 0x%x\n, source: %s, dest: %s\n",
         req.ip().size(), req.payload().size(), req.compute_checksum(),
         req.ip().ip_src().str().c_str(),
