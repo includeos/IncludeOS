@@ -22,6 +22,7 @@
 #define USE_STACK_SAMPLING
 #define PERIOD_SECS    4
 
+#include <net/interfaces>
 #include "../IRCd/ircd/ircd.hpp"
 static std::unique_ptr<IrcServer> ircd = nullptr;
 using namespace std::chrono;
@@ -120,7 +121,6 @@ static void save_state(liu::Storage& store, const liu::buffer_t*)
 
 }
 
-#include <net/interfaces>
 void Service::ready()
 {
 #ifdef USE_STACK_SAMPLING
