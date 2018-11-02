@@ -41,7 +41,7 @@ const lest::test tests[] = {
               std::runtime_error myexception(error_msg);
               throw myexception;
             }
-          } catch(std::runtime_error e) {
+          } catch(const std::runtime_error& e) {
             caught = std::string(e.what()) == std::string(error_msg);
           }
           EXPECT(caught);
@@ -53,7 +53,7 @@ const lest::test tests[] = {
 
           try {
             throw CustomException(custom_msg);
-          } catch (CustomException e){
+          } catch (const CustomException& e){
             caught_msg = e.what();
           }
 
@@ -69,5 +69,7 @@ void Service::start(const std::string&)
   MYINFO ("Running LEST-tests");
   auto failed = lest::run(tests, {"-p"});
   assert(not failed);
-  MYINFO("SUCCESS");
+
+  MYINFO("Part 1 OK. Now throwing whithout try-catch which should panic");
+  throw std::runtime_error("Uncaught exception expecting panic");
 }

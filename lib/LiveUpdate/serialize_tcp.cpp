@@ -18,14 +18,17 @@
  * by Alf-Andre Walla 2016-2017
  *
 **/
-#include <net/inet4>
+#include <net/inet>
 #include <net/tcp/connection_states.hpp>
+#include <net/tcp/stream.hpp>
 #include "serialize_tcp.hpp"
+#include "liveupdate.hpp"
+#include "storage.hpp"
 #include <cstring>
 #include <unordered_set>
 
 using namespace net::tcp;
-static std::unordered_set<net::Inet<net::IP4>*> slumbering_ip4;
+static std::unordered_set<net::Inet*> slumbering_ip4;
 
 Connection::State* serialized_tcp::to_state(int8_t state) const
 {
@@ -110,7 +113,7 @@ int Write_queue::deserialize_from(void* addr)
     len += sizeof(write_buffer);
 
     // insert shared buffer into write queue
-    this->q.emplace_back(new std::vector<uint8_t> ());
+    this->q.emplace_back(std::make_shared<std::vector<uint8_t>>());
 
     // copy data
     auto wbuf = this->q.back();
@@ -176,8 +179,8 @@ void Connection::deserialize_from(void* addr)
   auto* readq = (read_buffer*) &area->vla[writeq_len];
   if (readq->capacity)
   {
-    read_request = std::make_unique<ReadRequest>(readq->capacity, readq->seq, nullptr);
-    read_request->buffer.deserialize_from(readq);
+    read_request = std::make_unique<Read_request>(readq->seq, readq->capacity, host_.max_bufsize(), nullptr);
+    read_request->front().deserialize_from(readq);
   }
 
   if (area->rtx_is_running) {
@@ -270,7 +273,7 @@ int Connection::serialize_to(void* addr) const
 
   /// serialize read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
-  int readq_len = (read_request) ? read_request->buffer.serialize_to(readq) : sizeof(read_buffer);
+  int readq_len = (read_request) ? read_request->front().serialize_to(readq) : sizeof(read_buffer);
 
   //printf("READ: %u  SEND: %u  REMAIN: %u  STATE: %s\n",
   //    readq_size(), sendq_size(), sendq_remaining(), cb.to_string().c_str());
@@ -283,5 +286,26 @@ void serialized_tcp::wakeup_ip_networks()
   // start all the send queues for the slumbering IP stacks
   for (auto& stack : slumbering_ip4) {
     stack->force_start_send_queues();
+  }
+}
+
+/// public API ///
+namespace liu
+{
+  void Storage::add_connection(uid id, Connection_ptr conn)
+  {
+    hdr.add_struct(TYPE_TCP, id,
+    [&conn] (char* location) -> int {
+      // return size of all the serialized data
+      return conn->serialize_to(location);
+    });
+  }
+  Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
+  {
+    return deserialize_connection(ent->vla, tcp);
+  }
+  net::Stream_ptr Restore::as_tcp_stream   (net::TCP& tcp) const
+  {
+    return std::make_unique<net::tcp::Stream> (as_tcp_connection(tcp));
   }
 }

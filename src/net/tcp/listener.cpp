@@ -22,11 +22,21 @@
 using namespace net;
 using namespace tcp;
 
-Listener::Listener(TCP& host, Socket local, ConnectCallback cb)
+//#define VERBOSE_TCP_LISTENER
+#ifdef VERBOSE_TCP_LISTENER
+#define TCPL_PRINT1(x, ...) printf(x, ##__VA_ARGS__)
+#define TCPL_PRINT2(x, ...) printf(x, ##__VA_ARGS__)
+#else
+#define TCPL_PRINT1(x, ...) /* x */
+#define TCPL_PRINT2(x, ...) /* x */
+#endif
+
+Listener::Listener(TCP& host, Socket local, ConnectCallback cb, const bool ipv6_only)
   : host_(host), local_(local), syn_queue_(),
     on_accept_({this, &Listener::default_on_accept}),
     on_connect_{std::move(cb)},
-    _on_close_({host_, &TCP::close_listener})
+    _on_close_({host_, &TCP::close_listener}),
+    ipv6_only_{ipv6_only}
 {
 }
 
@@ -38,14 +48,13 @@ bool Listener::syn_queue_full() const
 { return syn_queue_.size() >= host_.max_syn_backlog(); }
 
 
-void Listener::segment_arrived(Packet_ptr packet) {
-  debug2("<Listener::segment_arrived> Received packet: %s\n",
-    packet->to_string().c_str());
+void Listener::segment_arrived(Packet_view& packet) {
+  TCPL_PRINT2("<Listener::segment_arrived> Received packet: %s\n",
+    packet.to_string().c_str());
 
   auto it = std::find_if(syn_queue_.begin(), syn_queue_.end(),
-    [dest = packet->source()]
-    (Connection_ptr conn) {
-      return conn->remote() == dest;
+    [&packet] (const Connection_ptr& conn) {
+      return conn->remote() == packet.source();
     });
 
   // if it's an reply to any of our half-open connections
@@ -54,17 +63,17 @@ void Listener::segment_arrived(Packet_ptr packet) {
     auto conn = *it;
     debug("<Listener::segment_arrived> Found packet receiver: %s\n",
       conn->to_string().c_str());
-    conn->segment_arrived(std::move(packet));
-    debug2("<Listener::segment_arrived> Connection done handling segment\n");
+    conn->segment_arrived(packet);
+    TCPL_PRINT2("<Listener::segment_arrived> Connection done handling segment\n");
     return;
   }
   // if it's a new attempt (SYN)
   else
   {
     // don't waste time if the packet does not have SYN
-    if(UNLIKELY(not packet->isset(SYN) or packet->has_tcp_data()))
+    if(UNLIKELY(not packet.isset(SYN) or packet.has_tcp_data()))
     {
-      host_.send_reset(*packet);
+      host_.send_reset(packet);
       return;
     }
 
@@ -72,15 +81,15 @@ void Listener::segment_arrived(Packet_ptr packet) {
     host_.connection_attempts_++;
 
     // if we don't like this client, do nothing
-    if(UNLIKELY(on_accept_(packet->source()) == false))
+    if(UNLIKELY(on_accept_(packet.source()) == false))
       return;
 
     // remove oldest connection if queue is full
-    debug2("<Listener::segment_arrived> SynQueue: %u\n", syn_queue_.size());
+    TCPL_PRINT2("<Listener::segment_arrived> SynQueue: %u\n", syn_queue_.size());
     // SYN queue is full
     if(syn_queue_.size() >= host_.max_syn_backlog())
     {
-      debug2("<Listener::segment_arrived> Queue is full\n");
+      TCPL_PRINT2("<Listener::segment_arrived> Queue is full\n");
       Expects(not syn_queue_.empty());
       debug("<Listener::segment_arrived> Connection %s dropped to make room for new connection\n",
         syn_queue_.back()->to_string().c_str());
@@ -90,7 +99,7 @@ void Listener::segment_arrived(Packet_ptr packet) {
 
     auto& conn = *(syn_queue_.emplace(
       syn_queue_.cbegin(),
-      std::make_shared<Connection>(host_, packet->destination(), packet->source(), ConnectCallback{this, &Listener::connected})
+      std::make_shared<Connection>(host_, packet.destination(), packet.source(), ConnectCallback{this, &Listener::connected})
       )
     );
     conn->_on_cleanup({this, &Listener::remove});
@@ -99,15 +108,15 @@ void Listener::segment_arrived(Packet_ptr packet) {
     Ensures(conn->is_listening());
     debug("<Listener::segment_arrived> Connection %s created\n",
       conn->to_string().c_str());
-    conn->segment_arrived(std::move(packet));
-    debug2("<Listener::segment_arrived> Connection done handling segment\n");
+    conn->segment_arrived(packet);
+    TCPL_PRINT2("<Listener::segment_arrived> Connection done handling segment\n");
     return;
   }
-  debug2("<Listener::segment_arrived> No receipent\n");
+  TCPL_PRINT2("<Listener::segment_arrived> No receipent\n");
 }
 
 void Listener::remove(Connection_ptr conn) {
-  debug2("<Listener::remove> Try remove %s\n", conn->to_string().c_str());
+  TCPL_PRINT2("<Listener::remove> Try remove %s\n", conn->to_string().c_str());
   auto it = syn_queue_.begin();
   while(it != syn_queue_.end())
   {
@@ -147,10 +156,11 @@ void Listener::close() {
 std::string Listener::to_string() const {
   char buffer[256];
   int len = snprintf(buffer, sizeof(buffer),
-          "[%s] SynQueue (%ld) ", local_.to_string().c_str(), syn_queue_.size());
+          "[%s] SynQueue (%zu) ", local_.to_string().c_str(), syn_queue_.size());
   std::string str(buffer, len);
   // add syn queue
   for(auto& conn : syn_queue_)
       str += "\n\t" + conn->to_string();
+
   return str;
 }

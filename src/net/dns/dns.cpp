@@ -179,8 +179,10 @@ namespace net
   }
 
   // parse received message (as put into buffer)
-  bool DNS::Request::parseResponse(const char* buffer)
+  bool DNS::Request::parseResponse(const char* buffer, size_t len)
   {
+    Expects(len >= sizeof(DNS::header));
+
     const header* dns = (const header*) buffer;
 
     // move ahead of the dns header and the query field
@@ -189,18 +191,26 @@ namespace net
     // .. and past the original question
     reader += sizeof(DNS::question);
 
-    // parse answers
-    for(int i = 0; i < ntohs(dns->ans_count); i++)
-      answers.emplace_back(reader, buffer);
+    if(UNLIKELY(reader > (buffer + len)))
+      return false;
 
-    // parse authorities
-    for (int i = 0; i < ntohs(dns->auth_count); i++)
-      auth.emplace_back(reader, buffer);
+    try {
+      // parse answers
+      for(int i = 0; i < ntohs(dns->ans_count); i++)
+        answers.emplace_back(reader, buffer, len);
 
-    // parse additional
-    for (int i = 0; i < ntohs(dns->add_count); i++)
-      addit.emplace_back(reader, buffer);
+      // parse authorities
+      for (int i = 0; i < ntohs(dns->auth_count); i++)
+        auth.emplace_back(reader, buffer, len);
 
+      // parse additional
+      for (int i = 0; i < ntohs(dns->add_count); i++)
+        addit.emplace_back(reader, buffer, len);
+    }
+    catch (const std::runtime_error&) {
+      // packet probably too short
+    }
+    
     return true;
   }
 
@@ -251,27 +261,42 @@ namespace net
     *dns++ = '\0';
   }
 
-  DNS::Request::rr_t::rr_t(const char*& reader, const char* buffer)
+  DNS::Request::rr_t::rr_t(const char*& reader, const char* buffer, size_t len)
   {
+    // don't call readName if we are already out of buffer
+    if (reader >= buffer + len)
+        throw std::runtime_error("Nothing left to parse");
     int stop;
-
-    this->name = readName(reader, buffer, stop);
+    this->name = readName(reader, buffer, len, stop);
+    assert(stop >= 0);
     reader += stop;
+    int remaining = len - (reader - buffer);
+    assert(remaining <= (int) len);
+    // invalid request if there is no room for resources
+    if (remaining < (int) sizeof(rr_data))
+        throw std::runtime_error("Nothing left to parse");
 
+    // extract resource data header
     this->resource = *(rr_data*) reader;
     reader += sizeof(rr_data);
 
     // if its an ipv4 address
     if (ntohs(resource.type) == DNS_TYPE_A)
       {
-        int len = ntohs(resource.data_len);
+        int dlen = ntohs(resource.data_len);
 
-        this->rdata = std::string(reader, len);
+        this->rdata = std::string(reader, dlen);
         reader += len;
       }
+    else if (ntohs(resource.type) == DNS_TYPE_AAAA)
+    {
+      // skip IPv6 records for now
+      int dlen = ntohs(resource.data_len);
+      reader += dlen;
+    }
     else
       {
-        this->rdata = readName(reader, buffer, stop);
+        this->rdata = readName(reader, buffer, len, stop);
         reader += stop;
       }
   }
@@ -311,54 +336,60 @@ namespace net
     printf("\n");
   }
 
-  std::string DNS::Request::rr_t::readName(const char* reader, const char* buffer, int& count)
+  std::string DNS::Request::rr_t::readName(const char* reader, const char* buffer, size_t tot_len, int& count)
   {
     std::string name(256, '\0');
-    unsigned p = 0;
-    unsigned offset = 0;
+    unsigned namelen = 0;
     bool jumped = false;
 
     count = 1;
-    unsigned char* ureader = (unsigned char*) reader;
+    const auto* ureader = (unsigned char*) reader;
 
     while (*ureader)
       {
         if (*ureader >= 192)
           {
-            offset = (*ureader) * 256 + *(ureader+1) - 49152; // = 11000000 00000000
-            ureader = (unsigned char*) buffer + offset - 1;
+            // read 16-bit offset, mask out the 2 top bits
+            uint16_t offset = (*ureader >> 8) | *(ureader+1);
+            offset &= 0x3fff; // remove 2 top bits
+
+            if(UNLIKELY(offset > tot_len))
+              return {};
+            
+            ureader = (unsigned char*) &buffer[offset];
             jumped = true; // we have jumped to another location so counting wont go up!
           }
         else
           {
-            name[p++] = *ureader;
+            name[namelen++] = *ureader++;
+            // maximum label size
+            if(UNLIKELY(namelen > 63)) break;
           }
-        ureader++;
 
         // if we havent jumped to another location then we can count up
         if (jumped == false) count++;
       }
-    name.resize(p);
+
+    name.resize(namelen);
+    if (name.empty()) return name;
 
     // number of steps we actually moved forward in the packet
     if (jumped)
       count++;
 
     // now convert 3www6google3com0 to www.google.com
-    int len = p; // same as name.size()
-    int i;
-    for(i = 0; i < len; i++)
+    for(unsigned i = 0; i < name.size(); i++)
       {
-        p = name[i];
-
-        for(unsigned j = 0; j < p; j++)
+        const uint8_t len = name[i];
+        for(unsigned j = 0; j < len; j++)
           {
             name[i] = name[i+1];
             i++;
           }
         name[i] = '.';
       }
-    name[i - 1] = '\0'; // remove the last dot
+    // remove the last dot by resizing down
+    name.resize(name.size()-1);
     return name;
 
   } // readName()

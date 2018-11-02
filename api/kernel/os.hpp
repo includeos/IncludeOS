@@ -42,13 +42,13 @@ public:
   /**
    * Returns the OS version string
    **/
-  static const std::string& version() noexcept
+  static const char* version() noexcept
   { return version_str_; }
 
   /**
    * Returns the CPU architecture for which the OS was built
    **/
-  static const std::string& arch() noexcept
+  static const char* arch() noexcept
   { return arch_str_; }
 
 
@@ -153,6 +153,12 @@ public:
   static void print(const char* ptr, const size_t len);
 
   /**
+   *  Enable or disable timestamps automatically
+   *  prepended to all OS::print(...) calls
+   */
+  static void enable_timestamps(bool enabled);
+
+  /**
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
@@ -175,7 +181,10 @@ public:
   }
 
   /** Total used dynamic memory, in bytes */
-  static uintptr_t heap_usage() noexcept;
+  static size_t heap_usage() noexcept;
+
+  /** Total free heap, as far as the OS knows, in bytes */
+  static size_t heap_avail() noexcept;
 
   /** Attempt to trim the heap end, reducing the size */
   static void heap_trim() noexcept;
@@ -186,9 +195,6 @@ public:
   /** Last used address of the heap **/
   static uintptr_t heap_end() noexcept;
 
-  /** Resize the heap if possible. Return (potentially) new size. **/
-  static uintptr_t resize_heap(size_t size);
-
   /** The maximum last address of the dynamic memory area (heap) */
   static uintptr_t heap_max() noexcept;
 
@@ -197,14 +203,26 @@ public:
     return memory_end_;
   }
 
+  /** Total used memory, including reserved areas */
+  static size_t total_memuse() noexcept;
+
+  static void init_heap(uintptr_t phys_begin, size_t size) noexcept;
+
   /**
    *  Returns true when the current OS comes from a live update,
    *  as opposed to booting from either a rollback or a normal boot
    */
   static bool is_live_updated() noexcept;
 
-  /** Returns the automatic location set aside for storing system and program state **/
+  /** Returns the virtual memory location set aside for storing system and program state **/
   static void* liveupdate_storage_area() noexcept;
+
+  /** Returns the amount of memory set aside for LiveUpdate */
+  static size_t liveupdate_phys_size(size_t) noexcept;
+
+  /** Computes the physical location of LiveUpdate storage area */
+  static uintptr_t liveupdate_phys_loc(size_t) noexcept;
+
 
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
@@ -241,12 +259,24 @@ public:
   /** Initialize platform, devices etc. */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
-  static void start(char *cmdline, uintptr_t mem_size);
+  static void start(const char* cmdline);
 
   /** Initialize common subsystems, call Service::start */
   static void post_start();
 
   static void install_cpu_frequency(util::MHz);
+
+  /** Resume stuff from a soft reset **/
+  static bool is_softreset_magic(uint32_t value);
+  static uintptr_t softreset_memory_end(intptr_t boot_addr);
+  static void resume_softreset(intptr_t boot_addr);
+  static void setup_liveupdate(uintptr_t phys = 0);
+
+  typedef void (*ctor_t) ();
+  static void run_ctors(ctor_t* begin, ctor_t* end)
+  {
+  	for (; begin < end; begin++) (*begin)();
+  }
 
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
@@ -257,22 +287,21 @@ private:
   /** Boot with no multiboot params */
   static void legacy_boot();
 
-  /** Resume stuff from a soft reset **/
-  static bool is_softreset_magic(uint32_t value);
-  static void resume_softreset(intptr_t boot_addr);
-
   static constexpr int PAGE_SHIFT = 12;
   static bool power_;
   static bool boot_sequence_passed_;
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
+  static bool m_timestamps;
+  static bool m_timestamps_ready;
   static util::KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;
-  static std::string version_str_;
-  static std::string arch_str_;
-  static uintptr_t memory_end_;
+  static const char* version_str_;
+  static const char* arch_str_;
+  static uintptr_t heap_begin_;
   static uintptr_t heap_max_;
+  static uintptr_t memory_end_;
   static const uintptr_t elf_binary_size_;
   static const char* cmdline;
   static Panic_action panic_action_;

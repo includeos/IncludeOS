@@ -1,7 +1,4 @@
-#ifndef INET4
-#define INET4
-
-#include <net/inet4.hpp>
-
-
-#endif
+//-*- C++ -*-
+#pragma once
+#warning net/inet4 has changed to net/inet, please #include that instead!
+#include "inet.hpp"

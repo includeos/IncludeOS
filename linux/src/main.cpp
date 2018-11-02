@@ -1,6 +1,6 @@
 #include <service>
 #include <kernel/os.hpp>
-#include <net/inet4.hpp>
+#include <net/inet>
 #include <hw/devices.hpp>
 #include "drivers/tap_driver.hpp"
 #include "drivers/usernet.hpp"
@@ -38,7 +38,7 @@ int main(int, char** args)
 #endif
 
   // initialize Linux platform
-  OS::start(args[0], 0u);
+  OS::start(args[0]);
 
   // calls Service::start
   OS::post_start();

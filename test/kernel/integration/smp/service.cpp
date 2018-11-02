@@ -28,7 +28,7 @@ struct alignas(SMP_ALIGN) per_cpu_test
   int value;
 
 };
-static SMP_ARRAY<per_cpu_test> testing;
+static SMP::Array<per_cpu_test> testing;
 
 #include <malloc.h>
 void smp_advanced_test()
@@ -80,7 +80,7 @@ void smp_advanced_test()
     [] (int) {
       static int times = 0;
       SMP::global_lock();
-      printf("This is timer from a CPU core\n");
+      printf("This is timer from CPU core %d\n", SMP::cpu_id());
       times++;
 
       if (times     == SMP::cpu_count()-1
@@ -89,7 +89,7 @@ void smp_advanced_test()
       }
       SMP::global_unlock();
     });
-  });
+  }, i);
   // start working on tasks
   SMP::signal();
 }
@@ -116,8 +116,24 @@ void SMP::init_task()
 
 void Service::start()
 {
+
+  for (const auto& i : SMP::active_cpus())
+  {
+    SMP::global_lock();
+    printf("CPU %i active \n", i);
+    SMP::global_unlock();
+
+    SMP::add_task([i]{
+        SMP::global_lock();
+        printf("CPU %i, id %i running task \n", i, SMP::cpu_id());
+        SMP::global_unlock();
+      }, i);
+
+    SMP::signal(i);
+  }
   // trigger interrupt
   SMP::broadcast(IRQ);
+
   // the rest
   smp_advanced_test();
 }

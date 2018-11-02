@@ -19,10 +19,11 @@
 #ifndef NET_TCP_COMMON_HPP
 #define NET_TCP_COMMON_HPP
 
-#include <net/ip4/addr.hpp>
-#include <net/packet.hpp>
+#include <net/addr.hpp>
 #include <net/checksum.hpp>
 #include <chrono>
+#include <vector>
+#include <util/units.hpp>
 
 namespace net {
   namespace tcp {
@@ -35,6 +36,9 @@ namespace net {
     static constexpr uint32_t default_ws_window_size {8192 << default_window_scaling};
     // use of timestamps option
     static constexpr bool     default_timestamps {true};
+    // use of SACK
+    static constexpr bool     default_sack {true};
+    static constexpr size_t   default_sack_entries{32};
     // maximum size of a TCP segment - later set based on MTU or peer
     static constexpr uint16_t default_mss {536};
     // the maximum amount of half-open connections per port (listener)
@@ -45,7 +49,11 @@ namespace net {
     static const std::chrono::seconds       default_msl {30};
     static const std::chrono::milliseconds  default_dack_timeout {40};
 
-    using Address = ip4::Addr;
+    using namespace util::literals;
+    static constexpr size_t default_min_bufsize {4_KiB};
+    static constexpr size_t default_max_bufsize {256_KiB};
+
+    using Address = net::Addr;
 
     /** A port */
     using port_t = uint16_t;
@@ -62,12 +70,10 @@ namespace net {
       return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
     }
 
-    class Packet;
-    using Packet_ptr = std::unique_ptr<Packet>;
-
     class Connection;
     using Connection_ptr = std::shared_ptr<Connection>;
 
+    // TODO: Remove when TCP packet class is gone
     template <typename Tcp_packet>
     uint16_t calculate_checksum(const Tcp_packet& packet)
     {
@@ -81,6 +87,55 @@ namespace net {
           + (packet.ip_dst().whole & 0xffff)
           + (Proto_TCP << 8)
           + htons(length);
+
+      // Compute sum of header and data
+      const char* buffer = (char*) &packet.tcp_header();
+      return net::checksum(sum, buffer, length);
+    }
+
+    template <typename View4>
+    uint16_t calculate_checksum4(const View4& packet)
+    {
+      constexpr uint8_t Proto_TCP = 6; // avoid including inet_common
+      uint16_t length = packet.tcp_length();
+      const auto ip_src = packet.ip4_src();
+      const auto ip_dst = packet.ip4_dst();
+      // Compute sum of pseudo-header
+      uint32_t sum =
+            (ip_src.whole >> 16)
+          + (ip_src.whole & 0xffff)
+          + (ip_dst.whole >> 16)
+          + (ip_dst.whole & 0xffff)
+          + (Proto_TCP << 8)
+          + htons(length);
+
+      // Compute sum of header and data
+      const char* buffer = (char*) &packet.tcp_header();
+      return net::checksum(sum, buffer, length);
+    }
+
+    template <typename View6>
+    uint16_t calculate_checksum6(const View6& packet)
+    {
+      constexpr uint8_t Proto_TCP = 6; // avoid including inet_common
+      uint16_t length = packet.tcp_length();
+      const auto ip_src = packet.ip6_src();
+      const auto ip_dst = packet.ip6_dst();
+      // Compute sum of pseudo-header
+      uint32_t sum = 0;
+
+      for(int i = 0; i < 4; i++)
+      {
+        uint32_t part = ip_src.template get_part<uint32_t>(i);
+        sum += (part >> 16);
+        sum += (part & 0xffff);
+
+        part = ip_dst.template get_part<uint32_t>(i);
+        sum += (part >> 16);
+        sum += (part & 0xffff);
+      }
+
+      sum += (Proto_TCP << 8) + htons(length);
 
       // Compute sum of header and data
       const char* buffer = (char*) &packet.tcp_header();

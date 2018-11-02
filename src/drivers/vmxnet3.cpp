@@ -1,4 +1,4 @@
-// This file is a part of the IncludeOS unikernel - www.includeos.org
+﻿// This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
@@ -21,6 +21,7 @@
 
 #include <kernel/events.hpp>
 #include <smp>
+#include <statman>
 #include <info>
 #include <cassert>
 #include <malloc.h>
@@ -49,9 +50,11 @@ struct vmxnet3_dma {
   struct vmxnet3_tx_desc tx_desc[vmxnet3::NUM_TX_DESC];
   struct vmxnet3_tx_comp tx_comp[VMXNET3_NUM_TX_COMP];
   /** RX ring */
-  struct vmxnet3_rx_desc rx0_desc[vmxnet3::NUM_RX_DESC];
-  struct vmxnet3_rx_desc rx1_desc[vmxnet3::NUM_RX_DESC];
-  struct vmxnet3_rx_comp rx_comp[VMXNET3_NUM_RX_COMP];
+  struct vmxnet3_rx {
+    struct vmxnet3_rx_desc desc[vmxnet3::NUM_RX_DESC];
+    struct vmxnet3_rx_comp comp[VMXNET3_NUM_RX_COMP];
+  };
+  struct vmxnet3_rx rx[vmxnet3::NUM_RX_QUEUES];
   /** Queue descriptors */
   struct vmxnet3_queues queues;
   /** Shared area */
@@ -110,17 +113,34 @@ inline void mmio_write32(uintptr_t location, uint32_t value)
 static inline uint16_t buffer_size_for_mtu(const uint16_t mtu)
 {
   const uint16_t header = sizeof(net::Packet) + vmxnet3::DRIVER_OFFSET;
-  if (mtu <= 2048 - header) return 2048;
-  assert(header + mtu <= 16384 && "Buffers larger than 16k are not supported");
-  return mtu + header;
+  uint16_t total = header + sizeof(net::ethernet::VLAN_header) + mtu;
+  if (total & 15) total += 16 - (total & 15);
+  //if (total & 2047) total += 2048 - (total & 2047);
+  assert(total <= 16384 && "Buffers larger than 16k are not supported");
+  return total;
 }
 
 vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
-    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}, bufstore_),
-    m_pcidev(d), m_mtu(mtu), bufstore_{1024, buffer_size_for_mtu(mtu)}
+    Link(Link_protocol{{this, &vmxnet3::transmit}, mac()}),
+    m_pcidev(d), m_mtu(mtu),
+    stat_sendq_cur{Statman::get().create(Stat::UINT32, device_name() + ".sendq_now").get_uint32()},
+    stat_sendq_max{Statman::get().create(Stat::UINT32, device_name() + ".sendq_max").get_uint32()},
+
+    //TODO make some of these stats generic and put them into LINK object so that they can be seen on all networking drivers
+    stat_tx_total_packets{Statman::get().create(Stat::UINT64, device_name() + ".stat_tx_total_packets").get_uint64()},
+    stat_tx_total_bytes{Statman::get().create(Stat::UINT64, device_name() + ".stat_tx_total_bytes").get_uint64()},
+    stat_rx_total_packets{Statman::get().create(Stat::UINT64, device_name() + ".stat_rx_total_packets").get_uint64()},
+    stat_rx_total_bytes{Statman::get().create(Stat::UINT64, device_name() + ".stat_rx_total_bytes").get_uint64()},
+    stat_rx_zero_dropped{Statman::get().create(Stat::UINT64, device_name() + ".stat_rx_zero_dropped").get_uint64()},
+
+    stat_rx_refill_dropped{Statman::get().create(Stat::UINT64, device_name() + ".rx_refill_dropped").get_uint64()},
+    stat_sendq_dropped{Statman::get().create(Stat::UINT64, device_name() + ".sendq_dropped").get_uint64()},
+    bufstore_{1024, buffer_size_for_mtu(mtu)}
 {
   INFO("vmxnet3", "Driver initializing (rev=%#x)", d.rev_id());
   assert(d.rev_id() == REVISION_ID);
+  Statman::get().create(Stat::UINT32, device_name() + ".buffer_size")
+      .get_uint32() = bufstore_.bufsize();
 
   // find and store capabilities
   d.parse_capabilities();
@@ -152,9 +172,9 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   }
 
   // dma areas
-  this->iobase = d.get_bar(PCI_BAR_VD);
+  this->iobase = d.get_bar(PCI_BAR_VD).start;
   assert(this->iobase);
-  this->ptbase = d.get_bar(PCI_BAR_PT);
+  this->ptbase = d.get_bar(PCI_BAR_PT).start;
   assert(this->ptbase);
 
   // verify and select version
@@ -199,9 +219,9 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   for (int q = 0; q < NUM_RX_QUEUES; q++)
   {
     memset(rx[q].buffers, 0, sizeof(rx[q].buffers));
-    rx[q].desc0 = &dma->rx0_desc[0];
-    rx[q].desc1 = &dma->rx1_desc[0];
-    rx[q].comp  = &dma->rx_comp[0];
+    rx[q].desc0 = &dma->rx[q].desc[0];
+    rx[q].desc1 = nullptr;
+    rx[q].comp  = &dma->rx[q].comp[0];
     rx[q].index = q;
 
     auto& queue = queues.rx[q];
@@ -209,7 +229,7 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
     queue.cfg.desc_address[1] = (uintptr_t) rx[q].desc1;
     queue.cfg.comp_address    = (uintptr_t) rx[q].comp;
     queue.cfg.num_desc[0]  = vmxnet3::NUM_RX_DESC;
-    queue.cfg.num_desc[1]  = vmxnet3::NUM_RX_DESC;
+    queue.cfg.num_desc[1]  = 0;
     queue.cfg.num_comp     = VMXNET3_NUM_RX_COMP;
     queue.cfg.driver_data_len = sizeof(vmxnet3_rx_desc)
                           + 2 * sizeof(vmxnet3_rx_desc);
@@ -225,12 +245,12 @@ vmxnet3::vmxnet3(hw::PCI_Device& d, const uint16_t mtu) :
   shared.misc.version         = VMXNET3_VERSION_MAGIC;
   shared.misc.version_support     = 1;
   shared.misc.upt_version_support = 1;
-  shared.misc.upt_features        = UPT1_F_RXVLAN;
+  shared.misc.upt_features        = 0;
   shared.misc.driver_data_address = (uintptr_t) &dma;
   shared.misc.queue_desc_address  = (uintptr_t) &dma->queues;
   shared.misc.driver_data_len     = sizeof(vmxnet3_dma);
   shared.misc.queue_desc_len      = sizeof(vmxnet3_queues);
-  shared.misc.mtu = packet_len(); // 60-9000
+  shared.misc.mtu = max_packet_len(); // 60-9000
   shared.misc.num_tx_queues  = 1;
   shared.misc.num_rx_queues  = NUM_RX_QUEUES;
   shared.interrupt.mask_mode = VMXNET3_IT_AUTO | (VMXNET3_IMM_AUTO << 2);
@@ -308,8 +328,9 @@ void vmxnet3::retrieve_hwaddr()
   } mac;
   mac.lo = mmio_read32(this->iobase + VMXNET3_VD_MAC_LO);
   mac.hi = mmio_read32(this->iobase + VMXNET3_VD_MAC_HI);
-  // ETH_ALEN = 6
-  memcpy(&this->hw_addr, &mac, sizeof(hw_addr));
+  // avoid memcpy() when we can just use bitwise-operators
+  this->hw_addr.minor = mac.lo & 0xFFFF;
+  this->hw_addr.major = (mac.lo >> 16) | (mac.hi << 16);
   INFO2("MAC address: %s", hw_addr.to_string().c_str());
 }
 void vmxnet3::set_hwaddr(MAC::Addr& addr)
@@ -347,18 +368,26 @@ void vmxnet3::refill(rxring_state& rxq)
   bool added_buffers = (rxq.prod_count < VMXNET3_RX_FILL);
   while (rxq.prod_count < VMXNET3_RX_FILL)
   {
+    // break when not allowed to refill anymore
+    if (rxq.prod_count > 0 /* prevent full stop? */
+     && not Nic::buffers_still_available(bufstore().buffers_in_use()))
+    {
+      stat_rx_refill_dropped += VMXNET3_RX_FILL - rxq.prod_count;
+      break;
+    }
+
     size_t i = rxq.producers % vmxnet3::NUM_RX_DESC;
     const uint32_t generation =
         (rxq.producers & vmxnet3::NUM_RX_DESC) ? 0 : VMXNET3_RXF_GEN;
 
     // get a pointer to packet data
-    auto* pkt_data = bufstore().get_buffer().addr;
+    auto* pkt_data = bufstore().get_buffer();
     rxq.buffers[i] = &pkt_data[sizeof(net::Packet) + DRIVER_OFFSET];
 
     // assign rx descriptor
     auto& desc = rxq.desc0[i];
     desc.address = (uintptr_t) rxq.buffers[i];
-    desc.flags   = packet_len() | generation;
+    desc.flags   = max_packet_len() | generation;
     rxq.prod_count++;
     rxq.producers++;
   }
@@ -376,20 +405,19 @@ vmxnet3::recv_packet(uint8_t* data, uint16_t size)
   new (ptr) net::Packet(
         DRIVER_OFFSET,
         size,
-        DRIVER_OFFSET + packet_len(),
+        DRIVER_OFFSET + size,
         &bufstore());
   return net::Packet_ptr(ptr);
 }
 net::Packet_ptr
 vmxnet3::create_packet(int link_offset)
 {
-  auto buffer = bufstore().get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
+  auto* ptr = (net::Packet*) bufstore().get_buffer();
   new (ptr) net::Packet(
         DRIVER_OFFSET + link_offset,
         0,
-        DRIVER_OFFSET + packet_len(),
-        buffer.bufstore);
+        DRIVER_OFFSET + frame_offset_link() + MTU(),
+        &bufstore());
   return net::Packet_ptr(ptr);
 }
 
@@ -434,9 +462,7 @@ void vmxnet3::msix_recv_handler()
 {
   for (int q = 0; q < NUM_RX_QUEUES; q++)
   {
-      this->disable_intr(2 + q);
       this->receive_handler(q);
-      this->enable_intr(2 + q);
   }
 }
 
@@ -463,8 +489,8 @@ bool vmxnet3::transmit_handler()
     tx.buffers[desc] = nullptr;
   }
   // try to send sendq first
-  if (this->can_transmit() && sendq != nullptr) {
-    this->transmit(std::move(sendq));
+  if (this->can_transmit() && !sendq.empty()) {
+    this->transmit(nullptr);
     transmitted = true;
   }
   // if we can still send more, message network stack
@@ -479,52 +505,84 @@ bool vmxnet3::transmit_handler()
 bool vmxnet3::receive_handler(const int Q)
 {
   std::vector<net::Packet_ptr> recvq;
+  this->disable_intr(2 + Q);
   while (true)
   {
     uint32_t idx = rx[Q].consumers % VMXNET3_NUM_RX_COMP;
     uint32_t gen = (rx[Q].consumers & VMXNET3_NUM_RX_COMP) ? 0 : VMXNET3_RXCF_GEN;
 
-    auto& comp = dma->rx_comp[idx];
+    auto& comp = dma->rx[Q].comp[idx];
     // break when exiting this generation
     if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
+
+    /* prevent speculative pre read ahead of comp content*/
+    __arch_read_memory_barrier();
+
     rx[Q].consumers++;
     rx[Q].prod_count--;
 
     int desc = comp.index % vmxnet3::NUM_RX_DESC;
+    
+    // Handle case of empty packet
+    if (UNLIKELY((comp.len & (VMXNET3_MAX_BUFFER_LEN-1)) == 0)) {
+      //TODO assert / log if eop and sop are not set in empty packet.
+
+      //release unused buffer
+      auto* packet = (net::Packet*) (tx.buffers[desc] - DRIVER_OFFSET - sizeof(net::Packet));
+      delete packet; // call deleter on Packet to release it
+      rx[Q].buffers[desc] = nullptr;
+      stat_rx_zero_dropped++;
+      break;
+    }
+    
     // mask out length
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
+
     // get buffer and construct packet
     assert(rx[Q].buffers[desc] != nullptr);
     recvq.push_back(recv_packet(rx[Q].buffers[desc], len));
+
+    stat_rx_total_packets++;
+    stat_rx_total_bytes+=len;
+
     rx[Q].buffers[desc] = nullptr;
   }
+  this->enable_intr(2 + Q);
   // refill always
   if (!recvq.empty()) {
     this->refill(rx[Q]);
-    // handle_magic()
-    for (auto& pckt : recvq) {
-      Link::receive(std::move(pckt));
-    }
+  }
+  // handle packets
+  for (auto& pckt : recvq) {
+    Link::receive(std::move(pckt));
   }
   return recvq.empty() == false;
 }
 
 void vmxnet3::transmit(net::Packet_ptr pckt_ptr)
 {
-  if (sendq == nullptr)
-      sendq = std::move(pckt_ptr);
-  else
-      sendq->chain(std::move(pckt_ptr));
-  // send as much as possible from sendq
-  while (sendq != nullptr && can_transmit())
+  while (pckt_ptr != nullptr)
   {
-    auto next = sendq->detach_tail();
-    // transmit released buffer
-    auto* packet = sendq.release();
-    transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
-    // next is the new sendq
-    sendq = std::move(next);
+    if (not Nic::sendq_still_available(this->sendq.size())) {
+      stat_sendq_dropped += pckt_ptr->chain_length();
+      break;
+    }
+    auto tail = pckt_ptr->detach_tail();
+    sendq.emplace_back(std::move(pckt_ptr));
+    pckt_ptr = std::move(tail);
   }
+  // send as much as possible from sendq
+  while (!sendq.empty() && can_transmit())
+  {
+    auto* packet = sendq.front().release();
+    sendq.pop_front();
+    // transmit released buffer
+    transmit_data(packet->buf() + DRIVER_OFFSET, packet->size());
+  }
+  // update sendq stats
+  stat_sendq_cur = sendq.size();
+  stat_sendq_max = std::max(stat_sendq_max, stat_sendq_cur);
+
   // delay dma message until we have written as much as possible
   if (!deferred_kick)
   {
@@ -563,6 +621,9 @@ void vmxnet3::transmit_data(uint8_t* data, uint16_t data_length)
   desc.address  = (uintptr_t) tx.buffers[idx];
   desc.flags[0] = gen | data_length;
   desc.flags[1] = VMXNET3_TXF_CQ | VMXNET3_TXF_EOP;
+
+  stat_tx_total_packets++;
+  stat_tx_total_bytes+=data_length;
 }
 
 void vmxnet3::flush()
@@ -607,6 +668,13 @@ void vmxnet3::poll()
   } while (work);
 
   this->already_polling = false;
+}
+
+void vmxnet3::add_vlan(const int id)
+{
+  this->dma->shared.rx_filter.vlan_filter[((id>>3)&0x1FF)] |= (1<<(id&7));
+  // TODO in smp/mt protect this with IRQ disable / enable for the entire driver
+  mmio_write32(this->iobase + VMXNET3_VD_CMD, VMXNET3_CMD_UPDATE_VLAN_FILTERS);
 }
 
 void vmxnet3::deactivate()

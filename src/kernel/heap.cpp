@@ -16,33 +16,34 @@
 // limitations under the License.
 
 #include <kernel/os.hpp>
+#include <util/bitops.hpp>
+#include <util/units.hpp>
+using namespace util::literals;
 
-struct mallinfo {
-  int arena;    /* total space allocated from system */
-  int ordblks;  /* number of non-inuse chunks */
-  int smblks;   /* unused -- always zero */
-  int hblks;    /* number of mmapped regions */
-  int hblkhd;   /* total space in mmapped regions */
-  int usmblks;  /* unused -- always zero */
-  int fsmblks;  /* unused -- always zero */
-  int uordblks; /* total allocated space */
-  int fordblks; /* total non-inuse space */
-  int keepcost; /* top-most, releasable (via malloc_trim) space */
-};
-extern "C" struct mallinfo mallinfo();
-extern "C" void malloc_trim(size_t);
-extern uintptr_t heap_begin;
-extern uintptr_t heap_end;
+size_t brk_bytes_used();
+size_t mmap_bytes_used();
+size_t mmap_allocation_end();
 
-uintptr_t OS::heap_usage() noexcept
+static constexpr size_t default_max_mem = 2_GiB;
+
+uintptr_t OS::heap_begin_ = 0;
+uintptr_t OS::heap_max_   = default_max_mem;
+uintptr_t OS::memory_end_ = default_max_mem;
+
+
+size_t OS::heap_usage() noexcept
 {
-  struct mallinfo info = mallinfo();
-  return info.uordblks;
+  return brk_bytes_used() + mmap_bytes_used();
+}
+
+size_t OS::heap_avail() noexcept
+{
+  return (heap_max() - heap_begin()) - heap_usage();
 }
 
 void OS::heap_trim() noexcept
 {
-  malloc_trim(0);
+  //malloc_trim(0);
 }
 
 uintptr_t OS::heap_max() noexcept
@@ -52,20 +53,32 @@ uintptr_t OS::heap_max() noexcept
 
 uintptr_t OS::heap_begin() noexcept
 {
-  return ::heap_begin;
+  return heap_begin_;
 }
 uintptr_t OS::heap_end() noexcept
 {
-  return ::heap_end;
+  return mmap_allocation_end();
 }
 
-uintptr_t OS::resize_heap(size_t size)
-{
-  uintptr_t new_end = heap_begin() + size;
-  if (not size or size < heap_usage() or new_end > memory_end())
-    return heap_max() - heap_begin();
+size_t OS::total_memuse() noexcept {
+  return heap_usage() + OS::liveupdate_phys_size(OS::heap_max()) + heap_begin_;
+}
 
-  memory_map().resize(heap_begin(), size);
-  heap_max_ = heap_begin() + size;
-  return size;
+constexpr size_t heap_alignment = 4096;
+__attribute__((weak)) ssize_t __brk_max = 0x100000;
+
+extern void init_mmap(uintptr_t mmap_begin);
+
+
+uintptr_t __init_brk(uintptr_t begin);
+uintptr_t __init_mmap(uintptr_t begin);
+
+void OS::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept {
+  // NOTE: Initialize the heap before exceptions
+  // cache-align heap, because its not aligned
+  memory_end_ = memory_end;
+  heap_max_   = memory_end-1;
+  heap_begin_ = util::bits::roundto<heap_alignment>(free_mem_begin);
+  auto brk_end  = __init_brk(heap_begin_);
+  __init_mmap(brk_end);
 }

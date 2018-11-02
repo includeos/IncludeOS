@@ -20,7 +20,8 @@
 
 CASE("memdisk properties")
 {
-  fs::Disk& disk = fs::memdisk();
+  fs::MemDisk memdisk{0,0};
+  fs::Disk disk{memdisk};
   EXPECT(disk.empty() == true);
   EXPECT(disk.device_id() == 0);
   EXPECT(disk.fs_ready() == false);
@@ -34,9 +35,9 @@ CASE("memdisk properties")
     [&enumerated_partitions, &lest_env]
     (auto err, auto& partitions)
     {
-      EXPECT(!err);
+      EXPECT(err);
       enumerated_partitions = true;
-      EXPECT(partitions.size() == 4u); // 4 is default number
+      EXPECT(partitions.size() == 0u); // 4 is default number
     });
   EXPECT(enumerated_partitions == true);
 }

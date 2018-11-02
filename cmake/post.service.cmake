@@ -14,6 +14,18 @@ message(STATUS "Target triple ${TRIPLE}")
 # defines $CAPABS depending on installation
 include(${CMAKE_CURRENT_LIST_DIR}/settings.cmake)
 
+if (${CMAKE_VERSION} VERSION_LESS "3.12")
+  find_program(Python2 python2.7)
+  if (NOT Python2)
+    #brutal fallback
+    set(Python2_EXECUTABLE python)
+  else()
+    set(Python2_EXECUTABLE ${Python2})
+  endif()
+else()
+  find_package(Python2 COMPONENTS Interpreter)
+endif()
+
 # Arch-specific defines & options
 if ("${ARCH}" STREQUAL "x86_64")
   set(ARCH_INTERNAL "ARCH_X64")
@@ -28,12 +40,9 @@ else()
 endif()
 enable_language(ASM_NASM)
 
-if (NOT threading)
-  add_definitions(-DINCLUDEOS_SINGLE_THREADED)
-  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
-  message(STATUS "Building without threading / SMP")
-else()
-  message(STATUS "Building with threading / SMP")
+if (smp)
+  add_definitions(-DINCLUDEOS_SMP_ENABLE)
+  message(STATUS "Building with SMP enabled")
 endif()
 
 if (coroutines)
@@ -43,7 +52,7 @@ endif()
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
+set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -D__includeos__ -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # Compiler optimization
@@ -60,9 +69,32 @@ if (undefined_san)
   set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
 endif()
 
+if (thin_lto OR full_lto)
+  if (thin_lto)
+    set(OPTIMIZE "${OPTIMIZE} -flto=thin -fuse-ld=lld")
+  elseif (full_lto)
+    set(OPTIMIZE "${OPTIMIZE} -flto=full")
+  endif()
+  if (CMAKE_COMPILER_IS_CLANG)
+    set(CMAKE_LINKER "ld.lld")
+  elseif (CMAKE_COMPILER_IS_GNUCC)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} --print-file-name liblto_plugin.so OUTPUT_VARIABLE LTO_PLUGiN OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} --print-file-name lto-wrapper OUTPUT_VARIABLE LTO_WRAPPER OUTPUT_STRIP_TRAILING_WHITESPACE)
+    execute_process(COMMAND ${CMAKE_C_COMPILER} --print-file-name collect2 OUTPUT_VARIABLE GCC_COLLECT OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "Linker plugin: ${LTO_PLUGiN}, wrapper: ${LTO_WRAPPER}")
+    message(STATUS "LTO wrapper: ${LTO_WRAPPER}")
+    set(ENV{COLLECT_GCC} "${GCC_COLLECT}")
+    set(ENV{COLLECT_LTO_WRAPPER} "${LTO_WRAPPER}")
+    message(STATUS "COLLECT_GCC=$ENV{COLLECT_GCC}")
+    set(CMAKE_LINKER "gold")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -plugin ${LTO_PLUGiN} -plugin-opt ${LTO_WRAPPER} -plugin-opt -fresolution=40")
+    message(STATUS "Linker is now: ${CMAKE_LINKER}")
+  endif()
+endif()
+
 if (CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=${CPP_VERSION}")
-  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -std=${CPP_VERSION}")
+  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
   set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} ${OPTIMIZE} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -std=${CPP_VERSION} ")
@@ -97,7 +129,7 @@ endif()
 
 # Add default stdout driver if option is ON
 if (default_stdout)
-  set(DRIVERS ${DRIVERS} default_stdout)
+  set(STDOUT ${STDOUT} default_stdout)
 endif()
 
 # Add extra drivers defined from command line
@@ -119,7 +151,7 @@ endif()
 if (EXISTS ${CMAKE_SOURCE_DIR}/nacl.txt)
   add_custom_command(
      OUTPUT nacl_content.cpp
-     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | python ${INSTALL_LOC}/nacl/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
+     COMMAND cat ${CMAKE_SOURCE_DIR}/nacl.txt | ${Python2_EXECUTABLE} ${INSTALL_LOC}/nacl/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
      DEPENDS ${CMAKE_SOURCE_DIR}/nacl.txt
    )
    add_library(nacl_content STATIC nacl_content.cpp)
@@ -174,18 +206,22 @@ function(plugin_config_option type plugin_list)
 endfunction()
 
 # Location of installed drivers / plugins
+set(STDOUT_LOC ${INSTALL_LOC}/${ARCH}/drivers/stdout)
 set(DRIVER_LOC ${INSTALL_LOC}/${ARCH}/drivers)
 set(PLUGIN_LOC ${INSTALL_LOC}/${ARCH}/plugins)
 
 # Enable DRIVERS which may be specified by parent cmake list
+enable_plugins(STDOUT  ${STDOUT_LOC})
 enable_plugins(DRIVERS ${DRIVER_LOC})
 enable_plugins(PLUGINS ${PLUGIN_LOC})
 
 # Global lists of installed Drivers / Plugins
+file(GLOB STDOUT_LIST "${STDOUT_LOC}/*.a")
 file(GLOB DRIVER_LIST "${DRIVER_LOC}/*.a")
 file(GLOB PLUGIN_LIST "${PLUGIN_LOC}/*.a")
 
 # Set configure option for each installed driver
+plugin_config_option(stdout STDOUT_LIST)
 plugin_config_option(driver DRIVER_LIST)
 plugin_config_option(plugin PLUGIN_LIST)
 
@@ -205,6 +241,7 @@ if(LIBRARIES)
 endif()
 
 # add all extra libs
+set(LIBR_CMAKE_NAMES)
 foreach(LIBR ${LIBRARIES})
   # if relative path but not local, use includeos lib.
   if(NOT IS_ABSOLUTE ${LIBR} AND NOT EXISTS ${LIBR})
@@ -214,21 +251,16 @@ foreach(LIBR ${LIBRARIES})
       set(LIBR ${OS_LIB})
     endif()
   endif()
-  get_filename_component(LNAME ${LIBR} NAME_WE)
-  add_library(libr_${LNAME} STATIC IMPORTED)
-  set_target_properties(libr_${LNAME} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(libr_${LNAME} PROPERTIES IMPORTED_LOCATION ${LIBR})
-
-  target_link_libraries(service libr_${LNAME})
+  # add as whole archive to allow strong symbols
+  list(APPEND LIBR_CMAKE_NAMES "--whole-archive ${LIBR} --no-whole-archive")
 endforeach()
 
 
 # includes
 include_directories(${LOCAL_INCLUDES})
-include_directories(${INSTALL_LOC}/api/posix)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
-include_directories(${INSTALL_LOC}/${ARCH}/include/newlib)
-
+include_directories(${INSTALL_LOC}/${ARCH}/include/musl)
+include_directories(${INSTALL_LOC}/${ARCH}/include/libunwind)
 if ("${PLATFORM}" STREQUAL "x86_solo5")
   include_directories(${INSTALL_LOC}/${ARCH}/include/solo5)
 endif()
@@ -244,14 +276,11 @@ set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS) # this removed -rdynamic from linker ou
 set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> -o <TARGET> <LINK_FLAGS> <OBJECTS> <LINK_LIBRARIES>")
 
 set(BUILD_SHARED_LIBRARIES OFF)
-set(CMAKE_EXE_LINKER_FLAGS "-static")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
-set(STRIP_LV)
+set(LD_STRIP)
 if (NOT debug)
-  set(STRIP_LV "--strip-debug")
-endif()
-if (stripped)
-  set(STRIP_LV "--strip-all")
+  set(LD_STRIP "--strip-debug")
 endif()
 
 set(ELF ${ARCH})
@@ -265,16 +294,15 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
   set(PRE_BSS_SIZE  "--defsym PRE_BSS_AREA=0x200000")
 endif()
 
-set(LDFLAGS "-nostdlib -melf_${ELF} -N --eh-frame-hdr ${STRIP_LV} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE} ${INSTALL_LOC}/${ARCH}/lib/crtbegin.o")
+set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${INSTALL_LOC}/${ARCH}/linker.ld ${PRE_BSS_SIZE}")
 
 set_target_properties(service PROPERTIES LINK_FLAGS "${LDFLAGS}")
 
+set(CRTN "${INSTALL_LOC}/${ARCH}/lib/crtn.o")
+set(CRTI "${INSTALL_LOC}/${ARCH}/lib/crti.o")
 
-add_library(crti STATIC IMPORTED)
-set_target_properties(crti PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(crti PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrti.a)
-
-target_link_libraries(service --whole-archive crti --no-whole-archive)
+target_link_libraries(service ${CRTI})
+target_link_libraries(service ${CRT1})
 
 add_library(libos STATIC IMPORTED)
 set_target_properties(libos PROPERTIES LINKER_LANGUAGE CXX)
@@ -302,32 +330,56 @@ if(${ARCH} STREQUAL "x86_64")
   set_target_properties(libcrypto PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrypto.a)
   set(OPENSSL_LIBS libssl libcrypto)
 
-  include_directories(${INSTALL_LOC}/${ARCH}/include/include)
+  include_directories(${INSTALL_LOC}/${ARCH}/include)
 endif()
 
 add_library(libosdeps STATIC IMPORTED)
 set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libosdeps.a)
 
+add_library(musl_syscalls STATIC IMPORTED)
+set_target_properties(musl_syscalls PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(musl_syscalls PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libmusl_syscalls.a)
+
 add_library(libcxx STATIC IMPORTED)
 add_library(cxxabi STATIC IMPORTED)
+add_library(libunwind STATIC IMPORTED)
+
 set_target_properties(libcxx PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libc++.a)
 set_target_properties(cxxabi PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(cxxabi PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libc++abi.a)
+set_target_properties(libunwind PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(libunwind PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libunwind.a)
 
 add_library(libc STATIC IMPORTED)
 set_target_properties(libc PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libc.a)
-add_library(libm STATIC IMPORTED)
-set_target_properties(libm PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libm.a)
-add_library(libg STATIC IMPORTED)
-set_target_properties(libg PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libg PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libg.a)
+
+add_library(libpthread STATIC IMPORTED)
+set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
+set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INSTALL_LOC}/${ARCH}/lib/libpthread.a")
+
+# libgcc/compiler-rt detection
+if (UNIX)
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      set(TARGET_LINE --target=${TRIPLE})
+  endif()
+  execute_process(
+      COMMAND ${CMAKE_CXX_COMPILER} ${TARGET_LINE} --print-libgcc-file-name
+      RESULT_VARIABLE CC_RT_RES
+      OUTPUT_VARIABLE COMPILER_RT_FILE OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if (NOT ${CC_RT_RES} EQUAL 0)
+    message(AUTHOR_WARNING "Failed to detect libgcc/compiler-rt: ${COMPILER_RT_FILE}")
+  endif()
+endif()
+if (NOT COMPILER_RT_FILE)
+  set(COMPILER_RT_FILE "${INSTALL_LOC}/${ARCH}/lib/libcompiler.a")
+endif()
+
 add_library(libgcc STATIC IMPORTED)
 set_target_properties(libgcc PROPERTIES LINKER_LANGUAGE C)
-set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libgcc.a)
+set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION "${COMPILER_RT_FILE}")
 
 if ("${PLATFORM}" STREQUAL "x86_solo5")
   add_library(solo5 STATIC IMPORTED)
@@ -336,8 +388,9 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
 endif()
 
 # Depending on the output of this command will make it always run. Like magic.
-add_custom_command(OUTPUT fake_news
-      COMMAND cmake -E touch_nocreate alternative_facts)
+add_custom_command(
+    OUTPUT fake_news
+    COMMAND cmake -E echo)
 
 # add memdisk
 function(add_memdisk DISK)
@@ -345,9 +398,9 @@ function(add_memdisk DISK)
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
-    COMMAND python ${INSTALL_LOC}/memdisk/memdisk.py --file ${INSTALL_LOC}/memdisk/memdisk.asm ${DISK_RELPATH}
-    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${INSTALL_LOC}/memdisk/memdisk.asm -o memdisk.o
-    DEPENDS ${DISK_RELPATH} fake_news
+    COMMAND ${Python2_EXECUTABLE} ${INSTALL_LOC}/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
+    DEPENDS ${DISK_RELPATH}
   )
   add_library(memdisk STATIC memdisk.o)
   set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
@@ -362,7 +415,7 @@ function(build_memdisk FOLD)
       COMMAND ${INSTALL_LOC}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
       DEPENDS fake_news
       )
-    add_custom_target(diskbuilder ALL DEPENDS memdisk.fat)
+  add_custom_target(diskbuilder DEPENDS memdisk.fat)
   add_dependencies(service diskbuilder)
   add_memdisk("${CMAKE_BINARY_DIR}/memdisk.fat")
 endfunction()
@@ -379,6 +432,17 @@ function(diskbuilder FOLD)
     build_memdisk(${FOLD})
   endif()
 endfunction()
+
+function(install_certificates FOLD)
+  get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  message(STATUS "Install certificate bundle at ${FOLD}")
+  file(COPY ${INSTALL_LOC}/cert_bundle/ DESTINATION ${REL_PATH})
+endfunction()
+
+if(CERTS)
+  message(STATUS "Certs folder set: " ${CERTS})
+  install_certificates(${CERTS})
+endif()
 
 if(TARFILE)
   get_filename_component(TAR_RELPATH "${TARFILE}"
@@ -416,16 +480,17 @@ if(TARFILE)
   target_link_libraries(service --whole-archive tarfile --no-whole-archive)
 endif(TARFILE)
 
-add_library(crtn STATIC IMPORTED)
-set_target_properties(crtn PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(crtn PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libcrtn.a)
-
 if ("${PLATFORM}" STREQUAL "x86_solo5")
-  target_link_libraries(service solo5 --whole-archive crtn --no-whole-archive)
+  target_link_libraries(service solo5)
 endif()
 
 # all the OS and C/C++ libraries + crt end
 target_link_libraries(service
+  libos
+  libplatform
+  libarch
+
+  ${LIBR_CMAKE_NAMES}
   libos
   libbotan
   ${OPENSSL_LIBS}
@@ -433,32 +498,29 @@ target_link_libraries(service
 
   libplatform
   libarch
-  libos
 
-  libplatform
-  libarch
-  libos
-  libplatform
-
-  cxxabi
-  libc
+  musl_syscalls
   libos
   libcxx
-  libarch
-  libm
-  libg
+  cxxabi
+  libunwind
+  libpthread
+  libc
+
+  musl_syscalls
+  libos
+  libc
   libgcc
-
-
-  ${INSTALL_LOC}/${ARCH}/lib/crtend.o
-  --whole-archive crtn --no-whole-archive
+  ${CRTN}
   )
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
-set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
-if (debug)
-  unset(STRIP_LV)
+# old behavior: remove all symbols after elfsym
+if (NOT debug)
+  set(STRIP_LV ${CMAKE_STRIP} --strip-debug ${BINARY})
+else()
+  set(STRIP_LV true)
 endif()
 
 add_custom_target(
@@ -467,11 +529,11 @@ add_custom_target(
   COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
   COMMAND ${STRIP_LV}
   DEPENDS service
-)
+  )
 
-# create .img files too automatically
+# create bare metal .img: make legacy_bootloader
 add_custom_target(
-  prepend_bootloader ALL
+  legacy_bootloader
   COMMAND ${INSTALL_LOC}/bin/vmbuild ${BINARY} ${INSTALL_LOC}/${ARCH}/boot/bootloader
   DEPENDS service
 )

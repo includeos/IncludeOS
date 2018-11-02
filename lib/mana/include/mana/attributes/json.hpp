@@ -26,20 +26,6 @@
   #define RAPIDJSON_THROWPARSEEXCEPTION 1
 #endif
 
-#include <stdexcept>
-/**
- *
- */
-namespace mana {
-
-  struct Assert_error : public std::logic_error {
-    using std::logic_error::logic_error;
-  }; //< struct Assert_error
-
-} // < namespace mana
-
-#define RAPIDJSON_ASSERT(x) if (!(x)) throw mana::Assert_error(RAPIDJSON_STRINGIFY(x))
-
 #include <mana/attribute.hpp>
 #include <rapidjson/writer.h>
 #include <rapidjson/document.h>

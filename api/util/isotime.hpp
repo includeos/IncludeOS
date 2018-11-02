@@ -21,6 +21,7 @@
 
 #include <ctime>
 #include <string>
+#include <errno.h>
 
 struct isotime
 {
@@ -36,8 +37,11 @@ struct isotime
    */
   static std::string to_datetime_string(time_t ts)
   {
+    // musl bandaid, bypass strftime setting errno
+    const int errno_save = errno;
     char buf[sizeof("2017-04-10T13:37:00Z")];
     const auto res = std::strftime(buf, sizeof(buf), "%FT%TZ", gmtime(&ts));
+    errno = errno_save;
     return {buf, res};
   }
 

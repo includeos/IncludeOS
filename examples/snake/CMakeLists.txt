@@ -15,12 +15,15 @@ set(BINARY       "snake_example")
 
 # Source files to be linked with OS library parts to form bootable image
 set(SOURCES
-  service.cpp # ...add more here
+    service.cpp # ...add more here
   )
 
 set(DRIVERS
-  virtionet   # Virtio networking
-  vga_output
+    virtionet   # Virtio networking
+  )
+
+set(STDOUT
+    vga_output
   )
 
 # include service build script

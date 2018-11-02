@@ -32,7 +32,7 @@ set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 set(CPP_VERSION c++17)
 
 # create OS version string from git describe (used in CXX flags)
-execute_process(COMMAND git describe --dirty
+execute_process(COMMAND git describe --tags --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
@@ -48,28 +48,27 @@ else()
   set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
 endif(cpu_feat_vanilla)
 
-option(threading "Compile with SMP/threading support" OFF)
+option(smp "Compile with SMP (multiprocessing)" OFF)
 
 option(silent "Disable most output during OS boot" OFF)
 
 option (undefined_san "Enable undefined-behavior sanitizer" OFF)
+option (thin_lto "Enable the Thin LTO plugin" OFF)
+option (full_lto "Enable full LTO (compatibility)" OFF)
 
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
+set(CAPABS "${CAPABS} -g -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
-set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION ")
-
-set(WARNS "-Wall -Wextra")
+set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -D__includeos__")
+set(WARNS "-Wall -Wextra") # -Werror
 
 # configure options
-option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
-option(debug-info "Build like \"all\" but with debugging output (i.e. the 'debug'-macro) enabled" OFF)
-option(debug-all "Build with debugging symbols + debugging output, i.e. \"debug\" + \"debug-info\"" OFF)
+option(debug "Build with no optimizations" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
@@ -96,15 +95,6 @@ if(minimal)
 	set(OPTIMIZE "-Os")
 endif(minimal)
 
-# Set debug options
-if(debug OR debug-all)
-	set(CAPABS "${CAPABS} -ggdb3 -DGSL_THROW_ON_CONTRACT_VIOLATION")
-endif(debug OR debug-all)
-
-if(debug-info OR debug-all)
-	set(CAPABS "${CAPABS} -UNO_DEBUG")
-endif(debug-info OR debug-all)
-
 if(silent)
 	set(CAPABS "${CAPABS} -DNO-INFO=1")
 endif(silent)
@@ -115,6 +105,11 @@ set(CAPABS "${CAPABS} ${OPTIMIZE}")
 # Append sanitizers
 if (undefined_san)
   set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
+endif()
+if (thin_lto)
+  set(CAPABS "${CAPABS} -flto=thin")
+elseif(full_lto)
+  set(CAPABS "${CAPABS} -flto=full")
 endif()
 
 # object format needs to be set BEFORE enabling ASM
@@ -131,21 +126,15 @@ endif()
 
 enable_language(ASM_NASM)
 
-
-if (NOT threading)
-  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
-endif()
-
-
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "-std=${CPP_VERSION} -MMD ${CAPABS} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-std=${CPP_VERSION} -MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
 # either download or cross-compile needed libraries
@@ -179,7 +168,9 @@ if(vmbuild)
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
     BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> # Pass installation folder
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+     -DINCLUDE_PATH=${CMAKE_INSTALL_PREFIX} # Pass installation folder
+    DEPENDS PrecompiledLibraries
     )
 endif(vmbuild)
 
@@ -201,8 +192,14 @@ if(examples)
 endif(examples)
 
 option(tests "Build unit tests in /test and install lest test framework" OFF)
-if(tests)
+option(lest "Install lest unittest headers" OFF)
+
+if (lest OR tests)
   init_submodule(test/lest)
+  install(DIRECTORY test/lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/includeos/include)
+endif()
+
+if(tests)
   enable_testing()
   ExternalProject_Add(unittests
     PREFIX unittests
@@ -272,8 +269,13 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION 
 # Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
-# Install boot util
+# Install executable scripts
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-run DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-callgraph DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-debug DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-gprof DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-pgo DESTINATION bin)
 
 # Install scripts
 install(PROGRAMS

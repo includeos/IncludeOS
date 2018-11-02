@@ -42,15 +42,19 @@ set(DRIVERS
   virtionet
   vmxnet3
   uplink_log
-  vga_output
   boot_logger
   e1000
+  timestamps
   )
 
 set(PLUGINS
   uplink
   autoconf
   system_log
+  )
+
+set(STDOUT
+  vga_output
   )
 
 # THIRD PARTY LIBRARIES:
@@ -62,3 +66,6 @@ set(LIBRARIES
 
 # include service build script
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+
+#install_certificates(disk/certs)
+#diskbuilder(disk)

@@ -4,7 +4,7 @@
 constexpr MAC::Addr UserNet::MAC_ADDRESS;
 
 UserNet::UserNet(const uint16_t mtu)
-  : Link(Link_protocol{{this, &UserNet::transmit}, mac()}, buffer_store),
+  : Link(Link::Protocol{{this, &UserNet::transmit}, MAC_ADDRESS}),
     mtu_value(mtu), buffer_store(256u, 128 + mtu) {}
 
 UserNet& UserNet::create(const uint16_t mtu)
@@ -78,4 +78,3 @@ net::Packet_ptr UserNet::create_packet(int link_offset)
 
   return net::Packet_ptr(ptr);
 }
-// wrap buffer-length (that should belong to bufferstore) in packet wrapper

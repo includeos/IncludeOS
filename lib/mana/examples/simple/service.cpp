@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet4>
+#include <net/inet>
 #include <mana/server.hpp>
 
 using namespace mana;
@@ -27,7 +27,7 @@ std::unique_ptr<Server> server;
 void Service::start(const std::string&)
 {
   // Setup stack; try DHCP
-  auto& stack = net::Inet4::ifconfig(3.0);
+  auto& stack = net::Inet::ifconfig(3.0);
   // Static config
   stack.network_config({ 10,0,0,42 },     // IP
                        { 255,255,255,0 }, // Netmask

@@ -20,8 +20,9 @@
 #define API_KERNEL_TERMINAL_HPP
 
 #include <terminal>
-#include <net/inet4>
+#include <net/inet>
 #include <cstdint>
+#include <cstdarg>
 #include <unordered_map>
 #include <vector>
 
@@ -41,11 +42,14 @@ public:
 
   Terminal(Connection_ptr);
 
-  template <typename... Args>
-  void write(const char* str, Args&&... args)
+  __attribute__((format (printf, 2, 3)))
+  void write(const char* str, ...)
   {
+    va_list args;
+    va_start(args, str);
     char buffer[1024];
-    int bytes = snprintf(buffer, 1024, str, args...);
+    int bytes = vsnprintf(buffer, 1024, str, args);
+    va_end(args);
 
     stream->write(buffer, bytes);
   }

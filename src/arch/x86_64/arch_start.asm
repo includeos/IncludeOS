@@ -20,12 +20,22 @@ extern kernel_start
 extern __multiboot_magic
 extern __multiboot_addr
 
-%define P4_TAB             0x1000
-%define P3_TAB             0x2000
-%define P2_TAB             0x3000  ;; - 0x7fff
+%define PAGE_SIZE               0x1000
+%define P4_TAB                  0x1000
+%define P3_TAB                  0x2000 ;; - 0x5fff
+%define P2_TAB                  0x100000
+%define STACK_LOCATION          0x200000 - 16
+
+%define IA32_EFER               0xC0000080
+%define IA32_STAR               0xC0000081
+%define IA32_LSTAR              0xc0000082
+%define IA32_FMASK              0xc0000084
+%define IA32_FS_BASE            0xc0000100
+%define IA32_GS_BASE            0xc0000101
+%define IA32_KERNEL_GS_BASE     0xc0000102
+
 %define NUM_P3_ENTRIES     5
 %define NUM_P2_ENTRIES     2560
-%define STACK_LOCATION     0x200000 - 16
 
 ;; CR0 paging enable bit
 %define PAGING_ENABLE 0x80000000
@@ -34,10 +44,13 @@ extern __multiboot_addr
 
 ;; Extended Feature Enable Register (MSR)
 %define IA32_EFER_MSR 0xC0000080
+
 ;; EFER Longmode bit
 %define LONGMODE_ENABLE 0x100
 ;; EFER Execute Disable bit
 %define NX_ENABLE 0x800
+;; EFER Syscall enable bit
+%define SYSCALL_ENABLE 0x1
 
 
 [BITS 32]
@@ -95,8 +108,7 @@ __arch_start:
     ;; enable long mode
     mov ecx, IA32_EFER_MSR
     rdmsr
-    or  eax, (LONGMODE_ENABLE | NX_ENABLE)
-
+    or  eax, (LONGMODE_ENABLE | NX_ENABLE | SYSCALL_ENABLE)
     wrmsr
 
     ;; enable paging
@@ -131,7 +143,12 @@ long_mode:
     ;; setup temporary smp table
     mov rax, sentinel_table
     mov rdx, 0
-    mov rcx, 0xC0000100 ;; FS BASE
+    mov rcx, IA32_FS_BASE ;; FS BASE
+    wrmsr
+
+    mov ecx, IA32_STAR
+    mov edx, 0x8
+    mov eax, 0x0
     wrmsr
 
     ;; geronimo!

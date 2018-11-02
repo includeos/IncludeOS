@@ -16,10 +16,15 @@
 // limitations under the License.
 
 #include <net/dns/client.hpp>
+#include <net/inet>
 
 namespace net
 {
+#ifdef LIBFUZZER_ENABLED
+  Timer::duration_t DNSClient::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(9999)};
+#else
   Timer::duration_t DNSClient::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(5)};
+#endif
   Timer::duration_t DNSClient::DEFAULT_FLUSH_INTERVAL{std::chrono::seconds(30)};
   std::chrono::seconds DNSClient::DEFAULT_CACHE_TTL{std::chrono::seconds(60)};
 
@@ -58,7 +63,7 @@ namespace net
       if(it != cache_.end())
       {
         Error err;
-        func(it->second.address, err);
+        func(it->second.address.v4(), err);
         return;
       }
     }
@@ -97,8 +102,11 @@ namespace net
     flush_timer_.stop();
   }
 
-  void DNSClient::receive_response(IP4::addr, UDP::port_t, const char* data, size_t)
+  void DNSClient::receive_response(Address, UDP::port_t, const char* data, size_t len)
   {
+    if(UNLIKELY(len < sizeof(DNS::header)))
+      return; // no point in even bothering
+
     const auto& reply = *(DNS::header*) data;
     // match the transactions id on the reply with the ones in our map
     auto it = requests_.find(ntohs(reply.id));
@@ -110,7 +118,7 @@ namespace net
 
       auto& dns_req = req.request;
       // parse request
-      dns_req.parseResponse(data);
+      dns_req.parseResponse(data, len);
 
       // cache the response for 60 seconds
       if(cache_ttl_ > std::chrono::seconds::zero())
@@ -130,7 +138,7 @@ namespace net
     }
     else
     {
-      debug("<DNSClient::receive_response> Cannot find matching DNS Request with transid=%u\n", ntohs(reply.id));
+      debug("<DNSClient> Cannot find matching DNS Request with transid=%u\n", ntohs(reply.id));
     }
   }
 

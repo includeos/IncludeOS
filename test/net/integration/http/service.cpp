@@ -18,7 +18,7 @@
 #include <service>
 #include <net/http/basic_client.hpp>
 #include <net/http/server.hpp>
-#include <net/inet4>
+#include <net/inet>
 #include <info>
 #include <timers>
 
@@ -32,7 +32,7 @@ void Service::start(const std::string&)
 
 void Service::ready()
 {
-  auto& inet = net::Inet4::stack<0>(); // Inet4<VirtioNet>::stack<0>();
+  auto& inet = net::Inet::stack<0>(); // Inet<VirtioNet>::stack<0>();
   inet.network_config(
     {  10,  0,  0, 46 },  // IP
     {  255,255,255, 0 },  // Netmask
@@ -98,6 +98,8 @@ void Service::ready()
       });
 
   using namespace std::chrono;
+  Basic_client::Options options;
+  options.timeout = 3s;
   client_->get(acorn_url + "api/dashboard/status", {},
   [] (Error err, Response_ptr res, Connection&)
   {
@@ -105,7 +107,7 @@ void Service::ready()
     CHECK(res != nullptr, "Received response");
     if(!err)
       printf("Response:\n%s\n", res->to_string().c_str());
-  }, { 3s });
+  }, options);
 
 
   INFO("Basic_client", "HTTPS");

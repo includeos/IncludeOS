@@ -40,13 +40,43 @@
 #include <system_log>
 #include <isotime>
 
+#include <memdisk>
+#include <net/openssl/init.hpp>
+
+static SSL_CTX* init_ssl_context(const std::string& certs_path, bool verify)
+{
+  MYINFO("Reading certificates from disk @ %s. Verify certs: %s",
+    certs_path.c_str(), verify ? "YES" : "NO");
+
+  auto& disk = fs::memdisk();
+  disk.init_fs([] (auto err, auto&) {
+    Ensures(!err && "Error init filesystem");
+  });
+
+  auto ents = disk.fs().ls(certs_path);
+
+  int files = 0;
+  for(auto& ent : ents) {
+    if(not ent.is_file())
+      continue;
+    files++;
+  }
+  INFO2("%d certificates", files);
+
+  Expects(files > 0 && "No files found on disk");
+
+  // initialize client context
+  openssl::init();
+  return openssl::create_client(ents, verify);
+}
+
 namespace uplink {
   constexpr std::chrono::seconds WS_uplink::heartbeat_interval;
 
   WS_uplink::WS_uplink(Config config)
     : config_{std::move(config)},
-      inet_{*config_.inet},
-      id_{inet_.link_addr().to_string()},
+      inet_{config_.get_stack()},
+      id_{__arch_system_info().uuid},
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
   {
@@ -83,15 +113,25 @@ namespace uplink {
     }
   }
 
-  void WS_uplink::start(net::Inet<net::IP4>& inet) {
+  void WS_uplink::start(net::Inet& inet) {
     MYINFO("Starting WS uplink on %s with ID %s",
       inet.ifname().c_str(), id_.c_str());
 
     Expects(inet.ip_addr() != 0 && "Network interface not configured");
-    Expects(not config_.url.empty());
 
-    client_ = std::make_unique<http::Basic_client>(inet.tcp(),
-      http::Basic_client::Request_handler{this, &WS_uplink::inject_token});
+    if(config_.url.scheme_is_secure())
+    {
+      auto* ssl_context = init_ssl_context(config_.certs_path, config_.verify_certs);
+      Expects(ssl_context != nullptr && "Secure URL given but no valid certificates found");
+
+      client_ = std::make_unique<http::Client>(inet.tcp(), ssl_context,
+        http::Basic_client::Request_handler{this, &WS_uplink::inject_token});
+    }
+    else
+    {
+      client_ = std::make_unique<http::Basic_client>(inet.tcp(),
+        http::Basic_client::Request_handler{this, &WS_uplink::inject_token});
+    }
 
     auth();
   }
@@ -102,6 +142,20 @@ namespace uplink {
     store.add_string(0, update_hash_);
     // nanos timestamp of when update begins
     store.add<uint64_t> (1, OS::nanos_since_boot());
+    // statman
+    auto& stm = Statman::get();
+    // increment number of updates performed
+    try {
+      ++stm.get_by_name("system.updates");
+    }
+    catch (const std::exception& e)
+    {
+      ++stm.create(Stat::UINT32, "system.updates");
+    }
+    // store all stats
+    stm.store(2, store);
+    // go to end
+    store.put_marker(100);
   }
 
   void WS_uplink::restore(liu::Restore& store)
@@ -112,6 +166,13 @@ namespace uplink {
     // calculate update cycles taken
     uint64_t prev_nanos = store.as_type<uint64_t> (); store.go_next();
     this->update_time_taken = OS::nanos_since_boot() - prev_nanos;
+    // statman
+    if (!store.is_end())
+    {
+      Statman::get().restore(store);
+    }
+    // done marker
+    store.pop_marker(100);
 
     INFO2("Update took %.3f millis", this->update_time_taken / 1.0e6);
   }
@@ -123,18 +184,20 @@ namespace uplink {
 
   void WS_uplink::auth()
   {
-    std::string url{"http://"};
-    url.append(config_.url).append("/auth");
+    const static std::string endpoint{"/auth"};
 
-    //static const std::string auth_data{"{ \"id\": \"testor\", \"key\": \"kappa123\"}"};
+    uri::URI url{config_.url};
+    url << endpoint;
 
-    MYINFO("[ %s ] Sending auth request to %s", isotime::now().c_str(), url.c_str());
+    MYINFO("[ %s ] Sending auth request to %s", isotime::now().c_str(), url.to_string().c_str());
+    http::Basic_client::Options options;
+    options.timeout = 15s;
 
-    client_->post(http::URI{url},
+    client_->post(url,
       { {"Content-Type", "application/json"} },
       auth_data(),
       {this, &WS_uplink::handle_auth_response},
-      http::Basic_client::Options{15s});
+      options);
   }
 
   void WS_uplink::handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&)
@@ -176,12 +239,17 @@ namespace uplink {
   {
     Expects(not token_.empty() and client_ != nullptr);
 
-    std::string url{"ws://"};
-    url.append(config_.url).append("/dock");
+    const static std::string endpoint{"/dock"};
 
-    MYINFO("[ %s ] Dock attempt to %s", isotime::now().c_str(), url.c_str());
+    // for now, build the websocket url based on the auth url.
+    // maybe this will change in the future, and the ws url will have it's own
+    // entry in the config
+    std::string scheme = (config_.url.scheme_is_secure()) ? "wss://" : "ws://";
+    uri::URI url{scheme + config_.url.host_and_port() + endpoint};
 
-    net::WebSocket::connect(*client_, http::URI{url}, {this, &WS_uplink::establish_ws});
+    MYINFO("[ %s ] Dock attempt to %s", isotime::now().c_str(), url.to_string().c_str());
+
+    net::WebSocket::connect(*client_, url, {this, &WS_uplink::establish_ws});
   }
 
   void WS_uplink::establish_ws(net::WebSocket_ptr ws)
@@ -343,7 +411,7 @@ namespace uplink {
     try {
       liu::LiveUpdate::exec(std::move(buffer));
     }
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
       INFO2("LiveUpdate::exec() failed: %s\n", e.what());
       liu::LiveUpdate::restore_environment();
       // establish new connection
@@ -451,7 +519,7 @@ namespace uplink {
 
     writer.StartArray();
 
-    auto& stacks = net::Super_stack::inet().ip4_stacks();
+    auto& stacks = net::Super_stack::inet().stacks();
     for(const auto& stack : stacks) {
       for(const auto& pair : stack)
         serialize_stack(writer, pair.second);
@@ -470,25 +538,8 @@ namespace uplink {
 
   void WS_uplink::send_uplink() {
     MYINFO("[ %s ] Sending uplink", isotime::now().c_str());
-    using namespace rapidjson;
 
-    StringBuffer buf;
-    Writer<StringBuffer> writer{buf};
-
-    writer.StartObject();
-
-    writer.Key("url");
-    writer.String(config_.url);
-
-    writer.Key("token");
-    writer.String(config_.token);
-
-    writer.Key("reboot");
-    writer.Bool(config_.reboot);
-
-    writer.EndObject();
-
-    std::string str = buf.GetString();
+    auto str = config_.serialized_string();
 
     MYINFO("%s", str.c_str());
 
@@ -578,7 +629,7 @@ namespace uplink {
 
   std::shared_ptr<net::Conntrack> get_first_conntrack()
   {
-    for(auto& stacks : net::Super_stack::inet().ip4_stacks()) {
+    for(auto& stacks : net::Super_stack::inet().stacks()) {
       for(auto& stack : stacks)
       {
         if(stack.second != nullptr and stack.second->conntrack() != nullptr)

@@ -19,13 +19,13 @@
 #ifndef X86_APIC_IFACE_HPP
 #define X86_APIC_IFACE_HPP
 
+#include <array>
+#include <cstdint>
+
 namespace x86 {
 
   class IApic {
   public:
-    virtual uint32_t read (uint32_t reg) noexcept = 0;
-    virtual void     write(uint32_t reg, uint32_t value) noexcept = 0;
-
     virtual const char* name() const noexcept = 0;
     virtual uint32_t get_id()  noexcept = 0;
     virtual uint32_t version() noexcept = 0;
@@ -36,9 +36,9 @@ namespace x86 {
     virtual void enable() noexcept = 0;
     virtual void smp_enable() noexcept = 0;
 
-    virtual void    eoi() noexcept = 0;
-    virtual uint8_t get_isr() noexcept = 0;
-    virtual uint8_t get_irr() noexcept = 0;
+    virtual void eoi() noexcept = 0;
+    virtual int  get_isr() noexcept = 0;
+    virtual int  get_irr() noexcept = 0;
 
     virtual void ap_init (int id) noexcept = 0;
     virtual void ap_start(int id, uint32_t vec) noexcept = 0;

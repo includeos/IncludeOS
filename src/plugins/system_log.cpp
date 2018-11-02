@@ -1,5 +1,6 @@
 #include <system_log>
 #include <kernel/os.hpp>
+#include <kernel/memory.hpp>
 #include <ringbuffer>
 #include <kprint>
 
@@ -9,15 +10,15 @@ struct Log_buffer {
   uint32_t flags;
   char     vla[0];
 
-  static const int PADDING = 32;
   static const uint64_t MAGIC = 0xDEADC0DEDEADC0DE;
 
   MemoryRingBuffer* get_mrb()
   { return reinterpret_cast<MemoryRingBuffer*>(&vla[0]); }
 };
 
-static FixedRingBuffer<32768> temp_mrb;
-#define MRB_LOG_SIZE (1 << 20)
+static FixedRingBuffer<16384> temp_mrb;
+#define MRB_AREA_SIZE (65536) // 64kb
+#define MRB_LOG_SIZE  (MRB_AREA_SIZE - sizeof(MemoryRingBuffer) - sizeof(Log_buffer))
 static MemoryRingBuffer* mrb = nullptr;
 static inline RingBuffer* get_mrb()
 {
@@ -25,19 +26,21 @@ static inline RingBuffer* get_mrb()
   return &temp_mrb;
 }
 
-inline char* get_ringbuffer_loc()
+inline static char* get_system_log_loc()
 {
-  return (char*) OS::liveupdate_storage_area() - MRB_LOG_SIZE;
+#ifdef ARCH_x86_64
+  return (char*) ((1ull << 45) - MRB_AREA_SIZE);
+#else
+  return (char*) OS::liveupdate_storage_area() - MRB_AREA_SIZE;
+#endif
 }
-
-inline char* get_system_log_loc()
+inline static auto* get_ringbuffer_data()
 {
-  return get_ringbuffer_loc() - sizeof(Log_buffer) - Log_buffer::PADDING;
+  return get_system_log_loc() + sizeof(Log_buffer) + sizeof(MemoryRingBuffer);
 }
-
-inline Log_buffer& get_log_buffer()
+inline static auto& get_log_buffer()
 {
-  return *((Log_buffer*) get_system_log_loc());
+  return *(Log_buffer*) get_system_log_loc();
 }
 
 uint32_t SystemLog::get_flags()
@@ -74,25 +77,36 @@ void SystemLog::initialize()
 {
   INFO("SystemLog", "Initializing System Log");
 
+#ifdef ARCH_x86_64
+  using namespace util::bitops;
+  const uintptr_t syslog_area = (uintptr_t) get_system_log_loc();
+  const uintptr_t lu_phys = os::mem::virt_to_phys((uintptr_t) OS::liveupdate_storage_area());
+  // move systemlog to high memory and unpresent physical
+  os::mem::virtual_move(lu_phys - MRB_AREA_SIZE, MRB_AREA_SIZE,
+                        syslog_area, "SystemLog");
+#endif
+
   auto& buffer = get_log_buffer();
   mrb = buffer.get_mrb();
 
   // There isn't one, so we have to create
   if(buffer.magic != Log_buffer::MAGIC)
   {
-    new (mrb) MemoryRingBuffer(get_ringbuffer_loc(), MRB_LOG_SIZE);
+    new (mrb) MemoryRingBuffer(get_ringbuffer_data(), MRB_LOG_SIZE);
     buffer.magic = Log_buffer::MAGIC;
     buffer.capacity = mrb->capacity();
     buffer.flags    = 0;
 
-    INFO2("Created @ %p (%i kB)", mrb->data(), mrb->capacity() / 1024);
+    INFO2("Created @ %p (%i kB)", get_system_log_loc(), mrb->capacity() / 1024);
+    INFO2("Data @ %p (%i bytes)", mrb->data(), mrb->capacity());
   }
   // Correct magic means (hopefully) existing system log
   else
   {
     auto* state = (int*)(&buffer.vla);
+    assert(state[0] >= 16);
 
-    new (mrb) MemoryRingBuffer(get_ringbuffer_loc(),
+    new (mrb) MemoryRingBuffer(get_ringbuffer_data(),
                     state[0], state[1], state[2], state[3]);
 
     INFO2("Restored @ %p (%i kB) Flags: 0x%x",

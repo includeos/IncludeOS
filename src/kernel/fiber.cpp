@@ -23,15 +23,14 @@
 #include <smp>
 
 // Default location for previous stack. Asm will always save a pointer.
-#if defined(INCLUDEOS_SINGLE_THREADED)
-int Fiber::next_id_{0};
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
 std::atomic<int> Fiber::next_id_{0};
+#else
+int Fiber::next_id_{0};
 #endif
 
-thread_local void* caller_stack_ = nullptr;
-thread_local Fiber* Fiber::main_ = nullptr;
-thread_local Fiber* Fiber::current_ = nullptr;
+SMP::Array<Fiber*> Fiber::main_ = {{nullptr}};
+SMP::Array<Fiber*> Fiber::current_ {{nullptr}};
 
 extern "C" {
   void __fiber_jumpstart(volatile void* th_stack, volatile Fiber* f, volatile void* parent_stack);
@@ -45,7 +44,7 @@ extern "C" {
     f->ret_= f->func_(f->param_);
 
     // Last stackframe before switching back. Done.
-    Fiber::current_ = f->parent_ ? f->parent_ : nullptr;
+    PER_CPU(Fiber::current_) = f->parent_ ? f->parent_ : nullptr;
     f->done_ = true;
   }
 }
@@ -58,17 +57,17 @@ void Fiber::start() {
     throw Err_bad_fiber("Can't start fiber without a function");
 
   // Become main if none exists
-  if (not main_)
-    main_ = this;
+  if (not PER_CPU(main_))
+    PER_CPU(main_) = this;
 
   // Suspend current running fiber if any
-  if (current_) {
-    current_ -> suspended_ = true;
-    make_parent(current_);
+  if (PER_CPU(current_)) {
+    PER_CPU(current_) -> suspended_ = true;
+    make_parent(PER_CPU(current_));
   }
 
   // Become current
-  current_ = this;
+  PER_CPU(current_) = this;
 
   started_ = true;
   running_ = true;
@@ -78,19 +77,17 @@ void Fiber::start() {
 
   // Returns here after first yield / final return
 
-  if (main_ == this)
-    main_ = nullptr;
+  if (PER_CPU(main_) == this)
+    PER_CPU(main_) = nullptr;
 
-  Expects(current_ != this);
-
-  return;
+  Expects(PER_CPU(current_) != this);
 }
 
 void Fiber::yield() {
 
-  auto* from = current_;
+  auto* from = PER_CPU(current_);
   Expects(from);
-  auto* into = current_->parent_;
+  auto* into = PER_CPU(current_)->parent_;
   Expects(into);
   Expects(into->suspended());
   Expects(into->stack_loc_);
@@ -100,7 +97,7 @@ void Fiber::yield() {
   from->suspended_ = true;
   from->running_ = false;
 
-  current_ = into;
+  PER_CPU(current_) = into;
 
   __fiber_yield(from->parent_stack_, &(from->stack_loc_));
 
@@ -112,11 +109,11 @@ void Fiber::resume()
   if (not suspended_ or done_ or func_ == nullptr)
     return;
 
-  Expects(current_);
+  Expects(PER_CPU(current_));
 
-  make_parent(current_);
+  make_parent(PER_CPU(current_));
 
-  current_ = this;
+  PER_CPU(current_) = this;
   suspended_ = false;
   running_ = true;
   parent_->suspended_ = true;

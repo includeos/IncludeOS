@@ -21,8 +21,9 @@
 
 #include <cstdio>
 #include <delegate>
+#include <smp>
 
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
 #include <atomic>
 #endif
 
@@ -199,31 +200,29 @@ public:
   }
 
   static Fiber* main()
-  { return main_; }
+  { return PER_CPU(main_); }
 
   static Fiber* current()
-  { return current_; }
+  { return PER_CPU(current_); }
 
   static int last_id()
   {
-#if defined( INCLUDEOS_SINGLE_THREADED)
-    return next_id_;
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
     return next_id_.load();
+#else
+    return next_id_;
 #endif
   }
 
 
 private:
-
-
-#if defined(INCLUDEOS_SINGLE_THREADED)
-  static int next_id_;
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
   static std::atomic<int> next_id_;
+#else
+  static int next_id_;
 #endif
-  static thread_local Fiber* main_;
-  static thread_local Fiber* current_;
+  static SMP::Array<Fiber*> main_;
+  static SMP::Array<Fiber*> current_;
 
   // Uniquely identify return target (yield / exit)
   // first stack frame and yield will use this to identify next stack
@@ -254,8 +253,6 @@ private:
   bool running_ { false };
 
   friend void ::fiber_jumpstarter(Fiber* f);
-
 };
-
 
 #endif

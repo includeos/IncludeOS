@@ -81,7 +81,7 @@ void Async::disk_transfer(
       pos * CHUNK_SIZE,
       CHUNK_SIZE,
       fs::on_read_func::make_packed(
-      [next, pos, write_func, callback, CHUNK_SIZE] (
+      [next, pos, write_func, callback] (
           fs::error_t  err,
           fs::buffer_t buffer)
       {

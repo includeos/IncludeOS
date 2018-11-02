@@ -24,6 +24,7 @@
 
 #include <common>
 #include <net/ip4/udp.hpp>
+#include <net/inet>
 #include <net/util.hpp>
 #include <memory>
 #include <net/ip4/icmp4.hpp>
@@ -41,6 +42,12 @@ namespace net {
   void UDP::receive(net::Packet_ptr pckt)
   {
     auto udp_packet = static_unique_ptr_cast<PacketUDP>(std::move(pckt));
+
+    if (udp_packet->validate_length() == false) {
+      PRINT("<%s> UDP: Invalid packet received (too short). Drop!\n",
+              stack_.ifname().c_str());
+      return;
+    }
 
     PRINT("<%s> UDP", stack_.ifname().c_str());
 
@@ -134,7 +141,7 @@ namespace net {
     return it.first->second;
   }
 
-  UDPSocket& UDP::bind(const ip4::Addr addr)
+  UDPSocket& UDP::bind(const addr_t addr)
   {
     if(UNLIKELY( not stack_.is_valid_source(addr) ))
       throw UDP_error{"Cannot bind to address: " + addr.to_string()};
@@ -289,8 +296,8 @@ namespace net {
 
       // Initialize UDP packet
       p2->init(l_port, d_port);
-      p2->set_ip_src(l_addr);
-      p2->set_ip_dst(d_addr);
+      p2->set_ip_src(l_addr.v4());
+      p2->set_ip_dst(d_addr.v4());
       p2->set_data_length(total);
 
       // fill buffer (at payload position)
@@ -313,5 +320,20 @@ namespace net {
       udp.transmit(std::move(chain_head));
     }
   }
+
+  UDP::addr_t UDP::local_ip() const
+  { return stack_.ip_addr(); }
+
+  UDPSocket& UDP::bind(port_t port)
+  { return bind({stack_.ip_addr(), port}); }
+
+  UDPSocket& UDP::bind()
+  { return bind(stack_.ip_addr()); }
+
+  bool UDP::is_bound(const port_t port) const
+  { return is_bound({stack_.ip_addr(), port}); }
+
+  uint16_t UDP::max_datagram_size() noexcept
+  { return stack().ip_obj().MDDS() - sizeof(header); }
 
 } //< namespace net

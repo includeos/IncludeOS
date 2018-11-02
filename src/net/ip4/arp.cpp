@@ -24,7 +24,7 @@
 
 #include <vector>
 
-#include <net/inet4.hpp>
+#include <net/inet>
 #include <net/ip4/arp.hpp>
 #include <net/ip4/packet_arp.hpp>
 #include <statman>
@@ -89,7 +89,7 @@ namespace net {
     case H_reply: {
       // Stat increment replies received
       replies_rx_++;
-      PRINT("\t ARP REPLY: %s belongs to %s (waiting: %u)\n",
+      PRINT("\t ARP REPLY: %s belongs to %s (waiting: %zu)\n",
              hdr->sipaddr.str().c_str(), hdr->shwaddr.str().c_str(), waiting_packets_.size());
       break;
     }
@@ -106,18 +106,18 @@ namespace net {
     auto entry = cache_.find(ip);
 
     if (entry != cache_.end()) {
-      PRINT("Cached entry found: %s recorded @ %llu. Updating timestamp\n",
+      PRINT("Cached entry found: %s recorded @ %zu. Updating timestamp\n",
              entry->second.mac().str().c_str(), entry->second.timestamp());
 
       if (entry->second.mac() != mac) {
         cache_.erase(entry);
-        cache_[ip] = mac;
+        cache_.emplace(ip, mac);
       } else {
         entry->second.update();
       }
 
     } else {
-      cache_[ip] = mac; // Insert
+      cache_.emplace(ip, mac); // Insert
       if (UNLIKELY(not flush_timer_.is_running())) {
         flush_timer_.start(flush_interval_);
       }
@@ -142,7 +142,7 @@ namespace net {
            res->source_ip().str().c_str(), res->source_mac().str().c_str());
 
     MAC::Addr dest = hdr_in->shwaddr;
-    PRINT("<ARP -> physical> Sending response to %s. Linklayer begin: buf + %i \n",
+    PRINT("<ARP -> physical> Sending response to %s. Linklayer begin: buf + %li \n",
           dest.str().c_str(), res->layer_begin() - res->buf() );
 
     linklayer_out_(std::move(res), dest, Ethertype::ARP);

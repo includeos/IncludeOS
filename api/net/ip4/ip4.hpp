@@ -18,12 +18,13 @@
 #ifndef NET_IP4_IP4_HPP
 #define NET_IP4_IP4_HPP
 
+#include <map>
 #include "addr.hpp"
 #include "header.hpp"
 #include "packet_ip4.hpp"
 #include <common>
 #include <net/netfilter.hpp>
-#include <net/inet.hpp>
+#include <net/port_util.hpp>
 #include <rtc>
 #include <util/timer.hpp>
 
@@ -31,13 +32,15 @@
 
 namespace net {
 
+  class Inet;
+
   /** IP4 layer */
   class IP4 {
   public:
 
     enum class Drop_reason
-    { None, Bad_source, Bad_destination, Wrong_version, Wrong_checksum,
-        Unknown_proto, TTL0 };
+    { None, Bad_source, Bad_length, Bad_destination,
+      Wrong_version, Wrong_checksum, Unknown_proto, TTL0 };
 
     enum class Direction
     { Upstream, Downstream };
@@ -55,14 +58,17 @@ namespace net {
       SIX     = 2002
     };
 
-    using Stack = Inet<IP4>;
+    using Stack = class Inet;
     using addr = ip4::Addr;
     using header = ip4::Header;
     using IP_packet = PacketIP4;
     using IP_packet_ptr = std::unique_ptr<IP_packet>;
+    using IP_packet_factory = delegate<IP_packet_ptr(Protocol)>;
     using downstream_arp = delegate<void(Packet_ptr, IP4::addr)>;
     using drop_handler = delegate<void(IP_packet_ptr, Direction, Drop_reason)>;
+    using Forward_delg  = delegate<void(IP_packet_ptr, Stack& source, Conntrack::Entry_ptr)>;
     using PMTU = uint16_t;
+    using resolve_func = delegate<void(IP4::addr, const Error&)>;
 
     /** Initialize. Sets a dummy linklayer out. */
     explicit IP4(Stack&) noexcept;
@@ -86,16 +92,14 @@ namespace net {
     /*
       Maximum Datagram Data Size
     */
-    uint16_t MDDS() const
-    { return stack_.MTU() - sizeof(ip4::Header); }
+    uint16_t MDDS() const;
 
     /**
      * @brief      Get the default MTU for the OS, including the size of the ip4::Header
      *
      * @return     The default Path MTU value
      */
-    uint16_t default_PMTU() const noexcept
-    { return stack_.MTU(); }
+    uint16_t default_PMTU() const noexcept;
 
     /** Upstream: Input from link layer */
     void receive(Packet_ptr, const bool link_bcast);
@@ -122,7 +126,7 @@ namespace net {
     { drop_handler_ = s; }
 
     /** Set handler for packets not addressed to this interface (upstream) */
-    void set_packet_forwarding(Stack::Forward_delg fwd)
+    void set_packet_forwarding(Forward_delg fwd)
     { forward_packet_ = fwd; }
 
     /** Set linklayer out (downstream) */
@@ -142,7 +146,7 @@ namespace net {
     upstream tcp_handler()
     { return tcp_handler_; }
 
-    Stack::Forward_delg forward_delg()
+    Forward_delg forward_delg()
     { return forward_packet_; }
 
     downstream_arp linklayer_out()
@@ -167,9 +171,7 @@ namespace net {
      *
      * Returns the IPv4 address associated with this interface
      **/
-    const addr local_ip() const {
-      return stack_.ip_addr();
-    }
+    const addr local_ip() const;
 
     /**
      * @brief      Determines if the packet is for me (this host).
@@ -468,13 +470,17 @@ namespace net {
     upstream tcp_handler_  = nullptr;
 
     /** Packet forwarding  */
-    Stack::Forward_delg forward_packet_;
+    Forward_delg forward_packet_;
 
     // Filter chains
     Filter_chain<IP4> prerouting_chain_{"Prerouting", {}};
     Filter_chain<IP4> postrouting_chain_{"Postrouting", {}};
     Filter_chain<IP4> input_chain_{"Input", {}};
     Filter_chain<IP4> output_chain_{"Output", {}};
+    uint32_t& prerouting_dropped_;
+    uint32_t& postrouting_dropped_;
+    uint32_t& input_dropped_;
+    uint32_t& output_dropped_;
 
     /** All dropped packets go here */
     drop_handler drop_handler_;

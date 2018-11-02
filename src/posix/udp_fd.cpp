@@ -1,7 +1,6 @@
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
-// Copyright 2015-2016 Oslo and Akershus University College of Applied Sciences
-// and Alfred Bratterud
+// Copyright 2017-2018 IncludeOS AS, Oslo, Norway
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +14,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <udp_fd.hpp>
+#include <posix/udp_fd.hpp>
 #include <kernel/os.hpp> // OS::block()
 #include <errno.h>
 
-#define POSIX_STRACE
+//#define POSIX_STRACE 1
 #ifdef POSIX_STRACE
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -27,8 +26,8 @@
 #endif
 
 // return the "currently selected" networking stack
-static net::Inet<net::IP4>& net_stack() {
-  return net::Inet4::stack<> ();
+static net::Inet& net_stack() {
+  return net::Inet::stack<> ();
 }
 
 size_t UDP_FD::max_buffer_msgs() const
@@ -44,7 +43,7 @@ void UDP_FD::recv_to_buffer(net::UDPSocket::addr_t addr,
     // copy data into to-be Message buffer
     auto buff = net::tcp::buffer_t(new std::vector<uint8_t> (buf, buf + len));
     // emplace the message in buffer
-    buffer_.emplace_back(htonl(addr.whole), htons(port), std::move(buff));
+    buffer_.emplace_back(htonl(addr.v4().whole), htons(port), std::move(buff));
   }
 }
 
@@ -80,7 +79,7 @@ UDP_FD::~UDP_FD()
   if(this->sock)
     sock->close();
 }
-int UDP_FD::read(void* buffer, size_t len)
+ssize_t UDP_FD::read(void* buffer, size_t len)
 {
   return recv(buffer, len, 0);
 }
@@ -90,19 +89,17 @@ int UDP_FD::write(const void* buffer, size_t len)
 }
 int UDP_FD::close()
 {
-  return -1;
+  return 0;
 }
-int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
+long UDP_FD::bind(const struct sockaddr* address, socklen_t len)
 {
   // we can assume this has already been bound since there is a pointer
   if(UNLIKELY(this->sock != nullptr)) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   // invalid address
   if(UNLIKELY(len != sizeof(struct sockaddr_in))) {
-    errno = EINVAL;
-    return -1;
+    return -EINVAL;
   }
   // Bind
   const auto port = ((sockaddr_in*)address)->sin_port;
@@ -116,15 +113,13 @@ int UDP_FD::bind(const struct sockaddr* address, socklen_t len)
   }
   catch(const net::UDP::Port_in_use_exception&)
   {
-    errno = EADDRINUSE;
-    return -1;
+    return -EADDRINUSE;
   }
 }
-int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
+long UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 {
-  if (UNLIKELY(!validate_sockaddr_in(address, address_len))) {
-    errno = EINVAL;
-    return -1;
+  if (UNLIKELY(address_len < sizeof(struct sockaddr_in))) {
+    return -EINVAL;
   }
 
   // If the socket has not already been bound to a local address,
@@ -152,41 +147,37 @@ int UDP_FD::connect(const struct sockaddr* address, socklen_t address_len)
 
   return 0;
 }
-ssize_t UDP_FD::send(const void* message, size_t len, int flags)
-{
-  if(!is_connected()) {
-    errno = EDESTADDRREQ;
-    return -1;
-  }
-  PRINT("UDP: send(%lu, %x)\n", len, flags);
-
-  return sendto(message, len, flags, (struct sockaddr*)&peer_, sizeof(peer_));
-}
 
 ssize_t UDP_FD::sendto(const void* message, size_t len, int,
   const struct sockaddr* dest_addr, socklen_t dest_len)
 {
-  // The specified address is not a valid address for the address family of the specified socket.
-  if(UNLIKELY(dest_len != sizeof(struct sockaddr_in))) {
-    errno = EINVAL;
-    return -1;
+  if(not is_connected())
+  {
+    if(UNLIKELY((dest_addr == nullptr or dest_len == 0))) {
+      return -EDESTADDRREQ;
+    }
+    // The specified address is not a valid address for the address family of the specified socket.
+    else if(UNLIKELY(dest_len != sizeof(struct sockaddr_in))) {
+      return -EAFNOSUPPORT;
+    }
   }
+
   // Bind a socket if we dont already have one
   if(this->sock == nullptr) {
     this->sock = &net_stack().udp().bind();
     set_default_recv();
   }
-  const auto& dest = *((sockaddr_in*)dest_addr);
+  const auto& dest = (not is_connected()) ? *((sockaddr_in*)dest_addr) : peer_;
   // If the socket protocol supports broadcast and the specified address
   // is a broadcast address for the socket protocol,
   // sendto() shall fail if the SO_BROADCAST option is not set for the socket.
   if(!broadcast_ && dest.sin_addr.s_addr == INADDR_BROADCAST) { // Fix me
-    return -1;
+    return -EOPNOTSUPP;
   }
 
   // Sending
   bool written = false;
-  this->sock->sendto(ntohl(dest.sin_addr.s_addr), ntohs(dest.sin_port), message, len,
+  this->sock->sendto(net::ip4::Addr{ntohl(dest.sin_addr.s_addr)}, ntohs(dest.sin_port), message, len,
     [&written]() { written = true; });
 
   while(!written)
@@ -239,7 +230,7 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
         auto& sender = *((sockaddr_in*)address);
         sender.sin_family       = AF_INET;
         sender.sin_port         = htons(port);
-        sender.sin_addr.s_addr  = htonl(addr.whole);
+        sender.sin_addr.s_addr  = htonl(addr.v4().whole);
         *address_len            = sizeof(struct sockaddr_in);
       }
       done = true;
@@ -373,17 +364,3 @@ int UDP_FD::setsockopt(int level, int option_name,
   } // < switch(option_name)
 }
 
-/// socket default handler getters
-
-UDP_FD::on_read_func UDP_FD::get_default_read_func()
-{
-  return [] (net::tcp::buffer_t) {};
-}
-UDP_FD::on_write_func UDP_FD::get_default_write_func()
-{
-  return [] {};
-}
-UDP_FD::on_except_func UDP_FD::get_default_except_func()
-{
-  return [] {};
-}

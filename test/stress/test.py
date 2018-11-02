@@ -3,6 +3,7 @@ import sys
 import socket
 import time
 import subprocess
+import subprocess32
 import os
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
@@ -28,6 +29,9 @@ PORT_MEM = 4243
 memuse_at_start = 0
 sock_timeout = 20
 
+# Boot the VM, taking a timeout as parameter
+thread_timeout = BURST_COUNT * 30
+
 # It's to be expected that the VM allocates more room during the running of tests
 # e.g. for containers, packets etc. These should all be freed after a run.
 acceptable_increase = 12 * PAGE_SIZE
@@ -37,6 +41,8 @@ acceptable_increase = 12 * PAGE_SIZE
 # connection / packet statistics (>= what we have sent) etc.
 sock_mem = socket.socket
 sock_mem = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+heap_verified = False
 
 def get_mem():
   name_tag = "<" + test_name + "::get_mem>"
@@ -56,7 +62,9 @@ def get_mem():
 
 def get_mem_start():
   global memuse_at_start
-  memuse_at_start = get_mem()
+  if memuse_at_start == 0:
+      memuse_at_start = get_mem()
+  return memuse_at_start
 
 def memory_increase(lead_time, expected_memuse = memuse_at_start):
   name_tag = "<" + test_name + "::memory_increase>"
@@ -103,13 +111,13 @@ def UDP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
 # Fire a single burst of ICMP packets
 def ICMP_flood(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   # Note: Ping-flooding requires sudo for optimal speed
-  res = subprocess.check_call(["sudo","ping","-f", HOST, "-c", str(burst_size)]);
+  res = subprocess32.check_call(["sudo","ping","-f", HOST, "-c", str(burst_size)], timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
 # Fire a single burst of HTTP requests
 def httperf(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
-  res = subprocess.check_call(["httperf","--hog", "--server", HOST, "--num-conn", str(burst_size)]);
+  res = subprocess32.check_call(["httperf","--hog", "--server", HOST, "--num-conn", str(burst_size)], timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
 
@@ -119,15 +127,29 @@ def ARP_burst(burst_size = BURST_SIZE, burst_interval = BURST_INTERVAL):
   command = ["sudo", "arping", "-q","-w", str(100), "-I", "bridge43", "-c", str(burst_size * 10),  HOST]
   print color.DATA(" ".join(command))
   time.sleep(0.5)
-  res = subprocess.check_call(command);
+  res = subprocess32.check_call(command, timeout=thread_timeout);
   time.sleep(burst_interval)
   return get_mem()
+
+
+
+def heap_ok(line):
+    global heap_verified
+    heap_verified = True
+    print color.INFO("Stresstest::heap_ok"), "VM reports heap is increasing and decreasing as expected"
 
 
 def crash_test(string):
   print color.INFO("Opening persistent TCP connection for diagnostics")
   sock_mem.connect((HOST, PORT_MEM))
-  get_mem_start()
+  mem_before = get_mem_start()
+  if mem_before <= 0:
+      print color.FAIL("Initial memory reported as " + str(mem_before))
+      return False
+
+  if not heap_verified:
+      print color.FAIL("Heap behavior was not verified as expected. ")
+      return False
 
   print color.HEADER("Initial crash test")
   burst_size = BURST_SIZE * 10
@@ -137,13 +159,15 @@ def crash_test(string):
   ICMP_flood(burst_size, 0)
   httperf(burst_size, 0)
   time.sleep(BURST_INTERVAL)
-  return get_mem()
+  mem_after = get_mem()
+  print color.INFO("Crash test complete. Memory in use: "), mem_after
+  return mem_after >= memuse_at_start
 
 # Fire several bursts, e.g. trigger a function that fires bursts, several times
 def fire_bursts(func, sub_test_name, lead_out = 3):
   name_tag = "<" + sub_test_name + ">"
   print color.HEADER(test_name + " initiating "+sub_test_name)
-  membase_start = func()
+  membase_start = get_mem()
   mem_base = membase_start
 
   # Track heap behavior
@@ -233,6 +257,7 @@ def wait_for_tw():
     time.sleep(7)
 
 # Add custom event-handlers
+vm.on_output("Heap functioning as expected", heap_ok)
 vm.on_output("Ready to start", crash_test)
 vm.on_output("Ready for ARP", ARP)
 vm.on_output("Ready for UDP", UDP)
@@ -240,17 +265,14 @@ vm.on_output("Ready for ICMP", ICMP)
 vm.on_output("Ready for TCP", TCP)
 vm.on_output("Ready to end", check_vitals)
 
-# Boot the VM, taking a timeout as parameter
-timeout = BURST_COUNT * 20
-
 if len(sys.argv) > 1:
-  timeout = int(sys.argv[1])
+  thread_timeout = int(sys.argv[1])
 
 if len(sys.argv) > 3:
   BURST_COUNT = int(sys.argv[2])
   BURST_SIZE = int(sys.argv[3])
 
 print color.HEADER(test_name + " initializing")
-print color.INFO(name_tag),"Doing", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
+print color.INFO(name_tag),"configured for ", BURST_COUNT,"bursts of", BURST_SIZE, "packets each"
 
-vm.cmake().boot(timeout).clean()
+vm.cmake().boot(thread_timeout).clean()

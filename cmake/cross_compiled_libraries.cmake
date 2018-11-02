@@ -18,8 +18,8 @@ else(BUNDLE_LOC)
 	include(ExternalProject)
 	ExternalProject_Add(PrecompiledLibraries
 			    PREFIX precompiled
-			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.12.0-rc.2/IncludeOS_dependencies_v0-12-0_libcpp5_singlethread.tar.gz
-			    URL_HASH SHA1=eb343de326ae6b0acc3c87d6b22136d0aa2b3fdf
+			    URL https://github.com/hioa-cs/IncludeOS/releases/download/v0.12.0-rc.2/IncludeOS_dependencies_v0-12-0_musl_libunwind_singlethreaded.tar.gz
+			    URL_HASH SHA1=d011b393fff5eba6df865ffb085628a105e9404d
 			    CONFIGURE_COMMAND ""
 			    BUILD_COMMAND ""
 			    UPDATE_COMMAND ""
@@ -33,7 +33,7 @@ ExternalProject_Add(solo5_repo
 	PREFIX precompiled
 	BUILD_IN_SOURCE 1
 	GIT_REPOSITORY https://github.com/solo5/solo5.git
-	GIT_TAG 2765e0f5f090c0b27a8d62a48285842236e7d20f
+	GIT_TAG 285b80aa4da12b628838a78dc79793f4d669ae1b
 	CONFIGURE_COMMAND CC=gcc ./configure.sh
 	UPDATE_COMMAND ""
 	BUILD_COMMAND make
@@ -62,44 +62,44 @@ endif (WITH_SOLO5)
 
 set(PRECOMPILED_DIR ${CMAKE_CURRENT_BINARY_DIR}/precompiled/src/PrecompiledLibraries/${ARCH})
 
+set(LIBGCC_LIB_DIR ${PRECOMPILED_DIR}/libgcc/)
 set(LIBCXX_INCLUDE_DIR ${PRECOMPILED_DIR}/libcxx/include/)
 set(LIBCXX_LIB_DIR ${PRECOMPILED_DIR}/libcxx/)
+set(LIBUNWIND_INCLUDE_DIR ${PRECOMPILED_DIR}/libunwind/include/)
+set(LIBUNWIND_LIB_DIR ${PRECOMPILED_DIR}/libunwind/)
 
-add_library(libcxx STATIC IMPORTED)
-add_library(libcxxabi STATIC IMPORTED)
-
-add_dependencies(libcxx PrecompiledLibraries)
-add_dependencies(libcxxabi PrecompiledLibraries)
-set_target_properties(libcxx PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++.a)
-set_target_properties(libcxxabi PROPERTIES IMPORTED_LOCATION ${LIBCXX_LIB_DIR}/libc++abi.a)
-
-set(NEWLIB_INCLUDE_DIR ${PRECOMPILED_DIR}/newlib/include/)
-set(NEWLIB_LIB_DIR ${PRECOMPILED_DIR}/newlib/)
-
-set(LIBGCC_LIB_DIR ${PRECOMPILED_DIR}/libgcc/)
-
-add_library(libc STATIC IMPORTED)
-set_target_properties(libc PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libc.a)
-add_dependencies(libc PrecompiledLibraries)
-
-add_library(libm STATIC IMPORTED)
-set_target_properties(libm PROPERTIES IMPORTED_LOCATION ${NEWLIB_LIB_DIR}/libm.a)
-add_dependencies(libm PrecompiledLibraries)
-
-set(CRTEND ${PRECOMPILED_DIR}/crt/crtend.o)
-set(CRTBEGIN ${PRECOMPILED_DIR}/crt/crtbegin.o)
+set(MUSL_INCLUDE_DIR ${PRECOMPILED_DIR}/musl/include/)
+set(MUSL_LIB_DIR ${PRECOMPILED_DIR}/musl/lib)
 
 #
 # Installation
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 install(DIRECTORY ${LIBCXX_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libcxx)
+install(DIRECTORY ${LIBUNWIND_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/libunwind)
 
-install(DIRECTORY ${NEWLIB_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/newlib)
+install(DIRECTORY ${MUSL_INCLUDE_DIR} DESTINATION includeos/${ARCH}/include/musl)
 
-install(FILES ${CRTEND} ${CRTBEGIN} DESTINATION includeos/${ARCH}/lib)
+add_custom_command(TARGET PrecompiledLibraries POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E echo "Installed elf.h into ${CMAKE_INSTALL_PREFIX}/include"
+  )
 
-install(FILES ${NEWLIB_LIB_DIR}/libc.a ${NEWLIB_LIB_DIR}/libg.a ${NEWLIB_LIB_DIR}/libm.a ${LIBGCC_LIB_DIR}/libgcc.a ${LIBCXX_LIB_DIR}/libc++.a ${LIBCXX_LIB_DIR}/libc++abi.a DESTINATION includeos/${ARCH}/lib)
+ExternalProject_Add_Step(PrecompiledLibraries copy_elf
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_INSTALL_PREFIX}/include/
+  COMMAND ${CMAKE_COMMAND} -E copy ${MUSL_INCLUDE_DIR}/elf.h ${CMAKE_INSTALL_PREFIX}/include/
+  DEPENDEES download
+  )
+
+# Install musl
+install(DIRECTORY ${MUSL_LIB_DIR}/ DESTINATION includeos/${ARCH}/lib)
+
+# Install libc++ etc.
+install(FILES
+  ${LIBCXX_LIB_DIR}/libc++.a
+  ${LIBCXX_LIB_DIR}/libc++abi.a
+  ${LIBGCC_LIB_DIR}/libcompiler.a
+  ${LIBUNWIND_LIB_DIR}/libunwind.a
+  DESTINATION includeos/${ARCH}/lib)
 
 
 if (WITH_SOLO5)

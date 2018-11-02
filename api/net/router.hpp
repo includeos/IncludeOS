@@ -34,7 +34,7 @@ namespace net {
   template <class IPV>
   struct Route {
 
-    using Stack = Inet<IPV>;
+    using Stack = Inet;
     using Stack_ptr = Stack*;
     using Addr = typename IPV::addr;
     using Netmask = typename IPV::addr;
@@ -112,7 +112,7 @@ namespace net {
 
     using Stack         = typename Route<IPV>::Stack;
     using Stack_ptr     = typename Route<IPV>::Stack_ptr;
-    using Forward_delg  = typename Inet<IPV>::Forward_delg;
+    using Forward_delg  = typename Inet::Forward_delg;
     using Addr          = typename IPV::addr;
     using Packet_ptr    = typename IPV::IP_packet_ptr;
     using Interfaces    = std::vector<std::unique_ptr<Stack>>;

@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 2.8.9)
 project(unittests C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# IncludeOS install location
+if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+endif()
+
 option(COVERAGE "Build with coverage generation" OFF)
 option(SILENT_BUILD "Build with some warnings turned off" ON)
 
@@ -18,6 +23,7 @@ message(STATUS "Building for arch ${ARCH}")
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-DPLATFORM_UNITTEST)
 add_definitions(-DOS_VERSION="v0.0.0.1")
 
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
@@ -35,12 +41,17 @@ endif()
 set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
 
 if (APPLE)
-message(STATUS "Including brew bundled libc++")
-execute_process(COMMAND brew "--prefix" "llvm@5" OUTPUT_VARIABLE BREW_LLVM)
-string(STRIP ${BREW_LLVM} BREW_LLVM)
-set(BREW_LIBCXX_INC ${BREW_LLVM}/lib)
-message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${BREW_LIBCXX_INC} -Wno-unused-command-line-argument")
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    message(STATUS "Including brew bundled libc++")
+    execute_process(COMMAND brew "--prefix" "llvm@5" OUTPUT_VARIABLE BREW_LLVM)
+    string(STRIP ${BREW_LLVM} BREW_LLVM)
+    set(BREW_LIBCXX_INC "-L${BREW_LLVM}/lib -I${BREW_LLVM}/include/c++/v1")
+    message(STATUS "Brew libc++ location: " ${BREW_LIBCXX_INC})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BREW_LIBCXX_INC} -stdlib=libc++ -nostdinc++ -Wno-unused-command-line-argument")
+  else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mmacosx-version-min=10.12")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mmacosx-version-min=10.12")
+  endif()
 endif()
 
 if(NOT DEFINED ${INCLUDEOS_ROOT})
@@ -58,12 +69,15 @@ include_directories(
   ${INCLUDEOS_ROOT}/mod/
   ${INCLUDEOS_ROOT}/mod/GSL
   ${INCLUDEOS_ROOT}/mod/uzlib/src
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate
   ${TEST}/lest/include
+  $ENV{INCLUDEOS_PREFIX}/include
 )
 
 set(LEST_UTIL
   ${TEST}/lest_util/lestmain.cxx
   ${TEST}/lest_util/os_mock.cpp
+  ${TEST}/lest_util/mock_fs.cpp
   ${TEST}/lest_util/random.cpp
 )
 
@@ -72,16 +86,20 @@ set(TEST_SOURCES
   ${TEST}/fs/unit/memdisk_test.cpp
   ${TEST}/fs/unit/path_test.cpp
   ${TEST}/fs/unit/vfs_test.cpp
-  ${TEST}/hw/unit/cpu_test.cpp
+  ${TEST}/fs/unit/unit_fs.cpp
+  ${TEST}/fs/unit/unit_fat.cpp
+  #${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
-  ${TEST}/kernel/unit/events_test.cpp
-  ${TEST}/kernel/unit/kprint_test.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/memory.cpp
   ${TEST}/kernel/unit/x86_paging.cpp
   ${TEST}/kernel/unit/os_test.cpp
   ${TEST}/kernel/unit/service_stub_test.cpp
+  ${TEST}/kernel/unit/unit_events.cpp
+  ${TEST}/kernel/unit/unit_timers.cpp
+  ${TEST}/kernel/unit/unit_liveupdate.cpp
+  ${TEST}/net/unit/addr_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp
   ${TEST}/net/unit/cidr.cpp
@@ -101,6 +119,9 @@ set(TEST_SOURCES
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/ip4_packet_test.cpp
+  ${TEST}/net/unit/ip6.cpp
+  ${TEST}/net/unit/ip6_addr.cpp
+  ${TEST}/net/unit/ip6_packet_test.cpp
   ${TEST}/net/unit/nat_test.cpp
   ${TEST}/net/unit/napt_test.cpp
   ${TEST}/net/unit/packets.cpp
@@ -110,6 +131,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/super_stack.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
+  ${TEST}/net/unit/tcp_read_request_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/net/unit/router_test.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
@@ -118,12 +140,13 @@ set(TEST_SOURCES
   ${TEST}/util/unit/sha1.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
+  ${TEST}/util/unit/fixed_list_alloc_test.cpp
   ${TEST}/util/unit/fixed_queue.cpp
   ${TEST}/util/unit/fixed_vector.cpp
   ${TEST}/util/unit/isotime.cpp
   ${TEST}/util/unit/logger_test.cpp
   ${TEST}/util/unit/membitmap.cpp
-  ${TEST}/util/unit/path_to_regex_no_options.cpp
+  #${TEST}/util/unit/path_to_regex_no_options.cpp
   ${TEST}/util/unit/path_to_regex_parse.cpp
   ${TEST}/util/unit/path_to_regex_options.cpp
   ${TEST}/util/unit/percent_encoding_test.cpp
@@ -133,9 +156,13 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
+  ${TEST}/util/unit/lstack.cpp
+  ${TEST}/util/unit/buddy_alloc_test.cpp
 )
 
 set(OS_SOURCES
+  ${SRC}/version.cpp
+  ${SRC}/arch/x86_64/paging.cpp
   ${SRC}/fs/disk.cpp
   ${SRC}/fs/dirent.cpp
   ${SRC}/fs/fat.cpp
@@ -150,18 +177,17 @@ set(OS_SOURCES
   ${SRC}/hw/pci_device.cpp
   ${SRC}/hw/pci_msi.cpp
   ${SRC}/hw/ps2.cpp
-  ${SRC}/hw/serial.cpp
   ${SRC}/kernel/cpuid.cpp
   ${SRC}/kernel/elf.cpp
   ${SRC}/kernel/events.cpp
   ${SRC}/kernel/memmap.cpp
   ${SRC}/kernel/os.cpp
-  ${SRC}/kernel/heap.cpp
   ${SRC}/kernel/pci_manager.cpp
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
   ${SRC}/kernel/syscalls.cpp
-  ${SRC}/arch/x86_64/paging.cpp
+  ${SRC}/kernel/timers.cpp
+  ${SRC}/musl/brk.cpp
   ${SRC}/net/buffer_store.cpp
   ${SRC}/net/conntrack.cpp
   ${SRC}/net/dns/client.cpp
@@ -180,13 +206,16 @@ set(OS_SOURCES
   ${SRC}/net/http/time.cpp
   ${SRC}/net/http/version.cpp
   ${SRC}/net/checksum.cpp
-  ${SRC}/net/inet4.cpp
+  ${SRC}/net/inet.cpp
   ${SRC}/net/ip4/arp.cpp
   ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
   ${SRC}/net/ip4/reassembly.cpp
   ${SRC}/net/ip4/udp.cpp
   ${SRC}/net/ip4/udp_socket.cpp
+  ${SRC}/net/ip6/icmp6.cpp
+  ${SRC}/net/ip6/ndp.cpp
+  ${SRC}/net/ip6/ip6.cpp
   ${SRC}/net/dhcp/dh4client.cpp
   ${SRC}/net/nat/nat.cpp
   ${SRC}/net/nat/napt.cpp
@@ -197,11 +226,10 @@ set(OS_SOURCES
   ${SRC}/net/tcp/rttm.cpp
   ${SRC}/net/tcp/tcp.cpp
   ${SRC}/net/tcp/read_buffer.cpp
+  ${SRC}/net/tcp/read_request.cpp
+  ${SRC}/net/tcp/stream.cpp
   ${SRC}/net/tcp/write_queue.cpp
-  ${SRC}/posix/fcntl.cpp
   ${SRC}/posix/fd.cpp
-  ${SRC}/posix/sys/select.cpp
-  ${SRC}/posix/arpa/inet.cpp
   ${SRC}/util/async.cpp
   ${SRC}/util/crc32.cpp
   ${SRC}/util/logger.cpp
@@ -217,11 +245,23 @@ set(OS_SOURCES
 )
 
 set(MOD_OBJECTS
+  # http-parser
   ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
+  # uzlib
   ${INCLUDEOS_ROOT}/mod/uzlib/src/adler32.c
   ${INCLUDEOS_ROOT}/mod/uzlib/src/crc32.c
   ${INCLUDEOS_ROOT}/mod/uzlib/src/tinflate.c
   ${INCLUDEOS_ROOT}/mod/uzlib/src/tinfgzip.c
+  # LiveUpdate
+  #${INCLUDEOS_ROOT}/lib/LiveUpdate/hotswap.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/partition.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/rollback.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_tcp.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/update.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/os.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/resume.cpp
+  #${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_openssl.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/storage.cpp
 )
 
 if(EXTRA_TESTS)
@@ -276,7 +316,6 @@ endif()
 
 add_executable(unittests ${SOURCES})
 install(TARGETS unittests DESTINATION ${TEST})
-install(DIRECTORY lest/include/lest DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 if (GENERATE_SUPPORT_FILES)
 

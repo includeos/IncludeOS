@@ -23,6 +23,7 @@
 #include "client_connection.hpp"
 
 #include <net/tcp/tcp.hpp>
+#include <net/inet>
 #include <vector>
 #include <map>
 
@@ -49,24 +50,16 @@ namespace http {
     using timeout_duration    = Client_connection::timeout_duration;
 
     const static timeout_duration     DEFAULT_TIMEOUT; // client.cpp, 5s
-    constexpr static size_t           DEFAULT_BUFSIZE = 2048;
+    static int                        default_follow_redirect; // 0
 
     /* Client Options */
-    // if someone has a better solution, please fix
+    // aggregate initialization would make this pretty (c++20):
+    // https://en.cppreference.com/w/cpp/language/aggregate_initialization
     struct Options {
       timeout_duration  timeout{DEFAULT_TIMEOUT};
-      size_t            bufsize{DEFAULT_BUFSIZE};
+      int               follow_redirect{default_follow_redirect};
 
-      Options(timeout_duration dur, size_t bufsz)
-        : timeout{dur},
-          bufsize{bufsz}
-      {}
-
-      Options() : Options(DEFAULT_TIMEOUT, DEFAULT_BUFSIZE) {}
-
-      Options(timeout_duration dur) : Options(dur, DEFAULT_BUFSIZE) {}
-
-      Options(size_t bufsz) : Options(DEFAULT_TIMEOUT, bufsz) {}
+      Options() noexcept {}
 
     };
 
@@ -94,6 +87,15 @@ namespace http {
      */
     void send(Request_ptr req, Host host, Response_handler cb,
               const bool secure = false, Options options = {});
+
+    /**
+     * @brief      Send a request to a specific URL with a response handler
+     *
+     * @param[in]  req   The request
+     * @param[in]  url   The URL
+     * @param[in]  cb    Callback to be invoked when a response is received (or error)
+     */
+    void send(Request_ptr req, URI url, Response_handler cb, Options options = {});
 
     /**
      * @brief      Create a request on the given URL
@@ -214,7 +216,7 @@ namespace http {
     }
 
     /** Set uri and Host from URL */
-    void populate_from_url(Request& req, const URI& url);
+    static void populate_from_url(Request& req, const URI& url);
 
     /** Add data and content length */
     void add_data(Request&, const std::string& data);

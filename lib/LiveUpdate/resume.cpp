@@ -29,9 +29,6 @@
 //#define LPRINT(x, ...) printf(x, ##__VA_ARGS__);
 #define LPRINT(x, ...) /** x **/
 
-// heap area
-extern char* heap_end;
-
 namespace liu
 {
 static bool resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
@@ -40,9 +37,9 @@ bool LiveUpdate::is_resumable()
 {
   return is_resumable(OS::liveupdate_storage_area());
 }
-bool LiveUpdate::is_resumable(void* location)
+bool LiveUpdate::is_resumable(const void* location)
 {
-  return ((storage_header*) location)->validate();
+  return ((const storage_header*) location)->validate();
 }
 
 static bool resume_helper(void* location, std::string key, LiveUpdate::resume_func func)
@@ -59,22 +56,22 @@ bool LiveUpdate::resume(std::string key, resume_func func)
 {
   void* location = OS::liveupdate_storage_area();
   /// memory sanity check
-  if (heap_end >= (char*) location) {
+  if (OS::heap_end() >= (uintptr_t) location) {
     fprintf(stderr,
         "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
-		     (long int) (heap_end - (char*) location));
-    throw std::runtime_error("LiveUpdate storage area inside heap");
+		     (long int) (OS::heap_end() - (uintptr_t) location));
+    throw std::runtime_error("LiveUpdate::resume(): Storage area inside heap");
   }
   return resume_helper(location, std::move(key), func);
 }
-bool LiveUpdate::partition_exists(const std::string& key) noexcept
+bool LiveUpdate::partition_exists(const std::string& key, const void* area) noexcept
 {
-  auto* location = OS::liveupdate_storage_area();
+  if (area == nullptr) area = OS::liveupdate_storage_area();
 
-  if (!LiveUpdate::is_resumable(location))
+  if (!LiveUpdate::is_resumable(area))
     return false;
 
-  auto& storage = *reinterpret_cast<storage_header*>(location);
+  auto& storage = *(const storage_header*) area;
   return (storage.find_partition(key.c_str()) != -1);
 }
 void LiveUpdate::resume_from_heap(void* location, std::string key, LiveUpdate::resume_func func)
@@ -126,13 +123,13 @@ int Restore::as_int() const
   // this type uses the length field directly as value to save space
   if (ent->type == TYPE_INTEGER)
       return ent->len;
-  throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
+  throw std::runtime_error("LiveUpdate: Restore::as_int() encountered incorrect type " + std::to_string(ent->type));
 }
 std::string Restore::as_string() const
 {
   if (ent->type == TYPE_STRING)
       return std::string(ent->data(), ent->len);
-  throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
+  throw std::runtime_error("LiveUpdate: Restore::as_string() encountered incorrect type " + std::to_string(ent->type));
 }
 buffer_t  Restore::as_buffer() const
 {
@@ -141,11 +138,7 @@ buffer_t  Restore::as_buffer() const
       buffer.assign(ent->data(), ent->data() + ent->len);
       return buffer;
   }
-  throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
-}
-Restore::Connection_ptr Restore::as_tcp_connection(net::TCP& tcp) const
-{
-  return deserialize_connection(ent->vla, tcp);
+  throw std::runtime_error("LiveUpdate: Restore::as_buffer() encountered incorrect type " + std::to_string(ent->type));
 }
 
 int16_t     Restore::get_type() const noexcept
@@ -167,11 +160,11 @@ const void* Restore::data() const noexcept
 const void* Restore::get_segment(size_t size, size_t& count) const
 {
   if (ent->type != TYPE_VECTOR)
-      throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
+      throw std::runtime_error("LiveUpdate: Restore::as_vector() encountered incorrect type " + std::to_string(ent->type));
 
   auto& segs = ent->get_segs();
   if (size != segs.esize)
-      throw std::runtime_error("LiveUpdate: Incorrect type size " + std::to_string(size) + " vs " + std::to_string(segs.esize));
+      throw std::runtime_error("LiveUpdate: Restore::as_vector() encountered incorrect type size " + std::to_string(size) + " vs " + std::to_string(segs.esize));
 
   count = segs.count;
   return (const void*) segs.vla;
@@ -179,7 +172,7 @@ const void* Restore::get_segment(size_t size, size_t& count) const
 std::vector<std::string> Restore::rebuild_string_vector() const
 {
   if (ent->type != TYPE_STR_VECTOR)
-      throw std::runtime_error("LiveUpdate: Incorrect type " + std::to_string(ent->type));
+      throw std::runtime_error("LiveUpdate: Restore::as_vector<std::string>() encountered incorrect type " + std::to_string(ent->type));
   std::vector<std::string> retv;
   // reserve just enough room
   auto* begin = (varseg_begin*) ent->vla;
@@ -200,7 +193,7 @@ std::vector<std::string> Restore::rebuild_string_vector() const
 void     Restore::go_next()
 {
   if (is_end())
-      throw std::out_of_range("Already reached end of partition");
+      throw std::out_of_range("Restore::go_next(): Already reached end of partition");
   // increase the counter, so the resume loop skips entries properly
   ent = ent->next();
 }
@@ -226,7 +219,7 @@ void Restore::pop_marker(uint16_t id)
       && is_end() == false) go_next();
   if (is_marker()) {
     if (get_id() != id)
-        throw std::out_of_range("Ran past marker with another id: " + std::to_string(get_id()));
+        throw std::out_of_range("Restore::pop_marker(): Ran past marker with another id: " + std::to_string(get_id()));
     go_next();
   }
 }

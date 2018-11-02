@@ -1,4 +1,4 @@
-// -*-C++-*-
+﻿// -*-C++-*-
 // This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2017 Oslo and Akershus University College of Applied Sciences
@@ -19,12 +19,21 @@
 #ifndef X86_64_ARCH_HPP
 #define X86_64_ARCH_HPP
 
-#include <arch/x86.hpp>
+#define ARCH_x86
+
+inline void __arch_read_memory_barrier() noexcept {
+  __asm volatile("lfence" ::: "memory");
+}
+inline void __arch_write_memory_barrier() noexcept {
+  __asm volatile("mfence" ::: "memory");
+}
 
 inline uint64_t __arch_cpu_cycles() noexcept {
   uint32_t hi, lo;
   asm("rdtsc" : "=a"(lo), "=d"(hi));
   return ((uint64_t) lo) | ((uint64_t) hi) << 32;
 }
+
+constexpr uintptr_t __arch_max_canonical_addr = 0xffffffffffff;
 
 #endif

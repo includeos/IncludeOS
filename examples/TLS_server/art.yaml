@@ -1,0 +1,15 @@
+config:
+  target: "http://10.0.0.42"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+  plugins:
+    fuzzer: {}
+scenarios:
+  - name: "Fuzz some stuff"
+    flow:
+      - get:
+          url: "/?hello-{{naughtyString}}"
+      - log: "***** naughtyString = {{ naughtyString }}"
+      - get:
+          url: "/something/else?{{naughtyString}}"

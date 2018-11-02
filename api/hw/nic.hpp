@@ -18,9 +18,11 @@
 #ifndef HW_NIC_HPP
 #define HW_NIC_HPP
 
-#include "../net/buffer_store.hpp"
 #include "mac_addr.hpp"
 #include <net/inet_common.hpp>
+
+#define NIC_SENDQ_LIMIT_DEFAULT  4096
+#define NIC_BUFFER_LIMIT_DEFAULT 4096
 
 namespace hw {
 
@@ -31,6 +33,12 @@ namespace hw {
   public:
     using upstream    = delegate<void(net::Packet_ptr)>;
     using downstream  = net::downstream_link;
+
+    /** Maximum number of packets allowed in dynamic send queue **/
+    static constexpr uint32_t sendq_limit_default  = NIC_SENDQ_LIMIT_DEFAULT;
+
+    /** Maximum number of packets that can be created during RX-ring refill **/
+    static constexpr uint32_t buffer_limit_default = NIC_BUFFER_LIMIT_DEFAULT;
 
     enum class Proto {ETH, IEEE802111};
 
@@ -66,22 +74,8 @@ namespace hw {
     virtual void set_arp_upstream(upstream handler) = 0;
     virtual void set_vlan_upstream(upstream handler) = 0;
 
-    net::BufferStore& bufstore() noexcept
-    { return bufstore_; }
-
-    /** Number of free buffers in the BufferStore **/
-    size_t buffers_available()
-    { return bufstore_.available(); }
-
-    /** Number of total buffers in the BufferStore **/
-    size_t buffers_total()
-    { return bufstore_.total_buffers(); }
-
-    /** Number of bytes in a frame needed by the device itself **/
-    virtual size_t frame_offset_device() = 0;
-
     /** Number of bytes in a frame needed by the link layer **/
-    virtual size_t frame_offset_link() = 0;
+    virtual size_t frame_offset_link() const noexcept = 0;
 
     /**
      * Create a packet with appropriate size for the underlying link
@@ -110,11 +104,25 @@ namespace hw {
 
     virtual ~Nic() {}
 
-    /** Trigger a read from buffers, pusing any packets up the stack */
+    /** Check for completed rx and pass rx packets up the stack */
     virtual void poll() = 0;
 
     /** Overridable MTU detection function per-network **/
     static uint16_t MTU_detection_override(int idx, uint16_t default_MTU);
+
+    /** Set new buffer limit, where 0 means infinite **/
+    void set_buffer_limit(uint32_t new_limit) {
+      this->m_buffer_limit = new_limit;
+    }
+    uint32_t buffer_limit() const noexcept { return m_buffer_limit; }
+
+    /** Set new sendq limit, where 0 means infinite **/
+    void set_sendq_limit(uint32_t new_limit) {
+      this->m_sendq_limit = new_limit;
+    }
+    uint32_t sendq_limit() const noexcept { return m_sendq_limit; }
+
+    virtual void add_vlan([[maybe_unused]] const int id){}
 
   protected:
     /**
@@ -122,8 +130,7 @@ namespace hw {
      *
      *  Constructed by the actual Nic Driver
      */
-    Nic(net::BufferStore& bufstore)
-      : bufstore_{bufstore}
+    Nic()
     {
       static int id_counter = 0;
       N = id_counter++;
@@ -149,9 +156,17 @@ namespace hw {
       }
     }
 
+    bool buffers_still_available(uint32_t size) const noexcept {
+      return this->buffer_limit() == 0 || size < this->buffer_limit();
+    }
+    bool sendq_still_available(uint32_t size) const noexcept {
+      return this->sendq_limit() == 0 || size < this->sendq_limit();
+    }
+
   private:
-    net::BufferStore& bufstore_;
     int N;
+    uint32_t m_buffer_limit = buffer_limit_default;
+    uint32_t m_sendq_limit = sendq_limit_default;
     friend class Devices;
   };
 

@@ -18,7 +18,7 @@
 #include "apic.hpp"
 #include "ioapic.hpp"
 #include "acpi.hpp"
-#include "cpu.hpp"
+#include <arch/x86/cpu.hpp>
 #include "pic.hpp"
 #include "smp.hpp"
 #include <kernel/cpuid.hpp>
@@ -34,6 +34,18 @@ namespace x86
   IApic& APIC::get() noexcept {
     return *current_apic;
   }
+  static void apic_handle_intr(int vector)
+  {
+    Events::get().trigger_event(vector - IRQ_BASE);
+#ifdef ENABLE_DYNAMIC_EOI
+    assert(current_eoi_mechanism != nullptr);
+    current_eoi_mechanism();
+#endif
+  }
+  // shortcut that avoids virtual call
+  static void x2apic_send_eoi() {
+    CPU::write_msr(x86::x2apic::BASE_MSR + x2APIC_EOI, 0);
+  }
 }
 
 extern "C" {
@@ -41,33 +53,37 @@ extern "C" {
   void (*current_eoi_mechanism)() = nullptr;
   void (*real_eoi_mechanism)() = nullptr;
   void (*current_intr_handler)()  = nullptr;
-  // shortcut that avoids virtual call
-  void x2apic_send_eoi() {
-    x86::CPU::write_msr(x86::x2apic::BASE_MSR + x2APIC_EOI, 0);
-  }
   // the various interrupt handler flavors
-  void xapic_intr_handler()
+  static void xapic_intr_handler()
   {
-    uint8_t vector = x86::APIC::get_isr();
-    //assert(vector >= IRQ_BASE && vector < 160);
-    Events::get().trigger_event(vector - IRQ_BASE);
-#ifdef ENABLE_DYNAMIC_EOI
-    assert(current_eoi_mechanism != nullptr);
-    current_eoi_mechanism();
-#else
-    lapic_send_eoi();
+    for (int i = 1; i < 5; i++) {
+      uint32_t reg = x86::xapic::get_isr_at(i);
+      if (reg) {
+        const int vector = __builtin_ffs(reg) - 1;
+        // handle interrupt vector
+        x86::apic_handle_intr(32 * i + vector);
+        break;
+      }
+    }
+#ifndef ENABLE_DYNAMIC_EOI
+    // fixed location when APIC is not moved
+    *(volatile uint32_t*) 0xfee000B0 = 0;
 #endif
   }
-  void x2apic_intr_handler()
+  static void x2apic_intr_handler()
   {
-    uint8_t vector = x86::x2apic::static_get_isr();
-    //assert(vector >= IRQ_BASE && vector < 160);
-    Events::get().trigger_event(vector - IRQ_BASE);
-#ifdef ENABLE_DYNAMIC_EOI
-    assert(current_eoi_mechanism != nullptr);
-    current_eoi_mechanism();
-#else
-    x2apic_send_eoi();
+    for (int i = 1; i < 5; i++) {
+      uint32_t reg = x86::x2apic::get_isr_at(i);
+      if (reg) {
+        const int vector = __builtin_ffs(reg) - 1;
+        // handle interrupt vector
+        x86::apic_handle_intr(32 * i + vector);
+        break;
+      }
+    }
+#ifndef ENABLE_DYNAMIC_EOI
+    // EOI fast-path
+    x86::x2apic_send_eoi();
 #endif
   }
 }
@@ -83,6 +99,9 @@ namespace x86
     PIC::init();
     PIC::disable();
 
+    // initialize I/O APICs
+    IOAPIC::init(ACPI::get_ioapics());
+
     if (CPUID::has_feature(CPUID::Feature::X2APIC)) {
         current_apic = &x2apic::get();
         real_eoi_mechanism = x2apic_send_eoi;
@@ -96,20 +115,17 @@ namespace x86
         current_intr_handler  = xapic_intr_handler;
     }
 
-    if (current_eoi_mechanism == nullptr)
-        current_eoi_mechanism = real_eoi_mechanism;
-
-    // enable xAPIC/x2APIC on this cpu
-    current_apic->enable();
-
-    // initialize I/O APICs
-    IOAPIC::init(ACPI::get_ioapics());
-
 #ifdef ENABLE_KVM_PV_EOI
     // use KVMs paravirt EOI if supported
     if (CPUID::kvm_feature(KVM_FEATURE_PV_EOI))
         kvm_pv_eoi_init();
 #endif
+
+    if (current_eoi_mechanism == nullptr)
+        current_eoi_mechanism = real_eoi_mechanism;
+
+    // enable xAPIC/x2APIC on this cpu
+    current_apic->enable();
   }
 
   void APIC::enable_irq(uint8_t irq)

@@ -19,16 +19,16 @@
 #ifndef NET_SOCKET_HPP
 #define NET_SOCKET_HPP
 
-#include <net/ip4/addr.hpp>
+#include <net/addr.hpp>
 
 namespace net {
 
 /**
  * An IP address and port
  */
-union Socket {
-
-  using Address = ip4::Addr;
+class Socket {
+public:
+  using Address = net::Addr;
   using port_t = uint16_t;
 
   /**
@@ -37,7 +37,12 @@ union Socket {
    * Intialize an empty socket <0.0.0.0:0>
    */
   constexpr Socket() noexcept
-    : sock_(0, 0) {}
+    : Socket{0}
+  {}
+
+  explicit constexpr Socket(const port_t port) noexcept
+    : addr_{}, port_{port}
+  {}
 
   /**
    * Constructor
@@ -50,15 +55,20 @@ union Socket {
    * @param port
    *  The port associated with the process
    */
-  constexpr Socket(const Address address, const port_t port) noexcept
-    : sock_(address, port) {}
+  Socket(Address address, const port_t port) noexcept
+    : addr_{std::move(address)},
+      port_{port}
+  {}
 
-  Socket(const Socket& other) noexcept
-   : data_{other.data_} {}
-
-  Socket& operator=(const Socket& other) noexcept
+  Socket(const Socket& other) noexcept = default;
+  Socket(Socket&& other) noexcept
+    : addr_{std::move(other.addr_)}, port_{other.port_}
+  {}
+  Socket& operator=(const Socket& other) noexcept = default;
+  Socket& operator=(Socket&& other) noexcept
   {
-    data_ = other.data_;
+    addr_ = std::move(other.addr_);
+    port_ = other.port_;
     return *this;
   }
 
@@ -67,8 +77,8 @@ union Socket {
    *
    * @return The socket's network address
    */
-  constexpr Address address() const noexcept
-  { return sock_.address; }
+  const Address& address() const noexcept
+  { return addr_; }
 
   /**
    * Get the socket's port value
@@ -76,23 +86,25 @@ union Socket {
    * @return The socket's port value
    */
   constexpr port_t port() const noexcept
-  { return sock_.port; }
+  { return port_; }
 
   /**
    * Get a string representation of this class
    *
    * @return A string representation of this class
    */
-  std::string to_string() const
-  { return address().str() + ":" + std::to_string(port()); }
+  std::string to_string() const {
+    return (addr_.is_v6()) ? "[" + addr_.to_string() + "]:" + std::to_string(port_)
+      : addr_.to_string() + ":" + std::to_string(port_);
+  }
 
   /**
    * Check if this socket is empty <0.0.0.0:0>
    *
    * @return true if this socket is empty, false otherwise
    */
-  constexpr bool is_empty() const noexcept
-  { return (address() == 0) and (port() == 0); }
+  bool is_empty() const noexcept
+  { return (addr_.v6() == ip6::Addr::link_unspecified) and (port() == 0); }
 
   /**
    * Operator to check for equality relationship
@@ -102,9 +114,9 @@ union Socket {
    *
    * @return true if the specified socket is equal, false otherwise
    */
-  constexpr bool operator==(const Socket& other) const noexcept
+  bool operator==(const Socket& other) const noexcept
   {
-    return data_ == other.data_;
+    return addr_ == other.addr_ and port_ == other.port_;
   }
 
   /**
@@ -115,7 +127,7 @@ union Socket {
    *
    * @return true if the specified socket is not equal, false otherwise
    */
-  constexpr bool operator!=(const Socket& other) const noexcept
+  bool operator!=(const Socket& other) const noexcept
   { return not (*this == other); }
 
   /**
@@ -127,10 +139,10 @@ union Socket {
    * @return true if this socket is less-than the specified socket,
    * false otherwise
    */
-  constexpr bool operator<(const Socket& other) const noexcept
+  bool operator<(const Socket& other) const noexcept
   {
-    return (address() < other.address())
-        or ((address() == other.address()) and (port() < other.port()));
+    return (addr_ < other.addr_)
+        or ((addr_ == other.addr_) and (port_ < other.port_));
   }
 
   /**
@@ -142,21 +154,18 @@ union Socket {
    * @return true if this socket is greater-than the specified socket,
    * false otherwise
    */
-  constexpr bool operator>(const Socket& other) const noexcept
+  bool operator>(const Socket& other) const noexcept
   { return not (*this < other); }
 
 private:
-  struct Sock {
-    constexpr Sock(Address a, port_t p) : address(a), port(p), padding(0) {}
-    Address   address;
-    port_t    port;
-    uint16_t  padding;
-  } sock_;
-  uint64_t data_;
+  Address   addr_;
+  port_t    port_;
 
 }; //< class Socket
 
-static_assert(sizeof(Socket) == 8, "Socket not 8 byte");
+static_assert(std::is_move_constructible_v<Socket>);
+static_assert(std::is_move_assignable_v<Socket>);
+//static_assert(sizeof(Socket) == 18, "Socket not 18 byte");
 
 /**
  * @brief      A pair of Sockets
@@ -198,13 +207,26 @@ struct Quadruple {
 } //< namespace net
 
 namespace std {
-  template<>
-  struct hash<net::Socket> {
-  public:
-    size_t operator () (const net::Socket& key) const noexcept {
-      const auto h1 = std::hash<net::Socket::Address>{}(key.address());
-      const auto h2 = std::hash<net::Socket::port_t>{}(key.port());
-      return h1 ^ h2;
+  template<> struct hash<net::Socket>
+  {
+    typedef net::Socket argument_type;
+    typedef std::size_t result_type;
+    result_type operator()(argument_type const& s) const noexcept
+    {
+      return s.address().v6().i64[0]
+           ^ s.address().v6().i64[1]
+           ^ s.port();
+    }
+  };
+
+  template<> struct hash<std::pair<net::Socket, net::Socket>>
+  {
+    typedef std::pair<net::Socket, net::Socket> argument_type;
+    typedef std::size_t result_type;
+    result_type operator()(argument_type const& s) const noexcept
+    {
+      return std::hash<net::Socket>{}(s.first)
+           ^ std::hash<net::Socket>{}(s.second);
     }
   };
 

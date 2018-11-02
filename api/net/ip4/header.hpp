@@ -39,11 +39,11 @@ enum class Flags : uint8_t {
  * This type is used to represent the standard IPv4 header
  */
 struct Header {
-  uint8_t  version_ihl;    //< IP version and header length
-  uint8_t  ds_ecn;         //< IP datagram differentiated services codepoint and explicit congestion notification
-  uint16_t tot_len;        //< IP datagram total length
-  uint16_t id;             //< IP datagram identification number
-  uint16_t frag_off_flags; //< IP datagram fragment offset and control flags
+  uint8_t  version_ihl = 0x45;  //< IP version and header length
+  uint8_t  ds_ecn      = 0;     //< IP datagram differentiated services codepoint and explicit congestion notification
+  uint16_t tot_len     = 0;     //< IP datagram total length
+  uint16_t id          = 0;     //< IP datagram identification number
+  uint16_t frag_off_flags = 0;  //< IP datagram fragment offset and control flags
   uint8_t  ttl;            //< IP datagram time to live value
   uint8_t  protocol;       //< IP datagram protocol value
   uint16_t check;          //< IP datagram checksum value

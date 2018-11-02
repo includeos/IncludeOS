@@ -94,7 +94,7 @@ namespace hw
      * Software calculates the base address of the MSI-X PBA using the same process
      * with the PBA Offset / PBA BIR register.
     **/
-    auto bar = dev.read_dword(offset);
+    auto bar = dev.read32(offset);
 
     auto capbar_off = bar & ~MSIX_BIR_MASK;
     bar &= MSIX_BIR_MASK;
@@ -104,12 +104,13 @@ namespace hw
       printf("PCI: Invalid BAR: %u\n", bar);
       return 0;
     }
-    auto baroff = dev.get_bar(bar);
-    assert(baroff != 0);
+    auto pcibar = dev.get_bar(bar);
+    assert(pcibar.start != 0);
 
     PRINT("[MSI-X] offset %p -> bir %u => %p  res: %p\n",
-          (void*) offset, bar, (void*) baroff, (void*) (capbar_off + baroff));
-    return capbar_off + baroff;
+          (void*) offset, bar, (void*) pcibar.start,
+          (void*) (pcibar.start + capbar_off));
+    return pcibar.start + capbar_off;
   }
 
   msix_t::msix_t(PCI_Device& device, uint32_t cap)
@@ -142,7 +143,7 @@ namespace hw
     const size_t vector_cnt = (func & MSIX_TBL_SIZE) + 1;
 
     if (vector_cnt > 2048) {
-      printf("table addr: %p  pba addr: %p  vectors: %lu\n",
+      printf("table addr: %p  pba addr: %p  vectors: %zu\n",
               (void*) table_addr, (void*) pba_addr, vectors());
       printf("Unreasonably many MSI-X vectors!");
       return;
@@ -153,7 +154,7 @@ namespace hw
     for (size_t i = 0; i < this->vectors(); i++) {
       mask_entry(i);
     }
-    PRINT("[MSI-X] Enabled with %u vectors\n", this->vectors());
+    PRINT("[MSI-X] Enabled with %zu vectors\n", this->vectors());
 
     // unmask vectors
     func &= ~MSIX_FUNC_MASK;

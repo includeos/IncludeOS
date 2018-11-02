@@ -18,6 +18,7 @@
 #include "clocks.hpp"
 #include "../kvm/kvmclock.hpp"
 #include "cmos_clock.hpp"
+#include "platform.hpp"
 #include <util/units.hpp>
 #include <kernel/cpuid.hpp>
 #include <arch.hpp>
@@ -36,28 +37,31 @@ struct sysclock_t
   wall_time_t   wall_time   = nullptr;
   tsc_khz_t     tsc_khz     = nullptr;
 };
-static SMP_ARRAY<sysclock_t> vcpu_clock;
+static sysclock_t current_clock;
 
 namespace x86
 {
-
   void Clocks::init()
   {
-    if (false && CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE2))
+    if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE
+                         | KVM_FEATURE_CLOCKSOURCE2))
     {
       KVM_clock::init();
-      PER_CPU(vcpu_clock).system_time = {&KVM_clock::system_time};
-      PER_CPU(vcpu_clock).wall_time   = {&KVM_clock::wall_clock};
-      PER_CPU(vcpu_clock).tsc_khz     = {&KVM_clock::get_tsc_khz};
-      if (SMP::cpu_id() == 0) INFO("x86", "KVM PV clocks initialized");
+      if (SMP::cpu_id() == 0) {
+        current_clock.system_time = {&KVM_clock::system_time};
+        current_clock.wall_time   = {&KVM_clock::wall_clock};
+        current_clock.tsc_khz     = {&KVM_clock::get_tsc_khz};
+        x86::register_deactivation_function(KVM_clock::deactivate);
+        INFO("x86", "KVM PV clocks initialized");
+      }
     }
     else
     {
       // fallback with CMOS
-      PER_CPU(vcpu_clock).system_time = {&CMOS_clock::system_time};
-      PER_CPU(vcpu_clock).wall_time   = {&CMOS_clock::wall_clock};
-      PER_CPU(vcpu_clock).tsc_khz     = {&CMOS_clock::get_tsc_khz};
       if (SMP::cpu_id() == 0) {
+        current_clock.system_time = {&CMOS_clock::system_time};
+        current_clock.wall_time   = {&CMOS_clock::wall_clock};
+        current_clock.tsc_khz     = {&CMOS_clock::get_tsc_khz};
         CMOS_clock::init();
         INFO("x86", "CMOS clock initialized");
       }
@@ -66,15 +70,15 @@ namespace x86
 
   KHz Clocks::get_khz()
   {
-    return PER_CPU(vcpu_clock).tsc_khz();
+    return current_clock.tsc_khz();
   }
 }
 
 uint64_t __arch_system_time() noexcept
 {
-  return PER_CPU(vcpu_clock).system_time();
+  return current_clock.system_time();
 }
 timespec __arch_wall_clock() noexcept
 {
-  return PER_CPU(vcpu_clock).wall_time();
+  return current_clock.wall_time();
 }

@@ -3,6 +3,7 @@
 #include <info>
 #include <smp>
 #include <statman>
+#include <kernel/events.hpp>
 #include <kernel/timers.hpp>
 #include <kernel/solo5_manager.hpp>
 
@@ -14,16 +15,13 @@ extern "C" {
 static uint64_t os_cycles_hlt = 0;
 
 extern "C" void* get_cpu_esp();
-extern "C" void __libc_init_array();
-extern uintptr_t heap_begin;
-extern uintptr_t heap_end;
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t mem_size;
-extern uintptr_t _ELF_START_;
-extern uintptr_t _TEXT_START_;
-extern uintptr_t _LOAD_START_;
-extern uintptr_t _ELF_END_;
+extern char _ELF_START_;
+extern char _TEXT_START_;
+extern char _LOAD_START_;
+extern char _ELF_END_;
 // in kernel/os.cpp
 extern bool os_default_stdout;
 
@@ -69,12 +67,25 @@ void OS::default_stdout(const char* str, const size_t len)
   solo5_console_write(str, len);
 }
 
-void OS::start(char* _cmdline, uintptr_t mem_size)
+void OS::start(const char* cmdline)
 {
+  OS::cmdline = cmdline;
+
   // Initialize stdout handlers
   if(os_default_stdout) {
     OS::add_stdout(&OS::default_stdout);
   }
+
+  PROFILE("Global stdout constructors");
+  extern OS::ctor_t __stdout_ctors_start;
+  extern OS::ctor_t __stdout_ctors_end;
+  OS::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
+
+  // Call global ctors
+  PROFILE("Global kernel constructors");
+  extern OS::ctor_t __init_array_start;
+  extern OS::ctor_t __init_array_end;
+  OS::run_ctors(&__init_array_start, &__init_array_end);
 
   PROFILE("");
   // Print a fancy header
@@ -82,21 +93,6 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
 
   void* esp = get_cpu_esp();
   MYINFO("Stack: %p", esp);
-
-  /// STATMAN ///
-  /// initialize on page 7, 2 pages in size
-  Statman::get().init(0x6000, 0x3000);
-
-  OS::cmdline = _cmdline;
-
-  // setup memory and heap end
-  OS::memory_end_ = mem_size;
-  OS::heap_max_ = OS::memory_end_;
-
-  // Call global ctors
-  PROFILE("Global constructors");
-  __libc_init_array();
-
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
@@ -109,16 +105,16 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF"});
 
-  Expects(::heap_begin and heap_max_);
+  Expects(heap_begin() and heap_max_);
   // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end + 1, ::heap_begin - 1,
+  memmap.assign_range({(uintptr_t)&_end + 1, heap_begin() - 1,
         "Pre-heap"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
   uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
 
   MYINFO("Assigning heap");
-  memmap.assign_range({::heap_begin, heap_range_max_,
+  memmap.assign_range({heap_begin(), heap_range_max_,
         "Dynamic memory", heap_usage });
 
   MYINFO("Printing memory map");
@@ -131,6 +127,10 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
   MYINFO("Booted at monotonic_ns=%ld walltime_ns=%ld",
          solo5_clock_monotonic(), solo5_clock_wall());
 
+  extern OS::ctor_t __driver_ctors_start;
+  extern OS::ctor_t __driver_ctors_end;
+  OS::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
+
   Solo5_manager::init();
 
   // We don't need a start or stop function in solo5.
@@ -140,31 +140,56 @@ void OS::start(char* _cmdline, uintptr_t mem_size)
     // timer stop function
     [] () {});
 
-  Timers::ready();
+  Events::get().defer(Timers::ready);
+}
+
+static inline void event_loop_inner()
+{
+  int res = 0;
+  auto nxt = Timers::next();
+  if (nxt == std::chrono::nanoseconds(0))
+  {
+    // no next timer, wait forever
+    //printf("Waiting 15s, next is indeterminate...\n");
+    const unsigned long long count = 15000000000ULL;
+    res = solo5_yield(solo5_clock_monotonic() + count);
+    os_cycles_hlt += count;
+  }
+  else if (nxt == std::chrono::nanoseconds(1))
+  {
+    // there is an imminent or activated timer, don't wait
+    //printf("Not waiting, imminent timer...\n");
+  }
+  else
+  {
+    //printf("Waiting %llu nanos\n", nxt.count());
+    res = solo5_yield(solo5_clock_monotonic() + nxt.count());
+    os_cycles_hlt += nxt.count();
+  }
+
+  // handle any activated timers
+  Timers::timers_handler();
+  Events::get().process_events();
+  if (res != 0)
+  {
+    // handle any network traffic
+    for(auto& nic : hw::Devices::devices<hw::Nic>()) {
+      nic->poll();
+    }
+  }
 }
 
 void OS::event_loop()
 {
-  while (power_) {
-    int rc;
-
+  while (power_)
+  {
     // add a global symbol here so we can quickly discard
     // event loop from stack sampling
     asm volatile(
     ".global _irq_cb_return_location;\n"
     "_irq_cb_return_location:" );
 
-    // XXX: temporarily ALWAYS sleep for 0.5 ms. We should ideally ask Timers
-    // for the next immediate timer to fire (the first from the "scheduled" list
-    // of timers?)
-    rc = solo5_poll(solo5_clock_monotonic() + 500000ULL); // now + 0.5 ms
-    Timers::timers_handler();
-    if (rc) {
-      for(auto& nic : hw::Devices::devices<hw::Nic>()) {
-        nic->poll();
-        break;
-      }
-    }
+    event_loop_inner();
   }
 
 
@@ -187,35 +212,15 @@ void OS::halt() {
   os_cycles_hlt += solo5_clock_monotonic() - cycles_before;
 }
 
-// Keep track of blocking levels
-static uint32_t blocking_level = 0;
-static uint32_t highest_blocking_level = 0;
-
 void OS::block()
 {
-  // Increment level
+  static uint32_t blocking_level = 0;
   blocking_level += 1;
+  // prevent recursion stack overflow
+  assert(blocking_level < 200);
 
-  // Increment highest if applicable
-  if (blocking_level > highest_blocking_level)
-      highest_blocking_level = blocking_level;
-
-  int rc;
-  rc = solo5_poll(solo5_clock_monotonic() + 50000ULL); // now + 0.05 ms
-  if (rc == 0) {
-    Timers::timers_handler();
-  } else {
-
-    for(auto& nic : hw::Devices::devices<hw::Nic>()) {
-      nic->poll();
-      break;
-    }
-
-  }
+  event_loop_inner();
 
   // Decrement level
   blocking_level -= 1;
 }
-
-extern "C"
-void __os_store_soft_reset(void*, size_t) {}

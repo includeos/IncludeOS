@@ -17,7 +17,7 @@
 
 #include <hw/pci_device.hpp>
 #include <net/link_layer.hpp>
-#include <net/ethernet/ethernet.hpp>
+#include <net/ethernet/ethernet_8021q.hpp>
 #include <deque>
 #include <vector>
 
@@ -47,16 +47,13 @@ public:
   }
 
   uint16_t packet_len() const noexcept {
-    return sizeof(net::ethernet::Header) + MTU();
+    return frame_offset_link() + MTU();
   }
 
   net::downstream create_physical_downstream() override
   { return {this, &e1000::transmit}; }
 
   net::Packet_ptr create_packet(int) override;
-
-  size_t frame_offset_device() override
-  { return DRIVER_OFFSET; };
 
   /** Linklayer input. Hooks into IP-stack bottom, w.DOWNSTREAM data.*/
   void transmit(net::Packet_ptr pckt);
@@ -69,6 +66,8 @@ public:
     if (sendq_size >= NUM_TX_QUEUE) return 0;
     return free_transmit_descr() + NUM_TX_QUEUE - sendq_size;
   }
+
+  auto& bufstore() noexcept { return bufstore_; }
 
   void flush() override;
 

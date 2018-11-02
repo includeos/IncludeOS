@@ -1,3 +1,3 @@
 #!/bin/bash
-sudo apt install -y nodejs
-sudo pip install requests
+sudo apt-get -qqq install -y nodejs
+sudo -H pip -q install requests

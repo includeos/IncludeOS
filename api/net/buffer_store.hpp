@@ -36,66 +36,55 @@ namespace net
    **/
   class BufferStore {
   public:
-    struct buffer_t
-    {
-      BufferStore* bufstore;
-      uint8_t*     addr;
-    };
-
-    BufferStore(size_t num, size_t bufsize);
+    BufferStore(uint32_t num, uint32_t bufsize);
     ~BufferStore();
 
-    buffer_t get_buffer();
+    uint8_t* get_buffer();
 
     inline void release(void*);
 
-    size_t local_buffers() const noexcept
-    { return poolsize_ / bufsize_; }
-
     /** Get size of a buffer **/
-    size_t bufsize() const noexcept
+    uint32_t bufsize() const noexcept
     { return bufsize_; }
 
-    size_t poolsize() const noexcept
+    uint32_t poolsize() const noexcept
     { return poolsize_; }
 
-    /** Check if a buffer belongs here */
-    bool is_from_this_pool(uint8_t* addr) const noexcept {
-      return (addr >= this->pool_begin()
-          and addr <  this->pool_end());
+    /** Check if an address belongs to this buffer store */
+    bool is_valid(uint8_t* addr) const noexcept
+    {
+      for (const auto* pool : pools_)
+          if ((addr - pool) % bufsize_ == 0
+            && addr >= pool && addr < pool + poolsize_) return true;
+      return false;
     }
 
-    /** Check if an address is the start of a buffer */
-    bool is_buffer(uint8_t* addr) const noexcept
-    { return (addr - pool_) % bufsize_ == 0; }
+    size_t available() const noexcept {
+      return this->available_.size();
+    }
 
-    size_t available() const noexcept;
+    size_t total_buffers() const noexcept {
+      return this->pool_buffers() * this->pools_.size();
+    }
 
-    size_t total_buffers() const noexcept;
+    size_t buffers_in_use() const noexcept {
+      return this->total_buffers() - this->available();
+    }
 
     /** move this bufferstore to the current CPU **/
     void move_to_this_cpu() noexcept;
 
   private:
-    uint8_t* pool_begin() const noexcept {
-      return pool_;
-    }
-    uint8_t* pool_end() const noexcept {
-      return pool_begin() + poolsize_;
-    }
+    uint32_t pool_buffers() const noexcept { return poolsize_ / bufsize_; }
+    void create_new_pool();
+    bool growth_enabled() const;
 
-    BufferStore* get_next_bufstore();
-    inline buffer_t get_buffer_directly() noexcept;
-    inline void     release_directly(uint8_t*);
-    void release_internal(void*);
-
-    size_t               poolsize_;
-    size_t               bufsize_;
-    uint8_t*             pool_;
+    uint32_t              poolsize_;
+    uint32_t              bufsize_;
+    int                   index = -1;
     std::vector<uint8_t*> available_;
-    std::unique_ptr<BufferStore> next_;
-    int                  index;
-#ifndef INCLUDEOS_SINGLE_THREADED
+    std::vector<uint8_t*> pools_;
+#ifdef INCLUDEOS_SMP_ENABLE
     // has strict alignment reqs, so put at end
     spinlock_t           plock = 0;
 #endif
@@ -108,16 +97,14 @@ namespace net
   inline void BufferStore::release(void* addr)
   {
     auto* buff = (uint8_t*) addr;
-    // try to release directly into pool
-    if (LIKELY(is_from_this_pool(buff))) {
-#ifndef INCLUDEOS_SINGLE_THREADED
+    if (LIKELY(this->is_valid(buff))) {
+#ifdef INCLUDEOS_SMP_ENABLE
       scoped_spinlock spinlock(this->plock);
 #endif
-      available_.push_back(buff);
+      this->available_.push_back(buff);
       return;
     }
-    // release via chained stores
-    release_internal(addr);
+    throw std::runtime_error("Buffer did not belong");
   }
 
 } //< net

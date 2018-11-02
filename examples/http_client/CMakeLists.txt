@@ -22,9 +22,14 @@ set(DRIVERS
     virtionet
     vmxnet3
     e1000
-    boot_logger
+    #boot_logger
+  )
+
+set(PLUGINS
+    #vfs
   )
 
 include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
 
-diskbuilder(certs)
+install_certificates(disk/certs)
+diskbuilder(disk)

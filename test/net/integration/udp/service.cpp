@@ -16,21 +16,16 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet4>
-#include <timers>
-
+#include <net/inet>
 using namespace net;
 
 void Service::start()
 {
-  auto& inet = Inet4::stack<0>();
+  auto& inet = Inet::stack<0>();
   inet.network_config({  10,  0,  0, 55 },   // IP
                       { 255, 255, 0,  0 },   // Netmask
                       {  10,  0,  0,  1 } ); // Gateway
-  printf("Service IP address is %s\n", inet.ip_addr().str().c_str());
-
-  // UDP
-  const UDP::port_t port = 4242;
+  const uint16_t port = 4242;
   auto& sock = inet.udp().bind(port);
 
   sock.on_read(
@@ -38,17 +33,20 @@ void Service::start()
       UDP::addr_t addr, UDP::port_t port,
       const char* data, size_t len)
   {
-     std::string strdata(data, len);
-     CHECK(1, "Getting UDP data from %s:  %d -> %s",
-           addr.str().c_str(), port, strdata.c_str());
-     // send the same thing right back!
-     using namespace std::chrono;
-     Timers::oneshot(100ms,
-       Timers::handler_t::make_packed(
-       [&sock, addr, port, data, len](Timers::id_t) {
-         sock.sendto(addr, port, data, len);
-       }));
-   });
+    CHECK(1, "UDP data from %s:%u -> %.*s",
+         addr.to_string().c_str(), port, std::min((int) len, 16), data);
+    // send the same thing right back!
+    printf("Got %lu bytes\n", len);
+    while (len >= 1472)
+    {
+      sock.sendto(addr, port, data, 1472);
+      data += 1472;
+      len  -= 1472;
+    }
+    if (len > 0) {
+      sock.sendto(addr, port, data, len);
+    }
+  });
 
   INFO("UDP test", "Listening on port %d\n", port);
 }

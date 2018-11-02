@@ -2,6 +2,7 @@
 #include <kernel/syscalls.hpp>
 #include <liveupdate>
 #include <timers>
+#include <statman>
 #include <system_log>
 using namespace liu;
 
@@ -28,6 +29,16 @@ static void boot_save(Storage& storage, const buffer_t* blob)
 #else
   storage.add_buffer(2, *blob);
 #endif
+  auto& stm = Statman::get();
+  // increment number of updates performed
+  try {
+    ++stm.get_by_name("system.updates");
+  }
+  catch (const std::exception& e)
+  {
+    ++stm.create(Stat::UINT32, "system.updates");
+  }
+  stm.store(3, storage);
 }
 static void boot_resume_all(Restore& thing)
 {
@@ -46,6 +57,11 @@ static void boot_resume_all(Restore& thing)
 #else
   bloberino = thing.as_buffer(); thing.go_next();
 #endif
+  // statman
+  auto& stm = Statman::get();
+  stm.restore(thing); thing.go_next();
+  auto& stat = stm.get_by_name("system.updates");
+  assert(stat.get_uint32() > 0);
   thing.pop_marker();
 }
 
@@ -69,6 +85,10 @@ LiveUpdate::storage_func begin_test_boot()
         printf("%lld\n", stamp);
       }
       */
+      for (auto& stat : Statman::get()) {
+        printf("%s: %s\n", stat.name(), stat.to_string().c_str());
+      }
+
       printf("Verifying that timers are started...\n");
 
       using namespace std::chrono;

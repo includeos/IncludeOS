@@ -113,12 +113,8 @@ namespace PCI {
   static inline const char* vendor_str(uint16_t code);
 
   struct Resource {
-    int       type;
-    uint32_t  start;
-    uint32_t  len;
-    Resource* next;
-    Resource(int t, const uint32_t Start, const uint32_t Len)
-        : type(t), start{Start}, len{Len}, next(nullptr) {}
+    uintptr_t  start;
+    size_t     len;
   };
 
   static const uint8_t   RES_IO  = 0;
@@ -153,7 +149,7 @@ struct msix_t;
     explicit PCI_Device(const uint16_t pci_addr, const uint32_t, const uint32_t);
 
     //! @brief Read from device with implicit pci_address (e.g. used by Nic)
-    uint32_t read_dword(const uint8_t reg) noexcept;
+    uint32_t read32(const uint8_t reg) noexcept;
 
     //! @brief Read from device with explicit pci_addr
     static uint32_t read_dword(const uint16_t pci_addr, const uint8_t reg) noexcept;
@@ -207,8 +203,10 @@ struct msix_t;
      */
     void probe_resources() noexcept;
 
-    /** The base address of the (first) I/O resource */
-    uint32_t iobase() const noexcept;
+    /** The base address of the I/O resource */
+    uint32_t iobase() const {
+      return m_resources.at(this->m_iobase).start;
+    }
 
     typedef uint32_t pcicap_t;
     void parse_capabilities();
@@ -242,14 +240,15 @@ struct msix_t;
     void init_msix();
 
     // resource handling
-    uintptr_t get_bar(uint8_t id) const noexcept
+    const PCI::Resource& get_bar(uint8_t id) const
     {
-      return resources.at(id).start;
+      return m_resources.at(id);
     }
     bool validate_bar(uint8_t id) const noexcept
     {
-      return id < resources.size();
+      return id < m_resources.size();
     }
+    void* allocate_bar(uint8_t id, int pages);
 
     // @brief The 2-part ID retrieved from the device
     union vendor_product_t {
@@ -284,12 +283,11 @@ struct msix_t;
     vendor_product_t device_id_;
     class_revision_t devtype_;
 
-    // Device Resources
-    typedef PCI::Resource Resource;
     //! @brief List of PCI BARs
-    std::vector<Resource> resources;
+    int m_iobase = -1;
+    std::array<PCI::Resource, 6> m_resources;
 
-    pcicap_t caps[PCI_CAP_ID_MAX+1];
+    std::array<pcicap_t, PCI_CAP_ID_MAX+1> caps;
 
     // has msix support if not null
     msix_t*  msix = nullptr;

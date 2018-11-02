@@ -22,8 +22,8 @@ CASE("Testing Conntrack flow")
 {
   using namespace net;
   const Protocol proto{Protocol::UDP};
-  Socket src{{10,0,0,42}, 80};
-  Socket dst{{10,0,0,1}, 1337};
+  Socket src{ip4::Addr{10,0,0,42}, 80};
+  Socket dst{ip4::Addr{10,0,0,1}, 1337};
   Quadruple quad{src, dst};
   // Reversed quadruple
   Quadruple rquad = quad; rquad.swap();
@@ -90,8 +90,8 @@ CASE("Testing Conntrack update entry")
 {
   using namespace net;
   const Protocol proto{Protocol::UDP};
-  Socket src{{10,0,0,42}, 80};
-  Socket dst{{10,0,0,1}, 1337};
+  Socket src{ip4::Addr{10,0,0,42}, 80};
+  Socket dst{ip4::Addr{10,0,0,1}, 1337};
   Quadruple quad{src, dst};
   // Reversed quadruple
   Quadruple rquad = quad; rquad.swap();
@@ -111,8 +111,8 @@ CASE("Testing Conntrack update entry")
   EXPECT(entry->second == rquad);
 
   // Let's update the second quadruple with a new one
-  Socket new_src{{10,0,0,42}, 80};
-  Socket new_dst{{10,0,0,1}, 1337};
+  Socket new_src{ip4::Addr{10,0,0,42}, 80};
+  Socket new_dst{ip4::Addr{10,0,0,1}, 1337};
   Quadruple new_quad{new_src, new_dst};
   ct.update_entry(proto, entry->second, new_quad);
 
@@ -130,8 +130,8 @@ CASE("Testing Conntrack update entry")
 CASE("Testing Conntrack limit")
 {
   using namespace net;
-  Socket src{{10,0,0,42}, 80};
-  Socket dst{{10,0,0,1}, 1337};
+  Socket src{ip4::Addr{10,0,0,42}, 80};
+  Socket dst{ip4::Addr{10,0,0,1}, 1337};
   Quadruple quad{src, dst};
   // Reversed quadruple
   Quadruple rquad = quad; rquad.swap();
@@ -163,8 +163,8 @@ CASE("Testing Conntrack limit")
 CASE("Testing Conntrack serialization")
 {
   using namespace net;
-  Socket src{{10,0,0,42}, 80};
-  Socket dst{{10,0,0,1}, 1337};
+  Socket src{ip4::Addr{10,0,0,42}, 80};
+  Socket dst{ip4::Addr{10,0,0,1}, 1337};
   Quadruple quad{src, dst};
   // Reversed quadruple
   Quadruple rquad = quad; rquad.swap();

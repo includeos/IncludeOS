@@ -60,12 +60,14 @@ CMOS::Time& CMOS::Time::hw_update() {
 }
 
 
-std::string CMOS::Time::to_string(){
-  std::array<char,20> str;
-  sprintf(str.data(), "%.2i-%.2i-%iT%.2i:%.2i:%.2iZ",
+std::string CMOS::Time::to_string()
+{
+  std::array<char, 33> buffer;
+  int len = snprintf(buffer.data(), buffer.size(),
+          "%.2i-%.2i-%iT%.2i:%.2i:%.2iZ",
           f.year, f.month, f.day_of_month,
           f.hour, f.minute, f.second);
-  return std::string(str.data(), str.size());
+  return std::string(buffer.data(), len);
 }
 
 

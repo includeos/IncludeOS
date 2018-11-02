@@ -4,6 +4,7 @@ import os
 import sys
 import subprocess
 import thread
+import time
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
@@ -16,14 +17,29 @@ class DummyClient(WebSocketClient):
     def opened(self):
         self.count = 0
         print "<test.py> Opened"
+        time.sleep(1)
 
     def closed(self, code, reason=None):
         print "<test.py> Closed down", code, reason
 
+    def handshake_ok(self):
+        print "<test.py> Handshake ok"
+        self._th.start()
+
+    def close(self, code=1000, reason=''):
+        print "close is called, code: {0}, reason: {1}".format(code, reason)
+
+        if not self.client_terminated:
+            self.client_terminated = True
+
+            self._write(self.stream.close(code=code, reason=reason).single(mask=True))
+
+
     def received_message(self, m):
-        print "<test.py> received message"
+        #print "<test.py> received message"
         self.count += 1
         if self.count >= 1000:
+            print "<test.py> received ", self.count, "messages. Closing."
             self.close(reason='Bye bye')
 
 def startBenchmark(line):
@@ -32,7 +48,7 @@ def startBenchmark(line):
         ws = DummyClient('ws://10.0.0.54:8000/', protocols=['http-only', 'chat'])
         print "<test.py> WS-client connecting"
         ws.connect()
-        print "<test.py> WS-client conneted, doing run_forever"
+        print "<test.py> WS-client connected, doing run_forever"
         ws.run_forever()
         print "<test.py> Finished running forever"
     except KeyboardInterrupt:

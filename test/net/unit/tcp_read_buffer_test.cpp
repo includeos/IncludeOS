@@ -18,14 +18,16 @@
 #include <common.cxx>
 #include <net/tcp/read_buffer.hpp>
 
+static const size_t MIN_BUFSZ = 128;
+static const size_t MAX_BUFSZ = 128;
 CASE("Filling a hole")
 {
   using namespace net::tcp;
   const seq_t SEQ_START = 322;
   seq_t SEQ = SEQ_START;
-  const size_t BUFSZ = 128;
+  const size_t BUFSZ = MIN_BUFSZ;
 
-  Read_buffer buf{BUFSZ, SEQ};
+  Read_buffer buf{SEQ, MIN_BUFSZ, MAX_BUFSZ};
 
   EXPECT(buf.size() == 0);
   EXPECT(buf.capacity() == BUFSZ);
@@ -83,9 +85,9 @@ CASE("Filling the buffer")
   using namespace net::tcp;
   const seq_t SEQ_START = 322;
   seq_t SEQ = SEQ_START;
-  const size_t BUFSZ = 128;
+  const size_t BUFSZ = MIN_BUFSZ;
 
-  Read_buffer buf{BUFSZ, SEQ};
+  Read_buffer buf{SEQ, MIN_BUFSZ, MAX_BUFSZ};
 
   using namespace std::string_literals;
 
@@ -120,9 +122,9 @@ CASE("Reseting the buffer")
   using namespace net::tcp;
   const seq_t SEQ_START = 322;
   seq_t SEQ = SEQ_START;
-  const size_t BUFSZ = 128;
+  const size_t BUFSZ = MIN_BUFSZ;
 
-  Read_buffer buf{BUFSZ, SEQ};
+  Read_buffer buf{SEQ, MIN_BUFSZ, MAX_BUFSZ};
 
   using namespace std::string_literals;
 
@@ -161,11 +163,37 @@ CASE("Reseting the buffer")
   auto* data = buf.buffer()->data();
   buf.reset(SEQ, BUFSZ*2);
   EXPECT(buf.buffer().get() == ptr);
-  // but not same data
-  EXPECT(buf.buffer()->data() != data);
+  // and the same data
+  EXPECT(buf.buffer()->data() == data);
 
-  // decreasing the cap also means new data
+  // decreasing the cap means new data
   data = buf.buffer()->data();
   buf.reset(SEQ, BUFSZ/2);
   EXPECT(buf.buffer()->data() != data);
+}
+
+#include <limits>
+CASE("fits()")
+{
+  using namespace net::tcp;
+  const size_t BUFSZ = 1024;
+  seq_t seq = 1000;
+
+  std::unique_ptr<Read_buffer> buf;
+
+  buf.reset(new Read_buffer(seq, BUFSZ, BUFSZ));
+
+  EXPECT(buf->fits(1000) == BUFSZ - (1000 - seq));
+  EXPECT(buf->fits(1200) == BUFSZ - (1200 - seq));
+  EXPECT(buf->fits(900) == 0);
+  EXPECT(buf->fits(seq + BUFSZ) == 0);
+
+  const uint32_t MAX_UINT = std::numeric_limits<uint32_t>::max();
+
+  seq = MAX_UINT - 500;
+  buf.reset(new Read_buffer(seq, BUFSZ, BUFSZ));
+  EXPECT(buf->fits(seq) == BUFSZ);
+  EXPECT(buf->fits(seq + 500) == BUFSZ - 500);
+  EXPECT(buf->fits(seq + 1000) == BUFSZ - 1000);
+  EXPECT(buf->fits(4000) == 0);
 }

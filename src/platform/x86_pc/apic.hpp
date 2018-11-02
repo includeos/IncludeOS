@@ -34,10 +34,10 @@ namespace x86
     static void enable_irq (uint8_t irq);
     static void disable_irq(uint8_t irq);
 
-    static uint8_t get_isr() noexcept {
+    static int get_isr() noexcept {
       return get().get_isr();
     }
-    static uint8_t get_irr() noexcept {
+    static int get_irr() noexcept {
       return get().get_irr();
     }
     static void eoi() noexcept {

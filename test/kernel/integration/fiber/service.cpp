@@ -180,7 +180,7 @@ void scheduler3 () {
   INFO("Scheduler", "Started. Initializing %i threads", N);
 
   for (int i = 0; i < N; i++) {
-    threads.emplace_back(Fiber{work});
+    threads.emplace_back(work);
   }
 
   for (auto& thread : threads) {
@@ -311,15 +311,15 @@ void Service::start()
   INFO("Service", "Computed long: %li", ret);
 
 
-  #ifndef INCLUDEOS_SINGLE_THREADED
-  extern void fiber_smp_test();
-  fiber_smp_test();
-  #endif
-
+#ifdef INCLUDEOS_SMP_ENABLE
+  if (SMP::cpu_count() > 1) {
+    extern void fiber_smp_test();
+    fiber_smp_test();
+  } else {
+    INFO("Service", "SMP test requires > 1 cpu's, found %i \n", SMP::cpu_count());
+  }
+#endif
   SMP_PRINT("Service done. rsp @ %p \n", get_rsp());
-
   SMP_PRINT("SUCCESS\n");
   exit(0);
-
-
 }

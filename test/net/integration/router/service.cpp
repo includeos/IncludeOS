@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet4>
+#include <net/inet>
 #include <net/router.hpp>
 using namespace net;
 
@@ -40,9 +40,9 @@ route_checker(IP4::addr addr)
 }
 
 static void
-ip_forward (IP4::IP_packet_ptr pckt, Inet<IP4>& stack, Conntrack::Entry_ptr)
+ip_forward (IP4::IP_packet_ptr pckt, Inet& stack, Conntrack::Entry_ptr)
 {
-  Inet<IP4>* route = router->get_first_interface(pckt->ip_dst());
+  Inet* route = router->get_first_interface(pckt->ip_dst());
 
   if (not route){
     INFO("ip_fwd", "No route found for %s dropping\n", pckt->ip_dst().to_string().c_str());
@@ -61,14 +61,14 @@ ip_forward (IP4::IP_packet_ptr pckt, Inet<IP4>& stack, Conntrack::Entry_ptr)
 
 void Service::start(const std::string&)
 {
-  auto& inet = Inet4::stack<0>();
+  auto& inet = Inet::stack<0>();
   inet.network_config({  10,  0,  0, 42 },   // IP
                       { 255, 255, 0,  0 },   // Netmask
                       {  10,  0,  0,  1 } ); // Gateway
 
   INFO("Router","Interface 1 IP: %s\n", inet.ip_addr().str().c_str());
 
-  auto& inet2 = Inet4::stack<1>();
+  auto& inet2 = Inet::stack<1>();
   inet2.network_config({  10,  42,  42, 43 },   // IP
                       { 255, 255, 255,  0 },   // Netmask
                       {  10,  42,  42,  2 } ); // Gateway

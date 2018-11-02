@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <net/dhcp/dhcpd.hpp>
+#include <net/inet>
 #include <rtc>
 
 using namespace net;
@@ -93,7 +94,7 @@ void DHCPD::update_pool(IP4::addr ip, Status new_status) {
 }
 
 void DHCPD::listen() {
-  socket_.on_read([&] (IP4::addr, UDP::port_t port,
+  socket_.on_read([&] (net::Addr, UDP::port_t port,
     const char* data, size_t len) {
 
     if (port == DHCP_CLIENT_PORT) {

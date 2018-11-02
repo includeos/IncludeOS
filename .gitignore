@@ -17,9 +17,13 @@
 *.img
 *.img.*
 *.gz
+*.tar
+*nacl.txt
 .DS_Store
 nbproject
 dummy.disk
+callgraph.svg
+massif.out.*
 
 !Dockerfile
 
@@ -35,3 +39,15 @@ test/**/*.log
 CMakeFiles*
 CMakeCache*
 cmake_install.cmake
+
+# Name of installation folder
+IncludeOS_install
+
+# Vim
+*.swp
+
+#CLion
+.idea/
+
+# Starbase disk file
+lib/uplink/starbase/disk

@@ -10,7 +10,6 @@ import traceback
 import validate_vm
 import signal
 import psutil
-import magic
 from shutil import copyfile
 
 from prettify import color
@@ -83,8 +82,9 @@ def info(*args):
 
 
 def file_type(filename):
-    with magic.Magic() as m:
-        return m.id_filename(filename)
+    p = subprocess.Popen(['file',filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    output, errors = p.communicate()
+    return output
 
 def is_Elf64(filename):
     magic = file_type(filename)
@@ -215,8 +215,13 @@ class ukvm(hypervisor):
     def image_name(self):
         return self._image_name
 
-    def drive_arg(self):
-        return ["--disk=" + INCLUDEOS_HOME + "dummy.disk"]
+    def drive_arg(self, filename,
+                  device_format="raw", media_type="disk"):
+        if device_format != "raw":
+            raise Exception("solo5/ukvm can only handle drives in raw format.")
+        if media_type != "disk":
+            raise Exception("solo5/ukvm can only handle drives of type disk.")
+        return ["--disk=" + filename]
 
     def net_arg(self):
         return ["--net=tap100"]
@@ -236,12 +241,23 @@ class ukvm(hypervisor):
         self._image_name = image_name
 
         command = ["sudo", qkvm_bin]
-        command += self.drive_arg()
+
+        if not "drives" in self._config:
+            command += self.drive_arg(self._image_name)
+        elif len(self._config["drives"]) > 1:
+            raise Exception("solo5/ukvm can only handle one drive.")
+        else:
+            for disk in self._config["drives"]:
+                info ("Ignoring drive type argument: ", disk["type"])
+                command += self.drive_arg(disk["file"], disk["format"],
+                                          disk["media"])
+
         command += self.net_arg()
         command += [self._image_name]
         command += [kernel_args]
 
         try:
+            self.info("Starting ", command)
             self.start_process(command)
             self.info("Started process PID ",self._proc.pid)
         except Exception as e:
@@ -321,6 +337,7 @@ class qemu(hypervisor):
         self._stopped = False
         self._sudo = False
         self._image_name = self._config if "image" in self._config else self.name() + " vm"
+        self.m_drive_no = 0
 
         # Pretty printing
         self.info = Logger(color.INFO("<" + type(self).__name__ + ">"))
@@ -331,11 +348,27 @@ class qemu(hypervisor):
     def image_name(self):
         return self._image_name
 
-    def drive_arg(self, filename, drive_type = "virtio", drive_format = "raw", media_type = "disk"):
-        return ["-drive","file=" + filename
-                + ",format=" + drive_format
-                + ",if=" + drive_type
-                + ",media=" + media_type]
+    def drive_arg(self, filename, device = "virtio", drive_format = "raw", media_type = "disk"):
+        names = {"virtio" : "virtio-blk",
+                 "virtio-scsi" : "virtio-scsi",
+                 "ide"    : "piix3-ide",
+                 "nvme"   : "nvme"}
+
+        if device == "ide":
+            # most likely a problem relating to bus, or wrong .drive
+            return ["-drive","file=" + filename
+                    + ",format=" + drive_format
+                    + ",if=" + device
+                    + ",media=" + media_type]
+        else:
+            if device in names:
+                device = names[device]
+
+            driveno = "drv" + str(self.m_drive_no)
+            self.m_drive_no += 1
+            return ["-drive", "file=" + filename + ",format=" + drive_format
+                            + ",if=none" + ",media=" + media_type + ",id=" + driveno,
+                    "-device",  device + ",drive=" + driveno +",serial=foo"]
 
     # -initrd "file1 arg=foo,file2"
     # This syntax is only available with multiboot.
@@ -345,9 +378,13 @@ class qemu(hypervisor):
                              for mod in mods])
         return ["-initrd", mods_list]
 
-    def net_arg(self, backend, device, if_name = "net0", mac = None, bridge = None):
-        qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
-        qemu_ifdown = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifdown"
+    def net_arg(self, backend, device, if_name = "net0", mac = None, bridge = None, scripts = None):
+        if scripts:
+            qemu_ifup = scripts + "qemu-ifup"
+            qemu_ifdown = scripts + "qemu-ifdown"
+        else:
+            qemu_ifup = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifup"
+            qemu_ifdown = INCLUDEOS_HOME + "/includeos/scripts/qemu-ifdown"
 
         # FIXME: this needs to get removed, e.g. fetched from the schema
         names = {"virtio" : "virtio-net", "vmxnet" : "vmxnet3", "vmxnet3" : "vmxnet3"}
@@ -371,6 +408,7 @@ class qemu(hypervisor):
 
         # Add mac-address if specified
         if mac: device += ",mac=" + mac
+        device += ",romfile=" # remove some qemu boot info (experimental)
 
         return ["-device", device,
                 "-netdev", netdev]
@@ -489,7 +527,8 @@ class qemu(hypervisor):
             for net in self._config["net"]:
                 mac = net["mac"] if "mac" in net else None
                 bridge = net["bridge"] if "bridge" in net else None
-                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), mac, bridge)
+                scripts = net["scripts"] if "scripts" in net else None
+                net_args += self.net_arg(net["backend"], net["device"], "net"+str(i), mac, bridge, scripts)
                 i+=1
 
         mem_arg = []
@@ -514,11 +553,10 @@ class qemu(hypervisor):
             qemu_binary = self._config["qemu"]
 
         # TODO: sudo is only required for tap networking and kvm. Check for those.
-        command = ["sudo", "--preserve-env", qemu_binary]
+        command = ["sudo", qemu_binary]
         if self._kvm_present: command.extend(["--enable-kvm"])
 
         command += kernel_args
-
         command += disk_args + debug_args + net_args + mem_arg + mod_args
         command += vga_arg + trace_arg + pci_arg
 

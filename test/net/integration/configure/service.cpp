@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <service>
+#include <net/inet>
 #include <net/super_stack.hpp>
 #include <config>
 
@@ -23,14 +24,14 @@ void Service::start()
 {
   using namespace net;
 
-  auto& stacks = Super_stack::inet().ip4_stacks();
+  auto& stacks = Super_stack::inet().stacks();
   CHECKSERT(stacks.size() == 6, "There are 6 interfaces");
 
   INFO("Test", "Verify eth0");
   CHECKSERT(stacks[0][0] != nullptr, "eth0 is initialized");
 
   auto& eth0 = *stacks[0][0];
-  CHECKSERT(eth0.ip_addr() == ip4::Addr(10,0,0,42), "IP address is 10.0.0.42");
+  CHECKSERT(eth0.ip_addr() == ip4::Addr(10,0,0,60), "IP address is 10.0.0.60");
   CHECKSERT(eth0.netmask() == ip4::Addr(255,255,255,0), "Netmask is 255.255.255.0");
   CHECKSERT(eth0.gateway() == ip4::Addr(10,0,0,1), "Gateway is 10.0.0.1");
   CHECKSERT(eth0.dns_addr() == eth0.gateway(), "DNS addr is same as gateway");
@@ -39,7 +40,7 @@ void Service::start()
   CHECKSERT(stacks[1][0] != nullptr, "eth1 is initialized");
 
   auto& eth1 = *stacks[1][0];
-  CHECKSERT(eth1.ip_addr() == ip4::Addr(10,0,0,43), "IP address is 10.0.0.43");
+  CHECKSERT(eth1.ip_addr() == ip4::Addr(10,0,0,61), "IP address is 10.0.0.61");
   CHECKSERT(eth1.netmask() == ip4::Addr(255,255,255,0), "Netmask is 255.255.255.0");
   CHECKSERT(eth1.gateway() == ip4::Addr(10,0,0,1), "Gateway is 10.0.0.1");
   CHECKSERT(eth1.dns_addr() == ip4::Addr(8,8,8,8), "DNS addr is 8.8.8.8");
