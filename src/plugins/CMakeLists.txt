@@ -38,6 +38,10 @@ add_library(field_medic STATIC
             field_medic/diag.cpp)
 add_dependencies(field_medic PrecompiledLibraries)
 
+add_library(madness STATIC
+            madness/madness.cpp)
+add_dependencies(madness PrecompiledLibraries)
+
 add_library(syslog STATIC syslog.cpp)
 add_dependencies(syslog PrecompiledLibraries)
 
@@ -58,4 +62,5 @@ install(TARGETS
     vfs
     field_medic
     syslog
+    madness
   DESTINATION includeos/${ARCH}/plugins)
