@@ -74,6 +74,7 @@ IrcServer::IrcServer(
   INFO2("Accepting servers on %s port %u",
         server_stack().ifname().c_str(), sv_port);
 
+#ifndef USERSPACE_LINUX
   /// LiveUpdate ///
   const bool live_updated = this->init_liveupdate();
   if (live_updated == false)
@@ -85,6 +86,9 @@ IrcServer::IrcServer(
     this->created_string = std::string(str, len);
     this->cheapstamp = this->created_ts;
   }
+#else
+  const bool live_updated = false;
+#endif
   INFO2("Server started on %s", created_string.c_str());
   INFO2("Version " IRC_SERVER_VERSION);
   INFO("IRC", "Server open");
