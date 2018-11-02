@@ -203,17 +203,11 @@ namespace s2n
 
   inline void TLS_stream::write(buffer_t buffer)
   {
-    assert(handshake_completed());
-    s2n_blocked_status blocked;
-    s2n_send(this->m_conn, buffer->data(), buffer->size(), &blocked);
-    S2N_PRINT("write %zu bytes, blocked = %x\n", buffer->size(), blocked);
+    this->write(buffer->data(), buffer->size());
   }
   inline void TLS_stream::write(const std::string& str)
   {
-    assert(handshake_completed());
-    s2n_blocked_status blocked;
-    s2n_send(this->m_conn, str.data(), str.size(), &blocked);
-    S2N_PRINT("write %zu bytes, blocked = %x\n", str.size(), blocked);
+    this->write(str.data(), str.size());
   }
   inline void TLS_stream::write(const void* data, const size_t len)
   {
