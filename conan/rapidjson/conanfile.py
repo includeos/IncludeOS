@@ -14,12 +14,9 @@ class RapidJsonConan(ConanFile):
         repo = tools.Git(folder="rapidjson")
         repo.clone("https://github.com/Tencent/rapidjson.git",branch=str(self.branch))
 
-    #def build(self):
-#        shutil.copy("rapidjson/include")
-
     def package(self):
         #todo extract to includeos/include!!
-        self.copy("*",dst="include",src="rapidjson/include/rapidjson")
+        self.copy("*",dst="include/rapidjson",src="rapidjson/include/rapidjson")
 
     def deploy(self):
-        self.copy("*",dst="include",src="include")
+        self.copy("*",dst="include/rapidjson",src="include/rapidjson")
