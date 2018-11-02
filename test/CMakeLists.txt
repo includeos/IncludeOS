@@ -156,7 +156,9 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
-  ${TEST}/util/unit/lstack.cpp
+  ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
+  ${TEST}/util/unit/lstack/test_lstack_merging.cpp
+  ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
   ${TEST}/util/unit/buddy_alloc_test.cpp
 )
 
