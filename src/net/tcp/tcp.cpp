@@ -222,6 +222,7 @@ void TCP::receive(Packet_view& packet)
     return;
   }
 
+#if !defined(DISABLE_INET_CHECKSUMS)
   // Validate checksum
   if (UNLIKELY(packet.compute_tcp_checksum() != 0)) {
     PRINT("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
@@ -229,6 +230,7 @@ void TCP::receive(Packet_view& packet)
     drop(packet);
     return;
   }
+#endif
 
   // Stat increment bytes received
   (*bytes_rx_) += packet.tcp_data_length();

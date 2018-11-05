@@ -68,9 +68,11 @@ namespace net {
     if (UNLIKELY(not packet->validate_length()))
       return drop(std::move(packet), up, Drop_reason::Bad_length);
 
+#if !defined(DISABLE_INET_CHECKSUMS)
     // RFC-1122 3.2.1.2, Verify IP checksum, silently discard bad dgram
     if (UNLIKELY(packet->compute_ip_checksum() != 0))
       return drop(std::move(packet), up, Drop_reason::Wrong_checksum);
+#endif
 
     // RFC-1122 3.2.1.3, Silently discard datagram with bad src addr
     // Here dropping if the source ip address is a multicast address or is this interface's broadcast address

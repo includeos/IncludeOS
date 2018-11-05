@@ -18,12 +18,14 @@ include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 include_directories(${BOTAN_DIR})
-include_directories(${OPENSSL_DIR}/include)
+include_directories(${S2N_INCLUDE})
 if(${ARCH} STREQUAL "x86_64")
   set(OPENSSL_MODULES "net/openssl/init.cpp" "net/openssl/client.cpp"
                       "net/openssl/server.cpp"
-                      "net/https/openssl_server.cpp" "net/http/client.cpp")
-  set(OPENSSL_LIBS    openssl_ssl openssl_crypto)
+                      "net/https/openssl_server.cpp" "net/http/client.cpp"
+                      "net/https/s2n_server.cpp"
+                    )
+  set(OPENSSL_LIBS    s2n_libs2n s2n_libssl s2n_crypto)
 endif()
 set(BOTAN_MODULES "net/https/botan_server.cpp")
 
