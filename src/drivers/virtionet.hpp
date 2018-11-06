@@ -233,7 +233,6 @@ private:
   bool deferred_kick = false;
   static void handle_deferred_devices();
 
-  net::Packet_ptr transmit_queue = nullptr;
   net::BufferStore bufstore_;
 
   /** Stats */

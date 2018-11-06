@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.9)
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
+add_definitions(-DPLATFORM_${PLATFORM})
+add_definitions(-D__includeos__)
 
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${LIBCXX_INCLUDE_DIR})
@@ -27,7 +29,8 @@ endif()
 # LiveUpdate static library
 add_library(liveupdate STATIC
     storage.cpp partition.cpp update.cpp resume.cpp rollback.cpp
-    os.cpp serialize_tcp.cpp hotswap.cpp hotswap64_blob.asm
+    elfscan.cpp os.cpp "serialize_tcp.cpp"
+    hotswap.cpp "hotswap64_blob.asm"
     ${LIU_OPENSSL_FILES}
   )
 add_dependencies(liveupdate hotswap64)
