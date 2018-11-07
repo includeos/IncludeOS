@@ -74,8 +74,6 @@ namespace openssl
       return m_transport.get();
     }
 
-    size_t serialize_to(void*) const override;
-
   private:
     void tls_read(buffer_t);
     int  tls_perform_stream_write();

@@ -181,7 +181,10 @@ namespace net {
     **/
     virtual Stream* transport() noexcept = 0;
 
-    virtual size_t serialize_to(void*) const = 0;
+    /** default empty implementation of serialize_to(...) **/
+    virtual size_t serialize_to(void*, size_t) const {
+      throw std::runtime_error("Not implemented for this stream");
+    }
 
     virtual ~Stream() = default;
   }; // < class Stream

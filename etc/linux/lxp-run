@@ -1,10 +1,11 @@
 #!/bin/bash
 set -e
-export GPROF=${GPROF:-"OFF"}
-export PGO_EN=${PGO_EN:-"OFF"}
-export PGO_GEN=${PGO_GEN:-"OFF"}
-export DBG=${DBG:-"OFF"}
-export NUM_JOBS=${NUM_JOBS:--j8}
+GPROF=${GPROF:-"OFF"}
+PGO_EN=${PGO_EN:-"OFF"}
+PGO_GEN=${PGO_GEN:-"OFF"}
+DBG=${DBG:-"OFF"}
+NUM_JOBS=${NUM_JOBS:--j8}
+RUN=${RUN:-"ON"}
 scriptName="${0##*/}"
 
 function make_linux() {
@@ -74,10 +75,12 @@ fi
 make_linux
 make_service
 
-#sudo mknod /dev/net/tap c 10 200
-BINARY=build/"`cat build/binary.txt`"
-if [ $DBG = "ON" ]; then
-  sudo gdb $BINARY
-else
-  sudo $BINARY
+if [[ "$RUN" = "ON" ]]; then
+  #sudo mknod /dev/net/tap c 10 200
+  BINARY=build/"`cat build/binary.txt`"
+  if [[ "$DBG" = "ON" ]]; then
+    sudo gdb $BINARY
+  else
+    sudo $BINARY
+  fi
 fi

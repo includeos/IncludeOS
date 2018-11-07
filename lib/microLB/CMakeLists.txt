@@ -22,7 +22,7 @@ if (${ARCH} STREQUAL "x86_64")
   target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/lib/LiveUpdate)
   target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/mod/rapidjson/include)
   target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/mod/GSL/)
-  target_include_directories(microlb PUBLIC ${OPENSSL_DIR}/include)
+  target_include_directories(microlb PUBLIC ${S2N_INCLUDE})
 
   install(TARGETS microlb DESTINATION includeos/${ARCH}/lib)
   install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/micro_lb/balancer.hpp DESTINATION includeos/include/micro_lb)

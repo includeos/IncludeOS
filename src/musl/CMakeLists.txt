@@ -29,6 +29,8 @@ set(MUSL_OBJECTS
   mkdir.cpp
   mkdirat.cpp
   mknodat.cpp
+  mlock.cpp
+  mprotect.cpp
   openat.cpp
   readlink.cpp
   rename.cpp

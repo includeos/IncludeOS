@@ -14,7 +14,7 @@ include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
 #dependencies
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
-include_directories(${OPENSSL_DIR}/include)
+include_directories(${S2N_INCLUDE})
 
 set(LIBRARY_NAME "uplink")
 

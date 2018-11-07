@@ -27,7 +27,8 @@ void create_network_device(int N, const char* route, const char* ip)
   tap->on_read({usernet, &UserNet::receive});
 }
 
-int main(int, char** args)
+extern "C"
+int userspace_main(int, char** args)
 {
 #ifdef __linux__
   // set affinity to CPU 1
@@ -42,12 +43,21 @@ int main(int, char** args)
 
   // calls Service::start
   OS::post_start();
+  return 0;
+}
 
+#ifndef LIBFUZZER_ENABLED
+// default main (event loop forever)
+int main(int argc, char** args)
+{
+  int res = userspace_main(argc, args);
+  if (res < 0) return res;
   // begin event loop
   OS::event_loop();
   printf("*** System shutting down!\n");
   return 0;
 }
+#endif
 
 void wait_tap_devices()
 {
