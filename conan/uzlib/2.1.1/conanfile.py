@@ -1,9 +1,10 @@
+import shutil
 from conans import ConanFile,tools
 
 class UzlibConan(ConanFile):
     settings="os","compiler","build_type","arch"
     name = "uzlib"
-    version = "v2.9" #2.1.1 is probably the right one
+    version = "v2.1.1" #2.1.1 is probably the right one
     license = 'zlib'
     description = 'uzlib - Deflate/Zlib-compatible LZ77 compression/decompression library'
     url = "http://www.ibsensoftware.com/"
@@ -14,11 +15,13 @@ class UzlibConan(ConanFile):
         self.run("git fetch --all --tags --prune",cwd="uzlib")
         self.run("git checkout tags/"+str(self.version)+" -b "+str(self.version),cwd="uzlib")
     def build(self):
+        #a symlink would also do the trick
+        shutil.copy("uzlib/src/makefile.elf","uzlib/src/Makefile")
         self.run("make -j20",cwd="uzlib/src")
 
     def package(self):
         self.copy("*.h",dst="include",src="uzlib/src")
-        self.copy("*.a",dst="lib",src="uzlib")
+        self.copy("*.a",dst="lib",src="uzlib/lib")
 
     def deploy(self):
         self.copy("*.a",dst="lib",src="lib")

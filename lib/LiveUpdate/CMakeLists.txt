@@ -34,7 +34,7 @@ add_library(liveupdate STATIC
     ${LIU_OPENSSL_FILES}
   )
 add_dependencies(liveupdate hotswap64)
-add_dependencies(liveupdate PrecompiledLibraries)
+#add_dependencies(liveupdate PrecompiledLibraries)
 
 install(TARGETS liveupdate DESTINATION includeos/${ARCH}/lib)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/liveupdate.hpp DESTINATION includeos/include)

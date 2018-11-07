@@ -19,7 +19,7 @@ class HttpParserConan(ConanFile):
         self.run("make http_parser.o",cwd="http_parser")
 
     def package(self):
-        self.copy("*.h",dst="include",src="http_parser")
+        self.copy("*.h",dst="include/http-parser",src="http_parser")
         self.copy("http_parser.o",dst="lib",src="http_parser")
 
     def deploy(self):

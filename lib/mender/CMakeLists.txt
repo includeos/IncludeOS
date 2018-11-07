@@ -30,9 +30,9 @@ set(SOURCES
   )
 
 add_library(${LIBRARY_NAME} STATIC ${SOURCES})
-add_dependencies(${LIBRARY_NAME} botan) # we need to wait for botan
-add_dependencies(${LIBRARY_NAME} osdeps) # wait for uzlib
-add_dependencies(${LIBRARY_NAME} PrecompiledLibraries)
+#add_dependencies(${LIBRARY_NAME} botan) # we need to wait for botan
+#add_dependencies(${LIBRARY_NAME} osdeps) # wait for uzlib
+#add_dependencies(${LIBRARY_NAME} PrecompiledLibraries)
 
 # verbose mender or not
 target_compile_definitions(${LIBRARY_NAME} PRIVATE VERBOSE_MENDER=1)

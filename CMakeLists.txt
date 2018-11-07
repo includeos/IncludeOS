@@ -11,6 +11,7 @@ if(NOT HAVE_FLAG_STD_CXX17)
  message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
 endif()
 
+
 if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
  if (DEFINED ENV{INCLUDEOS_PREFIX})
    set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
@@ -18,6 +19,7 @@ if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
    message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
  endif()
 endif()
+
 
 # Target CPU Architecture
 if(DEFINED ENV{ARCH})
@@ -51,6 +53,8 @@ execute_process(COMMAND git describe --tags --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
+
+
 
 option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
 if(cpu_feat_vanilla)
@@ -92,11 +96,14 @@ function(init_submodule MOD)
   execute_process(COMMAND git submodule update --init ${MOD} WORKING_DIRECTORY ${INCLUDEOS_ROOT})
 endfunction()
 
+
+
+
 # Init submodules
-init_submodule(mod/GSL)
-init_submodule(mod/http-parser)
-init_submodule(mod/uzlib)
-init_submodule(mod/rapidjson)
+#init_submodule(mod/GSL)
+#init_submodule(mod/http-parser)
+#init_submodule(mod/uzlib)
+#init_submodule(mod/rapidjson)
 init_submodule(NaCl)
 
 # set optimization level
@@ -144,36 +151,84 @@ enable_language(ASM_NASM)
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
-  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "${CAPABS}  -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS}  -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
-  set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
+  set(CMAKE_CXX_FLAGS "${CAPABS}  -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib  -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
 # either download or cross-compile needed libraries
 #option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
-set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.cmake)
+#set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
+#include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.cmake)
+
+
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+   message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+   file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+                  "${CMAKE_BINARY_DIR}/conan.cmake")
+endif()
+
+include(${CMAKE_BINARY_DIR}/conan.cmake)
+set(CMAKE_BUILD_TYPE Release)
+
+#NB 5.0 is llvm version should be a variable from CMAKE!!
+
+SET(CONAN_DEPENDENCIES
+  llvm/5.0@includeos/stable
+  musl/v1.1.18@includeos/stable
+#  binutils/2.31/includeos/stable
+
+  GSL/1.0.0@includeos/test
+  protobuf/3.5.1.1@includeos/test
+  rapidjson/1.1.0@includeos/test
+  botan/2.8.0@includeos/test
+  openssl/1.1.1@includeos/test
+  s2n/1.1.1@includeos/test
+
+  http-parser/2.8.1@includeos/test
+  uzlib/v2.1.1@includeos/test
+)
+IF (APPLE)
+  SET(CONAN_DEPENDENCIES ${CONAN_DEPENDENCIES}
+    libgcc/1.0@includeos/stable
+  )
+ENDIF(APPLE)
+
+#TODO find a better way to handle profiles ?
+conan_cmake_run(REQUIRES
+                ${CONAN_DEPENDENCIES}
+                PROFILE clang-5.0
+                BASIC_SETUP
+                BUILD missing
+                GENERATORS
+                cmake
+                )
 
 # Botan Crypto & TLS
 # Note: Include order matters!
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
+#include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
 # OpenSSL libssl/libcrypto
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/openssl.cmake)
+#include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/openssl.cmake)
+
+
+
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nacl.cmake)
 
 #
 # Subprojects
 #
-add_subdirectory(mod)
+#TODO
+#add_subdirectory(mod)
 add_subdirectory(src)
 
 #
 # External projects
 #
+#TODO pass correct include paths to vmbuild ?
 option(vmbuild "Build and install vmbuild and elf_syms" ON)
 if(vmbuild)
   # Install vmbuilder as an external project
@@ -184,7 +239,7 @@ if(vmbuild)
     INSTALL_DIR ${BIN} # Where to install
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
      -DINCLUDE_PATH=${CMAKE_INSTALL_PREFIX} # Pass installation folder
-    DEPENDS PrecompiledLibraries
+    #DEPENDS PrecompiledLibraries
     )
 endif(vmbuild)
 
@@ -226,6 +281,7 @@ endif(tests)
 #
 # Libraries
 #
+#TODO verify the asumption that all these work once all the proper includes are in order!!
 option(libmana "Build and install mana web application framework library" ON)
 if(libmana)
   add_subdirectory(lib/mana)
@@ -254,11 +310,11 @@ if(libmicroLB)
 endif()
 
 
-option(libprotobuf "Build and install Google's protobuf runtime library" ON)
-if(libprotobuf)
-  init_submodule(lib/protobuf)
-  include(${INCLUDEOS_ROOT}/cmake/protobuf.cmake)
-endif(libprotobuf)
+#option(libprotobuf "Build and install Google's protobuf runtime library" ON)
+#if(libprotobuf)
+#  init_submodule(lib/protobuf)
+#  include(${INCLUDEOS_ROOT}/cmake/protobuf.cmake)
+#endif(libprotobuf)
 
 #
 # Installation

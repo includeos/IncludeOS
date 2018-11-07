@@ -14,7 +14,7 @@ class MuslConan(ConanFile):
     exports_sources=['../../../etc*musl*musl.patch', '../../../etc*musl*endian.patch','../../../api*syscalls.h','../../../etc*musl*syscall.h']
 
     def build_requirements(self):
-        self.build_requires("binutils/2.31@includeos/stable")
+        self.build_requires("binutils/2.31@%s/%s"%(self.user,self.channel))
 
     def imports(self):
         triple = str(self.settings.arch)+"-elf"

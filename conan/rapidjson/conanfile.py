@@ -16,7 +16,7 @@ class RapidJsonConan(ConanFile):
 
     def package(self):
         #todo extract to includeos/include!!
-        self.copy("*",dst="include/rapidjson",src="rapidjson/include/rapidjson")
+        self.copy("*",dst="include",src="rapidjson/include")
 
     def deploy(self):
-        self.copy("*",dst="include/rapidjson",src="include/rapidjson")
+        self.copy("*",dst="include",src="include")

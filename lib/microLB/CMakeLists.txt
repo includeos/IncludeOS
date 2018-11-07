@@ -12,7 +12,7 @@ if (${ARCH} STREQUAL "x86_64")
       micro_lb/serialize.cpp
     )
 
-  add_dependencies(microlb PrecompiledLibraries openssl_bundle)
+  #add_dependencies(microlb PrecompiledLibraries openssl_bundle)
 
   target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api/posix)
   target_include_directories(microlb PUBLIC ${LIBCXX_INCLUDE_DIR})

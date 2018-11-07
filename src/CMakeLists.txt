@@ -7,15 +7,15 @@ if (smp)
 add_definitions(-DINCLUDEOS_SMP_ENABLE)
 endif()
 
-include_directories(${LIBCXX_INCLUDE_DIR})
-include_directories(${MUSL_INCLUDE_DIR})
+#include_directories(${LIBCXX_INCLUDE_DIR})
+#include_directories(${MUSL_INCLUDE_DIR})
 include_directories(${SOLO5_INCLUDE_DIR})
 include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
-include_directories(${INCLUDEOS_ROOT}/mod/)
-include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
-include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
-include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
+#include_directories(${INCLUDEOS_ROOT}/mod/)
+#include_directories(${INCLUDEOS_ROOT}/mod/GSL/)
+#include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
+#include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 include_directories(${BOTAN_DIR})
 include_directories(${OPENSSL_DIR}/include)
@@ -72,7 +72,9 @@ set(OS_OBJECTS
 )
 
 add_library(os STATIC ${OS_OBJECTS})
-add_dependencies(os PrecompiledLibraries botan ${OPENSSL_LIBS})
+
+#TODO add conan requirements ?
+#add_dependencies(os PrecompiledLibraries botan ${OPENSSL_LIBS})
 
 # disable sanitizers on c_abi and cxx_abi, etc.
 set_source_files_properties(crt/c_abi.c PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")

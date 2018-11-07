@@ -38,7 +38,7 @@ set(MANA_ATTR
 
 add_library(mana STATIC ${MANA_OBJ} ${MANA_COMP} ${MANA_MWARE} ${MANA_ATTR})
 
-add_dependencies(mana PrecompiledLibraries)
+#add_dependencies(mana PrecompiledLibraries)
 
 install(TARGETS mana DESTINATION includeos/${ARCH}/lib)
 install(DIRECTORY include/mana DESTINATION includeos/include)

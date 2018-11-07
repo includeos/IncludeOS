@@ -11,11 +11,11 @@ class LlvmConan(ConanFile):
     description = 'The LLVM Compiler Infrastructure cxx/cxxabi and libunwind'
     url = "https://llvm.org/"
     exports_sources=['../../../api*posix*']
-    no_copy_source=True
+    #no_copy_source=True
 
     def build_requirements(self):
-        self.build_requires("binutils/2.31@includeos/stable")
-        self.build_requires("musl/v1.1.18@includeos/stable")
+        self.build_requires("binutils/2.31@%s/%s"%(self.user,self.channel))
+        self.build_requires("musl/v1.1.18@%s/%s"%(self.user,self.channel))
 
     def imports(self):
         self.copy("*",dst="target/include",src="include")
@@ -98,6 +98,11 @@ class LlvmConan(ConanFile):
         cmake.build(target='cxx')
 
     def package(self):
+        #the first 4 lines are the right way for conan!!
+        #self.copy("*.h",dst="include",src="include")
+        self.copy("*",dst="include",src="include/c++/v1")
+        self.copy("*libunwind*.h",dst="include",src="llvm/projects/libunwind/include")
+        self.copy("*.a",dst="lib",src="lib")
         self.copy("*libunwind*.h",dst="libunwind/include",src="llvm/projects/libunwind/include")
         self.copy("*",dst="libcxx/include",src="include/c++/v1")
         self.copy("libc++.a",dst="libcxx",src="lib")
@@ -105,4 +110,6 @@ class LlvmConan(ConanFile):
         self.copy("libunwind.a",dst="libunwind",src="lib")
 
     def deploy(self):
-        self.copy("*",dst="./",src="./")
+        #this is for bundle deployment
+        self.copy("*",dst="libcxx",src="libcxx")
+        self.copy("*",dst="libunwind",src="libunwind")

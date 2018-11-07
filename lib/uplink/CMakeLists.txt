@@ -34,13 +34,13 @@ install(DIRECTORY . DESTINATION includeos/include/uplink
 
 # Uplink library
 add_library(${LIBRARY_NAME} STATIC ${SOURCES})
-add_dependencies(${LIBRARY_NAME} PrecompiledLibraries)
-add_dependencies(${LIBRARY_NAME} openssl_bundle)
+#add_dependencies(${LIBRARY_NAME} PrecompiledLibraries)
+#add_dependencies(${LIBRARY_NAME} openssl_bundle)
 install(TARGETS ${LIBRARY_NAME} DESTINATION includeos/${ARCH}/plugins)
 
 # Uplink log driver
 add_library(uplink_log STATIC uplink_log.cpp)
-add_dependencies(uplink_log PrecompiledLibraries)
-add_dependencies(uplink_log openssl_bundle)
+#add_dependencies(uplink_log PrecompiledLibraries)
+#add_dependencies(uplink_log openssl_bundle)
 install(TARGETS uplink_log DESTINATION includeos/${ARCH}/drivers)
 endif()
