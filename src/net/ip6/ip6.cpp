@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define IP6_DEBUG 1
+//#define IP6_DEBUG 1
 #ifdef IP6_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -263,7 +263,7 @@ namespace net
 
     if (next_hop == IP6::ADDR_ANY) {
       next_hop = stack_.ndp().next_hop(packet->ip_dst());
-      printf("ndp nexthop: %s\n", next_hop.to_string().c_str());
+      PRINT("<IP6> ndp nexthop: %s\n", next_hop.to_string().c_str());
 
       PRINT("<IP6 TOP> Next hop for %s == %s\n",
             packet->ip_dst().str().c_str(),

@@ -93,6 +93,18 @@ public:
   bool validate_length() const noexcept
   { return udp_length() >= sizeof(udp::Header); }
 
+  uint16_t udp_checksum() const noexcept
+  { return udp_header().checksum; }
+
+  virtual uint16_t compute_udp_checksum() const noexcept
+  { return 0x0; }
+
+  void set_udp_checksum() noexcept
+  {
+    udp_header().checksum = 0;
+    udp_header().checksum = compute_udp_checksum();
+  }
+
   uint8_t* udp_data()
   { return (uint8_t*)header + udp_header_length(); }
 
