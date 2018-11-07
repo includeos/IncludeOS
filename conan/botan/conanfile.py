@@ -11,12 +11,14 @@ class BotanConan(ConanFile):
 
     keep_imports=True
     def build_requirements(self):
-        self.build_requires("binutils/2.31@includeos/stable")
         self.build_requires("musl/v1.1.18@includeos/stable")
+        self.build_requires("binutils/2.31@includeos/stable")
         self.build_requires("llvm/5.0@includeos/stable")## do we need this or just headers
 
     def imports(self):
-        self.copy("*",dst="target",src=".")
+        self.copy("*",dst="target/include",src=self.deps_cpp_info["musl"].include_paths[0])
+        self.copy("*",dst="target/libcxx",src="libcxx")
+        self.copy("*",dst="target/libunwind",src="libunwind")
 
     def source(self):
         repo = tools.Git(folder="botan")

@@ -164,6 +164,9 @@ endif()
 #set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
 #include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.cmake)
 
+if (WITH_SOLO5)
+  include(cmake/solo5.cmake)
+endif(WITH_SOLO5)
 
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
