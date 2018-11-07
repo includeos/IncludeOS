@@ -280,6 +280,11 @@ namespace net {
       this->dns_server_ = server;
     }
 
+    void set_dns_server6(ip6::Addr server)
+    {
+      this->dns_server6_ = server;
+    }
+
     /**
      * @brief Try to negotiate DHCP
      * @details Initialize DHClient if not present and tries to negotitate dhcp.
@@ -301,7 +306,7 @@ namespace net {
 
     bool is_configured_v6() const
     {
-      return ndp_.static_ip() != IP6::ADDR_ANY;
+      return addr6_config().get_first_unicast() != ip6::Addr::addr_any;
     }
 
     // handler called after the network is configured,
@@ -504,6 +509,7 @@ namespace net {
     // we need this to store the cache per-stack
     dns::Client dns_;
     std::string domain_name_;
+    ip6::Addr dns_server6_;
 
     std::shared_ptr<net::DHClient> dhcp_{};
     std::unique_ptr<net::Slaac>    slaac_{};

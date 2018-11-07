@@ -120,6 +120,7 @@ namespace http {
   void Basic_client::request(Method method, URI url, Header_set hfields,
                        Response_handler cb, Options options)
   {
+    Expects(url.is_valid());
     Expects(cb != nullptr);
 
     // find out if this is a secured request or not

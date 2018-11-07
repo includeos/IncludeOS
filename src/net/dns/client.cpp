@@ -40,6 +40,7 @@ namespace net::dns
                        Resolve_handler func,
                        Timer::duration_t timeout, bool force)
   {
+    Expects(not hostname.empty());
     if(not is_FQDN(hostname) and not stack_.domain_name().empty())
     {
       hostname.append(".").append(stack_.domain_name());
@@ -55,10 +56,10 @@ namespace net::dns
       }
     }
     // Make sure we actually can bind to a socket
-    auto& socket = stack_.udp().bind();
+    auto& socket = (dns_server.is_v6()) ? stack_.udp().bind6() : stack_.udp().bind();
 
     // Create our query
-    Query query{std::move(hostname), Record_type::A};
+    Query query{std::move(hostname), (dns_server.is_v6() ? Record_type::AAAA : Record_type::A)};
 
     // store the request for later match
     auto emp = requests_.emplace(std::piecewise_construct,

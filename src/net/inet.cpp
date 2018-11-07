@@ -380,7 +380,10 @@ void Inet::resolve(const std::string& hostname,
      resolve_func       func,
      bool               force)
 {
-   dns_.resolve(this->dns_server_, hostname, func, force);
+  if(is_configured_v6() and dns_server6_ != ip6::Addr::addr_any)
+    resolve(hostname, this->dns_server6_, func, force);
+  else
+    resolve(hostname, this->dns_server_, func, force);
 }
 
 void Inet::resolve(const std::string& hostname,
@@ -388,7 +391,8 @@ void Inet::resolve(const std::string& hostname,
       resolve_func      func,
       bool              force)
 {
-   dns_.resolve(server, hostname, func, force);
+  Expects(not hostname.empty());
+  dns_.resolve(server, hostname, func, force);
 }
 
 void Inet::set_route_checker6(Route_checker6 delg)
