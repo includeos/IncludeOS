@@ -20,7 +20,7 @@ if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
  endif()
 endif()
 
-
+#TODO get this from profile ?
 # Target CPU Architecture
 if(DEFINED ENV{ARCH})
   set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
@@ -96,16 +96,11 @@ function(init_submodule MOD)
   execute_process(COMMAND git submodule update --init ${MOD} WORKING_DIRECTORY ${INCLUDEOS_ROOT})
 endfunction()
 
-
-
-
 # Init submodules
-#init_submodule(mod/GSL)
-#init_submodule(mod/http-parser)
-#init_submodule(mod/uzlib)
-#init_submodule(mod/rapidjson)
 init_submodule(NaCl)
 
+
+#TODO get all these from profile ?
 # set optimization level
 set(OPTIMIZE "-O2")
 
@@ -159,10 +154,6 @@ else()
   set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib  -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
-# either download or cross-compile needed libraries
-#option(from_bundle "Download and use pre-compiled libraries for cross-comilation" ON)
-#set(BUNDLE_LOC "" CACHE STRING "Local path of bundle with pre-compile libraries")
-#include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cross_compiled_libraries.cmake)
 
 if (WITH_SOLO5)
   include(cmake/solo5.cmake)
@@ -177,8 +168,17 @@ endif()
 include(${CMAKE_BINARY_DIR}/conan.cmake)
 set(CMAKE_BUILD_TYPE Release)
 
-#NB 5.0 is llvm version should be a variable from CMAKE!!
+#Sets the includeos default profile to clang-5.0
+if (NOT DEFINED CONAN_PROFILE)
+  SET(CONAN_PROFILE clang-5.0)
+endif()
 
+#NB 5.0 is llvm version should be a variable from CMAKE or profile ?
+#TODO separate dependencies if build is GCC from if build is clang ?
+#TODO if with solo5 download solo5 package..
+#TODO create a NaCL package ?
+#TODO create packages for tools in general ?
+#TODO move these where they are actually needed and not bloat the global space with the package
 SET(CONAN_DEPENDENCIES
   llvm/5.0@includeos/stable
   musl/v1.1.18@includeos/stable
@@ -201,51 +201,26 @@ IF (APPLE)
 ENDIF(APPLE)
 
 #TODO find a better way to handle profiles ?
-conan_cmake_run(REQUIRES
-                ${CONAN_DEPENDENCIES}
-                PROFILE clang-5.0
-                BASIC_SETUP
-                BUILD missing
-                GENERATORS
-                cmake
-                )
-
-# Botan Crypto & TLS
-# Note: Include order matters!
-#include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/botan.cmake)
-# OpenSSL libssl/libcrypto
-#include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/openssl.cmake)
-
-
-
+conan_cmake_run(
+  REQUIRES ${CONAN_DEPENDENCIES}
+  PROFILE ${CONAN_PROFILE}
+  BASIC_SETUP
+  BUILD missing
+  GENERATORS
+  cmake
+ )
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nacl.cmake)
 
 #
 # Subprojects
 #
-#TODO
-#add_subdirectory(mod)
+
 add_subdirectory(src)
 
 #
 # External projects
 #
-#TODO move vmbuild to separate job
-#TODO pass correct include paths to vmbuild ?
-option(vmbuild "Build and install vmbuild and elf_syms" OFF)
-if(vmbuild)
-  # Install vmbuilder as an external project
-  ExternalProject_Add(vmbuild
-    PREFIX vmbuild # Build where
-    SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
-    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/vmbuild/build
-    INSTALL_DIR ${BIN} # Where to install
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-     -DINCLUDE_PATH=${CMAKE_INSTALL_PREFIX} # Pass installation folder
-    #DEPENDS PrecompiledLibraries
-    )
-endif(vmbuild)
 
 option(diskbuilder "Build and install memdisk helper tool" ON)
 if(diskbuilder)
@@ -313,13 +288,6 @@ if(libmicroLB)
   add_subdirectory(lib/microLB)
 endif()
 
-
-#option(libprotobuf "Build and install Google's protobuf runtime library" ON)
-#if(libprotobuf)
-#  init_submodule(lib/protobuf)
-#  include(${INCLUDEOS_ROOT}/cmake/protobuf.cmake)
-#endif(libprotobuf)
-
 #
 # Installation
 #
@@ -332,9 +300,6 @@ install(FILES cmake/linux.service.cmake DESTINATION includeos)
 install(FILES cmake/library.cmake DESTINATION includeos)
 install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION includeos RENAME settings.cmake) # cpu_feat_vanilla opt
 
-# Install vmrunner
-install(DIRECTORY vmrunner DESTINATION includeos)
-install(FILES vmrunner/${DEFAULT_VM} DESTINATION includeos/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
 
 # Install toolchain
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION includeos)
@@ -363,8 +328,6 @@ install(PROGRAMS
   DESTINATION includeos/scripts)
 
 install(DIRECTORY api/ DESTINATION includeos/api)
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/mod/GSL/gsl DESTINATION includeos/include)
-install(DIRECTORY mod/rapidjson/include/rapidjson DESTINATION includeos/include)
 
 set(CPACK_GENERATOR "TGZ;DEB")
 set(CPACK_PACKAGE_VERSION ${OS_VERSION})
