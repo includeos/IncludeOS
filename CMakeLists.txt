@@ -231,8 +231,9 @@ add_subdirectory(src)
 #
 # External projects
 #
+#TODO move vmbuild to separate job
 #TODO pass correct include paths to vmbuild ?
-option(vmbuild "Build and install vmbuild and elf_syms" ON)
+option(vmbuild "Build and install vmbuild and elf_syms" OFF)
 if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
