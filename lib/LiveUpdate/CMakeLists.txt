@@ -19,14 +19,10 @@ add_library(liveupdate STATIC
     hotswap.cpp "hotswap64_blob.asm"
   )
 add_dependencies(liveupdate hotswap64)
-#add_dependencies(liveupdate PrecompiledLibraries)
 
 target_include_directories(liveupdate PUBLIC ${INCLUDEOS_ROOT}/api/posix)
-target_include_directories(liveupdate PUBLIC ${LIBCXX_INCLUDE_DIR})
-target_include_directories(liveupdate PUBLIC ${MUSL_INCLUDE_DIR})
 target_include_directories(liveupdate PUBLIC ${INCLUDEOS_ROOT}/src/include)
 target_include_directories(liveupdate PUBLIC ${INCLUDEOS_ROOT}/api)
-target_include_directories(liveupdate PUBLIC ${INCLUDEOS_ROOT}/mod/GSL/)
 if (${ARCH} STREQUAL "x86_64")
   target_include_directories(liveupdate PUBLIC ${S2N_INCLUDE})
 endif()
