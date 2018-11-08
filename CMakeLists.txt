@@ -182,7 +182,7 @@ set(CMAKE_BUILD_TYPE Release)
 SET(CONAN_DEPENDENCIES
   llvm/5.0@includeos/stable
   musl/v1.1.18@includeos/stable
-#  binutils/2.31/includeos/stable
+  binutils/2.31/includeos/stable
 
   GSL/1.0.0@includeos/test
   protobuf/3.5.1.1@includeos/test
