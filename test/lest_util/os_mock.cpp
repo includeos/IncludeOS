@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <unistd.h>
+#include <stdarg.h>
 #ifdef __MACH__
 #include <stdlib.h>
 #include <stddef.h>
@@ -31,8 +32,10 @@ void* aligned_alloc(size_t alignment, size_t size) {
 }
 #endif
 
+
 char _DISK_START_;
 char _DISK_END_;
+char _ELF_SYM_START_;
 
 /// RTC ///
 #include <rtc>

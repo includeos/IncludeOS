@@ -1,6 +1,7 @@
 #include "ircd/ircd.hpp"
 #include <config>
 #include <rapidjson/document.h>
+#include <net/interfaces>
 
 std::unique_ptr<IrcServer> IrcServer::from_config()
 {
@@ -14,12 +15,12 @@ std::unique_ptr<IrcServer> IrcServer::from_config()
 
   // client interface
   const int CLIENT_NET = obj["client_iface"].GetInt();
-  auto& clinet = net::Super_stack::get(CLIENT_NET);
+  auto& clinet = net::Interfaces::get(CLIENT_NET);
   const int CLIENT_PORT = obj["client_port"].GetUint();
   assert(CLIENT_PORT > 0 && CLIENT_PORT < 65536);
   // server interface
   const int SERVER_NET = obj["server_iface"].GetInt();
-  auto& srvinet = net::Super_stack::get(SERVER_NET);
+  auto& srvinet = net::Interfaces::get(SERVER_NET);
   const int SERVER_PORT = obj["server_port"].GetUint();
   assert(SERVER_PORT > 0 && SERVER_PORT < 65536);
 

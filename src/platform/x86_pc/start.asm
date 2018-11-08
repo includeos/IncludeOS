@@ -35,6 +35,7 @@ extern _MULTIBOOT_START_
 extern _LOAD_START_
 extern _LOAD_END_
 extern _end
+extern fast_kernel_start
 
 ALIGN 4
 section .multiboot
@@ -46,6 +47,9 @@ section .multiboot
   dd _LOAD_END_
   dd _end
   dd _start
+  ;; used for faster live updates
+  dd 0xFEE1DEAD
+  dd fast_kernel_start
 
 %define data_segment 0x10
 %define code_segment 0x08

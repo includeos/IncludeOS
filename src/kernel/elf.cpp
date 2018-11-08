@@ -433,6 +433,39 @@ void _init_elf_parser()
   }
 }
 
+extern "C"
+void elf_check_symbols_ok()
+{
+  extern char _ELF_SYM_START_;
+  auto* hdr = (elfsyms_header*) &_ELF_SYM_START_;
+  // verify CRC sanity check
+  const uint32_t temp_hdr = hdr->sanity_check;
+  hdr->sanity_check = 0;
+  const uint32_t our_sanity = crc32c(hdr, sizeof(elfsyms_header));
+  hdr->sanity_check = temp_hdr;
+  if (hdr->sanity_check != our_sanity)
+  {
+    kprintf("ELF syms header CRC failed! "
+            "(%08x vs %08x)\n", hdr->sanity_check, our_sanity);
+    return;
+  }
+
+  // verify separate checksums of symbols and strings
+  uint32_t symbsize = hdr->symtab_entries * sizeof(ElfSym);
+  uint32_t csum_syms = crc32c(hdr->syms, symbsize);
+  uint32_t csum_strs = crc32c(&hdr->syms[hdr->symtab_entries], hdr->strtab_size);
+  if (csum_syms != hdr->checksum_syms || csum_strs != hdr->checksum_strs)
+  {
+    if (csum_syms != hdr->checksum_syms)
+      kprintf("ELF symbol tables checksum failed! "
+              "(%08x vs %08x)\n", csum_syms, hdr->checksum_syms);
+    if (csum_strs != hdr->checksum_strs)
+      kprintf("ELF string tables checksum failed! "
+              "(%08x vs %08x)\n", csum_strs, hdr->checksum_strs);
+    return;
+  }
+}
+
 #ifdef ARCH_x86_64
 #include <kernel/memmap.hpp>
 #include <kernel/memory.hpp>

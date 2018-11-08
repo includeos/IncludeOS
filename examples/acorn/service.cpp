@@ -34,7 +34,7 @@ static std::unique_ptr<Logger> logger_;
 static fs::Disk_ptr disk;
 
 #include <isotime>
-#include <net/inet>
+#include <net/interfaces>
 
 static void start_acorn(net::Inet& inet)
 {
@@ -164,7 +164,7 @@ static void start_acorn(net::Inet& inet)
 
 void Service::start()
 {
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
   if (not inet.is_configured())
   {
     inet.on_config(start_acorn);

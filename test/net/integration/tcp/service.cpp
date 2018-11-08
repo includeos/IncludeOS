@@ -16,8 +16,7 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet.hpp>
-#include <net/super_stack.hpp>
+#include <net/interfaces>
 #include <vector>
 #include <info>
 #include <timers>
@@ -27,7 +26,7 @@ using namespace std::chrono; // For timers and MSL
 tcp::Connection_ptr client;
 
 static Inet& stack()
-{ return Super_stack::get(0); }
+{ return Interfaces::get(0); }
 
 /*
   TEST VARIABLES
@@ -266,7 +265,7 @@ void Service::start()
         [conn] (auto) {
             CHECKSERT(conn->is_state({"TIME-WAIT"}), "State: TIME-WAIT");
             INFO("Test 4", "Succeeded. Trigger TEST5");
-            OUTGOING_TEST({Inet::stack().gateway6(), TEST5});
+            OUTGOING_TEST({stack().gateway6(), TEST5});
           });
 
         Timers::oneshot(5s, [] (Timers::id_t) { FINISH_TEST(); });

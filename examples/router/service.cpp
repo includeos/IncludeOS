@@ -17,13 +17,14 @@
 
 #include <service>
 #include <net/router>
+#include <net/interfaces>
 
 void Service::start()
 {
   auto& router = net::get_router();
 
-  auto& eth0 = net::Super_stack::get(0);
-  auto& eth1 = net::Super_stack::get(1);
+  auto& eth0 = net::Interfaces::get(0);
+  auto& eth1 = net::Interfaces::get(1);
 
   eth0.set_forward_delg(router.forward_delg());
   eth1.set_forward_delg(router.forward_delg());

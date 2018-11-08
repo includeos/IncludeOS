@@ -15,23 +15,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <net/interfaces.hpp>
 #include <hw/devices.hpp>
-#include <net/inet>
-#include <hw/mac_addr.hpp>
 
 namespace net
 {
 
-Inet& Super_stack::create(hw::Nic& nic, int N, int sub)
+Inet& Interfaces::create(hw::Nic& nic, int N, int sub)
 {
   INFO("Network", "Creating stack for %s on %s (MTU=%u)",
         nic.driver_name(), nic.device_name().c_str(), nic.MTU());
 
-  auto& stacks = inet().stacks_.at(N);
+  auto& stacks = instance().stacks_.at(N);
 
   auto it = stacks.find(sub);
   if(it != stacks.end() and it->second != nullptr) {
-    throw Super_stack_err{"Stack already exists ["
+    throw Interfaces_err{"Stack already exists ["
       + std::to_string(N) + "," + std::to_string(sub) + "]"};
   }
 
@@ -40,7 +39,7 @@ Inet& Super_stack::create(hw::Nic& nic, int N, int sub)
     case hw::Nic::Proto::ETH:
       return std::make_unique<Inet>(nic);
     default:
-      throw Super_stack_err{"Nic not supported"};
+      throw Interfaces_err{"Nic not supported"};
     }
   }();
 
@@ -51,29 +50,29 @@ Inet& Super_stack::create(hw::Nic& nic, int N, int sub)
   return *stacks[sub];
 }
 
-Inet& Super_stack::get(int N)
+Inet& Interfaces::get(int N)
 {
   if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
     throw Stack_not_found{"No IP4 stack found with index: " + std::to_string(N) +
       ". Missing device (NIC) or driver."};
 
-  auto& stacks = inet().stacks_.at(N);
+  auto& stacks = instance().stacks_.at(N);
 
   if(stacks[0] != nullptr)
     return *stacks[0];
 
   // create network stack
   auto& nic = hw::Devices::get<hw::Nic>(N);
-  return inet().create(nic, N, 0);
+  return instance().create(nic, N, 0);
 }
 
-Inet& Super_stack::get(int N, int sub)
+Inet& Interfaces::get(int N, int sub)
 {
   if (N < 0 || N >= (int) hw::Devices::devices<hw::Nic>().size())
     throw Stack_not_found{"No IP4 stack found with index: " + std::to_string(N) +
       ". Missing device (NIC) or driver."};
 
-  auto& stacks = inet().stacks_.at(N);
+  auto& stacks = instance().stacks_.at(N);
 
   auto it = stacks.find(sub);
 
@@ -86,7 +85,7 @@ Inet& Super_stack::get(int N, int sub)
       + std::to_string(N) + "," + std::to_string(sub) + "]"};
 }
 
-Inet& Super_stack::get(const std::string& mac)
+Inet& Interfaces::get(const std::string& mac)
 {
   MAC::Addr link_addr{mac.c_str()};
   auto index = hw::Devices::nic_index(link_addr);
@@ -95,7 +94,7 @@ Inet& Super_stack::get(const std::string& mac)
   if(index < 0)
     throw Stack_not_found{"No NIC found with MAC address " + mac};
 
-  auto& stacks = inet().stacks_.at(index);
+  auto& stacks = instance().stacks_.at(index);
   auto& stack = stacks[0];
   if(stack != nullptr) {
     Expects(stack->link_addr() == link_addr);
@@ -103,11 +102,11 @@ Inet& Super_stack::get(const std::string& mac)
   }
 
   // If not found, create
-  return inet().create(hw::Devices::nic(index), index, 0);
+  return instance().create(hw::Devices::nic(index), index, 0);
 }
 
 // Duplication of code to keep sanity intact
-Inet& Super_stack::get(const std::string& mac, int sub)
+Inet& Interfaces::get(const std::string& mac, int sub)
 {
   auto index = hw::Devices::nic_index(mac.c_str());
 
@@ -117,7 +116,7 @@ Inet& Super_stack::get(const std::string& mac, int sub)
   return get(index, sub);
 }
 
-Super_stack::Super_stack()
+Interfaces::Interfaces()
 {
   if (hw::Devices::devices<hw::Nic>().empty())
     INFO("Network", "No registered network interfaces found");

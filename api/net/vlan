@@ -20,8 +20,7 @@
 #define NET_VLAN_API
 
 #include <net/vlan_manager.hpp>
-#include <net/super_stack.hpp>
-#include <net/inet>
+#include <net/interfaces.hpp>
 #include <config>
 #include <rapidjson/document.h>
 
@@ -34,7 +33,7 @@ void parse_vlan_entry(const T& net)
 
   // Get the index (nic) the VLAN should be place upon
   auto iface = net["iface"].GetInt();
-  auto& nic = Super_stack::get(iface).nic();
+  auto& nic = Interfaces::get(iface).nic();
 
   Expects(net.HasMember("vlan")
     && "VLAN config not found (\"vlan\")");
@@ -60,7 +59,7 @@ void parse_vlan_entry(const T& net)
     auto& vif = manager.add(nic, id);
 
     // Create stack on VLAN Nic [iface, id]
-    auto& stack = Super_stack::inet().create(vif, iface, id);
+    auto& stack = Interfaces::create(vif, iface, id);
 
     // Configure the network stack
     Expects(entry.HasMember("address"));

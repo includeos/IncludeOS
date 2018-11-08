@@ -7,7 +7,7 @@ project (service)
 
 option(benchmark_mode "Optimizations for benchmarking" OFF)
 if (benchmark_mode)
-  add_definitions(-DDRIFTING_BINARY)
+  add_definitions(-DBENCHMARK_MODE)
 endif()
 
 # Human-readable name of your service

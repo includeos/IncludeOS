@@ -116,6 +116,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/http_response_test.cpp
   ${TEST}/net/unit/http_time_test.cpp
   ${TEST}/net/unit/http_version_test.cpp
+  ${TEST}/net/unit/interfaces_test.cpp
   ${TEST}/net/unit/ip4_addr.cpp
   ${TEST}/net/unit/ip4.cpp
   ${TEST}/net/unit/ip4_packet_test.cpp
@@ -128,7 +129,6 @@ set(TEST_SOURCES
   ${TEST}/net/unit/path_mtu_discovery.cpp
   ${TEST}/net/unit/port_util_test.cpp
   ${TEST}/net/unit/socket.cpp
-  ${TEST}/net/unit/super_stack.cpp
   ${TEST}/net/unit/tcp_packet_test.cpp
   ${TEST}/net/unit/tcp_read_buffer_test.cpp
   ${TEST}/net/unit/tcp_read_request_test.cpp
@@ -156,7 +156,9 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
-  ${TEST}/util/unit/lstack.cpp
+  ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
+  ${TEST}/util/unit/lstack/test_lstack_merging.cpp
+  ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
   ${TEST}/util/unit/buddy_alloc_test.cpp
 )
 
@@ -207,6 +209,7 @@ set(OS_SOURCES
   ${SRC}/net/http/version.cpp
   ${SRC}/net/checksum.cpp
   ${SRC}/net/inet.cpp
+  ${SRC}/net/interfaces.cpp
   ${SRC}/net/ip4/arp.cpp
   ${SRC}/net/ip4/icmp4.cpp
   ${SRC}/net/ip4/ip4.cpp
@@ -219,7 +222,6 @@ set(OS_SOURCES
   ${SRC}/net/dhcp/dh4client.cpp
   ${SRC}/net/nat/nat.cpp
   ${SRC}/net/nat/napt.cpp
-  ${SRC}/net/super_stack.cpp
   ${SRC}/net/tcp/connection.cpp
   ${SRC}/net/tcp/connection_states.cpp
   ${SRC}/net/tcp/listener.cpp
@@ -259,6 +261,7 @@ set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_tcp.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/update.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/os.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/elfscan.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/resume.cpp
   #${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_openssl.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/storage.cpp

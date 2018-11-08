@@ -18,12 +18,14 @@ include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 include_directories(${BOTAN_DIR})
-include_directories(${OPENSSL_DIR}/include)
+include_directories(${S2N_INCLUDE})
 if(${ARCH} STREQUAL "x86_64")
   set(OPENSSL_MODULES "net/openssl/init.cpp" "net/openssl/client.cpp"
                       "net/openssl/server.cpp"
-                      "net/https/openssl_server.cpp" "net/http/client.cpp")
-  set(OPENSSL_LIBS    openssl_ssl openssl_crypto)
+                      "net/https/openssl_server.cpp" "net/http/client.cpp"
+                      "net/https/s2n_server.cpp"
+                    )
+  set(OPENSSL_LIBS    s2n_libs2n s2n_libssl s2n_crypto)
 endif()
 set(BOTAN_MODULES "net/https/botan_server.cpp")
 
@@ -55,7 +57,7 @@ set(OS_OBJECTS
   net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet.cpp
-  net/super_stack.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
+  net/interfaces.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
   net/http/mime_types.cpp net/http/cookie.cpp

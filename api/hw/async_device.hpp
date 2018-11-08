@@ -18,21 +18,23 @@
 #pragma once
 #include <kernel/events.hpp>
 #include <drivers/usernet.hpp>
-#include <net/inet>
+#include <net/interfaces>
 #include <deque>
 
+namespace hw
+{
+template <typename Driver>
 class Async_device {
 public:
   using transmit_func = delegate<void(net::Packet_ptr)>;
-  using receive_func = delegate<void(net::Packet_ptr)>;
 
   void connect(Async_device& other) {
     this->set_transmit({&other, &Async_device::receive});
   }
 
-  Async_device (const uint16_t MTU)
+  Async_device (Driver& nic)
+      : m_nic(nic)
   {
-    this->driver = &UserNet::create(MTU);
     this->event_id = Events::get().subscribe(
       [this] {
         while(! queue.empty()) {
@@ -48,19 +50,19 @@ public:
   }
 
   void set_transmit(transmit_func func) {
-    assert(driver != nullptr);
-    driver->set_transmit_forward(std::move(func));
+    this->m_nic.set_transmit_forward(std::move(func));
   }
 
-  auto* get_driver() {
-    return this->driver;
+  auto& nic() {
+    return this->m_nic;
   }
 
 private:
   inline void driver_receive(net::Packet_ptr packet) {
-    this->driver->receive(std::move(packet));
+    this->m_nic.receive(std::move(packet));
   }
-  UserNet* driver = nullptr;
+  Driver& m_nic;
   int event_id = 0;
   std::deque<net::Packet_ptr> queue;
 };
+} // hw

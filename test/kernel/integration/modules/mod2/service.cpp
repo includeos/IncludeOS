@@ -16,11 +16,11 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet>
+#include <net/interfaces>
 
 void Service::start()
 {
-  auto& inet = net::Inet::stack<0>();
+  auto& inet = net::Interfaces::get(0);
   inet.network_config({10,0,0,53},
                       {255,255,255,0},
                       {10,0,0,1});

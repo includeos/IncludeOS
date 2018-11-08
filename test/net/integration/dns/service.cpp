@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
+#include <net/interfaces>
 
 using namespace net;
 
@@ -76,7 +76,7 @@ static void do_test(net::Inet& inet, std::vector<Name_request>& reqs)
 
 void Service::start(const std::string&)
 {
-  auto& inet = net::Inet::stack<0>();
+  auto& inet = net::Interfaces::get(0);
   inet.network_config(
     { 10, 0, 0, 48 },       // IP
     { 255, 255, 255, 0 },   // Netmask

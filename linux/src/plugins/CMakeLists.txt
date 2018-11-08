@@ -1,7 +1,7 @@
 #
 # Build and install plugins as libraries
 #
-set (IOS ${CMAKE_SOURCE_DIR}/..)
+set (IOS $ENV{INCLUDEOS_SRC})
 set (PDIR "${IOS}/src/plugins")
 
 # make LiveUpdate visible to plugins
