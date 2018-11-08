@@ -150,25 +150,23 @@ void do_test_serializing_tls(int index)
   
   // 2.3: deserialize TLS streams
   // 2.3.1:
-  auto pair = s2n::TLS_stream::deserialize_from(
+  auto dstream = s2n::TLS_stream::deserialize_from(
                   config,
                   std::move(server_side),
                   false,
                   sbuffer, sbytes
                 );
-  assert(pair.first != nullptr && "Deserialization must return stream");
-  assert(pair.second != 0 && "Deserialization must consume non-zero bytes");
-  server_test.stream = pair.first.release();
+  assert(dstream != nullptr && "Deserialization must return stream");
+  server_test.stream = dstream.release();
 
-  pair = s2n::TLS_stream::deserialize_from(
+  dstream = s2n::TLS_stream::deserialize_from(
                   config,
                   std::move(client_side),
                   false,
                   cbuffer, cbytes
                 );
-  assert(pair.first != nullptr && "Deserialization must return stream");
-  assert(pair.second != 0 && "Deserialization must consume non-zero bytes");
-  client_test.stream = pair.first.release();
+  assert(dstream != nullptr && "Deserialization must return stream");
+  client_test.stream = dstream.release();
 
   // 3. set all delegates again
   server_test.setup_callbacks();

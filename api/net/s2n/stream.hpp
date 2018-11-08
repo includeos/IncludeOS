@@ -48,7 +48,7 @@ typedef enum {
 } message_type_t;
 extern "C" message_type_t s2n_conn_get_current_message_type(struct s2n_connection*);
 extern "C" ssize_t s2n_conn_serialize_to(struct s2n_connection*, void* addr, size_t);
-extern "C" struct s2n_connection* s2n_conn_deserialize_from(struct s2n_config* config, const void* addr, const size_t, size_t* dst_size);
+extern "C" struct s2n_connection* s2n_conn_deserialize_from(struct s2n_config* config, const void* addr, const size_t);
 
 
 namespace s2n
@@ -129,12 +129,11 @@ namespace s2n
     }
 
     size_t serialize_to(void*, size_t) const override;
-    static std::pair<TLS_stream_ptr, size_t>
-                deserialize_from(s2n_config*  config,
-                                 Stream_ptr   transport,
-                                 const bool   outgoing,
-                                 const void*  data,
-                                 const size_t size);
+    static TLS_stream_ptr deserialize_from(s2n_config*  config,
+                                           Stream_ptr   transport,
+                                           const bool   outgoing,
+                                           const void*  data,
+                                           const size_t size);
 
   private:
     void initialize(bool outgoing);
@@ -340,19 +339,17 @@ namespace s2n
     return ret;
   }
   
-  inline std::pair<TLS_stream_ptr, size_t>
+  inline TLS_stream_ptr
   TLS_stream::deserialize_from(s2n_config*  config,
                                Stream_ptr   transport,
                                const bool   outgoing,
                                const void*  data,
                                const size_t size)
   {
-    size_t result = 0;
-    s2n_connection* conn = s2n_conn_deserialize_from(config, data, size, &result);
+    s2n_connection* conn = s2n_conn_deserialize_from(config, data, size);
     if (conn != nullptr) {
-      auto stream = std::make_unique<TLS_stream> (conn, std::move(transport), outgoing);
-      return {std::move(stream), result};
+      return std::make_unique<TLS_stream> (conn, std::move(transport), outgoing);
     }
-    return {nullptr, result};
+    return nullptr;
   }
 } // s2n
