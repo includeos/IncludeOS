@@ -29,10 +29,24 @@ namespace net::icmp6 {
 
     using ICMP_type = ICMP6_error::ICMP_type;
 
+  public:
     struct IdSe {
       uint16_t identifier;
       uint16_t sequence;
+
+      uint16_t id() const noexcept
+      { return ntohs(identifier); }
+
+      uint16_t seq() const noexcept
+      { return ntohs(sequence); }
+
+      void set_id(uint16_t id) noexcept
+      { identifier = htons(id); }
+
+      void set_seq(uint16_t seq) noexcept
+      { sequence = htons(seq); }
     };
+  private:
 
     struct RaHeader {
       uint8_t   cur_hop_limit;
@@ -226,6 +240,7 @@ namespace net::icmp6 {
     {
       Expects(payload().empty());
       pckt_->increment_data_end(sizeof(T));
+      payload_offset_ += sizeof(T);
       return *(new (header().payload) T(args...));
     }
 

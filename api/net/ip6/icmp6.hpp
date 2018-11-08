@@ -202,28 +202,10 @@ namespace net
      *  Find the ping-callback that this packet is a response to, execute it and erase the object
      *  from the ping_callbacks_ map
      */
-    inline void execute_ping_callback(icmp6::Packet& ping_response) {
-      // Find callback matching the reply
-      auto it = ping_callbacks_.find(std::make_pair(ping_response.id(), ping_response.sequence()));
-
-      if (it != ping_callbacks_.end()) {
-        it->second.callback(ICMP6_view{ping_response});
-        Timers::stop(it->second.timer_id);
-        ping_callbacks_.erase(it);
-      }
-    }
+    void execute_ping_callback(icmp6::Packet& ping_response);
 
     /** Remove ICMP_callback from ping_callbacks_ map when its timer timeouts */
-    inline void remove_ping_callback(Tuple key) {
-      auto it = ping_callbacks_.find(key);
-
-      if (it != ping_callbacks_.end()) {
-        // Data back to user if no response found
-        it->second.callback(ICMP6_view{});
-        Timers::stop(it->second.timer_id);
-        ping_callbacks_.erase(it);
-      }
-    }
+    void remove_ping_callback(Tuple key);
 
     void send_request(ip6::Addr dest_ip, ICMP_type type, ICMP_code code,
       icmp_func callback = nullptr, int sec_wait = SEC_WAIT_FOR_REPLY, uint16_t sequence = 0);

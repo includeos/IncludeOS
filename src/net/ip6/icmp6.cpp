@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define ICMP6_DEBUG 1
+//#define ICMP6_DEBUG 1
 #ifdef ICMP6_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -142,6 +142,32 @@ namespace net
     inet_.error_report(err, std::move(packet_ptr));
   }
 
+   void ICMPv6::execute_ping_callback(icmp6::Packet& ping_response)
+   {
+    // Find callback matching the reply
+    const auto& id_se = ping_response.view_payload_as<icmp6::Packet::IdSe>();
+    auto it = ping_callbacks_.find(std::make_pair(id_se.id(), id_se.seq()));
+
+    if (it != ping_callbacks_.end()) {
+      it->second.callback(ICMP6_view{ping_response});
+      Timers::stop(it->second.timer_id);
+      ping_callbacks_.erase(it);
+    }
+  }
+
+  /** Remove ICMP_callback from ping_callbacks_ map when its timer timeouts */
+  void ICMPv6::remove_ping_callback(Tuple key)
+  {
+    auto it = ping_callbacks_.find(key);
+
+    if (it != ping_callbacks_.end()) {
+      // Data back to user if no response found
+      it->second.callback(ICMP6_view{});
+      Timers::stop(it->second.timer_id);
+      ping_callbacks_.erase(it);
+    }
+  }
+
   void ICMPv6::destination_unreachable(Packet_ptr pckt, icmp6::code::Dest_unreachable code) {
     if (not is_full_header((size_t) pckt->size())) // Drop if not a full header
       return;
@@ -205,7 +231,8 @@ namespace net
     icmp_func callback, int sec_wait, uint16_t sequence) {
 
     // Check if inet is configured with ipv6
-    if (!inet_.is_configured_v6()) {
+    auto src = inet_.ip6_src(dest_ip);
+    if (src == ip6::Addr::addr_any) {
       PRINT("<ICMP6> inet is not configured to send ipv6 packets\n");
       return;
     }
@@ -213,15 +240,17 @@ namespace net
     icmp6::Packet req(inet_.ip6_packet_factory());
 
     // Populate request IP header
-    req.ip().set_ip_src(inet_.ip6_addr());
+    req.ip().set_ip_src(src);
     req.ip().set_ip_dst(dest_ip);
 
-    uint16_t temp_id = request_id_;
+    uint16_t temp_id = request_id_++;
     // Populate request ICMP header
     req.set_type(type);
     req.set_code(code);
-    req.set_id(request_id_++);
-    req.set_sequence(sequence);
+
+    auto& id_se = req.emplace<icmp6::Packet::IdSe>();
+    id_se.set_id(temp_id);
+    id_se.set_seq(sequence);
 
     if (callback) {
       ping_callbacks_.emplace(std::piecewise_construct,
@@ -300,15 +329,21 @@ namespace net
     // Populate response ICMP header
     res.set_type(ICMP_type::ECHO_REPLY);
     res.set_code(0);
+
+    const auto& ping = req.view_payload_as<icmp6::Packet::IdSe>();
     // Incl. id and sequence number
-    res.set_id(req.id());
-    res.set_sequence(req.sequence());
+    auto& id_se = res.emplace<icmp6::Packet::IdSe>();
+    id_se.set_id(ping.id());
+    id_se.set_seq(ping.seq());
 
     PRINT("<ICMP6> Transmitting answer to %s\n",
           res.ip().ip_dst().str().c_str());
 
     // Payload
-    res.add_payload(req.payload().data(), req.payload().size());
+    // TODO: since id and seq is part of the payload
+    // we need to make some offset stuff here...
+    res.add_payload(req.payload().data() + sizeof(icmp6::Packet::IdSe),
+      req.payload().size() - sizeof(icmp6::Packet::IdSe));
 
     // Add checksum
     res.set_checksum();
