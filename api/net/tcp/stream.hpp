@@ -178,7 +178,7 @@ namespace net::tcp
 
     int get_cpuid() const noexcept override;
 
-    size_t serialize_to(void* p) const override {
+    size_t serialize_to(void* p, const size_t) const override {
       return m_tcp->serialize_to(p);
     }
 

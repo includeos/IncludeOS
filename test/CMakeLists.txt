@@ -155,7 +155,9 @@ set(TEST_SOURCES
   ${TEST}/util/unit/syslog_facility_test.cpp
   ${TEST}/util/unit/uri_test.cpp
   ${TEST}/util/unit/bitops.cpp
-  ${TEST}/util/unit/lstack.cpp
+  ${TEST}/util/unit/lstack/test_lstack_nodes.cpp
+  ${TEST}/util/unit/lstack/test_lstack_merging.cpp
+  ${TEST}/util/unit/lstack/test_lstack_nomerge.cpp
   ${TEST}/util/unit/buddy_alloc_test.cpp
 )
 
@@ -266,6 +268,7 @@ set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_tcp.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/update.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/os.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/elfscan.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/resume.cpp
   #${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_openssl.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/storage.cpp

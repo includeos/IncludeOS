@@ -7,7 +7,7 @@ static long sys_clock_gettime(clockid_t clk_id, struct timespec* tp)
     *tp = __arch_wall_clock();
     return 0;
   }
-  else if (clk_id == CLOCK_MONOTONIC)
+  else if (clk_id == CLOCK_MONOTONIC || clk_id == CLOCK_MONOTONIC_RAW)
   {
     uint64_t ts = __arch_system_time();
     tp->tv_sec  = ts / 1000000000ull;

@@ -265,9 +265,9 @@ void VirtioNet::msix_xmit_handler()
   while (tx_q.new_incoming())
   {
     auto res = tx_q.dequeue();
-    // get packet offset, and call destructor
-    auto* packet = (net::Packet*) (res.data() - sizeof(net::Packet));
-    delete packet; // call deleter on Packet to release it
+    assert(res.data() != nullptr);
+    // get packet offset, and call placement Packet deleter directly
+    net::Packet::operator delete(res.data() - sizeof(net::Packet));
     dequeued_tx++;
   }
   tx_q.enable_interrupts();
@@ -279,14 +279,12 @@ void VirtioNet::msix_xmit_handler()
     VDBG_TX("[virtionet] %d transmitted\n", dequeued_tx);
 
     // transmit as much as possible from the buffer
-    if (transmit_queue != nullptr) {
-      //auto tx = packets_tx_;
-      transmit(std::move(transmit_queue));
-      //printf("[virtionet] %ld transmit queue\n", packets_tx_ - tx);
+    if (! sendq.empty()) {
+      transmit(nullptr);
     }
 
     // If we now emptied the buffer, offer packets to stack
-    if (transmit_queue == nullptr && tx_q.num_free() > 1) {
+    if (sendq.empty() && tx_q.num_free() > 1) {
       transmit_queue_available_event(tx_q.num_free() / 2);
     }
   }
@@ -341,14 +339,13 @@ VirtioNet::create_packet(int link_offset)
 
 void VirtioNet::transmit(net::Packet_ptr pckt)
 {
-  assert(pckt != nullptr);
-  VDBG_TX("[virtionet] tx: Transmitting %#zu sized packet \n",
-          pckt->size());
   while (pckt != nullptr) {
     if (not Nic::sendq_still_available(sendq.size())) {
-      stat_sendq_limit_dropped_++;
-      return;
+      stat_sendq_limit_dropped_ += pckt->chain_length();
+      break;
     }
+    VDBG_TX("[virtionet] tx: Transmitting %#zu sized packet \n",
+            pckt->size());
     auto tail = pckt->detach_tail();
     sendq.emplace_back(std::move(pckt));
     pckt = std::move(tail);
@@ -365,7 +362,7 @@ void VirtioNet::transmit(net::Packet_ptr pckt)
           sendq.size());
 
   // Transmit all we can directly
-  while (tx_q.num_free() > 1 and sendq.size() > 0)
+  while (tx_q.num_free() > 1 and !sendq.empty())
   {
     VDBG_TX("[virtionet] tx: %u tokens left in TX ring \n",
             tx_q.num_free());

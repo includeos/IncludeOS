@@ -23,7 +23,7 @@ br2 = "bridge44"
 
 iperf_cmd = "iperf3"
 iperf_server_proc = None
-transmit_size = "100M"
+transmit_size = "1000M"
 
 nsname="server1"
 

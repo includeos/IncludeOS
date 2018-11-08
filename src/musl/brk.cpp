@@ -15,8 +15,6 @@ uintptr_t __init_brk(uintptr_t begin)
   brk_begin = begin;
   brk_end   = begin;
   brk_initialized = brk_end;
-  kprintf("* Brk initialized. Begin: %p, end %p, MAX %p\n",
-          (void*) brk_begin, (void*) brk_end, (void*) __brk_max);
   return brk_begin + __brk_max;
 }
 
