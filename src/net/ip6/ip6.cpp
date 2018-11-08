@@ -246,7 +246,7 @@ namespace net
     ship(std::move(packet), IP6::ADDR_ANY, ct);
   }
 
-  void IP6::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
+  void IP6::ship(Packet_ptr pckt, ip6::Addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
 
@@ -261,17 +261,14 @@ namespace net
     packet = drop_invalid_out(std::move(packet));
     if (packet == nullptr) return;
 
-    if (next_hop == IP6::ADDR_ANY) {
-      next_hop = stack_.ndp().next_hop(packet->ip_dst());
-      PRINT("<IP6> ndp nexthop: %s\n", next_hop.to_string().c_str());
+    if (next_hop == ip6::Addr::addr_any)
+    {
+      auto dst = packet->ip_dst();
+      next_hop = dst.is_linklocal() ? dst : stack_.ndp().next_hop(dst);
+      PRINT("<IP6> Nexthop for %s: %s\n", dst.to_string().c_str(), next_hop.to_string().c_str());
 
-      PRINT("<IP6 TOP> Next hop for %s == %s\n",
-            packet->ip_dst().str().c_str(),
-            next_hop.str().c_str());
-
-      if(UNLIKELY(next_hop == IP6::ADDR_ANY)) {
-        PRINT("<IP6> Next_hop calculated to 0 (gateway == %s), dropping\n",
-          stack_.gateway6().str().c_str());
+      if(UNLIKELY(next_hop == ip6::Addr::addr_any)) {
+        PRINT("<IP6> Next_hop calculated to 0, dropping\n");
         drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
         return;
       }
