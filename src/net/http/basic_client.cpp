@@ -74,6 +74,7 @@ namespace http {
 
   void Basic_client::send(Request_ptr req, URI url, Response_handler cb, Options options)
   {
+    Expects(url.is_valid() && "Invalid URI (missing scheme?)");
     // find out if this is a secured request or not
     const bool secure = url.scheme_is_secure();
     validate_secure(secure);
@@ -120,7 +121,7 @@ namespace http {
   void Basic_client::request(Method method, URI url, Header_set hfields,
                        Response_handler cb, Options options)
   {
-    Expects(url.is_valid());
+    Expects(url.is_valid() && "Invalid URI (missing scheme?)");
     Expects(cb != nullptr);
 
     // find out if this is a secured request or not
@@ -210,6 +211,7 @@ namespace http {
                        std::string data, Response_handler cb,
                        Options options)
   {
+    Expects(url.is_valid() && "Invalid URI (missing scheme?)");
     // find out if this is a secured request or not
     const bool secure = url.scheme_is_secure();
     validate_secure(secure);
@@ -319,6 +321,7 @@ namespace http {
 
   void Basic_client::populate_from_url(Request& req, const URI& url)
   {
+    Expects(url.is_valid() && "Invalid URI (missing scheme?)");
     // Set uri path (default "/")
     req.set_uri((!url.path().empty()) ? URI{url.path()} : URI{"/"});
 
