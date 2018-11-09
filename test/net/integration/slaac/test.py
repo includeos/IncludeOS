@@ -21,7 +21,9 @@ ping_count = 3
 
 def Slaac_test(trigger_line):
   print color.INFO("<Test.py>"),"Got IP"
-  ip_string = vm.readline()
+  vm_string = vm.readline()
+  wlist = vm_string.split()
+  ip_string = wlist[-1]
   print color.INFO("<Test.py>"), "Assigned address: ", ip_string
   print color.INFO("<Test.py>"), "Trying to ping"
   time.sleep(1)
@@ -38,7 +40,7 @@ def Slaac_test(trigger_line):
 
 
 # Add custom event-handler
-vm.on_output("Got IP from Auto-configuration", Slaac_test)
+vm.on_output("Waiting for Auto-configuration", Slaac_test)
 
 # Boot the VM, taking a timeout as parameter
 vm.cmake().boot(20).clean()

@@ -32,5 +32,5 @@ void Service::start(const std::string&)
     INFO("Slaac test", "Got IP from Auto-configuration");
     printf("%s\n", inet.ip6_addr().str().c_str());
   });
-  INFO("Slaac test", "Waiting for Auto-configuration\n");
+  INFO("Slaac test", "Waiting for Auto-configuration");
 }

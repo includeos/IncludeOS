@@ -73,12 +73,12 @@ void OUTGOING_TEST_INTERNET(const HostAddress& address) {
   // This needs correct setup to work
   INFO("TEST", "Outgoing Internet Connection (%s:%u)", address.first.c_str(), address.second);
   stack().resolve(address.first,
-    [port](auto ip_address, const Error&) {
-      CHECK(ip_address != 0, "Resolved host");
+    [port](auto res, const Error&) {
+      CHECK(res != nullptr, "Resolved host");
 
-      if(ip_address != 0)
+      if(res->has_addr())
       {
-        stack().tcp().connect({ip_address, port})
+        stack().tcp().connect({res->get_first_addr(), port})
           ->on_connect([](tcp::Connection_ptr conn)
           {
             CHECKSERT(conn != nullptr, "Connected");
