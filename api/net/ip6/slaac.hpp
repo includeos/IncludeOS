@@ -21,6 +21,8 @@
 
 #include <util/timer.hpp>
 #include "ip6.hpp"
+#include <net/ip6/ndp/options.hpp>
+#include "stateful_addr.hpp"
 
 namespace net {
 
@@ -29,8 +31,8 @@ namespace net {
   public:
     static const int LINKLOCAL_RETRIES = 1;
     static const int LINKLOCAL_INTERVAL = 1;
-    static const int GLOBAL_RETRIES = 5;
-    static const int GLOBAL_INTERVAL = 5;
+    static const int GLOBAL_RETRIES = LINKLOCAL_RETRIES;
+    static const int GLOBAL_INTERVAL = LINKLOCAL_INTERVAL;
 
     using Stack = IP6::Stack;
     using config_func = delegate<void(bool)>;
@@ -50,13 +52,17 @@ namespace net {
   private:
     Stack& stack;
     IP6::addr    alternate_addr_;
-    IP6::addr    tentative_addr_;
+    ip6::Stateful_addr tentative_addr_;
     bool         linklocal_completed;
     // Number of times to attempt DAD
-    int          dad_retransmits_;
+    int          dad_transmits_;
     Timer        timeout_timer_;
     std::vector<config_func> config_handlers_;
     std::chrono::milliseconds interval;
+
+    void process_prefix_info(const ndp::option::Prefix_info& pinfo);
+    void perform_dad();
+    void dad_handler(const ip6::Addr& addr);
   };
 }
 

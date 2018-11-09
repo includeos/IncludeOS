@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include <service>
-#include <net/inet>
+#include <net/interfaces>
 #include <net/dhcp/dhcpd.hpp>
 #include <list>
 
@@ -29,7 +29,8 @@ void Service::start(const std::string&)
 
   // Server
 
-  auto& inet = Inet::ifconfig<0>(
+  auto& inet = Interfaces::get(0);
+  inet.network_config(
     { 10,0,0,9 },     // IP
     { 255,255,255,0 },  // Netmask
     { 10,0,0,1 },       // Gateway
@@ -41,37 +42,37 @@ void Service::start(const std::string&)
 
   // Client 1
 
-  Inet::ifconfig<1>(10.0, [] (bool timeout) {
+  Interfaces::get(1).negotiate_dhcp(10.0, [] (bool timeout) {
     if (timeout) {
       printf("Client 1 timed out\n");
     }
     else {
       INFO("DHCP test", "Client 1 got IP from IncludeOS DHCP server");
-      printf("%s\n", net::Inet::stack<1>().ip_addr().str().c_str());
+      printf("%s\n", Interfaces::get(1).ip_addr().str().c_str());
     }
   });
 
   // Client 2
 
-  Inet::ifconfig<2>(10.0, [] (bool timeout) {
+  Interfaces::get(2).negotiate_dhcp(10.0, [] (bool timeout) {
     if (timeout) {
       printf("Client 2 timed out\n");
     }
     else {
       INFO("DHCP test", "Client 2 got IP from IncludeOS DHCP server");
-      printf("%s\n", net::Inet::stack<2>().ip_addr().str().c_str());
+      printf("%s\n", Interfaces::get(2).ip_addr().str().c_str());
     }
   });
 
   // Client 3
 
-  Inet::ifconfig<3>(10.0, [] (bool timeout) {
+  Interfaces::get(3).negotiate_dhcp(10.0, [] (bool timeout) {
     if (timeout) {
       printf("Client 3 timed out\n");
     }
     else {
       INFO("DHCP test", "Client 3 got IP from IncludeOS DHCP server");
-      printf("%s\n", net::Inet::stack<3>().ip_addr().str().c_str());
+      printf("%s\n", Interfaces::get(3).ip_addr().str().c_str());
     }
   });
 }

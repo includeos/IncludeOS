@@ -83,7 +83,27 @@ public:
   { return ntohs(udp_header().length); }
 
   uint16_t udp_data_length() const noexcept
-  { return udp_length() - udp_header_length(); }
+  {
+    const uint16_t hdr_len = ip_header_length();
+    uint16_t real_length = pkt->size() - hdr_len;
+    uint16_t final_length = std::min(real_length, udp_length());
+    return final_length - sizeof(udp::Header);
+  }
+
+  bool validate_length() const noexcept
+  { return udp_length() >= sizeof(udp::Header); }
+
+  uint16_t udp_checksum() const noexcept
+  { return udp_header().checksum; }
+
+  virtual uint16_t compute_udp_checksum() const noexcept
+  { return 0x0; }
+
+  void set_udp_checksum() noexcept
+  {
+    udp_header().checksum = 0;
+    udp_header().checksum = compute_udp_checksum();
+  }
 
   uint8_t* udp_data()
   { return (uint8_t*)header + udp_header_length(); }

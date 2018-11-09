@@ -76,9 +76,13 @@ namespace net
     {
       set_length(sizeof(udp::Header) + len);
     }
+
     uint16_t data_length() const noexcept
     {
-      return length() - sizeof(udp::Header);
+      const uint16_t hdr_len = ip_header_length();
+      uint16_t real_length = size() - hdr_len;
+      uint16_t final_length = std::min(real_length, length());
+      return final_length - sizeof(udp::Header);
     }
 
     Byte* data()
@@ -121,6 +125,10 @@ namespace net
       // set new packet length
       set_length(length() + total);
       return total;
+    }
+
+    bool validate_length() const noexcept {
+      return length() >= sizeof(udp::Header);
     }
 
   private:

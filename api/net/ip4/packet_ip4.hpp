@@ -99,8 +99,16 @@ namespace net {
     /** Get IP data length. */
     uint16_t ip_data_length() const noexcept
     {
-      Expects(size() and static_cast<size_t>(size()) >= sizeof(ip4::Header));
+      //Expects(size() and static_cast<size_t>(size()) >= sizeof(ip4::Header));
       return size() - ip_header_length();
+    }
+
+    /** Adjust packet size to match IP header's tot_len in case of padding */
+    void adjust_size_from_header() {
+      auto ip_len = ip_total_length();
+      if (UNLIKELY(size() > ip_len)) {
+        set_data_end(ip_len);
+      }
     }
 
     /** Get total data capacity of IP packet in bytes  */
@@ -236,6 +244,10 @@ namespace net {
 
     Cspan ip_data() const {
       return {ip_data_ptr(), ip_data_length()};
+    }
+
+    bool validate_length() const noexcept {
+      return this->size() == ip_header_length() + ip_data_length();
     }
 
   protected:

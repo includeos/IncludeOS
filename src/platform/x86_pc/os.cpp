@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
+#define DEBUG
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <boot/multiboot.h>
@@ -24,7 +24,6 @@
 #include <kernel/memory.hpp>
 #include <kprint>
 #include <service>
-#include <statman>
 #include <cstdio>
 #include <cinttypes>
 #include "cmos.hpp"
@@ -38,7 +37,6 @@
 #endif
 
 extern "C" void* get_cpu_esp();
-extern "C" void kernel_sanity_checks();
 extern uintptr_t _start;
 extern uintptr_t _end;
 extern uintptr_t _ELF_START_;
@@ -91,6 +89,10 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
     OS::add_stdout(&OS::default_stdout);
   }
 
+  extern OS::ctor_t __stdout_ctors_start;
+  extern OS::ctor_t __stdout_ctors_end;
+  OS::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
+
   // Print a fancy header
   CAPTION("#include<os> // Literally");
 
@@ -127,12 +129,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   auto& memmap = memory_map();
   INFO2("Assigning fixed memory ranges (Memory map)");
   // protect symbols early on (the calculation is complex so not doing it here)
-  memmap.assign_range({(uintptr_t)&_end, heap_begin()-1,
-                       "Symbols & strings"});
   extern void elf_protect_symbol_areas();
   elf_protect_symbol_areas();
 
-  memmap.assign_range({0x8000, 0xffff, "Statman"});
 #if defined(ARCH_x86_64)
   // protect the basic pagetable used by LiveUpdate and any other
   // systems that need to exit long/protected mode
@@ -153,11 +152,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   MYINFO("Virtual memory map");
   for (const auto& entry : memmap)
       INFO2("%s", entry.second.to_string().c_str());
-
-  /// STATMAN ///
-  PROFILE("Statman");
-  /// initialize on page 9, 8 pages in size
-  Statman::get().init(0x8000, 0x8000);
 
   PROFILE("Platform init");
   extern void __platform_init();

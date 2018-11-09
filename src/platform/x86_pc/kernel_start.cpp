@@ -38,7 +38,6 @@
 #endif
 
 extern "C" {
-  void __init_serial1();
   void __init_sanity_checks();
   void kernel_sanity_checks();
   void _init_bss();
@@ -62,6 +61,7 @@ uint32_t __grub_addr  = 0x7001;
 
 static volatile int __global_ctors_ok = 0;
 
+__attribute__((no_sanitize("all")))
 void _init_bss()
 {
   extern char _BSS_START_, _BSS_END_;
@@ -87,21 +87,17 @@ int kernel_main(int, char * *, char * *) {
   // Initialize early OS, platform and devices
   OS::start(__grub_magic,__grub_addr);
 
+  // verify certain read-only sections in memory
+  // NOTE: because of page protection we can choose to stop checking here
+  kernel_sanity_checks();
+
   PRATTLE("<kernel_main> post start \n");
   // Initialize common subsystems and call Service::start
   OS::post_start();
 
-  // verify certain read-only sections in memory
-  kernel_sanity_checks();
-
   // Starting event loop from here allows us to profile OS::start
   OS::event_loop();
   return 0;
-}
-
-void __init_tls(size_t* p)
-{
-  kprintf("init_tls(%p)\n", p);
 }
 
 // Musl entry
@@ -109,19 +105,17 @@ extern "C"
 int __libc_start_main(int (*main)(int,char **,char **), int argc, char **argv);
 
 extern "C" uintptr_t __syscall_entry();
+extern "C" void __elf_validate_section(const void*);
 
 extern "C"
 __attribute__((no_sanitize("all")))
 void kernel_start(uint32_t magic, uint32_t addr)
 {
-  // Initialize default serial port
-  __init_serial1();
-
   __grub_magic = magic;
   __grub_addr  = addr;
 
   PRATTLE("\n//////////////////  IncludeOS kernel start ////////////////// \n");
-  PRATTLE("* Booted with magic 0x%x, grub @ 0x%x \n* Init sanity\n",
+  PRATTLE("* Booted with magic 0x%x, grub @ 0x%x \n",
           magic, addr);
   // generate checksums of read-only areas etc.
   __init_sanity_checks();
@@ -156,6 +150,9 @@ void kernel_start(uint32_t magic, uint32_t addr)
   PRATTLE("* Init .bss\n");
   _init_bss();
 
+  PRATTLE("* Init ELF parser\n");
+  _init_elf_parser();
+
   PRATTLE("* Init heap\n");
   OS::init_heap(free_mem_begin, memory_end);
 
@@ -164,9 +161,6 @@ void kernel_start(uint32_t magic, uint32_t addr)
 
   PRATTLE("* Init CPU exceptions\n");
   x86::idt_initialize_for_cpu(0);
-
-  PRATTLE("* Init ELF parser\n");
-  _init_elf_parser();
 
   PRATTLE("* Thread local1: %i\n", __tl1__);
 

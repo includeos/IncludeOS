@@ -3,9 +3,18 @@
 
 constexpr MAC::Addr UserNet::MAC_ADDRESS;
 
+inline static size_t aligned_size_from_mtu(uint16_t mtu) {
+  mtu += sizeof(net::Packet);
+  if (mtu <= 4096)  return 4096;
+  if (mtu <= 8192)  return 8192;
+  if (mtu <= 16384) return 16384;
+  if (mtu <= 32768) return 32768;
+  return 65536;
+}
+
 UserNet::UserNet(const uint16_t mtu)
-  : Link(Link_protocol{{this, &UserNet::transmit}, mac()}),
-    mtu_value(mtu), buffer_store(256u, 128 + mtu) {}
+  : Link(Link::Protocol{{this, &UserNet::transmit}, MAC_ADDRESS}),
+    mtu_value(mtu), buffer_store(256u, aligned_size_from_mtu(mtu)) {}
 
 UserNet& UserNet::create(const uint16_t mtu)
 {
@@ -19,7 +28,7 @@ UserNet& UserNet::create(const uint16_t mtu)
 
 size_t UserNet::transmit_queue_available()
 {
-  return 128;
+  return buffer_store.available();
 }
 
 void UserNet::transmit(net::Packet_ptr packet)
@@ -67,14 +76,14 @@ void UserNet::receive(const void* data, int len)
 // create new packet from nothing
 net::Packet_ptr UserNet::create_packet(int link_offset)
 {
-  auto* buffer = new uint8_t[buffer_store.bufsize()];
+  auto* buffer = buffer_store.get_buffer();
   auto* ptr    = (net::Packet*) buffer;
 
   new (ptr) net::Packet(
         sizeof(driver_hdr) + link_offset,
         0,
         sizeof(driver_hdr) + packet_len(),
-        nullptr);
+        &buffer_store);
 
   return net::Packet_ptr(ptr);
 }

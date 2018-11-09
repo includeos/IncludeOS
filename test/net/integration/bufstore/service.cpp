@@ -28,11 +28,9 @@ static const uint32_t BS_CHAINS  = 10;
 static const uint32_t TOTAL_BUFFERS = BUFFER_CNT * BS_CHAINS;
 
 auto create_packet(BufferStore& bufstore) {
-  // get buffer (as packet + data)
-  auto buffer = bufstore.get_buffer();
+  auto* ptr = (Packet*) bufstore.get_buffer();
   // place packet at front of buffer
-  auto* ptr = (Packet*) buffer.addr;
-  new (ptr) Packet(0, 0, MTU, buffer.bufstore);
+  new (ptr) Packet(0, 0, MTU, &bufstore);
   // regular shared_ptr that calls delete on Packet
   return std::unique_ptr<Packet>(ptr);
 }

@@ -76,7 +76,14 @@ int main(int argc, char** argv)
   }
 
   FILE* file = fopen(output_file.c_str(), "wb");
-  chdir(input_folder.c_str());
+  int res = chdir(input_folder.c_str());
+  if (res < 0)
+  {
+    fprintf(stderr, "Disk builder failed to enter folder '%s'!\n",
+            input_folder.c_str());
+    fprintf(stderr, "Make corrections and try again\n");
+    exit(1);
+  }
   // walk filesystem subtree
   fsys.gather();
 

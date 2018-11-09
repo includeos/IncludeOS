@@ -3,6 +3,8 @@
 #include <kernel/syscalls.hpp>
 #include <kprint>
 #include <info>
+#include <os>
+#include <kernel/memory.hpp>
 #define RING0_CODE_SEG   0x8
 
 extern "C" {
@@ -120,7 +122,7 @@ extern "C" {
 void x86_IDT::init()
 {
   // make sure its all zeroes
-  memset(&PER_CPU(idt).entry, 0, sizeof(x86_IDT::entry));
+  memset(&this->entry[0], 0, sizeof(x86_IDT::entry));
 
   set_exception_handler(0, __cpu_except_0);
   set_exception_handler(1, __cpu_except_1);
@@ -229,35 +231,35 @@ void __cpu_dump_regs(uintptr_t* regs)
   asm ("sidtq %0" : : "m" (* &idt));
 
   fprintf(stderr, "\n");
-  printf("  RAX:  %016lx  R 8:  %016lx\n", regs[0], regs[5]);
-  printf("  RBX:  %016lx  R 9:  %016lx\n", regs[1], regs[6]);
-  printf("  RCX:  %016lx  R10:  %016lx\n", regs[2], regs[7]);
-  printf("  RDX:  %016lx  R11:  %016lx\n", regs[3], regs[8]);
+  fprintf(stderr,"  RAX:  %016lx  R 8:  %016lx\n", regs[0], regs[5]);
+  fprintf(stderr,"  RBX:  %016lx  R 9:  %016lx\n", regs[1], regs[6]);
+  fprintf(stderr,"  RCX:  %016lx  R10:  %016lx\n", regs[2], regs[7]);
+  fprintf(stderr,"  RDX:  %016lx  R11:  %016lx\n", regs[3], regs[8]);
   fprintf(stderr, "\n");
 
-  printf("  RBP:  %016lx  R12:  %016lx\n", regs[4], regs[9]);
-  printf("  RSP:  %016lx  R13:  %016lx\n", regs[13], regs[10]);
-  printf("  RSI:  %016lx  R14:  %016lx\n", regs[14], regs[11]);
-  printf("  RDI:  %016lx  R15:  %016lx\n", regs[15], regs[12]);
-  printf("  RIP:  %016lx  FLA:  %016lx\n", regs[16], regs[17]);
+  fprintf(stderr,"  RBP:  %016lx  R12:  %016lx\n", regs[4], regs[9]);
+  fprintf(stderr,"  RSP:  %016lx  R13:  %016lx\n", regs[13], regs[10]);
+  fprintf(stderr,"  RSI:  %016lx  R14:  %016lx\n", regs[14], regs[11]);
+  fprintf(stderr,"  RDI:  %016lx  R15:  %016lx\n", regs[15], regs[12]);
+  fprintf(stderr,"  RIP:  %016lx  FLA:  %016lx\n", regs[16], regs[17]);
   fprintf(stderr, "\n");
 
-  printf("  CR0:  %016lx  CR4:  %016lx\n", regs[18], regs[22]);
-  printf("  CR1:  %016lx  CR8:  %016lx\n", regs[19], regs[23]);
-  printf("  CR2:  %016lx  GDT:  %016lx (%u)\n", regs[20], gdt.location, gdt.limit);
-  printf("  CR3:  %016lx  IDT:  %016lx (%u)\n", regs[21], idt.location, idt.limit);
+  fprintf(stderr,"  CR0:  %016lx  CR4:  %016lx\n", regs[18], regs[22]);
+  fprintf(stderr,"  CR1:  %016lx  CR8:  %016lx\n", regs[19], regs[23]);
+  fprintf(stderr,"  CR2:  %016lx  GDT:  %016lx (%u)\n", regs[20], gdt.location, gdt.limit);
+  fprintf(stderr,"  CR3:  %016lx  IDT:  %016lx (%u)\n", regs[21], idt.location, idt.limit);
 
 #elif defined(ARCH_i686)
 # define RIP_REG 8
   // i386 CPU registers
   fprintf(stderr, "\n");
-  printf("  EAX:  %08x  EBP:  %08x\n", regs[0], regs[4]);
-  printf("  EBX:  %08x  ESP:  %08x\n", regs[1], regs[5]);
-  printf("  ECX:  %08x  ESI:  %08x\n", regs[2], regs[6]);
-  printf("  EDX:  %08x  EDI:  %08x\n", regs[3], regs[7]);
+  fprintf(stderr,"  EAX:  %08x  EBP:  %08x\n", regs[0], regs[4]);
+  fprintf(stderr,"  EBX:  %08x  ESP:  %08x\n", regs[1], regs[5]);
+  fprintf(stderr,"  ECX:  %08x  ESI:  %08x\n", regs[2], regs[6]);
+  fprintf(stderr,"  EDX:  %08x  EDI:  %08x\n", regs[3], regs[7]);
 
   fprintf(stderr, "\n");
-  printf("  EIP:  %08x  EFL:  %08x\n", regs[8], regs[9]);
+  fprintf(stderr,"  EIP:  %08x  EFL:  %08x\n", regs[8], regs[9]);
 
 #else
   #error "Unknown architecture"
@@ -269,42 +271,58 @@ extern "C" void double_fault(const char*);
 
 void __page_fault(uintptr_t* regs, uint32_t code) {
   const char* reason = "Protection violation";
+  auto addr = regs[20];
 
   if (not(code & 1))
     reason = "Page not present";
 
-  kprintf("%s, trying to access 0x%lx\n", reason, regs[20]);
+  fprintf(stderr,"%s, trying to access 0x%lx\n", reason, addr);
 
   if (code & 2)
-    kprintf("Page write failed.\n");
+    fprintf(stderr,"Page write failed.\n");
   else
-    kprintf("Page read failed.\n");
+    fprintf(stderr,"Page read failed.\n");
 
 
   if (code & 4)
-    kprintf("Privileged page access from user space.\n");
+    fprintf(stderr,"Privileged page access from user space.\n");
 
   if (code & 8)
-    kprintf("Found bit set in reserved field.\n");
+    fprintf(stderr,"Found bit set in reserved field.\n");
 
   if (code & 16)
-    kprintf("Instruction fetch. XD\n");
+    fprintf(stderr,"Instruction fetch. XD\n");
 
   if (code & 32)
-    kprintf("Protection key violation.\n");
+    fprintf(stderr,"Protection key violation.\n");
 
   if (code & 0x8000)
-    kprintf("SGX access violation.\n");
+    fprintf(stderr,"SGX access violation.\n");
+
+  auto key = OS::memory_map().in_range(addr);
+  if (key) {
+    auto& range = OS::memory_map().at(key);
+    printf("Violated address is in mapped range \"%s\" \n", range.name());
+  } else {
+    printf("Violated address is outside mapped memory\n");
+  }
+
 }
+
+static int exception_counter = 0;
 
 extern "C"
 __attribute__((noreturn, weak))
 void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
 {
-  cpu_enable_panicking();
+  __sync_fetch_and_add(&exception_counter, 1);
+  if (exception_counter > 1) {
+    panic("Double CPU exception");
+  }
+
   SMP::global_lock();
-  kprintf("\n>>>> !!! CPU %u EXCEPTION !!! <<<<\n", SMP::cpu_id());
-  kprintf("%s (%d)   EIP  %p   CODE %#x\n",
+  fprintf(stderr,"\n>>>> !!! CPU %u EXCEPTION !!! <<<<\n", SMP::cpu_id());
+  fprintf(stderr,"%s (%d)   EIP  %p   CODE %#x\n",
           exception_names[error], error, (void*) regs[RIP_REG], code);
 
   if (error == PAGE_FAULT) {
@@ -317,6 +335,7 @@ void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
   // error message:
   char buffer[64];
   snprintf(buffer, sizeof(buffer), "%s (%d)", exception_names[error], error);
+
   // normal CPU exception
   if (error != 0x8) {
     // call panic, which will decide what to do next

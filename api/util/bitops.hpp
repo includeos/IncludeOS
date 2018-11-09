@@ -177,23 +177,26 @@ inline constexpr uintptr_t roundto(uintptr_t M, uintptr_t x)
 
 // Determine if ptr is A-aligned
 template <uintptr_t A>
-bool is_aligned(uintptr_t ptr)
+bool is_aligned(uintptr_t ptr) noexcept
 {
   return (ptr & (A - 1)) == 0;
 }
 
 template <uintptr_t A>
-bool is_aligned(void* ptr)
+bool is_aligned(void* ptr) noexcept
 {
   return is_aligned<A>(reinterpret_cast<uintptr_t>(ptr));
 }
 
-inline bool is_aligned(uintptr_t A, uintptr_t ptr)
+inline bool is_aligned(uintptr_t A, uintptr_t ptr) noexcept
 {
   return (ptr & (A - 1)) == 0;
 }
 
-
+inline size_t upercent(size_t a, size_t b) noexcept
+{
+  return (100 * a + b / 2) / b;
+}
 
 } // ns bitops
 } // ns util

@@ -36,6 +36,7 @@
 #include <common>
 #include <hw/pci_device.hpp>
 #include <virtio/virtio.hpp>
+#include <net/packet.hpp>
 #include <net/buffer_store.hpp>
 #include <net/link_layer.hpp>
 #include <net/ethernet/ethernet.hpp>
@@ -232,12 +233,20 @@ private:
   bool deferred_kick = false;
   static void handle_deferred_devices();
 
-  net::Packet_ptr transmit_queue = nullptr;
   net::BufferStore bufstore_;
 
   /** Stats */
-  uint64_t& packets_rx_;
-  uint64_t& packets_tx_;
+  uint64_t& stat_sendq_max_;
+  uint64_t& stat_sendq_now_;
+  uint64_t& stat_sendq_limit_dropped_;
+  uint64_t& stat_rx_refill_dropped_;
+  uint64_t& stat_bytes_rx_total_;
+  uint64_t& stat_bytes_tx_total_;
+  uint64_t& stat_packets_rx_total_;
+  uint64_t& stat_packets_tx_total_;
+
+  std::deque<net::Packet_ptr> sendq{};
+
 };
 
 #endif

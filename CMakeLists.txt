@@ -1,6 +1,23 @@
 cmake_minimum_required(VERSION 3.1.0)
 
+project (includeos C CXX)
+
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
+
+include(CheckCXXCompilerFlag)
+
+check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
+if(NOT HAVE_FLAG_STD_CXX17)
+ message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
+endif()
+
+if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
+ if (DEFINED ENV{INCLUDEOS_PREFIX})
+   set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
+ else()
+   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
+ endif()
+endif()
 
 # Target CPU Architecture
 if(DEFINED ENV{ARCH})
@@ -21,8 +38,6 @@ option(WITH_SOLO5 "Install with solo5 support" ON)
 
 set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
 
-project (includeos C CXX)
-
 set(INC ${CMAKE_INSTALL_PREFIX}/includeos/include)
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
 set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
@@ -32,7 +47,7 @@ set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 set(CPP_VERSION c++17)
 
 # create OS version string from git describe (used in CXX flags)
-execute_process(COMMAND git describe --dirty
+execute_process(COMMAND git describe --tags --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
@@ -48,16 +63,18 @@ else()
   set(DEFAULT_VM "vm.cpu_feat.json") # vmrunner
 endif(cpu_feat_vanilla)
 
-option(threading "Compile with SMP/threading support" OFF)
+option(smp "Compile with SMP (multiprocessing)" OFF)
 
 option(silent "Disable most output during OS boot" OFF)
 
 option (undefined_san "Enable undefined-behavior sanitizer" OFF)
+option (thin_lto "Enable the Thin LTO plugin" OFF)
+option (full_lto "Enable full LTO (compatibility)" OFF)
 
 # create random hex string as stack protector canary
 string(RANDOM LENGTH 16 ALPHABET 0123456789ABCDEF STACK_PROTECTOR_VALUE)
 
-set(CAPABS "${CAPABS} -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
+set(CAPABS "${CAPABS} -g -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STACK_PROTECTOR_VALUE}")
 
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
@@ -66,9 +83,7 @@ set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCP
 set(WARNS "-Wall -Wextra") # -Werror
 
 # configure options
-option(debug "Build with debugging symbols (OBS: Dramatically increases binary size)" OFF)
-option(debug-info "Build like \"all\" but with debugging output (i.e. the 'debug'-macro) enabled" OFF)
-option(debug-all "Build with debugging symbols + debugging output, i.e. \"debug\" + \"debug-info\"" OFF)
+option(debug "Build with no optimizations" OFF)
 option(minimal "Build for minimal size" OFF)
 option(stripped "reduce size" OFF)
 
@@ -95,15 +110,6 @@ if(minimal)
 	set(OPTIMIZE "-Os")
 endif(minimal)
 
-# Set debug options
-if(debug OR debug-all)
-	set(CAPABS "${CAPABS} -ggdb3 -DGSL_THROW_ON_CONTRACT_VIOLATION")
-endif(debug OR debug-all)
-
-if(debug-info OR debug-all)
-	set(CAPABS "${CAPABS} -UNO_DEBUG")
-endif(debug-info OR debug-all)
-
 if(silent)
 	set(CAPABS "${CAPABS} -DNO-INFO=1")
 endif(silent)
@@ -114,6 +120,11 @@ set(CAPABS "${CAPABS} ${OPTIMIZE}")
 # Append sanitizers
 if (undefined_san)
   set(CAPABS "${CAPABS} -fsanitize=undefined -fno-sanitize=vptr")
+endif()
+if (thin_lto)
+  set(CAPABS "${CAPABS} -flto=thin")
+elseif(full_lto)
+  set(CAPABS "${CAPABS} -flto=full")
 endif()
 
 # object format needs to be set BEFORE enabling ASM
@@ -130,21 +141,15 @@ endif()
 
 enable_language(ASM_NASM)
 
-
-if (NOT threading)
-  add_definitions(-D_LIBCPP_HAS_NO_THREADS)
-endif()
-
-
 # initialize C and C++ compiler flags
 if (CMAKE_COMPILER_IS_GNUCC)
   # gcc/g++ settings
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS " -MMD ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -Wno-frame-address -nostdlib -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS " ${CAPABS} ${WARNS} -nostdlib -fno-omit-frame-pointer -c")
 else()
   # these kinda work with llvm
-  set(CMAKE_CXX_FLAGS "-MMD ${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c  ${LIBCPP_THREADING} -DOS_VERSION=\\\"${OS_VERSION}\\\"")
-  set(CMAKE_C_FLAGS "-MMD ${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c -DOS_VERSION=\"\"${OS_VERSION}\"\"")
+  set(CMAKE_CXX_FLAGS "${CAPABS} -std=${CPP_VERSION} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
+  set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
 # either download or cross-compile needed libraries
@@ -174,9 +179,8 @@ if(vmbuild)
   # Install vmbuilder as an external project
   ExternalProject_Add(vmbuild
     PREFIX vmbuild # Build where
-    BUILD_ALWAYS 1
     SOURCE_DIR ${INCLUDEOS_ROOT}/vmbuild # Where is project located
-    BINARY_DIR ${INCLUDEOS_ROOT}/vmbuild/build
+    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/vmbuild/build
     INSTALL_DIR ${BIN} # Where to install
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
      -DINCLUDE_PATH=${CMAKE_INSTALL_PREFIX} # Pass installation folder
@@ -187,9 +191,8 @@ endif(vmbuild)
 option(diskbuilder "Build and install memdisk helper tool" ON)
 if(diskbuilder)
   ExternalProject_Add(diskbuilder
-    BUILD_ALWAYS 1
     SOURCE_DIR ${INCLUDEOS_ROOT}/diskimagebuild
-    BINARY_DIR ${INCLUDEOS_ROOT}/diskimagebuild/build
+    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/diskimagebuild/build
     INSTALL_DIR ${BIN}
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
   )
@@ -279,8 +282,13 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION 
 # Install seed
 install(DIRECTORY seed/ DESTINATION includeos/seed)
 
-# Install boot util
+# Install executable scripts
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-run DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-callgraph DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-debug DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-gprof DESTINATION bin)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/linux/lxp-pgo DESTINATION bin)
 
 # Install scripts
 install(PROGRAMS

@@ -18,7 +18,7 @@
 
 #include <os>
 #include <plugins/unik.hpp>
-#include <net/inet>
+#include <net/interfaces>
 #include <regex>
 #include <info>
 
@@ -35,7 +35,7 @@ void unik::Client::register_instance(net::Inet& inet, const net::UDP::port_t por
 
   // Set up an UDP port for receiving UniK heartbeat
   auto& sock = inet.udp().bind(port);
-  CHECK(net::Inet::stack<0>().udp().is_bound(sock.local()), "Unik UDP port is bound as expected");
+  CHECK(net::Interfaces::get(0).udp().is_bound(sock.local()), "Unik UDP port is bound as expected");
   sock.on_read([&inet] (auto addr, auto port, const char* data, size_t len) {
 
       static bool registered_with_unik = false;
@@ -48,7 +48,7 @@ void unik::Client::register_instance(net::Inet& inet, const net::UDP::port_t por
       std::string strdata(data, len);
       INFO("Unik client","received UDP data from %s:%i: %s ", addr.to_string().c_str(), port, strdata.c_str());
 
-      auto dotloc = strdata.find(":");
+      auto dotloc = strdata.find(':');
 
       if (dotloc == std::string::npos) {
         INFO("Unik client","Unexpected UDP data format - no ':' in string.");
@@ -106,9 +106,9 @@ void unik::Client::register_instance(net::Inet& inet, const net::UDP::port_t por
 
 void unik::Client::register_instance_dhcp() {
   // Bring up a network device using DHCP
-  static auto&& inet = net::Inet::stack<0>();
+  static auto&& inet = net::Interfaces::get(0);
 
-  net::Inet::ifconfig<0>(10.0, [](bool timeout) {
+  inet.negotiate_dhcp(10.0, [](bool timeout) {
       if(timeout) {
         INFO("Unik client","DHCP request timed out. Nothing to do.");
         return;

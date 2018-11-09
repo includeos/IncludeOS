@@ -16,11 +16,13 @@
 // limitations under the License.
 
 #include <algorithm>
+#include <cassert>
 #include <cctype>
 #include <ostream>
 #include <uri>
 #include <utility>
 #include <vector>
+#include <array>
 
 #include "../../mod/http-parser/http_parser.h"
 
@@ -78,7 +80,9 @@ static inline util::sview updated_copy(const std::vector<char>& to_copy,
                                        util::csview view,
                                        const std::vector<char>& from_copy)
 {
-  return {to_copy.data() + (view.data() - from_copy.data()), view.size()};
+  // sometimes the source is empty, but we need a valid empty string
+  if (view.data() == nullptr) return {&to_copy.back(), 0};
+  return {&to_copy.data()[view.data() - from_copy.data()], view.size()};
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -116,7 +120,6 @@ URI::URI(const URI& u)
   , scheme_   {updated_copy(uri_str_, u.scheme_,   u.uri_str_)}
   , userinfo_ {updated_copy(uri_str_, u.userinfo_, u.uri_str_)}
   , host_     {updated_copy(uri_str_, u.host_,     u.uri_str_)}
-  , port_str_ {updated_copy(uri_str_, u.port_str_, u.uri_str_)}
   , path_     {updated_copy(uri_str_, u.path_,     u.uri_str_)}
   , query_    {updated_copy(uri_str_, u.query_,    u.uri_str_)}
   , fragment_ {updated_copy(uri_str_, u.fragment_, u.uri_str_)}
@@ -136,7 +139,6 @@ URI::URI(URI&& u) noexcept
   , scheme_   {u.scheme_}
   , userinfo_ {u.userinfo_}
   , host_     {u.host_}
-  , port_str_ {u.port_str_}
   , path_     {u.path_}
   , query_    {u.query_}
   , fragment_ {u.fragment_}
@@ -151,7 +153,6 @@ URI& URI::operator=(const URI& u) {
   scheme_   = updated_copy(uri_str_, u.scheme_,   u.uri_str_);
   userinfo_ = updated_copy(uri_str_, u.userinfo_, u.uri_str_);
   host_     = updated_copy(uri_str_, u.host_,     u.uri_str_);
-  port_str_ = updated_copy(uri_str_, u.port_str_, u.uri_str_);
   path_     = updated_copy(uri_str_, u.path_,     u.uri_str_);
   query_    = updated_copy(uri_str_, u.query_,    u.uri_str_);
   fragment_ = updated_copy(uri_str_, u.fragment_, u.uri_str_);
@@ -173,7 +174,6 @@ URI& URI::operator=(URI&& u) noexcept {
   scheme_    = u.scheme_;
   userinfo_  = u.userinfo_;
   host_      = u.host_;
-  port_str_  = u.port_str_;
   path_      = u.path_;
   query_     = u.query_;
   fragment_  = u.fragment_;
@@ -214,11 +214,6 @@ bool URI::host_is_ip6() const noexcept {
 ///////////////////////////////////////////////////////////////////////////////
 std::string URI::host_and_port() const {
   return std::string{host_.data(), host_.length()} + ':' + std::to_string(port_);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-util::sview URI::port_str() const noexcept {
-  return port_str_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -299,12 +294,25 @@ URI& URI::parse() {
   scheme_   = (u.field_set & (1 << UF_SCHEMA))   ? util::sview{p + u.field_data[UF_SCHEMA].off,   u.field_data[UF_SCHEMA].len}   : util::sview{};
   userinfo_ = (u.field_set & (1 << UF_USERINFO)) ? util::sview{p + u.field_data[UF_USERINFO].off, u.field_data[UF_USERINFO].len} : util::sview{};
   host_     = (u.field_set & (1 << UF_HOST))     ? util::sview{p + u.field_data[UF_HOST].off,     u.field_data[UF_HOST].len}     : util::sview{};
-  port_str_ = (u.field_set & (1 << UF_PORT))     ? util::sview{p + u.field_data[UF_PORT].off,     u.field_data[UF_PORT].len}     : util::sview{};
   path_     = (u.field_set & (1 << UF_PATH))     ? util::sview{p + u.field_data[UF_PATH].off,     u.field_data[UF_PATH].len}     : util::sview{};
   query_    = (u.field_set & (1 << UF_QUERY))    ? util::sview{p + u.field_data[UF_QUERY].off,    u.field_data[UF_QUERY].len}    : util::sview{};
   fragment_ = (u.field_set & (1 << UF_FRAGMENT)) ? util::sview{p + u.field_data[UF_FRAGMENT].off, u.field_data[UF_FRAGMENT].len} : util::sview{};
 
-  port_ = bind_port(scheme_, u.port);
+  auto port_str_ = (u.field_set & (1 << UF_PORT)) ?
+    util::sview{p + u.field_data[UF_PORT].off, u.field_data[UF_PORT].len} : util::sview{};
+
+  if(not port_str_.empty())
+  {
+    std::array<char, 32> buf;
+    std::copy(port_str_.begin(), port_str_.end(), buf.begin());
+    buf[port_str_.size()] = 0;
+    port_ = std::atoi(buf.data());
+  }
+  else
+  {
+    port_ = bind_port(scheme_, u.port);
+  }
+
 
   return *this;
 }

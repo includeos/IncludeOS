@@ -44,6 +44,7 @@ static SMP::Array<smp_table> cpu_tables;
 
 namespace x86 {
   void initialize_cpu_tables_for_cpu(int cpu);
+  void register_deactivation_function(delegate<void()>);
 }
 
 
@@ -75,7 +76,7 @@ void __platform_init()
   asm volatile("sti");
 
   // initialize and start registered APs found in ACPI-tables
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   x86::init_SMP();
 #endif
 
@@ -92,6 +93,11 @@ void __platform_init()
   // Initialize APIC timers and timer systems
   // Deferred call to Service::ready() when calibration is complete
   x86::APIC_Timer::calibrate();
+
+  INFO2("Initializing drivers");
+  extern OS::ctor_t __driver_ctors_start;
+  extern OS::ctor_t __driver_ctors_end;
+  OS::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
 
   // Initialize storage devices
   PCI_manager::init(PCI::STORAGE);
@@ -118,6 +124,15 @@ void x86::initialize_cpu_tables_for_cpu(int cpu)
   GDT::reload_gdt(gdt);
   GDT::set_fs(fs);
 #endif
+}
+
+static std::vector<delegate<void()>> deactivate_funcs;
+void x86::register_deactivation_function(delegate<void()> func) {
+  deactivate_funcs.push_back(std::move(func));
+}
+void __arch_system_deactivate()
+{
+  for (auto& func : deactivate_funcs) func();
 }
 
 void __arch_enable_legacy_irq(uint8_t irq)

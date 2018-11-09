@@ -24,12 +24,13 @@
 #include <vector>
 #include <net/inet>
 #include <net/ip6/mld.hpp>
-#include <net/ip6/packet_mld.hpp>
 #include <net/ip6/icmp6.hpp>
 #include <statman>
 
 namespace net
 {
+  static const ip6::Addr MLDv2_report_mcast{0xff02,0,0,0,0,0,0,0x0016};
+
   Mld::Mld(Stack& inet) noexcept
     : inet_{inet},
     host_{*this},
@@ -55,7 +56,7 @@ namespace net
   {
     switch(pckt.type()) {
     case (ICMP_type::MULTICAST_LISTENER_QUERY):
-      receive_query(pckt);
+      //receive_query(pckt);
       // Change state
       break;
     case (ICMP_type::MULTICAST_LISTENER_REPORT):
@@ -72,11 +73,11 @@ namespace net
   }
 
 
-  void Mld::MulticastHostNode::receive_query(icmp6::Packet& pckt)
+  void Mld::MulticastHostNode::receive_query(const mld::Query& query)
   {
     auto now_ms = RTC::time_since_boot();
-    auto resp_delay = pckt. mld_max_resp_delay();
-    auto mcast_addr = pckt.mld_multicast();
+    uint32_t resp_delay = query.max_res_delay_ms().count();
+    auto mcast_addr = query.mcast_addr;
 
     if (mcast_addr != IP6::ADDR_ANY) {
       if (addr() == mcast_addr) {
@@ -115,7 +116,7 @@ namespace net
   {
     for (auto mcast : mlist_) {
       if (mcast.expired()) {
-        mld_.mld_send_report(mcast.addr());
+        mld_.send_report(mcast.addr());
       }
     }
   }
@@ -147,7 +148,81 @@ namespace net
     }
   }
 
-  void Mld::mld_send_report(ip6::Addr mcast)
+  void Mld::receive(net::Packet_ptr pkt)
+  {
+    auto pckt_ip6 = static_unique_ptr_cast<PacketIP6>(std::move(pkt));
+    auto pckt = icmp6::Packet(std::move(pckt_ip6));
+
+    PRINT("MLD Receive type: ");
+    switch(pckt.type())
+    {
+      case (ICMP_type::MULTICAST_LISTENER_QUERY):
+      {
+        const auto len = pckt.ip().payload_length();
+        if(len == 24)
+        {
+          PRINT("Query\n");
+          recv_query(pckt);
+          break;
+        }
+        else if(len >= 28)
+        {
+          PRINT("Query (v2)\n")
+          recv_query_v2(pckt);
+          break;
+        }
+        PRINT("Bad sized query\n");
+        break;
+      }
+      case (ICMP_type::MULTICAST_LISTENER_REPORT):
+        PRINT("Report\n");
+        recv_report(pckt);
+        break;
+      case (ICMP_type::MULTICAST_LISTENER_DONE):
+        PRINT("Done\n");
+        recv_done(pckt);
+        break;
+      case (ICMP_type::MULTICAST_LISTENER_REPORT_v2):
+        PRINT("Report (v2)\n");
+        recv_report_v2(pckt);
+        break;
+      default:
+        PRINT("Unknown type %#x\n", (uint8_t)pckt.type());
+    }
+  }
+
+  void Mld::recv_query(icmp6::Packet& pckt)
+  {
+    const auto& query = pckt.view_payload_as<mld::Query>();
+
+    if(query.is_general())
+    {
+
+    }
+    else
+    {
+
+    }
+  }
+
+  void Mld::recv_report(icmp6::Packet& pckt)
+  {}
+
+  void Mld::recv_done(icmp6::Packet& pckt)
+  {}
+
+  void Mld::recv_query_v2(icmp6::Packet& pckt)
+  {}
+
+  void Mld::recv_report_v2(icmp6::Packet& pckt)
+  {}
+
+  void Mld::transmit(icmp6::Packet& pckt, MAC::Addr mac)
+  {
+    linklayer_out_(pckt.release(), mac, Ethertype::IP6);
+  }
+
+  void Mld::send_report(const ip6::Addr& mcast)
   {
     icmp6::Packet req(inet_.ip6_packet_factory());
 
@@ -156,12 +231,17 @@ namespace net
     req.ip().set_ip_hop_limit(1);
     req.set_type(ICMP_type::MULTICAST_LISTENER_REPORT);
     req.set_code(0);
-    req.set_reserved(0);
+    req.ip().set_ip_dst(mcast);
 
-    req.ip().set_ip_dst(ip6::Addr::node_all_routers);
+    auto& report = req.emplace<mld::Report>(mcast);
 
-    // Set target address
-    req.add_payload(mcast.data(), IP6_ADDR_BYTES);
+    auto dest = req.ip().ip_dst();
+    MAC::Addr dest_mac(0x33,0x33,
+            dest.get_part<uint8_t>(12),
+            dest.get_part<uint8_t>(13),
+            dest.get_part<uint8_t>(14),
+            dest.get_part<uint8_t>(15));
+
     req.set_checksum();
 
     PRINT("MLD: Sending MLD report: %i payload size: %i,"
@@ -169,6 +249,41 @@ namespace net
         req.ip().size(), req.payload().size(), req.compute_checksum(),
         req.ip().ip_src().str().c_str(),
         req.ip().ip_dst().str().c_str());
+
+    transmit(req, dest_mac);
+  }
+
+  void Mld::send_report_v2(const ip6::Addr& mcast)
+  {
+    icmp6::Packet req(inet_.ip6_packet_factory());
+
+    req.ip().set_ip_src(inet_.ip6_addr());
+
+    req.ip().set_ip_hop_limit(1);
+    req.set_type(ICMP_type::MULTICAST_LISTENER_REPORT_v2);
+    req.set_code(0);
+    req.ip().set_ip_dst(MLDv2_report_mcast);
+
+    auto& report = req.emplace<mld::v2::Report>();
+    auto n = report.insert(0, {mld::v2::CHANGE_TO_EXCLUDE, mcast});
+    req.ip().increment_data_end(n);
+
+    auto dest = req.ip().ip_dst();
+    MAC::Addr dest_mac(0x33,0x33,
+            dest.get_part<uint8_t>(12),
+            dest.get_part<uint8_t>(13),
+            dest.get_part<uint8_t>(14),
+            dest.get_part<uint8_t>(15));
+
+    req.set_checksum();
+
+    PRINT("MLD: Sending MLD v2 report: %i payload size: %i,"
+        "checksum: 0x%x\n, source: %s, dest: %s\n",
+        req.ip().size(), req.payload().size(), req.compute_checksum(),
+        req.ip().ip_src().str().c_str(),
+        req.ip().ip_dst().str().c_str());
+
+    transmit(req, dest_mac);
   }
 
   Mld2::Mld2(Stack& inet) noexcept:
@@ -182,10 +297,12 @@ namespace net
       return;
     }
 
-    auto max_res_code = pckt.mld2_query_max_resp_code();
-    auto query = pckt.mld2().query();
-    auto mcast = query.multicast;
-    auto num_sources = query.num_srcs;
+    const auto& query = pckt.view_payload_as<mld::v2::Query>();
+
+    auto max_res_code = ntohs(query.max_res_code);
+    auto mcast = query.mcast_addr;
+    auto num_sources = ntohs(query.num_srcs);
+
 
     if (max_res_code < 32768) {
       //max_resp_delay = max_res_code;
@@ -208,8 +325,8 @@ namespace net
 
   void Mld2::receive_report(icmp6::Packet& pckt)
   {
-    auto num_records = pckt.mld2_listner_num_records();
-    auto report = pckt.mld2().report();
+    const auto& report = pckt.view_payload_as<mld::v2::Report>();
+    auto num_records = ntohs(report.num_records);
   }
 
   void Mld2::receive(icmp6::Packet& pckt)

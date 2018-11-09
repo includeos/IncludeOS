@@ -23,10 +23,10 @@
 #include <smp>
 
 // Default location for previous stack. Asm will always save a pointer.
-#if defined(INCLUDEOS_SINGLE_THREADED)
-int Fiber::next_id_{0};
-#else
+#ifdef INCLUDEOS_SMP_ENABLE
 std::atomic<int> Fiber::next_id_{0};
+#else
+int Fiber::next_id_{0};
 #endif
 
 SMP::Array<Fiber*> Fiber::main_ = {{nullptr}};

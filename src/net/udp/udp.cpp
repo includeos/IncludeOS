@@ -57,6 +57,13 @@ namespace net {
     auto ip6 = static_unique_ptr_cast<PacketIP6>(std::move(ptr));
     auto pkt = std::make_unique<udp::Packet6_view>(std::move(ip6));
 
+    // Validate checksum
+    // TODO: Maybe wasteful to do checksum calc before other checks
+    if (auto csum = pkt->compute_udp_checksum(); UNLIKELY(csum != 0)) {
+      PRINT("<UDP::receive> UDP Packet Checksum %#x != %#x\n", csum, 0x0);
+      return;
+    }
+
     const bool is_bcast = false; // TODO: multicast?
 
     receive(std::move(pkt), is_bcast);
@@ -64,6 +71,12 @@ namespace net {
 
   void UDP::receive(udp::Packet_view_ptr udp_packet, const bool is_bcast)
   {
+    if (udp_packet->validate_length() == false) {
+      PRINT("<%s> UDP: Invalid packet received (too short). Drop!\n",
+              stack_.ifname().c_str());
+      return;
+    }
+
     PRINT("<%s> UDP", stack_.ifname().c_str());
 
     PRINT("\t Source port: %u, Dest. Port: %u Length: %u\n",
@@ -211,9 +224,11 @@ namespace net {
     Expects(udp->udp_length() >= sizeof(udp::Header));
 
     if(udp->ipv() == Protocol::IPv6) {
+      udp->set_udp_checksum(); // mandatory in IPv6
       network_layer_out6_(udp->release());
     }
     else {
+      //udp->set_udp_checksum(); // optional in IPv4
       network_layer_out4_(udp->release());
     }
   }

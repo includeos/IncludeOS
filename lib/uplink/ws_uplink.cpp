@@ -39,6 +39,7 @@
 #include "log.hpp"
 #include <system_log>
 #include <isotime>
+#include <net/interfaces>
 
 #include <memdisk>
 #include <net/openssl/init.hpp>
@@ -75,7 +76,7 @@ namespace uplink {
 
   WS_uplink::WS_uplink(Config config)
     : config_{std::move(config)},
-      inet_{*config_.inet},
+      inet_{config_.get_stack()},
       id_{__arch_system_info().uuid},
       parser_({this, &WS_uplink::handle_transport}),
       heartbeat_timer({this, &WS_uplink::on_heartbeat_timer})
@@ -190,12 +191,14 @@ namespace uplink {
     url << endpoint;
 
     MYINFO("[ %s ] Sending auth request to %s", isotime::now().c_str(), url.to_string().c_str());
+    http::Basic_client::Options options;
+    options.timeout = 15s;
 
     client_->post(url,
       { {"Content-Type", "application/json"} },
       auth_data(),
       {this, &WS_uplink::handle_auth_response},
-      http::Basic_client::Options{15s});
+      options);
   }
 
   void WS_uplink::handle_auth_response(http::Error err, http::Response_ptr res, http::Connection&)
@@ -517,7 +520,7 @@ namespace uplink {
 
     writer.StartArray();
 
-    auto& stacks = net::Super_stack::inet().ip4_stacks();
+    auto& stacks = net::Interfaces::get();
     for(const auto& stack : stacks) {
       for(const auto& pair : stack)
         serialize_stack(writer, pair.second);
@@ -536,25 +539,8 @@ namespace uplink {
 
   void WS_uplink::send_uplink() {
     MYINFO("[ %s ] Sending uplink", isotime::now().c_str());
-    using namespace rapidjson;
 
-    StringBuffer buf;
-    Writer<StringBuffer> writer{buf};
-
-    writer.StartObject();
-
-    writer.Key("url");
-    writer.String(config_.url);
-
-    writer.Key("token");
-    writer.String(config_.token);
-
-    writer.Key("reboot");
-    writer.Bool(config_.reboot);
-
-    writer.EndObject();
-
-    std::string str = buf.GetString();
+    auto str = config_.serialized_string();
 
     MYINFO("%s", str.c_str());
 
@@ -644,7 +630,7 @@ namespace uplink {
 
   std::shared_ptr<net::Conntrack> get_first_conntrack()
   {
-    for(auto& stacks : net::Super_stack::inet().ip4_stacks()) {
+    for(auto& stacks : net::Interfaces::get()) {
       for(auto& stack : stacks)
       {
         if(stack.second != nullptr and stack.second->conntrack() != nullptr)

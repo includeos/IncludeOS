@@ -35,10 +35,10 @@ namespace net
   const ip6::Addr IP6::ADDR_LOOPBACK(0, 0, 0, 1);
 
   IP6::IP6(Stack& inet) noexcept :
+  stack_            {inet},
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip6.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip6.packets_tx").get_uint64()},
-  packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip6.packets_dropped").get_uint32()},
-  stack_            {inet}
+  packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip6.packets_dropped").get_uint32()}
   {}
 
   IP6::IP_packet_ptr IP6::drop(IP_packet_ptr ptr, Direction direction, Drop_reason reason) {
@@ -72,7 +72,7 @@ namespace net
   /* TODO: Check RFC */
   bool IP6::is_for_me(ip6::Addr dst) const
   {
-    return stack_.is_valid_source(dst)
+    return stack_.is_valid_source6(dst)
       or local_ip() == ADDR_ANY;
   }
 
@@ -221,7 +221,9 @@ namespace net
        be one of its own IP addresses (but not a broadcast or
        multicast address).
     */
-    if (UNLIKELY(not stack_.is_valid_source(packet->ip_src()))) {
+    if (UNLIKELY(not stack_.is_valid_source6(packet->ip_src()))) {
+      PRINT("<IP6> Drop bad source egress: src=%s list:\n%s\n",
+        packet->ip_src().to_string().c_str(), addr_list_.to_string().c_str());
       drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_source);
       return;
     }
@@ -244,7 +246,7 @@ namespace net
     ship(std::move(packet), IP6::ADDR_ANY, ct);
   }
 
-  void IP6::ship(Packet_ptr pckt, addr next_hop, Conntrack::Entry_ptr ct)
+  void IP6::ship(Packet_ptr pckt, ip6::Addr next_hop, Conntrack::Entry_ptr ct)
   {
     auto packet = static_unique_ptr_cast<PacketIP6>(std::move(pckt));
 
@@ -259,27 +261,17 @@ namespace net
     packet = drop_invalid_out(std::move(packet));
     if (packet == nullptr) return;
 
-    if (next_hop == IP6::ADDR_ANY) {
-        // Create local and target subnets
-        addr target = packet->ip_dst() & stack_.netmask6();
-        addr local  = stack_.ip6_addr() & stack_.netmask6();
+    if (next_hop == ip6::Addr::addr_any)
+    {
+      auto dst = packet->ip_dst();
+      next_hop = dst.is_linklocal() ? dst : stack_.ndp().next_hop(dst);
+      PRINT("<IP6> Nexthop for %s: %s\n", dst.to_string().c_str(), next_hop.to_string().c_str());
 
-        // Compare subnets to know where to send packet
-        next_hop = target == local ? packet->ip_dst() : stack_.gateway6();
-
-        PRINT("<IP6 TOP> Next hop for %s, (netmask %d, local IP: %s, gateway: %s) == %s\n",
-              packet->ip_dst().str().c_str(),
-              stack_.netmask6(),
-              stack_.ip6_addr().str().c_str(),
-              stack_.gateway6().str().c_str(),
-              next_hop.str().c_str());
-
-        if(UNLIKELY(next_hop == IP6::ADDR_ANY)) {
-          PRINT("<IP6> Next_hop calculated to 0 (gateway == %s), dropping\n",
-            stack_.gateway6().str().c_str());
-          drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
-          return;
-        }
+      if(UNLIKELY(next_hop == ip6::Addr::addr_any)) {
+        PRINT("<IP6> Next_hop calculated to 0, dropping\n");
+        drop(std::move(packet), Direction::Downstream, Drop_reason::Bad_destination);
+        return;
+      }
     }
 
     // Stat increment packets transmitted

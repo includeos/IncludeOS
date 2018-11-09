@@ -134,8 +134,17 @@ bool TCP::close(const Socket& socket)
 
 void TCP::connect(Socket remote, ConnectCallback callback)
 {
-  auto addr = remote.address().is_v6()
-    ? Addr{inet_.ip6_addr()} : Addr{inet_.ip_addr()};
+  auto addr = [&]()->auto{
+    if(remote.address().is_v6())
+    {
+      auto dest = remote.address().v6();
+      return Addr{inet_.addr6_config().get_src(dest)};
+    }
+    else
+    {
+      return Addr{inet_.ip_addr()};
+    }
+  }();
 
   create_connection(bind(addr), remote, std::move(callback))->open(true);
 }
@@ -153,8 +162,17 @@ void TCP::connect(Socket local, Socket remote, ConnectCallback callback)
 
 Connection_ptr TCP::connect(Socket remote)
 {
-  auto addr = remote.address().is_v6()
-    ? Addr{inet_.ip6_addr()} : Addr{inet_.ip_addr()};
+  auto addr = [&]()->auto{
+    if(remote.address().is_v6())
+    {
+      auto dest = remote.address().v6();
+      return Addr{inet_.addr6_config().get_src(dest)};
+    }
+    else
+    {
+      return Addr{inet_.ip_addr()};
+    }
+  }();
 
   auto conn = create_connection(bind(addr), remote);
   conn->open(true);
@@ -212,14 +230,17 @@ void TCP::receive(Packet_view& packet)
   (*packets_rx_)++;
   assert(get_cpuid() == SMP::cpu_id());
 
-  //auto packet = static_unique_ptr_cast<net::tcp::Packet>(std::move(packet_ptr));
-
   // validate some unlikely but invalid packet properties
   if (UNLIKELY(packet.src_port() == 0)) {
     drop(packet);
     return;
   }
+  if (UNLIKELY(packet.validate_length() == false)) {
+    drop(packet);
+    return;
+  }
 
+#if !defined(DISABLE_INET_CHECKSUMS)
   // Validate checksum
   if (UNLIKELY(packet.compute_tcp_checksum() != 0)) {
     PRINT("<TCP::receive> TCP Packet Checksum %#x != %#x\n",
@@ -227,6 +248,7 @@ void TCP::receive(Packet_view& packet)
     drop(packet);
     return;
   }
+#endif
 
   // Stat increment bytes received
   (*bytes_rx_) += packet.tcp_data_length();

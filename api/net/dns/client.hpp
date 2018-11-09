@@ -30,6 +30,8 @@
 namespace net
 {
   class Inet;
+}
+namespace net::dns {
   /**
    * @brief      A simple DNS client which is able to resolve hostnames
    *             and locally cache them.
@@ -37,11 +39,11 @@ namespace net
    * @note       A entry can stay longer than TTL due to flush timer granularity.
    *             Max_TTL = TTL + FLUSH_INTERVAL (90s default)
    */
-  class DNSClient
+  class Client
   {
   public:
     using Stack           = Inet;
-    using Resolve_handler = IP4::resolve_func;
+    using Resolve_handler = delegate<void(dns::Response_ptr, const Error& err)>;
     using Address         = net::Addr;
     using Hostname        = std::string;
     using timestamp_t     = RTC::timestamp_t;
@@ -70,7 +72,7 @@ namespace net
      *
      * @param      stack   The stack
      */
-    DNSClient(Stack& stack);
+    Client(Stack& stack);
 
     /**
      * @brief      Resolve a hostname for an IP4 address with a timeout duration
@@ -197,7 +199,7 @@ namespace net
      */
     struct Request
     {
-      DNSClient&      client;
+      Client&      client;
 
       dns::Query      query;
       using Response_ptr = std::unique_ptr<dns::Response>;
@@ -208,9 +210,11 @@ namespace net
       Resolve_handler callback;
       Timer           timer;
 
-      Request(DNSClient& cli, udp::Socket& sock, dns::Query q, Resolve_handler cb);
+      Request(Client& cli, udp::Socket& sock, dns::Query q, Resolve_handler cb);
 
       void resolve(Address server, Timer::duration_t timeout);
+
+      ~Request();
 
     private:
 
@@ -224,11 +228,7 @@ namespace net
        */
       void finish(const Error& err);
 
-      void finish()
-      {
-        Error err;
-        finish(err);
-      }
+      void timeout();
 
     }; // < struct Request
        //

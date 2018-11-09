@@ -27,8 +27,11 @@ using namespace net;
 
 Inet::Inet(hw::Nic& nic)
   : dns_server_(IP4::ADDR_ANY),
-    nic_(nic), arp_(*this), ndp_(*this), mld_(*this), mld2_(*this), ip4_(*this),
-    ip6_(*this), icmp_(*this), icmp6_(*this), udp_(*this), tcp_(*this),
+    nic_(nic), arp_(*this), ndp_(*this),
+    mld_(*this), /*mld2_(*this),*/
+    ip4_(*this), ip6_(*this),
+    icmp_(*this), icmp6_(*this),
+    udp_(*this), tcp_(*this),
     dns_(*this), domain_name_{}, MTU_(nic.MTU())
 {
   static_assert(sizeof(ip4::Addr) == 4, "IPv4 addresses must be 32-bits");
@@ -48,6 +51,8 @@ Inet::Inet(hw::Nic& nic)
   auto udp6_bottom(upstream{udp_, &UDP::receive6});
   auto tcp4_bottom(upstream{tcp_, &TCP::receive4});
   auto tcp6_bottom(upstream{tcp_, &TCP::receive6});
+  auto ndp_bottom(upstream{ndp_, &Ndp::receive});
+  auto mld_bottom(upstream{mld_, &Mld::receive});
 
   /** Upstream wiring  */
   // Packets available
@@ -79,6 +84,12 @@ Inet::Inet(hw::Nic& nic)
 
   // IP6 -> TCP
   ip6_.set_tcp_handler(tcp6_bottom);
+
+  // ICMPv6 -> NDP
+  icmp6_.set_ndp_handler(ndp_bottom);
+
+  // ICMPv6 -> MLD
+  icmp6_.set_mld_handler(mld_bottom);
 
   /** Downstream delegates */
   auto link_top(nic_.create_link_downstream());
@@ -116,6 +127,9 @@ Inet::Inet(hw::Nic& nic)
   // NDP -> Link
   ndp_.set_linklayer_out(link_top);
 
+  // MLD -> Link
+  mld_.set_linklayer_out(link_top);
+
   // Arp -> Link
   assert(link_top);
   arp_.set_linklayer_out(link_top);
@@ -130,11 +144,14 @@ Inet::Inet(hw::Nic& nic)
 }
 
 void Inet::error_report(Error& err, Packet_ptr orig_pckt) {
-  auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(orig_pckt));
-  bool too_big = false;
+  // if its a forged packet, it might be too small
+  if (orig_pckt->size() < 40) return;
 
+  auto pckt_ip4 = static_unique_ptr_cast<PacketIP4>(std::move(orig_pckt));
   // Get the destination to the original packet
   Socket dest = [](std::unique_ptr<PacketIP4>& pkt)->Socket {
+    // if its a forged packet, it might not be IPv4
+    if (pkt->is_ipv4() == false) return {};
     switch (pkt->ip_protocol()) {
       case Protocol::UDP: {
         auto udp = udp::Packet4_view_raw(pkt.get());
@@ -149,7 +166,7 @@ void Inet::error_report(Error& err, Packet_ptr orig_pckt) {
     }
   }(pckt_ip4);
 
-
+  bool too_big = false;
   if (err.is_icmp()) {
     auto* icmp_err = dynamic_cast<ICMP_error*>(&err);
     if (icmp_err == nullptr) {
@@ -262,6 +279,27 @@ void Inet::network_config6(IP6::addr addr6,
   configured_handlers_.clear();
 }
 
+void Inet::add_addr(const ip6::Addr& addr, uint8_t prefix,
+              uint32_t pref_lifetime, uint32_t valid_lifetime)
+{
+  int r = this->ip6_.addr_list().input(
+    addr, prefix, pref_lifetime, valid_lifetime);
+  if(r == 1) {
+    INFO("Inet6", "Address configured %s", addr.to_string().c_str());
+  }
+}
+
+void Inet::add_addr_autoconf(const ip6::Addr& addr, uint8_t prefix,
+                       uint32_t pref_lifetime, uint32_t valid_lifetime)
+{
+  Expects(prefix == 64);
+  int r = this->ip6_.addr_list().input_autoconf(
+    addr, prefix, pref_lifetime, valid_lifetime);
+  if(r == 1) {
+    INFO("Inet6", "Address configured %s (autoconf)", addr.to_string().c_str());
+  }
+}
+
 void Inet::enable_conntrack(std::shared_ptr<Conntrack> ct)
 {
   Expects(conntrack_ == nullptr && "Conntrack is already set");
@@ -342,15 +380,19 @@ void Inet::resolve(const std::string& hostname,
      resolve_func       func,
      bool               force)
 {
-   dns_.resolve(this->dns_server_, hostname, func, force);
+  if(is_configured_v6() and dns_server6_ != ip6::Addr::addr_any)
+    resolve(hostname, this->dns_server6_, func, force);
+  else
+    resolve(hostname, this->dns_server_, func, force);
 }
 
 void Inet::resolve(const std::string& hostname,
-      ip4::Addr         server,
+      net::Addr         server,
       resolve_func      func,
       bool              force)
 {
-   dns_.resolve(server, hostname, func, force);
+  Expects(not hostname.empty());
+  dns_.resolve(server, hostname, func, force);
 }
 
 void Inet::set_route_checker6(Route_checker6 delg)

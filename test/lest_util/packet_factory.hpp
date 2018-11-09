@@ -33,9 +33,8 @@ using namespace net;
 static net::Packet_ptr create_packet() noexcept
 {
   static net::BufferStore bufstore(BUFFER_CNT, BUFFER_SIZE);
-  auto buffer = bufstore.get_buffer();
-  auto* ptr = (net::Packet*) buffer.addr;
-  new (ptr) net::Packet(PHYS_OFFSET, 0, PHYS_OFFSET + PACKET_CAPA, buffer.bufstore);
+  auto* ptr = (net::Packet*) bufstore.get_buffer();
+  new (ptr) net::Packet(PHYS_OFFSET, 0, PHYS_OFFSET + PACKET_CAPA, &bufstore);
   return net::Packet_ptr(ptr);
 }
 
@@ -53,6 +52,7 @@ static std::unique_ptr<net::PacketIP4> create_ip4_packet_init(ip4::Addr src, ip4
 {
   auto ip4 = create_ip4_packet();
   ip4->init();
+  ip4->set_ip_total_length(ip4->size());
   ip4->set_ip_src(src);
   ip4->set_ip_dst(dst);
   return ip4;
@@ -82,6 +82,7 @@ static std::unique_ptr<net::tcp::Packet> create_tcp_packet() noexcept
 {
   auto ip4 = create_ip4_packet();
   ip4->init(Protocol::TCP);
+  ip4->set_ip_total_length(ip4->size());
   auto tcp = net::static_unique_ptr_cast<net::tcp::Packet> (std::move(ip4));
   return tcp;
 }
@@ -90,6 +91,7 @@ static std::unique_ptr<net::tcp::Packet> create_tcp_packet_init(Socket src, Sock
 {
   auto tcp = create_tcp_packet();
   tcp->init();
+  tcp->set_ip_total_length(tcp->size());
   tcp->set_source(src);
   tcp->set_destination(dst);
   return tcp;

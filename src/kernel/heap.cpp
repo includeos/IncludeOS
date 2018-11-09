@@ -60,6 +60,9 @@ uintptr_t OS::heap_end() noexcept
   return mmap_allocation_end();
 }
 
+size_t OS::total_memuse() noexcept {
+  return heap_usage() + OS::liveupdate_phys_size(OS::heap_max()) + heap_begin_;
+}
 
 constexpr size_t heap_alignment = 4096;
 __attribute__((weak)) ssize_t __brk_max = 0x100000;

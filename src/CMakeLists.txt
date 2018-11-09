@@ -3,8 +3,8 @@
 #
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
-if (NOT threading)
-add_definitions(-DINCLUDEOS_SINGLE_THREADED)
+if (smp)
+add_definitions(-DINCLUDEOS_SMP_ENABLE)
 endif()
 
 include_directories(${LIBCXX_INCLUDE_DIR})
@@ -18,16 +18,19 @@ include_directories(${INCLUDEOS_ROOT}/mod/rapidjson/include)
 include_directories(${INCLUDEOS_ROOT}/mod/uzlib/src) # tinf.h for tar
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 include_directories(${BOTAN_DIR})
-include_directories(${OPENSSL_DIR}/include)
+include_directories(${S2N_INCLUDE})
 if(${ARCH} STREQUAL "x86_64")
   set(OPENSSL_MODULES "net/openssl/init.cpp" "net/openssl/client.cpp"
                       "net/openssl/server.cpp"
-                      "net/https/openssl_server.cpp" "net/http/client.cpp")
-  set(OPENSSL_LIBS    openssl_ssl openssl_crypto)
+                      "net/https/openssl_server.cpp" "net/http/client.cpp"
+                      "net/https/s2n_server.cpp"
+                    )
+  set(OPENSSL_LIBS    s2n_libs2n s2n_libssl s2n_crypto)
 endif()
 set(BOTAN_MODULES "net/https/botan_server.cpp")
 
 set(OS_OBJECTS
+  version.cpp
   kernel/multiboot.cpp
   kernel/syscalls.cpp kernel/os.cpp kernel/cpuid.cpp kernel/block.cpp
   kernel/events.cpp kernel/memmap.cpp kernel/pci_manager.cpp
@@ -49,14 +52,17 @@ set(OS_OBJECTS
   net/tcp/tcp.cpp net/tcp/connection.cpp net/tcp/connection_states.cpp
   net/tcp/write_queue.cpp net/tcp/rttm.cpp net/tcp/listener.cpp
   net/tcp/read_buffer.cpp net/tcp/read_request.cpp net/tcp/stream.cpp
+  net/tcp/tcp_conntrack.cpp
   net/ip4/icmp4.cpp net/udp/udp.cpp net/udp/socket.cpp
+  net/ip6/addr.cpp
   net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp net/ip6/mld.cpp
-  net/ip6/extension_header.cpp net/ip6/packet_ndp.cpp
-  net/ip6/packet_mld.cpp net/ip6/slaac.cpp
+  net/ip6/extension_header.cpp #net/ip6/packet_ndp.cpp
+  #net/ip6/packet_mld.cpp
+  net/ip6/slaac.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dns/record.cpp net/dns/response.cpp net/dns/query.cpp
   net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet.cpp
-  net/super_stack.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
+  net/interfaces.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
   net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
   net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
   net/http/mime_types.cpp net/http/cookie.cpp
@@ -64,6 +70,7 @@ set(OS_OBJECTS
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
   net/ws/websocket.cpp ${OPENSSL_MODULES} ${BOTAN_MODULES}
   net/nat/nat.cpp net/nat/napt.cpp
+  net/packet_debug.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   # POSIX
@@ -77,6 +84,7 @@ add_dependencies(os PrecompiledLibraries botan ${OPENSSL_LIBS})
 # disable sanitizers on c_abi and cxx_abi, etc.
 set_source_files_properties(crt/c_abi.c PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 set_source_files_properties(crt/cxx_abi.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
+set_source_files_properties(version.cpp PROPERTIES COMPILE_DEFINITIONS "OS_VERSION=\"${OS_VERSION}\"")
 
 add_subdirectory(arch/${ARCH})
 add_subdirectory(platform/x86_pc)

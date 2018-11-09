@@ -1,18 +1,24 @@
 set(IOS ${CMAKE_SOURCE_DIR}/..)
 
 set(NET_SOURCES
+  ${IOS}/src/net/addr.cpp
   ${IOS}/src/net/buffer_store.cpp
   ${IOS}/src/net/checksum.cpp
-  ${IOS}/src/net/super_stack.cpp
+  ${IOS}/src/net/configure.cpp
+  ${IOS}/src/net/interfaces.cpp
   ${IOS}/src/net/inet.cpp
+  ${IOS}/src/net/packet_debug.cpp
 
   ${IOS}/src/net/ethernet/ethernet.cpp
   ${IOS}/src/net/ip4/arp.cpp
   ${IOS}/src/net/ip4/ip4.cpp
   ${IOS}/src/net/ip4/reassembly.cpp
   ${IOS}/src/net/ip6/ip6.cpp
+  ${IOS}/src/net/ip6/extension_header.cpp
   ${IOS}/src/net/ip6/icmp6.cpp
+  ${IOS}/src/net/ip6/mld.cpp
   ${IOS}/src/net/ip6/ndp.cpp
+  ${IOS}/src/net/ip6/slaac.cpp
 
   ${IOS}/src/net/tcp/tcp.cpp
   ${IOS}/src/net/tcp/connection.cpp
@@ -23,12 +29,15 @@ set(NET_SOURCES
   ${IOS}/src/net/tcp/rttm.cpp
   ${IOS}/src/net/tcp/listener.cpp
   ${IOS}/src/net/tcp/stream.cpp
+  ${IOS}/src/net/udp/udp.cpp
+  ${IOS}/src/net/udp/socket.cpp
   ${IOS}/src/net/ip4/icmp4.cpp
-  ${IOS}/src/net/ip4/udp.cpp
-  ${IOS}/src/net/ip4/udp_socket.cpp
 
-  ${IOS}/src/net/dns/dns.cpp
   ${IOS}/src/net/dns/client.cpp
+  ${IOS}/src/net/dns/dns.cpp
+  ${IOS}/src/net/dns/query.cpp
+  ${IOS}/src/net/dns/record.cpp
+  ${IOS}/src/net/dns/response.cpp
   ${IOS}/src/net/dhcp/dh4client.cpp
   ${IOS}/src/net/dhcp/dhcpd.cpp
 
@@ -55,6 +64,7 @@ set(NET_SOURCES
 
   ${IOS}/src/net/https/botan_server.cpp
   ${IOS}/src/net/https/openssl_server.cpp
+  ${IOS}/src/net/https/s2n_server.cpp
 
   ${IOS}/src/net/ws/websocket.cpp
 
@@ -69,6 +79,7 @@ if (CUSTOM_BOTAN)
 endif()
 
 set(OS_SOURCES
+    ${IOS}/src/version.cpp
     ${IOS}/src/fs/dirent.cpp
     ${IOS}/src/fs/disk.cpp
     ${IOS}/src/fs/fat.cpp
@@ -84,6 +95,7 @@ set(OS_SOURCES
     ${IOS}/src/kernel/rng.cpp
     ${IOS}/src/kernel/timers.cpp
     ${IOS}/src/util/async.cpp
+    ${IOS}/src/util/autoconf.cpp
     ${IOS}/src/util/crc32.cpp
     ${IOS}/src/util/logger.cpp
     ${IOS}/src/util/sha1.cpp
@@ -105,6 +117,18 @@ set(MOD_SOURCES
     ${IOS}/lib/mana/src/components/dashboard/dashboard.cpp
   )
 
+set(LIU_SOURCES
+    ${IOS}/lib/LiveUpdate/elfscan.cpp
+    ${IOS}/lib/LiveUpdate/hotswap.cpp
+    ${IOS}/lib/LiveUpdate/partition.cpp
+    ${IOS}/lib/LiveUpdate/resume.cpp
+    ${IOS}/lib/LiveUpdate/rollback.cpp
+    ${IOS}/lib/LiveUpdate/serialize_tcp.cpp
+    ${IOS}/lib/LiveUpdate/storage.cpp
+    ${IOS}/lib/LiveUpdate/update.cpp
+    ${IOS}/src/util/statman_liu.cpp
+  )
+
 add_library(includeos STATIC ${NET_SOURCES} ${OS_SOURCES} ${MOD_SOURCES})
 set_target_properties(includeos PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(includeos PUBLIC
@@ -116,5 +140,12 @@ target_include_directories(includeos PUBLIC
 add_library(http_parser STATIC "${IOS}/mod/http-parser/http_parser.c")
 set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE C)
 
-install(TARGETS includeos   DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos/linux)
-install(TARGETS http_parser DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos/linux)
+add_library(liveupdate STATIC ${LIU_SOURCES})
+set_target_properties(liveupdate PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(liveupdate PUBLIC
+    ${IOS}/lib/LiveUpdate
+  )
+
+install(TARGETS includeos   DESTINATION includeos/linux)
+install(TARGETS http_parser DESTINATION includeos/linux)
+install(TARGETS liveupdate  DESTINATION includeos/linux)

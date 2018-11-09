@@ -46,24 +46,38 @@ struct Addr {
 
   Addr(uint16_t a1, uint16_t a2, uint16_t b1, uint16_t b2,
        uint16_t c1, uint16_t c2, uint16_t d1, uint16_t d2)
-  {
-    i16[0] = htons(a1); i16[1] = htons(a2);
-    i16[2] = htons(b1); i16[3] = htons(b2);
-    i16[4] = htons(c1); i16[5] = htons(c2);
-    i16[6] = htons(d1); i16[7] = htons(d2);
-  }
+    : i16{htons(a1), htons(a2), htons(b1), htons(b2),
+          htons(c1), htons(c2), htons(d1), htons(d2)}
+  {}
 
   explicit Addr(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
-  {
-    i32[0] = htonl(a); i32[1] = htonl(b);
-    i32[2] = htonl(c); i32[3] = htonl(d);
-  }
+    : i32{htonl(a), htonl(b), htonl(c), htonl(d)}
+  {}
+
+  explicit Addr(uint64_t a, uint64_t b)
+    : i64{htonll(a), htonll(b)}
+  {}
 
   Addr(const Addr& a) noexcept
     : i64{a.i64} {}
 
   Addr(Addr&& a) noexcept
     : i64{a.i64} {}
+
+  /**
+   * Constructor
+   *
+   * Construct an IPv6 address from a {std::string} object
+   * representing an IPv6 address
+   *
+   * @param addr
+   * A {std::string} object representing an IPv6 address
+   *
+   * @throws Invalid_address
+   *  IIf the {std::string} object doesn't representing a valid IPv6
+   *  address
+   */
+  Addr(const std::string &addr);
 
   // returns this IPv6 Address as a string
   std::string str() const {
@@ -123,7 +137,7 @@ struct Addr {
 
   bool is_linklocal() const
   {
-    return ((ntohs(i16[0]) & 0xFF80) == 0xFF80);
+    return ((ntohs(i16[0]) & 0xFE80) == 0xFE80);
   }
 
   bool is_solicit_multicast() const
@@ -139,12 +153,14 @@ struct Addr {
       return reinterpret_cast<uint8_t*> (i16.data());
   }
 
-  Addr& solicit(const Addr other) noexcept {
-    i32[0] = htonl(0xFF020000);
-    i32[1] = 0;
-    i32[2] = htonl(0x1);
-    i32[3] = htonl(0xFF000000) | other.i32[3];
-    return *this;
+  static Addr solicit(const Addr& other) noexcept
+  {
+    return Addr{0xFF020000, 0, 0x1, (0xFF000000 | ntohl(other.i32[3]))};
+  }
+
+  static Addr link_local(uint64_t eui) noexcept
+  {
+    return Addr{0xFE80'0000'0000'0000, ntohll(eui)};
   }
 
   /**
@@ -322,7 +338,7 @@ struct Addr {
     std::array<uint8_t, 16> i8;
   };
 } __attribute__((packed)); //< struct Addr
-static_assert(sizeof(Addr) == 16);
+static_assert(sizeof(Addr) == 16, "Must be 16 bytes in size");
 
 } //< namespace ip6
 } //< namespace net

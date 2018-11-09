@@ -41,7 +41,11 @@ namespace net {
   packets_rx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_rx").get_uint64()},
   packets_tx_       {Statman::get().create(Stat::UINT64, inet.ifname() + ".ip4.packets_tx").get_uint64()},
   packets_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.packets_dropped").get_uint32()},
-  stack_            {inet}
+  stack_            {inet},
+  prerouting_dropped_   {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.prerouting_dropped").get_uint32()},
+  postrouting_dropped_  {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.postrouting_dropped").get_uint32()},
+  input_dropped_        {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.input_dropped").get_uint32()},
+  output_dropped_       {Statman::get().create(Stat::UINT32, inet.ifname() + ".ip4.output_dropped").get_uint32()}
   {}
 
 
@@ -57,15 +61,20 @@ namespace net {
 
   IP4::IP_packet_ptr IP4::drop_invalid_in(IP4::IP_packet_ptr packet)
   {
-    IP4::Direction up = IP4::Direction::Upstream;
-
+    const IP4::Direction up = IP4::Direction::Upstream;
     // RFC-1122 3.2.1.1, Silently discard Version != 4
     if (UNLIKELY(not packet->is_ipv4()))
       return drop(std::move(packet), up, Drop_reason::Wrong_version);
 
+    // Don't read from data before we know the length is sane
+    if (UNLIKELY(not packet->validate_length()))
+      return drop(std::move(packet), up, Drop_reason::Bad_length);
+
+#if !defined(DISABLE_INET_CHECKSUMS)
     // RFC-1122 3.2.1.2, Verify IP checksum, silently discard bad dgram
     if (UNLIKELY(packet->compute_ip_checksum() != 0))
       return drop(std::move(packet), up, Drop_reason::Wrong_checksum);
+#endif
 
     // RFC-1122 3.2.1.3, Silently discard datagram with bad src addr
     // Here dropping if the source ip address is a multicast address or is this interface's broadcast address
@@ -104,8 +113,8 @@ namespace net {
   bool IP4::is_for_me(ip4::Addr dst) const
   {
     return stack_.is_valid_source(dst)
-      or (dst | stack_.netmask()) == ADDR_BCAST
-      or local_ip() == ADDR_ANY;
+      or dst == stack_.broadcast_addr()
+      or dst == ADDR_BCAST;
   }
 
   void IP4::receive(Packet_ptr pckt, [[maybe_unused]]const bool link_bcast)
@@ -131,6 +140,9 @@ namespace net {
     // Stat increment packets received
     packets_rx_++;
 
+    // Account for possible linklayer padding
+    packet->adjust_size_from_header();
+
     packet = drop_invalid_in(std::move(packet));
     if (UNLIKELY(packet == nullptr)) return;
 
@@ -139,7 +151,10 @@ namespace net {
     Conntrack::Entry_ptr ct = (stack_.conntrack())
       ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = prerouting_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      prerouting_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();
@@ -183,8 +198,8 @@ namespace net {
       stack_.conntrack()->confirm(*packet); // No need to set ct again
     res = input_chain_(std::move(packet), stack_, ct);
     if (UNLIKELY(res == Filter_verdict_type::DROP)) {
-        PRINT("* parsing the packet header\n");
-        return;
+      input_dropped_++;
+      return;
     }
 
     Ensures(res.packet != nullptr);
@@ -238,7 +253,10 @@ namespace net {
     Conntrack::Entry_ptr ct =
       (stack_.conntrack()) ? stack_.conntrack()->in(*packet) : nullptr;
     auto res = output_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      output_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();
@@ -258,7 +276,12 @@ namespace net {
 
     // Send loopback packets right back
     if (UNLIKELY(stack_.is_valid_source(packet->ip_dst()))) {
-      PRINT("<IP4> Destination address is loopback \n");
+      PRINT("<IP4> Loopback packet returned SRC %s DST %s\n",
+             packet->ip_src().to_string().c_str(),
+             packet->ip_dst().to_string().c_str()
+            );
+      // to avoid loops, lets decrement hop count here
+      packet->decrement_ttl();
       IP4::receive(std::move(packet), false);
       return;
     }
@@ -274,7 +297,10 @@ namespace net {
         conntrack->confirm(ct->first, ct->proto) : conntrack->confirm(*packet);
     }
     auto res = postrouting_chain_(std::move(packet), stack_, ct);
-    if (UNLIKELY(res == Filter_verdict_type::DROP)) return;
+    if (UNLIKELY(res == Filter_verdict_type::DROP)) {
+      postrouting_dropped_++;
+      return;
+    }
 
     Ensures(res.packet != nullptr);
     packet = res.release();

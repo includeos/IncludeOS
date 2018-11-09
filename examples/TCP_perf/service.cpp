@@ -17,7 +17,7 @@
 
 #include <os>
 #include <rtc>
-#include <net/inet>
+#include <net/interfaces>
 #include <statman>
 #include <profile>
 #include <cstdio>
@@ -101,6 +101,7 @@ void stop_measure()
   double mbits  = (received/(1024*1024)*8) / durs;
   printf("Duration: %.2fs - Payload: %lu/%u MB - %.2f MBit/s\n",
           durs, received/(1024*1024), SIZE/(1024*1024), mbits);
+  OS::shutdown();
 }
 
 void Service::start() {}
@@ -117,13 +118,10 @@ void Service::ready()
 #ifdef USERSPACE_LINUX
   extern void create_network_device(int N, const char* route, const char* ip);
   create_network_device(0, "10.0.0.0/24", "10.0.0.1");
+#endif
 
   // Get the first IP stack configured from config.json
-  auto& inet = net::Super_stack::get(0);
-  inet.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
-#else
-  auto& inet = net::Super_stack::get(0);
-#endif
+  auto& inet = net::Interfaces::get(0);
   auto& tcp = inet.tcp();
   tcp.set_DACK(dack); // default
   tcp.set_MSL(std::chrono::seconds(3));
@@ -151,10 +149,9 @@ void Service::ready()
     conn->close();
   });
 
-  tcp.listen(1338).on_connect([](auto conn)
+  tcp.listen(1338).on_connect([](net::tcp::Connection_ptr conn)
   {
     using namespace std::chrono;
-
     printf("%s connected. Receiving file %u MB\n", conn->remote().to_string().c_str(), SIZE/(1024*1024));
 
     start_measure();
@@ -163,7 +160,8 @@ void Service::ready()
     {
 
     });
-    conn->on_disconnect([] (auto self, auto reason)
+    conn->on_disconnect([] (net::tcp::Connection_ptr self,
+                            net::tcp::Connection::Disconnect reason)
     {
       (void) reason;
       if(const auto bytes_sacked = self->bytes_sacked(); bytes_sacked)

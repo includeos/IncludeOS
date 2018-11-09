@@ -18,6 +18,7 @@
 #include "clocks.hpp"
 #include "../kvm/kvmclock.hpp"
 #include "cmos_clock.hpp"
+#include "platform.hpp"
 #include <util/units.hpp>
 #include <kernel/cpuid.hpp>
 #include <arch.hpp>
@@ -40,7 +41,6 @@ static sysclock_t current_clock;
 
 namespace x86
 {
-
   void Clocks::init()
   {
     if (CPUID::kvm_feature(KVM_FEATURE_CLOCKSOURCE
@@ -51,6 +51,7 @@ namespace x86
         current_clock.system_time = {&KVM_clock::system_time};
         current_clock.wall_time   = {&KVM_clock::wall_clock};
         current_clock.tsc_khz     = {&KVM_clock::get_tsc_khz};
+        x86::register_deactivation_function(KVM_clock::deactivate);
         INFO("x86", "KVM PV clocks initialized");
       }
     }

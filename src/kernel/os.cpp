@@ -15,13 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG
-#define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
-
-#ifndef PANIC_ACTION
-#define PANIC_ACTION halt
-#endif
-
 #include <kernel/os.hpp>
 #include <kernel/rng.hpp>
 #include <service>
@@ -29,6 +22,7 @@
 #include <cinttypes>
 #include <util/fixed_vector.hpp>
 #include <system_log>
+#define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 //#define ENABLE_PROFILERS
 #ifdef ENABLE_PROFILERS
@@ -40,13 +34,12 @@
 
 using namespace util;
 
-extern "C" void* get_cpu_esp();
-extern uintptr_t _start;
-extern uintptr_t _end;
-extern uintptr_t _ELF_START_;
-extern uintptr_t _TEXT_START_;
-extern uintptr_t _LOAD_START_;
-extern uintptr_t _ELF_END_;
+extern char _start;
+extern char _end;
+extern char _ELF_START_;
+extern char _TEXT_START_;
+extern char _LOAD_START_;
+extern char _ELF_END_;
 
 bool __libc_initialized = false;
 
@@ -54,10 +47,13 @@ bool  OS::power_   = true;
 bool  OS::boot_sequence_passed_ = false;
 bool  OS::m_is_live_updated     = false;
 bool  OS::m_block_drivers_ready = false;
+bool  OS::m_timestamps          = false;
+bool  OS::m_timestamps_ready    = false;
 KHz   OS::cpu_khz_ {-1};
 uintptr_t OS::liveupdate_loc_   = 0;
 
-OS::Panic_action OS::panic_action_ = OS::Panic_action::PANIC_ACTION;
+__attribute__((weak))
+OS::Panic_action OS::panic_action_ = OS::Panic_action::halt;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // stdout redirection
@@ -73,14 +69,20 @@ struct Plugin_desc {
 };
 static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
 
-// OS version
-std::string OS::version_str_ = OS_VERSION;
-std::string OS::arch_str_ = ARCH;
-
 void* OS::liveupdate_storage_area() noexcept
 {
   return (void*) OS::liveupdate_loc_;
 }
+
+__attribute__((weak))
+size_t OS::liveupdate_phys_size(size_t /*phys_max*/) noexcept {
+  return 4096;
+};
+
+__attribute__((weak))
+size_t OS::liveupdate_phys_loc(size_t phys_max) noexcept {
+  return phys_max - liveupdate_phys_size(phys_max);
+};
 
 __attribute__((weak))
 void OS::setup_liveupdate(uintptr_t)
@@ -94,18 +96,10 @@ const char* OS::cmdline_args() noexcept {
   return cmdline;
 }
 
-typedef void (*ctor_t) ();
-extern ctor_t __service_ctors_start;
-extern ctor_t __service_ctors_end;
-extern ctor_t __plugin_ctors_start;
-extern ctor_t __plugin_ctors_end;
-
-int __run_ctors(ctor_t* begin, ctor_t* end)
-{
-  int i = 0;
-	for (; begin < end; begin++, i++) (*begin)();
-  return i;
-}
+extern OS::ctor_t __plugin_ctors_start;
+extern OS::ctor_t __plugin_ctors_end;
+extern OS::ctor_t __service_ctors_start;
+extern OS::ctor_t __service_ctors_end;
 
 void OS::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
@@ -124,6 +118,9 @@ void OS::shutdown()
 
 void OS::post_start()
 {
+  // Enable timestamps (if present)
+  OS::m_timestamps_ready = true;
+
   // LiveUpdate needs some initialization, although only if present
   OS::setup_liveupdate();
 
@@ -140,9 +137,7 @@ void OS::post_start()
 
   // Custom initialization functions
   MYINFO("Initializing plugins");
-
-  // Run plugin constructors
-  __run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
+  OS::run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
 
   // Run plugins
   PROFILE("Plugins init");
@@ -157,16 +152,20 @@ void OS::post_start()
   OS::boot_sequence_passed_ = true;
 
     // Run service constructors
-  __run_ctors(&__service_ctors_start, &__service_ctors_end);
+  OS::run_ctors(&__service_ctors_start, &__service_ctors_end);
 
   PROFILE("Service::start");
   // begin service start
   FILLINE('=');
-  printf(" IncludeOS %s (%s / %i-bit)\n",
-         version().c_str(), arch().c_str(),
-         static_cast<int>(sizeof(uintptr_t)) * 8);
+  printf(" IncludeOS %s (%s / %u-bit)\n",
+         version(), arch(),
+         static_cast<unsigned>(sizeof(uintptr_t)) * 8);
   printf(" +--> Running [ %s ]\n", Service::name());
   FILLINE('~');
+#if defined(LIBFUZZER_ENABLED) || defined(ARP_PASSTHROUGH) || defined(DISABLE_INET_CHECKSUMS)
+  printf(" +--> WARNiNG: Environment unsafe for production\n");
+  FILLINE('~');
+#endif
 
   Service::start();
 }
@@ -180,6 +179,13 @@ bool os_enable_boot_logging = false;
 __attribute__((weak))
 bool os_default_stdout = false;
 
+#include <isotime>
+bool contains(const char* str, size_t len, char c)
+{
+  for (size_t i = 0; i < len; i++) if (str[i] == c) return true;
+  return false;
+}
+
 void OS::print(const char* str, const size_t len)
 {
   if (UNLIKELY(! __libc_initialized)) {
@@ -187,8 +193,32 @@ void OS::print(const char* str, const size_t len)
     return;
   }
 
-  for (auto& callback : os_print_handlers) {
-    if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
-      callback(str, len);
+  /** TIMESTAMPING **/
+  if (OS::m_timestamps && OS::m_timestamps_ready && !OS::is_panicking())
+  {
+    static bool apply_ts = true;
+    if (apply_ts)
+    {
+      std::string ts = "[" + isotime::now() + "] ";
+      for (const auto& callback : os_print_handlers) {
+        callback(ts.c_str(), ts.size());
+      }
+      apply_ts = false;
+    }
+    const bool has_newline = contains(str, len, '\n');
+    if (has_newline) apply_ts = true;
   }
+  /** TIMESTAMPING **/
+
+  if (os_enable_boot_logging || OS::is_booted() || OS::is_panicking())
+  {
+    for (const auto& callback : os_print_handlers) {
+      callback(str, len);
+    }
+  }
+}
+
+void OS::enable_timestamps(const bool enabled)
+{
+  OS::m_timestamps = enabled;
 }

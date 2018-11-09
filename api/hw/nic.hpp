@@ -21,6 +21,9 @@
 #include "mac_addr.hpp"
 #include <net/inet_common.hpp>
 
+#define NIC_SENDQ_LIMIT_DEFAULT  4096
+#define NIC_BUFFER_LIMIT_DEFAULT 4096
+
 namespace hw {
 
   /**
@@ -30,6 +33,12 @@ namespace hw {
   public:
     using upstream    = delegate<void(net::Packet_ptr)>;
     using downstream  = net::downstream_link;
+
+    /** Maximum number of packets allowed in dynamic send queue **/
+    static constexpr uint32_t sendq_limit_default  = NIC_SENDQ_LIMIT_DEFAULT;
+
+    /** Maximum number of packets that can be created during RX-ring refill **/
+    static constexpr uint32_t buffer_limit_default = NIC_BUFFER_LIMIT_DEFAULT;
 
     enum class Proto {ETH, IEEE802111};
 
@@ -101,6 +110,20 @@ namespace hw {
     /** Overridable MTU detection function per-network **/
     static uint16_t MTU_detection_override(int idx, uint16_t default_MTU);
 
+    /** Set new buffer limit, where 0 means infinite **/
+    void set_buffer_limit(uint32_t new_limit) {
+      this->m_buffer_limit = new_limit;
+    }
+    uint32_t buffer_limit() const noexcept { return m_buffer_limit; }
+
+    /** Set new sendq limit, where 0 means infinite **/
+    void set_sendq_limit(uint32_t new_limit) {
+      this->m_sendq_limit = new_limit;
+    }
+    uint32_t sendq_limit() const noexcept { return m_sendq_limit; }
+
+    virtual void add_vlan([[maybe_unused]] const int id){}
+
   protected:
     /**
      *  Constructor
@@ -133,8 +156,17 @@ namespace hw {
       }
     }
 
+    bool buffers_still_available(uint32_t size) const noexcept {
+      return this->buffer_limit() == 0 || size < this->buffer_limit();
+    }
+    bool sendq_still_available(uint32_t size) const noexcept {
+      return this->sendq_limit() == 0 || size < this->sendq_limit();
+    }
+
   private:
     int N;
+    uint32_t m_buffer_limit = buffer_limit_default;
+    uint32_t m_sendq_limit = sendq_limit_default;
     friend class Devices;
   };
 

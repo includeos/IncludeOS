@@ -18,9 +18,12 @@
 *.img.*
 *.gz
 *.tar
+*nacl.txt
 .DS_Store
 nbproject
 dummy.disk
+callgraph.svg
+massif.out.*
 
 !Dockerfile
 
@@ -45,3 +48,6 @@ IncludeOS_install
 
 #CLion
 .idea/
+
+# Starbase disk file
+lib/uplink/starbase/disk

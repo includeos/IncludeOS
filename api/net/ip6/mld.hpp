@@ -25,6 +25,7 @@
 #include <util/timer.hpp>
 #include "packet_icmp6.hpp"
 #include "packet_ndp.hpp"
+#include <net/ip6/mld/message.hpp>
 
 namespace net {
   class ICMPv6;
@@ -71,10 +72,24 @@ namespace net {
 
     void receive(icmp6::Packet& pckt);
     void receive_query(icmp6::Packet& pckt);
-    void mld_send_report(ip6::Addr mcast);
+    void send_report(const ip6::Addr& mcast);
     void mcast_expiry();
 
+    void send_report_v2(const ip6::Addr& mcast);
+
+    void receive(net::Packet_ptr pkt);
+    void set_linklayer_out(downstream_link s)
+    { linklayer_out_ = s; }
+
   private:
+    void recv_query(icmp6::Packet& pckt);
+    void recv_report(icmp6::Packet& pckt);
+    void recv_done(icmp6::Packet& pckt);
+    // MLDv2 RFC 3810
+    void recv_query_v2(icmp6::Packet& pckt);
+    void recv_report_v2(icmp6::Packet& pckt);
+
+    void transmit(icmp6::Packet& pckt, MAC::Addr mac);
 
     struct MulticastHostNode {
     public:
@@ -84,8 +99,8 @@ namespace net {
       void update_timestamp(const uint16_t ms)
       { timestamp_ = RTC::time_since_boot() + ms; }
 
-      const ip6::Addr addr() const { return mcast_addr_; }
-      const RTC::timestamp_t timestamp() const { return timestamp_; }
+      const ip6::Addr& addr() const { return mcast_addr_; }
+      RTC::timestamp_t timestamp() const { return timestamp_; }
 
       bool expired() const noexcept
       { return RTC::time_since_boot() > timestamp_; }
@@ -95,7 +110,7 @@ namespace net {
     private:
       const HostStates& state() const { return state_; }
       void setState(const HostStates state) { state_ = state; }
-      void receive_query(icmp6::Packet& pckt);
+      void receive_query(const mld::Query& query);
       void non_listener_state_handler(icmp6::Packet& pckt);
       void delay_listener_state_handler(icmp6::Packet& pckt);
       void idle_listener_state_handler(icmp6::Packet& pckt);
@@ -137,14 +152,15 @@ namespace net {
     public:
       Router(Mld& ref) : mld_{ref} {}
     private:
-      Mld         &mld_;
+      [[maybe_unused]]Mld         &mld_;
       RouterMlist mlist_;
     };
 
     Stack& inet_;
     Timer  delay_timer_ {{ *this, &Mld::mcast_expiry }};
-    Router router_;
     Host   host_;
+    Router router_;
+    downstream_link linklayer_out_;
   };
 
   class Mld2 {

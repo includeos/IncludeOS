@@ -21,6 +21,7 @@
 #include "addr.hpp"
 #include "header.hpp"
 #include "packet_ip6.hpp"
+#include "stateful_addr.hpp"
 
 #include <common>
 #include <net/netfilter.hpp>
@@ -121,12 +122,16 @@ namespace net
     void transmit(Packet_ptr);
     void ship(Packet_ptr, addr next_hop = IP6::ADDR_ANY, Conntrack::Entry_ptr ct = nullptr);
 
-    /**
-     * \brief
-     *
-     * Returns the IPv4 address associated with this interface
-     **/
-    const addr local_ip() const;
+    const ip6::Addr local_ip() const;
+
+    ip6::Addr_list& addr_list()
+    { return addr_list_; }
+
+    const ip6::Addr_list& addr_list() const
+    { return addr_list_; }
+
+    bool is_valid_source(const ip6::Addr& addr) const
+    { return addr_list_.has(addr); }
 
     /**
      * @brief      Determines if the packet is for me (this host).
@@ -182,12 +187,14 @@ namespace net
     IP_packet_ptr drop_invalid_out(IP_packet_ptr packet);
 
   private:
+    Stack& stack_;
+
+    ip6::Addr_list addr_list_;
+
     /** Stats */
     uint64_t& packets_rx_;
     uint64_t& packets_tx_;
     uint32_t& packets_dropped_;
-    Stack& stack_;
-
 
     /** Upstream delegates */
     upstream icmp_handler_ = nullptr;

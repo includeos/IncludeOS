@@ -1,5 +1,5 @@
 #include <os>
-#include <net/inet>
+#include <net/interfaces>
 #include <net/ws/connector.hpp>
 #include <memdisk>
 #include <https>
@@ -105,7 +105,7 @@ void Service::start()
   extern void create_network_device(int N, const char* route, const char* ip);
   create_network_device(0, "10.0.0.0/24", "10.0.0.1");
 
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
   inet.network_config(
       {  10, 0,  0, 42 },  // IP
       { 255,255,255, 0 },  // Netmask

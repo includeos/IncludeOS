@@ -32,12 +32,17 @@ namespace net::dns {
 
     Record() = default;
 
-    int parse(const char* reader, const char* buffer);
+    int parse(const char* reader, const char* buffer, size_t len);
     void populate(const rr_data& res);
-    int parse_name(const char* reader, const char* buffer, std::string& output) const;
+    int parse_name(const char* reader,
+                   const char* buffer, size_t tot_len,
+                   std::string& output) const;
 
     ip4::Addr get_ipv4() const;
     ip6::Addr get_ipv6() const;
     net::Addr get_addr() const;
+
+    bool is_addr() const
+    { return rtype == Record_type::A or rtype == Record_type::AAAA; }
   };
 }

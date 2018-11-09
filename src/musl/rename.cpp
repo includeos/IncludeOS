@@ -1,13 +1,14 @@
-#include "stub.hpp"
+#include "common.hpp"
 #include <stdio.h>
 
 static long sys_rename(const char* /*oldpath*/, const char* /*newpath*/)
 {
-  return -ENOSYS;
+  // currently makes no sense, especially since we're read-only
+  return -EROFS;
 }
 
 extern "C"
 long syscall_SYS_rename(const char* oldpath, const char* newpath)
 {
-  return stubtrace(sys_rename, "rename", oldpath, newpath);
+  return strace(sys_rename, "rename", oldpath, newpath);
 }

@@ -26,7 +26,7 @@ def UDP_test(trigger_line):
   # been shut down due to a VM timeout
   sock.settimeout(20)
 
-  data = "Douche"
+  data = "Lucky"
   sock.sendto(data, (HOST, PORT))
   received = sock.recv(1024)
 
@@ -34,14 +34,32 @@ def UDP_test(trigger_line):
   print "<Test.py> Received: {}".format(received)
   if received != data: return False
 
-  data = "Bag"
+  data = "Luke"
   sock.sendto(data, (HOST, PORT))
   received = sock.recv(1024)
 
   print "<Test.py> Sent:     {}".format(data)
   print "<Test.py> Received: {}".format(received)
-  if received == data:
-    vmrunner.vms[0].exit(0, "Test completed without errors")
+  if received != data: return False
+
+  data = "x" * 1472
+  sock.sendto(data, (HOST, PORT))
+  received = sock.recv(1500)
+  if received != data:
+      print "<Test.py> Did not receive long string: {}".format(received)
+      return False
+
+  data = "x" * 9216 # 9216 is apparently default max for MacOS
+  sock.sendto(data, (HOST, PORT))
+  received = bytearray()
+  while (len(received) < len(data)):
+        received.extend(sock.recv(len(data)))
+        print "RECEIVED: ", len(received)
+  if received != data:
+      print "<Test.py> Did not receive mega string (64k)"
+      return False
+
+  vmrunner.vms[0].exit(0, "Test completed without errors")
 
 # Add custom event-handler
 vm.on_output("UDP test service", UDP_test)

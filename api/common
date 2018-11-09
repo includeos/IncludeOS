@@ -53,18 +53,18 @@ static_assert(sizeof(void*) == 8, "Pointer must match arch");
 #undef Expects
 #undef Ensures
 
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
 #include <smp>
 #endif
 
 #include <kernel/syscalls.hpp>
 inline void __expect_fail(const char *expr, const char *file, int line, const char *func){
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_lock();
 #endif
   fprintf(stderr, "%s:%i:%s %s \n",file, line, func, expr);
   fflush(NULL);
-#ifndef INCLUDEOS_SINGLE_THREADED
+#ifdef INCLUDEOS_SMP_ENABLE
   SMP::global_unlock();
 #endif
   panic(expr);
@@ -75,4 +75,13 @@ inline void __expect_fail(const char *expr, const char *file, int line, const ch
 
 #endif //< defined(OS_TERMINATE_ON_CONTRACT_VIOLATION)
 
+namespace os {
+// parameter for noexcept specifier when bypassing noexcept for testing
+#if defined(TEST)
+  constexpr bool hard_noexcept = false;
+#else
+  constexpr bool hard_noexcept = true;
+#endif
+
+}
 #endif //< INCLUDEOS_COMMON_HEADER

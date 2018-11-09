@@ -16,24 +16,26 @@
 // limitations under the License.
 
 #include <os>
-#include <net/inet>
+#include <net/interfaces>
 #include <cstdio>
 #include "liu.hpp"
 
 using storage_func_t = liu::LiveUpdate::storage_func;
 extern storage_func_t begin_test_boot();
-extern bool LIVEUPDATE_PERFORM_SANITY_CHECKS;
 
 void Service::start()
 {
-  //LIVEUPDATE_PERFORM_SANITY_CHECKS = false;
+#ifdef BENCHMARK_MODE
+  extern bool LIVEUPDATE_USE_CHEKSUMS;
+  LIVEUPDATE_USE_CHEKSUMS = false;
+#endif
   OS::set_panic_action(OS::Panic_action::halt);
 
   auto func = begin_test_boot();
 
   if (OS::is_live_updated() == false)
   {
-    auto& inet = net::Super_stack::get(0);
+    auto& inet = net::Interfaces::get(0);
     inet.network_config({10,0,0,59}, {255,255,255,0}, {10,0,0,1});
     setup_liveupdate_server(inet, 666, func);
 

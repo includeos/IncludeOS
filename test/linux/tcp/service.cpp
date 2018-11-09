@@ -15,19 +15,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cmath> // rand()
 #include <os>
-#include <hw/devices.hpp>
-#include <kernel/events.hpp>
+#include <statman>
+#include <hw/async_device.hpp>
 #include <drivers/usernet.hpp>
 #include <net/inet>
-#include "../router/async_device.hpp"
+#define ENABLE_JUMBO_FRAMES
 
 static const size_t CHUNK_SIZE = 1024 * 1024;
 static const size_t NUM_CHUNKS = 2048;
-
-static std::unique_ptr<Async_device> dev1;
-static std::unique_ptr<Async_device> dev2;
+static std::unique_ptr<hw::Async_device<UserNet>> dev1 = nullptr;
+static std::unique_ptr<hw::Async_device<UserNet>> dev2 = nullptr;
 
 using namespace std::chrono;
 static milliseconds time_start;
@@ -38,14 +36,14 @@ static inline auto now() {
 
 void Service::start()
 {
-  dev1 = std::make_unique<Async_device>(1500);
-  dev2 = std::make_unique<Async_device>(1500);
+  dev1 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(1500));
+  dev2 = std::make_unique<hw::Async_device<UserNet>>(UserNet::create(1500));
   dev1->connect(*dev2);
   dev2->connect(*dev1);
 
   // Create IP stacks on top of the nic's and configure them
-  auto& inet_server = net::Super_stack::get(0);
-  auto& inet_client = net::Super_stack::get(1);
+  auto& inet_server = net::Interfaces::get(0);
+  auto& inet_client = net::Interfaces::get(1);
   inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
   inet_client.network_config({10,0,0,43}, {255,255,255,0}, {10,0,0,1});
 
@@ -74,18 +72,26 @@ void Service::start()
           double time_sec = timediff.count()/1000.0;
           double mbps = ((count_bytes * 8) / (1024.0 * 1024.0)) / time_sec;
 
-          printf("Server reveived %zu Mb in %f sec. - %f Mbps \n",
+          printf("Server received %zu Mb in %f sec. - %f Mbps \n",
                  count_bytes / (1024 * 1024), time_sec,  mbps);
+
+          for (const auto& stat : Statman::get())
+          {
+            printf("-> %s: %s\n", stat.name(), stat.to_string().c_str());
+          }
           OS::shutdown();
         }
 
       });
   });
 
-  printf("*** Linux userspace tcp demo started ***\n");
+  printf("*** Linux userspace TCP demo started ***\n");
 
+  printf("Measuring memory <-> memory bandwidth...\n");
   time_start = now();
-  inet_client.tcp().connect({{"10.0.0.42"}, 80}, [buf](auto conn){
+  inet_client.tcp().connect({net::ip4::Addr{"10.0.0.42"}, 80},
+    [buf](auto conn)
+    {
       if (not conn)
         std::abort();
 
@@ -93,3 +99,13 @@ void Service::start()
         conn->write(buf);
     });
 }
+
+#ifdef ENABLE_JUMBO_FRAMES
+#include <hw/nic.hpp>
+namespace hw {
+  uint16_t Nic::MTU_detection_override(int idx, const uint16_t default_MTU)
+  {
+    return 9000;
+  }
+}
+#endif

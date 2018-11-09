@@ -182,6 +182,35 @@ union Addr {
       return part[n];
   }
 
+  /**
+   * @brief      Construct a EUI (Extended Unique Identifier)
+   *             from a 48-bit MAC addr
+   *
+   * @param[in]  addr  The address
+   *
+   * @return     A 64-bit EUI
+   */
+  static constexpr uint64_t eui64(const Addr& addr) noexcept
+  {
+    std::array<uint8_t, 8> eui {
+      addr.part[0], addr.part[1], addr.part[2],
+      0xFF, 0xFE,
+      addr.part[3], addr.part[4], addr.part[5]
+    };
+    eui[0] ^= (1UL << 1);
+    return *((uint64_t*)eui.data());
+  }
+
+  /**
+   * @brief      Construct a EUI (Extended Unique Identifier)
+   *             from this MAC addr
+   *
+   * @return     A 64-bit EUI
+   */
+  constexpr uint64_t eui64() const noexcept
+  { return Addr::eui64(*this); }
+
+
   static constexpr const size_t PARTS_LEN {6}; //< Number of parts in a MAC address
   uint8_t part[PARTS_LEN];                     //< The parts of the MAC address
 

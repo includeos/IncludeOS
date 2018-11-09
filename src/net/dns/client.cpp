@@ -18,24 +18,29 @@
 #include <net/dns/client.hpp>
 #include <net/inet>
 
-namespace net
+namespace net::dns
 {
-  Timer::duration_t DNSClient::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(5)};
-  Timer::duration_t DNSClient::DEFAULT_FLUSH_INTERVAL{std::chrono::seconds(30)};
-  std::chrono::seconds DNSClient::DEFAULT_CACHE_TTL{std::chrono::seconds(60)};
+#ifdef LIBFUZZER_ENABLED
+  Timer::duration_t Client::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(9999)};
+#else
+  Timer::duration_t Client::DEFAULT_RESOLVE_TIMEOUT{std::chrono::seconds(5)};
+#endif
+  Timer::duration_t Client::DEFAULT_FLUSH_INTERVAL{std::chrono::seconds(30)};
+  std::chrono::seconds Client::DEFAULT_CACHE_TTL{std::chrono::seconds(60)};
 
-  DNSClient::DNSClient(Stack& stack)
+  Client::Client(Stack& stack)
     : stack_{stack},
       cache_ttl_{DEFAULT_CACHE_TTL},
-      flush_timer_{{this, &DNSClient::flush_expired}}
+      flush_timer_{{this, &Client::flush_expired}}
   {
   }
 
-  void DNSClient::resolve(Address dns_server,
-                          Hostname hostname,
-                          Resolve_handler func,
-                          Timer::duration_t timeout, bool force)
+  void Client::resolve(Address dns_server,
+                       Hostname hostname,
+                       Resolve_handler func,
+                       Timer::duration_t timeout, bool force)
   {
+    Expects(not hostname.empty());
     if(not is_FQDN(hostname) and not stack_.domain_name().empty())
     {
       hostname.append(".").append(stack_.domain_name());
@@ -46,15 +51,15 @@ namespace net
       if(it != cache_.end())
       {
         Error err;
-        func(it->second.address.v4(), err);
+        func(nullptr, err); // fix
         return;
       }
     }
     // Make sure we actually can bind to a socket
-    auto& socket = stack_.udp().bind();
+    auto& socket = (dns_server.is_v6()) ? stack_.udp().bind6() : stack_.udp().bind();
 
     // Create our query
-    dns::Query query{std::move(hostname), dns::Record_type::A};
+    Query query{std::move(hostname), (dns_server.is_v6() ? Record_type::AAAA : Record_type::A)};
 
     // store the request for later match
     auto emp = requests_.emplace(std::piecewise_construct,
@@ -66,74 +71,92 @@ namespace net
     req.resolve(dns_server, timeout);
   }
 
-  DNSClient::Request::Request(DNSClient& cli, udp::Socket& sock,
+  Client::Request::Request(Client& cli, udp::Socket& sock,
                               dns::Query q, Resolve_handler cb)
     : client{cli},
       query{std::move(q)},
       response{nullptr},
       socket{sock},
       callback{std::move(cb)},
-      timer({this, &Request::finish})
+      timer({this, &Request::timeout})
   {
-    socket.on_read({this, &DNSClient::Request::parse_response});
+    socket.on_read({this, &Client::Request::parse_response});
   }
 
-  void DNSClient::Request::resolve(net::Addr server, Timer::duration_t timeout)
+  void Client::Request::resolve(net::Addr server, Timer::duration_t timeout)
   {
     std::array<char, 256> buf;
     size_t len = query.write(buf.data());
 
     socket.sendto(server, dns::SERVICE_PORT, buf.data(), len, nullptr,
-      {this, &DNSClient::Request::handle_error});
+      {this, &Client::Request::handle_error});
 
     timer.start(timeout);
   }
 
-  void DNSClient::Request::parse_response(Addr, UDP::port_t, const char* data, size_t len)
+  void Client::Request::parse_response(Addr, UDP::port_t, const char* data, size_t len)
   {
+    if(UNLIKELY(len < sizeof(dns::Header)))
+      return;
+
     const auto& reply = *(dns::Header*) data;
 
-    Error err;
     // this is a response to our query
     if(query.id == ntohs(reply.id))
     {
+      auto res = std::make_unique<dns::Response>();
       // TODO: Validate
+      res->parse(data, len);
 
-      response.reset(new dns::Response(data));
+      this->response = std::move(res);
 
       // TODO: Cache
       /*if(client.cache_ttl_ > std::chrono::seconds::zero())
       {
         add_cache_entry(...);
       }*/
-    }
 
-    finish(err);
+      finish({});
+    }
+    else
+    {
+      debug("<dns::Client::Request> Cannot find matching DNS Request with transid=%u\n",
+        ntohs(reply.id));
+    }
   }
 
-  void DNSClient::Request::finish(const Error& err)
+  void Client::Request::finish(const Error& err)
   {
-    ip4::Addr addr = (response) ? response->get_first_ipv4() : 0;
-    callback(addr, err);
+    callback(std::move(response), err);
 
     auto erased = client.requests_.erase(query.id);
     Ensures(erased == 1);
   }
 
-  void DNSClient::Request::handle_error(const Error& err)
+  void Client::Request::timeout()
+  {
+    finish({Error::Type::timeout, "Request timed out"});
+  }
+
+  void Client::Request::handle_error(const Error& err)
   {
     // This will call the user callback - do we want that?
     finish(err);
   }
 
-  void DNSClient::flush_cache()
+  Client::Request::~Request()
+  {
+    socket.close();
+  }
+
+  void Client::flush_cache()
   {
     cache_.clear();
 
     flush_timer_.stop();
   }
 
-  void DNSClient::add_cache_entry(const Hostname& hostname, Address addr, std::chrono::seconds ttl)
+  void Client::add_cache_entry(const Hostname& hostname, Address addr, std::chrono::seconds ttl)
   {
     // cache the address
     cache_.emplace(std::piecewise_construct,
@@ -148,7 +171,7 @@ namespace net
       flush_timer_.start(DEFAULT_FLUSH_INTERVAL);
   }
 
-  void DNSClient::flush_expired()
+  void Client::flush_expired()
   {
     const auto now = timestamp();
     for(auto it = cache_.begin(); it != cache_.end();)

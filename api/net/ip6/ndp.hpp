@@ -26,6 +26,11 @@
 #include <util/timer.hpp>
 #include "packet_icmp6.hpp"
 #include "packet_ndp.hpp"
+#include "stateful_addr.hpp"
+#include "ndp/router_entry.hpp"
+#include "ndp/host_params.hpp"
+#include "ndp/router_params.hpp"
+#include "ndp/options.hpp"
 
 using namespace std::chrono_literals;
 namespace net {
@@ -53,11 +58,7 @@ namespace net {
     static const int        MAX_UNICAST_SOLICIT        = 3;     // transmissions
     static const int        MAX_ANYCAST_DELAY_TIME     = 1;     // in seconds
     static const int        MAX_NEIGHBOR_ADVERTISEMENT = 3;     // transmissions
-    static const int        REACHABLE_TIME             = 30000; // in milliseconds
-    static const int        RETRANS_TIMER              = 1000;  // in milliseconds
     static const int        DELAY_FIRST_PROBE_TIME     = 5;     // in seconds
-    static constexpr double MIN_RANDOM_FACTOR          = 0.5;
-    static constexpr double MAX_RANDOM_FACTOR          = 1.5;
 
     // Neighbour flag constants
     static const uint32_t NEIGH_UPDATE_OVERRIDE          = 0x00000001;
@@ -77,15 +78,15 @@ namespace net {
     using Stack   = IP6::Stack;
     using Route_checker = delegate<bool(ip6::Addr)>;
     using Ndp_resolver = delegate<void(ip6::Addr)>;
-    using Dad_handler = delegate<void()>;
-    using RouterAdv_handler = delegate<void(ip6::Addr)>;
+    using Dad_handler = delegate<void(const ip6::Addr&)>;
+    using Autoconf_handler = delegate<void(const ndp::option::Prefix_info&)>;
     using ICMP_type = ICMP6_error::ICMP_type;
 
     /** Constructor */
     explicit Ndp(Stack&) noexcept;
 
     /** Handle incoming NDP packet. */
-    void receive(icmp6::Packet& pckt);
+    void receive(net::Packet_ptr);
     void receive_neighbour_solicitation(icmp6::Packet& pckt);
     void receive_neighbour_advertisement(icmp6::Packet& pckt);
     void receive_router_solicitation(icmp6::Packet& pckt);
@@ -96,8 +97,10 @@ namespace net {
     void send_neighbour_solicitation(ip6::Addr target);
     void send_neighbour_advertisement(icmp6::Packet& req);
     void send_router_solicitation();
-    void send_router_solicitation(RouterAdv_handler delg);
+    void send_router_solicitation(Autoconf_handler delg);
     void send_router_advertisement();
+
+    ip6::Addr next_hop(const ip6::Addr&) const;
 
     /** Roll your own ndp-resolution system. */
     void set_resolver(Ndp_resolver ar)
@@ -116,9 +119,9 @@ namespace net {
 
     void perform_dad(ip6::Addr, Dad_handler delg);
     void dad_completed();
-    void add_addr_autoconf(ip6::Addr ip, uint32_t preferred_lifetime,
-            uint32_t valid_lifetime);
-    void add_addr_onlink(ip6::Addr ip, uint32_t valid_lifetime);
+    void add_addr_autoconf(ip6::Addr ip, uint8_t prefix,
+                           uint32_t pref_lifetime, uint32_t valid_lifetime);
+    void add_addr_onlink(ip6::Addr ip, uint8_t prefix, uint32_t valid_lifetime);
     void add_addr_static(ip6::Addr ip, uint32_t valid_lifetime);
     void add_router(ip6::Addr ip, uint16_t router_lifetime);
 
@@ -159,7 +162,7 @@ namespace net {
     MAC::Addr& link_mac_addr()
     { return mac_; }
 
-    ip6::Addr static_ip() const noexcept
+    const ip6::Addr& static_ip() const noexcept
     { return ip6_addr_; }
 
     uint8_t static_prefix() const noexcept
@@ -169,7 +172,7 @@ namespace net {
     { return ip6_gateway_; }
 
     void set_static_addr(ip6::Addr addr)
-    { ip6_addr_ = addr; }
+    { ip6_addr_ = std::move(addr); }
 
     void set_static_gateway(ip6::Addr addr)
     { ip6_gateway_ = addr; }
@@ -258,7 +261,7 @@ namespace net {
       next_hop_ = next_hop;
     }
 
-    ip6::Addr next_hop()
+    ip6::Addr next_hop() const
     { return next_hop_; }
 
     private:
@@ -274,129 +277,11 @@ namespace net {
       int tries_remaining = MAX_MULTICAST_SOLICIT;
     };
 
-    struct Prefix_entry {
-    public:
-      Prefix_entry(ip6::Addr prefix, uint32_t preferred_lifetime,
-            uint32_t valid_lifetime)
-          : prefix_{prefix}
-      {
-        preferred_ts_ = preferred_lifetime ?
-            (RTC::time_since_boot() + preferred_lifetime) : 0;
-        valid_ts_ = valid_lifetime ?
-            (RTC::time_since_boot() + valid_lifetime) : 0;
-      }
-
-      ip6::Addr prefix() const noexcept
-      { return prefix_; }
-
-      bool preferred() const noexcept
-      { return preferred_ts_ ? RTC::time_since_boot() < preferred_ts_ : true; }
-
-      bool valid() const noexcept
-      { return valid_ts_ ? RTC::time_since_boot() > valid_ts_ : true; }
-
-      bool always_valid() const noexcept
-      { return valid_ts_ ? false : true; }
-
-      uint32_t remaining_valid_time()
-      { return valid_ts_ < RTC::time_since_boot() ? 0 : valid_ts_ - RTC::time_since_boot(); }
-
-      void update_preferred_lifetime(uint32_t preferred_lifetime)
-      {
-        preferred_ts_ = preferred_lifetime ?
-            (RTC::time_since_boot() + preferred_lifetime) : 0;
-      }
-
-      void update_valid_lifetime(uint32_t valid_lifetime)
-      {
-        valid_ts_ = valid_lifetime ?
-          (RTC::time_since_boot() + valid_lifetime) : 0;
-      }
-    private:
-      ip6::Addr        prefix_;
-      RTC::timestamp_t preferred_ts_;
-      RTC::timestamp_t valid_ts_;
-    };
-
-    struct Router_entry {
-      Router_entry(ip6::Addr router, uint16_t lifetime) :
-        router_{router}
-      {
-        update_router_lifetime(lifetime);
-      }
-
-      ip6::Addr router() const noexcept
-      { return router_; }
-
-      bool expired() const noexcept
-      { return RTC::time_since_boot() > invalidation_ts_; }
-
-      void update_router_lifetime(uint16_t lifetime)
-      { invalidation_ts_ = RTC::time_since_boot() + lifetime; }
-
-    private:
-      ip6::Addr        router_;
-      RTC::timestamp_t invalidation_ts_;
-    };
-
     using Cache       = std::unordered_map<ip6::Addr, Neighbour_Cache_entry>;
     using DestCache   = std::unordered_map<ip6::Addr, Destination_Cache_entry>;
     using PacketQueue = std::unordered_map<ip6::Addr, Queue_entry>;
-    using PrefixList  = std::deque<Prefix_entry>;
-    using RouterList  = std::deque<Router_entry>;
-
-    // Ndp host parameters configured for a particular inet stack
-    struct HostNdpParameters {
-    public:
-      HostNdpParameters() :
-        link_mtu_{1500}, cur_hop_limit_{255},
-        base_reachable_time_{REACHABLE_TIME},
-        retrans_time_{RETRANS_TIMER} {
-          reachable_time_ = compute_reachable_time();
-        }
-
-      // Compute random time in the range of min and max
-      // random factor times base reachable time
-      double compute_reachable_time()
-      {
-        auto lower = MIN_RANDOM_FACTOR * base_reachable_time_;
-        auto upper = MAX_RANDOM_FACTOR * base_reachable_time_;
-
-        return (std::fmod(rand(), (upper - lower + 1)) + lower);
-      }
-
-      uint16_t link_mtu_;
-      uint8_t  cur_hop_limit_;
-      uint32_t base_reachable_time_;
-      uint32_t reachable_time_;
-      uint32_t retrans_time_;
-    };
-
-    // Ndp router parameters configured for a particular inet stack
-    struct RouterNdpParameters {
-    public:
-      RouterNdpParameters() :
-        is_router_{false}, send_advertisements_{false},
-        managed_flag_{false}, other_flag_{false},
-        cur_hop_limit_{255}, link_mtu_{0},
-        max_ra_interval_{600}, min_ra_interval_{max_ra_interval_},
-        default_lifetime_(3 * max_ra_interval_), reachable_time_{0},
-        retrans_time_{0} {}
-
-    private:
-      bool       is_router_;
-      bool       send_advertisements_;
-      bool       managed_flag_;
-      bool       other_flag_;
-      uint8_t    cur_hop_limit_;
-      uint16_t   link_mtu_;
-      uint16_t   max_ra_interval_;
-      uint16_t   min_ra_interval_;
-      uint16_t   default_lifetime_;
-      uint32_t   reachable_time_;
-      uint32_t   retrans_time_;
-      PrefixList prefix_list_;
-    };
+    using PrefixList  = std::deque<ip6::Stateful_addr>;
+    using RouterList  = std::deque<ndp::Router_entry>;
 
     /** Stats */
     uint32_t& requests_rx_;
@@ -415,9 +300,9 @@ namespace net {
     Stack& inet_;
     Route_checker       proxy_ = nullptr;
     Dad_handler         dad_handler_ = nullptr;
-    RouterAdv_handler   ra_handler_ = nullptr;
-    HostNdpParameters   host_params_;
-    RouterNdpParameters router_params_;
+    Autoconf_handler    autoconf_handler_ = nullptr;
+    ndp::Host_params    host_params_;
+    ndp::Router_params  router_params_;
 
     /* Static IP6 configuration for inet.
      * Dynamic ip6 addresses are present in prefix list.
@@ -461,10 +346,10 @@ namespace net {
     /** Retry ndp-resolution for packets still waiting */
     void resolve_waiting();
 
-    HostNdpParameters& host()
+    auto& host()
     { return host_params_; }
 
-    RouterNdpParameters& router()
+    auto& router()
     { return router_params_; }
   }; //< class Ndp
 

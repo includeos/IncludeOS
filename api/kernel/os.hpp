@@ -42,13 +42,13 @@ public:
   /**
    * Returns the OS version string
    **/
-  static const std::string& version() noexcept
+  static const char* version() noexcept
   { return version_str_; }
 
   /**
    * Returns the CPU architecture for which the OS was built
    **/
-  static const std::string& arch() noexcept
+  static const char* arch() noexcept
   { return arch_str_; }
 
 
@@ -153,6 +153,12 @@ public:
   static void print(const char* ptr, const size_t len);
 
   /**
+   *  Enable or disable timestamps automatically
+   *  prepended to all OS::print(...) calls
+   */
+  static void enable_timestamps(bool enabled);
+
+  /**
    *  Add handler for standard output.
    */
   static void add_stdout(print_func func);
@@ -197,6 +203,9 @@ public:
     return memory_end_;
   }
 
+  /** Total used memory, including reserved areas */
+  static size_t total_memuse() noexcept;
+
   static void init_heap(uintptr_t phys_begin, size_t size) noexcept;
 
   /**
@@ -205,8 +214,15 @@ public:
    */
   static bool is_live_updated() noexcept;
 
-  /** Returns the automatic location set aside for storing system and program state **/
+  /** Returns the virtual memory location set aside for storing system and program state **/
   static void* liveupdate_storage_area() noexcept;
+
+  /** Returns the amount of memory set aside for LiveUpdate */
+  static size_t liveupdate_phys_size(size_t) noexcept;
+
+  /** Computes the physical location of LiveUpdate storage area */
+  static uintptr_t liveupdate_phys_loc(size_t) noexcept;
+
 
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
@@ -256,6 +272,12 @@ public:
   static void resume_softreset(intptr_t boot_addr);
   static void setup_liveupdate(uintptr_t phys = 0);
 
+  typedef void (*ctor_t) ();
+  static void run_ctors(ctor_t* begin, ctor_t* end)
+  {
+  	for (; begin < end; begin++) (*begin)();
+  }
+
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
   static void multiboot(uint32_t boot_addr);
@@ -270,11 +292,13 @@ private:
   static bool boot_sequence_passed_;
   static bool m_is_live_updated;
   static bool m_block_drivers_ready;
+  static bool m_timestamps;
+  static bool m_timestamps_ready;
   static util::KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;
-  static std::string version_str_;
-  static std::string arch_str_;
+  static const char* version_str_;
+  static const char* arch_str_;
   static uintptr_t heap_begin_;
   static uintptr_t heap_max_;
   static uintptr_t memory_end_;

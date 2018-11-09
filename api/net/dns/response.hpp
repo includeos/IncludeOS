@@ -25,9 +25,9 @@ namespace net::dns {
   class Response {
   public:
     Response() = default;
-    Response(const char* buffer)
+    Response(const char* buffer, size_t len)
     {
-      parse(buffer);
+      parse(buffer, len);
     }
 
     std::vector<Record> answers;
@@ -38,7 +38,9 @@ namespace net::dns {
     ip6::Addr get_first_ipv6() const;
     net::Addr get_first_addr() const;
 
-    int parse(const char* buffer);
+    bool has_addr() const;
+
+    int parse(const char* buffer, size_t len);
   };
 
 }

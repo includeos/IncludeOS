@@ -63,6 +63,7 @@
 #define DNS_CLASS_INET   1
 
 #define DNS_TYPE_A    1  // A record
+#define DNS_TYPE_AAAA 28 // AAAA record
 #define DNS_TYPE_NS   2  // respect mah authoritah
 #define DNS_TYPE_ALIAS 5 // name alias
 
@@ -77,6 +78,9 @@ namespace net::dns {
   using id_t = uint16_t;
 
   static constexpr uint16_t SERVICE_PORT = 53;
+
+  class Response;
+  using Response_ptr = std::unique_ptr<Response>;
 
   enum class Record_type : uint16_t
   {
@@ -135,7 +139,6 @@ namespace net::dns {
     unsigned short data_len;
   };
 #pragma pack(pop)
-
 
   // convert www.google.com to 3www6google3com
   int encode_name(std::string name, char* dst);

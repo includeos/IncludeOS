@@ -17,12 +17,14 @@
 
 #include <kernel/syscalls.hpp>
 #include <kernel/os.hpp>
+#include <kernel/elf.hpp>
 #include <system_log>
 #include <statman>
 #include <kprint>
 #include <info>
 #include <smp>
 #include <cstring>
+#include <util/bitops.hpp>
 
 #if defined (UNITTESTS) && !defined(__MACH__)
 #define THROW throw()
@@ -66,9 +68,11 @@ void syscall_SYS_exit_group(int status)
 struct alignas(SMP_ALIGN) context_buffer
 {
   std::array<char, 512> buffer;
-  int panics = 0;
 };
 static SMP::Array<context_buffer> contexts;
+// NOTE: panics cannot be per-cpu because it might not be ready yet
+// NOTE: it's also used by OS::is_panicking(), used by OS::print(...)
+static int panics = 0;
 
 size_t get_crash_context_length()
 {
@@ -80,12 +84,13 @@ char*  get_crash_context_buffer()
 }
 bool OS::is_panicking() noexcept
 {
-  return PER_CPU(contexts).panics > 0;
+  return panics > 0;
 }
 extern "C"
 void cpu_enable_panicking()
 {
-  PER_CPU(contexts).panics++;
+  //PER_CPU(contexts).panics++;
+  __sync_fetch_and_add(&panics, 1);
 }
 
 static OS::on_panic_func panic_handler = nullptr;
@@ -99,6 +104,10 @@ extern "C" __attribute__((noreturn)) void panic_epilogue(const char*);
 extern "C" __attribute__ ((weak))
 void panic_perform_inspection_procedure() {}
 
+namespace net {
+  __attribute__((weak)) void print_last_packet() {}
+}
+
 /**
  * panic:
  * Display reason for kernel panic
@@ -111,8 +120,7 @@ void panic_perform_inspection_procedure() {}
 void panic(const char* why)
 {
   cpu_enable_panicking();
-  if (PER_CPU(contexts).panics > 4)
-    double_fault(why);
+  if (panics > 4) double_fault(why);
 
   const int current_cpu = SMP::cpu_id();
 
@@ -137,11 +145,33 @@ void panic(const char* why)
   uintptr_t heap_total = OS::heap_max() - OS::heap_begin();
   fprintf(stderr, "Heap is at: %p / %p  (diff=%lu)\n",
          (void*) OS::heap_end(), (void*) OS::heap_max(), (ulong) (OS::heap_max() - OS::heap_end()));
-  fprintf(stderr, "Heap usage: %lu / %lu Kb\n", // (%.2f%%)\n",
+  fprintf(stderr, "Heap area: %lu / %lu Kb (allocated %zu kb)\n", // (%.2f%%)\n",
          (ulong) (OS::heap_end() - OS::heap_begin()) / 1024,
-         (ulong) heap_total / 1024); //, total * 100.0);
+          (ulong) heap_total / 1024, OS::heap_usage() / 1024); //, total * 100.0);
+  fprintf(stderr, "Total memory use: ~%zu%% (%zu of %zu b)\n",
+          util::bits::upercent(OS::total_memuse(), OS::memory_end()), OS::total_memuse(), OS::memory_end());
 
-  print_backtrace();
+  // print plugins
+  extern OS::ctor_t __plugin_ctors_start;
+  extern OS::ctor_t __plugin_ctors_end;
+  fprintf(stderr, "*** Found %u plugin constructors:\n",
+          uint32_t(&__plugin_ctors_end - &__plugin_ctors_start));
+  for (OS::ctor_t* ptr = &__plugin_ctors_start; ptr < &__plugin_ctors_end; ptr++)
+  {
+    char buffer[4096];
+    auto res = Elf::safe_resolve_symbol((void*) *ptr, buffer, sizeof(buffer));
+    fprintf(stderr, "Plugin: %s (%p)\n", res.name, (void*) res.addr);
+  }
+
+  // last packet
+  net::print_last_packet();
+
+  // finally, backtrace
+  fprintf(stderr, "\n*** Backtrace:");
+  print_backtrace2([] (const char* text, size_t len) {
+    fprintf(stderr, "%.*s", (int) len, text);
+  });
+
   fflush(stderr);
   SMP::global_unlock();
 

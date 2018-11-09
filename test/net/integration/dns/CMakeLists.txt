@@ -28,6 +28,8 @@ set(SOURCES
 
 set(DRIVERS
   virtionet
+  vmxnet3
+  e1000
   )
 
 # include service build script

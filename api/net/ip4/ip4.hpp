@@ -39,8 +39,8 @@ namespace net {
   public:
 
     enum class Drop_reason
-    { None, Bad_source, Bad_destination, Wrong_version, Wrong_checksum,
-        Unknown_proto, TTL0 };
+    { None, Bad_source, Bad_length, Bad_destination,
+      Wrong_version, Wrong_checksum, Unknown_proto, TTL0 };
 
     enum class Direction
     { Upstream, Downstream };
@@ -503,6 +503,10 @@ namespace net {
     Filter_chain<IP4> postrouting_chain_{"Postrouting", {}};
     Filter_chain<IP4> input_chain_{"Input", {}};
     Filter_chain<IP4> output_chain_{"Output", {}};
+    uint32_t& prerouting_dropped_;
+    uint32_t& postrouting_dropped_;
+    uint32_t& input_dropped_;
+    uint32_t& output_dropped_;
 
     /** All dropped packets go here */
     drop_handler drop_handler_;

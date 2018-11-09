@@ -46,6 +46,9 @@ public:
   ip6::Addr ip6_dst() const noexcept
   { return packet().ip_dst(); }
 
+  uint16_t compute_udp_checksum() const noexcept override
+  { return calculate_checksum6(*this); }
+
 private:
   PacketIP6& packet() noexcept
   { return static_cast<PacketIP6&>(*this->pkt); }
