@@ -42,8 +42,7 @@ namespace net {
     Slaac(Stack& inet);
 
     // autoconfigure linklocal and global address
-    void autoconf_start(int retries,
-            IP6::addr alternate_addr = IP6::ADDR_ANY);
+    void autoconf_start(int retries, uint64_t token);
     void autoconf_linklocal();
     void autoconf_global();
     void autoconf_trigger();
@@ -51,7 +50,7 @@ namespace net {
 
   private:
     Stack& stack;
-    IP6::addr    alternate_addr_;
+    uint64_t     token_;
     ip6::Stateful_addr tentative_addr_;
     bool         linklocal_completed;
     // Number of times to attempt DAD

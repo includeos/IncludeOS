@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define SLAAC_DEBUG 1
+#define SLAAC_DEBUG 1
 #ifdef SLAAC_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -38,7 +38,7 @@ namespace net
   const int Slaac::GLOBAL_INTERVAL;
 
   Slaac::Slaac(Stack& inet)
-    : stack(inet), alternate_addr_(IP6::ADDR_ANY),
+    : stack(inet), token_{0},
     tentative_addr_({IP6::ADDR_ANY,64,0,0}), linklocal_completed(false),
     dad_transmits_(LINKLOCAL_RETRIES),
     timeout_timer_{{this, &Slaac::autoconf_trigger}}
@@ -102,10 +102,11 @@ namespace net
     }
   }
 
-  void Slaac::autoconf_start(int retries, IP6::addr alternate_addr)
+  void Slaac::autoconf_start(int retries, uint64_t token)
   {
+    token_ = token;
     tentative_addr_ = {ip6::Addr::link_local(stack.link_addr().eui64()), 64, 0, 0};
-    alternate_addr_ = alternate_addr;
+
     this->dad_transmits_ = retries;
 
     autoconf_linklocal();
@@ -124,7 +125,7 @@ namespace net
     timeout_timer_.start(delay);
 
     // join multicast group fix
-    //stack.mld().send_report(ip6::Addr::solicit(tentative_addr_.addr()));
+    stack.mld().send_report_v2(ip6::Addr::solicit(tentative_addr_.addr()));
   }
 
   void Slaac::autoconf_global()
@@ -149,10 +150,11 @@ namespace net
 
   void Slaac::dad_handler([[maybe_unused]]const ip6::Addr& addr)
   {
-    if(alternate_addr_ != IP6::ADDR_ANY &&
-        alternate_addr_ != tentative_addr_.addr())
+    if(token_ and tentative_addr_.addr().get_part<uint64_t>(1) != htonll(token_))
     {
-      tentative_addr_ = {alternate_addr_, 64, 0, 0};
+      tentative_addr_.addr().set_part(1, token_);
+      PRINT("<SLAAC> DAD fail, using supplied token: %zu => %s\n",
+        token_, tentative_addr_.addr().to_string().c_str());
       dad_transmits_ = 1;
     }
     else {
@@ -205,11 +207,13 @@ namespace net
 
     if(not stack.addr6_config().has(addr))
     {
+      //printf("dont have %s\n", addr.to_string().c_str());
       tentative_addr_ = {addr, prefix_len, preferred_lifetime, valid_lifetime};
       autoconf_trigger();
     }
     else
     {
+      //printf("already have %s\n", addr.to_string().c_str());
       stack.add_addr_autoconf(addr, prefix_len, preferred_lifetime, valid_lifetime);
     }
   }
