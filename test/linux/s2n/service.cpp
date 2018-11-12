@@ -82,22 +82,19 @@ struct Testing
     printf("[%d] Test stage: %d / %d\n",
            this->index, this->test_stage, NUM_STAGES);
     
-    if (are_all_streams_atleast_stage(1))
-    {
-      // serialize and deserialize TLS after connected
-      do_test_serializing_tls(this->index);
-    }
+    // serialize and deserialize TLS after connected
+    do_test_serializing_tls(this->index);
+
     if (are_all_streams_at_stage(4))
     {
       printf("Now resending test data\n");
       // perform some writes at stage 4
       do_test_send_data();
     }
-    if (are_all_streams_atleast_stage(1))
-    {
-      // serialize and deserialize TLS again
-      do_test_serializing_tls(this->index);
-    }
+
+    // serialize and deserialize TLS again
+    do_test_serializing_tls(this->index);
+
     if (are_all_streams_at_stage(NUM_STAGES)) {
       do_test_completed();
     }
@@ -123,21 +120,19 @@ bool are_all_streams_atleast_stage(int stage)
 }
 void do_test_serializing_tls(int index)
 {
-  char sbuffer[64*1024]; // 64KB server buffer
-  char cbuffer[64*1024]; // 64KB client buffer
-  printf("Now serializing TLS state\n");
+  char sbuffer[128*1024]; // server buffer
+  char cbuffer[128*1024]; // client buffer
+  printf(">>> Performing serialization / deserialization\n");
   // 1. serialize TLS, destroy streams
   const size_t sbytes =
       server_test.stream->serialize_to(sbuffer, sizeof(sbuffer));
   assert(sbytes > 0 && "Its only failed if it returned zero");
-  //printf("Server channel used %zu bytes\n", sbytes);
   const size_t cbytes =
       client_test.stream->serialize_to(cbuffer, sizeof(cbuffer));
   assert(cbytes > 0 && "Its only failed if it returned zero");
-  //printf("Client channel used %zu bytes\n", cbytes);
 
   // 2. deserialize TLS, create new streams
-  printf("Now deserializing TLS state\n");
+  //printf("Now deserializing TLS state\n");
 
   // 2.1: create new transport streams
   auto server_side = create_stream(&ossl_fuzz_ptr);
@@ -219,4 +214,8 @@ void Service::start()
   
   server_test.setup_callbacks();
   client_test.setup_callbacks();
+  printf("* TLS streams created!\n");
+  
+  // try serializing and deserializing just after creation
+  do_test_serializing_tls(0);
 }
