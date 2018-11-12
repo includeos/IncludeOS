@@ -1,11 +1,13 @@
 # Conan
 Getting started with conan building Packages (usage will be covered later once we start using it)
 
-The IncludeOS conan recepies are developed for conan [1.8.4](https://github.com/conan-io/conan/releases/tag/1.8.4).
+The IncludeOS conan recepies are developed for conan [1.8.4](https://github.com/conan-io/conan/releases/tag/1.8.4) or newer.
 The [documentation](https://docs.conan.io/en/latest/index.html) is a good reference for further reading
 
-# Install latest stable
-create the IncludeOS default clang-5.0 profile file in ~/.conan/profiles/clang-5.0
+# Getting started using conan for includeos development
+Profiles can be found in conan/settings folder in the includeos repository and installed with
+[conan config install](https://docs.conan.io/en/latest/reference/commands/consumer/config.html#conan-config-install)
+example settings file
 ```
 [settings]
 os=Linux
@@ -24,17 +26,12 @@ CXX=clang++-5.0
 ```
 Add the includeos artifactory conan repo
 ```
-conan remote add includeos http://mothership.includeos.org:8090/artifactory/api/conan/conan-local
+conan remote add includeos https://includeos.jfrog.io/includeos/api/conan/conan-local
 ```
 
-Download the current stable precompiled libraries to the current folder
+Build includeos using clang-5.0. if no CONAN_PROFILE is defined it will build using clang-5.0 by default. PS you must also set your host CC and CXX to clang-5.0 for the time beeing
 ```
-conan install includeos-precompiled/0.13.0@includeos/stable -pr clang-5.0
-```
-
-Build includeos with these Packages in current directory
-```
-cmake -DBUNDLE_LOC=<PathToCurrentFolder>/PrecompiledLibraries.tgz <PathToIncludeOS_GIT>
+cmake -DCONAN_PROFILE=clang-5.0 <path to includeos repo>
 ```
 
 # Getting started developing
