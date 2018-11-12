@@ -4,8 +4,8 @@ Getting started with conan building Packages (usage will be covered later once w
 The IncludeOS conan recepies are developed for conan [1.8.4](https://github.com/conan-io/conan/releases/tag/1.8.4) or newer.
 The [documentation](https://docs.conan.io/en/latest/index.html) is a good reference for further reading
 
-# Getting started using conan for includeos development
-Profiles can be found in conan/settings folder in the includeos repository and installed with
+# Getting started using conan for IncludeOS development
+Profiles can be found in conan/profiles folder in the includeos repository and installed by copying them to ~/.conan/profiles. In the future we hope to install them with
 [conan config install](https://docs.conan.io/en/latest/reference/commands/consumer/config.html#conan-config-install)
 example settings file
 ```
@@ -24,12 +24,13 @@ build_type=Release
 CC=clang-5.0
 CXX=clang++-5.0
 ```
-Add the includeos artifactory conan repo
+Add the IncludeOS conan Artifactory repo
 ```
 conan remote add includeos https://includeos.jfrog.io/includeos/api/conan/conan-local
 ```
 
-Build includeos using clang-5.0. if no CONAN_PROFILE is defined it will build using clang-5.0 by default. PS you must also set your host CC and CXX to clang-5.0 for the time beeing
+Build includeos using clang-5.0. if no CONAN_PROFILE is defined it will build using clang-5.0 by default.
+Passing ́`-DCONAN_DISABLE_CHECK_COMPILER` disables this check
 ```
 cmake -DCONAN_PROFILE=clang-5.0 <path to includeos repo>
 ```
