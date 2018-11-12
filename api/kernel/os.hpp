@@ -333,7 +333,7 @@ inline OS::Span_mods OS::modules()
       reinterpret_cast<multiboot_module_t*>(bootinfo_->mods_addr),
         static_cast<int>(bootinfo_->mods_count) };
   }
-  return nullptr;
+  return Span_mods{};
 }
 
 inline uint64_t OS::cycles_since_boot() noexcept

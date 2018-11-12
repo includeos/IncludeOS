@@ -181,7 +181,7 @@ SET(CONAN_DEPENDENCIES
   musl/v1.1.18@includeos/stable
   binutils/2.31/includeos/stable
 
-  GSL/1.0.0@includeos/test
+  GSL/2.0.0@includeos/test
   protobuf/3.5.1.1@includeos/test
   rapidjson/1.1.0@includeos/test
   botan/2.8.0@includeos/test
