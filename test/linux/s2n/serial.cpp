@@ -53,15 +53,6 @@ s2n_config* serial_get_config()
   return config;
 }
 
-void serial_test_serialize(std::vector<net::Stream*>& conns)
-{
-  
-}
-std::vector<net::Stream*> serial_test_deserialize()
-{
-  return {};
-}
-
 void serial_test_over()
 {
   s2n_config_free(config);
