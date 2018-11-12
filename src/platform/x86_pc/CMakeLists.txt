@@ -35,7 +35,6 @@ add_custom_command(
 )
 
 add_library(x86_pc STATIC ${X86_PC_OBJECTS} apic_boot.o)
-add_dependencies(x86_pc PrecompiledLibraries)
 
 # disable sanitizers on kernel_start and others
 #set_source_files_properties(kernel_start.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
