@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define SLAAC_DEBUG 1
+//#define SLAAC_DEBUG 1
 #ifdef SLAAC_DEBUG
 #define PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -38,7 +38,7 @@ namespace net
   const int Slaac::GLOBAL_INTERVAL;
 
   Slaac::Slaac(Stack& inet)
-    : stack(inet), token_{0},
+    : stack(inet), token_{0}, use_token_{false},
     tentative_addr_({IP6::ADDR_ANY,64,0,0}), linklocal_completed(false),
     dad_transmits_(LINKLOCAL_RETRIES),
     timeout_timer_{{this, &Slaac::autoconf_trigger}}
@@ -85,7 +85,7 @@ namespace net
       linklocal_completed = true;
 
       // Start global address autoconfig
-      autoconf_global();
+      autoconf_global_start();
     }
     // link local complete, lets do global
     else
@@ -102,10 +102,19 @@ namespace net
     }
   }
 
-  void Slaac::autoconf_start(int retries, uint64_t token)
+  void Slaac::autoconf_start(int retries, uint64_t token, bool use_token)
   {
     token_ = token;
-    tentative_addr_ = {ip6::Addr::link_local(stack.link_addr().eui64()), 64, 0, 0};
+    if(use_token)
+    {
+      Expects(token_ != 0);
+      use_token_ = use_token;
+      tentative_addr_ = {ip6::Addr::link_local(token_), 64, 0, 0};
+    }
+    else
+    {
+      tentative_addr_ = {ip6::Addr::link_local(stack.link_addr().eui64()), 64, 0, 0};
+    }
 
     this->dad_transmits_ = retries;
 
@@ -125,19 +134,31 @@ namespace net
     timeout_timer_.start(delay);
 
     // join multicast group fix
-    stack.mld().send_report_v2(ip6::Addr::solicit(tentative_addr_.addr()));
+    //stack.mld().send_report_v2(ip6::Addr::solicit(tentative_addr_.addr()));
+  }
+
+  void Slaac::autoconf_global_start()
+  {
+    dad_transmits_ = GLOBAL_RETRIES;
+
+    autoconf_global();
   }
 
   void Slaac::autoconf_global()
   {
+    // share dad_transmits for this use case as well
+    if(dad_transmits_ == 0)
+    {
+      PRINT("<SLAAC> Out of transmits for router sol (no reply)\n");
+      return;
+    }
+    dad_transmits_--;
     using namespace std::chrono;
-    dad_transmits_ = GLOBAL_RETRIES;
-    interval = milliseconds(GLOBAL_INTERVAL*1000);
-
     stack.ndp().send_router_solicitation({this, &Slaac::process_prefix_info});
 
+    interval = milliseconds(GLOBAL_INTERVAL*1000);
     //auto delay = milliseconds(rand() % (GLOBAL_INTERVAL * 1000));
-    //timeout_timer_.start(delay);
+    timeout_timer_.start(interval, {this, &Slaac::autoconf_global});
   }
 
   void Slaac::perform_dad()
@@ -145,12 +166,12 @@ namespace net
     dad_transmits_--;
     // Perform DAD
     stack.ndp().perform_dad(tentative_addr_.addr(), {this, &Slaac::dad_handler});
-    timeout_timer_.start(interval);
+    timeout_timer_.start(interval, {this, &Slaac::autoconf_trigger});
   }
 
   void Slaac::dad_handler([[maybe_unused]]const ip6::Addr& addr)
   {
-    if(token_ and tentative_addr_.addr().get_part<uint64_t>(1) != htonll(token_))
+    if(token_ and tentative_addr_.addr().get_part<uint64_t>(1) != token_)
     {
       tentative_addr_.addr().set_part(1, token_);
       PRINT("<SLAAC> DAD fail, using supplied token: %zu => %s\n",
@@ -161,7 +182,7 @@ namespace net
       timeout_timer_.stop();
       /* DAD has failed. */
       for(auto& handler : this->config_handlers_)
-        handler(false);
+        handler(linklocal_completed ? true : false);
     }
   }
 
@@ -202,18 +223,24 @@ namespace net
     }
 
     auto addr = pinfo.prefix;
-    auto eui64 = MAC::Addr::eui64(stack.link_addr());
+    auto eui64 = (use_token_) ? token_ : MAC::Addr::eui64(stack.link_addr());
     addr.set_part(1, eui64);
 
     if(not stack.addr6_config().has(addr))
     {
-      //printf("dont have %s\n", addr.to_string().c_str());
+      // this means we're already working with this prefix.
+      // there is still a problem when we receive more than one prefix
+      // (a different one)
+      if(tentative_addr_.addr() == addr)
+        return;
+
       tentative_addr_ = {addr, prefix_len, preferred_lifetime, valid_lifetime};
+      dad_transmits_ = GLOBAL_RETRIES;
+      timeout_timer_.stop();
       autoconf_trigger();
     }
     else
     {
-      //printf("already have %s\n", addr.to_string().c_str());
       stack.add_addr_autoconf(addr, prefix_len, preferred_lifetime, valid_lifetime);
     }
   }

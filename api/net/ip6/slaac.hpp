@@ -42,20 +42,22 @@ namespace net {
     Slaac(Stack& inet);
 
     // autoconfigure linklocal and global address
-    void autoconf_start(int retries, uint64_t token);
+    void autoconf_start(int retries, uint64_t token, bool use_token);
     void autoconf_linklocal();
+    void autoconf_global_start();
     void autoconf_global();
     void autoconf_trigger();
     void on_config(config_func handler);
 
   private:
-    Stack& stack;
-    uint64_t     token_;
+    Stack&        stack;
+    uint64_t      token_;
+    bool          use_token_;
     ip6::Stateful_addr tentative_addr_;
-    bool         linklocal_completed;
+    bool          linklocal_completed;
     // Number of times to attempt DAD
-    int          dad_transmits_;
-    Timer        timeout_timer_;
+    int           dad_transmits_;
+    Timer         timeout_timer_;
     std::vector<config_func> config_handlers_;
     std::chrono::milliseconds interval;
 

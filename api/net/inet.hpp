@@ -296,7 +296,8 @@ namespace net {
     void negotiate_dhcp(double timeout = 10.0, dhcp_timeout_func = nullptr);
 
     /* Automatic configuration of ipv6 address for inet */
-    void autoconf_v6(int retries = 1, slaac_timeout_func = nullptr, uint64_t token = 0);
+    void autoconf_v6(int retries = 1, slaac_timeout_func = nullptr,
+      uint64_t token = 0, bool use_token = false);
 
     bool is_configured() const
     {
