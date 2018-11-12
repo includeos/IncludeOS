@@ -119,7 +119,7 @@ struct Addr {
   static const Addr site_dhcp_servers;  // RFC 3315
 
   // returns true if this Addr is a IPv6 multicast Address
-  bool is_multicast() const
+  bool is_multicast() const noexcept
   {
     /**
        RFC 4291 2.7 Multicast Addresses
@@ -135,17 +135,17 @@ struct Addr {
     return ((ntohs(i16[0]) & 0xFF00) == 0xFF00);
   }
 
-  bool is_linklocal() const
+  bool is_linklocal() const noexcept
   {
     return ((ntohs(i16[0]) & 0xFE80) == 0xFE80);
   }
 
-  bool is_solicit_multicast() const
+  bool is_solicit_multicast() const noexcept
   {
-      return ((ntohs(i32[0]) ^  (0xff020000)) |
-              ntohs(i32[1]) |
-              (ntohs(i32[2]) ^ (0x00000001)) |
-              (ntohs(i32[3]) ^ 0xff)) == 0;
+    return i32[0] == htonl(0xFF020000)
+       and i32[1] == 0
+       and i32[2] == htonl(0x1)
+       and (i32[3] & htonl(0xFF000000)) == htonl(0xFF000000);
   }
 
   uint8_t* data()
