@@ -118,6 +118,22 @@ bool are_all_streams_atleast_stage(int stage)
   return server_test.test_stage >= stage &&
          client_test.test_stage >= stage;
 }
+static void do_trash_memory()
+{
+  for (int i = 0; i < 1000; i++)
+  {
+    std::vector<char*> allocations;
+    for (int i = 0; i < 1000; i++) {
+      const size_t size = rand() % 0x1000;
+      allocations.push_back(new char[size]);
+      std::memset(allocations.back(), 0x0, size);
+    }
+    for (auto* alloc : allocations) {
+      std::free(alloc);
+    }
+    allocations.clear();
+  }
+}
 void do_test_serializing_tls(int index)
 {
   char sbuffer[128*1024]; // server buffer
@@ -141,12 +157,14 @@ void do_test_serializing_tls(int index)
   ossl_fuzz_ptr = client_side.get();
   
   // 2.2: deserialize TLS config/context
-  auto* config = s2n::serial_get_config();
+  s2n::serial_free_config();
+  do_trash_memory();
+  s2n::serial_create_config();
   
   // 2.3: deserialize TLS streams
   // 2.3.1:
   auto dstream = s2n::TLS_stream::deserialize_from(
-                  config,
+                  s2n::serial_get_config(),
                   std::move(server_side),
                   false,
                   sbuffer, sbytes
@@ -155,7 +173,7 @@ void do_test_serializing_tls(int index)
   server_test.stream = dstream.release();
 
   dstream = s2n::TLS_stream::deserialize_from(
-                  config,
+                  s2n::serial_get_config(),
                   std::move(client_side),
                   false,
                   cbuffer, cbytes
@@ -175,7 +193,7 @@ void do_test_send_data()
 void do_test_completed()
 {
   printf("SUCCESS\n");
-  s2n::serial_test_over();
+  s2n::serial_free_config();
   OS::shutdown();
 }
 
@@ -195,9 +213,10 @@ void Service::start()
   assert(srv_key.is_valid());
   printf("*** Loaded certificates and keys\n");
 
-  // initialize S2N
+  // initialize S2N and store the certificate/key pair
   s2n::serial_test(ca_cert.to_string(), ca_key.to_string());
-  
+  s2n::serial_create_config();
+
   // server fuzzy stream
   auto server_side = create_stream(&ossl_fuzz_ptr);
   s2n_fuzz_ptr = server_side.get();
