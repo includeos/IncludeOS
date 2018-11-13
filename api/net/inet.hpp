@@ -297,7 +297,7 @@ namespace net {
 
     /* Automatic configuration of ipv6 address for inet */
     void autoconf_v6(int retries = 1, slaac_timeout_func = nullptr,
-            ip6::Addr alternate_addr = IP6::ADDR_ANY);
+      uint64_t token = 0, bool use_token = false);
 
     bool is_configured() const
     {

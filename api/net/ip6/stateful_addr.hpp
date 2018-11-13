@@ -39,6 +39,9 @@ namespace net::ip6 {
     const ip6::Addr& addr() const noexcept
     { return addr_; }
 
+    ip6::Addr& addr() noexcept
+    { return addr_; }
+
     uint8_t prefix() const noexcept
     { return prefix_; }
 
