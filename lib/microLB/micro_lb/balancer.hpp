@@ -62,7 +62,7 @@ namespace microLB
     typedef std::deque<Node> nodevec_t;
     typedef nodevec_t::iterator iterator;
     typedef nodevec_t::const_iterator const_iterator;
-    Nodes() {}
+    Nodes() = default;
 
     size_t   size() const noexcept;
     const_iterator begin() const;
@@ -82,6 +82,7 @@ namespace microLB
     Session& create_session(bool talk, net::Stream_ptr inc, net::Stream_ptr out);
     void     close_session(int, bool timeout = false);
     Session& get_session(int);
+    void     close_all_sessions();
 
     void serialize(liu::Storage&);
     void deserialize(netstack_t& in, netstack_t& out, liu::Restore&);
@@ -98,10 +99,13 @@ namespace microLB
   };
 
   struct Balancer {
-    Balancer(netstack_t& in, uint16_t port, netstack_t& out);
-    Balancer(netstack_t& in, uint16_t port, netstack_t& out,
-             const std::string& cert, const std::string& key);
+    Balancer(netstack_t& in, netstack_t& out);
+    ~Balancer();
     static Balancer* from_config();
+
+    void open_tcp(uint16_t client_port);
+    void open_s2n(uint16_t port, const std::string& cert, const std::string& key);
+    void open_ossl(uint16_t port, const std::string& cert, const std::string& key);
 
     int  wait_queue() const;
     int  connect_throws() const;
@@ -128,7 +132,9 @@ namespace microLB
     std::deque<Waiting> queue;
     int throw_retry_timer = -1;
     int throw_counter = 0;
-    void* openssl_data = nullptr;
+    // TLS stuff (when enabled)
+    void* tls_context = nullptr;
+    delegate<void()> tls_free;
   };
 
   template <typename... Args>

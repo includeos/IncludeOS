@@ -23,21 +23,29 @@
 
 using namespace std::chrono;
 
+// NOTE: Do NOT move microLB::Balancer while in operation!
+// It uses tons of delegates that capture "this"
 namespace microLB
 {
-  Balancer::Balancer(
-         netstack_t& incoming, uint16_t in_port,
-         netstack_t& outgoing)
+  Balancer::Balancer(netstack_t& incoming, netstack_t& outgoing)
     : nodes(), netin(incoming), netout(outgoing), signal({this, &Balancer::handle_queue})
   {
-    netin.tcp().listen(in_port,
+    this->init_liveupdate();
+  }
+  void Balancer::open_tcp(const uint16_t client_port)
+  {
+    this->netin.tcp().listen(client_port,
     [this] (auto conn) {
       if (conn != nullptr) {
         this->incoming(std::make_unique<net::tcp::Stream> (conn));
       }
     });
-
-    this->init_liveupdate();
+  }
+  Balancer::~Balancer()
+  {
+    queue.clear();
+    nodes.close_all_sessions();
+    if (tls_free) tls_free();
   }
   int Balancer::wait_queue() const {
     return this->queue.size();
@@ -254,6 +262,11 @@ namespace microLB
     free_sessions.push_back(session.self);
     session_cnt--;
     LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
+  }
+  void Nodes::close_all_sessions()
+  {
+    sessions.clear();
+    free_sessions.clear();
   }
 
   Node::Node(netstack_t& stk, net::Socket a, const pool_signal_t& sig)
