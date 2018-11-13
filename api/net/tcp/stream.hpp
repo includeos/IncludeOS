@@ -11,6 +11,7 @@ namespace net::tcp
    */
   class Stream final : public net::Stream {
   public:
+    static const uint16_t SUBID = 1;
     /**
      * @brief      Construct a Stream for a Connection ptr
      *
@@ -180,6 +181,9 @@ namespace net::tcp
 
     size_t serialize_to(void* p, const size_t) const override {
       return m_tcp->serialize_to(p);
+    }
+    uint16_t serialization_subid() const override {
+      return SUBID;
     }
 
     Stream* transport() noexcept override {

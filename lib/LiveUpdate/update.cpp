@@ -357,3 +357,19 @@ void Storage::add_string_vector(uid id, const std::vector<std::string>& vec)
 {
   hdr.add_string_vector(id, vec);
 }
+#include <net/stream.hpp>
+void Storage::add_stream(net::Stream& stream)
+{
+  auto* stream_ptr = (net::Stream*) &stream;
+  // get the sub-ID for this stream:
+  // it will be used when deserializing to make sure we arent
+  // calling the wrong deserialization function on the stream
+  const uint16_t subid = stream_ptr->serialization_subid();
+  assert(subid != 0 && "Stream should not return 0 for subid");
+  // serialize the stream
+  hdr.add_struct(TYPE_STREAM, subid,
+  [stream_ptr] (char* location) -> int {
+    // returns size of all the serialized data
+    return stream_ptr->serialize_to(location, 0xFFFFFFFF);
+  });
+}
