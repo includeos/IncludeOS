@@ -150,6 +150,8 @@ namespace net
     if(dad_transmits_ == 0)
     {
       PRINT("<SLAAC> Out of transmits for router sol (no reply)\n");
+      for(auto& handler : this->config_handlers_)
+        handler(true); // we do have linklocal at least
       return;
     }
     dad_transmits_--;
