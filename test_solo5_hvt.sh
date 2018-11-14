@@ -5,7 +5,7 @@ export SYSTEM=`uname -s`
 
 if [[ ! $SYSTEM =~ .*[L|l]inux.* ]]
 then
-  echo -e "\nRunning Solo5 / ukvm is currently only supported on Linux. \n"
+  echo -e "\nRunning Solo5 is currently only supported on Linux. \n"
   trap - EXIT
   exit 1
 fi

@@ -6,7 +6,7 @@
 #include <kernel/os.hpp>
 
 extern "C" {
-#include <solo5.h>
+#include <solo5/solo5.h>
 }
 
 extern void __platform_init();
@@ -59,7 +59,7 @@ void kernel_start()
 extern "C"
 int solo5_app_main(const struct solo5_start_info *si)
 {
-  // si is stored at 0x6000 by ukvm which is used by includeos. Move it fast.
+  // si is stored at 0x6000 by solo5 tender which is used by includeos. Move it fast.
   strncpy(temp_cmdline, si->cmdline, sizeof(temp_cmdline)-1);
   temp_cmdline[sizeof(temp_cmdline)-1] = 0;
   free_mem_begin = si->heap_start;
