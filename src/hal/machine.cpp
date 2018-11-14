@@ -78,16 +78,20 @@ namespace os {
   }
 
   // Implementation details
-  Machine* Machine::create(uintptr_t mem_begin, uintptr_t mem_end) noexcept {
-    void* machine_loc = reinterpret_cast<void*>(mem_begin);
-    mem_begin += sizeof(Machine);
-    size_t memsize = mem_end - mem_begin - sizeof(Machine);
-    // Ensure alignment matches allocator
-    return new(machine_loc) Machine((void*)mem_begin, memsize);
+  Machine* Machine::create(void* mem, size_t size) noexcept {
+    char* mem_begin = (char*)mem + sizeof(Machine);
+    return new(mem) Machine((void*)mem_begin, size - sizeof(Machine));
   }
 
   Machine::Machine(void* mem, size_t size) noexcept
-  : impl{new (mem) detail::Machine{(char*)mem + sizeof(detail::Machine),
-        size - sizeof(detail::Machine)}} {}
+  : impl {nullptr} {
+
+    Expects(mem != nullptr);
+    Expects(size > sizeof(detail::Machine) + Machine::Memory::min_alloc);
+
+    // Placement new impl
+    impl = {new (mem) detail::Machine{(char*)mem + sizeof(detail::Machine),
+                                      size - sizeof(detail::Machine)}};
+  }
 
 }

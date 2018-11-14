@@ -90,15 +90,21 @@ namespace os::detail {
     const char* arch();
     virtual const char* name() { return  "PC"; }
 
+
     template <typename T>
-    T& get(int i) {
+    Parts_vec& get_vector() {
       const std::type_index t_idx = std::type_index(typeid(T));
       auto vec_it = parts_.find(t_idx);
       if (vec_it == parts_.end()) {
-        throw Machine_access_error("Requested machine part not found");
+        throw Machine_access_error("Requested machine parts not found");
       }
+      return vec_it->second;
+    }
 
-      auto& vec = vec_it->second;
+    template <typename T>
+    T& get(int i) {
+      const std::type_index t_idx = std::type_index(typeid(T));
+      auto& vec = get_vector<T>();
       auto& part = vec.at(i);
       Expects(part.t_idx == t_idx);
       T* tptr = (T*)part.ptr;
@@ -109,17 +115,11 @@ namespace os::detail {
     Machine::Allocator<T>& allocator() {
       return  ptr_alloc_;
     }
-
     template <typename T>
     os::Machine::Vector<T> get() {
-      const std::type_index t_idx = std::type_index(typeid(T));
-      auto vec_it = parts_.find(t_idx);
-      if (vec_it == parts_.end()) {
-        throw Machine_access_error("Requested machine parts not found");
-      }
+      auto& vec = get_vector<T>();
 
-      auto& vec = vec_it->second;
-
+      // Populate new vector of ref-wrappers
       os::Machine::Vector<T> new_parts(ptr_alloc_);
       for (auto& part : vec) {
         auto ref = std::ref(*(reinterpret_cast<T*>(part.ptr)));
@@ -133,6 +133,7 @@ namespace os::detail {
       const std::type_index t_idx = std::type_index(typeid(T));
       auto vec_it = parts_.find(t_idx);
       if (vec_it == parts_.end()) {
+        // Create vector for T if it doesn't exist
         auto res = parts_.emplace(t_idx, Parts_vec(ptr_alloc_));
         if (! res.second)  {
           return -1;
@@ -140,6 +141,7 @@ namespace os::detail {
         vec_it = res.first;
       }
 
+      // Add part to T vector
       auto& vec = vec_it->second;
 
       Part p {part, storage, t_idx};
@@ -156,7 +158,10 @@ namespace os::detail {
     }
 
     template <typename T>
-    void remove(int i);
+    void remove(int i) {
+      auto& vec = get_vector<T>();
+      vec.erase(vec.begin() + i);
+    };
 
     inline Memory& memory() {
       return mem_;
@@ -194,6 +199,11 @@ namespace os {
   Machine::Vector<T> Machine::get() {
     return impl->get<T>();
   }
+
+  template <typename T>
+  void Machine::remove(int i) {
+    impl->remove<T>(i);
+  };
 
   template <typename T>
   Machine::Allocator<T>& Machine::allocator() {

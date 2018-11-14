@@ -80,13 +80,13 @@ namespace os {
     template <typename T>
     T& get(int i);
 
-    Machine(void* mem_begin, size_t memsize) noexcept;
+    Machine(void* mem, size_t size) noexcept;
 
     /** Factory function for creating machine instance in-place **/
-    static Machine* create(uintptr_t mem, uintptr_t mem_end) noexcept;
+    static Machine* create(void* mem, size_t size) noexcept;
 
   private:
-    std::unique_ptr<detail::Machine> impl;
+    detail::Machine* impl;
   };
 
   // Get the Machine instance for the current context.
