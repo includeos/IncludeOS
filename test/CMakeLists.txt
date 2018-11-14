@@ -99,6 +99,7 @@ set(TEST_SOURCES
   ${TEST}/kernel/unit/unit_events.cpp
   ${TEST}/kernel/unit/unit_timers.cpp
   ${TEST}/kernel/unit/unit_liveupdate.cpp
+  ${TEST}/kernel/unit/test_hal.cpp
   ${TEST}/net/unit/addr_test.cpp
   ${TEST}/net/unit/bufstore.cpp
   ${TEST}/net/unit/checksum.cpp

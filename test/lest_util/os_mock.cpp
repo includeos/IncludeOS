@@ -230,4 +230,8 @@ size_t OS::total_memuse() noexcept {
   return heap_end();
 }
 
+void OS::init_heap(uintptr_t, size_t) noexcept {
+  INFO("TEST", "Initializing heap");
+};
+
 #endif
