@@ -28,9 +28,9 @@
 
 namespace fuzzy
 {
-  using Stream_ptr = net::Stream_ptr;
   struct Stream : public net::Stream
   {
+    using Stream_ptr = std::unique_ptr<Stream>;
     // read callback for when data is going out on this stream
     Stream(net::Socket, net::Socket, ReadCallback, bool async = false);
     virtual ~Stream();
@@ -111,6 +111,7 @@ namespace fuzzy
     WriteCallback    m_on_write   = nullptr;
     CloseCallback    m_on_close   = nullptr;
   };
+  using Stream_ptr = Stream::Stream_ptr;
 
   inline Stream::Stream(net::Socket lcl, net::Socket rmt,
                         ReadCallback payload_out, const bool async)
