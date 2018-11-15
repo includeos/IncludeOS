@@ -59,9 +59,6 @@ namespace net::dns {
       }
     }
 
-    if(rtype == Record_type::AAAA)
-      printf("IP6: %s\n", ((ip6::Addr*)rdata.data())->to_string().c_str());
-
     return count;
   }
 

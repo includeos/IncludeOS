@@ -301,11 +301,10 @@ string TCP::to_string() const {
     str += l.first.to_string() + "\t" + std::to_string(l.second->syn_queue_size()) + "\n";
   }
   str +=
-  "\nCONNECTIONS:\nProto\tRecv\tSend\tIn\tOut\tLocal\t\t\tRemote\t\t\tState\n";
+  "\nCONNECTIONS:\nLocal\tRemote\tState\n";
   for(auto& con_it : connections_) {
     auto& c = *(con_it.second);
-    str += "tcp4\t \t \t \t \t"
-        + c.local().to_string() + "\t\t" + c.remote().to_string() + "\t\t"
+    str += c.local().to_string() + "\t" + c.remote().to_string() + "\t"
         + c.state().to_string() + "\n";
   }
   return str;
