@@ -388,7 +388,7 @@ set_target_properties(libgcc PROPERTIES IMPORTED_LOCATION "${COMPILER_RT_FILE}")
 if ("${PLATFORM}" STREQUAL "x86_solo5")
   add_library(solo5 STATIC IMPORTED)
   set_target_properties(solo5 PROPERTIES LINKER_LANGUAGE C)
-  set_target_properties(solo5 PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/solo5.o)
+  set_target_properties(solo5 PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/solo5_hvt.o)
 endif()
 
 # Depending on the output of this command will make it always run. Like magic.

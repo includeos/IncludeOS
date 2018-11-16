@@ -9,7 +9,7 @@ DISK_DEVICE=dummy.img
 
 INCLUDEOS_SRC=${INCLUDEOS_SRC-$HOME/IncludeOS}
 UNIKERNEL_SRC=${INCLUDEOS_SRC}/examples/demo_service
-UNIKERNEL_BUILD=${UNIKERNEL_SRC}/build_ukvm
+UNIKERNEL_BUILD=${UNIKERNEL_SRC}/build_solo5-hvt
 UNIKERNEL_IMG=${UNIKERNEL_BUILD}/IncludeOS_example
 ARCH=${ARCH:-x86_64}
 SOLO5_SRC=${INCLUDEOS_SRC}/build_${ARCH}/precompiled/src/solo5_repo
@@ -27,7 +27,7 @@ die_info ()
 }
 
 SYSTEM=`uname -a`
-[[ ! $SYSTEM =~ .*[L|l]inux.* ]] && die_info "Solo5/ukvm is currently only supported on Linux."
+[[ ! $SYSTEM =~ .*[L|l]inux.* ]] && die_info "Solo5 is currently only supported on Linux."
 
 trap nuketmpdir 0 INT TERM
 TMPDIR=$(mktemp -d)
@@ -59,15 +59,15 @@ setup()
     [ -f ${UNIKERNEL_IMG} ] || die_error "The unikernel was not built"
     [ -s ${UNIKERNEL_IMG} ] || die_error "The unikernel image is zero size"
 
-    # The default ukvm-bin needs a disk, even if it's a dummy 0 byte one.
-    # If you want ukvm-bin with just the net module, you need to re-build it.
+    # The default solo5-hvt needs a disk, even if it's a dummy 0 byte one.
+    # If you want solo5-hvt with just the net module, you need to re-build it.
     touch ${TMPDIR}/${DISK_DEVICE}
     ${INCLUDEOS_SRC}/etc/scripts/create_bridge.sh || true
     # Create a tap100 device
-    ${INCLUDEOS_SRC}/etc/scripts/ukvm-ifup.sh || true
+    ${INCLUDEOS_SRC}/etc/scripts/solo5-ifup.sh || true
 
     # XXX: fix this during installation
-    chmod +x ${SOLO5_SRC}/ukvm/ukvm-bin
+    chmod +x ${SOLO5_SRC}/tenders/hvt/solo5-hvt
 
     return 0
 )}
@@ -93,24 +93,24 @@ retry_command ()
 
 run_curl_test ()
 {(
-    local UKVM
+    local TENDER
     local UNIKERNEL
-    local PID_UKVM
+    local PID_TENDER
 
     logto ${NAME}.log.1
-    UKVM=$SOLO5_SRC/ukvm/ukvm-bin
-    UKVM="${UKVM} --disk=${TMPDIR}/${DISK_DEVICE} --net=${NET_DEVICE}"
+    TENDER=$SOLO5_SRC/tenders/hvt/solo5-hvt
+    TENDER="${TENDER} --disk=${TMPDIR}/${DISK_DEVICE} --net=${NET_DEVICE}"
 
-    # If we can't run ukvm, just return code 98 (skipped)
+    # If we can't run solo5-hvt, just return code 98 (skipped)
     [ -c /dev/kvm -a -w /dev/kvm ] || return 98
 
-    ${UKVM} -- ${UNIKERNEL_IMG} &
-    PID_UKVM=$!
+    ${TENDER} -- ${UNIKERNEL_IMG} &
+    PID_TENDER=$!
 
     retry_command "curl -m 1 ${NET_IP}" 30
     STATUS=$?
 
-    kill -9 ${PID_UKVM} || true
+    kill -9 ${PID_TENDER} || true
     return ${STATUS}
 )}
 
@@ -162,7 +162,7 @@ case $? in
     ;;
 98)
     STATUS=0
-    # can't run ukvm (no KVM support)
+    # can't run solo5 tender (no KVM support)
     echo "${TYELL}SKIPPED${TOFF}"
     [ -n "${VERBOSE}" ] && dumplogs ${NAME} ${TGREEN} ${TOFF}
     ;;
