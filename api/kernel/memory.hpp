@@ -23,6 +23,7 @@
 #include <util/bitops.hpp>
 #include <util/units.hpp>
 #include <util/alloc_buddy.hpp>
+#include <util/allocator.hpp>
 #include <sstream>
 
 namespace os {
@@ -36,10 +37,17 @@ namespace mem {
     execute = 4
   };
 
-  /** Default system allocator **/
-  using Allocator = buddy::Alloc<false>;
+  using Raw_allocator = buddy::Alloc<false>;
 
-  Allocator& allocator();
+  /** Get default allocator for untyped allocations */
+  Raw_allocator& raw_allocator();
+
+  template <typename T>
+  using Typed_allocator = Allocator<T, Raw_allocator>;
+
+  /** Get default std::allocator for typed allocations */
+  template <typename T>
+  Typed_allocator<T> system_allocator() { return Typed_allocator<T>(raw_allocator()); }
 
   /** Get bitfield with bit set for each supported page size */
   uintptr_t supported_page_sizes();

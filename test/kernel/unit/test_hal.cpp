@@ -71,7 +71,7 @@ CASE("os::Machine basics") {
   EXPECT((pool_begin >= (uintptr_t)pool.data and pool_begin <= (uintptr_t)pool.data + pool.size));
   EXPECT((pool_end == (uintptr_t)pool.data + pool.size));
 
-  EXPECT(machine->add_new<Pool>(100) == 0);
+  EXPECT(machine->add_new<Pool>(100u) == 0);
 
   auto& mpool1 = machine->get<Pool>(0);
 
@@ -79,9 +79,9 @@ CASE("os::Machine basics") {
   auto vec = machine->get<Pool>();
   EXPECT(vec.size() == 1);
 
-  EXPECT(machine->add_new<Pool>(200) == 1);
-  EXPECT(machine->add_new<Pool>(300) == 2);
-  EXPECT(machine->add_new<Pool>(400) == 3);
+  EXPECT(machine->add_new<Pool>(200u) == 1);
+  EXPECT(machine->add_new<Pool>(300u) == 2);
+  EXPECT(machine->add_new<Pool>(400u) == 3);
 
   vec = machine->get<Pool>();
   EXPECT(vec.size() == 4);
@@ -107,17 +107,17 @@ CASE("os::Machine basics") {
 
 
   // Add std::unique_ptr - ends up in same memory area as add_new
-  auto pp1 = std::make_unique<Pool>(1000);
-  auto pp2 = std::make_unique<Pool>(2000);
-  auto pp3 = std::make_unique<Pool>(3000);
+  auto pp1 = std::make_unique<Pool>(1000u);
+  auto pp2 = std::make_unique<Pool>(2000u);
+  auto pp3 = std::make_unique<Pool>(3000u);
 
   EXPECT(machine->add<Pool>(std::move(pp1)) == 0);
   EXPECT(machine->add<Pool>(std::move(pp2)) == 1);
   EXPECT(machine->add<Pool>(std::move(pp3)) == 2);
 
-  EXPECT(machine->add_new<Pool>(200) == 3);
-  EXPECT(machine->add_new<Pool>(300) == 4);
-  EXPECT(machine->add_new<Pool>(400) == 5);
+  EXPECT(machine->add_new<Pool>(200u) == 3);
+  EXPECT(machine->add_new<Pool>(300u) == 4);
+  EXPECT(machine->add_new<Pool>(400u) == 5);
 
   auto pg0 = machine->get<Pool>(0);
   auto pg1 = machine->get<Pool>(1);
