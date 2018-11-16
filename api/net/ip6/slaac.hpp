@@ -32,7 +32,7 @@ namespace net {
     static const int LINKLOCAL_RETRIES = 1;
     static const int LINKLOCAL_INTERVAL = 1;
     static const int GLOBAL_RETRIES = LINKLOCAL_RETRIES;
-    static const int GLOBAL_INTERVAL = LINKLOCAL_INTERVAL;
+    static const int GLOBAL_INTERVAL = 3;
 
     using Stack = IP6::Stack;
     using config_func = delegate<void(bool)>;

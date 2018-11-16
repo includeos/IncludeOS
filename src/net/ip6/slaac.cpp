@@ -133,7 +133,7 @@ namespace net
            interval, delay);
     timeout_timer_.start(delay);
 
-    // join multicast group fix
+    // join multicast group ?
     //stack.mld().send_report_v2(ip6::Addr::solicit(tentative_addr_.addr()));
   }
 
@@ -156,6 +156,7 @@ namespace net
     }
     dad_transmits_--;
     using namespace std::chrono;
+    PRINT("<SLAAC> Sending router sol\n");
     stack.ndp().send_router_solicitation({this, &Slaac::process_prefix_info});
 
     interval = milliseconds(GLOBAL_INTERVAL*1000);
@@ -239,6 +240,7 @@ namespace net
       tentative_addr_ = {addr, prefix_len, preferred_lifetime, valid_lifetime};
       dad_transmits_ = GLOBAL_RETRIES;
       timeout_timer_.stop();
+      PRINT("<SLAAC> New prefix info, DAD address %s\n", addr.to_string().c_str());
       autoconf_trigger();
     }
     else
