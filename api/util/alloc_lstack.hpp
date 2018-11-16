@@ -18,9 +18,9 @@
 #define UTIL_MINIALLOC_HPP
 
 #include <common>
-
-//#include <gsl/gsl>
 #include <util/bitops.hpp>
+
+extern "C" void kprintf(const char*, ...);
 
 namespace util {
 namespace alloc {
@@ -66,7 +66,7 @@ namespace alloc {
 
   namespace detail {
     template <Lstack_opt Opt = Lstack_opt::merge, size_t Min = 4096>
-    class Lstack;
+    struct Lstack;
   }
 
  /**
@@ -139,6 +139,9 @@ namespace alloc {
     void donate(void* ptr, size_t size) { donate({ptr, size}); }
     void donate(Allocation a) { impl.donate(a); }
 
+    Lstack() = default;
+    Lstack(void* mem_begin, size_t size) : impl(mem_begin, size) {};
+
     /** Lowest donated address */
     uintptr_t pool_begin() const noexcept { return impl.pool_begin(); }
 
@@ -169,13 +172,21 @@ namespace alloc {
      * For a non-merging allocator this is likely pessimistic, but
      * no memory is currently handed out beyond this point.
      **/
-    uintptr_t allocation_end()   { return impl.allocation_end(); }
+    uintptr_t allocation_end() { return impl.allocation_end(); }
 
+    ssize_t node_count() { return impl.node_count(); }
 
-    ssize_t    node_count()       { return impl.node_count(); }
+    template< class U, class... Args >
+    auto make_unique( Args&&... args ) {
+      void* addr = allocate(sizeof(U));
+      auto deleter = [this](auto* ptr) { this->deallocate(ptr, sizeof(U)); };
+      return std::unique_ptr<U, decltype(deleter)>(new (addr) U(std::forward<Args>(args)...), deleter);
+    };
+
   private:
     detail::Lstack<Opt, Min> impl;
   };
+
 
   /** Implementation details. Subject to change at any time */
   namespace detail {
@@ -215,6 +226,7 @@ namespace alloc {
           Ensures(bits::is_aligned(align, a.size));
           bytes_allocated_ += a.size;
         }
+
         return a;
       }
 
@@ -282,6 +294,15 @@ namespace alloc {
 
         Ensures(pool_end() - pool_begin() >= pool_size());
       }
+
+      Lstack(void* ptr, size_t size)
+        : front_{nullptr}, bytes_allocated_{0}, bytes_total_{0},
+          donations_begin_{0}, donations_end_{0}
+      {
+        donate(ptr, size);
+      }
+
+      Lstack() = default;
 
       void donate(Allocation a) {
         return donate(a.ptr, a.size);
