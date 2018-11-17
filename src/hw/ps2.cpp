@@ -95,45 +95,59 @@ namespace hw
     }
   }
 
-  int KBM::transform_vk(uint8_t scancode)
+  KBM::keystate_t KBM::transform_vk(uint8_t scancode)
   {
+    keystate_t result;
+    result.pressed = (scancode & 0x80) == 0;
+    const int scancode7 = scancode & 0x7f;
+
     if (scancode == 0x0)
     {
-      return VK_UNKNOWN;
+      result.key = VK_UNKNOWN;
     }
-    else if (scancode <= 0x0A)
+    else if (scancode7 <= 0x0A)
     {
-      return VK_ESCAPE + scancode - 1;
+      result.key = VK_ESCAPE + scancode7 - 1;
+    }
+    else if (scancode7 == 0x2C)
+    {
+      result.key = VK_Z;
+    }
+    else if (scancode7 == 0x2D)
+    {
+      result.key = VK_X;
     }
     else if (scancode == 0xE0)
     {
       scancode = read_fast();
-      switch (scancode) {
+      switch (scancode & 0x7f) {
       case 0x48:
-        return VK_UP;
+        result.key = VK_UP; break;
       case 0x4B:
-        return VK_LEFT;
+        result.key = VK_LEFT; break;
       case 0x4D:
-        return VK_RIGHT;
+        result.key = VK_RIGHT; break;
       case 0x50:
-        return VK_DOWN;
+        result.key = VK_DOWN; break;
       default:
-        return VK_UNKNOWN;
+        result.key = VK_UNKNOWN;
       }
     }
-    switch (scancode) {
-    case 0x0E:
-      return VK_BACK;
-    case 0x0F:
-      return VK_TAB;
-    case 0x1C:
-      return VK_ENTER;
-    case 0x39:
-      return VK_SPACE;
+    else {
+      switch (scancode7) {
+      case 0x0E:
+        result.key = VK_BACK; break;
+      case 0x0F:
+        result.key = VK_TAB; break;
+      case 0x1C:
+        result.key = VK_ENTER; break;
+      case 0x39:
+        result.key = VK_SPACE; break;
+      default:
+        result.key = VK_UNKNOWN;
+      }
     }
-
-
-    return VK_UNKNOWN;
+    return result;
   }
   void KBM::handle_mouse(uint8_t scancode)
   {
@@ -144,7 +158,7 @@ namespace hw
   {
     return (keyboard_write == write_port1) ? PORT1_IRQ : PORT2_IRQ;
   }
-  int KBM::get_kbd_vkey()
+  KBM::keystate_t KBM::get_kbd_vkey()
   {
     uint8_t byte = read_fast();
     // transform to virtual key
@@ -240,9 +254,6 @@ namespace hw
 
   KBM::KBM()
   {
-    this->on_virtualkey = [] (int) {};
-    this->on_mouse = [] (int,int,int) {};
-
     if (ps2_initialized == false) {
       KBM::init();
     }
@@ -252,9 +263,11 @@ namespace hw
 
     Events::get().subscribe(KEYB_IRQ,
     [] {
-      int key = KBM::get_kbd_vkey();
+      keystate_t state = KBM::get_kbd_vkey();
       // call handler
-      get().on_virtualkey(key);
+      if (get().on_virtualkey) {
+        get().on_virtualkey(state.key, state.pressed);
+      }
     });
 
     Events::get().subscribe(MOUS_IRQ,
