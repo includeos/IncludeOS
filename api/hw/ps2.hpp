@@ -79,11 +79,25 @@ namespace hw
     static keystate_t get_kbd_vkey();
     static uint8_t    get_mouse_irq();
 
+    // if you want to control PS/2 yourself
+    static void    flush_data();
+    static uint8_t read_status();
+    static uint8_t read_data();
+    static uint8_t read_fast(); // doesnt check status
+    static void    write_cmd(uint8_t);
+    static void    write_data(uint8_t);
+    static void    write_port1(uint8_t);
+    static void    write_port2(uint8_t);
+
   private:
     KBM();
+    void internal_init();
+
     int  mouse_x;
     int  mouse_y;
     bool mouse_button[4];
+    bool mouse_enabled = false;
+    bool m_initialized = false;
 
     static keystate_t transform_vk(uint8_t scancode);
     static int transform_ascii(int vk);
