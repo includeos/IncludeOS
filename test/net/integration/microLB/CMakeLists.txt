@@ -22,6 +22,7 @@ set(DRIVERS
   )
 
 set(PLUGINS
+    autoconf
     vfs
   )
 
