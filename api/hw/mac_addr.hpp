@@ -210,6 +210,26 @@ union Addr {
   constexpr uint64_t eui64() const noexcept
   { return Addr::eui64(*this); }
 
+  /**
+   * @brief      Construct a broadcast/"multicast" MAC for
+   *             the given IPv6 address.
+   *
+   * @param[in]  v6    The IPv6 address
+   *
+   * @tparam     IPv6  IPv6 address
+   *
+   * @return     A broadcast/"multicast" MAC address
+   */
+  template <typename IPv6>
+  static Addr ipv6_mcast(const IPv6& v6)
+  {
+    return { 0x33, 0x33,
+      v6.template get_part<uint8_t>(12),
+      v6.template get_part<uint8_t>(13),
+      v6.template get_part<uint8_t>(14),
+      v6.template get_part<uint8_t>(15)};
+  }
+
 
   static constexpr const size_t PARTS_LEN {6}; //< Number of parts in a MAC address
   uint8_t part[PARTS_LEN];                     //< The parts of the MAC address

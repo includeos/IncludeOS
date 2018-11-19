@@ -63,34 +63,44 @@ namespace net
       return;
     }
 
-    // Populate response IP header
-    if (any_src) {
-        res.ip().set_ip_src(inet_.addr6_config().get_first_linklocal());
-        res.ip().set_ip_dst(ip6::Addr::node_all_nodes);
-    } else {
-        res.ip().set_ip_src(inet_.addr6_config().get_src(src));
-        res.ip().set_ip_dst(src);
-    }
     res.ip().set_ip_hop_limit(255);
 
     // Populate response ICMP header
     res.set_type(ICMP_type::ND_NEIGHBOUR_ADV);
     res.set_code(0);
 
-    auto payload  = res.payload();
-    auto* data    = payload.data();
-    auto& adv     = *reinterpret_cast<ndp::View<ndp::Neighbor_adv>*>(data);
-
-    adv.set_flag(ndp::Neighbor_adv::Solicited | ndp::Neighbor_adv::Override);
-
     // Insert target link address, ICMP6 option header and our mac address
-    const auto& sol = *reinterpret_cast<const ndp::View<ndp::Neighbor_sol>*>(req.payload().data());
-    adv.target = sol.target;
+    const auto& sol = req.view_payload_as<ndp::Neighbor_sol>();
+    auto& adv = res.emplace<ndp::View<ndp::Neighbor_adv>>(sol.target);
 
-    res.ip().increment_data_end(sizeof(sol));
+    MAC::Addr dest_mac;
+    // Populate response IP header
+    if (any_src)
+    {
+      const auto& dest = ip6::Addr::link_all_nodes;
+      res.ip().set_ip_src(inet_.addr6_config().get_first_linklocal());
+      res.ip().set_ip_dst(dest);
+      dest_mac = MAC::Addr::ipv6_mcast(dest);
+    }
+    else
+    {
+      res.ip().set_ip_src(inet_.addr6_config().get_src(src));
+      res.ip().set_ip_dst(src);
+      adv.set_flag(ndp::Neighbor_adv::Solicited);
+    }
+
+    // Set Router flag if router
+    if(inet_.ip6_obj().forward_delg())
+      adv.set_flag(ndp::Neighbor_adv::Router);
+
+    // RFC 4861 7.2.4 - There are some stuff written about when Target LL
+    // can be omitted, but it seems ok to always send it, so for simplicity
+    // we do that for now.
     using Target_ll_addr = ndp::option::Target_link_layer_address<MAC::Addr>;
     auto* opt = adv.add_option<Target_ll_addr>(0, link_mac_addr());
     res.ip().increment_data_end(opt->size());
+
+    adv.set_flag(ndp::Neighbor_adv::Override);
 
     // Add checksum
     res.set_checksum();
@@ -99,14 +109,12 @@ namespace net
       res.ip().ip_dst().str().c_str(), res.payload().size(), res.compute_checksum());
 
     auto dest = res.ip().ip_dst();
-    transmit(res.release(), dest);
+    transmit(res.release(), dest, dest_mac);
   }
 
   void Ndp::receive_neighbour_advertisement(icmp6::Packet& req)
   {
-    auto payload    = req.payload();
-    auto* data      = payload.data();
-    const auto& adv = *reinterpret_cast<const ndp::View<ndp::Neighbor_adv>*>(data);
+    const auto& adv = req.view_payload_as<const ndp::View<ndp::Neighbor_adv>>();
 
     const auto& target = adv.target;
 
@@ -123,11 +131,13 @@ namespace net
 
     if (dad_handler_ && target == tentative_addr_) {
       PRINT("NDP: NA: DAD failed. We can't use the %s"
-            " address on our interface", target.str().c_str());
+            " address on our interface\n", target.str().c_str());
       dad_handler_(target);
       return;
     }
 
+    auto payload    = req.payload();
+    auto* data      = payload.data();
     // Parse the options
     adv.parse_options(data + payload.length(), [&](const auto* opt)
     {
@@ -198,11 +208,7 @@ namespace net
     }
 
     req.set_checksum();
-    MAC::Addr dest_mac(0x33,0x33,
-            dest.get_part<uint8_t>(12),
-            dest.get_part<uint8_t>(13),
-            dest.get_part<uint8_t>(14),
-            dest.get_part<uint8_t>(15));
+    auto dest_mac = MAC::Addr::ipv6_mcast(dest);
 
     PRINT("NDP: Sending Neighbour solicit size: %i payload size: %i,"
         "checksum: 0x%x, src: %s, dst: %s, dmac: %s\n",
@@ -271,7 +277,8 @@ namespace net
     bool is_dest_multicast = req.ip().ip_dst().is_multicast();
 
     // TODO: Change this. Can be targeted to many ip6 address on this inet
-    if (not inet_.is_valid_source6(target)) {
+    if (not inet_.is_valid_source6(target))
+    {
       PRINT("NDP: not for us. target=%s us=%s\n", target.to_string().c_str(),
               inet_.ip6_linklocal().to_string().c_str());
       if (dad_handler_ && target == tentative_addr_) {
@@ -280,23 +287,19 @@ namespace net
         dad_handler_(target);
         return;
       } else if (!proxy_) {
-         return;
+        return;
       } else if (!proxy_(target)) {
          return;
       }
        PRINT("Responding to neighbour sol as a proxy\n");
     }
 
-    if (any_src) {
-      if (lladdr != MAC::EMPTY) {
-        send_neighbour_advertisement(req);
-      }
-      return;
+    if(not any_src)
+    {
+      /* Update/Create cache entry for the source address */
+      cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
+        NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE);
     }
-
-    /* Update/Create cache entry for the source address */
-    cache(req.ip().ip_src(), lladdr, NeighbourStates::STALE,
-         NEIGH_UPDATE_WEAK_OVERRIDE| NEIGH_UPDATE_OVERRIDE);
 
     send_neighbour_advertisement(req);
   }
@@ -377,11 +380,7 @@ namespace net
     req.set_checksum();
 
     auto dst = req.ip().ip_dst();
-    MAC::Addr dest_mac(0x33,0x33,
-        dst.get_part<uint8_t>(12),
-        dst.get_part<uint8_t>(13),
-        dst.get_part<uint8_t>(14),
-        dst.get_part<uint8_t>(15));
+    auto dest_mac = MAC::Addr::ipv6_mcast(dst);
 
     PRINT("NDP: Router solicit size: %i payload size: %i, checksum: 0x%x\n",
           req.ip().size(), req.payload().size(), req.compute_checksum());

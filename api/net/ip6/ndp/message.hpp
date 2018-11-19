@@ -109,29 +109,30 @@ namespace net::ndp {
   {
     enum Flag : uint8_t
     {
-      Router    = 1 << 1,
-      Solicited = 1 << 2,
-      Override  = 1 << 3
+      Router    = 0b1000'0000,
+      Solicited = 0b0100'0000,
+      Override  = 0b0010'0000
     };
 
-    uint32_t flags;
-    /*uint32_t  router:1,
-              solicited:1,
-              override:1,
-              reserved:29;*/
+    uint32_t flags{0x0};
     ip6::Addr target;
 
-    void set_flag(uint32_t flag) noexcept
-    { flags = htonl(flag << 28); }
+    Neighbor_adv() = default;
+    Neighbor_adv(ip6::Addr tar)
+      : target{std::move(tar)}
+    {}
+
+    void set_flag(uint8_t flag) noexcept
+    { flags |= flag; }
 
     constexpr bool router() const noexcept
-    { return flags & ntohs(Router); }
+    { return flags & Router; }
 
     constexpr bool solicited() const noexcept
-    { return flags & ntohs(Solicited); }
+    { return flags & Solicited; }
 
     constexpr bool override() const noexcept
-    { return flags & ntohs(Override); }
+    { return flags & Override; }
 
   } __attribute__((packed));
   static_assert(sizeof(Neighbor_adv) == 20);

@@ -248,7 +248,7 @@ namespace net::icmp6 {
     const T& view_payload_as()
     {
       const Span payload = this->payload();
-      Expects(payload.size() >= sizeof(T));
+      Expects(static_cast<size_t>(payload.size()) >= sizeof(T));
       return *reinterpret_cast<const T*>(payload.data());
     }
 
