@@ -36,7 +36,9 @@ set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 message(STATUS "Target triple ${TRIPLE}")
 
-option(WITH_SOLO5 "Install with solo5 support" ON)
+if (NOT APPLE)
+  option(WITH_SOLO5 "Install with solo5 support" ON)
+endif()
 
 set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
 
@@ -155,10 +157,6 @@ else()
 endif()
 
 
-if (WITH_SOLO5)
-  include(cmake/solo5.cmake)
-endif(WITH_SOLO5)
-
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
    file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
@@ -175,7 +173,6 @@ endif()
 
 #NB 5.0 is llvm version should be a variable from CMAKE or profile ?
 #TODO separate dependencies if build is GCC from if build is clang ?
-#TODO if with solo5 download solo5 package..
 #TODO create a NaCL package ?
 #TODO create packages for tools in general ?
 #TODO move these where they are actually needed and not bloat the global space with the package
@@ -184,7 +181,7 @@ SET(CONAN_DEPENDENCIES
   musl/v1.1.18@includeos/stable
   binutils/2.31/includeos/stable
 
-  GSL/1.0.0@includeos/test
+  GSL/2.0.0@includeos/test
   protobuf/3.5.1.1@includeos/test
   rapidjson/1.1.0@includeos/test
   botan/2.8.0@includeos/test
@@ -194,11 +191,17 @@ SET(CONAN_DEPENDENCIES
   http-parser/2.8.1@includeos/test
   uzlib/v2.1.1@includeos/test
 )
-IF (APPLE)
+if (APPLE)
   SET(CONAN_DEPENDENCIES ${CONAN_DEPENDENCIES}
     libgcc/1.0@includeos/stable
-  )
-ENDIF(APPLE)
+    )
+else()
+  if (WITH_SOLO5)
+    SET(CONAN_DEPENDENCIES ${CONAN_DEPENDENCIES}
+      solo5/0.3.1@includeos/test
+      )
+  endif(WITH_SOLO5)
+endif(APPLE)
 
 #TODO find a better way to handle profiles ?
 conan_cmake_run(
