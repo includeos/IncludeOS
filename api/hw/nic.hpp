@@ -140,6 +140,9 @@ namespace hw {
 
     void transmit_queue_available_event(size_t packets)
     {
+      // early on its possible someone tries to transmit without subscribers
+      if (tqa_events_.empty()) return;
+
       // divide up fairly
       size_t div = packets / tqa_events_.size();
 
