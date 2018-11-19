@@ -120,6 +120,7 @@ namespace hw
     else if (scancode == 0xE0)
     {
       scancode = read_fast();
+      result.pressed = (scancode & 0x80) == 0;
       switch (scancode & 0x7f) {
       case 0x48:
         result.key = VK_UP; break;
