@@ -328,6 +328,10 @@ namespace mem {
     // unpresent @src
     os::mem::protect(src, size, os::mem::Access::none);
   }
-}}
+}
+
+  bool heap_ready();
+
+}
 
 #endif

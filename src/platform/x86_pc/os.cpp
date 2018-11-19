@@ -61,7 +61,7 @@ uint64_t OS::nanos_asleep() noexcept {
 __attribute__((noinline))
 void OS::halt()
 {
-  uint64_t cycles_before = __arch_cpu_cycles();
+  uint64_t cycles_before = os::Arch::cpu_cycles();
   asm volatile("hlt");
 
   // add a global symbol here so we can quickly discard
@@ -71,7 +71,7 @@ void OS::halt()
   "_irq_cb_return_location:" );
 
   // Count sleep cycles
-  PER_CPU(os_per_cpu).cycles_hlt += __arch_cpu_cycles() - cycles_before;
+  PER_CPU(os_per_cpu).cycles_hlt += os::Arch::cpu_cycles() - cycles_before;
 }
 
 void OS::default_stdout(const char* str, const size_t len)
@@ -183,7 +183,7 @@ void OS::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = x86::CMOS::meminfo();
-  if (OS::memory_end_ == __arch_max_canonical_addr)
+  if (OS::memory_end_ == os::Arch::max_canonical_addr)
   {
     //uintptr_t low_memory_size = mem.base.total * 1024;
     INFO2("* Low memory: %i Kib", mem.base.total);

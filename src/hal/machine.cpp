@@ -38,7 +38,7 @@ namespace os::detail {
   Machine::Machine(void* mem, size_t size)
     : mem_{(void*)bits::align(Memory::align, (uintptr_t)mem),
       bits::align(Memory::align, size)},
-      ptr_alloc_(&mem_), parts_(ptr_alloc_) {
+      ptr_alloc_(mem_), parts_(ptr_alloc_) {
         kprintf("[%s %s] constructor \n", arch(), name());
       }
 

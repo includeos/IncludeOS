@@ -338,7 +338,7 @@ inline OS::Span_mods OS::modules()
 
 inline uint64_t OS::cycles_since_boot() noexcept
 {
-  return __arch_cpu_cycles();
+  return os::Arch::cpu_cycles();
 }
 inline uint64_t OS::nanos_since_boot() noexcept
 {

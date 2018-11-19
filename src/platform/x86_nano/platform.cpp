@@ -24,7 +24,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   assert(boot_magic == MULTIBOOT_BOOTLOADER_MAGIC);
   OS::multiboot(boot_addr);
-  assert(OS::memory_end_ != 0);
+  assert(OS::memory_end() != 0);
 
   platform_init();
 }

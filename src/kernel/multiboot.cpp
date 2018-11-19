@@ -57,7 +57,7 @@ uintptr_t _multiboot_memory_end(uintptr_t boot_addr) {
   if (info->flags & MULTIBOOT_INFO_MEMORY) {
     return 0x100000 + (info->mem_upper * 1024);
   }
-  return __arch_max_canonical_addr;
+  return os::Arch::max_canonical_addr;
 }
 
 // Deterimine the end of multiboot provided data

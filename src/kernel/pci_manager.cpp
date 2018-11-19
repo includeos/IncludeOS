@@ -22,7 +22,7 @@
 #include <vector>
 
 #include <kernel/pci_manager.hpp>
-#include <hw/devices.hpp>
+#include <hal/machine.hpp>
 #include <hw/pci_device.hpp>
 
 template <typename Driver>
@@ -44,7 +44,7 @@ static inline bool register_device(hw::PCI_Device& dev,
       INFO2("|");
 
       auto driver = fact.second(dev);
-      hw::Devices::register_device<Class>(std::move(driver));
+      os::machine().add<Class>(std::move(driver));
       return true;
     }
   }
@@ -62,9 +62,9 @@ register_device_nic(hw::PCI_Device& dev, fixed_factory_t<PCI_manager::NIC_driver
       INFO2("|  +-o Driver found, initializing ");
       INFO2("|");
 
-      const int idx = hw::Devices::device_next_index<hw::Nic>();
+      const ssize_t idx = os::machine().count<hw::Nic>();
       auto driver = fact.second(dev, hw::Nic::MTU_detection_override(idx, 1500));
-      hw::Devices::register_device<hw::Nic>(std::move(driver));
+      os::machine().add<hw::Nic>(std::move(driver));
       return true;
     }
   }

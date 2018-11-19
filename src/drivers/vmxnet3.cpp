@@ -1,4 +1,4 @@
-﻿// This file is a part of the IncludeOS unikernel - www.includeos.org
+// This file is a part of the IncludeOS unikernel - www.includeos.org
 //
 // Copyright 2015 Oslo and Akershus University College of Applied Sciences
 // and Alfred Bratterud
@@ -516,13 +516,13 @@ bool vmxnet3::receive_handler(const int Q)
     if (gen != (comp.flags & VMXNET3_RXCF_GEN)) break;
 
     /* prevent speculative pre read ahead of comp content*/
-    __arch_read_memory_barrier();
+    os::Arch::read_memory_barrier();
 
     rx[Q].consumers++;
     rx[Q].prod_count--;
 
     int desc = comp.index % vmxnet3::NUM_RX_DESC;
-    
+
     // Handle case of empty packet
     if (UNLIKELY((comp.len & (VMXNET3_MAX_BUFFER_LEN-1)) == 0)) {
       //TODO assert / log if eop and sop are not set in empty packet.
@@ -534,7 +534,7 @@ bool vmxnet3::receive_handler(const int Q)
       stat_rx_zero_dropped++;
       break;
     }
-    
+
     // mask out length
     int len = comp.len & (VMXNET3_MAX_BUFFER_LEN-1);
 

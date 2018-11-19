@@ -35,17 +35,12 @@ namespace os {
   class Machine {
   public:
     class  Memory;
-    //using Memory = util::alloc::Lstack<util::alloc::Lstack_opt::merge, os::Arch::word_size>;
 
     /** Get raw physical memory **/
     Memory& memory() noexcept;
 
     template <typename T>
-    using Allocator = mem::Allocator<T, Memory>;
-
-    /** Get a std::allocator conforming version of raw Memory **/
-    template <typename T>
-    Allocator<T>& allocator();
+    struct Allocator;
 
     const char* name() noexcept;
     const char* id()   noexcept;
@@ -72,13 +67,16 @@ namespace os {
     ssize_t add_new(Args&&... args);
 
     template <typename T>
-    void remove(int i);
-
-    template <typename T>
     Vector<T> get();
 
     template <typename T>
     T& get(int i);
+
+    template <typename T>
+    void remove(int i);
+
+    template <typename T>
+    ssize_t count();
 
     Machine(void* mem, size_t size) noexcept;
 

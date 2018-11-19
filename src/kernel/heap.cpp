@@ -18,6 +18,8 @@
 #include <kernel/os.hpp>
 #include <util/bitops.hpp>
 #include <util/units.hpp>
+#include <kernel.hpp>
+
 using namespace util::literals;
 
 size_t brk_bytes_used();
@@ -67,11 +69,21 @@ size_t OS::total_memuse() noexcept {
 constexpr size_t heap_alignment = 4096;
 __attribute__((weak)) ssize_t __brk_max = 0x100000;
 
+static bool __heap_ready = false;
+
 extern void init_mmap(uintptr_t mmap_begin);
 
 
-uintptr_t __init_brk(uintptr_t begin);
-uintptr_t __init_mmap(uintptr_t begin);
+uintptr_t __init_brk(uintptr_t begin, size_t size);
+uintptr_t __init_mmap(uintptr_t begin, size_t size);
+
+namespace kernel {
+  bool heap_ready() { return __heap_ready; }
+}
+
+namespace os {
+  bool heap_ready() { return kernel::heap_ready(); }
+}
 
 void OS::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept {
   // NOTE: Initialize the heap before exceptions
@@ -79,6 +91,8 @@ void OS::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept {
   memory_end_ = memory_end;
   heap_max_   = memory_end-1;
   heap_begin_ = util::bits::roundto<heap_alignment>(free_mem_begin);
-  auto brk_end  = __init_brk(heap_begin_);
-  __init_mmap(brk_end);
+  auto brk_end  = __init_brk(heap_begin_, __brk_max);
+
+  __init_mmap(brk_end, memory_end);
+  __heap_ready = true;
 }

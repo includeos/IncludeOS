@@ -17,24 +17,11 @@
 #ifndef OS_DETAIL_MACHINE_HPP
 #define OS_DETAIL_MACHINE_HPP
 
-#include <arch.hpp>
 #include <typeindex>
 #include <unordered_map>
 #include <hal/machine.hpp>
-#include <util/alloc_lstack.hpp>
-
-namespace os {
-  using Machine_allocator =
-    util::alloc::Lstack<util::alloc::Lstack_opt::merge, os::Arch::word_size>;
-
-  /**  Extensible Memory class  **/
-  class Machine::Memory : public Machine_allocator {
-  public:
-    using Alloc = Machine_allocator;
-    using Alloc::Alloc;
-    // TODO: Keep track of donated pools;
-  };
-}
+#include <hal/machine_memory.hpp>
+#include <util/typename.hpp>
 
 namespace os::detail {
   using namespace util;
@@ -46,8 +33,9 @@ namespace os::detail {
   class Machine {
   public:
     using Memory = os::Machine::Memory;
+
     template <typename T>
-    using Allocator = mem::Allocator<T, Memory>;
+    using Allocator = os::Machine::Allocator<T>;
 
     template <typename T>
     using Vec = std::vector<T,Allocator<T>>;
@@ -112,10 +100,6 @@ namespace os::detail {
     }
 
     template <typename T>
-    Machine::Allocator<T>& allocator() {
-      return  ptr_alloc_;
-    }
-    template <typename T>
     os::Machine::Vector<T> get() {
       auto& vec = get_vector<T>();
 
@@ -158,10 +142,17 @@ namespace os::detail {
     }
 
     template <typename T>
-    void remove(int i) {
+    ssize_t count() {
+      if (parts_.count(std::type_index(typeid(T))) == 0)
+        return 0;
+
       auto& vec = get_vector<T>();
-      vec.erase(vec.begin() + i);
+      return vec.size();
     };
+
+    template <typename T>
+    void remove(int i); // TODO: implement
+
 
     inline Memory& memory() {
       return mem_;
@@ -177,16 +168,18 @@ namespace os::detail {
 
 } // namespace detail
 
-
 // Machine wrappers
 namespace os {
+
   template <typename T>
   ssize_t Machine::add(std::unique_ptr<T> part) noexcept {
+    INFO("Machine", "Adding %s", demangle(typeid(T).name()).c_str());
     return impl->add<T>(part.release(), detail::Machine::Part::Storage::heap);
   }
 
   template <typename T, typename... Args>
   ssize_t Machine::add_new(Args&&... args) {
+    INFO("Machine", "Adding new %s", demangle(typeid(T).name()).c_str());
     return impl->add_new<T>(args...);
   }
 
@@ -206,8 +199,8 @@ namespace os {
   };
 
   template <typename T>
-  Machine::Allocator<T>& Machine::allocator() {
-    return impl->allocator<T>();
+  ssize_t Machine::count() {
+    return impl->count<T>();
   }
 
 }

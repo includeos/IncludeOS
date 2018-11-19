@@ -25,6 +25,8 @@
 #include <kernel/auxvec.h>
 #include <kernel/service.hpp>
 
+#include <kernel.hpp>
+
 #include "idt.hpp"
 
 #undef Expects
@@ -73,6 +75,13 @@ static void global_ctor_test(){
   __global_ctors_ok = 42;
 }
 
+
+static os::Machine* __machine = nullptr;
+os::Machine& os::machine() {
+  Expects(__machine != nullptr);
+  return *__machine;
+}
+
 int kernel_main(int, char * *, char * *) {
   PRATTLE("<kernel_main> libc initialization complete \n");
   Expects(__global_ctors_ok == 42);
@@ -84,8 +93,9 @@ int kernel_main(int, char * *, char * *) {
   Expects(elf.is_ELF() && "ELF header intact");
 
   PRATTLE("<kernel_main> OS start \n");
+
   // Initialize early OS, platform and devices
-  OS::start(__grub_magic,__grub_addr);
+  OS::start(__grub_magic, __grub_addr);
 
   // verify certain read-only sections in memory
   // NOTE: because of page protection we can choose to stop checking here
@@ -150,11 +160,17 @@ void kernel_start(uint32_t magic, uint32_t addr)
   PRATTLE("* Init .bss\n");
   _init_bss();
 
+  // Instantiate machine
+  size_t memsize = memory_end - free_mem_begin;
+  __machine = os::Machine::create((void*)free_mem_begin, memsize);
+
   PRATTLE("* Init ELF parser\n");
   _init_elf_parser();
 
-  PRATTLE("* Init heap\n");
-  OS::init_heap(free_mem_begin, memory_end);
+  // Begin portable HAL initialization
+  __machine->init();
+
+  // TODO: Move more stuff into Machine::init
 
   PRATTLE("* Init syscalls\n");
   _init_syscalls();
