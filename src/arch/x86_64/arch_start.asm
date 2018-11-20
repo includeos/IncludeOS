@@ -2,10 +2,10 @@
 ;
 ; Copyright 2015 Oslo and Akershus University College of Applied Sciences
 ; and Alfred Bratterud
-;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
 ; You may obtain a copy of the License at
+;
 ;
 ;     http://www.apache.org/licenses/LICENSE-2.0
 ;
@@ -16,6 +16,7 @@
 ; limitations under the License.
 global __arch_start:function
 global __gdt64_base_pointer
+global fast_kernel_start:function
 extern kernel_start
 extern __multiboot_magic
 extern __multiboot_addr
@@ -140,12 +141,6 @@ long_mode:
     push 0
     mov  rbp, rsp
 
-    ;; setup temporary smp table
-    mov rax, sentinel_table
-    mov rdx, 0
-    mov rcx, IA32_FS_BASE ;; FS BASE
-    wrmsr
-
     mov ecx, IA32_STAR
     mov edx, 0x8
     mov eax, 0x0
@@ -158,13 +153,14 @@ long_mode:
     pop  rsp
     ret
 
-sentinel_table:
-    dq sentinel_table ;; 0x0
-    dq 0 ;; 0x8
-    dq 0 ;; 0x10
-    dq 0 ;; 0x18
-    dq 0 ;; 0x20
-    dq 0x123456789ABCDEF
+;; this function can be jumped to directly from hotswap
+fast_kernel_start:
+    and  rsp, -16
+    mov  edi, eax
+    mov  esi, ebx
+    call kernel_start
+    cli
+    hlt
 
 SECTION .data
 GDT64:

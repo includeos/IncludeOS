@@ -10,9 +10,10 @@
 #include <cassert>
 #include <info>
 
-extern "C" void ios_rand_seed(const void* buf, int num)
+extern "C" int ios_rand_seed(const void* buf, int num)
 {
   rng_absorb(buf, num);
+  return 1;
 }
 extern "C" int ios_rand_bytes(unsigned char* buf, int num)
 {
@@ -23,9 +24,10 @@ extern "C" void ios_rand_cleanup()
 {
   /** do nothing **/
 }
-extern "C" void ios_rand_add(const void* buf, int num, double)
+extern "C" int ios_rand_add(const void* buf, int num, double)
 {
   rng_absorb(buf, num);
+  return 1;
 }
 extern "C" int ios_rand_pseudorand(unsigned char* buf, int num)
 {

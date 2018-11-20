@@ -26,8 +26,11 @@ Statman& Statman::get() {
 }
 
 Stat::Stat(const Stat_type type, const std::string& name)
-  : ui64(0), m_bits{type}
+  : ui64(0)
 {
+  // stats are persisted by default
+  this->m_bits = uint8_t(type) | PERSIST_BIT;
+
   if (name.size() > MAX_NAME_LEN)
     throw Stats_exception("Stat name cannot be longer than " + std::to_string(MAX_NAME_LEN) + " characters");
 
@@ -36,12 +39,12 @@ Stat::Stat(const Stat_type type, const std::string& name)
 Stat::Stat(const Stat& other) {
   this->ui64   = other.ui64;
   this->m_bits = other.m_bits;
-  strncpy(this->name_, other.name_, MAX_NAME_LEN);
+  __builtin_memcpy(this->name_, other.name_, sizeof(name_));
 }
 Stat& Stat::operator=(const Stat& other) {
   this->ui64   = other.ui64;
   this->m_bits = other.m_bits;
-  strncpy(this->name_, other.name_, MAX_NAME_LEN);
+  __builtin_memcpy(this->name_, other.name_, sizeof(name_));
   return *this;
 }
 

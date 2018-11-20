@@ -25,6 +25,7 @@
 #include <util/crc32.hpp>
 #include <cassert>
 //#define VERIFY_MEMORY
+extern bool LIVEUPDATE_USE_CHEKSUMS;
 
 inline uint32_t liu_crc32(const void* buf, size_t len)
 {
@@ -137,13 +138,16 @@ void storage_header::finalize()
       throw std::runtime_error("Magic field invalidated during store process");
   // add end if missing
   if (this->length == 0) this->add_end();
-  // generate checksum for header
-  this->crc = generate_checksum();
+  if (LIVEUPDATE_USE_CHEKSUMS)
+    // generate checksum for header
+    this->crc = generate_checksum();
+  else
+    this->crc = 0;
 }
 bool storage_header::validate() const noexcept
 {
   if (this->magic != LIVEUPD_MAGIC) return false;
-  if (this->crc   == 0) return false;
+  if (LIVEUPDATE_USE_CHEKSUMS == false) return true;
 
   uint32_t chsum = generate_checksum();
   if (this->crc != chsum) return false;

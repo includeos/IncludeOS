@@ -262,6 +262,7 @@ set(MOD_OBJECTS
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_tcp.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/update.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/os.cpp
+  ${INCLUDEOS_ROOT}/lib/LiveUpdate/elfscan.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/resume.cpp
   #${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_openssl.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/storage.cpp

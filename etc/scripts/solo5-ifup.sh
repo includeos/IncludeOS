@@ -35,7 +35,7 @@ Linux)
         echo "tap100 already exists"
     else
         set -xe
-        echo "Creating tap100 for ukvm"
+        echo "Creating tap100 for solo5 tender"
         ip tuntap add tap100 mode tap
         ip link set dev tap100 up
         brctl addif $BRIDGE tap100

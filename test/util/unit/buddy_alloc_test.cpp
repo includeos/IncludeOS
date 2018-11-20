@@ -280,7 +280,7 @@ CASE("mem::buddy random chaos with data verification"){
   std::vector<Allocation> allocs;
 
   for (auto rnd : test::random_1k) {
-    auto sz = std::max(rnd % alloc.pool_size_ / 1024, alloc.min_size);
+    auto sz = std::max<size_t>(rnd % alloc.pool_size_ / 1024, alloc.min_size);
     EXPECT(sz);
 
     if (not alloc.full()) {

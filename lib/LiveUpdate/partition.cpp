@@ -22,6 +22,7 @@
 #include <util/crc32.hpp>
 #include <cassert>
 #include <cstring>
+extern bool LIVEUPDATE_USE_CHEKSUMS;
 
 inline uint32_t liu_crc32(const void* buf, size_t len)
 {
@@ -53,11 +54,12 @@ int storage_header::find_partition(const char* key) const
       // the partition must have a valid name
       assert(part.name[0] != 0);
       // the partition should be fully consistent
-      uint32_t chsum = part.generate_checksum(this->vla);
-      if (part.crc == chsum) {
-        return p;
+      if (LIVEUPDATE_USE_CHEKSUMS) {
+        uint32_t chsum = part.generate_checksum(this->vla);
+        if (part.crc != chsum)
+        throw std::runtime_error("Invalid CRC in partition '" + std::string(key) + "'");
       }
-      throw std::runtime_error("Invalid CRC in partition '" + std::string(key) + "'");
+      return p;
     }
   }
   return -1;
@@ -69,13 +71,18 @@ void storage_header::finish_partition(int p)
   // write length and crc
   auto& part = ptable.at(p);
   part.length = this->length - part.offset;
-  part.crc = part.generate_checksum(this->vla);
+  if (LIVEUPDATE_USE_CHEKSUMS) {
+    part.crc = part.generate_checksum(this->vla);
+  }
+  else part.crc = 0;
 }
 void storage_header::zero_partition(int p)
 {
   auto& part = ptable.at(p);
   memset(&this->vla[part.offset], 0, part.length);
   part = {};
-  // NOTE: generate **NEW** checksum for header
-  this->crc = generate_checksum();
+  if (LIVEUPDATE_USE_CHEKSUMS) {
+    // NOTE: generate **NEW** checksum for header
+    this->crc = generate_checksum();
+  }
 }

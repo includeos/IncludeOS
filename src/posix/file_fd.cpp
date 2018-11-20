@@ -31,6 +31,8 @@ ssize_t File_FD::read(void* p, size_t n)
     return 0;
 
   auto buf = ent_.read(offset_, n);
+  if (not buf.is_valid()) return -EIO;
+
   memcpy(p, buf.data(), std::min(n, buf.size()));
   offset_ += buf.size();
   return buf.size();
