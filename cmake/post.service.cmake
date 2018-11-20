@@ -337,10 +337,6 @@ if(${ARCH} STREQUAL "x86_64")
   include_directories(${INSTALL_LOC}/${ARCH}/include)
 endif()
 
-#add_library(libosdeps STATIC IMPORTED)
-#set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
-#set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libosdeps.a)
-
 add_library(http_parser STATIC IMPORTED)
 set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(http_parser PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/http_parser.o)
@@ -509,7 +505,6 @@ target_link_libraries(service
   ${OPENSSL_LIBS}
   http_parser
   uzlib
-  #libosdeps
 
   libplatform
   libarch

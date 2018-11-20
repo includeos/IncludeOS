@@ -37,51 +37,24 @@ class IncludeOSConan(ConanFile):
         if (self.options.apple):
             self.build_requires("libgcc/1.0@includeos/stable")
         if (self.options.solo5):
-            self.build_requires("solo5/0.3.1@includeos/test")
+            self.build_requires("solo5/0.4.1@includeos/test")
 
-    #this is a very raw way of doing this
-    #def imports(self):
-    # this is NASTY imho
-    #    self.copy("*",dst=self.env.INCLUDEOS_PREFIX,src=".")
 
     def source(self):
-
-        #repo = tools.Git(folder="includeos")
-        #repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
-        shutil.copytree("/home/kristian/git/IncludeOS","IncludeOS")
+        repo = tools.Git(folder="includeos")
+        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
 
     def _configure_cmake(self):
         cmake = CMake(self)
-        #cmake.definitions["CMAKE_C_FLAGS"] =''
-        #cmake.definitions["CMAKE_CXX_FLAGS"]=''
-        #cmake.definitions['CMAKE_INSTALL_PREFIX']=self.package_folder+"/include"
         cmake.configure(source_folder=self.source_folder+"/IncludeOS")
-        #STOP conan from spamming but we should get flags from profile ?
         return cmake;
     def build(self):
         cmake=self._configure_cmake()
         cmake.build()
 
-        #print("TODO")
-        #TODO at some point fix the msse3
-        #env_inc="  -I"+self.build_folder+"/target/libcxx/include -I"+self.build_folder+"/target/include -Ibuild/include/botan"
-        #cmd="./configure.py --os=includeos --disable-shared --cpu="+str(self.settings.arch)
-        #flags="\"--target="+str(self.settings.arch)+"-pc-linux-gnu -msse3 -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -nostdlib -nostdinc++ "+env_inc+"\""
-        #self.run(cmd+" --cc-abi-flags="+flags,cwd="botan")
-        #self.run("make -j12 libs",cwd="botan")
     def package(self):
         cmake=self._configure_cmake()
         cmake.install()
-    #def package(self):
-        #i cant because i used cmake install .. crap..d
-        #self.copy("*",dst="include/includeos",src="includeos")
-    #    print("TODO?")
-        #self.copy("*.h",dst="include/botan",src="botan/build/include/botan")
-        #self.copy("*.a",dst="lib",src="botan")
 
     def deploy(self):
-        self.copy("*",dst="bin",src="bin")
-        self.copy("*",dst="includeos",src="includeos")
-        #print("TODO")
-        #self.copy("*.h",dst="include/botan",src="include/botan")
-        #self.copy("*.a",dst="lib",src="lib")
+        self.copy("*",dst=".",src=".")

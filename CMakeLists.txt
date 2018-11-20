@@ -17,10 +17,6 @@ set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 message(STATUS "Target triple ${TRIPLE}")
 
-if (NOT APPLE)
-  option(WITH_SOLO5 "Install with solo5 support" ON)
-endif()
-
 # Remember we was APPLE in earlier life
 if(APPLE)
   set(BORNED_AS_AN_APPLE FRUITSALAD)
@@ -31,11 +27,14 @@ set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
 project (includeos C CXX)
 
 if(NOT BORNED_AS_AN_APPLE)
+  option(WITH_SOLO5 "Install with solo5 support" ON)
 include(CheckCXXCompilerFlag)
   check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
   if(NOT HAVE_FLAG_STD_CXX17)
     message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
   endif()
+else()
+  option(WITH_SOLO5 "Install with solo5 support" OFF)
 endif()
 
 if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
@@ -166,24 +165,27 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
                   "${CMAKE_BINARY_DIR}/conan.cmake")
 endif()
 
-#TODO fix this
+#TODO fix this by using cmake's well defined buld type definitions
 set(CMAKE_BUILD_TYPE Release)
 
-#NB 5.0 is llvm version should be a variable from CMAKE or profile ?
 #TODO separate dependencies if build is GCC from if build is clang in
 #conanfile.py and add requirement for the tools in the profile!!
 #TODO create a NaCL package ?
-#TODO create packages for "other" lib
 
-#Sets the includeos default profile to clang-7.0 mergeconflict?
+#Sets the includeos default profile to clang-5.0
 if (NOT DEFINED CONAN_PROFILE)
   SET(CONAN_PROFILE clang-5.0)
 endif()
 
 set(CONAN_APPLE False)
-IF (APPLE)
+set(CONAN_SOLO5 False)
+if (APPLE)
   set(CONAN_APPLE True)
-ENDIF(APPLE)
+endif(APPLE)
+
+if (WITH_SOLO5)
+  set(CONAN_SOLO5 True)
+endif()
 
 #Are we executing cmake from conan or locally
 #if locally then pull the deps from conanfile.py
@@ -263,33 +265,7 @@ endif(tests)
 # Libraries
 #
 #TODO verify the asumption that all these work once all the proper includes are in order!!
-
-#option(libmana "Build and install mana web application framework library" ON)
-#if(libmana)
-#  add_subdirectory(lib/mana)
-#endif(libmana)
-
-#option(libuplink "Build and install uplink" ON)
-#if(libuplink)
-#  set(libliveupdate ON) # dependent
-#  add_subdirectory(lib/uplink)
-#endif(libuplink)
-
-#option(libmender "Build and install mender client" ON)
-#if(libmender)
-#  set(libliveupdate ON) # dependent
-#  add_subdirectory(lib/mender)
-#endif(libmender)
-
-#option(libliveupdate "Build and install LiveUpdate" ON)
-#if(libliveupdate)
-#  add_subdirectory(lib/LiveUpdate)
-#endif(libliveupdate)
-#
-#option(libmicroLB "Build and install microLB" ON)
-#if(libmicroLB)
-#  add_subdirectory(lib/microLB)
-#endif()
+#TODO create conan package for mana,uplink,mender,liveupdate and lb
 
 #
 # Installation
@@ -346,6 +322,11 @@ if(NOT CONAN_EXPORTED)
     "execute_process(COMMAND conan install ${NAME}/${VERSION}@${USER}/${CHANNEL} -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
     )
   endforeach()
+  #install tools
+  install(CODE
+  "execute_process(COMMAND conan install vmbuild/0.12.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX})"
+  )
+
 endif(NOT CONAN_EXPORTED)
 
 install(DIRECTORY api/ DESTINATION include/os)

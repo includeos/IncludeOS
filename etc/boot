@@ -12,7 +12,7 @@ import subprocess
 import re
 
 INCLUDEOS_PREFIX = None
-default_prefix = "/usr/local"
+default_prefix = "/usr/local/includeos"
 
 # Locate IncludeOS installation
 if "INCLUDEOS_PREFIX" not in os.environ:
@@ -20,12 +20,12 @@ if "INCLUDEOS_PREFIX" not in os.environ:
 else:
     INCLUDEOS_PREFIX = os.environ['INCLUDEOS_PREFIX']
 
-if not os.path.isdir(INCLUDEOS_PREFIX + "/includeos"):
+if not os.path.isdir(INCLUDEOS_PREFIX):
     print "Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_loc + ") please set the environment variable INCLUDEOS_PREFIX to point to this location."
     sys.exit(0)
 
 # Location of vmrunner
-sys.path.append(INCLUDEOS_PREFIX + "/includeos")
+sys.path.append(INCLUDEOS_PREFIX)
 
 from vmrunner.prettify import color
 
