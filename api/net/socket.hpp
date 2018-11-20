@@ -106,56 +106,29 @@ public:
   bool is_empty() const noexcept
   { return (addr_.v6() == ip6::Addr::link_unspecified) and (port() == 0); }
 
-  /**
-   * Operator to check for equality relationship
-   *
-   * @param other
-   *  The socket to check for equality relationship
-   *
-   * @return true if the specified socket is equal, false otherwise
-   */
   bool operator==(const Socket& other) const noexcept
-  {
-    return addr_ == other.addr_ and port_ == other.port_;
-  }
+  { return addr_ == other.addr_ and port_ == other.port_; }
 
-  /**
-   * Operator to check for inequality relationship
-   *
-   * @param other
-   *  The socket to check for inequality relationship
-   *
-   * @return true if the specified socket is not equal, false otherwise
-   */
   bool operator!=(const Socket& other) const noexcept
   { return not (*this == other); }
 
-  /**
-   * Operator to check for less-than relationship
-   *
-   * @param other
-   *  The socket to check for less-than relationship
-   *
-   * @return true if this socket is less-than the specified socket,
-   * false otherwise
-   */
   bool operator<(const Socket& other) const noexcept
   {
-    return (addr_ < other.addr_)
-        or ((addr_ == other.addr_) and (port_ < other.port_));
+    return addr_ < other.addr_
+        or (addr_ == other.addr_ and port_ < other.port_);
   }
 
-  /**
-   * Operator to check for greater-than relationship
-   *
-   * @param other
-   *  The socket to check for greater-than relationship
-   *
-   * @return true if this socket is greater-than the specified socket,
-   * false otherwise
-   */
   bool operator>(const Socket& other) const noexcept
-  { return not (*this < other); }
+  {
+    return addr_ > other.addr_
+        or (addr_ == other.addr_ and port_ > other.port_);
+  }
+
+  bool operator<=(const Socket& other) const noexcept
+  { return (*this < other or *this == other); }
+
+  bool operator>=(const Socket& other) const noexcept
+  { return (*this > other or *this == other); }
 
 private:
   Address   addr_;
