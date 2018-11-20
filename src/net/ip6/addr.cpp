@@ -43,8 +43,9 @@ inline uint16_t shortfromHexString(const std::string &str) noexcept
       val|=(nibbleFromByte(str[i])&0xF)<<shift;
       shift-=4;
   }
+  using namespace net;
   //handle the endianess
-  return net::ntohs(val);
+  return ntohs(val);
 }
 
 inline bool isLegalCharacter(char character)

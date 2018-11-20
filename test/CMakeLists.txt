@@ -280,6 +280,8 @@ if (APPLE)
     ${TEST}/kernel/unit/memory.cpp
     ${TEST}/kernel/unit/x86_paging.cpp
     ${TEST}/kernel/unit/unit_liveupdate.cpp
+    ${TEST}/util/unit/buddy_alloc_test.cpp
+    ${TEST}/util/unit/lstack/test_lstack_common.cpp
     )
 endif()
 
