@@ -17,11 +17,7 @@ class MuslConan(ConanFile):
         self.build_requires("binutils/2.31@%s/%s"%(self.user,self.channel))
 
     def imports(self):
-        triple = str(self.settings.arch)+"-elf"
-        tgt=triple+"-elf"
-        self.copy("*",dst="bin",src="bin")
-        self.copy("*.a",dst="lib",src="lib")
-        self.copy("*",dst=tgt,src=tgt)
+        self.copy("*",dst=".",src=".")
 
     def source(self):
         git = tools.Git(folder="musl")
@@ -48,6 +44,6 @@ class MuslConan(ConanFile):
         self.copy("*.o",dst="lib",src="lib")
 
     def deploy(self):
-        self.copy("*.h",dst="musl/include",src="include")
-        self.copy("*.a",dst="musl/lib",src="lib")
-        self.copy("*.o",dst="musl/lib",src="lib")
+        self.copy("*.h",dst="include/musl",src="include")
+        self.copy("*.a",dst="lib",src="lib")
+        self.copy("*.o",dst="lib",src="lib")

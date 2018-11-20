@@ -10,27 +10,34 @@ class BotanConan(ConanFile):
     url = "https://github.com/Tencent/rapidjson/"
 
     keep_imports=True
+
     def build_requirements(self):
-        self.build_requires("musl/v1.1.18@includeos/stable")
-        self.build_requires("binutils/2.31@includeos/stable")
-        self.build_requires("llvm/5.0@includeos/stable")## do we need this or just headers
+        self.build_requires("musl/v1.1.18@{}/{}".format(self.user,self.channel))
+        #self.build_requires("binutils/2.31@{}/{}".format(self.user,self.channel))
+        self.build_requires("libcxxabi/[>=5.0]@{}/{}".format(self.user,self.channel))
+        self.build_requires("libcxx/[>=5.0]@{}/{}".format(self.user,self.channel))
 
     def imports(self):
         self.copy("*",dst="target/include",src=self.deps_cpp_info["musl"].include_paths[0])
-        self.copy("*",dst="target/libcxx",src="libcxx")
+        self.copy("*",dst="target/libcxx/include",src=self.deps_cpp_info["libcxx"].include_paths[0]+"/c++/v1")
         self.copy("*",dst="target/libunwind",src="libunwind")
 
     def source(self):
         repo = tools.Git(folder="botan")
-        repo.clone("https://github.com/randombit/botan.git")
-        self.run("git fetch --all --tags --prune",cwd="botan")
-        self.run("git checkout tags/"+str(self.version)+" -b "+str(self.version),cwd="botan")
+        repo.clone("https://github.com/randombit/botan.git",branch=str(self.version))
 
     def build(self):
         #TODO at some point fix the msse3
         env_inc="  -I"+self.build_folder+"/target/libcxx/include -I"+self.build_folder+"/target/include -Ibuild/include/botan"
         cmd="./configure.py --os=includeos --disable-shared --cpu="+str(self.settings.arch)
-        flags="\"--target="+str(self.settings.arch)+"-pc-linux-gnu -msse3 -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -nostdlib -nostdinc++ "+env_inc+"\""
+        if self.settings.compiler == "gcc":
+            if self.settings.arch == "x86_64":
+                target="-m64"
+            if self.settings.arch == "x86":
+                target="-m32"
+        if self.settings.compiler == "clang":
+            target="--target="+str(self.settings.arch)+"-pc-linux-gnu"
+        flags="\" "+target+" -msse3 -D_GNU_SOURCE"+env_inc+"\""
         self.run(cmd+" --cc-abi-flags="+flags,cwd="botan")
         self.run("make -j12 libs",cwd="botan")
 

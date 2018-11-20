@@ -10,9 +10,10 @@ class ProtobufConan(ConanFile):
     settings="os","compiler","build_type","arch"
     name = "openssl"
     version = "1.1.1" ##if we remove this line we can specify it from outside this script!! ps ps
+
     options = {"threads":[True, False]}
-    tag="OpenSSL_"+version.replace('.','_')
-    default_options = {"threads": False}
+
+    default_options = {"threads": True}
     #options = {"shared":False}
     #branch = "version"+version
     license = 'Apache 2.0'
@@ -30,18 +31,17 @@ class ProtobufConan(ConanFile):
         self.copy("*",dst="target",src=".")
 
     def source(self):
+        tag="OpenSSL_"+self.version.replace('.','_')
         repo = tools.Git(folder="openssl")
-        repo.clone("https://github.com/openssl/openssl.git")
-        self.run("git fetch --all --tags --prune",cwd="openssl")
-        self.run("git checkout tags/"+str(self.tag)+" -b "+str(self.tag),cwd="openssl")
+        repo.clone("https://github.com/openssl/openssl.git",branch=tag)
 
     def build(self):
         #TODO handle arch target and optimalizations
         #TODO use our own includes!
+        #TODO TODO
         options=" no-shared no-ssl3 enable-ubsan "
         if (not self.options.threads):
             options+=" no-threads "
-        #if ()
         #self.run("./Configure --prefix="+self.package_folder+" --libdir=lib no-ssl3-method enable-ec_nistp_64_gcc_128 linux-x86_64 "+flags,cwd="openssl")
         self.run(("./config --prefix="+self.package_folder+" --openssldir="+self.package_folder+options),cwd="openssl" )
         self.run("make -j16 depend",cwd="openssl")
@@ -57,6 +57,6 @@ class ProtobufConan(ConanFile):
 
     def deploy(self):
         self.copy("*.h",dst="include/openssl",src="openssl/include/openssl")
-        self.copy("*.a",dst="lib",src="openssl")
+        self.copy("*.a",dst="lib",src="lib")
         #print("TODO")
         #self.copy("*",dst="include/rapidjson",src="include/rapidjson")

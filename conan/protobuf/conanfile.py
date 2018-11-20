@@ -12,7 +12,7 @@ class ProtobufConan(ConanFile):
     version = "3.5.1.1"
     options = {"threads":[True, False]}
 
-    default_options = {"threads": False}
+    default_options = {"threads": True}
     #options = {"shared":False}
     #branch = "version"+version
     license = 'Apache 2.0'
@@ -24,12 +24,12 @@ class ProtobufConan(ConanFile):
     def build_requirements(self):
         self.build_requires("binutils/2.31@includeos/stable")
         self.build_requires("musl/v1.1.18@includeos/stable")
-        self.build_requires("llvm/5.0@includeos/stable")## do we need this or just headers
+        self.build_requires("libcxx/[>=5.0]@{}/{}".format(self.user,self.channel))## do we need this or just headers
 
     def imports(self):
         self.copy("*",dst="target/include",src=self.deps_cpp_info["musl"].include_paths[0])
-        self.copy("*",dst="target/libcxx",src="libcxx")
-        self.copy("*",dst="target/libunwind",src="libunwind")
+        self.copy("*",dst="target/libcxx/include",src=self.deps_cpp_info["libcxx"].include_paths[0]+"/c++/v1")
+        #self.copy("*",dst="target/libunwind",src="libunwind")
 
 
     def source(self):
@@ -44,19 +44,19 @@ class ProtobufConan(ConanFile):
         env_inc=" -I"+self.build_folder+"/target/libcxx/include -I"+self.build_folder+"/target/include "
         cmake=CMake(self) #AutoToolsBuildEnvironment(self)
 
-        cflags="-msse3 -g -mfpmath=sse -D_LIBCPP_HAS_MUSL_LIBC"
+        cflags="-msse3 -g -mfpmath=sse"
         cxxflags=cflags
 
-        if (self.settings.compiler == "clang" ):
-            cflags+=" -nostdlibinc -nostdinc" # do this in better python by using a list
-        if (self.settings.compiler == "gcc" ):
-            cflags+=" -nostdinc "
+        #if (self.settings.compiler == "clang" ):
+        #    cflags+=" -nostdlibinc -nostdinc" # do this in better python by using a list
+        #if (self.settings.compiler == "gcc" ):
+        #    cflags+=" -nostdinc "
 
         cxxflags+=env_inc
         cflags+=env_inc
 
-        cmake.definitions["CMAKE_C_FLAGS"] = cflags
-        cmake.definitions["CMAKE_CXX_FLAGS"] = cxxflags
+        #cmake.definitions["CMAKE_C_FLAGS"] = cflags
+        #cmake.definitions["CMAKE_CXX_FLAGS"] = cxxflags
         cmake.definitions['CMAKE_USE_PTHREADS_INIT']=threads
         cmake.definitions['protobuf_VERBOSE']='ON'
         cmake.definitions['protobuf_BUILD_TESTS']='OFF'
