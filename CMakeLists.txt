@@ -8,7 +8,7 @@ include(CheckCXXCompilerFlag)
 
 check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
 if(NOT HAVE_FLAG_STD_CXX17)
-  message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
+ message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
 endif()
 
 
@@ -37,7 +37,9 @@ set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 message(STATUS "Target triple ${TRIPLE}")
 
-option(WITH_SOLO5 "Install with solo5 support" ON)
+if (NOT APPLE)
+  option(WITH_SOLO5 "Install with solo5 support" ON)
+endif()
 
 set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
 
@@ -153,11 +155,6 @@ else()
   set(CMAKE_C_FLAGS "${CAPABS} ${WARNS} -nostdlib  -nostdlibinc -fno-omit-frame-pointer -c")
 endif()
 
-
-if (WITH_SOLO5)
-  SET(CONAN_SOLO5 True)
-#  include(cmake/solo5.cmake)
-endif(WITH_SOLO5)
 
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")

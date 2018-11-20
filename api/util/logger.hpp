@@ -105,21 +105,21 @@ private:
     constexpr iterator& operator++() noexcept
     {
       //Expects(span_ && index_ >= 0);
-      index_ = (index_ < span_->length()-1) ? index_+1 : 0;
+      index_ = (index_ < span_->size()-1) ? index_+1 : 0;
       return *this;
     }
 
     constexpr iterator& operator--() noexcept
     {
-      //Expects(span_ && index_ < span_->length());
-      index_ = (index_ > 0) ? index_-1 : span_->length()-1;
+      //Expects(span_ && index_ < span_->size());
+      index_ = (index_ > 0) ? index_-1 : span_->size()-1;
       return *this;
     }
 
     constexpr iterator& operator+=(difference_type n) noexcept
     {
       //Expects(span_);
-      index_ = (index_ + n < span_->length()) ? index_ + n : std::abs((n - ((span_->length()) - index_)) % span_->length());
+      index_ = (index_ + n < span_->size()) ? index_ + n : std::abs((n - ((span_->size()) - index_)) % span_->size());
       return *this;
     }
 
@@ -136,4 +136,3 @@ private:
 }; // << class Logger
 
 #endif
-
