@@ -17,7 +17,7 @@ class VmbuildConan(ConanFile):
 
     def _configure_cmake(self):
         cmake = CMake(self)
-        cmake.configure(source_folder=self.source_folder+"/IncludeOS/vmbuild")
+        cmake.configure(source_folder=self.source_folder+"/includeos/vmbuild")
         return cmake
     def build(self):
         cmake=self._configure_cmake()

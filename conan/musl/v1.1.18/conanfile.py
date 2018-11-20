@@ -8,13 +8,13 @@ class MuslConan(ConanFile):
     name = "musl"
     version = "v1.1.18"
     license = 'MIT'
-
     description = 'musl - an implementation of the standard library for Linux-based systems'
     url = "https://www.musl-libc.org/"
+
     exports_sources=['../../../etc*musl*musl.patch', '../../../etc*musl*endian.patch','../../../api*syscalls.h','../../../etc*musl*syscall.h']
 
-    def build_requirements(self):
-        self.build_requires("binutils/2.31@%s/%s"%(self.user,self.channel))
+    def requirements(self):
+        self.requires("binutils/2.31@{}/{}".format(self.user,self.channel))
 
     def imports(self):
         self.copy("*",dst=".",src=".")
@@ -44,6 +44,6 @@ class MuslConan(ConanFile):
         self.copy("*.o",dst="lib",src="lib")
 
     def deploy(self):
-        self.copy("*.h",dst="include/musl",src="include")
+        self.copy("*.h",dst="include",src="include")
         self.copy("*.a",dst="lib",src="lib")
         self.copy("*.o",dst="lib",src="lib")

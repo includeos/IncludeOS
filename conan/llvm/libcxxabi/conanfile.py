@@ -1,30 +1,29 @@
-import os
-import shutil
-
 from conans import ConanFile,tools,CMake
 
 class LibCxxAbiConan(ConanFile):
     settings= "compiler","arch","build_type","os"
     name = "libcxxabi"
-    #version = "7.0" #todo remove..
-    #branch = "release_%s"% version.replace('.','')
     license = 'NCSA','MIT'
     description = 'The LLVM Compiler Infrastructure Unwinder'
     url = "https://llvm.org/"
-    options ={"shared":[True,False],"threads":[True,False]}
-    default_options = {"shared":False,"threads":True}
-    #exports_sources=['../../../api*posix*']
+    options ={
+        "shared":[True,False]
+    }
+    default_options = {
+        "shared":False
+    }
     no_copy_source=True
 
-    def build_requirements(self):
-        self.build_requires("libunwind/{}@{}/{}".format(self.version,self.user,self.channel))
+    def requirements(self):
+        self.requires("libunwind/{}@{}/{}".format(self.version,self.user,self.channel))
+
     def imports(self):
         self.copy("*.a",dst="lib",src="lib")
 
     def llvm_checkout(self,project):
-        branch = "release_%s"% self.version.replace('.','')
-        llvm_project=tools.Git(folder="project)
-        llvm_project.clone("https://github.com/llvm-mirror/%s.git"%project,branch=self.branch)
+        branch = "release_{}".format(self.version.replace('.',''))
+        llvm_project=tools.Git(folder=project)
+        llvm_project.clone("https://github.com/llvm-mirror/{}.git".format(project),branch=branch)
 
     def source(self):
         self.llvm_checkout("llvm")
@@ -44,6 +43,7 @@ class LibCxxAbiConan(ConanFile):
         cmake.definitions['LIBCXXABI_USE_LLVM_UNWINDER']=True
         cmake.definitions['LIBCXXABI_ENABLE_SHARED']=self.options.shared
         cmake.definitions['LIBCXXABI_ENABLE_STATIC']=True
+        #TODO consider that this locks us to llvm unwinder
         cmake.definitions['LIBCXXABI_ENABLE_STATIC_UNWINDER']=True
         cmake.definitions['LIBCXXABI_USE_LLVM_UNWINDER']=True
         cmake.definitions['LLVM_PATH']=llvm_source

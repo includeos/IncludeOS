@@ -9,13 +9,13 @@ class BinutilsConan(ConanFile):
     description = "The GNU Binutils are a collection of binary tools."
     license = "GNU GPL"
     def source(self):
-        zip_name="binutils-%s.tar.gz"%self.version
+        zip_name="binutils-{}.tar.gz".format(self.version)
         tools.download("https://ftp.gnu.org/gnu/binutils/%s" % zip_name,zip_name)
         tools.unzip(zip_name)
 
     def build(self):
         env_build = AutoToolsBuildEnvironment(self)
-        env_build.configure(configure_dir="binutils-%s"%self.version,target=str(self.settings.arch)+"-elf",args=["--disable-nls","--disable-werror"]) #what goes in here preferably
+        env_build.configure(configure_dir="binutils-{}".format(self.version),target=str(self.settings.arch)+"-elf",args=["--disable-nls","--disable-werror"]) #what goes in here preferably
         env_build.make()
         env_build.install()
 
