@@ -8,7 +8,7 @@
 #include <kernel/solo5_manager.hpp>
 
 extern "C" {
-#include <solo5.h>
+#include <solo5/solo5.h>
 }
 
 // sleep statistics

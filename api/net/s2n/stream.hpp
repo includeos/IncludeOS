@@ -28,26 +28,10 @@
 #define S2N_PRINT(fmt, ...) /* fmt */
 #endif
 
-typedef enum {
-  CLIENT_HELLO=0,
-  SERVER_HELLO,
-  SERVER_CERT,
-  SERVER_NEW_SESSION_TICKET,
-  SERVER_CERT_STATUS,
-  SERVER_KEY,
-  SERVER_CERT_REQ,
-  SERVER_HELLO_DONE,
-  CLIENT_CERT,
-  CLIENT_KEY,
-  CLIENT_CERT_VERIFY,
-  CLIENT_CHANGE_CIPHER_SPEC,
-  CLIENT_FINISHED,
-  SERVER_CHANGE_CIPHER_SPEC,
-  SERVER_FINISHED,
-  APPLICATION_DATA
-} message_type_t;
-extern "C" message_type_t s2n_conn_get_current_message_type(struct s2n_connection*);
+extern "C" int     s2n_connection_handshake_complete(struct s2n_connection*);
 extern "C" ssize_t s2n_conn_serialize_to(struct s2n_connection*, void* addr, size_t);
+extern "C" struct s2n_connection* s2n_conn_deserialize_from(struct s2n_config* config, const void* addr, const size_t);
+
 
 namespace s2n
 {
@@ -66,6 +50,7 @@ namespace s2n
 
   struct TLS_stream : public net::Stream
   {
+    using TLS_stream_ptr = std::unique_ptr<TLS_stream>;
     using Stream_ptr = net::Stream_ptr;
 
     TLS_stream(s2n_config*, Stream_ptr, bool outgoing = false);
@@ -126,6 +111,11 @@ namespace s2n
     }
 
     size_t serialize_to(void*, size_t) const override;
+    static TLS_stream_ptr deserialize_from(s2n_config*  config,
+                                           Stream_ptr   transport,
+                                           const bool   outgoing,
+                                           const void*  data,
+                                           const size_t size);
 
   private:
     void initialize(bool outgoing);
@@ -146,6 +136,7 @@ namespace s2n
     friend s2n_connection_recv s2n_recv;
     friend s2n_connection_send s2n_send;
   };
+  using TLS_stream_ptr = TLS_stream::TLS_stream_ptr;
 
   inline TLS_stream::TLS_stream(s2n_config* config, Stream_ptr t,
                                 const bool outgoing)
@@ -321,12 +312,56 @@ namespace s2n
 
   inline bool TLS_stream::handshake_completed() const noexcept
   {
-    return APPLICATION_DATA == s2n_conn_get_current_message_type(this->m_conn);
+    return s2n_connection_handshake_complete(this->m_conn);
   }
   
-  inline size_t TLS_stream::serialize_to(void* addr, size_t size) const {
-    ssize_t ret = s2n_conn_serialize_to(this->m_conn, addr, size);
-    if (ret < 0) throw std::runtime_error("Failed to serialize TLS connection");
-    return ret;
+  struct serialized_stream {
+    ssize_t conn_size  = 0;
+    char next[0];
+    
+    void* conn_addr() {
+      return &next[0];
+    }
+    
+    size_t size() const noexcept {
+      return sizeof(serialized_stream) + conn_size;
+    }
+  };
+  
+  inline size_t TLS_stream::serialize_to(void* addr, size_t size) const
+  {
+    assert(addr != nullptr);
+    assert(size > sizeof(serialized_stream));
+    // create header
+    auto* hdr = (serialized_stream*) addr;
+    *hdr = {};
+    // subtract size of header
+    size -= sizeof(serialized_stream);
+    // serialize connection and set size from result
+    hdr->conn_size = s2n_conn_serialize_to(this->m_conn, hdr->conn_addr(), size);
+    if (hdr->conn_size < 0) {
+        throw std::runtime_error("Failed to serialize TLS connection");
+    }
+    return hdr->size();
+  }
+  
+  inline TLS_stream_ptr
+  TLS_stream::deserialize_from(s2n_config*  config,
+                               Stream_ptr   transport,
+                               const bool   outgoing,
+                               const void*  data,
+                               const size_t size)
+  {
+    auto* hdr = (serialized_stream*) data;
+    if (size != hdr->size()) {
+        throw std::runtime_error("TLS serialization size mismatch");
+    }
+    // restore connection
+    auto* conn = s2n_conn_deserialize_from(config, hdr->conn_addr(), hdr->conn_size);
+    if (conn != nullptr) {
+      // restore stream
+      return std::make_unique<TLS_stream> (conn, std::move(transport), outgoing);
+    }
+    return nullptr;
   }
 } // s2n

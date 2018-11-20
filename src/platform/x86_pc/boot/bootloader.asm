@@ -87,7 +87,7 @@ protected_mode:
 	cli
 	;; Load global descriptor table register
 	lgdt [gdtr] ;;Bochs seems to allready have one
-	;; Set the 2n'd bit in cr0
+	;; Set the 1st bit in cr0
 	mov eax, cr0
 	or   al, 1
 	mov cr0, eax

@@ -1,27 +1,7 @@
 cmake_minimum_required(VERSION 3.1.0)
 
-project (includeos C CXX)
-
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
-include(CheckCXXCompilerFlag)
-
-check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
-if(NOT HAVE_FLAG_STD_CXX17)
- message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
-endif()
-
-
-if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
-  if (DEFINED ENV{INCLUDEOS_PREFIX})
-    set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
-  else()
-    set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/includeos)
-    message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
-  endif()
-endif()
-
-#TODO get this from profile ?
 # Target CPU Architecture
 if(DEFINED ENV{ARCH})
   set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
@@ -41,7 +21,31 @@ if (NOT APPLE)
   option(WITH_SOLO5 "Install with solo5 support" ON)
 endif()
 
+# Remember we was APPLE in earlier life
+if(APPLE)
+  set(BORNED_AS_AN_APPLE FRUITSALAD)
+endif()
+
 set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
+
+project (includeos C CXX)
+
+if(NOT BORNED_AS_AN_APPLE)
+include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
+  if(NOT HAVE_FLAG_STD_CXX17)
+    message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
+  endif()
+endif()
+
+if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
+ if (DEFINED ENV{INCLUDEOS_PREFIX})
+   set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
+ else()
+   set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/includeos)
+   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
+ endif()
+endif()
 
 set(INC ${CMAKE_INSTALL_PREFIX}/includeos/include)
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
@@ -326,7 +330,7 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifdown
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/ukvm-ifup.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/solo5-ifup.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
   DESTINATION scripts)
 

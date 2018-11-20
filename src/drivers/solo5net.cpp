@@ -22,7 +22,7 @@
 #include <cstring>
 
 extern "C" {
-#include <solo5.h>
+#include <solo5/solo5.h>
 }
 static const uint32_t NUM_BUFFERS = 1024;
 using namespace net;
