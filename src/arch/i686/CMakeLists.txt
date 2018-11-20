@@ -17,5 +17,5 @@ add_library(crti STATIC crti.asm)
 add_library(crtn STATIC crtn.asm)
 
 set_target_properties(crti crtn arch PROPERTIES LINKER_LANGUAGE CXX)
-install(TARGETS crti crtn arch DESTINATION includeos/${ARCH}/lib)
-install(FILES linker.ld DESTINATION includeos/${ARCH})
+install(TARGETS crti crtn arch DESTINATION ${ARCH}/lib)
+install(FILES linker.ld DESTINATION ${ARCH})

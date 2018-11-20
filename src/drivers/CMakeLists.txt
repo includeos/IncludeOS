@@ -55,7 +55,7 @@ install(TARGETS
     default_stdout
     vga_output
     vga_emergency
-  DESTINATION includeos/${ARCH}/drivers/stdout)
+  DESTINATION ${ARCH}/drivers/stdout)
 
 # installation of drivers (called just before plugins)
 install(TARGETS
@@ -67,11 +67,11 @@ install(TARGETS
     disk_logger disklog_reader
     # stdout drivers that are simple enough to remain here
     boot_logger timestamps
-  DESTINATION includeos/${ARCH}/drivers)
+  DESTINATION ${ARCH}/drivers)
 
 if(WITH_SOLO5)
   add_library(solo5blk STATIC solo5blk.cpp)
   add_library(solo5net STATIC solo5net.cpp)
-  
-  install(TARGETS solo5net solo5blk DESTINATION includeos/${ARCH}/drivers)
+
+  install(TARGETS solo5net solo5blk DESTINATION ${ARCH}/drivers)
 endif(WITH_SOLO5)

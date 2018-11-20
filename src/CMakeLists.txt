@@ -94,9 +94,10 @@ add_subdirectory(musl)
 # Installation
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
-install(TARGETS os DESTINATION includeos/${ARCH}/lib)
+install(TARGETS os DESTINATION ${ARCH}/lib)
 
-install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION includeos/memdisk
+#TODO build ?
+install(DIRECTORY ${INCLUDEOS_ROOT}/src/memdisk/ DESTINATION tools/memdisk
         FILES_MATCHING PATTERN "*.*")
 
-install(FILES service_name.cpp DESTINATION includeos/src)
+install(FILES service_name.cpp DESTINATION src)
