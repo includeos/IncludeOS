@@ -311,18 +311,10 @@ install(PROGRAMS
   DESTINATION scripts)
 
 if(NOT CONAN_EXPORTED)
-  foreach(MODULE ${CONAN_CMAKE_MODULE_PATH})
-    #message("INPUT ${MODULE}")
-    string(REGEX MATCH ".*conan[\\\/]data[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/]" MOD ${MODULE})
-    set(NAME ${CMAKE_MATCH_1})
-    set(VERSION ${CMAKE_MATCH_2})
-    set(USER ${CMAKE_MATCH_3})
-    set(CHANNEL ${CMAKE_MATCH_4})
-    install(CODE
-    "execute_process(COMMAND conan install ${NAME}/${VERSION}@${USER}/${CHANNEL} -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-  endforeach()
-  #install tools
+  install(CODE
+  "execute_process(COMMAND conan imports -if ${CMAKE_CURRENT_BINARY_DIR} -imf ${CMAKE_INSTALL_PREFIX}/${ARCH} ${CMAKE_CURRENT_SOURCE_DIR}/conan/includeos/conanfile.py)"
+  )
+  #install tools TODO THIS IS A [BUILD_REQUIRES] dependency for the service so should probably go there but for now its here
   install(CODE
   "execute_process(COMMAND conan install vmbuild/0.12.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX})"
   )
