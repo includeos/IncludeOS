@@ -65,8 +65,8 @@ void keyboard_emergency_handler()
 {
   render_vga_text();
   using namespace hw;
-  int key = KBM::get_kbd_vkey();
-  switch (key)
+  auto keystate = KBM::get_kbd_vkey();
+  switch (keystate.key)
   {
   case KBM::VK_UP:
       read_position = find_rev_nth(read_position-1, read_minpos, 1);

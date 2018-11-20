@@ -1,26 +1,7 @@
 cmake_minimum_required(VERSION 3.1.0)
 
-project (includeos C CXX)
-
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
-include(CheckCXXCompilerFlag)
-
-check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
-if(NOT HAVE_FLAG_STD_CXX17)
- message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
-endif()
-
-
-if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
- if (DEFINED ENV{INCLUDEOS_PREFIX})
-   set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
- else()
-   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
- endif()
-endif()
-
-#TODO get this from profile ?
 # Target CPU Architecture
 if(DEFINED ENV{ARCH})
   set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
@@ -36,11 +17,34 @@ set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 message(STATUS "Target triple ${TRIPLE}")
 
-if (NOT APPLE)
-  option(WITH_SOLO5 "Install with solo5 support" ON)
+# Remember we was APPLE in earlier life
+if(APPLE)
+  set(BORNED_AS_AN_APPLE FRUITSALAD)
 endif()
 
 set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
+
+project (includeos C CXX)
+
+if(NOT BORNED_AS_AN_APPLE)
+  option(WITH_SOLO5 "Install with solo5 support" ON)
+include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
+  if(NOT HAVE_FLAG_STD_CXX17)
+    message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
+  endif()
+else()
+  option(WITH_SOLO5 "Install with solo5 support" OFF)
+endif()
+
+if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
+ if (DEFINED ENV{INCLUDEOS_PREFIX})
+   set(CMAKE_INSTALL_PREFIX $ENV{INCLUDEOS_PREFIX} CACHE PATH "..." FORCE)
+ else()
+   set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/includeos)
+   message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
+ endif()
+endif()
 
 set(INC ${CMAKE_INSTALL_PREFIX}/includeos/include)
 set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
@@ -55,8 +59,6 @@ execute_process(COMMAND git describe --tags --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
-
-
 
 option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
 if(cpu_feat_vanilla)
@@ -85,7 +87,7 @@ set(CAPABS "${CAPABS} -g -fstack-protector-strong -D_STACK_GUARD_VALUE_=0x${STAC
 # Various global defines
 # * NO_DEBUG disables output from the debug macro
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
-set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -D__includeos__")
+set(CAPABS "${CAPABS} -DNO_DEBUG=1 -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -D__includeos__")
 set(WARNS "-Wall -Wextra") # -Werror
 
 # configure options
@@ -163,55 +165,54 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
                   "${CMAKE_BINARY_DIR}/conan.cmake")
 endif()
 
-include(${CMAKE_BINARY_DIR}/conan.cmake)
+#TODO fix this by using cmake's well defined buld type definitions
 set(CMAKE_BUILD_TYPE Release)
+
+#TODO separate dependencies if build is GCC from if build is clang in
+#conanfile.py and add requirement for the tools in the profile!!
+#TODO create a NaCL package ?
 
 #Sets the includeos default profile to clang-5.0
 if (NOT DEFINED CONAN_PROFILE)
   SET(CONAN_PROFILE clang-5.0)
 endif()
 
-#NB 5.0 is llvm version should be a variable from CMAKE or profile ?
-#TODO separate dependencies if build is GCC from if build is clang ?
-#TODO create a NaCL package ?
-#TODO create packages for tools in general ?
-#TODO move these where they are actually needed and not bloat the global space with the package
-SET(CONAN_DEPENDENCIES
-  llvm/5.0@includeos/stable
-  musl/v1.1.18@includeos/stable
-  binutils/2.31/includeos/stable
-
-  GSL/2.0.0@includeos/test
-  protobuf/3.5.1.1@includeos/test
-  rapidjson/1.1.0@includeos/test
-  botan/2.8.0@includeos/test
-  openssl/1.1.1@includeos/test
-  s2n/1.1.1@includeos/test
-
-  http-parser/2.8.1@includeos/test
-  uzlib/v2.1.1@includeos/test
-)
+set(CONAN_APPLE False)
+set(CONAN_SOLO5 False)
 if (APPLE)
-  SET(CONAN_DEPENDENCIES ${CONAN_DEPENDENCIES}
-    libgcc/1.0@includeos/stable
-    )
-else()
-  if (WITH_SOLO5)
-    SET(CONAN_DEPENDENCIES ${CONAN_DEPENDENCIES}
-      solo5/0.3.1@includeos/test
-      )
-  endif(WITH_SOLO5)
+  set(CONAN_APPLE True)
 endif(APPLE)
 
-#TODO find a better way to handle profiles ?
-conan_cmake_run(
-  REQUIRES ${CONAN_DEPENDENCIES}
-  PROFILE ${CONAN_PROFILE}
-  BASIC_SETUP
-  BUILD missing
-  GENERATORS
-  cmake
- )
+if (WITH_SOLO5)
+  set(CONAN_SOLO5 True)
+endif()
+
+#Are we executing cmake from conan or locally
+#if locally then pull the deps from conanfile.py
+#if buiding from conan expect the conanbuildinfo.cmake to already be present
+if(CONAN_EXPORTED) # in conan local cache
+  # standard conan installation, deps will be defined in conanfile.py
+  # and not necessary to call conan again, conan is already running
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+else() # in user space
+  include(${CMAKE_BINARY_DIR}/conan.cmake)
+
+  conan_check(VERSION 1.8.4 REQUIRED)
+  #TODO check if we can check if remote is added and give a warning if its
+  #missing ?
+  #conan_add_remote(NAME includeos INDEX 1
+  #          URL https://api.bintray.com/conan/bincrafters/public-conan)
+  #include(conan.cmake)
+  # Make sure to use conanfile.py to define dependencies, to stay consistent
+  conan_cmake_run(
+    CONANFILE conan/includeos/conanfile.py
+    PROFILE ${CONAN_PROFILE}
+		OPTIONS apple=${CONAN_APPLE} solo5=${CONAN_SOLO5}
+    BASIC_SETUP
+    BUILD missing
+  )
+endif()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nacl.cmake)
 
@@ -264,32 +265,7 @@ endif(tests)
 # Libraries
 #
 #TODO verify the asumption that all these work once all the proper includes are in order!!
-option(libmana "Build and install mana web application framework library" ON)
-if(libmana)
-  add_subdirectory(lib/mana)
-endif(libmana)
-
-option(libuplink "Build and install uplink" ON)
-if(libuplink)
-  set(libliveupdate ON) # dependent
-  add_subdirectory(lib/uplink)
-endif(libuplink)
-
-option(libmender "Build and install mender client" ON)
-if(libmender)
-  set(libliveupdate ON) # dependent
-  add_subdirectory(lib/mender)
-endif(libmender)
-
-option(libliveupdate "Build and install LiveUpdate" ON)
-if(libliveupdate)
-  add_subdirectory(lib/LiveUpdate)
-endif(libliveupdate)
-
-option(libmicroLB "Build and install microLB" ON)
-if(libmicroLB)
-  add_subdirectory(lib/microLB)
-endif()
+#TODO create conan package for mana,uplink,mender,liveupdate and lb
 
 #
 # Installation
@@ -297,18 +273,22 @@ endif()
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
 # Install cmake files
-install(FILES cmake/pre.service.cmake DESTINATION includeos)
-install(FILES cmake/post.service.cmake DESTINATION includeos)
-install(FILES cmake/linux.service.cmake DESTINATION includeos)
-install(FILES cmake/library.cmake DESTINATION includeos)
-install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION includeos RENAME settings.cmake) # cpu_feat_vanilla opt
+install(FILES cmake/pre.service.cmake DESTINATION cmake)
+install(FILES cmake/post.service.cmake DESTINATION cmake)
+install(FILES cmake/linux.service.cmake DESTINATION cmake)
+install(FILES cmake/library.cmake DESTINATION cmake)
+install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION cmake RENAME settings.cmake) # cpu_feat_vanilla opt
 
+# Install vmrunner
+install(DIRECTORY vmrunner DESTINATION tools)
+install(FILES vmrunner/${DEFAULT_VM} DESTINATION tools/vmrunner/ RENAME vm.default.json) # cpu_feat_vanilla opt
 
+# TODO ? move to "linux cmake"
 # Install toolchain
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION includeos)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/elf-toolchain.cmake DESTINATION cmake)
 
 # Install seed
-install(DIRECTORY seed/ DESTINATION includeos/seed)
+install(DIRECTORY seed/ DESTINATION seed)
 
 # Install executable scripts
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/etc/boot DESTINATION bin)
@@ -326,13 +306,27 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifup
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu-ifdown
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/qemu_cmd.sh
-  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/ukvm-ifup.sh
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/solo5-ifup.sh
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
-  DESTINATION includeos/scripts)
+  DESTINATION scripts)
 
-install(DIRECTORY api/ DESTINATION includeos/api)
+if(NOT CONAN_EXPORTED)
+  foreach(MODULE ${CONAN_CMAKE_MODULE_PATH})
+    #message("INPUT ${MODULE}")
+    string(REGEX MATCH ".*conan[\\\/]data[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/]" MOD ${MODULE})
+    set(NAME ${CMAKE_MATCH_1})
+    set(VERSION ${CMAKE_MATCH_2})
+    set(USER ${CMAKE_MATCH_3})
+    set(CHANNEL ${CMAKE_MATCH_4})
+    install(CODE
+    "execute_process(COMMAND conan install ${NAME}/${VERSION}@${USER}/${CHANNEL} -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
+  endforeach()
+  #install tools
+  install(CODE
+  "execute_process(COMMAND conan install vmbuild/0.12.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX})"
+  )
 
-set(CPACK_GENERATOR "TGZ;DEB")
-set(CPACK_PACKAGE_VERSION ${OS_VERSION})
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Ingve")
-include(CPack)
+endif(NOT CONAN_EXPORTED)
+
+install(DIRECTORY api/ DESTINATION include/os)

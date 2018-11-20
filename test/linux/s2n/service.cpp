@@ -20,13 +20,25 @@
 #include <net/inet>
 #include <net/interfaces>
 #include "serial.hpp"
+
+// transport streams used when testing
 #include "../fuzz/fuzzy_stream.hpp"
 static fuzzy::Stream* ossl_fuzz_ptr = nullptr;
 static fuzzy::Stream* s2n_fuzz_ptr = nullptr;
 
+inline fuzzy::Stream_ptr create_stream(fuzzy::Stream** dest)
+{
+  return std::make_unique<fuzzy::Stream> (net::Socket{}, net::Socket{},
+    [dest] (net::Stream::buffer_t buffer) -> void {
+      (*dest)->give_payload(std::move(buffer));
+    }, true);
+}
+
 static void do_test_serializing_tls(int index);
+static void do_test_send_data();
 static void do_test_completed();
 static bool are_all_streams_at_stage(int stage);
+static bool are_all_streams_atleast_stage(int stage);
 static void test_failure(const std::string& data) {
   printf("Received unexpected data: %s\n", data.c_str());
   printf("Length: %zu bytes\n", data.size());
@@ -67,13 +79,26 @@ struct Testing
   {
     this->test_stage ++;
     this->read_buffer.clear();
-    printf("[%d] Test stage: %d / %d\n", 
+    printf("[%d] Test stage: %d / %d\n",
            this->index, this->test_stage, NUM_STAGES);
-    if (are_all_streams_at_stage(4))
+    
+    if (are_all_streams_atleast_stage(1))
     {
+      // serialize and deserialize TLS after connected
       do_test_serializing_tls(this->index);
     }
-    else if (are_all_streams_at_stage(NUM_STAGES)) {
+    if (are_all_streams_at_stage(4))
+    {
+      printf("Now resending test data\n");
+      // perform some writes at stage 4
+      do_test_send_data();
+    }
+    if (are_all_streams_atleast_stage(1))
+    {
+      // serialize and deserialize TLS again
+      do_test_serializing_tls(this->index);
+    }
+    if (are_all_streams_at_stage(NUM_STAGES)) {
       do_test_completed();
     }
   }
@@ -91,19 +116,64 @@ bool are_all_streams_at_stage(int stage)
   return server_test.test_stage == stage &&
          client_test.test_stage == stage;
 }
+bool are_all_streams_atleast_stage(int stage)
+{
+  return server_test.test_stage >= stage &&
+         client_test.test_stage >= stage;
+}
 void do_test_serializing_tls(int index)
 {
+  char sbuffer[64*1024]; // 64KB server buffer
+  char cbuffer[64*1024]; // 64KB client buffer
   printf("Now serializing TLS state\n");
   // 1. serialize TLS, destroy streams
-  // TODO: implement me
+  const size_t sbytes =
+      server_test.stream->serialize_to(sbuffer, sizeof(sbuffer));
+  assert(sbytes > 0 && "Its only failed if it returned zero");
+  //printf("Server channel used %zu bytes\n", sbytes);
+  const size_t cbytes =
+      client_test.stream->serialize_to(cbuffer, sizeof(cbuffer));
+  assert(cbytes > 0 && "Its only failed if it returned zero");
+  //printf("Client channel used %zu bytes\n", cbytes);
+
   // 2. deserialize TLS, create new streams
-  // TODO: implement me
+  printf("Now deserializing TLS state\n");
+
+  // 2.1: create new transport streams
+  auto server_side = create_stream(&ossl_fuzz_ptr);
+  s2n_fuzz_ptr = server_side.get();
+  auto client_side = create_stream(&s2n_fuzz_ptr);
+  ossl_fuzz_ptr = client_side.get();
   
-  printf("Now restarting test\n");
+  // 2.2: deserialize TLS config/context
+  auto* config = s2n::serial_get_config();
+  
+  // 2.3: deserialize TLS streams
+  // 2.3.1:
+  auto dstream = s2n::TLS_stream::deserialize_from(
+                  config,
+                  std::move(server_side),
+                  false,
+                  sbuffer, sbytes
+                );
+  assert(dstream != nullptr && "Deserialization must return stream");
+  server_test.stream = dstream.release();
+
+  dstream = s2n::TLS_stream::deserialize_from(
+                  config,
+                  std::move(client_side),
+                  false,
+                  cbuffer, cbytes
+                );
+  assert(dstream != nullptr && "Deserialization must return stream");
+  client_test.stream = dstream.release();
+
   // 3. set all delegates again
   server_test.setup_callbacks();
   client_test.setup_callbacks();
-  // 4. send more data and wait for responses
+}
+void do_test_send_data()
+{
   server_test.send_data();
   client_test.send_data();
 }
@@ -130,22 +200,15 @@ void Service::start()
   assert(srv_key.is_valid());
   printf("*** Loaded certificates and keys\n");
 
-  // client stream
-  auto client_side = std::make_unique<fuzzy::Stream> (net::Socket{}, net::Socket{},
-    [] (net::Stream::buffer_t buffer) {
-      s2n_fuzz_ptr->give_payload(std::move(buffer));
-    }, true);
-  ossl_fuzz_ptr = client_side.get();
-
   // initialize S2N
   s2n::serial_test(ca_cert.to_string(), ca_key.to_string());
   
-  // server stream
-  auto server_side = std::make_unique<fuzzy::Stream> (net::Socket{}, net::Socket{},
-    [] (net::Stream::buffer_t buffer) {
-      ossl_fuzz_ptr->give_payload(std::move(buffer));
-    }, true);
+  // server fuzzy stream
+  auto server_side = create_stream(&ossl_fuzz_ptr);
   s2n_fuzz_ptr = server_side.get();
+  // client fuzzy stream
+  auto client_side = create_stream(&s2n_fuzz_ptr);
+  ossl_fuzz_ptr = client_side.get();
   
   server_test.index = 0;
   server_test.stream =

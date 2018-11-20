@@ -12,7 +12,7 @@ import subprocess
 import re
 
 INCLUDEOS_PREFIX = None
-default_prefix = "/usr/local"
+default_prefix = "/usr/local/includeos"
 
 # Locate IncludeOS installation
 if "INCLUDEOS_PREFIX" not in os.environ:
@@ -20,12 +20,12 @@ if "INCLUDEOS_PREFIX" not in os.environ:
 else:
     INCLUDEOS_PREFIX = os.environ['INCLUDEOS_PREFIX']
 
-if not os.path.isdir(INCLUDEOS_PREFIX + "/includeos"):
+if not os.path.isdir(INCLUDEOS_PREFIX):
     print "Couldn't find IncludeOS installation. If you installed to a non-default location (e.g. not " + default_loc + ") please set the environment variable INCLUDEOS_PREFIX to point to this location."
     sys.exit(0)
 
 # Location of vmrunner
-sys.path.append(INCLUDEOS_PREFIX + "/includeos")
+sys.path.append(INCLUDEOS_PREFIX)
 
 from vmrunner.prettify import color
 
@@ -68,7 +68,7 @@ parser.add_argument("-d", "--debug", dest="debug", action="store_true",
                     help="Start hypervisor in debug mode if available")
 
 parser.add_argument("--with-solo5", dest="solo5", action="store_true",
-                    help="Run includeOS on solo5 kernel with ukvm-bin as monitor")
+                    help="Run includeOS on solo5 kernel with hvt tender as monitor")
 
 parser.add_argument('vmargs', nargs='*', help="Arguments to pass on to the VM start / main")
 
@@ -158,12 +158,12 @@ if args.config:
 
 hyper_name = "qemu"
 if args.solo5:
-    hyper_name = "ukvm"
+    hyper_name = "solo5"
     os.environ['PLATFORM'] = "x86_solo5"
-    qkvm_bin = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/ukvm-bin"
+    solo5_hvt = INCLUDEOS_PREFIX + "/includeos/x86_64/lib/solo5-hvt"
 
-    subprocess.call(['chmod', '+x', qkvm_bin])
-    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/ukvm-ifup.sh" ])
+    subprocess.call(['chmod', '+x', solo5_hvt])
+    subprocess.call(['sudo', INCLUDEOS_PREFIX + "/includeos/scripts/solo5-ifup.sh" ])
 
 vm = vmrunner.vm(config = config, hyper_name = hyper_name)
 

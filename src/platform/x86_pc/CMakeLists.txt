@@ -37,10 +37,7 @@ add_custom_command(
 add_library(x86_pc STATIC ${X86_PC_OBJECTS} apic_boot.o)
 
 # disable sanitizers on kernel_start and others
-#set_source_files_properties(kernel_start.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
-#set_source_files_properties(serial1.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
-#set_source_files_properties(smbios.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 
 add_subdirectory(boot)
 set_target_properties(x86_pc PROPERTIES LINKER_LANGUAGE CXX)
-install(TARGETS x86_pc DESTINATION includeos/${ARCH}/platform/)
+install(TARGETS x86_pc DESTINATION ${ARCH}/platform/)

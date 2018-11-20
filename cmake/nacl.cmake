@@ -23,8 +23,8 @@ set(NACL_SRC
   )
 set(NACL_BIN ${CMAKE_CURRENT_BINARY_DIR}/nacl_bin/src/nacl_bin)
 
-install(PROGRAMS ${NACL_EXE} DESTINATION includeos/nacl)
-install(FILES ${NACL_SRC} DESTINATION includeos/nacl)
-install(DIRECTORY ${NACL_DIR}/subtranspilers DESTINATION includeos/nacl)
-install(DIRECTORY ${NACL_DIR}/type_processors DESTINATION includeos/nacl)
-install(DIRECTORY ${NACL_BIN}/ DESTINATION includeos/nacl)
+install(PROGRAMS ${NACL_EXE} DESTINATION tools/nacl)
+install(FILES ${NACL_SRC} DESTINATION tools/nacl)
+install(DIRECTORY ${NACL_DIR}/subtranspilers DESTINATION tools/nacl)
+install(DIRECTORY ${NACL_DIR}/type_processors DESTINATION tools/nacl)
+install(DIRECTORY ${NACL_BIN}/ DESTINATION tools/nacl)

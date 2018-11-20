@@ -51,4 +51,4 @@ install(TARGETS
     field_medic
     syslog
     madness
-  DESTINATION includeos/${ARCH}/plugins)
+  DESTINATION ${ARCH}/plugins)

@@ -6,9 +6,21 @@ add_definitions(-DARCH="${ARCH}")
 set(LIB_MANA ${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${LIB_MANA}/include)
 
+
+if(CONAN_EXPORTED) # in conan local cache
+  # standard conan installation, deps will be defined in conanfile.py
+  # and not necessary to call conan again, conan is already running
+  include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
+  conan_basic_setup()
+endif(CONAN_EXPORTED)
+#TODO get from conan the right include path
+include_directories()
+
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
+
+
 
 set(MANA_OBJ
   src/request.cpp

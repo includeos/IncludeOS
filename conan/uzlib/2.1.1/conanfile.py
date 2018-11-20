@@ -10,10 +10,8 @@ class UzlibConan(ConanFile):
     url = "http://www.ibsensoftware.com/"
 
     def source(self):
-        repo = tools.Git(folder="uzlib")
-        repo.clone("https://github.com/pfalcon/uzlib")
-        self.run("git fetch --all --tags --prune",cwd="uzlib")
-        self.run("git checkout tags/"+str(self.version)+" -b "+str(self.version),cwd="uzlib")
+        git = tools.Git(folder="uzlib")
+        git.clone("https://github.com/pfalcon/uzlib",branch=str(self.version))
     def build(self):
         #a symlink would also do the trick
         shutil.copy("uzlib/src/makefile.elf","uzlib/src/Makefile")

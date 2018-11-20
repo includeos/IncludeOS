@@ -26,7 +26,7 @@ namespace hw
 {
   class KBM {
   public:
-    typedef delegate<void(int)> on_virtualkey_func;
+    typedef delegate<void(int, bool)> on_virtualkey_func;
     typedef delegate<void(int, int, int)> on_mouse_func;
 
     enum {
@@ -43,6 +43,9 @@ namespace hw
       VK_8,
       VK_9,
       VK_0,
+
+      VK_Z,
+      VK_X,
 
       VK_BACK,
       VK_TAB,
@@ -67,10 +70,14 @@ namespace hw
       return kbm;
     }
 
+    struct keystate_t {
+      int  key;
+      bool pressed;
+    };
     static void init();
-    static uint8_t get_kbd_irq();
-    static int     get_kbd_vkey();
-    static uint8_t get_mouse_irq();
+    static uint8_t    get_kbd_irq();
+    static keystate_t get_kbd_vkey();
+    static uint8_t    get_mouse_irq();
 
   private:
     KBM();
@@ -78,7 +85,7 @@ namespace hw
     int  mouse_y;
     bool mouse_button[4];
 
-    static int transform_vk(uint8_t scancode);
+    static keystate_t transform_vk(uint8_t scancode);
     static int transform_ascii(int vk);
     void handle_mouse(uint8_t scancode);
 
