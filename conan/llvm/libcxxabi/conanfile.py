@@ -4,7 +4,7 @@ class LibCxxAbiConan(ConanFile):
     settings= "compiler","arch","build_type","os"
     name = "libcxxabi"
     license = 'NCSA','MIT'
-    description = 'The LLVM Compiler Infrastructure Unwinder'
+    description = 'The LLVM Compiler Infrastructure C++abi library'
     url = "https://llvm.org/"
     options ={
         "shared":[True,False]

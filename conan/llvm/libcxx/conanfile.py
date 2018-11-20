@@ -8,7 +8,7 @@ class LibCxxConan(ConanFile):
     name = "libcxx"
     generators="cmake"
     license = 'NCSA','MIT'
-    description = 'The LLVM Compiler Infrastructure Unwinder'
+    description = 'The LLVM Compiler Infrastructure C++ library'
     url = "https://llvm.org/"
     options ={
         "shared":[True,False],
