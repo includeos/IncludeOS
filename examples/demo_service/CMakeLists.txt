@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8.9)
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
   set(ENV{INCLUDEOS_PREFIX} /usr/local)
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/cmake/pre.service.cmake)
 project (demo_service)
 
 # Human-readable name of your service
@@ -44,4 +44,4 @@ set(PLUGINS
   )
 
 # include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/cmake/post.service.cmake)
