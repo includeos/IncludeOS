@@ -4,10 +4,10 @@
 
 # IncludeOS install location
 if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+  set(ENV{INCLUDEOS_PREFIX} /usr/local/includeos)
 endif()
 
-set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX}/includeos)
+set(INSTALL_LOC $ENV{INCLUDEOS_PREFIX})
 
 message(STATUS "Target triple ${TRIPLE}")
 
@@ -52,7 +52,7 @@ endif()
 # Various global defines
 # * OS_TERMINATE_ON_CONTRACT_VIOLATION provides classic assert-like output from Expects / Ensures
 # * _GNU_SOURCE enables POSIX-extensions in newlib, such as strnlen. ("everything newlib has", ref. cdefs.h)
-set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -D__includeos__ -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
+set(CAPABS "${CAPABS} -fstack-protector-strong -DOS_TERMINATE_ON_CONTRACT_VIOLATION -D_GNU_SOURCE -D__includeos__ -DSERVICE=\"\\\"${BINARY}\\\"\" -DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\"")
 set(WARNS  "-Wall -Wextra") #-pedantic
 
 # Compiler optimization
@@ -258,7 +258,7 @@ endforeach()
 
 # includes
 include_directories(${LOCAL_INCLUDES})
-include_directories(${INSTALL_LOC}/${ARCH}/include/libcxx)
+include_directories(${INSTALL_LOC}/${ARCH}/include/c++/v1)
 include_directories(${INSTALL_LOC}/${ARCH}/include/musl)
 include_directories(${INSTALL_LOC}/${ARCH}/include/libunwind)
 if ("${PLATFORM}" STREQUAL "x86_solo5")
@@ -266,7 +266,7 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
 endif()
 
 include_directories(${INSTALL_LOC}/${ARCH}/include)
-include_directories(${INSTALL_LOC}/api)
+include_directories(${INSTALL_LOC}/include/os)
 include_directories(${INSTALL_LOC}/include)
 include_directories($ENV{INCLUDEOS_PREFIX}/include)
 
@@ -337,9 +337,18 @@ if(${ARCH} STREQUAL "x86_64")
   include_directories(${INSTALL_LOC}/${ARCH}/include)
 endif()
 
-add_library(libosdeps STATIC IMPORTED)
-set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libosdeps.a)
+#add_library(libosdeps STATIC IMPORTED)
+#set_target_properties(libosdeps PROPERTIES LINKER_LANGUAGE CXX)
+#set_target_properties(libosdeps PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libosdeps.a)
+
+add_library(http_parser STATIC IMPORTED)
+set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(http_parser PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/http_parser.o)
+
+add_library(uzlib STATIC IMPORTED)
+set_target_properties(uzlib PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(uzlib PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libtinf.a)
+
 
 add_library(musl_syscalls STATIC IMPORTED)
 set_target_properties(musl_syscalls PROPERTIES LINKER_LANGUAGE CXX)
@@ -498,7 +507,9 @@ target_link_libraries(service
   libos
   libbotan
   ${OPENSSL_LIBS}
-  libosdeps
+  http_parser
+  uzlib
+  #libosdeps
 
   libplatform
   libarch
