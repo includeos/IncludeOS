@@ -59,6 +59,7 @@ namespace microLB
   }
   void Balancer::incoming(net::Stream_ptr conn)
   {
+      assert(conn != nullptr);
       queue.emplace_back(std::move(conn));
       LBOUT("Queueing connection (q=%lu)\n", queue.size());
       // IMPORTANT: try to handle queue, in case its ready
@@ -71,6 +72,7 @@ namespace microLB
     while (nodes.pool_size() > 0 && queue.empty() == false)
     {
       auto& client = queue.front();
+      assert(client.conn != nullptr);
       if (client.conn->is_connected()) {
         // NOTE: explicitly want to copy buffers
         net::Stream_ptr rval =
@@ -125,14 +127,15 @@ namespace microLB
   Waiting::Waiting(net::Stream_ptr incoming)
     : conn(std::move(incoming)), total(0)
   {
+    assert(this->conn != nullptr);
     // queue incoming data from clients not yet
     // assigned to a node
-    conn->on_read(READQ_PER_CLIENT,
+    this->conn->on_read(READQ_PER_CLIENT,
     [this] (auto buf) {
       // prevent buffer bloat attack
       this->total += buf->size();
       if (this->total > MAX_READQ_PER_NODE) {
-        conn->close();
+        this->conn->close();
       }
       else {
         LBOUT("*** Queued %lu bytes\n", buf->size());
