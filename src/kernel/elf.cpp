@@ -243,7 +243,7 @@ bool Elf::verify_symbols()
   return get_parser().verify_symbols();
 }
 
-void print_backtrace2(void(*stdout_function)(const char*, size_t))
+void os::print_backtrace(void(*stdout_function)(const char*, size_t)) noexcept
 {
   char _symbol_buffer[8192];
   char _btrace_buffer[8192];
@@ -308,9 +308,9 @@ void print_backtrace2(void(*stdout_function)(const char*, size_t))
                                 PRINT_TRACE(14, ra);
   }}}}}}}}}}}}}}}
 }
-void print_backtrace()
+void os::print_backtrace() noexcept
 {
-  print_backtrace2([] (const char* text, size_t length) {
+  print_backtrace([] (const char* text, size_t length) {
     write(1, text, length);
   });
 }
@@ -479,7 +479,7 @@ void elf_protect_symbol_areas()
   // create the ELF symbols & strings area
   OS::memory_map().assign_range(
       {(uintptr_t) src, (uintptr_t) src + size-1, "Symbols & strings"});
-  
+
   INFO2("* Protecting syms %p to %p (size %#zx)", src, &src[size], size);
   os::mem::protect((uintptr_t) src, size, os::mem::Access::read);
 }

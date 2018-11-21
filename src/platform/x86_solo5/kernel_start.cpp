@@ -53,7 +53,7 @@ void kernel_start()
   OS::post_start();
 
   // Starting event loop from here allows us to profile OS::start
-  OS::event_loop();
+  os::event_loop();
 }
 
 extern "C"

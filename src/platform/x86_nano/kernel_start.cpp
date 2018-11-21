@@ -17,6 +17,7 @@
 
 #include <kprint>
 #include <info>
+#include <kernel.hpp>
 #include <kernel/os.hpp>
 #include <kernel/service.hpp>
 #include <boot/multiboot.h>
@@ -61,7 +62,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
 
   // Initialize stdout handlers
   if (os_default_stdout)
-    OS::add_stdout(&OS::default_stdout);
+    os::add_stdout(&kernel::default_stdout);
 
   OS::start(magic, addr);
 

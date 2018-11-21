@@ -26,44 +26,25 @@ size_t brk_bytes_used();
 size_t mmap_bytes_used();
 size_t mmap_allocation_end();
 
-static constexpr size_t default_max_mem = 2_GiB;
-
-uintptr_t OS::heap_begin_ = 0;
-uintptr_t OS::heap_max_   = default_max_mem;
-uintptr_t OS::memory_end_ = default_max_mem;
 
 
-size_t OS::heap_usage() noexcept
+size_t kernel::heap_usage() noexcept
 {
   return brk_bytes_used() + mmap_bytes_used();
 }
 
-size_t OS::heap_avail() noexcept
+size_t kernel::heap_avail() noexcept
 {
   return (heap_max() - heap_begin()) - heap_usage();
 }
 
-void OS::heap_trim() noexcept
-{
-  //malloc_trim(0);
-}
-
-uintptr_t OS::heap_max() noexcept
-{
-  return OS::heap_max_;
-}
-
-uintptr_t OS::heap_begin() noexcept
-{
-  return heap_begin_;
-}
-uintptr_t OS::heap_end() noexcept
+uintptr_t kernel::heap_end() noexcept
 {
   return mmap_allocation_end();
 }
 
-size_t OS::total_memuse() noexcept {
-  return heap_usage() + OS::liveupdate_phys_size(OS::heap_max()) + heap_begin_;
+size_t os::total_memuse() noexcept {
+  return kernel::heap_usage() + kernel::liveupdate_phys_size(kernel::heap_max()) + kernel::heap_begin();
 }
 
 constexpr size_t heap_alignment = 4096;
@@ -88,10 +69,10 @@ namespace os {
 void OS::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept {
   // NOTE: Initialize the heap before exceptions
   // cache-align heap, because its not aligned
-  memory_end_ = memory_end;
-  heap_max_   = memory_end-1;
-  heap_begin_ = util::bits::roundto<heap_alignment>(free_mem_begin);
-  auto brk_end  = __init_brk(heap_begin_, __brk_max);
+  kernel::state().memory_end = memory_end;
+  kernel::state().heap_max   = memory_end - 1;
+  kernel::state().heap_begin = util::bits::roundto<heap_alignment>(free_mem_begin);
+  auto brk_end  = __init_brk(kernel::heap_begin(), __brk_max);
 
   __init_mmap(brk_end, memory_end);
   __heap_ready = true;

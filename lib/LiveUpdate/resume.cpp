@@ -21,6 +21,7 @@
 #include "liveupdate.hpp"
 
 #include <kernel/os.hpp>
+#include <kernel.hpp>
 #include "storage.hpp"
 #include "serialize_tcp.hpp"
 #include <cstdio>
@@ -34,7 +35,7 @@ static bool resume_begin(storage_header&, std::string, LiveUpdate::resume_func);
 
 bool LiveUpdate::is_resumable()
 {
-  return is_resumable(OS::liveupdate_storage_area());
+  return is_resumable(kernel::liveupdate_storage_area());
 }
 bool LiveUpdate::is_resumable(const void* location)
 {
@@ -53,19 +54,19 @@ static bool resume_helper(void* location, std::string key, LiveUpdate::resume_fu
 }
 bool LiveUpdate::resume(std::string key, resume_func func)
 {
-  void* location = OS::liveupdate_storage_area();
+  void* location = kernel::liveupdate_storage_area();
   /// memory sanity check
-  if (OS::heap_end() >= (uintptr_t) location) {
+  if (kernel::heap_end() >= (uintptr_t) location) {
     fprintf(stderr,
         "WARNING: LiveUpdate storage area inside heap (margin: %ld)\n",
-		     (long int) (OS::heap_end() - (uintptr_t) location));
+		     (long int) (kernel::heap_end() - (uintptr_t) location));
     throw std::runtime_error("LiveUpdate::resume(): Storage area inside heap");
   }
   return resume_helper(location, std::move(key), func);
 }
 bool LiveUpdate::partition_exists(const std::string& key, const void* area) noexcept
 {
-  if (area == nullptr) area = OS::liveupdate_storage_area();
+  if (area == nullptr) area = kernel::liveupdate_storage_area();
 
   if (!LiveUpdate::is_resumable(area))
     return false;

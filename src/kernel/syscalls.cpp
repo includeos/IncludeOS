@@ -50,7 +50,7 @@ void abort_message(const char* format, ...)
   va_start(list, format);
   vsnprintf(abort_buf, sizeof(abort_buf), format, list);
   va_end(list);
-  panic(abort_buf);
+  os::panic(abort_buf);
 }
 
 void _exit(int status) {
@@ -91,8 +91,8 @@ void cpu_enable_panicking()
   __sync_fetch_and_add(&kernel::state().panics, 1);
 }
 
-static OS::on_panic_func panic_handler = nullptr;
-void OS::on_panic(on_panic_func func)
+static os::on_panic_func panic_handler = nullptr;
+void os::on_panic(on_panic_func func)
 {
   panic_handler = std::move(func);
 }
@@ -106,6 +106,9 @@ namespace net {
   __attribute__((weak)) void print_last_packet() {}
 }
 
+extern kernel::ctor_t __plugin_ctors_start;
+extern kernel::ctor_t __plugin_ctors_end;
+
 /**
  * panic:
  * Display reason for kernel panic
@@ -115,7 +118,7 @@ namespace net {
  * Print EOT character to stderr, to signal outside that PANIC output completed
  * If the handler returns, go to (permanent) sleep
 **/
-void panic(const char* why)
+void os::panic(const char* why) noexcept
 {
   cpu_enable_panicking();
   if (kernel::panics() > 4) double_fault(why);
@@ -140,18 +143,16 @@ void panic(const char* why)
 
   // heap info
   typedef unsigned long ulong;
-  uintptr_t heap_total = OS::heap_max() - OS::heap_begin();
+  uintptr_t heap_total = kernel::heap_max() - kernel::heap_begin();
   fprintf(stderr, "Heap is at: %p / %p  (diff=%lu)\n",
-         (void*) OS::heap_end(), (void*) OS::heap_max(), (ulong) (OS::heap_max() - OS::heap_end()));
+         (void*) kernel::heap_end(), (void*) kernel::heap_max(), (ulong) (kernel::heap_max() - kernel::heap_end()));
   fprintf(stderr, "Heap area: %lu / %lu Kb (allocated %zu kb)\n", // (%.2f%%)\n",
-         (ulong) (OS::heap_end() - OS::heap_begin()) / 1024,
-          (ulong) heap_total / 1024, OS::heap_usage() / 1024); //, total * 100.0);
+         (ulong) (kernel::heap_end() - kernel::heap_begin()) / 1024,
+          (ulong) heap_total / 1024, kernel::heap_usage() / 1024); //, total * 100.0);
   fprintf(stderr, "Total memory use: ~%zu%% (%zu of %zu b)\n",
-          util::bits::upercent(OS::total_memuse(), OS::memory_end()), OS::total_memuse(), OS::memory_end());
+          util::bits::upercent(os::total_memuse(), kernel::memory_end()), os::total_memuse(), kernel::memory_end());
 
   // print plugins
-  extern kernel::ctor_t __plugin_ctors_start;
-  extern kernel::ctor_t __plugin_ctors_end;
   fprintf(stderr, "*** Found %u plugin constructors:\n",
           uint32_t(&__plugin_ctors_end - &__plugin_ctors_start));
   for (kernel::ctor_t* ptr = &__plugin_ctors_start; ptr < &__plugin_ctors_end; ptr++)
@@ -166,7 +167,7 @@ void panic(const char* why)
 
   // finally, backtrace
   fprintf(stderr, "\n*** Backtrace:");
-  print_backtrace2([] (const char* text, size_t len) {
+  print_backtrace([] (const char* text, size_t len) {
     fprintf(stderr, "%.*s", (int) len, text);
   });
 
@@ -191,6 +192,8 @@ void double_fault(const char* why)
   panic_epilogue(why);
 }
 
+
+
 void panic_epilogue(const char* why)
 {
   // Call custom on panic handler (if present).
@@ -211,15 +214,15 @@ void panic_epilogue(const char* why)
 #warning "panic() handler not implemented for selected arch"
 #endif
 
-  switch (OS::panic_action())
+  switch (os::panic_action())
   {
-  case OS::Panic_action::halt:
+  case os::Panic_action::halt:
     while (1) os::halt();
-  case OS::Panic_action::shutdown:
+  case os::Panic_action::shutdown:
     extern __attribute__((noreturn)) void __arch_poweroff();
     __arch_poweroff();
     [[fallthrough]]; // needed for g++ bug
-  case OS::Panic_action::reboot:
+  case os::Panic_action::reboot:
     os::reboot();
   }
 

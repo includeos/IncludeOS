@@ -22,6 +22,9 @@
 
 namespace kernel {
 
+  using namespace util;
+  constexpr size_t default_max_mem = 2_GiB;
+
   struct State {
     bool running               = true;
     bool boot_sequence_passed  = false;
@@ -30,8 +33,13 @@ namespace kernel {
     bool timestamps            = false;
     bool timestamps_ready      = false;
     bool is_live_updated       = false;
-    int  panics                = 0;
+    uintptr_t liveupdate_loc   = 0;
+    uintptr_t heap_begin       = 0;
+    uintptr_t heap_max         = default_max_mem;;
+    uintptr_t memory_end       = default_max_mem;;
     const char* cmdline        = nullptr;
+    int  panics                = 0;
+    os::Panic_action panic_action {};
     util::KHz cpu_khz {-1};
   };
 
@@ -65,6 +73,10 @@ namespace kernel {
     return state().is_live_updated;
   }
 
+  inline const char* cmdline() {
+    return state().cmdline;
+  };
+
   inline bool is_panicking() {
     return state().panics > 0;
   };
@@ -73,10 +85,9 @@ namespace kernel {
     return state().panics;
   }
 
-  inline const char* cmdline() {
-    return state().cmdline;
-  };
-
+  inline os::Panic_action panic_action() {
+    return state().panic_action;
+  }
 
   using ctor_t = void (*)();
   inline static void run_ctors(ctor_t* begin, ctor_t* end)
@@ -88,8 +99,63 @@ namespace kernel {
     return state().cpu_khz;
   }
 
+  inline
+
+  void default_stdout(const char*, size_t);
+
+  /** Resume stuff from a soft reset **/
+  bool is_softreset_magic(uint32_t value);
+  uintptr_t softreset_memory_end(intptr_t boot_addr);
+  void resume_softreset(intptr_t boot_addr);
+
+  /** Returns the amount of memory set aside for LiveUpdate */
+  size_t liveupdate_phys_size(size_t) noexcept;
+
+  /** Computes the physical location of LiveUpdate storage area */
+  uintptr_t liveupdate_phys_loc(size_t) noexcept;
+
+  inline void* liveupdate_storage_area() noexcept {
+    return (void*)state().liveupdate_loc;
+  }
+
+  void setup_liveupdate(uintptr_t phys = 0);
+
+
   bool heap_ready();
   void init_heap(os::Machine::Memory& mem);
+
+  /** The end of usable memory **/
+  inline uintptr_t memory_end() noexcept {
+    return state().memory_end;
+  }
+
+  /** Total used dynamic memory, in bytes */
+  size_t heap_usage() noexcept;
+
+  /** Total free heap, as far as the OS knows, in bytes */
+  size_t heap_avail() noexcept;
+
+
+  /** First address of the heap **/
+  inline uintptr_t heap_begin() noexcept {
+    return state().heap_begin;
+  }
+
+  /** The maximum last address of the dynamic memory area (heap) */
+  inline uintptr_t heap_max() noexcept {
+    return state().heap_max;
+  }
+
+
+  void init_heap(uintptr_t phys_begin, size_t size) noexcept;
+
+  /** Last used address of the heap **/
+  uintptr_t heap_end() noexcept;
+
+
+
+
+
 }
 
 #endif

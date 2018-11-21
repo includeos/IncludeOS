@@ -40,9 +40,9 @@ static int sys_prctl(int code, uintptr_t ptr)
     x86::CPU::set_fs((void*)ptr);
     break;
   case ARCH_GET_GS:
-    panic("<arch_prctl> GET_GS called!\n");
+    os::panic("<arch_prctl> GET_GS called!\n");
   case ARCH_GET_FS:
-    panic("<arch_prctl> GET_FS called!\n");
+    os::panic("<arch_prctl> GET_FS called!\n");
   }
   return -EINVAL;
 }

@@ -1,5 +1,6 @@
 
 #include <os.hpp>
+#include <arch.hpp>
 #include <hw/cpu.hpp>
 
 inline uint64_t os::cycles_since_boot() noexcept

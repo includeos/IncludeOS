@@ -41,7 +41,7 @@ ssize_t Syslog_print_socket::sendto(const void* buf, size_t len, int /*fl*/,
                                     const struct sockaddr* /*addr*/,
                                     socklen_t /*addrlen*/)
 {
-  OS::print(reinterpret_cast<const char*>(buf), len);
+  os::print(reinterpret_cast<const char*>(buf), len);
   return len;
 }
 

@@ -42,7 +42,7 @@ extern char _TEXT_START_;
 extern char _LOAD_START_;
 extern char _ELF_END_;
 
-uintptr_t OS::liveupdate_loc_   = 0;
+//uintptr_t OS::liveupdate_loc_   = 0;
 
 kernel::State __kern_state;
 
@@ -52,14 +52,12 @@ kernel::State& kernel::state() noexcept {
 
 util::KHz os::cpu_freq() {
   return kernel::cpu_freq();
-} 
+}
 
-__attribute__((weak))
-OS::Panic_action OS::panic_action_ = OS::Panic_action::halt;
 const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // stdout redirection
-using Print_vec = Fixed_vector<OS::print_func, 8>;
+using Print_vec = Fixed_vector<os::print_func, 8>;
 static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
 
 // Plugins
@@ -71,26 +69,22 @@ struct Plugin_desc {
 };
 static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
 
-void* OS::liveupdate_storage_area() noexcept
-{
-  return (void*) OS::liveupdate_loc_;
-}
 
 __attribute__((weak))
-size_t OS::liveupdate_phys_size(size_t /*phys_max*/) noexcept {
+size_t kernel::liveupdate_phys_size(size_t /*phys_max*/) noexcept {
   return 4096;
 };
 
 __attribute__((weak))
-size_t OS::liveupdate_phys_loc(size_t phys_max) noexcept {
+size_t kernel::liveupdate_phys_loc(size_t phys_max) noexcept {
   return phys_max - liveupdate_phys_size(phys_max);
 };
 
 __attribute__((weak))
-void OS::setup_liveupdate(uintptr_t)
+void kernel::setup_liveupdate(uintptr_t)
 {
   // without LiveUpdate: storage location is at the last page?
-  OS::liveupdate_loc_ = OS::heap_max() & ~(uintptr_t) 0xFFF;
+  kernel::state().liveupdate_loc = kernel::heap_max() & ~(uintptr_t) 0xFFF;
 }
 
 const char* os::cmdline_args() noexcept {
@@ -108,11 +102,11 @@ void OS::register_plugin(Plugin delg, const char* name){
 }
 
 extern void __arch_reboot();
-void os::reboot()
+void os::reboot() noexcept
 {
   __arch_reboot();
 }
-void os::shutdown()
+void os::shutdown() noexcept
 {
   kernel::state().running = false;
 }
@@ -123,7 +117,7 @@ void OS::post_start()
   kernel::state().timestamps_ready = true;
 
   // LiveUpdate needs some initialization, although only if present
-  OS::setup_liveupdate();
+  kernel::setup_liveupdate();
 
   // Initialize the system log if plugin is present.
   // Dependent on the liveupdate location being set
@@ -171,7 +165,7 @@ void OS::post_start()
   Service::start();
 }
 
-void OS::add_stdout(OS::print_func func)
+void os::add_stdout(os::print_func func)
 {
   os_print_handlers.push_back(func);
 }
@@ -187,10 +181,10 @@ bool contains(const char* str, size_t len, char c)
   return false;
 }
 
-void OS::print(const char* str, const size_t len)
+void os::print(const char* str, const size_t len)
 {
   if (UNLIKELY(! kernel::libc_initialized())) {
-    OS::default_stdout(str, len);
+    kernel::default_stdout(str, len);
     return;
   }
 
@@ -219,7 +213,7 @@ void OS::print(const char* str, const size_t len)
   }
 }
 
-void OS::enable_timestamps(const bool enabled)
+void os::print_timestamps(const bool enabled)
 {
   kernel::state().timestamps = enabled;
 }

@@ -87,9 +87,6 @@ namespace os {
     detail::Machine* impl;
   };
 
-  // Get the Machine instance for the current context.
-  Machine& machine();
-
 } // namespace os
 
 #include "detail/machine.hpp"

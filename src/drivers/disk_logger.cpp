@@ -79,5 +79,5 @@ static void enable_disk_logger()
   logbuffer = fs::construct_buffer(DISKLOG_SIZE);
   position = sizeof(log_structure);
   header.max_length = logbuffer->capacity();
-  OS::add_stdout(disk_logger_write);
+  os::add_stdout(disk_logger_write);
 }

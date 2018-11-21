@@ -20,5 +20,5 @@
 __attribute__((constructor))
 static void enable_timestamps()
 {
-  OS::enable_timestamps(true);
+  os::print_timestamps(true);
 }

@@ -317,7 +317,7 @@ void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
 {
   __sync_fetch_and_add(&exception_counter, 1);
   if (exception_counter > 1) {
-    panic("Double CPU exception");
+    os::panic("Double CPU exception");
   }
 
   SMP::global_lock();
@@ -339,7 +339,7 @@ void __cpu_exception(uintptr_t* regs, int error, uint32_t code)
   // normal CPU exception
   if (error != 0x8) {
     // call panic, which will decide what to do next
-    panic(buffer);
+    os::panic(buffer);
   }
   else {
     // handle double faults differently

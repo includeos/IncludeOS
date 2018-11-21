@@ -1,4 +1,5 @@
 #include <os>
+#include <kernel.hpp>
 #include <kprint>
 #include "../x86_pc/idt.hpp"
 
@@ -24,7 +25,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   assert(boot_magic == MULTIBOOT_BOOTLOADER_MAGIC);
   OS::multiboot(boot_addr);
-  assert(OS::memory_end() != 0);
+  assert(kernel::memory_end() != 0);
 
   platform_init();
 }
@@ -37,10 +38,10 @@ timespec __arch_wall_clock() noexcept {
   return {0, 0};
 }
 // not supported!
-void os::block() {}
+void os::block() noexcept {}
 
 // default to serial
-void OS::default_stdout(const char* str, const size_t len)
+void kernel::default_stdout(const char* str, const size_t len)
 {
   __serial_print(str, len);
 }
@@ -55,7 +56,7 @@ void SMP::global_unlock() noexcept {}
 int SMP::cpu_id() noexcept { return 0; }
 int SMP::cpu_count() noexcept { return 1; }
 
-void os::halt() {
+void os::halt() noexcept {
   asm("hlt");
 }
 

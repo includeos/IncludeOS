@@ -61,7 +61,7 @@ uint64_t os::nanos_asleep() noexcept {
 }
 
 __attribute__((noinline))
-void os::halt()
+void os::halt() noexcept
 {
   uint64_t cycles_before = os::Arch::cpu_cycles();
   asm volatile("hlt");
@@ -76,7 +76,7 @@ void os::halt()
   PER_CPU(os_per_cpu).cycles_hlt += os::Arch::cpu_cycles() - cycles_before;
 }
 
-void OS::default_stdout(const char* str, const size_t len)
+void kernel::default_stdout(const char* str, const size_t len)
 {
   __serial_print(str, len);
 }
@@ -88,7 +88,7 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   // Initialize stdout handlers
   if(os_default_stdout) {
-    OS::add_stdout(&OS::default_stdout);
+    os::add_stdout(&kernel::default_stdout);
   }
 
   extern kernel::ctor_t __stdout_ctors_start;
@@ -113,18 +113,18 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
     OS::multiboot(boot_addr);
   } else {
 
-    if (is_softreset_magic(boot_magic) && boot_addr != 0)
-        OS::resume_softreset(boot_addr);
+    if (kernel::is_softreset_magic(boot_magic) && boot_addr != 0)
+      kernel::resume_softreset(boot_addr);
 
     OS::legacy_boot();
   }
-  assert(OS::memory_end() != 0);
+  assert(kernel::memory_end() != 0);
 
-  MYINFO("Total memory detected as %s ", util::Byte_r(OS::memory_end_).to_string().c_str());
+  MYINFO("Total memory detected as %s ", util::Byte_r(kernel::memory_end()).to_string().c_str());
 
   // Give the rest of physical memory to heap
-  OS::heap_max_ = OS::memory_end_ - 1;
-  assert(heap_begin() != 0x0 and OS::heap_max_ != 0x0);
+  kernel::state().heap_max = kernel::memory_end() - 1;
+  assert(kernel::heap_begin() != 0x0 and kernel::heap_max() != 0x0);
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
@@ -145,11 +145,11 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   // heap (physical) area
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-  uintptr_t heap_range_max_ = std::min(span_max, OS::heap_max_);
+  uintptr_t heap_range_max_ = std::min(span_max, kernel::heap_max());
 
-  INFO2("* Assigning heap 0x%zx -> 0x%zx", heap_begin_, heap_range_max_);
-  memmap.assign_range({heap_begin_, heap_range_max_,
-        "Dynamic memory", heap_usage });
+  INFO2("* Assigning heap 0x%zx -> 0x%zx", kernel::heap_begin(), heap_range_max_);
+  memmap.assign_range({kernel::heap_begin(), heap_range_max_,
+        "Dynamic memory", kernel::heap_usage });
 
   MYINFO("Virtual memory map");
   for (const auto& entry : memmap)
@@ -164,7 +164,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
   RTC::init();
 }
 
-void OS::event_loop()
+extern void __arch_poweroff();
+
+void os::event_loop()
 {
   Events::get(0).process_events();
   do {
@@ -176,7 +178,6 @@ void OS::event_loop()
   Service::stop();
 
   MYINFO("Powering off");
-  extern void __arch_poweroff();
   __arch_poweroff();
 }
 
@@ -185,14 +186,14 @@ void OS::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = x86::CMOS::meminfo();
-  if (OS::memory_end_ == os::Arch::max_canonical_addr)
+  if (kernel::memory_end() == os::Arch::max_canonical_addr)
   {
     //uintptr_t low_memory_size = mem.base.total * 1024;
     INFO2("* Low memory: %i Kib", mem.base.total);
 
     uintptr_t high_memory_size = mem.extended.total * 1024;
     INFO2("* High memory (from cmos): %i Kib", mem.extended.total);
-    OS::memory_end_ = 0x100000 + high_memory_size - 1;
+    kernel::state().memory_end = 0x100000 + high_memory_size - 1;
   }
 
   auto& memmap = memory_map();

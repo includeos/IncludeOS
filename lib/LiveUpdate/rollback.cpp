@@ -63,7 +63,7 @@ void LiveUpdate::set_rollback_blob(const void* buffer, size_t len) noexcept
 {
   rollback_data = (const char*) buffer;
   rollback_len  = len;
-  OS::on_panic(LiveUpdate::rollback_now);
+  os::on_panic(LiveUpdate::rollback_now);
 }
 bool LiveUpdate::has_rollback_blob() noexcept
 {
@@ -79,5 +79,5 @@ void softreset_service_handler(const void* opaque, size_t length)
   memcpy(data, opaque, length);
   liu::rollback_data = data;
   liu::rollback_len  = length;
-  OS::on_panic(liu::LiveUpdate::rollback_now);
+  os::on_panic(liu::LiveUpdate::rollback_now);
 }

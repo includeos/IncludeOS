@@ -35,7 +35,7 @@ extern "C" uint32_t os_get_highest_blocking_level() {
  * A quick and dirty implementation of blocking calls, which simply halts,
  * then calls  the event loop, then returns.
  **/
-void os::block()
+void os::block() noexcept
 {
   // Initialize stats
   if (not blocking_level) {

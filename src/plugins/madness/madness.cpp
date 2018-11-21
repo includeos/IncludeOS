@@ -16,6 +16,7 @@
 
 #include <os>
 #include <timers>
+#include <kernel.hpp>
 
 #include "madness.hpp"
 #include "doge.hpp"
@@ -47,10 +48,10 @@ namespace madness {
         if (not do_allocs)
           return;
 
-        if (OS::heap_avail() < alloc_min)
+        if (kernel::heap_avail() < alloc_min)
           return;
 
-        auto  sz  = std::max(OS::heap_avail() / 4, alloc_min);
+        auto  sz  = std::max(kernel::heap_avail() / 4, alloc_min);
         auto* ptr = malloc(sz);
 
         if (ptr == nullptr and sz > alloc_min) {
@@ -61,7 +62,7 @@ namespace madness {
         if (ptr == nullptr) {
           INFO("Madness", "Allocation of %s failed. Available heap: %s",
                util::Byte_r(sz).to_string().c_str(),
-               util::Byte_r(OS::heap_avail()).to_string().c_str());
+               util::Byte_r(kernel::heap_avail()).to_string().c_str());
           INFO("Madness", "Cleaning up in %isec \n", dealloc_delay);
           auto* first = allocations.front();
           allocations.erase(allocations.begin());
@@ -85,7 +86,7 @@ namespace madness {
         bytes_held += sz;
         INFO("Madness", "Allocated %s @ %p. Available heap: %s",
              util::Byte_r(sz).to_string().c_str(), ptr,
-             util::Byte_r(OS::heap_avail()).to_string().c_str());
+             util::Byte_r(kernel::heap_avail()).to_string().c_str());
 
         allocations.push_back((char*)ptr);
 
@@ -98,7 +99,7 @@ namespace madness {
         static int i = 0;
         INFO("Madness", "Runtime: %is. Available heap: %s. Occupied by me: %s",
              i++ * alloc_freq.count(),
-             util::Byte_r(OS::heap_avail()).to_string().c_str(),
+             util::Byte_r(kernel::heap_avail()).to_string().c_str(),
              util::Byte_r(bytes_held).to_string().c_str());
       });
   }

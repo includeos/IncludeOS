@@ -63,18 +63,18 @@ uint64_t os::nanos_asleep() noexcept {
   return os_cycles_hlt;
 }
 
-void OS::default_stdout(const char* str, const size_t len)
+void kernel::default_stdout(const char* str, const size_t len)
 {
   solo5_console_write(str, len);
 }
 
 void OS::start(const char* cmdline)
 {
-  OS::cmdline = cmdline;
+  kernel::state().cmdline = cmdline;
 
   // Initialize stdout handlers
   if(os_default_stdout) {
-    OS::add_stdout(&OS::default_stdout);
+    os::add_stdout(&kernel::default_stdout);
   }
 
   PROFILE("Global stdout constructors");
@@ -106,17 +106,17 @@ void OS::start(const char* cmdline)
   memmap.assign_range({(uintptr_t)&_LOAD_START_, (uintptr_t)&_end,
         "ELF"});
 
-  Expects(heap_begin() and heap_max_);
+  Expects(kernel::heap_begin() and kernel::heap_max());
   // @note for security we don't want to expose this
-  memmap.assign_range({(uintptr_t)&_end + 1, heap_begin() - 1,
+  memmap.assign_range({(uintptr_t)&_end + 1, kernel::heap_begin() - 1,
         "Pre-heap"});
 
   uintptr_t span_max = std::numeric_limits<std::ptrdiff_t>::max();
-  uintptr_t heap_range_max_ = std::min(span_max, heap_max_);
+  uintptr_t heap_range_max_ = std::min(span_max, kernel::heap_max());
 
   MYINFO("Assigning heap");
-  memmap.assign_range({heap_begin(), heap_range_max_,
-        "Dynamic memory", heap_usage });
+  memmap.assign_range({kernel::heap_begin(), heap_range_max_,
+        "Dynamic memory", kernel::heap_usage });
 
   MYINFO("Printing memory map");
   for (const auto &i : memmap)
@@ -180,7 +180,7 @@ static inline void event_loop_inner()
   }
 }
 
-void OS::event_loop()
+void os::event_loop()
 {
   while (kernel::is_running())
   {
@@ -202,7 +202,7 @@ void OS::event_loop()
 }
 
 __attribute__((noinline))
-void os::halt() {
+void os::halt() noexcept {
   auto cycles_before = solo5_clock_monotonic();
 #if defined(ARCH_x86)
   asm volatile("hlt");
@@ -213,7 +213,7 @@ void os::halt() {
   os_cycles_hlt += solo5_clock_monotonic() - cycles_before;
 }
 
-void os::block()
+void os::block() noexcept
 {
   static uint32_t blocking_level = 0;
   blocking_level += 1;

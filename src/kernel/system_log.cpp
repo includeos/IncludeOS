@@ -3,7 +3,7 @@
 
 __attribute__((weak))
 void SystemLog::write(const char* buffer, size_t length) {
-  OS::print(buffer, length);
+  os::print(buffer, length);
 }
 
 __attribute__((weak))

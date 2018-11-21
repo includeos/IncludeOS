@@ -35,64 +35,12 @@
 class OS {
 public:
 
-  using print_func  = delegate<void(const char*, size_t)>;
-  using Plugin      = delegate<void()>;
-  using Span_mods   = gsl::span<multiboot_module_t>;
-
-
-
-  /** Timestamp for when OS was booted */
-  static RTC::timestamp_t boot_timestamp() noexcept;
-
-  /** Uptime in whole seconds. */
-  static RTC::timestamp_t uptime() noexcept;
-
-
-
-
-  /**
-   * Sometimes the OS just has a bad day and crashes
-   * The on_panic handler will be called directly after a panic,
-   * or any condition which will deliberately cause the OS to become
-   * unresponsive. After the handler is called, the OS goes to sleep.
-   * This handler can thus be used to, for example, automatically
-   * have the OS restart on any crash.
-   **/
-  enum class Panic_action {
-    halt, reboot, shutdown
-  };
-
-  static Panic_action panic_action()
-  { return panic_action_; }
-
-
-  static void set_panic_action(Panic_action action)
-  { panic_action_ = action; }
-
-  typedef void (*on_panic_func) (const char*);
-  static void on_panic(on_panic_func);
-
-  /**
-   *  Write data to standard out callbacks
-   */
-  static void print(const char* ptr, const size_t len);
-
-  /**
-   *  Enable or disable timestamps automatically
-   *  prepended to all OS::print(...) calls
-   */
-  static void enable_timestamps(bool enabled);
-
-  /**
-   *  Add handler for standard output.
-   */
-  static void add_stdout(print_func func);
 
   /**
    *  The default output method preferred by each platform
    *  Directly writes the string to its output mechanism
    **/
-  static void default_stdout(const char*, size_t);
+  //static void default_stdout(const char*, size_t);
 
   /** Memory page helpers */
   static constexpr uint32_t page_size() noexcept {
@@ -105,44 +53,7 @@ public:
     return page << PAGE_SHIFT;
   }
 
-  /** Total used dynamic memory, in bytes */
-  static size_t heap_usage() noexcept;
-
-  /** Total free heap, as far as the OS knows, in bytes */
-  static size_t heap_avail() noexcept;
-
-  /** Attempt to trim the heap end, reducing the size */
-  static void heap_trim() noexcept;
-
-  /** First address of the heap **/
-  static uintptr_t heap_begin() noexcept;
-
-  /** Last used address of the heap **/
-  static uintptr_t heap_end() noexcept;
-
-  /** The maximum last address of the dynamic memory area (heap) */
-  static uintptr_t heap_max() noexcept;
-
-  /** The end of usable memory **/
-  static uintptr_t memory_end() noexcept {
-    return memory_end_;
-  }
-
-  /** Total used memory, including reserved areas */
-  static size_t total_memuse() noexcept;
-
-  static void init_heap(uintptr_t phys_begin, size_t size) noexcept;
-
-
-  /** Returns the virtual memory location set aside for storing system and program state **/
-  static void* liveupdate_storage_area() noexcept;
-
-  /** Returns the amount of memory set aside for LiveUpdate */
-  static size_t liveupdate_phys_size(size_t) noexcept;
-
-  /** Computes the physical location of LiveUpdate storage area */
-  static uintptr_t liveupdate_phys_loc(size_t) noexcept;
-
+  //static void init_heap(uintptr_t phys_begin, size_t size) noexcept;
 
   /**
    * A map of memory ranges. The key is the starting address in numeric form.
@@ -153,9 +64,12 @@ public:
     return memmap;
   }
 
+  using Span_mods = gsl::span<multiboot_module_t>;
+
   /** Get "kernel modules", provided by multiboot */
   static Span_mods modules();
 
+  using Plugin = delegate<void()>;
   /**
    * Register a custom initialization function. The provided delegate is
    * guaranteed to be called after global constructors and device initialization
@@ -167,10 +81,6 @@ public:
   static void register_plugin(Plugin delg, const char* name);
 
 
-
-  /** The main event loop. Check interrupts, timers etc., and do callbacks. */
-  static void event_loop();
-
   /** Initialize platform, devices etc. */
   static void start(uint32_t boot_magic, uint32_t boot_addr);
 
@@ -179,13 +89,6 @@ public:
   /** Initialize common subsystems, call Service::start */
   static void post_start();
 
-  static void install_cpu_frequency(util::MHz);
-
-  /** Resume stuff from a soft reset **/
-  static bool is_softreset_magic(uint32_t value);
-  static uintptr_t softreset_memory_end(intptr_t boot_addr);
-  static void resume_softreset(intptr_t boot_addr);
-  static void setup_liveupdate(uintptr_t phys = 0);
 
 
 private:
@@ -198,31 +101,7 @@ private:
   static void legacy_boot();
 
   static constexpr int PAGE_SHIFT = 12;
-  //static bool power_;
-  //static bool boot_sequence_passed_;
-  //static bool m_is_live_updated;
-  //static bool m_block_drivers_ready;
-  //static bool m_timestamps;
-  //static bool m_timestamps_ready;
-  //static util::KHz cpu_khz_;
-
-  static uintptr_t liveupdate_loc_;
-  static const char* arch_str_;
-  static uintptr_t heap_begin_;
-  static uintptr_t heap_max_;
-  static uintptr_t memory_end_;
   static const uintptr_t elf_binary_size_;
-  static const char* cmdline;
-  static Panic_action panic_action_;
-
-  // Prohibit copy and move operations
-  OS(OS&)  = delete;
-  OS(OS&&) = delete;
-  OS& operator=(OS&)  = delete;
-  OS& operator=(OS&&)  = delete;
-  ~OS() = delete;
-  // Prohibit construction
-  OS() = delete;
 
   friend void __platform_init();
 }; //< OS

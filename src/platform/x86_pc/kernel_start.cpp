@@ -78,7 +78,7 @@ static void global_ctor_test(){
 
 
 static os::Machine* __machine = nullptr;
-os::Machine& os::machine() {
+os::Machine& os::machine() noexcept {
   Expects(__machine != nullptr);
   return *__machine;
 }
@@ -106,7 +106,7 @@ int kernel_main(int, char * *, char * *) {
   OS::post_start();
 
   // Starting event loop from here allows us to profile OS::start
-  OS::event_loop();
+  os::event_loop();
   return 0;
 }
 
@@ -136,15 +136,15 @@ void kernel_start(uint32_t magic, uint32_t addr)
   // Determine where free memory starts
   extern char _end;
   uintptr_t free_mem_begin = reinterpret_cast<uintptr_t>(&_end);
-  uintptr_t memory_end     = OS::memory_end();
+  uintptr_t memory_end     = kernel::memory_end();
 
   if (magic == MULTIBOOT_BOOTLOADER_MAGIC) {
     free_mem_begin = _multiboot_free_begin(addr);
     memory_end     = _multiboot_memory_end(addr);
   }
-  else if (OS::is_softreset_magic(magic))
+  else if (kernel::is_softreset_magic(magic))
   {
-    memory_end = OS::softreset_memory_end(addr);
+    memory_end = kernel::softreset_memory_end(addr);
   }
   PRATTLE("* Free mem begin: 0x%zx, memory end: 0x%zx \n",
           free_mem_begin, memory_end);
