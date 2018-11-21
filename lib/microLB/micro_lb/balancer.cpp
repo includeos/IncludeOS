@@ -27,19 +27,10 @@ using namespace std::chrono;
 // It uses tons of delegates that capture "this"
 namespace microLB
 {
-  Balancer::Balancer(netstack_t& incoming, netstack_t& outgoing)
-    : nodes(), netin(incoming), netout(outgoing), signal({this, &Balancer::handle_queue})
+  Balancer::Balancer()
+    : nodes {}
   {
     this->init_liveupdate();
-  }
-  void Balancer::open_tcp(const uint16_t client_port)
-  {
-    this->netin.tcp().listen(client_port,
-    [this] (auto conn) {
-      if (conn != nullptr) {
-        this->incoming(std::make_unique<net::tcp::Stream> (conn));
-      }
-    });
   }
   Balancer::~Balancer()
   {
@@ -53,17 +44,9 @@ namespace microLB
   int Balancer::connect_throws() const {
     return this->throw_counter;
   }
-  netstack_t& Balancer::get_client_network() noexcept
+  pool_signal_t Balancer::get_pool_signal()
   {
-    return this->netin;
-  }
-  netstack_t& Balancer::get_nodes_network() noexcept
-  {
-    return this->netout;
-  }
-  const pool_signal_t& Balancer::get_pool_signal() const
-  {
-    return this->signal;
+    return {this, &Balancer::handle_queue};
   }
   void Balancer::incoming(net::Stream_ptr conn)
   {
@@ -269,9 +252,10 @@ namespace microLB
     free_sessions.clear();
   }
 
-  Node::Node(netstack_t& stk, net::Socket a, const pool_signal_t& sig)
-    : stack(stk), addr(a), pool_signal(sig)
+  Node::Node(node_connect_function_t func, pool_signal_t sig, int idx)
+    : m_connect(func), m_pool_signal(sig), m_idx(idx)
   {
+    assert(this->m_connect != nullptr);
     // periodically connect to node and determine if active
     // however, perform first check immediately
     this->active_timer = Timers::periodic(0s, ACTIVE_CHECK_PERIOD,
@@ -282,27 +266,10 @@ namespace microLB
   void Node::perform_active_check()
   {
     try {
-      this->stack.tcp().connect(this->addr,
-      [this] (auto conn) {
-        this->active = (conn != nullptr);
-        // if we are connected, its alive
-        if (conn != nullptr)
-        {
-          // hopefully put this to good use
-          pool.push_back(std::make_unique<net::tcp::Stream>(conn));
-          // stop any active check
-          this->stop_active_check();
-          // signal change in pool
-          this->pool_signal();
-        }
-        else {
-          // if no periodic check is being done right now,
-          // start doing it (after initial delay)
-          this->restart_active_check();
-        }
-      });
+      this->connect();
     } catch (std::exception& e) {
-      // do nothing, because might just be eph.ports used up
+      // do nothing, because might be eph.ports used up
+      LBOUT("Node %d exception %s\n", this->m_idx, e.what());
     }
   }
   void Node::restart_active_check()
@@ -318,6 +285,7 @@ namespace microLB
         this->perform_active_check();
       });
     }
+    LBOUT("Node %d restarting active check (and is inactive)\n", this->m_idx);
   }
   void Node::stop_active_check()
   {
@@ -328,50 +296,38 @@ namespace microLB
       Timers::stop(this->active_timer);
       this->active_timer = Timers::UNUSED_ID;
     }
+    LBOUT("Node %d stopping active check (and is active)\n", this->m_idx);
   }
   void Node::connect()
   {
-    auto outgoing = this->stack.tcp().connect(this->addr);
     // connecting to node atm.
     this->connecting++;
-    // retry timer when connect takes too long
-    int fail_timer = Timers::oneshot(CONNECT_TIMEOUT,
-    [this, outgoing] (int)
-    {
-      // close connection
-      outgoing->abort();
-      // no longer connecting
-      assert(this->connecting > 0);
-      this->connecting --;
-      // restart active check
-      this->restart_active_check();
-      // signal change in pool
-      this->pool_signal();
-    });
-    // add connection to pool on success, otherwise.. retry
-    outgoing->on_connect(
-    [this, fail_timer] (auto conn)
-    {
-      // stop retry timer
-      Timers::stop(fail_timer);
-      // no longer connecting
-      assert(this->connecting > 0);
-      this->connecting --;
-      // connection may be null, apparently
-      if (conn != nullptr && conn->is_connected())
+    this->m_connect(CONNECT_TIMEOUT,
+      [this] (net::Stream_ptr stream)
       {
-        LBOUT("Connected to %s  (%ld total)\n",
-                addr.to_string().c_str(), pool.size());
-        this->pool.push_back(std::make_unique<net::tcp::Stream>(conn));
-        // stop any active check
-        this->stop_active_check();
-      }
-      else {
-        this->restart_active_check();
-      }
-      // signal change in pool
-      this->pool_signal();
-    });
+        // no longer connecting
+        assert(this->connecting > 0);
+        this->connecting --;
+        // success
+        if (stream != nullptr)
+        {
+          assert(stream->is_connected());
+          LBOUT("Node %d connected to %s (%ld total)\n",
+                this->m_idx, stream->remote().to_string().c_str(), pool.size());
+          this->pool.push_back(std::move(stream));
+          // stop any active check
+          this->stop_active_check();
+          // signal change in pool
+          this->m_pool_signal();
+        }
+        else // failure
+        {
+          LBOUT("Node %d failed to connect out (%ld total)\n",
+                this->m_idx, pool.size());
+          // restart active check
+          this->restart_active_check();
+        }
+      });
   }
   net::Stream_ptr Node::get_connection()
   {

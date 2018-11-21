@@ -8,6 +8,7 @@ if (${ARCH} STREQUAL "x86_64")
   add_library(microlb STATIC
       micro_lb/autoconf.cpp
       micro_lb/balancer.cpp
+      micro_lb/defaults.cpp
       micro_lb/openssl.cpp
       micro_lb/s2n.cpp
       micro_lb/serialize.cpp

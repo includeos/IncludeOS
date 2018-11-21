@@ -6,8 +6,9 @@
 
 namespace microLB
 {
-  void Balancer::open_ossl(
-        uint16_t    port,
+  void Balancer::open_for_ossl(
+        netstack_t&        interface,
+        const uint16_t     client_port,
         const std::string& tls_cert,
         const std::string& tls_key)
   {
@@ -21,7 +22,7 @@ namespace microLB
 
     this->tls_context = openssl::create_server(tls_cert, tls_key);
 
-    netin.tcp().listen(port,
+    interface.tcp().listen(client_port,
       [this] (net::tcp::Connection_ptr conn) {
         if (conn != nullptr)
         {

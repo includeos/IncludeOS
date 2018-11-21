@@ -32,22 +32,21 @@ namespace microLB
     auto& nodes = obj["nodes"];
     const int NODE_NET = nodes["iface"].GetInt();
     auto& netout = net::Interfaces::get(NODE_NET);
-    netout.tcp().set_MSL(15s);
 
     // create closed load balancer
-    auto* balancer = new Balancer(netinc, netout);
+    auto* balancer = new Balancer();
 
     if (clients.HasMember("certificate"))
     {
       assert(clients.HasMember("key") && "TLS-enabled microLB must also have key");
       // open for load balancing over TLS
-      balancer->open_s2n(CLIENT_PORT,
+      balancer->open_for_ossl(netinc, CLIENT_PORT,
             clients["certificate"].GetString(),
             clients["key"].GetString());
     }
     else {
       // open for TCP connections
-      balancer->open_tcp(CLIENT_PORT);
+      balancer->open_for_tcp(netinc, CLIENT_PORT);
     }
 
     auto& nodelist = nodes["list"];
@@ -65,7 +64,9 @@ namespace microLB
       net::Socket socket{
         net::ip4::Addr{addr[0].GetString()}, (uint16_t) port
       };
-      balancer->nodes.add_node(netout, socket, balancer->get_pool_signal());
+      balancer->nodes.add_node(
+            Balancer::connect_with_tcp(netout, socket),
+            balancer->get_pool_signal());
     }
 
     return balancer;

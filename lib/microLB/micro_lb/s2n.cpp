@@ -42,7 +42,8 @@ namespace microLB
     return config;
   }
   
-  void Balancer::open_s2n(
+  void Balancer::open_for_s2n(
+        netstack_t&        interface,
         const uint16_t     client_port,
         const std::string& cert_path,
         const std::string& key_path)
@@ -61,7 +62,7 @@ namespace microLB
         s2n_config_free((s2n_config*) this->tls_context);
       };
 
-    netin.tcp().listen(client_port,
+    interface.tcp().listen(client_port,
       [this] (net::tcp::Connection_ptr conn) {
         if (conn != nullptr)
         {

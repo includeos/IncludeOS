@@ -9,6 +9,11 @@ namespace microLB
   typedef std::vector<net::tcp::buffer_t> queue_vector_t;
   typedef delegate<void()> pool_signal_t;
 
+  typedef delegate<void()> client_listen_function_t;
+  typedef delegate<void(net::Stream_ptr)> node_connect_result_t;
+  typedef std::chrono::milliseconds timeout_t;
+  typedef delegate<void(timeout_t, node_connect_result_t)> node_connect_function_t;
+
   struct Waiting {
     Waiting(net::Stream_ptr);
     Waiting(liu::Restore&, net::TCP&);
@@ -35,27 +40,26 @@ namespace microLB
   };
 
   struct Node {
-    Node(netstack_t& stk, net::Socket a, const pool_signal_t&);
+    Node(node_connect_function_t, pool_signal_t, int idx);
 
-    auto address() const noexcept { return this->addr; }
     int  connection_attempts() const noexcept { return this->connecting; }
     int  pool_size() const noexcept { return pool.size(); }
     bool is_active() const noexcept { return active; };
 
-    void    restart_active_check();
-    void    perform_active_check();
-    void    stop_active_check();
-    void    connect();
+    void restart_active_check();
+    void perform_active_check();
+    void stop_active_check();
+    void connect();
     net::Stream_ptr get_connection();
 
-    netstack_t& stack;
   private:
-    net::Socket addr;
-    const pool_signal_t& pool_signal;
+    node_connect_function_t m_connect = nullptr;
+    pool_signal_t           m_pool_signal = nullptr;
     std::vector<net::Stream_ptr> pool;
-    bool        active = false;
-    int         active_timer = -1;
-    signed int  connecting = 0;
+    [[maybe_unused]] int m_idx;
+    bool  active = false;
+    int   active_timer = -1;
+    int   connecting = 0;
   };
 
   struct Nodes {
@@ -99,13 +103,17 @@ namespace microLB
   };
 
   struct Balancer {
-    Balancer(netstack_t& in, netstack_t& out);
+    Balancer();
     ~Balancer();
     static Balancer* from_config();
 
-    void open_tcp(uint16_t client_port);
-    void open_s2n(uint16_t port, const std::string& cert, const std::string& key);
-    void open_ossl(uint16_t port, const std::string& cert, const std::string& key);
+    // Frontend/Client-side of the load balancer
+    void open_for_tcp(netstack_t& interface, uint16_t port);
+    void open_for_s2n(netstack_t& interface, uint16_t port, const std::string& cert, const std::string& key);
+    void open_for_ossl(netstack_t& interface, uint16_t port, const std::string& cert, const std::string& key);
+    void open_for(client_listen_function_t);
+    // Backend/Application side of the load balancer
+    static node_connect_function_t connect_with_tcp(netstack_t& interface, net::Socket);
 
     int  wait_queue() const;
     int  connect_throws() const;
@@ -114,9 +122,7 @@ namespace microLB
     void resume_callback(liu::Restore&);
 
     Nodes nodes;
-    netstack_t& get_client_network() noexcept;
-    netstack_t& get_nodes_network()  noexcept;
-    const pool_signal_t& get_pool_signal() const;
+    pool_signal_t get_pool_signal();
 
   private:
     void incoming(net::Stream_ptr);
@@ -126,19 +132,16 @@ namespace microLB
     void deserialize(liu::Restore&);
     std::vector<net::Socket> parse_node_confg();
 
-    netstack_t& netin;
-    netstack_t& netout;
-    pool_signal_t signal = nullptr;
     std::deque<Waiting> queue;
     int throw_retry_timer = -1;
     int throw_counter = 0;
     // TLS stuff (when enabled)
     void* tls_context = nullptr;
-    delegate<void()> tls_free;
+    delegate<void()> tls_free = nullptr;
   };
 
   template <typename... Args>
   inline void Nodes::add_node(Args&&... args) {
-    nodes.emplace_back(std::forward<Args> (args)...);
+    nodes.emplace_back(std::forward<Args> (args)..., nodes.size());
   }
 }

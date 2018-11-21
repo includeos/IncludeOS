@@ -113,10 +113,10 @@ namespace microLB
     /// wait queue
     int wsize = store.as_int(); store.go_next();
     for (int i = 0; i < wsize; i++) {
-      queue.emplace_back(store, this->netin.tcp());
+      //queue.emplace_back(store, this->netin.tcp());
     }
     /// nodes
-    nodes.deserialize(netin, netout, store);
+    //nodes.deserialize(netin, netout, store);
   }
 
   void Balancer::resume_callback(liu::Restore& store)
