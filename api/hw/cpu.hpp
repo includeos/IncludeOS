@@ -14,8 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <os.hpp>
+#ifndef OS_HW_CPU
+#define OS_HW_CPU
 
-const char* os::version() noexcept {
-  return OS_VERSION;
+#include <util/units.hpp>
+
+namespace os {
+  util::KHz cpu_freq();
 }
+
+namespace os::experimental::hw {
+  struct CPU {
+    struct Task;
+    auto frequency();
+    void add_task(Task t);
+    void signal();
+    std::vector<std::reference_wrapper<Task>> tasks();
+  };
+}
+
+#endif

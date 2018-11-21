@@ -19,6 +19,8 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <boot/multiboot.h>
+#include <os.hpp>
+#include <kernel.hpp>
 #include <kernel/os.hpp>
 #include <kernel/events.hpp>
 #include <kernel/memory.hpp>
@@ -51,15 +53,15 @@ struct alignas(SMP_ALIGN) OS_CPU {
 };
 static SMP::Array<OS_CPU> os_per_cpu;
 
-uint64_t OS::cycles_asleep() noexcept {
+uint64_t os::cycles_asleep() noexcept {
   return PER_CPU(os_per_cpu).cycles_hlt;
 }
-uint64_t OS::nanos_asleep() noexcept {
-  return (PER_CPU(os_per_cpu).cycles_hlt * 1e6) / cpu_freq().count();
+uint64_t os::nanos_asleep() noexcept {
+  return (PER_CPU(os_per_cpu).cycles_hlt * 1e6) / os::cpu_freq().count();
 }
 
 __attribute__((noinline))
-void OS::halt()
+void os::halt()
 {
   uint64_t cycles_before = os::Arch::cpu_cycles();
   asm volatile("hlt");
@@ -82,16 +84,16 @@ void OS::default_stdout(const char* str, const size_t len)
 void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   PROFILE("OS::start");
-  OS::cmdline = Service::binary_name();
+  kernel::state().cmdline = Service::binary_name();
 
   // Initialize stdout handlers
   if(os_default_stdout) {
     OS::add_stdout(&OS::default_stdout);
   }
 
-  extern OS::ctor_t __stdout_ctors_start;
-  extern OS::ctor_t __stdout_ctors_end;
-  OS::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
+  extern kernel::ctor_t __stdout_ctors_start;
+  extern kernel::ctor_t __stdout_ctors_end;
+  kernel::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
 
   // Print a fancy header
   CAPTION("#include<os> // Literally");
@@ -166,9 +168,9 @@ void OS::event_loop()
 {
   Events::get(0).process_events();
   do {
-    OS::halt();
+    os::halt();
     Events::get(0).process_events();
-  } while (power_);
+  } while (kernel::is_running());
 
   MYINFO("Stopping service");
   Service::stop();

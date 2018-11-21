@@ -3,6 +3,7 @@
 #include <info>
 #include <smp>
 #include <statman>
+#include <kernel.hpp>
 #include <kernel/events.hpp>
 #include <kernel/timers.hpp>
 #include <kernel/solo5_manager.hpp>
@@ -55,10 +56,10 @@ timespec __arch_wall_clock() noexcept
 }
 
 // actually uses nanoseconds (but its just a number)
-uint64_t OS::cycles_asleep() noexcept {
+uint64_t os::cycles_asleep() noexcept {
   return os_cycles_hlt;
 }
-uint64_t OS::nanos_asleep() noexcept {
+uint64_t os::nanos_asleep() noexcept {
   return os_cycles_hlt;
 }
 
@@ -77,15 +78,15 @@ void OS::start(const char* cmdline)
   }
 
   PROFILE("Global stdout constructors");
-  extern OS::ctor_t __stdout_ctors_start;
-  extern OS::ctor_t __stdout_ctors_end;
-  OS::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
+  extern kernel::ctor_t __stdout_ctors_start;
+  extern kernel::ctor_t __stdout_ctors_end;
+  kernel::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
 
   // Call global ctors
   PROFILE("Global kernel constructors");
-  extern OS::ctor_t __init_array_start;
-  extern OS::ctor_t __init_array_end;
-  OS::run_ctors(&__init_array_start, &__init_array_end);
+  extern kernel::ctor_t __init_array_start;
+  extern kernel::ctor_t __init_array_end;
+  kernel::run_ctors(&__init_array_start, &__init_array_end);
 
   PROFILE("");
   // Print a fancy header
@@ -127,9 +128,9 @@ void OS::start(const char* cmdline)
   MYINFO("Booted at monotonic_ns=%ld walltime_ns=%ld",
          solo5_clock_monotonic(), solo5_clock_wall());
 
-  extern OS::ctor_t __driver_ctors_start;
-  extern OS::ctor_t __driver_ctors_end;
-  OS::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
+  extern kernel::ctor_t __driver_ctors_start;
+  extern kernel::ctor_t __driver_ctors_end;
+  kernel::run_ctors(&__driver_ctors_start, &__driver_ctors_end);
 
   Solo5_manager::init();
 
@@ -181,7 +182,7 @@ static inline void event_loop_inner()
 
 void OS::event_loop()
 {
-  while (power_)
+  while (kernel::is_running())
   {
     // add a global symbol here so we can quickly discard
     // event loop from stack sampling
@@ -201,7 +202,7 @@ void OS::event_loop()
 }
 
 __attribute__((noinline))
-void OS::halt() {
+void os::halt() {
   auto cycles_before = solo5_clock_monotonic();
 #if defined(ARCH_x86)
   asm volatile("hlt");
@@ -212,7 +213,7 @@ void OS::halt() {
   os_cycles_hlt += solo5_clock_monotonic() - cycles_before;
 }
 
-void OS::block()
+void os::block()
 {
   static uint32_t blocking_level = 0;
   blocking_level += 1;

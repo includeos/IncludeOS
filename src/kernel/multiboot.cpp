@@ -17,6 +17,7 @@
 
 
 #include <os>
+#include <kernel.hpp>
 #include <kprint>
 #include <boot/multiboot.h>
 #include <kernel/memory.hpp>
@@ -135,7 +136,7 @@ void OS::multiboot(uint32_t boot_addr)
   if (info->flags & MULTIBOOT_INFO_CMDLINE) {
     const auto* cmdline = (const char*) (uintptr_t) info->cmdline;
     INFO2("* Booted with parameters @ %p: %s", cmdline, cmdline);
-    OS::cmdline = strdup(cmdline);
+    kernel::state().cmdline = strdup(cmdline);
   }
 
   if (info->flags & MULTIBOOT_INFO_MEM_MAP) {

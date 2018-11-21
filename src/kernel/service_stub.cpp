@@ -34,7 +34,7 @@ const char* Service::name() {
 __attribute__((weak))
 void Service::start()
 {
-  const std::string args(OS::cmdline_args());
+  const std::string args(os::cmdline_args());
   Service::start(args);
 }
 

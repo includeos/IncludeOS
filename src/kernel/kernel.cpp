@@ -1,0 +1,225 @@
+// This file is a part of the IncludeOS unikernel - www.includeos.org
+//
+// Copyright 2015-2017 Oslo and Akershus University College of Applied Sciences
+// and Alfred Bratterud
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+#include <kernel/os.hpp>
+#include <os.hpp>
+#include <kernel.hpp>
+#include <kernel/rng.hpp>
+#include <service>
+#include <cstdio>
+#include <cinttypes>
+#include <util/fixed_vector.hpp>
+#include <system_log>
+#define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
+
+//#define ENABLE_PROFILERS
+#ifdef ENABLE_PROFILERS
+#include <profile>
+#define PROFILE(name)  ScopedProfiler __CONCAT(sp, __COUNTER__){name};
+#else
+#define PROFILE(name) /* name */
+#endif
+
+using namespace util;
+
+extern char _start;
+extern char _end;
+extern char _ELF_START_;
+extern char _TEXT_START_;
+extern char _LOAD_START_;
+extern char _ELF_END_;
+
+uintptr_t OS::liveupdate_loc_   = 0;
+
+kernel::State __kern_state;
+
+kernel::State& kernel::state() noexcept {
+  return __kern_state;
+}
+
+util::KHz os::cpu_freq() {
+  return kernel::cpu_freq();
+} 
+
+__attribute__((weak))
+OS::Panic_action OS::panic_action_ = OS::Panic_action::halt;
+const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
+
+// stdout redirection
+using Print_vec = Fixed_vector<OS::print_func, 8>;
+static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
+
+// Plugins
+struct Plugin_desc {
+  Plugin_desc(OS::Plugin f, const char* n) : func{f}, name{n} {}
+
+  OS::Plugin  func;
+  const char* name;
+};
+static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
+
+void* OS::liveupdate_storage_area() noexcept
+{
+  return (void*) OS::liveupdate_loc_;
+}
+
+__attribute__((weak))
+size_t OS::liveupdate_phys_size(size_t /*phys_max*/) noexcept {
+  return 4096;
+};
+
+__attribute__((weak))
+size_t OS::liveupdate_phys_loc(size_t phys_max) noexcept {
+  return phys_max - liveupdate_phys_size(phys_max);
+};
+
+__attribute__((weak))
+void OS::setup_liveupdate(uintptr_t)
+{
+  // without LiveUpdate: storage location is at the last page?
+  OS::liveupdate_loc_ = OS::heap_max() & ~(uintptr_t) 0xFFF;
+}
+
+const char* os::cmdline_args() noexcept {
+  return kernel::cmdline();
+}
+
+extern kernel::ctor_t __plugin_ctors_start;
+extern kernel::ctor_t __plugin_ctors_end;
+extern kernel::ctor_t __service_ctors_start;
+extern kernel::ctor_t __service_ctors_end;
+
+void OS::register_plugin(Plugin delg, const char* name){
+  MYINFO("Registering plugin %s", name);
+  plugins.emplace_back(delg, name);
+}
+
+extern void __arch_reboot();
+void os::reboot()
+{
+  __arch_reboot();
+}
+void os::shutdown()
+{
+  kernel::state().running = false;
+}
+
+void OS::post_start()
+{
+  // Enable timestamps (if present)
+  kernel::state().timestamps_ready = true;
+
+  // LiveUpdate needs some initialization, although only if present
+  OS::setup_liveupdate();
+
+  // Initialize the system log if plugin is present.
+  // Dependent on the liveupdate location being set
+  SystemLog::initialize();
+
+  MYINFO("Initializing RNG");
+  PROFILE("RNG init");
+  RNG::get().init();
+
+  // Seed rand with 32 bits from RNG
+  srand(rng_extract_uint32());
+
+  // Custom initialization functions
+  MYINFO("Initializing plugins");
+  kernel::run_ctors(&__plugin_ctors_start, &__plugin_ctors_end);
+
+  // Run plugins
+  PROFILE("Plugins init");
+  for (auto plugin : plugins) {
+    INFO2("* Initializing %s", plugin.name);
+    plugin.func();
+  }
+
+  MYINFO("Running service constructors");
+  FILLINE('-');
+  // the boot sequence is over when we get to plugins/Service::start
+  kernel::state().boot_sequence_passed = true;
+
+    // Run service constructors
+  kernel::run_ctors(&__service_ctors_start, &__service_ctors_end);
+
+  PROFILE("Service::start");
+  // begin service start
+  FILLINE('=');
+  printf(" IncludeOS %s (%s / %u-bit)\n",
+         os::version(), os::arch(),
+         static_cast<unsigned>(sizeof(uintptr_t)) * 8);
+  printf(" +--> Running [ %s ]\n", Service::name());
+  FILLINE('~');
+#if defined(LIBFUZZER_ENABLED) || defined(ARP_PASSTHROUGH) || defined(DISABLE_INET_CHECKSUMS)
+  printf(" +--> WARNiNG: Environment unsafe for production\n");
+  FILLINE('~');
+#endif
+
+  Service::start();
+}
+
+void OS::add_stdout(OS::print_func func)
+{
+  os_print_handlers.push_back(func);
+}
+__attribute__((weak))
+bool os_enable_boot_logging = false;
+__attribute__((weak))
+bool os_default_stdout = false;
+
+#include <isotime>
+bool contains(const char* str, size_t len, char c)
+{
+  for (size_t i = 0; i < len; i++) if (str[i] == c) return true;
+  return false;
+}
+
+void OS::print(const char* str, const size_t len)
+{
+  if (UNLIKELY(! kernel::libc_initialized())) {
+    OS::default_stdout(str, len);
+    return;
+  }
+
+  /** TIMESTAMPING **/
+  if (kernel::timestamps() && kernel::timestamps_ready() && !kernel::is_panicking())
+  {
+    static bool apply_ts = true;
+    if (apply_ts)
+    {
+      std::string ts = "[" + isotime::now() + "] ";
+      for (const auto& callback : os_print_handlers) {
+        callback(ts.c_str(), ts.size());
+      }
+      apply_ts = false;
+    }
+    const bool has_newline = contains(str, len, '\n');
+    if (has_newline) apply_ts = true;
+  }
+  /** TIMESTAMPING **/
+
+  if (os_enable_boot_logging || kernel::is_booted() || kernel::is_panicking())
+  {
+    for (const auto& callback : os_print_handlers) {
+      callback(str, len);
+    }
+  }
+}
+
+void OS::enable_timestamps(const bool enabled)
+{
+  kernel::state().timestamps = enabled;
+}

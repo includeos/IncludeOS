@@ -16,6 +16,8 @@
 // limitations under the License.
 
 #include <kernel/syscalls.hpp>
+#include <os.hpp>
+#include <kernel.hpp>
 #include <kernel/os.hpp>
 #include <kernel/elf.hpp>
 #include <system_log>
@@ -72,7 +74,6 @@ struct alignas(SMP_ALIGN) context_buffer
 static SMP::Array<context_buffer> contexts;
 // NOTE: panics cannot be per-cpu because it might not be ready yet
 // NOTE: it's also used by OS::is_panicking(), used by OS::print(...)
-static int panics = 0;
 
 size_t get_crash_context_length()
 {
@@ -82,15 +83,12 @@ char*  get_crash_context_buffer()
 {
   return PER_CPU(contexts).buffer.data();
 }
-bool OS::is_panicking() noexcept
-{
-  return panics > 0;
-}
+
 extern "C"
 void cpu_enable_panicking()
 {
   //PER_CPU(contexts).panics++;
-  __sync_fetch_and_add(&panics, 1);
+  __sync_fetch_and_add(&kernel::state().panics, 1);
 }
 
 static OS::on_panic_func panic_handler = nullptr;
@@ -120,7 +118,7 @@ namespace net {
 void panic(const char* why)
 {
   cpu_enable_panicking();
-  if (panics > 4) double_fault(why);
+  if (kernel::panics() > 4) double_fault(why);
 
   const int current_cpu = SMP::cpu_id();
 
@@ -152,11 +150,11 @@ void panic(const char* why)
           util::bits::upercent(OS::total_memuse(), OS::memory_end()), OS::total_memuse(), OS::memory_end());
 
   // print plugins
-  extern OS::ctor_t __plugin_ctors_start;
-  extern OS::ctor_t __plugin_ctors_end;
+  extern kernel::ctor_t __plugin_ctors_start;
+  extern kernel::ctor_t __plugin_ctors_end;
   fprintf(stderr, "*** Found %u plugin constructors:\n",
           uint32_t(&__plugin_ctors_end - &__plugin_ctors_start));
-  for (OS::ctor_t* ptr = &__plugin_ctors_start; ptr < &__plugin_ctors_end; ptr++)
+  for (kernel::ctor_t* ptr = &__plugin_ctors_start; ptr < &__plugin_ctors_end; ptr++)
   {
     char buffer[4096];
     auto res = Elf::safe_resolve_symbol((void*) *ptr, buffer, sizeof(buffer));
@@ -216,13 +214,13 @@ void panic_epilogue(const char* why)
   switch (OS::panic_action())
   {
   case OS::Panic_action::halt:
-    while (1) OS::halt();
+    while (1) os::halt();
   case OS::Panic_action::shutdown:
     extern __attribute__((noreturn)) void __arch_poweroff();
     __arch_poweroff();
     [[fallthrough]]; // needed for g++ bug
   case OS::Panic_action::reboot:
-    OS::reboot();
+    os::reboot();
   }
 
   __builtin_unreachable();

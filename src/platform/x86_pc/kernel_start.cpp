@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <kernel.hpp>
 #include <kernel/os.hpp>
 #include <kernel/syscalls.hpp>
 #include <kernel/cpuid.hpp>
@@ -85,8 +86,7 @@ os::Machine& os::machine() {
 int kernel_main(int, char * *, char * *) {
   PRATTLE("<kernel_main> libc initialization complete \n");
   Expects(__global_ctors_ok == 42);
-  extern bool __libc_initialized;
-  __libc_initialized = true;
+  kernel::state().libc_initialized = true;
 
   Expects(__tl1__ == 42);
   Elf_binary<Elf64> elf{{(char*)&_ELF_START_, &_ELF_END_ - &_ELF_START_}};

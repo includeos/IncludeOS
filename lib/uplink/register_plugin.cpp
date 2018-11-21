@@ -18,6 +18,7 @@
 #include "uplink.hpp"
 #include "common.hpp"
 #include <kernel/os.hpp>
+#include <os.hpp>
 
 static void setup_uplink_plugin()
 {
@@ -28,7 +29,7 @@ static void setup_uplink_plugin()
   catch(const std::exception& e)
   {
     MYINFO("Rebooting");
-    OS::reboot();
+    os::reboot();
   }
 }
 

@@ -39,6 +39,7 @@ set(OS_OBJECTS
   kernel/fiber.cpp kernel/tls.cpp kernel/profile.cpp kernel/scoped_profiler.cpp
   kernel/terminal.cpp kernel/timers.cpp kernel/rtc.cpp kernel/rng.cpp
   kernel/system_log.cpp kernel/rdrand.cpp kernel/solo5_manager.cpp
+  kernel/kernel.cpp
   hal/machine.cpp
   util/memstream.c util/async.cpp util/statman.cpp "util/statman_liu.cpp"
   util/logger.cpp util/sha1.cpp

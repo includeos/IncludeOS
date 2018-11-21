@@ -39,32 +39,7 @@ public:
   using Plugin      = delegate<void()>;
   using Span_mods   = gsl::span<multiboot_module_t>;
 
-  /**
-   * Returns the OS version string
-   **/
-  static const char* version() noexcept
-  { return version_str_; }
 
-  /**
-   * Returns the CPU architecture for which the OS was built
-   **/
-  static const char* arch() noexcept
-  { return arch_str_; }
-
-
-  /**
-   *  Returns the commandline arguments provided,
-   *  if any, to the VM passed on by multiboot or
-   *  other mechanisms. The first argument is always
-   *  the binary name.
-  **/
-  static const char* cmdline_args() noexcept;
-
-  /** Clock cycles since boot. */
-  static uint64_t cycles_since_boot() noexcept;
-
-  /** Nanoseconds since boot converted from cycles */
-  static uint64_t nanos_since_boot() noexcept;
 
   /** Timestamp for when OS was booted */
   static RTC::timestamp_t boot_timestamp() noexcept;
@@ -72,58 +47,8 @@ public:
   /** Uptime in whole seconds. */
   static RTC::timestamp_t uptime() noexcept;
 
-  /** Time spent sleeping (halt) in cycles */
-  static uint64_t cycles_asleep() noexcept;
 
-  /** Time spent sleeping (halt) in nanoseconds */
-  static uint64_t nanos_asleep() noexcept;
 
-  static auto cpu_freq() noexcept
-  { return cpu_khz_; }
-
-  /**
-   * Reboot operating system
-   *
-   **/
-  static void reboot();
-
-  /**
-   * Shutdown operating system
-   *
-   **/
-  static void shutdown();
-
-  /**
-   *  Halt until next interrupt.
-   *
-   *  @Warning If there is no regular timer interrupt (i.e. from PIT / APIC)
-   *  we'll stay asleep.
-   */
-  static void halt();
-
-  /**
-   *  Returns true when the OS will still be running, and not shutting down.
-   */
-  static bool is_running() noexcept {
-    return power_;
-  }
-
-  /**
-   *  Returns true when the OS has passed the boot sequence, and
-   *  is at least processing plugins and about to call Service::start
-   */
-  static bool is_booted() noexcept {
-    return boot_sequence_passed_;
-  }
-
-  static bool block_drivers_ready() noexcept {
-    return m_block_drivers_ready;
-  }
-
-  /**
-   *  Returns true when the OS is currently panicking
-   */
-  static bool is_panicking() noexcept;
 
   /**
    * Sometimes the OS just has a bad day and crashes
@@ -208,11 +133,6 @@ public:
 
   static void init_heap(uintptr_t phys_begin, size_t size) noexcept;
 
-  /**
-   *  Returns true when the current OS comes from a live update,
-   *  as opposed to booting from either a rollback or a normal boot
-   */
-  static bool is_live_updated() noexcept;
 
   /** Returns the virtual memory location set aside for storing system and program state **/
   static void* liveupdate_storage_area() noexcept;
@@ -247,11 +167,6 @@ public:
   static void register_plugin(Plugin delg, const char* name);
 
 
-  /**
-   * Block for a while, e.g. until the next round in the event loop
-   **/
-  static void block();
-
 
   /** The main event loop. Check interrupts, timers etc., and do callbacks. */
   static void event_loop();
@@ -272,11 +187,6 @@ public:
   static void resume_softreset(intptr_t boot_addr);
   static void setup_liveupdate(uintptr_t phys = 0);
 
-  typedef void (*ctor_t) ();
-  static void run_ctors(ctor_t* begin, ctor_t* end)
-  {
-  	for (; begin < end; begin++) (*begin)();
-  }
 
 private:
   /** Process multiboot info. Called by 'start' if multibooted **/
@@ -288,16 +198,15 @@ private:
   static void legacy_boot();
 
   static constexpr int PAGE_SHIFT = 12;
-  static bool power_;
-  static bool boot_sequence_passed_;
-  static bool m_is_live_updated;
-  static bool m_block_drivers_ready;
-  static bool m_timestamps;
-  static bool m_timestamps_ready;
-  static util::KHz cpu_khz_;
+  //static bool power_;
+  //static bool boot_sequence_passed_;
+  //static bool m_is_live_updated;
+  //static bool m_block_drivers_ready;
+  //static bool m_timestamps;
+  //static bool m_timestamps_ready;
+  //static util::KHz cpu_khz_;
 
   static uintptr_t liveupdate_loc_;
-  static const char* version_str_;
   static const char* arch_str_;
   static uintptr_t heap_begin_;
   static uintptr_t heap_max_;
@@ -318,9 +227,6 @@ private:
   friend void __platform_init();
 }; //< OS
 
-inline bool OS::is_live_updated() noexcept {
-  return OS::m_is_live_updated;
-}
 
 inline OS::Span_mods OS::modules()
 {
@@ -336,22 +242,6 @@ inline OS::Span_mods OS::modules()
   return nullptr;
 }
 
-inline uint64_t OS::cycles_since_boot() noexcept
-{
-  return os::Arch::cpu_cycles();
-}
-inline uint64_t OS::nanos_since_boot() noexcept
-{
-  return (cycles_since_boot() * 1e6) / cpu_freq().count();
-}
 
-inline RTC::timestamp_t OS::boot_timestamp() noexcept
-{
-  return RTC::boot_timestamp();
-}
-inline RTC::timestamp_t OS::uptime() noexcept
-{
-  return RTC::time_since_boot();
-}
 
 #endif //< KERNEL_OS_HPP

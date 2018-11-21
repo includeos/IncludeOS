@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <posix/udp_fd.hpp>
-#include <kernel/os.hpp> // OS::block()
+#include <os.hpp> // os::block()
 #include <errno.h>
 #include <net/interfaces.hpp>
 
@@ -182,7 +182,7 @@ ssize_t UDP_FD::sendto(const void* message, size_t len, int,
     [&written]() { written = true; });
 
   while(!written)
-    OS::block();
+    os::block();
 
   return len;
 }
@@ -243,7 +243,7 @@ ssize_t UDP_FD::recvfrom(void *__restrict__ buffer, size_t len, int flags,
 
     // Block until (any) data is read
     while(!done)
-      OS::block();
+      os::block();
 
     set_default_recv();
 
@@ -364,4 +364,3 @@ int UDP_FD::setsockopt(int level, int option_name,
       return -1;
   } // < switch(option_name)
 }
-

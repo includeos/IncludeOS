@@ -17,6 +17,7 @@
 
 #include <os>
 #include <hw/block_device.hpp>
+#include <kernel.hpp>
 #include <fs/common.hpp>
 #include <rtc>
 
@@ -55,17 +56,17 @@ static void disk_logger_write(const char* data, size_t len)
   if (header.length < position) header.length = position;
 
   // update header
-  if (OS::is_booted()) {
+  if (kernel::is_booted()) {
     header.timestamp = RTC::now();
   }
   else {
-    header.timestamp = OS::nanos_since_boot() / 1000000000ull;
+    header.timestamp = os::nanos_since_boot() / 1000000000ull;
   }
   __builtin_memcpy(logbuffer->data(), &header, sizeof(log_structure));
 
   // write to disk when we are able
-  const bool once = OS::is_booted() && write_once_when_booted == false;
-  if (OS::block_drivers_ready() && (once || OS::is_panicking()))
+  const bool once = kernel::is_booted() && write_once_when_booted == false;
+  if (kernel::block_drivers_ready() && (once || kernel::is_panicking()))
   {
     write_once_when_booted = true;
     write_all();

@@ -37,7 +37,7 @@ timespec __arch_wall_clock() noexcept {
   return {0, 0};
 }
 // not supported!
-void OS::block() {}
+void os::block() {}
 
 // default to serial
 void OS::default_stdout(const char* str, const size_t len)
@@ -55,7 +55,7 @@ void SMP::global_unlock() noexcept {}
 int SMP::cpu_id() noexcept { return 0; }
 int SMP::cpu_count() noexcept { return 1; }
 
-void OS::halt() {
+void os::halt() {
   asm("hlt");
 }
 

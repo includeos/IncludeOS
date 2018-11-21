@@ -1,6 +1,7 @@
 #include <os>
 #include <kprint>
 #include <kernel/memory.hpp>
+#include <kernel.hpp>
 #include <util/crc32.hpp>
 using namespace util::literals;
 
@@ -58,11 +59,11 @@ void OS::resume_softreset(intptr_t addr)
   /// restore known values
   uintptr_t lu_phys = data->liveupdate_loc;
   OS::setup_liveupdate(lu_phys);
-  OS::memory_end_     = data->high_mem;
-  OS::heap_max_       = OS::memory_end_ - 1;
-  OS::cpu_khz_        = data->cpu_freq;
+  OS::memory_end_         = data->high_mem;
+  OS::heap_max_           = OS::memory_end_ - 1;
+  kernel::state().cpu_khz = data->cpu_freq;
   x86::apic_timer_set_ticks(data->apic_ticks);
-  OS::m_is_live_updated = true;
+  kernel::state().is_live_updated = true;
 
   /// call service-specific softreset handler
   softreset_service_handler((void*) data->extra, data->extra_len);
@@ -76,7 +77,7 @@ void* __os_store_soft_reset(void* extra, size_t extra_len)
   data->checksum    = 0;
   data->liveupdate_loc = os::mem::virt_to_phys((uintptr_t) OS::liveupdate_storage_area());
   data->high_mem    = OS::memory_end();
-  data->cpu_freq    = OS::cpu_freq();
+  data->cpu_freq    = os::cpu_freq();
   data->apic_ticks  = x86::apic_timer_get_ticks();
   data->extra       = (uint64_t) extra;
   data->extra_len   = extra_len;

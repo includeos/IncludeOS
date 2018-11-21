@@ -23,6 +23,7 @@
 #include "smp.hpp"
 #include <kernel/cpuid.hpp>
 #include <kernel/events.hpp>
+#include <kernel.hpp>
 #include <kprint>
 #include <info>
 //#define ENABLE_KVM_PV_EOI
@@ -136,7 +137,7 @@ namespace x86
       // NOTE: @bus_source is the IOAPIC number
       if (redir.irq_source == irq)
       {
-        if (OS::is_panicking() == false)
+        if (kernel::is_panicking() == false)
         {
           INFO2("Enabled redirected entry %u ioapic %u -> %u on apic %u",
               redir.global_intr, redir.bus_source, irq, get().get_id());
@@ -145,7 +146,7 @@ namespace x86
         return;
       }
     }
-    if (OS::is_panicking() == false)
+    if (kernel::is_panicking() == false)
     {
       INFO2("Enabled non-redirected IRQ %u on apic %u", irq, get().get_id());
     }

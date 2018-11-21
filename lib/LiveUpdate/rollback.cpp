@@ -50,7 +50,7 @@ void LiveUpdate::rollback_now(const char* reason)
   }
   fflush(stderr);
   // no matter what, reboot
-  OS::reboot();
+  os::reboot();
   __builtin_unreachable();
 }
 
