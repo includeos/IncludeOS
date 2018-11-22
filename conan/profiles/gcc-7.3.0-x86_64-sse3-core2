@@ -1,0 +1,17 @@
+[build_requires]
+[settings]
+os=Linux
+os_build=Linux
+arch=x86_64
+arch_build=x86_64
+compiler=gcc
+compiler.version=7
+compiler.libcxx=libstdc++
+build_type=Release
+threads=False
+simd=sse3
+march=core2
+[options]
+[env]
+CC=gcc-7.3.0
+CXX=gcc-7.3.0

@@ -37,8 +37,8 @@ set(OS_OBJECTS
   kernel/system_log.cpp kernel/rdrand.cpp kernel/solo5_manager.cpp
   util/memstream.c util/async.cpp util/statman.cpp "util/statman_liu.cpp"
   util/logger.cpp util/sha1.cpp
-  util/syslog_facility.cpp util/syslogd.cpp util/uri.cpp util/percent_encoding.cpp
-  util/tar.cpp util/path_to_regex.cpp util/config.cpp util/autoconf.cpp util/crc32.cpp
+  util/syslog_facility.cpp util/syslogd.cpp  util/percent_encoding.cpp
+   util/path_to_regex.cpp util/config.cpp util/crc32.cpp
   crt/c_abi.c crt/ctype_b_loc.c crt/ctype_tolower_loc.c crt/string.c
   crt/quick_exit.cpp crt/cxx_abi.cpp
   hw/pci_device.cpp hw/nic.cpp hw/ps2.cpp hw/serial.cpp hw/vga_gfx.cpp
@@ -53,13 +53,13 @@ set(OS_OBJECTS
   net/ip6/ip6.cpp net/ip6/icmp6.cpp net/ip6/ndp.cpp
   net/dns/dns.cpp net/dns/client.cpp net/dhcp/dh4client.cpp net/dhcp/dhcpd.cpp
   net/buffer_store.cpp net/inet.cpp
-  net/interfaces.cpp net/configure.cpp net/conntrack.cpp net/vlan_manager.cpp
-  net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp net/http/request.cpp
-  net/http/response.cpp net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
+  net/interfaces.cpp  net/conntrack.cpp net/vlan_manager.cpp
+  net/http/header.cpp net/http/header_fields.cpp net/http/message.cpp
+  net/http/status_codes.cpp net/http/time.cpp net/http/version.cpp
   net/http/mime_types.cpp net/http/cookie.cpp
   net/http/client_connection.cpp net/http/basic_client.cpp
   net/http/server_connection.cpp net/http/server.cpp net/http/response_writer.cpp
-  net/ws/websocket.cpp ${OPENSSL_MODULES} ${BOTAN_MODULES}
+  net/ws/websocket.cpp
   net/nat/nat.cpp net/nat/napt.cpp
   net/packet_debug.cpp
   fs/disk.cpp fs/filesystem.cpp fs/dirent.cpp fs/mbr.cpp fs/path.cpp
@@ -69,6 +69,20 @@ set(OS_OBJECTS
 
 )
 
+#TODO restructure and exclude
+if (NOT CORE_OS)
+  list(APPEND OBJECTS
+    util/tar.cpp #uzlib
+    util/uri.cpp #http-parser
+    util/autoconf.cpp #rapidjson
+    net/configure.cpp #rapidjson
+    net/http/request.cpp #rapidjson
+    net/http/response.cpp #rapidjson
+    ${BOTAN_MODULES}
+    ${OPENSSL_MODULES}
+  )
+endif()
+
 add_library(os STATIC ${OS_OBJECTS})
 
 # disable sanitizers on c_abi and cxx_abi, etc.
@@ -77,15 +91,19 @@ set_source_files_properties(crt/cxx_abi.cpp PROPERTIES COMPILE_FLAGS "-fno-sanit
 set_source_files_properties(version.cpp PROPERTIES COMPILE_DEFINITIONS "OS_VERSION=\"${OS_VERSION}\"")
 
 add_subdirectory(arch/${ARCH})
-add_subdirectory(platform/x86_pc)
+
+if (NOT CORE_OS)
+
+  add_subdirectory(platform/x86_pc)
+
+  if(WITH_SOLO5)
+   add_subdirectory(platform/x86_solo5)
+  endif(WITH_SOLO5)
+
+  add_subdirectory(drivers)
+  add_subdirectory(plugins)
+endif()
 add_subdirectory(platform/x86_nano)
-if(WITH_SOLO5)
- add_subdirectory(platform/x86_solo5)
-endif(WITH_SOLO5)
-
-add_subdirectory(drivers)
-add_subdirectory(plugins)
-
 # Add musl
 
 add_subdirectory(musl)

@@ -1,5 +1,3 @@
-import shutil
-
 from conans import ConanFile,tools
 
 class RapidJsonConan(ConanFile):

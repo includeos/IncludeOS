@@ -14,12 +14,6 @@ class LibCxxAbiConan(ConanFile):
     }
     no_copy_source=True
 
-    def requirements(self):
-        self.requires("libunwind/{}@{}/{}".format(self.version,self.user,self.channel))
-
-    def imports(self):
-        self.copy("*.a",dst="lib",src="lib")
-
     def llvm_checkout(self,project):
         branch = "release_{}".format(self.version.replace('.',''))
         llvm_project=tools.Git(folder=project)
@@ -30,6 +24,11 @@ class LibCxxAbiConan(ConanFile):
         self.llvm_checkout("libcxx")
         self.llvm_checkout("libcxxabi")
 
+    def _triple_arch(self):
+        if str(self.settings.arch) == "x86":
+            return "i386"
+        return str(self.settings.arch)
+
     def _configure_cmake(self):
         cmake=CMake(self)
         llvm_source=self.source_folder+"/llvm"
@@ -37,7 +36,7 @@ class LibCxxAbiConan(ConanFile):
         unwind=self.source_folder+"/libunwind"
         libcxx=self.source_folder+"/libcxx"
         if (self.settings.compiler == "clang"):
-            triple=str(self.settings.arch)+"-pc-linux-gnu"
+            triple=self._triple_arch()+"-pc-linux-gnu"
             cmake.definitions["LIBCXXABI_TARGET_TRIPLE"] = triple
         cmake.definitions['LIBCXXABI_LIBCXX_INCLUDES']=libcxx+'/include'
         cmake.definitions['LIBCXXABI_USE_LLVM_UNWINDER']=True
@@ -58,6 +57,13 @@ class LibCxxAbiConan(ConanFile):
         cmake = self._configure_cmake()
         cmake.install()
         self.copy("*.h",dst="include",src="libcxxabi/include")
+
+
+    def package_info(self):
+        #where it was buildt doesnt matter
+        self.info.settings.os="ANY"
+        #what libcxx the compiler uses isnt of any known importance
+        self.info.settings.compiler.libcxx="ANY"
 
     def deploy(self):
         self.copy("*.h",dst="include",src="include")

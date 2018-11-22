@@ -24,7 +24,7 @@ class OpenSSLConan(ConanFile):
         self.requires("libcxx/[>=5.0]@{}/{}".format(self.user,self.channel))
 
     def imports(self):
-        self.copy("*",dst="target",src=".")
+        self.copy("*",dst="include",src="include")
 
     def source(self):
         tag="OpenSSL_"+self.version.replace('.','_')
@@ -35,15 +35,18 @@ class OpenSSLConan(ConanFile):
         #TODO handle arch target and optimalizations
         #TODO use our own includes!
         #TODO TODO
-        options=" no-ssl3 enable-ubsan "
+        options=["no-ssl3","enable-ubsan"]
         if (not self.options.threads):
-            options+=" no-threads "
+            options+=['no-threads']
         if (not self.options.shared):
-            options+=" no-shared "
+            options+=['no-shared']
 
-        options+=" -Iinclude/c++/v1 -Iinclude "
+        if str(self.settings.arch) == "x86":
+            options+=['386']
+
+        options+=["-Iinclude/c++/v1","-Iinclude"]
         #self.run("./Configure --prefix="+self.package_folder+" --libdir=lib no-ssl3-method enable-ec_nistp_64_gcc_128 linux-x86_64 "+flags,cwd="openssl")
-        self.run(("./config --prefix="+self.package_folder+" --openssldir="+self.package_folder+options),cwd="openssl" )
+        self.run(("./config --prefix="+self.package_folder+" --openssldir="+self.package_folder+" ".join(options)),cwd="openssl" )
         self.run("make -j16 depend",cwd="openssl")
         self.run("make -j16",cwd="openssl")
 

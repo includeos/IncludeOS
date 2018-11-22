@@ -11,7 +11,7 @@ class BotanConan(ConanFile):
 
     def requirements(self):
         self.requires("libcxx/[>=5.0]@{}/{}".format(self.user,self.channel))
-
+        self.requires("musl/v1.1.18@{}/{}".format(self.user,self.channel))
     def imports(self):
         self.copy("*",dst="include",src="include")
 

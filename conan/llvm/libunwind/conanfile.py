@@ -24,13 +24,17 @@ class LibUnwindConan(ConanFile):
         self.llvm_checkout("llvm")
         self.llvm_checkout("libunwind")
 
+    def _triple_arch(self):
+        if str(self.settings.arch) == "x86":
+            return "i386"
+        return str(self.settings.arch)
     def _configure_cmake(self):
         cmake=CMake(self)
         llvm_source=self.source_folder+"/llvm"
         unwind_source=self.source_folder+"/libunwind"
 
         if (self.settings.compiler == "clang"):
-            triple=str(self.settings.arch)+"-pc-linux-gnu"
+            triple=self._triple_arch()+"-pc-linux-gnu"
             cmake.definitions["LIBUNWIND_TARGET_TRIPLE"] = triple
 
         cmake.definitions['LIBUNWIND_ENABLE_SHARED']=self.options.shared
@@ -46,6 +50,13 @@ class LibUnwindConan(ConanFile):
         cmake = self._configure_cmake()
         cmake.install()
         self.copy("*libunwind*.h",dst="include",src="libunwind/include")
+
+
+    def package_info(self):
+        #where it was buildt doesnt matter
+        self.info.settings.os="ANY"
+        #what libcxx the compiler uses isnt of any known importance
+        self.info.settings.compiler.libcxx="ANY"
 
     def deploy(self):
         self.copy("*.h",dst="include",src="include")

@@ -27,14 +27,30 @@ class ProtobufConan(ConanFile):
         repo = tools.Git(folder="protobuf")
         repo.clone("https://github.com/google/protobuf.git",branch="v"+str(self.version))
 
+    def _target_triple(self):
+        if (str(self.settings.arch) == "x86"):
+            return "i386-pc-linux-gnu"
+        return str(self.settings.arch)+"-pc-linux-gnu"
+
     def build(self):
         cmake=CMake(self) #AutoToolsBuildEnvironment(self)
+        cflags=[]
 
+        if self.settings.build_type == "Debug":
+            cflags+=["-g"]
+
+        if self.settings.compiler == "clang":
+            cflags+=[" -target={} ".format(self._target_triple())]
+
+        if str(self.settings.arch) == "x86":
+            cflags+=['-m32']
         #TODO fix cflags
-        cflags="-msse3 -g -mfpmath=sse"
+        cflags+=['-msse3','-mfpmath=sse']
         ##how to pass this properly to cmake..
-        env_inc=" -I"+self.build_folder+"/include/c++/v1 -I"+self.build_folder+"/include "
-
+        cflags+=["-I"+self.build_folder+"/include/c++/v1","-I"+self.build_folder+"/include"]
+        cmake.definitions['CMAKE_CROSSCOMPILING']=True
+        #cmake.definitions['CMAKE_C_FLAGS']=" ".join(cflags)
+        cmake.definitions['CMAKE_CXX_FLAGS']=" ".join(cflags)
         cmake.definitions['CMAKE_USE_PTHREADS_INIT']=self.options.threads
         cmake.definitions['protobuf_VERBOSE']='ON'
         cmake.definitions['protobuf_BUILD_TESTS']='OFF'

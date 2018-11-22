@@ -316,11 +316,11 @@ add_library(libplatform STATIC IMPORTED)
 set_target_properties(libplatform PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(libplatform PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/platform/lib${PLATFORM}.a)
 
-add_library(libbotan STATIC IMPORTED)
-set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libbotan-2.a)
-
 if(${ARCH} STREQUAL "x86_64")
+  add_library(libbotan STATIC IMPORTED)
+  set_target_properties(libbotan PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(libbotan PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libbotan-2.a)
+
   add_library(libs2n STATIC IMPORTED)
   set_target_properties(libs2n PROPERTIES LINKER_LANGUAGE CXX)
   set_target_properties(libs2n PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libs2n.a)
@@ -337,14 +337,16 @@ if(${ARCH} STREQUAL "x86_64")
   include_directories(${INSTALL_LOC}/${ARCH}/include)
 endif()
 
-add_library(http_parser STATIC IMPORTED)
-set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(http_parser PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/http_parser.o)
+if (NOT ${PLATFORM} STREQUAL x86_nano )
+  add_library(http_parser STATIC IMPORTED)
+  set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(http_parser PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/http_parser.o)
 
-add_library(uzlib STATIC IMPORTED)
-set_target_properties(uzlib PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(uzlib PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libtinf.a)
+  add_library(uzlib STATIC IMPORTED)
+  set_target_properties(uzlib PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(uzlib PROPERTIES IMPORTED_LOCATION ${INSTALL_LOC}/${ARCH}/lib/libtinf.a)
 
+endif()
 
 add_library(musl_syscalls STATIC IMPORTED)
 set_target_properties(musl_syscalls PROPERTIES LINKER_LANGUAGE CXX)
@@ -494,35 +496,65 @@ if ("${PLATFORM}" STREQUAL "x86_solo5")
 endif()
 
 # all the OS and C/C++ libraries + crt end
-target_link_libraries(service
-  libos
-  libplatform
-  libarch
 
-  ${LIBR_CMAKE_NAMES}
-  libos
-  libbotan
-  ${OPENSSL_LIBS}
-  http_parser
-  uzlib
+IF (${PLATFORM} STREQUAL x86_nano)
+  target_link_libraries(service
+    libos
+    libplatform
+    libarch
 
-  libplatform
-  libarch
+    ${LIBR_CMAKE_NAMES}
+    libos
 
-  musl_syscalls
-  libos
-  libcxx
-  cxxabi
-  libunwind
-  libpthread
-  libc
+    libplatform
+    libarch
 
-  musl_syscalls
-  libos
-  libc
-  libgcc
-  ${CRTN}
+    musl_syscalls
+    libos
+    libcxx
+    cxxabi
+    libunwind
+    libpthread
+    libc
+
+    musl_syscalls
+    libos
+    libc
+    libgcc
+    ${CRTN}
   )
+
+else()
+  target_link_libraries(service
+    libos
+    libplatform
+    libarch
+
+    ${LIBR_CMAKE_NAMES}
+    libos
+    libbotan
+    ${OPENSSL_LIBS}
+    libosdeps
+
+    libplatform
+    libarch
+
+    musl_syscalls
+    libos
+    libcxx
+    cxxabi
+    libunwind
+    libpthread
+    libc
+
+    musl_syscalls
+    libos
+    libc
+    libgcc
+    ${CRTN}
+  )
+
+endif()
 # write binary location to known file
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
