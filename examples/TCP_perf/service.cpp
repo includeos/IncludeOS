@@ -17,10 +17,11 @@
 
 #include <os>
 #include <rtc>
-#include <net/interfaces>
+#include <net/inet>
 #include <statman>
 #include <profile>
 #include <cstdio>
+#include <util/units.hpp>
 
 using namespace net::tcp;
 
@@ -40,6 +41,10 @@ bool      timestamps{true};
 std::chrono::milliseconds dack{40};
 uint64_t  ts = 0;
 bool      SACK{true};
+bool      keep_last = false;
+
+uint16_t port_send {1337};
+uint16_t port_recv {1338};
 
 struct activity {
   void reset() {
@@ -98,13 +103,50 @@ void stop_measure()
   packets_tx  = Statman::get().get_by_name("eth0.ethernet.packets_tx").get_uint64() - packets_tx;
   printf("Packets RX [%lu] TX [%lu]\n", packets_rx, packets_tx);
   double durs   = (double) diff / 1000000000ULL;
-  double mbits  = (received/(1024*1024)*8) / durs;
-  printf("Duration: %.2fs - Payload: %lu/%u MB - %.2f MBit/s\n",
-          durs, received/(1024*1024), SIZE/(1024*1024), mbits);
-  OS::shutdown();
+  double mbits  = (double(received)/(1024*1024)*8) / durs;
+
+  printf("Duration: %.3fs - Payload: %s (Generated size %s) - %.2f MBit/s\n",
+         durs,
+         util::Byte_r(received).to_string().c_str(),
+         util::Byte_r(SIZE).to_string().c_str(), mbits);
+
 }
 
-void Service::start() {}
+void Service::start(const std::string& args) {
+
+  if (args.find("keep") != args.npos) {
+    printf(">>> Keeping last received file \n");
+    keep_last = true;
+  }
+}
+
+net::tcp::buffer_t blob = nullptr;
+
+struct file {
+  using Buf = net::tcp::buffer_t;
+  using Vec = std::vector<Buf>;
+
+  auto begin() { return chunks.begin(); }
+  auto end()   { return chunks.end();   }
+
+  size_t size(){ return sz; }
+  size_t blkcount() { return chunks.size(); }
+
+  void append(Buf& b) {
+    chunks.push_back(b);
+    sz += b->size();
+  }
+
+  void reset() {
+    chunks.clear();
+    sz = 0;
+  }
+
+  Vec chunks{};
+  size_t sz{};
+};
+
+file filerino;
 
 void Service::ready()
 {
@@ -113,7 +155,7 @@ void Service::ready()
   StackSampler::set_mode(StackSampler::MODE_DUMMY);
 #endif
 
-  static auto blob = net::tcp::construct_buffer(SIZE);
+  blob = net::tcp::construct_buffer(SIZE, '!');
 
 #ifdef USERSPACE_LINUX
   extern void create_network_device(int N, const char* route, const char* ip);
@@ -121,7 +163,7 @@ void Service::ready()
 #endif
 
   // Get the first IP stack configured from config.json
-  auto& inet = net::Interfaces::get(0);
+  auto& inet = net::Super_stack::get(0);
   auto& tcp = inet.tcp();
   tcp.set_DACK(dack); // default
   tcp.set_MSL(std::chrono::seconds(3));
@@ -130,7 +172,7 @@ void Service::ready()
   tcp.set_timestamps(timestamps);
   tcp.set_SACK(SACK);
 
-  tcp.listen(1337).on_connect([](Connection_ptr conn)
+  tcp.listen(port_send).on_connect([](Connection_ptr conn)
   {
     printf("%s connected. Sending file %u MB\n", conn->remote().to_string().c_str(), SIZE/(1024*1024));
     start_measure();
@@ -145,14 +187,21 @@ void Service::ready()
     {
       recv(n);
     });
-    conn->write(blob);
+
+    if (! keep_last) {
+      conn->write(blob);
+    } else {
+      for (auto b : filerino)
+        conn->write(b);
+    }
     conn->close();
   });
 
-  tcp.listen(1338).on_connect([](net::tcp::Connection_ptr conn)
+  tcp.listen(port_recv).on_connect([](net::tcp::Connection_ptr conn)
   {
     using namespace std::chrono;
     printf("%s connected. Receiving file %u MB\n", conn->remote().to_string().c_str(), SIZE/(1024*1024));
+    filerino.reset();
 
     start_measure();
 
@@ -172,9 +221,12 @@ void Service::ready()
 
       stop_measure();
     });
-    conn->on_read(bufsize, [] (buffer_t buf)
+    conn->on_read(SIZE, [] (buffer_t buf)
     {
       recv(buf->size());
+      if (UNLIKELY(keep_last)) {
+        filerino.append(buf);
+      }
     });
   });
 }
