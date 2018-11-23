@@ -154,6 +154,7 @@ target_include_directories(microlb PUBLIC
     ${IOS}/lib/microLB
     ${IOS}/lib/LiveUpdate
     ${IOS}/mod/rapidjson/include
+    $ENV{INCLUDEOS_PREFIX}/includeos/x86_64/include
   )
 
 install(TARGETS includeos   DESTINATION includeos/linux)
