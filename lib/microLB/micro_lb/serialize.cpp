@@ -132,10 +132,12 @@ namespace microLB
 
   void Balancer::init_liveupdate()
   {
+#ifndef USERSPACE_LINUX
     liu::LiveUpdate::register_partition("microlb", {this, &Balancer::serialize});
     if(liu::LiveUpdate::is_resumable())
     {
       liu::LiveUpdate::resume("microlb", {this, &Balancer::resume_callback});
     }
+#endif
   }
 }

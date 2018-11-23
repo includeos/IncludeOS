@@ -59,7 +59,7 @@ namespace microLB
       assert(addr.Size() == 2);
       // port must be valid
       unsigned port = addr[1].GetUint();
-      assert(port >= 0 && port < 65536);
+      assert(port > 0 && port < 65536 && "Port is a number between 1 and 65535");
       // try to construct socket from string
       net::Socket socket{
         net::ip4::Addr{addr[0].GetString()}, (uint16_t) port

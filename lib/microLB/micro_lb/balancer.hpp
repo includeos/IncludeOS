@@ -9,7 +9,6 @@ namespace microLB
   typedef std::vector<net::tcp::buffer_t> queue_vector_t;
   typedef delegate<void()> pool_signal_t;
 
-  typedef delegate<void()> client_listen_function_t;
   typedef delegate<void(net::Stream_ptr)> node_connect_result_t;
   typedef std::chrono::milliseconds timeout_t;
   typedef delegate<void(timeout_t, node_connect_result_t)> node_connect_function_t;
@@ -111,12 +110,15 @@ namespace microLB
     void open_for_tcp(netstack_t& interface, uint16_t port);
     void open_for_s2n(netstack_t& interface, uint16_t port, const std::string& cert, const std::string& key);
     void open_for_ossl(netstack_t& interface, uint16_t port, const std::string& cert, const std::string& key);
-    void open_for(client_listen_function_t);
     // Backend/Application side of the load balancer
     static node_connect_function_t connect_with_tcp(netstack_t& interface, net::Socket);
 
     int  wait_queue() const;
     int  connect_throws() const;
+
+    // add a client stream to the load balancer
+    // NOTE: the stream must be connected prior to calling this function
+    void incoming(net::Stream_ptr);
 
     void serialize(liu::Storage&, const liu::buffer_t*);
     void resume_callback(liu::Restore&);
@@ -125,7 +127,6 @@ namespace microLB
     pool_signal_t get_pool_signal();
 
   private:
-    void incoming(net::Stream_ptr);
     void handle_connections();
     void handle_queue();
     void init_liveupdate();

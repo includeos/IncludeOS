@@ -9,7 +9,7 @@ namespace microLB
         const uint16_t client_port)
   {
     interface.tcp().listen(client_port,
-    [this] (auto conn) {
+    [this] (net::tcp::Connection_ptr conn) {
       assert(conn != nullptr && "TCP sanity check");
       this->incoming(std::make_unique<net::tcp::Stream> (conn));
     });
@@ -32,7 +32,7 @@ return [&interface, socket] (timeout_t timeout, node_connect_result_t callback)
           }));
       conn->on_connect(
         net::tcp::Connection::ConnectCallback::make_packed(
-        [timer, callback] (auto conn) {
+        [timer, callback] (net::tcp::Connection_ptr conn) {
           // stop timeout after successful connect
           Timers::stop(timer);
           if (conn != nullptr) {
