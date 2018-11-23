@@ -39,7 +39,15 @@ namespace net::tcp
     {
       m_tcp->on_connect(Connection::ConnectCallback::make_packed(
           [this, cb] (Connection_ptr conn)
-          { if(conn) cb(*this); }));
+          {
+            // this will ensure at least close is called if the connect fails
+            if (conn != nullptr) {
+              cb(*this);
+            }
+            else {
+              if (this->m_on_close) this->m_on_close();
+            }
+          }));
     }
 
     /**
