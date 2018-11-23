@@ -26,15 +26,19 @@ set(CMAKE_TOOLCHAIN_FILE ${INCLUDEOS_ROOT}/cmake/elf-toolchain.cmake)
 
 project (includeos C CXX)
 
+include(ExternalProject)
+include(CMakeDependentOption)
+
+#if not apple default is on.
+cmake_dependent_option(WITH_SOLO5 "Install with solo5 support" ON
+                        "NOT APPLE" OFF)
+
 if(NOT BORNED_AS_AN_APPLE)
-  option(WITH_SOLO5 "Install with solo5 support" ON)
-include(CheckCXXCompilerFlag)
+  include(CheckCXXCompilerFlag)
   check_cxx_compiler_flag(-std=c++17 HAVE_FLAG_STD_CXX17)
   if(NOT HAVE_FLAG_STD_CXX17)
     message(FATAL_ERROR "The provided compiler: " ${CMAKE_CXX_COMPILER} "\n does not support c++17 standard please make sure your CC and CXX points to a compiler that supports c++17")
   endif()
-else()
-  option(WITH_SOLO5 "Install with solo5 support" OFF)
 endif()
 
 if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
@@ -59,6 +63,11 @@ execute_process(COMMAND git describe --tags --dirty
 	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
 	        OUTPUT_VARIABLE OS_VERSION)
 string(STRIP ${OS_VERSION} OS_VERSION)
+
+cmake_dependent_option(CORE_OS "Only build the core OS reducing dependencies on botan,openssl etc" OFF
+  "NOT PLATFORM STREQUAL x86_nano" ON)
+
+
 
 option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
 if(cpu_feat_vanilla)
@@ -135,7 +144,7 @@ endif()
 
 # object format needs to be set BEFORE enabling ASM
 # see: https://cmake.org/Bug/bug_relationship_graph.php?bug_id=13166
-if ("${ARCH}" STREQUAL "i686")
+if ("${ARCH}" STREQUAL "i686" OR "${ARCH}" STREQUAL "i386" )
   set(CMAKE_ASM_NASM_OBJECT_FORMAT "elf")
   set(OBJCOPY_TARGET "elf32-i386")
   set(CAPABS "${CAPABS} -m32")
@@ -177,16 +186,6 @@ if (NOT DEFINED CONAN_PROFILE)
   SET(CONAN_PROFILE clang-5.0)
 endif()
 
-set(CONAN_APPLE False)
-set(CONAN_SOLO5 False)
-if (APPLE)
-  set(CONAN_APPLE True)
-endif(APPLE)
-
-if (WITH_SOLO5)
-  set(CONAN_SOLO5 True)
-endif()
-
 #Are we executing cmake from conan or locally
 #if locally then pull the deps from conanfile.py
 #if buiding from conan expect the conanbuildinfo.cmake to already be present
@@ -208,33 +207,21 @@ else() # in user space
   conan_cmake_run(
     CONANFILE conan/includeos/conanfile.py
     PROFILE ${CONAN_PROFILE}
-		OPTIONS apple=${CONAN_APPLE} solo5=${CONAN_SOLO5}
+    OPTIONS apple=${APPLE} solo5=${WITH_SOLO5} basic=${CORE_OS}
     BASIC_SETUP
+    NO_IMPORTS
     BUILD missing
   )
 endif()
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nacl.cmake)
-
+if(NOT CORE_OS)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nacl.cmake)
+endif()
 #
 # Subprojects
 #
 
 add_subdirectory(src)
-
-#
-# External projects
-#
-
-option(diskbuilder "Build and install memdisk helper tool" ON)
-if(diskbuilder)
-  ExternalProject_Add(diskbuilder
-    SOURCE_DIR ${INCLUDEOS_ROOT}/diskimagebuild
-    BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/diskimagebuild/build
-    INSTALL_DIR ${BIN}
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-  )
-endif(diskbuilder)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
@@ -310,21 +297,17 @@ install(PROGRAMS
   ${CMAKE_CURRENT_SOURCE_DIR}/etc/scripts/run.sh
   DESTINATION scripts)
 
+#this replicates the install of libraries from bundles using conan
 if(NOT CONAN_EXPORTED)
-  foreach(MODULE ${CONAN_CMAKE_MODULE_PATH})
-    #message("INPUT ${MODULE}")
-    string(REGEX MATCH ".*conan[\\\/]data[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/](.[a-zA-Z0-9_.-]*[^\\\/])[\\\/]" MOD ${MODULE})
-    set(NAME ${CMAKE_MATCH_1})
-    set(VERSION ${CMAKE_MATCH_2})
-    set(USER ${CMAKE_MATCH_3})
-    set(CHANNEL ${CMAKE_MATCH_4})
-    install(CODE
-    "execute_process(COMMAND conan install ${NAME}/${VERSION}@${USER}/${CHANNEL} -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
-    )
-  endforeach()
-  #install tools
   install(CODE
-  "execute_process(COMMAND conan install vmbuild/0.12.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX})"
+    "execute_process(COMMAND conan imports -if ${CMAKE_CURRENT_BINARY_DIR} -imf ${CMAKE_INSTALL_PREFIX}/${ARCH} ${CMAKE_CURRENT_SOURCE_DIR}/conan/includeos/conanfile.py)"
+  )
+  #install tools TODO THIS IS A [BUILD_REQUIRES] dependency for the service so should probably go there but for now its here so that things are in the right place
+  install(CODE
+    "execute_process(COMMAND conan install vmbuild/0.13.0@includeos/test -if ${CMAKE_INSTALL_PREFIX})"
+  )
+  install(CODE
+    "execute_process(COMMAND conan install diskimagebuild/0.13.0@includeos/test -if ${CMAKE_INSTALL_PREFIX})"
   )
 
 endif(NOT CONAN_EXPORTED)

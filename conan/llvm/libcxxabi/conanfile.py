@@ -1,35 +1,33 @@
-import os
-import shutil
-
 from conans import ConanFile,tools,CMake
 
 class LibCxxAbiConan(ConanFile):
     settings= "compiler","arch","build_type","os"
     name = "libcxxabi"
-    #version = "7.0" #todo remove..
-    #branch = "release_%s"% version.replace('.','')
     license = 'NCSA','MIT'
-    description = 'The LLVM Compiler Infrastructure Unwinder'
+    description = 'The LLVM Compiler Infrastructure C++abi library'
     url = "https://llvm.org/"
-    options ={"shared":[True,False],"threads":[True,False]}
-    default_options = {"shared":False,"threads":True}
-    #exports_sources=['../../../api*posix*']
+    options ={
+        "shared":[True,False]
+    }
+    default_options = {
+        "shared":False
+    }
     no_copy_source=True
 
-    def build_requirements(self):
-        self.build_requires("libunwind/{}@{}/{}".format(self.version,self.user,self.channel))
-    def imports(self):
-        self.copy("*.a",dst="lib",src="lib")
-
     def llvm_checkout(self,project):
-        branch = "release_%s"% self.version.replace('.','')
-        llvm_project=tools.Git(folder="project)
-        llvm_project.clone("https://github.com/llvm-mirror/%s.git"%project,branch=self.branch)
+        branch = "release_{}".format(self.version.replace('.',''))
+        llvm_project=tools.Git(folder=project)
+        llvm_project.clone("https://github.com/llvm-mirror/{}.git".format(project),branch=branch)
 
     def source(self):
         self.llvm_checkout("llvm")
         self.llvm_checkout("libcxx")
         self.llvm_checkout("libcxxabi")
+
+    def _triple_arch(self):
+        if str(self.settings.arch) == "x86":
+            return "i386"
+        return str(self.settings.arch)
 
     def _configure_cmake(self):
         cmake=CMake(self)
@@ -38,12 +36,13 @@ class LibCxxAbiConan(ConanFile):
         unwind=self.source_folder+"/libunwind"
         libcxx=self.source_folder+"/libcxx"
         if (self.settings.compiler == "clang"):
-            triple=str(self.settings.arch)+"-pc-linux-gnu"
+            triple=self._triple_arch()+"-pc-linux-gnu"
             cmake.definitions["LIBCXXABI_TARGET_TRIPLE"] = triple
         cmake.definitions['LIBCXXABI_LIBCXX_INCLUDES']=libcxx+'/include'
         cmake.definitions['LIBCXXABI_USE_LLVM_UNWINDER']=True
         cmake.definitions['LIBCXXABI_ENABLE_SHARED']=self.options.shared
         cmake.definitions['LIBCXXABI_ENABLE_STATIC']=True
+        #TODO consider that this locks us to llvm unwinder
         cmake.definitions['LIBCXXABI_ENABLE_STATIC_UNWINDER']=True
         cmake.definitions['LIBCXXABI_USE_LLVM_UNWINDER']=True
         cmake.definitions['LLVM_PATH']=llvm_source
@@ -58,6 +57,13 @@ class LibCxxAbiConan(ConanFile):
         cmake = self._configure_cmake()
         cmake.install()
         self.copy("*.h",dst="include",src="libcxxabi/include")
+
+
+    def package_info(self):
+        #where it was buildt doesnt matter
+        self.info.settings.os="ANY"
+        #what libcxx the compiler uses isnt of any known importance
+        self.info.settings.compiler.libcxx="ANY"
 
     def deploy(self):
         self.copy("*.h",dst="include",src="include")

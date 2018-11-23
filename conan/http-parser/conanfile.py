@@ -12,9 +12,8 @@ class HttpParserConan(ConanFile):
 
     def source(self):
         repo = tools.Git(folder="http_parser")
-        repo.clone("https://github.com/nodejs/http-parser.git")
-        self.run("git fetch --all --tags --prune",cwd="http_parser")
-        self.run("git checkout tags/v"+str(self.version)+" -b "+str(self.version),cwd="http_parser")
+        repo.clone("https://github.com/nodejs/http-parser.git",branch="v{}".format(self.version))
+    #TODO handle target flags
     def build(self):
         self.run("make http_parser.o",cwd="http_parser")
 

@@ -11,53 +11,47 @@ class ProtobufConan(ConanFile):
     name = "protobuf"
     version = "3.5.1.1"
     options = {"threads":[True, False]}
-
     default_options = {"threads": True}
-    #options = {"shared":False}
-    #branch = "version"+version
+
     license = 'Apache 2.0'
     description = 'A language-neutral, platform-neutral extensible mechanism for serializing structured data.'
     url = "https://developers.google.com/protocol-buffers/"
-    #keep_imports=True
 
-
-    def build_requirements(self):
-        self.build_requires("binutils/2.31@includeos/stable")
-        self.build_requires("musl/v1.1.18@includeos/stable")
-        self.build_requires("libcxx/[>=5.0]@{}/{}".format(self.user,self.channel))## do we need this or just headers
+    def requirements(self):
+        self.requires("libcxx/[>=5.0]@{}/{}".format(self.user,self.channel))## do we need this or just headers
 
     def imports(self):
-        self.copy("*",dst="target/include",src=self.deps_cpp_info["musl"].include_paths[0])
-        self.copy("*",dst="target/libcxx/include",src=self.deps_cpp_info["libcxx"].include_paths[0]+"/c++/v1")
-        #self.copy("*",dst="target/libunwind",src="libunwind")
-
+        self.copy("*",dst="include",src="include")
 
     def source(self):
         repo = tools.Git(folder="protobuf")
         repo.clone("https://github.com/google/protobuf.git",branch="v"+str(self.version))
 
+    def _target_triple(self):
+        if (str(self.settings.arch) == "x86"):
+            return "i386-pc-linux-gnu"
+        return str(self.settings.arch)+"-pc-linux-gnu"
+
     def build(self):
-        threads=''
-        if self.options.threads:
-            threads='ON'
-
-        env_inc=" -I"+self.build_folder+"/target/libcxx/include -I"+self.build_folder+"/target/include "
         cmake=CMake(self) #AutoToolsBuildEnvironment(self)
+        cflags=[]
 
-        cflags="-msse3 -g -mfpmath=sse"
-        cxxflags=cflags
+        if self.settings.build_type == "Debug":
+            cflags+=["-g"]
 
-        #if (self.settings.compiler == "clang" ):
-        #    cflags+=" -nostdlibinc -nostdinc" # do this in better python by using a list
-        #if (self.settings.compiler == "gcc" ):
-        #    cflags+=" -nostdinc "
+        if self.settings.compiler == "clang":
+            cflags+=[" -target={} ".format(self._target_triple())]
 
-        cxxflags+=env_inc
-        cflags+=env_inc
-
-        #cmake.definitions["CMAKE_C_FLAGS"] = cflags
-        #cmake.definitions["CMAKE_CXX_FLAGS"] = cxxflags
-        cmake.definitions['CMAKE_USE_PTHREADS_INIT']=threads
+        if str(self.settings.arch) == "x86":
+            cflags+=['-m32']
+        #TODO fix cflags
+        cflags+=['-msse3','-mfpmath=sse']
+        ##how to pass this properly to cmake..
+        cflags+=["-I"+self.build_folder+"/include/c++/v1","-I"+self.build_folder+"/include"]
+        cmake.definitions['CMAKE_CROSSCOMPILING']=True
+        #cmake.definitions['CMAKE_C_FLAGS']=" ".join(cflags)
+        cmake.definitions['CMAKE_CXX_FLAGS']=" ".join(cflags)
+        cmake.definitions['CMAKE_USE_PTHREADS_INIT']=self.options.threads
         cmake.definitions['protobuf_VERBOSE']='ON'
         cmake.definitions['protobuf_BUILD_TESTS']='OFF'
         cmake.definitions['protobuf_BUILD_EXAMPLES']='OFF'

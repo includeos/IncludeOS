@@ -23,4 +23,4 @@ target_link_libraries(diskbuilder stdc++)
 #
 set(CMAKE_INSTALL_MESSAGE LAZY) # to avoid spam
 
-install(TARGETS diskbuilder DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(TARGETS diskbuilder DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

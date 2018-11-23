@@ -9,7 +9,7 @@ set(PLATFORM x86_nano)
 
 option(default_stdout "" OFF)
 
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/cmake/pre.service.cmake)
 
 project (chainloader)
 
@@ -23,5 +23,5 @@ set(SOURCES
 #set(LOCAL_INCLUDES ".")
 
 # include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+include($ENV{INCLUDEOS_PREFIX}/cmake/post.service.cmake)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${BINARY} DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos)

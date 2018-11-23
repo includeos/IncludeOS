@@ -11,34 +11,42 @@ class IncludeOSConan(ConanFile):
     generators = 'cmake'
     url = "http://www.includeos.org/"
 
-    options = {"apple":[True, False], "solo5":[True,False]}
+    options = {
+        "apple":['',True],
+        "solo5":['ON','OFF'],
+        "basic":['ON','OFF']
+    }
     #actually we cant build without solo5 ?
-    default_options = {"apple": False, "solo5" : True}
+    default_options= {
+        "apple": '',
+        "solo5": 'OFF',
+        "basic": 'OFF'
+    }
     #no_copy_source=True
     #keep_imports=True
-    def build_requirements(self):
-        self.build_requires("libcxxabi/[>=5.0]@includeos/test")## do we need this or just headers
-        self.build_requires("libcxx/[>=5.0]@includeos/test")## do we need this or just headers
-        self.build_requires("libunwind/[>=5.0]@includeos/test")## do we need this or just headers
-        self.build_requires("musl/v1.1.18@includeos/test")
-        self.build_requires("binutils/[>=2.31]@includeos/test")
+    def requirements(self):
+        self.requires("libcxx/[>=5.0]@includeos/test")## do we need this or just headers
+        self.requires("GSL/2.0.0@includeos/test")
 
 
-        self.build_requires("GSL/1.0.0@includeos/test")
-        self.build_requires("protobuf/3.5.1.1@includeos/test")
-        self.build_requires("rapidjson/1.1.0@includeos/test")
-        self.build_requires("botan/2.8.0@includeos/test")
-        self.build_requires("openssl/1.1.1@includeos/test")
-        self.build_requires("s2n/1.1.1@includeos/test")
+        if self.options.basic == 'OFF':
+            self.requires("rapidjson/1.1.0@includeos/test")
+            self.requires("http-parser/2.8.1@includeos/test") #this one is almost free anyways
+            self.requires("uzlib/v2.1.1@includeos/test")
+            self.requires("protobuf/3.5.1.1@includeos/test")
+            self.requires("botan/2.8.0@includeos/test")
+            self.requires("openssl/1.1.1@includeos/test")
+            self.requires("s2n/1.1.1@includeos/test")
 
-        self.build_requires("http-parser/2.8.1@includeos/test")
-        self.build_requires("uzlib/v2.1.1@includeos/test")
+
 
         if (self.options.apple):
-            self.build_requires("libgcc/1.0@includeos/stable")
+            self.requires("libgcc/1.0@includeos/stable")
         if (self.options.solo5):
-            self.build_requires("solo5/0.4.1@includeos/test")
+            self.requires("solo5/0.4.1@includeos/test")
 
+    def imports(self):
+        self.copy("*")
 
     def source(self):
         repo = tools.Git(folder="includeos")
