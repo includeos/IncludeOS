@@ -99,6 +99,11 @@
       "enum" : ["std", "cirrus", "vmware", "qxl", "xenfb", "tcx", "cg3", "virtio", "none"]
     },
 
+    "snd" : {
+      "description" : "Enable sound card",
+      "enum" : ["sb16", "ac97", "hda", "pcspk", "all"]
+    },
+
     "vfio" : {
       "description" : "VFIO PCI-passthrough on device",
       "type" : "string"

@@ -539,6 +539,9 @@ class qemu(hypervisor):
         if "vga" in self._config:
             vga_arg = ["-vga", str(self._config["vga"])]
 
+        if "snd" in self._config:
+            vga_arg.extend(["-soundhw", str(self._config["snd"])])
+
         trace_arg = []
         if "trace" in self._config:
             trace_arg = ["-trace", "events=" + str(self._config["trace"])]
