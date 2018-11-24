@@ -42,7 +42,7 @@ namespace hw {
 
   struct msix_t
   {
-    msix_t(PCI_Device&, uint32_t capoff);
+    msix_t(PCI_Device&, bool msix, uint32_t capoff);
 
     // initialize msi-x tables for device
     void mask_entry(size_t);
@@ -64,6 +64,10 @@ namespace hw {
     uintptr_t table_addr = 0;
     uintptr_t pba_addr   = 0;
     std::vector<bool> used_vectors;
+    bool is_msix;
+
+    void init_msi(uint32_t);
+    void init_msix(uint32_t);
 
     inline auto* get_entry(size_t idx)
     {

@@ -17,6 +17,8 @@
 #define MSIX_ENTRY_SIZE       16
 #define MSIX_ENTRY_CTL_MASK   0x1
 
+#define MSI_ENABLE  0x1
+
 #define ENT_VECTOR_CTL  12
 #define ENT_MSG_DATA     8
 #define ENT_MSG_UPPER    4
@@ -113,8 +115,28 @@ namespace hw
     return pcibar.start + capbar_off;
   }
 
-  msix_t::msix_t(PCI_Device& device, uint32_t cap)
-    : dev(device)
+  msix_t::msix_t(PCI_Device& device, bool dev_msix, uint32_t cap)
+    : dev(device), is_msix(dev_msix)
+  {
+    if (is_msix) this->init_msix(cap);
+    else         this->init_msi(cap);
+  }
+
+  void msix_t::init_msi(uint32_t cap)
+  {
+    PRINT("[MSI] Initializing...\n");
+    uint16_t msg_ctl = dev.read16(cap + 0x2);
+    uint8_t mme = msg_ctl & 0xE;
+    assert(mme == 0 && "Only support 1 vector anyway");
+    // make room for 1 vector
+    used_vectors.resize(1);
+    // enable MSI
+    msg_ctl |= MSI_ENABLE;
+    dev.write16(cap + 0x2, msg_ctl);
+    PRINT("[MSI] Enabled with %zu vectors\n", this->vectors());
+  }
+
+  void msix_t::init_msix(uint32_t cap)
   {
     // validate capability structure
     assert(cap >= 0x40);

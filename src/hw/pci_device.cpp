@@ -130,6 +130,7 @@ namespace hw {
             devtype_.subclass);
       break;
     case PCI::classcode::STORAGE:
+    case PCI::classcode::MULTIMEDIA:
       INFO2("+--[ %s, %s (0x%x) ]",
             PCI::classcode_str(devtype_.classcode),
             PCI::vendor_str(vendor_id()),
@@ -259,4 +260,12 @@ namespace hw {
     return stat & (1 << 3);
   }
 
+  uint8_t PCI_Device::get_legacy_irq()
+  {
+    uint32_t value = this->read32(PCI::CONFIG_INTR);
+    if ((value & 0xFF) != 0xFF) {
+      return value & 0xFF;
+    }
+    return 0;
+  }
 } //< namespace hw

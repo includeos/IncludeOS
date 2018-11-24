@@ -217,7 +217,8 @@ struct msix_t;
     void intx_enable();
     // returns true if interrupt is asserted
     bool intx_status();
-
+    // the old ways
+    uint8_t get_legacy_irq();
     // return max number of possible MSI-x vectors for this device
     // or, zero if MSI-x support is not enabled
     uint8_t get_msix_vectors();

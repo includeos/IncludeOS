@@ -45,7 +45,15 @@ namespace hw
     auto cmd = read16(PCI_CMD_REG);
     write16(PCI_CMD_REG, cmd | (1 << 10));
     // enable MSI-X
-    this->msix = new msix_t(*this, msix_cap());
+    if (this->msix_cap()) {
+      this->msix = new msix_t(*this, true, msix_cap());
+    }
+    else if (this->msi_cap()) {
+      this->msix = new msix_t(*this, false, msi_cap());
+    }
+    else {
+      assert(0 && "No MSI or MSI-X capability found");
+    }
     // deallocate if it failed
     if (this->msix->vectors() == 0) {
       delete this->msix;
