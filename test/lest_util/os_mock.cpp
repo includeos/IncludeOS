@@ -17,6 +17,7 @@
 
 #include <unistd.h>
 #include <stdarg.h>
+#include <boot/multiboot.h>
 #ifdef __MACH__
 #include <stdlib.h>
 #include <stddef.h>
@@ -32,6 +33,10 @@ void* aligned_alloc(size_t alignment, size_t size) {
 }
 #endif
 
+#ifndef LIKELY
+//#define LIKELY(X)   __builtin_expect(X, 1)
+//#define UNLIKELY(X) __builtin_expect(X, 0)
+#endif
 
 char _DISK_START_;
 char _DISK_END_;
@@ -52,7 +57,7 @@ void Service::ready()
 }
 
 extern "C"
-void kprintf(char* format, ...)
+void kprintf(const char* format, ...)
 {
   va_list args;
   va_start(args, format);
@@ -66,16 +71,21 @@ void kprint(char* str)
 printf("%s", str);
 }
 
-#include <kernel/os.hpp>
-void OS::start(unsigned, unsigned) {}
-void OS::default_stdout(const char*, size_t) {}
-void OS::event_loop() {}
-void OS::block() {}
-void OS::halt() {}
-void OS::resume_softreset(intptr_t) {}
-bool OS::is_softreset_magic(uint32_t) {
+#include <os.hpp>
+#include <hal/machine.hpp>
+//void OS::start(unsigned, unsigned) {}
+//void os::default_stdout(const char*, size_t) {}
+void os::event_loop() {}
+void os::block() noexcept {}
+void os::halt() noexcept {}
+void os::reboot() noexcept {}
+//void os::print_backtrace() noexcept {}
+//void os::print_backtrace(void(*)(const char*, size_t)) noexcept {}
+
+//void os::resume_softreset(intptr_t) {}
+/*bool OS::is_softreset_magic(uint32_t) {
   return true;
-}
+  }*/
 
 void __x86_init_paging(void*){};
 namespace x86 {
@@ -91,7 +101,7 @@ void paging_test_init(){
   __exec_end = 0xb0000b;
 }
 
-void OS::multiboot(unsigned) {}
+//void OS::multiboot(unsigned) {}
 
 #include <system_log>
 void SystemLog::initialize() {}
@@ -206,32 +216,73 @@ bool rdrand32(uint32_t* result) {
   return true;
 }
 
+os::Machine& os::machine() noexcept {
+  static os::Machine* m = nullptr;
+  constexpr size_t memsize = 0x1000000;
+  if (UNLIKELY(m == nullptr))
+    m = os::Machine::create(malloc(memsize), memsize);
+  return *m;
+}
+
+static os::on_panic_func __on_panic = nullptr;
+
+void os::panic(const char* reason) noexcept {
+  printf("PANIC: %s \n", reason);
+  __on_panic(reason);
+  exit(-1);
+}
+
+void os::on_panic(os::on_panic_func f){
+  __on_panic = f;
+}
+
+const char* os::cmdline_args() noexcept {
+  return "unittests";
+}
+
 /// heap ///
-uintptr_t __brk_max = 0;
-uintptr_t OS::heap_begin() noexcept {
-  return 0;
+//uintptr_t __brk_max = 0;
+
+namespace kernel {
+  uintptr_t heap_begin() noexcept {
+    return 0;
+  }
+
+  uintptr_t heap_end() noexcept {
+    return 1 << 30;
+  }
+
+  uintptr_t heap_max() noexcept {
+    return -1;
+  }
+
+  size_t total_memuse() noexcept {
+    return heap_end();
+  }
+
+  void init_heap(uintptr_t, size_t) noexcept {
+    INFO("TEST", "Initializing heap");
+  }
+
+  struct State {};
+
+  multiboot_info_t* bootinfo() {
+    return nullptr;
+  }
+
+
+  State& state() {
+    static State s{};
+    return s;
+  }
+
+
 }
 
-uintptr_t OS::memory_end_ = 1 << 30;
-
-uintptr_t OS::heap_end() noexcept {
-  return memory_end_;
-}
-
-size_t OS::heap_usage() noexcept {
+/*size_t OS::heap_usage() noexcept {
   return OS::heap_end();
-}
+  }*/
 
-uintptr_t OS::heap_max() noexcept {
-  return -1;
-}
 
-size_t OS::total_memuse() noexcept {
-  return heap_end();
-}
-
-void OS::init_heap(uintptr_t, size_t) noexcept {
-  INFO("TEST", "Initializing heap");
-};
 
 #endif

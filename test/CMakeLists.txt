@@ -188,7 +188,7 @@ set(OS_SOURCES
   ${SRC}/kernel/pci_manager.cpp
   ${SRC}/kernel/rng.cpp
   ${SRC}/kernel/service_stub.cpp
-  ${SRC}/kernel/syscalls.cpp
+  #${SRC}/kernel/syscalls.cpp
   ${SRC}/kernel/timers.cpp
   ${SRC}/musl/brk.cpp
   ${SRC}/net/buffer_store.cpp

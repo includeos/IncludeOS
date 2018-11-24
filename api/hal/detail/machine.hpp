@@ -151,7 +151,7 @@ namespace os::detail {
     };
 
     template <typename T>
-    void remove(int i); // TODO: implement
+    void remove(int i) {}; // TODO: implement
 
 
     inline Memory& memory() {

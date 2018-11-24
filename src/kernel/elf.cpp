@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <vector>
 #include <elf.h>
+#include <os.hpp>
 #include <arch.hpp>
 
 #if __LP64__

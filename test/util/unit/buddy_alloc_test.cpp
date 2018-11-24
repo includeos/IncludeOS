@@ -382,7 +382,7 @@ CASE("mem::buddy as std::allocator") {
   Pool pool(1_GiB);
   auto* resource = pool.alloc;
 
-  std::vector<int, os::mem::Allocator<int, Pool::Alloc>> numbers(resource);
+  std::vector<int, os::mem::Allocator<int, Pool::Alloc>> numbers(*resource);
 
   EXPECT(resource->empty());
   numbers.push_back(10);
