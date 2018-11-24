@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <hw/nic.hpp>
 #include <hw/block_device.hpp>
+#include <hw/audio_device.hpp>
 
 namespace hw {
   class PCI_Device;
@@ -36,6 +37,9 @@ public:
 
   using BLK_driver = delegate< std::unique_ptr<hw::Block_device> (hw::PCI_Device&) >;
   static void register_blk(uint16_t, uint16_t, BLK_driver);
+
+  using SND_driver = delegate< std::unique_ptr<hw::Audio_device> (hw::PCI_Device&) >;
+  static void register_snd(uint16_t, uint16_t, SND_driver);
 
   static void init(uint8_t classcode);
   static  Device_vector devices();

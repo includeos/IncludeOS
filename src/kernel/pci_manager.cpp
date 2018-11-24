@@ -33,6 +33,7 @@ using fixed_factory_t = std::vector<Driver_entry<Driver>>;
 static std::vector<hw::PCI_Device> devices_;
 static std::vector<Driver_entry<PCI_manager::NIC_driver>> nic_fact;
 static std::vector<Driver_entry<PCI_manager::BLK_driver>> blk_fact;
+static std::vector<Driver_entry<PCI_manager::SND_driver>> snd_fact;
 
 template <typename Factory, typename Class>
 static inline bool register_device(hw::PCI_Device& dev,
@@ -105,6 +106,14 @@ void PCI_manager::scan_bus(const uint8_t classcode, const int bus)
           register_device_nic(stored_dev, nic_fact);
         }
         break;
+      case PCI::MULTIMEDIA:
+        if (classcode == PCI::MULTIMEDIA
+          && (devclass.subclass == 0x1 || devclass.subclass == 0x3))
+        {
+          auto& stored_dev = devices_.emplace_back(pci_addr, id, devclass.reg);
+          register_device<SND_driver, hw::Audio_device>(stored_dev, snd_fact);
+        }
+        break;
       case PCI::BRIDGE:
         // scan secondary bus for PCI-to-PCI bridges
         if (devclass.subclass == 0x4) {
@@ -148,4 +157,8 @@ void PCI_manager::register_nic(uint16_t vendor, uint16_t prod, NIC_driver factor
 void PCI_manager::register_blk(uint16_t vendor, uint16_t prod, BLK_driver factory)
 {
   blk_fact.emplace_back(driver_id(vendor, prod), factory);
+}
+void PCI_manager::register_snd(uint16_t vendor, uint16_t prod, SND_driver factory)
+{
+  snd_fact.emplace_back(driver_id(vendor, prod), factory);
 }

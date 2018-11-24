@@ -104,6 +104,8 @@ void __platform_init()
   OS::m_block_drivers_ready = true;
   // Initialize network devices
   PCI_manager::init(PCI::NIC);
+  // Initialize all multimedia devices
+  PCI_manager::init(PCI::MULTIMEDIA);
 
   // Print registered devices
   hw::Devices::print_devices();
