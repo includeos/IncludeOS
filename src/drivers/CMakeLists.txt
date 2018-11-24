@@ -58,6 +58,11 @@ add_dependencies(vga_output PrecompiledLibraries)
 add_library(vga_emergency STATIC vga_emergency.cpp)
 add_dependencies(vga_emergency PrecompiledLibraries)
 
+# sound cards
+
+add_library(ac97 STATIC ac97.cpp)
+add_dependencies(ac97 PrecompiledLibraries)
+
 #
 # Installation
 #
@@ -78,6 +83,7 @@ install(TARGETS
     ip4_reassembly
     heap_debugging
     disk_logger disklog_reader
+    ac97
     # stdout drivers that are simple enough to remain here
     boot_logger timestamps
   DESTINATION includeos/${ARCH}/drivers)
