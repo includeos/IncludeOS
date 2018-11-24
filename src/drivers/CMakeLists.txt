@@ -63,6 +63,9 @@ add_dependencies(vga_emergency PrecompiledLibraries)
 add_library(ac97 STATIC ac97.cpp)
 add_dependencies(ac97 PrecompiledLibraries)
 
+add_library(ihda STATIC ihda.cpp)
+add_dependencies(ihda PrecompiledLibraries)
+
 #
 # Installation
 #
@@ -83,7 +86,7 @@ install(TARGETS
     ip4_reassembly
     heap_debugging
     disk_logger disklog_reader
-    ac97
+    ac97 ihda
     # stdout drivers that are simple enough to remain here
     boot_logger timestamps
   DESTINATION includeos/${ARCH}/drivers)
