@@ -19,9 +19,9 @@
 #define MYINFO(X,...) INFO("Kernel", X, ##__VA_ARGS__)
 
 #include <boot/multiboot.h>
-#include <os.hpp>
 #include <kernel.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
+#include <rtc>
 #include <kernel/events.hpp>
 #include <kernel/memory.hpp>
 #include <kprint>
@@ -81,7 +81,13 @@ void kernel::default_stdout(const char* str, const size_t len)
   __serial_print(str, len);
 }
 
-void OS::start(uint32_t boot_magic, uint32_t boot_addr)
+extern kernel::ctor_t __stdout_ctors_start;
+extern kernel::ctor_t __stdout_ctors_end;
+extern void __arch_init_paging();
+extern void __platform_init();
+extern void elf_protect_symbol_areas();
+
+void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   PROFILE("OS::start");
   kernel::state().cmdline = Service::binary_name();
@@ -91,8 +97,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
     os::add_stdout(&kernel::default_stdout);
   }
 
-  extern kernel::ctor_t __stdout_ctors_start;
-  extern kernel::ctor_t __stdout_ctors_end;
   kernel::run_ctors(&__stdout_ctors_start, &__stdout_ctors_end);
 
   // Print a fancy header
@@ -103,20 +107,19 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   // PAGING //
   PROFILE("Enable paging");
-  extern void __arch_init_paging();
   __arch_init_paging();
 
   // BOOT METHOD //
   PROFILE("Multiboot / legacy");
   // Detect memory limits etc. depending on boot type
   if (boot_magic == MULTIBOOT_BOOTLOADER_MAGIC) {
-    OS::multiboot(boot_addr);
+    kernel::multiboot(boot_addr);
   } else {
 
     if (kernel::is_softreset_magic(boot_magic) && boot_addr != 0)
       kernel::resume_softreset(boot_addr);
 
-    OS::legacy_boot();
+    kernel::legacy_boot();
   }
   assert(kernel::memory_end() != 0);
 
@@ -128,10 +131,9 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
-  auto& memmap = memory_map();
+  auto& memmap = os::mem::vmmap();
   INFO2("Assigning fixed memory ranges (Memory map)");
   // protect symbols early on (the calculation is complex so not doing it here)
-  extern void elf_protect_symbol_areas();
   elf_protect_symbol_areas();
 
 #if defined(ARCH_x86_64)
@@ -156,7 +158,6 @@ void OS::start(uint32_t boot_magic, uint32_t boot_addr)
       INFO2("%s", entry.second.to_string().c_str());
 
   PROFILE("Platform init");
-  extern void __platform_init();
   __platform_init();
 
   PROFILE("RTC init");
@@ -182,7 +183,7 @@ void os::event_loop()
 }
 
 
-void OS::legacy_boot()
+void kernel::legacy_boot()
 {
   // Fetch CMOS memory info (unfortunately this is maximally 10^16 kb)
   auto mem = x86::CMOS::meminfo();
@@ -196,7 +197,7 @@ void OS::legacy_boot()
     kernel::state().memory_end = 0x100000 + high_memory_size - 1;
   }
 
-  auto& memmap = memory_map();
+  auto& memmap = os::mem::vmmap();
   // No guarantees without multiboot, but we assume standard memory layout
   memmap.assign_range({0x0009FC00, 0x0009FFFF,
         "EBDA"});

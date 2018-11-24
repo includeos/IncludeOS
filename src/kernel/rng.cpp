@@ -17,7 +17,7 @@
 
 #include <kernel/rng.hpp>
 #include <kernel/cpuid.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <os.hpp>
 #include <kernel/rdrand.hpp>
 #include <algorithm>

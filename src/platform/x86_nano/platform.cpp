@@ -21,10 +21,10 @@ static void platform_init()
   x86::idt_initialize_for_cpu(0);
 }
 
-void OS::start(uint32_t boot_magic, uint32_t boot_addr)
+void kernel::start(uint32_t boot_magic, uint32_t boot_addr)
 {
   assert(boot_magic == MULTIBOOT_BOOTLOADER_MAGIC);
-  OS::multiboot(boot_addr);
+  kernel::multiboot(boot_addr);
   assert(kernel::memory_end() != 0);
 
   platform_init();

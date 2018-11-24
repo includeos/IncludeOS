@@ -25,9 +25,9 @@
 #include <util/alloc_buddy.hpp>
 #include <util/allocator.hpp>
 #include <sstream>
+#include <kernel/memmap.hpp>
 
-namespace os {
-namespace mem {
+namespace os::mem {
 
   /** POSIX mprotect compliant access bits **/
   enum class Access : uint8_t {
@@ -163,7 +163,19 @@ namespace mem {
 
   void virtual_move(uintptr_t src, size_t size, uintptr_t dst, const char* label);
 
-}} // os::mem
+  /** Virtual memory map **/
+  inline Memory_map& vmmap() {
+    // TODO Move to machine
+    static Memory_map memmap;
+    return memmap;
+  };
+
+  bool heap_ready();
+
+} // os::mem
+
+
+
 
 
 // Enable bitwise ops on access flags
@@ -178,8 +190,7 @@ inline namespace bitops {
 }
 
 
-namespace os {
-namespace mem {
+namespace os::mem {
 
   //
   // mem::Mapping implementation
@@ -330,8 +341,5 @@ namespace mem {
   }
 }
 
-  bool heap_ready();
-
-}
 
 #endif

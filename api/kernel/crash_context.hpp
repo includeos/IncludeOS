@@ -15,14 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef KERNEL_SYSCALLS_HPP
-#define KERNEL_SYSCALLS_HPP
+#ifndef KERNEL_CRASH_CONTEXT_HPP
+#define KERNEL_CRASH_CONTEXT_HPP
 
 #include <sys/types.h>
 
 extern "C" {
-
-  void default_exit() __attribute__((noreturn));
 
   char*  get_crash_context_buffer();
   size_t get_crash_context_length();
@@ -47,4 +45,4 @@ extern "C" {
 #define SET_CRASH(...) /* */
 #endif
 
-#endif //< KERNEL_SYSCALLS_HPP
+#endif //< KERNEL_CRASH_CONTEXT_HPP

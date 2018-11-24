@@ -1,6 +1,5 @@
 #include "common.hpp"
 #include <sys/select.h>
-#include <kernel/syscalls.hpp>
 
 long sys_select(int /*nfds*/,
                 fd_set* /*readfds*/,

@@ -15,10 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <kernel/syscalls.hpp>
 #include <os.hpp>
 #include <kernel.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/elf.hpp>
 #include <system_log>
 #include <statman>
@@ -55,7 +54,7 @@ void abort_message(const char* format, ...)
 
 void _exit(int status) {
   SYSINFO("Service exiting with status %d", status);
-  default_exit();
+  kernel::default_exit();
   __builtin_unreachable();
 }
 
@@ -63,7 +62,7 @@ extern "C"
 void syscall_SYS_exit_group(int status)
 {
   SYSINFO("Service exiting with status %d", status);
-  default_exit();
+  kernel::default_exit();
   __builtin_unreachable();
 }
 
@@ -230,7 +229,7 @@ void panic_epilogue(const char* why)
 }
 
 // Shutdown the machine when one of the exit functions are called
-void default_exit() {
+void kernel::default_exit() {
   __arch_poweroff();
   __builtin_unreachable();
 }

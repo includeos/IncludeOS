@@ -120,5 +120,5 @@ void unik::Client::register_instance_dhcp() {
 
 __attribute__((constructor))
 void register_plugin_unik(){
-  OS::register_plugin(unik::Client::register_instance_dhcp, "Unik register instance");
+  os::register_plugin(unik::Client::register_instance_dhcp, "Unik register instance");
 }

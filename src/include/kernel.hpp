@@ -19,11 +19,13 @@
 
 #include <hal/machine.hpp>
 #include <util/units.hpp>
+#include <boot/multiboot.h>
 
 namespace kernel {
 
   using namespace util;
   constexpr size_t default_max_mem = 2_GiB;
+  constexpr uintptr_t page_shift   = 12;
 
   struct State {
     bool running               = true;
@@ -41,6 +43,7 @@ namespace kernel {
     int  panics                = 0;
     os::Panic_action panic_action {};
     util::KHz cpu_khz {-1};
+    //const uintptr_t elf_binary_size = 0;
   };
 
   State& state() noexcept;
@@ -90,7 +93,7 @@ namespace kernel {
   }
 
   using ctor_t = void (*)();
-  inline static void run_ctors(ctor_t* begin, ctor_t* end)
+  inline void run_ctors(ctor_t* begin, ctor_t* end)
   {
   	for (; begin < end; begin++) (*begin)();
   }
@@ -99,7 +102,35 @@ namespace kernel {
     return state().cpu_khz;
   }
 
-  inline
+  /** First address of the heap **/
+  inline uintptr_t heap_begin() noexcept {
+    return state().heap_begin;
+  }
+
+  /** The maximum last address of the dynamic memory area (heap) */
+  inline uintptr_t heap_max() noexcept {
+    return state().heap_max;
+  }
+
+  /** Initialize platform, devices etc. */
+  void start(uint32_t boot_magic, uint32_t boot_addr);
+
+  void start(const char* cmdline);
+
+  /** Initialize common subsystems, call Service::start */
+  void post_start();
+
+  /** Process multiboot info. Called by 'start' if multibooted **/
+  void multiboot(uint32_t boot_addr);
+
+  multiboot_info_t* bootinfo();
+
+  /** Boot with no multiboot params */
+  void legacy_boot();
+
+  //static constexpr int PAGE_SHIFT = 12;
+  //static
+
 
   void default_stdout(const char*, size_t);
 
@@ -120,8 +151,8 @@ namespace kernel {
 
   void setup_liveupdate(uintptr_t phys = 0);
 
-
   bool heap_ready();
+
   void init_heap(os::Machine::Memory& mem);
 
   /** The end of usable memory **/
@@ -136,24 +167,25 @@ namespace kernel {
   size_t heap_avail() noexcept;
 
 
-  /** First address of the heap **/
-  inline uintptr_t heap_begin() noexcept {
-    return state().heap_begin;
-  }
-
-  /** The maximum last address of the dynamic memory area (heap) */
-  inline uintptr_t heap_max() noexcept {
-    return state().heap_max;
-  }
-
-
   void init_heap(uintptr_t phys_begin, size_t size) noexcept;
 
   /** Last used address of the heap **/
   uintptr_t heap_end() noexcept;
 
 
+  void default_exit() __attribute__((noreturn));
 
+  constexpr uint32_t page_size() noexcept {
+    return 4096;
+  }
+
+  constexpr uint32_t addr_to_page(uintptr_t addr) noexcept {
+    return addr >> page_shift;
+  }
+
+  constexpr uintptr_t page_to_addr(uint32_t page) noexcept {
+    return page << page_shift;
+  }
 
 
 }

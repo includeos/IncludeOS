@@ -22,7 +22,7 @@
 #include <cassert>
 #include <cstring>
 #include <locale>
-#include <kernel/syscalls.hpp> // for panic()
+#include <os.hpp> // for panic()
 
 #include <info>
 #include <common>

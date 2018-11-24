@@ -28,7 +28,7 @@
 #include <elf.h>
 #include "storage.hpp"
 #include <kernel.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/memory.hpp>
 #include <hw/devices.hpp>
 

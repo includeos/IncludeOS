@@ -17,7 +17,7 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <kernel/os.hpp>
+#include <os.hpp>
 
 void __default_quick_exit() {
   os::panic(">>> Quick exit, default route");

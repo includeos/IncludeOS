@@ -20,7 +20,7 @@
 #include "apic.hpp"
 #include "apic_revenant.hpp"
 #include "pit.hpp"
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/events.hpp>
 #include <malloc.h>
 #include <algorithm>

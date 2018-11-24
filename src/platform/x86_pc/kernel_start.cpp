@@ -15,8 +15,7 @@
 // limitations under the License.
 
 #include <kernel.hpp>
-#include <kernel/os.hpp>
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 #include <kernel/cpuid.hpp>
 #include <boot/multiboot.h>
 #include <kprint>
@@ -95,7 +94,7 @@ int kernel_main(int, char * *, char * *) {
   PRATTLE("<kernel_main> OS start \n");
 
   // Initialize early OS, platform and devices
-  OS::start(__grub_magic, __grub_addr);
+  kernel::start(__grub_magic, __grub_addr);
 
   // verify certain read-only sections in memory
   // NOTE: because of page protection we can choose to stop checking here
@@ -103,7 +102,7 @@ int kernel_main(int, char * *, char * *) {
 
   PRATTLE("<kernel_main> post start \n");
   // Initialize common subsystems and call Service::start
-  OS::post_start();
+  kernel::post_start();
 
   // Starting event loop from here allows us to profile OS::start
   os::event_loop();

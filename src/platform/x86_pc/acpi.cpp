@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #include "acpi.hpp"
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <hw/ioport.hpp>
 #include <debug>
 #include <info>

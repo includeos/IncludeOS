@@ -16,10 +16,11 @@
 // limitations under the License.
 
 #include <common>
+#include <cstdint>
+
 #include <util/crc32.hpp>
 #include <kernel/elf.hpp>
-#include <kernel/syscalls.hpp>
-#include <cstdint>
+
 #include <kprint>
 
 // Global constructors

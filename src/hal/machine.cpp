@@ -16,6 +16,7 @@
 
 #include <hal/machine.hpp>
 #include <util/units.hpp>
+#include <kernel.hpp>
 #include <os>
 
 #ifndef INFO_MACHINE
@@ -56,7 +57,7 @@ namespace os::detail {
       }
     }
 
-    OS::init_heap((uintptr_t)main_mem.ptr, main_mem.size);
+    kernel::init_heap((uintptr_t)main_mem.ptr, main_mem.size);
   }
 
   const char* Machine::arch() { return Arch::name; }

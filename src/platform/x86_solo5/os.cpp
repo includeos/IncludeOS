@@ -68,7 +68,7 @@ void kernel::default_stdout(const char* str, const size_t len)
   solo5_console_write(str, len);
 }
 
-void OS::start(const char* cmdline)
+void kernel::start(const char* cmdline)
 {
   kernel::state().cmdline = cmdline;
 
@@ -97,7 +97,7 @@ void OS::start(const char* cmdline)
 
   PROFILE("Memory map");
   // Assign memory ranges used by the kernel
-  auto& memmap = memory_map();
+  auto& memmap = os::mem::vmmap();
   MYINFO("Assigning fixed memory ranges (Memory map)");
 
   memmap.assign_range({0x500, 0x5fff, "solo5"});

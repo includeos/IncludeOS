@@ -20,7 +20,7 @@
 #include <kernel.hpp>
 #include <kernel/cpuid.hpp>
 #include <kernel/elf.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <util/fixed_vector.hpp>
 #include <unordered_map>
 #include <cassert>

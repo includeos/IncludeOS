@@ -20,7 +20,7 @@
 **/
 #include "liveupdate.hpp"
 
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel.hpp>
 #include "storage.hpp"
 #include "serialize_tcp.hpp"

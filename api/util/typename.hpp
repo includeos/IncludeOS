@@ -34,7 +34,7 @@ namespace os {
   inline Machine_str demangle(const char* name) {
     using namespace util::literals;
 
-    if (not os::heap_ready() or name == nullptr) {
+    if (not mem::heap_ready() or name == nullptr) {
       return name;
     }
 

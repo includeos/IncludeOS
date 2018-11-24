@@ -1,5 +1,5 @@
 #include "common.hpp"
-#include <kernel/syscalls.hpp>
+#include <sys/types.h>
 
 int sys_kill(pid_t /*pid*/, int /*sig*/) {
   os::panic("KILL called");

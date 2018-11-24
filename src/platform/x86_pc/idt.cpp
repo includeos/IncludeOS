@@ -1,6 +1,6 @@
 #include "idt.hpp"
 #include <kernel/events.hpp>
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 #include <kprint>
 #include <info>
 #include <os>
@@ -299,9 +299,9 @@ void __page_fault(uintptr_t* regs, uint32_t code) {
   if (code & 0x8000)
     fprintf(stderr,"SGX access violation.\n");
 
-  auto key = OS::memory_map().in_range(addr);
+  auto key = os::mem::vmmap().in_range(addr);
   if (key) {
-    auto& range = OS::memory_map().at(key);
+    auto& range = os::mem::vmmap().at(key);
     printf("Violated address is in mapped range \"%s\" \n", range.name());
   } else {
     printf("Violated address is outside mapped memory\n");

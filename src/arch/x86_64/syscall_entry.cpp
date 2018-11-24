@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <arch/x86/cpu.hpp>
-#include <kernel/syscalls.hpp>
+#include <os.hpp>
 #include <common>
 #include <kprint>
 #include <errno.h>

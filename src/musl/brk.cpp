@@ -1,6 +1,6 @@
 #include "common.hpp"
 #include <string.h>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <errno.h>
 #include <kprint>
 

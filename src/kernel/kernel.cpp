@@ -14,7 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <kernel/os.hpp>
+
 #include <os.hpp>
 #include <kernel.hpp>
 #include <kernel/rng.hpp>
@@ -54,7 +54,7 @@ util::KHz os::cpu_freq() {
   return kernel::cpu_freq();
 }
 
-const uintptr_t OS::elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
+const uintptr_t elf_binary_size_ {(uintptr_t)&_ELF_END_ - (uintptr_t)&_ELF_START_};
 
 // stdout redirection
 using Print_vec = Fixed_vector<os::print_func, 8>;
@@ -62,9 +62,9 @@ static Print_vec os_print_handlers(Fixedvector_Init::UNINIT);
 
 // Plugins
 struct Plugin_desc {
-  Plugin_desc(OS::Plugin f, const char* n) : func{f}, name{n} {}
+  Plugin_desc(os::Plugin f, const char* n) : func{f}, name{n} {}
 
-  OS::Plugin  func;
+  os::Plugin  func;
   const char* name;
 };
 static Fixed_vector<Plugin_desc, 16> plugins(Fixedvector_Init::UNINIT);
@@ -96,7 +96,7 @@ extern kernel::ctor_t __plugin_ctors_end;
 extern kernel::ctor_t __service_ctors_start;
 extern kernel::ctor_t __service_ctors_end;
 
-void OS::register_plugin(Plugin delg, const char* name){
+void os::register_plugin(Plugin delg, const char* name){
   MYINFO("Registering plugin %s", name);
   plugins.emplace_back(delg, name);
 }
@@ -111,7 +111,7 @@ void os::shutdown() noexcept
   kernel::state().running = false;
 }
 
-void OS::post_start()
+void kernel::post_start()
 {
   // Enable timestamps (if present)
   kernel::state().timestamps_ready = true;

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <util/bitops.hpp>
 #include <util/units.hpp>
 #include <kernel.hpp>
@@ -58,15 +58,10 @@ extern void init_mmap(uintptr_t mmap_begin);
 uintptr_t __init_brk(uintptr_t begin, size_t size);
 uintptr_t __init_mmap(uintptr_t begin, size_t size);
 
-namespace kernel {
-  bool heap_ready() { return __heap_ready; }
-}
+bool kernel::heap_ready() { return __heap_ready; }
+bool os::mem::heap_ready() { return kernel::heap_ready(); }
 
-namespace os {
-  bool heap_ready() { return kernel::heap_ready(); }
-}
-
-void OS::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept {
+void kernel::init_heap(uintptr_t free_mem_begin, uintptr_t memory_end) noexcept {
   // NOTE: Initialize the heap before exceptions
   // cache-align heap, because its not aligned
   kernel::state().memory_end = memory_end;

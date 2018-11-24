@@ -2,7 +2,7 @@
 #include <arch/x86/cpu.hpp>
 #include <util/units.hpp>
 #include <kernel/cpuid.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <cstdio>
 #include <info>
 #include <smp>

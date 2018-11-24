@@ -19,8 +19,7 @@
  *
 **/
 #include "storage.hpp"
-
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel.hpp>
 #include <kernel/memory.hpp>
 #include <util/crc32.hpp>

@@ -17,7 +17,6 @@
 
 #include "uplink.hpp"
 #include "common.hpp"
-#include <kernel/os.hpp>
 #include <os.hpp>
 
 static void setup_uplink_plugin()
@@ -35,5 +34,5 @@ static void setup_uplink_plugin()
 
 __attribute__((constructor))
 void register_plugin_uplink(){
-  OS::register_plugin(setup_uplink_plugin, "Uplink");
+  os::register_plugin(setup_uplink_plugin, "Uplink");
 }

@@ -469,15 +469,15 @@ void elf_check_symbols_ok()
 #ifdef ARCH_x86_64
 #include <kernel/memmap.hpp>
 #include <kernel/memory.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 void elf_protect_symbol_areas()
 {
   char* src = (char*) parser.symtab.base;
   ptrdiff_t size = &parser.strtab.base[parser.strtab.size] - src;
-  if (size % OS::page_size()) size += OS::page_size() - (size & (OS::page_size()-1));
+  if (size % os::mem::min_psize()) size += os::mem::min_psize() - (size & (os::mem::min_psize()-1));
   if (size == 0) return;
   // create the ELF symbols & strings area
-  OS::memory_map().assign_range(
+  os::mem::vmmap().assign_range(
       {(uintptr_t) src, (uintptr_t) src + size-1, "Symbols & strings"});
 
   INFO2("* Protecting syms %p to %p (size %#zx)", src, &src[size], size);

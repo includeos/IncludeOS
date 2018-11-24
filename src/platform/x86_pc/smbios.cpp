@@ -20,7 +20,7 @@
 #include <cstring>
 #include <cstdio>
 #include <info>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel.hpp>
 
 namespace x86

@@ -20,7 +20,7 @@
 #include <kprint>
 #include <util/crc32.hpp>
 #include <kernel/elf.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 
 //#define ENABLE_CRC_RO
 

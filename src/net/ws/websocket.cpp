@@ -16,7 +16,6 @@
 // limitations under the License.
 
 #include <net/ws/websocket.hpp>
-#include <kernel/os.hpp>
 #include <os.hpp>
 #include <util/base64.hpp>
 #include <util/sha1.hpp>

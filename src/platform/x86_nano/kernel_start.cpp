@@ -18,7 +18,7 @@
 #include <kprint>
 #include <info>
 #include <kernel.hpp>
-#include <kernel/os.hpp>
+#include <os.hpp>
 #include <kernel/service.hpp>
 #include <boot/multiboot.h>
 
@@ -55,7 +55,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   __builtin_memset(&_BSS_START_, 0, &_BSS_END_ - &_BSS_START_);
 
   // Initialize heap
-  OS::init_heap(free_mem_begin, mem_end);
+  kernel::init_heap(free_mem_begin, mem_end);
 
   // Initialize system calls
   _init_syscalls();
@@ -64,7 +64,7 @@ void kernel_start(uintptr_t magic, uintptr_t addr)
   if (os_default_stdout)
     os::add_stdout(&kernel::default_stdout);
 
-  OS::start(magic, addr);
+  kernel::start(magic, addr);
 
   // Start the service
   Service::start();

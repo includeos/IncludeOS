@@ -1,4 +1,5 @@
 #include "common.hpp"
+#include <sys/stat.h>
 
 static long sys_mknodat(int /*dirfd*/, const char* /*path*/, mode_t, dev_t)
 {
