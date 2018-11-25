@@ -6,5 +6,5 @@
     {"device" : "virtio"},
     {"device" : "virtio"}
   ],
-  "mem" : 512
+  "mem" : 64
 }
