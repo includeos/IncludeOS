@@ -11,8 +11,6 @@
 // connection attempt timeouts
 #define CONNECT_TIMEOUT          10s
 #define CONNECT_THROW_PERIOD     20s
-#define INITIAL_SESSION_TIMEOUT   5s
-#define ROLLING_SESSION_TIMEOUT  60s
 
 #define LB_VERBOSE 0
 #if LB_VERBOSE
@@ -214,7 +212,7 @@ namespace microLB
     return session_total;
   }
   int32_t Nodes::timed_out_sessions() const {
-    return session_timeouts;
+    return 0;
   }
   Session& Nodes::create_session(bool talk, net::Stream_ptr client, net::Stream_ptr outgoing)
   {
@@ -239,21 +237,15 @@ namespace microLB
     assert(session.is_alive());
     return session;
   }
-  void Nodes::close_session(int idx, bool timeout)
+  void Nodes::close_session(int idx)
   {
     auto& session = get_session(idx);
-    // disable timeout timer
-    if (session.timeout_timer != Timers::UNUSED_ID) {
-      Timers::stop(session.timeout_timer);
-      session.timeout_timer = Timers::UNUSED_ID;
-    }
     // remove connections
     session.incoming->reset_callbacks();
     session.incoming = nullptr;
     session.outgoing->reset_callbacks();
     session.outgoing = nullptr;
     // free session
-    if (timeout) this->session_timeouts++;
     free_sessions.push_back(session.self);
     session_cnt--;
     LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
@@ -381,53 +373,26 @@ namespace microLB
       : parent(n), self(idx), incoming(std::move(inc)),
                               outgoing(std::move(out))
   {
-    // if the client talked before it was assigned a session, use bigger timeout
-    auto timeout = (talk) ? ROLLING_SESSION_TIMEOUT : INITIAL_SESSION_TIMEOUT;
-    // session timeout timer
-    this->timeout_timer = Timers::oneshot(timeout,
-    [&nodes = n, this] (int) {
-        this->timeout(nodes);
-    });
     incoming->on_read(READQ_PER_CLIENT,
     [this] (auto buf) {
         assert(this->is_alive());
-        this->handle_timeout();
         this->outgoing->write(buf);
     });
     incoming->on_close(
     [&nodes = n, idx] () {
-        nodes.get_session(idx).outgoing->close();
-        //nodes.get_session(idx).incoming->close();
+        nodes.close_session(idx);
     });
     outgoing->on_read(READQ_FOR_NODES,
     [this] (auto buf) {
         assert(this->is_alive());
-        this->handle_timeout();
         this->incoming->write(buf);
     });
     outgoing->on_close(
     [&nodes = n, idx] () {
-        //nodes.get_session(idx).outgoing->close();
-        nodes.get_session(idx).incoming->close();
+        nodes.close_session(idx);
     });
   }
   bool Session::is_alive() const {
     return incoming != nullptr;
-  }
-  void Session::handle_timeout()
-  {
-    // stop old timer
-    Timers::stop(this->timeout_timer);
-    // create new timeout
-    this->timeout_timer = Timers::oneshot(ROLLING_SESSION_TIMEOUT,
-    [&nodes = parent, this] (int) {
-        this->timeout(nodes);
-    });
-  }
-  void Session::timeout(Nodes& nodes)
-  {
-    assert(this->is_alive());
-    this->timeout_timer = Timers::UNUSED_ID;
-    nodes.close_session(this->self, true);
   }
 }

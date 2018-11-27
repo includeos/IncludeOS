@@ -23,13 +23,10 @@ namespace microLB
   struct Session {
     Session(Nodes&, int idx, bool talk, net::Stream_ptr in, net::Stream_ptr out);
     bool is_alive() const;
-    void handle_timeout();
-    void timeout(Nodes&);
     void serialize(liu::Storage&);
 
     Nodes&     parent;
     const int  self;
-    int        timeout_timer;
     net::Stream_ptr incoming;
     net::Stream_ptr outgoing;
   };
@@ -80,7 +77,7 @@ namespace microLB
     // returns the connection back if the operation fails
     net::Stream_ptr assign(net::Stream_ptr, queue_vector_t&);
     Session& create_session(bool talk, net::Stream_ptr inc, net::Stream_ptr out);
-    void     close_session(int, bool timeout = false);
+    void     close_session(int);
     Session& get_session(int);
 
     void serialize(liu::Storage&);
@@ -90,7 +87,6 @@ namespace microLB
     nodevec_t nodes;
     int64_t   session_total = 0;
     int       session_cnt = 0;
-    int       session_timeouts = 0;
     int       conn_iterator = 0;
     int       algo_iterator = 0;
     std::deque<Session> sessions;
