@@ -22,12 +22,11 @@ class IncludeOSConan(ConanFile):
         "solo5": 'OFF',
         "basic": 'OFF'
     }
-    #no_copy_source=True
+    no_copy_source=True
     #keep_imports=True
     def requirements(self):
         self.requires("libcxx/[>=5.0]@includeos/test")## do we need this or just headers
         self.requires("GSL/2.0.0@includeos/test")
-
 
         if self.options.basic == 'OFF':
             self.requires("rapidjson/1.1.0@includeos/test")
@@ -37,8 +36,6 @@ class IncludeOSConan(ConanFile):
             self.requires("botan/2.8.0@includeos/test")
             self.requires("openssl/1.1.1@includeos/test")
             self.requires("s2n/1.1.1@includeos/test")
-
-
 
         if (self.options.apple):
             self.requires("libgcc/1.0@includeos/stable")
@@ -54,15 +51,24 @@ class IncludeOSConan(ConanFile):
 
     def _configure_cmake(self):
         cmake = CMake(self)
-        cmake.configure(source_folder=self.source_folder+"/IncludeOS")
+        #glad True and False also goes but not recursily
+        cmake.definitions['WITH_SOLO5']=self.options.solo5
+        cmake.configure(source_folder=self.source_folder+"/includeos")
         return cmake;
+
     def build(self):
         cmake=self._configure_cmake()
         cmake.build()
 
     def package(self):
         cmake=self._configure_cmake()
+        #we are doing something wrong this "shouldnt" trigger a new build
         cmake.install()
+        #at this point we can copy things implace..
+        #or we can use the "building with conan flag to deply things
+        #in the right place"
+
+        #arch include and arch lib is causing issues
 
     def deploy(self):
         self.copy("*",dst=".",src=".")
