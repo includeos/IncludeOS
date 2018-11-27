@@ -29,9 +29,14 @@ namespace microLB
     (void) CLIENT_SLIMIT;
 
     auto& nodes = obj["nodes"];
+    // node interface
     const int NODE_NET = nodes["iface"].GetInt();
     auto& netout = net::Super_stack::get(NODE_NET);
-    netout.tcp().set_MSL(15s);
+    // node active-checks
+    bool use_active_check = true;
+    if (nodes.HasMember("active_check")) {
+      use_active_check = nodes["active_check"].GetBool();
+    }
 
     Balancer* balancer = nullptr;
 
@@ -39,13 +44,13 @@ namespace microLB
     {
       assert(clients.HasMember("key") && "TLS-enabled microLB must also have key");
       // create TLS over TCP load balancer
-      balancer = new Balancer(netinc, CLIENT_PORT, netout,
+      balancer = new Balancer(netinc, CLIENT_PORT, netout, use_active_check,
             clients["certificate"].GetString(),
             clients["key"].GetString());
     }
     else {
       // create TCP load balancer
-      balancer = new Balancer(netinc, CLIENT_PORT, netout);
+      balancer = new Balancer(netinc, CLIENT_PORT, netout, use_active_check);
     }
 
     auto& nodelist = nodes["list"];

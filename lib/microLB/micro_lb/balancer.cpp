@@ -25,8 +25,10 @@ namespace microLB
 {
   Balancer::Balancer(
          netstack_t& incoming, uint16_t in_port,
-         netstack_t& outgoing)
-    : nodes(), netin(incoming), netout(outgoing), signal({this, &Balancer::handle_queue})
+         netstack_t& outgoing, bool active_check)
+    : nodes(active_check),
+      netin(incoming), netout(outgoing),
+      signal({this, &Balancer::handle_queue})
   {
     netin.tcp().listen(in_port,
     [this] (auto conn) {
@@ -104,6 +106,7 @@ namespace microLB
     estimate = std::min(estimate, MAX_OUTGOING_ATTEMPTS);
     estimate = std::max(0, estimate - np_connecting);
     // create more outgoing connections
+    LBOUT("Estimated connections needed: %d\n", estimate);
     if (estimate > 0)
     {
       try {
@@ -147,17 +150,28 @@ namespace microLB
     // temporary iterator
     for (int i = 0; i < total; i++)
     {
+      bool dest_found = false;
       // look for next active node up to *size* times
       for (size_t i = 0; i < nodes.size(); i++)
       {
-        int iter = conn_iterator;
+        const int iter = conn_iterator;
         conn_iterator = (conn_iterator + 1) % nodes.size();
         // if the node is active, connect immediately
-        bool is_active = nodes[iter].is_active();
-        if (is_active) {
-          nodes[iter].connect();
+        auto& dest_node = nodes[iter];
+        if (dest_node.is_active()) {
+          dest_node.connect();
+          dest_found = true;
           break;
         }
+      }
+      // if no active node found, simply delegate to the next node
+      if (dest_found == false)
+      {
+        // with active-checks we can return here later when we get a connection
+        if (this->do_active_check) return;
+        const int iter = conn_iterator;
+        conn_iterator = (conn_iterator + 1) % nodes.size();
+        nodes[iter].connect();
       }
     }
   }
@@ -175,7 +189,7 @@ namespace microLB
         LBOUT("Assigning client to node %d (%s)\n",
               algo_iterator, outgoing->to_string().c_str());
         auto& session = this->create_session(
-            not readq.empty(), std::move(conn), std::move(outgoing));
+              std::move(conn), std::move(outgoing));
         // flush readq to session.outgoing
         for (auto buffer : readq) {
           LBOUT("*** Flushing %lu bytes\n", buffer->size());
@@ -214,15 +228,15 @@ namespace microLB
   int32_t Nodes::timed_out_sessions() const {
     return 0;
   }
-  Session& Nodes::create_session(bool talk, net::Stream_ptr client, net::Stream_ptr outgoing)
+  Session& Nodes::create_session(net::Stream_ptr client, net::Stream_ptr outgoing)
   {
     int idx = -1;
     if (free_sessions.empty()) {
       idx = sessions.size();
-      sessions.emplace_back(*this, idx, talk, std::move(client), std::move(outgoing));
+      sessions.emplace_back(*this, idx, std::move(client), std::move(outgoing));
     } else {
       idx = free_sessions.back();
-      new (&sessions[idx]) Session(*this, idx, talk, std::move(client), std::move(outgoing));
+      new (&sessions[idx]) Session(*this, idx, std::move(client), std::move(outgoing));
       free_sessions.pop_back();
     }
     session_total++;
@@ -251,18 +265,20 @@ namespace microLB
     LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
   }
 
-  Node::Node(netstack_t& stk, net::Socket a, const pool_signal_t& sig)
-    : stack(stk), addr(a), pool_signal(sig)
+  Node::Node(netstack_t& stk, net::Socket a, const pool_signal_t& sig, bool da)
+    : stack(stk), pool_signal(sig), addr(a), do_active_check(da)
   {
-    // periodically connect to node and determine if active
-    // however, perform first check immediately
-    this->active_timer = Timers::periodic(0s, ACTIVE_CHECK_PERIOD,
-    [this] (int) {
-      this->perform_active_check();
-    });
+    if (this->do_active_check)
+    {
+      // periodically connect to node and determine if active
+      // however, perform first check immediately
+      this->active_timer = Timers::periodic(0s, ACTIVE_CHECK_PERIOD,
+            {this, &Node::perform_active_check});
+    }
   }
-  void Node::perform_active_check()
+  void Node::perform_active_check(int)
   {
+    assert(this->do_active_check);
     try {
       this->stack.tcp().connect(this->addr,
       [this] (auto conn) {
@@ -291,24 +307,28 @@ namespace microLB
   {
     // set as inactive
     this->active = false;
-    // begin checking active again
-    if (this->active_timer == Timers::UNUSED_ID)
+    if (this->do_active_check)
     {
-      this->active_timer = Timers::periodic(
-        ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
-      [this] (int) {
-        this->perform_active_check();
-      });
+      // begin checking active again
+      if (this->active_timer == Timers::UNUSED_ID)
+      {
+        this->active_timer = Timers::periodic(
+          ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
+          {this, &Node::perform_active_check});
+      }
     }
   }
   void Node::stop_active_check()
   {
     // set as active
     this->active = true;
-    // stop active checking for now
-    if (this->active_timer != Timers::UNUSED_ID) {
-      Timers::stop(this->active_timer);
-      this->active_timer = Timers::UNUSED_ID;
+    if (this->do_active_check)
+    {
+      // stop active checking for now
+      if (this->active_timer != Timers::UNUSED_ID) {
+        Timers::stop(this->active_timer);
+        this->active_timer = Timers::UNUSED_ID;
+      }
     }
   }
   void Node::connect()
@@ -368,7 +388,7 @@ namespace microLB
   }
 
   // use indexing to access Session because std::vector
-  Session::Session(Nodes& n, int idx, bool talk,
+  Session::Session(Nodes& n, int idx,
                    net::Stream_ptr inc, net::Stream_ptr out)
       : parent(n), self(idx), incoming(std::move(inc)),
                               outgoing(std::move(out))
