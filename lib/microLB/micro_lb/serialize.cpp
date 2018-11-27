@@ -1,6 +1,7 @@
 #include "balancer.hpp"
 #include <stdexcept>
 
+
 #define LB_VERBOSE 0
 #if LB_VERBOSE
 #define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
