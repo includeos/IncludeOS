@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 2.8.9)
 
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 
@@ -14,8 +19,8 @@ if(CONAN_EXPORTED) # in conan local cache
   conan_basic_setup()
 endif(CONAN_EXPORTED)
 #TODO get from conan the right include path
-include_directories()
-
+#include_directories()
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../api)
 include_directories(${INCLUDEOS_ROOT}/api/posix)
 include_directories(${INCLUDEOS_ROOT}/src/include)
 include_directories(${INCLUDEOS_ROOT}/api)
