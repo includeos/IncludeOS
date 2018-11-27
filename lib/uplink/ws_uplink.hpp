@@ -25,7 +25,9 @@
 #include <net/inet>
 #include <net/http/client.hpp>
 #include <net/ws/websocket.hpp>
-#include <liveupdate.hpp>
+#if defined(LIVEUPDATE)
+  #include <liveupdate.hpp>
+#endif
 #include <util/timer.hpp>
 #include <util/logger.hpp>
 #include <rtc>
@@ -117,7 +119,7 @@ private:
   void on_heartbeat_timer();
 
   void parse_transport(net::WebSocket::Message_ptr msg);
-
+#if defined(LIVEUPDATE)
   void store(liu::Storage& store, const liu::buffer_t*);
 
   void restore(liu::Restore& store);
@@ -125,7 +127,7 @@ private:
   void store_conntrack(liu::Storage& store, const liu::buffer_t*);
 
   void restore_conntrack(liu::Restore& store);
-
+#endif
 }; // < class WS_uplink
 
 
