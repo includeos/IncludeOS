@@ -411,6 +411,29 @@ namespace microLB
     [&nodes = n, idx] () {
         nodes.close_session(idx);
     });
+    
+    // get the actual TCP connections
+    auto conn_in  = dynamic_cast<net::tcp::Stream*>(incoming->bottom_transport())->tcp();
+    assert(conn_in != nullptr);
+    auto conn_out = dynamic_cast<net::tcp::Stream*>(outgoing->bottom_transport())->tcp();
+    assert(conn_out != nullptr);
+    
+    static const uint32_t sendq_max = 0x400000;
+    // set recv window handlers
+    conn_in->set_recv_wnd_getter(
+      [conn_out] () -> uint32_t {
+        auto sendq_size = conn_out->sendq_size();
+        if (sendq_size == 0)
+            printf("WARNING: Incoming reports sendq size: %u\n", sendq_size);
+        return sendq_max - sendq_size;
+      });
+    conn_out->set_recv_wnd_getter(
+      [conn_in] () -> uint32_t {
+        auto sendq_size = conn_in->sendq_size();
+        if (sendq_size == 0)
+            printf("WARNING: Outgoing reports sendq size: %u\n", sendq_size);
+        return sendq_max - sendq_size;
+      });
   }
   bool Session::is_alive() const {
     return incoming != nullptr;
