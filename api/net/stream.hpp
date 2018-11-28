@@ -181,6 +181,9 @@ namespace net {
     **/
     virtual Stream* transport() noexcept = 0;
 
+    /** Recursively navigate to the transport stream at the bottom **/
+    inline Stream* bottom_transport() noexcept;
+
     /** default empty implementation of serialize_to(...) **/
     virtual size_t serialize_to(void*, size_t) const {
       throw std::runtime_error("Not implemented for this stream");
@@ -193,6 +196,16 @@ namespace net {
 
     virtual ~Stream() = default;
   }; // < class Stream
+
+  inline Stream* Stream::bottom_transport() noexcept
+  {
+    Stream* stream = this;
+    while (stream->transport() != nullptr) {
+        stream = stream->transport();
+    }
+    return stream;
+  }
+
 } // < namespace net
 
 #endif // < NET_STREAM_HPP

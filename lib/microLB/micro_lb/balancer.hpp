@@ -25,28 +25,26 @@ namespace microLB
 
   struct Nodes;
   struct Session {
-    Session(Nodes&, int idx, bool talk, net::Stream_ptr in, net::Stream_ptr out);
+    Session(Nodes&, int idx, net::Stream_ptr in, net::Stream_ptr out);
     bool is_alive() const;
-    void handle_timeout();
-    void timeout(Nodes&);
     void serialize(liu::Storage&);
 
     Nodes&     parent;
     const int  self;
-    int        timeout_timer;
     net::Stream_ptr incoming;
     net::Stream_ptr outgoing;
   };
 
   struct Node {
-    Node(node_connect_function_t, pool_signal_t, int idx);
+    Node(node_connect_function_t, pool_signal_t, bool do_active, int idx);
 
     int  connection_attempts() const noexcept { return this->connecting; }
     int  pool_size() const noexcept { return pool.size(); }
     bool is_active() const noexcept { return active; };
+    bool active_check() const noexcept { return do_active_check; }
 
     void restart_active_check();
-    void perform_active_check();
+    void perform_active_check(int);
     void stop_active_check();
     void connect();
     net::Stream_ptr get_connection();
@@ -56,16 +54,18 @@ namespace microLB
     pool_signal_t           m_pool_signal = nullptr;
     std::vector<net::Stream_ptr> pool;
     [[maybe_unused]] int m_idx;
-    bool  active = false;
-    int   active_timer = -1;
-    int   connecting = 0;
+    bool       active = false;
+    const bool do_active_check;
+    signed int active_timer = -1;
+    signed int connecting = 0;
   };
 
   struct Nodes {
     typedef std::deque<Node> nodevec_t;
     typedef nodevec_t::iterator iterator;
     typedef nodevec_t::const_iterator const_iterator;
-    Nodes() = default;
+
+    Nodes(bool ac) : do_active_check(ac) {}
 
     size_t   size() const noexcept;
     const_iterator begin() const;
@@ -82,8 +82,8 @@ namespace microLB
     void create_connections(int total);
     // returns the connection back if the operation fails
     net::Stream_ptr assign(net::Stream_ptr, queue_vector_t&);
-    Session& create_session(bool talk, net::Stream_ptr inc, net::Stream_ptr out);
-    void     close_session(int, bool timeout = false);
+    Session& create_session(net::Stream_ptr inc, net::Stream_ptr out);
+    void     close_session(int);
     Session& get_session(int);
     void     close_all_sessions();
 
@@ -94,15 +94,15 @@ namespace microLB
     nodevec_t nodes;
     int64_t   session_total = 0;
     int       session_cnt = 0;
-    int       session_timeouts = 0;
     int       conn_iterator = 0;
     int       algo_iterator = 0;
+    const bool do_active_check;
     std::deque<Session> sessions;
     std::deque<int> free_sessions;
   };
 
   struct Balancer {
-    Balancer();
+    Balancer(bool active_check);
     ~Balancer();
     static Balancer* from_config();
 
@@ -143,6 +143,7 @@ namespace microLB
 
   template <typename... Args>
   inline void Nodes::add_node(Args&&... args) {
-    nodes.emplace_back(std::forward<Args> (args)..., nodes.size());
+    nodes.emplace_back(std::forward<Args> (args)...,
+                       this->do_active_check, nodes.size());
   }
 }

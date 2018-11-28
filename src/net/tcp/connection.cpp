@@ -36,6 +36,7 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     cb{host_.window_size()},
     read_request(nullptr),
     writeq(),
+    recv_wnd_getter{TCP::global_recv_wnd},
     on_connect_{std::move(callback)},
     on_disconnect_({this, &Connection::default_on_disconnect}),
     rtx_timer({this, &Connection::rtx_timeout}),
@@ -322,8 +323,10 @@ Packet_view_ptr Connection::create_outgoing_packet()
   packet->set_source(local_);
   // Set Destination (remote)
   packet->set_destination(remote_);
+  uint32_t shifted = std::min<uint32_t>((cb.RCV.WND >> cb.RCV.wind_shift), default_window_size);
+  Ensures(shifted <= 0xffff);
 
-  packet->set_win(std::min((cb.RCV.WND >> cb.RCV.wind_shift), (uint32_t)default_window_size));
+  packet->set_win(shifted);
 
   if(cb.SND.TS_OK)
     packet->add_tcp_option_aligned<Option::opt_ts_align>(host_.get_ts_value(), cb.get_ts_recent());
@@ -683,6 +686,16 @@ void Connection::recv_data(const Packet_view& in)
 {
   Expects(in.has_tcp_data());
 
+  // just drop the packet if we don't have a recv wnd.
+  // this is really awful and probably unnecesseary,
+  // since it could be that we already preallocated that memory in our vector.
+  // i also think we shouldn't reach this point due to State::check_seq checking
+  // if we're inside the window. if packet is out of order tho we can change the RCV wnd (i think).
+  if(recv_wnd_getter() == 0) {
+    drop(in, Drop_reason::RCV_WND_ZERO);
+  }
+
+
   // Keep track if a packet is being sent during the async read callback
   const auto snd_nxt = cb.SND.NXT;
 
@@ -719,6 +732,8 @@ void Connection::recv_data(const Packet_view& in)
       const auto recv = read_request->insert(in.seq(), in.tcp_data(), length, in.isset(PSH));
       // this ensures that the data we ACK is actually put in our buffer.
       Ensures(recv == length);
+      // adjust the rcv wnd to (maybe) new value
+      cb.RCV.WND = recv_wnd_getter();
     }
   }
   // Packet out of order

@@ -30,11 +30,17 @@ namespace microLB
     (void) CLIENT_SLIMIT;
 
     auto& nodes = obj["nodes"];
+    // node interface
     const int NODE_NET = nodes["iface"].GetInt();
     auto& netout = net::Interfaces::get(NODE_NET);
+    // node active-checks
+    bool use_active_check = true;
+    if (nodes.HasMember("active_check")) {
+      use_active_check = nodes["active_check"].GetBool();
+    }
 
     // create closed load balancer
-    auto* balancer = new Balancer();
+    auto* balancer = new Balancer(use_active_check);
 
     if (clients.HasMember("certificate"))
     {

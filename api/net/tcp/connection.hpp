@@ -231,7 +231,8 @@ public:
     SEQ_OUT_OF_ORDER,
     ACK_NOT_SET,
     ACK_OUT_OF_ORDER,
-    RST
+    RST,
+    RCV_WND_ZERO
   }; // < Drop_reason
 
   /**
@@ -599,6 +600,11 @@ public:
    */
   void reset_callbacks();
 
+
+  using Recv_window_getter = delegate<uint32_t()>;
+  void set_recv_wnd_getter(Recv_window_getter func)
+  { recv_wnd_getter = func; }
+
 private:
   /** "Parent" for Connection. */
   TCP& host_;
@@ -625,6 +631,10 @@ private:
 
   /** Round Trip Time Measurer */
   RTTM rttm;
+
+  /** Function from where to retrieve
+   * the current recv window size for this connection */
+  Recv_window_getter recv_wnd_getter;
 
   /** Callbacks */
   ConnectCallback         on_connect_;
