@@ -181,10 +181,23 @@ namespace net {
     **/
     virtual Stream* transport() noexcept = 0;
 
+    /** Recursively navigate to the transport stream at the bottom **/
+    inline Stream* bottom_transport() noexcept;
+
     virtual size_t serialize_to(void*) const = 0;
 
     virtual ~Stream() = default;
   }; // < class Stream
+
+  inline Stream* Stream::bottom_transport() noexcept
+  {
+    Stream* stream = this;
+    while (stream->transport() != nullptr) {
+        stream = stream->transport();
+    }
+    return stream;
+  }
+
 } // < namespace net
 
 #endif // < NET_STREAM_HPP
