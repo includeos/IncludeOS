@@ -6,7 +6,9 @@
 #include <sys/time.h>
 #include <malloc.h> // mallinfo()
 #include <sched.h>
+#include <unistd.h>
 extern bool __libc_initialized;
+#include "epoll_evloop.hpp"
 
 void OS::event_loop()
 {
@@ -14,9 +16,8 @@ void OS::event_loop()
   do
   {
     Timers::timers_handler();
-    // FIXME: wait on first one
-    extern void wait_tap_devices();
-    wait_tap_devices();
+    Events::get().process_events();
+    if (OS::is_running()) linux::epoll_wait_events();
     Events::get().process_events();
   }
   while (OS::is_running());
@@ -70,39 +71,16 @@ const char* Service::binary_name() {
 }
 
 // timer system
-#include <signal.h>
-#include <unistd.h>
-static timer_t timer_id;
-extern "C" void alarm_handler(int sig)
-{
-  (void) sig;
-}
-static void begin_timer(std::chrono::nanoseconds usec)
-{
-  using namespace std::chrono;
-  auto secs = duration_cast<seconds> (usec);
-
-  struct itimerspec it;
-  it.it_value.tv_sec  = secs.count();
-  it.it_value.tv_nsec = usec.count() - secs.count() * 1000000000ull;
-  timer_settime(timer_id, 0, &it, nullptr);
-}
+static void begin_timer(std::chrono::nanoseconds) {}
 static void stop_timers() {}
 
 void OS::start(const char* cmdline)
 {
   __libc_initialized = true;
-  // setup Linux timer (with signal handler)
-  struct sigevent sev;
-  sev.sigev_notify = SIGEV_SIGNAL;
-  sev.sigev_signo  = SIGALRM;
-  timer_create(CLOCK_BOOTTIME, &sev, &timer_id);
-  signal(SIGALRM, alarm_handler);
   // setup timer system
   Timers::init(begin_timer, stop_timers);
   Timers::ready();
   // fake CPU frequency
-  using namespace std::chrono;
   OS::cpu_khz_ = decltype(OS::cpu_freq()) {3000000ul};
   OS::cmdline = cmdline;
 }

@@ -1,31 +1,25 @@
 #pragma once
 #include <delegate>
-#include <functional>
 #include <string>
 #include <vector>
-
-struct epoll_event;
+#include <sys/epoll.h>
 
 struct TAP_driver
 {
-  typedef std::vector<std::reference_wrapper<TAP_driver>> TAPVEC;
   typedef delegate<void(const void*, int)> on_read_func;
-  void on_read(on_read_func func) { o_read = func; }
-  static void wait(TAPVEC&);
+  TAP_driver(const char* dev, const char* ip);
+  ~TAP_driver();
 
-  void on_read(const char* buffer, int len) {
-    if (o_read) o_read(buffer, len);
+  void give_payload(const char* buffer, int len) {
+    if (m_on_read) m_on_read(buffer, len);
   }
 
-  void wait();
-
+  void on_read(on_read_func func) { this->m_on_read = std::move(func); }
   int get_fd() const { return tun_fd; }
   int read (char *buf, int len);
   int write(const void* buf, int len);
 
-  TAP_driver(const char* dev, const char* cidr, const char* ip);
-  ~TAP_driver();
-
+  int bridge_add_if(const std::string& bridge);
 private:
   int set_if_up();
   int set_if_route(const char* cidr);
@@ -33,9 +27,7 @@ private:
   int alloc_tun();
 
   int tun_fd;
-  on_read_func o_read = nullptr;
-  const char* dev = nullptr;
-
-  int epoll_fd = -1;
-  epoll_event* epoll_ptr = nullptr;
+  std::string  m_dev;
+  on_read_func m_on_read = nullptr;
+  std::unique_ptr<epoll_event> m_epoll = nullptr;
 };
