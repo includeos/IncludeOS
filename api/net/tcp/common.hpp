@@ -32,7 +32,7 @@ namespace net {
     // default size of TCP window - how much data can be "in flight" (unacknowledged)
     static constexpr uint16_t default_window_size {0xffff};
     // window scaling + window size
-    static constexpr uint8_t  default_window_scaling {5};
+    static constexpr uint8_t  default_window_scaling {7};
     static constexpr uint32_t default_ws_window_size {8192 << default_window_scaling};
     // use of timestamps option
     static constexpr bool     default_timestamps {true};
