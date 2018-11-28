@@ -323,10 +323,10 @@ Packet_view_ptr Connection::create_outgoing_packet()
   packet->set_source(local_);
   // Set Destination (remote)
   packet->set_destination(remote_);
+  uint32_t shifted = std::min<uint32_t>((cb.RCV.WND >> cb.RCV.wind_shift), default_window_size);
+  Ensures(shifted <= 0xffff);
 
-  const auto recv_wnd = recv_wnd_getter();
-  //printf("recv_wnd %u\n", recv_wnd);
-  packet->set_win(cb.RCV.WND >> cb.RCV.wind_shift);
+  packet->set_win(shifted);
 
   if(cb.SND.TS_OK)
     packet->add_tcp_option_aligned<Option::opt_ts_align>(host_.get_ts_value(), cb.get_ts_recent());
@@ -691,8 +691,9 @@ void Connection::recv_data(const Packet_view& in)
   // since it could be that we already preallocated that memory in our vector.
   // i also think we shouldn't reach this point due to State::check_seq checking
   // if we're inside the window. if packet is out of order tho we can change the RCV wnd (i think).
-  if(recv_wnd_getter() == 0)
+  if(recv_wnd_getter() == 0) {
     drop(in, Drop_reason::RCV_WND_ZERO);
+  }
 
 
   // Keep track if a packet is being sent during the async read callback
