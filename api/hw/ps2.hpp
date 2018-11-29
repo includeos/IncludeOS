@@ -83,7 +83,6 @@ namespace hw
     static void    flush_data();
     static uint8_t read_status();
     static uint8_t read_data();
-    static uint8_t read_fast(); // doesnt check status
     static void    write_cmd(uint8_t);
     static void    write_data(uint8_t);
     static void    write_port1(uint8_t);

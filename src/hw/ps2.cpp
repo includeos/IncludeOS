@@ -59,9 +59,6 @@ namespace hw
     while (not (hw::inb(PS2_STATUS) & 1));
     return hw::inb(PS2_DATA_PORT);
   }
-  uint8_t KBM::read_fast() {
-    return hw::inb(PS2_DATA_PORT);
-  }
   void    KBM::write_cmd(uint8_t cmd) {
     while (hw::inb(PS2_STATUS) & 2);
     hw::outb(PS2_COMMAND, cmd);
@@ -113,7 +110,7 @@ namespace hw
     }
     else if (scancode == 0xE0)
     {
-      scancode = read_fast();
+      scancode = read_data();
       result.pressed = (scancode & 0x80) == 0;
       switch (scancode & 0x7f) {
       case 0x48:
@@ -155,7 +152,7 @@ namespace hw
   }
   KBM::keystate_t KBM::get_kbd_vkey()
   {
-    const uint8_t byte = read_fast();
+    const uint8_t byte = read_data();
     // transform to virtual key
     return transform_vk(byte);
   }
@@ -219,13 +216,14 @@ namespace hw
 
     // disable scanning
     keyboard_write(0xF5);
-    // get and set scancode
+    // set scancode set 1
     keyboard_write(0xF0);
     write_data(0x01);
     keyboard_write(0xF0);
     write_data(0x00);
     uint8_t scanset = 0xFA;
     while (scanset == 0xFA) scanset = read_data();
+    assert(scanset == 0x1);
     // enable scanning
     keyboard_write(0xF4);
 
@@ -245,10 +243,8 @@ namespace hw
   KBM::KBM()
   {
     internal_init();
-    const uint8_t KEYB_IRQ = KBM::get_kbd_irq();
-    const uint8_t MOUS_IRQ = KBM::get_mouse_irq();
 
-    Events::get().subscribe(KEYB_IRQ,
+    Events::get().subscribe(KBM::get_kbd_irq(),
     [] {
       keystate_t state = KBM::get_kbd_vkey();
       // call handler
@@ -256,10 +252,11 @@ namespace hw
         get().on_virtualkey(state.key, state.pressed);
       }
     });
-
-    Events::get().subscribe(MOUS_IRQ,
+    return;
+    // TODO: implement
+    Events::get().subscribe(KBM::get_mouse_irq(),
     [] {
-      get().handle_mouse(read_fast());
+      get().handle_mouse(read_data());
     });
   }
 }
