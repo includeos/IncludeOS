@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <delegate>
 #include <memory>
+#include <pmr>
 #include <vector>
 
 namespace hw {
@@ -32,7 +33,7 @@ namespace hw {
 class Block_device {
 public:
   using block_t       = uint64_t;
-  using buffer_t      = std::shared_ptr<std::vector<uint8_t>>;
+  using buffer_t      = os::mem::buf_ptr;
   using on_read_func  = delegate<void(buffer_t)>;
   using on_write_func = delegate<void(bool error)>;
 
@@ -149,7 +150,7 @@ public:
    * This functionality is not enabled by default, nor always supported
   **/
   virtual void write(block_t blk, buffer_t, on_write_func) = 0;
-  
+
   virtual bool write_sync(block_t blk, buffer_t) = 0;
 
   /**

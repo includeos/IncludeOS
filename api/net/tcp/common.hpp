@@ -22,8 +22,10 @@
 #include <net/addr.hpp>
 #include <net/checksum.hpp>
 #include <chrono>
-#include <vector>
+
 #include <util/units.hpp>
+#include <vector>
+#include <pmr>
 
 namespace net {
   namespace tcp {
@@ -62,12 +64,12 @@ namespace net {
     using seq_t = uint32_t;
 
     /** A shared buffer pointer */
-    using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
+    using buffer_t = os::mem::buf_ptr;
 
     /** Construct a shared vector used in TCP **/
     template <typename... Args>
     buffer_t construct_buffer(Args&&... args) {
-      return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
+      return std::make_shared<os::mem::buffer> (std::forward<Args> (args)...);
     }
 
     class Connection;
