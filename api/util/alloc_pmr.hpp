@@ -47,10 +47,9 @@ namespace os::mem {
     using Resource     = Pmr_resource;
     using Resource_ptr = std::unique_ptr<Pmr_resource, delegate<void(Resource*)>>;
 
-    inline
-    Pmr_pool(size_t capacity,
-             size_t cap_suballoc = 0,
-             size_t max_rescount = default_max_resources);
+    inline Pmr_pool(size_t capacity,
+                    size_t cap_suballoc = 0,
+                    size_t max_rescount = default_max_resources);
     inline Resource_ptr get_resource();
     inline void return_resource(Resource* res);
     inline std::size_t resource_capacity();
@@ -58,9 +57,13 @@ namespace os::mem {
     inline std::size_t total_capacity();
     inline void set_resource_capacity(std::size_t);
     inline void set_total_capacity(std::size_t);
-    inline std::size_t bytes_used();
-    inline std::size_t bytes_free();
+    inline std::size_t allocated();
+    inline std::size_t allocatable();
+    inline std::size_t alloc_count();
+    inline std::size_t dealloc_count();
+    inline bool full();
     inline bool empty();
+
   private:
     detail::Pool_ptr impl;
   };
@@ -75,10 +78,11 @@ namespace os::mem {
     inline void do_deallocate (void* ptr, size_t, size_t) override;
     inline bool do_is_equal(const std::pmr::memory_resource&) const noexcept override;
     inline std::size_t capacity();
-    inline std::size_t bytes_free();
-    inline std::size_t bytes_used();
-    inline std::size_t allocations();
-    inline std::size_t deallocations();
+    inline std::size_t allocatable();
+    inline std::size_t allocated();
+    inline std::size_t alloc_count();
+    inline std::size_t dealloc_count();
+    inline bool full();
     inline bool empty();
   private:
     Pool_ptr pool_;

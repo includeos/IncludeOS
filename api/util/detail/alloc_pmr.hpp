@@ -76,19 +76,10 @@ namespace os::mem::detail {
       return res_ptr;
     }
 
-    Resource_ptr get_resource() {
-
-      if (! free_resources_.empty()) {
-        auto res = std::move(free_resources_.back());
-        free_resources_.pop_back();
-        return res;
-      }
-
-      if (used_resources_ >= max_resources_)
-        return nullptr;
+    Resource_ptr new_resource() {
+      Expects(used_resources_ < max_resources_);
 
       auto res = resource_from_raw(new Pmr_resource(shared_ptr()));
-
       used_resources_++;
 
       Ensures(res != nullptr);
@@ -96,7 +87,28 @@ namespace os::mem::detail {
       return res;
     }
 
+    Resource_ptr get_resource() {
+
+      if (! free_resources_.empty()) {
+        auto res = std::move(free_resources_.front());
+        free_resources_.pop_front();
+
+        if (UNLIKELY(! res->empty() and used_resources_ < max_resources_)) {
+          free_resources_.emplace_back(std::move(res));
+          return new_resource();
+        }
+
+        return res;
+      }
+
+      if (used_resources_ >= max_resources_)
+        return nullptr;
+
+      return new_resource();
+    }
+
     void return_resource(Resource* raw) {
+      Expects(used_resources_ > 0);
       auto res_ptr = resource_from_raw(raw);
       used_resources_--;
       free_resources_.emplace_back(std::move(res_ptr));
@@ -152,16 +164,20 @@ namespace os::mem::detail {
     }
 
 
-    std::size_t bytes_used() {
+    std::size_t allocated() {
       return allocated_;
     }
 
-    bool empty() {
+    bool full() {
       return allocated_ >= cap_total_;
     }
 
-    std::size_t bytes_free() {
-      auto allocd = bytes_used();
+    bool empty() {
+      return allocated_ == 0;
+    }
+
+    std::size_t allocatable() {
+      auto allocd = allocated();
       if (allocd > cap_total_)
         return 0;
       return cap_total_ - allocd;
@@ -193,8 +209,9 @@ namespace os::mem {
   //
   std::size_t Pmr_pool::total_capacity() { return impl->total_capacity(); }
   std::size_t Pmr_pool::resource_capacity() { return impl->resource_capacity(); }
-  std::size_t Pmr_pool::bytes_free() { return impl->bytes_free(); }
-  std::size_t Pmr_pool::bytes_used() { return impl->bytes_used(); }
+  std::size_t Pmr_pool::allocatable() { return impl->allocatable(); }
+  std::size_t Pmr_pool::allocated() { return impl->allocated(); }
+
   void Pmr_pool::set_resource_capacity(std::size_t s) { impl->set_resource_capacity(s); }
   void Pmr_pool::set_total_capacity(std::size_t s) { impl->set_total_capacity(s); };
 
@@ -203,6 +220,7 @@ namespace os::mem {
   Pmr_pool::Resource_ptr Pmr_pool::get_resource() { return impl->get_resource(); }
   std::size_t Pmr_pool::resource_count() { return impl->resource_count(); }
   void Pmr_pool::return_resource(Resource* res) { impl->return_resource(res); }
+  bool Pmr_pool::full() { return impl->full(); }
   bool Pmr_pool::empty() { return impl->empty(); }
 
   //
@@ -210,13 +228,14 @@ namespace os::mem {
   //
   Pmr_resource::Pmr_resource(Pool_ptr p) : pool_{p} {}
   std::size_t Pmr_resource::capacity() { return pool_->resource_capacity(); }
-  std::size_t Pmr_resource::bytes_free() {
+  std::size_t Pmr_resource::allocatable() {
     auto cap = capacity();
-    if (used > capacity())
+    if (used > cap)
       return 0;
     return cap - used;
   }
-  std::size_t Pmr_resource::bytes_used() {
+
+  std::size_t Pmr_resource::allocated() {
     return used;
   }
 
@@ -239,8 +258,9 @@ namespace os::mem {
   }
 
   void Pmr_resource::do_deallocate(void* ptr, std::size_t s, std::size_t a) {
-    deallocs++;
+    Expects(s != 0); // POSIX malloc will allow size 0, but return nullptr.
     pool_->deallocate(ptr,s,a);
+    deallocs++;
     used -= s;
   }
 
@@ -251,8 +271,12 @@ namespace os::mem {
     return false;
   }
 
-  bool Pmr_resource::empty() {
+  bool Pmr_resource::full() {
     return used >= capacity();
+  }
+
+  bool Pmr_resource::empty() {
+    return used == 0;
   }
 }
 

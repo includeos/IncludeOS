@@ -20,7 +20,7 @@
 #include <util/alloc_pmr.hpp>
 #include <util/units.hpp>
 
-CASE("os::mem::default_pmr_resource") {
+CASE("pmr::default_pmr_resource") {
 
   std::pmr::vector<int> numbers;
   for (int i = 0; i < 1000; i++) {
@@ -31,11 +31,11 @@ CASE("os::mem::default_pmr_resource") {
 }
 
 
-CASE("os::mem::Pmr_pool usage") {
+CASE("pmr::Pmr_pool usage") {
   using namespace util;
   constexpr auto pool_cap = 40_MiB;
 
-  // Using default suballoc capacity, which is pool_cap / allocator count
+  // Using default resource capacity, which is pool_cap / allocator count
   os::mem::Pmr_pool pool{pool_cap};
 
 
@@ -43,7 +43,7 @@ CASE("os::mem::Pmr_pool usage") {
   auto res = pool.get_resource();
   EXPECT(res->capacity() == pool_cap);
 
-  auto sub_free = res->bytes_free();
+  auto sub_free = res->allocatable();
 
   std::pmr::polymorphic_allocator<uintptr_t> alloc{res.get()};
   std::pmr::vector<uintptr_t> numbers{alloc};
@@ -58,7 +58,7 @@ CASE("os::mem::Pmr_pool usage") {
   for (auto i = 0; i < numbers.size(); i++)
     EXPECT(numbers.at(i) == test::random.at(i));
 
-  EXPECT(res->bytes_free() <= sub_free - 1000);
+  EXPECT(res->allocatable() <= sub_free - 1000);
 
 
   // Using small res capacity
@@ -66,12 +66,12 @@ CASE("os::mem::Pmr_pool usage") {
 
   os::mem::Pmr_pool pool2{pool_cap, alloc_cap};
   EXPECT(pool2.total_capacity() == pool_cap);
-  EXPECT(pool2.bytes_free() == pool_cap);
+  EXPECT(pool2.allocatable() == pool_cap);
 
   auto res2 = pool2.get_resource();
   EXPECT(res2->capacity() == alloc_cap);
 
-  auto sub_free2 = res2->bytes_free();
+  auto sub_free2 = res2->allocatable();
 
   std::pmr::polymorphic_allocator<int> alloc2{res2.get()};
   std::pmr::vector<int> numbers2{alloc2};
@@ -81,26 +81,26 @@ CASE("os::mem::Pmr_pool usage") {
   EXPECT(numbers2.capacity() == 1000);
 
 
-  EXPECT(res2->bytes_free() <= sub_free2 - 1000);
+  EXPECT(res2->allocatable() <= sub_free2 - 1000);
   EXPECT_THROWS(numbers2.reserve(8_KiB));
   numbers2.clear();
   numbers2.shrink_to_fit();
 
-  EXPECT(res2->bytes_free() == alloc_cap);
-  EXPECT(res2->bytes_used() == 0);
-  EXPECT(pool2.bytes_free() == pool_cap);
-  EXPECT(pool2.bytes_used() == 0);
+  EXPECT(res2->allocatable() == alloc_cap);
+  EXPECT(res2->allocated() == 0);
+  EXPECT(pool2.allocatable() == pool_cap);
+  EXPECT(pool2.allocated() == 0);
 
   numbers2.push_back(1);
   EXPECT(numbers2.capacity() > 0);
   EXPECT(numbers2.capacity() < 1000);
-  EXPECT(res2->bytes_free()  < alloc_cap);
-  EXPECT(res2->bytes_free()  > alloc_cap - 1000);
+  EXPECT(res2->allocatable()  < alloc_cap);
+  EXPECT(res2->allocatable()  > alloc_cap - 1000);
 
 }
 
 
-CASE("os::mem::Pmr_suballoc usage") {
+CASE("pmr::resource usage") {
   using namespace util;
 
   constexpr auto pool_cap       = 400_KiB;
@@ -125,7 +125,7 @@ CASE("os::mem::Pmr_suballoc usage") {
     auto res = pool.get_resource();
     EXPECT(res != nullptr);
     EXPECT(res->capacity() == resource_cap);
-    EXPECT(res->bytes_used() == 0);
+    EXPECT(res->allocated() == 0);
     EXPECT(res->pool() == pool_ptr);
     resources.emplace_back(std::move(res));
   }
@@ -157,13 +157,13 @@ CASE("os::mem::Pmr_suballoc usage") {
     allocations.push_back(p3);
     allocations.push_back(p4);
 
-    EXPECT(res->empty());
+    EXPECT(res->full());
     EXPECT_THROWS(res->allocate(1_KiB));
-    EXPECT(res->empty());
+    EXPECT(res->full());
   }
 
-  // The pool is now also empty
-  EXPECT(pool.empty());
+  // The pool is now also full
+  EXPECT(pool.full());
 
   // So resources can't allocate more from it.
   // (Pools pmr api is hidden behind implementation for now.)
@@ -185,9 +185,9 @@ CASE("os::mem::Pmr_suballoc usage") {
   EXPECT(pool_ptr->free_resources() == resource_count);
   EXPECT(pool_ptr->used_resources() == 0);
 
-  // Pool is still empty - deallocations haven't happened
-  EXPECT(pool.empty());
-  EXPECT(pool.bytes_free() == 0);
+  // Pool is still full - deallocations haven't happened
+  EXPECT(pool.full());
+  EXPECT(pool.allocatable() == 0);
 
   // NOTE: it's currently possible to deallocate directly to the detail::Pool_ptr
   //       this is an implementation detail prone to change as each allocator's state
@@ -195,25 +195,31 @@ CASE("os::mem::Pmr_suballoc usage") {
   for (auto* alloc : allocations)
     pool_ptr->deallocate(alloc, 1_KiB);
 
-  EXPECT(not pool.empty());
-  EXPECT(pool.bytes_free() == pool_cap);
+  EXPECT(not pool.full());
+  EXPECT(pool.allocatable() == pool_cap);
 
   // Each resource's state is remembered as it's passed back and forth.
   // ...There's now no way of fetching any resources
   auto res_tricked = pool.get_resource();
-  EXPECT(res_tricked->empty());
-  EXPECT(res_tricked->bytes_free() == 0);
+  EXPECT(pool.resource_count() == resource_count);
+  //EXPECT(res_tricked->full());
+  EXPECT(res_tricked->allocatable() == 0);
   EXPECT_THROWS(res_tricked->allocate(1_KiB));
 
   res_tricked.reset();
   pool_ptr->clear_free_resources();
 
   auto res2 = pool.get_resource();
-  EXPECT(not res2->empty());
-  EXPECT(res2->bytes_free() == resource_cap);
+  EXPECT(not res2->full());
+  EXPECT(res2->allocatable() == resource_cap);
   auto ptr = res2->allocate(1_KiB);
   EXPECT(ptr != nullptr);
   res2->deallocate(ptr, 1_KiB);
-  EXPECT(res2->bytes_free() == resource_cap);
+  EXPECT(res2->allocatable() == resource_cap);
 
+}
+
+
+CASE("pmr::Resource usage") {
+  using namespace util;
 }
