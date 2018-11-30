@@ -50,6 +50,7 @@ namespace os::mem {
     inline Pmr_pool(size_t capacity,
                     size_t cap_suballoc = 0,
                     size_t max_rescount = default_max_resources);
+    inline Pmr_pool() = default;
     inline Resource_ptr get_resource();
     inline void return_resource(Resource* res);
     inline std::size_t resource_capacity();
