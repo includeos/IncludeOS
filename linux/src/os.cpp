@@ -29,7 +29,7 @@ uintptr_t OS::heap_begin() noexcept {
   return 0;
 }
 uintptr_t OS::heap_end() noexcept {
-  return 0;
+  return OS::heap_max()-1;
 }
 uintptr_t OS::heap_usage() noexcept {
   auto info = mallinfo();
@@ -37,7 +37,7 @@ uintptr_t OS::heap_usage() noexcept {
 }
 uintptr_t OS::heap_max() noexcept
 {
-  return (uintptr_t) -1;
+  return 8ull << 30;
 }
 
 bool OS::is_panicking() noexcept

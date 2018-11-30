@@ -101,6 +101,11 @@ namespace linux
     const unsigned long long next = Timers::next().count();
     int timeout = (next == 0) ? -1 : (1 + next / 1000000ull);
   
+    if (timeout < 0 && tap_devices.empty()) {
+      printf("epoll_wait_events(): Deadlock reached\n");
+      std::abort();
+    }
+  
     const int efd = epoll_init_if_needed();
     std::array<epoll_event, 16> events;
     printf("epoll_wait(%d milliseconds) next=%llu\n", timeout, next);
