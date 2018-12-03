@@ -63,8 +63,8 @@ namespace os::mem::detail {
       allocated_ -= size;
     }
 
-    bool do_is_equal(const std::pmr::memory_resource&) const noexcept override {
-      return true;
+    bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override {
+      return *this == other;
     }
 
     Resource_ptr resource_from_raw(Resource* raw) {
@@ -77,34 +77,21 @@ namespace os::mem::detail {
     }
 
     Resource_ptr new_resource() {
-      Expects(used_resources_ < max_resources_);
+      Expects(resource_count() < max_resources_);
 
       auto res = resource_from_raw(new Pmr_resource(shared_ptr()));
       used_resources_++;
 
       Ensures(res != nullptr);
-      Ensures(used_resources_ <= max_resources_);
+      Ensures(resource_count() <= max_resources_);
       return res;
     }
 
-    Resource_ptr get_resource() {
-
-      if (! free_resources_.empty()) {
-        auto res = std::move(free_resources_.front());
-        free_resources_.pop_front();
-
-        if (UNLIKELY(! res->empty() and used_resources_ < max_resources_)) {
-          free_resources_.emplace_back(std::move(res));
-          return new_resource();
-        }
-
-        return res;
-      }
-
-      if (used_resources_ >= max_resources_)
-        return nullptr;
-
-      return new_resource();
+    Resource_ptr release_front() {
+      auto released = std::move(free_resources_.front());
+      free_resources_.pop_front();
+      used_resources_++;
+      return released;
     }
 
     void return_resource(Resource* raw) {
@@ -113,6 +100,25 @@ namespace os::mem::detail {
       used_resources_--;
       free_resources_.emplace_back(std::move(res_ptr));
     }
+
+    Resource_ptr get_resource() {
+
+      if (! free_resources_.empty()) {
+
+        auto& res = free_resources_.front();
+
+        if (UNLIKELY(! res->empty() and resource_count() < max_resources_)) {
+          return new_resource();
+        }
+        return release_front();
+      }
+
+      if (resource_count() >= max_resources_)
+        return nullptr;
+
+      return new_resource();
+    }
+
 
     std::shared_ptr<Pmr_pool> shared_ptr() {
       return shared_from_this();
@@ -246,6 +252,8 @@ namespace os::mem {
   void* Pmr_resource::do_allocate(std::size_t size, std::size_t align) {
     auto cap = capacity();
     if (UNLIKELY(size + used > cap)) {
+      printf("<Resource @ %p do_allocate> ERROR: Failed to alloc %zu - currently allocated %zu capacity %zu\n",
+             this, size, used, cap);
       throw std::bad_alloc();
     }
 
@@ -266,7 +274,7 @@ namespace os::mem {
 
   bool Pmr_resource::do_is_equal(const std::pmr::memory_resource& other) const noexcept {
     if (const auto* other_ptr = dynamic_cast<const Pmr_resource*>(&other)) {
-      return pool_ == other_ptr->pool_;
+      return this == other_ptr;
     }
     return false;
   }

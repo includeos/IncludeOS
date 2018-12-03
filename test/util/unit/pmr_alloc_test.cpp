@@ -14,11 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// #define DEBUG_UNIT
+//#define DEBUG_UNIT
 
 #include <common.cxx>
 #include <util/alloc_pmr.hpp>
 #include <util/units.hpp>
+#include <unordered_map>
 
 CASE("pmr::default_pmr_resource") {
 
@@ -48,6 +49,7 @@ CASE("pmr::Pmr_pool usage") {
   std::pmr::polymorphic_allocator<uintptr_t> alloc{res.get()};
   std::pmr::vector<uintptr_t> numbers{alloc};
 
+
   EXPECT(numbers.capacity() < 1000);
   numbers.reserve(1000);
   EXPECT(numbers.capacity() == 1000);
@@ -59,6 +61,23 @@ CASE("pmr::Pmr_pool usage") {
     EXPECT(numbers.at(i) == test::random.at(i));
 
   EXPECT(res->allocatable() <= sub_free - 1000);
+
+  // Apparently the same allocator can just be passed to any other container.
+  std::pmr::map<int, std::string> maps{alloc};
+  maps[42] = "Allocators are interchangeable";
+  EXPECT(maps[42] == "Allocators are interchangeable");
+
+  // Allocator storage is kept by the container itself.
+  using my_alloc = std::pmr::polymorphic_allocator<uintptr_t>;
+  auto unique_alloc = std::make_unique<my_alloc>(res.get());
+
+  std::pmr::vector<std::string> my_strings(*unique_alloc);
+  my_strings.push_back("Hello PMR");
+  my_strings.push_back("Hello again PMR");
+
+  unique_alloc.reset();
+  my_strings.push_back("Still works");
+  EXPECT(my_strings.back() == "Still works");
 
 
   // Using small res capacity
@@ -96,7 +115,6 @@ CASE("pmr::Pmr_pool usage") {
   EXPECT(numbers2.capacity() < 1000);
   EXPECT(res2->allocatable()  < alloc_cap);
   EXPECT(res2->allocatable()  > alloc_cap - 1000);
-
 }
 
 
@@ -139,7 +157,7 @@ CASE("pmr::resource usage") {
   EXPECT(pool_ptr->free_resources() == 0);
   EXPECT(pool_ptr->used_resources() == resource_count);
 
-  std::vector<void*> allocations{};
+  std::unordered_map<os::mem::Pmr_resource*, std::vector<void*>> allocations{};
 
   // Drain all the resources
   for (auto& res : resources) {
@@ -152,10 +170,10 @@ CASE("pmr::resource usage") {
     EXPECT(p3 != nullptr);
     EXPECT(p4 != nullptr);
 
-    allocations.push_back(p1);
-    allocations.push_back(p2);
-    allocations.push_back(p3);
-    allocations.push_back(p4);
+    allocations.at(res.get()).push_back(p1);
+    allocations.at(res.get()).push_back(p2);
+    allocations.at(res.get()).push_back(p3);
+    allocations.at(res.get()).push_back(p4);
 
     EXPECT(res->full());
     EXPECT_THROWS(res->allocate(1_KiB));
@@ -192,34 +210,38 @@ CASE("pmr::resource usage") {
   // NOTE: it's currently possible to deallocate directly to the detail::Pool_ptr
   //       this is an implementation detail prone to change as each allocator's state
   //       won't e updated accordingly.
-  for (auto* alloc : allocations)
-    pool_ptr->deallocate(alloc, 1_KiB);
+
+  for (auto[pool, vec] : allocations)
+    for (auto alloc : vec)
+      pool->deallocate(alloc, 1_KiB);
 
   EXPECT(not pool.full());
   EXPECT(pool.allocatable() == pool_cap);
 
   // Each resource's state is remembered as it's passed back and forth.
-  // ...There's now no way of fetching any resources
+  // ...There's now no way of fetching any non-full resources
   auto res_tricked = pool.get_resource();
+
   EXPECT(pool.resource_count() == resource_count);
-  //EXPECT(res_tricked->full());
+  EXPECT(res_tricked->full());
   EXPECT(res_tricked->allocatable() == 0);
   EXPECT_THROWS(res_tricked->allocate(1_KiB));
 
   res_tricked.reset();
+
   pool_ptr->clear_free_resources();
 
   auto res2 = pool.get_resource();
+
   EXPECT(not res2->full());
   EXPECT(res2->allocatable() == resource_cap);
   auto ptr = res2->allocate(1_KiB);
   EXPECT(ptr != nullptr);
   res2->deallocate(ptr, 1_KiB);
   EXPECT(res2->allocatable() == resource_cap);
-
 }
 
 
-CASE("pmr::Resource usage") {
+CASE("pmr::Resource performance") {
   using namespace util;
 }
