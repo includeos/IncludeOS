@@ -108,7 +108,7 @@ namespace linux
   
     const int efd = epoll_init_if_needed();
     std::array<epoll_event, 16> events;
-    printf("epoll_wait(%d milliseconds) next=%llu\n", timeout, next);
+    //printf("epoll_wait(%d milliseconds) next=%llu\n", timeout, next);
     int ready = epoll_wait(efd, events.data(), events.size(), timeout);
     if (ready < 0) {
       // ignore interruption from signals
@@ -125,7 +125,6 @@ namespace linux
         {
           char buffer[9000];
           int len = tap->read(buffer, sizeof(buffer));
-          printf("Read %d bytes from fd=%d\n", len, fd);
           // hand payload to driver
           tap->give_payload(buffer, len);
           break;

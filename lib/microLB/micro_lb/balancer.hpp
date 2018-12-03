@@ -89,6 +89,8 @@ namespace microLB
 
     void serialize(liu::Storage&);
     void deserialize(netstack_t& in, netstack_t& out, liu::Restore&);
+    // make the microLB more testable
+    delegate<void(int idx, int current, int total)> on_session_close = nullptr;
 
   private:
     nodevec_t nodes;

@@ -20,10 +20,10 @@
 #include <hw/async_device.hpp>
 #include <drivers/usernet.hpp>
 #include <net/inet>
-static constexpr bool debug = true;
+static constexpr bool debug = false;
 static const size_t CHUNK_SIZE = 1024 * 1024;
 static const size_t NUM_CHUNKS = 2048;
-static const uint16_t      MTU = 1000;
+static const uint16_t      MTU = 6000;
 static std::unique_ptr<hw::Async_device<UserNet>> dev1 = nullptr;
 static std::unique_ptr<hw::Async_device<UserNet>> dev2 = nullptr;
 

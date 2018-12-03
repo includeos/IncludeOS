@@ -1,7 +1,7 @@
 var http = require('http');
 
 var dataString = function() {
-  var len = 50;
+  var len = 150*1024*1024;
   return '#'.repeat(len);
 }
 
@@ -20,13 +20,13 @@ var stringToColour = function(str) {
 
 //We need a function which handles requests and send response
 function handleRequest(request, response){
-  console.log('Got request from client');
+  //console.log('Got request from client');
   response.setTimeout(500);
   var addr = request.connection.localPort;
   response.end(addr.toString() + dataString());
 }
 
-http.createServer(handleRequest).listen(6001, '10.0.1.1');
-http.createServer(handleRequest).listen(6002, '10.0.1.1');
-http.createServer(handleRequest).listen(6003, '10.0.1.1');
-http.createServer(handleRequest).listen(6004, '10.0.1.1');
+http.createServer(handleRequest).listen(6001, '10.0.0.1');
+http.createServer(handleRequest).listen(6002, '10.0.0.1');
+http.createServer(handleRequest).listen(6003, '10.0.0.1');
+http.createServer(handleRequest).listen(6004, '10.0.0.1');

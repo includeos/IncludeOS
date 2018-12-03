@@ -1,5 +1,6 @@
 #include "balancer.hpp"
 #include <net/tcp/stream.hpp>
+#include <kernel/os.hpp>
 
 #define READQ_PER_CLIENT        4096
 #define MAX_READQ_PER_NODE      8192
@@ -252,6 +253,7 @@ namespace microLB
     free_sessions.push_back(session.self);
     session_cnt--;
     LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
+    if (on_session_close) on_session_close(session.self, session_cnt, session_total);
   }
   void Nodes::close_all_sessions()
   {
