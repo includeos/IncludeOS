@@ -63,7 +63,8 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
   (void) recv_bufsz;
   if(read_request == nullptr)
   {
-    read_request.reset(new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb));
+    read_request.reset(
+      new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb, bufalloc.get()));
   }
   // read request is already set, only reset if new size.
   else

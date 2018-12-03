@@ -41,6 +41,9 @@ TCP::TCP(IPStack& inet, bool smp_enable) :
   inet_{inet},
   listeners_(),
   connections_(),
+  total_bufsize_{default_total_bufsize},
+  mempool{total_bufsize_},
+  min_bufsize_{default_min_bufsize}, max_bufsize_{default_max_bufsize},
   ports_(inet.tcp_ports()),
   writeq(),
   max_seg_lifetime_{default_msl},       // 30s
@@ -512,6 +515,7 @@ void TCP::add_connection(tcp::Connection_ptr conn) {
 
   debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
   conn->_on_cleanup({this, &TCP::close_connection});
+  conn->bufalloc = mempool.get_resource();
   connections_.emplace(conn->tuple(), conn);
 }
 

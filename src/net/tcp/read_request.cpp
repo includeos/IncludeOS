@@ -20,10 +20,11 @@
 namespace net {
 namespace tcp {
 
-  Read_request::Read_request(seq_t start, size_t min, size_t max, ReadCallback cb)
-    : callback{cb}
+  Read_request::Read_request(seq_t start, size_t min, size_t max,
+                             ReadCallback cb, Alloc&& alloc)
+    : callback{cb}, alloc{alloc}
   {
-    buffers.push_back(std::make_unique<Read_buffer>(start, min, max));
+    buffers.push_back(std::make_unique<Read_buffer>(start, min, max, alloc));
   }
 
   size_t Read_request::insert(seq_t seq, const uint8_t* data, size_t n, bool psh)
@@ -124,7 +125,7 @@ namespace tcp {
       // we probably need to create multiple buffers,
       // ... or just decide we only support gaps of 1 buffer size.
       buffers.push_back(
-        std::make_unique<Read_buffer>(cur_back->end_seq(), cur_back->capacity(), cur_back->capacity()));
+        std::make_unique<Read_buffer>(cur_back->end_seq(), cur_back->capacity(), cur_back->capacity(), alloc));
 
       auto& back = buffers.back();
       //printf("new buffer added start=%u end=%u, fits(%lu)=%lu\n",

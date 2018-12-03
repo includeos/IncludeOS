@@ -52,8 +52,9 @@ namespace net {
     static const std::chrono::milliseconds  default_dack_timeout {40};
 
     using namespace util::literals;
-    static constexpr size_t default_min_bufsize {4_KiB};
-    static constexpr size_t default_max_bufsize {256_KiB};
+    static constexpr size_t default_min_bufsize   {4_KiB};
+    static constexpr size_t default_max_bufsize   {256_KiB};
+    static constexpr size_t default_total_bufsize {64_MiB};
 
     using Address = net::Addr;
 

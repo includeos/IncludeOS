@@ -31,10 +31,11 @@ public:
   using Buffer_ptr = std::unique_ptr<Read_buffer>;
   using Buffer_queue = std::deque<Buffer_ptr>;
   using ReadCallback = delegate<void(buffer_t)>;
+  using Alloc        = os::mem::buffer::allocator_type;
   static constexpr size_t buffer_limit = 2;
   ReadCallback callback;
 
-  Read_request(seq_t start, size_t min, size_t max, ReadCallback cb);
+  Read_request(seq_t start, size_t min, size_t max, ReadCallback cb, Alloc&& alloc = Alloc());
 
   size_t insert(seq_t seq, const uint8_t* data, size_t n, bool psh = false);
 
@@ -57,6 +58,7 @@ public:
 
 private:
   Buffer_queue buffers;
+  Alloc        alloc;
 
   Read_buffer* get_buffer(const seq_t seq);
 
