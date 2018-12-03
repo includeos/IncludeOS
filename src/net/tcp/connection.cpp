@@ -63,6 +63,7 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
   (void) recv_bufsz;
   if(read_request == nullptr)
   {
+    Expects(bufalloc != nullptr);
     read_request.reset(
       new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb, bufalloc.get()));
   }
@@ -687,14 +688,25 @@ void Connection::recv_data(const Packet_view& in)
 {
   Expects(in.has_tcp_data());
 
-  // just drop the packet if we don't have a recv wnd.
-  // this is really awful and probably unnecesseary,
-  // since it could be that we already preallocated that memory in our vector.
-  // i also think we shouldn't reach this point due to State::check_seq checking
+  // just drop the packet if we don't have a recv wnd / buffer available.
+  // this shouldn't be necessary with well behaved connections.
+  // I also think we shouldn't reach this point due to State::check_seq checking
   // if we're inside the window. if packet is out of order tho we can change the RCV wnd (i think).
-  if(recv_wnd_getter() == 0) {
+  if(UNLIKELY(bufalloc->allocatable() < host_.max_bufsize())) {
     drop(in, Drop_reason::RCV_WND_ZERO);
+    return;
   }
+
+  size_t length = in.tcp_data_length();
+
+  /*
+  if(UNLIKELY(cb.RCV.WND < length))
+  {
+    printf("DROP: Receive window too small - my window is now: %u \n", cb.RCV.WND);
+    drop(in, Drop_reason::RCV_WND_ZERO);
+    return;
+   }
+   */
 
 
   // Keep track if a packet is being sent during the async read callback
@@ -703,7 +715,6 @@ void Connection::recv_data(const Packet_view& in)
   // The packet we expect
   if(cb.RCV.NXT == in.seq())
   {
-    size_t length = in.tcp_data_length();
 
     // If we had packet loss before (and SACK is on)
     // we need to clear up among the blocks
@@ -734,7 +745,41 @@ void Connection::recv_data(const Packet_view& in)
       // this ensures that the data we ACK is actually put in our buffer.
       Ensures(recv == length);
       // adjust the rcv wnd to (maybe) new value
-      cb.RCV.WND = recv_wnd_getter();
+
+      // LET APPLICATION REPORT
+      // cb.RCV.WND = recv_wnd_getter();
+
+      // PRECISE REPORTING
+      /*
+      const auto& rbuf = read_request->front();
+      auto remaining = rbuf.capacity() - rbuf.size();
+      auto win = (bufalloc->allocatable() + remaining) - rbuf.capacity();
+      //auto max = read_request->front().capacity();
+      //win = (win < max) ? (rbuf.capacity() - rbuf.size()) : win - max;
+      cb.RCV.WND = win;
+      */
+
+      // REPORT CHUNKWISE
+      /*
+      //auto allocatable = bufalloc->allocatable();
+      const auto& rbuf = read_request->front();
+
+      auto win = cb.RCV.WND;
+      if (bufalloc->allocatable() < rbuf.capacity()) {
+        printf("[connection] Allocatable data is less than capacity. Win 0. \n");
+        win = 0;
+      } else {
+        win = bufalloc->allocatable() - rbuf.capacity();
+      }
+
+      cb.RCV.WND = win;
+      */
+
+
+      // REPORT CONSTANT
+      cb.RCV.WND = bufalloc->allocatable();
+      //cb.RCV.WND = 64_MiB;
+      //cb.RCV.WND = std::max<uint32_t>(bufalloc->allocatable(), 4_MiB);
     }
   }
   // Packet out of order

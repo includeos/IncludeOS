@@ -378,7 +378,10 @@ namespace net {
      * @param[in]  size  The limit in bytes
      */
     void set_total_bufsize(const size_t size)
-    { total_bufsize_ = size; }
+    {
+      total_bufsize_ = size;
+      mempool.set_total_capacity(total_bufsize_);
+    }
 
     /**
      * @brief      Sets the minimum buffer size.
