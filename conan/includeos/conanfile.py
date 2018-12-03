@@ -41,7 +41,8 @@ class IncludeOSConan(ConanFile):
             self.requires("libgcc/1.0@includeos/stable")
         if (self.options.solo5):
             self.requires("solo5/0.4.1@includeos/test")
-
+    def configure(self):
+        del self.settings.compiler.libcxx
     def imports(self):
         self.copy("*")
 
@@ -49,9 +50,20 @@ class IncludeOSConan(ConanFile):
         repo = tools.Git(folder="includeos")
         repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
 
+    def _target_arch(self):
+        return {
+            "x86":"i686",
+            "x86_64":"x86_64"
+        }.get(str(self.settings.arch))
     def _configure_cmake(self):
         cmake = CMake(self)
         #glad True and False also goes but not recursily
+        if (str(self.settings.arch) == "x86"):
+            cmake.definitions['ARCH']="i686"
+        else:
+            cmake.definitions['ARCH']=str(self.settings.arch)
+        if (self.options.basic):
+            cmake.definitions['CORE_OS']=True
         cmake.definitions['WITH_SOLO5']=self.options.solo5
         cmake.configure(source_folder=self.source_folder+"/includeos")
         return cmake;
@@ -64,11 +76,23 @@ class IncludeOSConan(ConanFile):
         cmake=self._configure_cmake()
         #we are doing something wrong this "shouldnt" trigger a new build
         cmake.install()
-        #at this point we can copy things implace..
-        #or we can use the "building with conan flag to deply things
-        #in the right place"
 
-        #arch include and arch lib is causing issues
-
+    def package_info(self):
+        #this is messy but unless we rethink things its the way to go
+        self.cpp_info.includedirs=['include/os']
+        platform='platform'
+        #TODO se if this holds up for other arch's
+        if (self.settings.arch == "x86" or self.settings.arch == "x86_64"):
+            if ( self.options.basic == 'ON'):
+                platform='x86_nano'
+            else:
+                platform='x86_pc'
+        #if (self.settings.solo5):
+        #if solo5 set solo5 as platform
+        self.cpp_info.libs=['platform','os','arch','musl_syscalls']
+        self.cpp_info.libdirs = [
+            '{}/lib'.format(self._target_arch()),
+            '{}/platform'.format(self._target_arch())
+        ]
     def deploy(self):
         self.copy("*",dst=".",src=".")

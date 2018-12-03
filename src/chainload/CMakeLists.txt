@@ -1,27 +1,23 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
-endif()
+project(chainloader)
 
+#TODO cleanup ARCH in os.cmake and just add set platform?
 set(ARCH i686)
 set(PLATFORM x86_nano)
 
+#TODO decide
+#A includeos install could install os.cmake to a known location
+#B alternative is to provide it via conan..
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+
+#yea baby
+include(os)
+
 option(default_stdout "" OFF)
-
-include($ENV{INCLUDEOS_PREFIX}/cmake/pre.service.cmake)
-
-project (chainloader)
-
-MESSAGE(STATUS "CMake root: " $ENV{INCLUDEOS_PREFIX})
-
-set(SERVICE_NAME "IncludeOS chainloader")
-set(BINARY       "chainloader")
 set(SOURCES
     service.cpp hotswap.cpp
   )
-#set(LOCAL_INCLUDES ".")
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/cmake/post.service.cmake)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${BINARY} DESTINATION $ENV{INCLUDEOS_PREFIX}/includeos)
+os_add_executable(chainloader "IncludeOS chainloader" ${SOURCES})
+os_install(TARGETS chainloader DESTINATION bin)

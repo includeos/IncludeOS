@@ -26,6 +26,9 @@ class LibCxxConan(ConanFile):
         self.requires("libunwind/{}@{}/{}".format(self.version,self.user,self.channel))
         self.requires("libcxxabi/{}@{}/{}".format(self.version,self.user,self.channel))
 
+    def imports(self):
+        self.copy("*cxxabi*",dst="include",src="include")
+
     def llvm_checkout(self,project):
         branch = "release_{}".format(self.version.replace('.',''))
         llvm_project=tools.Git(folder=project)
@@ -38,9 +41,10 @@ class LibCxxConan(ConanFile):
         shutil.copy("CMakeLists.txt","libcxx/CMakeLists.txt")
 
     def _triple_arch(self):
-        if str(self.settings.arch) == "x86":
-            return "i386"
-        return str(self.settings.arch)
+        return {
+            "x86":"i686",
+            "x86_64":"x86_64"
+        }.get(str(self.settings.arch))
 
     def _configure_cmake(self):
         cmake=CMake(self)
@@ -66,6 +70,8 @@ class LibCxxConan(ConanFile):
             triple=self._triple_arch()+"-pc-linux-gnu"
             cmake.definitions["LIBCXX_TARGET_TRIPLE"] = triple
         cmake.definitions['LLVM_PATH']=llvm_source
+        if (str(self.settings.arch) == "x86"):
+            cmake.definitions['LLVM_BUILD_32_BITS']=True
         #cmake.configure(source_folder=source)
         cmake.configure(source_folder=source)
         return cmake
@@ -78,10 +84,13 @@ class LibCxxConan(ConanFile):
     def package(self):
         cmake = self._configure_cmake()
         cmake.install()
+        self.copy("*cxxabi*",dst="include",src="include")
 
     def package_info(self):
-        #this solves a lot but libcxx still needs to me included before musl
-        self.cpp_info.includedirs = ['include/c++/v1']
+        #this solves a lot but libcxx still needs to be included before musl
+        self.cpp_info.includedirs = ['include','include/c++/v1']
+        self.cpp_info.libs=['c++','c++experimental']
+        self.cpp_info.libdirs=['lib']
         #where it was buildt doesnt matter
         self.info.settings.os="ANY"
         #what libcxx the compiler uses isnt of any known importance
