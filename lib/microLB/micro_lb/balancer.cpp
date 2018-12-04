@@ -382,6 +382,7 @@ namespace microLB
     });
     
     // get the actual TCP connections
+    /*
     auto conn_in  = dynamic_cast<net::tcp::Stream*>(incoming->bottom_transport())->tcp();
     assert(conn_in != nullptr);
     auto conn_out = dynamic_cast<net::tcp::Stream*>(outgoing->bottom_transport())->tcp();
@@ -403,6 +404,7 @@ namespace microLB
         //    printf("WARNING: Outgoing reports sendq size: %u\n", sendq_size);
         return sendq_max - sendq_size;
       });
+    */
   }
   bool Session::is_alive() const {
     return incoming != nullptr;
