@@ -86,32 +86,29 @@ namespace hw
     }
   }
 
-  KBM::keystate_t KBM::transform_vk(uint8_t scancode)
+  KBM::keystate_t KBM::process_vk()
   {
+    uint8_t scancode = m_queue.front();
+    //printf("Scancode: %02X\n", scancode);
     keystate_t result;
     result.pressed = (scancode & 0x80) == 0;
     const int scancode7 = scancode & 0x7f;
-
-    if (scancode == 0x0)
-    {
-      result.key = VK_UNKNOWN;
-    }
-    else if (scancode7 <= 0x0A)
+    // numbers
+    if (scancode7 > 0x1 && scancode7 <= 0x0A)
     {
       result.key = VK_ESCAPE + scancode7 - 1;
-    }
-    else if (scancode7 == 0x2C)
-    {
-      result.key = VK_Z;
-    }
-    else if (scancode7 == 0x2D)
-    {
-      result.key = VK_X;
+      m_queue.pop_front();
     }
     else if (scancode == 0xE0)
     {
-      scancode = read_data();
+      // multimedia keys (2-byte scancodes)
+      if (m_queue.size() < 2) {
+        result.key = VK_WAIT_MORE;
+        return result;
+      }
+      scancode = m_queue.at(1);
       result.pressed = (scancode & 0x80) == 0;
+      //printf("MM scancode: %02X\n", scancode);
       switch (scancode & 0x7f) {
       case 0x48:
         result.key = VK_UP; break;
@@ -124,9 +121,17 @@ namespace hw
       default:
         result.key = VK_UNKNOWN;
       }
+      m_queue.pop_front();
+      m_queue.pop_front();
     }
-    else {
+    else
+    {
+      // single-byte scancodes
       switch (scancode7) {
+      case 0x0:
+        result.key = VK_UNKNOWN;
+      case 0x1:
+        result.key = VK_ESCAPE;
       case 0x0E:
         result.key = VK_BACK; break;
       case 0x0F:
@@ -135,9 +140,14 @@ namespace hw
         result.key = VK_ENTER; break;
       case 0x39:
         result.key = VK_SPACE; break;
+      case 0x2C:
+        result.key = VK_Z; break;
+      case 0x2D:
+        result.key = VK_X; break;
       default:
         result.key = VK_UNKNOWN;
       }
+      m_queue.pop_front();
     }
     return result;
   }
@@ -150,11 +160,21 @@ namespace hw
   {
     return (keyboard_write == write_port1) ? PORT1_IRQ : PORT2_IRQ;
   }
-  KBM::keystate_t KBM::get_kbd_vkey()
+  void KBM::kbd_process_data()
   {
-    const uint8_t byte = read_data();
-    // transform to virtual key
-    return transform_vk(byte);
+    // get new scancodes
+    while (hw::inb(PS2_STATUS) & 0x1) {
+      m_queue.push_back(hw::inb(PS2_DATA_PORT));
+    }
+    while (!m_queue.empty())
+    {
+      auto state = process_vk();
+      if (state.key == VK_WAIT_MORE) break;
+      // call handler
+      if (get().on_virtualkey) {
+        get().on_virtualkey(state.key, state.pressed);
+      }
+    }
   }
   uint8_t KBM::get_mouse_irq()
   {
@@ -246,11 +266,7 @@ namespace hw
 
     Events::get().subscribe(KBM::get_kbd_irq(),
     [] {
-      keystate_t state = KBM::get_kbd_vkey();
-      // call handler
-      if (get().on_virtualkey) {
-        get().on_virtualkey(state.key, state.pressed);
-      }
+      get().kbd_process_data();
     });
     return;
     // TODO: implement
