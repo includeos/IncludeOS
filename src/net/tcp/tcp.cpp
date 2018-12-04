@@ -30,8 +30,6 @@
 #include <net/tcp/packet4_view.hpp>
 #include <net/tcp/packet6_view.hpp>
 #include <kernel/os.hpp>
-#include <util/bitops.hpp>
-#include <util/units.hpp>
 
 using namespace std;
 using namespace net;
@@ -379,19 +377,11 @@ void TCP::reset_pmtu(Socket dest, IP4::PMTU pmtu) {
 
 uint32_t TCP::global_recv_wnd()
 {
-  using namespace util;
-
-  auto max_use = OS::heap_max() / 4; // TODO: make proportion into variable
-  auto in_use  = OS::heap_usage();
-
-  if (in_use >= max_use) {
-    printf("global_recv_wnd: Receive window empty. Heap use: %zu \n", in_use);
-    return 0;
-  }
-
-  ssize_t buf_avail = max_use - in_use;
-
-  return std::min<size_t>(buf_avail, 4_MiB);
+  // 80% of free mem
+  // normalize to 0 to avoid negative value (???)
+  ssize_t avail = std::max<ssize_t>((static_cast<ssize_t>(OS::heap_avail()) * 80 / 100) / 2, 0);
+  //printf("heap: %zi avail: %zu\n", (ssize_t)OS::heap_avail(), avail);
+  return std::min<size_t>(avail, (1 << 30)); // max can only be 1GB
 }
 
 void TCP::transmit(tcp::Packet_view_ptr packet)
@@ -627,3 +617,6 @@ TCP::Listeners::const_iterator TCP::cfind_listener(const Socket& socket) const
 
   return it;
 }
+
+
+
