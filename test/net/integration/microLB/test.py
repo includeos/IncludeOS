@@ -13,7 +13,7 @@ sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 import requests
-expected_string = "#" * 1024 * 1024 * 50
+expected_string = "#" * 1024 * 50
 
 def validateRequest(addr):
     response = requests.get('https://10.0.0.68:443', verify=False)

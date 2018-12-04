@@ -1,7 +1,7 @@
 var http = require('http');
 
 var dataString = function() {
-  var len = 1024*1024 * 50;
+  var len = 1024 * 50;
   return '#'.repeat(len);
 }
 
