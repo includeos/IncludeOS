@@ -15,6 +15,8 @@ struct VGA_gfx
   static int bits()  { return m_bits; }
 
   static void set_palette(const uint32_t colors[256]);
+  static void set_palette(const uint8_t idx, int r, int g, int b);
+  static void set_pal24(const uint8_t idx, const uint32_t);
   static void apply_default_palette();
 
   // clears screen fast with given color
