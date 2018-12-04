@@ -29,7 +29,6 @@
 #include <rtc> // nanos_now (get_ts_value)
 #include <net/tcp/packet4_view.hpp>
 #include <net/tcp/packet6_view.hpp>
-#include <kernel/os.hpp>
 
 using namespace std;
 using namespace net;
@@ -257,8 +256,6 @@ void TCP::receive(Packet_view& packet)
 
   // No open connection found, find listener for destination
   debug("<TCP::receive> No connection found - looking for listener..\n");
-  // TODO: Avoid creating a new connection if we're running out of memory.
-  // something like "mem avail" > (max_buffer_limit * 3) maybe
   auto listener_it = find_listener(dest);
 
   // Listener found => Create Listener
@@ -373,15 +370,6 @@ void TCP::reset_pmtu(Socket dest, IP4::PMTU pmtu) {
     if (conn_entry.first.second == dest)
       conn_entry.second->set_SMSS(pmtu - sizeof(ip4::Header) - sizeof(tcp::Header));
   }
-}
-
-uint32_t TCP::global_recv_wnd()
-{
-  // 80% of free mem
-  // normalize to 0 to avoid negative value (???)
-  ssize_t avail = std::max<ssize_t>((static_cast<ssize_t>(OS::heap_avail()) * 80 / 100) / 2, 0);
-  //printf("heap: %zi avail: %zu\n", (ssize_t)OS::heap_avail(), avail);
-  return std::min<size_t>(avail, (1 << 30)); // max can only be 1GB
 }
 
 void TCP::transmit(tcp::Packet_view_ptr packet)
