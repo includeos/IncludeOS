@@ -367,12 +367,12 @@ namespace microLB
         this->pool.push_back(std::make_unique<net::tcp::Stream>(conn));
         // stop any active check
         this->stop_active_check();
+        // signal change in pool
+        this->pool_signal();
       }
       else {
         this->restart_active_check();
       }
-      // signal change in pool
-      this->pool_signal();
     });
   }
   net::Stream_ptr Node::get_connection()
