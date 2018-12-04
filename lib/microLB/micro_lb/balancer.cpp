@@ -12,7 +12,7 @@
 #define CONNECT_TIMEOUT          10s
 #define CONNECT_THROW_PERIOD     20s
 
-#define LB_VERBOSE 1
+#define LB_VERBOSE 0
 #if LB_VERBOSE
 #define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -328,11 +328,13 @@ namespace microLB
         this->active_timer = Timers::periodic(
           ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
           {this, &Node::perform_active_check});
-        LBOUT("Node %d restarting active check (and is inactive)\n", this->m_idx);
+        LBOUT("Node %s restarting active check (and is inactive)\n",
+              this->addr.to_string().c_str());
       }
       else
       {
-        LBOUT("Node %d still trying to connect...\n", this->m_idx);
+        LBOUT("Node %s still trying to connect...\n",
+              this->addr.to_string().c_str());
       }
     }
   }
