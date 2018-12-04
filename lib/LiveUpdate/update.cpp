@@ -120,15 +120,18 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
   if (storage_area < (char*) 0x200) {
     throw std::runtime_error("LiveUpdate storage area is (probably) a null pointer");
   }
-#ifndef PLATFORM_UNITTEST
+#if !defined(PLATFORM_UNITTEST) && !defined(USERSPACE_LINUX)
+  // NOTE: on linux the heap location is randomized,
+  // so we could compare against that but: How to get the heap base address?
   if (storage_area >= &_ELF_START_ && storage_area < &_end) {
     throw std::runtime_error("LiveUpdate storage area is inside kernel area");
   }
-#endif
   if (storage_area >= (char*) OS::heap_begin() && storage_area < (char*) OS::heap_end()) {
     throw std::runtime_error("LiveUpdate storage area is inside the heap area");
   }
   if (storage_area_phys >= OS::heap_max()) {
+    printf("Storage area is at %p / %p\n",
+           (void*) storage_area_phys, (void*) OS::heap_max());
     throw std::runtime_error("LiveUpdate storage area is outside physical memory");
   }
   if (storage_area_phys >= OS::heap_max() - 0x10000) {
@@ -136,6 +139,7 @@ void LiveUpdate::exec(const buffer_t& blob, void* location)
            (void*) storage_area_phys, (void*) OS::heap_max());
     throw std::runtime_error("LiveUpdate storage area needs at least 64kb memory");
   }
+#endif
 
   // search for ELF header
   LPRINT("* Looking for ELF header at %p\n", update_area);
