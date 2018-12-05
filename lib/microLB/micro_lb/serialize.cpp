@@ -15,7 +15,7 @@ namespace microLB
   void Nodes::serialize(Storage& store)
   {
     store.add<int64_t>(100, this->session_total);
-    store.add_int(100, this->session_timeouts);
+    //store.add_int(100, this->session_timeouts);
     store.put_marker(100);
 
     const int tot_sessions = sessions.size() - free_sessions.size();
@@ -39,6 +39,8 @@ namespace microLB
 
   void Session::serialize(Storage& store)
   {
+    store.add_stream(*incoming);
+    store.add_stream(*outgoing);
     //store.add_connection(120, incoming);
     //store.add_connection(121, outgoing);
     store.put_marker(120);
@@ -48,7 +50,7 @@ namespace microLB
   {
     /// nodes member fields ///
     this->session_total = store.as_type<int64_t>(); store.go_next();
-    this->session_timeouts = store.as_int();        store.go_next();
+    //this->session_timeouts = store.as_int();        store.go_next();
     store.pop_marker(100);
 
     /// sessions ///
@@ -71,24 +73,24 @@ namespace microLB
 
   void Waiting::serialize(liu::Storage& store)
   {
-    /*
-    store.add_connection(10, this->conn);
+    //store.add_connection(10, this->conn);
+    store.add_stream(*this->conn);
     store.add_int(11, (int) readq.size());
     for (auto buffer : readq) {
       store.add_buffer(12, buffer->data(), buffer->size());
-    }*/
+    }
     store.put_marker(10);
   }
   Waiting::Waiting(liu::Restore& store, net::TCP& stack)
   {
-    /*
-    this->conn = store.as_tcp_connection(stack); store.go_next();
+    //this->conn = store.as_tcp_connection(stack); store.go_next();
+    //this->conn = store.as_tls_stream(stack); store.go_next();
     int qsize = store.as_int(); store.go_next();
     for (int i = 0; i < qsize; i++)
     {
       auto buf = store.as_buffer(); store.go_next();
-      readq.push_back(net::tcp::construct_buffer(buf.begin(), buf.end()));
-    }*/
+      readq.push_back(net::Stream::construct_buffer(buf.begin(), buf.end()));
+    }
     store.pop_marker(10);
   }
 
@@ -111,10 +113,10 @@ namespace microLB
     /// wait queue
     int wsize = store.as_int(); store.go_next();
     for (int i = 0; i < wsize; i++) {
-      queue.emplace_back(store, this->netin.tcp());
+      //queue.emplace_back(store, this->netin.tcp());
     }
     /// nodes
-    nodes.deserialize(netin, netout, store);
+    //nodes.deserialize(netin, netout, store);
   }
 
   void Balancer::resume_callback(liu::Restore& store)
@@ -130,10 +132,12 @@ namespace microLB
 
   void Balancer::init_liveupdate()
   {
+#ifndef USERSPACE_LINUX
     liu::LiveUpdate::register_partition("microlb", {this, &Balancer::serialize});
     if(liu::LiveUpdate::is_resumable())
     {
       liu::LiveUpdate::resume("microlb", {this, &Balancer::resume_callback});
     }
+#endif
   }
 }

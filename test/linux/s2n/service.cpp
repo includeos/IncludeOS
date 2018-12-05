@@ -82,22 +82,19 @@ struct Testing
     printf("[%d] Test stage: %d / %d\n",
            this->index, this->test_stage, NUM_STAGES);
     
-    if (are_all_streams_atleast_stage(1))
-    {
-      // serialize and deserialize TLS after connected
-      do_test_serializing_tls(this->index);
-    }
+    // serialize and deserialize TLS after connected
+    do_test_serializing_tls(this->index);
+
     if (are_all_streams_at_stage(4))
     {
       printf("Now resending test data\n");
       // perform some writes at stage 4
       do_test_send_data();
     }
-    if (are_all_streams_atleast_stage(1))
-    {
-      // serialize and deserialize TLS again
-      do_test_serializing_tls(this->index);
-    }
+
+    // serialize and deserialize TLS again
+    do_test_serializing_tls(this->index);
+
     if (are_all_streams_at_stage(NUM_STAGES)) {
       do_test_completed();
     }
@@ -121,23 +118,37 @@ bool are_all_streams_atleast_stage(int stage)
   return server_test.test_stage >= stage &&
          client_test.test_stage >= stage;
 }
+static void do_trash_memory()
+{
+  for (int i = 0; i < 1000; i++)
+  {
+    std::vector<char*> allocations;
+    for (int i = 0; i < 1000; i++) {
+      const size_t size = rand() % 0x1000;
+      allocations.push_back(new char[size]);
+      std::memset(allocations.back(), 0x0, size);
+    }
+    for (auto* alloc : allocations) {
+      std::free(alloc);
+    }
+    allocations.clear();
+  }
+}
 void do_test_serializing_tls(int index)
 {
-  char sbuffer[64*1024]; // 64KB server buffer
-  char cbuffer[64*1024]; // 64KB client buffer
-  printf("Now serializing TLS state\n");
+  char sbuffer[128*1024]; // server buffer
+  char cbuffer[128*1024]; // client buffer
+  printf(">>> Performing serialization / deserialization\n");
   // 1. serialize TLS, destroy streams
   const size_t sbytes =
       server_test.stream->serialize_to(sbuffer, sizeof(sbuffer));
   assert(sbytes > 0 && "Its only failed if it returned zero");
-  //printf("Server channel used %zu bytes\n", sbytes);
   const size_t cbytes =
       client_test.stream->serialize_to(cbuffer, sizeof(cbuffer));
   assert(cbytes > 0 && "Its only failed if it returned zero");
-  //printf("Client channel used %zu bytes\n", cbytes);
 
   // 2. deserialize TLS, create new streams
-  printf("Now deserializing TLS state\n");
+  //printf("Now deserializing TLS state\n");
 
   // 2.1: create new transport streams
   auto server_side = create_stream(&ossl_fuzz_ptr);
@@ -146,12 +157,14 @@ void do_test_serializing_tls(int index)
   ossl_fuzz_ptr = client_side.get();
   
   // 2.2: deserialize TLS config/context
-  auto* config = s2n::serial_get_config();
+  s2n::serial_free_config();
+  do_trash_memory();
+  s2n::serial_create_config();
   
   // 2.3: deserialize TLS streams
   // 2.3.1:
   auto dstream = s2n::TLS_stream::deserialize_from(
-                  config,
+                  s2n::serial_get_config(),
                   std::move(server_side),
                   false,
                   sbuffer, sbytes
@@ -160,7 +173,7 @@ void do_test_serializing_tls(int index)
   server_test.stream = dstream.release();
 
   dstream = s2n::TLS_stream::deserialize_from(
-                  config,
+                  s2n::serial_get_config(),
                   std::move(client_side),
                   false,
                   cbuffer, cbytes
@@ -180,7 +193,7 @@ void do_test_send_data()
 void do_test_completed()
 {
   printf("SUCCESS\n");
-  s2n::serial_test_over();
+  s2n::serial_free_config();
   OS::shutdown();
 }
 
@@ -200,9 +213,10 @@ void Service::start()
   assert(srv_key.is_valid());
   printf("*** Loaded certificates and keys\n");
 
-  // initialize S2N
+  // initialize S2N and store the certificate/key pair
   s2n::serial_test(ca_cert.to_string(), ca_key.to_string());
-  
+  s2n::serial_create_config();
+
   // server fuzzy stream
   auto server_side = create_stream(&ossl_fuzz_ptr);
   s2n_fuzz_ptr = server_side.get();
@@ -219,4 +233,8 @@ void Service::start()
   
   server_test.setup_callbacks();
   client_test.setup_callbacks();
+  printf("* TLS streams created!\n");
+  
+  // try serializing and deserializing just after creation
+  do_test_serializing_tls(0);
 }

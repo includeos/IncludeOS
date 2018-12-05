@@ -70,6 +70,7 @@ set(OS_OBJECTS
   fs/fat.cpp fs/fat_async.cpp fs/fat_sync.cpp fs/memdisk.cpp
   # POSIX
   posix/fd.cpp posix/file_fd.cpp posix/tcp_fd.cpp posix/udp_fd.cpp posix/unix_fd.cpp
+  posix/secure_getenv.cpp
 
 )
 

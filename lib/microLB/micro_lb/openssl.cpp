@@ -6,13 +6,11 @@
 
 namespace microLB
 {
-  Balancer::Balancer(
-        netstack_t& in,
-        uint16_t    port,
-        netstack_t& out,
+  void Balancer::open_for_ossl(
+        netstack_t&        interface,
+        const uint16_t     client_port,
         const std::string& tls_cert,
         const std::string& tls_key)
-    : nodes(), netin(in), netout(out), signal({this, &Balancer::handle_queue})
   {
     fs::memdisk().init_fs(
     [] (fs::error_t err, fs::File_system&) {
@@ -22,14 +20,14 @@ namespace microLB
     openssl::init();
     openssl::verify_rng();
 
-    this->openssl_data = openssl::create_server(tls_cert, tls_key);
+    this->tls_context = openssl::create_server(tls_cert, tls_key);
 
-    netin.tcp().listen(port,
+    interface.tcp().listen(client_port,
       [this] (net::tcp::Connection_ptr conn) {
         if (conn != nullptr)
         {
           auto* stream = new openssl::TLS_stream(
-              (SSL_CTX*) this->openssl_data,
+              (SSL_CTX*) this->tls_context,
               std::make_unique<net::tcp::Stream>(conn)
           );
           stream->on_connect(
@@ -42,7 +40,5 @@ namespace microLB
             });
         }
       });
-
-    this->init_liveupdate();
-  }
+  } // open_ossl(...)
 }

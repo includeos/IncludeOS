@@ -94,13 +94,15 @@ void Events::unsubscribe(uint8_t evt)
   throw std::out_of_range("Event was not in sublist?");
 }
 
-void Events::defer(event_callback cb)
+void Events::defer(event_callback callback)
 {
   auto ev = subscribe(nullptr);
   subscribe(ev, event_callback::make_packed(
-    [this, ev, cb] () {
-      unsubscribe(ev);
-      cb();
+    [this, ev, callback] () {
+      callback();
+      // NOTE: we cant unsubscribe before after callback(),
+      // because unsubscribe() deallocates event storage
+      this->unsubscribe(ev);
     }));
   // and trigger it once
   event_pend[ev] = true;
