@@ -36,7 +36,7 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     cb{host_.window_size()},
     read_request(nullptr),
     writeq(),
-    recv_wnd_getter{TCP::global_recv_wnd},
+    recv_wnd_getter{this, &Connection::calculate_rcv_wnd},
     on_connect_{std::move(callback)},
     on_disconnect_({this, &Connection::default_on_disconnect}),
     rtx_timer({this, &Connection::rtx_timeout}),
@@ -653,6 +653,38 @@ void Connection::rtx_ack(const seq_t ack) {
   //  x-rtx_q.size(), rtx_q.size());
 }
 
+uint32_t Connection::calculate_rcv_wnd() const
+{
+  // PRECISE REPORTING
+  /*
+  const auto& rbuf = read_request->front();
+  auto remaining = rbuf.capacity() - rbuf.size();
+  auto win = (bufalloc->allocatable() + remaining) - rbuf.capacity();
+  //auto max = read_request->front().capacity();
+  //win = (win < max) ? (rbuf.capacity() - rbuf.size()) : win - max;
+  return win;
+  */
+
+  // REPORT CHUNKWISE
+  /*
+  //auto allocatable = bufalloc->allocatable();
+  const auto& rbuf = read_request->front();
+
+  auto win = cb.RCV.WND;
+  if (bufalloc->allocatable() < rbuf.capacity()) {
+    printf("[connection] Allocatable data is less than capacity. Win 0. \n");
+    win = 0;
+  } else {
+    win = bufalloc->allocatable() - rbuf.capacity();
+  }
+
+  return win;
+  */
+
+  // REPORT CONSTANT
+  return bufalloc->allocatable();
+}
+
 /*
   7. Process the segment text
 
@@ -745,41 +777,7 @@ void Connection::recv_data(const Packet_view& in)
       // this ensures that the data we ACK is actually put in our buffer.
       Ensures(recv == length);
       // adjust the rcv wnd to (maybe) new value
-
-      // LET APPLICATION REPORT
-      // cb.RCV.WND = recv_wnd_getter();
-
-      // PRECISE REPORTING
-      /*
-      const auto& rbuf = read_request->front();
-      auto remaining = rbuf.capacity() - rbuf.size();
-      auto win = (bufalloc->allocatable() + remaining) - rbuf.capacity();
-      //auto max = read_request->front().capacity();
-      //win = (win < max) ? (rbuf.capacity() - rbuf.size()) : win - max;
-      cb.RCV.WND = win;
-      */
-
-      // REPORT CHUNKWISE
-      /*
-      //auto allocatable = bufalloc->allocatable();
-      const auto& rbuf = read_request->front();
-
-      auto win = cb.RCV.WND;
-      if (bufalloc->allocatable() < rbuf.capacity()) {
-        printf("[connection] Allocatable data is less than capacity. Win 0. \n");
-        win = 0;
-      } else {
-        win = bufalloc->allocatable() - rbuf.capacity();
-      }
-
-      cb.RCV.WND = win;
-      */
-
-
-      // REPORT CONSTANT
-      cb.RCV.WND = bufalloc->allocatable();
-      //cb.RCV.WND = 64_MiB;
-      //cb.RCV.WND = std::max<uint32_t>(bufalloc->allocatable(), 4_MiB);
+      cb.RCV.WND = recv_wnd_getter();
     }
   }
   // Packet out of order
