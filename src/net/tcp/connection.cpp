@@ -117,7 +117,7 @@ void Connection::reset_callbacks()
   on_connect_.reset();
   writeq.on_write(nullptr);
   on_close_.reset();
-
+  recv_wnd_getter.reset();
   if(read_request)
     read_request->callback.reset();
 }
@@ -1163,6 +1163,7 @@ void Connection::clean_up() {
   on_connect_.reset();
   on_disconnect_.reset();
   on_close_.reset();
+  recv_wnd_getter.reset();
   if(read_request)
     read_request->callback.reset();
   _on_cleanup_.reset();
