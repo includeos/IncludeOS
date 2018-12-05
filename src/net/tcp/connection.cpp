@@ -36,7 +36,7 @@ Connection::Connection(TCP& host, Socket local, Socket remote, ConnectCallback c
     cb{host_.window_size()},
     read_request(nullptr),
     writeq(),
-    recv_wnd_getter{this, &Connection::calculate_rcv_wnd},
+    recv_wnd_getter{nullptr},
     on_connect_{std::move(callback)},
     on_disconnect_({this, &Connection::default_on_disconnect}),
     rtx_timer({this, &Connection::rtx_timeout}),
@@ -777,7 +777,7 @@ void Connection::recv_data(const Packet_view& in)
       // this ensures that the data we ACK is actually put in our buffer.
       Ensures(recv == length);
       // adjust the rcv wnd to (maybe) new value
-      cb.RCV.WND = recv_wnd_getter();
+      cb.RCV.WND = (recv_wnd_getter == nullptr) ? calculate_rcv_wnd() : recv_wnd_getter();
     }
   }
   // Packet out of order
