@@ -1,6 +1,9 @@
 #pragma once
-#include <net/inet>
+#include <net/socket.hpp>
 #include <liveupdate>
+namespace net {
+  class Inet;
+}
 
 namespace microLB
 {

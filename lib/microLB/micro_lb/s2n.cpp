@@ -1,5 +1,6 @@
 #include "balancer.hpp"
 #include <memdisk>
+#include <net/inet>
 #include <net/s2n/stream.hpp>
 #include <net/tcp/stream.hpp>
 
@@ -21,27 +22,27 @@ namespace microLB
       s2n::print_s2n_error("Error running s2n_init()");
       exit(1);
     }
-    
+
     s2n_config* config = s2n_config_new();
     assert(config != nullptr);
-    
+
     int res =
     s2n_config_add_cert_chain_and_key(config, ca_cert.c_str(), ca_key.c_str());
     if (res < 0) {
       s2n::print_s2n_error("Error getting certificate/key");
       exit(1);
     }
-    
+
     res =
     s2n_config_set_verify_host_callback(config, verify_host_passthrough, nullptr);
     if (res < 0) {
       s2n::print_s2n_error("Error setting verify-host callback");
       exit(1);
     }
-    
+
     return config;
   }
-  
+
   void Balancer::open_for_s2n(
         netstack_t&        interface,
         const uint16_t     client_port,

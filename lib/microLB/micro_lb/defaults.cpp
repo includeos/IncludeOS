@@ -1,4 +1,5 @@
 #include "balancer.hpp"
+#include <net/inet>
 #include <net/tcp/stream.hpp>
 
 namespace microLB

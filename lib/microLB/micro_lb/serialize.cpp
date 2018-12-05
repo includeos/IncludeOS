@@ -1,5 +1,6 @@
 #include "balancer.hpp"
 #include <stdexcept>
+#include <net/inet>
 
 #define LB_VERBOSE 0
 #if LB_VERBOSE

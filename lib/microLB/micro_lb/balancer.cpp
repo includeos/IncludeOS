@@ -13,7 +13,7 @@
 #define CONNECT_TIMEOUT          10s
 #define CONNECT_THROW_PERIOD     20s
 
-#define LB_VERBOSE 1
+#define LB_VERBOSE 0
 #if LB_VERBOSE
 #define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
