@@ -68,7 +68,6 @@ namespace microLB
   }
   void Balancer::handle_queue()
   {
-    printf("handle_queue\n");
     // check waitq
     while (nodes.pool_size() > 0 && queue.empty() == false)
     {
@@ -96,7 +95,7 @@ namespace microLB
   }
   void Balancer::handle_connections()
   {
-    printf("handle_connections\n");
+    LBOUT("Handle_connections. %i waiting \n", queue.size());
     // stop any rethrow timer since this is a de-facto retry
     if (this->throw_retry_timer != Timers::UNUSED_ID) {
         Timers::stop(this->throw_retry_timer);
@@ -142,6 +141,14 @@ namespace microLB
   {
     assert(this->conn != nullptr);
     assert(this->conn->is_connected());
+
+    // Release connection if it closes before it's assigned to a node.
+    this->conn->on_close([this](){
+        if (this->conn != nullptr)
+          this->conn->reset_callbacks();
+        this->conn = nullptr;
+      });
+
     // queue incoming data from clients not yet
     // assigned to a node
     this->conn->on_read(READQ_PER_CLIENT,
