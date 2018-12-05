@@ -50,6 +50,7 @@ namespace os::mem::detail {
       }
 
       allocated_ += size;
+      allocations_++;
       return buf;
     }
 
@@ -61,6 +62,7 @@ namespace os::mem::detail {
 
       free(ptr);
       allocated_ -= size;
+      deallocations_++;
     }
 
     bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override {
@@ -174,6 +176,14 @@ namespace os::mem::detail {
       return allocated_;
     }
 
+    std::size_t alloc_count() {
+      return allocations_;
+    }
+
+    std::size_t dealloc_count() {
+      return deallocations_;
+    }
+
     bool full() {
       return allocated_ >= cap_total_;
     }
@@ -198,6 +208,8 @@ namespace os::mem::detail {
 
   private:
     std::size_t allocated_      = 0;
+    std::size_t allocations_    = 0;
+    std::size_t deallocations_  = 0;
     std::size_t cap_total_      = 0;
     std::size_t cap_suballoc_   = 0;
     std::size_t max_resources_  = 0;
@@ -225,6 +237,8 @@ namespace os::mem {
     : impl{std::make_shared<detail::Pmr_pool>(sz, sz_sub, max_allocs)}{}
   Pmr_pool::Resource_ptr Pmr_pool::get_resource() { return impl->get_resource(); }
   std::size_t Pmr_pool::resource_count() { return impl->resource_count(); }
+  std::size_t Pmr_pool::alloc_count() { return impl->alloc_count(); }
+  std::size_t Pmr_pool::dealloc_count() { return impl->dealloc_count(); }
   void Pmr_pool::return_resource(Resource* res) { impl->return_resource(res); }
   bool Pmr_pool::full() { return impl->full(); }
   bool Pmr_pool::empty() { return impl->empty(); }
