@@ -83,10 +83,9 @@ add_custom_target(
       ${CMAKE_COMMAND} -D SRC=${CMAKE_CURRENT_BINARY_DIR}/version.h.in
                        -D DST=${CMAKE_CURRENT_BINARY_DIR}/version.h
                        -P ${CMAKE_CURRENT_BINARY_DIR}/version.cmake
-
 )
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_BINARY_DIR})
 
 cmake_dependent_option(CORE_OS "Only build the core OS reducing dependencies on botan,openssl etc" OFF
   "NOT PLATFORM STREQUAL x86_nano" ON)
@@ -189,7 +188,7 @@ endif()
 
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-   file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+   file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/develop/conan.cmake"
                   "${CMAKE_BINARY_DIR}/conan.cmake")
 endif()
 

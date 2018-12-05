@@ -24,8 +24,11 @@ message(STATUS "Building for arch ${ARCH}")
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
 add_definitions(-DPLATFORM_UNITTEST)
-add_definitions(-DOS_VERSION="v0.0.0.1")
-
+#add_definitions(-DOS_VERSION="v0.0.0.1")
+FILE(WRITE ${CMAKE_BINARY_DIR}/version.h
+"#define OS_VERSION \"v0.0.0.1\"\n"
+)
+include_directories(${CMAKE_BINARY_DIR})
 set(CMAKE_C_FLAGS "-g -O0 -std=c11 -Wall -Wextra")
 
 set(NO_INFO "-DNO_INFO=1")
@@ -60,6 +63,26 @@ endif()
 
 set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${INCLUDEOS_ROOT}/test)
+
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
+   message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
+   file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+                  "${CMAKE_BINARY_DIR}/conan.cmake")
+endif()
+##needed by conaningans
+set(CMAKE_BUILD_TYPE "Release")
+include(${CMAKE_BINARY_DIR}/conan.cmake)
+#include conan cmake
+conan_cmake_run(
+  REQUIRES
+    uzlib/v2.1.1@includeos/test
+    http-parser/2.8.1@includeos/test
+    GSL/2.0.0@includeos/test
+    BASIC_SETUP
+#  OPTIONS
+#    Pkg:shared=True
+#    OtherPkg:option=value
+)
 
 include_directories(
   ${TEST}/lest_util
@@ -248,12 +271,12 @@ set(OS_SOURCES
 
 set(MOD_OBJECTS
   # http-parser
-  ${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
+  #${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
   # uzlib
-  ${INCLUDEOS_ROOT}/mod/uzlib/src/adler32.c
-  ${INCLUDEOS_ROOT}/mod/uzlib/src/crc32.c
-  ${INCLUDEOS_ROOT}/mod/uzlib/src/tinflate.c
-  ${INCLUDEOS_ROOT}/mod/uzlib/src/tinfgzip.c
+  #${INCLUDEOS_ROOT}/mod/uzlib/src/adler32.c
+  #${INCLUDEOS_ROOT}/mod/uzlib/src/crc32.c
+  #${INCLUDEOS_ROOT}/mod/uzlib/src/tinflate.c
+  #${INCLUDEOS_ROOT}/mod/uzlib/src/tinfgzip.c
   # LiveUpdate
   #${INCLUDEOS_ROOT}/lib/LiveUpdate/hotswap.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/partition.cpp
@@ -318,6 +341,8 @@ if(SILENT_BUILD)
 endif()
 
 add_executable(unittests ${SOURCES})
+target_link_libraries(unittests ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o ${CONAN_LIBS} m stdc++)
+
 install(TARGETS unittests DESTINATION ${TEST})
 
 if (GENERATE_SUPPORT_FILES)
