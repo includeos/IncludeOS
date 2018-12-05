@@ -380,7 +380,11 @@ namespace net {
     void set_total_bufsize(const size_t size)
     {
       total_bufsize_ = size;
-      mempool.set_total_capacity(total_bufsize_);
+      mempool_.set_total_capacity(total_bufsize_);
+    }
+
+    const os::mem::Pmr_pool& mempool() {
+      return mempool_;
     }
 
     /**
@@ -546,7 +550,7 @@ namespace net {
     Connections   connections_;
 
     size_t total_bufsize_;
-    os::mem::Pmr_pool mempool;
+    os::mem::Pmr_pool mempool_;
 
     size_t min_bufsize_;
     size_t max_bufsize_;

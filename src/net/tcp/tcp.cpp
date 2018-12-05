@@ -42,7 +42,7 @@ TCP::TCP(IPStack& inet, bool smp_enable) :
   listeners_(),
   connections_(),
   total_bufsize_{default_total_bufsize},
-  mempool{total_bufsize_},
+  mempool_{total_bufsize_},
   min_bufsize_{default_min_bufsize}, max_bufsize_{default_max_bufsize},
   ports_(inet.tcp_ports()),
   writeq(),
@@ -515,7 +515,7 @@ void TCP::add_connection(tcp::Connection_ptr conn) {
 
   debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
   conn->_on_cleanup({this, &TCP::close_connection});
-  conn->bufalloc = mempool.get_resource();
+  conn->bufalloc = mempool_.get_resource();
   Expects(conn->bufalloc != nullptr);
   connections_.emplace(conn->tuple(), conn);
 }
@@ -531,7 +531,7 @@ Connection_ptr TCP::create_connection(Socket local, Socket remote, ConnectCallba
       )
     ).first->second;
   conn->_on_cleanup({this, &TCP::close_connection});
-  conn->bufalloc = mempool.get_resource();
+  conn->bufalloc = mempool_.get_resource();
   Expects(conn->bufalloc != nullptr);
   return conn;
 }
