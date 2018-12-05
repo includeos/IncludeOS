@@ -861,6 +861,8 @@ private:
   */
   bool handle_ack(const Packet_view&);
 
+  uint32_t calculate_rcv_wnd() const;
+
   /**
    * @brief      Receive data from an incoming packet containing data.
    *

@@ -535,15 +535,6 @@ namespace net {
       return this->cpu_id;
     }
 
-    /**
-     * @brief      Return a value that's supposed to describe how much
-     *             a connection should announce as it's RCV WND,
-     *             with regards to the whole system.
-     *
-     * @return     A RCV WND value, maximum 1GB
-     */
-    static uint32_t global_recv_wnd();
-
   private:
     IPStack&      inet_;
     Listeners     listeners_;
