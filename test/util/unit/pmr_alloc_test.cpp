@@ -14,11 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//#define DEBUG_UNIT
+#define DEBUG_UNIT
 
 #include <common.cxx>
 #include <util/alloc_pmr.hpp>
 #include <util/units.hpp>
+
+#if __has_include(<experimental/memory_resource>)
+#include <experimental/map>
+#endif
+
+#include <map>
 #include <unordered_map>
 
 CASE("pmr::default_pmr_resource") {
@@ -170,10 +176,10 @@ CASE("pmr::resource usage") {
     EXPECT(p3 != nullptr);
     EXPECT(p4 != nullptr);
 
-    allocations.at(res.get()).push_back(p1);
-    allocations.at(res.get()).push_back(p2);
-    allocations.at(res.get()).push_back(p3);
-    allocations.at(res.get()).push_back(p4);
+    allocations[res.get()].push_back(p1);
+    allocations[res.get()].push_back(p2);
+    allocations[res.get()].push_back(p3);
+    allocations[res.get()].push_back(p4);
 
     EXPECT(res->full());
     EXPECT_THROWS(res->allocate(1_KiB));
@@ -215,21 +221,20 @@ CASE("pmr::resource usage") {
     for (auto alloc : vec)
       pool->deallocate(alloc, 1_KiB);
 
+  EXPECT(pool.empty());
   EXPECT(not pool.full());
   EXPECT(pool.allocatable() == pool_cap);
 
-  // Each resource's state is remembered as it's passed back and forth.
-  // ...There's now no way of fetching any non-full resources
-  auto res_tricked = pool.get_resource();
-
   EXPECT(pool.resource_count() == resource_count);
-  EXPECT(res_tricked->full());
-  EXPECT(res_tricked->allocatable() == 0);
-  EXPECT_THROWS(res_tricked->allocate(1_KiB));
+  auto res_reused = pool.get_resource();
+  EXPECT(pool.resource_count() == resource_count);
 
-  res_tricked.reset();
+  EXPECT(res_reused->empty());
+  EXPECT(res_reused->allocatable() == resource_cap);
+  EXPECT(pool_ptr->free_resources() == resource_count - 1);
+  EXPECT(pool_ptr->used_resources() == 1);
 
-  pool_ptr->clear_free_resources();
+  res_reused.reset();
 
   auto res2 = pool.get_resource();
 
