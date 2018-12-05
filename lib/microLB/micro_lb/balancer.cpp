@@ -274,10 +274,12 @@ namespace microLB
     free_sessions.clear();
   }
 
-  Node::Node(node_connect_function_t func, pool_signal_t sig, bool da, int idx)
-    : m_connect(func), m_pool_signal(sig), m_idx(idx), do_active_check(da)
+  Node::Node(Balancer& balancer, const net::Socket addr,
+             node_connect_function_t func, bool da, int idx)
+    : m_connect(func), m_socket(addr), m_idx(idx), do_active_check(da)
   {
     assert(this->m_connect != nullptr);
+    this->m_pool_signal = balancer.get_pool_signal();
     // periodically connect to node and determine if active
     if (this->do_active_check)
     {
@@ -397,14 +399,14 @@ namespace microLB
     [&nodes = n, idx] () {
         nodes.close_session(idx);
     });
-    
+
     // get the actual TCP connections
     /*
     auto conn_in  = dynamic_cast<net::tcp::Stream*>(incoming->bottom_transport())->tcp();
     assert(conn_in != nullptr);
     auto conn_out = dynamic_cast<net::tcp::Stream*>(outgoing->bottom_transport())->tcp();
     assert(conn_out != nullptr);
-    
+
     static const uint32_t sendq_max = 0x400000;
     // set recv window handlers
     conn_in->set_recv_wnd_getter(

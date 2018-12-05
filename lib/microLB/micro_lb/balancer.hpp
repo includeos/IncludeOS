@@ -35,9 +35,12 @@ namespace microLB
     net::Stream_ptr outgoing;
   };
 
+  struct Balancer;
   struct Node {
-    Node(node_connect_function_t, pool_signal_t, bool do_active, int idx);
+    Node(Balancer&, net::Socket, node_connect_function_t,
+         bool do_active = true, int idx = -1);
 
+    auto address() const noexcept { return m_socket; }
     int  connection_attempts() const noexcept { return this->connecting; }
     int  pool_size() const noexcept { return pool.size(); }
     bool is_active() const noexcept { return active; };
@@ -53,6 +56,7 @@ namespace microLB
     node_connect_function_t m_connect = nullptr;
     pool_signal_t           m_pool_signal = nullptr;
     std::vector<net::Stream_ptr> pool;
+    net::Socket m_socket;
     [[maybe_unused]] int m_idx;
     bool       active = false;
     const bool do_active_check;
