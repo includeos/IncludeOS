@@ -117,7 +117,18 @@ bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
 
   debug2("<Connection::State::check_seq> TCB: %s \n",tcb.to_string().c_str());
   // #1 - The packet we expect
-  if( in.seq() == tcb.RCV.NXT ) {
+  if( in.seq() == tcb.RCV.NXT )
+  {
+    static uint16_t ack_probe = 0;
+    if(UNLIKELY(tcb.RCV.WND == 0 and in.tcp_data_length() > ack_probe))
+    {
+      //if(in.tcp_data_length() == 1)
+      //  printf("RCV PROBE %s\n", in.to_string().c_str());
+
+      tcp.update_rcv_wnd();
+      goto unacceptable;
+    }
+
     goto acceptable;
   }
   /// if SACK isn't permitted there is no point handling out-of-order packets
@@ -130,12 +141,18 @@ bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
   }
   // #3 (INVALID) - Packet is outside the right edge of the recv window
   else if( packet_end > tcb.RCV.NXT+tcb.RCV.WND ) {
+    //printf("Outside right: %s NXT=%u WND=%u\n", in.to_string().c_str(), tcb.RCV.NXT, tcb.RCV.WND);
     goto unacceptable;
   }
   // #4 - Packet with payload is what we expect or bigger, but inside our window
   else if( tcb.RCV.NXT <= packet_end
       and packet_end < tcb.RCV.NXT+tcb.RCV.WND ) {
     goto acceptable;
+  }
+  else
+  {
+    //printf("Probably outside on left side %s end=%u NXT=%u WND=%u\n",
+    //  in.to_string().c_str(), packet_end, tcb.RCV.NXT, tcb.RCV.WND);
   }
   /*
     If an incoming segment is not acceptable, an acknowledgment
