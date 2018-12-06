@@ -465,7 +465,7 @@ void Connection::congestion_control(const Packet_view& in)
   } // < congestion avoidance
 
   // try to write
-  if(can_send() and !in.has_tcp_data())
+  if(can_send() and (!in.has_tcp_data() or cb.RCV.WND < in.tcp_data_length()))
   {
     debug2("<Connection::handle_ack> Can send UW: %u SMSS: %u\n", usable_window(), SMSS());
     send_much();
@@ -730,14 +730,13 @@ void Connection::recv_data(const Packet_view& in)
 
   size_t length = in.tcp_data_length();
 
-  /*
   if(UNLIKELY(cb.RCV.WND < length))
   {
-    printf("DROP: Receive window too small - my window is now: %u \n", cb.RCV.WND);
     drop(in, Drop_reason::RCV_WND_ZERO);
+    update_rcv_wnd();
+    send_ack();
     return;
    }
-   */
 
 
   // Keep track if a packet is being sent during the async read callback
@@ -1334,7 +1333,8 @@ bool Connection::uses_SACK() const noexcept
 
 void Connection::drop(const Packet_view& packet, [[maybe_unused]]Drop_reason reason)
 {
-  //printf("Drop %s %#.x\n", packet.to_string().c_str(), reason);
+  /*printf("Drop %s %#.x RCV.WND: %u RCV.NXT %u alloc free: %zu flight size: %u SND.WND: %u \n",
+    packet.to_string().c_str(), reason, cb.RCV.WND, cb.RCV.NXT, bufalloc->allocatable(), flight_size(), cb.SND.WND);*/
   host_.drop(packet);
 }
 

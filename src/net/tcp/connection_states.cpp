@@ -119,16 +119,6 @@ bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
   // #1 - The packet we expect
   if( in.seq() == tcb.RCV.NXT )
   {
-    static uint16_t ack_probe = 0;
-    if(UNLIKELY(tcb.RCV.WND == 0 and in.tcp_data_length() > ack_probe))
-    {
-      //if(in.tcp_data_length() == 1)
-      //  printf("RCV PROBE %s\n", in.to_string().c_str());
-
-      tcp.update_rcv_wnd();
-      goto unacceptable;
-    }
-
     goto acceptable;
   }
   /// if SACK isn't permitted there is no point handling out-of-order packets
