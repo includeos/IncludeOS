@@ -158,6 +158,7 @@ set(TEST_SOURCES
   ${TEST}/util/unit/bitops.cpp
   ${TEST}/util/unit/lstack.cpp
   ${TEST}/util/unit/buddy_alloc_test.cpp
+  ${TEST}/util/unit/pmr_alloc_test.cpp
 )
 
 set(OS_SOURCES
@@ -241,6 +242,7 @@ set(OS_SOURCES
   ${SRC}/util/syslogd.cpp
   ${SRC}/util/tar.cpp
   ${SRC}/util/uri.cpp
+  # ${SRC}/util/pmr_default.cpp # <- older libc++ versions might need this
   ${SRC}/virtio/virtio_queue.cpp
 )
 

@@ -31,6 +31,8 @@
 #include <delegate>
 #include <util/timer.hpp>
 
+#include <util/alloc_pmr.hpp>
+
 namespace net {
   // Forward declaration of the TCP object
   class TCP;
@@ -625,6 +627,7 @@ private:
 
   /** The given read request */
   std::unique_ptr<Read_request> read_request;
+  os::mem::Pmr_pool::Resource_ptr bufalloc{nullptr};
 
   /** Queue for write requests to process */
   Write_queue writeq;

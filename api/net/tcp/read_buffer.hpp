@@ -34,6 +34,7 @@ namespace tcp {
  */
 class Read_buffer {
 public:
+  using Alloc = os::mem::buffer::allocator_type;
   /**
    * @brief      Construct a read buffer.
    *             Min and max need to be power of 2.
@@ -43,6 +44,8 @@ public:
    * @param[in]  max    The maximum size of the buffer (how much it can grow)
    */
   Read_buffer(const seq_t start, const size_t min, const size_t max);
+
+  Read_buffer(const seq_t start, const size_t min, const size_t max, const Alloc& alloc);
 
   /**
    * @brief      Insert data into the buffer relative to the sequence number.

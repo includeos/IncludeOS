@@ -63,7 +63,9 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
   (void) recv_bufsz;
   if(read_request == nullptr)
   {
-    read_request.reset(new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb));
+    Expects(bufalloc != nullptr);
+    read_request.reset(
+      new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb, bufalloc.get()));
   }
   // read request is already set, only reset if new size.
   else
@@ -115,7 +117,7 @@ void Connection::reset_callbacks()
   on_connect_.reset();
   writeq.on_write(nullptr);
   on_close_.reset();
-
+  recv_wnd_getter.reset();
   if(read_request)
     read_request->callback.reset();
 }
@@ -168,6 +170,7 @@ void Connection::offer(size_t& packets)
 
   // write until we either cant send more (window closes or no more in queue),
   // or we're out of packets.
+
   while(can_send() and packets)
   {
     auto packet = create_outgoing_packet();
@@ -395,49 +398,44 @@ bool Connection::handle_ack(const Packet_view& in)
   } // < dup ack
 
   // new ack
-  else if(LIKELY(in.ack() >= cb.SND.UNA))
+
+  if(is_win_update(in, true_win))
   {
-    if(is_win_update(in, true_win))
-    {
-      cb.SND.WND = true_win;
-      cb.SND.WL1 = in.seq();
-      cb.SND.WL2 = in.ack();
-      //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
-    }
-    //pred_flags = htonl((in.tcp_header_length() << 26) | 0x10 | cb.SND.WND >> cb.SND.wind_shift);
-
-    // [RFC 6582] p. 8
-    prev_highest_ack_ = cb.SND.UNA;
-    highest_ack_ = in.ack();
-
-    if(cb.SND.TS_OK)
-    {
-      const auto* ts = in.ts_option();
-      if(ts != nullptr) // TODO: not sure the packet is valid if TS missing
-        last_acked_ts_ = ts->ecr;
-    }
-
-    cb.SND.UNA = in.ack();
-
-    rtx_ack(in.ack());
-
-    take_rtt_measure(in);
-
-    // do either congctrl or fastrecov according to New Reno
-    (not fast_recovery_)
-      ? congestion_control(in) : fast_recovery(in);
-
-    dup_acks_ = 0;
-
-    if(in.has_tcp_data() or in.isset(FIN))
-      return true;
-
-  } // < new ack
-
-  // ACK outside
-  else {
-    return true;
+    cb.SND.WND = true_win;
+    cb.SND.WL1 = in.seq();
+    cb.SND.WL2 = in.ack();
+    //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
   }
+  //pred_flags = htonl((in.tcp_header_length() << 26) | 0x10 | cb.SND.WND >> cb.SND.wind_shift);
+
+  // [RFC 6582] p. 8
+  prev_highest_ack_ = cb.SND.UNA;
+  highest_ack_ = in.ack();
+
+  if(cb.SND.TS_OK)
+  {
+    const auto* ts = in.ts_option();
+    if(ts != nullptr) // TODO: not sure the packet is valid if TS missing
+      last_acked_ts_ = ts->ecr;
+  }
+
+  cb.SND.UNA = in.ack();
+
+  rtx_ack(in.ack());
+
+  take_rtt_measure(in);
+
+  // do either congctrl or fastrecov according to New Reno
+  (not fast_recovery_)
+    ? congestion_control(in) : fast_recovery(in);
+
+  dup_acks_ = 0;
+
+  if(in.has_tcp_data() or in.isset(FIN))
+    return true;
+
+  // < new ack
+  // Nothing to process
   return false;
 }
 
@@ -686,14 +684,25 @@ void Connection::recv_data(const Packet_view& in)
 {
   Expects(in.has_tcp_data());
 
-  // just drop the packet if we don't have a recv wnd.
-  // this is really awful and probably unnecesseary,
-  // since it could be that we already preallocated that memory in our vector.
-  // i also think we shouldn't reach this point due to State::check_seq checking
+  // just drop the packet if we don't have a recv wnd / buffer available.
+  // this shouldn't be necessary with well behaved connections.
+  // I also think we shouldn't reach this point due to State::check_seq checking
   // if we're inside the window. if packet is out of order tho we can change the RCV wnd (i think).
-  if(recv_wnd_getter() == 0) {
+  if(UNLIKELY(bufalloc->allocatable() < host_.max_bufsize())) {
     drop(in, Drop_reason::RCV_WND_ZERO);
+    return;
   }
+
+  size_t length = in.tcp_data_length();
+
+  /*
+  if(UNLIKELY(cb.RCV.WND < length))
+  {
+    printf("DROP: Receive window too small - my window is now: %u \n", cb.RCV.WND);
+    drop(in, Drop_reason::RCV_WND_ZERO);
+    return;
+   }
+   */
 
 
   // Keep track if a packet is being sent during the async read callback
@@ -702,7 +711,6 @@ void Connection::recv_data(const Packet_view& in)
   // The packet we expect
   if(cb.RCV.NXT == in.seq())
   {
-    size_t length = in.tcp_data_length();
 
     // If we had packet loss before (and SACK is on)
     // we need to clear up among the blocks
@@ -733,7 +741,41 @@ void Connection::recv_data(const Packet_view& in)
       // this ensures that the data we ACK is actually put in our buffer.
       Ensures(recv == length);
       // adjust the rcv wnd to (maybe) new value
-      cb.RCV.WND = recv_wnd_getter();
+
+      // LET APPLICATION REPORT
+      // cb.RCV.WND = recv_wnd_getter();
+
+      // PRECISE REPORTING
+      /*
+      const auto& rbuf = read_request->front();
+      auto remaining = rbuf.capacity() - rbuf.size();
+      auto win = (bufalloc->allocatable() + remaining) - rbuf.capacity();
+      //auto max = read_request->front().capacity();
+      //win = (win < max) ? (rbuf.capacity() - rbuf.size()) : win - max;
+      cb.RCV.WND = win;
+      */
+
+      // REPORT CHUNKWISE
+      /*
+      //auto allocatable = bufalloc->allocatable();
+      const auto& rbuf = read_request->front();
+
+      auto win = cb.RCV.WND;
+      if (bufalloc->allocatable() < rbuf.capacity()) {
+        printf("[connection] Allocatable data is less than capacity. Win 0. \n");
+        win = 0;
+      } else {
+        win = bufalloc->allocatable() - rbuf.capacity();
+      }
+
+      cb.RCV.WND = win;
+      */
+
+
+      // REPORT CONSTANT
+      cb.RCV.WND = bufalloc->allocatable();
+      //cb.RCV.WND = 64_MiB;
+      //cb.RCV.WND = std::max<uint32_t>(bufalloc->allocatable(), 4_MiB);
     }
   }
   // Packet out of order
@@ -1117,6 +1159,7 @@ void Connection::clean_up() {
   on_connect_.reset();
   on_disconnect_.reset();
   on_close_.reset();
+  recv_wnd_getter.reset();
   if(read_request)
     read_request->callback.reset();
   _on_cleanup_.reset();

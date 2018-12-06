@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <delegate>
 #include <memory>
+#include <pmr>
 #include <vector>
 #include <net/socket.hpp>
 
@@ -34,13 +35,13 @@ namespace net {
    */
   class Stream {
   public:
-    using buffer_t = std::shared_ptr<std::vector<uint8_t>>;
+    using buffer_t = os::mem::buf_ptr;
     using ptr      = Stream_ptr;
 
     /** Construct a shared vector used by streams **/
     template <typename... Args>
     static buffer_t construct_buffer(Args&&... args) {
-      return std::make_shared<std::vector<uint8_t>> (std::forward<Args> (args)...);
+      return std::make_shared<os::mem::buffer> (std::forward<Args> (args)...);
     }
 
     /** Called when the stream is ready to be used. */

@@ -95,11 +95,22 @@ namespace microLB
   }
   void Balancer::handle_connections()
   {
+    LBOUT("Handle_connections. %i waiting \n", queue.size());
     // stop any rethrow timer since this is a de-facto retry
     if (this->throw_retry_timer != Timers::UNUSED_ID) {
         Timers::stop(this->throw_retry_timer);
         this->throw_retry_timer = Timers::UNUSED_ID;
     }
+
+    // prune dead clients because the "number of clients" is being
+    // used in a calculation right after this to determine how many
+    // nodes to connect to
+    auto new_end = std::remove_if(queue.begin(), queue.end(),
+        [](Waiting& client) {
+          return client.conn == nullptr || client.conn->is_connected() == false;
+        });
+    queue.erase(new_end, queue.end());
+
     // calculating number of connection attempts to create
     int np_connecting = nodes.pool_connecting();
     int estimate = queue.size() - (np_connecting + nodes.pool_size());
@@ -129,6 +140,15 @@ namespace microLB
     : conn(std::move(incoming)), total(0)
   {
     assert(this->conn != nullptr);
+    assert(this->conn->is_connected());
+
+    // Release connection if it closes before it's assigned to a node.
+    this->conn->on_close([this](){
+        if (this->conn != nullptr)
+          this->conn->reset_callbacks();
+        this->conn = nullptr;
+      });
+
     // queue incoming data from clients not yet
     // assigned to a node
     this->conn->on_read(READQ_PER_CLIENT,
@@ -315,6 +335,13 @@ namespace microLB
         this->active_timer = Timers::periodic(
           ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
           {this, &Node::perform_active_check});
+        LBOUT("Node %s restarting active check (and is inactive)\n",
+              this->addr.to_string().c_str());
+      }
+      else
+      {
+        LBOUT("Node %s still trying to connect...\n",
+              this->addr.to_string().c_str());
       }
     }
   }
@@ -367,12 +394,12 @@ namespace microLB
         this->pool.push_back(std::make_unique<net::tcp::Stream>(conn));
         // stop any active check
         this->stop_active_check();
+        // signal change in pool
+        this->pool_signal();
       }
       else {
         this->restart_active_check();
       }
-      // signal change in pool
-      this->pool_signal();
     });
   }
   net::Stream_ptr Node::get_connection()
