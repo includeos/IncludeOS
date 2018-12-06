@@ -10,7 +10,11 @@ compiler=gcc
 compiler.version=8
 compiler.libcxx=libstdc++11
 build_type=Release
+cppstd=17
 [options]
 [env]
 CC=gcc-8.2.0
 CXX=g++-8.2.0
+CFLAGS=-msse3 -mfpmath=sse
+CXXFLAGS=-msse3 -mfpmath=sse
+
