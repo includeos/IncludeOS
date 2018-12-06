@@ -170,6 +170,7 @@ void Connection::offer(size_t& packets)
 
   // write until we either cant send more (window closes or no more in queue),
   // or we're out of packets.
+
   while(can_send() and packets)
   {
     auto packet = create_outgoing_packet();
@@ -397,49 +398,44 @@ bool Connection::handle_ack(const Packet_view& in)
   } // < dup ack
 
   // new ack
-  else if(LIKELY(in.ack() >= cb.SND.UNA))
+
+  if(is_win_update(in, true_win))
   {
-    if(is_win_update(in, true_win))
-    {
-      cb.SND.WND = true_win;
-      cb.SND.WL1 = in.seq();
-      cb.SND.WL2 = in.ack();
-      //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
-    }
-    //pred_flags = htonl((in.tcp_header_length() << 26) | 0x10 | cb.SND.WND >> cb.SND.wind_shift);
-
-    // [RFC 6582] p. 8
-    prev_highest_ack_ = cb.SND.UNA;
-    highest_ack_ = in.ack();
-
-    if(cb.SND.TS_OK)
-    {
-      const auto* ts = in.ts_option();
-      if(ts != nullptr) // TODO: not sure the packet is valid if TS missing
-        last_acked_ts_ = ts->ecr;
-    }
-
-    cb.SND.UNA = in.ack();
-
-    rtx_ack(in.ack());
-
-    take_rtt_measure(in);
-
-    // do either congctrl or fastrecov according to New Reno
-    (not fast_recovery_)
-      ? congestion_control(in) : fast_recovery(in);
-
-    dup_acks_ = 0;
-
-    if(in.has_tcp_data() or in.isset(FIN))
-      return true;
-
-  } // < new ack
-
-  // ACK outside
-  else {
-    return true;
+    cb.SND.WND = true_win;
+    cb.SND.WL1 = in.seq();
+    cb.SND.WL2 = in.ack();
+    //printf("<Connection::handle_ack> Window update (%u)\n", cb.SND.WND);
   }
+  //pred_flags = htonl((in.tcp_header_length() << 26) | 0x10 | cb.SND.WND >> cb.SND.wind_shift);
+
+  // [RFC 6582] p. 8
+  prev_highest_ack_ = cb.SND.UNA;
+  highest_ack_ = in.ack();
+
+  if(cb.SND.TS_OK)
+  {
+    const auto* ts = in.ts_option();
+    if(ts != nullptr) // TODO: not sure the packet is valid if TS missing
+      last_acked_ts_ = ts->ecr;
+  }
+
+  cb.SND.UNA = in.ack();
+
+  rtx_ack(in.ack());
+
+  take_rtt_measure(in);
+
+  // do either congctrl or fastrecov according to New Reno
+  (not fast_recovery_)
+    ? congestion_control(in) : fast_recovery(in);
+
+  dup_acks_ = 0;
+
+  if(in.has_tcp_data() or in.isset(FIN))
+    return true;
+
+  // < new ack
+  // Nothing to process
   return false;
 }
 
