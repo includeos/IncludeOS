@@ -6,7 +6,7 @@ import subprocess
 import subprocess32
 import thread
 
-thread_timeout = 30
+thread_timeout = 60
 
 includeos_src = os.environ.get('INCLUDEOS_SRC',
                                os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))).split('/test')[0])
