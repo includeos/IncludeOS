@@ -240,17 +240,10 @@ bool Connection::State::check_ack(Connection& tcp, const Packet_view& in) {
     // Correction: [RFC 1122 p. 94]
     // ACK is inside sequence space
     //return tcp.handle_ack(in);
-    if(in.ack() <= tcb.SND.NXT ) {
+
+    if ( (in.ack()-tcb.SND.UNA) <= (tcb.SND.NXT-tcb.SND.UNA)) {
 
       return tcp.handle_ack(in);
-      // this is a "new" ACK
-      //if(tcb.SND.UNA <= in->ack()) {
-
-        // this is a NEW ACK
-        //if(tcb.SND.UNA < in->ack())
-        //{
-        //  tcp.acknowledge(in->ack());
-        //}
          // [RFC 5681]
         /*
           DUPLICATE ACKNOWLEDGMENT:
@@ -268,23 +261,7 @@ bool Connection::State::check_ack(Connection& tcp, const Packet_view& in) {
           new data unless the incoming duplicate acknowledgment contains
           new SACK information.
         */
-        // this is a RFC 5681 DUP ACK
-        //!in->isset(FIN) and !in->isset(SYN)
-        //else if(tcp.reno_is_dup_ack(in)) {
-        //  debug2("<Connection::State::check_ack> Reno Dup ACK %u\n", in->ack());
-        //  tcp.reno_dup_ack(in->ack());
-        //}
-        // this is an RFC 793 DUP ACK
-        //else {
-          //printf("<Connection::State::check_ack> RFC 793 Dup ACK %u\n", in->ack());
-        //}
-      //}
-      // this is an "old" ACK out of order
-      //else {
-      //  printf("<Connection::State::check_ack> ACK out of order (SND.UNA > ACK)\n");
-      //}
-      // tcp.signal_sent();
-      // return that buffer has been SENT - currently no support to receipt sent buffer.
+
     }
     /* If the ACK acks something not yet sent (SEG.ACK > SND.NXT) then send an ACK, drop the segment, and return. */
     else {
