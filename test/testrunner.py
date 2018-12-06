@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 import subprocess
 import sys
@@ -9,6 +9,8 @@ import time
 import multiprocessing  # To figure out number of cpus
 import junit_xml as jx
 import codecs
+import psutil
+import re
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1) # line buffering
 sys.path.insert(0, ".")
@@ -17,11 +19,14 @@ sys.path.insert(0, "..")
 from vmrunner.prettify import color as pretty
 from vmrunner import validate_vm
 import validate_tests
+from get_testStats import statOps
+
 
 startdir = os.getcwd()
 
 test_categories = ['fs', 'hw', 'kernel', 'mod', 'net', 'performance', 'plugin', 'posix', 'stl', 'util']
 test_types = ['integration', 'stress', 'unit', 'misc', 'linux']
+test_results = statOps()
 
 """
 Script used for running all the valid tests in the terminal.
@@ -55,6 +60,9 @@ parser.add_argument("-p", "--parallel-tests", dest="parallel", default=0, type=i
                     help="How many tests to run at once in parallell, \
                     overrides cpu count which is default")
 
+parser.add_argument("-S", "--save-stats", dest="stats", action="store_true",
+                    help="Produces csv stat results")
+
 args = parser.parse_args()
 
 test_count = 0
@@ -68,6 +76,7 @@ def print_skipped(tests):
 
 class Test:
     """ A class to start a test as a subprocess and pretty-print status """
+
     def __init__(self, path, clean=False, command=['python', '-u', 'test.py'], name=None):
         self.command_ = command
         self.proc_ = None
@@ -76,6 +85,10 @@ class Test:
         self.clean = clean
         self.start_time = None
         self.properties_ = {"time_sensitive": False, "intrusive": False}
+        self.test_time = None
+        self.final_time = None
+
+
         # Extract category and type from the path variable
         # Category is linked to the top level folder e.g. net, fs, hw
         # Type is linked to the type of test e.g. integration, unit, stress
@@ -171,8 +184,8 @@ class Test:
         sys.stdout.flush()
 
     def print_duration(self):
-        print "{0:5.0f}s".format(time.time() - self.start_time),
-        sys.stdout.flush()
+        self.test_time = "{0:5.0f}s".format(time.time() - self.start_time)
+        print self.test_time
 
     def wait_status(self):
 
@@ -180,23 +193,37 @@ class Test:
 
         # Start and wait for the process
         self.proc_.communicate()
+        cpu_usage = psutil.cpu_percent()
+        pid = os.getpid()
+        py = psutil.Process(pid)
+        memory_usage = psutil.virtual_memory()[2] # memory percent
+        # py.memory_info()[0] #/(1024*1024) # memory usage in MB
+
+        machine = os.uname()[4]#.replace(" ", "_")
+
         self.print_duration()
 
+        # writes to log
         with codecs.open('{}/log_stdout.log'.format(self.path_), encoding='utf-8', errors='replace') as log_stdout:
             self.output_.append(log_stdout.read())
 
         with codecs.open('{}/log_stderr.log'.format(self.path_), encoding='utf-8', errors='replace') as log_stderr:
             self.output_.append(log_stderr.read())
 
-
         if self.proc_.returncode == 0:
             print pretty.PASS_INLINE()
+            test_status = "PASS"
         else:
             print pretty.FAIL_INLINE()
             print pretty.INFO("Process stdout")
             print pretty.DATA(self.output_[0].encode('ascii', 'ignore').decode('ascii'))
             print pretty.INFO("Process stderr")
             print pretty.DATA(self.output_[1].encode('ascii', 'ignore').decode('ascii'))
+            test_status = "FAIL"
+
+        # Save stats
+        if args.stats:
+            test_results.append_stat_to_list(self.path_,self.test_time, test_status, cpu_usage, memory_usage, machine)
 
         return self.proc_.returncode
 
@@ -273,6 +300,7 @@ def stress_test(stress_tests):
 
     for test in stress_tests:
         return 1 if test.wait_status() else 0
+
 
 
 def misc_working(misc_tests, test_type):
@@ -370,7 +398,6 @@ def integration_tests(tests):
 
     return fail_count
 
-
 def find_test_folders():
     """ Used to find all (integration) test folders
 
@@ -454,9 +481,6 @@ def filter_tests(all_tests, arguments):
                 if test.properties_[argument] and test not in tests_added:
                     tests_added.append(test)
 
-
-
-
     # 2) Remove tests defined by the skip argument
     print pretty.INFO("Tests marked skip on command line"), ", ".join(skip_args)
     skipped_tests = [ x for x in tests_added
@@ -516,10 +540,17 @@ def create_junit_output(tests):
     with open('output.xml', 'w') as f:
             jx.TestSuite.to_file(f, [ts], prettyprint=False)
 
+def time_now():
+    time_now = time.time()
+    return time_now
+
 
 def main():
     # Find leaf nodes
+    start_time = time_now()
     leaves = find_test_folders()
+    test_description = ''.join(args.tests)
+    skipped = ' '.join(args.skip)
 
     # Populate test objects
     all_tests = [ Test(path, args.clean) for path in leaves ]
@@ -544,8 +575,20 @@ def main():
     if (status == 0):
         print pretty.SUCCESS(str(test_count - status) + " / " + str(test_count)
                             +  " tests passed, exiting with code 0")
+        final_test_status = "PASS"
     else:
         print pretty.FAIL(str(status) + " / " + str(test_count) + " tests failed ")
+        final_test_status = "FAIL"
+
+    # Save stats
+    if args.stats:
+        test_results.save_stats_csv() # should only be called after all tests are over.
+    # test time
+        end_time = time_now()
+        final_duration = "{0:5.0f}s".format(end_time - start_time)
+        #final_time = statOps("test", final_duration, final_test_status)
+        fail_count = status
+        test_results.register_final_stats(final_duration, test_description, skipped,  final_test_status, fail_count)
 
     # Create Junit output
     if args.junit:
