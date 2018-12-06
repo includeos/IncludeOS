@@ -266,8 +266,6 @@ namespace os::mem {
   void* Pmr_resource::do_allocate(std::size_t size, std::size_t align) {
     auto cap = capacity();
     if (UNLIKELY(size + used > cap)) {
-      printf("<Resource @ %p do_allocate> ERROR: Failed to alloc %zu - currently allocated %zu capacity %zu\n",
-             this, size, used, cap);
       throw std::bad_alloc();
     }
 
@@ -281,9 +279,16 @@ namespace os::mem {
 
   void Pmr_resource::do_deallocate(void* ptr, std::size_t s, std::size_t a) {
     Expects(s != 0); // POSIX malloc will allow size 0, but return nullptr.
+    bool trigger_non_full = UNLIKELY(full() and non_full != nullptr);
+
     pool_->deallocate(ptr,s,a);
     deallocs++;
     used -= s;
+    if (trigger_non_full) {
+      Ensures(!full());
+      Ensures(non_full != nullptr);
+      non_full(*this);
+    }
   }
 
   bool Pmr_resource::do_is_equal(const std::pmr::memory_resource& other) const noexcept {

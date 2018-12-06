@@ -73,6 +73,7 @@ namespace os::mem {
   class Pmr_resource : public std::pmr::memory_resource {
   public:
     using Pool_ptr = detail::Pool_ptr;
+    using Event    = delegate<void(Pmr_resource& res)>;
     inline Pmr_resource(Pool_ptr p);
     inline Pool_ptr pool();
     inline void* do_allocate(std::size_t size, std::size_t align) override;
@@ -85,11 +86,16 @@ namespace os::mem {
     inline std::size_t dealloc_count();
     inline bool full();
     inline bool empty();
+
+    /** Fires when the resource has been full and is not full anymore **/
+    void on_non_full(Event e){ non_full = e; }
+
   private:
     Pool_ptr pool_;
     std::size_t used = 0;
     std::size_t allocs = 0;
     std::size_t deallocs = 0;
+    Event non_full{};
   };
 
   struct Default_pmr : public std::pmr::memory_resource {
