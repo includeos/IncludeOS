@@ -293,7 +293,7 @@ public:
    * @return     True if able to send, False otherwise.
    */
   bool can_send() const noexcept
-  { return (usable_window() >= SMSS()) and writeq.has_remaining_requests(); }
+  { return usable_window() and writeq.has_remaining_requests(); }
 
   /**
    * @brief      Return the "tuple" (id) of the connection.
@@ -860,6 +860,11 @@ private:
     - TCB update, Congestion control handling, RTT calculation and RT handling.
   */
   bool handle_ack(const Packet_view&);
+
+  void update_rcv_wnd() {
+    cb.RCV.WND = (recv_wnd_getter == nullptr) ?
+      calculate_rcv_wnd() : recv_wnd_getter();
+  }
 
   uint32_t calculate_rcv_wnd() const;
 

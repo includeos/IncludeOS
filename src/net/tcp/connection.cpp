@@ -423,6 +423,8 @@ bool Connection::handle_ack(const Packet_view& in)
 
   rtx_ack(in.ack());
 
+  update_rcv_wnd();
+
   take_rtt_measure(in);
 
   // do either congctrl or fastrecov according to New Reno
@@ -652,14 +654,15 @@ void Connection::rtx_ack(const seq_t ack) {
 uint32_t Connection::calculate_rcv_wnd() const
 {
   // PRECISE REPORTING
-  /*
+  if(UNLIKELY(read_request == nullptr))
+    return 0xffff;
   const auto& rbuf = read_request->front();
   auto remaining = rbuf.capacity() - rbuf.size();
-  auto win = (bufalloc->allocatable() + remaining) - rbuf.capacity();
+  auto win = (bufalloc->allocatable() - (host_.max_bufsize()*1) + remaining) - rbuf.capacity();
+  //auto win = (bufalloc->allocatable() - (host_.max_bufsize()));
   //auto max = read_request->front().capacity();
   //win = (win < max) ? (rbuf.capacity() - rbuf.size()) : win - max;
   return win;
-  */
 
   // REPORT CHUNKWISE
   /*
@@ -720,10 +723,10 @@ void Connection::recv_data(const Packet_view& in)
   // this shouldn't be necessary with well behaved connections.
   // I also think we shouldn't reach this point due to State::check_seq checking
   // if we're inside the window. if packet is out of order tho we can change the RCV wnd (i think).
-  if(UNLIKELY(bufalloc->allocatable() < host_.max_bufsize())) {
+  /*if(UNLIKELY(bufalloc->allocatable() < host_.max_bufsize())) {
     drop(in, Drop_reason::RCV_WND_ZERO);
     return;
-  }
+  }*/
 
   size_t length = in.tcp_data_length();
 
@@ -773,7 +776,7 @@ void Connection::recv_data(const Packet_view& in)
       // this ensures that the data we ACK is actually put in our buffer.
       Ensures(recv == length);
       // adjust the rcv wnd to (maybe) new value
-      cb.RCV.WND = (recv_wnd_getter == nullptr) ? calculate_rcv_wnd() : recv_wnd_getter();
+      update_rcv_wnd();
     }
   }
   // Packet out of order
@@ -934,12 +937,16 @@ void Connection::retransmit() {
     syn_rtx_++;
   }
   // If not, check if there is data and retransmit
-  else if(writeq.size()) {
+  else if(writeq.size())
+  {
     auto& buf = writeq.una();
+
+    // TODO: Finish to send window zero probe, but only on rtx timeout
+
     debug2("<Connection::retransmit> With data (wq.sz=%u) buf.unacked=%u\n",
       writeq.size(), buf.length() - buf.acknowledged);
     fill_packet(*packet, buf->data() + writeq.acked(), buf->size() - writeq.acked());
-    packet->set_flag(PSH);
+      packet->set_flag(PSH);
   }
   rtx_attempt_++;
   packet->set_seq(cb.SND.UNA);
@@ -1327,6 +1334,7 @@ bool Connection::uses_SACK() const noexcept
 
 void Connection::drop(const Packet_view& packet, [[maybe_unused]]Drop_reason reason)
 {
+  //printf("Drop %s %#.x\n", packet.to_string().c_str(), reason);
   host_.drop(packet);
 }
 
