@@ -171,21 +171,6 @@ void Connection::offer(size_t& packets)
   // write until we either cant send more (window closes or no more in queue),
   // or we're out of packets.
 
-  static bool congested=false;
-  if (!can_send())
-  {
-    if (sendq_remaining() > 0)
-    {
-      printf("Window_blocked %d data %zu empty packets sw=%ld fs=%ld WND=%d\n",sendq_remaining(),packets,(int64_t)send_window(), (int64_t)flight_size(),cb.SND.WND);
-      congested=true;
-    }
-  }
-  if (can_send() && congested)
-  {
-    printf("Window released congestion removed %zu packets\n",packets);
-    congested=false;
-  }
-
   while(can_send() and packets)
   {
     auto packet = create_outgoing_packet();
