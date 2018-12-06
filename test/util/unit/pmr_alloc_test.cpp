@@ -247,6 +247,50 @@ CASE("pmr::resource usage") {
 }
 
 
-CASE("pmr::Resource performance") {
+CASE("pmr::on_non_full event") {
   using namespace util;
+  constexpr auto pool_cap = 400_KiB;
+
+  // Using default resource capacity, which is pool_cap / allocator count
+  os::mem::Pmr_pool pool{pool_cap};
+  auto res = pool.get_resource();
+  bool event_fired = false;
+
+  res->on_non_full([&](auto& r){
+      EXPECT(&r == res.get());
+      EXPECT(not r.full());
+      event_fired = true;
+    });
+
+  std::pmr::polymorphic_allocator<uintptr_t> alloc{res.get()};
+  std::pmr::vector<char> numbers{alloc};
+  auto reserved = pool_cap - 2;
+  numbers.reserve(reserved);
+  EXPECT(numbers.capacity() == reserved);
+  EXPECT(res->allocated() == reserved);
+  EXPECT(not event_fired);
+
+  numbers.push_back(0);
+  numbers.push_back(1);
+
+  // In order to shrink, it needs to allocate new space for 2 chars then copy.
+  numbers.shrink_to_fit();
+  EXPECT(res->allocated() < reserved);
+  EXPECT(event_fired);
+  event_fired = false;
+  EXPECT(not event_fired);
+
+  for (int i = 2; i < pool_cap / 2; i++) {
+    numbers.push_back(i);
+  }
+
+  EXPECT(not event_fired);
+  EXPECT(not res->full());
+
+  // Reduce capacity, making the resource full right now
+  pool.set_resource_capacity(pool_cap / 3);
+  numbers.clear();
+  numbers.shrink_to_fit();
+  EXPECT(event_fired);
+
 }
