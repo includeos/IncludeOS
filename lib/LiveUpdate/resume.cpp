@@ -116,6 +116,10 @@ bool Restore::is_marker() const noexcept
 {
   return get_type() == TYPE_MARKER;
 }
+bool Restore::is_stream() const noexcept
+{
+  return get_type() == TYPE_STREAM;
+}
 
 int Restore::as_int() const
 {
