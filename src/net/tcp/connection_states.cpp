@@ -156,6 +156,8 @@ bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
   */
 
 unacceptable:
+  tcp.update_rcv_wnd();
+
   if(!in.isset(RST))
     tcp.send_ack();
 
