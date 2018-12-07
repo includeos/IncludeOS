@@ -1,6 +1,9 @@
 #pragma once
-#include <net/inet>
+#include <net/socket.hpp>
 #include <liveupdate>
+namespace net {
+  class Inet;
+}
 
 namespace microLB
 {
@@ -13,9 +16,17 @@ namespace microLB
   typedef std::chrono::milliseconds timeout_t;
   typedef delegate<void(timeout_t, node_connect_result_t)> node_connect_function_t;
 
+  struct DeserializationHelper
+  {
+    net::Inet* clients = nullptr;
+    net::Inet* nodes   = nullptr;
+    void* cli_ctx = nullptr;
+    void* nod_ctx = nullptr;
+  };
+
   struct Waiting {
     Waiting(net::Stream_ptr);
-    Waiting(liu::Restore&, net::TCP&);
+    Waiting(liu::Restore&, DeserializationHelper&);
     void serialize(liu::Storage&);
 
     net::Stream_ptr conn;
@@ -35,9 +46,12 @@ namespace microLB
     net::Stream_ptr outgoing;
   };
 
+  struct Balancer;
   struct Node {
-    Node(node_connect_function_t, pool_signal_t, bool do_active, int idx);
+    Node(Balancer&, net::Socket, node_connect_function_t,
+         bool do_active = true, int idx = -1);
 
+    auto address() const noexcept { return m_socket; }
     int  connection_attempts() const noexcept { return this->connecting; }
     int  pool_size() const noexcept { return pool.size(); }
     bool is_active() const noexcept { return active; };
@@ -53,6 +67,7 @@ namespace microLB
     node_connect_function_t m_connect = nullptr;
     pool_signal_t           m_pool_signal = nullptr;
     std::vector<net::Stream_ptr> pool;
+    net::Socket m_socket;
     [[maybe_unused]] int m_idx;
     bool       active = false;
     const bool do_active_check;
@@ -88,7 +103,7 @@ namespace microLB
     void     close_all_sessions();
 
     void serialize(liu::Storage&);
-    void deserialize(netstack_t& in, netstack_t& out, liu::Restore&);
+    void deserialize(liu::Restore&, DeserializationHelper&);
     // make the microLB more testable
     delegate<void(int idx, int current, int total)> on_session_close = nullptr;
 
@@ -114,6 +129,9 @@ namespace microLB
     void open_for_ossl(netstack_t& interface, uint16_t port, const std::string& cert, const std::string& key);
     // Backend/Application side of the load balancer
     static node_connect_function_t connect_with_tcp(netstack_t& interface, net::Socket);
+    // Setup and automatic resume (if applicable)
+    // NOTE: Be sure to have configured it properly BEFORE calling this
+    void init_liveupdate();
 
     int  wait_queue() const;
     int  connect_throws() const;
@@ -127,11 +145,11 @@ namespace microLB
 
     Nodes nodes;
     pool_signal_t get_pool_signal();
+    DeserializationHelper de_helper;
 
   private:
     void handle_connections();
     void handle_queue();
-    void init_liveupdate();
     void deserialize(liu::Restore&);
     std::vector<net::Socket> parse_node_confg();
 

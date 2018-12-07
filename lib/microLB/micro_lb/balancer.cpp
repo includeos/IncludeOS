@@ -13,7 +13,7 @@
 #define CONNECT_TIMEOUT          10s
 #define CONNECT_THROW_PERIOD     20s
 
-#define LB_VERBOSE 1
+#define LB_VERBOSE 0
 #if LB_VERBOSE
 #define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -26,11 +26,7 @@ using namespace std::chrono;
 // It uses tons of delegates that capture "this"
 namespace microLB
 {
-  Balancer::Balancer(const bool da)
-    : nodes {da}
-  {
-    this->init_liveupdate();
-  }
+  Balancer::Balancer(const bool da) : nodes {da}  {}
   Balancer::~Balancer()
   {
     queue.clear();
@@ -58,7 +54,6 @@ namespace microLB
   }
   void Balancer::handle_queue()
   {
-    printf("handle_queue\n");
     // check waitq
     while (nodes.pool_size() > 0 && queue.empty() == false)
     {
@@ -86,7 +81,6 @@ namespace microLB
   }
   void Balancer::handle_connections()
   {
-    printf("handle_connections\n");
     // stop any rethrow timer since this is a de-facto retry
     if (this->throw_retry_timer != Timers::UNUSED_ID) {
         Timers::stop(this->throw_retry_timer);
@@ -274,10 +268,12 @@ namespace microLB
     free_sessions.clear();
   }
 
-  Node::Node(node_connect_function_t func, pool_signal_t sig, bool da, int idx)
-    : m_connect(func), m_pool_signal(sig), m_idx(idx), do_active_check(da)
+  Node::Node(Balancer& balancer, const net::Socket addr,
+             node_connect_function_t func, bool da, int idx)
+    : m_connect(func), m_socket(addr), m_idx(idx), do_active_check(da)
   {
     assert(this->m_connect != nullptr);
+    this->m_pool_signal = balancer.get_pool_signal();
     // periodically connect to node and determine if active
     if (this->do_active_check)
     {
@@ -397,14 +393,14 @@ namespace microLB
     [&nodes = n, idx] () {
         nodes.close_session(idx);
     });
-    
+
     // get the actual TCP connections
     /*
     auto conn_in  = dynamic_cast<net::tcp::Stream*>(incoming->bottom_transport())->tcp();
     assert(conn_in != nullptr);
     auto conn_out = dynamic_cast<net::tcp::Stream*>(outgoing->bottom_transport())->tcp();
     assert(conn_out != nullptr);
-    
+
     static const uint32_t sendq_max = 0x400000;
     // set recv window handlers
     conn_in->set_recv_wnd_getter(

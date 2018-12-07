@@ -332,9 +332,6 @@ namespace s2n
   
   inline size_t TLS_stream::serialize_to(void* addr, size_t size) const
   {
-    if (addr == nullptr && size == 0) {
-      return 15242; // S2N subid
-    }
     assert(addr != nullptr && size > sizeof(serialized_stream));
     // create header
     auto* hdr = (serialized_stream*) addr;

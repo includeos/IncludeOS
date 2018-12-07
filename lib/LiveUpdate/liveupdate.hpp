@@ -177,6 +177,7 @@ struct Restore
   bool  is_end()    const noexcept;
   bool  is_int()    const noexcept;
   bool  is_marker() const noexcept;
+  bool  is_stream() const noexcept;
   int             as_int()    const;
   std::string     as_string() const;
   buffer_t        as_buffer() const;
