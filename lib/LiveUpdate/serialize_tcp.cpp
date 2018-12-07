@@ -175,6 +175,9 @@ void Connection::deserialize_from(void* addr)
     slumbering_ip4.insert(&this->host_.stack());
   }
 
+  // Assign new memory resource from TCP
+  this->bufalloc = host_.mempool_.get_resource();
+
   /// restore read queue
   auto* readq = (read_buffer*) &area->vla[writeq_len];
   if (readq->capacity)
