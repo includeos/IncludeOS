@@ -10,9 +10,8 @@ namespace microLB
         netstack_t& in,
         uint16_t    port,
         netstack_t& out,
-        const bool do_ac,
         const std::string& tls_cert,
-        const std::string& tls_key)
+        const std::string& tls_key, const bool do_ac)
     : nodes(do_ac), netin(in), netout(out), signal({this, &Balancer::handle_queue})
   {
     fs::memdisk().init_fs(

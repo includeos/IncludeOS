@@ -97,9 +97,9 @@ namespace microLB
   };
 
   struct Balancer {
-    Balancer(netstack_t& in, uint16_t port, netstack_t& out, bool do_ac);
-    Balancer(netstack_t& in, uint16_t port, netstack_t& out, bool do_ac,
-             const std::string& cert, const std::string& key);
+    Balancer(netstack_t& in, uint16_t port, netstack_t& out, bool do_ac = false);
+    Balancer(netstack_t& in, uint16_t port, netstack_t& out,
+             const std::string& cert, const std::string& key, bool do_ac = false);
     static Balancer* from_config();
 
     int  wait_queue() const;

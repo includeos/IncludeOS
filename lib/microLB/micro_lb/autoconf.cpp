@@ -44,9 +44,8 @@ namespace microLB
     {
       assert(clients.HasMember("key") && "TLS-enabled microLB must also have key");
       // create TLS over TCP load balancer
-      balancer = new Balancer(netinc, CLIENT_PORT, netout, use_active_check,
-            clients["certificate"].GetString(),
-            clients["key"].GetString());
+      balancer = new Balancer(netinc, CLIENT_PORT, netout, clients["certificate"].GetString(),
+                              clients["key"].GetString(), use_active_check);
     }
     else {
       // create TCP load balancer
