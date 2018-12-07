@@ -54,6 +54,8 @@ namespace microLB
       // open for TCP connections
       balancer->open_for_tcp(netinc, CLIENT_PORT);
     }
+    // by default its this interface for nodes
+    balancer->de_helper.nodes = &netout;
 
     auto& nodelist = nodes["list"];
     assert(nodelist.IsArray());
@@ -74,6 +76,7 @@ namespace microLB
             Balancer::connect_with_tcp(netout, socket));
     }
 
+    balancer->init_liveupdate();
     return balancer;
   }
 }

@@ -14,6 +14,9 @@ namespace microLB
       assert(conn != nullptr && "TCP sanity check");
       this->incoming(std::make_unique<net::tcp::Stream> (conn));
     });
+    
+    this->de_helper.clients = &interface;
+    //this->de_helper.cli_ctx = nullptr;
   }
   // default method for TCP nodes
   node_connect_function_t Balancer::connect_with_tcp(

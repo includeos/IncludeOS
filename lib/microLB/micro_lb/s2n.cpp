@@ -59,6 +59,10 @@ namespace microLB
     this->tls_context = s2n_create_config(ca_cert, ca_key);
     assert(this->tls_context != nullptr);
 
+    // deserialization settings
+    this->de_helper.cli_ctx = this->tls_context;
+    this->de_helper.clients = &interface;
+
     this->tls_free = [this] () {
         s2n_config_free((s2n_config*) this->tls_context);
       };

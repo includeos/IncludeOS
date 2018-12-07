@@ -26,11 +26,7 @@ using namespace std::chrono;
 // It uses tons of delegates that capture "this"
 namespace microLB
 {
-  Balancer::Balancer(const bool da)
-    : nodes {da}
-  {
-    this->init_liveupdate();
-  }
+  Balancer::Balancer(const bool da) : nodes {da}  {}
   Balancer::~Balancer()
   {
     queue.clear();
@@ -58,7 +54,6 @@ namespace microLB
   }
   void Balancer::handle_queue()
   {
-    printf("handle_queue\n");
     // check waitq
     while (nodes.pool_size() > 0 && queue.empty() == false)
     {
@@ -86,7 +81,6 @@ namespace microLB
   }
   void Balancer::handle_connections()
   {
-    printf("handle_connections\n");
     // stop any rethrow timer since this is a de-facto retry
     if (this->throw_retry_timer != Timers::UNUSED_ID) {
         Timers::stop(this->throw_retry_timer);
