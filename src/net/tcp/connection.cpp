@@ -283,6 +283,7 @@ void Connection::receive_disconnect() {
   }
 }
 
+
 void Connection::segment_arrived(Packet_view& incoming)
 {
   //const uint32_t FMASK = (~(0x0000000F | htons(0x08)));
@@ -320,6 +321,7 @@ int  Connection::serialize_to(void*) const {  return 0;  }
 
 Packet_view_ptr Connection::create_outgoing_packet()
 {
+  update_rcv_wnd();
   auto packet = (is_ipv6_) ?
     host_.create_outgoing_packet6() : host_.create_outgoing_packet();
   // Set Source (local == the current connection)
@@ -656,13 +658,14 @@ uint32_t Connection::calculate_rcv_wnd() const
   // PRECISE REPORTING
   if(UNLIKELY(read_request == nullptr))
     return 0xffff;
+
   const auto& rbuf = read_request->front();
   auto remaining = rbuf.capacity() - rbuf.size();
   auto win = (bufalloc->allocatable() - (host_.max_bufsize()*1) + remaining) - rbuf.capacity();
   //auto win = (bufalloc->allocatable() - (host_.max_bufsize()));
   //auto max = read_request->front().capacity();
   //win = (win < max) ? (rbuf.capacity() - rbuf.size()) : win - max;
-  return win;
+  return (win < SMSS()) ? 0 : win; // Avoid small silly windows
 
   // REPORT CHUNKWISE
   /*
@@ -680,8 +683,8 @@ uint32_t Connection::calculate_rcv_wnd() const
   return win;
   */
 
-  // REPORT CONSTANT
-  return bufalloc->allocatable();
+  // REPORT CHUNKWISE FROM ALLOCATOR
+  //return bufalloc->allocatable();
 }
 
 /*
@@ -774,8 +777,6 @@ void Connection::recv_data(const Packet_view& in)
       const auto recv = read_request->insert(in.seq(), in.tcp_data(), length, in.isset(PSH));
       // this ensures that the data we ACK is actually put in our buffer.
       Ensures(recv == length);
-      // adjust the rcv wnd to (maybe) new value
-      update_rcv_wnd();
     }
   }
   // Packet out of order
@@ -785,6 +786,7 @@ void Connection::recv_data(const Packet_view& in)
     if(read_request != nullptr)
       recv_out_of_order(in);
   }
+
 
   // User callback didnt result in transmitting an ACK
   if(cb.SND.NXT == snd_nxt)
@@ -943,7 +945,7 @@ void Connection::retransmit() {
     // TODO: Finish to send window zero probe, but only on rtx timeout
 
     debug2("<Connection::retransmit> With data (wq.sz=%u) buf.unacked=%u\n",
-      writeq.size(), buf.length() - buf.acknowledged);
+           writeq.size(), buf->size(), buf->size() - writeq.acked());
     fill_packet(*packet, buf->data() + writeq.acked(), buf->size() - writeq.acked());
       packet->set_flag(PSH);
   }
