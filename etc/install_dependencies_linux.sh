@@ -6,7 +6,7 @@
 # OPTIONS:
 ############################################################
 
-BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils qemu jq python-pip gcc g++-multilib"
+BUILD_DEPENDENCIES="curl make cmake nasm bridge-utils net-tools qemu jq python-pip gcc g++-multilib"
 CLANG_VERSION_MIN_REQUIRED="5.0"
 [ ! -z "$CC" ] && { CLANG_VERSION=${CC: -3}; } || CLANG_VERSION=$CLANG_VERSION_MIN_REQUIRED
 [[ $CLANG_VERSION < $CLANG_VERSION_MIN_REQUIRED ]] && CLANG_VERSION=$CLANG_VERSION_MIN_REQUIRED
