@@ -3,19 +3,15 @@ import shutil
 
 from conans import ConanFile,tools,CMake
 
-class ManaConan(ConanFile):
+class LiveupdateConan(ConanFile):
     settings= "os","arch","build_type","compiler"
-    name = "mana"
+    name = "liveupdate"
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
     generators = 'cmake'
     url = "http://www.includeos.org/"
 
-    #def build_requirements(self):
-        #eventually
-        #self.build_requires("includeos/%s@%s/%s"%(self.version,self.user,self.channel))
     def build_requirements(self):
-        self.build_requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
         self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
 
     def source(self):
@@ -31,7 +27,7 @@ class ManaConan(ConanFile):
     def _cmake_configure(self):
         cmake = CMake(self)
         cmake.definitions['ARCH']=self._arch()
-        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/mana")
+        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/LiveUpdate")
         return cmake
 
     def build(self):
@@ -50,4 +46,4 @@ class ManaConan(ConanFile):
 
     def deploy(self):
         self.copy("*",dst="bin",src="bin")
-        self.copy("*",dst="includeos",src="includeos")
+        self.copy("*",dst="include",src="include")

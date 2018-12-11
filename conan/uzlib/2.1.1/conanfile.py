@@ -8,18 +8,22 @@ class UzlibConan(ConanFile):
     license = 'zlib'
     description = 'uzlib - Deflate/Zlib-compatible LZ77 compression/decompression library'
     url = "http://www.ibsensoftware.com/"
-
+    exports_sources="Makefile.ios"
     def source(self):
         git = tools.Git(folder="uzlib")
         git.clone("https://github.com/pfalcon/uzlib",branch=str(self.version))
+    ##hmm can i move this in configure..
     def build(self):
         #a symlink would also do the trick
-        shutil.copy("uzlib/src/makefile.elf","uzlib/src/Makefile")
+        shutil.copy("Makefile.ios","uzlib/src/Makefile")
         self.run("make -j20",cwd="uzlib/src")
 
     def package(self):
         self.copy("*.h",dst="include",src="uzlib/src")
         self.copy("*.a",dst="lib",src="uzlib/lib")
+
+    def package_info(self):
+        self.cpp_info.libs=['tinf']
 
     def deploy(self):
         self.copy("*.a",dst="lib",src="lib")

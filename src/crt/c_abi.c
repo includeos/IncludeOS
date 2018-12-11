@@ -45,20 +45,33 @@ uint32_t _move_symbols(void* sym_loc)
   return align_size + elfsym_size;
 }
 
+#define __assert(expr) \
+  if (__builtin_expect(expr,0)) { \
+    fprintf(stderr,"Expression %s failed %s:%d in %s",#expr , __FILE__, __LINE__, __FUNCTION__); \
+    abort(); \
+  }
+
 void* __memcpy_chk(void* dest, const void* src, size_t len, size_t destlen)
 {
-  assert (len <= destlen);
+  __assert (len <= destlen);
   return memcpy(dest, src, len);
 }
+
+void* __memmove_chk(void* dest, const void* src, size_t len, size_t destlen)
+{
+  __assert (len <= destlen);
+  return memmove(dest, src, len);
+}
+
 void* __memset_chk(void* dest, int c, size_t len, size_t destlen)
 {
-  assert (len <= destlen);
+  __assert (len <= destlen);
   return memset(dest, c, len);
 }
 char* __strcat_chk(char* dest, const char* src, size_t destlen)
 {
   size_t len = strlen(dest) + strlen(src) + 1;
-  assert (len <= destlen);
+  __assert (len <= destlen);
   return strcat(dest, src);
 }
 
@@ -92,7 +105,7 @@ int __vsprintf_chk(char* s, int flag, size_t slen, const char* format, va_list a
 {
   (void) flag;
   int res = vsnprintf(s, slen, format, args);
-  assert ((size_t) res < slen);
+  __assert ((size_t) res < slen);
   return res;
 }
 int __vsnprintf_chk (char *s, size_t maxlen, int flags, size_t slen,

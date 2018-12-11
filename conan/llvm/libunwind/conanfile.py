@@ -15,6 +15,10 @@ class LibUnwindConan(ConanFile):
     }
     no_copy_source=True
 
+    def configure(self):
+        #we dont care what you had here youre building it :)
+        del self.settings.compiler.libcxx
+
     def llvm_checkout(self,project):
         branch = "release_{}".format(self.version.replace('.',''))
         llvm_project=tools.Git(folder=project)
@@ -25,9 +29,11 @@ class LibUnwindConan(ConanFile):
         self.llvm_checkout("libunwind")
 
     def _triple_arch(self):
-        if str(self.settings.arch) == "x86":
-            return "i386"
-        return str(self.settings.arch)
+        return {
+            "x86":"i686",
+            "x86_64":"x86_64"
+        }.get(str(self.settings.arch))
+
     def _configure_cmake(self):
         cmake=CMake(self)
         llvm_source=self.source_folder+"/llvm"
@@ -39,6 +45,8 @@ class LibUnwindConan(ConanFile):
 
         cmake.definitions['LIBUNWIND_ENABLE_SHARED']=self.options.shared
         cmake.definitions['LLVM_PATH']=llvm_source
+        if (str(self.settings.arch) == "x86"):
+            cmake.definitions['LLVM_BUILD_32_BITS']=True
         cmake.configure(source_folder=unwind_source)
         return cmake
 
@@ -53,6 +61,9 @@ class LibUnwindConan(ConanFile):
 
 
     def package_info(self):
+        self.cpp_info.includedirs=['include']
+        self.cpp_info.libs=['unwind']
+        self.cpp_info.libdirs=['lib']
         #where it was buildt doesnt matter
         self.info.settings.os="ANY"
         #what libcxx the compiler uses isnt of any known importance

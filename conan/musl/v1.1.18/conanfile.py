@@ -13,19 +13,18 @@ class MuslConan(ConanFile):
     description = 'musl - an implementation of the standard library for Linux-based systems'
     url = "https://www.musl-libc.org/"
 
-    exports_sources=['../../../etc*musl*musl.patch', '../../../etc*musl*endian.patch','../../../api*syscalls.h','../../../etc*musl*syscall.h']
-    
+    exports_sources=[
+        '../../../etc*musl*musl.patch',
+        '../../../etc*musl*endian.patch',
+        '../../../api*syscalls.h',
+        '../../../etc*musl*syscall.h'
+    ]
+
     def imports(self):
         self.copy("*",dst=".",src=".")
 
-    def package_id(self):
-        #it doesnt matter where you buildt it from for the consumers.
-        #but it matters for the building process
-        self.info.settings.arch_build="ANY"
-        #where it was buildt doesnt matter
-        self.info.settings.os="ANY"
-        #what libcxx the compiler uses isnt of any known importance
-        self.info.settings.compiler.libcxx="ANY"
+    def build_requirements(self):
+        self.build_requires('binutils/2.31@{}/{}'.format(self.user,self.channel))
 
     def source(self):
         git = tools.Git(folder="musl")
@@ -54,7 +53,12 @@ class MuslConan(ConanFile):
     def build(self):
         host = self._find_host_arch()+"-pc-linux-gnu"
         triple = self._find_arch()+"-elf"
-        args=["--enable-debug","--disable-shared","--disable-gcc-wrapper"]
+        args=[
+            "--disable-shared",
+            "--disable-gcc-wrapper"
+        ]
+        if (self.settings.build_type == "Debug"):
+            args.append("--enable-debug")
         env_build = AutoToolsBuildEnvironment(self)
         if str(self.settings.compiler) == 'clang':
             env_build.flags=["-g","-target {}-pc-linux-gnu".format(self._find_arch())]
@@ -78,6 +82,19 @@ class MuslConan(ConanFile):
         self.copy("*.h",dst="include",src="musl/include")
         self.copy("*.a",dst="lib",src="lib")
         self.copy("*.o",dst="lib",src="lib")
+
+    def package_info(self):
+        #default is ok self.cpp_info.includedirs
+        self.cpp_info.libs=['c','crypt','m','rt','dl','pthread','resolv','util','xnet',]
+        #what about crt1 crti crtn rcrt1 scrt1 '.o's
+        self.cpp_info.libdirs=['lib']
+        #where it was buildt doesnt matter
+        self.info.settings.os="ANY"
+        #what libcxx the compiler uses isnt of any known importance
+        self.info.settings.compiler.libcxx="ANY"
+        #we dont care what arch you buildt it on only which arch you want to run on
+        self.info.settings.arch_build="ANY"
+        self.info.settings.cppstd="ANY"
 
     def deploy(self):
         self.copy("*.h",dst="include",src="include")

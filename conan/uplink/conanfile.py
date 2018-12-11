@@ -3,20 +3,38 @@ import shutil
 
 from conans import ConanFile,tools,CMake
 
-class ManaConan(ConanFile):
+class UplinkConan(ConanFile):
     settings= "os","arch","build_type","compiler"
-    name = "mana"
+    name = "uplink"
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
     generators = 'cmake'
     url = "http://www.includeos.org/"
 
+    options={
+        "liveupdate":[True,False],
+        "tls": [True,False]
+    }
+    default_options={
+        "liveupdate":False,
+        "tls":False
+    }
     #def build_requirements(self):
         #eventually
         #self.build_requires("includeos/%s@%s/%s"%(self.version,self.user,self.channel))
+    def requirements(self):
+        if (self.options.liveupdate):
+            self.requires("LiveUpdate/{}@{}/{}".format(self.version,self.user,self.channel))
+        if (self.options.tls):
+            #this will put a dependency requirement on openssl
+            self.requires("s2n/1.1.1@{}/{}".format(self.user,self.channel))
+
     def build_requirements(self):
+        #these are header only so we dont need them down the value chain
         self.build_requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
         self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
+
+    #def imports():
 
     def source(self):
         #repo = tools.Git(folder="includeos")
@@ -31,22 +49,19 @@ class ManaConan(ConanFile):
     def _cmake_configure(self):
         cmake = CMake(self)
         cmake.definitions['ARCH']=self._arch()
-        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/mana")
+        cmake.definitions['LIVEUPDATE']=self.options.liveupdate
+        cmake.definitions['TLS']=self.options.tls
+        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/uplink")
         return cmake
 
     def build(self):
         cmake = self._cmake_configure()
         cmake.build()
-        #print("TODO")
-        #TODO at some point fix the msse3
-        #env_inc="  -I"+self.build_folder+"/target/libcxx/include -I"+self.build_folder+"/target/include -Ibuild/include/botan"
-        #cmd="./configure.py --os=includeos --disable-shared --cpu="+str(self.settings.arch)
-        #flags="\"--target="+str(self.settings.arch)+"-pc-linux-gnu -msse3 -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -nostdlib -nostdinc++ "+env_inc+"\""
-        #self.run(cmd+" --cc-abi-flags="+flags,cwd="botan")
-        #self.run("make -j12 libs",cwd="botan")
+
     def package(self):
         cmake = self._cmake_configure()
         cmake.install()
+
 
     def deploy(self):
         self.copy("*",dst="bin",src="bin")

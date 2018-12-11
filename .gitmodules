@@ -8,6 +8,3 @@
 [submodule "examples/SQlite/libsl3"]
 	path = examples/SQlite/libsl3
 	url = https://github.com/fwsGonzo/libsl3.git
-[submodule "NaCl"]
-	path = NaCl
-	url = https://github.com/includeos/NaCl.git

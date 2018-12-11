@@ -12,15 +12,25 @@ class LibgccConan(ConanFile):
 
     def build(self):
         iobuf = StringIO()
-        gcc=str(self.settings.arch)+"-pc-linux-gnu-gcc"
-        self.run(gcc+" --print-libgcc-file-name", output=iobuf)
+        extra=''
+        if (str(self.settings.arch) =="x86"):
+            extra="-m32"
+        #gcc=str(self.settings.arch)+"-pc-linux-gnu-gcc"
+        self.run("gcc "+extra+" --print-libgcc-file-name", output=iobuf)
         src=iobuf.getvalue().rstrip('\n')
         print ("source "+src)
         #a bit nasty but it works
         shutil.copy(src,"./libcompiler.a")
 
+    def package_info(self):
+        self.cpp_info.libs=['compiler']
+        #which compiler is in use doesnt really matter
+        del self.settings.compiler
+        del self.settings.os
+        del self.settings.build_type
+
     def package(self):
-        self.copy("*.a",dst="libgcc",src="./")
+        self.copy("*.a",dst="lib",src="./")
 
     def deploy(self):
-        self.copy("*.a",dst="libgcc",src="libgcc")
+        self.copy("*.a",dst="lib",src="libgcc")

@@ -25,9 +25,10 @@ class LibCxxAbiConan(ConanFile):
         self.llvm_checkout("libcxxabi")
 
     def _triple_arch(self):
-        if str(self.settings.arch) == "x86":
-            return "i386"
-        return str(self.settings.arch)
+        return {
+            "x86":"i686",
+            "x86_64":"x86_64"
+        }.get(str(self.settings.arch))
 
     def _configure_cmake(self):
         cmake=CMake(self)
@@ -46,6 +47,9 @@ class LibCxxAbiConan(ConanFile):
         cmake.definitions['LIBCXXABI_ENABLE_STATIC_UNWINDER']=True
         cmake.definitions['LIBCXXABI_USE_LLVM_UNWINDER']=True
         cmake.definitions['LLVM_PATH']=llvm_source
+        if (str(self.settings.arch) == "x86"):
+            cmake.definitions['LIBCXXABI_BUILD_32_BITS']=True
+            cmake.definitions['LLVM_BUILD_32_BITS']=True
         cmake.configure(source_folder=source)
         return cmake
 
@@ -64,6 +68,10 @@ class LibCxxAbiConan(ConanFile):
         self.info.settings.os="ANY"
         #what libcxx the compiler uses isnt of any known importance
         self.info.settings.compiler.libcxx="ANY"
+        self.cpp_info.includedirs=['include']
+        self.cpp_info.libs=['c++abi']
+        self.cpp_info.libdirs=['lib']
+
 
     def deploy(self):
         self.copy("*.h",dst="include",src="include")

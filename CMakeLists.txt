@@ -59,15 +59,36 @@ set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 set(CPP_VERSION c++17)
 
 # create OS version string from git describe (used in CXX flags)
-execute_process(COMMAND git describe --tags --dirty
-	        WORKING_DIRECTORY ${INCLUDEOS_ROOT}
-	        OUTPUT_VARIABLE OS_VERSION)
-string(STRIP ${OS_VERSION} OS_VERSION)
+
+##extract version header only ONCE avoiding endless rebuild loop ?
+FIND_PACKAGE(Git REQUIRED)
+FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.h.in
+"#define OS_VERSION \"@VERSION@\"\n"
+)
+
+FILE(WRITE ${CMAKE_CURRENT_BINARY_DIR}/version.cmake
+"
+  FIND_PACKAGE(Git REQUIRED)
+  EXECUTE_PROCESS(
+     COMMAND ${GIT_EXECUTABLE} describe --tags --dirty
+     OUTPUT_VARIABLE VERSION
+     OUTPUT_STRIP_TRAILING_WHITESPACE
+     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+ )
+ CONFIGURE_FILE(\${SRC} \${DST} @ONLY)
+")
+
+add_custom_target(
+      version
+      ${CMAKE_COMMAND} -D SRC=${CMAKE_CURRENT_BINARY_DIR}/version.h.in
+                       -D DST=${CMAKE_CURRENT_BINARY_DIR}/version.h
+                       -P ${CMAKE_CURRENT_BINARY_DIR}/version.cmake
+)
+
+include_directories(${CMAKE_BINARY_DIR})
 
 cmake_dependent_option(CORE_OS "Only build the core OS reducing dependencies on botan,openssl etc" OFF
   "NOT PLATFORM STREQUAL x86_nano" ON)
-
-
 
 option(cpu_feat_vanilla "Restrict use of CPU features to vanilla" ON)
 if(cpu_feat_vanilla)
@@ -108,9 +129,6 @@ function(init_submodule MOD)
   message(STATUS "Init git submodule: " ${MOD})
   execute_process(COMMAND git submodule update --init ${MOD} WORKING_DIRECTORY ${INCLUDEOS_ROOT})
 endfunction()
-
-# Init submodules
-init_submodule(NaCl)
 
 
 #TODO get all these from profile ?
@@ -170,7 +188,7 @@ endif()
 
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-   file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
+   file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/develop/conan.cmake"
                   "${CMAKE_BINARY_DIR}/conan.cmake")
 endif()
 
@@ -179,7 +197,6 @@ set(CMAKE_BUILD_TYPE Release)
 
 #TODO separate dependencies if build is GCC from if build is clang in
 #conanfile.py and add requirement for the tools in the profile!!
-#TODO create a NaCL package ?
 
 #Sets the includeos default profile to clang-5.0
 if (NOT DEFINED CONAN_PROFILE)
@@ -214,9 +231,6 @@ else() # in user space
   )
 endif()
 
-if(NOT CORE_OS)
-  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/nacl.cmake)
-endif()
 #
 # Subprojects
 #
@@ -309,7 +323,12 @@ if(NOT CONAN_EXPORTED)
   install(CODE
     "execute_process(COMMAND conan install diskimagebuild/0.13.0@includeos/test -if ${CMAKE_INSTALL_PREFIX})"
   )
-
+  install(CODE
+    "execute_process(COMMAND conan install nacl/v0.2.0@includeos/test -if ${CMAKE_INSTALL_PREFIX}/tools/)"
+  )
+  install(CODE
+    "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
+  )
 endif(NOT CONAN_EXPORTED)
 
 install(DIRECTORY api/ DESTINATION include/os)

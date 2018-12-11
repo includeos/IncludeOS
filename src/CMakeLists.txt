@@ -69,7 +69,7 @@ set(OS_OBJECTS
 
 )
 
-#TODO restructure and exclude
+#TODO restructure and exclude compress http and crypto libraries ?
 if (NOT CORE_OS)
   list(APPEND OBJECTS
     util/tar.cpp #uzlib
@@ -84,11 +84,11 @@ if (NOT CORE_OS)
 endif()
 
 add_library(os STATIC ${OS_OBJECTS})
+add_dependencies(os version )
 
-# disable sanitizers on c_abi and cxx_abi, etc.
+# disable sanitizers on  c_abi and cxx_abi, etc.
 set_source_files_properties(crt/c_abi.c PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
 set_source_files_properties(crt/cxx_abi.cpp PROPERTIES COMPILE_FLAGS "-fno-sanitize=all")
-set_source_files_properties(version.cpp PROPERTIES COMPILE_DEFINITIONS "OS_VERSION=\"${OS_VERSION}\"")
 
 add_subdirectory(arch/${ARCH})
 

@@ -1,6 +1,10 @@
 #pragma once
 #include <net/inet>
-#include <liveupdate>
+#include <net/stream.hpp>
+
+#if defined(LIVEUPDATE)
+  #include <liveupdate>
+#endif
 
 namespace microLB
 {
@@ -11,8 +15,10 @@ namespace microLB
 
   struct Waiting {
     Waiting(net::Stream_ptr);
+#if defined(LIVEUPDATE)
     Waiting(liu::Restore&, net::TCP&);
     void serialize(liu::Storage&);
+#endif
 
     net::Stream_ptr conn;
     queue_vector_t readq;
@@ -25,8 +31,9 @@ namespace microLB
     bool is_alive() const;
     void handle_timeout();
     void timeout(Nodes&);
+#if defined(LIVEUPDATE)
     void serialize(liu::Storage&);
-
+#endif
     Nodes&     parent;
     const int  self;
     int        timeout_timer;
@@ -82,9 +89,10 @@ namespace microLB
     Session& create_session(bool talk, net::Stream_ptr inc, net::Stream_ptr out);
     void     close_session(int, bool timeout = false);
     Session& get_session(int);
-
+#if defined(LIVEUPDATE)
     void serialize(liu::Storage&);
     void deserialize(netstack_t& in, netstack_t& out, liu::Restore&);
+#endif
 
   private:
     nodevec_t nodes;
@@ -105,9 +113,10 @@ namespace microLB
 
     int  wait_queue() const;
     int  connect_throws() const;
-
+#if defined(LIVEUPDATE)
     void serialize(liu::Storage&, const liu::buffer_t*);
     void resume_callback(liu::Restore&);
+#endif
 
     Nodes nodes;
     netstack_t& get_client_network() noexcept;
@@ -119,7 +128,9 @@ namespace microLB
     void handle_connections();
     void handle_queue();
     void init_liveupdate();
+#if defined(LIVEUPDATE)
     void deserialize(liu::Restore&);
+#endif
     std::vector<net::Socket> parse_node_confg();
 
     netstack_t& netin;

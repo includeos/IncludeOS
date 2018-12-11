@@ -3,15 +3,18 @@ import shutil
 
 from conans import ConanFile,tools,CMake
 
-class ManaConan(ConanFile):
+class MenderConan(ConanFile):
     settings= "os","arch","build_type","compiler"
-    name = "mana"
+    name = "mender"
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'
     generators = 'cmake'
     url = "http://www.includeos.org/"
 
-    #def build_requirements(self):
+    def requirements(self):
+        self.requires("botan/2.8.0@includeos/test")
+        self.requires("uzlib/v2.1.1@includeos/test")
+        self.requires("liveupdate/{}@{}/{}".format(self.version,self.user,self.channel))
         #eventually
         #self.build_requires("includeos/%s@%s/%s"%(self.version,self.user,self.channel))
     def build_requirements(self):
@@ -31,7 +34,7 @@ class ManaConan(ConanFile):
     def _cmake_configure(self):
         cmake = CMake(self)
         cmake.definitions['ARCH']=self._arch()
-        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/mana")
+        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/mender")
         return cmake
 
     def build(self):

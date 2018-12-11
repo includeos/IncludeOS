@@ -30,7 +30,7 @@ default_config = INCLUDEOS_HOME + "/includeos/vmrunner/vm.default.json"
 
 default_json = "./vm.json"
 
-chainloader = INCLUDEOS_HOME + "/includeos/chainloader"
+chainloader = INCLUDEOS_HOME + "/bin/chainloader"
 
 # Provide a list of VM's with validated specs
 # (One default vm added at the end)

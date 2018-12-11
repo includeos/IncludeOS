@@ -1,3 +1,4 @@
+import os
 from conans import ConanFile,tools,CMake
 
 class VmbuildConan(ConanFile):
@@ -25,6 +26,9 @@ class VmbuildConan(ConanFile):
     def package(self):
         cmake=self._configure_cmake()
         cmake.install()
+
+    def package_info(self):
+        self.env_info.path.append(os.path.join(self.package_folder, "bin"))
 
     def deploy(self):
         self.copy("*",dst="bin",src="bin")

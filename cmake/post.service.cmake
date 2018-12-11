@@ -499,28 +499,21 @@ endif()
 
 IF (${PLATFORM} STREQUAL x86_nano)
   target_link_libraries(service
+    --start-group
     libos
     libplatform
     libarch
-
-    ${LIBR_CMAKE_NAMES}
-    libos
-
-    libplatform
-    libarch
-
     musl_syscalls
-    libos
+
+#    cxxabi buildt into libcxx
+    libc
     libcxx
-    cxxabi
     libunwind
     libpthread
-    libc
 
-    musl_syscalls
-    libos
-    libc
     libgcc
+    --end-group
+    ${LIBR_CMAKE_NAMES}
     ${CRTN}
   )
 
@@ -534,7 +527,7 @@ else()
     libos
     libbotan
     ${OPENSSL_LIBS}
-    libosdeps
+
 
     libplatform
     libarch
