@@ -1070,6 +1070,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_view& in) {
     if(in.ack() == tcp.tcb().SND.NXT) {
       // TODO: I guess or FIN is ACK'ed..?
       tcp.set_state(TimeWait::instance());
+      tcp.release_memory();
       if(tcp.rtx_timer.is_running())
         tcp.rtx_stop();
       tcp.timewait_start();
@@ -1117,6 +1118,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_view& in) {
       Start the time-wait timer, turn off the other timers.
     */
     tcp.set_state(Connection::TimeWait::instance());
+    tcp.release_memory();
     if(tcp.rtx_timer.is_running())
       tcp.rtx_stop();
     tcp.timewait_start();
@@ -1191,6 +1193,7 @@ State::Result Connection::Closing::handle(Connection& tcp, Packet_view& in) {
   if(in.ack() == tcp.tcb().SND.NXT) {
     // TODO: I guess or FIN is ACK'ed..?
     tcp.set_state(TimeWait::instance());
+    tcp.release_memory();
     tcp.timewait_start();
   }
 

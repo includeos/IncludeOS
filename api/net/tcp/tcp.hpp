@@ -708,8 +708,10 @@ namespace net {
      * @brief      Adds a connection.
      *
      * @param[in]  <unnamed>  A ptr to the Connection
+     *
+     * @return     True if the connection was added, false if rejected
      */
-    void add_connection(tcp::Connection_ptr);
+    bool add_connection(tcp::Connection_ptr);
 
     /**
      * @brief      Creates a connection.

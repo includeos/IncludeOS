@@ -607,6 +607,11 @@ public:
   void set_recv_wnd_getter(Recv_window_getter func)
   { recv_wnd_getter = func; }
 
+  void release_memory() {
+    read_request = nullptr;
+    bufalloc.reset();
+  }
+
 private:
   /** "Parent" for Connection. */
   TCP& host_;

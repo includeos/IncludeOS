@@ -492,15 +492,24 @@ bool TCP::unbind(const Socket& socket)
   return false;
 }
 
-void TCP::add_connection(tcp::Connection_ptr conn) {
+bool TCP::add_connection(tcp::Connection_ptr conn) {
   // Stat increment number of incoming connections
   (*incoming_connections_)++;
 
   debug("<TCP::add_connection> Connection added %s \n", conn->to_string().c_str());
-  conn->_on_cleanup({this, &TCP::close_connection});
   conn->bufalloc = mempool_.get_resource();
+
+  // Reject connection if we can't allocate memory
+  if (conn->bufalloc == nullptr
+      or conn->bufalloc->allocatable() < max_bufsize() * Read_request::buffer_limit){
+    conn->_on_cleanup_ = nullptr;
+    conn->abort();
+    return false;
+  }
+
   Expects(conn->bufalloc != nullptr);
-  connections_.emplace(conn->tuple(), conn);
+  conn->_on_cleanup({this, &TCP::close_connection});
+  return connections_.emplace(conn->tuple(), conn).second;
 }
 
 Connection_ptr TCP::create_connection(Socket local, Socket remote, ConnectCallback cb)

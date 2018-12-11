@@ -661,10 +661,11 @@ uint32_t Connection::calculate_rcv_wnd() const
 
   const auto& rbuf = read_request->front();
   auto remaining = rbuf.capacity() - rbuf.size();
-  auto win = (bufalloc->allocatable() - (host_.max_bufsize()*1) + remaining) - rbuf.capacity();
-  //auto win = (bufalloc->allocatable() - (host_.max_bufsize()));
-  //auto max = read_request->front().capacity();
-  //win = (win < max) ? (rbuf.capacity() - rbuf.size()) : win - max;
+
+  auto buf_avail = bufalloc->allocatable() + remaining;
+  auto reserve   = (host_.max_bufsize() * Read_request::buffer_limit);
+  auto win = buf_avail > reserve ? buf_avail - reserve : 0;
+
   return (win < SMSS()) ? 0 : win; // Avoid small silly windows
 
   // REPORT CHUNKWISE
@@ -1155,12 +1156,14 @@ void Connection::clean_up() {
   if(timewait_dack_timer.is_running())
     timewait_dack_timer.stop();
 
-  // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called
-  // avoids connection being destructed before function is done
-  auto shared = retrieve_shared();
   // clean up all other copies
   // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
-  if(_on_cleanup_) _on_cleanup_(shared);
+  if(_on_cleanup_) {
+    // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called
+    // avoids connection being destructed before function is done
+    auto shared = retrieve_shared();
+    _on_cleanup_(shared);
+  }
 
   on_connect_.reset();
   on_disconnect_.reset();
