@@ -151,11 +151,8 @@ namespace os::mem::detail {
     }
 
     std::size_t resource_capacity() {
-      if (cap_suballoc_ == 0) {
-        if (used_resources_ == 0)
-          return cap_total_;
-        return cap_total_ / used_resources_;
-      }
+      if (cap_suballoc_ == 0)
+        return cap_total_ / (used_resources_ + os::mem::Pmr_pool::resource_division_offset);
       return cap_suballoc_;
     }
 

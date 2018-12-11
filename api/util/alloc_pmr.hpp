@@ -43,7 +43,8 @@ namespace os::mem {
 
   class Pmr_pool {
   public:
-    static constexpr size_t default_max_resources = 64;
+    static constexpr size_t default_max_resources    = 0xffffff;
+    static constexpr size_t resource_division_offset = 2;
     using Resource     = Pmr_resource;
     using Resource_ptr = std::unique_ptr<Pmr_resource, delegate<void(Resource*)>>;
 
