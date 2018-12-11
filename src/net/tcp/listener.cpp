@@ -134,7 +134,8 @@ void Listener::connected(Connection_ptr conn) {
   debug("<Listener::connected> %s connected\n", conn->to_string().c_str());
   remove(conn);
   Expects(conn->is_connected());
-  host_.add_connection(conn);
+  if (UNLIKELY(! host_.add_connection(conn)))
+    return;
 
   if(on_connect_ != nullptr)
     on_connect_(conn);
