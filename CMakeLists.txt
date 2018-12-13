@@ -227,7 +227,6 @@ else() # in user space
     OPTIONS apple=${APPLE} solo5=${WITH_SOLO5} basic=${CORE_OS}
     BASIC_SETUP
     NO_IMPORTS
-    BUILD missing
   )
 endif()
 
@@ -278,6 +277,7 @@ install(FILES cmake/pre.service.cmake DESTINATION cmake)
 install(FILES cmake/post.service.cmake DESTINATION cmake)
 install(FILES cmake/linux.service.cmake DESTINATION cmake)
 install(FILES cmake/library.cmake DESTINATION cmake)
+install(FILES cmake/os.cmake DESTINATION cmake)
 install(FILES cmake/${DEFAULT_SETTINGS_CMAKE} DESTINATION cmake RENAME settings.cmake) # cpu_feat_vanilla opt
 
 # Install vmrunner
