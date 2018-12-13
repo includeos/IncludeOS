@@ -370,7 +370,7 @@ void Connection::transmit(Packet_view_ptr packet) {
   if(packet->isset(ACK))
     last_ack_sent_ = cb.RCV.NXT;
 
-  //if(packet->has_tcp_data()) printf("<Connection::transmit> TX %s - NXT:%u\n", packet->to_string().c_str(), cb.SND.NXT);
+  //printf("<Connection::transmit> TX %s\n%s\n", packet->to_string().c_str(), to_string().c_str());
 
   host_.transmit(std::move(packet));
 }
@@ -950,7 +950,6 @@ void Connection::retransmit() {
     fill_packet(*packet, buf->data() + writeq.acked(), buf->size() - writeq.acked());
       packet->set_flag(PSH);
   }
-  rtx_attempt_++;
   packet->set_seq(cb.SND.UNA);
 
   /*
@@ -1025,13 +1024,15 @@ void Connection::rtx_timeout() {
   signal_rtx_timeout();
   // experimental
   if(rto_limit_reached()) {
-    debug("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
+    debug("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing. rtx=%u syn_rtx=%u\n",
+      rtx_attempt_, syn_rtx_);
     abort();
     return;
   }
 
   // retransmit SND.UNA
-  retransmit(); // increases rtx_attempt
+  retransmit();
+  rtx_attempt_++;
 
   // "back off" timer
   rttm.RTO *= 2.0;
