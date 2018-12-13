@@ -731,7 +731,7 @@ namespace net {
      *
      * @param[in]  conn  A ptr to a Connection
      */
-    void close_connection(tcp::Connection_ptr conn)
+    void close_connection(const tcp::Connection* conn)
     {
       unbind(conn->local());
       connections_.erase(conn->tuple());

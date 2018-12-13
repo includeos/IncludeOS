@@ -931,7 +931,8 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_view& in) 
     */
     if(tcb.SND.UNA <= in.ack() and in.ack() <= tcb.SND.NXT)
     {
-      debug2("<Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
+      debug2("<Connection::SynReceived::handle> %s SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED.\n",
+        tcp.to_string().c_str());
 
       tcp.set_state(Connection::Established::instance());
 

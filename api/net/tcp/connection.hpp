@@ -727,7 +727,7 @@ private:
    *
    * @param  Connection to be cleaned up
    */
-  using CleanupCallback   = delegate<void(Connection_ptr self)>;
+  using CleanupCallback   = delegate<void(const Connection* self)>;
   CleanupCallback         _on_cleanup_;
   inline Connection&      _on_cleanup(CleanupCallback cb);
 
