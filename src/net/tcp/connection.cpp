@@ -1157,25 +1157,26 @@ void Connection::clean_up() {
   if(timewait_dack_timer.is_running())
     timewait_dack_timer.stop();
 
-  // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called
-  // avoids connection being destructed before function is done
-  Connection_ptr shared;
-  // clean up all other copies
-  // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
-  if(_on_cleanup_) {
-     shared = retrieve_shared();
-    _on_cleanup_(shared);
-  }
-
+  // make sure all our delegates are cleaned up (to avoid circular dependencies)
   on_connect_.reset();
   on_disconnect_.reset();
   on_close_.reset();
   recv_wnd_getter.reset();
   if(read_request)
     read_request->callback.reset();
-  _on_cleanup_.reset();
 
-  debug2("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
+
+  debug2("<Connection::clean_up> Call clean_up delg on %s\n", to_string().c_str());
+  // clean up all other copies
+  // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
+  if(_on_cleanup_)
+    _on_cleanup_(this);
+
+
+  // if someone put a copy in this delg its their problem..
+  //_on_cleanup_.reset();
+
+  debug2("<Connection::clean_up> Succesfully cleaned up\n");
 }
 
 std::string Connection::TCB::to_string() const {
