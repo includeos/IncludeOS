@@ -296,7 +296,7 @@ function(os_add_executable TARGET NAME)
   #  DEPEN
   #TODO if not debug strip
   if (CMAKE_BUILD_TYPE MATCHES DEBUG)
-    set(STRIP_LV "echo debug")
+    set(STRIP_LV )
   else()
     set(STRIP_LV strip --strip-all ${CMAKE_BINARY_DIR}/${TARGET})
   endif()
@@ -325,34 +325,42 @@ function(os_link_libraries TARGET)
   target_link_libraries(${TARGET}${ELF_POSTFIX} ${ARGN})
 endfunction()
 
-function (os_add_drivers TARGET)
+function (os_add_library_from_path TARGET LIBRARY PATH)
+  set(FILE_NAME "${PATH}/lib${LIBRARY}.a")
 
+  if(NOT EXISTS ${FILE_NAME})
+    message(FATAL_ERROR "Library lib${LIBRARY}.a not found at ${PATH}")
+    return()
+  endif()
+
+  add_library(${LIBRARY} STATIC IMPORTED)
+  set_target_properties(${LIBRARY} PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(${LIBRARY} PROPERTIES IMPORTED_LOCATION ${FILE_NAME})
+  os_link_libraries(${TARGET}  --whole-archive ${LIBRARY} --no-whole-archive)
+endfunction()
+
+function (os_add_drivers TARGET)
   foreach(DRIVER ${ARGN})
-    add_library(${DRIVER} STATIC IMPORTED)
-    set_target_properties(${DRIVER} PROPERTIES LINKER_LANGUAGE CXX)
-    set(FILE_NAME "${INCLUDEOS_PREFIX}/${ARCH}/drivers/lib${DRIVER}.a")
-    if (EXISTS ${FILE_NAME})
-      set_target_properties(${DRIVER} PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/drivers/lib${DRIVER}.a)
-    else()
-      message(FATAL_ERROR "Driver ${DRIVER} does not found expected ${FILE_NAME}")
-    endif()
-    os_link_libraries(${TARGET} ${DRIVER})
-    os_link_libraries(${TARGET}  --whole-archive ${DRIVER} --no-whole-archive)
+    os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PREFIX}/${ARCH}/drivers")
   endforeach()
 endfunction()
 
+function(os_add_plugins TARGET)
+  foreach(PLUGIN ${ARGN})
+    os_add_library_from_path(${TARGET} ${PLUGIN} "${INCLUDEOS_PREFIX}/${ARCH}/plugins")
+  endforeach()
+endfunction()
 
 function (os_add_stdout TARGET DRIVER)
-  add_library(${DRIVER} STATIC IMPORTED)
-  set_target_properties(${DRIVER} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(${DRIVER} PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/drivers/stdout/lib${DRIVER}.a)
-  os_link_libraries(${TARGET}  --whole-archive ${DRIVER} --no-whole-archive)
+   os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PREFIX}/${ARCH}/drivers/stdout")
 endfunction()
 
 function(os_add_os_library TARGET)
-   message(FATAL_ERROR "Function not implemented yet")
+   message(FATAL_ERROR "Function not implemented yet.. pull from conan or install to lib ?")
   #target_link_libraries(${TARGET}${ELF_POSTFIX} ${ARGN})
 endfunction()
+
+
 
 #TODO investigate could be wrapped in generic embed object ?
 #If the user sets the config.json in the CMAKE then at least he knows its inluded :)
@@ -379,6 +387,7 @@ function(os_add_config TARGET CONFIG_JSON)
   set_target_properties(config_json PROPERTIES LINKER_LANGUAGE CXX)
   target_link_libraries(${TARGET}${TARGET_POSTFIX} --whole-archive config_json --no-whole-archive)
 endfunction()
+
 
 
 
