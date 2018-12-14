@@ -48,6 +48,7 @@ if(CONAN_EXPORTED)
       set(ARCH ${CONAN_SETTINGS_ARCH})
     endif()
   endif()
+  set(TRIPLE "${ARCH}-pc-linux-elf")
   set(LIBRARIES ${CONAN_LIBS})
   set(ELF_SYMS elf_syms)
   set(LINK_SCRIPT ${CONAN_INCLUDEOS_ROOT}/${ARCH}/linker.ld)
@@ -62,7 +63,7 @@ else()
       set(ARCH x86_64)
     endif()
   endif()
-
+  set(TRIPLE "${ARCH}-pc-linux-elf")
   include_directories(
     ${INCLUDEOS_PREFIX}/${ARCH}/include/c++/v1
     ${INCLUDEOS_PREFIX}/${ARCH}/include/c++/v1/experimental
@@ -205,7 +206,11 @@ else()
   set(LINK_SCRIPT ${INCLUDEOS_PREFIX}/${ARCH}/linker.ld)
 endif()
 
+# arch and platform defines
+message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
 
+set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
+set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
 
 # configure options
 option(default_stdout "Use the OS default stdout (serial)" ON)
@@ -220,11 +225,7 @@ option(thin_lto "Enable Thin LTO plugin" OFF)
 option(full_lto "Enable full LTO (also works on LD)" OFF)
 option(coroutines "Compile with coroutines TS support" OFF)
 
-# arch and platform defines
-message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
-set(TRIPLE "${ARCH}-pc-linux-elf")
-set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
-set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
+
 
 
 
@@ -326,16 +327,16 @@ function(os_link_libraries TARGET)
 endfunction()
 
 function (os_add_library_from_path TARGET LIBRARY PATH)
-  set(FILE_NAME "${PATH}/lib${LIBRARY}.a")
+  set(FILENAME "${PATH}/lib${LIBRARY}.a")
 
-  if(NOT EXISTS ${FILE_NAME})
+  if(NOT EXISTS ${FILENAME})
     message(FATAL_ERROR "Library lib${LIBRARY}.a not found at ${PATH}")
     return()
   endif()
 
   add_library(${LIBRARY} STATIC IMPORTED)
   set_target_properties(${LIBRARY} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(${LIBRARY} PROPERTIES IMPORTED_LOCATION ${FILE_NAME})
+  set_target_properties(${LIBRARY} PROPERTIES IMPORTED_LOCATION ${FILENAME})
   os_link_libraries(${TARGET}  --whole-archive ${LIBRARY} --no-whole-archive)
 endfunction()
 
