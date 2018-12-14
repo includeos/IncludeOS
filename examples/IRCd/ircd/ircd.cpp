@@ -33,7 +33,7 @@ IrcServer::IrcServer(
 
   // client listener (although IRC servers usually have many ports open)
   client_stack().tcp().listen(cl_port,
-  [this] (auto csock)
+  [this] (net::tcp::Connection_ptr csock)
   {
     // one more connection in total
     inc_counter(STAT_TOTAL_CONNS);
@@ -55,7 +55,7 @@ IrcServer::IrcServer(
 
   // server listener
   server_stack().tcp().listen(sv_port,
-  [this] (auto ssock)
+  [this] (net::tcp::Connection_ptr ssock)
   {
     // one more connection in total
     inc_counter(STAT_TOTAL_CONNS);
@@ -319,3 +319,6 @@ void IrcServer::begin_netburst(Server& target)
   /// end of burst
   target.send("EB\r\n");
 }
+
+__attribute__((weak))
+bool IrcServer::init_liveupdate() { return false; }

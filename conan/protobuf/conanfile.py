@@ -50,7 +50,7 @@ class ProtobufConan(ConanFile):
         cflags+=["-I"+self.build_folder+"/include/c++/v1","-I"+self.build_folder+"/include"]
         cmake.definitions['CMAKE_CROSSCOMPILING']=True
         #cmake.definitions['CMAKE_C_FLAGS']=" ".join(cflags)
-        cmake.definitions['CMAKE_CXX_FLAGS']=" ".join(cflags)
+        #cmake.definitions['CMAKE_CXX_FLAGS']=" ".join(cflags)
         cmake.definitions['CMAKE_USE_PTHREADS_INIT']=self.options.threads
         cmake.definitions['protobuf_VERBOSE']='ON'
         cmake.definitions['protobuf_BUILD_TESTS']='OFF'

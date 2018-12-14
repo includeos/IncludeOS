@@ -1,4 +1,4 @@
 {
   "mem" : 32,
-  "vga" : "qxl"
+  "vga" : "std"
 }

@@ -220,9 +220,7 @@ namespace x86 {
     }
     uint32_t timer_diff() noexcept override
     {
-      volatile uint32_t start = read(x2APIC_TMRINITCNT);
-      volatile uint32_t end = read(x2APIC_TMRCURRCNT);
-      return start-end;
+      return read(x2APIC_TMRINITCNT)-read(x2APIC_TMRCURRCNT);
     }
     void timer_interrupt(bool enabled) noexcept override
     {

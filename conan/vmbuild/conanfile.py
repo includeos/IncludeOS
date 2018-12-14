@@ -2,7 +2,7 @@ import os
 from conans import ConanFile,tools,CMake
 
 class VmbuildConan(ConanFile):
-    settings= "os","arch","build_type","compiler"
+    settings= "os","arch"
     name = "vmbuild"
     license = 'Apache-2.0'
     description = 'Run your application with zero overhead'

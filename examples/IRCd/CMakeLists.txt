@@ -1,71 +1,44 @@
-cmake_minimum_required(VERSION 2.8.9)
-# default IncludeOS location #FIXME#
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
-endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project(ircd)
+cmake_minimum_required(VERSION 3.0)
 
-# Human-readable name of your service
-set(SERVICE_NAME "IRC service")
-# Name of your service binary
-set(BINARY       "IRCd")
+option(REAL_HW "Run on real hardware" OFF)
+option(LIVEUPDATE "Enable liveupdate" OFF)
 
-# Source files to be linked with OS library parts to form bootable image
-set(SOURCES
-  service.cpp
-  autoconf.cpp
-  ircd/channel.cpp
-  ircd/client.cpp
-  ircd/client_commands.cpp
-  ircd/client_new.cpp
-  ircd/client_send.cpp
-  ircd/client_timeout.cpp
-  ircd/ircd.cpp
-  ircd/ircsplit.cpp
-  ircd/modes.cpp
-  ircd/readq.cpp
-  ircd/restore.cpp
-  ircd/selftest.cpp
-  ircd/server.cpp
-  ircd/server_commands.cpp
-  ircd/test.cpp
-  ircd/transform.cpp
-  )
-
-# Custom version string of the IRC server
-set(VERSION      "v0.3 IRCd")
-add_definitions(-DIRC_SERVER_VERSION="${VERSION}")
-
-option(REAL_HW "Run on real hardware" ON)
-
-if (REAL_HW)
-  set(DRIVERS
-      boot_logger
-      e1000
-      vmxnet3
-    )
-  set(STDOUT
-    vga_output
-    vga_emergency
-  )
-else()
-  set(DRIVERS
-      virtionet
-      vmxnet3
-    )
-  set (PLUGINS
-      uplink
-    )
-  set(STDOUT
-    vga_output
-  )
+# IncludeOS install location
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
 
-set(LIBRARIES libliveupdate.a)
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-# Uncomment this to build vanilla:
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.2")
+#service
+project (ircd)
+
+include(os)
+
+add_subdirectory(ircd)
+
+set(DRIVERS
+    vmxnet3
+  )
+
+set(STDOUT
+  default_stdout
+)
+
+os_add_executable(service "IRC service"  service.cpp autoconf.cpp)
+os_link_libraries(service ircd)
+os_add_drivers(service ${DRIVERS})
+os_add_stdout(service ${STDOUT})
+
+if (LIVEUPDATE)
+  os_add_os_library(service liveupdate)
+endif()
+

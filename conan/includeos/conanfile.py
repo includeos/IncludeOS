@@ -37,8 +37,8 @@ class IncludeOSConan(ConanFile):
             self.requires("openssl/1.1.1@includeos/test")
             self.requires("s2n/1.1.1@includeos/test")
 
-        if (self.options.apple):
-            self.requires("libgcc/1.0@includeos/stable")
+        #if (self.options.apple):
+            self.requires("libgcc/1.0@includeos/test")
         if (self.options.solo5):
             self.requires("solo5/0.4.1@includeos/test")
     def configure(self):
@@ -89,7 +89,7 @@ class IncludeOSConan(ConanFile):
                 platform='x86_pc'
         #if (self.settings.solo5):
         #if solo5 set solo5 as platform
-        self.cpp_info.libs=['platform','os','arch','musl_syscalls']
+        self.cpp_info.libs=[platform,'os','arch','musl_syscalls']
         self.cpp_info.libdirs = [
             '{}/lib'.format(self._target_arch()),
             '{}/platform'.format(self._target_arch())
