@@ -66,7 +66,8 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
     Expects(bufalloc != nullptr);
     read_request.reset(
       new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb, bufalloc.get()));
-    bufalloc->on_non_full({this, &Connection::trigger_window_update});
+    const size_t avail_thres = host_.max_bufsize() * Read_request::buffer_limit;
+    bufalloc->on_avail(avail_thres, {this, &Connection::trigger_window_update});
   }
   // read request is already set, only reset if new size.
   else
