@@ -91,12 +91,17 @@ namespace os::mem {
     /** Fires when the resource has been full and is not full anymore **/
     void on_non_full(Event e){ non_full = e; }
 
+    /** Fires on transition from < N bytes to >= N bytes allocatable **/
+    void on_avail(std::size_t N, Event e) { avail_thresh = N; avail = e; }
+
   private:
     Pool_ptr pool_;
     std::size_t used = 0;
     std::size_t allocs = 0;
     std::size_t deallocs = 0;
+    std::size_t avail_thresh = 0;
     Event non_full{};
+    Event avail{};
   };
 
   struct Default_pmr : public std::pmr::memory_resource {

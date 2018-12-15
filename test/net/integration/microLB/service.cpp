@@ -101,21 +101,22 @@ void Service::start()
   printf("MicroLB ready for test\n");
   auto& inet1 = net::Super_stack::get(0);
   auto& inet2 = net::Super_stack::get(1);
-  //inet.tcp().set_MSL(std::chrono::seconds(2));
-  inet1.tcp().set_total_bufsize(256_MiB);
-  inet2.tcp().set_total_bufsize(256_MiB);
+  inet1.tcp().set_MSL(std::chrono::seconds(2));
 
-  /*Timers::oneshot(std::chrono::seconds(5),
+  // Increasing TCP buffer size may increase throughput
+  //inet1.tcp().set_total_bufsize(256_MiB);
+  //inet2.tcp().set_total_bufsize(256_MiB);
+
+  Timers::oneshot(std::chrono::seconds(5),
   [] (int) {
     printf("TCP MSL ended (4 seconds)\n");
-    });*/
+  });
   //StackSampler::begin();
 
   Timers::periodic(2s, 5s, [](auto) {
-      StackSampler::print(10);
+      //StackSampler::print(10);
       print_nic_stats();
       print_mempool_stats();
       print_lb_stats();
-
     });
 }
