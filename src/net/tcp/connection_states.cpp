@@ -101,9 +101,10 @@ bool Connection::State::check_seq(Connection& tcp, Packet_view& in)
   if(tcb.SND.TS_OK and in.tcp_header_length() == HEADER_WITH_TS)
   {
     const auto* ts = in.parse_ts_option();
+    in.set_ts_option(ts);
 
     // PAWS
-    if(UNLIKELY(ts != nullptr and (ntohl(ts->val) < tcb.TS_recent and !in.isset(RST))))
+    if(UNLIKELY(ts != nullptr and (ts->get_val() < tcb.TS_recent and !in.isset(RST))))
     {
       /*
         If the connection has been idle more than 24 days,

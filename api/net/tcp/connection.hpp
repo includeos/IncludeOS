@@ -873,6 +873,13 @@ private:
 
   uint32_t calculate_rcv_wnd() const;
 
+  void send_window_update() {
+    update_rcv_wnd();
+    send_ack();
+  }
+
+  void trigger_window_update(os::mem::Pmr_resource& res);
+
   /**
    * @brief      Receive data from an incoming packet containing data.
    *
