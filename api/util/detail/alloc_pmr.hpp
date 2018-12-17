@@ -151,11 +151,8 @@ namespace os::mem::detail {
     }
 
     std::size_t resource_capacity() {
-      if (cap_suballoc_ == 0) {
-        if (used_resources_ == 0)
-          return cap_total_;
-        return cap_total_ / used_resources_;
-      }
+      if (cap_suballoc_ == 0)
+        return cap_total_ / (used_resources_ + os::mem::Pmr_pool::resource_division_offset);
       return cap_suballoc_;
     }
 
@@ -280,11 +277,21 @@ namespace os::mem {
   void Pmr_resource::do_deallocate(void* ptr, std::size_t s, std::size_t a) {
     Expects(s != 0); // POSIX malloc will allow size 0, but return nullptr.
     bool trigger_non_full = UNLIKELY(full() and non_full != nullptr);
+    bool trigger_avail_thresh = UNLIKELY(allocatable() < avail_thresh
+                                         and allocatable() + s >= avail_thresh
+                                         and avail != nullptr);
 
     pool_->deallocate(ptr,s,a);
     deallocs++;
     used -= s;
-    if (trigger_non_full) {
+
+    if (UNLIKELY(trigger_avail_thresh)) {
+      Ensures(allocatable() >= avail_thresh);
+      Ensures(avail != nullptr);
+      avail(*this);
+    }
+
+    if (UNLIKELY(trigger_non_full)) {
       Ensures(!full());
       Ensures(non_full != nullptr);
       non_full(*this);

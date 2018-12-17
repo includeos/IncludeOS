@@ -370,7 +370,7 @@ void Connection::transmit(Packet_view_ptr packet) {
   if(packet->isset(ACK))
     last_ack_sent_ = cb.RCV.NXT;
 
-  //if(packet->has_tcp_data()) printf("<Connection::transmit> TX %s - NXT:%u\n", packet->to_string().c_str(), cb.SND.NXT);
+  //printf("<Connection::transmit> TX %s\n%s\n", packet->to_string().c_str(), to_string().c_str());
 
   host_.transmit(std::move(packet));
 }
@@ -661,10 +661,11 @@ uint32_t Connection::calculate_rcv_wnd() const
 
   const auto& rbuf = read_request->front();
   auto remaining = rbuf.capacity() - rbuf.size();
-  auto win = (bufalloc->allocatable() - (host_.max_bufsize()*1) + remaining) - rbuf.capacity();
-  //auto win = (bufalloc->allocatable() - (host_.max_bufsize()));
-  //auto max = read_request->front().capacity();
-  //win = (win < max) ? (rbuf.capacity() - rbuf.size()) : win - max;
+
+  auto buf_avail = bufalloc->allocatable() + remaining;
+  auto reserve   = (host_.max_bufsize() * Read_request::buffer_limit);
+  auto win = buf_avail > reserve ? buf_avail - reserve : 0;
+
   return (win < SMSS()) ? 0 : win; // Avoid small silly windows
 
   // REPORT CHUNKWISE
@@ -949,7 +950,6 @@ void Connection::retransmit() {
     fill_packet(*packet, buf->data() + writeq.acked(), buf->size() - writeq.acked());
       packet->set_flag(PSH);
   }
-  rtx_attempt_++;
   packet->set_seq(cb.SND.UNA);
 
   /*
@@ -1024,13 +1024,15 @@ void Connection::rtx_timeout() {
   signal_rtx_timeout();
   // experimental
   if(rto_limit_reached()) {
-    debug("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing.\n");
+    debug("<TCP::Connection::rtx_timeout> RTX attempt limit reached, closing. rtx=%u syn_rtx=%u\n",
+      rtx_attempt_, syn_rtx_);
     abort();
     return;
   }
 
   // retransmit SND.UNA
-  retransmit(); // increases rtx_attempt
+  retransmit();
+  rtx_attempt_++;
 
   // "back off" timer
   rttm.RTO *= 2.0;
@@ -1155,22 +1157,26 @@ void Connection::clean_up() {
   if(timewait_dack_timer.is_running())
     timewait_dack_timer.stop();
 
-  // necessary to keep the shared_ptr alive during the whole function after _on_cleanup_ is called
-  // avoids connection being destructed before function is done
-  auto shared = retrieve_shared();
-  // clean up all other copies
-  // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
-  if(_on_cleanup_) _on_cleanup_(shared);
-
+  // make sure all our delegates are cleaned up (to avoid circular dependencies)
   on_connect_.reset();
   on_disconnect_.reset();
   on_close_.reset();
   recv_wnd_getter.reset();
   if(read_request)
     read_request->callback.reset();
-  _on_cleanup_.reset();
 
-  debug("<Connection::clean_up> Succesfully cleaned up %s\n", to_string().c_str());
+
+  debug2("<Connection::clean_up> Call clean_up delg on %s\n", to_string().c_str());
+  // clean up all other copies
+  // either in TCP::listeners_ (open) or Listener::syn_queue_ (half-open)
+  if(_on_cleanup_)
+    _on_cleanup_(this);
+
+
+  // if someone put a copy in this delg its their problem..
+  //_on_cleanup_.reset();
+
+  debug2("<Connection::clean_up> Succesfully cleaned up\n");
 }
 
 std::string Connection::TCB::to_string() const {

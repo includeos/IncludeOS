@@ -209,8 +209,8 @@ acceptable:
 
 void Connection::State::unallowed_syn_reset_connection(Connection& tcp, const Packet_view& in) {
   assert(in.isset(SYN));
-  debug("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection.\n",
-        tcp.state().to_string().c_str());
+  debug("<Connection::State::unallowed_syn_reset_connection> Unallowed SYN for STATE: %s, reseting connection. %s\n",
+        tcp.state().to_string().c_str(), in.to_string().c_str());
   // Not sure if this is the correct way to send a "reset response"
   auto packet = tcp.outgoing_packet();
   packet->set_seq(in.ack()).set_flag(RST);
@@ -931,7 +931,8 @@ State::Result Connection::SynReceived::handle(Connection& tcp, Packet_view& in) 
     */
     if(tcb.SND.UNA <= in.ack() and in.ack() <= tcb.SND.NXT)
     {
-      debug2("<Connection::SynReceived::handle> SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED. \n");
+      debug2("<Connection::SynReceived::handle> %s SND.UNA =< SEG.ACK =< SND.NXT, continue in ESTABLISHED.\n",
+        tcp.to_string().c_str());
 
       tcp.set_state(Connection::Established::instance());
 
@@ -1070,6 +1071,7 @@ State::Result Connection::FinWait1::handle(Connection& tcp, Packet_view& in) {
     if(in.ack() == tcp.tcb().SND.NXT) {
       // TODO: I guess or FIN is ACK'ed..?
       tcp.set_state(TimeWait::instance());
+      tcp.release_memory();
       if(tcp.rtx_timer.is_running())
         tcp.rtx_stop();
       tcp.timewait_start();
@@ -1117,6 +1119,7 @@ State::Result Connection::FinWait2::handle(Connection& tcp, Packet_view& in) {
       Start the time-wait timer, turn off the other timers.
     */
     tcp.set_state(Connection::TimeWait::instance());
+    tcp.release_memory();
     if(tcp.rtx_timer.is_running())
       tcp.rtx_stop();
     tcp.timewait_start();
@@ -1191,6 +1194,7 @@ State::Result Connection::Closing::handle(Connection& tcp, Packet_view& in) {
   if(in.ack() == tcp.tcb().SND.NXT) {
     // TODO: I guess or FIN is ACK'ed..?
     tcp.set_state(TimeWait::instance());
+    tcp.release_memory();
     tcp.timewait_start();
   }
 

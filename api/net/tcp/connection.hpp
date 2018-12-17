@@ -607,6 +607,11 @@ public:
   void set_recv_wnd_getter(Recv_window_getter func)
   { recv_wnd_getter = func; }
 
+  void release_memory() {
+    read_request = nullptr;
+    bufalloc.reset();
+  }
+
 private:
   /** "Parent" for Connection. */
   TCP& host_;
@@ -722,7 +727,7 @@ private:
    *
    * @param  Connection to be cleaned up
    */
-  using CleanupCallback   = delegate<void(Connection_ptr self)>;
+  using CleanupCallback   = delegate<void(const Connection* self)>;
   CleanupCallback         _on_cleanup_;
   inline Connection&      _on_cleanup(CleanupCallback cb);
 
