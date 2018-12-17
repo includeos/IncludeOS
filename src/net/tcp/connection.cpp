@@ -66,6 +66,8 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
     Expects(bufalloc != nullptr);
     read_request.reset(
       new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb, bufalloc.get()));
+    const size_t avail_thres = host_.max_bufsize() * Read_request::buffer_limit;
+    bufalloc->on_avail(avail_thres, {this, &Connection::trigger_window_update});
   }
   // read request is already set, only reset if new size.
   else
@@ -417,6 +419,10 @@ bool Connection::handle_ack(const Packet_view& in)
   if(cb.SND.TS_OK)
   {
     const auto* ts = in.ts_option();
+    // reparse to avoid case when stored ts suddenly get lost
+    if(ts == nullptr)
+      ts = in.parse_ts_option();
+
     if(ts != nullptr) // TODO: not sure the packet is valid if TS missing
       last_acked_ts_ = ts->ecr;
   }
@@ -578,7 +584,7 @@ void Connection::on_dup_ack(const Packet_view& in)
   // 3 dup acks
   else if(dup_acks_ == 3)
   {
-    debug("<TCP::Connection::on_dup_ack> Dup ACK == 3 - %u\n", cb.SND.UNA);
+    debug("<TCP::Connection::on_dup_ack> Dup ACK == 3 - UNA=%u recover=%u\n", cb.SND.UNA, cb.recover);
 
     if(cb.SND.UNA - 1 > cb.recover)
       goto fast_rtx;
@@ -587,9 +593,14 @@ void Connection::on_dup_ack(const Packet_view& in)
     if(cb.SND.TS_OK)
     {
       const auto* ts = in.ts_option();
-      if(ts != nullptr and last_acked_ts_ == ts->ecr)
+      // reparse to avoid case when stored ts suddenly get lost
+      if(ts == nullptr)
+        ts = in.parse_ts_option();
+
+      if(ts != nullptr)
       {
-        goto fast_rtx;
+        if(last_acked_ts_ == ts->ecr)
+          goto fast_rtx;
       }
     }
     // 4.1.  ACK Heuristic
@@ -597,13 +608,13 @@ void Connection::on_dup_ack(const Packet_view& in)
     {
       goto fast_rtx;
     }
-
     return;
 
     fast_rtx:
     {
       cb.recover = cb.SND.NXT;
-      debug("<TCP::Connection::on_dup_ack> Enter Recovery - Flight Size: %u\n", flight_size());
+      debug("<TCP::Connection::on_dup_ack> Enter Recovery %u - Flight Size: %u\n",
+        cb.recover, flight_size());
       fast_retransmit();
     }
   }
@@ -651,6 +662,13 @@ void Connection::rtx_ack(const seq_t ack) {
 
   //printf("<TCP::Connection::rt_acknowledge> ACK'ed %u packets. rtx_q: %u\n",
   //  x-rtx_q.size(), rtx_q.size());
+}
+
+void Connection::trigger_window_update(os::mem::Pmr_resource& res)
+{
+  //printf("window freed up? %zu\n", res.allocatable());
+  if(res.allocatable() >= (host_.max_bufsize() * Read_request::buffer_limit))
+    send_window_update();
 }
 
 uint32_t Connection::calculate_rcv_wnd() const
@@ -904,6 +922,9 @@ void Connection::take_rtt_measure(const Packet_view& packet)
   if(cb.SND.TS_OK)
   {
     const auto* ts = packet.ts_option();
+    // reparse to avoid case when stored ts suddenly get lost
+    if(ts == nullptr)
+      ts = packet.parse_ts_option();
     if(ts)
     {
       rttm.rtt_measurement(RTTM::milliseconds{host_.get_ts_value() - ntohl(ts->ecr)});
