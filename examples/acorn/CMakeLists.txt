@@ -1,30 +1,33 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (acorn)
 
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
+
+#service
+project (service)
+include(os)
 include(dependencies.cmake)
 
-# Human-readable name of your service
-set(SERVICE_NAME "Acorn Web Appliance")
-
-# Name of your service binary
-set(BINARY       "acorn")
-
-# Source files to be linked with OS library parts to form bootable image
 set(SOURCES
   service.cpp fs/acorn_fs.cpp
-  )
+)
 
-# To add your own include paths:
-set(LOCAL_INCLUDES
-  "app/"
-  ${BUCKET_DIR}
-  )
+os_add_executable(acorn "Acorn Web Appliance" ${SOURCES})
+
+os_include_directories(acorn PRIVATE "app/" ${BUCKET_DIR})
+
+# Make sure bucket is downloaded before service is built
+add_dependencies(acorn bucket)
 
 # DRIVERS / PLUGINS:
 
@@ -43,11 +46,5 @@ set(LIBRARIES
   "libmana.a"
   )
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-
 # Build memdisk content
-diskbuilder(disk1)
-
-# Make sure bucket is downloaded before service is built
-add_dependencies(service bucket)
+diskbuilder(acorn disk1)

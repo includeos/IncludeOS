@@ -326,6 +326,10 @@ function(os_link_libraries TARGET)
   target_link_libraries(${TARGET}${ELF_POSTFIX} ${ARGN})
 endfunction()
 
+function(os_include_directories TARGET)
+  target_include_directories(${TARGET}${ELF_POSTFIX} ${ARGN})
+endfunction()
+
 function (os_add_library_from_path TARGET LIBRARY PATH)
   set(FILENAME "${PATH}/lib${LIBRARY}.a")
 
@@ -361,6 +365,49 @@ function(os_add_os_library TARGET)
   #target_link_libraries(${TARGET}${ELF_POSTFIX} ${ARGN})
 endfunction()
 
+# Depending on the output of this command will make it always run. Like magic.
+add_custom_command(
+    OUTPUT fake_news
+    COMMAND cmake -E echo)
+
+# add memdisk
+function(add_memdisk TARGET DISK)
+  get_filename_component(DISK_RELPATH "${DISK}"
+                         REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  add_custom_command(
+    OUTPUT  memdisk.o
+    COMMAND ${Python2_EXECUTABLE} ${INCLUDEOS_PREFIX}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
+    COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
+    DEPENDS ${DISK_RELPATH}
+  )
+  add_library(memdisk STATIC memdisk.o)
+  set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
+  os_link_libraries(${TARGET} --whole-archive memdisk --no-whole-archive)
+endfunction()
+
+# automatically build memdisk from folder
+function(build_memdisk TARGET FOLD)
+  get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  add_custom_command(
+      OUTPUT  memdisk.fat
+      COMMAND ${INCLUDEOS_PREFIX}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
+      DEPENDS fake_news
+      )
+  add_custom_target(diskbuilder DEPENDS memdisk.fat)
+  add_dependencies(${TARGET} diskbuilder)
+  add_memdisk(${TARGET} "${CMAKE_BINARY_DIR}/memdisk.fat")
+endfunction()
+
+# call build_memdisk only if MEMDISK is not defined from command line
+function(diskbuilder TARGET FOLD)
+  build_memdisk(${TARGET} ${FOLD})
+endfunction()
+
+function(install_certificates FOLDER)
+  get_filename_component(REL_PATH "${FOLDER}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  message(STATUS "Install certificate bundle at ${FOLDER}")
+  file(COPY ${INSTALL_LOC}/cert_bundle/ DESTINATION ${REL_PATH})
+endfunction()
 
 
 #TODO investigate could be wrapped in generic embed object ?
@@ -388,9 +435,6 @@ function(os_add_config TARGET CONFIG_JSON)
   set_target_properties(config_json PROPERTIES LINKER_LANGUAGE CXX)
   target_link_libraries(${TARGET}${TARGET_POSTFIX} --whole-archive config_json --no-whole-archive)
 endfunction()
-
-
-
 
 function(os_install)
   set(options OPTIONAL)
