@@ -20,7 +20,6 @@
 
 #if defined(__AVX2__)
  #include <immintrin.h>
-#endif
 #elif defined(__SSSE3__)
  #include <tmmintrin.h>
 #endif
