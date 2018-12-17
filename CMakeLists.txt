@@ -329,6 +329,9 @@ if(NOT CONAN_EXPORTED)
   install(CODE
     "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
   )
+  install(CODE
+    "execute_process(COMMAND conan install mana/0.13.0@includeos/test -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
+  )
 endif(NOT CONAN_EXPORTED)
 
 install(DIRECTORY api/ DESTINATION include/os)

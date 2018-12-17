@@ -37,9 +37,10 @@ class ChainloaderConan(ConanFile):
         #        self.copy("*")
     #def build_requirements(self):
     def source(self):
-        #repo = tools.Git(folder="includeos")
-        #repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
-        shutil.copytree("/home/kristian/git/IncludeOS","includeos")
+        #shutil.copytree("/home/kristian/git/IncludeOS","includeos")
+        repo = tools.Git(folder="includeos")
+        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
+
     def _configure_cmake(self):
         cmake = CMake(self)
         #glad True and False also goes but not recursily

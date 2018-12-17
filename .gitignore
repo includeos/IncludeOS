@@ -31,6 +31,7 @@ massif.out.*
 build/
 build_i686/
 build_x86_64/
+build_conan/
 
 # ignore log files in test tree
 test/**/*.log
