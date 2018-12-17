@@ -313,9 +313,9 @@ function(os_add_executable TARGET NAME)
     DEPENDS ${ELF_TARGET}
   )
 
-  if (CONFIG_JSON)
-    os_add_config(${ELF_TARGET} "config.json")
-   endif()
+  if (EXISTS ${CMAKE_SOURCE_DIR}/config.json)
+    os_add_config(${ELF_TARGET} "${CMAKE_SOURCE_DIR}/config.json")
+  endif()
 
 endfunction()
 
@@ -378,10 +378,10 @@ endfunction()
 #if so you can edit plugins and such in that file..
 
 function(os_add_config TARGET CONFIG_JSON)
-  set(OUTFILE ${CMAKE_BINARY_DIR}/${CONFIG_JSON}.o)
+  set(OUTFILE ${CMAKE_BINARY_DIR}/config.json.o)
   add_custom_command(
     OUTPUT ${OUTFILE}
-    COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 --rename-section .data=.config,CONTENTS,ALLOC,LOAD,READONLY,DATA ${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_JSON} ${OUTFILE}
+    COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 --rename-section .data=.config,CONTENTS,ALLOC,LOAD,READONLY,DATA ${CONFIG_JSON} ${OUTFILE}
     DEPENDS ${CONFIG_JSON}
     )
   add_library(config_json STATIC ${OUTFILE})
