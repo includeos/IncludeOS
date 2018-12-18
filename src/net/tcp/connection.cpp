@@ -666,9 +666,11 @@ void Connection::rtx_ack(const seq_t ack) {
 
 void Connection::trigger_window_update(os::mem::Pmr_resource& res)
 {
-  //printf("window freed up? %zu\n", res.allocatable());
-  if(res.allocatable() >= (host_.max_bufsize() * Read_request::buffer_limit))
+  const auto reserve = (host_.max_bufsize() * Read_request::buffer_limit);
+  if(res.allocatable() >= reserve and cb.RCV.WND == 0) {
+    //printf("allocatable=%zu cur_win=%u\n", res.allocatable(), cb.RCV.WND);
     send_window_update();
+  }
 }
 
 uint32_t Connection::calculate_rcv_wnd() const
@@ -799,7 +801,7 @@ void Connection::recv_data(const Packet_view& in)
     }
   }
   // Packet out of order
-  else if((in.seq() - cb.RCV.NXT) < cb.RCV.WND)
+  else if(( (in.seq() + in.tcp_data_length()) - cb.RCV.NXT) < cb.RCV.WND)
   {
     // only accept the data if we have a read request
     if(read_request != nullptr)
