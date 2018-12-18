@@ -235,6 +235,7 @@ endif()
 #
 
 add_subdirectory(src)
+add_subdirectory(mod)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)

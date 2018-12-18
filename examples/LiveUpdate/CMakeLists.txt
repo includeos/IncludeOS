@@ -1,65 +1,40 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.0)
+
+option(REAL_HW "Run on real hardware" OFF)
+option(LIVEUPDATE "Enable liveupdate" OFF)
 
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project(service)
 
-# Human-readable name of your service
-set(SERVICE_NAME "LiveUpdate example")
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
 
-# Name of your service binary
-set(BINARY       "liveupdate")
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-# Custom version string of the IRC server
-set(VERSION      "v0.4 LiveUpdate demo")
+#service
+project (liuircd)
+include(os)
+add_subdirectory(ircd)
 
-add_definitions(-DIRC_SERVER_VERSION="${VERSION}")
-
-# Source files to be linked with OS library parts to form bootable image
-set(SOURCES
-  service.cpp
-  ../IRCd/autoconf.cpp
-  ../IRCd/ircd/channel.cpp
-  ../IRCd/ircd/client.cpp
-  ../IRCd/ircd/client_commands.cpp
-  ../IRCd/ircd/client_new.cpp
-  ../IRCd/ircd/client_send.cpp
-  ../IRCd/ircd/client_timeout.cpp
-  ../IRCd/ircd/ircd.cpp
-  ../IRCd/ircd/ircsplit.cpp
-  ../IRCd/ircd/modes.cpp
-  ../IRCd/ircd/readq.cpp
-  ../IRCd/ircd/restore.cpp
-  ../IRCd/ircd/selftest.cpp
-  ../IRCd/ircd/server.cpp
-  ../IRCd/ircd/server_commands.cpp
-  ../IRCd/ircd/test.cpp
-  ../IRCd/ircd/transform.cpp
-  )
-
-# DRIVERS / PLUGINS:
 set(DRIVERS
-    virtionet
     vmxnet3
-    #boot_logger
   )
 
-set(PLUGINS
-    autoconf
-    terminal_liu
-  )
+set(STDOUT
+  default_stdout
+)
 
-set(LIBRARIES
-    libliveupdate.a
-  )
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
-
-#diskbuilder(drive)
+os_add_executable(service "IRC service"  service.cpp)
+os_link_libraries(service ircd)
+os_add_drivers(service ${DRIVERS})
+os_add_stdout(service ${STDOUT})
 
 add_custom_command(
   OUTPUT motd.h
@@ -69,3 +44,7 @@ add_custom_command(
 )
 add_custom_target(motd DEPENDS motd.h)
 add_dependencies(service motd)
+
+if (LIVEUPDATE)
+  os_add_os_library(service liveupdate)
+endif()

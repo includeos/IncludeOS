@@ -32,12 +32,10 @@ add_dependencies(acorn bucket)
 # DRIVERS / PLUGINS:
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  set(DRIVERS
-    solo5net
-  )
+  os_add_drivers(acorn solo5net)
 else()
-  set(DRIVERS
-    virtionet
+  os_add_drivers(acorn
+    virtionet     # Virtio networking
     vmxnet3
   )
 endif()

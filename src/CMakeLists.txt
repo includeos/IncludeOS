@@ -71,7 +71,7 @@ set(OS_OBJECTS
 
 #TODO restructure and exclude compress http and crypto libraries ?
 if (NOT CORE_OS)
-  list(APPEND OBJECTS
+  list(APPEND OS_OBJECTS
     util/tar.cpp #uzlib
     util/uri.cpp #http-parser
     util/autoconf.cpp #rapidjson

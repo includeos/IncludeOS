@@ -22,7 +22,7 @@ os.chdir("..")
 grubify = "grubiso.sh"
 
 # Create the GRUB image
-subprocess.check_call(["bash",grubify,"build/test_grub"])
+subprocess.check_call(["bash",grubify,"build/service"])
 
 # Boot the image
 vm.boot(multiboot = False)

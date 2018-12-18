@@ -142,6 +142,10 @@ else()
   set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
   set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INCLUDEOS_PREFIX}/${ARCH}/lib/libpthread.a")
 
+  add_library(osdeps STATIC IMPORTED)
+  set_target_properties(osdeps PROPERTIES LINKER_LANGUAGE CXX)
+  set_target_properties(osdeps PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libosdeps.a)
+
   # libgcc/compiler-rt detection
   if (UNIX)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -191,6 +195,7 @@ else()
 
       ${LIBR_CMAKE_NAMES}
       libos
+      osdeps
       libbotan
       ${OPENSSL_LIBS}
       musl_syscalls
@@ -321,6 +326,9 @@ endfunction()
 
 ##
 
+function(os_compile_definitions TARGET)
+  target_link_libraries(${TARGET}${ELF_POSTFIX} ${ARGN})
+endfunction()
 
 function(os_link_libraries TARGET)
   target_link_libraries(${TARGET}${ELF_POSTFIX} ${ARGN})
@@ -340,8 +348,8 @@ function (os_add_library_from_path TARGET LIBRARY PATH)
 
   add_library(${LIBRARY} STATIC IMPORTED)
   set_target_properties(${LIBRARY} PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(${LIBRARY} PROPERTIES IMPORTED_LOCATION ${FILENAME})
-  os_link_libraries(${TARGET}  --whole-archive ${LIBRARY} --no-whole-archive)
+  set_target_properties(${LIBRARY} PROPERTIES IMPORTED_LOCATION "${FILENAME}")
+  os_link_libraries(${TARGET} --whole-archive ${LIBRARY} --no-whole-archive)
 endfunction()
 
 function (os_add_drivers TARGET)

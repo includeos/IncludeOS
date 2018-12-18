@@ -1,4 +1,4 @@
 {
-  "image" : "test_fiber.img",
+  "image" : "service.img",
   "smp" : 16
 }
