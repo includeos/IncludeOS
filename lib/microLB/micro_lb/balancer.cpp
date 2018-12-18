@@ -2,7 +2,6 @@
 #include <net/tcp/stream.hpp>
 
 #define READQ_PER_CLIENT        4096
-#define MAX_READQ_PER_NODE      8192
 #define READQ_FOR_NODES         8192
 #define MAX_OUTGOING_ATTEMPTS    100
 // checking if nodes are dead or not
@@ -155,13 +154,8 @@ namespace microLB
     [this] (auto buf) {
       // prevent buffer bloat attack
       this->total += buf->size();
-      if (this->total > MAX_READQ_PER_NODE) {
-        this->conn->close();
-      }
-      else {
-        LBOUT("*** Queued %lu bytes\n", buf->size());
-        readq.push_back(buf);
-      }
+      LBOUT("*** Queued %lu bytes\n", buf->size());
+      readq.push_back(buf);
     });
   }
 
