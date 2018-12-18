@@ -202,8 +202,9 @@ namespace tcp {
     // if noone is using the buffer right now, (stupid yes)
     // AND it contains data without any holes,
     // return it to the user
-    if(buf->buffer().unique() and buf->size() > 0 and buf->missing() == 0)
+    if (buf->has_unhandled_data())
     {
+
       callback(buf->buffer());
     }
     // reset the first buffer

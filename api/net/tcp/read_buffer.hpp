@@ -85,6 +85,14 @@ public:
   { return buf; }
 
   /**
+   * @brief  Check if internal buffer has unhandled data
+   *
+   * @return True if the internal buffer is unique with data and doesnt contain hole
+  */
+  bool has_unhandled_data()
+  { return (buf.unique() && (size() > 0) && (missing() == 0)); }
+
+  /**
    * @brief      Exposes the internal buffer (read only)
    *
    * @return     A const reference to the internal shared buffer
