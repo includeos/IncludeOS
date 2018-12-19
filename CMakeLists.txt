@@ -233,9 +233,7 @@ endif()
 #
 # Subprojects
 #
-
 add_subdirectory(src)
-add_subdirectory(mod)
 
 option(examples "Build example unikernels in /examples" OFF)
 if(examples)
@@ -331,7 +329,7 @@ if(NOT CONAN_EXPORTED)
     "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
   )
   install(CODE
-    "execute_process(COMMAND conan install mana/0.13.0@includeos/test -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
+    "execute_process(COMMAND conan install mana/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
   )
 endif(NOT CONAN_EXPORTED)
 
