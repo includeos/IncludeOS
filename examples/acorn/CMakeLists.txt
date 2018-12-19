@@ -22,12 +22,15 @@ set(SOURCES
   service.cpp fs/acorn_fs.cpp
 )
 
+os_add_config(acorn "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
+
 os_add_executable(acorn "Acorn Web Appliance" ${SOURCES})
 
 os_include_directories(acorn PRIVATE "app/" ${BUCKET_DIR})
 
+
 # Make sure bucket is downloaded before service is built
-add_dependencies(acorn bucket)
+os_add_dependencies(acorn bucket)
 
 # DRIVERS / PLUGINS:
 
@@ -40,9 +43,8 @@ else()
   )
 endif()
 
-set(LIBRARIES
-  "libmana.a"
-  )
+
+os_add_os_library(acorn mana)
 
 # Build memdisk content
-diskbuilder(acorn disk1)
+os_diskbuilder(acorn disk1)
