@@ -1,6 +1,6 @@
 {
   "net" : [{"device" : "virtio"}],
-  "image" : "test_mods.img",
+  "image" : "service.img",
   "modules" : [
     {"path" : "../mod1.json"},
     {"path" : "seed", "args" : "loaded as module"},

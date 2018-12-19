@@ -13,7 +13,7 @@ from vmrunner import vmrunner
 def test2():
   print "Booting VM 2 - lots of memory"
   vm = vmrunner.vm(config = "vm2.json")
-  vm.boot(20, image_name = "build/test_memmap")
+  vm.boot(20, image_name = "build/service")
 
 vm = vmrunner.vm(config = "vm1.json")
 vm.on_exit_success(test2)
