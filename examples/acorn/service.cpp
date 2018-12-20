@@ -56,7 +56,7 @@ static void start_acorn(net::Inet& inet)
 
   // init the first legit partition/filesystem
   disk->init_fs(
-  [&inet] (fs::error_t err, auto& fs)
+  [&inet] (fs::error_t err, fs::File_system& fs)
   {
       if (err) panic("Could not mount filesystem...\n");
 

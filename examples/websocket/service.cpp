@@ -94,4 +94,6 @@ void Service::start()
 
   // Start listening on port 80
   server->listen(80);
+  printf("WebSocket is available on ws://%s:80/ws\n",
+          inet.ip_addr().to_string().c_str());
 }
