@@ -1,4 +1,16 @@
-option(CONFIG_JSON "Json configuration file default config.json" ON)
+
+# configure options
+option(default_stdout "Use the OS default stdout (serial)" ON)
+
+option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
+option(minimal "Build for minimal size" OFF)
+option(stripped "Strip symbols to further reduce size" OFF)
+
+option(smp "Enable SMP (multiprocessing)" OFF)
+option(undefined_san "Enable undefined-behavior sanitizer" OFF)
+option(thin_lto "Enable Thin LTO plugin" OFF)
+option(full_lto "Enable full LTO (also works on LD)" OFF)
+option(coroutines "Compile with coroutines TS support" OFF)
 
 
 
@@ -142,10 +154,6 @@ else()
   set_target_properties(libpthread PROPERTIES LINKER_LANGUAGE C)
   set_target_properties(libpthread PROPERTIES IMPORTED_LOCATION "${INCLUDEOS_PREFIX}/${ARCH}/lib/libpthread.a")
 
-  add_library(osdeps STATIC IMPORTED)
-  set_target_properties(osdeps PROPERTIES LINKER_LANGUAGE CXX)
-  set_target_properties(osdeps PROPERTIES IMPORTED_LOCATION ${INCLUDEOS_PREFIX}/${ARCH}/lib/libosdeps.a)
-
   # libgcc/compiler-rt detection
   if (UNIX)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -192,10 +200,10 @@ else()
       libgcc
       libplatform
       libarch
-
       ${LIBR_CMAKE_NAMES}
       libos
-      osdeps
+      http_parser
+      uzlib
       libbotan
       ${OPENSSL_LIBS}
       musl_syscalls
@@ -216,23 +224,6 @@ message(STATUS "Building for arch ${ARCH}, platform ${PLATFORM}")
 
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
-
-# configure options
-option(default_stdout "Use the OS default stdout (serial)" ON)
-
-option(debug "Build with debugging symbols (OBS: increases binary size)" OFF)
-option(minimal "Build for minimal size" OFF)
-option(stripped "Strip symbols to further reduce size" OFF)
-
-option(smp "Enable SMP (multiprocessing)" OFF)
-option(undefined_san "Enable undefined-behavior sanitizer" OFF)
-option(thin_lto "Enable Thin LTO plugin" OFF)
-option(full_lto "Enable full LTO (also works on LD)" OFF)
-option(coroutines "Compile with coroutines TS support" OFF)
-
-
-
-
 
 add_definitions(-DARCH_${ARCH})
 add_definitions(-DARCH="${ARCH}")
@@ -279,7 +270,21 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
 # TODO: find a more proper way to get the linker.ld script ?
 set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT}  ${PRE_BSS_SIZE}")
+
+
 set(ELF_POSTFIX .elf.bin)
+
+SET(DEFAULT_CONFIG_JSON ${CMAKE_CURRENT_SOURCE_DIR}/config.json)
+
+function(os_add_config TARGET FILE)
+  set(ELF_TARGET ${TARGET}${ELF_POSTFIX})
+  message(STATUS "adding config file ${FILE}")
+  if (DEFINED JSON_CONFIG_FILE_${ELF_TARGET})
+    message(FATAL_ERROR "config already set to ${JSON_CONFIG_FILE_${ELF_TARGET}} add os_add_config prior to os_add_executable")
+  endif()
+  set(JSON_CONFIG_FILE_${ELF_TARGET} ${FILE} PARENT_SCOPE)
+endfunction()
+
 
 # TODO: fix so that we can add two executables in one service (NAME_STUB)
 function(os_add_executable TARGET NAME)
@@ -308,8 +313,13 @@ function(os_add_executable TARGET NAME)
     DEPENDS ${ELF_TARGET}
   )
 
-  if (EXISTS ${CMAKE_SOURCE_DIR}/config.json)
-    os_add_config(${ELF_TARGET} "${CMAKE_SOURCE_DIR}/config.json")
+  if (DEFINED JSON_CONFIG_FILE_${ELF_TARGET})
+    message(STATUS "using set config file ${JSON_CONFIG_FILE_${ELF_TARGET}}")
+    internal_os_add_config(${ELF_TARGET} "${JSON_CONFIG_FILE_${ELF_TARGET}}")
+  elseif (EXISTS ${DEFAULT_CONFIG_JSON})
+    message(STATUS "using detected config file ${DEFAULT_CONFIG_JSON}")
+    internal_os_add_config(${ELF_TARGET} "${DEFAULT_CONFIG_JSON}")
+    set(JSON_CONFIG_FILE_${ELF_TARGET} ${DEFAULT_CONFIG_JSON} PARENT_SCOPE)
   endif()
 
 endfunction()
@@ -326,6 +336,11 @@ endfunction()
 
 function(os_include_directories TARGET)
   target_include_directories(${TARGET}${ELF_POSTFIX} ${ARGN})
+endfunction()
+
+
+function(os_add_dependencies TARGET ${ARGN})
+  add_dependencies(${TARGET}${ELF_POSTFIX} ${ARGN})
 endfunction()
 
 function (os_add_library_from_path TARGET LIBRARY PATH)
@@ -358,25 +373,19 @@ function (os_add_stdout TARGET DRIVER)
    os_add_library_from_path(${TARGET} ${DRIVER} "${INCLUDEOS_PREFIX}/${ARCH}/drivers/stdout")
 endfunction()
 
-function(os_add_os_library TARGET)
-   message(FATAL_ERROR "Function not implemented yet.. pull from conan or install to lib ?")
-  #target_link_libraries(${TARGET}${ELF_POSTFIX} ${ARGN})
+function(os_add_os_library TARGET LIB)
+  os_add_library_from_path(${TARGET} ${LIB} "${INCLUDEOS_PREFIX}/${ARCH}/lib")
 endfunction()
 
-# Depending on the output of this command will make it always run. Like magic.
-add_custom_command(
-    OUTPUT fake_news
-    COMMAND cmake -E echo)
-
 # add memdisk
-function(add_memdisk TARGET DISK)
+function(os_add_memdisk TARGET DISK)
   get_filename_component(DISK_RELPATH "${DISK}"
                          REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   add_custom_command(
     OUTPUT  memdisk.o
     COMMAND ${Python2_EXECUTABLE} ${INCLUDEOS_PREFIX}/tools/memdisk/memdisk.py --file memdisk.asm ${DISK_RELPATH}
     COMMAND nasm -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} memdisk.asm -o memdisk.o
-    DEPENDS ${DISK_RELPATH}
+    DEPENDS ${DISK}
   )
   add_library(memdisk STATIC memdisk.o)
   set_target_properties(memdisk PROPERTIES LINKER_LANGUAGE CXX)
@@ -384,24 +393,34 @@ function(add_memdisk TARGET DISK)
 endfunction()
 
 # automatically build memdisk from folder
-function(build_memdisk TARGET FOLD)
+function(os_build_memdisk TARGET FOLD)
   get_filename_component(REL_PATH "${FOLD}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
+  #detect changes in disc folder and if and only if changed update the file that triggers rebuild
+  add_custom_target(disccontent ALL
+    COMMAND find ${REL_PATH}/ -type f -exec md5sum "{}" + > /tmp/manifest.txt.new
+    COMMAND cmp --silent ${CMAKE_BINARY_DIR}/manifest.txt /tmp/manifest.txt.new || cp /tmp/manifest.txt.new ${CMAKE_BINARY_DIR}/manifest.txt
+    COMMENT "Checking disc content changes"
+    BYPRODUCTS ${CMAKE_BINARY_DIR}/manifest.txt
+    VERBATIM
+  )
+
   add_custom_command(
       OUTPUT  memdisk.fat
       COMMAND ${INCLUDEOS_PREFIX}/bin/diskbuilder -o memdisk.fat ${REL_PATH}
-      DEPENDS fake_news
+      COMMENT "Creating memdisk"
+      DEPENDS ${CMAKE_BINARY_DIR}/manifest.txt disccontent
       )
   add_custom_target(diskbuilder DEPENDS memdisk.fat)
-  add_dependencies(${TARGET} diskbuilder)
-  add_memdisk(${TARGET} "${CMAKE_BINARY_DIR}/memdisk.fat")
+  os_add_dependencies(${TARGET} diskbuilder)
+  os_add_memdisk(${TARGET} "${CMAKE_BINARY_DIR}/memdisk.fat")
 endfunction()
 
 # call build_memdisk only if MEMDISK is not defined from command line
-function(diskbuilder TARGET FOLD)
-  build_memdisk(${TARGET} ${FOLD})
+function(os_diskbuilder TARGET FOLD)
+  os_build_memdisk(${TARGET} ${FOLD})
 endfunction()
 
-function(install_certificates FOLDER)
+function(os_install_certificates FOLDER)
   get_filename_component(REL_PATH "${FOLDER}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
   message(STATUS "Install certificate bundle at ${FOLDER}")
   file(COPY ${INSTALL_LOC}/cert_bundle/ DESTINATION ${REL_PATH})
@@ -422,8 +441,10 @@ endfunction()
 #this depends on a generic conanfile_service.py ?
 #if so you can edit plugins and such in that file..
 
-function(os_add_config TARGET CONFIG_JSON)
-  set(OUTFILE ${CMAKE_BINARY_DIR}/config.json.o)
+
+function(internal_os_add_config TARGET CONFIG_JSON)
+  get_filename_component(FILENAME "${CONFIG_JSON}" NAME)
+  set(OUTFILE ${CMAKE_BINARY_DIR}/${FILENAME}.o)
   add_custom_command(
     OUTPUT ${OUTFILE}
     COMMAND ${CMAKE_OBJCOPY} -I binary -O ${OBJCOPY_TARGET} -B i386 --rename-section .data=.config,CONTENTS,ALLOC,LOAD,READONLY,DATA ${CONFIG_JSON} ${OUTFILE}

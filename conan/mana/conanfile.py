@@ -12,7 +12,9 @@ class ManaConan(ConanFile):
     url = "http://www.includeos.org/"
 
     def build_requirements(self):
-        self.build_requires("libcxx/{}@{}/{}".format("7.0", self.user,self.channel))
+        #TODO at some point put includeos as a dep for mana
+        #removing everything below
+        self.build_requires("libcxx/7.0@{}/{}".format(self.user,self.channel))
         self.build_requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
         self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
 
@@ -40,6 +42,15 @@ class ManaConan(ConanFile):
         cmake = self._cmake_configure()
         cmake.install()
 
+
+    def package_info(self):
+        #todo fix these in mana cmake
+        self.cpp_info.includedirs=['includeos/include']
+        self.cpp_info.libdirs = ['{}/lib'.format(self._arch())]
+        #this we need to make conan find libmana
+        self.cpp_info.libs=['mana']
+
     def deploy(self):
-        self.copy("*",dst="bin",src="bin")
-        self.copy("*",dst="includeos",src="includeos")
+        #TODO fix this in mana cmake..
+        self.copy("*.a",dst="lib",src="includeos/{}/lib".format(self._arch()))
+        self.copy("*",dst="include",src="includeos/include")
