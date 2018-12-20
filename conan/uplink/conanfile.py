@@ -19,12 +19,10 @@ class UplinkConan(ConanFile):
         "liveupdate":False,
         "tls":False
     }
-    #def build_requirements(self):
-        #eventually
-        #self.build_requires("includeos/%s@%s/%s"%(self.version,self.user,self.channel))
+
     def requirements(self):
         if (self.options.liveupdate):
-            self.requires("LiveUpdate/{}@{}/{}".format(self.version,self.user,self.channel))
+            self.requires("liveupdate/{}@{}/{}".format(self.version,self.user,self.channel))
         if (self.options.tls):
             #this will put a dependency requirement on openssl
             self.requires("s2n/1.1.1@{}/{}".format(self.user,self.channel))
@@ -34,12 +32,9 @@ class UplinkConan(ConanFile):
         self.build_requires("rapidjson/1.1.0@{}/{}".format(self.user,self.channel))
         self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
 
-    #def imports():
-
     def source(self):
-        #repo = tools.Git(folder="includeos")
-        #repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
-        shutil.copytree("/home/kristian/git/IncludeOS","IncludeOS")
+        repo = tools.Git(folder="includeos")
+        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
 
     def _arch(self):
         return {
@@ -62,7 +57,14 @@ class UplinkConan(ConanFile):
         cmake = self._cmake_configure()
         cmake.install()
 
+    def package_info(self):
+        self.cpp_info.libdirs = [
+            'drivers',
+            'plugins'
+        ]
+        self.cpp_info.libs=['uplink','uplink_log']
 
     def deploy(self):
-        self.copy("*",dst="bin",src="bin")
-        self.copy("*",dst="includeos",src="includeos")
+        self.copy("*.a",dst="drivers",src="drivers")
+        self.copy("*.a",dst="plugins",src="plugins")
+        self.copy("*",dst="include",src="include")

@@ -22,9 +22,8 @@ class MenderConan(ConanFile):
         self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
 
     def source(self):
-        #repo = tools.Git(folder="includeos")
-        #repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
-        shutil.copytree("/home/kristian/git/IncludeOS","IncludeOS")
+        repo = tools.Git(folder="includeos")
+        repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
 
     def _arch(self):
         return {
@@ -34,23 +33,20 @@ class MenderConan(ConanFile):
     def _cmake_configure(self):
         cmake = CMake(self)
         cmake.definitions['ARCH']=self._arch()
-        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/mender")
+        cmake.configure(source_folder=self.source_folder+"/includeos/lib/mender")
         return cmake
 
     def build(self):
         cmake = self._cmake_configure()
         cmake.build()
-        #print("TODO")
-        #TODO at some point fix the msse3
-        #env_inc="  -I"+self.build_folder+"/target/libcxx/include -I"+self.build_folder+"/target/include -Ibuild/include/botan"
-        #cmd="./configure.py --os=includeos --disable-shared --cpu="+str(self.settings.arch)
-        #flags="\"--target="+str(self.settings.arch)+"-pc-linux-gnu -msse3 -D_LIBCPP_HAS_MUSL_LIBC -D_GNU_SOURCE -nostdlib -nostdinc++ "+env_inc+"\""
-        #self.run(cmd+" --cc-abi-flags="+flags,cwd="botan")
-        #self.run("make -j12 libs",cwd="botan")
+
     def package(self):
         cmake = self._cmake_configure()
         cmake.install()
 
+    def package_info(self):
+        self.cpp_info.libs=['mender']
+
     def deploy(self):
-        self.copy("*",dst="bin",src="bin")
-        self.copy("*",dst="includeos",src="includeos")
+        self.copy("*.a",dst="lib",src="lib")
+        self.copy("*",dst="include",src="include")

@@ -19,8 +19,7 @@ class ManaConan(ConanFile):
         self.build_requires("GSL/2.0.0@{}/{}".format(self.user,self.channel))
 
     def source(self):
-        #shutil.copytree($ENV{INCLUDEOS_SRC},"IncludeOS")
-        repo = tools.Git(folder="IncludeOS")
+        repo = tools.Git(folder="includeos")
         repo.clone("https://github.com/hioa-cs/IncludeOS.git",branch="conan")
 
     def _arch(self):
@@ -31,7 +30,7 @@ class ManaConan(ConanFile):
     def _cmake_configure(self):
         cmake = CMake(self)
         cmake.definitions['ARCH']=self._arch()
-        cmake.configure(source_folder=self.source_folder+"/IncludeOS/lib/mana")
+        cmake.configure(source_folder=self.source_folder+"/includeos/lib/mana")
         return cmake
 
     def build(self):
@@ -42,15 +41,10 @@ class ManaConan(ConanFile):
         cmake = self._cmake_configure()
         cmake.install()
 
-
     def package_info(self):
-        #todo fix these in mana cmake
-        self.cpp_info.includedirs=['includeos/include']
-        self.cpp_info.libdirs = ['{}/lib'.format(self._arch())]
-        #this we need to make conan find libmana
         self.cpp_info.libs=['mana']
 
     def deploy(self):
         #TODO fix this in mana cmake..
-        self.copy("*.a",dst="lib",src="includeos/{}/lib".format(self._arch()))
-        self.copy("*",dst="include",src="includeos/include")
+        self.copy("*.a",dst="lib",src="lib")
+        self.copy("*",dst="include",src="include")
