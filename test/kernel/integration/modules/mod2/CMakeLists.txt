@@ -13,14 +13,14 @@ if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
 endif()
 list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
+set(ARCH x86_64)
+
 #service
 project (service)
 include(os)
 
-set(SOURCES
-    service.cpp
-)
+# DRIVERS / PLUGINS:
+os_add_executable(seed "IncludeOS Seed" service.cpp)
 
-os_add_executable(seed "Test Service" ${SOURCES})
 os_add_drivers(seed virtionet)
 os_add_stdout(seed default_stdout)
