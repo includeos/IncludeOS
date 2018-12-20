@@ -21,13 +21,13 @@
 #include <common>
 #include <sstream>
 #include <array>
-#if __has_include(<memory_resource>)
-#include <memory_resource>
-#else
+#if __has_include(<experimental/memory_resource>)
 #include <experimental/memory_resource>
 namespace std::pmr {
   using memory_resource = std::experimental::pmr::memory_resource;
 }
+#else
+#include <memory_resource>
 #endif
 #include <stdlib.h>
 #include <math.h>

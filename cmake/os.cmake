@@ -78,7 +78,7 @@ else()
   set(TRIPLE "${ARCH}-pc-linux-elf")
   include_directories(
     ${INCLUDEOS_PREFIX}/${ARCH}/include/c++/v1
-    ${INCLUDEOS_PREFIX}/${ARCH}/include/c++/v1/experimental
+    #${INCLUDEOS_PREFIX}/${ARCH}/include/c++/v1/experimental
     ${INCLUDEOS_PREFIX}/${ARCH}/include
     ${INCLUDEOS_PREFIX}/include/os
   )
@@ -268,7 +268,7 @@ set(CMAKE_SKIP_RPATH ON)
 set(BUILD_SHARED_LIBRARIES OFF)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
 
-#TODO find a more proper way to get the linker.ld script ?
+# TODO: find a more proper way to get the linker.ld script ?
 set(LDFLAGS "-nostdlib -melf_${ELF} --eh-frame-hdr ${LD_STRIP} --script=${LINK_SCRIPT}  ${PRE_BSS_SIZE}")
 
 
@@ -285,20 +285,17 @@ function(os_add_config TARGET FILE)
   set(JSON_CONFIG_FILE_${ELF_TARGET} ${FILE} PARENT_SCOPE)
 endfunction()
 
-#TODO fix so that we can add two executables in one service (NAME_STUB)
+
+# TODO: fix so that we can add two executables in one service (NAME_STUB)
 function(os_add_executable TARGET NAME)
   set(ELF_TARGET ${TARGET}${ELF_POSTFIX})
   add_executable(${ELF_TARGET} ${ARGN} ${NAME_STUB})
   set_property(SOURCE ${NAME_STUB} PROPERTY COMPILE_DEFINITIONS SERVICE="${TARGET}" SERVICE_NAME="${NAME}")
 
   set_target_properties(${ELF_TARGET} PROPERTIES LINK_FLAGS ${LDFLAGS})
-  #target_link_libraries(${ELF_TARGET} ${CRTI})
   target_link_libraries(${ELF_TARGET} ${LIBRARIES})
-  #target_link_libraries(${ELF_TARGET} ${CRTN})
 
-  #add_custom_target(TARGET _elf_symbols.bin
-  #  DEPEN
-  #TODO if not debug strip
+  # TODO: if not debug strip
   if (CMAKE_BUILD_TYPE MATCHES DEBUG)
     set(STRIP_LV )
   else()
