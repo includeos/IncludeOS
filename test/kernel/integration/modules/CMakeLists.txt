@@ -16,15 +16,17 @@ list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 set(ARCH i686)
 set(PLATFORM x86_nano)
 
-#service
-project (snake)
+project (test_kprint)
 include(os)
 
+MESSAGE(STATUS "CMake root: " ${INCLUDEOS_PREFIX})
+
 set(SOURCES
-    service.cpp hotswap.cpp
+    service.cpp
+    hotswap.cpp
   )
 
-os_add_executable(service "Modules Test Service" ${SOURCES})
+os_add_executable(test_mods "Kernel modules test" ${SOURCES})
 
 # Build the mod2 service and install to here, to use as a loadable module
 include(ExternalProject)
@@ -34,4 +36,4 @@ ExternalProject_Add(mod2
   BINARY_DIR ${CMAKE_CURRENT_LIST_DIR}/mod2/build
   INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/mod2/build/seed ${CMAKE_CURRENT_BINARY_DIR}/
   )
-add_dependencies(service mod2)
+os_add_dependencies(test_mods mod2)
