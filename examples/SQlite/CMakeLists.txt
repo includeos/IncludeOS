@@ -1,38 +1,31 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (example)
 
-# Human-readable name of your service
-set(SERVICE_NAME "SQlite3 Example Service")
-# Name of your service binary
-set(BINARY       "sqlite3_example")
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-# Source files to be linked with OS library parts to form bootable image
+#service
+project (service)
+include(os)
+
 set(SOURCES
   service.cpp sqlite3_amalgamation/sqlite3.c
-  )
+)
 
-set(LOCAL_INCLUDES "sqlite3_amalgamation/" "libsl3/include" "include")
-add_definitions(-DSQLITE_THREADSAFE=0)
-add_definitions(-DSQLITE_OMIT_LOAD_EXTENSION)
-add_definitions(-DSQLITE_OMIT_WAL)
+os_add_executable(service "SQlite Service" ${SOURCES})
 
-set(DRIVERS
-  # ... Others from IncludeOS/src/drivers
-  )
-
-set(PLUGINS
-  # ...others
-  )
-
-
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+#os_add_drivers(demo ...)
+#os_add_plugins( ... )
+os_add_stdout(service default_stdout)
 
 set(SL3_SOURCES
     libsl3/src/sl3/columns.cpp
@@ -48,4 +41,13 @@ set(SL3_SOURCES
     libsl3/src/sl3/value.cpp
 )
 add_library(sl3 ${SL3_SOURCES})
-target_link_libraries(service sl3)
+target_include_directories(sl3 PUBLIC
+    "sqlite3_amalgamation/"
+    "libsl3/include"
+    "include"
+  )
+target_compile_definitions(sl3 PUBLIC SQLITE_THREADSAFE=0)
+target_compile_definitions(sl3 PUBLIC SQLITE_OMIT_LOAD_EXTENSION)
+target_compile_definitions(sl3 PUBLIC SQLITE_OMIT_WAL)
+
+os_link_libraries(service sl3)

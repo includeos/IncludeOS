@@ -3,14 +3,17 @@ cmake_minimum_required(VERSION 3.1.0)
 set(INCLUDEOS_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 # Target CPU Architecture
-if(DEFINED ENV{ARCH})
-  set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
-else()
-  set(ARCH "x86_64" CACHE STRING "Architecture (default)")
+if (NOT DEFINED ARCH)
+  if(DEFINED ENV{ARCH})
+    set(ARCH "$ENV{ARCH}" CACHE STRING "Architecture")
+  else()
+    set(ARCH "x86_64" CACHE STRING "Architecture (default)")
+  endif()
 endif()
 
 message(STATUS "Target CPU ${ARCH}")
 
+#only for clang..
 set(TRIPLE "${ARCH}-pc-linux-elf")
 set(CMAKE_CXX_COMPILER_TARGET ${TRIPLE})
 set(CMAKE_C_COMPILER_TARGET ${TRIPLE})
@@ -29,9 +32,9 @@ project (includeos C CXX)
 include(ExternalProject)
 include(CMakeDependentOption)
 
-#if not apple default is on.
+#if not apple and x86_64 enable with solo5.. this option results in a different arch in conan.. should be handled like that as well
 cmake_dependent_option(WITH_SOLO5 "Install with solo5 support" ON
-                        "NOT APPLE" OFF)
+"NOT APPLE;${ARCH} STREQUAL \"x86_64\"" OFF)
 
 if(NOT BORNED_AS_AN_APPLE)
   include(CheckCXXCompilerFlag)
@@ -49,11 +52,6 @@ if ((CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
    message(WARNING "CMAKE_INSTALL_PREFIX is default ${CMAKE_INSTALL_PREFIX} did you forget to set INCLUDEOS_PREFIX")
  endif()
 endif()
-
-set(INC ${CMAKE_INSTALL_PREFIX}/includeos/include)
-set(LIB ${CMAKE_INSTALL_PREFIX}/includeos/lib)
-set(BIN ${CMAKE_INSTALL_PREFIX}/includeos/bin)
-set(SCRIPTS ${CMAKE_INSTALL_PREFIX}/includeos/scripts)
 
 # C++ version
 set(CPP_VERSION c++17)
@@ -200,7 +198,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 #Sets the includeos default profile to clang-5.0
 if (NOT DEFINED CONAN_PROFILE)
-  SET(CONAN_PROFILE clang-5.0)
+  SET(CONAN_PROFILE "default")
 endif()
 
 #Are we executing cmake from conan or locally
@@ -233,7 +231,6 @@ endif()
 #
 # Subprojects
 #
-
 add_subdirectory(src)
 
 option(examples "Build example unikernels in /examples" OFF)
@@ -329,6 +326,23 @@ if(NOT CONAN_EXPORTED)
   install(CODE
     "execute_process(COMMAND conan install chainloader/0.13.0@includeos/test -s arch=x86 -if ${CMAKE_INSTALL_PREFIX}/)"
   )
+  if (NOT CORE_OS)
+    install(CODE
+      "execute_process(COMMAND conan install mana/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
+    install(CODE
+      "execute_process(COMMAND conan install mender/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
+    install(CODE
+      "execute_process(COMMAND conan install uplink/0.13.0@includeos/test  -o liveupdate=True -o tls=True -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
+    install(CODE
+      "execute_process(COMMAND conan install liveupdate/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
+    install(CODE
+      "execute_process(COMMAND conan install microlb/0.13.0@includeos/test -o liveupdate=True -o tls=True -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
+  endif()
 endif(NOT CONAN_EXPORTED)
 
 install(DIRECTORY api/ DESTINATION include/os)

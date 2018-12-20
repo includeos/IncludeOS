@@ -37,6 +37,5 @@ set(CMAKE_CXX_COMPILER_WORKS 1)
 # Set nasm compiler to the one symlinked in includeos/bin (to avoid running Mac one)
 set(CMAKE_ASM_NASM_COMPILER ${INCLUDEOS_BIN}/nasm)
 
-# Disable solo5
-set(WITH_SOLO5 OFF CACHE BOOL "Install with solo5 support" FORCE)
+# Disable solo5 handled by cmake dependent options in main CMakelists.txt
 endif()

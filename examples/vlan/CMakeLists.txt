@@ -1,32 +1,40 @@
-cmake_minimum_required(VERSION 2.8.9)
-
+cmake_minimum_required(VERSION 3.0)
 # IncludeOS install location
-if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
-  set(ENV{INCLUDEOS_PREFIX} /usr/local)
+if (NOT DEFINED INCLUDEOS_PREFIX)
+  if (NOT DEFINED ENV{INCLUDEOS_PREFIX})
+    set(INCLUDEOS_PREFIX /usr/local/includeos)
+  else()
+    set(INCLUDEOS_PREFIX $ENV{INCLUDEOS_PREFIX})
+  endif()
 endif()
-include($ENV{INCLUDEOS_PREFIX}/includeos/pre.service.cmake)
-project (vlan_example)
 
-# Human-readable name of your service
-set(SERVICE_NAME "IncludeOS VLAN example")
+if (NOT EXISTS "${INCLUDEOS_PREFIX}/cmake/os.cmake")
+  MESSAGE(FATAL_ERROR "IncludeOS does not appear to be installed at ${INCLUDEOS_PREFIX}")
+endif()
+list(APPEND CMAKE_MODULE_PATH ${INCLUDEOS_PREFIX}/cmake)
 
-# Name of your service binary
-set(BINARY       "vlan_example")
+# Service
+project (vlan)
+include(os)
 
-# Source files to be linked with OS library parts to form bootable image
-set(SOURCES service.cpp)
+set(SOURCES
+    service.cpp # ...add more here
+)
+
+os_add_executable(service "VLAN example" ${SOURCES})
 
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  set(DRIVERS
+  os_add_drivers(service
       solo5net
     )
 else()
-  set(DRIVERS
-      virtionet
-      vmxnet3
-      boot_logger
-    )
+  os_add_drivers(service
+    virtionet
+    vmxnet3
+    e1000
+    boot_logger
+  )
 endif()
 
-# include service build script
-include($ENV{INCLUDEOS_PREFIX}/includeos/post.service.cmake)
+os_add_stdout(service default_stdout)
+os_add_plugins(service autoconf)
