@@ -42,7 +42,8 @@ else()
     vmxnet3
   )
 endif()
-
+os_add_plugins(acorn autoconf)
+os_add_stdout(acorn default_stdout)
 
 os_add_os_library(acorn mana)
 
