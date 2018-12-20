@@ -330,6 +330,18 @@ if(NOT CONAN_EXPORTED)
     install(CODE
       "execute_process(COMMAND conan install mana/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
     )
+    install(CODE
+      "execute_process(COMMAND conan install mender/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
+    install(CODE
+      "execute_process(COMMAND conan install uplink/0.13.0@includeos/test  -o liveupdate=True -o tls=True -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
+    install(CODE
+      "execute_process(COMMAND conan install liveupdate/0.13.0@includeos/test -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
+    install(CODE
+      "execute_process(COMMAND conan install microlb/0.13.0@includeos/test -o liveupdate=True -o tls=True -pr ${CONAN_PROFILE} -if ${CMAKE_INSTALL_PREFIX}/${ARCH})"
+    )
   endif()
 endif(NOT CONAN_EXPORTED)
 
