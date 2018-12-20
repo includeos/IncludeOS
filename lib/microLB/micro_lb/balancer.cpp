@@ -202,13 +202,14 @@ namespace microLB
         assert(outgoing->is_connected());
         LBOUT("Assigning client to node %d (%s)\n",
               algo_iterator, outgoing->to_string().c_str());
-        auto& session = this->create_session(
-              std::move(conn), std::move(outgoing));
-        // flush readq to session.outgoing
+        // flush readq to outgoing before creating session
         for (auto buffer : readq) {
           LBOUT("*** Flushing %lu bytes\n", buffer->size());
-          session.outgoing->write(buffer);
+          outgoing->write(buffer);
         }
+        auto& session = this->create_session(
+              std::move(conn), std::move(outgoing));
+
         return nullptr;
       }
     }
