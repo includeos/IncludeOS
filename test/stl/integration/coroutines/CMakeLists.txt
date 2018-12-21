@@ -26,3 +26,5 @@ set(SOURCES
 
 os_add_executable(service "C++ coroutines test" ${SOURCES})
 os_add_stdout(service default_stdout)
+
+os_compile_options(service PRIVATE "-fcoroutines-ts")

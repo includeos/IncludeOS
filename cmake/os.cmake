@@ -325,6 +325,9 @@ function(os_add_executable TARGET NAME)
 endfunction()
 
 ##
+function(os_compile_options TARGET)
+  target_compile_options(${TARGET}${ELF_POSTFIX} ${ARGN})
+endfunction()
 
 function(os_compile_definitions TARGET)
   target_link_libraries(${TARGET}${ELF_POSTFIX} ${ARGN})
