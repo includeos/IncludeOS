@@ -1,5 +1,4 @@
 {
-  "image" : "virtioblk.img",
   "drives" : [{"file" : "../image.img",
                "type" : "virtio",
                "format": "raw",
