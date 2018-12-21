@@ -1,6 +1,6 @@
 #include "balancer.hpp"
 #include <stdexcept>
-
+#include <liveupdate>
 
 #define LB_VERBOSE 0
 #if LB_VERBOSE

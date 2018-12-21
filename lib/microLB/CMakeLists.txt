@@ -4,6 +4,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(LIVEUPDATE "Enable liveupdate" ON)
+option(TLS "Enable secure connections" ON)
+
 if(CONAN_EXPORTED) # in conan local cache
   # standard conan installation, deps will be defined in conanfile.py
   # and not necessary to call conan again, conan is already running
@@ -20,7 +23,7 @@ set(LIBRARY_SRCS
 
 )
 
-if (TSL)
+if (TLS)
   list(APPEND LIBRARY_SRCS
     micro_lb/openssl.cpp
   )
@@ -28,7 +31,6 @@ endif()
 
 
 if (LIVEUPDATE)
-  set_target_properties(${LIBRARY_SRCS} PROPERTIES COMPILE_DEFINITIONS "LIVEUPDATE")
   list(APPEND LIBRARY_SRCS
     micro_lb/serialize.cpp
   )
@@ -37,13 +39,16 @@ endif()
 # microLB static library
 add_library(microlb STATIC ${LIBRARY_SRCS})
 
+if (LIVEUPDATE)
+  set_target_properties(microlb PROPERTIES COMPILE_DEFINITIONS "LIVEUPDATE")
+endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../api)
-target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api/posix)
-target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/src/include)
-target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api)
-target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/lib/LiveUpdate)
 
-if(NOT CONAN_EXPORTED)
+if (NOT CONAN_EXPORTED)
+  target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api/posix)
+  target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/src/include)
+  target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/api)
+  target_include_directories(microlb PUBLIC ${INCLUDEOS_ROOT}/lib/LiveUpdate)
   SET(PREFIX ${ARCH}/)
 endif()
 
