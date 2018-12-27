@@ -1,5 +1,4 @@
 {
-  "image" : "test_posix_tcp.img",
   "net" : [{"device" : "virtio", "mac" : "c0:01:0a:00:00:6a"}],
   "mem"   : 128,
   "time_sensitive" : "True"
