@@ -74,34 +74,32 @@ static void do_test(net::Inet& inet, std::vector<Name_request>& reqs)
   }
 }
 
-void Service::start(const std::string&)
+void Service::start()
 {
   auto& inet = net::Interfaces::get(0);
-  inet.network_config(
-    { 10, 0, 0, 48 },       // IP
-    { 255, 255, 255, 0 },   // Netmask
-    { 10, 0, 0, 1 },        // Gateway
-    {  1, 1, 1, 1 }         // DNS
-  );
+  inet.negotiate_dhcp();
+  inet.on_config(
+    [] (net::Inet& inet)
+    {
+      const ip4::Addr level3{4, 2, 2, 1};
+      const ip4::Addr google{8, 8, 8, 8};
 
-  const ip4::Addr level3{4, 2, 2, 1};
-  const ip4::Addr google{8, 8, 8, 8};
+      static std::vector<Name_request> requests {
+        {"google.com", google},
+        {"github.com", google},
+        {"some_address_that_doesnt_exist.com"},
+        {"theguardian.com", level3},
+        {"www.facebook.com"},
+        {"rs.dns-oarc.net"},
+        {"reddit.com"},
+        {"includeos.io"},
+        {"includeos.org"},
+        {"doubleclick.net"},
+        {"google-analytics.com"},
+        {"akamaihd.net"},
+        {"googlesyndication.com"}
+      };
 
-  static std::vector<Name_request> requests {
-    {"google.com", google},
-    {"github.com", google},
-    {"some_address_that_doesnt_exist.com"},
-    {"theguardian.com", level3},
-    {"www.facebook.com"},
-    {"rs.dns-oarc.net"},
-    {"reddit.com"},
-    {"includeos.io"},
-    {"includeos.org"},
-    {"doubleclick.net"},
-    {"google-analytics.com"},
-    {"akamaihd.net"},
-    {"googlesyndication.com"}
-  };
-
-  do_test(inet, requests);
+      do_test(inet, requests);
+    });
 }

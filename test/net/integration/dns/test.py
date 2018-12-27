@@ -13,9 +13,6 @@ sys.path.insert(0,includeos_src)
 from vmrunner import vmrunner
 from vmrunner.prettify import color
 
-# Install build dependencies, ip forwarding
-subprocess.call(["bash", "setup.sh"])
-
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
