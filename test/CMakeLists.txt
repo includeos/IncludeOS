@@ -64,6 +64,7 @@ endif()
 set(SRC ${INCLUDEOS_ROOT}/src)
 set(TEST ${INCLUDEOS_ROOT}/test)
 
+#TODO get a released version ? or put one into root/cmake/ ?
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
    file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/master/conan.cmake"
@@ -77,11 +78,9 @@ conan_cmake_run(
   REQUIRES
     uzlib/v2.1.1@includeos/test
     http-parser/2.8.1@includeos/test
+    rapidjson/1.1.0@includeos/test
     GSL/2.0.0@includeos/test
     BASIC_SETUP
-#  OPTIONS
-#    Pkg:shared=True
-#    OtherPkg:option=value
 )
 
 include_directories(
@@ -185,6 +184,9 @@ set(TEST_SOURCES
   ${TEST}/util/unit/buddy_alloc_test.cpp
 )
 
+
+
+
 set(OS_SOURCES
   ${SRC}/version.cpp
   ${SRC}/arch/x86_64/paging.cpp
@@ -270,14 +272,6 @@ set(OS_SOURCES
 )
 
 set(MOD_OBJECTS
-  # http-parser
-  #${INCLUDEOS_ROOT}/mod/http-parser/http_parser.c
-  # uzlib
-  #${INCLUDEOS_ROOT}/mod/uzlib/src/adler32.c
-  #${INCLUDEOS_ROOT}/mod/uzlib/src/crc32.c
-  #${INCLUDEOS_ROOT}/mod/uzlib/src/tinflate.c
-  #${INCLUDEOS_ROOT}/mod/uzlib/src/tinfgzip.c
-  # LiveUpdate
   #${INCLUDEOS_ROOT}/lib/LiveUpdate/hotswap.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/partition.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/rollback.cpp
@@ -289,6 +283,28 @@ set(MOD_OBJECTS
   #${INCLUDEOS_ROOT}/lib/LiveUpdate/serialize_openssl.cpp
   ${INCLUDEOS_ROOT}/lib/LiveUpdate/storage.cpp
 )
+#if we could do add directory here it would be a lot cleaner..
+#TODO investigate
+
+enable_testing()
+
+add_subdirectory(../src os)
+
+add_library(lest_util ${LEST_UTIL})
+add_library(liveupdate ${MOD_OBJECTS})
+
+file(COPY memdisk.fat DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+
+
+foreach(T ${TEST_SOURCES})
+  #CTest style
+  get_filename_component(NAME ${T} NAME_WE)
+  add_executable(${NAME} ${T})
+  target_link_libraries(${NAME} liveupdate os lest_util  m stdc++ ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o)
+  add_test(${NAME} bin/${NAME})
+endforeach()
+
 
 if(EXTRA_TESTS)
   set(GENERATE_SUPPORT_FILES ON)
@@ -325,9 +341,9 @@ endif("${ARCH}" STREQUAL "ARCH_ARMv7")
 
 # Only build selected sources with SINGLE
 if(NOT SINGLE)
-  set(SOURCES ${MOD_OBJECTS} ${OS_SOURCES} ${TEST_SOURCES} ${LEST_UTIL})
+  set(SOURCES ${MOD_OBJECTS} ${TEST_SOURCES} )
 else()
-  set(SOURCES ${MOD_OBJECTS} ${OS_SOURCES} ${SINGLE} ${LEST_UTIL})
+  set(SOURCES ${MOD_OBJECTS} ${SINGLE} )
 endif()
 
 if ("${ARCH}" STREQUAL "ARCH_ARMv7")
@@ -341,7 +357,7 @@ if(SILENT_BUILD)
 endif()
 
 add_executable(unittests ${SOURCES})
-target_link_libraries(unittests ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o ${CONAN_LIBS} m stdc++)
+target_link_libraries(unittests os lest_util ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o ${CONAN_LIBS} m stdc++)
 
 install(TARGETS unittests DESTINATION ${TEST})
 
