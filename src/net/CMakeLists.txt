@@ -98,7 +98,7 @@ set(SRCS
     buffer_store.cpp
     inet.cpp
     interfaces.cpp
-#    super_stack.cpp what happened to it
+    packet_debug.cpp
     conntrack.cpp
     vlan_manager.cpp
     ws/websocket.cpp
