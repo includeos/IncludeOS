@@ -1,6 +1,10 @@
 {
-  "image" : "test_dns.img",
-  "net" : [{"device" : "vmxnet3", "mac" : "c0:01:0a:00:00:2a"}],
+  "net" : [
+    {
+      "device" : "vmxnet3", "mac" : "c0:01:0a:00:00:2a",
+      "backend" : "user"
+    }
+  ],
   "mem"   : 128,
   "intrusive" : "True"
 }

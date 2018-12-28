@@ -26,7 +26,7 @@ int main(int argc, char** argv)
   for (int i = 0; i < argc; i++)
     printf("Arg %i: %s\n", i, argv[i]);
 
-  assert(std::string(argv[0]) == "test_main");
+  assert(std::string(argv[0]) == "service");
   assert(std::string(argv[1]) == "booted");
   assert(std::string(argv[2]) == "with");
   assert(std::string(argv[3]) == "vmrunner");

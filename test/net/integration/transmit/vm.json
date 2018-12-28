@@ -1,7 +1,0 @@
-{
-  "image" : "test_transmit.img",
-  "net" : [{"device" : "virtio",
-            "mac" : "c0:01:0a:00:00:2a",
-            "log" : "net_result.pcap"}],
-  "mem"   : 256
-}

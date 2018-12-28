@@ -1,5 +1,4 @@
 {
-  "image" : "test_vfs.img",
   "drives"  : [
     {
       "file" : "../virtio1.disk",

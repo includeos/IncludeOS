@@ -325,6 +325,9 @@ function(os_add_executable TARGET NAME)
 endfunction()
 
 ##
+function(os_compile_options TARGET)
+  target_compile_options(${TARGET}${ELF_POSTFIX} ${ARGN})
+endfunction()
 
 function(os_compile_definitions TARGET)
   target_link_libraries(${TARGET}${ELF_POSTFIX} ${ARGN})
@@ -453,6 +456,19 @@ function(internal_os_add_config TARGET CONFIG_JSON)
   add_library(config_json STATIC ${OUTFILE})
   set_target_properties(config_json PROPERTIES LINKER_LANGUAGE CXX)
   target_link_libraries(${TARGET}${TARGET_POSTFIX} --whole-archive config_json --no-whole-archive)
+endfunction()
+
+function(os_add_nacl TARGET FILENAME)
+  set(NACL_PATH ${INCLUDEOS_PREFIX}/tools/NaCl)
+  add_custom_command(
+     OUTPUT nacl_content.cpp
+     COMMAND cat ${CMAKE_SOURCE_DIR}/${FILENAME} | ${Python2_EXECUTABLE} ${NACL_PATH}/NaCl.py ${CMAKE_BINARY_DIR}/nacl_content.cpp
+     DEPENDS ${CMAKE_SOURCE_DIR}/${FILENAME}
+   )
+   add_library(nacl_content STATIC nacl_content.cpp)
+   set_target_properties(nacl_content PROPERTIES LINKER_LANGUAGE CXX)
+   os_link_libraries(${TARGET} --whole-archive nacl_content --no-whole-archive)
+   os_add_plugins(${TARGET} nacl)
 endfunction()
 
 function(os_install)
