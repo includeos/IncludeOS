@@ -55,7 +55,7 @@ add_library(os STATIC ${SRCS} ${OBJECTS})
 if (NOT CMAKE_TESTING_ENABLED)
   add_dependencies(os version )
   add_subdirectory(arch/${ARCH})
-  if (NOT CORE_OS AND )
+  if (NOT CORE_OS)
 
     add_subdirectory(platform/x86_pc)
 
