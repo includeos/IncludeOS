@@ -16,8 +16,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.provision "shell",
                         inline: "echo cd /IncludeOS >> /home/ubuntu/.bashrc"
 
-    config.vm.synced_folder "~/IncludeOS_install",
-                            "/home/vagrant/IncludeOS_install", create: true
+    config.vm.synced_folder ".",
+                            "/home/vagrant/IncludeOS", create: true
 
     config.vm.provision "shell", inline: "apt-get update && apt-get install -qq git"
   end
