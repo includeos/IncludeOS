@@ -14,6 +14,9 @@ class HttpParserConan(ConanFile):
         repo = tools.Git(folder="http_parser")
         repo.clone("https://github.com/nodejs/http-parser.git",branch="v{}".format(self.version))
     #TODO handle target flags
+    def configure(self):
+        #doesnt matter what stdc++ lib you have
+        del self.settings.compiler.libcxx
     def build(self):
         self.run("make http_parser.o",cwd="http_parser")
 

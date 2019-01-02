@@ -20,10 +20,10 @@
 
 CASE("Service::binary_name() returns name of binary")
 {
-  EXPECT(Service::binary_name() == "Service binary name");
+  EXPECT(Service::binary_name() == std::string("Service binary name"));
 }
 
 CASE("Service::name() returns name of service")
 {
-  EXPECT(Service::name() == "Service name");
+  EXPECT(Service::name() == std::string("Service name"));
 }
