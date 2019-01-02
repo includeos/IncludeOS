@@ -13,6 +13,9 @@ class UzlibConan(ConanFile):
         git = tools.Git(folder="uzlib")
         git.clone("https://github.com/pfalcon/uzlib",branch=str(self.version))
     ##hmm can i move this in configure..
+    def configure(self):
+        #this isnt c++ 
+        del self.settings.compiler.libcxx
     def build(self):
         #a symlink would also do the trick
         shutil.copy("Makefile.ios","uzlib/src/Makefile")
