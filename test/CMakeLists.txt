@@ -327,17 +327,23 @@ if (COVERAGE)
       DEPENDS ${TEST_BINARIES}
       BYPRODUCTS base.info
     )
+<<<<<<< HEAD
     add_custom_target(execute_test
       COMMENT "Executing test"
       COMMAND ctest
       DEPENDS ${TEST_BINARIES}
     )
+=======
+>>>>>>> 256d89f99fa908bb8b96953444e1649f59a2171e
     #generate coverage for the excuted code.. TODO make it run all the code ?
     add_custom_target(coverage_executed
       COMMENT "Generating executed coverage"
       COMMAND ${CODECOV_LCOV} -q --gcov-tool ${CODECOV_GCOV} -b ${CMAKE_CURRENT_BINARY_DIR} -d ${CMAKE_CURRENT_BINARY_DIR} -o test.info -c
       BYPRODUCTS test.info
+<<<<<<< HEAD
       DEPENDS execute_test
+=======
+>>>>>>> 256d89f99fa908bb8b96953444e1649f59a2171e
     )
     #merge generated coverage and executed coverage.
     add_custom_target(coverage_merged
@@ -345,7 +351,11 @@ if (COVERAGE)
       COMMAND ${CODECOV_LCOV} -q --gcov-tool ${CODECOV_GCOV} -a base.info -a test.info -o unstripped.info
       SOURCES test.info base.info
       BYPRODUCTS unstripped.info
+<<<<<<< HEAD
       DEPENDS coverage_init coverage_executed
+=======
+      DEPENDS coverage_executed coverage_init
+>>>>>>> 256d89f99fa908bb8b96953444e1649f59a2171e
     )
 
     #strip from report /test path /usr/lib and /usr/include.. TODO add more if neccesary eg */.conan/*
