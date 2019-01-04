@@ -332,6 +332,7 @@ if (COVERAGE)
       COMMAND ctest
       DEPENDS ${TEST_BINARIES}
     )
+    
     #generate coverage for the excuted code.. TODO make it run all the code ?
     add_custom_target(coverage_executed
       COMMENT "Generating executed coverage"
