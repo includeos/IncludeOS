@@ -405,8 +405,8 @@ bool Connection::handle_ack(const Packet_view& in)
 
   if(is_win_update(in, true_win))
   {
-    if(cb.SND.WND < SMSS()*2)
-      printf("Win update: %u => %u\n", cb.SND.WND, true_win);
+    //if(cb.SND.WND < SMSS()*2)
+    //  printf("Win update: %u => %u\n", cb.SND.WND, true_win);
     cb.SND.WND = true_win;
     cb.SND.WL1 = in.seq();
     cb.SND.WL2 = in.ack();
@@ -586,7 +586,7 @@ void Connection::on_dup_ack(const Packet_view& in)
   // 3 dup acks
   else if(dup_acks_ == 3)
   {
-    printf("<TCP::Connection::on_dup_ack> Dup ACK == 3 - UNA=%u recover=%u\n", cb.SND.UNA, cb.recover);
+    //printf("<TCP::Connection::on_dup_ack> Dup ACK == 3 - UNA=%u recover=%u\n", cb.SND.UNA, cb.recover);
 
     if(cb.SND.UNA - 1 > cb.recover)
       goto fast_rtx;
@@ -970,8 +970,8 @@ void Connection::retransmit() {
 
     // TODO: Finish to send window zero probe, but only on rtx timeout
 
-    printf("<Connection::retransmit> With data (wq.sz=%zu) buf.size=%zu buf.unacked=%zu SND.WND=%u CWND=%u\n",
-           writeq.size(), buf->size(), buf->size() - writeq.acked(), cb.SND.WND, cb.cwnd);
+    //printf("<Connection::retransmit> With data (wq.sz=%zu) buf.size=%zu buf.unacked=%zu SND.WND=%u CWND=%u\n",
+    //       writeq.size(), buf->size(), buf->size() - writeq.acked(), cb.SND.WND, cb.cwnd);
     fill_packet(*packet, buf->data() + writeq.acked(), buf->size() - writeq.acked());
       packet->set_flag(PSH);
   }
@@ -1043,8 +1043,8 @@ void Connection::rtx_clear() {
        begins (i.e., after the three-way handshake completes).
 */
 void Connection::rtx_timeout() {
-  printf("<Connection::RTX@timeout> Timed out (RTO %lld ms). FS: %u usable=%u\n",
-    rttm.rto_ms().count(), flight_size(), usable_window());
+  //printf("<Connection::RTX@timeout> Timed out (RTO %lld ms). FS: %u usable=%u\n",
+  //  rttm.rto_ms().count(), flight_size(), usable_window());
 
   signal_rtx_timeout();
   // experimental
@@ -1385,12 +1385,12 @@ void Connection::reduce_ssthresh() {
     fs = (fs >= two_seg) ? fs - two_seg : 0;
 
   cb.ssthresh = std::max( (fs / 2), two_seg );
-  printf("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
-    cb.ssthresh);
+  //printf("<TCP::Connection::reduce_ssthresh> Slow start threshold reduced: %u\n",
+  //  cb.ssthresh);
 }
 
 void Connection::fast_retransmit() {
-  printf("<TCP::Connection::fast_retransmit> Fast retransmit initiated.\n");
+  //printf("<TCP::Connection::fast_retransmit> Fast retransmit initiated.\n");
   // reduce sshtresh
   reduce_ssthresh();
   // retransmit segment starting SND.UNA
@@ -1405,5 +1405,5 @@ void Connection::finish_fast_recovery() {
   fast_recovery_ = false;
   //cb.cwnd = std::min(cb.ssthresh, std::max(flight_size(), (uint32_t)SMSS()) + SMSS());
   cb.cwnd = cb.ssthresh;
-  printf("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
+  //printf("<TCP::Connection::finish_fast_recovery> Finished Fast Recovery - Cwnd: %u\n", cb.cwnd);
 }
