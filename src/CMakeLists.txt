@@ -10,11 +10,12 @@ if (smp)
   add_definitions(-DINCLUDEOS_SMP_ENABLE)
 endif()
 
-include_directories(${SOLO5_INCLUDE_DIR})
-include_directories(${INCLUDEOS_ROOT}/src/include)
-include_directories(${INCLUDEOS_ROOT}/api)
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}/../api
+  include
+)
 
-#do we need this?
+#TODO move to util and check if needed / can be changed.. unwanted dependency?
 include_directories(${INCLUDEOS_ROOT}/lib/LiveUpdate)
 
 

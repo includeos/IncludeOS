@@ -47,7 +47,7 @@ endif()
 
 if (COVERAGE)
   #IF clang do A if gcc do B
-  set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++17 --coverage -fprofile-arcs -ftest-coverage -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
+  set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++17 --coverage -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 else()
   set(CMAKE_CXX_FLAGS "-g -O0 -march=native -std=c++17 -Wall -Wextra -Wno-unused-function -D__id_t_defined -DUNITTESTS -DURI_THROW_ON_ERROR ${NO_INFO} ${NO_DEBUG} -DGSL_THROW_ON_CONTRACT_VIOLATION -Dlest_FEATURE_AUTO_REGISTER=1 -DHAVE_LEST_MAIN")
@@ -83,6 +83,9 @@ endif()
 set(CMAKE_BUILD_TYPE "Debug")
 include(${CMAKE_BINARY_DIR}/conan.cmake)
 #include conan cmake
+if (UPDATE)
+ set(CONAN_UPDATE UPDATE)
+endif()
 conan_cmake_run(
   REQUIRES
     uzlib/v2.1.1@includeos/test
@@ -90,6 +93,7 @@ conan_cmake_run(
     rapidjson/1.1.0@includeos/test
     GSL/2.0.0@includeos/test
     BASIC_SETUP
+    ${CONAN_UPDATE}
 )
 
 include_directories(
@@ -241,7 +245,7 @@ add_library(liveupdate ${MOD_OBJECTS})
 
 file(COPY memdisk.fat DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-
+SET(TEST_BINARIES)
 foreach(T ${TEST_SOURCES})
   #CTest style
   #get the filename witout extension
@@ -249,6 +253,8 @@ foreach(T ${TEST_SOURCES})
   add_executable(${NAME} ${T})
   target_link_libraries(${NAME} liveupdate os lest_util  m stdc++ ${CONAN_LIB_DIRS_HTTP-PARSER}/http_parser.o)
   add_test(${NAME} bin/${NAME})
+  #add to list of tests for dependencies
+  list(APPEND TEST_BINARIES ${NAME})
 endforeach()
 
 if(COVERAGE)
@@ -304,15 +310,52 @@ if (COVERAGE)
       set( CODECOV_HTMLOUTPUTDIR ${CMAKE_CURRENT_BINARY_DIR}/html )
   endif()
   if (CMAKE_COMPILER_IS_GNUCXX)
-    find_program(CODECOV_LCOV lcov)
-    find_program(CODECOV_GENHTML genhtml)
+    if (NOT DEFINED CODECOV_GCOV)
+      find_program(CODECOV_GCOV gcov)
+    endif()
+    if (NOT DEFINED CODECOV_LCOV)
+      find_program(CODECOV_LCOV lcov)
+    endif()
+    if (NOT DEFINED CODECOV_GENHTML)
+      find_program(CODECOV_GENHTML genhtml)
+    endif()
+
+    #run this command allways althoug it depends on all the sources beeing buildt
     add_custom_target(coverage_init ALL
-      COMMAND ${CODECOV_LCOV} --base-directory . --directory ${CMAKE_CURRENT_BINARY_DIR} --output-file ${CODECOV_OUTPUTFILE} --capture --initial
+      COMMENT "Generating empty initial coverage"
+      COMMAND ${CODECOV_LCOV} -q --gcov-tool ${CODECOV_GCOV} -b ${CMAKE_CURRENT_BINARY_DIR} -d ${CMAKE_CURRENT_BINARY_DIR} -o base.info -c -i
+      DEPENDS ${TEST_BINARIES}
+      BYPRODUCTS base.info
     )
+    #generate coverage for the excuted code.. TODO make it run all the code ?
+    add_custom_target(coverage_executed
+      COMMENT "Generating executed coverage"
+      COMMAND ${CODECOV_LCOV} -q --gcov-tool ${CODECOV_GCOV} -b ${CMAKE_CURRENT_BINARY_DIR} -d ${CMAKE_CURRENT_BINARY_DIR} -o test.info -c
+      BYPRODUCTS test.info
+    )
+    #merge generated coverage and executed coverage.
+    add_custom_target(coverage_merged
+      COMMENT "Merging initial and executed coverage"
+      COMMAND ${CODECOV_LCOV} -q --gcov-tool ${CODECOV_GCOV} -a base.info -a test.info -o unstripped.info
+      SOURCES test.info base.info
+      BYPRODUCTS unstripped.info
+      DEPENDS coverage_executed coverage_init
+    )
+
+    #strip from report /test path /usr/lib and /usr/include.. TODO add more if neccesary eg */.conan/*
+    add_custom_target(coverage_stripped
+      COMMENT "Stripping default paths and test from report"
+      COMMAND ${CODECOV_LCOV} -q -r unstripped.info '*/test/*' '/usr/lib/*' '/usr/include/*'  -o ${CODECOV_OUTPUTFILE}
+      DEPENDS coverage_merged
+      SOURCES unstripped.info
+      BYPRODUCTS ${CODECOV_OUTPUTFILE}
+    )
+    #generate HTML coverage report
     add_custom_target(coverage
-      COMMAND ${CODECOV_LCOV} --base-directory . --directory ${CMAKE_CURRENT_BINARY_DIR} --output-file ${CODECOV_OUTPUTFILE} --capture
-      COMMAND ${CODECOV_LCOV} --remove ${CODECOV_OUTPUTFILE} '/usr/lib/*' '/usr/include/*' -o ${CODECOV_OUTPUTFILE}
-      COMMAND ${CODECOV_GENHTML} -o ${CODECOV_HTMLOUTPUTDIR} ${CODECOV_OUTPUTFILE}
+      COMMENT "Generating Code Coverage Web report"
+      COMMAND ${CODECOV_GENHTML} -q -o ${CODECOV_HTMLOUTPUTDIR} ${CODECOV_OUTPUTFILE}
+      DEPENDS coverage_stripped
+      SOURCES ${CODECOV_OUTPUTFILE}
     )
   endif()
 endif()
