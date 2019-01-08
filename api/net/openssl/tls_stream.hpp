@@ -4,7 +4,6 @@
 #include <openssl/ssl.h>
 #include <net/stream.hpp>
 
-#include <memory>
 //#define VERBOSE_OPENSSL
 #ifdef VERBOSE_OPENSSL
 #define TLS_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
@@ -44,6 +43,17 @@ namespace openssl
     void on_read(size_t, ReadCallback cb) override {
       m_on_read = std::move(cb);
     }
+    void on_data(DataCallback cb) override {
+      m_on_data = std::move(cb);
+    }
+    size_t next_size() override {
+      // FIXME: implement buffering for read_next
+      return 0;
+    }
+    buffer_t read_next() override {
+      // FIXME: implement buffering for read_next
+      return{};
+    }
     void on_close(CloseCallback cb) override {
       m_on_close = std::move(cb);
     }
@@ -80,9 +90,6 @@ namespace openssl
   private:
     void tls_read(buffer_t);
     int  tls_perform_stream_write();
-    using Alloc = os::mem::buffer::allocator_type;
-    std::shared_ptr<std::pmr::vector<uint8_t>> tls_buffer;
-    int  tls_write_to_stream(Alloc &alloc);
     int  tls_perform_handshake();
     bool handshake_completed() const noexcept;
     void close_callback_once();
@@ -102,6 +109,7 @@ namespace openssl
     bool  m_deferred_close = false;
     ConnectCallback  m_on_connect = nullptr;
     ReadCallback     m_on_read    = nullptr;
+    DataCallback     m_on_data    = nullptr;
     WriteCallback    m_on_write   = nullptr;
     CloseCallback    m_on_close   = nullptr;
   };

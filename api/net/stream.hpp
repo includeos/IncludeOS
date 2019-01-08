@@ -56,12 +56,31 @@ namespace net {
     /** Called with a shared buffer and the length of the data when received. */
     using ReadCallback = delegate<void(buffer_t)>;
     /**
-     * @brief      Event when data is received.
+     * @brief      Event when data is received. Pushes data to the callback.
      *
      * @param[in]  n     The size of the receive buffer
      * @param[in]  cb    The read callback
      */
     virtual void on_read(size_t n, ReadCallback cb) = 0;
+
+    using DataCallback = delegate<void()>;
+    /**
+     * @brief      Event when data is received.
+     *             Does not push data, just signals its presence.
+     *
+     * @param[in]  cb    The callback
+     */
+    virtual void on_data(DataCallback cb) = 0;
+
+    /**
+     * @return The size of the next available chunk of data if any.
+     */
+    virtual size_t next_size() = 0;
+
+    /**
+     * @return The next available chunk of data if any.
+     */
+    virtual buffer_t read_next() = 0;
 
     /** Called with nothing ¯\_(ツ)_/¯ */
     using CloseCallback = delegate<void()>;
