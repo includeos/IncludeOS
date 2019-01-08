@@ -43,6 +43,17 @@ namespace openssl
     void on_read(size_t, ReadCallback cb) override {
       m_on_read = std::move(cb);
     }
+    void on_data(DataCallback cb) override {
+      m_on_data = std::move(cb);
+    }
+    size_t next_size() override {
+      // FIXME: implement buffering for read_next
+      return 0;
+    }
+    buffer_t read_next() override {
+      // FIXME: implement buffering for read_next
+      return{};
+    }
     void on_close(CloseCallback cb) override {
       m_on_close = std::move(cb);
     }
@@ -98,6 +109,7 @@ namespace openssl
     bool  m_deferred_close = false;
     ConnectCallback  m_on_connect = nullptr;
     ReadCallback     m_on_read    = nullptr;
+    DataCallback     m_on_data    = nullptr;
     WriteCallback    m_on_write   = nullptr;
     CloseCallback    m_on_close   = nullptr;
   };
@@ -120,6 +132,7 @@ namespace openssl
 
     SSL_set_bio(this->m_ssl, this->m_bio_rd, this->m_bio_wr);
     // always-on callbacks
+    // FIXME: consider using on_data as the default always-on event.
     m_transport->on_read(8192, {this, &TLS_stream::tls_read});
     m_transport->on_close({this, &TLS_stream::close_callback_once});
 

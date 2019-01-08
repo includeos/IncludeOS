@@ -47,13 +47,18 @@ inline Connection& Connection::_on_cleanup(CleanupCallback cb) {
 
 inline buffer_t Connection::read_next() {
   static buffer_t empty_buf{};
-  if (read_request == nullptr) {
+  if (UNLIKELY(read_request == nullptr)) {
     return empty_buf;
   }
   return read_request->read_next();
 }
 
-
+inline size_t Connection::next_size() {
+  if (UNLIKELY(read_request == nullptr)) {
+    return 0;
+  }
+  return read_request->next_size();
+}
 
 inline void Connection::write(const void* buf, size_t n) {
   this->write(tcp::construct_buffer((uint8_t*) buf, (uint8_t*) buf + n));
