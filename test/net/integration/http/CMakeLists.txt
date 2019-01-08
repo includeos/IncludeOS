@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(service "HTTP test" ${SOURCES})
+os_add_executable(http "HTTP test" ${SOURCES})
 
-os_add_drivers(service virtionet)
-os_add_stdout(service default_stdout)
+os_add_drivers(http virtionet)
+os_add_stdout(http default_stdout)

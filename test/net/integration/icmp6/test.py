@@ -50,5 +50,8 @@ def start_icmp_test(trigger_line):
 
 vm.on_output("Service IPv4 address: 10.0.0.52, IPv6 address: fe80:0:0:0:e823:fcff:fef4:85bd", start_icmp_test);
 
-# Boot the VM, taking a timeout as parameter
-vm.cmake().boot(50).clean()
+if len(sys.argv) > 1:
+    vm.boot(50,image_name=str(sys.argv[1]))
+else:
+    # Boot the VM, taking a timeout as parameter
+    vm.cmake().boot(50).clean()

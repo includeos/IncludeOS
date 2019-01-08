@@ -21,5 +21,5 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "Memmap test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(memmap "Memmap test" ${SOURCES})
+os_add_stdout(memmap default_stdout)

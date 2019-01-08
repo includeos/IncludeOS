@@ -64,12 +64,14 @@ def start_ws_thread(line):
     thread.start_new_thread(startBenchmark, (line,))
     print "<test.py> Thread started, returning to vmrunner"
 
-
 # Get an auto-created VM from the vmrunner
 vm = vmrunner.vms[0]
 
 # Add custom event for testing server
 vm.on_output("Listening on port 8000", start_ws_thread)
 
-# Boot the VM, taking a timeout as parameter
-vm.cmake().boot(20).clean()
+if len(sys.argv) > 1:
+    vm.boot(20,image_name=str(sys.argv[1]))
+else:
+    # Boot the VM, taking a timeout as parameter
+    vm.cmake().boot(20).clean()

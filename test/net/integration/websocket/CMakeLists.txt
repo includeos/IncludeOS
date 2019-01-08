@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(service "Websocket test" ${SOURCES})
+os_add_executable(websocket "Websocket test" ${SOURCES})
 
-os_add_drivers(service virtionet)
-os_add_stdout(service default_stdout)
+os_add_drivers(websocket virtionet)
+os_add_stdout(websocket default_stdout)

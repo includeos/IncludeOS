@@ -21,17 +21,17 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(service "ICMPv6 test" ${SOURCES})
+os_add_executable(icmp6 "ICMPv6 test" ${SOURCES})
 
-os_add_stdout(service default_stdout)
+os_add_stdout(icmp6 default_stdout)
 
 # DRIVERS / PLUGINS:
 if ("$ENV{PLATFORM}" STREQUAL "x86_solo5")
-  os_add_drivers(service
+  os_add_drivers(icmp6
       solo5net
     )
 else()
-  os_add_drivers(service
+  os_add_drivers(icmp6
     virtionet
   )
 endif()

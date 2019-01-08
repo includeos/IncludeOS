@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(service "ICMP test" ${SOURCES})
+os_add_executable(icmp "ICMP test" ${SOURCES})
 
-os_add_drivers(service virtionet)
-os_add_stdout(service default_stdout)
+os_add_drivers(icmp virtionet)
+os_add_stdout(icmp default_stdout)

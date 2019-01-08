@@ -21,8 +21,8 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(service "Gateway test" ${SOURCES})
+os_add_executable(gateway "Gateway test" ${SOURCES})
 
-os_add_nacl(service nacl.txt)
-os_add_drivers(service virtionet e1000 vmxnet3)
-os_add_stdout(service default_stdout)
+os_add_nacl(gateway nacl.txt)
+os_add_drivers(gateway virtionet e1000 vmxnet3)
+os_add_stdout(gateway default_stdout)

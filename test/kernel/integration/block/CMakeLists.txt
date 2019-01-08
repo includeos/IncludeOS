@@ -21,5 +21,5 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(blocking "Kernel blocking test" ${SOURCES})
-os_add_stdout(blocking default_stdout)
+os_add_executable(block "Kernel blocking test" ${SOURCES})
+os_add_stdout(block default_stdout)

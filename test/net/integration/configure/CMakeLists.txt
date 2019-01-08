@@ -21,10 +21,10 @@ set(SOURCES
     service.cpp
   )
 
-os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
+os_add_config(configure "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "Configure test" ${SOURCES})
+os_add_executable(configure "Configure test" ${SOURCES})
 
-os_add_plugins(service autoconf)
-os_add_drivers(service virtionet)
-os_add_stdout(service default_stdout)
+os_add_plugins(configure autoconf)
+os_add_drivers(configure virtionet)
+os_add_stdout(configure default_stdout)

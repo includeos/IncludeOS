@@ -21,5 +21,5 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "kprint() test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(kprint "kprint() test" ${SOURCES})
+os_add_stdout(kprint default_stdout)

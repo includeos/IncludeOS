@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp
   )
 
-os_add_executable(service "DNS test" ${SOURCES})
+os_add_executable(dns "DNS test" ${SOURCES})
 
-os_add_drivers(service virtionet e1000 vmxnet3)
-os_add_stdout(service default_stdout)
+os_add_drivers(dns virtionet e1000 vmxnet3)
+os_add_stdout(dns default_stdout)

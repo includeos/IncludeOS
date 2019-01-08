@@ -21,5 +21,5 @@ set(SOURCES
     service.cpp
 )
 
-os_add_executable(service "CPU exception test" ${SOURCES})
-os_add_stdout(service default_stdout)
+os_add_executable(exception "CPU exception test" ${SOURCES})
+os_add_stdout(exception default_stdout)

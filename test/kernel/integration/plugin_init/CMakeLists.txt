@@ -21,6 +21,6 @@ set(SOURCES
     service.cpp plugin1.cpp plugin2.cpp plugin3.cpp
   )
 
-os_add_executable(service "Page protection test" ${SOURCES})
-os_add_stdout(service default_stdout)
-os_add_plugins(service example)
+os_add_executable(plugin_init "Page protection test" ${SOURCES})
+os_add_stdout(plugin_init default_stdout)
+os_add_plugins(plugin_init example)

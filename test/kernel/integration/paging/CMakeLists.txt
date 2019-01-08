@@ -21,7 +21,7 @@ set(SOURCES
     service.cpp # ...add more here
 )
 
-os_add_executable(service "Page protection test" ${SOURCES})
-os_add_stdout(service default_stdout)
-os_add_drivers(service boot_logger)
-os_add_plugins(service vfs)
+os_add_executable(paging "Page protection test" ${SOURCES})
+os_add_stdout(paging default_stdout)
+os_add_drivers(paging boot_logger)
+os_add_plugins(paging vfs)

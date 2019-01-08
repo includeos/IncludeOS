@@ -21,10 +21,10 @@ set(SOURCES
     service.cpp
   )
 
-os_add_config(service "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
+os_add_config(vlan "${CMAKE_CURRENT_SOURCE_DIR}/config.json")
 
-os_add_executable(service "VLAN test" ${SOURCES})
+os_add_executable(vlan "VLAN test" ${SOURCES})
 
-os_add_plugins(service autoconf)
-os_add_drivers(service virtionet e1000 vmxnet3)
-os_add_stdout(service default_stdout)
+os_add_plugins(vlan autoconf)
+os_add_drivers(vlan virtionet e1000 vmxnet3)
+os_add_stdout(vlan default_stdout)
