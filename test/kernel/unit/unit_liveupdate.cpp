@@ -2,6 +2,7 @@
 #include <liveupdate.hpp>
 #include <elf.h>
 #include <os>
+#include <statman>
 #include "paging.inc"
 using namespace liu;
 
@@ -52,9 +53,16 @@ static void store_something(Storage& store, const buffer_t*)
   store.add_vector<int> (5, ivec2);
   store.add_vector<std::string> (6, svec1);
   store.add_vector<std::string> (6, svec2);
+  // TCP connection
   auto conn = inet->tcp().connect({{1,1,1,1}, 8080});
   store.add_connection(7, conn);
-  store.put_marker(8);
+  // Statman stats
+  auto& sman = Statman::get();
+  sman.store(8, store);
+  // storing stats twice will force merging
+  sman.store(8, store);
+  // End marker
+  store.put_marker(9);
 }
 static void restore_something(Restore& thing)
 {
@@ -62,26 +70,38 @@ static void restore_something(Restore& thing)
   assert(thing.is_int());
   stored.integer = thing.as_int(); thing.go_next();
   assert(thing.get_id() == 1);
+  assert(thing.is_string());
   stored.string = thing.as_string(); thing.go_next();
   assert(thing.get_id() == 2);
+  assert(thing.is_buffer()); // internally they are buffers
   stored.boolean = thing.as_type<bool>(); thing.go_next();
   assert(thing.get_id() == 3);
+  assert(thing.is_buffer()); // internally they are buffers
   stored.testable = thing.as_type<struct testable_t>(); thing.go_next();
   assert(thing.get_id() == 4);
+  assert(thing.is_buffer());
   stored.buffer = thing.as_buffer(); thing.go_next();
   assert(thing.get_id() == 5);
+  assert(thing.is_vector());
   stored.intvec1 = thing.as_vector<int>(); thing.go_next();
   stored.intvec2 = thing.as_vector<int>(); thing.go_next();
   assert(thing.get_id() == 6);
+  assert(thing.is_string_vector());
   stored.strvec1 = thing.as_vector<std::string>(); thing.go_next();
   stored.strvec2 = thing.as_vector<std::string>(); thing.go_next();
-  
+  // TCP connection
   assert(thing.get_id() == 7);
   auto conn = thing.as_tcp_connection(inet->tcp()); thing.go_next();
-  
+  // Statman stats
   assert(thing.get_id() == 8);
+  assert(thing.is_vector());
+  auto& sman = Statman::get();
+  sman.restore(thing); thing.go_next();
+  sman.restore(thing); thing.go_next();
+  // End marker
+  assert(thing.get_id() == 9);
   assert(thing.is_marker());
-  thing.pop_marker(8);
+  thing.pop_marker(9);
   assert(thing.is_end());
 }
 
@@ -131,6 +151,9 @@ CASE("Store some data and restore it")
     throw;
   }
   LiveUpdate::restore_environment();
+
+  // clear all stats before restoring them
+  Statman::get().clear();
 
   EXPECT_THROWS_AS(LiveUpdate::resume_from_heap(storage_area, "", nullptr), std::length_error);
   

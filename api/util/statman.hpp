@@ -138,6 +138,9 @@ public:
    */
   bool empty() const noexcept { return m_stats.empty(); }
 
+  /* Free all stats (NB: careful!) */
+  void clear() { m_stats.clear(); }
+
   auto begin() const noexcept { return m_stats.begin(); }
   auto end() const noexcept { return m_stats.end(); }
   auto cbegin() const noexcept { return m_stats.cbegin(); }

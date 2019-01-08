@@ -127,6 +127,7 @@ set(TEST_SOURCES
   #${TEST}/hw/unit/cpu_test.cpp
   ${TEST}/hw/unit/mac_addr_test.cpp
   ${TEST}/hw/unit/nic_test.cpp
+  ${TEST}/kernel/unit/arch.cpp
   ${TEST}/kernel/unit/memmap_test.cpp
   ${TEST}/kernel/unit/memory.cpp
   ${TEST}/kernel/unit/x86_paging.cpp
@@ -172,8 +173,10 @@ set(TEST_SOURCES
   ${TEST}/net/unit/router_test.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
+  ${TEST}/posix/unit/unit_fd.cpp
   ${TEST}/util/unit/base64.cpp
   ${TEST}/util/unit/sha1.cpp
+  ${TEST}/util/unit/config.cpp
   ${TEST}/util/unit/crc32.cpp
   ${TEST}/util/unit/delegate.cpp
   ${TEST}/util/unit/fixed_list_alloc_test.cpp
