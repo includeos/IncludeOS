@@ -57,8 +57,12 @@ namespace tcp {
         const auto rem = buf->capacity() - buf->size();
         const auto end_seq = buf->end_seq(); // store end_seq if reseted in callback
 
-        // Ready buffer for userspace consumption
-        complete_buffers.push_back(buf->buffer());
+        if (on_read_callback != nullptr) {
+          on_read_callback(buf->buffer());
+        } else {
+          // Ready buffer for read_next
+          complete_buffers.push_back(buf->buffer());
+        }
 
         // this is the only one, so we can reuse it
         if(buffers.size() == 1)
@@ -191,14 +195,17 @@ namespace tcp {
   void Read_request::signal_data() {
 
     if (not complete_buffers.empty()) {
-      if (on_read_callback != nullptr) {
-        for (auto buf : complete_buffers) {
-          on_read_callback(buf);
-        }
-      } else if (on_data_callback != nullptr){
+      if (on_data_callback != nullptr){
         on_data_callback();
         if (not complete_buffers.empty()) {
           // FIXME: Make sure this event gets re-triggered
+          // For now the user will have to make sure to re-read later if they couldn't
+        }
+      } else if (on_read_callback != nullptr) {
+        for (auto buf : complete_buffers) {
+          // Pop each time, in case callback leads to another call here.
+          complete_buffers.pop_front();
+          on_read_callback(buf);
         }
       }
     }
