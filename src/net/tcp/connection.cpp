@@ -65,7 +65,8 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
   {
     Expects(bufalloc != nullptr);
     read_request.reset(
-      new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), cb, bufalloc.get()));
+      new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), bufalloc.get()));
+    read_request->on_read_callback = cb;
     const size_t avail_thres = host_.max_bufsize() * Read_request::buffer_limit;
     bufalloc->on_avail(avail_thres, {this, &Connection::trigger_window_update});
   }
@@ -73,7 +74,7 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
   else
   {
     //printf("on_read already set\n");
-    read_request->callback = cb;
+    read_request->on_read_callback = cb;
     // this will flush the current data to the user (if any)
     read_request->reset(this->cb.RCV.NXT);
 
@@ -83,6 +84,32 @@ void Connection::_on_read(size_t recv_bufsz, ReadCallback cb)
       sack_list->clear();
   }
 }
+
+void Connection::_on_data(DataCallback cb) {
+  if(read_request == nullptr)
+  {
+    Expects(bufalloc != nullptr);
+    read_request.reset(
+      new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), bufalloc.get()));
+    read_request->on_data_callback = cb;
+    const size_t avail_thres = host_.max_bufsize() * Read_request::buffer_limit;
+    bufalloc->on_avail(avail_thres, {this, &Connection::trigger_window_update});
+  }
+  // read request is already set, only reset if new size.
+  else
+  {
+    //printf("on_read already set\n");
+    read_request->on_data_callback = cb;
+
+    read_request->reset(this->cb.RCV.NXT);
+
+    // due to throwing away buffers (and all data) we also
+    // need to clear the sack list if anything is stored here.
+    if(sack_list)
+      sack_list->clear();
+  }
+}
+
 
 Connection_ptr Connection::retrieve_shared() {
   return host_.retrieve_shared(this);
@@ -120,8 +147,10 @@ void Connection::reset_callbacks()
   writeq.on_write(nullptr);
   on_close_.reset();
   recv_wnd_getter.reset();
-  if(read_request)
-    read_request->callback.reset();
+  if(read_request) {
+    read_request->on_read_callback.reset();
+    read_request->on_data_callback.reset();
+  }
 }
 
 uint16_t Connection::MSDS() const noexcept {
@@ -277,7 +306,7 @@ void Connection::close() {
 void Connection::receive_disconnect() {
   Expects(read_request and read_request->size());
 
-  if(read_request->callback) {
+  if(read_request->on_read_callback) {
     // TODO: consider adding back when SACK is complete
     //auto& buf = read_request->buffer;
     //if (buf.size() > 0 && buf.missing() == 0)
@@ -1150,13 +1179,20 @@ void Connection::start_dack()
 
 void Connection::signal_connect(const bool success)
 {
-  // if on read was set before we got a seq number,
+  // if read request was set before we got a seq number,
   // update the starting sequence number for the read buffer
   if(read_request and success)
     read_request->set_start(cb.RCV.NXT);
 
   if(on_connect_)
     (success) ? on_connect_(retrieve_shared()) : on_connect_(nullptr);
+
+  // If no data event was registered we still want to start buffering here,
+  // in case the user is not yet ready to subscribe to data.
+  if (read_request == nullptr and success) {
+    read_request.reset(
+      new Read_request(this->cb.RCV.NXT, host_.min_bufsize(), host_.max_bufsize(), bufalloc.get()));
+  }
 }
 
 void Connection::signal_close()
@@ -1185,8 +1221,10 @@ void Connection::clean_up() {
   on_disconnect_.reset();
   on_close_.reset();
   recv_wnd_getter.reset();
-  if(read_request)
-    read_request->callback.reset();
+  if(read_request) {
+    read_request->on_read_callback.reset();
+    read_request->on_data_callback.reset();
+  }
 
 
   debug2("<Connection::clean_up> Call clean_up delg on %s\n", to_string().c_str());
