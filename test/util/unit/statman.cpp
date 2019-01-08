@@ -242,3 +242,18 @@ CASE("get(addr) returns reference to stat, throws if not present")
   // Can't create stats with empty name
   EXPECT_THROWS_AS(statman_.create(Stat::UINT32, ""), Stats_exception);
 }
+
+CASE("Various stat to_string()")
+{
+  Statman statman_;
+  Stat& stat1 = statman_.create(Stat::UINT32, "some.important.stat");
+  Stat& stat2 = statman_.create(Stat::UINT64, "other.important.stat");
+  Stat& stat3 = statman_.create(Stat::FLOAT, "very.important.stat");
+  ++stat1;
+  ++stat2;
+  ++stat3;
+  
+  EXPECT(stat1.to_string() == std::to_string(1u));
+  EXPECT(stat2.to_string() == std::to_string(1ul));
+  EXPECT(stat3.to_string() == std::to_string(1.0f));
+}
