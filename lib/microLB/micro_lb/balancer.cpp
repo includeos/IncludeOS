@@ -1,8 +1,6 @@
 #include "balancer.hpp"
 #include <net/tcp/stream.hpp>
 
-#define READQ_PER_CLIENT        4096
-#define READQ_FOR_NODES         8192
 #define MAX_OUTGOING_ATTEMPTS    100
 // checking if nodes are dead or not
 #define ACTIVE_INITIAL_PERIOD     8s
@@ -13,7 +11,7 @@
 
 #define LB_VERBOSE 0
 #if LB_VERBOSE
-#define LBOUT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#define LBOUT(fmt, ...) printf("MICROLB: "); printf(fmt, ##__VA_ARGS__)
 #else
 #define LBOUT(fmt, ...) /** **/
 #endif
@@ -75,7 +73,7 @@ namespace microLB
       if (client.conn->is_connected()) {
         // NOTE: explicitly want to copy buffers
         net::Stream_ptr rval =
-            nodes.assign(std::move(client.conn), client.readq);
+            nodes.assign(std::move(client.conn));
         if (rval == nullptr) {
           // done with this queue item
           queue.pop_front();
@@ -143,20 +141,11 @@ namespace microLB
 
     // Release connection if it closes before it's assigned to a node.
     this->conn->on_close([this](){
+        printf("Waiting issuing close\n");
         if (this->conn != nullptr)
           this->conn->reset_callbacks();
         this->conn = nullptr;
       });
-
-    // queue incoming data from clients not yet
-    // assigned to a node
-    this->conn->on_read(READQ_PER_CLIENT,
-    [this] (auto buf) {
-      // prevent buffer bloat attack
-      this->total += buf->size();
-      LBOUT("*** Queued %lu bytes\n", buf->size());
-      readq.push_back(buf);
-    });
   }
 
   void Nodes::create_connections(int total)
@@ -189,7 +178,7 @@ namespace microLB
       }
     }
   }
-  net::Stream_ptr Nodes::assign(net::Stream_ptr conn, queue_vector_t& readq)
+  net::Stream_ptr Nodes::assign(net::Stream_ptr conn)
   {
     for (size_t i = 0; i < nodes.size(); i++)
     {
@@ -202,11 +191,7 @@ namespace microLB
         assert(outgoing->is_connected());
         LBOUT("Assigning client to node %d (%s)\n",
               algo_iterator, outgoing->to_string().c_str());
-        // flush readq to outgoing before creating session
-        for (auto buffer : readq) {
-          LBOUT("*** Flushing %lu bytes\n", buffer->size());
-          outgoing->write(buffer);
-        }
+        //Should we some way hold track of the session object ?
         auto& session = this->create_session(
               std::move(conn), std::move(outgoing));
 
@@ -362,6 +347,7 @@ namespace microLB
     int fail_timer = Timers::oneshot(CONNECT_TIMEOUT,
     [this, outgoing] (int)
     {
+      printf("Fail timer\n");
       // close connection
       outgoing->abort();
       // no longer connecting
@@ -403,8 +389,14 @@ namespace microLB
         auto conn = std::move(pool.back());
         assert(conn != nullptr);
         pool.pop_back();
-        if (conn->is_connected()) return conn;
-        else conn->close();
+        if (conn->is_connected()) {
+          return conn;
+        }
+        else
+        {
+          printf("CLOSING SINCE conn->connected is false\n");
+          conn->close();
+        }
     }
     return nullptr;
   }
@@ -415,19 +407,25 @@ namespace microLB
       : parent(n), self(idx), incoming(std::move(inc)),
                               outgoing(std::move(out))
   {
-    incoming->on_read(READQ_PER_CLIENT,
-    [this] (auto buf) {
-        assert(this->is_alive());
-        this->outgoing->write(buf);
+
+    incoming->on_data([this]() {
+      assert(this->is_alive());
+      while((this->incoming->next_size() > 0) and this->outgoing->is_writable())
+      {
+        this->outgoing->write(this->incoming->read_next());
+      }
     });
     incoming->on_close(
     [&nodes = n, idx] () {
         nodes.close_session(idx);
     });
-    outgoing->on_read(READQ_FOR_NODES,
-    [this] (auto buf) {
-        assert(this->is_alive());
-        this->incoming->write(buf);
+
+    outgoing->on_data([this]() {
+      assert(this->is_alive());
+      while((this->outgoing->next_size() > 0) and this->incoming->is_writable())
+      {
+        this->incoming->write(this->outgoing->read_next());
+      }
     });
     outgoing->on_close(
     [&nodes = n, idx] () {
