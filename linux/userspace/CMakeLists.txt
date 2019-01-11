@@ -127,7 +127,7 @@ set_target_properties(includeos PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(includeos PUBLIC
     ${IOS}/lib/mana/include
     ${IOS}/mod/rapidjson/include
-    $ENV{INCLUDEOS_PREFIX}/includeos/x86_64/include
+    #$ENV{INCLUDEOS_PREFIX}/x86_64/include
   )
 
 add_library(http_parser STATIC "${IOS}/mod/http-parser/http_parser.c")
