@@ -25,6 +25,7 @@ set(SRCS
 )
 
 set(LIBRARIES
+    fuzz
     kernel
     util
     net

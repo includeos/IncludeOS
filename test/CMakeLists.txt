@@ -171,6 +171,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/tcp_read_request_test.cpp
   ${TEST}/net/unit/tcp_write_queue.cpp
   ${TEST}/net/unit/router_test.cpp
+  ${TEST}/net/unit/websocket.cpp
   ${TEST}/posix/unit/fd_map_test.cpp
   ${TEST}/posix/unit/inet_test.cpp
   ${TEST}/posix/unit/unit_fd.cpp
