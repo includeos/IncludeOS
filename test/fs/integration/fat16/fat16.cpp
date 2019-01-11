@@ -38,7 +38,7 @@ void Service::start(const std::string&)
 
   // auto-init filesystem
   disk->init_fs(
-  [] (fs::error_t err, auto& fs)
+  [] (fs::error_t err, fs::File_system& fs)
   {
     if (err) {
       printf("Init error: %s\n", err.to_string().c_str());
@@ -58,7 +58,7 @@ void Service::start(const std::string&)
   });
   // re-init on MBR (sigh)
   disk->init_fs(disk->MBR,
-  [] (fs::error_t err, auto& fs)
+  [] (fs::error_t err, fs::File_system& fs)
   {
     CHECKSERT(!err, "Filesystem initialized on VBR1");
 
