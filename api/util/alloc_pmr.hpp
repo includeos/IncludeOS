@@ -106,7 +106,10 @@ namespace os::mem {
 
   struct Default_pmr : public std::pmr::memory_resource {
     void* do_allocate(std::size_t size, std::size_t align) override {
-      return memalign(align, size);
+      auto* res = memalign(align, size);
+      if (res == nullptr)
+        throw std::bad_alloc();
+      return res;
     }
 
     void do_deallocate (void* ptr, size_t, size_t) override {
