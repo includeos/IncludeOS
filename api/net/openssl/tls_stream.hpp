@@ -62,8 +62,10 @@ namespace openssl
 
     size_t serialize_to(void*) const override;
 
+    void handle_read_congestion() override;
+    void handle_write_congestion() override;
   private:
-    void data();
+    void handle_data();
     int  decrypt(const void *data,int size);
     int  send_decrypted();
 
@@ -73,6 +75,19 @@ namespace openssl
     bool handshake_completed() const noexcept;
     void close_callback_once();
 
+    //using Alloc = os::mem::buffer::allocator_type;
+    //deref a nullptr seems scary to me
+    /*Alloc &getAllocator() { return *allocator; }
+    //store ptr to allocator
+    void setAllocator(Alloc &alloc)
+    {
+      if (*allocator != alloc)
+      {
+        allocator=&alloc;
+      }
+    }*/
+    //Alloc *allocator=nullptr;
+    buffer_t last_buffer;
     enum status_t {
       STATUS_OK,
       STATUS_WANT_IO,

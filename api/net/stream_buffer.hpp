@@ -2,13 +2,19 @@
 #define STREAMBUFFERR_HPP
 #include <net/stream.hpp>
 #include <queue>
+#include <util/timer.hpp>
+
 namespace net {
   class StreamBuffer : public net::Stream
   {
   public:
+    StreamBuffer(Timers::duration_t timeout=std::chrono::microseconds(10))
+      : timer({this,&StreamBuffer::congested}),congestion_timeout(timeout) {}
     using buffer_t = os::mem::buf_ptr;
     using Ready_queue  = std::deque<buffer_t>;
-    //virtual ~StreamBuffer();
+    virtual ~StreamBuffer() {
+      timer.stop();
+    }
 
     void on_connect(ConnectCallback cb) override {
       m_on_connect = std::move(cb);
@@ -67,6 +73,8 @@ namespace net {
       return construct_buffer_with_flag(m_write_congested,std::forward<Args> (args)...);
     }
 
+    virtual void handle_read_congestion() = 0;
+    virtual void handle_write_congestion() = 0;
   protected:
     void closed()
     { if (m_on_close) m_on_close(); }
@@ -76,6 +84,8 @@ namespace net {
     { if (m_on_write) m_on_write(n); }
     void enqueue_data(buffer_t data)
     { m_send_buffers.push_back(data); }
+
+    void congested();
 
     CloseCallback getCloseCallback() { return std::move(this->m_on_close); }
 
@@ -88,8 +98,10 @@ namespace net {
       this->m_on_write = nullptr;
       this->m_on_data = nullptr;
     }
-  private:
+    Timer timer;
 
+  private:
+    Timer::duration_t congestion_timeout;
     bool  m_write_congested= false;
     bool  m_read_congested = false;
 
@@ -111,15 +123,16 @@ namespace net {
     template <typename... Args>
     buffer_t construct_buffer_with_flag(bool &flag,Args&&... args)
     {
-      buffer_t buffer;
+      static buffer_t buffer;
       try
       {
-        buffer = std::make_shared<os::mem::buffer> (std::forward<Args> (args)...);
+        buffer = std::make_shared<os::mem::buffer>(std::forward<Args> (args)...);
         flag = false;
       }
-      catch (std::exception &e)
+      catch (std::bad_alloc &e)
       {
         flag = true;
+        timer.start(congestion_timeout);
         return nullptr;
       }
       return buffer;
@@ -147,6 +160,33 @@ namespace net {
     return nullptr;
   }
 
+  inline void StreamBuffer::congested()
+  {
+    if (m_read_congested)
+    {
+      handle_read_congestion();
+    }
+    if (m_write_congested)
+    {
+      handle_write_congestion();
+    }
+    //if any of the congestion states are still active make sure the timer is running
+    if(m_read_congested or m_write_congested)
+    {
+      if (!timer.is_running())
+      {
+        timer.start(congestion_timeout);
+      }
+    }
+    else
+    {
+      if (timer.is_running())
+      {
+        timer.stop();
+      }
+    }
+  }
+
   inline void StreamBuffer::signal_data()
   {
     if (not m_send_buffers.empty())
@@ -155,8 +195,8 @@ namespace net {
         //on_data_callback();
         m_on_data();
         if (not m_send_buffers.empty()) {
-          // FIXME: Make sure this event gets re-triggered
-          // For now the user will have to make sure to re-read later if they couldn't
+          m_read_congested=true;
+          timer.start(congestion_timeout);
         }
       }
       else if (m_on_read != nullptr)

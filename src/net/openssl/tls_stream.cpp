@@ -21,7 +21,7 @@ TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing)
   SSL_set_bio(this->m_ssl, this->m_bio_rd, this->m_bio_wr);
 
   // always-on callbacks
-  m_transport->on_data({this,&TLS_stream::data});
+  m_transport->on_data({this,&TLS_stream::handle_data});
   m_transport->on_close({this, &TLS_stream::close_callback_once});
 
   // start TLS handshake process
@@ -29,13 +29,15 @@ TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing)
   {
     if (this->tls_perform_handshake() < 0) return;
   }
+  last_buffer=std::make_shared<std::pmr::vector<uint8_t>>();
 }
 TLS_stream::TLS_stream(Stream_ptr t, SSL* ssl, BIO* rd, BIO* wr)
   : m_transport(std::move(t)), m_ssl(ssl), m_bio_rd(rd), m_bio_wr(wr)
 {
   // always-on callbacks
-  m_transport->on_data({this, &TLS_stream::data});
+  m_transport->on_data({this, &TLS_stream::handle_data});
   m_transport->on_close({this, &TLS_stream::close_callback_once});
+  last_buffer=std::make_shared<std::pmr::vector<uint8_t>>();
 }
 TLS_stream::~TLS_stream()
 {
@@ -45,6 +47,12 @@ TLS_stream::~TLS_stream()
 
 void TLS_stream::write(buffer_t buffer)
 {
+  //last_buffer=buffer;
+  //allocator=&buffer->get_allocator();
+  /*if (UNLIKELY(allocator == nullptr))
+  {
+
+  }*/
   if (UNLIKELY(this->is_connected() == false)) {
     TLS_PRINT("::write() called on closed stream\n");
     return;
@@ -64,13 +72,15 @@ void TLS_stream::write(buffer_t buffer)
 
 void TLS_stream::write(const std::string& str)
 {
-  write(net::Stream::construct_buffer(str.data(), str.data() + str.size()));
+  //TODO handle failed alloc
+  write(net::StreamBuffer::construct_write_buffer(str.data(),str.data()+str.size(),last_buffer->get_allocator()));
 }
 
 void TLS_stream::write(const void* data, const size_t len)
 {
+  //TODO handle failed alloc
   auto* buf = static_cast<const uint8_t*> (data);
-  write(net::Stream::construct_buffer(buf, buf + len));
+  write(net::StreamBuffer::construct_write_buffer(buf, buf + len,last_buffer->get_allocator()));
 }
 
 int TLS_stream::decrypt(const void *indata, int size)
@@ -120,7 +130,7 @@ int TLS_stream::send_decrypted()
   // read decrypted data
   do {
     //TODO "increase the size ?")
-    auto buffer=StreamBuffer::construct_read_buffer(8192);
+    auto buffer=StreamBuffer::construct_read_buffer(8192,last_buffer->get_allocator());
     if (!buffer) return 0;
     n = SSL_read(this->m_ssl,buffer->data(),buffer->size());
     if (n > 0) {
@@ -132,9 +142,21 @@ int TLS_stream::send_decrypted()
   return n;
 }
 
-void TLS_stream::data()
+void TLS_stream::handle_read_congestion()
 {
-  buffer_t buf;
+  //no checking here..?
+  send_decrypted(); //decrypt any incomplete
+  signal_data(); //send any pending
+}
+
+void TLS_stream::handle_write_congestion()
+{
+  //this should resolve the potential malloc congestion
+  tls_perform_stream_write();
+}
+void TLS_stream::handle_data()
+{
+  static buffer_t buf;
   while ((not read_congested() && (buf=m_transport->read_next()) != nullptr))
   {
     TLS_PRINT("::data() Received %lu bytes\n",buf->size());
@@ -200,11 +222,13 @@ void TLS_stream::tls_read(buffer_t buffer)
 
 int TLS_stream::tls_perform_stream_write()
 {
+  static buffer_t buffer=nullptr;
   ERR_clear_error();
   int pending = BIO_ctrl_pending(this->m_bio_wr);
   if (pending > 0)
   {
-    auto buffer= net::StreamBuffer::construct_write_buffer(pending);
+    TLS_PRINT("::tls_perform_stream_write() pending=%d bytes\n",pending);
+    buffer = net::StreamBuffer::construct_write_buffer(pending,last_buffer->get_allocator());
     if (buffer == nullptr) {
       printf("Failed to construct buffer\n");
       return 0;
