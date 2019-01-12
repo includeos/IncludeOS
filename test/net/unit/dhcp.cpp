@@ -32,8 +32,6 @@ static void setup_inet()
 
   auto& inet_server = net::Interfaces::get(0);
   inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,43});
-  auto& inet_client = net::Interfaces::get(1);
-  inet_client.network_config({10,0,0,43}, {255,255,255,0}, {10,0,0,42});
 }
 
 CASE("Setup network")
@@ -45,22 +43,30 @@ CASE("Setup network")
   setup_inet();
 }
 
-#include <net/dns/dns.hpp>
-CASE("DNS::question_string returns string representation of DNS record type")
+#include <net/dhcp/dhcpd.hpp>
+static std::unique_ptr<net::dhcp::DHCPD> dhcp_server = nullptr;
+CASE("Setup DHCP server")
 {
-  EXPECT(net::DNS::question_string(DNS_TYPE_A) == "IPv4 address");
+  auto& inet = net::Interfaces::get(0);
+  dhcp_server = std::make_unique<net::dhcp::DHCPD> (
+      inet.udp(), net::ip4::Addr{10,0,0,1}, net::ip4::Addr{10,0,0,24});
+  dhcp_server->listen();
 }
 
-CASE("Failing DNS request")
+CASE("Create DHCP request")
 {
   auto& inet = net::Interfaces::get(1);
-
   static bool done = false;
-  inet.resolve("www.google.com",
-    [] (net::IP4::addr, const net::Error&) {
+  inet.on_config(
+    [] (net::Inet& inet) {
+      //assert(inet.ip_addr() == net::ip4::Addr{10,0,0,1});
+      printf("Configured!\n");
       done = true;
     });
-  for (int i = 0; i < 10; i++)
+  
+  inet.negotiate_dhcp();
+
+  while (!done)
   {
     //printf("BEF Done = %d\n", done);
     Events::get().process_events();

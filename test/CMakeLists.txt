@@ -142,6 +142,7 @@ set(TEST_SOURCES
   ${TEST}/net/unit/cidr.cpp
   ${TEST}/net/unit/conntrack_test.cpp
   ${TEST}/net/unit/cookie_test.cpp
+  ${TEST}/net/unit/dhcp.cpp
   ${TEST}/net/unit/dhcp_message_test.cpp
   ${TEST}/net/unit/dns_test.cpp
   ${TEST}/net/unit/error.cpp
