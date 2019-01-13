@@ -50,6 +50,7 @@ namespace s2n
 
   struct TLS_stream : public net::Stream
   {
+    static const uint16_t SUBID = 21476;
     using TLS_stream_ptr = std::unique_ptr<TLS_stream>;
     using Stream_ptr = net::Stream_ptr;
 
@@ -110,7 +111,8 @@ namespace s2n
       return m_transport.get();
     }
 
-    size_t serialize_to(void*, size_t) const override;
+    size_t   serialize_to(void*, size_t) const override;
+    uint16_t serialization_subid() const override { return SUBID; }
     static TLS_stream_ptr deserialize_from(s2n_config*  config,
                                            Stream_ptr   transport,
                                            const bool   outgoing,
@@ -330,8 +332,7 @@ namespace s2n
   
   inline size_t TLS_stream::serialize_to(void* addr, size_t size) const
   {
-    assert(addr != nullptr);
-    assert(size > sizeof(serialized_stream));
+    assert(addr != nullptr && size > sizeof(serialized_stream));
     // create header
     auto* hdr = (serialized_stream*) addr;
     *hdr = {};

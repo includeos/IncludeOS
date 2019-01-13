@@ -552,19 +552,23 @@ endif()
 file(WRITE ${CMAKE_BINARY_DIR}/binary.txt ${BINARY})
 
 # old behavior: remove all symbols after elfsym
-if (NOT debug)
+if (stripped)
+  set(STRIP_LV ${CMAKE_STRIP} --strip-all ${BINARY})
+elseif (NOT debug)
   set(STRIP_LV ${CMAKE_STRIP} --strip-debug ${BINARY})
 else()
   set(STRIP_LV true)
 endif()
 
-add_custom_target(
-  pruned_elf_symbols ALL
-  COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
-  COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
-  COMMAND ${STRIP_LV}
-  DEPENDS service
-  )
+if (NOT stripped)
+  add_custom_target(
+    pruned_elf_symbols ALL
+    COMMAND ${INSTALL_LOC}/bin/elf_syms ${BINARY}
+    COMMAND ${CMAKE_OBJCOPY} --update-section .elf_symbols=_elf_symbols.bin ${BINARY} ${BINARY}
+    COMMAND ${STRIP_LV}
+    DEPENDS service
+    )
+endif()
 
 # create bare metal .img: make legacy_bootloader
 add_custom_target(

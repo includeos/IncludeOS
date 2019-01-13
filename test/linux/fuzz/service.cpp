@@ -48,9 +48,9 @@ void Service::start()
       //fprintf(stderr, "."); // drop
     });
 
-  auto& inet_server = net::Super_stack::get(0);
+  auto& inet_server = net::Interfaces::get(0);
   inet_server.network_config({10,0,0,42}, {255,255,255,0}, {10,0,0,1});
-  auto& inet_client = net::Super_stack::get(1);
+  auto& inet_client = net::Interfaces::get(1);
   inet_client.network_config({10,0,0,43}, {255,255,255,0}, {10,0,0,1});
   
 #ifndef LIBFUZZER_ENABLED
@@ -128,7 +128,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   */
 
   // Upper layer fuzzing using fuzzy::Stream
-  auto& inet = net::Super_stack::get(0);
+  auto& inet = net::Interfaces::get(0);
   static bool init_http = false;
   if (UNLIKELY(init_http == false)) {
     init_http = true;

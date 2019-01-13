@@ -1,5 +1,10 @@
 var http = require('http');
 
+var dataString = function() {
+  var len = 1024 * 50;
+  return '#'.repeat(len);
+}
+
 var stringToColour = function(str) {
   var hash = 0;
   for (var i = 0; i < str.length; i++) {
@@ -17,8 +22,7 @@ var stringToColour = function(str) {
 function handleRequest(request, response){
   response.setTimeout(500);
   var addr = request.connection.localPort;
-  var page = "" + addr;
-  response.end(page);
+  response.end(addr.toString() + dataString());
 }
 
 http.createServer(handleRequest).listen(6001, '10.0.0.1');

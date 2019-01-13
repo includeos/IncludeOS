@@ -30,24 +30,32 @@ namespace microLB
     (void) CLIENT_SLIMIT;
 
     auto& nodes = obj["nodes"];
+    // node interface
     const int NODE_NET = nodes["iface"].GetInt();
     auto& netout = net::Interfaces::get(NODE_NET);
-    netout.tcp().set_MSL(15s);
+    // node active-checks
+    bool use_active_check = true;
+    if (nodes.HasMember("active_check")) {
+      use_active_check = nodes["active_check"].GetBool();
+    }
 
-    Balancer* balancer = nullptr;
+    // create closed load balancer
+    auto* balancer = new Balancer(use_active_check);
 
     if (clients.HasMember("certificate"))
     {
       assert(clients.HasMember("key") && "TLS-enabled microLB must also have key");
-      // create TLS over TCP load balancer
-      balancer = new Balancer(netinc, CLIENT_PORT, netout,
+      // open for load balancing over TLS
+      balancer->open_for_ossl(netinc, CLIENT_PORT,
             clients["certificate"].GetString(),
             clients["key"].GetString());
     }
     else {
-      // create TCP load balancer
-      balancer = new Balancer(netinc, CLIENT_PORT, netout);
+      // open for TCP connections
+      balancer->open_for_tcp(netinc, CLIENT_PORT);
     }
+    // by default its this interface for nodes
+    balancer->de_helper.nodes = &netout;
 
     auto& nodelist = nodes["list"];
     assert(nodelist.IsArray());
@@ -59,14 +67,16 @@ namespace microLB
       assert(addr.Size() == 2);
       // port must be valid
       unsigned port = addr[1].GetUint();
-      assert(port >= 0 && port < 65536);
+      assert(port > 0 && port < 65536 && "Port is a number between 1 and 65535");
       // try to construct socket from string
       net::Socket socket{
         net::ip4::Addr{addr[0].GetString()}, (uint16_t) port
       };
-      balancer->nodes.add_node(netout, socket, balancer->get_pool_signal());
+      balancer->nodes.add_node(*balancer, socket,
+            Balancer::connect_with_tcp(netout, socket));
     }
 
+    balancer->init_liveupdate();
     return balancer;
   }
 }
