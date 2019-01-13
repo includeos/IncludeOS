@@ -1,7 +1,7 @@
 var http = require('http');
 
 var dataString = function() {
-  var len = 1024 * 50;
+  var len = 150*1024*1024;
   return '#'.repeat(len);
 }
 
@@ -20,6 +20,7 @@ var stringToColour = function(str) {
 
 //We need a function which handles requests and send response
 function handleRequest(request, response){
+  //console.log('Got request from client');
   response.setTimeout(500);
   var addr = request.connection.localPort;
   response.end(addr.toString() + dataString());

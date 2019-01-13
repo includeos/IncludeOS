@@ -145,7 +145,9 @@ struct Storage
   inline void add_vector(uid, const std::vector<T>& vector);
   // store a TCP connection
   void add_connection(uid, Connection_ptr);
-  void add_tls_stream(uid, net::Stream&);
+  // store a Stream, but not its underlying transport
+  // NOTE: UID is taken and used to determine its underlying type
+  void add_stream(net::Stream&);
 
   // markers are used to delineate the end of variable-length structures
   void put_marker(uid);
@@ -185,7 +187,10 @@ struct Restore
   buffer_t        as_buffer() const;
   Connection_ptr  as_tcp_connection(net::TCP&) const;
   net::Stream_ptr as_tcp_stream    (net::TCP&) const;
-  net::Stream_ptr as_tls_stream(void* ctx, net::Stream_ptr);
+  // TLS streams require: 1. a context to restore
+  // 2. select whether or not its an outgoing or incoming connection
+  // 3. provide the underlying transport stream, for example a TCP stream
+  net::Stream_ptr as_tls_stream(void* ctx, bool outgoing, net::Stream_ptr tr);
 
   template <typename S>
   inline const S& as_type() const;

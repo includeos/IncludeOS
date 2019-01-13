@@ -132,6 +132,10 @@ bool Restore::is_string_vector() const noexcept
 {
   return get_type() == TYPE_STR_VECTOR;
 }
+bool Restore::is_stream() const noexcept
+{
+  return get_type() == TYPE_STREAM;
+}
 
 int Restore::as_int() const
 {

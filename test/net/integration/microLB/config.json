@@ -27,6 +27,7 @@
     },
     "nodes" : {
       "iface" : 1,
+      "active_check" : true,
       "algo" : "round_robin",
       "list" : [
         ["10.0.0.1", 6001],
