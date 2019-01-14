@@ -68,26 +68,12 @@ namespace openssl
     void handle_data();
     int  decrypt(const void *data,int size);
     int  send_decrypted();
-
     void tls_read(buffer_t);
     int  tls_perform_stream_write();
     int  tls_perform_handshake();
     bool handshake_completed() const noexcept;
     void close_callback_once();
 
-    //using Alloc = os::mem::buffer::allocator_type;
-    //deref a nullptr seems scary to me
-    /*Alloc &getAllocator() { return *allocator; }
-    //store ptr to allocator
-    void setAllocator(Alloc &alloc)
-    {
-      if (*allocator != alloc)
-      {
-        allocator=&alloc;
-      }
-    }*/
-    //Alloc *allocator=nullptr;
-    buffer_t last_buffer;
     enum status_t {
       STATUS_OK,
       STATUS_WANT_IO,

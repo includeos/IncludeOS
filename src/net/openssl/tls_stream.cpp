@@ -29,7 +29,6 @@ TLS_stream::TLS_stream(SSL_CTX* ctx, Stream_ptr t, bool outgoing)
   {
     if (this->tls_perform_handshake() < 0) return;
   }
-  last_buffer=std::make_shared<std::pmr::vector<uint8_t>>();
 }
 TLS_stream::TLS_stream(Stream_ptr t, SSL* ssl, BIO* rd, BIO* wr)
   : m_transport(std::move(t)), m_ssl(ssl), m_bio_rd(rd), m_bio_wr(wr)
@@ -37,7 +36,6 @@ TLS_stream::TLS_stream(Stream_ptr t, SSL* ssl, BIO* rd, BIO* wr)
   // always-on callbacks
   m_transport->on_data({this, &TLS_stream::handle_data});
   m_transport->on_close({this, &TLS_stream::close_callback_once});
-  last_buffer=std::make_shared<std::pmr::vector<uint8_t>>();
 }
 TLS_stream::~TLS_stream()
 {
@@ -47,12 +45,7 @@ TLS_stream::~TLS_stream()
 
 void TLS_stream::write(buffer_t buffer)
 {
-  //last_buffer=buffer;
-  //allocator=&buffer->get_allocator();
-  /*if (UNLIKELY(allocator == nullptr))
-  {
 
-  }*/
   if (UNLIKELY(this->is_connected() == false)) {
     TLS_PRINT("::write() called on closed stream\n");
     return;
@@ -73,14 +66,14 @@ void TLS_stream::write(buffer_t buffer)
 void TLS_stream::write(const std::string& str)
 {
   //TODO handle failed alloc
-  write(net::StreamBuffer::construct_write_buffer(str.data(),str.data()+str.size(),last_buffer->get_allocator()));
+  write(net::StreamBuffer::construct_write_buffer(str.data(),str.data()+str.size()));
 }
 
 void TLS_stream::write(const void* data, const size_t len)
 {
   //TODO handle failed alloc
   auto* buf = static_cast<const uint8_t*> (data);
-  write(net::StreamBuffer::construct_write_buffer(buf, buf + len,last_buffer->get_allocator()));
+  write(net::StreamBuffer::construct_write_buffer(buf, buf + len));
 }
 
 int TLS_stream::decrypt(const void *indata, int size)
@@ -129,14 +122,13 @@ int TLS_stream::send_decrypted()
   buffer_t buffer;
   // read decrypted data
   do {
-    //TODO "increase the size ?")
-    auto buffer=StreamBuffer::construct_read_buffer(8192,last_buffer->get_allocator());
+    //TODO "increase the size or constructor based ??")
+    auto buffer=StreamBuffer::construct_read_buffer(8192);
     if (!buffer) return 0;
     n = SSL_read(this->m_ssl,buffer->data(),buffer->size());
     if (n > 0) {
       buffer->resize(n);
       enqueue_data(buffer);
-    //  m_receive_buffers.push_back(buffer);
     }
   } while (n > 0);
   return n;
@@ -144,7 +136,7 @@ int TLS_stream::send_decrypted()
 
 void TLS_stream::handle_read_congestion()
 {
-  //no checking here..?
+  //Ordering could be different
   send_decrypted(); //decrypt any incomplete
   signal_data(); //send any pending
 }
@@ -152,20 +144,25 @@ void TLS_stream::handle_read_congestion()
 void TLS_stream::handle_write_congestion()
 {
   //this should resolve the potential malloc congestion
-  tls_perform_stream_write();
+  //might be missing some TLS signalling but without malloc we cant do that either
+  while(tls_perform_stream_write() >  0);
 }
 void TLS_stream::handle_data()
 {
-  static buffer_t buf;
-  while ((not read_congested() && (buf=m_transport->read_next()) != nullptr))
+  while (m_transport->next_size() > 0)
   {
-    TLS_PRINT("::data() Received %lu bytes\n",buf->size());
-    tls_read(buf);
+    if (UNLIKELY(read_congested())){
+      break;
+    }
+    tls_read(m_transport->read_next());
   }
 }
 
 void TLS_stream::tls_read(buffer_t buffer)
 {
+  if (buffer == nullptr ) {
+    return;
+  }
   ERR_clear_error();
   uint8_t* buf_ptr = buffer->data();
   int      len = buffer->size();
@@ -222,15 +219,13 @@ void TLS_stream::tls_read(buffer_t buffer)
 
 int TLS_stream::tls_perform_stream_write()
 {
-  static buffer_t buffer=nullptr;
   ERR_clear_error();
   int pending = BIO_ctrl_pending(this->m_bio_wr);
   if (pending > 0)
   {
     TLS_PRINT("::tls_perform_stream_write() pending=%d bytes\n",pending);
-    buffer = net::StreamBuffer::construct_write_buffer(pending,last_buffer->get_allocator());
+    auto buffer = net::StreamBuffer::construct_write_buffer(pending);
     if (buffer == nullptr) {
-      printf("Failed to construct buffer\n");
       return 0;
     }
     int n = BIO_read(this->m_bio_wr, buffer->data(), buffer->size());
