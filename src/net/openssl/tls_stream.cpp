@@ -111,7 +111,15 @@ int TLS_stream::decrypt(const void *indata, int size)
     // nothing more to do if still not finished
     if (handshake_completed() == false) return 0;
     // handshake success
+    this->m_busy=true;
     connected();
+    this->m_busy=false;
+
+    if (this->m_deferred_close) {
+      TLS_PRINT("::read() close on m_deferred_close after tls_perform_stream_write\n");
+      this->close();
+      return 0;
+    }
   }
   return n;
 }
@@ -119,7 +127,6 @@ int TLS_stream::decrypt(const void *indata, int size)
 int TLS_stream::send_decrypted()
 {
   int n;
-  buffer_t buffer;
   // read decrypted data
   do {
     //TODO "increase the size or constructor based ??")
@@ -138,7 +145,15 @@ void TLS_stream::handle_read_congestion()
 {
   //Ordering could be different
   send_decrypted(); //decrypt any incomplete
+  this->m_busy=true;
   signal_data(); //send any pending
+  this->m_busy=false;
+
+  if (this->m_deferred_close) {
+    TLS_PRINT("::read() close on m_deferred_close after tls_perform_stream_write\n");
+    this->close();
+    return;
+  }
 }
 
 void TLS_stream::handle_write_congestion()
@@ -169,13 +184,19 @@ void TLS_stream::tls_read(buffer_t buffer)
 
   while (len > 0)
   {
+    if (this->m_deferred_close) {
+      TLS_PRINT("::read() close on m_deferred_close");
+      this->close();
+      return;
+    }
+
     int decrypted_bytes=decrypt(buf_ptr,len);
     if (UNLIKELY(decrypted_bytes==0)) return;
     buf_ptr += decrypted_bytes;
     len -= decrypted_bytes;
 
+    //enqueues decrypted data
     int ret=send_decrypted();
-
 
     // this goes here?
     if (UNLIKELY(this->is_closing() || this->is_closed())) {
@@ -204,17 +225,19 @@ void TLS_stream::tls_read(buffer_t buffer)
       this->close();
       return;
     }
-    // check deferred closing
-    if (this->m_deferred_close) {
-      TLS_PRINT("::read() close on m_deferred_close after tls_perform_stream_write\n");
-      this->close(); return;
-    }
+
   } // while it < end
 
   //forward data
   this->m_busy=true;
   signal_data();
   this->m_busy=false;
+
+  // check deferred closing
+  if (this->m_deferred_close) {
+    TLS_PRINT("::read() close on m_deferred_close after tls_perform_stream_write\n");
+    this->close(); return;
+  }
 } // tls_read()
 
 int TLS_stream::tls_perform_stream_write()
@@ -238,7 +261,13 @@ int TLS_stream::tls_perform_stream_write()
       this->m_busy = true;
       stream_on_write(n);
       this->m_busy = false;
+
+      if (this->m_deferred_close) {
+        TLS_PRINT("::read() close on m_deferred_close after tls_perform_stream_write\n");
+        this->close(); return 0;
+      }
     }
+
     if (UNLIKELY((pending = BIO_ctrl_pending(this->m_bio_wr)) > 0))
     {
       return pending;
@@ -247,6 +276,7 @@ int TLS_stream::tls_perform_stream_write()
   }
 
   BIO_read(this->m_bio_wr, nullptr, 0);
+
   if (!BIO_should_retry(this->m_bio_wr))
   {
     TLS_PRINT("::tls_perform_stream_write() close on !BIO_should_retry\n");
@@ -285,18 +315,23 @@ void TLS_stream::close()
   TLS_PRINT("TLS_stream::close()\n");
   //ERR_clear_error();
   if (this->m_busy) {
+    TLS_PRINT("TLS_stream::close() deferred\n");
     this->m_deferred_close = true; return;
   }
   CloseCallback func = getCloseCallback();
   this->reset_callbacks();
   if (m_transport->is_connected())
+  {
       m_transport->close();
+      m_transport->reset_callbacks(); // ???
+  }
   if (func) func();
 }
 void TLS_stream::close_callback_once()
 {
   TLS_PRINT("TLS_stream::close_callback_once() \n");
   if (this->m_busy) {
+    TLS_PRINT("TLS_stream::close_callback_once() deferred\n");
     this->m_deferred_close = true; return;
   }
   CloseCallback func = getCloseCallback();

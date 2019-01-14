@@ -322,7 +322,7 @@ public:
    * @return     True if able to send, False otherwise.
    */
   bool can_send() const noexcept
-  { return usable_window() and writeq.has_remaining_requests(); }
+  { return (usable_window() >= SMSS()) and writeq.has_remaining_requests(); }
 
   /**
    * @brief      Return the "tuple" (id) of the connection.
