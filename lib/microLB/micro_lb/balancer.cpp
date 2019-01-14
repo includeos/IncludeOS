@@ -92,7 +92,7 @@ namespace microLB
   }
   void Balancer::handle_connections()
   {
-    LBOUT("Handle_connections. %i waiting \n", queue.size());
+    LBOUT("Handle_connections. %lu waiting \n", queue.size());
     // stop any rethrow timer since this is a de-facto retry
     if (this->throw_retry_timer != Timers::UNUSED_ID) {
         Timers::stop(this->throw_retry_timer);
@@ -251,16 +251,35 @@ namespace microLB
     assert(session.is_alive());
     return session;
   }
+
+  void Nodes::destroy_sessions()
+  {
+    for (auto& idx: closed_sessions)
+    {
+      auto &session=get_session(idx);
+
+      // free session destroying potential unique ptr objects
+      session.incoming =nullptr;
+      session.outgoing=nullptr;
+      free_sessions.push_back(session.self);
+      LBOUT("Session %d destroyed  (total = %d)\n", session.self, session_cnt);
+    }
+    closed_sessions.clear();
+  }
   void Nodes::close_session(int idx)
   {
     auto& session = get_session(idx);
     // remove connections
     session.incoming->reset_callbacks();
-    session.incoming = nullptr;
     session.outgoing->reset_callbacks();
-    session.outgoing = nullptr;
-    // free session
-    free_sessions.push_back(session.self);
+    closed_sessions.push_back(session.self);
+
+    if (!cleanup_timer.is_running())
+    {
+      cleanup_timer.start(std::chrono::milliseconds(10),[this](){
+        this->destroy_sessions();
+      });
+    }
     session_cnt--;
     LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
   }

@@ -1,6 +1,7 @@
 #pragma once
 #include <net/inet>
 #include <liveupdate>
+#include <util/timer.hpp>
 
 namespace microLB
 {
@@ -78,6 +79,7 @@ namespace microLB
     net::Stream_ptr assign(net::Stream_ptr);
     Session& create_session(net::Stream_ptr inc, net::Stream_ptr out);
     void     close_session(int);
+    void destroy_sessions();
     Session& get_session(int);
 
     void serialize(liu::Storage&);
@@ -90,8 +92,10 @@ namespace microLB
     int       conn_iterator = 0;
     int       algo_iterator = 0;
     const bool do_active_check;
+    Timer cleanup_timer;
     std::deque<Session> sessions;
     std::deque<int> free_sessions;
+    std::deque<int> closed_sessions;
   };
 
   struct Balancer {
