@@ -122,4 +122,6 @@ CASE("Too many events throws exception")
   {
     manager().unsubscribe(i);
   }
+  // event not subscribed on should throw
+  EXPECT_THROWS(manager().unsubscribe(35));
 }

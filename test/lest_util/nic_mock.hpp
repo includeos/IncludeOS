@@ -39,7 +39,7 @@ public:
   { return mac_; }
 
   virtual uint16_t MTU() const noexcept override
-  { return 1500; }
+  { return this->mtu; }
 
   downstream create_link_downstream() override
   { return transmit_to_link_; };
@@ -114,7 +114,9 @@ public:
   //
 
   ~Nic_mock() {}
-  Nic_mock() : Nic(), bufstore_{256u, 2048} {}
+  Nic_mock() : Nic(), bufstore_{256u, 2048} {
+    this->mtu = MTU_detection_override(0, 1500);
+  }
 
   // Public data members (ahem)
   MAC::Addr mac_ = {0xc0,0x00,0x01,0x70,0x00,0x01};
@@ -154,13 +156,11 @@ private:
   upstream vlan_handler_ = nullptr;
   downstream transmit_to_link_ = downstream{this, &Nic_mock::transmit_link};
   net::downstream transmit_to_physical_{this, &Nic_mock::transmit};
-  bool link_up_ = true;
+  bool     link_up_ = true;
+  uint16_t mtu;
   uint64_t packets_rx_ = 0;
   uint64_t packets_tx_ = 0;
   uint64_t packets_dropped_ = 0;
-
-
 };
-
 
 #endif
