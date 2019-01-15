@@ -304,7 +304,7 @@ void __page_fault(uintptr_t* regs, uint32_t code) {
     auto& range = OS::memory_map().at(key);
     printf("Violated address is in mapped range \"%s\" \n", range.name());
   } else {
-    printf("Violated ddress is outside mapped memory\n");
+    printf("Violated address is outside mapped memory\n");
   }
 
 }
