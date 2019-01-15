@@ -80,7 +80,7 @@ add_definitions(-DSERVICE=\"\\\"${BINARY}\\\"\")
 add_definitions(-DSERVICE_NAME=\"\\\"${SERVICE_NAME}\\\"\")
 add_definitions(-DUSERSPACE_LINUX)
 
-set(IOSPATH $ENV{INCLUDEOS_PREFIX}/includeos)
+set(IOSPATH $ENV{INCLUDEOS_PREFIX})
 set(IOSLIBS ${IOSPATH}/${ARCH}/lib)
 
 # includes
@@ -131,6 +131,10 @@ add_library(liveupdate STATIC IMPORTED)
 set_target_properties(liveupdate PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(liveupdate PROPERTIES IMPORTED_LOCATION ${LPATH}/libliveupdate.a)
 
+add_library(microlb STATIC IMPORTED)
+set_target_properties(microlb PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(microlb PROPERTIES IMPORTED_LOCATION ${LPATH}/libmicrolb.a)
+
 add_library(http_parser STATIC IMPORTED)
 set_target_properties(http_parser PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(http_parser PROPERTIES IMPORTED_LOCATION ${LPATH}/libhttp_parser.a)
@@ -154,7 +158,8 @@ if (ENABLE_S2N)
   target_link_libraries(service ${S2N_LIBS} -ldl -pthread)
 endif()
 target_link_libraries(service ${PLUGINS_LIST})
-target_link_libraries(service includeos linuxrt liveupdate includeos linuxrt http_parser rt)
+target_link_libraries(service includeos linuxrt microlb liveupdate
+                      includeos linuxrt http_parser rt)
 target_link_libraries(service ${EXTRA_LIBS})
 if (CUSTOM_BOTAN)
   target_link_libraries(service ${BOTAN_LIBS})

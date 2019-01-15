@@ -13,11 +13,12 @@ sys.path.insert(0,includeos_src)
 
 from vmrunner import vmrunner
 import requests
+expected_string = "#" * 1024 * 50
 
-def validateRequest(expected = ""):
+def validateRequest(addr):
     response = requests.get('https://10.0.0.68:443', verify=False)
-    print (response.content)
-    return (response.content) == expected
+    #print (response.content)
+    return (response.content) == str(addr) + expected_string
 
 # start nodeJS
 pro = subprocess.Popen(["nodejs", "server.js"], stdout=subprocess.PIPE)
@@ -25,15 +26,15 @@ pro = subprocess.Popen(["nodejs", "server.js"], stdout=subprocess.PIPE)
 requests_completed = False
 def startBenchmark(line):
     print "<test.py> starting test "
-    assert validateRequest("6001")
-    assert validateRequest("6002")
-    assert validateRequest("6003")
-    assert validateRequest("6004")
+    assert validateRequest(6001)
+    assert validateRequest(6002)
+    assert validateRequest(6003)
+    assert validateRequest(6004)
 
-    assert validateRequest("6001")
-    assert validateRequest("6002")
-    assert validateRequest("6003")
-    assert validateRequest("6004")
+    assert validateRequest(6001)
+    assert validateRequest(6002)
+    assert validateRequest(6003)
+    assert validateRequest(6004)
     print "Waiting for TCP MSL end..."
     global requests_completed
     requests_completed = True

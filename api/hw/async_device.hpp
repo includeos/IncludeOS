@@ -17,7 +17,7 @@
 
 #pragma once
 #include <kernel/events.hpp>
-#include <drivers/usernet.hpp>
+#include <hw/drivers/usernet.hpp>
 #include <net/interfaces>
 #include <deque>
 

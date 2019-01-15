@@ -1,5 +1,6 @@
 #include "balancer.hpp"
 #include <net/tcp/stream.hpp>
+#include <kernel/os.hpp>
 
 #define READQ_PER_CLIENT        4096
 #define MAX_READQ_PER_NODE      8192
@@ -11,8 +12,6 @@
 // connection attempt timeouts
 #define CONNECT_TIMEOUT          10s
 #define CONNECT_THROW_PERIOD     20s
-#define INITIAL_SESSION_TIMEOUT   5s
-#define ROLLING_SESSION_TIMEOUT  60s
 
 #define LB_VERBOSE 0
 #if LB_VERBOSE
@@ -23,21 +22,16 @@
 
 using namespace std::chrono;
 
+// NOTE: Do NOT move microLB::Balancer while in operation!
+// It uses tons of delegates that capture "this"
 namespace microLB
 {
-  Balancer::Balancer(
-         netstack_t& incoming, uint16_t in_port,
-         netstack_t& outgoing)
-    : nodes(), netin(incoming), netout(outgoing), signal({this, &Balancer::handle_queue})
+  Balancer::Balancer(const bool da) : nodes {da}  {}
+  Balancer::~Balancer()
   {
-    netin.tcp().listen(in_port,
-    [this] (auto conn) {
-      if (conn != nullptr) {
-        this->incoming(std::make_unique<net::tcp::Stream> (conn));
-      }
-    });
-
-    this->init_liveupdate();
+    queue.clear();
+    nodes.close_all_sessions();
+    if (tls_free) tls_free();
   }
   int Balancer::wait_queue() const {
     return this->queue.size();
@@ -45,20 +39,13 @@ namespace microLB
   int Balancer::connect_throws() const {
     return this->throw_counter;
   }
-  netstack_t& Balancer::get_client_network() noexcept
+  pool_signal_t Balancer::get_pool_signal()
   {
-    return this->netin;
-  }
-  netstack_t& Balancer::get_nodes_network() noexcept
-  {
-    return this->netout;
-  }
-  const pool_signal_t& Balancer::get_pool_signal() const
-  {
-    return this->signal;
+    return {this, &Balancer::handle_queue};
   }
   void Balancer::incoming(net::Stream_ptr conn)
   {
+      assert(conn != nullptr);
       queue.emplace_back(std::move(conn));
       LBOUT("Queueing connection (q=%lu)\n", queue.size());
       // IMPORTANT: try to handle queue, in case its ready
@@ -71,6 +58,7 @@ namespace microLB
     while (nodes.pool_size() > 0 && queue.empty() == false)
     {
       auto& client = queue.front();
+      assert(client.conn != nullptr);
       if (client.conn->is_connected()) {
         // NOTE: explicitly want to copy buffers
         net::Stream_ptr rval =
@@ -98,12 +86,23 @@ namespace microLB
         Timers::stop(this->throw_retry_timer);
         this->throw_retry_timer = Timers::UNUSED_ID;
     }
+
+    // prune dead clients because the "number of clients" is being
+    // used in a calculation right after this to determine how many
+    // nodes to connect to
+    auto new_end = std::remove_if(queue.begin(), queue.end(),
+        [](Waiting& client) {
+          return client.conn == nullptr || client.conn->is_connected() == false;
+        });
+    queue.erase(new_end, queue.end());
+
     // calculating number of connection attempts to create
     int np_connecting = nodes.pool_connecting();
     int estimate = queue.size() - (np_connecting + nodes.pool_size());
     estimate = std::min(estimate, MAX_OUTGOING_ATTEMPTS);
     estimate = std::max(0, estimate - np_connecting);
     // create more outgoing connections
+    LBOUT("Estimated connections needed: %d\n", estimate);
     if (estimate > 0)
     {
       try {
@@ -130,14 +129,16 @@ namespace microLB
   Waiting::Waiting(net::Stream_ptr incoming)
     : conn(std::move(incoming)), total(0)
   {
+    assert(this->conn != nullptr);
+    assert(this->conn->is_connected());
     // queue incoming data from clients not yet
     // assigned to a node
-    conn->on_read(READQ_PER_CLIENT,
+    this->conn->on_read(READQ_PER_CLIENT,
     [this] (auto buf) {
       // prevent buffer bloat attack
       this->total += buf->size();
       if (this->total > MAX_READQ_PER_NODE) {
-        conn->close();
+        this->conn->close();
       }
       else {
         LBOUT("*** Queued %lu bytes\n", buf->size());
@@ -151,17 +152,28 @@ namespace microLB
     // temporary iterator
     for (int i = 0; i < total; i++)
     {
+      bool dest_found = false;
       // look for next active node up to *size* times
       for (size_t i = 0; i < nodes.size(); i++)
       {
-        int iter = conn_iterator;
+        const int iter = conn_iterator;
         conn_iterator = (conn_iterator + 1) % nodes.size();
         // if the node is active, connect immediately
-        bool is_active = nodes[iter].is_active();
-        if (is_active) {
-          nodes[iter].connect();
+        auto& dest_node = nodes[iter];
+        if (dest_node.is_active()) {
+          dest_node.connect();
+          dest_found = true;
           break;
         }
+      }
+      // if no active node found, simply delegate to the next node
+      if (dest_found == false)
+      {
+        // with active-checks we can return here later when we get a connection
+        if (this->do_active_check) return;
+        const int iter = conn_iterator;
+        conn_iterator = (conn_iterator + 1) % nodes.size();
+        nodes[iter].connect();
       }
     }
   }
@@ -179,7 +191,7 @@ namespace microLB
         LBOUT("Assigning client to node %d (%s)\n",
               algo_iterator, outgoing->to_string().c_str());
         auto& session = this->create_session(
-            not readq.empty(), std::move(conn), std::move(outgoing));
+              std::move(conn), std::move(outgoing));
         // flush readq to session.outgoing
         for (auto buffer : readq) {
           LBOUT("*** Flushing %lu bytes\n", buffer->size());
@@ -216,17 +228,17 @@ namespace microLB
     return session_total;
   }
   int32_t Nodes::timed_out_sessions() const {
-    return session_timeouts;
+    return 0;
   }
-  Session& Nodes::create_session(bool talk, net::Stream_ptr client, net::Stream_ptr outgoing)
+  Session& Nodes::create_session(net::Stream_ptr client, net::Stream_ptr outgoing)
   {
     int idx = -1;
     if (free_sessions.empty()) {
       idx = sessions.size();
-      sessions.emplace_back(*this, idx, talk, std::move(client), std::move(outgoing));
+      sessions.emplace_back(*this, idx, std::move(client), std::move(outgoing));
     } else {
       idx = free_sessions.back();
-      new (&sessions[idx]) Session(*this, idx, talk, std::move(client), std::move(outgoing));
+      new (&sessions[idx]) Session(*this, idx, std::move(client), std::move(outgoing));
       free_sessions.pop_back();
     }
     session_total++;
@@ -241,129 +253,114 @@ namespace microLB
     assert(session.is_alive());
     return session;
   }
-  void Nodes::close_session(int idx, bool timeout)
+  void Nodes::close_session(int idx)
   {
     auto& session = get_session(idx);
-    // disable timeout timer
-    if (session.timeout_timer != Timers::UNUSED_ID) {
-      Timers::stop(session.timeout_timer);
-      session.timeout_timer = Timers::UNUSED_ID;
-    }
     // remove connections
     session.incoming->reset_callbacks();
     session.incoming = nullptr;
     session.outgoing->reset_callbacks();
     session.outgoing = nullptr;
     // free session
-    if (timeout) this->session_timeouts++;
     free_sessions.push_back(session.self);
     session_cnt--;
     LBOUT("Session %d closed  (total = %d)\n", session.self, session_cnt);
+    if (on_session_close) on_session_close(session.self, session_cnt, session_total);
+  }
+  void Nodes::close_all_sessions()
+  {
+    sessions.clear();
+    free_sessions.clear();
   }
 
-  Node::Node(netstack_t& stk, net::Socket a, const pool_signal_t& sig)
-    : stack(stk), addr(a), pool_signal(sig)
+  Node::Node(Balancer& balancer, const net::Socket addr,
+             node_connect_function_t func, bool da, int idx)
+    : m_connect(func), m_socket(addr), m_idx(idx), do_active_check(da)
   {
+    assert(this->m_connect != nullptr);
+    this->m_pool_signal = balancer.get_pool_signal();
     // periodically connect to node and determine if active
-    // however, perform first check immediately
-    this->active_timer = Timers::periodic(0s, ACTIVE_CHECK_PERIOD,
-    [this] (int) {
-      this->perform_active_check();
-    });
+    if (this->do_active_check)
+    {
+      // however, perform first check immediately
+      this->active_timer = Timers::periodic(0s, ACTIVE_CHECK_PERIOD,
+                           {this, &Node::perform_active_check});
+    }
   }
-  void Node::perform_active_check()
+  void Node::perform_active_check(int)
   {
+    assert(this->do_active_check);
     try {
-      this->stack.tcp().connect(this->addr,
-      [this] (auto conn) {
-        this->active = (conn != nullptr);
-        // if we are connected, its alive
-        if (conn != nullptr)
-        {
-          // hopefully put this to good use
-          pool.push_back(std::make_unique<net::tcp::Stream>(conn));
-          // stop any active check
-          this->stop_active_check();
-          // signal change in pool
-          this->pool_signal();
-        }
-        else {
-          // if no periodic check is being done right now,
-          // start doing it (after initial delay)
-          this->restart_active_check();
-        }
-      });
+      this->connect();
     } catch (std::exception& e) {
-      // do nothing, because might just be eph.ports used up
+      // do nothing, because might be eph.ports used up
+      LBOUT("Node %d exception %s\n", this->m_idx, e.what());
     }
   }
   void Node::restart_active_check()
   {
     // set as inactive
     this->active = false;
-    // begin checking active again
-    if (this->active_timer == Timers::UNUSED_ID)
+    if (this->do_active_check)
     {
-      this->active_timer = Timers::periodic(
-        ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
-      [this] (int) {
-        this->perform_active_check();
-      });
+      // begin checking active again
+      if (this->active_timer == Timers::UNUSED_ID)
+      {
+        this->active_timer = Timers::periodic(
+          ACTIVE_INITIAL_PERIOD, ACTIVE_CHECK_PERIOD,
+          {this, &Node::perform_active_check});
+        LBOUT("Node %d restarting active check (and is inactive)\n", this->m_idx);
+      }
+      else
+      {
+        LBOUT("Node %d still trying to connect...\n", this->m_idx);
+      }
     }
   }
   void Node::stop_active_check()
   {
     // set as active
     this->active = true;
-    // stop active checking for now
-    if (this->active_timer != Timers::UNUSED_ID) {
-      Timers::stop(this->active_timer);
-      this->active_timer = Timers::UNUSED_ID;
+    if (this->do_active_check)
+    {
+      // stop active checking for now
+      if (this->active_timer != Timers::UNUSED_ID) {
+        Timers::stop(this->active_timer);
+        this->active_timer = Timers::UNUSED_ID;
+      }
     }
+    LBOUT("Node %d stopping active check (and is active)\n", this->m_idx);
   }
   void Node::connect()
   {
-    auto outgoing = this->stack.tcp().connect(this->addr);
     // connecting to node atm.
     this->connecting++;
-    // retry timer when connect takes too long
-    int fail_timer = Timers::oneshot(CONNECT_TIMEOUT,
-    [this, outgoing] (int)
-    {
-      // close connection
-      outgoing->abort();
-      // no longer connecting
-      assert(this->connecting > 0);
-      this->connecting --;
-      // restart active check
-      this->restart_active_check();
-      // signal change in pool
-      this->pool_signal();
-    });
-    // add connection to pool on success, otherwise.. retry
-    outgoing->on_connect(
-    [this, fail_timer] (auto conn)
-    {
-      // stop retry timer
-      Timers::stop(fail_timer);
-      // no longer connecting
-      assert(this->connecting > 0);
-      this->connecting --;
-      // connection may be null, apparently
-      if (conn != nullptr && conn->is_connected())
+    this->m_connect(CONNECT_TIMEOUT,
+      [this] (net::Stream_ptr stream)
       {
-        LBOUT("Connected to %s  (%ld total)\n",
-                addr.to_string().c_str(), pool.size());
-        this->pool.push_back(std::make_unique<net::tcp::Stream>(conn));
-        // stop any active check
-        this->stop_active_check();
-      }
-      else {
-        this->restart_active_check();
-      }
-      // signal change in pool
-      this->pool_signal();
-    });
+        // no longer connecting
+        assert(this->connecting > 0);
+        this->connecting --;
+        // success
+        if (stream != nullptr)
+        {
+          assert(stream->is_connected());
+          LBOUT("Node %d connected to %s (%ld total)\n",
+                this->m_idx, stream->remote().to_string().c_str(), pool.size());
+          this->pool.push_back(std::move(stream));
+          // stop any active check
+          this->stop_active_check();
+          // signal change in pool
+          this->m_pool_signal();
+        }
+        else // failure
+        {
+          LBOUT("Node %d failed to connect out (%ld total)\n",
+                this->m_idx, pool.size());
+          // restart active check
+          this->restart_active_check();
+        }
+      });
   }
   net::Stream_ptr Node::get_connection()
   {
@@ -378,58 +375,56 @@ namespace microLB
   }
 
   // use indexing to access Session because std::vector
-  Session::Session(Nodes& n, int idx, bool talk,
+  Session::Session(Nodes& n, int idx,
                    net::Stream_ptr inc, net::Stream_ptr out)
       : parent(n), self(idx), incoming(std::move(inc)),
                               outgoing(std::move(out))
   {
-    // if the client talked before it was assigned a session, use bigger timeout
-    auto timeout = (talk) ? ROLLING_SESSION_TIMEOUT : INITIAL_SESSION_TIMEOUT;
-    // session timeout timer
-    this->timeout_timer = Timers::oneshot(timeout,
-    [&nodes = n, this] (int) {
-        this->timeout(nodes);
-    });
     incoming->on_read(READQ_PER_CLIENT,
     [this] (auto buf) {
         assert(this->is_alive());
-        this->handle_timeout();
         this->outgoing->write(buf);
     });
     incoming->on_close(
     [&nodes = n, idx] () {
-        nodes.get_session(idx).outgoing->close();
-        //nodes.get_session(idx).incoming->close();
+        nodes.close_session(idx);
     });
     outgoing->on_read(READQ_FOR_NODES,
     [this] (auto buf) {
         assert(this->is_alive());
-        this->handle_timeout();
         this->incoming->write(buf);
     });
     outgoing->on_close(
     [&nodes = n, idx] () {
-        //nodes.get_session(idx).outgoing->close();
-        nodes.get_session(idx).incoming->close();
+        nodes.close_session(idx);
     });
+
+    // get the actual TCP connections
+    /*
+    auto conn_in  = dynamic_cast<net::tcp::Stream*>(incoming->bottom_transport())->tcp();
+    assert(conn_in != nullptr);
+    auto conn_out = dynamic_cast<net::tcp::Stream*>(outgoing->bottom_transport())->tcp();
+    assert(conn_out != nullptr);
+
+    static const uint32_t sendq_max = 0x400000;
+    // set recv window handlers
+    conn_in->set_recv_wnd_getter(
+      [conn_out] () -> uint32_t {
+        auto sendq_size = conn_out->sendq_size();
+        //if (sendq_size == 0)
+        //    printf("WARNING: Incoming reports sendq size: %u\n", sendq_size);
+        return sendq_max - sendq_size;
+      });
+    conn_out->set_recv_wnd_getter(
+      [conn_in] () -> uint32_t {
+        auto sendq_size = conn_in->sendq_size();
+        //if (sendq_size == 0)
+        //    printf("WARNING: Outgoing reports sendq size: %u\n", sendq_size);
+        return sendq_max - sendq_size;
+      });
+    */
   }
   bool Session::is_alive() const {
     return incoming != nullptr;
-  }
-  void Session::handle_timeout()
-  {
-    // stop old timer
-    Timers::stop(this->timeout_timer);
-    // create new timeout
-    this->timeout_timer = Timers::oneshot(ROLLING_SESSION_TIMEOUT,
-    [&nodes = parent, this] (int) {
-        this->timeout(nodes);
-    });
-  }
-  void Session::timeout(Nodes& nodes)
-  {
-    assert(this->is_alive());
-    this->timeout_timer = Timers::UNUSED_ID;
-    nodes.close_session(this->self, true);
   }
 }

@@ -49,7 +49,7 @@ public:
       return std::make_shared<std::vector<uint8_t>> (std::move(data_));
     }
 
-    std::string as_text() const
+    std::string to_string() const
     { return std::string(data(), size()); }
 
     size_t size() const noexcept
