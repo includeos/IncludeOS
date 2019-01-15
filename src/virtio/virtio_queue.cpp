@@ -165,6 +165,9 @@ void Virtio::Queue::disable_interrupts() {
 void Virtio::Queue::enable_interrupts() {
   _queue.avail->flags &= ~(1 << VIRTQ_AVAIL_F_NO_INTERRUPT);
 }
+bool Virtio::Queue::interrupts_enabled() const noexcept {
+  return (_queue.avail->flags & (1 << VIRTQ_AVAIL_F_NO_INTERRUPT)) == 0;
+}
 
 // this will force most of the implementation to not use PCI
 // and thus be more easily testable

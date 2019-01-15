@@ -40,7 +40,9 @@ CASE("Virtio Queue interrupts")
 {
   Virtio::Queue q("Test queue", 4096, 0, 0x1000);
   q.enable_interrupts();
+  EXPECT(q.interrupts_enabled());
   q.disable_interrupts();
+  EXPECT(!q.interrupts_enabled());
 }
 
 CASE("Virtio Queue dequeue")

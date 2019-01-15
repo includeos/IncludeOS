@@ -226,6 +226,7 @@ public:
 
     void disable_interrupts();
     void enable_interrupts();
+    bool interrupts_enabled() const noexcept;
 
     /** Release token. @param head : the token ID to release*/
     void release(uint32_t head);
