@@ -164,12 +164,18 @@ void TLS_stream::handle_write_congestion()
 }
 void TLS_stream::handle_data()
 {
-  while (m_transport->next_size() > 0)
+  while ( m_transport->next_size() > 0)
   {
     if (UNLIKELY(read_congested())){
       break;
     }
     tls_read(m_transport->read_next());
+    //bail
+    if (m_transport == nullptr)
+    {
+      printf("m_transport \n");
+       break;
+    }
   }
 }
 
