@@ -97,7 +97,9 @@ public:
    *     error("Device failed to read sector");
    *   }
    */
-  virtual void read(block_t blk, on_read_func reader) = 0;
+  virtual void read(block_t blk, on_read_func reader) {
+    read(blk, 1, std::move(reader));
+  }
 
   /**
    * Read blocks of data asynchronously from the device
@@ -122,16 +124,6 @@ public:
   virtual void read(block_t blk, size_t count, on_read_func reader) = 0;
 
   /**
-   * Read a block of data synchronously from the device
-   *
-   * @param blk
-   *   The block of data to read from the device
-   *
-   * @return A buffer containing the data or nullptr if an error occurred
-   */
-  virtual buffer_t read_sync(block_t blk) = 0;
-
-  /**
    * Read blocks of data synchronously from the device
    *
    * @param blk
@@ -142,7 +134,7 @@ public:
    *
    * @return A buffer containing the data or nullptr if an error occurred
    */
-  virtual buffer_t read_sync(block_t blk, size_t count) = 0;
+  virtual buffer_t read_sync(block_t blk, size_t count = 1) = 0;
 
   /**
    * Write blocks of data to device, IF specially supported
